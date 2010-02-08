@@ -14,21 +14,32 @@
 #include "../../Component.h"
 #include "../../Datatype/Address.h"
 #include "../../Datatype/AddressedWord.h"
+#include "../../Datatype/Data.h"
+#include "../../Memory/Buffer.h"
 
 class FetchLogic: public Component {
+
+/* Local state */
+  Buffer<AddressedWord> toSend;
+  bool canSend;
+  Address offsetAddr;
+
+/* Signals (wires) */
+  sc_signal<bool> sendData;
 
 /* Methods */
   void doOp();
   void haveResultFromCache();
+  void haveBaseAddress();
+  void sendNext();
 
 public:
 /* Ports */
   sc_in<Address> in;
-  sc_in<bool> cacheContainsInst;
+  sc_in<Data> baseAddress;
+  sc_in<bool> cacheContainsInst, flowControl;
   sc_out<Address> toIPKC;
   sc_out<AddressedWord> toNetwork;
-
-  // Flow control?
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(FetchLogic);

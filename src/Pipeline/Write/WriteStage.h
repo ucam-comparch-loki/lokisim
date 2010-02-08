@@ -30,8 +30,7 @@ class WriteStage: public PipelineStage {
 
 /* Signals (wires) */
   sc_signal<Word> ALUtoRegs, ALUtoMux, instToMux, muxOutput;
-  sc_signal<Array<AddressedWord> > out;
-  sc_signal<short> muxSelect;
+  sc_buffer<short> muxSelect;
 
 /* Methods */
   virtual void newCycle();
@@ -43,7 +42,8 @@ public:
 /* Ports */
   sc_in<Data> fromALU;
   sc_in<Instruction> inst;
-  sc_in<short> inRegAddr, inIndAddr;
+  sc_in<Array<bool> > flowControl;
+  sc_in<short> inRegAddr, inIndAddr, remoteChannel;
   sc_out<short> outRegAddr, outIndAddr;
   sc_out<Word> regData;
   sc_out<Array<AddressedWord> > output;

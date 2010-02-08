@@ -13,7 +13,7 @@
 class Data: public Word {
 
 public:
-  unsigned int getData();
+  unsigned int getData() const;
   void moveBit(int oldPos, int newPos);
 
   Data();

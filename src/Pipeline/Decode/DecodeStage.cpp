@@ -17,6 +17,7 @@ void DecodeStage::newCycle() {
 void DecodeStage::receivedFromRegs1() {
   Data d = static_cast<Data>(regIn1.read());
   regOut1.write(d);
+  baseAddress.write(d);
 }
 
 void DecodeStage::receivedFromRegs2() {
@@ -33,38 +34,41 @@ DecodeStage::DecodeStage(sc_core::sc_module_name name, int ID) :
 
   SC_METHOD(receivedFromRegs1);
   sensitive << regIn1;
+  dont_initialize();
 
   SC_METHOD(receivedFromRegs2);
   sensitive << regIn2;
+  dont_initialize();
 
 // Connect everything up
   decoder.instruction(instruction);
-  rcet.fromNetwork1(fromNetwork1); rcet.fromNetwork2(fromNetwork2);
+  rcet.fromNetwork1(fromNetwork1);
+  rcet.fromNetwork2(fromNetwork2);
 
   fl.toIPKC(address);
-
   fl.cacheContainsInst(cacheHit);
+  fl.toNetwork(out1);
+  fl.flowControl(flowControl);
+  fl.baseAddress(baseAddress);
 
-  decoder.regAddr1(toRegs1); decoder.regAddr2(toRegs2);
+  decoder.regAddr1(regReadAddr1);
+  decoder.regAddr2(regReadAddr2);
   decoder.indRead(indReadAddr);
   decoder.writeAddr(writeAddr);
   decoder.indWrite(indWriteAddr);
-
-  decoder.isIndirectRead(isIndirectRead);
-
+  decoder.isIndirectRead(isIndirect);
   decoder.toFetchLogic(decodeToFetch); fl.in(decodeToFetch);
 
   decoder.toRCET1(decodeToRCET1); rcet.fromDecoder1(decodeToRCET1);
   decoder.toRCET2(decodeToRCET2); rcet.fromDecoder2(decodeToRCET2);
-
-  decoder.operation(operation);
-  decoder.op1Select(op1Select); decoder.op2Select(op2Select);
-
   decoder.toSignExtend(decodeToExtend); extend.input(decodeToExtend);
 
-  fl.toNetwork(out1);
+  decoder.operation(operation);
+  decoder.op1Select(op1Select);
+  decoder.op2Select(op2Select);
 
-  rcet.toALU1(chEnd1); rcet.toALU2(chEnd2);
+  rcet.toALU1(chEnd1);
+  rcet.toALU2(chEnd2);
   extend.output(sExtend);
 
 }

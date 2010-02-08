@@ -7,15 +7,15 @@
 
 #include "AddressedWord.h"
 
-Word AddressedWord::getPayload() {
+Word AddressedWord::getPayload() const {
   return payload;
 }
 
-int AddressedWord::getAddress() {
+unsigned int AddressedWord::getAddress() const {
   return address;
 }
 
-short AddressedWord::getChannelID() {
+short AddressedWord::getChannelID() const {
   return channelID;
 }
 
@@ -25,7 +25,7 @@ AddressedWord::AddressedWord() {
   channelID = 0;
 }
 
-AddressedWord::AddressedWord(Word w, int addr, short id) {
+AddressedWord::AddressedWord(Word w, unsigned int addr, short id) {
   payload = w;
   address = addr;
   channelID = id;
@@ -38,7 +38,7 @@ AddressedWord::~AddressedWord() {
 
 /* Necessary functions/operators to pass this datatype down a channel */
 
-bool AddressedWord::operator== (const AddressedWord& other) {
+bool AddressedWord::operator== (const AddressedWord& other) const {
   return (this->payload == other.payload)
       && (this->address == other.address)
       && (this->channelID == other.channelID);

@@ -45,7 +45,7 @@ Word::~Word() {
 
 /* Necessary functions/operators to pass this datatype down a channel */
 
-bool Word::operator== (const Word& other) {
+bool Word::operator== (const Word& other) const {
   return this->data == other.data;
 }
 

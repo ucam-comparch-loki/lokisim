@@ -13,17 +13,17 @@
 class AddressedWord : public Word {
 
   Word payload;
-  int address;
+  unsigned int address;
   short channelID;
   // Type of word?
 
 public:
-  Word getPayload();
-  int getAddress();
-  short getChannelID();
+  Word getPayload() const;
+  unsigned int getAddress() const;
+  short getChannelID() const;
 
   AddressedWord();
-  AddressedWord(Word w, int addr, short chID);  // Remove addr?
+  AddressedWord(Word w, unsigned int addr, short chID);  // Remove addr?
   virtual ~AddressedWord();
 
 
@@ -36,7 +36,7 @@ public:
     sc_core::sc_trace(tf, w.channelID, txt);
   }
 
-  bool operator== (const AddressedWord& other);
+  bool operator== (const AddressedWord& other) const;
 
   AddressedWord& operator= (const AddressedWord& other);
 

@@ -10,7 +10,7 @@
 void WriteStage::newCycle() {
   Word w = static_cast<Word>(fromALU.read());
 
-  ALUtoRegs.write(w);
+  regData.write(w);
   outRegAddr.write(inRegAddr.read());
   outIndAddr.write(inIndAddr.read());
 
@@ -39,18 +39,21 @@ WriteStage::WriteStage(sc_core::sc_module_name name, int ID) :
 // Register methods
   SC_METHOD(receivedInst);
   sensitive << inst;
+  dont_initialize();
 
   SC_METHOD(receivedData);
   sensitive << fromALU;
+  dont_initialize();
 
 // Connect everything up
-  regData(ALUtoRegs);
   mux.in1(ALUtoMux);
   mux.in2(instToMux);
   mux.select(muxSelect);
   mux.result(muxOutput); scet.input(muxOutput);
 
   scet.output(output);
+  scet.remoteChannel(remoteChannel);
+  scet.flowControl(flowControl);
 
 }
 

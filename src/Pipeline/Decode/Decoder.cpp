@@ -11,6 +11,8 @@
 void Decoder::doOp() {
 
   // TODO: deal with NULL instruction
+  // TODO: tidy decode
+  // TODO: send the predicate and remote channel along the pipeline
 
   Instruction i = instruction.read();
 
@@ -19,6 +21,9 @@ void Decoder::doOp() {
   short destination = i.getDest();
   short operand1 = i.getSrc1();
   short operand2 = i.getSrc2();   // May not be valid -- depends on instruction
+  int immediate = i.getImmediate();
+  short predicate = i.getPredicate();
+  short remoteChannel = i.getRchannel();
 
   /*if(operation is an ALU operation)*/ this->operation.write(operation);
   if(operation == InstructionMap::IRDR) {
@@ -30,6 +35,20 @@ void Decoder::doOp() {
   if(operation == InstructionMap::IWTR) indWrite.write(destination);
   else writeAddr.write(destination);
 
+  // How do we know if data will be coming directly from the ALU?
+
+  if(operation==InstructionMap::SETFETCHCH) {
+    fetchChannel = immediate;   // Is it an immediate or read from a register?
+  }
+
+  // Send something to FetchLogic
+  if(operation==InstructionMap::FETCH || operation == InstructionMap::FETCHPST) {
+    // Need to modify once we have read the base address from the register file
+    Address *a = new Address(immediate, fetchChannel);
+    toFetchLogic.write(*a);
+    operand1 = destination;  // Fetches have an operand in the destination position
+  }
+
   // Determine where to read the first operand from: RCET or register file
   if(operand1 >= NUM_REGISTERS) {
     toRCET1.write(operand1 - NUM_REGISTERS);
@@ -40,11 +59,9 @@ void Decoder::doOp() {
     op1Select.write(1);         // ALU wants data from registers
   }
 
-  // How do we know if data will be coming directly from the ALU?
-
   // Determine where to get second operand from: immediate, RCET or registers
   if(InstructionMap::hasImmediate(operation)) {
-    Data* d = new Data(i.getImmediate());
+    Data* d = new Data(immediate);
     toSignExtend.write(*d);
     op2Select.write(3);         // ALU wants data from sign extender
   }
@@ -57,9 +74,9 @@ void Decoder::doOp() {
     op2Select.write(1);         // ALU wants data from registers
   }
 
-  // Do something if the instruction specifies a remote channel
+  // TODO: Do something if the instruction specifies a remote channel
 
-  // Send something to FetchLogic
+
 
 }
 

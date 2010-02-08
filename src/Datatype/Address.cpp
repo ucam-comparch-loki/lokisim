@@ -37,6 +37,10 @@ unsigned int Address::getLowestBits(int limit) const {
   return getBits(0, limit);
 }
 
+void Address::addOffset(int offset) {
+  setAddress(getAddress() + offset);
+}
+
 /* Constructors and destructors */
 Address::Address() : Word() {
   // Do nothing
@@ -47,9 +51,23 @@ Address::Address(const Word& other) : Word(other) {
 }
 
 Address::Address(int addr, int channelID) : Word() {
-  data = (addr << boundary) + channelID;
+  setAddress(addr);
+  setChannelID(channelID);
 }
 
 Address::~Address() {
 
+}
+
+void Address::setAddress(unsigned int addr) {
+  setBits(boundary, 31, addr);
+}
+
+void Address::setChannelID(unsigned int channelID) {
+  setBits(1, boundary-1, channelID);
+}
+
+void Address::setRWBit(bool read) {
+  if(read) setBits(0, 0, 1);
+  else setBits(0, 0, 0);
 }

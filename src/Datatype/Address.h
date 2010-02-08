@@ -12,12 +12,18 @@
 
 class Address: public Word {
 
+  void setAddress(unsigned int addr);
+  void setChannelID(unsigned int channelID);
+  void setRWBit(bool read);
+
 public:
   unsigned int getAddress() const;
   unsigned int getChannelID() const;
   bool getReadBit() const;
 
   unsigned int getLowestBits(int limit) const;
+
+  void addOffset(int offset);
 
   Address();
   Address(const Word& other);

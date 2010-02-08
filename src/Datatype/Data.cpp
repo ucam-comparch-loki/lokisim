@@ -7,7 +7,7 @@
 
 #include "Data.h"
 
-unsigned int Data::getData() {
+unsigned int Data::getData() const {
   return data;
 }
 

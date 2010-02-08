@@ -22,7 +22,7 @@
 class MemoryMat: public TileComponent {
 
 /* Local state */
-  AddressedStorage<Word> *data;
+  AddressedStorage<Word> data;
 
 /* Methods */
   // One copy of each function for each pair of input ports.

@@ -20,7 +20,8 @@ class SendChannelEndTable: public Component {
 
 protected:
 /* Local state */
-  vector<Buffer<AddressedWord> > *buffers;
+  vector<Buffer<AddressedWord> > buffers;
+  Array<AddressedWord> toSend;
 
 /* Methods */
   void doOp();
@@ -34,7 +35,7 @@ public:
   sc_in<short> remoteChannel;
   sc_out<Array<AddressedWord> > output;
 
-  sc_in<Array<bool> > flowControl;    // From flow control
+  sc_in<Array<bool> > flowControl;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(SendChannelEndTable);

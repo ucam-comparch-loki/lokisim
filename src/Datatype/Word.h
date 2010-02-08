@@ -36,7 +36,7 @@ public:
     sc_core::sc_trace(tf, w.data, txt);
   }
 
-  bool operator== (const Word& other);
+  bool operator== (const Word& other) const;
 
   Word& operator= (const Word& other);
 

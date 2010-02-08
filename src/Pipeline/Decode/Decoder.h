@@ -20,6 +20,9 @@
 
 class Decoder: public Component {
 
+/* Local state */
+  int fetchChannel;
+
 /* Methods */
   void doOp();
 

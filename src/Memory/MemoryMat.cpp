@@ -24,7 +24,7 @@ void MemoryMat::doOp2() {
 void MemoryMat::read1() {
   // Cast the Word to an Address to interpret it correctly
   int readAddress = (static_cast<Address>(in1.read())).getAddress();
-  Word inMem = data->read(readAddress);
+  Word inMem = data.read(readAddress);
   Word copy = inMem;
 
   int sendAddress = (static_cast<Address>(in3.read())).getAddress();
@@ -38,7 +38,7 @@ void MemoryMat::read1() {
 void MemoryMat::read2() {
   // Cast the Word to an Address to interpret it correctly
   int readAddress = (static_cast<Address>(in2.read())).getAddress();
-  Word inMem = data->read(readAddress);
+  Word inMem = data.read(readAddress);
   Word copy = inMem;
 
   int sendAddress = (static_cast<Address>(in4.read())).getAddress();
@@ -54,19 +54,21 @@ void MemoryMat::write1() {
   // Cast the Word to an Address to interpret it correctly
   int writeAddress = (static_cast<Address>(in3.read())).getAddress();
   Word newData = in1.read();
-  data->write(newData, writeAddress);
+  data.write(newData, writeAddress);
 }
 
 void MemoryMat::write2() {
   // Cast the Word to an Address to interpret it correctly
   int writeAddress = (static_cast<Address>(in4.read())).getAddress();
   Word newData = in2.read();
-  data->write(newData, writeAddress);
+  data.write(newData, writeAddress);
 }
 
-MemoryMat::MemoryMat(sc_core::sc_module_name name, int ID) : TileComponent(name, ID) {
-  data = new AddressedStorage<Word>(MEMORY_SIZE);
+MemoryMat::MemoryMat(sc_core::sc_module_name name, int ID) :
+    TileComponent(name, ID),
+    data(MEMORY_SIZE) {
 
+// Register methods
   SC_METHOD(doOp1);
   sensitive << in1;   // Execute doOp1 whenever data is received on in1
 
@@ -75,5 +77,5 @@ MemoryMat::MemoryMat(sc_core::sc_module_name name, int ID) : TileComponent(name,
 }
 
 MemoryMat::~MemoryMat() {
-  delete data;
+
 }
