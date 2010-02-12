@@ -19,9 +19,13 @@ class InstructionPacketFIFO : public Component {
 /* Local state */
   Buffer<Instruction> fifo;
 
+/* Signals (wires) */
+  sc_signal<bool> readSig, wroteSig;
+
 /* Methods */
   void insert();
   void remove();
+  void updateEmptySig();
   bool isEmpty();
 
 public:

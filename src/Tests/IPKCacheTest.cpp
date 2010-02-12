@@ -40,16 +40,13 @@
 //
 //  TIMESTEP;
 //
-////  address.write(a1);    // Makes the first packet execute again
 //  EXPECT_EQ(true, roomToFetch.read());
 //  in.write(i2);
 //
 //  TIMESTEP;
 //
-////  EXPECT_EQ(true, cacheHit);
 //  address.write(a2);
 //  in.write(i3);
-//  readSig.write(!readSig.read());
 //
 //  TIMESTEP;
 //

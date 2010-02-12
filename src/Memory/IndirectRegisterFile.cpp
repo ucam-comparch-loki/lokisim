@@ -12,6 +12,8 @@
 void IndirectRegisterFile::read1() {
   short addr = readAddr1.read();
   out1.write(regs.read(addr));
+
+  if(DEBUG) std::cout<<"Read "<<regs.read(addr)<<" from register "<<addr<<"\n";
 }
 
 /* Read from the address given (or pointed to) by readAddr2 */
@@ -21,6 +23,8 @@ void IndirectRegisterFile::read2() {
   if(indRead.read()) addr = indirect.read(addr);
 
   out2.write(regs.read(addr));
+
+  if(DEBUG) std::cout<<"Read "<<regs.read(addr)<<" from register "<<addr<<"\n";
 }
 
 /* Write to the address given in the register pointed to by indWriteAddr */
@@ -40,6 +44,8 @@ void IndirectRegisterFile::write() {
   short addr = writeAddr.read();
   Word w = writeData.read();
   regs.write(w, addr);
+
+  if(DEBUG) std::cout<<"Stored "<<w<<" to register "<<addr<<"\n";
 
   // Store the lowest 5 (currently) bits of the data in the indirect register file
   short toIndirect = (static_cast<Address>(writeData.read())).getLowestBits(4);

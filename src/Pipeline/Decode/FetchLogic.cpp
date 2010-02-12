@@ -20,6 +20,9 @@ void FetchLogic::doOp() {
 
 void FetchLogic::haveBaseAddress() {
 
+  // TODO: ensure that FetchLogic only uses addresses it wants, instead of
+  // the result of every register read.
+
   int base = baseAddress.read().getData();
   offsetAddr.addOffset(base);
 
@@ -31,6 +34,8 @@ void FetchLogic::haveBaseAddress() {
 /* If the cache doesn't contain the desired Instruction, send a request to
  * the memory. */
 void FetchLogic::haveResultFromCache() {
+
+  // TODO: use isRoomToFetch as well
 
   if(!(cacheContainsInst.read())) {
 
@@ -46,6 +51,7 @@ void FetchLogic::haveResultFromCache() {
     toSend.write(*retAddr);
     toSend.write(*sendAddr);
     if(canSend) sendData.write(!sendData.read());
+    else std::cout << "Not able to send FETCH from FetchLogic." << std::endl;
   }
 
 }

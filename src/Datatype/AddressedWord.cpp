@@ -20,7 +20,7 @@ short AddressedWord::getChannelID() const {
 }
 
 AddressedWord::AddressedWord() {
-  payload = Word();   // Is this stack-safe?
+  payload = *(new Word());
   address = 0;
   channelID = 0;
 }

@@ -20,6 +20,34 @@
 
 class DecodeStage: public PipelineStage {
 
+public:
+/* Ports */
+  sc_in<Word> in1, in2;
+  sc_out<AddressedWord> out1;
+
+  sc_in<Instruction> inst;
+  sc_in<Word> regIn1, regIn2;
+  sc_in<bool> cacheHit, roomToFetch, flowControl;
+  sc_out<Address> address;
+  sc_out<Instruction> remoteInst;
+  sc_out<short> regReadAddr1, regReadAddr2, writeAddr, indWriteAddr;
+  sc_out<short> remoteChannel, operation, op1Select, op2Select;
+  sc_out<bool> isIndirect, newRChannel;
+  sc_out<Data> chEnd1, chEnd2, regOut1, regOut2, sExtend;
+
+/* Constructors and destructors */
+  SC_HAS_PROCESS(DecodeStage);
+  DecodeStage(sc_core::sc_module_name name, int ID);
+  virtual ~DecodeStage();
+
+private:
+/* Methods */
+  // Methods which act when an input is received
+  void receivedFromRegs1();
+  void receivedFromRegs2();
+
+  virtual void newCycle();
+
 /* Components */
   FetchLogic fl;
   ReceiveChannelEndTable rcet;
@@ -33,32 +61,6 @@ class DecodeStage: public PipelineStage {
   sc_buffer<short> decodeToRCET1, decodeToRCET2;
   sc_signal<Data> decodeToExtend, baseAddress;
 
-/* Methods */
-  // Methods which act when an input is received
-  void receivedFromRegs1();
-  void receivedFromRegs2();
-
-  virtual void newCycle();
-
-public:
-/* Ports */
-  sc_in<Word> in1, in2;
-  sc_out<AddressedWord> out1;
-
-  sc_in<Instruction> inst;
-  sc_in<Word> regIn1, regIn2;
-  sc_in<bool> cacheHit, flowControl;
-  sc_out<Address> address;
-  sc_out<Instruction> remoteInst;
-  sc_out<short> regReadAddr1, regReadAddr2, indReadAddr, writeAddr, indWriteAddr;
-  sc_out<bool> isIndirect;
-  sc_out<short> operation, op1Select, op2Select;
-  sc_out<Data> chEnd1, chEnd2, regOut1, regOut2, sExtend;
-
-/* Constructors and destructors */
-  SC_HAS_PROCESS(DecodeStage);
-  DecodeStage(sc_core::sc_module_name name, int ID);
-  virtual ~DecodeStage();
 };
 
 #endif /* DECODESTAGE_H_ */

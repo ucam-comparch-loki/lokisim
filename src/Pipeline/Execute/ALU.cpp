@@ -9,30 +9,36 @@
 #include "../../InstructionMap.h"
 
 void ALU::doOp() {
+
+  if(select.read() == InstructionMap::NOP) return;
+
   Data d1 = in1.read(), d2 = in2.read();
-  unsigned int val1 = d1.getData();  // unsigned?
-  unsigned int val2 = d2.getData();  // unsigned?
-  unsigned int result;               // unsigned?
+
+  if(DEBUG) std::cout<<"ALU received Data: "<<d1<<" and "<<d2<<"\n";
+
+  unsigned int val1 = d1.getData();
+  unsigned int val2 = d2.getData();
+  unsigned int result;
 
   switch(select.read()) {
 
     case InstructionMap::SLL:
     case InstructionMap::SLLV: result = val1 << val2; break;
     case InstructionMap::SRL:
-    case InstructionMap::SRLV: result = val1 >> val2; break;   // Test
+    case InstructionMap::SRLV: result = val1 >> val2; break;
     case InstructionMap::SRA:
-    case InstructionMap::SRAV: result = (int)val1 >> (int)val2; break; // Test
+    case InstructionMap::SRAV: result = (int)val1 >> (int)val2; break;
 
     case InstructionMap::SEQ:
     case InstructionMap::SEQI: result = (val1 == val2); break;
     case InstructionMap::SNE:
     case InstructionMap::SNEI: result = (val1 != val2); break;
     case InstructionMap::SLT:
-    case InstructionMap::SLTI: result = ((int)val1 < (int)val2); break; // Test
+    case InstructionMap::SLTI: result = ((int)val1 < (int)val2); break;
     case InstructionMap::SLTU:
-    case InstructionMap::SLTIU: result = (val1 < val2); break; // Test
+    case InstructionMap::SLTIU: result = (val1 < val2); break;
 
-    case InstructionMap::LUI:  result = val1 << 16; break; // Test
+    case InstructionMap::LUI:  result = val1 << 16; break;
 
 //    case InstructionMap::PSEL: result = predicate ? val1 : val2; break;
 
@@ -63,8 +69,6 @@ void ALU::doOp() {
     default: result = val1;// Is this a good default?
   }
 
-//  Data* output = new Data(result);
-//  out.write(*output);
   out.write(Data(result));
 
 }
@@ -72,7 +76,7 @@ void ALU::doOp() {
 ALU::ALU(sc_core::sc_module_name name, int ID) : Component(name, ID) {
 
   SC_METHOD(doOp);
-  sensitive << select << in1 << in2;  // Would prefer to just have select
+  sensitive << select /*<< in1 << in2*/;  // Would prefer to just have select
   dont_initialize();
 
 }

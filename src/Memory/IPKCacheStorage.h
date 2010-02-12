@@ -54,8 +54,7 @@ public:
 
     // Should this only check regions with valid instructions, or everywhere?
 
-    // TODO: Do a looping search, starting from currentInstruction,
-    // or only store tags for first instruction of each packet
+    // TODO: Only store tags for first instruction of each packet
 
     for(unsigned int i=0; i<MappedStorage<K,T>::tags.size(); i++) {
       if(MappedStorage<K,T>::tags.at(i) == key) {
@@ -77,7 +76,11 @@ public:
       incrementCurrent();
       return Storage<T>::data.at(i);
     }
-    else return *(new T());
+    else {
+      printf("Exception in IPKCacheStorage.read()\n");
+      throw std::exception();
+    }
+
   }
 
   // Writes new data to a position determined using the given key
@@ -90,12 +93,12 @@ public:
     incrementRefill();
   }
 
-  int remainingSpace() {
+  int remainingSpace() const {
     int space = Storage<T>::data.size() - fillCount;
     return space;
   }
 
-  bool isEmpty() {
+  bool isEmpty() const {
     return fillCount == 0;
   }
 
@@ -108,6 +111,7 @@ public:
   IPKCacheStorage(int size=64) : MappedStorage<K,T>(size) {
     currentInstruction = NOT_IN_USE;
     refillPointer = 0;
+    fillCount = 0;
     pendingPacket = NOT_IN_USE;
   }
 

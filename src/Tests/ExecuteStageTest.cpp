@@ -19,7 +19,7 @@
 //
 //  sc_signal<Data> mux1_1, mux1_2, mux1_3, mux2_1, mux2_2, mux2_3, mux2_4, out;
 //  sc_signal<short> mux1_select, mux2_select, operation;
-//  sc_signal<short> writeAddr, indWriteAddr;
+//  sc_signal<short> writeAddr, indWriteAddr, rChannel;
 //  sc_signal<Instruction> remoteInst;
 //
 //  execute.clock(clock);
@@ -42,6 +42,7 @@
 //  execute.writeIn(writeAddr); execute.writeOut(writeAddr);
 //  execute.indWriteIn(indWriteAddr); execute.indWriteOut(indWriteAddr);
 //  execute.remoteInstIn(remoteInst); execute.remoteInstOut(remoteInst);
+//  execute.remoteChannelIn(rChannel); execute.remoteChannelOut(rChannel);
 //
 //// Prepare initial values
 //  Data d1(1), d2(2), d3(3), d4(4), d5(5), d6(6), d7(7);

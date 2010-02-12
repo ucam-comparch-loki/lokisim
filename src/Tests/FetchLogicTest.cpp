@@ -15,17 +15,20 @@
 //  FetchLogic fl("fetchlogic", 1);
 //
 //  sc_signal<Address> input, toIPKC;
-//  sc_signal<bool> cacheHit, flowControl;
+//  sc_signal<bool> cacheHit, roomToFetch, flowControl;
 //  sc_signal<AddressedWord> output;
 //  sc_signal<Data> baseAddress;
 //
 //// Connect things up
 //  fl.in(input);
 //  fl.cacheContainsInst(cacheHit);
+//  fl.isRoomToFetch(roomToFetch);
 //  fl.flowControl(flowControl);
 //  fl.toIPKC(toIPKC);
 //  fl.toNetwork(output);
 //  fl.baseAddress(baseAddress);
+//
+//  // Need to use isRoomToFetch too
 //
 //// Test
 //  Address a1(1,1), a2(2,2);

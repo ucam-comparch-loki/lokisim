@@ -24,13 +24,18 @@ class InstructionPacketCache : public Component {
 /* Local state */
   IPKCacheStorage<Address, Instruction> cache;
   Buffer<Address> addresses;
-  bool empty;
+  Instruction instToSend;
+  bool sentNewInst, outputWasRead;
+
+/* Signals (wires) */
+  sc_signal<bool> writeNotify1, writeNotify2; // Signal that there is data to send
 
 /* Methods */
   void insertInstruction();
   void lookup();
   void finishedRead();
   void updateRTF();
+  void write();
 
 public:
 /* Ports */

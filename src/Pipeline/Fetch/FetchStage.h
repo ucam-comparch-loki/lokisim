@@ -26,7 +26,6 @@ class FetchStage : public PipelineStage {
 
 /* Local state */
   bool usingCache;
-  short selectVal;
 
 /* Signals (wires) */
   sc_signal<Instruction> toCache, toFIFO, cacheToMux, FIFOtoMux, output;

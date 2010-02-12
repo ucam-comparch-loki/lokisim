@@ -8,27 +8,42 @@
 #include "WriteStage.h"
 
 void WriteStage::newCycle() {
-  Word w = static_cast<Word>(fromALU.read());
 
-  regData.write(w);
-  outRegAddr.write(inRegAddr.read());
-  outIndAddr.write(inIndAddr.read());
+  while(true) {
+    regData.write(fromALU.read());
+    outRegAddr.write(inRegAddr.read());
+    outIndAddr.write(inIndAddr.read());
 
-  muxSelect.write(select);
+    wait(clock.posedge_event());
+  }
+
 }
 
-/* Cast the input Instruction to a Word when we receive it */
+/* Change the multiplexor's select signal so it uses the new Instruction */
 void WriteStage::receivedInst() {
-  Word w = static_cast<Word>(inst.read());
-  instToMux.write(w);
-  select = 1;   // Want this Instruction to get into the SCET
+  instToMux.write(inst.read());
+  selectVal = 1;   // Want this Instruction to get into the SCET
+  newInstSig.write(!newInstSig.read());
+
+  if(DEBUG) std::cout<<"WriteStage received Instruction: "<<inst.read()<<"\n";
 }
 
-/* Cast the input Data to a Word when we receive it */
+/* Change the multiplexor's select signal so it uses the new Data */
 void WriteStage::receivedData() {
-  Word w = static_cast<Word>(fromALU.read());
-  ALUtoMux.write(w);
-  select = 0;   // Want this Data to get into the SCET
+  ALUtoMux.write(fromALU.read());
+  selectVal = 0;   // Want this Data to get into the SCET
+  newDataSig.write(!newDataSig.read());
+
+  if(DEBUG) std::cout<<"WriteStage received Data: "<<fromALU.read()<<"\n";
+}
+
+/* We now know where to send the Data, so we can put it into a buffer */
+void WriteStage::receivedRChannel() {
+  haveNewChannel = true;
+}
+
+void WriteStage::select() {
+  if(haveNewChannel) muxSelect.write(selectVal);
 }
 
 WriteStage::WriteStage(sc_core::sc_module_name name, int ID) :
@@ -43,6 +58,14 @@ WriteStage::WriteStage(sc_core::sc_module_name name, int ID) :
 
   SC_METHOD(receivedData);
   sensitive << fromALU;
+  dont_initialize();
+
+  SC_METHOD(receivedRChannel);
+  sensitive << newRChannel;
+  dont_initialize();
+
+  SC_METHOD(select);
+  sensitive << newInstSig << newDataSig;
   dont_initialize();
 
 // Connect everything up

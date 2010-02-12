@@ -19,30 +19,12 @@
 
 class WriteStage: public PipelineStage {
 
-/* Components */
-  SendChannelEndTable scet;
-  Multiplexor2<Word> mux;
-
-/* Local state */
-  // Choose which input of the multiplexor to use.
-  // Only one input can be active at once.
-  short select;
-
-/* Signals (wires) */
-  sc_signal<Word> ALUtoRegs, ALUtoMux, instToMux, muxOutput;
-  sc_buffer<short> muxSelect;
-
-/* Methods */
-  virtual void newCycle();
-
-  void receivedInst();
-  void receivedData();
-
 public:
 /* Ports */
   sc_in<Data> fromALU;
   sc_in<Instruction> inst;
   sc_in<Array<bool> > flowControl;
+  sc_in<bool> newRChannel;
   sc_in<short> inRegAddr, inIndAddr, remoteChannel;
   sc_out<short> outRegAddr, outIndAddr;
   sc_out<Word> regData;
@@ -52,6 +34,32 @@ public:
   SC_HAS_PROCESS(WriteStage);
   WriteStage(sc_core::sc_module_name name, int ID);
   virtual ~WriteStage();
+
+private:
+/* Methods */
+  virtual void newCycle();
+
+  void receivedInst();
+  void receivedData();
+  void receivedRChannel();
+  void select();
+
+/* Components */
+  SendChannelEndTable scet;
+  Multiplexor2<Word> mux;
+
+/* Local state */
+  // Choose which input of the multiplexor to use.
+  // Only one input can be active at once.
+  short selectVal;
+  bool haveNewChannel;
+
+/* Signals (wires) */
+  sc_buffer<Word> ALUtoRegs, muxOutput;
+  sc_buffer<Word> ALUtoMux, instToMux;
+  sc_buffer<short> muxSelect;
+  sc_signal<bool> newInstSig, newDataSig;
+
 };
 
 #endif /* WRITESTAGE_H_ */

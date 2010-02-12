@@ -19,6 +19,6 @@
 #include "../Datatype/AddressedWord.h"
 
 // A small unit of simulation time, allowing signals to propagate
-#define TIMESTEP sc_start(1, SC_NS)
+#define TIMESTEP sc_start(1, SC_NS); if(DEBUG) printf("===============\n")
 
 #endif /* TEST_H_ */

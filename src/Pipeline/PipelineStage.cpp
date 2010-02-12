@@ -10,9 +10,11 @@
 PipelineStage::PipelineStage(sc_core::sc_module_name name, int ID)
     : Component(name, ID) {
 
-  SC_METHOD(newCycle);
-  sensitive << clock.pos();
-  dont_initialize();
+  SC_THREAD(newCycle);
+
+//  SC_METHOD(newCycle);
+//  sensitive << clock.pos();
+//  dont_initialize();
 
 }
 

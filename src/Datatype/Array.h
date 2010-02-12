@@ -15,48 +15,63 @@
 template<class T>
 class Array {
 
-  int size;
   std::vector<T> array;    // Use a pre-made Array class instead?
 
 public:
 
-  void put(int position, T& data) {
-    if(position>=0 && position<size) array.at(position) = data;
+  int length() const {
+    return array.size();
+  }
+
+  void put(int position, const T& data) {
+    if(position>=0 && position<length()) array.at(position) = data;
   }
 
   T& get(int position) const {      // Iterator instead of get method?
-    if(position>=0 && position<size) {
+    if(position>=0 && position<length()) {
       T* result = new T(array.at(position));
       return *result;
     }
     else {
-      printf("Asked for position %d when size is %d\n", position, size);
+      printf("Exception in Array.get(%d)\n", position);
       throw new std::exception();
     }
   }
 
-  void merge(Array<T>& other) {
-    std::vector<T> newArray = std::vector<T>(size + other.size);
+  void merge(const Array<T>& other) {
+    std::vector<T> newArray = std::vector<T>(length() + other.length());
 
-    for(int i=0; i<size; i++) {
+    for(int i=0; i<length(); i++) {
       newArray[i] = array[i];
     }
 
-    for(int i=0; i<other.size; i++) {
-      newArray[i+size] = other.array[i];
+    for(int i=0; i<other.length(); i++) {
+      newArray[i+length()] = other.array[i];
     }
 
-    size += other.size;
     array = newArray;
   }
 
 /* Constructors and destructors */
   Array(int size) : array(size) {
-    this->size = size;
+
   }
 
-  Array() {
-    size = 0;
+  Array(const Array<T>& other, int start, int end) : array(end-start+1) {
+
+    for(int i=0; i<length(); i++) {
+      try {
+        array[i] = other.array[start+i];
+      }
+      catch(std::exception e) {
+        printf("Copying from beyond end of Array.");
+        array[i] = T();
+      }
+    }
+  }
+
+  Array() : array() {
+
   }
 
   ~Array() {
@@ -69,19 +84,17 @@ public:
   }
 
   bool operator== (const Array<T>& other) const {
-    return (this->array == other.array)    // Probably bad
-        && (this->size == other.size);
+    return (this->array == other.array);   // Probably bad
   }
 
-  Array* operator= (const Array<T>& other) {
+  Array& operator= (const Array<T>& other) {
     this->array = other.array;
-    this->size = other.size;
-    return this;
+    return *this;
   }
 
   friend std::ostream& operator<< (std::ostream& os, Array<T> const& v) {
 
-    for(int i=0; i<v.size; i++) {
+    for(int i=0; i<v.length(); i++) {
       os << v.array[i] << " ";
     }
 

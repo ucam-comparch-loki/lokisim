@@ -27,6 +27,7 @@ public:
 
   static bool hasImmediate(short operation);
   static bool hasRemoteChannel(short operation);
+  static bool isALUOperation(short operation);
 
   static short operation(short opcode);
   static short opcode(std::string& name);

@@ -9,21 +9,30 @@
 
 /* Simulate pipelining by only allowing signals through at the start of a cycle */
 void ExecuteStage::newCycle() {
-  rcet1.write(fromRChan1.read());
-  rcet2.write(fromRChan2.read());
-  reg1.write(fromReg1.read());
-  reg2.write(fromReg2.read());
-  sExtend.write(fromSExtend.read());
-  ALU1.write(fromALU1.read());
-  ALU2.write(fromALU2.read());
+  while(true) {
+    in1Select.write(op1Select.read());
+    in2Select.write(op2Select.read());
 
-  in1Select.write(op1Select.read());
-  in2Select.write(op2Select.read());
-  ALUSelect.write(operation.read());
+    wait(0, sc_core::SC_NS);  // Allow time for the multiplexors to select values
+    if(newOperation) ALUSelect.write(operation.read());
 
-  writeOut.write(writeIn.read());
-  indWriteOut.write(indWriteIn.read());
-  remoteInstOut.write(remoteInstIn.read());
+    writeOut.write(writeIn.read());
+    indWriteOut.write(indWriteIn.read());
+    remoteChannelOut.write(remoteChannelIn.read());
+    if(newInst) remoteInstOut.write(remoteInstIn.read());
+    newRChannelOut.write(newRChannelIn.read());
+
+    newInst = newOperation = false;
+    wait(clock.posedge_event());
+  }
+}
+
+void ExecuteStage::receivedInstruction() {
+  newInst = true;
+}
+
+void ExecuteStage::receivedOperation() {
+  newOperation = true;
 }
 
 ExecuteStage::ExecuteStage(sc_core::sc_module_name name, int ID) :
@@ -31,6 +40,18 @@ ExecuteStage::ExecuteStage(sc_core::sc_module_name name, int ID) :
     alu("alu", ID),
     in1Mux("ALUin1"),
     in2Mux("ALUin2") {
+
+  newInst = false;
+  newOperation = false;
+
+// Register methods
+  SC_METHOD(receivedInstruction);
+  sensitive << remoteInstIn;
+  dont_initialize();
+
+  SC_METHOD(receivedOperation);
+  sensitive << operation;
+  dont_initialize();
 
 // Connect everything up
   in1Mux.result(toALU1); alu.in1(toALU1);
@@ -41,14 +62,14 @@ ExecuteStage::ExecuteStage(sc_core::sc_module_name name, int ID) :
   in2Mux.select(in2Select);
   alu.select(ALUSelect);
 
-  in1Mux.in1(rcet1);
-  in1Mux.in2(reg1);
-  in1Mux.in3(ALU1);
+  in1Mux.in1(fromRChan1);
+  in1Mux.in2(fromReg1);
+  in1Mux.in3(fromALU1);
 
-  in2Mux.in1(rcet2);
-  in2Mux.in2(reg2);
-  in2Mux.in3(ALU2);
-  in2Mux.in4(sExtend);
+  in2Mux.in1(fromRChan2);
+  in2Mux.in2(fromReg2);
+  in2Mux.in3(fromALU2);
+  in2Mux.in4(fromSExtend);
 
 }
 

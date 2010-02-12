@@ -10,11 +10,13 @@
 
 void Decoder::doOp() {
 
-  // TODO: deal with NULL instruction
   // TODO: tidy decode
-  // TODO: send the predicate and remote channel along the pipeline
+  // TODO: send the predicate along the pipeline
+  // TODO: determine when to send a remote instruction, and what it should be
 
-  Instruction i = instruction.read();
+  Instruction i = instructionIn.read();
+
+  if(DEBUG) std::cout << "DecodeStage received Instruction: " << i << "\n";
 
   // Extract useful information from the instruction
   short operation = InstructionMap::operation(i.getOp());
@@ -25,9 +27,8 @@ void Decoder::doOp() {
   short predicate = i.getPredicate();
   short remoteChannel = i.getRchannel();
 
-  /*if(operation is an ALU operation)*/ this->operation.write(operation);
   if(operation == InstructionMap::IRDR) {
-    indRead.write(operand2);
+    regAddr2.write(operand2);
     isIndirectRead.write(true);
   }
   else isIndirectRead.write(false);
@@ -49,14 +50,25 @@ void Decoder::doOp() {
     operand1 = destination;  // Fetches have an operand in the destination position
   }
 
+
+  if(InstructionMap::isALUOperation(operation)) {
+    this->operation.write(operation);
+  }
+  else this->operation.write(InstructionMap::NOP);
+
   // Determine where to read the first operand from: RCET or register file
   if(operand1 >= NUM_REGISTERS) {
     toRCET1.write(operand1 - NUM_REGISTERS);
     op1Select.write(0);         // ALU wants data from receive channel end table
   }
   else {
-    regAddr1.write(operand1);
-    op1Select.write(1);         // ALU wants data from registers
+    if(operand1 == regLastWritten) {
+      op1Select.write(2);       // ALU wants data from itself
+    }
+    else {
+      regAddr1.write(operand1);
+      op1Select.write(1);       // ALU wants data from registers
+    }
   }
 
   // Determine where to get second operand from: immediate, RCET or registers
@@ -70,20 +82,32 @@ void Decoder::doOp() {
     op2Select.write(0);         // ALU wants data from receive channel end table
   }
   else {
-    regAddr2.write(operand2);
-    op2Select.write(1);         // ALU wants data from registers
+    if(operand2 == regLastWritten) {
+      op2Select.write(2);       // ALU wants data from itself
+    }
+    else {
+      regAddr2.write(operand2);
+      op2Select.write(1);       // ALU wants data from registers
+    }
   }
 
-  // TODO: Do something if the instruction specifies a remote channel
 
+  if(InstructionMap::hasRemoteChannel(operation)) {
+    /*if(valid channel ID)*/ rChannel.write(remoteChannel);
+    newRChannel.write(!newRChannel.read());
+  }
 
+  regLastWritten = destination;
 
 }
 
 Decoder::Decoder(sc_core::sc_module_name name, int ID) : Component(name, ID) {
 
+  regLastWritten = -1;
+
   SC_METHOD(doOp);
-  sensitive << instruction;
+  sensitive << instructionIn;
+  dont_initialize();
 
 }
 

@@ -37,7 +37,7 @@ public:
 /* Ports */
   sc_in<Address> in;
   sc_in<Data> baseAddress;
-  sc_in<bool> cacheContainsInst, flowControl;
+  sc_in<bool> cacheContainsInst, isRoomToFetch, flowControl;
   sc_out<Address> toIPKC;
   sc_out<AddressedWord> toNetwork;
 

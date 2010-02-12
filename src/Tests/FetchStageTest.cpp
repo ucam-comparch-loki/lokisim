@@ -67,13 +67,13 @@
 //
 //  in2.write(i8);
 //  temp = out.read();
-//  EXPECT_EQ(i4, temp);
+//  EXPECT_EQ(i4, temp) << "Didn't switch from cache to FIFO.";
 //
 //  TIMESTEP;
 //
 //  in2.write(i9);
 //  temp = out.read();
-//  EXPECT_EQ(i5, temp) << "Switched back too quickly.";
+//  EXPECT_EQ(i5, temp) << "Switched back to cache too quickly.";
 //
 //  TIMESTEP;
 //
@@ -83,7 +83,7 @@
 //  TIMESTEP;
 //
 //  temp = out.read();
-//  EXPECT_EQ(i7, temp);
+//  EXPECT_EQ(i7, temp) << "Didn't switch from FIFO to cache.";
 //
 //  TIMESTEP;
 //
@@ -94,5 +94,16 @@
 //
 //  temp = out.read();
 //  EXPECT_EQ(i9, temp);
+//
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//
+//  in2.write(i3);      // See if it starts sending new instructions immediately
+//
+//  TIMESTEP;
+//
+//  temp = out.read();
+//  EXPECT_EQ(i3, temp) << "Cache doesn't send new Instructions when empty.";
 //
 //}

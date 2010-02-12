@@ -35,11 +35,13 @@ public:
   virtual T& read() {
     if(!isEmpty()) {
       int i = readFrom;
-//      T result = Storage<T>::data.at(readFrom);
       incrementReadFrom();
       return Storage<T>::data.at(i);
     }
-    else throw std::exception();
+    else {
+//      printf("Exception in Buffer.read()\n");
+      throw std::exception();
+    }
   }
 
   virtual void write(const T& newData) {
@@ -47,31 +49,37 @@ public:
       Storage<T>::data.at(writeTo) = newData;
       incrementWriteTo();
     }
-    else throw std::exception();
+    else {
+//      printf("Exception in Buffer.write()\n");
+      throw std::exception();
+    }
   }
 
   T& peek() {
     if(!isEmpty()) {
       return (Storage<T>::data.at(readFrom));
     }
-    else throw std::exception();
+    else {
+//      printf("Exception in Buffer.peek()\n");
+      throw std::exception();
+    }
   }
 
-  void pop() {
-    incrementReadFrom();
+  void discardTop() {
+    if(!isEmpty()) incrementReadFrom();
   }
 
-  bool isEmpty() {                              // private?
-    return (readFrom == writeTo) && (fillCount == 0);
+  bool isEmpty() {
+    return (fillCount == 0);
   }
 
-  bool isFull() {                               // private?
-    return (readFrom == writeTo) && (fillCount == size);
+  bool isFull() {
+    return (fillCount == size);
   }
 
   void print() {
     for(int i=0; i<this->size; i++) std::cout << Storage<T>::data.at(i) << " ";
-    std::cout << "\n" << std::endl;
+    std::cout << std::endl;
   }
 
 /* Constructors and destructors */

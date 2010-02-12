@@ -8,19 +8,19 @@
 #include "FetchStage.h"
 
 void FetchStage::newCycle() {
+  while(true) {
+    if(!usingCache) readFromFIFO.write(!readFromFIFO.read());
+    else readFromCache.write(!readFromCache.read());
 
-  selectVal = calculateSelect();
-
-  if(selectVal==1) readFromFIFO.write(!readFromFIFO.read());
-  else readFromCache.write(!readFromCache.read());
-
-//  muxSelect.write(sel);
-
+    wait(clock.posedge_event());
+  }
 }
 
 void FetchStage::newFIFOInst() {
   Instruction* instToFIFO = new Instruction(
                               static_cast<Instruction>(toIPKQueue.read()));
+
+  if(DEBUG) std::cout<<"IPK FIFO received Instruction:  "<<*instToFIFO<<"\n";
 
   toFIFO.write(*instToFIFO);
 }
@@ -28,6 +28,8 @@ void FetchStage::newFIFOInst() {
 void FetchStage::newCacheInst() {
   Instruction* instToCache = new Instruction(
                               static_cast<Instruction>(toIPKCache.read()));
+
+  if(DEBUG) std::cout<<"IPK Cache received Instruction: "<<*instToCache<<"\n";
 
   toCache.write(*instToCache);
 }
@@ -40,25 +42,31 @@ void FetchStage::newCacheInst() {
 short FetchStage::calculateSelect() {
 
   // 0 = cache, 1 = FIFO
-  short result = usingCache ? 0 : 1;
+  short result;
 
   if(usingCache) {
     Instruction i = cacheToMux.read();
-    usingCache = !i.endOfPacket() || fifoEmpty.read();
+    usingCache = fifoEmpty.read() || !i.endOfPacket();
+    result = 0; //cache
   }
   else {
     usingCache = fifoEmpty.read();
+    result = usingCache ? 0 : 1;
   }
-
-  // Deal with situations where neither input has instructions?
 
   return result;
 
 }
 
-
 void FetchStage::select() {
-  muxSelect.write(calculateSelect());
+  short sel = calculateSelect();
+  muxSelect.write(sel);
+
+//  if(DEBUG) {
+//    printf("FetchStage selected instruction from %s\n", sel==0?"cache":"FIFO");
+//    if(sel) std::cout<<"FetchStage sent Instruction: "<<FIFOtoMux.read()<<"\n";
+//    else std::cout<<"FetchStage sent Instruction: "<<cacheToMux.read()<<"\n";
+//  }
 }
 
 FetchStage::FetchStage(sc_core::sc_module_name name, int ID) :
@@ -68,7 +76,6 @@ FetchStage::FetchStage(sc_core::sc_module_name name, int ID) :
     mux("fetchmux") {
 
   usingCache = true;
-  selectVal = 0;
 
 // Register methods
   SC_METHOD(newFIFOInst);
@@ -80,7 +87,7 @@ FetchStage::FetchStage(sc_core::sc_module_name name, int ID) :
   dont_initialize();
 
   SC_METHOD(select);
-  sensitive << cacheToMux << FIFOtoMux;
+  sensitive << cacheToMux << FIFOtoMux << clock.pos();
   dont_initialize();
 
 // Connect everything up

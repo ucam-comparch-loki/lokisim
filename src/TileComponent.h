@@ -25,11 +25,10 @@ public:
 /* Ports */
   sc_in<bool> clock;
 
-  sc_in<Word> in1;
-  sc_in<Word> in2;
-  sc_in<Word> in3;
-  sc_in<Word> in4;
+  sc_in<Word> in1, in2, in3, in4;
+//  sc_out<Array<bool> > flowControlOut;
 
+  sc_in<Array<bool> > flowControlIn;
   sc_out<Array<AddressedWord> > out;
 
 /* Constructors and destructors */

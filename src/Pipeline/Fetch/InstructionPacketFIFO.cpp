@@ -10,10 +10,17 @@
 void InstructionPacketFIFO::insert() {
   Instruction i = in.read();
   fifo.write(i);
+  wroteSig.write(!wroteSig.read());
 }
 
 void InstructionPacketFIFO::remove() {
-  out.write(fifo.read());
+  if(!fifo.isEmpty()) {
+    out.write(fifo.read());
+    readSig.write(!readSig.read());
+  }
+}
+
+void InstructionPacketFIFO::updateEmptySig() {
   empty.write(isEmpty());
 }
 
@@ -33,6 +40,10 @@ InstructionPacketFIFO::InstructionPacketFIFO(sc_core::sc_module_name name, int I
   SC_METHOD(remove);
   sensitive << readInstruction;
   dont_initialize();
+
+  SC_METHOD(updateEmptySig);
+  sensitive << readSig << wroteSig;
+  // do initialise
 
 }
 

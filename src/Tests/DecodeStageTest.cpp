@@ -23,9 +23,9 @@ protected:
   sc_signal<AddressedWord> out;
   sc_signal<Instruction> instIn, instOut;
   sc_buffer<bool> cacheHit;
-  sc_signal<bool> isIndirect, flowControl;
+  sc_signal<bool> isIndirect, flowControl, roomToFetch;
   sc_signal<Address> address;
-  sc_signal<short> regRead1, regRead2, indRead, write, indWrite;
+  sc_signal<short> regRead1, regRead2, write, indWrite, rChannel;
   sc_signal<short> operation, op1Select, op2Select;
   sc_signal<Data> RCETtoALU1, RCETtoALU2, regToALU1, regToALU2, SEtoALU;
 
@@ -45,10 +45,10 @@ protected:
     ds.in1(in1);
     ds.in2(in2);
     ds.isIndirect(isIndirect); regs.indRead(isIndirect);
-    ds.indReadAddr(indRead);
     ds.indWriteAddr(indWrite);
     ds.inst(instIn);
     ds.remoteInst(instOut);
+    ds.remoteChannel(rChannel);
     ds.op1Select(op1Select);
     ds.op2Select(op2Select);
     ds.operation(operation);
@@ -59,6 +59,7 @@ protected:
     ds.regOut2(regToALU2);
     ds.regReadAddr1(regRead1); regs.readAddr1(regRead1);
     ds.regReadAddr2(regRead2); regs.readAddr2(regRead2);
+    ds.roomToFetch(roomToFetch);
     ds.sExtend(SEtoALU);
     ds.writeAddr(write);
 

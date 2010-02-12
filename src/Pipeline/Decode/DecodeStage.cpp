@@ -8,10 +8,12 @@
 #include "DecodeStage.h"
 
 void DecodeStage::newCycle() {
-  instruction.write(inst.read());
-  remoteInst.write(inst.read());
-  fromNetwork1.write(in1.read());
-  fromNetwork2.write(in2.read());
+  while(true) {
+    instruction.write(inst.read());
+    fromNetwork1.write(in1.read());
+    fromNetwork2.write(in2.read());
+    wait(clock.posedge_event());
+  }
 }
 
 void DecodeStage::receivedFromRegs1() {
@@ -32,6 +34,7 @@ DecodeStage::DecodeStage(sc_core::sc_module_name name, int ID) :
     decoder("decoder", ID),
     extend("signextend", ID) {
 
+// Register methods
   SC_METHOD(receivedFromRegs1);
   sensitive << regIn1;
   dont_initialize();
@@ -41,7 +44,7 @@ DecodeStage::DecodeStage(sc_core::sc_module_name name, int ID) :
   dont_initialize();
 
 // Connect everything up
-  decoder.instruction(instruction);
+  decoder.instructionIn(instruction);
   rcet.fromNetwork1(fromNetwork1);
   rcet.fromNetwork2(fromNetwork2);
 
@@ -50,14 +53,17 @@ DecodeStage::DecodeStage(sc_core::sc_module_name name, int ID) :
   fl.toNetwork(out1);
   fl.flowControl(flowControl);
   fl.baseAddress(baseAddress);
+  fl.isRoomToFetch(roomToFetch);
 
   decoder.regAddr1(regReadAddr1);
   decoder.regAddr2(regReadAddr2);
-  decoder.indRead(indReadAddr);
   decoder.writeAddr(writeAddr);
   decoder.indWrite(indWriteAddr);
+  decoder.instructionOut(remoteInst);
   decoder.isIndirectRead(isIndirect);
+  decoder.newRChannel(newRChannel);
   decoder.toFetchLogic(decodeToFetch); fl.in(decodeToFetch);
+  decoder.rChannel(remoteChannel);
 
   decoder.toRCET1(decodeToRCET1); rcet.fromDecoder1(decodeToRCET1);
   decoder.toRCET2(decodeToRCET2); rcet.fromDecoder2(decodeToRCET2);

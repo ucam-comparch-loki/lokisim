@@ -7,18 +7,38 @@
 
 #include "Cluster.h"
 
+/* Split the input Array and send information wherever it needs to go */
+void Cluster::splitInputs() {
+
+  // Also need to split main inputs
+
+  // Flow control
+  Array<bool> control = flowControlIn.read();
+
+  if(control.length() > 0) {
+    bool toFetchLogic = control.get(0);
+    Array<bool> toSCET = *(new Array<bool>(control, 1, control.length()-1));
+
+    decFlowControl.write(toFetchLogic);
+    writeFlowControl.write(toSCET);
+  }
+
+}
+
 /* Combine all of the outputs into one vector */
 void Cluster::combineOutputs() {
+
   // Put the decoder's output into an Array
   Array<AddressedWord> *decodeOut = new Array<AddressedWord>(1);
-  AddressedWord aw = decode.out1.read();
-  decodeOut->put(0, aw);
+  decodeOut->put(0, decodeOutput.read());
 
   // Merge the array with that from the write stage
-  Array<AddressedWord> writeOut = write.output.read();   // Try to remove copy
-  decodeOut->merge(writeOut);
+  decodeOut->merge(writeOut.read());
 
   out.write(*decodeOut);
+
+  // Also need to combine various flow control signals
+
 }
 
 Cluster::Cluster(sc_core::sc_module_name name, int ID) :
@@ -29,41 +49,35 @@ Cluster::Cluster(sc_core::sc_module_name name, int ID) :
     execute("execute", ID),
     write("write", ID) {
 
+  SC_METHOD(splitInputs);
+  sensitive << flowControlIn;
+//  dont_initialize();
+
   SC_METHOD(combineOutputs);
-  sensitive << write.output << decode.out1;
+  sensitive << writeOut << decodeOutput;
+  dont_initialize();
 
 // Connect things up
   // Clock
-//  clock(fetchClock); fetch.clock(fetchClock);
-//  clock(decodeClock); decode.clock(decodeClock);
-//  clock(executeClock); execute.clock(executeClock);
-//  clock(writeClock); write.clock(writeClock);
   fetch.clock(clock);
   decode.clock(clock);
   execute.clock(clock);
   write.clock(clock);
 
   // To/from fetch stage
-//  in1(in1toIPKQ); fetch.toIPKQueue(in1toIPKQ);
-//  in2(in2toIPKC); fetch.toIPKCache(in2toIPKC);
   fetch.toIPKQueue(in1);
   fetch.toIPKCache(in2);
 
   decode.address(FLtoIPKC); fetch.address(FLtoIPKC);
-
   fetch.instruction(nextInst); decode.inst(nextInst);
-  fetch.instruction(sendInst); write.inst(sendInst);
 
   fetch.cacheHit(cacheHitSig); decode.cacheHit(cacheHitSig);
+  fetch.roomToFetch(roomToFetch); decode.roomToFetch(roomToFetch);
 
   // To/from decode stage
-//  in3(in3toRCET); decode.in1(in3toRCET);
-//  in4(in4toRCET); decode.in2(in4toRCET);
   decode.in1(in3);
   decode.in2(in4);
-
-//  sc_signal<AddressedWord> fetching;
-//  out1(fetching); decode.out1(fetching);
+  decode.out1(decodeOutput);
 
   decode.regIn1(regData1); regs.out1(regData1);
   decode.regIn2(regData2); regs.out2(regData2);
@@ -74,6 +88,7 @@ Cluster::Cluster(sc_core::sc_module_name name, int ID) :
   decode.indWriteAddr(decIndWrite); execute.indWriteIn(decIndWrite);
 
   decode.isIndirect(indirectReadSig); regs.indRead(indirectReadSig);
+  decode.flowControl(decFlowControl);
 
   decode.chEnd1(RCETtoALU1); execute.fromRChan1(RCETtoALU1);
   decode.chEnd2(RCETtoALU2); execute.fromRChan2(RCETtoALU2);
@@ -85,26 +100,28 @@ Cluster::Cluster(sc_core::sc_module_name name, int ID) :
   decode.op1Select(op1Select); execute.op1Select(op1Select);
   decode.op2Select(op2Select); execute.op2Select(op2Select);
 
-  decode.remoteInst(decodeToExecute); execute.remoteInstIn(decodeToExecute);
+  decode.remoteInst(decToExInst); execute.remoteInstIn(decToExInst);
+  decode.remoteChannel(decToExRChan); execute.remoteChannelIn(decToExRChan);
+  decode.newRChannel(d2eNewRChan); execute.newRChannelIn(d2eNewRChan);
 
   // To/from execute stage
-  execute.remoteInstOut(executeToWrite); write.inst(executeToWrite);
+  execute.output(ALUOutput); execute.fromALU1(ALUOutput);
+  execute.fromALU2(ALUOutput);
+  write.fromALU(ALUOutput);
 
-  execute.output(ALUtoALU1); execute.fromALU1(ALUtoALU1);
-  execute.output(ALUtoALU2); execute.fromALU2(ALUtoALU2);
-  execute.output(ALUtoWrite); write.fromALU(ALUtoWrite);
+  execute.remoteInstOut(exToWriteInst); write.inst(exToWriteInst);
+  execute.remoteChannelOut(exToWriteRChan); write.remoteChannel(exToWriteRChan);
+  execute.newRChannelOut(e2wNewRChan); write.newRChannel(e2wNewRChan);
 
   execute.writeOut(writeAddr); write.inRegAddr(writeAddr);
   execute.indWriteOut(indWriteAddr); write.inIndAddr(indWriteAddr);
 
   // To/from write stage
-//  sc_signal<AddressedWord> SCETtoOut2;
-//  write.output(SCETtoOut2); out2(SCETtoOut2);
-
   write.outRegAddr(writeRegAddr); regs.writeAddr(writeRegAddr);
   write.outIndAddr(indirectWrite); regs.indWriteAddr(indirectWrite);
-
   write.regData(regWriteData); regs.writeData(regWriteData);
+  write.flowControl(writeFlowControl);
+  write.output(writeOut);
 
 }
 

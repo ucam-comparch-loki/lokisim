@@ -10,7 +10,6 @@
 void SignExtend::doOp() {
   // Will it ever be necessary to allow immediates of different lengths?
   Data d = input.read();
-//  d.moveBit(29, 31);
   output.write(d);
 }
 

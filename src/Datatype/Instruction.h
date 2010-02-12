@@ -47,6 +47,14 @@ public:
   Instruction(unsigned int inst);   // Instructions will probably be read in binary
   Instruction(const std::string &inst);    // In case we end up reading assembler
   virtual ~Instruction();
+
+  // Has to go in header
+  friend std::ostream& operator<< (std::ostream& os, Instruction const& v) {
+    os << v.getOp() <<" "<< v.getDest() <<" "<< v.getSrc1() <<" "<< v.getSrc2()
+       <<" "<< v.getImmediate() <<" "<< v.getRchannel();
+    return os;
+  }
+
 };
 
 #endif /* INSTRUCTION_H_ */

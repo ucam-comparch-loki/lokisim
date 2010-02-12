@@ -10,16 +10,26 @@
 /* Put the received Word into the table, along with its destination address. */
 void SendChannelEndTable::doOp() {
   AddressedWord *w = new AddressedWord(input.read(), 0, remoteChannel.read());
-  buffers.at(chooseBuffer()).write(*w);
+  Buffer<AddressedWord>& b = buffers.at(chooseBuffer());
+
+  if(!b.isFull()) {
+    b.write(*w);
+    if(DEBUG) std::cout<<"Wrote "<<*w<<" to output channel-end "<<chooseBuffer()<<std::endl;
+  }
+  else {
+    // TODO: stall pipeline
+    if(DEBUG) std::cout << "Wrote to full buffer in Send Channel-end Table." << std::endl;
+  }
 }
 
 /* If it is possible to send data onto the network, do it */
 void SendChannelEndTable::canSend() {
-  Array<bool> flowCont = flowControl.read();    // Remove copy if possible
+  Array<bool> flowCont = flowControl.read();
 
   // If a buffer has information, and is allowed to send, put it in the vector
   for(int i=0; i<NUM_SEND_CHANNELS; i++) {
     bool send = flowCont.get(i);
+
     if(!(buffers.at(i).isEmpty()) && send) {
       toSend.put(i, buffers.at(i).read());
     }
@@ -40,12 +50,11 @@ short SendChannelEndTable::chooseBuffer() {
 
 SendChannelEndTable::SendChannelEndTable(sc_core::sc_module_name name, int ID) :
     Component(name, ID),
-    buffers(NUM_SEND_CHANNELS),
     toSend(NUM_SEND_CHANNELS) {
 
   for(int i=0; i<NUM_SEND_CHANNELS; i++) {
     Buffer<AddressedWord>* buffer = new Buffer<AddressedWord>(CHANNEL_END_BUFFER_SIZE);
-    buffers.at(i) = *buffer;
+    buffers.push_back(*buffer);
   }
 
   SC_METHOD(doOp);
@@ -54,7 +63,7 @@ SendChannelEndTable::SendChannelEndTable(sc_core::sc_module_name name, int ID) :
 
   SC_METHOD(canSend);
   sensitive << flowControl;
-  //dont_initialize();
+  dont_initialize();
 
 }
 
