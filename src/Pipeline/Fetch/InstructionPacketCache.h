@@ -21,22 +21,6 @@
 
 class InstructionPacketCache : public Component {
 
-/* Local state */
-  IPKCacheStorage<Address, Instruction> cache;
-  Buffer<Address> addresses;
-  Instruction instToSend;
-  bool sentNewInst, outputWasRead;
-
-/* Signals (wires) */
-  sc_signal<bool> writeNotify1, writeNotify2; // Signal that there is data to send
-
-/* Methods */
-  void insertInstruction();
-  void lookup();
-  void finishedRead();
-  void updateRTF();
-  void write();
-
 public:
 /* Ports */
   sc_in<Address> address;
@@ -49,6 +33,24 @@ public:
   SC_HAS_PROCESS(InstructionPacketCache);
   InstructionPacketCache(sc_core::sc_module_name name, int ID);
   virtual ~InstructionPacketCache();
+
+private:
+/* Methods */
+  void insertInstruction();
+  void lookup();
+  void finishedRead();
+  void updateRTF();
+  void write();
+
+/* Local state */
+  IPKCacheStorage<Address, Instruction> cache;
+  Buffer<Address> addresses;
+  Instruction instToSend;
+  bool sentNewInst, outputWasRead, startOfPacket;
+
+/* Signals (wires) */
+  sc_signal<bool> writeNotify1, writeNotify2; // Signal that there is data to send
+
 };
 
 #endif /* INSTRUCTIONPACKETCACHE_H_ */

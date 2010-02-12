@@ -28,7 +28,7 @@ void MemoryMat::read1() {
   Word copy = inMem;
 
   int sendAddress = (static_cast<Address>(in3.read())).getAddress();
-  AddressedWord *aw = new AddressedWord(copy, 0, sendAddress);
+  AddressedWord *aw = new AddressedWord(copy, sendAddress);
 
   Array<AddressedWord> *toSend = new Array<AddressedWord>(1);
   toSend->put(0, *aw);
@@ -42,7 +42,7 @@ void MemoryMat::read2() {
   Word copy = inMem;
 
   int sendAddress = (static_cast<Address>(in4.read())).getAddress();
-  AddressedWord *aw = new AddressedWord(copy, 0, sendAddress);
+  AddressedWord *aw = new AddressedWord(copy, sendAddress);
 
   Array<AddressedWord> *toSend = new Array<AddressedWord>(1);
   toSend->put(0, *aw);

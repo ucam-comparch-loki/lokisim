@@ -15,12 +15,9 @@
 
 class ALU: public Component {
 
-/* Methods */
-  void doOp();
-
 public:
 /* Ports */
-  sc_in<short> select;
+  sc_in<short> select, predicate;
   sc_in<Data> in1, in2;
   sc_out<Data> out;
 
@@ -28,6 +25,13 @@ public:
   SC_HAS_PROCESS(ALU);
   ALU(sc_core::sc_module_name name, int ID);
   virtual ~ALU();
+
+private:
+/* Methods */
+  void doOp();
+
+/* Local state */
+  bool pred;
 
 };
 

@@ -11,23 +11,17 @@ Word AddressedWord::getPayload() const {
   return payload;
 }
 
-unsigned int AddressedWord::getAddress() const {
-  return address;
-}
-
 short AddressedWord::getChannelID() const {
   return channelID;
 }
 
 AddressedWord::AddressedWord() {
   payload = *(new Word());
-  address = 0;
   channelID = 0;
 }
 
-AddressedWord::AddressedWord(Word w, unsigned int addr, short id) {
+AddressedWord::AddressedWord(Word w, short id) {
   payload = w;
-  address = addr;
   channelID = id;
 }
 
@@ -40,13 +34,11 @@ AddressedWord::~AddressedWord() {
 
 bool AddressedWord::operator== (const AddressedWord& other) const {
   return (this->payload == other.payload)
-      && (this->address == other.address)
       && (this->channelID == other.channelID);
 }
 
 AddressedWord& AddressedWord::operator= (const AddressedWord& other) {
   payload = other.payload;
-  address = other.address;
   channelID = other.channelID;
 
   return *this;

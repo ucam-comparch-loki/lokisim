@@ -23,7 +23,7 @@ protected:
   sc_signal<AddressedWord> out;
   sc_signal<Instruction> instIn, instOut;
   sc_buffer<bool> cacheHit;
-  sc_signal<bool> isIndirect, flowControl, roomToFetch;
+  sc_signal<bool> isIndirect, flowControl, roomToFetch, newRChannel;
   sc_signal<Address> address;
   sc_signal<short> regRead1, regRead2, write, indWrite, rChannel;
   sc_signal<short> operation, op1Select, op2Select;
@@ -47,6 +47,7 @@ protected:
     ds.isIndirect(isIndirect); regs.indRead(isIndirect);
     ds.indWriteAddr(indWrite);
     ds.inst(instIn);
+    ds.newRChannel(newRChannel);
     ds.remoteInst(instOut);
     ds.remoteChannel(rChannel);
     ds.op1Select(op1Select);
@@ -149,15 +150,14 @@ protected:
 //  TIMESTEP;
 //
 //  AddressedWord temp = out.read();
-//  EXPECT_EQ(6, temp.getAddress());      // 2 held in r2, plus 4 offset
+//  EXPECT_EQ(1, ((Address)(temp.getPayload())).getAddress());
 //  EXPECT_EQ(18, temp.getChannelID());
 //  flowControl.write(!flowControl.read());
 //
 //  TIMESTEP;
 //
 //  temp = out.read();
-//  EXPECT_EQ(6, temp.getAddress());
-//  EXPECT_EQ(6, ((Address)temp.getPayload()).getAddress());
+//  EXPECT_EQ(6, ((Address)temp.getPayload()).getAddress()); // 2 in r2 + 4 offset
 //  EXPECT_EQ(18, temp.getChannelID());
 //
 //}

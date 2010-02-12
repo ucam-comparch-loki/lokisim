@@ -25,7 +25,7 @@ public:
   sc_in<Instruction> instructionIn;
   sc_out<Instruction> instructionOut;
   sc_out<short> toRCET1, toRCET2;
-  sc_out<short> regAddr1, regAddr2, indWrite, writeAddr, rChannel;
+  sc_out<short> regAddr1, regAddr2, indWrite, writeAddr, rChannel, predicate;
   sc_out<bool> isIndirectRead, newRChannel;
   sc_out<short> operation, op1Select, op2Select;
   sc_out<Address> toFetchLogic;

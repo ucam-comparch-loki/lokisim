@@ -22,7 +22,7 @@ public:
 /* Ports */
   sc_in<Data> fromRChan1, fromRChan2, fromReg1, fromReg2, fromSExtend, fromALU1, fromALU2;
   sc_out<Data> output;
-  sc_in<short> op1Select, op2Select, operation;
+  sc_in<short> op1Select, op2Select, operation, predicate;
 
   // Signals just passing through
   sc_in<short> writeIn, indWriteIn, remoteChannelIn;
@@ -54,6 +54,7 @@ private:
 /* Signals (wires) */
   sc_signal<Data> toALU1, toALU2, outputSig;
   sc_buffer<short> in1Select, in2Select, ALUSelect;
+  sc_signal<short> predicateSig;
 
 };
 

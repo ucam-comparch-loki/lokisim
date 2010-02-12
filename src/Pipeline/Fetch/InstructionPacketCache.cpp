@@ -14,7 +14,9 @@ void InstructionPacketCache::insertInstruction() {
   Address addr;
 
   try {
-    addr = addresses.peek();
+    // Only associate the tag with the first instruction of the packet.
+    // Means that if a packet is searched for, execution starts at the start.
+    addr = startOfPacket ? addresses.read() : Address(0,0);
   }
   catch(std::exception e) {
     addr = Address(0,0);
@@ -22,7 +24,11 @@ void InstructionPacketCache::insertInstruction() {
 
   // Do we want to tag all instructions, or only the first one of each packet?
   cache.write(addr, in.read());
-  if(in.read().endOfPacket()) addresses.discardTop();
+  if(in.read().endOfPacket()) {
+//    addresses.discardTop();
+    startOfPacket = true;
+  }
+  else startOfPacket = false;
 
   if(empty && outputWasRead) {                // Send the instruction immediately
     instToSend = cache.read();
@@ -36,6 +42,7 @@ void InstructionPacketCache::insertInstruction() {
 
 /* See if an instruction packet is in the cache, and if so, prepare to execute it */
 void InstructionPacketCache::lookup() {
+  std::cout << "Looked up: " << address.read() << std::endl;
   bool inCache = cache.checkTags(address.read());
   cacheHit.write(inCache);
 
@@ -86,6 +93,7 @@ InstructionPacketCache::InstructionPacketCache(sc_core::sc_module_name name, int
 
   sentNewInst = false;
   outputWasRead = true;   // Allow the first received instruction to pass through
+  startOfPacket = true;
 
 // Register methods
   SC_METHOD(insertInstruction);

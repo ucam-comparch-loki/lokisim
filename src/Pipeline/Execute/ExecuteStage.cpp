@@ -15,12 +15,13 @@ void ExecuteStage::newCycle() {
 
     wait(0, sc_core::SC_NS);  // Allow time for the multiplexors to select values
     if(newOperation) ALUSelect.write(operation.read());
+    if(newInst) remoteInstOut.write(remoteInstIn.read());
 
     writeOut.write(writeIn.read());
     indWriteOut.write(indWriteIn.read());
     remoteChannelOut.write(remoteChannelIn.read());
-    if(newInst) remoteInstOut.write(remoteInstIn.read());
     newRChannelOut.write(newRChannelIn.read());
+    predicateSig.write(predicate.read());
 
     newInst = newOperation = false;
     wait(clock.posedge_event());
@@ -57,6 +58,7 @@ ExecuteStage::ExecuteStage(sc_core::sc_module_name name, int ID) :
   in1Mux.result(toALU1); alu.in1(toALU1);
   in2Mux.result(toALU2); alu.in2(toALU2);
   alu.out(output);
+  alu.predicate(predicateSig);
 
   in1Mux.select(in1Select);
   in2Mux.select(in2Select);

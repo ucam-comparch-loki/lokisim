@@ -11,7 +11,6 @@
 void Decoder::doOp() {
 
   // TODO: tidy decode
-  // TODO: send the predicate along the pipeline
   // TODO: determine when to send a remote instruction, and what it should be
 
   Instruction i = instructionIn.read();
@@ -22,10 +21,12 @@ void Decoder::doOp() {
   short operation = InstructionMap::operation(i.getOp());
   short destination = i.getDest();
   short operand1 = i.getSrc1();
-  short operand2 = i.getSrc2();   // May not be valid -- depends on instruction
+  short operand2 = i.getSrc2();
   int immediate = i.getImmediate();
-  short predicate = i.getPredicate();
+  short pred = i.getPredicate();
   short remoteChannel = i.getRchannel();
+
+  predicate.write(pred);
 
   if(operation == InstructionMap::IRDR) {
     regAddr2.write(operand2);
@@ -47,7 +48,7 @@ void Decoder::doOp() {
     // Need to modify once we have read the base address from the register file
     Address *a = new Address(immediate, fetchChannel);
     toFetchLogic.write(*a);
-    operand1 = destination;  // Fetches have an operand in the destination position
+    regAddr1.write(destination);  // Fetch has an operand in the dest position
   }
 
 

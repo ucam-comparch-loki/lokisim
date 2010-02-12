@@ -103,6 +103,7 @@ Cluster::Cluster(sc_core::sc_module_name name, int ID) :
   decode.remoteInst(decToExInst); execute.remoteInstIn(decToExInst);
   decode.remoteChannel(decToExRChan); execute.remoteChannelIn(decToExRChan);
   decode.newRChannel(d2eNewRChan); execute.newRChannelIn(d2eNewRChan);
+  decode.predicate(predicate); execute.predicate(predicate);
 
   // To/from execute stage
   execute.output(ALUOutput); execute.fromALU1(ALUOutput);

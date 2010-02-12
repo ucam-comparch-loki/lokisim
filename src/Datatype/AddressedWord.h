@@ -13,17 +13,15 @@
 class AddressedWord : public Word {
 
   Word payload;
-  unsigned int address;
   short channelID;
   // Type of word?
 
 public:
   Word getPayload() const;
-  unsigned int getAddress() const;
   short getChannelID() const;
 
   AddressedWord();
-  AddressedWord(Word w, unsigned int addr, short chID);  // Remove addr?
+  AddressedWord(Word w, short chID);
   virtual ~AddressedWord();
 
 
@@ -32,7 +30,6 @@ public:
   friend void sc_trace(sc_core::sc_trace_file*& tf, const AddressedWord& w, std::string& txt) {
     //sc_core::sc_trace(tf, w.payload, txt);
     sc_core::sc_trace(tf, &(w.payload), txt);
-    sc_core::sc_trace(tf, w.address, txt);
     sc_core::sc_trace(tf, w.channelID, txt);
   }
 
@@ -41,7 +38,7 @@ public:
   AddressedWord& operator= (const AddressedWord& other);
 
   friend std::ostream& operator<< (std::ostream& os, AddressedWord const& v) {
-    os << "(" << v.payload << ", " << v.address << ", " << v.channelID << ")";
+    os << "(" << v.payload << ", " << v.channelID << ")";
     return os;
   }
 };

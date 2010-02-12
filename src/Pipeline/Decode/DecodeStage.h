@@ -30,7 +30,7 @@ public:
   sc_in<bool> cacheHit, roomToFetch, flowControl;
   sc_out<Address> address;
   sc_out<Instruction> remoteInst;
-  sc_out<short> regReadAddr1, regReadAddr2, writeAddr, indWriteAddr;
+  sc_out<short> regReadAddr1, regReadAddr2, writeAddr, indWriteAddr, predicate;
   sc_out<short> remoteChannel, operation, op1Select, op2Select;
   sc_out<bool> isIndirect, newRChannel;
   sc_out<Data> chEnd1, chEnd2, regOut1, regOut2, sExtend;

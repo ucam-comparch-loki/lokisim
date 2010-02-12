@@ -52,10 +52,6 @@ public:
   // Returns whether the given address matches any of the tags
   virtual bool checkTags(const K& key) {
 
-    // Should this only check regions with valid instructions, or everywhere?
-
-    // TODO: Only store tags for first instruction of each packet
-
     for(unsigned int i=0; i<MappedStorage<K,T>::tags.size(); i++) {
       if(MappedStorage<K,T>::tags.at(i) == key) {
         if((int)currentInstruction == NOT_IN_USE) currentInstruction = i;

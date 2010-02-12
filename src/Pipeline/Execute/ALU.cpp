@@ -7,10 +7,13 @@
 
 #include "ALU.h"
 #include "../../InstructionMap.h"
+#include "../../Datatype/Instruction.h"
 
 void ALU::doOp() {
 
   if(select.read() == InstructionMap::NOP) return;
+  if((predicate.read() == Instruction::P && !pred) ||
+     (predicate.read() == Instruction::NOT_P && pred)) return;
 
   Data d1 = in1.read(), d2 = in2.read();
 
@@ -66,17 +69,18 @@ void ALU::doOp() {
     case InstructionMap::MULLW: result = ((long)val1 * (long)val2) & -1; break;
 //    case InstructionMap::MULHWU: result = ???; break;
 
-    default: result = val1;// Is this a good default?
+    default: result = val1; // Is this a good default?
   }
 
   out.write(Data(result));
+  pred = result&1;          // Store lowest bit in predicate register
 
 }
 
 ALU::ALU(sc_core::sc_module_name name, int ID) : Component(name, ID) {
 
   SC_METHOD(doOp);
-  sensitive << select /*<< in1 << in2*/;  // Would prefer to just have select
+  sensitive << select;
   dont_initialize();
 
 }

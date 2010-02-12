@@ -55,7 +55,7 @@ private:
   sc_signal<bool> cacheHitSig, roomToFetch, indirectReadSig;
   sc_buffer<bool> decFlowControl;
   sc_signal<Word> regData1, regData2;
-  sc_signal<short> regRead1, regRead2, decWriteAddr, decIndWrite;
+  sc_signal<short> regRead1, regRead2, decWriteAddr, decIndWrite, predicate;
   sc_signal<Data> RCETtoALU1, RCETtoALU2, regToALU1, regToALU2, SEtoALU;
   sc_buffer<short> operation, op1Select, op2Select;
 

@@ -9,7 +9,7 @@
 
 /* Put the received Word into the table, along with its destination address. */
 void SendChannelEndTable::doOp() {
-  AddressedWord *w = new AddressedWord(input.read(), 0, remoteChannel.read());
+  AddressedWord *w = new AddressedWord(input.read(), remoteChannel.read());
   Buffer<AddressedWord>& b = buffers.at(chooseBuffer());
 
   if(!b.isFull()) {

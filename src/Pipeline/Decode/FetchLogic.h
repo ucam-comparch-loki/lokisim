@@ -19,20 +19,6 @@
 
 class FetchLogic: public Component {
 
-/* Local state */
-  Buffer<AddressedWord> toSend;
-  bool canSend;
-  Address offsetAddr;
-
-/* Signals (wires) */
-  sc_signal<bool> sendData;
-
-/* Methods */
-  void doOp();
-  void haveResultFromCache();
-  void haveBaseAddress();
-  void sendNext();
-
 public:
 /* Ports */
   sc_in<Address> in;
@@ -45,6 +31,22 @@ public:
   SC_HAS_PROCESS(FetchLogic);
   FetchLogic(sc_core::sc_module_name name, int ID);
   virtual ~FetchLogic();
+
+private:
+/* Methods */
+  void doOp();
+  void haveResultFromCache();
+  void haveBaseAddress();
+  void sendNext();
+
+/* Local state */
+  Buffer<AddressedWord> toSend;
+  bool canSend, awaitingBaseAddr;
+  Address offsetAddr;
+
+/* Signals (wires) */
+  sc_signal<bool> sendData;
+
 };
 
 #endif /* FETCHLOGIC_H_ */
