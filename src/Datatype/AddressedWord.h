@@ -38,7 +38,7 @@ public:
   AddressedWord& operator= (const AddressedWord& other);
 
   friend std::ostream& operator<< (std::ostream& os, AddressedWord const& v) {
-    os << "(" << v.payload << ", " << v.channelID << ")";
+    os << "(" << v.payload << " -> " << v.channelID << ")";
     return os;
   }
 };

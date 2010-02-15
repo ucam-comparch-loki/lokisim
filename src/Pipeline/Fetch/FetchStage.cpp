@@ -7,12 +7,16 @@
 
 #include "FetchStage.h"
 
+void FetchStage::storeCode(std::vector<Instruction>& instructions) {
+  cache.storeCode(instructions);
+}
+
 void FetchStage::newCycle() {
   while(true) {
+    wait(clock.posedge_event());
+
     if(!usingCache) readFromFIFO.write(!readFromFIFO.read());
     else readFromCache.write(!readFromCache.read());
-
-    wait(clock.posedge_event());
   }
 }
 

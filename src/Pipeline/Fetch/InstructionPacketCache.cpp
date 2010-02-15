@@ -7,6 +7,23 @@
 
 #include "InstructionPacketCache.h"
 
+/* Initialise the contents of the cache with a list of Instructions */
+void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
+  cache.storeCode(instructions);
+
+  instToSend = cache.read();
+
+  if(instToSend.endOfPacket()) {
+    startOfPacket = true;
+  }
+  else startOfPacket = false;
+
+  if(instToSend.endOfPacket()) cache.switchToPendingPacket();
+  writeNotify3.write(!writeNotify3.read()); // Invoke the write() method
+  sentNewInst = true;
+  outputWasRead = false;
+}
+
 /* Put a received instruction into the cache at the appropriate position */
 void InstructionPacketCache::insertInstruction() {
 
@@ -25,13 +42,13 @@ void InstructionPacketCache::insertInstruction() {
   // Do we want to tag all instructions, or only the first one of each packet?
   cache.write(addr, in.read());
   if(in.read().endOfPacket()) {
-//    addresses.discardTop();
     startOfPacket = true;
   }
   else startOfPacket = false;
 
   if(empty && outputWasRead) {                // Send the instruction immediately
     instToSend = cache.read();
+
     if(instToSend.endOfPacket()) cache.switchToPendingPacket();
     writeNotify1.write(!writeNotify1.read()); // Invoke the write() method
     sentNewInst = true;
@@ -68,7 +85,7 @@ void InstructionPacketCache::finishedRead() {
     // Do nothing
   }
 
-  sentNewInst = false;   // Reset for next cycle
+  sentNewInst = false;          // Reset for next cycle
   outputWasRead = true;
 
 }
@@ -83,6 +100,7 @@ void InstructionPacketCache::updateRTF() {
  * instructions, but only one method is allowed to drive a particular wire. */
 void InstructionPacketCache::write() {
   out.write(instToSend);
+//  std::cout << "FetchStage sent Instruction: " << instToSend << std::endl;
 }
 
 /* Constructors and destructors */
@@ -113,7 +131,7 @@ InstructionPacketCache::InstructionPacketCache(sc_core::sc_module_name name, int
   // Do initialise
 
   SC_METHOD(write);
-  sensitive << writeNotify1 << writeNotify2;
+  sensitive << writeNotify1 << writeNotify2 << writeNotify3;
   dont_initialize();
 
 }

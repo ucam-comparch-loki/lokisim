@@ -34,8 +34,10 @@ public:
   InstructionPacketCache(sc_core::sc_module_name name, int ID);
   virtual ~InstructionPacketCache();
 
-private:
 /* Methods */
+  void storeCode(std::vector<Instruction>& instructions);
+
+private:
   void insertInstruction();
   void lookup();
   void finishedRead();
@@ -49,7 +51,7 @@ private:
   bool sentNewInst, outputWasRead, startOfPacket;
 
 /* Signals (wires) */
-  sc_signal<bool> writeNotify1, writeNotify2; // Signal that there is data to send
+  sc_signal<bool> writeNotify1, writeNotify2, writeNotify3; // There is data to send
 
 };
 

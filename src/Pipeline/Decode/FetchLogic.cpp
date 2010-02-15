@@ -53,13 +53,11 @@ void FetchLogic::haveResultFromCache() {
 
 /* The flowControl signal tells us that we are now free to use the channel again. */
 void FetchLogic::sendNext() {
-
   if(toSend.isEmpty()) canSend = true;
   else if(isRoomToFetch.read()) {
     toNetwork.write(toSend.read());
     canSend = false;
   }
-
 }
 
 FetchLogic::FetchLogic(sc_core::sc_module_name name, int ID) :

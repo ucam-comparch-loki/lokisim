@@ -7,6 +7,11 @@
 
 #include "Cluster.h"
 
+/* Initialise the instructions a Cluster will execute. */
+void Cluster::storeCode(std::vector<Instruction>& instructions) {
+  fetch.storeCode(instructions);
+}
+
 /* Split the input Array and send information wherever it needs to go */
 void Cluster::splitInputs() {
 

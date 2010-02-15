@@ -29,8 +29,10 @@ public:
 
   virtual ~Cluster();
 
-private:
 /* Methods */
+  void storeCode(std::vector<Instruction>& instructions);
+
+private:
   void splitInputs();
   void combineOutputs();
 
