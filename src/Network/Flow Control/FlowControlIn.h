@@ -19,9 +19,9 @@ class FlowControlIn: public Component {
 
 public:
 /* Ports */
-  sc_in<Array<AddressedWord> > dataIn, requests;
-  sc_in<Array<bool> > flowControl;
-  sc_out<Array<AddressedWord> > dataOut, responses;
+  sc_in<AddressedWord>  *dataIn, *requests;
+  sc_in<bool>           *flowControl;
+  sc_out<AddressedWord> *dataOut, *responses;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(FlowControlIn);
@@ -32,11 +32,11 @@ protected:
 /* Methods */
   virtual void receivedFlowControl();
   virtual void receivedRequests();
-  void receivedData();
+  void         receivedData();
 
 /* Local state */
   std::vector<Buffer<AddressedWord> > buffers;
-  Array<AddressedWord> toSend, response;
+  int width;
 
 };
 

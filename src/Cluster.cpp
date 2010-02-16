@@ -24,6 +24,7 @@ Cluster::Cluster(sc_core::sc_module_name name, int ID) :
   // Main inputs/outputs
   decode.flowControl(flowControlIn[0]);
   decode.out1(out[0]);
+
   for(int i=1; i<NUM_CLUSTER_OUTPUTS; i++) {
     write.flowControl[i-1](flowControlIn[i]);
     write.output[i-1](out[i]);

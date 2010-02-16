@@ -13,6 +13,17 @@
 template<class T>
 class Multiplexor4 : public Multiplexor<T> {
 
+public:
+/* Ports */
+  sc_in<T> in1, in2, in3, in4;
+
+/* Constructors and destructors */
+  SC_HAS_PROCESS(Multiplexor4);
+  Multiplexor4(sc_core::sc_module_name name) : Multiplexor<T>(name) {
+
+  }
+
+protected:
 /* Methods */
   virtual void doOp() {
     switch(Multiplexor<T>::select.read()) {
@@ -22,16 +33,6 @@ class Multiplexor4 : public Multiplexor<T> {
       case(3) : Multiplexor<T>::result.write(in4.read()); break;
       default : throw new std::exception();
     }
-  }
-
-public:
-/* Ports */
-  sc_in<T> in1, in2, in3, in4;
-
-/* Constructors and destructors */
-  SC_HAS_PROCESS(Multiplexor4);
-  Multiplexor4(sc_core::sc_module_name name) : Multiplexor<T>(name) {
-
   }
 
 };

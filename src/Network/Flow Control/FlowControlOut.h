@@ -21,11 +21,11 @@ class FlowControlOut: public Component {
 
 public:
 /* Ports */
-  sc_in<bool> clock;
-  sc_in<Array<AddressedWord> > dataIn;
-  sc_in<Array<bool> > responses;
-  sc_out<Array<AddressedWord> > dataOut, requestsOut;
-  sc_out<Array<bool> > flowControl;
+  sc_in<bool>             clock;
+  sc_in<AddressedWord>   *dataIn;                // array
+  sc_in<bool>            *responses;             // array
+  sc_out<AddressedWord>  *dataOut, *requests;    // array
+  sc_out<bool>           *flowControl;           // array
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(FlowControlOut);
@@ -34,13 +34,12 @@ public:
 
 protected:
 /* Methods */
-  void newCycle();
-  virtual void allowedToSend(int position, bool isAllowed);
-  virtual void sendRequests();
+  void          newCycle();
+  virtual void  allowedToSend(int position, bool isAllowed);
+  virtual void  sendRequests();
 
 /* Local state */
-  Array<bool> canSend;
-  Array<AddressedWord> toSend, requests;
+  int width;
 
 };
 

@@ -20,27 +20,29 @@
 
 class IndirectRegisterFile: public Component {
 
-/* Local state */
-  AddressedStorage<Word> regs;
-  AddressedStorage<short> indirect;
-
-/* Methods */
-  void read1();
-  void read2();
-  void indirectWrite();
-  void write();
-
 public:
 /* Ports */
   sc_in<short> indWriteAddr, readAddr1, readAddr2, writeAddr;
-  sc_in<bool> indRead;
-  sc_in<Word> writeData;
+  sc_in<bool>  indRead;
+  sc_in<Word>  writeData;
   sc_out<Word> out1, out2;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(IndirectRegisterFile);
   IndirectRegisterFile(sc_core::sc_module_name name, int ID);
   virtual ~IndirectRegisterFile();
+
+private:
+/* Methods */
+  void read1();
+  void read2();
+  void indirectWrite();
+  void write();
+
+/* Local state */
+  AddressedStorage<Word>  regs;
+  AddressedStorage<short> indirect;
+
 };
 
 #endif /* INDIRECTREGISTERFILE_H_ */

@@ -8,45 +8,43 @@
 #include "FlowControlOut.h"
 
 void FlowControlOut::newCycle() {
-  Array<bool> response = responses.read();
-
-  for(int i=0; i<response.length(); i++) {
-    allowedToSend(i, response.get(i));
+  for(int i=0; i<width; i++) {
+    allowedToSend(i, responses[i].read());
   }
-
-  dataOut.write(toSend);
-  flowControl.write(canSend);
 }
 
 /* The method to be overwritten in subclasses.
  * This implementation represents acknowledgement flow control, but it could be
  * more complex and, for example, keep a counter to implement credit schemes. */
 void FlowControlOut::allowedToSend(int position, bool isAllowed) {
-  if(isAllowed) toSend.put(position, dataIn.read().get(position));
-  canSend.put(position, isAllowed);
+  if(isAllowed) dataOut[position].write(dataIn[position].read());
+  flowControl[position].write(isAllowed==1);
 }
 
 void FlowControlOut::sendRequests() {
-  for(int i=0; i<toSend.length(); i++) {
-    if(!(dataIn.read().get(i) == toSend.get(i))) {
-      Request r(id*toSend.length() + i);
-      AddressedWord req(r, dataIn.read().get(i).getChannelID());
-      requests.put(i, req);
+  for(int i=0; i<width; i++) {
+    if(!(dataIn[i].read() == dataOut[i].read())) {
+      Request r(id*width + i);
+      AddressedWord req(r, dataIn[i].read().getChannelID());
+      requests[i].write(req);
     }
   }
-  requestsOut.write(requests);
 }
 
 FlowControlOut::FlowControlOut(sc_core::sc_module_name name, int ID, int width) :
-    Component(name, ID),
-    canSend(width),
-    toSend(width) {
+    Component(name, ID) {
 
-  bool f = false;   // Needed so it can be passed by reference
+  this->width = width;
+
+  dataIn = new sc_in<AddressedWord>[width];
+  responses = new sc_in<bool>[width];
+  dataOut = new sc_out<AddressedWord>[width];
+  requests = new sc_out<AddressedWord>[width];
+  flowControl = new sc_out<bool>[width];
 
   // Initialise canSend so nothing is allowed to send
   for(int i=0; i<width; i++) {
-    canSend.put(i, f);
+    flowControl[i].write(false);
   }
 
   SC_METHOD(newCycle);
@@ -54,7 +52,7 @@ FlowControlOut::FlowControlOut(sc_core::sc_module_name name, int ID, int width) 
   dont_initialize();
 
   SC_METHOD(sendRequests);
-  sensitive << dataIn;
+  for(int i=0; i<width; i++) sensitive << dataIn[i];
   dont_initialize();
 
 }

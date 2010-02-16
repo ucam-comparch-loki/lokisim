@@ -22,8 +22,8 @@ public:
 /* Ports */
   sc_in<Word>             input;
   sc_in<short>            remoteChannel;
-  sc_in<bool>*            flowControl;  // array
-  sc_out<AddressedWord>*  output;       // array
+  sc_in<bool>            *flowControl;  // array
+  sc_out<AddressedWord>  *output;       // array
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(SendChannelEndTable);

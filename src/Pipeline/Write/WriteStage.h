@@ -23,12 +23,12 @@ public:
 /* Ports */
   sc_in<Data>             fromALU;
   sc_in<Instruction>      inst;
-  sc_in<bool>*            flowControl;  // array
+  sc_in<bool>            *flowControl;  // array
   sc_in<bool>             newRChannel;
   sc_in<short>            inRegAddr, inIndAddr, remoteChannel;
   sc_out<short>           outRegAddr, outIndAddr;
   sc_out<Word>            regData;
-  sc_out<AddressedWord>*  output;       // array
+  sc_out<AddressedWord>  *output;       // array
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(WriteStage);
@@ -39,10 +39,10 @@ private:
 /* Methods */
   virtual void  newCycle();
 
-  void          receivedInst();
-  void          receivedData();
-  void          receivedRChannel();
-  void          select();
+  void receivedInst();
+  void receivedData();
+  void receivedRChannel();
+  void select();
 
 /* Components */
   SendChannelEndTable scet;
@@ -55,10 +55,10 @@ private:
   bool  haveNewChannel;
 
 /* Signals (wires) */
-  sc_buffer<Word>   ALUtoRegs, muxOutput;
-  sc_buffer<Word>   ALUtoMux, instToMux;
-  sc_buffer<short>  muxSelect;
-  sc_signal<bool>   newInstSig, newDataSig;
+  sc_buffer<Word>     ALUtoRegs, muxOutput;
+  sc_buffer<Word>     ALUtoMux, instToMux;
+  sc_buffer<short>    muxSelect;
+  sc_signal<bool>     newInstSig, newDataSig;
 
 };
 

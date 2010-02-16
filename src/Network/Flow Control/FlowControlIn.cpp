@@ -8,45 +8,46 @@
 #include "FlowControlIn.h"
 
 void FlowControlIn::receivedFlowControl() {
-  Array<bool> control = flowControl.read();
-
-  for(int i=0; i<control.length(); i++) {
-    if(control.get(i) && !buffers.at(i).isEmpty()) {
-      toSend.put(i, buffers.at(i).read());
+  for(int i=0; i<width; i++) {
+    if(flowControl[i].read() && !buffers.at(i).isEmpty()) {
+      dataOut[i].write(buffers.at(i).read());
     }
   }
-
-  dataOut.write(toSend);
 }
 
 void FlowControlIn::receivedRequests() {
-  for(unsigned int i=0; i<buffers.size(); i++) {
-    Request r = static_cast<Request>(requests.read().get(i).getPayload());
+  for(int i=0; i<width; i++) {
+    Request r = static_cast<Request>(requests[i].read().getPayload());
     if(/*request is new &&*/ !buffers.at(i).remainingSpace() >= r.getNumFlits()) {
       Data d(1);    // Accept
       AddressedWord aw(d, r.getReturnID());
-      response.put(i, aw);
+      responses[i].write(aw);
     }
     else {
       Data d(0);    // Deny
       AddressedWord aw(d, r.getReturnID());
-      response.put(i, aw);
+      responses[i].write(aw);
     }
   }
 }
 
 void FlowControlIn::receivedData() {
-  Array<AddressedWord> data = dataIn.read();
-  for(int i=0; i<data.length(); i++) {
-    /* if(data.get(i) is new) */ buffers.at(i).write(data.get(i));
+  for(int i=0; i<width; i++) {
+    /* if(dataIn[i].read() is new) */ buffers.at(i).write(dataIn[i].read());
   }
 }
 
 FlowControlIn::FlowControlIn(sc_core::sc_module_name name, int ID, int width) :
     Component(name, ID),
-    buffers(width),
-    toSend(width),
-    response(width) {
+    buffers(width) {
+
+  this->width = width;
+
+  dataIn = new sc_in<AddressedWord>[width];
+  requests = new sc_in<AddressedWord>[width];
+  flowControl = new sc_in<bool>[width];
+  dataOut = new sc_out<AddressedWord>[width];
+  responses = new sc_out<AddressedWord>[width];
 
   for(int i=0; i<width; i++) {
     Buffer<AddressedWord>* b = new Buffer<AddressedWord>(FLOW_CONTROL_BUFFER_SIZE);
@@ -54,15 +55,15 @@ FlowControlIn::FlowControlIn(sc_core::sc_module_name name, int ID, int width) :
   }
 
   SC_METHOD(receivedFlowControl);
-  sensitive << flowControl;
+  for(int i=0; i<width; i++) sensitive << flowControl[i];
   dont_initialize();
 
   SC_METHOD(receivedRequests);
-  sensitive << responses;
+  for(int i=0; i<width; i++) sensitive << requests[i];
   dont_initialize();
 
   SC_METHOD(receivedData);
-  sensitive << dataIn;
+  for(int i=0; i<width; i++) sensitive << dataIn[i];
   dont_initialize();
 
 }

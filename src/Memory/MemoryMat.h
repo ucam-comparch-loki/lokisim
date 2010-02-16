@@ -21,9 +21,13 @@
 
 class MemoryMat: public TileComponent {
 
-/* Local state */
-  AddressedStorage<Word> data;
+public:
+/* Constructors and destructors */
+  SC_HAS_PROCESS(MemoryMat);
+  MemoryMat(sc_core::sc_module_name name, int ID);
+  virtual ~MemoryMat();
 
+private:
 /* Methods */
   // One copy of each function for each pair of input ports.
   void doOp1();
@@ -33,11 +37,9 @@ class MemoryMat: public TileComponent {
   void write1();
   void write2();
 
-public:
-/* Constructors and destructors */
-  SC_HAS_PROCESS(MemoryMat);
-  MemoryMat(sc_core::sc_module_name name, int ID);
-  virtual ~MemoryMat();
+/* Local state */
+  AddressedStorage<Word> data;
+
 };
 
 #endif /* MEMORYMAT_H_ */

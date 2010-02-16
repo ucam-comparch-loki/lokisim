@@ -28,14 +28,10 @@
 template<class T>
 class Multiplexor: public Component {
 
-protected:
-/* Methods */
-  virtual void doOp() = 0;
-
 public:
 /* Ports */
   sc_in<short> select;
-  sc_out<T> result;
+  sc_out<T>    result;
 
   // Inputs to be declared in subclasses
 
@@ -52,6 +48,11 @@ public:
   virtual ~Multiplexor() {
 
   }
+
+protected:
+/* Methods */
+  virtual void doOp() = 0;
+
 };
 
 #endif /* MULTIPLEXOR_H_ */
