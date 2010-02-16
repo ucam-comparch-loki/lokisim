@@ -17,9 +17,9 @@ class ALU: public Component {
 
 public:
 /* Ports */
-  sc_in<short> select, predicate;
-  sc_in<Data> in1, in2;
-  sc_out<Data> out;
+  sc_in<short>  select, predicate;
+  sc_in<Data>   in1, in2;
+  sc_out<Data>  out;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(ALU);

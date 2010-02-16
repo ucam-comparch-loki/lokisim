@@ -21,8 +21,8 @@ class SignExtend: public Component {
 
 public:
 /* Ports */
-  sc_in<Data> input;
-  sc_out<Data> output;
+  sc_in<Data>   input;
+  sc_out<Data>  output;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(SignExtend);

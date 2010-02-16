@@ -15,7 +15,7 @@
 template<class T>
 class Array {
 
-  std::vector<T> array;    // Use a pre-made Array class instead?
+  std::vector<T> array;
 
 public:
 

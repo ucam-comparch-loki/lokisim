@@ -11,6 +11,9 @@
 TileComponent::TileComponent(sc_core::sc_module_name name, int ID)
     : Component(name, ID) {
 
+  flowControlIn = new sc_in<bool>[NUM_CLUSTER_OUTPUTS];
+  out = new sc_out<AddressedWord>[NUM_CLUSTER_OUTPUTS];
+
 }
 
 TileComponent::~TileComponent() {

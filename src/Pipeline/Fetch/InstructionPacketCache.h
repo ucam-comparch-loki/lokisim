@@ -23,11 +23,11 @@ class InstructionPacketCache : public Component {
 
 public:
 /* Ports */
-  sc_in<Address> address;
-  sc_in<Instruction> in;
-  sc_in<bool> clock, readInstruction;
+  sc_in<Address>      address;
+  sc_in<Instruction>  in;
+  sc_in<bool>         clock, readInstruction;
   sc_out<Instruction> out;
-  sc_out<bool> cacheHit, isRoomToFetch;
+  sc_out<bool>        cacheHit, isRoomToFetch;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(InstructionPacketCache);
@@ -47,8 +47,8 @@ private:
 /* Local state */
   IPKCacheStorage<Address, Instruction> cache;
   Buffer<Address> addresses;
-  Instruction instToSend;
-  bool sentNewInst, outputWasRead, startOfPacket;
+  Instruction     instToSend;
+  bool            sentNewInst, outputWasRead, startOfPacket;
 
 /* Signals (wires) */
   sc_signal<bool> writeNotify1, writeNotify2, writeNotify3; // There is data to send

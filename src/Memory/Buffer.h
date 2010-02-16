@@ -77,6 +77,10 @@ public:
     return (fillCount == size);
   }
 
+  int remainingSpace() {
+    return size-fillCount;
+  }
+
   void print() {
     for(int i=0; i<this->size; i++) std::cout << Storage<T>::data.at(i) << " ";
     std::cout << std::endl;

@@ -32,5 +32,9 @@ extern parameter MEMORY_SIZE;
 extern parameter NUM_RECEIVE_CHANNELS;
 extern parameter NUM_SEND_CHANNELS;
 extern parameter CHANNEL_END_BUFFER_SIZE; // Different send/receive sizes?
+extern parameter FLOW_CONTROL_BUFFER_SIZE;
+
+extern parameter NUM_CLUSTER_INPUTS;
+extern parameter NUM_CLUSTER_OUTPUTS;
 
 #endif /* PARAMETERS_H_ */

@@ -21,10 +21,10 @@ class FetchLogic: public Component {
 
 public:
 /* Ports */
-  sc_in<Address> in;
-  sc_in<Data> baseAddress;
-  sc_in<bool> cacheContainsInst, isRoomToFetch, flowControl;
-  sc_out<Address> toIPKC;
+  sc_in<Address>        in;
+  sc_in<Data>           baseAddress;
+  sc_in<bool>           cacheContainsInst, isRoomToFetch, flowControl;
+  sc_out<Address>       toIPKC;
   sc_out<AddressedWord> toNetwork;
 
 /* Constructors and destructors */
@@ -41,11 +41,11 @@ private:
 
 /* Local state */
   Buffer<AddressedWord> toSend;
-  bool canSend, awaitingBaseAddr;
-  Address offsetAddr;
+  bool                  canSend, awaitingBaseAddr;
+  Address               offsetAddr;
 
 /* Signals (wires) */
-  sc_signal<bool> sendData;
+  sc_signal<bool>       sendData;
 
 };
 

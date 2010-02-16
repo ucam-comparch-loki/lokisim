@@ -31,9 +31,9 @@ class ReceiveChannelEndTable: public Component {
 
 public:
 /* Ports */
-  sc_in<Word> fromNetwork1, fromNetwork2;
-  sc_in<short> fromDecoder1, fromDecoder2;
-  sc_out<Data> toALU1, toALU2;
+  sc_in<Word>   fromNetwork1, fromNetwork2;
+  sc_in<short>  fromDecoder1, fromDecoder2;
+  sc_out<Data>  toALU1, toALU2;
 
   // Flow control?
 

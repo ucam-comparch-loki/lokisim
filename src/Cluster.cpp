@@ -12,40 +12,6 @@ void Cluster::storeCode(std::vector<Instruction>& instructions) {
   fetch.storeCode(instructions);
 }
 
-/* Split the input Array and send information wherever it needs to go */
-void Cluster::splitInputs() {
-
-  // Also need to split main inputs
-
-  // Flow control
-  Array<bool> control = flowControlIn.read();
-
-  if(control.length() > 0) {
-    bool toFetchLogic = control.get(0);
-    Array<bool> toSCET = *(new Array<bool>(control, 1, control.length()-1));
-
-    decFlowControl.write(toFetchLogic);
-    writeFlowControl.write(toSCET);
-  }
-
-}
-
-/* Combine all of the outputs into one vector */
-void Cluster::combineOutputs() {
-
-  // Put the decoder's output into an Array
-  Array<AddressedWord> *decodeOut = new Array<AddressedWord>(1);
-  decodeOut->put(0, decodeOutput.read());
-
-  // Merge the array with that from the write stage
-  decodeOut->merge(writeOut.read());
-
-  out.write(*decodeOut);
-
-  // Also need to combine various flow control signals
-
-}
-
 Cluster::Cluster(sc_core::sc_module_name name, int ID) :
     TileComponent(name, ID),
     regs("regs", ID),
@@ -54,15 +20,15 @@ Cluster::Cluster(sc_core::sc_module_name name, int ID) :
     execute("execute", ID),
     write("write", ID) {
 
-  SC_METHOD(splitInputs);
-  sensitive << flowControlIn;
-//  dont_initialize();
-
-  SC_METHOD(combineOutputs);
-  sensitive << writeOut << decodeOutput;
-  dont_initialize();
-
 // Connect things up
+  // Main inputs/outputs
+  decode.flowControl(flowControlIn[0]);
+  decode.out1(out[0]);
+  for(int i=1; i<NUM_CLUSTER_OUTPUTS; i++) {
+    write.flowControl[i-1](flowControlIn[i]);
+    write.output[i-1](out[i]);
+  }
+
   // Clock
   fetch.clock(clock);
   decode.clock(clock);
@@ -82,7 +48,6 @@ Cluster::Cluster(sc_core::sc_module_name name, int ID) :
   // To/from decode stage
   decode.in1(in3);
   decode.in2(in4);
-  decode.out1(decodeOutput);
 
   decode.regIn1(regData1); regs.out1(regData1);
   decode.regIn2(regData2); regs.out2(regData2);
@@ -93,7 +58,6 @@ Cluster::Cluster(sc_core::sc_module_name name, int ID) :
   decode.indWriteAddr(decIndWrite); execute.indWriteIn(decIndWrite);
 
   decode.isIndirect(indirectReadSig); regs.indRead(indirectReadSig);
-  decode.flowControl(decFlowControl);
 
   decode.chEnd1(RCETtoALU1); execute.fromRChan1(RCETtoALU1);
   decode.chEnd2(RCETtoALU2); execute.fromRChan2(RCETtoALU2);
@@ -126,8 +90,6 @@ Cluster::Cluster(sc_core::sc_module_name name, int ID) :
   write.outRegAddr(writeRegAddr); regs.writeAddr(writeRegAddr);
   write.outIndAddr(indirectWrite); regs.indWriteAddr(indirectWrite);
   write.regData(regWriteData); regs.writeData(regWriteData);
-  write.flowControl(writeFlowControl);
-  write.output(writeOut);
 
 }
 

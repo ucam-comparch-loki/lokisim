@@ -24,19 +24,16 @@ void SendChannelEndTable::doOp() {
 
 /* If it is possible to send data onto the network, do it */
 void SendChannelEndTable::canSend() {
-  Array<bool> flowCont = flowControl.read();
 
   // If a buffer has information, and is allowed to send, put it in the vector
   for(int i=0; i<NUM_SEND_CHANNELS; i++) {
-    bool send = flowCont.get(i);
+    bool send = flowControl[i].read();
 
     if(!(buffers.at(i).isEmpty()) && send) {
-      toSend.put(i, buffers.at(i).read());
+      output[i].write(buffers.at(i).read());
     }
     // Otherwise, send the same value again (no change => no event)
   }
-
-  output.write(toSend);
 
 }
 
@@ -49,8 +46,10 @@ short SendChannelEndTable::chooseBuffer() {
 
 
 SendChannelEndTable::SendChannelEndTable(sc_core::sc_module_name name, int ID) :
-    Component(name, ID),
-    toSend(NUM_SEND_CHANNELS) {
+    Component(name, ID) {
+
+  flowControl = new sc_in<bool>[NUM_SEND_CHANNELS];
+  output = new sc_out<AddressedWord>[NUM_SEND_CHANNELS];
 
   for(int i=0; i<NUM_SEND_CHANNELS; i++) {
     Buffer<AddressedWord>* buffer = new Buffer<AddressedWord>(CHANNEL_END_BUFFER_SIZE);
@@ -62,7 +61,7 @@ SendChannelEndTable::SendChannelEndTable(sc_core::sc_module_name name, int ID) :
   dont_initialize();
 
   SC_METHOD(canSend);
-  sensitive << flowControl;
+  for(int i=0; i<NUM_SEND_CHANNELS; i++) sensitive << flowControl[i];
   dont_initialize();
 
 }

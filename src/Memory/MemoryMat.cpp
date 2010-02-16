@@ -32,7 +32,8 @@ void MemoryMat::read1() {
 
   Array<AddressedWord> *toSend = new Array<AddressedWord>(1);
   toSend->put(0, *aw);
-  out.write(*toSend);    // Need to make sure writes aren't conflicting
+//  out.write(*toSend);    // Need to make sure writes aren't conflicting
+  out[0].write(*aw);
 }
 
 void MemoryMat::read2() {
@@ -46,7 +47,8 @@ void MemoryMat::read2() {
 
   Array<AddressedWord> *toSend = new Array<AddressedWord>(1);
   toSend->put(0, *aw);
-  out.write(*toSend);    // Need to make sure writes aren't conflicting
+//  out.write(*toSend);    // Need to make sure writes aren't conflicting
+  out[1].write(*aw);
 }
 
 /* Write the given data into the given memory address. */

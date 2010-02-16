@@ -16,29 +16,31 @@
 
 class InstructionPacketFIFO : public Component {
 
-/* Local state */
-  Buffer<Instruction> fifo;
-
-/* Signals (wires) */
-  sc_signal<bool> readSig, wroteSig;
-
-/* Methods */
-  void insert();
-  void remove();
-  void updateEmptySig();
-  bool isEmpty();
-
 public:
 /* Ports */
-  sc_in<bool> readInstruction;
-  sc_in<Instruction> in;
-  sc_out<bool> empty;
+  sc_in<bool>         readInstruction;
+  sc_in<Instruction>  in;
+  sc_out<bool>        empty;
   sc_out<Instruction> out;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(InstructionPacketFIFO);
   InstructionPacketFIFO(sc_core::sc_module_name name, int ID);
   virtual ~InstructionPacketFIFO();
+
+private:
+/* Methods */
+  void insert();
+  void remove();
+  void updateEmptySig();
+  bool isEmpty();
+
+/* Local state */
+  Buffer<Instruction> fifo;
+
+/* Signals (wires) */
+  sc_signal<bool>     readSig, wroteSig;
+
 };
 
 #endif /* INSTRUCTIONPACKETFIFO_H_ */

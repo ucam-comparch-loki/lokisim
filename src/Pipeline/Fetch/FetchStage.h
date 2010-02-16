@@ -21,10 +21,10 @@ class FetchStage : public PipelineStage {
 
 public:
 /* Ports */
-  sc_in<Word> toIPKCache, toIPKQueue;
-  sc_in<Address> address;
+  sc_in<Word>         toIPKCache, toIPKQueue;
+  sc_in<Address>      address;
   sc_out<Instruction> instruction;
-  sc_out<bool> cacheHit, roomToFetch;
+  sc_out<bool>        cacheHit, roomToFetch;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(FetchStage);
@@ -32,27 +32,27 @@ public:
   virtual ~FetchStage();
 
 /* Methods */
-  void storeCode(std::vector<Instruction>& instructions);
+  void          storeCode(std::vector<Instruction>& instructions);
 
 private:
-  virtual void newCycle();
-  void newFIFOInst();
-  void newCacheInst();
-  short calculateSelect();
-  void select();
+  virtual void  newCycle();
+  void          newFIFOInst();
+  void          newCacheInst();
+  short         calculateSelect();
+  void          select();
 
 /* Components */
-  InstructionPacketCache cache;
-  InstructionPacketFIFO fifo;
+  InstructionPacketCache    cache;
+  InstructionPacketFIFO     fifo;
   Multiplexor2<Instruction> mux;
 
 /* Local state */
   bool usingCache;
 
 /* Signals (wires) */
-  sc_signal<Instruction> toCache, toFIFO, cacheToMux, FIFOtoMux;
-  sc_buffer<short> muxSelect;
-  sc_signal<bool> fifoEmpty, readFromFIFO, readFromCache;
+  sc_signal<Instruction>    toCache, toFIFO, cacheToMux, FIFOtoMux;
+  sc_buffer<short>          muxSelect;
+  sc_signal<bool>           fifoEmpty, readFromFIFO, readFromCache;
 
 };
 

@@ -28,8 +28,10 @@ public:
   sc_in<Word> in1, in2, in3, in4;
 //  sc_out<Array<bool> > flowControlOut;
 
-  sc_in<Array<bool> > flowControlIn;
-  sc_out<Array<AddressedWord> > out;
+//  sc_in<Array<bool> > flowControlIn;
+//  sc_out<Array<AddressedWord> > out;
+  sc_in<bool>* flowControlIn;   // array
+  sc_out<AddressedWord>* out;    // array
 
 /* Constructors and destructors */
   TileComponent(sc_core::sc_module_name name, int ID);

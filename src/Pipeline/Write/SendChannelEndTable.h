@@ -18,29 +18,26 @@
 
 class SendChannelEndTable: public Component {
 
-protected:
-/* Local state */
-  vector<Buffer<AddressedWord> > buffers;
-  Array<AddressedWord> toSend;
-
-/* Methods */
-  void doOp();
-  virtual void canSend();
-
-  virtual short chooseBuffer();
-
 public:
 /* Ports */
-  sc_in<Word> input;
-  sc_in<short> remoteChannel;
-  sc_out<Array<AddressedWord> > output;
-
-  sc_in<Array<bool> > flowControl;
+  sc_in<Word>             input;
+  sc_in<short>            remoteChannel;
+  sc_in<bool>*            flowControl;  // array
+  sc_out<AddressedWord>*  output;       // array
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(SendChannelEndTable);
   SendChannelEndTable(sc_core::sc_module_name name, int ID);
   virtual ~SendChannelEndTable();
+
+protected:
+/* Methods */
+  void          doOp();
+  virtual void  canSend();
+  virtual short chooseBuffer();
+
+/* Local state */
+  vector<Buffer<AddressedWord> >  buffers;
 
 };
 

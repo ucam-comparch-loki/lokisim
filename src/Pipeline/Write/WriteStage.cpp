@@ -51,6 +51,9 @@ WriteStage::WriteStage(sc_core::sc_module_name name, int ID) :
     scet("scet", ID),
     mux("writemux") {
 
+  output = new sc_out<AddressedWord>[NUM_SEND_CHANNELS];
+  flowControl = new sc_in<bool>[NUM_SEND_CHANNELS];
+
 // Register methods
   SC_METHOD(receivedInst);
   sensitive << inst;
@@ -74,9 +77,12 @@ WriteStage::WriteStage(sc_core::sc_module_name name, int ID) :
   mux.select(muxSelect);
   mux.result(muxOutput); scet.input(muxOutput);
 
-  scet.output(output);
   scet.remoteChannel(remoteChannel);
-  scet.flowControl(flowControl);
+
+  for(int i=0; i<NUM_SEND_CHANNELS; i++) {
+    scet.output[i](output[i]);
+    scet.flowControl[i](flowControl[i]);
+  }
 
 }
 
