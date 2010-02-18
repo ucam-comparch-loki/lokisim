@@ -10,8 +10,11 @@
 void DecodeStage::newCycle() {
   while(true) {
     instruction.write(inst.read());
-    fromNetwork1.write(in1.read());
-    fromNetwork2.write(in2.read());
+
+    for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
+      fromNetwork[i].write(in[i].read());
+    }
+
     wait(clock.posedge_event());
   }
 }
@@ -35,6 +38,10 @@ DecodeStage::DecodeStage(sc_core::sc_module_name name, int ID) :
     decoder("decoder", ID),
     extend("signextend", ID) {
 
+  in = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
+  flowControlOut = new sc_out<bool>[NUM_RECEIVE_CHANNELS];
+  fromNetwork = new sc_signal<Word>[NUM_RECEIVE_CHANNELS];
+
 // Register methods
   SC_METHOD(receivedFromRegs1);
   sensitive << regIn1;
@@ -46,13 +53,15 @@ DecodeStage::DecodeStage(sc_core::sc_module_name name, int ID) :
 
 // Connect everything up
   decoder.instructionIn(instruction);
-  rcet.fromNetwork1(fromNetwork1);
-  rcet.fromNetwork2(fromNetwork2);
+
+  for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
+    rcet.fromNetwork[i](fromNetwork[i]);
+  }
 
   fl.toIPKC(address);
   fl.cacheContainsInst(cacheHit);
   fl.toNetwork(out1);
-  fl.flowControl(flowControl);
+  fl.flowControl(flowControlIn);
   fl.baseAddress(baseAddress);
   fl.isRoomToFetch(roomToFetch);
 
@@ -75,8 +84,14 @@ DecodeStage::DecodeStage(sc_core::sc_module_name name, int ID) :
   decoder.op1Select(op1Select);
   decoder.op2Select(op2Select);
 
+  rcet.clock(clock);
   rcet.toALU1(chEnd1);
   rcet.toALU2(chEnd2);
+
+  for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
+    rcet.flowControl[i](flowControlOut[i]);
+  }
+
   extend.output(sExtend);
 
 }

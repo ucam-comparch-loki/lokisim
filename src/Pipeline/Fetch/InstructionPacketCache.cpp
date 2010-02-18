@@ -93,6 +93,7 @@ void InstructionPacketCache::finishedRead() {
 /* Update the signal saying whether there is enough room to fetch another packet */
 void InstructionPacketCache::updateRTF() {
   isRoomToFetch.write(cache.remainingSpace() >= MAX_IPK_SIZE);
+  flowControl.write(!cache.isFull());
 }
 
 /* Send the chosen instruction. We need a separate method for this because both

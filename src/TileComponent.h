@@ -3,8 +3,8 @@
  *
  * A class representing any component which can be a networked part of a Tile.
  * This primarily means Clusters and memories, but may include more components
- * later if appropriate. All TileComponents have the same network interface of
- * four input channels and two output channels.
+ * later if appropriate. All TileComponents have the same network interface,
+ * with the same numbers of input channels and output channels.
  *
  *  Created on: 5 Jan 2010
  *      Author: db434
@@ -23,15 +23,11 @@ class TileComponent : public Component {
 
 public:
 /* Ports */
-  sc_in<bool> clock;
-
-  sc_in<Word> in1, in2, in3, in4;
-//  sc_out<Array<bool> > flowControlOut;
-
-//  sc_in<Array<bool> > flowControlIn;
-//  sc_out<Array<AddressedWord> > out;
-  sc_in<bool>* flowControlIn;   // array
-  sc_out<AddressedWord>* out;    // array
+  sc_in<bool>            clock;
+  sc_in<Word>           *in;              // array
+  sc_out<AddressedWord> *out;             // array
+  sc_in<bool>           *flowControlIn;   // array
+  sc_out<bool>          *flowControlOut;  // array
 
 /* Constructors and destructors */
   TileComponent(sc_core::sc_module_name name, int ID);

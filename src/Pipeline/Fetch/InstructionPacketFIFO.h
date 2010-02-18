@@ -18,9 +18,9 @@ class InstructionPacketFIFO : public Component {
 
 public:
 /* Ports */
-  sc_in<bool>         readInstruction;
+  sc_in<bool>         clock, readInstruction;
   sc_in<Instruction>  in;
-  sc_out<bool>        empty;
+  sc_out<bool>        empty, flowControl;
   sc_out<Instruction> out;
 
 /* Constructors and destructors */
@@ -33,6 +33,7 @@ private:
   void insert();
   void remove();
   void updateEmptySig();
+  void newCycle();
   bool isEmpty();
 
 /* Local state */

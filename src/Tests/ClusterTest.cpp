@@ -6,7 +6,6 @@
  */
 
 #include <gtest/gtest.h>
-#include "systemc.h"
 #include "Test.h"
 #include "../Cluster.h"
 #include "../CodeLoader.h"
@@ -17,31 +16,49 @@ protected:
   Cluster c;
 
   sc_clock clock;
-  sc_signal<Word> in1, in2, in3, in4;
-  sc_buffer<bool>* flowControlIn;   // array
-  sc_signal<AddressedWord>* out;    // array
+  sc_signal<Word> *in;              // array
+  sc_signal<AddressedWord> *out;    // array
+  sc_buffer<bool> *flowControlIn;   // array
+  sc_buffer<bool> *flowControlOut;  // array
+
+  sc_core::sc_trace_file *trace;
 
   ClusterTest() :
       c("cluster", 1),
       clock("clock", 1, SC_NS, 0.5) {
 
-    flowControlIn = new sc_buffer<bool>[NUM_CLUSTER_OUTPUTS];
+    in = new sc_signal<Word>[NUM_CLUSTER_INPUTS];
     out = new sc_signal<AddressedWord>[NUM_CLUSTER_OUTPUTS];
+    flowControlIn = new sc_buffer<bool>[NUM_CLUSTER_OUTPUTS];
+    flowControlOut = new sc_buffer<bool>[NUM_CLUSTER_INPUTS];
 
     c.clock(clock);
-    c.in1(in1);
-    c.in2(in2);
-    c.in3(in3);
-    c.in4(in4);
+    for(int i=0; i<NUM_CLUSTER_INPUTS; i++) {
+      c.in[i](in[i]);
+      c.flowControlOut[i](flowControlOut[i]);
+    }
     for(int i=0; i<NUM_CLUSTER_OUTPUTS; i++) {
-      c.flowControlIn[i](flowControlIn[i]);
       c.out[i](out[i]);
+      c.flowControlIn[i](flowControlIn[i]);
     }
 
   }
 
   virtual void SetUp() {
-    for(int i=0; i<NUM_CLUSTER_OUTPUTS; i++) flowControlIn[i].write(false);
+    trace = sc_core::sc_create_vcd_trace_file("ClusterTest");
+    trace->set_time_unit(1.0, SC_NS);
+
+    for(int i=0; i<NUM_CLUSTER_OUTPUTS; i++) {
+      flowControlIn[i].write(false);
+
+      std::string name("output");
+      sc_core::sc_trace(trace, out[i], name);
+    }
+  }
+
+  virtual void TearDown() {
+    TIMESTEP;
+    sc_core::sc_close_vcd_trace_file(trace);
   }
 
 };
@@ -71,19 +88,19 @@ TEST_F(ClusterTest, ClusterExecutesFibonacci) {
   Array<AddressedWord> temp;
 
 
-  in2.write(fetch);
+  in[1].write(fetch);
   TIMESTEP;
-  in2.write(store1);
+  in[1].write(store1);
   TIMESTEP;
-  in2.write(store2);
+  in[1].write(store2);
   TIMESTEP;
-  in2.write(add1);
+  in[1].write(add1);
   TIMESTEP;
-  in2.write(add2);
+  in[1].write(add2);
   TIMESTEP;
-  in2.write(add3);
+  in[1].write(add3);
   TIMESTEP;
-  in2.write(add4);
+  in[1].write(add4);
   TIMESTEP;
 
   flowControlIn[1].write(true);

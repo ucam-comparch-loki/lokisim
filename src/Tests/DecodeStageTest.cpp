@@ -19,7 +19,7 @@ protected:
 
   sc_clock clock;
 
-  sc_signal<Word> in1, in2, regOutput1, regOutput2;
+  sc_signal<Word> *in, regOutput1, regOutput2;
   sc_signal<AddressedWord> out;
   sc_signal<Instruction> instIn, instOut;
   sc_buffer<bool> cacheHit;
@@ -36,14 +36,16 @@ protected:
   DecodeStageTest() : ds("decode", 1), regs("regs", 1),
       clock("clock", 1, SC_NS, 0.5) {
 
+    in = new sc_signal<Word>[NUM_RECEIVE_CHANNELS];
+
+    for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) ds.in[i](in[i]);
+
     ds.address(address);
     ds.cacheHit(cacheHit);
     ds.chEnd1(RCETtoALU1);
     ds.chEnd2(RCETtoALU2);
     ds.clock(clock);
-    ds.flowControl(flowControl);
-    ds.in1(in1);
-    ds.in2(in2);
+    ds.flowControlIn(flowControl);
     ds.isIndirect(isIndirect); regs.indRead(isIndirect);
     ds.indWriteAddr(indWrite);
     ds.inst(instIn);
@@ -152,7 +154,7 @@ protected:
 //  AddressedWord temp = out.read();
 //  EXPECT_EQ(1, ((Address)(temp.getPayload())).getAddress());
 //  EXPECT_EQ(18, temp.getChannelID());
-//  flowControl.write(!flowControl.read());
+//  flowControlIn.write(!flowControlIn.read());
 //
 //  TIMESTEP;
 //

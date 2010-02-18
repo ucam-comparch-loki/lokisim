@@ -1,6 +1,10 @@
 /*
  * FlowControlIn.h
  *
+ * The Component responsible for handling flow control at a Component's input.
+ * Jobs include receiving Requests and sending responses to say if the transfer
+ * is possible.
+ *
  *  Created on: 15 Feb 2010
  *      Author: db434
  */
@@ -19,9 +23,10 @@ class FlowControlIn: public Component {
 
 public:
 /* Ports */
-  sc_in<AddressedWord>  *dataIn, *requests;
+  sc_in<Word>           *dataIn, *requests;
   sc_in<bool>           *flowControl;
-  sc_out<AddressedWord> *dataOut, *responses;
+  sc_out<Word>          *dataOut;
+  sc_out<AddressedWord> *responses;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(FlowControlIn);
@@ -35,7 +40,7 @@ protected:
   void         receivedData();
 
 /* Local state */
-  std::vector<Buffer<AddressedWord> > buffers;
+  std::vector<Buffer<Word> > buffers;
   int width;
 
 };

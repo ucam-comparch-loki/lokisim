@@ -27,7 +27,7 @@ public:
   sc_in<Instruction>  in;
   sc_in<bool>         clock, readInstruction;
   sc_out<Instruction> out;
-  sc_out<bool>        cacheHit, isRoomToFetch;
+  sc_out<bool>        cacheHit, isRoomToFetch, flowControl;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(InstructionPacketCache);

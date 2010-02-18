@@ -27,10 +27,9 @@ public:
 
 /* Necessary functions/operators to pass this datatype down a channel */
 
-  friend void sc_trace(sc_core::sc_trace_file*& tf, const AddressedWord& w, std::string& txt) {
-    //sc_core::sc_trace(tf, w.payload, txt);
-    sc_core::sc_trace(tf, &(w.payload), txt);
-    sc_core::sc_trace(tf, w.channelID, txt);
+  friend void sc_trace(sc_core::sc_trace_file*& tf, const AddressedWord& w, const std::string& txt) {
+    sc_trace(tf, w.payload, txt + ".payload");
+    sc_core::sc_trace(tf, w.channelID, txt + ".channelID");
   }
 
   bool operator== (const AddressedWord& other) const;

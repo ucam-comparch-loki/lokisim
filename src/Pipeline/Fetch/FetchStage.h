@@ -25,6 +25,7 @@ public:
   sc_in<Address>      address;
   sc_out<Instruction> instruction;
   sc_out<bool>        cacheHit, roomToFetch;
+  sc_out<bool>       *flowControl;      // array
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(FetchStage);

@@ -85,6 +85,10 @@ public:
     return fillCount == 0;
   }
 
+  bool isFull() const {
+    return fillCount == Storage<T>::data.size();
+  }
+
   void switchToPendingPacket() {
     currentInstruction = pendingPacket;
     pendingPacket = NOT_IN_USE;

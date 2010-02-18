@@ -22,12 +22,22 @@ Cluster::Cluster(sc_core::sc_module_name name, int ID) :
 
 // Connect things up
   // Main inputs/outputs
-  decode.flowControl(flowControlIn[0]);
+  decode.flowControlIn(flowControlIn[0]);
   decode.out1(out[0]);
 
   for(int i=1; i<NUM_CLUSTER_OUTPUTS; i++) {
     write.flowControl[i-1](flowControlIn[i]);
     write.output[i-1](out[i]);
+  }
+
+  fetch.toIPKQueue(in[0]);
+  fetch.toIPKCache(in[1]);
+  fetch.flowControl[0](flowControlOut[0]);
+  fetch.flowControl[1](flowControlOut[1]);
+
+  for(int i=2; i<NUM_CLUSTER_INPUTS; i++) {
+    decode.in[i-2](in[i]);
+    decode.flowControlOut[i-2](flowControlOut[i]);
   }
 
   // Clock
@@ -37,9 +47,6 @@ Cluster::Cluster(sc_core::sc_module_name name, int ID) :
   write.clock(clock);
 
   // To/from fetch stage
-  fetch.toIPKQueue(in1);
-  fetch.toIPKCache(in2);
-
   decode.address(FLtoIPKC); fetch.address(FLtoIPKC);
   fetch.instruction(nextInst); decode.inst(nextInst);
 
@@ -47,9 +54,6 @@ Cluster::Cluster(sc_core::sc_module_name name, int ID) :
   fetch.roomToFetch(roomToFetch); decode.roomToFetch(roomToFetch);
 
   // To/from decode stage
-  decode.in1(in3);
-  decode.in2(in4);
-
   decode.regIn1(regData1); regs.out1(regData1);
   decode.regIn2(regData2); regs.out2(regData2);
 

@@ -21,9 +21,8 @@ class FlowControlOut: public Component {
 
 public:
 /* Ports */
-  sc_in<bool>             clock;
   sc_in<AddressedWord>   *dataIn;                // array
-  sc_in<bool>            *responses;             // array
+  sc_in<Word>            *responses;             // array
   sc_out<AddressedWord>  *dataOut, *requests;    // array
   sc_out<bool>           *flowControl;           // array
 
@@ -34,7 +33,7 @@ public:
 
 protected:
 /* Methods */
-  void          newCycle();
+  void          receivedResponses();
   virtual void  allowedToSend(int position, bool isAllowed);
   virtual void  sendRequests();
 

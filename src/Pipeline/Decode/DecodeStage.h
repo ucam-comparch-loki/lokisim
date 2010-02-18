@@ -22,12 +22,14 @@ class DecodeStage: public PipelineStage {
 
 public:
 /* Ports */
-  sc_in<Word>           in1, in2;
+  sc_in<Word>          *in;
   sc_out<AddressedWord> out1;
+  sc_in<bool>           flowControlIn;
+  sc_out<bool>         *flowControlOut;
 
   sc_in<Instruction>    inst;
   sc_in<Word>           regIn1, regIn2;
-  sc_in<bool>           cacheHit, roomToFetch, flowControl;
+  sc_in<bool>           cacheHit, roomToFetch;
   sc_out<Address>       address;
   sc_out<Instruction>   remoteInst;
   sc_out<short>         regReadAddr1, regReadAddr2, writeAddr, indWriteAddr;
@@ -56,7 +58,7 @@ private:
 
 /* Signals (wires) */
   sc_signal<Instruction>  instruction;
-  sc_signal<Word>         fromNetwork1, fromNetwork2;
+  sc_signal<Word>        *fromNetwork;
   sc_signal<Address>      decodeToFetch;
   sc_buffer<short>        decodeToRCET1, decodeToRCET2;
   sc_signal<Data>         decodeToExtend, baseAddress;

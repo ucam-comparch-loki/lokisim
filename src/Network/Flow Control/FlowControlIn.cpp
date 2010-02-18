@@ -17,7 +17,7 @@ void FlowControlIn::receivedFlowControl() {
 
 void FlowControlIn::receivedRequests() {
   for(int i=0; i<width; i++) {
-    Request r = static_cast<Request>(requests[i].read().getPayload());
+    Request r = static_cast<Request>(requests[i].read());
     if(/*request is new &&*/ !buffers.at(i).remainingSpace() >= r.getNumFlits()) {
       Data d(1);    // Accept
       AddressedWord aw(d, r.getReturnID());
@@ -43,14 +43,14 @@ FlowControlIn::FlowControlIn(sc_core::sc_module_name name, int ID, int width) :
 
   this->width = width;
 
-  dataIn = new sc_in<AddressedWord>[width];
-  requests = new sc_in<AddressedWord>[width];
+  dataIn = new sc_in<Word>[width];
+  requests = new sc_in<Word>[width];
   flowControl = new sc_in<bool>[width];
-  dataOut = new sc_out<AddressedWord>[width];
+  dataOut = new sc_out<Word>[width];
   responses = new sc_out<AddressedWord>[width];
 
   for(int i=0; i<width; i++) {
-    Buffer<AddressedWord>* b = new Buffer<AddressedWord>(FLOW_CONTROL_BUFFER_SIZE);
+    Buffer<Word>* b = new Buffer<Word>(FLOW_CONTROL_BUFFER_SIZE);
     buffers.push_back(*b);
   }
 

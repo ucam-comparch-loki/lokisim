@@ -80,6 +80,7 @@ FetchStage::FetchStage(sc_core::sc_module_name name, int ID) :
     mux("fetchmux") {
 
   usingCache = true;
+  flowControl = new sc_out<bool>[2];
 
 // Register methods
   SC_METHOD(newFIFOInst);
@@ -96,6 +97,7 @@ FetchStage::FetchStage(sc_core::sc_module_name name, int ID) :
 
 // Connect everything up
   cache.clock(clock);
+  fifo.clock(clock);
 
   cache.in(toCache);
   fifo.in(toFIFO);
@@ -110,9 +112,11 @@ FetchStage::FetchStage(sc_core::sc_module_name name, int ID) :
   cache.cacheHit(cacheHit);
   cache.isRoomToFetch(roomToFetch);
   cache.readInstruction(readFromCache);
+  cache.flowControl(flowControl[1]);
 
   fifo.empty(fifoEmpty);
   fifo.readInstruction(readFromFIFO);
+  fifo.flowControl(flowControl[0]);
 
 }
 

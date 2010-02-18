@@ -10,24 +10,24 @@
 /* Determine whether to read or write. */
 void MemoryMat::doOp1() {
   // Cast the Word to an Address to interpret it correctly
-  if((static_cast<Address>(in3.read())).getReadBit()) read1();
+  if((static_cast<Address>(in[3].read())).getReadBit()) read1();
   else write1();
 }
 
 void MemoryMat::doOp2() {
   // Cast the Word to an Address to interpret it correctly
-  if((static_cast<Address>(in4.read())).getReadBit()) read2();
+  if((static_cast<Address>(in[4].read())).getReadBit()) read2();
   else write2();
 }
 
 /* Read from memory and send the result to the given address. */
 void MemoryMat::read1() {
   // Cast the Word to an Address to interpret it correctly
-  int readAddress = (static_cast<Address>(in1.read())).getAddress();
+  int readAddress = (static_cast<Address>(in[1].read())).getAddress();
   Word inMem = data.read(readAddress);
   Word copy = inMem;
 
-  int sendAddress = (static_cast<Address>(in3.read())).getAddress();
+  int sendAddress = (static_cast<Address>(in[3].read())).getAddress();
   AddressedWord *aw = new AddressedWord(copy, sendAddress);
 
   Array<AddressedWord> *toSend = new Array<AddressedWord>(1);
@@ -38,11 +38,11 @@ void MemoryMat::read1() {
 
 void MemoryMat::read2() {
   // Cast the Word to an Address to interpret it correctly
-  int readAddress = (static_cast<Address>(in2.read())).getAddress();
+  int readAddress = (static_cast<Address>(in[2].read())).getAddress();
   Word inMem = data.read(readAddress);
   Word copy = inMem;
 
-  int sendAddress = (static_cast<Address>(in4.read())).getAddress();
+  int sendAddress = (static_cast<Address>(in[4].read())).getAddress();
   AddressedWord *aw = new AddressedWord(copy, sendAddress);
 
   Array<AddressedWord> *toSend = new Array<AddressedWord>(1);
@@ -54,15 +54,15 @@ void MemoryMat::read2() {
 /* Write the given data into the given memory address. */
 void MemoryMat::write1() {
   // Cast the Word to an Address to interpret it correctly
-  int writeAddress = (static_cast<Address>(in3.read())).getAddress();
-  Word newData = in1.read();
+  int writeAddress = (static_cast<Address>(in[3].read())).getAddress();
+  Word newData = in[1].read();
   data.write(newData, writeAddress);
 }
 
 void MemoryMat::write2() {
   // Cast the Word to an Address to interpret it correctly
-  int writeAddress = (static_cast<Address>(in4.read())).getAddress();
-  Word newData = in2.read();
+  int writeAddress = (static_cast<Address>(in[4].read())).getAddress();
+  Word newData = in[2].read();
   data.write(newData, writeAddress);
 }
 
@@ -72,10 +72,10 @@ MemoryMat::MemoryMat(sc_core::sc_module_name name, int ID) :
 
 // Register methods
   SC_METHOD(doOp1);
-  sensitive << in1;   // Execute doOp1 whenever data is received on in1
+  sensitive << in[1];   // Execute doOp1 whenever data is received on in1
 
   SC_METHOD(doOp2);
-  sensitive << in2;   // Execute doOp2 whenever data is received on in2
+  sensitive << in[2];   // Execute doOp2 whenever data is received on in2
 }
 
 MemoryMat::~MemoryMat() {

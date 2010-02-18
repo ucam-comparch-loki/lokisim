@@ -24,6 +24,10 @@ void InstructionPacketFIFO::updateEmptySig() {
   empty.write(isEmpty());
 }
 
+void InstructionPacketFIFO::newCycle() {
+  flowControl.write(!fifo.isFull());
+}
+
 bool InstructionPacketFIFO::isEmpty() {
   return fifo.isEmpty();
 }
@@ -43,6 +47,10 @@ InstructionPacketFIFO::InstructionPacketFIFO(sc_core::sc_module_name name, int I
 
   SC_METHOD(updateEmptySig);
   sensitive << readSig << wroteSig;
+  // do initialise
+
+  SC_METHOD(newCycle);
+  sensitive << clock.pos();
   // do initialise
 
 }

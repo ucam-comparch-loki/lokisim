@@ -10,7 +10,7 @@
 void ReceiveChannelEndTable::receivedInput1() {
   // Do something if we have more than two channel ends (destination % numchannels)
   try {
-    buffers.at(0).write(fromNetwork1.read());
+    buffers.at(0).write(fromNetwork[0].read());
   }
   catch(std::exception e) {
     // Drop packet and carry on
@@ -21,7 +21,7 @@ void ReceiveChannelEndTable::receivedInput1() {
 void ReceiveChannelEndTable::receivedInput2() {
   // Do something if we have more than two channel ends (destination % numchannels)
   try {
-    buffers.at(1).write(fromNetwork2.read());
+    buffers.at(1).write(fromNetwork[1].read());
   }
   catch(std::exception e) {
     // Drop packet and carry on
@@ -46,7 +46,7 @@ void ReceiveChannelEndTable::read(short inChannel, short outChannel) {
     w = buffers.at(inChannel).read();
   }
   catch(std::exception e) {   // Reading from empty buffer
-    w = Word(0);              // Return 0 (should stall)
+    w = Word(0);              // Return 0 (TODO: stall)
   }
 
   Data* d = new Data(w);
@@ -56,9 +56,17 @@ void ReceiveChannelEndTable::read(short inChannel, short outChannel) {
 
 }
 
+void ReceiveChannelEndTable::newCycle() {
+  for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
+    flowControl[i].write(!buffers.at(i).isFull());
+  }
+}
+
 ReceiveChannelEndTable::ReceiveChannelEndTable(sc_core::sc_module_name name, int ID)
     : Component(name, ID) {
 
+  flowControl = new sc_out<bool>[NUM_RECEIVE_CHANNELS];
+  fromNetwork = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
   buffers = *(new vector<Buffer<Word> >(NUM_RECEIVE_CHANNELS));
 
   for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
@@ -67,11 +75,11 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_core::sc_module_name name, int
   }
 
   SC_METHOD(receivedInput1);
-  sensitive << fromNetwork1;
+  sensitive << fromNetwork[0];
   dont_initialize();
 
   SC_METHOD(receivedInput2);
-  sensitive << fromNetwork2;
+  sensitive << fromNetwork[1];
   dont_initialize();
 
   SC_METHOD(read1);
@@ -81,6 +89,10 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_core::sc_module_name name, int
   SC_METHOD(read2);
   sensitive << fromDecoder2;
   dont_initialize();
+
+  SC_METHOD(newCycle);
+  sensitive << clock.pos();
+  // do initialise
 
 }
 

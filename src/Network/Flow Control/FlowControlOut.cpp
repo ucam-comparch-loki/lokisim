@@ -6,10 +6,12 @@
  */
 
 #include "FlowControlOut.h"
+#include "../../Datatype/Data.h"
 
-void FlowControlOut::newCycle() {
+void FlowControlOut::receivedResponses() {
   for(int i=0; i<width; i++) {
-    allowedToSend(i, responses[i].read());
+    Data d = static_cast<Data>(responses[i].read());
+    allowedToSend(i, d.getData());
   }
 }
 
@@ -37,7 +39,7 @@ FlowControlOut::FlowControlOut(sc_core::sc_module_name name, int ID, int width) 
   this->width = width;
 
   dataIn = new sc_in<AddressedWord>[width];
-  responses = new sc_in<bool>[width];
+  responses = new sc_in<Word>[width];
   dataOut = new sc_out<AddressedWord>[width];
   requests = new sc_out<AddressedWord>[width];
   flowControl = new sc_out<bool>[width];
@@ -47,8 +49,8 @@ FlowControlOut::FlowControlOut(sc_core::sc_module_name name, int ID, int width) 
     flowControl[i].write(false);
   }
 
-  SC_METHOD(newCycle);
-  sensitive << clock.pos();
+  SC_METHOD(receivedResponses);
+  for(int i=0; i<width; i++) sensitive << responses[i];
   dont_initialize();
 
   SC_METHOD(sendRequests);
