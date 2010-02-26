@@ -37,11 +37,7 @@ void FlowControlIn::receivedData() {
   }
 }
 
-FlowControlIn::FlowControlIn(sc_core::sc_module_name name, int ID, int width) :
-    Component(name, ID),
-    buffers(width) {
-
-  this->width = width;
+void FlowControlIn::setup() {
 
   dataIn = new sc_in<Word>[width];
   requests = new sc_in<Word>[width];
@@ -65,6 +61,24 @@ FlowControlIn::FlowControlIn(sc_core::sc_module_name name, int ID, int width) :
   SC_METHOD(receivedData);
   for(int i=0; i<width; i++) sensitive << dataIn[i];
   dont_initialize();
+
+}
+
+FlowControlIn::FlowControlIn(sc_core::sc_module_name name, int ID, int width) :
+    Component(name, ID),
+    buffers(width),
+    width(width) {
+
+  setup();
+
+}
+
+FlowControlIn::FlowControlIn(sc_core::sc_module_name name, int width) :
+    Component(name),
+    buffers(width),
+    width(width) {
+
+  setup();
 
 }
 

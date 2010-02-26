@@ -7,9 +7,7 @@
 
 #include "IntertileNetwork.h"
 
-IntertileNetwork::IntertileNetwork(sc_core::sc_module_name name, int ID)
-    : Interconnect(name, ID) {
-  // TODO Initialise vectors?
+IntertileNetwork::IntertileNetwork(sc_module_name name) : Interconnect(name) {
 
 }
 

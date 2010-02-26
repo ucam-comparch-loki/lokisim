@@ -7,9 +7,9 @@
 
 #include <gtest/gtest.h>
 #include "Test.h"
-#include "../Pipeline/Decode/DecodeStage.h"
-#include "../Memory/IndirectRegisterFile.h"
-#include "../InstructionMap.h"
+#include "../TileComponents/Pipeline/Decode/DecodeStage.h"
+#include "../TileComponents/Pipeline/IndirectRegisterFile.h"
+#include "../Utility/InstructionMap.h"
 
 class DecodeStageTest : public ::testing::Test {
 protected:
@@ -33,7 +33,7 @@ protected:
   sc_signal<short> write2, indWrite2;
   sc_signal<Word> writeData;
 
-  DecodeStageTest() : ds("decode", 1), regs("regs", 1),
+  DecodeStageTest() : ds("decode", 1), regs("regs"),
       clock("clock", 1, SC_NS, 0.5) {
 
     in = new sc_signal<Word>[NUM_RECEIVE_CHANNELS];

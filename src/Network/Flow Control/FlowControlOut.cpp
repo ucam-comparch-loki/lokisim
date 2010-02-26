@@ -33,10 +33,7 @@ void FlowControlOut::sendRequests() {
   }
 }
 
-FlowControlOut::FlowControlOut(sc_core::sc_module_name name, int ID, int width) :
-    Component(name, ID) {
-
-  this->width = width;
+void FlowControlOut::setup() {
 
   dataIn = new sc_in<AddressedWord>[width];
   responses = new sc_in<Word>[width];
@@ -44,10 +41,10 @@ FlowControlOut::FlowControlOut(sc_core::sc_module_name name, int ID, int width) 
   requests = new sc_out<AddressedWord>[width];
   flowControl = new sc_out<bool>[width];
 
-  // Initialise canSend so nothing is allowed to send
-  for(int i=0; i<width; i++) {
-    flowControl[i].write(false);
-  }
+  // Initialise so nothing is allowed to send
+//  for(int i=0; i<width; i++) {
+//    flowControl[i].write(false);
+//  }
 
   SC_METHOD(receivedResponses);
   for(int i=0; i<width; i++) sensitive << responses[i];
@@ -56,6 +53,22 @@ FlowControlOut::FlowControlOut(sc_core::sc_module_name name, int ID, int width) 
   SC_METHOD(sendRequests);
   for(int i=0; i<width; i++) sensitive << dataIn[i];
   dont_initialize();
+
+}
+
+FlowControlOut::FlowControlOut(sc_core::sc_module_name name, int ID, int width) :
+    Component(name, ID),
+    width(width) {
+
+  setup();
+
+}
+
+FlowControlOut::FlowControlOut(sc_core::sc_module_name name, int width) :
+    Component(name),
+    width(width) {
+
+  setup();
 
 }
 

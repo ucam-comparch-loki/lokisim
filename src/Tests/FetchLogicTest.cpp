@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "Test.h"
-#include "../Pipeline/Decode/FetchLogic.h"
+#include "../TileComponents/Pipeline/Decode/FetchLogic.h"
 
 //TEST(FetchLogicTest, FetchLogicWorks) {
 //

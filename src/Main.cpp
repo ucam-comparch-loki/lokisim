@@ -5,9 +5,6 @@
  *      Author: db434
  */
 
-#include "Parameters.h"
-#include "Chip.h"
-
 #include <gtest/gtest.h>
 #include <systemc.h>
 

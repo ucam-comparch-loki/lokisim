@@ -31,6 +31,7 @@ public:
 /* Constructors and destructors */
   SC_HAS_PROCESS(FlowControlIn);
   FlowControlIn(sc_core::sc_module_name name, int ID, int width);
+  FlowControlIn(sc_core::sc_module_name name, int width);
   virtual ~FlowControlIn();
 
 protected:
@@ -38,6 +39,7 @@ protected:
   virtual void receivedFlowControl();
   virtual void receivedRequests();
   void         receivedData();
+  void         setup();
 
 /* Local state */
   std::vector<Buffer<Word> > buffers;

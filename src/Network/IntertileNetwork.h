@@ -15,7 +15,7 @@ class IntertileNetwork: public Interconnect {
   // vector in/out north/east/south/west
 
 public:
-  IntertileNetwork(sc_core::sc_module_name name, int ID);
+  IntertileNetwork(sc_module_name name);
   virtual ~IntertileNetwork();
 };
 

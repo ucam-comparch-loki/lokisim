@@ -7,8 +7,8 @@
 
 #include <gtest/gtest.h>
 #include "Test.h"
-#include "../Pipeline/Write/WriteStage.h"
-#include "../Memory/IndirectRegisterFile.h"
+#include "../TileComponents/Pipeline/Write/WriteStage.h"
+#include "../TileComponents/Pipeline/IndirectRegisterFile.h"
 
 //TEST(WriteStageTest, WriteStageWorks) {
 //

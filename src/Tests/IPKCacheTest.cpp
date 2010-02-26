@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "Test.h"
-#include "../Pipeline/Fetch/InstructionPacketCache.h"
+#include "../TileComponents/Pipeline/Fetch/InstructionPacketCache.h"
 
 //TEST(IPKCacheTest, IPKCacheWorks) {
 //

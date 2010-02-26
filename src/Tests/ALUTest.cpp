@@ -15,8 +15,8 @@
 #include <gtest/gtest.h>
 #include <systemc.h>
 #include "Test.h"
-#include "../Pipeline/Execute/ALU.h"
-#include "../InstructionMap.h"
+#include "../TileComponents/Pipeline/Execute/ALU.h"
+#include "../Utility/InstructionMap.h"
 
 /* The routine needed to test each operation:
  *  Select the operand
@@ -41,7 +41,7 @@ protected:
   Data d;     // Used to store temporary values in
 
   ALUTest() {
-    alu = new ALU("alu", 0);
+    alu = new ALU("alu");
     alu->in1(in1); alu->in2(in2); alu->out(out); alu->select(select);
   }
 

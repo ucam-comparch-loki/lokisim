@@ -8,76 +8,83 @@
 #include "Tile.h"
 
 /* Connect two horizontally-adjacent Tiles together. */
-void Tile::connectLeftRight(Tile& left, Tile& right) {
+void Tile::connectLeftRight(const Tile& left, const Tile& right) {
   for(int i=0; i<NUM_CHANNELS_BETWEEN_TILES; i++) {
-    sc_signal<Array<AddressedWord> > leftToRight; // TODO: Don't allocate on stack
-    left.outEast(leftToRight);
-    right.inWest(leftToRight);
-
-    sc_signal<Array<AddressedWord> > rightToLeft;
-    left.inEast(rightToLeft);
-    right.outWest(rightToLeft);
+//    right.inWest[i](left.outEast[i]);
+//    left.inEast[i](right.outWest[i]);
   }
 }
 
 /* Connect two vertically-adjacent Tiles together. */
-void Tile::connectTopBottom(Tile& top, Tile& bottom) {
+void Tile::connectTopBottom(const Tile& top, const Tile& bottom) {
   for(int i=0; i<NUM_CHANNELS_BETWEEN_TILES; i++) {
-    sc_signal<Array<AddressedWord> > topToBottom;
-    top.outSouth(topToBottom);
-    bottom.inNorth(topToBottom);
-
-    sc_signal<Array<AddressedWord> > bottomToTop;
-    top.inSouth(bottomToTop);
-    bottom.outNorth(bottomToTop);
+//    bottom.inNorth[i](top.outSouth[i]);
+//    top.inSouth[i](bottom.outNorth[i]);
   }
 }
 
 /* Constructors and destructor. */
-Tile::Tile() : Component("tile") { // Give a default name
-  Tile("tile");
-}
+Tile::Tile(sc_module_name name, int ID) :
+    Component(name, ID),
+    network("localnetwork") {
 
-Tile::Tile(sc_core::sc_module_name name) : Component(name) {
+  // Initialise arrays of inputs and outputs
+//  inNorth  = new sc_in<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
+//  inEast   = new sc_in<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
+//  inSouth  = new sc_in<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
+//  inWest   = new sc_in<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
+//  outNorth = new sc_out<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
+//  outEast  = new sc_out<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
+//  outSouth = new sc_out<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
+//  outWest  = new sc_out<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
 
-  static int ID = 0;
+  int numOutputs = NUM_CLUSTER_OUTPUTS * (CLUSTERS_PER_TILE + MEMS_PER_TILE);
+  int numInputs  = NUM_CLUSTER_INPUTS  * (CLUSTERS_PER_TILE + MEMS_PER_TILE);
+
+  responsesToCluster = new sc_signal<Word>[numOutputs];
+  responsesFromCluster = new sc_signal<AddressedWord>[numInputs];
+  requestsToCluster = new sc_signal<Word>[numInputs];
+  dataToCluster = new sc_signal<Word>[numInputs];
 
   // Initialise the Clusters of this Tile
   for(int i=0; i<CLUSTERS_PER_TILE; i++) {
-    // Does the Cluster need to be "new"?
-    contents.push_back(Cluster("cluster", ID*(CLUSTERS_PER_TILE+MEMS_PER_TILE) + i));
+    contents.push_back(new WrappedTileComponent("wrapped", i, TileComponent::CLUSTER));
   }
 
   // Initialise the memories of this Tile
   for(int i=CLUSTERS_PER_TILE; i<CLUSTERS_PER_TILE+MEMS_PER_TILE; i++) {
-    // Does the memory need to be "new"?
-    contents.push_back(MemoryMat("memory", ID*(CLUSTERS_PER_TILE+MEMS_PER_TILE) + i));
+    contents.push_back(new WrappedTileComponent("wrapped", i, TileComponent::MEMORY));
   }
 
-  // Initialise the ports of this Tile (NUM_CHANNELS_BETWEEN_TILES in each direction)
-//  for(int j=0; j<NUM_CHANNELS_BETWEEN_TILES; j++) {
-//    // Do the ports need to be "new"?
-//    sc_in<AddressedWord> in1, in2, in3, in4;
-//    inNorth.push_back(in1);
-//    inEast.push_back(in2);
-//    inSouth.push_back(in3);
-//    inWest.push_back(in4);
-//
-//    sc_out<AddressedWord> out1, out2, out3, out4;
-//    outNorth.push_back(out1);
-//    outEast.push_back(out2);
-//    outSouth.push_back(out3);
-//    outWest.push_back(out4);
-//  }
+  // Connect the clusters and memories to the local interconnect
+  for(int i=0; i<(CLUSTERS_PER_TILE+MEMS_PER_TILE); i++) {
 
-  // TODO: create interconnect and connect things up
+    for(int j=0; j<NUM_CLUSTER_INPUTS; j++) {
+      int index = i*NUM_CLUSTER_INPUTS + j;   // Position in network's array
 
-  ID++;
+      contents[i]->dataIn[j](dataToCluster[index]);
+      network.dataOut[index](dataToCluster[index]);
+      contents[i]->requestsIn[j](requestsToCluster[index]);
+      network.requestsOut[index](requestsToCluster[index]);
+      contents[i]->responsesOut[j](responsesFromCluster[index]);
+      network.responsesIn[index](responsesFromCluster[index]);
+    }
 
-}
+    for(int j=0; j<NUM_CLUSTER_OUTPUTS; j++) {
+      int index = i*NUM_CLUSTER_OUTPUTS + j;  // Position in network's array
 
-Tile::Tile(const Tile& other) : Component(other) {
-  contents = other.contents;
+      network.dataIn[index](contents[i]->dataOut[j]);
+      network.requestsIn[index](contents[i]->requestsOut[j]);
+      network.responsesOut[index](responsesToCluster[index]);
+      contents[i]->responsesIn[j](responsesToCluster[index]);
+    }
+
+    contents[i]->clock(clock);
+
+  }
+
+  end_module(); // Needed because we're using a different Component constructor
+
 }
 
 Tile::~Tile() {

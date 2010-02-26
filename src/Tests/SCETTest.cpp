@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "Test.h"
-#include "../Pipeline/Write/SendChannelEndTable.h"
+#include "../TileComponents/Pipeline/Write/SendChannelEndTable.h"
 
 //TEST(SCETTest, SCETWorks) {
 //

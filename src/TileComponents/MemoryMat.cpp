@@ -1,0 +1,88 @@
+/*
+ * MemoryMat.cpp
+ *
+ *  Created on: 6 Jan 2010
+ *      Author: db434
+ */
+
+#include "MemoryMat.h"
+
+/* Determine whether to read or write. */
+void MemoryMat::doOp1() {
+  // Cast the Word to an Address to interpret it correctly
+  if((static_cast<Address>(in[3].read())).getReadBit()) read1();
+  else write1();
+}
+
+void MemoryMat::doOp2() {
+  // Cast the Word to an Address to interpret it correctly
+  if((static_cast<Address>(in[4].read())).getReadBit()) read2();
+  else write2();
+}
+
+/* Read from memory and send the result to the given address. */
+void MemoryMat::read1() {
+  // Cast the Word to an Address to interpret it correctly
+  int readAddress = (static_cast<Address>(in[1].read())).getAddress();
+  Word inMem = data.read(readAddress);
+  Word copy = inMem;
+
+  int sendAddress = (static_cast<Address>(in[3].read())).getAddress();
+  AddressedWord *aw = new AddressedWord(copy, sendAddress);
+
+  Array<AddressedWord> *toSend = new Array<AddressedWord>(1);
+  toSend->put(0, *aw);
+//  out.write(*toSend);    // Need to make sure writes aren't conflicting
+  out[0].write(*aw);
+}
+
+void MemoryMat::read2() {
+  // Cast the Word to an Address to interpret it correctly
+  int readAddress = (static_cast<Address>(in[2].read())).getAddress();
+  Word inMem = data.read(readAddress);
+  Word copy = inMem;
+
+  int sendAddress = (static_cast<Address>(in[4].read())).getAddress();
+  AddressedWord *aw = new AddressedWord(copy, sendAddress);
+
+  Array<AddressedWord> *toSend = new Array<AddressedWord>(1);
+  toSend->put(0, *aw);
+//  out.write(*toSend);    // Need to make sure writes aren't conflicting
+  out[1].write(*aw);
+}
+
+/* Write the given data into the given memory address. */
+void MemoryMat::write1() {
+  // Cast the Word to an Address to interpret it correctly
+  int writeAddress = (static_cast<Address>(in[3].read())).getAddress();
+  Word newData = in[1].read();
+  data.write(newData, writeAddress);
+}
+
+void MemoryMat::write2() {
+  // Cast the Word to an Address to interpret it correctly
+  int writeAddress = (static_cast<Address>(in[4].read())).getAddress();
+  Word newData = in[2].read();
+  data.write(newData, writeAddress);
+}
+
+MemoryMat::MemoryMat(sc_module_name name, int ID) :
+    TileComponent(name, ID),
+    data(MEMORY_SIZE) {
+
+// Register methods
+  SC_METHOD(doOp1);
+  sensitive << in[1];   // Execute doOp1 whenever data is received on in1
+  dont_initialize();
+
+  SC_METHOD(doOp2);
+  sensitive << in[2];   // Execute doOp2 whenever data is received on in2
+  dont_initialize();
+
+  end_module(); // Needed because we're using a different constructor
+
+}
+
+MemoryMat::~MemoryMat() {
+
+}

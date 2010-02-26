@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "Test.h"
-#include "../Pipeline/Decode/ReceiveChannelEndTable.h"
+#include "../TileComponents/Pipeline/Decode/ReceiveChannelEndTable.h"
 
 //TEST(RCETTest, RCETWorks) {
 //

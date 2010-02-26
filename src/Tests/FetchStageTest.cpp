@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "Test.h"
-#include "../Pipeline/Fetch/FetchStage.h"
+#include "../TileComponents/Pipeline/Fetch/FetchStage.h"
 
 //TEST(FetchStageTest, FetchStageWorks) {
 //

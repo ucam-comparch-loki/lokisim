@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "Test.h"
-#include "../Pipeline/Decode/SignExtend.h"
+#include "../TileComponents/Pipeline/Decode/SignExtend.h"
 
 //TEST(SignExtendTest, SignExtendWorks) {
 //

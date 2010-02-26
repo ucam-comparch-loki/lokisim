@@ -11,6 +11,8 @@
 #define INTERCONNECT_H_
 
 #include "../Component.h"
+#include "../Datatype/Word.h"
+#include "../Datatype/AddressedWord.h"
 
 class Interconnect: public Component {
 
@@ -20,7 +22,7 @@ protected:
   // virtual void route();? Or RoutingProtocol r;?
 
 public:
-  Interconnect(sc_core::sc_module_name name, int ID);
+  Interconnect(sc_module_name name);
   virtual ~Interconnect();
 
 };

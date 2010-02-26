@@ -29,6 +29,7 @@ public:
 /* Constructors and destructors */
   SC_HAS_PROCESS(FlowControlOut);
   FlowControlOut(sc_core::sc_module_name name, int ID, int width);
+  FlowControlOut(sc_core::sc_module_name name, int width);
   virtual ~FlowControlOut();
 
 protected:
@@ -36,6 +37,7 @@ protected:
   void          receivedResponses();
   virtual void  allowedToSend(int position, bool isAllowed);
   virtual void  sendRequests();
+  void          setup();
 
 /* Local state */
   int width;

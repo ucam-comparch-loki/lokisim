@@ -8,8 +8,8 @@
 #include <gtest/gtest.h>
 #include <systemc.h>
 #include "Test.h"
-#include "../Pipeline/Execute/ExecuteStage.h"
-#include "../InstructionMap.h"
+#include "../TileComponents/Pipeline/Execute/ExecuteStage.h"
+#include "../Utility/InstructionMap.h"
 
 //TEST(ExecuteStageTest, ExecuteStageWorks) {
 //

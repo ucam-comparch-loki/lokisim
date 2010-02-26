@@ -14,18 +14,19 @@
 
 #include "Component.h"
 #include "Tile.h"
-#include "Grid.h"
+#include "Utility/Grid.h"
 
 class Chip: public Component {
-
-/* Components */
-  Grid<Tile> *tiles;
 
 public:
 /* Constructors and destructors */
   Chip(sc_core::sc_module_name name, int rows, int columns);
-  Chip(const Chip& other);
   virtual ~Chip();
+
+private:
+/* Components */
+  Grid<Tile> tiles;
+
 };
 
 #endif /* CHIP_H_ */

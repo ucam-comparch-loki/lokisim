@@ -7,8 +7,8 @@
 
 #include "Interconnect.h"
 
-Interconnect::Interconnect(sc_core::sc_module_name name, int ID)
-    : Component(name, ID) {
+Interconnect::Interconnect(sc_module_name name)
+    : Component(name) {
 
 }
 

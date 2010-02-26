@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "Test.h"
-#include "../Pipeline/Fetch/InstructionPacketFIFO.h"
+#include "../TileComponents/Pipeline/Fetch/InstructionPacketFIFO.h"
 
 //TEST(IPKFIFOTest, IPKFIFOWorks) {
 //

@@ -6,7 +6,7 @@
  */
 
 #include "Instruction.h"
-#include "../InstructionMap.h"
+#include "../Utility/InstructionMap.h"
 
 /*
  * Current (fixed) layout: 64 bit value containing:

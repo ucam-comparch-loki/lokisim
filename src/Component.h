@@ -13,24 +13,32 @@
 
 #include "systemc"
 
-#include "Parameters.h"
+#include "Utility/Parameters.h"
 
 using sc_core::sc_in;
 using sc_core::sc_out;
 using sc_core::sc_signal;
 using sc_core::sc_buffer;   // Like an sc_signal, but every write makes an event
+using sc_core::sc_module_name;
+
+using std::cout;
+using std::endl;
 
 SC_MODULE (Component) {
 
+public:
 /* Local state */
   int id;
 
-public:
 /* Constructors and destructors */
-  SC_CTOR(Component);
-  Component(sc_core::sc_module_name name, int ID);
-  Component(const Component& other);
+  Component(sc_module_name& name);
+  Component(sc_module_name& name, int ID);
   ~Component();
+
+  // DO NOT MAKE A COPY CONSTRUCTOR. SYSTEMC MODULES CANNOT BE COPIED PROPERLY
+
+private:
+  static std::string makeName(sc_module_name& name, int ID);
 
 };
 

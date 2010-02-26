@@ -14,37 +14,40 @@
 #define TILE_H_
 
 #include "Component.h"
-#include "Cluster.h"
-#include "Memory/MemoryMat.h"
+#include "TileComponents/WrappedTileComponent.h"
 #include "Datatype/AddressedWord.h"
-#include "Datatype/Array.h"
+#include "Network/InterclusterNetwork.h"
 
 using std::vector;
 
 class Tile : public Component {
 
-/* Components */
-  // The clusters and memories of this tile.
-  vector<TileComponent> contents;
-
-  // Interconnect(s)
-
-/* Ports */
-  sc_in<Array<AddressedWord> > inNorth, inEast, inSouth, inWest;
-  sc_out<Array<AddressedWord> > outNorth, outEast, outSouth, outWest;
-
-
 public:
-/* Methods */
-  // Static functions for connecting Tiles together
-  static void connectLeftRight(Tile& left, Tile& right);
-  static void connectTopBottom(Tile& top, Tile& bottom);
+/* Ports */
+  sc_in<bool> clock;
+//  sc_in<AddressedWord>  *inNorth,  *inEast,  *inSouth,  *inWest;
+//  sc_out<AddressedWord> *outNorth, *outEast, *outSouth, *outWest;
 
 /* Constructors and destructors */
-  Tile();
-  Tile(sc_core::sc_module_name name);
-  Tile(const Tile& other);
+  Tile(sc_module_name name, int ID);
   virtual ~Tile();
+
+/* Methods */
+  // Static functions for connecting Tiles together
+  static void connectLeftRight(const Tile& left, const Tile& right);
+  static void connectTopBottom(const Tile& top, const Tile& bottom);
+
+  // TODO: load code/data into memories/clusters
+
+private:
+/* Components */
+  vector<WrappedTileComponent*> contents;  // Clusters and memories of this tile
+  InterclusterNetwork           network;
+
+/* Signals (wires) */
+  sc_signal<Word>          *responsesToCluster, *requestsToCluster, *dataToCluster;
+  sc_signal<AddressedWord> *responsesFromCluster; // arrays
+
 };
 
 #endif /* TILE_H_ */

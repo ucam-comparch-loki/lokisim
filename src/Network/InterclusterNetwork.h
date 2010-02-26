@@ -12,11 +12,27 @@
 
 class InterclusterNetwork: public Interconnect {
 
-  // vector in/out (in1,in2,out1,out2,out3,out4)?
-
 public:
-  InterclusterNetwork(sc_core::sc_module_name name, int ID);
+/* Ports */
+  sc_in<AddressedWord> *requestsIn,  *responsesIn,  *dataIn;
+  sc_out<Word>         *requestsOut, *responsesOut, *dataOut;
+  // Some AddressedWord outputs for longer communications?
+
+/* Constructors and destructors */
+  SC_HAS_PROCESS(InterclusterNetwork);
+  InterclusterNetwork(sc_module_name name);
   virtual ~InterclusterNetwork();
+
+protected:
+/* Methods */
+  virtual void routeRequests();
+  virtual void routeResponses();
+  virtual void routeData();
+  virtual void route(sc_in<AddressedWord> *inputs, sc_out<Word> *outputs);
+
+/* Local state */
+  int numInputs, numOutputs;
+
 };
 
 #endif /* INTERCLUSTERNETWORK_H_ */

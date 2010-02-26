@@ -7,19 +7,28 @@
 
 #include "Component.h"
 
-Component::Component(sc_core::sc_module_name name) : sc_module(name) {
+Component::Component(sc_module_name& name) : sc_module(name) {
 
 }
 
-Component::Component(sc_core::sc_module_name name, int ID)
-    : sc_module(name), id(ID) {
 
-}
+/* NOTE: if this constructor is used, end_module() must be placed at
+ *       the end of the constructor this is called from. */
+Component::Component(sc_module_name& name, int ID)
+    : sc_module(makeName(name, ID)), id(ID) {
 
-Component::Component(const Component& other) : sc_module("component") {
-  id = other.id;
 }
 
 Component::~Component() {
 
+}
+
+std::string Component::makeName(sc_module_name& name, int ID) {
+  std::stringstream ss;
+  std::string result;
+
+  ss << name << "_" << ID;
+  ss >> result;
+
+  return result;
 }
