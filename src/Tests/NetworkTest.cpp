@@ -11,26 +11,26 @@
 
 //TEST(NetworkTest, NetworkSwitchesData) {
 //
-//  InterclusterNetwork network("network", 1);
+//  InterclusterNetwork network("network");
 //
-//  int numInputs = NUM_CLUSTER_OUTPUTS * (CLUSTERS_PER_TILE + MEMS_PER_TILE);
-//  int numOutputs = NUM_CLUSTER_INPUTS * (CLUSTERS_PER_TILE + MEMS_PER_TILE);
+//  int numInputs  = NUM_CLUSTER_OUTPUTS * (CLUSTERS_PER_TILE + MEMS_PER_TILE);
+//  int numOutputs = NUM_CLUSTER_INPUTS  * (CLUSTERS_PER_TILE + MEMS_PER_TILE);
 //
-//  sc_signal<AddressedWord> *requestsIn = new sc_signal<AddressedWord>[numInputs];
-//  sc_signal<AddressedWord> *responsesIn = new sc_signal<AddressedWord>[numInputs];
-//  sc_signal<AddressedWord> *dataIn = new sc_signal<AddressedWord>[numInputs];
-//  sc_signal<Word> *requestsOut = new sc_signal<Word>[numOutputs];
-//  sc_signal<Word> *responsesOut = new sc_signal<Word>[numOutputs];
-//  sc_signal<Word> *dataOut = new sc_signal<Word>[numOutputs];
+//  sc_signal<AddressedWord> *requestsIn   = new sc_signal<AddressedWord>[numInputs];
+//  sc_signal<AddressedWord> *responsesIn  = new sc_signal<AddressedWord>[numOutputs];
+//  sc_signal<AddressedWord> *dataIn       = new sc_signal<AddressedWord>[numInputs];
+//  sc_signal<Word>          *requestsOut  = new sc_signal<Word>[numOutputs];
+//  sc_signal<Word>          *responsesOut = new sc_signal<Word>[numInputs];
+//  sc_signal<Word>          *dataOut      = new sc_signal<Word>[numOutputs];
 //
 //  for(int i=0; i<numInputs; i++) {
 //    network.requestsIn[i](requestsIn[i]);
-//    network.responsesIn[i](responsesIn[i]);
+//    network.responsesOut[i](responsesOut[i]);
 //    network.dataIn[i](dataIn[i]);
 //  }
 //  for(int i=0; i<numOutputs; i++) {
 //    network.requestsOut[i](requestsOut[i]);
-//    network.responsesOut[i](responsesOut[i]);
+//    network.responsesIn[i](responsesIn[i]);
 //    network.dataOut[i](dataOut[i]);
 //  }
 //

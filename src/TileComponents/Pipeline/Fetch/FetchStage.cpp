@@ -24,7 +24,7 @@ void FetchStage::newFIFOInst() {
   Instruction* instToFIFO = new Instruction(
                               static_cast<Instruction>(toIPKQueue.read()));
 
-  if(DEBUG) std::cout<<"IPK FIFO received Instruction:  "<<*instToFIFO<<"\n";
+  if(DEBUG) cout<<"IPK FIFO received Instruction:  "<<*instToFIFO<<endl;
 
   toFIFO.write(*instToFIFO);
 }
@@ -33,7 +33,7 @@ void FetchStage::newCacheInst() {
   Instruction* instToCache = new Instruction(
                               static_cast<Instruction>(toIPKCache.read()));
 
-  if(DEBUG) std::cout<<"IPK Cache received Instruction: "<<*instToCache<<"\n";
+  if(DEBUG) cout<<"IPK Cache received Instruction: "<<*instToCache<<endl;
 
   toCache.write(*instToCache);
 }
@@ -66,11 +66,11 @@ void FetchStage::select() {
   short sel = calculateSelect();
   muxSelect.write(sel);
 
-//  if(DEBUG) {
-//    printf("FetchStage selected instruction from %s\n", sel==0?"cache":"FIFO");
-//    if(sel) std::cout<<"FetchStage sent Instruction: "<<FIFOtoMux.read()<<"\n";
-//    else std::cout<<"FetchStage sent Instruction: "<<cacheToMux.read()<<"\n";
-//  }
+  if(DEBUG) {
+    printf("FetchStage selected instruction from %s: ", sel==0?"cache":"FIFO");
+    if(sel) cout << FIFOtoMux.read() << endl;
+    else cout << cacheToMux.read() << endl;
+  }
 }
 
 FetchStage::FetchStage(sc_core::sc_module_name name) :

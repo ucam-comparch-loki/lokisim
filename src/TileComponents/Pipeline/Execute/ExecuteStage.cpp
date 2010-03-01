@@ -10,18 +10,22 @@
 /* Simulate pipelining by only allowing signals through at the start of a cycle */
 void ExecuteStage::newCycle() {
   while(true) {
-    in1Select.write(op1Select.read());
-    in2Select.write(op2Select.read());
+    COPY_IF_NEW(op1Select, in1Select);
+    COPY_IF_NEW(op2Select, in2Select);
 
     wait(0, sc_core::SC_NS);  // Allow time for the multiplexors to select values
+
+    // Use COPY_IF_NEW here too and remove existing flags?
     if(newOperation) ALUSelect.write(operation.read());
     if(newInst) remoteInstOut.write(remoteInstIn.read());
 
-    writeOut.write(writeIn.read());
-    indWriteOut.write(indWriteIn.read());
-    remoteChannelOut.write(remoteChannelIn.read());
+    COPY_IF_NEW(writeIn, writeOut);
+    COPY_IF_NEW(indWriteIn, indWriteOut);
+    COPY_IF_NEW(remoteChannelIn, remoteChannelOut);
+    COPY_IF_NEW(predicate, predicateSig);
+
     newRChannelOut.write(newRChannelIn.read());
-    predicateSig.write(predicate.read());
+    // TODO: remove newRChannel signal
 
     newInst = newOperation = false;
     wait(clock.posedge_event());

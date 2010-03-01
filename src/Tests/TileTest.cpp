@@ -49,11 +49,11 @@ protected:
   }
 
   virtual void SetUp() {
-//    trace = sc_core::sc_create_vcd_trace_file("ClusterTest");
+//    trace = sc_core::sc_create_vcd_trace_file("TileTest");
 //    trace->set_time_unit(1.0, SC_NS);
 //
 //    for(int i=0; i<NUM_CLUSTER_OUTPUTS; i++) {
-//      flowControlIn[i].write(false);
+//      flowControlOut[i].write(false);
 //
 //      std::string name("output");
 //      sc_core::sc_trace(trace, out[i], name);
@@ -67,6 +67,6 @@ protected:
 
 };
 
-TEST_F(TileTest, CanInstantiateTile) {
-  TIMESTEP;
-}
+//TEST_F(TileTest, CanInstantiateTile) {
+//  TIMESTEP;
+//}

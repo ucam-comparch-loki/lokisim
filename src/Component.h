@@ -2,7 +2,7 @@
  * Component.h
  *
  * The base class for all modules of the Loki chip. Allows provision of functions
- * such as area() and printStatus() which can then be used by all components.
+ * such as area() and print() which can then be used by all components.
  *
  *  Created on: 5 Jan 2010
  *      Author: db434
@@ -14,6 +14,7 @@
 #include "systemc"
 
 #include "Utility/Parameters.h"
+#include "flag_signal.h"
 
 using sc_core::sc_in;
 using sc_core::sc_out;
@@ -35,7 +36,7 @@ public:
   Component(sc_module_name& name, int ID);
   ~Component();
 
-  // DO NOT MAKE A COPY CONSTRUCTOR. SYSTEMC MODULES CANNOT BE COPIED PROPERLY
+  // DO NOT MAKE A COPY CONSTRUCTOR. SYSTEMC MODULES SHOULD NOT BE COPIED.
 
 private:
   static std::string makeName(sc_module_name& name, int ID);

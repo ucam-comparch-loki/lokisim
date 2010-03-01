@@ -9,6 +9,7 @@
 #include "Test.h"
 #include "../TileComponents/Cluster.h"
 #include "../Utility/CodeLoader.h"
+#include "../flag_signal.h"
 
 class ClusterTest : public ::testing::Test {
 protected:
@@ -16,8 +17,8 @@ protected:
   Cluster c;
 
   sc_clock clock;
-  sc_signal<Word> *in;              // array
-  sc_signal<AddressedWord> *out;    // array
+  flag_signal<Word> *in;              // array
+  flag_signal<AddressedWord> *out;    // array
   sc_buffer<bool> *flowControlIn;   // array
   sc_buffer<bool> *flowControlOut;  // array
 
@@ -27,19 +28,19 @@ protected:
       c("cluster", 1),
       clock("clock", 1, SC_NS, 0.5) {
 
-    in = new sc_signal<Word>[NUM_CLUSTER_INPUTS];
-    out = new sc_signal<AddressedWord>[NUM_CLUSTER_OUTPUTS];
-    flowControlIn = new sc_buffer<bool>[NUM_CLUSTER_OUTPUTS];
-    flowControlOut = new sc_buffer<bool>[NUM_CLUSTER_INPUTS];
+    in = new flag_signal<Word>[NUM_CLUSTER_INPUTS];
+    out = new flag_signal<AddressedWord>[NUM_CLUSTER_OUTPUTS];
+    flowControlIn = new sc_buffer<bool>[NUM_CLUSTER_INPUTS];
+    flowControlOut = new sc_buffer<bool>[NUM_CLUSTER_OUTPUTS];
 
     c.clock(clock);
     for(int i=0; i<NUM_CLUSTER_INPUTS; i++) {
       c.in[i](in[i]);
-      c.flowControlOut[i](flowControlOut[i]);
+      c.flowControlIn[i](flowControlIn[i]);
     }
     for(int i=0; i<NUM_CLUSTER_OUTPUTS; i++) {
       c.out[i](out[i]);
-      c.flowControlIn[i](flowControlIn[i]);
+      c.flowControlOut[i](flowControlOut[i]);
     }
 
   }
@@ -51,7 +52,7 @@ protected:
     for(int i=0; i<NUM_CLUSTER_OUTPUTS; i++) {
       flowControlIn[i].write(false);
 
-      std::string name("output");
+      std::string name(c.out[i].name());
       sc_core::sc_trace(trace, out[i], name);
     }
   }
@@ -74,73 +75,73 @@ protected:
 //}
 
 /* Tests that Clusters are capable of all stages of execution, in a simple case */
-//TEST_F(ClusterTest, ClusterExecutesFibonacci) {
-//
-//  // Note: Only works if all instructions are allowed to specify remote channels
-//
-//  Instruction store1("addui r1 r0 1 > 0"), store2("addui r2 r0 1 > 1"),
-//              add1("addu r3 r2 r1 > 2"), add2("addu r4 r3 r2 > 3"),
-//              add3("addu r5 r4 r3 > 4"), add4("addu r6 r5 r4 > 5"),
-//              fetch("fetch r0 4");
-//
-//  // TODO: do more calculations to test stalling when buffers get full
-//
-//  Array<AddressedWord> temp;
-//
-//
-//  in[1].write(fetch);
-//  TIMESTEP;
-//  in[1].write(store1);
-//  TIMESTEP;
-//  in[1].write(store2);
-//  TIMESTEP;
-//  in[1].write(add1);
-//  TIMESTEP;
-//  in[1].write(add2);
-//  TIMESTEP;
-//  in[1].write(add3);
-//  TIMESTEP;
-//  in[1].write(add4);
-//  TIMESTEP;
-//
-//  flowControlIn[1].write(true);
-//
-//  TIMESTEP;
-//
-//  EXPECT_EQ(1, ((Data)out[1].read().getPayload()).getData());
-//  EXPECT_EQ(0, out[1].read().getChannelID());
-//
-//  flowControlIn[1].write(true);
-//  flowControlIn[2].write(true);
-//
-//  TIMESTEP;
-//
-//  EXPECT_EQ(1, ((Data)out[2].read().getPayload()).getData());
-//  EXPECT_EQ(1, out[2].read().getChannelID());
-//  EXPECT_EQ(2, ((Data)out[1].read().getPayload()).getData());
-//  EXPECT_EQ(2, out[1].read().getChannelID());
-//
-//  flowControlIn[1].write(true);
-//  flowControlIn[2].write(true);
-//
-//  TIMESTEP;
-//
-//  EXPECT_EQ(3, ((Data)out[2].read().getPayload()).getData());
-//  EXPECT_EQ(3, out[2].read().getChannelID());
-//  EXPECT_EQ(5, ((Data)out[1].read().getPayload()).getData());
-//  EXPECT_EQ(4, out[1].read().getChannelID());
-//
-//  flowControlIn[1].write(true);
-//  flowControlIn[2].write(true);
-//
-//  TIMESTEP;
-//
-//  EXPECT_EQ(8, ((Data)out[2].read().getPayload()).getData());
-//  EXPECT_EQ(5, out[2].read().getChannelID());
-//  EXPECT_EQ(5, ((Data)out[1].read().getPayload()).getData());
-//  EXPECT_EQ(4, out[1].read().getChannelID());
-//
-//}
+TEST_F(ClusterTest, ClusterExecutesFibonacci) {
+
+  // Note: Only works if all instructions are allowed to specify remote channels
+
+  Instruction store1("addui r1 r0 1 > 0"), store2("addui r2 r0 1 > 1"),
+              add1("addu r3 r2 r1 > 2"), add2("addu r4 r3 r2 > 3"),
+              add3("addu r5 r4 r3 > 4"), add4("addu r6 r5 r4 > 5"),
+              fetch("fetch r0 4");
+
+  // TODO: do more calculations to test stalling when buffers get full
+
+  Array<AddressedWord> temp;
+
+
+  in[1].write(fetch);
+  TIMESTEP;
+  in[1].write(store1);
+  TIMESTEP;
+  in[1].write(store2);
+  TIMESTEP;
+  in[1].write(add1);
+  TIMESTEP;
+  in[1].write(add2);
+  TIMESTEP;
+  in[1].write(add3);
+  TIMESTEP;
+  in[1].write(add4);
+  TIMESTEP;
+
+  flowControlOut[1].write(true);
+
+  TIMESTEP;
+
+  EXPECT_EQ(1, ((Data)out[1].read().getPayload()).getData());
+  EXPECT_EQ(0, out[1].read().getChannelID());
+
+  flowControlOut[1].write(true);
+  flowControlOut[2].write(true);
+
+  TIMESTEP;
+
+  EXPECT_EQ(1, ((Data)out[2].read().getPayload()).getData());
+  EXPECT_EQ(1, out[2].read().getChannelID());
+  EXPECT_EQ(2, ((Data)out[1].read().getPayload()).getData());
+  EXPECT_EQ(2, out[1].read().getChannelID());
+
+  flowControlOut[1].write(true);
+  flowControlOut[2].write(true);
+
+  TIMESTEP;
+
+  EXPECT_EQ(3, ((Data)out[2].read().getPayload()).getData());
+  EXPECT_EQ(3, out[2].read().getChannelID());
+  EXPECT_EQ(5, ((Data)out[1].read().getPayload()).getData());
+  EXPECT_EQ(4, out[1].read().getChannelID());
+
+  flowControlOut[1].write(true);
+  flowControlOut[2].write(true);
+
+  TIMESTEP;
+
+  EXPECT_EQ(8, ((Data)out[2].read().getPayload()).getData());
+  EXPECT_EQ(5, out[2].read().getChannelID());
+  EXPECT_EQ(5, ((Data)out[1].read().getPayload()).getData());
+  EXPECT_EQ(4, out[1].read().getChannelID());
+
+}
 
 /* Tests that it is possible to load in code from a file, and execute it */
 //TEST_F(ClusterTest, RunsExternalCode) {
@@ -157,43 +158,40 @@ protected:
 //  TIMESTEP;
 //  TIMESTEP;
 //
-//  controlIn.put(1,t);
-//  flowControlIn.write(controlIn);
+//  flowControlOut[1].write(true);
 //
 //  TIMESTEP;
 //
-//  temp = out.read();
-//  EXPECT_EQ(1, ((Data)(temp.get(1).getPayload())).getData());
-//  EXPECT_EQ(0, temp.get(1).getChannelID());
+//  EXPECT_EQ(1, ((Data)(out[1].read().getPayload())).getData());
+//  EXPECT_EQ(0, out[1].read().getChannelID());
 //
-//  controlIn.put(2,t);
-//  flowControlIn.write(controlIn);
-//
-//  TIMESTEP;
-//
-//  temp = out.read();
-//  EXPECT_EQ(1, ((Data)(temp.get(2).getPayload())).getData());
-//  EXPECT_EQ(1, temp.get(2).getChannelID());
-//  EXPECT_EQ(2, ((Data)(temp.get(1).getPayload())).getData());
-//  EXPECT_EQ(2, temp.get(1).getChannelID());
-//  flowControlIn.write(controlIn);
+//  flowControlOut[1].write(true);
+//  flowControlOut[2].write(true);
 //
 //  TIMESTEP;
 //
-//  temp = out.read();
-//  EXPECT_EQ(3, ((Data)(temp.get(2).getPayload())).getData());
-//  EXPECT_EQ(3, temp.get(2).getChannelID());
-//  EXPECT_EQ(5, ((Data)(temp.get(1).getPayload())).getData());
-//  EXPECT_EQ(4, temp.get(1).getChannelID());
-//  flowControlIn.write(controlIn);
+//  EXPECT_EQ(1, ((Data)(out[2].read().getPayload())).getData());
+//  EXPECT_EQ(1, out[2].read().getChannelID());
+//  EXPECT_EQ(2, ((Data)(out[1].read().getPayload())).getData());
+//  EXPECT_EQ(2, out[1].read().getChannelID());
+//  flowControlOut[1].write(true);
+//  flowControlOut[2].write(true);
 //
 //  TIMESTEP;
 //
-//  temp = out.read();
-//  EXPECT_EQ(8, ((Data)(temp.get(2).getPayload())).getData());
-//  EXPECT_EQ(5, temp.get(2).getChannelID());
-//  EXPECT_EQ(5, ((Data)(temp.get(1).getPayload())).getData());
-//  EXPECT_EQ(4, temp.get(1).getChannelID());
+//  EXPECT_EQ(3, ((Data)(out[2].read().getPayload())).getData());
+//  EXPECT_EQ(3, out[2].read().getChannelID());
+//  EXPECT_EQ(5, ((Data)(out[1].read().getPayload())).getData());
+//  EXPECT_EQ(4, out[1].read().getChannelID());
+//  flowControlOut[1].write(true);
+//  flowControlOut[2].write(true);
+//
+//  TIMESTEP;
+//
+//  EXPECT_EQ(8, ((Data)(out[2].read().getPayload())).getData());
+//  EXPECT_EQ(5, out[2].read().getChannelID());
+//  EXPECT_EQ(5, ((Data)(out[1].read().getPayload())).getData());
+//  EXPECT_EQ(4, out[1].read().getChannelID());
 //
 //}
 
@@ -220,7 +218,7 @@ protected:
 //
 //    for(int j=0; j<NUM_CLUSTER_OUTPUTS; j++) {
 //      std::cout << "  out" << j << ": " << out[j].read() << "\n";
-//      flowControlIn[j].write(true);
+//      flowControlOut[j].write(true);
 //    }
 //  }
 //

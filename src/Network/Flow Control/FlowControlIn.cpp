@@ -18,7 +18,9 @@ void FlowControlIn::receivedFlowControl() {
 void FlowControlIn::receivedRequests() {
   for(int i=0; i<width; i++) {
     Request r = static_cast<Request>(requests[i].read());
-    if(/*request is new &&*/ !buffers.at(i).remainingSpace() >= r.getNumFlits()) {
+
+    // Only accept a request if there is enough space, and the request is new
+    if(requests[i].event() && !buffers.at(i).remainingSpace() >= r.getNumFlits()) {
       Data d(1);    // Accept
       AddressedWord aw(d, r.getReturnID());
       responses[i].write(aw);
@@ -33,17 +35,18 @@ void FlowControlIn::receivedRequests() {
 
 void FlowControlIn::receivedData() {
   for(int i=0; i<width; i++) {
-    /* if(dataIn[i].read() is new) */ buffers.at(i).write(dataIn[i].read());
+    // Only write a value if it is new
+    if(dataIn[i].event()) buffers.at(i).write(dataIn[i].read());
   }
 }
 
 void FlowControlIn::setup() {
 
-  dataIn = new sc_in<Word>[width];
-  requests = new sc_in<Word>[width];
+  dataIn      = new sc_in<Word>[width];
+  requests    = new sc_in<Word>[width];
   flowControl = new sc_in<bool>[width];
-  dataOut = new sc_out<Word>[width];
-  responses = new sc_out<AddressedWord>[width];
+  dataOut     = new sc_out<Word>[width];
+  responses   = new sc_out<AddressedWord>[width];
 
   for(int i=0; i<width; i++) {
     Buffer<Word>* b = new Buffer<Word>(FLOW_CONTROL_BUFFER_SIZE);

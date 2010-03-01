@@ -59,14 +59,14 @@ void InstructionPacketCache::insertInstruction() {
 
 /* See if an instruction packet is in the cache, and if so, prepare to execute it */
 void InstructionPacketCache::lookup() {
-  std::cout << "Looked up: " << address.read() << std::endl;
+  cout << "Looked up: " << address.read() << endl;
   bool inCache = cache.checkTags(address.read());
   cacheHit.write(inCache);
 
   // If we don't have the instructions, we will probably receive them soon
   if(!inCache) {
     if(!addresses.isFull()) addresses.write(address.read());
-    else std::cout << "Wrote to full buffer in IPK cache." << std::endl;
+    else cout << "Wrote to full buffer in IPK cache." << endl;
   }
 }
 
@@ -101,7 +101,7 @@ void InstructionPacketCache::updateRTF() {
  * instructions, but only one method is allowed to drive a particular wire. */
 void InstructionPacketCache::write() {
   out.write(instToSend);
-//  std::cout << "FetchStage sent Instruction: " << instToSend << std::endl;
+//  cout << "FetchStage sent Instruction: " << instToSend << endl;
 }
 
 /* Constructors and destructors */

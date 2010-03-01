@@ -9,10 +9,10 @@
 
 void DecodeStage::newCycle() {
   while(true) {
-    instruction.write(inst.read());
+    COPY_IF_NEW(instructionIn, instructionSig);
 
     for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
-      fromNetwork[i].write(in[i].read());
+      COPY_IF_NEW(in[i], fromNetwork[i]);
     }
 
     wait(clock.posedge_event());
@@ -23,7 +23,7 @@ void DecodeStage::receivedFromRegs1() {
   Data d = static_cast<Data>(regIn1.read());
   regOut1.write(d);
   baseAddress.write(d);
-  std::cout << "Should receive address now." << std::endl;
+  cout << "Should receive address now." << endl;
 }
 
 void DecodeStage::receivedFromRegs2() {
@@ -52,7 +52,7 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   dont_initialize();
 
 // Connect everything up
-  decoder.instructionIn(instruction);
+  decoder.instructionIn(instructionSig);
 
   for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     rcet.fromNetwork[i](fromNetwork[i]);

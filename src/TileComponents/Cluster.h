@@ -39,30 +39,27 @@ private:
   WriteStage              write;
 
 /* Signals (wires) */
-  // Main inputs/outputs
-  sc_signal<Word>         in1toIPKQ, in2toIPKC, in3toRCET, in4toRCET;
-
   // To/from fetch stage
   sc_signal<Address>      FLtoIPKC;
-  sc_signal<Instruction>  nextInst, sendInst;
+  sc_buffer<Instruction>  nextInst;
 
   // To/from decode stage
   sc_signal<bool>         cacheHitSig, roomToFetch, indirectReadSig;
-  sc_signal<Word>         regData1, regData2;
-  sc_signal<short>        regRead1, regRead2, decWriteAddr, decIndWrite, predicate;
-  sc_signal<Data>         RCETtoALU1, RCETtoALU2, regToALU1, regToALU2, SEtoALU;
+  sc_buffer<Word>         regData1, regData2;
+  sc_buffer<short>        regRead1, regRead2, decWriteAddr, decIndWrite, predicate;
+  sc_buffer<Data>         RCETtoALU1, RCETtoALU2, regToALU1, regToALU2, SEtoALU;
   sc_buffer<short>        operation, op1Select, op2Select;
 
   // To/from execute stage
   sc_buffer<Instruction>  decToExInst, exToWriteInst;
-  sc_signal<short>        decToExRChan, exToWriteRChan;
+  sc_buffer<short>        decToExRChan, exToWriteRChan;
   sc_signal<bool>         d2eNewRChan, e2wNewRChan;
   sc_buffer<Data>         ALUOutput;
 
   // To/from write stage
-  sc_signal<short>        writeAddr, indWriteAddr;
-  sc_signal<short>        writeRegAddr, indirectWrite;
-  sc_signal<Word>         regWriteData;
+  sc_buffer<short>        writeAddr, indWriteAddr;
+  sc_buffer<short>        writeRegAddr, indirectWrite;
+  sc_buffer<Word>         regWriteData;
 
 };
 

@@ -22,10 +22,10 @@ void InterclusterNetwork::routeData() {
 void InterclusterNetwork::route(sc_in<AddressedWord> *inputs, sc_out<Word> *outputs) {
   // TODO: use a RoutingScheme instead
   for(int i=0; i<numInputs; i++) {
-    AddressedWord aw = inputs[i].read();
-//    if(input is new && haven't already written to this output) {
+    if(inputs[i].event() /*&& haven't already written to this output*/) {
+      AddressedWord aw = inputs[i].read();
       outputs[aw.getChannelID()].write(aw.getPayload());
-//    }
+    }
   }
 }
 

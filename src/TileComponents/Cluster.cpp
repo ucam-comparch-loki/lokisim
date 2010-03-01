@@ -22,22 +22,22 @@ Cluster::Cluster(sc_module_name name, int ID) :
 
 // Connect things up
   // Main inputs/outputs
-  decode.flowControlIn(flowControlIn[0]);
+  decode.flowControlIn(flowControlOut[0]);
   decode.out1(out[0]);
 
   for(int i=1; i<NUM_CLUSTER_OUTPUTS; i++) {
-    write.flowControl[i-1](flowControlIn[i]);
+    write.flowControl[i-1](flowControlOut[i]);
     write.output[i-1](out[i]);
   }
 
   fetch.toIPKQueue(in[0]);
   fetch.toIPKCache(in[1]);
-  fetch.flowControl[0](flowControlOut[0]);
-  fetch.flowControl[1](flowControlOut[1]);
+  fetch.flowControl[0](flowControlIn[0]);
+  fetch.flowControl[1](flowControlIn[1]);
 
   for(int i=2; i<NUM_CLUSTER_INPUTS; i++) {
     decode.in[i-2](in[i]);
-    decode.flowControlOut[i-2](flowControlOut[i]);
+    decode.flowControlOut[i-2](flowControlIn[i]);
   }
 
   // Clock
@@ -48,7 +48,7 @@ Cluster::Cluster(sc_module_name name, int ID) :
 
   // To/from fetch stage
   decode.address(FLtoIPKC); fetch.address(FLtoIPKC);
-  fetch.instruction(nextInst); decode.inst(nextInst);
+  fetch.instruction(nextInst); decode.instructionIn(nextInst);
 
   fetch.cacheHit(cacheHitSig); decode.cacheHit(cacheHitSig);
   fetch.roomToFetch(roomToFetch); decode.roomToFetch(roomToFetch);

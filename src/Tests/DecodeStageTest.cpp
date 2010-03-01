@@ -23,10 +23,10 @@ protected:
   sc_signal<AddressedWord> out;
   sc_signal<Instruction> instIn, instOut;
   sc_buffer<bool> cacheHit;
-  sc_signal<bool> isIndirect, flowControl, roomToFetch, newRChannel;
+  sc_signal<bool> isIndirect, flowControl, roomToFetch, newRChannel, *fc;
   sc_signal<Address> address;
   sc_signal<short> regRead1, regRead2, write, indWrite, rChannel;
-  sc_signal<short> operation, op1Select, op2Select;
+  sc_signal<short> operation, op1Select, op2Select, predicate;
   sc_signal<Data> RCETtoALU1, RCETtoALU2, regToALU1, regToALU2, SEtoALU;
 
   // Should come from WriteStage, but don't have one of those here
@@ -37,8 +37,12 @@ protected:
       clock("clock", 1, SC_NS, 0.5) {
 
     in = new sc_signal<Word>[NUM_RECEIVE_CHANNELS];
+    fc = new sc_signal<bool>[NUM_RECEIVE_CHANNELS];
 
-    for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) ds.in[i](in[i]);
+    for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
+      ds.in[i](in[i]);
+      ds.flowControlOut[i](fc[i]);
+    }
 
     ds.address(address);
     ds.cacheHit(cacheHit);
@@ -48,7 +52,7 @@ protected:
     ds.flowControlIn(flowControl);
     ds.isIndirect(isIndirect); regs.indRead(isIndirect);
     ds.indWriteAddr(indWrite);
-    ds.inst(instIn);
+    ds.instructionIn(instIn);
     ds.newRChannel(newRChannel);
     ds.remoteInst(instOut);
     ds.remoteChannel(rChannel);
@@ -56,6 +60,7 @@ protected:
     ds.op2Select(op2Select);
     ds.operation(operation);
     ds.out1(out);
+    ds.predicate(predicate);
     ds.regIn1(regOutput1); regs.out1(regOutput1);
     ds.regIn2(regOutput2); regs.out2(regOutput2);
     ds.regOut1(regToALU1);
@@ -100,34 +105,31 @@ protected:
 //
 //  Instruction i1("addui r3 r2 14"), i2("sllv r4 r8 r19");
 //  Data d1, d2;
-//  Instruction temp;
 //
 //  instIn.write(i1);
 //
 //  TIMESTEP;
 //
-//  d1 = regToALU1.read(); d2 = SEtoALU.read(); temp = instOut.read();
+//  d1 = regToALU1.read(); d2 = SEtoALU.read();
 //  EXPECT_EQ(2, d1.getData());
 //  EXPECT_EQ(14, d2.getData());
 //  EXPECT_EQ(InstructionMap::ADDUI, operation.read());
 //  EXPECT_EQ(1, op1Select.read());
 //  EXPECT_EQ(3, op2Select.read());
 //  EXPECT_EQ(3, write.read());
-//  EXPECT_EQ(i1, temp);
 //  EXPECT_EQ(false, isIndirect.read());
 //
 //  instIn.write(i2);
 //
 //  TIMESTEP;
 //
-//  d1 = regToALU1.read(); d2 = regToALU2.read(); temp = instOut.read();
+//  d1 = regToALU1.read(); d2 = regToALU2.read();
 //  EXPECT_EQ(3, d1.getData());
 //  EXPECT_EQ(1, d2.getData());
 //  EXPECT_EQ(InstructionMap::SLLV, operation.read());
 //  EXPECT_EQ(1, op1Select.read());
 //  EXPECT_EQ(1, op2Select.read());
 //  EXPECT_EQ(4, write.read());
-//  EXPECT_EQ(i2, temp);
 //  EXPECT_EQ(false, isIndirect.read());
 //
 //}

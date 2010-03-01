@@ -10,9 +10,9 @@
 void WriteStage::newCycle() {
 
   while(true) {
-    regData.write(fromALU.read());
-    outRegAddr.write(inRegAddr.read());
-    outIndAddr.write(inIndAddr.read());
+    COPY_IF_NEW(fromALU, regData);
+    COPY_IF_NEW(inRegAddr, outRegAddr);
+    COPY_IF_NEW(inIndAddr, outIndAddr);
 
     wait(clock.posedge_event());
   }

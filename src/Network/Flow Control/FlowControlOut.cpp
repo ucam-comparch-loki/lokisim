@@ -25,7 +25,7 @@ void FlowControlOut::allowedToSend(int position, bool isAllowed) {
 
 void FlowControlOut::sendRequests() {
   for(int i=0; i<width; i++) {
-    if(!(dataIn[i].read() == dataOut[i].read())) {
+    if(!(dataIn[i].read() == dataOut[i].read())) {  // use dataIn[i].event()?
       Request r(id*width + i);
       AddressedWord req(r, dataIn[i].read().getChannelID());
       requests[i].write(req);

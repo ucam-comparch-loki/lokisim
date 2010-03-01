@@ -8,6 +8,9 @@
 #ifndef PIPELINESTAGE_H_
 #define PIPELINESTAGE_H_
 
+// Copy a value from an input to an output, only if the value is new
+#define COPY_IF_NEW(input, output) /*if(input.event()) cout<<"Event at "<<input.name()<<endl;*/ output.write(input.read())
+
 #include "../../Component.h"
 #include "../../Datatype/Word.h"
 #include "../../Datatype/Address.h"
@@ -18,9 +21,6 @@
 class PipelineStage : public Component {
 
 protected:
-  // Is there anything all the stages have in common?
-  // Main input? Main output? A doOp method?
-
 /* Methods */
   virtual void newCycle() = 0;
 
