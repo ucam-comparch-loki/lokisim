@@ -41,23 +41,23 @@ private:
 /* Signals (wires) */
   // To/from fetch stage
   sc_signal<Address>      FLtoIPKC;
-  sc_buffer<Instruction>  nextInst;
+  flag_signal<Instruction>  nextInst;
 
   // To/from decode stage
   sc_signal<bool>         cacheHitSig, roomToFetch, indirectReadSig;
   sc_buffer<Word>         regData1, regData2;
-  sc_buffer<short>        regRead1, regRead2, decWriteAddr, decIndWrite, predicate;
+  flag_signal<short>        regRead1, regRead2, decWriteAddr, decIndWrite, predicate;
   sc_buffer<Data>         RCETtoALU1, RCETtoALU2, regToALU1, regToALU2, SEtoALU;
-  sc_buffer<short>        operation, op1Select, op2Select;
+  flag_signal<short>        operation, op1Select, op2Select;
 
   // To/from execute stage
-  sc_buffer<Instruction>  decToExInst, exToWriteInst;
-  sc_buffer<short>        decToExRChan, exToWriteRChan;
-  sc_signal<bool>         d2eNewRChan, e2wNewRChan;
-  sc_buffer<Data>         ALUOutput;
+  flag_signal<Instruction>  decToExInst, exToWriteInst;
+  flag_signal<short>        decToExRChan, exToWriteRChan;
+  sc_signal<bool>         d2eNewRChan, e2wNewRChan; // remove
+  flag_signal<Data>         ALUOutput;
 
   // To/from write stage
-  sc_buffer<short>        writeAddr, indWriteAddr;
+  flag_signal<short>        writeAddr, indWriteAddr;
   sc_buffer<short>        writeRegAddr, indirectWrite;
   sc_buffer<Word>         regWriteData;
 

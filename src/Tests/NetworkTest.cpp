@@ -51,4 +51,20 @@
 //  temp = dataOut[3].read();
 //  EXPECT_EQ(d3, temp);
 //
+//  dataIn[2].write(a3);
+//  dataIn[12].write(a1);
+//
+//  TIMESTEP;
+//
+//  temp = dataOut[1].read();
+//  EXPECT_EQ(d1, temp);
+//  temp = dataOut[3].read();
+//  EXPECT_EQ(d3, temp);
+//  dataIn[9].write(a2);
+//
+//  TIMESTEP;
+//
+//  temp = dataOut[2].read();
+//  EXPECT_EQ(d2, temp);
+//
 //}

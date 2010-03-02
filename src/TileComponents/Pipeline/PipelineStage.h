@@ -9,7 +9,7 @@
 #define PIPELINESTAGE_H_
 
 // Copy a value from an input to an output, only if the value is new
-#define COPY_IF_NEW(input, output) /*if(input.event()) cout<<"Event at "<<input.name()<<endl;*/ output.write(input.read())
+#define COPY_IF_NEW(input, output) if(input.event()) output.write(input.read())
 
 #include "../../Component.h"
 #include "../../Datatype/Word.h"
@@ -20,18 +20,18 @@
 
 class PipelineStage : public Component {
 
-protected:
-/* Methods */
-  virtual void newCycle() = 0;
-
 public:
 /* Ports */
   sc_in<bool> clock;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(PipelineStage);
-  PipelineStage(sc_core::sc_module_name);
+  PipelineStage(sc_module_name name);
   ~PipelineStage();
+
+protected:
+/* Methods */
+  virtual void newCycle() = 0;
 
 };
 
