@@ -24,9 +24,11 @@ void Decoder::doOp() {
   short operand2 = i.getSrc2();
   int immediate = i.getImmediate();
   short pred = i.getPredicate();
+  //bool setPred = i.getSetPredicate();
   short remoteChannel = i.getRchannel();
 
   predicate.write(pred);
+  // TODO: setPredicate.write(setPred);
 
   if(operation == InstructionMap::IRDR) {
     regAddr2.write(operand2);
@@ -95,10 +97,9 @@ void Decoder::doOp() {
 
   if(InstructionMap::hasRemoteChannel(operation)) {
     /*if(valid channel ID)*/ rChannel.write(remoteChannel);
-    newRChannel.write(!newRChannel.read());
   }
 
-  regLastWritten = destination;
+  /*if(op writes to destination)*/ regLastWritten = destination;
 
 }
 

@@ -32,34 +32,34 @@ public:
 
 private:
 /* Components */
-  IndirectRegisterFile    regs;
-  FetchStage              fetch;
-  DecodeStage             decode;
-  ExecuteStage            execute;
-  WriteStage              write;
+  IndirectRegisterFile     regs;
+  FetchStage               fetch;
+  DecodeStage              decode;
+  ExecuteStage             execute;
+  WriteStage               write;
 
 /* Signals (wires) */
   // To/from fetch stage
-  sc_signal<Address>      FLtoIPKC;
-  flag_signal<Instruction>  nextInst;
+  sc_signal<Address>       FLtoIPKC;
+  flag_signal<Instruction> nextInst;
 
   // To/from decode stage
-  sc_signal<bool>         cacheHitSig, roomToFetch, indirectReadSig;
-  sc_buffer<Word>         regData1, regData2;
-  flag_signal<short>        regRead1, regRead2, decWriteAddr, decIndWrite, predicate;
-  sc_buffer<Data>         RCETtoALU1, RCETtoALU2, regToALU1, regToALU2, SEtoALU;
-  flag_signal<short>        operation, op1Select, op2Select;
+  sc_signal<bool>          cacheHitSig, roomToFetch, indirectReadSig;
+  sc_buffer<Word>          regData1, regData2;
+  flag_signal<short>       regRead1, regRead2, decWriteAddr, decIndWrite, predicate;
+  sc_buffer<Data>          RCETtoALU1, RCETtoALU2, regToALU1, regToALU2, SEtoALU;
+  flag_signal<short>       operation, op1Select, op2Select;
+  sc_signal<bool>          setPredSig;
 
   // To/from execute stage
-  flag_signal<Instruction>  decToExInst, exToWriteInst;
-  flag_signal<short>        decToExRChan, exToWriteRChan;
-  sc_signal<bool>         d2eNewRChan, e2wNewRChan; // remove
-  flag_signal<Data>         ALUOutput;
+  flag_signal<Instruction> decToExInst, exToWriteInst;
+  flag_signal<short>       decToExRChan, exToWriteRChan;
+  flag_signal<Data>        ALUOutput;
 
   // To/from write stage
-  flag_signal<short>        writeAddr, indWriteAddr;
-  sc_buffer<short>        writeRegAddr, indirectWrite;
-  sc_buffer<Word>         regWriteData;
+  flag_signal<short>       writeAddr, indWriteAddr;
+  sc_buffer<short>         writeRegAddr, indirectWrite;
+  sc_buffer<Word>          regWriteData;
 
 };
 

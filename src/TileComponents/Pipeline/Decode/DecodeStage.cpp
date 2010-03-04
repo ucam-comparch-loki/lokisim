@@ -23,7 +23,7 @@ void DecodeStage::receivedFromRegs1() {
   Data d = static_cast<Data>(regIn1.read());
   regOut1.write(d);
   baseAddress.write(d);
-  cout << "Should receive address now." << endl;
+//  cout << "Should receive address now." << endl;
 }
 
 void DecodeStage::receivedFromRegs2() {
@@ -72,8 +72,8 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   decoder.indWrite(indWriteAddr);
   decoder.instructionOut(remoteInst);
   decoder.isIndirectRead(isIndirect);
-  decoder.newRChannel(newRChannel);
   decoder.predicate(predicate);
+  decoder.setPredicate(setPredicate);
   decoder.toFetchLogic(decodeToFetch); fl.in(decodeToFetch);
   decoder.rChannel(remoteChannel);
 

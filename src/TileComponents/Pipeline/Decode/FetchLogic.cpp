@@ -9,7 +9,8 @@
 
 /* When a request for an instruction is received, see if it is in the cache. */
 void FetchLogic::doOp() {
-  cout << "Received address: " << in.read() << endl;
+//  cout << "Received address: " << in.read() << endl;
+
   // Save the address so it can be updated with the base address arrives
   offsetAddr = in.read();
   awaitingBaseAddr = true;
@@ -25,7 +26,7 @@ void FetchLogic::haveBaseAddress() {
     // Requires that base address arrives last. Bad?
     toIPKC.write(offsetAddr);
     awaitingBaseAddr = false;
-    cout << "Sent address: " << offsetAddr << endl;
+    if(DEBUG) cout << "Fetch logic sent address: " << offsetAddr << endl;
   }
 
 }

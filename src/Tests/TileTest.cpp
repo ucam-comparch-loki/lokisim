@@ -53,7 +53,7 @@ protected:
 //    trace->set_time_unit(1.0, SC_NS);
 //
 //    for(int i=0; i<NUM_CLUSTER_OUTPUTS; i++) {
-//      flowControlOut[i].write(false);
+//      flowControlIn[i].write(false);
 //
 //      std::string name("output");
 //      sc_core::sc_trace(trace, out[i], name);

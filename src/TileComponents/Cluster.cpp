@@ -22,22 +22,22 @@ Cluster::Cluster(sc_module_name name, int ID) :
 
 // Connect things up
   // Main inputs/outputs
-  decode.flowControlIn(flowControlOut[0]);
+  decode.flowControlIn(flowControlIn[0]);
   decode.out1(out[0]);
 
   for(int i=1; i<NUM_CLUSTER_OUTPUTS; i++) {
-    write.flowControl[i-1](flowControlOut[i]);
+    write.flowControl[i-1](flowControlIn[i]);
     write.output[i-1](out[i]);
   }
 
   fetch.toIPKQueue(in[0]);
   fetch.toIPKCache(in[1]);
-  fetch.flowControl[0](flowControlIn[0]);
-  fetch.flowControl[1](flowControlIn[1]);
+  fetch.flowControl[0](flowControlOut[0]);
+  fetch.flowControl[1](flowControlOut[1]);
 
   for(int i=2; i<NUM_CLUSTER_INPUTS; i++) {
     decode.in[i-2](in[i]);
-    decode.flowControlOut[i-2](flowControlIn[i]);
+    decode.flowControlOut[i-2](flowControlOut[i]);
   }
 
   // Clock
@@ -76,8 +76,8 @@ Cluster::Cluster(sc_module_name name, int ID) :
 
   decode.remoteInst(decToExInst); execute.remoteInstIn(decToExInst);
   decode.remoteChannel(decToExRChan); execute.remoteChannelIn(decToExRChan);
-  decode.newRChannel(d2eNewRChan); execute.newRChannelIn(d2eNewRChan);
   decode.predicate(predicate); execute.predicate(predicate);
+  decode.setPredicate(setPredSig); execute.setPredicate(setPredSig);
 
   // To/from execute stage
   execute.output(ALUOutput); execute.fromALU1(ALUOutput);
@@ -86,7 +86,6 @@ Cluster::Cluster(sc_module_name name, int ID) :
 
   execute.remoteInstOut(exToWriteInst); write.inst(exToWriteInst);
   execute.remoteChannelOut(exToWriteRChan); write.remoteChannel(exToWriteRChan);
-  execute.newRChannelOut(e2wNewRChan); write.newRChannel(e2wNewRChan);
 
   execute.writeOut(writeAddr); write.inRegAddr(writeAddr);
   execute.indWriteOut(indWriteAddr); write.inIndAddr(indWriteAddr);
@@ -96,7 +95,7 @@ Cluster::Cluster(sc_module_name name, int ID) :
   write.outIndAddr(indirectWrite); regs.indWriteAddr(indirectWrite);
   write.regData(regWriteData); regs.writeData(regWriteData);
 
-  end_module(); // Needed because we're using a different constructor
+  end_module(); // Needed because we're using a different Component constructor
 }
 
 Cluster::~Cluster() {

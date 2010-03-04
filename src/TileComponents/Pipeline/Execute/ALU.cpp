@@ -73,7 +73,7 @@ void ALU::doOp() {
   }
 
   out.write(Data(result));
-  /*if(setPred.read())*/ pred = result&1; // Store lowest bit in predicate register
+  if(setPredicate.read()) pred = result&1; // Store lowest bit in predicate register
 
 }
 

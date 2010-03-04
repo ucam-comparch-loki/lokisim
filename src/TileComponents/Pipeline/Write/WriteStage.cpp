@@ -25,7 +25,7 @@ void WriteStage::receivedInst() {
   selectVal = 1;   // Want this Instruction to get into the SCET
   newInstSig.write(!newInstSig.read());
 
-  if(DEBUG) std::cout<<"WriteStage received Instruction: "<<inst.read()<<"\n";
+  if(DEBUG) cout << "WriteStage received Instruction: " << inst.read() << endl;
 }
 
 /* Change the multiplexor's select signal so it uses the new Data */
@@ -34,19 +34,19 @@ void WriteStage::receivedData() {
   selectVal = 0;   // Want this Data to get into the SCET
   newDataSig.write(!newDataSig.read());
 
-  if(DEBUG) std::cout<<"WriteStage received Data: "<<fromALU.read()<<"\n";
+  if(DEBUG) cout << "WriteStage received Data: " << fromALU.read() << endl;
 }
 
 /* We now know where to send the Data, so we can put it into a buffer */
-void WriteStage::receivedRChannel() {
-  haveNewChannel = true;
-}
+//void WriteStage::receivedRChannel() {
+//  haveNewChannel = true;
+//}
 
 void WriteStage::select() {
-  if(haveNewChannel) muxSelect.write(selectVal);
+  if(remoteChannel.event()) muxSelect.write(selectVal);
 }
 
-WriteStage::WriteStage(sc_core::sc_module_name name) :
+WriteStage::WriteStage(sc_module_name name) :
     PipelineStage(name),
     scet("scet"),
     mux("writemux") {
@@ -63,9 +63,9 @@ WriteStage::WriteStage(sc_core::sc_module_name name) :
   sensitive << fromALU;
   dont_initialize();
 
-  SC_METHOD(receivedRChannel);
-  sensitive << newRChannel;
-  dont_initialize();
+//  SC_METHOD(receivedRChannel);
+//  sensitive << remoteChannel;
+//  dont_initialize();
 
   SC_METHOD(select);
   sensitive << newInstSig << newDataSig;

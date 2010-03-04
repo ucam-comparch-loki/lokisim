@@ -24,14 +24,13 @@ public:
   sc_in<Data>         fromRChan2, fromReg2, fromALU2, fromSExtend;
   sc_out<Data>        output;
   sc_in<short>        op1Select, op2Select, operation, predicate;
+  sc_in<bool>         setPredicate;
 
   // Signals just passing through
   sc_in<short>        writeIn, indWriteIn, remoteChannelIn;
   sc_out<short>       writeOut, indWriteOut, remoteChannelOut;
   sc_in<Instruction>  remoteInstIn;
   sc_out<Instruction> remoteInstOut;
-  sc_in<bool>         newRChannelIn;
-  sc_out<bool>        newRChannelOut;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(ExecuteStage);

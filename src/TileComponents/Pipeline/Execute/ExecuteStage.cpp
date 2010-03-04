@@ -24,9 +24,6 @@ void ExecuteStage::newCycle() {
     COPY_IF_NEW(remoteChannelIn, remoteChannelOut);
     COPY_IF_NEW(predicate, predicateSig);
 
-    newRChannelOut.write(newRChannelIn.read());
-    // TODO: remove newRChannel signal
-
     newInst = newOperation = false;
     wait(clock.posedge_event());
   }
@@ -63,6 +60,7 @@ ExecuteStage::ExecuteStage(sc_core::sc_module_name name) :
   in2Mux.result(toALU2); alu.in2(toALU2);
   alu.out(output);
   alu.predicate(predicateSig);
+  alu.setPredicate(setPredicate);
 
   in1Mux.select(in1Select);
   in2Mux.select(in2Select);

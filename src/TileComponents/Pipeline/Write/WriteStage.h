@@ -24,7 +24,6 @@ public:
   sc_in<Data>             fromALU;
   sc_in<Instruction>      inst;
   sc_in<bool>            *flowControl;  // array
-  sc_in<bool>             newRChannel;
   sc_in<short>            inRegAddr, inIndAddr, remoteChannel;
   sc_out<short>           outRegAddr, outIndAddr;
   sc_out<Word>            regData;
@@ -32,7 +31,7 @@ public:
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(WriteStage);
-  WriteStage(sc_core::sc_module_name name);
+  WriteStage(sc_module_name name);
   virtual ~WriteStage();
 
 private:

@@ -12,6 +12,38 @@
 
 class Instruction: public Word {
 
+public:
+
+  enum Predicate {P, NOT_P, ALWAYS, END_OF_PACKET};
+
+/* Methods */
+  unsigned short getOp() const;
+  unsigned short getDest() const;
+  unsigned short getSrc1() const;
+  unsigned short getSrc2() const;
+  unsigned short getRchannel() const;
+  unsigned int getImmediate() const;
+  unsigned short getPredicate() const;
+  bool endOfPacket() const;
+
+/* Constructors and destructors */
+  Instruction();
+  Instruction(const Word& other);
+  Instruction(unsigned int inst);   // Instructions will probably be read in binary
+  Instruction(const std::string &inst);    // In case we end up reading assembler
+  virtual ~Instruction();
+
+/* Methods */
+  bool operator== (const Instruction& other) const;
+
+  // Has to go in header
+  friend std::ostream& operator<< (std::ostream& os, Instruction const& v) {
+    os << v.getOp() <<" "<< v.getDest() <<" "<< v.getSrc1() <<" "<< v.getSrc2()
+       <<" "<< v.getImmediate() <<" "<< v.getRchannel();
+    return os;
+  }
+
+private:
   void setOp(short val);
   void setDest(short val);
   void setSrc1(short val);
@@ -26,34 +58,6 @@ class Instruction: public Word {
   std::vector<std::string> split(const std::string &s, char delim);
   int strToInt(const std::string &s);
   void decode(const std::string &s, int field);
-
-public:
-
-  enum Predicate {P, NOT_P, ALWAYS, END_OF_PACKET};
-
-  unsigned short getOp() const;
-  unsigned short getDest() const;
-  unsigned short getSrc1() const;
-  unsigned short getSrc2() const;
-  unsigned short getRchannel() const;
-  unsigned int getImmediate() const;
-  unsigned short getPredicate() const;
-  bool endOfPacket() const;
-
-  bool operator== (const Instruction& other) const;
-
-  Instruction();
-  Instruction(const Word& other);
-  Instruction(unsigned int inst);   // Instructions will probably be read in binary
-  Instruction(const std::string &inst);    // In case we end up reading assembler
-  virtual ~Instruction();
-
-  // Has to go in header
-  friend std::ostream& operator<< (std::ostream& os, Instruction const& v) {
-    os << v.getOp() <<" "<< v.getDest() <<" "<< v.getSrc1() <<" "<< v.getSrc2()
-       <<" "<< v.getImmediate() <<" "<< v.getRchannel();
-    return os;
-  }
 
 };
 

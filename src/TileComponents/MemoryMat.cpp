@@ -7,76 +7,59 @@
 
 #include "MemoryMat.h"
 
-/* Determine whether to read or write. */
-void MemoryMat::doOp1() {
-  // Cast the Word to an Address to interpret it correctly
-  if((static_cast<Address>(in[3].read())).getReadBit()) read1();
-  else write1();
+/* Look through all inputs for new data. Determine whether this data is the
+ * start of a new transaction or the continuation of an existing one. Then
+ * carry out the first/next step of the transaction. */
+void MemoryMat::doOp() {
+  for(int i=0; i<NUM_CLUSTER_INPUTS; i++) {
+    if(in[i].event()) {
+      if(!transactions[i].isActive()) {
+        transactions[i] = static_cast<MemoryRequest>(in[i].read());
+        if(transactions[i].isReadRequest()) read(i);
+      }
+      else write(in[i].read(), i);
+    }
+    else if(transactions[i].isActive() && transactions[i].isReadRequest()) {
+      read(i);
+    }
+  }
 }
 
-void MemoryMat::doOp2() {
-  // Cast the Word to an Address to interpret it correctly
-  if((static_cast<Address>(in[4].read())).getReadBit()) read2();
-  else write2();
+void MemoryMat::read(int position) {
+  if(flowControlIn[position].read()) {
+    int addr = transactions[position].getStartAddress();
+    short returnAddr = transactions[position].getReturnAddress();
+    AddressedWord* aw = new AddressedWord(data.read(addr), returnAddr);
+    out[position].write(*aw);
+
+    transactions[position].decrementNumOps();
+    transactions[position].incrementAddress();
+
+    // flow control = false, except at end of transaction?
+
+    if(DEBUG) cout<<"Read "<<data.read(addr)<<" from address "<<addr<<endl;
+  }
 }
 
-/* Read from memory and send the result to the given address. */
-void MemoryMat::read1() {
-  // Cast the Word to an Address to interpret it correctly
-  int readAddress = (static_cast<Address>(in[1].read())).getAddress();
-  Word inMem = data.read(readAddress);
-  Word copy = inMem;
+void MemoryMat::write(Word w, int position) {
+  int addr = transactions[position].getStartAddress();
+  data.write(w, addr);
 
-  int sendAddress = (static_cast<Address>(in[3].read())).getAddress();
-  AddressedWord *aw = new AddressedWord(copy, sendAddress);
+  transactions[position].decrementNumOps();
+  transactions[position].incrementAddress();
 
-  Array<AddressedWord> *toSend = new Array<AddressedWord>(1);
-  toSend->put(0, *aw);
-//  out.write(*toSend);    // Need to make sure writes aren't conflicting
-  out[0].write(*aw);
-}
-
-void MemoryMat::read2() {
-  // Cast the Word to an Address to interpret it correctly
-  int readAddress = (static_cast<Address>(in[2].read())).getAddress();
-  Word inMem = data.read(readAddress);
-  Word copy = inMem;
-
-  int sendAddress = (static_cast<Address>(in[4].read())).getAddress();
-  AddressedWord *aw = new AddressedWord(copy, sendAddress);
-
-  Array<AddressedWord> *toSend = new Array<AddressedWord>(1);
-  toSend->put(0, *aw);
-//  out.write(*toSend);    // Need to make sure writes aren't conflicting
-  out[1].write(*aw);
-}
-
-/* Write the given data into the given memory address. */
-void MemoryMat::write1() {
-  // Cast the Word to an Address to interpret it correctly
-  int writeAddress = (static_cast<Address>(in[3].read())).getAddress();
-  Word newData = in[1].read();
-  data.write(newData, writeAddress);
-}
-
-void MemoryMat::write2() {
-  // Cast the Word to an Address to interpret it correctly
-  int writeAddress = (static_cast<Address>(in[4].read())).getAddress();
-  Word newData = in[2].read();
-  data.write(newData, writeAddress);
+  if(DEBUG) cout << "Wrote " << w << " to address " << addr << endl;
 }
 
 MemoryMat::MemoryMat(sc_module_name name, int ID) :
     TileComponent(name, ID),
     data(MEMORY_SIZE) {
 
-// Register methods
-  SC_METHOD(doOp1);
-  sensitive << in[1];   // Execute doOp1 whenever data is received on in1
-  dont_initialize();
+  transactions = new MemoryRequest[NUM_CLUSTER_INPUTS];
 
-  SC_METHOD(doOp2);
-  sensitive << in[2];   // Execute doOp2 whenever data is received on in2
+// Register methods
+  SC_METHOD(doOp);
+  for(int i=0; i<NUM_CLUSTER_INPUTS; i++) sensitive << clock.pos();//in[i];
   dont_initialize();
 
   end_module(); // Needed because we're using a different constructor

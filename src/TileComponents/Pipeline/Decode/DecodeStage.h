@@ -34,7 +34,7 @@ public:
   sc_out<Instruction>   remoteInst;
   sc_out<short>         regReadAddr1, regReadAddr2, writeAddr, indWriteAddr;
   sc_out<short>         remoteChannel, operation, op1Select, op2Select, predicate;
-  sc_out<bool>          isIndirect, newRChannel;
+  sc_out<bool>          isIndirect, setPredicate;
   sc_out<Data>          chEnd1, chEnd2, regOut1, regOut2, sExtend;
 
 /* Constructors and destructors */

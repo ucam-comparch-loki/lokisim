@@ -33,7 +33,7 @@ void WrappedTileComponent::setup() {
     fcIn.requests[i](requestsIn[i]);
     fcIn.responses[i](responsesOut[i]);
 
-    fcIn.flowControl[i](fcInSig[i]); comp->flowControlIn[i](fcInSig[i]);
+    fcIn.flowControl[i](fcInSig[i]); comp->flowControlOut[i](fcInSig[i]);
     fcIn.dataOut[i](dataInSig[i]); comp->in[i](dataInSig[i]);
   }
 
@@ -42,7 +42,7 @@ void WrappedTileComponent::setup() {
     fcOut.responses[i](responsesIn[i]);
     fcOut.requests[i](requestsOutSig[i]); requestsOut[i](requestsOutSig[i]);
 
-    comp->flowControlOut[i](fcOutSig[i]); fcOut.flowControl[i](fcOutSig[i]);
+    comp->flowControlIn[i](fcOutSig[i]); fcOut.flowControl[i](fcOutSig[i]);
     fcOut.dataIn[i](dataOutSig[i]); comp->out[i](dataOutSig[i]);
   }
 

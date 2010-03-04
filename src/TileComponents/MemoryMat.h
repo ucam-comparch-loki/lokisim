@@ -1,10 +1,13 @@
 /*
  * MemoryMat.h
  *
- * Current allocation of inputs/outputs:
- * in1, in2: data input (address to be read from, or data to be written)
- * in3, in4: address input (return address, or address to write to) + read/write bit
- * out1, out2: data output
+ * A memory bank which is accessed over the network. There will usually be
+ * multiple MemoryMats in each Tile.
+ *
+ * TODO: consider having designated read and write inputs.
+ *   + Simplifies hardware and software
+ *   + Allows full utilisation of input ports (there are usually more than outputs)
+ *   - Less flexibility
  *
  *  Created on: 6 Jan 2010
  *      Author: db434
@@ -17,7 +20,7 @@
 #include "../Memory/AddressedStorage.h"
 #include "../Datatype/Word.h"
 #include "../Datatype/Address.h"
-#include "../Datatype/Array.h"
+#include "../Datatype/MemoryRequest.h"
 
 class MemoryMat: public TileComponent {
 
@@ -29,16 +32,13 @@ public:
 
 private:
 /* Methods */
-  // One copy of each function for each pair of input ports.
-  void doOp1();
-  void doOp2();
-  void read1();
-  void read2();
-  void write1();
-  void write2();
+  void doOp();
+  void read(int position);
+  void write(Word w, int position);
 
 /* Local state */
   AddressedStorage<Word> data;
+  MemoryRequest         *transactions;  // array
 
 };
 

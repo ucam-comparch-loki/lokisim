@@ -24,8 +24,8 @@ public:
   sc_in<bool>            clock;
   sc_in<Word>           *in;              // array
   sc_out<AddressedWord> *out;             // array
-  sc_in<bool>           *flowControlOut;   // array
-  sc_out<bool>          *flowControlIn;  // array
+  sc_in<bool>           *flowControlIn;   // array
+  sc_out<bool>          *flowControlOut;  // array
 
 /* Constructors and destructors */
   TileComponent(sc_module_name name, int ID);
