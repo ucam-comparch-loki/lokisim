@@ -9,6 +9,12 @@
 
 /* Initialise the contents of the cache with a list of Instructions */
 void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
+
+  if(instructions.size() == 0) {
+    cout << "Error: loaded 0 instructions into " << this->name() << endl;
+    return;
+  }
+
   cache.storeCode(instructions);
 
   instToSend = cache.read();
@@ -40,8 +46,8 @@ void InstructionPacketCache::insertInstruction() {
   }
 
   // Do we want to tag all instructions, or only the first one of each packet?
-  cache.write(addr, in.read());
-  if(in.read().endOfPacket()) {
+  cache.write(addr, instructionIn.read());
+  if(instructionIn.read().endOfPacket()) {
     startOfPacket = true;
   }
   else startOfPacket = false;
@@ -57,9 +63,10 @@ void InstructionPacketCache::insertInstruction() {
 
 }
 
-/* See if an instruction packet is in the cache, and if so, prepare to execute it */
+/* See if an instruction packet is in the cache, and if so, prepare to
+ * execute it */
 void InstructionPacketCache::lookup() {
-  cout << "Looked up: " << address.read() << endl;
+  if(DEBUG) cout << "Looked up tag: " << address.read() << endl;
   bool inCache = cache.checkTags(address.read());
   cacheHit.write(inCache);
 
@@ -90,7 +97,8 @@ void InstructionPacketCache::finishedRead() {
 
 }
 
-/* Update the signal saying whether there is enough room to fetch another packet */
+/* Update the signal saying whether there is enough room to fetch another
+ * packet */
 void InstructionPacketCache::updateRTF() {
   isRoomToFetch.write(cache.remainingSpace() >= MAX_IPK_SIZE);
   flowControl.write(!cache.isFull());
@@ -100,15 +108,20 @@ void InstructionPacketCache::updateRTF() {
  * insertInstruction and finishedRead can result in the sending of new
  * instructions, but only one method is allowed to drive a particular wire. */
 void InstructionPacketCache::write() {
-  out.write(instToSend);
+  instructionOut.write(instToSend);
 //  cout << "FetchStage sent Instruction: " << instToSend << endl;
 }
 
+/* Convenience method, avoid using if possible. */
+bool InstructionPacketCache::isEmpty() {
+  return cache.isEmpty();
+}
+
 /* Constructors and destructors */
-InstructionPacketCache::InstructionPacketCache(sc_core::sc_module_name name) :
+InstructionPacketCache::InstructionPacketCache(sc_module_name name) :
     Component(name),
     cache(IPK_CACHE_SIZE),
-    addresses(4) {      // 4 = max outstanding fetches allowed
+    addresses(4) {        // 4 = max outstanding fetches allowed
 
   sentNewInst = false;
   outputWasRead = true;   // Allow the first received instruction to pass through
@@ -116,7 +129,7 @@ InstructionPacketCache::InstructionPacketCache(sc_core::sc_module_name name) :
 
 // Register methods
   SC_METHOD(insertInstruction);
-  sensitive << in;
+  sensitive << instructionIn;
   dont_initialize();
 
   SC_METHOD(lookup);

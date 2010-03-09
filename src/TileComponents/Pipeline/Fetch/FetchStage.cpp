@@ -64,16 +64,19 @@ short FetchStage::calculateSelect() {
 
 void FetchStage::select() {
   short sel = calculateSelect();
-  muxSelect.write(sel);
 
-  if(DEBUG) {
-    printf("FetchStage selected instruction from %s: ", sel==0?"cache":"FIFO");
-    if(sel) cout << FIFOtoMux.read() << endl;
-    else cout << cacheToMux.read() << endl;
+  if((sel==0 && cacheToMux.event()) || (sel==1 && FIFOtoMux.event())) {
+    muxSelect.write(sel);
+
+    if(DEBUG) {
+      printf("%s selected instruction from %s: ", this->name(), sel==0?"cache":"FIFO");
+      if(sel) cout << FIFOtoMux.read() << endl;
+      else cout << cacheToMux.read() << endl;
+    }
   }
 }
 
-FetchStage::FetchStage(sc_core::sc_module_name name) :
+FetchStage::FetchStage(sc_module_name name) :
     PipelineStage(name),
     cache("IPKcache"),
     fifo("IPKfifo"),
@@ -99,11 +102,11 @@ FetchStage::FetchStage(sc_core::sc_module_name name) :
   cache.clock(clock);
   fifo.clock(clock);
 
-  cache.in(toCache);
+  cache.instructionIn(toCache);
   fifo.in(toFIFO);
   mux.select(muxSelect);
 
-  cache.out(cacheToMux); mux.in1(cacheToMux);
+  cache.instructionOut(cacheToMux); mux.in1(cacheToMux);
   fifo.out(FIFOtoMux); mux.in2(FIFOtoMux);
   mux.result(instruction);
 

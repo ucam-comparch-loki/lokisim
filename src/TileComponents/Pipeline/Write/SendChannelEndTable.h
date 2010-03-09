@@ -20,6 +20,7 @@ class SendChannelEndTable: public Component {
 
 public:
 /* Ports */
+  sc_in<bool>             clock;
   sc_in<Word>             input;
   sc_in<short>            remoteChannel;
   sc_in<bool>            *flowControl;  // array
@@ -27,7 +28,7 @@ public:
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(SendChannelEndTable);
-  SendChannelEndTable(sc_core::sc_module_name name);
+  SendChannelEndTable(sc_module_name name);
   virtual ~SendChannelEndTable();
 
 protected:

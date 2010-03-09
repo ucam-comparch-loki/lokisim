@@ -42,6 +42,9 @@ void IndirectRegisterFile::indirectWrite() {
 /* Write to the address given in writeAddr */
 void IndirectRegisterFile::write() {
   short addr = writeAddr.read();
+
+  if(addr == 0) return;   // Register 0 is reserved to hold the value 0
+
   Word w = writeData.read();
   regs.write(w, addr);
 

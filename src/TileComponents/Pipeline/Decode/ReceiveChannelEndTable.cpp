@@ -11,6 +11,7 @@ void ReceiveChannelEndTable::receivedInput1() {
   // Do something if we have more than two channel ends (destination % numchannels)
   try {
     buffers.at(0).write(fromNetwork[0].read());
+    cout << "Receive Channel-end Table received: " << fromNetwork[0].read() << endl;
   }
   catch(std::exception e) {
     // Drop packet and carry on
@@ -22,6 +23,7 @@ void ReceiveChannelEndTable::receivedInput2() {
   // Do something if we have more than two channel ends (destination % numchannels)
   try {
     buffers.at(1).write(fromNetwork[1].read());
+    cout << "Receive Channel-end Table received: " << fromNetwork[1].read() << endl;
   }
   catch(std::exception e) {
     // Drop packet and carry on
@@ -62,8 +64,10 @@ void ReceiveChannelEndTable::newCycle() {
   }
 }
 
-ReceiveChannelEndTable::ReceiveChannelEndTable(sc_core::sc_module_name name)
+ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name)
     : Component(name) {
+
+  // TODO: Redo ReceiveChannelEndTable
 
   flowControl = new sc_out<bool>[NUM_RECEIVE_CHANNELS];
   fromNetwork = new sc_in<Word>[NUM_RECEIVE_CHANNELS];

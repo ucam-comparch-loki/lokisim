@@ -32,7 +32,7 @@ bool InstructionPacketFIFO::isEmpty() {
   return fifo.isEmpty();
 }
 
-InstructionPacketFIFO::InstructionPacketFIFO(sc_core::sc_module_name name) :
+InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
     Component(name),
     fifo(IPK_FIFO_SIZE) {
 

@@ -13,13 +13,16 @@
 class MemoryRequest : public Word {
 public:
 /* Methods */
-  unsigned short getStartAddress() const;
+  unsigned short getMemoryAddress() const;
   unsigned short getReturnAddress() const;
   unsigned short getNumOps() const;
   bool isReadRequest() const;
+  bool isIPKRequest() const;
   bool isActive() const;
+
   void decrementNumOps();
   void incrementAddress();
+  void setIPKRequest(bool val);
 
 /* Constructors and destructors */
   MemoryRequest();
@@ -29,7 +32,7 @@ public:
 
 private:
 /* Methods */
-  void setStartAddress(short val);
+  void setMemoryAddress(short val);
   void setReturnAddress(short val);
   void setNumOps(short val);
   void setRWBit(bool val);

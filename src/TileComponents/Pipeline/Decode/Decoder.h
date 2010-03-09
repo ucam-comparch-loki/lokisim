@@ -33,7 +33,7 @@ public:
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(Decoder);
-  Decoder(sc_core::sc_module_name name);
+  Decoder(sc_module_name name);
   virtual ~Decoder();
 
 private:

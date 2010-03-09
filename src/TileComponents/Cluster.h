@@ -28,9 +28,13 @@ public:
   virtual ~Cluster();
 
 /* Methods */
-  void storeCode(std::vector<Instruction>& instructions);
+  virtual void storeData(std::vector<Word>& data);
+  static int   IPKFIFOInput(int ID);
+  static int   IPKCacheInput(int ID);
+  static int   RCETInput(int ID, int channel);
 
 private:
+
 /* Components */
   IndirectRegisterFile     regs;
   FetchStage               fetch;
@@ -40,11 +44,11 @@ private:
 
 /* Signals (wires) */
   // To/from fetch stage
-  sc_signal<Address>       FLtoIPKC;
+  sc_buffer<Address>       FLtoIPKC;
   flag_signal<Instruction> nextInst;
 
   // To/from decode stage
-  sc_signal<bool>          cacheHitSig, roomToFetch, indirectReadSig;
+  sc_buffer<bool>          cacheHitSig, roomToFetch, indirectReadSig;
   sc_buffer<Word>          regData1, regData2;
   flag_signal<short>       regRead1, regRead2, decWriteAddr, decIndWrite, predicate;
   sc_buffer<Data>          RCETtoALU1, RCETtoALU2, regToALU1, regToALU2, SEtoALU;

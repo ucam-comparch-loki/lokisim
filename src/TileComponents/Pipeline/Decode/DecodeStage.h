@@ -57,11 +57,11 @@ private:
   SignExtend              extend;
 
 /* Signals (wires) */
-  sc_signal<Instruction>  instructionSig;
-  sc_signal<Word>        *fromNetwork;
-  sc_signal<Address>      decodeToFetch;
+  sc_buffer<Instruction>  instructionSig;
+  sc_buffer<Word>        *fromNetwork;
+  sc_buffer<Address>      decodeToFetch;
   sc_buffer<short>        decodeToRCET1, decodeToRCET2;
-  sc_signal<Data>         decodeToExtend, baseAddress;
+  sc_buffer<Data>         decodeToExtend, baseAddress;
 
 };
 

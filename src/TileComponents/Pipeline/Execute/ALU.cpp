@@ -12,12 +12,13 @@
 void ALU::doOp() {
 
   if(select.read() == InstructionMap::NOP) return;
-  if((predicate.read() == Instruction::P && !pred) ||
-     (predicate.read() == Instruction::NOT_P && pred)) return;
+
+  if((predicate.read() == Instruction::P && !predicateVal) ||
+     (predicate.read() == Instruction::NOT_P && predicateVal)) return;
 
   Data d1 = in1.read(), d2 = in2.read();
 
-  if(DEBUG) std::cout<<"ALU received Data: "<<d1<<" and "<<d2<<"\n";
+  if(DEBUG) cout << "ALU received Data: " << d1 << " and " << d2 << endl;
 
   unsigned int val1 = d1.getData();
   unsigned int val2 = d2.getData();
@@ -43,7 +44,7 @@ void ALU::doOp() {
 
     case InstructionMap::LUI:  result = val1 << 16; break;
 
-//    case InstructionMap::PSEL: result = predicate ? val1 : val2; break;
+    case InstructionMap::PSEL: result = predicateVal ? val1 : val2; break;
 
 //    case InstructionMap::CLZ: result = 32 - math.log(2, val1) + 1; break;
 
@@ -73,7 +74,7 @@ void ALU::doOp() {
   }
 
   out.write(Data(result));
-  if(setPredicate.read()) pred = result&1; // Store lowest bit in predicate register
+  if(setPredicate.read()) predicateVal = result&1; // Store lowest bit in predicate register
 
 }
 

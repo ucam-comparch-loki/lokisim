@@ -11,7 +11,6 @@
 void Decoder::doOp() {
 
   // TODO: tidy decode
-  // TODO: determine when to send a remote instruction, and what it should be
 
   Instruction i = instructionIn.read();
 
@@ -24,11 +23,45 @@ void Decoder::doOp() {
   short operand2 = i.getSrc2();
   int immediate = i.getImmediate();
   short pred = i.getPredicate();
-  //bool setPred = i.getSetPredicate();
+  bool setPred = i.getSetPredicate();
   short remoteChannel = i.getRchannel();
 
   predicate.write(pred);
-  // TODO: setPredicate.write(setPred);
+  setPredicate.write(setPred);
+
+  // Remote instructions
+  if(operation>=InstructionMap::RMTFETCH && operation<=InstructionMap::RMTNXIPK) {
+    Instruction inst;
+    std::string *opName = new std::string();
+    inst.setDest(destination);
+    inst.setImmediate(immediate);
+
+    switch(operation) {
+      case InstructionMap::RMTFETCH :
+        *opName = "fetch";
+        inst.setOp(InstructionMap::opcode(*opName));
+        break;
+      case InstructionMap::RMTFETCHPST :
+        *opName = "fetchpst";
+        inst.setOp(InstructionMap::opcode(*opName));
+        break;
+//      case InstructionMap::RMTFILL :
+//        inst.setOp(???);
+//      case InstructionMap::RMTEXECUTE :
+//        inst.setOp(???);
+//      case InstructionMap::RMTNXIPK :
+//        inst.setOp(???);
+      default: cout<<"Haven't implemented instruction "<<operation<<" yet."<<endl;
+    }
+
+    delete opName;
+
+    instructionOut.write(inst);
+    rChannel.write(remoteChannel);
+
+    return; // Skip the rest of this complicated method
+  }
+
 
   if(operation == InstructionMap::IRDR) {
     regAddr2.write(operand2);
@@ -38,8 +71,6 @@ void Decoder::doOp() {
 
   if(operation == InstructionMap::IWTR) indWrite.write(destination);
   else writeAddr.write(destination);
-
-  // How do we know if data will be coming directly from the ALU?
 
   if(operation==InstructionMap::SETFETCHCH) {
     fetchChannel = immediate;   // Is it an immediate or read from a register?
@@ -57,7 +88,7 @@ void Decoder::doOp() {
   if(InstructionMap::isALUOperation(operation)) {
     this->operation.write(operation);
   }
-  else this->operation.write(InstructionMap::NOP);
+  //else this->operation.write(InstructionMap::NOP);
 
   // Determine where to read the first operand from: RCET or register file
   if(operand1 >= NUM_REGISTERS) {
@@ -103,7 +134,7 @@ void Decoder::doOp() {
 
 }
 
-Decoder::Decoder(sc_core::sc_module_name name) : Component(name) {
+Decoder::Decoder(sc_module_name name) : Component(name) {
 
   regLastWritten = -1;
 

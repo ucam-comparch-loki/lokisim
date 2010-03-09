@@ -41,7 +41,7 @@ private:
 
 /* Local state */
   Buffer<AddressedWord> toSend;
-  bool                  canSend, awaitingBaseAddr;
+  bool                  awaitingBaseAddr;
   Address               offsetAddr;
 
 /* Signals (wires) */

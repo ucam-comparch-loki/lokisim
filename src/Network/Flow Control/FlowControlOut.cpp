@@ -10,8 +10,10 @@
 
 void FlowControlOut::receivedResponses() {
   for(int i=0; i<width; i++) {
-    Data d = static_cast<Data>(responses[i].read());
-    allowedToSend(i, d.getData());
+    if(responses[i].event()) {
+      Data d = static_cast<Data>(responses[i].read());
+      allowedToSend(i, d.getData());
+    }
   }
 }
 
@@ -20,12 +22,12 @@ void FlowControlOut::receivedResponses() {
  * more complex and, for example, keep a counter to implement credit schemes. */
 void FlowControlOut::allowedToSend(int position, bool isAllowed) {
   if(isAllowed) dataOut[position].write(dataIn[position].read());
-  flowControl[position].write(isAllowed==1);
+  flowControl[position].write(isAllowed);
 }
 
 void FlowControlOut::sendRequests() {
   for(int i=0; i<width; i++) {
-    if(!(dataIn[i].read() == dataOut[i].read())) {  // use dataIn[i].event()?
+    if(dataIn[i].event()) {
       Request r(id*width + i);
       AddressedWord req(r, dataIn[i].read().getChannelID());
       requests[i].write(req);
@@ -33,18 +35,20 @@ void FlowControlOut::sendRequests() {
   }
 }
 
+/* Initialise so everything is allowed to send */
+void FlowControlOut::initialise() {
+  for(int i=0; i<width; i++) {
+    flowControl[i].write(true);
+  }
+}
+
 void FlowControlOut::setup() {
 
-  dataIn = new sc_in<AddressedWord>[width];
-  responses = new sc_in<Word>[width];
-  dataOut = new sc_out<AddressedWord>[width];
-  requests = new sc_out<AddressedWord>[width];
+  dataIn      = new sc_in<AddressedWord>[width];
+  responses   = new sc_in<Word>[width];
+  dataOut     = new sc_out<AddressedWord>[width];
+  requests    = new sc_out<AddressedWord>[width];
   flowControl = new sc_out<bool>[width];
-
-  // Initialise so nothing is allowed to send
-//  for(int i=0; i<width; i++) {
-//    flowControl[i].write(false);
-//  }
 
   SC_METHOD(receivedResponses);
   for(int i=0; i<width; i++) sensitive << responses[i];
@@ -56,15 +60,16 @@ void FlowControlOut::setup() {
 
 }
 
-FlowControlOut::FlowControlOut(sc_core::sc_module_name name, int ID, int width) :
-    Component(name, ID),
+FlowControlOut::FlowControlOut(sc_module_name name, int ID, int width) :
+    Component(name),
     width(width) {
 
+  this->id = ID;
   setup();
 
 }
 
-FlowControlOut::FlowControlOut(sc_core::sc_module_name name, int width) :
+FlowControlOut::FlowControlOut(sc_module_name name, int width) :
     Component(name),
     width(width) {
 

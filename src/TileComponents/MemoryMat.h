@@ -30,8 +30,10 @@ public:
   MemoryMat(sc_module_name name, int ID);
   virtual ~MemoryMat();
 
-private:
 /* Methods */
+  virtual void storeData(std::vector<Word>& data);
+
+private:
   void doOp();
   void read(int position);
   void write(Word w, int position);

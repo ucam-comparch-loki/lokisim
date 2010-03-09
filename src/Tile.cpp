@@ -7,6 +7,10 @@
 
 #include "Tile.h"
 
+void Tile::storeData(vector<Word>& data, int componentNumber) {
+  contents[componentNumber]->storeData(data);
+}
+
 /* Connect two horizontally-adjacent Tiles together. */
 void Tile::connectLeftRight(const Tile& left, const Tile& right) {
   for(int i=0; i<NUM_CHANNELS_BETWEEN_TILES; i++) {
@@ -23,7 +27,7 @@ void Tile::connectTopBottom(const Tile& top, const Tile& bottom) {
   }
 }
 
-/* Constructors and destructor. */
+/* Constructors and destructors */
 Tile::Tile(sc_module_name name, int ID) :
     Component(name, ID),
     network("localnetwork") {
@@ -38,13 +42,13 @@ Tile::Tile(sc_module_name name, int ID) :
 //  outSouth = new sc_out<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
 //  outWest  = new sc_out<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
 
-  int numOutputs = NUM_CLUSTER_OUTPUTS * (CLUSTERS_PER_TILE + MEMS_PER_TILE);
-  int numInputs  = NUM_CLUSTER_INPUTS  * (CLUSTERS_PER_TILE + MEMS_PER_TILE);
+  int numOutputs = NUM_CLUSTER_OUTPUTS * COMPONENTS_PER_TILE;
+  int numInputs  = NUM_CLUSTER_INPUTS  * COMPONENTS_PER_TILE;
 
-  responsesToCluster = new sc_signal<Word>[numOutputs];
-  responsesFromCluster = new sc_signal<AddressedWord>[numInputs];
-  requestsToCluster = new sc_signal<Word>[numInputs];
-  dataToCluster = new sc_signal<Word>[numInputs];
+  responsesToCluster   = new sc_buffer<Word>[numOutputs];
+  responsesFromCluster = new sc_buffer<AddressedWord>[numInputs];
+  requestsToCluster    = new sc_buffer<Word>[numInputs];
+  dataToCluster        = new flag_signal<Word>[numInputs];
 
   // Initialise the Clusters of this Tile
   for(int i=0; i<CLUSTERS_PER_TILE; i++) {
@@ -52,12 +56,12 @@ Tile::Tile(sc_module_name name, int ID) :
   }
 
   // Initialise the memories of this Tile
-  for(int i=CLUSTERS_PER_TILE; i<CLUSTERS_PER_TILE+MEMS_PER_TILE; i++) {
+  for(int i=CLUSTERS_PER_TILE; i<COMPONENTS_PER_TILE; i++) {
     contents.push_back(new WrappedTileComponent("wrapped", i, TileComponent::MEMORY));
   }
 
   // Connect the clusters and memories to the local interconnect
-  for(int i=0; i<(CLUSTERS_PER_TILE+MEMS_PER_TILE); i++) {
+  for(int i=0; i<COMPONENTS_PER_TILE; i++) {
 
     for(int j=0; j<NUM_CLUSTER_INPUTS; j++) {
       int index = i*NUM_CLUSTER_INPUTS + j;   // Position in network's array
@@ -80,6 +84,7 @@ Tile::Tile(sc_module_name name, int ID) :
     }
 
     contents[i]->clock(clock);
+    contents[i]->initialise();
 
   }
 

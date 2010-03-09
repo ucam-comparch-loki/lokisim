@@ -28,7 +28,7 @@ protected:
   virtual void routeRequests();
   virtual void routeResponses();
   virtual void routeData();
-  virtual void route(sc_in<AddressedWord> *inputs, sc_out<Word> *outputs);
+  virtual void route(sc_in<AddressedWord> *inputs, sc_out<Word> *outputs, int length);
 
 /* Local state */
   int numInputs, numOutputs;

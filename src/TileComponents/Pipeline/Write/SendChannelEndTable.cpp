@@ -32,7 +32,6 @@ void SendChannelEndTable::canSend() {
     if(!(buffers.at(i).isEmpty()) && send) {
       output[i].write(buffers.at(i).read());
     }
-    // Otherwise, send the same value again (no change => no event)
   }
 
 }
@@ -61,7 +60,7 @@ SendChannelEndTable::SendChannelEndTable(sc_core::sc_module_name name) :
   dont_initialize();
 
   SC_METHOD(canSend);
-  for(int i=0; i<NUM_SEND_CHANNELS; i++) sensitive << flowControl[i];
+  for(int i=0; i<NUM_SEND_CHANNELS; i++) sensitive << clock.pos();//flowControl[i];
   dont_initialize();
 
 }

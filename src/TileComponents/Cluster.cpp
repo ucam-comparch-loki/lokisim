@@ -8,8 +8,29 @@
 #include "Cluster.h"
 
 /* Initialise the instructions a Cluster will execute. */
-void Cluster::storeCode(std::vector<Instruction>& instructions) {
+void Cluster::storeData(std::vector<Word>& data) {
+  std::vector<Instruction> instructions;
+
+  for(unsigned int i=0; i<data.size(); i++) {
+    instructions.push_back(static_cast<Instruction>(data[i]));
+  }
+
   fetch.storeCode(instructions);
+}
+
+/* Returns the channel ID of this cluster's instruction packet FIFO. */
+int Cluster::IPKFIFOInput(int ID) {
+  return ID*NUM_CLUSTER_INPUTS + 0;
+}
+
+/* Returns the channel ID of this cluster's instruction packet cache. */
+int Cluster::IPKCacheInput(int ID) {
+  return ID*NUM_CLUSTER_INPUTS + 1;
+}
+
+/* Returns the channel ID of this cluster's specified input channel. */
+int Cluster::RCETInput(int ID, int channel) {
+  return ID*NUM_CLUSTER_INPUTS + 2 + channel;
 }
 
 Cluster::Cluster(sc_module_name name, int ID) :

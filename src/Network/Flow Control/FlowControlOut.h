@@ -32,8 +32,10 @@ public:
   FlowControlOut(sc_core::sc_module_name name, int width);
   virtual ~FlowControlOut();
 
-protected:
 /* Methods */
+  void          initialise();
+
+protected:
   void          receivedResponses();
   virtual void  allowedToSend(int position, bool isAllowed);
   virtual void  sendRequests();

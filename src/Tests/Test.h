@@ -13,6 +13,7 @@
 #include <systemc.h>
 
 #include "../Utility/Parameters.h"
+#include "../Utility/TraceFile.h"
 #include "../Datatype/Word.h"
 #include "../Datatype/Address.h"
 #include "../Datatype/Data.h"

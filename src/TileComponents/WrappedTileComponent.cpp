@@ -8,6 +8,14 @@
 #include "WrappedTileComponent.h"
 #include "TileComponentFactory.h"
 
+void WrappedTileComponent::storeData(std::vector<Word>& data) {
+  comp->storeData(data);
+}
+
+void WrappedTileComponent::initialise() {
+  fcOut.initialise();
+}
+
 void WrappedTileComponent::setup() {
 
 // Initialise arrays
@@ -18,15 +26,16 @@ void WrappedTileComponent::setup() {
   requestsOut     = new sc_out<AddressedWord>[NUM_CLUSTER_OUTPUTS];
   responsesIn     = new sc_in<Word>[NUM_CLUSTER_OUTPUTS];
 
-  dataInSig       = new sc_signal<Word>[NUM_CLUSTER_INPUTS];
-  dataOutSig      = new sc_signal<AddressedWord>[NUM_CLUSTER_OUTPUTS];
-  dataOutSig2     = new sc_signal<AddressedWord>[NUM_CLUSTER_OUTPUTS];
-  requestsOutSig  = new sc_signal<AddressedWord>[NUM_CLUSTER_OUTPUTS];
+  dataInSig       = new flag_signal<Word>[NUM_CLUSTER_INPUTS];
+  dataOutSig      = new sc_buffer<AddressedWord>[NUM_CLUSTER_OUTPUTS];
+  dataOutSig2     = new sc_buffer<AddressedWord>[NUM_CLUSTER_OUTPUTS];
+  requestsOutSig  = new sc_buffer<AddressedWord>[NUM_CLUSTER_OUTPUTS];
   fcOutSig        = new sc_signal<bool>[NUM_CLUSTER_OUTPUTS];
   fcInSig         = new sc_signal<bool>[NUM_CLUSTER_INPUTS];
 
 // Connect everything up
   comp->clock(clock);
+  fcIn.clock(clock);
 
   for(int i=0; i<NUM_CLUSTER_INPUTS; i++) {
     fcIn.dataIn[i](dataIn[i]);
@@ -63,7 +72,7 @@ WrappedTileComponent::WrappedTileComponent(sc_module_name name, TileComponent& t
 WrappedTileComponent::WrappedTileComponent(sc_module_name name, int ID, int type) :
     Component(name, ID),
     fcIn("fc_in", NUM_CLUSTER_INPUTS),
-    fcOut("fc_out", NUM_CLUSTER_OUTPUTS) {
+    fcOut("fc_out", ID, NUM_CLUSTER_OUTPUTS) {
 
   comp = &(TileComponentFactory::makeTileComponent(type, ID));
   setup();

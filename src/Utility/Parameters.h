@@ -24,6 +24,7 @@ extern parameter NUM_TILE_COLUMNS;
 
 extern parameter MAX_IPK_SIZE;
 
+// Memory
 extern parameter NUM_REGISTERS;
 extern parameter IPK_FIFO_SIZE;
 extern parameter IPK_CACHE_SIZE;
@@ -34,7 +35,9 @@ extern parameter NUM_SEND_CHANNELS;
 extern parameter CHANNEL_END_BUFFER_SIZE; // Different send/receive sizes?
 extern parameter FLOW_CONTROL_BUFFER_SIZE;
 
+// Combinations of other parameters
 extern parameter NUM_CLUSTER_INPUTS;
 extern parameter NUM_CLUSTER_OUTPUTS;
+extern parameter COMPONENTS_PER_TILE;
 
 #endif /* PARAMETERS_H_ */

@@ -6,11 +6,11 @@
  */
 
 #include "FetchLogic.h"
+#include "../../../Datatype/MemoryRequest.h"
+#include "../../Cluster.h"
 
 /* When a request for an instruction is received, see if it is in the cache. */
 void FetchLogic::doOp() {
-//  cout << "Received address: " << in.read() << endl;
-
   // Save the address so it can be updated with the base address arrives
   offsetAddr = in.read();
   awaitingBaseAddr = true;
@@ -26,47 +26,42 @@ void FetchLogic::haveBaseAddress() {
     // Requires that base address arrives last. Bad?
     toIPKC.write(offsetAddr);
     awaitingBaseAddr = false;
-    if(DEBUG) cout << "Fetch logic sent address: " << offsetAddr << endl;
   }
 
 }
 
 /* If the cache doesn't contain the desired Instruction, send a request to
- * the memory. */
+ * the memory. Otherwise, we don't have to do anything. */
 void FetchLogic::haveResultFromCache() {
 
   if(!(cacheContainsInst.read())) {
+    // Create a new memory request and wrap it up in an AddressedWord
+    MemoryRequest mr(offsetAddr.getAddress(), Cluster::IPKCacheInput(id), 0, true);
+    mr.setIPKRequest(true);
+    AddressedWord *request = new AddressedWord(mr, offsetAddr.getChannelID());
 
-    // Send return address (our channel 1) to memory
-    Address *myAddress = new Address(id, 1);
-    AddressedWord *retAddr = new AddressedWord(*myAddress, offsetAddr.getChannelID());
+    toSend.write(*request);           // Put the new request in the queue
+    sendData.write(!sendData.read()); // Signal that there is new data to send
 
-    // Send address to read from to memory
-    AddressedWord *sendAddr = new AddressedWord(offsetAddr, offsetAddr.getChannelID());
-
-    toSend.write(*retAddr);
-    toSend.write(*sendAddr);
-    if(canSend && isRoomToFetch.read()) sendData.write(!sendData.read());
-    else cout << "Not able to send FETCH from FetchLogic." << endl;
+    if(DEBUG) cout << "Not in cache. Sending request." << endl;
   }
 
 }
 
 /* The flowControl signal tells us that we are now free to use the channel again. */
 void FetchLogic::sendNext() {
-  if(toSend.isEmpty()) canSend = true;
-  else if(isRoomToFetch.read()) {
+  if(toSend.isEmpty()) return;
+  else if(flowControl.read() && isRoomToFetch.read()) {
     toNetwork.write(toSend.read());
-    canSend = false;
   }
+  else if(DEBUG) cout << "Not able to send FETCH from FetchLogic." << endl << "  fc: " << flowControl.read() << endl;
 }
 
 FetchLogic::FetchLogic(sc_module_name name, int ID) :
     Component(name),
-    toSend(8) {           // Can have 4 outstanding fetches (2 flits each)
+    toSend(4) {           // Can have 4 outstanding fetches (make a parameter?)
 
   id = ID;
-  canSend = true;
   awaitingBaseAddr = false;
 
 // Register methods
@@ -83,7 +78,7 @@ FetchLogic::FetchLogic(sc_module_name name, int ID) :
   dont_initialize();
 
   SC_METHOD(sendNext);
-  sensitive << flowControl  << sendData << isRoomToFetch;
+  sensitive << flowControl.pos()  << sendData << isRoomToFetch.pos();
   dont_initialize();
 }
 

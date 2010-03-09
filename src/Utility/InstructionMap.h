@@ -18,11 +18,6 @@
 
 class InstructionMap {
 
-  static std::map<short, int> oti; // opcode to instruction
-  static std::map<std::string, short> nto; // name to opcode
-
-  static void initialise();
-
 public:
 
   static bool hasImmediate(short operation);
@@ -105,6 +100,12 @@ public:
     RMTNXIPK      // "Next IPK" to remote cluster         rmtnxipk -> rch
 
   };
+
+private:
+  static std::map<short, int> oti; // opcode to instruction
+  static std::map<std::string, short> nto; // name to opcode
+
+  static void initialise();
 
 };
 

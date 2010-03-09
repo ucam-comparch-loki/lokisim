@@ -6,13 +6,31 @@
  */
 
 #include "CodeLoader.h"
+#include "../Datatype/Instruction.h"
 
-/* Load code from the specified file into the IPK cache of the given cluster.
- * Expand this to allow any TileComponent to have code loaded into it? */
-void CodeLoader::loadCode(char* filename, Cluster& cluster) {
+/* Load code from the specified file into a particular component of the
+ * given tile. */
+void CodeLoader::loadCode(char* filename, Tile& tile, int position) {
+  tile.storeData(getData(filename), position);
+}
+
+/* Load code from the specified file into the given component. */
+void CodeLoader::loadCode(char* filename, WrappedTileComponent& component) {
+  component.storeData(getData(filename));
+}
+
+/* Load code from the specified file into the given component. */
+void CodeLoader::loadCode(char* filename, TileComponent& component) {
+  component.storeData(getData(filename));
+}
+
+/* Return a vector of Words corresponding to the contents of the file. */
+std::vector<Word>& CodeLoader::getData(char* filename) {
 
   std::ifstream file(filename);
-  std::vector<Instruction> instructions;
+  std::vector<Word> *instructions = new std::vector<Word>();
+
+  // TODO: determine whether the file contains instructions or data
 
   char instruction[100];   // Is this enough?
 
@@ -21,7 +39,7 @@ void CodeLoader::loadCode(char* filename, Cluster& cluster) {
       file.getline(instruction, 100, '\n');
       if(file.eof()) break;
       Instruction i(instruction);
-      instructions.push_back(i);
+      instructions->push_back(i);
     }
     catch(std::exception) {
       break;
@@ -30,6 +48,6 @@ void CodeLoader::loadCode(char* filename, Cluster& cluster) {
 
   file.close();
 
-  cluster.storeCode(instructions);
+  return *instructions;
 
 }

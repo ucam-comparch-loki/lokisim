@@ -32,7 +32,7 @@ private:
   void doOp();
 
 /* Local state */
-  bool pred;
+  bool predicateVal;
 
 };
 

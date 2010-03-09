@@ -1,8 +1,9 @@
 /*
  * Instruction.cpp
  *
- * Current (fixed) layout: 64 bit value containing:
- *    32 bit immediate (don't need this much, but nothing else is using the space)
+ * Current layout: 64 bit value containing:
+ *    16 bit immediate
+ *    1 bit saying whether the predicate register should be set
  *    2 predicate bits
  *    7 bit opcode
  *    5 bit destination register location
@@ -10,8 +11,8 @@
  *    5 bit source 2 register location
  *    8 bit remote channel ID
  *
- *    | immed | pred | opcode | dest | source1 | source2 | channel ID |
- *     63      31     29       22     17        12        7          0
+ *    | immed | setpred | pred | opcode | dest | source1 | source2 | channel ID |
+ *     48      32        31     29       22     17        12        7          0
  *
  *  Created on: 5 Jan 2010
  *      Author: db434
@@ -20,12 +21,14 @@
 #include "Instruction.h"
 #include "../Utility/InstructionMap.h"
 
-const short startImmediate = 32;
+const short startImmediate = 33;
+const short startSetPred = 32;
 const short startPredicate = 30;
 const short startOpcode = 23;
 const short startDest = 18;
 const short startSrc1 = 13;
 const short startSrc2 = 8;
+const short startChannelID = 0;
 
 /* Public getter methods */
 unsigned short Instruction::getOp() const {
@@ -45,15 +48,19 @@ unsigned short Instruction::getSrc2() const {
 }
 
 unsigned short Instruction::getRchannel() const {
-  return getBits(0, startSrc2-1);
+  return getBits(startChannelID, startSrc2-1);
 }
 
-unsigned int Instruction::getImmediate() const {
-  return getBits(startImmediate, 63);
+signed short Instruction::getImmediate() const {
+  return getBits(startImmediate, 48);
 }
 
 unsigned short Instruction::getPredicate() const {
-  return getBits(startPredicate, startImmediate-1);
+  return getBits(startPredicate, startSetPred-1);
+}
+
+bool Instruction::getSetPredicate() const {
+  return getBits(startSetPred, startImmediate-1);
 }
 
 bool Instruction::endOfPacket() const {
@@ -78,39 +85,55 @@ Instruction::Instruction(unsigned int inst) : Word(inst) {
   // Do nothing
 }
 
-Instruction::Instruction(const std::string &inst) {
+Instruction::Instruction(const string &inst) {
 
-  std::vector<std::string> words;
+  vector<string> words;
 
   // Remove any comments by splitting around ';' and only keeping the first part
   words = split(inst, ';');
 
   // Split around "->" to see if there is a remote channel specified
   words = split(words.front(), '>');
-  if(words.size() > 1) setRchannel(strToInt(words.at(1)));
+  if(words.size() > 1) setRchannel(strToInt(words[1]));
 
   // Split around ' ' to separate all remaining parts of the instruction
   words = split(words.front(), ' ');
 
   // Try splitting the opcode to see if it is predicated
-  std::vector<std::string> opcodeParts = split(words.front(), '.');
+  vector<string> opcodeParts = split(words.front(), '?');
+
+  string opcodeString;
+
+  // Set the predicate bits
+  if(opcodeParts.size() > 1) {
+    string predicate = opcodeParts[0];
+    if(predicate == "p") setPredicate(P);
+    else if(predicate == "!p") setPredicate(NOT_P);
+//    else if(predicate == "eop") setPredicate(END_OF_PACKET);
+    opcodeString = opcodeParts[1];
+  }
+  else {
+    setPredicate(ALWAYS);
+    opcodeString = opcodeParts[0];
+  }
+
+  // See if the instruction sets the predicate register, or is the end of packet
+  opcodeParts = split(opcodeString, '.');
+
+  if(opcodeParts.size() > 1) {
+    string setting = opcodeParts[1];
+    if(setting == "eop") setPredicate(END_OF_PACKET);
+    else if(setting == "p") setSetPred(true);
+    else setSetPred(false);
+  }
 
   // Look up operation in InstructionMap
   short opcode = InstructionMap::opcode(opcodeParts.front());
   setOp(opcode);
 
-  // Set the predicate bits
-  if(opcodeParts.size() > 1) {
-    std::string predicate = opcodeParts.at(1);
-    if(predicate == "p") setPredicate(P);
-    else if(predicate == "!p") setPredicate(NOT_P);
-    else if(predicate == "eop") setPredicate(END_OF_PACKET);
-  }
-  else setPredicate(ALWAYS);
-
   // Convert all remaining strings to integers, and set the appropriate fields
   for(unsigned int i=1; i<words.size(); i++) {
-    decode(words.at(i), i);
+    decode(words[i], i);
   }
 }
 
@@ -136,24 +159,28 @@ void Instruction::setSrc2(short val) {
 }
 
 void Instruction::setRchannel(short val) {
-  setBits(0, startSrc2-1, val);
+  setBits(startChannelID, startSrc2-1, val);
 }
 
-void Instruction::setImmediate(unsigned int val) {
-  setBits(startImmediate, 63, val);
+void Instruction::setImmediate(short val) {
+  setBits(startImmediate, 48, val);
 }
 
 void Instruction::setPredicate(short val) {
-  setBits(startPredicate, startImmediate-1, val);
+  setBits(startPredicate, startSetPred-1, val);
+}
+
+void Instruction::setSetPred(bool val) {
+  setBits(startSetPred, startSetPred, val?1:0);
 }
 
 /* String manipulation methods -- move to a separate file? */
 
 /* Split a string around a given delimiter character */
-std::vector<std::string>& Instruction::split(const std::string &s, char delim,
-                                             std::vector<std::string> &elems) {
+vector<string>& Instruction::split(const string &s, char delim,
+                                   vector<string> &elems) {
   std::stringstream ss(s);
-  std::string item;
+  string item;
   while(std::getline(ss, item, delim)) {
     elems.push_back(item);
   }
@@ -161,13 +188,13 @@ std::vector<std::string>& Instruction::split(const std::string &s, char delim,
 }
 
 /* Convenience method for the method above */
-std::vector<std::string> Instruction::split(const std::string &s, char delim) {
-  std::vector<std::string> elems;
+vector<string> Instruction::split(const string &s, char delim) {
+  vector<string> elems;
   return split(s, delim, elems);
 }
 
 /* Return the integer represented by the given string */
-int Instruction::strToInt(const std::string &str) {
+int Instruction::strToInt(const string &str) {
   std::stringstream ss(str);
   int num;
   ss >> num;
@@ -176,8 +203,8 @@ int Instruction::strToInt(const std::string &str) {
 
 /* Determine if the string represents a register or immediate, and set the
  * corresponding field. */
-void Instruction::decode(const std::string &str, int field) {
-  std::string reg = str;
+void Instruction::decode(const string &str, int field) {
+  string reg = str;
 
   if(reg[0] == 'r') {                 // Registers are marked with an 'r'
     reg.erase(0,1);                   // Remove the 'r'

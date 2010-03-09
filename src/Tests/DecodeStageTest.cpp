@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "Test.h"
+#include "../Datatype/MemoryRequest.h"
 #include "../TileComponents/Pipeline/Decode/DecodeStage.h"
 #include "../TileComponents/Pipeline/IndirectRegisterFile.h"
 #include "../Utility/InstructionMap.h"
@@ -97,6 +98,10 @@ protected:
     TIMESTEP;
 
     // Put stuff in RCET?
+
+    // Initialise some inputs
+    flowControl.write(true);
+    roomToFetch.write(true);
   }
 
 };
@@ -154,14 +159,9 @@ protected:
 //  TIMESTEP;
 //
 //  AddressedWord temp = out.read();
-//  EXPECT_EQ(1, ((Address)(temp.getPayload())).getAddress());
-//  EXPECT_EQ(18, temp.getChannelID());
-//  flowControlOut.write(!flowControlOut.read());
-//
-//  TIMESTEP;
-//
-//  temp = out.read();
-//  EXPECT_EQ(6, ((Address)temp.getPayload()).getAddress()); // 2 in r2 + 4 offset
+//  MemoryRequest mr = static_cast<MemoryRequest>(temp.getPayload());
+//  EXPECT_EQ(6, mr.getMemoryAddress()); // 2 in r2 + 4 offset
+//  EXPECT_EQ(1*NUM_CLUSTER_INPUTS + 1, mr.getReturnAddress());
 //  EXPECT_EQ(18, temp.getChannelID());
 //
 //}

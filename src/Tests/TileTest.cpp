@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 #include "Test.h"
 #include "../Tile.h"
+#include "../Utility/CodeLoader.h"
 
 class TileTest : public ::testing::Test {
 protected:
@@ -70,3 +71,18 @@ protected:
 //TEST_F(TileTest, CanInstantiateTile) {
 //  TIMESTEP;
 //}
+
+TEST_F(TileTest, Communication) {
+
+  char* cluster0 = "/home/db434/Documents/Simulator/Test Code/setfetchch.loki";
+  char* cluster1 = "/home/db434/Documents/Simulator/Test Code/remotefetch.loki";
+  char* memory = "/home/db434/Documents/Simulator/Test Code/fibonacci2.loki";
+
+  CodeLoader::loadCode(cluster0, t, 0);
+  CodeLoader::loadCode(cluster1, t, 1);
+  CodeLoader::loadCode(memory, t, 12);
+
+  // Should set DEBUG to true (or set up tracing) so values can be seen
+  ASSERT_NO_THROW(sc_start(50.0, SC_NS));
+
+}

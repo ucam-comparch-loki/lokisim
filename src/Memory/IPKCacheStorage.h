@@ -41,7 +41,7 @@ public:
 
     for(unsigned int i=0; i<MappedStorage<K,T>::tags.size(); i++) {
       if(MappedStorage<K,T>::tags.at(i) == key) {
-        if((int)currentInstruction == NOT_IN_USE) currentInstruction = i;
+        if(currentInstruction == NOT_IN_USE) currentInstruction = i;
         else pendingPacket = i;
 
         return true;
@@ -60,8 +60,8 @@ public:
       return Storage<T>::data.at(i);
     }
     else {
-      printf("Exception in IPKCacheStorage.read()\n");
-      throw std::exception();
+      printf("Exception in IPKCacheStorage.read(): cache is empty.\n");
+      throw(std::exception());
     }
 
   }
@@ -71,7 +71,7 @@ public:
     MappedStorage<K,T>::tags.at(refillPointer) = key;
     Storage<T>::data.at(refillPointer) = newData;
 
-    if((int)currentInstruction == NOT_IN_USE) currentInstruction = refillPointer;
+    if(currentInstruction == NOT_IN_USE) currentInstruction = refillPointer;
 
     incrementRefill();
   }
@@ -86,7 +86,7 @@ public:
   }
 
   bool isFull() const {
-    return fillCount == Storage<T>::data.size();
+    return fillCount == (int)Storage<T>::data.size();
   }
 
   void switchToPendingPacket() {
@@ -118,21 +118,21 @@ private:
   }
 
   void incrementRefill() {
-    if(refillPointer >= Storage<T>::data.size()-1) refillPointer = 0;
+    if(refillPointer >= (int)Storage<T>::data.size()-1) refillPointer = 0;
     else refillPointer++;
 
     fillCount++;
   }
 
   void incrementCurrent() {
-    if(currentInstruction >= Storage<T>::data.size()-1) currentInstruction = 0;
+    if(currentInstruction >= (int)Storage<T>::data.size()-1) currentInstruction = 0;
     else currentInstruction++;
 
     fillCount--;
   }
 
 /* Local state */
-  unsigned int currentInstruction, refillPointer, fillCount;
+  int currentInstruction, refillPointer, fillCount;
 
   // Do we want a single pending packet, or a queue of them?
   int pendingPacket;  // Location of the next packet to be executed

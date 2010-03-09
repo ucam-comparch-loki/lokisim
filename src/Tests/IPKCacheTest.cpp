@@ -16,15 +16,15 @@
 //  sc_clock clock("clock", 1, SC_NS, 0.5);
 //
 //  sc_signal<bool> readSig, cacheHit, roomToFetch;
-//  sc_signal<Instruction> in, out;
+//  sc_signal<Instruction> instructionIn, instructionOut;
 //  sc_buffer<Address> address;
 //
 //  cache.clock(clock);
 //  cache.readInstruction(readSig);
 //  cache.cacheHit(cacheHit);
 //  cache.isRoomToFetch(roomToFetch);
-//  cache.in(in);
-//  cache.out(out);
+//  cache.instructionIn(instructionIn);
+//  cache.instructionOut(instructionOut);
 //  cache.address(address);
 //
 //  Instruction i1("ld r4 6"), i2("ld r5 3"), i3("addu.eop r6 r4 r5");
@@ -36,50 +36,50 @@
 //
 //  TIMESTEP;
 //
-//  in.write(i1);
+//  instructionIn.write(i1);
 //
 //  TIMESTEP;
 //
 //  EXPECT_EQ(true, roomToFetch.read());
-//  in.write(i2);
+//  instructionIn.write(i2);
 //
 //  TIMESTEP;
 //
 //  address.write(a2);
-//  in.write(i3);
+//  instructionIn.write(i3);
 //
 //  TIMESTEP;
 //
 //  EXPECT_EQ(false, cacheHit);
-//  temp = out.read();
+//  temp = instructionOut.read();
 //  EXPECT_EQ(i1, temp);
 //  readSig.write(!readSig.read());
 //
 //  TIMESTEP;
 //
-//  in.write(i4);
-//  temp = out.read();
+//  instructionIn.write(i4);
+//  temp = instructionOut.read();
 //  EXPECT_EQ(i2, temp);
 //  readSig.write(!readSig.read());
 //
 //  TIMESTEP;
 //
 //  address.write(a2);
-//  in.write(i5);
-//  temp = out.read();
+//  instructionIn.write(i5);
+//  temp = instructionOut.read();
 //  EXPECT_EQ(i3, temp);
 //  readSig.write(!readSig.read());
 //
 //  TIMESTEP;
 //
 //  EXPECT_EQ(true, cacheHit);
-//  temp = out.read();
+//  temp = instructionOut.read();
 //  EXPECT_EQ(i4, temp);
 //  readSig.write(!readSig.read());
 //
 //  TIMESTEP;
 //
-//  temp = out.read();
+//  temp = instructionOut.read();
 //  EXPECT_EQ(i5, temp);
 //
 //}

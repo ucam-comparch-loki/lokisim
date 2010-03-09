@@ -23,7 +23,6 @@ void DecodeStage::receivedFromRegs1() {
   Data d = static_cast<Data>(regIn1.read());
   regOut1.write(d);
   baseAddress.write(d);
-//  cout << "Should receive address now." << endl;
 }
 
 void DecodeStage::receivedFromRegs2() {
@@ -40,7 +39,7 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
 
   in = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
   flowControlOut = new sc_out<bool>[NUM_RECEIVE_CHANNELS];
-  fromNetwork = new sc_signal<Word>[NUM_RECEIVE_CHANNELS];
+  fromNetwork = new sc_buffer<Word>[NUM_RECEIVE_CHANNELS];
 
 // Register methods
   SC_METHOD(receivedFromRegs1);

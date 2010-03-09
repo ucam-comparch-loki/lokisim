@@ -77,6 +77,7 @@ WriteStage::WriteStage(sc_module_name name) :
   mux.select(muxSelect);
   mux.result(muxOutput); scet.input(muxOutput);
 
+  scet.clock(clock);
   scet.remoteChannel(remoteChannel);
 
   for(int i=0; i<NUM_SEND_CHANNELS; i++) {

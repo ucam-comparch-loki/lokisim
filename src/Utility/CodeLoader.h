@@ -13,13 +13,19 @@
 #ifndef CODELOADER_H_
 #define CODELOADER_H_
 
-#include "../TileComponents/Cluster.h"
-#include "../Datatype/Instruction.h"
+#include "../Tile.h"
+#include "../TileComponents/WrappedTileComponent.h"
+#include "../Datatype/Word.h"
 
 class CodeLoader {
 
 public:
-  static void loadCode(char* filename, Cluster& cluster);
+  static void loadCode(char* filename, Tile& tile, int position);
+  static void loadCode(char* filename, WrappedTileComponent& component);
+  static void loadCode(char* filename, TileComponent& component);
+
+private:
+  static std::vector<Word>& getData(char* filename);
 
 };
 

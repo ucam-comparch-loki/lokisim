@@ -31,6 +31,9 @@ public:
   TileComponent(sc_module_name name, int ID);
   virtual ~TileComponent();
 
+/* Methods */
+  virtual void storeData(std::vector<Word>& data) = 0;
+
   enum Type {CLUSTER, MEMORY};
 
 };

@@ -139,13 +139,13 @@ void InstructionMap::initialise() {
   a=47;   nto["selch"] = a;         oti[a] = InstructionMap::SELCH;
 
   a=48;   nto["setfetchch"] = a;    oti[a] = InstructionMap::SETFETCHCH;
-  a=49;   nto["fetch"] = a;         oti[a] = InstructionMap::FETCH;
-  a=50;   nto["fetchpst"] = a;      oti[a] = InstructionMap::FETCHPST;
-  a=51;   nto["rmtnxipk"] = a;      oti[a] = InstructionMap::RMTNXIPK;
-  a=52;   nto["rmtfetch"] = a;      oti[a] = InstructionMap::RMTFETCH;
-  a=53;   nto["rmtfetchpst"] = a;   oti[a] = InstructionMap::RMTFETCHPST;
-  a=54;   nto["rmtexecute"] = a;    oti[a] = InstructionMap::RMTEXECUTE;
-  a=55;   nto["ibjmp"] = a;         oti[a] = InstructionMap::IBJMP;
+  a=49;   nto["ibjmp"] = a;         oti[a] = InstructionMap::IBJMP;
+  a=50;   nto["fetch"] = a;         oti[a] = InstructionMap::FETCH;
+  a=51;   nto["fetchpst"] = a;      oti[a] = InstructionMap::FETCHPST;
+  a=52;   nto["rmtnxipk"] = a;      oti[a] = InstructionMap::RMTNXIPK;
+  a=53;   nto["rmtfetch"] = a;      oti[a] = InstructionMap::RMTFETCH;
+  a=54;   nto["rmtfetchpst"] = a;   oti[a] = InstructionMap::RMTFETCHPST;
+  a=55;   nto["rmtexecute"] = a;    oti[a] = InstructionMap::RMTEXECUTE;
   a=56;   nto["rmtfill"] = a;       oti[a] = InstructionMap::RMTFILL;
 
 

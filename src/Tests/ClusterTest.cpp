@@ -30,24 +30,23 @@ protected:
 
     in = new flag_signal<Word>[NUM_CLUSTER_INPUTS];
     out = new flag_signal<AddressedWord>[NUM_CLUSTER_OUTPUTS];
-    flowControlIn = new sc_buffer<bool>[NUM_CLUSTER_INPUTS];
-    flowControlOut = new sc_buffer<bool>[NUM_CLUSTER_OUTPUTS];
+    flowControlIn = new sc_buffer<bool>[NUM_CLUSTER_OUTPUTS];
+    flowControlOut = new sc_buffer<bool>[NUM_CLUSTER_INPUTS];
 
     c.clock(clock);
     for(int i=0; i<NUM_CLUSTER_INPUTS; i++) {
       c.in[i](in[i]);
-      c.flowControlOut[i](flowControlIn[i]);
+      c.flowControlOut[i](flowControlOut[i]);
     }
     for(int i=0; i<NUM_CLUSTER_OUTPUTS; i++) {
       c.out[i](out[i]);
-      c.flowControlIn[i](flowControlOut[i]);
+      c.flowControlIn[i](flowControlIn[i]);
     }
 
   }
 
   virtual void SetUp() {
-    trace = sc_core::sc_create_vcd_trace_file("ClusterTest");
-    trace->set_time_unit(1.0, SC_NS);
+    trace = TraceFile::initialiseTraceFile("ClusterTest");
 
     for(int i=0; i<NUM_CLUSTER_OUTPUTS; i++) {
       flowControlIn[i].write(false);
@@ -197,7 +196,7 @@ protected:
 
 /* Loads in code from a file, but just prints anything sent from the cluster.
  * Google Test will always say this test passes, as there are no assertions,
- * but the user should determine whether code executes correctly themselves. */
+ * so the user should determine whether code executes correctly themselves. */
 //TEST_F(ClusterTest, ExternalCode) {
 //
 //  char* filename = "/home/db434/Documents/Simulator/Test Code/fibonacci.loki";

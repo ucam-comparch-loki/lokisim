@@ -29,8 +29,11 @@ public:
   WrappedTileComponent(sc_module_name name, int ID, int type);
   virtual ~WrappedTileComponent();
 
-private:
 /* Methods */
+  virtual void storeData(std::vector<Word>& data);
+  void         initialise();
+
+private:
   void setup();
 
 /* Components */
@@ -39,8 +42,8 @@ private:
   FlowControlOut            fcOut;
 
 /* Signals (wires) */
-  sc_signal<Word>          *dataInSig;  // array
-  sc_signal<AddressedWord> *dataOutSig, *dataOutSig2, *requestsOutSig;  // arrays
+  flag_signal<Word>        *dataInSig;  // array
+  sc_buffer<AddressedWord> *dataOutSig, *dataOutSig2, *requestsOutSig;  // arrays
   sc_signal<bool>          *fcOutSig,   *fcInSig; // arrays
 
 };

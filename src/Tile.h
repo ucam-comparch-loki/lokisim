@@ -33,11 +33,11 @@ public:
   virtual ~Tile();
 
 /* Methods */
+  void storeData(vector<Word>& data, int componentNumber);
+
   // Static functions for connecting Tiles together
   static void connectLeftRight(const Tile& left, const Tile& right);
   static void connectTopBottom(const Tile& top, const Tile& bottom);
-
-  // TODO: load code/data into memories/clusters
 
 private:
 /* Components */
@@ -45,8 +45,9 @@ private:
   InterclusterNetwork           network;
 
 /* Signals (wires) */
-  sc_signal<Word>          *responsesToCluster, *requestsToCluster, *dataToCluster;
-  sc_signal<AddressedWord> *responsesFromCluster; // arrays
+  sc_buffer<Word>          *responsesToCluster, *requestsToCluster; // arrays
+  flag_signal<Word>        *dataToCluster;                          // array
+  sc_buffer<AddressedWord> *responsesFromCluster;                   // array
 
 };
 

@@ -24,14 +24,14 @@ class FlowControlIn: public Component {
 public:
 /* Ports */
   sc_in<Word>           *dataIn, *requests;
-  sc_in<bool>           *flowControl;
+  sc_in<bool>           *flowControl, clock;
   sc_out<Word>          *dataOut;
   sc_out<AddressedWord> *responses;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(FlowControlIn);
-  FlowControlIn(sc_core::sc_module_name name, int ID, int width);
-  FlowControlIn(sc_core::sc_module_name name, int width);
+  FlowControlIn(sc_module_name name, int ID, int width);
+  FlowControlIn(sc_module_name name, int width);
   virtual ~FlowControlIn();
 
 protected:
@@ -39,6 +39,7 @@ protected:
   virtual void receivedFlowControl();
   virtual void receivedRequests();
   void         receivedData();
+  virtual bool acceptRequest(Request r, int input);
   void         setup();
 
 /* Local state */

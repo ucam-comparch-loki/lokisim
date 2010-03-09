@@ -24,18 +24,19 @@ class InstructionPacketCache : public Component {
 public:
 /* Ports */
   sc_in<Address>      address;
-  sc_in<Instruction>  in;
+  sc_in<Instruction>  instructionIn;
   sc_in<bool>         clock, readInstruction;
-  sc_out<Instruction> out;
+  sc_out<Instruction> instructionOut;
   sc_out<bool>        cacheHit, isRoomToFetch, flowControl;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(InstructionPacketCache);
-  InstructionPacketCache(sc_core::sc_module_name name);
+  InstructionPacketCache(sc_module_name name);
   virtual ~InstructionPacketCache();
 
 /* Methods */
   void storeCode(std::vector<Instruction>& instructions);
+  bool isEmpty();
 
 private:
   void insertInstruction();
