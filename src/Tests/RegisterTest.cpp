@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "Test.h"
-#include "../Memory/IndirectRegisterFile.h"
+#include "../TileComponents/Pipeline/IndirectRegisterFile.h"
 
 /* Tests that all of the register ports and the internal representation work
  * correctly */
