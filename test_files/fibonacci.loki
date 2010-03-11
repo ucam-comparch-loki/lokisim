@@ -1,0 +1,6 @@
+addui r1 r0 1 > 0 ; send 1+0 to channel 0
+addui r2 r0 1 > 1 ; send 1+0 to channel 1
+addu r3 r2 r1 > 2 ; send 1+1 to channel 2
+addu r4 r3 r2 > 3 ; send 2+1 to channel 3
+addu r5 r4 r3 > 4 ; send 3+2 to channel 4
+addu.eop r6 r5 r4 > 5 ; send 5+3 to channel 5
