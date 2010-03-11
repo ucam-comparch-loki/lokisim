@@ -27,7 +27,7 @@ protected:
 public:
 
   Word();
-  Word(unsigned long data_);
+  explicit Word(unsigned long data_);
   virtual ~Word();
 
 /* Necessary functions/operators to pass this datatype down a channel */

@@ -24,7 +24,7 @@ class IPKCacheStorage : public MappedStorage<K,T> {
 public:
 
 /* Constructors and destructors */
-  IPKCacheStorage(int size=64) : MappedStorage<K,T>(size) {
+  IPKCacheStorage(int size) : MappedStorage<K,T>(size) {
     currentInstruction = NOT_IN_USE;
     refillPointer = 0;
     fillCount = 0;

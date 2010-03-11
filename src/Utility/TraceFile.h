@@ -18,7 +18,7 @@ class TraceFile {
 
 public:
 /* Methods */
-  static sc_trace_file* initialiseTraceFile(char* name);
+  static sc_trace_file* initialiseTraceFile(string& name);
 
 private:
   static string parameterSummary();

@@ -13,15 +13,15 @@
 class Request: public Word {
 
 public:
-/* Constructors and destructors */
-  Request(short returnID, short numFlits, bool readRequest);
-  Request(const Word& other);
-  virtual ~Request();
-
 /* Methods */
   short getReturnID() const;
   short getNumFlits() const;
-  bool isReadRequest() const;
+  bool  isReadRequest() const;
+
+/* Constructors and destructors */
+  Request(int returnID, int numFlits = 1, bool readRequest = false);
+  Request(const Word& other);
+  virtual ~Request();
 
 };
 

@@ -20,10 +20,6 @@ using std::vector;
 template<class T>
 class Storage {
 
-protected:
-/* Local state */
-  vector<T> data;
-
 public:
 /* Methods */
   virtual T& read() {
@@ -35,14 +31,17 @@ public:
   }
 
 /* Constructors and destructors */
-  Storage(int size=1024) {
-    // Create the vector and initialise contents to zero
-    data = *(new vector<T>(size));
+  Storage(int size=1024) : data(size) {
+
   }
 
   virtual ~Storage() {
 
   }
+
+protected:
+/* Local state */
+  vector<T> data;
 
 };
 

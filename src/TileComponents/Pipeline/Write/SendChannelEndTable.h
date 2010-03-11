@@ -13,8 +13,7 @@
 #include "../../../Component.h"
 #include "../../../Datatype/Word.h"
 #include "../../../Datatype/AddressedWord.h"
-#include "../../../Datatype/Array.h"
-#include "../../../Memory/Buffer.h"
+#include "../../../Memory/BufferArray.h"
 
 class SendChannelEndTable: public Component {
 
@@ -33,12 +32,12 @@ public:
 
 protected:
 /* Methods */
-  void          doOp();
+  void          receivedData();
   virtual void  canSend();
   virtual short chooseBuffer();
 
 /* Local state */
-  vector<Buffer<AddressedWord> >  buffers;
+  BufferArray<AddressedWord> buffers;
 
 };
 

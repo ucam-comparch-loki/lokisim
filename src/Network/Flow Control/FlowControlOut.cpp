@@ -23,6 +23,7 @@ void FlowControlOut::receivedResponses() {
 void FlowControlOut::allowedToSend(int position, bool isAllowed) {
   if(isAllowed) dataOut[position].write(dataIn[position].read());
   flowControl[position].write(isAllowed);
+  // Do something if the request was denied?
 }
 
 void FlowControlOut::sendRequests() {
@@ -35,7 +36,8 @@ void FlowControlOut::sendRequests() {
   }
 }
 
-/* Initialise so everything is allowed to send */
+/* Initialise so everything is allowed to send. This can't be done in the
+ * constructor because the ports aren't connected to anything yet. */
 void FlowControlOut::initialise() {
   for(int i=0; i<width; i++) {
     flowControl[i].write(true);

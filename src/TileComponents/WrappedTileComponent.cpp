@@ -35,7 +35,6 @@ void WrappedTileComponent::setup() {
 
 // Connect everything up
   comp->clock(clock);
-  fcIn.clock(clock);
 
   for(int i=0; i<NUM_CLUSTER_INPUTS; i++) {
     fcIn.dataIn[i](dataIn[i]);

@@ -7,83 +7,65 @@
 
 #include "ReceiveChannelEndTable.h"
 
-void ReceiveChannelEndTable::receivedInput1() {
-  // Do something if we have more than two channel ends (destination % numchannels)
-  try {
-    buffers.at(0).write(fromNetwork[0].read());
-    cout << "Receive Channel-end Table received: " << fromNetwork[0].read() << endl;
-  }
-  catch(std::exception e) {
-    // Drop packet and carry on
-    //cout << "Dropped packet at receive channel end table " << id << endl;
-  }
-}
-
-void ReceiveChannelEndTable::receivedInput2() {
-  // Do something if we have more than two channel ends (destination % numchannels)
-  try {
-    buffers.at(1).write(fromNetwork[1].read());
-    cout << "Receive Channel-end Table received: " << fromNetwork[1].read() << endl;
-  }
-  catch(std::exception e) {
-    // Drop packet and carry on
-    //cout << "Dropped packet at receive channel end table " << id << endl;
+/* Put any newly received values into their respective buffers. */
+void ReceiveChannelEndTable::receivedInput() {
+  // Do something if we want more channel ends than channels?
+  for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
+    if(fromNetwork[i].event()) {
+      buffers.write(fromNetwork[i].read(), i);
+      wroteToBuffer.write(!wroteToBuffer.read());
+      cout << this->name() << " received " << fromNetwork[i].read() << endl;
+    }
   }
 }
 
+/* Read a value for the first ALU input. */
 void ReceiveChannelEndTable::read1() {
   read(fromDecoder1.read(), 0);
 }
 
+/* Read a value for the second ALU input. */
 void ReceiveChannelEndTable::read2() {
   read(fromDecoder2.read(), 1);
 }
 
-/* Read from the chosen channel end, and write the result to the given output */
+/* Read from the chosen channel end, and write the result to the given output. */
 void ReceiveChannelEndTable::read(short inChannel, short outChannel) {
 
   Word w;
 
-  try {
-    w = buffers.at(inChannel).read();
+  if(!buffers[inChannel].isEmpty()) {
+    w = buffers.read(inChannel);
+    readFromBuffer.write(!readFromBuffer.read());
   }
-  catch(std::exception e) {   // Reading from empty buffer
-    w = Word(0);              // Return 0 (TODO: stall)
+  else {                      // Reading from empty buffer
+    w = Word(0);              // TODO: stall
   }
 
-  Data* d = new Data(w);
+  Data d = static_cast<Data>(w);
 
-  if(outChannel==0) toALU1.write(*d);
-  else if(outChannel==1) toALU2.write(*d);
+  if(outChannel==0) toALU1.write(d);
+  else if(outChannel==1) toALU2.write(d);
 
 }
 
-void ReceiveChannelEndTable::newCycle() {
+/* Update the flow control values when a buffer has been read from or
+ * written to. */
+void ReceiveChannelEndTable::updateFlowControl() {
   for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
-    flowControl[i].write(!buffers.at(i).isFull());
+    flowControl[i].write(!buffers[i].isFull());
   }
 }
 
-ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name)
-    : Component(name) {
-
-  // TODO: Redo ReceiveChannelEndTable
+ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name) :
+    Component(name),
+    buffers(NUM_RECEIVE_CHANNELS, CHANNEL_END_BUFFER_SIZE) {
 
   flowControl = new sc_out<bool>[NUM_RECEIVE_CHANNELS];
   fromNetwork = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
-  buffers = *(new vector<Buffer<Word> >(NUM_RECEIVE_CHANNELS));
 
-  for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
-    Buffer<Word>* buffer = new Buffer<Word>(CHANNEL_END_BUFFER_SIZE);
-    buffers.at(i) = *buffer;
-  }
-
-  SC_METHOD(receivedInput1);
-  sensitive << fromNetwork[0];
-  dont_initialize();
-
-  SC_METHOD(receivedInput2);
-  sensitive << fromNetwork[1];
+  SC_METHOD(receivedInput);
+  for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) sensitive << fromNetwork[i];
   dont_initialize();
 
   SC_METHOD(read1);
@@ -94,8 +76,8 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name)
   sensitive << fromDecoder2;
   dont_initialize();
 
-  SC_METHOD(newCycle);
-  sensitive << clock.pos();
+  SC_METHOD(updateFlowControl);
+  sensitive << readFromBuffer << wroteToBuffer;//clock.pos();
   // do initialise
 
 }

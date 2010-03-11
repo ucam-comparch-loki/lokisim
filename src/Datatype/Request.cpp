@@ -21,7 +21,7 @@ bool Request::isReadRequest() const {
 
 /* returnID = the channel ID to send the response to this request to
  * numFlits = the number of flits (~= packets) the requester would like sent */
-Request::Request(short returnID, short numFlits = 1, bool readRequest = false) {
+Request::Request(int returnID, int numFlits, bool readRequest) {
   setBits(0, 15, returnID);
   setBits(16, 31, numFlits);
   setBits(32, 32, readRequest ? 1 : 0);

@@ -54,7 +54,7 @@ void FetchLogic::sendNext() {
   else if(flowControl.read() && isRoomToFetch.read()) {
     toNetwork.write(toSend.read());
   }
-  else if(DEBUG) cout << "Not able to send FETCH from FetchLogic." << endl << "  fc: " << flowControl.read() << endl;
+  else if(DEBUG) cout << "Not able to send FETCH from FetchLogic." << endl;
 }
 
 FetchLogic::FetchLogic(sc_module_name name, int ID) :

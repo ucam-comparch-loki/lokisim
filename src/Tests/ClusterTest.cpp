@@ -46,7 +46,8 @@ protected:
   }
 
   virtual void SetUp() {
-    trace = TraceFile::initialiseTraceFile("ClusterTest");
+    string filename("ClusterTest");
+    trace = TraceFile::initialiseTraceFile(filename);
 
     for(int i=0; i<NUM_CLUSTER_OUTPUTS; i++) {
       flowControlIn[i].write(false);
@@ -145,7 +146,7 @@ protected:
 /* Tests that it is possible to load in code from a file, and execute it */
 //TEST_F(ClusterTest, RunsExternalCode) {
 //
-//  char* filename = "/home/db434/Documents/Simulator/Test Code/fibonacci.loki";
+//  std::string filename = "fibonacci.loki";
 //
 //  CodeLoader::loadCode(filename, c);
 //
@@ -199,7 +200,7 @@ protected:
  * so the user should determine whether code executes correctly themselves. */
 //TEST_F(ClusterTest, ExternalCode) {
 //
-//  char* filename = "/home/db434/Documents/Simulator/Test Code/fibonacci.loki";
+//  std::string filename = "fibonacci.loki";
 //  int setupCycles = 5;    // Number of cycles before outputs should be printed
 //  int numCycles = 5;      // Number of cycles for outputs to be printed
 //

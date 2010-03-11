@@ -74,9 +74,9 @@ protected:
 
 TEST_F(TileTest, Communication) {
 
-  char* cluster0 = "/home/db434/Documents/Simulator/Test Code/setfetchch.loki";
-  char* cluster1 = "/home/db434/Documents/Simulator/Test Code/remotefetch.loki";
-  char* memory = "/home/db434/Documents/Simulator/Test Code/fibonacci2.loki";
+  string cluster0 = "setfetchch.loki";
+  string cluster1 = "remotefetch.loki";
+  string memory = "fibonacci2.loki";
 
   CodeLoader::loadCode(cluster0, t, 0);
   CodeLoader::loadCode(cluster1, t, 1);

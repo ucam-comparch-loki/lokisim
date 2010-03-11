@@ -8,17 +8,17 @@
 #include "SendChannelEndTable.h"
 
 /* Put the received Word into the table, along with its destination address. */
-void SendChannelEndTable::doOp() {
-  AddressedWord *w = new AddressedWord(input.read(), remoteChannel.read());
-  Buffer<AddressedWord>& b = buffers.at(chooseBuffer());
+void SendChannelEndTable::receivedData() {
+  AddressedWord w(input.read(), remoteChannel.read());
+  int buff = chooseBuffer();
 
-  if(!b.isFull()) {
-    b.write(*w);
-    if(DEBUG) std::cout<<"Wrote "<<*w<<" to output channel-end "<<chooseBuffer()<<std::endl;
+  if(!(buffers[buff].isFull())) {
+    buffers.write(w, buff);
+    if(DEBUG) cout << "Wrote " << w << " to output channel-end " << buff << endl;
   }
   else {
     // TODO: stall pipeline
-    if(DEBUG) std::cout << "Wrote to full buffer in Send Channel-end Table." << std::endl;
+    if(DEBUG) cout << "Wrote to full buffer in Send Channel-end Table." << endl;
   }
 }
 
@@ -29,8 +29,8 @@ void SendChannelEndTable::canSend() {
   for(int i=0; i<NUM_SEND_CHANNELS; i++) {
     bool send = flowControl[i].read();
 
-    if(!(buffers.at(i).isEmpty()) && send) {
-      output[i].write(buffers.at(i).read());
+    if(!(buffers[i].isEmpty()) && send) {
+      output[i].write(buffers.read(i));
     }
   }
 
@@ -44,23 +44,19 @@ short SendChannelEndTable::chooseBuffer() {
 }
 
 
-SendChannelEndTable::SendChannelEndTable(sc_core::sc_module_name name) :
-    Component(name) {
+SendChannelEndTable::SendChannelEndTable(sc_module_name name) :
+    Component(name),
+    buffers(NUM_SEND_CHANNELS, CHANNEL_END_BUFFER_SIZE) {
 
   flowControl = new sc_in<bool>[NUM_SEND_CHANNELS];
-  output = new sc_out<AddressedWord>[NUM_SEND_CHANNELS];
+  output      = new sc_out<AddressedWord>[NUM_SEND_CHANNELS];
 
-  for(int i=0; i<NUM_SEND_CHANNELS; i++) {
-    Buffer<AddressedWord>* buffer = new Buffer<AddressedWord>(CHANNEL_END_BUFFER_SIZE);
-    buffers.push_back(*buffer);
-  }
-
-  SC_METHOD(doOp);
+  SC_METHOD(receivedData);
   sensitive << input;
   dont_initialize();
 
   SC_METHOD(canSend);
-  for(int i=0; i<NUM_SEND_CHANNELS; i++) sensitive << clock.pos();//flowControl[i];
+  /*for(int i=0; i<NUM_SEND_CHANNELS; i++)*/ sensitive << clock.pos();//flowControl[i];
   dont_initialize();
 
 }

@@ -19,14 +19,6 @@
 template<class K, class T>
 class MappedStorage : public virtual Storage<T> {
 
-protected:
-/* Local state */
-  vector<K> tags;
-
-/* Methods */
-  // Returns the position that data with the given address tag should be stored
-  virtual int getPosition(const K& key) = 0;
-
 public:
   // Returns whether the given address matches any of the tags
   virtual bool checkTags(const K& key) {
@@ -52,13 +44,22 @@ public:
   }
 
 /* Constructors and destructors */
-  MappedStorage(int size=1024) : Storage<T>(size) {
-    tags = *(new vector<K>(size));
+  MappedStorage(int size) : Storage<T>(size), tags(size) {
+
   }
 
   virtual ~MappedStorage() {
 
   }
+
+protected:
+/* Local state */
+  vector<K> tags;
+
+/* Methods */
+  // Returns the position that data with the given address tag should be stored
+  virtual int getPosition(const K& key) = 0;
+
 };
 
 #endif /* MAPPEDSTORAGE_H_ */

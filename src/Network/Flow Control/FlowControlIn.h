@@ -13,24 +13,22 @@
 #define FLOWCONTROLIN_H_
 
 #include "../../Component.h"
-#include "../../Datatype/Array.h"
 #include "../../Datatype/AddressedWord.h"
 #include "../../Datatype/Data.h"
 #include "../../Datatype/Request.h"
-#include "../../Memory/Buffer.h"
+#include "../../Memory/BufferArray.h"
 
 class FlowControlIn: public Component {
 
 public:
 /* Ports */
   sc_in<Word>           *dataIn, *requests;
-  sc_in<bool>           *flowControl, clock;
+  sc_in<bool>           *flowControl;
   sc_out<Word>          *dataOut;
   sc_out<AddressedWord> *responses;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(FlowControlIn);
-  FlowControlIn(sc_module_name name, int ID, int width);
   FlowControlIn(sc_module_name name, int width);
   virtual ~FlowControlIn();
 
@@ -43,8 +41,9 @@ protected:
   void         setup();
 
 /* Local state */
-  std::vector<Buffer<Word> > buffers;
-  int width;
+  BufferArray<Word> buffers;   // The network's output buffers
+  sc_buffer<bool>   tryToSend; // Signals that we have new data and want to send it
+  int               width;     // The number of inputs and outputs
 
 };
 

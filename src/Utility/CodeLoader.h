@@ -17,15 +17,17 @@
 #include "../TileComponents/WrappedTileComponent.h"
 #include "../Datatype/Word.h"
 
+using std::string;
+
 class CodeLoader {
 
 public:
-  static void loadCode(char* filename, Tile& tile, int position);
-  static void loadCode(char* filename, WrappedTileComponent& component);
-  static void loadCode(char* filename, TileComponent& component);
+  static void loadCode(string& filename, Tile& tile, int position);
+  static void loadCode(string& filename, WrappedTileComponent& component);
+  static void loadCode(string& filename, TileComponent& component);
 
 private:
-  static std::vector<Word>& getData(char* filename);
+  static std::vector<Word>& getData(string& filename);
 
 };
 

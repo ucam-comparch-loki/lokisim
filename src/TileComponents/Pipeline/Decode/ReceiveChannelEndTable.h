@@ -14,7 +14,7 @@
 #include "../../../Datatype/Word.h"
 #include "../../../Datatype/Address.h"
 #include "../../../Datatype/Data.h"
-#include "../../../Memory/Buffer.h"
+#include "../../../Memory/BufferArray.h"
 
 class ReceiveChannelEndTable: public Component {
 
@@ -28,21 +28,20 @@ public:
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(ReceiveChannelEndTable);
-  ReceiveChannelEndTable(sc_core::sc_module_name name);
+  ReceiveChannelEndTable(sc_module_name name);
   virtual ~ReceiveChannelEndTable();
 
 private:
 /* Methods */
-  void receivedInput1();
-  void receivedInput2();
+  void receivedInput();
   void read1();
   void read2();
-  void newCycle();
-  //void receivedInput();
+  void updateFlowControl();
   void read(short inChannel, short outChannel);
 
 /* Local state */
-  vector<Buffer<Word> > buffers;
+  BufferArray<Word> buffers;
+  sc_buffer<bool> readFromBuffer, wroteToBuffer;
 
 };
 

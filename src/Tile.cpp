@@ -27,7 +27,6 @@ void Tile::connectTopBottom(const Tile& top, const Tile& bottom) {
   }
 }
 
-/* Constructors and destructors */
 Tile::Tile(sc_module_name name, int ID) :
     Component(name, ID),
     network("localnetwork") {

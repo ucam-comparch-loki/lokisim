@@ -33,7 +33,7 @@ public:
   }
 
 /* Constructors and destructors */
-  AddressedStorage(int size=1024) : Storage<T>(size) {
+  AddressedStorage(int size) : Storage<T>(size) {
 
   }
 

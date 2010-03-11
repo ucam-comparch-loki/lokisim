@@ -1,6 +1,8 @@
 /*
  * Buffer.h
  *
+ * A simple circular buffer with FIFO semantics.
+ *
  * Since this class is templated, all of the implementation must go in the
  * header file.
  *
@@ -16,20 +18,6 @@
 template<class T>
 class Buffer: public Storage<T> {
 
-/* Local state */
-  int readFrom, writeTo, fillCount, size;
-
-/* Methods */
-  void incrementReadFrom() {
-    readFrom = (readFrom >= size) ? 0 : readFrom+1;
-    fillCount--;
-  }
-
-  void incrementWriteTo() {
-    writeTo = (writeTo >= size) ? 0 : writeTo+1;
-    fillCount++;
-  }
-
 public:
 
   virtual T& read() {
@@ -39,7 +27,7 @@ public:
       return Storage<T>::data.at(i);
     }
     else {
-//      printf("Exception in Buffer.read()\n");
+      printf("Exception in Buffer.read()\n");
       throw std::exception();
     }
   }
@@ -50,7 +38,7 @@ public:
       incrementWriteTo();
     }
     else {
-//      printf("Exception in Buffer.write()\n");
+      printf("Exception in Buffer.write()\n");
       throw std::exception();
     }
   }
@@ -60,7 +48,7 @@ public:
       return (Storage<T>::data.at(readFrom));
     }
     else {
-//      printf("Exception in Buffer.peek()\n");
+      printf("Exception in Buffer.peek()\n");
       throw std::exception();
     }
   }
@@ -87,13 +75,28 @@ public:
   }
 
 /* Constructors and destructors */
-  Buffer(int size=16) : Storage<T>(size) {
+  Buffer(int size) : Storage<T>(size) {
     readFrom = writeTo = fillCount = 0;
     this->size = size;
   }
 
   virtual ~Buffer() {
 
+  }
+
+private:
+/* Local state */
+  int readFrom, writeTo, fillCount, size;
+
+/* Methods */
+  void incrementReadFrom() {
+    readFrom = (readFrom >= size-1) ? 0 : readFrom+1;
+    fillCount--;
+  }
+
+  void incrementWriteTo() {
+    writeTo = (writeTo >= size-1) ? 0 : writeTo+1;
+    fillCount++;
   }
 
 };
