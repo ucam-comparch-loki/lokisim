@@ -24,11 +24,13 @@ class Cluster : public TileComponent {
 
 public:
 /* Constructors and destructors */
+  SC_HAS_PROCESS(Cluster);
   Cluster(sc_module_name name, int ID);
   virtual ~Cluster();
 
 /* Methods */
   virtual void storeData(std::vector<Word>& data);
+  void         stallPipeline();
   static int   IPKFIFOInput(int ID);
   static int   IPKCacheInput(int ID);
   static int   RCETInput(int ID, int channel);
@@ -43,6 +45,8 @@ private:
   WriteStage               write;
 
 /* Signals (wires) */
+  sc_signal<bool>          stallSig;
+
   // To/from fetch stage
   sc_buffer<Address>       FLtoIPKC;
   flag_signal<Instruction> nextInst;
@@ -53,7 +57,7 @@ private:
   flag_signal<short>       regRead1, regRead2, decWriteAddr, decIndWrite, predicate;
   sc_buffer<Data>          RCETtoALU1, RCETtoALU2, regToALU1, regToALU2, SEtoALU;
   flag_signal<short>       operation, op1Select, op2Select;
-  sc_signal<bool>          setPredSig;
+  sc_signal<bool>          setPredSig, decStallSig;
 
   // To/from execute stage
   flag_signal<Instruction> decToExInst, exToWriteInst;
@@ -64,6 +68,7 @@ private:
   flag_signal<short>       writeAddr, indWriteAddr;
   sc_buffer<short>         writeRegAddr, indirectWrite;
   sc_buffer<Word>          regWriteData;
+  sc_signal<bool>          writeStallSig;
 
 };
 

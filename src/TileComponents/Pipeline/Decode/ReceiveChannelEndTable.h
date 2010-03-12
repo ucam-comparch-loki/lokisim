@@ -24,7 +24,7 @@ public:
   sc_in<Word>  *fromNetwork;
   sc_in<short>  fromDecoder1, fromDecoder2;
   sc_out<Data>  toALU1, toALU2;
-  sc_out<bool> *flowControl;
+  sc_out<bool> *flowControl, stallOut;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(ReceiveChannelEndTable);
@@ -37,11 +37,18 @@ private:
   void read1();
   void read2();
   void updateFlowControl();
+  void updateStall();
+  void checkWaiting(int channelEnd);
   void read(short inChannel, short outChannel);
 
 /* Local state */
   BufferArray<Word> buffers;
-  sc_buffer<bool> readFromBuffer, wroteToBuffer;
+  int               waiting1, waiting2; // Channel ends we're waiting for data on
+  bool              stallValue;
+
+/* Signals (wires) */
+  sc_buffer<bool>   readFromBuffer, wroteToBuffer;
+  sc_signal<bool>   updateStall1, updateStall2;
 
 };
 

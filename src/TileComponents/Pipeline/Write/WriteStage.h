@@ -13,8 +13,8 @@
 #define WRITESTAGE_H_
 
 #include "../PipelineStage.h"
-#include "../../../Multiplexor/Multiplexor2.h"
 #include "SendChannelEndTable.h"
+#include "../../../Multiplexor/Multiplexor2.h"
 #include "../../../Datatype/Array.h"
 
 class WriteStage: public PipelineStage {
@@ -26,6 +26,7 @@ public:
   sc_in<bool>            *flowControl;  // array
   sc_in<short>            inRegAddr, inIndAddr, remoteChannel;
   sc_out<short>           outRegAddr, outIndAddr;
+  sc_out<bool>            stallOut;
   sc_out<Word>            regData;
   sc_out<AddressedWord>  *output;       // array
 

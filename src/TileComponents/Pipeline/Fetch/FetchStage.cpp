@@ -15,8 +15,10 @@ void FetchStage::newCycle() {
   while(true) {
     wait(clock.posedge_event());
 
-    if(!usingCache) readFromFIFO.write(!readFromFIFO.read());
-    else readFromCache.write(!readFromCache.read());
+    if(!stall.read()) {
+      if(!usingCache) readFromFIFO.write(!readFromFIFO.read());
+      else readFromCache.write(!readFromCache.read());
+    }
   }
 }
 

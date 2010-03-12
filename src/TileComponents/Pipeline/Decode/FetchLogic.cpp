@@ -43,6 +43,9 @@ void FetchLogic::haveResultFromCache() {
     toSend.write(*request);           // Put the new request in the queue
     sendData.write(!sendData.read()); // Signal that there is new data to send
 
+    // Stall so we don't receive any more data if the buffer is full
+    if(toSend.isFull()) stallOut.write(true);
+
     if(DEBUG) cout << "Not in cache. Sending request." << endl;
   }
 
@@ -53,6 +56,7 @@ void FetchLogic::sendNext() {
   if(toSend.isEmpty()) return;
   else if(flowControl.read() && isRoomToFetch.read()) {
     toNetwork.write(toSend.read());
+    stallOut.write(false);  // Buffer is no longer full - can receive new data
   }
   else if(DEBUG) cout << "Not able to send FETCH from FetchLogic." << endl;
 }

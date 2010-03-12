@@ -7,9 +7,12 @@
 
 #include "DecodeStage.h"
 
+/* Direct any new inputs to their destinations every clock cycle. */
 void DecodeStage::newCycle() {
   while(true) {
-    COPY_IF_NEW(instructionIn, instructionSig);
+    if(!stall.read()) {
+      COPY_IF_NEW(instructionIn, instructionSig);
+    }
 
     for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
       COPY_IF_NEW(in[i], fromNetwork[i]);
@@ -19,15 +22,22 @@ void DecodeStage::newCycle() {
   }
 }
 
+/* Received data from the first register output -- send it on to the ALU. */
 void DecodeStage::receivedFromRegs1() {
   Data d = static_cast<Data>(regIn1.read());
   regOut1.write(d);
   baseAddress.write(d);
 }
 
+/* Received data from the second register output -- send it on to the ALU. */
 void DecodeStage::receivedFromRegs2() {
   Data d = static_cast<Data>(regIn2.read());
   regOut2.write(d);
+}
+
+/* Update this component's stall status signal. */
+void DecodeStage::updateStall() {
+  stallOut.write(flStallSig.read() || rcetStallSig.read());
 }
 
 DecodeStage::DecodeStage(sc_module_name name, int ID) :
@@ -50,6 +60,10 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   sensitive << regIn2;
   dont_initialize();
 
+  SC_METHOD(updateStall);
+  sensitive << flStallSig << rcetStallSig;
+  // do initialise
+
 // Connect everything up
   decoder.instructionIn(instructionSig);
 
@@ -64,6 +78,7 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   fl.flowControl(flowControlIn);
   fl.baseAddress(baseAddress);
   fl.isRoomToFetch(roomToFetch);
+  fl.stallOut(flStallSig);
 
   decoder.regAddr1(regReadAddr1);
   decoder.regAddr2(regReadAddr2);
@@ -87,6 +102,7 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   rcet.clock(clock);
   rcet.toALU1(chEnd1);
   rcet.toALU2(chEnd2);
+  rcet.stallOut(rcetStallSig);
 
   extend.output(sExtend);
 

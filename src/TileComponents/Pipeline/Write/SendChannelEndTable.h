@@ -24,6 +24,7 @@ public:
   sc_in<short>            remoteChannel;
   sc_in<bool>            *flowControl;  // array
   sc_out<AddressedWord>  *output;       // array
+  sc_out<bool>            stallOut;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(SendChannelEndTable);
@@ -33,11 +34,16 @@ public:
 protected:
 /* Methods */
   void          receivedData();
+  void          updateStall();
   virtual void  canSend();
   virtual short chooseBuffer();
 
 /* Local state */
   BufferArray<AddressedWord> buffers;
+  bool stallValue;
+
+/* Signals (wires) */
+  sc_buffer<bool>         updateStall1, updateStall2;
 
 };
 

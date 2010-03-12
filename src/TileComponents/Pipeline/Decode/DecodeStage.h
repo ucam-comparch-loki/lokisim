@@ -34,7 +34,7 @@ public:
   sc_out<Instruction>   remoteInst;
   sc_out<short>         regReadAddr1, regReadAddr2, writeAddr, indWriteAddr;
   sc_out<short>         remoteChannel, operation, op1Select, op2Select, predicate;
-  sc_out<bool>          isIndirect, setPredicate;
+  sc_out<bool>          isIndirect, setPredicate, stallOut;
   sc_out<Data>          chEnd1, chEnd2, regOut1, regOut2, sExtend;
 
 /* Constructors and destructors */
@@ -47,6 +47,8 @@ private:
   // Methods which act when an input is received
   void receivedFromRegs1();
   void receivedFromRegs2();
+
+  void updateStall();
 
   virtual void newCycle();
 
@@ -62,6 +64,7 @@ private:
   sc_buffer<Address>      decodeToFetch;
   sc_buffer<short>        decodeToRCET1, decodeToRCET2;
   sc_buffer<Data>         decodeToExtend, baseAddress;
+  sc_signal<bool>         rcetStallSig, flStallSig;
 
 };
 

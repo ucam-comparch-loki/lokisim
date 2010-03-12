@@ -17,7 +17,7 @@ sc_trace_file* TraceFile::initialiseTraceFile(string& name) {
   fullName.append(name);
 
   sc_trace_file *trace = sc_core::sc_create_vcd_trace_file(fullName.c_str());
-  trace->set_time_unit(1.0, sc_core::SC_NS);
+  trace->set_time_unit(100, sc_core::SC_PS);
 
   sc_core::sc_write_comment(trace, header + parameterSummary());
 
@@ -34,9 +34,10 @@ string TraceFile::parameterSummary() {
 
   using std::endl;
 
+  s << "PARAMETERS:" << "\n";
   s << "Number of tiles: " << (NUM_TILE_ROWS * NUM_TILE_COLUMNS) << "\n";
-  s << "  Each with " << CLUSTERS_PER_TILE << " clusters and " <<
-                         MEMS_PER_TILE << " memories\n";
+  s << "  Clusters per tile:      " << CLUSTERS_PER_TILE << "\n";
+  s << "  Memories per tile:      " << MEMS_PER_TILE << "\n";
   s << "  Channels between tiles: " << NUM_CHANNELS_BETWEEN_TILES << "\n";
   s << "Storage:\n";
   s << "  Memory size:                   " << MEMORY_SIZE << "\n";

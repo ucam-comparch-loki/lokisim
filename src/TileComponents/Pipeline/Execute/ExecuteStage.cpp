@@ -10,50 +10,29 @@
 /* Simulate pipelining by only allowing signals through at the start of a cycle */
 void ExecuteStage::newCycle() {
   while(true) {
-    COPY_IF_NEW(op1Select, in1Select);
-    COPY_IF_NEW(op2Select, in2Select);
+    if(!stall.read()) {
+      COPY_IF_NEW(op1Select, in1Select);
+      COPY_IF_NEW(op2Select, in2Select);
 
-    wait(0, sc_core::SC_NS);  // Allow time for the multiplexors to select values
+      wait(0, sc_core::SC_NS);  // Allow time for the multiplexors to select values
 
-    // Use COPY_IF_NEW here too and remove existing flags?
-    if(newOperation) ALUSelect.write(operation.read());
-    if(newInst) remoteInstOut.write(remoteInstIn.read());
+      COPY_IF_NEW(operation, ALUSelect);
+      COPY_IF_NEW(remoteInstIn, remoteInstOut);
 
-    COPY_IF_NEW(writeIn, writeOut);
-    COPY_IF_NEW(indWriteIn, indWriteOut);
-    COPY_IF_NEW(remoteChannelIn, remoteChannelOut);
-    COPY_IF_NEW(predicate, predicateSig);
-
-    newInst = newOperation = false;
+      COPY_IF_NEW(writeIn, writeOut);
+      COPY_IF_NEW(indWriteIn, indWriteOut);
+      COPY_IF_NEW(remoteChannelIn, remoteChannelOut);
+      COPY_IF_NEW(predicate, predicateSig);
+    }
     wait(clock.posedge_event());
   }
 }
 
-void ExecuteStage::receivedInstruction() {
-  newInst = true;
-}
-
-void ExecuteStage::receivedOperation() {
-  newOperation = true;
-}
-
-ExecuteStage::ExecuteStage(sc_core::sc_module_name name) :
+ExecuteStage::ExecuteStage(sc_module_name name) :
     PipelineStage(name),
     alu("alu"),
     in1Mux("ALUin1"),
     in2Mux("ALUin2") {
-
-  newInst = false;
-  newOperation = false;
-
-// Register methods
-  SC_METHOD(receivedInstruction);
-  sensitive << remoteInstIn;
-  dont_initialize();
-
-  SC_METHOD(receivedOperation);
-  sensitive << operation;
-  dont_initialize();
 
 // Connect everything up
   in1Mux.result(toALU1); alu.in1(toALU1);

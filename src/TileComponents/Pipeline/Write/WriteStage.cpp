@@ -10,9 +10,11 @@
 void WriteStage::newCycle() {
 
   while(true) {
-    COPY_IF_NEW(fromALU, regData);
-    COPY_IF_NEW(inRegAddr, outRegAddr);
-    COPY_IF_NEW(inIndAddr, outIndAddr);
+    if(!stall.read()) {
+      COPY_IF_NEW(fromALU, regData);
+      COPY_IF_NEW(inRegAddr, outRegAddr);
+      COPY_IF_NEW(inIndAddr, outIndAddr);
+    }
 
     wait(clock.posedge_event());
   }
@@ -37,11 +39,6 @@ void WriteStage::receivedData() {
   if(DEBUG) cout << "WriteStage received Data: " << fromALU.read() << endl;
 }
 
-/* We now know where to send the Data, so we can put it into a buffer */
-//void WriteStage::receivedRChannel() {
-//  haveNewChannel = true;
-//}
-
 void WriteStage::select() {
   if(remoteChannel.event()) muxSelect.write(selectVal);
 }
@@ -63,10 +60,6 @@ WriteStage::WriteStage(sc_module_name name) :
   sensitive << fromALU;
   dont_initialize();
 
-//  SC_METHOD(receivedRChannel);
-//  sensitive << remoteChannel;
-//  dont_initialize();
-
   SC_METHOD(select);
   sensitive << newInstSig << newDataSig;
   dont_initialize();
@@ -78,6 +71,7 @@ WriteStage::WriteStage(sc_module_name name) :
   mux.result(muxOutput); scet.input(muxOutput);
 
   scet.clock(clock);
+  scet.stallOut(stallOut);
   scet.remoteChannel(remoteChannel);
 
   for(int i=0; i<NUM_SEND_CHANNELS; i++) {

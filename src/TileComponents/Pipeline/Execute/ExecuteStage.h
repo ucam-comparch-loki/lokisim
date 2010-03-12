@@ -34,22 +34,17 @@ public:
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(ExecuteStage);
-  ExecuteStage(sc_core::sc_module_name name);
+  ExecuteStage(sc_module_name name);
   virtual ~ExecuteStage();
 
 private:
 /* Methods */
   virtual void newCycle();
-  void receivedInstruction();
-  void receivedOperation();
 
 /* Components */
   ALU                 alu;
   Multiplexor3<Data>  in1Mux;
   Multiplexor4<Data>  in2Mux;
-
-/* Local state */
-  bool                newInst, newOperation;
 
 /* Signals (wires) */
   sc_signal<Data>     toALU1, toALU2, outputSig;

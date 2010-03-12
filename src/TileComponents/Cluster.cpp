@@ -18,6 +18,15 @@ void Cluster::storeData(std::vector<Word>& data) {
   fetch.storeCode(instructions);
 }
 
+/* Checks the status signals of various pipeline stages to determine if the
+ * pipeline should be stalled/unstalled. */
+void Cluster::stallPipeline() {
+  bool shouldStall = decStallSig.read() || writeStallSig.read();
+  stallSig.write(shouldStall);
+
+  if(DEBUG && shouldStall) cout << "Stalling pipeline" << endl;
+}
+
 /* Returns the channel ID of this cluster's instruction packet FIFO. */
 int Cluster::IPKFIFOInput(int ID) {
   return ID*NUM_CLUSTER_INPUTS + 0;
@@ -41,6 +50,10 @@ Cluster::Cluster(sc_module_name name, int ID) :
     execute("execute"),
     write("write") {
 
+  SC_METHOD(stallPipeline);
+  sensitive << decStallSig << writeStallSig;
+  // do initialise
+
 // Connect things up
   // Main inputs/outputs
   decode.flowControlIn(flowControlIn[0]);
@@ -61,60 +74,62 @@ Cluster::Cluster(sc_module_name name, int ID) :
     decode.flowControlOut[i-2](flowControlOut[i]);
   }
 
-  // Clock
-  fetch.clock(clock);
-  decode.clock(clock);
-  execute.clock(clock);
-  write.clock(clock);
+  // Clock and stall signal
+  fetch.clock(clock);                 fetch.stall(stallSig);
+  decode.clock(clock);                decode.stall(stallSig);
+  execute.clock(clock);               execute.stall(stallSig);
+  write.clock(clock);                 write.stall(stallSig);
 
   // To/from fetch stage
-  decode.address(FLtoIPKC); fetch.address(FLtoIPKC);
-  fetch.instruction(nextInst); decode.instructionIn(nextInst);
+  decode.address(FLtoIPKC);           fetch.address(FLtoIPKC);
+  fetch.instruction(nextInst);        decode.instructionIn(nextInst);
 
-  fetch.cacheHit(cacheHitSig); decode.cacheHit(cacheHitSig);
-  fetch.roomToFetch(roomToFetch); decode.roomToFetch(roomToFetch);
+  fetch.cacheHit(cacheHitSig);        decode.cacheHit(cacheHitSig);
+  fetch.roomToFetch(roomToFetch);     decode.roomToFetch(roomToFetch);
 
   // To/from decode stage
-  decode.regIn1(regData1); regs.out1(regData1);
-  decode.regIn2(regData2); regs.out2(regData2);
+  decode.regIn1(regData1);            regs.out1(regData1);
+  decode.regIn2(regData2);            regs.out2(regData2);
 
-  decode.regReadAddr1(regRead1); regs.readAddr1(regRead1);
-  decode.regReadAddr2(regRead2); regs.readAddr2(regRead2);
-  decode.writeAddr(decWriteAddr); execute.writeIn(decWriteAddr);
-  decode.indWriteAddr(decIndWrite); execute.indWriteIn(decIndWrite);
+  decode.regReadAddr1(regRead1);      regs.readAddr1(regRead1);
+  decode.regReadAddr2(regRead2);      regs.readAddr2(regRead2);
+  decode.writeAddr(decWriteAddr);     execute.writeIn(decWriteAddr);
+  decode.indWriteAddr(decIndWrite);   execute.indWriteIn(decIndWrite);
 
   decode.isIndirect(indirectReadSig); regs.indRead(indirectReadSig);
 
-  decode.chEnd1(RCETtoALU1); execute.fromRChan1(RCETtoALU1);
-  decode.chEnd2(RCETtoALU2); execute.fromRChan2(RCETtoALU2);
-  decode.regOut1(regToALU1); execute.fromReg1(regToALU1);
-  decode.regOut2(regToALU2); execute.fromReg2(regToALU2);
-  decode.sExtend(SEtoALU); execute.fromSExtend(SEtoALU);
+  decode.chEnd1(RCETtoALU1);          execute.fromRChan1(RCETtoALU1);
+  decode.chEnd2(RCETtoALU2);          execute.fromRChan2(RCETtoALU2);
+  decode.regOut1(regToALU1);          execute.fromReg1(regToALU1);
+  decode.regOut2(regToALU2);          execute.fromReg2(regToALU2);
+  decode.sExtend(SEtoALU);            execute.fromSExtend(SEtoALU);
 
-  decode.operation(operation); execute.operation(operation);
-  decode.op1Select(op1Select); execute.op1Select(op1Select);
-  decode.op2Select(op2Select); execute.op2Select(op2Select);
+  decode.operation(operation);        execute.operation(operation);
+  decode.op1Select(op1Select);        execute.op1Select(op1Select);
+  decode.op2Select(op2Select);        execute.op2Select(op2Select);
 
-  decode.remoteInst(decToExInst); execute.remoteInstIn(decToExInst);
+  decode.remoteInst(decToExInst);     execute.remoteInstIn(decToExInst);
   decode.remoteChannel(decToExRChan); execute.remoteChannelIn(decToExRChan);
-  decode.predicate(predicate); execute.predicate(predicate);
-  decode.setPredicate(setPredSig); execute.setPredicate(setPredSig);
+  decode.predicate(predicate);        execute.predicate(predicate);
+  decode.setPredicate(setPredSig);    execute.setPredicate(setPredSig);
+  decode.stallOut(decStallSig);
 
   // To/from execute stage
-  execute.output(ALUOutput); execute.fromALU1(ALUOutput);
+  execute.output(ALUOutput);          execute.fromALU1(ALUOutput);
   execute.fromALU2(ALUOutput);
   write.fromALU(ALUOutput);
 
-  execute.remoteInstOut(exToWriteInst); write.inst(exToWriteInst);
+  execute.remoteInstOut(exToWriteInst);     write.inst(exToWriteInst);
   execute.remoteChannelOut(exToWriteRChan); write.remoteChannel(exToWriteRChan);
 
-  execute.writeOut(writeAddr); write.inRegAddr(writeAddr);
-  execute.indWriteOut(indWriteAddr); write.inIndAddr(indWriteAddr);
+  execute.writeOut(writeAddr);        write.inRegAddr(writeAddr);
+  execute.indWriteOut(indWriteAddr);  write.inIndAddr(indWriteAddr);
 
   // To/from write stage
-  write.outRegAddr(writeRegAddr); regs.writeAddr(writeRegAddr);
-  write.outIndAddr(indirectWrite); regs.indWriteAddr(indirectWrite);
-  write.regData(regWriteData); regs.writeData(regWriteData);
+  write.outRegAddr(writeRegAddr);     regs.writeAddr(writeRegAddr);
+  write.outIndAddr(indirectWrite);    regs.indWriteAddr(indirectWrite);
+  write.regData(regWriteData);        regs.writeData(regWriteData);
+  write.stallOut(writeStallSig);
 
   end_module(); // Needed because we're using a different Component constructor
 }

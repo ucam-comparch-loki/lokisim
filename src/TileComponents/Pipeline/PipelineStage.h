@@ -1,6 +1,8 @@
 /*
  * PipelineStage.h
  *
+ * The base class for all pipeline stages.
+ *
  *  Created on: 7 Jan 2010
  *      Author: db434
  */
@@ -22,7 +24,7 @@ class PipelineStage : public Component {
 
 public:
 /* Ports */
-  sc_in<bool> clock;
+  sc_in<bool> clock, stall;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(PipelineStage);

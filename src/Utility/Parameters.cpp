@@ -24,7 +24,7 @@ extern parameter NUM_TILE_COLUMNS = 2;
 extern parameter MAX_IPK_SIZE = 16;
 
 // Memory
-extern parameter NUM_REGISTERS = 32;
+extern parameter NUM_REGISTERS = 28;
 extern parameter IPK_FIFO_SIZE = 8;
 extern parameter IPK_CACHE_SIZE = 64;
 extern parameter MEMORY_SIZE = 2048;

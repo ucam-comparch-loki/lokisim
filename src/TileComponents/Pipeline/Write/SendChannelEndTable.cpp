@@ -14,16 +14,24 @@ void SendChannelEndTable::receivedData() {
 
   if(!(buffers[buff].isFull())) {
     buffers.write(w, buff);
+
+    // Stall so we don't receive any more data if the buffer is full
+    if(buffers[buff].isFull()) {
+      stallValue = true;
+      updateStall1.write(!updateStall1.read());
+    }
+
     if(DEBUG) cout << "Wrote " << w << " to output channel-end " << buff << endl;
   }
   else {
-    // TODO: stall pipeline
     if(DEBUG) cout << "Wrote to full buffer in Send Channel-end Table." << endl;
   }
 }
 
-/* If it is possible to send data onto the network, do it */
+/* If it is possible to send data onto the network, do it. */
 void SendChannelEndTable::canSend() {
+
+  bool stall = false;
 
   // If a buffer has information, and is allowed to send, put it in the vector
   for(int i=0; i<NUM_SEND_CHANNELS; i++) {
@@ -32,7 +40,12 @@ void SendChannelEndTable::canSend() {
     if(!(buffers[i].isEmpty()) && send) {
       output[i].write(buffers.read(i));
     }
+
+    if(buffers[i].isFull()) stall = true;
   }
+
+  stallValue = stall;
+  updateStall2.write(!updateStall2.read());
 
 }
 
@@ -43,6 +56,10 @@ short SendChannelEndTable::chooseBuffer() {
   return remoteChannel.read() % NUM_SEND_CHANNELS;
 }
 
+/* Update the value on the stallOut port. */
+void SendChannelEndTable::updateStall() {
+  stallOut.write(stallValue);
+}
 
 SendChannelEndTable::SendChannelEndTable(sc_module_name name) :
     Component(name),
@@ -51,13 +68,19 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name) :
   flowControl = new sc_in<bool>[NUM_SEND_CHANNELS];
   output      = new sc_out<AddressedWord>[NUM_SEND_CHANNELS];
 
+  stallValue  = false;
+
   SC_METHOD(receivedData);
   sensitive << input;
   dont_initialize();
 
   SC_METHOD(canSend);
-  /*for(int i=0; i<NUM_SEND_CHANNELS; i++)*/ sensitive << clock.pos();//flowControl[i];
+  sensitive << clock.pos();
   dont_initialize();
+
+  SC_METHOD(updateStall);
+  sensitive << updateStall1 << updateStall2;
+  // do initialise;
 
 }
 

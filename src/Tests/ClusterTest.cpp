@@ -84,8 +84,6 @@ protected:
 //              add3("addu r5 r4 r3 > 4"), add4("addu r6 r5 r4 > 5"),
 //              fetch("fetch r0 4");
 //
-//  // TODO: do more calculations to test stalling when buffers get full
-//
 //  Array<AddressedWord> temp;
 //
 //
@@ -164,8 +162,10 @@ protected:
 //
 //  EXPECT_EQ(1, ((Data)(out[1].read().getPayload())).getData());
 //  EXPECT_EQ(0, out[1].read().getChannelID());
+//  EXPECT_EQ(0, ((Data)(out[2].read().getPayload())).getData())
+//    << "Data being sent before being allowed to by flow control.";
+//  EXPECT_EQ(0, out[2].read().getChannelID());
 //
-//  flowControlIn[1].write(true);
 //  flowControlIn[2].write(true);
 //
 //  TIMESTEP;
@@ -174,8 +174,6 @@ protected:
 //  EXPECT_EQ(1, out[2].read().getChannelID());
 //  EXPECT_EQ(2, ((Data)(out[1].read().getPayload())).getData());
 //  EXPECT_EQ(2, out[1].read().getChannelID());
-//  flowControlIn[1].write(true);
-//  flowControlIn[2].write(true);
 //
 //  TIMESTEP;
 //
@@ -183,8 +181,6 @@ protected:
 //  EXPECT_EQ(3, out[2].read().getChannelID());
 //  EXPECT_EQ(5, ((Data)(out[1].read().getPayload())).getData());
 //  EXPECT_EQ(4, out[1].read().getChannelID());
-//  flowControlIn[1].write(true);
-//  flowControlIn[2].write(true);
 //
 //  TIMESTEP;
 //
@@ -223,3 +219,99 @@ protected:
 //  }
 //
 //}
+
+/* Tests that filling a Send Channel-end Table buffer with data causes the
+ * pipeline to stall, and that removing data from the buffer allows the
+ * pipeline to continue execution again. */
+//TEST_F(ClusterTest, SCETStallsPipeline) {
+//
+//  std::string filename = "fibonacci2.loki";
+//
+//  CodeLoader::loadCode(filename, c);
+//
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//
+//  // This should be enough cycles that the buffer has filled up, so the
+//  // pipeline should have stalled.
+//
+//  ASSERT_EQ(0, ((Data)(out[1].read().getPayload())).getData())
+//    << "Data escaped from send channel-end table too soon.";
+//
+//  flowControlIn[1].write(true);
+//
+//  TIMESTEP;
+//
+//  ASSERT_EQ(1, ((Data)(out[1].read().getPayload())).getData());
+//  EXPECT_EQ(6, out[1].read().getChannelID());
+//
+//  TIMESTEP;
+//
+//  EXPECT_EQ(1, ((Data)(out[1].read().getPayload())).getData());
+//  EXPECT_EQ(6, out[1].read().getChannelID());
+//
+//  TIMESTEP;
+//
+//  EXPECT_EQ(2, ((Data)(out[1].read().getPayload())).getData());
+//  EXPECT_EQ(6, out[1].read().getChannelID());
+//
+//  TIMESTEP;
+//
+//  EXPECT_EQ(3, ((Data)(out[1].read().getPayload())).getData());
+//  EXPECT_EQ(6, out[1].read().getChannelID());
+//
+//  TIMESTEP;
+//
+//  ASSERT_EQ(5, ((Data)(out[1].read().getPayload())).getData())
+//    << "Cluster didn't restart execution once buffer had space.";
+//  EXPECT_EQ(6, out[1].read().getChannelID());
+//
+//  TIMESTEP;
+//
+//  EXPECT_EQ(8, ((Data)(out[1].read().getPayload())).getData());
+//  EXPECT_EQ(6, out[1].read().getChannelID());
+//
+//}
+
+/* Tests that reads to the receive channel-end table are blocking (the
+ * pipeline stalls if the buffer being read is empty) and that the cluster
+ * resumes execution when data arrives. */
+TEST_F(ClusterTest, RCETStallsPipeline) {
+
+  Instruction i("addui r1 r28 3 > 2");  // r28 = receive channel 0
+  Data d(2);
+
+  flowControlIn[1].write(true);
+  in[1].write(i);
+
+  TIMESTEP;
+  TIMESTEP;
+  TIMESTEP;
+  TIMESTEP;
+  TIMESTEP;
+  TIMESTEP;
+
+  // Pipeline should have stalled waiting for data
+
+  EXPECT_EQ(0, ((Data)(out[1].read().getPayload())).getData())
+    << "Cluster didn't wait for data.";
+  in[2].write(d);
+
+  TIMESTEP;
+  TIMESTEP;
+  TIMESTEP;
+
+  EXPECT_EQ(5, ((Data)(out[1].read().getPayload())).getData());
+  EXPECT_EQ(2, out[1].read().getChannelID());
+
+}
