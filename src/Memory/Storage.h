@@ -31,7 +31,7 @@ public:
   }
 
 /* Constructors and destructors */
-  Storage(int size=1024) : data(size) {
+  Storage(int size) : data(size) {
 
   }
 

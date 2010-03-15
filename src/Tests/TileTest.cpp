@@ -72,18 +72,17 @@ protected:
 //  TIMESTEP;
 //}
 
-//TEST_F(TileTest, Communication) {
-//
-//  string cluster0 = "setfetchch.loki";
-//  string cluster1 = "remotefetch.loki";
-//  string memory = "fibonacci2.loki";
-//
-//  CodeLoader::loadCode(cluster0, t, 0);
-//  CodeLoader::loadCode(cluster1, t, 1);
-//  CodeLoader::loadCode(memory, t, 12);
-//
-//  // Should set DEBUG to true (or set up tracing) so values can be seen
-////  ASSERT_NO_THROW(sc_start(50.0, SC_NS));
-//  sc_start(50.0, SC_NS);
-//
-//}
+TEST_F(TileTest, Communication) {
+
+  string cluster0 = "setfetchch.loki";
+  string cluster1 = "remotefetch.loki";
+  string memory = "fibonacci2.loki";
+
+  CodeLoader::loadCode(cluster0, t, 0);
+  CodeLoader::loadCode(cluster1, t, 1);
+  CodeLoader::loadCode(memory, t, 12);
+
+  // Should set DEBUG to true (or set up tracing) so values can be seen
+  sc_start(50.0, SC_NS);
+
+}

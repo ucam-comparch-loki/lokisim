@@ -17,7 +17,7 @@
 #include "Storage.h"
 
 template<class K, class T>
-class MappedStorage : public virtual Storage<T> {
+class MappedStorage : public Storage<T> {
 
 public:
   // Returns whether the given address matches any of the tags
@@ -33,7 +33,7 @@ public:
     for(unsigned int i=0; i<tags.size(); i++){
       if(tags.at(i) == key) return Storage<T>::data.at(i);
     }
-    throw new std::exception();
+    throw std::exception();
   }
 
   // Writes new data to a position determined using the given address
@@ -53,12 +53,12 @@ public:
   }
 
 protected:
-/* Local state */
-  vector<K> tags;
-
 /* Methods */
   // Returns the position that data with the given address tag should be stored
   virtual int getPosition(const K& key) = 0;
+
+/* Local state */
+  vector<K> tags;
 
 };
 

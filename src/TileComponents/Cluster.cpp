@@ -11,6 +11,7 @@
 void Cluster::storeData(std::vector<Word>& data) {
   std::vector<Instruction> instructions;
 
+  // Convert all of the words to instructions
   for(unsigned int i=0; i<data.size(); i++) {
     instructions.push_back(static_cast<Instruction>(data[i]));
   }

@@ -24,31 +24,31 @@ public:
     if(!isEmpty()) {
       int i = readFrom;
       incrementReadFrom();
-      return Storage<T>::data.at(i);
+      return Storage<T>::data[i];
     }
     else {
-      printf("Exception in Buffer.read()\n");
+      std::cerr << "Exception in Buffer.read()" << std::endl;
       throw std::exception();
     }
   }
 
   virtual void write(const T& newData) {
     if(!isFull()) {
-      Storage<T>::data.at(writeTo) = newData;
+      Storage<T>::data[writeTo] = newData;
       incrementWriteTo();
     }
     else {
-      printf("Exception in Buffer.write()\n");
+      std::cerr << "Exception in Buffer.write()" << std::endl;
       throw std::exception();
     }
   }
 
   T& peek() {
     if(!isEmpty()) {
-      return (Storage<T>::data.at(readFrom));
+      return (Storage<T>::data[readFrom]);
     }
     else {
-      printf("Exception in Buffer.peek()\n");
+      std::cerr << "Exception in Buffer.peek()" << std::endl;
       throw std::exception();
     }
   }
@@ -70,7 +70,7 @@ public:
   }
 
   void print() {
-    for(int i=0; i<this->size; i++) std::cout << Storage<T>::data.at(i) << " ";
+    for(int i=0; i<this->size; i++) std::cout << Storage<T>::data[i] << " ";
     std::cout << std::endl;
   }
 

@@ -22,7 +22,7 @@ class BufferArray {
 public:
 /* Methods */
   // Read data from a particular buffer
-  T& read(int buffer) {
+  T& read(int buffer) const {
     return buffers[buffer]->read();
   }
 

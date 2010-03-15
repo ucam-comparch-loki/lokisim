@@ -6,6 +6,7 @@
  */
 
 #include "InterclusterNetwork.h"
+#include "Routing Schemes/RoutingSchemeFactory.h"
 
 void InterclusterNetwork::routeRequests() {
   route(requestsIn, requestsOut, numInputs);
@@ -21,27 +22,9 @@ void InterclusterNetwork::routeData() {
 
 void InterclusterNetwork::route(sc_in<AddressedWord> *inputs,
                                 sc_out<Word> *outputs, int length) {
-  // TODO: use a RoutingScheme instead
-  for(int i=0; i<length; i++) {
-    if(inputs[i].event() /*&& haven't already written to this output*/) {
-      AddressedWord aw = inputs[i].read();
-      short chID = aw.getChannelID();
-      outputs[chID].write(aw.getPayload());
 
-      if(DEBUG) {
-        bool fromOutputs = (length == numInputs);
-        std::string in = fromOutputs ? "input " : "output ";
-        std::string out = fromOutputs ? "output " : "input ";
-        int inChans = fromOutputs ? NUM_CLUSTER_OUTPUTS : NUM_CLUSTER_INPUTS;
-        int outChans = fromOutputs ? NUM_CLUSTER_INPUTS : NUM_CLUSTER_OUTPUTS;
+  router->route(inputs, outputs, length);
 
-        cout << "Network sent " << aw.getPayload() <<
-             " from channel "<<i<<" (comp "<<i/inChans<<", "<<out<<i%inChans<<
-             ") to channel "<<chID<<" (comp "<<chID/outChans<<", "<<in<<chID%outChans
-             << ")" << endl;
-      }
-    }
-  }
 }
 
 InterclusterNetwork::InterclusterNetwork(sc_module_name name)
@@ -56,6 +39,8 @@ InterclusterNetwork::InterclusterNetwork(sc_module_name name)
   dataIn       = new sc_in<AddressedWord>[numInputs];
   requestsOut  = new sc_out<Word>[numOutputs];
   dataOut      = new sc_out<Word>[numOutputs];
+
+  router       = RoutingSchemeFactory::makeRoutingScheme();
 
   SC_METHOD(routeRequests);
   for(int i=0; i<numInputs; i++) sensitive << requestsIn[i];

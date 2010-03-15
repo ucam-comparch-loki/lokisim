@@ -142,54 +142,54 @@ protected:
 //}
 
 /* Tests that it is possible to load in code from a file, and execute it */
-TEST_F(ClusterTest, RunsExternalCode) {
-
-  std::string filename = "fibonacci.loki";
-
-  CodeLoader::loadCode(filename, c);
-
-  Array<AddressedWord> temp;
-
-  TIMESTEP;
-  TIMESTEP;
-  TIMESTEP;
-  TIMESTEP;
-  TIMESTEP;
-
-  flowControlIn[1].write(true);
-
-  TIMESTEP;
-
-  EXPECT_EQ(1, ((Data)(out[1].read().getPayload())).getData());
-  EXPECT_EQ(0, out[1].read().getChannelID());
-  EXPECT_EQ(0, ((Data)(out[2].read().getPayload())).getData())
-    << "Data being sent before being allowed to by flow control.";
-  EXPECT_EQ(0, out[2].read().getChannelID());
-
-  flowControlIn[2].write(true);
-
-  TIMESTEP;
-
-  EXPECT_EQ(1, ((Data)(out[2].read().getPayload())).getData());
-  EXPECT_EQ(1, out[2].read().getChannelID());
-  EXPECT_EQ(2, ((Data)(out[1].read().getPayload())).getData());
-  EXPECT_EQ(2, out[1].read().getChannelID());
-
-  TIMESTEP;
-
-  EXPECT_EQ(3, ((Data)(out[2].read().getPayload())).getData());
-  EXPECT_EQ(3, out[2].read().getChannelID());
-  EXPECT_EQ(5, ((Data)(out[1].read().getPayload())).getData());
-  EXPECT_EQ(4, out[1].read().getChannelID());
-
-  TIMESTEP;
-
-  EXPECT_EQ(8, ((Data)(out[2].read().getPayload())).getData());
-  EXPECT_EQ(5, out[2].read().getChannelID());
-  EXPECT_EQ(5, ((Data)(out[1].read().getPayload())).getData());
-  EXPECT_EQ(4, out[1].read().getChannelID());
-
-}
+//TEST_F(ClusterTest, RunsExternalCode) {
+//
+//  std::string filename = "fibonacci.loki";
+//
+//  CodeLoader::loadCode(filename, c);
+//
+//  Array<AddressedWord> temp;
+//
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//
+//  flowControlIn[1].write(true);
+//
+//  TIMESTEP;
+//
+//  EXPECT_EQ(1, ((Data)(out[1].read().getPayload())).getData());
+//  EXPECT_EQ(0, out[1].read().getChannelID());
+//  EXPECT_EQ(0, ((Data)(out[2].read().getPayload())).getData())
+//    << "Data being sent before being allowed to by flow control.";
+//  EXPECT_EQ(0, out[2].read().getChannelID());
+//
+//  flowControlIn[2].write(true);
+//
+//  TIMESTEP;
+//
+//  EXPECT_EQ(1, ((Data)(out[2].read().getPayload())).getData());
+//  EXPECT_EQ(1, out[2].read().getChannelID());
+//  EXPECT_EQ(2, ((Data)(out[1].read().getPayload())).getData());
+//  EXPECT_EQ(2, out[1].read().getChannelID());
+//
+//  TIMESTEP;
+//
+//  EXPECT_EQ(3, ((Data)(out[2].read().getPayload())).getData());
+//  EXPECT_EQ(3, out[2].read().getChannelID());
+//  EXPECT_EQ(5, ((Data)(out[1].read().getPayload())).getData());
+//  EXPECT_EQ(4, out[1].read().getChannelID());
+//
+//  TIMESTEP;
+//
+//  EXPECT_EQ(8, ((Data)(out[2].read().getPayload())).getData());
+//  EXPECT_EQ(5, out[2].read().getChannelID());
+//  EXPECT_EQ(5, ((Data)(out[1].read().getPayload())).getData());
+//  EXPECT_EQ(4, out[1].read().getChannelID());
+//
+//}
 
 /* Loads in code from a file, but just prints anything sent from the cluster.
  * Google Test will always say this test passes, as there are no assertions,

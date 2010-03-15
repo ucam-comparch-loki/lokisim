@@ -40,7 +40,7 @@ public:
   virtual bool checkTags(const K& key) {
 
     for(unsigned int i=0; i<MappedStorage<K,T>::tags.size(); i++) {
-      if(MappedStorage<K,T>::tags.at(i) == key) {
+      if(MappedStorage<K,T>::tags[i] == key) {
         if(currentInstruction == NOT_IN_USE) currentInstruction = i;
         else pendingPacket = i;
 
@@ -57,10 +57,11 @@ public:
     if((int)currentInstruction != NOT_IN_USE) {
       int i = currentInstruction;
       incrementCurrent();
-      return Storage<T>::data.at(i);
+      return Storage<T>::data[i];
     }
     else {
-      printf("Exception in IPKCacheStorage.read(): cache is empty.\n");
+      std::cerr << "Exception in IPKCacheStorage.read(): cache is empty."
+                << std::endl;
       throw(std::exception());
     }
 
@@ -68,8 +69,8 @@ public:
 
   // Writes new data to a position determined using the given key
   virtual void write(const K& key, const T& newData) {
-    MappedStorage<K,T>::tags.at(refillPointer) = key;
-    Storage<T>::data.at(refillPointer) = newData;
+    MappedStorage<K,T>::tags[refillPointer] = key;
+    Storage<T>::data[refillPointer] = newData;
 
     if(currentInstruction == NOT_IN_USE) currentInstruction = refillPointer;
 
@@ -96,12 +97,13 @@ public:
 
   void storeCode(std::vector<T>& code) {
     if(code.size() > Storage<T>::data.size()) {
-      printf("Error: tried to write %d instructions to a memory of size %d\n",
-             (int)(code.size()), (int)(Storage<T>::data.size()));
+      std::cerr << "Error: tried to write " << code.size() <<
+        " instructions to a memory of size " << Storage<T>::data.size() <<
+        std::endl;
     }
 
     for(unsigned int i=0; i<code.size() && i<Storage<T>::data.size(); i++) {
-      write(K(), code.at(i));
+      write(K(), code[i]);
     }
   }
 

@@ -9,6 +9,7 @@
 #define INTERCLUSTERNETWORK_H_
 
 #include "Interconnect.h"
+#include "Routing Schemes/RoutingScheme.h"
 
 class InterclusterNetwork: public Interconnect {
 
@@ -55,7 +56,8 @@ protected:
   virtual void route(sc_in<AddressedWord> *inputs, sc_out<Word> *outputs, int length);
 
 /* Local state */
-  int numInputs, numOutputs;
+  int            numInputs, numOutputs;
+  RoutingScheme* router;
 
 };
 
