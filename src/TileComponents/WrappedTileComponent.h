@@ -20,9 +20,29 @@ class WrappedTileComponent: public Component {
 
 public:
 /* Ports */
+
+  // Clock.
   sc_in<bool>               clock;
-  sc_in<Word>              *dataIn,  *requestsIn,  *responsesIn;  // arrays
-  sc_out<AddressedWord>    *dataOut, *requestsOut, *responsesOut; // arrays
+
+  // All inputs to the component (NUM_CLUSTER_INPUTS).
+  sc_in<Word>              *dataIn;
+
+  // All outputs from the component (NUM_CLUSTER_OUTPUTS).
+  sc_out<AddressedWord>    *dataOut;
+
+  // Requests to each input, asking whether it is possible to send data.
+  // There should be NUM_CLUSTER_INPUTS of them.
+  sc_in<Word>              *requestsIn;
+
+  // Requests sent from each output (NUM_CLUSTER_OUTPUTS).
+  sc_out<AddressedWord>    *requestsOut;
+
+  // Responses received to requests sent (NUM_CLUSTER_OUTPUTS).
+  sc_in<Word>              *responsesIn;
+
+  // Responses sent from each input, saying whether they are ready for more
+  // data. There should be NUM_CLUSTER_INPUTS of them.
+  sc_out<AddressedWord>    *responsesOut;
 
 /* Constructors and destructors */
   WrappedTileComponent(sc_module_name name, TileComponent& tc);

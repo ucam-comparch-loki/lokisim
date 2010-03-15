@@ -23,6 +23,16 @@
 class Cluster : public TileComponent {
 
 public:
+
+/*
+ * Ports inherited from TileComponent:
+ *   clock
+ *   in
+ *   out
+ *   flowControlIn
+ *   flowControlOut
+ */
+
 /* Constructors and destructors */
   SC_HAS_PROCESS(Cluster);
   Cluster(sc_module_name name, int ID);

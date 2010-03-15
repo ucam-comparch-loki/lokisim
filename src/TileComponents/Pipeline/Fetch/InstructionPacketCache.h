@@ -22,12 +22,35 @@
 class InstructionPacketCache : public Component {
 
 public:
+
 /* Ports */
-  sc_in<Address>      address;
+
+  // Clock.
+  sc_in<bool>         clock;
+
+  // The instruction received from the network.
   sc_in<Instruction>  instructionIn;
-  sc_in<bool>         clock, readInstruction;
+
+  // A signal which changes to signify that an instruction should be read
+  // from the cache (rather than the instruction FIFO).
+  sc_in<bool>         readInstruction;
+
+  // The instruction read from the cache.
   sc_out<Instruction> instructionOut;
-  sc_out<bool>        cacheHit, isRoomToFetch, flowControl;
+
+  // The address tag being looked up in the cache.
+  sc_in<Address>      address;
+
+  // Signals that the looked-up address matches an instruction packet in the cache.
+  sc_out<bool>        cacheHit;
+
+  // Signals that there is room to accommodate another maximum-sized
+  // instruction packet in the cache.
+  sc_out<bool>        isRoomToFetch;
+
+  // Signal telling whether new instructions from the network can be put in
+  // the cache.
+  sc_out<bool>        flowControl;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(InstructionPacketCache);

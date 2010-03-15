@@ -18,12 +18,28 @@
 class SendChannelEndTable: public Component {
 
 public:
+
 /* Ports */
+
+  // Clock.
   sc_in<bool>             clock;
+
+  // The data (remote instruction or result from ALU) to be written into
+  // this table.
   sc_in<Word>             input;
+
+  // The remote channel the data is to be sent to.
   sc_in<short>            remoteChannel;
-  sc_in<bool>            *flowControl;  // array
-  sc_out<AddressedWord>  *output;       // array
+
+  // The outputs to the network. There should be NUM_SEND_CHANNELS of them.
+  sc_out<AddressedWord>  *output;
+
+  // A flow control signal for each output (NUM_SEND_CHANNELS), saying
+  // whether or not it is allowed to send its next value.
+  sc_in<bool>            *flowControl;
+
+  // Signal to the cluster that it should stop execution until there is at
+  // least one space in every buffer.
   sc_out<bool>            stallOut;
 
 /* Constructors and destructors */

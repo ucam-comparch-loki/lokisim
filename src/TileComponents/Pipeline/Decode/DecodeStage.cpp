@@ -99,7 +99,6 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   decoder.op1Select(op1Select);
   decoder.op2Select(op2Select);
 
-  rcet.clock(clock);
   rcet.toALU1(chEnd1);
   rcet.toALU2(chEnd2);
   rcet.stallOut(rcetStallSig);

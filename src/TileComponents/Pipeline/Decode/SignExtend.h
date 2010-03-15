@@ -20,8 +20,13 @@ class SignExtend: public Component {
   void doOp();
 
 public:
+
 /* Ports */
+
+  // The input value.
   sc_in<Data>   input;
+
+  // The output value, padded to 32 bits.
   sc_out<Data>  output;
 
 /* Constructors and destructors */

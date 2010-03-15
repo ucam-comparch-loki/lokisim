@@ -36,12 +36,12 @@ void InstructionPacketCache::insertInstruction() {
   bool empty = cache.isEmpty();
   Address addr;
 
-  try {
+  if(!addresses.isEmpty()) {
     // Only associate the tag with the first instruction of the packet.
     // Means that if a packet is searched for, execution starts at the start.
     addr = startOfPacket ? addresses.read() : Address(0,0);
   }
-  catch(std::exception e) {
+  else {
     addr = Address(0,0);
   }
 
@@ -81,15 +81,10 @@ void InstructionPacketCache::lookup() {
  * necessary, and prepare the next instruction */
 void InstructionPacketCache::finishedRead() {
 
-  try {
-    if(!sentNewInst && !cache.isEmpty()) {
-      instToSend = cache.read();
-      if(instToSend.endOfPacket()) cache.switchToPendingPacket();
-      writeNotify2.write(!writeNotify2.read());
-    }
-  }
-  catch(std::exception e) {     // There are no more instructions
-    // Do nothing
+  if(!sentNewInst && !cache.isEmpty()) {
+    instToSend = cache.read();
+    if(instToSend.endOfPacket()) cache.switchToPendingPacket();
+    writeNotify2.write(!writeNotify2.read());
   }
 
   sentNewInst = false;          // Reset for next cycle

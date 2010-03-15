@@ -3,6 +3,9 @@
  *
  * Component containing a vector of buffers storing data from input channels.
  *
+ * Reads from the table are blocking: if a buffer being read from is empty,
+ * the cluster will stall until data has arrived there.
+ *
  *  Created on: 14 Jan 2010
  *      Author: db434
  */
@@ -19,12 +22,27 @@
 class ReceiveChannelEndTable: public Component {
 
 public:
+
 /* Ports */
-  sc_in<bool>   clock;
+
+  // Data values received over the network. There should be NUM_RECEIVE_CHANNELS
+  // inputs in the array.
   sc_in<Word>  *fromNetwork;
+
+  // A flow control signal for each input (NUM_RECEIVE_CHANNELS), to stop
+  // further values being sent if a buffer is full.
+  sc_out<bool> *flowControl;
+
+  // The channels to read data from. fromDecoder1 specifies the channel whose
+  // data should be sent to the ALU's first input (and similar for fromDecoder2).
   sc_in<short>  fromDecoder1, fromDecoder2;
+
+  // Data being sent to the ALU.
   sc_out<Data>  toALU1, toALU2;
-  sc_out<bool> *flowControl, stallOut;
+
+  // Tell the cluster to stall if it attempts to read from an empty buffer,
+  // and allow it to continue again once data has arrived at that buffer.
+  sc_out<bool>  stallOut;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(ReceiveChannelEndTable);

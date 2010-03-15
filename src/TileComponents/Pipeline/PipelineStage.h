@@ -23,8 +23,15 @@
 class PipelineStage : public Component {
 
 public:
+
 /* Ports */
-  sc_in<bool> clock, stall;
+
+  // Clock.
+  sc_in<bool> clock;
+
+  // When true, the pipeline stage should do nothing. When false, execution
+  // can continue as normal.
+  sc_in<bool> stall;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(PipelineStage);

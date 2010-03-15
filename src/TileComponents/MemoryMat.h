@@ -4,7 +4,7 @@
  * A memory bank which is accessed over the network. There will usually be
  * multiple MemoryMats in each Tile.
  *
- * TODO: consider having designated read and write inputs.
+ * Consider having designated read and write inputs?
  *   + Simplifies hardware and software
  *   + Allows full utilisation of input ports (there are usually more than outputs)
  *   - Less flexibility
@@ -25,6 +25,16 @@
 class MemoryMat: public TileComponent {
 
 public:
+
+/*
+ * Ports inherited from TileComponent:
+ *   clock
+ *   in
+ *   out
+ *   flowControlIn
+ *   flowControlOut
+ */
+
 /* Constructors and destructors */
   SC_HAS_PROCESS(MemoryMat);
   MemoryMat(sc_module_name name, int ID);

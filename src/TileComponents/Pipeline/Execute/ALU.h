@@ -16,10 +16,24 @@
 class ALU: public Component {
 
 public:
+
 /* Ports */
-  sc_in<short>  select, predicate;
-  sc_in<bool>   setPredicate;
+
+  // The two input values.
   sc_in<Data>   in1, in2;
+
+  // The operation the ALU should carry out.
+  sc_in<short>  select;
+
+  // Signal telling whether or not the computation should be conditional on
+  // some value of predicate register.
+  sc_in<short>  predicate;
+
+  // Tells whether the result of this computation should be used to set the
+  // predicate register.
+  sc_in<bool>   setPredicate;
+
+  // The result of the computation.
   sc_out<Data>  out;
 
 /* Constructors and destructors */

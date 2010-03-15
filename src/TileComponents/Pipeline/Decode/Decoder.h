@@ -21,14 +21,52 @@
 class Decoder: public Component {
 
 public:
+
 /* Ports */
+
+  // The instruction to decode.
   sc_in<Instruction>  instructionIn;
+
+  // The instruction to be sent to another cluster.
   sc_out<Instruction> instructionOut;
+
+  // The registers to retrieve data from.
+  sc_out<short>       regAddr1, regAddr2;
+
+  // Tells the register file whether or not the second read address is indirect.
+  sc_out<bool>        isIndirectRead;
+
+  // The channel-ends to retrieve data from.
   sc_out<short>       toRCET1, toRCET2;
-  sc_out<short>       regAddr1, regAddr2, indWrite, writeAddr, rChannel, predicate;
-  sc_out<bool>        isIndirectRead, setPredicate;
-  sc_out<short>       operation, op1Select, op2Select;
+
+  // The register to write the result back to.
+  sc_out<short>       writeAddr;
+
+  // The address of the indirect register we want to write the result to.
+  sc_out<short>       indWrite;
+
+  // The remote channel to send the data/instruction to.
+  sc_out<short>       rChannel;
+
+  // Tell the ALU whether an instruction should always execute, or be
+  // conditional on the predicate register being true or false.
+  sc_out<short>       predicate;
+
+  // Tell the ALU whether it should use the result of this instruction to
+  // set the predicate register.
+  sc_out<bool>        setPredicate;
+
+  // The operation the ALU is to carry out.
+  sc_out<short>       operation;
+
+  // Choose where ALU's operands come from by selecting appropriate
+  // multiplexor inputs.
+  sc_out<short>       op1Select, op2Select;
+
+  // The address of the instruction packet we want to fetch.
   sc_out<Address>     toFetchLogic;
+
+  // The immediate we want to be padded to 32 bits.
   sc_out<Data>        toSignExtend;
 
 /* Constructors and destructors */

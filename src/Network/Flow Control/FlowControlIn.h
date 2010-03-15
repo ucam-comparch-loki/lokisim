@@ -21,11 +21,25 @@
 class FlowControlIn: public Component {
 
 public:
+
 /* Ports */
-  sc_in<Word>           *dataIn, *requests;
-  sc_in<bool>           *flowControl;
-  sc_out<Word>          *dataOut;
+
+  // Data received over the network, to be sent to the component's inputs.
+  // The array should be "width" elements long.
+  sc_in<Word>           *dataIn;
+
+  // Requests to send data to each of the "width" inputs.
+  sc_in<Word>           *requests;
+
+  // Responses to requests from each input ("width" elements long).
   sc_out<AddressedWord> *responses;
+
+  // Flow control signals from each of the components inputs, saying whether
+  // they are ready to receive the next piece of data ("width" elements long).
+  sc_in<bool>           *flowControl;
+
+  // Data to be sent to each of the component's inputs ("width" elements).
+  sc_out<Word>          *dataOut;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(FlowControlIn);

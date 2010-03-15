@@ -21,10 +21,26 @@
 class IndirectRegisterFile: public Component {
 
 public:
+
 /* Ports */
-  sc_in<short> indWriteAddr, readAddr1, readAddr2, writeAddr;
+
+  // Two addresses to read data from.
+  sc_in<short> readAddr1, readAddr2;
+
+  // Signals whether or not the second read address should use the indirect
+  // registers.
   sc_in<bool>  indRead;
+
+  // The register to write data to.
+  sc_in<short> writeAddr;
+
+  // The register containing the index of the register which should be written to.
+  sc_in<short> indWriteAddr;
+
+  // Data to be written to the register file.
   sc_in<Word>  writeData;
+
+  // Results of the two reads.
   sc_out<Word> out1, out2;
 
 /* Constructors and destructors */

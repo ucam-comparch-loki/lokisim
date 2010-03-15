@@ -13,9 +13,33 @@
 class InterclusterNetwork: public Interconnect {
 
 public:
+
 /* Ports */
-  sc_in<AddressedWord> *requestsIn,  *responsesIn,  *dataIn;
-  sc_out<Word>         *requestsOut, *responsesOut, *dataOut;
+
+  // Data sent from each output of each component.
+  // NUM_CLUSTER_OUTPUTS * COMPONENTS_PER_TILE
+  sc_in<AddressedWord> *dataIn;
+
+  // Data sent to each input of each component.
+  // NUM_CLUSTER_INPUTS * COMPONENTS_PER_TILE
+  sc_out<Word>         *dataOut;
+
+  // Requests from each output of each component.
+  // NUM_CLUSTER_OUTPUTS * COMPONENTS_PER_TILE
+  sc_in<AddressedWord> *requestsIn;
+
+  // Responses from each input of each component.
+  // NUM_CLUSTER_INPUTS * COMPONENTS_PER_TILE
+  sc_in<AddressedWord> *responsesIn;
+
+  // Requests sent to each input of each component.
+  // NUM_CLUSTER_INPUTS * COMPONENTS_PER_TILE
+  sc_out<Word>         *requestsOut;
+
+  // Responses sent to each output of each component.
+  // NUM_CLUSTER_OUTPUTS * COMPONENTS_PER_TILE
+  sc_out<Word>         *responsesOut;
+
   // Some AddressedWord outputs for longer communications?
 
 /* Constructors and destructors */

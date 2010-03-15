@@ -20,11 +20,22 @@
 class TileComponent : public Component {
 
 public:
+
 /* Ports */
+
+  // Clock
   sc_in<bool>            clock;
-  sc_in<Word>           *in;              // array
-  sc_out<AddressedWord> *out;             // array
-  sc_in<bool>           *flowControlIn;   // array
+
+  // All inputs to the component. There should be NUM_CLUSTER_INPUTS of them.
+  sc_in<Word>           *in;
+
+  // All outputs of the component. There should be NUM_CLUSTER_OUTPUTS of them.
+  sc_out<AddressedWord> *out;
+
+  // A flow control signal for each output (NUM_CLUSTER_OUTPUTS).
+  sc_in<bool>           *flowControlIn;
+
+  // A flow control signal for each input (NUM_CLUSTER_INPUTS).
   sc_out<bool>          *flowControlOut;  // array
 
 /* Constructors and destructors */

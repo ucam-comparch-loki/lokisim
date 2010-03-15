@@ -20,16 +20,30 @@
 class FlowControlOut: public Component {
 
 public:
+
 /* Ports */
-  sc_in<AddressedWord>   *dataIn;                // array
-  sc_in<Word>            *responses;             // array
-  sc_out<AddressedWord>  *dataOut, *requests;    // array
-  sc_out<bool>           *flowControl;           // array
+
+  // Data received from the component to be sent out onto the network. There
+  // should be "width" elements of the array.
+  sc_in<AddressedWord>   *dataIn;
+
+  // Requests sent out onto the network to see if it is possible to send the
+  // data yet ("width" elements).
+  sc_out<AddressedWord>  *requests;
+
+  // Responses to the requests ("width" elements).
+  sc_in<Word>            *responses;
+
+  // Data sent out onto the network after a positive response ("width" elements).
+  sc_out<AddressedWord>  *dataOut;
+
+  // A flow control signal for each output ("width" elements).
+  sc_out<bool>           *flowControl;
 
 /* Constructors and destructors */
   SC_HAS_PROCESS(FlowControlOut);
-  FlowControlOut(sc_core::sc_module_name name, int ID, int width);
-  FlowControlOut(sc_core::sc_module_name name, int width);
+  FlowControlOut(sc_module_name name, int ID, int width);
+  FlowControlOut(sc_module_name name, int width);
   virtual ~FlowControlOut();
 
 /* Methods */
