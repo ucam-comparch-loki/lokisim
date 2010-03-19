@@ -40,6 +40,9 @@ public:
   // The instruction read from the cache.
   sc_out<Instruction> instructionOut;
 
+  // The offset to jump to in the cache.
+  sc_in<short>        jumpOffset;
+
   // The address tag being looked up in the cache.
   sc_in<Address>      address;
 
@@ -77,6 +80,7 @@ private:
 
   void insertInstruction();
   void lookup();
+  void jump();
   void finishedRead();
   void updateRTF();
   void write();

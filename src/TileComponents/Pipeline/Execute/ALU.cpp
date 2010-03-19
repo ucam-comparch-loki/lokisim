@@ -78,7 +78,7 @@ void ALU::doOp() {
 
 }
 
-ALU::ALU(sc_core::sc_module_name name) : Component(name) {
+ALU::ALU(sc_module_name name) : Component(name) {
 
   SC_METHOD(doOp);
   sensitive << select;

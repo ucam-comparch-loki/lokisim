@@ -41,6 +41,9 @@ public:
   // The channel-ends to retrieve data from.
   sc_out<short>       toRCET1, toRCET2;
 
+  // The operation for the receive channel-end table to perform.
+  sc_out<short>       channelOp;
+
   // The register to write the result back to.
   sc_out<short>       writeAddr;
 
@@ -49,6 +52,9 @@ public:
 
   // The remote channel to send the data/instruction to.
   sc_out<short>       rChannel;
+
+  // Stall the pipeline until this output channel is empty.
+  sc_out<short>       waitOnChannel;
 
   // Tell the ALU whether an instruction should always execute, or be
   // conditional on the predicate register being true or false.
@@ -64,6 +70,9 @@ public:
   // Choose where ALU's operands come from by selecting appropriate
   // multiplexor inputs.
   sc_out<short>       op1Select, op2Select;
+
+  // The amount we want to jump by in the instruction packet cache.
+  sc_out<short>       jumpOffset;
 
   // The address of the instruction packet we want to fetch.
   sc_out<Address>     toFetchLogic;
@@ -95,8 +104,21 @@ private:
 
 private:
 
-  int fetchChannel;
-  int regLastWritten;
+  // The possible sources of ALU operands.
+  enum Source {RCET, REGISTERS, ALU, SIGN_EXTEND};
+
+  // The remote channel we are fetching from (set using SETFETCHCH).
+  int  fetchChannel;
+
+  // The remote channel we are sending instructions to.
+  int  sendChannel;
+
+  // The destination register of the previous operation. Used to determine
+  // whether data should come from the register or directly from the ALU.
+  int  regLastWritten;
+
+  // Tells whether or not we are in remote execution mode.
+  bool remoteExecute;
 
 };
 

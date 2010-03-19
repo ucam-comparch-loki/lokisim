@@ -65,6 +65,10 @@ public:
   sc_in<short>        remoteChannelIn;
   sc_out<short>       remoteChannelOut;
 
+  // Stall the pipeline until this output channel is empty.
+  sc_in<short>        waitOnChannelIn;
+  sc_out<short>       waitOnChannelOut;
+
   // The instruction to send to a remote cluster (passing through).
   sc_in<Instruction>  remoteInstIn;
   sc_out<Instruction> remoteInstOut;

@@ -113,7 +113,7 @@ FetchStage::FetchStage(sc_module_name name) :
   mux.result(instruction);
 
   cache.address(address);
-
+  cache.jumpOffset(jumpOffset);
   cache.cacheHit(cacheHit);
   cache.isRoomToFetch(roomToFetch);
   cache.readInstruction(readFromCache);

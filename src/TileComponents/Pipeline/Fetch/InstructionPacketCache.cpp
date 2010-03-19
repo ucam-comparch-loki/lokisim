@@ -92,6 +92,11 @@ void InstructionPacketCache::finishedRead() {
 
 }
 
+/* Jump to a new instruction specified by the offset amount. */
+void InstructionPacketCache::jump() {
+  cache.jump(jumpOffset.read());
+}
+
 /* Update the signal saying whether there is enough room to fetch another
  * packet */
 void InstructionPacketCache::updateRTF() {
@@ -129,6 +134,10 @@ InstructionPacketCache::InstructionPacketCache(sc_module_name name) :
 
   SC_METHOD(lookup);
   sensitive << address;
+  dont_initialize();
+
+  SC_METHOD(jump);
+  sensitive << jumpOffset;
   dont_initialize();
 
   SC_METHOD(finishedRead);

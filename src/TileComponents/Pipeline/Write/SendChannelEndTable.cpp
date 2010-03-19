@@ -28,6 +28,19 @@ void SendChannelEndTable::receivedData() {
   }
 }
 
+/* Stall the pipeline until the specified channel is empty. */
+void SendChannelEndTable::waitUntilEmpty() {
+
+  int channel = waitOnChannel.read();
+
+  if(!buffers[channel].isEmpty()) {
+    waiting = true;
+    stallValue = true;
+    updateStall3.write(!updateStall3.read());
+  }
+
+}
+
 /* If it is possible to send data onto the network, do it. */
 void SendChannelEndTable::canSend() {
 
@@ -39,12 +52,17 @@ void SendChannelEndTable::canSend() {
 
     if(!(buffers[i].isEmpty()) && send) {
       output[i].write(buffers.read(i));
+
+      // See if we can stop waiting
+      if(waiting && waitOnChannel.read() == i && buffers[i].isEmpty()) {
+        waiting = false;
+      }
     }
 
     if(buffers[i].isFull()) stall = true;
   }
 
-  stallValue = stall;
+  stallValue = stall || waiting;
   updateStall2.write(!updateStall2.read());
 
 }
@@ -69,9 +87,14 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name) :
   output      = new sc_out<AddressedWord>[NUM_SEND_CHANNELS];
 
   stallValue  = false;
+  waiting     = false;
 
   SC_METHOD(receivedData);
   sensitive << input;
+  dont_initialize();
+
+  SC_METHOD(waitUntilEmpty);
+  sensitive << waitOnChannel;
   dont_initialize();
 
   SC_METHOD(canSend);
@@ -79,7 +102,7 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name) :
   dont_initialize();
 
   SC_METHOD(updateStall);
-  sensitive << updateStall1 << updateStall2;
+  sensitive << updateStall1 << updateStall2 << updateStall3;
   // do initialise;
 
 }

@@ -54,6 +54,9 @@ public:
   // The remote channel to send data out on.
   sc_in<short>            remoteChannel;
 
+  // Stall the pipeline until this channel is empty.
+  sc_in<short>            waitOnChannel;
+
   // Signal that the pipeline should stall because a send channel is full.
   sc_out<bool>            stallOut;
 
@@ -109,6 +112,7 @@ private:
   sc_buffer<Word>     ALUtoRegs, muxOutput;
   sc_buffer<Word>     ALUtoMux, instToMux;
   sc_buffer<short>    muxSelect;
+  sc_buffer<short>    waitChannelSig;
   sc_signal<bool>     newInstSig, newDataSig;
 
 };

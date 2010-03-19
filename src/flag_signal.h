@@ -82,7 +82,7 @@ protected:
 
 public:
 
-  flag_signal() : sc_buffer<T>() {
+  flag_signal() : sc_buffer<T>(sc_core::sc_gen_unique_name("flag")) {
     newDataFlag = new bool;
     *newDataFlag = false;
   }

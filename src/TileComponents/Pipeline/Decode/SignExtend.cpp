@@ -13,7 +13,7 @@ void SignExtend::doOp() {
   output.write(d);
 }
 
-SignExtend::SignExtend(sc_core::sc_module_name name) : Component(name) {
+SignExtend::SignExtend(sc_module_name name) : Component(name) {
 
   SC_METHOD(doOp);
   sensitive << input;

@@ -45,7 +45,7 @@ public:
 public:
 
   SC_HAS_PROCESS(ALU);
-  ALU(sc_core::sc_module_name name);
+  ALU(sc_module_name name);
   virtual ~ALU();
 
 //==============================//

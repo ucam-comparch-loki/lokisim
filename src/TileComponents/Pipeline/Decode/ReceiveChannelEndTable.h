@@ -1,7 +1,7 @@
 /*
  * ReceiveChannelEndTable.h
  *
- * Component containing a vector of buffers storing data from input channels.
+ * Component containing a buffer storing data from each input channel.
  *
  * Reads from the table are blocking: if a buffer being read from is empty,
  * the cluster will stall until data has arrived there.
@@ -42,6 +42,9 @@ public:
   // Data being sent to the ALU.
   sc_out<Data>  toALU1, toALU2;
 
+  // The operation to carry out.
+  sc_in<short>  operation;
+
   // Tell the cluster to stall if it attempts to read from an empty buffer,
   // and allow it to continue again once data has arrived at that buffer.
   sc_out<bool>  stallOut;
@@ -65,6 +68,8 @@ private:
   void receivedInput();
   void read1();
   void read2();
+  void doOperation();
+  void updateToALU1();
   void updateFlowControl();
   void updateStall();
   void checkWaiting(int channelEnd);
@@ -74,10 +79,24 @@ private:
 // Local state
 //==============================//
 
+public:
+
+  // The operations the receive channel-end table can carry out.
+  enum ChannelOp {TSTCH, SELCH};
+
 private:
 
+  // A buffer for each channel-end.
   BufferArray<Word> buffers;
-  int               waiting1, waiting2; // Channel ends we're waiting for data on
+
+  // Channel ends we're waiting for data on.
+  int               waiting1, waiting2;
+
+  // There are multiple writers to port toALU1, so we need to store the value
+  // they want to send.
+  Data              dataToALU1;
+
+  // Whether this component is telling the pipeline to stall.
   bool              stallValue;
 
 //==============================//
@@ -86,8 +105,16 @@ private:
 
 private:
 
+  // The contents of the buffers have changed, so the flow control signals
+  // should be re-evaluated.
   sc_buffer<bool>   readFromBuffer, wroteToBuffer;
-  sc_signal<bool>   updateStall1, updateStall2;
+
+  // Signal that there is new data to be sent on port toALU1.
+  sc_signal<bool>   updateToALU1_1, updateToALU1_2, updateToALU1_3;
+
+  // Signal that something has happened which may have changed whether or not
+  // this component is causing the pipeline to stall.
+  sc_signal<bool>   updateStall1, updateStall2, updateStall3;
 
 };
 

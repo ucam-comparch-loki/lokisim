@@ -47,6 +47,9 @@ public:
   // The address to lookup in the instruction packet cache.
   sc_out<Address>       address;
 
+  // The offset to jump by in the instruction packet cache.
+  sc_out<short>         jumpOffset;
+
   // The instruction to send to a remote cluster.
   sc_out<Instruction>   remoteInst;
 
@@ -67,6 +70,9 @@ public:
 
   // The remote channel to send the data or instruction to.
   sc_out<short>         remoteChannel;
+
+  // Stall the pipeline until this output channel is empty.
+  sc_out<short>         waitOnChannel;
 
   // Two data values from the receive channel-end table.
   sc_out<Data>          chEnd1, chEnd2;
@@ -139,6 +145,7 @@ private:
   sc_buffer<Word>        *fromNetwork;
   sc_buffer<Address>      decodeToFetch;
   sc_buffer<short>        decodeToRCET1, decodeToRCET2;
+  sc_buffer<short>        RCETOperation;
   sc_buffer<Data>         decodeToExtend, baseAddress;
   sc_signal<bool>         rcetStallSig, flStallSig;
 

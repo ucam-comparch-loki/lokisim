@@ -33,6 +33,10 @@ public:
   // The remote channel the data is to be sent to.
   sc_in<short>            remoteChannel;
 
+  // Stall the pipeline until this channel has become empty. This allows
+  // synchronisation between clusters.
+  sc_in<short>            waitOnChannel;
+
   // The outputs to the network. There should be NUM_SEND_CHANNELS of them.
   sc_out<AddressedWord>  *output;
 
@@ -61,6 +65,7 @@ public:
 protected:
 
   void          receivedData();
+  void          waitUntilEmpty();
   void          updateStall();
   virtual void  canSend();
   virtual short chooseBuffer();
@@ -71,8 +76,14 @@ protected:
 
 protected:
 
+  // A buffer for each output channel.
   BufferArray<AddressedWord> buffers;
+
+  // Tells whether or not there is a full buffer, requiring a pipeline stall.
   bool stallValue;
+
+  // Tells whether or not we are currently waiting for a channel to empty.
+  bool waiting;
 
 //==============================//
 // Signals (wires)
@@ -80,7 +91,9 @@ protected:
 
 protected:
 
-  sc_buffer<bool>         updateStall1, updateStall2;
+  // Signal that something has happened which requires the stall output
+  // to be changed.
+  sc_buffer<bool>         updateStall1, updateStall2, updateStall3;
 
 };
 

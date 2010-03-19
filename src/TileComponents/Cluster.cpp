@@ -83,6 +83,7 @@ Cluster::Cluster(sc_module_name name, int ID) :
 
   // To/from fetch stage
   decode.address(FLtoIPKC);           fetch.address(FLtoIPKC);
+  decode.jumpOffset(jumpOffsetSig);   fetch.jumpOffset(jumpOffsetSig);
   fetch.instruction(nextInst);        decode.instructionIn(nextInst);
 
   fetch.cacheHit(cacheHitSig);        decode.cacheHit(cacheHitSig);
@@ -111,6 +112,7 @@ Cluster::Cluster(sc_module_name name, int ID) :
 
   decode.remoteInst(decToExInst);     execute.remoteInstIn(decToExInst);
   decode.remoteChannel(decToExRChan); execute.remoteChannelIn(decToExRChan);
+  decode.waitOnChannel(decToExWOCHE); execute.waitOnChannelIn(decToExWOCHE);
   decode.predicate(predicate);        execute.predicate(predicate);
   decode.setPredicate(setPredSig);    execute.setPredicate(setPredSig);
   decode.stallOut(decStallSig);
@@ -122,6 +124,7 @@ Cluster::Cluster(sc_module_name name, int ID) :
 
   execute.remoteInstOut(exToWriteInst);     write.inst(exToWriteInst);
   execute.remoteChannelOut(exToWriteRChan); write.remoteChannel(exToWriteRChan);
+  execute.waitOnChannelOut(exToWriteWOCHE); write.waitOnChannel(exToWriteWOCHE);
 
   execute.writeOut(writeAddr);        write.inRegAddr(writeAddr);
   execute.indWriteOut(indWriteAddr);  write.inIndAddr(indWriteAddr);

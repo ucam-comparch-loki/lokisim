@@ -14,6 +14,7 @@ void WriteStage::newCycle() {
       COPY_IF_NEW(fromALU, regData);
       COPY_IF_NEW(inRegAddr, outRegAddr);
       COPY_IF_NEW(inIndAddr, outIndAddr);
+      COPY_IF_NEW(waitOnChannel, waitChannelSig);
     }
 
     wait(clock.posedge_event());
@@ -73,6 +74,7 @@ WriteStage::WriteStage(sc_module_name name) :
   scet.clock(clock);
   scet.stallOut(stallOut);
   scet.remoteChannel(remoteChannel);
+  scet.waitOnChannel(waitChannelSig);
 
   for(int i=0; i<NUM_SEND_CHANNELS; i++) {
     scet.output[i](output[i]);

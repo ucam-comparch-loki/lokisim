@@ -34,6 +34,9 @@ public:
   // The instruction selected for the rest of the pipeline to execute.
   sc_out<Instruction> instruction;
 
+  // The offset to jump by in the cache.
+  sc_in<short>        jumpOffset;
+
   // The address tag to lookup in the instruction packet cache.
   sc_in<Address>      address;
 
@@ -50,7 +53,7 @@ public:
 public:
 
   SC_HAS_PROCESS(FetchStage);
-  FetchStage(sc_core::sc_module_name name);
+  FetchStage(sc_module_name name);
   virtual ~FetchStage();
 
 //==============================//

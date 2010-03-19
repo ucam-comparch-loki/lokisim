@@ -7,6 +7,9 @@
 
 #include "ReceiveChannelEndTable.h"
 
+#define NO_CHANNEL -1
+#define ALL_CHANNELS -2
+
 /* Put any newly received values into their respective buffers. */
 void ReceiveChannelEndTable::receivedInput() {
   // Do something if we want more channel ends than channels?
@@ -56,9 +59,50 @@ void ReceiveChannelEndTable::read(short inChannel, short outChannel) {
 
   Data d = static_cast<Data>(w);
 
-  if(outChannel==0) toALU1.write(d);
+  if(outChannel==0) {
+    dataToALU1 = d;
+    updateToALU1_1.write(!updateToALU1_1.read());
+  }
   else if(outChannel==1) toALU2.write(d);
 
+}
+
+/* Carry out the operation asked of this component. */
+void ReceiveChannelEndTable::doOperation() {
+  switch(operation.read()) {
+
+    // Return whether or not the given channel contains data
+    case TSTCH : {
+      int testedChannel = fromDecoder1.read();
+      if(buffers[testedChannel].isEmpty()) dataToALU1 = Data(0);
+      else dataToALU1 = Data(1);
+      updateToALU1_2.write(!updateToALU1_2.read());
+    }
+
+    // Return the value of the first buffer with data in it (stall if none)
+    case SELCH : {
+
+      for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) { // TODO: round-robin
+        if(!buffers[i].isEmpty()) {
+          dataToALU1 = Data(i);
+          updateToALU1_2.write(!updateToALU1_2.read());
+          return;
+        }
+      }
+
+      // If we have got this far, all the buffers are empty
+      waiting1 = ALL_CHANNELS;  // Is it safe to overwrite the existing value?
+      stallValue = true;
+      updateStall3.write(!updateStall3.read());
+
+    }
+
+  }
+}
+
+/* Send new data out on the toALU1 port. */
+void ReceiveChannelEndTable::updateToALU1() {
+  toALU1.write(dataToALU1);
 }
 
 /* Update the flow control values when a buffer has been read from or
@@ -72,19 +116,27 @@ void ReceiveChannelEndTable::updateFlowControl() {
 /* Check to see if we were waiting for data on this channel end, and if so,
  * send it immediately. Unstall the pipeline if appropriate. */
 void ReceiveChannelEndTable::checkWaiting(int channelEnd) {
-  if(waiting1 == channelEnd) {
+
+  if(waiting1 == ALL_CHANNELS) {
+    // Send the index of the channel-end with data
+    dataToALU1 = Data(channelEnd);
+    updateToALU1_3.write(!updateToALU1_3.read());
+    waiting1 = NO_CHANNEL;
+  }
+  else if(waiting1 == channelEnd) {
     read(waiting1, 0);
-    waiting1 = -1;  // Not waiting for anything anymore
+    waiting1 = NO_CHANNEL;  // Not waiting for anything anymore
   }
   if(waiting2 == channelEnd) {
     read(waiting2, 1);
-    waiting2 = -1;  // Not waiting for anything anymore
+    waiting2 = NO_CHANNEL;  // Not waiting for anything anymore
   }
 
-  if(waiting1 == -1 && waiting2 == -1) {
+  if(waiting1 == NO_CHANNEL && waiting2 == NO_CHANNEL) {
     stallValue = false;
     updateStall2.write(!updateStall2.read());
   }
+
 }
 
 /* Update the this component's stalling status. */
@@ -99,7 +151,7 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name) :
   flowControl = new sc_out<bool>[NUM_RECEIVE_CHANNELS];
   fromNetwork = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
 
-  waiting1 = waiting2 = -1;
+  waiting1 = waiting2 = NO_CHANNEL;
   stallValue = false;
 
   SC_METHOD(receivedInput);
@@ -112,6 +164,14 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name) :
 
   SC_METHOD(read2);
   sensitive << fromDecoder2;
+  dont_initialize();
+
+  SC_METHOD(doOperation);
+  sensitive << operation;
+  dont_initialize();
+
+  SC_METHOD(updateToALU1);
+  sensitive << updateToALU1_1 << updateToALU1_2 << updateToALU1_3;
   dont_initialize();
 
   SC_METHOD(updateFlowControl);

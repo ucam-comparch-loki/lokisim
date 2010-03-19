@@ -27,7 +27,7 @@ class IPKCacheStorage : public MappedStorage<K,T> {
 
 public:
 
-  IPKCacheStorage(int size) : MappedStorage<K,T>(size) {
+  IPKCacheStorage(short size) : MappedStorage<K,T>(size) {
     currentInstruction = NOT_IN_USE;
     refillPointer = 0;
     fillCount = 0;
@@ -83,6 +83,19 @@ public:
     if(currentInstruction == NOT_IN_USE) currentInstruction = refillPointer;
 
     incrementRefill();
+  }
+
+  // Jump to a new instruction at a given offset.
+  void jump(int offset) {
+    currentInstruction += offset;
+
+    // Bring it back within required bounds
+    if(currentInstruction >= Storage<T>::data.size()) {
+      currentInstruction -= Storage<T>::data.size();
+    }
+    else if(currentInstruction < 0) {
+      currentInstruction += Storage<T>::data.size();
+    }
   }
 
   int remainingSpace() const {

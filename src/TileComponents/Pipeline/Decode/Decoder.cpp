@@ -7,6 +7,7 @@
 
 #include "Decoder.h"
 #include "../../../Utility/InstructionMap.h"
+#include "ReceiveChannelEndTable.h"
 
 void Decoder::decodeInstruction() {
 
@@ -26,35 +27,66 @@ void Decoder::decodeInstruction() {
   bool setPred = i.getSetPredicate();
   short remoteChannel = i.getRchannel();
 
+  // If we are in remote execution mode, send all marked instructions.
+  if(remoteExecute) {
+    if(setPred) {
+      instructionOut.write(i);
+      rChannel.write(remoteChannel);
+    }
+    // Drop out of remote execution mode when we find an unmarked instruction.
+    else remoteExecute = false;
+  }
+
   predicate.write(pred);
   setPredicate.write(setPred);
+
+  if(operation == InstructionMap::TSTCH) {
+    writeAddr.write(destination);
+    toRCET1.write(immediate);
+    channelOp.write(ReceiveChannelEndTable::TSTCH);
+    op1Select.write(RCET);
+    this->operation.write(operation);
+    return;
+  }
+
+  if(operation == InstructionMap::IBJMP) {
+    jumpOffset.write(immediate);
+    return;
+  }
+
+  if(operation == InstructionMap::WOCHE) {
+    waitOnChannel.write(immediate);
+    return;
+  }
+
+  if(operation == InstructionMap::RMTEXECUTE) {
+    remoteExecute = true;
+    sendChannel = remoteChannel;
+    return;
+  }
 
   // Remote instructions
   if(operation>=InstructionMap::RMTFETCH && operation<=InstructionMap::RMTNXIPK) {
     Instruction inst;
-    std::string *opName = new std::string();
+    std::string opName;
     inst.setDest(destination);
     inst.setImmediate(immediate);
 
     switch(operation) {
       case InstructionMap::RMTFETCH :
-        *opName = "fetch";
-        inst.setOp(InstructionMap::opcode(*opName));
+        opName = "fetch";
+        inst.setOp(InstructionMap::opcode(opName));
         break;
       case InstructionMap::RMTFETCHPST :
-        *opName = "fetchpst";
-        inst.setOp(InstructionMap::opcode(*opName));
+        opName = "fetchpst";
+        inst.setOp(InstructionMap::opcode(opName));
         break;
 //      case InstructionMap::RMTFILL :
-//        inst.setOp(???);
-//      case InstructionMap::RMTEXECUTE :
 //        inst.setOp(???);
 //      case InstructionMap::RMTNXIPK :
 //        inst.setOp(???);
       default: cout<<"Haven't implemented instruction "<<operation<<" yet."<<endl;
     }
-
-    delete opName;
 
     instructionOut.write(inst);
     rChannel.write(remoteChannel);
@@ -88,20 +120,19 @@ void Decoder::decodeInstruction() {
   if(InstructionMap::isALUOperation(operation)) {
     this->operation.write(operation);
   }
-  //else this->operation.write(InstructionMap::NOP);
 
   // Determine where to read the first operand from: RCET or register file
   if(operand1 >= NUM_REGISTERS) {
     toRCET1.write(operand1 - NUM_REGISTERS);
-    op1Select.write(0);         // ALU wants data from receive channel end table
+    op1Select.write(RCET);          // ALU wants data from receive channel end table
   }
   else {
     if(operand1 == regLastWritten) {
-      op1Select.write(2);       // ALU wants data from itself
+      op1Select.write(ALU);         // ALU wants data from itself
     }
     else {
       regAddr1.write(operand1);
-      op1Select.write(1);       // ALU wants data from registers
+      op1Select.write(REGISTERS);   // ALU wants data from registers
     }
   }
 
@@ -109,19 +140,19 @@ void Decoder::decodeInstruction() {
   if(InstructionMap::hasImmediate(operation)) {
     Data* d = new Data(immediate);
     toSignExtend.write(*d);
-    op2Select.write(3);         // ALU wants data from sign extender
+    op2Select.write(SIGN_EXTEND);   // ALU wants data from sign extender
   }
   else if(operand2 >= NUM_REGISTERS) {
     toRCET2.write(operand2 - NUM_REGISTERS);
-    op2Select.write(0);         // ALU wants data from receive channel end table
+    op2Select.write(RCET);          // ALU wants data from receive channel end table
   }
   else {
     if(operand2 == regLastWritten) {
-      op2Select.write(2);       // ALU wants data from itself
+      op2Select.write(ALU);         // ALU wants data from itself
     }
     else {
       regAddr2.write(operand2);
-      op2Select.write(1);       // ALU wants data from registers
+      op2Select.write(REGISTERS);   // ALU wants data from registers
     }
   }
 
@@ -136,7 +167,8 @@ void Decoder::decodeInstruction() {
 
 Decoder::Decoder(sc_module_name name) : Component(name) {
 
-  regLastWritten = -1;
+  regLastWritten = sendChannel = fetchChannel = -1;
+  remoteExecute = false;
 
   SC_METHOD(decodeInstruction);
   sensitive << instructionIn;

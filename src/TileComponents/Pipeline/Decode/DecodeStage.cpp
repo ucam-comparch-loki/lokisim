@@ -86,14 +86,16 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   decoder.indWrite(indWriteAddr);
   decoder.instructionOut(remoteInst);
   decoder.isIndirectRead(isIndirect);
+  decoder.jumpOffset(jumpOffset);
   decoder.predicate(predicate);
   decoder.setPredicate(setPredicate);
-  decoder.toFetchLogic(decodeToFetch); fl.in(decodeToFetch);
+  decoder.toFetchLogic(decodeToFetch);    fl.in(decodeToFetch);
   decoder.rChannel(remoteChannel);
-
-  decoder.toRCET1(decodeToRCET1); rcet.fromDecoder1(decodeToRCET1);
-  decoder.toRCET2(decodeToRCET2); rcet.fromDecoder2(decodeToRCET2);
-  decoder.toSignExtend(decodeToExtend); extend.input(decodeToExtend);
+  decoder.waitOnChannel(waitOnChannel);
+  decoder.toRCET1(decodeToRCET1);         rcet.fromDecoder1(decodeToRCET1);
+  decoder.toRCET2(decodeToRCET2);         rcet.fromDecoder2(decodeToRCET2);
+  decoder.channelOp(RCETOperation);       rcet.operation(RCETOperation);
+  decoder.toSignExtend(decodeToExtend);   extend.input(decodeToExtend);
 
   decoder.operation(operation);
   decoder.op1Select(op1Select);

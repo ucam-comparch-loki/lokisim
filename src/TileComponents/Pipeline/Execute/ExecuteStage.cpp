@@ -22,6 +22,7 @@ void ExecuteStage::newCycle() {
       COPY_IF_NEW(writeIn, writeOut);
       COPY_IF_NEW(indWriteIn, indWriteOut);
       COPY_IF_NEW(remoteChannelIn, remoteChannelOut);
+      COPY_IF_NEW(waitOnChannelIn, waitOnChannelOut);
       COPY_IF_NEW(predicate, predicateSig);
     }
     wait(clock.posedge_event());
