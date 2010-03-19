@@ -12,20 +12,14 @@
 
 class AddressedWord : public Word {
 
-  Word payload;
-  short channelID;
-  // Type of word?
+//==============================//
+// Methods
+//==============================//
 
 public:
+
   Word getPayload() const;
   short getChannelID() const;
-
-  AddressedWord();
-  AddressedWord(Word w, short chID);
-  virtual ~AddressedWord();
-
-
-/* Necessary functions/operators to pass this datatype down a channel */
 
   friend void sc_trace(sc_core::sc_trace_file*& tf, const AddressedWord& w, const std::string& txt) {
     sc_trace(tf, w.payload, txt + ".payload");
@@ -40,6 +34,27 @@ public:
     os << "(" << v.payload << " -> " << v.channelID << ")";
     return os;
   }
+
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
+  AddressedWord();
+  AddressedWord(Word w, short chID);
+  virtual ~AddressedWord();
+
+//==============================//
+// Local state
+//==============================//
+
+private:
+
+  Word payload;
+  short channelID;
+  // Type of word?
+
 };
 
 #endif /* ADDRESSEDWORD_H_ */

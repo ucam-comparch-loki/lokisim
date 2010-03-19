@@ -20,8 +20,12 @@ using std::vector;
 template<class T>
 class Storage {
 
+//==============================//
+// Methods
+//==============================//
+
 public:
-/* Methods */
+
   virtual T& read() {
     throw "Error: Need to implement read() in this subclass.";
   }
@@ -30,7 +34,12 @@ public:
     throw "Error: Need to implement write() in this subclass.";
   }
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   Storage(int size) : data(size) {
 
   }
@@ -39,8 +48,12 @@ public:
 
   }
 
+//==============================//
+// Local state
+//==============================//
+
 protected:
-/* Local state */
+
   vector<T> data;
 
 };

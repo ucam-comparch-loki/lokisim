@@ -16,12 +16,11 @@
 
 class SignExtend: public Component {
 
-/* Methods */
-  void doOp();
+//==============================//
+// Ports
+//==============================//
 
 public:
-
-/* Ports */
 
   // The input value.
   sc_in<Data>   input;
@@ -29,10 +28,23 @@ public:
   // The output value, padded to 32 bits.
   sc_out<Data>  output;
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   SC_HAS_PROCESS(SignExtend);
-  SignExtend(sc_core::sc_module_name name);
+  SignExtend(sc_module_name name);
   virtual ~SignExtend();
+
+//==============================//
+// Methods
+//==============================//
+
+private:
+
+  void doOp();
 
 };
 

@@ -11,8 +11,13 @@
 #include "Word.h"
 
 class MemoryRequest : public Word {
+
+//==============================//
+// Methods
+//==============================//
+
 public:
-/* Methods */
+
   unsigned short getMemoryAddress() const;
   unsigned short getReturnAddress() const;
   unsigned short getNumOps() const;
@@ -24,18 +29,23 @@ public:
   void incrementAddress();
   void setIPKRequest(bool val);
 
-/* Constructors and destructors */
-  MemoryRequest();
-  MemoryRequest(short startAddr, short returnAddr, short numOps, bool read);
-  MemoryRequest(const Word& other);
-  virtual ~MemoryRequest();
-
 private:
-/* Methods */
+
   void setMemoryAddress(short val);
   void setReturnAddress(short val);
   void setNumOps(short val);
   void setRWBit(bool val);
+
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
+  MemoryRequest();
+  MemoryRequest(short startAddr, short returnAddr, short numOps, bool read);
+  MemoryRequest(const Word& other);
+  virtual ~MemoryRequest();
 
 };
 

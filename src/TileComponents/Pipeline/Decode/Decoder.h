@@ -20,9 +20,11 @@
 
 class Decoder: public Component {
 
-public:
+//==============================//
+// Ports
+//==============================//
 
-/* Ports */
+public:
 
   // The instruction to decode.
   sc_in<Instruction>  instructionIn;
@@ -69,16 +71,30 @@ public:
   // The immediate we want to be padded to 32 bits.
   sc_out<Data>        toSignExtend;
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   SC_HAS_PROCESS(Decoder);
   Decoder(sc_module_name name);
   virtual ~Decoder();
 
-private:
-/* Methods */
-  void doOp();
+//==============================//
+// Methods
+//==============================//
 
-/* Local state */
+private:
+
+  void decodeInstruction();
+
+//==============================//
+// Local state
+//==============================//
+
+private:
+
   int fetchChannel;
   int regLastWritten;
 

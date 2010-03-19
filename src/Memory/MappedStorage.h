@@ -19,7 +19,12 @@
 template<class K, class T>
 class MappedStorage : public Storage<T> {
 
+//==============================//
+// Methods
+//==============================//
+
 public:
+
   // Returns whether the given address matches any of the tags
   virtual bool checkTags(const K& key) {
     for(unsigned int i=0; i<tags.size(); i++) {
@@ -43,7 +48,17 @@ public:
     Storage<T>::data.at(position) = newData;
   }
 
-/* Constructors and destructors */
+protected:
+
+  // Returns the position that data with the given address tag should be stored
+  virtual int getPosition(const K& key) = 0;
+
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   MappedStorage(int size) : Storage<T>(size), tags(size) {
 
   }
@@ -52,12 +67,12 @@ public:
 
   }
 
-protected:
-/* Methods */
-  // Returns the position that data with the given address tag should be stored
-  virtual int getPosition(const K& key) = 0;
+//==============================//
+// Local state
+//==============================//
 
-/* Local state */
+protected:
+
   vector<K> tags;
 
 };

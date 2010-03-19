@@ -28,16 +28,25 @@
 template<class T>
 class Multiplexor: public Component {
 
+//==============================//
+// Ports
+//==============================//
+
 public:
-/* Ports */
+
   sc_in<short> select;
   sc_out<T>    result;
 
   // Inputs to be declared in subclasses
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   SC_HAS_PROCESS(Multiplexor);
-  Multiplexor(sc_core::sc_module_name name) : Component(name) {
+  Multiplexor(sc_module_name name) : Component(name) {
 
     SC_METHOD(doOp);
     sensitive << select;
@@ -49,8 +58,12 @@ public:
 
   }
 
+//==============================//
+// Methods
+//==============================//
+
 protected:
-/* Methods */
+
   virtual void doOp() = 0;
 
 };

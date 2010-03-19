@@ -19,9 +19,11 @@
 
 class TileComponent : public Component {
 
-public:
+//==============================//
+// Ports
+//==============================//
 
-/* Ports */
+public:
 
   // Clock
   sc_in<bool>            clock;
@@ -38,11 +40,21 @@ public:
   // A flow control signal for each input (NUM_CLUSTER_INPUTS).
   sc_out<bool>          *flowControlOut;  // array
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   TileComponent(sc_module_name name, int ID);
   virtual ~TileComponent();
 
-/* Methods */
+//==============================//
+// Methods
+//==============================//
+
+public:
+
   virtual void storeData(std::vector<Word>& data) = 0;
 
   enum Type {CLUSTER, MEMORY};

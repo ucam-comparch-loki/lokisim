@@ -22,9 +22,11 @@
 
 class PipelineStage : public Component {
 
-public:
+//==============================//
+// Ports
+//==============================//
 
-/* Ports */
+public:
 
   // Clock.
   sc_in<bool> clock;
@@ -33,13 +35,22 @@ public:
   // can continue as normal.
   sc_in<bool> stall;
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   SC_HAS_PROCESS(PipelineStage);
   PipelineStage(sc_module_name name);
   ~PipelineStage();
 
+//==============================//
+// Methods
+//==============================//
+
 protected:
-/* Methods */
+
   virtual void newCycle() = 0;
 
 };

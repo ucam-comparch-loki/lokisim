@@ -21,9 +21,12 @@
 template<class K, class T>
 class IPKCacheStorage : public MappedStorage<K,T> {
 
+//==============================//
+// Constructors and destructors
+//==============================//
+
 public:
 
-/* Constructors and destructors */
   IPKCacheStorage(int size) : MappedStorage<K,T>(size) {
     currentInstruction = NOT_IN_USE;
     refillPointer = 0;
@@ -35,7 +38,12 @@ public:
 
   }
 
-/* Methods */
+//==============================//
+// Methods
+//==============================//
+
+public:
+
   // Returns whether the given address matches any of the tags
   virtual bool checkTags(const K& key) {
 
@@ -108,6 +116,7 @@ public:
   }
 
 private:
+
   // Returns the data corresponding to the given address.
   // Private because we don't want to use this version for IPK caches.
   virtual T& read(const K& key) {
@@ -133,7 +142,12 @@ private:
     fillCount--;
   }
 
-/* Local state */
+//==============================//
+// Local state
+//==============================//
+
+private:
+
   int currentInstruction, refillPointer, fillCount;
 
   // Do we want a single pending packet, or a queue of them?

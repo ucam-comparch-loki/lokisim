@@ -16,13 +16,9 @@
 
 class Word {
 
-protected:
-
-  unsigned long data;
-
-  unsigned int getBits(int start, int end) const;   // long?
-  void setBits(int start, int end, int value);
-  void clearBits(int start, int end);
+//==============================//
+// Constructors and destructors
+//==============================//
 
 public:
 
@@ -30,7 +26,11 @@ public:
   explicit Word(unsigned long data_);
   virtual ~Word();
 
-/* Necessary functions/operators to pass this datatype down a channel */
+//==============================//
+// Methods
+//==============================//
+
+public:
 
   friend void sc_trace(sc_core::sc_trace_file*& tf, const Word& w, const std::string& txt) {
     sc_core::sc_trace(tf, w.data, txt);
@@ -44,6 +44,20 @@ public:
     os << v.data;
     return os;
   }
+
+protected:
+
+  unsigned int getBits(int start, int end) const;   // long?
+  void setBits(int start, int end, int value);
+  void clearBits(int start, int end);
+
+//==============================//
+// Local state
+//==============================//
+
+protected:
+
+  unsigned long data;
 
 };
 

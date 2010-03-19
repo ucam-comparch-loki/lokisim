@@ -52,7 +52,7 @@
 <listOptionValue builtIn="false" value="gtest_main"/>
 </option>
 <option id="gnu.cpp.link.option.paths.510976370" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" valueType="libPaths">
-<listOptionValue builtIn="false" value="/usr/local/systemc-2.2/lib-linux64"/>
+<listOptionValue builtIn="false" value="/usr/local/lib-linux64"/>
 <listOptionValue builtIn="false" value="/usr/local/lib"/>
 </option>
 <inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.187407095" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">

@@ -22,29 +22,52 @@ using std::vector;
 
 class Tile : public Component {
 
+//==============================//
+// Ports
+//==============================//
+
 public:
-/* Ports */
+
   sc_in<bool> clock;
 //  sc_in<AddressedWord>  *inNorth,  *inEast,  *inSouth,  *inWest;
 //  sc_out<AddressedWord> *outNorth, *outEast, *outSouth, *outWest;
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   Tile(sc_module_name name, int ID);
   virtual ~Tile();
 
-/* Methods */
+//==============================//
+// Methods
+//==============================//
+
+public:
+
   void storeData(vector<Word>& data, int componentNumber);
 
   // Static functions for connecting Tiles together
   static void connectLeftRight(const Tile& left, const Tile& right);
   static void connectTopBottom(const Tile& top, const Tile& bottom);
 
+//==============================//
+// Components
+//==============================//
+
 private:
-/* Components */
+
   vector<WrappedTileComponent*> contents;  // Clusters and memories of this tile
   InterclusterNetwork           network;
 
-/* Signals (wires) */
+//==============================//
+// Signals (wires)
+//==============================//
+
+private:
+
   sc_buffer<Word>          *responsesToCluster, *requestsToCluster; // arrays
   flag_signal<Word>        *dataToCluster;                          // array
   sc_buffer<AddressedWord> *responsesFromCluster;                   // array

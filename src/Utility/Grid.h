@@ -19,8 +19,12 @@ using std::vector;
 template<class T>
 class Grid {
 
+//==============================//
+// Methods
+//==============================//
+
 public:
-/* Methods */
+
   // Return the element in the specified position
   const T& get(int row, int column) const {
     if(row>=0 && column>=0 && row<numRows() && column<numColumns()) {
@@ -50,7 +54,12 @@ public:
     return columns;
   }
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   Grid(int rows, int columns) : grid(rows) {
     this->rows = rows;
     this->columns = columns;
@@ -60,9 +69,13 @@ public:
 
   }
 
+//==============================//
+// Local state
+//==============================//
+
 private:
-/* Local state */
-  int                rows, columns;
+
+  int                 rows, columns;
   vector<vector<T*> > grid;
 
 };

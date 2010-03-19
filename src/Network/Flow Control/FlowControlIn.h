@@ -20,9 +20,11 @@
 
 class FlowControlIn: public Component {
 
-public:
+//==============================//
+// Ports
+//==============================//
 
-/* Ports */
+public:
 
   // Data received over the network, to be sent to the component's inputs.
   // The array should be "width" elements long.
@@ -41,20 +43,34 @@ public:
   // Data to be sent to each of the component's inputs ("width" elements).
   sc_out<Word>          *dataOut;
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   SC_HAS_PROCESS(FlowControlIn);
   FlowControlIn(sc_module_name name, int width);
   virtual ~FlowControlIn();
 
+//==============================//
+// Methods
+//==============================//
+
 protected:
-/* Methods */
+
   virtual void receivedFlowControl();
   virtual void receivedRequests();
   void         receivedData();
   virtual bool acceptRequest(Request r, int input);
   void         setup();
 
-/* Local state */
+//==============================//
+// Local state
+//==============================//
+
+protected:
+
   BufferArray<Word> buffers;   // The network's output buffers
   sc_buffer<bool>   tryToSend; // Signals that we have new data and want to send it
   int               width;     // The number of inputs and outputs

@@ -21,8 +21,12 @@ using sc_core::sc_object;
 template<class T>
 class flag_signal : public sc_buffer<T> {
 
+//==============================//
+// Methods
+//==============================//
+
 public:
-/* Methods */
+
   virtual const T& read() const {
     return this->m_cur_val;
   }
@@ -62,6 +66,7 @@ public:
   }
 
 protected:
+
   // Update the value held in this wire (copied from sc_buffer)
   virtual void update() {
     this->m_cur_val = this->m_new_val;
@@ -71,8 +76,12 @@ protected:
     this->m_delta = sc_core::sc_delta_count();
   }
 
+//==============================//
+// Constructors and destructors
+//==============================//
+
 public:
-/* Constructors and destructors */
+
   flag_signal() : sc_buffer<T>() {
     newDataFlag = new bool;
     *newDataFlag = false;
@@ -82,8 +91,12 @@ public:
 
   }
 
+//==============================//
+// Local state
+//==============================//
+
 private:
-/* Local state */
+
   // Inefficient to have a pointer, but need to modify from within const methods
   // Suggestions of alternative approaches welcome!
   bool* newDataFlag;

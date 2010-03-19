@@ -18,35 +18,91 @@
 
 class ExecuteStage: public PipelineStage {
 
+//==============================//
+// Ports
+//==============================//
+
 public:
-/* Ports */
-  sc_in<Data>         fromRChan1, fromReg1, fromALU1;
-  sc_in<Data>         fromRChan2, fromReg2, fromALU2, fromSExtend;
+
+  // Two data inputs from the receive channel-end table.
+  sc_in<Data>         fromRChan1, fromRChan2;
+
+  // Two data inputs from the register file.
+  sc_in<Data>         fromReg1, fromReg2;
+
+  // Two data inputs forwarded from the result of the previous operation.
+  sc_in<Data>         fromALU1, fromALU2;
+
+  // Data input from the sign extender.
+  sc_in<Data>         fromSExtend;
+
+  // Result of this computation.
   sc_out<Data>        output;
-  sc_in<short>        op1Select, op2Select, operation, predicate;
+
+  // The operation to carry out.
+  sc_in<short>        operation;
+
+  // Select where to get both inputs of the computation from.
+  sc_in<short>        op1Select, op2Select;
+
+  // Tells whether the computation should be conditional on some value of
+  // the predicate register.
+  sc_in<short>        predicate;
+
+  // Tells whether the result of this computation should be written to the
+  // predicate register.
   sc_in<bool>         setPredicate;
 
-  // Signals just passing through
-  sc_in<short>        writeIn, indWriteIn, remoteChannelIn;
-  sc_out<short>       writeOut, indWriteOut, remoteChannelOut;
+  // The register to write the result of this computation to (passing through).
+  sc_in<short>        writeIn;
+  sc_out<short>       writeOut;
+
+  // The indirect register to write the result to (passing through).
+  sc_in<short>        indWriteIn;
+  sc_out<short>       indWriteOut;
+
+  // The remote channel to send the result to (passing through).
+  sc_in<short>        remoteChannelIn;
+  sc_out<short>       remoteChannelOut;
+
+  // The instruction to send to a remote cluster (passing through).
   sc_in<Instruction>  remoteInstIn;
   sc_out<Instruction> remoteInstOut;
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   SC_HAS_PROCESS(ExecuteStage);
   ExecuteStage(sc_module_name name);
   virtual ~ExecuteStage();
 
+//==============================//
+// Methods
+//==============================//
+
 private:
-/* Methods */
+
   virtual void newCycle();
 
-/* Components */
+//==============================//
+// Components
+//==============================//
+
+private:
+
   ALU                 alu;
   Multiplexor3<Data>  in1Mux;
   Multiplexor4<Data>  in2Mux;
 
-/* Signals (wires) */
+//==============================//
+// Signals (wires)
+//==============================//
+
+private:
+
   sc_signal<Data>     toALU1, toALU2, outputSig;
   sc_buffer<short>    in1Select, in2Select, ALUSelect;
   sc_signal<short>    predicateSig;

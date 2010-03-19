@@ -23,7 +23,12 @@ public:
 
   enum Predicate {P, NOT_P, ALWAYS, END_OF_PACKET};
 
-/* Methods */
+//==============================//
+// Methods
+//==============================//
+
+public:
+
   unsigned short getOp() const;
   unsigned short getDest() const;
   unsigned short getSrc1() const;
@@ -43,14 +48,6 @@ public:
   void setPredicate(short val);
   void setSetPred(bool val);
 
-/* Constructors and destructors */
-  Instruction();
-  Instruction(const Word& other);
-  Instruction(unsigned int inst);   // For reading binary
-  Instruction(const string &inst);  // For reading assembler
-  virtual ~Instruction();
-
-/* Methods */
   bool operator== (const Instruction& other) const;
 
   // Has to go in header
@@ -60,9 +57,24 @@ public:
     return os;
   }
 
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
+  Instruction();
+  Instruction(const Word& other);
+  Instruction(unsigned int inst);   // For reading binary
+  Instruction(const string &inst);  // For reading assembler
+  virtual ~Instruction();
+
+//==============================//
+// String manipulation methods
+//==============================//
+
 private:
 
-/* String manipulation methods */
   vector<string>& split(const string &s, char delim, vector<string> &elems);
   vector<string>  split(const string &s, char delim);
   int             strToInt(const string &s);

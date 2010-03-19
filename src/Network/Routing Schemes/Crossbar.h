@@ -14,12 +14,21 @@
 
 class Crossbar : public RoutingScheme {
 
+//==============================//
+// Methods
+//==============================//
+
 public:
-/* Methods */
+
   virtual void route(sc_in<AddressedWord> *inputs, sc_out<Word> *outputs,
                      int length);
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   Crossbar();
   virtual ~Crossbar();
 

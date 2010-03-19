@@ -18,6 +18,10 @@
 template<class T>
 class Buffer: public Storage<T> {
 
+//==============================//
+// Methods
+//==============================//
+
 public:
 
   virtual T& read() {
@@ -74,21 +78,8 @@ public:
     std::cout << std::endl;
   }
 
-/* Constructors and destructors */
-  Buffer(int size) : Storage<T>(size) {
-    readFrom = writeTo = fillCount = 0;
-    this->size = size;
-  }
-
-  virtual ~Buffer() {
-
-  }
-
 private:
-/* Local state */
-  int readFrom, writeTo, fillCount, size;
 
-/* Methods */
   void incrementReadFrom() {
     readFrom = (readFrom >= size-1) ? 0 : readFrom+1;
     fillCount--;
@@ -98,6 +89,29 @@ private:
     writeTo = (writeTo >= size-1) ? 0 : writeTo+1;
     fillCount++;
   }
+
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
+  Buffer(int size) : Storage<T>(size) {
+    readFrom = writeTo = fillCount = 0;
+    this->size = size;
+  }
+
+  virtual ~Buffer() {
+
+  }
+
+//==============================//
+// Local state
+//==============================//
+
+private:
+
+  int readFrom, writeTo, fillCount, size;
 
 };
 

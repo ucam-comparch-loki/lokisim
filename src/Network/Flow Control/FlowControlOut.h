@@ -13,15 +13,16 @@
 #define FLOWCONTROLOUT_H_
 
 #include "../../Component.h"
-#include "../../Datatype/Array.h"
 #include "../../Datatype/AddressedWord.h"
 #include "../../Datatype/Request.h"
 
 class FlowControlOut: public Component {
 
-public:
+//==============================//
+// Ports
+//==============================//
 
-/* Ports */
+public:
 
   // Data received from the component to be sent out onto the network. There
   // should be "width" elements of the array.
@@ -40,22 +41,38 @@ public:
   // A flow control signal for each output ("width" elements).
   sc_out<bool>           *flowControl;
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   SC_HAS_PROCESS(FlowControlOut);
   FlowControlOut(sc_module_name name, int ID, int width);
   FlowControlOut(sc_module_name name, int width);
   virtual ~FlowControlOut();
 
-/* Methods */
+//==============================//
+// Methods
+//==============================//
+
+public:
+
   void          initialise();
 
 protected:
+
   void          receivedResponses();
   virtual void  allowedToSend(int position, bool isAllowed);
   virtual void  sendRequests();
   void          setup();
 
-/* Local state */
+//==============================//
+// Local state
+//==============================//
+
+protected:
+
   int width;
 
 };

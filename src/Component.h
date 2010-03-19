@@ -27,18 +27,32 @@ using std::endl;
 
 SC_MODULE (Component) {
 
+//==============================//
+// Local state
+//==============================//
+
 public:
-/* Local state */
+
   int id;
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   Component(sc_module_name& name);
   Component(sc_module_name& name, int ID);
   ~Component();
 
   // DO NOT MAKE A COPY CONSTRUCTOR. SYSTEMC MODULES SHOULD NOT BE COPIED.
 
+//==============================//
+// Methods
+//==============================//
+
 private:
+
   static std::string makeName(sc_module_name& name, int ID);
 
 };

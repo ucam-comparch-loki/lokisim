@@ -13,9 +13,11 @@
 
 class InterclusterNetwork: public Interconnect {
 
-public:
+//==============================//
+// Ports
+//==============================//
 
-/* Ports */
+public:
 
   // Data sent from each output of each component.
   // NUM_CLUSTER_OUTPUTS * COMPONENTS_PER_TILE
@@ -43,19 +45,33 @@ public:
 
   // Some AddressedWord outputs for longer communications?
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   SC_HAS_PROCESS(InterclusterNetwork);
   InterclusterNetwork(sc_module_name name);
   virtual ~InterclusterNetwork();
 
+//==============================//
+// Methods
+//==============================//
+
 protected:
-/* Methods */
+
   virtual void routeRequests();
   virtual void routeResponses();
   virtual void routeData();
   virtual void route(sc_in<AddressedWord> *inputs, sc_out<Word> *outputs, int length);
 
-/* Local state */
+//==============================//
+// Local state
+//==============================//
+
+protected:
+
   int            numInputs, numOutputs;
   RoutingScheme* router;
 

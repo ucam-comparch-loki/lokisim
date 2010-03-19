@@ -15,9 +15,11 @@
 
 class ALU: public Component {
 
-public:
+//==============================//
+// Ports
+//==============================//
 
-/* Ports */
+public:
 
   // The two input values.
   sc_in<Data>   in1, in2;
@@ -26,7 +28,7 @@ public:
   sc_in<short>  select;
 
   // Signal telling whether or not the computation should be conditional on
-  // some value of predicate register.
+  // some value of the predicate register.
   sc_in<short>  predicate;
 
   // Tells whether the result of this computation should be used to set the
@@ -36,16 +38,30 @@ public:
   // The result of the computation.
   sc_out<Data>  out;
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   SC_HAS_PROCESS(ALU);
   ALU(sc_core::sc_module_name name);
   virtual ~ALU();
 
+//==============================//
+// Methods
+//==============================//
+
 private:
-/* Methods */
+
   void doOp();
 
-/* Local state */
+//==============================//
+// Local state
+//==============================//
+
+private:
+
   bool predicateVal;
 
 };

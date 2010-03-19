@@ -19,8 +19,12 @@
 template<class T>
 class BufferArray {
 
+//==============================//
+// Methods
+//==============================//
+
 public:
-/* Methods */
+
   // Read data from a particular buffer
   T& read(int buffer) const {
     return buffers[buffer]->read();
@@ -36,15 +40,24 @@ public:
     return *(buffers[index]);
   }
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   BufferArray(int numBuffers, int buffSize) {
     for(int i=0; i<numBuffers; i++) {
       buffers.push_back(new Buffer<T>(buffSize));
     }
   }
 
+//==============================//
+// Local state
+//==============================//
+
 private:
-/* Local state */
+
   std::vector<Buffer<T>* > buffers;
 
 };

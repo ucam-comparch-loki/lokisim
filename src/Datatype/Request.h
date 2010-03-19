@@ -12,13 +12,22 @@
 
 class Request: public Word {
 
+//==============================//
+// Methods
+//==============================//
+
 public:
-/* Methods */
+
   short getReturnID() const;
   short getNumFlits() const;
   bool  isReadRequest() const;
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   Request(int returnID, int numFlits = 1, bool readRequest = false);
   Request(const Word& other);
   virtual ~Request();

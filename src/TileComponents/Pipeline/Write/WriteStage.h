@@ -15,28 +15,64 @@
 #include "../PipelineStage.h"
 #include "SendChannelEndTable.h"
 #include "../../../Multiplexor/Multiplexor2.h"
-#include "../../../Datatype/Array.h"
 
 class WriteStage: public PipelineStage {
 
-public:
-/* Ports */
-  sc_in<Data>             fromALU;
-  sc_in<Instruction>      inst;
-  sc_in<bool>            *flowControl;  // array
-  sc_in<short>            inRegAddr, inIndAddr, remoteChannel;
-  sc_out<short>           outRegAddr, outIndAddr;
-  sc_out<bool>            stallOut;
-  sc_out<Word>            regData;
-  sc_out<AddressedWord>  *output;       // array
+//==============================//
+// Ports
+//==============================//
 
-/* Constructors and destructors */
+public:
+
+  // The data from the ALU to be written or sent out onto the network.
+  sc_in<Data>             fromALU;
+
+  // The instruction to be sent to a remote cluster.
+  sc_in<Instruction>      inst;
+
+  // The NUM_SEND_CHANNELS output channels.
+  sc_out<AddressedWord>  *output;
+
+  // A flow control signal for each output (NUM_SEND_CHANNELS).
+  sc_in<bool>            *flowControl;
+
+  // The register to write data to.
+  sc_in<short>            inRegAddr;
+
+  // Tell the register file which register to write to.
+  sc_out<short>           outRegAddr;
+
+  // The indirect register to write data to.
+  sc_in<short>            inIndAddr;
+
+  // Tell the register file which indirect register to write to.
+  sc_out<short>           outIndAddr;
+
+  // The data to write to the registers.
+  sc_out<Word>            regData;
+
+  // The remote channel to send data out on.
+  sc_in<short>            remoteChannel;
+
+  // Signal that the pipeline should stall because a send channel is full.
+  sc_out<bool>            stallOut;
+
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   SC_HAS_PROCESS(WriteStage);
   WriteStage(sc_module_name name);
   virtual ~WriteStage();
 
+//==============================//
+// Methods
+//==============================//
+
 private:
-/* Methods */
+
   virtual void  newCycle();
 
   void receivedInst();
@@ -44,17 +80,32 @@ private:
   void receivedRChannel();
   void select();
 
-/* Components */
+//==============================//
+// Components
+//==============================//
+
+private:
+
   SendChannelEndTable scet;
   Multiplexor2<Word>  mux;
 
-/* Local state */
+//==============================//
+// Local state
+//==============================//
+
+private:
+
   // Choose which input of the multiplexor to use.
   // Only one input can be active at once.
   short selectVal;
   bool  haveNewChannel;
 
-/* Signals (wires) */
+//==============================//
+// Signals (wires)
+//==============================//
+
+private:
+
   sc_buffer<Word>     ALUtoRegs, muxOutput;
   sc_buffer<Word>     ALUtoMux, instToMux;
   sc_buffer<short>    muxSelect;

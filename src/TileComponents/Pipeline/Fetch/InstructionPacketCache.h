@@ -21,9 +21,11 @@
 
 class InstructionPacketCache : public Component {
 
-public:
+//==============================//
+// Ports
+//==============================//
 
-/* Ports */
+public:
 
   // Clock.
   sc_in<bool>         clock;
@@ -52,30 +54,52 @@ public:
   // the cache.
   sc_out<bool>        flowControl;
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   SC_HAS_PROCESS(InstructionPacketCache);
   InstructionPacketCache(sc_module_name name);
   virtual ~InstructionPacketCache();
 
-/* Methods */
+//==============================//
+// Methods
+//==============================//
+
+public:
+
   void storeCode(std::vector<Instruction>& instructions);
   bool isEmpty();
 
 private:
+
   void insertInstruction();
   void lookup();
   void finishedRead();
   void updateRTF();
   void write();
 
-/* Local state */
+//==============================//
+// Local state
+//==============================//
+
+private:
+
   IPKCacheStorage<Address, Instruction> cache;
   Buffer<Address> addresses;
   Instruction     instToSend;
   bool            sentNewInst, outputWasRead, startOfPacket;
 
-/* Signals (wires) */
-  sc_signal<bool> writeNotify1, writeNotify2, writeNotify3; // There is data to send
+//==============================//
+// Signals (wires)
+//==============================//
+
+private:
+
+  // Signal that there is an instruction ready to send.
+  sc_signal<bool> writeNotify1, writeNotify2, writeNotify3;
 
 };
 

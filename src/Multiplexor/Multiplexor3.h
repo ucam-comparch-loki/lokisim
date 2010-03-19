@@ -13,18 +13,31 @@
 template<class T>
 class Multiplexor3 : public Multiplexor<T> {
 
+//==============================//
+// Ports
+//==============================//
+
 public:
-/* Ports */
+
   sc_in<T> in1, in2, in3;
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   SC_HAS_PROCESS(Multiplexor3);
-  Multiplexor3(sc_core::sc_module_name name) : Multiplexor<T>(name) {
+  Multiplexor3(sc_module_name name) : Multiplexor<T>(name) {
 
   }
 
+//==============================//
+// Methods
+//==============================//
+
 protected:
-/* Methods */
+
   virtual void doOp() {
     switch(Multiplexor<T>::select.read()) {
       case(0) : Multiplexor<T>::result.write(in1.read()); break;

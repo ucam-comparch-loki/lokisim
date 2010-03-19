@@ -21,9 +21,11 @@
 
 class ReceiveChannelEndTable: public Component {
 
-public:
+//==============================//
+// Ports
+//==============================//
 
-/* Ports */
+public:
 
   // Data values received over the network. There should be NUM_RECEIVE_CHANNELS
   // inputs in the array.
@@ -44,13 +46,22 @@ public:
   // and allow it to continue again once data has arrived at that buffer.
   sc_out<bool>  stallOut;
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   SC_HAS_PROCESS(ReceiveChannelEndTable);
   ReceiveChannelEndTable(sc_module_name name);
   virtual ~ReceiveChannelEndTable();
 
+//==============================//
+// Methods
+//==============================//
+
 private:
-/* Methods */
+
   void receivedInput();
   void read1();
   void read2();
@@ -59,12 +70,22 @@ private:
   void checkWaiting(int channelEnd);
   void read(short inChannel, short outChannel);
 
-/* Local state */
+//==============================//
+// Local state
+//==============================//
+
+private:
+
   BufferArray<Word> buffers;
   int               waiting1, waiting2; // Channel ends we're waiting for data on
   bool              stallValue;
 
-/* Signals (wires) */
+//==============================//
+// Signals (wires)
+//==============================//
+
+private:
+
   sc_buffer<bool>   readFromBuffer, wroteToBuffer;
   sc_signal<bool>   updateStall1, updateStall2;
 

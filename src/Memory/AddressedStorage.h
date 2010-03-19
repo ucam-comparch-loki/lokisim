@@ -20,8 +20,12 @@
 template<class T>
 class AddressedStorage : public Storage<T> {
 
+//==============================//
+// Methods
+//==============================//
+
 public:
-/* Methods */
+
   virtual const T& read(int addr) const {
     // Templated inheritance hides all inherited names - need to access them
     // like this.
@@ -32,7 +36,12 @@ public:
     Storage<T>::data[addr] = newData;
   }
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   AddressedStorage(int size) : Storage<T>(size) {
 
   }

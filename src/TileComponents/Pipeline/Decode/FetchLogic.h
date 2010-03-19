@@ -19,9 +19,11 @@
 
 class FetchLogic: public Component {
 
-public:
+//==============================//
+// Ports
+//==============================//
 
-/* Ports */
+public:
 
   // The offset from the base address that we want the instruction packet from.
   sc_in<Address>        in;
@@ -47,24 +49,43 @@ public:
   // The request being sent out onto the network.
   sc_out<AddressedWord> toNetwork;
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   SC_HAS_PROCESS(FetchLogic);
   FetchLogic(sc_module_name name, int ID);
   virtual ~FetchLogic();
 
+//==============================//
+// Methods
+//==============================//
+
 private:
-/* Methods */
+
   void doOp();
   void haveResultFromCache();
   void haveBaseAddress();
   void sendNext();
 
-/* Local state */
+//==============================//
+// Local state
+//==============================//
+
+private:
+
   Buffer<AddressedWord> toSend;
   bool                  awaitingBaseAddr;
   Address               offsetAddr;
 
-/* Signals (wires) */
+//==============================//
+// Signals (wires)
+//==============================//
+
+private:
+
   sc_signal<bool>       sendData;
 
 };

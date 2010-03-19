@@ -8,7 +8,7 @@
 #include "Decoder.h"
 #include "../../../Utility/InstructionMap.h"
 
-void Decoder::doOp() {
+void Decoder::decodeInstruction() {
 
   // TODO: tidy decode
 
@@ -138,7 +138,7 @@ Decoder::Decoder(sc_module_name name) : Component(name) {
 
   regLastWritten = -1;
 
-  SC_METHOD(doOp);
+  SC_METHOD(decodeInstruction);
   sensitive << instructionIn;
   dont_initialize();
 

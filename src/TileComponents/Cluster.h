@@ -22,39 +22,57 @@
 
 class Cluster : public TileComponent {
 
+//==============================//
+// Ports
+//==============================//
+
+// Inherited from TileComponent:
+//   clock
+//   in
+//   out
+//   flowControlIn
+//   flowControlOut
+
+//==============================//
+// Constructors and destructors
+//==============================//
+
 public:
 
-/*
- * Ports inherited from TileComponent:
- *   clock
- *   in
- *   out
- *   flowControlIn
- *   flowControlOut
- */
-
-/* Constructors and destructors */
   SC_HAS_PROCESS(Cluster);
   Cluster(sc_module_name name, int ID);
   virtual ~Cluster();
 
-/* Methods */
+//==============================//
+// Methods
+//==============================//
+
+public:
+
   virtual void storeData(std::vector<Word>& data);
   void         stallPipeline();
   static int   IPKFIFOInput(int ID);
   static int   IPKCacheInput(int ID);
   static int   RCETInput(int ID, int channel);
 
+//==============================//
+// Components
+//==============================//
+
 private:
 
-/* Components */
   IndirectRegisterFile     regs;
   FetchStage               fetch;
   DecodeStage              decode;
   ExecuteStage             execute;
   WriteStage               write;
 
-/* Signals (wires) */
+//==============================//
+// Signals (wires)
+//==============================//
+
+private:
+
   sc_signal<bool>          stallSig;
 
   // To/from fetch stage

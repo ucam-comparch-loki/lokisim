@@ -17,9 +17,11 @@
 
 class SendChannelEndTable: public Component {
 
-public:
+//==============================//
+// Ports
+//==============================//
 
-/* Ports */
+public:
 
   // Clock.
   sc_in<bool>             clock;
@@ -42,23 +44,42 @@ public:
   // least one space in every buffer.
   sc_out<bool>            stallOut;
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   SC_HAS_PROCESS(SendChannelEndTable);
   SendChannelEndTable(sc_module_name name);
   virtual ~SendChannelEndTable();
 
+//==============================//
+// Methods
+//==============================//
+
 protected:
-/* Methods */
+
   void          receivedData();
   void          updateStall();
   virtual void  canSend();
   virtual short chooseBuffer();
 
-/* Local state */
+//==============================//
+// Local state
+//==============================//
+
+protected:
+
   BufferArray<AddressedWord> buffers;
   bool stallValue;
 
-/* Signals (wires) */
+//==============================//
+// Signals (wires)
+//==============================//
+
+protected:
+
   sc_buffer<bool>         updateStall1, updateStall2;
 
 };

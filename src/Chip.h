@@ -18,13 +18,21 @@
 
 class Chip: public Component {
 
+//==============================//
+// Constructors and destructors
+//==============================//
+
 public:
-/* Constructors and destructors */
+
   Chip(sc_core::sc_module_name name, int rows, int columns);
   virtual ~Chip();
 
+//==============================//
+// Components
+//==============================//
+
 private:
-/* Components */
+
   Grid<Tile> tiles;
 
 };

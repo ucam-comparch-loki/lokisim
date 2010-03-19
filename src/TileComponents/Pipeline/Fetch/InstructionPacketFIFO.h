@@ -16,9 +16,11 @@
 
 class InstructionPacketFIFO : public Component {
 
-public:
+//==============================//
+// Ports
+//==============================//
 
-/* Ports */
+public:
 
   // Clock.
   sc_in<bool>         clock;
@@ -39,23 +41,42 @@ public:
   // in the FIFO.
   sc_out<bool>        flowControl;
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   SC_HAS_PROCESS(InstructionPacketFIFO);
   InstructionPacketFIFO(sc_core::sc_module_name name);
   virtual ~InstructionPacketFIFO();
 
+//==============================//
+// Methods
+//==============================//
+
 private:
-/* Methods */
+
   void insert();
   void remove();
   void updateEmptySig();
   void newCycle();
   bool isEmpty();
 
-/* Local state */
+//==============================//
+// Local state
+//==============================//
+
+private:
+
   Buffer<Instruction> fifo;
 
-/* Signals (wires) */
+//==============================//
+// Signals (wires)
+//==============================//
+
+private:
+
   sc_signal<bool>     readSig, wroteSig;
 
 };

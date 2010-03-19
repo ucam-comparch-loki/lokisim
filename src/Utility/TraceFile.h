@@ -16,11 +16,16 @@ using std::string;
 
 class TraceFile {
 
+//==============================//
+// Methods
+//==============================//
+
 public:
-/* Methods */
+
   static sc_trace_file* initialiseTraceFile(string& name);
 
 private:
+
   static string parameterSummary();
 
 };

@@ -24,31 +24,47 @@
 
 class MemoryMat: public TileComponent {
 
+//==============================//
+// Ports
+//==============================//
+
+// Inherited from TileComponent:
+//   clock
+//   in
+//   out
+//   flowControlIn
+//   flowControlOut
+
+//==============================//
+// Constructors and destructors
+//==============================//
+
 public:
 
-/*
- * Ports inherited from TileComponent:
- *   clock
- *   in
- *   out
- *   flowControlIn
- *   flowControlOut
- */
-
-/* Constructors and destructors */
   SC_HAS_PROCESS(MemoryMat);
   MemoryMat(sc_module_name name, int ID);
   virtual ~MemoryMat();
 
-/* Methods */
+//==============================//
+// Methods
+//==============================//
+
+public:
+
   virtual void storeData(std::vector<Word>& data);
 
 private:
+
   void doOp();
   void read(int position);
   void write(Word w, int position);
 
-/* Local state */
+//==============================//
+// Local state
+//==============================//
+
+private:
+
   AddressedStorage<Word> data;
   MemoryRequest         *transactions;  // array
 

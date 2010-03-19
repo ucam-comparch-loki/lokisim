@@ -18,8 +18,11 @@
 
 class WrappedTileComponent: public Component {
 
+//==============================//
+// Ports
+//==============================//
+
 public:
-/* Ports */
 
   // Clock.
   sc_in<bool>               clock;
@@ -44,24 +47,45 @@ public:
   // data. There should be NUM_CLUSTER_INPUTS of them.
   sc_out<AddressedWord>    *responsesOut;
 
-/* Constructors and destructors */
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
   WrappedTileComponent(sc_module_name name, TileComponent& tc);
   WrappedTileComponent(sc_module_name name, int ID, int type);
   virtual ~WrappedTileComponent();
 
-/* Methods */
+//==============================//
+// Methods
+//==============================//
+
+public:
+
   virtual void storeData(std::vector<Word>& data);
   void         initialise();
 
 private:
+
   void setup();
 
-/* Components */
+//==============================//
+// Components
+//==============================//
+
+private:
+
   TileComponent            *comp;
   FlowControlIn             fcIn;
   FlowControlOut            fcOut;
 
-/* Signals (wires) */
+//==============================//
+// Signals (wires)
+//==============================//
+
+private:
+
   flag_signal<Word>        *dataInSig;  // array
   sc_buffer<AddressedWord> *dataOutSig, *dataOutSig2, *requestsOutSig;  // arrays
   sc_signal<bool>          *fcOutSig,   *fcInSig; // arrays
