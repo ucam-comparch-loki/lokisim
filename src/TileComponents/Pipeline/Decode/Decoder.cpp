@@ -29,7 +29,8 @@ void Decoder::decodeInstruction() {
 
   // If we are in remote execution mode, send all marked instructions.
   if(remoteExecute) {
-    if(setPred) {
+    if(pred == Instruction::P) {
+      i.setPredicate(Instruction::END_OF_PACKET); // Set it to always execute
       instructionOut.write(i);
       rChannel.write(remoteChannel);
     }
@@ -37,13 +38,26 @@ void Decoder::decodeInstruction() {
     else remoteExecute = false;
   }
 
-  predicate.write(pred);
+  if(!shouldExecute(pred)) return;
+
+  if(InstructionMap::hasRemoteChannel(operation)) {
+    /*if(valid channel ID)*/ rChannel.write(remoteChannel);
+  }
+
   setPredicate.write(setPred);
 
   if(operation == InstructionMap::TSTCH) {
-    writeAddr.write(destination);
-    toRCET1.write(immediate);
     channelOp.write(ReceiveChannelEndTable::TSTCH);
+    writeAddr.write(destination);
+    toRCET1.write(operand1 - NUM_REGISTERS);
+    op1Select.write(RCET);
+    this->operation.write(operation);
+    return;
+  }
+
+  if(operation == InstructionMap::SELCH) {
+    channelOp.write(ReceiveChannelEndTable::SELCH);
+    writeAddr.write(destination);
     op1Select.write(RCET);
     this->operation.write(operation);
     return;
@@ -156,12 +170,20 @@ void Decoder::decodeInstruction() {
     }
   }
 
-
-  if(InstructionMap::hasRemoteChannel(operation)) {
-    /*if(valid channel ID)*/ rChannel.write(remoteChannel);
-  }
-
   /*if(op writes to destination)*/ regLastWritten = destination;
+
+}
+
+/* Determine whether this instruction should be executed. */
+bool Decoder::shouldExecute(short predBits) {
+
+  bool result = (predBits == Instruction::ALWAYS) ||
+                (predBits == Instruction::P && predicate.read()) ||
+                (predBits == Instruction::NOT_P && !predicate.read());
+
+//  cout << "Predicate = " << predicate.read() << ": result = " << result << endl;
+
+  return result;
 
 }
 

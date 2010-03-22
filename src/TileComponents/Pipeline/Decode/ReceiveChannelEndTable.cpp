@@ -19,7 +19,8 @@ void ReceiveChannelEndTable::receivedInput() {
       wroteToBuffer.write(!wroteToBuffer.read());
       checkWaiting(i);  // See if we have been waiting for data to arrive here
 
-      cout << this->name() << " received " << fromNetwork[i].read() << endl;
+      cout << this->name() << " channel " << i << " received " <<
+              fromNetwork[i].read() << endl;
     }
   }
 }
@@ -37,11 +38,16 @@ void ReceiveChannelEndTable::read2() {
 /* Read from the chosen channel end, and write the result to the given output. */
 void ReceiveChannelEndTable::read(short inChannel, short outChannel) {
 
+  // If an operation also arrived, we're not supposed to be reading.
+  if(operation.event()) return;
+
   Word w;
 
   if(!buffers[inChannel].isEmpty()) {
     w = buffers.read(inChannel);
     readFromBuffer.write(!readFromBuffer.read());
+
+    if(DEBUG) cout << this->name() << " read from channel " << inChannel << endl;
   }
   else {   // Reading from empty buffer
 
@@ -74,9 +80,14 @@ void ReceiveChannelEndTable::doOperation() {
     // Return whether or not the given channel contains data
     case TSTCH : {
       int testedChannel = fromDecoder1.read();
-      if(buffers[testedChannel].isEmpty()) dataToALU1 = Data(0);
+      bool empty = buffers[testedChannel].isEmpty();
+
+      cout << "Testing channel " << testedChannel << ": " << (empty?"empty":"not empty") << endl;
+      if(empty) dataToALU1 = Data(0);
       else dataToALU1 = Data(1);
       updateToALU1_2.write(!updateToALU1_2.read());
+
+      break;
     }
 
     // Return the value of the first buffer with data in it (stall if none)
@@ -84,7 +95,7 @@ void ReceiveChannelEndTable::doOperation() {
 
       for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) { // TODO: round-robin
         if(!buffers[i].isEmpty()) {
-          dataToALU1 = Data(i);
+          dataToALU1 = Data(i + NUM_REGISTERS);
           updateToALU1_2.write(!updateToALU1_2.read());
           return;
         }
@@ -94,6 +105,8 @@ void ReceiveChannelEndTable::doOperation() {
       waiting1 = ALL_CHANNELS;  // Is it safe to overwrite the existing value?
       stallValue = true;
       updateStall3.write(!updateStall3.read());
+
+      break;
 
     }
 
@@ -119,7 +132,7 @@ void ReceiveChannelEndTable::checkWaiting(int channelEnd) {
 
   if(waiting1 == ALL_CHANNELS) {
     // Send the index of the channel-end with data
-    dataToALU1 = Data(channelEnd);
+    dataToALU1 = Data(channelEnd + NUM_REGISTERS);
     updateToALU1_3.write(!updateToALU1_3.read());
     waiting1 = NO_CHANNEL;
   }

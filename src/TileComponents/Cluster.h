@@ -15,6 +15,7 @@
 #include "TileComponent.h"
 
 #include "Pipeline/IndirectRegisterFile.h"
+#include "Pipeline/PredicateRegister.h"
 #include "Pipeline/Fetch/FetchStage.h"
 #include "Pipeline/Decode/DecodeStage.h"
 #include "Pipeline/Execute/ExecuteStage.h"
@@ -62,6 +63,7 @@ public:
 private:
 
   IndirectRegisterFile     regs;
+  PredicateRegister        pred;
   FetchStage               fetch;
   DecodeStage              decode;
   ExecuteStage             execute;
@@ -85,14 +87,15 @@ private:
   sc_buffer<Word>          regData1, regData2;
   flag_signal<short>       regRead1, regRead2, decWriteAddr, decIndWrite;
   sc_buffer<Data>          RCETtoALU1, RCETtoALU2, regToALU1, regToALU2, SEtoALU;
-  flag_signal<short>       operation, op1Select, op2Select, predicate;
-  sc_signal<bool>          setPredSig, decStallSig;
+  flag_signal<short>       operation, op1Select, op2Select;
+  sc_signal<bool>          setPredSig, readPredSig, decStallSig;
 
   // To/from execute stage
   flag_signal<Instruction> decToExInst, exToWriteInst;
   flag_signal<short>       decToExRChan, exToWriteRChan;
   flag_signal<short>       decToExWOCHE, exToWriteWOCHE;
   flag_signal<Data>        ALUOutput;
+  sc_signal<bool>          writePredSig;
 
   // To/from write stage
   flag_signal<short>       writeAddr, indWriteAddr;

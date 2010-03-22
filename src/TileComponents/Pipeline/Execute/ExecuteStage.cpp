@@ -23,7 +23,8 @@ void ExecuteStage::newCycle() {
       COPY_IF_NEW(indWriteIn, indWriteOut);
       COPY_IF_NEW(remoteChannelIn, remoteChannelOut);
       COPY_IF_NEW(waitOnChannelIn, waitOnChannelOut);
-      COPY_IF_NEW(predicate, predicateSig);
+
+      setPredSig.write(setPredicate.read());  // Not using COPY_IF_NEW
     }
     wait(clock.posedge_event());
   }
@@ -39,12 +40,12 @@ ExecuteStage::ExecuteStage(sc_module_name name) :
   in1Mux.result(toALU1); alu.in1(toALU1);
   in2Mux.result(toALU2); alu.in2(toALU2);
   alu.out(output);
-  alu.predicate(predicateSig);
-  alu.setPredicate(setPredicate);
+  alu.setPredicate(setPredSig);
+  alu.predicate(predicate);
 
   in1Mux.select(in1Select);
   in2Mux.select(in2Select);
-  alu.select(ALUSelect);
+  alu.operation(ALUSelect);
 
   in1Mux.in1(fromRChan1);
   in1Mux.in2(fromReg1);

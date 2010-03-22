@@ -46,6 +46,7 @@ int Cluster::RCETInput(int ID, int channel) {
 Cluster::Cluster(sc_module_name name, int ID) :
     TileComponent(name, ID),
     regs("regs"),
+    pred("pred"),
     fetch("fetch"),
     decode("decode", ID),   // Needs ID so it can generate a return address
     execute("execute"),
@@ -113,7 +114,7 @@ Cluster::Cluster(sc_module_name name, int ID) :
   decode.remoteInst(decToExInst);     execute.remoteInstIn(decToExInst);
   decode.remoteChannel(decToExRChan); execute.remoteChannelIn(decToExRChan);
   decode.waitOnChannel(decToExWOCHE); execute.waitOnChannelIn(decToExWOCHE);
-  decode.predicate(predicate);        execute.predicate(predicate);
+  decode.predicate(readPredSig);      pred.output(readPredSig);
   decode.setPredicate(setPredSig);    execute.setPredicate(setPredSig);
   decode.stallOut(decStallSig);
 
@@ -121,6 +122,8 @@ Cluster::Cluster(sc_module_name name, int ID) :
   execute.output(ALUOutput);          execute.fromALU1(ALUOutput);
   execute.fromALU2(ALUOutput);
   write.fromALU(ALUOutput);
+
+  execute.predicate(writePredSig);    pred.write(writePredSig);
 
   execute.remoteInstOut(exToWriteInst);     write.inst(exToWriteInst);
   execute.remoteChannelOut(exToWriteRChan); write.remoteChannel(exToWriteRChan);

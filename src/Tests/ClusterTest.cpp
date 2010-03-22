@@ -213,7 +213,7 @@ protected:
 //    std::cout << "Cycle " << i << ":\n";
 //
 //    for(int j=0; j<NUM_CLUSTER_OUTPUTS; j++) {
-//      std::cout << "  out" << j << ": " << out[j].read() << "\n";
+//      std::cout << "  out" << j << ": " << out[j].read() << endl;
 //      flowControlIn[j].write(true);
 //    }
 //  }
@@ -315,3 +315,75 @@ protected:
 //  EXPECT_EQ(2, out[1].read().getChannelID());
 //
 //}
+
+/* Tests that the tstch and selch instructions work properly. */
+//TEST_F(ClusterTest, TstchAndSelch) {
+//
+//  Instruction tstch("tstch r1 r29 > 0");
+//  Instruction tstch2("tstch r0 r28 > 1");
+//  Instruction selch("selch r2 > 2");
+//  Instruction get("irdr.eop r2 r2 > 3");
+//  Data d(3);
+//
+//  in[3].write(d);       // Insert the data
+//  TIMESTEP;
+//  in[1].write(tstch);   // Check that the data has arrived at the input channel
+//  TIMESTEP;
+//  in[1].write(tstch2);  // Make sure data hasn't arrived at any other channel
+//  TIMESTEP;
+//  in[1].write(selch);   // Get the index of the channel end
+//  TIMESTEP;
+////  in[1].write(get);     // Read the given channel end
+//
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//
+//  flowControlIn[1].write(true);
+//  flowControlIn[2].write(true);
+//
+//  TIMESTEP;
+//
+//  AddressedWord temp;
+//
+//  temp = out[1].read();
+//  ASSERT_EQ(1, ((Data)(temp.getPayload())).getData());
+//  EXPECT_EQ(0, temp.getChannelID());
+//
+//  temp = out[2].read();
+//  EXPECT_EQ(0, ((Data)(temp.getPayload())).getData());
+//  EXPECT_EQ(1, temp.getChannelID());
+//
+//  TIMESTEP;
+//
+//  temp = out[1].read();
+//  EXPECT_EQ(29, ((Data)(temp.getPayload())).getData());
+//  EXPECT_EQ(2, temp.getChannelID());
+//
+//  // Can't indirectly read channel-ends
+////  temp = out[2].read();
+////  EXPECT_EQ(3, ((Data)(temp.getPayload())).getData());
+////  EXPECT_EQ(3, temp.getChannelID());
+//
+//}
+
+/* Tests that while loops can be performed, using the ibjmp instruction and
+ * predicate bits. */
+TEST_F(ClusterTest, IbjmpAndPredicates) {
+
+  std::string filename = "fibonacci_loop.loki";
+
+  CodeLoader::loadCode(filename, c);
+
+  flowControlIn[1].write(true);
+  flowControlIn[2].write(true);
+
+  for(int i=0; i<500; i++) {
+    TIMESTEP;
+//    if(out[1].event()) cout << out[1].read().getPayload() << endl;
+    if(out[2].event()) cout << out[2].read().getPayload() << endl;
+  }
+
+}

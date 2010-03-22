@@ -25,15 +25,14 @@ public:
   sc_in<Data>   in1, in2;
 
   // The operation the ALU should carry out.
-  sc_in<short>  select;
-
-  // Signal telling whether or not the computation should be conditional on
-  // some value of the predicate register.
-  sc_in<short>  predicate;
+  sc_in<short>  operation;
 
   // Tells whether the result of this computation should be used to set the
   // predicate register.
   sc_in<bool>   setPredicate;
+
+  // Write the new predicate value to the register.
+  sc_out<bool>  predicate;
 
   // The result of the computation.
   sc_out<Data>  out;
@@ -55,14 +54,7 @@ public:
 private:
 
   void doOp();
-
-//==============================//
-// Local state
-//==============================//
-
-private:
-
-  bool predicateVal;
+  void setPred(bool val);
 
 };
 

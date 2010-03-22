@@ -45,13 +45,12 @@ public:
   // Select where to get both inputs of the computation from.
   sc_in<short>        op1Select, op2Select;
 
-  // Tells whether the computation should be conditional on some value of
-  // the predicate register.
-  sc_in<short>        predicate;
-
   // Tells whether the result of this computation should be written to the
   // predicate register.
   sc_in<bool>         setPredicate;
+
+  // The predicate value being written to the register.
+  sc_out<bool>        predicate;
 
   // The register to write the result of this computation to (passing through).
   sc_in<short>        writeIn;
@@ -109,7 +108,7 @@ private:
 
   sc_signal<Data>     toALU1, toALU2, outputSig;
   sc_buffer<short>    in1Select, in2Select, ALUSelect;
-  sc_signal<short>    predicateSig;
+  sc_signal<bool>     setPredSig;
 
 };
 

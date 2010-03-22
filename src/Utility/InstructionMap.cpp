@@ -53,7 +53,7 @@ bool InstructionMap::hasRemoteChannel(short op) {
    */
 
   // For Version 1.0, allow all instructions to specify remote channels
-  return isALUOperation(op);//(op>=LD && op<=STBADDR) || (op>=RMTFETCH && op<=RMTNXIPK);
+  return isALUOperation(op) || (op == TSTCH) || (op == SELCH);//(op>=LD && op<=STBADDR) || (op>=RMTFETCH && op<=RMTNXIPK);
 }
 
 /* Return whether the operation requires use of the ALU */

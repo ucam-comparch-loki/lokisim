@@ -87,15 +87,20 @@ public:
 
   // Jump to a new instruction at a given offset.
   void jump(int offset) {
-    currentInstruction += offset;
+    if(currentInstruction == NOT_IN_USE) currentInstruction = currInstBackup;
+
+    currentInstruction += offset - 2; // -1 because we've incremented, why -2?
 
     // Bring it back within required bounds
-    if(currentInstruction >= Storage<T>::data.size()) {
+    if(currentInstruction >= (int)Storage<T>::data.size()) {
       currentInstruction -= Storage<T>::data.size();
     }
     else if(currentInstruction < 0) {
       currentInstruction += Storage<T>::data.size();
     }
+
+    if(DEBUG) cout << "Jumped by " << offset << " to instruction " <<
+        currentInstruction << endl;
   }
 
   int remainingSpace() const {
@@ -104,7 +109,7 @@ public:
   }
 
   bool isEmpty() const {
-    return fillCount == 0;
+    return (currentInstruction == NOT_IN_USE) || (fillCount == 0);
   }
 
   bool isFull() const {
@@ -112,6 +117,7 @@ public:
   }
 
   void switchToPendingPacket() {
+    currInstBackup = currentInstruction;
     currentInstruction = pendingPacket;
     pendingPacket = NOT_IN_USE;
   }
@@ -151,7 +157,6 @@ private:
   void incrementCurrent() {
     if(currentInstruction >= (int)Storage<T>::data.size()-1) currentInstruction = 0;
     else currentInstruction++;
-
     fillCount--;
   }
 
@@ -162,6 +167,7 @@ private:
 private:
 
   int currentInstruction, refillPointer, fillCount;
+  int currInstBackup;   // In case it goes NOT_IN_USE and then a jump is used
 
   // Do we want a single pending packet, or a queue of them?
   int pendingPacket;  // Location of the next packet to be executed

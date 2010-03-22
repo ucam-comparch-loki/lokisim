@@ -35,20 +35,20 @@ string TraceFile::parameterSummary() {
   using std::endl;
 
   s << "PARAMETERS:" << "\n";
-  s << "Number of tiles: " << (NUM_TILE_ROWS * NUM_TILE_COLUMNS) << "\n";
-  s << "  Clusters per tile:      " << CLUSTERS_PER_TILE << "\n";
-  s << "  Memories per tile:      " << MEMS_PER_TILE << "\n";
-  s << "  Channels between tiles: " << NUM_CHANNELS_BETWEEN_TILES << "\n";
+  s << "Number of tiles:                 " << (NUM_TILE_ROWS * NUM_TILE_COLUMNS) << "\n";
+  s << "  Clusters per tile:             " << CLUSTERS_PER_TILE << "\n";
+  s << "  Memories per tile:             " << MEMS_PER_TILE << "\n";
+  s << "  Channels between tiles:        " << NUM_CHANNELS_BETWEEN_TILES << "\n";
   s << "Storage:\n";
   s << "  Memory size:                   " << MEMORY_SIZE << "\n";
   s << "  Instruction packet cache size: " << IPK_CACHE_SIZE << "\n";
   s << "  Instruction packet FIFO size:  " << IPK_FIFO_SIZE << "\n";
   s << "  Register file size:            " << NUM_REGISTERS << "\n";
   s << "Channel ends:\n";
-  s << "  Input:       " << NUM_RECEIVE_CHANNELS << "\n";
-  s << "  Output:      " << NUM_SEND_CHANNELS << "\n";
-  s << "  Buffer size: " << CHANNEL_END_BUFFER_SIZE << "\n";
-  s << "Flow control buffer size: " << FLOW_CONTROL_BUFFER_SIZE << "\n";
+  s << "  Input:                         " << NUM_RECEIVE_CHANNELS << "\n";
+  s << "  Output:                        " << NUM_SEND_CHANNELS << "\n";
+  s << "  Buffer size:                   " << CHANNEL_END_BUFFER_SIZE << "\n";
+  s << "Flow control buffer size:        " << FLOW_CONTROL_BUFFER_SIZE << "\n";
   s << "Maximum instruction packet size: " << MAX_IPK_SIZE;
 
   return s.str();

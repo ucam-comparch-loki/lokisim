@@ -11,61 +11,56 @@
 
 void ALU::doOp() {
 
-  if(select.read() == InstructionMap::NOP) return;
+  if(operation.read() == InstructionMap::NOP) return;
 
-  if((predicate.read() == Instruction::P && !predicateVal) ||
-     (predicate.read() == Instruction::NOT_P && predicateVal)) return;
-
-  Data d1 = in1.read(), d2 = in2.read();
-
-  if(DEBUG) cout << "ALU received Data: " << d1 << " and " << d2 << endl;
-
-  unsigned int val1 = d1.getData();
-  unsigned int val2 = d2.getData();
+  unsigned int val1 = in1.read().getData();
+  unsigned int val2 = in2.read().getData();
   unsigned int result;
 
-  switch(select.read()) {
+  if(DEBUG) cout << "ALU received Data: " << val1 << " and " << val2 << endl;
+
+  switch(operation.read()) {
 
     case InstructionMap::SLL:
-    case InstructionMap::SLLV: result = val1 << val2; break;
+    case InstructionMap::SLLV:  result = val1 << val2; break;
     case InstructionMap::SRL:
-    case InstructionMap::SRLV: result = val1 >> val2; break;
+    case InstructionMap::SRLV:  result = val1 >> val2; break;
     case InstructionMap::SRA:
-    case InstructionMap::SRAV: result = (int)val1 >> (int)val2; break;
+    case InstructionMap::SRAV:  result = (int)val1 >> (int)val2; break;
 
     case InstructionMap::SEQ:
-    case InstructionMap::SEQI: result = (val1 == val2); break;
+    case InstructionMap::SEQI:  result = (val1 == val2); break;
     case InstructionMap::SNE:
-    case InstructionMap::SNEI: result = (val1 != val2); break;
+    case InstructionMap::SNEI:  result = (val1 != val2); break;
     case InstructionMap::SLT:
-    case InstructionMap::SLTI: result = ((int)val1 < (int)val2); break;
+    case InstructionMap::SLTI:  result = ((int)val1 < (int)val2); break;
     case InstructionMap::SLTU:
     case InstructionMap::SLTIU: result = (val1 < val2); break;
 
-    case InstructionMap::LUI:  result = val1 << 16; break;
+    case InstructionMap::LUI:   result = val1 << 16; break;
 
-    case InstructionMap::PSEL: result = predicateVal ? val1 : val2; break;
+    case InstructionMap::PSEL:  result = predicate.read() ? val1 : val2; break;
 
 //    case InstructionMap::CLZ: result = 32 - math.log(2, val1) + 1; break;
 
     case InstructionMap::NOR:
-    case InstructionMap::NORI: result = ~(val1 | val2); break;
+    case InstructionMap::NORI:  result = ~(val1 | val2); break;
     case InstructionMap::AND:
-    case InstructionMap::ANDI: result = val1 & val2; break;
+    case InstructionMap::ANDI:  result = val1 & val2; break;
     case InstructionMap::OR:
-    case InstructionMap::ORI:  result = val1 | val2; break;
+    case InstructionMap::ORI:   result = val1 | val2; break;
     case InstructionMap::XOR:
-    case InstructionMap::XORI: result = val1 ^ val2; break;
+    case InstructionMap::XORI:  result = val1 ^ val2; break;
 
-    case InstructionMap::NAND: result = ~(val1 & val2); break;
-    case InstructionMap::CLR:  result = val1 & ~val2; break;
-    case InstructionMap::ORC:  result = val1 | ~val2; break;
+    case InstructionMap::NAND:  result = ~(val1 & val2); break;
+    case InstructionMap::CLR:   result = val1 & ~val2; break;
+    case InstructionMap::ORC:   result = val1 | ~val2; break;
 //    case InstructionMap::POPC: result = ???; break;
     case InstructionMap::RSUBI: result = val2 - val1; break;
 
     case InstructionMap::ADDU:
     case InstructionMap::ADDUI: result = val1 + val2; break;
-    case InstructionMap::SUBU: result = val1 - val2; break;
+    case InstructionMap::SUBU:  result = val1 - val2; break;
     case InstructionMap::MULHW: result = ((long)val1 * (long)val2) >> 32; break;
     case InstructionMap::MULLW: result = ((long)val1 * (long)val2) & -1; break;
 //    case InstructionMap::MULHWU: result = ???; break;
@@ -74,14 +69,22 @@ void ALU::doOp() {
   }
 
   out.write(Data(result));
-  if(setPredicate.read()) predicateVal = result&1; // Store lowest bit in predicate register
 
+  if(setPredicate.read()) {
+    setPred(result&1);      // Store lowest bit in predicate register
+  }
+
+}
+
+void ALU::setPred(bool val) {
+  predicate.write(val);
+  if(DEBUG) cout << "Set predicate bit to " << val << endl;
 }
 
 ALU::ALU(sc_module_name name) : Component(name) {
 
   SC_METHOD(doOp);
-  sensitive << select;
+  sensitive << operation;
   dont_initialize();
 
 }

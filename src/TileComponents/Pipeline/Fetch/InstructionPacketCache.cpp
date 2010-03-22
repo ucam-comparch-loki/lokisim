@@ -95,6 +95,9 @@ void InstructionPacketCache::finishedRead() {
 /* Jump to a new instruction specified by the offset amount. */
 void InstructionPacketCache::jump() {
   cache.jump(jumpOffset.read());
+  instToSend = cache.read();
+  if(instToSend.endOfPacket()) cache.switchToPendingPacket();
+  writeNotify4.write(!writeNotify4.read());
 }
 
 /* Update the signal saying whether there is enough room to fetch another
@@ -149,7 +152,7 @@ InstructionPacketCache::InstructionPacketCache(sc_module_name name) :
   // Do initialise
 
   SC_METHOD(write);
-  sensitive << writeNotify1 << writeNotify2 << writeNotify3;
+  sensitive << writeNotify1 << writeNotify2 << writeNotify3 << writeNotify4;
   dont_initialize();
 
 }

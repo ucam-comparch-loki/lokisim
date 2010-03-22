@@ -56,9 +56,8 @@ public:
   // Stall the pipeline until this output channel is empty.
   sc_out<short>       waitOnChannel;
 
-  // Tell the ALU whether an instruction should always execute, or be
-  // conditional on the predicate register being true or false.
-  sc_out<short>       predicate;
+  // The current value of the predicate register.
+  sc_in<bool>         predicate;
 
   // Tell the ALU whether it should use the result of this instruction to
   // set the predicate register.
@@ -97,6 +96,7 @@ public:
 private:
 
   void decodeInstruction();
+  bool shouldExecute(short predBits);
 
 //==============================//
 // Local state

@@ -103,7 +103,7 @@ private:
 private:
 
   // Signal that there is an instruction ready to send.
-  sc_signal<bool> writeNotify1, writeNotify2, writeNotify3;
+  sc_signal<bool> writeNotify1, writeNotify2, writeNotify3, writeNotify4;
 
 };
 

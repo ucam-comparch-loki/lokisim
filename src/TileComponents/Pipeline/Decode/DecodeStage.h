@@ -89,9 +89,8 @@ public:
   // Choose where the ALU's input operands should come from.
   sc_out<short>         op1Select, op2Select;
 
-  // Tell the ALU whether its execution is conditional on some value of
-  // the predicate register.
-  sc_out<short>         predicate;
+  // The value of the predicate register.
+  sc_in<bool>           predicate;
 
   // Tell the ALU whether it should use the result of this computation to
   // set the predicate register.

@@ -42,7 +42,7 @@ protected:
 
   ALUTest() {
     alu = new ALU("alu");
-    alu->in1(in1); alu->in2(in2); alu->out(out); alu->select(select);
+    alu->in1(in1); alu->in2(in2); alu->out(out); alu->operation(select);
   }
 
   virtual void SetUp() {

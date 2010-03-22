@@ -27,7 +27,7 @@ protected:
   sc_signal<bool> isIndirect, flowControl, roomToFetch, setPredicate, *fc;
   sc_signal<Address> address;
   sc_signal<short> regRead1, regRead2, write, indWrite, rChannel;
-  sc_signal<short> operation, op1Select, op2Select, predicate;
+  sc_signal<short> operation, op1Select, op2Select;
   sc_signal<Data> RCETtoALU1, RCETtoALU2, regToALU1, regToALU2, SEtoALU;
 
   // Should come from WriteStage, but don't have one of those here
@@ -60,7 +60,6 @@ protected:
     ds.op2Select(op2Select);
     ds.operation(operation);
     ds.out1(out);
-    ds.predicate(predicate);
     ds.regIn1(regOutput1); regs.out1(regOutput1);
     ds.regIn2(regOutput2); regs.out2(regOutput2);
     ds.regOut1(regToALU1);
