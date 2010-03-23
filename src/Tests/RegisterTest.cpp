@@ -13,13 +13,13 @@
  * correctly */
 //TEST(RegisterTest, RegistersWorkCorrectly) {
 //
-//  IndirectRegisterFile regs("regs", 1);
+//  IndirectRegisterFile regs("regs");
 //  Data d1(1000000);
 //  Data d2(7);
 //  Data d3(1);
 //
 //  sc_buffer<Word> inData, out1, out2;
-//  sc_buffer<short> indWrite, read1, read2, write;
+//  sc_buffer<short> indWrite, read1, read2, write, channelID;
 //  sc_buffer<bool> isIndirect;
 //
 //  regs.indWriteAddr(indWrite);
@@ -28,20 +28,21 @@
 //  regs.indRead(isIndirect);
 //  regs.writeAddr(write);
 //  regs.writeData(inData);
+//  regs.channelID(channelID);
 //  regs.out1(out1);
 //  regs.out2(out2);
 //
 //  TIMESTEP;
 //
 //  // Test writing
-//  write.write(1); // Should be 1, but rewriting doesn't work yet
-//  inData.write(d3); // Put 1 at position 0
+//  write.write(1);
+//  inData.write(d3); // Put 1 at position 1
 //
 //  TIMESTEP;
 //
 //  // Test rewriting
 //  write.write(1);
-//  inData.write(d2); // Put 7 at position 1 (0) (see if it works when not changing addr)
+//  inData.write(d2); // Put 7 at position 1 (see if it works when not changing addr)
 //
 //  TIMESTEP;
 //
@@ -59,8 +60,8 @@
 //  TIMESTEP;
 //
 //  read1.write(7);     // Read from position 7 (should give 1000000)
-//  write.write(0);
-//  inData.write(d3);   // Write 1 to position 0 (1)
+//  write.write(2);
+//  inData.write(d3);   // Write 1 to position 2
 //
 //  TIMESTEP;
 //
@@ -76,7 +77,7 @@
 //
 //  // Test two writes at once
 //  isIndirect.write(false);
-//  read1.write(0);     // Should give 1
+//  read1.write(2);     // Should give 1
 //  read2.write(7);     // Should give 1000000
 //
 //  TIMESTEP;

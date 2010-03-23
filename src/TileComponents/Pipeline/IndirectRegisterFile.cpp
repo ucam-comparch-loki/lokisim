@@ -13,18 +13,26 @@ void IndirectRegisterFile::read1() {
   short addr = readAddr1.read();
   out1.write(regs.read(addr));
 
-  if(DEBUG) std::cout<<"Read "<<regs.read(addr)<<" from register "<<addr<<"\n";
+  if(DEBUG) cout<<"Read "<<regs.read(addr)<<" from register "<<addr<<endl;
 }
 
 /* Read from the address given (or pointed to) by readAddr2 */
 void IndirectRegisterFile::read2() {
   short addr = readAddr2.read();
 
-  if(indRead.read()) addr = indirect.read(addr);
+  if(indRead.read()) {
+    addr = indirect.read(addr);
+
+    // If the indirect address points to a channel-end
+    if(addr >= NUM_REGISTERS) {
+      channelID.write(addr - NUM_REGISTERS);
+      return;
+    }
+  }
 
   out2.write(regs.read(addr));
 
-  if(DEBUG) std::cout<<"Read "<<regs.read(addr)<<" from register "<<addr<<"\n";
+  if(DEBUG) cout<<"Read "<<regs.read(addr)<<" from register "<<addr<<endl;
 }
 
 /* Write to the address given in the register pointed to by indWriteAddr */
@@ -48,14 +56,14 @@ void IndirectRegisterFile::write() {
   Word w = writeData.read();
   regs.write(w, addr);
 
-  if(DEBUG) std::cout<<"Stored "<<w<<" to register "<<addr<<"\n";
+  if(DEBUG) cout << "Stored " << w << " to register " << addr << endl;
 
   // Store the lowest 5 (currently) bits of the data in the indirect register file
-  short toIndirect = (static_cast<Address>(writeData.read())).getLowestBits(4);
+  short toIndirect = (static_cast<Address>(writeData.read())).getLowestBits(5);
   indirect.write(toIndirect, addr);
 }
 
-IndirectRegisterFile::IndirectRegisterFile(sc_core::sc_module_name name) :
+IndirectRegisterFile::IndirectRegisterFile(sc_module_name name) :
     Component(name),
     regs(NUM_REGISTERS),
     indirect(NUM_REGISTERS) {

@@ -68,6 +68,7 @@ private:
   void receivedInput();
   void read1();
   void read2();
+  void testChannelEnd();
   void doOperation();
   void updateToALU1();
   void updateFlowControl();
@@ -99,6 +100,10 @@ private:
   // Whether this component is telling the pipeline to stall.
   bool              stallValue;
 
+  // Whether we are waiting to be told which channel-end to perform an
+  // operation on.
+  bool              waitingForInput;
+
 //==============================//
 // Signals (wires)
 //==============================//
@@ -110,7 +115,7 @@ private:
   sc_buffer<bool>   readFromBuffer, wroteToBuffer;
 
   // Signal that there is new data to be sent on port toALU1.
-  sc_signal<bool>   updateToALU1_1, updateToALU1_2, updateToALU1_3;
+  sc_signal<bool>   updateToALU1_1, updateToALU1_2, updateToALU1_3, updateToALU1_4;
 
   // Signal that something has happened which may have changed whether or not
   // this component is causing the pipeline to stall.

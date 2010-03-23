@@ -15,7 +15,7 @@ void Decoder::decodeInstruction() {
 
   Instruction i = instructionIn.read();
 
-  if(DEBUG) std::cout << "DecodeStage received Instruction: " << i << "\n";
+  if(DEBUG) cout << "DecodeStage received Instruction: " << i << endl;
 
   // Extract useful information from the instruction
   short operation = InstructionMap::operation(i.getOp());
@@ -108,16 +108,6 @@ void Decoder::decodeInstruction() {
     return; // Skip the rest of this complicated method
   }
 
-
-  if(operation == InstructionMap::IRDR) {
-    regAddr2.write(operand2);
-    isIndirectRead.write(true);
-  }
-  else isIndirectRead.write(false);
-
-  if(operation == InstructionMap::IWTR) indWrite.write(destination);
-  else writeAddr.write(destination);
-
   if(operation==InstructionMap::SETFETCHCH) {
     fetchChannel = immediate;   // Is it an immediate or read from a register?
   }
@@ -152,8 +142,7 @@ void Decoder::decodeInstruction() {
 
   // Determine where to get second operand from: immediate, RCET or registers
   if(InstructionMap::hasImmediate(operation)) {
-    Data* d = new Data(immediate);
-    toSignExtend.write(*d);
+    toSignExtend.write(Data(immediate));
     op2Select.write(SIGN_EXTEND);   // ALU wants data from sign extender
   }
   else if(operand2 >= NUM_REGISTERS) {
@@ -170,6 +159,15 @@ void Decoder::decodeInstruction() {
     }
   }
 
+  if(operation == InstructionMap::IRDR) {
+    regAddr2.write(operand1);
+    isIndirectRead.write(true);
+  }
+  else isIndirectRead.write(false);
+
+  if(operation == InstructionMap::IWTR) indWrite.write(destination);
+  else writeAddr.write(destination);
+
   /*if(op writes to destination)*/ regLastWritten = destination;
 
 }
@@ -178,6 +176,7 @@ void Decoder::decodeInstruction() {
 bool Decoder::shouldExecute(short predBits) {
 
   bool result = (predBits == Instruction::ALWAYS) ||
+                (predBits == Instruction::END_OF_PACKET) ||
                 (predBits == Instruction::P && predicate.read()) ||
                 (predBits == Instruction::NOT_P && !predicate.read());
 

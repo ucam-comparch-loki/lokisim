@@ -34,7 +34,7 @@ bool Address::getReadBit() const {
 
 /* Used to extract some bits and put them in the indirection registers. */
 unsigned int Address::getLowestBits(int limit) const {
-  return getBits(0, limit);
+  return getBits(0, limit-1);
 }
 
 void Address::addOffset(int offset) {

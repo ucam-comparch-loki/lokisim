@@ -40,6 +40,23 @@ void DecodeStage::updateStall() {
   stallOut.write(flStallSig.read() || rcetStallSig.read());
 }
 
+/* Allow multiple components to request a channel-end read. */
+void DecodeStage::updateToRCET1() {
+  if(indirectChannel.event()) RCETread1.write(indirectChannel.read());
+  else RCETread1.write(decodeToRCET1.read());
+}
+
+/* Allow multiple components to select where the ALU's first operand comes
+ * from. */
+void DecodeStage::updateOp1Select() {
+  if(indirectChannel.event()) {
+    op1Select.write(Decoder::RCET);  // Indirect regs say to read from RCET
+  }
+  else if(op1SelectSig.event()) {
+    op1Select.write(op1SelectSig.read());
+  }
+}
+
 DecodeStage::DecodeStage(sc_module_name name, int ID) :
     PipelineStage(name),
     fl("fetchlogic", ID),     // Needs ID so it can generate a return address
@@ -59,6 +76,13 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   SC_METHOD(receivedFromRegs2);
   sensitive << regIn2;
   dont_initialize();
+
+  SC_METHOD(updateToRCET1);
+  sensitive << indirectChannel << decodeToRCET1;
+  dont_initialize();
+
+  SC_METHOD(updateOp1Select);
+  sensitive << indirectChannel << op1SelectSig;
 
   SC_METHOD(updateStall);
   sensitive << flStallSig << rcetStallSig;
@@ -92,13 +116,13 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   decoder.toFetchLogic(decodeToFetch);    fl.in(decodeToFetch);
   decoder.rChannel(remoteChannel);
   decoder.waitOnChannel(waitOnChannel);
-  decoder.toRCET1(decodeToRCET1);         rcet.fromDecoder1(decodeToRCET1);
+  decoder.toRCET1(decodeToRCET1);         rcet.fromDecoder1(RCETread1);
   decoder.toRCET2(decodeToRCET2);         rcet.fromDecoder2(decodeToRCET2);
   decoder.channelOp(RCETOperation);       rcet.operation(RCETOperation);
   decoder.toSignExtend(decodeToExtend);   extend.input(decodeToExtend);
 
   decoder.operation(operation);
-  decoder.op1Select(op1Select);
+  decoder.op1Select(op1SelectSig);
   decoder.op2Select(op2Select);
 
   rcet.toALU1(chEnd1);

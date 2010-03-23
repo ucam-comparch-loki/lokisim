@@ -102,10 +102,12 @@ private:
 // Local state
 //==============================//
 
-private:
+public:
 
   // The possible sources of ALU operands.
   enum Source {RCET, REGISTERS, ALU, SIGN_EXTEND};
+
+private:
 
   // The remote channel we are fetching from (set using SETFETCHCH).
   int  fetchChannel;

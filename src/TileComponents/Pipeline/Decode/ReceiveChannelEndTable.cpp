@@ -25,9 +25,11 @@ void ReceiveChannelEndTable::receivedInput() {
   }
 }
 
-/* Read a value for the first ALU input. */
+/* Read a value for the first ALU input, unless it is accompanied by an
+ * operation to perform. */
 void ReceiveChannelEndTable::read1() {
-  read(fromDecoder1.read(), 0);
+  if(waitingForInput) testChannelEnd();
+  else read(fromDecoder1.read(), 0);
 }
 
 /* Read a value for the second ALU input. */
@@ -37,9 +39,6 @@ void ReceiveChannelEndTable::read2() {
 
 /* Read from the chosen channel end, and write the result to the given output. */
 void ReceiveChannelEndTable::read(short inChannel, short outChannel) {
-
-  // If an operation also arrived, we're not supposed to be reading.
-  if(operation.event()) return;
 
   Word w;
 
@@ -73,20 +72,26 @@ void ReceiveChannelEndTable::read(short inChannel, short outChannel) {
 
 }
 
-/* Carry out the operation asked of this component. */
+/* Return whether or not the specified channel contains data. */
+void ReceiveChannelEndTable::testChannelEnd() {
+  int testedChannel = fromDecoder1.read();
+  bool empty = buffers[testedChannel].isEmpty();
+
+  if(empty) dataToALU1 = Data(0);
+  else dataToALU1 = Data(1);
+  updateToALU1_4.write(!updateToALU1_4.read());
+
+  waitingForInput = false;
+}
+
+/* Carry out the operation asked of this component. The operation must arrive
+ * at the same time as or after the input from fromDecoder1. */
 void ReceiveChannelEndTable::doOperation() {
   switch(operation.read()) {
 
-    // Return whether or not the given channel contains data
+    // Wait until the channel ID to check arrives
     case TSTCH : {
-      int testedChannel = fromDecoder1.read();
-      bool empty = buffers[testedChannel].isEmpty();
-
-      cout << "Testing channel " << testedChannel << ": " << (empty?"empty":"not empty") << endl;
-      if(empty) dataToALU1 = Data(0);
-      else dataToALU1 = Data(1);
-      updateToALU1_2.write(!updateToALU1_2.read());
-
+      waitingForInput = true;
       break;
     }
 
@@ -184,7 +189,7 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name) :
   dont_initialize();
 
   SC_METHOD(updateToALU1);
-  sensitive << updateToALU1_1 << updateToALU1_2 << updateToALU1_3;
+  sensitive << updateToALU1_1 << updateToALU1_2 << updateToALU1_3 << updateToALU1_4;
   dont_initialize();
 
   SC_METHOD(updateFlowControl);

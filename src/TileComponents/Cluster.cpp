@@ -100,6 +100,7 @@ Cluster::Cluster(sc_module_name name, int ID) :
   decode.indWriteAddr(decIndWrite);   execute.indWriteIn(decIndWrite);
 
   decode.isIndirect(indirectReadSig); regs.indRead(indirectReadSig);
+  decode.indirectChannel(indChannelSig);  regs.channelID(indChannelSig);
 
   decode.chEnd1(RCETtoALU1);          execute.fromRChan1(RCETtoALU1);
   decode.chEnd2(RCETtoALU2);          execute.fromRChan2(RCETtoALU2);

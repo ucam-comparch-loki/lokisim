@@ -16,11 +16,11 @@ protected:
 
   Cluster c;
 
-  sc_clock clock;
-  flag_signal<Word> *in;            // array
-  flag_signal<AddressedWord> *out;  // array
-  sc_buffer<bool> *flowControlIn;   // array
-  sc_buffer<bool> *flowControlOut;  // array
+  sc_clock                    clock;
+  flag_signal<Word>          *in;              // array
+  flag_signal<AddressedWord> *out;             // array
+  sc_buffer<bool>            *flowControlIn;   // array
+  sc_buffer<bool>            *flowControlOut;  // array
 
   sc_core::sc_trace_file *trace;
 
@@ -28,9 +28,9 @@ protected:
       c("cluster", 1),
       clock("clock", 1, SC_NS, 0.5) {
 
-    in = new flag_signal<Word>[NUM_CLUSTER_INPUTS];
-    out = new flag_signal<AddressedWord>[NUM_CLUSTER_OUTPUTS];
-    flowControlIn = new sc_buffer<bool>[NUM_CLUSTER_OUTPUTS];
+    in             = new flag_signal<Word>[NUM_CLUSTER_INPUTS];
+    out            = new flag_signal<AddressedWord>[NUM_CLUSTER_OUTPUTS];
+    flowControlIn  = new sc_buffer<bool>[NUM_CLUSTER_OUTPUTS];
     flowControlOut = new sc_buffer<bool>[NUM_CLUSTER_INPUTS];
 
     c.clock(clock);
@@ -52,7 +52,7 @@ protected:
     for(int i=0; i<NUM_CLUSTER_OUTPUTS; i++) {
       flowControlIn[i].write(false);
 
-      std::string name(c.out[i].name());
+      string name(c.out[i].name());
       sc_core::sc_trace(trace, out[i], name);
     }
   }
@@ -144,7 +144,7 @@ protected:
 /* Tests that it is possible to load in code from a file, and execute it */
 //TEST_F(ClusterTest, RunsExternalCode) {
 //
-//  std::string filename = "fibonacci.loki";
+//  string filename = "fibonacci.loki";
 //
 //  CodeLoader::loadCode(filename, c);
 //
@@ -196,7 +196,7 @@ protected:
  * so the user should determine whether code executes correctly themselves. */
 //TEST_F(ClusterTest, ExternalCode) {
 //
-//  std::string filename = "fibonacci.loki";
+//  string filename = "fibonacci.loki";
 //  int setupCycles = 5;    // Number of cycles before outputs should be printed
 //  int numCycles = 5;      // Number of cycles for outputs to be printed
 //
@@ -213,7 +213,7 @@ protected:
 //    std::cout << "Cycle " << i << ":\n";
 //
 //    for(int j=0; j<NUM_CLUSTER_OUTPUTS; j++) {
-//      std::cout << "  out" << j << ": " << out[j].read() << endl;
+//      cout << "  out" << j << ": " << out[j].read() << endl;
 //      flowControlIn[j].write(true);
 //    }
 //  }
@@ -225,7 +225,7 @@ protected:
  * pipeline to continue execution again. */
 //TEST_F(ClusterTest, SCETStallsPipeline) {
 //
-//  std::string filename = "fibonacci2.loki";
+//  string filename = "fibonacci2.loki";
 //
 //  CodeLoader::loadCode(filename, c);
 //
@@ -319,10 +319,10 @@ protected:
 /* Tests that the tstch and selch instructions work properly. */
 //TEST_F(ClusterTest, TstchAndSelch) {
 //
-//  Instruction tstch("tstch r1 r29 > 0");
-//  Instruction tstch2("tstch r0 r28 > 1");
-//  Instruction selch("selch r2 > 2");
-//  Instruction get("irdr.eop r2 r2 > 3");
+//  Instruction tstch("tstch r1 r29 > 0");  // Test channel 1
+//  Instruction tstch2("tstch r0 r28 > 1"); // Test channel 0
+//  Instruction selch("selch r2 > 2");      // Select a channel with data
+//  Instruction get("irdr.eop r2 r2 > 3");  // Indirectly read from that channel
 //  Data d(3);
 //
 //  in[3].write(d);       // Insert the data
@@ -333,7 +333,8 @@ protected:
 //  TIMESTEP;
 //  in[1].write(selch);   // Get the index of the channel end
 //  TIMESTEP;
-////  in[1].write(get);     // Read the given channel end
+//  TIMESTEP;             // Need an extra cycle because of dependencies
+//  in[1].write(get);     // Read the given channel end
 //
 //  TIMESTEP;
 //  TIMESTEP;
@@ -363,9 +364,9 @@ protected:
 //  EXPECT_EQ(2, temp.getChannelID());
 //
 //  // Can't indirectly read channel-ends
-////  temp = out[2].read();
-////  EXPECT_EQ(3, ((Data)(temp.getPayload())).getData());
-////  EXPECT_EQ(3, temp.getChannelID());
+//  temp = out[2].read();
+//  EXPECT_EQ(3, ((Data)(temp.getPayload())).getData());
+//  EXPECT_EQ(3, temp.getChannelID());
 //
 //}
 
@@ -373,7 +374,7 @@ protected:
  * predicate bits. */
 TEST_F(ClusterTest, IbjmpAndPredicates) {
 
-  std::string filename = "fibonacci_loop.loki";
+  string filename = "fibonacci_loop.loki";
 
   CodeLoader::loadCode(filename, c);
 
@@ -382,7 +383,6 @@ TEST_F(ClusterTest, IbjmpAndPredicates) {
 
   for(int i=0; i<500; i++) {
     TIMESTEP;
-//    if(out[1].event()) cout << out[1].read().getPayload() << endl;
     if(out[2].event()) cout << out[2].read().getPayload() << endl;
   }
 

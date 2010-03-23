@@ -27,23 +27,26 @@ class IndirectRegisterFile: public Component {
 public:
 
   // Two addresses to read data from.
-  sc_in<short> readAddr1, readAddr2;
+  sc_in<short>  readAddr1, readAddr2;
 
   // Signals whether or not the second read address should use the indirect
   // registers.
-  sc_in<bool>  indRead;
+  sc_in<bool>   indRead;
 
   // The register to write data to.
-  sc_in<short> writeAddr;
+  sc_in<short>  writeAddr;
 
   // The register containing the index of the register which should be written to.
-  sc_in<short> indWriteAddr;
+  sc_in<short>  indWriteAddr;
 
   // Data to be written to the register file.
-  sc_in<Word>  writeData;
+  sc_in<Word>   writeData;
+
+  // The channel-end we want to read from when doing an indirect read.
+  sc_out<short> channelID;
 
   // Results of the two reads.
-  sc_out<Word> out1, out2;
+  sc_out<Word>  out1, out2;
 
 //==============================//
 // Constructors and destructors
@@ -52,7 +55,7 @@ public:
 public:
 
   SC_HAS_PROCESS(IndirectRegisterFile);
-  IndirectRegisterFile(sc_core::sc_module_name name);
+  IndirectRegisterFile(sc_module_name name);
   virtual ~IndirectRegisterFile();
 
 //==============================//

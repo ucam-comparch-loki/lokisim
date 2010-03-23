@@ -59,6 +59,9 @@ public:
   // Signal whether or not the second read address is indirect.
   sc_out<bool>          isIndirect;
 
+  // The channel that the indirect register is pointing to.
+  sc_in<short>          indirectChannel;
+
   // Data read from the register file.
   sc_in<Word>           regIn1, regIn2;
 
@@ -120,6 +123,8 @@ private:
   void receivedFromRegs2();
 
   void updateStall();
+  void updateToRCET1();
+  void updateOp1Select();
 
   virtual void newCycle();
 
@@ -143,8 +148,9 @@ private:
   sc_buffer<Instruction>  instructionSig;
   sc_buffer<Word>        *fromNetwork;
   sc_buffer<Address>      decodeToFetch;
-  sc_buffer<short>        decodeToRCET1, decodeToRCET2;
-  sc_buffer<short>        RCETOperation;
+  sc_buffer<short>        decodeToRCET1, decodeToRCET2, RCETread1;
+  flag_signal<short>      RCETOperation;
+  sc_buffer<short>        op1SelectSig;
   sc_buffer<Data>         decodeToExtend, baseAddress;
   sc_signal<bool>         rcetStallSig, flStallSig;
 
