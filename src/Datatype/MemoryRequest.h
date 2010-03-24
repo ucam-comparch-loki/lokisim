@@ -1,6 +1,9 @@
 /*
  * MemoryRequest.h
  *
+ * Request to set up a channel with a memory. Specify the type of operation
+ * to be performed, and how long the channel will be required.
+ *
  *  Created on: 3 Mar 2010
  *      Author: db434
  */

@@ -14,14 +14,9 @@
 
 #include "Word.h"
 
-using std::vector;
 using std::string;
 
 class Instruction: public Word {
-
-public:
-
-  enum Predicate {P, NOT_P, ALWAYS, END_OF_PACKET};
 
 //==============================//
 // Methods
@@ -34,7 +29,7 @@ public:
   unsigned short getSrc1() const;
   unsigned short getSrc2() const;
   unsigned short getRchannel() const;
-  signed   short getImmediate() const;
+  signed   int   getImmediate() const;
   unsigned short getPredicate() const;
   bool           getSetPredicate() const;
   bool           endOfPacket() const;
@@ -44,18 +39,23 @@ public:
   void setSrc1(short val);
   void setSrc2(short val);
   void setRchannel(short val);
-  void setImmediate(short val);
+  void setImmediate(int val);
   void setPredicate(short val);
   void setSetPred(bool val);
 
   bool operator== (const Instruction& other) const;
 
   // Has to go in header
-  friend std::ostream& operator<< (std::ostream& os, Instruction const& v) {
-    os << v.getOp() <<" "<< v.getDest() <<" "<< v.getSrc1() <<" "<< v.getSrc2()
-       <<" "<< v.getImmediate() <<" "<< v.getRchannel();
+  friend std::ostream& operator<< (std::ostream& os, const Instruction& v) {
+    os << v.getOp() <<" r"<< v.getDest() <<" r"<< v.getSrc1() <<" r"<< v.getSrc2()
+       <<" "<< v.getImmediate() <<" -> "<< v.getRchannel();
     return os;
   }
+
+private:
+
+  void decodeField(const string& s, int field);
+  void decodeOpcode(const string& opcode);
 
 //==============================//
 // Constructors and destructors
@@ -66,19 +66,20 @@ public:
   Instruction();
   Instruction(const Word& other);
   Instruction(unsigned int inst);   // For reading binary
-  Instruction(const string &inst);  // For reading assembler
+  Instruction(const string& inst);  // For reading assembler
   virtual ~Instruction();
 
 //==============================//
-// String manipulation methods
+// Local state
 //==============================//
 
-private:
+public:
 
-  vector<string>& split(const string &s, char delim, vector<string> &elems);
-  vector<string>  split(const string &s, char delim);
-  int             strToInt(const string &s);
-  void            decode(const string &s, int field);
+  // The options for the predicate value.
+  enum Predicate {P, NOT_P, ALWAYS, END_OF_PACKET};
+
+  // A remote channel value signifying that no channel was specified.
+  static const unsigned char NO_CHANNEL = 255;
 
 };
 

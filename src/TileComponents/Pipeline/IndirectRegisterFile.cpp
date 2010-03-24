@@ -43,7 +43,7 @@ void IndirectRegisterFile::indirectWrite() {
   regs.write(w, addr);
 
   // Store the lowest 5 (currently) bits of the data in the indirect register file
-  short toIndirect = (static_cast<Address>(writeData.read())).getLowestBits(4);
+  short toIndirect = (static_cast<Address>(writeData.read())).getLowestBits(5);
   indirect.write(toIndirect, addr);
 }
 

@@ -41,7 +41,7 @@ void Decoder::decodeInstruction() {
   if(!shouldExecute(pred)) return;
 
   if(InstructionMap::hasRemoteChannel(operation)) {
-    /*if(valid channel ID)*/ rChannel.write(remoteChannel);
+    if(remoteChannel != Instruction::NO_CHANNEL) rChannel.write(remoteChannel);
   }
 
   setPredicate.write(setPred);
@@ -128,7 +128,7 @@ void Decoder::decodeInstruction() {
   // Determine where to read the first operand from: RCET or register file
   if(operand1 >= NUM_REGISTERS) {
     toRCET1.write(operand1 - NUM_REGISTERS);
-    op1Select.write(RCET);          // ALU wants data from receive channel end table
+    op1Select.write(RCET);          // ALU wants data from channel-end
   }
   else {
     if(operand1 == regLastWritten) {
@@ -147,7 +147,7 @@ void Decoder::decodeInstruction() {
   }
   else if(operand2 >= NUM_REGISTERS) {
     toRCET2.write(operand2 - NUM_REGISTERS);
-    op2Select.write(RCET);          // ALU wants data from receive channel end table
+    op2Select.write(RCET);          // ALU wants data from channel-end
   }
   else {
     if(operand2 == regLastWritten) {

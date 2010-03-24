@@ -7,6 +7,7 @@
 
 #include "CodeLoader.h"
 #include "../Datatype/Instruction.h"
+#include "StringManipulation.h"
 
 /* Load code from the specified file into a particular component of the
  * given tile. */
@@ -25,24 +26,32 @@ void CodeLoader::loadCode(string& filename, TileComponent& component) {
 }
 
 /* Return a vector of Words corresponding to the contents of the file. */
-std::vector<Word>& CodeLoader::getData(string& filename) {
+vector<Word>& CodeLoader::getData(string& filename) {
 
   string fullName = "test_files/";
   fullName = fullName.append(filename);
 
   std::ifstream file(fullName.c_str());
-  std::vector<Word> *instructions = new std::vector<Word>();
+  vector<Word>* words = new vector<Word>();
 
-  // TODO: determine whether the file contains instructions or data
+  // See if this file contains Instructions or Data
+  bool instructionFile = isInstructionFile(filename);
 
-  char instruction[100];   // Is this enough?
+  char wordAsString[100];   // Is this enough?
 
   while(!file.fail()) {
     try {
-      file.getline(instruction, 100, '\n');
+      file.getline(wordAsString, 100, '\n');
       if(file.eof()) break;
-      Instruction i(instruction);
-      instructions->push_back(i);
+
+      try {
+        Word w = makeWord(wordAsString, instructionFile);
+        words->push_back(w);
+      }
+      catch (std::exception e) {
+        continue; // If we couldn't make a word, try the next line
+      }
+
     }
     catch(std::exception) {
       std::cerr << "Error: could not read file " << fullName << endl;
@@ -50,11 +59,38 @@ std::vector<Word>& CodeLoader::getData(string& filename) {
     }
   }
 
-  if(instructions->size() == 0)
-    std::cerr << "Error: read 0 instructions from file " << fullName << endl;
+  if(words->size() == 0)
+    std::cerr << "Error: read 0 words from file " << fullName << endl;
 
   file.close();
 
-  return *instructions;
+  return *words;
 
+}
+
+/* Returns whether the file should contain instructions. If not, it should
+ * contain data. Instruction files are of type .loki, and data files are
+ * of type .data. */
+bool CodeLoader::isInstructionFile(string& filename) {
+
+  vector<string> parts = StringManipulation::split(filename, '.');
+
+  if(parts[1] == "loki") return true;
+  else if(parts[1] == "data") return false;
+  else std::cerr << "Unknown file format: " << filename << endl;
+
+  return false;
+
+}
+
+/* Return either an Instruction or a Data represented by the given string,
+ * depending on the type of file being read. */
+Word CodeLoader::makeWord(const string& str, bool instructionFile) {
+  if(instructionFile) {
+    return Instruction(str);
+  }
+  else {
+    int val = StringManipulation::strToInt(str);
+    return Data(val);
+  }
 }

@@ -91,7 +91,7 @@ MemoryMat::MemoryMat(sc_module_name name, int ID) :
 
 // Register methods
   SC_METHOD(doOp);
-  /*for(int i=0; i<NUM_CLUSTER_INPUTS; i++)*/ sensitive << clock.pos();//in[i];
+  sensitive << clock.pos();
   dont_initialize();
 
   end_module(); // Needed because we're using a different constructor

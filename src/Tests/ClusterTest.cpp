@@ -14,7 +14,7 @@
 class ClusterTest : public ::testing::Test {
 protected:
 
-  Cluster c;
+  Cluster cluster;
 
   sc_clock                    clock;
   flag_signal<Word>          *in;              // array
@@ -25,7 +25,7 @@ protected:
   sc_core::sc_trace_file *trace;
 
   ClusterTest() :
-      c("cluster", 1),
+      cluster("cluster", 1),
       clock("clock", 1, SC_NS, 0.5) {
 
     in             = new flag_signal<Word>[NUM_CLUSTER_INPUTS];
@@ -33,14 +33,14 @@ protected:
     flowControlIn  = new sc_buffer<bool>[NUM_CLUSTER_OUTPUTS];
     flowControlOut = new sc_buffer<bool>[NUM_CLUSTER_INPUTS];
 
-    c.clock(clock);
+    cluster.clock(clock);
     for(int i=0; i<NUM_CLUSTER_INPUTS; i++) {
-      c.in[i](in[i]);
-      c.flowControlOut[i](flowControlOut[i]);
+      cluster.in[i](in[i]);
+      cluster.flowControlOut[i](flowControlOut[i]);
     }
     for(int i=0; i<NUM_CLUSTER_OUTPUTS; i++) {
-      c.out[i](out[i]);
-      c.flowControlIn[i](flowControlIn[i]);
+      cluster.out[i](out[i]);
+      cluster.flowControlIn[i](flowControlIn[i]);
     }
 
   }
@@ -52,7 +52,7 @@ protected:
     for(int i=0; i<NUM_CLUSTER_OUTPUTS; i++) {
       flowControlIn[i].write(false);
 
-      string name(c.out[i].name());
+      string name(cluster.out[i].name());
       sc_core::sc_trace(trace, out[i], name);
     }
   }
@@ -70,7 +70,7 @@ protected:
 //  TIMESTEP;
 //
 //  // If execution gets this far, the cluster has been instantiated correctly
-//  EXPECT_STREQ("cluster_1", c.name());
+//  EXPECT_STREQ("cluster_1", cluster.name());
 //
 //}
 
@@ -146,7 +146,7 @@ protected:
 //
 //  string filename = "fibonacci.loki";
 //
-//  CodeLoader::loadCode(filename, c);
+//  CodeLoader::loadCode(filename, cluster);
 //
 //  Array<AddressedWord> temp;
 //
@@ -200,7 +200,7 @@ protected:
 //  int setupCycles = 5;    // Number of cycles before outputs should be printed
 //  int numCycles = 5;      // Number of cycles for outputs to be printed
 //
-//  CodeLoader::loadCode(filename, c);
+//  CodeLoader::loadCode(filename, cluster);
 //
 //  Array<AddressedWord> temp;
 //
@@ -227,7 +227,7 @@ protected:
 //
 //  string filename = "fibonacci2.loki";
 //
-//  CodeLoader::loadCode(filename, c);
+//  CodeLoader::loadCode(filename, cluster);
 //
 //  TIMESTEP;
 //  TIMESTEP;
@@ -376,7 +376,7 @@ TEST_F(ClusterTest, IbjmpAndPredicates) {
 
   string filename = "fibonacci_loop.loki";
 
-  CodeLoader::loadCode(filename, c);
+  CodeLoader::loadCode(filename, cluster);
 
   flowControlIn[1].write(true);
   flowControlIn[2].write(true);

@@ -20,9 +20,6 @@ class PredicateRegister: public Component {
 
 public:
 
-  // Request a read of the predicate.
-//  sc_in<bool>  read;
-
   // Write a new value to the predicate.
   sc_in<bool>  write;
 
@@ -35,7 +32,6 @@ public:
 
 private:
 
-//  void readVal() const;
   void writeVal();
 
 //==============================//

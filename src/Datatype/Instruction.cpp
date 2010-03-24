@@ -2,17 +2,17 @@
  * Instruction.cpp
  *
  * Current layout: 64 bit value containing:
- *    16 bit immediate
+ *    32 bit immediate
  *    1 bit saying whether the predicate register should be set
  *    2 predicate bits
- *    7 bit opcode
+ *    6 bit opcode
  *    5 bit destination register location
  *    5 bit source 1 register location
  *    5 bit source 2 register location
  *    8 bit remote channel ID
  *
  *    | immed | setpred | pred | opcode | dest | source1 | source2 | channel ID |
- *     48      32        31     29       22     17        12        7          0
+ *     63      31        30     28       22     17        12        7          0
  *
  *  Created on: 5 Jan 2010
  *      Author: db434
@@ -20,15 +20,19 @@
 
 #include "Instruction.h"
 #include "../Utility/InstructionMap.h"
+#include "../Utility/StringManipulation.h"
 
-const short startImmediate = 33;
-const short startSetPred = 32;
-const short startPredicate = 30;
-const short startOpcode = 23;
-const short startDest = 18;
-const short startSrc1 = 13;
-const short startSrc2 = 8;
+typedef StringManipulation Strings;
+
 const short startChannelID = 0;
+const short startSrc2      = startChannelID + 8;  // 8
+const short startSrc1      = startSrc2 + 5;       // 13
+const short startDest      = startSrc1 + 5;       // 18
+const short startOpcode    = startDest + 5;       // 23
+const short startPredicate = startOpcode + 6;     // 29
+const short startSetPred   = startPredicate + 2;  // 31
+const short startImmediate = startSetPred + 1;    // 32
+const short end            = startImmediate + 32; // 64
 
 /* Public getter methods */
 unsigned short Instruction::getOp() const {
@@ -51,8 +55,8 @@ unsigned short Instruction::getRchannel() const {
   return getBits(startChannelID, startSrc2-1);
 }
 
-signed short Instruction::getImmediate() const {
-  return getBits(startImmediate, 48);
+signed int Instruction::getImmediate() const {
+  return getBits(startImmediate, end-1);
 }
 
 unsigned short Instruction::getPredicate() const {
@@ -85,56 +89,32 @@ Instruction::Instruction(unsigned int inst) : Word(inst) {
   // Do nothing
 }
 
-Instruction::Instruction(const string &inst) {
+Instruction::Instruction(const string& inst) {
 
   vector<string> words;
 
   // Remove any comments by splitting around ';' and only keeping the first part
-  words = split(inst, ';');
+  words = Strings::split(inst, ';');
+
+  // If there is no text, abandon the creation of the Instruction
+  if(words.size() == 0) throw std::exception();
 
   // Split around "->" to see if there is a remote channel specified
-  words = split(words.front(), '>');
-  if(words.size() > 1) setRchannel(strToInt(words[1]));
+  words = Strings::split(words.front(), '>');
+  if(words.size() > 1) setRchannel(Strings::strToInt(words[1]));
+  else setRchannel(NO_CHANNEL);
 
   // Split around ' ' to separate all remaining parts of the instruction
-  words = split(words.front(), ' ');
+  words = Strings::split(words.front(), ' ');
 
-  // Try splitting the opcode to see if it is predicated
-  vector<string> opcodeParts = split(words.front(), '?');
+  // Extract information from the opcode
+  decodeOpcode(words.front());
 
-  string opcodeString;
-
-  // Set the predicate bits
-  if(opcodeParts.size() > 1) {
-    string predicate = opcodeParts[0];
-    if(predicate == "p") setPredicate(P);
-    else if(predicate == "!p") setPredicate(NOT_P);
-//    else if(predicate == "eop") setPredicate(END_OF_PACKET);
-    opcodeString = opcodeParts[1];
-  }
-  else {
-    setPredicate(ALWAYS);
-    opcodeString = opcodeParts[0];
-  }
-
-  // See if the instruction sets the predicate register, or is the end of packet
-  opcodeParts = split(opcodeString, '.');
-
-  if(opcodeParts.size() > 1) {
-    string setting = opcodeParts[1];
-    if(setting == "eop") setPredicate(END_OF_PACKET);
-    else if(setting == "p") setSetPred(true);
-    else setSetPred(false);
-  }
-
-  // Look up operation in InstructionMap
-  short opcode = InstructionMap::opcode(opcodeParts.front());
-  setOp(opcode);
-
-  // Convert all remaining strings to integers, and set the appropriate fields
+  // Determine which registers/immediates any remaining strings represent
   for(unsigned int i=1; i<words.size(); i++) {
-    decode(words[i], i);
+    decodeField(words[i], i);
   }
+
 }
 
 Instruction::~Instruction() {
@@ -162,8 +142,8 @@ void Instruction::setRchannel(short val) {
   setBits(startChannelID, startSrc2-1, val);
 }
 
-void Instruction::setImmediate(short val) {
-  setBits(startImmediate, 48, val);
+void Instruction::setImmediate(int val) {
+  setBits(startImmediate, end-1, val);
 }
 
 void Instruction::setPredicate(short val) {
@@ -174,47 +154,57 @@ void Instruction::setSetPred(bool val) {
   setBits(startSetPred, startSetPred, val?1:0);
 }
 
-/* String manipulation methods -- move to a separate file? */
-
-/* Split a string around a given delimiter character */
-vector<string>& Instruction::split(const string &s, char delim,
-                                   vector<string> &elems) {
-  std::stringstream ss(s);
-  string item;
-  while(std::getline(ss, item, delim)) {
-    elems.push_back(item);
-  }
-  return elems;
-}
-
-/* Convenience method for the method above */
-vector<string> Instruction::split(const string &s, char delim) {
-  vector<string> elems;
-  return split(s, delim, elems);
-}
-
-/* Return the integer represented by the given string */
-int Instruction::strToInt(const string &str) {
-  std::stringstream ss(str);
-  int num;
-  ss >> num;
-  return num;
-}
-
 /* Determine if the string represents a register or immediate, and set the
  * corresponding field. */
-void Instruction::decode(const string &str, int field) {
+void Instruction::decodeField(const string& str, int field) {
+
   string reg = str;
 
   if(reg[0] == 'r') {                 // Registers are marked with an 'r'
     reg.erase(0,1);                   // Remove the 'r'
-    int value = strToInt(reg);
+    int value = Strings::strToInt(reg);
 
     if(field==1) setDest(value);
     else if(field==2) setSrc1(value);
     else if(field==3) setSrc2(value);
   }
   // Check that this instruction should have an immediate?
-  else setImmediate(strToInt(reg));
+  else setImmediate(Strings::strToInt(reg));
+
+}
+
+/* Extract all information from the opcode, and set the relevant fields. */
+void Instruction::decodeOpcode(const string& opcode) {
+
+  // Try splitting the opcode to see if it is predicated
+  vector<string> opcodeParts = Strings::split(opcode, '?');
+
+  string opcodeString;
+
+  // Set the predicate bits
+  if(opcodeParts.size() > 1) {
+    string predicate = opcodeParts[0];
+    if(predicate == "p") setPredicate(P);
+    else if(predicate == "!p") setPredicate(NOT_P);
+    opcodeString = opcodeParts[1];
+  }
+  else {
+    setPredicate(ALWAYS);
+    opcodeString = opcodeParts[0];
+  }
+
+  // See if the instruction sets the predicate register, or is the end of packet
+  opcodeParts = Strings::split(opcodeString, '.');
+
+  if(opcodeParts.size() > 1) {
+    string setting = opcodeParts[1];
+    if(setting == "eop") setPredicate(END_OF_PACKET);
+    else if(setting == "p") setSetPred(true);
+    else setSetPred(false);
+  }
+
+  // Look up operation in InstructionMap
+  short op = InstructionMap::opcode(opcodeParts.front());
+  setOp(op);
 
 }

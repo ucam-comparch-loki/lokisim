@@ -7,10 +7,6 @@
 
 #include "PredicateRegister.h"
 
-//void PredicateRegister::readVal() const {
-//  output.write(predicate);
-//}
-
 void PredicateRegister::writeVal() {
   predicate = write.read();
   output.write(predicate);
@@ -19,10 +15,6 @@ void PredicateRegister::writeVal() {
 PredicateRegister::PredicateRegister(sc_module_name name) : Component(name) {
 
   predicate = false;
-
-//  SC_METHOD(readVal);
-//  sensitive << read;
-//  dont_initialize();
 
   SC_METHOD(writeVal);
   sensitive << write;

@@ -3,10 +3,11 @@
  *
  * Current layout:
  *    16 bit read/write address
- *    16 bit return address
+ *    16 bit return address (only need 8?)
  *    8 bit number of operations to do (e.g. request 8 sequential reads at once)
  *    1 read/write bit (1 = read, 0 = write)
- *    15 bits spare (could include a stride length?)
+ *    1 IPK bit (says whether we want to read a whole instruction packet)
+ *    22 bits spare (could include a stride length?)
  *
  *    | spare  | IPK bit | r/w bit | num ops | return address | start address |
  *     63       41        40        39        31               15             0
@@ -18,10 +19,11 @@
 #include "MemoryRequest.h"
 
 const short startStartAddr = 0;
-const short startRetAddr = 16;
-const short startNumOps = 32;
-const short startRWBit = 40;
-const short startIPKBit = 41;
+const short startRetAddr   = startStartAddr + 16;
+const short startNumOps    = startRetAddr + 16;
+const short startRWBit     = startNumOps + 8;
+const short startIPKBit    = startRWBit + 1;
+const short end            = startIPKBit + 1;
 
 /* Return the memory address to read from or write to. */
 unsigned short MemoryRequest::getMemoryAddress() const {

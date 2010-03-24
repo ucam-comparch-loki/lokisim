@@ -18,6 +18,7 @@
 #include "../Datatype/Word.h"
 
 using std::string;
+using std::vector;
 
 class CodeLoader {
 
@@ -27,7 +28,9 @@ public:
   static void loadCode(string& filename, TileComponent& component);
 
 private:
-  static std::vector<Word>& getData(string& filename);
+  static vector<Word>& getData(string& filename);
+  static bool isInstructionFile(string& filename);
+  static Word makeWord(const string& str, bool instructionFile);
 
 };
 

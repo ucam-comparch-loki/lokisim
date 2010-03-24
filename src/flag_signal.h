@@ -44,16 +44,6 @@ public:
     this->request_update();
   }
 
-  // Note: since read() needs to be const, it is newData() that changes the
-  // newDataFlag. In most cases this should be fine, since when using a
-  // flag_signal, newData() and read() will be used together, but this may
-  // cause some unforeseen oddities.
-  bool newData() {
-    bool returnVal = *newDataFlag;
-    *newDataFlag = false;
-    return returnVal;
-  }
-
   virtual const char* kind() const {
     return "flag_signal";
   }
