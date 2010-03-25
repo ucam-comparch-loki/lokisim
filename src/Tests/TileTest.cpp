@@ -13,7 +13,7 @@
 class TileTest : public ::testing::Test {
 protected:
 
-  Tile t;
+  Tile tile;
 
   sc_clock clock;
 //  sc_signal<AddressedWord> *inNorth,  *inEast,  *inSouth,  *inWest,
@@ -22,7 +22,7 @@ protected:
 //  sc_core::sc_trace_file *trace;
 
   TileTest() :
-      t("tile", 0),
+      tile("tile", 0),
       clock("clock", 1, SC_NS, 0.5) {
 
 //    inNorth  = new sc_signal<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
@@ -34,17 +34,17 @@ protected:
 //    outSouth = new sc_signal<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
 //    outWest  = new sc_signal<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
 
-    t.clock(clock);
+    tile.clock(clock);
 
 //    for(int i=0; i<NUM_CHANNELS_BETWEEN_TILES; i++) {
-//      t.inNorth[i](inNorth[i]);
-//      t.inEast[i](inEast[i]);
-//      t.inSouth[i](inSouth[i]);
-//      t.inWest[i](inWest[i]);
-//      t.outNorth[i](outNorth[i]);
-//      t.outEast[i](outEast[i]);
-//      t.outSouth[i](outSouth[i]);
-//      t.outWest[i](outWest[i]);
+//      tile.inNorth[i](inNorth[i]);
+//      tile.inEast[i](inEast[i]);
+//      tile.inSouth[i](inSouth[i]);
+//      tile.inWest[i](inWest[i]);
+//      tile.outNorth[i](outNorth[i]);
+//      tile.outEast[i](outEast[i]);
+//      tile.outSouth[i](outSouth[i]);
+//      tile.outWest[i](outWest[i]);
 //    }
 
   }
@@ -72,17 +72,17 @@ protected:
 //  TIMESTEP;
 //}
 
-//TEST_F(TileTest, Communication) {
-//
-//  string cluster0 = "setfetchch.loki";
-//  string cluster1 = "remotefetch.loki";
-//  string memory = "fibonacci2.loki";
-//
-//  CodeLoader::loadCode(cluster0, t, 0);
-//  CodeLoader::loadCode(cluster1, t, 1);
-//  CodeLoader::loadCode(memory, t, 12);
-//
-//  // Should set DEBUG to true (or set up tracing) so values can be seen
-//  sc_start(50.0, SC_NS);
-//
-//}
+TEST_F(TileTest, Communication) {
+
+  string cluster0 = "setfetchch.loki";
+  string cluster1 = "remotefetch.loki";
+  string memory = "fibonacci2.loki";
+
+  CodeLoader::loadCode(cluster0, tile, 0);
+  CodeLoader::loadCode(cluster1, tile, 1);
+  CodeLoader::loadCode(memory, tile, 12);
+
+  // Should set DEBUG to true (or set up tracing) so values can be seen
+  for(int i=0; i<50; i++) TIMESTEP;
+
+}

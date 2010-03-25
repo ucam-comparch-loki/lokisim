@@ -21,10 +21,6 @@ public:
   unsigned int getData() const;
   void moveBit(int oldPos, int newPos);
 
-  friend void sc_trace(sc_core::sc_trace_file*& tf, const Data& w, const std::string& txt) {
-    sc_core::sc_trace(tf, (int)(w.data >> 32), txt);
-  }
-
 //==============================//
 // Constructors and destructors
 //==============================//

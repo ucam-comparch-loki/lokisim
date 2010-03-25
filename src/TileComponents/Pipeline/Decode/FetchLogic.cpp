@@ -38,9 +38,9 @@ void FetchLogic::haveResultFromCache() {
     // Create a new memory request and wrap it up in an AddressedWord
     MemoryRequest mr(offsetAddr.getAddress(), Cluster::IPKCacheInput(id), 0, true);
     mr.setIPKRequest(true);
-    AddressedWord *request = new AddressedWord(mr, offsetAddr.getChannelID());
+    AddressedWord request(mr, offsetAddr.getChannelID());
 
-    toSend.write(*request);           // Put the new request in the queue
+    toSend.write(request);            // Put the new request in the queue
     sendData.write(!sendData.read()); // Signal that there is new data to send
 
     // Stall so we don't receive any more data if the buffer is full

@@ -372,18 +372,18 @@ protected:
 
 /* Tests that while loops can be performed, using the ibjmp instruction and
  * predicate bits. */
-TEST_F(ClusterTest, IbjmpAndPredicates) {
-
-  string filename = "fibonacci_loop.loki";
-
-  CodeLoader::loadCode(filename, cluster);
-
-  flowControlIn[1].write(true);
-  flowControlIn[2].write(true);
-
-  for(int i=0; i<500; i++) {
-    TIMESTEP;
-    if(out[2].event()) cout << out[2].read().getPayload() << endl;
-  }
-
-}
+//TEST_F(ClusterTest, IbjmpAndPredicates) {
+//
+//  string filename = "fibonacci_loop.loki";
+//
+//  CodeLoader::loadCode(filename, cluster);
+//
+//  flowControlIn[1].write(true);
+//  flowControlIn[2].write(true);
+//
+//  for(int i=0; i<500; i++) {
+//    TIMESTEP;
+//    if(out[2].event()) cout << out[2].read().getPayload() << endl;
+//  }
+//
+//}

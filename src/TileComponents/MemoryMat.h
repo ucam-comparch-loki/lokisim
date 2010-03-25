@@ -19,8 +19,6 @@
 #include "TileComponent.h"
 #include "../Memory/AddressedStorage.h"
 #include "../Datatype/Word.h"
-#include "../Datatype/Address.h"
-#include "../Datatype/MemoryRequest.h"
 
 class MemoryMat: public TileComponent {
 
@@ -58,15 +56,42 @@ private:
   void doOp();
   void read(int position);
   void write(Word w, int position);
+  void updateControl();
 
 //==============================//
 // Local state
 //==============================//
 
+public:
+
+  // The index of the input port which receives control commands, which allow
+  // the set-up and tear-down of channels.
+  static const int       CONTROL_INPUT;
+
 private:
 
+  // The data stored by this memory.
   AddressedStorage<Word> data;
-  MemoryRequest         *transactions;  // array
+
+  // The remote channels currently connected to each of the input ports.
+  std::vector<int>       connections;
+
+  // Storing a value in memory requires two flits: one saying where to store
+  // to, and one with the data. This vector holds the addresses whilst waiting
+  // for data to arrive.
+  std::vector<int>       storeAddresses;
+
+  // Store the address to read from - used for multi-cycle instruction
+  // packet reads.
+  std::vector<int>       readAddresses;
+
+  // A boolean for each input, saying whether an instruction packet read is
+  // currently in progress.
+  std::vector<bool>      readingIPK;
+
+  // The value used to show that there is currently no connection to this input
+  // port, so it is possible to create a new connection.
+  static const int       NO_CONNECTION;
 
 };
 

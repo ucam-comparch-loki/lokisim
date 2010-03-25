@@ -1,1 +1,2 @@
-setfetchch.eop 48 ; fetch from the first memory
+setfetchch 48           ; fetch from the first memory
+addui.eop r0 r0 16 > 51 ; set up a connection with memory (using a horrible int)

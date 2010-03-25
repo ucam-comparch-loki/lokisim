@@ -38,6 +38,7 @@ void Decoder::decodeInstruction() {
     else remoteExecute = false;
   }
 
+  // COMMON CAUSE OF PROBLEMS: INSTRUCTION NOT EXECUTED BECAUSE OF PREDICATE
   if(!shouldExecute(pred)) return;
 
   if(InstructionMap::hasRemoteChannel(operation)) {
@@ -85,6 +86,7 @@ void Decoder::decodeInstruction() {
     std::string opName;
     inst.setDest(destination);
     inst.setImmediate(immediate);
+    inst.setPredicate(Instruction::END_OF_PACKET);
 
     switch(operation) {
       case InstructionMap::RMTFETCH :
@@ -115,17 +117,16 @@ void Decoder::decodeInstruction() {
   // Send something to FetchLogic
   if(operation==InstructionMap::FETCH || operation == InstructionMap::FETCHPST) {
     // Need to modify once we have read the base address from the register file
-    Address *a = new Address(immediate, fetchChannel);
-    toFetchLogic.write(*a);
+    Address a(immediate, fetchChannel);
+    toFetchLogic.write(a);
     regAddr1.write(destination);  // Fetch has an operand in the dest position
   }
-
 
   if(InstructionMap::isALUOperation(operation)) {
     this->operation.write(operation);
   }
 
-  // Determine where to read the first operand from: RCET or register file
+  // Determine where to read the first operand from: RCET, ALU or register file
   if(operand1 >= NUM_REGISTERS) {
     toRCET1.write(operand1 - NUM_REGISTERS);
     op1Select.write(RCET);          // ALU wants data from channel-end
@@ -140,7 +141,7 @@ void Decoder::decodeInstruction() {
     }
   }
 
-  // Determine where to get second operand from: immediate, RCET or registers
+  // Determine where to get second operand from: immediate, RCET, ALU or regs
   if(InstructionMap::hasImmediate(operation)) {
     toSignExtend.write(Data(immediate));
     op2Select.write(SIGN_EXTEND);   // ALU wants data from sign extender
@@ -168,7 +169,9 @@ void Decoder::decodeInstruction() {
   if(operation == InstructionMap::IWTR) indWrite.write(destination);
   else writeAddr.write(destination);
 
-  /*if(op writes to destination)*/ regLastWritten = destination;
+  /*if(op writes to destination)*/
+  if(destination == 0) regLastWritten = -1;
+  else regLastWritten = destination;
 
 }
 
@@ -180,7 +183,7 @@ bool Decoder::shouldExecute(short predBits) {
                 (predBits == Instruction::P && predicate.read()) ||
                 (predBits == Instruction::NOT_P && !predicate.read());
 
-//  cout << "Predicate = " << predicate.read() << ": result = " << result << endl;
+  if(DEBUG) cout<<"Predicate = "<<predicate.read()<<": result = "<<result<<endl;
 
   return result;
 

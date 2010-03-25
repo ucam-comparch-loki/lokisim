@@ -38,7 +38,7 @@ public:
   sc_in<bool>           *flowControlIn;
 
   // A flow control signal for each input (NUM_CLUSTER_INPUTS).
-  sc_out<bool>          *flowControlOut;  // array
+  sc_out<bool>          *flowControlOut;
 
 //==============================//
 // Constructors and destructors
