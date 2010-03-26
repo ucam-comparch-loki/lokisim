@@ -25,7 +25,10 @@ void Cluster::stallPipeline() {
   bool shouldStall = decStallSig.read() || writeStallSig.read();
   stallSig.write(shouldStall);
 
-  if(DEBUG && shouldStall) cout << "Stalling pipeline" << endl;
+  if(DEBUG) {
+    if(shouldStall) cout << "Stalling pipeline "   << id << endl;
+    else            cout << "Unstalling pipeline " << id << endl;
+  }
 }
 
 /* Returns the channel ID of this cluster's instruction packet FIFO. */
@@ -114,6 +117,7 @@ Cluster::Cluster(sc_module_name name, int ID) :
 
   decode.remoteInst(decToExInst);     execute.remoteInstIn(decToExInst);
   decode.remoteChannel(decToExRChan); execute.remoteChannelIn(decToExRChan);
+  decode.memoryOp(decToExMemOp);      execute.memoryOpIn(decToExMemOp);
   decode.waitOnChannel(decToExWOCHE); execute.waitOnChannelIn(decToExWOCHE);
   decode.predicate(readPredSig);      pred.output(readPredSig);
   decode.setPredicate(setPredSig);    execute.setPredicate(setPredSig);
@@ -128,6 +132,7 @@ Cluster::Cluster(sc_module_name name, int ID) :
 
   execute.remoteInstOut(exToWriteInst);     write.inst(exToWriteInst);
   execute.remoteChannelOut(exToWriteRChan); write.remoteChannel(exToWriteRChan);
+  execute.memoryOpOut(exToWriteMemOp);      write.memoryOp(exToWriteMemOp);
   execute.waitOnChannelOut(exToWriteWOCHE); write.waitOnChannel(exToWriteWOCHE);
 
   execute.writeOut(writeAddr);        write.inRegAddr(writeAddr);

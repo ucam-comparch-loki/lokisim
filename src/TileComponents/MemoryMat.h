@@ -81,6 +81,10 @@ private:
   // for data to arrive.
   std::vector<int>       storeAddresses;
 
+  // Shows, for each input, whether a write operation is a one-off, or whether
+  // the connection is set up for the cluster to stream data to this memory.
+  std::vector<bool>      streamingWrites;
+
   // Store the address to read from - used for multi-cycle instruction
   // packet reads.
   std::vector<int>       readAddresses;
@@ -89,9 +93,13 @@ private:
   // currently in progress.
   std::vector<bool>      readingIPK;
 
-  // The value used to show that there is currently no connection to this input
-  // port, so it is possible to create a new connection.
-  static const int       NO_CONNECTION;
+  // The value used to show that an entry in a vector is not currently
+  // storing any information related to an operation.
+  static const int       UNUSED;
+
+  // The amount to increment the address by after a read or write. For the
+  // moment, it's 1, but it could be 4 if we start accessing bytes.
+  static const int       STRIDE;
 
 };
 

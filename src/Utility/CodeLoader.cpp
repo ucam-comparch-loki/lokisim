@@ -75,6 +75,11 @@ bool CodeLoader::isInstructionFile(string& filename) {
 
   vector<string> parts = StringManipulation::split(filename, '.');
 
+  if(parts.size() < 2) {
+    std::cerr << "Error: no file extension for file " << filename << endl;
+    throw std::exception();
+  }
+
   if(parts[1] == "loki") return true;
   else if(parts[1] == "data") return false;
   else std::cerr << "Unknown file format: " << filename << endl;

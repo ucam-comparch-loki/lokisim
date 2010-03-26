@@ -54,6 +54,9 @@ public:
   // The remote channel to send data out on.
   sc_in<short>            remoteChannel;
 
+  // The memory operation being performed.
+  sc_in<short>            memoryOp;
+
   // Stall the pipeline until this channel is empty.
   sc_in<short>            waitOnChannel;
 
@@ -82,6 +85,8 @@ private:
   void receivedData();
   void receivedRChannel();
   void select();
+
+  Word getMemoryRequest();
 
 //==============================//
 // Components

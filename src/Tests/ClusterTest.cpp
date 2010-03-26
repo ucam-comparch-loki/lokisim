@@ -9,7 +9,6 @@
 #include "Test.h"
 #include "../TileComponents/Cluster.h"
 #include "../Utility/CodeLoader.h"
-#include "../flag_signal.h"
 
 class ClusterTest : public ::testing::Test {
 protected:
@@ -210,7 +209,7 @@ protected:
 //
 //    TIMESTEP;
 //
-//    std::cout << "Cycle " << i << ":\n";
+//    cout << "Cycle " << i << ":" << endl;
 //
 //    for(int j=0; j<NUM_CLUSTER_OUTPUTS; j++) {
 //      cout << "  out" << j << ": " << out[j].read() << endl;
@@ -319,10 +318,10 @@ protected:
 /* Tests that the tstch and selch instructions work properly. */
 //TEST_F(ClusterTest, TstchAndSelch) {
 //
-//  Instruction tstch("tstch r1 r29 > 0");  // Test channel 1
-//  Instruction tstch2("tstch r0 r28 > 1"); // Test channel 0
-//  Instruction selch("selch r2 > 2");      // Select a channel with data
-//  Instruction get("irdr.eop r2 r2 > 3");  // Indirectly read from that channel
+//  Instruction tstch("tstch r1, ch1 > 0");  // Test channel 1
+//  Instruction tstch2("tstch r0, ch0 > 1"); // Test channel 0
+//  Instruction selch("selch r2 > 2");       // Select a channel with data
+//  Instruction get("irdr.eop r2, r2 > 3");  // Indirectly read from that channel
 //  Data d(3);
 //
 //  in[3].write(d);       // Insert the data
@@ -363,7 +362,6 @@ protected:
 //  EXPECT_EQ(29, ((Data)(temp.getPayload())).getData());
 //  EXPECT_EQ(2, temp.getChannelID());
 //
-//  // Can't indirectly read channel-ends
 //  temp = out[2].read();
 //  EXPECT_EQ(3, ((Data)(temp.getPayload())).getData());
 //  EXPECT_EQ(3, temp.getChannelID());

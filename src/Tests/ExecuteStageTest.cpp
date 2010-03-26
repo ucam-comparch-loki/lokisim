@@ -18,7 +18,7 @@
 //  sc_clock clock("clock", 1, SC_NS, 0.5);
 //
 //  sc_signal<Data> mux1_1, mux1_2, mux1_3, mux2_1, mux2_2, mux2_3, mux2_4, out;
-//  sc_signal<short> mux1_select, mux2_select, operation;
+//  sc_signal<short> mux1_select, mux2_select, operationIn;
 //  sc_signal<short> writeAddr, indWriteAddr, rChannel;
 //  sc_signal<Instruction> remoteInst;
 //
@@ -34,7 +34,7 @@
 //
 //  execute.op1Select(mux1_select);
 //  execute.op2Select(mux2_select);
-//  execute.operation(operation);
+//  execute.operationIn(operationIn);
 //
 //  execute.output(out);
 //
@@ -57,7 +57,7 @@
 //
 //// Begin testing
 //  mux1_select.write(1); mux2_select.write(1);
-//  operation.write(InstructionMap::ADDU);    // 2 + 5 = 7
+//  operationIn.write(InstructionMap::ADDU);    // 2 + 5 = 7
 //
 //  sc_start(clock.period());
 //
@@ -65,7 +65,7 @@
 //  EXPECT_EQ(7, d.getData());
 //
 //  mux1_select.write(2); mux2_select.write(3);
-//  operation.write(InstructionMap::AND);      // 3 & 7 = 3
+//  operationIn.write(InstructionMap::AND);      // 3 & 7 = 3
 //
 //  sc_start(clock.period());
 //

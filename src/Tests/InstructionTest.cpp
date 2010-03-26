@@ -14,13 +14,13 @@
 /* Tests that Instructions are parsed correctly */
 TEST(InstructionTest, InstructionParsesCorrectly) {
 
-  std::string inst = "p?addu.p r18 r25 r8  ; this is a comment";
+  std::string inst = "p?addu.p r18 r25 ch1  ; this is a comment";
   Instruction i = Instruction(inst);
 
   EXPECT_EQ(InstructionMap::ADDU, i.getOp());
   EXPECT_EQ(18, i.getDest());
   EXPECT_EQ(25, i.getSrc1());
-  EXPECT_EQ(8, i.getSrc2());
+  EXPECT_EQ(29, i.getSrc2());
   EXPECT_EQ(Instruction::P, i.getPredicate());
   EXPECT_EQ(true, i.getSetPredicate());
 

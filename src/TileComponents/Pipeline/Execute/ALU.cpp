@@ -9,6 +9,8 @@
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Datatype/Instruction.h"
 
+#define DEBUG 1
+
 void ALU::doOp() {
 
   if(operation.read() == InstructionMap::NOP) return;
@@ -17,7 +19,7 @@ void ALU::doOp() {
   unsigned int val2 = in2.read().getData();
   unsigned int result;
 
-  if(DEBUG) cout << "ALU received Data: " << val1 << " and " << val2 << endl;
+  if(DEBUG) cout<<this->name()<<" received Data: "<<val1<<" and "<<val2<<endl;
 
   switch(operation.read()) {
 
@@ -71,7 +73,17 @@ void ALU::doOp() {
   out.write(Data(result));
 
   if(setPredicate.read()) {
-    setPred(result&1);      // Store lowest bit in predicate register
+
+    bool newPredicate;
+
+    switch(operation.read()) {
+      case InstructionMap::ADDU:
+      case InstructionMap::ADDUI: newPredicate = (val1+val2) > UINT_MAX;
+      case InstructionMap::SUBU:  newPredicate = ((int)val1-(int)val2) < 0;
+      default: newPredicate = result&1; // Store lowest bit in predicate register
+    }
+
+    setPred(newPredicate);
   }
 
 }

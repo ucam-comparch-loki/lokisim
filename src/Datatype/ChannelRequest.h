@@ -27,9 +27,9 @@ public:
 
 private:
 
-  int setPort(int val);
-  int setReturnChannel(int val);
-  int setType(int val);
+  void setPort(int val);
+  void setReturnChannel(int val);
+  void setType(int val);
 
 //==============================//
 // Constructors and destructors

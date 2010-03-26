@@ -71,6 +71,9 @@ public:
   // The indirect register to write the result of the instruction to.
   sc_out<short>         indWriteAddr;
 
+  // The memory operation being performed.
+  sc_out<short>         memoryOp;
+
   // The remote channel to send the data or instruction to.
   sc_out<short>         remoteChannel;
 
@@ -152,7 +155,7 @@ private:
   flag_signal<short>      RCETOperation;
   sc_buffer<short>        op1SelectSig;
   sc_buffer<Data>         decodeToExtend, baseAddress;
-  sc_signal<bool>         rcetStallSig, flStallSig;
+  sc_signal<bool>         rcetStall, flStall, decoderStall;
 
 };
 

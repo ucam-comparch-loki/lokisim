@@ -21,6 +21,7 @@
 #include "Instruction.h"
 #include "../Utility/InstructionMap.h"
 #include "../Utility/StringManipulation.h"
+#include "../Utility/Parameters.h"
 
 typedef StringManipulation Strings;
 
@@ -166,6 +167,14 @@ void Instruction::decodeField(const string& str, int field) {
 
     if(field==1) setDest(value);
     else if(field==2) setSrc1(value);
+    else if(field==3) setSrc2(value);
+  }
+  else if(reg[0] == 'c') {            // Channels are optionally marked with "ch"
+    reg.erase(0,2);                   // Remove the "ch"
+    int value = Strings::strToInt(reg) + NUM_REGISTERS;
+
+    // The destination should never be a channel-end
+    if(field==2) setSrc1(value);
     else if(field==3) setSrc2(value);
   }
   // Check that this instruction should have an immediate?

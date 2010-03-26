@@ -25,16 +25,22 @@ void ReceiveChannelEndTable::receivedInput() {
   }
 }
 
-/* Read a value for the first ALU input, unless it is accompanied by an
- * operation to perform. */
-void ReceiveChannelEndTable::read1() {
-  if(waitingForInput) testChannelEnd();
-  else read(fromDecoder1.read(), 0);
-}
+/* Service requests for data once the channels to read from are known. */
+void ReceiveChannelEndTable::receivedRequest() {
 
-/* Read a value for the second ALU input. */
-void ReceiveChannelEndTable::read2() {
-  read(fromDecoder2.read(), 1);
+  // Read a value for the first ALU input, unless we just received an
+  // operation to perform, in which case, the result of the operation should
+  // be sent instead.
+  if(fromDecoder1.event()) {
+    if(waitingForInput) testChannelEnd();
+      else read(fromDecoder1.read(), 0);
+  }
+
+  // Read a value for the second ALU input.
+  if(fromDecoder2.event()) {
+    read(fromDecoder2.read(), 1);
+  }
+
 }
 
 /* Read from the chosen channel end, and write the result to the given output. */
@@ -79,7 +85,7 @@ void ReceiveChannelEndTable::testChannelEnd() {
 
   if(empty) dataToALU1 = Data(0);
   else dataToALU1 = Data(1);
-  updateToALU1_4.write(!updateToALU1_4.read());
+  updateToALU1_1.write(!updateToALU1_1.read());
 
   waitingForInput = false;
 }
@@ -176,12 +182,8 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name) :
   for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) sensitive << fromNetwork[i];
   dont_initialize();
 
-  SC_METHOD(read1);
-  sensitive << fromDecoder1;
-  dont_initialize();
-
-  SC_METHOD(read2);
-  sensitive << fromDecoder2;
+  SC_METHOD(receivedRequest);
+  sensitive << fromDecoder1 << fromDecoder2;
   dont_initialize();
 
   SC_METHOD(doOperation);
@@ -189,7 +191,7 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name) :
   dont_initialize();
 
   SC_METHOD(updateToALU1);
-  sensitive << updateToALU1_1 << updateToALU1_2 << updateToALU1_3 << updateToALU1_4;
+  sensitive << updateToALU1_1 << updateToALU1_2 << updateToALU1_3;
   dont_initialize();
 
   SC_METHOD(updateFlowControl);

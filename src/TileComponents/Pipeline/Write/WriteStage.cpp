@@ -6,6 +6,7 @@
  */
 
 #include "WriteStage.h"
+#include "../../../Datatype/MemoryRequest.h"
 
 void WriteStage::newCycle() {
 
@@ -33,7 +34,11 @@ void WriteStage::receivedInst() {
 
 /* Change the multiplexor's select signal so it uses the new Data */
 void WriteStage::receivedData() {
-  ALUtoMux.write(fromALU.read());
+
+  // Generate a memory request using the new data, if necessary.
+  if(memoryOp.event()) ALUtoMux.write(getMemoryRequest());
+  else ALUtoMux.write(fromALU.read());
+
   selectVal = 0;   // Want this Data to get into the SCET
   newDataSig.write(!newDataSig.read());
 
@@ -44,12 +49,19 @@ void WriteStage::select() {
   if(remoteChannel.event()) muxSelect.write(selectVal);
 }
 
+/* Generate a memory request using the address from the ALU and the operation
+ * supplied by the decoder. */
+Word WriteStage::getMemoryRequest() {
+  MemoryRequest mr(fromALU.read().getData(), memoryOp.read());
+  return mr;
+}
+
 WriteStage::WriteStage(sc_module_name name) :
     PipelineStage(name),
     scet("scet"),
     mux("writemux") {
 
-  output = new sc_out<AddressedWord>[NUM_SEND_CHANNELS];
+  output      = new sc_out<AddressedWord>[NUM_SEND_CHANNELS];
   flowControl = new sc_in<bool>[NUM_SEND_CHANNELS];
 
 // Register methods

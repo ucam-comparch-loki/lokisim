@@ -94,6 +94,7 @@ private:
   // To/from execute stage
   flag_signal<Instruction> decToExInst, exToWriteInst;
   flag_signal<short>       decToExRChan, exToWriteRChan;
+  flag_signal<short>       decToExMemOp, exToWriteMemOp;
   flag_signal<short>       decToExWOCHE, exToWriteWOCHE;
   flag_signal<Data>        ALUOutput;
   sc_signal<bool>          writePredSig;

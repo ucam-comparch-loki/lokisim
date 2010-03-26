@@ -1,10 +1,10 @@
-addui   r1 r0 1 > 1  ; store initial 1 in r1
-addui   r2 r0 1 > 1  ; store initial 1 in r2
-addui   r3 r0 2      ; store count in r3
-addui   r3 r3 1      ; update count
-slti.p  r0 r3 40     ; set predicate if less than 40 iterations completed
-addui   r4 r2 0      ; store r2 in r4 temporarily
-addu    r2 r1 r2 > 1 ; calculate next value
-addui   r1 r4 0      ; store temp in r1
-p?ibjmp -5           ; jump back to beginning of loop if predicate is set
-nop.eop              ; end of program
+addui   r1, r0, 1 > 1  ; store initial 1 in r1
+addui   r2, r0, 1 > 1  ; store initial 1 in r2
+addui   r3, r0, 2      ; store count in r3
+addui   r3, r3, 1      ; update count
+slti.p  r0, r3, 40     ; set predicate if less than 40 iterations completed
+addui   r4, r2, 0      ; store r2 in r4 temporarily
+addu    r2, r1, r2 > 1 ; calculate next value
+addui   r1, r4, 0      ; store temp in r1
+p?ibjmp -5             ; jump back to beginning of loop if predicate is set
+nop.eop                ; end of program

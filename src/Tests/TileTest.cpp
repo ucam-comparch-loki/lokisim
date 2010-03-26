@@ -68,21 +68,43 @@ protected:
 
 };
 
+/* Tests that implementation is complete enough for a Tile to be created, even
+ * if it is not yet functional. */
 //TEST_F(TileTest, CanInstantiateTile) {
 //  TIMESTEP;
 //}
 
-TEST_F(TileTest, Communication) {
+/* Tests that clusters and memories within a tile can communicate usefully. */
+//TEST_F(TileTest, Communication) {
+//
+//  string cluster0 = "setfetchch.loki";
+//  string cluster1 = "remotefetch.loki";
+//  string memory = "fibonacci2.loki";
+//
+//  CodeLoader::loadCode(cluster0, tile, 0);
+//  CodeLoader::loadCode(cluster1, tile, 1);
+//  CodeLoader::loadCode(memory, tile, 12);
+//
+//  // Should set DEBUG to true (or set up tracing) so values can be seen
+//  for(int i=0; i<50; i++) TIMESTEP;
+//
+//}
 
-  string cluster0 = "setfetchch.loki";
-  string cluster1 = "remotefetch.loki";
-  string memory = "fibonacci2.loki";
+/* Tests that load and store operations work. */
+TEST_F(TileTest, VectorAdd) {
+
+  string cluster0 = "vector_add_0.loki";
+  string cluster1 = "vector_add_1.loki";
+  string cluster2 = "vector_add_2.loki";
+  string memory0  = "vector_add_12.loki";
+  string memory1  = "vector_add_13.data";
 
   CodeLoader::loadCode(cluster0, tile, 0);
   CodeLoader::loadCode(cluster1, tile, 1);
-  CodeLoader::loadCode(memory, tile, 12);
+  CodeLoader::loadCode(cluster2, tile, 2);
+  CodeLoader::loadCode(memory0, tile, 12);
+  CodeLoader::loadCode(memory1, tile, 13);
 
-  // Should set DEBUG to true (or set up tracing) so values can be seen
-  for(int i=0; i<50; i++) TIMESTEP;
+  for(int i=0; i<100; i++) TIMESTEP;
 
 }

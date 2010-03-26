@@ -44,6 +44,9 @@ public:
   // The operation for the receive channel-end table to perform.
   sc_out<short>       channelOp;
 
+  // The memory operation we are performing.
+  sc_out<short>       memoryOp;
+
   // The register to write the result back to.
   sc_out<short>       writeAddr;
 
@@ -79,6 +82,9 @@ public:
   // The immediate we want to be padded to 32 bits.
   sc_out<Data>        toSignExtend;
 
+  // Tell the pipeline to stall.
+  sc_out<bool>        stall;
+
 //==============================//
 // Constructors and destructors
 //==============================//
@@ -96,7 +102,11 @@ public:
 private:
 
   void decodeInstruction();
+  void setOperand1(short operation, int operand);
+  void setOperand2(short operation, int operand, int immediate);
+  void completeWrite();
   bool shouldExecute(short predBits);
+
 
 //==============================//
 // Local state
@@ -121,6 +131,9 @@ private:
 
   // Tells whether or not we are in remote execution mode.
   bool remoteExecute;
+
+  // Tells whether we have started a two-cycle store operation.
+  bool currentlyWriting;
 
 };
 

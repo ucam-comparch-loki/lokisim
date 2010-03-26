@@ -1,22 +1,25 @@
-fetch r0 2 ; fetch the next packet                             === Cluster 0 ===
+addui r0 r0 48 > 55 ; connect to the data memory                === Cluster 0 ===
+fetch r0 3          ; fetch the next packet
 addui.eop r10 r0 20 ; store the location we want to store data to
-addu r1 r28 r29 ; add the inputs from the two channel-ends
-st r1 r10 0 > 52 ; store the result to memory 13
-addui r10 r10 1 ; update store position
-ibjmp.eop -3 ; loop until interrupted or data stops coming
+addu r1 r28 r29     ; add the inputs from the two channel-ends
+st r1 r10 0 > 52    ; store the result to memory 13
+addui r10 r10 1     ; update store position
+ibjmp.eop -3        ; loop until interrupted or data stops coming
 
-addu r10 r0 0 ; store the location we want to load data from   === Cluster 1 ===
-ld r10 0 > 53 ; send a load request to memory 13
-addui r10 r10 1 ; increment counter
-seqi r2 r10 9 ; see if we have reached the end of the loop 
-addu r0 r28 r0 > 2 ; send the loaded value to cluster 0
-!p?ibjmp -4 ; jump back to beginning of loop
+addui r0 r0 97 > 55 ; connect to the data memory                === Cluster 1 ===
+addu r10 r0 0       ; store the location we want to load data from
+ld r10 0 > 53       ; send a load request to memory 13
+addui r10 r10 1     ; increment counter
+seqi r2 r10 9       ; see if we have reached the end of the loop 
+addu r0 r28 r0 > 2  ; send the loaded value to cluster 0
+!p?ibjmp -4         ; jump back to beginning of loop
 nop.eop
 
-addu r10 r0 10 ; store the location we want to load data from  === Cluster 2 ===
-ld r10 0 > 54 ; send a load request to memory 13
-addui r10 r10 1 ; increment counter
-seqi r2 r10 19 ; see if we have reached the end of the loop 
-addu r0 r28 r0 > 3 ; send the loaded value to cluster 0
-!p?ibjmp -4 ; jump back to beginning of loop
+addui r0 r0 162 > 55; connect to the data memory                === Cluster 2 ===
+addu r10 r0 10      ; store the location we want to load data from
+ld r10 0 > 54       ; send a load request to memory 13
+addui r10 r10 1     ; increment counter
+seqi r2 r10 19      ; see if we have reached the end of the loop 
+addu r0 r28 r0 > 3  ; send the loaded value to cluster 0
+!p?ibjmp -4         ; jump back to beginning of loop
 nop.eop

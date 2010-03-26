@@ -64,6 +64,12 @@ public:
   sc_in<short>        remoteChannelIn;
   sc_out<short>       remoteChannelOut;
 
+  // The memory operation being performed. This may be different to the
+  // ALU operation because, for example, a load may require an addition to
+  // compute the address. (Passing through).
+  sc_in<short>        memoryOpIn;
+  sc_out<short>       memoryOpOut;
+
   // Stall the pipeline until this output channel is empty.
   sc_in<short>        waitOnChannelIn;
   sc_out<short>       waitOnChannelOut;

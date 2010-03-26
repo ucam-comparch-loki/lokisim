@@ -22,6 +22,7 @@ void ExecuteStage::newCycle() {
       COPY_IF_NEW(writeIn, writeOut);
       COPY_IF_NEW(indWriteIn, indWriteOut);
       COPY_IF_NEW(remoteChannelIn, remoteChannelOut);
+      COPY_IF_NEW(memoryOpIn, memoryOpOut);
       COPY_IF_NEW(waitOnChannelIn, waitOnChannelOut);
 
       setPredSig.write(setPredicate.read());  // Not using COPY_IF_NEW

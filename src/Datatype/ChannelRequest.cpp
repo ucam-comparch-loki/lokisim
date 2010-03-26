@@ -1,6 +1,17 @@
 /*
  * ChannelRequest.cpp
  *
+ * Current layout:
+ *    4 bit port to connect to
+ *    16 bit channel ID to return data to
+ *    1 bit request type (setup/tear down)
+ *
+ *    |          spare             | type | channel ID |    port    |
+ *     63                           20     19           3           0
+ *
+ * To set up a channel, send the value:
+ *    16*return channel ID + port
+ *
  *  Created on: 24 Mar 2010
  *      Author: db434
  */
@@ -24,15 +35,15 @@ int ChannelRequest::getType() const {
   return getBits(startType, end-1);
 }
 
-int ChannelRequest::setPort(int val) {
+void ChannelRequest::setPort(int val) {
   setBits(startPort, startReturnChannel-1, val);
 }
 
-int ChannelRequest::setReturnChannel(int val) {
+void ChannelRequest::setReturnChannel(int val) {
   setBits(startReturnChannel, startType-1, val);
 }
 
-int ChannelRequest::setType(int val) {
+void ChannelRequest::setType(int val) {
   setBits(startType, end-1, val);
 }
 

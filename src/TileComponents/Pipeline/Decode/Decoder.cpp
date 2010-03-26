@@ -6,12 +6,18 @@
  */
 
 #include "Decoder.h"
-#include "../../../Utility/InstructionMap.h"
 #include "ReceiveChannelEndTable.h"
+#include "../../../Datatype/MemoryRequest.h"
+#include "../../../Utility/InstructionMap.h"
 
 void Decoder::decodeInstruction() {
 
   // TODO: tidy decode
+
+  if(currentlyWriting) {
+    completeWrite();
+    return;
+  }
 
   Instruction i = instructionIn.read();
 
@@ -41,11 +47,45 @@ void Decoder::decodeInstruction() {
   // COMMON CAUSE OF PROBLEMS: INSTRUCTION NOT EXECUTED BECAUSE OF PREDICATE
   if(!shouldExecute(pred)) return;
 
+  // Send the remote channel to the write stage
   if(InstructionMap::hasRemoteChannel(operation)) {
     if(remoteChannel != Instruction::NO_CHANNEL) rChannel.write(remoteChannel);
   }
 
   setPredicate.write(setPred);
+
+  if(operation == InstructionMap::LD || operation == InstructionMap::LDB) {
+    if(DEBUG) cout << "Attempting a load" << endl;
+
+    writeAddr.write(0); // Don't want to write
+    setOperand1(operation, destination);
+    setOperand2(operation, 0, immediate);
+    this->operation.write(InstructionMap::ADDUI);
+    memoryOp.write(MemoryRequest::LOAD);
+    return;
+  }
+
+  if(operation == InstructionMap::ST || operation == InstructionMap::STB) {
+    if(DEBUG) cout << "Attempting a store" << endl;
+
+    writeAddr.write(0);
+    setOperand1(operation, operand1);
+    setOperand2(operation, 0, immediate);
+    this->operation.write(InstructionMap::ADDUI);
+    stall.write(true);
+    currentlyWriting = true;
+    memoryOp.write(MemoryRequest::STORE);
+    return;
+  }
+
+  if(operation == InstructionMap::STADDR || operation == InstructionMap::STBADDR) {
+    writeAddr.write(0);
+    setOperand1(operation, destination);
+    setOperand2(operation, 0, immediate);
+    this->operation.write(InstructionMap::ADDUI);
+    memoryOp.write(MemoryRequest::STADDR);
+    return;
+  }
 
   if(operation == InstructionMap::TSTCH) {
     channelOp.write(ReceiveChannelEndTable::TSTCH);
@@ -126,39 +166,8 @@ void Decoder::decodeInstruction() {
     this->operation.write(operation);
   }
 
-  // Determine where to read the first operand from: RCET, ALU or register file
-  if(operand1 >= NUM_REGISTERS) {
-    toRCET1.write(operand1 - NUM_REGISTERS);
-    op1Select.write(RCET);          // ALU wants data from channel-end
-  }
-  else {
-    if(operand1 == regLastWritten) {
-      op1Select.write(ALU);         // ALU wants data from itself
-    }
-    else {
-      regAddr1.write(operand1);
-      op1Select.write(REGISTERS);   // ALU wants data from registers
-    }
-  }
-
-  // Determine where to get second operand from: immediate, RCET, ALU or regs
-  if(InstructionMap::hasImmediate(operation)) {
-    toSignExtend.write(Data(immediate));
-    op2Select.write(SIGN_EXTEND);   // ALU wants data from sign extender
-  }
-  else if(operand2 >= NUM_REGISTERS) {
-    toRCET2.write(operand2 - NUM_REGISTERS);
-    op2Select.write(RCET);          // ALU wants data from channel-end
-  }
-  else {
-    if(operand2 == regLastWritten) {
-      op2Select.write(ALU);         // ALU wants data from itself
-    }
-    else {
-      regAddr2.write(operand2);
-      op2Select.write(REGISTERS);   // ALU wants data from registers
-    }
-  }
+  setOperand1(operation, operand1);
+  setOperand2(operation, operand2, immediate);
 
   if(operation == InstructionMap::IRDR) {
     regAddr2.write(operand1);
@@ -175,12 +184,63 @@ void Decoder::decodeInstruction() {
 
 }
 
+/* Determine where to read the first operand from: RCET, ALU or registers */
+void Decoder::setOperand1(short operation, int operand) {
+  if(operand >= NUM_REGISTERS) {
+    toRCET1.write(operand - NUM_REGISTERS);
+    op1Select.write(RCET);          // ALU wants data from channel-end
+  }
+  else {
+    if(operand == regLastWritten) {
+      op1Select.write(ALU);         // ALU wants data from itself
+    }
+    else {
+      regAddr1.write(operand);
+      op1Select.write(REGISTERS);   // ALU wants data from registers
+    }
+  }
+}
+
+/* Determine where to get second operand from: immediate, RCET, ALU or regs */
+void Decoder::setOperand2(short operation, int operand, int immediate) {
+  if(InstructionMap::hasImmediate(operation)) {
+    toSignExtend.write(Data(immediate));
+    op2Select.write(SIGN_EXTEND);   // ALU wants data from sign extender
+  }
+  else if(operand >= NUM_REGISTERS) {
+    toRCET2.write(operand - NUM_REGISTERS);
+    op2Select.write(RCET);          // ALU wants data from channel-end
+  }
+  else {
+    if(operand == regLastWritten) {
+      op2Select.write(ALU);         // ALU wants data from itself
+    }
+    else {
+      regAddr2.write(operand);
+      op2Select.write(REGISTERS);   // ALU wants data from registers
+    }
+  }
+}
+
+/* Sends the second part of a two-flit store operation. */
+void Decoder::completeWrite() {
+  short readReg = instructionIn.read().getDest();
+  short op = instructionIn.read().getOp();
+  short remoteChannel = instructionIn.read().getRchannel();
+
+  rChannel.write(remoteChannel);
+  setOperand1(op, readReg);
+  operation.write(InstructionMap::ST);
+  currentlyWriting = false;
+  stall.write(false);
+}
+
 /* Determine whether this instruction should be executed. */
 bool Decoder::shouldExecute(short predBits) {
 
   bool result = (predBits == Instruction::ALWAYS) ||
                 (predBits == Instruction::END_OF_PACKET) ||
-                (predBits == Instruction::P && predicate.read()) ||
+                (predBits == Instruction::P     &&  predicate.read()) ||
                 (predBits == Instruction::NOT_P && !predicate.read());
 
   if(DEBUG) cout<<"Predicate = "<<predicate.read()<<": result = "<<result<<endl;

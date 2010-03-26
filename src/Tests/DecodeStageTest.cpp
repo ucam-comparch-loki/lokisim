@@ -159,7 +159,7 @@ protected:
 //
 //  AddressedWord temp = out.read();
 //  MemoryRequest mr = static_cast<MemoryRequest>(temp.getPayload());
-//  EXPECT_EQ(6, mr.getMemoryAddress()); // 2 in r2 + 4 offset
+//  EXPECT_EQ(6, mr.getAddress()); // 2 in r2 + 4 offset
 //  EXPECT_EQ(1*NUM_CLUSTER_INPUTS + 1, mr.getReturnAddress());
 //  EXPECT_EQ(18, temp.getChannelID());
 //

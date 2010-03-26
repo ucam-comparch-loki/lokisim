@@ -13,6 +13,12 @@ void DecodeStage::newCycle() {
     if(!stall.read()) {
       COPY_IF_NEW(instructionIn, instructionSig);
     }
+    else if(decoderStall.read()) {
+      // If the decoder is stalling, it is because it is carrying out a
+      // multi-cycle operation. It needs to be able to complete this.
+      // Send the same instruction again to wake the decoder up.
+      instructionSig.write(instructionSig.read());
+    }
 
     for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
       COPY_IF_NEW(in[i], fromNetwork[i]);
@@ -37,7 +43,7 @@ void DecodeStage::receivedFromRegs2() {
 
 /* Update this component's stall status signal. */
 void DecodeStage::updateStall() {
-  stallOut.write(flStallSig.read() || rcetStallSig.read());
+  stallOut.write(flStall.read() || rcetStall.read() || decoderStall.read());
 }
 
 /* Allow multiple components to request a channel-end read. */
@@ -85,7 +91,7 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   sensitive << indirectChannel << op1SelectSig;
 
   SC_METHOD(updateStall);
-  sensitive << flStallSig << rcetStallSig;
+  sensitive << flStall << rcetStall << decoderStall;
   // do initialise
 
 // Connect everything up
@@ -102,7 +108,7 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   fl.flowControl(flowControlIn);
   fl.baseAddress(baseAddress);
   fl.isRoomToFetch(roomToFetch);
-  fl.stallOut(flStallSig);
+  fl.stallOut(flStall);
 
   decoder.regAddr1(regReadAddr1);
   decoder.regAddr2(regReadAddr2);
@@ -111,6 +117,7 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   decoder.instructionOut(remoteInst);
   decoder.isIndirectRead(isIndirect);
   decoder.jumpOffset(jumpOffset);
+  decoder.memoryOp(memoryOp);
   decoder.predicate(predicate);
   decoder.setPredicate(setPredicate);
   decoder.toFetchLogic(decodeToFetch);    fl.in(decodeToFetch);
@@ -120,6 +127,7 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   decoder.toRCET2(decodeToRCET2);         rcet.fromDecoder2(decodeToRCET2);
   decoder.channelOp(RCETOperation);       rcet.operation(RCETOperation);
   decoder.toSignExtend(decodeToExtend);   extend.input(decodeToExtend);
+  decoder.stall(decoderStall);
 
   decoder.operation(operation);
   decoder.op1Select(op1SelectSig);
@@ -127,7 +135,7 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
 
   rcet.toALU1(chEnd1);
   rcet.toALU2(chEnd2);
-  rcet.stallOut(rcetStallSig);
+  rcet.stallOut(rcetStall);
 
   extend.output(sExtend);
 

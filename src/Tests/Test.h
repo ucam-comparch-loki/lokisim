@@ -21,6 +21,10 @@
 #include "../Datatype/AddressedWord.h"
 
 // A small unit of simulation time, allowing signals to propagate
-#define TIMESTEP sc_start(1, SC_NS); if(DEBUG) printf("===============\n")
+#define TIMESTEP {\
+  static int cycleNumber = 0;\
+  sc_start(1, SC_NS);\
+  if(DEBUG) cout << "\n======= Cycle " << cycleNumber++ << " =======" << endl;\
+}
 
 #endif /* TEST_H_ */

@@ -36,8 +36,7 @@ void FetchLogic::haveResultFromCache() {
 
   if(!(cacheContainsInst.read())) {
     // Create a new memory request and wrap it up in an AddressedWord
-    MemoryRequest mr(offsetAddr.getAddress(), Cluster::IPKCacheInput(id), 0, true);
-    mr.setIPKRequest(true);
+    MemoryRequest mr(offsetAddr.getAddress(), MemoryRequest::IPK_READ);
     AddressedWord request(mr, offsetAddr.getChannelID());
 
     toSend.write(request);            // Put the new request in the queue
