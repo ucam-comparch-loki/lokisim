@@ -2,4 +2,4 @@ nop
 nop                     ; temporary delay until network can handle conflicts
 addui r0 r0 146 > 51    ; connect to the instruction memory
 setfetchch 50
-fetch.eop r0 15
+fetch.eop r0 17

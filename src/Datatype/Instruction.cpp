@@ -173,8 +173,8 @@ void Instruction::decodeField(const string& str, int field) {
     reg.erase(0,2);                   // Remove the "ch"
     int value = Strings::strToInt(reg) + NUM_REGISTERS;
 
-    // The destination should never be a channel-end
-    if(field==2) setSrc1(value);
+    if(field==1) setDest(value);
+    else if(field==2) setSrc1(value);
     else if(field==3) setSrc2(value);
   }
   // Check that this instruction should have an immediate?

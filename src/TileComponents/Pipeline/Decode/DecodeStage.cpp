@@ -13,10 +13,11 @@ void DecodeStage::newCycle() {
     if(!stall.read()) {
       COPY_IF_NEW(instructionIn, instructionSig);
     }
-    else if(decoderStall.read()) {
-      // If the decoder is stalling, it is because it is carrying out a
-      // multi-cycle operation. It needs to be able to complete this.
-      // Send the same instruction again to wake the decoder up.
+
+    // If the decoder is stalling, it is because it is carrying out a
+    // multi-cycle operation. It needs to be able to complete this.
+    // Send the same instruction again to wake the decoder up.
+    if(stallFetch.read()) {
       instructionSig.write(instructionSig.read());
     }
 
@@ -43,7 +44,7 @@ void DecodeStage::receivedFromRegs2() {
 
 /* Update this component's stall status signal. */
 void DecodeStage::updateStall() {
-  stallOut.write(flStall.read() || rcetStall.read() || decoderStall.read());
+  stallOut.write(flStall.read() || rcetStall.read());
 }
 
 /* Allow multiple components to request a channel-end read. */
@@ -91,7 +92,7 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   sensitive << indirectChannel << op1SelectSig;
 
   SC_METHOD(updateStall);
-  sensitive << flStall << rcetStall << decoderStall;
+  sensitive << flStall << rcetStall;// << decoderStall;
   // do initialise
 
 // Connect everything up
@@ -127,7 +128,7 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   decoder.toRCET2(decodeToRCET2);         rcet.fromDecoder2(decodeToRCET2);
   decoder.channelOp(RCETOperation);       rcet.operation(RCETOperation);
   decoder.toSignExtend(decodeToExtend);   extend.input(decodeToExtend);
-  decoder.stall(decoderStall);
+  decoder.stall(stallFetch);
 
   decoder.operation(operation);
   decoder.op1Select(op1SelectSig);

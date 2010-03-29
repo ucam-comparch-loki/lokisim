@@ -106,7 +106,7 @@ private:
   void setOperand2(short operation, int operand, int immediate);
   void completeWrite();
   bool shouldExecute(short predBits);
-
+  bool readALUOutput(short reg);
 
 //==============================//
 // Local state

@@ -25,9 +25,13 @@ void Cluster::stallPipeline() {
   bool shouldStall = decStallSig.read() || writeStallSig.read();
   stallSig.write(shouldStall);
 
+  // The fetch stage has to be stalled more often than the rest of the pipeline.
+  fetchStallSig.write(shouldStall || stallFetchSig.read());
+
   if(DEBUG) {
-    if(shouldStall) cout << "Stalling pipeline "   << id << endl;
-    else            cout << "Unstalling pipeline " << id << endl;
+    cout << this->name() << ": ";
+    if(shouldStall) cout << "stalling pipeline" << endl;
+    else            cout << "unstalling pipeline" << endl;
   }
 }
 
@@ -80,8 +84,9 @@ Cluster::Cluster(sc_module_name name, int ID) :
   }
 
   // Clock and stall signal
-  fetch.clock(clock);                 fetch.stall(stallSig);
+  fetch.clock(clock);                 fetch.stall(fetchStallSig);
   decode.clock(clock);                decode.stall(stallSig);
+                                      decode.stallFetch(stallFetchSig);
   execute.clock(clock);               execute.stall(stallSig);
   write.clock(clock);                 write.stall(stallSig);
 

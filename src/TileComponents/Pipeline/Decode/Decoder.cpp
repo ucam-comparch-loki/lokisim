@@ -14,23 +14,23 @@ void Decoder::decodeInstruction() {
 
   // TODO: tidy decode
 
+  Instruction i = instructionIn.read();
+
+  if(DEBUG) cout << this->name() << " received Instruction: " << i << endl;
+
   if(currentlyWriting) {
     completeWrite();
     return;
   }
 
-  Instruction i = instructionIn.read();
-
-  if(DEBUG) cout << "DecodeStage received Instruction: " << i << endl;
-
   // Extract useful information from the instruction
-  short operation = InstructionMap::operation(i.getOp());
-  short destination = i.getDest();
-  short operand1 = i.getSrc1();
-  short operand2 = i.getSrc2();
-  int immediate = i.getImmediate();
-  short pred = i.getPredicate();
-  bool setPred = i.getSetPredicate();
+  short operation     = InstructionMap::operation(i.getOp());
+  short destination   = i.getDest();
+  short operand1      = i.getSrc1();
+  short operand2      = i.getSrc2();
+  int immediate       = i.getImmediate();
+  short pred          = i.getPredicate();
+  bool setPred        = i.getSetPredicate();
   short remoteChannel = i.getRchannel();
 
   // If we are in remote execution mode, send all marked instructions.
@@ -191,7 +191,7 @@ void Decoder::setOperand1(short operation, int operand) {
     op1Select.write(RCET);          // ALU wants data from channel-end
   }
   else {
-    if(operand == regLastWritten) {
+    if(readALUOutput(operand)) {
       op1Select.write(ALU);         // ALU wants data from itself
     }
     else {
@@ -212,7 +212,7 @@ void Decoder::setOperand2(short operation, int operand, int immediate) {
     op2Select.write(RCET);          // ALU wants data from channel-end
   }
   else {
-    if(operand == regLastWritten) {
+    if(readALUOutput(operand)) {
       op2Select.write(ALU);         // ALU wants data from itself
     }
     else {
@@ -222,11 +222,13 @@ void Decoder::setOperand2(short operation, int operand, int immediate) {
   }
 }
 
-/* Sends the second part of a two-flit store operation. */
+/* Sends the second part of a two-flit store operation (the data to send). */
 void Decoder::completeWrite() {
   short readReg = instructionIn.read().getDest();
   short op = instructionIn.read().getOp();
   short remoteChannel = instructionIn.read().getRchannel();
+
+  regLastWritten = -1; // Hack - we're executing the same instruction twice
 
   rChannel.write(remoteChannel);
   setOperand1(op, readReg);
@@ -247,6 +249,13 @@ bool Decoder::shouldExecute(short predBits) {
 
   return result;
 
+}
+
+/* Determines whether to forward the output of the ALU when trying to read
+ * from this register. This should happen when this register was written to
+ * in the previous cycle, and the register isn't reserved. */
+bool Decoder::readALUOutput(short reg) {
+  return (reg != 0) && (reg == regLastWritten) && (regLastWritten != -1);
 }
 
 Decoder::Decoder(sc_module_name name) : Component(name) {

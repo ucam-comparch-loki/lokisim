@@ -9,6 +9,7 @@
 #include "Test.h"
 #include "../TileComponents/Cluster.h"
 #include "../Utility/CodeLoader.h"
+#include "../Datatype/MemoryRequest.h"
 
 class ClusterTest : public ::testing::Test {
 protected:
@@ -383,5 +384,56 @@ protected:
 //    TIMESTEP;
 //    if(out[2].event()) cout << out[2].read().getPayload() << endl;
 //  }
+//
+//}
+
+/* Tests that loads and stores work correctly, in particular, that stores
+ * result in the sending of two flits on consecutive cycles. */
+//TEST_F(ClusterTest, LoadsAndStores) {
+//
+//  Instruction load("ld.eop r0 4 > 7");
+//  Instruction store("st.eop ch0 r0 5 > 8");
+//  AddressedWord temp;
+//
+//  in[1].write(load);
+//
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//
+//  flowControlIn[2].write(true);
+//
+//  TIMESTEP;
+//
+//  temp = out[2].read();
+//  EXPECT_EQ(4, ((Data)(temp.getPayload())).getData());
+//  EXPECT_EQ(7, temp.getChannelID());
+//  flowControlIn[2].write(false);
+//
+//  in[1].write(store);
+//
+//  TIMESTEP;
+//
+//  in[2].write(Data(9));   // Return the result of the load to channel 0
+//
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//
+//  flowControlIn[1].write(true);
+//
+//  TIMESTEP;
+//
+//  temp = out[1].read();
+//  EXPECT_EQ(5, ((MemoryRequest)(temp.getPayload())).getAddress());
+//  EXPECT_EQ(MemoryRequest::STORE, ((MemoryRequest)(temp.getPayload())).getOperation());
+//  EXPECT_EQ(8, temp.getChannelID());
+//
+//  TIMESTEP;
+//
+//  temp = out[1].read();
+//  EXPECT_EQ(9, ((Data)(temp.getPayload())).getData());
+//  EXPECT_EQ(8, temp.getChannelID());
 //
 //}

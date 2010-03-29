@@ -11,7 +11,7 @@
 void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
 
   if(instructions.size() == 0) {
-    cout << "Error: loaded 0 instructions into " << this->name() << endl;
+    std::cerr << "Error: loaded 0 instructions into " << this->name() << endl;
     return;
   }
 
@@ -94,6 +94,8 @@ void InstructionPacketCache::finishedRead() {
 
 /* Jump to a new instruction specified by the offset amount. */
 void InstructionPacketCache::jump() {
+  if(DEBUG) cout << this->name() << ": ";   // cache prints the rest
+
   cache.jump(jumpOffset.read());
   instToSend = cache.read();
   if(instToSend.endOfPacket()) cache.switchToPendingPacket();

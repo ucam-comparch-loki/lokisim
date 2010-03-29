@@ -9,8 +9,6 @@
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Datatype/Instruction.h"
 
-#define DEBUG 1
-
 void ALU::doOp() {
 
   if(operation.read() == InstructionMap::NOP) return;

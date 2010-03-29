@@ -23,21 +23,19 @@ void FetchStage::newCycle() {
 }
 
 void FetchStage::newFIFOInst() {
-  Instruction* instToFIFO = new Instruction(
-                              static_cast<Instruction>(toIPKQueue.read()));
+  Instruction instToFIFO = static_cast<Instruction>(toIPKQueue.read());
 
-  if(DEBUG) cout<<"IPK FIFO received Instruction:  "<<*instToFIFO<<endl;
+  if(DEBUG) cout<<fifo.name()<<" received Instruction:  "<<instToFIFO<<endl;
 
-  toFIFO.write(*instToFIFO);
+  toFIFO.write(instToFIFO);
 }
 
 void FetchStage::newCacheInst() {
-  Instruction* instToCache = new Instruction(
-                              static_cast<Instruction>(toIPKCache.read()));
+  Instruction instToCache = static_cast<Instruction>(toIPKCache.read());
 
-  if(DEBUG) cout<<"IPK Cache received Instruction: "<<*instToCache<<endl;
+  if(DEBUG) cout<<cache.name()<<" received Instruction: "<<instToCache<<endl;
 
-  toCache.write(*instToCache);
+  toCache.write(instToCache);
 }
 
 /* Choose whether to take an instruction from the cache or FIFO.
@@ -47,17 +45,16 @@ void FetchStage::newCacheInst() {
  *          or FIFO is empty and cache has instructions. */
 short FetchStage::calculateSelect() {
 
-  // 0 = cache, 1 = FIFO
   short result;
 
   if(usingCache) {
     Instruction i = cacheToMux.read();
     usingCache = fifoEmpty.read() || !i.endOfPacket();
-    result = 0; //cache
+    result = CACHE;
   }
   else {
     usingCache = fifoEmpty.read();
-    result = usingCache ? 0 : 1;
+    result = usingCache ? CACHE : FIFO;
   }
 
   return result;
@@ -67,15 +64,22 @@ short FetchStage::calculateSelect() {
 void FetchStage::select() {
   short sel = calculateSelect();
 
-  if((sel==0 && cacheToMux.event()) || (sel==1 && FIFOtoMux.event())) {
+  if((sel==CACHE && cacheToMux.event()) || (sel==FIFO && FIFOtoMux.event())) {
     muxSelect.write(sel);
 
     if(DEBUG) {
-      printf("%s selected instruction from %s: ", this->name(), sel==0?"cache":"FIFO");
-      if(sel) cout << FIFOtoMux.read() << endl;
-      else cout << cacheToMux.read() << endl;
+      printf("%s selected instruction from %s: ", this->name(),
+                                                  sel==CACHE?"cache":"FIFO");
+      if(sel==FIFO) cout << FIFOtoMux.read() << endl;
+      else          cout << cacheToMux.read() << endl;
     }
   }
+}
+
+/* Perform any status updates required when we receive a position to jump to. */
+void FetchStage::jump() {
+  usingCache = true;
+  jumpOffsetSig.write(jumpOffset.read());
 }
 
 FetchStage::FetchStage(sc_module_name name) :
@@ -100,6 +104,10 @@ FetchStage::FetchStage(sc_module_name name) :
   sensitive << cacheToMux << FIFOtoMux << clock.pos();
   dont_initialize();
 
+  SC_METHOD(jump);
+  sensitive << jumpOffset;
+  dont_initialize();
+
 // Connect everything up
   cache.clock(clock);
   fifo.clock(clock);
@@ -113,7 +121,7 @@ FetchStage::FetchStage(sc_module_name name) :
   mux.result(instruction);
 
   cache.address(address);
-  cache.jumpOffset(jumpOffset);
+  cache.jumpOffset(jumpOffsetSig);
   cache.cacheHit(cacheHit);
   cache.isRoomToFetch(roomToFetch);
   cache.readInstruction(readFromCache);

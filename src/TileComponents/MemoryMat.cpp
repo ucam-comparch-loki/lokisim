@@ -11,8 +11,6 @@
 #include "../Datatype/ChannelRequest.h"
 #include "../Datatype/Data.h"
 
-#define DEBUG 1
-
 const int MemoryMat::CONTROL_INPUT = NUM_CLUSTER_INPUTS - 1;
 const int MemoryMat::UNUSED = -1;
 const int MemoryMat::STRIDE = 1;
@@ -120,7 +118,7 @@ void MemoryMat::write(Word w, int position) {
 
   flowControlOut[position].write(true);   // Is this necessary?
 
-  if(DEBUG) cout << "Wrote " << w << " to memory " << id <<
+  /*if(DEBUG)*/ cout << "Wrote " << w << " to memory " << id <<
                     ", address " << addr << endl;
 }
 

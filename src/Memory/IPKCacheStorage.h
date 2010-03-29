@@ -16,8 +16,6 @@
 
 #include "MappedStorage.h"
 
-#define NOT_IN_USE -1
-
 template<class K, class T>
 class IPKCacheStorage : public MappedStorage<K,T> {
 
@@ -89,7 +87,7 @@ public:
   void jump(int offset) {
     if(currentInstruction == NOT_IN_USE) currentInstruction = currInstBackup;
 
-    currentInstruction += offset - 2; // -1 because we've incremented, why -2?
+    currentInstruction += offset - 1; // -1 because we've incremented
 
     // Bring it back within required bounds
     if(currentInstruction >= (int)Storage<T>::data.size()) {
@@ -98,6 +96,8 @@ public:
     else if(currentInstruction < 0) {
       currentInstruction += Storage<T>::data.size();
     }
+
+    updateFillCount();
 
     if(DEBUG) cout << "Jumped by " << offset << " to instruction " <<
         currentInstruction << endl;
@@ -117,7 +117,7 @@ public:
   }
 
   void switchToPendingPacket() {
-    currInstBackup = currentInstruction;
+    currInstBackup = currentInstruction - 1;
     currentInstruction = pendingPacket;
     pendingPacket = NOT_IN_USE;
   }
@@ -125,8 +125,7 @@ public:
   void storeCode(std::vector<T>& code) {
     if(code.size() > Storage<T>::data.size()) {
       std::cerr << "Error: tried to write " << code.size() <<
-        " instructions to a memory of size " << Storage<T>::data.size() <<
-        std::endl;
+        " instructions to a memory of size " << Storage<T>::data.size() << endl;
     }
 
     for(unsigned int i=0; i<code.size() && i<Storage<T>::data.size(); i++) {
@@ -160,6 +159,15 @@ private:
     fillCount--;
   }
 
+  void updateFillCount() {
+    if(currentInstruction <= refillPointer) {
+      fillCount = refillPointer - currentInstruction;
+    }
+    else {
+      fillCount = refillPointer - currentInstruction + Storage<T>::data.size();
+    }
+  }
+
 //==============================//
 // Local state
 //==============================//
@@ -171,6 +179,8 @@ private:
 
   // Do we want a single pending packet, or a queue of them?
   int pendingPacket;  // Location of the next packet to be executed
+
+  static const int NOT_IN_USE = -1;
 
 };
 

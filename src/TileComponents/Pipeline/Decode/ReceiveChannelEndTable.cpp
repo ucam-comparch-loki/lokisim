@@ -19,8 +19,8 @@ void ReceiveChannelEndTable::receivedInput() {
       wroteToBuffer.write(!wroteToBuffer.read());
       checkWaiting(i);  // See if we have been waiting for data to arrive here
 
-      cout << this->name() << " channel " << i << " received " <<
-              fromNetwork[i].read() << endl;
+      if(DEBUG) cout << this->name() << " channel " << i << " received " <<
+                        fromNetwork[i].read() << endl;
     }
   }
 }
@@ -33,12 +33,25 @@ void ReceiveChannelEndTable::receivedRequest() {
   // be sent instead.
   if(fromDecoder1.event()) {
     if(waitingForInput) testChannelEnd();
-      else read(fromDecoder1.read(), 0);
+    else read(fromDecoder1.read(), 0);
+  }
+  else if(endWaiting1.event()) {
+    read(waiting1, 0);
+    waiting1 = NO_CHANNEL;
   }
 
   // Read a value for the second ALU input.
   if(fromDecoder2.event()) {
     read(fromDecoder2.read(), 1);
+  }
+  else if(endWaiting2.event()) {
+    read(waiting2, 1);
+    waiting2 = NO_CHANNEL;
+  }
+
+  if(waiting1 == NO_CHANNEL && waiting2 == NO_CHANNEL) {
+    stallValue = false;
+    updateStall4.write(!updateStall4.read());
   }
 
 }
@@ -148,12 +161,14 @@ void ReceiveChannelEndTable::checkWaiting(int channelEnd) {
     waiting1 = NO_CHANNEL;
   }
   else if(waiting1 == channelEnd) {
-    read(waiting1, 0);
-    waiting1 = NO_CHANNEL;  // Not waiting for anything anymore
+//    read(waiting1, 0);
+//    waiting1 = NO_CHANNEL;  // Not waiting for anything anymore
+    endWaiting1.write(!endWaiting1.read());
   }
   if(waiting2 == channelEnd) {
-    read(waiting2, 1);
-    waiting2 = NO_CHANNEL;  // Not waiting for anything anymore
+//    read(waiting2, 1);
+//    waiting2 = NO_CHANNEL;  // Not waiting for anything anymore
+    endWaiting2.write(!endWaiting2.read());
   }
 
   if(waiting1 == NO_CHANNEL && waiting2 == NO_CHANNEL) {
@@ -183,7 +198,7 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name) :
   dont_initialize();
 
   SC_METHOD(receivedRequest);
-  sensitive << fromDecoder1 << fromDecoder2;
+  sensitive << fromDecoder1 << fromDecoder2 << endWaiting1 << endWaiting2;
   dont_initialize();
 
   SC_METHOD(doOperation);
@@ -199,7 +214,7 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name) :
   // do initialise
 
   SC_METHOD(updateStall);
-  sensitive << updateStall1 << updateStall2;
+  sensitive << updateStall1 << updateStall2 << updateStall3 << updateStall4;
   // do initialise
 
 }

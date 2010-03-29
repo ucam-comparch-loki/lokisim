@@ -90,7 +90,9 @@ protected:
 //
 //}
 
-/* Tests that load and store operations work. */
+/* Tests that load and store operations work. Adds together two vectors of
+ * length 10. The result should be 12, 14, 16, ..., stored at memory
+ * addresses 20, 21, 22, ... */
 TEST_F(TileTest, VectorAdd) {
 
   string cluster0 = "vector_add_0.loki";

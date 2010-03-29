@@ -105,6 +105,10 @@ public:
   // Signal that the pipeline should stall.
   sc_out<bool>          stallOut;
 
+  // A multi-cycle instruction requires that most of the pipeline keeps
+  // working, but that no new instructions are supplied.
+  sc_out<bool>          stallFetch;
+
 //==============================//
 // Constructors and destructors
 //==============================//
@@ -155,7 +159,7 @@ private:
   flag_signal<short>      RCETOperation;
   sc_buffer<short>        op1SelectSig;
   sc_buffer<Data>         decodeToExtend, baseAddress;
-  sc_signal<bool>         rcetStall, flStall, decoderStall;
+  sc_signal<bool>         rcetStall, flStall;
 
 };
 

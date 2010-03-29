@@ -118,7 +118,10 @@ private:
 
   // Signal that something has happened which may have changed whether or not
   // this component is causing the pipeline to stall.
-  sc_signal<bool>   updateStall1, updateStall2, updateStall3;
+  sc_signal<bool>   updateStall1, updateStall2, updateStall3, updateStall4;
+
+  // Signal that a channel waited on now has data, so a read should take place.
+  sc_signal<bool>   endWaiting1, endWaiting2;
 
 };
 

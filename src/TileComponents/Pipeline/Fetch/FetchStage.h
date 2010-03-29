@@ -71,6 +71,7 @@ private:
   void          newCacheInst();
   short         calculateSelect();
   void          select();
+  void          jump();
 
 //==============================//
 // Components
@@ -90,6 +91,8 @@ private:
 
   bool usingCache;
 
+  enum InstructionSource {CACHE, FIFO};
+
 //==============================//
 // Signals (wires)
 //==============================//
@@ -99,6 +102,7 @@ private:
   sc_signal<Instruction>    toCache, toFIFO, cacheToMux, FIFOtoMux;
   sc_buffer<short>          muxSelect;
   sc_signal<bool>           fifoEmpty, readFromFIFO, readFromCache;
+  sc_buffer<short>          jumpOffsetSig;
 
 };
 
