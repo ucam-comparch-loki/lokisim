@@ -21,17 +21,21 @@ void FlowControlOut::receivedResponses() {
  * This implementation represents acknowledgement flow control, but it could be
  * more complex and, for example, keep a counter to implement credit schemes. */
 void FlowControlOut::allowedToSend(int position, bool isAllowed) {
-  if(isAllowed) dataOut[position].write(dataIn[position].read());
+  if(isAllowed) {
+    dataOut[position].write(dataIn[position].read());
+  }
+
+  waitingToRequest[position] = !isAllowed;  // If denied, send another request
   flowControl[position].write(isAllowed);
-  // Do something if the request was denied?
 }
 
 void FlowControlOut::sendRequests() {
   for(int i=0; i<width; i++) {
-    if(dataIn[i].event()) {
+    if(dataIn[i].event() || (clock.event() && waitingToRequest[i])) {
       Request r(id*width + i);
       AddressedWord req(r, dataIn[i].read().getChannelID());
       requests[i].write(req);
+      waitingToRequest[i] = false;
     }
   }
 }
@@ -57,24 +61,17 @@ void FlowControlOut::setup() {
   dont_initialize();
 
   SC_METHOD(sendRequests);
-  for(int i=0; i<width; i++) sensitive << dataIn[i];
+  for(int i=0; i<width; i++) sensitive << dataIn[i] << clock.pos();
   dont_initialize();
 
 }
 
 FlowControlOut::FlowControlOut(sc_module_name name, int ID, int width) :
     Component(name),
-    width(width) {
+    width(width),
+    waitingToRequest(width, false) {
 
   this->id = ID;
-  setup();
-
-}
-
-FlowControlOut::FlowControlOut(sc_module_name name, int width) :
-    Component(name),
-    width(width) {
-
   setup();
 
 }

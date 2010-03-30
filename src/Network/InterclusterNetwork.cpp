@@ -8,37 +8,43 @@
 #include "InterclusterNetwork.h"
 #include "Routing Schemes/RoutingSchemeFactory.h"
 
+const int InterclusterNetwork::numInputs  =
+    NUM_CLUSTER_OUTPUTS * COMPONENTS_PER_TILE;
+
+const int InterclusterNetwork::numOutputs =
+    NUM_CLUSTER_INPUTS  * COMPONENTS_PER_TILE;
+
 void InterclusterNetwork::routeRequests() {
-  route(requestsIn, requestsOut, numInputs);
+  route(requestsIn, requestsOut, numInputs, sentRequests);
 }
 
 void InterclusterNetwork::routeResponses() {
-  route(responsesIn, responsesOut, numOutputs);
+  route(responsesIn, responsesOut, numOutputs, sentResponses);
 }
 
 void InterclusterNetwork::routeData() {
-  route(dataIn, dataOut, numInputs);
+  route(dataIn, dataOut, numInputs, sentData);
 }
 
-void InterclusterNetwork::route(sc_in<AddressedWord> *inputs,
-                                sc_out<Word> *outputs, int length) {
+void InterclusterNetwork::route(input_port *inputs, output_port *outputs,
+                                int length, std::vector<bool>& sent) {
 
-  router->route(inputs, outputs, length);
+  router->route(inputs, outputs, length, sent);
 
 }
 
-InterclusterNetwork::InterclusterNetwork(sc_module_name name)
-    : Interconnect(name) {
+InterclusterNetwork::InterclusterNetwork(sc_module_name name) :
+    Interconnect(name),
+    sentRequests(numOutputs),
+    sentResponses(numInputs),
+    sentData(numOutputs) {
 
-  numInputs    = NUM_CLUSTER_OUTPUTS * COMPONENTS_PER_TILE;
-  numOutputs   = NUM_CLUSTER_INPUTS  * COMPONENTS_PER_TILE;
-
-  responsesOut = new sc_out<Word>[numInputs];
-  requestsIn   = new sc_in<AddressedWord>[numInputs];
-  responsesIn  = new sc_in<AddressedWord>[numOutputs];
-  dataIn       = new sc_in<AddressedWord>[numInputs];
-  requestsOut  = new sc_out<Word>[numOutputs];
-  dataOut      = new sc_out<Word>[numOutputs];
+  responsesOut = new output_port[numInputs];
+  requestsIn   = new input_port[numInputs];
+  responsesIn  = new input_port[numOutputs];
+  dataIn       = new input_port[numInputs];
+  requestsOut  = new output_port[numOutputs];
+  dataOut      = new output_port[numOutputs];
 
   router       = RoutingSchemeFactory::makeRoutingScheme();
 

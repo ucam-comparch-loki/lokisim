@@ -55,8 +55,6 @@ void Decoder::decodeInstruction() {
   setPredicate.write(setPred);
 
   if(operation == InstructionMap::LD || operation == InstructionMap::LDB) {
-    if(DEBUG) cout << "Attempting a load" << endl;
-
     writeAddr.write(0); // Don't want to write
     setOperand1(operation, destination);
     setOperand2(operation, 0, immediate);
@@ -66,8 +64,6 @@ void Decoder::decodeInstruction() {
   }
 
   if(operation == InstructionMap::ST || operation == InstructionMap::STB) {
-    if(DEBUG) cout << "Attempting a store" << endl;
-
     writeAddr.write(0);
     setOperand1(operation, operand1);
     setOperand2(operation, 0, immediate);

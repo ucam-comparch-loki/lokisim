@@ -8,14 +8,20 @@
 #include "Crossbar.h"
 
 void Crossbar::route(sc_in<AddressedWord> *inputs, sc_out<Word> *outputs,
-                     int length) {
+                     int length, std::vector<bool>& sent) {
 
   for(int i=0; i<length; i++) {
-    if(inputs[i].event() /*&& haven't already written to this output*/) {
-      AddressedWord aw = inputs[i].read();
-      short chID = aw.getChannelID();
-      outputs[chID].write(aw.getPayload());
 
+    AddressedWord aw = inputs[i].read();
+    short chID = aw.getChannelID();
+
+    // If we haven't already sent to this output, and the input is new, send.
+    if(!sent[chID] && inputs[i].event()) {
+
+      outputs[chID].write(aw.getPayload());   // Write the data
+      sent[chID] = true;                      // Stop anyone else from writing
+
+      // Just some complicated-looking debug output
       if(DEBUG) {
         bool fromOutputs = (length == NUM_CLUSTER_OUTPUTS*COMPONENTS_PER_TILE);
         std::string in = fromOutputs ? "input " : "output ";
@@ -28,8 +34,13 @@ void Crossbar::route(sc_in<AddressedWord> *inputs, sc_out<Word> *outputs,
              ") to channel "<<chID<<" (comp "<<chID/outChans<<", "<<in<<chID%outChans
              << ")" << endl;
       }
+
     }
+
   }
+
+  // Clear the vector for next time.
+  for(unsigned int i=0; i<sent.size(); i++) sent[i] = false;
 
 }
 

@@ -21,8 +21,13 @@ class RoutingScheme {
 
 public:
 
+  // Route information from the inputs to the outputs.
+  //   inputs  = array of input ports
+  //   outputs = array of output ports
+  //   length  = length of input array
+  //   sent    = vector telling whether it is allowed to write to each output
   virtual void route(sc_in<AddressedWord> *inputs, sc_out<Word> *outputs,
-                     int length) = 0;
+                     int length, std::vector<bool>& sent) = 0;
 
 };
 

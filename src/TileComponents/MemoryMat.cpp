@@ -52,6 +52,9 @@ void MemoryMat::doOp() {
         else {
           if(DEBUG) cout << "store to address " << r.getAddress() << endl;
           storeAddresses[i] = r.getAddress();
+          if(r.getOperation() == MemoryRequest::STADDR) {
+            streamingWrites[i] = true;
+          }
         }
       }
       // If there is an existing transaction, this must be data to be written
@@ -143,11 +146,18 @@ void MemoryMat::updateControl() {
                         ", port " << port << endl;
     }
     else {
+      if(DEBUG) cout << "Unable to set up connection at memory " << id <<
+                        ", port " << port << endl;
+      cout << "Input received = " << in[CONTROL_INPUT].read() << endl;
       // send NACK (from where?)
     }
   }
   else {  // Tear down the channel
-    connections[port] = UNUSED;
+    connections[port]     = UNUSED;
+    storeAddresses[port]  = UNUSED;
+    readAddresses[port]   = UNUSED;
+    streamingWrites[port] = false;
+    readingIPK[port]      = false;
     flowControlOut[port].write(false);
 
     if(DEBUG) cout << "Tore down connection at memory " << id <<

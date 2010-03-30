@@ -1,0 +1,24 @@
+addui r0 r0 48 > 55   ; connect to the data memory                === Cluster 0 ===
+fetch r0 3            ; fetch the next packet
+staddr.eop r0 20 > 52 ; store the location we want to store data to
+addu  r1 ch0 ch1 > 52 ; add the inputs from the two channel-ends and send
+ibjmp -1              ; loop until interrupted or data stops coming
+nop.eop               ; currently can't jump from eop, so need another instruction
+
+addui r0 r0 33 > 55   ; connect to the data memory                === Cluster 1 ===
+addui r10 r0 0        ; store the location we want to load data from
+ld    r10 0 > 53      ; send a load request to memory 13
+addui r10 r10 1       ; increment counter
+slti.p  r0 r10 10     ; see if we have reached the end of the loop
+nop
+p?ibjmp -4            ; jump back to beginning of loop
+nop.eop
+
+addui r0 r0 50 > 55   ; connect to the data memory                === Cluster 2 ===
+addui r10 r0 10       ; store the location we want to load data from
+ld    r10 0 > 54      ; send a load request to memory 13
+addui r10 r10 1       ; increment counter
+slti.p  r0 r10 20     ; see if we have reached the end of the loop
+nop
+p?ibjmp -4            ; jump back to beginning of loop
+nop.eop

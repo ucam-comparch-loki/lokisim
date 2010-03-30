@@ -24,6 +24,9 @@ class FlowControlOut: public Component {
 
 public:
 
+  // Clock.
+  sc_in<bool>             clock;
+
   // Data received from the component to be sent out onto the network. There
   // should be "width" elements of the array.
   sc_in<AddressedWord>   *dataIn;
@@ -49,7 +52,6 @@ public:
 
   SC_HAS_PROCESS(FlowControlOut);
   FlowControlOut(sc_module_name name, int ID, int width);
-  FlowControlOut(sc_module_name name, int width);
   virtual ~FlowControlOut();
 
 //==============================//
@@ -74,6 +76,11 @@ protected:
 protected:
 
   int width;
+
+  // A bit to show whether we are waiting to request to send data from each
+  // input. The usual event() approach cannot be used, as the data may be quite
+  // old, having had its requests turned town.
+  std::vector<bool> waitingToRequest;
 
 };
 

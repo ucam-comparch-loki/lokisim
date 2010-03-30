@@ -35,6 +35,7 @@ void WrappedTileComponent::setup() {
 
 // Connect everything up
   comp->clock(clock);
+  fcOut.clock(clock);
 
   for(int i=0; i<NUM_CLUSTER_INPUTS; i++) {
     fcIn.dataIn[i](dataIn[i]);
@@ -53,18 +54,6 @@ void WrappedTileComponent::setup() {
     comp->flowControlIn[i](fcOutSig[i]); fcOut.flowControl[i](fcOutSig[i]);
     fcOut.dataIn[i](dataOutSig[i]); comp->out[i](dataOutSig[i]);
   }
-
-}
-
-/* Deprecate/remove this constructor? */
-WrappedTileComponent::WrappedTileComponent(sc_module_name name, TileComponent& tc) :
-    Component(name, tc.id),
-    fcIn("fc_in", NUM_CLUSTER_INPUTS),
-    fcOut("fc_out", NUM_CLUSTER_OUTPUTS) {
-
-  comp = &tc;
-  setup();
-  end_module(); // Needed because we're using a different constructor
 
 }
 

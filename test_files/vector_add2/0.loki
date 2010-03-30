@@ -1,0 +1,3 @@
+addui r0 r0 16 > 51     ; connect to the instruction memory
+setfetchch 48
+fetch.eop r0 0

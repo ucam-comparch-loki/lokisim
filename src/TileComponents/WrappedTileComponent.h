@@ -53,7 +53,6 @@ public:
 
 public:
 
-  WrappedTileComponent(sc_module_name name, TileComponent& tc);
   WrappedTileComponent(sc_module_name name, int ID, int type);
   virtual ~WrappedTileComponent();
 

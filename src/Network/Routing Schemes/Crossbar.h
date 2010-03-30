@@ -21,7 +21,7 @@ class Crossbar : public RoutingScheme {
 public:
 
   virtual void route(sc_in<AddressedWord> *inputs, sc_out<Word> *outputs,
-                     int length);
+                     int length, std::vector<bool>& sent);
 
 //==============================//
 // Constructors and destructors

@@ -71,9 +71,14 @@ protected:
 
 protected:
 
-  BufferArray<Word> buffers;   // The network's output buffers
-  sc_buffer<bool>   tryToSend; // Signals that we have new data and want to send it
-  int               width;     // The number of inputs and outputs
+  // The network's output buffers.
+  BufferArray<Word> buffers;
+
+  // Signals that we have new data and want to send it.
+  sc_buffer<bool>   tryToSend;
+
+  // The number of inputs and outputs of this component.
+  int               width;
 
 };
 

@@ -11,6 +11,9 @@
 #include "Interconnect.h"
 #include "Routing Schemes/RoutingScheme.h"
 
+typedef sc_in<AddressedWord> input_port;
+typedef sc_out<Word>         output_port;
+
 class InterclusterNetwork: public Interconnect {
 
 //==============================//
@@ -21,27 +24,27 @@ public:
 
   // Data sent from each output of each component.
   // NUM_CLUSTER_OUTPUTS * COMPONENTS_PER_TILE
-  sc_in<AddressedWord> *dataIn;
+  input_port  *dataIn;
 
   // Data sent to each input of each component.
   // NUM_CLUSTER_INPUTS * COMPONENTS_PER_TILE
-  sc_out<Word>         *dataOut;
+  output_port *dataOut;
 
   // Requests from each output of each component.
   // NUM_CLUSTER_OUTPUTS * COMPONENTS_PER_TILE
-  sc_in<AddressedWord> *requestsIn;
+  input_port  *requestsIn;
 
   // Responses from each input of each component.
   // NUM_CLUSTER_INPUTS * COMPONENTS_PER_TILE
-  sc_in<AddressedWord> *responsesIn;
+  input_port  *responsesIn;
 
   // Requests sent to each input of each component.
   // NUM_CLUSTER_INPUTS * COMPONENTS_PER_TILE
-  sc_out<Word>         *requestsOut;
+  output_port *requestsOut;
 
   // Responses sent to each output of each component.
   // NUM_CLUSTER_OUTPUTS * COMPONENTS_PER_TILE
-  sc_out<Word>         *responsesOut;
+  output_port *responsesOut;
 
   // Some AddressedWord outputs for longer communications?
 
@@ -64,7 +67,8 @@ protected:
   virtual void routeRequests();
   virtual void routeResponses();
   virtual void routeData();
-  virtual void route(sc_in<AddressedWord> *inputs, sc_out<Word> *outputs, int length);
+  virtual void route(input_port *inputs, output_port *outputs,
+                     int length, std::vector<bool>& sent);
 
 //==============================//
 // Local state
@@ -72,8 +76,15 @@ protected:
 
 protected:
 
-  int            numInputs, numOutputs;
-  RoutingScheme* router;
+  // The number of input and output ports required by this network.
+  static const int  numInputs, numOutputs;
+
+  // The component responsible for the routing behaviour.
+  RoutingScheme*    router;
+
+  // A bit for each output, showing whether or not information has already been
+  // written to it, allowing us to avoid writing to the same output twice.
+  std::vector<bool> sentRequests, sentResponses, sentData;
 
 };
 

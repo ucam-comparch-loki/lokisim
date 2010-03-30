@@ -1,0 +1,5 @@
+An optimised form of the vector_add program.
+
+Two clusters (1 and 2) are responsible for loading values from memory, and cluster 0 adds the values together and stores the results back to memory.
+
+Instead of the two loader clusters retrieving data from memory and sending it on to the adder cluster, they set up channels directly between the memory and adder cluster, and request reads on behalf of the adder. The adder, instead of executing a two-cycle store instruction after each addition, sets up a write channel to memory and sends the values as they are computed.
