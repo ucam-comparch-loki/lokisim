@@ -78,7 +78,10 @@ protected:
   sc_buffer<bool>   tryToSend;
 
   // The number of inputs and outputs of this component.
-  int               width;
+  const int         width;
+
+  // Shows which ports are free to accept new connection requests.
+  std::vector<int>  flitsRemaining;
 
 };
 

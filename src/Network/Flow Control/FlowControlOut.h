@@ -75,7 +75,7 @@ protected:
 
 protected:
 
-  int width;
+  const int         width;
 
   // A bit to show whether we are waiting to request to send data from each
   // input. The usual event() approach cannot be used, as the data may be quite

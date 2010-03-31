@@ -20,8 +20,15 @@ class Crossbar : public RoutingScheme {
 
 public:
 
-  virtual void route(sc_in<AddressedWord> *inputs, sc_out<Word> *outputs,
-                     int length, std::vector<bool>& sent);
+  virtual void route(input_port inputs[],
+                     output_port outputs[],
+                     int length,
+                     std::vector<bool>& sent,
+                     std::vector<bool>* blockedRequests);
+
+private:
+
+  void printMessage(int length, AddressedWord data, int from, int to);
 
 //==============================//
 // Constructors and destructors

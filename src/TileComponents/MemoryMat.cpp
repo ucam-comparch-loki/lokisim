@@ -12,8 +12,6 @@
 #include "../Datatype/Data.h"
 
 const int MemoryMat::CONTROL_INPUT = NUM_CLUSTER_INPUTS - 1;
-const int MemoryMat::UNUSED = -1;
-const int MemoryMat::STRIDE = 1;
 
 /* Look through all inputs for new data. Determine whether this data is the
  * start of a new transaction or the continuation of an existing one. Then
@@ -27,15 +25,17 @@ void MemoryMat::doOp() {
 
   for(int i=0; i<NUM_CLUSTER_INPUTS-1; i++) {
 
+    ConnectionStatus& connection = connections[i];
+
     // Don't allow an input if there is no connection set up
-    if(connections[i] == UNUSED) {
+    if(!connection.isActive()) {
       flowControlOut[i].write(false);
       continue;
     }
 
     if(in[i].event()) {
       // If there isn't an existing transaction, this must be a read
-      if(storeAddresses[i] == UNUSED) {
+      if(connection.isIdle()) {
         if(DEBUG) cout << "Received new memory request at memory " << id <<
                           ", input " << i << ": ";
 
@@ -43,17 +43,17 @@ void MemoryMat::doOp() {
         if(r.isReadRequest()) {
           if(DEBUG) cout << "read from address " << r.getAddress() << endl;
           if(r.isIPKRequest()) {
-            readingIPK[i] = true;
-            readAddresses[i] = r.getAddress();
+            connection.startStreaming();
+            connection.setReadAddress(r.getAddress());
           }
           read(i);
         }
         // Dealing with a write request
         else {
           if(DEBUG) cout << "store to address " << r.getAddress() << endl;
-          storeAddresses[i] = r.getAddress();
+          connection.setWriteAddress(r.getAddress());
           if(r.getOperation() == MemoryRequest::STADDR) {
-            streamingWrites[i] = true;
+            connection.startStreaming();
           }
         }
       }
@@ -61,7 +61,7 @@ void MemoryMat::doOp() {
       else write(in[i].read(), i);
     }
     // If there is a read transaction in progress, send the next value
-    else if(readingIPK[i]) {
+    else if(connection.readingIPK()) {
       read(i);
     }
     // No new input and no existing transaction => accept new transactions
@@ -78,19 +78,20 @@ void MemoryMat::read(int position) {
 
   if(flowControlIn[position].read()) {
 
+    ConnectionStatus& connection = connections[position];
     Word w;
     int addr;
 
-    if(readingIPK[position]) {
-      addr = readAddresses[position];
+    if(connection.readingIPK()) {
+      addr = connection.getAddress();
       w = data.read(addr);
 
       if(static_cast<Instruction>(w).endOfPacket()) {
-        readingIPK[position] = false;
+        connection.clear();
         flowControlOut[position] = true;
       }
       else {
-        readAddresses[position]++; // Prepare to read the next instruction
+        connection.incrementAddress(); // Prepare to read the next instruction
         flowControlOut[position] = false;
       }
     }
@@ -99,7 +100,7 @@ void MemoryMat::read(int position) {
       w = data.read(addr);
     }
 
-    AddressedWord aw(w, connections[position]);
+    AddressedWord aw(w, connection.getChannel());
     out[position].write(aw);
 
     if(DEBUG) cout << "Read " << data.read(addr) << " from memory " << id <<
@@ -112,12 +113,14 @@ void MemoryMat::read(int position) {
 
 /* Carry out a write for the transaction at input "position". */
 void MemoryMat::write(Word w, int position) {
-  int addr = storeAddresses[position];
+  ConnectionStatus& connection = connections[position];
+
+  int addr = connection.getAddress();
   data.write(w, addr);
 
   // If we're expecting more writes, update the address, otherwise clear it.
-  if(streamingWrites[position]) storeAddresses[position] += STRIDE;
-  else                          storeAddresses[position]  = UNUSED;
+  if(connection.isStreaming()) connection.incrementAddress();
+  else                         connection.clear();
 
   flowControlOut[position].write(true);   // Is this necessary?
 
@@ -133,10 +136,12 @@ void MemoryMat::updateControl() {
   int port = req.getPort();
   int type = req.getType();
 
+  ConnectionStatus& connection = connections[port];
+
   if(type == ChannelRequest::SETUP) {
     // Set up the connection if there isn't one there already
-    if(connections[port] == UNUSED) {
-      connections[port] = req.getReturnChannel();
+    if(!connection.isActive()) {
+      connection.setChannel(req.getReturnChannel());
       flowControlOut[port].write(true);
 
       // could make port 0 the control port, so it has an output to send replies on
@@ -153,11 +158,7 @@ void MemoryMat::updateControl() {
     }
   }
   else {  // Tear down the channel
-    connections[port]     = UNUSED;
-    storeAddresses[port]  = UNUSED;
-    readAddresses[port]   = UNUSED;
-    streamingWrites[port] = false;
-    readingIPK[port]      = false;
+    connection.teardown();
     flowControlOut[port].write(false);
 
     if(DEBUG) cout << "Tore down connection at memory " << id <<
@@ -176,11 +177,7 @@ void MemoryMat::storeData(std::vector<Word>& data) {
 MemoryMat::MemoryMat(sc_module_name name, int ID) :
     TileComponent(name, ID),
     data(MEMORY_SIZE),
-    connections(NUM_CLUSTER_INPUTS-1, UNUSED),      //
-    storeAddresses(NUM_CLUSTER_INPUTS-1, UNUSED),   //  Group all these
-    streamingWrites(NUM_CLUSTER_INPUTS-1, false),   //  together into a
-    readAddresses(NUM_CLUSTER_INPUTS-1, UNUSED),    //  single structure?
-    readingIPK(NUM_CLUSTER_INPUTS-1, false) {       //
+    connections(NUM_CLUSTER_INPUTS-1) {
 
   // Register methods
   SC_METHOD(doOp);

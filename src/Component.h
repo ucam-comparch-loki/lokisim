@@ -33,7 +33,7 @@ SC_MODULE (Component) {
 
 public:
 
-  int id;
+  int id; // Would like to be const, but seems hard to do
 
 //==============================//
 // Constructors and destructors

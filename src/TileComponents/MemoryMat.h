@@ -17,6 +17,7 @@
 #define MEMORYMAT_H_
 
 #include "TileComponent.h"
+#include "ConnectionStatus.h"
 #include "../Memory/AddressedStorage.h"
 #include "../Datatype/Word.h"
 
@@ -73,33 +74,8 @@ private:
   // The data stored by this memory.
   AddressedStorage<Word> data;
 
-  // The remote channels currently connected to each of the input ports.
-  std::vector<int>       connections;
-
-  // Storing a value in memory requires two flits: one saying where to store
-  // to, and one with the data. This vector holds the addresses whilst waiting
-  // for data to arrive.
-  std::vector<int>       storeAddresses;
-
-  // Shows, for each input, whether a write operation is a one-off, or whether
-  // the connection is set up for the cluster to stream data to this memory.
-  std::vector<bool>      streamingWrites;
-
-  // Store the address to read from - used for multi-cycle instruction
-  // packet reads.
-  std::vector<int>       readAddresses;
-
-  // A boolean for each input, saying whether an instruction packet read is
-  // currently in progress.
-  std::vector<bool>      readingIPK;
-
-  // The value used to show that an entry in a vector is not currently
-  // storing any information related to an operation.
-  static const int       UNUSED;
-
-  // The amount to increment the address by after a read or write. For the
-  // moment, it's 1, but it could be 4 if we start accessing bytes.
-  static const int       STRIDE;
+  // Information on the channels set up with each of this memory's inputs.
+  std::vector<ConnectionStatus> connections;
 
 };
 

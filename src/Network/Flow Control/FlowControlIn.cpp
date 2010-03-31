@@ -23,21 +23,24 @@ void FlowControlIn::receivedRequests() {
 
     // Only send a response if the request is new
     if(requests[i].event()) {
-      if(DEBUG) cout << "Received request at input " << i << ": ";
+//      if(DEBUG) cout << "Received request at input " << i << ": ";
 
       if(acceptRequest(r, i)) {
         Data d(1);    // Accept
         AddressedWord aw(d, r.getReturnID());
         responses[i].write(aw);
 
-        if(DEBUG) cout << "accepted." << endl;
+        // Store the number of flits we're expecting.
+        flitsRemaining[i] = r.getNumFlits();
+
+//        if(DEBUG) cout << "accepted." << endl;
       }
       else {
         Data d(0);    // Deny
         AddressedWord aw(d, r.getReturnID());
         responses[i].write(aw);
 
-        if(DEBUG) cout << "denied." << endl;
+//        if(DEBUG) cout << "denied." << endl;
       }
     }
   }
@@ -47,20 +50,24 @@ void FlowControlIn::receivedRequests() {
  * data, it is known that there is enough room. */
 void FlowControlIn::receivedData() {
   for(int i=0; i<width; i++) {
-    // Only write a value if it is new
-    if(dataIn[i].event()) {
+    // Only write a value if it is new and it is expected
+    if(dataIn[i].event() && (flitsRemaining[i] > 0)) {
       buffers.write(dataIn[i].read(), i);
       tryToSend.write(!tryToSend.read());
+      flitsRemaining[i] -= 1;
     }
   }
 }
 
 /* Determine whether the request should be granted. This method should be
  * overridden to implement cut-through/wormhole routing, etc. Current
- * method is store-and-forward (must be room in buffer for whole request).
- * TODO: Don't accept multiple requests to the same port. */
+ * method is store-and-forward (must be room in buffer for whole request). */
 bool FlowControlIn::acceptRequest(Request r, int input) {
-  return buffers[input].remainingSpace() >= r.getNumFlits();
+  // Accept a request if there is space, and the port is free.
+  bool result = (buffers[input].remainingSpace() >= r.getNumFlits()) &&
+                (flitsRemaining[input] == 0);
+
+  return result;
 }
 
 void FlowControlIn::setup() {
@@ -89,7 +96,8 @@ void FlowControlIn::setup() {
 FlowControlIn::FlowControlIn(sc_module_name name, int width) :
     Component(name),
     buffers(width, FLOW_CONTROL_BUFFER_SIZE),
-    width(width) {
+    width(width),
+    flitsRemaining(width, 0) {
 
   setup();
 

@@ -7,40 +7,55 @@
 
 #include "Crossbar.h"
 
-void Crossbar::route(sc_in<AddressedWord> *inputs, sc_out<Word> *outputs,
-                     int length, std::vector<bool>& sent) {
+void Crossbar::route(input_port inputs[],
+                     output_port outputs[],
+                     int length,
+                     std::vector<bool>& sent,
+                     std::vector<bool>* blockedRequests) {
 
-  for(int i=0; i<length; i++) {
+  for(int i=0; i<length; i++) {   // Is round-robin required here?
 
-    AddressedWord aw = inputs[i].read();
-    short chID = aw.getChannelID();
+    // If the input is new, see if we can send
+    if(inputs[i].event()) {
+      AddressedWord aw = inputs[i].read();
+      short chID = aw.getChannelID();
 
-    // If we haven't already sent to this output, and the input is new, send.
-    if(!sent[chID] && inputs[i].event()) {
+      // If we haven't already sent to this output, send
+      if(!sent[chID]) {
+        outputs[chID].write(aw.getPayload());   // Write the data
+        sent[chID] = true;                      // Stop anyone else from writing
 
-      outputs[chID].write(aw.getPayload());   // Write the data
-      sent[chID] = true;                      // Stop anyone else from writing
-
-      // Just some complicated-looking debug output
-      if(DEBUG) {
-        bool fromOutputs = (length == NUM_CLUSTER_OUTPUTS*COMPONENTS_PER_TILE);
-        std::string in = fromOutputs ? "input " : "output ";
-        std::string out = fromOutputs ? "output " : "input ";
-        int inChans = fromOutputs ? NUM_CLUSTER_OUTPUTS : NUM_CLUSTER_INPUTS;
-        int outChans = fromOutputs ? NUM_CLUSTER_INPUTS : NUM_CLUSTER_OUTPUTS;
-
-        cout << "Network sent " << aw.getPayload() <<
-             " from channel "<<i<<" (comp "<<i/inChans<<", "<<out<<i%inChans<<
-             ") to channel "<<chID<<" (comp "<<chID/outChans<<", "<<in<<chID%outChans
-             << ")" << endl;
+        if(DEBUG) printMessage(length, aw, i, chID);
       }
-
+      // If we have already sent to this output, deny the request
+      else {
+        if(blockedRequests) blockedRequests->assign(i, true);
+        continue;
+      }
     }
 
-  }
+    if(blockedRequests) blockedRequests->assign(i, false);
+
+  }// end for
 
   // Clear the vector for next time.
   for(unsigned int i=0; i<sent.size(); i++) sent[i] = false;
+
+}
+
+/* Print a message saying where the data was sent from and to. */
+void Crossbar::printMessage(int length, AddressedWord data, int from, int to) {
+
+  bool fromOutputs = (length == NUM_CLUSTER_OUTPUTS*COMPONENTS_PER_TILE);
+  std::string in   = fromOutputs ? "input " : "output ";
+  std::string out  = fromOutputs ? "output " : "input ";
+  int inChans      = fromOutputs ? NUM_CLUSTER_OUTPUTS : NUM_CLUSTER_INPUTS;
+  int outChans     = fromOutputs ? NUM_CLUSTER_INPUTS  : NUM_CLUSTER_OUTPUTS;
+
+  cout << "Network sent " << data.getPayload() <<
+       " from channel "<<from<<" (comp "<<from/inChans<<", "<<out<<from%inChans<<
+       ") to channel "<<to<<" (comp "<<to/outChans<<", "<<in<<to%outChans
+       << ")" << endl;
 
 }
 

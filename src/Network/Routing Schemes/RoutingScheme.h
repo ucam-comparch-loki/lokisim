@@ -13,6 +13,9 @@
 #include "../../Component.h"
 #include "../../Datatype/AddressedWord.h"
 
+typedef sc_in<AddressedWord> input_port;
+typedef sc_out<Word>         output_port;
+
 class RoutingScheme {
 
 //==============================//
@@ -26,8 +29,12 @@ public:
   //   outputs = array of output ports
   //   length  = length of input array
   //   sent    = vector telling whether it is allowed to write to each output
-  virtual void route(sc_in<AddressedWord> *inputs, sc_out<Word> *outputs,
-                     int length, std::vector<bool>& sent) = 0;
+  //   blockedRequests = vector to return whether some of the messages blocked
+  virtual void route(input_port inputs[],
+                     output_port outputs[],
+                     int length,
+                     std::vector<bool>& sent,
+                     std::vector<bool>* blockedRequests) = 0;
 
 };
 

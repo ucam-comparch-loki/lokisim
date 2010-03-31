@@ -21,7 +21,7 @@ void SendChannelEndTable::receivedData() {
       updateStall1.write(!updateStall1.read());
     }
 
-    if(DEBUG) cout << "Wrote " << w << " to output channel-end " << buff << endl;
+    if(DEBUG) cout<<this->name()<<" wrote "<<w<<" to output channel-end "<<buff<<endl;
   }
   else {
     if(DEBUG) cout << "Wrote to full buffer in Send Channel-end Table." << endl;

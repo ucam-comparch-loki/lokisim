@@ -241,7 +241,7 @@ bool Decoder::shouldExecute(short predBits) {
                 (predBits == Instruction::P     &&  predicate.read()) ||
                 (predBits == Instruction::NOT_P && !predicate.read());
 
-  if(DEBUG) cout<<"Predicate = "<<predicate.read()<<": result = "<<result<<endl;
+  if(DEBUG && !result) cout<<this->name()<<" not executing instruction"<<endl;
 
   return result;
 

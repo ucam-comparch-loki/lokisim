@@ -7,7 +7,7 @@
 
 #include "Component.h"
 
-Component::Component(sc_module_name& name) : sc_module(name) {
+Component::Component(sc_module_name& name) : sc_module(name), id(-1) {
 
 }
 

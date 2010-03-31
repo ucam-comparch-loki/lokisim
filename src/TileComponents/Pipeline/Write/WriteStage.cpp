@@ -29,7 +29,7 @@ void WriteStage::receivedInst() {
   selectVal = 1;   // Want this Instruction to get into the SCET
   newInstSig.write(!newInstSig.read());
 
-  if(DEBUG) cout << "WriteStage received Instruction: " << inst.read() << endl;
+  if(DEBUG) cout<<this->name()<<" received Instruction: "<<inst.read()<<endl;
 }
 
 /* Change the multiplexor's select signal so it uses the new Data */
@@ -42,7 +42,7 @@ void WriteStage::receivedData() {
   selectVal = 0;   // Want this Data to get into the SCET
   newDataSig.write(!newDataSig.read());
 
-  if(DEBUG) cout << "WriteStage received Data: " << fromALU.read() << endl;
+  if(DEBUG) cout<< this->name() << " received Data: " << fromALU.read() <<endl;
 }
 
 void WriteStage::select() {

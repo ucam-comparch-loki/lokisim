@@ -71,7 +71,7 @@ FlowControlOut::FlowControlOut(sc_module_name name, int ID, int width) :
     width(width),
     waitingToRequest(width, false) {
 
-  this->id = ID;
+  id = ID;
   setup();
 
 }
