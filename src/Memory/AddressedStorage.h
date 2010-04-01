@@ -26,12 +26,14 @@ class AddressedStorage : public Storage<T> {
 
 public:
 
+  // Read from the given address in the memory.
   virtual const T& read(int addr) const {
     // Templated inheritance hides all inherited names - need to access them
     // like this.
     return Storage<T>::data[addr];
   }
 
+  // Write the given data to the given address in memory.
   virtual void write(T& newData, int addr) {
     Storage<T>::data[addr] = newData;
   }

@@ -62,7 +62,10 @@ public:
 
 public:
 
+  // Store initial instructions or data into the contained cluster or memory.
   virtual void storeData(std::vector<Word>& data);
+
+  // Perform any initialisation required (e.g. setting flow control values).
   void         initialise();
 
 private:

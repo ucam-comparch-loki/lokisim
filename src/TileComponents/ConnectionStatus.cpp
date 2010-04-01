@@ -32,7 +32,7 @@ bool ConnectionStatus::isStreaming() const {
 }
 
 bool ConnectionStatus::readingIPK() const {
-  return repeatOperation && (operation == LOAD);
+  return isStreaming() && isRead();
 }
 
 void ConnectionStatus::incrementAddress() {

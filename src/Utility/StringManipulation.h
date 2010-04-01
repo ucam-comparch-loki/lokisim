@@ -19,7 +19,12 @@ using std::vector;
 class StringManipulation {
 
 public:
+
+  // Split the given string around the delimiter character, and return a vector
+  // of all substrings.
   static vector<string>& split(const string& s, char delim);
+
+  // Convert the string to an integer.
   static int             strToInt(const string& s);
 
 private:

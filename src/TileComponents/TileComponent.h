@@ -55,6 +55,7 @@ public:
 
 public:
 
+  // Store initial instructions or data into this cluster or memory.
   virtual void storeData(std::vector<Word>& data) = 0;
 
   enum Type {CLUSTER, MEMORY};

@@ -13,6 +13,8 @@
 class TileComponentFactory {
 
 public:
+
+  // Create a TileComponent of the specified type, and with a certain ID.
   static TileComponent& makeTileComponent(int type, int ID);
 
 };

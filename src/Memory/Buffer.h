@@ -24,6 +24,8 @@ class Buffer: public Storage<T> {
 
 public:
 
+  // Read from the buffer. Returns the oldest value which has not yet been
+  // read.
   virtual T& read() {
     if(!isEmpty()) {
       int i = readFrom;
@@ -36,6 +38,7 @@ public:
     }
   }
 
+  // Write the given data to the buffer.
   virtual void write(const T& newData) {
     if(!isFull()) {
       Storage<T>::data[writeTo] = newData;
@@ -47,6 +50,7 @@ public:
     }
   }
 
+  // Returns the value at the front of the queue, but does not remove it.
   T& peek() {
     if(!isEmpty()) {
       return (Storage<T>::data[readFrom]);
@@ -57,22 +61,27 @@ public:
     }
   }
 
+  // Removes the element at the front of the queue, without returning it.
   void discardTop() {
     if(!isEmpty()) incrementReadFrom();
   }
 
+  // Returns whether the buffer is empty.
   bool isEmpty() {
     return (fillCount == 0);
   }
 
+  // Returns whether the buffer is full.
   bool isFull() {
     return (fillCount == size);
   }
 
+  // Returns the remaining space in the buffer.
   int remainingSpace() {
     return size-fillCount;
   }
 
+  // Print the contents of the buffer.
   void print() {
     for(int i=0; i<this->size; i++) std::cout << Storage<T>::data[i] << " ";
     std::cout << std::endl;

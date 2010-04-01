@@ -103,25 +103,32 @@ public:
         currentInstruction << endl;
   }
 
+  // Returns the remaining number of entries in the cache.
   int remainingSpace() const {
     int space = Storage<T>::data.size() - fillCount;
     return space;
   }
 
+  // Returns whether the cache is empty. Note that even if a cache is empty,
+  // it is still possible to access its contents if an appropriate tag is
+  // looked up.
   bool isEmpty() const {
     return (currentInstruction == NOT_IN_USE) || (fillCount == 0);
   }
 
+  // Returns whether the cache is full.
   bool isFull() const {
     return fillCount == (int)Storage<T>::data.size();
   }
 
+  // Begin reading the packet which is queued up to execute next.
   void switchToPendingPacket() {
     currInstBackup = currentInstruction - 1;
     currentInstruction = pendingPacket;
     pendingPacket = NOT_IN_USE;
   }
 
+  // Store some initial instructions in the cache.
   void storeCode(std::vector<T>& code) {
     if(code.size() > Storage<T>::data.size()) {
       std::cerr << "Error: tried to write " << code.size() <<

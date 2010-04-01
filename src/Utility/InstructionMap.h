@@ -20,11 +20,19 @@ class InstructionMap {
 
 public:
 
+  // Returns whether the given operation should specify an immediate value.
   static bool hasImmediate(short operation);
+
+  // Returns whether the given operation should specify a remote channel.
   static bool hasRemoteChannel(short operation);
+
+  // Returns whether the given operation uses the ALU.
   static bool isALUOperation(short operation);
 
+  // Returns the decoded operation value from the given opcode.
   static short operation(short opcode);
+
+  // Returns the opcode of the given operation name.
   static short opcode(std::string& name);
 
   enum Instructions {

@@ -22,6 +22,7 @@ class TraceFile {
 
 public:
 
+  // Generate and initialise a VCD trace file with the given name.
   static sc_trace_file* initialiseTraceFile(string& name);
 
 private:

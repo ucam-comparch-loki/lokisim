@@ -47,6 +47,7 @@ public:
 
 public:
 
+  // Store the given instructions or data into the component at the given index.
   void storeData(vector<Word>& data, int componentNumber);
 
   // Static functions for connecting Tiles together

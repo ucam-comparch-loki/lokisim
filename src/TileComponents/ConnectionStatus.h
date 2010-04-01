@@ -22,23 +22,56 @@ class ConnectionStatus {
 
 public:
 
+  // Tells whether there is a connection set up.
   bool isActive() const;
+
+  // Tells whether there is a connection set up, but not currently carrying
+  // out an operation.
   bool isIdle() const;
+
+  // Tells whether there is a read operation in process at this port.
   bool isRead() const;
+
+  // Tells whether there is a write operation in process at this port.
   bool isWrite() const;
+
+  // Tells whether there is a streaming operation in process (IPK read or
+  // STADDR followed by many pieces of data.
   bool isStreaming() const;
+
+  // Tells whether an instruction packet read is currently taking place.
   bool readingIPK() const;
 
+  // Increments the address of the operation, so the next load/store accesses
+  // the next location in memory.
   void incrementAddress();
+
+  // Clears the current operation, but leaves the channel set up.
   void clear();
+
+  // Tears down the channel, making it available for another cluster to
+  // connect to.
   void teardown();
 
+  // Return the remote channel connected to this port.
   int  getChannel() const;
+
+  // Return the address to access in memory.
   int  getAddress() const;
+
+  // Set the remote channel connected to this port.
   void setChannel(int channel);
+
+  // Set the memory address to read from.
   void setReadAddress(int addr);
+
+  // Set the memory address to write to.
   void setWriteAddress(int addr);
+
+  // Start a streaming operation.
   void startStreaming();
+
+  // End a streaming operation.
   void stopStreaming();
 
 

@@ -46,10 +46,12 @@ public:
     grid.at(row).push_back(&element);
   }
 
+  // Return the number of rows in this Grid.
   int numRows() const {
     return rows;
   }
 
+  // Return the number of columns in this Grid.
   int numColumns() const {
     return columns;
   }

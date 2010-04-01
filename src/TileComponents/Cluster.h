@@ -50,11 +50,21 @@ public:
 
 public:
 
+  // Initialise the instructions a Cluster will execute.
   virtual void storeData(std::vector<Word>& data);
-  void         stallPipeline();
+
+  // Returns the channel ID of the specified cluster's instruction packet FIFO.
   static int   IPKFIFOInput(int ID);
+
+  // Returns the channel ID of the specified cluster's instruction packet cache.
   static int   IPKCacheInput(int ID);
+
+  // Returns the channel ID of the specified cluster's input channel.
   static int   RCETInput(int ID, int channel);
+
+private:
+
+  void         stallPipeline();
 
 //==============================//
 // Components

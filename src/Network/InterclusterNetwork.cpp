@@ -33,7 +33,6 @@ void InterclusterNetwork::routeResponses() {
       // Send NACKs to any ports that sent requests which were blocked
       if(blockedRequests[i]) {
         responsesOut[i].write(Data(0));
-        cout << "Sent NACK to input " << i << endl;
       }
     }
   }

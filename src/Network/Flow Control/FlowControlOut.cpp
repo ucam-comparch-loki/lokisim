@@ -24,6 +24,9 @@ void FlowControlOut::allowedToSend(int position, bool isAllowed) {
   if(isAllowed) {
     dataOut[position].write(dataIn[position].read());
   }
+  else {
+    if(DEBUG) cout<<this->name()<<" received NACK at output "<<position<<endl;
+  }
 
   waitingToRequest[position] = !isAllowed;  // If denied, send another request
   flowControl[position].write(isAllowed);

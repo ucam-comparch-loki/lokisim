@@ -27,10 +27,12 @@ class flag_signal : public sc_buffer<T> {
 
 public:
 
+  // Read the current value in the wire.
   virtual const T& read() const {
     return this->m_cur_val;
   }
 
+  // Write a new value to the wire.
   virtual void write(const T& val) {
     // Copied from sc_buffer
     sc_object* writer = sc_core::sc_get_curr_simcontext()->get_current_writer();
@@ -44,11 +46,12 @@ public:
     this->request_update();
   }
 
+  // The name of this type of component.
   virtual const char* kind() const {
     return "flag_signal";
   }
 
-  // Determines whether an event has occurred (copied from sc_signal)
+  // Determine whether an event has occurred (copied from sc_signal).
   virtual bool event() const {
     bool newData = *newDataFlag;
     *newDataFlag = false;
@@ -57,7 +60,7 @@ public:
 
 protected:
 
-  // Update the value held in this wire (copied from sc_buffer)
+  // Update the value held in this wire (copied from sc_buffer).
   virtual void update() {
     this->m_cur_val = this->m_new_val;
     *newDataFlag = true;

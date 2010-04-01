@@ -50,6 +50,7 @@ public:
 
 public:
 
+  // Initialise the contents of this memory to the Words in the given vector.
   virtual void storeData(std::vector<Word>& data);
 
 private:

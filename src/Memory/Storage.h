@@ -26,10 +26,12 @@ class Storage {
 
 public:
 
+  // Read a value from the data array.
   virtual T& read() {
     throw "Error: Need to implement read() in this subclass.";
   }
 
+  // Write a value to the data array.
   virtual void write(T& newData) {
     throw "Error: Need to implement write() in this subclass.";
   }

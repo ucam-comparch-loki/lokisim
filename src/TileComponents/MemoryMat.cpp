@@ -132,7 +132,7 @@ void MemoryMat::write(Word w, int position) {
 
 /* Update the current connections to this memory. */
 void MemoryMat::updateControl() {
-cout << "Received control message" << endl;
+
   ChannelRequest req = static_cast<ChannelRequest>(in[CONTROL_INPUT].read());
 
   int port = req.getPort();
