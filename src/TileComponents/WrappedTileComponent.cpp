@@ -27,8 +27,8 @@ void WrappedTileComponent::setup() {
   responsesIn     = new sc_in<Word>[NUM_CLUSTER_OUTPUTS];
 
   dataInSig       = new flag_signal<Word>[NUM_CLUSTER_INPUTS];
-  dataOutSig      = new sc_buffer<AddressedWord>[NUM_CLUSTER_OUTPUTS];
-  dataOutSig2     = new sc_buffer<AddressedWord>[NUM_CLUSTER_OUTPUTS];
+  dataOutSig      = new flag_signal<AddressedWord>[NUM_CLUSTER_OUTPUTS];
+  dataOutSig2     = new flag_signal<AddressedWord>[NUM_CLUSTER_OUTPUTS];
   requestsOutSig  = new sc_buffer<AddressedWord>[NUM_CLUSTER_OUTPUTS];
   fcOutSig        = new sc_signal<bool>[NUM_CLUSTER_OUTPUTS];
   fcInSig         = new sc_signal<bool>[NUM_CLUSTER_INPUTS];

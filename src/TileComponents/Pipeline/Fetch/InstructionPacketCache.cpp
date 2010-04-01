@@ -66,14 +66,14 @@ void InstructionPacketCache::insertInstruction() {
 /* See if an instruction packet is in the cache, and if so, prepare to
  * execute it */
 void InstructionPacketCache::lookup() {
-  if(DEBUG) cout << "Looked up tag: " << address.read() << endl;
+  if(DEBUG) cout<<this->name()<<" looked up tag: "<<address.read()<<endl;
   bool inCache = cache.checkTags(address.read());
   cacheHit.write(inCache);
 
   // If we don't have the instructions, we will probably receive them soon
   if(!inCache) {
     if(!addresses.isFull()) addresses.write(address.read());
-    else cout << "Wrote to full buffer in IPK cache." << endl;
+    else std::cerr << "Wrote to full buffer in " << this->name() << endl;
   }
 }
 

@@ -85,9 +85,10 @@ private:
 
 private:
 
-  flag_signal<Word>        *dataInSig;  // array
-  sc_buffer<AddressedWord> *dataOutSig, *dataOutSig2, *requestsOutSig;  // arrays
-  sc_signal<bool>          *fcOutSig,   *fcInSig; // arrays
+  flag_signal<Word>          *dataInSig;  // array
+  flag_signal<AddressedWord> *dataOutSig, *dataOutSig2; // arrays
+  sc_buffer<AddressedWord>   *requestsOutSig;  // array
+  sc_signal<bool>            *fcOutSig,   *fcInSig; // arrays
 
 };
 

@@ -31,7 +31,10 @@ void InterclusterNetwork::routeResponses() {
   if(sendResponses.event()) {
     for(unsigned int i=0; i<blockedRequests.size(); i++) {
       // Send NACKs to any ports that sent requests which were blocked
-      if(blockedRequests[i]) responsesOut[i].write(Data(0));
+      if(blockedRequests[i]) {
+        responsesOut[i].write(Data(0));
+        cout << "Sent NACK to input " << i << endl;
+      }
     }
   }
   else {
@@ -65,7 +68,8 @@ InterclusterNetwork::InterclusterNetwork(sc_module_name name) :
     Interconnect(name),
     sentRequests(numOutputs),
     sentResponses(numInputs),
-    sentData(numOutputs) {
+    sentData(numOutputs),
+    blockedRequests(numOutputs) {
 
   responsesOut = new output_port[numInputs];
   requestsIn   = new input_port[numInputs];

@@ -29,12 +29,12 @@ void Crossbar::route(input_port inputs[],
       }
       // If we have already sent to this output, deny the request
       else {
-        if(blockedRequests) blockedRequests->assign(i, true);
+        if(blockedRequests) blockedRequests->at(i) = true;
         continue;
       }
     }
 
-    if(blockedRequests) blockedRequests->assign(i, false);
+    if(blockedRequests) blockedRequests->at(i) = false;
 
   }// end for
 

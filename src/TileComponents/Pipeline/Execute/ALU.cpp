@@ -88,7 +88,7 @@ void ALU::doOp() {
 
 void ALU::setPred(bool val) {
   predicate.write(val);
-  if(DEBUG) cout << "Set predicate bit to " << val << endl;
+  if(DEBUG) cout << this->name() << " set predicate bit to " << val << endl;
 }
 
 ALU::ALU(sc_module_name name) : Component(name) {

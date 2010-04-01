@@ -81,6 +81,7 @@ void MemoryMat::read(int position) {
     ConnectionStatus& connection = connections[position];
     Word w;
     int addr;
+    int channel = connection.getChannel();
 
     if(connection.readingIPK()) {
       addr = connection.getAddress();
@@ -98,9 +99,10 @@ void MemoryMat::read(int position) {
     else {
       addr = static_cast<Data>(in[position].read()).getData();
       w = data.read(addr);
+      connection.clear();
     }
 
-    AddressedWord aw(w, connection.getChannel());
+    AddressedWord aw(w, channel);
     out[position].write(aw);
 
     if(DEBUG) cout << "Read " << data.read(addr) << " from memory " << id <<
@@ -130,7 +132,7 @@ void MemoryMat::write(Word w, int position) {
 
 /* Update the current connections to this memory. */
 void MemoryMat::updateControl() {
-
+cout << "Received control message" << endl;
   ChannelRequest req = static_cast<ChannelRequest>(in[CONTROL_INPUT].read());
 
   int port = req.getPort();
@@ -184,7 +186,7 @@ MemoryMat::MemoryMat(sc_module_name name, int ID) :
   sensitive << clock.pos();
   dont_initialize();
 
-  end_module(); // Needed because we're using a different constructor
+  end_module(); // Needed because we're using a different Component constructor
 
 }
 

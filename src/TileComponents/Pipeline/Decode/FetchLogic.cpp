@@ -45,7 +45,7 @@ void FetchLogic::haveResultFromCache() {
     // Stall so we don't receive any more data if the buffer is full
     if(toSend.isFull()) stallOut.write(true);
 
-    if(DEBUG) cout << "Not in cache. Sending request." << endl;
+    if(DEBUG) cout << this->name() << " sending fetch." << endl;
   }
 
 }
