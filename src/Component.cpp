@@ -23,6 +23,16 @@ Component::~Component() {
 
 }
 
+double Component::area() const {
+  std::cerr << "No area data for " << this->basename() << endl;
+  return 0.0;
+}
+
+double Component::energy() const {
+  std::cerr << "No power data for " << this->basename() << endl;
+  return 0.0;
+}
+
 std::string Component::makeName(sc_module_name& name, int ID) {
   std::stringstream ss;
   std::string result;

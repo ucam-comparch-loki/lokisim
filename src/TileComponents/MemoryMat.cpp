@@ -169,6 +169,15 @@ void MemoryMat::updateControl() {
 
 }
 
+// Estimate of area in um^2 obtained from Cacti.
+double MemoryMat::area() const {
+  return MEMORY_SIZE * 13; // Non-linear: see spreadsheet
+}
+
+double MemoryMat::energy() const {
+  return 0.0;
+}
+
 /* Initialise the contents of this memory to the Words in the given vector. */
 void MemoryMat::storeData(std::vector<Word>& data) {
   for(unsigned int i=0; i<data.size(); i++) {

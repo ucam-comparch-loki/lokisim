@@ -123,6 +123,11 @@ public:
 // Methods
 //==============================//
 
+public:
+
+  virtual double area()  const;
+  virtual double energy() const;
+
 private:
 
   // Methods which act when an input is received

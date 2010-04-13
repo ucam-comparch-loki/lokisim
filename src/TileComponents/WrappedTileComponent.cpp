@@ -8,6 +8,14 @@
 #include "WrappedTileComponent.h"
 #include "TileComponentFactory.h"
 
+double WrappedTileComponent::area() const {
+  return comp->area() + fcIn.area() + fcOut.area();
+}
+
+double WrappedTileComponent::energy() const {
+  return comp->energy() + fcIn.energy() + fcOut.energy();
+}
+
 void WrappedTileComponent::storeData(std::vector<Word>& data) {
   comp->storeData(data);
 }

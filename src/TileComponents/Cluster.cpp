@@ -7,6 +7,16 @@
 
 #include "Cluster.h"
 
+double Cluster::area() const {
+  return regs.area()   + pred.area()    + fetch.area() +
+         decode.area() + execute.area() + write.area();
+}
+
+double Cluster::energy() const {
+  return regs.energy()   + pred.energy()    + fetch.energy() +
+         decode.energy() + execute.energy() + write.energy();
+}
+
 /* Initialise the instructions a Cluster will execute. */
 void Cluster::storeData(std::vector<Word>& data) {
   std::vector<Instruction> instructions;

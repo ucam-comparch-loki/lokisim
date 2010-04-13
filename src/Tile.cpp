@@ -7,6 +7,20 @@
 
 #include "Tile.h"
 
+double Tile::area() const {
+  // Update this if allowing heterogeneity.
+  return network.area() +
+         contents[0]->area() * CLUSTERS_PER_TILE +
+         contents[CLUSTERS_PER_TILE]->area() * MEMS_PER_TILE;
+}
+
+double Tile::energy() const {
+  // Update this if allowing heterogeneity.
+  return network.energy() +
+         contents[0]->energy() * CLUSTERS_PER_TILE +
+         contents[CLUSTERS_PER_TILE]->energy() * MEMS_PER_TILE;
+}
+
 void Tile::storeData(vector<Word>& data, int componentNumber) {
   contents[componentNumber]->storeData(data);
 }

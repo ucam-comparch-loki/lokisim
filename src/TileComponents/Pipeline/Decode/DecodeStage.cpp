@@ -7,6 +7,14 @@
 
 #include "DecodeStage.h"
 
+double DecodeStage::area() const {
+  return fl.area() + rcet.area() + decoder.area() + extend.area();
+}
+
+double DecodeStage::energy() const {
+  return fl.energy() + rcet.energy() + decoder.energy() + extend.energy();
+}
+
 /* Direct any new inputs to their destinations every clock cycle. */
 void DecodeStage::newCycle() {
   while(true) {

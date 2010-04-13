@@ -7,6 +7,14 @@
 
 #include "ExecuteStage.h"
 
+double ExecuteStage::area() const {
+  return alu.area() + in1Mux.area() + in2Mux.area();
+}
+
+double ExecuteStage::energy() const {
+  return alu.energy() + in1Mux.energy() + in2Mux.energy();
+}
+
 /* Simulate pipelining by only allowing signals through at the start of a cycle */
 void ExecuteStage::newCycle() {
   while(true) {

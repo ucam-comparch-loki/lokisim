@@ -50,6 +50,9 @@ public:
 
 public:
 
+  virtual double area()  const;
+  virtual double energy() const;
+
   // Initialise the contents of this memory to the Words in the given vector.
   virtual void storeData(std::vector<Word>& data);
 

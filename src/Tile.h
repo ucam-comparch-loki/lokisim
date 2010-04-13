@@ -47,6 +47,9 @@ public:
 
 public:
 
+  virtual double area()  const;
+  virtual double energy() const;
+
   // Store the given instructions or data into the component at the given index.
   void storeData(vector<Word>& data, int componentNumber);
 

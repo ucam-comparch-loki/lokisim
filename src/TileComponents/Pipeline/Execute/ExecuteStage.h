@@ -92,6 +92,11 @@ public:
 // Methods
 //==============================//
 
+public:
+
+  virtual double area()  const;
+  virtual double energy() const;
+
 private:
 
   virtual void newCycle();

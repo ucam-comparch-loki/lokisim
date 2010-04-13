@@ -8,6 +8,14 @@
 #include "WriteStage.h"
 #include "../../../Datatype/MemoryRequest.h"
 
+double WriteStage::area() const {
+  return scet.area() + mux.area();
+}
+
+double WriteStage::energy() const {
+  return scet.energy() + mux.energy();
+}
+
 void WriteStage::newCycle() {
 
   while(true) {

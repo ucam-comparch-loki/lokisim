@@ -7,6 +7,14 @@
 
 #include "FetchStage.h"
 
+double FetchStage::area() const {
+  return cache.area() + fifo.area() + mux.area();
+}
+
+double FetchStage::energy() const {
+  return cache.energy() + fifo.energy() + mux.energy();
+}
+
 void FetchStage::storeCode(std::vector<Instruction>& instructions) {
   cache.storeCode(instructions);
 }

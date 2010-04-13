@@ -62,6 +62,9 @@ public:
 
 public:
 
+  virtual double area()  const;
+  virtual double energy() const;
+
   void          storeCode(std::vector<Instruction>& instructions);
 
 private:

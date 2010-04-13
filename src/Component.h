@@ -51,6 +51,14 @@ public:
 // Methods
 //==============================//
 
+public:
+
+  // An estimate of the component's area in square micrometres.
+  virtual double area()  const;
+
+  // An estimate of the energy consumed by the component in picojoules.
+  virtual double energy() const;
+
 private:
 
   static std::string makeName(sc_module_name& name, int ID);

@@ -50,6 +50,9 @@ public:
 
 public:
 
+  virtual double area()  const;
+  virtual double energy() const;
+
   // Initialise the instructions a Cluster will execute.
   virtual void storeData(std::vector<Word>& data);
 

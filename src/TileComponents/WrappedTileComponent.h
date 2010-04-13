@@ -62,6 +62,9 @@ public:
 
 public:
 
+  virtual double area()  const;
+  virtual double energy() const;
+
   // Store initial instructions or data into the contained cluster or memory.
   virtual void storeData(std::vector<Word>& data);
 
@@ -88,10 +91,10 @@ private:
 
 private:
 
-  flag_signal<Word>          *dataInSig;  // array
+  flag_signal<Word>          *dataInSig;                // array
   flag_signal<AddressedWord> *dataOutSig, *dataOutSig2; // arrays
-  sc_buffer<AddressedWord>   *requestsOutSig;  // array
-  sc_signal<bool>            *fcOutSig,   *fcInSig; // arrays
+  sc_buffer<AddressedWord>   *requestsOutSig;           // array
+  sc_signal<bool>            *fcOutSig,   *fcInSig;     // arrays
 
 };
 
