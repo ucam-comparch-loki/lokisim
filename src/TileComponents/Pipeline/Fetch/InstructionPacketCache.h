@@ -73,17 +73,40 @@ public:
 
 public:
 
+  // Initialise the contents of the cache with a list of instructions.
   void storeCode(std::vector<Instruction>& instructions);
+
+  // Tells whether the cache considers itself empty. This may be because there
+  // are no instructions in the cache, or because all instructions have been
+  // executed.
   bool isEmpty();
 
 private:
 
+  //Put a received instruction into the cache.
   void insertInstruction();
+
+  // See if an instruction packet is in the cache, using its address as a tag,
+  // and if so, prepare to execute it.
   void lookup();
+
+  // Jump to a new instruction specified by the offset received by jumpOffset.
   void jump();
+
+  // An instruction was read from the cache, so prepare the next instruction,
+  // and change to another instruction packet if necessary.
   void finishedRead();
+
+  // Update the signal saying whether there is enough room to fetch another
+  // packet.
   void updateRTF();
+
+  // Send the chosen instruction, instToSend. There are multiple writers so
+  // a separate method is needed.
   void write();
+
+  // Perform any necessary tasks when the end of an instruction packet has been
+  // reached.
   void endOfPacketTasks();
 
 //==============================//
@@ -104,7 +127,7 @@ private:
 private:
 
   // Signal that there is an instruction ready to send.
-  sc_signal<bool> writeNotify1, writeNotify2, writeNotify3, writeNotify4;
+  sc_event readyToWrite;
 
 };
 

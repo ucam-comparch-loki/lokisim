@@ -19,7 +19,7 @@ void ReceiveChannelEndTable::receivedInput() {
   for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     if(fromNetwork[i].event()) {
       buffers.write(fromNetwork[i].read(), i);
-      wroteToBuffer.write(!wroteToBuffer.read());
+      wake(contentsChanged);
       checkWaiting(i);  // See if we have been waiting for data to arrive here
 
       if(DEBUG) cout << this->name() << " channel " << i << " received " <<
@@ -54,7 +54,7 @@ void ReceiveChannelEndTable::receivedRequest() {
 
   if(waiting1 == NO_CHANNEL && waiting2 == NO_CHANNEL) {
     stallValue = false;
-    updateStall4.write(!updateStall4.read());
+    wake(stallValueReady);
   }
 
 }
@@ -66,7 +66,7 @@ void ReceiveChannelEndTable::read(short inChannel, short outChannel) {
 
   if(!buffers[inChannel].isEmpty()) {
     w = buffers.read(inChannel);
-    readFromBuffer.write(!readFromBuffer.read());
+    wake(contentsChanged);
 
     if(DEBUG) cout << this->name() << " read from channel " << inChannel << endl;
   }
@@ -74,7 +74,7 @@ void ReceiveChannelEndTable::read(short inChannel, short outChannel) {
 
     // Stall until we have data
     stallValue = true;
-    updateStall1.write(!updateStall1.read());
+    wake(stallValueReady);
 
     // Need to remember that we're waiting for data from this channel
     if(outChannel==0) waiting1 = inChannel;
@@ -88,7 +88,7 @@ void ReceiveChannelEndTable::read(short inChannel, short outChannel) {
 
   if(outChannel==0) {
     dataToALU1 = d;
-    updateToALU1_1.write(!updateToALU1_1.read());
+    wake(alu1ValueReady);
   }
   else if(outChannel==1) toALU2.write(d);
 
@@ -101,7 +101,7 @@ void ReceiveChannelEndTable::testChannelEnd() {
 
   if(empty) dataToALU1 = Data(0);
   else dataToALU1 = Data(1);
-  updateToALU1_1.write(!updateToALU1_1.read());
+  wake(alu1ValueReady);
 
   waitingForInput = false;
 }
@@ -124,7 +124,7 @@ void ReceiveChannelEndTable::doOperation() {
         if(!buffers[i].isEmpty()) {
           // Adjust address so it can be accessed like a register
           dataToALU1 = Data(Registers::fromChannelID(i));
-          updateToALU1_2.write(!updateToALU1_2.read());
+          wake(alu1ValueReady);
           return;
         }
       }
@@ -132,7 +132,7 @@ void ReceiveChannelEndTable::doOperation() {
       // If we have got this far, all the buffers are empty
       waiting1 = ALL_CHANNELS;  // Is it safe to overwrite the existing value?
       stallValue = true;
-      updateStall3.write(!updateStall3.read());
+      wake(stallValueReady);
 
       break;
 
@@ -161,7 +161,7 @@ void ReceiveChannelEndTable::checkWaiting(int channelEnd) {
   if(waiting1 == ALL_CHANNELS) { // Send the index of the channel-end with data
     // Adjust address so it can be accessed like a register
     dataToALU1 = Data(Registers::fromChannelID(channelEnd));
-    updateToALU1_3.write(!updateToALU1_3.read());
+    wake(alu1ValueReady);
     waiting1 = NO_CHANNEL;
   }
   else if(waiting1 == channelEnd) {
@@ -177,7 +177,7 @@ void ReceiveChannelEndTable::checkWaiting(int channelEnd) {
 
   if(waiting1 == NO_CHANNEL && waiting2 == NO_CHANNEL) {
     stallValue = false;
-    updateStall2.write(!updateStall2.read());
+    wake(stallValueReady);
   }
 
 }
@@ -210,15 +210,15 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name) :
   dont_initialize();
 
   SC_METHOD(updateToALU1);
-  sensitive << updateToALU1_1 << updateToALU1_2 << updateToALU1_3;
+  sensitive << alu1ValueReady;
   dont_initialize();
 
   SC_METHOD(updateFlowControl);
-  sensitive << readFromBuffer << wroteToBuffer;
+  sensitive << contentsChanged;
   // do initialise
 
   SC_METHOD(updateStall);
-  sensitive << updateStall1 << updateStall2 << updateStall3 << updateStall4;
+  sensitive << stallValueReady;
   // do initialise
 
 }

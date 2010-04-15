@@ -33,6 +33,10 @@ double Component::energy() const {
   return 0.0;
 }
 
+void Component::wake(sc_event& e) {
+  e.notify(sc_core::SC_ZERO_TIME);
+}
+
 std::string Component::makeName(sc_module_name& name, int ID) {
   std::stringstream ss;
   std::string result;

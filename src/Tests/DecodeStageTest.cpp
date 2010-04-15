@@ -81,12 +81,12 @@ protected:
     Word w1(1), w2(2), w3(3);
 
   // Put some data in the registers
-    write2.write(2);
+    write2.write(12);
     writeData.write(w2);
 
     TIMESTEP;
 
-    write2.write(8);
+    write2.write(18);
     writeData.write(w3);
 
     TIMESTEP;
@@ -107,7 +107,7 @@ protected:
 
 //TEST_F(DecodeStageTest, PreparesOperands) {
 //
-//  Instruction i1("addui r3 r2 14"), i2("sllv r4 r8 r19");
+//  Instruction i1("addui r13 r12 14"), i2("sllv r14 r18 r19");
 //  Data d1, d2;
 //
 //  instIn.write(i1);
@@ -140,7 +140,7 @@ protected:
 
 //TEST_F(DecodeStageTest, SendsFetchRequests) {
 //
-//  Instruction i1("fetch r2 4"), i2("setfetchch 18");
+//  Instruction i1("fetch r12 4"), i2("setfetchch 18");
 //
 //  instIn.write(i2);
 //

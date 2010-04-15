@@ -91,10 +91,10 @@ protected:
 //}
 
 /* Tests that load and store operations work. Adds together two vectors of
- * length 10. The result should be 12, 14, 16, ..., stored at memory
- * addresses 20, 21, 22, ... */
+ * length 10. The result should be 12, 14, 16, ..., 30, stored at memory
+ * addresses 20, 21, 22, ..., 29. */
 TEST_F(TileTest, VectorAdd) {
-cout << tile.area() << endl;
+
   string cluster0 = "vector_add2/0.loki";
   string cluster1 = "vector_add2/1.loki";
   string cluster2 = "vector_add2/2.loki";

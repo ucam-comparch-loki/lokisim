@@ -77,7 +77,9 @@ private:
 
 private:
 
-  sc_signal<bool>     readSig, wroteSig;
+  // Signal that the number of instructions in the FIFO has changed, and so the
+  // value of the empty signal should be reevaluated.
+  sc_event            contentsChanged;
 
 };
 

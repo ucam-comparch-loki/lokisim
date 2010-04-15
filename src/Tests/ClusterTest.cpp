@@ -79,9 +79,9 @@ protected:
 //
 //  // Note: Only works if all instructions are allowed to specify remote channels
 //
-//  Instruction store1("addui r1 r0 1 > 0"), store2("addui r2 r0 1 > 1"),
-//              add1("addu r3 r2 r1 > 2"), add2("addu r4 r3 r2 > 3"),
-//              add3("addu r5 r4 r3 > 4"), add4("addu r6 r5 r4 > 5"),
+//  Instruction store1("addui r11 r0 1 > 0"), store2("addui r12 r0 1 > 1"),
+//              add1("addu r13 r12 r11 > 2"), add2("addu r14 r13 r12 > 3"),
+//              add3("addu r15 r14 r13 > 4"), add4("addu r16 r15 r14 > 5"),
 //              fetch("fetch r0 4");
 //
 //  Array<AddressedWord> temp;
@@ -288,7 +288,7 @@ protected:
  * resumes execution when data arrives. */
 //TEST_F(ClusterTest, RCETStallsPipeline) {
 //
-//  Instruction i("addui r1 r28 3 > 2");  // r28 = receive channel 0
+//  Instruction i("addui r11 ch0 3 > 2");
 //  Data d(2);
 //
 //  flowControlIn[1].write(true);
@@ -319,10 +319,10 @@ protected:
 /* Tests that the tstch and selch instructions work properly. */
 //TEST_F(ClusterTest, TstchAndSelch) {
 //
-//  Instruction tstch("tstch r1, ch1 > 0");  // Test channel 1
-//  Instruction tstch2("tstch r0, ch0 > 1"); // Test channel 0
-//  Instruction selch("selch r2 > 2");       // Select a channel with data
-//  Instruction get("irdr.eop r2, r2 > 3");  // Indirectly read from that channel
+//  Instruction tstch("tstch r11, ch1 > 0");  // Test channel 1
+//  Instruction tstch2("tstch r0, ch0 > 1");  // Test channel 0
+//  Instruction selch("selch r12 > 2");       // Select a channel with data
+//  Instruction get("irdr.eop r12, r12 > 3"); // Indirectly read from that channel
 //  Data d(3);
 //
 //  in[3].write(d);       // Insert the data

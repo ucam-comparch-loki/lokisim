@@ -7,7 +7,7 @@
 
 #include "InstructionPacketCache.h"
 
-/* Initialise the contents of the cache with a list of Instructions */
+/* Initialise the contents of the cache with a list of Instructions. */
 void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
 
   if(instructions.size() == 0) {
@@ -25,12 +25,13 @@ void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
   else startOfPacket = false;
 
   if(instToSend.endOfPacket()) endOfPacketTasks();
-  writeNotify3.write(!writeNotify3.read()); // Invoke the write() method
+
+  wake(readyToWrite);   // Invoke the write() method
   sentNewInst = true;
   outputWasRead = false;
 }
 
-/* Put a received instruction into the cache at the appropriate position */
+/* Put a received instruction into the cache at the appropriate position. */
 void InstructionPacketCache::insertInstruction() {
 
   bool empty = cache.isEmpty();
@@ -56,7 +57,8 @@ void InstructionPacketCache::insertInstruction() {
     instToSend = cache.read();
 
     if(instToSend.endOfPacket()) endOfPacketTasks();
-    writeNotify1.write(!writeNotify1.read()); // Invoke the write() method
+
+    wake(readyToWrite);   // Invoke the write() method
     sentNewInst = true;
     outputWasRead = false;
   }
@@ -64,7 +66,7 @@ void InstructionPacketCache::insertInstruction() {
 }
 
 /* See if an instruction packet is in the cache, and if so, prepare to
- * execute it */
+ * execute it. */
 void InstructionPacketCache::lookup() {
   if(DEBUG) cout<<this->name()<<" looked up tag: "<<address.read()<<endl;
   bool inCache = cache.checkTags(address.read());
@@ -78,13 +80,14 @@ void InstructionPacketCache::lookup() {
 }
 
 /* An instruction was read from the cache, so change to another packet if
- * necessary, and prepare the next instruction */
+ * necessary, and prepare the next instruction. */
 void InstructionPacketCache::finishedRead() {
 
   if(!sentNewInst && !cache.isEmpty()) {
     instToSend = cache.read();
     if(instToSend.endOfPacket()) endOfPacketTasks();
-    writeNotify2.write(!writeNotify2.read());
+
+    wake(readyToWrite);   // Invoke the write() method
   }
 
   sentNewInst = false;          // Reset for next cycle
@@ -99,11 +102,12 @@ void InstructionPacketCache::jump() {
   cache.jump(jumpOffset.read());
   instToSend = cache.read();
   if(instToSend.endOfPacket()) endOfPacketTasks();
-  writeNotify4.write(!writeNotify4.read());
+
+  wake(readyToWrite);   // Invoke the write() method
 }
 
 /* Update the signal saying whether there is enough room to fetch another
- * packet */
+ * packet. */
 void InstructionPacketCache::updateRTF() {
   isRoomToFetch.write(cache.remainingSpace() >= MAX_IPK_SIZE);
   flowControl.write(!cache.isFull());
@@ -161,7 +165,7 @@ InstructionPacketCache::InstructionPacketCache(sc_module_name name) :
   // Do initialise
 
   SC_METHOD(write);
-  sensitive << writeNotify1 << writeNotify2 << writeNotify3 << writeNotify4;
+  sensitive << readyToWrite;
   dont_initialize();
 
 }

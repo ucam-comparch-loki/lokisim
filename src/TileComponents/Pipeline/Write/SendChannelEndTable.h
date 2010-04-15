@@ -64,10 +64,20 @@ public:
 
 protected:
 
+  // Put the received Word into the table, along with its destination address.
   void          receivedData();
+
+  // Stall the pipeline until the channel specified by waitOnChannel is empty.
   void          waitUntilEmpty();
+
+  // Update the value on the stallOut port.
   void          updateStall();
+
+  // If it is possible to send data onto the network, do it. This method is
+  // is called at the start of each clock cycle.
   virtual void  canSend();
+
+  // Choose which buffer to put the new data into.
   virtual short chooseBuffer();
 
 //==============================//
@@ -93,7 +103,7 @@ protected:
 
   // Signal that something has happened which requires the stall output
   // to be changed.
-  sc_buffer<bool>         updateStall1, updateStall2, updateStall3;
+  sc_event stallValueReady;
 
 };
 

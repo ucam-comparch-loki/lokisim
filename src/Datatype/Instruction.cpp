@@ -22,8 +22,10 @@
 #include "../Utility/InstructionMap.h"
 #include "../Utility/StringManipulation.h"
 #include "../Utility/Parameters.h"
+#include "../TileComponents/Pipeline/IndirectRegisterFile.h"
 
 typedef StringManipulation Strings;
+typedef IndirectRegisterFile Registers;
 
 const short startChannelID = 0;
 const short startSrc2      = startChannelID + 8;  // 8
@@ -173,7 +175,7 @@ void Instruction::decodeField(const string& str, int field) {
     reg.erase(0,2);                   // Remove the "ch"
 
     // There are two reserved registers before channel-ends start
-    int value = Strings::strToInt(reg) + 2;
+    int value = Registers::fromChannelID(Strings::strToInt(reg));
 
     if(field==1) setDest(value);
     else if(field==2) setSrc1(value);

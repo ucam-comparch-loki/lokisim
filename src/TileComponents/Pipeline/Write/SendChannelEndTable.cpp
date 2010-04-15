@@ -18,7 +18,7 @@ void SendChannelEndTable::receivedData() {
     // Stall so we don't receive any more data if the buffer is full
     if(buffers[buff].isFull()) {
       stallValue = true;
-      updateStall1.write(!updateStall1.read());
+      wake(stallValueReady);
     }
 
     if(DEBUG) cout<<this->name()<<" wrote "<<w<<" to output channel-end "<<buff<<endl;
@@ -36,7 +36,7 @@ void SendChannelEndTable::waitUntilEmpty() {
   if(!buffers[channel].isEmpty()) {
     waiting = true;
     stallValue = true;
-    updateStall3.write(!updateStall3.read());
+    wake(stallValueReady);
   }
 
 }
@@ -63,7 +63,7 @@ void SendChannelEndTable::canSend() {
   }
 
   stallValue = stall || waiting;
-  updateStall2.write(!updateStall2.read());
+  wake(stallValueReady);
 
 }
 
@@ -102,7 +102,7 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name) :
   dont_initialize();
 
   SC_METHOD(updateStall);
-  sensitive << updateStall1 << updateStall2 << updateStall3;
+  sensitive << stallValueReady;
   // do initialise;
 
 }

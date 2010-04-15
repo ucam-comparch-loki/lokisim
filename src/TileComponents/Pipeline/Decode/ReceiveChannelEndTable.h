@@ -133,14 +133,14 @@ private:
 
   // The contents of the buffers have changed, so the flow control signals
   // should be re-evaluated.
-  sc_buffer<bool>   readFromBuffer, wroteToBuffer;
+  sc_event contentsChanged;
 
   // Signal that there is new data to be sent on port toALU1.
-  sc_signal<bool>   updateToALU1_1, updateToALU1_2, updateToALU1_3;
+  sc_event alu1ValueReady;
 
   // Signal that something has happened which may have changed whether or not
   // this component is causing the pipeline to stall.
-  sc_signal<bool>   updateStall1, updateStall2, updateStall3, updateStall4;
+  sc_event stallValueReady;
 
   // Signal that a channel waited on now has data, so a read should take place.
   sc_signal<bool>   endWaiting1, endWaiting2;

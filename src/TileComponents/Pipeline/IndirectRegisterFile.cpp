@@ -52,7 +52,8 @@ void IndirectRegisterFile::indirectWrite() {
 void IndirectRegisterFile::write() {
   short addr = writeAddr.read();
 
-  if(isReserved(addr)) return;   // Don't write if the register is reserved
+  // There are some registers that we can't write to.
+  if(isReserved(addr) || isChannelEnd(addr)) return;
 
   Word w = writeData.read();
   regs.write(w, addr);
