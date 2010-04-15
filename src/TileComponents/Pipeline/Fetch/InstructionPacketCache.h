@@ -84,6 +84,7 @@ private:
   void finishedRead();
   void updateRTF();
   void write();
+  void endOfPacketTasks();
 
 //==============================//
 // Local state

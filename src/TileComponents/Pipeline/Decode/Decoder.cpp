@@ -7,8 +7,11 @@
 
 #include "Decoder.h"
 #include "ReceiveChannelEndTable.h"
+#include "../IndirectRegisterFile.h"
 #include "../../../Datatype/MemoryRequest.h"
 #include "../../../Utility/InstructionMap.h"
+
+typedef IndirectRegisterFile Registers;
 
 void Decoder::decodeInstruction() {
 
@@ -86,7 +89,7 @@ void Decoder::decodeInstruction() {
   if(operation == InstructionMap::TSTCH) {
     channelOp.write(ReceiveChannelEndTable::TSTCH);
     writeAddr.write(destination);
-    toRCET1.write(operand1 - NUM_REGISTERS);
+    toRCET1.write(Registers::toChannelID(operand1));
     op1Select.write(RCET);
     this->operation.write(operation);
     return;
@@ -182,8 +185,8 @@ void Decoder::decodeInstruction() {
 
 /* Determine where to read the first operand from: RCET, ALU or registers */
 void Decoder::setOperand1(short operation, int operand) {
-  if(operand >= NUM_REGISTERS) {
-    toRCET1.write(operand - NUM_REGISTERS);
+  if(Registers::isChannelEnd(operand)) {
+    toRCET1.write(Registers::toChannelID(operand));
     op1Select.write(RCET);          // ALU wants data from channel-end
   }
   else {
@@ -203,8 +206,8 @@ void Decoder::setOperand2(short operation, int operand, int immediate) {
     toSignExtend.write(Data(immediate));
     op2Select.write(SIGN_EXTEND);   // ALU wants data from sign extender
   }
-  else if(operand >= NUM_REGISTERS) {
-    toRCET2.write(operand - NUM_REGISTERS);
+  else if(Registers::isChannelEnd(operand)) {
+    toRCET2.write(Registers::toChannelID(operand));
     op2Select.write(RCET);          // ALU wants data from channel-end
   }
   else {

@@ -6,6 +6,9 @@
  */
 
 #include "ReceiveChannelEndTable.h"
+#include "../IndirectRegisterFile.h"
+
+typedef IndirectRegisterFile Registers;
 
 #define NO_CHANNEL -1
 #define ALL_CHANNELS -2
@@ -119,7 +122,8 @@ void ReceiveChannelEndTable::doOperation() {
 
       for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) { // TODO: round-robin
         if(!buffers[i].isEmpty()) {
-          dataToALU1 = Data(i + NUM_REGISTERS);
+          // Adjust address so it can be accessed like a register
+          dataToALU1 = Data(Registers::fromChannelID(i));
           updateToALU1_2.write(!updateToALU1_2.read());
           return;
         }
@@ -154,9 +158,9 @@ void ReceiveChannelEndTable::updateFlowControl() {
  * send it immediately. Unstall the pipeline if appropriate. */
 void ReceiveChannelEndTable::checkWaiting(int channelEnd) {
 
-  if(waiting1 == ALL_CHANNELS) {
-    // Send the index of the channel-end with data
-    dataToALU1 = Data(channelEnd + NUM_REGISTERS);
+  if(waiting1 == ALL_CHANNELS) { // Send the index of the channel-end with data
+    // Adjust address so it can be accessed like a register
+    dataToALU1 = Data(Registers::fromChannelID(channelEnd));
     updateToALU1_3.write(!updateToALU1_3.read());
     waiting1 = NO_CHANNEL;
   }

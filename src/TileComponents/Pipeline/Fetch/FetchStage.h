@@ -25,6 +25,10 @@ class FetchStage : public PipelineStage {
 
 public:
 
+// Inherited from PipelineStage:
+//   clock
+//   stall
+
   // The input instruction to be sent to the instruction packet cache.
   sc_in<Word>         toIPKCache;
 
@@ -65,15 +69,27 @@ public:
   virtual double area()  const;
   virtual double energy() const;
 
+  // Store some instructions in the Instruction Packet Cache.
   void          storeCode(std::vector<Instruction>& instructions);
 
 private:
 
+  // The task performed at the beginning of each clock cycle.
   virtual void  newCycle();
+
+  // Pass the newly-received instruction to the FIFO.
   void          newFIFOInst();
+
+  // Pass the newly-received instruction to the cache.
   void          newCacheInst();
+
+  // Determine whether to take an instruction from the FIFO or cache.
   short         calculateSelect();
+
+  // Write the result of calculateSelect() to the multiplexors select input.
   void          select();
+
+  // Jump to a different instruction in the Instruction Packet Cache.
   void          jump();
 
 //==============================//
@@ -92,6 +108,7 @@ private:
 
 private:
 
+  // Tells whether the last operation read from the cache or not.
   bool usingCache;
 
   enum InstructionSource {CACHE, FIFO};

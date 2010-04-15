@@ -65,9 +65,19 @@ public:
 
 private:
 
+  // When a request for an instruction is received, see if it is in the cache.
   void doOp();
+
+  // If the cache doesn't contain the desired instruction, send a request to
+  // the memory. Otherwise, we don't have to do anything.
   void haveResultFromCache();
+
+  // Add the base address onto our offset address, but only if we're expecting
+  // it. We are expecting it if we have just received a fetch request.
   void haveBaseAddress();
+
+  // The flowControl signal tells us that we are now free to use the channel
+  // again, so send the next request, if there is one.
   void sendNext();
 
 //==============================//
@@ -76,8 +86,14 @@ private:
 
 private:
 
+  // A queue of requests, waiting to be sent.
   Buffer<AddressedWord> toSend;
+
+  // Tells us whether we are expecting to receive data from the register file.
   bool                  awaitingBaseAddr;
+
+  // The address to be combined with the base address to form the address we
+  // want to access.
   Address               offsetAddr;
 
 //==============================//

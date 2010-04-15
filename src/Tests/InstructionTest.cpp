@@ -20,7 +20,7 @@ TEST(InstructionTest, InstructionParsesCorrectly) {
   EXPECT_EQ(InstructionMap::ADDU, i.getOp());
   EXPECT_EQ(18, i.getDest());
   EXPECT_EQ(25, i.getSrc1());
-  EXPECT_EQ(29, i.getSrc2());
+  EXPECT_EQ(3,  i.getSrc2());
   EXPECT_EQ(Instruction::P, i.getPredicate());
   EXPECT_EQ(true, i.getSetPredicate());
 

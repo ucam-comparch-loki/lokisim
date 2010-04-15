@@ -24,6 +24,10 @@ class WriteStage: public PipelineStage {
 
 public:
 
+// Inherited from PipelineStage:
+//   clock
+//   stall
+
   // The data from the ALU to be written or sent out onto the network.
   sc_in<Data>             fromALU;
 
@@ -84,14 +88,26 @@ public:
 
 private:
 
-  virtual void  newCycle();
+  // The task to be performed at the beginning of each clock cycle.
+  virtual void   newCycle();
 
+  // Method called when a new instruction is received.
   void receivedInst();
+
+  // Method called when new data is received from the ALU.
   void receivedData();
+
+  // Method called when a new remote channel ID is received.
   void receivedRChannel();
+
+  // Select whether to write the instruction or data (it is impossible to
+  // receive both in a single cycle, so the choice is easy).
   void select();
 
-  Word getMemoryRequest();
+  // Generate a memory request using the address from the ALU and the operation
+  // supplied by the decoder. The memory request will be sent to a memory and
+  // will result in an operation being carried out there.
+  Word getMemoryRequest() const;
 
 //==============================//
 // Components
@@ -108,10 +124,9 @@ private:
 
 private:
 
-  // Choose which input of the multiplexor to use.
+  // Choose which input of the multiplexor to use, instruction or data.
   // Only one input can be active at once.
   short selectVal;
-  bool  haveNewChannel;
 
 //==============================//
 // Signals (wires)

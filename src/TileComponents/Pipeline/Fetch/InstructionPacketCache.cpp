@@ -24,7 +24,7 @@ void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
   }
   else startOfPacket = false;
 
-  if(instToSend.endOfPacket()) cache.switchToPendingPacket();
+  if(instToSend.endOfPacket()) endOfPacketTasks();
   writeNotify3.write(!writeNotify3.read()); // Invoke the write() method
   sentNewInst = true;
   outputWasRead = false;
@@ -55,7 +55,7 @@ void InstructionPacketCache::insertInstruction() {
   if(empty && outputWasRead) {                // Send the instruction immediately
     instToSend = cache.read();
 
-    if(instToSend.endOfPacket()) cache.switchToPendingPacket();
+    if(instToSend.endOfPacket()) endOfPacketTasks();
     writeNotify1.write(!writeNotify1.read()); // Invoke the write() method
     sentNewInst = true;
     outputWasRead = false;
@@ -83,7 +83,7 @@ void InstructionPacketCache::finishedRead() {
 
   if(!sentNewInst && !cache.isEmpty()) {
     instToSend = cache.read();
-    if(instToSend.endOfPacket()) cache.switchToPendingPacket();
+    if(instToSend.endOfPacket()) endOfPacketTasks();
     writeNotify2.write(!writeNotify2.read());
   }
 
@@ -98,7 +98,7 @@ void InstructionPacketCache::jump() {
 
   cache.jump(jumpOffset.read());
   instToSend = cache.read();
-  if(instToSend.endOfPacket()) cache.switchToPendingPacket();
+  if(instToSend.endOfPacket()) endOfPacketTasks();
   writeNotify4.write(!writeNotify4.read());
 }
 
@@ -120,6 +120,13 @@ void InstructionPacketCache::write() {
 /* Convenience method, avoid using if possible. */
 bool InstructionPacketCache::isEmpty() {
   return cache.isEmpty();
+}
+
+/* Perform any necessary tasks when the end of an instruction packet has been
+ * reached. */
+void InstructionPacketCache::endOfPacketTasks() {
+  cache.switchToPendingPacket();
+  // TODO: update register 1 with address of new instruction packet
 }
 
 /* Constructors and destructors */

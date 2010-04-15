@@ -43,7 +43,7 @@ string TraceFile::parameterSummary() {
   s << "  Memory size:                   " << MEMORY_SIZE << "\n";
   s << "  Instruction packet cache size: " << IPK_CACHE_SIZE << "\n";
   s << "  Instruction packet FIFO size:  " << IPK_FIFO_SIZE << "\n";
-  s << "  Register file size:            " << NUM_REGISTERS << "\n";
+  s << "  Register file size:            " << NUM_ADDRESSABLE_REGISTERS << "\n";
   s << "Channel ends:\n";
   s << "  Input:                         " << NUM_RECEIVE_CHANNELS << "\n";
   s << "  Output:                        " << NUM_SEND_CHANNELS << "\n";

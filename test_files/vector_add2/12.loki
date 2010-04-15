@@ -1,7 +1,7 @@
 addui r0 r0 48 > 55   ; connect to the data memory                === Cluster 0 ===
 fetch r0 3            ; fetch the next packet
 staddr.eop r0 20 > 52 ; store the location we want to store data to
-addu  r1 ch0 ch1 > 52 ; add the inputs from the two channel-ends and send
+addu  r11 ch0 ch1 > 52 ; add the inputs from the two channel-ends and send
 ibjmp -1              ; loop until interrupted or data stops coming
 nop.eop               ; currently can't jump from eop, so need another instruction
 

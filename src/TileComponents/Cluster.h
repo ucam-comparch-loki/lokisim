@@ -106,7 +106,7 @@ private:
   sc_signal<bool>          setPredSig, readPredSig, decStallSig, stallFetchSig;
 
   // To/from execute stage
-  flag_signal<Instruction> decToExInst, exToWriteInst;
+  flag_signal<Instruction> decToExInst,  exToWriteInst;
   flag_signal<short>       decToExRChan, exToWriteRChan;
   flag_signal<short>       decToExMemOp, exToWriteMemOp;
   flag_signal<short>       decToExWOCHE, exToWriteWOCHE;

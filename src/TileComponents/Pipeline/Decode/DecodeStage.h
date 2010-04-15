@@ -26,6 +26,10 @@ class DecodeStage: public PipelineStage {
 
 public:
 
+// Inherited from PipelineStage:
+//   clock
+//   stall
+
   // The NUM_RECEIVE_CHANNELS inputs to the receive channel-end table.
   sc_in<Word>          *in;
 
@@ -134,10 +138,13 @@ private:
   void receivedFromRegs1();
   void receivedFromRegs2();
 
+  // Methods which take values from multiple sources, and write to a single
+  // destination.
   void updateStall();
   void updateToRCET1();
   void updateOp1Select();
 
+  // The task performed at the beginning of each clock cycle.
   virtual void newCycle();
 
 //==============================//

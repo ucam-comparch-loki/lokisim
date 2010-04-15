@@ -171,7 +171,9 @@ void Instruction::decodeField(const string& str, int field) {
   }
   else if(reg[0] == 'c') {            // Channels are optionally marked with "ch"
     reg.erase(0,2);                   // Remove the "ch"
-    int value = Strings::strToInt(reg) + NUM_REGISTERS;
+
+    // There are two reserved registers before channel-ends start
+    int value = Strings::strToInt(reg) + 2;
 
     if(field==1) setDest(value);
     else if(field==2) setSrc1(value);

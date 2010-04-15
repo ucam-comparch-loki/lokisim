@@ -52,8 +52,8 @@ public:
 protected:
 
   // To simulate pipelining, all pipeline stages execute a method every cycle.
-  // This method usually involves copying all of the inputs to the stage to
-  // the subcomponents that use them.
+  // This method usually involves copying all of the inputs to the
+  // subcomponents that use them.
   virtual void newCycle() = 0;
 
 };

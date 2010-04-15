@@ -20,7 +20,7 @@ class PredicateRegister: public Component {
 
 public:
 
-  // Write a new value to the predicate.
+  // The value to write to the predicate register.
   sc_in<bool>  write;
 
   // Return the result of a read.
@@ -32,6 +32,7 @@ public:
 
 private:
 
+  // Write a new value to the register.
   void writeVal();
 
 //==============================//

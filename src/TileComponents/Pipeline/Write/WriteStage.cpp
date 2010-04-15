@@ -59,7 +59,7 @@ void WriteStage::select() {
 
 /* Generate a memory request using the address from the ALU and the operation
  * supplied by the decoder. */
-Word WriteStage::getMemoryRequest() {
+Word WriteStage::getMemoryRequest() const {
   MemoryRequest mr(fromALU.read().getData(), memoryOp.read());
   return mr;
 }

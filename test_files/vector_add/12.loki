@@ -1,8 +1,8 @@
 addui r0 r0 48 > 55 ; connect to the data memory                === Cluster 0 ===
 fetch r0 3          ; fetch the next packet
 addui.eop r10 r0 20 ; store the location we want to store data to
-addu  r1 ch0 ch1    ; add the inputs from the two channel-ends
-st    r1 r10 0 > 52 ; store the result to memory 13
+addu  r11 ch0 ch1    ; add the inputs from the two channel-ends
+st    r11 r10 0 > 52 ; store the result to memory 13
 nop                 ; store delay slot (temporary?)
 addui r10 r10 1     ; update store position
 ibjmp -4            ; loop until interrupted or data stops coming

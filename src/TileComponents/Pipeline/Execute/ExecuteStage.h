@@ -24,6 +24,10 @@ class ExecuteStage: public PipelineStage {
 
 public:
 
+// Inherited from PipelineStage:
+//   clock
+//   stall
+
   // Two data inputs from the receive channel-end table.
   sc_in<Data>         fromRChan1, fromRChan2;
 
@@ -70,7 +74,7 @@ public:
   sc_in<short>        memoryOpIn;
   sc_out<short>       memoryOpOut;
 
-  // Stall the pipeline until this output channel is empty.
+  // Stall the pipeline until this output channel is empty (passing through).
   sc_in<short>        waitOnChannelIn;
   sc_out<short>       waitOnChannelOut;
 
@@ -99,6 +103,7 @@ public:
 
 private:
 
+  // The task performed at the beginning of each clock cycle.
   virtual void newCycle();
 
 //==============================//

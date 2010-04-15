@@ -44,6 +44,7 @@ public:
 
 private:
 
+  // Pad the received value out to 32 bits, preserving the sign.
   void doOp();
 
 };

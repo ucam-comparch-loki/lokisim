@@ -50,7 +50,10 @@ public:
 
 public:
 
-  virtual double area()  const;
+  // The area of this component in square micrometres.
+  virtual double area()   const;
+
+  // The energy consumed by this component in picojoules.
   virtual double energy() const;
 
   // Initialise the contents of this memory to the Words in the given vector.
@@ -58,9 +61,18 @@ public:
 
 private:
 
+  // Look through all inputs for new data. Determine whether this data is the
+  // start of a new transaction or the continuation of an existing one. Then
+  // carry out the first/next step of the transaction.
   void doOp();
+
+  // Carry out a read for the transaction at input "position".
   void read(int position);
+
+  // Carry out a write for the transaction at input "position".
   void write(Word w, int position);
+
+  // Update the current connections to this memory.
   void updateControl();
 
 //==============================//

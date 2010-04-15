@@ -65,14 +65,36 @@ public:
 
 private:
 
+  // Put any newly received values into their respective buffers.
   void receivedInput();
+
+  // Service requests for data when we receive a channel ID to read from.
   void receivedRequest();
+
+  // Return whether or not the channel specified by fromDecoder1 contains data.
   void testChannelEnd();
+
+  // Carry out the operation asked of this component (TSTCH or SELCH). The
+  // operation must arrive at the same time as or after the input from
+  // fromDecoder1.
   void doOperation();
+
+  // Send new data out on the toALU1 port. There are multiple writers, so this
+  // extra method is needed.
   void updateToALU1();
+
+  // Update the flow control values when a buffer has been read from or
+  // written to.
   void updateFlowControl();
+
+  // Update the this component's stall output signal.
   void updateStall();
+
+  // Check to see if we were waiting for data on this channel end, and if so,
+  // send it immediately. Unstall the pipeline if appropriate.
   void checkWaiting(int channelEnd);
+
+  // Read from the chosen channel end, and write the result to the given output.
   void read(short inChannel, short outChannel);
 
 //==============================//

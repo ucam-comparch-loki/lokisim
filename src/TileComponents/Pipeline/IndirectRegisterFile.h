@@ -62,12 +62,40 @@ public:
 // Methods
 //==============================//
 
+public:
+
+  // Simple methods to tell what sort of register is being dealt with.
+  static bool isReserved(int position);
+  static bool isChannelEnd(int position);
+  static bool isAddressableReg(int position);
+  static bool needsIndirect(int position);
+  static bool isInvalid(int position);
+
+  // Return the index of the channel-end to read from, if a read to this
+  // position was requested.
+  static int  toChannelID(int position);
+
+  // Return the register-addressable index corresponding to the given
+  // channel ID.
+  static int  fromChannelID(int position);
+
 private:
 
+  // Read from the address given in readAddr1.
   void read1();
+
+  // Read from the address given (or pointed to) by readAddr2.
   void read2();
+
+  // Write to the address given in the register pointed to by indWriteAddr.
   void indirectWrite();
+
+  // Write to the address given in writeAddr.
   void write();
+
+  // Store a subsection of the data into the indirect register at position
+  // "address".
+  void updateIndirectReg(int address, Word data);
 
 //==============================//
 // Local state

@@ -6,9 +6,10 @@
  */
 
 #include "IndirectRegisterFile.h"
+#include <math.h>
 
 
-/* Read from the address given in readAddr1 */
+/* Read from the address given in readAddr1. */
 void IndirectRegisterFile::read1() {
   short addr = readAddr1.read();
   out1.write(regs.read(addr));
@@ -17,16 +18,16 @@ void IndirectRegisterFile::read1() {
                     " from register " << addr << endl;
 }
 
-/* Read from the address given (or pointed to) by readAddr2 */
+/* Read from the address given (or pointed to) by readAddr2. */
 void IndirectRegisterFile::read2() {
   short addr = readAddr2.read();
 
   if(indRead.read()) {
     addr = indirect.read(addr);
 
-    // If the indirect address points to a channel-end
-    if(addr >= NUM_REGISTERS) {
-      channelID.write(addr - NUM_REGISTERS);
+    // If the indirect address points to a channel-end, read from there instead
+    if(isChannelEnd(addr)) {
+      channelID.write(toChannelID(addr));
       return;
     }
   }
@@ -37,38 +38,93 @@ void IndirectRegisterFile::read2() {
                     " from register " << addr << endl;
 }
 
-/* Write to the address given in the register pointed to by indWriteAddr */
+/* Write to the address given in the register pointed to by indWriteAddr. */
 void IndirectRegisterFile::indirectWrite() {
   short addr = indWriteAddr.read();
   addr = indirect.read(addr);           // Indirect
   Word w = writeData.read();
   regs.write(w, addr);
 
-  // Store the lowest 5 (currently) bits of the data in the indirect register file
-  short toIndirect = (static_cast<Address>(writeData.read())).getLowestBits(5);
-  indirect.write(toIndirect, addr);
+  updateIndirectReg(addr, writeData.read());
 }
 
-/* Write to the address given in writeAddr */
+/* Write to the address given in writeAddr. */
 void IndirectRegisterFile::write() {
   short addr = writeAddr.read();
 
-  if(addr == 0) return;   // Register 0 is reserved to hold the value 0
+  if(isReserved(addr)) return;   // Don't write if the register is reserved
 
   Word w = writeData.read();
   regs.write(w, addr);
 
   if(DEBUG) cout<<this->name()<<": Stored "<<w<<" to register "<<addr<<endl;
 
-  // Store the lowest 5 (currently) bits of the data in the indirect register file
-  short toIndirect = (static_cast<Address>(writeData.read())).getLowestBits(5);
-  indirect.write(toIndirect, addr);
+  updateIndirectReg(addr, writeData.read());
+}
+
+/* Store a subsection of the data into the indirect register at position
+ * "address". Since NUM_PHYSICAL_REGISTERS registers must be accessible, the
+ * indirect registers must hold ceil(log2(NUM_PHYSICAL_REGISTERS)) bits each. */
+void IndirectRegisterFile::updateIndirectReg(int address, Word data) {
+
+  // Don't store anything if there is no indirect register to store to.
+  if(address >= NUM_ADDRESSABLE_REGISTERS) return;
+
+  static int numBits = ceil(log2(NUM_PHYSICAL_REGISTERS));
+
+  short lowestBits = (static_cast<Address>(data)).getLowestBits(numBits);
+  indirect.write(lowestBits, address);
+
+}
+
+/* Register 0 is reserved to hold the constant value 0.
+ * Register 1 is reserved to hold the address of the currently executing
+ * instruction packet. */
+bool IndirectRegisterFile::isReserved(int position) {
+  return position >= 0
+      && position <  2;
+}
+
+bool IndirectRegisterFile::isChannelEnd(int position) {
+  return position >= 2
+      && position <  2 + NUM_RECEIVE_CHANNELS;
+}
+
+bool IndirectRegisterFile::isAddressableReg(int position) {
+  return position >= 2 + NUM_RECEIVE_CHANNELS
+      && position <  NUM_ADDRESSABLE_REGISTERS;
+}
+
+bool IndirectRegisterFile::needsIndirect(int position) {
+  return position >= NUM_ADDRESSABLE_REGISTERS
+      && position <  NUM_PHYSICAL_REGISTERS;
+}
+
+bool IndirectRegisterFile::isInvalid(int position) {
+  return position < 0
+      || position > NUM_PHYSICAL_REGISTERS;
+}
+
+int IndirectRegisterFile::toChannelID(int position) {
+  // Check that it is in fact a channel-end?
+
+  // Since there are two reserved registers before the channel-ends start,
+  // the address must have two subtracted from it.
+  return position - 2;
+}
+
+int IndirectRegisterFile::fromChannelID(int position) {
+  // Check that it is in fact a channel-end?
+
+  // Since there are two reserved registers before the channel-ends start,
+  // the address must have two added from it.
+  return position + 2;
 }
 
 IndirectRegisterFile::IndirectRegisterFile(sc_module_name name) :
     Component(name),
-    regs(NUM_REGISTERS),
-    indirect(NUM_REGISTERS) {
+    regs(NUM_PHYSICAL_REGISTERS),
+    indirect(NUM_ADDRESSABLE_REGISTERS) {
 
 // Register methods
   SC_METHOD(read1);

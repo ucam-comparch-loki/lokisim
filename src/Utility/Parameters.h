@@ -25,7 +25,8 @@ extern parameter NUM_TILE_COLUMNS;
 extern parameter MAX_IPK_SIZE;
 
 // Memory
-extern parameter NUM_REGISTERS;
+extern parameter NUM_ADDRESSABLE_REGISTERS;
+extern parameter NUM_PHYSICAL_REGISTERS;
 extern parameter IPK_FIFO_SIZE;
 extern parameter IPK_CACHE_SIZE;
 extern parameter MEMORY_SIZE;

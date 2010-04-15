@@ -171,7 +171,7 @@ void MemoryMat::updateControl() {
 
 // Estimate of area in um^2 obtained from Cacti.
 double MemoryMat::area() const {
-  return MEMORY_SIZE * 13; // Non-linear: see spreadsheet
+  return 0.0; // Non-linear: see spreadsheet
 }
 
 double MemoryMat::energy() const {

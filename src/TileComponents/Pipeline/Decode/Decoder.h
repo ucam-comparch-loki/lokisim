@@ -101,11 +101,29 @@ public:
 
 private:
 
+  // The main decoding method. Extracts information from the instruction, and
+  // determines what to do with it.
   void decodeInstruction();
+
+  // Determine whether to read the first operand from the receive channel-end
+  // table, the ALU or the register file.
   void setOperand1(short operation, int operand);
+
+  // Determine whether to read the second operand from the receive channel-end
+  // table, the ALU, the register file, or the sign extender.
   void setOperand2(short operation, int operand, int immediate);
+
+  // Write operations take two cycles since there are two flits to send. This
+  // method sends the second part.
   void completeWrite();
+
+  // Determine whether the current instruction should be executed, based on its
+  // predicate bits, and the contents of the predicate register.
   bool shouldExecute(short predBits);
+
+  // Determines whether a read from the specified register will have to be
+  // converted to data forwarding from the ALU, as the register has not yet
+  // been written to.
   bool readALUOutput(short reg);
 
 //==============================//
