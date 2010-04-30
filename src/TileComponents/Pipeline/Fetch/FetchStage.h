@@ -44,6 +44,9 @@ public:
   // The address tag to lookup in the instruction packet cache.
   sc_in<Address>      address;
 
+  // The address of the currently-executing instruction packet.
+  sc_out<Address>     currentPacket;
+
   // Status signals from the instruction packet cache.
   sc_out<bool>        cacheHit, roomToFetch;
 

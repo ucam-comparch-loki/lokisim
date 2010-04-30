@@ -26,6 +26,12 @@ public:
 
   void addOffset(int offset);
 
+  // Has to go in header
+  friend std::ostream& operator<< (std::ostream& os, const Address& v) {
+    os << "(" << v.getChannelID() << ", " << v.getAddress() << ")";
+    return os;
+  }
+
 private:
 
   void setAddress(unsigned int addr);

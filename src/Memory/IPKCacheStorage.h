@@ -79,6 +79,7 @@ public:
     Storage<T>::data[refillPointer] = newData;
 
     if(currentInstruction == NOT_IN_USE) currentInstruction = refillPointer;
+    cout << "Inserted instruction with address " << key << " at position " << refillPointer << endl;
 
     incrementRefill();
   }
@@ -101,6 +102,14 @@ public:
 
     if(DEBUG) cout << "Jumped by " << offset << " to instruction " <<
         currentInstruction << endl;
+  }
+
+  // Return the memory address of the currently-executing packet.
+  K& packetAddress() {
+//    if(currentInstruction == NOT_IN_USE) return K();//throw std::exception();
+
+    cout << "Looked at tag at position " << (currentInstruction) << endl;
+    return MappedStorage<K,T>::tags[currentInstruction];
   }
 
   // Returns the remaining number of entries in the cache.

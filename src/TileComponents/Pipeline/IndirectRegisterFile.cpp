@@ -42,6 +42,10 @@ void IndirectRegisterFile::read2() {
 void IndirectRegisterFile::indirectWrite() {
   short addr = indWriteAddr.read();
   addr = indirect.read(addr);           // Indirect
+
+  // There are some registers that we can't write to.
+  if(isReserved(addr) || isChannelEnd(addr)) return;
+
   Word w = writeData.read();
   regs.write(w, addr);
 
@@ -120,6 +124,12 @@ int IndirectRegisterFile::fromChannelID(int position) {
   // Since there are two reserved registers before the channel-ends start,
   // the address must have two added from it.
   return position + 2;
+}
+
+void IndirectRegisterFile::updateCurrentIPK(Address addr) {
+  cout << "New packet from memory " << addr.getChannelID()/NUM_CLUSTER_INPUTS
+       << ", address " << addr.getAddress() << endl;
+  regs.write(addr, 1);
 }
 
 IndirectRegisterFile::IndirectRegisterFile(sc_module_name name) :

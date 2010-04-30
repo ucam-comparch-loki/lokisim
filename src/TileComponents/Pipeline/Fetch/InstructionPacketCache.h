@@ -46,6 +46,9 @@ public:
   // The address tag being looked up in the cache.
   sc_in<Address>      address;
 
+  // The address of the currently-executing instruction packet.
+  sc_out<Address>     currentPacket;
+
   // Signals that the looked-up address matches an instruction packet in the cache.
   sc_out<bool>        cacheHit;
 
@@ -101,6 +104,10 @@ private:
   // packet.
   void updateRTF();
 
+  // Update the output holding the address of the currently-executing
+  // instruction packet.
+  void updatePacketAddress(Address addr);
+
   // Send the chosen instruction, instToSend. There are multiple writers so
   // a separate method is needed.
   void write();
@@ -108,6 +115,9 @@ private:
   // Perform any necessary tasks when the end of an instruction packet has been
   // reached.
   void endOfPacketTasks();
+
+  // Perform any necessary tasks when starting to read a new instruction packet.
+  void startOfPacketTasks();
 
 //==============================//
 // Local state
@@ -118,16 +128,14 @@ private:
   IPKCacheStorage<Address, Instruction> cache;
   Buffer<Address> addresses;
   Instruction     instToSend;
-  bool            sentNewInst, outputWasRead, startOfPacket;
-
-//==============================//
-// Signals (wires)
-//==============================//
-
-private:
+  bool            sentNewInst, outputWasRead, startOfPacket, finishedPacketRead;
 
   // Signal that there is an instruction ready to send.
   sc_event readyToWrite;
+
+  // Signal that we are now reading the first instruction of an instruction
+  // packet.
+  sc_event startingPacket;
 
 };
 

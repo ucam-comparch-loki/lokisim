@@ -68,6 +68,7 @@ public:
 private:
 
   void         stallPipeline();
+  void         updateCurrentPacket();
 
 //==============================//
 // Components
@@ -91,7 +92,7 @@ private:
   sc_signal<bool>          stallSig;
 
   // To/from fetch stage
-  sc_buffer<Address>       FLtoIPKC;
+  sc_buffer<Address>       FLtoIPKC, currentIPKSig;
   sc_buffer<short>         jumpOffsetSig;
   flag_signal<Instruction> nextInst;
   sc_signal<bool>          fetchStallSig;

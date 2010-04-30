@@ -132,6 +132,7 @@ FetchStage::FetchStage(sc_module_name name) :
   cache.jumpOffset(jumpOffsetSig);
   cache.cacheHit(cacheHit);
   cache.isRoomToFetch(roomToFetch);
+  cache.currentPacket(currentPacket);
   cache.readInstruction(readFromCache);
   cache.flowControl(flowControl[1]);
 

@@ -1,0 +1,13 @@
+A program representing the zigzag ordering of the JPEG entropy coding section.
+
+The cluster receives the location in memory at which the block starts, and then
+reads and forwards the data in a particular order to another cluster.
+
+The data file contains sequential data in the order:
+    0   1   2   ...
+    8   9   10  ...
+    16  17  18  ...
+    ... ... ... ...
+    
+Data should be read in the order:
+    0   1   8   16  9   2   ... 61  54  47  55  62  63

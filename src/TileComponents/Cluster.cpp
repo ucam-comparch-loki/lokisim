@@ -45,6 +45,10 @@ void Cluster::stallPipeline() {
   }
 }
 
+void Cluster::updateCurrentPacket() {
+  regs.updateCurrentIPK(currentIPKSig.read());
+}
+
 /* Returns the channel ID of this cluster's instruction packet FIFO. */
 int Cluster::IPKFIFOInput(int ID) {
   return ID*NUM_CLUSTER_INPUTS + 0;
@@ -72,6 +76,10 @@ Cluster::Cluster(sc_module_name name, int ID) :
   SC_METHOD(stallPipeline);
   sensitive << decStallSig << writeStallSig;
   // do initialise
+
+  SC_METHOD(updateCurrentPacket);
+  sensitive << currentIPKSig;
+  dont_initialize();
 
 // Connect things up
   // Main inputs/outputs
@@ -107,6 +115,7 @@ Cluster::Cluster(sc_module_name name, int ID) :
 
   fetch.cacheHit(cacheHitSig);        decode.cacheHit(cacheHitSig);
   fetch.roomToFetch(roomToFetch);     decode.roomToFetch(roomToFetch);
+  fetch.currentPacket(currentIPKSig);
 
   // To/from decode stage
   decode.regIn1(regData1);            regs.out1(regData1);

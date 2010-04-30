@@ -37,10 +37,10 @@ void InstructionPacketCache::insertInstruction() {
   bool empty = cache.isEmpty();
   Address addr;
 
-  if(!addresses.isEmpty()) {
+  if(!addresses.isEmpty() && startOfPacket) {
     // Only associate the tag with the first instruction of the packet.
     // Means that if a packet is searched for, execution starts at the start.
-    addr = startOfPacket ? addresses.read() : Address(0,0);
+    addr = addresses.read();
   }
   else {
     addr = Address(0,0);
@@ -48,15 +48,17 @@ void InstructionPacketCache::insertInstruction() {
 
   // Do we want to tag all instructions, or only the first one of each packet?
   cache.write(addr, instructionIn.read());
-  if(instructionIn.read().endOfPacket()) {
-    startOfPacket = true;
-  }
-  else startOfPacket = false;
+
+  // Make a note for next cycle that it will be the start of a new packet.
+  startOfPacket = instructionIn.read().endOfPacket();
 
   if(empty && outputWasRead) {                // Send the instruction immediately
     instToSend = cache.read();
 
     if(instToSend.endOfPacket()) endOfPacketTasks();
+    if(finishedPacketRead) {
+      wake(startingPacket);
+    }
 
     wake(readyToWrite);   // Invoke the write() method
     sentNewInst = true;
@@ -87,6 +89,10 @@ void InstructionPacketCache::finishedRead() {
     instToSend = cache.read();
     if(instToSend.endOfPacket()) endOfPacketTasks();
 
+    if(finishedPacketRead) {
+      wake(startingPacket);
+    }
+
     wake(readyToWrite);   // Invoke the write() method
   }
 
@@ -113,6 +119,10 @@ void InstructionPacketCache::updateRTF() {
   flowControl.write(!cache.isFull());
 }
 
+void InstructionPacketCache::updatePacketAddress(Address addr) {
+  currentPacket.write(addr);
+}
+
 /* Send the chosen instruction. We need a separate method for this because both
  * insertInstruction and finishedRead can result in the sending of new
  * instructions, but only one method is allowed to drive a particular wire. */
@@ -130,7 +140,13 @@ bool InstructionPacketCache::isEmpty() {
  * reached. */
 void InstructionPacketCache::endOfPacketTasks() {
   cache.switchToPendingPacket();
-  // TODO: update register 1 with address of new instruction packet
+  finishedPacketRead = true;
+}
+
+/* Perform any necessary tasks when starting to read a new instruction packet. */
+void InstructionPacketCache::startOfPacketTasks() {
+  updatePacketAddress(cache.packetAddress());
+  finishedPacketRead = false;
 }
 
 /* Constructors and destructors */
@@ -163,6 +179,10 @@ InstructionPacketCache::InstructionPacketCache(sc_module_name name) :
   SC_METHOD(updateRTF);
   sensitive << clock.pos();
   // Do initialise
+
+  SC_METHOD(startOfPacketTasks);
+  sensitive << startingPacket;
+  dont_initialize();
 
   SC_METHOD(write);
   sensitive << readyToWrite;

@@ -95,12 +95,6 @@ protected:
   // Tells whether or not we are currently waiting for a channel to empty.
   bool waiting;
 
-//==============================//
-// Signals (wires)
-//==============================//
-
-protected:
-
   // Signal that something has happened which requires the stall output
   // to be changed.
   sc_event stallValueReady;
