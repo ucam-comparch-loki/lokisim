@@ -81,7 +81,7 @@ FetchLogic::FetchLogic(sc_module_name name, int ID) :
   dont_initialize();
 
   SC_METHOD(sendNext);
-  sensitive << flowControl.pos()  << sendData << isRoomToFetch.pos();
+  sensitive << flowControl.pos() << sendData << isRoomToFetch.pos();
   dont_initialize();
 }
 

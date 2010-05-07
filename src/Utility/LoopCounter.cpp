@@ -1,0 +1,94 @@
+/*
+ * LoopCounter.cpp
+ *
+ *  Created on: 6 May 2010
+ *      Author: db434
+ */
+
+#include "LoopCounter.h"
+
+int LoopCounter::value() const {
+  return val;
+}
+
+int LoopCounter::operator+ (int num) const {
+  return (val + num) % maximum;
+}
+
+int LoopCounter::operator+ (const LoopCounter& ctr) const {
+  return (val + ctr.val) % maximum;
+}
+
+int LoopCounter::operator- (int num) const {
+  return (val - num) % maximum;
+}
+
+int LoopCounter::operator- (const LoopCounter& ctr) const {
+  return (val - ctr.val) % maximum;
+}
+
+int LoopCounter::operator++ () {
+  val++;
+  bringWithinBounds();
+  return val;
+}
+
+int LoopCounter::operator-- () {
+  val--;
+  bringWithinBounds();
+  return val;
+}
+
+int LoopCounter::operator= (int num) {
+  val = num;
+  bringWithinBounds();
+  return val;
+}
+
+int LoopCounter::operator+= (int num) {
+  val += num;
+  bringWithinBounds();
+  return val;
+}
+
+int LoopCounter::operator-= (int num) {
+  val -= num;
+  bringWithinBounds();
+  return val;
+}
+
+bool LoopCounter::operator== (int num) const {
+  return val == num;
+}
+
+bool LoopCounter::operator!= (int num) const {
+  return val != num;
+}
+
+bool LoopCounter::operator> (int num) const {
+  return val > num;
+}
+
+bool LoopCounter::operator>= (int num) const {
+  return val >= num;
+}
+
+bool LoopCounter::operator< (int num) const {
+  return val < num;
+}
+
+bool LoopCounter::operator<= (int num) const {
+  return val <= num;
+}
+
+void LoopCounter::bringWithinBounds() {
+  val = val % maximum;
+}
+
+LoopCounter::LoopCounter(int max) : maximum(max) {
+  val = 0;
+}
+
+LoopCounter::~LoopCounter() {
+
+}

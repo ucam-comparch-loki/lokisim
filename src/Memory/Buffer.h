@@ -14,6 +14,7 @@
 #define BUFFER_H_
 
 #include "Storage.h"
+#include "../Utility/LoopCounter.h"
 
 template<class T>
 class Buffer: public Storage<T> {
@@ -28,12 +29,12 @@ public:
   // read.
   virtual T& read() {
     if(!isEmpty()) {
-      int i = readFrom;
+      int i = readPos.value();
       incrementReadFrom();
       return Storage<T>::data[i];
     }
     else {
-      std::cerr << "Exception in Buffer.read()" << std::endl;
+      cerr << "Exception in Buffer.read()" << endl;
       throw std::exception();
     }
   }
@@ -41,11 +42,11 @@ public:
   // Write the given data to the buffer.
   virtual void write(const T& newData) {
     if(!isFull()) {
-      Storage<T>::data[writeTo] = newData;
+      Storage<T>::data[writePos.value()] = newData;
       incrementWriteTo();
     }
     else {
-      std::cerr << "Exception in Buffer.write()" << std::endl;
+      cerr << "Exception in Buffer.write()" << endl;
       throw std::exception();
     }
   }
@@ -53,10 +54,10 @@ public:
   // Returns the value at the front of the queue, but does not remove it.
   T& peek() {
     if(!isEmpty()) {
-      return (Storage<T>::data[readFrom]);
+      return (Storage<T>::data[readPos.value()]);
     }
     else {
-      std::cerr << "Exception in Buffer.peek()" << std::endl;
+      cerr << "Exception in Buffer.peek()" << endl;
       throw std::exception();
     }
   }
@@ -73,29 +74,29 @@ public:
 
   // Returns whether the buffer is full.
   bool isFull() {
-    return (fillCount == size);
+    return (fillCount == this->size());
   }
 
   // Returns the remaining space in the buffer.
   int remainingSpace() {
-    return size-fillCount;
+    return this->size() - fillCount;
   }
 
   // Print the contents of the buffer.
   void print() {
-    for(int i=0; i<this->size; i++) std::cout << Storage<T>::data[i] << " ";
-    std::cout << std::endl;
+    for(int i=0; i<this->size(); i++) cout << Storage<T>::data[i] << " ";
+    cout << endl;
   }
 
 private:
 
   void incrementReadFrom() {
-    readFrom = (readFrom >= size-1) ? 0 : readFrom+1;
+    ++readPos;
     fillCount--;
   }
 
   void incrementWriteTo() {
-    writeTo = (writeTo >= size-1) ? 0 : writeTo+1;
+    ++writePos;
     fillCount++;
   }
 
@@ -105,9 +106,11 @@ private:
 
 public:
 
-  Buffer(int size) : Storage<T>(size) {
-    readFrom = writeTo = fillCount = 0;
-    this->size = size;
+  Buffer(int size) :
+      Storage<T>(size),
+      readPos(size),
+      writePos(size) {
+    readPos = writePos = fillCount = 0;
   }
 
   virtual ~Buffer() {
@@ -120,7 +123,8 @@ public:
 
 private:
 
-  int readFrom, writeTo, fillCount, size;
+  LoopCounter readPos, writePos;
+  int fillCount;
 
 };
 

@@ -159,6 +159,7 @@ void Decoder::decodeInstruction() {
     Address a(immediate, fetchChannel);
     toFetchLogic.write(a);
     regAddr1.write(destination);  // Fetch has an operand in the dest position
+    return;
   }
 
   if(InstructionMap::isALUOperation(operation)) {

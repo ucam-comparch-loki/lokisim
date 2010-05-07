@@ -2,48 +2,53 @@ fetch   r1 4
 addui   r0 r0 32 > 55       ; connect to the data memory
 addui   r9 r0 7             ; store 7, since it is a common offset
 addui.eop   r10 ch0 0       ; wait until we receive an address, and store it
-    ;line 4, moving up
-fetch   r1 4
+
+fetch   r1 4                ; MOVING UPWARDS
 addu    r12 r10 r11         ; ============================
 ld      r12 0 > 52          ;  Load and forward data item
 addui.eop   r0 ch0 0 > 6    ; ============================
-    ;line 8
+
 slti.p  r0 r11 8            ; see if we have hit the top of the grid
-!p?fetch r1 5
+nop
+!p?fetch r1 6
 p?addui r11 r11 1
-p?fetch r1 16               ; jump to B
+p?fetch r1 19               ; switch to moving down
 nop.eop
-    ;line 13
+
 and     r13 r11 r9
 seq.p   r0 r13 r9           ; see if we have hit the right of the grid
-!p?fetch r1 6
+nop
+!p?fetch r1 7
 p?addui r11 r11 8
-p?fetch r1 11               ; jump to B
+p?fetch r1 13               ; switch to moving down
 nop.eop
-    ;line 19
+
 seqi.p  r0 r11 63           ; see if we have finished
-!p?subu    r11 r11 r9          
-!p?fetch r1 -15             ; jump to A
-p?fetch r1 21               ; jump to C
+nop
+!p?subu    r11 r11 r9
+!p?fetch r1 -17             ; keep moving up
+p?fetch r1 24               ; end
 nop.eop
-    ;line 24, moving down
-fetch   r1 4
+
+fetch   r1 4                ; MOVING DOWNWARDS
 addu    r12 r10 r11         ; ============================
 ld      r12 0 > 52          ;  Load and forward data item
 addui.eop   r0 ch0 0 > 6    ; ============================
-    ;line 28
+
 and     r13 r11 r9
 seq.p   r0 r13 r0           ; see if we have reached the left of the grid
-!p?fetch r1 6
+nop
+!p?fetch r1 7
 p?addui r11 r11 8
-p?fetch r1 -24              ; jump to A
+p?fetch r1 -27              ; switch to moving up
 nop.eop
-    ;line 34
+
 slti.p  r0 r11 56           ; see if we have reached the bottom of the grid
+nop
 p?addu    r11 r11 r9
-p?fetch r1 -10              ; jump to B
+p?fetch r1 -11              ; keep moving down
 !p?addui r11 r11 1
-!p?fetch r1 -30             ; jump to A
+!p?fetch r1 -34             ; switch to moving up
 nop.eop
-    ;line 40, end
-nop.eop                     ; end of program
+
+nop.eop                     ; end of program (could fetch first packet again?)

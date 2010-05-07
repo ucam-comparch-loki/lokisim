@@ -107,6 +107,7 @@ void MemoryMat::read(int position) {
 
     if(DEBUG) cout << "Read " << data.read(addr) << " from memory " << id <<
                       ", address " << addr << endl;
+
   }
   // Don't allow any more requests if we are unable to send the results.
   else flowControlOut[position].write(false);
@@ -126,7 +127,7 @@ void MemoryMat::write(Word w, int position) {
 
   flowControlOut[position].write(true);   // Is this necessary?
 
-  /*if(DEBUG)*/ cout << "Wrote " << w << " to memory " << id <<
+  if(DEBUG) cout << "Wrote " << w << " to memory " << id <<
                     ", address " << addr << endl;
 }
 

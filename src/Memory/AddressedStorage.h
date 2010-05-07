@@ -28,6 +28,7 @@ public:
 
   // Read from the given address in the memory.
   virtual const T& read(int addr) const {
+    this->checkBounds(addr);
     // Templated inheritance hides all inherited names - need to access them
     // like this.
     return Storage<T>::data[addr];
@@ -35,6 +36,7 @@ public:
 
   // Write the given data to the given address in memory.
   virtual void write(T& newData, int addr) {
+    this->checkBounds(addr);
     Storage<T>::data[addr] = newData;
   }
 

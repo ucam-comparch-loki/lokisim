@@ -19,11 +19,6 @@ void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
 
   instToSend = cache.read();
 
-  if(instToSend.endOfPacket()) {
-    startOfPacket = true;
-  }
-  else startOfPacket = false;
-
   if(instToSend.endOfPacket()) endOfPacketTasks();
 
   wake(readyToWrite);   // Invoke the write() method
@@ -40,23 +35,23 @@ void InstructionPacketCache::insertInstruction() {
   if(!addresses.isEmpty() && startOfPacket) {
     // Only associate the tag with the first instruction of the packet.
     // Means that if a packet is searched for, execution starts at the start.
+    addresses.print();
     addr = addresses.read();
   }
   else {
     addr = Address(0,0);
   }
 
-  // Do we want to tag all instructions, or only the first one of each packet?
   cache.write(addr, instructionIn.read());
 
-  // Make a note for next cycle that it will be the start of a new packet.
+  // Make a note for next cycle if it will be the start of a new packet.
   startOfPacket = instructionIn.read().endOfPacket();
 
   if(empty && outputWasRead) {                // Send the instruction immediately
     instToSend = cache.read();
 
     if(instToSend.endOfPacket()) endOfPacketTasks();
-    if(finishedPacketRead) {
+    else if(finishedPacketRead) {
       wake(startingPacket);
     }
 
@@ -74,9 +69,11 @@ void InstructionPacketCache::lookup() {
   bool inCache = cache.checkTags(address.read());
   cacheHit.write(inCache);
 
-  // If we don't have the instructions, we will probably receive them soon
+  // If we don't have the instructions, we will probably receive them soon,
+  // so store the address to use as the tag.
   if(!inCache) {
     if(!addresses.isFull()) addresses.write(address.read());
+      // Stall if the buffer is now full?
     else std::cerr << "Wrote to full buffer in " << this->name() << endl;
   }
 }
@@ -87,9 +84,9 @@ void InstructionPacketCache::finishedRead() {
 
   if(!sentNewInst && !cache.isEmpty()) {
     instToSend = cache.read();
-    if(instToSend.endOfPacket()) endOfPacketTasks();
 
-    if(finishedPacketRead) {
+    if(instToSend.endOfPacket()) endOfPacketTasks();
+    else if(finishedPacketRead) {
       wake(startingPacket);
     }
 

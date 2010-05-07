@@ -49,7 +49,8 @@ public:
   // The address of the currently-executing instruction packet.
   sc_out<Address>     currentPacket;
 
-  // Signals that the looked-up address matches an instruction packet in the cache.
+  // Signals that the looked-up address matches an instruction packet in the
+  // cache.
   sc_out<bool>        cacheHit;
 
   // Signals that there is room to accommodate another maximum-sized

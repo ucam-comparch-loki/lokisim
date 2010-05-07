@@ -24,6 +24,7 @@ using sc_core::sc_module_name;
 using sc_core::sc_event;
 
 using std::cout;
+using std::cerr;
 using std::endl;
 
 SC_MODULE (Component) {

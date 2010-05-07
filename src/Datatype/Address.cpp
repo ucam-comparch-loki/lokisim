@@ -19,11 +19,11 @@
 const short boundary = 16;
 
 /* Accessing information */
-unsigned int Address::getAddress() const {
+short Address::getAddress() const {
   return getBits(boundary, 31);
 }
 
-unsigned int Address::getChannelID() const {
+unsigned short Address::getChannelID() const {
   return getBits(1, boundary-1);
 }
 
@@ -38,6 +38,7 @@ unsigned int Address::getLowestBits(int limit) const {
 }
 
 void Address::addOffset(int offset) {
+  std::cout << "Address = " << getAddress() << ", offset = " << offset << std::endl;
   setAddress(getAddress() + offset);
 }
 
@@ -59,11 +60,11 @@ Address::~Address() {
 
 }
 
-void Address::setAddress(unsigned int addr) {
+void Address::setAddress(short addr) {
   setBits(boundary, 31, addr);
 }
 
-void Address::setChannelID(unsigned int channelID) {
+void Address::setChannelID(unsigned short channelID) {
   setBits(1, boundary-1, channelID);
 }
 

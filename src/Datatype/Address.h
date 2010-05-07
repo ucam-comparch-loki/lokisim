@@ -18,8 +18,8 @@ class Address: public Word {
 
 public:
 
-  unsigned int getAddress() const;
-  unsigned int getChannelID() const;
+  short getAddress() const;
+  unsigned short getChannelID() const;
   bool getReadBit() const;
 
   unsigned int getLowestBits(int limit) const;
@@ -34,8 +34,8 @@ public:
 
 private:
 
-  void setAddress(unsigned int addr);
-  void setChannelID(unsigned int channelID);
+  void setAddress(short addr);
+  void setChannelID(unsigned short channelID);
   void setRWBit(bool read);
 
 //==============================//

@@ -36,6 +36,21 @@ public:
     throw "Error: Need to implement write() in this subclass.";
   }
 
+protected:
+
+  // Return the size of this storage component, in [bytes/words].
+  int size() const {
+    return data.size();
+  }
+
+  // Throw an exception if the address is not within the bounds of the array.
+  void checkBounds(int addr) const {
+    if((addr < 0) || (addr > size())) {
+      cerr << "Error: attempting to access memory address " << addr << endl;
+      throw std::exception();
+    }
+  }
+
 //==============================//
 // Constructors and destructors
 //==============================//

@@ -15,6 +15,7 @@
 #define IPKCACHESTORAGE_H_
 
 #include "MappedStorage.h"
+#include "../Utility/LoopCounter.h"
 
 template<class K, class T>
 class IPKCacheStorage : public MappedStorage<K,T> {
@@ -25,11 +26,17 @@ class IPKCacheStorage : public MappedStorage<K,T> {
 
 public:
 
-  IPKCacheStorage(short size) : MappedStorage<K,T>(size) {
-    currentInstruction = NOT_IN_USE;
-    refillPointer = 0;
+  IPKCacheStorage(short size) :
+      MappedStorage<K,T>(size),
+      currInst(size),
+      refill(size) {
+
+    currInst = NOT_IN_USE;
+    refill = 0;
+
     fillCount = 0;
     pendingPacket = NOT_IN_USE;
+
   }
 
   virtual ~IPKCacheStorage() {
@@ -45,10 +52,10 @@ public:
   // Returns whether the given address matches any of the tags
   virtual bool checkTags(const K& key) {
 
-    for(unsigned int i=0; i<MappedStorage<K,T>::tags.size(); i++) {
+    for(int i=0; i<this->size(); i++) {
       if(MappedStorage<K,T>::tags[i] == key) {
-        if(currentInstruction == NOT_IN_USE) currentInstruction = i;
-        else pendingPacket = i;
+        if(currInst == NOT_IN_USE) currInst = i;
+        else {pendingPacket = i; cout << "***** Pending packet = " << pendingPacket << endl;}
 
         return true;
       }
@@ -60,14 +67,13 @@ public:
   // Returns the next item in the cache
   virtual T& read() {
 
-    if((int)currentInstruction != NOT_IN_USE) {
-      int i = currentInstruction;
+    if(currInst != NOT_IN_USE) {
+      int i = currInst.value();
       incrementCurrent();
       return Storage<T>::data[i];
     }
     else {
-      std::cerr << "Exception in IPKCacheStorage.read(): cache is empty."
-                << std::endl;
+      cerr << "Exception in IPKCacheStorage.read(): cache is empty." << endl;
       throw(std::exception());
     }
 
@@ -75,46 +81,37 @@ public:
 
   // Writes new data to a position determined using the given key
   virtual void write(const K& key, const T& newData) {
-    MappedStorage<K,T>::tags[refillPointer] = key;
-    Storage<T>::data[refillPointer] = newData;
+    MappedStorage<K,T>::tags[refill.value()] = key;
+    Storage<T>::data[refill.value()] = newData;
 
-    if(currentInstruction == NOT_IN_USE) currentInstruction = refillPointer;
-    cout << "Inserted instruction with address " << key << " at position " << refillPointer << endl;
+    if(currInst == NOT_IN_USE) currInst = refill.value();
+    cout << "Inserted instruction with address " << key << " at position " << refill.value() << endl;
 
     incrementRefill();
   }
 
   // Jump to a new instruction at a given offset.
   void jump(int offset) {
-    if(currentInstruction == NOT_IN_USE) currentInstruction = currInstBackup;
+    if(currInst == NOT_IN_USE) currInst = currInstBackup;
 
-    currentInstruction += offset - 1; // -1 because we've incremented
-
-    // Bring it back within required bounds
-    if(currentInstruction >= (int)Storage<T>::data.size()) {
-      currentInstruction -= Storage<T>::data.size();
-    }
-    else if(currentInstruction < 0) {
-      currentInstruction += Storage<T>::data.size();
-    }
-
+    currInst += offset - 1;
     updateFillCount();
 
     if(DEBUG) cout << "Jumped by " << offset << " to instruction " <<
-        currentInstruction << endl;
+        currInst.value() << endl;
   }
 
   // Return the memory address of the currently-executing packet.
   K& packetAddress() {
 //    if(currentInstruction == NOT_IN_USE) return K();//throw std::exception();
 
-    cout << "Looked at tag at position " << (currentInstruction) << endl;
-    return MappedStorage<K,T>::tags[currentInstruction];
+    cout << "Looked at tag at position " << (currInst-1) << endl;
+    return MappedStorage<K,T>::tags[currInst-1];
   }
 
   // Returns the remaining number of entries in the cache.
   int remainingSpace() const {
-    int space = Storage<T>::data.size() - fillCount;
+    int space = this->size() - fillCount;
     return space;
   }
 
@@ -122,29 +119,31 @@ public:
   // it is still possible to access its contents if an appropriate tag is
   // looked up.
   bool isEmpty() const {
-    return (currentInstruction == NOT_IN_USE) || (fillCount == 0);
+    return (currInst == NOT_IN_USE) || (fillCount == 0);
   }
 
   // Returns whether the cache is full.
   bool isFull() const {
-    return fillCount == (int)Storage<T>::data.size();
+    return fillCount == this->size();
   }
 
   // Begin reading the packet which is queued up to execute next.
   void switchToPendingPacket() {
-    currInstBackup = currentInstruction - 1;
-    currentInstruction = pendingPacket;
+    currInstBackup = currInst - 1;
+    currInst = pendingPacket;
     pendingPacket = NOT_IN_USE;
+    cout << (isEmpty() ? "Empty" : "Not empty") << endl;
+    cout << "***** Pending packet = -1" << endl;
   }
 
   // Store some initial instructions in the cache.
   void storeCode(std::vector<T>& code) {
-    if(code.size() > Storage<T>::data.size()) {
-      std::cerr << "Error: tried to write " << code.size() <<
-        " instructions to a memory of size " << Storage<T>::data.size() << endl;
+    if((int)code.size() > this->size()) {
+      cerr << "Error: tried to write " << code.size() <<
+        " instructions to a memory of size " << this->size() << endl;
     }
 
-    for(unsigned int i=0; i<code.size() && i<Storage<T>::data.size(); i++) {
+    for(int i=0; i<(int)code.size() && i<this->size(); i++) {
       write(K(), code[i]);
     }
   }
@@ -159,29 +158,21 @@ private:
 
   // Returns the position that data with the given address tag should be stored
   virtual int getPosition(const K& key) {
-    return refillPointer;
+    return refill.value();
   }
 
   void incrementRefill() {
-    if(refillPointer >= (int)Storage<T>::data.size()-1) refillPointer = 0;
-    else refillPointer++;
-
+    ++refill;
     fillCount++;
   }
 
   void incrementCurrent() {
-    if(currentInstruction >= (int)Storage<T>::data.size()-1) currentInstruction = 0;
-    else currentInstruction++;
+    ++currInst;
     fillCount--;
   }
 
   void updateFillCount() {
-    if(currentInstruction <= refillPointer) {
-      fillCount = refillPointer - currentInstruction;
-    }
-    else {
-      fillCount = refillPointer - currentInstruction + Storage<T>::data.size();
-    }
+    fillCount = (refill - currInst) % this->size();
   }
 
 //==============================//
@@ -190,7 +181,8 @@ private:
 
 private:
 
-  int currentInstruction, refillPointer, fillCount;
+  LoopCounter currInst, refill;
+  int fillCount;
   int currInstBackup;   // In case it goes NOT_IN_USE and then a jump is used
 
   // Do we want a single pending packet, or a queue of them?
