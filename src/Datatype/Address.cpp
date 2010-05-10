@@ -38,7 +38,6 @@ unsigned int Address::getLowestBits(int limit) const {
 }
 
 void Address::addOffset(int offset) {
-  std::cout << "Address = " << getAddress() << ", offset = " << offset << std::endl;
   setAddress(getAddress() + offset);
 }
 

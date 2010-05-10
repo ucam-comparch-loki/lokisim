@@ -129,7 +129,19 @@ private:
   IPKCacheStorage<Address, Instruction> cache;
   Buffer<Address> addresses;
   Instruction     instToSend;
-  bool            sentNewInst, outputWasRead, startOfPacket, finishedPacketRead;
+
+  // We have sent a newly-received instruction for decoding, so when an
+  // instruction is requested in the same cycle, nothing needs to be done.
+  bool            sentNewInst;
+
+  // The instruction sent has been read, so we can now prepare the next one.
+  bool            outputWasRead;
+
+  // We have just finished writing an instruction packet.
+  bool            startOfPacket;
+
+  // We have just finished reading an instruction packet.
+  bool            finishedPacketRead;
 
   // Signal that there is an instruction ready to send.
   sc_event readyToWrite;

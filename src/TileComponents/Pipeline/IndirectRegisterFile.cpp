@@ -127,9 +127,6 @@ int IndirectRegisterFile::fromChannelID(int position) {
 }
 
 void IndirectRegisterFile::updateCurrentIPK(Address addr) {
-  cout << "Updated contents of r1: " << addr.getChannelID()/NUM_CLUSTER_INPUTS
-       << ", address " << addr.getAddress() << endl;
-
   // setfetchch specifies the channel, so only the address is required here.
   Word w(addr.getAddress());
   regs.write(w, 1);

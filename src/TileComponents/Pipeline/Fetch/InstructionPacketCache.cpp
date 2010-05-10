@@ -11,7 +11,7 @@
 void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
 
   if(instructions.size() == 0) {
-    std::cerr << "Error: loaded 0 instructions into " << this->name() << endl;
+    cerr << "Error: loaded 0 instructions into " << this->name() << endl;
     return;
   }
 
@@ -29,13 +29,14 @@ void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
 /* Put a received instruction into the cache at the appropriate position. */
 void InstructionPacketCache::insertInstruction() {
 
+  // TODO: stall pipeline until instructions arrive
+
   bool empty = cache.isEmpty();
   Address addr;
 
   if(!addresses.isEmpty() && startOfPacket) {
     // Only associate the tag with the first instruction of the packet.
     // Means that if a packet is searched for, execution starts at the start.
-    addresses.print();
     addr = addresses.read();
   }
   else {
@@ -51,9 +52,7 @@ void InstructionPacketCache::insertInstruction() {
     instToSend = cache.read();
 
     if(instToSend.endOfPacket()) endOfPacketTasks();
-    else if(finishedPacketRead) {
-      wake(startingPacket);
-    }
+    else if(finishedPacketRead)  wake(startingPacket);
 
     wake(readyToWrite);   // Invoke the write() method
     sentNewInst = true;
@@ -74,7 +73,7 @@ void InstructionPacketCache::lookup() {
   if(!inCache) {
     if(!addresses.isFull()) addresses.write(address.read());
       // Stall if the buffer is now full?
-    else std::cerr << "Wrote to full buffer in " << this->name() << endl;
+    else cerr << "Wrote to full buffer in " << this->name() << endl;
   }
 }
 

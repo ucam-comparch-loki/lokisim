@@ -55,7 +55,7 @@ public:
     for(int i=0; i<this->size(); i++) {
       if(MappedStorage<K,T>::tags[i] == key) {
         if(currInst == NOT_IN_USE) currInst = i;
-        else {pendingPacket = i; cout << "***** Pending packet = " << pendingPacket << endl;}
+        else pendingPacket = i;
 
         return true;
       }
@@ -84,8 +84,11 @@ public:
     MappedStorage<K,T>::tags[refill.value()] = key;
     Storage<T>::data[refill.value()] = newData;
 
+    // If we're not serving instructions at the moment, start serving from here.
     if(currInst == NOT_IN_USE) currInst = refill.value();
-    cout << "Inserted instruction with address " << key << " at position " << refill.value() << endl;
+    // If it's the start of a new packet, queue it up to execute next.
+    // A default key value shows that the instruction is continuing a packet.
+    else if(!(key == K())) pendingPacket = refill.value();
 
     incrementRefill();
   }
@@ -104,8 +107,6 @@ public:
   // Return the memory address of the currently-executing packet.
   K& packetAddress() {
 //    if(currentInstruction == NOT_IN_USE) return K();//throw std::exception();
-
-    cout << "Looked at tag at position " << (currInst-1) << endl;
     return MappedStorage<K,T>::tags[currInst-1];
   }
 
@@ -132,8 +133,7 @@ public:
     currInstBackup = currInst - 1;
     currInst = pendingPacket;
     pendingPacket = NOT_IN_USE;
-    cout << (isEmpty() ? "Empty" : "Not empty") << endl;
-    cout << "***** Pending packet = -1" << endl;
+    updateFillCount();
   }
 
   // Store some initial instructions in the cache.
