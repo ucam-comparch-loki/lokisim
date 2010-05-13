@@ -21,7 +21,7 @@ extern parameter MEMS_PER_TILE = 4;
 extern parameter NUM_TILE_ROWS = 2;
 extern parameter NUM_TILE_COLUMNS = 2;
 
-extern parameter MAX_IPK_SIZE = 16;
+extern parameter MAX_IPK_SIZE = 8;
 
 // Memory
 extern parameter NUM_ADDRESSABLE_REGISTERS = 32;

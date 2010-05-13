@@ -44,20 +44,28 @@ void FetchLogic::haveResultFromCache() {
 
     // Stall so we don't receive any more data if the buffer is full
     if(toSend.isFull()) stallOut.write(true);
-
-    if(DEBUG) cout << this->name() << " sending fetch." << endl;
   }
 
 }
 
-/* The flowControl signal tells us that we are now free to use the channel again. */
+/* The flowControl signal tells us that we are now free to use the channel
+ * again. Alternatively, the cache tells us that there is now room for any
+ * instruction packet. */
 void FetchLogic::sendNext() {
+  if(isRoomToFetch.event()) cout << this->name() << ": Now room in cache." << endl;
+
   if(toSend.isEmpty()) return;
   else if(flowControl.read() && isRoomToFetch.read()) {
     toNetwork.write(toSend.read());
     stallOut.write(false);  // Buffer is no longer full - can receive new data
+
+    if(DEBUG) cout << this->name() << " sending fetch." << endl;
   }
-  else if(DEBUG) cout << "Not able to send FETCH from FetchLogic." << endl;
+  else {
+    if(DEBUG) cout << "Not able to send FETCH from FetchLogic: "
+        << (flowControl.read() ? "" : "flow control ")
+        << (isRoomToFetch.read() ? "" : "no room") << endl;
+  }
 }
 
 FetchLogic::FetchLogic(sc_module_name name, int ID) :

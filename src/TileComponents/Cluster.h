@@ -50,7 +50,7 @@ public:
 
 public:
 
-  virtual double area()  const;
+  virtual double area() const;
   virtual double energy() const;
 
   // Initialise the instructions a Cluster will execute.
@@ -98,7 +98,8 @@ private:
   sc_signal<bool>          fetchStallSig;
 
   // To/from decode stage
-  sc_buffer<bool>          cacheHitSig, roomToFetch, indirectReadSig;
+  sc_buffer<bool>          cacheHitSig, indirectReadSig;
+  sc_signal<bool>          roomToFetch;
   sc_buffer<Word>          regData1, regData2;
   flag_signal<short>       regRead1, regRead2, decWriteAddr, decIndWrite;
   sc_buffer<short>         indChannelSig;

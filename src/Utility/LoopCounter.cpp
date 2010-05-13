@@ -20,11 +20,11 @@ int LoopCounter::operator+ (const LoopCounter& ctr) const {
 }
 
 int LoopCounter::operator- (int num) const {
-  return (val - num) % maximum;
+  return (val - num + maximum) % maximum;
 }
 
 int LoopCounter::operator- (const LoopCounter& ctr) const {
-  return (val - ctr.val) % maximum;
+  return (val - ctr.val + maximum) % maximum;
 }
 
 int LoopCounter::operator++ () {
@@ -59,6 +59,10 @@ int LoopCounter::operator-= (int num) {
 
 bool LoopCounter::operator== (int num) const {
   return val == num;
+}
+
+bool LoopCounter::operator== (LoopCounter& other) const {
+  return val == other.val;
 }
 
 bool LoopCounter::operator!= (int num) const {

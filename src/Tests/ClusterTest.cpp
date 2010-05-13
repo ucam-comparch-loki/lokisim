@@ -360,11 +360,13 @@ protected:
 //  TIMESTEP;
 //
 //  temp = out[1].read();
-//  EXPECT_EQ(29, ((Data)(temp.getPayload())).getData());
+//  EXPECT_EQ(3, ((Data)(temp.getPayload())).getData())
+//      << "Channel with data not identified.";
 //  EXPECT_EQ(2, temp.getChannelID());
 //
 //  temp = out[2].read();
-//  EXPECT_EQ(3, ((Data)(temp.getPayload())).getData());
+//  EXPECT_EQ(3, ((Data)(temp.getPayload())).getData())
+//      << "Data not read from channel.";
 //  EXPECT_EQ(3, temp.getChannelID());
 //
 //}

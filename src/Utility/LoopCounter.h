@@ -32,6 +32,7 @@ public:
   int operator-= (int num);
 
   bool operator== (int num) const;
+  bool operator== (LoopCounter& other) const;
   bool operator!= (int num) const;
   bool operator> (int num) const;
   bool operator>= (int num) const;

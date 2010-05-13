@@ -18,6 +18,7 @@
 #include "../../../Datatype/Address.h"
 #include "../../../Datatype/Data.h"
 #include "../../../Memory/BufferArray.h"
+#include "../../../Utility/LoopCounter.h"
 
 class ReceiveChannelEndTable: public Component {
 
@@ -124,6 +125,9 @@ private:
   // Whether we are waiting to be told which channel-end to perform an
   // operation on.
   bool              waitingForInput;
+
+  // Allows round-robin selection of channels when executing selch.
+  LoopCounter       currentChannel;
 
 //==============================//
 // Signals (wires)

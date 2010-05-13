@@ -1,0 +1,71 @@
+fetch       r1 3
+addui       r0 r0 96 > 55   ; connect to the data memory (and have it send to cluster 1)
+addui.eop   r10 ch1 0       ; wait until we receive an address, and store it
+
+fetch       r1 33
+ld          r10 0 > 52
+ld          r10 1 > 52
+ld          r10 8 > 52
+ld          r10 16 > 52
+ld          r10 9 > 52
+ld          r10 2 > 52
+ld          r10 3 > 52
+ld          r10 10 > 52
+ld          r10 17 > 52
+ld          r10 24 > 52
+ld          r10 32 > 52
+ld          r10 25 > 52
+ld          r10 18 > 52
+ld          r10 11 > 52
+ld          r10 4 > 52
+ld          r10 5 > 52
+ld          r10 12 > 52
+ld          r10 19 > 52
+ld          r10 26 > 52
+ld          r10 33 > 52
+ld          r10 40 > 52
+ld          r10 48 > 52
+ld          r10 41 > 52
+ld          r10 34 > 52
+ld          r10 27 > 52
+ld          r10 20 > 52
+ld          r10 13 > 52
+ld          r10 6 > 52
+ld          r10 7 > 52
+ld          r10 14 > 52
+ld          r10 21 > 52
+ld.eop      r10 28 > 52     ; split the loads in half so they don't overwrite each other
+
+fetch       r1 -36            ; restart
+ld          r10 35 > 52
+ld          r10 42 > 52
+ld          r10 49 > 52
+ld          r10 56 > 52
+ld          r10 57 > 52
+ld          r10 50 > 52
+ld          r10 43 > 52
+ld          r10 36 > 52
+ld          r10 29 > 52
+ld          r10 22 > 52
+ld          r10 15 > 52
+ld          r10 23 > 52
+ld          r10 30 > 52
+ld          r10 37 > 52
+ld          r10 44 > 52
+ld          r10 51 > 52
+ld          r10 58 > 52
+ld          r10 59 > 52
+ld          r10 52 > 52
+ld          r10 45 > 52
+ld          r10 38 > 52
+ld          r10 31 > 52
+ld          r10 39 > 52
+ld          r10 46 > 52
+ld          r10 53 > 52
+ld          r10 60 > 52
+ld          r10 61 > 52
+ld          r10 54 > 52
+ld          r10 47 > 52
+ld          r10 55 > 52
+ld          r10 62 > 52
+ld.eop      r10 63 > 52

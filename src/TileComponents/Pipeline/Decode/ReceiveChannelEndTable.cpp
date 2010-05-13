@@ -68,7 +68,8 @@ void ReceiveChannelEndTable::read(short inChannel, short outChannel) {
     w = buffers.read(inChannel);
     wake(contentsChanged);
 
-    if(DEBUG) cout << this->name() << " read from channel " << inChannel << endl;
+    if(DEBUG) cout << this->name() << " read " << w << " from channel "
+                   << inChannel << endl;
   }
   else {   // Reading from empty buffer
 
@@ -120,7 +121,10 @@ void ReceiveChannelEndTable::doOperation() {
     // Return the value of the first buffer with data in it (stall if none)
     case SELCH : {
 
-      for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) { // TODO: round-robin
+      // Check all of the channels in a round-robin style, using a LoopCounter.
+      int current = currentChannel.value();
+
+      for(int i = ++currentChannel; i != current; ++currentChannel) {
         if(!buffers[i].isEmpty()) {
           // Adjust address so it can be accessed like a register
           dataToALU1 = Data(Registers::fromChannelID(i));
@@ -189,7 +193,8 @@ void ReceiveChannelEndTable::updateStall() {
 
 ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name) :
     Component(name),
-    buffers(NUM_RECEIVE_CHANNELS, CHANNEL_END_BUFFER_SIZE) {
+    buffers(NUM_RECEIVE_CHANNELS, CHANNEL_END_BUFFER_SIZE),
+    currentChannel(NUM_RECEIVE_CHANNELS) {
 
   flowControl = new sc_out<bool>[NUM_RECEIVE_CHANNELS];
   fromNetwork = new sc_in<Word>[NUM_RECEIVE_CHANNELS];

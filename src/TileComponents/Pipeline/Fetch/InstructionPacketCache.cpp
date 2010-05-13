@@ -29,8 +29,6 @@ void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
 /* Put a received instruction into the cache at the appropriate position. */
 void InstructionPacketCache::insertInstruction() {
 
-  // TODO: stall pipeline until instructions arrive
-
   bool empty = cache.isEmpty();
   Address addr;
 
@@ -48,13 +46,13 @@ void InstructionPacketCache::insertInstruction() {
   // Make a note for next cycle if it will be the start of a new packet.
   startOfPacket = instructionIn.read().endOfPacket();
 
-  if(empty && outputWasRead) {                // Send the instruction immediately
+  if(empty && outputWasRead) {    // Send the instruction immediately
     instToSend = cache.read();
 
     if(instToSend.endOfPacket()) endOfPacketTasks();
     else if(finishedPacketRead)  wake(startingPacket);
 
-    wake(readyToWrite);   // Invoke the write() method
+    wake(readyToWrite);           // Invoke the write() method
     sentNewInst = true;
     outputWasRead = false;
   }
@@ -64,9 +62,12 @@ void InstructionPacketCache::insertInstruction() {
 /* See if an instruction packet is in the cache, and if so, prepare to
  * execute it. */
 void InstructionPacketCache::lookup() {
-  if(DEBUG) cout<<this->name()<<" looked up tag: "<<address.read()<<endl;
+
   bool inCache = cache.checkTags(address.read());
   cacheHit.write(inCache);
+
+  if(DEBUG) cout << this->name() << " looked up tag: " << address.read() << ": "
+                 << (inCache ? "" : "not ") << "in cache" << endl;
 
   // If we don't have the instructions, we will probably receive them soon,
   // so store the address to use as the tag.
@@ -92,7 +93,7 @@ void InstructionPacketCache::finishedRead() {
     wake(readyToWrite);   // Invoke the write() method
   }
 
-  sentNewInst = false;          // Reset for next cycle
+  sentNewInst = false;    // Reset for next cycle
   outputWasRead = true;
 
 }
@@ -105,13 +106,18 @@ void InstructionPacketCache::jump() {
   instToSend = cache.read();
   if(instToSend.endOfPacket()) endOfPacketTasks();
 
-  wake(readyToWrite);   // Invoke the write() method
+  wake(readyToWrite);     // Invoke the write() method
 }
 
 /* Update the signal saying whether there is enough room to fetch another
  * packet. */
 void InstructionPacketCache::updateRTF() {
-  isRoomToFetch.write(cache.remainingSpace() >= MAX_IPK_SIZE);
+  isRoomToFetch.write((cache.remainingSpace() >= MAX_IPK_SIZE)
+                    || finishedPacketRead);
+
+//  if(!cache.isEmpty())
+//  cout << this->name() << ": Space = " << cache.remainingSpace() << " " << isRoomToFetch.read() << endl;
+
   flowControl.write(!cache.isFull());
 }
 
@@ -124,7 +130,6 @@ void InstructionPacketCache::updatePacketAddress(Address addr) {
  * instructions, but only one method is allowed to drive a particular wire. */
 void InstructionPacketCache::write() {
   instructionOut.write(instToSend);
-//  cout << "FetchStage sent Instruction: " << instToSend << endl;
 }
 
 /* Convenience method, avoid using if possible. */

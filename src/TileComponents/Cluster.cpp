@@ -35,7 +35,9 @@ void Cluster::stallPipeline() {
   bool shouldStall = decStallSig.read() || writeStallSig.read();
   stallSig.write(shouldStall);
 
-  // The fetch stage has to be stalled more often than the rest of the pipeline.
+  // The fetch stage has to be stalled more often than the rest of the
+  // pipeline, due to multi-cycle instructions which require that no further
+  // instructions are decoded until they complete.
   fetchStallSig.write(shouldStall || stallFetchSig.read());
 
   if(DEBUG) {

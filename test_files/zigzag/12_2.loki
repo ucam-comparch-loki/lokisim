@@ -1,7 +1,8 @@
-fetch       r1 5
+fetch       r1 6
 addui       r0 r0 32 > 55   ; connect to the data memory
 addui       r9 r0 7         ; store 7, since it is a common offset
 addui       r10 ch1 0       ; wait until we receive an address, and store it
+ld          r10 0 > 52      ; load the first value early
 nop.eop
 
 fetch       r1 5            ; MOVING UPWARDS
@@ -54,5 +55,6 @@ p?addui     r11 r11 8
 p?fetch     r1 -35          ; switch to moving up
 nop.eop
 
-fetch       r1 -48          ; end of block: restart and wait for new block address
+fetch       r1 -49          ; end of block: restart and wait for new block address
+addui       r0 ch0 0 > 6    ; send the final value late
 nop.eop

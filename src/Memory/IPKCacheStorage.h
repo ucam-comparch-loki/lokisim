@@ -60,6 +60,11 @@ public:
         return true;
       }
     }
+
+    // If we have escaped the loop, the tag is not in the cache.
+
+    // The next packet to execute will be the one which is about to be fetched.
+    pendingPacket = NOT_IN_USE;
     return false;
 
   }
@@ -100,6 +105,8 @@ public:
     currInst += offset - 1;
     updateFillCount();
 
+    // Need to check for conflicts between currInst and refill?
+
     if(DEBUG) cout << "Jumped by " << offset << " to instruction " <<
         currInst.value() << endl;
   }
@@ -134,6 +141,7 @@ public:
     currInst = pendingPacket;
     pendingPacket = NOT_IN_USE;
     updateFillCount();
+    cout << "Switched to pending packet: current = " << currInst.value() << ", refill = " << refill.value() << endl;
   }
 
   // Store some initial instructions in the cache.
@@ -172,7 +180,11 @@ private:
   }
 
   void updateFillCount() {
-    fillCount = (refill - currInst) % this->size();
+    // If we have jumped to the position of the refill pointer, the cache
+    // will think it is empty. To avoid this, move the refill pointer.
+    if(refill == currInst) refill = currInst + MAX_IPK_SIZE;
+
+    fillCount = (refill - currInst + this->size()) % this->size();
   }
 
 //==============================//

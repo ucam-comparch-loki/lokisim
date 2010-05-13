@@ -23,7 +23,9 @@ void FetchStage::newCycle() {
   while(true) {
     wait(clock.posedge_event());
 
-    if(!stall.read()) {
+    // Select a new instruction unless the processor is stalled, or the FIFO
+    // and cache are both empty.
+    if(!stall.read() && !(fifoEmpty.read() && cache.isEmpty())) {
       if(!usingCache) readFromFIFO.write(!readFromFIFO.read());
       else readFromCache.write(!readFromCache.read());
     }
