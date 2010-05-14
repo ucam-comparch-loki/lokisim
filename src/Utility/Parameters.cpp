@@ -27,7 +27,7 @@ extern parameter MAX_IPK_SIZE = 8;
 extern parameter NUM_ADDRESSABLE_REGISTERS = 32;
 extern parameter NUM_PHYSICAL_REGISTERS = 64;
 extern parameter IPK_FIFO_SIZE = 8;
-extern parameter IPK_CACHE_SIZE = 64;
+extern parameter IPK_CACHE_SIZE = 16;
 extern parameter MEMORY_SIZE = 2048;
 
 extern parameter NUM_RECEIVE_CHANNELS = 2;

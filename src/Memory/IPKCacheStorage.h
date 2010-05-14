@@ -53,7 +53,7 @@ public:
   virtual bool checkTags(const K& key) {
 
     for(int i=0; i<this->size(); i++) {
-      if(MappedStorage<K,T>::tags[i] == key) {
+      if(this->tags[i] == key) {
         if(currInst == NOT_IN_USE) currInst = i;
         else pendingPacket = i;
 
@@ -75,7 +75,7 @@ public:
     if(currInst != NOT_IN_USE) {
       int i = currInst.value();
       incrementCurrent();
-      return Storage<T>::data[i];
+      return this->data[i];
     }
     else {
       cerr << "Exception in IPKCacheStorage.read(): cache is empty." << endl;
@@ -86,16 +86,26 @@ public:
 
   // Writes new data to a position determined using the given key
   virtual void write(const K& key, const T& newData) {
-    MappedStorage<K,T>::tags[refill.value()] = key;
-    Storage<T>::data[refill.value()] = newData;
+    this->tags[refill.value()] = key;
+    this->data[refill.value()] = newData;
+
+    bool needRefetch = false;
 
     // If we're not serving instructions at the moment, start serving from here.
     if(currInst == NOT_IN_USE) currInst = refill.value();
     // If it's the start of a new packet, queue it up to execute next.
     // A default key value shows that the instruction is continuing a packet.
     else if(!(key == K())) pendingPacket = refill.value();
+    // We need to fetch the pending packet if we are now overwriting it.
+    else needRefetch = (refill == pendingPacket);
 
     incrementRefill();
+
+    if(needRefetch) {
+      pendingPacket = NOT_IN_USE;
+      throw std::exception(); // Use a subclass of exception?
+    }
+
   }
 
   // Jump to a new instruction at a given offset.
@@ -105,16 +115,14 @@ public:
     currInst += offset - 1;
     updateFillCount();
 
-    // Need to check for conflicts between currInst and refill?
-
     if(DEBUG) cout << "Jumped by " << offset << " to instruction " <<
         currInst.value() << endl;
   }
 
   // Return the memory address of the currently-executing packet.
   K& packetAddress() {
-//    if(currentInstruction == NOT_IN_USE) return K();//throw std::exception();
-    return MappedStorage<K,T>::tags[currInst-1];
+//    if(currInst == NOT_IN_USE) return K();//throw std::exception();
+    return this->tags[currInst-1];
   }
 
   // Returns the remaining number of entries in the cache.
@@ -127,7 +135,7 @@ public:
   // it is still possible to access its contents if an appropriate tag is
   // looked up.
   bool isEmpty() const {
-    return (currInst == NOT_IN_USE) || (fillCount == 0);
+    return (currInst == NOT_IN_USE);// || (fillCount == 0);
   }
 
   // Returns whether the cache is full.
@@ -171,19 +179,24 @@ private:
 
   void incrementRefill() {
     ++refill;
-    fillCount++;
+    updateFillCount();
   }
 
   void incrementCurrent() {
     ++currInst;
-    fillCount--;
+
+    // We don't use updateFillCount() since we want the possibility of the
+    // cache being empty. updateFillCount() always assumes fullness.
+    fillCount = (fillCount - 1 + this->size()) % this->size();
   }
 
   void updateFillCount() {
-    // If we have jumped to the position of the refill pointer, the cache
-    // will think it is empty. To avoid this, move the refill pointer.
-    if(refill == currInst) refill = currInst + MAX_IPK_SIZE;
+    if(refill == currInst) {
+      fillCount = this->size();
+      return;
+    }
 
+    // Add the size of the cache to ensure that the value is not negative.
     fillCount = (refill - currInst + this->size()) % this->size();
   }
 

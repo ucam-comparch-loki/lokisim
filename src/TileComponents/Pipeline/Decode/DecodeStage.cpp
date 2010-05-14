@@ -117,6 +117,7 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   fl.flowControl(flowControlIn);
   fl.baseAddress(baseAddress);
   fl.isRoomToFetch(roomToFetch);
+  fl.refetch(refetch);
   fl.stallOut(flStall);
 
   decoder.regAddr1(regReadAddr1);

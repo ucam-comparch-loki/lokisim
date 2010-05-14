@@ -57,6 +57,10 @@ public:
   // instruction packet in the cache.
   sc_out<bool>        isRoomToFetch;
 
+  // A signal which changes to show that the next packet to executed needs
+  // to be fetched again.
+  sc_out<bool>        refetch;
+
   // Signal telling whether new instructions from the network can be put in
   // the cache.
   sc_out<bool>        flowControl;
@@ -142,6 +146,10 @@ private:
 
   // We have just finished reading an instruction packet.
   bool            finishedPacketRead;
+
+  // The address of the pending packet. We store it in case it needs to be
+  // refetched because it has been overwritten.
+  Address         pendingPacket;
 
   // Signal that there is an instruction ready to send.
   sc_event readyToWrite;

@@ -99,7 +99,7 @@ private:
 
   // To/from decode stage
   sc_buffer<bool>          cacheHitSig, indirectReadSig;
-  sc_signal<bool>          roomToFetch;
+  sc_signal<bool>          roomToFetch, refetchSig;
   sc_buffer<Word>          regData1, regData2;
   flag_signal<short>       regRead1, regRead2, decWriteAddr, decIndWrite;
   sc_buffer<short>         indChannelSig;

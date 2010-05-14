@@ -46,7 +46,7 @@ public:
   sc_in<Instruction>    instructionIn;
 
   // Status signals from the instruction packet cache.
-  sc_in<bool>           cacheHit, roomToFetch;
+  sc_in<bool>           cacheHit, roomToFetch, refetch;
 
   // The address to lookup in the instruction packet cache.
   sc_out<Address>       address;

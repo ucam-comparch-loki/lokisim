@@ -117,6 +117,7 @@ Cluster::Cluster(sc_module_name name, int ID) :
 
   fetch.cacheHit(cacheHitSig);        decode.cacheHit(cacheHitSig);
   fetch.roomToFetch(roomToFetch);     decode.roomToFetch(roomToFetch);
+  fetch.refetch(refetchSig);          decode.refetch(refetchSig);
   fetch.currentPacket(currentIPKSig);
 
   // To/from decode stage

@@ -36,7 +36,7 @@ public:
   // Returns the data corresponding to the given address
   virtual T& read(const K& key) {
     for(unsigned int i=0; i<tags.size(); i++){
-      if(tags.at(i) == key) return Storage<T>::data.at(i);
+      if(tags.at(i) == key) return this->data.at(i);
     }
     throw std::exception();
   }
@@ -45,7 +45,7 @@ public:
   virtual void write(const K& key, const T& newData) {
     int position = getPosition(key);
     tags.at(position) = key;
-    Storage<T>::data.at(position) = newData;
+    this->data.at(position) = newData;
   }
 
 protected:

@@ -34,18 +34,39 @@ void FetchLogic::haveBaseAddress() {
  * the memory. Otherwise, we don't have to do anything. */
 void FetchLogic::haveResultFromCache() {
 
-  if(!(cacheContainsInst.read())) {
-    // Create a new memory request and wrap it up in an AddressedWord
-    MemoryRequest mr(offsetAddr.getAddress(), MemoryRequest::IPK_READ);
-    AddressedWord request(mr, offsetAddr.getChannelID());
+  // Create a new memory request and wrap it up in an AddressedWord
+  MemoryRequest mr(offsetAddr.getAddress(), MemoryRequest::IPK_READ);
+  AddressedWord request(mr, offsetAddr.getChannelID());
 
-    toSend.write(request);            // Put the new request in the queue
-    sendData.write(!sendData.read()); // Signal that there is new data to send
+  if(!(cacheContainsInst.read())) {
+    toSend.write(request);     // Put the new request in the queue
+    wake(sendData);            // Signal that there is new data to send
 
     // Stall so we don't receive any more data if the buffer is full
-    if(toSend.isFull()) stallOut.write(true);
+    if(toSend.isFull()) {
+      stallValue = true;
+      wake(stall);
+    }
+  }
+  else {
+    // Store the request in case the packet gets overwritten and needs to
+    // be refetched.
+    refetchRequest = request;
   }
 
+}
+
+void FetchLogic::doRefetch() {
+  if(DEBUG) cout << this->name() << " performing refetch." << endl;
+
+  toSend.write(refetchRequest);
+  wake(sendData);
+
+  // Stall so we don't receive any more requests if the buffer is full.
+  if(toSend.isFull()) {
+    stallValue = true;
+    wake(stall);
+  }
 }
 
 /* The flowControl signal tells us that we are now free to use the channel
@@ -66,6 +87,10 @@ void FetchLogic::sendNext() {
         << (flowControl.read() ? "" : "flow control ")
         << (isRoomToFetch.read() ? "" : "no room") << endl;
   }
+}
+
+void FetchLogic::updateStall() {
+  stallOut.write(stallValue);
 }
 
 FetchLogic::FetchLogic(sc_module_name name, int ID) :
@@ -90,6 +115,14 @@ FetchLogic::FetchLogic(sc_module_name name, int ID) :
 
   SC_METHOD(sendNext);
   sensitive << flowControl.pos() << sendData << isRoomToFetch.pos();
+  dont_initialize();
+
+  SC_METHOD(doRefetch);
+  sensitive << refetch;
+  dont_initialize();
+
+  SC_METHOD(updateStall);
+  sensitive << stall;
   dont_initialize();
 }
 

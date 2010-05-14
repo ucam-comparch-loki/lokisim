@@ -126,6 +126,6 @@ TEST_F(TileTest, Zigzag) {
   CodeLoader::loadCode(memory0, tile, 12);
   CodeLoader::loadCode(memory1, tile, 13);
 
-  for(int i=0; i<1600; i++) TIMESTEP;
+  for(int i=0; i<1800; i++) TIMESTEP;
 
 }

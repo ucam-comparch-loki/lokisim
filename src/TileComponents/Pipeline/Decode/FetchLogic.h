@@ -34,6 +34,10 @@ public:
   // Status flags from the instruction packet cache.
   sc_in<bool>           cacheContainsInst, isRoomToFetch;
 
+  // Changes to tell us to send out a fetch request for the next packet to
+  // execute. This request is stored in refetchRequest.
+  sc_in<bool>           refetch;
+
   // Flow control. Can only send a request onto the network if the value
   // on this port is true.
   sc_in<bool>           flowControl;
@@ -80,6 +84,13 @@ private:
   // again, so send the next request, if there is one.
   void sendNext();
 
+  // Send a fetch request for an instruction packet which was in the cache at
+  // the time of checking, but has since been overwritten.
+  void doRefetch();
+
+  // Update the output stall value.
+  void updateStall();
+
 //==============================//
 // Local state
 //==============================//
@@ -89,6 +100,11 @@ private:
   // A queue of requests, waiting to be sent.
   Buffer<AddressedWord> toSend;
 
+  // A memory request for the next packet to be executed, where the packet is
+  // already in the cache. We need to be able to refetch the packet in case
+  // it gets overwritten.
+  AddressedWord         refetchRequest;
+
   // Tells us whether we are expecting to receive data from the register file.
   bool                  awaitingBaseAddr;
 
@@ -96,13 +112,15 @@ private:
   // want to access.
   Address               offsetAddr;
 
-//==============================//
-// Signals (wires)
-//==============================//
+  // Tells whether this component requires that the whole core stops execution.
+  // This happens when its buffer of fetch requests is full.
+  bool                  stallValue;
 
-private:
+  // Used to invoke the sendNext() method.
+  sc_event              sendData;
 
-  sc_signal<bool>       sendData;
+  // Used to invoke the updateStall() method.
+  sc_event              stall;
 
 };
 

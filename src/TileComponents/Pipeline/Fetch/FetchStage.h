@@ -48,7 +48,7 @@ public:
   sc_out<Address>     currentPacket;
 
   // Status signals from the instruction packet cache.
-  sc_out<bool>        cacheHit, roomToFetch;
+  sc_out<bool>        cacheHit, roomToFetch, refetch;
 
   // A flow control signal from each of the two instruction inputs.
   sc_out<bool>       *flowControl;

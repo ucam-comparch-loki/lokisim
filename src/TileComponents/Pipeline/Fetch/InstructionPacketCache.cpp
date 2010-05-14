@@ -41,7 +41,15 @@ void InstructionPacketCache::insertInstruction() {
     addr = Address(0,0);
   }
 
-  cache.write(addr, instructionIn.read());
+  try {
+    cache.write(addr, instructionIn.read());
+  }
+  catch(std::exception e) {
+    // The write method throws an exception if the next packet needs to be
+    // fetched again.
+    if(!addresses.isFull()) addresses.write(pendingPacket);
+    refetch.write(!refetch.read());
+  }
 
   // Make a note for next cycle if it will be the start of a new packet.
   startOfPacket = instructionIn.read().endOfPacket();
@@ -75,6 +83,10 @@ void InstructionPacketCache::lookup() {
     if(!addresses.isFull()) addresses.write(address.read());
       // Stall if the buffer is now full?
     else cerr << "Wrote to full buffer in " << this->name() << endl;
+  }
+  else {
+    // Store the address in case we need it later.
+    pendingPacket = address.read();
   }
 }
 

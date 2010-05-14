@@ -31,7 +31,7 @@ public:
     if(!isEmpty()) {
       int i = readPos.value();
       incrementReadFrom();
-      return Storage<T>::data[i];
+      return this->data[i];
     }
     else {
       cerr << "Exception in Buffer.read()" << endl;
@@ -42,7 +42,7 @@ public:
   // Write the given data to the buffer.
   virtual void write(const T& newData) {
     if(!isFull()) {
-      Storage<T>::data[writePos.value()] = newData;
+      this->data[writePos.value()] = newData;
       incrementWriteTo();
     }
     else {
@@ -54,7 +54,7 @@ public:
   // Returns the value at the front of the queue, but does not remove it.
   T& peek() {
     if(!isEmpty()) {
-      return (Storage<T>::data[readPos.value()]);
+      return (this->data[readPos.value()]);
     }
     else {
       cerr << "Exception in Buffer.peek()" << endl;
@@ -84,7 +84,7 @@ public:
 
   // Print the contents of the buffer.
   void print() {
-    for(int i=0; i<this->size(); i++) cout << Storage<T>::data[i] << " ";
+    for(int i=0; i<this->size(); i++) cout << this->data[i] << " ";
     cout << endl;
   }
 
