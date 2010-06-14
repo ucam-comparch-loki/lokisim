@@ -39,6 +39,7 @@ void InstructionPacketCache::insertInstruction() {
   }
   else {
     addr = Address(0,0);
+    // Deal with remote fills in here -- received packet, but have no address
   }
 
   try {
@@ -137,6 +138,10 @@ void InstructionPacketCache::updatePacketAddress(Address addr) {
   currentPacket.write(addr);
 }
 
+void InstructionPacketCache::updatePersistent() {
+  cache.setPersistent(persistent.read());
+}
+
 /* Send the chosen instruction. We need a separate method for this because both
  * insertInstruction and finishedRead can result in the sending of new
  * instructions, but only one method is allowed to drive a particular wire. */
@@ -192,6 +197,10 @@ InstructionPacketCache::InstructionPacketCache(sc_module_name name) :
   SC_METHOD(updateRTF);
   sensitive << clock.pos();
   // Do initialise
+
+  SC_METHOD(updatePersistent);
+  sensitive << persistent;
+  dont_initialize();
 
   SC_METHOD(startOfPacketTasks);
   sensitive << startingPacket;

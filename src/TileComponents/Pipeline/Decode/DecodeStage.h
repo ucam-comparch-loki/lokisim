@@ -54,6 +54,9 @@ public:
   // The offset to jump by in the instruction packet cache.
   sc_out<short>         jumpOffset;
 
+  // Signals that the same packet should execute repeatedly.
+  sc_out<bool>          persistent;
+
   // The instruction to send to a remote cluster.
   sc_out<Instruction>   remoteInst;
 

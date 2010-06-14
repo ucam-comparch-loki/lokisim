@@ -113,6 +113,7 @@ Cluster::Cluster(sc_module_name name, int ID) :
   // To/from fetch stage
   decode.address(FLtoIPKC);           fetch.address(FLtoIPKC);
   decode.jumpOffset(jumpOffsetSig);   fetch.jumpOffset(jumpOffsetSig);
+  decode.persistent(persistent);      fetch.persistent(persistent);
   fetch.instruction(nextInst);        decode.instructionIn(nextInst);
 
   fetch.cacheHit(cacheHitSig);        decode.cacheHit(cacheHitSig);

@@ -154,11 +154,20 @@ void Decoder::decodeInstruction() {
   }
 
   // Send something to FetchLogic
-  if(operation==InstructionMap::FETCH || operation == InstructionMap::FETCHPST) {
+  if(operation>=InstructionMap::FETCH && operation <= InstructionMap::FETCHPST) {
+
     // Need to modify once we have read the base address from the register file
     Address a(immediate, fetchChannel);
     toFetchLogic.write(a);
-    regAddr1.write(destination);  // Fetch has an operand in the dest position
+
+    // Fetch doesn't store anything, so has operands in the destination position
+    if(operation == InstructionMap::PSELFETCH) {
+      regAddr1.write(predicate.read() ? destination : operand1);
+    }
+    else regAddr1.write(destination);
+
+    persistent.write(operation == InstructionMap::FETCHPST);
+
     return;
   }
 

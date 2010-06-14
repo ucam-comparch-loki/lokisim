@@ -114,18 +114,18 @@ protected:
 /* Executes the zigzag reordering part of the JPEG encoding technique.
  * Expected result: 0 1 8 16 9 2 ... 61 54 47 55 62 63 arriving at channel 0
  * of cluster 1. */
-TEST_F(TileTest, Zigzag) {
-
-  string cluster0 = "zigzag/0.loki";
-  string cluster1 = "zigzag/1.loki";
-  string memory0  = "zigzag/12.loki";
-  string memory1  = "zigzag/13.data";
-
-  CodeLoader::loadCode(cluster0, tile, 0);
-  CodeLoader::loadCode(cluster1, tile, 1);
-  CodeLoader::loadCode(memory0, tile, 12);
-  CodeLoader::loadCode(memory1, tile, 13);
-
-  for(int i=0; i<1800; i++) TIMESTEP;
-
-}
+//TEST_F(TileTest, Zigzag) {
+//
+//  string cluster0 = "zigzag/0.loki";
+//  string cluster1 = "zigzag/1.loki";
+//  string memory0  = "zigzag/12.loki";
+//  string memory1  = "zigzag/13.data";
+//
+//  CodeLoader::loadCode(cluster0, tile, 0);
+//  CodeLoader::loadCode(cluster1, tile, 1);
+//  CodeLoader::loadCode(memory0, tile, 12);
+//  CodeLoader::loadCode(memory1, tile, 13);
+//
+//  for(int i=0; i<1800; i++) TIMESTEP;
+//
+//}

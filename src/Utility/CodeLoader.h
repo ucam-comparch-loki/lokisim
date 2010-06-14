@@ -34,6 +34,10 @@ public:
   // Store the contents of the file into the given component.
   static void loadCode(string& filename, TileComponent& component);
 
+  // Load instructions and data into all components of a tile.
+  static void loadCode(Tile& tile, string& directory, vector<string>& coreFiles,
+                                                      vector<string>& memFiles);
+
 private:
   static vector<Word>& getData(string& filename);
   static bool isInstructionFile(string& filename);

@@ -96,6 +96,9 @@ Instruction::Instruction(const string& inst) {
 
   vector<string> words;
 
+  // Skip this line if it is a comment
+  if((inst[0] == '%') || (inst[0] == ';')) throw std::exception();
+
   // Remove any comments by splitting around ';' and only keeping the first part
   words = Strings::split(inst, ';');
 
@@ -213,6 +216,14 @@ void Instruction::decodeOpcode(const string& opcode) {
     string setting = opcodeParts[1];
     if(setting == "eop") setPredicate(END_OF_PACKET);
     else if(setting == "p") setSetPred(true);
+    else if(setting == "fetch") {
+      string pselfetch = "psel.fetch";
+      setOp(InstructionMap::opcode(pselfetch));
+      if(opcodeParts.size() > 2 && opcodeParts[2] == "eop")
+        setPredicate(END_OF_PACKET);
+      setSetPred(false);
+      return;
+    }
     else setSetPred(false);
   }
 

@@ -73,7 +73,8 @@ void FetchLogic::doRefetch() {
  * again. Alternatively, the cache tells us that there is now room for any
  * instruction packet. */
 void FetchLogic::sendNext() {
-  if(isRoomToFetch.event()) cout << this->name() << ": Now room in cache." << endl;
+  if(DEBUG && isRoomToFetch.event())
+    cout << this->name() << ": Now room in cache." << endl;
 
   if(toSend.isEmpty()) return;
   else if(flowControl.read() && isRoomToFetch.read()) {

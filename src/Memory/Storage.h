@@ -14,8 +14,13 @@
 #ifndef STORAGE_H_
 #define STORAGE_H_
 
+#include <iostream>
 #include <vector>
+
 using std::vector;
+using std::cout;
+using std::endl;
+using std::cerr;
 
 template<class T>
 class Storage {

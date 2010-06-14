@@ -44,6 +44,9 @@ public:
   // The address tag to lookup in the instruction packet cache.
   sc_in<Address>      address;
 
+  // Signals whether we should keep executing the same packet.
+  sc_in<bool>         persistent;
+
   // The address of the currently-executing instruction packet.
   sc_out<Address>     currentPacket;
 
@@ -122,7 +125,7 @@ private:
 
 private:
 
-  sc_signal<Instruction>    toCache, toFIFO, cacheToMux, FIFOtoMux;
+  sc_buffer<Instruction>    toCache, toFIFO, cacheToMux, FIFOtoMux;
   sc_buffer<short>          muxSelect;
   sc_signal<bool>           fifoEmpty, readFromFIFO, readFromCache;
   sc_buffer<short>          jumpOffsetSig;

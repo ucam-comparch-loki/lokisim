@@ -12,7 +12,7 @@
 
 #include "Parameters.h"
 
-extern parameter DEBUG = 1;
+extern parameter DEBUG = 0;
 
 extern parameter NUM_CHANNELS_BETWEEN_TILES = 4;
 extern parameter CLUSTERS_PER_TILE = 12;

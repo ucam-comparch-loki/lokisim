@@ -137,6 +137,7 @@ FetchStage::FetchStage(sc_module_name name) :
   cache.refetch(refetch);
   cache.currentPacket(currentPacket);
   cache.readInstruction(readFromCache);
+  cache.persistent(persistent);
   cache.flowControl(flowControl[1]);
 
   fifo.empty(fifoEmpty);

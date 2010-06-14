@@ -76,6 +76,9 @@ public:
   // The amount we want to jump by in the instruction packet cache.
   sc_out<short>       jumpOffset;
 
+  // Signals whether the same packet should be executed repeatedly.
+  sc_out<bool>        persistent;
+
   // The address of the instruction packet we want to fetch.
   sc_out<Address>     toFetchLogic;
 
@@ -138,6 +141,7 @@ public:
 private:
 
   // The remote channel we are fetching from (set using SETFETCHCH).
+  // Note: this MUST be set to a value before use: -1 confuses things.
   int  fetchChannel;
 
   // The remote channel we are sending instructions to.

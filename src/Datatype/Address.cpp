@@ -53,6 +53,9 @@ Address::Address(const Word& other) : Word(other) {
 Address::Address(int addr, int channelID) : Word() {
   setAddress(addr);
   setChannelID(channelID);
+
+  if(channelID < 0) std::cerr << "Warning: creating address with channel ID of "
+      << channelID << std::endl;
 }
 
 Address::~Address() {

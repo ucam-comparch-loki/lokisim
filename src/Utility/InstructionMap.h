@@ -100,6 +100,7 @@ public:
     SETFETCHCH,   // Set fetch channel (ch to fetch from) setfetchch ch
     IBJMP,        // In buffer jump                       ibjmp immed
     FETCH,        // Fetch instruction packet             fetch rs, immed
+    PSELFETCH,    // Fetch dependent on predicate         psel.fetch rs rt
     FETCHPST,     // Fetch persistent (repeat execution)  fetchpst rs, immed
     RMTFETCH,     // "Fetch" to remote cluster            rmtfetch rs, immed -> rch
     RMTFETCHPST,  // "Fetch persistent" to remote cluster rmtfetchpst rs, immed -> rch
@@ -113,6 +114,7 @@ private:
   static std::map<short, int> oti; // opcode to instruction
   static std::map<std::string, short> nto; // name to opcode
 
+  // Fill up the maps with the correct values.
   static void initialise();
 
 };

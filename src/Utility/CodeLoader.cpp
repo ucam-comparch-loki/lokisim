@@ -6,8 +6,9 @@
  */
 
 #include "CodeLoader.h"
-#include "../Datatype/Instruction.h"
+#include "Parameters.h"
 #include "StringManipulation.h"
+#include "../Datatype/Instruction.h"
 
 /* Load code from the specified file into a particular component of the
  * given tile. */
@@ -23,6 +24,22 @@ void CodeLoader::loadCode(string& filename, WrappedTileComponent& component) {
 /* Load code from the specified file into the given component. */
 void CodeLoader::loadCode(string& filename, TileComponent& component) {
   component.storeData(getData(filename));
+}
+
+/* Load instructions and data into all components of a tile. */
+void CodeLoader::loadCode(Tile& tile, string& directory,
+                          vector<string>& coreFiles, vector<string>& memFiles) {
+
+  for(int i=0; i<coreFiles.size(); i++) {
+    string filename = directory + "/" + coreFiles[i];
+    loadCode(filename, tile, i);
+  }
+
+  for(int i=0; i<memFiles.size(); i++) {
+    string filename = directory + "/" + memFiles[i];
+    loadCode(filename, tile, CLUSTERS_PER_TILE + i);
+  }
+
 }
 
 /* Return a vector of Words corresponding to the contents of the file. */

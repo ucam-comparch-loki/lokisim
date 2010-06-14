@@ -156,7 +156,6 @@ void MemoryMat::updateControl() {
     else {
       if(DEBUG) cout << "Unable to set up connection at memory " << id <<
                         ", port " << port << endl;
-      cout << "Input received = " << in[CONTROL_INPUT].read() << endl;
       // send NACK (from where?)
     }
   }

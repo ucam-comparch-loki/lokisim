@@ -28,7 +28,7 @@ public:
 
   // Has to go in header
   friend std::ostream& operator<< (std::ostream& os, const Address& v) {
-    os << "(" << v.getChannelID() << ", " << v.getAddress() << ")";
+    os << "(" << v.getAddress() << ", " << v.getChannelID() << ")";
     return os;
   }
 

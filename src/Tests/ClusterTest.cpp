@@ -439,3 +439,85 @@ protected:
 //  EXPECT_EQ(8, temp.getChannelID());
 //
 //}
+
+//TEST_F(ClusterTest, PselFetch) {
+//
+//  Instruction setFetch("setfetchch 0");
+//  Instruction store5("addui r10 r0 5");
+//  Instruction store10("addui r11 r0 10");
+//  Instruction setPredTrue("seqi.p r0 r0 0");
+//  Instruction setPredFalse("seqi.p r0 r0 1");
+//  Instruction pselFetch("psel.fetch.eop r10 r11");
+//  Instruction nop("nop");
+//
+//  AddressedWord temp;
+//  MemoryRequest request;
+//
+//  flowControlIn[0].write(true);
+//
+//  in[1].write(setFetch);
+//  TIMESTEP;
+//  in[1].write(store5);
+//  TIMESTEP;
+//  in[1].write(store10);
+//  TIMESTEP;
+//  in[1].write(setPredTrue);
+//  TIMESTEP;
+//  in[1].write(nop); // Need gap to allow predicate register to be set
+//  TIMESTEP;
+//  in[1].write(pselFetch);
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//
+//  // Test that we are fetching from address 5
+//  temp = out[0].read();
+//  request = static_cast<MemoryRequest>(temp.getPayload());
+//  EXPECT_EQ(5, request.getAddress());
+//
+//  in[1].write(setPredFalse);
+//  TIMESTEP;
+//  in[1].write(nop);
+//  TIMESTEP;
+//  in[1].write(pselFetch);
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//
+//  // Test that we are fetching from address 10
+//  temp = out[0].read();
+//  request = static_cast<MemoryRequest>(temp.getPayload());
+//  EXPECT_EQ(10, request.getAddress());
+//}
+
+//TEST_F(ClusterTest, FetchPersistent) {
+//
+//  Instruction setFetch("setfetchch 0");
+//  Instruction fetchPst("fetchpst.eop r0 5");
+//  Instruction addOne("addui.eop r10 r10 1 > 0");
+//  Instruction interrupt("addui.eop r0 r0 10000 > 0");
+//
+//  flowControlIn[0].write(true);
+//  flowControlIn[1].write(true);
+//
+//  in[1].write(setFetch);
+//  TIMESTEP;
+//  in[1].write(fetchPst);
+//  TIMESTEP;
+//  TIMESTEP;
+//  TIMESTEP;
+//  in[1].write(addOne);
+//
+//  for(int i=0; i<10; i++) {
+//    TIMESTEP;
+//    cout << out[1].read().getPayload() << endl;
+//  }
+//
+//  in[0].write(interrupt);
+//
+//  for(int i=0; i<10; i++) {
+//    TIMESTEP;
+//    cout << out[1].read().getPayload() << endl;
+//  }
+//
+//}

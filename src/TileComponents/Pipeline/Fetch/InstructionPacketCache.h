@@ -46,6 +46,9 @@ public:
   // The address tag being looked up in the cache.
   sc_in<Address>      address;
 
+  // Signals that we should keep executing the same packet.
+  sc_in<bool>         persistent;
+
   // The address of the currently-executing instruction packet.
   sc_out<Address>     currentPacket;
 
@@ -113,6 +116,10 @@ private:
   // instruction packet.
   void updatePacketAddress(Address addr);
 
+  // Update whether or not we are in persistent execution mode, where we
+  // execute a single instruction packet repeatedly.
+  void updatePersistent();
+
   // Send the chosen instruction, instToSend. There are multiple writers so
   // a separate method is needed.
   void write();
@@ -130,7 +137,7 @@ private:
 
 private:
 
-  IPKCacheStorage<Address, Instruction> cache;
+  IPKCacheStorage cache;
   Buffer<Address> addresses;
   Instruction     instToSend;
 

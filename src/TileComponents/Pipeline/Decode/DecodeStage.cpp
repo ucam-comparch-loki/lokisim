@@ -127,6 +127,7 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   decoder.instructionOut(remoteInst);
   decoder.isIndirectRead(isIndirect);
   decoder.jumpOffset(jumpOffset);
+  decoder.persistent(persistent);
   decoder.memoryOp(memoryOp);
   decoder.predicate(predicate);
   decoder.setPredicate(setPredicate);
