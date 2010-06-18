@@ -24,7 +24,12 @@ public:
                      output_port outputs[],
                      int length,
                      std::vector<bool>& sent,
-                     std::vector<bool>* blockedRequests);
+                     std::vector<bool>* blockedRequests,
+                     bool instrumentation);
+
+protected:
+
+  virtual double distance(int startID, int endID);
 
 private:
 

@@ -30,12 +30,12 @@ void CodeLoader::loadCode(string& filename, TileComponent& component) {
 void CodeLoader::loadCode(Tile& tile, string& directory,
                           vector<string>& coreFiles, vector<string>& memFiles) {
 
-  for(int i=0; i<coreFiles.size(); i++) {
+  for(unsigned int i=0; i<coreFiles.size(); i++) {
     string filename = directory + "/" + coreFiles[i];
     loadCode(filename, tile, i);
   }
 
-  for(int i=0; i<memFiles.size(); i++) {
+  for(unsigned int i=0; i<memFiles.size(); i++) {
     string filename = directory + "/" + memFiles[i];
     loadCode(filename, tile, CLUSTERS_PER_TILE + i);
   }

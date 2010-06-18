@@ -37,5 +37,7 @@ int sc_main(int argc, char* argv[]) {
 
   for(int i=0; i<1800; i++) TIMESTEP;
 
+  Instrumentation::printStats();
+
   return 0;
 }

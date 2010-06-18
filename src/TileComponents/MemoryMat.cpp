@@ -104,6 +104,8 @@ void MemoryMat::read(int position) {
     AddressedWord aw(w, channel);
     out[position].write(aw);
 
+    Instrumentation::memoryRead();
+
     if(DEBUG) cout << "Read " << data.read(addr) << " from memory " << id <<
                       ", address " << addr << endl;
 
@@ -126,6 +128,8 @@ void MemoryMat::write(Word w, int position) {
   else                         connection.clear();
 
   flowControlOut[position].write(true);   // Is this necessary?
+
+  Instrumentation::memoryWrite();
 
   if(DEBUG) cout << "Wrote " << w << " to memory " << id <<
                     ", address " << addr << endl;

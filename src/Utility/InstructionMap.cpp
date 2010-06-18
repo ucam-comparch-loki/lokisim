@@ -8,23 +8,25 @@
 #include "InstructionMap.h"
 
 // Need to define static class members
-std::map<short, int> InstructionMap::oti; // opcode to instruction
 std::map<std::string, short> InstructionMap::nto; // name to opcode
-
-/* Returns the instruction identifier of the given opcode */
-short InstructionMap::operation(short opcode) {
-
-  InstructionMap::initialise();
-  return (short)(InstructionMap::oti[opcode]);
-
-}
+std::map<short, int> InstructionMap::oti; // opcode to instruction
+std::map<int, std::string> InstructionMap::itn; // instruction to opcode
 
 /* Return the opcode of the given instruction name */
 short InstructionMap::opcode(std::string& name) {
-
   InstructionMap::initialise();
-  return InstructionMap::nto[name];
+  return nto[name];
+}
 
+/* Returns the instruction identifier of the given opcode */
+short InstructionMap::operation(short opcode) {
+  InstructionMap::initialise();
+  return (short)(oti[opcode]);
+}
+
+std::string& InstructionMap::name(int operation) {
+  InstructionMap::initialise();
+  return itn[operation];
 }
 
 /* Return whether the instruction contains an immediate value */
@@ -78,78 +80,84 @@ void InstructionMap::initialise() {
 
   short a;  // Makes consistency easier below
 
-  a=0;    nto["nop"] = a;           oti[a] = NOP;
+  a=0;    addToMaps("nop", a, NOP);
 
-  a++;    nto["ld"] = a;            oti[a] = LD;
-  a++;    nto["ldb"] = a;           oti[a] = LDB;
-  a++;    nto["st"] = a;            oti[a] = ST;
-  a++;    nto["stb"] = a;           oti[a] = STB;
-  a++;    nto["staddr"] = a;        oti[a] = STADDR;
-  a++;    nto["stbaddr"] = a;       oti[a] = STBADDR;
+  a++;    addToMaps("ld", a, LD);
+  a++;    addToMaps("ldb", a, LDB);
+  a++;    addToMaps("st", a, ST);
+  a++;    addToMaps("stb", a, STB);
+  a++;    addToMaps("staddr", a, STADDR);
+  a++;    addToMaps("stbaddr", a, STBADDR);
 
-  a++;    nto["sll"] = a;           oti[a] = SLL;
-  a++;    nto["srl"] = a;           oti[a] = SRL;
-  a++;    nto["sra"] = a;           oti[a] = SRA;
-  a++;    nto["sllv"] = a;          oti[a] = SLLV;
-  a++;    nto["srlv"] = a;          oti[a] = SRLV;
-  a++;    nto["srav"] = a;          oti[a] = SRAV;
+  a++;    addToMaps("sll", a, SLL);
+  a++;    addToMaps("srl", a, SRL);
+  a++;    addToMaps("sra", a, SRA);
+  a++;    addToMaps("sllv", a, SLLV);
+  a++;    addToMaps("srlv", a, SRLV);
+  a++;    addToMaps("srav", a, SRAV);
 
-  a++;    nto["seq"] = a;           oti[a] = SEQ;
-  a++;    nto["sne"] = a;           oti[a] = SNE;
-  a++;    nto["slt"] = a;           oti[a] = SLT;
-  a++;    nto["sltu"] = a;          oti[a] = SLTU;
-  a++;    nto["seqi"] = a;          oti[a] = SEQI;
-  a++;    nto["snei"] = a;          oti[a] = SNEI;
-  a++;    nto["slti"] = a;          oti[a] = SLTI;
-  a++;    nto["sltiu"] = a;         oti[a] = SLTIU;
+  a++;    addToMaps("seq", a, SEQ);
+  a++;    addToMaps("sne", a, SNE);
+  a++;    addToMaps("slt", a, SLT);
+  a++;    addToMaps("sltu", a, SLTU);
+  a++;    addToMaps("seqi", a, SEQI);
+  a++;    addToMaps("snei", a, SNEI);
+  a++;    addToMaps("slti", a, SLTI);
+  a++;    addToMaps("sltiu", a, SLTIU);
 
-  a++;    nto["lui"] = a;           oti[a] = LUI;
+  a++;    addToMaps("lui", a, LUI);
 
-  a++;    nto["psel"] = a;          oti[a] = PSEL;
+  a++;    addToMaps("psel", a, PSEL);
 
-  a++;    nto["clz"] = a;           oti[a] = CLZ;
+  a++;    addToMaps("clz", a, CLZ);
 
-  a++;    nto["nor"] = a;           oti[a] = NOR;
-  a++;    nto["nori"] = a;          oti[a] = NORI;
-  a++;    nto["and"] = a;           oti[a] = AND;
-  a++;    nto["andi"] = a;          oti[a] = ANDI;
-  a++;    nto["or"] = a;            oti[a] = OR;
-  a++;    nto["ori"] = a;           oti[a] = ORI;
-  a++;    nto["xor"] = a;           oti[a] = XOR;
-  a++;    nto["xori"] = a;          oti[a] = XORI;
+  a++;    addToMaps("nor", a, NOR);
+  a++;    addToMaps("nori", a, NORI);
+  a++;    addToMaps("and", a, AND);
+  a++;    addToMaps("andi", a, ANDI);
+  a++;    addToMaps("or", a, OR);
+  a++;    addToMaps("ori", a, ORI);
+  a++;    addToMaps("xor", a, XOR);
+  a++;    addToMaps("xori", a, XORI);
 
-  a++;    nto["nand"] = a;          oti[a] = NAND;
-  a++;    nto["clr"] = a;           oti[a] = CLR;
-  a++;    nto["orc"] = a;           oti[a] = ORC;
-  a++;    nto["popc"] = a;          oti[a] = POPC;
-  a++;    nto["rsubi"] = a;         oti[a] = RSUBI;
+  a++;    addToMaps("nand", a, NAND);
+  a++;    addToMaps("clr", a, CLR);
+  a++;    addToMaps("orc", a, ORC);
+  a++;    addToMaps("popc", a, POPC);
+  a++;    addToMaps("rsubi", a, RSUBI);
 
-  a++;    nto["addu"] = a;          oti[a] = ADDU;
-  a++;    nto["addui"] = a;         oti[a] = ADDUI;
-  a++;    nto["subu"] = a;          oti[a] = SUBU;
-  a++;    nto["mulhw"] = a;         oti[a] = MULHW;
-  a++;    nto["mullw"] = a;         oti[a] = MULLW;
-  a++;    nto["mulhwu"] = a;        oti[a] = MULHWU;
+  a++;    addToMaps("addu", a, ADDU);
+  a++;    addToMaps("addui", a, ADDUI);
+  a++;    addToMaps("subu", a, SUBU);
+  a++;    addToMaps("mulhw", a, MULHW);
+  a++;    addToMaps("mullw", a, MULLW);
+  a++;    addToMaps("mulhwu", a, MULHWU);
 
-  a++;    nto["irdr"] = a;          oti[a] = IRDR;
-  a++;    nto["iwtr"] = a;          oti[a] = IWTR;
+  a++;    addToMaps("irdr", a, IRDR);
+  a++;    addToMaps("iwtr", a, IWTR);
 
-  a++;    nto["woche"] = a;         oti[a] = WOCHE;
-  a++;    nto["tstch"] = a;         oti[a] = TSTCH;
-  a++;    nto["selch"] = a;         oti[a] = SELCH;
+  a++;    addToMaps("woche", a, WOCHE);
+  a++;    addToMaps("tstch", a, TSTCH);
+  a++;    addToMaps("selch", a, SELCH);
 
-  a++;    nto["setfetchch"] = a;    oti[a] = SETFETCHCH;
-  a++;    nto["ibjmp"] = a;         oti[a] = IBJMP;
-  a++;    nto["fetch"] = a;         oti[a] = FETCH;
-  a++;    nto["psel.fetch"] = a;    oti[a] = PSELFETCH;
-  a++;    nto["fetchpst"] = a;      oti[a] = FETCHPST;
-  a++;    nto["rmtfetch"] = a;      oti[a] = RMTFETCH;
-  a++;    nto["rmtfetchpst"] = a;   oti[a] = RMTFETCHPST;
-  a++;    nto["rmtfill"] = a;       oti[a] = RMTFILL;
-  a++;    nto["rmtexecute"] = a;    oti[a] = RMTEXECUTE;
-  a++;    nto["rmtnxipk"] = a;      oti[a] = RMTNXIPK;
+  a++;    addToMaps("setfetchch", a, SETFETCHCH);
+  a++;    addToMaps("ibjmp", a, IBJMP);
+  a++;    addToMaps("fetch", a, FETCH);
+  a++;    addToMaps("psel.fetch", a, PSELFETCH);
+  a++;    addToMaps("fetchpst", a, FETCHPST);
+  a++;    addToMaps("rmtfetch", a, RMTFETCH);
+  a++;    addToMaps("rmtfetchpst", a, RMTFETCHPST);
+  a++;    addToMaps("rmtfill", a, RMTFILL);
+  a++;    addToMaps("rmtexecute", a, RMTEXECUTE);
+  a++;    addToMaps("rmtnxipk", a, RMTNXIPK);
 
 
   initialised = true;
 
+}
+
+void InstructionMap::addToMaps(std::string name, short opcode, int instruction) {
+  nto[name] = opcode;
+  oti[opcode] = instruction;
+  itn[instruction] = name;
 }

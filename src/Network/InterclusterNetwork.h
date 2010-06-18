@@ -87,8 +87,9 @@ protected:
   // The routing technique will be the same for all three sub-networks.
   // We have to do something extra if dealing with requests, so a boolean is
   // included to show that.
-  virtual void route(input_port inputs[], output_port outputs[],
-                     int length, std::vector<bool>& sent, bool requests);
+  virtual void route(input_port inputs[], output_port outputs[], int length,
+                     std::vector<bool>& sent, bool requests,
+                     bool instrumentation = false);
 
 //==============================//
 // Local state

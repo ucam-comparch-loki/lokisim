@@ -35,6 +35,9 @@ void Cluster::stallPipeline() {
   bool shouldStall = decStallSig.read() || writeStallSig.read();
   stallSig.write(shouldStall);
 
+  Instrumentation::stalled(id, shouldStall,
+      sc_core::sc_time_stamp().to_default_time_units());
+
   // The fetch stage has to be stalled more often than the rest of the
   // pipeline, due to multi-cycle instructions which require that no further
   // instructions are decoded until they complete.

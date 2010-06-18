@@ -30,11 +30,19 @@ public:
   //   length  = length of input array
   //   sent    = vector telling whether it is allowed to write to each output
   //   blockedRequests = vector to return whether some of the messages blocked
+  //   instrumentation = flag saying whether data should be recorded
   virtual void route(input_port inputs[],
                      output_port outputs[],
                      int length,
                      std::vector<bool>& sent,
-                     std::vector<bool>* blockedRequests) = 0;
+                     std::vector<bool>* blockedRequests,
+                     bool instrumentation) = 0;
+
+protected:
+
+  // Calculates the distance data will travel to communicate from one component
+  // to another. Units are the width of a cluster.
+  virtual double distance(int startID, int endID) = 0;
 
 };
 

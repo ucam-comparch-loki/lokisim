@@ -36,6 +36,10 @@ void Decoder::decodeInstruction() {
   bool setPred        = i.getSetPredicate();
   short remoteChannel = i.getRchannel();
 
+  bool execute = shouldExecute(pred);
+
+  Instrumentation::operation(operation, execute);
+
   // If we are in remote execution mode, send all marked instructions.
   if(remoteExecute) {
     if(pred == Instruction::P) {
@@ -48,7 +52,7 @@ void Decoder::decodeInstruction() {
   }
 
   // COMMON CAUSE OF PROBLEMS: INSTRUCTION NOT EXECUTED BECAUSE OF PREDICATE
-  if(!shouldExecute(pred)) return;
+  if(!execute) return;
 
   // Send the remote channel to the write stage
   if(InstructionMap::hasRemoteChannel(operation)) {

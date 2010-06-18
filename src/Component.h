@@ -13,6 +13,7 @@
 
 #include "systemc"
 
+#include "Utility/Instrumentation.h"
 #include "Utility/Parameters.h"
 #include "flag_signal.h"
 

@@ -89,6 +89,9 @@ void InstructionPacketCache::lookup() {
     // Store the address in case we need it later.
     pendingPacket = address.read();
   }
+
+  Instrumentation::IPKCacheHit(inCache);
+
 }
 
 /* An instruction was read from the cache, so change to another packet if

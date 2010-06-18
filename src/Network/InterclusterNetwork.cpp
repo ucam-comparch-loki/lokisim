@@ -43,14 +43,16 @@ void InterclusterNetwork::routeResponses() {
 }
 
 void InterclusterNetwork::routeData() {
-  route(dataIn, dataOut, numInputs, sentData, false);
+  // This is the only routing we are interested in data for.
+  route(dataIn, dataOut, numInputs, sentData, false, true);
 }
 
 void InterclusterNetwork::route(input_port inputs[],
                                 output_port outputs[],
                                 int length,
                                 std::vector<bool>& sent,
-                                bool requests) {
+                                bool requests,
+                                bool instrumentation) {
 
   // Since routers aren't components, and only define behaviour, we only need
   // one in the whole system.
@@ -59,7 +61,7 @@ void InterclusterNetwork::route(input_port inputs[],
   // Only send the vector if we are dealing with requests.
   std::vector<bool>* pointer = requests ? &blockedRequests : NULL;
 
-  router->route(inputs, outputs, length, sent, pointer);
+  router->route(inputs, outputs, length, sent, pointer, instrumentation);
 
 }
 

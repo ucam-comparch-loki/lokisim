@@ -29,11 +29,14 @@ public:
   // Returns whether the given operation uses the ALU.
   static bool isALUOperation(short operation);
 
+  // Returns the opcode of the given operation name.
+  static short opcode(std::string& name);
+
   // Returns the decoded operation value from the given opcode.
   static short operation(short opcode);
 
-  // Returns the opcode of the given operation name.
-  static short opcode(std::string& name);
+  // Returns the name of the given instruction.
+  static std::string& name(int operation);
 
   enum Instructions {
 
@@ -111,11 +114,15 @@ public:
   };
 
 private:
-  static std::map<short, int> oti; // opcode to instruction
   static std::map<std::string, short> nto; // name to opcode
+  static std::map<short, int> oti; // opcode to instruction
+  static std::map<int, std::string> itn; // instruction to name
 
   // Fill up the maps with the correct values.
   static void initialise();
+
+  // Add a single instruction to all maps.
+  static void addToMaps(std::string name, short opcode, int instruction);
 
 };
 
