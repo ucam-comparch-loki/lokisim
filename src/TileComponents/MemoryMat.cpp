@@ -112,7 +112,6 @@ void MemoryMat::read(int position) {
   }
   // Don't allow any more requests if we are unable to send the results.
   else flowControlOut[position].write(false);
-  // TODO: if the output channel is blocked, block the input which uses it
 
 }
 

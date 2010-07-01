@@ -13,6 +13,7 @@
 #define INSTRUCTION_H_
 
 #include "Word.h"
+#include "../Utility/InstructionMap.h"
 
 using std::string;
 
@@ -47,8 +48,9 @@ public:
 
   // Has to go in header
   friend std::ostream& operator<< (std::ostream& os, const Instruction& v) {
-    os << v.getOp() <<" r"<< v.getDest() <<" r"<< v.getSrc1() <<" r"<< v.getSrc2()
-       <<" "<< v.getImmediate() <<" -> "<< v.getRchannel();
+    os << InstructionMap::name(v.getOp()) << " r" << v.getDest() << " r" <<
+       v.getSrc1() << " r" << v.getSrc2() << " " << v.getImmediate();
+    if(v.getRchannel() != NO_CHANNEL) os << " -> " << v.getRchannel();
     return os;
   }
 

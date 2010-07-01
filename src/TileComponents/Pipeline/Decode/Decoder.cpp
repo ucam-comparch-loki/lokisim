@@ -62,7 +62,7 @@ void Decoder::decodeInstruction() {
   setPredicate.write(setPred);
 
   if(operation == InstructionMap::LD || operation == InstructionMap::LDB) {
-    writeAddr.write(0); // Don't want to write
+    setDestination(0); // Don't want to write
     setOperand1(operation, destination);
     setOperand2(operation, 0, immediate);
     this->operation.write(InstructionMap::ADDUI);
@@ -71,7 +71,7 @@ void Decoder::decodeInstruction() {
   }
 
   if(operation == InstructionMap::ST || operation == InstructionMap::STB) {
-    writeAddr.write(0);
+    setDestination(0);
     setOperand1(operation, operand1);
     setOperand2(operation, 0, immediate);
     this->operation.write(InstructionMap::ADDUI);
@@ -82,7 +82,7 @@ void Decoder::decodeInstruction() {
   }
 
   if(operation == InstructionMap::STADDR || operation == InstructionMap::STBADDR) {
-    writeAddr.write(0);
+    setDestination(0);
     setOperand1(operation, destination);
     setOperand2(operation, 0, immediate);
     this->operation.write(InstructionMap::ADDUI);
@@ -92,7 +92,7 @@ void Decoder::decodeInstruction() {
 
   if(operation == InstructionMap::TSTCH) {
     channelOp.write(ReceiveChannelEndTable::TSTCH);
-    writeAddr.write(destination);
+    setDestination(destination);
     toRCET1.write(Registers::toChannelID(operand1));
     op1Select.write(RCET);
     this->operation.write(operation);
@@ -101,7 +101,7 @@ void Decoder::decodeInstruction() {
 
   if(operation == InstructionMap::SELCH) {
     channelOp.write(ReceiveChannelEndTable::SELCH);
-    writeAddr.write(destination);
+    setDestination(destination);
     op1Select.write(RCET);
     this->operation.write(operation);
     return;
@@ -189,11 +189,7 @@ void Decoder::decodeInstruction() {
   else isIndirectRead.write(false);
 
   if(operation == InstructionMap::IWTR) indWrite.write(destination);
-  else writeAddr.write(destination);
-
-  /*if(op writes to destination)*/
-  if(destination == 0) regLastWritten = -1;
-  else regLastWritten = destination;
+  else setDestination(destination);
 
 }
 
@@ -233,6 +229,13 @@ void Decoder::setOperand2(short operation, int operand, int immediate) {
       op2Select.write(REGISTERS);   // ALU wants data from registers
     }
   }
+}
+
+void Decoder::setDestination(int destination) {
+  writeAddr.write(destination);
+
+  if(destination == 0) regLastWritten = -1;
+  else regLastWritten = destination;
 }
 
 /* Sends the second part of a two-flit store operation (the data to send). */

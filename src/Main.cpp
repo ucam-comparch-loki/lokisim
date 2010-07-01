@@ -30,7 +30,7 @@ int sc_main(int argc, char* argv[]) {
   directory = "zigzag";
   coreFiles.push_back("0.loki");
   coreFiles.push_back("1.loki");
-  memoryFiles.push_back("12.loki");
+  memoryFiles.push_back("12_fast.loki");
   memoryFiles.push_back("13.data");
 
   CodeLoader::loadCode(tile, directory, coreFiles, memoryFiles);

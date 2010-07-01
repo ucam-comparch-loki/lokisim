@@ -37,6 +37,8 @@ class InterclusterNetwork: public Interconnect {
 
 public:
 
+  sc_in<bool>  clock;
+
   // Data sent from each output of each component.
   // NUM_CLUSTER_OUTPUTS * COMPONENTS_PER_TILE
   input_port  *dataIn;

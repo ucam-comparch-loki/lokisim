@@ -19,7 +19,6 @@
  */
 
 #include "Instruction.h"
-#include "../Utility/InstructionMap.h"
 #include "../Utility/StringManipulation.h"
 #include "../Utility/Parameters.h"
 #include "../TileComponents/Pipeline/IndirectRegisterFile.h"

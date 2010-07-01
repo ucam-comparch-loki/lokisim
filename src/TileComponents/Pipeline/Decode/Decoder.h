@@ -116,6 +116,9 @@ private:
   // table, the ALU, the register file, or the sign extender.
   void setOperand2(short operation, int operand, int immediate);
 
+  // Send the index of the destination register.
+  void setDestination(int destination);
+
   // Write operations take two cycles since there are two flits to send. This
   // method sends the second part.
   void completeWrite();

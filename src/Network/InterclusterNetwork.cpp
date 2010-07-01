@@ -54,7 +54,7 @@ void InterclusterNetwork::route(input_port inputs[],
                                 bool requests,
                                 bool instrumentation) {
 
-  // Since routers aren't components, and only define behaviour, we only need
+  // Since routers aren't Components, and only define behaviour, we only need
   // one in the whole system.
   static RoutingScheme* router = RoutingSchemeFactory::makeRoutingScheme();
 
@@ -80,7 +80,8 @@ InterclusterNetwork::InterclusterNetwork(sc_module_name name) :
   dataOut      = new output_port[numOutputs];
 
   SC_METHOD(routeRequests);
-  for(int i=0; i<numInputs; i++)  sensitive << requestsIn[i];
+//  for(int i=0; i<numInputs; i++)  sensitive << requestsIn[i];
+  sensitive << clock.neg();   // Allow some time for signals to get here
   dont_initialize();
 
   SC_METHOD(routeResponses);

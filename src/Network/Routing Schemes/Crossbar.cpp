@@ -32,9 +32,9 @@ void Crossbar::route(input_port inputs[],
           int startID = i/NUM_CLUSTER_OUTPUTS;
           int endID   = chID/NUM_CLUSTER_INPUTS;
           Instrumentation::networkTraffic(startID, endID, distance(startID,endID));
-        }
 
-        if(DEBUG) printMessage(length, aw, i, chID);
+          if(DEBUG) printMessage(length, aw, i, chID);
+        }
       }
       // If we have already sent to this output, deny the request
       else {

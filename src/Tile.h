@@ -72,9 +72,9 @@ private:
 
 private:
 
-  sc_buffer<Word>          *responsesToCluster, *requestsToCluster; // arrays
-  flag_signal<Word>        *dataToCluster;                          // array
-  sc_buffer<AddressedWord> *responsesFromCluster;                   // array
+  flag_signal<Word>          *responsesToCluster, *requestsToCluster; // arrays
+  flag_signal<Word>          *dataToCluster;                          // array
+  flag_signal<AddressedWord> *responsesFromCluster;                   // array
 
 };
 

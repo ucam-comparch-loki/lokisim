@@ -58,10 +58,12 @@ Tile::Tile(sc_module_name name, int ID) :
   int numOutputs = NUM_CLUSTER_OUTPUTS * COMPONENTS_PER_TILE;
   int numInputs  = NUM_CLUSTER_INPUTS  * COMPONENTS_PER_TILE;
 
-  responsesToCluster   = new sc_buffer<Word>[numOutputs];
-  responsesFromCluster = new sc_buffer<AddressedWord>[numInputs];
-  requestsToCluster    = new sc_buffer<Word>[numInputs];
+  responsesToCluster   = new flag_signal<Word>[numOutputs];
+  responsesFromCluster = new flag_signal<AddressedWord>[numInputs];
+  requestsToCluster    = new flag_signal<Word>[numInputs];
   dataToCluster        = new flag_signal<Word>[numInputs];
+
+  network.clock(clock);
 
   // Initialise the Clusters of this Tile
   for(int i=0; i<CLUSTERS_PER_TILE; i++) {
