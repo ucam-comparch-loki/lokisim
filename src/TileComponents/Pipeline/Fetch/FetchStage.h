@@ -28,6 +28,7 @@ public:
 // Inherited from PipelineStage:
 //   clock
 //   stall
+//   idle
 
   // The input instruction to be sent to the instruction packet cache.
   sc_in<Word>         toIPKCache;
@@ -54,7 +55,7 @@ public:
   sc_out<bool>        cacheHit, roomToFetch, refetch;
 
   // A flow control signal from each of the two instruction inputs.
-  sc_out<bool>       *flowControl;
+  sc_out<int>        *flowControl;
 
 //==============================//
 // Constructors and destructors

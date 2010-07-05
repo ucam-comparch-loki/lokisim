@@ -37,9 +37,8 @@ public:
   // Signals whether or not the FIFO is empty.
   sc_out<bool>        empty;
 
-  // Signals to the network whether there is room to put the next instruction
-  // in the FIFO.
-  sc_out<bool>        flowControl;
+  // Signal telling the flow control unit how much space is left in the FIFO.
+  sc_out<int>         flowControl;
 
 //==============================//
 // Constructors and destructors

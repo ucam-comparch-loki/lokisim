@@ -37,8 +37,12 @@ public:
   // A flow control signal for each output (NUM_CLUSTER_OUTPUTS).
   sc_in<bool>           *flowControlIn;
 
-  // A flow control signal for each input (NUM_CLUSTER_INPUTS).
-  sc_out<bool>          *flowControlOut;
+  // A flow control signal for each input (NUM_CLUSTER_INPUTS). Each one tells
+  // how much space is remaining in a particular input buffer.
+  sc_out<int>           *flowControlOut;
+
+  // Signal that this component is not currently doing any work.
+  sc_out<bool>           idle;
 
 //==============================//
 // Constructors and destructors

@@ -27,6 +27,7 @@ public:
 // Inherited from PipelineStage:
 //   clock
 //   stall
+//   idle
 
   // The data from the ALU to be written or sent out onto the network.
   sc_in<Data>             fromALU;

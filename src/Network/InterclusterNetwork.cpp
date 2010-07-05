@@ -80,8 +80,8 @@ InterclusterNetwork::InterclusterNetwork(sc_module_name name) :
   dataOut      = new output_port[numOutputs];
 
   SC_METHOD(routeRequests);
-//  for(int i=0; i<numInputs; i++)  sensitive << requestsIn[i];
-  sensitive << clock.neg();   // Allow some time for signals to get here
+  for(int i=0; i<numInputs; i++)  sensitive << requestsIn[i];
+//  sensitive << clock.neg();   // Allow half a cycle for signals to get here
   dont_initialize();
 
   SC_METHOD(routeResponses);

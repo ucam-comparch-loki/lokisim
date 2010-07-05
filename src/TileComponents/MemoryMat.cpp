@@ -10,6 +10,7 @@
 #include "../Datatype/MemoryRequest.h"
 #include "../Datatype/ChannelRequest.h"
 #include "../Datatype/Data.h"
+#include "../Utility/Instrumentation.h"
 
 const int MemoryMat::CONTROL_INPUT = NUM_CLUSTER_INPUTS - 1;
 
@@ -19,17 +20,26 @@ const int MemoryMat::CONTROL_INPUT = NUM_CLUSTER_INPUTS - 1;
 void MemoryMat::doOp() {
 
   // Inputs are always allowed to the control port
-  flowControlOut[CONTROL_INPUT].write(true);
+  flowControlOut[CONTROL_INPUT].write(1);
 
   if(in[CONTROL_INPUT].event()) updateControl();
 
   for(int i=0; i<NUM_CLUSTER_INPUTS-1; i++) {
 
+    // Attempt to send anything waiting in buffers. Update the flow control
+    // before (not after), to avoid multiple operations arriving in the same
+    // cycle (flow control gets updated the cycle after removing from buffers).
+    flowControlOut[i].write(buffers[i].remainingSpace());
+    if(!buffers[i].isEmpty() && flowControlIn[i].read()) {
+      out[i].write(buffers.read(i));
+      continue;
+    }
+
     ConnectionStatus& connection = connections[i];
 
     // Don't allow an input if there is no connection set up
     if(!connection.isActive()) {
-      flowControlOut[i].write(false);
+      flowControlOut[i].write(0);
       continue;
     }
 
@@ -66,52 +76,62 @@ void MemoryMat::doOp() {
     }
     // No new input and no existing transaction => accept new transactions
     else {
-      flowControlOut[i].write(true);
+      flowControlOut[i].write(buffers[i].remainingSpace());
     }
 
   }
+
+  updateIdle();
 
 }
 
 /* Carry out a read for the transaction at input "position". */
 void MemoryMat::read(int position) {
-  if(flowControlIn[position].read()) {
 
-    ConnectionStatus& connection = connections[position];
-    Word w;
-    int addr;
-    int channel = connection.getChannel();
+  ConnectionStatus& connection = connections[position];
+  Word w;
+  int addr;
+  int channel = connection.getChannel();
 
-    if(connection.readingIPK()) {
-      addr = connection.getAddress();
-      w = data.read(addr);
+  if(connection.readingIPK()) {
+    addr = connection.getAddress();
+    w = data.read(addr);
 
-      if(static_cast<Instruction>(w).endOfPacket()) {
-        connection.clear();
-        flowControlOut[position] = true;
-      }
-      else {
-        connection.incrementAddress(); // Prepare to read the next instruction
-        flowControlOut[position] = false;
-      }
+    if(static_cast<Instruction>(w).endOfPacket()) {
+      connection.clear();
+      flowControlOut[position].write(buffers[position].remainingSpace());
     }
     else {
-      addr = static_cast<Data>(in[position].read()).getData();
-      w = data.read(addr);
-      connection.clear();
+      connection.incrementAddress(); // Prepare to read the next instruction
+
+      // Pretend the buffer is full to allow the read sequence to complete.
+      flowControlOut[position].write(0);
     }
-
-    AddressedWord aw(w, channel);
-    out[position].write(aw);
-
-    Instrumentation::memoryRead();
-
-    if(DEBUG) cout << "Read " << data.read(addr) << " from memory " << id <<
-                      ", address " << addr << endl;
-
   }
-  // Don't allow any more requests if we are unable to send the results.
-  else flowControlOut[position].write(false);
+  else {
+    addr = static_cast<Data>(in[position].read()).getData();
+    w = data.read(addr);
+    connection.clear();
+  }
+
+  AddressedWord aw(w, channel);
+
+  Instrumentation::memoryRead();
+
+  if(DEBUG) cout << "Read " << data.read(addr) << " from memory " << id <<
+                    ", address " << addr << endl;
+
+  if(flowControlIn[position].read()) {
+    // Flow control allowing, send the value we just read.
+    out[position].write(aw);
+  }
+  else {
+    // Buffer this request until it is able to complete.
+    buffers.write(aw, position);
+
+    // Update the amount of space remaining in the buffer.
+    flowControlOut[position].write(buffers[position].remainingSpace());
+  }
 
 }
 
@@ -126,7 +146,7 @@ void MemoryMat::write(Word w, int position) {
   if(connection.isStreaming()) connection.incrementAddress();
   else                         connection.clear();
 
-  flowControlOut[position].write(true);   // Is this necessary?
+  flowControlOut[position].write(buffers[position].remainingSpace());
 
   Instrumentation::memoryWrite();
 
@@ -148,7 +168,7 @@ void MemoryMat::updateControl() {
     // Set up the connection if there isn't one there already
     if(!connection.isActive()) {
       connection.setChannel(req.getReturnChannel());
-      flowControlOut[port].write(true);
+      flowControlOut[port].write(buffers[port].remainingSpace());
 
       // could make port 0 the control port, so it has an output to send replies on
       // send ACK (from where? out[port]?)
@@ -164,12 +184,31 @@ void MemoryMat::updateControl() {
   }
   else {  // Tear down the channel
     connection.teardown();
-    flowControlOut[port].write(false);
+
+    // Pretend the buffer is full to stop new data arriving
+    flowControlOut[port].write(0);
 
     if(DEBUG) cout << "Tore down connection at memory " << id <<
                       ", port " << port << endl;
   }
 
+}
+
+void MemoryMat::updateIdle() {
+  bool isIdle = true;
+
+  for(unsigned int i=0; i<connections.size(); i++) {
+    ConnectionStatus& c = connections[i];
+
+    // Note: we can't rely on the isActive method, since the user may forget
+    // to take down the connection.
+    if(c.isActive() && c.isStreaming()) isIdle = false;
+  }
+
+  idle.write(isIdle);
+
+  Instrumentation::idle(id, isIdle,
+      sc_core::sc_time_stamp().to_default_time_units());
 }
 
 // Estimate of area in um^2 obtained from Cacti.
@@ -191,7 +230,8 @@ void MemoryMat::storeData(std::vector<Word>& data) {
 MemoryMat::MemoryMat(sc_module_name name, int ID) :
     TileComponent(name, ID),
     data(MEMORY_SIZE),
-    connections(NUM_CLUSTER_INPUTS-1) {
+    connections(NUM_CLUSTER_INPUTS-1),
+    buffers(NUM_CLUSTER_INPUTS-1, 1) {   // Buffer size = 1 => can try expanding
 
   // Register methods
   SC_METHOD(doOp);

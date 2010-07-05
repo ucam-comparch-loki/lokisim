@@ -20,9 +20,27 @@ void WriteStage::newCycle() {
 
   while(true) {
     if(!stall.read()) {
-      COPY_IF_NEW(fromALU, regData);
-      COPY_IF_NEW(inRegAddr, outRegAddr);
-      COPY_IF_NEW(inIndAddr, outIndAddr);
+      // There are three possible signals showing activity, so we need an
+      // uglier way to test whether any of them are doing anything.
+      bool active = false;
+
+      if(fromALU.event()) {
+        regData.write(fromALU.read());
+        active = true;
+      }
+
+      if(inRegAddr.event()) {
+        outRegAddr.write(inRegAddr.read());
+        active = true;
+      }
+
+      if(inIndAddr.event()) {
+        outIndAddr.write(inIndAddr.read());
+        active = true;
+      }
+
+      idle.write(!active);
+
       COPY_IF_NEW(waitOnChannel, waitChannelSig);
     }
 

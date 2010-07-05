@@ -33,6 +33,7 @@ class Cluster : public TileComponent {
 //   out
 //   flowControlIn
 //   flowControlOut
+//   idle
 
 //==============================//
 // Constructors and destructors
@@ -68,6 +69,7 @@ public:
 private:
 
   void         stallPipeline();
+  void         updateIdle();
   void         updateCurrentPacket();
 
 //==============================//
@@ -90,6 +92,7 @@ private:
 private:
 
   sc_signal<bool>          stallSig;
+  sc_signal<bool>          fetchIdle, decodeIdle, executeIdle, writeIdle;
 
   // To/from fetch stage
   sc_buffer<Address>       FLtoIPKC, currentIPKSig;

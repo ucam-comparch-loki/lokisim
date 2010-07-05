@@ -131,10 +131,7 @@ void InstructionPacketCache::updateRTF() {
   isRoomToFetch.write((cache.remainingSpace() >= MAX_IPK_SIZE)
                     || finishedPacketRead);
 
-//  if(!cache.isEmpty())
-//  cout << this->name() << ": Space = " << cache.remainingSpace() << " " << isRoomToFetch.read() << endl;
-
-  flowControl.write(!cache.isFull());
+  flowControl.write(cache.remainingSpace());
 }
 
 void InstructionPacketCache::updatePacketAddress(Address addr) {

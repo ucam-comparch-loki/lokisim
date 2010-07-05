@@ -17,6 +17,8 @@ public:
 
   static void stall(int id, int cycle);
   static void unstall(int id, int cycle);
+  static void idle(int id, int cycle);
+  static void active(int id, int cycle);
   static void printStats();
 
 private:
@@ -28,7 +30,14 @@ private:
   // The total number of cycles each cluster has spent stalled.
   static CounterMap<int> stallTimes;
 
-  // The number of clusters stalled at the moment.
+  // The times that each cluster became idle (or UNSTALLED if the cluster is
+  // currently active).
+  static CounterMap<int> idleStart;
+
+  // The total number of cycles each cluster has spent idle.
+  static CounterMap<int> idleTimes;
+
+  // The number of clusters stalled or idle at the moment.
   static int numStalled;
 
   // The cycle number at which all clusters became inactive. It is safe to

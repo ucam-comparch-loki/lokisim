@@ -10,7 +10,7 @@
 /* Constructors and destructors */
 TileComponent::TileComponent(sc_module_name name, int ID) : Component(name, ID) {
 
-  flowControlOut = new sc_out<bool>[NUM_CLUSTER_INPUTS];
+  flowControlOut = new sc_out<int>[NUM_CLUSTER_INPUTS];
   in             = new sc_in<Word>[NUM_CLUSTER_INPUTS];
 
   flowControlIn  = new sc_in<bool>[NUM_CLUSTER_OUTPUTS];

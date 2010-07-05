@@ -25,7 +25,9 @@ int sc_main(int argc, char* argv[]) {
 
   Tile tile("tile", 0);
   sc_clock clock("clock", 1, SC_NS, 0.5);
+  sc_signal<bool> idle;
   tile.clock(clock);
+  tile.idle(idle);
 
   directory = "zigzag";
   coreFiles.push_back("0.loki");
@@ -35,7 +37,13 @@ int sc_main(int argc, char* argv[]) {
 
   CodeLoader::loadCode(tile, directory, coreFiles, memoryFiles);
 
-  for(int i=0; i<1800; i++) TIMESTEP;
+  for(int i=0; i<1800; i++) {
+    TIMESTEP;
+    if(idle.read()) {
+      sc_stop();
+      break;
+    }
+  }
 
   Instrumentation::printStats();
 

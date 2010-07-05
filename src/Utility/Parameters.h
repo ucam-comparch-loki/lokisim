@@ -40,5 +40,6 @@ extern parameter FLOW_CONTROL_BUFFER_SIZE;
 extern parameter NUM_CLUSTER_INPUTS;
 extern parameter NUM_CLUSTER_OUTPUTS;
 extern parameter COMPONENTS_PER_TILE;
+extern parameter NUM_TILES;
 
 #endif /* PARAMETERS_H_ */

@@ -29,12 +29,13 @@ public:
 // Inherited from PipelineStage:
 //   clock
 //   stall
+//   idle
 
   // The NUM_RECEIVE_CHANNELS inputs to the receive channel-end table.
   sc_in<Word>          *in;
 
   // A flow control signal for each input (NUM_RECEIVE_CHANNELS).
-  sc_out<bool>         *flowControlOut;
+  sc_out<int>          *flowControlOut;
 
   // An output used to send FETCH requests.
   sc_out<AddressedWord> out1;

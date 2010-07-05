@@ -19,6 +19,7 @@
 #include "TileComponent.h"
 #include "ConnectionStatus.h"
 #include "../Memory/AddressedStorage.h"
+#include "../Memory/BufferArray.h"
 #include "../Datatype/Word.h"
 
 class MemoryMat: public TileComponent {
@@ -33,6 +34,7 @@ class MemoryMat: public TileComponent {
 //   out
 //   flowControlIn
 //   flowControlOut
+//   idle
 
 //==============================//
 // Constructors and destructors
@@ -75,6 +77,9 @@ private:
   // Update the current connections to this memory.
   void updateControl();
 
+  // Update the output signal telling whether the memory is idle.
+  void updateIdle();
+
 //==============================//
 // Local state
 //==============================//
@@ -92,6 +97,9 @@ private:
 
   // Information on the channels set up with each of this memory's inputs.
   std::vector<ConnectionStatus> connections;
+
+  // A buffer for each output channel.
+  BufferArray<AddressedWord> buffers;
 
 };
 

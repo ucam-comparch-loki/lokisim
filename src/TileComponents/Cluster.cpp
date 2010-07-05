@@ -50,6 +50,17 @@ void Cluster::stallPipeline() {
   }
 }
 
+void Cluster::updateIdle() {
+  bool isIdle = fetchIdle.read()   && decodeIdle.read() &&
+                executeIdle.read() && writeIdle.read();
+
+  // Is this what we really want?
+  idle.write(isIdle || stallSig.read());
+
+  Instrumentation::idle(id, isIdle,
+      sc_core::sc_time_stamp().to_default_time_units());
+}
+
 void Cluster::updateCurrentPacket() {
   regs.updateCurrentIPK(currentIPKSig.read());
 }
@@ -80,6 +91,12 @@ Cluster::Cluster(sc_module_name name, int ID) :
 
   SC_METHOD(stallPipeline);
   sensitive << decStallSig << writeStallSig;
+  dont_initialize();
+  // do initialise
+
+  SC_METHOD(updateIdle);
+  sensitive << fetchIdle << decodeIdle << executeIdle << writeIdle;
+//  dont_initialize();
   // do initialise
 
   SC_METHOD(updateCurrentPacket);
@@ -106,12 +123,15 @@ Cluster::Cluster(sc_module_name name, int ID) :
     decode.flowControlOut[i-2](flowControlOut[i]);
   }
 
-  // Clock and stall signal
+  // Signals common to all pipeline stages
   fetch.clock(clock);                 fetch.stall(fetchStallSig);
   decode.clock(clock);                decode.stall(stallSig);
                                       decode.stallFetch(stallFetchSig);
   execute.clock(clock);               execute.stall(stallSig);
   write.clock(clock);                 write.stall(stallSig);
+
+  fetch.idle(fetchIdle);              decode.idle(decodeIdle);
+  execute.idle(executeIdle);          write.idle(writeIdle);
 
   // To/from fetch stage
   decode.address(FLtoIPKC);           fetch.address(FLtoIPKC);

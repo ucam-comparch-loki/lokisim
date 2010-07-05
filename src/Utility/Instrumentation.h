@@ -29,6 +29,9 @@ public:
   // Record that a particular core stalled or unstalled.
   static void stalled(int id, bool stalled, int cycle);
 
+  // Record that a particular core became idle or active.
+  static void idle(int id, bool idle, int cycle);
+
   // Record that data was sent over the network.
   static void networkTraffic(int startID, int endID, double distance);
 

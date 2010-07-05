@@ -39,11 +39,12 @@ void WrappedTileComponent::setup() {
   dataOutSig2     = new flag_signal<AddressedWord>[NUM_CLUSTER_OUTPUTS];
   requestsOutSig  = new sc_buffer<AddressedWord>[NUM_CLUSTER_OUTPUTS];
   fcOutSig        = new sc_signal<bool>[NUM_CLUSTER_OUTPUTS];
-  fcInSig         = new sc_signal<bool>[NUM_CLUSTER_INPUTS];
+  fcInSig         = new sc_signal<int>[NUM_CLUSTER_INPUTS];
 
 // Connect everything up
   comp->clock(clock);
   fcOut.clock(clock);
+  comp->idle(idle);
 
   for(int i=0; i<NUM_CLUSTER_INPUTS; i++) {
     fcIn.dataIn[i](dataIn[i]);

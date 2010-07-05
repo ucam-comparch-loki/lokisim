@@ -47,6 +47,9 @@ public:
   // data. There should be NUM_CLUSTER_INPUTS of them.
   sc_out<AddressedWord>    *responsesOut;
 
+  // Shows whether or not this component is doing any work currently.
+  sc_out<bool>              idle;
+
 //==============================//
 // Constructors and destructors
 //==============================//
@@ -94,7 +97,8 @@ private:
   flag_signal<Word>          *dataInSig;                // array
   flag_signal<AddressedWord> *dataOutSig, *dataOutSig2; // arrays
   sc_buffer<AddressedWord>   *requestsOutSig;           // array
-  sc_signal<bool>            *fcOutSig,   *fcInSig;     // arrays
+  sc_signal<bool>            *fcOutSig;                 // array
+  sc_signal<int>             *fcInSig;                  // array
 
 };
 

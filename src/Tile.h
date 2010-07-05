@@ -28,9 +28,11 @@ class Tile : public Component {
 
 public:
 
-  sc_in<bool> clock;
+  sc_in<bool>  clock;
 //  sc_in<AddressedWord>  *inNorth,  *inEast,  *inSouth,  *inWest;
 //  sc_out<AddressedWord> *outNorth, *outEast, *outSouth, *outWest;
+
+  sc_out<bool> idle;
 
 //==============================//
 // Constructors and destructors
@@ -38,6 +40,7 @@ public:
 
 public:
 
+  SC_HAS_PROCESS(Tile);
   Tile(sc_module_name name, int ID);
   virtual ~Tile();
 
@@ -57,6 +60,10 @@ public:
   static void connectLeftRight(const Tile& left, const Tile& right);
   static void connectTopBottom(const Tile& top, const Tile& bottom);
 
+private:
+
+  void updateIdle();
+
 //==============================//
 // Components
 //==============================//
@@ -75,6 +82,7 @@ private:
   flag_signal<Word>          *responsesToCluster, *requestsToCluster; // arrays
   flag_signal<Word>          *dataToCluster;                          // array
   flag_signal<AddressedWord> *responsesFromCluster;                   // array
+  sc_signal<bool>            *idleSig;                                // array
 
 };
 

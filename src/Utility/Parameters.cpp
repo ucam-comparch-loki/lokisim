@@ -12,7 +12,7 @@
 
 #include "Parameters.h"
 
-extern parameter DEBUG = 1;
+extern parameter DEBUG = 0;
 
 extern parameter NUM_CHANNELS_BETWEEN_TILES = 4;
 extern parameter CLUSTERS_PER_TILE = 12;
@@ -39,3 +39,4 @@ extern parameter FLOW_CONTROL_BUFFER_SIZE = 4;
 extern parameter NUM_CLUSTER_INPUTS = 2 + NUM_RECEIVE_CHANNELS;
 extern parameter NUM_CLUSTER_OUTPUTS = 1 + NUM_SEND_CHANNELS;
 extern parameter COMPONENTS_PER_TILE = CLUSTERS_PER_TILE + MEMS_PER_TILE;
+extern parameter NUM_TILES = NUM_TILE_ROWS * NUM_TILE_COLUMNS;

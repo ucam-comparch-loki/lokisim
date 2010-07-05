@@ -24,7 +24,8 @@ protected:
   sc_signal<AddressedWord> out;
   sc_signal<Instruction> instIn, instOut;
   sc_buffer<bool> cacheHit;
-  sc_signal<bool> isIndirect, flowControl, roomToFetch, setPredicate, *fc;
+  sc_signal<bool> isIndirect, flowControl, roomToFetch, setPredicate;
+  sc_signal<int> *fc;
   sc_signal<Address> address;
   sc_signal<short> regRead1, regRead2, write, indWrite, rChannel;
   sc_signal<short> operation, op1Select, op2Select;
@@ -38,7 +39,7 @@ protected:
       clock("clock", 1, SC_NS, 0.5) {
 
     in = new sc_signal<Word>[NUM_RECEIVE_CHANNELS];
-    fc = new sc_signal<bool>[NUM_RECEIVE_CHANNELS];
+    fc = new sc_signal<int>[NUM_RECEIVE_CHANNELS];
 
     for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
       ds.in[i](in[i]);

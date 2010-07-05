@@ -7,15 +7,6 @@
 
 #include "FlowControlIn.h"
 
-/* If the component is allowing data in, and we have data to send, send it. */
-void FlowControlIn::receivedFlowControl() {
-  for(int i=0; i<width; i++) {
-    if(flowControl[i].read() && !(buffers[i].isEmpty())) {
-      dataOut[i].write(buffers.read(i));
-    }
-  }
-}
-
 /* Respond to all new requests to send data to this component. */
 void FlowControlIn::receivedRequests() {
   for(int i=0; i<width; i++) {
@@ -23,24 +14,20 @@ void FlowControlIn::receivedRequests() {
 
     // Only send a response if the request is new
     if(requests[i].event()) {
-//      if(DEBUG) cout << "Received request at input " << i << ": ";
 
       if(acceptRequest(r, i)) {
         Data d(1);    // Accept
         AddressedWord aw(d, r.getReturnID());
         responses[i].write(aw);
 
-        // Store the number of flits we're expecting.
+        // Store the number of flits we're expecting. This allows us to block
+        // any new requests until the transaction is complete.
         flitsRemaining[i] = r.getNumFlits();
-
-//        if(DEBUG) cout << "accepted." << endl;
       }
       else {
         Data d(0);    // Deny
         AddressedWord aw(d, r.getReturnID());
         responses[i].write(aw);
-
-//        if(DEBUG) cout << "denied." << endl;
       }
     }
   }
@@ -52,9 +39,12 @@ void FlowControlIn::receivedData() {
   for(int i=0; i<width; i++) {
     // Only write a value if it is new and it is expected
     if(dataIn[i].event() && (flitsRemaining[i] > 0)) {
-      buffers.write(dataIn[i].read(), i);
-      tryToSend.write(!tryToSend.read());
+
+      // TODO: select output channel based on information received.
+      // Allows virtual channels/multiplexing/etc
+      dataOut[i].write(dataIn[i].read());
       flitsRemaining[i] -= 1;
+
     }
   }
 }
@@ -64,7 +54,7 @@ void FlowControlIn::receivedData() {
  * method is store-and-forward (must be room in buffer for whole request). */
 bool FlowControlIn::acceptRequest(Request r, int input) {
   // Accept a request if there is space, and the port is free.
-  bool result = (buffers[input].remainingSpace() >= r.getNumFlits()) &&
+  bool result = (flowControl[input] >= r.getNumFlits()) &&
                 (flitsRemaining[input] == 0);
 
   return result;
@@ -74,14 +64,9 @@ void FlowControlIn::setup() {
 
   dataIn      = new sc_in<Word>[width];
   requests    = new sc_in<Word>[width];
-  flowControl = new sc_in<bool>[width];
+  flowControl = new sc_in<int>[width];
   dataOut     = new sc_out<Word>[width];
   responses   = new sc_out<AddressedWord>[width];
-
-  SC_METHOD(receivedFlowControl);
-  sensitive << tryToSend;
-  for(int i=0; i<width; i++) sensitive << flowControl[i];
-  dont_initialize();
 
   SC_METHOD(receivedRequests);
   for(int i=0; i<width; i++) sensitive << requests[i];
@@ -95,7 +80,6 @@ void FlowControlIn::setup() {
 
 FlowControlIn::FlowControlIn(sc_module_name name, int width) :
     Component(name),
-    buffers(width, FLOW_CONTROL_BUFFER_SIZE),
     width(width),
     flitsRemaining(width, 0) {
 

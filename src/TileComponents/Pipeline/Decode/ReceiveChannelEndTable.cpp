@@ -154,7 +154,7 @@ void ReceiveChannelEndTable::updateToALU1() {
  * written to. */
 void ReceiveChannelEndTable::updateFlowControl() {
   for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
-    flowControl[i].write(!buffers[i].isFull());
+    flowControl[i].write(buffers[i].remainingSpace());
   }
 }
 
@@ -196,7 +196,7 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name) :
     buffers(NUM_RECEIVE_CHANNELS, CHANNEL_END_BUFFER_SIZE),
     currentChannel(NUM_RECEIVE_CHANNELS) {
 
-  flowControl = new sc_out<bool>[NUM_RECEIVE_CHANNELS];
+  flowControl = new sc_out<int>[NUM_RECEIVE_CHANNELS];
   fromNetwork = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
 
   waiting1 = waiting2 = NO_CHANNEL;

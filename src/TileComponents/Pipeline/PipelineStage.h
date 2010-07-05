@@ -29,11 +29,14 @@ class PipelineStage : public Component {
 public:
 
   // Clock.
-  sc_in<bool> clock;
+  sc_in<bool>  clock;
 
   // When true, the pipeline stage should do nothing. When false, execution
   // can continue as normal.
-  sc_in<bool> stall;
+  sc_in<bool>  stall;
+
+  // Signal that this pipeline stage is currently idle.
+  sc_out<bool> idle;
 
 //==============================//
 // Constructors and destructors

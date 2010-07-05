@@ -36,9 +36,9 @@ public:
   // Responses to requests from each input ("width" elements long).
   sc_out<AddressedWord> *responses;
 
-  // Flow control signals from each of the components inputs, saying whether
-  // they are ready to receive the next piece of data ("width" elements long).
-  sc_in<bool>           *flowControl;
+  // Flow control signals from each of the components inputs, saying how
+  // much space is in their buffers (array is "width" elements long).
+  sc_in<int>            *flowControl;
 
   // Data to be sent to each of the component's inputs ("width" elements).
   sc_out<Word>          *dataOut;
@@ -59,7 +59,6 @@ public:
 
 protected:
 
-  virtual void receivedFlowControl();
   virtual void receivedRequests();
   void         receivedData();
   virtual bool acceptRequest(Request r, int input);
@@ -70,12 +69,6 @@ protected:
 //==============================//
 
 protected:
-
-  // The network's output buffers.
-  BufferArray<Word> buffers;
-
-  // Signals that we have new data and want to send it.
-  sc_buffer<bool>   tryToSend;
 
   // The number of inputs and outputs of this component.
   const int         width;

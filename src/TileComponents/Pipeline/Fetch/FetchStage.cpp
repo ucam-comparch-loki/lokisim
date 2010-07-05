@@ -25,9 +25,13 @@ void FetchStage::newCycle() {
 
     // Select a new instruction unless the processor is stalled, or the FIFO
     // and cache are both empty.
-    if(!stall.read() && !(fifoEmpty.read() && cache.isEmpty())) {
-      if(!usingCache) readFromFIFO.write(!readFromFIFO.read());
-      else readFromCache.write(!readFromCache.read());
+    if(!stall.read()) {
+      if(!(fifoEmpty.read() && cache.isEmpty())) {
+        if(usingCache) readFromCache.write(!readFromCache.read());
+        else readFromFIFO.write(!readFromFIFO.read());
+        idle.write(false);
+      }
+      else idle.write(true);
     }
   }
 }
@@ -99,7 +103,7 @@ FetchStage::FetchStage(sc_module_name name) :
     mux("fetchmux") {
 
   usingCache = true;
-  flowControl = new sc_out<bool>[2];
+  flowControl = new sc_out<int>[2];
 
 // Register methods
   SC_METHOD(newFIFOInst);

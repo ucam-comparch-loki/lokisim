@@ -20,7 +20,7 @@ protected:
   flag_signal<Word>          *in;              // array
   flag_signal<AddressedWord> *out;             // array
   sc_buffer<bool>            *flowControlIn;   // array
-  sc_buffer<bool>            *flowControlOut;  // array
+  sc_buffer<int>             *flowControlOut;  // array
 
   sc_core::sc_trace_file *trace;
 
@@ -31,7 +31,7 @@ protected:
     in             = new flag_signal<Word>[NUM_CLUSTER_INPUTS];
     out            = new flag_signal<AddressedWord>[NUM_CLUSTER_OUTPUTS];
     flowControlIn  = new sc_buffer<bool>[NUM_CLUSTER_OUTPUTS];
-    flowControlOut = new sc_buffer<bool>[NUM_CLUSTER_INPUTS];
+    flowControlOut = new sc_buffer<int>[NUM_CLUSTER_INPUTS];
 
     cluster.clock(clock);
     for(int i=0; i<NUM_CLUSTER_INPUTS; i++) {

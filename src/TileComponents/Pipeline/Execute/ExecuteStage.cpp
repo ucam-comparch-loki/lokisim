@@ -23,7 +23,12 @@ void ExecuteStage::newCycle() {
       COPY_IF_NEW(op2Select, in2Select);
 
       wait(0, sc_core::SC_NS);  // Allow time for the multiplexors to select values
-      COPY_IF_NEW(operation, ALUSelect);
+
+      if(operation.event()) {
+        ALUSelect.write(operation.read());
+        idle.write(false);
+      }
+      else idle.write(true);
 
       COPY_IF_NEW(remoteInstIn, remoteInstOut);
       COPY_IF_NEW(writeIn, writeOut);

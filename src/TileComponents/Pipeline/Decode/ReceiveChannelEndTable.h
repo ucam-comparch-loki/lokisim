@@ -32,9 +32,9 @@ public:
   // inputs in the array.
   sc_in<Word>  *fromNetwork;
 
-  // A flow control signal for each input (NUM_RECEIVE_CHANNELS), to stop
-  // further values being sent if a buffer is full.
-  sc_out<bool> *flowControl;
+  // A flow control signal for each input (NUM_RECEIVE_CHANNELS), to tell the
+  // flow control unit how much space is left in its buffer.
+  sc_out<int>  *flowControl;
 
   // The channels to read data from. fromDecoder1 specifies the channel whose
   // data should be sent to the ALU's first input (and similar for fromDecoder2).

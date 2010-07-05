@@ -29,6 +29,11 @@ void Instrumentation::stalled(int id, bool stalled, int cycle) {
   else Stalls::unstall(id, cycle);
 }
 
+void Instrumentation::idle(int id, bool idle, int cycle) {
+  if(idle) Stalls::idle(id, cycle);
+  else Stalls::active(id, cycle);
+}
+
 void Instrumentation::networkTraffic(int startID, int endID, double distance) {
   Network::traffic(startID, endID, distance);
 }

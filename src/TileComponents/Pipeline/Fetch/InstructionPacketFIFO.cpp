@@ -25,7 +25,7 @@ void InstructionPacketFIFO::updateEmptySig() {
 }
 
 void InstructionPacketFIFO::newCycle() {
-  flowControl.write(!fifo.isFull());
+  flowControl.write(fifo.remainingSpace());
 }
 
 bool InstructionPacketFIFO::isEmpty() {

@@ -64,9 +64,8 @@ public:
   // to be fetched again.
   sc_out<bool>        refetch;
 
-  // Signal telling whether new instructions from the network can be put in
-  // the cache.
-  sc_out<bool>        flowControl;
+  // Signal telling the flow control unit how much space is left in the cache.
+  sc_out<int>         flowControl;
 
 //==============================//
 // Constructors and destructors

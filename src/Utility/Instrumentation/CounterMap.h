@@ -32,6 +32,7 @@ public:
   }
 
   void setCount(T& event, int count) {
+    // Note: this will probably invalidate the totalEvents count
     counters[event] = count;
   }
 

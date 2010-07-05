@@ -18,16 +18,19 @@ double DecodeStage::energy() const {
 /* Direct any new inputs to their destinations every clock cycle. */
 void DecodeStage::newCycle() {
   while(true) {
-    if(!stall.read()) {
-      COPY_IF_NEW(instructionIn, instructionSig);
+    if(!stall.read() && instructionIn.event()) {
+      // Not stalled and have new instruction
+      instructionSig.write(instructionIn.read());
+      idle.write(false);
     }
-
-    // If the decoder is stalling, it is because it is carrying out a
-    // multi-cycle operation. It needs to be able to complete this.
-    // Send the same instruction again to wake the decoder up.
-    if(stallFetch.read()) {
+    else if(stallFetch.read()) {
+      // If the decoder is stalling, it is because it is carrying out a
+      // multi-cycle operation. It needs to be able to complete this.
+      // Send the same instruction again to wake the decoder up.
       instructionSig.write(instructionSig.read());
+      idle.write(false);
     }
+    else idle.write(true);  // What if a fetch is waiting to be sent?
 
     for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
       COPY_IF_NEW(in[i], fromNetwork[i]);
@@ -80,7 +83,7 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
     extend("signextend") {
 
   in = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
-  flowControlOut = new sc_out<bool>[NUM_RECEIVE_CHANNELS];
+  flowControlOut = new sc_out<int>[NUM_RECEIVE_CHANNELS];
   fromNetwork = new sc_buffer<Word>[NUM_RECEIVE_CHANNELS];
 
 // Register methods

@@ -27,6 +27,7 @@ public:
 // Inherited from PipelineStage:
 //   clock
 //   stall
+//   idle
 
   // Two data inputs from the receive channel-end table.
   sc_in<Data>         fromRChan1, fromRChan2;

@@ -21,7 +21,7 @@ protected:
   flag_signal<Word>          *in;
   flag_signal<AddressedWord> *out;
   sc_signal<bool>            *fcIn;
-  sc_signal<bool>            *fcOut;
+  sc_signal<int>             *fcOut;
 
   MemoryMatTest() :
       memory("memory", 1),
@@ -30,7 +30,7 @@ protected:
     in    = new flag_signal<Word>[NUM_CLUSTER_INPUTS];
     out   = new flag_signal<AddressedWord>[NUM_CLUSTER_OUTPUTS];
     fcIn  = new sc_signal<bool>[NUM_CLUSTER_OUTPUTS];
-    fcOut = new sc_signal<bool>[NUM_CLUSTER_INPUTS];
+    fcOut = new sc_signal<int>[NUM_CLUSTER_INPUTS];
 
   }
 
