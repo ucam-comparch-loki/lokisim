@@ -1,14 +1,12 @@
-fetch       r1,  5
-addui       r0,  r0,  32  > 55   ; connect to the data memory
+fetch       r1,  4
+addui       r0,  r0,  32  > (13,3)   ; connect to the data memory
 addui       r9,  r0,  7          ; store 7, since it is a common offset
-addui       r10, ch1, 0          ; wait until we receive a block location
-nop.eop
+addui.eop   r10, ch1, 0          ; wait until we receive a block location
 
-fetch       r1,  5               ; MOVING UPWARDS
+fetch       r1,  4               ; MOVING UPWARDS
 addu        r12, r10, r11        ; ============================
-ld          r12, 0        > 52   ;  Load and forward data item
-addui       r0,  ch0, 0   > 6    ; ============================
-nop.eop
+ld          r12, 0        > (13,0)   ;  Load and forward data item
+addui.eop   r0,  ch0, 0   > (1,2)    ; ============================
 
 slti.p      r0,  r11, 8          ; see if we have hit the top of the grid
 nop
@@ -20,39 +18,35 @@ nop.eop
 seqi.p      r0,  r11, 63         ; see if we have finished the block
 nop
 !p?fetch    r1,  5               ; we haven't: check the final condition
-p?fetch     r1,  32              ; we have: end
+p?fetch     r1,  -14             ; we have: end/restart
 nop.eop
 
 and         r13, r11, r9
 seq.p       r0,  r13, r9         ; see if we have hit the right of the grid
 nop
 !p?subu     r11, r11, r9
-!p?fetch    r1,  -16             ; we haven't: keep moving up
+!p?fetch    r1,  -15             ; we haven't: keep moving up
 p?addui     r11, r11, 8
 p?fetch     r1,  8               ; we have: switch to moving down
 nop.eop
 
-fetch       r1,  5               ; MOVING DOWNWARDS
+fetch       r1,  4               ; MOVING DOWNWARDS
 addu        r12, r10, r11        ; ============================
-ld          r12, 0        > 52   ;  Load and forward data item
-addui       r0,  ch0, 0   > 6    ; ============================
-nop.eop
+ld          r12, 0        > (13,0)   ;  Load and forward data item
+addui.eop   r0,  ch0, 0   > (1,2)    ; ============================
 
 slti.p      r0,  r11, 56         ; see if we have reached the bottom of the grid
 nop
 p?fetch     r1,  6               ; we haven't: check the other condition
 !p?addui    r11, r11, 1
-!p?fetch    r1,  -29             ; we have: switch to moving up
+!p?fetch    r1,  -27             ; we have: switch to moving up
 nop.eop
 
 and         r13, r11, r9
 seq.p       r0,  r13, r0         ; see if we have reached the left of the grid
 nop
 !p?addu     r11, r11, r9
-!p?fetch    r1,  -11             ; we haven't: keep moving down
+!p?fetch    r1,  -10             ; we haven't: keep moving down
 p?addui     r11, r11, 8
-p?fetch     r1,  -35             ; we have: switch to moving up
-nop.eop
-
-fetch       r1, -48              ; end of block: restart function
+p?fetch     r1,  -33             ; we have: switch to moving up
 nop.eop

@@ -95,8 +95,9 @@ Instruction::Instruction(const string& inst) {
 
   vector<string> words;
 
-  // Skip this line if it is a comment
-  if((inst[0] == '%') || (inst[0] == ';')) throw std::exception();
+  // Skip this line if it is a comment or empty
+  if((inst[0]=='%') || (inst[0]==';') || (inst[0]=='\n') || (inst[0]=='\r'))
+    throw std::exception();
 
   // Remove any comments by splitting around ';' and only keeping the first part
   words = Strings::split(inst, ';');
@@ -106,7 +107,7 @@ Instruction::Instruction(const string& inst) {
 
   // Split around "->" to see if there is a remote channel specified
   words = Strings::split(words.front(), '>');
-  if(words.size() > 1) setRchannel(Strings::strToInt(words[1]));
+  if(words.size() > 1) decodeRChannel(words[1]);
   else setRchannel(NO_CHANNEL);
 
   // Split around ' ' to separate all remaining parts of the instruction
@@ -230,4 +231,19 @@ void Instruction::decodeOpcode(const string& opcode) {
   short op = InstructionMap::opcode(opcodeParts.front());
   setOp(op);
 
+}
+
+/* Set the remote channel field depending on the contents of the given string.
+ * The string may contain an integer, or a pair of integers in the form (x,y),
+ * representing a component and one of its input ports. */
+void Instruction::decodeRChannel(const string& channel) {
+  vector<string> parts = Strings::split(channel, ',');
+  if(parts.size() == 1) setRchannel(Strings::strToInt(parts[0]));
+  else {
+    string component = Strings::split(parts[0],'(').at(1); // Remove the bracket
+    string port = Strings::split(parts[1],')').at(0);      // Remove the bracket
+    int channel = Strings::strToInt(component) * NUM_CLUSTER_INPUTS
+                + Strings::strToInt(port);
+    setRchannel(channel);
+  }
 }

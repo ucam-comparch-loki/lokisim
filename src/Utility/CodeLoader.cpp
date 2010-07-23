@@ -30,6 +30,11 @@ void CodeLoader::loadCode(string& filename, TileComponent& component) {
 void CodeLoader::loadCode(Tile& tile, string& directory,
                           vector<string>& coreFiles, vector<string>& memFiles) {
 
+  // TODO: allow both code and data to be in the same file.
+  // Perhaps also allow multiple files to be loaded into the same memory.
+
+  if(DEBUG) std::cout << "Initialising..." << endl;
+
   for(unsigned int i=0; i<coreFiles.size(); i++) {
     string filename = directory + "/" + coreFiles[i];
     loadCode(filename, tile, i);
@@ -39,6 +44,8 @@ void CodeLoader::loadCode(Tile& tile, string& directory,
     string filename = directory + "/" + memFiles[i];
     loadCode(filename, tile, CLUSTERS_PER_TILE + i);
   }
+
+  if(DEBUG) std::cout << endl;
 
 }
 
@@ -54,11 +61,11 @@ vector<Word>& CodeLoader::getData(string& filename) {
   // See if this file contains Instructions or Data
   bool instructionFile = isInstructionFile(filename);
 
-  char wordAsString[100];   // Is this enough?
+  char wordAsString[200];   // Is this enough?
 
   while(!file.fail()) {
     try {
-      file.getline(wordAsString, 100, '\n');
+      file.getline(wordAsString, 200, '\n');
       if(file.eof()) break;
 
       try {
@@ -66,7 +73,7 @@ vector<Word>& CodeLoader::getData(string& filename) {
         words->push_back(w);
       }
       catch (std::exception e) {
-        continue; // If we couldn't make a word, try the next line
+        continue; // If we couldn't make a valid word, try the next line
       }
 
     }
@@ -78,6 +85,8 @@ vector<Word>& CodeLoader::getData(string& filename) {
 
   if(words->size() == 0)
     std::cerr << "Error: read 0 words from file " << fullName << endl;
+  else if(DEBUG) std::cout << "Retrieved " << words->size() <<
+    " words from file " << fullName << endl;
 
   file.close();
 

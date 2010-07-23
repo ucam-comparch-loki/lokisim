@@ -203,6 +203,8 @@ void MemoryMat::updateIdle() {
     // Note: we can't rely on the isActive method, since the user may forget
     // to take down the connection.
     if(c.isActive() && c.isStreaming()) isIdle = false;
+
+    // TODO: memory is active if it was read from in this cycle
   }
 
   idle.write(isIdle);
@@ -231,7 +233,7 @@ MemoryMat::MemoryMat(sc_module_name name, int ID) :
     TileComponent(name, ID),
     data(MEMORY_SIZE),
     connections(NUM_CLUSTER_INPUTS-1),
-    buffers(NUM_CLUSTER_INPUTS-1, 1) {   // Buffer size = 1 => can try expanding
+    buffers(NUM_CLUSTER_INPUTS-1, 1) {
 
   // Register methods
   SC_METHOD(doOp);

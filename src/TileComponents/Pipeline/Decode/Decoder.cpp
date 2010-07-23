@@ -31,9 +31,9 @@ void Decoder::decodeInstruction() {
   short destination   = i.getDest();
   short operand1      = i.getSrc1();
   short operand2      = i.getSrc2();
-  int immediate       = i.getImmediate();
+  int   immediate     = i.getImmediate();
   short pred          = i.getPredicate();
-  bool setPred        = i.getSetPredicate();
+  bool  setPred       = i.getSetPredicate();
   short remoteChannel = i.getRchannel();
 
   bool execute = shouldExecute(pred);
@@ -45,14 +45,21 @@ void Decoder::decodeInstruction() {
     if(pred == Instruction::P) {
       i.setPredicate(Instruction::END_OF_PACKET); // Set it to always execute
       instructionOut.write(i);
-      rChannel.write(remoteChannel);
+      rChannel.write(sendChannel);
+      return;
     }
     // Drop out of remote execution mode when we find an unmarked instruction.
-    else remoteExecute = false;
+    else {
+      remoteExecute = false;
+      if(DEBUG) cout << this->name() << " ending remote execution" << endl;
+    }
   }
 
   // COMMON CAUSE OF PROBLEMS: INSTRUCTION NOT EXECUTED BECAUSE OF PREDICATE
-  if(!execute) return;
+  if(!execute) {
+    if(DEBUG) cout << this->name() << " not executing instruction" << endl;
+    return;
+  }
 
   // Send the remote channel to the write stage
   if(InstructionMap::hasRemoteChannel(operation)) {
@@ -62,19 +69,19 @@ void Decoder::decodeInstruction() {
   setPredicate.write(setPred);
 
   if(operation == InstructionMap::LD || operation == InstructionMap::LDB) {
-    setDestination(0); // Don't want to write
     setOperand1(operation, destination);
     setOperand2(operation, 0, immediate);
-    this->operation.write(InstructionMap::ADDUI);
+    setDestination(0); // Don't want to write
+    this->operation.write(InstructionMap::ORI);
     memoryOp.write(MemoryRequest::LOAD);
     return;
   }
 
   if(operation == InstructionMap::ST || operation == InstructionMap::STB) {
-    setDestination(0);
     setOperand1(operation, operand1);
     setOperand2(operation, 0, immediate);
-    this->operation.write(InstructionMap::ADDUI);
+    setDestination(0);
+    this->operation.write(InstructionMap::ORI);
     stall.write(true);
     currentlyWriting = true;
     memoryOp.write(MemoryRequest::STORE);
@@ -82,10 +89,10 @@ void Decoder::decodeInstruction() {
   }
 
   if(operation == InstructionMap::STADDR || operation == InstructionMap::STBADDR) {
-    setDestination(0);
     setOperand1(operation, destination);
     setOperand2(operation, 0, immediate);
-    this->operation.write(InstructionMap::ADDUI);
+    setDestination(0);
+    this->operation.write(InstructionMap::ORI);
     memoryOp.write(MemoryRequest::STADDR);
     return;
   }
@@ -120,6 +127,7 @@ void Decoder::decodeInstruction() {
   if(operation == InstructionMap::RMTEXECUTE) {
     remoteExecute = true;
     sendChannel = remoteChannel;
+    if(DEBUG) cout << this->name() << " beginning remote execution" << endl;
     return;
   }
 
@@ -260,8 +268,6 @@ bool Decoder::shouldExecute(short predBits) {
                 (predBits == Instruction::END_OF_PACKET) ||
                 (predBits == Instruction::P     &&  predicate.read()) ||
                 (predBits == Instruction::NOT_P && !predicate.read());
-
-  if(DEBUG && !result) cout<<this->name()<<" not executing instruction"<<endl;
 
   return result;
 

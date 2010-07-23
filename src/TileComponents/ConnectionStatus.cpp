@@ -36,7 +36,8 @@ bool ConnectionStatus::readingIPK() const {
 }
 
 void ConnectionStatus::incrementAddress() {
-  address += STRIDE;
+  /*if(operation == LOADBYTE || operation == STOREBYTE)*/ address += STRIDE;
+  //else address += STRIDE * BYTES_PER_WORD;
 }
 
 void ConnectionStatus::clear() {

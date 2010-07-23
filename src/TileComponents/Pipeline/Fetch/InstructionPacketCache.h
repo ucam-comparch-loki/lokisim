@@ -130,6 +130,11 @@ private:
   // Perform any necessary tasks when starting to read a new instruction packet.
   void startOfPacketTasks();
 
+  // Tells whether an instruction was sent this cycle -- sometimes there may
+  // be potential instructions both in the cache and arriving on the network
+  // and we don't want to send both in the same cycle.
+  bool sentInstThisCycle() const;
+
 //==============================//
 // Local state
 //==============================//
@@ -140,9 +145,9 @@ private:
   Buffer<Address> addresses;
   Instruction     instToSend;
 
-  // We have sent a newly-received instruction for decoding, so when an
-  // instruction is requested in the same cycle, nothing needs to be done.
-  bool            sentNewInst;
+  // The cycle during which the most recent instruction was sent -- allows us
+  // to avoid sending more than one in a single cycle.
+  int             lastInstSent;
 
   // The instruction sent has been read, so we can now prepare the next one.
   bool            outputWasRead;

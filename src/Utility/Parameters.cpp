@@ -12,7 +12,7 @@
 
 #include "Parameters.h"
 
-extern parameter DEBUG = 0;
+extern parameter DEBUG = 1;
 
 extern parameter NUM_CHANNELS_BETWEEN_TILES = 4;
 extern parameter CLUSTERS_PER_TILE = 12;
@@ -21,7 +21,7 @@ extern parameter MEMS_PER_TILE = 4;
 extern parameter NUM_TILE_ROWS = 1;
 extern parameter NUM_TILE_COLUMNS = 1;
 
-extern parameter MAX_IPK_SIZE = 34;
+extern parameter MAX_IPK_SIZE = 40;
 
 // Memory
 extern parameter NUM_ADDRESSABLE_REGISTERS = 32;

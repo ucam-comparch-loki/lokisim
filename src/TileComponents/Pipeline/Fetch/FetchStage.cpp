@@ -63,7 +63,8 @@ short FetchStage::calculateSelect() {
 
   if(usingCache) {
     Instruction i = cacheToMux.read();
-    usingCache = fifoEmpty.read() || !i.endOfPacket();
+    justFinishedPacket = i.endOfPacket();
+    usingCache = (fifoEmpty.read() || !justFinishedPacket) && !cache.isEmpty();
     result = CACHE;
   }
   else {

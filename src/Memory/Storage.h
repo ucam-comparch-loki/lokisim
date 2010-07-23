@@ -50,7 +50,7 @@ protected:
 
   // Throw an exception if the address is not within the bounds of the array.
   void checkBounds(int addr) const {
-    if((addr < 0) || (addr > size())) {
+    if((addr < 0) || (addr >= size())) {
       cerr << "Error: attempting to access memory address " << addr << endl;
       throw std::exception();
     }

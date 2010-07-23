@@ -90,10 +90,12 @@ public:
 
 private:
 
-  enum Operation {NONE, LOAD, STORE};
+  enum Operation {NONE, LOAD, LOADBYTE, STORE, STOREBYTE};
 
   static const int UNUSED = -1;
   static const int STRIDE = 1;
+
+  static const int BYTES_PER_WORD = 4;
 
   int   remoteChannel;
   int   address;

@@ -22,8 +22,7 @@ void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
   if(instToSend.endOfPacket()) endOfPacketTasks();
 
   wake(readyToWrite);   // Invoke the write() method
-  sentNewInst = true;
-  outputWasRead = false;
+
 }
 
 /* Put a received instruction into the cache at the appropriate position. */
@@ -55,15 +54,13 @@ void InstructionPacketCache::insertInstruction() {
   // Make a note for next cycle if it will be the start of a new packet.
   startOfPacket = instructionIn.read().endOfPacket();
 
-  if(empty && outputWasRead) {    // Send the instruction immediately
+  if(empty && outputWasRead && !sentInstThisCycle()) { // Send inst immediately
     instToSend = cache.read();
 
     if(instToSend.endOfPacket()) endOfPacketTasks();
     else if(finishedPacketRead)  wake(startingPacket);
 
     wake(readyToWrite);           // Invoke the write() method
-    sentNewInst = true;
-    outputWasRead = false;
   }
 
 }
@@ -98,7 +95,9 @@ void InstructionPacketCache::lookup() {
  * necessary, and prepare the next instruction. */
 void InstructionPacketCache::finishedRead() {
 
-  if(!sentNewInst && !cache.isEmpty()) {
+  outputWasRead = true;
+
+  if(!sentInstThisCycle() && !cache.isEmpty()) {
     instToSend = cache.read();
 
     if(instToSend.endOfPacket()) endOfPacketTasks();
@@ -109,9 +108,6 @@ void InstructionPacketCache::finishedRead() {
     wake(readyToWrite);   // Invoke the write() method
   }
 
-  sentNewInst = false;    // Reset for next cycle
-  outputWasRead = true;
-
 }
 
 /* Jump to a new instruction specified by the offset amount. */
@@ -121,6 +117,8 @@ void InstructionPacketCache::jump() {
   cache.jump(jumpOffset.read());
   instToSend = cache.read();
   if(instToSend.endOfPacket()) endOfPacketTasks();
+
+  wake(startingPacket);
 
   wake(readyToWrite);     // Invoke the write() method
 }
@@ -147,9 +145,11 @@ void InstructionPacketCache::updatePersistent() {
  * instructions, but only one method is allowed to drive a particular wire. */
 void InstructionPacketCache::write() {
   instructionOut.write(instToSend);
+  lastInstSent = sc_core::sc_time_stamp().to_default_time_units();
+  outputWasRead = false;
 }
 
-/* Convenience method, avoid using if possible. */
+/* Returns whether or not the cache is empty. */
 bool InstructionPacketCache::isEmpty() {
   return cache.isEmpty();
 }
@@ -157,6 +157,7 @@ bool InstructionPacketCache::isEmpty() {
 /* Perform any necessary tasks when the end of an instruction packet has been
  * reached. */
 void InstructionPacketCache::endOfPacketTasks() {
+  cout << this->name() << " ";  // Cache will print rest
   cache.switchToPendingPacket();
   finishedPacketRead = true;
 }
@@ -167,15 +168,19 @@ void InstructionPacketCache::startOfPacketTasks() {
   finishedPacketRead = false;
 }
 
+bool InstructionPacketCache::sentInstThisCycle() const {
+  return sc_core::sc_time_stamp().to_default_time_units() == lastInstSent;
+}
+
 /* Constructors and destructors */
 InstructionPacketCache::InstructionPacketCache(sc_module_name name) :
     Component(name),
     cache(IPK_CACHE_SIZE),
     addresses(4) {        // 4 = max outstanding fetches allowed
 
-  sentNewInst = false;
   outputWasRead = true;   // Allow the first received instruction to pass through
   startOfPacket = true;
+  lastInstSent = -1;
 
 // Register methods
   SC_METHOD(insertInstruction);

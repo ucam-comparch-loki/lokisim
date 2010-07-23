@@ -118,6 +118,8 @@ private:
   // Tells whether the last operation read from the cache or not.
   bool usingCache;
 
+  bool justFinishedPacket;
+
   enum InstructionSource {CACHE, FIFO};
 
 //==============================//

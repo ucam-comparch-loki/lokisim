@@ -73,7 +73,7 @@ void Stalls::printStats() {
     // Only print statistics for clusters which have seen some activity.
     if(stallTimes[i] < endOfExecution) {
       int activeCycles = endOfExecution - stallTimes[i] - idleTimes[i];
-      cout << "  " << i << "\t\t\t" <<
+      cout << "  " << i << "\t\t" <<
           asPercentage(activeCycles, endOfExecution) << "\t" <<
           asPercentage(idleTimes[i], endOfExecution) << "\t" <<
           asPercentage(stallTimes[i], endOfExecution) << endl;

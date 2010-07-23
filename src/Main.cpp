@@ -19,6 +19,21 @@ string directory;
 vector<string> coreFiles;
 vector<string> memoryFiles;
 
+void loadFiles() {
+
+//  directory = "dct";
+//  coreFiles.push_back("0.loki");
+//  memoryFiles.push_back("12.loki");
+//  memoryFiles.push_back("weights.data");
+
+  directory = "zigzag";
+  coreFiles.push_back("0.loki");
+  coreFiles.push_back("1.loki");
+  memoryFiles.push_back("12.loki");
+  memoryFiles.push_back("13.data");
+
+}
+
 int sc_main(int argc, char* argv[]) {
 //  ::testing::InitGoogleTest(&argc, argv);
 //  return RUN_ALL_TESTS();
@@ -29,21 +44,26 @@ int sc_main(int argc, char* argv[]) {
   tile.clock(clock);
   tile.idle(idle);
 
-  directory = "zigzag";
-  coreFiles.push_back("0.loki");
-  coreFiles.push_back("1.loki");
-  memoryFiles.push_back("12_fast.loki");
-  memoryFiles.push_back("13.data");
+  loadFiles();
 
   CodeLoader::loadCode(tile, directory, coreFiles, memoryFiles);
 
-  for(int i=0; i<1800; i++) {
-    TIMESTEP;
-    if(idle.read()) {
-      sc_stop();
-      break;
+  int cyclesIdle = 0;
+
+  try {
+    for(int i=0; i<100000; i++) {
+      TIMESTEP;
+      if(idle.read()) {
+        cyclesIdle++;
+        if(cyclesIdle >= 5) {
+          sc_stop();
+          break;
+        }
+      }
+      else cyclesIdle = 0;
     }
   }
+  catch(std::exception e) {}
 
   Instrumentation::printStats();
 

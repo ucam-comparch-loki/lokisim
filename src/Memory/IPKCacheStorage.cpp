@@ -84,6 +84,8 @@ void IPKCacheStorage::jump(int offset) {
   updateFillCount();
 
   // Update currentPacket? Will it ever be needed in this situation?
+  if(!(this->tags[currInst.value()] == Address()))
+    currentPacket = currInst.value();
 
   if(DEBUG) cout << "Jumped by " << offset << " to instruction " <<
       currInst.value() << endl;

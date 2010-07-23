@@ -48,16 +48,18 @@ public:
 
   // Has to go in header
   friend std::ostream& operator<< (std::ostream& os, const Instruction& v) {
-    os << InstructionMap::name(v.getOp()) << " r" << v.getDest() << " r" <<
-       v.getSrc1() << " r" << v.getSrc2() << " " << v.getImmediate();
+    os << InstructionMap::name(InstructionMap::operation(v.getOp())) <<
+       (v.endOfPacket()?".eop":"") << " r" << v.getDest() << " r" << v.getSrc1()
+       << " r" << v.getSrc2() << " " << v.getImmediate();
     if(v.getRchannel() != NO_CHANNEL) os << " -> " << v.getRchannel();
     return os;
   }
 
 private:
 
-  void decodeField(const string& s, int field);
   void decodeOpcode(const string& opcode);
+  void decodeField(const string& s, int field);
+  void decodeRChannel(const string& channel);
 
 //==============================//
 // Constructors and destructors
@@ -78,6 +80,10 @@ public:
 public:
 
   // The options for the predicate value.
+  //   P             = execute if the predicate register holds 1
+  //   NOT_P         = execute if the predicate register holds 0
+  //   ALWAYS        = always execute
+  //   END_OF_PACKET = this instruction is the last in the current packet
   enum Predicate {P, NOT_P, ALWAYS, END_OF_PACKET};
 
   // A remote channel value signifying that no channel was specified.

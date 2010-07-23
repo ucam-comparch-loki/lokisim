@@ -17,8 +17,12 @@ unsigned int Word::getBits(int start, int end) const {
 
 /* Replace the specified bit range by the specified value */
 void Word::setBits(int start, int end, int value) {
+  // Ensure that value only sets bits in the specified range
+  unsigned long maskedValue = value % (1L << (end - start + 1));
+  // Clear any existing bits in this word
   clearBits(start, end);
-  data += (unsigned long)value << start;
+  // Combine this word with the value
+  data |= maskedValue << start;
 }
 
 /* Zero the bits between the start and end positions, inclusive. */

@@ -1,9 +1,9 @@
-fetch       r1 4
 addui       r0 r0 96 > 55   ; connect to the data memory (and have it send to cluster 1)
 addui       r10 ch1 0       ; wait until we receive an address, and store it
-nop.eop
+fetch.eop   r1 3            ; do the fetch late so it only does it when necessary
 
-fetch       r1 34
+
+fetch       r1 33
 ld          r10 0 > 52
 ld          r10 1 > 52
 ld          r10 8 > 52
@@ -35,10 +35,10 @@ ld          r10 6 > 52
 ld          r10 7 > 52
 ld          r10 14 > 52
 ld          r10 21 > 52
-ld          r10 28 > 52     ; split the loads in half so they don't overwrite each other
-nop.eop
+ld.eop      r10 28 > 52     ; split the loads in half so they don't overwrite each other
 
-fetch       r1 -38            ; restart
+
+fetch       r1 -36            ; restart
 ld          r10 35 > 52
 ld          r10 42 > 52
 ld          r10 49 > 52
@@ -70,5 +70,4 @@ ld          r10 54 > 52
 ld          r10 47 > 52
 ld          r10 55 > 52
 ld          r10 62 > 52
-ld          r10 63 > 52
-nop.eop
+ld.eop      r10 63 > 52

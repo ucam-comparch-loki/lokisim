@@ -98,7 +98,8 @@ private:
   // Information on the channels set up with each of this memory's inputs.
   std::vector<ConnectionStatus> connections;
 
-  // A buffer for each output channel.
+  // A buffer for each output channel (the size will probably be 1, but using
+  // a buffer instead of a register allows more experimentation).
   BufferArray<AddressedWord> buffers;
 
 };
