@@ -29,6 +29,10 @@ void Cluster::storeData(std::vector<Word>& data) {
   fetch.storeCode(instructions);
 }
 
+void Cluster::print(int start, int end) const {
+  // Do nothing? Print cache contents?
+}
+
 /* Checks the status signals of various pipeline stages to determine if the
  * pipeline should be stalled/unstalled. */
 void Cluster::stallPipeline() {

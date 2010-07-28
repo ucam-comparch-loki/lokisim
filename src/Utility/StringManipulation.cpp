@@ -27,7 +27,11 @@ vector<string>& StringManipulation::split(const string& s, char delim) {
 
 /* Return the integer represented by the given string. */
 int StringManipulation::strToInt(const string& str) {
-  std::stringstream ss(str);
+  std::stringstream ss;
+
+  if(str[1] == 'x') ss << std::hex << str;  // Working with hex
+  else ss << str;
+
   int num;
   ss >> num;
   return num;

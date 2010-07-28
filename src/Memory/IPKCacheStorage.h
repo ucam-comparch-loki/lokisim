@@ -91,13 +91,19 @@ private:
   int fillCount;
   int currInstBackup;   // In case it goes NOT_IN_USE and then a jump is used
 
-  bool persistentMode;
+  bool persistentMode;  // Tells if we are reading the same packet repeatedly
 
   // Do we want a single pending packet, or a queue of them?
   int pendingPacket;  // Location of the next packet to be executed
 
   // The index of the first instruction of the current instruction packet.
   int currentPacket;
+
+  // Knowing what the last operation was helps us determine whether the cache
+  // is full or empty when the current instruction and refill pointer are in
+  // the same place. If we read an instruction, the cache is empty, but if we
+  // wrote one, it is probably full.
+  bool lastOpWasARead;
 
   static const int NOT_IN_USE = -1;
 

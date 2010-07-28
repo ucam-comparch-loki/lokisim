@@ -10,7 +10,7 @@
 // Need to define static class members
 std::map<std::string, short> InstructionMap::nto; // name to opcode
 std::map<short, int> InstructionMap::oti; // opcode to instruction
-std::map<int, std::string> InstructionMap::itn; // instruction to opcode
+std::map<int, std::string> InstructionMap::itn; // instruction to name
 
 /* Return the opcode of the given instruction name */
 short InstructionMap::opcode(std::string& name) {
@@ -62,7 +62,7 @@ bool InstructionMap::hasRemoteChannel(short op) {
 bool InstructionMap::isALUOperation(short op) {
   /*
    * Instructions which DON'T use the ALU:
-   * LD, LDB, ST, STB, STADDR, ATBADDR,   // Not sure about these
+   * LD, LDB, ST, STB, STADDR, STBADDR,   // Not sure about these
    * WOCHE, TSTCH, SELCH
    * SETFETCHCH, IBJMP, FETCH, FETCHPST, RMTFETCH, RMTFETCHPST, RMTFILL,
    * RMTEXECUTE, RMTNXIPK
@@ -78,6 +78,7 @@ void InstructionMap::initialise() {
   static bool initialised = false;
   if(initialised) return;
 
+  // Could make a a static variable in addToMaps
   short a;  // Makes consistency easier below
 
   a=0;    addToMaps("nop", a, NOP);

@@ -3,6 +3,7 @@
 % Prologue: connect to data memories
 ori         r0,  r0,  112 > (13,3)  ; connect to memory to read input image and DCT weights
 ori         r0,  r0,  112 > (14,3)  ; connect to memory to write intermediate image
+ori         r22, r0,  11585         ; store a value we need
 
 % Initialisation: receive parameters
 or          r20, ch0, r0            ; wait for location of input block
@@ -32,23 +33,24 @@ snei.p      r0,  r11, 0             ; set predicate if we are not in the first c
 addu        r16, r15, r11           ; position in block to write to
 addu        r16, r16, r21           ; memory location to write to
 p?or        r17, r13, r0            ; want to write sum relatively unchanged
-!p?srli     r17, r13, 14            ; need to do some fancy tricks with the sum
-!p?mullw    r17, r17, 11585
-srli        r17, r17, 15            ; the shift is common to both branches
+!p?srl      r17, r13, 14            ; need to do some fancy tricks with the sum
+!p?mullw    r17, r17, r22
+srl         r17, r17, 15            ; the shift is common to both branches
 st          r17, r16, 0   > (14,0)  ; store the value
+nop                                 ; store delay slot -- bug or feature?
 
 addui       r11, r11, 1             ; increment current column
 seqi.p      r0,  r11, 8             ; set predicate if we've finished all 8 columns in this row
 nop
-!p?ibjmp    -25                     ; jump back to start of loop (output = 0)
+!p?ibjmp    -27                     ; jump back to start of loop (k = 0)
 
 addui       r10, r10, 1             ; increment current row
 seqi.p      r0,  r10, 8             ; set predicate if we've finished all 8 rows
 nop
-!p?ibjmp    -31                     ; jump back to start of loop (column = 0)
+!p?ibjmp    -32                     ; jump back to start of loop (column = 0)
 
 or          r0,  r21, r0  > (2,2)   ; send a pointer to the output block to the next core
-ibjmp.eop   -36                     ; jump to beginning (wait for input)
+ibjmp.eop   -37                     ; jump to beginning (wait for input)
 
 
 % 1D DCT along columns
@@ -59,7 +61,8 @@ ibjmp.eop   -36                     ; jump to beginning (wait for input)
 % Prologue: connect to data memories
 ori         r0,  r0,  177 > (14,3)  ; connect to memory to read intermediate image
 ori         r0,  r0,  177 > (13,3)  ; connect to memory to read DCT weights
-ori         r0,  r0,  177 > (15,3)  ; connect to memory to write output
+ori         r0,  r0,  176 > (15,3)  ; connect to memory to write output
+ori         r22, r0,  11585         ; store a value we need
 
 % Initialisation: receive parameters
 or          r20, ch0, r0            ; wait for location of input/output block
@@ -89,19 +92,20 @@ sll         r16, r11, 3             ; position of start of current row
 addu        r16, r11, r10           ; position in block to write to
 addu        r16, r16, r20           ; memory location to write to
 p?or        r17, r13, r0            ; want to write sum relatively unchanged
-!p?srli     r17, r13, 14            ; need to do some fancy tricks with the sum
-!p?mullw    r17, r17, 11585
-srli        r17, r17, 15            ; the shift is common to both branches
+!p?srl      r17, r13, 14            ; need to do some fancy tricks with the sum
+!p?mullw    r17, r17, r22
+srl         r17, r17, 15            ; the shift is common to both branches
 st          r17, r16, 0   > (15,0)  ; store the value
+nop                                 ; store delay slot -- bug or feature?
 
 addui       r11, r11, 1             ; increment current row
 seqi.p      r0,  r11, 8             ; set predicate if we've finished all 8 rows in this column
 nop
-!p?ibjmp    -25                     ; jump back to start of loop (output = 0)
+!p?ibjmp    -28                     ; jump back to start of loop (k = 0)
 
 addui       r10, r10, 1             ; increment current column
 seqi.p      r0,  r10, 8             ; set predicate if we've finished all 8 columns
 nop
-!p?ibjmp    -31                     ; jump back to start of loop (row = 0)
+!p?ibjmp    -33                     ; jump back to start of loop (row = 0)
 
-ibjmp.eop   -35                     ; jump to beginning (wait for input)
+ibjmp.eop   -36                     ; jump to beginning (wait for input)

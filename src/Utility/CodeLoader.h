@@ -38,8 +38,8 @@ public:
   static void loadCode(Tile& tile, string& directory, vector<string>& coreFiles,
                                                       vector<string>& memFiles);
 
-private:
   static vector<Word>& getData(string& filename);
+private:
   static bool isInstructionFile(string& filename);
   static Word makeWord(const string& str, bool instructionFile);
 

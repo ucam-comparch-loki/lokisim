@@ -37,6 +37,7 @@ Instruction& IPKCacheStorage::read() {
   if(currInst != NOT_IN_USE) {
     int i = currInst.value();
     incrementCurrent();
+    lastOpWasARead = true;
     return this->data[i];
   }
   else {
@@ -67,6 +68,8 @@ void IPKCacheStorage::write(const Address& key, const Instruction& newData) {
   // We need to fetch the pending packet if we are now overwriting it.
   else needRefetch = (refill == pendingPacket);
 
+  lastOpWasARead = false;
+
   incrementRefill();
 
   if(needRefetch) {
@@ -78,14 +81,18 @@ void IPKCacheStorage::write(const Address& key, const Instruction& newData) {
 
 /* Jump to a new instruction at a given offset. */
 void IPKCacheStorage::jump(int offset) {
-  if(currInst == NOT_IN_USE) currInst = currInstBackup;
 
-  currInst += offset - 1;
+  if(currInst == NOT_IN_USE) {currInst = currInstBackup; cout << "Using backup: ";}
+  cout << currInst.value() << " - 1 + " << offset << " = ";
+
+  currInst += offset - 2; // -1 because we have already incremented currInst
   updateFillCount();
 
-  // Update currentPacket? Will it ever be needed in this situation?
+  // Update currentPacket if we have jumped to the start of a packet
   if(!(this->tags[currInst.value()] == Address()))
     currentPacket = currInst.value();
+
+  cout << currInst.value() << endl;
 
   if(DEBUG) cout << "Jumped by " << offset << " to instruction " <<
       currInst.value() << endl;
@@ -106,7 +113,11 @@ int IPKCacheStorage::remainingSpace() const {
  * it is still possible to access its contents if an appropriate tag is
  * looked up. */
 bool IPKCacheStorage::isEmpty() const {
-  return (currInst == NOT_IN_USE);// || (fillCount == 0);
+  // Definition of "empty" is slightly tricky: if the current instruction
+  // pointer and the refill pointer are in the same place, this could mean
+  // that the cache is either empty or full. Need to take into account
+  // whether the last operation was a read or a write.
+  return (currInst == NOT_IN_USE) || (fillCount == 0 && lastOpWasARead);
 }
 
 /* Returns whether the cache is full. */
@@ -117,7 +128,7 @@ bool IPKCacheStorage::isFull() const {
 /* Begin reading the packet which is queued up to execute next. */
 void IPKCacheStorage::switchToPendingPacket() {
 
-  currInstBackup = currInst - 1;  // We have incremented currInst
+  currInstBackup = currInst.value();// - 1;  // We have incremented currInst
   currInst = pendingPacket;
   currentPacket = pendingPacket;
 
@@ -188,6 +199,8 @@ IPKCacheStorage::IPKCacheStorage(short size) :
 
   fillCount = 0;
   pendingPacket = NOT_IN_USE;
+
+  lastOpWasARead = true;
 
 }
 

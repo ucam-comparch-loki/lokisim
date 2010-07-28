@@ -87,7 +87,7 @@ Instruction::Instruction(const Word& other) : Word(other) {
   // Do nothing
 }
 
-Instruction::Instruction(unsigned int inst) : Word(inst) {
+Instruction::Instruction(unsigned long inst) : Word(inst) {
   // Do nothing
 }
 

@@ -6,6 +6,10 @@
  * by the simulator. Having this level of abstraction allows us to easily
  * modify the subset of instructions used, or the coding of instructions.
  *
+ * Name = string representation
+ * Opcode = intermediate representation stored in Instruction datatype
+ * Instruction = select value sent to ALU
+ *
  *  Created on: 18 Jan 2010
  *      Author: db434
  */

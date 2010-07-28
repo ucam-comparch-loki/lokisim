@@ -56,6 +56,8 @@ public:
   // Store the given instructions or data into the component at the given index.
   void storeData(vector<Word>& data, int componentNumber);
 
+  void print(int component, int start, int end) const;
+
   // Static functions for connecting Tiles together
   static void connectLeftRight(const Tile& left, const Tile& right);
   static void connectTopBottom(const Tile& top, const Tile& bottom);

@@ -62,6 +62,9 @@ public:
   // Store initial instructions or data into this cluster or memory.
   virtual void storeData(std::vector<Word>& data) = 0;
 
+  // Print information about the component.
+  virtual void print(int start, int end) const = 0;
+
   enum Type {CLUSTER, MEMORY};
 
 };

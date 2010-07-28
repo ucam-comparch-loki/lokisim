@@ -61,6 +61,9 @@ public:
   // Initialise the contents of this memory to the Words in the given vector.
   virtual void storeData(std::vector<Word>& data);
 
+  // Print the contents of this memory.
+  virtual void print(int start=0, int end=MEMORY_SIZE) const;
+
 private:
 
   // Look through all inputs for new data. Determine whether this data is the

@@ -25,6 +25,10 @@ void Tile::storeData(vector<Word>& data, int componentNumber) {
   contents[componentNumber]->storeData(data);
 }
 
+void Tile::print(int component, int start, int end) const {
+  contents[component]->print(start, end);
+}
+
 /* Connect two horizontally-adjacent Tiles together. */
 void Tile::connectLeftRight(const Tile& left, const Tile& right) {
   for(int i=0; i<NUM_CHANNELS_BETWEEN_TILES; i++) {

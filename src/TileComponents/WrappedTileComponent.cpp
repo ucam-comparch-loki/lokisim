@@ -20,6 +20,10 @@ void WrappedTileComponent::storeData(std::vector<Word>& data) {
   comp->storeData(data);
 }
 
+void WrappedTileComponent::print(int start, int end) const {
+  comp->print(start, end);
+}
+
 void WrappedTileComponent::initialise() {
   fcOut.initialise();
 }

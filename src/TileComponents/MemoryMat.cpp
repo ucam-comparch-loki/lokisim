@@ -229,6 +229,11 @@ void MemoryMat::storeData(std::vector<Word>& data) {
   }
 }
 
+void MemoryMat::print(int start, int end) const {
+  cout << "\nContents of " << this->name() << ":" << endl;
+  data.print(start, end);
+}
+
 MemoryMat::MemoryMat(sc_module_name name, int ID) :
     TileComponent(name, ID),
     data(MEMORY_SIZE),

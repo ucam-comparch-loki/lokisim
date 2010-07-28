@@ -41,6 +41,11 @@ public:
     throw "Error: Need to implement write() in this subclass.";
   }
 
+  // Print the contents of this data storage.
+  virtual void print(int start=0, int end=size()) const {
+    for(int i=start; i<end; i++) cout << i << "\t" << data[i] << endl;
+  }
+
 protected:
 
   // Return the size of this storage component, in [bytes/words].

@@ -69,7 +69,7 @@ public:
 
   Instruction();
   Instruction(const Word& other);
-  Instruction(unsigned int inst);   // For reading binary
+  Instruction(unsigned long inst);  // For reading binary
   Instruction(const string& inst);  // For reading assembler
   virtual ~Instruction();
 
@@ -80,11 +80,11 @@ public:
 public:
 
   // The options for the predicate value.
+  //   ALWAYS        = always execute
   //   P             = execute if the predicate register holds 1
   //   NOT_P         = execute if the predicate register holds 0
-  //   ALWAYS        = always execute
   //   END_OF_PACKET = this instruction is the last in the current packet
-  enum Predicate {P, NOT_P, ALWAYS, END_OF_PACKET};
+  enum Predicate {ALWAYS, P, NOT_P, END_OF_PACKET};
 
   // A remote channel value signifying that no channel was specified.
   static const unsigned char NO_CHANNEL = 255;

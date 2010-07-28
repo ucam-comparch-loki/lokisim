@@ -128,7 +128,8 @@ private:
 
 private:
 
-  sc_buffer<Instruction>    toCache, toFIFO, cacheToMux, FIFOtoMux;
+  sc_buffer<Instruction>    toCache, toFIFO;
+  flag_signal<Instruction>  cacheToMux, FIFOtoMux;
   sc_buffer<short>          muxSelect;
   sc_signal<bool>           fifoEmpty, readFromFIFO, readFromCache;
   sc_buffer<short>          jumpOffsetSig;

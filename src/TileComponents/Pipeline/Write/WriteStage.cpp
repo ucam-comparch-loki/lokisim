@@ -72,7 +72,11 @@ void WriteStage::receivedData() {
 }
 
 void WriteStage::select() {
-  if(remoteChannel.event()) muxSelect.write(selectVal);
+  // Only write the select value if we have received a new valid channel ID.
+  // If we don't write the select value, the data doesn't reach the SCET.
+  if(remoteChannel.event() && remoteChannel.read() != Instruction::NO_CHANNEL) {
+    muxSelect.write(selectVal);
+  }
 }
 
 /* Generate a memory request using the address from the ALU and the operation
