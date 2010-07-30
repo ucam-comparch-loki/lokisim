@@ -18,16 +18,16 @@ double DecodeStage::energy() const {
 /* Direct any new inputs to their destinations every clock cycle. */
 void DecodeStage::newCycle() {
   while(true) {
-    if(!stall.read() && instructionIn.event()) {
-      // Not stalled and have new instruction
-      instructionSig.write(instructionIn.read());
-      idle.write(false);
-    }
-    else if(stallFetch.read()) {
+    if(stallFetch.read()) {
       // If the decoder is stalling, it is because it is carrying out a
       // multi-cycle operation. It needs to be able to complete this.
       // Send the same instruction again to wake the decoder up.
       instructionSig.write(instructionSig.read());
+      idle.write(false);
+    }
+    else if(!stall.read() && instructionIn.event()) {
+      // Not stalled and have new instruction
+      instructionSig.write(instructionIn.read());
       idle.write(false);
     }
     else idle.write(true);  // What if a fetch is waiting to be sent?

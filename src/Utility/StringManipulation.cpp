@@ -32,7 +32,7 @@ int StringManipulation::strToInt(const string& str) {
   if(str[1] == 'x') ss << std::hex << str;  // Working with hex
   else ss << str;
 
-  int num;
+  unsigned int num;
   ss >> num;
   return num;
 }

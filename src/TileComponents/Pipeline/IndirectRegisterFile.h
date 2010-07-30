@@ -118,6 +118,9 @@ private:
   AddressedStorage<Word>  regs;
   AddressedStorage<short> indirect;
 
+  // The register index at which the input channels begin.
+  static const int START_OF_INPUT_CHANNELS = 16;
+
 };
 
 #endif /* INDIRECTREGISTERFILE_H_ */

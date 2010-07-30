@@ -47,35 +47,37 @@ int sc_main(int argc, char* argv[]) {
   tile.clock(clock);
   tile.idle(idle);
 
-  string file = "fib.data";
-  vector<Word> words = CodeLoader::getData(file);
-  vector<Word> insts;
-
-  for(unsigned int i=0; i<words.size(); i+=2) {
-    Data d1 = static_cast<Data>(words[i]);
-    Data d2 = static_cast<Data>(words[i+1]);
-
-    long l = (long)d1.getData() << 32;
-    l += d2.getData();
-
-    Instruction inst(l);
-    insts.push_back(inst);
-    cout << inst << endl;
-  }
-
-  Instruction inst1("setfetchch 52");
-  Instruction inst2("fetch r0 0");
-  Instruction inst3("ori.eop r0 r0 96 > 51");
-  vector<Word> insts2;
-  insts2.push_back(inst1); insts2.push_back(inst2); insts2.push_back(inst3);
-
-  tile.storeData(insts, 1);
-  tile.storeData(insts, 13);
-
-
-//  loadFiles();
+//  string file = "fib.data";
+//  vector<Word> words = CodeLoader::getData(file);
+//  vector<Word> insts;
 //
-//  CodeLoader::loadCode(tile, directory, coreFiles, memoryFiles);
+//  for(unsigned int i=0; i<words.size(); i+=2) {
+//    Data d1 = static_cast<Data>(words[i]);
+//    Data d2 = static_cast<Data>(words[i+1]);
+//
+//    unsigned long l = (unsigned long)d1.getData() << 32;
+//    l += d2.getData();
+//
+//    Instruction inst(l);
+//    insts.push_back(inst);
+//    cout << inst << endl;
+//  }
+//
+//  Instruction inst0("ori r0 r0 80 > 55");
+//  Instruction inst1("setfetchch 52");
+//  Instruction inst2("fetch r0 0");
+//  Instruction inst3("ori.eop r0 r0 96 > 51");
+//  vector<Word> insts2;
+//  insts2.push_back(inst0); insts2.push_back(inst1);
+//  insts2.push_back(inst2); insts2.push_back(inst3);
+//
+//  tile.storeData(insts2, 1);
+//  tile.storeData(insts, 13);
+
+
+  loadFiles();
+
+  CodeLoader::loadCode(tile, directory, coreFiles, memoryFiles);
 
   int cyclesIdle = 0;
 
@@ -93,11 +95,11 @@ int sc_main(int argc, char* argv[]) {
     }
   }
   catch(std::exception e) {}
-//
-//  tile.print(13, 128, 192);
-//  tile.print(14, 0, 64);
-//  tile.print(15, 0, 64);
-//
+
+  tile.print(13, 128, 192);
+  tile.print(14, 0, 64);
+  tile.print(15, 0, 64);
+
   Instrumentation::printStats();
 
   return 0;

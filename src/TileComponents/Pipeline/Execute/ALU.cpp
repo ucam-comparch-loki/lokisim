@@ -13,11 +13,12 @@ void ALU::doOp() {
 
   if(operation.read() == InstructionMap::NOP) return;
 
-  unsigned int val1 = in1.read().getData();
-  unsigned int val2 = in2.read().getData();
-  unsigned int result;
+  signed int val1 = (int)in1.read().getData();
+  signed int val2 = (int)in2.read().getData();
+  signed int result;
 
-  if(DEBUG) cout<<this->name()<<" received Data: "<<val1<<" and "<<val2<<endl;
+  if(DEBUG) cout << this->name() << ": executing " <<
+    InstructionMap::name(operation.read())<<" on "<<val1<<" and "<<val2<<endl;
 
   switch(operation.read()) {
 
@@ -37,7 +38,7 @@ void ALU::doOp() {
     case InstructionMap::SLTU:
     case InstructionMap::SLTIU: result = (val1 < val2); break;
 
-    case InstructionMap::LUI:   result = val1 << 16; break;
+    case InstructionMap::LUI:   result = val2 << 16; break;
 
     case InstructionMap::PSEL:  result = predicate.read() ? val1 : val2; break;
 
@@ -76,7 +77,7 @@ void ALU::doOp() {
 
     switch(operation.read()) {
       case InstructionMap::ADDU:
-      case InstructionMap::ADDUI: newPredicate = (val1+val2) > UINT_MAX;
+      case InstructionMap::ADDUI: newPredicate = ((unsigned int)val1+(unsigned int)val2) > UINT_MAX;
       case InstructionMap::SUBU:  newPredicate = ((int)val1-(int)val2) < 0;
       default: newPredicate = result&1; // Store lowest bit in predicate register
     }

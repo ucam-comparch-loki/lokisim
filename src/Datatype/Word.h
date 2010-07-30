@@ -41,7 +41,7 @@ public:
   Word& operator= (const Word& other);
 
   friend std::ostream& operator<< (std::ostream& os, Word const& v) {
-    os << v.data;
+    os << (int)v.data;
     return os;
   }
 

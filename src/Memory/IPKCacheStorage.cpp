@@ -82,8 +82,7 @@ void IPKCacheStorage::write(const Address& key, const Instruction& newData) {
 /* Jump to a new instruction at a given offset. */
 void IPKCacheStorage::jump(int offset) {
 
-  if(currInst == NOT_IN_USE) {currInst = currInstBackup; cout << "Using backup: ";}
-  cout << currInst.value() << " - 1 + " << offset << " = ";
+  if(currInst == NOT_IN_USE) currInst = currInstBackup;
 
   currInst += offset - 2; // -1 because we have already incremented currInst
   updateFillCount();
@@ -91,8 +90,6 @@ void IPKCacheStorage::jump(int offset) {
   // Update currentPacket if we have jumped to the start of a packet
   if(!(this->tags[currInst.value()] == Address()))
     currentPacket = currInst.value();
-
-  cout << currInst.value() << endl;
 
   if(DEBUG) cout << "Jumped by " << offset << " to instruction " <<
       currInst.value() << endl;

@@ -94,7 +94,7 @@ Cluster::Cluster(sc_module_name name, int ID) :
     write("write") {
 
   SC_METHOD(stallPipeline);
-  sensitive << decStallSig << writeStallSig;
+  sensitive << decStallSig << writeStallSig << stallFetchSig;
   dont_initialize();
   // do initialise
 

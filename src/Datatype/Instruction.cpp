@@ -88,7 +88,9 @@ Instruction::Instruction(const Word& other) : Word(other) {
 }
 
 Instruction::Instruction(unsigned long inst) : Word(inst) {
-  // Do nothing
+  // Need to change the opcode representation in case it has changed
+  // internally.
+  setOp(InstructionMap::opcode(InstructionMap::name(getOp())));
 }
 
 Instruction::Instruction(const string& inst) {

@@ -91,13 +91,13 @@ bool IndirectRegisterFile::isReserved(int position) {
 }
 
 bool IndirectRegisterFile::isChannelEnd(int position) {
-  return position >= 2
-      && position <  2 + NUM_RECEIVE_CHANNELS;
+  return position >= START_OF_INPUT_CHANNELS
+      && position <  START_OF_INPUT_CHANNELS + NUM_RECEIVE_CHANNELS;
 }
 
 bool IndirectRegisterFile::isAddressableReg(int position) {
-  return position >= 2 + NUM_RECEIVE_CHANNELS
-      && position <  NUM_ADDRESSABLE_REGISTERS;
+  return !(isReserved(position) || isChannelEnd(position))
+      && position < NUM_ADDRESSABLE_REGISTERS;
 }
 
 bool IndirectRegisterFile::needsIndirect(int position) {
@@ -113,9 +113,7 @@ bool IndirectRegisterFile::isInvalid(int position) {
 int IndirectRegisterFile::toChannelID(int position) {
   // Check that it is in fact a channel-end?
 
-  // Since there are two reserved registers before the channel-ends start,
-  // the address must have two subtracted from it.
-  return position - 2;
+  return position - START_OF_INPUT_CHANNELS;
 }
 
 int IndirectRegisterFile::fromChannelID(int position) {
@@ -123,7 +121,7 @@ int IndirectRegisterFile::fromChannelID(int position) {
 
   // Since there are two reserved registers before the channel-ends start,
   // the address must have two added from it.
-  return position + 2;
+  return position + START_OF_INPUT_CHANNELS;
 }
 
 void IndirectRegisterFile::updateCurrentIPK(Address addr) {
