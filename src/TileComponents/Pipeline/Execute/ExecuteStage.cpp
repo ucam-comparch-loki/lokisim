@@ -21,6 +21,7 @@ void ExecuteStage::newCycle() {
     if(!stall.read()) {
       COPY_IF_NEW(op1Select, in1Select);
       COPY_IF_NEW(op2Select, in2Select);
+      COPY_IF_NEW(usePredicate, usePredSig);
 
       wait(0, sc_core::SC_NS);  // Allow time for the multiplexors to select values
 

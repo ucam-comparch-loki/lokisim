@@ -67,6 +67,7 @@ void Decoder::decodeInstruction() {
   }
 
   setPredicate.write(setPred);
+  usePredicate.write(pred);
 
   if(operation == InstructionMap::LD || operation == InstructionMap::LDB) {
     setOperand1(operation, destination);
@@ -152,7 +153,7 @@ void Decoder::decodeInstruction() {
 //        inst.setOp(???);
 //      case InstructionMap::RMTNXIPK :
 //        inst.setOp(???);
-      default: cout<<"Haven't implemented instruction "<<operation<<" yet."<<endl;
+      default: cerr<<"Haven't implemented instruction "<<operation<<" yet."<<endl;
     }
 
     instructionOut.write(inst);

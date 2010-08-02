@@ -224,8 +224,8 @@ double MemoryMat::energy() const {
 
 /* Initialise the contents of this memory to the Words in the given vector. */
 void MemoryMat::storeData(std::vector<Word>& data) {
-  for(unsigned int i=0; i<data.size(); i++) {
-    this->data.write(data[i], i);
+  for(unsigned int i=0; i<data.size(); i++, wordsLoaded++) {
+    this->data.write(data[i], wordsLoaded);
   }
 }
 

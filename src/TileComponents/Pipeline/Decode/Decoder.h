@@ -62,6 +62,10 @@ public:
   // The current value of the predicate register.
   sc_in<bool>         predicate;
 
+  // Tell the ALU whether the instruction is dependent on the value of the
+  // predicate register.
+  sc_out<short>       usePredicate;
+
   // Tell the ALU whether it should use the result of this instruction to
   // set the predicate register.
   sc_out<bool>        setPredicate;

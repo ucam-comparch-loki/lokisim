@@ -10,6 +10,15 @@
 #include "StringManipulation.h"
 #include "../Datatype/Instruction.h"
 
+/* Use an external file to tell which files to read.
+ * This file should optionally start with a "directory ..." line, and should
+ * then contain any number of lines of the form:
+ *
+ */
+//void CodeLoader::loadCode(string& settings, Tile& tile) {
+//
+//}
+
 /* Load code from the specified file into a particular component of the
  * given tile. */
 void CodeLoader::loadCode(string& filename, Tile& tile, int position) {

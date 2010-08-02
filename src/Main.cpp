@@ -66,10 +66,11 @@ int sc_main(int argc, char* argv[]) {
 //  Instruction inst0("ori r0 r0 80 > 55");
 //  Instruction inst1("setfetchch 52");
 //  Instruction inst2("fetch r0 0");
+//  Instruction inst25("ori r2 r0 1000");
 //  Instruction inst3("ori.eop r0 r0 96 > 51");
 //  vector<Word> insts2;
 //  insts2.push_back(inst0); insts2.push_back(inst1);
-//  insts2.push_back(inst2); insts2.push_back(inst3);
+//  insts2.push_back(inst2); insts2.push_back(inst25); insts2.push_back(inst3);
 //
 //  tile.storeData(insts2, 1);
 //  tile.storeData(insts, 13);
@@ -80,9 +81,10 @@ int sc_main(int argc, char* argv[]) {
   CodeLoader::loadCode(tile, directory, coreFiles, memoryFiles);
 
   int cyclesIdle = 0;
+  int i;
 
   try {
-    for(int i=0; i<20000; i++) {
+    for(i=0; i<20000; i++) {
       TIMESTEP;
       if(idle.read()) {
         cyclesIdle++;
@@ -94,7 +96,7 @@ int sc_main(int argc, char* argv[]) {
       else cyclesIdle = 0;
     }
   }
-  catch(std::exception e) {}
+  catch(std::exception e) {cout << e.what() << endl;}
 
   tile.print(13, 128, 192);
   tile.print(14, 0, 64);

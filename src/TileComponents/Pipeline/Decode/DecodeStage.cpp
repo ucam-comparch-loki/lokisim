@@ -134,6 +134,7 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   decoder.memoryOp(memoryOp);
   decoder.predicate(predicate);
   decoder.setPredicate(setPredicate);
+  decoder.usePredicate(usePredicate);
   decoder.toFetchLogic(decodeToFetch);    fl.in(decodeToFetch);
   decoder.rChannel(remoteChannel);
   decoder.waitOnChannel(waitOnChannel);

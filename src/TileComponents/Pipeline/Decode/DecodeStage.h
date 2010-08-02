@@ -110,6 +110,10 @@ public:
   // set the predicate register.
   sc_out<bool>          setPredicate;
 
+  // Tell the ALU whether this instruction's execution depends on the value
+  // held in the predicate register.
+  sc_out<short>         usePredicate;
+
   // Signal that the pipeline should stall.
   sc_out<bool>          stallOut;
 

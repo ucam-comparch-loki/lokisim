@@ -112,15 +112,11 @@ bool IndirectRegisterFile::isInvalid(int position) {
 
 int IndirectRegisterFile::toChannelID(int position) {
   // Check that it is in fact a channel-end?
-
   return position - START_OF_INPUT_CHANNELS;
 }
 
 int IndirectRegisterFile::fromChannelID(int position) {
   // Check that it is in fact a channel-end?
-
-  // Since there are two reserved registers before the channel-ends start,
-  // the address must have two added from it.
   return position + START_OF_INPUT_CHANNELS;
 }
 

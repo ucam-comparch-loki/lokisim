@@ -1,4 +1,8 @@
-% 1D DCT along rows
+% =============================================================================
+% 2D DCT (cores 1 and 2)
+% =============================================================================
+
+% 1D DCT along rows (core 1)
 
 % Prologue: connect to data memories
 ori         r0,  r0,  112 > (13,3)  ; connect to memory to read input image and DCT weights
@@ -52,16 +56,11 @@ or          r0,  r21, r0  > (2,2)   ; send a pointer to the output block to the 
 ibjmp.eop   -36                     ; jump to beginning (wait for input)
 
 
-% 1D DCT along columns
-% Note: instead of using this, the results of the first 1D DCT could be
-% transposed, and fed back into the same 1D DCT.
-% This might save a little code, but would probably use more cores, without
-% speeding up execution.
+% 1D DCT along columns (core 2)
 
 % Prologue: connect to data memories
 ori         r0,  r0,  177 > (14,3)  ; connect to memory to read intermediate image
 ori         r0,  r0,  177 > (13,3)  ; connect to memory to read DCT weights
-ori         r0,  r0,  176 > (15,3)  ; connect to memory to write output
 ori         r22, r0,  11585         ; store a value we need
 
 % Initialisation: receive parameters
@@ -94,17 +93,107 @@ addu        r8,  r8,  r20           ; memory location to write to
 p?or        r9,  r5,  r0            ; want to write sum relatively unchanged
 !p?srl      r9,  r5,  14            ; need to do some fancy tricks with the sum
 !p?mullw    r9,  r9,  r22
-srl         r9,  r9,  15            ; the shift is common to both branches
-st          r9,  r8,  0   > (15,0)  ; store the value
+srl         r9,  r9,  15  > (3,2)   ; send the value to quantisation
 
 addui       r3,  r3,  1             ; increment current row
 seqi.p      r0,  r3,  8             ; set predicate if we've finished all 8 rows in this column
 nop
-!p?ibjmp    -26                     ; jump back to start of loop (f_val = 0)
+!p?ibjmp    -25                     ; jump back to start of loop (f_val = 0)
 
 addui       r2,  r2,  1             ; increment current column
 seqi.p      r0,  r2,  8             ; set predicate if we've finished all 8 columns
 nop
-!p?ibjmp    -32                     ; jump back to start of loop (row = 0)
+!p?ibjmp    -31                     ; jump back to start of loop (row = 0)
 
-ibjmp.eop   -35                     ; jump to beginning (wait for input)
+ibjmp.eop   -34                     ; jump to beginning (wait for input)
+
+% =============================================================================
+% Quantisation (core 3)
+% =============================================================================
+
+ori         r0,  r0,  242 > (13,3)  ; connect to the memory holding the table
+or          r20, ch1, r0            ; store the location of the quantisation table
+and         r2,  r0,  r0            ; zero the current index in the table
+addu        r3,  r20, r2            ; find the location of the value we want next
+ld          r3,  0        > (13,2)  ; load the value
+srl         r0,  ch0, ch1 > (4,2)   ; do quantisation and send result to zigzag
+addi        r2,  r2,  1             ; increment index
+andi        r2,  r2,  63            ; don't let the index pass 63
+ibjmp       -5                      ; loop
+nop.eop
+
+% =============================================================================
+% Zigzag (core 4)
+% =============================================================================
+
+addui       r0,  r0,  304  > (15,3) ; connect to the data memory
+fetch.eop   r1,  2
+
+fetch       r1,  33
+st          ch0, 0         > (15,0)
+st          ch0, 1         > (15,0)
+st          ch0, 5         > (15,0)
+st          ch0, 6         > (15,0)
+st          ch0, 14        > (15,0)
+st          ch0, 15        > (15,0)
+st          ch0, 27        > (15,0)
+st          ch0, 28        > (15,0)
+st          ch0, 2         > (15,0)
+st          ch0, 4         > (15,0)
+st          ch0, 7         > (15,0)
+st          ch0, 13        > (15,0)
+st          ch0, 16        > (15,0)
+st          ch0, 26        > (15,0)
+st          ch0, 29        > (15,0)
+st          ch0, 42        > (15,0)
+st          ch0, 3         > (15,0)
+st          ch0, 8         > (15,0)
+st          ch0, 12        > (15,0)
+st          ch0, 17        > (15,0)
+st          ch0, 25        > (15,0)
+st          ch0, 30        > (15,0)
+st          ch0, 41        > (15,0)
+st          ch0, 43        > (15,0)
+st          ch0, 9         > (15,0)
+st          ch0, 11        > (15,0)
+st          ch0, 18        > (15,0)
+st          ch0, 24        > (15,0)
+st          ch0, 31        > (15,0)
+st          ch0, 40        > (15,0)
+st          ch0, 44        > (15,0)
+st.eop      ch0, 53        > (15,0) ; split the loads in half so they don't overwrite each other
+
+
+fetch       r1,  -33                ; restart
+st          ch0, 10        > (15,0)
+st          ch0, 19        > (15,0)
+st          ch0, 23        > (15,0)
+st          ch0, 32        > (15,0)
+st          ch0, 39        > (15,0)
+st          ch0, 45        > (15,0)
+st          ch0, 52        > (15,0)
+st          ch0, 54        > (15,0)
+st          ch0, 20        > (15,0)
+st          ch0, 22        > (15,0)
+st          ch0, 33        > (15,0)
+st          ch0, 38        > (15,0)
+st          ch0, 46        > (15,0)
+st          ch0, 51        > (15,0)
+st          ch0, 55        > (15,0)
+st          ch0, 60        > (15,0)
+st          ch0, 21        > (15,0)
+st          ch0, 34        > (15,0)
+st          ch0, 37        > (15,0)
+st          ch0, 47        > (15,0)
+st          ch0, 50        > (15,0)
+st          ch0, 56        > (15,0)
+st          ch0, 59        > (15,0)
+st          ch0, 61        > (15,0)
+st          ch0, 35        > (15,0)
+st          ch0, 36        > (15,0)
+st          ch0, 48        > (15,0)
+st          ch0, 49        > (15,0)
+st          ch0, 57        > (15,0)
+st          ch0, 58        > (15,0)
+st          ch0, 62        > (15,0)
+st.eop      ch0, 63        > (15,0)

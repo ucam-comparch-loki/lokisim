@@ -105,6 +105,10 @@ private:
   // a buffer instead of a register allows more experimentation).
   BufferArray<AddressedWord> buffers;
 
+  // The number of words we have initially put in this memory. Allows multiple
+  // files to be put into the same memory.
+  int wordsLoaded;
+
 };
 
 #endif /* MEMORYMAT_H_ */

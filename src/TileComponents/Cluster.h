@@ -107,7 +107,7 @@ private:
   sc_signal<bool>          roomToFetch, refetchSig, persistent;
   sc_buffer<Word>          regData1, regData2;
   flag_signal<short>       regRead1, regRead2, decWriteAddr, decIndWrite;
-  sc_buffer<short>         indChannelSig;
+  sc_buffer<short>         indChannelSig, usePredSig;
   sc_buffer<Data>          RCETtoALU1, RCETtoALU2, regToALU1, regToALU2, SEtoALU;
   flag_signal<short>       operation, op1Select, op2Select;
   sc_signal<bool>          setPredSig, readPredSig, decStallSig, stallFetchSig;

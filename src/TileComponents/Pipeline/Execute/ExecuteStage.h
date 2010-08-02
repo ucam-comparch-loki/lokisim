@@ -54,6 +54,10 @@ public:
   // predicate register.
   sc_in<bool>         setPredicate;
 
+  // Tells whether this instruction's execution depends on the value in the
+  // predicate register.
+  sc_in<short>        usePredicate;
+
   // The predicate value being written to the register.
   sc_out<bool>        predicate;
 
@@ -124,7 +128,7 @@ private:
 private:
 
   sc_signal<Data>     toALU1, toALU2, outputSig;
-  sc_buffer<short>    in1Select, in2Select, ALUSelect;
+  sc_buffer<short>    in1Select, in2Select, ALUSelect, usePredSig;
   sc_signal<bool>     setPredSig;
 
 };

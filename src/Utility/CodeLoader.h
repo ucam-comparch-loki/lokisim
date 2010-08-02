@@ -4,8 +4,6 @@
  * Class with useful methods for loading code from external files into memory
  * before execution begins.
  *
- * Extend to BinaryCodeLoader and AssemblyCodeLoader?
- *
  *  Created on: 15 Feb 2010
  *      Author: db434
  */
@@ -23,6 +21,9 @@ using std::vector;
 class CodeLoader {
 
 public:
+
+  // Read a file which tells which files to read.
+//  static void loadCode(string& settings, Tile& tile);
 
   // Store the contents of the given file into the component of the tile at
   // the given position.

@@ -13,6 +13,11 @@ void ALU::doOp() {
 
   if(operation.read() == InstructionMap::NOP) return;
 
+//  bool execute = shouldExecute(usePredicate.read());
+//  Instrumentation::operation(operation.read(), execute);
+//  if(!execute) return;
+
+
   signed int val1 = (int)in1.read().getData();
   signed int val2 = (int)in2.read().getData();
   signed int result;
@@ -89,7 +94,20 @@ void ALU::doOp() {
 
 void ALU::setPred(bool val) {
   predicate.write(val);
+  pred = val;
   if(DEBUG) cout << this->name() << " set predicate bit to " << val << endl;
+}
+
+/* Determine whether this instruction should be executed. */
+bool ALU::shouldExecute(short predBits) {
+
+  bool result = (predBits == Instruction::ALWAYS) ||
+                (predBits == Instruction::END_OF_PACKET) ||
+                (predBits == Instruction::P     &&  pred) ||
+                (predBits == Instruction::NOT_P && !pred);
+
+  return result;
+
 }
 
 ALU::ALU(sc_module_name name) : Component(name) {

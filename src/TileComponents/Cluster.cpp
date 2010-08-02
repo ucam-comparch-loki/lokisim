@@ -176,6 +176,7 @@ Cluster::Cluster(sc_module_name name, int ID) :
   decode.waitOnChannel(decToExWOCHE); execute.waitOnChannelIn(decToExWOCHE);
   decode.predicate(readPredSig);      pred.output(readPredSig);
   decode.setPredicate(setPredSig);    execute.setPredicate(setPredSig);
+  decode.usePredicate(usePredSig);    execute.usePredicate(usePredSig);
   decode.stallOut(decStallSig);
 
   // To/from execute stage
