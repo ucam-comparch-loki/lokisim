@@ -13,11 +13,11 @@
 /* Use an external file to tell which files to read.
  * This file should optionally start with a "directory ..." line, and should
  * then contain any number of lines of the form:
- *
- */
-//void CodeLoader::loadCode(string& settings, Tile& tile) {
-//
-//}
+ *   component_id filename
+ * where "filename" doesn't contain any spaces. */
+void CodeLoader::loadCode(string& settings, Tile& tile) {
+
+}
 
 /* Load code from the specified file into a particular component of the
  * given tile. */
@@ -70,12 +70,12 @@ vector<Word>& CodeLoader::getData(string& filename) {
   // See if this file contains Instructions or Data
   bool instructionFile = isInstructionFile(filename);
 
-  char wordAsString[200];   // Is this enough?
+  // An array to load a line of the file into. Is 200 characters enough?
+  char wordAsString[200];
 
   while(!file.fail()) {
     try {
       file.getline(wordAsString, 200, '\n');
-      if(file.eof()) break;
 
       try {
         Word w = makeWord(wordAsString, instructionFile);
@@ -84,6 +84,8 @@ vector<Word>& CodeLoader::getData(string& filename) {
       catch (std::exception e) {
         continue; // If we couldn't make a valid word, try the next line
       }
+
+      if(file.eof()) break;
 
     }
     catch(std::exception) {

@@ -23,7 +23,7 @@ class CodeLoader {
 public:
 
   // Read a file which tells which files to read.
-//  static void loadCode(string& settings, Tile& tile);
+  static void loadCode(string& settings, Tile& tile);
 
   // Store the contents of the given file into the component of the tile at
   // the given position.

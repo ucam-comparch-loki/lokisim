@@ -48,7 +48,11 @@ public:
 
   // Has to go in header
   friend std::ostream& operator<< (std::ostream& os, const Instruction& v) {
+    if(v.getPredicate() == P) os << "p?";
+    else if(v.getPredicate() == NOT_P) os << "!p?";
+
     os << InstructionMap::name(InstructionMap::operation(v.getOp())) <<
+       (v.getSetPredicate()?".p":"") <<
        (v.endOfPacket()?".eop":"") << " r" << v.getDest() << " r" << v.getSrc1()
        << " r" << v.getSrc2() << " " << v.getImmediate();
     if(v.getRchannel() != NO_CHANNEL) os << " -> " << v.getRchannel();

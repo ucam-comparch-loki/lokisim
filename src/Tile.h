@@ -50,13 +50,14 @@ public:
 
 public:
 
-  virtual double area()  const;
+  virtual double area()   const;
   virtual double energy() const;
 
   // Store the given instructions or data into the component at the given index.
   void storeData(vector<Word>& data, int componentNumber);
 
-  void print(int component, int start, int end) const;
+  static void print(int component, int start, int end,
+                    Tile* tile=currentTile);
 
   // Static functions for connecting Tiles together
   static void connectLeftRight(const Tile& left, const Tile& right);
@@ -85,6 +86,14 @@ private:
   flag_signal<Word>          *dataToCluster;                          // array
   flag_signal<AddressedWord> *responsesFromCluster;                   // array
   sc_signal<bool>            *idleSig;                                // array
+
+//==============================//
+// Local state
+//==============================//
+
+  // Store a reference to the most recent tile (hopefully the only one), so
+  // it can be accessed statically from anywhere.
+  static Tile* currentTile;
 
 };
 

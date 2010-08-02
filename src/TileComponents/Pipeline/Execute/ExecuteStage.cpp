@@ -55,6 +55,7 @@ ExecuteStage::ExecuteStage(sc_module_name name) :
   in2Mux.result(toALU2); alu.in2(toALU2);
   alu.out(output);
   alu.setPredicate(setPredSig);
+  alu.usePredicate(usePredSig);
   alu.predicate(predicate);
 
   in1Mux.select(in1Select);

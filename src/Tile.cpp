@@ -7,6 +7,8 @@
 
 #include "Tile.h"
 
+Tile* Tile::currentTile = 0;
+
 double Tile::area() const {
   // Update this if allowing heterogeneity.
   return network.area() +
@@ -25,8 +27,8 @@ void Tile::storeData(vector<Word>& data, int componentNumber) {
   contents[componentNumber]->storeData(data);
 }
 
-void Tile::print(int component, int start, int end) const {
-  contents[component]->print(start, end);
+void Tile::print(int component, int start, int end, Tile* tile) {
+  tile->contents[component]->print(start, end);
 }
 
 /* Connect two horizontally-adjacent Tiles together. */
@@ -130,6 +132,10 @@ Tile::Tile(sc_module_name name, int ID) :
   }
 
   end_module(); // Needed because we're using a different Component constructor
+
+  // TODO: make Debug class in Utility instead. Make it a friend class of
+  // Component? Then can just go tile.contents.comp. ... .regs[5]
+  currentTile = this;
 
 }
 
