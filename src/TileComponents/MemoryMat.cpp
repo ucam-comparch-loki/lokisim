@@ -95,7 +95,7 @@ void MemoryMat::read(int position) {
 
   if(connection.readingIPK()) {
     addr = connection.getAddress();
-    w = data.read(addr);
+    w = data.read(addr/4);
 
     if(static_cast<Instruction>(w).endOfPacket()) {
       connection.clear();
@@ -104,13 +104,24 @@ void MemoryMat::read(int position) {
     else {
       connection.incrementAddress(); // Prepare to read the next instruction
 
-      // Pretend the buffer is full to allow the read sequence to complete.
+      // Don't allow any more requests at this port until the packet read
+      // has finished.
       flowControlOut[position].write(0);
     }
   }
   else {
     addr = static_cast<Data>(in[position].read()).getData();
-    w = data.read(addr);
+
+    if(connection.isByteAccess()) {
+      // Extract an individual byte.
+      unsigned int readVal = (unsigned int)data.read(addr/4).toInt();
+      int offset = addr % 4;
+      int shiftAmount = 8*offset;
+      int returnVal = readVal >> shiftAmount;
+      w = Word(returnVal & 255);
+    }
+    else w = data.read(addr/4);
+
     connection.clear();
   }
 
@@ -118,7 +129,7 @@ void MemoryMat::read(int position) {
 
   Instrumentation::memoryRead();
 
-  if(DEBUG) cout << "Read " << data.read(addr) << " from memory " << id <<
+  if(DEBUG) cout << "Read " << data.read(addr/4) << " from memory " << id <<
                     ", address " << addr << endl;
 
   if(flowControlIn[position].read()) {
@@ -140,7 +151,19 @@ void MemoryMat::write(Word w, int position) {
   ConnectionStatus& connection = connections[position];
 
   int addr = connection.getAddress();
-  data.write(w, addr);
+  if(!connection.isByteAccess()) data.write(w, addr/4);
+  else {
+    // If dealing with bytes, need to read the old value and only update
+    // part of it.
+    unsigned int currVal = (unsigned int)data.read(addr/4).toInt();
+    int offset = addr % 4;
+    int shiftAmount = offset*8;
+    unsigned int mask = ~(255 << shiftAmount);
+    currVal &= mask;
+    unsigned int newVal = w.toInt() & 255;
+    currVal &= (newVal << shiftAmount);
+    data.write(Word(currVal), addr/4);
+  }
 
   // If we're expecting more writes, update the address, otherwise clear it.
   if(connection.isStreaming()) connection.incrementAddress();
@@ -231,7 +254,7 @@ void MemoryMat::storeData(std::vector<Word>& data) {
 
 void MemoryMat::print(int start, int end) const {
   cout << "\nContents of " << this->name() << ":" << endl;
-  data.print(start, end);
+  data.print(start/4, end/4);
 }
 
 MemoryMat::MemoryMat(sc_module_name name, int ID) :

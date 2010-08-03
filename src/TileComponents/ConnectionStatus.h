@@ -42,6 +42,10 @@ public:
   // Tells whether an instruction packet read is currently taking place.
   bool readingIPK() const;
 
+  // Distinguish between instruction that read/write whole words, and those
+  // that deal with individual bytes.
+  bool isByteAccess() const;
+
   // Increments the address of the operation, so the next load/store accesses
   // the next location in memory.
   void incrementAddress();

@@ -7,6 +7,10 @@
 
 #include "Word.h"
 
+int Word::toInt() const {
+  return (int)data;
+}
+
 /* Return the integer value of the bits between the start and end positions,
    inclusive. */
 unsigned int Word::getBits(int start, int end) const {

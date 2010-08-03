@@ -50,8 +50,13 @@ public:
 //==============================//
 
   // The memory operation being performed.
-  enum MemoryOp {LOAD, IPK_READ, STORE, STADDR};
-  // none? byte versions of each?
+  enum MemoryOp {
+    LOAD, LOAD_B,
+    IPK_READ,
+    STORE, STORE_B,
+    STADDR, STBADDR
+  };
+  // none?
 
 };
 

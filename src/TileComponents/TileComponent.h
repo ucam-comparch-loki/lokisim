@@ -63,7 +63,10 @@ public:
   virtual void storeData(std::vector<Word>& data) = 0;
 
   // Print information about the component.
-  virtual void print(int start, int end) const = 0;
+  virtual void print(int start, int end) const;
+
+  // Returns the value held in the specified register.
+  virtual int  getRegVal(int reg) const;
 
   enum Type {CLUSTER, MEMORY};
 

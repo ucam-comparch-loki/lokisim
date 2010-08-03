@@ -57,7 +57,7 @@ public:
   // Initialise the instructions a Cluster will execute.
   virtual void storeData(std::vector<Word>& data);
 
-  virtual void print(int start, int end) const;
+  virtual int  getRegVal(int reg) const;
 
   // Returns the channel ID of the specified cluster's instruction packet FIFO.
   static int   IPKFIFOInput(int ID);

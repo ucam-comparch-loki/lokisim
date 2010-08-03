@@ -126,6 +126,10 @@ void IndirectRegisterFile::updateCurrentIPK(Address addr) {
   regs.write(w, 1);
 }
 
+int IndirectRegisterFile::getRegVal(int reg) const {
+  return regs.read(reg).toInt();
+}
+
 IndirectRegisterFile::IndirectRegisterFile(sc_module_name name) :
     Component(name),
     regs(NUM_PHYSICAL_REGISTERS),

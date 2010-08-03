@@ -10,12 +10,13 @@
 #include "../IndirectRegisterFile.h"
 #include "../../../Datatype/MemoryRequest.h"
 #include "../../../Utility/InstructionMap.h"
+#include "../../../Tile.h"
 
 typedef IndirectRegisterFile Registers;
 
 void Decoder::decodeInstruction() {
 
-  // TODO: tidy decode
+  // TODO: tidy decode - use switch instead of all the ifs
 
   Instruction i = instructionIn.read();
 
@@ -36,6 +37,10 @@ void Decoder::decodeInstruction() {
   bool  setPred       = i.getSetPredicate();
   short remoteChannel = i.getRchannel();
 
+  if(immediate == -28) {
+    int r2 = Tile::getRegVal(1, 2);
+    Tile::print(12, r2, r2+28);
+  }
 
   // TODO: move decision of whether or not an instruction should execute
   // into the execute stage/ALU -- may require blocking all signals in
@@ -77,8 +82,9 @@ void Decoder::decodeInstruction() {
     setOperand1(operation, destination);
     setOperand2(operation, 0, immediate);
     setDestination(0); // Don't want to write
-    this->operation.write(InstructionMap::ORI);
-    memoryOp.write(MemoryRequest::LOAD);
+    this->operation.write(InstructionMap::ADDUI);
+    if(operation == InstructionMap::LD) memoryOp.write(MemoryRequest::LOAD);
+    else                                memoryOp.write(MemoryRequest::LOAD_B);
     return;
   }
 
@@ -86,10 +92,11 @@ void Decoder::decodeInstruction() {
     setOperand1(operation, operand1);
     setOperand2(operation, 0, immediate);
     setDestination(0);
-    this->operation.write(InstructionMap::ORI);
+    this->operation.write(InstructionMap::ADDUI);
     stall.write(true);
     currentlyWriting = true;
-    memoryOp.write(MemoryRequest::STORE);
+    if(operation == InstructionMap::ST) memoryOp.write(MemoryRequest::STORE);
+    else                                memoryOp.write(MemoryRequest::STORE_B);
     return;
   }
 
@@ -97,8 +104,10 @@ void Decoder::decodeInstruction() {
     setOperand1(operation, destination);
     setOperand2(operation, 0, immediate);
     setDestination(0);
-    this->operation.write(InstructionMap::ORI);
-    memoryOp.write(MemoryRequest::STADDR);
+    this->operation.write(InstructionMap::ADDUI);
+    if(operation == InstructionMap::STADDR)
+         memoryOp.write(MemoryRequest::STADDR);
+    else memoryOp.write(MemoryRequest::STBADDR);
     return;
   }
 

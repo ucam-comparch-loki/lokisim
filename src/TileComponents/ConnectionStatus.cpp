@@ -6,7 +6,6 @@
  */
 
 #include "ConnectionStatus.h"
-#include "stdio.h"
 
 /* Tells whether there is a connection set up at all. */
 bool ConnectionStatus::isActive() const {
@@ -35,9 +34,13 @@ bool ConnectionStatus::readingIPK() const {
   return isStreaming() && isRead();
 }
 
+bool ConnectionStatus::isByteAccess() const {
+  return (operation == LOADBYTE || operation == STOREBYTE);
+}
+
 void ConnectionStatus::incrementAddress() {
-  /*if(operation == LOADBYTE || operation == STOREBYTE)*/ address += STRIDE;
-  //else address += STRIDE * BYTES_PER_WORD;
+  if(isByteAccess()) address += STRIDE;
+  else               address += STRIDE * BYTES_PER_WORD;
 }
 
 void ConnectionStatus::clear() {

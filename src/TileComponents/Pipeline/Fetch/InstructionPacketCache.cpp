@@ -157,7 +157,7 @@ bool InstructionPacketCache::isEmpty() {
 /* Perform any necessary tasks when the end of an instruction packet has been
  * reached. */
 void InstructionPacketCache::endOfPacketTasks() {
-  cout << this->name() << " ";  // Cache will print rest
+  if(DEBUG) cout << this->name() << " ";  // Cache will print rest
   cache.switchToPendingPacket();
   finishedPacketRead = true;
 }

@@ -43,7 +43,7 @@ public:
 
   // Print the contents of this data storage.
   virtual void print(int start=0, int end=size()) const {
-    for(int i=start; i<end; i++) cout << i << "\t" << data[i] << endl;
+    for(int i=start; i<end; i++) cout << i*4 << "\t" << data[i] << endl;
   }
 
 protected:

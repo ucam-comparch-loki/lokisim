@@ -28,7 +28,12 @@ void Tile::storeData(vector<Word>& data, int componentNumber) {
 }
 
 void Tile::print(int component, int start, int end, Tile* tile) {
-  tile->contents[component]->print(start, end);
+  if(start<end) tile->contents[component]->print(start, end);
+  else          tile->contents[component]->print(end, start);
+}
+
+int Tile::getRegVal(int component, int reg, Tile* tile) {
+  return tile->contents[component]->getRegVal(reg);
 }
 
 /* Connect two horizontally-adjacent Tiles together. */
@@ -133,8 +138,6 @@ Tile::Tile(sc_module_name name, int ID) :
 
   end_module(); // Needed because we're using a different Component constructor
 
-  // TODO: make Debug class in Utility instead. Make it a friend class of
-  // Component? Then can just go tile.contents.comp. ... .regs[5]
   currentTile = this;
 
 }

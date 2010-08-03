@@ -31,7 +31,8 @@ unsigned short MemoryRequest::getOperation() const {
 
 /* Return whether or not the request is to read data. */
 bool MemoryRequest::isReadRequest() const {
-  return getOperation() == LOAD || getOperation() == IPK_READ;
+  short op = getOperation();
+  return op == LOAD || op == LOAD_B || op == IPK_READ;
 }
 
 /* Return whether or not the request is for an entire instruction packet. */

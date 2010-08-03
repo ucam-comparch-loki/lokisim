@@ -24,6 +24,10 @@ void WrappedTileComponent::print(int start, int end) const {
   comp->print(start, end);
 }
 
+int WrappedTileComponent::getRegVal(int reg) const {
+  comp->getRegVal(reg);
+}
+
 void WrappedTileComponent::initialise() {
   fcOut.initialise();
 }

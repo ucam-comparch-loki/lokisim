@@ -7,6 +7,14 @@
 
 #include "TileComponent.h"
 
+void TileComponent::print(int start, int end) const {
+  // Do nothing if print isn't defined
+}
+
+int TileComponent::getRegVal(int reg) const {
+  return -1;
+}
+
 /* Constructors and destructors */
 TileComponent::TileComponent(sc_module_name name, int ID) : Component(name, ID) {
 

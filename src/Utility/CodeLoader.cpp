@@ -39,9 +39,6 @@ void CodeLoader::loadCode(string& filename, TileComponent& component) {
 void CodeLoader::loadCode(Tile& tile, string& directory,
                           vector<string>& coreFiles, vector<string>& memFiles) {
 
-  // TODO: allow both code and data to be in the same file.
-  // Perhaps also allow multiple files to be loaded into the same memory.
-
   if(DEBUG) std::cout << "Initialising..." << endl;
 
   for(unsigned int i=0; i<coreFiles.size(); i++) {

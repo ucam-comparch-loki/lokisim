@@ -91,6 +91,8 @@ public:
   // register.
   void updateCurrentIPK(Address addr);
 
+  int getRegVal(int reg) const;
+
 private:
 
   // Read from the address given in readAddr1.
