@@ -11,11 +11,51 @@
 #include "../Datatype/Instruction.h"
 
 /* Use an external file to tell which files to read.
- * This file should optionally start with a "directory ..." line, and should
- * then contain any number of lines of the form:
- *   component_id filename
- * where "filename" doesn't contain any spaces. */
+ * The file should contain lines of the following forms:
+ *   directory directory_name
+ *     Change the current directory
+ *   loader file_name
+ *     Use another file loader - useful for loading multiple (sub-)programs
+ *   component_id file_name
+ *     Load the contents of the file into the component */
 void CodeLoader::loadCode(string& settings, Tile& tile) {
+
+  char line[200];   // An array of chars to load a line from the file into.
+  string fullName = "test_files/" + settings;
+  std::ifstream file(fullName.c_str());
+  string directory("");
+
+  while(!file.fail()) {
+    try {
+      file.getline(line, 200, '\n');
+      string s(line);
+
+      if(s[0]=='%' || s[0]=='\0') continue;   // Skip past any comments
+
+      vector<string> words = StringManipulation::split(s, ' ');
+
+      if(words[0]=="directory") {     // Update the current directory
+        directory = words[1];
+      }
+      else if(words[0]=="loader") {   // Use another file loader
+        string loaderFile = directory + "/" + words[1];
+        loadCode(loaderFile, tile);
+      }
+      else {                          // Load code/data from the given file
+        int index = StringManipulation::strToInt(words[0]);
+        string filename = directory + "/" + words[1];
+        loadCode(filename, tile, index);
+      }
+
+      if(file.eof()) break;
+    }
+    catch(std::exception e) {
+      std::cerr << "Error: could not read file " << settings << endl;
+      break;
+    }
+  }
+
+  file.close();
 
 }
 
@@ -85,7 +125,7 @@ vector<Word>& CodeLoader::getData(string& filename) {
       if(file.eof()) break;
 
     }
-    catch(std::exception) {
+    catch(std::exception e) {
       std::cerr << "Error: could not read file " << fullName << endl;
       break;
     }

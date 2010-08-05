@@ -1,0 +1,4 @@
+directory dct
+0 0.loki
+12 12.loki
+13 weights.data

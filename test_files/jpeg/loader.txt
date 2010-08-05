@@ -1,0 +1,10 @@
+directory jpeg
+
+0 core0.loki
+12 dct.loki
+13 quantise.loki
+14 zigzag.loki
+
+12 dctweights.data
+12 input.data
+13 shiftamounts.data

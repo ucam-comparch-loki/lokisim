@@ -6,7 +6,7 @@
  */
 
 #include "InterclusterNetwork.h"
-#include "Routing Schemes/RoutingSchemeFactory.h"
+#include "RoutingSchemes/RoutingSchemeFactory.h"
 #include "../Datatype/Data.h"
 
 const int InterclusterNetwork::numInputs  =

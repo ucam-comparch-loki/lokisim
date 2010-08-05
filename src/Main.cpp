@@ -47,7 +47,7 @@ int sc_main(int argc, char* argv[]) {
   tile.clock(clock);
   tile.idle(idle);
 
-  string file = "fib.data";
+  string file = "fibonacci/fib.data";
   vector<Word> words = CodeLoader::getData(file);
   vector<Word> insts;
 
@@ -63,11 +63,13 @@ int sc_main(int argc, char* argv[]) {
     cout << inst << endl;
   }
 
-  string setup = "fib_setup.loki";
+  string setup = "fibonacci/fib_setup.loki";
 
   CodeLoader::loadCode(setup, tile, 1);
   tile.storeData(insts, 13);
 
+//  string settingsFile("metaloader.txt");
+//  CodeLoader::loadCode(settingsFile, tile);
 
 //  loadFiles();
 //
@@ -92,9 +94,9 @@ int sc_main(int argc, char* argv[]) {
   catch(std::exception e) {}  // If there's no error message, it might mean
                               // that not everything is connected properly.
 
-//  tile.print(13, 128, 192);
-//  tile.print(14, 0, 64);
-//  tile.print(15, 0, 64);
+//  tile.print(13, 512, 768);
+//  tile.print(14, 0, 256);
+//  tile.print(15, 0, 256);
 
   Instrumentation::printStats();
 

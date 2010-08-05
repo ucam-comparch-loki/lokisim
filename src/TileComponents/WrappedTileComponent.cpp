@@ -25,7 +25,7 @@ void WrappedTileComponent::print(int start, int end) const {
 }
 
 int WrappedTileComponent::getRegVal(int reg) const {
-  comp->getRegVal(reg);
+  return comp->getRegVal(reg);
 }
 
 void WrappedTileComponent::initialise() {

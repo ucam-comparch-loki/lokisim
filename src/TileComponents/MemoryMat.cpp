@@ -95,7 +95,7 @@ void MemoryMat::read(int position) {
 
   if(connection.readingIPK()) {
     addr = connection.getAddress();
-    w = data.read(addr/4);
+    w = data.read(addr/BYTES_PER_WORD);
 
     if(static_cast<Instruction>(w).endOfPacket()) {
       connection.clear();
@@ -114,13 +114,16 @@ void MemoryMat::read(int position) {
 
     if(connection.isByteAccess()) {
       // Extract an individual byte.
-      unsigned int readVal = (unsigned int)data.read(addr/4).toInt();
-      int offset = addr % 4;
+      unsigned int readVal = (unsigned int)data.read(addr/BYTES_PER_WORD).toInt();
+      int offset = addr % BYTES_PER_WORD;
       int shiftAmount = 8*offset;
       int returnVal = readVal >> shiftAmount;
       w = Word(returnVal & 255);
     }
-    else w = data.read(addr/4);
+    else {
+      if(addr&3) cerr << "Misaligned address: " << addr << endl;
+      w = data.read(addr/BYTES_PER_WORD);
+    }
 
     connection.clear();
   }
@@ -129,8 +132,8 @@ void MemoryMat::read(int position) {
 
   Instrumentation::memoryRead();
 
-  if(DEBUG) cout << "Read " << data.read(addr/4) << " from memory " << id <<
-                    ", address " << addr << endl;
+  if(DEBUG) cout << "Read " << data.read(addr/BYTES_PER_WORD) << " from memory "
+                 << id << ", address " << addr << endl;
 
   if(flowControlIn[position].read()) {
     // Flow control allowing, send the value we just read.
@@ -151,18 +154,19 @@ void MemoryMat::write(Word w, int position) {
   ConnectionStatus& connection = connections[position];
 
   int addr = connection.getAddress();
-  if(!connection.isByteAccess()) data.write(w, addr/4);
+  if(!connection.isByteAccess()) data.write(w, addr/BYTES_PER_WORD);
   else {
     // If dealing with bytes, need to read the old value and only update
     // part of it.
-    unsigned int currVal = (unsigned int)data.read(addr/4).toInt();
-    int offset = addr % 4;
+    unsigned int currVal = (unsigned int)data.read(addr/BYTES_PER_WORD).toInt();
+    int offset = addr % BYTES_PER_WORD;
     int shiftAmount = offset*8;
     unsigned int mask = ~(255 << shiftAmount);
     currVal &= mask;
     unsigned int newVal = w.toInt() & 255;
     currVal &= (newVal << shiftAmount);
-    data.write(Word(currVal), addr/4);
+    Word newWord(currVal);
+    data.write(newWord, addr/BYTES_PER_WORD);
   }
 
   // If we're expecting more writes, update the address, otherwise clear it.
@@ -254,7 +258,7 @@ void MemoryMat::storeData(std::vector<Word>& data) {
 
 void MemoryMat::print(int start, int end) const {
   cout << "\nContents of " << this->name() << ":" << endl;
-  data.print(start/4, end/4);
+  data.print(start/BYTES_PER_WORD, end/BYTES_PER_WORD);
 }
 
 MemoryMat::MemoryMat(sc_module_name name, int ID) :

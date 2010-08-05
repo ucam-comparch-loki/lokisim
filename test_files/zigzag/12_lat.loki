@@ -1,60 +1,56 @@
-fetch       r1 6
+fetch       r1 20
 addui       r0 r0 32 > 55   ; connect to the data memory
-addui       r9 r0 7         ; store 7, since it is a common offset
+addui       r9 r0 28         ; store 7, since it is a common offset
 addui       r10 ch1 0       ; wait until we receive an address, and store it
-ld          r10 0 > 52      ; load the first value early
-nop.eop
+ld.eop      r10 0 > 52      ; load the first value early
 
-fetch       r1 5            ; MOVING UPWARDS
+fetch       r1 16            ; MOVING UPWARDS
 addu        r12 r10 r11     ; ============================
 ld          r12 0 > 52      ;  Load and forward data item
-addui       r0 ch0 0 > 6    ; ============================
+addui.eop   r0 ch0 0 > 6    ; ============================
+
+slti.p      r0 r11 32        ; see if we have hit the top of the grid
+nop
+!p?fetch    r1 24
+p?addui     r11 r11 4
+p?fetch     r1 76           ; switch to moving down
 nop.eop
 
-slti.p      r0 r11 8        ; see if we have hit the top of the grid
+seqi.p      r0 r11 252       ; see if we have finished
 nop
-!p?fetch    r1 6
-p?addui     r11 r11 1
-p?fetch     r1 19           ; switch to moving down
-nop.eop
-
-seqi.p      r0 r11 63       ; see if we have finished
-nop
-!p?fetch    r1 5            ; check the final condition
-p?fetch     r1 32           ; end
+!p?fetch    r1 20            ; check the final condition
+p?fetch     r1 124           ; end
 nop.eop
 
 and         r13 r11 r9
 seq.p       r0 r13 r9       ; see if we have hit the right of the grid
 nop
 !p?subu     r11 r11 r9
-!p?fetch    r1 -16          ; keep moving up
-p?addui     r11 r11 8
-p?fetch     r1 8            ; switch to moving down
+!p?fetch    r1 -60          ; keep moving up
+p?addui     r11 r11 32
+p?fetch     r1 32            ; switch to moving down
 nop.eop
 
-fetch       r1 5            ; MOVING DOWNWARDS
+fetch       r1 16            ; MOVING DOWNWARDS
 addu        r12 r10 r11     ; ============================
 ld          r12 0 > 52      ;  Load and forward data item
-addui       r0 ch0 0 > 6    ; ============================
-nop.eop
+addui.eop   r0 ch0 0 > 6    ; ============================
 
-slti.p      r0 r11 56       ; see if we have reached the bottom of the grid
+slti.p      r0 r11 224       ; see if we have reached the bottom of the grid
 nop
-p?fetch     r1 6            ; we haven't, so check the other condition
-!p?addui    r11 r11 1
-!p?fetch    r1 -29          ; we have, so switch to moving up
+p?fetch     r1 24            ; we haven't, so check the other condition
+!p?addui    r11 r11 4
+!p?fetch    r1 -108          ; we have, so switch to moving up
 nop.eop
 
 and         r13 r11 r9
 seq.p       r0 r13 r0       ; see if we have reached the left of the grid
 nop
 !p?addu     r11 r11 r9
-!p?fetch    r1 -11          ; keep moving down
-p?addui     r11 r11 8
-p?fetch     r1 -35          ; switch to moving up
+!p?fetch    r1 -40          ; keep moving down
+p?addui     r11 r11 32
+p?fetch     r1 -132          ; switch to moving up
 nop.eop
 
-fetch       r1 -49          ; end of block: restart and wait for new block address
-addui       r0 ch0 0 > 6    ; send the final value late
-nop.eop
+fetch       r1 -184          ; end of block: restart and wait for new block address
+addui.eop   r0 ch0 0 > 6    ; send the final value late

@@ -23,6 +23,8 @@ extern parameter NUM_TILE_COLUMNS = 1;
 
 extern parameter MAX_IPK_SIZE = 40;
 
+extern parameter BYTES_PER_WORD = 4;
+
 // Memory
 extern parameter NUM_ADDRESSABLE_REGISTERS = 32;
 extern parameter NUM_PHYSICAL_REGISTERS = 64;

@@ -37,9 +37,10 @@ void Decoder::decodeInstruction() {
   bool  setPred       = i.getSetPredicate();
   short remoteChannel = i.getRchannel();
 
-  if(immediate == -28) {
-    int r2 = Tile::getRegVal(1, 2);
-    Tile::print(12, r2, r2+28);
+  cout << Tile::getRegVal(1,4) << "\t" << Tile::getRegVal(1,6) << "\t" << i << endl;
+  if(operation == InstructionMap::FETCH && destination == 15) {
+//    int r2 = Tile::getRegVal(1, 2);
+//    Tile::print(12, r2, r2+28);
   }
 
   // TODO: move decision of whether or not an instruction should execute

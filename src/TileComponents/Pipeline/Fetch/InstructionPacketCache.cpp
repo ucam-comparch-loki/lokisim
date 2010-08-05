@@ -75,8 +75,8 @@ void InstructionPacketCache::lookup() {
   if(DEBUG) cout << this->name() << " looked up tag: " << address.read() << ": "
                  << (inCache ? "" : "not ") << "in cache" << endl;
 
-  // If we don't have the instructions, we will probably receive them soon,
-  // so store the address to use as the tag.
+  // If we don't have the instructions, we will receive them soon, so store
+  // the address to use as the tag.
   if(!inCache) {
     if(!addresses.isFull()) addresses.write(address.read());
       // Stall if the buffer is now full?
@@ -114,7 +114,7 @@ void InstructionPacketCache::finishedRead() {
 void InstructionPacketCache::jump() {
   if(DEBUG) cout << this->name() << ": ";   // cache prints the rest
 
-  cache.jump(jumpOffset.read());
+  cache.jump(jumpOffset.read()/BYTES_PER_WORD);
   instToSend = cache.read();
   if(instToSend.endOfPacket()) endOfPacketTasks();
 

@@ -24,7 +24,7 @@
 #define INTERCLUSTERNETWORK_H_
 
 #include "Interconnect.h"
-#include "Routing Schemes/RoutingScheme.h"
+#include "RoutingSchemes/RoutingScheme.h"
 
 typedef sc_in<AddressedWord> input_port;
 typedef sc_out<Word>         output_port;

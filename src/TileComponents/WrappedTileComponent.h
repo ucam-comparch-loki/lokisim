@@ -13,8 +13,8 @@
 
 #include "../Component.h"
 #include "TileComponent.h"
-#include "../Network/Flow Control/FlowControlIn.h"
-#include "../Network/Flow Control/FlowControlOut.h"
+#include "../Network/FlowControl/FlowControlIn.h"
+#include "../Network/FlowControl/FlowControlOut.h"
 
 class WrappedTileComponent: public Component {
 

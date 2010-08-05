@@ -1,0 +1,7 @@
+directory fibonacci
+
+1 fib_setup.loki
+13 fib.data
+
+% Currently doesn't work properly because fib.data needs to have pairs of
+% words combined to form instructions.

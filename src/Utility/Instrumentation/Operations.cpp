@@ -24,7 +24,7 @@ void Operations::operation(int op, bool executed) {
 void Operations::printStats() {
   if(numOps > 0) {
     cout << "Operations:" << endl <<
-      "  operation\texecuted \tunexecuted" << endl;
+      "  Operation\tExecuted \tUnexecuted" << endl;
 
     for(int i=0; i<InstructionMap::RMTNXIPK; i++) {
       if(executedOps[i] > 0 || unexecutedOps[i] > 0) {

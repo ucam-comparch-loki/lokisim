@@ -1,73 +1,73 @@
 addui       r0 r0 96 > 55   ; connect to the data memory (and have it send to cluster 1)
 addui       r10 ch1 0       ; wait until we receive an address, and store it
-fetch.eop   r1 3            ; do the fetch late so it only does it when necessary
+fetch.eop   r1 12            ; do the fetch late so it only does it when necessary
 
 
-fetch       r1 33
+fetch       r1 132
 ld          r10 0 > 52
-ld          r10 1 > 52
-ld          r10 8 > 52
-ld          r10 16 > 52
-ld          r10 9 > 52
-ld          r10 2 > 52
-ld          r10 3 > 52
-ld          r10 10 > 52
-ld          r10 17 > 52
-ld          r10 24 > 52
-ld          r10 32 > 52
-ld          r10 25 > 52
-ld          r10 18 > 52
-ld          r10 11 > 52
 ld          r10 4 > 52
-ld          r10 5 > 52
-ld          r10 12 > 52
-ld          r10 19 > 52
-ld          r10 26 > 52
-ld          r10 33 > 52
-ld          r10 40 > 52
-ld          r10 48 > 52
-ld          r10 41 > 52
-ld          r10 34 > 52
-ld          r10 27 > 52
-ld          r10 20 > 52
-ld          r10 13 > 52
-ld          r10 6 > 52
-ld          r10 7 > 52
-ld          r10 14 > 52
-ld          r10 21 > 52
-ld.eop      r10 28 > 52     ; split the loads in half so they don't overwrite each other
-
-
-fetch       r1 -36            ; restart
-ld          r10 35 > 52
-ld          r10 42 > 52
-ld          r10 49 > 52
-ld          r10 56 > 52
-ld          r10 57 > 52
-ld          r10 50 > 52
-ld          r10 43 > 52
+ld          r10 32 > 52
+ld          r10 64 > 52
 ld          r10 36 > 52
-ld          r10 29 > 52
-ld          r10 22 > 52
-ld          r10 15 > 52
-ld          r10 23 > 52
-ld          r10 30 > 52
-ld          r10 37 > 52
+ld          r10 8 > 52
+ld          r10 12 > 52
+ld          r10 40 > 52
+ld          r10 68 > 52
+ld          r10 96 > 52
+ld          r10 128 > 52
+ld          r10 100 > 52
+ld          r10 72 > 52
 ld          r10 44 > 52
-ld          r10 51 > 52
-ld          r10 58 > 52
-ld          r10 59 > 52
+ld          r10 16 > 52
+ld          r10 20 > 52
+ld          r10 48 > 52
+ld          r10 76 > 52
+ld          r10 104 > 52
+ld          r10 132 > 52
+ld          r10 160 > 52
+ld          r10 192 > 52
+ld          r10 164 > 52
+ld          r10 136 > 52
+ld          r10 108 > 52
+ld          r10 80 > 52
 ld          r10 52 > 52
-ld          r10 45 > 52
-ld          r10 38 > 52
-ld          r10 31 > 52
-ld          r10 39 > 52
-ld          r10 46 > 52
-ld          r10 53 > 52
+ld          r10 24 > 52
+ld          r10 28 > 52
+ld          r10 56 > 52
+ld          r10 84 > 52
+ld.eop      r10 112 > 52     ; split the loads in half so they don't overwrite each other
+
+
+fetch       r1 -144            ; restart
+ld          r10 140 > 52
+ld          r10 168 > 52
+ld          r10 196 > 52
+ld          r10 224 > 52
+ld          r10 228 > 52
+ld          r10 200 > 52
+ld          r10 172 > 52
+ld          r10 144 > 52
+ld          r10 116 > 52
+ld          r10 88 > 52
 ld          r10 60 > 52
-ld          r10 61 > 52
-ld          r10 54 > 52
-ld          r10 47 > 52
-ld          r10 55 > 52
-ld          r10 62 > 52
-ld.eop      r10 63 > 52
+ld          r10 92 > 52
+ld          r10 120 > 52
+ld          r10 148 > 52
+ld          r10 176 > 52
+ld          r10 204 > 52
+ld          r10 232 > 52
+ld          r10 236 > 52
+ld          r10 208 > 52
+ld          r10 180 > 52
+ld          r10 152 > 52
+ld          r10 124 > 52
+ld          r10 156 > 52
+ld          r10 184 > 52
+ld          r10 212 > 52
+ld          r10 240 > 52
+ld          r10 244 > 52
+ld          r10 216 > 52
+ld          r10 188 > 52
+ld          r10 220 > 52
+ld          r10 248 > 52
+ld.eop      r10 252 > 52

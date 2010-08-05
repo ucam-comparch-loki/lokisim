@@ -30,7 +30,7 @@ void Cluster::storeData(std::vector<Word>& data) {
 }
 
 int Cluster::getRegVal(int reg) const {
-  regs.getRegVal(reg);
+  return regs.getRegVal(reg);
 }
 
 /* Checks the status signals of various pipeline stages to determine if the
