@@ -5,6 +5,7 @@
  *      Author: db434
  */
 
+#include <systemc>
 #include "Stalls.h"
 #include "../Parameters.h"
 
@@ -59,6 +60,11 @@ void Stalls::active(int id, int cycle) {
     idleStart.setCount(id, UNSTALLED);
     numStalled--;
   }
+}
+
+void Stalls::endExecution() {
+  if(numStalled < NUM_CORES) endOfExecution =
+      sc_core::sc_time_stamp().to_default_time_units();
 }
 
 void Stalls::printStats() {

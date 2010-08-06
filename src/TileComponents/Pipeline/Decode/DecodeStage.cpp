@@ -79,7 +79,7 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
     PipelineStage(name),
     fl("fetchlogic", ID),     // Needs ID so it can generate a return address
     rcet("rcet"),
-    decoder("decoder"),
+    decoder("decoder", ID),
     extend("signextend") {
 
   in = new sc_in<Word>[NUM_RECEIVE_CHANNELS];

@@ -19,6 +19,7 @@ public:
   static void unstall(int id, int cycle);
   static void idle(int id, int cycle);
   static void active(int id, int cycle);
+  static void endExecution();
   static void printStats();
 
 private:

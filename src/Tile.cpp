@@ -23,6 +23,10 @@ double Tile::energy() const {
          contents[CLUSTERS_PER_TILE]->energy() * MEMS_PER_TILE;
 }
 
+bool Tile::isIdle() const {
+  return idleVal;
+}
+
 void Tile::storeData(vector<Word>& data, int componentNumber) {
   contents[componentNumber]->storeData(data);
 }
@@ -30,6 +34,10 @@ void Tile::storeData(vector<Word>& data, int componentNumber) {
 void Tile::print(int component, int start, int end, Tile* tile) {
   if(start<end) tile->contents[component]->print(start, end);
   else          tile->contents[component]->print(end, start);
+}
+
+Word Tile::getMemVal(int component, int addr, Tile* tile) {
+  return tile->contents[component]->getMemVal(addr);
 }
 
 int Tile::getRegVal(int component, int reg, Tile* tile) {
@@ -53,15 +61,15 @@ void Tile::connectTopBottom(const Tile& top, const Tile& bottom) {
 }
 
 void Tile::updateIdle() {
-  bool isIdle = true;
+  idleVal = true;
 
   for(int i=0; i<COMPONENTS_PER_TILE; i++) {
-    isIdle &= idleSig[i].read();
+    idleVal &= idleSig[i].read();
   }
 
   // Also check network to make sure data/instructions aren't in transit
 
-  idle.write(isIdle);
+  idle.write(idleVal);
 }
 
 Tile::Tile(sc_module_name name, int ID) :

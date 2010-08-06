@@ -261,6 +261,10 @@ void MemoryMat::print(int start, int end) const {
   data.print(start/BYTES_PER_WORD, end/BYTES_PER_WORD);
 }
 
+Word MemoryMat::getMemVal(int addr) const {
+  return data.read(addr/BYTES_PER_WORD);
+}
+
 MemoryMat::MemoryMat(sc_module_name name, int ID) :
     TileComponent(name, ID),
     data(MEMORY_SIZE),

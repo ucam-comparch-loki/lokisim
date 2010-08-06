@@ -65,6 +65,8 @@ public:
   // Print information about the component.
   virtual void print(int start, int end) const;
 
+  virtual Word getMemVal(int addr) const;
+
   // Returns the value held in the specified register.
   virtual int  getRegVal(int reg) const;
 

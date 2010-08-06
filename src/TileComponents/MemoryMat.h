@@ -64,6 +64,9 @@ public:
   // Print the contents of this memory.
   virtual void print(int start=0, int end=MEMORY_SIZE) const;
 
+  // Return the value at the given address.
+  virtual Word getMemVal(int addr) const;
+
 private:
 
   // Look through all inputs for new data. Determine whether this data is the

@@ -37,18 +37,18 @@ void Decoder::decodeInstruction() {
   bool  setPred       = i.getSetPredicate();
   short remoteChannel = i.getRchannel();
 
-  cout << Tile::getRegVal(1,4) << "\t" << Tile::getRegVal(1,6) << "\t" << i << endl;
-  if(operation == InstructionMap::FETCH && destination == 15) {
-//    int r2 = Tile::getRegVal(1, 2);
-//    Tile::print(12, r2, r2+28);
-  }
+//  cout << Tile::getRegVal(1,4) << "\t" << Tile::getRegVal(1,6) << "\t" << i << endl;
+//  if(operation == InstructionMap::FETCH && destination == 15) {
+////    int r2 = Tile::getRegVal(1, 2);
+////    Tile::print(12, r2, r2+28);
+//  }
 
   // TODO: move decision of whether or not an instruction should execute
   // into the execute stage/ALU -- may require blocking all signals in
   // execute stage?
   bool execute = shouldExecute(pred);
 
-  Instrumentation::operation(operation, execute);
+  Instrumentation::operation(i, execute, id);
 
   // If we are in remote execution mode, send all marked instructions.
   if(remoteExecute) {
@@ -295,7 +295,9 @@ bool Decoder::readALUOutput(short reg) {
   return (reg != 0) && (reg == regLastWritten) && (regLastWritten != -1);
 }
 
-Decoder::Decoder(sc_module_name name) : Component(name) {
+Decoder::Decoder(sc_module_name name, int ID) : Component(name) {
+
+  this->id = ID;
 
   regLastWritten = sendChannel = fetchChannel = -1;
   remoteExecute = false;

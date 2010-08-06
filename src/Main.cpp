@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 #include <systemc.h>
 #include "Utility/CodeLoader.h"
+#include "Utility/Debugger.h"
 #include "Tests/Test.h"
 
 using std::vector;
@@ -60,7 +61,7 @@ int sc_main(int argc, char* argv[]) {
 
     Instruction inst(l);
     insts.push_back(inst);
-    cout << inst << endl;
+    cout << i*2 << "\t" << inst << endl;
   }
 
   string setup = "fibonacci/fib_setup.loki";
@@ -75,24 +76,32 @@ int sc_main(int argc, char* argv[]) {
 //
 //  CodeLoader::loadCode(tile, directory, coreFiles, memoryFiles);
 
-  int cyclesIdle = 0;
-  int i;
-
-  try {
-    for(i=0; i<20000; i++) {
-      TIMESTEP;
-      if(idle.read()) {
-        cyclesIdle++;
-        if(cyclesIdle >= 5) {
-          sc_stop();
-          break;
-        }
-      }
-      else cyclesIdle = 0;
-    }
+  if(argc > 1) {
+    string firstArg(argv[1]);
+    Debugger::setTile(&tile);
+    if(firstArg == "debug") Debugger::waitForInput();
   }
-  catch(std::exception e) {}  // If there's no error message, it might mean
-                              // that not everything is connected properly.
+  else {
+    int cyclesIdle = 0;
+    int i;
+
+    try {
+      for(i=0; i<50000; i++) {
+        TIMESTEP;
+        if(idle.read()) {
+          cyclesIdle++;
+          if(cyclesIdle >= 5) {
+            sc_stop();
+            Instrumentation::endExecution();
+            break;
+          }
+        }
+        else cyclesIdle = 0;
+      }
+    }
+    catch(std::exception e) {}  // If there's no error message, it might mean
+                                // that not everything is connected properly.
+  }
 
 //  tile.print(13, 512, 768);
 //  tile.print(14, 0, 256);

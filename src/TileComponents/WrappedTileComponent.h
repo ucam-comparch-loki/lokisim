@@ -72,6 +72,7 @@ public:
   virtual void storeData(std::vector<Word>& data);
 
   void         print(int start, int end) const;
+  Word         getMemVal(int addr) const;
   int          getRegVal(int reg) const;
 
   // Perform any initialisation required (e.g. setting flow control values).

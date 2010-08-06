@@ -11,6 +11,10 @@ void TileComponent::print(int start, int end) const {
   // Do nothing if print isn't defined
 }
 
+Word TileComponent::getMemVal(int addr) const {
+  return Word(-1);
+}
+
 int TileComponent::getRegVal(int reg) const {
   return -1;
 }

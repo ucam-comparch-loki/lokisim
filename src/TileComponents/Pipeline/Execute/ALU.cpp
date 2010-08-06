@@ -82,8 +82,8 @@ void ALU::doOp() {
 
     switch(operation.read()) {
       case InstructionMap::ADDU:
-      case InstructionMap::ADDUI: newPredicate = ((unsigned int)val1+(unsigned int)val2) > UINT_MAX;
-      case InstructionMap::SUBU:  newPredicate = ((int)val1-(int)val2) < 0;
+      case InstructionMap::ADDUI: newPredicate = ((long)val1+(long)val2) > UINT_MAX;
+      case InstructionMap::SUBU:  newPredicate = ((long)val1-(long)val2) < 0;
       default: newPredicate = result&1; // Store lowest bit in predicate register
     }
 

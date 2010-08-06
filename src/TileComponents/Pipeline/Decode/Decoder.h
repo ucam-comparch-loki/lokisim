@@ -99,7 +99,7 @@ public:
 public:
 
   SC_HAS_PROCESS(Decoder);
-  Decoder(sc_module_name name);
+  Decoder(sc_module_name name, int id);
   virtual ~Decoder();
 
 //==============================//

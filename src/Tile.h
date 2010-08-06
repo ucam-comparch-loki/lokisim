@@ -53,10 +53,13 @@ public:
   virtual double area()   const;
   virtual double energy() const;
 
+  bool isIdle() const;
+
   // Store the given instructions or data into the component at the given index.
   void storeData(vector<Word>& data, int componentNumber);
 
   static void print(int component, int start, int end, Tile* tile=currentTile);
+  static Word getMemVal(int component, int addr, Tile* tile=currentTile);
   static int  getRegVal(int component, int reg, Tile* tile=currentTile);
 
   // Static functions for connecting Tiles together
@@ -92,6 +95,8 @@ private:
 //==============================//
 
 private:
+
+  bool idleVal;
 
   // Store a pointer to the most recent tile (hopefully the only one), so
   // it can be accessed statically from anywhere.

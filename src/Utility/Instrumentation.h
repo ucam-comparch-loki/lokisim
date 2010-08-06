@@ -12,6 +12,7 @@
 #define INSTRUMENTATION_H_
 
 #include <iostream>
+#include "../Datatype/Instruction.h"
 
 class Instrumentation {
 
@@ -32,11 +33,14 @@ public:
   // Record that a particular core became idle or active.
   static void idle(int id, bool idle, int cycle);
 
+  // End execution immediately.
+  static void endExecution();
+
   // Record that data was sent over the network.
   static void networkTraffic(int startID, int endID, double distance);
 
   // Record whether a particular operation was executed or not.
-  static void operation(int op, bool executed);
+  static void operation(Instruction inst, bool executed, int id);
 
   // Print the results of instrumentation.
   static void printStats();

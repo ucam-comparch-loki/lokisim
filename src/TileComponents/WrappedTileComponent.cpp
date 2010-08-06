@@ -24,6 +24,10 @@ void WrappedTileComponent::print(int start, int end) const {
   comp->print(start, end);
 }
 
+Word WrappedTileComponent::getMemVal(int addr) const {
+  return comp->getMemVal(addr);
+}
+
 int WrappedTileComponent::getRegVal(int reg) const {
   return comp->getRegVal(reg);
 }

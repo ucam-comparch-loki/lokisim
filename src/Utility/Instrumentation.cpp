@@ -6,6 +6,7 @@
  */
 
 #include "Instrumentation.h"
+#include "Debugger.h"
 #include "Instrumentation/IPKCache.h"
 #include "Instrumentation/Memory.h"
 #include "Instrumentation/Network.h"
@@ -34,12 +35,17 @@ void Instrumentation::idle(int id, bool idle, int cycle) {
   else Stalls::active(id, cycle);
 }
 
+void Instrumentation::endExecution() {
+  Stalls::endExecution();
+}
+
 void Instrumentation::networkTraffic(int startID, int endID, double distance) {
   Network::traffic(startID, endID, distance);
 }
 
-void Instrumentation::operation(int op, bool executed) {
-  Operations::operation(op, executed);
+void Instrumentation::operation(Instruction inst, bool executed, int id) {
+  Operations::operation(InstructionMap::operation(inst.getOp()), executed);
+  Debugger::executedInstruction(inst, id);
 }
 
 void Instrumentation::printStats() {
