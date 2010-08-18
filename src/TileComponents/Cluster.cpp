@@ -33,6 +33,14 @@ int Cluster::getRegVal(int reg) const {
   return regs.getRegVal(reg);
 }
 
+int Cluster::getInstIndex() const {
+  return fetch.getInstIndex();
+}
+
+bool Cluster::getPredReg() const {
+  return pred.getVal();
+}
+
 /* Checks the status signals of various pipeline stages to determine if the
  * pipeline should be stalled/unstalled. */
 void Cluster::stallPipeline() {

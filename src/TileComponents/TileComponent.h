@@ -65,10 +65,17 @@ public:
   // Print information about the component.
   virtual void print(int start, int end) const;
 
+  // Return the data held at the given memory address.
   virtual Word getMemVal(int addr) const;
 
-  // Returns the value held in the specified register.
+  // Return the value held in the specified register.
   virtual int  getRegVal(int reg) const;
+
+  // Return the memory index of the instruction currently being decoded.
+  virtual int getInstIndex() const;
+
+  // Return the value of the predicate register.
+  virtual bool getPredReg() const;
 
   enum Type {CLUSTER, MEMORY};
 

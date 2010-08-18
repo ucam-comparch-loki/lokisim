@@ -7,8 +7,6 @@
 
 #include "Tile.h"
 
-Tile* Tile::currentTile = 0;
-
 double Tile::area() const {
   // Update this if allowing heterogeneity.
   return network.area() +
@@ -31,17 +29,25 @@ void Tile::storeData(vector<Word>& data, int componentNumber) {
   contents[componentNumber]->storeData(data);
 }
 
-void Tile::print(int component, int start, int end, Tile* tile) {
-  if(start<end) tile->contents[component]->print(start, end);
-  else          tile->contents[component]->print(end, start);
+void Tile::print(int component, int start, int end) const {
+  if(start<end) contents[component]->print(start, end);
+  else          contents[component]->print(end, start);
 }
 
-Word Tile::getMemVal(int component, int addr, Tile* tile) {
-  return tile->contents[component]->getMemVal(addr);
+Word Tile::getMemVal(int component, int addr) const {
+  return contents[component]->getMemVal(addr);
 }
 
-int Tile::getRegVal(int component, int reg, Tile* tile) {
-  return tile->contents[component]->getRegVal(reg);
+int Tile::getRegVal(int component, int reg) const {
+  return contents[component]->getRegVal(reg);
+}
+
+int Tile::getInstIndex(int component) const {
+  return contents[component]->getInstIndex();
+}
+
+bool Tile::getPredReg(int component) const {
+  return contents[component]->getPredReg();
 }
 
 /* Connect two horizontally-adjacent Tiles together. */
@@ -145,8 +151,6 @@ Tile::Tile(sc_module_name name, int ID) :
   }
 
   end_module(); // Needed because we're using a different Component constructor
-
-  currentTile = this;
 
 }
 

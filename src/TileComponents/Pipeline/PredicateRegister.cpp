@@ -7,6 +7,10 @@
 
 #include "PredicateRegister.h"
 
+bool PredicateRegister::getVal() const {
+  return predicate;
+}
+
 void PredicateRegister::writeVal() {
   predicate = write.read();
   output.write(predicate);

@@ -79,6 +79,9 @@ public:
   // Store some instructions in the Instruction Packet Cache.
   void          storeCode(std::vector<Instruction>& instructions);
 
+  // Return the memory address of the last instruction sent.
+  int           getInstIndex() const;
+
 private:
 
   // The task performed at the beginning of each clock cycle.

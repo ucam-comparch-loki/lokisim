@@ -58,9 +58,11 @@ public:
   // Store the given instructions or data into the component at the given index.
   void storeData(vector<Word>& data, int componentNumber);
 
-  static void print(int component, int start, int end, Tile* tile=currentTile);
-  static Word getMemVal(int component, int addr, Tile* tile=currentTile);
-  static int  getRegVal(int component, int reg, Tile* tile=currentTile);
+  void print(int component, int start, int end) const;
+  Word getMemVal(int component, int addr) const;
+  int  getRegVal(int component, int reg) const;
+  int  getInstIndex(int component) const;
+  bool getPredReg(int component) const;
 
   // Static functions for connecting Tiles together
   static void connectLeftRight(const Tile& left, const Tile& right);
@@ -97,10 +99,6 @@ private:
 private:
 
   bool idleVal;
-
-  // Store a pointer to the most recent tile (hopefully the only one), so
-  // it can be accessed statically from anywhere.
-  static Tile* currentTile;
 
 };
 

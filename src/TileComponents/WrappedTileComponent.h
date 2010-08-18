@@ -74,6 +74,8 @@ public:
   void         print(int start, int end) const;
   Word         getMemVal(int addr) const;
   int          getRegVal(int reg) const;
+  int          getInstIndex() const;
+  bool         getPredReg() const;
 
   // Perform any initialisation required (e.g. setting flow control values).
   void         initialise();

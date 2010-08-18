@@ -19,6 +19,10 @@ void FetchStage::storeCode(std::vector<Instruction>& instructions) {
   cache.storeCode(instructions);
 }
 
+int FetchStage::getInstIndex() const {
+  return cache.getInstIndex();
+}
+
 void FetchStage::newCycle() {
   while(true) {
     wait(clock.posedge_event());

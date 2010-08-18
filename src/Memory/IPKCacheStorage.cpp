@@ -38,6 +38,7 @@ Instruction& IPKCacheStorage::read() {
     int i = currInst.value();
     incrementCurrent();
     lastOpWasARead = true;
+
     return this->data[i];
   }
   else {
@@ -88,15 +89,16 @@ void IPKCacheStorage::jump(int offset) {
   updateFillCount();
 
   // Update currentPacket if we have jumped to the start of a packet
-  if(!(this->tags[currInst.value()] == Address()))
+  if(!(this->tags[currInst.value()] == Address())) {
     currentPacket = currInst.value();
+  }
 
   if(DEBUG) cout << "Jumped by " << offset << " to instruction " <<
       currInst.value() << endl;
 }
 
 /* Return the memory address of the currently-executing packet. */
-Address& IPKCacheStorage::packetAddress() {
+Address IPKCacheStorage::packetAddress() const {
   return this->tags[currentPacket];
 }
 
@@ -104,6 +106,19 @@ Address& IPKCacheStorage::packetAddress() {
 int IPKCacheStorage::remainingSpace() const {
   int space = this->size() - fillCount;
   return space;
+}
+
+int IPKCacheStorage::getInstIndex() const {
+//  Address startOfPacket = packetAddress();
+//  int cacheIndex = (currInst==NOT_IN_USE) ? currInstBackup : currInst.value();
+//  int packetIndex = cacheIndex - 2 - currentPacket;
+//  if(packetIndex<0) packetIndex += IPK_CACHE_SIZE;
+//
+//  cout << cacheIndex << " " << packetIndex << " " << endl;
+//
+//  return startOfPacket.getAddress() + BYTES_PER_WORD*packetIndex;
+
+  return -1;
 }
 
 /* Returns whether the cache is empty. Note that even if a cache is empty,

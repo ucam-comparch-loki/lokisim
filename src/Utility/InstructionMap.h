@@ -73,7 +73,7 @@ public:
 
     PSEL,         // Predicated selection (rd = p?rs:rt)  psel rd, rs, rt
 
-    CLZ,          // Count leading zeroes                 clz rd, rs (?)
+    CLZ,          // Count leading zeroes                 clz rd, rs
 
     NOR,          // Nor                                  nor rd, rs, rt
     AND,          // And                                  and rd, rs, rt
@@ -87,7 +87,7 @@ public:
     NAND,         // Nand                                 nand rd, rs, rt
     CLR,          // Bitwise clear (rd = rs & ~rt)        clr rd, rs, rt
     ORC,          // Or complement (rd = rs | ~rt)        orc rd, rs, rt
-    POPC,         // Population count (number of 1s)      popc rd, rs (?)
+    POPC,         // Population count (number of 1s)      popc rd, rs
     RSUBI,        // Reverse subtract immed (immed-rs)    rsubi rd, rs, immed
 
     ADDU,         // Add unsigned                         addu rd, rs, rt

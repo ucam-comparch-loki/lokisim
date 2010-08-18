@@ -1,6 +1,6 @@
 % Loader file for all (?) benchmarks.
 % Comment out lines of benchmarks which aren't to be run.
 
-directory dct
+directory fibonacci
 
 loader loader.txt

@@ -13,7 +13,7 @@
 
 typedef const int parameter;
 
-extern parameter DEBUG;
+extern int DEBUG;
 
 extern parameter NUM_CHANNELS_BETWEEN_TILES;
 extern parameter CLUSTERS_PER_TILE;

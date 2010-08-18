@@ -25,15 +25,6 @@ public:
   // Wait for the user to issue a command.
   static void waitForInput();
 
-  // Set a breakpoint corresponding to an instruction location.
-  static void setBreakPoint(int bp, int memory=defaultInstMemory);
-
-  // Print the current stack.
-  static void printStack(int core=defaultCore, int memory=defaultDataMemory);
-
-  // Print the values of the given registers.
-  static void printRegs(vector<int> regs, int core=defaultCore);
-
   // Receive notification that a particular core executed a particular
   // instruction.
   static void executedInstruction(Instruction i, int core);
@@ -43,10 +34,34 @@ public:
 
 private:
 
+  // Set a breakpoint corresponding to an instruction location.
+  static void setBreakPoint(vector<int> bps, int memory=defaultInstMemory);
+  static bool isBreakpoint(Instruction i);
+  static void addBreakpoint(Instruction i);
+  static void removeBreakpoint(Instruction i);
+
+  // Print the current stack.
+  static void printStack(int core=defaultCore, int memory=defaultDataMemory);
+
+  static void printMemLocations(vector<int> locs, int memory=defaultDataMemory);
+
+  // Print the values of the given registers.
+  static void printRegs(vector<int> regs, int core=defaultCore);
+
+  // Print the value of the predicate register.
+  static void printPred(int core=defaultCore);
+
+  // Print a list of possible commands.
+  static void printHelp();
+
   static void executeSingleCycle();
   static void executeUntilBreakpoint();
+  static void finishExecution();
 
-  static vector<int>& parseRegs(vector<string>& s);
+  static void changeCore(int core);
+  static void changeMemory(int memory);
+
+  static vector<int>& parseIntVector(vector<string>& s);
 
 //==============================//
 // Local state

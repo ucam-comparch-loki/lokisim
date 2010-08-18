@@ -61,7 +61,7 @@ void ALU::doOp() {
     case InstructionMap::NAND:  result = ~(val1 & val2); break;
     case InstructionMap::CLR:   result = val1 & ~val2; break;
     case InstructionMap::ORC:   result = val1 | ~val2; break;
-//    case InstructionMap::POPC: result = ???; break;
+    case InstructionMap::POPC:  result = __builtin_popcount(val1); break;
     case InstructionMap::RSUBI: result = val2 - val1; break;
 
     case InstructionMap::ADDU:

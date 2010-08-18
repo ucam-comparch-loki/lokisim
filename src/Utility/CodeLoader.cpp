@@ -10,6 +10,8 @@
 #include "StringManipulation.h"
 #include "../Datatype/Instruction.h"
 
+bool CodeLoader::usingDebugger = false;
+
 /* Use an external file to tell which files to read.
  * The file should contain lines of the following forms:
  *   directory directory_name
@@ -62,6 +64,9 @@ void CodeLoader::loadCode(string& settings, Tile& tile) {
 /* Load code from the specified file into a particular component of the
  * given tile. */
 void CodeLoader::loadCode(string& filename, Tile& tile, int position) {
+  if(usingDebugger) cout << "\nLoading into " <<
+      (position>=CLUSTERS_PER_TILE ? "memory " : "core ") << position << ":\n";
+
   tile.storeData(getData(filename), position);
 }
 
@@ -105,18 +110,21 @@ vector<Word>& CodeLoader::getData(string& filename) {
   vector<Word>* words = new vector<Word>();
 
   // See if this file contains Instructions or Data
-  bool instructionFile = isInstructionFile(filename);
+  int typeOfFile = fileType(filename);
 
-  // An array to load a line of the file into. Is 200 characters enough?
-  char wordAsString[200];
+  int wordsRead = 0;
 
   while(!file.fail()) {
     try {
-      file.getline(wordAsString, 200, '\n');
 
       try {
-        Word w = makeWord(wordAsString, instructionFile);
+        Word w = getWord(file, typeOfFile);
         words->push_back(w);
+
+        if(usingDebugger && (typeOfFile != DATA)) {
+          cout << (wordsRead*BYTES_PER_WORD) << "\t"
+               << static_cast<Instruction>(w) << endl;
+        }
       }
       catch (std::exception e) {
         continue; // If we couldn't make a valid word, try the next line
@@ -129,6 +137,8 @@ vector<Word>& CodeLoader::getData(string& filename) {
       std::cerr << "Error: could not read file " << fullName << endl;
       break;
     }
+
+    wordsRead++;
   }
 
   if(words->size() == 0)
@@ -145,7 +155,7 @@ vector<Word>& CodeLoader::getData(string& filename) {
 /* Returns whether the file should contain instructions. If not, it should
  * contain data. Instruction files are of type .loki, and data files are
  * of type .data. */
-bool CodeLoader::isInstructionFile(string& filename) {
+int CodeLoader::fileType(string& filename) {
 
   vector<string> parts = StringManipulation::split(filename, '.');
 
@@ -154,22 +164,45 @@ bool CodeLoader::isInstructionFile(string& filename) {
     throw std::exception();
   }
 
-  if(parts[1] == "loki") return true;
-  else if(parts[1] == "data") return false;
+  if(parts[1] == "loki") return LOKI;
+  else if(parts[1] == "data") return DATA;
+  else if(parts[1] == "bloki") return BINARY;
   else std::cerr << "Unknown file format: " << filename << endl;
 
-  return false;
+  return DATA;
 
 }
 
-/* Return either an Instruction or a Data represented by the given string,
- * depending on the type of file being read. */
-Word CodeLoader::makeWord(const string& str, bool instructionFile) {
-  if(instructionFile) {
-    return Instruction(str);
+/* Return either an Instruction or a Data from the file, depending on the
+ * type of file being read. */
+Word CodeLoader::getWord(std::ifstream& file, int type) {
+
+  // An array to store individual lines of the file in.
+  static char line[200];
+
+  switch(type) {
+    case LOKI: {
+      file.getline(line, 200, '\n');
+      return Instruction(line);
+    }
+    case BINARY: {
+      // At the moment, binary files are formatted as 32-bit words in hex.
+      // We therefore need to load in two words to make a single instruction.
+      file.getline(line, 200, '\n');
+      unsigned long val = (unsigned long)StringManipulation::strToInt(line) << 32;
+      file.getline(line, 200, '\n');
+      val += (unsigned long)StringManipulation::strToInt(line);
+      return Instruction(val);
+    }
+    case DATA: {
+      file.getline(line, 200, '\n');
+      int val = StringManipulation::strToInt(line);
+      return Data(val);
+    }
+    default: {
+      std::cerr << "Error: unknown file format." << endl;
+      throw std::exception();
+    }
   }
-  else {
-    int val = StringManipulation::strToInt(str);
-    return Data(val);
-  }
+
 }

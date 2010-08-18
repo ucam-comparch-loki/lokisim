@@ -46,10 +46,13 @@ public:
   void jump(int offset);
 
   // Return the memory address of the currently-executing packet.
-  Address& packetAddress();
+  Address packetAddress() const;
 
   // Returns the remaining number of entries in the cache.
   int remainingSpace() const;
+
+  // Return the memory index of the instruction sent most recently.
+  int getInstIndex() const;
 
   // Returns whether the cache is empty. Note that even if a cache is empty,
   // it is still possible to access its contents if an appropriate tag is
@@ -101,8 +104,8 @@ private:
 
   // Knowing what the last operation was helps us determine whether the cache
   // is full or empty when the current instruction and refill pointer are in
-  // the same place. If we read an instruction, the cache is empty, but if we
-  // wrote one, it is probably full.
+  // the same place. If we read an instruction, the cache can be considered
+  // empty, but if we wrote one, it is full.
   bool lastOpWasARead;
 
   static const int NOT_IN_USE = -1;

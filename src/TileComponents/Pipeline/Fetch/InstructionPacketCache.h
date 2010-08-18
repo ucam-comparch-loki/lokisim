@@ -86,10 +86,13 @@ public:
   // Initialise the contents of the cache with a list of instructions.
   void storeCode(std::vector<Instruction>& instructions);
 
+  // Return the index into the current packet of the current instruction.
+  int  getInstIndex() const;
+
   // Tells whether the cache considers itself empty. This may be because there
   // are no instructions in the cache, or because all instructions have been
   // executed.
-  bool isEmpty();
+  bool isEmpty() const;
 
 private:
 

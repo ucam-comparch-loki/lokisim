@@ -149,8 +149,12 @@ void InstructionPacketCache::write() {
   outputWasRead = false;
 }
 
+int InstructionPacketCache::getInstIndex() const {
+  return cache.getInstIndex();
+}
+
 /* Returns whether or not the cache is empty. */
-bool InstructionPacketCache::isEmpty() {
+bool InstructionPacketCache::isEmpty() const {
   return cache.isEmpty();
 }
 

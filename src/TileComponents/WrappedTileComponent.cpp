@@ -32,6 +32,14 @@ int WrappedTileComponent::getRegVal(int reg) const {
   return comp->getRegVal(reg);
 }
 
+int WrappedTileComponent::getInstIndex() const {
+  return comp->getInstIndex();
+}
+
+bool WrappedTileComponent::getPredReg() const {
+  return comp->getPredReg();
+}
+
 void WrappedTileComponent::initialise() {
   fcOut.initialise();
 }

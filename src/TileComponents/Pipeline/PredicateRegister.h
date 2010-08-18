@@ -30,6 +30,9 @@ public:
 // Methods
 //==============================//
 
+  // Get the current value.
+  bool getVal() const;
+
 private:
 
   // Write a new value to the register.

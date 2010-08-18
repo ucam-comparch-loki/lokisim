@@ -19,6 +19,14 @@ int TileComponent::getRegVal(int reg) const {
   return -1;
 }
 
+int TileComponent::getInstIndex() const {
+  return -1;
+}
+
+bool TileComponent::getPredReg() const {
+  return false;
+}
+
 /* Constructors and destructors */
 TileComponent::TileComponent(sc_module_name name, int ID) : Component(name, ID) {
 

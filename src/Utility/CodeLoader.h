@@ -22,6 +22,8 @@ class CodeLoader {
 
 public:
 
+  static bool usingDebugger;
+
   // Read a file which tells which files to read.
   static void loadCode(string& settings, Tile& tile);
 
@@ -41,8 +43,10 @@ public:
 
   static vector<Word>& getData(string& filename);
 private:
-  static bool isInstructionFile(string& filename);
-  static Word makeWord(const string& str, bool instructionFile);
+  static int fileType(string& filename);
+  static Word getWord(std::ifstream& file, int type);
+
+  enum FILETYPE {LOKI, BINARY, DATA};
 
 };
 

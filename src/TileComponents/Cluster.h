@@ -58,6 +58,8 @@ public:
   virtual void storeData(std::vector<Word>& data);
 
   virtual int  getRegVal(int reg) const;
+  virtual int  getInstIndex() const;
+  virtual bool getPredReg() const;
 
   // Returns the channel ID of the specified cluster's instruction packet FIFO.
   static int   IPKFIFOInput(int ID);
