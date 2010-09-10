@@ -13,6 +13,7 @@
 #include "../../../Component.h"
 #include "../../../Datatype/Word.h"
 #include "../../../Datatype/AddressedWord.h"
+#include "../../../Memory/AddressedStorage.h"
 #include "../../../Memory/BufferArray.h"
 
 class SendChannelEndTable: public Component {
@@ -73,6 +74,9 @@ protected:
   // Update the value on the stallOut port.
   void          updateStall();
 
+  // Update an entry in the channel mapping table.
+  void          updateMap(int entry, uint32_t newVal);
+
   // If it is possible to send data onto the network, do it. This method is
   // is called at the start of each clock cycle.
   virtual void  canSend();
@@ -89,6 +93,10 @@ protected:
   // A buffer for each output channel.
   BufferArray<AddressedWord> buffers;
 
+  // Channel mapping table used to store addresses of destinations of sent
+  // data.
+  AddressedStorage<uint32_t> channelMap;
+
   // Tells whether or not there is a full buffer, requiring a pipeline stall.
   bool stallValue;
 
@@ -98,6 +106,8 @@ protected:
   // Signal that something has happened which requires the stall output
   // to be changed.
   sc_event stallValueReady;
+
+  static const uint32_t NULL_MAPPING = -1;
 
 };
 

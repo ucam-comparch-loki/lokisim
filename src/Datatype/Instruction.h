@@ -25,23 +25,23 @@ class Instruction: public Word {
 
 public:
 
-  unsigned short getOp() const;
-  unsigned short getDest() const;
-  unsigned short getSrc1() const;
-  unsigned short getSrc2() const;
-  unsigned short getRchannel() const;
-  signed   int   getImmediate() const;
-  unsigned short getPredicate() const;
-  bool           getSetPredicate() const;
-  bool           endOfPacket() const;
+  uint16_t getOp() const;
+  uint8_t  getDest() const;
+  uint8_t  getSrc1() const;
+  uint8_t  getSrc2() const;
+  uint8_t  getRchannel() const;
+  int32_t  getImmediate() const;
+  uint8_t  getPredicate() const;
+  bool     getSetPredicate() const;
+  bool     endOfPacket() const;
 
-  void setOp(short val);
-  void setDest(short val);
-  void setSrc1(short val);
-  void setSrc2(short val);
-  void setRchannel(short val);
-  void setImmediate(int val);
-  void setPredicate(short val);
+  void setOp(uint16_t val);
+  void setDest(uint8_t val);
+  void setSrc1(uint8_t val);
+  void setSrc2(uint8_t val);
+  void setRchannel(uint8_t val);
+  void setImmediate(int32_t val);
+  void setPredicate(uint8_t val);
   void setSetPred(bool val);
 
   bool operator== (const Instruction& other) const;
@@ -73,7 +73,7 @@ public:
 
   Instruction();
   Instruction(const Word& other);
-  Instruction(unsigned long inst);  // For reading binary
+  Instruction(uint64_t inst);  // For reading binary
   Instruction(const string& inst);  // For reading assembler
   virtual ~Instruction();
 
@@ -91,7 +91,7 @@ public:
   enum Predicate {ALWAYS, P, NOT_P, END_OF_PACKET};
 
   // A remote channel value signifying that no channel was specified.
-  static const unsigned char NO_CHANNEL = 255;
+  static const uint8_t NO_CHANNEL = 255;
 
 };
 

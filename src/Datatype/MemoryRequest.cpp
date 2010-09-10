@@ -20,12 +20,12 @@ const short startOperation = startAddress + 29;
 const short end            = startOperation + 3;
 
 /* Return the memory address to read from or write to. */
-unsigned int MemoryRequest::getAddress() const {
+uint32_t MemoryRequest::getAddress() const {
   return getBits(startAddress, startOperation - 1);
 }
 
 /* Return the number of reads/writes the client would like to carry out. */
-unsigned short MemoryRequest::getOperation() const {
+uint8_t MemoryRequest::getOperation() const {
   return getBits(startOperation, end - 1);
 }
 
@@ -58,7 +58,7 @@ MemoryRequest::MemoryRequest() : Word() {
 
 }
 
-MemoryRequest::MemoryRequest(short address, short operation) :
+MemoryRequest::MemoryRequest(uint32_t address, uint8_t operation) :
     Word() {
   setAddress(address);
   setOperation(operation);
@@ -73,10 +73,10 @@ MemoryRequest::~MemoryRequest() {
 }
 
 /* Private setter methods */
-void MemoryRequest::setAddress(int val) {
+void MemoryRequest::setAddress(uint32_t val) {
   setBits(startAddress, startOperation - 1, val);
 }
 
-void MemoryRequest::setOperation(short val) {
+void MemoryRequest::setOperation(uint8_t val) {
   setBits(startOperation, end - 1, val);
 }

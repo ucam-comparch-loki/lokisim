@@ -5,7 +5,7 @@
  *      Author: db434
  */
 
-#include <gtest/gtest.h>
+//#include <gtest/gtest.h>
 #include <systemc.h>
 #include "Utility/CodeLoader.h"
 #include "Utility/Debugger.h"
@@ -14,7 +14,7 @@
 using std::vector;
 using std::string;
 
-#define GTEST_BREAK_ON_FAILURE 1    // Switch to debug mode if a test fails
+//#define GTEST_BREAK_ON_FAILURE 1    // Switch to debug mode if a test fails
 
 int sc_main(int argc, char* argv[]) {
 //  ::testing::InitGoogleTest(&argc, argv);

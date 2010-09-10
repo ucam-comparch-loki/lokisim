@@ -37,12 +37,6 @@ void Decoder::decodeInstruction() {
   bool  setPred       = i.getSetPredicate();
   short remoteChannel = i.getRchannel();
 
-//  cout << Tile::getRegVal(1,4) << "\t" << Tile::getRegVal(1,6) << "\t" << i << endl;
-//  if(operation == InstructionMap::FETCH && destination == 15) {
-////    int r2 = Tile::getRegVal(1, 2);
-////    Tile::print(12, r2, r2+28);
-//  }
-
   // TODO: move decision of whether or not an instruction should execute
   // into the execute stage/ALU -- may require blocking all signals in
   // execute stage?
@@ -179,6 +173,11 @@ void Decoder::decodeInstruction() {
   if(operation==InstructionMap::SETFETCHCH) {
     fetchChannel = immediate;   // Is it an immediate or read from a register?
   }
+
+  // TODO: implement setchmap
+  // if(operation == InstructionMap::SETCHMAP && immediate == 0) {
+  //   fetchChannel = registers[operand1];
+  // }
 
   // Send something to FetchLogic
   if(operation>=InstructionMap::FETCH && operation <= InstructionMap::FETCHPST) {

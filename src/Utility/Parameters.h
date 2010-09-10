@@ -38,6 +38,8 @@ extern parameter NUM_SEND_CHANNELS;
 extern parameter CHANNEL_END_BUFFER_SIZE; // Different send/receive sizes?
 extern parameter FLOW_CONTROL_BUFFER_SIZE;
 
+extern parameter CHANNEL_MAP_SIZE;
+
 // Combinations of other parameters
 extern parameter NUM_CLUSTER_INPUTS;
 extern parameter NUM_CLUSTER_OUTPUTS;

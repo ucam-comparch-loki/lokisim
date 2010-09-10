@@ -18,7 +18,7 @@ class Data: public Word {
 
 public:
 
-  unsigned int getData() const;
+  uint32_t getData() const;
   void moveBit(int oldPos, int newPos);
 
 //==============================//
@@ -29,7 +29,7 @@ public:
 
   Data();
   Data(const Word& other);
-  Data(unsigned int data_);
+  Data(uint32_t data_);
   virtual ~Data();
 
 };

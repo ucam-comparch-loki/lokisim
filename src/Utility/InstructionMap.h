@@ -113,7 +113,9 @@ public:
     RMTFETCHPST,  // "Fetch persistent" to remote cluster rmtfetchpst rs, immed -> rch
     RMTFILL,      // Remote fill (no auto execution)      rmtfill rs, immed -> rch
     RMTEXECUTE,   // Remote execute (specify target)      rmtexecute -> rch
-    RMTNXIPK      // "Next IPK" to remote cluster         rmtnxipk -> rch
+    RMTNXIPK,     // "Next IPK" to remote cluster         rmtnxipk -> rch
+
+    SETCHMAP      // Set channel map entry                setchmap immed, rs
 
   };
 

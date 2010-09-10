@@ -7,20 +7,20 @@
 
 #include "Word.h"
 
-int Word::toInt() const {
+int32_t Word::toInt() const {
   return (int)data;
 }
 
 /* Return the integer value of the bits between the start and end positions,
    inclusive. */
-unsigned int Word::getBits(int start, int end) const {
-  unsigned long result = (end>=63) ? data : data % (1L << (end+1));
+uint64_t Word::getBits(int start, int end) const {
+  uint64_t result = (end>=63) ? data : data % (1L << (end+1));
   result = result >> start;
-  return (int)result;
+  return (uint64_t)result;
 }
 
 /* Replace the specified bit range by the specified value */
-void Word::setBits(int start, int end, int value) {
+void Word::setBits(int start, int end, uint64_t value) {
   // Ensure that value only sets bits in the specified range
   unsigned long maskedValue = value % (1L << (end - start + 1));
   // Clear any existing bits in this word
@@ -31,7 +31,7 @@ void Word::setBits(int start, int end, int value) {
 
 /* Zero the bits between the start and end positions, inclusive. */
 void Word::clearBits(int start, int end) {
-  unsigned long mask  = 1L << (end - start + 1);    // 0000100000
+  uint64_t mask  = 1L << (end - start + 1);         // 0000100000
   mask -= 1;                                        // 0000011111
   mask = mask << start;                             // 0011111000
   mask = ~mask;                                     // 1100000111
@@ -43,7 +43,7 @@ Word::Word() {
   data = 0;
 }
 
-Word::Word(unsigned long data_) : data(data_) {
+Word::Word(uint64_t data_) : data(data_) {
   // Do nothing
 }
 

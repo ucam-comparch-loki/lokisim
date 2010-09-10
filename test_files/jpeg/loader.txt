@@ -1,3 +1,7 @@
+% Partial implementation of the JPEG pipeline.
+% Contains DCT, quantisation and zigzag stages, with colour-space
+% transformation and Huffman encoding to come.
+
 directory jpeg
 
 0 core0.loki

@@ -12,6 +12,7 @@
 #ifndef WORD_H_
 #define WORD_H_
 
+#include <inttypes.h>
 #include "systemc"
 
 class Word {
@@ -23,7 +24,7 @@ class Word {
 public:
 
   Word();
-  explicit Word(unsigned long data_);
+  explicit Word(uint64_t data_);
   virtual ~Word();
 
 //==============================//
@@ -32,7 +33,7 @@ public:
 
 public:
 
-  int toInt() const;
+  int32_t toInt() const;
 
   friend void sc_trace(sc_core::sc_trace_file*& tf, const Word& w, const std::string& txt) {
     sc_core::sc_trace(tf, w.data, txt);
@@ -49,9 +50,9 @@ public:
 
 protected:
 
-  unsigned int getBits(int start, int end) const;   // long?
-  void setBits(int start, int end, int value);
-  void clearBits(int start, int end);
+  uint64_t getBits(int start, int end) const;
+  void     setBits(int start, int end, uint64_t value);
+  void     clearBits(int start, int end);
 
 //==============================//
 // Local state
@@ -59,7 +60,7 @@ protected:
 
 protected:
 
-  unsigned long data;
+  uint64_t data;
 
 };
 

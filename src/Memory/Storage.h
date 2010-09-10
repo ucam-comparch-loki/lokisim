@@ -46,12 +46,12 @@ public:
     for(int i=start; i<end; i++) cout << i*4 << "\t" << data[i] << endl;
   }
 
-protected:
-
   // Return the size of this storage component, in [bytes/words].
   int size() const {
     return data.size();
   }
+
+protected:
 
   // Throw an exception if the address is not within the bounds of the array.
   void checkBounds(int addr) const {

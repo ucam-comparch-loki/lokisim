@@ -21,15 +21,15 @@ class ChannelRequest: public Word {
 
 public:
 
-  int getPort() const;
-  int getReturnChannel() const;
-  int getType() const;
+  uint8_t  getPort() const;
+  uint16_t getReturnChannel() const;
+  uint8_t  getType() const;
 
 private:
 
-  void setPort(int val);
-  void setReturnChannel(int val);
-  void setType(int val);
+  void setPort(uint8_t val);
+  void setReturnChannel(uint16_t val);
+  void setType(uint8_t val);
 
 //==============================//
 // Constructors and destructors
@@ -39,7 +39,7 @@ public:
 
   ChannelRequest();
   ChannelRequest(const Word& other);
-  ChannelRequest(int port, int returnChannel, int type);
+  ChannelRequest(uint8_t port, uint16_t returnChannel, uint8_t type);
   virtual ~ChannelRequest();
 
 //==============================//

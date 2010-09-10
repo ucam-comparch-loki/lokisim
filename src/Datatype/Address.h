@@ -18,11 +18,11 @@ class Address: public Word {
 
 public:
 
-  short getAddress() const;
-  unsigned short getChannelID() const;
+  uint16_t getAddress() const;
+  uint16_t getChannelID() const;
   bool getReadBit() const;
 
-  unsigned int getLowestBits(int limit) const;
+  uint32_t getLowestBits(int limit) const;
 
   void addOffset(int offset);
 
@@ -34,8 +34,8 @@ public:
 
 private:
 
-  void setAddress(short addr);
-  void setChannelID(unsigned short channelID);
+  void setAddress(uint16_t addr);
+  void setChannelID(uint16_t channelID);
   void setRWBit(bool read);
 
 //==============================//
@@ -46,7 +46,7 @@ public:
 
   Address();
   Address(const Word& other);
-  Address(int addr, int channelID);
+  Address(uint16_t addr, uint16_t channelID);
   virtual ~Address();
 };
 

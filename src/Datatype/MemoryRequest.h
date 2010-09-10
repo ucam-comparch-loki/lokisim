@@ -21,8 +21,8 @@ class MemoryRequest : public Word {
 
 public:
 
-  unsigned int getAddress() const;
-  unsigned short getOperation() const;
+  uint32_t getAddress() const;
+  uint8_t  getOperation() const;
   bool isReadRequest() const;
   bool isIPKRequest() const;
 
@@ -31,8 +31,8 @@ public:
 
 private:
 
-  void setAddress(int val);
-  void setOperation(short val);
+  void setAddress(uint32_t val);
+  void setOperation(uint8_t val);
 
 //==============================//
 // Constructors and destructors
@@ -41,7 +41,7 @@ private:
 public:
 
   MemoryRequest();
-  MemoryRequest(short address, short operation);
+  MemoryRequest(uint32_t address, uint8_t operation);
   MemoryRequest(const Word& other);
   virtual ~MemoryRequest();
 
@@ -55,8 +55,8 @@ public:
     IPK_READ,
     STORE, STORE_B,
     STADDR, STBADDR
+    // none?
   };
-  // none?
 
 };
 

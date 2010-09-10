@@ -149,6 +149,7 @@ private:
 
   // The remote channel we are fetching from (set using SETFETCHCH).
   // Note: this MUST be set to a value before use: -1 confuses things.
+  // Move this into fetch logic?
   int  fetchChannel;
 
   // The remote channel we are sending instructions to.

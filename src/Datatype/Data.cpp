@@ -7,8 +7,8 @@
 
 #include "Data.h"
 
-unsigned int Data::getData() const {
-  return data;
+uint32_t Data::getData() const {
+  return (uint32_t)data;
 }
 
 void Data::moveBit(int oldPos, int newPos) {
@@ -25,7 +25,7 @@ Data::Data(const Word& other) : Word(other) {
   // Do nothing
 }
 
-Data::Data(unsigned int data_) : Word(data_) {
+Data::Data(uint32_t data_) : Word(data_) {
   // Do nothing
 }
 

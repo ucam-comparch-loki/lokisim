@@ -152,6 +152,8 @@ void InstructionMap::initialise() {
   a++;    addToMaps("rmtexecute", a, RMTEXECUTE);
   a++;    addToMaps("rmtnxipk", a, RMTNXIPK);
 
+  a++;    addToMaps("setchmap", a, SETCHMAP);
+
 
   initialised = true;
 

@@ -19,7 +19,7 @@ class AddressedWord : public Word {
 public:
 
   Word getPayload() const;
-  short getChannelID() const;
+  uint16_t getChannelID() const;
 
   friend void sc_trace(sc_core::sc_trace_file*& tf, const AddressedWord& w, const std::string& txt) {
     sc_trace(tf, w.payload, txt + ".payload");
@@ -42,7 +42,7 @@ public:
 public:
 
   AddressedWord();
-  AddressedWord(Word w, short chID);
+  AddressedWord(Word w, uint16_t chID);
   virtual ~AddressedWord();
 
 //==============================//
@@ -52,7 +52,7 @@ public:
 private:
 
   Word payload;
-  short channelID;
+  uint16_t channelID;
   // Type of word?
 
 };

@@ -11,7 +11,7 @@ Word AddressedWord::getPayload() const {
   return payload;
 }
 
-short AddressedWord::getChannelID() const {
+uint16_t AddressedWord::getChannelID() const {
   return channelID;
 }
 
@@ -20,7 +20,7 @@ AddressedWord::AddressedWord() {
   channelID = 0;
 }
 
-AddressedWord::AddressedWord(Word w, short id) {
+AddressedWord::AddressedWord(Word w, uint16_t id) {
   payload = w;
   channelID = id;
 }

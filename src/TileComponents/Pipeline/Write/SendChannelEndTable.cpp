@@ -9,7 +9,15 @@
 
 /* Put the received Word into the table, along with its destination address. */
 void SendChannelEndTable::receivedData() {
+
+//  if(operation == InstructionMap::SETCHMAP && immediate != 0) {
+//    updateMap(immediate, operand1);
+//  }
+
   AddressedWord w(input.read(), remoteChannel.read());
+
+  // if(remoteChannel == NULL_MAPPING) return;
+
   int buff = chooseBuffer();
 
   if(!(buffers[buff].isFull())) {
@@ -79,15 +87,28 @@ void SendChannelEndTable::updateStall() {
   stallOut.write(stallValue);
 }
 
+/* Update an entry in the channel mapping table. */
+void SendChannelEndTable::updateMap(int entry, uint32_t newVal) {
+  // We subtract 1 from the entry position because entry 0 is used as the
+  // fetch channel, and is stored elsewhere.
+  channelMap.write(newVal, entry-1);
+}
+
 SendChannelEndTable::SendChannelEndTable(sc_module_name name) :
     Component(name),
-    buffers(NUM_SEND_CHANNELS, CHANNEL_END_BUFFER_SIZE) {
+    buffers(NUM_SEND_CHANNELS, CHANNEL_END_BUFFER_SIZE),
+    channelMap(CHANNEL_MAP_SIZE-1) {
 
   flowControl = new sc_in<bool>[NUM_SEND_CHANNELS];
   output      = new sc_out<AddressedWord>[NUM_SEND_CHANNELS];
 
   stallValue  = false;
   waiting     = false;
+
+  // Start with no mappings at all
+  for(int i=0; i<channelMap.size(); i++) {
+    updateMap(i, NULL_MAPPING);
+  }
 
   SC_METHOD(receivedData);
   sensitive << input;

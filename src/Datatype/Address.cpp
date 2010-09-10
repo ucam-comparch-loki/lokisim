@@ -19,11 +19,11 @@
 const short boundary = 16;
 
 /* Accessing information */
-short Address::getAddress() const {
+uint16_t Address::getAddress() const {
   return getBits(boundary, 31);
 }
 
-unsigned short Address::getChannelID() const {
+uint16_t Address::getChannelID() const {
   return getBits(1, boundary-1);
 }
 
@@ -33,7 +33,7 @@ bool Address::getReadBit() const {
 }
 
 /* Used to extract some bits and put them in the indirection registers. */
-unsigned int Address::getLowestBits(int limit) const {
+uint32_t Address::getLowestBits(int limit) const {
   return getBits(0, limit-1);
 }
 
@@ -50,7 +50,7 @@ Address::Address(const Word& other) : Word(other) {
 
 }
 
-Address::Address(int addr, int channelID) : Word() {
+Address::Address(uint16_t addr, uint16_t channelID) : Word() {
   setAddress(addr);
   setChannelID(channelID);
 
@@ -62,11 +62,11 @@ Address::~Address() {
 
 }
 
-void Address::setAddress(short addr) {
+void Address::setAddress(uint16_t addr) {
   setBits(boundary, 31, addr);
 }
 
-void Address::setChannelID(unsigned short channelID) {
+void Address::setChannelID(uint16_t channelID) {
   setBits(1, boundary-1, channelID);
 }
 

@@ -37,31 +37,31 @@ const short startImmediate = startSetPred + 1;    // 32
 const short end            = startImmediate + 32; // 64
 
 /* Public getter methods */
-unsigned short Instruction::getOp() const {
+uint16_t Instruction::getOp() const {
   return getBits(startOpcode, startPredicate-1);
 }
 
-unsigned short Instruction::getDest() const {
+uint8_t Instruction::getDest() const {
   return getBits(startDest, startOpcode-1);
 }
 
-unsigned short Instruction::getSrc1() const {
+uint8_t Instruction::getSrc1() const {
   return getBits(startSrc1, startDest-1);
 }
 
-unsigned short Instruction::getSrc2() const {
+uint8_t Instruction::getSrc2() const {
   return getBits(startSrc2, startSrc1-1);
 }
 
-unsigned short Instruction::getRchannel() const {
+uint8_t Instruction::getRchannel() const {
   return getBits(startChannelID, startSrc2-1);
 }
 
-signed int Instruction::getImmediate() const {
+int32_t Instruction::getImmediate() const {
   return getBits(startImmediate, end-1);
 }
 
-unsigned short Instruction::getPredicate() const {
+uint8_t Instruction::getPredicate() const {
   return getBits(startPredicate, startSetPred-1);
 }
 
@@ -87,7 +87,7 @@ Instruction::Instruction(const Word& other) : Word(other) {
   // Do nothing
 }
 
-Instruction::Instruction(unsigned long inst) : Word(inst) {
+Instruction::Instruction(uint64_t inst) : Word(inst) {
   // Need to change the opcode representation in case it has changed
   // internally.
   setOp(InstructionMap::opcode(InstructionMap::name(getOp())));
@@ -130,31 +130,31 @@ Instruction::~Instruction() {
 }
 
 /* Private setter methods */
-void Instruction::setOp(short val) {
+void Instruction::setOp(uint16_t val) {
   setBits(startOpcode, startPredicate-1, val);
 }
 
-void Instruction::setDest(short val) {
+void Instruction::setDest(uint8_t val) {
   setBits(startDest, startOpcode-1, val);
 }
 
-void Instruction::setSrc1(short val) {
+void Instruction::setSrc1(uint8_t val) {
   setBits(startSrc1, startDest-1, val);
 }
 
-void Instruction::setSrc2(short val) {
+void Instruction::setSrc2(uint8_t val) {
   setBits(startSrc2, startSrc1-1, val);
 }
 
-void Instruction::setRchannel(short val) {
+void Instruction::setRchannel(uint8_t val) {
   setBits(startChannelID, startSrc2-1, val);
 }
 
-void Instruction::setImmediate(int val) {
+void Instruction::setImmediate(int32_t val) {
   setBits(startImmediate, end-1, val);
 }
 
-void Instruction::setPredicate(short val) {
+void Instruction::setPredicate(uint8_t val) {
   setBits(startPredicate, startSetPred-1, val);
 }
 
