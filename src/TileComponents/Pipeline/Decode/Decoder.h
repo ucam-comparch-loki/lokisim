@@ -14,6 +14,7 @@
 #define DECODER_H_
 
 #include "../../../Component.h"
+#include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
 #include "../../../Datatype/Address.h"
 #include "../../../Datatype/Data.h"
@@ -106,26 +107,25 @@ public:
 // Methods
 //==============================//
 
-private:
+public:
 
-  // The main decoding method. Extracts information from the instruction, and
-  // determines what to do with it.
-  void decodeInstruction();
+  // Extract information from the encoded instruction and determine what the
+  // operands are to be.
+  DecodedInst& decodeInstruction(Instruction i);
+
+private:
 
   // Determine whether to read the first operand from the receive channel-end
   // table, the ALU or the register file.
-  void setOperand1(short operation, int operand);
+  void setOperand1(DecodedInst& dec);
 
   // Determine whether to read the second operand from the receive channel-end
   // table, the ALU, the register file, or the sign extender.
-  void setOperand2(short operation, int operand, int immediate);
-
-  // Send the index of the destination register.
-  void setDestination(int destination);
+  void setOperand2(DecodedInst& dec);
 
   // Write operations take two cycles since there are two flits to send. This
   // method sends the second part.
-  void completeWrite();
+  DecodedInst& completeWrite(Instruction i);
 
   // Determine whether the current instruction should be executed, based on its
   // predicate bits, and the contents of the predicate register.

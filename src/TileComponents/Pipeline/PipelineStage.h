@@ -17,6 +17,7 @@
 #include "../../Datatype/Word.h"
 #include "../../Datatype/Address.h"
 #include "../../Datatype/Data.h"
+#include "../../Datatype/DecodedInst.h"
 #include "../../Datatype/Instruction.h"
 #include "../../Datatype/AddressedWord.h"
 

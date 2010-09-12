@@ -41,7 +41,7 @@ void FetchStage::newCycle() {
 }
 
 void FetchStage::newFIFOInst() {
-  Instruction instToFIFO = static_cast<Instruction>(toIPKQueue.read());
+  Instruction instToFIFO = static_cast<Instruction>(toIPKFIFO.read());
 
   if(DEBUG) cout<<fifo.name()<<" received Instruction:  "<<instToFIFO<<endl;
 
@@ -112,7 +112,7 @@ FetchStage::FetchStage(sc_module_name name) :
 
 // Register methods
   SC_METHOD(newFIFOInst);
-  sensitive << toIPKQueue;
+  sensitive << toIPKFIFO;
   dont_initialize();
 
   SC_METHOD(newCacheInst);

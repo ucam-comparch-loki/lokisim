@@ -46,6 +46,9 @@ public:
   // The instruction to decode.
   sc_in<Instruction>    instructionIn;
 
+  // The decoded instruction.
+  sc_out<DecodedInst>   instructionOut;
+
   // Status signals from the instruction packet cache.
   sc_in<bool>           cacheHit, roomToFetch, refetch;
 

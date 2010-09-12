@@ -34,7 +34,7 @@ public:
   sc_in<Word>         toIPKCache;
 
   // The input instruction to be sent to the instruction packet FIFO.
-  sc_in<Word>         toIPKQueue;
+  sc_in<Word>         toIPKFIFO;
 
   // The instruction selected for the rest of the pipeline to execute.
   sc_out<Instruction> instruction;

@@ -125,7 +125,7 @@ Cluster::Cluster(sc_module_name name, int ID) :
     write.output[i-1](out[i]);
   }
 
-  fetch.toIPKQueue(in[0]);
+  fetch.toIPKFIFO(in[0]);
   fetch.toIPKCache(in[1]);
   fetch.flowControl[0](flowControlOut[0]);
   fetch.flowControl[1](flowControlOut[1]);
