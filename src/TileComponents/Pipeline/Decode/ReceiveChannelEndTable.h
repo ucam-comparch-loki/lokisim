@@ -64,6 +64,11 @@ public:
 // Methods
 //==============================//
 
+public:
+
+  // Read from the specified channel end.
+  int32_t read(uint8_t channelEnd);
+
 private:
 
   // Put any newly received values into their respective buffers.
@@ -87,6 +92,9 @@ private:
   // Update the flow control values when a buffer has been read from or
   // written to.
   void updateFlowControl();
+
+  // Update the flow control value for a particular input port.
+  void updateFlowControl(uint8_t channelEnd);
 
   // Update the this component's stall output signal.
   void updateStall();

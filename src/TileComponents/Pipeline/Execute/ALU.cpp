@@ -9,24 +9,24 @@
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Datatype/Instruction.h"
 
-void ALU::doOp() {
+bool ALU::execute(DecodedInst& dec) {
 
-  if(operation.read() == InstructionMap::NOP) return;
+  if(dec.getOperation() == InstructionMap::NOP) return false;
 
-//  bool execute = shouldExecute(usePredicate.read());
+  bool execute = shouldExecute(dec.getPredicate());
 //  Instrumentation::operation(operation.read(), execute);
-//  if(!execute) return;
+  if(!execute) return false;
 
   // Cast to 32 bits because our architecture is supposed to use 32-bit
   // arithmetic.
-  int32_t val1 = (int32_t)in1.read().getData();
-  int32_t val2 = (int32_t)in2.read().getData();
+  int32_t val1 = dec.getOperand1();
+  int32_t val2 = dec.getOperand2();
   int32_t result;
 
   if(DEBUG) cout << this->name() << ": executing " <<
-    InstructionMap::name(operation.read())<<" on "<<val1<<" and "<<val2<<endl;
+    InstructionMap::name(dec.getOperation())<<" on "<<val1<<" and "<<val2<<endl;
 
-  switch(operation.read()) {
+  switch(dec.getOperation()) {
 
     case InstructionMap::SLL:
     case InstructionMap::SLLV:   result = val1 << val2; break;
@@ -46,7 +46,7 @@ void ALU::doOp() {
 
     case InstructionMap::LUI:    result = val2 << 16; break;
 
-    case InstructionMap::PSEL:   result = predicate.read() ? val1 : val2; break;
+    case InstructionMap::PSEL:   result = pred ? val1 : val2; break;
 
 //    case InstructionMap::CLZ:    result = 32 - math.log(2, val1) + 1; break;
 
@@ -75,13 +75,13 @@ void ALU::doOp() {
     default: result = val1; // Is this a good default?
   }
 
-  out.write(Data(result));
+  dec.setResult(result);
 
-  if(setPredicate.read()) {
+  if(dec.getSetPredicate()) {
 
     bool newPredicate;
 
-    switch(operation.read()) {
+    switch(dec.getOperation()) {
       // For additions, the predicate bit acts as the carry bit.
       case InstructionMap::ADDU:
       case InstructionMap::ADDUI: newPredicate = ((int64_t)val1+(int64_t)val2) > UINT_MAX;
@@ -96,11 +96,14 @@ void ALU::doOp() {
     setPred(newPredicate);
   }
 
+  return true;
+
 }
 
 void ALU::setPred(bool val) {
-  predicate.write(val);
+//  predicate.write(val);
   pred = val;
+  // The cluster has a separate PredicateRegister component -- use that.
   if(DEBUG) cout << this->name() << " set predicate bit to " << val << endl;
 }
 
@@ -117,10 +120,6 @@ bool ALU::shouldExecute(short predBits) {
 }
 
 ALU::ALU(sc_module_name name) : Component(name) {
-
-  SC_METHOD(doOp);
-  sensitive << operation;
-  dont_initialize();
 
 }
 

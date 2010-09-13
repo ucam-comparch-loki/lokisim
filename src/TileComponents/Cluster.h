@@ -42,7 +42,7 @@ class Cluster : public TileComponent {
 public:
 
   SC_HAS_PROCESS(Cluster);
-  Cluster(sc_module_name name, int ID);
+  Cluster(sc_module_name name, uint16_t ID);
   virtual ~Cluster();
 
 //==============================//
@@ -51,30 +51,31 @@ public:
 
 public:
 
-  virtual double area() const;
-  virtual double energy() const;
+  virtual double   area() const;
+  virtual double   energy() const;
 
   // Initialise the instructions a Cluster will execute.
-  virtual void storeData(std::vector<Word>& data);
+  virtual void     storeData(std::vector<Word>& data);
 
-  virtual int  getRegVal(int reg) const;
-  virtual int  getInstIndex() const;
-  virtual bool getPredReg() const;
+  virtual int32_t  getRegVal(uint8_t reg, bool indirect = false) const;
+  void             writeReg(uint8_t reg, int32_t value, bool indirect = false);
+  virtual uint16_t getInstIndex() const;
+  virtual bool     getPredReg() const;
 
   // Returns the channel ID of the specified cluster's instruction packet FIFO.
-  static int   IPKFIFOInput(int ID);
+  static uint32_t  IPKFIFOInput(uint16_t ID);
 
   // Returns the channel ID of the specified cluster's instruction packet cache.
-  static int   IPKCacheInput(int ID);
+  static uint32_t  IPKCacheInput(uint16_t ID);
 
   // Returns the channel ID of the specified cluster's input channel.
-  static int   RCETInput(int ID, int channel);
+  static uint32_t  RCETInput(uint16_t ID, uint8_t channel);
 
 private:
 
-  void         stallPipeline();
-  void         updateIdle();
-  void         updateCurrentPacket();
+  void             stallPipeline();
+  void             updateIdle();
+  void             updateCurrentPacket();
 
 //==============================//
 // Components

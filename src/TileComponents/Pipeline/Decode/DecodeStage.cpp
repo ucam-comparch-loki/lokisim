@@ -6,6 +6,7 @@
  */
 
 #include "DecodeStage.h"
+#include "../../Cluster.h"
 
 double DecodeStage::area() const {
   return fl.area() + rcet.area() + decoder.area() + extend.area();
@@ -18,19 +19,23 @@ double DecodeStage::energy() const {
 /* Direct any new inputs to their destinations every clock cycle. */
 void DecodeStage::newCycle() {
   while(true) {
-    if(stallFetch.read()) {
+    if(!readyIn.read()) {
+      readyOut.write(false);
+    }
+    else if(!decoder.ready()) {
       // If the decoder is stalling, it is because it is carrying out a
       // multi-cycle operation. It needs to be able to complete this.
       // Send the same instruction again to wake the decoder up.
-      instructionSig.write(instructionSig.read());
-      idle.write(false);
+      decode(instructionIn.read());
     }
     else if(!stall.read() && instructionIn.event()) {
       // Not stalled and have new instruction
-      instructionSig.write(instructionIn.read());
-      idle.write(false);
+      decode(instructionIn.read());
     }
-    else idle.write(true);  // What if a fetch is waiting to be sent?
+    else {
+      idle.write(true);  // What if a fetch is waiting to be sent?
+      readyOut.write(true);
+    }
 
     for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
       COPY_IF_NEW(in[i], fromNetwork[i]);
@@ -38,6 +43,27 @@ void DecodeStage::newCycle() {
 
     wait(clock.posedge_event());
   }
+}
+
+void DecodeStage::decode(Instruction i) {
+  bool success = decoder.decodeInstruction(instructionIn.read(), decoded);
+
+  if(success) instructionOut.write(decoded);
+
+  readyOut.write(decoder.ready());
+  idle.write(false);
+}
+
+int32_t DecodeStage::readRegs(uint8_t index, bool indirect) {
+  return ((Cluster*)(this->get_parent()))->getRegVal(index, indirect);
+}
+
+int32_t DecodeStage::readRCET(uint8_t index) {
+  return rcet.read(index);
+}
+
+void DecodeStage::fetch(Address a) {
+
 }
 
 /* Received data from the first register output -- send it on to the ALU. */
@@ -107,7 +133,7 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   // do initialise
 
 // Connect everything up
-  decoder.instructionIn(instructionSig);
+//  decoder.instructionIn(instructionSig);
 
   for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     rcet.fromNetwork[i](fromNetwork[i]);
@@ -123,30 +149,36 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   fl.refetch(refetch);
   fl.stallOut(flStall);
 
-  decoder.regAddr1(regReadAddr1);
-  decoder.regAddr2(regReadAddr2);
-  decoder.writeAddr(writeAddr);
-  decoder.indWrite(indWriteAddr);
-  decoder.instructionOut(remoteInst);
-  decoder.isIndirectRead(isIndirect);
-  decoder.jumpOffset(jumpOffset);
-  decoder.persistent(persistent);
-  decoder.memoryOp(memoryOp);
-  decoder.predicate(predicate);
-  decoder.setPredicate(setPredicate);
-  decoder.usePredicate(usePredicate);
-  decoder.toFetchLogic(decodeToFetch);    fl.in(decodeToFetch);
-  decoder.rChannel(remoteChannel);
-  decoder.waitOnChannel(waitOnChannel);
-  decoder.toRCET1(decodeToRCET1);         rcet.fromDecoder1(RCETread1);
-  decoder.toRCET2(decodeToRCET2);         rcet.fromDecoder2(decodeToRCET2);
-  decoder.channelOp(RCETOperation);       rcet.operation(RCETOperation);
-  decoder.toSignExtend(decodeToExtend);   extend.input(decodeToExtend);
-  decoder.stall(stallFetch);
+//  decoder.regAddr1(regReadAddr1);
+//  decoder.regAddr2(regReadAddr2);
+//  decoder.writeAddr(writeAddr);
+//  decoder.indWrite(indWriteAddr);
+//  decoder.instructionOut(remoteInst);
+//  decoder.isIndirectRead(isIndirect);
+//  decoder.jumpOffset(jumpOffset);
+//  decoder.persistent(persistent);
+//  decoder.memoryOp(memoryOp);
+//  decoder.predicate(predicate);
+//  decoder.setPredicate(setPredicate);
+//  decoder.usePredicate(usePredicate);
+//  decoder.toFetchLogic(decodeToFetch);    fl.in(decodeToFetch);
+//  decoder.rChannel(remoteChannel);
+//  decoder.waitOnChannel(waitOnChannel);
+//  decoder.toRCET1(decodeToRCET1);         rcet.fromDecoder1(RCETread1);
+//  decoder.toRCET2(decodeToRCET2);         rcet.fromDecoder2(decodeToRCET2);
+//  decoder.channelOp(RCETOperation);       rcet.operation(RCETOperation);
+//  decoder.toSignExtend(decodeToExtend);   extend.input(decodeToExtend);
+//  decoder.stall(stallFetch);
+//
+//  decoder.operation(operation);
+//  decoder.op1Select(op1SelectSig);
+//  decoder.op2Select(op2Select);
 
-  decoder.operation(operation);
-  decoder.op1Select(op1SelectSig);
-  decoder.op2Select(op2Select);
+                                          fl.in(decodeToFetch);
+                                          rcet.fromDecoder1(RCETread1);
+                                          rcet.fromDecoder2(decodeToRCET2);
+                                          rcet.operation(RCETOperation);
+                                          extend.input(decodeToExtend);
 
   rcet.toALU1(chEnd1);
   rcet.toALU2(chEnd2);

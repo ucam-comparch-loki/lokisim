@@ -7,11 +7,29 @@
 
 #include "ReceiveChannelEndTable.h"
 #include "../IndirectRegisterFile.h"
+#include "../../../Exceptions/BlockedException.h"
 
 typedef IndirectRegisterFile Registers;
 
 #define NO_CHANNEL -1
 #define ALL_CHANNELS -2
+
+int32_t ReceiveChannelEndTable::read(uint8_t channelEnd) {
+
+  if(!buffers[channelEnd].isEmpty()) {
+    int32_t result = buffers.read(channelEnd).toInt();
+    updateFlowControl(channelEnd);
+
+    if(DEBUG) cout << this->name() << " read " << result << " from channel "
+                   << channelEnd << endl;
+
+    return result;
+  }
+  else {   // Reading from empty buffer
+    throw BlockedException();
+  }
+
+}
 
 /* Put any newly received values into their respective buffers. */
 void ReceiveChannelEndTable::receivedInput() {
@@ -158,6 +176,10 @@ void ReceiveChannelEndTable::updateFlowControl() {
   }
 }
 
+void ReceiveChannelEndTable::updateFlowControl(uint8_t channelEnd) {
+  flowControl[channelEnd].write(buffers[channelEnd].remainingSpace());
+}
+
 /* Check to see if we were waiting for data on this channel end, and if so,
  * send it immediately. Unstall the pipeline if appropriate. */
 void ReceiveChannelEndTable::checkWaiting(int channelEnd) {
@@ -217,10 +239,6 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name) :
   SC_METHOD(updateToALU1);
   sensitive << alu1ValueReady;
   dont_initialize();
-
-  SC_METHOD(updateFlowControl);
-  sensitive << contentsChanged;
-  // do initialise
 
   SC_METHOD(updateStall);
   sensitive << stallValueReady;

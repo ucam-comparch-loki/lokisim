@@ -23,7 +23,7 @@ void IndirectRegisterFile::read2() {
   short addr = readAddr2.read();
 
   if(indRead.read()) {
-    addr = indirect.read(addr);
+    addr = indirectRegs.read(addr);
 
     // If the indirect address points to a channel-end, read from there instead
     if(isChannelEnd(addr)) {
@@ -41,7 +41,7 @@ void IndirectRegisterFile::read2() {
 /* Write to the address given in the register pointed to by indWriteAddr. */
 void IndirectRegisterFile::indirectWrite() {
   short addr = indWriteAddr.read();
-  addr = indirect.read(addr);           // Indirect
+  addr = indirectRegs.read(addr);           // Indirect
 
   // There are some registers that we can't write to.
   if(isReserved(addr) || isChannelEnd(addr)) return;
@@ -77,8 +77,8 @@ void IndirectRegisterFile::updateIndirectReg(int address, Word data) {
 
   static int numBits = ceil(log2(NUM_PHYSICAL_REGISTERS));
 
-  short lowestBits = (static_cast<Address>(data)).getLowestBits(numBits);
-  indirect.write(lowestBits, address);
+  uint8_t lowestBits = (static_cast<Address>(data)).getLowestBits(numBits);
+  indirectRegs.write(lowestBits, address);
 
 }
 
@@ -130,10 +130,30 @@ int IndirectRegisterFile::getRegVal(int reg) const {
   return regs.read(reg).toInt();
 }
 
+int32_t IndirectRegisterFile::read(uint8_t reg, bool indirect) const {
+  uint8_t index = indirect ? indirectRegs.read(reg) : reg;
+
+  // If the indirect address points to a channel-end, read from there instead
+//  if(isChannelEnd(index)) {
+//    return rcet.read(toChannelID(index));
+//  }
+  /*else*/ return regs.read(index).toInt();
+}
+
+void IndirectRegisterFile::write(uint8_t reg, int32_t value, bool indirect) {
+  uint8_t index = indirect ? indirectRegs.read(reg) : reg;
+  Word w(value);
+
+  regs.write(w, index);
+  updateIndirectReg(index, w);
+
+  if(DEBUG) cout<<this->name()<<": Stored "<<w<<" to register "<<index<<endl;
+}
+
 IndirectRegisterFile::IndirectRegisterFile(sc_module_name name) :
     Component(name),
     regs(NUM_PHYSICAL_REGISTERS),
-    indirect(NUM_ADDRESSABLE_REGISTERS) {
+    indirectRegs(NUM_ADDRESSABLE_REGISTERS) {
 
 // Register methods
   SC_METHOD(read1);
@@ -146,10 +166,6 @@ IndirectRegisterFile::IndirectRegisterFile(sc_module_name name) :
 
   SC_METHOD(indirectWrite);
   sensitive << indWriteAddr;
-  dont_initialize();
-
-  SC_METHOD(write);
-  sensitive << writeAddr;
   dont_initialize();
 
 }

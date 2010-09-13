@@ -24,24 +24,24 @@ void WriteStage::newCycle() {
       // uglier way to test whether any of them are doing anything.
       bool active = false;
 
-      if(fromALU.event()) {
-        regData.write(fromALU.read());
-        active = true;
-      }
-
-      if(inRegAddr.event()) {
-        outRegAddr.write(inRegAddr.read());
-        active = true;
-      }
-
-      if(inIndAddr.event()) {
-        outIndAddr.write(inIndAddr.read());
-        active = true;
-      }
+//      if(fromALU.event()) {
+//        regData.write(fromALU.read());
+//        active = true;
+//      }
+//
+//      if(inRegAddr.event()) {
+//        outRegAddr.write(inRegAddr.read());
+//        active = true;
+//      }
+//
+//      if(inIndAddr.event()) {
+//        outIndAddr.write(inIndAddr.read());
+//        active = true;
+//      }
 
       idle.write(!active);
 
-      COPY_IF_NEW(waitOnChannel, waitChannelSig);
+//      COPY_IF_NEW(waitOnChannel, waitChannelSig);
     }
 
     wait(clock.posedge_event());
@@ -51,38 +51,38 @@ void WriteStage::newCycle() {
 
 /* Change the multiplexor's select signal so it uses the new Instruction */
 void WriteStage::receivedInst() {
-  instToMux.write(inst.read());
+//  instToMux.write(inst.read());
   selectVal = 1;   // Want this Instruction to get into the SCET
   newInstSig.write(!newInstSig.read());
 
-  if(DEBUG) cout<<this->name()<<" received Instruction: "<<inst.read()<<endl;
+//  if(DEBUG) cout<<this->name()<<" received Instruction: "<<inst.read()<<endl;
 }
 
 /* Change the multiplexor's select signal so it uses the new Data */
 void WriteStage::receivedData() {
 
   // Generate a memory request using the new data, if necessary.
-  if(memoryOp.event()) ALUtoMux.write(getMemoryRequest());
-  else ALUtoMux.write(fromALU.read());
+//  if(memoryOp.event()) ALUtoMux.write(getMemoryRequest());
+//  else ALUtoMux.write(fromALU.read());
 
   selectVal = 0;   // Want this Data to get into the SCET
   newDataSig.write(!newDataSig.read());
 
-  if(DEBUG) cout<< this->name() << " received Data: " << fromALU.read() <<endl;
+//  if(DEBUG) cout<< this->name() << " received Data: " << fromALU.read() <<endl;
 }
 
 void WriteStage::select() {
   // Only write the select value if we have received a new valid channel ID.
   // If we don't write the select value, the data doesn't reach the SCET.
-  if(remoteChannel.event() && remoteChannel.read() != Instruction::NO_CHANNEL) {
-    muxSelect.write(selectVal);
-  }
+//  if(remoteChannel.event() && remoteChannel.read() != Instruction::NO_CHANNEL) {
+//    muxSelect.write(selectVal);
+//  }
 }
 
 /* Generate a memory request using the address from the ALU and the operation
  * supplied by the decoder. */
 Word WriteStage::getMemoryRequest() const {
-  MemoryRequest mr(fromALU.read().getData(), memoryOp.read());
+  MemoryRequest mr;//(fromALU.read().getData(), memoryOp.read());
   return mr;
 }
 
@@ -95,14 +95,6 @@ WriteStage::WriteStage(sc_module_name name) :
   flowControl = new sc_in<bool>[NUM_SEND_CHANNELS];
 
 // Register methods
-  SC_METHOD(receivedInst);
-  sensitive << inst;
-  dont_initialize();
-
-  SC_METHOD(receivedData);
-  sensitive << fromALU;
-  dont_initialize();
-
   SC_METHOD(select);
   sensitive << newInstSig << newDataSig;
   dont_initialize();
@@ -115,7 +107,7 @@ WriteStage::WriteStage(sc_module_name name) :
 
   scet.clock(clock);
   scet.stallOut(stallOut);
-  scet.remoteChannel(remoteChannel);
+//  scet.remoteChannel(remoteChannel);
   scet.waitOnChannel(waitChannelSig);
 
   for(int i=0; i<NUM_SEND_CHANNELS; i++) {

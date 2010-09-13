@@ -13,7 +13,7 @@
 #define FETCHSTAGE_H_
 
 #include "../PipelineStage.h"
-#include "../../../Multiplexor/Multiplexor2.h"
+#include "../../../Multiplexer/Multiplexer2.h"
 #include "InstructionPacketCache.h"
 #include "InstructionPacketFIFO.h"
 
@@ -110,7 +110,7 @@ private:
 
   InstructionPacketCache    cache;
   InstructionPacketFIFO     fifo;
-  Multiplexor2<Instruction> mux;
+  Multiplexer2<Instruction> mux;
 
 //==============================//
 // Local state

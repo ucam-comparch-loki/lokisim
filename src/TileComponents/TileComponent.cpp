@@ -11,15 +11,15 @@ void TileComponent::print(int start, int end) const {
   // Do nothing if print isn't defined
 }
 
-Word TileComponent::getMemVal(int addr) const {
+Word TileComponent::getMemVal(uint32_t addr) const {
   return Word(-1);
 }
 
-int TileComponent::getRegVal(int reg) const {
+int32_t TileComponent::getRegVal(uint8_t reg) const {
   return -1;
 }
 
-int TileComponent::getInstIndex() const {
+uint16_t TileComponent::getInstIndex() const {
   return -1;
 }
 
@@ -28,7 +28,8 @@ bool TileComponent::getPredReg() const {
 }
 
 /* Constructors and destructors */
-TileComponent::TileComponent(sc_module_name name, int ID) : Component(name, ID) {
+TileComponent::TileComponent(sc_module_name name, uint16_t ID) :
+    Component(name, ID) {
 
   flowControlOut = new sc_out<int>[NUM_CLUSTER_INPUTS];
   in             = new sc_in<Word>[NUM_CLUSTER_INPUTS];

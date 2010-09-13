@@ -49,6 +49,14 @@ public:
   // The decoded instruction.
   sc_out<DecodedInst>   instructionOut;
 
+  // Signal telling whether the Execute stage is ready to receive a new
+  // operation.
+  sc_in<bool>           readyIn;
+
+  // Tell the Fetch stage whether we are ready for a new instruction.
+  sc_out<bool>          readyOut;
+
+
   // Status signals from the instruction packet cache.
   sc_in<bool>           cacheHit, roomToFetch, refetch;
 
@@ -143,7 +151,13 @@ public:
   virtual double area()  const;
   virtual double energy() const;
 
+  int32_t readRegs(uint8_t index, bool indirect = false);
+  int32_t readRCET(uint8_t index);
+  void    fetch(Address a);
+
 private:
+
+  void decode(Instruction i);
 
   // Methods which act when an input is received
   void receivedFromRegs1();
@@ -168,6 +182,12 @@ private:
   ReceiveChannelEndTable  rcet;
   Decoder                 decoder;
   SignExtend              extend;
+
+//==============================//
+// Local state
+//==============================//
+
+  DecodedInst             decoded;
 
 //==============================//
 // Signals (wires)

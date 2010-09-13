@@ -1,17 +1,17 @@
 /*
- * Multiplexor2.h
+ * Multiplexer2.h
  *
  *  Created on: 20 Jan 2010
  *      Author: db434
  */
 
-#ifndef MULTIPLEXOR2_H_
-#define MULTIPLEXOR2_H_
+#ifndef MULTIPLEXER2_H_
+#define MULTIPLEXER2_H_
 
-#include "Multiplexor.h"
+#include "Multiplexer.h"
 
 template<class T>
-class Multiplexor2 : public Multiplexor<T> {
+class Multiplexer2 : public Multiplexer<T> {
 
 //==============================//
 // Ports
@@ -27,8 +27,8 @@ public:
 
 public:
 
-  SC_HAS_PROCESS(Multiplexor2);
-  Multiplexor2(sc_module_name name) : Multiplexor<T>(name) {
+  SC_HAS_PROCESS(Multiplexer2);
+  Multiplexer2(sc_module_name name) : Multiplexer<T>(name) {
 
   }
 
@@ -39,13 +39,13 @@ public:
 protected:
 
   virtual void doOp() {
-    switch(Multiplexor<T>::select.read()) {
-      case(0) : Multiplexor<T>::result.write(in1.read()); break;
-      case(1) : Multiplexor<T>::result.write(in2.read()); break;
+    switch(this->select.read()) {
+      case(0) : this->result.write(in1.read()); break;
+      case(1) : this->result.write(in2.read()); break;
       default : throw new std::exception();
     }
   }
 
 };
 
-#endif /* MULTIPLEXOR2_H_ */
+#endif /* MULTIPLEXER2_H_ */

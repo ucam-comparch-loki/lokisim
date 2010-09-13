@@ -14,7 +14,7 @@
 
 #include "../PipelineStage.h"
 #include "SendChannelEndTable.h"
-#include "../../../Multiplexor/Multiplexor2.h"
+#include "../../../Multiplexer/Multiplexer2.h"
 
 class WriteStage: public PipelineStage {
 
@@ -29,11 +29,15 @@ public:
 //   stall
 //   idle
 
-  // The data from the ALU to be written or sent out onto the network.
-  sc_in<Data>             fromALU;
+  sc_in<DecodedInst>      result;
 
-  // The instruction to be sent to a remote cluster.
-  sc_in<Instruction>      inst;
+  sc_out<bool>            readyOut;
+
+//  // The data from the ALU to be written or sent out onto the network.
+//  sc_in<Data>             fromALU;
+//
+//  // The instruction to be sent to a remote cluster.
+//  sc_in<Instruction>      inst;
 
   // The NUM_SEND_CHANNELS output channels.
   sc_out<AddressedWord>  *output;
@@ -41,29 +45,29 @@ public:
   // A flow control signal for each output (NUM_SEND_CHANNELS).
   sc_in<bool>            *flowControl;
 
-  // The register to write data to.
-  sc_in<short>            inRegAddr;
-
-  // Tell the register file which register to write to.
-  sc_out<short>           outRegAddr;
-
-  // The indirect register to write data to.
-  sc_in<short>            inIndAddr;
-
-  // Tell the register file which indirect register to write to.
-  sc_out<short>           outIndAddr;
-
-  // The data to write to the registers.
-  sc_out<Word>            regData;
-
-  // The remote channel to send data out on.
-  sc_in<short>            remoteChannel;
-
-  // The memory operation being performed.
-  sc_in<short>            memoryOp;
-
-  // Stall the pipeline until this channel is empty.
-  sc_in<short>            waitOnChannel;
+//  // The register to write data to.
+//  sc_in<short>            inRegAddr;
+//
+//  // Tell the register file which register to write to.
+//  sc_out<short>           outRegAddr;
+//
+//  // The indirect register to write data to.
+//  sc_in<short>            inIndAddr;
+//
+//  // Tell the register file which indirect register to write to.
+//  sc_out<short>           outIndAddr;
+//
+//  // The data to write to the registers.
+//  sc_out<Word>            regData;
+//
+//  // The remote channel to send data out on.
+//  sc_in<short>            remoteChannel;
+//
+//  // The memory operation being performed.
+//  sc_in<short>            memoryOp;
+//
+//  // Stall the pipeline until this channel is empty.
+//  sc_in<short>            waitOnChannel;
 
   // Signal that the pipeline should stall because a send channel is full.
   sc_out<bool>            stallOut;
@@ -117,7 +121,7 @@ private:
 private:
 
   SendChannelEndTable scet;
-  Multiplexor2<Word>  mux;
+  Multiplexer2<Word>  mux;
 
 //==============================//
 // Local state

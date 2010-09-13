@@ -119,6 +119,10 @@ DecodedInst& DecodedInst::operator= (const DecodedInst& other) {
 }
 
 
+DecodedInst::DecodedInst() {
+  // Everything should default to 0.
+}
+
 DecodedInst::DecodedInst(Instruction i) {
   operation       = i.getOp();
   sourceReg1      = i.getSrc1();

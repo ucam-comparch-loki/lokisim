@@ -37,7 +37,7 @@ const short startImmediate = startSetPred + 1;    // 32
 const short end            = startImmediate + 32; // 64
 
 /* Public getter methods */
-uint16_t Instruction::getOp() const {
+uint8_t Instruction::getOp() const {
   return getBits(startOpcode, startPredicate-1);
 }
 
@@ -130,7 +130,7 @@ Instruction::~Instruction() {
 }
 
 /* Private setter methods */
-void Instruction::setOp(uint16_t val) {
+void Instruction::setOp(uint8_t val) {
   setBits(startOpcode, startPredicate-1, val);
 }
 
@@ -202,8 +202,8 @@ void Instruction::decodeOpcode(const string& opcode) {
   // Set the predicate bits
   if(opcodeParts.size() > 1) {
     string predicate = opcodeParts[0];
-    if(predicate == "p") setPredicate(P);
-    else if(predicate == "!p") setPredicate(NOT_P);
+    if(predicate == "p" || predicate == "ifp") setPredicate(P);
+    else if(predicate == "!p" || predicate == "if!p") setPredicate(NOT_P);
     opcodeString = opcodeParts[1];
   }
   else {

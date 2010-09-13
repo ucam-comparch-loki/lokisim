@@ -25,7 +25,7 @@ class Instruction: public Word {
 
 public:
 
-  uint16_t getOp() const;
+  uint8_t  getOp() const;
   uint8_t  getDest() const;
   uint8_t  getSrc1() const;
   uint8_t  getSrc2() const;
@@ -35,7 +35,7 @@ public:
   bool     getSetPredicate() const;
   bool     endOfPacket() const;
 
-  void setOp(uint16_t val);
+  void setOp(uint8_t val);
   void setDest(uint8_t val);
   void setSrc1(uint8_t val);
   void setSrc2(uint8_t val);

@@ -22,7 +22,6 @@
 #include "../../Memory/AddressedStorage.h"
 #include "../../Datatype/Word.h"
 #include "../../Datatype/Address.h"
-#include "../../Multiplexor/Multiplexor2.h"
 
 class IndirectRegisterFile: public Component {
 
@@ -93,6 +92,10 @@ public:
 
   int getRegVal(int reg) const;
 
+  int32_t read(uint8_t reg, bool indirect) const;
+
+  void    write(uint8_t reg, int32_t value, bool indirect);
+
 private:
 
   // Read from the address given in readAddr1.
@@ -117,8 +120,8 @@ private:
 
 private:
 
-  AddressedStorage<Word>  regs;
-  AddressedStorage<short> indirect;
+  AddressedStorage<Word>    regs;
+  AddressedStorage<uint8_t> indirectRegs;
 
   // The register index at which the input channels begin.
   static const int START_OF_INPUT_CHANNELS = 16;

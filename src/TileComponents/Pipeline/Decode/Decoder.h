@@ -22,96 +22,19 @@
 class Decoder: public Component {
 
 //==============================//
-// Ports
-//==============================//
-
-public:
-
-  // The instruction to decode.
-  sc_in<Instruction>  instructionIn;
-
-  // The instruction to be sent to another cluster.
-  sc_out<Instruction> instructionOut;
-
-  // The registers to retrieve data from.
-  sc_out<short>       regAddr1, regAddr2;
-
-  // Tells the register file whether or not the second read address is indirect.
-  sc_out<bool>        isIndirectRead;
-
-  // The channel-ends to retrieve data from.
-  sc_out<short>       toRCET1, toRCET2;
-
-  // The operation for the receive channel-end table to perform.
-  sc_out<short>       channelOp;
-
-  // The memory operation we are performing.
-  sc_out<short>       memoryOp;
-
-  // The register to write the result back to.
-  sc_out<short>       writeAddr;
-
-  // The address of the indirect register we want to write the result to.
-  sc_out<short>       indWrite;
-
-  // The remote channel to send the data/instruction to.
-  sc_out<short>       rChannel;
-
-  // Stall the pipeline until this output channel is empty.
-  sc_out<short>       waitOnChannel;
-
-  // The current value of the predicate register.
-  sc_in<bool>         predicate;
-
-  // Tell the ALU whether the instruction is dependent on the value of the
-  // predicate register.
-  sc_out<short>       usePredicate;
-
-  // Tell the ALU whether it should use the result of this instruction to
-  // set the predicate register.
-  sc_out<bool>        setPredicate;
-
-  // The operation the ALU is to carry out.
-  sc_out<short>       operation;
-
-  // Choose where ALU's operands come from by selecting appropriate
-  // multiplexor inputs.
-  sc_out<short>       op1Select, op2Select;
-
-  // The amount we want to jump by in the instruction packet cache.
-  sc_out<short>       jumpOffset;
-
-  // Signals whether the same packet should be executed repeatedly.
-  sc_out<bool>        persistent;
-
-  // The address of the instruction packet we want to fetch.
-  sc_out<Address>     toFetchLogic;
-
-  // The immediate we want to be padded to 32 bits.
-  sc_out<Data>        toSignExtend;
-
-  // Tell the pipeline to stall.
-  sc_out<bool>        stall;
-
-//==============================//
-// Constructors and destructors
-//==============================//
-
-public:
-
-  SC_HAS_PROCESS(Decoder);
-  Decoder(sc_module_name name, int id);
-  virtual ~Decoder();
-
-//==============================//
 // Methods
 //==============================//
 
 public:
 
   // Extract information from the encoded instruction and determine what the
-  // operands are to be.
-  DecodedInst& decodeInstruction(Instruction i);
+  // operands are to be. Stores result in DecodedInst. Returns whether there
+  // is useful output this cycle -- the first cycle of multi-cycle operations
+  // will return false.
+  bool decodeInstruction(Instruction i, DecodedInst& dec);
+
+  // Returns whether the decoder is ready to accept a new instruction.
+  bool ready();
 
 private:
 
@@ -123,9 +46,19 @@ private:
   // table, the ALU, the register file, or the sign extender.
   void setOperand2(DecodedInst& dec);
 
+  // Similar methods, giving more control to the user. Some instructions
+  // use the first register value (in the destination position) as an
+  // argument.
+  void setOperand1ToValue(DecodedInst& dec, int32_t reg);
+  void setOperand2ToValue(DecodedInst& dec, int32_t reg, int32_t immed);
+
+  int32_t readRegs(uint8_t index, bool indirect = false);
+  int32_t readRCET(uint8_t index);
+  void    fetch(Address a);
+
   // Write operations take two cycles since there are two flits to send. This
   // method sends the second part.
-  DecodedInst& completeWrite(Instruction i);
+  bool completeWrite(Instruction i, DecodedInst& dec);
 
   // Determine whether the current instruction should be executed, based on its
   // predicate bits, and the contents of the predicate register.
@@ -135,6 +68,16 @@ private:
   // converted to data forwarding from the ALU, as the register has not yet
   // been written to.
   bool readALUOutput(short reg);
+
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
+  SC_HAS_PROCESS(Decoder);
+  Decoder(sc_module_name name, int id);
+  virtual ~Decoder();
 
 //==============================//
 // Local state
@@ -164,6 +107,10 @@ private:
 
   // Tells whether we have started a two-cycle store operation.
   bool currentlyWriting;
+
+  // Tells whether we are blocked (probably trying to read from an empty
+  // channel).
+  bool blocked;
 
 };
 

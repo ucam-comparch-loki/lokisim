@@ -1,0 +1,53 @@
+/*
+ * Multiplexer4.h
+ *
+ *  Created on: 20 Jan 2010
+ *      Author: db434
+ */
+
+#ifndef MULTIPLEXER4_H_
+#define MULTIPLEXER4_H_
+
+#include "Multiplexer.h"
+
+template<class T>
+class Multiplexer4 : public Multiplexer<T> {
+
+//==============================//
+// Ports
+//==============================//
+
+public:
+
+  sc_in<T> in1, in2, in3, in4;
+
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
+  SC_HAS_PROCESS(Multiplexer4);
+  Multiplexer4(sc_module_name name) : Multiplexer<T>(name) {
+
+  }
+
+//==============================//
+// Methods
+//==============================//
+
+protected:
+
+  virtual void doOp() {
+    switch(this->select.read()) {
+      case(0) : this->result.write(in1.read()); break;
+      case(1) : this->result.write(in2.read()); break;
+      case(2) : this->result.write(in3.read()); break;
+      case(3) : this->result.write(in4.read()); break;
+      default : throw new std::exception();
+    }
+  }
+
+};
+
+#endif /* MULTIPLEXER4_H_ */

@@ -36,7 +36,7 @@ SC_MODULE (Component) {
 
 public:
 
-  int id; // Would like to be const, but seems hard to do
+  uint16_t id; // Would like to be const, but seems hard to do
 
 //==============================//
 // Constructors and destructors
@@ -45,7 +45,7 @@ public:
 public:
 
   Component(sc_module_name& name);
-  Component(sc_module_name& name, int ID);
+  Component(sc_module_name& name, uint16_t ID);
   ~Component();
 
   // DO NOT MAKE A COPY CONSTRUCTOR. SYSTEMC MODULES SHOULD NOT BE COPIED.

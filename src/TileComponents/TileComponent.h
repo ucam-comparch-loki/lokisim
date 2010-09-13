@@ -50,7 +50,7 @@ public:
 
 public:
 
-  TileComponent(sc_module_name name, int ID);
+  TileComponent(sc_module_name name, uint16_t ID);
   virtual ~TileComponent();
 
 //==============================//
@@ -66,13 +66,13 @@ public:
   virtual void print(int start, int end) const;
 
   // Return the data held at the given memory address.
-  virtual Word getMemVal(int addr) const;
+  virtual Word getMemVal(uint32_t addr) const;
 
   // Return the value held in the specified register.
-  virtual int  getRegVal(int reg) const;
+  virtual int32_t getRegVal(uint8_t reg) const;
 
   // Return the memory index of the instruction currently being decoded.
-  virtual int getInstIndex() const;
+  virtual uint16_t getInstIndex() const;
 
   // Return the value of the predicate register.
   virtual bool getPredReg() const;

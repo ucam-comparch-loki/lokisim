@@ -1,16 +1,16 @@
 /*
- * Multiplexor.h
+ * Multiplexer.h
  *
- * Base class of all multiplexors. SystemC does not allow variable numbers of
+ * Base class of all multiplexers. SystemC does not allow variable numbers of
  * inputs or outputs, so a separate module must be made for each case. Each
- * subclass represents a multiplexor with a different number of inputs.
+ * subclass represents a multiplexer with a different number of inputs.
  *
  * This approach was considered appropriate in this case (but not others),
  * since all of the inputs come from different places, and it would be awkward
  * to combine them.
  *
  * Any signal connecting to the select port must (?) be an sc_buffer, so it
- * triggers the multiplexor every time it is written, instead of only when the
+ * triggers the multiplexer every time it is written, instead of only when the
  * select value changes.
  *
  * Since this class is templated, all of the implementation must go in the
@@ -20,13 +20,13 @@
  *      Author: db434
  */
 
-#ifndef MULTIPLEXOR_H_
-#define MULTIPLEXOR_H_
+#ifndef MULTIPLEXER_H_
+#define MULTIPLEXER_H_
 
 #include "../Component.h"
 
 template<class T>
-class Multiplexor: public Component {
+class Multiplexer: public Component {
 
 //==============================//
 // Ports
@@ -45,8 +45,8 @@ public:
 
 public:
 
-  SC_HAS_PROCESS(Multiplexor);
-  Multiplexor(sc_module_name name) : Component(name) {
+  SC_HAS_PROCESS(Multiplexer);
+  Multiplexer(sc_module_name name) : Component(name) {
 
     SC_METHOD(doOp);
     sensitive << select;
@@ -54,7 +54,7 @@ public:
 
   }
 
-  virtual ~Multiplexor() {
+  virtual ~Multiplexer() {
 
   }
 
@@ -68,4 +68,4 @@ protected:
 
 };
 
-#endif /* MULTIPLEXOR_H_ */
+#endif /* MULTIPLEXER_H_ */

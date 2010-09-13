@@ -74,6 +74,7 @@ public:
 
 public:
 
+  DecodedInst();
   DecodedInst(Instruction i);
   virtual ~DecodedInst();
 

@@ -16,6 +16,7 @@
 
 #include <iostream>
 #include <vector>
+#include "../Exceptions/OutOfBoundsException.h"
 
 using std::vector;
 using std::cout;
@@ -57,7 +58,7 @@ protected:
   void checkBounds(int addr) const {
     if((addr < 0) || (addr >= size())) {
       cerr << "Error: attempting to access memory address " << addr << endl;
-      throw std::exception();
+      throw OutOfBoundsException();
     }
   }
 
