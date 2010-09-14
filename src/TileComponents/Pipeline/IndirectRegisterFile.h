@@ -26,34 +26,6 @@
 class IndirectRegisterFile: public Component {
 
 //==============================//
-// Ports
-//==============================//
-
-public:
-
-  // Two addresses to read data from.
-  sc_in<short>  readAddr1, readAddr2;
-
-  // Signals whether or not the second read address should use the indirect
-  // registers.
-  sc_in<bool>   indRead;
-
-  // The register to write data to.
-  sc_in<short>  writeAddr;
-
-  // The register containing the index of the register which should be written to.
-  sc_in<short>  indWriteAddr;
-
-  // Data to be written to the register file.
-  sc_in<Word>   writeData;
-
-  // The channel-end we want to read from when doing an indirect read.
-  sc_out<short> channelID;
-
-  // Results of the two reads.
-  sc_out<Word>  out1, out2;
-
-//==============================//
 // Constructors and destructors
 //==============================//
 
@@ -90,25 +62,11 @@ public:
   // register.
   void updateCurrentIPK(Address addr);
 
-  int getRegVal(int reg) const;
-
   int32_t read(uint8_t reg, bool indirect) const;
 
   void    write(uint8_t reg, int32_t value, bool indirect);
 
 private:
-
-  // Read from the address given in readAddr1.
-  void read1();
-
-  // Read from the address given (or pointed to) by readAddr2.
-  void read2();
-
-  // Write to the address given in the register pointed to by indWriteAddr.
-  void indirectWrite();
-
-  // Write to the address given in writeAddr.
-  void write();
 
   // Store a subsection of the data into the indirect register at position
   // "address".

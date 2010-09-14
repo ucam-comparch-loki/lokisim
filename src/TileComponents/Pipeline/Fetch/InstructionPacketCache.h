@@ -27,43 +27,6 @@ class InstructionPacketCache : public Component {
 
 public:
 
-  // Clock.
-  sc_in<bool>         clock;
-
-  // The instruction received from the network.
-  sc_in<Instruction>  instructionIn;
-
-  // A signal which changes to signify that an instruction should be read
-  // from the cache (rather than the instruction FIFO).
-  sc_in<bool>         readInstruction;
-
-  // The instruction read from the cache.
-  sc_out<Instruction> instructionOut;
-
-  // The offset to jump to in the cache.
-  sc_in<short>        jumpOffset;
-
-  // The address tag being looked up in the cache.
-  sc_in<Address>      address;
-
-  // Signals that we should keep executing the same packet.
-  sc_in<bool>         persistent;
-
-  // The address of the currently-executing instruction packet.
-  sc_out<Address>     currentPacket;
-
-  // Signals that the looked-up address matches an instruction packet in the
-  // cache.
-  sc_out<bool>        cacheHit;
-
-  // Signals that there is room to accommodate another maximum-sized
-  // instruction packet in the cache.
-  sc_out<bool>        isRoomToFetch;
-
-  // A signal which changes to show that the next packet to executed needs
-  // to be fetched again.
-  sc_out<bool>        refetch;
-
   // Signal telling the flow control unit how much space is left in the cache.
   sc_out<int>         flowControl;
 
@@ -86,6 +49,10 @@ public:
   // Initialise the contents of the cache with a list of instructions.
   void storeCode(std::vector<Instruction>& instructions);
 
+  Instruction read();
+
+  void write(Instruction inst);
+
   // Return the index into the current packet of the current instruction.
   int  getInstIndex() const;
 
@@ -94,37 +61,30 @@ public:
   // executed.
   bool isEmpty() const;
 
+  // See if an instruction packet is in the cache, using its address as a tag,
+  // and if so, prepare to execute it. Returns whether or not the packet is
+  // in the cache.
+  bool lookup(Address addr);
+
+  // Jump to a new instruction specified by the offset.
+  void jump(int8_t offset);
+
 private:
 
-  //Put a received instruction into the cache.
-  void insertInstruction();
-
-  // See if an instruction packet is in the cache, using its address as a tag,
-  // and if so, prepare to execute it.
-  void lookup();
-
-  // Jump to a new instruction specified by the offset received by jumpOffset.
-  void jump();
-
-  // An instruction was read from the cache, so prepare the next instruction,
-  // and change to another instruction packet if necessary.
-  void finishedRead();
-
-  // Update the signal saying whether there is enough room to fetch another
-  // packet.
-  void updateRTF();
+  // Update the output flow control signal.
+  void updateFlowControl();
 
   // Update the output holding the address of the currently-executing
   // instruction packet.
-  void updatePacketAddress(Address addr);
+//  void updatePacketAddress(Address addr);
 
   // Update whether or not we are in persistent execution mode, where we
   // execute a single instruction packet repeatedly.
-  void updatePersistent();
+//  void updatePersistent();
 
   // Send the chosen instruction, instToSend. There are multiple writers so
   // a separate method is needed.
-  void write();
+//  void write();
 
   // Perform any necessary tasks when the end of an instruction packet has been
   // reached.
@@ -146,7 +106,6 @@ private:
 
   IPKCacheStorage cache;
   Buffer<Address> addresses;
-  Instruction     instToSend;
 
   // The cycle during which the most recent instruction was sent -- allows us
   // to avoid sending more than one in a single cycle.
@@ -164,13 +123,6 @@ private:
   // The address of the pending packet. We store it in case it needs to be
   // refetched because it has been overwritten.
   Address         pendingPacket;
-
-  // Signal that there is an instruction ready to send.
-  sc_event readyToWrite;
-
-  // Signal that we are now reading the first instruction of an instruction
-  // packet.
-  sc_event startingPacket;
 
 };
 

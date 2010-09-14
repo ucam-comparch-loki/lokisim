@@ -40,6 +40,10 @@ public:
     return *(buffers[index]);
   }
 
+  uint32_t size() {
+    return buffers.size();
+  }
+
 //==============================//
 // Constructors and destructors
 //==============================//

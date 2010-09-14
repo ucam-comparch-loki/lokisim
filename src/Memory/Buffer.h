@@ -14,6 +14,8 @@
 #define BUFFER_H_
 
 #include "Storage.h"
+#include "../Exceptions/ReadingFromEmptyException.h"
+#include "../Exceptions/WritingToFullException.h"
 #include "../Utility/LoopCounter.h"
 
 template<class T>
@@ -35,7 +37,7 @@ public:
     }
     else {
       cerr << "Exception in Buffer.read()" << endl;
-      throw std::exception();
+      throw ReadingFromEmptyException();
     }
   }
 
@@ -47,7 +49,7 @@ public:
     }
     else {
       cerr << "Exception in Buffer.write()" << endl;
-      throw std::exception();
+      throw WritingToFullException();
     }
   }
 
@@ -58,7 +60,7 @@ public:
     }
     else {
       cerr << "Exception in Buffer.peek()" << endl;
-      throw std::exception();
+      throw ReadingFromEmptyException();
     }
   }
 

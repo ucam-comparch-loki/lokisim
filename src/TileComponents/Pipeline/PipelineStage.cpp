@@ -6,9 +6,13 @@
  */
 
 #include "PipelineStage.h"
+//#include "../Cluster.h"
 
-PipelineStage::PipelineStage(sc_core::sc_module_name name)
-    : Component(name) {
+Cluster* PipelineStage::parent() {
+  return ((Cluster*)(this->get_parent()));
+}
+
+PipelineStage::PipelineStage(sc_module_name name) : Component(name) {
 
   SC_THREAD(newCycle);
 

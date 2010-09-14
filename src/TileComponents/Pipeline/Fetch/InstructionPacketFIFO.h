@@ -12,7 +12,6 @@
 
 #include "../../../Component.h"
 #include "../../../Memory/Buffer.h"
-#include "../../../Datatype/Instruction.h"
 
 class InstructionPacketFIFO : public Component {
 
@@ -21,21 +20,6 @@ class InstructionPacketFIFO : public Component {
 //==============================//
 
 public:
-
-  // Clock.
-  sc_in<bool>         clock;
-
-  // The instruction received over the network.
-  sc_in<Instruction>  in;
-
-  // Signal which changes to tell the FIFO to emit the next instruction.
-  sc_in<bool>         readInstruction;
-
-  // The instruction read from the FIFO.
-  sc_out<Instruction> out;
-
-  // Signals whether or not the FIFO is empty.
-  sc_out<bool>        empty;
 
   // Signal telling the flow control unit how much space is left in the FIFO.
   sc_out<int>         flowControl;
@@ -54,13 +38,15 @@ public:
 // Methods
 //==============================//
 
+public:
+
+  Instruction read();
+  void write(Instruction inst);
+  bool isEmpty();
+
 private:
 
-  void insert();
-  void remove();
-  void updateEmptySig();
-  void newCycle();
-  bool isEmpty();
+  void updateFlowControl();
 
 //==============================//
 // Local state
@@ -69,16 +55,6 @@ private:
 private:
 
   Buffer<Instruction> fifo;
-
-//==============================//
-// Signals (wires)
-//==============================//
-
-private:
-
-  // Signal that the number of instructions in the FIFO has changed, and so the
-  // value of the empty signal should be reevaluated.
-  sc_event            contentsChanged;
 
 };
 

@@ -7,91 +7,84 @@
 
 #include "SendChannelEndTable.h"
 
-/* Put the received Word into the table, along with its destination address. */
-void SendChannelEndTable::receivedData() {
-
-//  if(operation == InstructionMap::SETCHMAP && immediate != 0) {
-//    updateMap(immediate, operand1);
-//  }
-
-  AddressedWord w(input.read(), remoteChannel.read());
-
-  // if(remoteChannel == NULL_MAPPING) return;
-
-  int buff = chooseBuffer();
-
-  if(!(buffers[buff].isFull())) {
-    buffers.write(w, buff);
-
-    // Stall so we don't receive any more data if the buffer is full
-    if(buffers[buff].isFull()) {
-      stallValue = true;
-      wake(stallValueReady);
-    }
-
-    if(DEBUG) cout<<this->name()<<" wrote "<<w<<" to output channel-end "<<buff<<endl;
+void SendChannelEndTable::write(DecodedInst& dec) {
+  if(dec.getOperation()==InstructionMap::SETCHMAP && dec.getImmediate() != 0) {
+    updateMap(dec.getImmediate(), dec.getOperand1());
   }
-  else {
-    if(DEBUG) cout << "Wrote to full buffer in Send Channel-end Table." << endl;
+  else if(dec.getOperation() == InstructionMap::WOCHE) {
+    waitUntilEmpty(dec.getResult());  // is "result" right?
+  }
+  else if(dec.getChannelMap() != NULL_MAPPING) {
+    Word w(dec.getResult());
+    AddressedWord aw(w, getChannel(dec.getChannelMap()));
+    uint8_t index = chooseBuffer(dec.getChannelMap());
+
+    // We know it is safe to write to any buffer because we block the rest
+    // of the pipeline if a buffer is full.
+    buffers[index].write(aw);
+
+    if(DEBUG) cout << this->name() << " wrote " << w
+                   << " to output buffer " << index << endl;
+  }
+}
+
+// A very simplistic implementation for now: we block any further data if
+// even one buffer is full. Future implementations could allow data into
+// other buffers.
+bool SendChannelEndTable::isFull() {
+  if(waitingOn != -1) return true;
+
+  for(uint i=0; i<buffers.size(); i++) {
+    if(buffers[i].isFull()) return true;
+  }
+
+  return false;
+}
+
+void SendChannelEndTable::send() {
+  // If a buffer has information, and is allowed to send, send it
+  for(uint i=0; i<buffers.size(); i++) {
+    bool send = flowControl[i].read();
+
+    if(!(buffers[i].isEmpty()) && send) {
+      output[i].write(buffers[i].read());
+
+      // See if we can stop waiting
+      if(waitingOn == i && buffers[i].isEmpty()) {
+        waitingOn = 255;
+      }
+    }
   }
 }
 
 /* Stall the pipeline until the specified channel is empty. */
-void SendChannelEndTable::waitUntilEmpty() {
-
-  int channel = waitOnChannel.read();
+void SendChannelEndTable::waitUntilEmpty(uint8_t channel) {
 
   if(!buffers[channel].isEmpty()) {
-    waiting = true;
+    waitingOn = channel;
     stallValue = true;
-    wake(stallValueReady);
   }
-
-}
-
-/* If it is possible to send data onto the network, do it. */
-void SendChannelEndTable::canSend() {
-
-  bool stall = false;
-
-  // If a buffer has information, and is allowed to send, put it in the vector
-  for(int i=0; i<NUM_SEND_CHANNELS; i++) {
-    bool send = flowControl[i].read();
-
-    if(!(buffers[i].isEmpty()) && send) {
-      output[i].write(buffers.read(i));
-
-      // See if we can stop waiting
-      if(waiting && waitOnChannel.read() == i && buffers[i].isEmpty()) {
-        waiting = false;
-      }
-    }
-
-    if(buffers[i].isFull()) stall = true;
-  }
-
-  stallValue = stall || waiting;
-  wake(stallValueReady);
 
 }
 
 /* Choose which Buffer to put new data into. All data going to the same
  * destination must go in the same Buffer to ensure that packets remain in
  * order. This is possibly the simplest implementation. */
-short SendChannelEndTable::chooseBuffer() {
-  return remoteChannel.read() % NUM_SEND_CHANNELS;
-}
-
-/* Update the value on the stallOut port. */
-void SendChannelEndTable::updateStall() {
-  stallOut.write(stallValue);
+uint8_t SendChannelEndTable::chooseBuffer(uint8_t channelMapEntry) {
+  return channelMapEntry % NUM_SEND_CHANNELS;
 }
 
 /* Update an entry in the channel mapping table. */
-void SendChannelEndTable::updateMap(int entry, uint32_t newVal) {
+void SendChannelEndTable::updateMap(uint8_t entry, uint32_t newVal) {
   // We subtract 1 from the entry position because entry 0 is used as the
   // fetch channel, and is stored elsewhere.
   channelMap.write(newVal, entry-1);
+}
+
+uint32_t SendChannelEndTable::getChannel(uint8_t mapEntry) {
+  // We subtract 1 from the entry position because entry 0 is used as the
+  // fetch channel, and is stored elsewhere.
+  return channelMap.read(mapEntry-1);
 }
 
 SendChannelEndTable::SendChannelEndTable(sc_module_name name) :
@@ -103,29 +96,12 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name) :
   output      = new sc_out<AddressedWord>[NUM_SEND_CHANNELS];
 
   stallValue  = false;
-  waiting     = false;
+  waitingOn   = -1;
 
   // Start with no mappings at all
   for(int i=0; i<channelMap.size(); i++) {
     updateMap(i, NULL_MAPPING);
   }
-
-  SC_METHOD(receivedData);
-  sensitive << input;
-  dont_initialize();
-
-  SC_METHOD(waitUntilEmpty);
-  sensitive << waitOnChannel;
-  dont_initialize();
-
-  SC_METHOD(canSend);
-  sensitive << clock.pos();
-  dont_initialize();
-
-  SC_METHOD(updateStall);
-  sensitive << stallValueReady;
-  // do initialise;
-
 }
 
 SendChannelEndTable::~SendChannelEndTable() {

@@ -15,28 +15,16 @@
 class PredicateRegister: public Component {
 
 //==============================//
-// Ports
+// Methods
 //==============================//
 
 public:
 
-  // The value to write to the predicate register.
-  sc_in<bool>  write;
-
-  // Return the result of a read.
-  sc_out<bool> output;
-
-//==============================//
-// Methods
-//==============================//
-
   // Get the current value.
-  bool getVal() const;
-
-private:
+  bool read() const;
 
   // Write a new value to the register.
-  void writeVal();
+  void write(bool val);
 
 //==============================//
 // Constructors and destructors
@@ -44,7 +32,6 @@ private:
 
 public:
 
-  SC_HAS_PROCESS(PredicateRegister);
   PredicateRegister(sc_module_name name);
   virtual ~PredicateRegister();
 

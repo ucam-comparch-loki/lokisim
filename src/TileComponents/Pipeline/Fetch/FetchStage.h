@@ -13,7 +13,6 @@
 #define FETCHSTAGE_H_
 
 #include "../PipelineStage.h"
-#include "../../../Multiplexer/Multiplexer2.h"
 #include "InstructionPacketCache.h"
 #include "InstructionPacketFIFO.h"
 
@@ -30,6 +29,8 @@ public:
 //   stall
 //   idle
 
+  sc_in<bool>         readyIn;
+
   // The input instruction to be sent to the instruction packet cache.
   sc_in<Word>         toIPKCache;
 
@@ -38,21 +39,6 @@ public:
 
   // The instruction selected for the rest of the pipeline to execute.
   sc_out<Instruction> instruction;
-
-  // The offset to jump by in the cache.
-  sc_in<short>        jumpOffset;
-
-  // The address tag to lookup in the instruction packet cache.
-  sc_in<Address>      address;
-
-  // Signals whether we should keep executing the same packet.
-  sc_in<bool>         persistent;
-
-  // The address of the currently-executing instruction packet.
-  sc_out<Address>     currentPacket;
-
-  // Status signals from the instruction packet cache.
-  sc_out<bool>        cacheHit, roomToFetch, refetch;
 
   // A flow control signal from each of the two instruction inputs.
   sc_out<int>        *flowControl;
@@ -100,7 +86,7 @@ private:
   void          select();
 
   // Jump to a different instruction in the Instruction Packet Cache.
-  void          jump();
+  void          jump(int8_t offset);
 
 //==============================//
 // Components
@@ -110,7 +96,6 @@ private:
 
   InstructionPacketCache    cache;
   InstructionPacketFIFO     fifo;
-  Multiplexer2<Instruction> mux;
 
 //==============================//
 // Local state
@@ -122,6 +107,8 @@ private:
   bool usingCache;
 
   bool justFinishedPacket;
+
+  Instruction lastInstruction;
 
   enum InstructionSource {CACHE, FIFO};
 

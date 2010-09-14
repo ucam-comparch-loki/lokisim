@@ -17,18 +17,24 @@ void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
 
   cache.storeCode(instructions);
 
-  instToSend = cache.read();
+  Instruction inst = cache.read();
 
-  if(instToSend.endOfPacket()) endOfPacketTasks();
-
-  wake(readyToWrite);   // Invoke the write() method
+  if(inst.endOfPacket()) endOfPacketTasks();
 
 }
 
-/* Put a received instruction into the cache at the appropriate position. */
-void InstructionPacketCache::insertInstruction() {
+Instruction InstructionPacketCache::read() {
+  Instruction inst = cache.read();
 
-  bool empty = cache.isEmpty();
+  if(inst.endOfPacket())       endOfPacketTasks();
+  else if(finishedPacketRead)  startOfPacketTasks();
+
+  updateFlowControl();
+
+  return inst;
+}
+
+void InstructionPacketCache::write(Instruction inst) {
   Address addr;
 
   if(!addresses.isEmpty() && startOfPacket) {
@@ -42,112 +48,89 @@ void InstructionPacketCache::insertInstruction() {
   }
 
   try {
-    cache.write(addr, instructionIn.read());
+    cache.write(addr, inst);
   }
   catch(std::exception e) {
     // The write method throws an exception if the next packet needs to be
     // fetched again.
     if(!addresses.isFull()) addresses.write(pendingPacket);
-    refetch.write(!refetch.read());
+//    refetch.write(!refetch.read());
   }
 
   // Make a note for next cycle if it will be the start of a new packet.
-  startOfPacket = instructionIn.read().endOfPacket();
+  startOfPacket = inst.endOfPacket();
 
-  if(empty && outputWasRead && !sentInstThisCycle()) { // Send inst immediately
-    instToSend = cache.read();
+  updateFlowControl();
 
-    if(instToSend.endOfPacket()) endOfPacketTasks();
-    else if(finishedPacketRead)  wake(startingPacket);
-
-    wake(readyToWrite);           // Invoke the write() method
-  }
+  if(DEBUG) cout << this->name() << " received Instruction: " << inst << endl;
 
 }
 
 /* See if an instruction packet is in the cache, and if so, prepare to
  * execute it. */
-void InstructionPacketCache::lookup() {
+bool InstructionPacketCache::lookup(Address addr) {
 
-  bool inCache = cache.checkTags(address.read());
-  cacheHit.write(inCache);
+  bool inCache = cache.checkTags(addr);
 
-  if(DEBUG) cout << this->name() << " looked up tag: " << address.read() << ": "
+  if(DEBUG) cout << this->name() << " looked up tag: " << addr << ": "
                  << (inCache ? "" : "not ") << "in cache" << endl;
 
   // If we don't have the instructions, we will receive them soon, so store
   // the address to use as the tag.
   if(!inCache) {
-    if(!addresses.isFull()) addresses.write(address.read());
+    if(!addresses.isFull()) addresses.write(addr);
       // Stall if the buffer is now full?
     else cerr << "Wrote to full buffer in " << this->name() << endl;
   }
   else {
     // Store the address in case we need it later.
-    pendingPacket = address.read();
+    pendingPacket = addr;
   }
 
   Instrumentation::IPKCacheHit(inCache);
 
-}
-
-/* An instruction was read from the cache, so change to another packet if
- * necessary, and prepare the next instruction. */
-void InstructionPacketCache::finishedRead() {
-
-  outputWasRead = true;
-
-  if(!sentInstThisCycle() && !cache.isEmpty()) {
-    instToSend = cache.read();
-
-    if(instToSend.endOfPacket()) endOfPacketTasks();
-    else if(finishedPacketRead) {
-      wake(startingPacket);
-    }
-
-    wake(readyToWrite);   // Invoke the write() method
-  }
+  return inCache;
 
 }
 
 /* Jump to a new instruction specified by the offset amount. */
-void InstructionPacketCache::jump() {
+void InstructionPacketCache::jump(int8_t offset) {
   if(DEBUG) cout << this->name() << ": ";   // cache prints the rest
 
-  cache.jump(jumpOffset.read()/BYTES_PER_WORD);
-  instToSend = cache.read();
-  if(instToSend.endOfPacket()) endOfPacketTasks();
-
-  wake(startingPacket);
-
-  wake(readyToWrite);     // Invoke the write() method
+  cache.jump(offset/BYTES_PER_WORD);
+//  instToSend = cache.read();
+//  if(instToSend.endOfPacket()) endOfPacketTasks();
+//
+//  wake(startingPacket);
+//
+//  wake(readyToWrite);     // Invoke the write() method
 }
 
 /* Update the signal saying whether there is enough room to fetch another
  * packet. */
-void InstructionPacketCache::updateRTF() {
-  isRoomToFetch.write((cache.remainingSpace() >= MAX_IPK_SIZE)
-                    || finishedPacketRead);
+void InstructionPacketCache::updateFlowControl() {
+//  isRoomToFetch.write((cache.remainingSpace() >= MAX_IPK_SIZE)
+//                    || finishedPacketRead);
 
   flowControl.write(cache.remainingSpace());
 }
 
-void InstructionPacketCache::updatePacketAddress(Address addr) {
-  currentPacket.write(addr);
-}
+//void InstructionPacketCache::updatePacketAddress(Address addr) {
+//  currentPacket.write(addr);
+//}
 
-void InstructionPacketCache::updatePersistent() {
-  cache.setPersistent(persistent.read());
-}
+//void InstructionPacketCache::updatePersistent() {
+//  cache.setPersistent(persistent.read());
+//}
 
 /* Send the chosen instruction. We need a separate method for this because both
  * insertInstruction and finishedRead can result in the sending of new
  * instructions, but only one method is allowed to drive a particular wire. */
-void InstructionPacketCache::write() {
-  instructionOut.write(instToSend);
-  lastInstSent = sc_core::sc_time_stamp().to_default_time_units();
-  outputWasRead = false;
-}
+//void InstructionPacketCache::write() {
+//  instructionOut.write(instToSend);
+//  lastInstSent = sc_core::sc_time_stamp().to_default_time_units();
+//  outputWasRead = false;
+//}
 
 int InstructionPacketCache::getInstIndex() const {
   return cache.getInstIndex();
@@ -168,7 +151,7 @@ void InstructionPacketCache::endOfPacketTasks() {
 
 /* Perform any necessary tasks when starting to read a new instruction packet. */
 void InstructionPacketCache::startOfPacketTasks() {
-  updatePacketAddress(cache.packetAddress());
+//  updatePacketAddress(cache.packetAddress());
   finishedPacketRead = false;
 }
 
@@ -185,39 +168,6 @@ InstructionPacketCache::InstructionPacketCache(sc_module_name name) :
   outputWasRead = true;   // Allow the first received instruction to pass through
   startOfPacket = true;
   lastInstSent = -1;
-
-// Register methods
-  SC_METHOD(insertInstruction);
-  sensitive << instructionIn;
-  dont_initialize();
-
-  SC_METHOD(lookup);
-  sensitive << address;
-  dont_initialize();
-
-  SC_METHOD(jump);
-  sensitive << jumpOffset;
-  dont_initialize();
-
-  SC_METHOD(finishedRead);
-  sensitive << readInstruction;
-  dont_initialize();
-
-  SC_METHOD(updateRTF);
-  sensitive << clock.pos();
-  // Do initialise
-
-  SC_METHOD(updatePersistent);
-  sensitive << persistent;
-  dont_initialize();
-
-  SC_METHOD(startOfPacketTasks);
-  sensitive << startingPacket;
-  dont_initialize();
-
-  SC_METHOD(write);
-  sensitive << readyToWrite;
-  dont_initialize();
 
 }
 

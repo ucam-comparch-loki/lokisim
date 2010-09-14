@@ -46,6 +46,8 @@ void DecodeStage::newCycle() {
 }
 
 void DecodeStage::decode(Instruction i) {
+  DecodedInst decoded;
+
   bool success = decoder.decodeInstruction(instructionIn.read(), decoded);
 
   if(success) instructionOut.write(decoded);
@@ -54,8 +56,8 @@ void DecodeStage::decode(Instruction i) {
   idle.write(false);
 }
 
-int32_t DecodeStage::readRegs(uint8_t index, bool indirect) {
-  return ((Cluster*)(this->get_parent()))->getRegVal(index, indirect);
+int32_t DecodeStage::readReg(uint8_t index, bool indirect) {
+  return parent()->getRegVal(index, indirect);
 }
 
 int32_t DecodeStage::readRCET(uint8_t index) {
@@ -64,41 +66,6 @@ int32_t DecodeStage::readRCET(uint8_t index) {
 
 void DecodeStage::fetch(Address a) {
 
-}
-
-/* Received data from the first register output -- send it on to the ALU. */
-void DecodeStage::receivedFromRegs1() {
-  Data d = static_cast<Data>(regIn1.read());
-  regOut1.write(d);
-  baseAddress.write(d);
-}
-
-/* Received data from the second register output -- send it on to the ALU. */
-void DecodeStage::receivedFromRegs2() {
-  Data d = static_cast<Data>(regIn2.read());
-  regOut2.write(d);
-}
-
-/* Update this component's stall status signal. */
-void DecodeStage::updateStall() {
-  stallOut.write(flStall.read() || rcetStall.read());
-}
-
-/* Allow multiple components to request a channel-end read. */
-void DecodeStage::updateToRCET1() {
-  if(indirectChannel.event()) RCETread1.write(indirectChannel.read());
-  else RCETread1.write(decodeToRCET1.read());
-}
-
-/* Allow multiple components to select where the ALU's first operand comes
- * from. */
-void DecodeStage::updateOp1Select() {
-  if(indirectChannel.event()) {
-    op1Select.write(Decoder::RCET);  // Indirect regs say to read from RCET
-  }
-  else if(op1SelectSig.event()) {
-    op1Select.write(op1SelectSig.read());
-  }
 }
 
 DecodeStage::DecodeStage(sc_module_name name, int ID) :
@@ -112,79 +79,15 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
   flowControlOut = new sc_out<int>[NUM_RECEIVE_CHANNELS];
   fromNetwork = new sc_buffer<Word>[NUM_RECEIVE_CHANNELS];
 
-// Register methods
-  SC_METHOD(receivedFromRegs1);
-  sensitive << regIn1;
-  dont_initialize();
-
-  SC_METHOD(receivedFromRegs2);
-  sensitive << regIn2;
-  dont_initialize();
-
-  SC_METHOD(updateToRCET1);
-  sensitive << indirectChannel << decodeToRCET1;
-  dont_initialize();
-
-  SC_METHOD(updateOp1Select);
-  sensitive << indirectChannel << op1SelectSig;
-
-  SC_METHOD(updateStall);
-  sensitive << flStall << rcetStall;// << decoderStall;
-  // do initialise
-
 // Connect everything up
-//  decoder.instructionIn(instructionSig);
 
   for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     rcet.fromNetwork[i](fromNetwork[i]);
     rcet.flowControl[i](flowControlOut[i]);
   }
 
-  fl.toIPKC(address);
-  fl.cacheContainsInst(cacheHit);
   fl.toNetwork(out1);
   fl.flowControl(flowControlIn);
-  fl.baseAddress(baseAddress);
-  fl.isRoomToFetch(roomToFetch);
-  fl.refetch(refetch);
-  fl.stallOut(flStall);
-
-//  decoder.regAddr1(regReadAddr1);
-//  decoder.regAddr2(regReadAddr2);
-//  decoder.writeAddr(writeAddr);
-//  decoder.indWrite(indWriteAddr);
-//  decoder.instructionOut(remoteInst);
-//  decoder.isIndirectRead(isIndirect);
-//  decoder.jumpOffset(jumpOffset);
-//  decoder.persistent(persistent);
-//  decoder.memoryOp(memoryOp);
-//  decoder.predicate(predicate);
-//  decoder.setPredicate(setPredicate);
-//  decoder.usePredicate(usePredicate);
-//  decoder.toFetchLogic(decodeToFetch);    fl.in(decodeToFetch);
-//  decoder.rChannel(remoteChannel);
-//  decoder.waitOnChannel(waitOnChannel);
-//  decoder.toRCET1(decodeToRCET1);         rcet.fromDecoder1(RCETread1);
-//  decoder.toRCET2(decodeToRCET2);         rcet.fromDecoder2(decodeToRCET2);
-//  decoder.channelOp(RCETOperation);       rcet.operation(RCETOperation);
-//  decoder.toSignExtend(decodeToExtend);   extend.input(decodeToExtend);
-//  decoder.stall(stallFetch);
-//
-//  decoder.operation(operation);
-//  decoder.op1Select(op1SelectSig);
-//  decoder.op2Select(op2Select);
-
-                                          fl.in(decodeToFetch);
-                                          rcet.fromDecoder1(RCETread1);
-                                          rcet.fromDecoder2(decodeToRCET2);
-                                          rcet.operation(RCETOperation);
-                                          extend.input(decodeToExtend);
-
-  rcet.toALU1(chEnd1);
-  rcet.toALU2(chEnd2);
-  rcet.stallOut(rcetStall);
-
-  extend.output(sExtend);
 
 }
 

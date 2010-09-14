@@ -8,11 +8,11 @@
 #include "FetchStage.h"
 
 double FetchStage::area() const {
-  return cache.area() + fifo.area() + mux.area();
+  return cache.area() + fifo.area();// + mux.area();
 }
 
 double FetchStage::energy() const {
-  return cache.energy() + fifo.energy() + mux.energy();
+  return cache.energy() + fifo.energy();// + mux.energy();
 }
 
 void FetchStage::storeCode(std::vector<Instruction>& instructions) {
@@ -29,10 +29,10 @@ void FetchStage::newCycle() {
 
     // Select a new instruction unless the processor is stalled, or the FIFO
     // and cache are both empty.
-    if(!stall.read()) {
-      if(!(fifoEmpty.read() && cache.isEmpty())) {
-        if(usingCache) readFromCache.write(!readFromCache.read());
-        else readFromFIFO.write(!readFromFIFO.read());
+    if(readyIn.read()) {
+      if(!(fifo.isEmpty() && cache.isEmpty())) {
+        if(usingCache) instruction.write(cache.read());
+        else           instruction.write(fifo.read());
         idle.write(false);
       }
       else idle.write(true);
@@ -42,18 +42,12 @@ void FetchStage::newCycle() {
 
 void FetchStage::newFIFOInst() {
   Instruction instToFIFO = static_cast<Instruction>(toIPKFIFO.read());
-
-  if(DEBUG) cout<<fifo.name()<<" received Instruction:  "<<instToFIFO<<endl;
-
-  toFIFO.write(instToFIFO);
+  fifo.write(instToFIFO);
 }
 
 void FetchStage::newCacheInst() {
   Instruction instToCache = static_cast<Instruction>(toIPKCache.read());
-
-  if(DEBUG) cout<<cache.name()<<" received Instruction: "<<instToCache<<endl;
-
-  toCache.write(instToCache);
+  cache.write(instToCache);
 }
 
 /* Choose whether to take an instruction from the cache or FIFO.
@@ -68,11 +62,11 @@ short FetchStage::calculateSelect() {
   if(usingCache) {
     Instruction i = cacheToMux.read();
     justFinishedPacket = i.endOfPacket();
-    usingCache = (fifoEmpty.read() || !justFinishedPacket) && !cache.isEmpty();
+    usingCache = (fifo.isEmpty() || !justFinishedPacket) && !cache.isEmpty();
     result = CACHE;
   }
   else {
-    usingCache = fifoEmpty.read();
+    usingCache = fifo.isEmpty();
     result = usingCache ? CACHE : FIFO;
   }
 
@@ -96,21 +90,20 @@ void FetchStage::select() {
 }
 
 /* Perform any status updates required when we receive a position to jump to. */
-void FetchStage::jump() {
+void FetchStage::jump(int8_t offset) {
   usingCache = true;
-  jumpOffsetSig.write(jumpOffset.read());
+  cache.jump(offset);
 }
 
 FetchStage::FetchStage(sc_module_name name) :
     PipelineStage(name),
     cache("IPKcache"),
-    fifo("IPKfifo"),
-    mux("fetchmux") {
+    fifo("IPKfifo") {
 
   usingCache = true;
   flowControl = new sc_out<int>[2];
 
-// Register methods
+  // Register methods
   SC_METHOD(newFIFOInst);
   sensitive << toIPKFIFO;
   dont_initialize();
@@ -123,35 +116,9 @@ FetchStage::FetchStage(sc_module_name name) :
   sensitive << cacheToMux << FIFOtoMux << clock.pos();
   dont_initialize();
 
-  SC_METHOD(jump);
-  sensitive << jumpOffset;
-  dont_initialize();
-
-// Connect everything up
-  cache.clock(clock);
-  fifo.clock(clock);
-
-  cache.instructionIn(toCache);
-  fifo.in(toFIFO);
-  mux.select(muxSelect);
-
-  cache.instructionOut(cacheToMux); mux.in1(cacheToMux);
-  fifo.out(FIFOtoMux); mux.in2(FIFOtoMux);
-  mux.result(instruction);
-
-  cache.address(address);
-  cache.jumpOffset(jumpOffsetSig);
-  cache.cacheHit(cacheHit);
-  cache.isRoomToFetch(roomToFetch);
-  cache.refetch(refetch);
-  cache.currentPacket(currentPacket);
-  cache.readInstruction(readFromCache);
-  cache.persistent(persistent);
-  cache.flowControl(flowControl[1]);
-
-  fifo.empty(fifoEmpty);
-  fifo.readInstruction(readFromFIFO);
+  // Connect FIFO and cache to network
   fifo.flowControl(flowControl[0]);
+  cache.flowControl(flowControl[1]);
 
 }
 

@@ -8,63 +8,33 @@
 #include "IndirectRegisterFile.h"
 #include <math.h>
 
+int32_t IndirectRegisterFile::read(uint8_t reg, bool indirect) const {
+  uint8_t index = indirect ? indirectRegs.read(reg) : reg;
 
-/* Read from the address given in readAddr1. */
-void IndirectRegisterFile::read1() {
-  short addr = readAddr1.read();
-  out1.write(regs.read(addr));
-
-  if(DEBUG) cout << this->name() << ": Read " << regs.read(addr) <<
-                    " from register " << addr << endl;
-}
-
-/* Read from the address given (or pointed to) by readAddr2. */
-void IndirectRegisterFile::read2() {
-  short addr = readAddr2.read();
-
-  if(indRead.read()) {
-    addr = indirectRegs.read(addr);
-
-    // If the indirect address points to a channel-end, read from there instead
-    if(isChannelEnd(addr)) {
-      channelID.write(toChannelID(addr));
-      return;
-    }
+  // If the indirect address points to a channel-end, read from there instead
+//  if(isChannelEnd(index)) {
+//    return rcet.read(toChannelID(index));
+//  }
+  /*else*/ {
+    if(DEBUG) cout << this->name() << ": Read " << regs.read(index)
+                   << " from register " << index << endl;
+    return regs.read(index).toInt();
   }
-
-  out2.write(regs.read(addr));
-
-  if(DEBUG) cout << this->name() << ": Read " << regs.read(addr) <<
-                    " from register " << addr << endl;
 }
 
-/* Write to the address given in the register pointed to by indWriteAddr. */
-void IndirectRegisterFile::indirectWrite() {
-  short addr = indWriteAddr.read();
-  addr = indirectRegs.read(addr);           // Indirect
+void IndirectRegisterFile::write(uint8_t reg, int32_t value, bool indirect) {
+
+  uint8_t index = indirect ? indirectRegs.read(reg) : reg;
 
   // There are some registers that we can't write to.
-  if(isReserved(addr) || isChannelEnd(addr)) return;
+  if(isReserved(index)/* || isChannelEnd(index)*/) return;
 
-  Word w = writeData.read();
-  regs.write(w, addr);
+  Word w(value);
+  regs.write(w, index);
+  updateIndirectReg(index, w);
 
-  updateIndirectReg(addr, writeData.read());
-}
+  if(DEBUG) cout<<this->name()<<": Stored "<<w<<" to register "<<index<<endl;
 
-/* Write to the address given in writeAddr. */
-void IndirectRegisterFile::write() {
-  short addr = writeAddr.read();
-
-  // There are some registers that we can't write to.
-  if(isReserved(addr) || isChannelEnd(addr)) return;
-
-  Word w = writeData.read();
-  regs.write(w, addr);
-
-  if(DEBUG) cout<<this->name()<<": Stored "<<w<<" to register "<<addr<<endl;
-
-  updateIndirectReg(addr, writeData.read());
 }
 
 /* Store a subsection of the data into the indirect register at position
@@ -126,47 +96,10 @@ void IndirectRegisterFile::updateCurrentIPK(Address addr) {
   regs.write(w, 1);
 }
 
-int IndirectRegisterFile::getRegVal(int reg) const {
-  return regs.read(reg).toInt();
-}
-
-int32_t IndirectRegisterFile::read(uint8_t reg, bool indirect) const {
-  uint8_t index = indirect ? indirectRegs.read(reg) : reg;
-
-  // If the indirect address points to a channel-end, read from there instead
-//  if(isChannelEnd(index)) {
-//    return rcet.read(toChannelID(index));
-//  }
-  /*else*/ return regs.read(index).toInt();
-}
-
-void IndirectRegisterFile::write(uint8_t reg, int32_t value, bool indirect) {
-  uint8_t index = indirect ? indirectRegs.read(reg) : reg;
-  Word w(value);
-
-  regs.write(w, index);
-  updateIndirectReg(index, w);
-
-  if(DEBUG) cout<<this->name()<<": Stored "<<w<<" to register "<<index<<endl;
-}
-
 IndirectRegisterFile::IndirectRegisterFile(sc_module_name name) :
     Component(name),
     regs(NUM_PHYSICAL_REGISTERS),
     indirectRegs(NUM_ADDRESSABLE_REGISTERS) {
-
-// Register methods
-  SC_METHOD(read1);
-  sensitive << readAddr1;
-  dont_initialize();
-
-  SC_METHOD(read2);
-  sensitive << readAddr2;
-  dont_initialize();
-
-  SC_METHOD(indirectWrite);
-  sensitive << indWriteAddr;
-  dont_initialize();
 
 }
 

@@ -162,8 +162,8 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
 
       case InstructionMap::PSELFETCH : {
         uint32_t selected;
-  //      if(predicate()) selected = readRegs(dec.getDestination());
-  //      else            selected = readRegs(dec.getSource1());
+  //      if(predicate()) selected = readReg(dec.getDestination());
+  //      else            selected = readReg(dec.getSource1());
         Address fetchAddr(dec.getImmediate() + selected, fetchChannel);
         fetch(fetchAddr);
   //      cache.setPersistent(false);
@@ -250,7 +250,7 @@ void Decoder::setOperand2ToValue(DecodedInst& dec, int32_t reg, int32_t immed) {
 #define PARENT ((DecodeStage*)(this->get_parent()))
 
 int32_t Decoder::readRegs(uint8_t index, bool indirect) {
-  return PARENT->readRegs(index, indirect);
+  return PARENT->readReg(index, indirect);
 }
 
 int32_t Decoder::readRCET(uint8_t index) {

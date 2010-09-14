@@ -42,7 +42,7 @@ uint16_t Cluster::getInstIndex() const {
 }
 
 bool Cluster::getPredReg() const {
-  return pred.getVal();
+  return pred.read();
 }
 
 /* Checks the status signals of various pipeline stages to determine if the
@@ -77,8 +77,8 @@ void Cluster::updateIdle() {
       sc_core::sc_time_stamp().to_default_time_units());
 }
 
-void Cluster::updateCurrentPacket() {
-  regs.updateCurrentIPK(currentIPKSig.read());
+void Cluster::updateCurrentPacket(Address addr) {
+  regs.updateCurrentIPK(addr);
 }
 
 /* Returns the channel ID of this cluster's instruction packet FIFO. */
@@ -115,10 +115,6 @@ Cluster::Cluster(sc_module_name name, uint16_t ID) :
 //  dont_initialize();
   // do initialise
 
-  SC_METHOD(updateCurrentPacket);
-  sensitive << currentIPKSig;
-  dont_initialize();
-
 // Connect things up
   // Main inputs/outputs
   decode.flowControlIn(flowControlIn[0]);
@@ -142,7 +138,6 @@ Cluster::Cluster(sc_module_name name, uint16_t ID) :
   // Signals common to all pipeline stages
   fetch.clock(clock);                 fetch.stall(fetchStallSig);
   decode.clock(clock);                decode.stall(stallSig);
-                                      decode.stallFetch(stallFetchSig);
   execute.clock(clock);               execute.stall(stallSig);
   write.clock(clock);                 write.stall(stallSig);
 
@@ -150,67 +145,7 @@ Cluster::Cluster(sc_module_name name, uint16_t ID) :
   execute.idle(executeIdle);          write.idle(writeIdle);
 
   // To/from fetch stage
-  decode.address(FLtoIPKC);           fetch.address(FLtoIPKC);
-  decode.jumpOffset(jumpOffsetSig);   fetch.jumpOffset(jumpOffsetSig);
-  decode.persistent(persistent);      fetch.persistent(persistent);
   fetch.instruction(nextInst);        decode.instructionIn(nextInst);
-
-  fetch.cacheHit(cacheHitSig);        decode.cacheHit(cacheHitSig);
-  fetch.roomToFetch(roomToFetch);     decode.roomToFetch(roomToFetch);
-  fetch.refetch(refetchSig);          decode.refetch(refetchSig);
-  fetch.currentPacket(currentIPKSig);
-
-  // To/from decode stage
-  decode.regIn1(regData1);            regs.out1(regData1);
-  decode.regIn2(regData2);            regs.out2(regData2);
-
-  decode.regReadAddr1(regRead1);      regs.readAddr1(regRead1);
-  decode.regReadAddr2(regRead2);      regs.readAddr2(regRead2);
-  decode.writeAddr(decWriteAddr);     //execute.writeIn(decWriteAddr);
-  decode.indWriteAddr(decIndWrite);   //execute.indWriteIn(decIndWrite);
-
-  decode.isIndirect(indirectReadSig); regs.indRead(indirectReadSig);
-  decode.indirectChannel(indChannelSig);  regs.channelID(indChannelSig);
-
-  decode.chEnd1(RCETtoALU1);          //execute.fromRChan1(RCETtoALU1);
-  decode.chEnd2(RCETtoALU2);          //execute.fromRChan2(RCETtoALU2);
-  decode.regOut1(regToALU1);          //execute.fromReg1(regToALU1);
-  decode.regOut2(regToALU2);          //execute.fromReg2(regToALU2);
-  decode.sExtend(SEtoALU);            //execute.fromSExtend(SEtoALU);
-
-  decode.operation(operation);        //execute.operation(operation);
-  decode.op1Select(op1Select);        //execute.op1Select(op1Select);
-  decode.op2Select(op2Select);        //execute.op2Select(op2Select);
-
-  decode.remoteInst(decToExInst);     //execute.remoteInstIn(decToExInst);
-  decode.remoteChannel(decToExRChan); //execute.remoteChannelIn(decToExRChan);
-  decode.memoryOp(decToExMemOp);      //execute.memoryOpIn(decToExMemOp);
-  decode.waitOnChannel(decToExWOCHE); //execute.waitOnChannelIn(decToExWOCHE);
-  decode.predicate(readPredSig);      pred.output(readPredSig);
-  decode.setPredicate(setPredSig);    //execute.setPredicate(setPredSig);
-  decode.usePredicate(usePredSig);    //execute.usePredicate(usePredSig);
-  decode.stallOut(decStallSig);
-
-  // To/from execute stage
-//  execute.output(ALUOutput);          execute.fromALU1(ALUOutput);
-//  execute.fromALU2(ALUOutput);
-//  write.fromALU(ALUOutput);
-
-//  execute.predicate(writePredSig);    pred.write(writePredSig);
-//
-//  execute.remoteInstOut(exToWriteInst);     write.inst(exToWriteInst);
-//  execute.remoteChannelOut(exToWriteRChan); write.remoteChannel(exToWriteRChan);
-//  execute.memoryOpOut(exToWriteMemOp);      write.memoryOp(exToWriteMemOp);
-//  execute.waitOnChannelOut(exToWriteWOCHE); write.waitOnChannel(exToWriteWOCHE);
-//
-//  execute.writeOut(writeAddr);        write.inRegAddr(writeAddr);
-//  execute.indWriteOut(indWriteAddr);  write.inIndAddr(indWriteAddr);
-
-  // To/from write stage
-//  write.outRegAddr(writeRegAddr);     regs.writeAddr(writeRegAddr);
-//  write.outIndAddr(indirectWrite);    regs.indWriteAddr(indirectWrite);
-//  write.regData(regWriteData);        regs.writeData(regWriteData);
-  write.stallOut(writeStallSig);
 
   end_module(); // Needed because we're using a different Component constructor
 }

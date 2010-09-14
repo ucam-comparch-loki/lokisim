@@ -7,24 +7,19 @@
 
 #include "InstructionPacketFIFO.h"
 
-void InstructionPacketFIFO::insert() {
-  Instruction i = in.read();
-  fifo.write(i);
-  wake(contentsChanged);
+Instruction InstructionPacketFIFO::read() {
+  Instruction inst = fifo.read();
+  updateFlowControl();
+  return inst;
 }
 
-void InstructionPacketFIFO::remove() {
-  if(!fifo.isEmpty()) {
-    out.write(fifo.read());
-    wake(contentsChanged);
-  }
+void InstructionPacketFIFO::write(Instruction inst) {
+  fifo.write(inst);
+  updateFlowControl();
+  if(DEBUG) cout << this->name() << " received Instruction:  " << inst << endl;
 }
 
-void InstructionPacketFIFO::updateEmptySig() {
-  empty.write(isEmpty());
-}
-
-void InstructionPacketFIFO::newCycle() {
+void InstructionPacketFIFO::updateFlowControl() {
   flowControl.write(fifo.remainingSpace());
 }
 
@@ -35,23 +30,6 @@ bool InstructionPacketFIFO::isEmpty() {
 InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
     Component(name),
     fifo(IPK_FIFO_SIZE) {
-
-// Register methods
-  SC_METHOD(insert);
-  sensitive << in;
-  dont_initialize();
-
-  SC_METHOD(remove);
-  sensitive << readInstruction;
-  dont_initialize();
-
-  SC_METHOD(updateEmptySig);
-  sensitive << contentsChanged;
-  // do initialise
-
-  SC_METHOD(newCycle);
-  sensitive << clock.pos();
-  // do initialise
 
 }
 

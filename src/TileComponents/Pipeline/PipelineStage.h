@@ -21,6 +21,11 @@
 #include "../../Datatype/Instruction.h"
 #include "../../Datatype/AddressedWord.h"
 
+// Allows cyclic dependency between PipelineStage and Cluster: Clusters contain
+// PipelineStages and PipelineStages refer to their Cluster parents.
+//#include "../Cluster.h"
+class Cluster;
+
 class PipelineStage : public Component {
 
 //==============================//
@@ -52,6 +57,13 @@ public:
 //==============================//
 // Methods
 //==============================//
+
+public:
+
+  // Do I want a parent() method, so the user has to know the module hierarchy,
+  // but can access any position in it, or a cluster() method, which hides
+  // any changes, but makes arbitrary access harder?
+  Cluster* parent();
 
 protected:
 

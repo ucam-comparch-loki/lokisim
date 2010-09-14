@@ -11,7 +11,8 @@
 #define SENDCHANNELENDTABLE_H_
 
 #include "../../../Component.h"
-#include "../../../Datatype/Word.h"
+//#include "../../../Datatype/Word.h"
+#include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/AddressedWord.h"
 #include "../../../Memory/AddressedStorage.h"
 #include "../../../Memory/BufferArray.h"
@@ -24,20 +25,6 @@ class SendChannelEndTable: public Component {
 
 public:
 
-  // Clock.
-  sc_in<bool>             clock;
-
-  // The data (remote instruction or result from ALU) to be written into
-  // this table.
-  sc_in<Word>             input;
-
-  // The remote channel the data is to be sent to.
-  sc_in<short>            remoteChannel;
-
-  // Stall the pipeline until this channel has become empty. This allows
-  // synchronisation between clusters.
-  sc_in<short>            waitOnChannel;
-
   // The outputs to the network. There should be NUM_SEND_CHANNELS of them.
   sc_out<AddressedWord>  *output;
 
@@ -45,17 +32,12 @@ public:
   // whether or not it is allowed to send its next value.
   sc_in<bool>            *flowControl;
 
-  // Signal to the cluster that it should stop execution until there is at
-  // least one space in every buffer.
-  sc_out<bool>            stallOut;
-
 //==============================//
 // Constructors and destructors
 //==============================//
 
 public:
 
-  SC_HAS_PROCESS(SendChannelEndTable);
   SendChannelEndTable(sc_module_name name);
   virtual ~SendChannelEndTable();
 
@@ -63,26 +45,31 @@ public:
 // Methods
 //==============================//
 
+public:
+
+  // Write the result of an operation to one of the output buffers.
+  void          write(DecodedInst& dec);
+
+  // Returns true if the table is incapable of accepting new data at the moment.
+  bool          isFull();
+
+  // Send the oldest value in each output buffer, if the flow control signals
+  // allow it.
+  void          send();
+
 protected:
 
-  // Put the received Word into the table, along with its destination address.
-  void          receivedData();
-
-  // Stall the pipeline until the channel specified by waitOnChannel is empty.
-  void          waitUntilEmpty();
-
-  // Update the value on the stallOut port.
-  void          updateStall();
+  // Stall the pipeline until the channel specified is empty.
+  void          waitUntilEmpty(uint8_t channel);
 
   // Update an entry in the channel mapping table.
-  void          updateMap(int entry, uint32_t newVal);
+  void          updateMap(uint8_t entry, uint32_t newVal);
 
-  // If it is possible to send data onto the network, do it. This method is
-  // is called at the start of each clock cycle.
-  virtual void  canSend();
+  uint32_t      getChannel(uint8_t mapEntry);
 
-  // Choose which buffer to put the new data into.
-  virtual short chooseBuffer();
+  // Choose which buffer to put the new data into (multiple channels may
+  // share a buffer to reduce buffer space/energy).
+  virtual uint8_t chooseBuffer(uint8_t channelMapEntry);
 
 //==============================//
 // Local state
@@ -100,8 +87,8 @@ protected:
   // Tells whether or not there is a full buffer, requiring a pipeline stall.
   bool stallValue;
 
-  // Tells whether or not we are currently waiting for a channel to empty.
-  bool waiting;
+  // Tells which channel we are waiting on. 255 means no channel.
+  uint8_t waitingOn;
 
   // Signal that something has happened which requires the stall output
   // to be changed.

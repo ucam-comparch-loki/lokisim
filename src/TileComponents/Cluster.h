@@ -71,11 +71,12 @@ public:
   // Returns the channel ID of the specified cluster's input channel.
   static uint32_t  RCETInput(uint16_t ID, uint8_t channel);
 
+  void             updateCurrentPacket(Address addr);
+
 private:
 
   void             stallPipeline();
   void             updateIdle();
-  void             updateCurrentPacket();
 
 //==============================//
 // Components
@@ -100,33 +101,15 @@ private:
   sc_signal<bool>          fetchIdle, decodeIdle, executeIdle, writeIdle;
 
   // To/from fetch stage
-  sc_buffer<Address>       FLtoIPKC, currentIPKSig;
-  sc_buffer<short>         jumpOffsetSig;
   flag_signal<Instruction> nextInst;
   sc_signal<bool>          fetchStallSig;
 
   // To/from decode stage
-  sc_buffer<bool>          cacheHitSig, indirectReadSig;
-  sc_signal<bool>          roomToFetch, refetchSig, persistent;
-  sc_buffer<Word>          regData1, regData2;
-  flag_signal<short>       regRead1, regRead2, decWriteAddr, decIndWrite;
-  sc_buffer<short>         indChannelSig, usePredSig;
-  sc_buffer<Data>          RCETtoALU1, RCETtoALU2, regToALU1, regToALU2, SEtoALU;
-  flag_signal<short>       operation, op1Select, op2Select;
-  sc_signal<bool>          setPredSig, readPredSig, decStallSig, stallFetchSig;
+  sc_signal<bool>          decStallSig, stallFetchSig;
 
   // To/from execute stage
-  flag_signal<Instruction> decToExInst,  exToWriteInst;
-  flag_signal<short>       decToExRChan, exToWriteRChan;
-  flag_signal<short>       decToExMemOp, exToWriteMemOp;
-  flag_signal<short>       decToExWOCHE, exToWriteWOCHE;
-  flag_signal<Data>        ALUOutput;
-  sc_signal<bool>          writePredSig;
 
   // To/from write stage
-  flag_signal<short>       writeAddr, indWriteAddr;
-  sc_buffer<short>         writeRegAddr, indirectWrite;
-  sc_buffer<Word>          regWriteData;
   sc_signal<bool>          writeStallSig;
 
 };
