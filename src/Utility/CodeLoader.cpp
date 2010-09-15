@@ -9,6 +9,7 @@
 #include "Parameters.h"
 #include "StringManipulation.h"
 #include "../Datatype/Instruction.h"
+#include "../TileComponents/TileComponent.h"
 
 bool CodeLoader::usingDebugger = false;
 

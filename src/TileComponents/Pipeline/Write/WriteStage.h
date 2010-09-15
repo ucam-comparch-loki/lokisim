@@ -64,11 +64,6 @@ private:
   // The task to be performed at the beginning of each clock cycle.
   virtual void   newCycle();
 
-  // Generate a memory request using the address from the ALU and the operation
-  // supplied by the decoder. The memory request will be sent to a memory and
-  // will result in an operation being carried out there.
-  Word getMemoryRequest() const;
-
 //==============================//
 // Components
 //==============================//
@@ -76,18 +71,6 @@ private:
 private:
 
   SendChannelEndTable scet;
-
-//==============================//
-// Signals (wires)
-//==============================//
-
-private:
-
-  sc_buffer<Word>     ALUtoRegs, muxOutput;
-  sc_buffer<Word>     ALUtoMux, instToMux;
-  sc_buffer<short>    muxSelect;
-  sc_buffer<short>    waitChannelSig;
-  sc_signal<bool>     newInstSig, newDataSig;
 
 };
 

@@ -14,8 +14,9 @@
 #define TILECOMPONENT_H_
 
 #include "../Component.h"
-#include "../Datatype/Word.h"
 #include "../Datatype/AddressedWord.h"
+
+class Word;
 
 class TileComponent : public Component {
 

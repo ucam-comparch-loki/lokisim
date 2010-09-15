@@ -34,6 +34,7 @@ public:
 public:
 
   int32_t toInt() const;
+  int64_t toLong() const;
 
   friend void sc_trace(sc_core::sc_trace_file*& tf, const Word& w, const std::string& txt) {
     sc_core::sc_trace(tf, w.data, txt);

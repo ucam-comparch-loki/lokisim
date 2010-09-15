@@ -12,9 +12,11 @@
 #define WRAPPEDTILECOMPONENT_H_
 
 #include "../Component.h"
-#include "TileComponent.h"
+#include "../flag_signal.h"
 #include "../Network/FlowControl/FlowControlIn.h"
 #include "../Network/FlowControl/FlowControlOut.h"
+
+class TileComponent;
 
 class WrappedTileComponent: public Component {
 

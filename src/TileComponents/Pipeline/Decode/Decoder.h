@@ -14,10 +14,11 @@
 #define DECODER_H_
 
 #include "../../../Component.h"
-#include "../../../Datatype/DecodedInst.h"
-#include "../../../Datatype/Instruction.h"
-#include "../../../Datatype/Address.h"
-#include "../../../Datatype/Data.h"
+
+class Address;
+class DecodedInst;
+class DecodeStage;
+class Instruction;
 
 class Decoder: public Component {
 
@@ -68,6 +69,8 @@ private:
   // converted to data forwarding from the ALU, as the register has not yet
   // been written to.
   bool readALUOutput(short reg);
+
+  DecodeStage* parent() const;
 
 //==============================//
 // Constructors and destructors

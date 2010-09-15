@@ -29,20 +29,40 @@ void Cluster::storeData(std::vector<Word>& data) {
   fetch.storeCode(instructions);
 }
 
-int32_t Cluster::getRegVal(uint8_t reg, bool indirect) const {
-  return regs.read(reg, indirect);
-}
-
-void Cluster::writeReg(uint8_t reg, int32_t value, bool indirect) {
-  regs.write(reg, value, indirect);
-}
-
 uint16_t Cluster::getInstIndex() const {
   return fetch.getInstIndex();
 }
 
-bool Cluster::getPredReg() const {
+bool Cluster::inCache(Address a) {
+  return fetch.inCache(a);
+}
+
+bool Cluster::roomToFetch() const {
+  return fetch.roomToFetch();
+}
+
+void Cluster::jump(int8_t offset) {
+  fetch.jump(offset);
+}
+
+void Cluster::setPersistent(bool persistent) {
+  fetch.setPersistent(persistent);
+}
+
+int32_t Cluster::readReg(RegisterIndex reg, bool indirect) const {
+  return regs.read(reg, indirect);
+}
+
+void Cluster::writeReg(RegisterIndex reg, int32_t value, bool indirect) {
+  regs.write(reg, value, indirect);
+}
+
+bool Cluster::readPredReg() const {
   return pred.read();
+}
+
+void Cluster::writePredReg(bool val) {
+  pred.write(val);
 }
 
 /* Checks the status signals of various pipeline stages to determine if the

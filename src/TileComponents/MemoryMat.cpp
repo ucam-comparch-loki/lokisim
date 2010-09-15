@@ -6,10 +6,11 @@
  */
 
 #include "MemoryMat.h"
-#include "../Datatype/Instruction.h"
-#include "../Datatype/MemoryRequest.h"
+#include "../Datatype/AddressedWord.h"
 #include "../Datatype/ChannelRequest.h"
 #include "../Datatype/Data.h"
+#include "../Datatype/Instruction.h"
+#include "../Datatype/MemoryRequest.h"
 #include "../Utility/Instrumentation.h"
 
 const int MemoryMat::CONTROL_INPUT = NUM_CLUSTER_INPUTS - 1;

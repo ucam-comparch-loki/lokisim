@@ -13,6 +13,7 @@
 #define CLUSTER_H_
 
 #include "TileComponent.h"
+#include "../flag_signal.h"
 
 #include "Pipeline/IndirectRegisterFile.h"
 #include "Pipeline/PredicateRegister.h"
@@ -57,10 +58,16 @@ public:
   // Initialise the instructions a Cluster will execute.
   virtual void     storeData(std::vector<Word>& data);
 
-  virtual int32_t  getRegVal(uint8_t reg, bool indirect = false) const;
-  void             writeReg(uint8_t reg, int32_t value, bool indirect = false);
   virtual uint16_t getInstIndex() const;
-  virtual bool     getPredReg() const;
+  bool             inCache(Address a);
+  bool             roomToFetch() const;
+  void             jump(int8_t offset);
+  void             setPersistent(bool persistent);
+
+  virtual int32_t  readReg(RegisterIndex reg, bool indirect = false) const;
+  void             writeReg(RegisterIndex reg, int32_t value, bool indirect = false);
+  virtual bool     readPredReg() const;
+  void             writePredReg(bool val);
 
   // Returns the channel ID of the specified cluster's instruction packet FIFO.
   static uint32_t  IPKFIFOInput(uint16_t ID);

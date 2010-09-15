@@ -6,6 +6,7 @@
  */
 
 #include "ExecuteStage.h"
+#include "../../Cluster.h"
 
 double ExecuteStage::area() const {
   return alu.area();// + in1Mux.area() + in2Mux.area();
@@ -13,6 +14,14 @@ double ExecuteStage::area() const {
 
 double ExecuteStage::energy() const {
   return alu.energy();// + in1Mux.energy() + in2Mux.energy();
+}
+
+bool ExecuteStage::getPredicate() const {
+  return parent()->readPredReg();
+}
+
+void ExecuteStage::setPredicate(bool val) {
+  parent()->writePredReg(val);
 }
 
 /* Simulate pipelining by only allowing signals through at the start of a cycle */

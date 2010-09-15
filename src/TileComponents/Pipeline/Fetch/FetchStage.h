@@ -68,6 +68,15 @@ public:
   // Return the memory address of the last instruction sent.
   int           getInstIndex() const;
 
+  bool          inCache(Address a);
+
+  bool          roomToFetch() const;
+
+  // Jump to a different instruction in the Instruction Packet Cache.
+  void          jump(int8_t offset);
+
+  void          setPersistent(bool persistent);
+
 private:
 
   // The task performed at the beginning of each clock cycle.
@@ -84,9 +93,6 @@ private:
 
   // Write the result of calculateSelect() to the multiplexors select input.
   void          select();
-
-  // Jump to a different instruction in the Instruction Packet Cache.
-  void          jump(int8_t offset);
 
 //==============================//
 // Components

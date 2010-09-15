@@ -7,12 +7,12 @@
 
 #include "Decoder.h"
 #include "DecodeStage.h"
-#include "ReceiveChannelEndTable.h"
 #include "../IndirectRegisterFile.h"
+#include "../../../Datatype/Address.h"
+#include "../../../Datatype/Instruction.h"
 #include "../../../Datatype/MemoryRequest.h"
 #include "../../../Exceptions/BlockedException.h"
 #include "../../../Utility/InstructionMap.h"
-#include "../../../Tile.h"
 
 typedef IndirectRegisterFile Registers;
 
@@ -63,8 +63,9 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
         setOperand2ToValue(dec, 0, dec.getImmediate());
         dec.setDestination(0);
         dec.setOperation(InstructionMap::ADDUI);
-  //      if(operation == InstructionMap::LD) memoryOp.write(MemoryRequest::LOAD);
-  //      else                                memoryOp.write(MemoryRequest::LOAD_B);
+        if(operation == InstructionMap::LD)
+             dec.setMemoryOp(MemoryRequest::LOAD);
+        else dec.setMemoryOp(MemoryRequest::LOAD_B);
         break;
       }
 
@@ -75,8 +76,9 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
         dec.setDestination(0);
         dec.setOperation(InstructionMap::ADDUI);
         currentlyWriting = true;
-  //      if(operation == InstructionMap::ST) memoryOp.write(MemoryRequest::STORE);
-  //      else                                memoryOp.write(MemoryRequest::STORE_B);
+        if(operation == InstructionMap::ST)
+             dec.setMemoryOp(MemoryRequest::STORE);
+        else dec.setMemoryOp(MemoryRequest::STORE_B);
         break;
       }
 
@@ -86,32 +88,27 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
         setOperand2ToValue(dec, 0, dec.getImmediate());
         dec.setDestination(0);
         dec.setOperation(InstructionMap::ADDUI);
-  //      if(operation == InstructionMap::STADDR)
-  //           memoryOp.write(MemoryRequest::STADDR);
-  //      else memoryOp.write(MemoryRequest::STBADDR);
+        if(operation == InstructionMap::STADDR)
+             dec.setMemoryOp(MemoryRequest::STADDR);
+        else dec.setMemoryOp(MemoryRequest::STBADDR);
         break;
       }
 
       case InstructionMap::TSTCH : {
-  //      channelOp.write(ReceiveChannelEndTable::TSTCH);
-        readRCET(Registers::toChannelID(dec.getSource1()));
+        // Do we want to set an operand, or the result?
+        dec.setResult(parent()->testChannel(dec.getSource1()));
         break;
       }
 
       case InstructionMap::SELCH : {
-  //      channelOp.write(ReceiveChannelEndTable::SELCH);
+        dec.setResult(parent()->selectChannel());
         break;
       }
 
       case InstructionMap::IBJMP : {
-  //      jumpOffset.write(immediate);
+        parent()->jump(dec.getImmediate());
         break;
       }
-
-  //    case InstructionMap::WOCHE : {
-  //      // In write stage, detect woche and act there.
-  //      break;
-  //    }
 
       case InstructionMap::RMTEXECUTE : {
         remoteExecute = true;
@@ -124,7 +121,7 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
         string opName = "fetch";
         i.setOp(InstructionMap::opcode(opName));
         i.setPredicate(Instruction::END_OF_PACKET);
-        // send i
+        dec.setResult(i.toLong());
         break;
       }
 
@@ -132,7 +129,7 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
         string opName = "fetchpst";
         i.setOp(InstructionMap::opcode(opName));
         i.setPredicate(Instruction::END_OF_PACKET);
-        // send i
+        dec.setResult(i.toLong());
         break;
       }
 
@@ -146,7 +143,8 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
       }
 
       case InstructionMap::SETCHMAP : {
-        // The rest of the table is in the write stage.
+        // The rest of the table is in the write stage, so we only deal with
+        // entry 0 here.
         if(dec.getImmediate() == 0) fetchChannel = readRegs(dec.getSource1());
         break;
       }
@@ -156,17 +154,17 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
         Address fetchAddr(dec.getImmediate() + readRegs(dec.getDestination()),
                           fetchChannel);
         fetch(fetchAddr);
-  //      cache.setPersistent(operation == InstructionMap::FETCHPST);
+        parent()->setPersistent(operation == InstructionMap::FETCHPST);
         break;
       }
 
       case InstructionMap::PSELFETCH : {
         uint32_t selected;
-  //      if(predicate()) selected = readReg(dec.getDestination());
-  //      else            selected = readReg(dec.getSource1());
+        if(parent()->predicate()) selected = readRegs(dec.getDestination());
+        else                      selected = readRegs(dec.getSource1());
         Address fetchAddr(dec.getImmediate() + selected, fetchChannel);
         fetch(fetchAddr);
-  //      cache.setPersistent(false);
+        parent()->setPersistent(false);
         break;
       }
 
@@ -174,10 +172,6 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
         dec.setOperand1(readRegs(dec.getSource1(), true));
         break;
       }
-
-  //    case InstructionMap::IWTR : {
-  //      // Deal with indirect writes in the write stage
-  //    }
 
       default : {
         setOperand1(dec);
@@ -214,6 +208,13 @@ void Decoder::setOperand2(DecodedInst& dec) {
 
 /* Determine where to read the first operand from: RCET, ALU or registers */
 void Decoder::setOperand1ToValue(DecodedInst& dec, int32_t reg) {
+  // There are some cases where we are repeating the operation, and don't want
+  // to store the operands again.
+  // For example, both operands are read from the channel ends, but the second
+  // one hasn't arrived yet, so we block. We don't want to read the first
+  // channel end again because the data will have gone.
+  if(dec.hasOperand1()) return;
+
   if(Registers::isChannelEnd(reg)) {
     dec.setOperand1(readRCET(Registers::toChannelID(reg)));
   }
@@ -232,9 +233,11 @@ void Decoder::setOperand1ToValue(DecodedInst& dec, int32_t reg) {
 void Decoder::setOperand2ToValue(DecodedInst& dec, int32_t reg, int32_t immed) {
   if(InstructionMap::hasImmediate(dec.getOperation())) {
     dec.setOperand2(immed);
+    // This would require use of the sign-extender.
+    // Remember to factor in the energy use.
   }
   else if(Registers::isChannelEnd(reg)) {
-        dec.setOperand2(readRCET(Registers::toChannelID(reg)));
+    dec.setOperand2(readRCET(Registers::toChannelID(reg)));
   }
   else {
     if(readALUOutput(reg)) {
@@ -247,21 +250,17 @@ void Decoder::setOperand2ToValue(DecodedInst& dec, int32_t reg, int32_t immed) {
   }
 }
 
-#define PARENT ((DecodeStage*)(this->get_parent()))
-
 int32_t Decoder::readRegs(uint8_t index, bool indirect) {
-  return PARENT->readReg(index, indirect);
+  return parent()->readReg(index, indirect);
 }
 
 int32_t Decoder::readRCET(uint8_t index) {
-  return PARENT->readRCET(index);
+  return parent()->readRCET(index);
 }
 
 void Decoder::fetch(Address a) {
-  PARENT->fetch(a);
+  parent()->fetch(a);
 }
-
-#undef PARENT
 
 /* Sends the second part of a two-flit store operation (the data to send). */
 bool Decoder::completeWrite(Instruction i, DecodedInst& dec) {
@@ -277,9 +276,9 @@ bool Decoder::completeWrite(Instruction i, DecodedInst& dec) {
 bool Decoder::shouldExecute(short predBits) {
 
   bool result = (predBits == Instruction::ALWAYS) ||
-                (predBits == Instruction::END_OF_PACKET)/* ||
-                (predBits == Instruction::P     &&  predicate()) ||
-                (predBits == Instruction::NOT_P && !predicate())*/;
+                (predBits == Instruction::END_OF_PACKET) ||
+                (predBits == Instruction::P     &&  parent()->predicate()) ||
+                (predBits == Instruction::NOT_P && !parent()->predicate());
 
   return result;
 
@@ -290,6 +289,10 @@ bool Decoder::shouldExecute(short predBits) {
  * in the previous cycle, and the register isn't reserved. */
 bool Decoder::readALUOutput(short reg) {
   return (reg != 0) && (reg == regLastWritten) && (regLastWritten != -1);
+}
+
+DecodeStage* Decoder::parent() const {
+  return (DecodeStage*)(this->get_parent());
 }
 
 Decoder::Decoder(sc_module_name name, int ID) : Component(name) {

@@ -11,11 +11,16 @@
 #define SENDCHANNELENDTABLE_H_
 
 #include "../../../Component.h"
-//#include "../../../Datatype/Word.h"
-#include "../../../Datatype/DecodedInst.h"
-#include "../../../Datatype/AddressedWord.h"
 #include "../../../Memory/AddressedStorage.h"
 #include "../../../Memory/BufferArray.h"
+
+class AddressedWord;
+class DecodedInst;
+class Word;
+
+typedef uint8_t ChannelIndex;
+typedef uint8_t MapIndex;
+typedef uint32_t ChannelID;
 
 class SendChannelEndTable: public Component {
 
@@ -60,16 +65,22 @@ public:
 protected:
 
   // Stall the pipeline until the channel specified is empty.
-  void          waitUntilEmpty(uint8_t channel);
+  void          waitUntilEmpty(ChannelIndex channel);
 
   // Update an entry in the channel mapping table.
-  void          updateMap(uint8_t entry, uint32_t newVal);
+  void          updateMap(MapIndex entry, ChannelID newVal);
 
-  uint32_t      getChannel(uint8_t mapEntry);
+  // Retrieve an entry from the channel mapping table.
+  ChannelID     getChannel(MapIndex mapEntry);
 
   // Choose which buffer to put the new data into (multiple channels may
   // share a buffer to reduce buffer space/energy).
-  virtual uint8_t chooseBuffer(uint8_t channelMapEntry);
+  virtual ChannelIndex chooseBuffer(MapIndex channelMapEntry);
+
+  // Generate a memory request using the address from the ALU and the operation
+  // supplied by the decoder. The memory request will be sent to a memory and
+  // will result in an operation being carried out there.
+  Word getMemoryRequest(DecodedInst& dec) const;
 
 //==============================//
 // Local state
@@ -78,23 +89,22 @@ protected:
 protected:
 
   // A buffer for each output channel.
-  BufferArray<AddressedWord> buffers;
+  BufferArray<AddressedWord>  buffers;
 
   // Channel mapping table used to store addresses of destinations of sent
   // data.
-  AddressedStorage<uint32_t> channelMap;
+  AddressedStorage<ChannelID> channelMap;
 
-  // Tells whether or not there is a full buffer, requiring a pipeline stall.
-  bool stallValue;
+  // Tells which channel we are waiting on. -1 means no channel.
+  ChannelIndex                waitingOn;
 
-  // Tells which channel we are waiting on. 255 means no channel.
-  uint8_t waitingOn;
+  // Anything sent to the null channel ID doesn't get sent at all. This allows
+  // more code re-use, even in situations where we don't want to send results.
+  static const ChannelID      NULL_MAPPING = -1;
 
-  // Signal that something has happened which requires the stall output
-  // to be changed.
-  sc_event stallValueReady;
-
-  static const uint32_t NULL_MAPPING = -1;
+  // Used to tell that we are not currently waiting for any output buffers
+  // to empty.
+  static const ChannelIndex   NO_CHANNEL = -1;
 
 };
 

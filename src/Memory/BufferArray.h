@@ -36,11 +36,11 @@ public:
   }
 
   // Allows any method of the Buffer to be called
-  Buffer<T>& operator[] (int index) {
+  Buffer<T>& operator[] (int index) const {
     return *(buffers[index]);
   }
 
-  uint32_t size() {
+  uint32_t size() const {
     return buffers.size();
   }
 

@@ -14,33 +14,9 @@
 #include "../../../Datatype/Data.h"
 #include "../../../Datatype/DecodedInst.h"
 
+class ExecuteStage;
+
 class ALU: public Component {
-
-//==============================//
-// Ports
-//==============================//
-
-public:
-
-//  // The two input values.
-//  sc_in<Data>   in1, in2;
-//
-//  // The operation the ALU should carry out.
-//  sc_in<short>  operation;
-//
-//  // Tells whether the execution of this operation is dependent on the
-//  // predicate register.
-//  sc_in<short>  usePredicate;
-//
-//  // Tells whether the result of this computation should be used to set the
-//  // predicate register.
-//  sc_in<bool>   setPredicate;
-//
-//  // Write the new predicate value to the register.
-//  sc_out<bool>  predicate;
-//
-//  // The result of the computation.
-//  sc_out<Data>  out;
 
 //==============================//
 // Constructors and destructors
@@ -48,7 +24,6 @@ public:
 
 public:
 
-  SC_HAS_PROCESS(ALU);
   ALU(sc_module_name name);
   virtual ~ALU();
 
@@ -70,13 +45,7 @@ private:
   // predicate bits, and the contents of the predicate register.
   bool shouldExecute(short predBits);
 
-//==============================//
-// Methods
-//==============================//
-
-private:
-
-  bool pred;  // Testing having predicate register in ALU
+  ExecuteStage* parent() const;
 
 };
 

@@ -6,6 +6,8 @@
  */
 
 #include "DecodedInst.h"
+#include "Instruction.h"
+#include "MemoryRequest.h"
 
 uint8_t DecodedInst::getOperation() const {
   return operation;
@@ -38,6 +40,10 @@ bool    DecodedInst::getSetPredicate() const {
   return setPred;
 }
 
+uint8_t DecodedInst::getMemoryOp() const {
+  return memoryOp;
+}
+
 
 int32_t DecodedInst::getOperand1() const {
   return operand1;
@@ -47,9 +53,19 @@ int32_t DecodedInst::getOperand2() const {
   return operand2;
 }
 
-int32_t DecodedInst::getResult() const {
+int64_t DecodedInst::getResult() const {
   return result;
 }
+
+
+bool    DecodedInst::hasOperand1() const {
+  return _hasOperand1;
+}
+
+bool    DecodedInst::hasResult() const {
+  return _hasResult;
+}
+
 
 void    DecodedInst::setOperation(uint8_t val) {
   operation = val;
@@ -83,6 +99,10 @@ void    DecodedInst::setSetPredicate(bool val) {
   setPred = val;
 }
 
+void    DecodedInst::setMemoryOp(uint8_t val) {
+  memoryOp = val;
+}
+
 
 void    DecodedInst::setOperand1(int32_t val) {
   operand1 = val;
@@ -92,8 +112,9 @@ void    DecodedInst::setOperand2(int32_t val) {
   operand2 = val;
 }
 
-void    DecodedInst::setResult(int32_t val) {
+void    DecodedInst::setResult(int64_t val) {
   result = val;
+  _hasResult = true;
 }
 
 
@@ -115,6 +136,9 @@ DecodedInst& DecodedInst::operator= (const DecodedInst& other) {
   operand2        = other.operand2;
   result          = other.result;
 
+  _hasOperand1    = other._hasOperand1;
+  _hasResult      = other._hasResult;
+
   return *this;
 }
 
@@ -132,6 +156,7 @@ DecodedInst::DecodedInst(Instruction i) {
   channelMapEntry = i.getRchannel();
   predicate       = i.getPredicate();
   setPred         = i.getSetPredicate();
+  memoryOp        = MemoryRequest::NONE;
 
   operand1        = 0;
   operand2        = 0;

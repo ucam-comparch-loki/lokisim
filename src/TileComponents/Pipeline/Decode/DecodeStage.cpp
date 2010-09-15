@@ -19,6 +19,10 @@ double DecodeStage::energy() const {
 /* Direct any new inputs to their destinations every clock cycle. */
 void DecodeStage::newCycle() {
   while(true) {
+    // Check for new data (should this happen at the beginning or end of
+    // the cycle?
+    rcet.checkInputs();
+
     if(!readyIn.read()) {
       readyOut.write(false);
     }
@@ -37,6 +41,10 @@ void DecodeStage::newCycle() {
       readyOut.write(true);
     }
 
+    // Send any fetches we may have created in this cycle (or which haven't
+    // yet been able to send).
+    fl.send();
+
     for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
       COPY_IF_NEW(in[i], fromNetwork[i]);
     }
@@ -46,8 +54,6 @@ void DecodeStage::newCycle() {
 }
 
 void DecodeStage::decode(Instruction i) {
-  DecodedInst decoded;
-
   bool success = decoder.decodeInstruction(instructionIn.read(), decoded);
 
   if(success) instructionOut.write(decoded);
@@ -56,16 +62,44 @@ void DecodeStage::decode(Instruction i) {
   idle.write(false);
 }
 
-int32_t DecodeStage::readReg(uint8_t index, bool indirect) {
-  return parent()->getRegVal(index, indirect);
+int32_t DecodeStage::readReg(uint8_t index, bool indirect) const {
+  return parent()->readReg(index, indirect);
 }
 
-int32_t DecodeStage::readRCET(uint8_t index) {
+bool DecodeStage::predicate() const {
+  return parent()->readPredReg();
+}
+
+int32_t DecodeStage::readRCET(ChannelIndex index) {
   return rcet.read(index);
 }
 
-void DecodeStage::fetch(Address a) {
+bool DecodeStage::testChannel(ChannelIndex index) const {
+  return rcet.testChannelEnd(index);
+}
 
+ChannelIndex DecodeStage::selectChannel() {
+  return rcet.selectChannelEnd();
+}
+
+void DecodeStage::fetch(Address a) {
+  fl.fetch(a);
+}
+
+bool DecodeStage::inCache(Address a) {
+  return parent()->inCache(a);
+}
+
+bool DecodeStage::roomToFetch() const {
+  return parent()->roomToFetch();
+}
+
+void DecodeStage::jump(int8_t offset) {
+  parent()->jump(offset);
+}
+
+void DecodeStage::setPersistent(bool persistent) {
+  parent()->setPersistent(persistent);
 }
 
 DecodeStage::DecodeStage(sc_module_name name, int ID) :

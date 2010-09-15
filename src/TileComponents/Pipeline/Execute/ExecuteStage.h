@@ -54,6 +54,9 @@ public:
   virtual double area()  const;
   virtual double energy() const;
 
+  bool getPredicate() const;
+  void setPredicate(bool val);
+
 private:
 
   // The task performed at the beginning of each clock cycle.

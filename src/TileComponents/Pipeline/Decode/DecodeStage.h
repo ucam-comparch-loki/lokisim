@@ -75,9 +75,17 @@ public:
   virtual double area()  const;
   virtual double energy() const;
 
-  int32_t readReg(uint8_t index, bool indirect = false);
-  int32_t readRCET(uint8_t index);
-  void    fetch(Address a);
+  int32_t   readReg(uint8_t index, bool indirect = false) const;
+  bool      predicate() const;
+  int32_t   readRCET(ChannelIndex index);
+  bool      testChannel(ChannelIndex index) const;
+  ChannelIndex selectChannel();
+  void      fetch(Address a);
+
+  bool      inCache(Address a);
+  bool      roomToFetch() const;
+  void      jump(int8_t offset);
+  void      setPersistent(bool persistent);
 
 private:
 
@@ -96,6 +104,12 @@ private:
   ReceiveChannelEndTable  rcet;
   Decoder                 decoder;
   SignExtend              extend;
+
+//==============================//
+// Local state
+//==============================//
+
+  DecodedInst             decoded;
 
 //==============================//
 // Signals (wires)

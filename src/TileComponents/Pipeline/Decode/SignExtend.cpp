@@ -7,16 +7,11 @@
 
 #include "SignExtend.h"
 
-void SignExtend::doOp() {
-  // Will it ever be necessary to allow immediates of different lengths?
-  Data d = input.read();
-  output.write(d);
+int32_t SignExtend::extend(int32_t val) {
+  return val;
 }
 
 SignExtend::SignExtend(sc_module_name name) : Component(name) {
-
-  SC_METHOD(doOp);
-  sensitive << input;
 
 }
 

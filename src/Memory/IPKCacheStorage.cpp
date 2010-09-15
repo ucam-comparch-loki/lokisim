@@ -6,6 +6,8 @@
  */
 
 #include "IPKCacheStorage.h"
+#include "../Datatype/Address.h"
+#include "../Datatype/Instruction.h"
 #include "../Utility/Parameters.h"
 
 /* Returns whether the given address matches any of the tags. */

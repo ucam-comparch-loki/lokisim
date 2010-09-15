@@ -12,7 +12,8 @@
 #define INSTRUMENTATION_H_
 
 #include <iostream>
-#include "../Datatype/Instruction.h"
+
+class Instruction;
 
 class Instrumentation {
 

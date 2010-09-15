@@ -6,6 +6,7 @@
  */
 
 #include "InstructionPacketFIFO.h"
+#include "../../../Datatype/Instruction.h"
 
 Instruction InstructionPacketFIFO::read() {
   Instruction inst = fifo.read();

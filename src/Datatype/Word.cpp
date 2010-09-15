@@ -8,7 +8,11 @@
 #include "Word.h"
 
 int32_t Word::toInt() const {
-  return (int)data;
+  return (int32_t)data;
+}
+
+int64_t Word::toLong() const {
+  return (int64_t)data;
 }
 
 /* Return the integer value of the bits between the start and end positions,

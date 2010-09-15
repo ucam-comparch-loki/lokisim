@@ -5,11 +5,13 @@
  *      Author: db434
  */
 
-#include "IndirectRegisterFile.h"
 #include <math.h>
+#include "IndirectRegisterFile.h"
+#include "../../Datatype/Address.h"
+#include "../../Datatype/Word.h"
 
-int32_t IndirectRegisterFile::read(uint8_t reg, bool indirect) const {
-  uint8_t index = indirect ? indirectRegs.read(reg) : reg;
+int32_t IndirectRegisterFile::read(RegisterIndex reg, bool indirect) const {
+  RegisterIndex index = indirect ? indirectRegs.read(reg) : reg;
 
   // If the indirect address points to a channel-end, read from there instead
 //  if(isChannelEnd(index)) {
@@ -22,9 +24,9 @@ int32_t IndirectRegisterFile::read(uint8_t reg, bool indirect) const {
   }
 }
 
-void IndirectRegisterFile::write(uint8_t reg, int32_t value, bool indirect) {
+void IndirectRegisterFile::write(RegisterIndex reg, int32_t value, bool indirect) {
 
-  uint8_t index = indirect ? indirectRegs.read(reg) : reg;
+  RegisterIndex index = indirect ? indirectRegs.read(reg) : reg;
 
   // There are some registers that we can't write to.
   if(isReserved(index)/* || isChannelEnd(index)*/) return;
@@ -40,7 +42,7 @@ void IndirectRegisterFile::write(uint8_t reg, int32_t value, bool indirect) {
 /* Store a subsection of the data into the indirect register at position
  * "address". Since NUM_PHYSICAL_REGISTERS registers must be accessible, the
  * indirect registers must hold ceil(log2(NUM_PHYSICAL_REGISTERS)) bits each. */
-void IndirectRegisterFile::updateIndirectReg(int address, Word data) {
+void IndirectRegisterFile::updateIndirectReg(RegisterIndex address, Word data) {
 
   // Don't store anything if there is no indirect register to store to.
   if(address >= NUM_ADDRESSABLE_REGISTERS) return;
@@ -55,37 +57,37 @@ void IndirectRegisterFile::updateIndirectReg(int address, Word data) {
 /* Register 0 is reserved to hold the constant value 0.
  * Register 1 is reserved to hold the address of the currently executing
  * instruction packet. */
-bool IndirectRegisterFile::isReserved(int position) {
+bool IndirectRegisterFile::isReserved(RegisterIndex position) {
   return position >= 0
       && position <  2;
 }
 
-bool IndirectRegisterFile::isChannelEnd(int position) {
+bool IndirectRegisterFile::isChannelEnd(RegisterIndex position) {
   return position >= START_OF_INPUT_CHANNELS
       && position <  START_OF_INPUT_CHANNELS + NUM_RECEIVE_CHANNELS;
 }
 
-bool IndirectRegisterFile::isAddressableReg(int position) {
+bool IndirectRegisterFile::isAddressableReg(RegisterIndex position) {
   return !(isReserved(position) || isChannelEnd(position))
       && position < NUM_ADDRESSABLE_REGISTERS;
 }
 
-bool IndirectRegisterFile::needsIndirect(int position) {
+bool IndirectRegisterFile::needsIndirect(RegisterIndex position) {
   return position >= NUM_ADDRESSABLE_REGISTERS
       && position <  NUM_PHYSICAL_REGISTERS;
 }
 
-bool IndirectRegisterFile::isInvalid(int position) {
+bool IndirectRegisterFile::isInvalid(RegisterIndex position) {
   return position < 0
       || position > NUM_PHYSICAL_REGISTERS;
 }
 
-int IndirectRegisterFile::toChannelID(int position) {
+RegisterIndex IndirectRegisterFile::toChannelID(RegisterIndex position) {
   // Check that it is in fact a channel-end?
   return position - START_OF_INPUT_CHANNELS;
 }
 
-int IndirectRegisterFile::fromChannelID(int position) {
+RegisterIndex IndirectRegisterFile::fromChannelID(RegisterIndex position) {
   // Check that it is in fact a channel-end?
   return position + START_OF_INPUT_CHANNELS;
 }

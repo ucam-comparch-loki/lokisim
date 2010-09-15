@@ -14,11 +14,12 @@
 #define TILE_H_
 
 #include "Component.h"
-#include "TileComponents/WrappedTileComponent.h"
-#include "Datatype/AddressedWord.h"
+#include "flag_signal.h"
 #include "Network/InterclusterNetwork.h"
 
 using std::vector;
+
+class WrappedTileComponent;
 
 class Tile : public Component {
 

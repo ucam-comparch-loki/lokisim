@@ -12,29 +12,14 @@
 #define SIGNEXTEND_H_
 
 #include "../../../Component.h"
-#include "../../../Datatype/Data.h"
 
 class SignExtend: public Component {
-
-//==============================//
-// Ports
-//==============================//
-
-public:
-
-  // The input value.
-  sc_in<Data>   input;
-
-  // The output value, padded to 32 bits.
-  sc_out<Data>  output;
 
 //==============================//
 // Constructors and destructors
 //==============================//
 
 public:
-
-  SC_HAS_PROCESS(SignExtend);
   SignExtend(sc_module_name name);
   virtual ~SignExtend();
 
@@ -42,10 +27,10 @@ public:
 // Methods
 //==============================//
 
-private:
-
   // Pad the received value out to 32 bits, preserving the sign.
-  void doOp();
+  // This will probably not be needed in the simulator because all values
+  // are automatically extended.
+  int32_t extend(int32_t val);
 
 };
 

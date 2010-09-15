@@ -7,6 +7,8 @@
 
 #include "Debugger.h"
 #include "StringManipulation.h"
+#include "../Tile.h"
+#include "../Datatype/Instruction.h"
 
 bool Debugger::hitBreakpoint = false;
 Tile* Debugger::tile = 0;

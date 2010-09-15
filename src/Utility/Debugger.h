@@ -9,10 +9,13 @@
 #define DEBUGGER_H_
 
 #include <vector>
-#include "../Tile.h"
-#include "../Datatype/Instruction.h"
+#include <string>
 
 using std::string;
+using std::vector;
+
+class Instruction;
+class Tile;
 
 class Debugger {
 

@@ -6,6 +6,8 @@
  */
 
 #include "Tile.h"
+#include "TileComponents/TileComponent.h"
+#include "TileComponents/WrappedTileComponent.h"
 
 double Tile::area() const {
   // Update this if allowing heterogeneity.

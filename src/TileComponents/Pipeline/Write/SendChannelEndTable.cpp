@@ -6,8 +6,13 @@
  */
 
 #include "SendChannelEndTable.h"
+#include "../../../Datatype/AddressedWord.h"
+#include "../../../Datatype/DecodedInst.h"
+#include "../../../Datatype/MemoryRequest.h"
+#include "../../../Utility/InstructionMap.h"
 
 void SendChannelEndTable::write(DecodedInst& dec) {
+
   if(dec.getOperation()==InstructionMap::SETCHMAP && dec.getImmediate() != 0) {
     updateMap(dec.getImmediate(), dec.getOperand1());
   }
@@ -15,9 +20,18 @@ void SendChannelEndTable::write(DecodedInst& dec) {
     waitUntilEmpty(dec.getResult());  // is "result" right?
   }
   else if(dec.getChannelMap() != NULL_MAPPING) {
-    Word w(dec.getResult());
+    Word w;
+
+    if(dec.getMemoryOp() != MemoryRequest::NONE) {
+      // Generate a special memory request if we are doing a load/store/etc.
+      w = getMemoryRequest(dec);
+    }
+    else {
+      w = Word(dec.getResult());
+    }
+
     AddressedWord aw(w, getChannel(dec.getChannelMap()));
-    uint8_t index = chooseBuffer(dec.getChannelMap());
+    ChannelIndex index = chooseBuffer(dec.getChannelMap());
 
     // We know it is safe to write to any buffer because we block the rest
     // of the pipeline if a buffer is full.
@@ -26,18 +40,29 @@ void SendChannelEndTable::write(DecodedInst& dec) {
     if(DEBUG) cout << this->name() << " wrote " << w
                    << " to output buffer " << index << endl;
   }
+
+}
+
+/* Generate a memory request using the address from the ALU and the operation
+ * supplied by the decoder. */
+Word SendChannelEndTable::getMemoryRequest(DecodedInst& dec) const {
+  MemoryRequest mr(dec.getResult(), dec.getMemoryOp());
+  return mr;
 }
 
 // A very simplistic implementation for now: we block any further data if
 // even one buffer is full. Future implementations could allow data into
 // other buffers.
 bool SendChannelEndTable::isFull() {
-  if(waitingOn != -1) return true;
+  // We pretend to be full if we're waiting for a channel to empty.
+  if(waitingOn != NO_CHANNEL) return true;
 
+  // We say we are full if any one of our buffers are full.
   for(uint i=0; i<buffers.size(); i++) {
     if(buffers[i].isFull()) return true;
   }
 
+  // If we have got this far, we are not waiting, and no buffers are full.
   return false;
 }
 
@@ -51,37 +76,34 @@ void SendChannelEndTable::send() {
 
       // See if we can stop waiting
       if(waitingOn == i && buffers[i].isEmpty()) {
-        waitingOn = 255;
+        waitingOn = NO_CHANNEL;
       }
     }
   }
 }
 
 /* Stall the pipeline until the specified channel is empty. */
-void SendChannelEndTable::waitUntilEmpty(uint8_t channel) {
-
+void SendChannelEndTable::waitUntilEmpty(ChannelIndex channel) {
   if(!buffers[channel].isEmpty()) {
     waitingOn = channel;
-    stallValue = true;
   }
-
 }
 
 /* Choose which Buffer to put new data into. All data going to the same
  * destination must go in the same Buffer to ensure that packets remain in
  * order. This is possibly the simplest implementation. */
-uint8_t SendChannelEndTable::chooseBuffer(uint8_t channelMapEntry) {
+ChannelIndex SendChannelEndTable::chooseBuffer(MapIndex channelMapEntry) {
   return channelMapEntry % NUM_SEND_CHANNELS;
 }
 
 /* Update an entry in the channel mapping table. */
-void SendChannelEndTable::updateMap(uint8_t entry, uint32_t newVal) {
+void SendChannelEndTable::updateMap(MapIndex entry, ChannelID newVal) {
   // We subtract 1 from the entry position because entry 0 is used as the
   // fetch channel, and is stored elsewhere.
   channelMap.write(newVal, entry-1);
 }
 
-uint32_t SendChannelEndTable::getChannel(uint8_t mapEntry) {
+ChannelID SendChannelEndTable::getChannel(MapIndex mapEntry) {
   // We subtract 1 from the entry position because entry 0 is used as the
   // fetch channel, and is stored elsewhere.
   return channelMap.read(mapEntry-1);
@@ -95,8 +117,7 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name) :
   flowControl = new sc_in<bool>[NUM_SEND_CHANNELS];
   output      = new sc_out<AddressedWord>[NUM_SEND_CHANNELS];
 
-  stallValue  = false;
-  waitingOn   = -1;
+  waitingOn   = NO_CHANNEL;
 
   // Start with no mappings at all
   for(int i=0; i<channelMap.size(); i++) {

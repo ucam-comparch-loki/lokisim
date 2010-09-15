@@ -8,7 +8,7 @@
 #ifndef TILECOMPONENTFACTORY_H_
 #define TILECOMPONENTFACTORY_H_
 
-#include "TileComponent.h"
+class TileComponent;
 
 class TileComponentFactory {
 

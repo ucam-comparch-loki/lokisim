@@ -12,6 +12,7 @@
 #include "Instrumentation/Network.h"
 #include "Instrumentation/Operations.h"
 #include "Instrumentation/Stalls.h"
+#include "../Datatype/Instruction.h"
 
 void Instrumentation::IPKCacheHit(bool hit) {
   IPKCache::cacheHit(hit);

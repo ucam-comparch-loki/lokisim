@@ -7,6 +7,7 @@
 
 #include "WrappedTileComponent.h"
 #include "TileComponentFactory.h"
+#include "TileComponent.h"
 
 double WrappedTileComponent::area() const {
   return comp->area() + fcIn.area() + fcOut.area();

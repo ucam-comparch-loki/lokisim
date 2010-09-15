@@ -20,7 +20,8 @@
 #include "ConnectionStatus.h"
 #include "../Memory/AddressedStorage.h"
 #include "../Memory/BufferArray.h"
-#include "../Datatype/Word.h"
+
+class Word;
 
 class MemoryMat: public TileComponent {
 

@@ -23,6 +23,24 @@ int FetchStage::getInstIndex() const {
   return cache.getInstIndex();
 }
 
+bool FetchStage::inCache(Address a) {
+  return cache.lookup(a);
+}
+
+bool FetchStage::roomToFetch() const {
+  return cache.roomToFetch();
+}
+
+/* Perform any status updates required when we receive a position to jump to. */
+void FetchStage::jump(int8_t offset) {
+  usingCache = true;
+  cache.jump(offset);
+}
+
+void FetchStage::setPersistent(bool persistent) {
+  cache.updatePersistent(persistent);
+}
+
 void FetchStage::newCycle() {
   while(true) {
     wait(clock.posedge_event());
@@ -87,12 +105,6 @@ void FetchStage::select() {
       else          cout << cacheToMux.read() << endl;
     }
   }
-}
-
-/* Perform any status updates required when we receive a position to jump to. */
-void FetchStage::jump(int8_t offset) {
-  usingCache = true;
-  cache.jump(offset);
 }
 
 FetchStage::FetchStage(sc_module_name name) :

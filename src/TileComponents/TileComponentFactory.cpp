@@ -6,6 +6,7 @@
  */
 
 #include "TileComponentFactory.h"
+#include "TileComponent.h"
 #include "Cluster.h"
 #include "MemoryMat.h"
 

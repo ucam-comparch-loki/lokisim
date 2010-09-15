@@ -6,16 +6,20 @@
  */
 
 #include "ALU.h"
+#include "ExecuteStage.h"
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Datatype/Instruction.h"
 
 bool ALU::execute(DecodedInst& dec) {
 
   if(dec.getOperation() == InstructionMap::NOP) return false;
+  if(dec.hasResult()) return true;
 
   bool execute = shouldExecute(dec.getPredicate());
 //  Instrumentation::operation(operation.read(), execute);
   if(!execute) return false;
+
+  bool pred = parent()->getPredicate();
 
   // Cast to 32 bits because our architecture is supposed to use 32-bit
   // arithmetic.
@@ -101,14 +105,13 @@ bool ALU::execute(DecodedInst& dec) {
 }
 
 void ALU::setPred(bool val) {
-//  predicate.write(val);
-  pred = val;
-  // The cluster has a separate PredicateRegister component -- use that.
+  parent()->setPredicate(val);
   if(DEBUG) cout << this->name() << " set predicate bit to " << val << endl;
 }
 
 /* Determine whether this instruction should be executed. */
 bool ALU::shouldExecute(short predBits) {
+  bool pred = parent()->getPredicate();
 
   bool result = (predBits == Instruction::ALWAYS) ||
                 (predBits == Instruction::END_OF_PACKET) ||
@@ -117,6 +120,10 @@ bool ALU::shouldExecute(short predBits) {
 
   return result;
 
+}
+
+ExecuteStage* ALU::parent() const {
+  return (ExecuteStage*)(this->get_parent());
 }
 
 ALU::ALU(sc_module_name name) : Component(name) {

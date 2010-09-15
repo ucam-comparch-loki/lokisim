@@ -8,7 +8,10 @@
 #ifndef DECODEDINST_H_
 #define DECODEDINST_H_
 
-#include "Instruction.h"
+#include <inttypes.h>
+#include "systemc"
+
+class Instruction;
 
 class DecodedInst {
 
@@ -26,10 +29,14 @@ public:
   uint8_t getChannelMap() const;
   uint8_t getPredicate() const;
   bool    getSetPredicate() const;
+  uint8_t getMemoryOp() const;
 
   int32_t getOperand1() const;
   int32_t getOperand2() const;
-  int32_t getResult() const;
+  int64_t getResult() const;
+
+  bool    hasOperand1() const;
+  bool    hasResult() const;
 
   void    setOperation(uint8_t val);
   void    setSource1(uint8_t val);
@@ -39,10 +46,11 @@ public:
   void    setChannelMap(uint8_t val);
   void    setPredicate(uint8_t val);
   void    setSetPredicate(bool val);
+  void    setMemoryOp(uint8_t val);
 
   void    setOperand1(int32_t val);
   void    setOperand2(int32_t val);
-  void    setResult(int32_t val);
+  void    setResult(int64_t val);
 
   friend void sc_trace(sc_core::sc_trace_file*& tf, const DecodedInst& i, const std::string& txt) {
     sc_core::sc_trace(tf, i.operation, txt + ".operation");
@@ -92,11 +100,16 @@ private:
   uint8_t channelMapEntry;
   uint8_t predicate;
   bool    setPred;
+  uint8_t memoryOp;
 
   int32_t operand1;
   int32_t operand2;
-  int32_t result;
+  int64_t result;         // May be an instruction
 
+  // Use to determine whether fields have already been set.
+  // Can't just use != 0 because they may have been set to 0.
+  bool    _hasOperand1;
+  bool    _hasResult;
 
 };
 

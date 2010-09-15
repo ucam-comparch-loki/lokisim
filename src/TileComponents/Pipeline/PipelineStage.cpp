@@ -8,7 +8,7 @@
 #include "PipelineStage.h"
 //#include "../Cluster.h"
 
-Cluster* PipelineStage::parent() {
+Cluster* PipelineStage::parent() const {
   return ((Cluster*)(this->get_parent()));
 }
 

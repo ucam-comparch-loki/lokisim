@@ -106,6 +106,10 @@ void InstructionPacketCache::jump(int8_t offset) {
 //  wake(readyToWrite);     // Invoke the write() method
 }
 
+void InstructionPacketCache::updatePersistent(bool persistent) {
+  cache.setPersistent(persistent);
+}
+
 /* Update the signal saying whether there is enough room to fetch another
  * packet. */
 void InstructionPacketCache::updateFlowControl() {
@@ -117,10 +121,6 @@ void InstructionPacketCache::updateFlowControl() {
 
 //void InstructionPacketCache::updatePacketAddress(Address addr) {
 //  currentPacket.write(addr);
-//}
-
-//void InstructionPacketCache::updatePersistent() {
-//  cache.setPersistent(persistent.read());
 //}
 
 /* Send the chosen instruction. We need a separate method for this because both
@@ -139,6 +139,10 @@ int InstructionPacketCache::getInstIndex() const {
 /* Returns whether or not the cache is empty. */
 bool InstructionPacketCache::isEmpty() const {
   return cache.isEmpty();
+}
+
+bool InstructionPacketCache::roomToFetch() const {
+  return cache.remainingSpace() >= MAX_IPK_SIZE;
 }
 
 /* Perform any necessary tasks when the end of an instruction packet has been

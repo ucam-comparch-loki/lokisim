@@ -61,6 +61,11 @@ public:
   // executed.
   bool isEmpty() const;
 
+  // Tells whether there is enough room in the cache to fetch another
+  // instruction packet. Has to assume that the packet will be of maximum
+  // size.
+  bool roomToFetch() const;
+
   // See if an instruction packet is in the cache, using its address as a tag,
   // and if so, prepare to execute it. Returns whether or not the packet is
   // in the cache.
@@ -68,6 +73,10 @@ public:
 
   // Jump to a new instruction specified by the offset.
   void jump(int8_t offset);
+
+  // Update whether or not we are in persistent execution mode, where we
+  // execute a single instruction packet repeatedly.
+  void updatePersistent(bool persistent);
 
 private:
 
@@ -77,10 +86,6 @@ private:
   // Update the output holding the address of the currently-executing
   // instruction packet.
 //  void updatePacketAddress(Address addr);
-
-  // Update whether or not we are in persistent execution mode, where we
-  // execute a single instruction packet repeatedly.
-//  void updatePersistent();
 
   // Send the chosen instruction, instToSend. There are multiple writers so
   // a separate method is needed.

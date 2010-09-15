@@ -54,8 +54,8 @@ public:
     LOAD, LOAD_B,
     IPK_READ,
     STORE, STORE_B,
-    STADDR, STBADDR
-    // none?
+    STADDR, STBADDR,
+    NONE
   };
 
 };

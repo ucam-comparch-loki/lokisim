@@ -7,7 +7,6 @@
 
 #include "WriteStage.h"
 #include "../../Cluster.h"
-#include "../../../Datatype/MemoryRequest.h"
 
 double WriteStage::area() const {
   return scet.area();// + mux.area();
@@ -27,14 +26,15 @@ void WriteStage::newCycle() {
       if(active) {
         DecodedInst dec = result.read();
 
+        if(DEBUG) cout << this->name() << " received Data: " << dec.getResult()
+                       << endl;
+
         // Put data into the send channel-end table.
         scet.write(dec);
 
-        // Write to registers if there is a valid destination register.
-        if(dec.getDestination() != 0) {
-          writeReg(dec.getDestination(), dec.getResult(),
+        // Write to registers (they ignore the write if the index is invalid).
+        writeReg(dec.getDestination(), dec.getResult(),
                    dec.getOperation() == InstructionMap::IWTR);
-        }
       }
 
       idle.write(!active);
@@ -51,26 +51,6 @@ void WriteStage::newCycle() {
 
 void WriteStage::writeReg(uint8_t reg, int32_t value, bool indirect) {
   parent()->writeReg(reg, value, indirect);
-}
-
-/* Change the multiplexer's select signal so it uses the new Data */
-//void WriteStage::receivedData() {
-//
-//  // Generate a memory request using the new data, if necessary.
-////  if(memoryOp.event()) ALUtoMux.write(getMemoryRequest());
-////  else ALUtoMux.write(fromALU.read());
-//
-//  selectVal = 0;   // Want this Data to get into the SCET
-//  newDataSig.write(!newDataSig.read());
-//
-////  if(DEBUG) cout<< this->name() << " received Data: " << fromALU.read() <<endl;
-//}
-
-/* Generate a memory request using the address from the ALU and the operation
- * supplied by the decoder. */
-Word WriteStage::getMemoryRequest() const {
-  MemoryRequest mr;//(fromALU.read().getData(), memoryOp.read());
-  return mr;
 }
 
 WriteStage::WriteStage(sc_module_name name) :

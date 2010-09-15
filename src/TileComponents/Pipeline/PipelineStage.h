@@ -14,16 +14,9 @@
 #define COPY_IF_NEW(input, output) if(input.event()) output.write(input.read())
 
 #include "../../Component.h"
-#include "../../Datatype/Word.h"
-#include "../../Datatype/Address.h"
-#include "../../Datatype/Data.h"
+#include "../../flag_signal.h"
 #include "../../Datatype/DecodedInst.h"
-#include "../../Datatype/Instruction.h"
-#include "../../Datatype/AddressedWord.h"
 
-// Allows cyclic dependency between PipelineStage and Cluster: Clusters contain
-// PipelineStages and PipelineStages refer to their Cluster parents.
-//#include "../Cluster.h"
 class Cluster;
 
 class PipelineStage : public Component {
@@ -63,7 +56,7 @@ public:
   // Do I want a parent() method, so the user has to know the module hierarchy,
   // but can access any position in it, or a cluster() method, which hides
   // any changes, but makes arbitrary access harder?
-  Cluster* parent();
+  Cluster* parent() const;
 
 protected:
 

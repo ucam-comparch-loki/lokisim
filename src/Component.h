@@ -11,11 +11,11 @@
 #ifndef COMPONENT_H_
 #define COMPONENT_H_
 
+#include <inttypes.h>
 #include "systemc"
 
 #include "Utility/Instrumentation.h"
 #include "Utility/Parameters.h"
-#include "flag_signal.h"
 
 using sc_core::sc_in;
 using sc_core::sc_out;

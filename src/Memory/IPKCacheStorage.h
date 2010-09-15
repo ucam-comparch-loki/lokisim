@@ -12,9 +12,10 @@
 #define IPKCACHESTORAGE_H_
 
 #include "MappedStorage.h"
-#include "../Datatype/Address.h"
-#include "../Datatype/Instruction.h"
 #include "../Utility/LoopCounter.h"
+
+class Address;
+class Instruction;
 
 class IPKCacheStorage : public MappedStorage<Address, Instruction> {
 
