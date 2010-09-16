@@ -6,6 +6,7 @@
  */
 
 #include "InstructionPacketCache.h"
+#include "FetchStage.h"
 
 /* Initialise the contents of the cache with a list of Instructions. */
 void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
@@ -54,7 +55,7 @@ void InstructionPacketCache::write(Instruction inst) {
     // The write method throws an exception if the next packet needs to be
     // fetched again.
     if(!addresses.isFull()) addresses.write(pendingPacket);
-//    refetch.write(!refetch.read());
+    refetch();
   }
 
   // Make a note for next cycle if it will be the start of a new packet.
@@ -98,12 +99,6 @@ void InstructionPacketCache::jump(int8_t offset) {
   if(DEBUG) cout << this->name() << ": ";   // cache prints the rest
 
   cache.jump(offset/BYTES_PER_WORD);
-//  instToSend = cache.read();
-//  if(instToSend.endOfPacket()) endOfPacketTasks();
-//
-//  wake(startingPacket);
-//
-//  wake(readyToWrite);     // Invoke the write() method
 }
 
 void InstructionPacketCache::updatePersistent(bool persistent) {
@@ -113,24 +108,16 @@ void InstructionPacketCache::updatePersistent(bool persistent) {
 /* Update the signal saying whether there is enough room to fetch another
  * packet. */
 void InstructionPacketCache::updateFlowControl() {
-//  isRoomToFetch.write((cache.remainingSpace() >= MAX_IPK_SIZE)
-//                    || finishedPacketRead);
-
   flowControl.write(cache.remainingSpace());
 }
 
-//void InstructionPacketCache::updatePacketAddress(Address addr) {
-//  currentPacket.write(addr);
-//}
+void InstructionPacketCache::updatePacketAddress(Address addr) {
+  parent()->updatePacketAddress(addr);
+}
 
-/* Send the chosen instruction. We need a separate method for this because both
- * insertInstruction and finishedRead can result in the sending of new
- * instructions, but only one method is allowed to drive a particular wire. */
-//void InstructionPacketCache::write() {
-//  instructionOut.write(instToSend);
-//  lastInstSent = sc_core::sc_time_stamp().to_default_time_units();
-//  outputWasRead = false;
-//}
+void InstructionPacketCache::refetch() {
+  parent()->refetch();
+}
 
 int InstructionPacketCache::getInstIndex() const {
   return cache.getInstIndex();
@@ -161,6 +148,10 @@ void InstructionPacketCache::startOfPacketTasks() {
 
 bool InstructionPacketCache::sentInstThisCycle() const {
   return sc_core::sc_time_stamp().to_default_time_units() == lastInstSent;
+}
+
+FetchStage* InstructionPacketCache::parent() const {
+  return (FetchStage*)(this->get_parent());
 }
 
 /* Constructors and destructors */

@@ -8,12 +8,13 @@
 #include "IPKCacheStorage.h"
 #include "../Datatype/Address.h"
 #include "../Datatype/Instruction.h"
+#include "../Exceptions/ReadingFromEmptyException.h"
 #include "../Utility/Parameters.h"
 
 /* Returns whether the given address matches any of the tags. */
 bool IPKCacheStorage::checkTags(const Address& key) {
 
-  for(int i=0; i<this->size(); i++) {
+  for(uint i=0; i<this->size(); i++) {
     if(this->tags[i] == key) {
       if(currInst == NOT_IN_USE) {
         currInst = i;
@@ -44,8 +45,7 @@ Instruction& IPKCacheStorage::read() {
     return this->data[i];
   }
   else {
-    cerr << "Exception in IPKCacheStorage.read(): cache is empty." << endl;
-    throw(std::exception());
+    throw(ReadingFromEmptyException(this->name()));
   }
 
 }
@@ -105,12 +105,12 @@ Address IPKCacheStorage::packetAddress() const {
 }
 
 /* Returns the remaining number of entries in the cache. */
-int IPKCacheStorage::remainingSpace() const {
+uint16_t IPKCacheStorage::remainingSpace() const {
   int space = this->size() - fillCount;
   return space;
 }
 
-int IPKCacheStorage::getInstIndex() const {
+uint16_t IPKCacheStorage::getInstIndex() const {
 //  Address startOfPacket = packetAddress();
 //  int cacheIndex = (currInst==NOT_IN_USE) ? currInstBackup : currInst.value();
 //  int packetIndex = cacheIndex - 2 - currentPacket;
@@ -131,6 +131,7 @@ bool IPKCacheStorage::isEmpty() const {
   // pointer and the refill pointer are in the same place, this could mean
   // that the cache is either empty or full. Need to take into account
   // whether the last operation was a read or a write.
+  // If it was a read, the cache is now empty; if it was a write, it is full.
   return (currInst == NOT_IN_USE) || (fillCount == 0 && lastOpWasARead);
 }
 
@@ -159,12 +160,12 @@ void IPKCacheStorage::setPersistent(bool persistent) {
 
 /* Store some initial instructions in the cache. */
 void IPKCacheStorage::storeCode(std::vector<Instruction>& code) {
-  if((int)code.size() > this->size()) {
+  if(code.size() > this->size()) {
     cerr << "Error: tried to write " << code.size() <<
       " instructions to a memory of size " << this->size() << endl;
   }
 
-  for(int i=0; i<(int)code.size() && i<this->size(); i++) {
+  for(uint i=0; i<code.size() && i<this->size(); i++) {
     write(Address(), code[i]);
   }
 }
@@ -176,7 +177,7 @@ Instruction& IPKCacheStorage::read(const Address& key) {
 }
 
 /* Returns the position that data with the given address tag should be stored. */
-int IPKCacheStorage::getPosition(const Address& key) {
+uint16_t IPKCacheStorage::getPosition(const Address& key) {
   return refill.value();
 }
 
@@ -203,7 +204,7 @@ void IPKCacheStorage::updateFillCount() {
   fillCount = (refill - currInst + this->size()) % this->size();
 }
 
-IPKCacheStorage::IPKCacheStorage(short size) :
+IPKCacheStorage::IPKCacheStorage(uint16_t size) :
     MappedStorage<Address, Instruction>(size),
     currInst(size),
     refill(size) {

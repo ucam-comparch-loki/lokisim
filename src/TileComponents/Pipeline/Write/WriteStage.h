@@ -28,8 +28,11 @@ public:
 //   stall
 //   idle
 
+  // The result of an operation to be sent on the network and/or written to
+  // a register.
   sc_in<DecodedInst>      result;
 
+  // Tell the execute stage whether we are ready to receive new data.
   sc_out<bool>            readyOut;
 
   // The NUM_SEND_CHANNELS output channels.
@@ -57,12 +60,13 @@ public:
   virtual double area()  const;
   virtual double energy() const;
 
-  void writeReg(uint8_t reg, int32_t value, bool indirect = false);
-
 private:
 
   // The task to be performed at the beginning of each clock cycle.
   virtual void   newCycle();
+
+  // Write a new value to a register.
+  void           writeReg(uint8_t reg, int32_t value, bool indirect = false);
 
 //==============================//
 // Components
@@ -71,6 +75,8 @@ private:
 private:
 
   SendChannelEndTable scet;
+
+  friend class SendChannelEndTable;
 
 };
 

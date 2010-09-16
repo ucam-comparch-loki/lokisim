@@ -49,11 +49,10 @@ public:
   // The decoded instruction.
   sc_out<DecodedInst>   instructionOut;
 
-  // Signal telling whether the Execute stage is ready to receive a new
-  // operation.
+  // Tells whether the execute stage is ready to receive a new operation.
   sc_in<bool>           readyIn;
 
-  // Tell the Fetch stage whether we are ready for a new instruction.
+  // Tell the fetch stage whether we are ready for a new instruction.
   sc_out<bool>          readyOut;
 
 //==============================//
@@ -75,24 +74,49 @@ public:
   virtual double area()  const;
   virtual double energy() const;
 
-  int32_t   readReg(uint8_t index, bool indirect = false) const;
-  bool      predicate() const;
-  int32_t   readRCET(ChannelIndex index);
-  bool      testChannel(ChannelIndex index) const;
-  ChannelIndex selectChannel();
-  void      fetch(Address a);
+  // Read a buffer in the receive channel end table. Warning: also removes
+  // this value from the buffer.
+  int32_t        readRCET(ChannelIndex index);
 
-  bool      inCache(Address a);
-  bool      roomToFetch() const;
-  void      jump(int8_t offset);
-  void      setPersistent(bool persistent);
+  // Request to refetch the pending instruction packet because it has been
+  // overwritten since it was marked as being in the cache.
+  void           refetch();
 
 private:
 
-  void decode(Instruction i);
+  // Pass the given instruction to the decoder to be decoded.
+  void           decode(Instruction i);
 
   // The task performed at the beginning of each clock cycle.
-  virtual void newCycle();
+  virtual void   newCycle();
+
+  // Read a register value (for Decoder).
+  int32_t        readReg(uint8_t index, bool indirect = false) const;
+
+  // Get the value of the predicate register.
+  bool           predicate() const;
+
+  // Perform a TESTCH operation.
+  bool           testChannel(ChannelIndex index) const;
+
+  // Perform a SELCH operation.
+  ChannelIndex   selectChannel();
+
+  // Fetch an instruction packet from the given address.
+  void           fetch(Address a);
+
+  // Find out if the instruction packet from the given location is currently
+  // in the instruction packet cache.
+  bool           inCache(Address a);
+
+  // Find out if there is room in the cache to fetch another packet.
+  bool           roomToFetch() const;
+
+  // Tell the instruction packet cache to jump to a new instruction.
+  void           jump(int8_t offset);
+
+  // Set the instruction packet cache into persistent or non-persistent mode.
+  void           setPersistent(bool persistent);
 
 //==============================//
 // Components
@@ -105,9 +129,16 @@ private:
   Decoder                 decoder;
   SignExtend              extend;
 
+  friend class FetchLogic;
+  friend class Decoder;
+  friend class ReceiveChannelEndTable;
+  friend class SignExtend;
+
 //==============================//
 // Local state
 //==============================//
+
+private:
 
   DecodedInst             decoded;
 

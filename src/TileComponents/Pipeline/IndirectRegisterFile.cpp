@@ -7,6 +7,7 @@
 
 #include <math.h>
 #include "IndirectRegisterFile.h"
+#include "../Cluster.h"
 #include "../../Datatype/Address.h"
 #include "../../Datatype/Word.h"
 
@@ -14,10 +15,10 @@ int32_t IndirectRegisterFile::read(RegisterIndex reg, bool indirect) const {
   RegisterIndex index = indirect ? indirectRegs.read(reg) : reg;
 
   // If the indirect address points to a channel-end, read from there instead
-//  if(isChannelEnd(index)) {
-//    return rcet.read(toChannelID(index));
-//  }
-  /*else*/ {
+  if(isChannelEnd(index)) {
+    return parent()->readRCET(toChannelID(index));
+  }
+  else {
     if(DEBUG) cout << this->name() << ": Read " << regs.read(index)
                    << " from register " << index << endl;
     return regs.read(index).toInt();
@@ -96,6 +97,10 @@ void IndirectRegisterFile::updateCurrentIPK(Address addr) {
   // setfetchch specifies the channel, so only the address is required here.
   Word w(addr.getAddress());
   regs.write(w, 1);
+}
+
+Cluster* IndirectRegisterFile::parent() const {
+  return (Cluster*)(this->get_parent());
 }
 
 IndirectRegisterFile::IndirectRegisterFile(sc_module_name name) :

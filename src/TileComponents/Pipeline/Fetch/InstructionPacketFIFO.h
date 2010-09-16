@@ -30,8 +30,7 @@ public:
 
 public:
 
-  SC_HAS_PROCESS(InstructionPacketFIFO);
-  InstructionPacketFIFO(sc_core::sc_module_name name);
+  InstructionPacketFIFO(sc_module_name name);
   virtual ~InstructionPacketFIFO();
 
 //==============================//

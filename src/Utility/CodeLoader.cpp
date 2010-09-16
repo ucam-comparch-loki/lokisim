@@ -52,7 +52,7 @@ void CodeLoader::loadCode(string& settings, Tile& tile) {
 
       if(file.eof()) break;
     }
-    catch(std::exception e) {
+    catch(std::exception& e) {
       std::cerr << "Error: could not read file " << settings << endl;
       break;
     }
@@ -64,7 +64,7 @@ void CodeLoader::loadCode(string& settings, Tile& tile) {
 
 /* Load code from the specified file into a particular component of the
  * given tile. */
-void CodeLoader::loadCode(string& filename, Tile& tile, int position) {
+void CodeLoader::loadCode(string& filename, Tile& tile, uint position) {
   if(usingDebugger) cout << "\nLoading into " <<
       (position>=CLUSTERS_PER_TILE ? "memory " : "core ") << position << ":\n";
 
@@ -87,12 +87,12 @@ void CodeLoader::loadCode(Tile& tile, string& directory,
 
   if(DEBUG) std::cout << "Initialising..." << endl;
 
-  for(unsigned int i=0; i<coreFiles.size(); i++) {
+  for(uint i=0; i<coreFiles.size(); i++) {
     string filename = directory + "/" + coreFiles[i];
     loadCode(filename, tile, i);
   }
 
-  for(unsigned int i=0; i<memFiles.size(); i++) {
+  for(uint i=0; i<memFiles.size(); i++) {
     string filename = directory + "/" + memFiles[i];
     loadCode(filename, tile, CLUSTERS_PER_TILE + i);
   }
@@ -127,14 +127,14 @@ vector<Word>& CodeLoader::getData(string& filename) {
                << static_cast<Instruction>(w) << endl;
         }
       }
-      catch (std::exception e) {
+      catch (std::exception& e) {
         continue; // If we couldn't make a valid word, try the next line
       }
 
       if(file.eof()) break;
 
     }
-    catch(std::exception e) {
+    catch(std::exception& e) {
       std::cerr << "Error: could not read file " << fullName << endl;
       break;
     }
@@ -156,7 +156,7 @@ vector<Word>& CodeLoader::getData(string& filename) {
 /* Returns whether the file should contain instructions. If not, it should
  * contain data. Instruction files are of type .loki, and data files are
  * of type .data. */
-int CodeLoader::fileType(string& filename) {
+uint8_t CodeLoader::fileType(string& filename) {
 
   vector<string> parts = StringManipulation::split(filename, '.');
 
@@ -176,7 +176,7 @@ int CodeLoader::fileType(string& filename) {
 
 /* Return either an Instruction or a Data from the file, depending on the
  * type of file being read. */
-Word CodeLoader::getWord(std::ifstream& file, int type) {
+Word CodeLoader::getWord(std::ifstream& file, uint8_t type) {
 
   // An array to store individual lines of the file in.
   static char line[200];
@@ -190,9 +190,9 @@ Word CodeLoader::getWord(std::ifstream& file, int type) {
       // At the moment, binary files are formatted as 32-bit words in hex.
       // We therefore need to load in two words to make a single instruction.
       file.getline(line, 200, '\n');
-      unsigned long val = (unsigned long)StringManipulation::strToInt(line) << 32;
+      unsigned long val = (uint64_t)StringManipulation::strToInt(line) << 32;
       file.getline(line, 200, '\n');
-      val += (unsigned long)StringManipulation::strToInt(line);
+      val += (uint64_t)StringManipulation::strToInt(line);
       return Instruction(val);
     }
     case DATA: {

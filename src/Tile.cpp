@@ -54,7 +54,7 @@ bool Tile::getPredReg(int component) const {
 
 /* Connect two horizontally-adjacent Tiles together. */
 void Tile::connectLeftRight(const Tile& left, const Tile& right) {
-  for(int i=0; i<NUM_CHANNELS_BETWEEN_TILES; i++) {
+  for(uint i=0; i<NUM_CHANNELS_BETWEEN_TILES; i++) {
 //    right.inWest[i](left.outEast[i]);
 //    left.inEast[i](right.outWest[i]);
   }
@@ -62,7 +62,7 @@ void Tile::connectLeftRight(const Tile& left, const Tile& right) {
 
 /* Connect two vertically-adjacent Tiles together. */
 void Tile::connectTopBottom(const Tile& top, const Tile& bottom) {
-  for(int i=0; i<NUM_CHANNELS_BETWEEN_TILES; i++) {
+  for(uint i=0; i<NUM_CHANNELS_BETWEEN_TILES; i++) {
 //    bottom.inNorth[i](top.outSouth[i]);
 //    top.inSouth[i](bottom.outNorth[i]);
   }
@@ -71,7 +71,7 @@ void Tile::connectTopBottom(const Tile& top, const Tile& bottom) {
 void Tile::updateIdle() {
   idleVal = true;
 
-  for(int i=0; i<COMPONENTS_PER_TILE; i++) {
+  for(uint i=0; i<COMPONENTS_PER_TILE; i++) {
     idleVal &= idleSig[i].read();
   }
 
@@ -97,7 +97,7 @@ Tile::Tile(sc_module_name name, int ID) :
   idleSig = new sc_signal<bool>[COMPONENTS_PER_TILE];
 
   SC_METHOD(updateIdle);
-  for(int i=0; i<COMPONENTS_PER_TILE; i++) sensitive << idleSig[i];
+  for(uint i=0; i<COMPONENTS_PER_TILE; i++) sensitive << idleSig[i];
   // do initialise
 
   int numOutputs = NUM_CLUSTER_OUTPUTS * COMPONENTS_PER_TILE;
@@ -111,23 +111,23 @@ Tile::Tile(sc_module_name name, int ID) :
   network.clock(clock);
 
   // Initialise the Clusters of this Tile
-  for(int i=0; i<CLUSTERS_PER_TILE; i++) {
+  for(uint i=0; i<CLUSTERS_PER_TILE; i++) {
     WrappedTileComponent* wtc = new WrappedTileComponent("wrapped", i, TileComponent::CLUSTER);
     wtc->idle(idleSig[i]);
     contents.push_back(wtc);
   }
 
   // Initialise the memories of this Tile
-  for(int i=CLUSTERS_PER_TILE; i<COMPONENTS_PER_TILE; i++) {
+  for(uint i=CLUSTERS_PER_TILE; i<COMPONENTS_PER_TILE; i++) {
     WrappedTileComponent* wtc = new WrappedTileComponent("wrapped", i, TileComponent::MEMORY);
     wtc->idle(idleSig[i]);
     contents.push_back(wtc);
   }
 
   // Connect the clusters and memories to the local interconnect
-  for(int i=0; i<COMPONENTS_PER_TILE; i++) {
+  for(uint i=0; i<COMPONENTS_PER_TILE; i++) {
 
-    for(int j=0; j<NUM_CLUSTER_INPUTS; j++) {
+    for(uint j=0; j<NUM_CLUSTER_INPUTS; j++) {
       int index = i*NUM_CLUSTER_INPUTS + j;   // Position in network's array
 
       contents[i]->dataIn[j](dataToCluster[index]);
@@ -138,7 +138,7 @@ Tile::Tile(sc_module_name name, int ID) :
       network.responsesIn[index](responsesFromCluster[index]);
     }
 
-    for(int j=0; j<NUM_CLUSTER_OUTPUTS; j++) {
+    for(uint j=0; j<NUM_CLUSTER_OUTPUTS; j++) {
       int index = i*NUM_CLUSTER_OUTPUTS + j;  // Position in network's array
 
       network.dataIn[index](contents[i]->dataOut[j]);

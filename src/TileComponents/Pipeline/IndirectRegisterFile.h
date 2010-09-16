@@ -22,6 +22,7 @@
 #include "../../Memory/AddressedStorage.h"
 
 class Address;
+class Cluster;
 class Word;
 
 typedef uint8_t RegisterIndex;
@@ -42,6 +43,12 @@ public:
 //==============================//
 
 public:
+
+  // Read from a register.
+  int32_t read(RegisterIndex reg, bool indirect) const;
+
+  // Write to a register.
+  void    write(RegisterIndex reg, int32_t value, bool indirect);
 
   // Simple methods to tell what sort of register is being dealt with.
   static bool isReserved(RegisterIndex position);
@@ -64,15 +71,13 @@ public:
   // register.
   void updateCurrentIPK(Address addr);
 
-  int32_t read(RegisterIndex reg, bool indirect) const;
-
-  void    write(RegisterIndex reg, int32_t value, bool indirect);
-
 private:
 
   // Store a subsection of the data into the indirect register at position
   // "address".
   void updateIndirectReg(RegisterIndex address, Word data);
+
+  Cluster* parent() const;
 
 //==============================//
 // Local state
@@ -80,7 +85,7 @@ private:
 
 private:
 
-  AddressedStorage<Word>    regs;
+  AddressedStorage<Word>          regs;
   AddressedStorage<RegisterIndex> indirectRegs;
 
   // The register index at which the input channels begin.

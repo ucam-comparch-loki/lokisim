@@ -19,6 +19,7 @@
  */
 
 #include "Instruction.h"
+#include "../Exceptions/InvalidInstructionException.h"
 #include "../Utility/StringManipulation.h"
 #include "../Utility/Parameters.h"
 #include "../TileComponents/Pipeline/IndirectRegisterFile.h"
@@ -99,13 +100,13 @@ Instruction::Instruction(const string& inst) {
 
   // Skip this line if it is a comment or empty
   if((inst[0]=='%') || (inst[0]==';') || (inst[0]=='\n') || (inst[0]=='\r'))
-    throw std::exception();
+    throw InvalidInstructionException();
 
   // Remove any comments by splitting around ';' and only keeping the first part
   words = Strings::split(inst, ';');
 
   // If there is no text, abandon the creation of the Instruction
-  if(words.size() == 0) throw std::exception();
+  if(words.size() == 0) throw InvalidInstructionException();
 
   // Split around "->" to see if there is a remote channel specified
   words = Strings::split(words.front(), '>');

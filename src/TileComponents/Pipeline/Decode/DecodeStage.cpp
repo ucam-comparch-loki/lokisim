@@ -8,16 +8,16 @@
 #include "DecodeStage.h"
 #include "../../Cluster.h"
 
-double DecodeStage::area() const {
+double       DecodeStage::area() const {
   return fl.area() + rcet.area() + decoder.area() + extend.area();
 }
 
-double DecodeStage::energy() const {
+double       DecodeStage::energy() const {
   return fl.energy() + rcet.energy() + decoder.energy() + extend.energy();
 }
 
 /* Direct any new inputs to their destinations every clock cycle. */
-void DecodeStage::newCycle() {
+void         DecodeStage::newCycle() {
   while(true) {
     // Check for new data (should this happen at the beginning or end of
     // the cycle?
@@ -45,7 +45,7 @@ void DecodeStage::newCycle() {
     // yet been able to send).
     fl.send();
 
-    for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
+    for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
       COPY_IF_NEW(in[i], fromNetwork[i]);
     }
 
@@ -53,7 +53,7 @@ void DecodeStage::newCycle() {
   }
 }
 
-void DecodeStage::decode(Instruction i) {
+void         DecodeStage::decode(Instruction i) {
   bool success = decoder.decodeInstruction(instructionIn.read(), decoded);
 
   if(success) instructionOut.write(decoded);
@@ -62,19 +62,19 @@ void DecodeStage::decode(Instruction i) {
   idle.write(false);
 }
 
-int32_t DecodeStage::readReg(uint8_t index, bool indirect) const {
+int32_t      DecodeStage::readReg(uint8_t index, bool indirect) const {
   return parent()->readReg(index, indirect);
 }
 
-bool DecodeStage::predicate() const {
+bool         DecodeStage::predicate() const {
   return parent()->readPredReg();
 }
 
-int32_t DecodeStage::readRCET(ChannelIndex index) {
+int32_t      DecodeStage::readRCET(ChannelIndex index) {
   return rcet.read(index);
 }
 
-bool DecodeStage::testChannel(ChannelIndex index) const {
+bool         DecodeStage::testChannel(ChannelIndex index) const {
   return rcet.testChannelEnd(index);
 }
 
@@ -82,23 +82,27 @@ ChannelIndex DecodeStage::selectChannel() {
   return rcet.selectChannelEnd();
 }
 
-void DecodeStage::fetch(Address a) {
+void         DecodeStage::fetch(Address a) {
   fl.fetch(a);
 }
 
-bool DecodeStage::inCache(Address a) {
+void         DecodeStage::refetch() {
+  fl.refetch();
+}
+
+bool         DecodeStage::inCache(Address a) {
   return parent()->inCache(a);
 }
 
-bool DecodeStage::roomToFetch() const {
+bool         DecodeStage::roomToFetch() const {
   return parent()->roomToFetch();
 }
 
-void DecodeStage::jump(int8_t offset) {
+void         DecodeStage::jump(int8_t offset) {
   parent()->jump(offset);
 }
 
-void DecodeStage::setPersistent(bool persistent) {
+void         DecodeStage::setPersistent(bool persistent) {
   parent()->setPersistent(persistent);
 }
 
@@ -109,13 +113,13 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
     decoder("decoder", ID),
     extend("signextend") {
 
-  in = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
+  in             = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
   flowControlOut = new sc_out<int>[NUM_RECEIVE_CHANNELS];
-  fromNetwork = new sc_buffer<Word>[NUM_RECEIVE_CHANNELS];
+  fromNetwork    = new sc_buffer<Word>[NUM_RECEIVE_CHANNELS];
 
 // Connect everything up
 
-  for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
+  for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     rcet.fromNetwork[i](fromNetwork[i]);
     rcet.flowControl[i](flowControlOut[i]);
   }

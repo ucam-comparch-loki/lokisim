@@ -143,7 +143,7 @@ void Debugger::printRegs(vector<int> regs, int core) {
   cout << "Printing core " << core << "'s register values:" << endl;
   if(regs.size() == 0) {
     // If no registers were specified, print them all.
-    for(int i=0; i<NUM_ADDRESSABLE_REGISTERS; i++) {  // physical regs instead?
+    for(uint i=0; i<NUM_ADDRESSABLE_REGISTERS; i++) {  // physical regs instead?
       int regVal = tile->getRegVal(core, i);
       cout << "r" << i << "\t" << regVal << endl;
     }

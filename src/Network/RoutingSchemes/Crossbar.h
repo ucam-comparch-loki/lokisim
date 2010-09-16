@@ -33,7 +33,7 @@ protected:
 
 private:
 
-  void printMessage(int length, AddressedWord data, int from, int to);
+  void printMessage(uint length, AddressedWord data, int from, int to);
 
 //==============================//
 // Constructors and destructors

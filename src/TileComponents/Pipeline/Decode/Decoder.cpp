@@ -95,7 +95,6 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
       }
 
       case InstructionMap::TSTCH : {
-        // Do we want to set an operand, or the result?
         dec.setResult(parent()->testChannel(dec.getSource1()));
         break;
       }

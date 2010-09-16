@@ -58,17 +58,6 @@ public:
   // Initialise the instructions a Cluster will execute.
   virtual void     storeData(std::vector<Word>& data);
 
-  virtual uint16_t getInstIndex() const;
-  bool             inCache(Address a);
-  bool             roomToFetch() const;
-  void             jump(int8_t offset);
-  void             setPersistent(bool persistent);
-
-  virtual int32_t  readReg(RegisterIndex reg, bool indirect = false) const;
-  void             writeReg(RegisterIndex reg, int32_t value, bool indirect = false);
-  virtual bool     readPredReg() const;
-  void             writePredReg(bool val);
-
   // Returns the channel ID of the specified cluster's instruction packet FIFO.
   static uint32_t  IPKFIFOInput(uint16_t ID);
 
@@ -76,13 +65,58 @@ public:
   static uint32_t  IPKCacheInput(uint16_t ID);
 
   // Returns the channel ID of the specified cluster's input channel.
-  static uint32_t  RCETInput(uint16_t ID, uint8_t channel);
+  static uint32_t  RCETInput(uint16_t ID, ChannelIndex channel);
 
-  void             updateCurrentPacket(Address addr);
+  // Get the memory location of the current instruction being decoded, so
+  // we can have breakpoints set to particular instructions in memory.
+  virtual uint16_t getInstIndex() const;
+
+  // Read a value from a register.
+  virtual int32_t  readReg(RegisterIndex reg, bool indirect = false) const;
+
+  // Read the value of the predicate register.
+  virtual bool     readPredReg() const;
 
 private:
 
+  // Determine if the instruction packet from the given location is currently
+  // in the instruction packet cache.
+  bool             inCache(Address a);
+
+  // Determine if there is room in the cache to fetch another instruction
+  // packet, assuming that it is of maximum size.
+  bool             roomToFetch() const;
+
+  // An instruction packet was in the cache, and set to execute next, but has
+  // since been overwritten, so needs to be fetched again.
+  void             refetch();
+
+  // Perform an IBJMP and jump to a new instruction in the cache.
+  void             jump(int8_t offset);
+
+  // Set whether the cache is in persistent or non-persistent mode.
+  void             setPersistent(bool persistent);
+
+  // Write a value to a register.
+  void             writeReg(RegisterIndex reg, int32_t value,
+                            bool indirect = false);
+
+  // Write a value to the predicate register.
+  void             writePredReg(bool val);
+
+  // Read a value from a channel end. Warning: this removes the value from
+  // the input buffer.
+  int32_t          readRCET(ChannelIndex channel);
+
+  // Update the address of the currently executing instruction packet so we
+  // can fetch more packets from relative locations.
+  void             updateCurrentPacket(Address addr);
+
+  // One of the pipeline stages has changed its stall status -- see if the
+  // whole pipeline should now be stalled or unstalled.
   void             stallPipeline();
+
+  // Update whether this core is idle or not.
   void             updateIdle();
 
 //==============================//
@@ -98,6 +132,12 @@ private:
   ExecuteStage             execute;
   WriteStage               write;
 
+  friend class IndirectRegisterFile;
+  friend class FetchStage;
+  friend class DecodeStage;
+  friend class ExecuteStage;
+  friend class WriteStage;
+
 //==============================//
 // Signals (wires)
 //==============================//
@@ -107,17 +147,18 @@ private:
   sc_signal<bool>          stallSig;
   sc_signal<bool>          fetchIdle, decodeIdle, executeIdle, writeIdle;
 
-  // To/from fetch stage
-  flag_signal<Instruction> nextInst;
-  sc_signal<bool>          fetchStallSig;
+  // "Flow control" within the pipeline.
+  sc_signal<bool>          decodeReady, executeReady, writeReady;
 
-  // To/from decode stage
-  sc_signal<bool>          decStallSig, stallFetchSig;
+  // Transmission of the instruction along the pipeline.
+  flag_signal<Instruction> fetchToDecode;
+  flag_signal<DecodedInst> decodeToExecute, executeToWrite;
 
-  // To/from execute stage
 
-  // To/from write stage
-  sc_signal<bool>          writeStallSig;
+  // Not needed anymore? We now stall individual stages. Or maybe just use
+  // fetch's signal to determine if whole cluster is stalled?
+  sc_signal<bool>          fetchStallSig, decStallSig,
+                           stallFetchSig, writeStallSig;
 
 };
 

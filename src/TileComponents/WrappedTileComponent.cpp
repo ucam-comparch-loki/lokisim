@@ -67,7 +67,7 @@ void WrappedTileComponent::setup() {
   fcOut.clock(clock);
   comp->idle(idle);
 
-  for(int i=0; i<NUM_CLUSTER_INPUTS; i++) {
+  for(uint i=0; i<NUM_CLUSTER_INPUTS; i++) {
     fcIn.dataIn[i](dataIn[i]);
     fcIn.requests[i](requestsIn[i]);
     fcIn.responses[i](responsesOut[i]);
@@ -76,7 +76,7 @@ void WrappedTileComponent::setup() {
     fcIn.dataOut[i](dataInSig[i]); comp->in[i](dataInSig[i]);
   }
 
-  for(int i=0; i<NUM_CLUSTER_OUTPUTS; i++) {
+  for(uint i=0; i<NUM_CLUSTER_OUTPUTS; i++) {
     fcOut.dataOut[i](dataOutSig2[i]); dataOut[i](dataOutSig2[i]);
     fcOut.responses[i](responsesIn[i]);
     fcOut.requests[i](requestsOutSig[i]); requestsOut[i](requestsOutSig[i]);

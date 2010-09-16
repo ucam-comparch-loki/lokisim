@@ -25,7 +25,7 @@ class IPKCacheStorage : public MappedStorage<Address, Instruction> {
 
 public:
 
-  IPKCacheStorage(short size);
+  IPKCacheStorage(uint16_t size);
   virtual ~IPKCacheStorage();
 
 //==============================//
@@ -50,10 +50,10 @@ public:
   Address packetAddress() const;
 
   // Returns the remaining number of entries in the cache.
-  int remainingSpace() const;
+  uint16_t remainingSpace() const;
 
   // Return the memory index of the instruction sent most recently.
-  int getInstIndex() const;
+  uint16_t getInstIndex() const;
 
   // Returns whether the cache is empty. Note that even if a cache is empty,
   // it is still possible to access its contents if an appropriate tag is
@@ -78,7 +78,7 @@ private:
   virtual Instruction& read(const Address& key);
 
   // Returns the position that data with the given address tag should be stored
-  virtual int getPosition(const Address& key);
+  virtual uint16_t getPosition(const Address& key);
 
   void incrementRefill();
   void incrementCurrent();
@@ -92,16 +92,16 @@ private:
 private:
 
   LoopCounter currInst, refill;
-  int fillCount;
-  int currInstBackup;   // In case it goes NOT_IN_USE and then a jump is used
+  uint16_t fillCount;
+  uint16_t currInstBackup;   // In case it goes NOT_IN_USE and then a jump is used
 
   bool persistentMode;  // Tells if we are reading the same packet repeatedly
 
   // Do we want a single pending packet, or a queue of them?
-  int pendingPacket;  // Location of the next packet to be executed
+  uint16_t pendingPacket;  // Location of the next packet to be executed
 
   // The index of the first instruction of the current instruction packet.
-  int currentPacket;
+  uint16_t currentPacket;
 
   // Knowing what the last operation was helps us determine whether the cache
   // is full or empty when the current instruction and refill pointer are in
@@ -109,7 +109,7 @@ private:
   // empty, but if we wrote one, it is full.
   bool lastOpWasARead;
 
-  static const int NOT_IN_USE = -1;
+  static const uint16_t NOT_IN_USE = -1;
 
 };
 

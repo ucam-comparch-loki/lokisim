@@ -36,8 +36,7 @@ public:
       return this->data[i];
     }
     else {
-      cerr << "Exception in Buffer.read()" << endl;
-      throw ReadingFromEmptyException();
+      throw ReadingFromEmptyException("buffer");
     }
   }
 
@@ -59,8 +58,7 @@ public:
       return (this->data[readPos.value()]);
     }
     else {
-      cerr << "Exception in Buffer.peek()" << endl;
-      throw ReadingFromEmptyException();
+      throw ReadingFromEmptyException("buffer");
     }
   }
 
@@ -80,13 +78,13 @@ public:
   }
 
   // Returns the remaining space in the buffer.
-  int remainingSpace() {
+  uint16_t remainingSpace() {
     return this->size() - fillCount;
   }
 
   // Print the contents of the buffer.
   void print() {
-    for(int i=0; i<this->size(); i++) cout << this->data[i] << " ";
+    for(uint i=0; i<this->size(); i++) cout << this->data[i] << " ";
     cout << endl;
   }
 
@@ -108,7 +106,7 @@ private:
 
 public:
 
-  Buffer(int size) :
+  Buffer(uint16_t size) :
       Storage<T>(size),
       readPos(size),
       writePos(size) {
@@ -126,7 +124,7 @@ public:
 private:
 
   LoopCounter readPos, writePos;
-  int fillCount;
+  uint16_t fillCount;
 
 };
 

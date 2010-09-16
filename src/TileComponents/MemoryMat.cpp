@@ -25,7 +25,7 @@ void MemoryMat::doOp() {
 
   if(in[CONTROL_INPUT].event()) updateControl();
 
-  for(int i=0; i<NUM_CLUSTER_INPUTS-1; i++) {
+  for(uint i=0; i<NUM_CLUSTER_INPUTS-1; i++) {
 
     // Attempt to send anything waiting in buffers. Update the flow control
     // before (not after), to avoid multiple operations arriving in the same
@@ -252,7 +252,7 @@ double MemoryMat::energy() const {
 
 /* Initialise the contents of this memory to the Words in the given vector. */
 void MemoryMat::storeData(std::vector<Word>& data) {
-  for(unsigned int i=0; i<data.size(); i++, wordsLoaded++) {
+  for(uint i=0; i<data.size(); i++, wordsLoaded++) {
     this->data.write(data[i], wordsLoaded);
   }
 }
@@ -271,6 +271,8 @@ MemoryMat::MemoryMat(sc_module_name name, int ID) :
     data(MEMORY_SIZE),
     connections(NUM_CLUSTER_INPUTS-1),
     buffers(NUM_CLUSTER_INPUTS-1, 1) {
+
+  wordsLoaded = 0;
 
   // Register methods
   SC_METHOD(doOp);

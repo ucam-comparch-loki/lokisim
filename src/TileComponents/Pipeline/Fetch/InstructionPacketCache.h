@@ -17,7 +17,8 @@
 #include "../../../Memory/IPKCacheStorage.h"
 #include "../../../Memory/Buffer.h"
 #include "../../../Datatype/Address.h"
-#include "../../../Datatype/Instruction.h"
+
+class FetchStage;
 
 class InstructionPacketCache : public Component {
 
@@ -36,7 +37,6 @@ public:
 
 public:
 
-  SC_HAS_PROCESS(InstructionPacketCache);
   InstructionPacketCache(sc_module_name name);
   virtual ~InstructionPacketCache();
 
@@ -49,8 +49,10 @@ public:
   // Initialise the contents of the cache with a list of instructions.
   void storeCode(std::vector<Instruction>& instructions);
 
+  // Read the next instruction from the cache.
   Instruction read();
 
+  // Write a new instruction to the cache.
   void write(Instruction inst);
 
   // Return the index into the current packet of the current instruction.
@@ -85,11 +87,11 @@ private:
 
   // Update the output holding the address of the currently-executing
   // instruction packet.
-//  void updatePacketAddress(Address addr);
+  void updatePacketAddress(Address addr);
 
-  // Send the chosen instruction, instToSend. There are multiple writers so
-  // a separate method is needed.
-//  void write();
+  // We have overwritten the packet which was due to execute next, so we
+  // need to fetch it again.
+  void refetch();
 
   // Perform any necessary tasks when the end of an instruction packet has been
   // reached.
@@ -102,6 +104,8 @@ private:
   // be potential instructions both in the cache and arriving on the network
   // and we don't want to send both in the same cycle.
   bool sentInstThisCycle() const;
+
+  FetchStage* parent() const;
 
 //==============================//
 // Local state

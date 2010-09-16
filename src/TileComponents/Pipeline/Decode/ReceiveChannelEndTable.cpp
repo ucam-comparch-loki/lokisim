@@ -56,7 +56,7 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd() {
 /* Put any newly received values into their respective buffers. */
 void ReceiveChannelEndTable::checkInputs() {
   // Do something if we want more channel ends than channels?
-  for(int i=0; i<NUM_RECEIVE_CHANNELS; i++) {
+  for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     if(fromNetwork[i].event()) {
       buffers[i].write(fromNetwork[i].read());
       updateFlowControl(i);

@@ -15,6 +15,7 @@
 #include "../PipelineStage.h"
 #include "InstructionPacketCache.h"
 #include "InstructionPacketFIFO.h"
+#include "../../../Datatype/Instruction.h"
 
 class FetchStage : public PipelineStage {
 
@@ -29,8 +30,6 @@ public:
 //   stall
 //   idle
 
-  sc_in<bool>         readyIn;
-
   // The input instruction to be sent to the instruction packet cache.
   sc_in<Word>         toIPKCache;
 
@@ -42,6 +41,9 @@ public:
 
   // A flow control signal from each of the two instruction inputs.
   sc_out<int>        *flowControl;
+
+  // Tells whether the decode stage is ready to receive a new instruction.
+  sc_in<bool>         readyIn;
 
 //==============================//
 // Constructors and destructors
@@ -68,13 +70,18 @@ public:
   // Return the memory address of the last instruction sent.
   int           getInstIndex() const;
 
+  // Tells whether the packet from location a is currently in the cache.
   bool          inCache(Address a);
 
+  // Tells whether there is room in the cache to fetch another instruction
+  // packet, assuming the packet is of maximum size.
   bool          roomToFetch() const;
 
   // Jump to a different instruction in the Instruction Packet Cache.
   void          jump(int8_t offset);
 
+  // Put the cache into persistent mode, where it executes the same instruction
+  // packet repeatedly, or take it out of persistent mode.
   void          setPersistent(bool persistent);
 
 private:
@@ -89,10 +96,14 @@ private:
   void          newCacheInst();
 
   // Determine whether to take an instruction from the FIFO or cache.
-  short         calculateSelect();
+  void          calculateSelect();
 
-  // Write the result of calculateSelect() to the multiplexors select input.
-  void          select();
+  // Update the register holding the address of the current packet.
+  void          updatePacketAddress(Address addr);
+
+  // We have overwritten the packet due to execute next, so it needs to be
+  // fetched again.
+  void          refetch();
 
 //==============================//
 // Components
@@ -103,6 +114,9 @@ private:
   InstructionPacketCache    cache;
   InstructionPacketFIFO     fifo;
 
+  friend class InstructionPacketCache;
+  friend class InstructionPacketFIFO;
+
 //==============================//
 // Local state
 //==============================//
@@ -112,23 +126,13 @@ private:
   // Tells whether the last operation read from the cache or not.
   bool usingCache;
 
+  // Tells whether the last instruction sent was the end of a packet.
   bool justFinishedPacket;
 
+  // The most-recently sent instruction.
   Instruction lastInstruction;
 
   enum InstructionSource {CACHE, FIFO};
-
-//==============================//
-// Signals (wires)
-//==============================//
-
-private:
-
-  sc_buffer<Instruction>    toCache, toFIFO;
-  flag_signal<Instruction>  cacheToMux, FIFOtoMux;
-  sc_buffer<short>          muxSelect;
-  sc_signal<bool>           fifoEmpty, readFromFIFO, readFromCache;
-  sc_buffer<short>          jumpOffsetSig;
 
 };
 

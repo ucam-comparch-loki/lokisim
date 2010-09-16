@@ -11,7 +11,7 @@
 #ifndef PARAMETERS_H_
 #define PARAMETERS_H_
 
-typedef const int parameter;
+typedef const unsigned int parameter;
 
 extern int DEBUG;
 

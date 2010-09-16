@@ -51,11 +51,11 @@ public:
     if(v.getPredicate() == P) os << "p?";
     else if(v.getPredicate() == NOT_P) os << "!p?";
 
-    os << InstructionMap::name(InstructionMap::operation(v.getOp())) <<
-       (v.getSetPredicate()?".p":"") <<
-       (v.endOfPacket()?".eop":"") << " r" << v.getDest() << " r" << v.getSrc1()
-       << " r" << v.getSrc2() << " " << v.getImmediate();
-    if(v.getRchannel() != NO_CHANNEL) os << " -> " << v.getRchannel();
+    os << InstructionMap::name(InstructionMap::operation(v.getOp()))
+       << (v.getSetPredicate()?".p":"") << (v.endOfPacket()?".eop":"")
+       << " r" << (int)v.getDest() << " r" << (int)v.getSrc1()
+       << " r" << (int)v.getSrc2() << " " << v.getImmediate();
+    if(v.getRchannel() != NO_CHANNEL) os << " -> " << (int)v.getRchannel();
     return os;
   }
 

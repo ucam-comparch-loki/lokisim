@@ -53,8 +53,14 @@ private:
   void setOperand1ToValue(DecodedInst& dec, int32_t reg);
   void setOperand2ToValue(DecodedInst& dec, int32_t reg, int32_t immed);
 
+  // Read a register value.
   int32_t readRegs(uint8_t index, bool indirect = false);
+
+  // Read a value from an input buffer.
   int32_t readRCET(uint8_t index);
+
+  // Ensure that the instruction packet from the given address is in the
+  // instruction packet cache. Nothing will be done if it is already there.
   void    fetch(Address a);
 
   // Write operations take two cycles since there are two flits to send. This
@@ -78,7 +84,6 @@ private:
 
 public:
 
-  SC_HAS_PROCESS(Decoder);
   Decoder(sc_module_name name, int id);
   virtual ~Decoder();
 

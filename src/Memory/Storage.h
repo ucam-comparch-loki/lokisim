@@ -14,8 +14,10 @@
 #ifndef STORAGE_H_
 #define STORAGE_H_
 
+#include <inttypes.h>
 #include <iostream>
 #include <vector>
+#include "../Utility/Parameters.h"
 #include "../Exceptions/OutOfBoundsException.h"
 
 using std::vector;
@@ -44,21 +46,21 @@ public:
 
   // Print the contents of this data storage.
   virtual void print(int start=0, int end=size()) const {
-    for(int i=start; i<end; i++) cout << i*4 << "\t" << data[i] << endl;
+    for(int i=start; i<end; i++)
+      cout << i*BYTES_PER_WORD << "\t" << data[i] << endl;
   }
 
   // Return the size of this storage component, in [bytes/words].
-  int size() const {
+  uint32_t size() const {
     return data.size();
   }
 
 protected:
 
   // Throw an exception if the address is not within the bounds of the array.
-  void checkBounds(int addr) const {
+  virtual void checkBounds(uint32_t addr) const {
     if((addr < 0) || (addr >= size())) {
-      cerr << "Error: attempting to access memory address " << addr << endl;
-      throw OutOfBoundsException();
+      throw OutOfBoundsException(addr, size());
     }
   }
 
@@ -68,7 +70,7 @@ protected:
 
 public:
 
-  Storage(int size) : data(size) {
+  Storage(uint32_t size) : data(size) {
 
   }
 

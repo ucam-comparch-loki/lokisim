@@ -6,6 +6,7 @@
  */
 
 #include "FetchStage.h"
+#include "../../Cluster.h"
 
 double FetchStage::area() const {
   return cache.area() + fifo.area();// + mux.area();
@@ -41,6 +42,14 @@ void FetchStage::setPersistent(bool persistent) {
   cache.updatePersistent(persistent);
 }
 
+void FetchStage::updatePacketAddress(Address addr) {
+  parent()->updateCurrentPacket(addr);
+}
+
+void FetchStage::refetch() {
+  parent()->refetch();
+}
+
 void FetchStage::newCycle() {
   while(true) {
     wait(clock.posedge_event());
@@ -48,10 +57,19 @@ void FetchStage::newCycle() {
     // Select a new instruction unless the processor is stalled, or the FIFO
     // and cache are both empty.
     if(readyIn.read()) {
+
       if(!(fifo.isEmpty() && cache.isEmpty())) {
-        if(usingCache) instruction.write(cache.read());
-        else           instruction.write(fifo.read());
+        calculateSelect();
+        if(usingCache) lastInstruction = cache.read();
+        else           lastInstruction = fifo.read();
+        instruction.write(lastInstruction);
         idle.write(false);
+
+        if(DEBUG) {
+          printf("%s selected instruction from %s: ", this->name(),
+                                                      usingCache?"cache":"FIFO");
+          cout << lastInstruction << endl;
+        }
       }
       else idle.write(true);
     }
@@ -68,43 +86,27 @@ void FetchStage::newCacheInst() {
   cache.write(instToCache);
 }
 
-/* Choose whether to take an instruction from the cache or FIFO.
+/* Choose whether to take an instruction from the cache or FIFO next.
  * Use FIFO if already executing a packet from FIFO,
  *          or cache finished a packet and FIFO has instructions.
  * Use cache if already executing a packet from cache,
  *          or FIFO is empty and cache has instructions. */
-short FetchStage::calculateSelect() {
+void FetchStage::calculateSelect() {
 
-  short result;
+//  short result;
 
   if(usingCache) {
-    Instruction i = cacheToMux.read();
-    justFinishedPacket = i.endOfPacket();
+    justFinishedPacket = lastInstruction.endOfPacket();
     usingCache = (fifo.isEmpty() || !justFinishedPacket) && !cache.isEmpty();
-    result = CACHE;
+//    result = CACHE;
   }
   else {
     usingCache = fifo.isEmpty();
-    result = usingCache ? CACHE : FIFO;
+//    result = usingCache ? CACHE : FIFO;
   }
 
-  return result;
+//  return result;
 
-}
-
-void FetchStage::select() {
-  short sel = calculateSelect();
-
-  if((sel==CACHE && cacheToMux.event()) || (sel==FIFO && FIFOtoMux.event())) {
-    muxSelect.write(sel);
-
-    if(DEBUG) {
-      printf("%s selected instruction from %s: ", this->name(),
-                                                  sel==CACHE?"cache":"FIFO");
-      if(sel==FIFO) cout << FIFOtoMux.read() << endl;
-      else          cout << cacheToMux.read() << endl;
-    }
-  }
 }
 
 FetchStage::FetchStage(sc_module_name name) :
@@ -122,10 +124,6 @@ FetchStage::FetchStage(sc_module_name name) :
 
   SC_METHOD(newCacheInst);
   sensitive << toIPKCache;
-  dont_initialize();
-
-  SC_METHOD(select);
-  sensitive << cacheToMux << FIFOtoMux << clock.pos();
   dont_initialize();
 
   // Connect FIFO and cache to network

@@ -61,7 +61,7 @@ WriteStage::WriteStage(sc_module_name name) :
   flowControl = new sc_in<bool>[NUM_SEND_CHANNELS];
 
   // Connect the SCET to the network.
-  for(int i=0; i<NUM_SEND_CHANNELS; i++) {
+  for(uint i=0; i<NUM_SEND_CHANNELS; i++) {
     scet.output[i](output[i]);
     scet.flowControl[i](flowControl[i]);
   }

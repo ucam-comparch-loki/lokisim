@@ -73,7 +73,7 @@ double Crossbar::distance(int startID, int endID) {
 }
 
 /* Print a message saying where the data was sent from and to. */
-void Crossbar::printMessage(int length, AddressedWord data, int from, int to) {
+void Crossbar::printMessage(uint length, AddressedWord data, int from, int to) {
 
   bool fromOutputs = (length == NUM_CLUSTER_OUTPUTS*COMPONENTS_PER_TILE);
   std::string in   = fromOutputs ? "input " : "output ";

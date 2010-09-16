@@ -27,12 +27,16 @@ public:
 //   stall
 //   idle
 
+  // The input operation to perform.
   sc_in<DecodedInst>  operation;
 
+  // The output result of the operation.
   sc_out<DecodedInst> result;
 
+  // Tells whether the write stage is ready to receive new data.
   sc_in<bool>         readyIn;
 
+  // Tell the decode stage whether we are ready to receive a new operation.
   sc_out<bool>        readyOut;
 
 //==============================//
@@ -54,13 +58,16 @@ public:
   virtual double area()  const;
   virtual double energy() const;
 
-  bool getPredicate() const;
-  void setPredicate(bool val);
-
 private:
 
   // The task performed at the beginning of each clock cycle.
   virtual void newCycle();
+
+  // Read the predicate register.
+  bool getPredicate() const;
+
+  // Write to the predicate register.
+  void setPredicate(bool val);
 
 //==============================//
 // Components
@@ -70,15 +77,7 @@ private:
 
   ALU                 alu;
 
-//==============================//
-// Signals (wires)
-//==============================//
-
-private:
-
-  sc_signal<Data>     toALU1, toALU2, outputSig;
-  sc_buffer<short>    in1Select, in2Select, ALUSelect, usePredSig;
-  sc_signal<bool>     setPredSig;
+  friend class ALU;
 
 };
 

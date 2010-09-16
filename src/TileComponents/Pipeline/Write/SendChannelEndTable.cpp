@@ -119,8 +119,8 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name) :
 
   waitingOn   = NO_CHANNEL;
 
-  // Start with no mappings at all
-  for(int i=0; i<channelMap.size(); i++) {
+  // Start with no mappings at all. Start at 1 because 0 is the fetch channel.
+  for(uint i=1; i<channelMap.size(); i++) {
     updateMap(i, NULL_MAPPING);
   }
 }

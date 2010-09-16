@@ -27,7 +27,7 @@ public:
 
   // Returns whether the given address matches any of the tags
   virtual bool checkTags(const K& key) {
-    for(unsigned int i=0; i<tags.size(); i++) {
+    for(uint16_t i=0; i<tags.size(); i++) {
       if(tags.at(i) == key) return true;
     }
     return false;
@@ -35,7 +35,7 @@ public:
 
   // Returns the data corresponding to the given address
   virtual T& read(const K& key) {
-    for(unsigned int i=0; i<tags.size(); i++){
+    for(uint16_t i=0; i<tags.size(); i++){
       if(tags.at(i) == key) return this->data.at(i);
     }
     throw std::exception();
@@ -51,7 +51,7 @@ public:
 protected:
 
   // Returns the position that data with the given address tag should be stored
-  virtual int getPosition(const K& key) = 0;
+  virtual uint16_t getPosition(const K& key) = 0;
 
 //==============================//
 // Constructors and destructors
@@ -59,7 +59,7 @@ protected:
 
 public:
 
-  MappedStorage(int size) : Storage<T>(size), tags(size) {
+  MappedStorage(uint16_t size) : Storage<T>(size), tags(size) {
 
   }
 
