@@ -25,7 +25,7 @@ class IPKCacheStorage : public MappedStorage<Address, Instruction> {
 
 public:
 
-  IPKCacheStorage(uint16_t size);
+  IPKCacheStorage(const uint16_t size);
   virtual ~IPKCacheStorage();
 
 //==============================//
@@ -44,7 +44,7 @@ public:
   virtual void write(const Address& key, const Instruction& newData);
 
   // Jump to a new instruction at a given offset.
-  void jump(int offset);
+  void jump(const int8_t offset);
 
   // Return the memory address of the currently-executing packet.
   Address packetAddress() const;
@@ -66,10 +66,10 @@ public:
   // Begin reading the packet which is queued up to execute next.
   void switchToPendingPacket();
 
-  void setPersistent(bool persistent);
+  void setPersistent(const bool persistent);
 
   // Store some initial instructions in the cache.
-  void storeCode(std::vector<Instruction>& code);
+  void storeCode(const std::vector<Instruction>& code);
 
 private:
 

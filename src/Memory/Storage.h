@@ -40,12 +40,12 @@ public:
   }
 
   // Write a value to the data array.
-  virtual void write(T& newData) {
+  virtual void write(const T& newData) {
     throw "Error: Need to implement write() in this subclass.";
   }
 
   // Print the contents of this data storage.
-  virtual void print(int start=0, int end=size()) const {
+  virtual void print(const int start=0, const int end=size()) const {
     for(int i=start; i<end; i++)
       cout << i*BYTES_PER_WORD << "\t" << data[i] << endl;
   }
@@ -58,7 +58,7 @@ public:
 protected:
 
   // Throw an exception if the address is not within the bounds of the array.
-  virtual void checkBounds(uint32_t addr) const {
+  virtual void checkBounds(const uint32_t addr) const {
     if((addr < 0) || (addr >= size())) {
       throw OutOfBoundsException(addr, size());
     }
@@ -70,7 +70,7 @@ protected:
 
 public:
 
-  Storage(uint32_t size) : data(size) {
+  Storage(const uint32_t size) : data(size) {
 
   }
 

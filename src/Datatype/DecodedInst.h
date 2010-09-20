@@ -38,19 +38,19 @@ public:
   bool    hasOperand1() const;
   bool    hasResult() const;
 
-  void    setOperation(uint8_t val);
-  void    setSource1(uint8_t val);
-  void    setSource2(uint8_t val);
-  void    setDestination(uint8_t val);
-  void    setImmediate(int32_t val);
-  void    setChannelMap(uint8_t val);
-  void    setPredicate(uint8_t val);
-  void    setSetPredicate(bool val);
-  void    setMemoryOp(uint8_t val);
+  void    setOperation(const uint8_t val);
+  void    setSource1(const uint8_t val);
+  void    setSource2(const uint8_t val);
+  void    setDestination(const uint8_t val);
+  void    setImmediate(const int32_t val);
+  void    setChannelMap(const uint8_t val);
+  void    setPredicate(const uint8_t val);
+  void    setSetPredicate(const bool val);
+  void    setMemoryOp(const uint8_t val);
 
-  void    setOperand1(int32_t val);
-  void    setOperand2(int32_t val);
-  void    setResult(int64_t val);
+  void    setOperand1(const int32_t val);
+  void    setOperand2(const int32_t val);
+  void    setResult(const int64_t val);
 
   friend void sc_trace(sc_core::sc_trace_file*& tf, const DecodedInst& i, const std::string& txt) {
     sc_core::sc_trace(tf, i.operation, txt + ".operation");

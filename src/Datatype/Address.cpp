@@ -33,11 +33,11 @@ bool Address::getReadBit() const {
 }
 
 /* Used to extract some bits and put them in the indirection registers. */
-uint32_t Address::getLowestBits(int limit) const {
+uint32_t Address::getLowestBits(const int limit) const {
   return getBits(0, limit-1);
 }
 
-void Address::addOffset(int offset) {
+void Address::addOffset(const int offset) {
   setAddress(getAddress() + offset);
 }
 
@@ -50,7 +50,7 @@ Address::Address(const Word& other) : Word(other) {
 
 }
 
-Address::Address(uint16_t addr, uint16_t channelID) : Word() {
+Address::Address(const uint16_t addr, const uint16_t channelID) : Word() {
   setAddress(addr);
   setChannelID(channelID);
 
@@ -62,15 +62,15 @@ Address::~Address() {
 
 }
 
-void Address::setAddress(uint16_t addr) {
+void Address::setAddress(const uint16_t addr) {
   setBits(boundary, 31, addr);
 }
 
-void Address::setChannelID(uint16_t channelID) {
+void Address::setChannelID(const uint16_t channelID) {
   setBits(1, boundary-1, channelID);
 }
 
-void Address::setRWBit(bool read) {
+void Address::setRWBit(const bool read) {
   if(read) setBits(0, 0, 1);
   else setBits(0, 0, 0);
 }

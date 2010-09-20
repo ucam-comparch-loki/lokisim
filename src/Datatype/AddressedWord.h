@@ -42,7 +42,7 @@ public:
 public:
 
   AddressedWord();
-  AddressedWord(Word w, uint16_t chID);
+  AddressedWord(const Word w, const uint16_t chID);
   virtual ~AddressedWord();
 
 //==============================//

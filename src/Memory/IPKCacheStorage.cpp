@@ -45,7 +45,7 @@ Instruction& IPKCacheStorage::read() {
     return this->data[i];
   }
   else {
-    throw(ReadingFromEmptyException(this->name()));
+    throw ReadingFromEmptyException("instruction packet cache");
   }
 
 }
@@ -83,11 +83,11 @@ void IPKCacheStorage::write(const Address& key, const Instruction& newData) {
 }
 
 /* Jump to a new instruction at a given offset. */
-void IPKCacheStorage::jump(int offset) {
+void IPKCacheStorage::jump(const int8_t offset) {
 
   if(currInst == NOT_IN_USE) currInst = currInstBackup;
 
-  currInst += offset - 2; // -1 because we have already incremented currInst
+  currInst += offset - 1; // -1 because we have already incremented currInst
   updateFillCount();
 
   // Update currentPacket if we have jumped to the start of a packet
@@ -95,7 +95,7 @@ void IPKCacheStorage::jump(int offset) {
     currentPacket = currInst.value();
   }
 
-  if(DEBUG) cout << "Jumped by " << offset << " to instruction " <<
+  if(DEBUG) cout << "Jumped by " << (int)offset << " to instruction " <<
       currInst.value() << endl;
 }
 
@@ -106,14 +106,14 @@ Address IPKCacheStorage::packetAddress() const {
 
 /* Returns the remaining number of entries in the cache. */
 uint16_t IPKCacheStorage::remainingSpace() const {
-  int space = this->size() - fillCount;
+  uint16_t space = this->size() - fillCount;
   return space;
 }
 
 uint16_t IPKCacheStorage::getInstIndex() const {
 //  Address startOfPacket = packetAddress();
 //  int cacheIndex = (currInst==NOT_IN_USE) ? currInstBackup : currInst.value();
-//  int packetIndex = cacheIndex - 2 - currentPacket;
+//  int packetIndex = cacheIndex - 1 - currentPacket;
 //  if(packetIndex<0) packetIndex += IPK_CACHE_SIZE;
 //
 //  cout << cacheIndex << " " << packetIndex << " " << endl;
@@ -154,12 +154,12 @@ void IPKCacheStorage::switchToPendingPacket() {
       currInst.value() << ", refill = " << refill.value() << endl;
 }
 
-void IPKCacheStorage::setPersistent(bool persistent) {
+void IPKCacheStorage::setPersistent(const bool persistent) {
   persistentMode = persistent;
 }
 
 /* Store some initial instructions in the cache. */
-void IPKCacheStorage::storeCode(std::vector<Instruction>& code) {
+void IPKCacheStorage::storeCode(const std::vector<Instruction>& code) {
   if(code.size() > this->size()) {
     cerr << "Error: tried to write " << code.size() <<
       " instructions to a memory of size " << this->size() << endl;
@@ -204,7 +204,7 @@ void IPKCacheStorage::updateFillCount() {
   fillCount = (refill - currInst + this->size()) % this->size();
 }
 
-IPKCacheStorage::IPKCacheStorage(uint16_t size) :
+IPKCacheStorage::IPKCacheStorage(const uint16_t size) :
     MappedStorage<Address, Instruction>(size),
     currInst(size),
     refill(size) {

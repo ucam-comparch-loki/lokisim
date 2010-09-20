@@ -26,17 +26,17 @@ class BufferArray {
 public:
 
   // Read data from a particular buffer
-  T& read(uint buffer) const {
+  T& read(const uint buffer) const {
     return buffers[buffer]->read();
   }
 
   // Write data to a particular buffer
-  void write(const T& data, uint buffer) {
+  void write(const T& data, const uint buffer) {
     buffers[buffer]->write(data);
   }
 
   // Allows any method of the Buffer to be called
-  Buffer<T>& operator[] (uint index) const {
+  Buffer<T>& operator[] (const uint index) const {
     return *(buffers[index]);
   }
 
@@ -50,7 +50,7 @@ public:
 
 public:
 
-  BufferArray(uint numBuffers, uint buffSize) {
+  BufferArray(const uint numBuffers, const uint buffSize) {
     for(uint i=0; i<numBuffers; i++) {
       buffers.push_back(new Buffer<T>(buffSize));
     }

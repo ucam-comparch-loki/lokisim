@@ -22,9 +22,11 @@ bool ALU::execute(DecodedInst& dec) {
   bool pred = parent()->getPredicate();
 
   // Cast to 32 bits because our architecture is supposed to use 32-bit
-  // arithmetic.
-  int32_t val1 = dec.getOperand1();
-  int32_t val2 = dec.getOperand2();
+  // arithmetic. Also perform any necessary data forwarding.
+  int32_t val1 = (dec.getSource1() == lastDestination) ? lastResult
+                                                       : dec.getOperand1();
+  int32_t val2 = (dec.getSource2() == lastDestination) ? lastResult
+                                                       : dec.getOperand2();
   int32_t result;
 
   if(DEBUG) cout << this->name() << ": executing " <<
@@ -80,6 +82,9 @@ bool ALU::execute(DecodedInst& dec) {
   }
 
   dec.setResult(result);
+  lastResult = result;
+  // We don't want to forward any data sent to register 0.
+  lastDestination = (dec.getDestination() == 0) ? -1 : dec.getDestination();
 
   if(dec.getSetPredicate()) {
 

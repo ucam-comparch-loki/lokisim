@@ -59,7 +59,7 @@ protected:
 
 public:
 
-  MappedStorage(uint16_t size) : Storage<T>(size), tags(size) {
+  MappedStorage(const uint16_t size) : Storage<T>(size), tags(size) {
 
   }
 

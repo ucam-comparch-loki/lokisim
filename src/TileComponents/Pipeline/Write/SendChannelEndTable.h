@@ -56,7 +56,7 @@ public:
   void          write(DecodedInst& dec);
 
   // Returns true if the table is incapable of accepting new data at the moment.
-  bool          isFull();
+  bool          isFull() const;
 
   // Send the oldest value in each output buffer, if the flow control signals
   // allow it.
@@ -75,7 +75,7 @@ protected:
 
   // Choose which buffer to put the new data into (multiple channels may
   // share a buffer to reduce buffer space/energy).
-  virtual ChannelIndex chooseBuffer(MapIndex channelMapEntry);
+  virtual ChannelIndex chooseBuffer(MapIndex channelMapEntry) const;
 
   // Generate a memory request using the address from the ALU and the operation
   // supplied by the decoder. The memory request will be sent to a memory and
@@ -92,7 +92,8 @@ protected:
   BufferArray<AddressedWord>  buffers;
 
   // Channel mapping table used to store addresses of destinations of sent
-  // data.
+  // data. Note that mapping 0 is held both here and in the decode stage --
+  // it may be possible to optimise this away at some point.
   AddressedStorage<ChannelID> channelMap;
 
   // Tells which channel we are waiting on. -1 means no channel.

@@ -10,7 +10,23 @@
 
 class InvalidInstructionException : public std::exception {
 
-  // TODO
+public:
+
+  InvalidInstructionException(std::string text = std::string("")) {
+    _name = text;
+  }
+
+  virtual ~InvalidInstructionException() throw() {
+
+  }
+
+  virtual const char* what() const throw() {
+    return _name.c_str();
+  }
+
+private:
+
+  std::string _name;
 
 };
 

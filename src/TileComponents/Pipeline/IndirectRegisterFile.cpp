@@ -16,11 +16,13 @@ int32_t IndirectRegisterFile::read(RegisterIndex reg, bool indirect) const {
 
   // If the indirect address points to a channel-end, read from there instead
   if(isChannelEnd(index)) {
+    // Do we want to allow indirecting into the channel end table? I think
+    // we need it to make the selch instruction useful.
     return parent()->readRCET(toChannelID(index));
   }
   else {
     if(DEBUG) cout << this->name() << ": Read " << regs.read(index)
-                   << " from register " << index << endl;
+                   << " from register " << (int)index << endl;
     return regs.read(index).toInt();
   }
 }
@@ -36,7 +38,8 @@ void IndirectRegisterFile::write(RegisterIndex reg, int32_t value, bool indirect
   regs.write(w, index);
   updateIndirectReg(index, w);
 
-  if(DEBUG) cout<<this->name()<<": Stored "<<w<<" to register "<<index<<endl;
+  if(DEBUG) cout << this->name() << ": Stored " << w << " to register "
+                 << (int)index << endl;
 
 }
 

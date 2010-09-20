@@ -12,8 +12,12 @@ class ReadingFromEmptyException : public std::exception {
 
 public:
 
-  ReadingFromEmptyException(string& name = "storage location") {
+  ReadingFromEmptyException(std::string name = std::string("storage location")) {
     _name = name;
+  }
+
+  virtual ~ReadingFromEmptyException() throw() {
+
   }
 
   virtual const char* what() const throw() {
@@ -26,7 +30,7 @@ public:
 
 private:
 
-  string _name;
+  std::string _name;
 
 };
 

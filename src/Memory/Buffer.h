@@ -48,7 +48,7 @@ public:
     }
     else {
       cerr << "Exception in Buffer.write()" << endl;
-      throw WritingToFullException();
+      throw WritingToFullException("buffer");
     }
   }
 
@@ -106,7 +106,7 @@ private:
 
 public:
 
-  Buffer(uint16_t size) :
+  Buffer(const uint16_t size) :
       Storage<T>(size),
       readPos(size),
       writePos(size) {

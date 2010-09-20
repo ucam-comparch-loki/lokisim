@@ -10,7 +10,27 @@
 
 class WritingToFullException : public std::exception {
 
-  // TODO
+public:
+
+  WritingToFullException(std::string name = std::string("storage location")) {
+    _name = name;
+  }
+
+  virtual ~WritingToFullException() throw() {
+
+  }
+
+  virtual const char* what() const throw() {
+    std::stringstream ss;
+
+    ss << "Attempting to write to full " << _name << ".";
+
+    return ss.str().c_str();
+  }
+
+private:
+
+  std::string _name;
 
 };
 

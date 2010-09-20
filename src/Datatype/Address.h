@@ -22,9 +22,9 @@ public:
   uint16_t getChannelID() const;
   bool getReadBit() const;
 
-  uint32_t getLowestBits(int limit) const;
+  uint32_t getLowestBits(const int limit) const;
 
-  void addOffset(int offset);
+  void addOffset(const int offset);
 
   // Has to go in header
   friend std::ostream& operator<< (std::ostream& os, const Address& v) {
@@ -34,9 +34,9 @@ public:
 
 private:
 
-  void setAddress(uint16_t addr);
-  void setChannelID(uint16_t channelID);
-  void setRWBit(bool read);
+  void setAddress(const uint16_t addr);
+  void setChannelID(const uint16_t channelID);
+  void setRWBit(const bool read);
 
 //==============================//
 // Constructors and destructors
@@ -46,7 +46,7 @@ public:
 
   Address();
   Address(const Word& other);
-  Address(uint16_t addr, uint16_t channelID);
+  Address(const uint16_t addr, const uint16_t channelID);
   virtual ~Address();
 };
 

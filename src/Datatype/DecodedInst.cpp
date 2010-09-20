@@ -28,6 +28,7 @@ uint8_t DecodedInst::getDestination() const {
 int32_t DecodedInst::getImmediate() const {
   return immediate;
 }
+
 uint8_t DecodedInst::getChannelMap() const {
   return channelMapEntry;
 }
@@ -67,59 +68,73 @@ bool    DecodedInst::hasResult() const {
 }
 
 
-void    DecodedInst::setOperation(uint8_t val) {
+void    DecodedInst::setOperation(const uint8_t val) {
   operation = val;
 }
 
-void    DecodedInst::setSource1(uint8_t val) {
+void    DecodedInst::setSource1(const uint8_t val) {
   sourceReg1 = val;
 }
 
-void    DecodedInst::setSource2(uint8_t val) {
+void    DecodedInst::setSource2(const uint8_t val) {
   sourceReg2 = val;
 }
 
-void    DecodedInst::setDestination(uint8_t val) {
+void    DecodedInst::setDestination(const uint8_t val) {
   destReg = val;
 }
 
-void    DecodedInst::setImmediate(int32_t val) {
+void    DecodedInst::setImmediate(const int32_t val) {
   immediate = val;
 }
 
-void    DecodedInst::setChannelMap(uint8_t val) {
+void    DecodedInst::setChannelMap(const uint8_t val) {
   channelMapEntry = val;
 }
 
-void    DecodedInst::setPredicate(uint8_t val) {
+void    DecodedInst::setPredicate(const uint8_t val) {
   predicate = val;
 }
 
-void    DecodedInst::setSetPredicate(bool val) {
+void    DecodedInst::setSetPredicate(const bool val) {
   setPred = val;
 }
 
-void    DecodedInst::setMemoryOp(uint8_t val) {
+void    DecodedInst::setMemoryOp(const uint8_t val) {
   memoryOp = val;
 }
 
 
-void    DecodedInst::setOperand1(int32_t val) {
+void    DecodedInst::setOperand1(const int32_t val) {
   operand1 = val;
 }
 
-void    DecodedInst::setOperand2(int32_t val) {
+void    DecodedInst::setOperand2(const int32_t val) {
   operand2 = val;
 }
 
-void    DecodedInst::setResult(int64_t val) {
+void    DecodedInst::setResult(const int64_t val) {
   result = val;
   _hasResult = true;
 }
 
 
 bool DecodedInst::operator== (const DecodedInst& other) const {
-  return false;   // TODO
+  return  operation       == other.operation &&
+          sourceReg1      == other.sourceReg1 &&
+          sourceReg2      == other.sourceReg2 &&
+          destReg         == other.destReg &&
+          immediate       == other.immediate &&
+          channelMapEntry == other.channelMapEntry &&
+          predicate       == other.predicate &&
+          setPred         == other.setPred &&
+
+          operand1        == other.operand1 &&
+          operand2        == other.operand2 &&
+          result          == other.result &&
+
+          _hasOperand1    == other._hasOperand1 &&
+          _hasResult      == other._hasResult;
 }
 
 DecodedInst& DecodedInst::operator= (const DecodedInst& other) {
@@ -148,7 +163,7 @@ DecodedInst::DecodedInst() {
 }
 
 DecodedInst::DecodedInst(Instruction i) {
-  operation       = i.getOp();
+  operation       = InstructionMap::operation(i.getOp());
   sourceReg1      = i.getSrc1();
   sourceReg2      = i.getSrc2();
   destReg         = i.getDest();
@@ -161,6 +176,8 @@ DecodedInst::DecodedInst(Instruction i) {
   operand1        = 0;
   operand2        = 0;
   result          = 0;
+
+  _hasOperand1 = _hasResult = false;
 }
 
 DecodedInst::~DecodedInst() {

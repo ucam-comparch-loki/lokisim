@@ -8,18 +8,22 @@
 #include "SendChannelEndTable.h"
 #include "../../../Datatype/AddressedWord.h"
 #include "../../../Datatype/DecodedInst.h"
+#include "../../../Datatype/Instruction.h"
 #include "../../../Datatype/MemoryRequest.h"
 #include "../../../Utility/InstructionMap.h"
 
+const ChannelID SendChannelEndTable::NULL_MAPPING;
+
 void SendChannelEndTable::write(DecodedInst& dec) {
 
-  if(dec.getOperation()==InstructionMap::SETCHMAP && dec.getImmediate() != 0) {
-    updateMap(dec.getImmediate(), dec.getOperand1());
+  if(dec.getOperation()==InstructionMap::SETCHMAP) {
+    updateMap(dec.getImmediate(), dec.getResult());
   }
   else if(dec.getOperation() == InstructionMap::WOCHE) {
-    waitUntilEmpty(dec.getResult());  // is "result" right?
+    waitUntilEmpty(dec.getResult());
   }
-  else if(dec.getChannelMap() != NULL_MAPPING) {
+  else if(dec.getChannelMap() != Instruction::NO_CHANNEL &&
+          getChannel(dec.getChannelMap() != NULL_MAPPING)) {
     Word w;
 
     if(dec.getMemoryOp() != MemoryRequest::NONE) {
@@ -38,7 +42,7 @@ void SendChannelEndTable::write(DecodedInst& dec) {
     buffers[index].write(aw);
 
     if(DEBUG) cout << this->name() << " wrote " << w
-                   << " to output buffer " << index << endl;
+                   << " to output buffer " << (int)index << endl;
   }
 
 }
@@ -53,7 +57,7 @@ Word SendChannelEndTable::getMemoryRequest(DecodedInst& dec) const {
 // A very simplistic implementation for now: we block any further data if
 // even one buffer is full. Future implementations could allow data into
 // other buffers.
-bool SendChannelEndTable::isFull() {
+bool SendChannelEndTable::isFull() const {
   // We pretend to be full if we're waiting for a channel to empty.
   if(waitingOn != NO_CHANNEL) return true;
 
@@ -92,36 +96,35 @@ void SendChannelEndTable::waitUntilEmpty(ChannelIndex channel) {
 /* Choose which Buffer to put new data into. All data going to the same
  * destination must go in the same Buffer to ensure that packets remain in
  * order. This is possibly the simplest implementation. */
-ChannelIndex SendChannelEndTable::chooseBuffer(MapIndex channelMapEntry) {
+ChannelIndex SendChannelEndTable::chooseBuffer(MapIndex channelMapEntry) const {
   return channelMapEntry % NUM_SEND_CHANNELS;
 }
 
 /* Update an entry in the channel mapping table. */
 void SendChannelEndTable::updateMap(MapIndex entry, ChannelID newVal) {
-  // We subtract 1 from the entry position because entry 0 is used as the
-  // fetch channel, and is stored elsewhere.
-  channelMap.write(newVal, entry-1);
+  channelMap.write(newVal, entry);
+
+  if(DEBUG) cout << this->name() << " updated map " << (int)entry << " to "
+                 << newVal << endl;
 }
 
 ChannelID SendChannelEndTable::getChannel(MapIndex mapEntry) {
-  // We subtract 1 from the entry position because entry 0 is used as the
-  // fetch channel, and is stored elsewhere.
-  return channelMap.read(mapEntry-1);
+  return channelMap.read(mapEntry);
 }
 
 SendChannelEndTable::SendChannelEndTable(sc_module_name name) :
     Component(name),
     buffers(NUM_SEND_CHANNELS, CHANNEL_END_BUFFER_SIZE),
-    channelMap(CHANNEL_MAP_SIZE-1) {
+    channelMap(CHANNEL_MAP_SIZE) {
 
   flowControl = new sc_in<bool>[NUM_SEND_CHANNELS];
   output      = new sc_out<AddressedWord>[NUM_SEND_CHANNELS];
 
   waitingOn   = NO_CHANNEL;
 
-  // Start with no mappings at all. Start at 1 because 0 is the fetch channel.
-  for(uint i=1; i<channelMap.size(); i++) {
-    updateMap(i, NULL_MAPPING);
+  // Start with no mappings at all.
+  for(uint i=0; i<channelMap.size(); i++) {
+    channelMap.write(NULL_MAPPING, i);
   }
 }
 

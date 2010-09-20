@@ -35,14 +35,14 @@ public:
   bool     getSetPredicate() const;
   bool     endOfPacket() const;
 
-  void setOp(uint8_t val);
-  void setDest(uint8_t val);
-  void setSrc1(uint8_t val);
-  void setSrc2(uint8_t val);
-  void setRchannel(uint8_t val);
-  void setImmediate(int32_t val);
-  void setPredicate(uint8_t val);
-  void setSetPred(bool val);
+  void setOp(const uint8_t val);
+  void setDest(const uint8_t val);
+  void setSrc1(const uint8_t val);
+  void setSrc2(const uint8_t val);
+  void setRchannel(const uint8_t val);
+  void setImmediate(const int32_t val);
+  void setPredicate(const uint8_t val);
+  void setSetPred(const bool val);
 
   bool operator== (const Instruction& other) const;
 
@@ -61,9 +61,13 @@ public:
 
 private:
 
-  void decodeOpcode(const string& opcode);
-  void decodeField(const string& s, int field);
-  void decodeRChannel(const string& channel);
+  void    decodeOpcode(const string& opcode);
+  uint8_t decodeField(const string& s);
+  uint8_t decodeRChannel(const string& channel);
+
+  // Set the appropriate register fields in this instruction. Some operations
+  // may not have a destination register, for example, so it should not be used.
+  void    setFields(const uint8_t reg1, const uint8_t reg2, const uint8_t reg3);
 
 //==============================//
 // Constructors and destructors
@@ -73,7 +77,7 @@ public:
 
   Instruction();
   Instruction(const Word& other);
-  Instruction(uint64_t inst);  // For reading binary
+  Instruction(const uint64_t inst);  // For reading binary
   Instruction(const string& inst);  // For reading assembler
   virtual ~Instruction();
 

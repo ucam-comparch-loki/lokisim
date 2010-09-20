@@ -20,7 +20,7 @@ AddressedWord::AddressedWord() {
   channelID = 0;
 }
 
-AddressedWord::AddressedWord(Word w, uint16_t id) {
+AddressedWord::AddressedWord(const Word w, const uint16_t id) {
   payload = w;
   channelID = id;
 }

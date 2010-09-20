@@ -27,15 +27,13 @@ class AddressedStorage : public Storage<T> {
 public:
 
   // Read from the given address in the memory.
-  virtual const T& read(uint32_t addr) const {
+  virtual const T& read(const uint32_t addr) const {
     this->checkBounds(addr);
-    // Templated inheritance hides all inherited names - need to access them
-    // like this.
     return this->data[addr];
   }
 
   // Write the given data to the given address in memory.
-  virtual void write(T& newData, uint32_t addr) {
+  virtual void write(const T& newData, const uint32_t addr) {
     this->checkBounds(addr);
     this->data[addr] = newData;
   }

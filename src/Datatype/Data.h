@@ -19,7 +19,7 @@ class Data: public Word {
 public:
 
   uint32_t getData() const;
-  void moveBit(int oldPos, int newPos);
+  void moveBit(const int oldPos, const int newPos);
 
 //==============================//
 // Constructors and destructors
@@ -29,7 +29,7 @@ public:
 
   Data();
   Data(const Word& other);
-  Data(uint32_t data_);
+  Data(const uint32_t data_);
   virtual ~Data();
 
 };

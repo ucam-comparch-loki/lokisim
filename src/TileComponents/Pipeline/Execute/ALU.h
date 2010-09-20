@@ -47,6 +47,15 @@ private:
 
   ExecuteStage* parent() const;
 
+//==============================//
+// Local state
+//==============================//
+
+private:
+
+  int64_t lastResult;
+  uint8_t lastDestination;
+
 };
 
 #endif /* ALU_H_ */

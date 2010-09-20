@@ -17,14 +17,14 @@ int64_t Word::toLong() const {
 
 /* Return the integer value of the bits between the start and end positions,
    inclusive. */
-uint64_t Word::getBits(int start, int end) const {
+uint64_t Word::getBits(const int start, const int end) const {
   uint64_t result = (end>=63) ? data : data % (1L << (end+1));
   result = result >> start;
   return (uint64_t)result;
 }
 
 /* Replace the specified bit range by the specified value */
-void Word::setBits(int start, int end, uint64_t value) {
+void Word::setBits(const int start, const int end, const uint64_t value) {
   // Ensure that value only sets bits in the specified range
   unsigned long maskedValue = value % (1L << (end - start + 1));
   // Clear any existing bits in this word
@@ -34,7 +34,7 @@ void Word::setBits(int start, int end, uint64_t value) {
 }
 
 /* Zero the bits between the start and end positions, inclusive. */
-void Word::clearBits(int start, int end) {
+void Word::clearBits(const int start, const int end) {
   uint64_t mask  = 1L << (end - start + 1);         // 0000100000
   mask -= 1;                                        // 0000011111
   mask = mask << start;                             // 0011111000
@@ -47,7 +47,7 @@ Word::Word() {
   data = 0;
 }
 
-Word::Word(uint64_t data_) : data(data_) {
+Word::Word(const uint64_t data_) : data(data_) {
   // Do nothing
 }
 

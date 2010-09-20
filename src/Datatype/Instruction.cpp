@@ -88,7 +88,7 @@ Instruction::Instruction(const Word& other) : Word(other) {
   // Do nothing
 }
 
-Instruction::Instruction(uint64_t inst) : Word(inst) {
+Instruction::Instruction(const uint64_t inst) : Word(inst) {
   // Need to change the opcode representation in case it has changed
   // internally.
   setOp(InstructionMap::opcode(InstructionMap::name(getOp())));
@@ -110,7 +110,7 @@ Instruction::Instruction(const string& inst) {
 
   // Split around "->" to see if there is a remote channel specified
   words = Strings::split(words.front(), '>');
-  if(words.size() > 1) decodeRChannel(words[1]);
+  if(words.size() > 1) setRchannel(decodeRChannel(words[1]));
   else setRchannel(NO_CHANNEL);
 
   // Split around ' ' to separate all remaining parts of the instruction
@@ -120,9 +120,10 @@ Instruction::Instruction(const string& inst) {
   decodeOpcode(words.front());
 
   // Determine which registers/immediates any remaining strings represent
-  for(unsigned int i=1; i<words.size(); i++) {
-    decodeField(words[i], i);
-  }
+  uint8_t reg1 = (words.size() > 1) ? decodeField(words[1]) : 0;
+  uint8_t reg2 = (words.size() > 2) ? decodeField(words[2]) : 0;
+  uint8_t reg3 = (words.size() > 3) ? decodeField(words[3]) : 0;
+  setFields(reg1, reg2, reg3);
 
 }
 
@@ -131,41 +132,43 @@ Instruction::~Instruction() {
 }
 
 /* Private setter methods */
-void Instruction::setOp(uint8_t val) {
+void Instruction::setOp(const uint8_t val) {
   setBits(startOpcode, startPredicate-1, val);
 }
 
-void Instruction::setDest(uint8_t val) {
+void Instruction::setDest(const uint8_t val) {
   setBits(startDest, startOpcode-1, val);
 }
 
-void Instruction::setSrc1(uint8_t val) {
+void Instruction::setSrc1(const uint8_t val) {
   setBits(startSrc1, startDest-1, val);
 }
 
-void Instruction::setSrc2(uint8_t val) {
+void Instruction::setSrc2(const uint8_t val) {
   setBits(startSrc2, startSrc1-1, val);
 }
 
-void Instruction::setRchannel(uint8_t val) {
+void Instruction::setRchannel(const uint8_t val) {
   setBits(startChannelID, startSrc2-1, val);
 }
 
-void Instruction::setImmediate(int32_t val) {
+void Instruction::setImmediate(const int32_t val) {
   setBits(startImmediate, end-1, val);
 }
 
-void Instruction::setPredicate(uint8_t val) {
+void Instruction::setPredicate(const uint8_t val) {
   setBits(startPredicate, startSetPred-1, val);
 }
 
-void Instruction::setSetPred(bool val) {
+void Instruction::setSetPred(const bool val) {
   setBits(startSetPred, startSetPred, val?1:0);
 }
 
-/* Determine if the string represents a register or immediate, and set the
- * corresponding field. */
-void Instruction::decodeField(const string& str, int field) {
+/* Determine which register the given string represents. It may be simply a
+ * case of extracting the integer shown (e.g. "r5"), or an offset may need to
+ * be applied ("ch2"), or the string may represent an immediate. In the case
+ * of an immediate, 0 is returned, and the immediate field is set. */
+uint8_t Instruction::decodeField(const string& str) {
 
   string reg = str;
 
@@ -173,9 +176,7 @@ void Instruction::decodeField(const string& str, int field) {
     reg.erase(0,1);                   // Remove the 'r'
     int value = Strings::strToInt(reg);
 
-    if(field==1) setDest(value);
-    else if(field==2) setSrc1(value);
-    else if(field==3) setSrc2(value);
+    return value;
   }
   else if(reg[0] == 'c') {            // Channels are optionally marked with "ch"
     reg.erase(0,2);                   // Remove the "ch"
@@ -183,12 +184,16 @@ void Instruction::decodeField(const string& str, int field) {
     // There are two reserved registers before channel-ends start
     int value = Registers::fromChannelID(Strings::strToInt(reg));
 
-    if(field==1) setDest(value);
-    else if(field==2) setSrc1(value);
-    else if(field==3) setSrc2(value);
+    return value;
   }
   // Check that this instruction should have an immediate?
-  else setImmediate(Strings::strToInt(reg));
+  else {
+    // Use decodeRChannel to allow the immediate to be written in remote
+    // channel notation: (12,2).
+    // TODO: doesn't work yet because we split around commas earlier.
+    setImmediate(decodeRChannel(reg));
+    return 0;
+  }
 
 }
 
@@ -239,14 +244,54 @@ void Instruction::decodeOpcode(const string& opcode) {
 /* Set the remote channel field depending on the contents of the given string.
  * The string may contain an integer, or a pair of integers in the form (x,y),
  * representing a component and one of its input ports. */
-void Instruction::decodeRChannel(const string& channel) {
+uint8_t Instruction::decodeRChannel(const string& channel) {
   vector<string> parts = Strings::split(channel, ',');
-  if(parts.size() == 1) setRchannel(Strings::strToInt(parts[0]));
+  if(parts.size() == 1) return Strings::strToInt(parts[0]);
   else {
     string component = Strings::split(parts[0],'(').at(1); // Remove the bracket
     string port = Strings::split(parts[1],')').at(0);      // Remove the bracket
     int channel = Strings::strToInt(component) * NUM_CLUSTER_INPUTS
                 + Strings::strToInt(port);
-    setRchannel(channel);
+    return channel;
+  }
+}
+
+void Instruction::setFields(const uint8_t reg1, const uint8_t reg2,
+                            const uint8_t reg3) {
+  int operation = InstructionMap::operation(getOp());
+
+  switch(operation) {
+
+    // Single source, no destination.
+    case InstructionMap::LD :
+    case InstructionMap::LDB :
+    case InstructionMap::STADDR :
+    case InstructionMap::STBADDR :
+    case InstructionMap::FETCH :
+    case InstructionMap::FETCHPST :
+    case InstructionMap::RMTFETCH :
+    case InstructionMap::RMTFETCHPST :
+    case InstructionMap::RMTFILL :
+    case InstructionMap::SETCHMAP : {
+      setSrc1(reg1);
+      break;
+    }
+
+    // Two sources, no destination.
+    case InstructionMap::ST :
+    case InstructionMap::STB :
+    case InstructionMap::PSELFETCH : {
+      setSrc1(reg1);
+      setSrc2(reg2);
+      break;
+    }
+
+    // Two sources and a destination.
+    default : {
+      setDest(reg1);
+      setSrc1(reg2);
+      setSrc2(reg3);
+      break;
+    }
   }
 }

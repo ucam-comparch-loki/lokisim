@@ -24,7 +24,7 @@ class Word {
 public:
 
   Word();
-  explicit Word(uint64_t data_);
+  explicit Word(const uint64_t data_);
   virtual ~Word();
 
 //==============================//
@@ -51,9 +51,9 @@ public:
 
 protected:
 
-  uint64_t getBits(int start, int end) const;
-  void     setBits(int start, int end, uint64_t value);
-  void     clearBits(int start, int end);
+  uint64_t getBits(const int start, const int end) const;
+  void     setBits(const int start, const int end, const uint64_t value);
+  void     clearBits(const int start, const int end);
 
 //==============================//
 // Local state
