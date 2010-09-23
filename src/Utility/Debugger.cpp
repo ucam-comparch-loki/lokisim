@@ -105,7 +105,7 @@ void Debugger::waitForInput() {
   }
 }
 
-void Debugger::setBreakPoint(vector<int> bps, int memory) {
+void Debugger::setBreakPoint(vector<int>& bps, int memory) {
 
   for(unsigned int j=0; j<bps.size(); j++) {
     Word w = tile->getMemVal(memory, bps[j]);
@@ -131,7 +131,7 @@ void Debugger::printStack(int core, int memory) {
   tile->print(memory, stackPointer, stackPointer+frameSize);
 }
 
-void Debugger::printMemLocations(vector<int> locs, int memory) {
+void Debugger::printMemLocations(vector<int>& locs, int memory) {
   cout << "Printing value(s) from memory " << memory << endl;
   for(unsigned int i=0; i<locs.size(); i++) {
     int val = tile->getMemVal(memory, locs[i]).toInt();
@@ -139,7 +139,7 @@ void Debugger::printMemLocations(vector<int> locs, int memory) {
   }
 }
 
-void Debugger::printRegs(vector<int> regs, int core) {
+void Debugger::printRegs(vector<int>& regs, int core) {
   cout << "Printing core " << core << "'s register values:" << endl;
   if(regs.size() == 0) {
     // If no registers were specified, print them all.
@@ -164,6 +164,7 @@ void Debugger::executedInstruction(Instruction inst, int core) {
 
 //  int instIndex = tile->getInstIndex(core);
 
+  // TODO: only print (or only call this method) if we're using the debugger.
   cout << core << ":\t" << /*"[" << instIndex << "]\t" <<*/ inst << endl;
 
   if(isBreakpoint(inst)) {

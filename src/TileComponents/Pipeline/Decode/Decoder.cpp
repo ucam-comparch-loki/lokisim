@@ -18,16 +18,14 @@ typedef IndirectRegisterFile Registers;
 
 bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
 
-  if(DEBUG) cout << this->name() << " received Instruction: " << i << endl;
-
   if(currentlyWriting) {
     return completeWrite(i, dec);
   }
 
   dec = DecodedInst(i);
 
-  // TODO: move decision of whether or not an instruction should execute
-  // into the execute stage/ALU
+  // Instructions that never reach the ALU (e.g. fetch) need to know whether
+  // they should execute in this stage.
   bool execute = shouldExecute(dec.getPredicate());
 
   // If we are in remote execution mode, send all marked instructions.
@@ -46,6 +44,7 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
   }
 
   // Need this in ALU instead? No - we change the operation sometimes.
+  // Doesn't matter: the different operation is still being executed.
   Instrumentation::operation(i, execute, id);
 
   // Need a big try block in case we block when reading from a channel end.
@@ -107,7 +106,9 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
       }
 
       case InstructionMap::IBJMP : {
-        parent()->jump((int8_t)dec.getImmediate());
+        if(execute) {
+          parent()->jump((int8_t)dec.getImmediate());
+        }
         dec.setResult(0);   // Stop the ALU doing anything by storing a result.
         break;
       }
@@ -140,25 +141,36 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
 
       // Deprecated: use "setchmap 0 rs" instead.
       case InstructionMap::SETFETCHCH : {
+        // See if we should execute first?
         fetchChannel = dec.getImmediate();
         dec.setResult(0);   // Stop the ALU doing anything by storing a result.
         break;
       }
 
       case InstructionMap::SETCHMAP : {
-        dec.setResult(readRegs(dec.getSource1()));
+        // Don't set the result because this register read may be out of date.
+        dec.setOperand1(readRegs(dec.getSource1()));
         // The rest of the table is in the write stage, so we only deal with
-        // entry 0 here.
-        if(dec.getImmediate() == 0) fetchChannel = dec.getResult();
+        // entry 0 here. Note that at least two cycles are required between
+        // storing the value to a register and reading it here.
+        if(dec.getImmediate() == 0) {
+          fetchChannel = dec.getOperand1();
+        }
         break;
       }
 
       case InstructionMap::FETCH :
       case InstructionMap::FETCHPST : {
-        Address fetchAddr(dec.getImmediate() + readRegs(dec.getSource1()),
-                          fetchChannel);
-        fetch(fetchAddr);
-        parent()->setPersistent(operation == InstructionMap::FETCHPST);
+        // Fetches are unusual in that they never reach the execute stage, where
+        // the predicate bit is usually checked. We have to do the check here
+        // instead.
+        if(execute) {
+          Address fetchAddr(dec.getImmediate() + readRegs(dec.getSource1()),
+                            fetchChannel);
+          fetch(fetchAddr);
+          parent()->setPersistent(operation == InstructionMap::FETCHPST);
+        }
+
         dec.setResult(0);   // Stop the ALU doing anything by storing a result.
         break;
       }
@@ -177,6 +189,7 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
       }
 
       case InstructionMap::IRDR : {
+        // Is there the possibility of requiring data forwarding here?
         dec.setResult(readRegs(dec.getSource1(), true));
         break;
       }
@@ -191,7 +204,7 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
 
     } // end switch
 
-  }
+  } // end try
   catch(BlockedException& b) {
     blocked = true;
     return false;
@@ -218,7 +231,7 @@ void Decoder::setOperand2(DecodedInst& dec) {
 void Decoder::setOperand1ToValue(DecodedInst& dec, int32_t reg) {
   // There are some cases where we are repeating the operation, and don't want
   // to store the operands again.
-  // For example, both operands are read from the channel ends, but the second
+  // For example: both operands are read from the channel ends, but the second
   // one hasn't arrived yet, so we block. We don't want to read the first
   // channel end again because the data will have gone.
   if(dec.hasOperand1()) return;
@@ -227,13 +240,7 @@ void Decoder::setOperand1ToValue(DecodedInst& dec, int32_t reg) {
     dec.setOperand1(readRCET(Registers::toChannelID(reg)));
   }
   else {
-    if(readALUOutput(reg)) {
-//      dec.setOperand1(alu.getLastResult()); // beware of timing?
-      // Possibly send a tag to the execute stage so this can be done there
-    }
-    else {
-      dec.setOperand1(readRegs(reg));
-    }
+    dec.setOperand1(readRegs(reg));
   }
 }
 
@@ -248,13 +255,7 @@ void Decoder::setOperand2ToValue(DecodedInst& dec, int32_t reg, int32_t immed) {
     dec.setOperand2(readRCET(Registers::toChannelID(reg)));
   }
   else {
-    if(readALUOutput(reg)) {
-//      dec.setOperand1(alu.getLastResult()); // beware of timing?
-      // Possibly send a tag to the execute stage so this can be done there
-    }
-    else {
-      dec.setOperand2(readRegs(reg));
-    }
+    dec.setOperand2(readRegs(reg));
   }
 }
 

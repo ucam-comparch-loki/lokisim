@@ -23,9 +23,8 @@ class ExecuteStage: public PipelineStage {
 public:
 
 // Inherited from PipelineStage:
-//   clock
-//   stall
-//   idle
+//   sc_in<bool>  clock
+//   sc_out<bool> idle
 
   // The input operation to perform.
   sc_in<DecodedInst>  operation;

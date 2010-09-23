@@ -115,7 +115,7 @@ void MemoryMat::read(int position) {
 
     if(connection.isByteAccess()) {
       // Extract an individual byte.
-      unsigned int readVal = (unsigned int)data.read(addr/BYTES_PER_WORD).toInt();
+      uint readVal = (uint)data.read(addr/BYTES_PER_WORD).toInt();
       int offset = addr % BYTES_PER_WORD;
       int shiftAmount = 8*offset;
       int returnVal = readVal >> shiftAmount;
@@ -159,12 +159,12 @@ void MemoryMat::write(Word w, int position) {
   else {
     // If dealing with bytes, need to read the old value and only update
     // part of it.
-    unsigned int currVal = (unsigned int)data.read(addr/BYTES_PER_WORD).toInt();
+    uint currVal = (uint)data.read(addr/BYTES_PER_WORD).toInt();
     int offset = addr % BYTES_PER_WORD;
     int shiftAmount = offset*8;
-    unsigned int mask = ~(255 << shiftAmount);
+    uint mask = ~(255 << shiftAmount);
     currVal &= mask;
-    unsigned int newVal = w.toInt() & 255;
+    uint newVal = w.toInt() & 255;
     currVal &= (newVal << shiftAmount);
     Word newWord(currVal);
     data.write(newWord, addr/BYTES_PER_WORD);
@@ -225,7 +225,7 @@ void MemoryMat::updateControl() {
 void MemoryMat::updateIdle() {
   bool isIdle = true;
 
-  for(unsigned int i=0; i<connections.size(); i++) {
+  for(uint i=0; i<connections.size(); i++) {
     ConnectionStatus& c = connections[i];
 
     // Note: we can't rely on the isActive method, since the user may forget

@@ -67,10 +67,14 @@ public:
   // mapped index (e.g. if channel 0 contains data, 16 would be returned).
   ChannelIndex selectChannelEnd();
 
+  // Set the table up at the beginning of execution. This includes setting all
+  // appropriate flow control values.
+  void initialise();
+
 private:
 
   // Update the flow control value for a particular input port.
-  void updateFlowControl(uint8_t channelEnd);
+  void updateFlowControl(ChannelIndex channelEnd);
 
 //==============================//
 // Local state

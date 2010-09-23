@@ -74,7 +74,7 @@ public:
   bool lookup(Address addr);
 
   // Jump to a new instruction specified by the offset.
-  void jump(int8_t offset);
+  void jump(int16_t offset);
 
   // Update whether or not we are in persistent execution mode, where we
   // execute a single instruction packet repeatedly.

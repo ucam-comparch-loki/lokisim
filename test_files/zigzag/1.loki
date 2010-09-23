@@ -1,4 +1,7 @@
+nop
 ori         r3,  r0,  3
+nop
+nop
 setchmap    r3,       1         ; cluster 0's input = map 1
 ori         r0,  r0,  8  > 1    ; tell cluster 0 to look for data at position 2
 ori         r0,  ch0, 0         ; remove any received data from the input channel

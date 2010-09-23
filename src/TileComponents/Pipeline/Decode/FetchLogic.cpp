@@ -32,9 +32,14 @@ void FetchLogic::refetch() {
 }
 
 void FetchLogic::send() {
+  // Three conditions must be satisfied before we can send a fetch request:
+  //  1. There must be something to send.
+  //  2. Flow control must allow us to send.
+  //  3. There must be enough room in the cache for a new packet.
   if(!toSend.isEmpty() && flowControl.read() && roomInCache()) {
     toNetwork.write(toSend.read());
-    if(DEBUG) cout << this->name() << " sending fetch." << endl;
+    if(DEBUG) cout << this->name() << " sending fetch: " << toNetwork.read()
+                   << "." << endl;
   }
 }
 

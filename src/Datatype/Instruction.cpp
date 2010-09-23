@@ -59,7 +59,7 @@ uint8_t Instruction::getRchannel() const {
 }
 
 int32_t Instruction::getImmediate() const {
-  return getBits(startImmediate, end-1);
+  return (int32_t)getBits(startImmediate, end-1);
 }
 
 uint8_t Instruction::getPredicate() const {
@@ -243,8 +243,9 @@ void Instruction::decodeOpcode(const string& opcode) {
 
 /* Set the remote channel field depending on the contents of the given string.
  * The string may contain an integer, or a pair of integers in the form (x,y),
- * representing a component and one of its input ports. */
-uint8_t Instruction::decodeRChannel(const string& channel) {
+ * representing a component and one of its input ports.
+ * Returns a signed int because this method is also used to decode immediates. */
+int32_t Instruction::decodeRChannel(const string& channel) {
   vector<string> parts = Strings::split(channel, ',');
   if(parts.size() == 1) return Strings::strToInt(parts[0]);
   else {

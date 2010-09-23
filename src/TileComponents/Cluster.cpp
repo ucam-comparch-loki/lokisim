@@ -45,7 +45,7 @@ void     Cluster::refetch() {
   decode.refetch();
 }
 
-void     Cluster::jump(int8_t offset) {
+void     Cluster::jump(int16_t offset) {
   fetch.jump(offset);
 }
 
@@ -73,24 +73,17 @@ int32_t  Cluster::readRCET(ChannelIndex channel) {
   return decode.readRCET(channel);
 }
 
-/* Checks the status signals of various pipeline stages to determine if the
- * pipeline should be stalled/unstalled. */
-void     Cluster::stallPipeline() {
-  bool shouldStall = decStallSig.read() || writeStallSig.read();
-  stallSig.write(shouldStall);
-
-  Instrumentation::stalled(id, shouldStall,
+void     Cluster::pipelineStalled(bool stalled) {
+  // TODO: collect timestamps in instrumentation.
+  Instrumentation::stalled(id, stalled,
       sc_core::sc_time_stamp().to_default_time_units());
 
-  // The fetch stage has to be stalled more often than the rest of the
-  // pipeline, due to multi-cycle instructions which require that no further
-  // instructions are decoded until they complete.
-  fetchStallSig.write(shouldStall || stallFetchSig.read());
+  currentlyStalled = stalled;
 
   if(DEBUG) {
     cout << this->name() << ": ";
-    if(shouldStall) cout << "stalling pipeline" << endl;
-    else            cout << "unstalling pipeline" << endl;
+    if(stalled) cout << "pipeline stalled" << endl;
+    else        cout << "pipeline unstalled" << endl;
   }
 }
 
@@ -99,7 +92,7 @@ void     Cluster::updateIdle() {
                 executeIdle.read() && writeIdle.read();
 
   // Is this what we really want?
-  idle.write(isIdle || stallSig.read());
+  idle.write(isIdle || currentlyStalled);
 
   Instrumentation::idle(id, isIdle,
       sc_core::sc_time_stamp().to_default_time_units());
@@ -127,16 +120,11 @@ uint32_t Cluster::RCETInput(uint16_t ID, ChannelIndex channel) {
 Cluster::Cluster(sc_module_name name, uint16_t ID) :
     TileComponent(name, ID),
     regs("regs"),
-    pred("pred"),
-    fetch("fetch"),
-    decode("decode", ID),   // Needs ID so it can generate a return address
+    pred("predicate"),
+    write("write"),
     execute("execute"),
-    write("write") {
-
-  SC_METHOD(stallPipeline);
-  sensitive << decStallSig << writeStallSig << stallFetchSig;
-  dont_initialize();
-  // do initialise
+    decode("decode", ID),   // Needs ID so it can generate a return address
+    fetch("fetch") {
 
   SC_METHOD(updateIdle);
   sensitive << fetchIdle << decodeIdle << executeIdle << writeIdle;
@@ -166,19 +154,15 @@ Cluster::Cluster(sc_module_name name, uint16_t ID) :
   fetch.clock(clock);                     decode.clock(clock);
   execute.clock(clock);                   write.clock(clock);
 
-  // Stall signals -- possibly unnecessary.
-  fetch.stall(fetchStallSig);             decode.stall(stallSig);
-  execute.stall(stallSig);                write.stall(stallSig);
-
-  // Ready signals -- replacements for stall signals?
-  fetch.readyIn(decodeReady);             decode.readyOut(decodeReady);
-  decode.readyIn(executeReady);           execute.readyOut(executeReady);
-  execute.readyIn(writeReady);            write.readyOut(writeReady);
-
   // Idle signals -- not necessary, but useful for stopping simulation when
   // work is finished.
   fetch.idle(fetchIdle);                  decode.idle(decodeIdle);
   execute.idle(executeIdle);              write.idle(writeIdle);
+
+  // Ready signals -- behave like flow control within the pipeline.
+  fetch.readyIn(decodeReady);             decode.readyOut(decodeReady);
+  decode.readyIn(executeReady);           execute.readyOut(executeReady);
+  execute.readyIn(writeReady);            write.readyOut(writeReady);
 
   // Main data transmission along pipeline.
   fetch.instruction(fetchToDecode);       decode.instructionIn(fetchToDecode);

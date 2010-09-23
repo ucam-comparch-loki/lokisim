@@ -18,18 +18,25 @@ class LoopCounter {
 
 public:
 
-  int value() const;
+  // Return the value held by this counter.
+  int  value() const;
 
-  int operator+ (int num) const;
-  int operator+ (const LoopCounter& ctr) const;
-  int operator- (int num) const;
-  int operator- (const LoopCounter& ctr) const;
+  // Set the counter to a value which isn't allowed in normal circumstances.
+  void setNull();
 
-  int operator++ ();
-  int operator-- ();
-  int operator= (int num);
-  int operator+= (int num);
-  int operator-= (int num);
+  // Returns whether the counter has been set to null.
+  bool isNull() const;
+
+  int  operator+ (int num) const;
+  int  operator+ (const LoopCounter& ctr) const;
+  int  operator- (int num) const;
+  int  operator- (const LoopCounter& ctr) const;
+
+  int  operator++ ();
+  int  operator-- ();
+  int  operator= (int num);
+  int  operator+= (int num);
+  int  operator-= (int num);
 
   bool operator== (int num) const;
   bool operator== (LoopCounter& other) const;

@@ -12,9 +12,6 @@
 
 typedef IndirectRegisterFile Registers;
 
-#define NO_CHANNEL -1
-#define ALL_CHANNELS -2
-
 int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
 
   if(!buffers[channelEnd].isEmpty()) {
@@ -22,7 +19,7 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
     updateFlowControl(channelEnd);
 
     if(DEBUG) cout << this->name() << " read " << result << " from channel "
-                   << channelEnd << endl;
+                   << (int)channelEnd << endl;
 
     return result;
   }
@@ -67,7 +64,13 @@ void ReceiveChannelEndTable::checkInputs() {
   }
 }
 
-void ReceiveChannelEndTable::updateFlowControl(uint8_t channelEnd) {
+void ReceiveChannelEndTable::initialise() {
+  for(uint i=0; i<buffers.size(); i++) {
+    updateFlowControl(i);
+  }
+}
+
+void ReceiveChannelEndTable::updateFlowControl(ChannelIndex channelEnd) {
   flowControl[channelEnd].write(buffers[channelEnd].remainingSpace());
 }
 

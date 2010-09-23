@@ -92,7 +92,7 @@ private:
   void             refetch();
 
   // Perform an IBJMP and jump to a new instruction in the cache.
-  void             jump(int8_t offset);
+  void             jump(int16_t offset);
 
   // Set whether the cache is in persistent or non-persistent mode.
   void             setPersistent(bool persistent);
@@ -112,9 +112,8 @@ private:
   // can fetch more packets from relative locations.
   void             updateCurrentPacket(Address addr);
 
-  // One of the pipeline stages has changed its stall status -- see if the
-  // whole pipeline should now be stalled or unstalled.
-  void             stallPipeline();
+  // Tell the cluster whether it is currently stalled or not.
+  void             pipelineStalled(bool stalled);
 
   // Update whether this core is idle or not.
   void             updateIdle();
@@ -127,10 +126,14 @@ private:
 
   IndirectRegisterFile     regs;
   PredicateRegister        pred;
-  FetchStage               fetch;
-  DecodeStage              decode;
-  ExecuteStage             execute;
+
+  // The pipeline stages are in reverse order so their main methods are called
+  // in reverse order. This helps make the ready signals more sensible, and
+  // ensures that registers are written before they are read.
   WriteStage               write;
+  ExecuteStage             execute;
+  DecodeStage              decode;
+  FetchStage               fetch;
 
   friend class IndirectRegisterFile;
   friend class FetchStage;
@@ -139,12 +142,20 @@ private:
   friend class WriteStage;
 
 //==============================//
+// Local state
+//==============================//
+
+private:
+
+  bool currentlyStalled;
+
+//==============================//
 // Signals (wires)
 //==============================//
 
 private:
 
-  sc_signal<bool>          stallSig;
+  // Signals telling us which stages are idle.
   sc_signal<bool>          fetchIdle, decodeIdle, executeIdle, writeIdle;
 
   // "Flow control" within the pipeline.
@@ -153,12 +164,6 @@ private:
   // Transmission of the instruction along the pipeline.
   flag_signal<Instruction> fetchToDecode;
   flag_signal<DecodedInst> decodeToExecute, executeToWrite;
-
-
-  // Not needed anymore? We now stall individual stages. Or maybe just use
-  // fetch's signal to determine if whole cluster is stalled?
-  sc_signal<bool>          fetchStallSig, decStallSig,
-                           stallFetchSig, writeStallSig;
 
 };
 

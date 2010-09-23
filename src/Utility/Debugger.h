@@ -38,7 +38,7 @@ public:
 private:
 
   // Set a breakpoint corresponding to an instruction location.
-  static void setBreakPoint(vector<int> bps, int memory=defaultInstMemory);
+  static void setBreakPoint(vector<int>& bps, int memory=defaultInstMemory);
   static bool isBreakpoint(Instruction i);
   static void addBreakpoint(Instruction i);
   static void removeBreakpoint(Instruction i);
@@ -46,10 +46,10 @@ private:
   // Print the current stack.
   static void printStack(int core=defaultCore, int memory=defaultDataMemory);
 
-  static void printMemLocations(vector<int> locs, int memory=defaultDataMemory);
+  static void printMemLocations(vector<int>& locs, int memory=defaultDataMemory);
 
   // Print the values of the given registers.
-  static void printRegs(vector<int> regs, int core=defaultCore);
+  static void printRegs(vector<int>& regs, int core=defaultCore);
 
   // Print the value of the predicate register.
   static void printPred(int core=defaultCore);

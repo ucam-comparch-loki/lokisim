@@ -31,10 +31,13 @@ void Operations::printStats() {
         int total = executedOps[i] + unexecutedOps[i];
         string name = InstructionMap::name(i);
 
-        cout << "  " << name << (name.size()>6 ? "\t" : "\t\t") <<
-            executedOps[i] << " (" << asPercentage(executedOps[i],total) <<
-            ")\t" << unexecutedOps[i] << " (" <<
-            asPercentage(unexecutedOps[i],total) << ")" << endl;
+        cout << "  ";
+
+        cout.width(14);
+
+        cout << std::left << name << executedOps[i] << " ("
+             << asPercentage(executedOps[i],total) << ")\t" << unexecutedOps[i]
+             << " (" << asPercentage(unexecutedOps[i],total) << ")" << endl;
       }
     }
   }

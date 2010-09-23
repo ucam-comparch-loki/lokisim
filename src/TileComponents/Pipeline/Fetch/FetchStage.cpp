@@ -16,6 +16,40 @@ double FetchStage::energy() const {
   return cache.energy() + fifo.energy();// + mux.energy();
 }
 
+void FetchStage::newCycle() {
+
+  // See if we have received any new instructions.
+  checkInputs();
+
+  // Consider the pipeline to be stalled if the first pipeline stage is not
+  // allowed to do any work. Only report the stall status when it changes.
+  if(readyIn.read() == stalled) {
+    parent()->pipelineStalled(!readyIn.read());
+    stalled = !readyIn.read();
+  }
+
+  if(readyIn.read()) {
+    // Select a new instruction if the decode stage is ready for one, unless
+    // the FIFO and cache are both empty.
+    if(!(fifo.isEmpty() && cache.isEmpty())) {
+      calculateSelect();
+      if(usingCache) lastInstruction = cache.read();
+      else           lastInstruction = fifo.read();
+      instruction.write(lastInstruction);
+      idle.write(false);
+
+      if(DEBUG) {
+        printf("%s selected instruction from %s: ", this->name(),
+                                                    usingCache?"cache":"FIFO");
+        cout << lastInstruction << endl;
+      }
+    }
+    else idle.write(true);  // Idle if we have no instructions.
+  }
+  else idle.write(true);    // Idle if we can't send any instructions.
+
+}
+
 void FetchStage::storeCode(std::vector<Instruction>& instructions) {
   cache.storeCode(instructions);
 }
@@ -33,7 +67,7 @@ bool FetchStage::roomToFetch() const {
 }
 
 /* Perform any status updates required when we receive a position to jump to. */
-void FetchStage::jump(int8_t offset) {
+void FetchStage::jump(int16_t offset) {
   usingCache = true;
   cache.jump(offset);
 }
@@ -50,40 +84,15 @@ void FetchStage::refetch() {
   parent()->refetch();
 }
 
-void FetchStage::newCycle() {
-  while(true) {
-    wait(clock.posedge_event());
-
-    // Select a new instruction unless the processor is stalled, or the FIFO
-    // and cache are both empty.
-    if(readyIn.read()) {
-
-      if(!(fifo.isEmpty() && cache.isEmpty())) {
-        calculateSelect();
-        if(usingCache) lastInstruction = cache.read();
-        else           lastInstruction = fifo.read();
-        instruction.write(lastInstruction);
-        idle.write(false);
-
-        if(DEBUG) {
-          printf("%s selected instruction from %s: ", this->name(),
-                                                      usingCache?"cache":"FIFO");
-          cout << lastInstruction << endl;
-        }
-      }
-      else idle.write(true);
-    }
+void FetchStage::checkInputs() {
+  if(toIPKFIFO.event()) {
+    Instruction instToFIFO = static_cast<Instruction>(toIPKFIFO.read());
+    fifo.write(instToFIFO);
   }
-}
-
-void FetchStage::newFIFOInst() {
-  Instruction instToFIFO = static_cast<Instruction>(toIPKFIFO.read());
-  fifo.write(instToFIFO);
-}
-
-void FetchStage::newCacheInst() {
-  Instruction instToCache = static_cast<Instruction>(toIPKCache.read());
-  cache.write(instToCache);
+  if(toIPKCache.event()) {
+    Instruction instToCache = static_cast<Instruction>(toIPKCache.read());
+    cache.write(instToCache);
+  }
 }
 
 /* Choose whether to take an instruction from the cache or FIFO next.
@@ -92,21 +101,13 @@ void FetchStage::newCacheInst() {
  * Use cache if already executing a packet from cache,
  *          or FIFO is empty and cache has instructions. */
 void FetchStage::calculateSelect() {
-
-//  short result;
-
   if(usingCache) {
     justFinishedPacket = lastInstruction.endOfPacket();
     usingCache = (fifo.isEmpty() || !justFinishedPacket) && !cache.isEmpty();
-//    result = CACHE;
   }
   else {
     usingCache = fifo.isEmpty();
-//    result = usingCache ? CACHE : FIFO;
   }
-
-//  return result;
-
 }
 
 FetchStage::FetchStage(sc_module_name name) :
@@ -114,17 +115,9 @@ FetchStage::FetchStage(sc_module_name name) :
     cache("IPKcache"),
     fifo("IPKfifo") {
 
-  usingCache = true;
+  stalled     = false;
+  usingCache  = true;
   flowControl = new sc_out<int>[2];
-
-  // Register methods
-  SC_METHOD(newFIFOInst);
-  sensitive << toIPKFIFO;
-  dont_initialize();
-
-  SC_METHOD(newCacheInst);
-  sensitive << toIPKCache;
-  dont_initialize();
 
   // Connect FIFO and cache to network
   fifo.flowControl(flowControl[0]);

@@ -24,9 +24,8 @@ class WriteStage: public PipelineStage {
 public:
 
 // Inherited from PipelineStage:
-//   clock
-//   stall
-//   idle
+//   sc_in<bool>  clock
+//   sc_out<bool> idle
 
   // The result of an operation to be sent on the network and/or written to
   // a register.

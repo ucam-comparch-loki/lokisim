@@ -23,9 +23,9 @@ bool ALU::execute(DecodedInst& dec) {
 
   // Cast to 32 bits because our architecture is supposed to use 32-bit
   // arithmetic. Also perform any necessary data forwarding.
-  int32_t val1 = (dec.getSource1() == lastDestination) ? lastResult
+  int32_t val1 = (useDataForwarding(dec.getSource1())) ? lastResult
                                                        : dec.getOperand1();
-  int32_t val2 = (dec.getSource2() == lastDestination) ? lastResult
+  int32_t val2 = (useDataForwarding(dec.getSource2())) ? lastResult
                                                        : dec.getOperand2();
   int32_t result;
 
@@ -111,11 +111,10 @@ bool ALU::execute(DecodedInst& dec) {
 
 void ALU::setPred(bool val) {
   parent()->setPredicate(val);
-  if(DEBUG) cout << this->name() << " set predicate bit to " << val << endl;
 }
 
 /* Determine whether this instruction should be executed. */
-bool ALU::shouldExecute(short predBits) {
+bool ALU::shouldExecute(short predBits) const {
   bool pred = parent()->getPredicate();
 
   bool result = (predBits == Instruction::ALWAYS) ||
@@ -125,6 +124,11 @@ bool ALU::shouldExecute(short predBits) {
 
   return result;
 
+}
+
+bool ALU::useDataForwarding(uint8_t regIndex) const {
+  return (regIndex != 0) && (regIndex == lastDestination) &&
+         (lastDestination != -1);
 }
 
 ExecuteStage* ALU::parent() const {

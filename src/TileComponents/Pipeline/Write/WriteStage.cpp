@@ -18,34 +18,33 @@ double WriteStage::energy() const {
 
 void WriteStage::newCycle() {
 
-  while(true) {
-    if(!stall.read()) {
+  if(!scet.isFull()) {
 
-      bool active = result.event();
+    // This pipeline stage is active if it has received new data from the ALU.
+    // Should we also take into account whether the send channel-end table
+    // has any data left in it?
+    bool active = result.event();
 
-      if(active) {
-        DecodedInst dec = result.read();
+    if(active) {
+      DecodedInst dec = result.read();
 
-        if(DEBUG) cout << this->name() << " received Data: " << dec.getResult()
-                       << endl;
+      if(DEBUG) cout << this->name() << " received Data: " << dec.getResult()
+                     << endl;
 
-        // Put data into the send channel-end table.
-        scet.write(dec);
+      // Put data into the send channel-end table.
+      scet.write(dec);
 
-        // Write to registers (they ignore the write if the index is invalid).
-        writeReg(dec.getDestination(), dec.getResult(),
-                   dec.getOperation() == InstructionMap::IWTR);
-      }
-
-      idle.write(!active);
+      // Write to registers (they ignore the write if the index is invalid).
+      writeReg(dec.getDestination(), dec.getResult(),
+                 dec.getOperation() == InstructionMap::IWTR);
     }
 
-    // Attempt to send data onto the network if possible.
-    scet.send();
-    readyOut.write(!scet.isFull());
-
-    wait(clock.posedge_event());
+    idle.write(!active);
   }
+
+  // Attempt to send data onto the network if possible.
+  scet.send();
+  readyOut.write(!scet.isFull());
 
 }
 

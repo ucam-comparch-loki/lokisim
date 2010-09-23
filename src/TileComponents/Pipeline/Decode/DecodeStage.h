@@ -13,6 +13,7 @@
 #define DECODESTAGE_H_
 
 #include "../PipelineStage.h"
+#include "../../../Datatype/Instruction.h"
 #include "FetchLogic.h"
 #include "ReceiveChannelEndTable.h"
 #include "Decoder.h"
@@ -27,9 +28,8 @@ class DecodeStage: public PipelineStage {
 public:
 
 // Inherited from PipelineStage:
-//   clock
-//   stall
-//   idle
+//   sc_in<bool>  clock
+//   sc_out<bool> idle
 
   // The NUM_RECEIVE_CHANNELS inputs to the receive channel-end table.
   sc_in<Word>          *in;
@@ -87,6 +87,9 @@ private:
   // Pass the given instruction to the decoder to be decoded.
   void           decode(Instruction i);
 
+  // Send initial flow control outputs.
+  virtual void   initialise();
+
   // The task performed at the beginning of each clock cycle.
   virtual void   newCycle();
 
@@ -113,7 +116,7 @@ private:
   bool           roomToFetch() const;
 
   // Tell the instruction packet cache to jump to a new instruction.
-  void           jump(int8_t offset);
+  void           jump(int16_t offset);
 
   // Set the instruction packet cache into persistent or non-persistent mode.
   void           setPersistent(bool persistent);
@@ -142,13 +145,8 @@ private:
 
   DecodedInst             decoded;
 
-//==============================//
-// Signals (wires)
-//==============================//
-
-private:
-
-  sc_buffer<Word>        *fromNetwork;
+  // Used when we need to execute the same instruction multiple times.
+  Instruction             repeatInst;
 
 };
 

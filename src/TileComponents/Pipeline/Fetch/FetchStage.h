@@ -26,9 +26,8 @@ class FetchStage : public PipelineStage {
 public:
 
 // Inherited from PipelineStage:
-//   clock
-//   stall
-//   idle
+//   sc_in<bool>  clock
+//   sc_out<bool> idle
 
   // The input instruction to be sent to the instruction packet cache.
   sc_in<Word>         toIPKCache;
@@ -78,7 +77,7 @@ public:
   bool          roomToFetch() const;
 
   // Jump to a different instruction in the Instruction Packet Cache.
-  void          jump(int8_t offset);
+  void          jump(int16_t offset);
 
   // Put the cache into persistent mode, where it executes the same instruction
   // packet repeatedly, or take it out of persistent mode.
@@ -89,11 +88,8 @@ private:
   // The task performed at the beginning of each clock cycle.
   virtual void  newCycle();
 
-  // Pass the newly-received instruction to the FIFO.
-  void          newFIFOInst();
-
-  // Pass the newly-received instruction to the cache.
-  void          newCacheInst();
+  // If any new instructions have arrived, pass them to the corresponding components.
+  void          checkInputs();
 
   // Determine whether to take an instruction from the FIFO or cache.
   void          calculateSelect();
@@ -123,13 +119,16 @@ private:
 
 private:
 
+  // If this pipeline stage is stalled, we assume the whole pipeline is stalled.
+  bool stalled;
+
   // Tells whether the last operation read from the cache or not.
   bool usingCache;
 
   // Tells whether the last instruction sent was the end of a packet.
   bool justFinishedPacket;
 
-  // The most-recently sent instruction.
+  // The most-recently-sent instruction.
   Instruction lastInstruction;
 
   enum InstructionSource {CACHE, FIFO};

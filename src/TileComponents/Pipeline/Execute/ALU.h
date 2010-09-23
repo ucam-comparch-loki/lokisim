@@ -43,7 +43,11 @@ private:
 
   // Determine whether the current instruction should be executed, based on its
   // predicate bits, and the contents of the predicate register.
-  bool shouldExecute(short predBits);
+  bool shouldExecute(short predBits) const;
+
+  // Determine whether a read from the given register should actually result
+  // in data being forwarded from the output of the ALU.
+  bool useDataForwarding(uint8_t regIndex) const;
 
   ExecuteStage* parent() const;
 

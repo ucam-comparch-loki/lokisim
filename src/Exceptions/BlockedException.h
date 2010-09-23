@@ -10,8 +10,6 @@
 
 class BlockedException : public std::exception {
 
-  // TODO
-
 };
 
 

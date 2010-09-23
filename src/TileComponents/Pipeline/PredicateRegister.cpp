@@ -13,6 +13,7 @@ bool PredicateRegister::read() const {
 
 void PredicateRegister::write(bool val) {
   predicate = val;
+  if(DEBUG) cout << this->name() << " set to " << val << endl;
 }
 
 PredicateRegister::PredicateRegister(sc_module_name name) : Component(name) {

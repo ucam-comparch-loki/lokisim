@@ -26,27 +26,27 @@ void ExecuteStage::setPredicate(bool val) {
 
 /* Simulate pipelining by only allowing signals through at the start of a cycle */
 void ExecuteStage::newCycle() {
-  while(true) {
-    if(!readyIn.read()) {
-      readyOut.write(false);
-    }
-    else if(!stall.read()) {
-      if(operation.event()) {
-        DecodedInst op = operation.read();
-        bool success = alu.execute(op);
 
-        if(success) result.write(op);
-
-        readyOut.write(true); // readyOut.write(alu.busy())?
-        idle.write(false);
-      }
-      else {
-        idle.write(true);
-        readyOut.write(true);
-      }
-    }
-    wait(clock.posedge_event());
+  if(!readyIn.read()) {
+    readyOut.write(false);
+    idle.write(true);
   }
+  else {
+    if(operation.event()) {
+      DecodedInst op = operation.read();
+      bool success = alu.execute(op);
+
+      if(success) result.write(op);
+
+      readyOut.write(true); // readyOut.write(!alu.busy())?
+      idle.write(false);
+    }
+    else {
+      idle.write(true);
+      readyOut.write(true);
+    }
+  }
+
 }
 
 ExecuteStage::ExecuteStage(sc_module_name name) :

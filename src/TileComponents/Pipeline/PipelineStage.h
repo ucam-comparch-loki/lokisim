@@ -30,10 +30,6 @@ public:
   // Clock.
   sc_in<bool>  clock;
 
-  // When true, the pipeline stage should do nothing. When false, execution
-  // can continue as normal.
-  sc_in<bool>  stall;
-
   // Signal that this pipeline stage is currently idle.
   sc_out<bool> idle;
 
@@ -51,19 +47,25 @@ public:
 // Methods
 //==============================//
 
-public:
+protected:
 
   // Do I want a parent() method, so the user has to know the module hierarchy,
   // but can access any position in it, or a cluster() method, which hides
   // any changes, but makes arbitrary access harder?
   Cluster* parent() const;
 
-protected:
+  // The main loop responsible for this pipeline stage. It first initialises
+  // the stage, then calls newCycle() at each new clock cycle.
+  virtual void execute();
 
   // To simulate pipelining, all pipeline stages execute a method every cycle.
-  // This method usually involves copying all of the inputs to the
-  // subcomponents that use them.
+  // This method usually involves checking for new data, and passing it to
+  // subcomponents if appropriate.
   virtual void newCycle() = 0;
+
+  // Some components require initialisation before execution begins.
+  // Initialisation may involve operations such as setting flow control values.
+  virtual void initialise();
 
 };
 

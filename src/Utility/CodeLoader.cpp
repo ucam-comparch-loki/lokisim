@@ -5,6 +5,7 @@
  *      Author: db434
  */
 
+#include <ios>
 #include "CodeLoader.h"
 #include "Parameters.h"
 #include "StringManipulation.h"
@@ -85,7 +86,7 @@ void CodeLoader::loadCode(string& filename, TileComponent& component) {
 void CodeLoader::loadCode(Tile& tile, string& directory,
                           vector<string>& coreFiles, vector<string>& memFiles) {
 
-  if(DEBUG) std::cout << "Initialising..." << endl;
+  if(DEBUG) cout << "Initialising..." << endl;
 
   for(uint i=0; i<coreFiles.size(); i++) {
     string filename = directory + "/" + coreFiles[i];
@@ -97,7 +98,7 @@ void CodeLoader::loadCode(Tile& tile, string& directory,
     loadCode(filename, tile, CLUSTERS_PER_TILE + i);
   }
 
-  if(DEBUG) std::cout << endl;
+  if(DEBUG) cout << endl;
 
 }
 
@@ -115,6 +116,9 @@ vector<Word>& CodeLoader::getData(string& filename) {
 
   int wordsRead = 0;
 
+  // Set up some output formatting so numbers are all the same length.
+  cout.fill('0');
+
   while(!file.fail()) {
     try {
 
@@ -123,7 +127,11 @@ vector<Word>& CodeLoader::getData(string& filename) {
         words->push_back(w);
 
         if(usingDebugger && (typeOfFile != DATA)) {
-          cout << (wordsRead*BYTES_PER_WORD) << "\t"
+          cout << "\[";
+
+          cout.width(4);
+
+          cout << std::right << (wordsRead*BYTES_PER_WORD) << "]\t"
                << static_cast<Instruction>(w) << endl;
         }
       }
@@ -142,9 +150,12 @@ vector<Word>& CodeLoader::getData(string& filename) {
     wordsRead++;
   }
 
+  // Undo the formatting changes.
+  cout.fill(' ');
+
   if(words->size() == 0)
     std::cerr << "Error: read 0 words from file " << fullName << endl;
-  else if(DEBUG) std::cout << "Retrieved " << words->size() <<
+  else if(DEBUG) cout << "Retrieved " << words->size() <<
     " words from file " << fullName << endl;
 
   file.close();
@@ -190,7 +201,7 @@ Word CodeLoader::getWord(std::ifstream& file, uint8_t type) {
       // At the moment, binary files are formatted as 32-bit words in hex.
       // We therefore need to load in two words to make a single instruction.
       file.getline(line, 200, '\n');
-      unsigned long val = (uint64_t)StringManipulation::strToInt(line) << 32;
+      uint64_t val = (uint64_t)StringManipulation::strToInt(line) << 32;
       file.getline(line, 200, '\n');
       val += (uint64_t)StringManipulation::strToInt(line);
       return Instruction(val);

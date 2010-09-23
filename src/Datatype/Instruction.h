@@ -63,7 +63,7 @@ private:
 
   void    decodeOpcode(const string& opcode);
   uint8_t decodeField(const string& s);
-  uint8_t decodeRChannel(const string& channel);
+  int32_t decodeRChannel(const string& channel);
 
   // Set the appropriate register fields in this instruction. Some operations
   // may not have a destination register, for example, so it should not be used.

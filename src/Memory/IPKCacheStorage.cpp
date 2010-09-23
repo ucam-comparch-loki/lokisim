@@ -16,7 +16,7 @@ bool IPKCacheStorage::checkTags(const Address& key) {
 
   for(uint i=0; i<this->size(); i++) {
     if(this->tags[i] == key) {
-      if(currInst == NOT_IN_USE) {
+      if(currInst.isNull()) {
         currInst = i;
         currentPacket = i;
       }
@@ -37,7 +37,7 @@ bool IPKCacheStorage::checkTags(const Address& key) {
 /* Returns the next item in the cache. */
 Instruction& IPKCacheStorage::read() {
 
-  if(currInst != NOT_IN_USE) {
+  if(!currInst.isNull()) {
     int i = currInst.value();
     incrementCurrent();
     lastOpWasARead = true;
@@ -58,7 +58,7 @@ void IPKCacheStorage::write(const Address& key, const Instruction& newData) {
   bool needRefetch = false;
 
   // If we're not serving instructions at the moment, start serving from here.
-  if(currInst == NOT_IN_USE) {
+  if(currInst.isNull()) {
     currInst = refill.value();
     currentPacket = refill.value();
 
@@ -83,9 +83,9 @@ void IPKCacheStorage::write(const Address& key, const Instruction& newData) {
 }
 
 /* Jump to a new instruction at a given offset. */
-void IPKCacheStorage::jump(const int8_t offset) {
+void IPKCacheStorage::jump(const int16_t offset) {
 
-  if(currInst == NOT_IN_USE) currInst = currInstBackup;
+  if(currInst.isNull()) currInst = currInstBackup-1;
 
   currInst += offset - 1; // -1 because we have already incremented currInst
   updateFillCount();
@@ -132,7 +132,7 @@ bool IPKCacheStorage::isEmpty() const {
   // that the cache is either empty or full. Need to take into account
   // whether the last operation was a read or a write.
   // If it was a read, the cache is now empty; if it was a write, it is full.
-  return (currInst == NOT_IN_USE) || (fillCount == 0 && lastOpWasARead);
+  return (currInst.isNull()) || (fillCount == 0 && lastOpWasARead);
 }
 
 /* Returns whether the cache is full. */
@@ -144,7 +144,8 @@ bool IPKCacheStorage::isFull() const {
 void IPKCacheStorage::switchToPendingPacket() {
 
   currInstBackup = currInst.value();// - 1;  // We have incremented currInst
-  currInst = pendingPacket;
+  if(pendingPacket == NOT_IN_USE) currInst.setNull();
+  else                            currInst = pendingPacket;
   currentPacket = pendingPacket;
 
   if(!persistentMode) pendingPacket = NOT_IN_USE;
@@ -209,7 +210,7 @@ IPKCacheStorage::IPKCacheStorage(const uint16_t size) :
     currInst(size),
     refill(size) {
 
-  currInst = NOT_IN_USE;
+  currInst.setNull();
   refill = 0;
 
   fillCount = 0;

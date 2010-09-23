@@ -16,47 +16,52 @@ double       DecodeStage::energy() const {
   return fl.energy() + rcet.energy() + decoder.energy() + extend.energy();
 }
 
+void         DecodeStage::initialise() {
+  rcet.initialise();
+}
+
 /* Direct any new inputs to their destinations every clock cycle. */
 void         DecodeStage::newCycle() {
-  while(true) {
-    // Check for new data (should this happen at the beginning or end of
-    // the cycle?
-    rcet.checkInputs();
 
-    if(!readyIn.read()) {
-      readyOut.write(false);
-    }
-    else if(!decoder.ready()) {
-      // If the decoder is stalling, it is because it is carrying out a
-      // multi-cycle operation. It needs to be able to complete this.
-      // Send the same instruction again to wake the decoder up.
-      decode(instructionIn.read());
-    }
-    else if(!stall.read() && instructionIn.event()) {
-      // Not stalled and have new instruction
-      decode(instructionIn.read());
-    }
-    else {
-      idle.write(true);  // What if a fetch is waiting to be sent?
-      readyOut.write(true);
-    }
+  // Check for new data (should this happen at the beginning or end of
+  // the cycle?
+  rcet.checkInputs();
 
-    // Send any fetches we may have created in this cycle (or which haven't
-    // yet been able to send).
-    fl.send();
-
-    for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
-      COPY_IF_NEW(in[i], fromNetwork[i]);
-    }
-
-    wait(clock.posedge_event());
+  if(!readyIn.read()) {
+    // If we can't do any work, tell the fetch stage not to send any new
+    // instructions.
+    readyOut.write(false);
+    idle.write(true);
   }
+  else if(!decoder.ready()) {
+    // If the decoder is stalling, it is because it is carrying out a
+    // multi-cycle operation, or is blocked, waiting for input on a channel-
+    // end. It needs to complete this operation before we give it a new one.
+    // Send the same instruction again to wake the decoder up.
+    decode(repeatInst);
+  }
+  else if(instructionIn.event()) {
+    // Have a new instruction to work on.
+    if(DEBUG) cout << decoder.name() << " received Instruction: "
+                   << instructionIn.read() << endl;
+    decode(instructionIn.read());
+  }
+  else {
+    idle.write(true);  // What if a fetch is waiting to be sent?
+    readyOut.write(true);
+  }
+
+  // Send any fetches we may have created in this cycle (or which haven't
+  // yet been able to send).
+  fl.send();
+
 }
 
 void         DecodeStage::decode(Instruction i) {
-  bool success = decoder.decodeInstruction(instructionIn.read(), decoded);
+  bool success = decoder.decodeInstruction(i, decoded);
 
   if(success) instructionOut.write(decoded);
+  else        repeatInst = i;
 
   readyOut.write(decoder.ready());
   idle.write(false);
@@ -98,7 +103,7 @@ bool         DecodeStage::roomToFetch() const {
   return parent()->roomToFetch();
 }
 
-void         DecodeStage::jump(int8_t offset) {
+void         DecodeStage::jump(int16_t offset) {
   parent()->jump(offset);
 }
 
@@ -115,12 +120,11 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
 
   in             = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
   flowControlOut = new sc_out<int>[NUM_RECEIVE_CHANNELS];
-  fromNetwork    = new sc_buffer<Word>[NUM_RECEIVE_CHANNELS];
 
 // Connect everything up
 
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
-    rcet.fromNetwork[i](fromNetwork[i]);
+    rcet.fromNetwork[i](in[i]);
     rcet.flowControl[i](flowControlOut[i]);
   }
 

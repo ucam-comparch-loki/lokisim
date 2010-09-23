@@ -7,6 +7,7 @@
 
 #include "InstructionPacketCache.h"
 #include "FetchStage.h"
+#include "../../../Exceptions/WritingToFullException.h"
 
 /* Initialise the contents of the cache with a list of Instructions. */
 void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
@@ -51,7 +52,7 @@ void InstructionPacketCache::write(Instruction inst) {
   try {
     cache.write(addr, inst);
   }
-  catch(std::exception e) {
+  catch(std::exception& e) {
     // The write method throws an exception if the next packet needs to be
     // fetched again.
     if(!addresses.isFull()) addresses.write(pendingPacket);
@@ -73,7 +74,7 @@ bool InstructionPacketCache::lookup(Address addr) {
 
   bool inCache = cache.checkTags(addr);
 
-  if(DEBUG) cout << this->name() << " looked up tag: " << addr << ": "
+  if(DEBUG) cout << this->name() << " looked up tag " << addr << ": "
                  << (inCache ? "" : "not ") << "in cache" << endl;
 
   // If we don't have the instructions, we will receive them soon, so store
@@ -81,7 +82,7 @@ bool InstructionPacketCache::lookup(Address addr) {
   if(!inCache) {
     if(!addresses.isFull()) addresses.write(addr);
       // Stall if the buffer is now full?
-    else cerr << "Wrote to full buffer in " << this->name() << endl;
+    else throw WritingToFullException(this->name());
   }
   else {
     // Store the address in case we need it later.
@@ -95,7 +96,7 @@ bool InstructionPacketCache::lookup(Address addr) {
 }
 
 /* Jump to a new instruction specified by the offset amount. */
-void InstructionPacketCache::jump(int8_t offset) {
+void InstructionPacketCache::jump(int16_t offset) {
   if(DEBUG) cout << this->name() << ": ";   // cache prints the rest
 
   cache.jump(offset/BYTES_PER_WORD);
@@ -142,7 +143,8 @@ void InstructionPacketCache::endOfPacketTasks() {
 
 /* Perform any necessary tasks when starting to read a new instruction packet. */
 void InstructionPacketCache::startOfPacketTasks() {
-//  updatePacketAddress(cache.packetAddress());
+  // Wait a cycle to update packet address?
+  updatePacketAddress(cache.packetAddress());
   finishedPacketRead = false;
 }
 

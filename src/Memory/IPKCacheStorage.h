@@ -44,7 +44,7 @@ public:
   virtual void write(const Address& key, const Instruction& newData);
 
   // Jump to a new instruction at a given offset.
-  void jump(const int8_t offset);
+  void jump(const int16_t offset);
 
   // Return the memory address of the currently-executing packet.
   Address packetAddress() const;

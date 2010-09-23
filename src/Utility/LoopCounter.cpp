@@ -11,6 +11,14 @@ int LoopCounter::value() const {
   return val;
 }
 
+void LoopCounter::setNull() {
+  val = -1;
+}
+
+bool LoopCounter::isNull() const {
+  return (val == -1);
+}
+
 int LoopCounter::operator+ (int num) const {
   return (val + num) % maximum;
 }
