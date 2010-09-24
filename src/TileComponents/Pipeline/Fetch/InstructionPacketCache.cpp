@@ -25,6 +25,10 @@ void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
 
 }
 
+void InstructionPacketCache::initialise() {
+  updateFlowControl();
+}
+
 Instruction InstructionPacketCache::read() {
   Instruction inst = cache.read();
 

@@ -10,12 +10,7 @@
 #ifndef PIPELINESTAGE_H_
 #define PIPELINESTAGE_H_
 
-// Copy a value from an input to an output, only if the value is new
-#define COPY_IF_NEW(input, output) if(input.event()) output.write(input.read())
-
 #include "../../Component.h"
-#include "../../flag_signal.h"
-#include "../../Datatype/DecodedInst.h"
 
 class Cluster;
 

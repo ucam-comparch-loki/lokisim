@@ -19,6 +19,7 @@ bool IPKCacheStorage::checkTags(const Address& key) {
       if(currInst.isNull()) {
         currInst = i;
         currentPacket = i;
+        updateFillCount();
       }
       else pendingPacket = i;
 
@@ -85,7 +86,8 @@ void IPKCacheStorage::write(const Address& key, const Instruction& newData) {
 /* Jump to a new instruction at a given offset. */
 void IPKCacheStorage::jump(const int16_t offset) {
 
-  if(currInst.isNull()) currInst = currInstBackup-1;
+  // Restore the current instruction pointer if it was not being used.
+  if(currInst.isNull()) currInst = currInstBackup;
 
   currInst += offset - 1; // -1 because we have already incremented currInst
   updateFillCount();
@@ -99,7 +101,9 @@ void IPKCacheStorage::jump(const int16_t offset) {
       currInst.value() << endl;
 }
 
-/* Return the memory address of the currently-executing packet. */
+/* Return the memory address of the currently-executing packet. Only returns
+ * a useful value for the first instruction in each packet, as this is the
+ * only instruction which gets a tag. */
 Address IPKCacheStorage::packetAddress() const {
   return this->tags[currentPacket];
 }
@@ -118,7 +122,7 @@ uint16_t IPKCacheStorage::getInstIndex() const {
 //
 //  cout << cacheIndex << " " << packetIndex << " " << endl;
 //
-//  return startOfPacket.getAddress() + BYTES_PER_WORD*packetIndex;
+//  return startOfPacket.address() + BYTES_PER_WORD*packetIndex;
 
   return -1;
 }
@@ -143,7 +147,7 @@ bool IPKCacheStorage::isFull() const {
 /* Begin reading the packet which is queued up to execute next. */
 void IPKCacheStorage::switchToPendingPacket() {
 
-  currInstBackup = currInst.value();// - 1;  // We have incremented currInst
+  currInstBackup = currInst.value() - 1;  // We have incremented currInst
   if(pendingPacket == NOT_IN_USE) currInst.setNull();
   else                            currInst = pendingPacket;
   currentPacket = pendingPacket;
@@ -198,6 +202,10 @@ void IPKCacheStorage::incrementCurrent() {
 void IPKCacheStorage::updateFillCount() {
   if(refill == currInst) {
     fillCount = this->size();
+    return;
+  }
+  else if(currInst.isNull()) {
+    fillCount = 0;
     return;
   }
 

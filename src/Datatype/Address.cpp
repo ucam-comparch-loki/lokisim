@@ -19,26 +19,21 @@
 const short boundary = 16;
 
 /* Accessing information */
-uint16_t Address::getAddress() const {
+uint16_t Address::address() const {
   return getBits(boundary, 31);
 }
 
-uint16_t Address::getChannelID() const {
+uint16_t Address::channelID() const {
   return getBits(1, boundary-1);
 }
 
-bool Address::getReadBit() const {
+bool Address::readBit() const {
   // 1 = read, 0 = write
   return getBits(0,0);
 }
 
-/* Used to extract some bits and put them in the indirection registers. */
-uint32_t Address::getLowestBits(const int limit) const {
-  return getBits(0, limit-1);
-}
-
 void Address::addOffset(const int offset) {
-  setAddress(getAddress() + offset);
+  address(address() + offset);
 }
 
 /* Constructors and destructors */
@@ -50,23 +45,23 @@ Address::Address(const Word& other) : Word(other) {
 
 }
 
-Address::Address(const uint16_t addr, const uint16_t channelID) : Word() {
-  setAddress(addr);
-  setChannelID(channelID);
+Address::Address(const uint16_t addr, const uint16_t channel) : Word() {
+  address(addr);
+  channelID(channel);
 
-  if(channelID < 0) std::cerr << "Warning: creating address with channel ID of "
-      << channelID << std::endl;
+  if(channel < 0) std::cerr << "Warning: creating address with channel ID of "
+                            << channel << std::endl;
 }
 
 Address::~Address() {
 
 }
 
-void Address::setAddress(const uint16_t addr) {
+void Address::address(const uint16_t addr) {
   setBits(boundary, 31, addr);
 }
 
-void Address::setChannelID(const uint16_t channelID) {
+void Address::channelID(const uint16_t channelID) {
   setBits(1, boundary-1, channelID);
 }
 

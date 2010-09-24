@@ -44,7 +44,7 @@ public:
     throw "Error: Need to implement write() in this subclass.";
   }
 
-  // Print the contents of this data storage.
+  // Print the contents of this data storage in the given range.
   virtual void print(const int start=0, const int end=size()) const {
     for(int i=start; i<end; i++)
       cout << i*BYTES_PER_WORD << "\t" << data[i] << endl;

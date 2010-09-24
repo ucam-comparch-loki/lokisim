@@ -9,25 +9,25 @@
 
 /* Tells whether there is a connection set up at all. */
 bool ConnectionStatus::isActive() const {
-  return remoteChannel != UNUSED;
+  return remoteChannel_ != UNUSED;
 }
 
 /* Tells whether there is a connection set up, but not currently carrying
  * out an operation. */
 bool ConnectionStatus::isIdle() const {
-  return isActive() && (operation == NONE);
+  return isActive() && (operation_ == NONE);
 }
 
 bool ConnectionStatus::isRead() const {
-  return operation == LOAD;
+  return operation_ == LOAD;
 }
 
 bool ConnectionStatus::isWrite() const {
-  return operation == STORE;
+  return operation_ == STORE;
 }
 
 bool ConnectionStatus::isStreaming() const {
-  return repeatOperation;
+  return repeatOperation_;
 }
 
 bool ConnectionStatus::readingIPK() const {
@@ -35,59 +35,59 @@ bool ConnectionStatus::readingIPK() const {
 }
 
 bool ConnectionStatus::isByteAccess() const {
-  return (operation == LOADBYTE || operation == STOREBYTE);
+  return (operation_ == LOADBYTE || operation_ == STOREBYTE);
 }
 
 void ConnectionStatus::incrementAddress() {
-  if(isByteAccess()) address += STRIDE;
-  else               address += STRIDE * BYTES_PER_WORD;
+  if(isByteAccess()) address_ += STRIDE;
+  else               address_ += STRIDE * BYTES_PER_WORD;
 }
 
 void ConnectionStatus::clear() {
-  address = UNUSED;
-  operation = NONE;
-  repeatOperation = false;
+  address_ = UNUSED;
+  operation_ = NONE;
+  repeatOperation_ = false;
 }
 
 void ConnectionStatus::teardown() {
-  remoteChannel   = UNUSED;
+  remoteChannel_   = UNUSED;
   clear();
 }
 
-int ConnectionStatus::getChannel() const {
-  return remoteChannel;
+int ConnectionStatus::channel() const {
+  return remoteChannel_;
 }
 
-int ConnectionStatus::getAddress() const {
-  return address;
+int ConnectionStatus::address() const {
+  return address_;
 }
 
-void ConnectionStatus::setChannel(int channel) {
-  remoteChannel = channel;
+void ConnectionStatus::channel(int channel) {
+  remoteChannel_ = channel;
 }
 
-void ConnectionStatus::setReadAddress(int addr) {
-  address = addr;
-  operation = LOAD;
+void ConnectionStatus::readAddress(int addr) {
+  address_ = addr;
+  operation_ = LOAD;
 }
 
-void ConnectionStatus::setWriteAddress(int addr) {
-  address = addr;
-  operation = STORE;
+void ConnectionStatus::writeAddress(int addr) {
+  address_ = addr;
+  operation_ = STORE;
 }
 
 void ConnectionStatus::startStreaming() {
-  repeatOperation = true;
+  repeatOperation_ = true;
 }
 
 void ConnectionStatus::stopStreaming() {
-  repeatOperation = false;
+  repeatOperation_ = false;
 }
 
 ConnectionStatus::ConnectionStatus() {
-  remoteChannel = UNUSED;
-  address       = UNUSED;
-  operation     = NONE;
+  remoteChannel_ = UNUSED;
+  address_       = UNUSED;
+  operation_     = NONE;
 }
 
 ConnectionStatus::~ConnectionStatus() {

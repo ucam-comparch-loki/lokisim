@@ -18,7 +18,7 @@ class Data: public Word {
 
 public:
 
-  uint32_t getData() const;
+  uint32_t data() const;
   void moveBit(const int oldPos, const int newPos);
 
 //==============================//

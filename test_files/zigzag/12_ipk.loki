@@ -1,14 +1,14 @@
-% Note: byte addressing not tested (and the program wasn't working properly anyway)
+% Note: program isn't working properly
 
 fetch       r1,  16
-addui       r0,  r0,  32  > 55   ; connect to the data memory
+addui       r0,  r0,  32  > 2   ; connect to the data memory
 addui       r9,  r0,  28          ; store 7, since it is a common offset
 addui.eop   r10, ch1, 0          ; wait until we receive a block location
 
 % MOVING UPWARDS (fetched first)
 addu        r12, r10, r11        ; ============================
-ld          r12, 0        > 52   ;  Load and forward data item
-addui       r0,  ch0, 0   > 6    ; ============================
+ld          r12, 0        > 3   ;  Load and forward data item
+addui       r0,  ch0, 0   > 4    ; ============================
 slti.p      r0,  r11, 32          ; see if we have hit the top of the grid
 nop
 p?addui     r11, r11, 4
@@ -31,8 +31,8 @@ ibjmp.eop   -96                  ; we have: switch to moving down
 
 % MOVING DOWNWARDS (fetched second)
 addu        r12, r10, r11        ; ============================
-ld          r12, 0        > 52   ;  Load and forward data item
-addui       r0,  ch0, 0   > 6    ; ============================
+ld          r12, 0        > 3   ;  Load and forward data item
+addui       r0,  ch0, 0   > 4    ; ============================
 slti.p      r0,  r11, 224         ; see if we have reached the bottom of the grid
 nop
 !p?addui    r11, r11, 4

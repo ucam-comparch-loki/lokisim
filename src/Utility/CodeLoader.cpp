@@ -11,6 +11,7 @@
 #include "StringManipulation.h"
 #include "../Datatype/Instruction.h"
 #include "../TileComponents/TileComponent.h"
+#include "../TileComponents/WrappedTileComponent.h"
 
 bool CodeLoader::usingDebugger = false;
 

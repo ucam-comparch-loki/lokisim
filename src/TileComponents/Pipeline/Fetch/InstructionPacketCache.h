@@ -49,6 +49,9 @@ public:
   // Initialise the contents of the cache with a list of instructions.
   void storeCode(std::vector<Instruction>& instructions);
 
+  // Send out flow control information before execution begins.
+  void initialise();
+
   // Read the next instruction from the cache.
   Instruction read();
 
@@ -93,12 +96,12 @@ private:
   // need to fetch it again.
   void refetch();
 
+  // Perform any necessary tasks when starting to read a new instruction packet.
+  void startOfPacketTasks();
+
   // Perform any necessary tasks when the end of an instruction packet has been
   // reached.
   void endOfPacketTasks();
-
-  // Perform any necessary tasks when starting to read a new instruction packet.
-  void startOfPacketTasks();
 
   // Tells whether an instruction was sent this cycle -- sometimes there may
   // be potential instructions both in the cache and arriving on the network

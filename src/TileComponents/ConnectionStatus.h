@@ -58,19 +58,19 @@ public:
   void teardown();
 
   // Return the remote channel connected to this port.
-  int  getChannel() const;
+  int  channel() const;
 
   // Return the address to access in memory.
-  int  getAddress() const;
+  int  address() const;
 
   // Set the remote channel connected to this port.
-  void setChannel(int channel);
+  void channel(int channel);
 
   // Set the memory address to read from.
-  void setReadAddress(int addr);
+  void readAddress(int addr);
 
   // Set the memory address to write to.
-  void setWriteAddress(int addr);
+  void writeAddress(int addr);
 
   // Start a streaming operation.
   void startStreaming();
@@ -101,10 +101,10 @@ private:
 
   static const int BYTES_PER_WORD = 4;
 
-  int   remoteChannel;
-  int   address;
-  short operation;
-  bool  repeatOperation;
+  int   remoteChannel_;
+  int   address_;
+  short operation_;
+  bool  repeatOperation_;
 
 };
 

@@ -9,150 +9,151 @@
 #include "Instruction.h"
 #include "MemoryRequest.h"
 
-uint8_t DecodedInst::getOperation() const {
-  return operation;
+uint8_t DecodedInst::operation() const {
+  return operation_;
 }
 
-uint8_t DecodedInst::getSource1() const {
-  return sourceReg1;
+uint8_t DecodedInst::sourceReg1() const {
+  return sourceReg1_;
 }
 
-uint8_t DecodedInst::getSource2() const {
-  return sourceReg2;
+uint8_t DecodedInst::sourceReg2() const {
+  return sourceReg2_;
 }
 
-uint8_t DecodedInst::getDestination() const {
-  return destReg;
+uint8_t DecodedInst::destinationReg() const {
+  return destReg_;
 }
 
-int32_t DecodedInst::getImmediate() const {
-  return immediate;
+int32_t DecodedInst::immediate() const {
+  return immediate_;
 }
 
-uint8_t DecodedInst::getChannelMap() const {
-  return channelMapEntry;
+uint8_t DecodedInst::channelMapEntry() const {
+  return channelMapEntry_;
 }
 
-uint8_t DecodedInst::getPredicate() const {
-  return predicate;
+uint8_t DecodedInst::predicate() const {
+  return predicate_;
 }
 
-bool    DecodedInst::getSetPredicate() const {
-  return setPred;
+bool    DecodedInst::setsPredicate() const {
+  return setsPred_;
 }
 
-uint8_t DecodedInst::getMemoryOp() const {
-  return memoryOp;
+uint8_t DecodedInst::memoryOp() const {
+  return memoryOp_;
 }
 
 
-int32_t DecodedInst::getOperand1() const {
-  return operand1;
+int32_t DecodedInst::operand1() const {
+  return operand1_;
 }
 
-int32_t DecodedInst::getOperand2() const {
-  return operand2;
+int32_t DecodedInst::operand2() const {
+  return operand2_;
 }
 
-int64_t DecodedInst::getResult() const {
-  return result;
+int64_t DecodedInst::result() const {
+  return result_;
 }
 
 
 bool    DecodedInst::hasOperand1() const {
-  return _hasOperand1;
+  return hasOperand1_;
 }
 
 bool    DecodedInst::hasResult() const {
-  return _hasResult;
+  return hasResult_;
 }
 
 
-void    DecodedInst::setOperation(const uint8_t val) {
-  operation = val;
+void    DecodedInst::operation(const uint8_t val) {
+  operation_ = val;
 }
 
-void    DecodedInst::setSource1(const uint8_t val) {
-  sourceReg1 = val;
+void    DecodedInst::sourceReg1(const uint8_t val) {
+  sourceReg1_ = val;
 }
 
-void    DecodedInst::setSource2(const uint8_t val) {
-  sourceReg2 = val;
+void    DecodedInst::sourceReg2(const uint8_t val) {
+  sourceReg2_ = val;
 }
 
-void    DecodedInst::setDestination(const uint8_t val) {
-  destReg = val;
+void    DecodedInst::destination(const uint8_t val) {
+  destReg_ = val;
 }
 
-void    DecodedInst::setImmediate(const int32_t val) {
-  immediate = val;
+void    DecodedInst::immediate(const int32_t val) {
+  immediate_ = val;
 }
 
-void    DecodedInst::setChannelMap(const uint8_t val) {
-  channelMapEntry = val;
+void    DecodedInst::channelMapEntry(const uint8_t val) {
+  channelMapEntry_ = val;
 }
 
-void    DecodedInst::setPredicate(const uint8_t val) {
-  predicate = val;
+void    DecodedInst::predicate(const uint8_t val) {
+  predicate_ = val;
 }
 
-void    DecodedInst::setSetPredicate(const bool val) {
-  setPred = val;
+void    DecodedInst::setsPredicate(const bool val) {
+  setsPred_ = val;
 }
 
-void    DecodedInst::setMemoryOp(const uint8_t val) {
-  memoryOp = val;
+void    DecodedInst::memoryOp(const uint8_t val) {
+  memoryOp_ = val;
 }
 
 
-void    DecodedInst::setOperand1(const int32_t val) {
-  operand1 = val;
+void    DecodedInst::operand1(const int32_t val) {
+  operand1_ = val;
 }
 
-void    DecodedInst::setOperand2(const int32_t val) {
-  operand2 = val;
+void    DecodedInst::operand2(const int32_t val) {
+  operand2_ = val;
 }
 
-void    DecodedInst::setResult(const int64_t val) {
-  result = val;
-  _hasResult = true;
+void    DecodedInst::result(const int64_t val) {
+  result_ = val;
+  hasResult_ = true;
 }
 
 
 bool DecodedInst::operator== (const DecodedInst& other) const {
-  return  operation       == other.operation &&
-          sourceReg1      == other.sourceReg1 &&
-          sourceReg2      == other.sourceReg2 &&
-          destReg         == other.destReg &&
-          immediate       == other.immediate &&
-          channelMapEntry == other.channelMapEntry &&
-          predicate       == other.predicate &&
-          setPred         == other.setPred &&
+  return  operation_       == other.operation_ &&
+          sourceReg1_      == other.sourceReg1_ &&
+          sourceReg2_      == other.sourceReg2_ &&
+          destReg_         == other.destReg_ &&
+          immediate_       == other.immediate_ &&
+          channelMapEntry_ == other.channelMapEntry_ &&
+          predicate_       == other.predicate_ &&
+          setsPred_        == other.setsPred_ &&
 
-          operand1        == other.operand1 &&
-          operand2        == other.operand2 &&
-          result          == other.result &&
+          operand1_        == other.operand1_ &&
+          operand2_        == other.operand2_ &&
+          result_          == other.result_ &&
 
-          _hasOperand1    == other._hasOperand1 &&
-          _hasResult      == other._hasResult;
+          hasOperand1_     == other.hasOperand1_ &&
+          hasResult_       == other.hasResult_;
 }
 
 DecodedInst& DecodedInst::operator= (const DecodedInst& other) {
-  operation       = other.operation;
-  sourceReg1      = other.sourceReg1;
-  sourceReg2      = other.sourceReg2;
-  destReg         = other.destReg;
-  immediate       = other.immediate;
-  channelMapEntry = other.channelMapEntry;
-  predicate       = other.predicate;
-  setPred         = other.setPred;
+  operation_       = other.operation_;
+  sourceReg1_      = other.sourceReg1_;
+  sourceReg2_      = other.sourceReg2_;
+  destReg_         = other.destReg_;
+  immediate_       = other.immediate_;
+  channelMapEntry_ = other.channelMapEntry_;
+  predicate_       = other.predicate_;
+  setsPred_        = other.setsPred_;
+  memoryOp_        = other.memoryOp_;
 
-  operand1        = other.operand1;
-  operand2        = other.operand2;
-  result          = other.result;
+  operand1_        = other.operand1_;
+  operand2_        = other.operand2_;
+  result_          = other.result_;
 
-  _hasOperand1    = other._hasOperand1;
-  _hasResult      = other._hasResult;
+  hasOperand1_     = other.hasOperand1_;
+  hasResult_       = other.hasResult_;
 
   return *this;
 }
@@ -163,21 +164,21 @@ DecodedInst::DecodedInst() {
 }
 
 DecodedInst::DecodedInst(Instruction i) {
-  operation       = InstructionMap::operation(i.getOp());
-  sourceReg1      = i.getSrc1();
-  sourceReg2      = i.getSrc2();
-  destReg         = i.getDest();
-  immediate       = i.getImmediate();
-  channelMapEntry = i.getRchannel();
-  predicate       = i.getPredicate();
-  setPred         = i.getSetPredicate();
-  memoryOp        = MemoryRequest::NONE;
+  operation_       = InstructionMap::operation(i.opcode());
+  sourceReg1_      = i.sourceReg1();
+  sourceReg2_      = i.sourceReg2();
+  destReg_         = i.destination();
+  immediate_       = i.immediate();
+  channelMapEntry_ = i.remoteChannel();
+  predicate_       = i.predicate();
+  setsPred_        = i.setsPredicate();
+  memoryOp_        = MemoryRequest::NONE;
 
-  operand1        = 0;
-  operand2        = 0;
-  result          = 0;
+  operand1_        = 0;
+  operand2_        = 0;
+  result_          = 0;
 
-  _hasOperand1 = _hasResult = false;
+  hasOperand1_ = hasResult_ = false;
 }
 
 DecodedInst::~DecodedInst() {

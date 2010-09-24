@@ -33,19 +33,23 @@ public:
 
 public:
 
-  int32_t toInt() const;
-  int64_t toLong() const;
+  int32_t  toInt() const;
+  int64_t  toLong() const;
+
+  // Returns an integer representing the least significant specified number
+  // of bits.
+  uint32_t lowestBits(const int limit) const;
 
   friend void sc_trace(sc_core::sc_trace_file*& tf, const Word& w, const std::string& txt) {
-    sc_core::sc_trace(tf, w.data, txt);
+    sc_core::sc_trace(tf, w.data_, txt);
   }
 
-  bool operator== (const Word& other) const;
+  bool     operator== (const Word& other) const;
 
-  Word& operator= (const Word& other);
+  Word&    operator= (const Word& other);
 
   friend std::ostream& operator<< (std::ostream& os, Word const& v) {
-    os << (int)v.data;
+    os << (int)v.data_;
     return os;
   }
 
@@ -61,7 +65,7 @@ protected:
 
 protected:
 
-  uint64_t data;
+  uint64_t data_;
 
 };
 

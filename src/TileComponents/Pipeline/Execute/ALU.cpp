@@ -12,10 +12,10 @@
 
 bool ALU::execute(DecodedInst& dec) {
 
-  if(dec.getOperation() == InstructionMap::NOP) return false;
+  if(dec.operation() == InstructionMap::NOP) return false;
   if(dec.hasResult()) return true;
 
-  bool execute = shouldExecute(dec.getPredicate());
+  bool execute = shouldExecute(dec.predicate());
 //  Instrumentation::operation(operation.read(), execute);
   if(!execute) return false;
 
@@ -23,16 +23,16 @@ bool ALU::execute(DecodedInst& dec) {
 
   // Cast to 32 bits because our architecture is supposed to use 32-bit
   // arithmetic. Also perform any necessary data forwarding.
-  int32_t val1 = (useDataForwarding(dec.getSource1())) ? lastResult
-                                                       : dec.getOperand1();
-  int32_t val2 = (useDataForwarding(dec.getSource2())) ? lastResult
-                                                       : dec.getOperand2();
+  int32_t val1 = (useDataForwarding(dec.sourceReg1())) ? lastResult
+                                                       : dec.operand1();
+  int32_t val2 = (useDataForwarding(dec.sourceReg2())) ? lastResult
+                                                       : dec.operand2();
   int32_t result;
 
   if(DEBUG) cout << this->name() << ": executing " <<
-    InstructionMap::name(dec.getOperation())<<" on "<<val1<<" and "<<val2<<endl;
+    InstructionMap::name(dec.operation())<<" on "<<val1<<" and "<<val2<<endl;
 
-  switch(dec.getOperation()) {
+  switch(dec.operation()) {
 
     case InstructionMap::SLL:
     case InstructionMap::SLLV:   result = val1 << val2; break;
@@ -81,16 +81,16 @@ bool ALU::execute(DecodedInst& dec) {
     default: result = val1; // Is this a good default?
   }
 
-  dec.setResult(result);
+  dec.result(result);
   lastResult = result;
   // We don't want to forward any data sent to register 0.
-  lastDestination = (dec.getDestination() == 0) ? -1 : dec.getDestination();
+  lastDestination = (dec.destinationReg() == 0) ? -1 : dec.destinationReg();
 
-  if(dec.getSetPredicate()) {
+  if(dec.setsPredicate()) {
 
     bool newPredicate;
 
-    switch(dec.getOperation()) {
+    switch(dec.operation()) {
       // For additions, the predicate bit acts as the carry bit.
       case InstructionMap::ADDU:
       case InstructionMap::ADDUI: newPredicate = ((int64_t)val1+(int64_t)val2) > UINT_MAX;

@@ -50,6 +50,11 @@ void FetchStage::newCycle() {
 
 }
 
+void FetchStage::initialise() {
+  fifo.initialise();
+  cache.initialise();
+}
+
 void FetchStage::storeCode(std::vector<Instruction>& instructions) {
   cache.storeCode(instructions);
 }

@@ -12,11 +12,14 @@
 #define CODELOADER_H_
 
 #include "../Tile.h"
-#include "../TileComponents/WrappedTileComponent.h"
-#include "../Datatype/Word.h"
 
 using std::string;
 using std::vector;
+
+class Tile;
+class TileComponent;
+class Word;
+class WrappedTileComponent;
 
 class CodeLoader {
 

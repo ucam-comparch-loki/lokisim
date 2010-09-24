@@ -20,11 +20,11 @@ void Crossbar::route(input_port inputs[],
     // If the input is new, see if we can send
     if(inputs[i].event()) {
       AddressedWord aw = inputs[i].read();
-      short chID = aw.getChannelID();
+      short chID = aw.channelID();
 
       // If we haven't already sent to this output, send
       if(!sent[chID]) {
-        outputs[chID].write(aw.getPayload());   // Write the data
+        outputs[chID].write(aw.payload());   // Write the data
         sent[chID] = true;                      // Stop anyone else from writing
 
         // TODO: extract instrumentation to base class
@@ -81,7 +81,7 @@ void Crossbar::printMessage(uint length, AddressedWord data, int from, int to) {
   int inChans      = fromOutputs ? NUM_CLUSTER_OUTPUTS : NUM_CLUSTER_INPUTS;
   int outChans     = fromOutputs ? NUM_CLUSTER_INPUTS  : NUM_CLUSTER_OUTPUTS;
 
-  cout << "Network sent " << data.getPayload() <<
+  cout << "Network sent " << data.payload() <<
        " from channel "<<from<<" (comp "<<from/inChans<<", "<<out<<from%inChans<<
        ") to channel "<<to<<" (comp "<<to/outChans<<", "<<in<<to%outChans
        << ")" << endl;

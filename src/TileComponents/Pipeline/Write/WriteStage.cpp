@@ -28,15 +28,15 @@ void WriteStage::newCycle() {
     if(active) {
       DecodedInst dec = result.read();
 
-      if(DEBUG) cout << this->name() << " received Data: " << dec.getResult()
+      if(DEBUG) cout << this->name() << " received Data: " << dec.result()
                      << endl;
 
       // Put data into the send channel-end table.
       scet.write(dec);
 
       // Write to registers (they ignore the write if the index is invalid).
-      writeReg(dec.getDestination(), dec.getResult(),
-                 dec.getOperation() == InstructionMap::IWTR);
+      writeReg(dec.destinationReg(), dec.result(),
+                 dec.operation() == InstructionMap::IWTR);
     }
 
     idle.write(!active);

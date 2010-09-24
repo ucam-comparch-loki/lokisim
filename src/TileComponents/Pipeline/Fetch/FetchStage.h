@@ -88,6 +88,9 @@ private:
   // The task performed at the beginning of each clock cycle.
   virtual void  newCycle();
 
+  // Send out initial flow control values.
+  virtual void  initialise();
+
   // If any new instructions have arrived, pass them to the corresponding components.
   void          checkInputs();
 

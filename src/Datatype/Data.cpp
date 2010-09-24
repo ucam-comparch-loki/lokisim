@@ -7,8 +7,8 @@
 
 #include "Data.h"
 
-uint32_t Data::getData() const {
-  return (uint32_t)data;
+uint32_t Data::data() const {
+  return (uint32_t)data_;
 }
 
 void Data::moveBit(const int oldPos, const int newPos) {

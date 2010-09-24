@@ -8,7 +8,6 @@
 #include <math.h>
 #include "IndirectRegisterFile.h"
 #include "../Cluster.h"
-#include "../../Datatype/Address.h"
 #include "../../Datatype/Word.h"
 
 int32_t IndirectRegisterFile::read(RegisterIndex reg, bool indirect) const {
@@ -53,7 +52,7 @@ void IndirectRegisterFile::updateIndirectReg(RegisterIndex address, Word data) {
 
   static int numBits = ceil(log2(NUM_PHYSICAL_REGISTERS));
 
-  uint8_t lowestBits = (static_cast<Address>(data)).getLowestBits(numBits);
+  uint8_t lowestBits = data.lowestBits(numBits);
   indirectRegs.write(lowestBits, address);
 
 }
@@ -98,7 +97,7 @@ RegisterIndex IndirectRegisterFile::fromChannelID(RegisterIndex position) {
 
 void IndirectRegisterFile::updateCurrentIPK(Address addr) {
   // setfetchch specifies the channel, so only the address is required here.
-  Word w(addr.getAddress());
+  Word w(addr.address());
   regs.write(w, 1);
 }
 

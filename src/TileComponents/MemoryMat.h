@@ -17,10 +17,10 @@
 #define MEMORYMAT_H_
 
 #include "TileComponent.h"
-#include "ConnectionStatus.h"
 #include "../Memory/AddressedStorage.h"
 #include "../Memory/BufferArray.h"
 
+class ConnectionStatus;
 class Word;
 
 class MemoryMat: public TileComponent {
@@ -70,10 +70,11 @@ public:
 
 private:
 
+  // Method which is called at the beginning of each clock cycle.
   // Look through all inputs for new data. Determine whether this data is the
   // start of a new transaction or the continuation of an existing one. Then
   // carry out the first/next step of the transaction.
-  void doOp();
+  void newCycle();
 
   // Carry out a read for the transaction at input "position".
   void read(int position);

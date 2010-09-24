@@ -45,7 +45,7 @@ void Instrumentation::networkTraffic(int startID, int endID, double distance) {
 }
 
 void Instrumentation::operation(Instruction inst, bool executed, int id) {
-  Operations::operation(InstructionMap::operation(inst.getOp()), executed);
+  Operations::operation(InstructionMap::operation(inst.opcode()), executed);
   Debugger::executedInstruction(inst, id);
 }
 

@@ -9,7 +9,6 @@
 #define TRACEFILE_H_
 
 #include "systemc"
-#include "Parameters.h"
 
 using sc_core::sc_trace_file;
 using std::string;

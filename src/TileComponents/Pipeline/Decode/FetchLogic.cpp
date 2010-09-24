@@ -12,8 +12,8 @@
 
 void FetchLogic::fetch(Address addr) {
   // Create a new memory request and wrap it up in an AddressedWord
-  MemoryRequest mr(addr.getAddress(), MemoryRequest::IPK_READ);
-  AddressedWord request(mr, addr.getChannelID());
+  MemoryRequest mr(addr.address(), MemoryRequest::IPK_READ);
+  AddressedWord request(mr, addr.channelID());
 
   if(!inCache(addr)) {
     toSend.write(request);     // Put the new request in the queue

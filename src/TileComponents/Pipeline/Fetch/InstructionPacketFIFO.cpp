@@ -28,6 +28,10 @@ bool InstructionPacketFIFO::isEmpty() {
   return fifo.isEmpty();
 }
 
+void InstructionPacketFIFO::initialise() {
+  updateFlowControl();
+}
+
 InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
     Component(name),
     fifo(IPK_FIFO_SIZE) {

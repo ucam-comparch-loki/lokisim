@@ -80,7 +80,7 @@ protected:
   // Generate a memory request using the address from the ALU and the operation
   // supplied by the decoder. The memory request will be sent to a memory and
   // will result in an operation being carried out there.
-  Word getMemoryRequest(DecodedInst& dec) const;
+  Word makeMemoryRequest(DecodedInst& dec) const;
 
 //==============================//
 // Local state

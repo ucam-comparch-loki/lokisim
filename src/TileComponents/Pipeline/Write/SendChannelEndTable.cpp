@@ -16,26 +16,26 @@ const ChannelID SendChannelEndTable::NULL_MAPPING;
 
 void SendChannelEndTable::write(DecodedInst& dec) {
 
-  if(dec.getOperation()==InstructionMap::SETCHMAP) {
-    updateMap(dec.getImmediate(), dec.getResult());
+  if(dec.operation()==InstructionMap::SETCHMAP) {
+    updateMap(dec.immediate(), dec.result());
   }
-  else if(dec.getOperation() == InstructionMap::WOCHE) {
-    waitUntilEmpty(dec.getResult());
+  else if(dec.operation() == InstructionMap::WOCHE) {
+    waitUntilEmpty(dec.result());
   }
-  else if(dec.getChannelMap() != Instruction::NO_CHANNEL &&
-          getChannel(dec.getChannelMap() != NULL_MAPPING)) {
+  else if(dec.channelMapEntry() != Instruction::NO_CHANNEL &&
+          getChannel(dec.channelMapEntry()) != NULL_MAPPING) {
     Word w;
 
-    if(dec.getMemoryOp() != MemoryRequest::NONE) {
+    if(dec.memoryOp() != MemoryRequest::NONE) {
       // Generate a special memory request if we are doing a load/store/etc.
-      w = getMemoryRequest(dec);
+      w = makeMemoryRequest(dec);
     }
     else {
-      w = Word(dec.getResult());
+      w = Word(dec.result());
     }
 
-    AddressedWord aw(w, getChannel(dec.getChannelMap()));
-    ChannelIndex index = chooseBuffer(dec.getChannelMap());
+    AddressedWord aw(w, getChannel(dec.channelMapEntry()));
+    ChannelIndex index = chooseBuffer(dec.channelMapEntry());
 
     // We know it is safe to write to any buffer because we block the rest
     // of the pipeline if a buffer is full.
@@ -49,8 +49,8 @@ void SendChannelEndTable::write(DecodedInst& dec) {
 
 /* Generate a memory request using the address from the ALU and the operation
  * supplied by the decoder. */
-Word SendChannelEndTable::getMemoryRequest(DecodedInst& dec) const {
-  MemoryRequest mr(dec.getResult(), dec.getMemoryOp());
+Word SendChannelEndTable::makeMemoryRequest(DecodedInst& dec) const {
+  MemoryRequest mr(dec.result(), dec.memoryOp());
   return mr;
 }
 

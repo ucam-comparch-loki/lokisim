@@ -25,37 +25,40 @@ class Instruction: public Word {
 
 public:
 
-  uint8_t  getOp() const;
-  uint8_t  getDest() const;
-  uint8_t  getSrc1() const;
-  uint8_t  getSrc2() const;
-  uint8_t  getRchannel() const;
-  int32_t  getImmediate() const;
-  uint8_t  getPredicate() const;
-  bool     getSetPredicate() const;
+  // Accessors
+  uint8_t  opcode() const;
+  uint8_t  destination() const;
+  uint8_t  sourceReg1() const;
+  uint8_t  sourceReg2() const;
+  uint8_t  remoteChannel() const;
+  int32_t  immediate() const;
+  uint8_t  predicate() const;
+  bool     setsPredicate() const;
   bool     endOfPacket() const;
 
-  void setOp(const uint8_t val);
-  void setDest(const uint8_t val);
-  void setSrc1(const uint8_t val);
-  void setSrc2(const uint8_t val);
-  void setRchannel(const uint8_t val);
-  void setImmediate(const int32_t val);
-  void setPredicate(const uint8_t val);
-  void setSetPred(const bool val);
+  // Mutators
+  void     opcode(const uint8_t val);
+  void     destination(const uint8_t val);
+  void     sourceReg1(const uint8_t val);
+  void     sourceReg2(const uint8_t val);
+  void     remoteChannel(const uint8_t val);
+  void     immediate(const int32_t val);
+  void     predicate(const uint8_t val);
+  void     setsPredicate(const bool val);
 
-  bool operator== (const Instruction& other) const;
+  uint64_t toLong() const;
+  bool     operator== (const Instruction& other) const;
 
   // Has to go in header
   friend std::ostream& operator<< (std::ostream& os, const Instruction& v) {
-    if(v.getPredicate() == P) os << "p?";
-    else if(v.getPredicate() == NOT_P) os << "!p?";
+    if(v.predicate() == P) os << "p?";
+    else if(v.predicate() == NOT_P) os << "!p?";
 
-    os << InstructionMap::name(InstructionMap::operation(v.getOp()))
-       << (v.getSetPredicate()?".p":"") << (v.endOfPacket()?".eop":"")
-       << " r" << (int)v.getDest() << " r" << (int)v.getSrc1()
-       << " r" << (int)v.getSrc2() << " " << v.getImmediate();
-    if(v.getRchannel() != NO_CHANNEL) os << " -> " << (int)v.getRchannel();
+    os << InstructionMap::name(InstructionMap::operation(v.opcode()))
+       << (v.setsPredicate()?".p":"") << (v.endOfPacket()?".eop":"")
+       << " r" << (int)v.destination() << " r" << (int)v.sourceReg1()
+       << " r" << (int)v.sourceReg2() << " " << v.immediate();
+    if(v.remoteChannel() != NO_CHANNEL) os << " -> " << (int)v.remoteChannel();
     return os;
   }
 

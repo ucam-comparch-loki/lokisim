@@ -67,7 +67,7 @@ public:
 
 public:
 
-  virtual double area()  const;
+  virtual double area()   const;
   virtual double energy() const;
 
   // Store initial instructions or data into the contained cluster or memory.

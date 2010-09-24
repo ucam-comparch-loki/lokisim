@@ -6,7 +6,7 @@
  */
 
 #include "TileComponent.h"
-#include "../Datatype/Word.h"
+#include "../Datatype/AddressedWord.h"
 
 void TileComponent::print(int start, int end) const {
   // Do nothing if print isn't defined

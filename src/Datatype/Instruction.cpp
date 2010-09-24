@@ -38,45 +38,55 @@ const short startImmediate = startSetPred + 1;    // 32
 const short end            = startImmediate + 32; // 64
 
 /* Public getter methods */
-uint8_t Instruction::getOp() const {
+uint8_t Instruction::opcode() const {
   return getBits(startOpcode, startPredicate-1);
 }
 
-uint8_t Instruction::getDest() const {
+uint8_t Instruction::destination() const {
   return getBits(startDest, startOpcode-1);
 }
 
-uint8_t Instruction::getSrc1() const {
+uint8_t Instruction::sourceReg1() const {
   return getBits(startSrc1, startDest-1);
 }
 
-uint8_t Instruction::getSrc2() const {
+uint8_t Instruction::sourceReg2() const {
   return getBits(startSrc2, startSrc1-1);
 }
 
-uint8_t Instruction::getRchannel() const {
+uint8_t Instruction::remoteChannel() const {
   return getBits(startChannelID, startSrc2-1);
 }
 
-int32_t Instruction::getImmediate() const {
+int32_t Instruction::immediate() const {
   return (int32_t)getBits(startImmediate, end-1);
 }
 
-uint8_t Instruction::getPredicate() const {
+uint8_t Instruction::predicate() const {
   return getBits(startPredicate, startSetPred-1);
 }
 
-bool Instruction::getSetPredicate() const {
+bool Instruction::setsPredicate() const {
   return getBits(startSetPred, startImmediate-1);
 }
 
 bool Instruction::endOfPacket() const {
-  return getPredicate() == END_OF_PACKET;
+  return predicate() == END_OF_PACKET;
 }
 
 
+uint64_t Instruction::toLong() const {
+  // Hack: when we make an instruction from an integer, we change the opcode
+  // representation. We therefore need to do the reverse of this when making
+  // an integer from an instruction.
+//  Instruction copy(*this);
+//  copy.opcode(InstructionMap::operation(opcode()));
+//  return copy.data_;
+  return data_;
+}
+
 bool Instruction::operator== (const Instruction& other) const {
-  return this->data == other.data;
+  return this->data_ == other.data_;
 }
 
 /* Constructors and destructors */
@@ -91,7 +101,7 @@ Instruction::Instruction(const Word& other) : Word(other) {
 Instruction::Instruction(const uint64_t inst) : Word(inst) {
   // Need to change the opcode representation in case it has changed
   // internally.
-  setOp(InstructionMap::opcode(InstructionMap::name(getOp())));
+  opcode(InstructionMap::opcode(InstructionMap::name(opcode())));
 }
 
 Instruction::Instruction(const string& inst) {
@@ -110,8 +120,8 @@ Instruction::Instruction(const string& inst) {
 
   // Split around "->" to see if there is a remote channel specified
   words = Strings::split(words.front(), '>');
-  if(words.size() > 1) setRchannel(decodeRChannel(words[1]));
-  else setRchannel(NO_CHANNEL);
+  if(words.size() > 1) remoteChannel(decodeRChannel(words[1]));
+  else remoteChannel(NO_CHANNEL);
 
   // Split around ' ' to separate all remaining parts of the instruction
   words = Strings::split(words.front(), ' ');
@@ -132,35 +142,35 @@ Instruction::~Instruction() {
 }
 
 /* Private setter methods */
-void Instruction::setOp(const uint8_t val) {
+void Instruction::opcode(const uint8_t val) {
   setBits(startOpcode, startPredicate-1, val);
 }
 
-void Instruction::setDest(const uint8_t val) {
+void Instruction::destination(const uint8_t val) {
   setBits(startDest, startOpcode-1, val);
 }
 
-void Instruction::setSrc1(const uint8_t val) {
+void Instruction::sourceReg1(const uint8_t val) {
   setBits(startSrc1, startDest-1, val);
 }
 
-void Instruction::setSrc2(const uint8_t val) {
+void Instruction::sourceReg2(const uint8_t val) {
   setBits(startSrc2, startSrc1-1, val);
 }
 
-void Instruction::setRchannel(const uint8_t val) {
+void Instruction::remoteChannel(const uint8_t val) {
   setBits(startChannelID, startSrc2-1, val);
 }
 
-void Instruction::setImmediate(const int32_t val) {
+void Instruction::immediate(const int32_t val) {
   setBits(startImmediate, end-1, val);
 }
 
-void Instruction::setPredicate(const uint8_t val) {
+void Instruction::predicate(const uint8_t val) {
   setBits(startPredicate, startSetPred-1, val);
 }
 
-void Instruction::setSetPred(const bool val) {
+void Instruction::setsPredicate(const bool val) {
   setBits(startSetPred, startSetPred, val?1:0);
 }
 
@@ -191,29 +201,29 @@ uint8_t Instruction::decodeField(const string& str) {
     // Use decodeRChannel to allow the immediate to be written in remote
     // channel notation: (12,2).
     // TODO: doesn't work yet because we split around commas earlier.
-    setImmediate(decodeRChannel(reg));
+    immediate(decodeRChannel(reg));
     return 0;
   }
 
 }
 
 /* Extract all information from the opcode, and set the relevant fields. */
-void Instruction::decodeOpcode(const string& opcode) {
+void Instruction::decodeOpcode(const string& name) {
 
   // Try splitting the opcode to see if it is predicated
-  vector<string> opcodeParts = Strings::split(opcode, '?');
+  vector<string> opcodeParts = Strings::split(name, '?');
 
   string opcodeString;
 
   // Set the predicate bits
   if(opcodeParts.size() > 1) {
-    string predicate = opcodeParts[0];
-    if(predicate == "p" || predicate == "ifp") setPredicate(P);
-    else if(predicate == "!p" || predicate == "if!p") setPredicate(NOT_P);
+    string pred = opcodeParts[0];
+    if(pred == "p" || pred == "ifp")        predicate(P);
+    else if(pred == "!p" || pred == "if!p") predicate(NOT_P);
     opcodeString = opcodeParts[1];
   }
   else {
-    setPredicate(ALWAYS);
+    predicate(ALWAYS);
     opcodeString = opcodeParts[0];
   }
 
@@ -222,22 +232,22 @@ void Instruction::decodeOpcode(const string& opcode) {
 
   if(opcodeParts.size() > 1) {
     string setting = opcodeParts[1];
-    if(setting == "eop") setPredicate(END_OF_PACKET);
-    else if(setting == "p") setSetPred(true);
+    if(setting == "eop") predicate(END_OF_PACKET);
+    else if(setting == "p") setsPredicate(true);
     else if(setting == "fetch") {
       string pselfetch = "psel.fetch";
-      setOp(InstructionMap::opcode(pselfetch));
+      opcode(InstructionMap::opcode(pselfetch));
       if(opcodeParts.size() > 2 && opcodeParts[2] == "eop")
-        setPredicate(END_OF_PACKET);
-      setSetPred(false);
+        predicate(END_OF_PACKET);
+      setsPredicate(false);
       return;
     }
-    else setSetPred(false);
+    else setsPredicate(false);
   }
 
   // Look up operation in InstructionMap
   short op = InstructionMap::opcode(opcodeParts.front());
-  setOp(op);
+  opcode(op);
 
 }
 
@@ -259,7 +269,7 @@ int32_t Instruction::decodeRChannel(const string& channel) {
 
 void Instruction::setFields(const uint8_t reg1, const uint8_t reg2,
                             const uint8_t reg3) {
-  int operation = InstructionMap::operation(getOp());
+  int operation = InstructionMap::operation(opcode());
 
   switch(operation) {
 
@@ -274,7 +284,7 @@ void Instruction::setFields(const uint8_t reg1, const uint8_t reg2,
     case InstructionMap::RMTFETCHPST :
     case InstructionMap::RMTFILL :
     case InstructionMap::SETCHMAP : {
-      setSrc1(reg1);
+      sourceReg1(reg1);
       break;
     }
 
@@ -282,16 +292,16 @@ void Instruction::setFields(const uint8_t reg1, const uint8_t reg2,
     case InstructionMap::ST :
     case InstructionMap::STB :
     case InstructionMap::PSELFETCH : {
-      setSrc1(reg1);
-      setSrc2(reg2);
+      sourceReg1(reg1);
+      sourceReg2(reg2);
       break;
     }
 
     // Two sources and a destination.
     default : {
-      setDest(reg1);
-      setSrc1(reg2);
-      setSrc2(reg3);
+      destination(reg1);
+      sourceReg1(reg2);
+      sourceReg2(reg3);
       break;
     }
   }

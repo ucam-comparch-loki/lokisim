@@ -18,24 +18,28 @@ class Address: public Word {
 
 public:
 
-  uint16_t getAddress() const;
-  uint16_t getChannelID() const;
-  bool getReadBit() const;
+  // Return the memory address being referred to.
+  uint16_t address() const;
 
-  uint32_t getLowestBits(const int limit) const;
+  // Return the channel ID of the memory we want the data from.
+  uint16_t channelID() const;
 
-  void addOffset(const int offset);
+  // Tell whether we are accessing the memory address to read or write it.
+  // 1 = read, 0 = write.
+  bool     readBit() const;
+
+  void     addOffset(const int offset);
 
   // Has to go in header
   friend std::ostream& operator<< (std::ostream& os, const Address& v) {
-    os << "(" << v.getAddress() << ", " << v.getChannelID() << ")";
+    os << "(" << v.address() << ", " << v.channelID() << ")";
     return os;
   }
 
 private:
 
-  void setAddress(const uint16_t addr);
-  void setChannelID(const uint16_t channelID);
+  void address(const uint16_t addr);
+  void channelID(const uint16_t channelID);
   void setRWBit(const bool read);
 
 //==============================//

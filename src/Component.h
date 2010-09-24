@@ -22,7 +22,6 @@ using sc_core::sc_out;
 using sc_core::sc_signal;
 using sc_core::sc_buffer;   // Like an sc_signal, but every write makes an event
 using sc_core::sc_module_name;
-using sc_core::sc_event;
 
 using std::cout;
 using std::cerr;
@@ -57,15 +56,10 @@ public:
 public:
 
   // An estimate of the component's area in square micrometres.
-  virtual double area()  const;
+  virtual double area()   const;
 
   // An estimate of the energy consumed by the component in picojoules.
   virtual double energy() const;
-
-protected:
-
-  // Cause this event to notify any processes listening to it.
-  static void wake(sc_event& e);
 
 private:
 

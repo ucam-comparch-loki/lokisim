@@ -1,8 +1,15 @@
+% Initialise the mapping table and fetch the particular implementation being used.
+
 nop
-ori         r3,  r0,  51
-ori         r4,  r0,  48
-setchmap    r3,       1         ; instruction memory control port = map 1
-ori         r0,  r0,  16  > 1   ; connect to the instruction memory
-setchmap    r4,       0         ; instruction memory = map 0 (fetch channel)
-nop
-fetch.eop   r0,       0         ; fetch main program
+ori             r3,  r0,  51
+ori             r4,  r0,  48
+ori             r5,  r0,  55
+ori             r6,  r0,  52
+ori             r7,  r0,  6
+setchmap        r4,       0             ; instruction memory = map 0 (fetch channel)
+setchmap        r3,       1             ; instruction memory control port = map 1
+setchmap        r5        2             ; data memory control port = map 2
+ori             r0,  r0,  16  > 1       ; connect to the instruction memory
+setchmap        r6,       3             ; data memory = map 3
+setchmap        r7,       4             ; cluster 1 = map 4
+fetch.eop       r0,       0             ; fetch main program

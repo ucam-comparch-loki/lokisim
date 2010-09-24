@@ -21,50 +21,50 @@ class DecodedInst {
 
 public:
 
-  uint8_t getOperation() const;
-  uint8_t getSource1() const;
-  uint8_t getSource2() const;
-  uint8_t getDestination() const;
-  int32_t getImmediate() const;
-  uint8_t getChannelMap() const;
-  uint8_t getPredicate() const;
-  bool    getSetPredicate() const;
-  uint8_t getMemoryOp() const;
+  uint8_t operation() const;
+  uint8_t sourceReg1() const;
+  uint8_t sourceReg2() const;
+  uint8_t destinationReg() const;
+  int32_t immediate() const;
+  uint8_t channelMapEntry() const;
+  uint8_t predicate() const;
+  bool    setsPredicate() const;
+  uint8_t memoryOp() const;
 
-  int32_t getOperand1() const;
-  int32_t getOperand2() const;
-  int64_t getResult() const;
+  int32_t operand1() const;
+  int32_t operand2() const;
+  int64_t result() const;
 
   bool    hasOperand1() const;
   bool    hasResult() const;
 
-  void    setOperation(const uint8_t val);
-  void    setSource1(const uint8_t val);
-  void    setSource2(const uint8_t val);
-  void    setDestination(const uint8_t val);
-  void    setImmediate(const int32_t val);
-  void    setChannelMap(const uint8_t val);
-  void    setPredicate(const uint8_t val);
-  void    setSetPredicate(const bool val);
-  void    setMemoryOp(const uint8_t val);
+  void    operation(const uint8_t val);
+  void    sourceReg1(const uint8_t val);
+  void    sourceReg2(const uint8_t val);
+  void    destination(const uint8_t val);
+  void    immediate(const int32_t val);
+  void    channelMapEntry(const uint8_t val);
+  void    predicate(const uint8_t val);
+  void    setsPredicate(const bool val);
+  void    memoryOp(const uint8_t val);
 
-  void    setOperand1(const int32_t val);
-  void    setOperand2(const int32_t val);
-  void    setResult(const int64_t val);
+  void    operand1(const int32_t val);
+  void    operand2(const int32_t val);
+  void    result(const int64_t val);
 
   friend void sc_trace(sc_core::sc_trace_file*& tf, const DecodedInst& i, const std::string& txt) {
-    sc_core::sc_trace(tf, i.operation, txt + ".operation");
-    sc_core::sc_trace(tf, i.destReg, txt + ".rd");
-    sc_core::sc_trace(tf, i.sourceReg1, txt + ".rs");
-    sc_core::sc_trace(tf, i.sourceReg2, txt + ".rt");
-    sc_core::sc_trace(tf, i.immediate, txt + ".immediate");
-    sc_core::sc_trace(tf, i.channelMapEntry, txt + ".channel");
-    sc_core::sc_trace(tf, i.predicate, txt + ".predicate");
-    sc_core::sc_trace(tf, i.setPred, txt + ".set_predicate");
+    sc_core::sc_trace(tf, i.operation_,       txt + ".operation");
+    sc_core::sc_trace(tf, i.destReg_,         txt + ".rd");
+    sc_core::sc_trace(tf, i.sourceReg1_,      txt + ".rs");
+    sc_core::sc_trace(tf, i.sourceReg2_,      txt + ".rt");
+    sc_core::sc_trace(tf, i.immediate_,       txt + ".immediate");
+    sc_core::sc_trace(tf, i.channelMapEntry_, txt + ".channel");
+    sc_core::sc_trace(tf, i.predicate_,       txt + ".predicate");
+    sc_core::sc_trace(tf, i.setsPred_,        txt + ".set_predicate");
 
-    sc_core::sc_trace(tf, i.operand1, txt + ".operand1");
-    sc_core::sc_trace(tf, i.operand2, txt + ".operand2");
-    sc_core::sc_trace(tf, i.result, txt + ".result");
+    sc_core::sc_trace(tf, i.operand1_,        txt + ".operand1");
+    sc_core::sc_trace(tf, i.operand2_,        txt + ".operand2");
+    sc_core::sc_trace(tf, i.result_,          txt + ".result");
   }
 
   bool operator== (const DecodedInst& other) const;
@@ -92,24 +92,24 @@ public:
 
 private:
 
-  uint8_t operation;
-  uint8_t sourceReg1;
-  uint8_t sourceReg2;
-  uint8_t destReg;
-  int32_t immediate;
-  uint8_t channelMapEntry;
-  uint8_t predicate;
-  bool    setPred;
-  uint8_t memoryOp;
+  uint8_t operation_;
+  uint8_t sourceReg1_;
+  uint8_t sourceReg2_;
+  uint8_t destReg_;
+  int32_t immediate_;
+  uint8_t channelMapEntry_;
+  uint8_t predicate_;
+  bool    setsPred_;
+  uint8_t memoryOp_;
 
-  int32_t operand1;
-  int32_t operand2;
-  int64_t result;         // May be an instruction
+  int32_t operand1_;
+  int32_t operand2_;
+  int64_t result_;         // May be an instruction
 
   // Use to determine whether fields have already been set.
   // Can't just use != 0 because they may have been set to 0.
-  bool    _hasOperand1;
-  bool    _hasResult;
+  bool    hasOperand1_;
+  bool    hasResult_;
 
 };
 

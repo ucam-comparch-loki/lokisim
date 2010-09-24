@@ -18,12 +18,12 @@ class AddressedWord : public Word {
 
 public:
 
-  Word getPayload() const;
-  uint16_t getChannelID() const;
+  Word     payload() const;
+  uint16_t channelID() const;
 
   friend void sc_trace(sc_core::sc_trace_file*& tf, const AddressedWord& w, const std::string& txt) {
-    sc_trace(tf, w.payload, txt + ".payload");
-    sc_core::sc_trace(tf, w.channelID, txt + ".channelID");
+    sc_trace(tf, w.payload_, txt + ".payload");
+    sc_core::sc_trace(tf, w.channelID_, txt + ".channelID");
   }
 
   bool operator== (const AddressedWord& other) const;
@@ -31,7 +31,7 @@ public:
   AddressedWord& operator= (const AddressedWord& other);
 
   friend std::ostream& operator<< (std::ostream& os, AddressedWord const& v) {
-    os << "(" << v.payload << " -> " << v.channelID << ")";
+    os << "(" << v.payload_ << " -> " << v.channelID_ << ")";
     return os;
   }
 
@@ -51,8 +51,8 @@ public:
 
 private:
 
-  Word payload;
-  uint16_t channelID;
+  Word payload_;
+  uint16_t channelID_;
   // Type of word?
 
 };

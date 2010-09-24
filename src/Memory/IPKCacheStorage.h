@@ -34,13 +34,13 @@ public:
 
 public:
 
-  // Returns whether the given address matches any of the tags
+  // Returns whether the given address matches any of the tags.
   virtual bool checkTags(const Address& key);
 
-  // Returns the next item in the cache
+  // Returns the next item in the cache.
   virtual Instruction& read();
 
-  // Writes new data to a position determined using the given key
+  // Writes new data to a position determined using the given key.
   virtual void write(const Address& key, const Instruction& newData);
 
   // Jump to a new instruction at a given offset.
@@ -91,14 +91,17 @@ private:
 
 private:
 
+  // Current instruction pointer and refill pointer.
   LoopCounter currInst, refill;
+
   uint16_t fillCount;
   uint16_t currInstBackup;   // In case it goes NOT_IN_USE and then a jump is used
 
   bool persistentMode;  // Tells if we are reading the same packet repeatedly
 
+  // Location of the next packet to be executed.
   // Do we want a single pending packet, or a queue of them?
-  uint16_t pendingPacket;  // Location of the next packet to be executed
+  uint16_t pendingPacket;
 
   // The index of the first instruction of the current instruction packet.
   uint16_t currentPacket;

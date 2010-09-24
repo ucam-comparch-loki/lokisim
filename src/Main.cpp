@@ -60,8 +60,8 @@ int sc_main(int argc, char* argv[]) {
         else cyclesIdle = 0;
       }
     }
-    catch(std::exception e) {}  // If there's no error message, it might mean
-                                // that not everything is connected properly.
+    catch(std::exception& e) {}  // If there's no error message, it might mean
+                                 // that not everything is connected properly.
   }
 
 //  tile.print(13, 512, 768);

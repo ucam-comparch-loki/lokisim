@@ -39,9 +39,17 @@ public:
 
 public:
 
+  // Read a single instruction from the end of the FIFO.
   Instruction read();
+
+  // Write an instruction to the end of the FIFO.
   void write(Instruction inst);
+
+  // Returns whether the FIFO is empty.
   bool isEmpty();
+
+  // Send out initial flow control values before execution begins.
+  void initialise();
 
 private:
 

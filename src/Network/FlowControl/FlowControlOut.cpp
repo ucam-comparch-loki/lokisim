@@ -12,7 +12,7 @@ void FlowControlOut::receivedResponses() {
   for(int i=0; i<width; i++) {
     if(responses[i].event()) {
       Data d = static_cast<Data>(responses[i].read());
-      allowedToSend(i, d.getData());
+      allowedToSend(i, d.data());
     }
   }
 }
@@ -36,7 +36,7 @@ void FlowControlOut::sendRequests() {
   for(int i=0; i<width; i++) {
     if(dataIn[i].event() || (clock.event() && waitingToRequest[i])) {
       Request r(id*width + i);
-      AddressedWord req(r, dataIn[i].read().getChannelID());
+      AddressedWord req(r, dataIn[i].read().channelID());
       requests[i].write(req);
       waitingToRequest[i] = false;
     }

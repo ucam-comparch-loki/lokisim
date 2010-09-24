@@ -6,6 +6,7 @@
  */
 
 #include "MemoryMat.h"
+#include "ConnectionStatus.h"
 #include "../Datatype/AddressedWord.h"
 #include "../Datatype/ChannelRequest.h"
 #include "../Datatype/Data.h"
@@ -18,7 +19,7 @@ const int MemoryMat::CONTROL_INPUT = NUM_CLUSTER_INPUTS - 1;
 /* Look through all inputs for new data. Determine whether this data is the
  * start of a new transaction or the continuation of an existing one. Then
  * carry out the first/next step of the transaction. */
-void MemoryMat::doOp() {
+void MemoryMat::newCycle() {
 
   // Inputs are always allowed to the control port
   flowControlOut[CONTROL_INPUT].write(1);
@@ -55,14 +56,14 @@ void MemoryMat::doOp() {
           if(DEBUG) cout << "read from address " << r.getAddress() << endl;
           if(r.isIPKRequest()) {
             connection.startStreaming();
-            connection.setReadAddress(r.getAddress());
+            connection.readAddress(r.getAddress());
           }
           read(i);
         }
         // Dealing with a write request
         else {
           if(DEBUG) cout << "store to address " << r.getAddress() << endl;
-          connection.setWriteAddress(r.getAddress());
+          connection.writeAddress(r.getAddress());
           if(r.getOperation() == MemoryRequest::STADDR) {
             connection.startStreaming();
           }
@@ -92,10 +93,10 @@ void MemoryMat::read(int position) {
   ConnectionStatus& connection = connections[position];
   Word w;
   int addr;
-  int channel = connection.getChannel();
+  int channel = connection.channel();
 
   if(connection.readingIPK()) {
-    addr = connection.getAddress();
+    addr = connection.address();
     w = data.read(addr/BYTES_PER_WORD);
 
     if(static_cast<Instruction>(w).endOfPacket()) {
@@ -111,7 +112,7 @@ void MemoryMat::read(int position) {
     }
   }
   else {
-    addr = static_cast<Data>(in[position].read()).getData();
+    addr = static_cast<Data>(in[position].read()).data();
 
     if(connection.isByteAccess()) {
       // Extract an individual byte.
@@ -154,7 +155,7 @@ void MemoryMat::read(int position) {
 void MemoryMat::write(Word w, int position) {
   ConnectionStatus& connection = connections[position];
 
-  int addr = connection.getAddress();
+  int addr = connection.address();
   if(!connection.isByteAccess()) data.write(w, addr/BYTES_PER_WORD);
   else {
     // If dealing with bytes, need to read the old value and only update
@@ -195,7 +196,7 @@ void MemoryMat::updateControl() {
   if(type == ChannelRequest::SETUP) {
     // Set up the connection if there isn't one there already
     if(!connection.isActive()) {
-      connection.setChannel(req.getReturnChannel());
+      connection.channel(req.getReturnChannel());
       flowControlOut[port].write(buffers[port].remainingSpace());
 
       // could make port 0 the control port, so it has an output to send replies on
@@ -275,7 +276,7 @@ MemoryMat::MemoryMat(sc_module_name name, int ID) :
   wordsLoaded = 0;
 
   // Register methods
-  SC_METHOD(doOp);
+  SC_METHOD(newCycle);
   sensitive << clock.pos();
   dont_initialize();
 
