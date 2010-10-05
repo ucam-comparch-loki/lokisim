@@ -12,8 +12,11 @@ Cluster* PipelineStage::parent() const {
 }
 
 void PipelineStage::execute() {
+  // Initialisation usually involves tasks such as sending initial flow control
+  // values.
   initialise();
 
+  // We then loop forever, executing the appropriate tasks each clock cycle.
   while(true) {
     newCycle();
     wait(clock.posedge_event());

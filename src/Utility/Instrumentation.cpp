@@ -12,7 +12,7 @@
 #include "Instrumentation/Network.h"
 #include "Instrumentation/Operations.h"
 #include "Instrumentation/Stalls.h"
-#include "../Datatype/Instruction.h"
+#include "../Datatype/DecodedInst.h"
 
 void Instrumentation::IPKCacheHit(bool hit) {
   IPKCache::cacheHit(hit);
@@ -44,9 +44,9 @@ void Instrumentation::networkTraffic(int startID, int endID, double distance) {
   Network::traffic(startID, endID, distance);
 }
 
-void Instrumentation::operation(Instruction inst, bool executed, int id) {
-  Operations::operation(InstructionMap::operation(inst.opcode()), executed);
-  Debugger::executedInstruction(inst, id);
+void Instrumentation::operation(DecodedInst inst, bool executed, int id) {
+  Operations::operation(inst.operation(), executed);
+  Debugger::executedInstruction(inst, id, executed);
 }
 
 void Instrumentation::printStats() {

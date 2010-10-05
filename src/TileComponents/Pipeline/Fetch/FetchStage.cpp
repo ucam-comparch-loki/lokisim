@@ -16,11 +16,61 @@ double FetchStage::energy() const {
   return cache.energy() + fifo.energy();// + mux.energy();
 }
 
+void FetchStage::execute() {
+  initialise();
+
+    while(true) {
+      newCycle();
+
+      // We read from the cache in the second half of the cycle so we have time
+      // to perform an in-buffer jump beforehand if necessary. In the actual
+      // implementation, this would probably not be triggered by a clock edge;
+      // it would just happen relatively late in the cycle.
+      wait(clock.negedge_event());
+
+      cycleSecondHalf();
+
+      wait(clock.posedge_event());
+    }
+}
+
 void FetchStage::newCycle() {
 
   // See if we have received any new instructions.
   checkInputs();
 
+  calculateSelect();
+
+//  // Consider the pipeline to be stalled if the first pipeline stage is not
+//  // allowed to do any work. Only report the stall status when it changes.
+//  if(readyIn.read() == stalled) {
+//    parent()->pipelineStalled(!readyIn.read());
+//    stalled = !readyIn.read();
+//  }
+//
+//  if(readyIn.read()) {
+//    // Select a new instruction if the decode stage is ready for one, unless
+//    // the FIFO and cache are both empty.
+//    if(!(fifo.isEmpty() && cache.isEmpty())) {
+//      calculateSelect();
+//      if(usingCache) lastInstruction = cache.read();
+//      else           lastInstruction = fifo.read();
+//      instruction.write(lastInstruction);
+//      idle.write(false);
+//
+//      if(DEBUG) {
+//        printf("%s selected instruction from %s: ", this->name(),
+//                                                    usingCache?"cache":"FIFO");
+//        cout << lastInstruction << endl;
+//      }
+//    }
+//    else idle.write(true);  // Idle if we have no instructions.
+//  }
+//  else idle.write(true);    // Idle if we can't send any instructions.
+
+}
+
+void FetchStage::cycleSecondHalf() {
   // Consider the pipeline to be stalled if the first pipeline stage is not
   // allowed to do any work. Only report the stall status when it changes.
   if(readyIn.read() == stalled) {
@@ -32,7 +82,7 @@ void FetchStage::newCycle() {
     // Select a new instruction if the decode stage is ready for one, unless
     // the FIFO and cache are both empty.
     if(!(fifo.isEmpty() && cache.isEmpty())) {
-      calculateSelect();
+//      calculateSelect();
       if(usingCache) lastInstruction = cache.read();
       else           lastInstruction = fifo.read();
       instruction.write(lastInstruction);
@@ -47,7 +97,6 @@ void FetchStage::newCycle() {
     else idle.write(true);  // Idle if we have no instructions.
   }
   else idle.write(true);    // Idle if we can't send any instructions.
-
 }
 
 void FetchStage::initialise() {

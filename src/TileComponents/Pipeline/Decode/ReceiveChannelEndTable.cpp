@@ -6,6 +6,7 @@
  */
 
 #include "ReceiveChannelEndTable.h"
+#include "DecodeStage.h"
 #include "../IndirectRegisterFile.h"
 #include "../../../Datatype/Word.h"
 #include "../../../Exceptions/BlockedException.h"
@@ -24,7 +25,7 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
     return result;
   }
   else {   // Reading from empty buffer
-    throw BlockedException();
+    throw BlockedException("receive channel-end table", parent()->id);
   }
 
 }
@@ -46,7 +47,7 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd() {
   }
 
   // If we have got this far, all the buffers are empty
-  throw BlockedException();
+  throw BlockedException("receive channel-end table", parent()->id);
 
 }
 
@@ -72,6 +73,10 @@ void ReceiveChannelEndTable::initialise() {
 
 void ReceiveChannelEndTable::updateFlowControl(ChannelIndex channelEnd) {
   flowControl[channelEnd].write(buffers[channelEnd].remainingSpace());
+}
+
+DecodeStage* ReceiveChannelEndTable::parent() const {
+  return (DecodeStage*)(this->get_parent());
 }
 
 ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name) :

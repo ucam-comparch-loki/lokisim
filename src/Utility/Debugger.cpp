@@ -8,16 +8,17 @@
 #include "Debugger.h"
 #include "StringManipulation.h"
 #include "../Tile.h"
+#include "../Datatype/DecodedInst.h"
 #include "../Datatype/Instruction.h"
 
 bool Debugger::hitBreakpoint = false;
 Tile* Debugger::tile = 0;
-vector<Instruction> Debugger::breakpoints;
+vector<DecodedInst> Debugger::breakpoints;
 
 int Debugger::cycleNumber = 0;
 int Debugger::defaultCore = 1;
-int Debugger::defaultInstMemory = 13;
-int Debugger::defaultDataMemory = 12;
+int Debugger::defaultInstMemory = 12;
+int Debugger::defaultDataMemory = 13;
 
 int Debugger::cyclesIdle = 0;
 
@@ -110,14 +111,15 @@ void Debugger::setBreakPoint(vector<int>& bps, int memory) {
   for(unsigned int j=0; j<bps.size(); j++) {
     Word w = tile->getMemVal(memory, bps[j]);
     Instruction i = static_cast<Instruction>(w);
+    DecodedInst dec(i);
 
-    if(isBreakpoint(i)) {
+    if(isBreakpoint(dec)) {
       cout << "Removed breakpoint: " << i << endl;
-      removeBreakpoint(i);
+      removeBreakpoint(dec);
     }
     else {
       cout << "Set breakpoint: " << i << endl;
-      addBreakpoint(i);
+      addBreakpoint(dec);
     }
   }
 
@@ -160,12 +162,13 @@ void Debugger::printPred(int core) {
   cout << "pred\t" << tile->getPredReg(core) << endl;
 }
 
-void Debugger::executedInstruction(Instruction inst, int core) {
+void Debugger::executedInstruction(DecodedInst inst, int core, bool executed) {
 
 //  int instIndex = tile->getInstIndex(core);
 
   // TODO: only print (or only call this method) if we're using the debugger.
-  cout << core << ":\t" << /*"[" << instIndex << "]\t" <<*/ inst << endl;
+  cout << core << ":\t" << /*"[" << instIndex << "]\t" <<*/ inst
+       << (executed ? "" : " (not executed)") << endl;
 
   if(isBreakpoint(inst)) {
     hitBreakpoint = true;
@@ -230,18 +233,18 @@ vector<int>& Debugger::parseIntVector(vector<string>& words) {
   return *regs;
 }
 
-bool Debugger::isBreakpoint(Instruction i) {
+bool Debugger::isBreakpoint(DecodedInst i) {
   for(unsigned int j=0; j<breakpoints.size(); j++) {
     if(i==breakpoints[j]) return true;
   }
   return false;
 }
 
-void Debugger::addBreakpoint(Instruction i) {
+void Debugger::addBreakpoint(DecodedInst i) {
   breakpoints.push_back(i);
 }
 
-void Debugger::removeBreakpoint(Instruction i) {
+void Debugger::removeBreakpoint(DecodedInst i) {
   for(unsigned int j=0; j<breakpoints.size(); j++) {
     if(i==breakpoints[j]) breakpoints.erase(breakpoints.begin()+j);
   }

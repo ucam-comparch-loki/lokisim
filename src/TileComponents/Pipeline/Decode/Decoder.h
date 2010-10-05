@@ -32,7 +32,7 @@ public:
   // operands are to be. Stores result in DecodedInst. Returns whether there
   // is useful output this cycle -- the first cycle of multi-cycle operations
   // will return false.
-  bool decodeInstruction(Instruction i, DecodedInst& dec);
+  bool decodeInstruction(const Instruction inst, DecodedInst& dec);
 
   // Returns whether the decoder is ready to accept a new instruction.
   bool ready();
@@ -71,11 +71,6 @@ private:
   // predicate bits, and the contents of the predicate register.
   bool shouldExecute(short predBits);
 
-  // Determines whether a read from the specified register will have to be
-  // converted to data forwarding from the ALU, as the register has not yet
-  // been written to.
-  bool readALUOutput(short reg);
-
   DecodeStage* parent() const;
 
 //==============================//
@@ -91,11 +86,6 @@ public:
 // Local state
 //==============================//
 
-public:
-
-  // The possible sources of ALU operands.
-  enum Source {RCET, REGISTERS, ALU, SIGN_EXTEND};
-
 private:
 
   // The remote channel we are fetching from (set using SETFETCHCH).
@@ -105,10 +95,6 @@ private:
 
   // The remote channel we are sending instructions to.
   int  sendChannel;
-
-  // The destination register of the previous operation. Used to determine
-  // whether data should come from the register or directly from the ALU.
-  int  regLastWritten;
 
   // Tells whether or not we are in remote execution mode.
   bool remoteExecute;

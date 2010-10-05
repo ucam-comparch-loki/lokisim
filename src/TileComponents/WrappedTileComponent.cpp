@@ -30,7 +30,7 @@ Word WrappedTileComponent::getMemVal(int addr) const {
 }
 
 int WrappedTileComponent::getRegVal(int reg) const {
-  return comp->getRegVal(reg);
+  return comp->readReg(reg);
 }
 
 int WrappedTileComponent::getInstIndex() const {
@@ -38,7 +38,7 @@ int WrappedTileComponent::getInstIndex() const {
 }
 
 bool WrappedTileComponent::getPredReg() const {
-  return comp->getPredReg();
+  return comp->readPredReg();
 }
 
 void WrappedTileComponent::initialise() {

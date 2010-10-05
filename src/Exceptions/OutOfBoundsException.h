@@ -15,15 +15,15 @@ class OutOfBoundsException : public std::exception {
 public:
 
   OutOfBoundsException(int32_t accessed, int32_t max=100000000) {
-    _accessed = accessed;
-    _max = max;
+    accessed_ = accessed;
+    max_ = max;
   }
 
   virtual const char* what() const throw() {
     std::stringstream ss;
 
-    ss << "Attempting to access memory address " << _accessed;
-    if(_accessed >= _max) ss << " (max = " << _max << ")";
+    ss << "Attempting to access memory address " << accessed_;
+    if(accessed_ >= max_) ss << " (max = " << max_ << ")";
     ss << ".";
 
     return ss.str().c_str();
@@ -31,8 +31,8 @@ public:
 
 private:
 
-  int32_t _accessed;
-  int32_t _max;
+  int32_t accessed_;
+  int32_t max_;
 
 };
 

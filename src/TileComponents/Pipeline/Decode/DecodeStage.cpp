@@ -58,10 +58,10 @@ void         DecodeStage::newCycle() {
 }
 
 void         DecodeStage::decode(Instruction i) {
+  repeatInst = i;
   bool success = decoder.decodeInstruction(i, decoded);
 
   if(success) instructionOut.write(decoded);
-  else        repeatInst = i;
 
   readyOut.write(decoder.ready());
   idle.write(false);
@@ -117,6 +117,8 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
     rcet("rcet"),
     decoder("decoder", ID),
     extend("signextend") {
+
+  id = ID;
 
   in             = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
   flowControlOut = new sc_out<int>[NUM_RECEIVE_CHANNELS];

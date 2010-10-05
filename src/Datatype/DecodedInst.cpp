@@ -6,7 +6,6 @@
  */
 
 #include "DecodedInst.h"
-#include "Instruction.h"
 #include "MemoryRequest.h"
 
 uint8_t DecodedInst::operation() const {

@@ -13,7 +13,7 @@
 
 #include <iostream>
 
-class Instruction;
+class DecodedInst;
 
 class Instrumentation {
 
@@ -41,7 +41,7 @@ public:
   static void networkTraffic(int startID, int endID, double distance);
 
   // Record whether a particular operation was executed or not.
-  static void operation(Instruction inst, bool executed, int id);
+  static void operation(DecodedInst inst, bool executed, int id);
 
   // Print the results of instrumentation.
   static void printStats();

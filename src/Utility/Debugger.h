@@ -14,7 +14,7 @@
 using std::string;
 using std::vector;
 
-class Instruction;
+class DecodedInst;
 class Tile;
 
 class Debugger {
@@ -30,7 +30,7 @@ public:
 
   // Receive notification that a particular core executed a particular
   // instruction.
-  static void executedInstruction(Instruction i, int core);
+  static void executedInstruction(DecodedInst i, int core, bool executed);
 
   // Choose the tile to debug. Make this more general later.
   static void setTile(Tile* t);
@@ -39,9 +39,9 @@ private:
 
   // Set a breakpoint corresponding to an instruction location.
   static void setBreakPoint(vector<int>& bps, int memory=defaultInstMemory);
-  static bool isBreakpoint(Instruction i);
-  static void addBreakpoint(Instruction i);
-  static void removeBreakpoint(Instruction i);
+  static bool isBreakpoint(DecodedInst i);
+  static void addBreakpoint(DecodedInst i);
+  static void removeBreakpoint(DecodedInst i);
 
   // Print the current stack.
   static void printStack(int core=defaultCore, int memory=defaultDataMemory);
@@ -74,7 +74,7 @@ private:
 
   static bool hitBreakpoint;
 
-  static vector<Instruction> breakpoints;
+  static vector<DecodedInst> breakpoints;
   static Tile* tile;
 
   static int cycleNumber;

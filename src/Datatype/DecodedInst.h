@@ -10,8 +10,7 @@
 
 #include <inttypes.h>
 #include "systemc"
-
-class Instruction;
+#include "Instruction.h"
 
 class DecodedInst {
 
@@ -72,7 +71,15 @@ public:
   DecodedInst& operator= (const DecodedInst& other);
 
   friend std::ostream& operator<< (std::ostream& os, DecodedInst const& v) {
-    // Do nothing? Cast to instruction and print that?
+    if(v.predicate() == Instruction::P) os << "p?";
+    else if(v.predicate() == Instruction::NOT_P) os << "!p?";
+
+    os << InstructionMap::name(v.operation())
+       << (v.setsPredicate()?".p":"") << (v.predicate()==Instruction::END_OF_PACKET?".eop":"")
+       << " r" << (int)v.destinationReg() << " r" << (int)v.sourceReg1()
+       << " r" << (int)v.sourceReg2() << " " << v.immediate();
+    if(v.channelMapEntry() != Instruction::NO_CHANNEL) os << " -> " << (int)v.channelMapEntry();
+
     return os;
   }
 

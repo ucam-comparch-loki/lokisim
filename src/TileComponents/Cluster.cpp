@@ -122,7 +122,7 @@ Cluster::Cluster(sc_module_name name, uint16_t ID) :
     regs("regs"),
     pred("predicate"),
     write("write"),
-    execute("execute"),
+    execute("execute", ID),
     decode("decode", ID),   // Needs ID so it can generate a return address
     fetch("fetch") {
 

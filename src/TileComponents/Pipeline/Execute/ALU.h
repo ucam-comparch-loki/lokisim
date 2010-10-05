@@ -11,9 +11,8 @@
 #define ALU_H_
 
 #include "../../../Component.h"
-#include "../../../Datatype/Data.h"
-#include "../../../Datatype/DecodedInst.h"
 
+class DecodedInst;
 class ExecuteStage;
 
 class ALU: public Component {
@@ -45,20 +44,7 @@ private:
   // predicate bits, and the contents of the predicate register.
   bool shouldExecute(short predBits) const;
 
-  // Determine whether a read from the given register should actually result
-  // in data being forwarded from the output of the ALU.
-  bool useDataForwarding(uint8_t regIndex) const;
-
   ExecuteStage* parent() const;
-
-//==============================//
-// Local state
-//==============================//
-
-private:
-
-  int64_t lastResult;
-  uint8_t lastDestination;
 
 };
 

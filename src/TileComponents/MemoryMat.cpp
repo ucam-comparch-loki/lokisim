@@ -263,7 +263,7 @@ void MemoryMat::print(int start, int end) const {
   data.print(start/BYTES_PER_WORD, end/BYTES_PER_WORD);
 }
 
-Word MemoryMat::getMemVal(int addr) const {
+Word MemoryMat::getMemVal(uint32_t addr) const {
   return data.read(addr/BYTES_PER_WORD);
 }
 

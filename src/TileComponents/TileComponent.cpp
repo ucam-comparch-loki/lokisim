@@ -16,7 +16,7 @@ Word TileComponent::getMemVal(uint32_t addr) const {
   return Word(-1);
 }
 
-int32_t TileComponent::getRegVal(uint8_t reg) const {
+int32_t TileComponent::readReg(uint8_t reg, bool indirect) const {
   return -1;
 }
 
@@ -24,7 +24,7 @@ uint16_t TileComponent::getInstIndex() const {
   return -1;
 }
 
-bool TileComponent::getPredReg() const {
+bool TileComponent::readPredReg() const {
   return false;
 }
 

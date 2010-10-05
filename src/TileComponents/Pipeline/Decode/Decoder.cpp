@@ -16,13 +16,13 @@
 
 typedef IndirectRegisterFile Registers;
 
-bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
+bool Decoder::decodeInstruction(const Instruction inst, DecodedInst& dec) {
 
   if(currentlyWriting) {
-    return completeWrite(i, dec);
+    return completeWrite(inst, dec);
   }
 
-  dec = DecodedInst(i);
+  dec = DecodedInst(inst);
 
   // Instructions that never reach the ALU (e.g. fetch) need to know whether
   // they should execute in this stage.
@@ -31,8 +31,10 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
   // If we are in remote execution mode, send all marked instructions.
   if(remoteExecute) {
     if(dec.predicate() == Instruction::P) {
-      i.predicate(Instruction::END_OF_PACKET); // Set it to always execute
-      dec.result(i.toLong());
+      Instruction copy = inst;
+
+      copy.predicate(Instruction::END_OF_PACKET); // Set it to always execute
+      dec.result(copy.toLong());
       dec.channelMapEntry(sendChannel);
 
       // Prevent other stages from trying to execute this instruction.
@@ -48,9 +50,9 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
     }
   }
 
-  // Need this in ALU instead? No - we change the operation sometimes.
-  // Doesn't matter: the different operation is still being executed.
-  Instrumentation::operation(i, execute, id);
+  // Only perform this if we aren't blocked to prevent repeated occurrences.
+  if(!blocked && !InstructionMap::isALUOperation(dec.operation()))
+    Instrumentation::operation(dec, execute, id);
 
   // Need a big try block in case we block when reading from a channel end.
   try {
@@ -74,9 +76,10 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
 
       case InstructionMap::ST :
       case InstructionMap::STB : {
-        setOperand1ToValue(dec, dec.sourceReg1());
+        setOperand1ToValue(dec, dec.sourceReg2());
         setOperand2ToValue(dec, 0, dec.immediate());
         dec.operation(InstructionMap::ADDUI);
+        dec.sourceReg1(0); dec.sourceReg2(0);
         currentlyWriting = true;
         if(operation == InstructionMap::ST)
              dec.memoryOp(MemoryRequest::STORE);
@@ -129,17 +132,19 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
 
       case InstructionMap::RMTFETCH : {
         string opName = "fetch";
-        i.opcode(InstructionMap::opcode(opName));
-        i.predicate(Instruction::END_OF_PACKET);
-        dec.result(i.toLong());
+        Instruction copy = inst;
+        copy.opcode(InstructionMap::opcode(opName));
+        copy.predicate(Instruction::END_OF_PACKET);
+        dec.result(copy.toLong());
         break;
       }
 
       case InstructionMap::RMTFETCHPST : {
         string opName = "fetchpst";
-        i.opcode(InstructionMap::opcode(opName));
-        i.predicate(Instruction::END_OF_PACKET);
-        dec.result(i.toLong());
+        Instruction copy = inst;
+        copy.opcode(InstructionMap::opcode(opName));
+        copy.predicate(Instruction::END_OF_PACKET);
+        dec.result(copy.toLong());
         break;
       }
 
@@ -204,9 +209,6 @@ bool Decoder::decodeInstruction(Instruction i, DecodedInst& dec) {
       default : {
         setOperand1(dec);
         setOperand2(dec);
-
-        if(dec.destinationReg() == 0) regLastWritten = -1;
-        else regLastWritten = dec.destinationReg();
       }
 
     } // end switch
@@ -234,7 +236,7 @@ void Decoder::setOperand2(DecodedInst& dec) {
   setOperand2ToValue(dec, dec.sourceReg2(), dec.immediate());
 }
 
-/* Determine where to read the first operand from: RCET, ALU or registers */
+/* Determine where to read the first operand from: RCET or registers */
 void Decoder::setOperand1ToValue(DecodedInst& dec, int32_t reg) {
   // There are some cases where we are repeating the operation, and don't want
   // to store the operands again.
@@ -251,7 +253,7 @@ void Decoder::setOperand1ToValue(DecodedInst& dec, int32_t reg) {
   }
 }
 
-/* Determine where to get second operand from: immediate, RCET, ALU or regs */
+/* Determine where to get second operand from: immediate, RCET or regs */
 void Decoder::setOperand2ToValue(DecodedInst& dec, int32_t reg, int32_t immed) {
   if(InstructionMap::hasImmediate(dec.operation())) {
     dec.operand2(immed);
@@ -280,10 +282,18 @@ void Decoder::fetch(Address a) {
 
 /* Sends the second part of a two-flit store operation (the data to send). */
 bool Decoder::completeWrite(Instruction i, DecodedInst& dec) {
-  regLastWritten = -1; // Hack - we're executing the same instruction twice
   dec = DecodedInst(i);
-  setOperand1ToValue(dec, dec.destinationReg());
+
+  try {
+    setOperand1ToValue(dec, dec.sourceReg1());
+  }
+  catch(BlockedException& b) {
+    blocked = true;
+    return false;
+  }
+
   currentlyWriting = false;
+  blocked = false;
 
   return true;
 }
@@ -300,13 +310,6 @@ bool Decoder::shouldExecute(short predBits) {
 
 }
 
-/* Determines whether to forward the output of the ALU when trying to read
- * from this register. This should happen when this register was written to
- * in the previous cycle, and the register isn't reserved. */
-bool Decoder::readALUOutput(short reg) {
-  return (reg != 0) && (reg == regLastWritten) && (regLastWritten != -1);
-}
-
 DecodeStage* Decoder::parent() const {
   return (DecodeStage*)(this->get_parent());
 }
@@ -315,7 +318,7 @@ Decoder::Decoder(sc_module_name name, int ID) : Component(name) {
 
   this->id = ID;
 
-  regLastWritten = sendChannel = fetchChannel = -1;
+  sendChannel = fetchChannel = -1;
   remoteExecute = false;
 
 }

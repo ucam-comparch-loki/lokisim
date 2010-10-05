@@ -8,6 +8,7 @@
 #include "ALU.h"
 #include "ExecuteStage.h"
 #include "../../../Utility/InstructionMap.h"
+#include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
 
 bool ALU::execute(DecodedInst& dec) {
@@ -16,17 +17,18 @@ bool ALU::execute(DecodedInst& dec) {
   if(dec.hasResult()) return true;
 
   bool execute = shouldExecute(dec.predicate());
-//  Instrumentation::operation(operation.read(), execute);
+
+  if(InstructionMap::isALUOperation(dec.operation()))
+    Instrumentation::operation(dec, execute, parent()->id);
+
   if(!execute) return false;
 
   bool pred = parent()->getPredicate();
 
   // Cast to 32 bits because our architecture is supposed to use 32-bit
   // arithmetic. Also perform any necessary data forwarding.
-  int32_t val1 = (useDataForwarding(dec.sourceReg1())) ? lastResult
-                                                       : dec.operand1();
-  int32_t val2 = (useDataForwarding(dec.sourceReg2())) ? lastResult
-                                                       : dec.operand2();
+  int32_t val1 = dec.operand1();
+  int32_t val2 = dec.operand2();
   int32_t result;
 
   if(DEBUG) cout << this->name() << ": executing " <<
@@ -82,9 +84,6 @@ bool ALU::execute(DecodedInst& dec) {
   }
 
   dec.result(result);
-  lastResult = result;
-  // We don't want to forward any data sent to register 0.
-  lastDestination = (dec.destinationReg() == 0) ? -1 : dec.destinationReg();
 
   if(dec.setsPredicate()) {
 
@@ -124,11 +123,6 @@ bool ALU::shouldExecute(short predBits) const {
 
   return result;
 
-}
-
-bool ALU::useDataForwarding(uint8_t regIndex) const {
-  return (regIndex != 0) && (regIndex == lastDestination) &&
-         (lastDestination != -1);
 }
 
 ExecuteStage* ALU::parent() const {

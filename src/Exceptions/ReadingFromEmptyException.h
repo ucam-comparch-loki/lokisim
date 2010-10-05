@@ -13,7 +13,7 @@ class ReadingFromEmptyException : public std::exception {
 public:
 
   ReadingFromEmptyException(std::string name = std::string("storage location")) {
-    _name = name;
+    name_ = name;
   }
 
   virtual ~ReadingFromEmptyException() throw() {
@@ -23,14 +23,14 @@ public:
   virtual const char* what() const throw() {
     std::stringstream ss;
 
-    ss << "Attempting to read from empty " << _name << ".";
+    ss << "Attempting to read from empty " << name_ << ".";
 
     return ss.str().c_str();
   }
 
 private:
 
-  std::string _name;
+  std::string name_;
 
 };
 

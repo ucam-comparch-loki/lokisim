@@ -45,7 +45,7 @@ public:
 public:
 
   SC_HAS_PROCESS(ExecuteStage);
-  ExecuteStage(sc_module_name name);
+  ExecuteStage(sc_module_name name, int ID);
   virtual ~ExecuteStage();
 
 //==============================//
@@ -68,6 +68,13 @@ private:
   // Write to the predicate register.
   void setPredicate(bool val);
 
+  // Check the forwarding paths to see if this instruction is expecting a value
+  // which hasn't been written to registers yet.
+  void checkForwarding(DecodedInst& inst);
+
+  // Update the forwarding paths using this recently-executed instruction.
+  void updateForwarding(DecodedInst& inst);
+
 //==============================//
 // Components
 //==============================//
@@ -77,6 +84,17 @@ private:
   ALU                 alu;
 
   friend class ALU;
+
+//==============================//
+// Local state
+//==============================//
+
+private:
+
+  // Store the previous two results and destination registers, to allow data
+  // forwarding when necessary. 2 is older than 1.
+  uint8_t previousDest1, previousDest2;
+  int64_t previousResult1, previousResult2;
 
 };
 

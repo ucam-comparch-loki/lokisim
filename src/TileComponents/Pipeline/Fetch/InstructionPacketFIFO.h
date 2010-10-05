@@ -13,6 +13,8 @@
 #include "../../../Component.h"
 #include "../../../Memory/Buffer.h"
 
+class Instruction;
+
 class InstructionPacketFIFO : public Component {
 
 //==============================//

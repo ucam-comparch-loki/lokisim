@@ -85,8 +85,15 @@ public:
 
 private:
 
+  // The main loop controlling this pipeline stage.
+  virtual void  execute();
+
   // The task performed at the beginning of each clock cycle.
   virtual void  newCycle();
+
+  // The fetch stage needs to be sure that other tasks have completed before
+  // reading from the cache, so waits until later in the cycle to do it.
+  void          cycleSecondHalf();
 
   // Send out initial flow control values.
   virtual void  initialise();

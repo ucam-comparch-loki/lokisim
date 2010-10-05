@@ -70,13 +70,13 @@ public:
   virtual Word getMemVal(uint32_t addr) const;
 
   // Return the value held in the specified register.
-  virtual int32_t getRegVal(uint8_t reg) const;
+  virtual int32_t readReg(uint8_t reg, bool indirect = false) const;
 
   // Return the memory index of the instruction currently being decoded.
   virtual uint16_t getInstIndex() const;
 
   // Return the value of the predicate register.
-  virtual bool getPredReg() const;
+  virtual bool readPredReg() const;
 
   enum Type {CLUSTER, MEMORY};
 

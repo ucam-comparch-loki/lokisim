@@ -17,6 +17,7 @@
 #include "../../../Memory/BufferArray.h"
 #include "../../../Utility/LoopCounter.h"
 
+class DecodeStage;
 class Word;
 
 typedef uint8_t ChannelIndex;
@@ -75,6 +76,8 @@ private:
 
   // Update the flow control value for a particular input port.
   void updateFlowControl(ChannelIndex channelEnd);
+
+  DecodeStage* parent() const;
 
 //==============================//
 // Local state

@@ -66,7 +66,7 @@ public:
   virtual void print(int start=0, int end=MEMORY_SIZE) const;
 
   // Return the value at the given address.
-  virtual Word getMemVal(int addr) const;
+  virtual Word getMemVal(uint32_t addr) const;
 
 private:
 
