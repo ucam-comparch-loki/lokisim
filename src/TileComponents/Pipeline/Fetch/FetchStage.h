@@ -85,9 +85,6 @@ public:
 
 private:
 
-  // The main loop controlling this pipeline stage.
-  virtual void  execute();
-
   // The task performed at the beginning of each clock cycle.
   virtual void  newCycle();
 

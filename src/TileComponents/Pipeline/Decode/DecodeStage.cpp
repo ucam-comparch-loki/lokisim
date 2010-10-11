@@ -17,6 +17,8 @@ double       DecodeStage::energy() const {
 }
 
 void         DecodeStage::initialise() {
+  readyOut.write(true);
+  idle.write(true);
   rcet.initialise();
 }
 
@@ -58,6 +60,7 @@ void         DecodeStage::newCycle() {
 }
 
 void         DecodeStage::decode(Instruction i) {
+  // Store the instruction in case we need to use it again.
   repeatInst = i;
   bool success = decoder.decodeInstruction(i, decoded);
 

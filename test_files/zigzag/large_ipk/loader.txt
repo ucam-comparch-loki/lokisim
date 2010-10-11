@@ -1,0 +1,6 @@
+directory zigzag
+
+0 ../0.loki
+1 ../1.loki
+12 12_ipk.loki
+13 ../13.data

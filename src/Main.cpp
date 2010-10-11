@@ -64,10 +64,6 @@ int sc_main(int argc, char* argv[]) {
                                  // that not everything is connected properly.
   }
 
-//  tile.print(13, 512, 768);
-//  tile.print(14, 0, 256);
-//  tile.print(15, 0, 256);
-
   Instrumentation::printStats();
 
   return 0;

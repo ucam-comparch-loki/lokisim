@@ -40,7 +40,7 @@ public:
   void    operation(const uint8_t val);
   void    sourceReg1(const uint8_t val);
   void    sourceReg2(const uint8_t val);
-  void    destination(const uint8_t val);
+  void    destinationReg(const uint8_t val);
   void    immediate(const int32_t val);
   void    channelMapEntry(const uint8_t val);
   void    predicate(const uint8_t val);

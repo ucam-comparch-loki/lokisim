@@ -19,10 +19,6 @@ void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
 
   cache.storeCode(instructions);
 
-  Instruction inst = cache.read();
-
-  if(inst.endOfPacket()) endOfPacketTasks();
-
 }
 
 void InstructionPacketCache::initialise() {
@@ -152,10 +148,6 @@ void InstructionPacketCache::startOfPacketTasks() {
   finishedPacketRead = false;
 }
 
-bool InstructionPacketCache::sentInstThisCycle() const {
-  return sc_core::sc_time_stamp().to_default_time_units() == lastInstSent;
-}
-
 FetchStage* InstructionPacketCache::parent() const {
   return (FetchStage*)(this->get_parent());
 }
@@ -168,7 +160,6 @@ InstructionPacketCache::InstructionPacketCache(sc_module_name name) :
 
   outputWasRead = true;   // Allow the first received instruction to pass through
   startOfPacket = true;
-  lastInstSent = -1;
 
 }
 

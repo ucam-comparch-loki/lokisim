@@ -1,6 +1,5 @@
 % Initialise the mapping table and fetch the particular implementation being used.
 
-nop
 ori             r3,  r0,  51
 ori             r4,  r0,  48
 ori             r5,  r0,  55

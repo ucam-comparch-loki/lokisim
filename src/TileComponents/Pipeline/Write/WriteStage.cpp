@@ -16,6 +16,11 @@ double WriteStage::energy() const {
   return scet.energy();// + mux.energy();
 }
 
+void WriteStage::initialise() {
+  readyOut.write(true);
+  idle.write(true);
+}
+
 void WriteStage::newCycle() {
 
   if(!scet.isFull()) {

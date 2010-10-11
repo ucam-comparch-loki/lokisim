@@ -25,6 +25,11 @@ void ExecuteStage::setPredicate(bool val) {
   parent()->writePredReg(val);
 }
 
+void ExecuteStage::initialise() {
+  readyOut.write(true);
+  idle.write(true);
+}
+
 void ExecuteStage::newCycle() {
 
   if(!readyIn.read()) {
@@ -53,8 +58,8 @@ void ExecuteStage::newCycle() {
       idle.write(false);
     }
     else {
-      idle.write(true);
       readyOut.write(true);
+      idle.write(true);
     }
   }
 

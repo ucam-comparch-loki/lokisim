@@ -119,10 +119,6 @@ private:
   IPKCacheStorage cache;
   Buffer<Address> addresses;
 
-  // The cycle during which the most recent instruction was sent -- allows us
-  // to avoid sending more than one in a single cycle.
-  int             lastInstSent;
-
   // The instruction sent has been read, so we can now prepare the next one.
   bool            outputWasRead;
 

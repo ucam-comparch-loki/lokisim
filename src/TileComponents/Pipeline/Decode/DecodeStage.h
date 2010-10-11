@@ -13,7 +13,6 @@
 #define DECODESTAGE_H_
 
 #include "../PipelineStage.h"
-#include "../../../Datatype/Instruction.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "FetchLogic.h"
 #include "ReceiveChannelEndTable.h"

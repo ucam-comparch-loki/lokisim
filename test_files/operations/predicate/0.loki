@@ -1,0 +1,25 @@
+
+seqi.p      r0,  r0,  1         ; 0 == 1 = 0
+seqi.p      r0,  r0,  0         ; 0 == 0 = 1
+
+snei.p      r0,  r0,  1         ; 0 != 1 = 1
+snei.p      r0,  r0,  0         ; 0 != 0 = 0
+
+slti.p      r0,  r0,  5         ; 0 <  5 = 1
+slti.p      r0,  r0,  -5        ; 0 < -5 = 0
+slti.p      r0,  r0,  0         ; 0 <  0 = 0
+
+sltiu.p     r0,  r0,  5         ; 0 <  5 = 1
+sltiu.p     r0,  r0,  -5        ; 0 <  huge number = 1
+sltiu.p     r0,  r0,  0         ; 0 <  0 = 0
+
+addui.p     r3,  r0,  2000000000 ; max signed int = 2.1 billion => no overflow
+subu.p      r0,  r0,  r3        ; carry set because 0 - 2e9 < 0
+subu.p      r0,  r3,  r0        ; carry not set because 2e9 - 0 >= 0
+subu.p      r0,  r0,  r0        ; carry not set because 0 - 0 >= 0
+rsubi.p     r0,  r0,  5         ; carry not set because 5 - 0 >= 0
+rsubi.p     r0,  r3,  5         ; carry set because 5 - 2e9 < 0
+rsubi.p     r0,  r0,  0         ; carry not set because 0 - 0 >= 0
+addui.p     r3,  r3,  2000000000 ; carry set because 2e9 + 2e9 > 2.1e9
+
+nop.eop

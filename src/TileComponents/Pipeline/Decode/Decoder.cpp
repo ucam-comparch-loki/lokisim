@@ -39,7 +39,7 @@ bool Decoder::decodeInstruction(const Instruction inst, DecodedInst& dec) {
 
       // Prevent other stages from trying to execute this instruction.
       dec.operation(InstructionMap::OR);
-      dec.destination(0);
+      dec.destinationReg(0);
 
       return true;
     }

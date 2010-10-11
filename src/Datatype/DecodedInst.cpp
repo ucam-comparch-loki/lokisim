@@ -79,7 +79,7 @@ void    DecodedInst::sourceReg2(const uint8_t val) {
   sourceReg2_ = val;
 }
 
-void    DecodedInst::destination(const uint8_t val) {
+void    DecodedInst::destinationReg(const uint8_t val) {
   destReg_ = val;
 }
 

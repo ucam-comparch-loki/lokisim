@@ -59,6 +59,9 @@ public:
 
 private:
 
+  // Set up this pipeline stage before execution begins.
+  virtual void initialise();
+
   // The task performed at the beginning of each clock cycle.
   virtual void newCycle();
 

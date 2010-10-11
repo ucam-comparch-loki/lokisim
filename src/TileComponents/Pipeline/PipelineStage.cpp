@@ -19,11 +19,17 @@ void PipelineStage::execute() {
   // We then loop forever, executing the appropriate tasks each clock cycle.
   while(true) {
     newCycle();
+    wait(clock.negedge_event());
+    cycleSecondHalf();
     wait(clock.posedge_event());
   }
 }
 
 void PipelineStage::initialise() {
+  // Default is to do nothing.
+}
+
+void PipelineStage::cycleSecondHalf() {
   // Default is to do nothing.
 }
 

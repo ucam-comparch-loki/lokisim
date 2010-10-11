@@ -58,6 +58,11 @@ protected:
   // subcomponents if appropriate.
   virtual void newCycle() = 0;
 
+  // For some pipeline stages, we may need to be sure that some information has
+  // arrived (e.g. a "ready" signal from the next stage). To do this, we
+  // execute this method later in the cycle.
+  virtual void cycleSecondHalf();
+
   // Some components require initialisation before execution begins.
   // Initialisation may involve operations such as setting flow control values.
   virtual void initialise();

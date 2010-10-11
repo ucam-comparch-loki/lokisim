@@ -31,7 +31,11 @@ void IndirectRegisterFile::write(RegisterIndex reg, int32_t value, bool indirect
   RegisterIndex index = indirect ? indirectRegs.read(reg) : reg;
 
   // There are some registers that we can't write to.
-  if(isReserved(index)/* || isChannelEnd(index)*/) return;
+  if(isReserved(index)/* || isChannelEnd(index)*/) {
+    if(index != 0) cerr << "Warning: attempting to write to reserved register "
+                        << index << endl;
+    return;
+  }
 
   Word w(value);
   regs.write(w, index);

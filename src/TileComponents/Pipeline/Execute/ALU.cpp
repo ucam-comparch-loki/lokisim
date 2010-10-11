@@ -50,7 +50,7 @@ bool ALU::execute(DecodedInst& dec) {
     case InstructionMap::SLT:
     case InstructionMap::SLTI:   result = (val1 < val2); break;
     case InstructionMap::SLTU:
-    case InstructionMap::SLTIU:  result = (val1 < val2); break;
+    case InstructionMap::SLTIU:  result = ((uint32_t)val1 < (uint32_t)val2); break;
 
     case InstructionMap::LUI:    result = val2 << 16; break;
 
@@ -92,10 +92,22 @@ bool ALU::execute(DecodedInst& dec) {
     switch(dec.operation()) {
       // For additions, the predicate bit acts as the carry bit.
       case InstructionMap::ADDU:
-      case InstructionMap::ADDUI: newPredicate = ((int64_t)val1+(int64_t)val2) > UINT_MAX;
+      case InstructionMap::ADDUI: {
+        int64_t result64 = (int64_t)val1 + (int64_t)val2;
+        newPredicate = (result64 > INT_MAX) || (result64 < INT_MIN);
+        break;
+      }
 
       // For subtractions, the predicate bit acts as the borrow bit.
-      case InstructionMap::SUBU:  newPredicate = ((int64_t)val1-(int64_t)val2) < 0;
+      case InstructionMap::SUBU: {
+        newPredicate = ((int64_t)val1-(int64_t)val2) < 0;
+        break;
+      }
+
+      case InstructionMap::RSUBI: {
+        newPredicate = ((int64_t)val2-(int64_t)val1) < 0;
+        break;
+      }
 
       // Otherwise, it holds the least significant bit of the result.
       default: newPredicate = result&1; // Store lowest bit in predicate register

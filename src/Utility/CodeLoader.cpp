@@ -28,7 +28,9 @@ void CodeLoader::loadCode(string& settings, Tile& tile) {
   char line[200];   // An array of chars to load a line from the file into.
   string fullName = "test_files/" + settings;
   std::ifstream file(fullName.c_str());
-  string directory("");
+
+  int pos = settings.find("loader.txt");
+  string directory = settings.substr(0,pos-1);  // Strip away "loader.txt"
 
   while(!file.fail()) {
     try {
@@ -177,9 +179,13 @@ uint8_t CodeLoader::fileType(string& filename) {
     throw std::exception();
   }
 
-  if(parts[1] == "loki") return LOKI;
-  else if(parts[1] == "data") return DATA;
-  else if(parts[1] == "bloki") return BINARY;
+  // There may be other '.' characters in the file name, but we only want the
+  // final piece of the filename.
+  int index = parts.size() - 1;
+
+  if(parts[index] == "loki") return LOKI;
+  else if(parts[index] == "data") return DATA;
+  else if(parts[index] == "bloki") return BINARY;
   else std::cerr << "Unknown file format: " << filename << endl;
 
   return DATA;
