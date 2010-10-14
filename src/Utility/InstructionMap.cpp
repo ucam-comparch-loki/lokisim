@@ -33,15 +33,15 @@ std::string& InstructionMap::name(int operation) {
 bool InstructionMap::hasImmediate(short op) {
   /*
    * Instructions with immediates:
-   *  LD, LDB, ST, STB, STADDR, STBADDR,
-   *  SLL, SRL, SRA,
-   *  SEQI, SNEI, SLTI, SLTIU, LUI
+   *  LDW, LDB, STW, STB, STWADDR, STBADDR,
+   *  SLLI, SRLI, SRAI,
+   *  SETEQI, SETNEI, SETLTI, SETLTUI, SETGTEUI, LUI
    *  NORI, ANDI, ORI, XORI
    *  ADDUI, RSUBI
    *  FETCH, FETCHPST, RMTFETCH, RMTFETCHPST, IBJMP, RMTFILL
    */
 
-  return (op>=LD && op<=SRA) || (op>=SEQI && op<=LUI) || (op>=NORI && op<=XORI)
+  return (op>=LDW && op<=SRAI) || (op>=SETEQI && op<=LUI) || (op>=NORI && op<=XORI)
       || (op == RSUBI) || (op == ADDUI) || (op>=IBJMP && op<=RMTFILL);
 
 }
@@ -50,7 +50,7 @@ bool InstructionMap::hasImmediate(short op) {
 bool InstructionMap::hasRemoteChannel(short op) {
   /*
    * Instructions with remote channels:
-   *  LD, LDB, ST, STB, STADDR, STBADDR,
+   *  LDW, LDB, STW, STB, STWADDR, STBADDR,
    *  RMTFETCH, RMTFETCHPST, RMTFILL, RMTEXECUTE, RMTNXIPK
    */
 
@@ -62,7 +62,7 @@ bool InstructionMap::hasRemoteChannel(short op) {
 bool InstructionMap::isALUOperation(short op) {
   /*
    * Instructions which DON'T use the ALU:
-   * LD, LDB, ST, STB, STADDR, STBADDR,   // Not sure about these
+   * LDW, LDB, STW, STB, STWADDR, STBADDR,   // Not sure about these
    * WOCHE, TSTCH, SELCH
    * SETFETCHCH, IBJMP, FETCH, FETCHPST, RMTFETCH, RMTFETCHPST, RMTFILL,
    * RMTEXECUTE, RMTNXIPK
@@ -83,28 +83,31 @@ void InstructionMap::initialise() {
 
   a=0;    addToMaps("nop", a, NOP);
 
-  a++;    addToMaps("ld", a, LD);
+  a++;    addToMaps("ldw", a, LDW);
   a++;    addToMaps("ldb", a, LDB);
-  a++;    addToMaps("st", a, ST);
+  a++;    addToMaps("stw", a, STW);
   a++;    addToMaps("stb", a, STB);
-  a++;    addToMaps("staddr", a, STADDR);
+  a++;    addToMaps("stwaddr", a, STWADDR);
   a++;    addToMaps("stbaddr", a, STBADDR);
 
+  a++;    addToMaps("slli", a, SLLI);
+  a++;    addToMaps("srli", a, SRLI);
+  a++;    addToMaps("srai", a, SRAI);
   a++;    addToMaps("sll", a, SLL);
   a++;    addToMaps("srl", a, SRL);
   a++;    addToMaps("sra", a, SRA);
-  a++;    addToMaps("sllv", a, SLLV);
-  a++;    addToMaps("srlv", a, SRLV);
-  a++;    addToMaps("srav", a, SRAV);
 
-  a++;    addToMaps("seq", a, SEQ);
-  a++;    addToMaps("sne", a, SNE);
-  a++;    addToMaps("slt", a, SLT);
-  a++;    addToMaps("sltu", a, SLTU);
-  a++;    addToMaps("seqi", a, SEQI);
-  a++;    addToMaps("snei", a, SNEI);
-  a++;    addToMaps("slti", a, SLTI);
-  a++;    addToMaps("sltiu", a, SLTIU);
+  a++;    addToMaps("seteq", a, SETEQ);
+  a++;    addToMaps("setne", a, SETNE);
+  a++;    addToMaps("setlt", a, SETLT);
+  a++;    addToMaps("setltu", a, SETLTU);
+  a++;    addToMaps("setgte", a, SETGTE);
+  a++;    addToMaps("setgteu", a, SETGTEU);
+  a++;    addToMaps("seteqi", a, SETEQI);
+  a++;    addToMaps("setnei", a, SETNEI);
+  a++;    addToMaps("setlti", a, SETLTI);
+  a++;    addToMaps("setltui", a, SETLTUI);
+  a++;    addToMaps("setgteui", a, SETGTEUI);
 
   a++;    addToMaps("lui", a, LUI);
 

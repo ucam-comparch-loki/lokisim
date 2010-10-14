@@ -46,28 +46,31 @@ public:
 
     NOP,          // No operation                         nop
 
-    LD,           // Load word                            ld rs, immed -> rch
+    LDW,          // Load word                            ldw rs, immed -> rch
     LDB,          // Load byte                            ldb rs, immed -> rch
-    ST,           // Store word                           st rs, rt, immed -> rch
+    STW,          // Store word                           stw rs, rt, immed -> rch
     STB,          // Store byte                           stb rs, rt, immed -> rch
-    STADDR,       // Store address                        staddr rt, immed -> rch
+    STWADDR,      // Store address                        stwaddr rt, immed -> rch
     STBADDR,      // Store byte address                   stbaddr rt, immed -> rch
 
-    SLL,          // Shift left logical                   sll rd, rs, immed
-    SRL,          // Shift right logical                  srl rd, rs, immed
-    SRA,          // Shift right arithmetic               sra rd, rs, immed
-    SLLV,         // Shift left logical variable          sllv rd, rs, rt
-    SRLV,         // Shift right logical variable         srlv rd, rs, rt
-    SRAV,         // Shift right arithmetic variable      srav rd, rs, rt
+    SLLI,         // Shift left logical                   slli rd, rs, immed
+    SRLI,         // Shift right logical                  srli rd, rs, immed
+    SRAI,         // Shift right arithmetic               srai rd, rs, immed
+    SLL,          // Shift left logical variable          sll rd, rs, rt
+    SRL,          // Shift right logical variable         srl rd, rs, rt
+    SRA,          // Shift right arithmetic variable      sra rd, rs, rt
 
-    SEQ,          // Set if equal                         seq rd, rs, rt
-    SNE,          // Set if not equal                     sne rd, rs, rt
-    SLT,          // Set if less than                     slt rd, rs, rt
-    SLTU,         // Set if less than unsigned            sltu rd, rs, rt
-    SEQI,         // Set if equal immediate               seqi rd, rs, immed
-    SNEI,         // Set if not equal immediate           snei rd, rs, immed
-    SLTI,         // Set if less than immediate           slti rd, rs, immed
-    SLTIU,        // Set if less than unsigned immediate  sltiu rd, rs, immed
+    SETEQ,        // Set if equal                         seteq rd, rs, rt
+    SETNE,        // Set if not equal                     setne rd, rs, rt
+    SETLT,        // Set if less than                     setlt rd, rs, rt
+    SETLTU,       // Set if less than unsigned            setltu rd, rs, rt
+    SETGTE,       // Set if greater than or equal         setgte rd, rs, rt
+    SETGTEU,      // Set if >= unsigned                   setgteu rd, rs, rt
+    SETEQI,       // Set if equal immediate               seteqi rd, rs, immed
+    SETNEI,       // Set if not equal immediate           setnei rd, rs, immed
+    SETLTI,       // Set if less than immediate           setlti rd, rs, immed
+    SETLTUI,      // Set if less than unsigned immediate  setltiu rd, rs, immed
+    SETGTEUI,     // Set if >= unsigned immediate         setgteiu rd, rs, immed
 
     LUI,          // Load upper immediate                 lui rd, immed
 
