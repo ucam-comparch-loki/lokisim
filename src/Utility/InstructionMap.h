@@ -53,12 +53,12 @@ public:
     STWADDR,      // Store address                        stwaddr rt, immed -> rch
     STBADDR,      // Store byte address                   stbaddr rt, immed -> rch
 
-    SLLI,         // Shift left logical                   slli rd, rs, immed
-    SRLI,         // Shift right logical                  srli rd, rs, immed
-    SRAI,         // Shift right arithmetic               srai rd, rs, immed
     SLL,          // Shift left logical variable          sll rd, rs, rt
     SRL,          // Shift right logical variable         srl rd, rs, rt
     SRA,          // Shift right arithmetic variable      sra rd, rs, rt
+    SLLI,         // Shift left logical                   slli rd, rs, immed
+    SRLI,         // Shift right logical                  srli rd, rs, immed
+    SRAI,         // Shift right arithmetic               srai rd, rs, immed
 
     SETEQ,        // Set if equal                         seteq rd, rs, rt
     SETNE,        // Set if not equal                     setne rd, rs, rt

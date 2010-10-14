@@ -41,7 +41,8 @@ bool InstructionMap::hasImmediate(short op) {
    *  FETCH, FETCHPST, RMTFETCH, RMTFETCHPST, IBJMP, RMTFILL
    */
 
-  return (op>=LDW && op<=SRAI) || (op>=SETEQI && op<=LUI) || (op>=NORI && op<=XORI)
+  return (op>=LDW && op<=STBADDR) || (op>=SLLI && op <=SRAI)
+      || (op>=SETEQI && op<=LUI) || (op>=NORI && op<=XORI)
       || (op == RSUBI) || (op == ADDUI) || (op>=IBJMP && op<=RMTFILL);
 
 }
@@ -90,12 +91,12 @@ void InstructionMap::initialise() {
   a++;    addToMaps("stwaddr", a, STWADDR);
   a++;    addToMaps("stbaddr", a, STBADDR);
 
-  a++;    addToMaps("slli", a, SLLI);
-  a++;    addToMaps("srli", a, SRLI);
-  a++;    addToMaps("srai", a, SRAI);
   a++;    addToMaps("sll", a, SLL);
   a++;    addToMaps("srl", a, SRL);
   a++;    addToMaps("sra", a, SRA);
+  a++;    addToMaps("slli", a, SLLI);
+  a++;    addToMaps("srli", a, SRLI);
+  a++;    addToMaps("srai", a, SRAI);
 
   a++;    addToMaps("seteq", a, SETEQ);
   a++;    addToMaps("setne", a, SETNE);
@@ -116,12 +117,12 @@ void InstructionMap::initialise() {
   a++;    addToMaps("clz", a, CLZ);
 
   a++;    addToMaps("nor", a, NOR);
-  a++;    addToMaps("nori", a, NORI);
   a++;    addToMaps("and", a, AND);
-  a++;    addToMaps("andi", a, ANDI);
   a++;    addToMaps("or", a, OR);
-  a++;    addToMaps("ori", a, ORI);
   a++;    addToMaps("xor", a, XOR);
+  a++;    addToMaps("nori", a, NORI);
+  a++;    addToMaps("andi", a, ANDI);
+  a++;    addToMaps("ori", a, ORI);
   a++;    addToMaps("xori", a, XORI);
 
   a++;    addToMaps("nand", a, NAND);
