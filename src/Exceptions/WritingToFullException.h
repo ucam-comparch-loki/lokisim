@@ -1,6 +1,8 @@
 /*
  * WritingToFullException.h
  *
+ * Shows that the system tried to write to a full queue or stack.
+ *
  *  Created on: 14 Sep 2010
  *      Author: db434
  */

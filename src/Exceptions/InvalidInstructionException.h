@@ -1,6 +1,9 @@
 /*
  * InvalidInstructionException.h
  *
+ * Used to signify that a valid instruction could not be made out of the given
+ * string.
+ *
  *  Created on: 16 Sep 2010
  *      Author: db434
  */

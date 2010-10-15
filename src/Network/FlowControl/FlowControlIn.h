@@ -13,8 +13,8 @@
 #define FLOWCONTROLIN_H_
 
 #include "../../Component.h"
+#include "../../Datatype/AddressedWord.h"
 
-class AddressedWord;
 class Request;
 class Word;
 
@@ -30,11 +30,8 @@ public:
   // The array should be "width" elements long.
   sc_in<AddressedWord>  *dataIn;
 
-  // Requests to send data to each of the "width" inputs.
-  sc_in<AddressedWord>  *requests;
-
   // Responses to requests from each input ("width" elements long).
-  sc_out<AddressedWord> *responses;
+  sc_out<AddressedWord> *credits;
 
   // Flow control signals from each of the components inputs, saying how
   // much space is in their buffers (array is "width" elements long).
@@ -58,9 +55,6 @@ public:
 //==============================//
 
 protected:
-
-  virtual void receivedRequests();
-  virtual bool acceptRequest(Request r, int input);
 
   // Data has arrived over the network.
   void         receivedData();

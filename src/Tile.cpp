@@ -132,19 +132,16 @@ Tile::Tile(sc_module_name name, int ID) :
 
       contents[i]->dataIn[j](dataToCluster[index]);
       network.dataOut[index](dataToCluster[index]);
-      contents[i]->requestsIn[j](requestsToCluster[index]);
-      network.requestsOut[index](requestsToCluster[index]);
-      contents[i]->responsesOut[j](responsesFromCluster[index]);
-      network.responsesIn[index](responsesFromCluster[index]);
+      contents[i]->creditsOut[j](responsesFromCluster[index]);
+      network.creditsIn[index](responsesFromCluster[index]);
     }
 
     for(uint j=0; j<NUM_CLUSTER_OUTPUTS; j++) {
       int index = i*NUM_CLUSTER_OUTPUTS + j;  // Position in network's array
 
       network.dataIn[index](contents[i]->dataOut[j]);
-      network.requestsIn[index](contents[i]->requestsOut[j]);
-      network.responsesOut[index](responsesToCluster[index]);
-      contents[i]->responsesIn[j](responsesToCluster[index]);
+      network.creditsOut[index](responsesToCluster[index]);
+      contents[i]->creditsIn[j](responsesToCluster[index]);
     }
 
     contents[i]->clock(clock);

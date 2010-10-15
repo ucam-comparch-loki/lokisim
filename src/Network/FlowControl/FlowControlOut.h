@@ -31,17 +31,13 @@ public:
   // should be "width" elements of the array.
   sc_in<AddressedWord>   *dataIn;
 
-  // Requests sent out onto the network to see if it is possible to send the
-  // data yet ("width" elements).
-  sc_out<AddressedWord>  *requests;
+  // Flow control credits received over the network.
+  sc_in<AddressedWord>   *credits;
 
-  // Responses to the requests ("width" elements).
-  sc_in<AddressedWord>   *responses;
-
-  // Data sent out onto the network after a positive response ("width" elements).
+  // Data sent out onto the network ("width" elements).
   sc_out<AddressedWord>  *dataOut;
 
-  // A flow control signal for each output ("width" elements).
+  // A flow control signal for each output of the component ("width" elements).
   sc_out<bool>           *flowControl;
 
 //==============================//
@@ -65,11 +61,7 @@ public:
 protected:
 
   void          sendData();
-  void          receivedFlowControl();
-
-  void          receivedResponses();
-  virtual void  allowedToSend(int position, bool isAllowed);
-  virtual void  sendRequests();
+  void          receivedCredit();
 
 //==============================//
 // Local state
@@ -85,7 +77,7 @@ protected:
   std::vector<bool> waitingToSend;
 
   // Store the number of credits each output port has.
-  std::vector<int>  credits;
+  std::vector<int>  creditCount;
 
 };
 

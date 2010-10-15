@@ -18,11 +18,7 @@ const int MemoryMat::CONTROL_INPUT = NUM_CLUSTER_INPUTS - 1;
 
 void MemoryMat::newCycle() {
   // Check for new input data
-  for(uint i=0; i<NUM_CLUSTER_INPUTS; i++) {
-    if(!inputBuffers[i].isFull() && in[i].event()) {
-      inputBuffers[i].write(in[i].read());
-    }
-  }
+  checkInputs();
 
   if(!inputBuffers[CONTROL_INPUT].isEmpty()) updateControl();
 
@@ -41,12 +37,13 @@ void MemoryMat::newCycle() {
         // we will not be able to carry out any reads, so only peek at the
         // next command until we know that we are able to complete it.
         MemoryRequest r = static_cast<MemoryRequest>(inputBuffers[i].peek());
+
         if(r.isReadRequest()) {
           if(flowControlIn[i]) {
-            if(DEBUG) cout << "read from address " << r.getAddress() << endl;
+            if(DEBUG) cout << "read from address " << r.address() << endl;
             if(r.isIPKRequest()) {
               connection.startStreaming();
-              connection.readAddress(r.getAddress());
+              connection.readAddress(r.address());
             }
             read(i);
             inputBuffers[i].read();  // Remove the transaction from the queue
@@ -55,9 +52,9 @@ void MemoryMat::newCycle() {
         }
         // Dealing with a write request
         else {
-          if(DEBUG) cout << "store to address " << r.getAddress() << endl;
-          connection.writeAddress(r.getAddress());
-          if(r.getOperation() == MemoryRequest::STADDR) {
+          if(DEBUG) cout << "store to address " << r.address() << endl;
+          connection.writeAddress(r.address());
+          if(r.operation() == MemoryRequest::STADDR) {
             connection.startStreaming();
           }
           inputBuffers[i].read();  // Remove the transaction from the queue
@@ -219,6 +216,14 @@ void MemoryMat::updateIdle() {
 
   Instrumentation::idle(id, isIdle,
       sc_core::sc_time_stamp().to_default_time_units());
+}
+
+void MemoryMat::checkInputs() {
+  for(uint i=0; i<NUM_CLUSTER_INPUTS; i++) {
+    if(!inputBuffers[i].isFull() && in[i].event()) {
+      inputBuffers[i].write(in[i].read());
+    }
+  }
 }
 
 void MemoryMat::sendCredit(int position) {

@@ -8,7 +8,6 @@
 #include "WrappedTileComponent.h"
 #include "TileComponentFactory.h"
 #include "TileComponent.h"
-#include "../Datatype/Word.h"
 
 double WrappedTileComponent::area() const {
   return comp->area() + fcIn.area() + fcOut.area();
@@ -50,16 +49,13 @@ void WrappedTileComponent::setup() {
 
 // Initialise arrays
   dataIn          = new sc_in<AddressedWord>[NUM_CLUSTER_INPUTS];
-  requestsIn      = new sc_in<AddressedWord>[NUM_CLUSTER_INPUTS];
-  responsesOut    = new sc_out<AddressedWord>[NUM_CLUSTER_INPUTS];
+  creditsOut      = new sc_out<AddressedWord>[NUM_CLUSTER_INPUTS];
   dataOut         = new sc_out<AddressedWord>[NUM_CLUSTER_OUTPUTS];
-  requestsOut     = new sc_out<AddressedWord>[NUM_CLUSTER_OUTPUTS];
-  responsesIn     = new sc_in<AddressedWord>[NUM_CLUSTER_OUTPUTS];
+  creditsIn       = new sc_in<AddressedWord>[NUM_CLUSTER_OUTPUTS];
 
   dataInSig       = new flag_signal<Word>[NUM_CLUSTER_INPUTS];
   dataOutSig      = new flag_signal<AddressedWord>[NUM_CLUSTER_OUTPUTS];
   dataOutSig2     = new flag_signal<AddressedWord>[NUM_CLUSTER_OUTPUTS];
-  requestsOutSig  = new sc_buffer<AddressedWord>[NUM_CLUSTER_OUTPUTS];
   fcOutSig        = new sc_signal<bool>[NUM_CLUSTER_OUTPUTS];
   fcInSig         = new flag_signal<int>[NUM_CLUSTER_INPUTS];
 
@@ -70,8 +66,7 @@ void WrappedTileComponent::setup() {
 
   for(uint i=0; i<NUM_CLUSTER_INPUTS; i++) {
     fcIn.dataIn[i](dataIn[i]);
-    fcIn.requests[i](requestsIn[i]);
-    fcIn.responses[i](responsesOut[i]);
+    fcIn.credits[i](creditsOut[i]);
 
     fcIn.flowControl[i](fcInSig[i]); comp->flowControlOut[i](fcInSig[i]);
     fcIn.dataOut[i](dataInSig[i]); comp->in[i](dataInSig[i]);
@@ -79,8 +74,7 @@ void WrappedTileComponent::setup() {
 
   for(uint i=0; i<NUM_CLUSTER_OUTPUTS; i++) {
     fcOut.dataOut[i](dataOutSig2[i]); dataOut[i](dataOutSig2[i]);
-    fcOut.responses[i](responsesIn[i]);
-    fcOut.requests[i](requestsOutSig[i]); requestsOut[i](requestsOutSig[i]);
+    fcOut.credits[i](creditsIn[i]);
 
     comp->flowControlIn[i](fcOutSig[i]); fcOut.flowControl[i](fcOutSig[i]);
     fcOut.dataIn[i](dataOutSig[i]); comp->out[i](dataOutSig[i]);

@@ -20,37 +20,37 @@ const short startOperation = startAddress + 29;
 const short end            = startOperation + 3;
 
 /* Return the memory address to read from or write to. */
-uint32_t MemoryRequest::getAddress() const {
+uint32_t MemoryRequest::address() const {
   return getBits(startAddress, startOperation - 1);
 }
 
 /* Return the number of reads/writes the client would like to carry out. */
-uint8_t MemoryRequest::getOperation() const {
+uint8_t MemoryRequest::operation() const {
   return getBits(startOperation, end - 1);
 }
 
 /* Return whether or not the request is to read data. */
 bool MemoryRequest::isReadRequest() const {
-  short op = getOperation();
+  short op = operation();
   return op == LOAD || op == LOAD_B || op == IPK_READ;
 }
 
 /* Return whether or not the request is for an entire instruction packet. */
 bool MemoryRequest::isIPKRequest() const {
-  return getOperation() == IPK_READ;
+  return operation() == IPK_READ;
 }
 
 /* Increments the address to read/write. To be used when an operation has
  * completed. */
 void MemoryRequest::incrementAddress() {
   int strideLength = 1;
-  setAddress(getAddress() + strideLength);
+  address(address() + strideLength);
 }
 
 /* Sets whether the request is for an entire instruction packet. Should be
  * used to set "false" when the end of an instruction packet is reached. */
 void MemoryRequest::setIPKRequest(bool val) {
-  setOperation(IPK_READ);
+  operation(IPK_READ);
 }
 
 /* Constructors and destructors */
@@ -58,10 +58,10 @@ MemoryRequest::MemoryRequest() : Word() {
 
 }
 
-MemoryRequest::MemoryRequest(uint32_t address, uint8_t operation) :
+MemoryRequest::MemoryRequest(uint32_t addr, uint8_t opType) :
     Word() {
-  setAddress(address);
-  setOperation(operation);
+  address(addr);
+  operation(opType);
 }
 
 MemoryRequest::MemoryRequest(const Word& other) : Word(other) {
@@ -73,10 +73,10 @@ MemoryRequest::~MemoryRequest() {
 }
 
 /* Private setter methods */
-void MemoryRequest::setAddress(uint32_t val) {
+void MemoryRequest::address(uint32_t val) {
   setBits(startAddress, startOperation - 1, val);
 }
 
-void MemoryRequest::setOperation(uint8_t val) {
+void MemoryRequest::operation(uint8_t val) {
   setBits(startOperation, end - 1, val);
 }

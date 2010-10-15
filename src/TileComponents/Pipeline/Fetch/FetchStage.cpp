@@ -124,7 +124,7 @@ FetchStage::FetchStage(sc_module_name name, uint16_t ID) :
 
   id = ID;
 
-  stalled     = true;
+  stalled     = false;  // Start off idle, but not stalled.
   usingCache  = true;
   flowControl = new sc_out<int>[2];
 

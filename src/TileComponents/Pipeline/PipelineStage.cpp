@@ -16,6 +16,9 @@ void PipelineStage::execute() {
   // values.
   initialise();
 
+  // Allow any signals to propagate before starting execution.
+  wait(sc_core::SC_ZERO_TIME);
+
   // We then loop forever, executing the appropriate tasks each clock cycle.
   while(true) {
     newCycle();

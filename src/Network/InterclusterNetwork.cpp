@@ -7,7 +7,6 @@
 
 #include "InterclusterNetwork.h"
 #include "RoutingSchemes/RoutingSchemeFactory.h"
-#include "../Datatype/Data.h"
 
 const int InterclusterNetwork::numInputs  =
     NUM_CLUSTER_OUTPUTS * COMPONENTS_PER_TILE;
@@ -15,78 +14,44 @@ const int InterclusterNetwork::numInputs  =
 const int InterclusterNetwork::numOutputs =
     NUM_CLUSTER_INPUTS  * COMPONENTS_PER_TILE;
 
-void InterclusterNetwork::routeRequests() {
-  route(requestsIn, requestsOut, numInputs, sentRequests, true);
-
-  // Some requests may have been blocked, meaning they can be responded to now.
-  // Notify the routeResponses method so it can send the responses.
-  sendResponses.write(!sendResponses.read());
-}
-
 /* This method can be called either because there are responses being sent
  * into the network and they need routing, or because requests have just
  * finished routing, and some of them might have blocked, needing a response. */
-void InterclusterNetwork::routeResponses() {
-
-  if(sendResponses.event()) {
-    for(uint i=0; i<blockedRequests.size(); i++) {
-      // Send NACKs to any ports that sent requests which were blocked
-      if(blockedRequests[i]) {
-        responsesOut[i].write(AddressedWord(Data(0), 0));
-      }
-    }
-  }
-  else {
-    route(responsesIn, responsesOut, numOutputs, sentResponses, false);
-  }
-
+void InterclusterNetwork::routeCredits() {
+  route(creditsIn, creditsOut, numOutputs, sentCredits);
 }
 
 void InterclusterNetwork::routeData() {
   // This is the only routing we are interested in data for.
-  route(dataIn, dataOut, numInputs, sentData, false, true);
+  route(dataIn, dataOut, numInputs, sentData, true);
 }
 
 void InterclusterNetwork::route(input_port inputs[],
                                 output_port outputs[],
                                 int length,
                                 std::vector<bool>& sent,
-                                bool requests,
                                 bool instrumentation) {
 
   // Since routers aren't Components, and only define behaviour, we only need
   // one in the whole system.
   static RoutingScheme* router = RoutingSchemeFactory::makeRoutingScheme();
 
-  // Only send the vector if we are dealing with requests.
-  std::vector<bool>* pointer = requests ? &blockedRequests : NULL;
-
-  router->route(inputs, outputs, length, sent, pointer, instrumentation);
+  router->route(inputs, outputs, length, sent, instrumentation);
 
 }
 
 InterclusterNetwork::InterclusterNetwork(sc_module_name name) :
     Interconnect(name),
-    sentRequests(numOutputs),
-    sentResponses(numInputs),
-    sentData(numOutputs),
-    blockedRequests(numOutputs) {
+    sentCredits(numInputs),
+    sentData(numOutputs) {
 
-  responsesOut = new output_port[numInputs];
-  requestsIn   = new input_port[numInputs];
-  responsesIn  = new input_port[numOutputs];
-  dataIn       = new input_port[numInputs];
-  requestsOut  = new output_port[numOutputs];
-  dataOut      = new output_port[numOutputs];
+  dataIn     = new input_port[numInputs];
+  dataOut    = new output_port[numOutputs];
+  creditsIn  = new input_port[numOutputs];
+  creditsOut = new output_port[numInputs];
 
-  SC_METHOD(routeRequests);
-  for(int i=0; i<numInputs; i++)  sensitive << requestsIn[i];
-//  sensitive << clock.neg();   // Allow half a cycle for signals to get here
-  dont_initialize();
-
-  SC_METHOD(routeResponses);
-  for(int i=0; i<numOutputs; i++) sensitive << responsesIn[i];
-  sensitive << sendResponses;
+  SC_METHOD(routeCredits);
+  for(int i=0; i<numOutputs; i++) sensitive << creditsIn[i];
   dont_initialize();
 
   SC_METHOD(routeData);

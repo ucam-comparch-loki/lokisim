@@ -2,7 +2,6 @@
  * Instruction.cpp
  *
  * Current layout: 64 bit value containing:
- *    32 bit immediate
  *    1 bit saying whether the predicate register should be set
  *    2 predicate bits
  *    6 bit opcode
@@ -10,9 +9,10 @@
  *    5 bit source 1 register location
  *    5 bit source 2 register location
  *    8 bit remote channel ID
+ *    32 bit immediate
  *
  *    | setpred | pred | opcode | dest | source1 | source2 | channel ID | immed |
- *     63      31        30     28       22     17        12        7          0
+ *     63        62     60       54     49        44        39           31    0
  *
  *  Created on: 5 Jan 2010
  *      Author: db434
@@ -77,12 +77,6 @@ bool Instruction::endOfPacket() const {
 
 
 uint64_t Instruction::toLong() const {
-  // Hack: when we make an instruction from an integer, we change the opcode
-  // representation. We therefore need to do the reverse of this when making
-  // an integer from an instruction.
-//  Instruction copy(*this);
-//  copy.opcode(InstructionMap::operation(opcode()));
-//  return copy.data_;
   return data_;
 }
 

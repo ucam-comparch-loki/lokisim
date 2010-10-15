@@ -21,8 +21,8 @@ class MemoryRequest : public Word {
 
 public:
 
-  uint32_t getAddress() const;
-  uint8_t  getOperation() const;
+  uint32_t address() const;
+  uint8_t  operation() const;
   bool isReadRequest() const;
   bool isIPKRequest() const;
 
@@ -31,8 +31,8 @@ public:
 
 private:
 
-  void setAddress(uint32_t val);
-  void setOperation(uint8_t val);
+  void address(uint32_t val);
+  void operation(uint8_t val);
 
 //==============================//
 // Constructors and destructors
@@ -55,6 +55,7 @@ public:
     IPK_READ,
     STORE, STORE_B,
     STADDR, STBADDR,
+    // SETUP, ? used to tell a memory where to send results back to
     NONE
   };
 

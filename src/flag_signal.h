@@ -14,9 +14,6 @@
 
 #include "systemc"
 
-// This include shouldn't be needed...
-#include "Datatype/AddressedWord.h"
-
 using sc_core::sc_signal;
 using sc_core::sc_buffer;
 using sc_core::sc_object;

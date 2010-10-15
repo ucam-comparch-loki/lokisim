@@ -4,10 +4,14 @@
  * A memory bank which is accessed over the network. There will usually be
  * multiple MemoryMats in each Tile.
  *
- * Consider having designated read and write inputs?
- *   + Simplifies hardware and software
- *   + Allows full utilisation of input ports (there are usually more than outputs)
- *   - Less flexibility
+ * Protocol for communicating with a memory:
+ *  1. Claim a port in the usual way (invisible to the programmer/compiler).
+ *     This is currently done automatically whenever setchmap is executed.
+ *  2. Send a MemoryRequest to that port, specifying the channel ID to send
+ *     results to, and saying that the MemoryRequest is to set up a connection:
+ *     MemoryRequest(channel id, MemoryRequest::SETUP);
+ *  3. Use the load and store instructions to send addresses/data to the
+ *     memory.
  *
  *  Created on: 6 Jan 2010
  *      Author: db434
@@ -87,6 +91,9 @@ private:
 
   // Update the output signal telling whether the memory is idle.
   void updateIdle();
+
+  // Check all input ports for new data, and put it into the buffers.
+  void checkInputs();
 
   // Send a flow control credit from a particular port.
   void sendCredit(int position);

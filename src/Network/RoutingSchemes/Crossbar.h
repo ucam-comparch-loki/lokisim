@@ -24,7 +24,6 @@ public:
                      output_port outputs[],
                      int length,
                      std::vector<bool>& sent,
-                     std::vector<bool>* blockedRequests,
                      bool instrumentation);
 
 protected:

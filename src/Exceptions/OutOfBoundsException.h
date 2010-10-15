@@ -1,6 +1,8 @@
 /*
  * OutOfBoundsException.h
  *
+ * Shows that an invalid memory address was accessed.
+ *
  *  Created on: 13 Sep 2010
  *      Author: db434
  */

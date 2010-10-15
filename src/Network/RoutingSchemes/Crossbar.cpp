@@ -12,7 +12,6 @@ void Crossbar::route(input_port inputs[],
                      output_port outputs[],
                      int length,
                      std::vector<bool>& sent,
-                     std::vector<bool>* blockedRequests,
                      bool instrumentation) {
 
   for(int i=0; i<length; i++) {   // Is round-robin required here?
@@ -38,12 +37,9 @@ void Crossbar::route(input_port inputs[],
       }
       // If we have already sent to this output, deny the request
       else {
-        if(blockedRequests) blockedRequests->at(i) = true;
         continue;
       }
     }
-
-    if(blockedRequests) blockedRequests->at(i) = false;
 
   }// end for
 
