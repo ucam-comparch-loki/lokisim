@@ -61,7 +61,10 @@ private:
 
   // Ensure that the instruction packet from the given address is in the
   // instruction packet cache. Nothing will be done if it is already there.
-  void    fetch(Address a);
+  void    fetch(uint16_t addr);
+
+  // Update the channel to which we send fetch requests.
+  void    setFetchChannel(uint16_t channelID);
 
   // Write operations take two cycles since there are two flits to send. This
   // method sends the second part.
@@ -87,11 +90,6 @@ public:
 //==============================//
 
 private:
-
-  // The remote channel we are fetching from (set using SETFETCHCH).
-  // Note: this MUST be set to a value before use: -1 confuses things.
-  // Move this into fetch logic?
-  int  fetchChannel;
 
   // The remote channel we are sending instructions to.
   int  sendChannel;

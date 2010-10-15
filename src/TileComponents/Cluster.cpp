@@ -121,10 +121,10 @@ Cluster::Cluster(sc_module_name name, uint16_t ID) :
     TileComponent(name, ID),
     regs("regs"),
     pred("predicate"),
-    write("write"),
+    write("write", ID),
     execute("execute", ID),
-    decode("decode", ID),   // Needs ID so it can generate a return address
-    fetch("fetch") {
+    decode("decode", ID),
+    fetch("fetch", ID) {
 
   SC_METHOD(updateIdle);
   sensitive << fetchIdle << decodeIdle << executeIdle << writeIdle;

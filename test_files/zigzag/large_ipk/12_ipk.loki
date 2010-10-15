@@ -7,9 +7,9 @@ addui.eop   r10, ch1, 0          ; wait until we receive a block location
 
 % MOVING UPWARDS (fetched first)
 addu        r12, r10, r11        ; ============================
-ld          r12, 0        > 3   ;  Load and forward data item
+ldw         r12, 0        > 3   ;  Load and forward data item
 addui       r0,  ch0, 0   > 4    ; ============================
-slti.p      r0,  r11, 32          ; see if we have hit the top of the grid
+setlti.p    r0,  r11, 32          ; see if we have hit the top of the grid
 nop
 p?addui     r11, r11, 4
 p?fetch     r1,  76              ; we have: switch to moving down
@@ -17,12 +17,12 @@ p?fetch     r1,  76              ; we have: switch to moving down
 nop.eop
 
 % fetched fourth
-seqi.p      r0,  r11, 252         ; see if we have finished the block
+seteqi.p    r0,  r11, 252         ; see if we have finished the block
 nop
 p?ibjmp     -120                  ; we have: end/restart
 
 and         r13, r11, r9
-seq.p       r0,  r13, r9         ; see if we have hit the right of the grid
+seteq.p     r0,  r13, r9         ; see if we have hit the right of the grid
 nop
 !p?subu     r11, r11, r9
 !p?ibjmp    -124                  ; we haven't: keep moving up
@@ -31,9 +31,9 @@ ibjmp.eop   -96                  ; we have: switch to moving down
 
 % MOVING DOWNWARDS (fetched second)
 addu        r12, r10, r11        ; ============================
-ld          r12, 0        > 3   ;  Load and forward data item
+ldw         r12, 0        > 3   ;  Load and forward data item
 addui       r0,  ch0, 0   > 4    ; ============================
-slti.p      r0,  r11, 224         ; see if we have reached the bottom of the grid
+setlti.p    r0,  r11, 224         ; see if we have reached the bottom of the grid
 nop
 !p?addui    r11, r11, 4
 !p?ibjmp    -60                  ; we have: switch to moving up
@@ -41,7 +41,7 @@ fetch.eop   r1,  32               ; we haven't: check other conditions
 
 % fetched third
 and         r13, r11, r9
-seq.p       r0,  r13, r0         ; see if we have reached the left of the grid
+seteq.p     r0,  r13, r0         ; see if we have reached the left of the grid
 nop
 !p?addu     r11, r11, r9
 !p?ibjmp    -48                  ; we haven't: keep moving down

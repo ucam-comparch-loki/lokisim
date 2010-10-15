@@ -10,7 +10,8 @@
 
 #include <inttypes.h>
 #include "systemc"
-#include "Instruction.h"
+
+class Instruction;
 
 class DecodedInst {
 
@@ -71,17 +72,14 @@ public:
   DecodedInst& operator= (const DecodedInst& other);
 
   friend std::ostream& operator<< (std::ostream& os, DecodedInst const& v) {
-    if(v.predicate() == Instruction::P) os << "p?";
-    else if(v.predicate() == Instruction::NOT_P) os << "!p?";
-
-    os << InstructionMap::name(v.operation())
-       << (v.setsPredicate()?".p":"") << (v.predicate()==Instruction::END_OF_PACKET?".eop":"")
-       << " r" << (int)v.destinationReg() << " r" << (int)v.sourceReg1()
-       << " r" << (int)v.sourceReg2() << " " << v.immediate();
-    if(v.channelMapEntry() != Instruction::NO_CHANNEL) os << " -> " << (int)v.channelMapEntry();
-
-    return os;
+    return v.print(os);
   }
+
+private:
+
+  // Holds implementation of the << operator, so it doesn't have to go in the
+  // header.
+  std::ostream& print(std::ostream& os) const;
 
 //==============================//
 // Constructors and destructors

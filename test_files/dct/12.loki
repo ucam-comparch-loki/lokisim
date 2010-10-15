@@ -1,8 +1,8 @@
 % 1D DCT along rows
 
 % Prologue: connect to data memories
-ori         r0,  r0,  112 > 6       ; connect to memory to read input image and DCT weights
 ori         r0,  r0,  112 > 5       ; connect to memory to write intermediate image
+ori         r0,  r0,  112 > 6       ; connect to memory to read input image and DCT weights
 ori         r22, r0,  11585         ; store a value we need
 
 % Initialisation: receive parameters
@@ -16,37 +16,37 @@ and         r5,  r5,  r0            ; DCT output = 0 (f_val)
 and         r6,  r6,  r0            ; values added to output so far = 0 (i)
 
 % Inner loop
-sll         r7,  r2,  3             ; current row * 8 = index of start of row
+slli        r7,  r2,  3             ; current row * 8 = index of start of row
 addu        r8,  r7,  r6            ; r7 now contains the position in the block of the pixel we want
-sll         r8,  r8,  2             ; shift to get a byte address
+slli        r8,  r8,  2             ; shift to get a byte address
 addu        r8,  r8,  r20           ; r8 now holds the location of the pixel in memory
-ld          r8,  0        > 1       ; load the pixel (perhaps use ldb?)
-ld          r4,  0        > 1       ; load the weight for this pixel
+ldw         r8,  0        > 1       ; load the pixel (perhaps use ldb?)
+ldw         r4,  0        > 1       ; load the weight for this pixel
 or          r8,  ch1, r0            ; store whichever value arrives first
 mullw       r8,  ch1, r8            ; multiply by the value which arrives second
 addu        r5,  r5,  r8            ; add to the output (warning - may not be unsigned)
 addui       r6,  r6,  1             ; increment values added
-seqi.p      r0,  r6,  8             ; set predicate if we've added 8 values
+seteqi.p    r0,  r6,  8             ; set predicate if we've added 8 values
 addui       r4,  r4,  4             ; move to the next weight (filling predicate delay slot)
 !p?ibjmp    -48                     ; restart loop if we're not finished
 
-snei.p      r0,  r3,  0             ; set predicate if we are not in the first column
+setnei.p    r0,  r3,  0             ; set predicate if we are not in the first column
 addu        r8,  r7,  r3            ; position in block to write to
-sll         r8,  r8,  2             ; shift so we get a byte position
+slli        r8,  r8,  2             ; shift so we get a byte position
 addu        r8,  r8,  r21           ; memory location to write to
 p?or        r9,  r5,  r0            ; want to write sum relatively unchanged
-!p?srl      r9,  r5,  14            ; need to do some fancy tricks with the sum
+!p?srli     r9,  r5,  14            ; need to do some fancy tricks with the sum
 !p?mullw    r9,  r9,  r22
-srl         r9,  r9,  15            ; the shift is common to both branches
-st          r9,  r8,  0   > 2       ; store the value
+srli        r9,  r9,  15            ; the shift is common to both branches
+stw         r9,  r8,  0   > 2       ; store the value
 
 addui       r3,  r3,  1             ; increment current column
-seqi.p      r0,  r3,  8             ; set predicate if we've finished all 8 columns in this row
+seteqi.p    r0,  r3,  8             ; set predicate if we've finished all 8 columns in this row
 nop
 !p?ibjmp    -108                    ; jump back to start of loop (f_val = 0)
 
 addui       r2,  r2,  1             ; increment current row
-seqi.p      r0,  r2,  8             ; set predicate if we've finished all 8 rows
+seteqi.p    r0,  r2,  8             ; set predicate if we've finished all 8 rows
 nop
 !p?ibjmp    -132                    ; jump back to start of loop (column = 0)
 
@@ -61,9 +61,9 @@ ibjmp.eop   -152                    ; jump to beginning (wait for input)
 % speeding up execution.
 
 % Prologue: connect to data memories
-ori         r0,  r0,  177 > 6       ; connect to memory to read intermediate image
-ori         r0,  r0,  177 > 4       ; connect to memory to read DCT weights
 ori         r0,  r0,  176 > 5       ; connect to memory to write output
+ori         r0,  r0,  161 > 6       ; connect to memory to read intermediate image
+ori         r0,  r0,  177 > 4       ; connect to memory to read DCT weights
 ori         r22, r0,  11585         ; store a value we need
 
 % Initialisation: receive parameters
@@ -76,38 +76,38 @@ and         r5,  r5,  r0            ; DCT output = 0 (f_val)
 and         r6,  r6,  r0            ; values added to output so far = 0 (i)
 
 % Inner loop
-sll         r7,  r6,  3             ; current row * 8 = index of start of row
+slli        r7,  r6,  3             ; current row * 8 = index of start of row
 addu        r8,  r7,  r2            ; r7 now contains the position in the block of the pixel we want
-sll         r8,  r8,  2             ; shift to get a byte address
+slli        r8,  r8,  2             ; shift to get a byte address
 addu        r8,  r8,  r20           ; r8 now holds the location of the pixel in memory
-ld          r8,  0        > 2       ; load the pixel (perhaps use ldb?)
-ld          r4,  0        > 1       ; load the weight for this pixel
-or          r8,  ch1, r0            ; store whichever value arrives first
+ldw         r8,  0        > 2       ; load the pixel (perhaps use ldb?)
+ldw         r4,  0        > 1       ; load the weight for this pixel
+or          r8,  ch0, r0            ; store whichever value arrives first
 mullw       r8,  ch1, r8            ; multiply by the value which arrives second
 addu        r5,  r5,  r8            ; add to the output (warning - may not be unsigned)
 addui       r6,  r6,  1             ; increment values added
-seqi.p      r0,  r6,  8             ; set predicate if we've added 8 values
+seteqi.p    r0,  r6,  8             ; set predicate if we've added 8 values
 addui       r4,  r4,  4             ; move to the next weight (filling predicate delay slot)
 !p?ibjmp    -48                     ; restart loop if we're not finished
 
-snei.p      r0,  r3,  0             ; set predicate if we are not in the first row
-sll         r8,  r3,  3             ; position of start of current row
+setnei.p    r0,  r3,  0             ; set predicate if we are not in the first row
+slli        r8,  r3,  3             ; position of start of current row
 addu        r8,  r8,  r2            ; position in block to write to
-sll         r8,  r8,  2             ; shift so we have a byte position
+slli        r8,  r8,  2             ; shift so we have a byte position
 addu        r8,  r8,  r20           ; memory location to write to
 p?or        r9,  r5,  r0            ; want to write sum relatively unchanged
-!p?srl      r9,  r5,  14            ; need to do some fancy tricks with the sum
+!p?srli     r9,  r5,  14            ; need to do some fancy tricks with the sum
 !p?mullw    r9,  r9,  r22
-srl         r9,  r9,  15            ; the shift is common to both branches
-st          r9,  r8,  0   > 3       ; store the value
+srli        r9,  r9,  15            ; the shift is common to both branches
+stw         r9,  r8,  0   > 3       ; store the value
 
 addui       r3,  r3,  1             ; increment current row
-seqi.p      r0,  r3,  8             ; set predicate if we've finished all 8 rows in this column
+seteqi.p    r0,  r3,  8             ; set predicate if we've finished all 8 rows in this column
 nop
 !p?ibjmp    -112                    ; jump back to start of loop (f_val = 0)
 
 addui       r2,  r2,  1             ; increment current column
-seqi.p      r0,  r2,  8             ; set predicate if we've finished all 8 columns
+seteqi.p    r0,  r2,  8             ; set predicate if we've finished all 8 columns
 nop
 !p?ibjmp    -136                    ; jump back to start of loop (row = 0)
 

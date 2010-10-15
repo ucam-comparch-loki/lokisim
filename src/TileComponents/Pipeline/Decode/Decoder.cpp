@@ -63,36 +63,36 @@ bool Decoder::decodeInstruction(const Instruction inst, DecodedInst& dec) {
     // other components.
     switch(operation) {
 
-      case InstructionMap::LD :
+      case InstructionMap::LDW :
       case InstructionMap::LDB : {
         setOperand1ToValue(dec, dec.sourceReg1());
         setOperand2ToValue(dec, 0, dec.immediate());
         dec.operation(InstructionMap::ADDUI);
-        if(operation == InstructionMap::LD)
+        if(operation == InstructionMap::LDW)
              dec.memoryOp(MemoryRequest::LOAD);
         else dec.memoryOp(MemoryRequest::LOAD_B);
         break;
       }
 
-      case InstructionMap::ST :
+      case InstructionMap::STW :
       case InstructionMap::STB : {
         setOperand1ToValue(dec, dec.sourceReg2());
         setOperand2ToValue(dec, 0, dec.immediate());
         dec.operation(InstructionMap::ADDUI);
         dec.sourceReg1(0); dec.sourceReg2(0);
         currentlyWriting = true;
-        if(operation == InstructionMap::ST)
+        if(operation == InstructionMap::STW)
              dec.memoryOp(MemoryRequest::STORE);
         else dec.memoryOp(MemoryRequest::STORE_B);
         break;
       }
 
-      case InstructionMap::STADDR :
+      case InstructionMap::STWADDR :
       case InstructionMap::STBADDR : {
         setOperand1ToValue(dec, dec.sourceReg1());
         setOperand2ToValue(dec, 0, dec.immediate());
         dec.operation(InstructionMap::ADDUI);
-        if(operation == InstructionMap::STADDR)
+        if(operation == InstructionMap::STWADDR)
              dec.memoryOp(MemoryRequest::STADDR);
         else dec.memoryOp(MemoryRequest::STBADDR);
         break;
@@ -104,7 +104,7 @@ bool Decoder::decodeInstruction(const Instruction inst, DecodedInst& dec) {
       }
 
       case InstructionMap::TSTCH : {
-        dec.result(parent()->testChannel(dec.sourceReg1()));
+        dec.result(parent()->testChannel(dec.immediate()));
         break;
       }
 
@@ -154,7 +154,7 @@ bool Decoder::decodeInstruction(const Instruction inst, DecodedInst& dec) {
       // Deprecated: use "setchmap 0 rs" instead.
       case InstructionMap::SETFETCHCH : {
         // See if we should execute first?
-        fetchChannel = dec.immediate();
+        setFetchChannel(dec.immediate());
         dec.result(0);   // Stop the ALU doing anything by storing a result.
         break;
       }
@@ -166,7 +166,7 @@ bool Decoder::decodeInstruction(const Instruction inst, DecodedInst& dec) {
         // entry 0 here. Note that at least two cycles are required between
         // storing the value to a register and reading it here.
         if(dec.immediate() == 0) {
-          fetchChannel = dec.operand1();
+          setFetchChannel(dec.operand1());
         }
         break;
       }
@@ -177,9 +177,7 @@ bool Decoder::decodeInstruction(const Instruction inst, DecodedInst& dec) {
         // the predicate bit is usually checked. We have to do the check here
         // instead.
         if(execute) {
-          Address fetchAddr(dec.immediate() + readRegs(dec.sourceReg1()),
-                            fetchChannel);
-          fetch(fetchAddr);
+          fetch(dec.immediate() + readRegs(dec.sourceReg1()));
           parent()->setPersistent(operation == InstructionMap::FETCHPST);
         }
 
@@ -189,12 +187,12 @@ bool Decoder::decodeInstruction(const Instruction inst, DecodedInst& dec) {
 
       case InstructionMap::PSELFETCH : {
         // TODO: stall for one cycle to allow predicate bit to be written.
+        // (Optimisation: only if the predicate was written last cycle.)
 
         uint32_t selected;
         if(parent()->predicate()) selected = readRegs(dec.sourceReg1());
         else                      selected = readRegs(dec.sourceReg2());
-        Address fetchAddr(dec.immediate() + selected, fetchChannel);
-        fetch(fetchAddr);
+        fetch(dec.immediate() + selected);
         parent()->setPersistent(false);
         dec.result(0);   // Stop the ALU doing anything by storing a result.
         break;
@@ -276,8 +274,12 @@ int32_t Decoder::readRCET(uint8_t index) {
   return parent()->readRCET(index);
 }
 
-void Decoder::fetch(Address a) {
-  parent()->fetch(a);
+void Decoder::fetch(uint16_t addr) {
+  parent()->fetch(addr);
+}
+
+void Decoder::setFetchChannel(uint16_t channelID) {
+  parent()->setFetchChannel(channelID);
 }
 
 /* Sends the second part of a two-flit store operation (the data to send). */
@@ -318,7 +320,7 @@ Decoder::Decoder(sc_module_name name, int ID) : Component(name) {
 
   this->id = ID;
 
-  sendChannel = fetchChannel = -1;
+  sendChannel = -1;
   remoteExecute = false;
 
 }

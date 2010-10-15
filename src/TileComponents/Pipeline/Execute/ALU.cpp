@@ -36,21 +36,24 @@ bool ALU::execute(DecodedInst& dec) {
 
   switch(dec.operation()) {
 
-    case InstructionMap::SLL:
-    case InstructionMap::SLLV:   result = val1 << val2; break;
-    case InstructionMap::SRL:
-    case InstructionMap::SRLV:   result = val1 >> val2; break;
-    case InstructionMap::SRA:
-    case InstructionMap::SRAV:   result = val1 >> val2; break;
+    case InstructionMap::SLLI:
+    case InstructionMap::SLL:   result = val1 << val2; break;
+    case InstructionMap::SRLI:
+    case InstructionMap::SRL:   result = val1 >> val2; break;
+    case InstructionMap::SRAI:
+    case InstructionMap::SRA:   result = val1 >> val2; break;
 
-    case InstructionMap::SEQ:
-    case InstructionMap::SEQI:   result = (val1 == val2); break;
-    case InstructionMap::SNE:
-    case InstructionMap::SNEI:   result = (val1 != val2); break;
-    case InstructionMap::SLT:
-    case InstructionMap::SLTI:   result = (val1 < val2); break;
-    case InstructionMap::SLTU:
-    case InstructionMap::SLTIU:  result = ((uint32_t)val1 < (uint32_t)val2); break;
+    case InstructionMap::SETEQ:
+    case InstructionMap::SETEQI:   result = (val1 == val2); break;
+    case InstructionMap::SETNE:
+    case InstructionMap::SETNEI:   result = (val1 != val2); break;
+    case InstructionMap::SETLT:
+    case InstructionMap::SETLTI:   result = (val1 < val2); break;
+    case InstructionMap::SETLTU:
+    case InstructionMap::SETLTUI:  result = ((uint32_t)val1 < (uint32_t)val2); break;
+    case InstructionMap::SETGTE:   result = (val1 >= val2); break;
+    case InstructionMap::SETGTEU:
+    case InstructionMap::SETGTEUI: result = ((uint32_t)val1 >= (uint32_t)val2); break;
 
     case InstructionMap::LUI:    result = val2 << 16; break;
 

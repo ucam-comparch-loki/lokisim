@@ -51,7 +51,7 @@ public:
 public:
 
   SC_HAS_PROCESS(FetchStage);
-  FetchStage(sc_module_name name);
+  FetchStage(sc_module_name name, uint16_t ID);
   virtual ~FetchStage();
 
 //==============================//

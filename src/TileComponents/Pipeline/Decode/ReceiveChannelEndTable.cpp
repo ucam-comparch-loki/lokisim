@@ -17,7 +17,7 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
 
   if(!buffers[channelEnd].isEmpty()) {
     int32_t result = buffers.read(channelEnd).toInt();
-    updateFlowControl(channelEnd);
+    sendCredit(channelEnd);
 
     if(DEBUG) cout << this->name() << " read " << result << " from channel "
                    << (int)channelEnd << endl;
@@ -57,7 +57,6 @@ void ReceiveChannelEndTable::checkInputs() {
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     if(fromNetwork[i].event()) {
       buffers[i].write(fromNetwork[i].read());
-      updateFlowControl(i);
 
       if(DEBUG) cout << this->name() << " channel " << i << " received " <<
                         fromNetwork[i].read() << endl;
@@ -65,14 +64,8 @@ void ReceiveChannelEndTable::checkInputs() {
   }
 }
 
-void ReceiveChannelEndTable::initialise() {
-  for(uint i=0; i<buffers.size(); i++) {
-    updateFlowControl(i);
-  }
-}
-
-void ReceiveChannelEndTable::updateFlowControl(ChannelIndex channelEnd) {
-  flowControl[channelEnd].write(buffers[channelEnd].remainingSpace());
+void ReceiveChannelEndTable::sendCredit(ChannelIndex channelEnd) {
+  flowControl[channelEnd].write(1);
 }
 
 DecodeStage* ReceiveChannelEndTable::parent() const {

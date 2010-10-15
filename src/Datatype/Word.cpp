@@ -6,6 +6,7 @@
  */
 
 #include "Word.h"
+#include "Instruction.h"
 
 int32_t Word::toInt() const {
   return (int32_t)data_;
@@ -45,6 +46,14 @@ void Word::clearBits(const int start, const int end) {
   mask = mask << start;                             // 0011111000
   mask = ~mask;                                     // 1100000111
   data_ &= mask;
+}
+
+std::ostream& Word::print(std::ostream& os) const {
+  // Instructions are the only datatypes capable of using more than 32 bits,
+  // and they are also the ones which are most useful to print differently.
+  if((int64_t)data_ > UINT_MAX) os << (Instruction)(*this);
+  else os << toLong();
+  return os;
 }
 
 /* Constructors and destructors */

@@ -19,7 +19,6 @@ double       DecodeStage::energy() const {
 void         DecodeStage::initialise() {
   readyOut.write(true);
   idle.write(true);
-  rcet.initialise();
 }
 
 /* Direct any new inputs to their destinations every clock cycle. */
@@ -28,6 +27,10 @@ void         DecodeStage::newCycle() {
   // Check for new data (should this happen at the beginning or end of
   // the cycle?
   rcet.checkInputs();
+
+  // Hack: allows flow control values to change between writing to channel-end
+  // and reading from it.
+  wait(sc_core::SC_ZERO_TIME);
 
   if(!readyIn.read()) {
     // If we can't do any work, tell the fetch stage not to send any new
@@ -90,8 +93,12 @@ ChannelIndex DecodeStage::selectChannel() {
   return rcet.selectChannelEnd();
 }
 
-void         DecodeStage::fetch(Address a) {
-  fl.fetch(a);
+void         DecodeStage::fetch(uint16_t addr) {
+  fl.fetch(addr);
+}
+
+void         DecodeStage::setFetchChannel(uint16_t channelID) {
+  fl.setFetchChannel(channelID);
 }
 
 void         DecodeStage::refetch() {

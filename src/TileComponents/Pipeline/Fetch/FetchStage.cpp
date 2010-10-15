@@ -55,8 +55,6 @@ void FetchStage::cycleSecondHalf() {
 
 void FetchStage::initialise() {
   idle.write(cache.isEmpty());
-  fifo.initialise();
-  cache.initialise();
 }
 
 void FetchStage::storeCode(std::vector<Instruction>& instructions) {
@@ -119,10 +117,12 @@ void FetchStage::calculateSelect() {
   }
 }
 
-FetchStage::FetchStage(sc_module_name name) :
+FetchStage::FetchStage(sc_module_name name, uint16_t ID) :
     PipelineStage(name),
     cache("IPKcache"),
     fifo("IPKfifo") {
+
+  id = ID;
 
   stalled     = true;
   usingCache  = true;

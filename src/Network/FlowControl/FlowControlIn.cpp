@@ -6,11 +6,14 @@
  */
 
 #include "FlowControlIn.h"
+#include "../../Datatype/AddressedWord.h"
+#include "../../Datatype/Data.h"
+#include "../../Datatype/Request.h"
 
 /* Respond to all new requests to send data to this component. */
 void FlowControlIn::receivedRequests() {
   for(int i=0; i<width; i++) {
-    Request r = static_cast<Request>(requests[i].read());
+    Request r = static_cast<Request>(requests[i].read().payload());
 
     // Only send a response if the request is new
     if(requests[i].event()) {
@@ -37,15 +40,37 @@ void FlowControlIn::receivedRequests() {
  * data, it is known that there is enough room. */
 void FlowControlIn::receivedData() {
   for(int i=0; i<width; i++) {
-    // Only write a value if it is new and it is expected
-    if(dataIn[i].event() && (flitsRemaining[i] > 0)) {
+    // Only take action if an input value is new.
+    if(dataIn[i].event()) {// && (flitsRemaining[i] > 0)) {
+      if(dataIn[i].read().portClaim()) {
+        // Set the return address so we can send flow control.
+        returnAddresses[i] = dataIn[i].read().payload().toInt();
 
-      // TODO: select output channel based on information received.
-      // Allows virtual channels/multiplexing/etc
-      dataOut[i].write(dataIn[i].read());
-      flitsRemaining[i] -= 1;
+        if(DEBUG) cout << this->name() << ": port " << i << " was claimed by "
+                       << returnAddresses[i] << endl;
 
+        // Send initial flow control data here if necessary.
+      }
+      else {
+        // Pass the value to the component.
+        dataOut[i].write(dataIn[i].read().payload());
+//        flitsRemaining[i] -= 1;
+      }
     }
+  }
+}
+
+void FlowControlIn::receivedFlowControl() {
+  for(int i=0; i<width; i++) {
+    // Send a credit if the amount of space has increased, and someone is
+    // communicating with this port.
+    if((flowControl[i].event()/*.read() > bufferSpace[i]*/) && (returnAddresses[i] != -1)) {
+      AddressedWord aw(Data(1), returnAddresses[i]);
+      responses[i].write(aw);
+      cout << "Sent a credit from " << this->name() << ", port " << i << endl;
+    }
+
+    bufferSpace[i] = flowControl[i].read();
   }
 }
 
@@ -60,30 +85,30 @@ bool FlowControlIn::acceptRequest(Request r, int input) {
   return result;
 }
 
-void FlowControlIn::setup() {
+FlowControlIn::FlowControlIn(sc_module_name name, int width) :
+    Component(name),
+    width(width),
+    flitsRemaining(width, 0),
+    returnAddresses(width, -1),
+    bufferSpace(width, 0) {
 
-  dataIn      = new sc_in<Word>[width];
-  requests    = new sc_in<Word>[width];
+  dataIn      = new sc_in<AddressedWord>[width];
+  requests    = new sc_in<AddressedWord>[width];
   flowControl = new sc_in<int>[width];
   dataOut     = new sc_out<Word>[width];
   responses   = new sc_out<AddressedWord>[width];
 
-  SC_METHOD(receivedRequests);
-  for(int i=0; i<width; i++) sensitive << requests[i];
-  dont_initialize();
+//  SC_METHOD(receivedRequests);
+//  for(int i=0; i<width; i++) sensitive << requests[i];
+//  dont_initialize();
 
   SC_METHOD(receivedData);
   for(int i=0; i<width; i++) sensitive << dataIn[i];
   dont_initialize();
 
-}
-
-FlowControlIn::FlowControlIn(sc_module_name name, int width) :
-    Component(name),
-    width(width),
-    flitsRemaining(width, 0) {
-
-  setup();
+  SC_METHOD(receivedFlowControl);
+  for(int i=0; i<width; i++) sensitive << flowControl[i];
+  dont_initialize();
 
 }
 

@@ -70,6 +70,7 @@ public:
     SETNEI,       // Set if not equal immediate           setnei rd, rs, immed
     SETLTI,       // Set if less than immediate           setlti rd, rs, immed
     SETLTUI,      // Set if less than unsigned immediate  setltiu rd, rs, immed
+    SETGTEI,      // Set if >= immediate                  setgtei rd, rs, immed
     SETGTEUI,     // Set if >= unsigned immediate         setgteiu rd, rs, immed
 
     LUI,          // Load upper immediate                 lui rd, immed

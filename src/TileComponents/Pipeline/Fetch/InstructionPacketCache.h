@@ -49,9 +49,6 @@ public:
   // Initialise the contents of the cache with a list of instructions.
   void storeCode(std::vector<Instruction>& instructions);
 
-  // Send out flow control information before execution begins.
-  void initialise();
-
   // Read the next instruction from the cache.
   Instruction read();
 
@@ -86,7 +83,7 @@ public:
 private:
 
   // Update the output flow control signal.
-  void updateFlowControl();
+  void sendCredit();
 
   // Update the output holding the address of the currently-executing
   // instruction packet.

@@ -1,22 +1,22 @@
-tile_0.wrapped_0.cluster_0.execute.alu: executing seqi on 0 and 1
+tile_0.wrapped_0.cluster_0.execute.alu: executing seteqi on 0 and 1
 tile_0.wrapped_0.cluster_0.predicate set to 0
-tile_0.wrapped_0.cluster_0.execute.alu: executing seqi on 0 and 0
+tile_0.wrapped_0.cluster_0.execute.alu: executing seteqi on 0 and 0
 tile_0.wrapped_0.cluster_0.predicate set to 1
-tile_0.wrapped_0.cluster_0.execute.alu: executing snei on 0 and 1
+tile_0.wrapped_0.cluster_0.execute.alu: executing setnei on 0 and 1
 tile_0.wrapped_0.cluster_0.predicate set to 1
-tile_0.wrapped_0.cluster_0.execute.alu: executing snei on 0 and 0
+tile_0.wrapped_0.cluster_0.execute.alu: executing setnei on 0 and 0
 tile_0.wrapped_0.cluster_0.predicate set to 0
-tile_0.wrapped_0.cluster_0.execute.alu: executing slti on 0 and 5
+tile_0.wrapped_0.cluster_0.execute.alu: executing setlti on 0 and 5
 tile_0.wrapped_0.cluster_0.predicate set to 1
-tile_0.wrapped_0.cluster_0.execute.alu: executing slti on 0 and -5
+tile_0.wrapped_0.cluster_0.execute.alu: executing setlti on 0 and -5
 tile_0.wrapped_0.cluster_0.predicate set to 0
-tile_0.wrapped_0.cluster_0.execute.alu: executing slti on 0 and 0
+tile_0.wrapped_0.cluster_0.execute.alu: executing setlti on 0 and 0
 tile_0.wrapped_0.cluster_0.predicate set to 0
-tile_0.wrapped_0.cluster_0.execute.alu: executing sltiu on 0 and 5
+tile_0.wrapped_0.cluster_0.execute.alu: executing setltui on 0 and 5
 tile_0.wrapped_0.cluster_0.predicate set to 1
-tile_0.wrapped_0.cluster_0.execute.alu: executing sltiu on 0 and -5
+tile_0.wrapped_0.cluster_0.execute.alu: executing setltui on 0 and -5
 tile_0.wrapped_0.cluster_0.predicate set to 1
-tile_0.wrapped_0.cluster_0.execute.alu: executing sltiu on 0 and 0
+tile_0.wrapped_0.cluster_0.execute.alu: executing setltui on 0 and 0
 tile_0.wrapped_0.cluster_0.predicate set to 0
 tile_0.wrapped_0.cluster_0.execute.alu: executing addui on 0 and 2000000000
 tile_0.wrapped_0.cluster_0.predicate set to 0

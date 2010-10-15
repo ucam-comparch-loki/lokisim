@@ -7,6 +7,7 @@
 
 #include "WriteStage.h"
 #include "../../Cluster.h"
+#include "../../../Utility/InstructionMap.h"
 
 double WriteStage::area() const {
   return scet.area();// + mux.area();
@@ -57,9 +58,11 @@ void WriteStage::writeReg(uint8_t reg, int32_t value, bool indirect) {
   parent()->writeReg(reg, value, indirect);
 }
 
-WriteStage::WriteStage(sc_module_name name) :
+WriteStage::WriteStage(sc_module_name name, uint16_t ID) :
     PipelineStage(name),
-    scet("scet") {
+    scet("scet", ID) {
+
+  id = ID;
 
   output      = new sc_out<AddressedWord>[NUM_SEND_CHANNELS];
   flowControl = new sc_in<bool>[NUM_SEND_CHANNELS];

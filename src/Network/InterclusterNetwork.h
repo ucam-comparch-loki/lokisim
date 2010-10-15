@@ -26,8 +26,8 @@
 #include "Interconnect.h"
 #include "RoutingSchemes/RoutingScheme.h"
 
-typedef sc_in<AddressedWord> input_port;
-typedef sc_out<Word>         output_port;
+typedef sc_in<AddressedWord>  input_port;
+typedef sc_out<AddressedWord> output_port;
 
 class InterclusterNetwork: public Interconnect {
 

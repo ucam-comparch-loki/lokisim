@@ -11,7 +11,7 @@
  *    5 bit source 2 register location
  *    8 bit remote channel ID
  *
- *    | immed | setpred | pred | opcode | dest | source1 | source2 | channel ID |
+ *    | setpred | pred | opcode | dest | source1 | source2 | channel ID | immed |
  *     63      31        30     28       22     17        12        7          0
  *
  *  Created on: 5 Jan 2010
@@ -20,6 +20,7 @@
 
 #include "Instruction.h"
 #include "../Exceptions/InvalidInstructionException.h"
+#include "../Utility/InstructionMap.h"
 #include "../Utility/StringManipulation.h"
 #include "../Utility/Parameters.h"
 #include "../TileComponents/Pipeline/IndirectRegisterFile.h"
@@ -27,15 +28,15 @@
 typedef StringManipulation Strings;
 typedef IndirectRegisterFile Registers;
 
-const short startChannelID = 0;
-const short startSrc2      = startChannelID + 8;  // 8
-const short startSrc1      = startSrc2 + 5;       // 13
-const short startDest      = startSrc1 + 5;       // 18
-const short startOpcode    = startDest + 5;       // 23
-const short startPredicate = startOpcode + 6;     // 29
-const short startSetPred   = startPredicate + 2;  // 31
-const short startImmediate = startSetPred + 1;    // 32
-const short end            = startImmediate + 32; // 64
+const short startImmediate = 0;
+const short startChannelID = startImmediate + 32; // 32
+const short startSrc2      = startChannelID + 8;  // 40
+const short startSrc1      = startSrc2 + 5;       // 45
+const short startDest      = startSrc1 + 5;       // 50
+const short startOpcode    = startDest + 5;       // 55
+const short startPredicate = startOpcode + 6;     // 61
+const short startSetPred   = startPredicate + 2;  // 63
+const short end            = startSetPred + 1;    // 64
 
 /* Public getter methods */
 uint8_t Instruction::opcode() const {
@@ -59,7 +60,7 @@ uint8_t Instruction::remoteChannel() const {
 }
 
 int32_t Instruction::immediate() const {
-  return (int32_t)getBits(startImmediate, end-1);
+  return (int32_t)getBits(startImmediate, startChannelID-1);
 }
 
 uint8_t Instruction::predicate() const {
@@ -67,7 +68,7 @@ uint8_t Instruction::predicate() const {
 }
 
 bool Instruction::setsPredicate() const {
-  return getBits(startSetPred, startImmediate-1);
+  return getBits(startSetPred, end-1);
 }
 
 bool Instruction::endOfPacket() const {
@@ -163,7 +164,7 @@ void Instruction::remoteChannel(const uint8_t val) {
 }
 
 void Instruction::immediate(const int32_t val) {
-  setBits(startImmediate, end-1, val);
+  setBits(startImmediate, startChannelID-1, val);
 }
 
 void Instruction::predicate(const uint8_t val) {
@@ -171,7 +172,7 @@ void Instruction::predicate(const uint8_t val) {
 }
 
 void Instruction::setsPredicate(const bool val) {
-  setBits(startSetPred, startSetPred, val?1:0);
+  setBits(startSetPred, end-1, val?1:0);
 }
 
 /* Determine which register the given string represents. It may be simply a
@@ -274,9 +275,9 @@ void Instruction::setFields(const uint8_t reg1, const uint8_t reg2,
   switch(operation) {
 
     // Single source, no destination.
-    case InstructionMap::LD :
+    case InstructionMap::LDW :
     case InstructionMap::LDB :
-    case InstructionMap::STADDR :
+    case InstructionMap::STWADDR :
     case InstructionMap::STBADDR :
     case InstructionMap::FETCH :
     case InstructionMap::FETCHPST :
@@ -289,7 +290,7 @@ void Instruction::setFields(const uint8_t reg1, const uint8_t reg2,
     }
 
     // Two sources, no destination.
-    case InstructionMap::ST :
+    case InstructionMap::STW :
     case InstructionMap::STB :
     case InstructionMap::PSELFETCH : {
       sourceReg1(reg1);
@@ -305,4 +306,16 @@ void Instruction::setFields(const uint8_t reg1, const uint8_t reg2,
       break;
     }
   }
+}
+
+std::ostream& Instruction::print(std::ostream& os) const {
+  if(predicate() == P) os << "p?";
+  else if(predicate() == NOT_P) os << "!p?";
+
+  os << InstructionMap::name(InstructionMap::operation(opcode()))
+     << (setsPredicate()?".p":"")  << (endOfPacket()?".eop":"")
+     << " r" << (int)destination() << " r" << (int)sourceReg1()
+     << " r" << (int)sourceReg2()  << " "  << immediate();
+  if(remoteChannel() != NO_CHANNEL) os << " -> " << (int)remoteChannel();
+  return os;
 }

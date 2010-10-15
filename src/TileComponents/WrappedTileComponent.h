@@ -30,20 +30,20 @@ public:
   sc_in<bool>               clock;
 
   // All inputs to the component (NUM_CLUSTER_INPUTS).
-  sc_in<Word>              *dataIn;
+  sc_in<AddressedWord>     *dataIn;
 
   // All outputs from the component (NUM_CLUSTER_OUTPUTS).
   sc_out<AddressedWord>    *dataOut;
 
   // Requests to each input, asking whether it is possible to send data.
   // There should be NUM_CLUSTER_INPUTS of them.
-  sc_in<Word>              *requestsIn;
+  sc_in<AddressedWord>     *requestsIn;
 
   // Requests sent from each output (NUM_CLUSTER_OUTPUTS).
   sc_out<AddressedWord>    *requestsOut;
 
   // Responses received to requests sent (NUM_CLUSTER_OUTPUTS).
-  sc_in<Word>              *responsesIn;
+  sc_in<AddressedWord>     *responsesIn;
 
   // Responses sent from each input, saying whether they are ready for more
   // data. There should be NUM_CLUSTER_INPUTS of them.
@@ -106,7 +106,7 @@ private:
   flag_signal<AddressedWord> *dataOutSig, *dataOutSig2; // arrays
   sc_buffer<AddressedWord>   *requestsOutSig;           // array
   sc_signal<bool>            *fcOutSig;                 // array
-  sc_signal<int>             *fcInSig;                  // array
+  flag_signal<int>           *fcInSig;                  // array
 
 };
 

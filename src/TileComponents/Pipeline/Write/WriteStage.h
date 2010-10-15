@@ -47,7 +47,7 @@ public:
 public:
 
   SC_HAS_PROCESS(WriteStage);
-  WriteStage(sc_module_name name);
+  WriteStage(sc_module_name name, uint16_t ID);
   virtual ~WriteStage();
 
 //==============================//

@@ -14,6 +14,7 @@
 
 #include "../PipelineStage.h"
 #include "../../../Datatype/DecodedInst.h"
+#include "../../../Datatype/Instruction.h"
 #include "FetchLogic.h"
 #include "ReceiveChannelEndTable.h"
 #include "Decoder.h"
@@ -106,7 +107,10 @@ private:
   ChannelIndex   selectChannel();
 
   // Fetch an instruction packet from the given address.
-  void           fetch(Address a);
+  void           fetch(uint16_t addr);
+
+  // Change the channel to which we send our fetch requests.
+  void           setFetchChannel(uint16_t channelID);
 
   // Find out if the instruction packet from the given location is currently
   // in the instruction packet cache.

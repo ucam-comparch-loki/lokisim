@@ -43,7 +43,7 @@ public:
 
 public:
 
-  SendChannelEndTable(sc_module_name name);
+  SendChannelEndTable(sc_module_name name, uint16_t ID);
   virtual ~SendChannelEndTable();
 
 //==============================//
@@ -71,16 +71,21 @@ protected:
   void          updateMap(MapIndex entry, ChannelID newVal);
 
   // Retrieve an entry from the channel mapping table.
-  ChannelID     getChannel(MapIndex mapEntry);
+  ChannelID     getChannel(MapIndex mapEntry) const;
 
   // Choose which buffer to put the new data into (multiple channels may
   // share a buffer to reduce buffer space/energy).
   virtual ChannelIndex chooseBuffer(MapIndex channelMapEntry) const;
 
+  // Compute the global channel ID of the given output channel. Note that
+  // since this is an output channel, the ID computation is different to
+  // input channels.
+  ChannelID     portID(ChannelIndex channel) const;
+
   // Generate a memory request using the address from the ALU and the operation
   // supplied by the decoder. The memory request will be sent to a memory and
   // will result in an operation being carried out there.
-  Word makeMemoryRequest(DecodedInst& dec) const;
+  Word          makeMemoryRequest(DecodedInst& dec) const;
 
 //==============================//
 // Local state

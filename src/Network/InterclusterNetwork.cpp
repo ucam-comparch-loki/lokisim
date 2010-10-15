@@ -29,10 +29,10 @@ void InterclusterNetwork::routeRequests() {
 void InterclusterNetwork::routeResponses() {
 
   if(sendResponses.event()) {
-    for(unsigned int i=0; i<blockedRequests.size(); i++) {
+    for(uint i=0; i<blockedRequests.size(); i++) {
       // Send NACKs to any ports that sent requests which were blocked
       if(blockedRequests[i]) {
-        responsesOut[i].write(Data(0));
+        responsesOut[i].write(AddressedWord(Data(0), 0));
       }
     }
   }

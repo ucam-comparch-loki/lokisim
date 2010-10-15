@@ -13,10 +13,10 @@
 #define FLOWCONTROLIN_H_
 
 #include "../../Component.h"
-#include "../../Datatype/AddressedWord.h"
-#include "../../Datatype/Data.h"
-#include "../../Datatype/Request.h"
-#include "../../Memory/BufferArray.h"
+
+class AddressedWord;
+class Request;
+class Word;
 
 class FlowControlIn: public Component {
 
@@ -28,10 +28,10 @@ public:
 
   // Data received over the network, to be sent to the component's inputs.
   // The array should be "width" elements long.
-  sc_in<Word>           *dataIn;
+  sc_in<AddressedWord>  *dataIn;
 
   // Requests to send data to each of the "width" inputs.
-  sc_in<Word>           *requests;
+  sc_in<AddressedWord>  *requests;
 
   // Responses to requests from each input ("width" elements long).
   sc_out<AddressedWord> *responses;
@@ -60,9 +60,13 @@ public:
 protected:
 
   virtual void receivedRequests();
-  void         receivedData();
   virtual bool acceptRequest(Request r, int input);
-  void         setup();
+
+  // Data has arrived over the network.
+  void         receivedData();
+
+  // The component has updated its flow control signals.
+  void         receivedFlowControl();
 
 //==============================//
 // Local state
@@ -75,6 +79,16 @@ protected:
 
   // Shows which ports are free to accept new connection requests.
   std::vector<int>  flitsRemaining;
+
+  // Addresses of ports connected to each of our input ports. We need the
+  // addresses so we can send flow control information back to them.
+  std::vector<int>  returnAddresses;
+
+  // Rather than credits, the component sends out the amount of space in each
+  // of its buffers. This information can be used to implement any other flow
+  // control mechanism. In this case, we store the previous count, so that we
+  // can detect when there is an extra space, and send a credit.
+  std::vector<int>  bufferSpace;
 
 };
 

@@ -50,12 +50,9 @@ public:
   // Returns whether the FIFO is empty.
   bool isEmpty();
 
-  // Send out initial flow control values before execution begins.
-  void initialise();
-
 private:
 
-  void updateFlowControl();
+  void sendCredit();
 
 //==============================//
 // Local state

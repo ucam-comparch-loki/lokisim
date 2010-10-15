@@ -88,6 +88,9 @@ private:
   // Update the output signal telling whether the memory is idle.
   void updateIdle();
 
+  // Send a flow control credit from a particular port.
+  void sendCredit(int position);
+
 //==============================//
 // Local state
 //==============================//
@@ -96,7 +99,7 @@ public:
 
   // The index of the input port which receives control commands, which allow
   // the set-up and tear-down of channels.
-  static const int       CONTROL_INPUT;
+  static const int CONTROL_INPUT;
 
 private:
 
@@ -106,9 +109,8 @@ private:
   // Information on the channels set up with each of this memory's inputs.
   std::vector<ConnectionStatus> connections;
 
-  // A buffer for each output channel (the size will probably be 1, but using
-  // a buffer instead of a register allows more experimentation).
-  BufferArray<AddressedWord> buffers;
+  // A queue of operations for each port of the memory to perform.
+  BufferArray<Word> inputBuffers;
 
   // The number of words we have initially put in this memory. Allows multiple
   // files to be put into the same memory.

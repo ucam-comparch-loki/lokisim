@@ -88,8 +88,8 @@ private:
 
 private:
 
-  flag_signal<Word>          *responsesToCluster, *requestsToCluster; // arrays
-  flag_signal<Word>          *dataToCluster;                          // array
+  flag_signal<AddressedWord> *responsesToCluster, *requestsToCluster; // arrays
+  flag_signal<AddressedWord> *dataToCluster;                          // array
   flag_signal<AddressedWord> *responsesFromCluster;                   // array
   sc_signal<bool>            *idleSig;                                // array
 

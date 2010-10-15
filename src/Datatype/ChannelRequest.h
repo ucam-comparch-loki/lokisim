@@ -21,15 +21,15 @@ class ChannelRequest: public Word {
 
 public:
 
-  uint8_t  getPort() const;
-  uint16_t getReturnChannel() const;
-  uint8_t  getType() const;
+  uint8_t  port() const;
+  uint16_t returnChannel() const;
+  uint8_t  type() const;
 
 private:
 
-  void setPort(uint8_t val);
-  void setReturnChannel(uint16_t val);
-  void setType(uint8_t val);
+  void port(uint8_t val);
+  void returnChannel(uint16_t val);
+  void type(uint8_t val);
 
 //==============================//
 // Constructors and destructors

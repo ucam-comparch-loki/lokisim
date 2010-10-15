@@ -49,8 +49,7 @@ public:
   Word&    operator= (const Word& other);
 
   friend std::ostream& operator<< (std::ostream& os, Word const& v) {
-    os << (int)v.data_;
-    return os;
+    return v.print(os);
   }
 
 protected:
@@ -58,6 +57,10 @@ protected:
   uint64_t getBits(const int start, const int end) const;
   void     setBits(const int start, const int end, const uint64_t value);
   void     clearBits(const int start, const int end);
+
+  // Holds the implementation of the << operator, so it does not need to be in
+  // the header.
+  std::ostream& print(std::ostream& os) const;
 
 //==============================//
 // Local state

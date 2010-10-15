@@ -13,7 +13,6 @@
 #define INSTRUCTION_H_
 
 #include "Word.h"
-#include "../Utility/InstructionMap.h"
 
 using std::string;
 
@@ -51,15 +50,7 @@ public:
 
   // Has to go in header
   friend std::ostream& operator<< (std::ostream& os, const Instruction& v) {
-    if(v.predicate() == P) os << "p?";
-    else if(v.predicate() == NOT_P) os << "!p?";
-
-    os << InstructionMap::name(InstructionMap::operation(v.opcode()))
-       << (v.setsPredicate()?".p":"") << (v.endOfPacket()?".eop":"")
-       << " r" << (int)v.destination() << " r" << (int)v.sourceReg1()
-       << " r" << (int)v.sourceReg2() << " " << v.immediate();
-    if(v.remoteChannel() != NO_CHANNEL) os << " -> " << (int)v.remoteChannel();
-    return os;
+    return v.print(os);
   }
 
 private:
@@ -71,6 +62,10 @@ private:
   // Set the appropriate register fields in this instruction. Some operations
   // may not have a destination register, for example, so it should not be used.
   void    setFields(const uint8_t reg1, const uint8_t reg2, const uint8_t reg3);
+
+  // Contains the implementation of the << operator so it doesn't have to go in
+  // the header.
+  std::ostream& print(std::ostream& os) const;
 
 //==============================//
 // Constructors and destructors

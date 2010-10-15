@@ -9,6 +9,7 @@
 #include "CodeLoader.h"
 #include "Parameters.h"
 #include "StringManipulation.h"
+#include "../Datatype/Data.h"
 #include "../Datatype/Instruction.h"
 #include "../TileComponents/TileComponent.h"
 #include "../TileComponents/WrappedTileComponent.h"

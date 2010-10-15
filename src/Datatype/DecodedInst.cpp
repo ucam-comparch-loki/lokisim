@@ -6,7 +6,9 @@
  */
 
 #include "DecodedInst.h"
+#include "Instruction.h"
 #include "MemoryRequest.h"
+#include "../Utility/InstructionMap.h"
 
 uint8_t DecodedInst::operation() const {
   return operation_;
@@ -155,6 +157,20 @@ DecodedInst& DecodedInst::operator= (const DecodedInst& other) {
   hasResult_       = other.hasResult_;
 
   return *this;
+}
+
+std::ostream& DecodedInst::print(std::ostream& os) const {
+  if(predicate() == Instruction::P) os << "p?";
+  else if(predicate() == Instruction::NOT_P) os << "!p?";
+
+  os << InstructionMap::name(operation())
+     << (setsPredicate()?".p":"") << (predicate()==Instruction::END_OF_PACKET?".eop":"")
+     << " r" << (int)destinationReg() << " r" << (int)sourceReg1()
+     << " r" << (int)sourceReg2()     << " "  << immediate();
+  if(channelMapEntry() != Instruction::NO_CHANNEL)
+    os << " -> " << (int)channelMapEntry();
+
+  return os;
 }
 
 

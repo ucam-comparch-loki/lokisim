@@ -23,27 +23,27 @@ const short startReturnChannel = startPort + 4;
 const short startType = startReturnChannel + 16;
 const short end = startType + 1;
 
-uint8_t ChannelRequest::getPort() const {
+uint8_t ChannelRequest::port() const {
   return getBits(startPort, startReturnChannel-1);
 }
 
-uint16_t ChannelRequest::getReturnChannel() const {
+uint16_t ChannelRequest::returnChannel() const {
   return getBits(startReturnChannel, startType-1);
 }
 
-uint8_t ChannelRequest::getType() const {
+uint8_t ChannelRequest::type() const {
   return getBits(startType, end-1);
 }
 
-void ChannelRequest::setPort(uint8_t val) {
+void ChannelRequest::port(uint8_t val) {
   setBits(startPort, startReturnChannel-1, val);
 }
 
-void ChannelRequest::setReturnChannel(uint16_t val) {
+void ChannelRequest::returnChannel(uint16_t val) {
   setBits(startReturnChannel, startType-1, val);
 }
 
-void ChannelRequest::setType(uint8_t val) {
+void ChannelRequest::type(uint8_t val) {
   setBits(startType, end-1, val);
 }
 
@@ -55,11 +55,11 @@ ChannelRequest::ChannelRequest(const Word& other) : Word(other) {
 
 }
 
-ChannelRequest::ChannelRequest(uint8_t port, uint16_t returnChannel, uint8_t type) :
+ChannelRequest::ChannelRequest(uint8_t portID, uint16_t channelID, uint8_t reqType) :
     Word() {
-  setPort(port);
-  setReturnChannel(returnChannel);
-  setType(type);
+  port(portID);
+  returnChannel(channelID);
+  type(reqType);
 }
 
 ChannelRequest::~ChannelRequest() {

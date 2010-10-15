@@ -100,22 +100,39 @@ ChannelIndex SendChannelEndTable::chooseBuffer(MapIndex channelMapEntry) const {
   return channelMapEntry % NUM_SEND_CHANNELS;
 }
 
+/* Return a unique ID for an output port, so credits can be routed back to
+ * it. This will become obsolete if/when we have static routing. */
+ChannelID SendChannelEndTable::portID(ChannelIndex channel) const {
+  // Add 1 because the fetch channel is output port 0.
+  return id*NUM_CLUSTER_OUTPUTS + 1 + channel;
+}
+
 /* Update an entry in the channel mapping table. */
 void SendChannelEndTable::updateMap(MapIndex entry, ChannelID newVal) {
   channelMap.write(newVal, entry);
+
+  // Need to send port acquisition request out. FetchLogic sends out the claims
+  // for entry 0, so we only do the others here.
+  if(entry != 0) {
+    ChannelIndex index = chooseBuffer(entry);
+    AddressedWord aw(Word(portID(index)), newVal, true);
+    buffers[index].write(aw);
+  }
 
   if(DEBUG) cout << this->name() << " updated map " << (int)entry << " to "
                  << newVal << endl;
 }
 
-ChannelID SendChannelEndTable::getChannel(MapIndex mapEntry) {
+ChannelID SendChannelEndTable::getChannel(MapIndex mapEntry) const {
   return channelMap.read(mapEntry);
 }
 
-SendChannelEndTable::SendChannelEndTable(sc_module_name name) :
+SendChannelEndTable::SendChannelEndTable(sc_module_name name, uint16_t ID) :
     Component(name),
     buffers(NUM_SEND_CHANNELS, CHANNEL_END_BUFFER_SIZE),
     channelMap(CHANNEL_MAP_SIZE) {
+
+  id = ID;
 
   flowControl = new sc_in<bool>[NUM_SEND_CHANNELS];
   output      = new sc_out<AddressedWord>[NUM_SEND_CHANNELS];

@@ -24,7 +24,7 @@ void Crossbar::route(input_port inputs[],
 
       // If we haven't already sent to this output, send
       if(!sent[chID]) {
-        outputs[chID].write(aw.payload());   // Write the data
+        outputs[chID].write(aw);   // Write the data
         sent[chID] = true;                      // Stop anyone else from writing
 
         // TODO: extract instrumentation to base class

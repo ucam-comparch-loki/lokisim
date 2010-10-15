@@ -21,17 +21,13 @@ void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
 
 }
 
-void InstructionPacketCache::initialise() {
-  updateFlowControl();
-}
-
 Instruction InstructionPacketCache::read() {
   Instruction inst = cache.read();
 
   if(inst.endOfPacket())       endOfPacketTasks();
   else if(finishedPacketRead)  startOfPacketTasks();
 
-  updateFlowControl();
+  sendCredit();
 
   return inst;
 }
@@ -61,8 +57,6 @@ void InstructionPacketCache::write(Instruction inst) {
 
   // Make a note for next cycle if it will be the start of a new packet.
   startOfPacket = inst.endOfPacket();
-
-  updateFlowControl();
 
   if(DEBUG) cout << this->name() << " received Instruction: " << inst << endl;
 
@@ -108,8 +102,8 @@ void InstructionPacketCache::updatePersistent(bool persistent) {
 
 /* Update the signal saying whether there is enough room to fetch another
  * packet. */
-void InstructionPacketCache::updateFlowControl() {
-  flowControl.write(cache.remainingSpace());
+void InstructionPacketCache::sendCredit() {
+  flowControl.write(1);
 }
 
 void InstructionPacketCache::updatePacketAddress(Address addr) {

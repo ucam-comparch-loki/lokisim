@@ -13,8 +13,8 @@
 #define FLOWCONTROLOUT_H_
 
 #include "../../Component.h"
-#include "../../Datatype/AddressedWord.h"
-#include "../../Datatype/Request.h"
+
+class AddressedWord;
 
 class FlowControlOut: public Component {
 
@@ -36,7 +36,7 @@ public:
   sc_out<AddressedWord>  *requests;
 
   // Responses to the requests ("width" elements).
-  sc_in<Word>            *responses;
+  sc_in<AddressedWord>   *responses;
 
   // Data sent out onto the network after a positive response ("width" elements).
   sc_out<AddressedWord>  *dataOut;
@@ -64,10 +64,12 @@ public:
 
 protected:
 
+  void          sendData();
+  void          receivedFlowControl();
+
   void          receivedResponses();
   virtual void  allowedToSend(int position, bool isAllowed);
   virtual void  sendRequests();
-  void          setup();
 
 //==============================//
 // Local state
@@ -80,7 +82,10 @@ protected:
   // A bit to show whether we are waiting to request to send data from each
   // input. The usual event() approach cannot be used, as the data may be quite
   // old, having had its requests turned town.
-  std::vector<bool> waitingToRequest;
+  std::vector<bool> waitingToSend;
+
+  // Store the number of credits each output port has.
+  std::vector<int>  credits;
 
 };
 

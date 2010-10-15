@@ -2,7 +2,7 @@ addui   r11, r0, 1 > 1    ; store initial 1 in r11
 addui   r12, r0, 1 > 1    ; store initial 1 in r12
 addui   r13, r0, 2        ; store count in r13
 addui   r13, r13, 1       ; update count
-slti.p  r0, r13, 40       ; set predicate if less than 40 iterations completed
+setlti.p  r0, r13, 40       ; set predicate if less than 40 iterations completed
 addui   r14, r12, 0       ; store r12 in r14 temporarily
 addu    r12, r11, r12 > 1 ; calculate next value
 addui   r11, r14, 0       ; store temp in r11

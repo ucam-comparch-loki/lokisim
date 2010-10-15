@@ -108,6 +108,7 @@ void InstructionMap::initialise() {
   a++;    addToMaps("setnei", a, SETNEI);
   a++;    addToMaps("setlti", a, SETLTI);
   a++;    addToMaps("setltui", a, SETLTUI);
+  a++;    addToMaps("setgtei", a, SETGTEI);
   a++;    addToMaps("setgteui", a, SETGTEUI);
 
   a++;    addToMaps("lui", a, LUI);
