@@ -9,7 +9,7 @@
 #include <sstream>
 
 string InstrumentationBase::asPercentage(int value, int total) {
-  double percentage = (double)value/total * 100;
+  double percentage = (total==0) ? 0.0 : (double)value/total * 100;
   std::stringstream ss;
   ss.precision(3);
   string s;

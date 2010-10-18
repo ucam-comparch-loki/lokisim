@@ -8,14 +8,14 @@
 #include "ConnectionStatus.h"
 
 /* Tells whether there is a connection set up at all. */
-bool ConnectionStatus::isActive() const {
+bool ConnectionStatus::active() const {
   return remoteChannel_ != UNUSED;
 }
 
 /* Tells whether there is a connection set up, but not currently carrying
  * out an operation. */
-bool ConnectionStatus::isIdle() const {
-  return isActive() && (operation_ == NONE);
+bool ConnectionStatus::idle() const {
+  return active() && (operation_ == NONE);
 }
 
 bool ConnectionStatus::isRead() const {
@@ -26,12 +26,12 @@ bool ConnectionStatus::isWrite() const {
   return operation_ == STORE;
 }
 
-bool ConnectionStatus::isStreaming() const {
+bool ConnectionStatus::streaming() const {
   return repeatOperation_;
 }
 
 bool ConnectionStatus::readingIPK() const {
-  return isStreaming() && isRead();
+  return streaming() && isRead();
 }
 
 bool ConnectionStatus::isByteAccess() const {

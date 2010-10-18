@@ -25,6 +25,7 @@ public:
   uint8_t  operation() const;
   bool isReadRequest() const;
   bool isIPKRequest() const;
+  bool isSetup() const;
 
   void incrementAddress();
   void setIPKRequest(bool val); // remove?
@@ -51,12 +52,12 @@ public:
 
   // The memory operation being performed.
   enum MemoryOp {
+    NONE,
+    SETUP=0,  // Currently have no way to tag a value as a setup request
     LOAD, LOAD_B,
     IPK_READ,
     STORE, STORE_B,
-    STADDR, STBADDR,
-    // SETUP, ? used to tell a memory where to send results back to
-    NONE
+    STADDR, STBADDR
   };
 
 };

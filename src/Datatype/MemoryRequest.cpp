@@ -2,12 +2,16 @@
  * MemoryRequest.cpp
  *
  * Current layout:
- *    29 bit read/write address
- *    3 bit operation (read/write/fetch)
+ *    28 bit read/write address
+ *    4 bit operation (read/write/fetch/setup/etc.)
  *    Lots of bits spare (could include a stride length?)
  *
  *    |          spare           | operation |       address       |
- *     63                         31          28                   0
+ *     63                         31          27                   0
+ *
+ * Since setup requests have to be hand coded at the moment, the setup
+ * operation has value 0. This means that the setup request only involves
+ * sending the channel ID of the port where we want the data from memory to go.
  *
  *  Created on: 3 Mar 2010
  *      Author: db434
@@ -16,8 +20,8 @@
 #include "MemoryRequest.h"
 
 const short startAddress   = 0;
-const short startOperation = startAddress + 29;
-const short end            = startOperation + 3;
+const short startOperation = startAddress + 28;
+const short end            = startOperation + 4;
 
 /* Return the memory address to read from or write to. */
 uint32_t MemoryRequest::address() const {
@@ -38,6 +42,10 @@ bool MemoryRequest::isReadRequest() const {
 /* Return whether or not the request is for an entire instruction packet. */
 bool MemoryRequest::isIPKRequest() const {
   return operation() == IPK_READ;
+}
+
+bool MemoryRequest::isSetup() const {
+  return operation() == SETUP;
 }
 
 /* Increments the address to read/write. To be used when an operation has

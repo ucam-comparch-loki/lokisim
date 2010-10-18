@@ -20,30 +20,51 @@ void MemoryMat::newCycle() {
   // Check for new input data
   checkInputs();
 
-  if(!inputBuffers[CONTROL_INPUT].isEmpty()) updateControl();
-
   for(uint i=0; i<NUM_CLUSTER_INPUTS-1; i++) {
     ConnectionStatus& connection = connections[i];
 
-    if(!connection.isActive()) continue;
-
     if(!inputBuffers[i].isEmpty() && !connection.readingIPK()) {
+
+      // If there is no connection set up, this must be a request to make a
+      // connection.
+      if(!connection.active()) {
+        MemoryRequest req = static_cast<MemoryRequest>(inputBuffers[i].read());
+
+        if(req.isSetup()) {
+          if(DEBUG) cout << this->name() << " set-up connection at port " << i << endl;
+          updateControl(i, req.address());
+          sendCredit(i);
+        }
+        else {
+          // If there is no connection set up and we receive something which
+          // isn't a set up message, something is wrong.
+          cerr << "Error: unexpected input at " << this->name() << ": "
+               << req << endl;
+          // throw exception?
+        }
+      }
       // If there isn't an existing transaction, this must be a read
-      if(connection.isIdle()) {
+      else if(connection.idle()) {
         if(DEBUG) cout << "Received new memory request at memory " << id <<
                           ", input " << i << ": ";
 
         // If we are not allowed to send any data (because of flow control),
         // we will not be able to carry out any reads, so only peek at the
         // next command until we know that we are able to complete it.
-        MemoryRequest r = static_cast<MemoryRequest>(inputBuffers[i].peek());
+        MemoryRequest req = static_cast<MemoryRequest>(inputBuffers[i].peek());
 
-        if(r.isReadRequest()) {
+        if(req.isSetup()) {
+          if(DEBUG) cout << "set-up connection at port " << i << endl;
+          updateControl(i, req.address());
+          inputBuffers[i].read();
+          sendCredit(i);
+        }
+        else if(req.isReadRequest()) {
+          if(DEBUG) cout << "read from address " << req.address() << endl;
           if(flowControlIn[i]) {
-            if(DEBUG) cout << "read from address " << r.address() << endl;
-            if(r.isIPKRequest()) {
+            if(req.isIPKRequest()) {
               connection.startStreaming();
-              connection.readAddress(r.address());
+              connection.readAddress(req.address());
             }
             read(i);
             inputBuffers[i].read();  // Remove the transaction from the queue
@@ -52,31 +73,33 @@ void MemoryMat::newCycle() {
         }
         // Dealing with a write request
         else {
-          if(DEBUG) cout << "store to address " << r.address() << endl;
-          connection.writeAddress(r.address());
-          if(r.operation() == MemoryRequest::STADDR) {
+          if(DEBUG) cout << "store to address " << req.address() << endl;
+          connection.writeAddress(req.address());
+          if(req.operation() == MemoryRequest::STADDR) {
             connection.startStreaming();
           }
           inputBuffers[i].read();  // Remove the transaction from the queue
           sendCredit(i);
         }
-      }
+      } // end new operation
       // If there is an existing transaction, this must be data to be written
       else {
         write(inputBuffers[i].read(), i);
         sendCredit(i);
       }
-    }
+    } // end not busy and work to do
     // If there is a read transaction in progress, send the next value
     else if(flowControlIn[i] && connection.readingIPK()) {
       read(i);
+      // Don't send a credit because no input was consumed.
     }
   }
 
   updateIdle();
 }
 
-/* Carry out a read for the transaction at input "position". */
+/* Carry out a read for the transaction at input "position". We must be able
+ * to complete the read (i.e. flowControl[position] must be true). */
 void MemoryMat::read(int position) {
 
   ConnectionStatus& connection = connections[position];
@@ -96,7 +119,7 @@ void MemoryMat::read(int position) {
     }
   }
   else {
-    addr = static_cast<Data>(inputBuffers[position].peek()).data();
+    addr = static_cast<MemoryRequest>(inputBuffers[position].peek()).address();
 
     if(connection.isByteAccess()) {
       // Extract an individual byte.
@@ -147,8 +170,8 @@ void MemoryMat::write(Word w, int position) {
   }
 
   // If we're expecting more writes, update the address, otherwise clear it.
-  if(connection.isStreaming()) connection.incrementAddress();
-  else                         connection.clear();
+  if(connection.streaming()) connection.incrementAddress();
+  else                       connection.clear();
 
   Instrumentation::memoryWrite();
 
@@ -168,7 +191,7 @@ void MemoryMat::updateControl() {
 
   if(type == ChannelRequest::SETUP) {
     // Set up the connection if there isn't one there already
-    if(!connection.isActive()) {
+    if(!connection.active()) {
       connection.channel(req.returnChannel());
 
       // Set up a connection to the port we are sending to.
@@ -199,6 +222,25 @@ void MemoryMat::updateControl() {
 
 }
 
+void MemoryMat::updateControl(uint8_t port, uint16_t returnAddr) {
+  // We don't have to do any safety checks because we assume that all
+  // connections are statically orchestrated.
+  ConnectionStatus& connection = connections[port];
+  connection.clear();
+  connection.channel(returnAddr);
+
+  if(port >= NUM_CLUSTER_OUTPUTS) {
+    cerr << "Error: memories don't yet have the same number of outputs"
+         << " as inputs." << endl;
+  }
+
+  // Set up a connection to the port we are now sending to: send the output
+  // port's ID, and flag it as a setup message.
+  int portID = id*NUM_CLUSTER_OUTPUTS + port;
+  AddressedWord aw(Word(portID), returnAddr, true);
+  out[port].write(aw);
+}
+
 void MemoryMat::updateIdle() {
   bool isIdle = true;
 
@@ -207,7 +249,7 @@ void MemoryMat::updateIdle() {
 
     // Note: we can't rely on the isActive method, since the user may forget
     // to take down the connection.
-    if(c.isActive() && c.isStreaming()) isIdle = false;
+    if(c.active() && c.streaming()) isIdle = false;
 
     // TODO: memory is active if it was read from in this cycle
   }
@@ -258,7 +300,7 @@ Word MemoryMat::getMemVal(uint32_t addr) const {
 MemoryMat::MemoryMat(sc_module_name name, int ID) :
     TileComponent(name, ID),
     data(MEMORY_SIZE),
-    connections(NUM_CLUSTER_INPUTS-1),
+    connections(NUM_CLUSTER_INPUTS/*-1*/),
     inputBuffers(NUM_CLUSTER_INPUTS, 4) {
 
   wordsLoaded = 0;

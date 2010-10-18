@@ -36,6 +36,7 @@ void FlowControlIn::receivedFlowControl() {
     if(flowControl[i].event() && (returnAddresses[i] != -1)) {
       AddressedWord aw(Word(1), returnAddresses[i]);
       credits[i].write(aw);
+      cout << this->name() << " sent credit from port " << i << " to " << returnAddresses[i] << endl;
     }
 
     bufferSpace[i] = flowControl[i].read();

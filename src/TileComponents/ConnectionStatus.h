@@ -23,11 +23,11 @@ class ConnectionStatus {
 public:
 
   // Tells whether there is a connection set up.
-  bool isActive() const;
+  bool active() const;
 
   // Tells whether there is a connection set up, but not currently carrying
   // out an operation.
-  bool isIdle() const;
+  bool idle() const;
 
   // Tells whether there is a read operation in process at this port.
   bool isRead() const;
@@ -37,7 +37,7 @@ public:
 
   // Tells whether there is a streaming operation in process (IPK read or
   // STADDR followed by many pieces of data.
-  bool isStreaming() const;
+  bool streaming() const;
 
   // Tells whether an instruction packet read is currently taking place.
   bool readingIPK() const;

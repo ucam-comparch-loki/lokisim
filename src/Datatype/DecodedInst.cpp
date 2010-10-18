@@ -121,20 +121,20 @@ void    DecodedInst::result(const int64_t val) {
 
 
 bool DecodedInst::operator== (const DecodedInst& other) const {
-  return  operation_       == other.operation_ &&
-          sourceReg1_      == other.sourceReg1_ &&
-          sourceReg2_      == other.sourceReg2_ &&
-          destReg_         == other.destReg_ &&
-          immediate_       == other.immediate_ &&
+  return  operation_       == other.operation_       &&
+          sourceReg1_      == other.sourceReg1_      &&
+          sourceReg2_      == other.sourceReg2_      &&
+          destReg_         == other.destReg_         &&
+          immediate_       == other.immediate_       &&
           channelMapEntry_ == other.channelMapEntry_ &&
-          predicate_       == other.predicate_ &&
-          setsPred_        == other.setsPred_ &&
+          predicate_       == other.predicate_       &&
+          setsPred_        == other.setsPred_        &&
 
-          operand1_        == other.operand1_ &&
-          operand2_        == other.operand2_ &&
-          result_          == other.result_ &&
+          operand1_        == other.operand1_        &&
+          operand2_        == other.operand2_        &&
+          result_          == other.result_          &&
 
-          hasOperand1_     == other.hasOperand1_ &&
+          hasOperand1_     == other.hasOperand1_     &&
           hasResult_       == other.hasResult_;
 }
 

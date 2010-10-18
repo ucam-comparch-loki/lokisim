@@ -89,6 +89,10 @@ private:
   // Update the current connections to this memory.
   void updateControl();
 
+  // Update the connection at the given port so that results of memory reads
+  // are sent back to returnAddr.
+  void updateControl(uint8_t port, uint16_t returnAddr);
+
   // Update the output signal telling whether the memory is idle.
   void updateIdle();
 

@@ -50,6 +50,7 @@ void FlowControlOut::receivedCredit() {
   for(int i=0; i<width; i++) {
     if(credits[i].event()) {
       creditCount[i]++;
+      cout << this->name() << " received credit at port " << i << endl;
     }
   }
 }
