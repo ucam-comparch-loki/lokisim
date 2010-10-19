@@ -1,4 +1,4 @@
-addui        r0 r0 96 > 2   ; connect to the data memory (and have it send to cluster 1)
+addui        r0 r0 6 > 3   ; connect to the data memory (and have it send to cluster 1)
 addui        r10 ch1 0      ; wait until we receive an address, and store it
 fetch.eop    r1 12          ; do the fetch late so it only does it when necessary
 

@@ -32,15 +32,15 @@ extern parameter IPK_FIFO_SIZE              = 8;
 extern parameter IPK_CACHE_SIZE             = 64;
 extern parameter MEMORY_SIZE                = 2048;
 
+extern parameter CHANNEL_MAP_SIZE           = 8;
+
 extern parameter NUM_RECEIVE_CHANNELS       = 2;
-extern parameter NUM_SEND_CHANNELS          = 2;
+extern parameter NUM_SEND_CHANNELS          = CHANNEL_MAP_SIZE;
 extern parameter CHANNEL_END_BUFFER_SIZE    = 4;
 extern parameter FLOW_CONTROL_BUFFER_SIZE   = 4;
 
-extern parameter CHANNEL_MAP_SIZE           = 8;
-
 // Combinations of other parameters
 extern parameter NUM_CLUSTER_INPUTS         = 2 + NUM_RECEIVE_CHANNELS;
-extern parameter NUM_CLUSTER_OUTPUTS        = 1 + NUM_SEND_CHANNELS;
+extern parameter NUM_CLUSTER_OUTPUTS        = /*1 +*/ NUM_SEND_CHANNELS;
 extern parameter COMPONENTS_PER_TILE        = CLUSTERS_PER_TILE + MEMS_PER_TILE;
 extern parameter NUM_TILES                  = NUM_TILE_ROWS * NUM_TILE_COLUMNS;

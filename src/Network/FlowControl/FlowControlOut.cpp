@@ -19,8 +19,6 @@ void FlowControlOut::sendData() {
         // up the connection, but this may not be the case later on.
         // Warning: flow control currently doesn't have buffering, so this may
         // not always be valid.
-        // TODO: output channels don't correspond to connections. Need a credit
-        // counter for each entry in the channel mapping table.
         creditCount[i] = FLOW_CONTROL_BUFFER_SIZE;
 
         // This message is allowed to send even though we have no credits
@@ -37,6 +35,7 @@ void FlowControlOut::sendData() {
         success = true;
       }
       else {  // We are not able to send the new data.
+        cout << "Not enough credits to send from port " << i << endl;
         success = false;
       }
 

@@ -1,5 +1,4 @@
-fetch           r1,       36
-addui           r0,  r0,  2  > 3       ; connect to the data memory
+fetch           r1,       32
 addui           r9,  r0,  28            ; store 7, since it is a common offset
 addui           r10, ch1, 0             ; wait until we receive an address, and store it
 ldw.eop         r10,      0   > 3       ; load the first value early
@@ -52,5 +51,5 @@ p?addui         r11, r11, 32
 p?fetch         r1,       -132          ; switch to moving up
 nop.eop
 
-fetch           r1,       -184          ; end of block: restart and wait for new block address
+fetch           r1,       -180          ; end of block: restart and wait for new block address
 addui.eop       r0,  ch0, 0   > 4       ; send the final value late

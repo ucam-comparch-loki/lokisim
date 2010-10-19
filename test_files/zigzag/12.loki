@@ -1,5 +1,4 @@
-fetch           r1,  16
-addui           r0,  r0,  32  > 2       ; connect to the data memory
+fetch           r1,  12
 addui           r9,  r0,  28            ; store 7, since it is a common offset
 addui.eop       r10, ch1, 0             ; wait until we receive a block location
 
@@ -18,7 +17,7 @@ nop.eop
 seteqi.p        r0,  r11, 252           ; see if we have finished the block
 nop
 !p?fetch        r1,  20                 ; we haven't: check the final condition
-p?fetch         r1,  -52                ; we have: end/restart
+p?fetch         r1,  -48                ; we have: end/restart
 nop.eop
 
 and             r13, r11, r9

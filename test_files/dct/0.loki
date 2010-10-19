@@ -5,38 +5,25 @@ setchmap        r3,       1             ; map 1 = cluster 1 instructions
 setchmap        r4,       2             ; map 2 = cluster 2
 setchmap        r5,       3             ; map 3 = cluster 1 data
 rmtexecute                    > 1       ; start sending instructions to cluster 1
-p?ori           r3,  r0,  51
 p?ori           r4,  r0,  48
-p?ori           r5,  r0,  55
-p?ori           r6,  r0,  59
 p?ori           r7,  r0,  52
 p?ori           r8,  r0,  56
 p?ori           r9,  r0,  10
-p?setchmap      r3,       7             ; instruction memory control port = map 7
 p?ori           r0,  r0,  80  > 7       ; connect to instruction memory
 p?setchmap      r4,       0             ; instruction memory = map 0
-p?setchmap      r5,       6             ; input image memory control port = map 6
-p?setchmap      r6,       5             ; output image memory control port = map 5
 p?setchmap      r7,       1             ; input image memory = map 1
+p?ori           r0,  r0,  5   > 0       ; connect to instruction memory
 p?setchmap      r8,       2             ; output image memory = map 2
 p?setchmap      r9,       3             ; next core in pipeline = map 3
 p?fetch         r0,       0
 rmtexecute                    > 2       ; start sending instructions to cluster 2
-p?ori           r3,  r0,  51
-p?ori           r4,  r0,  55
-p?ori           r5,  r0,  59
-p?ori           r6,  r0,  63
 p?ori           r7,  r0,  49
 p?ori           r8,  r0,  53
 p?ori           r9,  r0,  57
 p?ori           r10, r0,  60
-p?setchmap      r3,       7             ; instruction memory control port = map 7
-p?ori           r0,  r0,  145 > 7       ; connect to instruction memory
 p?setchmap      r7,       0             ; instruction memory = map 0
-p?setchmap      r4,       4             ; weights memory control port = map 4
-p?setchmap      r5,       6             ; input image memory control port = map 6
-p?setchmap      r6,       5             ; output image memory control port = map 5
 p?setchmap      r8        1             ; weights memory = map 1
+p?ori           r0,  r0,  9   > 0       ; connect to instruction memory
 p?setchmap      r9,       2             ; input image memory = map 2
 p?setchmap      r10,      3             ; output image memory = map 3
 p?fetch         r0,       168

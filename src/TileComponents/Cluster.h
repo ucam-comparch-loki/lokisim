@@ -115,6 +115,11 @@ private:
   // Tell the cluster whether it is currently stalled or not.
   void             pipelineStalled(bool stalled);
 
+  // The fetch port and the send channel-end table's first port share the same
+  // destination and output port, so data sent from either of them need to be
+  // multiplexed.
+  void             multiplexOutput0();
+
   // Update whether this core is idle or not.
   void             updateIdle();
 
@@ -164,6 +169,9 @@ private:
   // Transmission of the instruction along the pipeline.
   flag_signal<Instruction> fetchToDecode;
   flag_signal<DecodedInst> decodeToExecute, executeToWrite;
+
+  // Signals used to multiplex output 0.
+  flag_signal<AddressedWord> out0Decode, out0Write;
 
 };
 

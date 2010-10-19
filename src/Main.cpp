@@ -63,7 +63,7 @@ int sc_main(int argc, char* argv[]) {
     catch(std::exception& e) {
       // If there's no error message, it might mean that not everything is
       // connected properly.
-      cerr << "Execution ended unexpectedly (" << e.what() << ")" << endl;
+      cerr << "Execution ended unexpectedly:\n" << e.what() << endl;
     }
   }
 

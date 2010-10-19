@@ -1,8 +1,8 @@
 % 1D DCT along rows
 
 % Prologue: connect to data memories
-ori         r0,  r0,  112 > 5       ; connect to memory to write intermediate image
-ori         r0,  r0,  112 > 6       ; connect to memory to read input image and DCT weights
+ori         r0,  r0,  7   > 2       ; connect to memory to write intermediate image
+ori         r0,  r0,  7   > 1       ; connect to memory to read input image and DCT weights
 ori         r22, r0,  11585         ; store a value we need
 
 % Initialisation: receive parameters
@@ -61,9 +61,9 @@ ibjmp.eop   -152                    ; jump to beginning (wait for input)
 % speeding up execution.
 
 % Prologue: connect to data memories
-ori         r0,  r0,  176 > 5       ; connect to memory to write output
-ori         r0,  r0,  161 > 6       ; connect to memory to read intermediate image
-ori         r0,  r0,  177 > 4       ; connect to memory to read DCT weights
+ori         r0,  r0,  11  > 3       ; connect to memory to write output
+ori         r0,  r0,  10  > 2       ; connect to memory to read intermediate image
+ori         r0,  r0,  11  > 1       ; connect to memory to read DCT weights
 ori         r22, r0,  11585         ; store a value we need
 
 % Initialisation: receive parameters

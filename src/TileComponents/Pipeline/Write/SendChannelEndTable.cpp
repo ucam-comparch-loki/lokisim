@@ -103,8 +103,7 @@ ChannelIndex SendChannelEndTable::chooseBuffer(MapIndex channelMapEntry) const {
 /* Return a unique ID for an output port, so credits can be routed back to
  * it. This will become obsolete if/when we have static routing. */
 ChannelID SendChannelEndTable::portID(ChannelIndex channel) const {
-  // Add 1 because the fetch channel is output port 0.
-  return id*NUM_CLUSTER_OUTPUTS + 1 + channel;
+  return id*NUM_CLUSTER_OUTPUTS + channel;
 }
 
 /* Update an entry in the channel mapping table. */

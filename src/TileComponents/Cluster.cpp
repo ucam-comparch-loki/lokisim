@@ -73,6 +73,10 @@ int32_t  Cluster::readRCET(ChannelIndex channel) {
   return decode.readRCET(channel);
 }
 
+void     Cluster::updateCurrentPacket(Address addr) {
+  regs.updateCurrentIPK(addr);
+}
+
 void     Cluster::pipelineStalled(bool stalled) {
   // TODO: collect timestamps in instrumentation.
   Instrumentation::stalled(id, stalled,
@@ -87,6 +91,13 @@ void     Cluster::pipelineStalled(bool stalled) {
   }
 }
 
+void     Cluster::multiplexOutput0() {
+  // Note: we absolutely must not send two outputs to this port on the same
+  // cycle.
+  if(out0Decode.event()) out[0].write(out0Decode.read());
+  else if(out0Write.event()) out[0].write(out0Write.read());
+}
+
 void     Cluster::updateIdle() {
   bool isIdle = fetchIdle.read()   && decodeIdle.read() &&
                 executeIdle.read() && writeIdle.read();
@@ -96,10 +107,6 @@ void     Cluster::updateIdle() {
 
   Instrumentation::idle(id, isIdle,
       sc_core::sc_time_stamp().to_default_time_units());
-}
-
-void     Cluster::updateCurrentPacket(Address addr) {
-  regs.updateCurrentIPK(addr);
 }
 
 /* Returns the channel ID of this cluster's instruction packet FIFO. */
@@ -130,16 +137,12 @@ Cluster::Cluster(sc_module_name name, uint16_t ID) :
   sensitive << fetchIdle << decodeIdle << executeIdle << writeIdle;
   // do initialise
 
+  SC_METHOD(multiplexOutput0);
+  sensitive << decode.out1 << write.output[0];
+  dont_initialize();
+
 // Connect things up
-  // Main inputs/outputs
-  decode.flowControlIn(flowControlIn[0]);
-  decode.out1(out[0]);
-
-  for(uint i=1; i<NUM_CLUSTER_OUTPUTS; i++) {
-    write.flowControl[i-1](flowControlIn[i]);
-    write.output[i-1](out[i]);
-  }
-
+  // Inputs
   fetch.toIPKFIFO(in[0]);
   fetch.toIPKCache(in[1]);
   fetch.flowControl[0](flowControlOut[0]);
@@ -148,6 +151,18 @@ Cluster::Cluster(sc_module_name name, uint16_t ID) :
   for(uint i=2; i<NUM_CLUSTER_INPUTS; i++) {
     decode.in[i-2](in[i]);
     decode.flowControlOut[i-2](flowControlOut[i]);
+  }
+
+  // Outputs
+  decode.flowControlIn(flowControlIn[0]);
+  write.flowControl[0](flowControlIn[0]);
+
+  decode.out1(out0Decode);
+  write.output[0](out0Write);
+
+  for(uint i=1; i<NUM_CLUSTER_OUTPUTS; i++) {
+    write.flowControl[i](flowControlIn[i]);
+    write.output[i](out[i]);
   }
 
   // Clock.
