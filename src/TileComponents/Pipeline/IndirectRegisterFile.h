@@ -44,8 +44,11 @@ public:
 
 public:
 
-  // Read from a register.
+  // Read from a register, redirecting to RCET if necessary.
   int32_t read(RegisterIndex reg, bool indirect) const;
+
+  // Read from a register without redirecting to RCET.
+  int32_t readDebug(RegisterIndex reg) const;
 
   // Write to a register.
   void    write(RegisterIndex reg, int32_t value, bool indirect);

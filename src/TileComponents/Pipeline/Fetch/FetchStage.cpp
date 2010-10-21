@@ -7,6 +7,7 @@
 
 #include "FetchStage.h"
 #include "../../Cluster.h"
+#include "../../../Datatype/DecodedInst.h"
 
 double FetchStage::area() const {
   return cache.area() + fifo.area();// + mux.area();
@@ -37,9 +38,23 @@ void FetchStage::cycleSecondHalf() {
     // Select a new instruction if the decode stage is ready for one, unless
     // the FIFO and cache are both empty.
     if(!(fifo.isEmpty() && cache.isEmpty())) {
-      if(usingCache) lastInstruction = cache.read();
-      else           lastInstruction = fifo.read();
-      instruction.write(lastInstruction);
+      Address instAddr;
+
+      if(usingCache) {
+        lastInstruction = cache.read();
+        instAddr = cache.getInstAddress();
+      }
+      else {
+        lastInstruction = fifo.read();
+        // We don't know the address this instruction came from, so make
+        // something up which would never happen.
+        instAddr = Address(-1, -1);
+      }
+
+      DecodedInst decoded(lastInstruction);
+      decoded.location(instAddr);
+
+      instruction.write(decoded);
       idle.write(false);
 
       if(DEBUG) {
@@ -61,8 +76,8 @@ void FetchStage::storeCode(std::vector<Instruction>& instructions) {
   cache.storeCode(instructions);
 }
 
-int FetchStage::getInstIndex() const {
-  return cache.getInstIndex();
+Address FetchStage::getInstIndex() const {
+  return cache.getInstAddress();
 }
 
 bool FetchStage::inCache(Address a) {

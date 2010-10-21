@@ -28,11 +28,11 @@ class Decoder: public Component {
 
 public:
 
-  // Extract information from the encoded instruction and determine what the
-  // operands are to be. Stores result in DecodedInst. Returns whether there
+  // Extract information from the input instruction and determine what the
+  // operands are to be. Stores result in output. Returns whether there
   // is useful output this cycle -- the first cycle of multi-cycle operations
   // will return false.
-  bool decodeInstruction(const Instruction inst, DecodedInst& dec);
+  bool decodeInstruction(const DecodedInst& input, DecodedInst& output);
 
   // Returns whether the decoder is ready to accept a new instruction.
   bool ready();
@@ -68,7 +68,7 @@ private:
 
   // Write operations take two cycles since there are two flits to send. This
   // method sends the second part.
-  bool completeWrite(Instruction i, DecodedInst& dec);
+  bool completeWrite(const DecodedInst& input, DecodedInst& output);
 
   // Determine whether the current instruction should be executed, based on its
   // predicate bits, and the contents of the predicate register.

@@ -10,6 +10,7 @@
 
 #include <inttypes.h>
 #include "systemc"
+#include "Address.h"
 
 class Instruction;
 
@@ -34,6 +35,7 @@ public:
   int32_t operand1() const;
   int32_t operand2() const;
   int64_t result() const;
+  Address location() const;
 
   bool    hasOperand1() const;
   bool    hasResult() const;
@@ -51,6 +53,9 @@ public:
   void    operand1(const int32_t val);
   void    operand2(const int32_t val);
   void    result(const int64_t val);
+  void    location(const Address val);
+
+  Instruction toInstruction() const;
 
   friend void sc_trace(sc_core::sc_trace_file*& tf, const DecodedInst& i, const std::string& txt) {
     sc_core::sc_trace(tf, i.operation_,       txt + ".operation");
@@ -109,7 +114,9 @@ private:
 
   int32_t operand1_;
   int32_t operand2_;
-  int64_t result_;         // May be an instruction
+  int64_t result_;    // May be an instruction
+
+  Address location_;  // The position in memory that this instruction comes from.
 
   // Use to determine whether fields have already been set.
   // Can't just use != 0 because they may have been set to 0.

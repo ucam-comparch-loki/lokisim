@@ -17,6 +17,8 @@
 #include "InstructionPacketFIFO.h"
 #include "../../../Datatype/Instruction.h"
 
+class DecodedInst;
+
 class FetchStage : public PipelineStage {
 
 //==============================//
@@ -36,7 +38,7 @@ public:
   sc_in<Word>         toIPKFIFO;
 
   // The instruction selected for the rest of the pipeline to execute.
-  sc_out<Instruction> instruction;
+  sc_out<DecodedInst> instruction;
 
   // A flow control signal from each of the two instruction inputs.
   sc_out<int>        *flowControl;
@@ -67,7 +69,7 @@ public:
   void          storeCode(std::vector<Instruction>& instructions);
 
   // Return the memory address of the last instruction sent.
-  int           getInstIndex() const;
+  Address       getInstIndex() const;
 
   // Tells whether the packet from location a is currently in the cache.
   bool          inCache(Address a);

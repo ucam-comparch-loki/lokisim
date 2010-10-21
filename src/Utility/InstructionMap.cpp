@@ -69,7 +69,7 @@ bool InstructionMap::isALUOperation(short op) {
    * RMTEXECUTE, RMTNXIPK
    */
 
-  return !(op>=WOCHE && op<=RMTNXIPK);
+  return !(op>=LDW && op<=STBADDR) && !(op>=WOCHE && op<=RMTNXIPK);
 }
 
 

@@ -28,7 +28,7 @@ public:
   // 1 = read, 0 = write.
   bool     readBit() const;
 
-  void     addOffset(const int offset);
+  Address& addOffset(const int offset);
 
   // Has to go in header
   friend std::ostream& operator<< (std::ostream& os, const Address& v) {

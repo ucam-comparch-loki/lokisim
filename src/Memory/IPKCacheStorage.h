@@ -13,8 +13,8 @@
 
 #include "MappedStorage.h"
 #include "../Utility/LoopCounter.h"
+#include "../Datatype/Address.h"
 
-class Address;
 class Instruction;
 
 class IPKCacheStorage : public MappedStorage<Address, Instruction> {
@@ -53,7 +53,7 @@ public:
   uint16_t remainingSpace() const;
 
   // Return the memory index of the instruction sent most recently.
-  uint16_t getInstIndex() const;
+  Address getInstLocation() const;
 
   // Returns whether the cache is empty. Note that even if a cache is empty,
   // it is still possible to access its contents if an appropriate tag is
@@ -97,7 +97,8 @@ private:
   uint16_t fillCount;
   uint16_t currInstBackup;   // In case it goes NOT_IN_USE and then a jump is used
 
-  bool persistentMode;  // Tells if we are reading the same packet repeatedly
+  // Tells if we are reading the same packet repeatedly
+  bool persistentMode;
 
   // Location of the next packet to be executed.
   // Do we want a single pending packet, or a queue of them?
@@ -111,6 +112,14 @@ private:
   // the same place. If we read an instruction, the cache can be considered
   // empty, but if we wrote one, it is full.
   bool lastOpWasARead;
+
+  // For debug purposes, we store the memory address which each instruction is
+  // from. This allows us to set breakpoints easily, and also allows us to
+  // determine which parts of the program are the hotspots.
+  vector<Address> locations;
+
+  // Store the most recent instruction address, so it can be accessed easily.
+  Address previousLocation;
 
   static const uint16_t NOT_IN_USE = -1;
 

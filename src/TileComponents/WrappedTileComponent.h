@@ -16,6 +16,7 @@
 #include "../Network/FlowControl/FlowControlIn.h"
 #include "../Network/FlowControl/FlowControlOut.h"
 
+class Address;
 class TileComponent;
 
 class WrappedTileComponent: public Component {
@@ -64,12 +65,12 @@ public:
   virtual double energy() const;
 
   // Store initial instructions or data into the contained cluster or memory.
-  virtual void storeData(std::vector<Word>& data);
+  virtual void storeData(std::vector<Word>& data, int location=0);
 
   void         print(int start, int end) const;
   Word         getMemVal(int addr) const;
   int          getRegVal(int reg) const;
-  int          getInstIndex() const;
+  Address      getInstIndex() const;
   bool         getPredReg() const;
 
   // Perform any initialisation required (e.g. setting flow control values).

@@ -41,7 +41,7 @@ void InstructionPacketCache::write(Instruction inst) {
     addr = addresses.read();
   }
   else {
-    addr = Address(0,0);
+    addr = Address();
     // Deal with remote fills in here -- received packet, but have no address
   }
 
@@ -114,8 +114,8 @@ void InstructionPacketCache::refetch() {
   parent()->refetch();
 }
 
-int InstructionPacketCache::getInstIndex() const {
-  return cache.getInstIndex();
+Address InstructionPacketCache::getInstAddress() const {
+  return cache.getInstLocation();
 }
 
 /* Returns whether or not the cache is empty. */

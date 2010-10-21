@@ -6,7 +6,6 @@
  */
 
 #include "IPKCacheStorage.h"
-#include "../Datatype/Address.h"
 #include "../Datatype/Instruction.h"
 #include "../Exceptions/ReadingFromEmptyException.h"
 #include "../Utility/Parameters.h"
@@ -43,6 +42,7 @@ Instruction& IPKCacheStorage::read() {
     incrementCurrent();
     lastOpWasARead = true;
 
+    previousLocation = locations[i];
     return this->data[i];
   }
   else {
@@ -55,6 +55,17 @@ Instruction& IPKCacheStorage::read() {
 void IPKCacheStorage::write(const Address& key, const Instruction& newData) {
   this->tags[refill.value()] = key;
   this->data[refill.value()] = newData;
+
+  // Store memory address of this instruction for debug reasons.
+  if(key == Address()) {
+    // If there is no supplied address, this is the continuation of an
+    // instruction packet, and so this instruction is next to the previous
+    // one.
+    Address prev = this->locations[refill-1];
+    Address newAddr = prev.addOffset(4);
+    locations[refill.value()] = newAddr;
+  }
+  else locations[refill.value()] = key;
 
   bool needRefetch = false;
 
@@ -114,17 +125,8 @@ uint16_t IPKCacheStorage::remainingSpace() const {
   return space;
 }
 
-uint16_t IPKCacheStorage::getInstIndex() const {
-//  Address startOfPacket = packetAddress();
-//  int cacheIndex = (currInst==NOT_IN_USE) ? currInstBackup : currInst.value();
-//  int packetIndex = cacheIndex - 1 - currentPacket;
-//  if(packetIndex<0) packetIndex += IPK_CACHE_SIZE;
-//
-//  cout << cacheIndex << " " << packetIndex << " " << endl;
-//
-//  return startOfPacket.address() + BYTES_PER_WORD*packetIndex;
-
-  return -1;
+Address IPKCacheStorage::getInstLocation() const {
+  return previousLocation;
 }
 
 /* Returns whether the cache is empty. Note that even if a cache is empty,
@@ -216,7 +218,8 @@ void IPKCacheStorage::updateFillCount() {
 IPKCacheStorage::IPKCacheStorage(const uint16_t size) :
     MappedStorage<Address, Instruction>(size),
     currInst(size),
-    refill(size) {
+    refill(size),
+    locations(size) {
 
   currInst.setNull();
   refill = 0;

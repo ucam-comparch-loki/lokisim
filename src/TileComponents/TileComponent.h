@@ -15,6 +15,7 @@
 
 #include "../Component.h"
 
+class Address;
 class AddressedWord;
 class Word;
 
@@ -61,7 +62,7 @@ public:
 public:
 
   // Store initial instructions or data into this cluster or memory.
-  virtual void storeData(std::vector<Word>& data) = 0;
+  virtual void storeData(std::vector<Word>& data, int location=0) = 0;
 
   // Print information about the component.
   virtual void print(int start, int end) const;
@@ -70,10 +71,10 @@ public:
   virtual Word getMemVal(uint32_t addr) const;
 
   // Return the value held in the specified register.
-  virtual int32_t readReg(uint8_t reg, bool indirect = false) const;
+  virtual int32_t readRegDebug(uint8_t reg) const;
 
   // Return the memory index of the instruction currently being decoded.
-  virtual uint16_t getInstIndex() const;
+  virtual Address getInstIndex() const;
 
   // Return the value of the predicate register.
   virtual bool readPredReg() const;

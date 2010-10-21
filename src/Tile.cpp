@@ -8,6 +8,7 @@
 #include "Tile.h"
 #include "TileComponents/TileComponent.h"
 #include "TileComponents/WrappedTileComponent.h"
+#include "Datatype/Address.h"
 
 double Tile::area() const {
   // Update this if allowing heterogeneity.
@@ -27,8 +28,8 @@ bool Tile::isIdle() const {
   return idleVal;
 }
 
-void Tile::storeData(vector<Word>& data, int componentNumber) {
-  contents[componentNumber]->storeData(data);
+void Tile::storeData(vector<Word>& data, int componentNumber, int location) {
+  contents[componentNumber]->storeData(data, location);
 }
 
 void Tile::print(int component, int start, int end) const {
@@ -44,7 +45,7 @@ int Tile::getRegVal(int component, int reg) const {
   return contents[component]->getRegVal(reg);
 }
 
-int Tile::getInstIndex(int component) const {
+Address Tile::getInstIndex(int component) const {
   return contents[component]->getInstIndex();
 }
 

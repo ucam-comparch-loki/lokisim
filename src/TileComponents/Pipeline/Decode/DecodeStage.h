@@ -45,7 +45,7 @@ public:
   sc_in<bool>           flowControlIn;
 
   // The instruction to decode.
-  sc_in<Instruction>    instructionIn;
+  sc_in<DecodedInst>    instructionIn;
 
   // The decoded instruction.
   sc_out<DecodedInst>   instructionOut;
@@ -86,7 +86,7 @@ public:
 private:
 
   // Pass the given instruction to the decoder to be decoded.
-  void           decode(Instruction i);
+  void           decode(const DecodedInst& i);
 
   // Send initial flow control outputs.
   virtual void   initialise();
@@ -150,7 +150,7 @@ private:
   DecodedInst             decoded;
 
   // Used when we need to execute the same instruction multiple times.
-  Instruction             repeatInst;
+  DecodedInst             repeatInst;
 
 };
 

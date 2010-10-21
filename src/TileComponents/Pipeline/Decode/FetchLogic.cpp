@@ -15,7 +15,9 @@ void FetchLogic::fetch(uint16_t addr) {
   MemoryRequest mr(addr, MemoryRequest::IPK_READ);
   AddressedWord request(mr, fetchChannel);
 
-  if(!inCache(Address(addr, fetchChannel))) {
+  // Play with fetchChannel so we have the component ID, rather than the port
+  // number.
+  if(!inCache(Address(addr, fetchChannel/NUM_CLUSTER_INPUTS))) {
     toSend.write(request);     // Put the new request in the queue
   }
   else {

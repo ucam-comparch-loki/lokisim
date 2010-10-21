@@ -35,7 +35,7 @@ int sc_main(int argc, char* argv[]) {
     }
   }
 
-  string settingsFile("metaloader.txt");
+  string settingsFile("test_files/loader.txt");
   CodeLoader::loadCode(settingsFile, tile);
 
   if(debugMode) {

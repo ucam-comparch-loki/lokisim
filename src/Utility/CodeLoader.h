@@ -16,9 +16,10 @@
 using std::string;
 using std::vector;
 
+class DataBlock;
+class Instruction;
 class Tile;
 class TileComponent;
-class Word;
 class WrappedTileComponent;
 
 class CodeLoader {
@@ -28,28 +29,24 @@ public:
   static bool usingDebugger;
 
   // Read a file which tells which files to read.
-  static void loadCode(string& settings, Tile& tile);
+  static void loadCode(string& settingsFile, Tile& tile);
 
   // Store the contents of the given file into the component of the tile at
   // the given position.
   static void loadCode(string& filename, Tile& tile, uint position);
 
-  // Store the contents of the file into the given component.
-  static void loadCode(string& filename, WrappedTileComponent& component);
-
-  // Store the contents of the file into the given component.
-  static void loadCode(string& filename, TileComponent& component);
-
-  // Load instructions and data into all components of a tile.
-  static void loadCode(Tile& tile, string& directory, vector<string>& coreFiles,
-                                                      vector<string>& memFiles);
-
-  static vector<Word>& getData(string& filename);
 private:
+  static vector<DataBlock>& getData(string& filename);
   static uint8_t fileType(string& filename);
   static Word getWord(std::ifstream& file, uint8_t type);
 
-  enum FILETYPE {LOKI, BINARY, DATA};
+  // Prints loaded instructions in a formatted way for the debugger. Address is
+  // in bytes.
+  static void printInstruction(Instruction i, int address);
+
+  static vector<DataBlock>& readELFFile(string& filename);
+
+  enum FILETYPE {LOKI, BINARY, DATA, ELF};
 
 };
 

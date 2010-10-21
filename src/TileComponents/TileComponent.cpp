@@ -6,6 +6,7 @@
  */
 
 #include "TileComponent.h"
+#include "../Datatype/Address.h"
 #include "../Datatype/AddressedWord.h"
 
 void TileComponent::print(int start, int end) const {
@@ -16,12 +17,12 @@ Word TileComponent::getMemVal(uint32_t addr) const {
   return Word(-1);
 }
 
-int32_t TileComponent::readReg(uint8_t reg, bool indirect) const {
+int32_t TileComponent::readRegDebug(uint8_t reg) const {
   return -1;
 }
 
-uint16_t TileComponent::getInstIndex() const {
-  return -1;
+Address TileComponent::getInstIndex() const {
+  return Address(-1, -1);
 }
 
 bool TileComponent::readPredReg() const {

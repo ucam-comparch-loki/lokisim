@@ -76,6 +76,10 @@ bool ALU::execute(DecodedInst& dec) {
     case InstructionMap::POPC:   result = __builtin_popcount(val1); break;
     case InstructionMap::RSUBI:  result = val2 - val1; break;
 
+    case InstructionMap::LDW:
+    case InstructionMap::LDB:
+    case InstructionMap::STWADDR:
+    case InstructionMap::STBADDR:
     case InstructionMap::ADDU:
     case InstructionMap::ADDUI:  result = val1 + val2; break;
     case InstructionMap::SUBU:   result = val1 - val2; break;

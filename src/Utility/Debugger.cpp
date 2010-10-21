@@ -13,7 +13,7 @@
 
 bool Debugger::hitBreakpoint = false;
 Tile* Debugger::tile = 0;
-vector<DecodedInst> Debugger::breakpoints;
+vector<Address> Debugger::breakpoints;
 
 int Debugger::cycleNumber = 0;
 int Debugger::defaultCore = 1;
@@ -95,6 +95,7 @@ void Debugger::waitForInput() {
     }
     else if(words[0] == VERBOSE    || words[0] == VERBOSE_S) {
       DEBUG = !DEBUG;
+      cout << "Switching to " << (DEBUG?"high":"low") << "-detail mode." << endl;
     }
     else if(words[0] == QUIT       || words[0] == QUIT_S || words[0] == "exit") {
       Instrumentation::endExecution();
@@ -109,17 +110,15 @@ void Debugger::waitForInput() {
 void Debugger::setBreakPoint(vector<int>& bps, int memory) {
 
   for(unsigned int j=0; j<bps.size(); j++) {
-    Word w = tile->getMemVal(memory, bps[j]);
-    Instruction i = static_cast<Instruction>(w);
-    DecodedInst dec(i);
+    Address addr(bps[j], memory);
 
-    if(isBreakpoint(dec)) {
-      cout << "Removed breakpoint: " << i << endl;
-      removeBreakpoint(dec);
+    if(isBreakpoint(addr)) {
+      cout << "Removed breakpoint: " << tile->getMemVal(memory, bps[j]) << endl;
+      removeBreakpoint(addr);
     }
     else {
-      cout << "Set breakpoint: " << i << endl;
-      addBreakpoint(dec);
+      cout << "Set breakpoint: " << tile->getMemVal(memory, bps[j]) << endl;
+      addBreakpoint(addr);
     }
   }
 
@@ -164,16 +163,14 @@ void Debugger::printPred(int core) {
 
 void Debugger::executedInstruction(DecodedInst inst, int core, bool executed) {
 
-//  int instIndex = tile->getInstIndex(core);
-
   // TODO: only print (or only call this method) if we're using the debugger.
   cout << core << ":\t" << /*"[" << instIndex << "]\t" <<*/ inst
        << (executed ? "" : " (not executed)") << endl;
 
-  if(isBreakpoint(inst)) {
+  if(isBreakpoint(inst.location())) {
     hitBreakpoint = true;
     defaultCore = core;
-    // Could also find out what its instruction memory is using its fetch ch?
+    defaultInstMemory = inst.location().channelID();
   }
 
 }
@@ -233,20 +230,20 @@ vector<int>& Debugger::parseIntVector(vector<string>& words) {
   return *regs;
 }
 
-bool Debugger::isBreakpoint(DecodedInst i) {
+bool Debugger::isBreakpoint(Address addr) {
   for(unsigned int j=0; j<breakpoints.size(); j++) {
-    if(i==breakpoints[j]) return true;
+    if(addr==breakpoints[j]) return true;
   }
   return false;
 }
 
-void Debugger::addBreakpoint(DecodedInst i) {
-  breakpoints.push_back(i);
+void Debugger::addBreakpoint(Address addr) {
+  breakpoints.push_back(addr);
 }
 
-void Debugger::removeBreakpoint(DecodedInst i) {
+void Debugger::removeBreakpoint(Address addr) {
   for(unsigned int j=0; j<breakpoints.size(); j++) {
-    if(i==breakpoints[j]) breakpoints.erase(breakpoints.begin()+j);
+    if(addr==breakpoints[j]) breakpoints.erase(breakpoints.begin()+j);
   }
 }
 

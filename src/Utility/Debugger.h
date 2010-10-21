@@ -14,6 +14,7 @@
 using std::string;
 using std::vector;
 
+class Address;
 class DecodedInst;
 class Tile;
 
@@ -39,9 +40,9 @@ private:
 
   // Set a breakpoint corresponding to an instruction location.
   static void setBreakPoint(vector<int>& bps, int memory=defaultInstMemory);
-  static bool isBreakpoint(DecodedInst i);
-  static void addBreakpoint(DecodedInst i);
-  static void removeBreakpoint(DecodedInst i);
+  static bool isBreakpoint(Address addr);
+  static void addBreakpoint(Address addr);
+  static void removeBreakpoint(Address addr);
 
   // Print the current stack.
   static void printStack(int core=defaultCore, int memory=defaultDataMemory);
@@ -74,7 +75,7 @@ private:
 
   static bool hitBreakpoint;
 
-  static vector<DecodedInst> breakpoints;
+  static vector<Address> breakpoints;
   static Tile* tile;
 
   static int cycleNumber;

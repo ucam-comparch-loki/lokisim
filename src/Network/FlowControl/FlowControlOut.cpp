@@ -35,7 +35,7 @@ void FlowControlOut::sendData() {
         success = true;
       }
       else {  // We are not able to send the new data.
-        cout << "Not enough credits to send from port " << i << endl;
+//        cout << "Not enough credits to send from port " << i << endl;
         success = false;
       }
 
@@ -49,7 +49,7 @@ void FlowControlOut::receivedCredit() {
   for(int i=0; i<width; i++) {
     if(credits[i].event()) {
       creditCount[i]++;
-      cout << this->name() << " received credit at port " << i << endl;
+//      cout << this->name() << " received credit at port " << i << endl;
     }
   }
 }

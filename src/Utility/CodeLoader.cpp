@@ -7,6 +7,7 @@
 
 #include <ios>
 #include "CodeLoader.h"
+#include "DataBlock.h"
 #include "Parameters.h"
 #include "StringManipulation.h"
 #include "../Datatype/Data.h"
@@ -27,11 +28,13 @@ bool CodeLoader::usingDebugger = false;
 void CodeLoader::loadCode(string& settings, Tile& tile) {
 
   char line[200];   // An array of chars to load a line from the file into.
-  string fullName = "test_files/" + settings;
-  std::ifstream file(fullName.c_str());
 
+  // Open the settings file.
+  std::ifstream file(settings.c_str());
+
+  // Strip away "/loader.txt" to get the directory path.
   int pos = settings.find("loader.txt");
-  string directory = settings.substr(0,pos-1);  // Strip away "loader.txt"
+  string directory = settings.substr(0,pos-1);
 
   while(!file.fail()) {
     try {
@@ -43,7 +46,7 @@ void CodeLoader::loadCode(string& settings, Tile& tile) {
       vector<string> words = StringManipulation::split(s, ' ');
 
       if(words[0]=="directory") {     // Update the current directory
-        directory = words[1];
+        directory = directory + "/" + words[1];
       }
       else if(words[0]=="loader") {   // Use another file loader
         string loaderFile = directory + "/" + words[1];
@@ -51,7 +54,10 @@ void CodeLoader::loadCode(string& settings, Tile& tile) {
       }
       else {                          // Load code/data from the given file
         int index = StringManipulation::strToInt(words[0]);
-        string filename = directory + "/" + words[1];
+        // If a full path is provided, use that. Otherwise, assume the file
+        // is in the previously specified directory.
+        string filename = (words[1][0]=='/') ? words[1]
+                                             : directory + "/" + words[1];
         loadCode(filename, tile, index);
       }
 
@@ -69,102 +75,63 @@ void CodeLoader::loadCode(string& settings, Tile& tile) {
 
 /* Load code from the specified file into a particular component of the
  * given tile. */
-void CodeLoader::loadCode(string& filename, Tile& tile, uint position) {
+void CodeLoader::loadCode(string& filename, Tile& tile, uint component) {
   if(usingDebugger) cout << "\nLoading into " <<
-      (position>=CLUSTERS_PER_TILE ? "memory " : "core ") << position << ":\n";
+      (component>=CLUSTERS_PER_TILE ? "memory " : "core ") << component << ":\n";
 
-  tile.storeData(getData(filename), position);
-}
+  vector<DataBlock>& blocks = getData(filename);
 
-/* Load code from the specified file into the given component. */
-void CodeLoader::loadCode(string& filename, WrappedTileComponent& component) {
-  component.storeData(getData(filename));
-}
-
-/* Load code from the specified file into the given component. */
-void CodeLoader::loadCode(string& filename, TileComponent& component) {
-  component.storeData(getData(filename));
-}
-
-/* Load instructions and data into all components of a tile. */
-void CodeLoader::loadCode(Tile& tile, string& directory,
-                          vector<string>& coreFiles, vector<string>& memFiles) {
-
-  if(DEBUG) cout << "Initialising..." << endl;
-
-  for(uint i=0; i<coreFiles.size(); i++) {
-    string filename = directory + "/" + coreFiles[i];
-    loadCode(filename, tile, i);
+  for(uint i=0; i<blocks.size(); i++) {
+    tile.storeData(blocks[i].data(), component, blocks[i].position()/BYTES_PER_WORD);
   }
-
-  for(uint i=0; i<memFiles.size(); i++) {
-    string filename = directory + "/" + memFiles[i];
-    loadCode(filename, tile, CLUSTERS_PER_TILE + i);
-  }
-
-  if(DEBUG) cout << endl;
-
 }
 
 /* Return a vector of Words corresponding to the contents of the file. */
-vector<Word>& CodeLoader::getData(string& filename) {
-
-  string fullName = "test_files/";
-  fullName = fullName.append(filename);
-
-  std::ifstream file(fullName.c_str());
-  vector<Word>* words = new vector<Word>();
+vector<DataBlock>& CodeLoader::getData(string& filename) {
 
   // See if this file contains Instructions or Data
   int typeOfFile = fileType(filename);
 
+  // Reading ELF files is more complicated, so we have a separate method for
+  // that.
+  if(typeOfFile == ELF) return readELFFile(filename);
+
+  std::ifstream file(filename.c_str());
+  vector<Word>* words = new vector<Word>();
+
   int wordsRead = 0;
 
-  // Set up some output formatting so numbers are all the same length.
-  cout.fill('0');
-
   while(!file.fail()) {
+
     try {
+      Word w = getWord(file, typeOfFile);
+      words->push_back(w);
 
-      try {
-        Word w = getWord(file, typeOfFile);
-        words->push_back(w);
-
-        if(usingDebugger && (typeOfFile != DATA)) {
-          cout << "\[";
-
-          cout.width(4);
-
-          cout << std::right << (wordsRead*BYTES_PER_WORD) << "]\t"
-               << static_cast<Instruction>(w) << endl;
-        }
+      if(usingDebugger && (typeOfFile != DATA)) {
+        printInstruction((Instruction)w, wordsRead*BYTES_PER_WORD);
       }
-      catch (std::exception& e) {
-        continue; // If we couldn't make a valid word, try the next line
-      }
-
-      if(file.eof()) break;
-
     }
-    catch(std::exception& e) {
-      std::cerr << "Error: could not read file " << fullName << endl;
-      break;
+    catch (std::exception& e) {
+      continue; // If we couldn't make a valid word, try the next line
     }
 
     wordsRead++;
+
+    if(file.eof()) break;
+
   }
 
-  // Undo the formatting changes.
-  cout.fill(' ');
-
   if(words->size() == 0)
-    std::cerr << "Error: read 0 words from file " << fullName << endl;
+    std::cerr << "Error: read 0 words from file " << filename << endl;
   else if(DEBUG) cout << "Retrieved " << words->size() <<
-    " words from file " << fullName << endl;
+    " words from file " << filename << endl;
 
   file.close();
 
-  return *words;
+  vector<DataBlock>* blocks = new vector<DataBlock>();
+  blocks->push_back(DataBlock(words));
+
+  return *blocks;
 
 }
 
@@ -176,8 +143,8 @@ uint8_t CodeLoader::fileType(string& filename) {
   vector<string> parts = StringManipulation::split(filename, '.');
 
   if(parts.size() < 2) {
-    std::cerr << "Error: no file extension for file " << filename << endl;
-    throw std::exception();
+    // ELF files don't have a file extension.
+    return ELF;
   }
 
   // There may be other '.' characters in the file name, but we only want the
@@ -201,10 +168,6 @@ Word CodeLoader::getWord(std::ifstream& file, uint8_t type) {
   static char line[200];
 
   switch(type) {
-    case LOKI: {
-      file.getline(line, 200, '\n');
-      return Instruction(line);
-    }
     case BINARY: {
       // At the moment, binary files are formatted as 32-bit words in hex.
       // We therefore need to load in two words to make a single instruction.
@@ -219,10 +182,105 @@ Word CodeLoader::getWord(std::ifstream& file, uint8_t type) {
       int val = StringManipulation::strToInt(line);
       return Data(val);
     }
+    case ELF: {
+      uint64_t result=0, byte=0;
+
+      // Find a neater way to reverse endianness?
+      byte = file.get();
+      result |= byte << 32;
+      byte = file.get();
+      result |= byte << 40;
+      byte = file.get();
+      result |= byte << 48;
+      byte = file.get();
+      result |= byte << 56;
+
+      byte = file.get();
+      result |= byte << 0;
+      byte = file.get();
+      result |= byte << 8;
+      byte = file.get();
+      result |= byte << 16;
+      byte = file.get();
+      result |= byte << 24;
+
+      return Instruction(result);
+    }
+    case LOKI: {
+      file.getline(line, 200, '\n');
+      return Instruction(line);
+    }
     default: {
       std::cerr << "Error: unknown file format." << endl;
       throw std::exception();
     }
   }
 
+}
+
+vector<DataBlock>& CodeLoader::readELFFile(string& filename) {
+  vector<DataBlock>* blocks = new vector<DataBlock>();
+
+  // Open the input file.
+  std::ifstream elfFile(filename.c_str());
+
+  // Execute a command which returns information on all of the ELF sections.
+  FILE* terminalOutput;
+  string command("loki-elf-objdump -h " + filename);
+  terminalOutput = popen(command.c_str(), "r");
+
+  char line[100];
+
+  // Step through each line of information, looking for ones of interest.
+  while(!feof(terminalOutput)) {
+    fgets(line, 100, terminalOutput);
+    string lineStr(line);
+    vector<string> words = StringManipulation::split(lineStr, ' ');
+
+    // We're only interested in a few particular lines of the information.
+    if(words.size() == 7 && (words[1]==".text" || words[1]==".data")) {
+      string name      = words[1];
+      int size         = StringManipulation::strToInt("0x"+words[2]);
+//      int virtPosition = StringManipulation::strToInt("0x"+words[3]);
+      int physPosition = StringManipulation::strToInt("0x"+words[4]);
+      int offset       = StringManipulation::strToInt("0x"+words[5]);
+
+      // Seek to "offset" in elfFile.
+      elfFile.seekg(offset, std::ios::beg);
+
+      vector<Word>* instructions = new vector<Word>();
+
+      // Read in "size" bytes (remembering that each instruction is 8 bytes).
+      for(int i=0; i<size; i+=8) {
+        Instruction inst = getWord(elfFile, ELF);
+        instructions->push_back(inst);
+
+        if(usingDebugger) printInstruction(inst, physPosition+i);
+      }
+
+      // Put these instructions into a particular position in memory.
+      DataBlock block(instructions, physPosition);
+      blocks->push_back(block);
+    }
+  }
+
+  fclose(terminalOutput);
+  elfFile.close();
+
+  return *blocks;
+}
+
+/* Print an instruction in the form:
+ *   [position] instruction
+ * in such a way that everything aligns nicely. */
+void CodeLoader::printInstruction(Instruction i, int address) {
+  // Set up some output formatting so numbers are all the same length.
+  cout.fill('0');
+
+  cout << "\[";
+  cout.width(4);
+  cout << std::right << address << "]\t" << i << endl;
+
+  // Undo the formatting changes.
+  cout.fill(' ');
 }

@@ -8,6 +8,7 @@
 #include "WrappedTileComponent.h"
 #include "TileComponentFactory.h"
 #include "TileComponent.h"
+#include "../Datatype/Address.h"
 
 double WrappedTileComponent::area() const {
   return comp->area() + fcIn.area() + fcOut.area();
@@ -17,8 +18,8 @@ double WrappedTileComponent::energy() const {
   return comp->energy() + fcIn.energy() + fcOut.energy();
 }
 
-void WrappedTileComponent::storeData(std::vector<Word>& data) {
-  comp->storeData(data);
+void WrappedTileComponent::storeData(std::vector<Word>& data, int location) {
+  comp->storeData(data, location);
 }
 
 void WrappedTileComponent::print(int start, int end) const {
@@ -30,10 +31,10 @@ Word WrappedTileComponent::getMemVal(int addr) const {
 }
 
 int WrappedTileComponent::getRegVal(int reg) const {
-  return comp->readReg(reg);
+  return comp->readRegDebug(reg);
 }
 
-int WrappedTileComponent::getInstIndex() const {
+Address WrappedTileComponent::getInstIndex() const {
   return comp->getInstIndex();
 }
 

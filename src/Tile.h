@@ -19,6 +19,7 @@
 
 using std::vector;
 
+class Address;
 class WrappedTileComponent;
 
 class Tile : public Component {
@@ -57,12 +58,12 @@ public:
   bool isIdle() const;
 
   // Store the given instructions or data into the component at the given index.
-  void storeData(vector<Word>& data, int componentNumber);
+  void storeData(vector<Word>& data, int componentNumber, int location=0);
 
   void print(int component, int start, int end) const;
   Word getMemVal(int component, int addr) const;
   int  getRegVal(int component, int reg) const;
-  int  getInstIndex(int component) const;
+  Address getInstIndex(int component) const;
   bool getPredReg(int component) const;
 
   // Static functions for connecting Tiles together

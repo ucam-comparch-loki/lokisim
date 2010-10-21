@@ -59,6 +59,10 @@ int64_t DecodedInst::result() const {
   return result_;
 }
 
+Address DecodedInst::location() const {
+  return location_;
+}
+
 
 bool    DecodedInst::hasOperand1() const {
   return hasOperand1_;
@@ -119,6 +123,24 @@ void    DecodedInst::result(const int64_t val) {
   hasResult_ = true;
 }
 
+void    DecodedInst::location(const Address val) {
+  location_ = val;
+}
+
+
+Instruction DecodedInst::toInstruction() const {
+  Instruction i;
+  i.opcode(InstructionMap::opcode(InstructionMap::name(operation_)));
+  i.destination(destReg_);
+  i.sourceReg1(sourceReg1_);
+  i.sourceReg2(sourceReg2_);
+  i.immediate(immediate_);
+  i.remoteChannel(channelMapEntry_);
+  i.predicate(predicate_);
+  i.setsPredicate(setsPred_);
+  return i;
+}
+
 
 bool DecodedInst::operator== (const DecodedInst& other) const {
   return  operation_       == other.operation_       &&
@@ -135,7 +157,9 @@ bool DecodedInst::operator== (const DecodedInst& other) const {
           result_          == other.result_          &&
 
           hasOperand1_     == other.hasOperand1_     &&
-          hasResult_       == other.hasResult_;
+          hasResult_       == other.hasResult_       &&
+
+          location_        == other.location_;
 }
 
 DecodedInst& DecodedInst::operator= (const DecodedInst& other) {
@@ -155,6 +179,8 @@ DecodedInst& DecodedInst::operator= (const DecodedInst& other) {
 
   hasOperand1_     = other.hasOperand1_;
   hasResult_       = other.hasResult_;
+
+  location_        = other.location_;
 
   return *this;
 }

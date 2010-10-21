@@ -18,7 +18,7 @@ double   Cluster::energy() const {
 }
 
 /* Initialise the instructions a Cluster will execute. */
-void     Cluster::storeData(std::vector<Word>& data) {
+void     Cluster::storeData(std::vector<Word>& data, int location) {
   std::vector<Instruction> instructions;
 
   // Convert all of the words to instructions
@@ -29,7 +29,7 @@ void     Cluster::storeData(std::vector<Word>& data) {
   fetch.storeCode(instructions);
 }
 
-uint16_t Cluster::getInstIndex() const {
+Address Cluster::getInstIndex() const {
   return fetch.getInstIndex();
 }
 
@@ -55,6 +55,10 @@ void     Cluster::setPersistent(bool persistent) {
 
 int32_t  Cluster::readReg(RegisterIndex reg, bool indirect) const {
   return regs.read(reg, indirect);
+}
+
+int32_t  Cluster::readRegDebug(RegisterIndex reg) const {
+  return regs.readDebug(reg);
 }
 
 void     Cluster::writeReg(RegisterIndex reg, int32_t value, bool indirect) {

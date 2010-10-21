@@ -64,7 +64,7 @@ public:
   virtual double energy() const;
 
   // Initialise the contents of this memory to the Words in the given vector.
-  virtual void storeData(std::vector<Word>& data);
+  virtual void storeData(std::vector<Word>& data, int location=0);
 
   // Print the contents of this memory.
   virtual void print(int start=0, int end=MEMORY_SIZE) const;
@@ -85,9 +85,6 @@ private:
 
   // Carry out a write for the transaction at input "position".
   void write(Word w, int position);
-
-  // Update the current connections to this memory.
-  void updateControl();
 
   // Update the connection at the given port so that results of memory reads
   // are sent back to returnAddr.
@@ -115,17 +112,17 @@ public:
 private:
 
   // The data stored by this memory.
-  AddressedStorage<Word> data;
+  AddressedStorage<Word> data_;
 
   // Information on the channels set up with each of this memory's inputs.
-  std::vector<ConnectionStatus> connections;
+  std::vector<ConnectionStatus> connections_;
 
   // A queue of operations for each port of the memory to perform.
-  BufferArray<Word> inputBuffers;
+  BufferArray<Word> inputBuffers_;
 
   // The number of words we have initially put in this memory. Allows multiple
   // files to be put into the same memory.
-  int wordsLoaded;
+  int wordsLoaded_;
 
 };
 

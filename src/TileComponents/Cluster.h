@@ -56,7 +56,7 @@ public:
   virtual double   energy() const;
 
   // Initialise the instructions a Cluster will execute.
-  virtual void     storeData(std::vector<Word>& data);
+  virtual void     storeData(std::vector<Word>& data, int location=0);
 
   // Returns the channel ID of the specified cluster's instruction packet FIFO.
   static uint32_t  IPKFIFOInput(uint16_t ID);
@@ -69,10 +69,15 @@ public:
 
   // Get the memory location of the current instruction being decoded, so
   // we can have breakpoints set to particular instructions in memory.
-  virtual uint16_t getInstIndex() const;
+  virtual Address  getInstIndex() const;
 
-  // Read a value from a register.
-  virtual int32_t  readReg(RegisterIndex reg, bool indirect = false) const;
+  // Read a value from a register. This method will redirect the request to
+  // the receive channel-end table if the register index corresponds to a
+  // channel end.
+  int32_t          readReg(RegisterIndex reg, bool indirect = false) const;
+
+  // Read a value from a register, without redirecting to the RCET.
+  virtual int32_t  readRegDebug(RegisterIndex reg) const;
 
   // Read the value of the predicate register.
   virtual bool     readPredReg() const;
@@ -167,8 +172,7 @@ private:
   sc_signal<bool>          decodeReady, executeReady, writeReady;
 
   // Transmission of the instruction along the pipeline.
-  flag_signal<Instruction> fetchToDecode;
-  flag_signal<DecodedInst> decodeToExecute, executeToWrite;
+  flag_signal<DecodedInst> fetchToDecode, decodeToExecute, executeToWrite;
 
   // Signals used to multiplex output 0.
   flag_signal<AddressedWord> out0Decode, out0Write;

@@ -16,7 +16,6 @@
 #include "../../../Component.h"
 #include "../../../Memory/IPKCacheStorage.h"
 #include "../../../Memory/Buffer.h"
-#include "../../../Datatype/Address.h"
 
 class FetchStage;
 
@@ -56,7 +55,7 @@ public:
   void write(Instruction inst);
 
   // Return the index into the current packet of the current instruction.
-  int  getInstIndex() const;
+  Address getInstAddress() const;
 
   // Tells whether the cache considers itself empty. This may be because there
   // are no instructions in the cache, or because all instructions have been

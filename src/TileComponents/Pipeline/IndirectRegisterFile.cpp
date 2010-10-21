@@ -26,6 +26,10 @@ int32_t IndirectRegisterFile::read(RegisterIndex reg, bool indirect) const {
   }
 }
 
+int32_t IndirectRegisterFile::readDebug(RegisterIndex reg) const {
+  return regs.read(reg).toInt();
+}
+
 void IndirectRegisterFile::write(RegisterIndex reg, int32_t value, bool indirect) {
 
   RegisterIndex index = indirect ? indirectRegs.read(reg) : reg;

@@ -16,30 +16,30 @@
 
 typedef IndirectRegisterFile Registers;
 
-bool Decoder::decodeInstruction(const Instruction inst, DecodedInst& dec) {
+bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
   if(currentlyWriting) {
-    return completeWrite(inst, dec);
+    return completeWrite(input, output);
   }
 
-  dec = DecodedInst(inst);
+  output = input;
 
   // Instructions that never reach the ALU (e.g. fetch) need to know whether
   // they should execute in this stage.
-  bool execute = shouldExecute(dec.predicate());
+  bool execute = shouldExecute(output.predicate());
 
   // If we are in remote execution mode, send all marked instructions.
   if(remoteExecute) {
-    if(dec.predicate() == Instruction::P) {
-      Instruction copy = inst;
+    if(output.predicate() == Instruction::P) {
+      Instruction copy = input.toInstruction();
 
       copy.predicate(Instruction::END_OF_PACKET); // Set it to always execute
-      dec.result(copy.toLong());
-      dec.channelMapEntry(sendChannel);
+      output.result(copy.toLong());
+      output.channelMapEntry(sendChannel);
 
       // Prevent other stages from trying to execute this instruction.
-      dec.operation(InstructionMap::OR);
-      dec.destinationReg(0);
+      output.operation(InstructionMap::OR);
+      output.destinationReg(0);
 
       return true;
     }
@@ -51,13 +51,13 @@ bool Decoder::decodeInstruction(const Instruction inst, DecodedInst& dec) {
   }
 
   // Only perform this if we aren't blocked to prevent repeated occurrences.
-  if(!blocked && !InstructionMap::isALUOperation(dec.operation()))
-    Instrumentation::operation(dec, execute, id);
+  if(!blocked && !InstructionMap::isALUOperation(output.operation()))
+    Instrumentation::operation(output, execute, id);
 
   // Need a big try block in case we block when reading from a channel end.
   try {
 
-    uint8_t operation = dec.operation();
+    uint8_t operation = output.operation();
 
     // Deal with all operations which require additional communication with
     // other components.
@@ -65,86 +65,84 @@ bool Decoder::decodeInstruction(const Instruction inst, DecodedInst& dec) {
 
       case InstructionMap::LDW :
       case InstructionMap::LDB : {
-        setOperand1ToValue(dec, dec.sourceReg1());
-        setOperand2ToValue(dec, 0, dec.immediate());
-        dec.operation(InstructionMap::ADDUI);
+        setOperand1ToValue(output, output.sourceReg1());
+        setOperand2ToValue(output, 0, output.immediate());
         if(operation == InstructionMap::LDW)
-             dec.memoryOp(MemoryRequest::LOAD);
-        else dec.memoryOp(MemoryRequest::LOAD_B);
+             output.memoryOp(MemoryRequest::LOAD);
+        else output.memoryOp(MemoryRequest::LOAD_B);
         break;
       }
 
       case InstructionMap::STW :
       case InstructionMap::STB : {
-        setOperand1ToValue(dec, dec.sourceReg2());
-        setOperand2ToValue(dec, 0, dec.immediate());
-        dec.operation(InstructionMap::ADDUI);
-        dec.sourceReg1(0); dec.sourceReg2(0);
+        setOperand1ToValue(output, output.sourceReg2());
+        setOperand2ToValue(output, 0, output.immediate());
+        output.operation(InstructionMap::ADDUI);
+        output.sourceReg1(output.sourceReg2()); output.sourceReg2(0);
         currentlyWriting = true;
         if(operation == InstructionMap::STW)
-             dec.memoryOp(MemoryRequest::STORE);
-        else dec.memoryOp(MemoryRequest::STORE_B);
+             output.memoryOp(MemoryRequest::STORE);
+        else output.memoryOp(MemoryRequest::STORE_B);
         break;
       }
 
       case InstructionMap::STWADDR :
       case InstructionMap::STBADDR : {
-        setOperand1ToValue(dec, dec.sourceReg1());
-        setOperand2ToValue(dec, 0, dec.immediate());
-        dec.operation(InstructionMap::ADDUI);
+        setOperand1ToValue(output, output.sourceReg1());
+        setOperand2ToValue(output, 0, output.immediate());
         if(operation == InstructionMap::STWADDR)
-             dec.memoryOp(MemoryRequest::STADDR);
-        else dec.memoryOp(MemoryRequest::STBADDR);
+             output.memoryOp(MemoryRequest::STADDR);
+        else output.memoryOp(MemoryRequest::STBADDR);
         break;
       }
 
       case InstructionMap::WOCHE : {
-        dec.result(dec.immediate());
+        output.result(output.immediate());
         break;
       }
 
       case InstructionMap::TSTCH : {
-        dec.result(parent()->testChannel(dec.immediate()));
+        output.result(parent()->testChannel(output.immediate()));
         break;
       }
 
       case InstructionMap::SELCH : {
-        dec.result(parent()->selectChannel());
+        output.result(parent()->selectChannel());
         break;
       }
 
       case InstructionMap::IBJMP : {
         if(execute) {
-          parent()->jump((int8_t)dec.immediate());
+          parent()->jump((int8_t)output.immediate());
         }
-        dec.result(0);   // Stop the ALU doing anything by storing a result.
+        output.result(0);   // Stop the ALU doing anything by storing a result.
         break;
       }
 
       case InstructionMap::RMTEXECUTE : {
         remoteExecute = true;
-        sendChannel = dec.channelMapEntry();
-        dec.channelMapEntry(Instruction::NO_CHANNEL);
-        dec.result(0);
+        sendChannel = output.channelMapEntry();
+        output.channelMapEntry(Instruction::NO_CHANNEL);
+        output.result(0);
         if(DEBUG) cout << this->name() << " beginning remote execution" << endl;
         break;
       }
 
       case InstructionMap::RMTFETCH : {
         string opName = "fetch";
-        Instruction copy = inst;
+        Instruction copy = input.toInstruction();
         copy.opcode(InstructionMap::opcode(opName));
         copy.predicate(Instruction::END_OF_PACKET);
-        dec.result(copy.toLong());
+        output.result(copy.toLong());
         break;
       }
 
       case InstructionMap::RMTFETCHPST : {
         string opName = "fetchpst";
-        Instruction copy = inst;
+        Instruction copy = input.toInstruction();
         copy.opcode(InstructionMap::opcode(opName));
         copy.predicate(Instruction::END_OF_PACKET);
-        dec.result(copy.toLong());
+        output.result(copy.toLong());
         break;
       }
 
@@ -154,19 +152,19 @@ bool Decoder::decodeInstruction(const Instruction inst, DecodedInst& dec) {
       // Deprecated: use "setchmap 0 rs" instead.
       case InstructionMap::SETFETCHCH : {
         // See if we should execute first?
-        setFetchChannel(dec.immediate());
-        dec.result(0);   // Stop the ALU doing anything by storing a result.
+        setFetchChannel(output.immediate());
+        output.result(0);   // Stop the ALU doing anything by storing a result.
         break;
       }
 
       case InstructionMap::SETCHMAP : {
         // Don't set the result because this register read may be out of date.
-        dec.operand1(readRegs(dec.sourceReg1()));
+        output.operand1(readRegs(output.sourceReg1()));
         // The rest of the table is in the write stage, so we only deal with
         // entry 0 here. Note that at least two cycles are required between
         // storing the value to a register and reading it here.
-        if(dec.immediate() == 0) {
-          setFetchChannel(dec.operand1());
+        if(output.immediate() == 0) {
+          setFetchChannel(output.operand1());
         }
         break;
       }
@@ -177,11 +175,11 @@ bool Decoder::decodeInstruction(const Instruction inst, DecodedInst& dec) {
         // the predicate bit is usually checked. We have to do the check here
         // instead.
         if(execute) {
-          fetch(dec.immediate() + readRegs(dec.sourceReg1()));
+          fetch(output.immediate() + readRegs(output.sourceReg1()));
           parent()->setPersistent(operation == InstructionMap::FETCHPST);
         }
 
-        dec.result(0);   // Stop the ALU doing anything by storing a result.
+        output.result(0);   // Stop the ALU doing anything by storing a result.
         break;
       }
 
@@ -190,23 +188,23 @@ bool Decoder::decodeInstruction(const Instruction inst, DecodedInst& dec) {
         // (Optimisation: only if the predicate was written last cycle.)
 
         uint32_t selected;
-        if(parent()->predicate()) selected = readRegs(dec.sourceReg1());
-        else                      selected = readRegs(dec.sourceReg2());
-        fetch(dec.immediate() + selected);
+        if(parent()->predicate()) selected = readRegs(output.sourceReg1());
+        else                      selected = readRegs(output.sourceReg2());
+        fetch(output.immediate() + selected);
         parent()->setPersistent(false);
-        dec.result(0);   // Stop the ALU doing anything by storing a result.
+        output.result(0);   // Stop the ALU doing anything by storing a result.
         break;
       }
 
       case InstructionMap::IRDR : {
         // Is there the possibility of requiring data forwarding here?
-        dec.result(readRegs(dec.sourceReg1(), true));
+        output.result(readRegs(output.sourceReg1(), true));
         break;
       }
 
       default : {
-        setOperand1(dec);
-        setOperand2(dec);
+        setOperand1(output);
+        setOperand2(output);
       }
 
     } // end switch
@@ -283,11 +281,11 @@ void Decoder::setFetchChannel(uint16_t channelID) {
 }
 
 /* Sends the second part of a two-flit store operation (the data to send). */
-bool Decoder::completeWrite(Instruction i, DecodedInst& dec) {
-  dec = DecodedInst(i);
+bool Decoder::completeWrite(const DecodedInst& input, DecodedInst& output) {
+  output = input;
 
   try {
-    setOperand1ToValue(dec, dec.sourceReg1());
+    setOperand1ToValue(output, output.sourceReg1());
   }
   catch(BlockedException& b) {
     blocked = true;

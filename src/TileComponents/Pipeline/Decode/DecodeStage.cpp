@@ -62,7 +62,7 @@ void         DecodeStage::newCycle() {
 
 }
 
-void         DecodeStage::decode(Instruction i) {
+void         DecodeStage::decode(const DecodedInst& i) {
   // Store the instruction in case we need to use it again.
   repeatInst = i;
   bool success = decoder.decodeInstruction(i, decoded);

@@ -32,8 +32,9 @@ bool Address::readBit() const {
   return getBits(0,0);
 }
 
-void Address::addOffset(const int offset) {
+Address& Address::addOffset(const int offset) {
   address(address() + offset);
+  return *this;
 }
 
 /* Constructors and destructors */
