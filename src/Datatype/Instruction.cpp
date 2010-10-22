@@ -101,14 +101,12 @@ Instruction::Instruction(const uint64_t inst) : Word(inst) {
 
 Instruction::Instruction(const string& inst) {
 
-  vector<string> words;
-
   // Skip this line if it is a comment or empty
   if((inst[0]=='%') || (inst[0]==';') || (inst[0]=='\n') || (inst[0]=='\r'))
     throw InvalidInstructionException();
 
   // Remove any comments by splitting around ';' and only keeping the first part
-  words = Strings::split(inst, ';');
+  vector<string>& words = Strings::split(inst, ';');
 
   // If there is no text, abandon the creation of the Instruction
   if(words.size() == 0) throw InvalidInstructionException();
@@ -129,6 +127,8 @@ Instruction::Instruction(const string& inst) {
   uint8_t reg2 = (words.size() > 2) ? decodeField(words[2]) : 0;
   uint8_t reg3 = (words.size() > 3) ? decodeField(words[3]) : 0;
   setFields(reg1, reg2, reg3);
+
+  delete &words;
 
 }
 
@@ -206,7 +206,7 @@ uint8_t Instruction::decodeField(const string& str) {
 void Instruction::decodeOpcode(const string& name) {
 
   // Try splitting the opcode to see if it is predicated
-  vector<string> opcodeParts = Strings::split(name, '?');
+  vector<string>& opcodeParts = Strings::split(name, '?');
 
   string opcodeString;
 
@@ -244,6 +244,8 @@ void Instruction::decodeOpcode(const string& name) {
   short op = InstructionMap::opcode(opcodeParts.front());
   opcode(op);
 
+  delete &opcodeParts;
+
 }
 
 /* Set the remote channel field depending on the contents of the given string.
@@ -251,7 +253,7 @@ void Instruction::decodeOpcode(const string& name) {
  * representing a component and one of its input ports.
  * Returns a signed int because this method is also used to decode immediates. */
 int32_t Instruction::decodeRChannel(const string& channel) {
-  vector<string> parts = Strings::split(channel, ',');
+  vector<string>& parts = Strings::split(channel, ',');
   if(parts.size() == 1) return Strings::strToInt(parts[0]);
   else {
     string component = Strings::split(parts[0],'(').at(1); // Remove the bracket
@@ -260,6 +262,8 @@ int32_t Instruction::decodeRChannel(const string& channel) {
                 + Strings::strToInt(port);
     return channel;
   }
+
+  delete &parts;
 }
 
 void Instruction::setFields(const uint8_t reg1, const uint8_t reg2,

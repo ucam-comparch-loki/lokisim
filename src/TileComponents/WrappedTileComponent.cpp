@@ -95,5 +95,16 @@ WrappedTileComponent::WrappedTileComponent(sc_module_name name, int ID, int type
 }
 
 WrappedTileComponent::~WrappedTileComponent() {
+  delete comp;
 
+  delete[] dataIn;
+  delete[] creditsOut;
+  delete[] dataOut;
+  delete[] creditsIn;
+
+  delete[] dataInSig;
+  delete[] dataOutSig;
+  delete[] dataOutSig2;
+  delete[] fcOutSig;
+  delete[] fcInSig;
 }

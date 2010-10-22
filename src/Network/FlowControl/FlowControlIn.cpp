@@ -66,5 +66,8 @@ FlowControlIn::FlowControlIn(sc_module_name name, int width) :
 }
 
 FlowControlIn::~FlowControlIn() {
-
+  delete[] dataIn;
+  delete[] dataOut;
+  delete[] flowControl;
+  delete[] credits;
 }

@@ -31,8 +31,6 @@ class Tile : public Component {
 public:
 
   sc_in<bool>  clock;
-//  sc_in<AddressedWord>  *inNorth,  *inEast,  *inSouth,  *inWest;
-//  sc_out<AddressedWord> *outNorth, *outEast, *outSouth, *outWest;
 
   sc_out<bool> idle;
 
@@ -66,10 +64,6 @@ public:
   Address getInstIndex(int component) const;
   bool getPredReg(int component) const;
 
-  // Static functions for connecting Tiles together
-  static void connectLeftRight(const Tile& left, const Tile& right);
-  static void connectTopBottom(const Tile& top, const Tile& bottom);
-
 private:
 
   void updateIdle();
@@ -89,10 +83,9 @@ private:
 
 private:
 
-  flag_signal<AddressedWord> *responsesToCluster, *requestsToCluster; // arrays
-  flag_signal<AddressedWord> *dataToCluster;                          // array
-  flag_signal<AddressedWord> *responsesFromCluster;                   // array
-  sc_signal<bool>            *idleSig;                                // array
+  flag_signal<AddressedWord> *creditsToCluster, *dataToCluster,
+                             *creditsFromCluster;                  // arrays
+  sc_signal<bool>            *idleSig;                             // array
 
 //==============================//
 // Local state

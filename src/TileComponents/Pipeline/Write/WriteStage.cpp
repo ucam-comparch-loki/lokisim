@@ -76,5 +76,6 @@ WriteStage::WriteStage(sc_module_name name, uint16_t ID) :
 }
 
 WriteStage::~WriteStage() {
-
+  delete[] output;
+  delete[] flowControl;
 }

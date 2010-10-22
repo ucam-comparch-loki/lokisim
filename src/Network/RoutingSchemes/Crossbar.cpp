@@ -44,7 +44,7 @@ void Crossbar::route(input_port inputs[],
   }// end for
 
   // Clear the vector for next time.
-  for(unsigned int i=0; i<sent.size(); i++) sent[i] = false;
+  for(uint i=0; i<sent.size(); i++) sent[i] = false;
 
 }
 

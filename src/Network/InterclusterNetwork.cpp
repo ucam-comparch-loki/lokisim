@@ -61,5 +61,8 @@ InterclusterNetwork::InterclusterNetwork(sc_module_name name) :
 }
 
 InterclusterNetwork::~InterclusterNetwork() {
-
+  delete[] dataIn;
+  delete[] dataOut;
+  delete[] creditsIn;
+  delete[] creditsOut;
 }

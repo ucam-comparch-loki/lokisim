@@ -22,5 +22,7 @@ DataBlock::DataBlock(vector<Word>* data, int position) {
 }
 
 DataBlock::~DataBlock() {
-//  delete data_;
+  // For some reason, since data_ wasn't allocated in this class, it can't
+  // be deleted in this class. We must therefore use (from somewhere else):
+  //   delete &(block.data());
 }

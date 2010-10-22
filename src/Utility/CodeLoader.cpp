@@ -5,15 +5,12 @@
  *      Author: db434
  */
 
-#include <ios>
 #include "CodeLoader.h"
 #include "DataBlock.h"
 #include "Parameters.h"
 #include "StringManipulation.h"
 #include "../Datatype/Data.h"
 #include "../Datatype/Instruction.h"
-#include "../TileComponents/TileComponent.h"
-#include "../TileComponents/WrappedTileComponent.h"
 
 bool CodeLoader::usingDebugger = false;
 
@@ -43,7 +40,7 @@ void CodeLoader::loadCode(string& settings, Tile& tile) {
 
       if(s[0]=='%' || s[0]=='\0') continue;   // Skip past any comments
 
-      vector<string> words = StringManipulation::split(s, ' ');
+      vector<string>& words = StringManipulation::split(s, ' ');
 
       if(words[0]=="directory") {     // Update the current directory
         directory = directory + "/" + words[1];
@@ -60,6 +57,8 @@ void CodeLoader::loadCode(string& settings, Tile& tile) {
                                              : directory + "/" + words[1];
         loadCode(filename, tile, index);
       }
+
+      delete &words;
 
       if(file.eof()) break;
     }
@@ -83,6 +82,8 @@ void CodeLoader::loadCode(string& filename, Tile& tile, uint component) {
 
   for(uint i=0; i<blocks.size(); i++) {
     tile.storeData(blocks[i].data(), component, blocks[i].position()/BYTES_PER_WORD);
+    delete &(blocks[i].data());
+    delete &(blocks[i]);
   }
 }
 
@@ -235,7 +236,7 @@ vector<DataBlock>& CodeLoader::readELFFile(string& filename) {
   while(!feof(terminalOutput)) {
     fgets(line, 100, terminalOutput);
     string lineStr(line);
-    vector<string> words = StringManipulation::split(lineStr, ' ');
+    vector<string>& words = StringManipulation::split(lineStr, ' ');
 
     // We're only interested in a few particular lines of the information.
     if(words.size() == 7 && (words[1]==".text" || words[1]==".data")) {
@@ -246,7 +247,7 @@ vector<DataBlock>& CodeLoader::readELFFile(string& filename) {
       int offset       = StringManipulation::strToInt("0x"+words[5]);
 
       // Seek to "offset" in elfFile.
-      elfFile.seekg(offset, std::ios::beg);
+      elfFile.seekg(offset);
 
       vector<Word>* instructions = new vector<Word>();
 
@@ -255,19 +256,75 @@ vector<DataBlock>& CodeLoader::readELFFile(string& filename) {
         Instruction inst = getWord(elfFile, ELF);
         instructions->push_back(inst);
 
-        if(usingDebugger) printInstruction(inst, physPosition+i);
+        if(usingDebugger && words[1]==".text") {
+          printInstruction(inst, physPosition+i);
+        }
       }
 
       // Put these instructions into a particular position in memory.
       DataBlock block(instructions, physPosition);
       blocks->push_back(block);
     }
+
+    delete &words;
   }
 
   fclose(terminalOutput);
   elfFile.close();
 
+  // Find the position of main(), so we can get a core to fetch it.
+  int mainPos = findMain(filename);
+  if(usingDebugger) cout << "\nmain() is at address " << mainPos << endl;
+
+  Instruction fetch("fetch.eop r0 0");
+  fetch.immediate(mainPos);
+
+  cout << "Should give \"" << fetch << "\" to core ???" << endl;
+
   return *blocks;
+}
+
+int CodeLoader::findMain(string& filename) {
+  // Open the input file.
+  std::ifstream elfFile(filename.c_str());
+
+  // Execute a command which returns information on all of the ELF sections.
+  FILE* terminalOutput;
+  string command("loki-elf-objdump -t " + filename);
+  terminalOutput = popen(command.c_str(), "r");
+
+  char line[100];
+  int mainPos;
+  bool foundMainPos = false;
+
+  // Step through each line of information, looking for the one corresponding
+  // to main().
+  while(!feof(terminalOutput)) {
+    fgets(line, 100, terminalOutput);
+    string lineStr(line);
+    vector<string>& words = StringManipulation::split(lineStr, ' ');
+
+    // We're only interested one line of the information.
+    if(words[words.size()-1]=="main\n") {   // Ugly
+      mainPos = StringManipulation::strToInt("0x"+words[0]);
+      foundMainPos = true;
+      break;
+    }
+
+    delete &words;
+  }
+
+  fclose(terminalOutput);
+  elfFile.close();
+
+  if(foundMainPos) {
+    return mainPos;
+  }
+  else {
+    cerr << "Error: unable to find main() in " << filename << endl;
+    throw std::exception();
+  }
+
 }
 
 /* Print an instruction in the form:

@@ -71,7 +71,7 @@ FlowControlOut::FlowControlOut(sc_module_name name, int ID, int width) :
   id = ID;
 
   dataIn      = new sc_in<AddressedWord>[width];
-  credits   = new sc_in<AddressedWord>[width];
+  credits     = new sc_in<AddressedWord>[width];
   dataOut     = new sc_out<AddressedWord>[width];
   flowControl = new sc_out<bool>[width];
 
@@ -86,5 +86,8 @@ FlowControlOut::FlowControlOut(sc_module_name name, int ID, int width) :
 }
 
 FlowControlOut::~FlowControlOut() {
-
+  delete[] dataIn;
+  delete[] dataOut;
+  delete[] flowControl;
+  delete[] credits;
 }

@@ -146,5 +146,6 @@ DecodeStage::DecodeStage(sc_module_name name, int ID) :
 }
 
 DecodeStage::~DecodeStage() {
-
+  delete[] in;
+  delete[] flowControlOut;
 }

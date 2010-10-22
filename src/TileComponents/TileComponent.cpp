@@ -42,5 +42,8 @@ TileComponent::TileComponent(sc_module_name name, uint16_t ID) :
 }
 
 TileComponent::~TileComponent() {
-
+  delete[] in;
+  delete[] out;
+  delete[] flowControlIn;
+  delete[] flowControlOut;
 }

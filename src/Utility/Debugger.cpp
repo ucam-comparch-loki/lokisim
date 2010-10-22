@@ -53,7 +53,7 @@ void Debugger::waitForInput() {
   while(cyclesIdle < 5) {
     string input;
     std::getline(std::cin, input);
-    vector<string> words = StringManipulation::split(input, ' ');
+    vector<string>& words = StringManipulation::split(input, ' ');
 
     if(tile->isIdle()) cyclesIdle++;
     else cyclesIdle = 0;
@@ -104,6 +104,8 @@ void Debugger::waitForInput() {
     else {
       printHelp();
     }
+
+    delete &words;
   }
 }
 

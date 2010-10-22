@@ -145,5 +145,6 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, uint16_t ID) :
 }
 
 SendChannelEndTable::~SendChannelEndTable() {
-
+  delete[] output;
+  delete[] flowControl;
 }

@@ -19,7 +19,8 @@ vector<string>& StringManipulation::split(const string& s, char delim,
   return elems;
 }
 
-/* Split a string around a given delimiter character. */
+/* Split a string around a given delimiter character. The resultant vector
+ * should be deleted when finished with. */
 vector<string>& StringManipulation::split(const string& s, char delim) {
   vector<string>* elems = new vector<string>();
   return split(s, delim, *elems);

@@ -150,5 +150,5 @@ FetchStage::FetchStage(sc_module_name name, uint16_t ID) :
 }
 
 FetchStage::~FetchStage() {
-
+  delete[] flowControl;
 }

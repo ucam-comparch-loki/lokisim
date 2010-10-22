@@ -83,5 +83,6 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name) :
 }
 
 ReceiveChannelEndTable::~ReceiveChannelEndTable() {
-
+  delete[] flowControl;
+  delete[] fromNetwork;
 }

@@ -53,22 +53,6 @@ bool Tile::getPredReg(int component) const {
   return contents[component]->getPredReg();
 }
 
-/* Connect two horizontally-adjacent Tiles together. */
-void Tile::connectLeftRight(const Tile& left, const Tile& right) {
-  for(uint i=0; i<NUM_CHANNELS_BETWEEN_TILES; i++) {
-//    right.inWest[i](left.outEast[i]);
-//    left.inEast[i](right.outWest[i]);
-  }
-}
-
-/* Connect two vertically-adjacent Tiles together. */
-void Tile::connectTopBottom(const Tile& top, const Tile& bottom) {
-  for(uint i=0; i<NUM_CHANNELS_BETWEEN_TILES; i++) {
-//    bottom.inNorth[i](top.outSouth[i]);
-//    top.inSouth[i](bottom.outNorth[i]);
-  }
-}
-
 void Tile::updateIdle() {
   idleVal = true;
 
@@ -85,16 +69,6 @@ Tile::Tile(sc_module_name name, int ID) :
     Component(name, ID),
     network("localnetwork") {
 
-  // Initialise arrays of inputs and outputs
-//  inNorth  = new sc_in<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
-//  inEast   = new sc_in<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
-//  inSouth  = new sc_in<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
-//  inWest   = new sc_in<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
-//  outNorth = new sc_out<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
-//  outEast  = new sc_out<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
-//  outSouth = new sc_out<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
-//  outWest  = new sc_out<AddressedWord>[NUM_CHANNELS_BETWEEN_TILES];
-
   idleSig = new sc_signal<bool>[COMPONENTS_PER_TILE];
 
   SC_METHOD(updateIdle);
@@ -104,9 +78,8 @@ Tile::Tile(sc_module_name name, int ID) :
   int numOutputs = NUM_CLUSTER_OUTPUTS * COMPONENTS_PER_TILE;
   int numInputs  = NUM_CLUSTER_INPUTS  * COMPONENTS_PER_TILE;
 
-  responsesToCluster   = new flag_signal<AddressedWord>[numOutputs];
-  responsesFromCluster = new flag_signal<AddressedWord>[numInputs];
-  requestsToCluster    = new flag_signal<AddressedWord>[numInputs];
+  creditsToCluster   = new flag_signal<AddressedWord>[numOutputs];
+  creditsFromCluster = new flag_signal<AddressedWord>[numInputs];
   dataToCluster        = new flag_signal<AddressedWord>[numInputs];
 
   network.clock(clock);
@@ -133,16 +106,16 @@ Tile::Tile(sc_module_name name, int ID) :
 
       contents[i]->dataIn[j](dataToCluster[index]);
       network.dataOut[index](dataToCluster[index]);
-      contents[i]->creditsOut[j](responsesFromCluster[index]);
-      network.creditsIn[index](responsesFromCluster[index]);
+      contents[i]->creditsOut[j](creditsFromCluster[index]);
+      network.creditsIn[index](creditsFromCluster[index]);
     }
 
     for(uint j=0; j<NUM_CLUSTER_OUTPUTS; j++) {
       int index = i*NUM_CLUSTER_OUTPUTS + j;  // Position in network's array
 
       network.dataIn[index](contents[i]->dataOut[j]);
-      network.creditsOut[index](responsesToCluster[index]);
-      contents[i]->creditsIn[j](responsesToCluster[index]);
+      network.creditsOut[index](creditsToCluster[index]);
+      contents[i]->creditsIn[j](creditsToCluster[index]);
     }
 
     contents[i]->clock(clock);
@@ -155,5 +128,10 @@ Tile::Tile(sc_module_name name, int ID) :
 }
 
 Tile::~Tile() {
+  delete[] idleSig;
+  delete[] creditsToCluster;
+  delete[] dataToCluster;
+  delete[] creditsFromCluster;
 
+  for(uint i=0; i<contents.size(); i++) delete contents[i];
 }

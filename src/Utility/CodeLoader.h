@@ -19,8 +19,6 @@ using std::vector;
 class DataBlock;
 class Instruction;
 class Tile;
-class TileComponent;
-class WrappedTileComponent;
 
 class CodeLoader {
 
@@ -36,17 +34,30 @@ public:
   static void loadCode(string& filename, Tile& tile, uint position);
 
 private:
+
+  // Return a list of all blocks of data in the given file, and the positions
+  // they should be put in memory.
   static vector<DataBlock>& getData(string& filename);
+
+  // Return the FileType of the file, determined using the file extension.
   static uint8_t fileType(string& filename);
+
+  // Read the next word (data or instruction) from the given file.
   static Word getWord(std::ifstream& file, uint8_t type);
 
-  // Prints loaded instructions in a formatted way for the debugger. Address is
+  // Prints an instruction in a formatted way for the debugger. Address is
   // in bytes.
   static void printInstruction(Instruction i, int address);
 
+  // Read in all blocks of code/data from the file, along with the locations in
+  // memory where they should be loaded.
   static vector<DataBlock>& readELFFile(string& filename);
 
-  enum FILETYPE {LOKI, BINARY, DATA, ELF};
+  // Find the position in memory where the start of the main() function will be.
+  // The given file must be in the ELF format.
+  static int findMain(string& filename);
+
+  enum FileType {LOKI, BINARY, DATA, ELF};
 
 };
 
