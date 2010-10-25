@@ -22,14 +22,16 @@ class DataBlock {
 public:
 
   vector<Word>& data() const;
+  int component() const;
   int position() const;
 
-  DataBlock(vector<Word>* data, int position=0);
+  DataBlock(vector<Word>* data, int component, int position=0);
   virtual ~DataBlock();
 
 private:
 
   vector<Word>* data_;
+  int component_;
   int position_;
 
 };

@@ -6,18 +6,23 @@
  */
 
 #include "DataBlock.h"
-#include "../Datatype/Word.h"
+#include "../../Datatype/Word.h"
 
 vector<Word>& DataBlock::data() const {
   return *data_;
+}
+
+int DataBlock::component() const {
+  return component_;
 }
 
 int DataBlock::position() const {
   return position_;
 }
 
-DataBlock::DataBlock(vector<Word>* data, int position) {
+DataBlock::DataBlock(vector<Word>* data, int component, int position) {
   data_ = data;
+  component_ = component;
   position_ = position;
 }
 

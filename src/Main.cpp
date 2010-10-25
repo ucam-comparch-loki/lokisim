@@ -7,7 +7,7 @@
 
 //#include <gtest/gtest.h>
 #include <systemc.h>
-#include "Utility/CodeLoader.h"
+#include "Utility/StartUp/CodeLoader.h"
 #include "Utility/Debugger.h"
 #include "Tests/Test.h"
 
