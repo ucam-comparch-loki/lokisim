@@ -25,7 +25,7 @@ class IPKCacheStorage : public MappedStorage<Address, Instruction> {
 
 public:
 
-  IPKCacheStorage(const uint16_t size);
+  IPKCacheStorage(const uint16_t size, std::string name);
   virtual ~IPKCacheStorage();
 
 //==============================//

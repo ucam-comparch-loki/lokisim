@@ -17,15 +17,6 @@ double FetchStage::energy() const {
   return cache.energy() + fifo.energy();// + mux.energy();
 }
 
-void FetchStage::newCycle() {
-
-  // See if we have received any new instructions.
-  checkInputs();
-
-  calculateSelect();
-
-}
-
 void FetchStage::cycleSecondHalf() {
   // Consider the pipeline to be stalled if the first pipeline stage is not
   // allowed to do any work. Only report the stall status when it changes.
@@ -34,10 +25,12 @@ void FetchStage::cycleSecondHalf() {
     stalled = !readyIn.read();
   }
 
+  calculateSelect();
+
   if(readyIn.read()) {
     // Select a new instruction if the decode stage is ready for one, unless
     // the FIFO and cache are both empty.
-    if(!(fifo.isEmpty() && cache.isEmpty())) {
+    if(!cache.isEmpty() || !fifo.isEmpty()) {
       Address instAddr;
 
       if(usingCache) {
@@ -132,7 +125,7 @@ void FetchStage::calculateSelect() {
   }
 }
 
-FetchStage::FetchStage(sc_module_name name, uint16_t ID) :
+FetchStage::FetchStage(sc_module_name name, ComponentID ID) :
     PipelineStage(name),
     cache("IPKcache"),
     fifo("IPKfifo") {
@@ -146,6 +139,10 @@ FetchStage::FetchStage(sc_module_name name, uint16_t ID) :
   // Connect FIFO and cache to network
   fifo.flowControl(flowControl[0]);
   cache.flowControl(flowControl[1]);
+
+  SC_METHOD(checkInputs);
+  sensitive << toIPKFIFO << toIPKCache;
+  dont_initialize();
 
 }
 

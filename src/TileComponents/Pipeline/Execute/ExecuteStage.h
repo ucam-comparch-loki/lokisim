@@ -45,7 +45,7 @@ public:
 public:
 
   SC_HAS_PROCESS(ExecuteStage);
-  ExecuteStage(sc_module_name name, int ID);
+  ExecuteStage(sc_module_name name, ComponentID ID);
   virtual ~ExecuteStage();
 
 //==============================//
@@ -59,11 +59,10 @@ public:
 
 private:
 
-  // Set up this pipeline stage before execution begins.
-  virtual void initialise();
+  // The task performed when a new operation is received.
+  virtual void newInput();
 
-  // The task performed at the beginning of each clock cycle.
-  virtual void newCycle();
+  virtual void execute();
 
   // Read the predicate register.
   bool getPredicate() const;
@@ -77,6 +76,9 @@ private:
 
   // Update the forwarding paths using this recently-executed instruction.
   void updateForwarding(DecodedInst& inst);
+
+  // Update our output ready signal. Executes once per cycle.
+  void updateReady();
 
 //==============================//
 // Components

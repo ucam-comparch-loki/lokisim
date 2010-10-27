@@ -25,8 +25,6 @@ class Address;
 class Cluster;
 class Word;
 
-typedef uint8_t RegisterIndex;
-
 class IndirectRegisterFile: public Component {
 
 //==============================//

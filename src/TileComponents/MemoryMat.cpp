@@ -38,8 +38,8 @@ void MemoryMat::newCycle() {
         else {
           // If there is no connection set up and we receive something which
           // isn't a set up message, something is wrong.
-          cerr << "Error: unexpected input at " << this->name() << ": "
-               << req << endl;
+          cerr << "Error: unexpected input at " << this->name() << " port "
+               << i << ": " << req << endl;
           // throw exception?
         }
       }
@@ -268,9 +268,9 @@ Word MemoryMat::getMemVal(uint32_t addr) const {
 
 MemoryMat::MemoryMat(sc_module_name name, int ID) :
     TileComponent(name, ID),
-    data_(MEMORY_SIZE),
+    data_(MEMORY_SIZE, string(name)),
     connections_(NUM_CLUSTER_INPUTS),
-    inputBuffers_(NUM_CLUSTER_INPUTS, 4) {
+    inputBuffers_(NUM_CLUSTER_INPUTS, 4, string(name)) {
 
   wordsLoaded_ = 0;
 

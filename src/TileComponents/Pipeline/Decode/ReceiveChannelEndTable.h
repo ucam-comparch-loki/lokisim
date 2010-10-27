@@ -20,8 +20,6 @@
 class DecodeStage;
 class Word;
 
-typedef uint8_t ChannelIndex;
-
 class ReceiveChannelEndTable: public Component {
 
 //==============================//
@@ -44,6 +42,7 @@ public:
 
 public:
 
+  SC_HAS_PROCESS(ReceiveChannelEndTable);
   ReceiveChannelEndTable(sc_module_name name);
   virtual ~ReceiveChannelEndTable();
 

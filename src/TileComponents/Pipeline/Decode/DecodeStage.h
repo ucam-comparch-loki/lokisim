@@ -63,7 +63,7 @@ public:
 public:
 
   SC_HAS_PROCESS(DecodeStage);
-  DecodeStage(sc_module_name name, int ID);
+  DecodeStage(sc_module_name name, ComponentID ID);
   virtual ~DecodeStage();
 
 //==============================//
@@ -88,14 +88,15 @@ private:
   // Pass the given instruction to the decoder to be decoded.
   void           decode(const DecodedInst& i);
 
-  // Send initial flow control outputs.
-  virtual void   initialise();
+  // Send any pending data to the network (if possible) and update our output
+  // flow control.
+  void           updateReady();
 
-  // The task performed at the beginning of each clock cycle.
-  virtual void   newCycle();
+  // The main loop: waiting until new input is received, and then acting on it.
+  virtual void   execute();
 
   // Read a register value (for Decoder).
-  int32_t        readReg(uint8_t index, bool indirect = false) const;
+  int32_t        readReg(RegisterIndex index, bool indirect = false) const;
 
   // Get the value of the predicate register.
   bool           predicate() const;
@@ -110,7 +111,7 @@ private:
   void           fetch(uint16_t addr);
 
   // Change the channel to which we send our fetch requests.
-  void           setFetchChannel(uint16_t channelID);
+  void           setFetchChannel(ChannelID channelID);
 
   // Find out if the instruction packet from the given location is currently
   // in the instruction packet cache.
@@ -140,17 +141,6 @@ private:
   friend class Decoder;
   friend class ReceiveChannelEndTable;
   friend class SignExtend;
-
-//==============================//
-// Local state
-//==============================//
-
-private:
-
-  DecodedInst             decoded;
-
-  // Used when we need to execute the same instruction multiple times.
-  DecodedInst             repeatInst;
 
 };
 

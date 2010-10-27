@@ -56,7 +56,7 @@ protected:
   // To simulate pipelining, all pipeline stages execute a method every cycle.
   // This method usually involves checking for new data, and passing it to
   // subcomponents if appropriate.
-  virtual void newCycle() = 0;
+  virtual void newCycle();
 
   // For some pipeline stages, we may need to be sure that some information has
   // arrived (e.g. a "ready" signal from the next stage). To do this, we

@@ -14,7 +14,7 @@ Component::Component(sc_module_name& name) : sc_module(name), id(-1) {
 
 /* NOTE: if this constructor is used, end_module() must be placed at
  *       the end of the constructor this is called from. */
-Component::Component(sc_module_name& name, uint16_t ID)
+Component::Component(sc_module_name& name, ComponentID ID)
     : sc_module(makeName(name, ID)), id(ID) {
 
 }
@@ -33,7 +33,7 @@ double Component::energy() const {
   return 0.0;
 }
 
-std::string Component::makeName(sc_module_name& name, int ID) {
+std::string Component::makeName(sc_module_name& name, ComponentID ID) {
   std::stringstream ss;
   std::string result;
 

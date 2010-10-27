@@ -14,7 +14,6 @@
 
 int DEBUG = 1;
 
-extern parameter NUM_CHANNELS_BETWEEN_TILES = 4;
 extern parameter CLUSTERS_PER_TILE          = 12;
 extern parameter MEMS_PER_TILE              = 4;
 
@@ -34,6 +33,7 @@ extern parameter MEMORY_SIZE                = 2048;
 
 extern parameter CHANNEL_MAP_SIZE           = 8;
 
+// Network
 extern parameter NUM_RECEIVE_CHANNELS       = 2;
 extern parameter NUM_SEND_CHANNELS          = CHANNEL_MAP_SIZE;
 extern parameter CHANNEL_END_BUFFER_SIZE    = 4;

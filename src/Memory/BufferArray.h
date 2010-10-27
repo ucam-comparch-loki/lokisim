@@ -50,9 +50,11 @@ public:
 
 public:
 
-  BufferArray(const uint numBuffers, const uint buffSize) {
+  BufferArray(const uint numBuffers, const uint buffSize, std::string name) {
     for(uint i=0; i<numBuffers; i++) {
-      buffers.push_back(new Buffer<T>(buffSize));
+      std::string buffName = name + ".buffer";
+      buffName += i;
+      buffers.push_back(new Buffer<T>(buffSize, buffName));
     }
   }
 

@@ -11,8 +11,8 @@
 #ifndef COMPONENT_H_
 #define COMPONENT_H_
 
-#include <inttypes.h>
 #include "systemc"
+#include "Typedefs.h"
 
 #include "Utility/Instrumentation.h"
 #include "Utility/Parameters.h"
@@ -35,7 +35,7 @@ SC_MODULE (Component) {
 
 public:
 
-  uint16_t id; // Would like to be const, but seems hard to do
+  ComponentID id; // Would like to be const, but seems hard to do
 
 //==============================//
 // Constructors and destructors
@@ -44,7 +44,7 @@ public:
 public:
 
   Component(sc_module_name& name);
-  Component(sc_module_name& name, uint16_t ID);
+  Component(sc_module_name& name, ComponentID ID);
   ~Component();
 
   // DO NOT MAKE A COPY CONSTRUCTOR. SYSTEMC MODULES SHOULD NOT BE COPIED.
@@ -64,7 +64,7 @@ public:
 private:
 
   // Generate a unique name for this component, using its ID.
-  static std::string makeName(sc_module_name& name, int ID);
+  static std::string makeName(sc_module_name& name, ComponentID ID);
 
 };
 

@@ -32,6 +32,10 @@ void PipelineStage::initialise() {
   // Default is to do nothing.
 }
 
+void PipelineStage::newCycle() {
+  // Default is to do nothing.
+}
+
 void PipelineStage::cycleSecondHalf() {
   // Default is to do nothing.
 }

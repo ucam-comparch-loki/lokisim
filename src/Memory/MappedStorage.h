@@ -36,7 +36,7 @@ public:
   // Returns the data corresponding to the given address
   virtual T& read(const K& key) {
     for(uint16_t i=0; i<tags.size(); i++){
-      if(tags.at(i) == key) return this->data.at(i);
+      if(tags.at(i) == key) return this->data_.at(i);
     }
     throw std::exception();
   }
@@ -45,7 +45,7 @@ public:
   virtual void write(const K& key, const T& newData) {
     int position = getPosition(key);
     tags.at(position) = key;
-    this->data.at(position) = newData;
+    this->data_.at(position) = newData;
   }
 
 protected:
@@ -59,7 +59,9 @@ protected:
 
 public:
 
-  MappedStorage(const uint16_t size) : Storage<T>(size), tags(size) {
+  MappedStorage(const uint16_t size, std::string& name) :
+    Storage<T>(size, name),
+    tags(size) {
 
   }
 

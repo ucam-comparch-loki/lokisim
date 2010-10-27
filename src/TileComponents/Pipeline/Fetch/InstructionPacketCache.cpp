@@ -149,10 +149,9 @@ FetchStage* InstructionPacketCache::parent() const {
 /* Constructors and destructors */
 InstructionPacketCache::InstructionPacketCache(sc_module_name name) :
     Component(name),
-    cache(IPK_CACHE_SIZE),
-    addresses(4) {        // 4 = max outstanding fetches allowed
+    cache(IPK_CACHE_SIZE, string(name)),
+    addresses(4, string(name)) {  // 4 = max outstanding fetches allowed
 
-  outputWasRead = true;   // Allow the first received instruction to pass through
   startOfPacket = true;
 
 }

@@ -47,12 +47,12 @@ public:
   // Print the contents of this data storage in the given range.
   virtual void print(const int start=0, const int end=size()) const {
     for(int i=start; i<end; i++)
-      cout << i*BYTES_PER_WORD << "\t" << data[i] << endl;
+      cout << i*BYTES_PER_WORD << "\t" << data_[i] << endl;
   }
 
   // Return the size of this storage component, in [bytes/words].
   uint32_t size() const {
-    return data.size();
+    return data_.size();
   }
 
 protected:
@@ -70,7 +70,7 @@ protected:
 
 public:
 
-  Storage(const uint32_t size) : data(size) {
+  Storage(const uint32_t size, std::string& name) : data_(size), name_(name) {
 
   }
 
@@ -84,7 +84,8 @@ public:
 
 protected:
 
-  vector<T> data;
+  vector<T>   data_;
+  std::string name_;
 
 };
 

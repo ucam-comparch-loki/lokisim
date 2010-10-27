@@ -114,24 +114,27 @@ void     Cluster::updateIdle() {
 }
 
 /* Returns the channel ID of this cluster's instruction packet FIFO. */
-uint32_t Cluster::IPKFIFOInput(uint16_t ID) {
+ChannelID Cluster::IPKFIFOInput(ComponentID ID) {
   return ID*NUM_CLUSTER_INPUTS + 0;
 }
 
 /* Returns the channel ID of this cluster's instruction packet cache. */
-uint32_t Cluster::IPKCacheInput(uint16_t ID) {
+ChannelID Cluster::IPKCacheInput(ComponentID ID) {
   return ID*NUM_CLUSTER_INPUTS + 1;
 }
 
 /* Returns the channel ID of this cluster's specified input channel. */
-uint32_t Cluster::RCETInput(uint16_t ID, ChannelIndex channel) {
+ChannelID Cluster::RCETInput(ComponentID ID, ChannelIndex channel) {
   return ID*NUM_CLUSTER_INPUTS + 2 + channel;
 }
 
-Cluster::Cluster(sc_module_name name, uint16_t ID) :
+Cluster::Cluster(sc_module_name name, ComponentID ID) :
     TileComponent(name, ID),
     regs("regs"),
     pred("predicate"),
+    stallReg1("stall1"),
+    stallReg2("stall2"),
+    stallReg3("stall3"),
     write("write", ID),
     execute("execute", ID),
     decode("decode", ID),
@@ -164,6 +167,7 @@ Cluster::Cluster(sc_module_name name, uint16_t ID) :
   decode.out1(out0Decode);
   write.output[0](out0Write);
 
+  // Skip 0 because that is dealt with elsewhere.
   for(uint i=1; i<NUM_CLUSTER_OUTPUTS; i++) {
     write.flowControl[i](flowControlIn[i]);
     write.output[i](out[i]);
@@ -173,20 +177,40 @@ Cluster::Cluster(sc_module_name name, uint16_t ID) :
   fetch.clock(clock);                     decode.clock(clock);
   execute.clock(clock);                   write.clock(clock);
 
+  stallReg1.clock(clock);    stallReg2.clock(clock);    stallReg3.clock(clock);
+
   // Idle signals -- not necessary, but useful for stopping simulation when
   // work is finished.
   fetch.idle(fetchIdle);                  decode.idle(decodeIdle);
   execute.idle(executeIdle);              write.idle(writeIdle);
 
+//  // Ready signals -- behave like flow control within the pipeline.
+//  fetch.readyIn(decodeReady);             decode.readyOut(decodeReady);
+//  decode.readyIn(executeReady);           execute.readyOut(executeReady);
+//  execute.readyIn(writeReady);            write.readyOut(writeReady);
+//
+//  // Main data transmission along pipeline.
+//  fetch.instruction(fetchToDecode);       decode.instructionIn(fetchToDecode);
+//  decode.instructionOut(decodeToExecute); execute.operation(decodeToExecute);
+//  execute.result(executeToWrite);         write.result(executeToWrite);
+
   // Ready signals -- behave like flow control within the pipeline.
-  fetch.readyIn(decodeReady);             decode.readyOut(decodeReady);
-  decode.readyIn(executeReady);           execute.readyOut(executeReady);
-  execute.readyIn(writeReady);            write.readyOut(writeReady);
+  fetch.readyIn(decodeReady);             stallReg1.readyOut(decodeReady);
+  decode.readyIn(executeReady);           stallReg2.readyOut(executeReady);
+  execute.readyIn(writeReady);            stallReg3.readyOut(writeReady);
+
+  stallReg1.readyIn(decodeReady2);        decode.readyOut(decodeReady2);
+  stallReg2.readyIn(executeReady2);       execute.readyOut(executeReady2);
+  stallReg3.readyIn(writeReady2);         write.readyOut(writeReady2);
 
   // Main data transmission along pipeline.
-  fetch.instruction(fetchToDecode);       decode.instructionIn(fetchToDecode);
-  decode.instructionOut(decodeToExecute); execute.operation(decodeToExecute);
-  execute.result(executeToWrite);         write.result(executeToWrite);
+  fetch.instruction(fetchToDecode);       stallReg1.dataIn(fetchToDecode);
+  decode.instructionOut(decodeToExecute); stallReg2.dataIn(decodeToExecute);
+  execute.result(executeToWrite);         stallReg3.dataIn(executeToWrite);
+
+  stallReg1.dataOut(fetchToDecode2);      decode.instructionIn(fetchToDecode2);
+  stallReg2.dataOut(decodeToExecute2);    execute.operation(decodeToExecute2);
+  stallReg3.dataOut(executeToWrite2);     write.result(executeToWrite2);
 
   end_module(); // Needed because we're using a different Component constructor
 }

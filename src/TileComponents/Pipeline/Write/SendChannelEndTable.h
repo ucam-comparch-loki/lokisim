@@ -18,10 +18,6 @@ class AddressedWord;
 class DecodedInst;
 class Word;
 
-typedef uint8_t ChannelIndex;
-typedef uint8_t MapIndex;
-typedef uint32_t ChannelID;
-
 class SendChannelEndTable: public Component {
 
 //==============================//

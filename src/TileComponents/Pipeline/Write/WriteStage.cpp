@@ -17,48 +17,55 @@ double WriteStage::energy() const {
   return scet.energy();// + mux.energy();
 }
 
-void WriteStage::initialise() {
-  readyOut.write(true);
+void WriteStage::execute() {
   idle.write(true);
-}
 
-void WriteStage::newCycle() {
+  // Allow any signals to propagate before starting execution.
+  wait(sc_core::SC_ZERO_TIME);
 
-  if(!scet.isFull()) {
+  while(true) {
+    // Wait for new data to arrive.
+    wait(result.default_event());
 
-    // This pipeline stage is active if it has received new data from the ALU.
-    // Should we also take into account whether the send channel-end table
-    // has any data left in it?
-    bool active = result.event();
+    // Deal with the new input. We are currently not idle.
+    idle.write(false);
+    newInput();
 
-    if(active) {
-      DecodedInst dec = result.read();
-
-      if(DEBUG) cout << this->name() << " received Data: " << dec.result()
-                     << endl;
-
-      // Put data into the send channel-end table.
-      scet.write(dec);
-
-      // Write to registers (they ignore the write if the index is invalid).
-      writeReg(dec.destinationReg(), dec.result(),
-                 dec.operation() == InstructionMap::IWTR);
-    }
-
-    idle.write(!active);
+    // Once the next cycle starts, revert to being idle.
+    wait(clock.posedge_event());
+    idle.write(true);
   }
-
-  // Attempt to send data onto the network if possible.
-  scet.send();
-  readyOut.write(!scet.isFull());
-
 }
 
-void WriteStage::writeReg(uint8_t reg, int32_t value, bool indirect) {
+void WriteStage::newInput() {
+  DecodedInst dec = result.read();
+
+  if(DEBUG) cout << this->name() << " received Data: " << dec.result()
+                 << endl;
+
+  // Put data into the send channel-end table.
+  scet.write(dec);
+
+  // Write to registers (they ignore the write if the index is invalid).
+  writeReg(dec.destinationReg(), dec.result(),
+             dec.operation() == InstructionMap::IWTR);
+}
+
+void WriteStage::updateReady() {
+  readyOut.write(true);
+
+  while(true) {
+    wait(clock.negedge_event());
+    scet.send();
+    readyOut.write(!scet.isFull());
+  }
+}
+
+void WriteStage::writeReg(RegisterIndex reg, int32_t value, bool indirect) {
   parent()->writeReg(reg, value, indirect);
 }
 
-WriteStage::WriteStage(sc_module_name name, uint16_t ID) :
+WriteStage::WriteStage(sc_module_name name, ComponentID ID) :
     PipelineStage(name),
     scet("scet", ID) {
 
@@ -72,6 +79,8 @@ WriteStage::WriteStage(sc_module_name name, uint16_t ID) :
     scet.output[i](output[i]);
     scet.flowControl[i](flowControl[i]);
   }
+
+  SC_THREAD(updateReady);
 
 }
 

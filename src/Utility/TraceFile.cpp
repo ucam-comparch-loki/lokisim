@@ -39,7 +39,6 @@ string TraceFile::parameterSummary() {
   s << "Number of tiles:                 " << (NUM_TILE_ROWS * NUM_TILE_COLUMNS) << "\n";
   s << "  Clusters per tile:             " << CLUSTERS_PER_TILE << "\n";
   s << "  Memories per tile:             " << MEMS_PER_TILE << "\n";
-  s << "  Channels between tiles:        " << NUM_CHANNELS_BETWEEN_TILES << "\n";
   s << "Storage:\n";
   s << "  Memory size:                   " << MEMORY_SIZE << "\n";
   s << "  Instruction packet cache size: " << IPK_CACHE_SIZE << "\n";

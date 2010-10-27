@@ -63,8 +63,8 @@ void Stalls::active(int id, int cycle) {
 }
 
 void Stalls::endExecution() {
-  if(numStalled < NUM_CORES) endOfExecution =
-      sc_core::sc_time_stamp().to_default_time_units();
+  if(numStalled < NUM_CORES)
+    endOfExecution = sc_core::sc_time_stamp().to_default_time_units();
 }
 
 void Stalls::printStats() {

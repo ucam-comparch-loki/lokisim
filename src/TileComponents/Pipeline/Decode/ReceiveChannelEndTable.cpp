@@ -53,7 +53,8 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd() {
 
 /* Put any newly received values into their respective buffers. */
 void ReceiveChannelEndTable::checkInputs() {
-  // Do something if we want more channel ends than channels?
+  // We only send credits when there are spaces in the buffers, so we know it
+  // is safe to write data to them now.
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     if(fromNetwork[i].event()) {
       buffers[i].write(fromNetwork[i].read());
@@ -74,11 +75,15 @@ DecodeStage* ReceiveChannelEndTable::parent() const {
 
 ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name) :
     Component(name),
-    buffers(NUM_RECEIVE_CHANNELS, CHANNEL_END_BUFFER_SIZE),
+    buffers(NUM_RECEIVE_CHANNELS, CHANNEL_END_BUFFER_SIZE, string(name)),
     currentChannel(NUM_RECEIVE_CHANNELS) {
 
   flowControl = new sc_out<int>[NUM_RECEIVE_CHANNELS];
   fromNetwork = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
+
+  SC_METHOD(checkInputs);
+  for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) sensitive << fromNetwork[i];
+  dont_initialize();
 
 }
 

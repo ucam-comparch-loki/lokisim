@@ -128,8 +128,8 @@ ChannelID SendChannelEndTable::getChannel(MapIndex mapEntry) const {
 
 SendChannelEndTable::SendChannelEndTable(sc_module_name name, uint16_t ID) :
     Component(name),
-    buffers(NUM_SEND_CHANNELS, CHANNEL_END_BUFFER_SIZE),
-    channelMap(CHANNEL_MAP_SIZE) {
+    buffers(NUM_SEND_CHANNELS, CHANNEL_END_BUFFER_SIZE, string(name)),
+    channelMap(CHANNEL_MAP_SIZE, string(name)) {
 
   id = ID;
 

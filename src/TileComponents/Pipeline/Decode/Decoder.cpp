@@ -264,11 +264,11 @@ void Decoder::setOperand2ToValue(DecodedInst& dec, int32_t reg, int32_t immed) {
   }
 }
 
-int32_t Decoder::readRegs(uint8_t index, bool indirect) {
+int32_t Decoder::readRegs(RegisterIndex index, bool indirect) {
   return parent()->readReg(index, indirect);
 }
 
-int32_t Decoder::readRCET(uint8_t index) {
+int32_t Decoder::readRCET(ChannelIndex index) {
   return parent()->readRCET(index);
 }
 
@@ -276,7 +276,7 @@ void Decoder::fetch(uint16_t addr) {
   parent()->fetch(addr);
 }
 
-void Decoder::setFetchChannel(uint16_t channelID) {
+void Decoder::setFetchChannel(ChannelID channelID) {
   parent()->setFetchChannel(channelID);
 }
 
@@ -314,7 +314,7 @@ DecodeStage* Decoder::parent() const {
   return (DecodeStage*)(this->get_parent());
 }
 
-Decoder::Decoder(sc_module_name name, int ID) : Component(name) {
+Decoder::Decoder(sc_module_name name, ComponentID ID) : Component(name) {
 
   this->id = ID;
 

@@ -47,7 +47,7 @@ public:
 public:
 
   SC_HAS_PROCESS(WriteStage);
-  WriteStage(sc_module_name name, uint16_t ID);
+  WriteStage(sc_module_name name, ComponentID ID);
   virtual ~WriteStage();
 
 //==============================//
@@ -61,14 +61,14 @@ public:
 
 private:
 
-  // Set this pipeline stage up before execution begins.
-  virtual void   initialise();
+  virtual void   execute();
 
-  // The task to be performed at the beginning of each clock cycle.
-  virtual void   newCycle();
+  void           newInput();
+
+  void           updateReady();
 
   // Write a new value to a register.
-  void           writeReg(uint8_t reg, int32_t value, bool indirect = false);
+  void           writeReg(RegisterIndex reg, int32_t value, bool indirect = false);
 
 //==============================//
 // Components

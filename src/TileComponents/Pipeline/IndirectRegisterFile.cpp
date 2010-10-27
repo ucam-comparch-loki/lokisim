@@ -115,8 +115,8 @@ Cluster* IndirectRegisterFile::parent() const {
 
 IndirectRegisterFile::IndirectRegisterFile(sc_module_name name) :
     Component(name),
-    regs(NUM_PHYSICAL_REGISTERS),
-    indirectRegs(NUM_ADDRESSABLE_REGISTERS) {
+    regs(NUM_PHYSICAL_REGISTERS, string(name)),
+    indirectRegs(NUM_ADDRESSABLE_REGISTERS, string(name)) {
 
 }
 

@@ -115,9 +115,6 @@ private:
   IPKCacheStorage cache;
   Buffer<Address> addresses;
 
-  // The instruction sent has been read, so we can now prepare the next one.
-  bool            outputWasRead;
-
   // We have just finished writing an instruction packet.
   bool            startOfPacket;
 

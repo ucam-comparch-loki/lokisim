@@ -54,17 +54,17 @@ private:
   void setOperand2ToValue(DecodedInst& dec, int32_t reg, int32_t immed);
 
   // Read a register value.
-  int32_t readRegs(uint8_t index, bool indirect = false);
+  int32_t readRegs(RegisterIndex index, bool indirect = false);
 
   // Read a value from an input buffer.
-  int32_t readRCET(uint8_t index);
+  int32_t readRCET(ChannelIndex index);
 
   // Ensure that the instruction packet from the given address is in the
   // instruction packet cache. Nothing will be done if it is already there.
   void    fetch(uint16_t addr);
 
   // Update the channel to which we send fetch requests.
-  void    setFetchChannel(uint16_t channelID);
+  void    setFetchChannel(ChannelID channelID);
 
   // Write operations take two cycles since there are two flits to send. This
   // method sends the second part.
@@ -82,7 +82,7 @@ private:
 
 public:
 
-  Decoder(sc_module_name name, int id);
+  Decoder(sc_module_name name, ComponentID id);
   virtual ~Decoder();
 
 //==============================//
@@ -92,7 +92,7 @@ public:
 private:
 
   // The remote channel we are sending instructions to.
-  int  sendChannel;
+  ChannelID sendChannel;
 
   // Tells whether or not we are in remote execution mode.
   bool remoteExecute;

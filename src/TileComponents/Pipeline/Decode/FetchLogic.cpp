@@ -54,8 +54,9 @@ void FetchLogic::send() {
       toNetwork.write(toSend.read());
     }
     else if(roomInCache()) {
-      toNetwork.write(toSend.read());
-      if(DEBUG) cout << this->name() << " sending fetch: " << toNetwork.read()
+      AddressedWord aw = toSend.read();
+      toNetwork.write(aw);
+      if(DEBUG) cout << this->name() << " sending fetch: " << aw
                      << "." << endl;
     }
   }
@@ -79,7 +80,7 @@ DecodeStage* FetchLogic::parent() const {
 
 FetchLogic::FetchLogic(sc_module_name name, int ID) :
     Component(name),
-    toSend(4) {           // Can have 4 outstanding fetches (make a parameter?)
+    toSend(4, std::string(name)) { // Can have 4 outstanding fetches (make a parameter?)
 
   id = ID;
   fetchChannel = -1;      // So we get warnings if we fetch before setting this.

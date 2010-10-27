@@ -53,7 +53,7 @@ public:
 public:
 
   SC_HAS_PROCESS(FetchStage);
-  FetchStage(sc_module_name name, uint16_t ID);
+  FetchStage(sc_module_name name, ComponentID ID);
   virtual ~FetchStage();
 
 //==============================//
@@ -86,9 +86,6 @@ public:
   void          setPersistent(bool persistent);
 
 private:
-
-  // The task performed at the beginning of each clock cycle.
-  virtual void  newCycle();
 
   // The fetch stage needs to be sure that other tasks have completed before
   // reading from the cache, so waits until later in the cycle to do it.
@@ -139,8 +136,6 @@ private:
 
   // The most-recently-sent instruction.
   Instruction lastInstruction;
-
-  enum InstructionSource {CACHE, FIFO};
 
 };
 

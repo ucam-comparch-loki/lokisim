@@ -29,7 +29,7 @@ bool InstructionPacketFIFO::isEmpty() {
 
 InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
     Component(name),
-    fifo(IPK_FIFO_SIZE) {
+    fifo(IPK_FIFO_SIZE, std::string(name)) {
 
 }
 

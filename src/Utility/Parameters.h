@@ -15,7 +15,6 @@ typedef const unsigned int parameter;
 
 extern int DEBUG;
 
-extern parameter NUM_CHANNELS_BETWEEN_TILES;
 extern parameter CLUSTERS_PER_TILE;
 extern parameter MEMS_PER_TILE;
 
@@ -33,12 +32,13 @@ extern parameter IPK_FIFO_SIZE;
 extern parameter IPK_CACHE_SIZE;
 extern parameter MEMORY_SIZE;
 
+extern parameter CHANNEL_MAP_SIZE;
+
+// Network
 extern parameter NUM_RECEIVE_CHANNELS;
 extern parameter NUM_SEND_CHANNELS;
 extern parameter CHANNEL_END_BUFFER_SIZE; // Different send/receive sizes?
 extern parameter FLOW_CONTROL_BUFFER_SIZE;
-
-extern parameter CHANNEL_MAP_SIZE;
 
 // Combinations of other parameters
 extern parameter NUM_CLUSTER_INPUTS;

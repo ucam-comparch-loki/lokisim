@@ -43,7 +43,7 @@ Instruction& IPKCacheStorage::read() {
     lastOpWasARead = true;
 
     previousLocation = locations[i];
-    return this->data[i];
+    return this->data_[i];
   }
   else {
     throw ReadingFromEmptyException("instruction packet cache");
@@ -54,7 +54,7 @@ Instruction& IPKCacheStorage::read() {
 /* Writes new data to a position determined using the given key. */
 void IPKCacheStorage::write(const Address& key, const Instruction& newData) {
   this->tags[refill.value()] = key;
-  this->data[refill.value()] = newData;
+  this->data_[refill.value()] = newData;
 
   // Store memory address of this instruction for debug reasons.
   if(key == Address()) {
@@ -215,8 +215,8 @@ void IPKCacheStorage::updateFillCount() {
   fillCount = (refill - currInst + this->size()) % this->size();
 }
 
-IPKCacheStorage::IPKCacheStorage(const uint16_t size) :
-    MappedStorage<Address, Instruction>(size),
+IPKCacheStorage::IPKCacheStorage(const uint16_t size, std::string name) :
+    MappedStorage<Address, Instruction>(size, name),
     currInst(size),
     refill(size),
     locations(size) {

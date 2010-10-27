@@ -29,13 +29,13 @@ public:
   // Read from the given address in the memory.
   virtual const T& read(const uint32_t addr) const {
     this->checkBounds(addr);
-    return this->data[addr];
+    return this->data_[addr];
   }
 
   // Write the given data to the given address in memory.
   virtual void write(const T& newData, const uint32_t addr) {
     this->checkBounds(addr);
-    this->data[addr] = newData;
+    this->data_[addr] = newData;
   }
 
 //==============================//
@@ -44,7 +44,7 @@ public:
 
 public:
 
-  AddressedStorage(uint32_t size) : Storage<T>(size) {
+  AddressedStorage(uint32_t size, std::string name) : Storage<T>(size, name) {
 
   }
 

@@ -33,32 +33,32 @@ public:
     if(!isEmpty()) {
       int i = readPos.value();
       incrementReadFrom();
-      return this->data[i];
+      return this->data_[i];
     }
     else {
-      throw ReadingFromEmptyException("buffer");
+      throw ReadingFromEmptyException("buffer (" + this->name_ + ")");
     }
   }
 
   // Write the given data to the buffer.
   virtual void write(const T& newData) {
     if(!isFull()) {
-      this->data[writePos.value()] = newData;
+      this->data_[writePos.value()] = newData;
       incrementWriteTo();
     }
     else {
       cerr << "Exception in Buffer.write()" << endl;
-      throw WritingToFullException("buffer");
+      throw WritingToFullException("buffer (" + this->name_ + ")");
     }
   }
 
   // Returns the value at the front of the queue, but does not remove it.
   T& peek() {
     if(!isEmpty()) {
-      return (this->data[readPos.value()]);
+      return (this->data_[readPos.value()]);
     }
     else {
-      throw ReadingFromEmptyException("buffer");
+      throw ReadingFromEmptyException("buffer (" + this->name_ + ")");
     }
   }
 
@@ -106,8 +106,8 @@ private:
 
 public:
 
-  Buffer(const uint16_t size) :
-      Storage<T>(size),
+  Buffer(const uint16_t size, std::string name) :
+      Storage<T>(size, name),
       readPos(size),
       writePos(size) {
     readPos = writePos = fillCount = 0;
