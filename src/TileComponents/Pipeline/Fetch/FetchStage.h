@@ -12,14 +12,14 @@
 #ifndef FETCHSTAGE_H_
 #define FETCHSTAGE_H_
 
-#include "../PipelineStage.h"
+#include "../StageWithSuccessor.h"
 #include "InstructionPacketCache.h"
 #include "InstructionPacketFIFO.h"
 #include "../../../Datatype/Instruction.h"
 
 class DecodedInst;
 
-class FetchStage : public PipelineStage {
+class FetchStage : public StageWithSuccessor {
 
 //==============================//
 // Ports
@@ -27,9 +27,10 @@ class FetchStage : public PipelineStage {
 
 public:
 
-// Inherited from PipelineStage:
-//   sc_in<bool>  clock
-//   sc_out<bool> idle
+// Inherited from StageWithSuccessor:
+//   sc_in<bool>         clock
+//   sc_out<bool>        idle
+//   sc_out<DecodedInst> dataOut;
 
   // The input instruction to be sent to the instruction packet cache.
   sc_in<Word>         toIPKCache;
@@ -37,13 +38,10 @@ public:
   // The input instruction to be sent to the instruction packet FIFO.
   sc_in<Word>         toIPKFIFO;
 
-  // The instruction selected for the rest of the pipeline to execute.
-  sc_out<DecodedInst> instruction;
-
   // A flow control signal from each of the two instruction inputs.
   sc_out<int>        *flowControl;
 
-  // Tells whether the decode stage is ready to receive a new instruction.
+  // Tells whether the next stage is ready to receive a new instruction.
   sc_in<bool>         readyIn;
 
 //==============================//
@@ -62,7 +60,7 @@ public:
 
 public:
 
-  virtual double area()  const;
+  virtual double area()   const;
   virtual double energy() const;
 
   // Store some instructions in the Instruction Packet Cache.
@@ -87,15 +85,18 @@ public:
 
 private:
 
+  // If any new instructions have arrived, pass them to the corresponding components.
+  virtual void  newCycle();
+
   // The fetch stage needs to be sure that other tasks have completed before
   // reading from the cache, so waits until later in the cycle to do it.
-  void          cycleSecondHalf();
+  virtual void  cycleSecondHalf();
 
   // Send out initial flow control values.
   virtual void  initialise();
 
-  // If any new instructions have arrived, pass them to the corresponding components.
-  void          checkInputs();
+  // Recompute whether this pipeline stage is stalled.
+  virtual void  updateStall();
 
   // Determine whether to take an instruction from the FIFO or cache.
   void          calculateSelect();

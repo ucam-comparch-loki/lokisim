@@ -12,10 +12,10 @@
 #ifndef WRITESTAGE_H_
 #define WRITESTAGE_H_
 
-#include "../PipelineStage.h"
+#include "../StageWithPredecessor.h"
 #include "SendChannelEndTable.h"
 
-class WriteStage: public PipelineStage {
+class WriteStage: public StageWithPredecessor {
 
 //==============================//
 // Ports
@@ -23,16 +23,11 @@ class WriteStage: public PipelineStage {
 
 public:
 
-// Inherited from PipelineStage:
-//   sc_in<bool>  clock
-//   sc_out<bool> idle
-
-  // The result of an operation to be sent on the network and/or written to
-  // a register.
-  sc_in<DecodedInst>      result;
-
-  // Tell the execute stage whether we are ready to receive new data.
-  sc_out<bool>            readyOut;
+// Inherited from StageWithPredecessor:
+//   sc_in<bool>        clock
+//   sc_out<bool>       idle
+//   sc_in<DecodedInst> dataIn
+//   sc_out<bool>       stallOut
 
   // The NUM_SEND_CHANNELS output channels.
   sc_out<AddressedWord>  *output;
@@ -61,11 +56,11 @@ public:
 
 private:
 
-  virtual void   execute();
+  virtual void   newInput(DecodedInst& data);
 
-  void           newInput();
+  virtual bool   isStalled() const;
 
-  void           updateReady();
+  virtual void   sendOutputs();
 
   // Write a new value to a register.
   void           writeReg(RegisterIndex reg, int32_t value, bool indirect = false);

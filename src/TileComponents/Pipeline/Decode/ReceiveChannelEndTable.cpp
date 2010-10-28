@@ -70,7 +70,8 @@ void ReceiveChannelEndTable::sendCredit(ChannelIndex channelEnd) {
 }
 
 DecodeStage* ReceiveChannelEndTable::parent() const {
-  return (DecodeStage*)(this->get_parent());
+  // Need a dynamic cast because DecodeStage uses virtual inheritance.
+  return dynamic_cast<DecodeStage*>(this->get_parent());
 }
 
 ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name) :

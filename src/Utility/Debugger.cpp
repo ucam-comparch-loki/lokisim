@@ -165,7 +165,6 @@ void Debugger::printPred(int core) {
 
 void Debugger::executedInstruction(DecodedInst inst, int core, bool executed) {
 
-  // TODO: only print (or only call this method) if we're using the debugger.
   cout << core << ":\t" << /*"[" << instIndex << "]\t" <<*/ inst
        << (executed ? "" : " (not executed)") << endl;
 

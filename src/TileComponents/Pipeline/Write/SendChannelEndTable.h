@@ -49,7 +49,7 @@ public:
 public:
 
   // Write the result of an operation to one of the output buffers.
-  void          write(DecodedInst& dec);
+  void          write(const DecodedInst& dec);
 
   // Returns true if the table is incapable of accepting new data at the moment.
   bool          isFull() const;
@@ -81,7 +81,7 @@ protected:
   // Generate a memory request using the address from the ALU and the operation
   // supplied by the decoder. The memory request will be sent to a memory and
   // will result in an operation being carried out there.
-  Word          makeMemoryRequest(DecodedInst& dec) const;
+  Word          makeMemoryRequest(const DecodedInst& dec) const;
 
 //==============================//
 // Local state

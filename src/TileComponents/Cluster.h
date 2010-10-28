@@ -170,13 +170,15 @@ private:
 
 private:
 
+  // A signal set to constantly hold "true".
+  sc_signal<bool>          constantHigh;
+
   // Signals telling us which stages are idle.
   sc_signal<bool>          fetchIdle, decodeIdle, executeIdle, writeIdle;
 
-  // TODO: more descriptive names
   // "Flow control" within the pipeline.
-  sc_buffer<bool>          decodeReady, executeReady, writeReady,
-                           decodeReady2, executeReady2, writeReady2;
+  sc_signal<bool>          stall1Ready, stall2Ready, stall3Ready,
+                           decodeStalled, executeStalled, writeStalled;
 
   // Transmission of the instruction along the pipeline.
   flag_signal<DecodedInst> fetchToDecode, decodeToExecute, executeToWrite,

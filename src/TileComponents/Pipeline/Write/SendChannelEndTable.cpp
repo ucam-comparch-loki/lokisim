@@ -14,7 +14,7 @@
 
 const ChannelID SendChannelEndTable::NULL_MAPPING;
 
-void SendChannelEndTable::write(DecodedInst& dec) {
+void SendChannelEndTable::write(const DecodedInst& dec) {
 
   if(dec.operation()==InstructionMap::SETCHMAP) {
     updateMap(dec.immediate(), dec.result());
@@ -49,7 +49,7 @@ void SendChannelEndTable::write(DecodedInst& dec) {
 
 /* Generate a memory request using the address from the ALU and the operation
  * supplied by the decoder. */
-Word SendChannelEndTable::makeMemoryRequest(DecodedInst& dec) const {
+Word SendChannelEndTable::makeMemoryRequest(const DecodedInst& dec) const {
   MemoryRequest mr(dec.result(), dec.memoryOp());
   return mr;
 }

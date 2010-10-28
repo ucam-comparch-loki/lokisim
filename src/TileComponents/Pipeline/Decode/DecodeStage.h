@@ -12,7 +12,9 @@
 #ifndef DECODESTAGE_H_
 #define DECODESTAGE_H_
 
-#include "../PipelineStage.h"
+//#include "../PipelineStage.h"
+#include "../StageWithSuccessor.h"
+#include "../StageWithPredecessor.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
 #include "FetchLogic.h"
@@ -20,7 +22,7 @@
 #include "Decoder.h"
 #include "SignExtend.h"
 
-class DecodeStage: public PipelineStage {
+class DecodeStage: public StageWithSuccessor, public StageWithPredecessor {
 
 //==============================//
 // Ports
@@ -28,33 +30,24 @@ class DecodeStage: public PipelineStage {
 
 public:
 
-// Inherited from PipelineStage:
-//   sc_in<bool>  clock
-//   sc_out<bool> idle
+// Inherited from StageWithSuccessor, StageWithPredecessor:
+//   sc_in<bool>          clock
+//   sc_out<bool>         idle
+//   sc_in<DecodedInst>   dataIn
+//   sc_out<DecodedInst>  dataOut
+//   sc_out<bool>         stallOut
 
   // The NUM_RECEIVE_CHANNELS inputs to the receive channel-end table.
-  sc_in<Word>          *in;
+  sc_in<Word>          *rcetIn;
 
   // A flow control signal for each input (NUM_RECEIVE_CHANNELS).
   sc_out<int>          *flowControlOut;
 
   // An output used to send FETCH requests.
-  sc_out<AddressedWord> out1;
+  sc_out<AddressedWord> fetchOut;
 
   // A flow control signal for the output.
   sc_in<bool>           flowControlIn;
-
-  // The instruction to decode.
-  sc_in<DecodedInst>    instructionIn;
-
-  // The decoded instruction.
-  sc_out<DecodedInst>   instructionOut;
-
-  // Tells whether the execute stage is ready to receive a new operation.
-  sc_in<bool>           readyIn;
-
-  // Tell the fetch stage whether we are ready for a new instruction.
-  sc_out<bool>          readyOut;
 
 //==============================//
 // Constructors and destructors
@@ -72,7 +65,7 @@ public:
 
 public:
 
-  virtual double area()  const;
+  virtual double area()   const;
   virtual double energy() const;
 
   // Read a buffer in the receive channel end table. Warning: also removes
@@ -86,14 +79,14 @@ public:
 private:
 
   // Pass the given instruction to the decoder to be decoded.
-  void           decode(const DecodedInst& i);
+  virtual void   newInput(DecodedInst& inst);
 
-  // Send any pending data to the network (if possible) and update our output
-  // flow control.
-  void           updateReady();
+  // Returns whether this stage is currently stalled (ignoring effects of any
+  // other stages).
+  virtual bool   isStalled() const;
 
-  // The main loop: waiting until new input is received, and then acting on it.
-  virtual void   execute();
+  // Send any pending data onto the network.
+  virtual void   sendOutputs();
 
   // Read a register value (for Decoder).
   int32_t        readReg(RegisterIndex index, bool indirect = false) const;

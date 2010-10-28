@@ -47,7 +47,7 @@ public:
 public:
 
   SC_HAS_PROCESS(FlowControlOut);
-  FlowControlOut(sc_module_name name, int ID, int width);
+  FlowControlOut(sc_module_name name, ComponentID ID, int width);
   virtual ~FlowControlOut();
 
 //==============================//

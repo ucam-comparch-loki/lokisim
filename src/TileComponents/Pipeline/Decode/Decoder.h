@@ -35,7 +35,7 @@ public:
   bool decodeInstruction(const DecodedInst& input, DecodedInst& output);
 
   // Returns whether the decoder is ready to accept a new instruction.
-  bool ready();
+  bool ready() const;
 
 private:
 

@@ -9,7 +9,7 @@
 #include "../../Datatype/DecodedInst.h"
 
 void StallRegister::newCycle() {
-  if(!buffer.isEmpty() && readyIn.read()) {
+  if(!buffer.isEmpty() && readyIn.read() && !localStageStalled.read()) {
     dataOut.write(buffer.read());
   }
 }
@@ -21,7 +21,7 @@ void StallRegister::newData() {
 }
 
 void StallRegister::receivedReady() {
-  readyOut.write(readyIn.read());
+  readyOut.write(readyIn.read() && !localStageStalled.read());
 }
 
 StallRegister::StallRegister(sc_module_name name) :
@@ -37,7 +37,7 @@ StallRegister::StallRegister(sc_module_name name) :
   dont_initialize();
 
   SC_METHOD(receivedReady);
-  sensitive << readyIn;
+  sensitive << readyIn << localStageStalled;
   // do initialise
 
 }

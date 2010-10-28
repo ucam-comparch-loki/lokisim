@@ -213,8 +213,7 @@ void MemoryMat::updateIdle() {
 
   idle.write(isIdle);
 
-  Instrumentation::idle(id, isIdle,
-      sc_core::sc_time_stamp().to_default_time_units());
+  Instrumentation::idle(id, isIdle);
 }
 
 void MemoryMat::checkInputs() {

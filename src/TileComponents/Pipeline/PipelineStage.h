@@ -32,7 +32,7 @@ public:
 // Constructors and destructors
 //==============================//
 
-public:
+protected:
 
   SC_HAS_PROCESS(PipelineStage);
   PipelineStage(sc_module_name name);
@@ -62,6 +62,13 @@ protected:
   // arrived (e.g. a "ready" signal from the next stage). To do this, we
   // execute this method later in the cycle.
   virtual void cycleSecondHalf();
+
+  // If this pipeline stage has any output connections to the network, send
+  // any data on them now.
+  virtual void sendOutputs();
+
+  // Recompute whether this pipeline stage is stalled.
+  virtual void updateStall() = 0;
 
   // Some components require initialisation before execution begins.
   // Initialisation may involve operations such as setting flow control values.

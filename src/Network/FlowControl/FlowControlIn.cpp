@@ -33,7 +33,7 @@ void FlowControlIn::receivedData() {
 void FlowControlIn::receivedFlowControl() {
   for(int i=0; i<width; i++) {
     // Send the new credit if someone is communicating with this port.
-    if(flowControl[i].event() && (returnAddresses[i] != -1)) {
+    if(flowControl[i].event() && ((int)returnAddresses[i] != -1)) {
       AddressedWord aw(Word(1), returnAddresses[i]);
       credits[i].write(aw);
 //      cout << this->name() << " sent credit from port " << i << " to " << returnAddresses[i] << endl;

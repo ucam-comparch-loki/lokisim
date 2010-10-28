@@ -40,9 +40,14 @@ void PipelineStage::cycleSecondHalf() {
   // Default is to do nothing.
 }
 
+void PipelineStage::sendOutputs() {
+  // Default is to do nothing: there may be no outputs.
+}
+
 PipelineStage::PipelineStage(sc_module_name name) : Component(name) {
 
   SC_THREAD(execute);
+  SC_THREAD(updateStall);
 
 }
 

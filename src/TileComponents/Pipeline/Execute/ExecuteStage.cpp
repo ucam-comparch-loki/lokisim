@@ -10,11 +10,11 @@
 #include "../../../Datatype/DecodedInst.h"
 
 double ExecuteStage::area() const {
-  return alu.area();// + in1Mux.area() + in2Mux.area();
+  return alu.area();
 }
 
 double ExecuteStage::energy() const {
-  return alu.energy();// + in1Mux.energy() + in2Mux.energy();
+  return alu.energy();
 }
 
 bool ExecuteStage::getPredicate() const {
@@ -25,45 +25,26 @@ void ExecuteStage::setPredicate(bool val) {
   parent()->writePredReg(val);
 }
 
-void ExecuteStage::newInput() {
-
-  DecodedInst op = operation.read();
+void ExecuteStage::newInput(DecodedInst& operation) {
 
   // Receive any forwarded values if they had not been written to registers
   // early enough.
-  checkForwarding(op);
+  checkForwarding(operation);
 
   // Execute the instruction.
-  bool success = alu.execute(op);
+  bool success = alu.execute(operation);
 
   // Update the contents of any forwarding paths. Should this happen every
   // cycle, or just the ones when an instruction is executed?
   if(success) {
-    updateForwarding(op);
-    result.write(op);
+    updateForwarding(operation);
+    dataOut.write(operation);
   }
 
 }
 
-void ExecuteStage::execute() {
-  idle.write(true);
-
-  // Allow any signals to propagate before starting execution.
-  wait(sc_core::SC_ZERO_TIME);
-
-  // We then loop forever, executing the appropriate tasks each clock cycle.
-  while(true) {
-    // Wait until we receive input.
-    wait(operation.default_event());
-
-    // Operate on the input. We are currently not idle.
-    idle.write(false);
-    newInput();
-
-    // Once the next cycle starts, revert to being idle.
-    wait(clock.posedge_event());
-    idle.write(true);
-  }
+bool ExecuteStage::isStalled() const {
+  return false; // alu.isBusy(); if/when we have multi-cycle operations
 }
 
 void ExecuteStage::checkForwarding(DecodedInst& inst) {
@@ -80,7 +61,7 @@ void ExecuteStage::checkForwarding(DecodedInst& inst) {
   }
 }
 
-void ExecuteStage::updateForwarding(DecodedInst& inst) {
+void ExecuteStage::updateForwarding(const DecodedInst& inst) {
   previousDest2   = previousDest1;
   previousResult2 = previousResult1;
 
@@ -90,23 +71,14 @@ void ExecuteStage::updateForwarding(DecodedInst& inst) {
   previousResult1 = inst.result();
 }
 
-void ExecuteStage::updateReady() {
-  readyOut.write(true);
-
-  while(true) {
-    wait(clock.negedge_event());
-    readyOut.write(readyIn.read()); //&& !alu.busy();
-  }
-}
-
 ExecuteStage::ExecuteStage(sc_module_name name, ComponentID ID) :
     PipelineStage(name),
+    StageWithPredecessor(name),
+    StageWithSuccessor(name),
     alu("alu") {
 
   id = ID;
   previousDest1 = previousDest2 = -1;
-
-  SC_THREAD(updateReady);
 
 }
 

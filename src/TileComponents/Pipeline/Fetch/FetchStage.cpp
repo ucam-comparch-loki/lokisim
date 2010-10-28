@@ -10,20 +10,28 @@
 #include "../../../Datatype/DecodedInst.h"
 
 double FetchStage::area() const {
-  return cache.area() + fifo.area();// + mux.area();
+  return cache.area() + fifo.area();
 }
 
 double FetchStage::energy() const {
-  return cache.energy() + fifo.energy();// + mux.energy();
+  return cache.energy() + fifo.energy();
+}
+
+void FetchStage::newCycle() {
+  // Would like this to be its own SC_METHOD, but that causes problems with
+  // virtual inheritance for some reason.
+
+  if(toIPKFIFO.event()) {
+    Instruction instToFIFO = static_cast<Instruction>(toIPKFIFO.read());
+    fifo.write(instToFIFO);
+  }
+  if(toIPKCache.event()) {
+    Instruction instToCache = static_cast<Instruction>(toIPKCache.read());
+    cache.write(instToCache);
+  }
 }
 
 void FetchStage::cycleSecondHalf() {
-  // Consider the pipeline to be stalled if the first pipeline stage is not
-  // allowed to do any work. Only report the stall status when it changes.
-  if(readyIn.read() == stalled) {
-    parent()->pipelineStalled(!readyIn.read());
-    stalled = !readyIn.read();
-  }
 
   calculateSelect();
 
@@ -47,7 +55,7 @@ void FetchStage::cycleSecondHalf() {
       DecodedInst decoded(lastInstruction);
       decoded.location(instAddr);
 
-      instruction.write(decoded);
+      dataOut.write(decoded);
       idle.write(false);
 
       if(DEBUG) {
@@ -59,6 +67,19 @@ void FetchStage::cycleSecondHalf() {
     else idle.write(true);  // Idle if we have no instructions.
   }
   else idle.write(true);    // Idle if we can't send any instructions.
+}
+
+void FetchStage::updateStall() {
+  // Consider the pipeline to be stalled if the first pipeline stage is not
+  // allowed to do any work. Only report the stall status when it changes.
+  while(true) {
+    wait(readyIn.default_event());
+
+    if(readyIn.read() == stalled) {
+      parent()->pipelineStalled(!readyIn.read());
+      stalled = !readyIn.read();
+    }
+  }
 }
 
 void FetchStage::initialise() {
@@ -99,17 +120,6 @@ void FetchStage::refetch() {
   parent()->refetch();
 }
 
-void FetchStage::checkInputs() {
-  if(toIPKFIFO.event()) {
-    Instruction instToFIFO = static_cast<Instruction>(toIPKFIFO.read());
-    fifo.write(instToFIFO);
-  }
-  if(toIPKCache.event()) {
-    Instruction instToCache = static_cast<Instruction>(toIPKCache.read());
-    cache.write(instToCache);
-  }
-}
-
 /* Choose whether to take an instruction from the cache or FIFO next.
  * Use FIFO if already executing a packet from FIFO,
  *          or cache finished a packet and FIFO has instructions.
@@ -127,6 +137,7 @@ void FetchStage::calculateSelect() {
 
 FetchStage::FetchStage(sc_module_name name, ComponentID ID) :
     PipelineStage(name),
+    StageWithSuccessor(name),
     cache("IPKcache"),
     fifo("IPKfifo") {
 
@@ -139,10 +150,6 @@ FetchStage::FetchStage(sc_module_name name, ComponentID ID) :
   // Connect FIFO and cache to network
   fifo.flowControl(flowControl[0]);
   cache.flowControl(flowControl[1]);
-
-  SC_METHOD(checkInputs);
-  sensitive << toIPKFIFO << toIPKCache;
-  dont_initialize();
 
 }
 

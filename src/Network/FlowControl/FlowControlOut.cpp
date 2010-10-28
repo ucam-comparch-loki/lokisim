@@ -62,7 +62,7 @@ void FlowControlOut::initialise() {
   }
 }
 
-FlowControlOut::FlowControlOut(sc_module_name name, int ID, int width) :
+FlowControlOut::FlowControlOut(sc_module_name name, ComponentID ID, int width) :
     Component(name),
     width(width),
     waitingToSend(width, false),

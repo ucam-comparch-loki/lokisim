@@ -16,56 +16,29 @@ double       DecodeStage::energy() const {
   return fl.energy() + rcet.energy() + decoder.energy() + extend.energy();
 }
 
-void         DecodeStage::updateReady() {
-  readyOut.write(true);
-
-  while(true) {
-    wait(clock.negedge_event());
-
-    // Send any fetches we may have created in this cycle (or which haven't
-    // yet been able to send).
-    fl.send();
-
-    // Take into account fetch logic buffer too?
-    readyOut.write(readyIn.read() && decoder.ready());
-  }
-}
-
-void         DecodeStage::execute() {
-  idle.write(true);
-
-  // Allow any signals to propagate before starting execution.
-  wait(sc_core::SC_ZERO_TIME);
-
-  while(true) {
-    // Wait for a new instruction to arrive.
-    wait(instructionIn.default_event());
-
-    // Decode the instruction. We are currently not idle.
-    idle.write(false);
-    decode(instructionIn.read());
-
-    // Once the next cycle starts, revert to being idle.
-    wait(clock.posedge_event());
-    idle.write(true);
-  }
-}
-
-void         DecodeStage::decode(const DecodedInst& i) {
+void         DecodeStage::newInput(DecodedInst& inst) {
   if(DEBUG) cout << decoder.name() << " received Instruction: "
-                 << instructionIn.read() << endl;
+                 << dataIn.read() << endl;
 
   while(true) {
     DecodedInst decoded;
-    bool success = decoder.decodeInstruction(i, decoded);
+    bool success = decoder.decodeInstruction(inst, decoded);
 
-    if(success) instructionOut.write(decoded);
+    if(success) dataOut.write(decoded);
 
     // If the decoder is ready, we have finished the decode.
     if(decoder.ready()) break;
     // Try again next cycle if the decoder is still busy.
     else wait(clock.posedge_event());
   }
+}
+
+void         DecodeStage::sendOutputs() {
+  fl.send();
+}
+
+bool         DecodeStage::isStalled() const {
+  return !decoder.ready();  // Take into account fetch buffers too?
 }
 
 int32_t      DecodeStage::readReg(RegisterIndex index, bool indirect) const {
@@ -118,6 +91,8 @@ void         DecodeStage::setPersistent(bool persistent) {
 
 DecodeStage::DecodeStage(sc_module_name name, ComponentID ID) :
     PipelineStage(name),
+    StageWithSuccessor(name),
+    StageWithPredecessor(name),
     fl("fetchlogic", ID),     // Needs ID so it can generate a return address
     rcet("rcet"),
     decoder("decoder", ID),
@@ -125,23 +100,21 @@ DecodeStage::DecodeStage(sc_module_name name, ComponentID ID) :
 
   id = ID;
 
-  in             = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
+  rcetIn         = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
   flowControlOut = new sc_out<int>[NUM_RECEIVE_CHANNELS];
 
   // Connect everything up
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
-    rcet.fromNetwork[i](in[i]);
+    rcet.fromNetwork[i](rcetIn[i]);
     rcet.flowControl[i](flowControlOut[i]);
   }
 
-  fl.toNetwork(out1);
+  fl.toNetwork(fetchOut);
   fl.flowControl(flowControlIn);
-
-  SC_THREAD(updateReady);
 
 }
 
 DecodeStage::~DecodeStage() {
-  delete[] in;
+  delete[] rcetIn;
   delete[] flowControlOut;
 }

@@ -145,7 +145,7 @@ bool ALU::shouldExecute(short predBits) const {
 }
 
 ExecuteStage* ALU::parent() const {
-  return (ExecuteStage*)(this->get_parent());
+  return dynamic_cast<ExecuteStage*>(this->get_parent());
 }
 
 ALU::ALU(sc_module_name name) : Component(name) {

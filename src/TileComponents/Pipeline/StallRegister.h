@@ -29,6 +29,8 @@ public:
 
   sc_in<bool>         clock;
 
+  sc_in<bool>         localStageStalled;
+
   sc_in<bool>         readyIn;
   sc_out<bool>        readyOut;
 

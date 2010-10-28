@@ -11,8 +11,6 @@
 #ifndef INSTRUMENTATION_H_
 #define INSTRUMENTATION_H_
 
-#include <iostream>
-
 class DecodedInst;
 
 class Instrumentation {
@@ -29,10 +27,10 @@ public:
   static void memoryWrite();
 
   // Record that a particular core stalled or unstalled.
-  static void stalled(int id, bool stalled, int cycle);
+  static void stalled(int id, bool stalled);
 
   // Record that a particular core became idle or active.
-  static void idle(int id, bool idle, int cycle);
+  static void idle(int id, bool idle);
 
   // End execution immediately.
   static void endExecution();
@@ -45,6 +43,11 @@ public:
 
   // Print the results of instrumentation.
   static void printStats();
+
+private:
+
+  // Return the current clock cycle count.
+  static int currentCycle();
 
 };
 

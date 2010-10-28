@@ -75,7 +75,8 @@ uint16_t FetchLogic::portID() {
 }
 
 DecodeStage* FetchLogic::parent() const {
-  return (DecodeStage*)(this->get_parent());
+  // Need a dynamic cast because DecodeStage uses virtual inheritance.
+  return dynamic_cast<DecodeStage*>(this->get_parent());
 }
 
 FetchLogic::FetchLogic(sc_module_name name, int ID) :

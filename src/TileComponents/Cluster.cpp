@@ -82,9 +82,7 @@ void     Cluster::updateCurrentPacket(Address addr) {
 }
 
 void     Cluster::pipelineStalled(bool stalled) {
-  // TODO: collect timestamps in instrumentation.
-  Instrumentation::stalled(id, stalled,
-      sc_core::sc_time_stamp().to_default_time_units());
+  Instrumentation::stalled(id, stalled);
 
   currentlyStalled = stalled;
 
@@ -103,14 +101,15 @@ void     Cluster::multiplexOutput0() {
 }
 
 void     Cluster::updateIdle() {
+  constantHigh.write(true);   // Hack: find a better way of doing this.
+
   bool isIdle = fetchIdle.read()   && decodeIdle.read() &&
                 executeIdle.read() && writeIdle.read();
 
   // Is this what we really want?
   idle.write(isIdle || currentlyStalled);
 
-  Instrumentation::idle(id, isIdle,
-      sc_core::sc_time_stamp().to_default_time_units());
+  Instrumentation::idle(id, isIdle);
 }
 
 /* Returns the channel ID of this cluster's instruction packet FIFO. */
@@ -145,7 +144,7 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   // do initialise
 
   SC_METHOD(multiplexOutput0);
-  sensitive << decode.out1 << write.output[0];
+  sensitive << decode.fetchOut << write.output[0];
   dont_initialize();
 
 // Connect things up
@@ -156,7 +155,7 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   fetch.flowControl[1](flowControlOut[1]);
 
   for(uint i=2; i<NUM_CLUSTER_INPUTS; i++) {
-    decode.in[i-2](in[i]);
+    decode.rcetIn[i-2](in[i]);
     decode.flowControlOut[i-2](flowControlOut[i]);
   }
 
@@ -164,7 +163,7 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   decode.flowControlIn(flowControlIn[0]);
   write.flowControl[0](flowControlIn[0]);
 
-  decode.out1(out0Decode);
+  decode.fetchOut(out0Decode);
   write.output[0](out0Write);
 
   // Skip 0 because that is dealt with elsewhere.
@@ -184,33 +183,24 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   fetch.idle(fetchIdle);                  decode.idle(decodeIdle);
   execute.idle(executeIdle);              write.idle(writeIdle);
 
-//  // Ready signals -- behave like flow control within the pipeline.
-//  fetch.readyIn(decodeReady);             decode.readyOut(decodeReady);
-//  decode.readyIn(executeReady);           execute.readyOut(executeReady);
-//  execute.readyIn(writeReady);            write.readyOut(writeReady);
-//
-//  // Main data transmission along pipeline.
-//  fetch.instruction(fetchToDecode);       decode.instructionIn(fetchToDecode);
-//  decode.instructionOut(decodeToExecute); execute.operation(decodeToExecute);
-//  execute.result(executeToWrite);         write.result(executeToWrite);
-
   // Ready signals -- behave like flow control within the pipeline.
-  fetch.readyIn(decodeReady);             stallReg1.readyOut(decodeReady);
-  decode.readyIn(executeReady);           stallReg2.readyOut(executeReady);
-  execute.readyIn(writeReady);            stallReg3.readyOut(writeReady);
+  fetch.readyIn(stall1Ready);             stallReg1.readyOut(stall1Ready);
+  stallReg1.readyIn(stall2Ready);         stallReg2.readyOut(stall2Ready);
+  stallReg2.readyIn(stall3Ready);         stallReg3.readyOut(stall3Ready);
+  stallReg3.readyIn(constantHigh);  // There is no ready input signal
 
-  stallReg1.readyIn(decodeReady2);        decode.readyOut(decodeReady2);
-  stallReg2.readyIn(executeReady2);       execute.readyOut(executeReady2);
-  stallReg3.readyIn(writeReady2);         write.readyOut(writeReady2);
+  decode.stallOut(decodeStalled);         stallReg1.localStageStalled(decodeStalled);
+  execute.stallOut(executeStalled);       stallReg2.localStageStalled(executeStalled);
+  write.stallOut(writeStalled);           stallReg3.localStageStalled(writeStalled);
 
   // Main data transmission along pipeline.
-  fetch.instruction(fetchToDecode);       stallReg1.dataIn(fetchToDecode);
-  decode.instructionOut(decodeToExecute); stallReg2.dataIn(decodeToExecute);
-  execute.result(executeToWrite);         stallReg3.dataIn(executeToWrite);
+  fetch.dataOut(fetchToDecode);           stallReg1.dataIn(fetchToDecode);
+  decode.dataOut(decodeToExecute);        stallReg2.dataIn(decodeToExecute);
+  execute.dataOut(executeToWrite);        stallReg3.dataIn(executeToWrite);
 
-  stallReg1.dataOut(fetchToDecode2);      decode.instructionIn(fetchToDecode2);
-  stallReg2.dataOut(decodeToExecute2);    execute.operation(decodeToExecute2);
-  stallReg3.dataOut(executeToWrite2);     write.result(executeToWrite2);
+  stallReg1.dataOut(fetchToDecode2);      decode.dataIn(fetchToDecode2);
+  stallReg2.dataOut(decodeToExecute2);    execute.dataIn(decodeToExecute2);
+  stallReg3.dataOut(executeToWrite2);     write.dataIn(executeToWrite2);
 
   end_module(); // Needed because we're using a different Component constructor
 }

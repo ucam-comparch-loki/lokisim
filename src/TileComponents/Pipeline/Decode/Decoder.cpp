@@ -220,7 +220,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
 }
 
-bool Decoder::ready() {
+bool Decoder::ready() const {
   return !currentlyWriting && !blocked;
 }
 
@@ -311,7 +311,8 @@ bool Decoder::shouldExecute(short predBits) {
 }
 
 DecodeStage* Decoder::parent() const {
-  return (DecodeStage*)(this->get_parent());
+  // Need a dynamic cast because DecodeStage uses virtual inheritance.
+  return dynamic_cast<DecodeStage*>(this->get_parent());
 }
 
 Decoder::Decoder(sc_module_name name, ComponentID ID) : Component(name) {

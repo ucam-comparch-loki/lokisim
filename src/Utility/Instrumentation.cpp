@@ -6,6 +6,7 @@
  */
 
 #include "Instrumentation.h"
+#include "StartUp/CodeLoader.h"
 #include "Debugger.h"
 #include "Instrumentation/IPKCache.h"
 #include "Instrumentation/Memory.h"
@@ -26,14 +27,14 @@ void Instrumentation::memoryWrite() {
   Memory::write();
 }
 
-void Instrumentation::stalled(int id, bool stalled, int cycle) {
-  if(stalled) Stalls::stall(id, cycle);
-  else Stalls::unstall(id, cycle);
+void Instrumentation::stalled(int id, bool stalled) {
+  if(stalled) Stalls::stall(id, currentCycle());
+  else Stalls::unstall(id, currentCycle());
 }
 
-void Instrumentation::idle(int id, bool idle, int cycle) {
-  if(idle) Stalls::idle(id, cycle);
-  else Stalls::active(id, cycle);
+void Instrumentation::idle(int id, bool idle) {
+  if(idle) Stalls::idle(id, currentCycle());
+  else Stalls::active(id, currentCycle());
 }
 
 void Instrumentation::endExecution() {
@@ -46,7 +47,9 @@ void Instrumentation::networkTraffic(int startID, int endID, double distance) {
 
 void Instrumentation::operation(DecodedInst inst, bool executed, int id) {
   Operations::operation(inst.operation(), executed);
-  Debugger::executedInstruction(inst, id, executed);
+
+  if(CodeLoader::usingDebugger)
+    Debugger::executedInstruction(inst, id, executed);
 }
 
 void Instrumentation::printStats() {
@@ -56,4 +59,8 @@ void Instrumentation::printStats() {
   Network::printStats();
   Operations::printStats();
   Stalls::printStats();
+}
+
+int Instrumentation::currentCycle() {
+  return sc_core::sc_time_stamp().to_default_time_units();
 }

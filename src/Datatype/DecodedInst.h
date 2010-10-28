@@ -9,7 +9,7 @@
 #define DECODEDINST_H_
 
 #include <inttypes.h>
-#include "systemc"
+#include "systemc.h"
 #include "Address.h"
 
 class Instruction;

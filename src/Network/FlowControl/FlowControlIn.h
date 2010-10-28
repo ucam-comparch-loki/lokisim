@@ -76,7 +76,7 @@ protected:
 
   // Addresses of ports connected to each of our input ports. We need the
   // addresses so we can send flow control information back to them.
-  std::vector<int>  returnAddresses;
+  std::vector<ChannelID>  returnAddresses;
 
   // Rather than credits, the component sends out the amount of space in each
   // of its buffers. This information can be used to implement any other flow

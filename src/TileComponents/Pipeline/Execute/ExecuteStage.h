@@ -11,10 +11,11 @@
 #ifndef EXECUTESTAGE_H_
 #define EXECUTESTAGE_H_
 
-#include "../PipelineStage.h"
+#include "../StageWithPredecessor.h"
+#include "../StageWithSuccessor.h"
 #include "ALU.h"
 
-class ExecuteStage: public PipelineStage {
+class ExecuteStage: public StageWithPredecessor, public StageWithSuccessor {
 
 //==============================//
 // Ports
@@ -22,21 +23,12 @@ class ExecuteStage: public PipelineStage {
 
 public:
 
-// Inherited from PipelineStage:
-//   sc_in<bool>  clock
-//   sc_out<bool> idle
-
-  // The input operation to perform.
-  sc_in<DecodedInst>  operation;
-
-  // The output result of the operation.
-  sc_out<DecodedInst> result;
-
-  // Tells whether the write stage is ready to receive new data.
-  sc_in<bool>         readyIn;
-
-  // Tell the decode stage whether we are ready to receive a new operation.
-  sc_out<bool>        readyOut;
+// Inherited from StageWithPredecessor, StageWithSuccessor:
+//   sc_in<bool>          clock
+//   sc_out<bool>         idle
+//   sc_in<DecodedInst>   dataIn
+//   sc_out<DecodedInst>  dataOut
+//   sc_out<bool>         stallOut
 
 //==============================//
 // Constructors and destructors
@@ -60,9 +52,9 @@ public:
 private:
 
   // The task performed when a new operation is received.
-  virtual void newInput();
+  virtual void newInput(DecodedInst& operation);
 
-  virtual void execute();
+  virtual bool isStalled() const;
 
   // Read the predicate register.
   bool getPredicate() const;
@@ -75,10 +67,7 @@ private:
   void checkForwarding(DecodedInst& inst);
 
   // Update the forwarding paths using this recently-executed instruction.
-  void updateForwarding(DecodedInst& inst);
-
-  // Update our output ready signal. Executes once per cycle.
-  void updateReady();
+  void updateForwarding(const DecodedInst& inst);
 
 //==============================//
 // Components
@@ -86,7 +75,7 @@ private:
 
 private:
 
-  ALU                 alu;
+  ALU alu;
 
   friend class ALU;
 

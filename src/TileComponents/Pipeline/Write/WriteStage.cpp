@@ -10,55 +10,31 @@
 #include "../../../Utility/InstructionMap.h"
 
 double WriteStage::area() const {
-  return scet.area();// + mux.area();
+  return scet.area();
 }
 
 double WriteStage::energy() const {
-  return scet.energy();// + mux.energy();
+  return scet.energy();
 }
 
-void WriteStage::execute() {
-  idle.write(true);
-
-  // Allow any signals to propagate before starting execution.
-  wait(sc_core::SC_ZERO_TIME);
-
-  while(true) {
-    // Wait for new data to arrive.
-    wait(result.default_event());
-
-    // Deal with the new input. We are currently not idle.
-    idle.write(false);
-    newInput();
-
-    // Once the next cycle starts, revert to being idle.
-    wait(clock.posedge_event());
-    idle.write(true);
-  }
-}
-
-void WriteStage::newInput() {
-  DecodedInst dec = result.read();
-
-  if(DEBUG) cout << this->name() << " received Data: " << dec.result()
+void WriteStage::newInput(DecodedInst& data) {
+  if(DEBUG) cout << this->name() << " received Data: " << data.result()
                  << endl;
 
   // Put data into the send channel-end table.
-  scet.write(dec);
+  scet.write(data);
 
   // Write to registers (they ignore the write if the index is invalid).
-  writeReg(dec.destinationReg(), dec.result(),
-             dec.operation() == InstructionMap::IWTR);
+  writeReg(data.destinationReg(), data.result(),
+             data.operation() == InstructionMap::IWTR);
 }
 
-void WriteStage::updateReady() {
-  readyOut.write(true);
+bool WriteStage::isStalled() const {
+  return scet.isFull();
+}
 
-  while(true) {
-    wait(clock.negedge_event());
-    scet.send();
-    readyOut.write(!scet.isFull());
-  }
+void WriteStage::sendOutputs() {
+  scet.send();
 }
 
 void WriteStage::writeReg(RegisterIndex reg, int32_t value, bool indirect) {
@@ -67,6 +43,7 @@ void WriteStage::writeReg(RegisterIndex reg, int32_t value, bool indirect) {
 
 WriteStage::WriteStage(sc_module_name name, ComponentID ID) :
     PipelineStage(name),
+    StageWithPredecessor(name),
     scet("scet", ID) {
 
   id = ID;
@@ -79,8 +56,6 @@ WriteStage::WriteStage(sc_module_name name, ComponentID ID) :
     scet.output[i](output[i]);
     scet.flowControl[i](flowControl[i]);
   }
-
-  SC_THREAD(updateReady);
 
 }
 
