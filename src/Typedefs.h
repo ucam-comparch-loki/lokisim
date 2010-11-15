@@ -3,6 +3,10 @@
  *
  * A set of useful typedefs for use throughout the system.
  *
+ * These help with consistency, and also make the intended use of a value
+ * more clear. (e.g. A RegisterIndex value is obviously used to address
+ * registers, but an int may be less clear.)
+ *
  *  Created on: 26 Oct 2010
  *      Author: db434
  */
@@ -26,6 +30,9 @@ typedef uint32_t ChannelID;
 
 // The index of a register within a register file.
 typedef uint8_t  RegisterIndex;
+
+// A location in memory.
+typedef uint32_t MemoryAddr;
 
 
 

@@ -274,7 +274,7 @@ void Instruction::setFields(const uint8_t reg1, const uint8_t reg2,
 
     // Single source, no destination.
     case InstructionMap::LDW :
-    case InstructionMap::LDB :
+    case InstructionMap::LDBU :
     case InstructionMap::STWADDR :
     case InstructionMap::STBADDR :
     case InstructionMap::FETCH :

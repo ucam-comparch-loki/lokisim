@@ -85,7 +85,7 @@ void InstructionMap::initialise() {
   a=0;    addToMaps("nop", a, NOP);
 
   a++;    addToMaps("ldw", a, LDW);
-  a++;    addToMaps("ldb", a, LDB);
+  a++;    addToMaps("ldbu", a, LDBU);
   a++;    addToMaps("stw", a, STW);
   a++;    addToMaps("stb", a, STB);
   a++;    addToMaps("stwaddr", a, STWADDR);

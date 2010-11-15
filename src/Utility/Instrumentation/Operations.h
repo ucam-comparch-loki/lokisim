@@ -11,6 +11,8 @@
 #include "InstrumentationBase.h"
 #include "CounterMap.h"
 
+namespace Instrumentation {
+
 class Operations: public InstrumentationBase {
 
 public:
@@ -25,5 +27,7 @@ private:
   static int numOps;
 
 };
+
+}
 
 #endif /* OPERATIONS_H_ */

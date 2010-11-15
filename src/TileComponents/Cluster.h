@@ -57,7 +57,7 @@ public:
   virtual double   energy() const;
 
   // Initialise the instructions a Cluster will execute.
-  virtual void     storeData(std::vector<Word>& data, int location=0);
+  virtual void     storeData(std::vector<Word>& data, MemoryAddr location=0);
 
   // Returns the channel ID of the specified cluster's instruction packet FIFO.
   static ChannelID IPKFIFOInput(ComponentID ID);
@@ -71,11 +71,6 @@ public:
   // Get the memory location of the current instruction being decoded, so
   // we can have breakpoints set to particular instructions in memory.
   virtual Address  getInstIndex() const;
-
-  // Read a value from a register. This method will redirect the request to
-  // the receive channel-end table if the register index corresponds to a
-  // channel end.
-  int32_t          readReg(RegisterIndex reg, bool indirect = false) const;
 
   // Read a value from a register, without redirecting to the RCET.
   virtual int32_t  readRegDebug(RegisterIndex reg) const;
@@ -103,6 +98,15 @@ private:
   // Set whether the cache is in persistent or non-persistent mode.
   void             setPersistent(bool persistent);
 
+  // Read a value from a register. This method will redirect the request to
+  // the receive channel-end table if the register index corresponds to a
+  // channel end.
+  int32_t          readReg(RegisterIndex reg, bool indirect = false) const;
+
+  // Read a value from a channel end. Warning: this removes the value from
+  // the input buffer.
+  int32_t          readRCET(ChannelIndex channel);
+
   // Write a value to a register.
   void             writeReg(RegisterIndex reg, int32_t value,
                             bool indirect = false);
@@ -110,9 +114,12 @@ private:
   // Write a value to the predicate register.
   void             writePredReg(bool val);
 
-  // Read a value from a channel end. Warning: this removes the value from
-  // the input buffer.
-  int32_t          readRCET(ChannelIndex channel);
+  // Check the forwarding paths to see if this instruction requires values
+  // which haven't been written to registers yet.
+  void             checkForwarding(DecodedInst& inst) const;
+
+  // Update the values in the forwarding paths using a new result.
+  void             updateForwarding(const DecodedInst& inst);
 
   // Update the address of the currently executing instruction packet so we
   // can fetch more packets from relative locations.
@@ -164,6 +171,11 @@ private:
 
   bool currentlyStalled;
 
+  // Store the previous two results and destination registers, to allow data
+  // forwarding when necessary. 2 is older than 1.
+  RegisterIndex previousDest1, previousDest2;
+  int64_t previousResult1, previousResult2;
+
 //==============================//
 // Signals (wires)
 //==============================//
@@ -181,8 +193,8 @@ private:
                            decodeStalled, executeStalled, writeStalled;
 
   // Transmission of the instruction along the pipeline.
-  flag_signal<DecodedInst> fetchToDecode, decodeToExecute, executeToWrite,
-                           fetchToDecode2, decodeToExecute2, executeToWrite2;
+  flag_signal<DecodedInst> fetchToStall1, decodeToStall2, executeToStall3,
+                           stall1ToDecode, stall2ToExecute, stall3ToWrite;
 
   // Signals used to multiplex output 0.
   flag_signal<AddressedWord> out0Decode, out0Write;

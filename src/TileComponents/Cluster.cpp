@@ -18,7 +18,7 @@ double   Cluster::energy() const {
 }
 
 /* Initialise the instructions a Cluster will execute. */
-void     Cluster::storeData(std::vector<Word>& data, int location) {
+void     Cluster::storeData(std::vector<Word>& data, MemoryAddr location) {
   std::vector<Instruction> instructions;
 
   // Convert all of the words to instructions
@@ -54,6 +54,18 @@ void     Cluster::setPersistent(bool persistent) {
 }
 
 int32_t  Cluster::readReg(RegisterIndex reg, bool indirect) const {
+  if(!indirect && reg>0) {
+    if(reg == previousDest1) {
+      if(DEBUG) cout << this->name() << " forwarded contents of register "
+                     << (int)reg << endl;
+      return previousResult1;
+    }
+    else if(reg == previousDest2) {
+      if(DEBUG) cout << this->name() << " forwarded contents of register "
+                     << (int)reg << endl;
+      return previousResult2;
+    }
+  }
   return regs.read(reg, indirect);
 }
 
@@ -63,6 +75,30 @@ int32_t  Cluster::readRegDebug(RegisterIndex reg) const {
 
 void     Cluster::writeReg(RegisterIndex reg, int32_t value, bool indirect) {
   regs.write(reg, value, indirect);
+}
+
+void Cluster::checkForwarding(DecodedInst& inst) const {
+  // We don't want to use forwarded data if we read from register 0: this could
+  // mean that there is just no register specified, and we are using an
+  // immediate instead.
+  if(inst.sourceReg1() > 0) {
+    if(inst.sourceReg1() == previousDest1) inst.operand1(previousResult1);
+    else if(inst.sourceReg1() == previousDest2) inst.operand1(previousResult2);
+  }
+  if(inst.sourceReg2() > 0) {
+    if(inst.sourceReg2() == previousDest1) inst.operand2(previousResult1);
+    else if(inst.sourceReg2() == previousDest2) inst.operand2(previousResult2);
+  }
+}
+
+void Cluster::updateForwarding(const DecodedInst& inst) {
+  previousDest2   = previousDest1;
+  previousResult2 = previousResult1;
+
+  // We don't want to forward any data which was sent to register 0, because
+  // r0 doesn't store values: it is a constant.
+  previousDest1   = (inst.destinationReg() == 0) ? -1 : inst.destinationReg();
+  previousResult1 = inst.result();
 }
 
 bool     Cluster::readPredReg() const {
@@ -96,7 +132,14 @@ void     Cluster::pipelineStalled(bool stalled) {
 void     Cluster::multiplexOutput0() {
   // Note: we absolutely must not send two outputs to this port on the same
   // cycle.
-  if(out0Decode.event()) out[0].write(out0Decode.read());
+  if(out0Decode.event()) {
+    if(out0Write.event()) {
+      cerr << this->name() << " wrote to output 0 twice in one cycle." << endl;
+      throw std::exception();
+    }
+
+    out[0].write(out0Decode.read());
+  }
   else if(out0Write.event()) out[0].write(out0Write.read());
 }
 
@@ -138,6 +181,8 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
     execute("execute", ID),
     decode("decode", ID),
     fetch("fetch", ID) {
+
+  previousDest1 = previousDest2 = -1;
 
   SC_METHOD(updateIdle);
   sensitive << fetchIdle << decodeIdle << executeIdle << writeIdle;
@@ -194,13 +239,16 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   write.stallOut(writeStalled);           stallReg3.localStageStalled(writeStalled);
 
   // Main data transmission along pipeline.
-  fetch.dataOut(fetchToDecode);           stallReg1.dataIn(fetchToDecode);
-  decode.dataOut(decodeToExecute);        stallReg2.dataIn(decodeToExecute);
-  execute.dataOut(executeToWrite);        stallReg3.dataIn(executeToWrite);
+  fetch.dataOut(fetchToStall1);           stallReg1.dataIn(fetchToStall1);
+  decode.dataOut(decodeToStall2);         stallReg2.dataIn(decodeToStall2);
+  execute.dataOut(executeToStall3);       stallReg3.dataIn(executeToStall3);
 
-  stallReg1.dataOut(fetchToDecode2);      decode.dataIn(fetchToDecode2);
-  stallReg2.dataOut(decodeToExecute2);    execute.dataIn(decodeToExecute2);
-  stallReg3.dataOut(executeToWrite2);     write.dataIn(executeToWrite2);
+  stallReg1.dataOut(stall1ToDecode);      decode.dataIn(stall1ToDecode);
+  stallReg2.dataOut(stall2ToExecute);     execute.dataIn(stall2ToExecute);
+  stallReg3.dataOut(stall3ToWrite);       write.dataIn(stall3ToWrite);
+
+  // Initialise the values in some wires.
+  idle.initialize(true);
 
   end_module(); // Needed because we're using a different Component constructor
 }

@@ -47,7 +47,7 @@ public:
     NOP,          // No operation                         nop
 
     LDW,          // Load word                            ldw rs, immed -> rch
-    LDB,          // Load byte                            ldb rs, immed -> rch
+    LDBU,         // Load byte (zero-extended)            ldb rs, immed -> rch
     STW,          // Store word                           stw rs, rt, immed -> rch
     STB,          // Store byte                           stb rs, rt, immed -> rch
     STWADDR,      // Store address                        stwaddr rt, immed -> rch

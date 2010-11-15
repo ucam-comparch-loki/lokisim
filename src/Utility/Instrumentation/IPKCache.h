@@ -10,6 +10,8 @@
 
 #include "InstrumentationBase.h"
 
+namespace Instrumentation {
+
 class IPKCache: public InstrumentationBase {
 
 public:
@@ -22,5 +24,7 @@ private:
   static int numHits, numMisses;
 
 };
+
+}
 
 #endif /* IPKCACHE_H_ */

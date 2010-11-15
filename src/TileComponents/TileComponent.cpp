@@ -9,15 +9,15 @@
 #include "../Datatype/Address.h"
 #include "../Datatype/AddressedWord.h"
 
-void TileComponent::print(int start, int end) const {
+void TileComponent::print(MemoryAddr start, MemoryAddr end) const {
   // Do nothing if print isn't defined
 }
 
-Word TileComponent::getMemVal(uint32_t addr) const {
+Word TileComponent::getMemVal(MemoryAddr addr) const {
   return Word(-1);
 }
 
-int32_t TileComponent::readRegDebug(uint8_t reg) const {
+int32_t TileComponent::readRegDebug(RegisterIndex reg) const {
   return -1;
 }
 
@@ -30,7 +30,7 @@ bool TileComponent::readPredReg() const {
 }
 
 /* Constructors and destructors */
-TileComponent::TileComponent(sc_module_name name, uint16_t ID) :
+TileComponent::TileComponent(sc_module_name name, ComponentID ID) :
     Component(name, ID) {
 
   flowControlOut = new sc_out<int>[NUM_CLUSTER_INPUTS];

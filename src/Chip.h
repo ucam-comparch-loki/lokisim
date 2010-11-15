@@ -1,11 +1,12 @@
 /*
  * Chip.h
  *
- * A class representing the whole Loki chip as a Grid of Tiles. The Chip is just
- * a means of having all of the Tiles in one place, and does not do anything, as
- * the work is done within the Tiles and their subcomponents.
+ * A class encapsulating a local group of Clusters and memories (collectively
+ * known as TileComponents) to reduce the amount of global communication. Each
+ * Tile is connected to its neighbours by a group of input and output ports at
+ * each edge. It is up to the Tile to decide how routing is implemented.
  *
- *  Created on: 6 Jan 2010
+ *  Created on: 5 Jan 2010
  *      Author: db434
  */
 
@@ -13,10 +14,25 @@
 #define CHIP_H_
 
 #include "Component.h"
-#include "Tile.h"
-#include "Utility/Grid.h"
+#include "flag_signal.h"
+#include "Network/NetworkHierarchy.h"
 
-class Chip: public Component {
+using std::vector;
+
+class Address;
+class TileComponent;
+
+class Chip : public Component {
+
+//==============================//
+// Ports
+//==============================//
+
+public:
+
+  sc_in<bool>  clock;
+
+  sc_out<bool> idle;
 
 //==============================//
 // Constructors and destructors
@@ -24,8 +40,33 @@ class Chip: public Component {
 
 public:
 
-  Chip(sc_core::sc_module_name name, int rows, int columns);
+  SC_HAS_PROCESS(Chip);
+  Chip(sc_module_name name, ComponentID ID);
   virtual ~Chip();
+
+//==============================//
+// Methods
+//==============================//
+
+public:
+
+  virtual double area()   const;
+  virtual double energy() const;
+
+  bool    isIdle() const;
+
+  // Store the given instructions or data into the component at the given index.
+  void    storeData(vector<Word>& data, ComponentID component, MemoryAddr location=0);
+
+  void    print(ComponentID component, MemoryAddr start, MemoryAddr end) const;
+  Word    getMemVal(ComponentID component, MemoryAddr addr) const;
+  int     getRegVal(ComponentID component, RegisterIndex reg) const;
+  Address getInstIndex(ComponentID component) const;
+  bool    getPredReg(ComponentID component) const;
+
+private:
+
+  void    updateIdle();
 
 //==============================//
 // Components
@@ -33,7 +74,28 @@ public:
 
 private:
 
-  Grid<Tile> tiles;
+  vector<TileComponent*> contents;  // Clusters and memories of this tile
+  NetworkHierarchy network;
+
+//==============================//
+// Signals (wires)
+//==============================//
+
+private:
+
+  flag_signal<AddressedWord> *dataFromComponents;
+  flag_signal<Word>          *dataToComponents;
+  flag_signal<int>           *creditsFromComponents;
+  sc_signal<bool>            *readyToComponents;
+  sc_signal<bool>            *idleSig;
+
+//==============================//
+// Local state
+//==============================//
+
+private:
+
+  bool idleVal;
 
 };
 

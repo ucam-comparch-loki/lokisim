@@ -37,10 +37,15 @@ extern parameter CHANNEL_MAP_SIZE           = 8;
 extern parameter NUM_RECEIVE_CHANNELS       = 2;
 extern parameter NUM_SEND_CHANNELS          = CHANNEL_MAP_SIZE;
 extern parameter CHANNEL_END_BUFFER_SIZE    = 4;
-extern parameter FLOW_CONTROL_BUFFER_SIZE   = 4;
+extern parameter ROUTER_BUFFER_SIZE         = 4;
+extern parameter NETWORK_BUFFER_SIZE        = 4;
 
 // Combinations of other parameters
 extern parameter NUM_CLUSTER_INPUTS         = 2 + NUM_RECEIVE_CHANNELS;
 extern parameter NUM_CLUSTER_OUTPUTS        = NUM_SEND_CHANNELS;
 extern parameter COMPONENTS_PER_TILE        = CLUSTERS_PER_TILE + MEMS_PER_TILE;
 extern parameter NUM_TILES                  = NUM_TILE_ROWS * NUM_TILE_COLUMNS;
+
+extern parameter NUM_COMPONENTS             = NUM_TILES * COMPONENTS_PER_TILE;
+extern parameter TOTAL_INPUTS               = NUM_COMPONENTS * NUM_CLUSTER_INPUTS;
+extern parameter TOTAL_OUTPUTS              = NUM_COMPONENTS * NUM_CLUSTER_OUTPUTS;

@@ -18,6 +18,8 @@ using std::string;
 using std::cout;
 using std::endl;
 
+namespace Instrumentation {
+
 class InstrumentationBase {
 
 public:
@@ -29,5 +31,9 @@ protected:
   static string asPercentage(int value, int total);
 
 };
+
+}
+
+using namespace Instrumentation;
 
 #endif /* INSTRUMENTATIONBASE_H_ */

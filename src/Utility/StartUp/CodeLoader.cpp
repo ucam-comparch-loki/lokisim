@@ -23,7 +23,7 @@ bool CodeLoader::usingDebugger = false;
  *     Use another file loader - useful for loading multiple (sub-)programs
  *   component_id file_name
  *     Load the contents of the file into the component */
-void CodeLoader::loadCode(string& settings, Tile& tile) {
+void CodeLoader::loadCode(string& settings, Chip& tile) {
 
   char line[200];   // An array of chars to load a line from the file into.
 
@@ -72,7 +72,7 @@ void CodeLoader::loadCode(string& settings, Tile& tile) {
 
 }
 
-void CodeLoader::loadCode(vector<string>& command, Tile& tile) {
+void CodeLoader::loadCode(vector<string>& command, Chip& tile) {
   FileReader& reader = FileReader::makeFileReader(command);
   vector<DataBlock>& blocks = reader.extractData();
 

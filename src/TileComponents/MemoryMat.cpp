@@ -100,12 +100,12 @@ void MemoryMat::newCycle() {
 
 /* Carry out a read for the transaction at input "position". We must be able
  * to complete the read (i.e. flowControl[position] must be true). */
-void MemoryMat::read(int position) {
+void MemoryMat::read(ChannelIndex position) {
 
   ConnectionStatus& connection = connections_[position];
   Word w;
-  int addr;
-  int channel = connection.channel();
+  MemoryAddr addr;
+  ChannelID channel = connection.channel();
 
   if(connection.readingIPK()) {
     addr = connection.address();
@@ -150,10 +150,10 @@ void MemoryMat::read(int position) {
 }
 
 /* Carry out a write for the transaction at input "position". */
-void MemoryMat::write(Word w, int position) {
+void MemoryMat::write(Word w, ChannelIndex position) {
   ConnectionStatus& connection = connections_[position];
 
-  int addr = connection.address();
+  MemoryAddr addr = connection.address();
   if(!connection.isByteAccess()) data_.write(w, addr/BYTES_PER_WORD);
   else {
     // If dealing with bytes, need to read the old value and only update
@@ -179,7 +179,7 @@ void MemoryMat::write(Word w, int position) {
                     ", address " << addr << endl;
 }
 
-void MemoryMat::updateControl(uint8_t port, uint16_t returnAddr) {
+void MemoryMat::updateControl(ChannelIndex port, ChannelID returnAddr) {
   // We don't have to do any safety checks because we assume that all
   // connections are statically orchestrated.
   ConnectionStatus& connection = connections_[port];
@@ -224,7 +224,7 @@ void MemoryMat::checkInputs() {
   }
 }
 
-void MemoryMat::sendCredit(int position) {
+void MemoryMat::sendCredit(ChannelIndex position) {
   flowControlOut[position].write(1);
 }
 
@@ -238,7 +238,7 @@ double MemoryMat::energy() const {
 }
 
 /* Initialise the contents of this memory to the Words in the given vector. */
-void MemoryMat::storeData(std::vector<Word>& data, int location) {
+void MemoryMat::storeData(std::vector<Word>& data, MemoryAddr location) {
   // wordsLoaded is used to keep track of where to put new data. If we have
   // been given a location, we already know where to put the data, so do not
   // need wordsLoaded.
@@ -256,16 +256,16 @@ void MemoryMat::storeData(std::vector<Word>& data, int location) {
   }
 }
 
-void MemoryMat::print(int start, int end) const {
+void MemoryMat::print(MemoryAddr start, MemoryAddr end) const {
   cout << "\nContents of " << this->name() << ":" << endl;
   data_.print(start/BYTES_PER_WORD, end/BYTES_PER_WORD);
 }
 
-Word MemoryMat::getMemVal(uint32_t addr) const {
+Word MemoryMat::getMemVal(MemoryAddr addr) const {
   return data_.read(addr/BYTES_PER_WORD);
 }
 
-MemoryMat::MemoryMat(sc_module_name name, int ID) :
+MemoryMat::MemoryMat(sc_module_name name, ComponentID ID) :
     TileComponent(name, ID),
     data_(MEMORY_SIZE, string(name)),
     connections_(NUM_CLUSTER_INPUTS),

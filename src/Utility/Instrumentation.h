@@ -13,42 +13,42 @@
 
 class DecodedInst;
 
-class Instrumentation {
+namespace Instrumentation {
 
-public:
+//public:
 
   // Record whether there was a cache hit or miss.
-  static void IPKCacheHit(bool hit);
+  void IPKCacheHit(bool hit);
 
   // Record that memory was read from.
-  static void memoryRead();
+  void memoryRead();
 
   // Record that memory was written to.
-  static void memoryWrite();
+  void memoryWrite();
 
   // Record that a particular core stalled or unstalled.
-  static void stalled(int id, bool stalled);
+  void stalled(int id, bool stalled);
 
   // Record that a particular core became idle or active.
-  static void idle(int id, bool idle);
+  void idle(int id, bool idle);
 
   // End execution immediately.
-  static void endExecution();
+  void endExecution();
 
   // Record that data was sent over the network.
-  static void networkTraffic(int startID, int endID, double distance);
+  void networkTraffic(int startID, int endID, double distance);
 
   // Record whether a particular operation was executed or not.
-  static void operation(DecodedInst inst, bool executed, int id);
+  void operation(DecodedInst inst, bool executed, int id);
 
   // Print the results of instrumentation.
-  static void printStats();
+  void printStats();
 
-private:
+//private:
 
   // Return the current clock cycle count.
-  static int currentCycle();
+  int currentCycle();
 
-};
+}
 
 #endif /* INSTRUMENTATION_H_ */

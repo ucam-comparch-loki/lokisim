@@ -126,9 +126,12 @@ DataBlock& ELFFileReader::loaderProgram() const {
   Instruction storeChannel("ori r3 r0 0");
   storeChannel.immediate(componentID_*NUM_CLUSTER_INPUTS); // Memory's first input.
 
-  Instruction nop("nop r0 r0 r0");
+  Instruction setfetchch("setchmap r3 0");
 
-  Instruction setfetchch("setchmap 0 r3");
+  Instruction connect("ori r0 r0 0 > 0");
+  connect.immediate(core_*NUM_CLUSTER_INPUTS + 1); // Core's IPK cache
+
+  Instruction nop("nop r0 r0 r0");
 
   Instruction fetch("fetch.eop r0 0");
   fetch.immediate(mainPos);
@@ -138,9 +141,12 @@ DataBlock& ELFFileReader::loaderProgram() const {
   instructions->push_back(nop);
   instructions->push_back(nop); // Need 2 nops to ensure that r3 has been written.
   instructions->push_back(setfetchch);
+  instructions->push_back(connect);
+  instructions->push_back(nop);
+  instructions->push_back(nop); // Make sure we have connected to mem before fetch.
   instructions->push_back(fetch);
 
-  cout << "Should give \"" << fetch << "\" to core ???" << endl;
+  cout << "Should give \"" << fetch << "\" to core " << core_ << endl;
 
   DataBlock* block = new DataBlock(instructions, core_);
 

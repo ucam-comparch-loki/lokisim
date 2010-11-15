@@ -44,6 +44,13 @@ public:
     return buffers.size();
   }
 
+  bool isEmpty() const {
+    for(uint i=0; i<size(); i++) {
+      if(!buffers[i]->isEmpty()) return false;
+    }
+    return true;
+  }
+
 //==============================//
 // Constructors and destructors
 //==============================//

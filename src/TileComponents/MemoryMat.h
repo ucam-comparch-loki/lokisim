@@ -48,7 +48,7 @@ class MemoryMat: public TileComponent {
 public:
 
   SC_HAS_PROCESS(MemoryMat);
-  MemoryMat(sc_module_name name, int ID);
+  MemoryMat(sc_module_name name, ComponentID ID);
   virtual ~MemoryMat();
 
 //==============================//
@@ -64,13 +64,13 @@ public:
   virtual double energy() const;
 
   // Initialise the contents of this memory to the Words in the given vector.
-  virtual void storeData(std::vector<Word>& data, int location=0);
+  virtual void storeData(std::vector<Word>& data, MemoryAddr location=0);
 
   // Print the contents of this memory.
-  virtual void print(int start=0, int end=MEMORY_SIZE) const;
+  virtual void print(MemoryAddr start=0, MemoryAddr end=MEMORY_SIZE) const;
 
   // Return the value at the given address.
-  virtual Word getMemVal(uint32_t addr) const;
+  virtual Word getMemVal(MemoryAddr addr) const;
 
 private:
 
@@ -81,14 +81,14 @@ private:
   void newCycle();
 
   // Carry out a read for the transaction at input "position".
-  void read(int position);
+  void read(ChannelIndex position);
 
   // Carry out a write for the transaction at input "position".
-  void write(Word w, int position);
+  void write(Word w, ChannelIndex position);
 
   // Update the connection at the given port so that results of memory reads
   // are sent back to returnAddr.
-  void updateControl(uint8_t port, uint16_t returnAddr);
+  void updateControl(ChannelIndex port, ChannelID returnAddr);
 
   // Update the output signal telling whether the memory is idle.
   void updateIdle();
@@ -97,7 +97,7 @@ private:
   void checkInputs();
 
   // Send a flow control credit from a particular port.
-  void sendCredit(int position);
+  void sendCredit(ChannelIndex position);
 
 //==============================//
 // Local state

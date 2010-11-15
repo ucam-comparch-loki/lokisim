@@ -11,6 +11,8 @@
 #include "InstrumentationBase.h"
 #include "CounterMap.h"
 
+namespace Instrumentation {
+
 class Stalls: public InstrumentationBase {
 
 public:
@@ -47,5 +49,7 @@ private:
   static int endOfExecution;
 
 };
+
+}
 
 #endif /* STALLS_H_ */

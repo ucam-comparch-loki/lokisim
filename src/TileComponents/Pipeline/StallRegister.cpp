@@ -40,6 +40,8 @@ StallRegister::StallRegister(sc_module_name name) :
   sensitive << readyIn << localStageStalled;
   // do initialise
 
+//  readyOut.initialize(true);
+
 }
 
 StallRegister::~StallRegister() {

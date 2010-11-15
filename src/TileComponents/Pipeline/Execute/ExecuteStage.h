@@ -64,7 +64,7 @@ private:
 
   // Check the forwarding paths to see if this instruction is expecting a value
   // which hasn't been written to registers yet.
-  void checkForwarding(DecodedInst& inst);
+  void checkForwarding(DecodedInst& inst) const;
 
   // Update the forwarding paths using this recently-executed instruction.
   void updateForwarding(const DecodedInst& inst);
@@ -78,17 +78,6 @@ private:
   ALU alu;
 
   friend class ALU;
-
-//==============================//
-// Local state
-//==============================//
-
-private:
-
-  // Store the previous two results and destination registers, to allow data
-  // forwarding when necessary. 2 is older than 1.
-  uint8_t previousDest1, previousDest2;
-  int64_t previousResult1, previousResult2;
 
 };
 

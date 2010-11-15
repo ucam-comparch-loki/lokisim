@@ -16,7 +16,7 @@ using std::vector;
 
 class Address;
 class DecodedInst;
-class Tile;
+class Chip;
 
 class Debugger {
 
@@ -34,7 +34,7 @@ public:
   static void executedInstruction(DecodedInst i, int core, bool executed);
 
   // Choose the tile to debug. Make this more general later.
-  static void setTile(Tile* t);
+  static void setTile(Chip* t);
 
 private:
 
@@ -76,7 +76,7 @@ private:
   static bool hitBreakpoint;
 
   static vector<Address> breakpoints;
-  static Tile* tile;
+  static Chip* tile;
 
   static int cycleNumber;
   static int defaultCore;

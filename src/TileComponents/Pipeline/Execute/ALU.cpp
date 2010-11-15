@@ -77,7 +77,7 @@ bool ALU::execute(DecodedInst& dec) {
     case InstructionMap::RSUBI:  result = val2 - val1; break;
 
     case InstructionMap::LDW:
-    case InstructionMap::LDB:
+    case InstructionMap::LDBU:
     case InstructionMap::STWADDR:
     case InstructionMap::STBADDR:
     case InstructionMap::ADDU:

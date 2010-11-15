@@ -27,14 +27,23 @@ class StallRegister: public Component {
 
 public:
 
+  // Clock.
   sc_in<bool>         clock;
 
+  // Tells whether the local pipeline stage (the one immediately following this
+  // stall register) is stalling.
   sc_in<bool>         localStageStalled;
 
+  // Tells whether the next stall register is ready to receive new data.
   sc_in<bool>         readyIn;
+
+  // Tell the previous stall register whether we are ready to receive new data.
   sc_out<bool>        readyOut;
 
+  // Data from the previous pipeline stage.
   sc_in<DecodedInst>  dataIn;
+
+  // Data sent to the following pipeline stage.
   sc_out<DecodedInst> dataOut;
 
 //==============================//

@@ -20,11 +20,11 @@ int sc_main(int argc, char* argv[]) {
 //  ::testing::InitGoogleTest(&argc, argv);
 //  return RUN_ALL_TESTS();
 
-  Tile tile("tile", 0);
+  Chip chip("chip", 0);
   sc_clock clock("clock", 1, SC_NS, 0.5);
   sc_signal<bool> idle;
-  tile.clock(clock);
-  tile.idle(idle);
+  chip.clock(clock);
+  chip.idle(idle);
 
   bool debugMode = false;
   if(argc > 1) {
@@ -36,10 +36,10 @@ int sc_main(int argc, char* argv[]) {
   }
 
   string settingsFile("test_files/loader.txt");
-  CodeLoader::loadCode(settingsFile, tile);
+  CodeLoader::loadCode(settingsFile, chip);
 
   if(debugMode) {
-    Debugger::setTile(&tile);
+    Debugger::setTile(&chip);
     Debugger::waitForInput();
   }
   else {

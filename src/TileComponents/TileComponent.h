@@ -52,7 +52,7 @@ public:
 
 public:
 
-  TileComponent(sc_module_name name, uint16_t ID);
+  TileComponent(sc_module_name name, ComponentID ID);
   virtual ~TileComponent();
 
 //==============================//
@@ -62,16 +62,16 @@ public:
 public:
 
   // Store initial instructions or data into this cluster or memory.
-  virtual void storeData(std::vector<Word>& data, int location=0) = 0;
+  virtual void storeData(std::vector<Word>& data, MemoryAddr location=0) = 0;
 
   // Print information about the component.
-  virtual void print(int start, int end) const;
+  virtual void print(MemoryAddr start, MemoryAddr end) const;
 
   // Return the data held at the given memory address.
-  virtual Word getMemVal(uint32_t addr) const;
+  virtual Word getMemVal(MemoryAddr addr) const;
 
   // Return the value held in the specified register.
-  virtual int32_t readRegDebug(uint8_t reg) const;
+  virtual int32_t readRegDebug(RegisterIndex reg) const;
 
   // Return the memory index of the instruction currently being decoded.
   virtual Address getInstIndex() const;

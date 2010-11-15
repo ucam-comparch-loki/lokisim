@@ -38,12 +38,17 @@ extern parameter CHANNEL_MAP_SIZE;
 extern parameter NUM_RECEIVE_CHANNELS;
 extern parameter NUM_SEND_CHANNELS;
 extern parameter CHANNEL_END_BUFFER_SIZE; // Different send/receive sizes?
-extern parameter FLOW_CONTROL_BUFFER_SIZE;
+extern parameter ROUTER_BUFFER_SIZE;
+extern parameter NETWORK_BUFFER_SIZE;
 
 // Combinations of other parameters
 extern parameter NUM_CLUSTER_INPUTS;
 extern parameter NUM_CLUSTER_OUTPUTS;
 extern parameter COMPONENTS_PER_TILE;
 extern parameter NUM_TILES;
+
+extern parameter NUM_COMPONENTS;
+extern parameter TOTAL_INPUTS;
+extern parameter TOTAL_OUTPUTS;
 
 #endif /* PARAMETERS_H_ */

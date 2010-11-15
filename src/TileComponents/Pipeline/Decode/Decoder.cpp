@@ -64,7 +64,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     switch(operation) {
 
       case InstructionMap::LDW :
-      case InstructionMap::LDB : {
+      case InstructionMap::LDBU : {
         setOperand1ToValue(output, output.sourceReg1());
         setOperand2ToValue(output, 0, output.immediate());
         if(operation == InstructionMap::LDW)

@@ -7,12 +7,12 @@
 
 #include "Debugger.h"
 #include "StringManipulation.h"
-#include "../Tile.h"
+#include "../Chip.h"
 #include "../Datatype/DecodedInst.h"
 #include "../Datatype/Instruction.h"
 
 bool Debugger::hitBreakpoint = false;
-Tile* Debugger::tile = 0;
+Chip* Debugger::tile = 0;
 vector<Address> Debugger::breakpoints;
 
 int Debugger::cycleNumber = 0;
@@ -176,7 +176,7 @@ void Debugger::executedInstruction(DecodedInst inst, int core, bool executed) {
 
 }
 
-void Debugger::setTile(Tile* t) {
+void Debugger::setTile(Chip* t) {
   tile = t;
 }
 

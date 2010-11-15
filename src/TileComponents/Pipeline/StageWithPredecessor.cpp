@@ -39,6 +39,10 @@ void StageWithPredecessor::updateStall() {
     // Send any waiting outputs (this may clear space in buffers and unstall us).
     sendOutputs();
 
+    if(DEBUG && isStalled() && !stallOut.read()) {
+      cout << this->name() << " stalled." << endl;
+    }
+
     // Write our current stall status.
     stallOut.write(isStalled());
   }
@@ -46,6 +50,8 @@ void StageWithPredecessor::updateStall() {
 
 StageWithPredecessor::StageWithPredecessor(sc_module_name name) :
     PipelineStage(name) {
+
+  stallOut.initialize(false);
 
 }
 

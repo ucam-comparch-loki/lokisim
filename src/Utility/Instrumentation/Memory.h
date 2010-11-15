@@ -10,6 +10,8 @@
 
 #include "InstrumentationBase.h"
 
+namespace Instrumentation {
+
 class Memory : public InstrumentationBase {
 
 public:
@@ -24,5 +26,7 @@ private:
   static int readCount, writeCount;
 
 };
+
+}
 
 #endif /* MEMORY_H_ */

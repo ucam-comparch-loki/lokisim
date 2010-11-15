@@ -11,6 +11,8 @@
 #include "InstrumentationBase.h"
 #include "CounterMap.h"
 
+namespace Instrumentation {
+
 class Network: public InstrumentationBase {
 
 public:
@@ -26,5 +28,7 @@ private:
   static double totalDistance;
 
 };
+
+}
 
 #endif /* NETWORK_H_ */
