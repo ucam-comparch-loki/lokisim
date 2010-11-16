@@ -7,6 +7,7 @@
 
 #include "Torus2D.h"
 #include "../Router.h"
+#include "../Arbiters/NullArbiter.h"
 
 // For the Torus, we assume that each node has exactly 4 inputs and 4 outputs,
 // corresponding to north, east, south and west. The nodes may also have a
@@ -31,6 +32,10 @@ Torus2D::Torus2D(sc_module_name name,
 
   numRows_ = numRows;
   numColumns_ = numColumns;
+
+  // The torus doesn't need any arbitration because it has routers which do
+  // the hard work.
+  arbiter_ = new NullArbiter(numInputs, numOutputs);
 
 }
 

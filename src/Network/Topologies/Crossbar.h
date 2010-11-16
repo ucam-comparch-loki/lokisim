@@ -24,7 +24,8 @@ public:
            ChannelID lowestID,   // Lowest channel ID accessible on this network
            ChannelID highestID,  // Highest channel ID accessible on this network
            int numInputs,        // Number of inputs this network has
-           int numOutputs);      // Number of outputs this network has
+           int numOutputs,       // Number of outputs this network has
+           Arbiter* arbiter);
 
   virtual ~Crossbar();
 

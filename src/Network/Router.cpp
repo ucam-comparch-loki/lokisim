@@ -6,6 +6,7 @@
  */
 
 #include "Router.h"
+#include "Arbiters/RoundRobinArbiter.h"
 
 ChannelIndex Router::computeOutput(ChannelIndex source,
                                    ChannelID destination) const {
@@ -22,13 +23,16 @@ ChannelIndex Router::computeOutput(ChannelIndex source,
   else return LOCAL;
 }
 
-Router::Router(sc_module_name name, ComponentID ID, int inputsPerTile) :
+Router::Router(sc_module_name name, ComponentID ID, int inputsPerTile,
+               Arbiter* arbiter) :
     RoutingComponent(name, ID, 5, 5, ROUTER_BUFFER_SIZE),
     inputsPerTile(inputsPerTile) {
 
   // Use our ID to determine where we are on the network.
   column = id % NUM_TILE_COLUMNS;
   row    = id / NUM_TILE_COLUMNS;
+
+  arbiter_ = arbiter;
 
 }
 

@@ -17,13 +17,13 @@ class Network: public InstrumentationBase {
 
 public:
 
-  static void traffic(int startID, int endID, double distance);
+  static void traffic(ComponentID startID, ComponentID endID);
   static void printStats();
 
 private:
   static CounterMap<int> commDistances;
-  static CounterMap<int> producers;
-  static CounterMap<int> consumers;
+  static CounterMap<ComponentID> producers;
+  static CounterMap<ComponentID> consumers;
   static int maxDistance;
   static double totalDistance;
 

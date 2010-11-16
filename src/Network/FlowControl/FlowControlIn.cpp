@@ -25,24 +25,34 @@ void FlowControlIn::receivedData() {
   }
 }
 
-void FlowControlIn::receivedFlowControl() {
-  // Send the new credit if someone is communicating with this port.
-  if(readyIn.read() && (int)returnAddress != -1) {
-    AddressedWord aw(Word(1), returnAddress);
-    creditsOut.write(aw);
+void FlowControlIn::receiveFlowControl() {
+  while(true) {
+    wait(flowControlIn.default_event());
+    numCredits++;
+
+    // Wake up the sendCredit thread.
+    newCredit.notify(sc_core::SC_ZERO_TIME);
+  }
+}
+
+void FlowControlIn::sendCredit() {
+  while(true) {
+    // Wait until our next credit arrives, unless we already have one waiting.
+    if(numCredits>0) wait(1, sc_core::SC_NS);
+    else wait(newCredit);
+
+    // Wait until we are allowed to send the credit.
+    if(!readyIn.read()) wait(readyIn.posedge_event());
+
+    // Send the new credit if someone is communicating with this port.
+    if((int)returnAddress != -1) {
+      AddressedWord aw(Word(1), returnAddress);
+      creditsOut.write(aw);
+      numCredits--;
 
 //    if(DEBUG) cout << "Sent credit to port "
 //         << NetworkHierarchy::portLocation(returnAddress, false) << endl;
-  }
-
-  // With end-to-end flow control in place, we can always claim to be ready
-  // to receive data, because we know the single source will not send too much.
-  readyOut.write(true);
-
-  if(!readyIn.read()) {
-    // TODO: what do we do if readyIn is false? Seems silly to store a buffer
-    // of credits.
-    cerr << "Lost a credit" << endl;
+    }
   }
 }
 
@@ -50,14 +60,14 @@ FlowControlIn::FlowControlIn(sc_module_name name, ComponentID ID) :
     Component(name, ID) {
 
   returnAddress = -1;
+  numCredits = 0;
 
   SC_METHOD(receivedData);
   sensitive << dataIn;
   dont_initialize();
 
-  SC_METHOD(receivedFlowControl);
-  sensitive << flowControlIn;
-  dont_initialize();
+  SC_THREAD(receiveFlowControl);
+  SC_THREAD(sendCredit);
 
   readyOut.initialize(true);
 

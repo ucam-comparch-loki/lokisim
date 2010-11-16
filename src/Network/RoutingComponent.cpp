@@ -7,6 +7,7 @@
 
 #include "RoutingComponent.h"
 #include "../Datatype/AddressedWord.h"
+#include "Arbiters/Arbiter.h"
 
 void RoutingComponent::newData() {
   haveData = true;
@@ -15,6 +16,8 @@ void RoutingComponent::newData() {
 void RoutingComponent::sendData() {
   // Only execute the expensive loop if we know there is data to send.
   if(haveData) {
+    vector<Path> requests;
+
     // Assuming no contention for now: just send all new data to its destination.
     for(ChannelIndex input=0; input<numInputs; input++) {
 
@@ -30,18 +33,29 @@ void RoutingComponent::sendData() {
         ChannelID destination = inputBuffers[input].peek().channelID();
         ChannelIndex outPort = computeOutput(input, destination);
 
-        // Arbitration goes in here.
         // Collect set of inputs and destinations (where destination is ready),
         // and pass them to an Arbiter, which returns the set of inputs which
         // may send.
-
-        // Write the data to the output.
-        dataOut[outPort].write(inputBuffers[input].read());
-        Instrumentation::networkTraffic(input, outPort, 0); // TODO: distance
-        updateReady(input);
+        if(readyIn[outPort].read()) {
+          Path p(input, outPort);
+          requests.push_back(p);
+        }
       }
     }
 
+    // Determine which of the requests can safely be granted.
+    vector<Path>& allowedToSend = arbiter_->arbitrate(requests);
+
+    // Send all allowed requests.
+    for(uint i=0; i<allowedToSend.size(); i++) {
+      ChannelIndex input = allowedToSend[i].source();
+      ChannelIndex output = allowedToSend[i].destination();
+      dataOut[output].write(inputBuffers[input].read());
+//      Instrumentation::networkTraffic(input, output, 0); // TODO: distance
+      updateReady(input);
+    }
+
+    delete &allowedToSend;
     haveData = !inputBuffers.isEmpty();
   }
 }
@@ -97,4 +111,6 @@ RoutingComponent::~RoutingComponent() {
   delete[] dataOut;
   delete[] readyOut;
   delete[] readyIn;
+
+  delete arbiter_;
 }

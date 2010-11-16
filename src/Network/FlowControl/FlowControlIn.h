@@ -63,8 +63,11 @@ protected:
   // Data has arrived over the network.
   void         receivedData();
 
-  // The component has updated its flow control signal.
-  void         receivedFlowControl();
+  // Update a credit counter whenever the component sends us a new credit.
+  void         receiveFlowControl();
+
+  // Try to send credits onto the network whenever appropriate.
+  void         sendCredit();
 
 //==============================//
 // Local state
@@ -75,6 +78,10 @@ protected:
   // Address of port connected to each of our input port. We need the
   // address so we can send flow control information back to the source.
   ChannelID returnAddress;
+
+  int numCredits;
+
+  sc_core::sc_event newCredit;
 
 };
 

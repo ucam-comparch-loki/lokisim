@@ -15,6 +15,9 @@ typedef IndirectRegisterFile Registers;
 
 int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
 
+  // If there is no data, block until it arrives.
+//  if(buffers[channelEnd].isEmpty()) wait(fromNetwork[channelEnd].default_event());
+
   if(!buffers[channelEnd].isEmpty()) {
     int32_t result = buffers.read(channelEnd).toInt();
     sendCredit(channelEnd);

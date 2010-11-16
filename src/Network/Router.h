@@ -36,7 +36,7 @@ class Router: public RoutingComponent {
 public:
 
   SC_HAS_PROCESS(Router);
-  Router(sc_module_name name, ComponentID ID, int inputsPerTile);
+  Router(sc_module_name name, ComponentID ID, int inputsPerTile, Arbiter* arbiter);
   virtual ~Router();
 
 //==============================//

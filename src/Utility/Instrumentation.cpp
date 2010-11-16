@@ -27,12 +27,12 @@ void Instrumentation::memoryWrite() {
   Memory::write();
 }
 
-void Instrumentation::stalled(int id, bool stalled) {
+void Instrumentation::stalled(ComponentID id, bool stalled) {
   if(stalled) Stalls::stall(id, currentCycle());
   else Stalls::unstall(id, currentCycle());
 }
 
-void Instrumentation::idle(int id, bool idle) {
+void Instrumentation::idle(ComponentID id, bool idle) {
   if(idle) Stalls::idle(id, currentCycle());
   else Stalls::active(id, currentCycle());
 }
@@ -41,11 +41,16 @@ void Instrumentation::endExecution() {
   Stalls::endExecution();
 }
 
-void Instrumentation::networkTraffic(int startID, int endID, double distance) {
-  Network::traffic(startID, endID, distance);
+void Instrumentation::networkTraffic(ChannelID startID, ChannelID endID) {
+  Network::traffic(startID/NUM_CLUSTER_OUTPUTS, endID/NUM_CLUSTER_INPUTS);
 }
 
-void Instrumentation::operation(DecodedInst inst, bool executed, int id) {
+void Instrumentation::networkActivity(ChannelIndex source, ChannelIndex destination,
+                                      double distance, int bitsSwitched) {
+  // Network::...
+}
+
+void Instrumentation::operation(DecodedInst inst, bool executed, ComponentID id) {
   Operations::operation(inst.operation(), executed);
 
   if(CodeLoader::usingDebugger)

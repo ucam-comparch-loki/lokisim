@@ -13,6 +13,7 @@
 #define INSTRUMENTATIONBASE_H_
 
 #include <iostream>
+#include "../../Typedefs.h"
 
 using std::string;
 using std::cout;

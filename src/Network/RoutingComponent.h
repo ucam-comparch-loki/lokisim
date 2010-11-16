@@ -20,6 +20,7 @@
 #include "../Memory/BufferArray.h"
 
 class AddressedWord;
+class Arbiter;
 
 class RoutingComponent: public Component {
 
@@ -74,6 +75,14 @@ private:
   void updateReady(ChannelIndex input);
 
   void printDebugMessage(ChannelIndex from, ChannelIndex to, AddressedWord data) const;
+
+//==============================//
+// Methods
+//==============================//
+
+protected:
+
+  Arbiter* arbiter_;
 
 //==============================//
 // Local state

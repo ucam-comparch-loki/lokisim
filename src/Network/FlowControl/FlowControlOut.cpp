@@ -33,7 +33,7 @@ void FlowControlOut::sendData() {
     // not always be valid.
     creditCount = CHANNEL_END_BUFFER_SIZE;
 
-    // This message is allowed to send even though we have no credits
+    // This message is allowed to send even if we have no credits
     // because it is not buffered -- it is immediately consumed to store
     // the return address at the destination.
     dataOut.write(dataIn.read());
@@ -52,6 +52,8 @@ void FlowControlOut::sendData() {
 
     dataOut.write(dataIn.read());
     creditCount--;
+
+    Instrumentation::networkTraffic(id, dataIn.read().channelID());
 
     if(DEBUG) cout << "Network sending " << dataIn.read().payload() << " from "
         << NetworkHierarchy::portLocation(id, false) << " to "
@@ -78,9 +80,6 @@ FlowControlOut::FlowControlOut(sc_module_name name, ComponentID ID) :
   creditCount = 0;
 
   SC_THREAD(mainLoop);
-//  SC_METHOD(sendData);
-//  sensitive << dataIn << readyIn.pos();
-//  dont_initialize();
 
   SC_METHOD(receivedCredit);
   sensitive << creditsIn;

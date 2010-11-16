@@ -9,11 +9,6 @@
 #include "../../Datatype/DecodedInst.h"
 
 void StageWithPredecessor::execute() {
-  idle.write(true);
-
-  // Allow any signals to propagate before starting execution.
-  wait(sc_core::SC_ZERO_TIME);
-
   while(true) {
     // Wait for a new instruction to arrive.
     wait(dataIn.default_event());
@@ -30,8 +25,6 @@ void StageWithPredecessor::execute() {
 }
 
 void StageWithPredecessor::updateStall() {
-  stallOut.write(false);
-
   while(true) {
     // Wait until late in the cycle so we know that other tasks have completed.
     wait(clock.negedge_event());
