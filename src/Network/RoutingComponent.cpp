@@ -55,7 +55,8 @@ void RoutingComponent::sendData() {
       updateReady(input);
     }
 
-    delete &allowedToSend;
+    // Errors if we don't do this check.
+    if(allowedToSend.size() > 0) delete &allowedToSend;
     haveData = !inputBuffers.isEmpty();
   }
 }

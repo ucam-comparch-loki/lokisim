@@ -17,8 +17,9 @@
 const int MemoryMat::CONTROL_INPUT = NUM_CLUSTER_INPUTS - 1;
 
 void MemoryMat::newCycle() {
-  // Check for new input data
-  checkInputs();
+
+  // Skip over this method if we know there is no work to do.
+//  if(idle.read()) return;
 
   for(uint i=0; i<NUM_CLUSTER_INPUTS-1; i++) {
     ConnectionStatus& connection = connections_[i];
@@ -204,9 +205,11 @@ void MemoryMat::updateIdle() {
   for(uint i=0; i<connections_.size(); i++) {
     ConnectionStatus& c = connections_[i];
 
-    // Note: we can't rely on the isActive method, since the user may forget
-    // to take down the connection.
-    if(c.active() && c.streaming()) isIdle = false;
+    // The memory is active if there is at least one port where a streaming
+    // connection is set up, or there is a pending request in the buffer.
+    if((c.active() && c.streaming()) || !inputBuffers_[i].isEmpty()) {
+      isIdle = false;
+    }
 
     // TODO: memory is active if it was read from in this cycle
   }
@@ -220,6 +223,7 @@ void MemoryMat::checkInputs() {
   for(uint i=0; i<NUM_CLUSTER_INPUTS; i++) {
     if(!inputBuffers_[i].isFull() && in[i].event()) {
       inputBuffers_[i].write(in[i].read());
+//      idle.write(false);
     }
   }
 }
@@ -276,6 +280,10 @@ MemoryMat::MemoryMat(sc_module_name name, ComponentID ID) :
   // Register methods
   SC_METHOD(newCycle);
   sensitive << clock.neg(); // Just need to make sure flow control arrives first.
+  dont_initialize();
+
+  SC_METHOD(checkInputs);
+  for(uint i=0; i<NUM_CLUSTER_INPUTS; i++) sensitive << in[i];
   dont_initialize();
 
   end_module(); // Needed because we're using a different Component constructor

@@ -117,7 +117,7 @@ private:
   // Information on the channels set up with each of this memory's inputs.
   std::vector<ConnectionStatus> connections_;
 
-  // A queue of operations for each port of the memory to perform.
+  // A queue of operations from each input port.
   BufferArray<Word> inputBuffers_;
 
   // The number of words we have initially put in this memory. Allows multiple

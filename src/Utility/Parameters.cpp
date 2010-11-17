@@ -14,10 +14,10 @@
 
 int DEBUG = 1;
 
-extern parameter CLUSTERS_PER_TILE          = 4;
+extern parameter CLUSTERS_PER_TILE          = 12;
 extern parameter MEMS_PER_TILE              = 4;
 
-extern parameter NUM_TILE_ROWS              = 2;
+extern parameter NUM_TILE_ROWS              = 1;
 extern parameter NUM_TILE_COLUMNS           = 1;
 
 extern parameter MAX_IPK_SIZE               = 8;

@@ -34,7 +34,7 @@ void Network::printStats() {
 
     cout <<
       "Network:" << endl <<
-      "  Total words sent: " << commDistances.numEvents() << endl <<
+      "  Total words sent: " << producers.numEvents() << endl <<
       "  Average distance: " << averageDist << endl;
 
     cout << "  Traffic distribution:" << endl <<

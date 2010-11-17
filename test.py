@@ -21,7 +21,8 @@ def runTest(directory):
     command = "Debug/Loki2 > ../logfile.txt"
     updateMetaLoader(directory)
     
-    print "Testing " + directory + "... ",
+    message = "Testing " + directory + "... "
+    print message.ljust(40),    # Pad the message so everything lines up
     
     process = subprocess.Popen(command, shell=True, stderr=errlog)
     process.wait()
@@ -38,14 +39,19 @@ def runTest(directory):
         process2.wait()
         diffFile.flush()
         if process2.returncode != 0:
-            print 'passed'
+            # Get the last line from the logfile: "Total execution time: ..."
+            logfile = open("../logfile.txt", "r")
+            cycleLine = logfile.readlines()[-1]
+            logfile.close()
+            cycleCount = cycleLine.split(":")[1].strip(" \n")
+            print 'passed (' + cycleCount + ')'
         else:
-            print 'failed'
+            print 'failed (incorrect behaviour)'
             printFile(diffFile, "  ")
         diffFile.close()
         
     else:       # Simulation threw an exception: print the error report.
-        print 'failed'
+        print 'failed (simulation error)'
         printFile(errlog, "  ")
         
     errlog.close()
