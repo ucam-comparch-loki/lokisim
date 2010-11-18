@@ -14,36 +14,34 @@ vector<Path>& RoundRobinArbiter::arbitrate(vector<Path>& paths) {
 
   vector<Path>* accepted = new vector<Path>();
   std::set<int> destinations;
-  unsigned int start=0;
+
+  vector<Path>::iterator iter = paths.begin();
 
   // Find the position in the vector to start accepting requests.
-  while(start<paths.size() && paths[start].source() <= lastAccepted) {
-    start++;
-  }
-
-  // Continue until we hit the end of the vector, accepting everything possible.
-  for(unsigned int j=start; j<paths.size(); j++) {
-    int destination = paths[j].destination();
-
-    // Only accept a request if we have not already accepted a request sending
-    // to the same destination.
-    if(destinations.find(destination) == destinations.end()) {
-      accepted->push_back(paths[j]);
-      destinations.insert(destination);
-    }
+  while(iter < paths.end() && iter->source() <= lastAccepted) {
+    iter++;
   }
 
   // Return to the beginning of the vector and continue until we pass the
   // starting point.
-  for(unsigned int j=0; j<start; j++) {
-    int destination = paths[j].destination();
+  for(unsigned int j=0; j<paths.size(); j++) {
+    // Loop the iterator back to the beginning if necessary.
+    if(iter >= paths.end()) iter = paths.begin();
+
+    ChannelIndex destination = iter->destination();//paths[j].destination();
 
     // Only accept a request if we have not already accepted a request sending
     // to the same destination.
     if(destinations.find(destination) == destinations.end()) {
-      accepted->push_back(paths[j]);
-      destinations.insert(destination);
+      // Wormhole routing provides additional restrictions (once a packet
+      // starts sending, it must complete), so check for those.
+      if(wormholeAllows(*iter)) {
+        accepted->push_back(*iter);
+        destinations.insert(destination);
+      }
     }
+
+    iter++;
   }
 
   lastAccepted = accepted->back().source();

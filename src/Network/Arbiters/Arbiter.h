@@ -30,6 +30,13 @@ public:
   // Determine which inputs are allowed to send their data.
   virtual vector<Path>& arbitrate(vector<Path>& paths) = 0;
 
+protected:
+
+  // Wormhole routing adds some extra restrictions to which flits may be sent.
+  // Once a source port starts sending to a destination port, it is the only
+  // one allowed to send to that port until the packet is complete.
+  bool wormholeAllows(Path& path);
+
 public:
 
   Arbiter(int numInputs, int numOutputs);
@@ -37,7 +44,12 @@ public:
 
 protected:
 
+  // The numbers of inputs and outputs of the component we are arbitrating over.
   int inputs, outputs;
+
+  // The connections to destination ports which should not be interrupted until
+  // the entire packet has been sent.
+  vector<Path> openConnections;
 
 };
 

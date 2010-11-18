@@ -13,6 +13,7 @@
 #define PATH_H_
 
 #include "../../Typedefs.h"
+#include "../../Datatype/AddressedWord.h"
 
 class Path {
 
@@ -20,18 +21,20 @@ public:
 
   ChannelIndex source() const;
   ChannelIndex destination() const;
+  AddressedWord data() const;
 
   Path& operator= (const Path& other);
 
 public:
 
   Path(const Path& other);
-  Path(ChannelIndex source, ChannelIndex destination);
+  Path(ChannelIndex source, ChannelIndex destination, const AddressedWord& data);
   virtual ~Path();
 
 private:
 
   ChannelIndex source_, destination_;
+  AddressedWord data_;
 
 };
 

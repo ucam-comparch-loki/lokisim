@@ -16,6 +16,11 @@ const ChannelID SendChannelEndTable::NULL_MAPPING;
 
 void SendChannelEndTable::write(const DecodedInst& dec) {
 
+  // Most messages we send will be one flit long, so will be the end of their
+  // packets. However, packets for memory stores are two flits long (address
+  // then data), so we need to mark this special case.
+  bool endOfPacket = true;
+
   if(dec.operation()==InstructionMap::SETCHMAP) {
     updateMap(dec.immediate(), dec.result());
   }
@@ -29,6 +34,11 @@ void SendChannelEndTable::write(const DecodedInst& dec) {
     if(dec.memoryOp() != MemoryRequest::NONE) {
       // Generate a special memory request if we are doing a load/store/etc.
       w = makeMemoryRequest(dec);
+
+      if(dec.memoryOp() == MemoryRequest::STORE ||
+         dec.memoryOp() == MemoryRequest::STORE_B) {
+        endOfPacket = false;
+      }
     }
     else {
       w = Word(dec.result());
@@ -36,6 +46,8 @@ void SendChannelEndTable::write(const DecodedInst& dec) {
 
     AddressedWord aw(w, getChannel(dec.channelMapEntry()));
     ChannelIndex index = chooseBuffer(dec.channelMapEntry());
+
+    if(!endOfPacket) aw.notEndOfPacket();
 
     // We know it is safe to write to any buffer because we block the rest
     // of the pipeline if a buffer is full.
@@ -88,8 +100,10 @@ void SendChannelEndTable::send() {
 
 /* Stall the pipeline until the specified channel is empty. */
 void SendChannelEndTable::waitUntilEmpty(ChannelIndex channel) {
-  if(!buffers[channel].isEmpty()) {
-    waitingOn = channel;
+  // Whilst the buffer has data, wait until the buffer sends something,
+  // then check again.
+  while(!buffers[channel].isEmpty()) {
+    wait(output[channel].default_event());
   }
 }
 

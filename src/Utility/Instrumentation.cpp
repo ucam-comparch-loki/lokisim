@@ -19,12 +19,12 @@ void Instrumentation::IPKCacheHit(bool hit) {
   IPKCache::cacheHit(hit);
 }
 
-void Instrumentation::memoryRead() {
-  Memory::read();
+void Instrumentation::memoryRead(MemoryAddr address, bool isInstruction) {
+  Memory::read(address, isInstruction);
 }
 
-void Instrumentation::memoryWrite() {
-  Memory::write();
+void Instrumentation::memoryWrite(MemoryAddr address) {
+  Memory::write(address);
 }
 
 void Instrumentation::stalled(ComponentID id, bool stalled) {

@@ -30,6 +30,7 @@ void StageWithPredecessor::updateStall() {
     wait(clock.negedge_event());
 
     // Send any waiting outputs (this may clear space in buffers and unstall us).
+    // TODO: only call this method if we know there is something to send.
     sendOutputs();
 
     if(DEBUG && isStalled() && !stallOut.read()) {

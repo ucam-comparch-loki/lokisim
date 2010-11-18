@@ -37,7 +37,7 @@ void RoutingComponent::sendData() {
         // and pass them to an Arbiter, which returns the set of inputs which
         // may send.
         if(readyIn[outPort].read()) {
-          Path p(input, outPort);
+          Path p(input, outPort, inputBuffers[input].peek());
           requests.push_back(p);
         }
       }

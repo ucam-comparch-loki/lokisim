@@ -23,10 +23,10 @@ namespace Instrumentation {
   void IPKCacheHit(bool hit);
 
   // Record that memory was read from.
-  void memoryRead();
+  void memoryRead(MemoryAddr address, bool isInstruction);
 
   // Record that memory was written to.
-  void memoryWrite();
+  void memoryWrite(MemoryAddr address);
 
   // Record that a particular core stalled or unstalled.
   void stalled(ComponentID id, bool stalled);

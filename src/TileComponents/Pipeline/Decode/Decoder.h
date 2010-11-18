@@ -50,8 +50,8 @@ private:
   // Similar methods, giving more control to the user. Some instructions
   // use the first register value (in the destination position) as an
   // argument.
-  void setOperand1ToValue(DecodedInst& dec, int32_t reg);
-  void setOperand2ToValue(DecodedInst& dec, int32_t reg, int32_t immed);
+  void setOperand1ToValue(DecodedInst& dec, RegisterIndex reg);
+  void setOperand2ToValue(DecodedInst& dec, RegisterIndex reg, int32_t immed);
 
   // Read a register value.
   int32_t readRegs(RegisterIndex index, bool indirect = false);
@@ -61,7 +61,7 @@ private:
 
   // Ensure that the instruction packet from the given address is in the
   // instruction packet cache. Nothing will be done if it is already there.
-  void    fetch(uint16_t addr);
+  void    fetch(MemoryAddr addr);
 
   // Update the channel to which we send fetch requests.
   void    setFetchChannel(ChannelID channelID);

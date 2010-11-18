@@ -15,9 +15,14 @@ ChannelIndex Path::destination() const {
   return destination_;
 }
 
+AddressedWord Path::data() const {
+  return data_;
+}
+
 Path& Path::operator= (const Path& other) {
   source_ = other.source_;
   destination_ = other.destination_;
+  data_ = other.data_;
   return *this;
 }
 
@@ -25,9 +30,10 @@ Path::Path(const Path& other) {
   *this = other;
 }
 
-Path::Path(ChannelIndex source, ChannelIndex destination) {
+Path::Path(ChannelIndex source, ChannelIndex destination, const AddressedWord& data) {
   source_ = source;
   destination_ = destination;
+  data_ = data;
 }
 
 Path::~Path() {

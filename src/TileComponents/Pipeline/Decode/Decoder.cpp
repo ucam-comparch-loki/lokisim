@@ -233,7 +233,7 @@ void Decoder::setOperand2(DecodedInst& dec) {
 }
 
 /* Determine where to read the first operand from: RCET or registers */
-void Decoder::setOperand1ToValue(DecodedInst& dec, int32_t reg) {
+void Decoder::setOperand1ToValue(DecodedInst& dec, RegisterIndex reg) {
   // There are some cases where we are repeating the operation, and don't want
   // to store the operands again.
   // For example: both operands are read from the channel ends, but the second
@@ -250,7 +250,7 @@ void Decoder::setOperand1ToValue(DecodedInst& dec, int32_t reg) {
 }
 
 /* Determine where to get second operand from: immediate, RCET or regs */
-void Decoder::setOperand2ToValue(DecodedInst& dec, int32_t reg, int32_t immed) {
+void Decoder::setOperand2ToValue(DecodedInst& dec, RegisterIndex reg, int32_t immed) {
   if(InstructionMap::hasImmediate(dec.operation())) {
     dec.operand2(immed);
     // This would require use of the sign-extender.
@@ -272,7 +272,7 @@ int32_t Decoder::readRCET(ChannelIndex index) {
   return parent()->readRCET(index);
 }
 
-void Decoder::fetch(uint16_t addr) {
+void Decoder::fetch(MemoryAddr addr) {
   parent()->fetch(addr);
 }
 

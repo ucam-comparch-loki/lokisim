@@ -20,6 +20,14 @@ bool AddressedWord::portClaim() const {
   return portClaim_;
 }
 
+bool AddressedWord::endOfPacket() const {
+  return endOfPacket_;
+}
+
+void AddressedWord::notEndOfPacket() {
+  endOfPacket_ = false;
+}
+
 AddressedWord::AddressedWord() {
   payload_ = *(new Word());
   channelID_ = 0;
@@ -29,6 +37,7 @@ AddressedWord::AddressedWord(const Word w, const uint16_t id, const bool portCla
   payload_ = w;
   channelID_ = id;
   portClaim_ = portClaim;
+  endOfPacket_ = true;
 
   if((int)id < 0 || (int)id > NUM_TILES*COMPONENTS_PER_TILE*NUM_CLUSTER_OUTPUTS) {
     std::cerr << "Warning: planning to send to channel " << (int)id << std::endl;
@@ -45,13 +54,15 @@ AddressedWord::~AddressedWord() {
 bool AddressedWord::operator== (const AddressedWord& other) const {
   return (this->payload_ == other.payload_)
       && (this->channelID_ == other.channelID_)
-      && (this->portClaim_ == other.portClaim_);
+      && (this->portClaim_ == other.portClaim_)
+      && (this->endOfPacket_ == other.endOfPacket_);
 }
 
 AddressedWord& AddressedWord::operator= (const AddressedWord& other) {
   payload_ = other.payload_;
   channelID_ = other.channelID_;
   portClaim_ = other.portClaim_;
+  endOfPacket_ = other.endOfPacket_;
 
   return *this;
 }

@@ -9,6 +9,7 @@
 #define MEMORY_H_
 
 #include "InstrumentationBase.h"
+#include "CounterMap.h"
 
 namespace Instrumentation {
 
@@ -16,14 +17,15 @@ class Memory : public InstrumentationBase {
 
 public:
 
-  static void read();
-  static void write();
+  static void read(MemoryAddr address, bool isInstruction);
+  static void write(MemoryAddr address);
 
   static void printStats();
 
 private:
 
-  static int readCount, writeCount;
+  static CounterMap<MemoryAddr> reads, writes;
+  static int instReadCount, dataReadCount;
 
 };
 

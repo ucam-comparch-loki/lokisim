@@ -108,7 +108,13 @@ void MemoryMat::read(ChannelIndex position) {
   MemoryAddr addr;
   ChannelID channel = connection.channel();
 
+  // Collect some information about the read.
+  bool endOfPacket = true;
+  bool isInstruction;
+
   if(connection.readingIPK()) {
+    isInstruction = true;
+
     addr = connection.address();
     w = data_.read(addr/BYTES_PER_WORD);
 
@@ -117,9 +123,12 @@ void MemoryMat::read(ChannelIndex position) {
     }
     else {
       connection.incrementAddress(); // Prepare to read the next instruction
+      endOfPacket = false;
     }
   }
   else {
+    isInstruction = false;
+
     addr = static_cast<MemoryRequest>(inputBuffers_[position].peek()).address();
 
     if(connection.isByteAccess()) {
@@ -140,8 +149,9 @@ void MemoryMat::read(ChannelIndex position) {
   }
 
   AddressedWord aw(w, channel);
+  if(!endOfPacket) aw.notEndOfPacket();
 
-  Instrumentation::memoryRead();
+  Instrumentation::memoryRead(addr, isInstruction);
 
   if(DEBUG) cout << "Read " << data_.read(addr/BYTES_PER_WORD) << " from memory "
                  << id << ", address " << addr << endl;
@@ -174,7 +184,7 @@ void MemoryMat::write(Word w, ChannelIndex position) {
   if(connection.streaming()) connection.incrementAddress();
   else                       connection.clear();
 
-  Instrumentation::memoryWrite();
+  Instrumentation::memoryWrite(addr);
 
   if(DEBUG) cout << "Wrote " << w << " to memory " << id <<
                     ", address " << addr << endl;

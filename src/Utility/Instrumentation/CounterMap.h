@@ -32,7 +32,7 @@ public:
   }
 
   void setCount(T& event, int count) {
-    // Note: this will probably invalidate the totalEvents count
+    totalEvents += (count - counters[event]);
     counters[event] = count;
   }
 

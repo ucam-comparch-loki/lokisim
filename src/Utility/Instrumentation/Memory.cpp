@@ -7,25 +7,34 @@
 
 #include "Memory.h"
 
-int Memory::readCount = 0;
-int Memory::writeCount = 0;
+int Memory::instReadCount = 0;
+int Memory::dataReadCount = 0;
+CounterMap<MemoryAddr> Memory::reads;
+CounterMap<MemoryAddr> Memory::writes;
 
-void Memory::read() {
-  readCount++;
+void Memory::read(MemoryAddr address, bool isInstruction) {
+  reads.increment(address);
+  if(isInstruction) instReadCount++;
+  else dataReadCount++;
 }
 
-void Memory::write() {
-  writeCount++;
+void Memory::write(MemoryAddr address) {
+  writes.increment(address);
 }
 
 void Memory::printStats() {
+  int readCount = reads.numEvents();
+  int writeCount = writes.numEvents();
+
   if(readCount>0 || writeCount>0) {
     int accesses = readCount + writeCount;
 
     cout <<
-      "Memory:" << endl <<
-      "  Accesses: " << accesses << endl <<
-      "    Reads:  " << readCount << "\t(" << asPercentage(readCount,accesses) << ")" << endl <<
+      "Memory:\n" <<
+      "  Accesses: " << accesses << "\n" <<
+      "    Reads:  " << readCount << "\t(" << asPercentage(readCount,accesses) << ")\n" <<
+      "      Instructions: " << instReadCount << "\t(" << asPercentage(instReadCount,readCount) << ")\n" <<
+      "      Data:         " << dataReadCount << "\t(" << asPercentage(dataReadCount,readCount) << ")\n" <<
       "    Writes: " << writeCount << "\t(" << asPercentage(writeCount,accesses) << ")" << endl;
   }
 }

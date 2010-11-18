@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-import os, subprocess, tempfile
+import os, subprocess, tempfile, time
 
 # Update the loader so it points to a particular directory.
 def updateMetaLoader(directory):
@@ -34,7 +34,8 @@ def runTest(directory):
         regexp = regexpFile.readline().strip()
         
         # diff then grep: would prefer grep then diff so diff receives smaller files
-        command = "diff test_files/" + directory + "/.expected ../logfile.txt | grep \"" + regexp + "\" > " + diffFile.name
+        command = "diff test_files/" + directory + "/.expected ../logfile.txt | grep \""\
+                + regexp + "\" > " + diffFile.name
         process2 = subprocess.Popen(command, shell=True)
         process2.wait()
         diffFile.flush()
@@ -59,6 +60,8 @@ def runTest(directory):
 # Execution starts here
 directory = "/local/scratch/db434/workspace/Loki2"
 os.chdir(directory)
+testCount = 0
+startTime = time.time()
 
 # Traverse the tree depth-first. (Does breadth-first at the moment.)
 # root = current directory, dirs = subdirectories, files = files in this directory
@@ -72,3 +75,7 @@ for root, dirs, files in os.walk(directory + "/test_files"):
         if "loader.txt" in contents and ".regexp" in contents and ".expected" in contents:
             subdir = testdir.replace(directory+"/test_files/", "")
             runTest(subdir)
+            testCount = testCount + 1
+
+elapsedTime = time.time() - startTime
+print "Completed %(tests)s tests in %(time).3f s" % {'tests': testCount, 'time': elapsedTime}
