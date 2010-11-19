@@ -36,7 +36,11 @@ class Router: public RoutingComponent {
 public:
 
   SC_HAS_PROCESS(Router);
-  Router(sc_module_name name, ComponentID ID, int inputsPerTile, Arbiter* arbiter);
+  Router(sc_module_name name,
+         ComponentID ID,
+         int inputsPerTile,
+         int networkType,
+         Arbiter* arbiter);
   virtual ~Router();
 
 //==============================//
@@ -48,6 +52,8 @@ private:
   // Determine which output port should be used to reach the given destination.
   virtual ChannelIndex computeOutput(ChannelIndex source,
                                      ChannelID destination) const;
+
+  virtual double distance(ChannelIndex inPort, ChannelIndex outPort) const;
 
 //==============================//
 // Local state

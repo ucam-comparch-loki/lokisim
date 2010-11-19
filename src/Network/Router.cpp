@@ -23,9 +23,21 @@ ChannelIndex Router::computeOutput(ChannelIndex source,
   else return LOCAL;
 }
 
-Router::Router(sc_module_name name, ComponentID ID, int inputsPerTile,
+/* For the moment, assume that all signals travel from an edge of the router
+ * to the centre, and then out to a different edge. This means the total
+ * distance travelled will be the width of the router. */
+double Router::distance(ChannelIndex inPort, ChannelIndex outPort) const {
+  static double routerDimension = 0.25;   // Fairly arbitrary
+
+  return routerDimension;
+}
+
+Router::Router(sc_module_name name,
+               ComponentID ID,
+               int inputsPerTile,
+               int networkType,
                Arbiter* arbiter) :
-    RoutingComponent(name, ID, 5, 5, ROUTER_BUFFER_SIZE),
+    RoutingComponent(name, ID, 5, 5, ROUTER_BUFFER_SIZE, networkType),
     inputsPerTile(inputsPerTile) {
 
   // Use our ID to determine where we are on the network.

@@ -32,7 +32,8 @@ public:
           ChannelID highestID,  // Highest channel ID accessible on this network
           int numComponents,   // Number of components connected to this network
           int numRows,
-          int numColumns);
+          int numColumns,
+          int networkType);
 
   virtual ~Torus2D();
 
@@ -46,6 +47,8 @@ private:
   // on, and its ultimate destination.
   virtual ChannelIndex computeOutput(ChannelIndex source,
                                      ChannelID destination) const;
+
+  virtual double distance(ChannelIndex inPort, ChannelIndex outPort) const;
 
 //==============================//
 // Methods

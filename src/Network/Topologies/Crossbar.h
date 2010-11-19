@@ -25,6 +25,7 @@ public:
            ChannelID highestID,  // Highest channel ID accessible on this network
            int numInputs,        // Number of inputs this network has
            int numOutputs,       // Number of outputs this network has
+           int networkType,
            Arbiter* arbiter);
 
   virtual ~Crossbar();
@@ -39,6 +40,8 @@ private:
   // on, and its ultimate destination.
   virtual ChannelIndex computeOutput(ChannelIndex source,
                                      ChannelID destination) const;
+
+  virtual double distance(ChannelIndex inPort, ChannelIndex outPort) const;
 
 };
 

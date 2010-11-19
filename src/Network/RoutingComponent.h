@@ -48,8 +48,12 @@ public:
 public:
 
   SC_HAS_PROCESS(RoutingComponent);
-  RoutingComponent(sc_module_name name, ComponentID ID, int numInputs,
-                   int numOutputs, int bufferSize);
+  RoutingComponent(sc_module_name name,
+                   ComponentID ID,
+                   int numInputs,
+                   int numOutputs,
+                   int bufferSize,
+                   int type);
   virtual ~RoutingComponent();
 
 //==============================//
@@ -62,6 +66,9 @@ protected:
   virtual ChannelIndex computeOutput(ChannelIndex source,
                                      ChannelID destination) const = 0;
 
+  // The distance a signal must travel through this component. 1 unit = 1mm?
+  virtual double distance(ChannelIndex inPort, ChannelIndex outPort) const = 0;
+
 private:
 
   // Whenever data arrives, put it into the appropriate input buffer.
@@ -73,6 +80,9 @@ private:
   // Update one of our ready signals to say whether we have space to accept
   // more data at a particular input port.
   void updateReady(ChannelIndex input);
+
+  // Determine the number of bits which changed value when sending data.
+  int bitsSwitched(ChannelIndex from, ChannelIndex to, AddressedWord data) const;
 
   void printDebugMessage(ChannelIndex from, ChannelIndex to, AddressedWord data) const;
 
@@ -88,9 +98,14 @@ protected:
 // Local state
 //==============================//
 
+public:
+
+  enum NetworkType {LOC_DATA, LOC_CREDIT, GLOB_DATA, GLOB_CREDIT};
+
 protected:
 
   int numInputs, numOutputs;
+  int networkType;
 
 private:
 

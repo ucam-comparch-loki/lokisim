@@ -19,14 +19,21 @@ ChannelIndex Torus2D::computeOutput(ChannelIndex source,
   return 0;
 }
 
+/* Currently assumes that the torus will only be used for the global network,
+ * meaning each hop will be the size of a tile: 1mm. */
+double Torus2D::distance(ChannelIndex inPort, ChannelIndex outPort) const {
+  return 1.0;
+}
+
 Torus2D::Torus2D(sc_module_name name,
                  ComponentID ID,
                  ChannelID lowestID,
                  ChannelID highestID,
                  int numComponents,
                  int numRows,
-                 int numColumns) :
-    Network(name, ID, lowestID, highestID, numComponents*4, numComponents*4) {
+                 int numColumns,
+                 int networkType) :
+    Network(name, ID, lowestID, highestID, numComponents*4, numComponents*4, networkType) {
 
   // TODO: make routers in here, and wire everything up.
 

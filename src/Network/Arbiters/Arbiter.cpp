@@ -8,6 +8,7 @@
 #include "Arbiter.h"
 #include "NullArbiter.h"
 #include "RoundRobinArbiter.h"
+#include "../../Utility/Parameters.h"
 
 Arbiter* Arbiter::localDataArbiter(int numInputs, int numOutputs) {
   return new RoundRobinArbiter(numInputs, numOutputs);
@@ -26,12 +27,8 @@ Arbiter* Arbiter::globalCreditArbiter(int numInputs, int numOutputs) {
 }
 
 bool Arbiter::wormholeAllows(Path& path) {
-  static bool usingWormhole = false;
-
-  if(usingWormhole) {
+  if(WORMHOLE_ROUTING) {
     vector<Path>::iterator iter;
-
-    if(openConnections.size() == 0) return true;
 
     // Check open connections for communications with the same destination.
     for(iter = openConnections.begin(); iter<openConnections.end(); iter++) {
@@ -41,7 +38,10 @@ bool Arbiter::wormholeAllows(Path& path) {
           if(path.data().endOfPacket()) openConnections.erase(iter);
           return true;
         }
-        else return false;
+        else {
+          std::cout << "Can't send " << path.data() << " because of " << iter->data() << std::endl;
+          return false;
+        }
       }
     }
 

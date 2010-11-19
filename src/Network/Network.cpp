@@ -28,8 +28,9 @@ Network::Network(sc_module_name name,
                  ChannelID lowestID,
                  ChannelID highestID,
                  int numInputs,
-                 int numOutputs) :
-  RoutingComponent(name, ID, numInputs+1, numOutputs+1, NETWORK_BUFFER_SIZE) {
+                 int numOutputs,
+                 int networkType) :
+  RoutingComponent(name, ID, numInputs+1, numOutputs+1, NETWORK_BUFFER_SIZE, networkType) {
 
   startID          = lowestID;
   endID            = highestID;

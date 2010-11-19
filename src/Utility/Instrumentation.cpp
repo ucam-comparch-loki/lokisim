@@ -45,9 +45,9 @@ void Instrumentation::networkTraffic(ChannelID startID, ChannelID endID) {
   Network::traffic(startID/NUM_CLUSTER_OUTPUTS, endID/NUM_CLUSTER_INPUTS);
 }
 
-void Instrumentation::networkActivity(ChannelIndex source, ChannelIndex destination,
-                                      double distance, int bitsSwitched) {
-  // Network::...
+void Instrumentation::networkActivity(ComponentID network, ChannelIndex source,
+    ChannelIndex destination, double distance, int bitsSwitched) {
+  Network::activity(network, source, destination, distance, bitsSwitched);
 }
 
 void Instrumentation::operation(DecodedInst inst, bool executed, ComponentID id) {

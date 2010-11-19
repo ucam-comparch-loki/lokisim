@@ -89,8 +89,14 @@ void NetworkHierarchy::makeLocalDataNetwork(int tileID) {
   ChannelID lowestID = tileID * numTileInputs;
   ChannelID highestID = lowestID + numTileInputs - 1;
   Arbiter* arbiter = Arbiter::localDataArbiter(numTileOutputs, numTileInputs);
-  Network* localNetwork = new Crossbar("local_data_net", tileID, lowestID, highestID,
-                                       numTileOutputs, numTileInputs, arbiter);
+  Network* localNetwork = new Crossbar("local_data_net",
+                                       tileID,
+                                       lowestID,
+                                       highestID,
+                                       numTileOutputs,
+                                       numTileInputs,
+                                       RoutingComponent::LOC_DATA,
+                                       arbiter);
   localDataNetworks.push_back(localNetwork);
 
   // Connect things up.
@@ -124,8 +130,14 @@ void NetworkHierarchy::makeGlobalDataNetwork() {
   // The global network is (currently) connected to a single input and a single
   // output from each tile.
   Arbiter* arbiter = Arbiter::globalDataArbiter(NUM_TILES, NUM_TILES);
-  globalDataNetwork = new Crossbar("global_data_net", 0, 0, TOTAL_INPUTS,
-                                   NUM_TILES, NUM_TILES, arbiter);
+  globalDataNetwork = new Crossbar("global_data_net",
+                                   0,
+                                   0,
+                                   TOTAL_INPUTS,
+                                   NUM_TILES,
+                                   NUM_TILES,
+                                   RoutingComponent::GLOB_DATA,
+                                   arbiter);
 
   globalDataNetwork->clock(clock);
 
@@ -171,8 +183,14 @@ void NetworkHierarchy::makeLocalCreditNetwork(int tileID) {
   ChannelID lowestID = tileID * numTileOutputs;
   ChannelID highestID = lowestID + numTileOutputs - 1;
   Arbiter* arbiter = Arbiter::localCreditArbiter(numTileInputs, numTileOutputs);
-  Network* localNetwork = new Crossbar("local_credit_net", tileID, lowestID, highestID,
-                                       numTileInputs, numTileOutputs, arbiter);
+  Network* localNetwork = new Crossbar("local_credit_net",
+                                       tileID,
+                                       lowestID,
+                                       highestID,
+                                       numTileInputs,
+                                       numTileOutputs,
+                                       RoutingComponent::LOC_CREDIT,
+                                       arbiter);
   localCreditNetworks.push_back(localNetwork);
 
   // Connect things up.
@@ -206,8 +224,14 @@ void NetworkHierarchy::makeGlobalCreditNetwork() {
   // The global network is (currently) connected to a single input and a single
   // output from each tile.
   Arbiter* arbiter = Arbiter::globalCreditArbiter(NUM_TILES, NUM_TILES);
-  globalCreditNetwork = new Crossbar("global_credit_net", 0, 0, TOTAL_OUTPUTS,
-                                     NUM_TILES, NUM_TILES, arbiter);
+  globalCreditNetwork = new Crossbar("global_credit_net",
+                                     0,
+                                     0,
+                                     TOTAL_OUTPUTS,
+                                     NUM_TILES,
+                                     NUM_TILES,
+                                     RoutingComponent::GLOB_CREDIT,
+                                     arbiter);
 
   globalCreditNetwork->clock(clock);
 

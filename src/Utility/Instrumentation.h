@@ -42,8 +42,8 @@ namespace Instrumentation {
   void networkTraffic(ChannelID startID, ChannelID endID);
 
   // Record that data was sent over a particular link of the network.
-  void networkActivity(ChannelIndex source, ChannelIndex destination, //bool isData?
-                       double distance, int bitsSwitched);  // ComponentID network
+  void networkActivity(ComponentID network, ChannelIndex source,
+                       ChannelIndex destination, double distance, int bitsSwitched);
 
   // Record whether a particular operation was executed or not.
   void operation(DecodedInst inst, bool executed, ComponentID id);

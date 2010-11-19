@@ -15,15 +15,14 @@ typedef const unsigned int parameter;
 
 extern int DEBUG;
 
+extern int       BYTES_PER_WORD;
+
+// Architecture size
 extern parameter CLUSTERS_PER_TILE;
 extern parameter MEMS_PER_TILE;
 
 extern parameter NUM_TILE_ROWS;
 extern parameter NUM_TILE_COLUMNS;
-
-extern parameter MAX_IPK_SIZE;
-
-extern parameter BYTES_PER_WORD;
 
 // Memory
 extern parameter NUM_ADDRESSABLE_REGISTERS;
@@ -34,12 +33,16 @@ extern parameter MEMORY_SIZE;
 
 extern parameter CHANNEL_MAP_SIZE;
 
+extern parameter MAX_IPK_SIZE;
+
 // Network
 extern parameter NUM_RECEIVE_CHANNELS;
 extern parameter NUM_SEND_CHANNELS;
 extern parameter CHANNEL_END_BUFFER_SIZE; // Different send/receive sizes?
 extern parameter ROUTER_BUFFER_SIZE;
 extern parameter NETWORK_BUFFER_SIZE;
+
+extern parameter WORMHOLE_ROUTING;
 
 // Combinations of other parameters
 extern parameter NUM_CLUSTER_INPUTS;

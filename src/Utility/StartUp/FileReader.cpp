@@ -57,6 +57,8 @@ FileReader& FileReader::makeFileReader(vector<std::string>& words) {
     int memory = StringManipulation::strToInt(words[0]);
     int core = StringManipulation::strToInt(words[1]);
 
+    // TODO: change BYTES_PER_WORD to 8, before the chip is made.
+
     reader = new ELFFileReader(words[2], memory, core);
   }
 

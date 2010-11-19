@@ -50,8 +50,13 @@ void RoutingComponent::sendData() {
     for(uint i=0; i<allowedToSend.size(); i++) {
       ChannelIndex input = allowedToSend[i].source();
       ChannelIndex output = allowedToSend[i].destination();
-      dataOut[output].write(inputBuffers[input].read());
-//      Instrumentation::networkTraffic(input, output, 0); // TODO: distance
+
+      AddressedWord aw = inputBuffers[input].read();
+      dataOut[output].write(aw);
+
+      Instrumentation::networkActivity(id, input, output, distance(input,output),
+          bitsSwitched(input, output, aw));
+
       updateReady(input);
     }
 
@@ -64,6 +69,20 @@ void RoutingComponent::sendData() {
 void RoutingComponent::updateReady(ChannelIndex input) {
   // We can accept new data if the buffer is not full.
   readyOut[input].write(!inputBuffers[input].isFull());
+}
+
+int RoutingComponent::bitsSwitched(ChannelIndex from, ChannelIndex to,
+                                   AddressedWord data) const {
+  // For now, just assume half of all bits switch for data, and the single
+  // credit bit always changes. Take into account addresses too?
+
+  switch(networkType) {
+    case LOC_DATA: return 16;
+    case LOC_CREDIT: return 1;
+    case GLOB_DATA: return 16;
+    case GLOB_CREDIT: return 1;
+    default: throw std::exception();
+  }
 }
 
 void RoutingComponent::printDebugMessage(ChannelIndex from, ChannelIndex to,
@@ -80,13 +99,18 @@ void RoutingComponent::printDebugMessage(ChannelIndex from, ChannelIndex to,
 //          << ")" << endl;
 }
 
-RoutingComponent::RoutingComponent(sc_module_name name, ComponentID ID,
-                                   int numInputs, int numOutputs, int bufferSize) :
+RoutingComponent::RoutingComponent(sc_module_name name,
+                                   ComponentID ID,
+                                   int numInputs,
+                                   int numOutputs,
+                                   int bufferSize,
+                                   int type) :
     Component(name, ID),
     inputBuffers(numInputs, bufferSize, this->name()) {
 
   this->numInputs = numInputs;
   this->numOutputs = numOutputs;
+  networkType = type;
 
   dataIn   = new sc_in<AddressedWord>[numInputs];
   dataOut  = new sc_out<AddressedWord>[numOutputs];

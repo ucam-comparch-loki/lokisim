@@ -44,7 +44,7 @@ vector<Path>& RoundRobinArbiter::arbitrate(vector<Path>& paths) {
     iter++;
   }
 
-  lastAccepted = accepted->back().source();
+  if(!accepted->empty()) lastAccepted = accepted->back().source();
   return *accepted;
 }
 
