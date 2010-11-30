@@ -34,6 +34,7 @@ typedef uint8_t  RegisterIndex;
 // A location in memory.
 typedef uint32_t MemoryAddr;
 
-
+// An offset to jump by in the instruction packet cache.
+typedef int16_t  JumpOffset;
 
 #endif /* TYPEDEFS_H_ */

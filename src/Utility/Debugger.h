@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <string>
+#include "../Typedefs.h"
 
 using std::string;
 using std::vector;
@@ -31,29 +32,30 @@ public:
 
   // Receive notification that a particular core executed a particular
   // instruction.
-  static void executedInstruction(DecodedInst i, int core, bool executed);
+  static void executedInstruction(DecodedInst i, ComponentID core, bool executed);
 
   // Choose the tile to debug. Make this more general later.
-  static void setTile(Chip* t);
+  static void setTile(Chip* c);
 
 private:
 
   // Set a breakpoint corresponding to an instruction location.
-  static void setBreakPoint(vector<int>& bps, int memory=defaultInstMemory);
+  static void setBreakPoint(vector<int>& bps, ComponentID memory=defaultInstMemory);
   static bool isBreakpoint(Address addr);
   static void addBreakpoint(Address addr);
   static void removeBreakpoint(Address addr);
 
   // Print the current stack.
-  static void printStack(int core=defaultCore, int memory=defaultDataMemory);
+  static void printStack(ComponentID core=defaultCore,
+                         ComponentID memory=defaultDataMemory);
 
-  static void printMemLocations(vector<int>& locs, int memory=defaultDataMemory);
+  static void printMemLocations(vector<int>& locs, ComponentID memory=defaultDataMemory);
 
   // Print the values of the given registers.
-  static void printRegs(vector<int>& regs, int core=defaultCore);
+  static void printRegs(vector<int>& regs, ComponentID core=defaultCore);
 
   // Print the value of the predicate register.
-  static void printPred(int core=defaultCore);
+  static void printPred(ComponentID core=defaultCore);
 
   // Print a list of possible commands.
   static void printHelp();
@@ -62,8 +64,8 @@ private:
   static void executeUntilBreakpoint();
   static void finishExecution();
 
-  static void changeCore(int core);
-  static void changeMemory(int memory);
+  static void changeCore(ComponentID core);
+  static void changeMemory(ComponentID memory);
 
   static vector<int>& parseIntVector(vector<string>& s);
 
@@ -76,14 +78,15 @@ private:
   static bool hitBreakpoint;
 
   static vector<Address> breakpoints;
-  static Chip* tile;
+  static Chip* chip;
 
   static int cycleNumber;
-  static int defaultCore;
-  static int defaultInstMemory;
-  static int defaultDataMemory;
+  static ComponentID defaultCore;
+  static ComponentID defaultInstMemory;
+  static ComponentID defaultDataMemory;
 
   static int cyclesIdle;
+  static int maxIdleTime;
 
 };
 

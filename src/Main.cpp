@@ -47,7 +47,7 @@ int sc_main(int argc, char* argv[]) {
     int i;
 
     try {
-      for(i=0; i<50000; i++) {
+      for(i=0; i<TIMEOUT; i++) {
         TIMESTEP;
         if(idle.read()) {
           cyclesIdle++;

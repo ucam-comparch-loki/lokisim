@@ -42,16 +42,15 @@ stw         r9,  r8,  0   > 2       ; store the value
 
 addui       r3,  r3,  1             ; increment current column
 seteqi.p    r0,  r3,  8             ; set predicate if we've finished all 8 columns in this row
-nop
-!p?ibjmp    -108                    ; jump back to start of loop (f_val = 0)
+!p?ibjmp    -104                    ; jump back to start of loop (f_val = 0)
 
 addui       r2,  r2,  1             ; increment current row
 seteqi.p    r0,  r2,  8             ; set predicate if we've finished all 8 rows
-nop
-!p?ibjmp    -132                    ; jump back to start of loop (column = 0)
+nop                                ;  can't remove this nop for some reason
+!p?ibjmp    -128                    ; jump back to start of loop (column = 0)
 
 or          r0,  r21, r0  > 3       ; send a pointer to the output block to the next core
-ibjmp.eop   -152                    ; jump to beginning (wait for input)
+ibjmp.eop   -148                    ; jump to beginning (wait for input)
 
 
 % 1D DCT along columns
@@ -103,12 +102,10 @@ stw         r9,  r8,  0   > 3       ; store the value
 
 addui       r3,  r3,  1             ; increment current row
 seteqi.p    r0,  r3,  8             ; set predicate if we've finished all 8 rows in this column
-nop
-!p?ibjmp    -112                    ; jump back to start of loop (f_val = 0)
+!p?ibjmp    -108                    ; jump back to start of loop (f_val = 0)
 
 addui       r2,  r2,  1             ; increment current column
 seteqi.p    r0,  r2,  8             ; set predicate if we've finished all 8 columns
-nop
-!p?ibjmp    -136                    ; jump back to start of loop (row = 0)
+!p?ibjmp    -128                    ; jump back to start of loop (row = 0)
 
-ibjmp.eop   -148                    ; jump to beginning (wait for input)
+ibjmp.eop   -140                    ; jump to beginning (wait for input)

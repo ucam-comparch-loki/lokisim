@@ -10,7 +10,7 @@
 #include "../../../Datatype/Address.h"
 #include "../../../Datatype/MemoryRequest.h"
 
-void FetchLogic::fetch(uint16_t addr) {
+void FetchLogic::fetch(MemoryAddr addr) {
   // Create a new memory request and wrap it up in an AddressedWord
   MemoryRequest mr(addr, MemoryRequest::IPK_READ);
   AddressedWord request(mr, fetchChannel);
@@ -27,7 +27,7 @@ void FetchLogic::fetch(uint16_t addr) {
   }
 }
 
-void FetchLogic::setFetchChannel(uint16_t channelID) {
+void FetchLogic::setFetchChannel(ChannelID channelID) {
   fetchChannel = channelID;
 
   // Need to claim this port so that it sends flow control information back
@@ -70,7 +70,7 @@ bool FetchLogic::roomInCache() {
   return parent()->roomToFetch();
 }
 
-uint16_t FetchLogic::portID() {
+ChannelID FetchLogic::portID() {
   return id*NUM_CLUSTER_OUTPUTS;
 }
 

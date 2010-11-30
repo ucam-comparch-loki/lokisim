@@ -45,7 +45,7 @@ void     Cluster::refetch() {
   decode.refetch();
 }
 
-void     Cluster::jump(int16_t offset) {
+void     Cluster::jump(JumpOffset offset) {
   fetch.jump(offset);
 }
 
@@ -97,7 +97,7 @@ void Cluster::updateForwarding(const DecodedInst& inst) {
 
   // We don't want to forward any data which was sent to register 0, because
   // r0 doesn't store values: it is a constant.
-  previousDest1   = (inst.destinationReg() == 0) ? -1 : inst.destinationReg();
+  previousDest1   = (inst.destination() == 0) ? -1 : inst.destination();
   previousResult1 = inst.result();
 }
 

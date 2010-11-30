@@ -23,10 +23,18 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   }
 
   output = input;
+  haveStalled = false;
+
+  if(discardNextInst) {
+    output.result(0);
+    output.destination(0);
+    discardNextInst = false;
+    return true;
+  }
 
   // Instructions that never reach the ALU (e.g. fetch) need to know whether
   // they should execute in this stage.
-  bool execute = shouldExecute(output.predicate());
+  bool execute = shouldExecute(input);
 
   // If we are in remote execution mode, send all marked instructions.
   if(remoteExecute) {
@@ -39,7 +47,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
       // Prevent other stages from trying to execute this instruction.
       output.operation(InstructionMap::OR);
-      output.destinationReg(0);
+      output.destination(0);
 
       return true;
     }
@@ -51,8 +59,19 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   }
 
   // Only perform this if we aren't blocked to prevent repeated occurrences.
-  if(!blocked && !InstructionMap::isALUOperation(output.operation()))
-    Instrumentation::operation(output, execute, id);
+  if(!blocked && !InstructionMap::isALUOperation(input.operation()))
+    Instrumentation::operation(input, execute, id);
+
+  // If the instruction may perform destructive reads from a channel-end,
+  // and we know it won't execute, stop it here.
+  if(!execute && InstructionMap::isALUOperation(input.operation()) &&
+                (Registers::isChannelEnd(input.sourceReg1()) ||
+                 Registers::isChannelEnd(input.sourceReg2()))) {
+    blocked = false;
+    return true;
+  }
+
+  settingPredicate = input.setsPredicate();
 
   // Need a big try block in case we block when reading from a channel end.
   try {
@@ -113,7 +132,17 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
       case InstructionMap::IBJMP : {
         if(execute) {
-          parent()->jump((int8_t)output.immediate());
+          JumpOffset jump = (JumpOffset)output.immediate();
+
+          // We need to go back by one more instruction if we have taken a
+          // cycle here, because the fetch stage will have already supplied
+          // the next instruction.
+          if(haveStalled) {
+            jump -= 4;
+            discardNextInst = true;
+          }
+
+          parent()->jump(jump);
         }
         output.result(0);   // Stop the ALU doing anything by storing a result.
         break;
@@ -184,9 +213,6 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       }
 
       case InstructionMap::PSELFETCH : {
-        // TODO: stall for one cycle to allow predicate bit to be written.
-        // (Optimisation: only if the predicate was written last cycle.)
-
         uint32_t selected;
         if(parent()->predicate()) selected = readRegs(output.sourceReg1());
         else                      selected = readRegs(output.sourceReg2());
@@ -299,7 +325,29 @@ bool Decoder::completeWrite(const DecodedInst& input, DecodedInst& output) {
 }
 
 /* Determine whether this instruction should be executed. */
-bool Decoder::shouldExecute(short predBits) {
+bool Decoder::shouldExecute(const DecodedInst& inst) {
+
+  // If the previous instruction sets the predicate bit, and we need to access
+  // it in this pipeline stage, we must stall for a cycle until it has been
+  // written.
+  if(settingPredicate && inst.usesPredicate()) {
+
+    // We need to know the predicate value in this cycle if we are doing
+    // something like a fetch, which is carried out in the decode stage, or if
+    // we read from a channel-end, as these reads are destructive.
+    if(!InstructionMap::isALUOperation(inst.operation()) ||
+       Registers::isChannelEnd(inst.sourceReg1()) ||
+       Registers::isChannelEnd(inst.sourceReg2())) {
+      if(DEBUG) cout << this->name()
+          << " waiting one cycle for predicate to be set." << endl;
+      blocked = true;
+      wait(1, sc_core::SC_NS);
+      blocked = false;
+      haveStalled = true;
+    }
+  }
+
+  short predBits = inst.predicate();
 
   bool result = (predBits == Instruction::ALWAYS) ||
                 (predBits == Instruction::END_OF_PACKET) ||

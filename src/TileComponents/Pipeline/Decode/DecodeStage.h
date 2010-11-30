@@ -101,7 +101,7 @@ private:
   ChannelIndex   selectChannel();
 
   // Fetch an instruction packet from the given address.
-  void           fetch(uint16_t addr);
+  void           fetch(MemoryAddr addr);
 
   // Change the channel to which we send our fetch requests.
   void           setFetchChannel(ChannelID channelID);
@@ -114,7 +114,7 @@ private:
   bool           roomToFetch() const;
 
   // Tell the instruction packet cache to jump to a new instruction.
-  void           jump(int16_t offset);
+  void           jump(JumpOffset offset);
 
   // Set the instruction packet cache into persistent or non-persistent mode.
   void           setPersistent(bool persistent);

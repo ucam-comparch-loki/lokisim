@@ -95,12 +95,12 @@ void IPKCacheStorage::write(const Address& key, const Instruction& newData) {
 }
 
 /* Jump to a new instruction at a given offset. */
-void IPKCacheStorage::jump(const int16_t offset) {
+void IPKCacheStorage::jump(const JumpOffset offset) {
 
   // Restore the current instruction pointer if it was not being used.
-  if(currInst.isNull()) currInst = currInstBackup;
+  if(currInst.isNull()) currInst = currInstBackup + offset;
+  else currInst += offset - 1; // -1 because we have already incremented currInst
 
-  currInst += offset - 1; // -1 because we have already incremented currInst
   updateFillCount();
 
   // Update currentPacket if we have jumped to the start of a packet

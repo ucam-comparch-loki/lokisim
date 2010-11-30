@@ -1,0 +1,12 @@
+% Set the appropriate channel-map entries, and fetch the main program.
+
+ori             r4,  r0,  48
+ori             r5,  r0,  52
+ori             r6,  r0,  56
+setchmap        r4,       0             ; instruction memory = map 0 (fetch channel)
+setchmap        r5,       1             ; input data memory = map 1
+setchmap        r6,       2	            ; output data memory = map 2
+ori             r0,  r0,  1   > 0       ; connect to the instruction memory
+ori             r0,  r0,  2   > 1       ; connect to the input data memory
+ori             r0,  r0,  3   > 2       ; connect to the output data memory
+fetch.eop       r0,       0             ; fetch main program

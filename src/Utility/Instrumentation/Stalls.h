@@ -17,10 +17,10 @@ class Stalls: public InstrumentationBase {
 
 public:
 
-  static void stall(int id, int cycle);
-  static void unstall(int id, int cycle);
-  static void idle(int id, int cycle);
-  static void active(int id, int cycle);
+  static void stall(ComponentID id, int cycle);
+  static void unstall(ComponentID id, int cycle);
+  static void idle(ComponentID id, int cycle);
+  static void active(ComponentID id, int cycle);
   static void endExecution();
   static void printStats();
 
@@ -28,17 +28,17 @@ private:
 
   // The times that each cluster started stalling (or UNSTALLED if the cluster
   // is currently active).
-  static CounterMap<int> stalled;
+  static CounterMap<ComponentID> stalled;
 
   // The total number of cycles each cluster has spent stalled.
-  static CounterMap<int> stallTimes;
+  static CounterMap<ComponentID> stallTimes;
 
   // The times that each cluster became idle (or UNSTALLED if the cluster is
   // currently active).
-  static CounterMap<int> idleStart;
+  static CounterMap<ComponentID> idleStart;
 
   // The total number of cycles each cluster has spent idle.
-  static CounterMap<int> idleTimes;
+  static CounterMap<ComponentID> idleTimes;
 
   // The number of clusters stalled or idle at the moment.
   static int numStalled;

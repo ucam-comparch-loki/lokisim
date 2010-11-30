@@ -25,7 +25,7 @@ public:
   uint8_t operation() const;
   uint8_t sourceReg1() const;
   uint8_t sourceReg2() const;
-  uint8_t destinationReg() const;
+  uint8_t destination() const;
   int32_t immediate() const;
   uint8_t channelMapEntry() const;
   uint8_t predicate() const;
@@ -37,13 +37,14 @@ public:
   int64_t result() const;
   Address location() const;
 
+  bool    usesPredicate() const;
   bool    hasOperand1() const;
   bool    hasResult() const;
 
   void    operation(const uint8_t val);
   void    sourceReg1(const uint8_t val);
   void    sourceReg2(const uint8_t val);
-  void    destinationReg(const uint8_t val);
+  void    destination(const uint8_t val);
   void    immediate(const int32_t val);
   void    channelMapEntry(const uint8_t val);
   void    predicate(const uint8_t val);

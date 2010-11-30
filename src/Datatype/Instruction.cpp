@@ -130,6 +130,15 @@ Instruction::Instruction(const string& inst) {
 
   delete &words;
 
+  // Perform a small check to catch a possible problem.
+  string nop("nop");
+  if(opcode() == InstructionMap::opcode(nop)) {
+    if(reg1 != 0 || reg2 != 0 || reg3 != 0 || remoteChannel() != NO_CHANNEL) {
+      cerr << "Warning: possible invalid instruction: " << *this
+           << "\n  (generated from " << inst << ")" << endl;
+    }
+  }
+
 }
 
 Instruction::~Instruction() {

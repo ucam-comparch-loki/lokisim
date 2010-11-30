@@ -61,7 +61,7 @@ ChannelIndex DecodeStage::selectChannel() {
   return rcet.selectChannelEnd();
 }
 
-void         DecodeStage::fetch(uint16_t addr) {
+void         DecodeStage::fetch(MemoryAddr addr) {
   fl.fetch(addr);
 }
 
@@ -81,7 +81,7 @@ bool         DecodeStage::roomToFetch() const {
   return parent()->roomToFetch();
 }
 
-void         DecodeStage::jump(int16_t offset) {
+void         DecodeStage::jump(JumpOffset offset) {
   parent()->jump(offset);
 }
 

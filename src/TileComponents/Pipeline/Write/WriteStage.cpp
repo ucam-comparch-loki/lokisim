@@ -25,7 +25,7 @@ void WriteStage::newInput(DecodedInst& data) {
   scet.write(data);
 
   // Write to registers (they ignore the write if the index is invalid).
-  writeReg(data.destinationReg(), data.result(),
+  writeReg(data.destination(), data.result(),
              data.operation() == InstructionMap::IWTR);
 }
 

@@ -22,7 +22,7 @@ uint8_t DecodedInst::sourceReg2() const {
   return sourceReg2_;
 }
 
-uint8_t DecodedInst::destinationReg() const {
+uint8_t DecodedInst::destination() const {
   return destReg_;
 }
 
@@ -64,6 +64,10 @@ Address DecodedInst::location() const {
 }
 
 
+bool    DecodedInst::usesPredicate() const {
+  return (predicate_ == Instruction::NOT_P) || (predicate_ == Instruction::P);
+}
+
 bool    DecodedInst::hasOperand1() const {
   return hasOperand1_;
 }
@@ -85,7 +89,7 @@ void    DecodedInst::sourceReg2(const uint8_t val) {
   sourceReg2_ = val;
 }
 
-void    DecodedInst::destinationReg(const uint8_t val) {
+void    DecodedInst::destination(const uint8_t val) {
   destReg_ = val;
 }
 
@@ -191,7 +195,7 @@ std::ostream& DecodedInst::print(std::ostream& os) const {
 
   os << InstructionMap::name(operation())
      << (setsPredicate()?".p":"") << (predicate()==Instruction::END_OF_PACKET?".eop":"")
-     << " r" << (int)destinationReg() << " r" << (int)sourceReg1()
+     << " r" << (int)destination() << " r" << (int)sourceReg1()
      << " r" << (int)sourceReg2()     << " "  << immediate();
   if(channelMapEntry() != Instruction::NO_CHANNEL)
     os << " -> " << (int)channelMapEntry();

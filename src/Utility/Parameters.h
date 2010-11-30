@@ -15,6 +15,8 @@ typedef const unsigned int parameter;
 
 extern int DEBUG;
 
+extern int TIMEOUT;
+
 extern int       BYTES_PER_WORD;
 
 // Architecture size

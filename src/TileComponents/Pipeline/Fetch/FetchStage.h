@@ -77,7 +77,7 @@ public:
   bool          roomToFetch() const;
 
   // Jump to a different instruction in the Instruction Packet Cache.
-  void          jump(int16_t offset);
+  void          jump(JumpOffset offset);
 
   // Put the cache into persistent mode, where it executes the same instruction
   // packet repeatedly, or take it out of persistent mode.

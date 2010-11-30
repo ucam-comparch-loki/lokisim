@@ -9,25 +9,22 @@ ldw             r12,      0   > 3       ;  Load and forward data item
 addui.eop       r0,  ch0, 0   > 4       ; ============================
 
 setlti.p        r0,  r11, 32            ; see if we have hit the top of the grid
-nop
-!p?fetch        r1,       24
+!p?fetch        r1,       20
 p?addui         r11, r11, 4
-p?fetch         r1,       76            ; switch to moving down
+p?fetch         r1,       64            ; switch to moving down
 nop.eop
 
 seteqi.p        r0,  r11, 252           ; see if we have finished
-nop
-!p?fetch        r1,       20            ; check the final condition
-p?fetch         r1,       124           ; end
+!p?fetch        r1,       16            ; check the final condition
+p?fetch         r1,       108           ; end
 nop.eop
 
 and             r13, r11, r9
 seteq.p         r0,  r13, r9            ; see if we have hit the right of the grid
-nop
 !p?subu         r11, r11, r9
-!p?fetch        r1,       -60           ; keep moving up
+!p?fetch        r1,       -52           ; keep moving up
 p?addui         r11, r11, 32
-p?fetch         r1,       32            ; switch to moving down
+p?fetch         r1,       28            ; switch to moving down
 nop.eop
 
 fetch           r1,       16            ; MOVING DOWNWARDS
@@ -36,20 +33,18 @@ ldw             r12,      0   > 3       ;  Load and forward data item
 addui.eop       r0,  ch0, 0   > 4       ; ============================
 
 setlti.p        r0,  r11, 224           ; see if we have reached the bottom of the grid
-nop
-p?fetch         r1,       24            ; we haven't, so check the other condition
+p?fetch         r1,       20            ; we haven't, so check the other condition
 !p?addui        r11, r11, 4
-!p?fetch        r1,       -108          ; we have, so switch to moving up
+!p?fetch        r1,       -96           ; we have, so switch to moving up
 nop.eop
 
 and             r13, r11, r9
 seteq.p         r0,  r13, r0            ; see if we have reached the left of the grid
-nop
 !p?addu         r11, r11, r9
-!p?fetch        r1,       -40           ; keep moving down
+!p?fetch        r1,       -36           ; keep moving down
 p?addui         r11, r11, 32
-p?fetch         r1,       -132          ; switch to moving up
+p?fetch         r1,       -116          ; switch to moving up
 nop.eop
 
-fetch           r1,       -180          ; end of block: restart and wait for new block address
+fetch           r1,       -160          ; end of block: restart and wait for new block address
 addui.eop       r0,  ch0, 0   > 4       ; send the final value late

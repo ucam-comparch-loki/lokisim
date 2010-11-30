@@ -93,7 +93,7 @@ private:
   void             refetch();
 
   // Perform an IBJMP and jump to a new instruction in the cache.
-  void             jump(int16_t offset);
+  void             jump(JumpOffset offset);
 
   // Set whether the cache is in persistent or non-persistent mode.
   void             setPersistent(bool persistent);

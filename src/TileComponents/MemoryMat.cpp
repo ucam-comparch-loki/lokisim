@@ -140,7 +140,7 @@ void MemoryMat::read(ChannelIndex position) {
       w = Word(returnVal & 255);
     }
     else {
-      if(addr&3) cerr << "Misaligned address: " << addr << endl;
+      if(addr&3) cerr << "Warning: Misaligned address: " << addr << endl;
       w = data_.read(addr/BYTES_PER_WORD);
     }
 

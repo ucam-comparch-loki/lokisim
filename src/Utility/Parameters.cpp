@@ -14,6 +14,8 @@
 
 int DEBUG = 1;
 
+int TIMEOUT = 50000;
+
 int       BYTES_PER_WORD             = 4;
 
 // Architecture size

@@ -72,7 +72,7 @@ private:
 
   // Determine whether the current instruction should be executed, based on its
   // predicate bits, and the contents of the predicate register.
-  bool shouldExecute(short predBits);
+  bool shouldExecute(const DecodedInst& inst);
 
   DecodeStage* parent() const;
 
@@ -103,6 +103,20 @@ private:
   // Tells whether we are blocked (probably trying to read from an empty
   // channel).
   bool blocked;
+
+  // Tells whether this instruction has spent more than one cycle in the decode
+  // stage. Replace "blocked" with this eventually?
+  bool haveStalled;
+
+  // Tells whether the previous instruction sets the predicate bit. This
+  // happens in the execute stage (in parallel with the current decode), so
+  // we must sometimes stall if we need the predicate's latest value.
+  bool settingPredicate;
+
+  // Sometimes we may find out that we do not want the next instruction in
+  // the sequence (perhaps due to an in-buffer jump), but it is too late to
+  // stop the fetch stage sending it. We therefore discard a single instruction.
+  bool discardNextInst;
 
 };
 

@@ -103,7 +103,7 @@ bool FetchStage::roomToFetch() const {
 }
 
 /* Perform any status updates required when we receive a position to jump to. */
-void FetchStage::jump(int16_t offset) {
+void FetchStage::jump(JumpOffset offset) {
   usingCache = true;
   cache.jump(offset);
 }

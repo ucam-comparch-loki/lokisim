@@ -90,7 +90,7 @@ bool InstructionPacketCache::lookup(Address addr) {
 }
 
 /* Jump to a new instruction specified by the offset amount. */
-void InstructionPacketCache::jump(int16_t offset) {
+void InstructionPacketCache::jump(JumpOffset offset) {
   if(DEBUG) cout << this->name() << ": ";   // cache prints the rest
 
   cache.jump(offset/BYTES_PER_WORD);

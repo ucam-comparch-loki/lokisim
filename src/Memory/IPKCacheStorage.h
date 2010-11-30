@@ -12,6 +12,7 @@
 #define IPKCACHESTORAGE_H_
 
 #include "MappedStorage.h"
+#include "../Typedefs.h"
 #include "../Utility/LoopCounter.h"
 #include "../Datatype/Address.h"
 
@@ -44,7 +45,7 @@ public:
   virtual void write(const Address& key, const Instruction& newData);
 
   // Jump to a new instruction at a given offset.
-  void jump(const int16_t offset);
+  void jump(const JumpOffset offset);
 
   // Return the memory address of the currently-executing packet.
   Address packetAddress() const;

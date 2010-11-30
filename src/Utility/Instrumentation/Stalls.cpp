@@ -9,10 +9,10 @@
 #include "Stalls.h"
 #include "../Parameters.h"
 
-CounterMap<int> Stalls::stalled;
-CounterMap<int> Stalls::stallTimes;
-CounterMap<int> Stalls::idleStart;
-CounterMap<int> Stalls::idleTimes;
+CounterMap<ComponentID> Stalls::stalled;
+CounterMap<ComponentID> Stalls::stallTimes;
+CounterMap<ComponentID> Stalls::idleStart;
+CounterMap<ComponentID> Stalls::idleTimes;
 int Stalls::numStalled = (CLUSTERS_PER_TILE-MEMS_PER_TILE) * NUM_TILES; // Messy - fix?
 int Stalls::endOfExecution = 0;
 
@@ -22,7 +22,7 @@ const int UNSTALLED = -1;
 
 const int NUM_CORES = (CLUSTERS_PER_TILE+MEMS_PER_TILE) * NUM_TILES;
 
-void Stalls::stall(int id, int cycle) {
+void Stalls::stall(ComponentID id, int cycle) {
   if(stalled[id] == UNSTALLED || (stalled[id]==0 && stallTimes[id]==0)) {
     stalled.setCount(id, cycle);
     numStalled++;
@@ -33,7 +33,7 @@ void Stalls::stall(int id, int cycle) {
   }
 }
 
-void Stalls::unstall(int id, int cycle) {
+void Stalls::unstall(ComponentID id, int cycle) {
   if(stalled[id] != UNSTALLED) {
     int stallLength = cycle - stalled[id];
     stallTimes.setCount(id, stallTimes[id] + stallLength);
@@ -42,7 +42,7 @@ void Stalls::unstall(int id, int cycle) {
   }
 }
 
-void Stalls::idle(int id, int cycle) {
+void Stalls::idle(ComponentID id, int cycle) {
   if(idleStart[id] == UNSTALLED || (idleStart[id]==0 && idleTimes[id]==0)) {
     idleStart.setCount(id, cycle);
     numStalled++;
@@ -53,7 +53,7 @@ void Stalls::idle(int id, int cycle) {
   }
 }
 
-void Stalls::active(int id, int cycle) {
+void Stalls::active(ComponentID id, int cycle) {
   if(idleStart[id] != UNSTALLED) {
     int idleLength = cycle - idleStart[id];
     idleTimes.setCount(id, idleTimes[id] + idleLength);
@@ -72,7 +72,7 @@ void Stalls::printStats() {
   cout << "Cluster activity:" << endl;
   cout << "  Cluster\tActive\tIdle\tStalled" << endl;
 
-  for(int i=0; i<NUM_CORES; i++) {
+  for(ComponentID i=0; i<NUM_COMPONENTS; i++) {
     // Flush any remaining stall time into the CounterMap.
     unstall(i, endOfExecution);
 

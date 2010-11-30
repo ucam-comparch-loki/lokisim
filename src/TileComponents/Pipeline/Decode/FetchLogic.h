@@ -51,10 +51,10 @@ public:
   // Send a fetch request for the instruction packet at the given address,
   // in the memory we are set to fetch from, but only if it is not already in
   // the instruction packet cache.
-  void fetch(uint16_t addr);
+  void fetch(MemoryAddr addr);
 
   // Update the channel to which we send fetch requests.
-  void setFetchChannel(uint16_t channelID);
+  void setFetchChannel(ChannelID channelID);
 
   // The packet to fetch was in the cache at fetch time, but has since been
   // overwritten. Send a fetch request to get it back.
@@ -74,7 +74,7 @@ private:
   bool roomInCache();
 
   // Returns a unique identifier for this fetch logic's output port.
-  uint16_t portID();
+  ChannelID portID();
 
   DecodeStage* parent() const;
 
@@ -88,7 +88,7 @@ private:
   Buffer<AddressedWord> toSend;
 
   // The network channel we send all of our fetch requests to.
-  uint16_t              fetchChannel;
+  ChannelID             fetchChannel;
 
   // A memory request for the next packet to be executed, where the packet is
   // already in the cache. We need to be able to refetch the packet in case
