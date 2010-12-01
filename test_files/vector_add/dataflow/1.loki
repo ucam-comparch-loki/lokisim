@@ -1,0 +1,4 @@
+ori                 r4,  r0,  49
+setchmap            r4,  0
+ori                 r0,  r0,  5    > 0      ; connect to the instruction memory
+fetch.eop           r0,  36

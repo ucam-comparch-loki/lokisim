@@ -1,0 +1,22 @@
+#! /bin/bash
+
+if [ $# -ne 2 ];
+then
+    echo "vectorgen: Tool for generating vectors of consecutive numbers."
+    echo "Usage: vectorgen start end"
+    exit
+fi
+
+i=$1
+if [ $1 -le $2 ];
+then
+    while [ $i -le $2 ]; do
+        echo $i
+        let i++
+    done
+else
+    while [ $i -ge $2 ]; do
+        echo $i
+        let i--
+    done
+fi

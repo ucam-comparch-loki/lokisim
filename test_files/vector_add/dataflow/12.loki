@@ -1,0 +1,39 @@
+% Cluster 0
+ori                 r3,  r0,  60
+setchmap            r3,  1
+or                  r0,  r0,  r0   > 1      ; connect to the output memory
+fetch               r0,  20                 ; fetch the next packet
+ori.eop             r10, r0,  0             ; store the location we want to store data to
+
+addu                r11, ch0, ch1           ; add the inputs from the two channel-ends
+stw                 r11, r10, 0    > 1      ; store the result to memory 15
+addui               r10, r10, 4             ; update store position
+ibjmp.eop           -12                     ; loop until interrupted or data stops coming
+
+% Cluster 1
+ori                 r3,  r0,  52
+ori                 r4,  r0,  2
+setchmap            r3,  1                  ; map 1 = data memory
+setchmap            r4,  2                  ; map 2 = core 0
+ori                 r0,  r0,  6    > 1      ; connect to memory 13
+addui               r10, r0,  0             ; store the location we want to load data from
+ldw                 r10, 0         > 1      ; send a load request to memory 13
+addui               r10, r10, 4             ; increment counter
+setlti.p            r0,  r10, 40            ; see if we have reached the end of the loop 
+addu                r0,  ch0, r0   > 2      ; send the loaded value to cluster 0
+p?ibjmp             -16                     ; jump back to beginning of loop
+nop.eop
+
+% Cluster 2
+ori                 r3,  r0,  53
+ori                 r4,  r0,  3
+setchmap            r3,  1                  ; map 1 = data memory
+setchmap            r4,  2                  ; map 2 = core 0
+ori                 r0,  r0,  6    > 1      ; connect to memory 13
+addui               r10, r0,  40            ; store the location we want to load data from
+ldw                 r10, 0         > 1      ; send a load request to memory 13
+addui               r10, r10, 4             ; increment counter
+setlti.p            r0,  r10, 80            ; see if we have reached the end of the loop 
+addu                r0,  ch0, r0   > 2      ; send the loaded value to cluster 0
+p?ibjmp             -16                     ; jump back to beginning of loop
+nop.eop

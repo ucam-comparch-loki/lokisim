@@ -138,7 +138,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
           // cycle here, because the fetch stage will have already supplied
           // the next instruction.
           if(haveStalled) {
-            jump -= 4;
+            jump -= BYTES_PER_WORD;
             discardNextInst = true;
           }
 
@@ -295,7 +295,11 @@ int32_t Decoder::readRegs(RegisterIndex index, bool indirect) {
 }
 
 int32_t Decoder::readRCET(ChannelIndex index) {
-  return parent()->readRCET(index);
+  // Block until we have the result.
+  blocked = true;
+  int32_t result = parent()->readRCET(index);
+  blocked = false;
+  return result;
 }
 
 void Decoder::fetch(MemoryAddr addr) {

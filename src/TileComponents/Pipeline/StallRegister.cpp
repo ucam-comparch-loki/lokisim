@@ -17,6 +17,7 @@ void StallRegister::newCycle() {
 void StallRegister::newData() {
   // We only allow data in when there is space for it, so we know that this
   // is safe.
+  assert(!buffer.isFull());
   buffer.write(dataIn.read());
 }
 

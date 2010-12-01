@@ -16,20 +16,18 @@ typedef IndirectRegisterFile Registers;
 int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
 
   // If there is no data, block until it arrives.
-//  if(buffers[channelEnd].isEmpty()) wait(fromNetwork[channelEnd].default_event());
-
-  if(!buffers[channelEnd].isEmpty()) {
-    int32_t result = buffers.read(channelEnd).toInt();
-    sendCredit(channelEnd);
-
-    if(DEBUG) cout << this->name() << " read " << result << " from channel "
-                   << (int)channelEnd << endl;
-
-    return result;
+  if(buffers[channelEnd].isEmpty()) {
+    wait(fromNetwork[channelEnd].default_event());
+    wait(sc_core::SC_ZERO_TIME);  // Allow the new value to be put in a buffer.
   }
-  else {   // Reading from empty buffer
-    throw BlockedException("receive channel-end table", parent()->id);
-  }
+
+  int32_t result = buffers.read(channelEnd).toInt();
+  sendCredit(channelEnd);
+
+  if(DEBUG) cout << this->name() << " read " << result << " from channel "
+                 << (int)channelEnd << endl;
+
+  return result;
 
 }
 
@@ -60,6 +58,8 @@ void ReceiveChannelEndTable::checkInputs() {
   // is safe to write data to them now.
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     if(fromNetwork[i].event()) {
+      assert(!buffers[i].isFull());
+
       buffers[i].write(fromNetwork[i].read());
 
       if(DEBUG) cout << this->name() << " channel " << i << " received " <<
