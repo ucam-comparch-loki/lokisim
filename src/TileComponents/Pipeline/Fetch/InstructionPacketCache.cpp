@@ -24,8 +24,8 @@ void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
 Instruction InstructionPacketCache::read() {
   Instruction inst = cache.read();
 
+  if(finishedPacketRead)       startOfPacketTasks();
   if(inst.endOfPacket())       endOfPacketTasks();
-  else if(finishedPacketRead)  startOfPacketTasks();
 
   sendCredit();
 
@@ -35,7 +35,7 @@ Instruction InstructionPacketCache::read() {
 void InstructionPacketCache::write(Instruction inst) {
   Address addr;
 
-  if(!addresses.isEmpty() && startOfPacket) {
+  if(!addresses.isEmpty() && finishedPacketWrite) {
     // Only associate the tag with the first instruction of the packet.
     // Means that if a packet is searched for, execution starts at the start.
     addr = addresses.read();
@@ -56,7 +56,7 @@ void InstructionPacketCache::write(Instruction inst) {
   }
 
   // Make a note for next cycle if it will be the start of a new packet.
-  startOfPacket = inst.endOfPacket();
+  finishedPacketWrite = inst.endOfPacket();
 
   if(DEBUG) cout << this->name() << " received Instruction: " << inst << endl;
 
@@ -152,7 +152,8 @@ InstructionPacketCache::InstructionPacketCache(sc_module_name name) :
     cache(IPK_CACHE_SIZE, string(name)),
     addresses(4, string(name)) {  // 4 = max outstanding fetches allowed
 
-  startOfPacket = true;
+  finishedPacketRead = true;
+  finishedPacketWrite = true;
 
 }
 

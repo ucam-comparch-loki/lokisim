@@ -39,6 +39,9 @@ TileComponent::TileComponent(sc_module_name name, ComponentID ID) :
   flowControlIn  = new sc_in<bool>[NUM_CLUSTER_OUTPUTS];
   out            = new sc_out<AddressedWord>[NUM_CLUSTER_OUTPUTS];
 
+  idle.initialize(true);
+  Instrumentation::idle(id, true);
+
 }
 
 TileComponent::~TileComponent() {

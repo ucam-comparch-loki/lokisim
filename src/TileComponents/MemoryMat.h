@@ -90,6 +90,10 @@ private:
   // are sent back to returnAddr.
   void updateControl(ChannelIndex port, ChannelID returnAddr);
 
+  // Choose which of the provided inputs are allowed to perform an operation
+  // concurrently. Leaves only the allowed inputs in the vector.
+  void arbitrate(std::vector<ChannelIndex>& inputs);
+
   // Update the output signal telling whether the memory is idle.
   void updateIdle();
 
@@ -102,12 +106,6 @@ private:
 //==============================//
 // Local state
 //==============================//
-
-public:
-
-  // The index of the input port which receives control commands, which allow
-  // the set-up and tear-down of channels.
-  static const int CONTROL_INPUT;
 
 private:
 
@@ -123,6 +121,13 @@ private:
   // The number of words we have initially put in this memory. Allows multiple
   // files to be put into the same memory.
   int wordsLoaded_;
+
+  // Tells whether this memory has done something productive this cycle.
+  bool active;
+
+  // Used for arbitration. Stores the input port for which a request was most
+  // recently granted.
+  int lastAccepted;
 
 };
 

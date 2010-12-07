@@ -118,7 +118,7 @@ void     Cluster::updateCurrentPacket(Address addr) {
 }
 
 void     Cluster::pipelineStalled(bool stalled) {
-  Instrumentation::stalled(id, stalled);
+//  Instrumentation::stalled(id, stalled);
 
   currentlyStalled = stalled;
 

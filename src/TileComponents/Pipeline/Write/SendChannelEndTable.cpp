@@ -11,6 +11,7 @@
 #include "../../../Datatype/Instruction.h"
 #include "../../../Datatype/MemoryRequest.h"
 #include "../../../Utility/InstructionMap.h"
+#include "../../../Utility/Instrumentation/Stalls.h"
 
 const ChannelID SendChannelEndTable::NULL_MAPPING;
 
@@ -102,9 +103,11 @@ void SendChannelEndTable::send() {
 void SendChannelEndTable::waitUntilEmpty(ChannelIndex channel) {
   // Whilst the buffer has data, wait until the buffer sends something,
   // then check again.
+  Instrumentation::stalled(id, true, Stalls::OUTPUT);
   while(!buffers[channel].isEmpty()) {
     wait(output[channel].default_event());
   }
+  Instrumentation::stalled(id, false);
 }
 
 /* Choose which Buffer to put new data into. All data going to the same
@@ -140,7 +143,7 @@ ChannelID SendChannelEndTable::getChannel(MapIndex mapEntry) const {
   return channelMap.read(mapEntry);
 }
 
-SendChannelEndTable::SendChannelEndTable(sc_module_name name, uint16_t ID) :
+SendChannelEndTable::SendChannelEndTable(sc_module_name name, ComponentID ID) :
     Component(name),
     buffers(NUM_SEND_CHANNELS, CHANNEL_END_BUFFER_SIZE, string(name)),
     channelMap(CHANNEL_MAP_SIZE, string(name)) {

@@ -48,7 +48,7 @@ public:
   // Read from a register without redirecting to RCET.
   int32_t readDebug(RegisterIndex reg) const;
 
-  // Write to a register.
+  // Write to a register, including all safety checks.
   void    write(RegisterIndex reg, int32_t value, bool indirect);
 
   // Simple methods to tell what sort of register is being dealt with.
@@ -76,7 +76,10 @@ private:
 
   // Store a subsection of the data into the indirect register at position
   // "address".
-  void updateIndirectReg(RegisterIndex address, Word data);
+  void updateIndirectReg(RegisterIndex reg, Word data);
+
+  // Perform the register write (no safety checks, etc.).
+  void writeReg(RegisterIndex reg, Word value);
 
   Cluster* parent() const;
 

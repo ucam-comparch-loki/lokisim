@@ -27,8 +27,8 @@ void Instrumentation::memoryWrite(MemoryAddr address) {
   Memory::write(address);
 }
 
-void Instrumentation::stalled(ComponentID id, bool stalled) {
-  if(stalled) Stalls::stall(id, currentCycle());
+void Instrumentation::stalled(ComponentID id, bool stalled, int reason) {
+  if(stalled) Stalls::stall(id, currentCycle(), reason);
   else Stalls::unstall(id, currentCycle());
 }
 

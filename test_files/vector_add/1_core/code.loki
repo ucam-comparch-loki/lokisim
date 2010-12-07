@@ -18,8 +18,8 @@ slli                r10, ch0, 2             ; r10 = byte-length of vectors
 addui.eop           r10, r10, -4            ; r10 = offset of final element
 
 % Main loop
-ldw                 r11, 4         > 1
-ldw                 r11, 4         > 2
+ldw                 r11, 8         > 1
+ldw                 r11, 8         > 2
 setlt.p             r0,  r11, r10           ; see if we have work left to do
 addui               r11, r11, 4             ; move to next element
 addu                r12, ch0, ch1           ; r12 = sum of vector elements

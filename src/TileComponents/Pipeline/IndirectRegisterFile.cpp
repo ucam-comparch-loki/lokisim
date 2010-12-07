@@ -37,16 +37,13 @@ void IndirectRegisterFile::write(RegisterIndex reg, int32_t value, bool indirect
   // There are some registers that we can't write to.
   if(isReserved(index)/* || isChannelEnd(index)*/) {
     if(index != 0) cerr << "Warning: attempting to write to reserved register "
-                        << index << endl;
+                        << (int)index << endl;
     return;
   }
 
   Word w(value);
-  regs.write(w, index);
+  writeReg(index, w);
   updateIndirectReg(index, w);
-
-  if(DEBUG) cout << this->name() << ": Stored " << w << " to register "
-                 << (int)index << endl;
 
 }
 
@@ -106,7 +103,16 @@ RegisterIndex IndirectRegisterFile::fromChannelID(RegisterIndex position) {
 void IndirectRegisterFile::updateCurrentIPK(Address addr) {
   // setfetchch specifies the channel, so only the address is required here.
   Word w(addr.address());
-  regs.write(w, 1);
+  writeReg(1, w);
+}
+
+void IndirectRegisterFile::writeReg(RegisterIndex reg, Word data) {
+  regs.write(data, reg);
+
+  if(DEBUG) cout << this->name() << ": Stored " << data << " to register " <<
+      (int)reg << endl;
+
+  // Instrumentation...
 }
 
 Cluster* IndirectRegisterFile::parent() const {

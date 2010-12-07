@@ -1,6 +1,10 @@
 #! /usr/bin/env python
 
-import os, subprocess, tempfile, time
+# Simple script for running all regression tests in a directory.
+# If given no arguments, recursively runs all tests in all subdirectories.
+# If given the names of any subdirectories, only runs the tests within.
+
+import os, subprocess, sys, tempfile, time
 
 # Update the loader so it points to a particular directory.
 def updateMetaLoader(directory):
@@ -9,19 +13,22 @@ def updateMetaLoader(directory):
     metaloader.write("directory " + directory + "\n")
     metaloader.write("loader    loader.txt")
     
+    
 # Print the contents of a file.
 def printFile(filename, indent=""):
     for line in filename:
         print indent + line,
+
 
 # Run a single test in the specified directory.
 def runTest(directory):
     errlog = tempfile.TemporaryFile()
 
     command = "Debug/Loki2 > ../logfile.txt"
-    updateMetaLoader(directory)
+    subdir = directory.replace("test_files/","")
+    updateMetaLoader(subdir)
     
-    message = "Testing " + directory + "... "
+    message = "Testing " + subdir + "... "
     print message.ljust(40),    # Pad the message so everything lines up
     
     process = subprocess.Popen(command, shell=True, stderr=errlog)
@@ -30,11 +37,11 @@ def runTest(directory):
 
     if p == 0:  # Execution finished successfully, so now test the output.
         diffFile = tempfile.NamedTemporaryFile()
-        regexpFile = open("test_files/"+directory+"/.regexp")
+        regexpFile = open(directory+"/.regexp")
         regexp = regexpFile.readline().strip()
         
         # diff then grep: would prefer grep then diff so diff receives smaller files
-        command = "diff test_files/" + directory + "/.expected ../logfile.txt | grep \""\
+        command = "diff " + directory + "/.expected ../logfile.txt | grep \""\
                 + regexp + "\" > " + diffFile.name
         process2 = subprocess.Popen(command, shell=True)
         process2.wait()
@@ -56,26 +63,47 @@ def runTest(directory):
         printFile(errlog, "  ")
         
     errlog.close()
+    
+
+# Determine whether this collection of files contains all information required
+# to run a test.
+def containsTest(directory):
+    return "loader.txt" in directory and\
+           ".regexp" in directory and\
+           ".expected" in directory
+    
+    
+# Traverse the directory tree depth-first, running tests wherever possible.
+def testAll(directory):
+    testCount = 0
+    contents = os.listdir(directory)
+    contents.sort()
+    if containsTest(contents):
+        runTest(directory)
+        testCount = testCount + 1
+    if ".svn" in contents:
+        contents.remove(".svn")
+    for entry in contents:
+        fullpath = directory + "/" + entry
+        if os.path.isdir(fullpath):
+            testCount += testAll(fullpath)
+    return testCount
+    
         
-# Execution starts here
-directory = "/local/scratch/db434/workspace/Loki2"
-os.chdir(directory)
+# Execution starts here.
+directory = "test_files"
 testCount = 0
 startTime = time.time()
 
-# Traverse the tree depth-first. (Does breadth-first at the moment.)
-# root = current directory, dirs = subdirectories, files = files in this directory
-for root, dirs, files in os.walk(directory + "/test_files"):
-    if ".svn" in dirs:  # Not interested in svn files/folders
-        dirs.remove(".svn")
-    for test in dirs:
-        testdir = root + "/" + test
-        contents = os.listdir(testdir)
-        # Run the test only if all of the required information is there.
-        if "loader.txt" in contents and ".regexp" in contents and ".expected" in contents:
-            subdir = testdir.replace(directory+"/test_files/", "")
-            runTest(subdir)
-            testCount = testCount + 1
+if len(sys.argv) >= 2:
+    # Run tests in all named subdirectories.
+    for i in range(1, len(sys.argv)):
+        subdir = directory + "/" + sys.argv[i]
+        testCount += testAll(subdir)
+else:
+    # Run all tests.
+    testCount = testAll(directory)
 
 elapsedTime = time.time() - startTime
 print "Completed %(tests)s tests in %(time).3f s" % {'tests': testCount, 'time': elapsedTime}
+

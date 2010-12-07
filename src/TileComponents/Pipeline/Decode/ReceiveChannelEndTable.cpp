@@ -10,6 +10,7 @@
 #include "../IndirectRegisterFile.h"
 #include "../../../Datatype/Word.h"
 #include "../../../Exceptions/BlockedException.h"
+#include "../../../Utility/Instrumentation/Stalls.h"
 
 typedef IndirectRegisterFile Registers;
 
@@ -17,8 +18,10 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
 
   // If there is no data, block until it arrives.
   if(buffers[channelEnd].isEmpty()) {
+    Instrumentation::stalled(parent()->id, true, Stalls::INPUT);
     wait(fromNetwork[channelEnd].default_event());
     wait(sc_core::SC_ZERO_TIME);  // Allow the new value to be put in a buffer.
+    Instrumentation::stalled(parent()->id, false);
   }
 
   int32_t result = buffers.read(channelEnd).toInt();

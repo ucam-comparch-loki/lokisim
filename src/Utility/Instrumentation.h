@@ -29,7 +29,7 @@ namespace Instrumentation {
   void memoryWrite(MemoryAddr address);
 
   // Record that a particular core stalled or unstalled.
-  void stalled(ComponentID id, bool stalled);
+  void stalled(ComponentID id, bool stalled, int reason=0);
 
   // Record that a particular core became idle or active.
   void idle(ComponentID id, bool idle);

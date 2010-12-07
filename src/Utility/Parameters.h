@@ -32,6 +32,7 @@ extern parameter NUM_PHYSICAL_REGISTERS;
 extern parameter IPK_FIFO_SIZE;
 extern parameter IPK_CACHE_SIZE;
 extern parameter MEMORY_SIZE;
+extern parameter CONCURRENT_MEM_OPS;
 
 extern parameter CHANNEL_MAP_SIZE;
 

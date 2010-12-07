@@ -11,7 +11,9 @@
 
 ChannelIndex Crossbar::computeOutput(ChannelIndex source,
                                      ChannelID destination) const {
-  if(destination<startID || destination>=endID) return offNetworkOutput;
+  // Not sure if this is right, but it seems to work for now.
+  // Would expect to have ">= endID" instead of only "> endID".
+  if(destination<startID || destination>endID) return offNetworkOutput;
   else return (destination-startID)/idsPerChannel;
 }
 

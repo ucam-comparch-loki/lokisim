@@ -116,13 +116,13 @@ private:
   Buffer<Address> addresses;
 
   // We have just finished writing an instruction packet.
-  bool            startOfPacket;
+  bool            finishedPacketWrite;
 
   // We have just finished reading an instruction packet.
   bool            finishedPacketRead;
 
-  // The address of the pending packet. We store it in case it needs to be
-  // refetched because it has been overwritten.
+  // The address of the pending packet. We store it in case the packet gets
+  // overwritten and needs to be refetched.
   Address         pendingPacket;
 
 };

@@ -1,0 +1,9 @@
+0  0_init.loki
+12 simd.loki
+12 code.loki
+
+% Each data memory contains information on the length/position of its vector
+13 ../params.data
+14 ../params.data
+13 ../vector1.data
+14 ../vector2.data

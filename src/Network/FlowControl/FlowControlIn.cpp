@@ -8,6 +8,8 @@
 #include "FlowControlIn.h"
 #include "../NetworkHierarchy.h"
 
+#include "../../Datatype/MemoryRequest.h"
+
 /* Put any new data into the buffer. Since we approved the request to send
  * data, it is known that there is enough room. */
 void FlowControlIn::receivedData() {

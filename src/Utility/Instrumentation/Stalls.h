@@ -10,6 +10,7 @@
 
 #include "InstrumentationBase.h"
 #include "CounterMap.h"
+#include <map>
 
 namespace Instrumentation {
 
@@ -17,25 +18,37 @@ class Stalls: public InstrumentationBase {
 
 public:
 
-  static void stall(ComponentID id, int cycle);
+  static void stall(ComponentID id, int cycle, int reason);
   static void unstall(ComponentID id, int cycle);
   static void idle(ComponentID id, int cycle);
   static void active(ComponentID id, int cycle);
   static void endExecution();
   static void printStats();
 
+  enum StallReason {
+    NONE,       // Not currently stalled.
+    INPUT,      // Waiting for input to arrive.
+    OUTPUT,     // Waiting for output channel to clear.
+    PREDICATE   // Waiting to determine predicate's value.
+  };
+
 private:
 
-  // The times that each cluster started stalling (or UNSTALLED if the cluster
-  // is currently active).
-  static CounterMap<ComponentID> stalled;
+  // The times that each cluster started stalling.
+  static std::map<ComponentID, int> startedStalling;
 
-  // The total number of cycles each cluster has spent stalled.
-  static CounterMap<ComponentID> stallTimes;
+  // The reason for each cluster being stalled at the moment (if stalled).
+  static std::map<ComponentID, int> stallReason;
+
+  // The total number of cycles each cluster has spent stalled for various
+  // reasons.
+  static CounterMap<ComponentID> inputStalls;
+  static CounterMap<ComponentID> outputStalls;
+  static CounterMap<ComponentID> predicateStalls;
 
   // The times that each cluster became idle (or UNSTALLED if the cluster is
   // currently active).
-  static CounterMap<ComponentID> idleStart;
+  static std::map<ComponentID, int> startedIdle;
 
   // The total number of cycles each cluster has spent idle.
   static CounterMap<ComponentID> idleTimes;

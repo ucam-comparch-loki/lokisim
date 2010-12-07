@@ -14,17 +14,28 @@
 #include "../Datatype/MemoryRequest.h"
 #include "../Utility/Instrumentation.h"
 
-const int MemoryMat::CONTROL_INPUT = NUM_CLUSTER_INPUTS - 1;
-
 void MemoryMat::newCycle() {
 
-  // Skip over this method if we know there is no work to do.
-//  if(idle.read()) return;
+  active = false;
 
-  for(uint i=0; i<NUM_CLUSTER_INPUTS-1; i++) {
+  std::vector<ChannelIndex> requests;
+  for(ChannelIndex i=0; i<NUM_CLUSTER_INPUTS; i++) {
+    if((!inputBuffers_[i].isEmpty() || connections_[i].streaming()) &&
+        flowControlIn[i].read()) {
+      requests.push_back(i);
+    }
+  }
+
+  arbitrate(requests);
+
+//  for(uint i=0; i<NUM_CLUSTER_INPUTS; i++) {
+  for(uint j=0; j<requests.size(); j++) {
+    ChannelIndex i = requests[j];
+
     ConnectionStatus& connection = connections_[i];
 
-    if(!inputBuffers_[i].isEmpty() && !connection.readingIPK()) {
+    if(!inputBuffers_[i].isEmpty() && flowControlIn[i].read() &&
+       !connection.readingIPK()) {
 
       // If there is no connection set up, this must be a request to make a
       // connection.
@@ -32,7 +43,7 @@ void MemoryMat::newCycle() {
         MemoryRequest req = static_cast<MemoryRequest>(inputBuffers_[i].read());
 
         if(req.isSetup()) {
-          if(DEBUG) cout << this->name() << " set-up connection at port " << i << endl;
+          if(DEBUG) cout << this->name() << " set-up connection at port " << (int)i << endl;
           updateControl(i, req.address());
           sendCredit(i);
         }
@@ -40,14 +51,14 @@ void MemoryMat::newCycle() {
           // If there is no connection set up and we receive something which
           // isn't a set up message, something is wrong.
           cerr << "Error: unexpected input at " << this->name() << " port "
-               << i << ": " << req << endl;
+               << (int)i << ": " << req << endl;
           // throw exception?
         }
       }
       // If there isn't an existing transaction, this must be a read
       else if(connection.idle()) {
         if(DEBUG) cout << "Received new memory request at memory " << id <<
-                          ", input " << i << ": ";
+                          ", input " << (int)i << ": ";
 
         // If we are not allowed to send any data (because of flow control),
         // we will not be able to carry out any reads, so only peek at the
@@ -55,7 +66,7 @@ void MemoryMat::newCycle() {
         MemoryRequest req = static_cast<MemoryRequest>(inputBuffers_[i].peek());
 
         if(req.isSetup()) {
-          if(DEBUG) cout << "set-up connection at port " << i << endl;
+          if(DEBUG) cout << "set-up connection at port " << (int)i << endl;
           updateControl(i, req.address());
           inputBuffers_[i].read();
           sendCredit(i);
@@ -102,6 +113,8 @@ void MemoryMat::newCycle() {
 /* Carry out a read for the transaction at input "position". We must be able
  * to complete the read (i.e. flowControl[position] must be true). */
 void MemoryMat::read(ChannelIndex position) {
+
+  active = true;
 
   ConnectionStatus& connection = connections_[position];
   Word w;
@@ -162,6 +175,9 @@ void MemoryMat::read(ChannelIndex position) {
 
 /* Carry out a write for the transaction at input "position". */
 void MemoryMat::write(Word w, ChannelIndex position) {
+
+  active = true;
+
   ConnectionStatus& connection = connections_[position];
 
   MemoryAddr addr = connection.address();
@@ -175,7 +191,7 @@ void MemoryMat::write(Word w, ChannelIndex position) {
     uint mask = ~(255 << shiftAmount);
     currVal &= mask;
     uint newVal = w.toInt() & 255;
-    currVal &= (newVal << shiftAmount);
+    currVal |= (newVal << shiftAmount);
     Word newWord(currVal);
     data_.write(newWord, addr/BYTES_PER_WORD);
   }
@@ -191,6 +207,9 @@ void MemoryMat::write(Word w, ChannelIndex position) {
 }
 
 void MemoryMat::updateControl(ChannelIndex port, ChannelID returnAddr) {
+
+  active = true;
+
   // We don't have to do any safety checks because we assume that all
   // connections are statically orchestrated.
   ConnectionStatus& connection = connections_[port];
@@ -209,22 +228,73 @@ void MemoryMat::updateControl(ChannelIndex port, ChannelID returnAddr) {
   out[port].write(aw);
 }
 
+void MemoryMat::arbitrate(std::vector<ChannelIndex>& inputs) {
+  // If there are fewer requests than the number of operations we can carry
+  // out, we can do them all.
+
+  if(inputs.size() <= CONCURRENT_MEM_OPS) {
+    if(inputs.size() > 0) lastAccepted = inputs.back();
+    return;
+  }
+
+  uint numAccepted = 0;
+  uint start = 0;
+
+  // Find the position in the input vector to start from.
+  while(start < inputs.size() && inputs[start] <= lastAccepted) start++;
+
+  uint i = start;
+
+  // Round-robin scheduling: go from the last accepted position to the end.
+  while(i<inputs.size()) {
+    if(numAccepted<CONCURRENT_MEM_OPS) {
+      i++;
+      numAccepted++;
+    }
+    else {
+      inputs.erase(inputs.begin()+i, inputs.end());
+      break;
+    }
+  }
+
+  i = 0;
+
+  // Then go from the start to the last position.
+  while(i<start) {
+    if(numAccepted<CONCURRENT_MEM_OPS) {
+      i++;
+      numAccepted++;
+    }
+    else {
+      inputs.erase(inputs.begin()+i, inputs.begin()+start);
+      break;
+    }
+  }
+
+  if(inputs.size() > 0) lastAccepted = inputs.back();
+
+  assert(inputs.size() <= CONCURRENT_MEM_OPS);
+
+}
+
 void MemoryMat::updateIdle() {
   bool isIdle = true;
 
-  for(uint i=0; i<connections_.size(); i++) {
-    ConnectionStatus& c = connections_[i];
+  if(!active) {
+    for(uint i=0; i<connections_.size(); i++) {
+      ConnectionStatus& c = connections_[i];
 
-    // The memory is active if there is at least one port where a streaming
-    // connection is set up, or there is a pending request in the buffer.
-    if((c.active() && c.streaming()) || !inputBuffers_[i].isEmpty()) {
-      isIdle = false;
+      // The memory is active if there is at least one port where a streaming
+      // connection is set up, or there is a pending request in the buffer.
+      if((c.active() && c.streaming()) || !inputBuffers_[i].isEmpty()) {
+        isIdle = false;
+        break;
+      }
+
     }
-
-    // TODO: memory is active if it was read from in this cycle
   }
 
-  idle.write(isIdle);
+  idle.write(!active && isIdle);
 
   Instrumentation::idle(id, isIdle);
 }
@@ -233,7 +303,6 @@ void MemoryMat::checkInputs() {
   for(uint i=0; i<NUM_CLUSTER_INPUTS; i++) {
     if(!inputBuffers_[i].isFull() && in[i].event()) {
       inputBuffers_[i].write(in[i].read());
-//      idle.write(false);
     }
   }
 }
@@ -283,7 +352,7 @@ MemoryMat::MemoryMat(sc_module_name name, ComponentID ID) :
     TileComponent(name, ID),
     data_(MEMORY_SIZE, string(name)),
     connections_(NUM_CLUSTER_INPUTS),
-    inputBuffers_(NUM_CLUSTER_INPUTS, 4, string(name)) {
+    inputBuffers_(NUM_CLUSTER_INPUTS, CHANNEL_END_BUFFER_SIZE, string(name)) {
 
   wordsLoaded_ = 0;
 

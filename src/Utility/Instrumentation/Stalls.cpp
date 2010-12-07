@@ -9,9 +9,14 @@
 #include "Stalls.h"
 #include "../Parameters.h"
 
-CounterMap<ComponentID> Stalls::stalled;
-CounterMap<ComponentID> Stalls::stallTimes;
-CounterMap<ComponentID> Stalls::idleStart;
+std::map<ComponentID, int> Stalls::startedStalling;
+std::map<ComponentID, int> Stalls::startedIdle;
+
+CounterMap<ComponentID> Stalls::inputStalls;
+CounterMap<ComponentID> Stalls::outputStalls;
+CounterMap<ComponentID> Stalls::predicateStalls;
+std::map<ComponentID, int> Stalls::stallReason;
+
 CounterMap<ComponentID> Stalls::idleTimes;
 int Stalls::numStalled = (CLUSTERS_PER_TILE-MEMS_PER_TILE) * NUM_TILES; // Messy - fix?
 int Stalls::endOfExecution = 0;
@@ -22,9 +27,12 @@ const int UNSTALLED = -1;
 
 const int NUM_CORES = (CLUSTERS_PER_TILE+MEMS_PER_TILE) * NUM_TILES;
 
-void Stalls::stall(ComponentID id, int cycle) {
-  if(stalled[id] == UNSTALLED || (stalled[id]==0 && stallTimes[id]==0)) {
-    stalled.setCount(id, cycle);
+void Stalls::stall(ComponentID id, int cycle, int reason) {
+  if(stallReason[id] == NONE) {
+
+    stallReason[id] = reason;
+
+    startedStalling[id] = cycle;
     numStalled++;
 
     if(numStalled >= NUM_CORES) {
@@ -34,17 +42,33 @@ void Stalls::stall(ComponentID id, int cycle) {
 }
 
 void Stalls::unstall(ComponentID id, int cycle) {
-  if(stalled[id] != UNSTALLED) {
-    int stallLength = cycle - stalled[id];
-    stallTimes.setCount(id, stallTimes[id] + stallLength);
-    stalled.setCount(id, UNSTALLED);
+  if(stallReason[id] != NONE) {
+    int stallLength = cycle - startedStalling[id];
+
+    switch(stallReason[id]) {
+      case INPUT : {
+        inputStalls.setCount(id, inputStalls[id] + stallLength);
+        break;
+      }
+      case OUTPUT : {
+        outputStalls.setCount(id, outputStalls[id] + stallLength);
+        break;
+      }
+      case PREDICATE : {
+        predicateStalls.setCount(id, predicateStalls[id] + stallLength);
+        break;
+      }
+      default : std::cerr << "Warning: Unknown stall reason." << endl;
+    }
+
+    stallReason[id] = NONE;
     numStalled--;
   }
 }
 
 void Stalls::idle(ComponentID id, int cycle) {
-  if(idleStart[id] == UNSTALLED || (idleStart[id]==0 && idleTimes[id]==0)) {
-    idleStart.setCount(id, cycle);
+  if(startedIdle[id] == UNSTALLED || (startedIdle[id]==0 && idleTimes[id]==0)) {
+    startedIdle[id] = cycle;
     numStalled++;
 
     if(numStalled >= NUM_CORES) {
@@ -54,10 +78,10 @@ void Stalls::idle(ComponentID id, int cycle) {
 }
 
 void Stalls::active(ComponentID id, int cycle) {
-  if(idleStart[id] != UNSTALLED) {
-    int idleLength = cycle - idleStart[id];
+  if(startedIdle[id] != UNSTALLED) {
+    int idleLength = cycle - startedIdle[id];
     idleTimes.setCount(id, idleTimes[id] + idleLength);
-    idleStart.setCount(id, UNSTALLED);
+    startedIdle[id] = UNSTALLED;
     numStalled--;
   }
 }
@@ -70,19 +94,27 @@ void Stalls::endExecution() {
 void Stalls::printStats() {
 
   cout << "Cluster activity:" << endl;
-  cout << "  Cluster\tActive\tIdle\tStalled" << endl;
+  cout << "  Cluster\tActive\tIdle\tStalled (input|output|predicate)" << endl;
 
   for(ComponentID i=0; i<NUM_COMPONENTS; i++) {
-    // Flush any remaining stall time into the CounterMap.
+    // Skip over memories for now -- they are not instrumented properly.
+    if(i%COMPONENTS_PER_TILE >= CLUSTERS_PER_TILE) continue;
+
+    // Flush any remaining stall/idle time into the CounterMaps.
     unstall(i, endOfExecution);
+    active(i, endOfExecution);
 
     // Only print statistics for clusters which have seen some activity.
-    if(stallTimes[i] < endOfExecution) {
-      int activeCycles = endOfExecution - stallTimes[i] - idleTimes[i];
+    if(idleTimes[i] < endOfExecution) {
+      int totalStalled = inputStalls[i] + outputStalls[i] + predicateStalls[i];
+      int activeCycles = endOfExecution - totalStalled - idleTimes[i];
       cout << "  " << i << "\t\t" <<
           asPercentage(activeCycles, endOfExecution) << "\t" <<
           asPercentage(idleTimes[i], endOfExecution) << "\t" <<
-          asPercentage(stallTimes[i], endOfExecution) << endl;
+          asPercentage(totalStalled, endOfExecution) << "\t(" <<
+          asPercentage(inputStalls[i], totalStalled) << "|" <<
+          asPercentage(outputStalls[i], totalStalled) << "|" <<
+          asPercentage(predicateStalls[i], totalStalled) << ")" << endl;
     }
   }
 

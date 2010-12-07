@@ -39,7 +39,7 @@ public:
 
 public:
 
-  SendChannelEndTable(sc_module_name name, uint16_t ID);
+  SendChannelEndTable(sc_module_name name, ComponentID ID);
   virtual ~SendChannelEndTable();
 
 //==============================//

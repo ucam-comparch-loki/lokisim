@@ -13,6 +13,7 @@
 #include "../../../Datatype/MemoryRequest.h"
 #include "../../../Exceptions/BlockedException.h"
 #include "../../../Utility/InstructionMap.h"
+#include "../../../Utility/Instrumentation/Stalls.h"
 
 typedef IndirectRegisterFile Registers;
 
@@ -295,7 +296,7 @@ int32_t Decoder::readRegs(RegisterIndex index, bool indirect) {
 }
 
 int32_t Decoder::readRCET(ChannelIndex index) {
-  // Block until we have the result.
+  // Block until we have the result (may take multiple cycles).
   blocked = true;
   int32_t result = parent()->readRCET(index);
   blocked = false;
@@ -344,9 +345,13 @@ bool Decoder::shouldExecute(const DecodedInst& inst) {
        Registers::isChannelEnd(inst.sourceReg2())) {
       if(DEBUG) cout << this->name()
           << " waiting one cycle for predicate to be set." << endl;
+
       blocked = true;
+      Instrumentation::stalled(id, true, Stalls::PREDICATE);
       wait(1, sc_core::SC_NS);
       blocked = false;
+      Instrumentation::stalled(id, false);
+
       haveStalled = true;
     }
   }
