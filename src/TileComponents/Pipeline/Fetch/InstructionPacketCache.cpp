@@ -35,7 +35,7 @@ Instruction InstructionPacketCache::read() {
 void InstructionPacketCache::write(Instruction inst) {
   Address addr;
 
-  if(!addresses.isEmpty() && finishedPacketWrite) {
+  if(!addresses.empty() && finishedPacketWrite) {
     // Only associate the tag with the first instruction of the packet.
     // Means that if a packet is searched for, execution starts at the start.
     addr = addresses.read();
@@ -51,7 +51,7 @@ void InstructionPacketCache::write(Instruction inst) {
   catch(std::exception& e) {
     // The write method throws an exception if the next packet needs to be
     // fetched again.
-    if(!addresses.isFull()) addresses.write(pendingPacket);
+    if(!addresses.full()) addresses.write(pendingPacket);
     refetch();
   }
 
@@ -74,7 +74,7 @@ bool InstructionPacketCache::lookup(Address addr) {
   // If we don't have the instructions, we will receive them soon, so store
   // the address to use as the tag.
   if(!inCache) {
-    if(!addresses.isFull()) addresses.write(addr);
+    if(!addresses.full()) addresses.write(addr);
       // Stall if the buffer is now full?
     else throw WritingToFullException(this->name());
   }
@@ -120,7 +120,7 @@ Address InstructionPacketCache::getInstAddress() const {
 
 /* Returns whether or not the cache is empty. */
 bool InstructionPacketCache::isEmpty() const {
-  return cache.isEmpty();
+  return cache.empty();
 }
 
 bool InstructionPacketCache::roomToFetch() const {

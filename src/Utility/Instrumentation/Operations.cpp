@@ -26,7 +26,7 @@ void Operations::printStats() {
     cout << "Operations:" << endl <<
       "  Operation\tExecuted \tUnexecuted" << endl;
 
-    for(int i=0; i<InstructionMap::RMTNXIPK; i++) {
+    for(int i=0; i<InstructionMap::SETCHMAP; i++) {
       if(executedOps[i] > 0 || unexecutedOps[i] > 0) {
         int total = executedOps[i] + unexecutedOps[i];
         string name = InstructionMap::name(i);

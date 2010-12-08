@@ -30,7 +30,7 @@ public:
   // Read from the buffer. Returns the oldest value which has not yet been
   // read.
   virtual T& read() {
-    if(!isEmpty()) {
+    if(!empty()) {
       int i = readPos.value();
       incrementReadFrom();
       return this->data_[i];
@@ -42,7 +42,7 @@ public:
 
   // Write the given data to the buffer.
   virtual void write(const T& newData) {
-    if(!isFull()) {
+    if(!full()) {
       this->data_[writePos.value()] = newData;
       incrementWriteTo();
     }
@@ -54,7 +54,7 @@ public:
 
   // Returns the value at the front of the queue, but does not remove it.
   T& peek() {
-    if(!isEmpty()) {
+    if(!empty()) {
       return (this->data_[readPos.value()]);
     }
     else {
@@ -64,16 +64,16 @@ public:
 
   // Removes the element at the front of the queue, without returning it.
   void discardTop() {
-    if(!isEmpty()) incrementReadFrom();
+    if(!empty()) incrementReadFrom();
   }
 
   // Returns whether the buffer is empty.
-  bool isEmpty() {
+  bool empty() {
     return (fillCount == 0);
   }
 
   // Returns whether the buffer is full.
-  bool isFull() {
+  bool full() {
     return (fillCount == this->size());
   }
 

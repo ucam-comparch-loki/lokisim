@@ -128,6 +128,10 @@ private:
   // Tell the cluster whether it is currently stalled or not.
   void             pipelineStalled(bool stalled);
 
+  // Discard the instruction waiting to enter the given pipeline stage (if any).
+  // Returns whether or not anything was discarded.
+  bool             discardInstruction(int stage);
+
   // The fetch port and the send channel-end table's first port share the same
   // destination and output port, so data sent from either of them need to be
   // multiplexed.

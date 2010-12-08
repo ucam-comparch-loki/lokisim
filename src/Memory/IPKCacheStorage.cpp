@@ -40,6 +40,7 @@ Instruction& IPKCacheStorage::read() {
   if(!currInst.isNull()) {
     int i = currInst.value();
     incrementCurrent();
+
     lastOpWasARead = true;
 
     previousLocation = locations[i];
@@ -101,6 +102,8 @@ void IPKCacheStorage::jump(const JumpOffset offset) {
   if(currInst.isNull()) currInst = currInstBackup + offset;
   else currInst += offset - 1; // -1 because we have already incremented currInst
 
+  cout << "Fill count = " << fillCount << endl;
+
   updateFillCount();
 
   // Update currentPacket if we have jumped to the start of a packet
@@ -132,17 +135,17 @@ Address IPKCacheStorage::getInstLocation() const {
 /* Returns whether the cache is empty. Note that even if a cache is empty,
  * it is still possible to access its contents if an appropriate tag is
  * looked up. */
-bool IPKCacheStorage::isEmpty() const {
+bool IPKCacheStorage::empty() const {
   // Definition of "empty" is slightly tricky: if the current instruction
   // pointer and the refill pointer are in the same place, this could mean
   // that the cache is either empty or full. Need to take into account
   // whether the last operation was a read or a write.
   // If it was a read, the cache is now empty; if it was a write, it is full.
-  return (currInst.isNull()) || (fillCount == 0 && lastOpWasARead);
+  return (currInst.isNull()) || (fillCount == 0);
 }
 
 /* Returns whether the cache is full. */
-bool IPKCacheStorage::isFull() const {
+bool IPKCacheStorage::full() const {
   return fillCount == this->size();
 }
 
@@ -190,20 +193,19 @@ uint16_t IPKCacheStorage::getPosition(const Address& key) {
 
 void IPKCacheStorage::incrementRefill() {
   ++refill;
-  updateFillCount();
+  fillCount++;
 }
 
 void IPKCacheStorage::incrementCurrent() {
   ++currInst;
-
-  // We don't use updateFillCount() since we want the possibility of the
-  // cache being empty. updateFillCount() always assumes fullness.
-  fillCount = (fillCount - 1 + this->size()) % this->size();
+  fillCount--;
 }
 
 void IPKCacheStorage::updateFillCount() {
   if(refill == currInst) {
-    fillCount = this->size();
+    // If we just read something, the cache must now be empty.
+    // If we wrote something, it must now be full.
+    fillCount = lastOpWasARead ? 0 : this->size();
     return;
   }
   else if(currInst.isNull()) {

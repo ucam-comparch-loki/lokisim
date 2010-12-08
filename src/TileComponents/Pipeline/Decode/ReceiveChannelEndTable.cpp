@@ -17,7 +17,7 @@ typedef IndirectRegisterFile Registers;
 int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
 
   // If there is no data, block until it arrives.
-  if(buffers[channelEnd].isEmpty()) {
+  if(buffers[channelEnd].empty()) {
     Instrumentation::stalled(parent()->id, true, Stalls::INPUT);
     wait(fromNetwork[channelEnd].default_event());
     wait(sc_core::SC_ZERO_TIME);  // Allow the new value to be put in a buffer.
@@ -36,7 +36,7 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
 
 /* Return whether or not the specified channel contains data. */
 bool ReceiveChannelEndTable::testChannelEnd(ChannelIndex channelEnd) const {
-  return buffers[channelEnd].isEmpty();
+  return buffers[channelEnd].empty();
 }
 
 ChannelIndex ReceiveChannelEndTable::selectChannelEnd() {
@@ -44,7 +44,7 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd() {
 
   // Check all of the channels in a round-robin style, using a LoopCounter.
   for(int i = ++currentChannel; i != current; ++currentChannel) {
-    if(!buffers[i].isEmpty()) {
+    if(!buffers[i].empty()) {
       // Adjust address so it can be accessed like a register
       return Registers::fromChannelID(i);
     }
@@ -61,7 +61,7 @@ void ReceiveChannelEndTable::checkInputs() {
   // is safe to write data to them now.
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     if(fromNetwork[i].event()) {
-      assert(!buffers[i].isFull());
+      assert(!buffers[i].full());
 
       buffers[i].write(fromNetwork[i].read());
 

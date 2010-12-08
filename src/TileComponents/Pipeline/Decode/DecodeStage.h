@@ -119,6 +119,10 @@ private:
   // Set the instruction packet cache into persistent or non-persistent mode.
   void           setPersistent(bool persistent);
 
+  // If an instruction is waiting to enter this pipeline stage, discard it.
+  // Returns whether anything was discarded.
+  bool           discardNextInst();
+
 //==============================//
 // Components
 //==============================//

@@ -20,7 +20,7 @@ void MemoryMat::newCycle() {
 
   std::vector<ChannelIndex> requests;
   for(ChannelIndex i=0; i<NUM_CLUSTER_INPUTS; i++) {
-    if((!inputBuffers_[i].isEmpty() || connections_[i].streaming()) &&
+    if((!inputBuffers_[i].empty() || connections_[i].streaming()) &&
         flowControlIn[i].read()) {
       requests.push_back(i);
     }
@@ -34,7 +34,7 @@ void MemoryMat::newCycle() {
 
     ConnectionStatus& connection = connections_[i];
 
-    if(!inputBuffers_[i].isEmpty() && flowControlIn[i].read() &&
+    if(!inputBuffers_[i].empty() && flowControlIn[i].read() &&
        !connection.readingIPK()) {
 
       // If there is no connection set up, this must be a request to make a
@@ -286,7 +286,7 @@ void MemoryMat::updateIdle() {
 
       // The memory is active if there is at least one port where a streaming
       // connection is set up, or there is a pending request in the buffer.
-      if((c.active() && c.streaming()) || !inputBuffers_[i].isEmpty()) {
+      if((c.active() && c.streaming()) || !inputBuffers_[i].empty()) {
         isIdle = false;
         break;
       }
@@ -301,7 +301,7 @@ void MemoryMat::updateIdle() {
 
 void MemoryMat::checkInputs() {
   for(uint i=0; i<NUM_CLUSTER_INPUTS; i++) {
-    if(!inputBuffers_[i].isFull() && in[i].event()) {
+    if(!inputBuffers_[i].full() && in[i].event()) {
       inputBuffers_[i].write(in[i].read());
     }
   }

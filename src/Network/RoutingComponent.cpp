@@ -28,7 +28,7 @@ void RoutingComponent::sendData() {
       }
 
       // Try to send any data in the buffer.
-      if(!inputBuffers[input].isEmpty()) {
+      if(!inputBuffers[input].empty()) {
         // Determine which output port to send the data to.
         ChannelID destination = inputBuffers[input].peek().channelID();
         ChannelIndex outPort = computeOutput(input, destination);
@@ -62,13 +62,13 @@ void RoutingComponent::sendData() {
 
     // Errors if we don't do this check.
     if(allowedToSend.size() > 0) delete &allowedToSend;
-    haveData = !inputBuffers.isEmpty();
+    haveData = !inputBuffers.empty();
   }
 }
 
 void RoutingComponent::updateReady(ChannelIndex input) {
   // We can accept new data if the buffer is not full.
-  readyOut[input].write(!inputBuffers[input].isFull());
+  readyOut[input].write(!inputBuffers[input].full());
 }
 
 int RoutingComponent::bitsSwitched(ChannelIndex from, ChannelIndex to,

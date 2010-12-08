@@ -129,6 +129,18 @@ void     Cluster::pipelineStalled(bool stalled) {
   }
 }
 
+bool     Cluster::discardInstruction(int stage) {
+  switch(stage) {
+    case 2 : return stallReg1.discard();
+    case 3 : return stallReg2.discard();
+    case 4 : return stallReg3.discard();
+    default : {
+      cerr << "Discarding instruction before invalid pipeline stage." << endl;
+      throw std::exception();
+    }
+  }
+}
+
 void     Cluster::multiplexOutput0() {
   // Note: we absolutely must not send two outputs to this port on the same
   // cycle.

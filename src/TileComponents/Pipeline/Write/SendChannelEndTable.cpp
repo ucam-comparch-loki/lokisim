@@ -76,7 +76,7 @@ bool SendChannelEndTable::isFull() const {
 
   // We say we are full if any one of our buffers are full.
   for(uint i=0; i<buffers.size(); i++) {
-    if(buffers[i].isFull()) return true;
+    if(buffers[i].full()) return true;
   }
 
   // If we have got this far, we are not waiting, and no buffers are full.
@@ -88,11 +88,11 @@ void SendChannelEndTable::send() {
   for(uint i=0; i<buffers.size(); i++) {
     bool send = flowControl[i].read();
 
-    if(!(buffers[i].isEmpty()) && send) {
+    if(!(buffers[i].empty()) && send) {
       output[i].write(buffers[i].read());
 
       // See if we can stop waiting
-      if(waitingOn == i && buffers[i].isEmpty()) {
+      if(waitingOn == i && buffers[i].empty()) {
         waitingOn = NO_CHANNEL;
       }
     }
@@ -104,7 +104,7 @@ void SendChannelEndTable::waitUntilEmpty(ChannelIndex channel) {
   // Whilst the buffer has data, wait until the buffer sends something,
   // then check again.
   Instrumentation::stalled(id, true, Stalls::OUTPUT);
-  while(!buffers[channel].isEmpty()) {
+  while(!buffers[channel].empty()) {
     wait(output[channel].default_event());
   }
   Instrumentation::stalled(id, false);

@@ -66,6 +66,10 @@ private:
   // Update the channel to which we send fetch requests.
   void    setFetchChannel(ChannelID channelID);
 
+  // If an instruction is waiting to be decoded, discard it. Returns whether
+  // anything was discarded.
+  bool    discardNextInst();
+
   // Write operations take two cycles since there are two flits to send. This
   // method sends the second part.
   bool completeWrite(const DecodedInst& input, DecodedInst& output);
@@ -112,11 +116,6 @@ private:
   // happens in the execute stage (in parallel with the current decode), so
   // we must sometimes stall if we need the predicate's latest value.
   bool settingPredicate;
-
-  // Sometimes we may find out that we do not want the next instruction in
-  // the sequence (perhaps due to an in-buffer jump), but it is too late to
-  // stop the fetch stage sending it. We therefore discard a single instruction.
-  bool discardNextInst;
 
 };
 

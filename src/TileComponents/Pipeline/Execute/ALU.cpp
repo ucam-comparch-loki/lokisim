@@ -13,7 +13,6 @@
 
 bool ALU::execute(DecodedInst& dec) {
 
-  if(dec.operation() == InstructionMap::NOP) return false;
   if(dec.hasResult()) return true;
 
   bool execute = shouldExecute(dec.predicate());
@@ -21,6 +20,7 @@ bool ALU::execute(DecodedInst& dec) {
   if(InstructionMap::isALUOperation(dec.operation()))
     Instrumentation::operation(dec, execute, parent()->id);
 
+  if(dec.operation() == InstructionMap::NOP) return false;
   if(!execute) return false;
 
   bool pred = parent()->getPredicate();

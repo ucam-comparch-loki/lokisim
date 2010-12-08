@@ -24,7 +24,7 @@ void InstructionPacketFIFO::sendCredit() {
 }
 
 bool InstructionPacketFIFO::isEmpty() {
-  return fifo.isEmpty();
+  return fifo.empty();
 }
 
 InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :

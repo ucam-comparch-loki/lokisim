@@ -50,6 +50,10 @@ public:
 // Methods
 //==============================//
 
+  // Discard the oldest instruction in this StallRegister (if any). Returns
+  // whether anything was discarded.
+  bool discard();
+
 private:
 
   // Send any held data at the beginning of each clock cycle.

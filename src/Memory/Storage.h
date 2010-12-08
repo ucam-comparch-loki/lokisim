@@ -17,6 +17,7 @@
 #include <inttypes.h>
 #include <iostream>
 #include <vector>
+#include <assert.h>
 #include "../Utility/Parameters.h"
 #include "../Exceptions/OutOfBoundsException.h"
 
@@ -59,9 +60,12 @@ protected:
 
   // Throw an exception if the address is not within the bounds of the array.
   virtual void checkBounds(const uint32_t addr) const {
-    if((addr < 0) || (addr >= size())) {
-      throw OutOfBoundsException(addr, size());
-    }
+    assert(addr >= 0);
+    assert(addr < size());
+
+//    if((addr < 0) || (addr >= size())) {
+//      throw OutOfBoundsException(addr, size());
+//    }
   }
 
 //==============================//

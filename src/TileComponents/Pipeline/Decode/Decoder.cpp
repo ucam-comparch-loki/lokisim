@@ -26,13 +26,6 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   output = input;
   haveStalled = false;
 
-  if(discardNextInst) {
-    output.result(0);
-    output.destination(0);
-    discardNextInst = false;
-    return true;
-  }
-
   // Instructions that never reach the ALU (e.g. fetch) need to know whether
   // they should execute in this stage.
   bool execute = shouldExecute(input);
@@ -135,12 +128,12 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
         if(execute) {
           JumpOffset jump = (JumpOffset)output.immediate();
 
-          // We need to go back by one more instruction if we have taken a
-          // cycle here, because the fetch stage will have already supplied
+          // We may need to go back by one more instruction if we have waited a
+          // cycle here, because the fetch stage may have already supplied
           // the next instruction.
           if(haveStalled) {
-            jump -= BYTES_PER_WORD;
-            discardNextInst = true;
+            bool discarded = discardNextInst();
+            if(discarded) jump -= BYTES_PER_WORD;
           }
 
           parent()->jump(jump);
@@ -309,6 +302,10 @@ void Decoder::fetch(MemoryAddr addr) {
 
 void Decoder::setFetchChannel(ChannelID channelID) {
   parent()->setFetchChannel(channelID);
+}
+
+bool Decoder::discardNextInst() {
+  return parent()->discardNextInst();
 }
 
 /* Sends the second part of a two-flit store operation (the data to send). */

@@ -59,10 +59,10 @@ public:
   // Returns whether the cache is empty. Note that even if a cache is empty,
   // it is still possible to access its contents if an appropriate tag is
   // looked up.
-  bool isEmpty() const;
+  bool empty() const;
 
   // Returns whether the cache is full.
-  bool isFull() const;
+  bool full() const;
 
   // Begin reading the packet which is queued up to execute next.
   void switchToPendingPacket();

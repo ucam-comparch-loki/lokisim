@@ -8,16 +8,22 @@
 #include "StallRegister.h"
 #include "../../Datatype/DecodedInst.h"
 
+bool StallRegister::discard() {
+  if(buffer.empty()) return false;
+  else {
+    buffer.discardTop();
+    return true;
+  }
+}
+
 void StallRegister::newCycle() {
-  if(!buffer.isEmpty() && readyIn.read() && !localStageStalled.read()) {
+  if(!buffer.empty() && readyIn.read() && !localStageStalled.read()) {
     dataOut.write(buffer.read());
   }
 }
 
 void StallRegister::newData() {
-  // We only allow data in when there is space for it, so we know that this
-  // is safe.
-  assert(!buffer.isFull());
+  assert(!buffer.full());
   buffer.write(dataIn.read());
 }
 

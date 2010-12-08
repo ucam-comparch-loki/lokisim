@@ -49,7 +49,7 @@ void FetchLogic::send() {
   //  1. There must be something to send.
   //  2. Flow control must allow us to send.
   //  3. There must be enough room in the cache for a new packet.
-  if(!toSend.isEmpty() && flowControl.read()) {
+  if(!toSend.empty() && flowControl.read()) {
     if(toSend.peek().portClaim()) {
       toNetwork.write(toSend.read());
     }

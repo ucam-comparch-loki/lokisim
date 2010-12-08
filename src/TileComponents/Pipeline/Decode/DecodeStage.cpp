@@ -89,6 +89,11 @@ void         DecodeStage::setPersistent(bool persistent) {
   parent()->setPersistent(persistent);
 }
 
+bool         DecodeStage::discardNextInst() {
+  // This is the 2nd pipeline stage, so the argument is 2.
+  return parent()->discardInstruction(2);
+}
+
 DecodeStage::DecodeStage(sc_module_name name, ComponentID ID) :
     PipelineStage(name),
     StageWithSuccessor(name),

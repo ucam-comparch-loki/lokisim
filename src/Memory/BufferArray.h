@@ -44,9 +44,9 @@ public:
     return buffers.size();
   }
 
-  bool isEmpty() const {
+  bool empty() const {
     for(uint i=0; i<size(); i++) {
-      if(!buffers[i]->isEmpty()) return false;
+      if(!buffers[i]->empty()) return false;
     }
     return true;
   }
