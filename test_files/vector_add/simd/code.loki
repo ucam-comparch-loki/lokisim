@@ -1,8 +1,8 @@
 % Set up connections to memories
 fetch               r1,  40
-addui               r5,  r20, 52            ; each member will access a different port
-addui               r6,  r20, 56
-addui               r7,  r20, 60
+addui               r5,  r30, 52            ; each member will access a different port
+addui               r6,  r30, 56
+addui               r7,  r30, 60
 setchmap            r5,  1                  ; vector 1 = map 1
 setchmap            r6,  2                  ; vector 2 = map 2
 setchmap            r7,  3                  ; output = map 3
@@ -12,9 +12,9 @@ addui.eop           r0,  r8,  0    > 3
 
 % Load parameter(s)
 fetch               r1,  24
-ldw                 r0,  0         > 1
-slli                r11, r20, 2             ; r11 = current position
-slli                r12, r21, 2             ; r12 = stride length
+ldw                 r0,  4         > 1      ; load length of vectors
+slli                r11, r30, 2             ; r11 = current position
+slli                r12, r31, 2             ; r12 = stride length
 slli                r10, ch0, 2             ; r10 = byte-length of vectors
 addui.eop           r10, r10, -4            ; r10 = offset of final element
 

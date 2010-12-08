@@ -1,0 +1,7 @@
+ori                 r4,  r0,  48
+nop
+setchmap            r4,  0
+ori                 r0,  r0,  1    > 0      ; connect to the instruction memory
+nop
+nop
+fetch.eop           r0,  0                  ; load program

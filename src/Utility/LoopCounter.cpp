@@ -94,7 +94,8 @@ bool LoopCounter::operator<= (int num) const {
 }
 
 void LoopCounter::bringWithinBounds() {
-  val = val % maximum;
+  // Add "maximum" first to ensure we are dealing with a positive number.
+  val = (val+maximum) % maximum;
 }
 
 LoopCounter::LoopCounter(int max) : maximum(max) {

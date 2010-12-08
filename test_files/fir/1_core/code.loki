@@ -1,11 +1,11 @@
-fetch           r1,  72                 ; get the next instruction packet
+fetch           r1,  76                 ; get the next instruction packet
 
 % Load the parameters for this filter. (May deadlock if buffers are small?)
-ldw             r0,  0        > 1
 ldw             r0,  4        > 1
 ldw             r0,  8        > 1
 ldw             r0,  12       > 1
 ldw             r0,  16       > 1
+ldw             r0,  20       > 1
 
 % Store the parameters locally.
 ori             r20, ch0, 0             ; r20 = number of taps
@@ -19,7 +19,8 @@ addui           r26, r20, -1
 slli            r26, r26, 2             ; r26 = (taps - 1) * 4
 slli            r22, r22, 2             ; r22 = input length * 4
 addu            r29, r23, r22           ; r29 = input pos + input length * 4
-addu            r27, r29, r26           ; r27 = end point
+addu            r27, r29, r26
+addui           r27, r27, -4            ; r27 = end point
 addu            r28, r21, r26           ; r28 = end of taps
 
 ori.eop         r4,  r23, 0             ; r4 = position in outer loop

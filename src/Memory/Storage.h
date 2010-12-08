@@ -60,12 +60,12 @@ protected:
 
   // Throw an exception if the address is not within the bounds of the array.
   virtual void checkBounds(const uint32_t addr) const {
-    assert(addr >= 0);
-    assert(addr < size());
+//    assert(addr >= 0);
+//    assert(addr < size());
 
-//    if((addr < 0) || (addr >= size())) {
-//      throw OutOfBoundsException(addr, size());
-//    }
+    if((addr < 0) || (addr >= size())) {
+      throw OutOfBoundsException(addr, size());
+    }
   }
 
 //==============================//
