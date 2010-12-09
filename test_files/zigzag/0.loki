@@ -1,11 +1,11 @@
 % Initialise the mapping table and fetch the particular implementation being used.
 
-ori             r4,  r0,  48
-ori             r6,  r0,  52
+ori             r4,  r0,  (12,0)
+ori             r6,  r0,  (13,0)
 setchmap        r4,       0             ; instruction memory = map 0 (fetch channel)
 setchmap        r6,       3             ; data memory = map 3
-ori             r7,  r0,  6
-ori             r0,  r0,  1   > 0       ; connect to the instruction memory
-addui           r0,  r0,  2   > 3       ; connect to the data memory
+ori             r7,  r0,  (1,2)
+ori             r0,  r0,  (0,1) > 0     ; connect to the instruction memory
+addui           r0,  r0,  (0,2) > 3     ; connect to the data memory
 setchmap        r7,       4             ; cluster 1 = map 4
 fetch.eop       r0,       0             ; fetch main program

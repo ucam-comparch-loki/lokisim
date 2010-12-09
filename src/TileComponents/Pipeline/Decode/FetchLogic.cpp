@@ -50,6 +50,8 @@ void FetchLogic::send() {
   //  2. Flow control must allow us to send.
   //  3. There must be enough room in the cache for a new packet.
   if(!toSend.empty() && flowControl.read()) {
+    // Setting up a memory connection doesn't result in receiving a packet,
+    // so it is safe to send even if there isn't space in the cache.
     if(toSend.peek().portClaim()) {
       toNetwork.write(toSend.read());
     }

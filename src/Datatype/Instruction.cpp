@@ -195,7 +195,7 @@ uint8_t Instruction::decodeField(const string& str) {
   else if(reg[0] == 'c') {            // Channels are optionally marked with "ch"
     reg.erase(0,2);                   // Remove the "ch"
 
-    // There are two reserved registers before channel-ends start
+    // Convert from the channel index to the register index.
     int value = Registers::fromChannelID(Strings::strToInt(reg));
 
     return value;
@@ -204,7 +204,6 @@ uint8_t Instruction::decodeField(const string& str) {
   else {
     // Use decodeRChannel to allow the immediate to be written in remote
     // channel notation: (12,2).
-    // TODO: doesn't work yet because we split around commas earlier.
     immediate(decodeRChannel(reg));
     return 0;
   }
@@ -262,17 +261,26 @@ void Instruction::decodeOpcode(const string& name) {
  * representing a component and one of its input ports.
  * Returns a signed int because this method is also used to decode immediates. */
 int32_t Instruction::decodeRChannel(const string& channel) {
-  vector<string>& parts = Strings::split(channel, ',');
-  if(parts.size() == 1) return Strings::strToInt(parts[0]);
-  else {
-    string component = Strings::split(parts[0],'(').at(1); // Remove the bracket
-    string port = Strings::split(parts[1],')').at(0);      // Remove the bracket
-    int channel = Strings::strToInt(component) * NUM_CLUSTER_INPUTS
-                + Strings::strToInt(port);
-    return channel;
-  }
 
-  delete &parts;
+  vector<string>& parts = Strings::split(channel, ',');
+
+  if(parts.size() == 1) {
+    int channelID = Strings::strToInt(parts[0]);
+    delete &parts;
+    return channelID;
+  }
+  else {
+    // We should now have two strings of the form "(13" and "3)".
+
+    assert(parts.size()==2);
+
+    parts[0].erase(parts[0].begin());           // Remove the bracket
+    parts[1].erase(parts[1].end()-1);           // Remove the bracket
+    int channelID = Strings::strToInt(parts[0]) * NUM_CLUSTER_INPUTS
+                  + Strings::strToInt(parts[1]);
+    delete &parts;
+    return channelID;
+  }
 }
 
 void Instruction::setFields(const uint8_t reg1, const uint8_t reg2,

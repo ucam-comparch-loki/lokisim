@@ -50,6 +50,8 @@ Word DataFileReader::nextWord(std::ifstream& file) const {
   // An array to store individual lines of the file in.
   char line[20];
 
+  // TODO: ignore line if it is empty.
+
   file.getline(line, 20, '\n');
   int val = StringManipulation::strToInt(line);
   return Data(val);

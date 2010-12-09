@@ -89,11 +89,19 @@ def testAll(directory):
             testCount += testAll(fullpath)
     return testCount
     
+# See if there is a simulator where we expect it to be.
+def simulatorFound(location):
+    return os.path.exists(location)
         
 # Execution starts here.
 directory = "test_files"
 testCount = 0
 startTime = time.time()
+
+simulator = "Debug/Loki2"
+if not simulatorFound(simulator):
+    print "Error: no simulator found at " + simulator
+    exit()
 
 if len(sys.argv) >= 2:
     # Run tests in all named subdirectories.

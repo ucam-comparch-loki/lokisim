@@ -142,17 +142,31 @@ bool     Cluster::discardInstruction(int stage) {
 }
 
 void     Cluster::multiplexOutput0() {
-  // Note: we absolutely must not send two outputs to this port on the same
-  // cycle.
-  if(out0Decode.event()) {
-    if(out0Write.event()) {
-      cerr << this->name() << " wrote to output 0 twice in one cycle." << endl;
-      throw std::exception();
-    }
 
-    out[0].write(out0Decode.read());
+  while(true) {
+    // Wait for a signal to arrive.
+    wait(out0Decode.default_event() | out0Write.default_event());
+
+    // Whilst dealing with new outputs, more outputs may appear, so we need
+    // a loop.
+    while(true) {
+      // If both signals arrive at the same time, the write signal gets
+      // priority. This is because the write will probably be setting up a
+      // connection with a memory, and the decode signal will probably be a
+      // subsequent fetch from that memory.
+      if(out0Write.event()) {
+        out[0].write(out0Write.read());
+        wait(1, sc_core::SC_NS);
+      }
+      else if(out0Decode.event()){
+        out[0].write(out0Decode.read());
+        wait(1, sc_core::SC_NS);
+      }
+      // If there are no more new inputs, stop looping.
+      else break;
+    }
   }
-  else if(out0Write.event()) out[0].write(out0Write.read());
+
 }
 
 void     Cluster::updateIdle() {
@@ -200,9 +214,7 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   sensitive << fetchIdle << decodeIdle << executeIdle << writeIdle;
   // do initialise
 
-  SC_METHOD(multiplexOutput0);
-  sensitive << decode.fetchOut << write.output[0];
-  dont_initialize();
+  SC_THREAD(multiplexOutput0);
 
 // Connect things up
   // Inputs

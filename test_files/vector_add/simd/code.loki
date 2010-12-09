@@ -1,8 +1,8 @@
 % Set up connections to memories
 fetch               r1,  40
-addui               r5,  r30, 52            ; each member will access a different port
-addui               r6,  r30, 56
-addui               r7,  r30, 60
+addui               r5,  r30, (13,0)        ; each member will access a different port
+addui               r6,  r30, (14,0)
+addui               r7,  r30, (15,0)
 setchmap            r5,  1                  ; vector 1 = map 1
 setchmap            r6,  2                  ; vector 2 = map 2
 setchmap            r7,  3                  ; output = map 3

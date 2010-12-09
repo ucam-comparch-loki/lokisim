@@ -2,14 +2,13 @@
 % access it will become the control core, and distribute the work across the
 % given number of SIMD cores.
 %
-% Assumes that the length of the input is in memory 13, address 0, and that the
-% number of cores to use is at address 4.
+% Assumes that the number of cores to use is in memory 13 at address 0.
 %
 % All members of the SIMD engine must not write to r30 and r31, as these hold
 % the SIMD parameters.
 
 % Set up connection to memory containing arguments
-ori                 r4,  r0,  52
+ori                 r4,  r0,  (13,0)
 nop
 setchmap            r4,  1
 ori                 r0,  r0,  2    > 1      ; connect to the argument memory
@@ -19,7 +18,7 @@ ldw                 r0,  0         > 1      ; load number of SIMD members
 ori                 r7,  r0,  0             ; r7 = current core we're sending to
 ori                 r5,  r0,  0             ; r5 = remote core's instruction input
 ori                 r6,  r0,  2             ; r6 = remote core's data input
-ori                 r25, ch0, 0             ; r25 = number of SIMD members
+ori                 r10, ch0, 0             ; r10 = number of SIMD members
 
 % Set up connections to remote core
 setchmap            r5,  2                  ; instruction input = map 2
@@ -27,23 +26,24 @@ setchmap            r6,  3                  ; data input = map 3
 
 % Send core any parameters it needs
 ori                 r0,  r7,  0    > 3      ; send core its ID
-ori                 r0,  r25, 0,   > 3      ; send core number of members
+ori                 r0,  r10, 0,   > 3      ; send core number of members
 
-% Set up remote core's channel map table and fetch program
+% Set up remote core's channel map table and fetch program.
+% Note that we need the IPK FIFO to be at least as long as this code sequence.
 rmtexecute                         > 2
 p?ori               r30, ch0, 0             ; r30 = this core's SIMD ID
-p?addui             r4,  r30, 48            ; compute memory port to use
-p?slli              r8,  r30, 2             ; start computing the port to return data to
+p?addui             r4,  r30, (12,0)        ; compute memory port to use
+p?ori               r8,  r0,  (1,0)         ; number of ports per core
+p?mullw             r8,  r8,  r30           ; r8 = first local port
 p?setchmap          r4,  0
 p?addui             r0,  r8,  1    > 0      ; connect to the instruction memory
 p?ori               r31, ch0, 0             ; r31 = number of SIMD members
-p?nop
 p?fetch             r0,  112                ; load program
 
 % If more members, loop
 addui               r7,  r7,  1             ; update to next member
-setlt.p             r0,  r7,  r25           ; see if we have started all members
-p?addui             r5,  r5,  4             ; update instruction input
-p?addui             r6,  r6,  4             ; update data input
+setlt.p             r0,  r7,  r10           ; see if we have started all members
+p?addui             r5,  r5,  (1,0)         ; update instruction input
+p?addui             r6,  r6,  (1,0)         ; update data input
 p?ibjmp             -68                     ; loop if there's another member
 nop.eop
