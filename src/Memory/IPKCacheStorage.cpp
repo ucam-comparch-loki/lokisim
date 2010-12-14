@@ -102,8 +102,6 @@ void IPKCacheStorage::jump(const JumpOffset offset) {
   if(currInst.isNull()) currInst = currInstBackup + offset;
   else currInst += offset - 1; // -1 because we have already incremented currInst
 
-  cout << "Fill count = " << fillCount << endl;
-
   updateFillCount();
 
   // Update currentPacket if we have jumped to the start of a packet
@@ -172,7 +170,7 @@ void IPKCacheStorage::setPersistent(const bool persistent) {
 void IPKCacheStorage::storeCode(const std::vector<Instruction>& code) {
   if(code.size() > this->size()) {
     cerr << "Error: tried to write " << code.size() <<
-      " instructions to a memory of size " << this->size() << endl;
+      " instructions to a instruction cache of size " << this->size() << endl;
   }
 
   for(uint i=0; i<code.size() && i<this->size(); i++) {

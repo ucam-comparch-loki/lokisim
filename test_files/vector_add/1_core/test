@@ -1,0 +1,13 @@
+#! /usr/bin/env python
+
+import imp
+
+module, path, description = imp.find_module("VectorAddTest", [".."])
+mod = imp.load_module("VectorAddTest", module, path, description)
+
+class VectorAdd1CoreTest(mod.VectorAddTest):
+    # Everything is defined in superclasses.
+    pass
+    
+if __name__ == '__main__':
+    VectorAdd1CoreTest().runAllTests()

@@ -286,7 +286,9 @@ void MemoryMat::updateIdle() {
 
       // The memory is active if there is at least one port where a streaming
       // connection is set up, or there is a pending request in the buffer.
-      if((c.active() && c.streaming()) || !inputBuffers_[i].empty()) {
+      // For now, a write stream doesn't count, because it can be sitting idle,
+      // waiting for new data.
+      if((c.active() && c.readingIPK()) || !inputBuffers_[i].empty()) {
         isIdle = false;
         break;
       }

@@ -28,6 +28,13 @@ int sc_main(int argc, char* argv[]) {
       debugMode = true;
       CodeLoader::usingDebugger = true;
     }
+    else if(firstArg == "test") {
+      // Switch off all status reporting, so we only get the information we
+      // want. This allows much faster testing.
+      debugMode = true;
+      DEBUG = 0;
+      Debugger::mode = Debugger::TEST;
+    }
   }
 
   string settingsFile("test_files/loader.txt");

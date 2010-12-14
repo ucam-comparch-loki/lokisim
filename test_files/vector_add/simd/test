@@ -1,0 +1,17 @@
+#! /usr/bin/env python
+
+import imp
+
+module, path, description = imp.find_module("VectorAddTest", [".."])
+mod = imp.load_module("VectorAddTest", module, path, description)
+
+class VectorAddSIMDTest(mod.VectorAddTest):
+    
+    def runAllTests(self):
+        # May want to change number of SIMD members and test several times.
+        # TODO: check command line options for this.
+        simdMembers = self.fileContents("params.data")[0]
+        self.test(description = str(simdMembers) + " cores")        
+    
+if __name__ == '__main__':
+    VectorAddSIMDTest().runAllTests()

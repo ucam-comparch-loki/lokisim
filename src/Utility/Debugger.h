@@ -64,6 +64,8 @@ private:
   static void executeUntilBreakpoint();
   static void finishExecution();
 
+  static void execute(string instruction);
+
   static void changeCore(ComponentID core);
   static void changeMemory(ComponentID memory);
 
@@ -72,6 +74,14 @@ private:
 //==============================//
 // Local state
 //==============================//
+
+public:
+
+  static int mode;
+
+  // Test mode uses much of the same functionality as debug mode, but only
+  // wants the bare minimum of information printed out.
+  enum Mode {DEBUGGER, TEST};
 
 private:
 

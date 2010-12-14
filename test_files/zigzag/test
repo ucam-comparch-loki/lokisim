@@ -1,0 +1,13 @@
+#! /usr/bin/env python
+
+import imp
+
+module, path, description = imp.find_module("ZigzagTest", ["."])
+mod = imp.load_module("ZigzagTest", module, path, description)
+
+class ZigzagImplTest(mod.ZigzagTest):
+    # Everything is defined in superclasses.
+    pass
+            
+if __name__ == '__main__':
+    ZigzagImplTest().runAllTests()

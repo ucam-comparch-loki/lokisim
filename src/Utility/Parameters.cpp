@@ -14,7 +14,7 @@
 
 int DEBUG = 1;
 
-int TIMEOUT = 50000;
+int TIMEOUT = 150000;
 
 int       BYTES_PER_WORD             = 4;
 
@@ -33,12 +33,12 @@ parameter IPK_CACHE_SIZE             = 64;
 parameter MEMORY_SIZE                = 2048;
 parameter CONCURRENT_MEM_OPS         = 1;//NUM_CLUSTER_INPUTS;
 
-parameter CHANNEL_MAP_SIZE           = 8;
+parameter CHANNEL_MAP_SIZE           = 12;
 
 parameter MAX_IPK_SIZE               = 8; // Must be <= buffer size (wormhole)
 
 // Network
-parameter NUM_RECEIVE_CHANNELS       = 2;
+parameter NUM_RECEIVE_CHANNELS       = 10;
 parameter NUM_SEND_CHANNELS          = CHANNEL_MAP_SIZE;
 parameter CHANNEL_END_BUFFER_SIZE    = 8;
 parameter ROUTER_BUFFER_SIZE         = 4;

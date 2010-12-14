@@ -1,2 +1,0 @@
-directory operations/predicate
-loader loader.txt

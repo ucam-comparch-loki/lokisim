@@ -11,6 +11,8 @@
 #include "../Datatype/DecodedInst.h"
 #include "../Datatype/Instruction.h"
 
+int Debugger::mode = DEBUGGER;
+
 bool Debugger::hitBreakpoint = false;
 Chip* Debugger::chip = 0;
 vector<Address> Debugger::breakpoints;
@@ -28,6 +30,8 @@ const string BREAKPOINT   = "breakpoint";
 const string BREAKPOINT_S = "bp";
 const string CONTINUE     = "continue";
 const string CONTINUE_S   = "c";
+const string EXECUTE      = "execute";
+const string EXECUTE_S    = "e";
 const string FINISH       = "finish";
 const string FINISH_S     = "f";
 const string PRINTREGS    = "printregs";
@@ -36,8 +40,8 @@ const string PRINTPRED    = "printpred";
 const string PRINTPRED_S  = "pp";
 const string PRINTSTACK   = "printstack";
 const string PRINTSTACK_S = "ps";
-const string MEMORY       = "memory";
-const string MEMORY_S     = "m";
+const string MEMORY       = "printmem";
+const string MEMORY_S     = "pm";
 const string VERBOSE      = "verbose";
 const string VERBOSE_S    = "v";
 const string CHANGECORE   = "changecore";
@@ -49,9 +53,10 @@ const string QUIT_S       = "q";
 
 
 void Debugger::waitForInput() {
-  cout << "\nEntering debug mode. Press return to begin execution." << endl;
+  if(mode == DEBUGGER)
+    cout << "\nEntering debug mode. Press return to begin execution." << endl;
 
-  while(cyclesIdle < maxIdleTime && cycleNumber < TIMEOUT) {
+  while(true) {
     string input;
     std::getline(std::cin, input);
     vector<string>& words = StringManipulation::split(input, ' ');
@@ -65,6 +70,13 @@ void Debugger::waitForInput() {
     }
     else if(words[0] == CONTINUE   || words[0] == CONTINUE_S) {
       executeUntilBreakpoint();
+    }
+    else if(words[0] == EXECUTE    || words[0] == EXECUTE_S) {
+      // The instruction has been split up, so join it back together again.
+      string inst = "";
+      for(uint i=1; i<words.size(); i++) inst += (words[i] + " ");
+
+      execute(inst);
     }
     else if(words[0] == FINISH     || words[0] == FINISH_S) {
       finishExecution();
@@ -93,13 +105,15 @@ void Debugger::waitForInput() {
     }
     else if(words[0] == VERBOSE    || words[0] == VERBOSE_S) {
       DEBUG = !DEBUG;
-      cout << "Switching to " << (DEBUG?"high":"low") << "-detail mode." << endl;
+      if(mode == DEBUGGER)
+        cout << "Switching to " << (DEBUG?"high":"low") << "-detail mode." << endl;
     }
     else if(words[0] == QUIT       || words[0] == QUIT_S || words[0] == "exit") {
       Instrumentation::endExecution();
       break;
     }
     else {
+      cout << "Unrecognised command: " << words[0] << "\n";
       printHelp();
     }
 
@@ -113,11 +127,13 @@ void Debugger::setBreakPoint(vector<int>& bps, ComponentID memory) {
     Address addr(bps[j], memory);
 
     if(isBreakpoint(addr)) {
-      cout << "Removed breakpoint: " << chip->getMemVal(memory, bps[j]) << endl;
+      if(mode == DEBUGGER)
+        cout << "Removed breakpoint: " << chip->getMemVal(memory, bps[j]) << endl;
       removeBreakpoint(addr);
     }
     else {
-      cout << "Set breakpoint: " << chip->getMemVal(memory, bps[j]) << endl;
+      if(mode == DEBUGGER)
+        cout << "Set breakpoint: " << chip->getMemVal(memory, bps[j]) << endl;
       addBreakpoint(addr);
     }
   }
@@ -133,38 +149,51 @@ void Debugger::printStack(ComponentID core, ComponentID memory) {
 }
 
 void Debugger::printMemLocations(vector<int>& locs, ComponentID memory) {
-  cout << "Printing value(s) from memory " << memory << endl;
+  if(mode == DEBUGGER)
+    cout << "Printing value(s) from memory " << memory << endl;
+
   for(uint i=0; i<locs.size(); i++) {
     int val = chip->getMemVal(memory, locs[i]).toInt();
-    cout << locs[i] << "\t" << val << endl;
+
+    if(mode == DEBUGGER) cout << locs[i] << "\t";
+    cout << val << "\n";
   }
 }
 
 void Debugger::printRegs(vector<int>& regs, ComponentID core) {
-  cout << "Printing core " << core << "'s register values:" << endl;
+  if(mode == DEBUGGER)
+    cout << "Printing core " << core << "'s register values:" << endl;
+
   if(regs.size() == 0) {
     // If no registers were specified, print them all.
     for(uint i=0; i<NUM_ADDRESSABLE_REGISTERS; i++) {  // physical regs instead?
       int regVal = chip->getRegVal(core, i);
-      cout << "r" << i << "\t" << regVal << endl;
+
+      if(mode == DEBUGGER) cout << "r" << i << "\t";
+      cout << regVal << "\n";
     }
   }
   else {
     for(uint i=0; i<regs.size(); i++) {
       int regVal = chip->getRegVal(core, regs[i]);
-      cout << "r" << regs[i] << "\t" << regVal << endl;
+
+      if(mode == DEBUGGER) cout << "r" << regs[i] << "\t";
+      cout << regVal << "\n";
     }
   }
 }
 
 void Debugger::printPred(ComponentID core) {
-  cout << "pred\t" << chip->getPredReg(core) << endl;
+  if(mode == DEBUGGER) cout << "pred\t";
+  cout << chip->getPredReg(core) << "\n";
 }
 
 void Debugger::executedInstruction(DecodedInst inst, ComponentID core, bool executed) {
 
-  cout << core << ":\t" << "[" << inst.location().address() << "]\t" << inst
-       << (executed ? "" : " (not executed)") << endl;
+  if(mode == DEBUGGER) {
+    cout << core << ":\t" << "[" << inst.location().address() << "]\t" << inst
+         << (executed ? "" : " (not executed)") << endl;
+  }
 
   if(isBreakpoint(inst.location())) {
     hitBreakpoint = true;
@@ -179,7 +208,7 @@ void Debugger::setTile(Chip* c) {
 }
 
 void Debugger::executeSingleCycle() {
-  if(DEBUG) cout << "\n======= Cycle " << cycleNumber << " =======" << endl;
+  if(DEBUG) cout << "\n======= Cycle " << cycleNumber << " =======" << "\n";
   sc_start(1, sc_core::SC_NS);
 
   cycleNumber++;
@@ -203,19 +232,38 @@ void Debugger::executeUntilBreakpoint() {
 
 void Debugger::finishExecution() {
   while(cyclesIdle<maxIdleTime && cycleNumber<TIMEOUT) executeSingleCycle();
+  if(mode == DEBUGGER) cout << "\nExecution ended successfully.\n";
+}
+
+void Debugger::execute(string instruction) {
+  // Create an instruction and pass it to a core.
+  Instruction inst(instruction);
+  vector<Word> instVector;
+  instVector.push_back(inst);
+
+  if(mode == DEBUGGER)
+    cout << "Passing " << inst << " to core " << defaultCore << "\n";
+  chip->storeData(instVector, defaultCore);
+
+  cyclesIdle = 0;
+
+  // Now execute until idle again.
+  finishExecution();
 }
 
 void Debugger::changeCore(ComponentID core) {
   // Should this be a persistent change? Currently, it will change as soon as
   // a different core executes a breakpoint instruction.
-  cout << "Will now print details for core " << core <<
-          " until next breakpoint is reached." << endl;
+  if(mode == DEBUGGER)
+    cout << "Will print details for core " << core
+         << " until next breakpoint is reached.\n";
 
   defaultCore = core;
 }
 
 void Debugger::changeMemory(ComponentID memory) {
-  cout << "Will now print details for memory " << memory << endl;
+  if(mode == DEBUGGER)
+    cout << "Will now print details for memory " << memory << "\n";
 
   defaultDataMemory = memory;
 }
@@ -225,7 +273,23 @@ vector<int>& Debugger::parseIntVector(vector<string>& words) {
 
   for(uint i=0; i<words.size(); i++) {
     string reg = words[i];
-    if(reg[0] == 'r') reg.erase(0,1);
+
+    // "+XX" tells us to use the XX values immediately following the previous
+    // value (and including the previous value).
+    // Example: "0 +64" gives 64 consecutive values, starting at address 0.
+    if(reg[0] == '+') {
+      reg.erase(0,1);                           // Remove "+" from "+XX"
+      int num = StringManipulation::strToInt(reg);
+      int start = regs->back();
+
+      for(int j=1; j<num; j++) {
+        regs->push_back(start + j*BYTES_PER_WORD);
+      }
+
+      continue;
+    }
+    else if(reg[0] == 'r') reg.erase(0,1);      // Remove "r" from "rXX"
+
     regs->push_back(StringManipulation::strToInt(reg));
   }
 
