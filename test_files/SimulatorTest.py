@@ -62,18 +62,21 @@ class SimulatorTest(unittest.TestCase):
             
     # Return the list of integers contained in the given file.
     def fileContents(self, filename):
-        # Do a simple search for the requested file in parent directories.
-        if(os.path.exists(filename)):
-            openfile = open(filename, "r")
-        elif(os.path.exists("../"+filename)):
-            openfile = open("../"+filename, "r")
-        else:
-            openfile = open("../../"+filename, "r")
-            
+        openfile = open(self.find(filename), "r")
         contents = [int(line) for line in openfile.readlines()]
         openfile.close()
         return contents
         
+    def find(self, filename):
+        # Do a simple search for the requested file in parent directories.
+        if(os.path.exists(filename)):
+            return filename
+        elif(os.path.exists("../"+filename)):
+            return "../" + filename
+        else:
+            return "../../" + filename
+        
+    
         
     # Tell the simulator where to load its program from.
     def _updateLoader(self, directory):

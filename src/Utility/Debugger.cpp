@@ -227,6 +227,8 @@ void Debugger::executeUntilBreakpoint() {
     }
   }
 
+  if(mode == DEBUGGER) cout << "Now at cycle " << cycleNumber << "\n";
+
   hitBreakpoint = false;
 }
 

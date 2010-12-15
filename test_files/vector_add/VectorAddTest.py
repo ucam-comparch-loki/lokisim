@@ -18,15 +18,5 @@ class VectorAddTest(mod.SimulatorTest):
         # Read the result vector from memory 15.
         result = self.readMemory(15, 0, len(expected))
         
-        # See if the memory contents match the contents of the file.
+        # See if the memory contents match the values we computed.
         self.compare(result, correct=expected)
-        
-#    def runAllTests(self):
-#        self.test("vector_add/1_core")
-#        
-#        # Could change parameters here and try SIMD with several configurations
-#        simdMembers = self.fileContents("params.data")[0]
-#        self.test("vector_add/simd", str(simdMembers) + " cores")
-#            
-#if __name__ == '__main__':
-#    VectorAddTest().runAllTests()

@@ -4,7 +4,7 @@
 # If given no arguments, recursively runs all tests in all subdirectories.
 # If given the names of any subdirectories, only runs the tests within.
 
-import os, subprocess, sys, time, threading
+import os, subprocess, sys, threading, time
 
 # The start of a parallel implementation.
 # Problems:
@@ -82,6 +82,7 @@ else:
     # Run all tests.
     testCount = testAll(directory)
     
+# If there are multiple threads, wait until they have all finished.
 while threading.activeCount() > 1:
     pass
 

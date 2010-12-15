@@ -6,6 +6,7 @@
  */
 
 #include "Cluster.h"
+#include "../Utility/InstructionMap.h"
 
 double   Cluster::area() const {
   return regs.area()   + pred.area()    + fetch.area() +
@@ -97,7 +98,10 @@ void Cluster::updateForwarding(const DecodedInst& inst) {
 
   // We don't want to forward any data which was sent to register 0, because
   // r0 doesn't store values: it is a constant.
-  previousDest1   = (inst.destination() == 0) ? -1 : inst.destination();
+  // We also don't want to forward data after an indirect write.
+  previousDest1   = (inst.destination() == 0 ||
+                     inst.operation() == InstructionMap::IWTR)
+                  ? -1 : inst.destination();
   previousResult1 = inst.result();
 }
 

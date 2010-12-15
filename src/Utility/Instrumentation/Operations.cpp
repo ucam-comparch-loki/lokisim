@@ -24,6 +24,7 @@ void Operations::operation(int op, bool executed) {
 void Operations::printStats() {
   if(numOps > 0) {
     cout << "Operations:" << endl <<
+      "  Total: " << numOps << endl <<
       "  Operation\tExecuted \tUnexecuted" << endl;
 
     for(int i=0; i<InstructionMap::SETCHMAP; i++) {

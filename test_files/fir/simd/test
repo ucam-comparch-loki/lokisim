@@ -6,12 +6,25 @@ module, path, description = imp.find_module("FIRTest", [".."])
 mod = imp.load_module("FIRTest", module, path, description)
 
 class FIRSIMDTest(mod.FIRTest):
+
+    # Change the values in the parameters file so that the given number of SIMD
+    # members are used.
+    def setSIMDMembers(self, numMembers):
+        paramsLoc = self.find("params.data")
+        paramsFile = open(paramsLoc, "r")
+        params = paramsFile.readlines()
+        paramsFile.close()
+        params[0] = str(numMembers) + "\n"
+        paramsFile = open(paramsLoc, "w")
+        paramsFile.writelines(params)
+        paramsFile.close()
     
     def runAllTests(self):
         # May want to change number of SIMD members and test several times.
         # TODO: check command line options for this.
-        simdMembers = self.fileContents("params.data")[0]
-        self.test(description = str(simdMembers) + " cores")
+        for simdMembers in range(12,13):
+            self.setSIMDMembers(simdMembers)
+            self.test(description = str(simdMembers) + " cores")
             
 if __name__ == '__main__':
     FIRSIMDTest().runAllTests()

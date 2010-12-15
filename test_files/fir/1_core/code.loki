@@ -35,20 +35,20 @@ setgteu.p       r0,  r6,  r13           ; make sure we are beyond start of input
 p?setltu.p      r0,  r6,  r29           ; make sure we are before end of input
 p?ldw           r6,  0          > 1     ; load input data
 p?ldw           r5,  0          > 1     ; load tap
+addui           r5,  r5,  4             ; move to next tap (+ hide memory latency)
 p?ori           r7,  ch0, 0
 p?mullw         r7,  ch0, r7
 p?addu          r9,  r9,  r7            ; add new value to result
 
-addui           r5,  r5,  4             ; move to next tap
-addui           r6,  r6,  4             ; move to next input element
 setgteu.p       r0,  r28, r5            ; see if we have gone through all taps yet
+addui           r6,  r6,  4             ; move to next input element
 p?ibjmp         -40
 % End of inner loop
 
 addui           r4,  r4,  4             ; increment position in outer loop
 stw             r9,  r14, 0     > 2     ; store the result
-addui           r14, r14, 4             ; update store location for next time
 setgteu.p       r0,  r27, r4            ; see if we have finished the outer loop
+addui           r14, r14, 4             ; update store location for next time
 p?ibjmp         -72
 % End of outer loop
 
