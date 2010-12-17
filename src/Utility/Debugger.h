@@ -69,7 +69,7 @@ private:
   static void changeCore(ComponentID core);
   static void changeMemory(ComponentID memory);
 
-  static vector<int>& parseIntVector(vector<string>& s);
+  static vector<int>& parseIntVector(vector<string>& s, bool registers);
 
 //==============================//
 // Local state

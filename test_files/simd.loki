@@ -4,8 +4,9 @@
 %
 % Assumes that the number of cores to use is in memory 13 at address 0.
 %
-% All members of the SIMD engine must not write to r30 and r31, as these hold
-% the SIMD parameters.
+% r30 and r31 hold the SIMD parameters---the core's position in the SIMD vector
+% and the total number of members, respectively---so probably should not be
+% overwritten by the SIMD program.
 
 % Set up connection to memory containing arguments
 ori                 r4,  r0,  (13,0)

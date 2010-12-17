@@ -1,0 +1,12 @@
+#! /usr/bin/env python
+
+import imp
+
+module, path, description = imp.find_module("TransposeTest", [".."])
+mod = imp.load_module("TransposeTest", module, path, description)
+
+class Transpose1CoreTest(mod.TransposeTest):
+    pass     
+    
+if __name__ == '__main__':
+    Transpose1CoreTest().runAllTests()

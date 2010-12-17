@@ -83,8 +83,10 @@ bool ALU::execute(DecodedInst& dec) {
     case InstructionMap::ADDU:
     case InstructionMap::ADDUI:  result = val1 + val2; break;
     case InstructionMap::SUBU:   result = val1 - val2; break;
-    case InstructionMap::MULHW:
-    case InstructionMap::MULHWU: result = ((int64_t)val1 * (int64_t)val2) >> 32; break;
+    case InstructionMap::MULHW:  result = ((int64_t)val1 * (int64_t)val2) >> 32; break;
+                                 // Convert to unsigned ints, then pad to 64 bits.
+    case InstructionMap::MULHWU: result = ((uint64_t)((uint32_t)val1) *
+                                           (uint64_t)((uint32_t)val2)) >> 32; break;
     case InstructionMap::MULLW:  result = ((int64_t)val1 * (int64_t)val2) & -1; break;
 
     default: result = val1; // Is this a good default?

@@ -1,0 +1,16 @@
+#! /usr/bin/env python
+
+import imp
+
+module, path, description = imp.find_module("MatMultTest", [".."])
+mod = imp.load_module("MatMultTest", module, path, description)
+
+class MatMultSIMDTest(mod.MatMultTest):
+
+   def runAllTests(self):
+        # May want to change number of SIMD members and test several times.
+        # TODO: check command line options for this.
+        self.simdTest(12,12)
+    
+if __name__ == '__main__':
+    MatMultSIMDTest().runAllTests()

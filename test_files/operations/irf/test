@@ -1,0 +1,40 @@
+#! /usr/bin/env python
+
+import imp
+
+module, path, description = imp.find_module("SimulatorTest", ["..", "../..", "../../.."])
+mod = imp.load_module("SimulatorTest", module, path, description)
+
+class IndirectRegisterTest(mod.SimulatorTest):
+
+    def runTest(self):
+    
+        # Check that we can update a pointer through the IRF
+        instructions = []
+        instructions.append("ori r3, r0, 40")
+        instructions.append("iwtr r3, r3")
+        instructions.append("addui r3, r3, 1")
+        instructions.append("iwtr r3, r3")
+        instructions.append("addui r3, r3, 1")
+        instructions.append("iwtr r3, r3")
+        instructions.append("addui r3, r3, 1")
+        instructions.append("iwtr r3, r3")
+        self.executeAll(0, instructions)
+        
+        self.assertEqual(40, self.readReg(0,40))
+        self.assertEqual(41, self.readReg(0,41))
+        self.assertEqual(42, self.readReg(0,42))
+        self.assertEqual(43, self.readReg(0,43))
+        
+        # See if there are any problems with data forwarding
+        instructions = []
+        instructions.append("ori r3, r0, 32")
+        instructions.append("iwtr r3, r3")
+        instructions.append("irdr r4, r3")
+        self.executeAll(0, instructions)
+        
+        self.assertEqual(32, self.readReg(0,32), "didn't write to indirect register")
+        self.assertEqual(32, self.readReg(0,4), "RAW dependency")
+            
+if __name__ == '__main__':
+    IndirectRegisterTest().runAllTests()

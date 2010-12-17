@@ -217,7 +217,6 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       }
 
       case InstructionMap::IRDR : {
-        // Is there the possibility of requiring data forwarding here?
         output.result(readRegs(output.sourceReg1(), true));
         break;
       }

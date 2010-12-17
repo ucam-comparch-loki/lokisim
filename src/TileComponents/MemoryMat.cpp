@@ -28,7 +28,6 @@ void MemoryMat::newCycle() {
 
   arbitrate(requests);
 
-//  for(uint i=0; i<NUM_CLUSTER_INPUTS; i++) {
   for(uint j=0; j<requests.size(); j++) {
     ChannelIndex i = requests[j];
 
@@ -37,10 +36,18 @@ void MemoryMat::newCycle() {
     if(!inputBuffers_[i].empty() && flowControlIn[i].read() &&
        !connection.readingIPK()) {
 
+      // If we are not allowed to send any data (because of flow control),
+      // we will not be able to carry out any reads, so only peek at the
+      // next command until we know that we are able to complete it.
+      MemoryRequest req = static_cast<MemoryRequest>(inputBuffers_[i].peek());
+
       // If there is no connection set up, this must be a request to make a
       // connection.
       if(!connection.active()) {
-        MemoryRequest req = static_cast<MemoryRequest>(inputBuffers_[i].read());
+
+        // Remove the transaction from the queue: we always consume it if there
+        // is currently no connection.
+        inputBuffers_[i].read();
 
         if(req.isSetup()) {
           if(DEBUG) cout << this->name() << " set-up connection at port " << (int)i << endl;
@@ -56,14 +63,9 @@ void MemoryMat::newCycle() {
         }
       }
       // If there isn't an existing transaction, this must be a read
-      else if(connection.idle()) {
+      else if(connection.idle() || req.operation() == MemoryRequest::STADDR) {
         if(DEBUG) cout << "Received new memory request at memory " << id <<
                           ", input " << (int)i << ": ";
-
-        // If we are not allowed to send any data (because of flow control),
-        // we will not be able to carry out any reads, so only peek at the
-        // next command until we know that we are able to complete it.
-        MemoryRequest req = static_cast<MemoryRequest>(inputBuffers_[i].peek());
 
         if(req.isSetup()) {
           if(DEBUG) cout << "set-up connection at port " << (int)i << endl;

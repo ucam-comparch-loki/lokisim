@@ -1,6 +1,5 @@
 0  ../../init.loki
-12 ../../simd.loki
 12 code_irf.loki
 13 ../params.data
-13 ../taps.data
-13 ../input.data
+13 ../mat1.data
+14 ../mat2.data

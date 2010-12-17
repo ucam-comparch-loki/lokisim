@@ -2,15 +2,15 @@
 
 import imp
 
-module, path, description = imp.find_module("FIRTest", [".."])
-mod = imp.load_module("FIRTest", module, path, description)
+module, path, description = imp.find_module("TransposeTest", [".."])
+mod = imp.load_module("TransposeTest", module, path, description)
 
-class FIRSIMDTest(mod.FIRTest):
-    
+class TransposeSIMDTest(mod.TransposeTest):
+
     def runAllTests(self):
         # May want to change number of SIMD members and test several times.
         # TODO: check command line options for this.
         self.simdTest(12,12)
-            
+    
 if __name__ == '__main__':
-    FIRSIMDTest().runAllTests()
+    TransposeSIMDTest().runAllTests()

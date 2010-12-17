@@ -1,0 +1,11 @@
+% A simple code snippet to be given to core 0, which sets up a connection to
+% memory 12, and fetches the main program from it.
+%
+% Assumes that the program is in memory 12, starting at address 0.
+
+ori                 r4,  r0,  (12,0)
+nop
+setchmap            r4,  0
+ori                 r0,  r0,  (0,1)  > 0    ; connect to the instruction memory
+nop
+fetch.eop           r0,  0                  ; load program

@@ -1,0 +1,71 @@
+#! /usr/bin/env python
+
+import ctypes, imp
+
+module, path, description = imp.find_module("SimulatorTest", ["..", "../..", "../../.."])
+mod = imp.load_module("SimulatorTest", module, path, description)
+
+class ALUTest(mod.SimulatorTest):
+
+    def runTest(self):
+        bigNum = 0x12345678
+    
+        # Addition, subtraction, simple multiplication.
+        self.execute(0, "addui r10 r0 " + str(bigNum))
+        self.execute(0, "subu  r11 r0 r10")
+        self.execute(0, "addui r2 r0 -1")
+        self.execute(0, "mullw r12 r11 r2")
+        self.execute(0, "rsubi r13 r11 0")
+        self.assertEqual(bigNum,  self.readReg(0,10), "addui")        
+        self.assertEqual(-bigNum, self.readReg(0,11), "subu")
+        self.assertEqual(bigNum,  self.readReg(0,12), "mullw")
+        self.assertEqual(bigNum,  self.readReg(0,13), "rsubi")
+        
+        # Multiplication with long results.
+        # Not 100% confident that the test for mulhwu is correct, because
+        # various sources disagree with what the result should be.
+        # Assuming 1C00000000000000 (Ubuntu calculator, simulator, Python)
+        # Might be 0C00000000000000 (WolframAlpha)
+        self.execute(0, "mullw r13 r10 r10")
+        self.execute(0, "mulhw r14 r10 r10")
+        self.execute(0, "mullw r12 r10 r11")
+        self.execute(0, "mulhwu r15 r10 r11")
+        
+        # Need to convert any necessary values to unsigned representations.
+        reg12 = ctypes.c_uint32(self.readReg(0,12)).value
+        reg13 = ctypes.c_uint32(self.readReg(0,13)).value
+        reg15 = ctypes.c_uint32(self.readReg(0,15)).value
+        unsignedExpected = ctypes.c_uint32(-bigNum).value * bigNum
+        signedResult = (self.readReg(0,14)<<32)|(reg13)
+        unsignedResult = (reg15<<32)|(reg12)
+                
+        self.assertEqual(bigNum ** 2, signedResult, "mulhw")
+        self.assertEqual(unsignedExpected, unsignedResult, "mulhwu")
+        
+        # Bitwise operations.
+        r5 = 0x00FF
+        r6 = 0x0FF0
+        self.execute(0, "ori r5 r0 "+str(r5))
+        self.execute(0, "ori r6 r0 "+str(r6))
+        self.execute(0, "or  r7 r5 r6")
+        self.execute(0, "and r8 r5 r6")
+        self.execute(0, "nor r9 r5 r6")
+        self.execute(0, "xor r12 r5 r6")
+        self.execute(0, "nand r13 r5 r6")
+        self.execute(0, "clr r14 r5 r6")
+        self.execute(0, "orc r15 r5 r6")
+        self.assertEqual(r5|r6,    self.readReg(0,7),  "or")
+        self.assertEqual(r5&r6,    self.readReg(0,8),  "and")
+        self.assertEqual(~(r5|r6), self.readReg(0,9),  "nor")
+        self.assertEqual(r5^r6,    self.readReg(0,12), "xor")
+        self.assertEqual(~(r5&r6), self.readReg(0,13), "nand")
+        self.assertEqual(r5&~r6,   self.readReg(0,14), "clr")
+        self.assertEqual(r5|~r6,   self.readReg(0,15), "orc")
+        
+        # Other.
+        self.execute(0, "popc r5 r10")
+        self.assertEqual(bin(bigNum).count('1'), self.readReg(0,5), "popc")
+        
+        
+if __name__ == '__main__':
+    ALUTest().runAllTests()

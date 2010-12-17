@@ -66,7 +66,7 @@ void Debugger::waitForInput() {
     }
     else if(words[0] == BREAKPOINT || words[0] == BREAKPOINT_S) {
       words.erase(words.begin());
-      setBreakPoint(parseIntVector(words));
+      setBreakPoint(parseIntVector(words, false));
     }
     else if(words[0] == CONTINUE   || words[0] == CONTINUE_S) {
       executeUntilBreakpoint();
@@ -83,7 +83,7 @@ void Debugger::waitForInput() {
     }
     else if(words[0] == PRINTREGS  || words[0] == PRINTREGS_S) {
       words.erase(words.begin());
-      printRegs(parseIntVector(words));
+      printRegs(parseIntVector(words, true));
     }
     else if(words[0] == PRINTPRED  || words[0] == PRINTPRED_S) {
       printPred();
@@ -93,7 +93,7 @@ void Debugger::waitForInput() {
     }
     else if(words[0] == MEMORY     || words[0] == MEMORY_S) {
       words.erase(words.begin());
-      printMemLocations(parseIntVector(words));
+      printMemLocations(parseIntVector(words, false));
     }
     else if(words[0] == CHANGECORE || words[0] == CHANGECORE_S) {
       if(words.size() > 1)
@@ -248,9 +248,6 @@ void Debugger::execute(string instruction) {
   chip->storeData(instVector, defaultCore);
 
   cyclesIdle = 0;
-
-  // Now execute until idle again.
-  finishExecution();
 }
 
 void Debugger::changeCore(ComponentID core) {
@@ -270,32 +267,33 @@ void Debugger::changeMemory(ComponentID memory) {
   defaultDataMemory = memory;
 }
 
-vector<int>& Debugger::parseIntVector(vector<string>& words) {
-  vector<int>* regs = new vector<int>();
+vector<int>& Debugger::parseIntVector(vector<string>& words, bool registers) {
+  vector<int>* locations = new vector<int>();
 
   for(uint i=0; i<words.size(); i++) {
-    string reg = words[i];
+    string location = words[i];
 
     // "+XX" tells us to use the XX values immediately following the previous
     // value (and including the previous value).
     // Example: "0 +64" gives 64 consecutive values, starting at address 0.
-    if(reg[0] == '+') {
-      reg.erase(0,1);                           // Remove "+" from "+XX"
-      int num = StringManipulation::strToInt(reg);
-      int start = regs->back();
+    if(location[0] == '+') {
+      location.erase(0,1);                           // Remove "+" from "+XX"
+      int num = StringManipulation::strToInt(location);
+      int start = locations->back();
 
       for(int j=1; j<num; j++) {
-        regs->push_back(start + j*BYTES_PER_WORD);
+        if(registers) locations->push_back(start+j);
+        else          locations->push_back(start + j*BYTES_PER_WORD);
       }
 
       continue;
     }
-    else if(reg[0] == 'r') reg.erase(0,1);      // Remove "r" from "rXX"
+    else if(location[0] == 'r') location.erase(0,1); // Remove "r" from "rXX"
 
-    regs->push_back(StringManipulation::strToInt(reg));
+    locations->push_back(StringManipulation::strToInt(location));
   }
 
-  return *regs;
+  return *locations;
 }
 
 bool Debugger::isBreakpoint(Address addr) {

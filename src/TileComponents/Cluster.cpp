@@ -55,19 +55,33 @@ void     Cluster::setPersistent(bool persistent) {
 }
 
 int32_t  Cluster::readReg(RegisterIndex reg, bool indirect) const {
-  if(!indirect && reg>0) {
+
+  int result;
+
+  // Check to see if the requested register is one of the previous two
+  // registers written to. If so, we forward the data because the register
+  // might not have been written to yet.
+  // Slightly complicated by the possibility of indirect register reads.
+  if(reg>0) {
     if(reg == previousDest1) {
       if(DEBUG) cout << this->name() << " forwarded contents of register "
                      << (int)reg << endl;
-      return previousResult1;
+
+      if(indirect) result = regs.read(previousResult1, false);
+      else result = previousResult1;
     }
     else if(reg == previousDest2) {
       if(DEBUG) cout << this->name() << " forwarded contents of register "
                      << (int)reg << endl;
-      return previousResult2;
+
+      if(indirect) result = regs.read(previousResult2, false);
+      else result = previousResult2;
     }
+    else result = regs.read(reg, indirect);
   }
-  return regs.read(reg, indirect);
+  else result = regs.read(reg, indirect);
+
+  return result;
 }
 
 int32_t  Cluster::readRegDebug(RegisterIndex reg) const {

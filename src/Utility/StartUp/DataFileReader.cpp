@@ -50,11 +50,20 @@ Word DataFileReader::nextWord(std::ifstream& file) const {
   // An array to store individual lines of the file in.
   char line[20];
 
-  // TODO: ignore line if it is empty.
-
   file.getline(line, 20, '\n');
-  int val = StringManipulation::strToInt(line);
-  return Data(val);
+
+  // Filter out any lines which contain nothing, or are comments.
+  if(line[0] == '\0' || line[0] == ';' || line[0] == '%')
+    throw std::exception();
+  else {
+    // If there are multiple words on a line, we're only interested in the
+    // first one. The rest are comments.
+    string str(line);
+    string first = StringManipulation::split(str, ' ')[0];
+
+    int val = StringManipulation::strToInt(first);
+    return Data(val);
+  }
 }
 
 DataFileReader::DataFileReader(std::string& filename, int component) :

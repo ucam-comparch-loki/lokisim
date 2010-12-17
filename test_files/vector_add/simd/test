@@ -10,8 +10,7 @@ class VectorAddSIMDTest(mod.VectorAddTest):
     def runAllTests(self):
         # May want to change number of SIMD members and test several times.
         # TODO: check command line options for this.
-        simdMembers = self.fileContents("params.data")[0]
-        self.test(description = str(simdMembers) + " cores")        
+        self.simdTest(12,12)       
     
 if __name__ == '__main__':
     VectorAddSIMDTest().runAllTests()
