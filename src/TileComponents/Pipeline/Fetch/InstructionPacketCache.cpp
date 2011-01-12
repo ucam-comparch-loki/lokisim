@@ -24,8 +24,8 @@ void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
 Instruction InstructionPacketCache::read() {
   Instruction inst = cache.read();
 
-  if(finishedPacketRead)       startOfPacketTasks();
-  if(inst.endOfPacket())       endOfPacketTasks();
+  if(finishedPacketRead) startOfPacketTasks();
+  if(inst.endOfPacket()) endOfPacketTasks();
 
   sendCredit();
 

@@ -7,6 +7,7 @@
 
 #include "Word.h"
 #include "Instruction.h"
+#include "../Utility/Parameters.h"
 
 int32_t Word::toInt() const {
   return (int32_t)data_;
@@ -14,6 +15,19 @@ int32_t Word::toInt() const {
 
 int64_t Word::toLong() const {
   return (int64_t)data_;
+}
+
+Word Word::getByte(int byte) const {
+  assert(byte < BYTES_PER_WORD);
+  int value = getBits(byte*8, byte*8 + 7);
+  return Word(value);
+}
+
+Word Word::setByte(int byte, int newData) const {
+  assert(byte < BYTES_PER_WORD);
+  Word newWord(*this);
+  newWord.setBits(byte*8, byte*8 + 7, newData);
+  return newWord;
 }
 
 /* Used to extract some bits and put them in the indirection registers. */
@@ -26,7 +40,7 @@ uint32_t Word::lowestBits(const int limit) const {
 uint64_t Word::getBits(const int start, const int end) const {
   uint64_t result = (end>=63) ? data_ : data_ % (1L << (end+1));
   result = result >> start;
-  return (uint64_t)result;
+  return result;
 }
 
 /* Replace the specified bit range by the specified value */
@@ -51,8 +65,8 @@ void Word::clearBits(const int start, const int end) {
 std::ostream& Word::print(std::ostream& os) const {
   // Instructions are the only datatypes capable of using more than 32 bits,
   // and they are also the ones which are most useful to print differently.
-  if((int64_t)data_ > UINT_MAX || (int64_t)data_ < INT_MIN) {
-    os << (Instruction)(*this);
+  if(data_ >> 32) {
+    os << static_cast<Instruction>(*this);
   }
   else os << toLong();
   return os;

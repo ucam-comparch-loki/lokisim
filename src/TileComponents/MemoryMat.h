@@ -57,12 +57,6 @@ public:
 
 public:
 
-  // The area of this component in square micrometres.
-  virtual double area()   const;
-
-  // The energy consumed by this component in picojoules.
-  virtual double energy() const;
-
   // Initialise the contents of this memory to the Words in the given vector.
   virtual void storeData(std::vector<Word>& data, MemoryAddr location=0);
 
@@ -74,17 +68,33 @@ public:
 
 private:
 
-  // Method which is called at the beginning of each clock cycle.
-  // Look through all inputs for new data. Determine whether this data is the
-  // start of a new transaction or the continuation of an existing one. Then
-  // carry out the first/next step of the transaction.
-  void newCycle();
+  // Every clock cycle, check for inputs, and carry out any pending operations.
+  void mainLoop();
+
+  // Check all input ports for new data, and put it into the buffers.
+  void checkInputs();
+
+  // Determine which of the pending operations are allowed to occur (if any),
+  // and execute them.
+  void performOperations();
 
   // Carry out a read for the transaction at input "position".
   void read(ChannelIndex position);
 
   // Carry out a write for the transaction at input "position".
-  void write(Word w, ChannelIndex position);
+  void write(ChannelIndex position);
+
+  // Returns a vector of all input ports at which there are memory operations
+  // ready to execute.
+  std::vector<ChannelIndex>& allRequests();
+
+  // Tells whether we are able to carry out a waiting operation at the given
+  // port.
+  bool canAcceptRequest(ChannelIndex port);
+
+  // Update the contents of the data array. A "write" without any status
+  // checking.
+  void writeMemory(MemoryAddr addr, Word data);
 
   // Update the connection at the given port so that results of memory reads
   // are sent back to returnAddr.
@@ -97,8 +107,8 @@ private:
   // Update the output signal telling whether the memory is idle.
   void updateIdle();
 
-  // Check all input ports for new data, and put it into the buffers.
-  void checkInputs();
+  // Prepare the next available operation at the given input port.
+  void newOperation(ChannelIndex position);
 
   // Send a flow control credit from a particular port.
   void sendCredit(ChannelIndex position);

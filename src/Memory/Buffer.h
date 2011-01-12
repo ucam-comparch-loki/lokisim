@@ -53,9 +53,9 @@ public:
   }
 
   // Returns the value at the front of the queue, but does not remove it.
-  T& peek() {
+  const T& peek() const {
     if(!empty()) {
-      return (this->data_[readPos.value()]);
+      return this->data_[readPos.value()];
     }
     else {
       throw ReadingFromEmptyException("buffer (" + this->name_ + ")");
@@ -68,22 +68,22 @@ public:
   }
 
   // Returns whether the buffer is empty.
-  bool empty() {
+  bool empty() const {
     return (fillCount == 0);
   }
 
   // Returns whether the buffer is full.
-  bool full() {
+  bool full() const {
     return (fillCount == this->size());
   }
 
   // Returns the remaining space in the buffer.
-  uint16_t remainingSpace() {
+  uint16_t remainingSpace() const {
     return this->size() - fillCount;
   }
 
   // Print the contents of the buffer.
-  void print() {
+  void print() const {
     for(uint i=0; i<this->size(); i++) cout << this->data[i] << " ";
     cout << endl;
   }

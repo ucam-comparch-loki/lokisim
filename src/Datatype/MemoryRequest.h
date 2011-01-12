@@ -24,8 +24,10 @@ public:
   uint32_t address() const;
   uint8_t  operation() const;
   bool isReadRequest() const;
+  bool isWriteRequest() const;
   bool isIPKRequest() const;
   bool isSetup() const;
+  bool streaming() const;
 
   void incrementAddress();
   void setIPKRequest(bool val); // remove?

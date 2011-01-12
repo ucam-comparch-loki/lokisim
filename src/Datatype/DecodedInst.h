@@ -9,6 +9,7 @@
 #define DECODEDINST_H_
 
 #include <inttypes.h>
+#include "../Typedefs.h"
 #include "systemc.h"
 #include "Address.h"
 
@@ -23,11 +24,11 @@ class DecodedInst {
 public:
 
   uint8_t operation() const;
-  uint8_t sourceReg1() const;
-  uint8_t sourceReg2() const;
-  uint8_t destination() const;
+  RegisterIndex sourceReg1() const;
+  RegisterIndex sourceReg2() const;
+  RegisterIndex destination() const;
   int32_t immediate() const;
-  uint8_t channelMapEntry() const;
+  ChannelIndex channelMapEntry() const;
   uint8_t predicate() const;
   bool    setsPredicate() const;
   uint8_t memoryOp() const;
@@ -42,11 +43,11 @@ public:
   bool    hasResult() const;
 
   void    operation(const uint8_t val);
-  void    sourceReg1(const uint8_t val);
-  void    sourceReg2(const uint8_t val);
-  void    destination(const uint8_t val);
+  void    sourceReg1(const RegisterIndex val);
+  void    sourceReg2(const RegisterIndex val);
+  void    destination(const RegisterIndex val);
   void    immediate(const int32_t val);
-  void    channelMapEntry(const uint8_t val);
+  void    channelMapEntry(const ChannelIndex val);
   void    predicate(const uint8_t val);
   void    setsPredicate(const bool val);
   void    memoryOp(const uint8_t val);
@@ -104,11 +105,11 @@ public:
 private:
 
   uint8_t operation_;
-  uint8_t sourceReg1_;
-  uint8_t sourceReg2_;
-  uint8_t destReg_;
+  RegisterIndex sourceReg1_;
+  RegisterIndex sourceReg2_;
+  RegisterIndex destReg_;
   int32_t immediate_;
-  uint8_t channelMapEntry_;
+  ChannelIndex channelMapEntry_;
   uint8_t predicate_;
   bool    setsPred_;
   uint8_t memoryOp_;

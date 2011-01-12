@@ -23,22 +23,24 @@ slli.eop            r5,  r3,  2             ; r5 = offset to move down one row o
 
 % Start of outer loop
 ori                 r11, r0,  0             ; r11 = current input column/output row
-stwaddr             r0,  0           > 2    ; set up a stream to memory
 ori                 r12, r0,  0             ; r12 = position in current row/column
 slli                r13, r11, 2             ; r13 = address to load from
+mullw               r14, r11, r2            
+slli                r14, r14, 2             ; r14 = address to store to
 
 % Start of inner loop (go through one column of input)
 ldw                 r13, 12          > 1    ; load matrix element (skipping over params)
 addui               r12, r12, 1             ; increment current element
 addu                r13, r13, r5            ; increment load address
 seteq.p             r0,  r12, r2            ; see if we have finished this column
-ori                 r0,  ch0, 0      > 2    ; store received value
-!p?ibjmp            -20                     ; continue along row if not finished
+stw                 ch0, r14, 0      > 2    ; store received value
+addui               r14, r14, 4             ; increment store address
+!p?ibjmp            -24                     ; continue along row if not finished
 % End of inner loop
 
 addui               r11, r11, 1             ; increment current input column
 setgte.p            r0,  r11, r3            ; see if we have finished the whole matrix
-!p?ibjmp            -40                     ; if not, do another column
+!p?ibjmp            -52                     ; if not, do another column
 % End of outer loop
 
 nop.eop

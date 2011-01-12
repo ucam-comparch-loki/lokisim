@@ -14,15 +14,15 @@ uint8_t DecodedInst::operation() const {
   return operation_;
 }
 
-uint8_t DecodedInst::sourceReg1() const {
+RegisterIndex DecodedInst::sourceReg1() const {
   return sourceReg1_;
 }
 
-uint8_t DecodedInst::sourceReg2() const {
+RegisterIndex DecodedInst::sourceReg2() const {
   return sourceReg2_;
 }
 
-uint8_t DecodedInst::destination() const {
+RegisterIndex DecodedInst::destination() const {
   return destReg_;
 }
 
@@ -30,7 +30,7 @@ int32_t DecodedInst::immediate() const {
   return immediate_;
 }
 
-uint8_t DecodedInst::channelMapEntry() const {
+ChannelIndex DecodedInst::channelMapEntry() const {
   return channelMapEntry_;
 }
 
@@ -81,15 +81,15 @@ void    DecodedInst::operation(const uint8_t val) {
   operation_ = val;
 }
 
-void    DecodedInst::sourceReg1(const uint8_t val) {
+void    DecodedInst::sourceReg1(const RegisterIndex val) {
   sourceReg1_ = val;
 }
 
-void    DecodedInst::sourceReg2(const uint8_t val) {
+void    DecodedInst::sourceReg2(const RegisterIndex val) {
   sourceReg2_ = val;
 }
 
-void    DecodedInst::destination(const uint8_t val) {
+void    DecodedInst::destination(const RegisterIndex val) {
   destReg_ = val;
 }
 
@@ -97,7 +97,7 @@ void    DecodedInst::immediate(const int32_t val) {
   immediate_ = val;
 }
 
-void    DecodedInst::channelMapEntry(const uint8_t val) {
+void    DecodedInst::channelMapEntry(const ChannelIndex val) {
   channelMapEntry_ = val;
 }
 

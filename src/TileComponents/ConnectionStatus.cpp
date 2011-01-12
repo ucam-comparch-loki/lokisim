@@ -6,10 +6,11 @@
  */
 
 #include "ConnectionStatus.h"
+#include "../Utility/Parameters.h"
 
 /* Tells whether there is a connection set up at all. */
 bool ConnectionStatus::active() const {
-  return remoteChannel_ != UNUSED;
+  return (int)remoteChannel_ != UNUSED;
 }
 
 /* Tells whether there is a connection set up, but not currently carrying
@@ -19,18 +20,21 @@ bool ConnectionStatus::idle() const {
 }
 
 bool ConnectionStatus::isRead() const {
-  return operation_ == LOAD;
+  return operation_ == LOAD || operation_ == LOADBYTE;
 }
 
 bool ConnectionStatus::isWrite() const {
-  return operation_ == STORE;
+  return operation_ == STORE || operation_ == STOREBYTE;
 }
 
 bool ConnectionStatus::streaming() const {
+  // TODO: streams should probably know how long they will last, so they can
+  // be stopped when they are finished.
   return repeatOperation_;
 }
 
 bool ConnectionStatus::readingIPK() const {
+  // This will not always be valid: we may eventually want to stream data too.
   return streaming() && isRead();
 }
 
@@ -43,35 +47,39 @@ void ConnectionStatus::incrementAddress() {
   else               address_ += STRIDE * BYTES_PER_WORD;
 }
 
+/* End the current operation, but keep the connection up so new operations
+ * still have their results sent back to the same place. */
 void ConnectionStatus::clear() {
   address_ = UNUSED;
   operation_ = NONE;
   repeatOperation_ = false;
 }
 
+/* Completely remove the connection, allowing a new component to connect to
+ * this port. */
 void ConnectionStatus::teardown() {
   remoteChannel_   = UNUSED;
   clear();
 }
 
-int ConnectionStatus::channel() const {
+ChannelID ConnectionStatus::channel() const {
   return remoteChannel_;
 }
 
-int ConnectionStatus::address() const {
+MemoryAddr ConnectionStatus::address() const {
   return address_;
 }
 
-void ConnectionStatus::channel(int channel) {
+void ConnectionStatus::channel(ChannelID channel) {
   remoteChannel_ = channel;
 }
 
-void ConnectionStatus::readAddress(int addr) {
+void ConnectionStatus::readAddress(MemoryAddr addr) {
   address_ = addr;
   operation_ = LOAD;
 }
 
-void ConnectionStatus::writeAddress(int addr) {
+void ConnectionStatus::writeAddress(MemoryAddr addr) {
   address_ = addr;
   operation_ = STORE;
 }

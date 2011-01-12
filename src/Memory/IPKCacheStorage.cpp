@@ -110,8 +110,9 @@ void IPKCacheStorage::jump(const JumpOffset offset) {
 
   updateFillCount();
 
-  // Update currentPacket if we have jumped to the start of a packet
-  if(!(this->tags[currInst.value()] == Address())) {
+  // Update currentPacket if we have jumped to the start of a packet, or if
+  // currentPacket was previously an invalid value.
+  if(!(this->tags[currInst.value()] == Address()) || currentPacket == NOT_IN_USE) {
     currentPacket = currInst.value();
   }
 

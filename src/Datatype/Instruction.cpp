@@ -43,19 +43,19 @@ uint8_t Instruction::opcode() const {
   return getBits(startOpcode, startPredicate-1);
 }
 
-uint8_t Instruction::destination() const {
+RegisterIndex Instruction::destination() const {
   return getBits(startDest, startOpcode-1);
 }
 
-uint8_t Instruction::sourceReg1() const {
+RegisterIndex Instruction::sourceReg1() const {
   return getBits(startSrc1, startDest-1);
 }
 
-uint8_t Instruction::sourceReg2() const {
+RegisterIndex Instruction::sourceReg2() const {
   return getBits(startSrc2, startSrc1-1);
 }
 
-uint8_t Instruction::remoteChannel() const {
+ChannelIndex Instruction::remoteChannel() const {
   return getBits(startChannelID, startSrc2-1);
 }
 
@@ -150,19 +150,19 @@ void Instruction::opcode(const uint8_t val) {
   setBits(startOpcode, startPredicate-1, val);
 }
 
-void Instruction::destination(const uint8_t val) {
+void Instruction::destination(const RegisterIndex val) {
   setBits(startDest, startOpcode-1, val);
 }
 
-void Instruction::sourceReg1(const uint8_t val) {
+void Instruction::sourceReg1(const RegisterIndex val) {
   setBits(startSrc1, startDest-1, val);
 }
 
-void Instruction::sourceReg2(const uint8_t val) {
+void Instruction::sourceReg2(const RegisterIndex val) {
   setBits(startSrc2, startSrc1-1, val);
 }
 
-void Instruction::remoteChannel(const uint8_t val) {
+void Instruction::remoteChannel(const ChannelIndex val) {
   setBits(startChannelID, startSrc2-1, val);
 }
 
@@ -182,7 +182,7 @@ void Instruction::setsPredicate(const bool val) {
  * case of extracting the integer shown (e.g. "r5"), or an offset may need to
  * be applied ("ch2"), or the string may represent an immediate. In the case
  * of an immediate, 0 is returned, and the immediate field is set. */
-uint8_t Instruction::decodeField(const string& str) {
+RegisterIndex Instruction::decodeField(const string& str) {
 
   string reg = str;
 
@@ -283,8 +283,8 @@ int32_t Instruction::decodeRChannel(const string& channel) {
   }
 }
 
-void Instruction::setFields(const uint8_t reg1, const uint8_t reg2,
-                            const uint8_t reg3) {
+void Instruction::setFields(const RegisterIndex reg1, const RegisterIndex reg2,
+                            const RegisterIndex reg3) {
   int operation = InstructionMap::operation(opcode());
 
   switch(operation) {

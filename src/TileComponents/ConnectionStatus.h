@@ -14,6 +14,8 @@
 #ifndef CONNECTIONSTATUS_H_
 #define CONNECTIONSTATUS_H_
 
+#include "../Typedefs.h"
+
 class ConnectionStatus {
 
 //==============================//
@@ -58,19 +60,19 @@ public:
   void teardown();
 
   // Return the remote channel connected to this port.
-  int  channel() const;
+  ChannelID channel() const;
 
   // Return the address to access in memory.
-  int  address() const;
+  MemoryAddr address() const;
 
   // Set the remote channel connected to this port.
-  void channel(int channel);
+  void channel(ChannelID channel);
 
   // Set the memory address to read from.
-  void readAddress(int addr);
+  void readAddress(MemoryAddr addr);
 
   // Set the memory address to write to.
-  void writeAddress(int addr);
+  void writeAddress(MemoryAddr addr);
 
   // Start a streaming operation.
   void startStreaming();
@@ -99,10 +101,8 @@ private:
   static const int UNUSED = -1;
   static const int STRIDE = 1;
 
-  static const int BYTES_PER_WORD = 4;
-
-  int   remoteChannel_;
-  int   address_;
+  ChannelID  remoteChannel_;
+  MemoryAddr address_;
   short operation_;
   bool  repeatOperation_;
 

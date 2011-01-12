@@ -112,6 +112,8 @@ class SimulatorTest(unittest.TestCase):
     def _runCommand(self, command):
         if self._simulation.poll() == None:
             self._simulation.stdin.write(command + "\n")
+        else:
+            raise Exception("simulation ended unexpectedly")
         
     # Collect a list of lines of simulator output.
     def _getOutput(self, expectedLines=1):

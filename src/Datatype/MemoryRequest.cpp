@@ -39,6 +39,11 @@ bool MemoryRequest::isReadRequest() const {
   return op == LOAD || op == LOAD_B || op == IPK_READ;
 }
 
+bool MemoryRequest::isWriteRequest() const {
+  short op = operation();
+  return op == STORE || op == STORE_B || op == STADDR || op == STBADDR;
+}
+
 /* Return whether or not the request is for an entire instruction packet. */
 bool MemoryRequest::isIPKRequest() const {
   return operation() == IPK_READ;
@@ -46,6 +51,11 @@ bool MemoryRequest::isIPKRequest() const {
 
 bool MemoryRequest::isSetup() const {
   return operation() == SETUP;
+}
+
+bool MemoryRequest::streaming() const {
+  short op = operation();
+  return op == IPK_READ || op == STADDR || op == STBADDR;
 }
 
 /* Increments the address to read/write. To be used when an operation has

@@ -13,6 +13,7 @@
 #define INSTRUCTION_H_
 
 #include "Word.h"
+#include "../Typedefs.h"
 
 using std::string;
 
@@ -26,10 +27,10 @@ public:
 
   // Accessors
   uint8_t  opcode() const;
-  uint8_t  destination() const;
-  uint8_t  sourceReg1() const;
-  uint8_t  sourceReg2() const;
-  uint8_t  remoteChannel() const;
+  RegisterIndex destination() const;
+  RegisterIndex sourceReg1() const;
+  RegisterIndex sourceReg2() const;
+  ChannelIndex  remoteChannel() const;
   int32_t  immediate() const;
   uint8_t  predicate() const;
   bool     setsPredicate() const;
@@ -37,10 +38,10 @@ public:
 
   // Mutators
   void     opcode(const uint8_t val);
-  void     destination(const uint8_t val);
-  void     sourceReg1(const uint8_t val);
-  void     sourceReg2(const uint8_t val);
-  void     remoteChannel(const uint8_t val);
+  void     destination(const RegisterIndex val);
+  void     sourceReg1(const RegisterIndex val);
+  void     sourceReg2(const RegisterIndex val);
+  void     remoteChannel(const ChannelIndex val);
   void     immediate(const int32_t val);
   void     predicate(const uint8_t val);
   void     setsPredicate(const bool val);
@@ -56,12 +57,13 @@ public:
 private:
 
   void    decodeOpcode(const string& opcode);
-  uint8_t decodeField(const string& s);
+  RegisterIndex decodeField(const string& s);
   int32_t decodeRChannel(const string& channel);
 
   // Set the appropriate register fields in this instruction. Some operations
   // may not have a destination register, for example, so it should not be used.
-  void    setFields(const uint8_t reg1, const uint8_t reg2, const uint8_t reg3);
+  void    setFields(const RegisterIndex reg1, const RegisterIndex reg2,
+                    const RegisterIndex reg3);
 
   // Contains the implementation of the << operator so it doesn't have to go in
   // the header.
@@ -93,7 +95,7 @@ public:
   enum Predicate {ALWAYS, P, NOT_P, END_OF_PACKET};
 
   // A remote channel value signifying that no channel was specified.
-  static const uint8_t NO_CHANNEL = 255;
+  static const ChannelIndex NO_CHANNEL = 255;
 
 };
 
