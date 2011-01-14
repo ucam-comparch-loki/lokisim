@@ -12,6 +12,7 @@
 #define MEMORYREQUEST_H_
 
 #include "Word.h"
+#include "../Typedefs.h"
 
 class MemoryRequest : public Word {
 
@@ -28,13 +29,14 @@ public:
   bool isIPKRequest() const;
   bool isSetup() const;
   bool streaming() const;
+  bool byteAccess() const;
 
   void incrementAddress();
   void setIPKRequest(bool val); // remove?
 
 private:
 
-  void address(uint32_t val);
+  void address(MemoryAddr val);
   void operation(uint8_t val);
 
 //==============================//
@@ -44,7 +46,7 @@ private:
 public:
 
   MemoryRequest();
-  MemoryRequest(uint32_t address, uint8_t operation);
+  MemoryRequest(MemoryAddr address, uint8_t operation);
   MemoryRequest(const Word& other);
   virtual ~MemoryRequest();
 

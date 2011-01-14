@@ -74,14 +74,14 @@ void ConnectionStatus::channel(ChannelID channel) {
   remoteChannel_ = channel;
 }
 
-void ConnectionStatus::readAddress(MemoryAddr addr) {
+void ConnectionStatus::readAddress(MemoryAddr addr, bool byteAccess) {
   address_ = addr;
-  operation_ = LOAD;
+  operation_ = byteAccess ? LOADBYTE : LOAD;
 }
 
-void ConnectionStatus::writeAddress(MemoryAddr addr) {
+void ConnectionStatus::writeAddress(MemoryAddr addr, bool byteAccess) {
   address_ = addr;
-  operation_ = STORE;
+  operation_ = byteAccess ? STOREBYTE : STORE;
 }
 
 void ConnectionStatus::startStreaming() {

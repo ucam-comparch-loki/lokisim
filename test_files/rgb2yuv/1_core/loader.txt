@@ -1,0 +1,6 @@
+0  ../../init.loki
+12 code.loki
+13 ../params.data
+13 ../red.data
+13 ../green.data
+13 ../blue.data

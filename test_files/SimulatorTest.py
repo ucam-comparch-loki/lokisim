@@ -76,11 +76,11 @@ class SimulatorTest(unittest.TestCase):
     def fileContents(self, filename):
         with open(self.find(filename)) as openfile:
             # TODO: ignore comments/blank lines
-            contents = [int(line) for line in openfile.readlines()]
+            contents = [int(line, 0) for line in openfile.readlines()]
         return contents
         
+    # Do a simple search for the requested file in parent directories.
     def find(self, filename):
-        # Do a simple search for the requested file in parent directories.
         if(os.path.exists(filename)):
             return filename
         elif(os.path.exists("../"+filename)):

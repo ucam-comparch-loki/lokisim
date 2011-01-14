@@ -68,11 +68,13 @@ public:
   // Set the remote channel connected to this port.
   void channel(ChannelID channel);
 
-  // Set the memory address to read from.
-  void readAddress(MemoryAddr addr);
+  // Set the memory address to read from, and whether we want to access bytes
+  // or words.
+  void readAddress(MemoryAddr addr, bool byteAccess);
 
-  // Set the memory address to write to.
-  void writeAddress(MemoryAddr addr);
+  // Set the memory address to write to, and whether we want to access bytes
+  // or words.
+  void writeAddress(MemoryAddr addr, bool byteAccess);
 
   // Start a streaming operation.
   void startStreaming();

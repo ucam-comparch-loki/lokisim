@@ -58,6 +58,11 @@ bool MemoryRequest::streaming() const {
   return op == IPK_READ || op == STADDR || op == STBADDR;
 }
 
+bool MemoryRequest::byteAccess() const {
+  short op = operation();
+  return op == LOAD_B || op == STORE_B;
+}
+
 /* Increments the address to read/write. To be used when an operation has
  * completed. */
 void MemoryRequest::incrementAddress() {
@@ -76,7 +81,7 @@ MemoryRequest::MemoryRequest() : Word() {
 
 }
 
-MemoryRequest::MemoryRequest(uint32_t addr, uint8_t opType) :
+MemoryRequest::MemoryRequest(MemoryAddr addr, uint8_t opType) :
     Word() {
   address(addr);
   operation(opType);
@@ -91,7 +96,7 @@ MemoryRequest::~MemoryRequest() {
 }
 
 /* Private setter methods */
-void MemoryRequest::address(uint32_t val) {
+void MemoryRequest::address(MemoryAddr val) {
   setBits(startAddress, startOperation - 1, val);
 }
 

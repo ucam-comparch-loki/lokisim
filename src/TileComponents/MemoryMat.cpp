@@ -23,6 +23,12 @@ void MemoryMat::mainLoop() {
     active = false;
 
     checkInputs();
+
+    // Wait until late in the cycle to send the outputs to simulate memory read
+    // latency. Otherwise, they could arrive at their destinations one cycle
+    // too soon.
+    wait(clock.negedge_event());
+
     performOperations();
     updateIdle();
   }
@@ -196,15 +202,17 @@ void MemoryMat::newOperation(ChannelIndex port) {
                    << (int)port << endl;
     updateControl(port, request.address());
   }
-  else if(request.isReadRequest()) {
-    connections_[port].readAddress(request.address());
+  else {
+    if(request.isReadRequest()) {
+      connections_[port].readAddress(request.address(), request.byteAccess());
+    }
+    else if(request.isWriteRequest()) {
+      connections_[port].writeAddress(request.address(), request.byteAccess());
+    }
+    else cerr << "Warning: Unknown memory request." << endl;
+
     if(request.streaming()) connections_[port].startStreaming();
   }
-  else if(request.isWriteRequest()) {
-    connections_[port].writeAddress(request.address());
-    if(request.streaming()) connections_[port].startStreaming();
-  }
-  else cerr << "Warning: Unknown memory request." << endl;
 }
 
 /* Set up a new connection at the given input port. All requests to this port
