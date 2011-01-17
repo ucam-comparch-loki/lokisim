@@ -113,6 +113,10 @@ private:
   // Send a flow control credit from a particular port.
   void sendCredit(ChannelIndex position);
 
+  // Slight optimisation: signal that data has arrived, so we only look through
+  // the inputs when we know there is something to find.
+  void newData();
+
 //==============================//
 // Local state
 //==============================//
@@ -135,9 +139,16 @@ private:
   // Tells whether this memory has done something productive this cycle.
   bool active;
 
+  // Flag telling whether data has arrived since we last checked.
+  bool newData_;
+
   // Used for arbitration. Stores the input port for which a request was most
   // recently granted.
   int lastAccepted;
+
+  // Optimisation: only see which work can be done if there is actually work
+  // to do.
+  int activeConnections;
 
 };
 

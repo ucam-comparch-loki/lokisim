@@ -42,6 +42,10 @@ public:
   bool    hasOperand1() const;
   bool    hasResult() const;
 
+  bool    hasImmediate() const;
+  bool    isALUOperation() const;
+  const std::string& name() const;
+
   void    operation(const uint8_t val);
   void    sourceReg1(const RegisterIndex val);
   void    sourceReg2(const RegisterIndex val);

@@ -7,6 +7,7 @@
 
 #include "FlowControlIn.h"
 #include "../NetworkHierarchy.h"
+#include "../../TileComponents/TileComponent.h"
 
 #include "../../Datatype/MemoryRequest.h"
 
@@ -17,8 +18,8 @@ void FlowControlIn::receivedData() {
     // Set the return address so we can send flow control.
     returnAddress = dataIn.read().payload().toInt();
 
-    if(DEBUG) cout << "Port " << NetworkHierarchy::portLocation(id, true)
-         << " was claimed by " << NetworkHierarchy::portLocation(returnAddress, false)
+    if(DEBUG) cout << "Port " << TileComponent::inputPortString(id)
+         << " was claimed by " << TileComponent::outputPortString(returnAddress)
          << endl;
   }
   else {

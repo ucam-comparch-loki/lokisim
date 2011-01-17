@@ -20,7 +20,7 @@ extern int TIMEOUT;
 extern int       BYTES_PER_WORD;
 
 // Architecture size
-extern parameter CLUSTERS_PER_TILE;
+extern parameter CORES_PER_TILE;
 extern parameter MEMS_PER_TILE;
 
 extern parameter NUM_TILE_ROWS;
@@ -41,6 +41,8 @@ extern parameter MAX_IPK_SIZE;
 // Network
 extern parameter NUM_RECEIVE_CHANNELS;
 extern parameter NUM_SEND_CHANNELS;
+extern parameter NUM_MEMORY_INPUTS;
+extern parameter NUM_MEMORY_OUTPUTS;
 extern parameter CHANNEL_END_BUFFER_SIZE; // Different send/receive sizes?
 extern parameter ROUTER_BUFFER_SIZE;
 extern parameter NETWORK_BUFFER_SIZE;
@@ -48,12 +50,17 @@ extern parameter NETWORK_BUFFER_SIZE;
 extern parameter WORMHOLE_ROUTING;
 
 // Combinations of other parameters
-extern parameter NUM_CLUSTER_INPUTS;
-extern parameter NUM_CLUSTER_OUTPUTS;
+extern parameter NUM_CORE_INPUTS;
+extern parameter NUM_CORE_OUTPUTS;
 extern parameter COMPONENTS_PER_TILE;
 extern parameter NUM_TILES;
 
+extern parameter NUM_CORES;
+extern parameter NUM_MEMORIES;
 extern parameter NUM_COMPONENTS;
+
+extern parameter INPUTS_PER_TILE;
+extern parameter OUTPUTS_PER_TILE;
 extern parameter TOTAL_INPUTS;
 extern parameter TOTAL_OUTPUTS;
 

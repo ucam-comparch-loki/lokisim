@@ -59,7 +59,7 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd() {
 void ReceiveChannelEndTable::checkInputs() {
   // We only send credits when there are spaces in the buffers, so we know it
   // is safe to write data to them now.
-  for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
+  for(uint i=0; i<buffers.size(); i++) {
     if(fromNetwork[i].event()) {
       assert(!buffers[i].full());
 
@@ -89,7 +89,7 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name) :
   fromNetwork = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
 
   SC_METHOD(checkInputs);
-  for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) sensitive << fromNetwork[i];
+  for(uint i=0; i<buffers.size(); i++) sensitive << fromNetwork[i];
   dont_initialize();
 
 }

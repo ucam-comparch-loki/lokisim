@@ -14,16 +14,22 @@
  *    | setpred | pred | opcode | dest | source1 | source2 | channel ID | immed |
  *     63        62     60       54     49        44        39           31    0
  *
+ *  Although instructions are currently encoded using 64 bits, they are treated
+ *  as though they are only 32 bits long. We eventually intend to have a 32 bit
+ *  encoding, but in the meantime, a sparser structure makes modifications and
+ *  access easier.
+ *
  *  Created on: 5 Jan 2010
  *      Author: db434
  */
 
 #include "Instruction.h"
 #include "../Exceptions/InvalidInstructionException.h"
+#include "../TileComponents/TileComponent.h"
+#include "../TileComponents/Pipeline/IndirectRegisterFile.h"
 #include "../Utility/InstructionMap.h"
 #include "../Utility/StringManipulation.h"
 #include "../Utility/Parameters.h"
-#include "../TileComponents/Pipeline/IndirectRegisterFile.h"
 
 typedef StringManipulation Strings;
 typedef IndirectRegisterFile Registers;
@@ -270,14 +276,13 @@ int32_t Instruction::decodeRChannel(const string& channel) {
     return channelID;
   }
   else {
-    // We should now have two strings of the form "(13" and "3)".
-
+    // We should now have two strings of the form "(x" and "y)".
     assert(parts.size()==2);
 
     parts[0].erase(parts[0].begin());           // Remove the bracket
     parts[1].erase(parts[1].end()-1);           // Remove the bracket
-    int channelID = Strings::strToInt(parts[0]) * NUM_CLUSTER_INPUTS
-                  + Strings::strToInt(parts[1]);
+    int channelID = TileComponent::inputPortID(Strings::strToInt(parts[0]),
+                                               Strings::strToInt(parts[1]));
     delete &parts;
     return channelID;
   }

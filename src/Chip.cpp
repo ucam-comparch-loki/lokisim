@@ -13,15 +13,15 @@
 double Chip::area() const {
   // Update this if allowing heterogeneity.
   return network.area() +
-         contents[0]->area() * CLUSTERS_PER_TILE +
-         contents[CLUSTERS_PER_TILE]->area() * MEMS_PER_TILE;
+         contents[0]->area() * CORES_PER_TILE +
+         contents[CORES_PER_TILE]->area() * MEMS_PER_TILE;
 }
 
 double Chip::energy() const {
   // Update this if allowing heterogeneity.
   return network.energy() +
-         contents[0]->energy() * CLUSTERS_PER_TILE +
-         contents[CLUSTERS_PER_TILE]->energy() * MEMS_PER_TILE;
+         contents[0]->energy() * CORES_PER_TILE +
+         contents[CORES_PER_TILE]->energy() * MEMS_PER_TILE;
 }
 
 bool Chip::isIdle() const {
@@ -87,7 +87,7 @@ Chip::Chip(sc_module_name name, ComponentID ID) :
 
   for(uint j=0; j<NUM_TILES; j++) {
     // Initialise the Clusters of this Tile
-    for(uint i=0; i<CLUSTERS_PER_TILE; i++) {
+    for(uint i=0; i<CORES_PER_TILE; i++) {
       ComponentID clusterID = j*COMPONENTS_PER_TILE + i;
       Cluster* c = new Cluster("cluster", clusterID);
       c->idle(idleSig[clusterID]);
@@ -95,7 +95,7 @@ Chip::Chip(sc_module_name name, ComponentID ID) :
     }
 
     // Initialise the memories of this Tile
-    for(uint i=CLUSTERS_PER_TILE; i<COMPONENTS_PER_TILE; i++) {
+    for(uint i=CORES_PER_TILE; i<COMPONENTS_PER_TILE; i++) {
       ComponentID memoryID = j*COMPONENTS_PER_TILE + i;
       MemoryMat* m = new MemoryMat("memory", memoryID);
       m->idle(idleSig[memoryID]);
@@ -105,9 +105,12 @@ Chip::Chip(sc_module_name name, ComponentID ID) :
 
   // Connect the clusters and memories to the local interconnect
   for(uint i=0; i<NUM_COMPONENTS; i++) {
+    bool isCore = (i%COMPONENTS_PER_TILE) < CORES_PER_TILE;
+    int numInputs = isCore ? NUM_CORE_INPUTS : NUM_MEMORY_INPUTS;
+    int numOutputs = isCore ? NUM_CORE_OUTPUTS : NUM_MEMORY_OUTPUTS;
 
-    for(uint j=0; j<NUM_CLUSTER_INPUTS; j++) {
-      int index = i*NUM_CLUSTER_INPUTS + j;   // Position in network's array
+    for(int j=0; j<numInputs; j++) {
+      int index = TileComponent::inputPortID(i,j);//i*NUM_CORE_INPUTS + j;   // Position in network's array
 
       contents[i]->in[j](dataToComponents[index]);
       network.dataOut[index](dataToComponents[index]);
@@ -115,8 +118,8 @@ Chip::Chip(sc_module_name name, ComponentID ID) :
       network.creditsIn[index](creditsFromComponents[index]);
     }
 
-    for(uint j=0; j<NUM_CLUSTER_OUTPUTS; j++) {
-      int index = i*NUM_CLUSTER_OUTPUTS + j;  // Position in network's array
+    for(int j=0; j<numOutputs; j++) {
+      int index = TileComponent::outputPortID(i,j);//i*NUM_CORE_OUTPUTS + j;  // Position in network's array
 
       contents[i]->out[j](dataFromComponents[index]);
       network.dataIn[index](dataFromComponents[index]);

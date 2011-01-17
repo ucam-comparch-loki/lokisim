@@ -39,7 +39,7 @@ AddressedWord::AddressedWord(const Word w, const uint16_t id, const bool portCla
   portClaim_ = portClaim;
   endOfPacket_ = true;
 
-  if((int)id < 0 || (int)id > NUM_TILES*COMPONENTS_PER_TILE*NUM_CLUSTER_OUTPUTS) {
+  if((int)id < 0 || (int)id > TOTAL_INPUTS || (int)id > TOTAL_OUTPUTS) {
     std::cerr << "Warning: planning to send to channel " << (int)id << std::endl;
   }
 }

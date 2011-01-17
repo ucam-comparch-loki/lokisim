@@ -54,12 +54,12 @@ private:
   static CounterMap<ComponentID> idleTimes;
 
   // The number of clusters stalled or idle at the moment.
-  static int numStalled;
+  static uint numStalled;
 
   // The cycle number at which all clusters became inactive. It is safe to
   // stop simulation if it can also be known that the networks are inactive:
   // it may be the case that a cluster is waiting for data to arrive.
-  static int endOfExecution;
+  static uint endOfExecution;
 
 };
 

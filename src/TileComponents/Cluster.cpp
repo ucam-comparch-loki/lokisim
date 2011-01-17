@@ -201,17 +201,17 @@ void     Cluster::updateIdle() {
 
 /* Returns the channel ID of this cluster's instruction packet FIFO. */
 ChannelID Cluster::IPKFIFOInput(ComponentID ID) {
-  return ID*NUM_CLUSTER_INPUTS + 0;
+  return inputPortID(ID, 0);
 }
 
 /* Returns the channel ID of this cluster's instruction packet cache. */
 ChannelID Cluster::IPKCacheInput(ComponentID ID) {
-  return ID*NUM_CLUSTER_INPUTS + 1;
+  return inputPortID(ID, 1);
 }
 
 /* Returns the channel ID of this cluster's specified input channel. */
 ChannelID Cluster::RCETInput(ComponentID ID, ChannelIndex channel) {
-  return ID*NUM_CLUSTER_INPUTS + 2 + channel;
+  return inputPortID(ID, 2 + channel);
 }
 
 Cluster::Cluster(sc_module_name name, ComponentID ID) :
@@ -225,6 +225,12 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
     execute("execute", ID),
     decode("decode", ID),
     fetch("fetch", ID) {
+
+  flowControlOut = new sc_out<int>[NUM_CORE_INPUTS];
+  in             = new sc_in<Word>[NUM_CORE_INPUTS];
+
+  flowControlIn  = new sc_in<bool>[NUM_CORE_OUTPUTS];
+  out            = new sc_out<AddressedWord>[NUM_CORE_OUTPUTS];
 
   previousDest1 = previousDest2 = -1;
 
@@ -241,7 +247,7 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   fetch.flowControl[0](flowControlOut[0]);
   fetch.flowControl[1](flowControlOut[1]);
 
-  for(uint i=2; i<NUM_CLUSTER_INPUTS; i++) {
+  for(uint i=2; i<NUM_CORE_INPUTS; i++) {
     decode.rcetIn[i-2](in[i]);
     decode.flowControlOut[i-2](flowControlOut[i]);
   }
@@ -254,7 +260,7 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   write.output[0](out0Write);
 
   // Skip 0 because that is dealt with elsewhere.
-  for(uint i=1; i<NUM_CLUSTER_OUTPUTS; i++) {
+  for(uint i=1; i<NUM_CORE_OUTPUTS; i++) {
     write.flowControl[i](flowControlIn[i]);
     write.output[i](out[i]);
   }

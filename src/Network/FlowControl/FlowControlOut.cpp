@@ -7,6 +7,7 @@
 
 #include "FlowControlOut.h"
 #include "../NetworkHierarchy.h"
+#include "../../TileComponents/TileComponent.h"
 
 void FlowControlOut::mainLoop() {
   while(true) {
@@ -44,7 +45,7 @@ void FlowControlOut::sendData() {
   else {
     if(creditCount <= 0) {  // We are not able to send the new data yet.
       if(DEBUG) cout << "Can't send from "
-          << NetworkHierarchy::portLocation(id, false) << ": no credits." <<  endl;
+          << TileComponent::outputPortString(id) << ": no credits." <<  endl;
 
       // Wait until we receive a credit.
       wait(creditsIn.default_event());
@@ -56,8 +57,8 @@ void FlowControlOut::sendData() {
     Instrumentation::networkTraffic(id, dataIn.read().channelID());
 
     if(DEBUG) cout << "Network sending " << dataIn.read().payload() << " from "
-        << NetworkHierarchy::portLocation(id, false) << " to "
-        << NetworkHierarchy::portLocation(dataIn.read().channelID(), true)
+        << TileComponent::outputPortString(id) << " to "
+        << TileComponent::inputPortString(dataIn.read().channelID())
         << endl;
   }
 
@@ -69,7 +70,7 @@ void FlowControlOut::receivedCredit() {
   creditCount++;
 
   if(DEBUG) cout << "Received credit at port "
-       << NetworkHierarchy::portLocation(id, false) << endl;
+       << TileComponent::outputPortString(id) << endl;
 }
 
 FlowControlOut::FlowControlOut(sc_module_name name, ComponentID ID) :

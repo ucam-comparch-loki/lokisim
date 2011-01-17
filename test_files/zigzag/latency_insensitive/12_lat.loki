@@ -1,12 +1,12 @@
 fetch           r1,       32
 addui           r9,  r0,  28            ; store 7, since it is a common offset
 addui           r10, ch1, 0             ; wait until we receive an address, and store it
-ldw.eop         r10,      0   > 3       ; load the first value early
+ldw.eop         r10,      0   > 1       ; load the first value early
 
 fetch           r1,       16            ; MOVING UPWARDS
 addu            r12, r10, r11           ; ============================
-ldw             r12,      0   > 3       ;  Load and forward data item
-addui.eop       r0,  ch0, 0   > 4       ; ============================
+ldw             r12,      0   > 1       ;  Load and forward data item
+addui.eop       r0,  ch0, 0   > 2       ; ============================
 
 setlti.p        r0,  r11, 32            ; see if we have hit the top of the grid
 !p?fetch        r1,       20
@@ -29,8 +29,8 @@ nop.eop
 
 fetch           r1,       16            ; MOVING DOWNWARDS
 addu            r12, r10, r11           ; ============================
-ldw             r12,      0   > 3       ;  Load and forward data item
-addui.eop       r0,  ch0, 0   > 4       ; ============================
+ldw             r12,      0   > 1       ;  Load and forward data item
+addui.eop       r0,  ch0, 0   > 2       ; ============================
 
 setlti.p        r0,  r11, 224           ; see if we have reached the bottom of the grid
 p?fetch         r1,       20            ; we haven't, so check the other condition
@@ -47,4 +47,4 @@ p?fetch         r1,       -116          ; switch to moving up
 nop.eop
 
 fetch           r1,       -160          ; end of block: restart and wait for new block address
-addui.eop       r0,  ch0, 0   > 4       ; send the final value late
+addui.eop       r0,  ch0, 0   > 2       ; send the final value late

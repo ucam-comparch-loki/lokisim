@@ -53,12 +53,12 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   }
 
   // Only perform this if we aren't blocked to prevent repeated occurrences.
-  if(!blocked && !InstructionMap::isALUOperation(input.operation()))
+  if(!blocked && !input.isALUOperation())
     Instrumentation::operation(input, execute, id);
 
   // If the instruction may perform destructive reads from a channel-end,
   // and we know it won't execute, stop it here.
-  if(!execute && InstructionMap::isALUOperation(input.operation()) &&
+  if(!execute && input.isALUOperation() &&
                 (Registers::isChannelEnd(input.sourceReg1()) ||
                  Registers::isChannelEnd(input.sourceReg2()))) {
     blocked = false;
@@ -270,7 +270,7 @@ void Decoder::setOperand1ToValue(DecodedInst& dec, RegisterIndex reg) {
 
 /* Determine where to get second operand from: immediate, RCET or regs */
 void Decoder::setOperand2ToValue(DecodedInst& dec, RegisterIndex reg, int32_t immed) {
-  if(InstructionMap::hasImmediate(dec.operation())) {
+  if(dec.hasImmediate()) {
     dec.operand2(immed);
     // This would require use of the sign-extender.
     // Remember to factor in the energy use.
@@ -336,7 +336,7 @@ bool Decoder::shouldExecute(const DecodedInst& inst) {
     // We need to know the predicate value in this cycle if we are doing
     // something like a fetch, which is carried out in the decode stage, or if
     // we read from a channel-end, as these reads are destructive.
-    if(!InstructionMap::isALUOperation(inst.operation()) ||
+    if(!inst.isALUOperation() ||
        Registers::isChannelEnd(inst.sourceReg1()) ||
        Registers::isChannelEnd(inst.sourceReg2())) {
       if(DEBUG) cout << this->name()

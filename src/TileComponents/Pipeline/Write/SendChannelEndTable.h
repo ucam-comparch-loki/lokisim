@@ -52,7 +52,7 @@ public:
   void          write(const DecodedInst& dec);
 
   // Returns true if the table is incapable of accepting new data at the moment.
-  bool          isFull() const;
+  bool          full() const;
 
   // Send the oldest value in each output buffer, if the flow control signals
   // allow it.

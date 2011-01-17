@@ -32,7 +32,7 @@ void WriteStage::newInput(DecodedInst& data) {
 }
 
 bool WriteStage::isStalled() const {
-  return scet.isFull();
+  return scet.full();
 }
 
 void WriteStage::sendOutputs() {

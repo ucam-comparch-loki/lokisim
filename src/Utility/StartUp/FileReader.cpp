@@ -50,7 +50,10 @@ FileReader& FileReader::makeFileReader(vector<std::string>& words) {
     else if(parts.back() == "bloki") {
       reader = new LokiBinaryFileReader(words[1], component);
     }
-    else std::cerr << "Unknown file format: " << words[1] << std::endl;
+    else {
+      std::cerr << "Unknown file format: " << words[1] << std::endl;
+      throw std::exception();
+    }
 
   }
   else if(words.size()==3) {

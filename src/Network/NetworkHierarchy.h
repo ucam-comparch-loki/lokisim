@@ -65,12 +65,6 @@ public:
 // Methods
 //==============================//
 
-public:
-
-  // Returns a string representing the location of the port. For example,
-  // port 16 may map to "(4,0)".
-  static std::string portLocation(ChannelID port, bool isInput);
-
 private:
 
   void setupFlowControl();

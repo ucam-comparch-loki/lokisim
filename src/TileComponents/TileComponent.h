@@ -79,6 +79,14 @@ public:
   // Return the value of the predicate register.
   virtual bool readPredReg() const;
 
+  // Return a unique address for each input/output port of each core/memory.
+  static ChannelID inputPortID(ComponentID component, ChannelIndex port);
+  static ChannelID outputPortID(ComponentID component, ChannelIndex port);
+
+  // Convert a unique port address into the form "(component, port)".
+  static std::string inputPortString(ChannelID port);
+  static std::string outputPortString(ChannelID port);
+
   enum Type {CLUSTER, MEMORY};
 
 };

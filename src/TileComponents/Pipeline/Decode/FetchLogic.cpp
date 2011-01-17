@@ -7,6 +7,7 @@
 
 #include "FetchLogic.h"
 #include "DecodeStage.h"
+#include "../../TileComponent.h"
 #include "../../../Datatype/Address.h"
 #include "../../../Datatype/MemoryRequest.h"
 
@@ -17,7 +18,7 @@ void FetchLogic::fetch(MemoryAddr addr) {
 
   // Play with fetchChannel so we have the component ID, rather than the port
   // number.
-  if(!inCache(Address(addr, fetchChannel/NUM_CLUSTER_INPUTS))) {
+  if(!inCache(Address(addr, fetchChannel/NUM_CORE_INPUTS))) {
     toSend.write(request);     // Put the new request in the queue
   }
   else {
@@ -73,7 +74,7 @@ bool FetchLogic::roomInCache() {
 }
 
 ChannelID FetchLogic::portID() {
-  return id*NUM_CLUSTER_OUTPUTS;
+  return TileComponent::outputPortID(id, 0);
 }
 
 DecodeStage* FetchLogic::parent() const {

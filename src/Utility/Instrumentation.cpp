@@ -42,7 +42,7 @@ void Instrumentation::endExecution() {
 }
 
 void Instrumentation::networkTraffic(ChannelID startID, ChannelID endID) {
-  Network::traffic(startID/NUM_CLUSTER_OUTPUTS, endID/NUM_CLUSTER_INPUTS);
+  Network::traffic(startID/NUM_CORE_OUTPUTS, endID/NUM_CORE_INPUTS);
 }
 
 void Instrumentation::networkActivity(ComponentID network, ChannelIndex source,

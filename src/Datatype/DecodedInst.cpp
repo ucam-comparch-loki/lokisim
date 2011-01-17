@@ -77,6 +77,19 @@ bool    DecodedInst::hasResult() const {
 }
 
 
+bool    DecodedInst::hasImmediate() const {
+  return InstructionMap::hasImmediate(operation_);
+}
+
+bool    DecodedInst::isALUOperation() const {
+  return InstructionMap::isALUOperation(operation_);
+}
+
+const std::string& DecodedInst::name() const {
+  return InstructionMap::name(operation_);
+}
+
+
 void    DecodedInst::operation(const uint8_t val) {
   operation_ = val;
 }
@@ -134,7 +147,7 @@ void    DecodedInst::location(const Address val) {
 
 Instruction DecodedInst::toInstruction() const {
   Instruction i;
-  i.opcode(InstructionMap::opcode(InstructionMap::name(operation_)));
+  i.opcode(InstructionMap::opcode(name()));
   i.destination(destReg_);
   i.sourceReg1(sourceReg1_);
   i.sourceReg2(sourceReg2_);
@@ -193,7 +206,7 @@ std::ostream& DecodedInst::print(std::ostream& os) const {
   if(predicate() == Instruction::P) os << "p?";
   else if(predicate() == Instruction::NOT_P) os << "!p?";
 
-  os << InstructionMap::name(operation())
+  os << name()
      << (setsPredicate()?".p":"") << (predicate()==Instruction::END_OF_PACKET?".eop":"")
      << " r" << (int)destination() << " r" << (int)sourceReg1()
      << " r" << (int)sourceReg2()     << " "  << immediate();

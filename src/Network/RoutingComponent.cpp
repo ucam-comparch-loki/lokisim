@@ -23,6 +23,8 @@ void RoutingComponent::sendData() {
 
       // Check for new input data.
       if(dataIn[input].event()) {
+        assert(!inputBuffers[input].full());
+
         inputBuffers[input].write(dataIn[input].read());
         updateReady(input);
       }

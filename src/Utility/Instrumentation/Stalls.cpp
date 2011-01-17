@@ -18,14 +18,12 @@ CounterMap<ComponentID> Stalls::predicateStalls;
 std::map<ComponentID, int> Stalls::stallReason;
 
 CounterMap<ComponentID> Stalls::idleTimes;
-int Stalls::numStalled = (CLUSTERS_PER_TILE-MEMS_PER_TILE) * NUM_TILES; // Messy - fix?
-int Stalls::endOfExecution = 0;
+uint Stalls::numStalled = (CORES_PER_TILE-MEMS_PER_TILE) * NUM_TILES; // Messy - fix?
+uint Stalls::endOfExecution = 0;
 
 // If a core is not currently stalled, it should map to this value in the
 // "stalled" mapping.
 const int UNSTALLED = -1;
-
-const int NUM_CORES = (CLUSTERS_PER_TILE+MEMS_PER_TILE) * NUM_TILES;
 
 void Stalls::stall(ComponentID id, int cycle, int reason) {
   if(stallReason[id] == NONE) {
@@ -35,7 +33,7 @@ void Stalls::stall(ComponentID id, int cycle, int reason) {
     startedStalling[id] = cycle;
     numStalled++;
 
-    if(numStalled >= NUM_CORES) {
+    if(numStalled >= NUM_COMPONENTS) {
       endOfExecution = cycle;
     }
   }
@@ -71,7 +69,7 @@ void Stalls::idle(ComponentID id, int cycle) {
     startedIdle[id] = cycle;
     numStalled++;
 
-    if(numStalled >= NUM_CORES) {
+    if(numStalled >= NUM_COMPONENTS) {
       endOfExecution = cycle;
     }
   }
@@ -87,7 +85,7 @@ void Stalls::active(ComponentID id, int cycle) {
 }
 
 void Stalls::endExecution() {
-  if(numStalled < NUM_CORES)
+  if(numStalled < NUM_COMPONENTS)
     endOfExecution = sc_core::sc_time_stamp().to_default_time_units();
 }
 
@@ -98,14 +96,14 @@ void Stalls::printStats() {
 
   for(ComponentID i=0; i<NUM_COMPONENTS; i++) {
     // Skip over memories for now -- they are not instrumented properly.
-    if(i%COMPONENTS_PER_TILE >= CLUSTERS_PER_TILE) continue;
+    if(i%COMPONENTS_PER_TILE >= CORES_PER_TILE) continue;
 
     // Flush any remaining stall/idle time into the CounterMaps.
     unstall(i, endOfExecution);
     active(i, endOfExecution);
 
     // Only print statistics for clusters which have seen some activity.
-    if(idleTimes[i] < endOfExecution) {
+    if((uint)idleTimes[i] < endOfExecution) {
       int totalStalled = inputStalls[i] + outputStalls[i] + predicateStalls[i];
       int activeCycles = endOfExecution - totalStalled - idleTimes[i];
       cout << "  " << i << "\t\t" <<

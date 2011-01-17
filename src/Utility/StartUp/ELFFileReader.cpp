@@ -25,8 +25,7 @@ vector<DataBlock>& ELFFileReader::extractData() const {
   char line[100];
 
   // Step through each line of information, looking for ones of interest.
-  while(!feof(terminalOutput)) {
-    fgets(line, 100, terminalOutput);
+  while(fgets(line, 100, terminalOutput) != NULL) {
     string lineStr(line);
     vector<string>& words = StringManipulation::split(lineStr, ' ');
 
@@ -124,12 +123,12 @@ DataBlock& ELFFileReader::loaderProgram() const {
   if(CodeLoader::usingDebugger) cout << "\nmain() is at address " << mainPos << endl;
 
   Instruction storeChannel("ori r3 r0 0");
-  storeChannel.immediate(componentID_*NUM_CLUSTER_INPUTS); // Memory's first input.
+  storeChannel.immediate(componentID_*NUM_CORE_INPUTS); // Memory's first input.
 
   Instruction setfetchch("setchmap r3 0");
 
   Instruction connect("ori r0 r0 0 > 0");
-  connect.immediate(core_*NUM_CLUSTER_INPUTS + 1); // Core's IPK cache
+  connect.immediate(core_*NUM_CORE_INPUTS + 1); // Core's IPK cache
 
   Instruction nop("nop r0 r0 r0");
 
@@ -161,13 +160,12 @@ int ELFFileReader::findMain() const {
   terminalOutput = popen(command.c_str(), "r");
 
   char line[100];
-  int mainPos;
+  int mainPos = 0;
   bool foundMainPos = false;
 
   // Step through each line of information, looking for the one corresponding
   // to main().
-  while(!feof(terminalOutput)) {
-    fgets(line, 100, terminalOutput);
+  while(fgets(line, 100, terminalOutput) != NULL) {
     string lineStr(line);
     vector<string>& words = StringManipulation::split(lineStr, ' ');
 

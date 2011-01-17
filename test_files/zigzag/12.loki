@@ -4,8 +4,8 @@ addui.eop       r10, ch1, 0             ; wait until we receive a block location
 
 fetch           r1,  16                 ; MOVING UPWARDS
 addu            r12, r10, r11           ; ============================
-ldw             r12, 0        > 3       ;  Load and forward data item
-addui.eop       r0,  ch0, 0   > 4       ; ============================
+ldw             r12, 0        > 1       ;  Load and forward data item
+addui.eop       r0,  ch0, 0   > 2       ; ============================
 
 setlti.p        r0,  r11, 32            ; see if we have hit the top of the grid
 !p?fetch        r1,  20                 ; we haven't: check the next condition
@@ -28,8 +28,8 @@ nop.eop
 
 fetch           r1,  16                 ; MOVING DOWNWARDS
 addu            r12, r10, r11           ; ============================
-ldw             r12, 0        > 3       ;  Load and forward data item
-addui.eop       r0,  ch0, 0   > 4       ; ============================
+ldw             r12, 0        > 1       ;  Load and forward data item
+addui.eop       r0,  ch0, 0   > 2       ; ============================
 
 setlti.p        r0,  r11, 224           ; see if we have reached the bottom of the grid
 p?fetch         r1,  20                 ; we haven't: check the other condition

@@ -38,7 +38,10 @@ void MemoryMat::mainLoop() {
  * buffers. If there is no operation at a particular port, prepare the newly-
  * received request for execution. */
 void MemoryMat::checkInputs() {
-  for(ChannelIndex i=0; i<NUM_CLUSTER_INPUTS; i++) {
+  // Skip the check if we know nothing arrived.
+  if(!newData_) return;
+
+  for(ChannelIndex i=0; i<inputBuffers_.size(); i++) {
     if(in[i].event()) {
       // Flow control means there should be at least one buffer space available.
       assert(!inputBuffers_[i].full());
@@ -46,11 +49,15 @@ void MemoryMat::checkInputs() {
       inputBuffers_[i].write(in[i].read());
     }
   }
+
+  newData_ = false;
 }
 
 /* Determine which of the pending operations are allowed to occur (if any),
  * and execute them. */
 void MemoryMat::performOperations() {
+  if(activeConnections == 0 && inputBuffers_.empty()) return;
+
   // Collect a list of all input ports which have received a memory request
   // which has not yet been carried out, and then remove any conflicting
   // requests.
@@ -90,7 +97,7 @@ void MemoryMat::read(ChannelIndex port) {
     if(static_cast<Instruction>(data).endOfPacket()) {
       // If this is the end of the packet, end this operation and check for
       // another.
-      connection.clear();
+      connection.clear(); activeConnections--;
       if(!inputBuffers_[port].empty()) newOperation(port);
     }
     else {
@@ -106,7 +113,7 @@ void MemoryMat::read(ChannelIndex port) {
       if(addr%BYTES_PER_WORD != 0)
         cerr << "Warning: Misaligned address: " << addr << endl;
     }
-    connection.clear();
+    connection.clear(); activeConnections--;
   }
 
   // Send the result of the read.
@@ -141,7 +148,7 @@ void MemoryMat::write(ChannelIndex port) {
   // and check for another operation.
   if(connection.streaming()) connection.incrementAddress();
   else {
-    connection.clear();
+    connection.clear(); activeConnections--;
     if(!inputBuffers_[port].empty()) newOperation(port);
   }
 
@@ -154,7 +161,7 @@ void MemoryMat::write(ChannelIndex port) {
  * ready to execute. */
 std::vector<ChannelIndex>& MemoryMat::allRequests() {
   std::vector<ChannelIndex>* requests = new std::vector<ChannelIndex>();
-  for(ChannelIndex i=0; i<NUM_CLUSTER_INPUTS; i++) {
+  for(ChannelIndex i=0; i<inputBuffers_.size(); i++) {
     // If there is something waiting in the buffer, and nothing currently
     // executing, prepare the operation in the buffer.
     if(!inputBuffers_[i].empty() &&
@@ -212,6 +219,7 @@ void MemoryMat::newOperation(ChannelIndex port) {
     else cerr << "Warning: Unknown memory request." << endl;
 
     if(request.streaming()) connections_[port].startStreaming();
+    activeConnections++;
   }
 }
 
@@ -226,14 +234,14 @@ void MemoryMat::updateControl(ChannelIndex port, ChannelID returnAddr) {
   connection.clear();
   connection.channel(returnAddr);
 
-  if(port >= NUM_CLUSTER_OUTPUTS) {
+  if(port >= NUM_MEMORY_OUTPUTS) {
     cerr << "Error: memories don't yet have the same number of outputs"
          << " as inputs." << endl;
   }
 
   // Set up a connection to the port we are now sending to: send the output
   // port's ID, and flag it as a setup message.
-  int portID = id*NUM_CLUSTER_OUTPUTS + port;
+  int portID = outputPortID(id, port);
   AddressedWord aw(Word(portID), returnAddr, true);
   out[port].write(aw);
 }
@@ -305,6 +313,10 @@ void MemoryMat::sendCredit(ChannelIndex position) {
   flowControlOut[position].write(1);
 }
 
+void MemoryMat::newData() {
+  newData_ = true;
+}
+
 /* Initialise the contents of this memory to the Words in the given vector. */
 void MemoryMat::storeData(std::vector<Word>& data, MemoryAddr location) {
   // wordsLoaded is used to keep track of where to put new data. If we have
@@ -340,12 +352,23 @@ void MemoryMat::writeMemory(MemoryAddr addr, Word data) {
 MemoryMat::MemoryMat(sc_module_name name, ComponentID ID) :
     TileComponent(name, ID),
     data_(MEMORY_SIZE, string(name)),
-    connections_(NUM_CLUSTER_INPUTS),
-    inputBuffers_(NUM_CLUSTER_INPUTS, CHANNEL_END_BUFFER_SIZE, string(name)) {
+    connections_(NUM_MEMORY_INPUTS),
+    inputBuffers_(NUM_MEMORY_INPUTS, CHANNEL_END_BUFFER_SIZE, string(name)) {
+
+  flowControlOut = new sc_out<int>[NUM_MEMORY_INPUTS];
+  in             = new sc_in<Word>[NUM_MEMORY_INPUTS];
+
+  flowControlIn  = new sc_in<bool>[NUM_MEMORY_OUTPUTS];
+  out            = new sc_out<AddressedWord>[NUM_MEMORY_OUTPUTS];
 
   wordsLoaded_ = 0;
+  newData_ = false;
 
   SC_THREAD(mainLoop);
+
+  SC_METHOD(newData);
+  for(uint i=0; i<NUM_MEMORY_INPUTS; i++) sensitive << in[i];
+  dont_initialize();
 
   end_module(); // Needed because we're using a different Component constructor
 

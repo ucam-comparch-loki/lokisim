@@ -34,7 +34,7 @@ public:
   static bool isALUOperation(short operation);
 
   // Returns the opcode of the given operation name.
-  static short opcode(std::string& name);
+  static short opcode(const std::string& name);
 
   // Returns the decoded operation value from the given opcode.
   static short operation(short opcode);

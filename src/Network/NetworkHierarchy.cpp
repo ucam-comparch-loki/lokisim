@@ -81,32 +81,28 @@ void NetworkHierarchy::makeDataNetwork() {
 
 void NetworkHierarchy::makeLocalDataNetwork(int tileID) {
 
-  // The total numbers of input/output ports in a tile.
-  static int numTileInputs  = COMPONENTS_PER_TILE * NUM_CLUSTER_INPUTS;
-  static int numTileOutputs = COMPONENTS_PER_TILE * NUM_CLUSTER_OUTPUTS;
-
   // Create a local network.
-  ChannelID lowestID = tileID * numTileInputs;
-  ChannelID highestID = lowestID + numTileInputs - 1;
-  Arbiter* arbiter = Arbiter::localDataArbiter(numTileOutputs, numTileInputs);
+  ChannelID lowestID = tileID * INPUTS_PER_TILE;
+  ChannelID highestID = lowestID + INPUTS_PER_TILE - 1;
+  Arbiter* arbiter = Arbiter::localDataArbiter(OUTPUTS_PER_TILE, INPUTS_PER_TILE);
   Network* localNetwork = new Crossbar("local_data_net",
                                        tileID,
                                        lowestID,
                                        highestID,
-                                       numTileOutputs,
-                                       numTileInputs,
+                                       OUTPUTS_PER_TILE,
+                                       INPUTS_PER_TILE,
                                        RoutingComponent::LOC_DATA,
                                        arbiter);
   localDataNetworks.push_back(localNetwork);
 
   // Connect things up.
-  for(int i=0; i<numTileInputs; i++) {
-    int outputIndex = (tileID * numTileInputs) + i;
+  for(uint i=0; i<INPUTS_PER_TILE; i++) {
+    int outputIndex = (tileID * INPUTS_PER_TILE) + i;
     localNetwork->dataOut[i](dataToComponents[outputIndex]);
     localNetwork->readyIn[i](compReadyForData[outputIndex]);
   }
-  for(int i=0; i<numTileOutputs; i++) {
-    int inputIndex = (tileID * numTileOutputs) + i;
+  for(uint i=0; i<OUTPUTS_PER_TILE; i++) {
+    int inputIndex = (tileID * OUTPUTS_PER_TILE) + i;
     localNetwork->dataIn[i](dataFromComponents[inputIndex]);
     localNetwork->readyOut[i](readyForData[inputIndex]);
   }
@@ -174,33 +170,28 @@ void NetworkHierarchy::makeCreditNetwork() {
 
 void NetworkHierarchy::makeLocalCreditNetwork(int tileID) {
 
-  // The total numbers of input/output ports in a tile. Input and output
-  // numbers are reversed because credits are sent to output ports.
-  static int numTileInputs  = COMPONENTS_PER_TILE * NUM_CLUSTER_INPUTS;
-  static int numTileOutputs = COMPONENTS_PER_TILE * NUM_CLUSTER_OUTPUTS;
-
   // Create a local network.
-  ChannelID lowestID = tileID * numTileOutputs;
-  ChannelID highestID = lowestID + numTileOutputs - 1;
-  Arbiter* arbiter = Arbiter::localCreditArbiter(numTileInputs, numTileOutputs);
+  ChannelID lowestID = tileID * OUTPUTS_PER_TILE;
+  ChannelID highestID = lowestID + OUTPUTS_PER_TILE - 1;
+  Arbiter* arbiter = Arbiter::localCreditArbiter(INPUTS_PER_TILE, OUTPUTS_PER_TILE);
   Network* localNetwork = new Crossbar("local_credit_net",
                                        tileID,
                                        lowestID,
                                        highestID,
-                                       numTileInputs,
-                                       numTileOutputs,
+                                       INPUTS_PER_TILE,
+                                       OUTPUTS_PER_TILE,
                                        RoutingComponent::LOC_CREDIT,
                                        arbiter);
   localCreditNetworks.push_back(localNetwork);
 
   // Connect things up.
-  for(int i=0; i<numTileOutputs; i++) {
-    int outputIndex = (tileID * numTileOutputs) + i;
+  for(uint i=0; i<OUTPUTS_PER_TILE; i++) {
+    int outputIndex = (tileID * OUTPUTS_PER_TILE) + i;
     localNetwork->dataOut[i](creditsToComponents[outputIndex]);
     localNetwork->readyIn[i](compReadyForCredits[outputIndex]);
   }
-  for(int i=0; i<numTileInputs; i++) {
-    int inputIndex = (tileID * numTileInputs) + i;
+  for(uint i=0; i<INPUTS_PER_TILE; i++) {
+    int inputIndex = (tileID * INPUTS_PER_TILE) + i;
     localNetwork->dataIn[i](creditsFromComponents[inputIndex]);
     localNetwork->readyOut[i](readyForCredits[inputIndex]);
   }
@@ -253,15 +244,6 @@ void NetworkHierarchy::makeGlobalCreditNetwork() {
     globalCreditNetwork->readyIn[i](localReadyForCredits[i]);
   }
 
-}
-
-std::string NetworkHierarchy::portLocation(ChannelID port, bool isInput) {
-  int numPorts = isInput ? NUM_CLUSTER_INPUTS : NUM_CLUSTER_OUTPUTS;
-  std::stringstream ss;
-  ss << "(" << (port/numPorts) << "," << (port%numPorts) << ")";
-  std::string result;
-  ss >> result;
-  return result;
 }
 
 NetworkHierarchy::NetworkHierarchy(sc_module_name name) :

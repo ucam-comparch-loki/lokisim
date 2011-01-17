@@ -17,7 +17,7 @@ bool ALU::execute(DecodedInst& dec) {
 
   bool execute = shouldExecute(dec.predicate());
 
-  if(InstructionMap::isALUOperation(dec.operation()))
+  if(dec.isALUOperation())
     Instrumentation::operation(dec, execute, parent()->id);
 
   if(dec.operation() == InstructionMap::NOP) return false;
@@ -32,7 +32,7 @@ bool ALU::execute(DecodedInst& dec) {
   int32_t result;
 
   if(DEBUG) cout << this->name() << ": executing " <<
-    InstructionMap::name(dec.operation())<<" on "<<val1<<" and "<<val2<<endl;
+    dec.name() << " on " << val1 << " and " << val2 << endl;
 
   switch(dec.operation()) {
 

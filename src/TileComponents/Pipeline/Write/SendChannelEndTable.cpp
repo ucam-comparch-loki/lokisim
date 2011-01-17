@@ -6,6 +6,7 @@
  */
 
 #include "SendChannelEndTable.h"
+#include "../../TileComponent.h"
 #include "../../../Datatype/AddressedWord.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
@@ -22,7 +23,7 @@ void SendChannelEndTable::write(const DecodedInst& dec) {
   // then data), so we need to mark this special case.
   bool endOfPacket = true;
 
-  if(dec.operation()==InstructionMap::SETCHMAP) {
+  if(dec.operation() == InstructionMap::SETCHMAP) {
     updateMap(dec.immediate(), dec.result());
   }
   else if(dec.operation() == InstructionMap::WOCHE) {
@@ -52,6 +53,7 @@ void SendChannelEndTable::write(const DecodedInst& dec) {
 
     // We know it is safe to write to any buffer because we block the rest
     // of the pipeline if a buffer is full.
+    assert(!buffers[index].full());
     buffers[index].write(aw);
 
     if(DEBUG) cout << this->name() << " wrote " << w
@@ -70,7 +72,7 @@ Word SendChannelEndTable::makeMemoryRequest(const DecodedInst& dec) const {
 // A very simplistic implementation for now: we block any further data if
 // even one buffer is full. Future implementations could allow data into
 // other buffers.
-bool SendChannelEndTable::isFull() const {
+bool SendChannelEndTable::full() const {
   // We pretend to be full if we're waiting for a channel to empty.
   if(waitingOn != NO_CHANNEL) return true;
 
@@ -84,11 +86,11 @@ bool SendChannelEndTable::isFull() const {
 }
 
 void SendChannelEndTable::send() {
+  if(buffers.empty()) return;
+
   // If a buffer has information, and is allowed to send, send it
   for(uint i=0; i<buffers.size(); i++) {
-    bool send = flowControl[i].read();
-
-    if(!(buffers[i].empty()) && send) {
+    if(!(buffers[i].empty()) && flowControl[i].read()) {
       output[i].write(buffers[i].read());
 
       // See if we can stop waiting
@@ -120,11 +122,13 @@ ChannelIndex SendChannelEndTable::chooseBuffer(MapIndex channelMapEntry) const {
 /* Return a unique ID for an output port, so credits can be routed back to
  * it. This will become obsolete if/when we have static routing. */
 ChannelID SendChannelEndTable::portID(ChannelIndex channel) const {
-  return id*NUM_CLUSTER_OUTPUTS + channel;
+  return TileComponent::outputPortID(id, channel);
 }
 
 /* Update an entry in the channel mapping table. */
 void SendChannelEndTable::updateMap(MapIndex entry, ChannelID newVal) {
+  assert(entry < NUM_SEND_CHANNELS);
+  assert(newVal < TOTAL_INPUTS);
   channelMap.write(newVal, entry);
 
   // Need to send port acquisition request out. FetchLogic sends out the claims

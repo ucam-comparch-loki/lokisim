@@ -13,7 +13,7 @@ std::map<short, int> InstructionMap::oti; // opcode to instruction
 std::map<int, std::string> InstructionMap::itn; // instruction to name
 
 /* Return the opcode of the given instruction name */
-short InstructionMap::opcode(std::string& name) {
+short InstructionMap::opcode(const std::string& name) {
   InstructionMap::initialise();
   return nto[name];
 }
