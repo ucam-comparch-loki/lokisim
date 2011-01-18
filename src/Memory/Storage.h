@@ -36,7 +36,7 @@ class Storage {
 public:
 
   // Read a value from the data array.
-  virtual T& read() {
+  virtual const T& read() {
     throw "Error: Need to implement read() in this subclass.";
   }
 

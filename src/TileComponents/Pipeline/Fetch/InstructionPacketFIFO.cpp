@@ -8,13 +8,13 @@
 #include "InstructionPacketFIFO.h"
 #include "../../../Datatype/Instruction.h"
 
-Instruction InstructionPacketFIFO::read() {
+const Instruction InstructionPacketFIFO::read() {
   Instruction inst = fifo.read();
   sendCredit();
   return inst;
 }
 
-void InstructionPacketFIFO::write(Instruction inst) {
+void InstructionPacketFIFO::write(const Instruction inst) {
   fifo.write(inst);
   if(DEBUG) cout << this->name() << " received Instruction:  " << inst << endl;
 }
@@ -23,7 +23,7 @@ void InstructionPacketFIFO::sendCredit() {
   flowControl.write(1);
 }
 
-bool InstructionPacketFIFO::isEmpty() {
+bool InstructionPacketFIFO::isEmpty() const {
   return fifo.empty();
 }
 

@@ -101,27 +101,27 @@ private:
   ChannelIndex   selectChannel();
 
   // Fetch an instruction packet from the given address.
-  void           fetch(MemoryAddr addr);
+  void           fetch(const MemoryAddr addr);
 
   // Change the channel to which we send our fetch requests.
-  void           setFetchChannel(ChannelID channelID);
+  void           setFetchChannel(const ChannelID channelID);
 
   // Find out if the instruction packet from the given location is currently
   // in the instruction packet cache.
-  bool           inCache(Address a);
+  bool           inCache(const Address a) const;
 
   // Find out if there is room in the cache to fetch another packet.
   bool           roomToFetch() const;
 
   // Tell the instruction packet cache to jump to a new instruction.
-  void           jump(JumpOffset offset);
+  void           jump(JumpOffset offset) const;
 
   // Set the instruction packet cache into persistent or non-persistent mode.
-  void           setPersistent(bool persistent);
+  void           setPersistent(bool persistent) const;
 
   // If an instruction is waiting to enter this pipeline stage, discard it.
   // Returns whether anything was discarded.
-  bool           discardNextInst();
+  bool           discardNextInst() const;
 
 //==============================//
 // Components

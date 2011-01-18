@@ -86,7 +86,7 @@ void FetchStage::initialise() {
   idle.write(cache.isEmpty());
 }
 
-void FetchStage::storeCode(std::vector<Instruction>& instructions) {
+void FetchStage::storeCode(const std::vector<Instruction>& instructions) {
   cache.storeCode(instructions);
 }
 
@@ -94,7 +94,7 @@ Address FetchStage::getInstIndex() const {
   return cache.getInstAddress();
 }
 
-bool FetchStage::inCache(Address a) {
+bool FetchStage::inCache(const Address a) {
   return cache.lookup(a);
 }
 
@@ -103,7 +103,7 @@ bool FetchStage::roomToFetch() const {
 }
 
 /* Perform any status updates required when we receive a position to jump to. */
-void FetchStage::jump(JumpOffset offset) {
+void FetchStage::jump(const JumpOffset offset) {
   usingCache = true;
   cache.jump(offset);
 }
@@ -112,11 +112,11 @@ void FetchStage::setPersistent(bool persistent) {
   cache.updatePersistent(persistent);
 }
 
-void FetchStage::updatePacketAddress(Address addr) {
+void FetchStage::updatePacketAddress(const Address addr) const {
   parent()->updateCurrentPacket(addr);
 }
 
-void FetchStage::refetch() {
+void FetchStage::refetch() const {
   parent()->refetch();
 }
 

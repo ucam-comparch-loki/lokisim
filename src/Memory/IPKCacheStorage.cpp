@@ -35,7 +35,7 @@ bool IPKCacheStorage::checkTags(const Address& key) {
 }
 
 /* Returns the next item in the cache. */
-Instruction& IPKCacheStorage::read() {
+const Instruction& IPKCacheStorage::read() {
 
   if(!currInst.isNull()) {
     int i = currInst.value();
@@ -123,17 +123,17 @@ void IPKCacheStorage::jump(const JumpOffset offset) {
 /* Return the memory address of the currently-executing packet. Only returns
  * a useful value for the first instruction in each packet, as this is the
  * only instruction which gets a tag. */
-Address IPKCacheStorage::packetAddress() const {
+const Address IPKCacheStorage::packetAddress() const {
   return this->tags[currentPacket];
 }
 
 /* Returns the remaining number of entries in the cache. */
-uint16_t IPKCacheStorage::remainingSpace() const {
+const uint16_t IPKCacheStorage::remainingSpace() const {
   uint16_t space = this->size() - fillCount;
   return space;
 }
 
-Address IPKCacheStorage::getInstLocation() const {
+const Address IPKCacheStorage::getInstLocation() const {
   return previousLocation;
 }
 
@@ -187,7 +187,7 @@ void IPKCacheStorage::storeCode(const std::vector<Instruction>& code) {
 
 /* Returns the data corresponding to the given address.
  * Private because we don't want to use this version for IPK caches. */
-Instruction& IPKCacheStorage::read(const Address& key) {
+const Instruction& IPKCacheStorage::read(const Address& key) {
   throw new std::exception();
 }
 

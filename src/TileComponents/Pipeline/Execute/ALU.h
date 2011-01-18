@@ -34,11 +34,11 @@ public:
 
   // Calculate the result of the given operation, and store it in the
   // provided decoded instruction. Returns false if there is no result.
-  bool execute(DecodedInst& operation);
+  bool execute(DecodedInst& operation) const;
 
 private:
 
-  void setPred(bool val);
+  void setPred(bool val) const;
 
   // Determine whether the current instruction should be executed, based on its
   // predicate bits, and the contents of the predicate register.

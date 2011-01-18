@@ -63,7 +63,7 @@ private:
   virtual void   sendOutputs();
 
   // Write a new value to a register.
-  void           writeReg(RegisterIndex reg, int32_t value, bool indirect = false);
+  void           writeReg(RegisterIndex reg, int32_t value, bool indirect = false) const;
 
 //==============================//
 // Components

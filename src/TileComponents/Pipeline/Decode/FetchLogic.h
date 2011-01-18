@@ -51,10 +51,10 @@ public:
   // Send a fetch request for the instruction packet at the given address,
   // in the memory we are set to fetch from, but only if it is not already in
   // the instruction packet cache.
-  void fetch(MemoryAddr addr);
+  void fetch(const MemoryAddr addr);
 
   // Update the channel to which we send fetch requests.
-  void setFetchChannel(ChannelID channelID);
+  void setFetchChannel(const ChannelID channelID);
 
   // The packet to fetch was in the cache at fetch time, but has since been
   // overwritten. Send a fetch request to get it back.
@@ -67,14 +67,14 @@ public:
 private:
 
   // Find out whether the wanted instruction packet is in the cache.
-  bool inCache(Address addr);
+  bool inCache(const Address addr) const;
 
   // Find out if there is room in the cache to accommodate another instruction
   // packet. Assumes that the packet being fetched is of the maximum size.
-  bool roomInCache();
+  bool roomInCache() const;
 
   // Returns a unique identifier for this fetch logic's output port.
-  ChannelID portID();
+  ChannelID portID() const;
 
   DecodeStage* parent() const;
 

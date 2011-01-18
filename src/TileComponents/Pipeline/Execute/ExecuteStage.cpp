@@ -21,7 +21,7 @@ bool ExecuteStage::getPredicate() const {
   return parent()->readPredReg();
 }
 
-void ExecuteStage::setPredicate(bool val) {
+void ExecuteStage::setPredicate(bool val) const {
   parent()->writePredReg(val);
 }
 
@@ -51,7 +51,7 @@ void ExecuteStage::checkForwarding(DecodedInst& inst) const {
   parent()->checkForwarding(inst);
 }
 
-void ExecuteStage::updateForwarding(const DecodedInst& inst) {
+void ExecuteStage::updateForwarding(const DecodedInst& inst) const {
   parent()->updateForwarding(inst);
 }
 

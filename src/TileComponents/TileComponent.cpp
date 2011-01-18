@@ -13,15 +13,15 @@ void TileComponent::print(MemoryAddr start, MemoryAddr end) const {
   // Do nothing if print isn't defined
 }
 
-Word TileComponent::getMemVal(MemoryAddr addr) const {
+const Word TileComponent::getMemVal(MemoryAddr addr) const {
   return Word(-1);
 }
 
-int32_t TileComponent::readRegDebug(RegisterIndex reg) const {
+const int32_t TileComponent::readRegDebug(RegisterIndex reg) const {
   return -1;
 }
 
-Address TileComponent::getInstIndex() const {
+const Address TileComponent::getInstIndex() const {
   return Address(-1, -1);
 }
 
@@ -66,7 +66,7 @@ ChannelID TileComponent::outputPortID(ComponentID component, ChannelIndex port) 
 }
 
 /* Convert a global port ID into a string of the form "(component, port)". */
-std::string TileComponent::inputPortString(ChannelID port) {
+const std::string TileComponent::inputPortString(ChannelID port) {
   uint tile = port / INPUTS_PER_TILE;
   uint position = port % INPUTS_PER_TILE;
   ComponentID component = tile * COMPONENTS_PER_TILE;
@@ -91,7 +91,7 @@ std::string TileComponent::inputPortString(ChannelID port) {
 }
 
 /* Convert a global port ID into a string of the form "(component, port)". */
-std::string TileComponent::outputPortString(ChannelID port) {
+const std::string TileComponent::outputPortString(ChannelID port) {
   uint tile = port / OUTPUTS_PER_TILE;
   uint position = port % OUTPUTS_PER_TILE;
   ComponentID component = tile * COMPONENTS_PER_TILE;

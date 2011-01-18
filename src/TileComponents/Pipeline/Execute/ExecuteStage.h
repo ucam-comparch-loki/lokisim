@@ -60,14 +60,14 @@ private:
   bool getPredicate() const;
 
   // Write to the predicate register.
-  void setPredicate(bool val);
+  void setPredicate(bool val) const;
 
   // Check the forwarding paths to see if this instruction is expecting a value
   // which hasn't been written to registers yet.
   void checkForwarding(DecodedInst& inst) const;
 
   // Update the forwarding paths using this recently-executed instruction.
-  void updateForwarding(const DecodedInst& inst);
+  void updateForwarding(const DecodedInst& inst) const;
 
 //==============================//
 // Components

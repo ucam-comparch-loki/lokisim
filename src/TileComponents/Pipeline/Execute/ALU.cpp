@@ -11,7 +11,7 @@
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
 
-bool ALU::execute(DecodedInst& dec) {
+bool ALU::execute(DecodedInst& dec) const {
 
   if(dec.hasResult()) return true;
 
@@ -26,7 +26,7 @@ bool ALU::execute(DecodedInst& dec) {
   bool pred = parent()->getPredicate();
 
   // Cast to 32 bits because our architecture is supposed to use 32-bit
-  // arithmetic. Also perform any necessary data forwarding.
+  // arithmetic.
   int32_t val1 = dec.operand1();
   int32_t val2 = dec.operand2();
   int32_t result;
@@ -99,7 +99,8 @@ bool ALU::execute(DecodedInst& dec) {
     bool newPredicate;
 
     switch(dec.operation()) {
-      // For additions, the predicate bit acts as the carry bit.
+      // For additions and subtractions, the predicate signals overflow or
+      // underflow.
       case InstructionMap::ADDU:
       case InstructionMap::ADDUI: {
         int64_t result64 = (int64_t)val1 + (int64_t)val2;
@@ -107,19 +108,24 @@ bool ALU::execute(DecodedInst& dec) {
         break;
       }
 
-      // For subtractions, the predicate bit acts as the borrow bit.
+      // The 68k and x86 set the borrow bit if a - b < 0 for subtractions.
+      // The 6502 and PowerPC treat it as a carry bit.
+      // http://en.wikipedia.org/wiki/Carry_flag
       case InstructionMap::SUBU: {
-        newPredicate = ((int64_t)val1-(int64_t)val2) < 0;
+        int64_t result64 = (int64_t)val1 - (int64_t)val2;
+        newPredicate = (result64 > INT_MAX) || (result64 < INT_MIN);
         break;
       }
 
       case InstructionMap::RSUBI: {
-        newPredicate = ((int64_t)val2-(int64_t)val1) < 0;
+        int64_t result64 = (int64_t)val2 - (int64_t)val1;
+        newPredicate = (result64 > INT_MAX) || (result64 < INT_MIN);
         break;
       }
 
       // Otherwise, it holds the least significant bit of the result.
-      default: newPredicate = result&1; // Store lowest bit in predicate register
+      // Potential alternative: newPredicate = (result != 0)
+      default: newPredicate = result&1;
     }
 
     setPred(newPredicate);
@@ -129,7 +135,7 @@ bool ALU::execute(DecodedInst& dec) {
 
 }
 
-void ALU::setPred(bool val) {
+void ALU::setPred(bool val) const {
   parent()->setPredicate(val);
 }
 

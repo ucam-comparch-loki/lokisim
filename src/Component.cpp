@@ -33,7 +33,7 @@ double Component::energy() const {
   return 0.0;
 }
 
-std::string Component::makeName(sc_module_name& name, ComponentID ID) {
+const std::string Component::makeName(sc_module_name& name, ComponentID ID) {
   std::stringstream ss;
   std::string result;
 

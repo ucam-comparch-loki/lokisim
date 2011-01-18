@@ -39,7 +39,7 @@ public:
   virtual bool checkTags(const Address& key);
 
   // Returns the next item in the cache.
-  virtual Instruction& read();
+  virtual const Instruction& read();
 
   // Writes new data to a position determined using the given key.
   virtual void write(const Address& key, const Instruction& newData);
@@ -48,13 +48,13 @@ public:
   void jump(const JumpOffset offset);
 
   // Return the memory address of the currently-executing packet.
-  Address packetAddress() const;
+  const Address packetAddress() const;
 
   // Returns the remaining number of entries in the cache.
-  uint16_t remainingSpace() const;
+  const uint16_t remainingSpace() const;
 
   // Return the memory index of the instruction sent most recently.
-  Address getInstLocation() const;
+  const Address getInstLocation() const;
 
   // Returns whether the cache is empty. Note that even if a cache is empty,
   // it is still possible to access its contents if an appropriate tag is
@@ -76,7 +76,7 @@ private:
 
   // Returns the data corresponding to the given address.
   // Private because we don't want to use this version for IPK caches.
-  virtual Instruction& read(const Address& key);
+  virtual const Instruction& read(const Address& key);
 
   // Returns the position that data with the given address tag should be stored
   virtual uint16_t getPosition(const Address& key);

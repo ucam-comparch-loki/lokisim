@@ -34,7 +34,7 @@ public:
   }
 
   // Returns the data corresponding to the given address
-  virtual T& read(const K& key) {
+  virtual const T& read(const K& key) {
     for(uint16_t i=0; i<tags.size(); i++){
       if(tags.at(i) == key) return this->data_.at(i);
     }

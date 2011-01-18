@@ -58,13 +58,13 @@ public:
 public:
 
   // Initialise the contents of this memory to the Words in the given vector.
-  virtual void storeData(std::vector<Word>& data, MemoryAddr location=0);
+  virtual void storeData(const std::vector<Word>& data, MemoryAddr location=0);
 
   // Print the contents of this memory.
   virtual void print(MemoryAddr start=0, MemoryAddr end=MEMORY_SIZE) const;
 
   // Return the value at the given address.
-  virtual Word getMemVal(MemoryAddr addr) const;
+  virtual const Word getMemVal(MemoryAddr addr) const;
 
 private:
 
@@ -90,7 +90,7 @@ private:
 
   // Tells whether we are able to carry out a waiting operation at the given
   // port.
-  bool canAcceptRequest(ChannelIndex port);
+  bool canAcceptRequest(ChannelIndex port) const;
 
   // Update the contents of the data array. A "write" without any status
   // checking.

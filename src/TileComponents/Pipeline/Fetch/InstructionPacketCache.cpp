@@ -10,7 +10,7 @@
 #include "../../../Exceptions/WritingToFullException.h"
 
 /* Initialise the contents of the cache with a list of Instructions. */
-void InstructionPacketCache::storeCode(std::vector<Instruction>& instructions) {
+void InstructionPacketCache::storeCode(const std::vector<Instruction>& instructions) {
 
   if(instructions.size() == 0) {
     cerr << "Error: loaded 0 instructions into " << this->name() << endl;
@@ -32,7 +32,7 @@ Instruction InstructionPacketCache::read() {
   return inst;
 }
 
-void InstructionPacketCache::write(Instruction inst) {
+void InstructionPacketCache::write(const Instruction inst) {
   Address addr;
 
   if(!addresses.empty() && finishedPacketWrite) {
@@ -64,7 +64,7 @@ void InstructionPacketCache::write(Instruction inst) {
 
 /* See if an instruction packet is in the cache, and if so, prepare to
  * execute it. */
-bool InstructionPacketCache::lookup(Address addr) {
+bool InstructionPacketCache::lookup(const Address addr) {
 
   bool inCache = cache.checkTags(addr);
 
@@ -90,7 +90,7 @@ bool InstructionPacketCache::lookup(Address addr) {
 }
 
 /* Jump to a new instruction specified by the offset amount. */
-void InstructionPacketCache::jump(JumpOffset offset) {
+void InstructionPacketCache::jump(const JumpOffset offset) {
   if(DEBUG) cout << this->name() << ": ";   // cache prints the rest
 
   cache.jump(offset/BYTES_PER_WORD);
@@ -106,11 +106,11 @@ void InstructionPacketCache::sendCredit() {
   flowControl.write(1);
 }
 
-void InstructionPacketCache::updatePacketAddress(Address addr) {
+void InstructionPacketCache::updatePacketAddress(const Address addr) const {
   parent()->updatePacketAddress(addr);
 }
 
-void InstructionPacketCache::refetch() {
+void InstructionPacketCache::refetch() const {
   parent()->refetch();
 }
 

@@ -7,19 +7,24 @@
 
 #include "Cluster.h"
 #include "../Utility/InstructionMap.h"
+#include "Pipeline/StallRegister.h"
+#include "Pipeline/Fetch/FetchStage.h"
+#include "Pipeline/Decode/DecodeStage.h"
+#include "Pipeline/Execute/ExecuteStage.h"
+#include "Pipeline/Write/WriteStage.h"
 
 double   Cluster::area() const {
-  return regs.area()   + pred.area()    + fetch.area() +
-         decode.area() + execute.area() + write.area();
+  return regs.area()   + pred.area();//    + fetch.area() +
+         //decode.area() + execute.area() + write.area();
 }
 
 double   Cluster::energy() const {
-  return regs.energy()   + pred.energy()    + fetch.energy() +
-         decode.energy() + execute.energy() + write.energy();
+  return regs.energy()   + pred.energy();//    + fetch.energy() +
+         //decode.energy() + execute.energy() + write.energy();
 }
 
 /* Initialise the instructions a Cluster will execute. */
-void     Cluster::storeData(std::vector<Word>& data, MemoryAddr location) {
+void     Cluster::storeData(const std::vector<Word>& data, MemoryAddr location) {
   std::vector<Instruction> instructions;
 
   // Convert all of the words to instructions
@@ -27,34 +32,41 @@ void     Cluster::storeData(std::vector<Word>& data, MemoryAddr location) {
     instructions.push_back(static_cast<Instruction>(data[i]));
   }
 
-  fetch.storeCode(instructions);
+  FetchStage*  fetch  = dynamic_cast<FetchStage*>(stages.front());
+  fetch->storeCode(instructions);
 }
 
-Address Cluster::getInstIndex() const {
-  return fetch.getInstIndex();
+const Address Cluster::getInstIndex() const {
+  FetchStage*  fetch  = dynamic_cast<FetchStage*>(stages.front());
+  return fetch->getInstIndex();
 }
 
-bool     Cluster::inCache(Address a) {
-  return fetch.inCache(a);
+bool     Cluster::inCache(const Address a) {
+  FetchStage*  fetch  = dynamic_cast<FetchStage*>(stages.front());
+  return fetch->inCache(a);
 }
 
 bool     Cluster::roomToFetch() const {
-  return fetch.roomToFetch();
+  FetchStage*  fetch  = dynamic_cast<FetchStage*>(stages.front());
+  return fetch->roomToFetch();
 }
 
 void     Cluster::refetch() {
-  decode.refetch();
+  DecodeStage* decode = dynamic_cast<DecodeStage*>(stages[1]);
+  decode->refetch();
 }
 
-void     Cluster::jump(JumpOffset offset) {
-  fetch.jump(offset);
+void     Cluster::jump(const JumpOffset offset) {
+  FetchStage*  fetch  = dynamic_cast<FetchStage*>(stages.front());
+  fetch->jump(offset);
 }
 
 void     Cluster::setPersistent(bool persistent) {
-  fetch.setPersistent(persistent);
+  FetchStage*  fetch  = dynamic_cast<FetchStage*>(stages.front());
+  fetch->setPersistent(persistent);
 }
 
-int32_t  Cluster::readReg(RegisterIndex reg, bool indirect) const {
+const int32_t  Cluster::readReg(RegisterIndex reg, bool indirect) const {
 
   int result;
 
@@ -68,14 +80,14 @@ int32_t  Cluster::readReg(RegisterIndex reg, bool indirect) const {
                      << (int)reg << endl;
 
       if(indirect) result = regs.read(previousResult1, false);
-      else result = previousResult1;
+      else         result = previousResult1;
     }
     else if(reg == previousDest2) {
       if(DEBUG) cout << this->name() << " forwarded contents of register "
                      << (int)reg << endl;
 
       if(indirect) result = regs.read(previousResult2, false);
-      else result = previousResult2;
+      else         result = previousResult2;
     }
     else result = regs.read(reg, indirect);
   }
@@ -84,7 +96,8 @@ int32_t  Cluster::readReg(RegisterIndex reg, bool indirect) const {
   return result;
 }
 
-int32_t  Cluster::readRegDebug(RegisterIndex reg) const {
+/* Read a register without data forwarding and without indirection. */
+const int32_t  Cluster::readRegDebug(RegisterIndex reg) const {
   return regs.readDebug(reg);
 }
 
@@ -112,7 +125,8 @@ void Cluster::updateForwarding(const DecodedInst& inst) {
 
   // We don't want to forward any data which was sent to register 0, because
   // r0 doesn't store values: it is a constant.
-  // We also don't want to forward data after an indirect write.
+  // We also don't want to forward data after an indirect write, as the data
+  // won't have been stored in the destination register.
   previousDest1   = (inst.destination() == 0 ||
                      inst.operation() == InstructionMap::IWTR)
                   ? -1 : inst.destination();
@@ -127,8 +141,9 @@ void     Cluster::writePredReg(bool val) {
   pred.write(val);
 }
 
-int32_t  Cluster::readRCET(ChannelIndex channel) {
-  return decode.readRCET(channel);
+const int32_t  Cluster::readRCET(ChannelIndex channel) {
+  DecodeStage* decode = dynamic_cast<DecodeStage*>(stages[1]);
+  return decode->readRCET(channel);
 }
 
 void     Cluster::updateCurrentPacket(Address addr) {
@@ -148,15 +163,9 @@ void     Cluster::pipelineStalled(bool stalled) {
 }
 
 bool     Cluster::discardInstruction(int stage) {
-  switch(stage) {
-    case 2 : return stallReg1.discard();
-    case 3 : return stallReg2.discard();
-    case 4 : return stallReg3.discard();
-    default : {
-      cerr << "Discarding instruction before invalid pipeline stage." << endl;
-      throw std::exception();
-    }
-  }
+  // The first pipeline stage to have a stall register before it is the 2nd.
+  // Therefore reduce the index by 2 to get the position in the array.
+  return stallRegs[stage-2]->discard();
 }
 
 void     Cluster::multiplexOutput0() {
@@ -190,8 +199,13 @@ void     Cluster::multiplexOutput0() {
 void     Cluster::updateIdle() {
   constantHigh.write(true);   // Hack: find a better way of doing this.
 
-  bool isIdle = fetchIdle.read()   && decodeIdle.read() &&
-                executeIdle.read() && writeIdle.read();
+  bool isIdle = true;
+  for(uint i=0; i<stages.size(); i++) {
+    if(!stageIdle[i].read()) {
+      isIdle = false;
+      break;
+    }
+  }
 
   // Is this what we really want?
   idle.write(isIdle || currentlyStalled);
@@ -217,14 +231,7 @@ ChannelID Cluster::RCETInput(ComponentID ID, ChannelIndex channel) {
 Cluster::Cluster(sc_module_name name, ComponentID ID) :
     TileComponent(name, ID),
     regs("regs"),
-    pred("predicate"),
-    stallReg1("stall1"),
-    stallReg2("stall2"),
-    stallReg3("stall3"),
-    write("write", ID),
-    execute("execute", ID),
-    decode("decode", ID),
-    fetch("fetch", ID) {
+    pred("predicate") {
 
   flowControlOut = new sc_out<int>[NUM_CORE_INPUTS];
   in             = new sc_in<Word>[NUM_CORE_INPUTS];
@@ -234,66 +241,77 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
 
   previousDest1 = previousDest2 = -1;
 
+  // Create pipeline stages and put into a vector (allows arbitrary length
+  // pipeline).
+  stages.push_back(new FetchStage("fetch", ID));
+  stages.push_back(new DecodeStage("decode", ID));
+  stages.push_back(new ExecuteStage("execute", ID));
+  stages.push_back(new WriteStage("write", ID));
+
+  // Create signals, with the number based on the length of the pipeline.
+  stageIdle     = new sc_signal<bool>[stages.size()];
+  stallRegReady = new sc_signal<bool>[stages.size()-1];
+  stageStalled  = new sc_signal<bool>[stages.size()-1];
+  dataToStage   = new sc_buffer<DecodedInst>[stages.size()-1];
+  dataFromStage = new sc_buffer<DecodedInst>[stages.size()-1];
+
+  // Wire the stall registers up.
+  for(uint i=0; i<stages.size()-1; i++) {
+    StallRegister* stallReg = new StallRegister("stall"+i);
+
+    stallReg->clock(clock);               stallReg->readyOut(stallRegReady[i]);
+    stallReg->dataIn(dataFromStage[i]);   stallReg->dataOut(dataToStage[i]);
+    stallReg->localStageStalled(stageStalled[i]);
+
+    // The final stall register gets a different ready signal.
+    if(i<stages.size()-2) stallReg->readyIn(stallRegReady[i+1]);
+
+    stallRegs.push_back(stallReg);
+  }
+  stallRegs.back()->readyIn(constantHigh);
+
+  // Wire the pipeline stages up.
+  for(uint i=0; i<stages.size(); i++) {
+    stages[i]->clock(clock);              stages[i]->idle(stageIdle[i]);
+
+    // All stages except the first have some ports.
+    if(i>0) {
+      StageWithPredecessor* stage = dynamic_cast<StageWithPredecessor*>(stages[i]);
+      stage->stallOut(stageStalled[i-1]); stage->dataIn(dataToStage[i-1]);
+    }
+
+    // All stages except the last have some ports.
+    if(i<stages.size()-1) {
+      StageWithSuccessor* stage = dynamic_cast<StageWithSuccessor*>(stages[i]);
+      stage->dataOut(dataFromStage[i]);
+    }
+  }
+
+  // Wire up unique inputs/outputs which can't be done in the loops above.
+  FetchStage*  fetch  = dynamic_cast<FetchStage*>(stages.front());
+  fetch->toIPKFIFO(in[0]);                fetch->flowControl[0](flowControlOut[0]);
+  fetch->toIPKCache(in[1]);               fetch->flowControl[1](flowControlOut[1]);
+  fetch->readyIn(stallRegReady[0]);
+
+  DecodeStage* decode = dynamic_cast<DecodeStage*>(stages[1]);
+  decode->fetchOut(out0Decode);           decode->flowControlIn(flowControlIn[0]);
+  for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
+    decode->rcetIn[i](in[i+2]);
+    decode->flowControlOut[i](flowControlOut[i+2]);
+  }
+
+  WriteStage*  write  = dynamic_cast<WriteStage*>(stages.back());
+  // The first output is shared with the decode stage, so is treated differently.
+  write->output[0](out0Write);            write->flowControl[0](flowControlIn[0]);
+  for(uint i=1; i<NUM_SEND_CHANNELS; i++) {
+    write->output[i](out[i]);             write->flowControl[i](flowControlIn[i]);
+  }
+
   SC_METHOD(updateIdle);
-  sensitive << fetchIdle << decodeIdle << executeIdle << writeIdle;
+  for(uint i=0; i<stages.size(); i++) sensitive << stageIdle[i];
   // do initialise
 
   SC_THREAD(multiplexOutput0);
-
-// Connect things up
-  // Inputs
-  fetch.toIPKFIFO(in[0]);
-  fetch.toIPKCache(in[1]);
-  fetch.flowControl[0](flowControlOut[0]);
-  fetch.flowControl[1](flowControlOut[1]);
-
-  for(uint i=2; i<NUM_CORE_INPUTS; i++) {
-    decode.rcetIn[i-2](in[i]);
-    decode.flowControlOut[i-2](flowControlOut[i]);
-  }
-
-  // Outputs
-  decode.flowControlIn(flowControlIn[0]);
-  write.flowControl[0](flowControlIn[0]);
-
-  decode.fetchOut(out0Decode);
-  write.output[0](out0Write);
-
-  // Skip 0 because that is dealt with elsewhere.
-  for(uint i=1; i<NUM_CORE_OUTPUTS; i++) {
-    write.flowControl[i](flowControlIn[i]);
-    write.output[i](out[i]);
-  }
-
-  // Clock.
-  fetch.clock(clock);                     decode.clock(clock);
-  execute.clock(clock);                   write.clock(clock);
-
-  stallReg1.clock(clock);    stallReg2.clock(clock);    stallReg3.clock(clock);
-
-  // Idle signals -- not necessary, but useful for stopping simulation when
-  // work is finished.
-  fetch.idle(fetchIdle);                  decode.idle(decodeIdle);
-  execute.idle(executeIdle);              write.idle(writeIdle);
-
-  // Ready signals -- behave like flow control within the pipeline.
-  fetch.readyIn(stall1Ready);             stallReg1.readyOut(stall1Ready);
-  stallReg1.readyIn(stall2Ready);         stallReg2.readyOut(stall2Ready);
-  stallReg2.readyIn(stall3Ready);         stallReg3.readyOut(stall3Ready);
-  stallReg3.readyIn(constantHigh);  // There is no ready input signal
-
-  decode.stallOut(decodeStalled);         stallReg1.localStageStalled(decodeStalled);
-  execute.stallOut(executeStalled);       stallReg2.localStageStalled(executeStalled);
-  write.stallOut(writeStalled);           stallReg3.localStageStalled(writeStalled);
-
-  // Main data transmission along pipeline.
-  fetch.dataOut(fetchToStall1);           stallReg1.dataIn(fetchToStall1);
-  decode.dataOut(decodeToStall2);         stallReg2.dataIn(decodeToStall2);
-  execute.dataOut(executeToStall3);       stallReg3.dataIn(executeToStall3);
-
-  stallReg1.dataOut(stall1ToDecode);      decode.dataIn(stall1ToDecode);
-  stallReg2.dataOut(stall2ToExecute);     execute.dataIn(stall2ToExecute);
-  stallReg3.dataOut(stall3ToWrite);       write.dataIn(stall3ToWrite);
 
   // Initialise the values in some wires.
   idle.initialize(true);

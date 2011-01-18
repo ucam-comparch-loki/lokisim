@@ -64,7 +64,7 @@ public:
 private:
 
   // Generate a unique name for this component, using its ID.
-  static std::string makeName(sc_module_name& name, ComponentID ID);
+  static const std::string makeName(sc_module_name& name, ComponentID ID);
 
 };
 

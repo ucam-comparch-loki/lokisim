@@ -8,11 +8,11 @@
 #include "../Utility/Parameters.h"
 #include "AddressedWord.h"
 
-Word AddressedWord::payload() const {
+const Word AddressedWord::payload() const {
   return payload_;
 }
 
-uint16_t AddressedWord::channelID() const {
+const uint16_t AddressedWord::channelID() const {
   return channelID_;
 }
 

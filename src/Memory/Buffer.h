@@ -29,7 +29,7 @@ public:
 
   // Read from the buffer. Returns the oldest value which has not yet been
   // read.
-  virtual T& read() {
+  virtual const T& read() {
     if(!empty()) {
       int i = readPos.value();
       incrementReadFrom();

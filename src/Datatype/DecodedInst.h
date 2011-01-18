@@ -23,27 +23,27 @@ class DecodedInst {
 
 public:
 
-  uint8_t operation() const;
-  RegisterIndex sourceReg1() const;
-  RegisterIndex sourceReg2() const;
-  RegisterIndex destination() const;
-  int32_t immediate() const;
-  ChannelIndex channelMapEntry() const;
-  uint8_t predicate() const;
-  bool    setsPredicate() const;
-  uint8_t memoryOp() const;
+  const uint8_t operation() const;
+  const RegisterIndex sourceReg1() const;
+  const RegisterIndex sourceReg2() const;
+  const RegisterIndex destination() const;
+  const int32_t immediate() const;
+  const ChannelIndex channelMapEntry() const;
+  const uint8_t predicate() const;
+  const bool    setsPredicate() const;
+  const uint8_t memoryOp() const;
 
-  int32_t operand1() const;
-  int32_t operand2() const;
-  int64_t result() const;
-  Address location() const;
+  const int32_t operand1() const;
+  const int32_t operand2() const;
+  const int64_t result() const;
+  const Address location() const;
 
-  bool    usesPredicate() const;
-  bool    hasOperand1() const;
-  bool    hasResult() const;
+  const bool    usesPredicate() const;
+  const bool    hasOperand1() const;
+  const bool    hasResult() const;
 
-  bool    hasImmediate() const;
-  bool    isALUOperation() const;
+  const bool    hasImmediate() const;
+  const bool    isALUOperation() const;
   const std::string& name() const;
 
   void    operation(const uint8_t val);
@@ -99,7 +99,7 @@ private:
 public:
 
   DecodedInst();
-  DecodedInst(Instruction i);
+  DecodedInst(const Instruction i);
   virtual ~DecodedInst();
 
 //==============================//

@@ -7,6 +7,7 @@
 
 #include "WriteStage.h"
 #include "../../Cluster.h"
+#include "../../../Datatype/DecodedInst.h"
 #include "../../../Utility/InstructionMap.h"
 
 double WriteStage::area() const {
@@ -26,7 +27,7 @@ void WriteStage::newInput(DecodedInst& data) {
 
   // Write to registers (they ignore the write if the index is invalid).
   writeReg(data.destination(), data.result(),
-             data.operation() == InstructionMap::IWTR);
+           data.operation() == InstructionMap::IWTR);
 
   // Do we need to say we are stalling because of output if the SCET is full?
 }
@@ -39,7 +40,7 @@ void WriteStage::sendOutputs() {
   scet.send();
 }
 
-void WriteStage::writeReg(RegisterIndex reg, int32_t value, bool indirect) {
+void WriteStage::writeReg(RegisterIndex reg, int32_t value, bool indirect) const {
   parent()->writeReg(reg, value, indirect);
 }
 

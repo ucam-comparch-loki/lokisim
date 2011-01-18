@@ -8,9 +8,10 @@
 #include <math.h>
 #include "IndirectRegisterFile.h"
 #include "../Cluster.h"
+#include "../../Datatype/Address.h"
 #include "../../Datatype/Word.h"
 
-int32_t IndirectRegisterFile::read(RegisterIndex reg, bool indirect) const {
+const int32_t IndirectRegisterFile::read(const RegisterIndex reg, bool indirect) const {
   RegisterIndex index = indirect ? indirectRegs.read(reg) : reg;
 
   // If the indirect address points to a channel-end, read from there instead
@@ -26,11 +27,11 @@ int32_t IndirectRegisterFile::read(RegisterIndex reg, bool indirect) const {
   }
 }
 
-int32_t IndirectRegisterFile::readDebug(RegisterIndex reg) const {
+const int32_t IndirectRegisterFile::readDebug(const RegisterIndex reg) const {
   return regs.read(reg).toInt();
 }
 
-void IndirectRegisterFile::write(RegisterIndex reg, int32_t value, bool indirect) {
+void IndirectRegisterFile::write(const RegisterIndex reg, const int32_t value, bool indirect) {
 
   RegisterIndex index = indirect ? indirectRegs.read(reg) : reg;
 
@@ -50,7 +51,7 @@ void IndirectRegisterFile::write(RegisterIndex reg, int32_t value, bool indirect
 /* Store a subsection of the data into the indirect register at position
  * "address". Since NUM_PHYSICAL_REGISTERS registers must be accessible, the
  * indirect registers must hold ceil(log2(NUM_PHYSICAL_REGISTERS)) bits each. */
-void IndirectRegisterFile::updateIndirectReg(RegisterIndex address, Word data) {
+void IndirectRegisterFile::updateIndirectReg(const RegisterIndex address, const Word data) {
 
   // Don't store anything if there is no indirect register to store to.
   if(address >= NUM_ADDRESSABLE_REGISTERS) return;
@@ -100,13 +101,13 @@ RegisterIndex IndirectRegisterFile::fromChannelID(RegisterIndex position) {
   return position + START_OF_INPUT_CHANNELS;
 }
 
-void IndirectRegisterFile::updateCurrentIPK(Address addr) {
+void IndirectRegisterFile::updateCurrentIPK(const Address addr) {
   // setfetchch specifies the channel, so only the address is required here.
   Word w(addr.address());
   writeReg(1, w);
 }
 
-void IndirectRegisterFile::writeReg(RegisterIndex reg, Word data) {
+void IndirectRegisterFile::writeReg(const RegisterIndex reg, const Word data) {
   regs.write(data, reg);
 
   if(DEBUG) cout << this->name() << ": Stored " << data << " to register " <<
@@ -121,8 +122,8 @@ Cluster* IndirectRegisterFile::parent() const {
 
 IndirectRegisterFile::IndirectRegisterFile(sc_module_name name) :
     Component(name),
-    regs(NUM_PHYSICAL_REGISTERS, string(name)),
-    indirectRegs(NUM_ADDRESSABLE_REGISTERS, string(name)) {
+    regs(NUM_PHYSICAL_REGISTERS, std::string(name)),
+    indirectRegs(NUM_ADDRESSABLE_REGISTERS, std::string(name)) {
 
 }
 

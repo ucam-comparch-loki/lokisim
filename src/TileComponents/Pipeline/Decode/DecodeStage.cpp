@@ -61,11 +61,11 @@ ChannelIndex DecodeStage::selectChannel() {
   return rcet.selectChannelEnd();
 }
 
-void         DecodeStage::fetch(MemoryAddr addr) {
+void         DecodeStage::fetch(const MemoryAddr addr) {
   fl.fetch(addr);
 }
 
-void         DecodeStage::setFetchChannel(ChannelID channelID) {
+void         DecodeStage::setFetchChannel(const ChannelID channelID) {
   fl.setFetchChannel(channelID);
 }
 
@@ -73,7 +73,7 @@ void         DecodeStage::refetch() {
   fl.refetch();
 }
 
-bool         DecodeStage::inCache(Address a) {
+bool         DecodeStage::inCache(const Address a) const {
   return parent()->inCache(a);
 }
 
@@ -81,15 +81,15 @@ bool         DecodeStage::roomToFetch() const {
   return parent()->roomToFetch();
 }
 
-void         DecodeStage::jump(JumpOffset offset) {
+void         DecodeStage::jump(JumpOffset offset) const {
   parent()->jump(offset);
 }
 
-void         DecodeStage::setPersistent(bool persistent) {
+void         DecodeStage::setPersistent(bool persistent) const {
   parent()->setPersistent(persistent);
 }
 
-bool         DecodeStage::discardNextInst() {
+bool         DecodeStage::discardNextInst() const {
   // This is the 2nd pipeline stage, so the argument is 2.
   return parent()->discardInstruction(2);
 }

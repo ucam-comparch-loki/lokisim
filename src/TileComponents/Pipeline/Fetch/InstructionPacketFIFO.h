@@ -42,13 +42,13 @@ public:
 public:
 
   // Read a single instruction from the end of the FIFO.
-  Instruction read();
+  const Instruction read();
 
   // Write an instruction to the end of the FIFO.
-  void write(Instruction inst);
+  void write(const Instruction inst);
 
   // Returns whether the FIFO is empty.
-  bool isEmpty();
+  bool isEmpty() const;
 
 private:
 

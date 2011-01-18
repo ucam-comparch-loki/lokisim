@@ -15,13 +15,12 @@
 #include "TileComponent.h"
 #include "../flag_signal.h"
 
+#include "../Datatype/AddressedWord.h"
 #include "Pipeline/IndirectRegisterFile.h"
 #include "Pipeline/PredicateRegister.h"
-#include "Pipeline/StallRegister.h"
-#include "Pipeline/Fetch/FetchStage.h"
-#include "Pipeline/Decode/DecodeStage.h"
-#include "Pipeline/Execute/ExecuteStage.h"
-#include "Pipeline/Write/WriteStage.h"
+
+class PipelineStage;
+class StallRegister;
 
 class Cluster : public TileComponent {
 
@@ -57,7 +56,7 @@ public:
   virtual double   energy() const;
 
   // Initialise the instructions a Cluster will execute.
-  virtual void     storeData(std::vector<Word>& data, MemoryAddr location=0);
+  virtual void     storeData(const std::vector<Word>& data, MemoryAddr location=0);
 
   // Returns the channel ID of the specified cluster's instruction packet FIFO.
   static ChannelID IPKFIFOInput(ComponentID ID);
@@ -70,10 +69,10 @@ public:
 
   // Get the memory location of the current instruction being decoded, so
   // we can have breakpoints set to particular instructions in memory.
-  virtual Address  getInstIndex() const;
+  virtual const Address  getInstIndex() const;
 
   // Read a value from a register, without redirecting to the RCET.
-  virtual int32_t  readRegDebug(RegisterIndex reg) const;
+  virtual const int32_t  readRegDebug(RegisterIndex reg) const;
 
   // Read the value of the predicate register.
   virtual bool     readPredReg() const;
@@ -82,7 +81,7 @@ private:
 
   // Determine if the instruction packet from the given location is currently
   // in the instruction packet cache.
-  bool             inCache(Address a);
+  bool             inCache(const Address a);
 
   // Determine if there is room in the cache to fetch another instruction
   // packet, assuming that it is of maximum size.
@@ -93,7 +92,7 @@ private:
   void             refetch();
 
   // Perform an IBJMP and jump to a new instruction in the cache.
-  void             jump(JumpOffset offset);
+  void             jump(const JumpOffset offset);
 
   // Set whether the cache is in persistent or non-persistent mode.
   void             setPersistent(bool persistent);
@@ -101,11 +100,11 @@ private:
   // Read a value from a register. This method will redirect the request to
   // the receive channel-end table if the register index corresponds to a
   // channel end.
-  int32_t          readReg(RegisterIndex reg, bool indirect = false) const;
+  const int32_t    readReg(RegisterIndex reg, bool indirect = false) const;
 
   // Read a value from a channel end. Warning: this removes the value from
   // the input buffer.
-  int32_t          readRCET(ChannelIndex channel);
+  const int32_t    readRCET(ChannelIndex channel);
 
   // Write a value to a register.
   void             writeReg(RegisterIndex reg, int32_t value,
@@ -149,17 +148,10 @@ private:
   IndirectRegisterFile     regs;
   PredicateRegister        pred;
 
-  // Components to go in between pairs of pipeline stages, allowing more
-  // relaxed flow control within the pipeline.
-  StallRegister            stallReg1, stallReg2, stallReg3;
-
-  // The pipeline stages are in reverse order so their main methods are called
-  // in reverse order. This helps make the ready signals more sensible, and
-  // ensures that registers are written before they are read.
-  WriteStage               write;
-  ExecuteStage             execute;
-  DecodeStage              decode;
-  FetchStage               fetch;
+  // An arbitrary number of pipeline stages, and a stall register to go between
+  // each pair of adjacent stages.
+  vector<PipelineStage*>   stages;
+  vector<StallRegister*>   stallRegs;
 
   friend class IndirectRegisterFile;
   friend class FetchStage;
@@ -187,18 +179,14 @@ private:
 private:
 
   // A signal set to constantly hold "true".
-  sc_signal<bool>          constantHigh;
+  sc_signal<bool>            constantHigh;
 
-  // Signals telling us which stages are idle.
-  sc_signal<bool>          fetchIdle, decodeIdle, executeIdle, writeIdle;
+  // Signals telling us which stages are idle, able to send data, or stalled.
+  sc_signal<bool>           *stageIdle, *stallRegReady, *stageStalled;
 
-  // "Flow control" within the pipeline.
-  sc_signal<bool>          stall1Ready, stall2Ready, stall3Ready,
-                           decodeStalled, executeStalled, writeStalled;
-
-  // Transmission of the instruction along the pipeline.
-  flag_signal<DecodedInst> fetchToStall1, decodeToStall2, executeToStall3,
-                           stall1ToDecode, stall2ToExecute, stall3ToWrite;
+  // Transmission of the instruction along the pipeline. sc_buffers because we
+  // want to trigger an event even if the instruction is identical.
+  sc_buffer<DecodedInst>    *dataToStage, *dataFromStage;
 
   // Signals used to multiplex output 0.
   flag_signal<AddressedWord> out0Decode, out0Write;

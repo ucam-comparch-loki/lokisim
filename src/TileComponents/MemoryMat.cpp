@@ -177,7 +177,7 @@ std::vector<ChannelIndex>& MemoryMat::allRequests() {
 
 /* Tells whether we are able to carry out a waiting operation at the given
  * port. */
-bool MemoryMat::canAcceptRequest(ChannelIndex i) {
+bool MemoryMat::canAcceptRequest(ChannelIndex i) const {
   // See if there is an operation waiting or in progress.
   bool operation = !connections_[i].idle();
   if(!operation) return false;
@@ -318,7 +318,7 @@ void MemoryMat::newData() {
 }
 
 /* Initialise the contents of this memory to the Words in the given vector. */
-void MemoryMat::storeData(std::vector<Word>& data, MemoryAddr location) {
+void MemoryMat::storeData(const std::vector<Word>& data, MemoryAddr location) {
   // wordsLoaded is used to keep track of where to put new data. If we have
   // been given a location, we already know where to put the data, so do not
   // need wordsLoaded.
@@ -341,7 +341,7 @@ void MemoryMat::print(MemoryAddr start, MemoryAddr end) const {
   data_.print(start/BYTES_PER_WORD, end/BYTES_PER_WORD);
 }
 
-Word MemoryMat::getMemVal(MemoryAddr addr) const {
+const Word MemoryMat::getMemVal(MemoryAddr addr) const {
   return data_.read(addr/BYTES_PER_WORD);
 }
 

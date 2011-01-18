@@ -10,78 +10,78 @@
 #include "MemoryRequest.h"
 #include "../Utility/InstructionMap.h"
 
-uint8_t DecodedInst::operation() const {
+const uint8_t DecodedInst::operation() const {
   return operation_;
 }
 
-RegisterIndex DecodedInst::sourceReg1() const {
+const RegisterIndex DecodedInst::sourceReg1() const {
   return sourceReg1_;
 }
 
-RegisterIndex DecodedInst::sourceReg2() const {
+const RegisterIndex DecodedInst::sourceReg2() const {
   return sourceReg2_;
 }
 
-RegisterIndex DecodedInst::destination() const {
+const RegisterIndex DecodedInst::destination() const {
   return destReg_;
 }
 
-int32_t DecodedInst::immediate() const {
+const int32_t DecodedInst::immediate() const {
   return immediate_;
 }
 
-ChannelIndex DecodedInst::channelMapEntry() const {
+const ChannelIndex DecodedInst::channelMapEntry() const {
   return channelMapEntry_;
 }
 
-uint8_t DecodedInst::predicate() const {
+const uint8_t DecodedInst::predicate() const {
   return predicate_;
 }
 
-bool    DecodedInst::setsPredicate() const {
+const bool    DecodedInst::setsPredicate() const {
   return setsPred_;
 }
 
-uint8_t DecodedInst::memoryOp() const {
+const uint8_t DecodedInst::memoryOp() const {
   return memoryOp_;
 }
 
 
-int32_t DecodedInst::operand1() const {
+const int32_t DecodedInst::operand1() const {
   return operand1_;
 }
 
-int32_t DecodedInst::operand2() const {
+const int32_t DecodedInst::operand2() const {
   return operand2_;
 }
 
-int64_t DecodedInst::result() const {
+const int64_t DecodedInst::result() const {
   return result_;
 }
 
-Address DecodedInst::location() const {
+const Address DecodedInst::location() const {
   return location_;
 }
 
 
-bool    DecodedInst::usesPredicate() const {
+const bool    DecodedInst::usesPredicate() const {
   return (predicate_ == Instruction::NOT_P) || (predicate_ == Instruction::P);
 }
 
-bool    DecodedInst::hasOperand1() const {
+const bool    DecodedInst::hasOperand1() const {
   return hasOperand1_;
 }
 
-bool    DecodedInst::hasResult() const {
+const bool    DecodedInst::hasResult() const {
   return hasResult_;
 }
 
 
-bool    DecodedInst::hasImmediate() const {
+const bool    DecodedInst::hasImmediate() const {
   return InstructionMap::hasImmediate(operation_);
 }
 
-bool    DecodedInst::isALUOperation() const {
+const bool    DecodedInst::isALUOperation() const {
   return InstructionMap::isALUOperation(operation_);
 }
 
@@ -221,7 +221,7 @@ DecodedInst::DecodedInst() {
   // Everything should default to 0.
 }
 
-DecodedInst::DecodedInst(Instruction i) {
+DecodedInst::DecodedInst(const Instruction i) {
   operation_       = InstructionMap::operation(i.opcode());
   sourceReg1_      = i.sourceReg1();
   sourceReg2_      = i.sourceReg2();

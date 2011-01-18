@@ -62,19 +62,19 @@ public:
 public:
 
   // Store initial instructions or data into this cluster or memory.
-  virtual void storeData(std::vector<Word>& data, MemoryAddr location=0) = 0;
+  virtual void storeData(const std::vector<Word>& data, MemoryAddr location=0) = 0;
 
   // Print information about the component.
   virtual void print(MemoryAddr start, MemoryAddr end) const;
 
   // Return the data held at the given memory address.
-  virtual Word getMemVal(MemoryAddr addr) const;
+  virtual const Word getMemVal(MemoryAddr addr) const;
 
   // Return the value held in the specified register.
-  virtual int32_t readRegDebug(RegisterIndex reg) const;
+  virtual const int32_t readRegDebug(RegisterIndex reg) const;
 
   // Return the memory index of the instruction currently being decoded.
-  virtual Address getInstIndex() const;
+  virtual const Address getInstIndex() const;
 
   // Return the value of the predicate register.
   virtual bool readPredReg() const;
@@ -84,8 +84,8 @@ public:
   static ChannelID outputPortID(ComponentID component, ChannelIndex port);
 
   // Convert a unique port address into the form "(component, port)".
-  static std::string inputPortString(ChannelID port);
-  static std::string outputPortString(ChannelID port);
+  static const std::string inputPortString(ChannelID port);
+  static const std::string outputPortString(ChannelID port);
 
   enum Type {CLUSTER, MEMORY};
 

@@ -18,8 +18,8 @@ class AddressedWord {
 
 public:
 
-  Word     payload() const;
-  uint16_t channelID() const;
+  const Word     payload() const;
+  const uint16_t channelID() const;
   bool     portClaim() const;
   bool     endOfPacket() const;
 

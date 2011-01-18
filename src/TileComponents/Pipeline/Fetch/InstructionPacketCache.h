@@ -46,13 +46,13 @@ public:
 public:
 
   // Initialise the contents of the cache with a list of instructions.
-  void storeCode(std::vector<Instruction>& instructions);
+  void storeCode(const std::vector<Instruction>& instructions);
 
   // Read the next instruction from the cache.
   Instruction read();
 
   // Write a new instruction to the cache.
-  void write(Instruction inst);
+  void write(const Instruction inst);
 
   // Return the index into the current packet of the current instruction.
   Address getInstAddress() const;
@@ -70,10 +70,10 @@ public:
   // See if an instruction packet is in the cache, using its address as a tag,
   // and if so, prepare to execute it. Returns whether or not the packet is
   // in the cache.
-  bool lookup(Address addr);
+  bool lookup(const Address addr);
 
   // Jump to a new instruction specified by the offset.
-  void jump(JumpOffset offset);
+  void jump(const JumpOffset offset);
 
   // Update whether or not we are in persistent execution mode, where we
   // execute a single instruction packet repeatedly.
@@ -86,11 +86,11 @@ private:
 
   // Update the output holding the address of the currently-executing
   // instruction packet.
-  void updatePacketAddress(Address addr);
+  void updatePacketAddress(const Address addr) const;
 
   // We have overwritten the packet which was due to execute next, so we
   // need to fetch it again.
-  void refetch();
+  void refetch() const;
 
   // Perform any necessary tasks when starting to read a new instruction packet.
   void startOfPacketTasks();

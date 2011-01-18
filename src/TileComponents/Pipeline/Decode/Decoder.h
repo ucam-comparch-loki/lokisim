@@ -61,14 +61,14 @@ private:
 
   // Ensure that the instruction packet from the given address is in the
   // instruction packet cache. Nothing will be done if it is already there.
-  void    fetch(MemoryAddr addr);
+  void    fetch(MemoryAddr addr) const;
 
   // Update the channel to which we send fetch requests.
-  void    setFetchChannel(ChannelID channelID);
+  void    setFetchChannel(ChannelID channelID) const;
 
   // If an instruction is waiting to be decoded, discard it. Returns whether
   // anything was discarded.
-  bool    discardNextInst();
+  bool    discardNextInst() const;
 
   // Write operations take two cycles since there are two flits to send. This
   // method sends the second part.

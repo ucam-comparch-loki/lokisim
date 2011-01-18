@@ -273,7 +273,7 @@ void Decoder::setOperand2ToValue(DecodedInst& dec, RegisterIndex reg, int32_t im
   if(dec.hasImmediate()) {
     dec.operand2(immed);
     // This would require use of the sign-extender.
-    // Remember to factor in the energy use.
+    // Remember to include the energy use.
   }
   else if(Registers::isChannelEnd(reg)) {
     dec.operand2(readRCET(Registers::toChannelID(reg)));
@@ -295,15 +295,15 @@ int32_t Decoder::readRCET(ChannelIndex index) {
   return result;
 }
 
-void Decoder::fetch(MemoryAddr addr) {
+void Decoder::fetch(MemoryAddr addr) const {
   parent()->fetch(addr);
 }
 
-void Decoder::setFetchChannel(ChannelID channelID) {
+void Decoder::setFetchChannel(ChannelID channelID) const {
   parent()->setFetchChannel(channelID);
 }
 
-bool Decoder::discardNextInst() {
+bool Decoder::discardNextInst() const {
   return parent()->discardNextInst();
 }
 

@@ -110,7 +110,7 @@ Chip::Chip(sc_module_name name, ComponentID ID) :
     int numOutputs = isCore ? NUM_CORE_OUTPUTS : NUM_MEMORY_OUTPUTS;
 
     for(int j=0; j<numInputs; j++) {
-      int index = TileComponent::inputPortID(i,j);//i*NUM_CORE_INPUTS + j;   // Position in network's array
+      int index = TileComponent::inputPortID(i,j);  // Position in network's array
 
       contents[i]->in[j](dataToComponents[index]);
       network.dataOut[index](dataToComponents[index]);
@@ -119,7 +119,7 @@ Chip::Chip(sc_module_name name, ComponentID ID) :
     }
 
     for(int j=0; j<numOutputs; j++) {
-      int index = TileComponent::outputPortID(i,j);//i*NUM_CORE_OUTPUTS + j;  // Position in network's array
+      int index = TileComponent::outputPortID(i,j); // Position in network's array
 
       contents[i]->out[j](dataFromComponents[index]);
       network.dataIn[index](dataFromComponents[index]);

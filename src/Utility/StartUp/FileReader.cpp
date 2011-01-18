@@ -64,6 +64,12 @@ FileReader& FileReader::makeFileReader(vector<std::string>& words) {
 
     reader = new ELFFileReader(words[2], memory, core);
   }
+  else {
+    std::cerr << "Invalid loader request:";
+    for(uint i=0; i<words.size(); i++) std::cerr << " " << words[i];
+    std::cerr << std::endl;
+    throw std::exception();
+  }
 
   return *reader;
 }

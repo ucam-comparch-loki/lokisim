@@ -11,7 +11,7 @@
 #include "../../../Datatype/Address.h"
 #include "../../../Datatype/MemoryRequest.h"
 
-void FetchLogic::fetch(MemoryAddr addr) {
+void FetchLogic::fetch(const MemoryAddr addr) {
   // Create a new memory request and wrap it up in an AddressedWord
   MemoryRequest mr(addr, MemoryRequest::IPK_READ);
   AddressedWord request(mr, fetchChannel);
@@ -28,7 +28,7 @@ void FetchLogic::fetch(MemoryAddr addr) {
   }
 }
 
-void FetchLogic::setFetchChannel(ChannelID channelID) {
+void FetchLogic::setFetchChannel(const ChannelID channelID) {
   fetchChannel = channelID;
 
   // Need to claim this port so that it sends flow control information back
@@ -65,15 +65,15 @@ void FetchLogic::send() {
   }
 }
 
-bool FetchLogic::inCache(Address addr) {
+bool FetchLogic::inCache(const Address addr) const {
   return parent()->inCache(addr);
 }
 
-bool FetchLogic::roomInCache() {
+bool FetchLogic::roomInCache() const {
   return parent()->roomToFetch();
 }
 
-ChannelID FetchLogic::portID() {
+ChannelID FetchLogic::portID() const {
   return TileComponent::outputPortID(id, 0);
 }
 

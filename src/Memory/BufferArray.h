@@ -26,7 +26,7 @@ class BufferArray {
 public:
 
   // Read data from a particular buffer
-  T& read(const uint buffer) const {
+  const T& read(const uint buffer) const {
     return buffers[buffer]->read();
   }
 

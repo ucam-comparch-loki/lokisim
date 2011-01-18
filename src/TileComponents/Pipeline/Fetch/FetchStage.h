@@ -64,20 +64,20 @@ public:
   virtual double energy() const;
 
   // Store some instructions in the Instruction Packet Cache.
-  void          storeCode(std::vector<Instruction>& instructions);
+  void          storeCode(const std::vector<Instruction>& instructions);
 
   // Return the memory address of the last instruction sent.
   Address       getInstIndex() const;
 
   // Tells whether the packet from location a is currently in the cache.
-  bool          inCache(Address a);
+  bool          inCache(const Address a);
 
   // Tells whether there is room in the cache to fetch another instruction
   // packet, assuming the packet is of maximum size.
   bool          roomToFetch() const;
 
   // Jump to a different instruction in the Instruction Packet Cache.
-  void          jump(JumpOffset offset);
+  void          jump(const JumpOffset offset);
 
   // Put the cache into persistent mode, where it executes the same instruction
   // packet repeatedly, or take it out of persistent mode.
@@ -102,11 +102,11 @@ private:
   void          calculateSelect();
 
   // Update the register holding the address of the current packet.
-  void          updatePacketAddress(Address addr);
+  void          updatePacketAddress(const Address addr) const;
 
   // We have overwritten the packet due to execute next, so it needs to be
   // fetched again.
-  void          refetch();
+  void          refetch() const;
 
 //==============================//
 // Components

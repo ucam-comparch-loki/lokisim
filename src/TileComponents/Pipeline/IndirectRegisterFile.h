@@ -43,13 +43,13 @@ public:
 public:
 
   // Read from a register, redirecting to RCET if necessary.
-  int32_t read(RegisterIndex reg, bool indirect) const;
+  const int32_t read(const RegisterIndex reg, bool indirect) const;
 
   // Read from a register without redirecting to RCET.
-  int32_t readDebug(RegisterIndex reg) const;
+  const int32_t readDebug(const RegisterIndex reg) const;
 
   // Write to a register, including all safety checks.
-  void    write(RegisterIndex reg, int32_t value, bool indirect);
+  void    write(const RegisterIndex reg, const int32_t value, bool indirect);
 
   // Simple methods to tell what sort of register is being dealt with.
   static bool isReserved(RegisterIndex position);
@@ -70,16 +70,16 @@ public:
   // current instruction packet. It is acceptable to have this as a separate
   // method since there is only one writer, and they only write to this one
   // register.
-  void updateCurrentIPK(Address addr);
+  void updateCurrentIPK(const Address addr);
 
 private:
 
   // Store a subsection of the data into the indirect register at position
   // "address".
-  void updateIndirectReg(RegisterIndex reg, Word data);
+  void updateIndirectReg(const RegisterIndex reg, const Word data);
 
   // Perform the register write (no safety checks, etc.).
-  void writeReg(RegisterIndex reg, Word value);
+  void writeReg(const RegisterIndex reg, const Word value);
 
   Cluster* parent() const;
 
