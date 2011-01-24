@@ -26,6 +26,8 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   output = input;
   haveStalled = false;
 
+  Instrumentation::decoded(id, output);
+
   // Instructions that never reach the ALU (e.g. fetch) need to know whether
   // they should execute in this stage.
   bool execute = shouldExecute(input);

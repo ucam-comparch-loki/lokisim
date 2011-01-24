@@ -120,6 +120,10 @@ private:
   // Update the values in the forwarding paths using a new result.
   void             updateForwarding(const DecodedInst& inst);
 
+  // Perform any activities which need to happen at the start of each clock
+  // cycle.
+  void             newCycle();
+
   // Update the address of the currently executing instruction packet so we
   // can fetch more packets from relative locations.
   void             updateCurrentPacket(Address addr);

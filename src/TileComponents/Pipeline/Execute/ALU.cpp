@@ -18,7 +18,7 @@ bool ALU::execute(DecodedInst& dec) const {
   bool execute = shouldExecute(dec.predicate());
 
   if(dec.isALUOperation())
-    Instrumentation::operation(dec, execute, parent()->id);
+    Instrumentation::operation(dec, execute, id);
 
   if(dec.operation() == InstructionMap::NOP) return false;
   if(!execute) return false;
@@ -157,7 +157,7 @@ ExecuteStage* ALU::parent() const {
 }
 
 ALU::ALU(sc_module_name name) : Component(name) {
-
+  id = parent()->id;
 }
 
 ALU::~ALU() {

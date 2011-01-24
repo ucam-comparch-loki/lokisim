@@ -16,12 +16,15 @@ class IPKCache: public InstrumentationBase {
 
 public:
 
-  static void cacheHit(bool hit);
+  static void tagCheck(ComponentID core, bool hit);
+  static void read(ComponentID core);
+  static void write(ComponentID core);
+
   static void printStats();
 
 private:
 
-  static int numHits, numMisses;
+  static int numHits, numMisses, numReads, numWrites;
 
 };
 

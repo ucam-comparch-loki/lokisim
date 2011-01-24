@@ -27,7 +27,7 @@ addu                r12, r10, r3            ; r12 = register to stop putting val
 mullw               r5,  r3,  r11
 slli                r5,  r5,  2             ; computed location of start of row
 ldw                 r5,  16,         > 1    ; load a value
-addui               r5,  r5,  4             ; move to next value
+addui               r5,  r5,  4             ; move to next value (move to before jump?)
 iwtr                r10, ch0                ; store the value in the IRF
 addui               r10, r10, 1             ; move to next register
 setlt.p             r0,  r10, r12           ; see if we have values left to load

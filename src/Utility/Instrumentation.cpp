@@ -12,11 +12,36 @@
 #include "Instrumentation/Memory.h"
 #include "Instrumentation/Network.h"
 #include "Instrumentation/Operations.h"
+#include "Instrumentation/Registers.h"
 #include "Instrumentation/Stalls.h"
 #include "../Datatype/DecodedInst.h"
 
-void Instrumentation::IPKCacheHit(bool hit) {
-  IPKCache::cacheHit(hit);
+void Instrumentation::IPKCacheHit(ComponentID core, bool hit) {
+  IPKCache::tagCheck(core, hit);
+}
+
+void Instrumentation::cacheRead(ComponentID core) {
+  IPKCache::read(core);
+}
+
+void Instrumentation::cacheWrite(ComponentID core) {
+  IPKCache::write(core);
+}
+
+void Instrumentation::decoded(ComponentID core, const DecodedInst& dec) {
+  Operations::decoded(core, dec);
+}
+
+void Instrumentation::dataForwarded(ComponentID core, RegisterIndex reg) {
+  Registers::forward(core, reg);
+}
+
+void Instrumentation::registerRead(ComponentID core, RegisterIndex reg) {
+  Registers::read(core, reg);
+}
+
+void Instrumentation::registerWrite(ComponentID core, RegisterIndex reg) {
+  Registers::write(core, reg);
 }
 
 void Instrumentation::memoryRead(MemoryAddr address, bool isInstruction) {
@@ -50,7 +75,7 @@ void Instrumentation::networkActivity(ComponentID network, ChannelIndex source,
   Network::activity(network, source, destination, distance, bitsSwitched);
 }
 
-void Instrumentation::operation(DecodedInst inst, bool executed, ComponentID id) {
+void Instrumentation::operation(const DecodedInst& inst, bool executed, ComponentID id) {
   Operations::operation(inst.operation(), executed);
 
   if(CodeLoader::usingDebugger)
@@ -63,6 +88,7 @@ void Instrumentation::printStats() {
   Memory::printStats();
   Network::printStats();
   Operations::printStats();
+  Registers::printStats();
   Stalls::printStats();
 }
 

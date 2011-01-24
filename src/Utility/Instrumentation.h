@@ -17,10 +17,28 @@ class DecodedInst;
 
 namespace Instrumentation {
 
-//public:
+  // Record whether there was a cache hit or miss when a fetch occurred.
+  void IPKCacheHit(ComponentID core, bool hit);
 
-  // Record whether there was a cache hit or miss.
-  void IPKCacheHit(bool hit);
+  // Instruction packet cache was read from.
+  void cacheRead(ComponentID core);
+
+  // Instruction packet cache was written to.
+  void cacheWrite(ComponentID core);
+
+  // The decoder consumes a significant amount of energy, and there are a few
+  // techniques to reduce its activity, so record how active it is.
+  void decoded(ComponentID core, const DecodedInst& dec);
+
+  // The desired data ended up being forwarded, rather than read from a
+  // register. This provides optimisation opportunities.
+  void dataForwarded(ComponentID core, RegisterIndex reg);
+
+  // Register was read from. Collect indirect information too?
+  void registerRead(ComponentID core, RegisterIndex reg);
+
+  // A register was written to.
+  void registerWrite(ComponentID core, RegisterIndex reg);
 
   // Record that memory was read from.
   void memoryRead(MemoryAddr address, bool isInstruction);
@@ -46,12 +64,10 @@ namespace Instrumentation {
                        ChannelIndex destination, double distance, int bitsSwitched);
 
   // Record whether a particular operation was executed or not.
-  void operation(DecodedInst inst, bool executed, ComponentID id);
+  void operation(const DecodedInst& inst, bool executed, ComponentID id);
 
   // Print the results of instrumentation.
   void printStats();
-
-//private:
 
   // Return the current clock cycle count.
   int currentCycle();

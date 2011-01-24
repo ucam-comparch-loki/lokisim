@@ -18,7 +18,7 @@ void FetchLogic::fetch(const MemoryAddr addr) {
 
   // Play with fetchChannel so we have the component ID, rather than the port
   // number.
-  if(!inCache(Address(addr, fetchChannel/NUM_CORE_INPUTS))) {
+  if(!inCache(Address(addr, TileComponent::component(fetchChannel)))) {
     toSend.write(request);     // Put the new request in the queue
   }
   else {

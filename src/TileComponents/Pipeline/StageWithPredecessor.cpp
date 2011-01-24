@@ -42,8 +42,8 @@ void StageWithPredecessor::updateStall() {
   }
 }
 
-StageWithPredecessor::StageWithPredecessor(sc_module_name name) :
-    PipelineStage(name) {
+StageWithPredecessor::StageWithPredecessor(sc_module_name name, ComponentID ID) :
+    PipelineStage(name, ID) {
 
   stallOut.initialize(false);
 

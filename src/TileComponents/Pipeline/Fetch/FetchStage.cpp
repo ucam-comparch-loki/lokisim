@@ -136,8 +136,8 @@ void FetchStage::calculateSelect() {
 }
 
 FetchStage::FetchStage(sc_module_name name, ComponentID ID) :
-    PipelineStage(name),
-    StageWithSuccessor(name),
+    PipelineStage(name, ID),
+    StageWithSuccessor(name, ID),
     cache("IPKcache"),
     fifo("IPKfifo") {
 

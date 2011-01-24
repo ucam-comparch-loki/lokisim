@@ -45,8 +45,8 @@ void WriteStage::writeReg(RegisterIndex reg, int32_t value, bool indirect) const
 }
 
 WriteStage::WriteStage(sc_module_name name, ComponentID ID) :
-    PipelineStage(name),
-    StageWithPredecessor(name),
+    PipelineStage(name, ID),
+    StageWithPredecessor(name, ID),
     scet("scet", ID) {
 
   id = ID;

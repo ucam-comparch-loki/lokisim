@@ -95,10 +95,10 @@ bool         DecodeStage::discardNextInst() const {
 }
 
 DecodeStage::DecodeStage(sc_module_name name, ComponentID ID) :
-    PipelineStage(name),
-    StageWithSuccessor(name),
-    StageWithPredecessor(name),
-    fl("fetchlogic", ID),     // Needs ID so it can generate a return address
+    PipelineStage(name, ID),
+    StageWithSuccessor(name, ID),
+    StageWithPredecessor(name, ID),
+    fl("fetchlogic", ID),
     rcet("rcet"),
     decoder("decoder", ID),
     extend("signextend") {

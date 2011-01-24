@@ -65,6 +65,23 @@ ChannelID TileComponent::outputPortID(ComponentID component, ChannelIndex port) 
   return result + port;
 }
 
+/* Determine which component holds the given input port. */
+ComponentID TileComponent::component(ChannelID port) {
+  uint tile = port / INPUTS_PER_TILE;
+  uint position = port % INPUTS_PER_TILE;
+  ComponentID component = tile * COMPONENTS_PER_TILE;
+
+  if(position >= CORES_PER_TILE*NUM_CORE_INPUTS) {
+    component += CORES_PER_TILE;
+    position  -= CORES_PER_TILE*NUM_CORE_INPUTS;
+    component += position / NUM_MEMORY_INPUTS;
+  }
+  else {
+    component += position / NUM_CORE_INPUTS;
+  }
+  return component;
+}
+
 /* Convert a global port ID into a string of the form "(component, port)". */
 const std::string TileComponent::inputPortString(ChannelID port) {
   uint tile = port / INPUTS_PER_TILE;

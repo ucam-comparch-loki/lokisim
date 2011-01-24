@@ -83,6 +83,9 @@ public:
   static ChannelID inputPortID(ComponentID component, ChannelIndex port);
   static ChannelID outputPortID(ComponentID component, ChannelIndex port);
 
+  // Determine which component holds the given port.
+  static ComponentID component(ChannelID port);
+
   // Convert a unique port address into the form "(component, port)".
   static const std::string inputPortString(ChannelID port);
   static const std::string outputPortString(ChannelID port);

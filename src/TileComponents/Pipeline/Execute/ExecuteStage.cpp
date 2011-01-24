@@ -56,12 +56,10 @@ void ExecuteStage::updateForwarding(const DecodedInst& inst) const {
 }
 
 ExecuteStage::ExecuteStage(sc_module_name name, ComponentID ID) :
-    PipelineStage(name),
-    StageWithPredecessor(name),
-    StageWithSuccessor(name),
+    PipelineStage(name, ID),
+    StageWithPredecessor(name, ID),
+    StageWithSuccessor(name, ID),
     alu("alu") {
-
-  id = ID;
 
 }
 

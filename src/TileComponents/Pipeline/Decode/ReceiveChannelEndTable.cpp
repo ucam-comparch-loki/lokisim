@@ -18,10 +18,10 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
 
   // If there is no data, block until it arrives.
   if(buffers[channelEnd].empty()) {
-    Instrumentation::stalled(parent()->id, true, Stalls::INPUT);
+    Instrumentation::stalled(id, true, Stalls::INPUT);
     wait(fromNetwork[channelEnd].default_event());
     wait(sc_core::SC_ZERO_TIME);  // Allow the new value to be put in a buffer.
-    Instrumentation::stalled(parent()->id, false);
+    Instrumentation::stalled(id, false);
   }
 
   int32_t result = buffers.read(channelEnd).toInt();
@@ -51,7 +51,7 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd() {
   }
 
   // If we have got this far, all the buffers are empty
-  throw BlockedException("receive channel-end table", parent()->id);
+  throw BlockedException("receive channel-end table", id);
 
 }
 
@@ -84,6 +84,8 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name) :
     Component(name),
     buffers(NUM_RECEIVE_CHANNELS, CHANNEL_END_BUFFER_SIZE, string(name)),
     currentChannel(NUM_RECEIVE_CHANNELS) {
+
+  id = parent()->id;
 
   flowControl = new sc_out<int>[NUM_RECEIVE_CHANNELS];
   fromNetwork = new sc_in<Word>[NUM_RECEIVE_CHANNELS];

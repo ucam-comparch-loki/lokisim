@@ -13,7 +13,7 @@
 /* Returns whether the given address matches any of the tags. */
 bool IPKCacheStorage::checkTags(const Address& key) {
 
-  for(uint i=0; i<this->size(); i++) {
+  for(uint i=0; i<this->tags.size(); i++) {
     if(this->tags[i] == key) {
       if(currInst.isNull()) {
         currInst = i;
@@ -72,7 +72,7 @@ void IPKCacheStorage::write(const Address& key, const Instruction& newData) {
 
   // If we're not serving instructions at the moment, start serving from here.
   if(currInst.isNull()) {
-    currInst = refill.value();
+    currInst = refill;
     currentPacket = refill.value();
 
     // If we're executing this packet repeatedly, set it to execute next too.
@@ -108,6 +108,9 @@ void IPKCacheStorage::jump(const JumpOffset offset) {
   if(currInst.isNull()) currInst = currInstBackup + offset;
   else currInst += offset - 1; // -1 because we have already incremented currInst
 
+  // We have just jumped, so expect there to be data to read. Ensure that in
+  // the case where refill = current, we don't see the cache as being empty.
+  lastOpWasARead = false;
   updateFillCount();
 
   // Update currentPacket if we have jumped to the start of a packet, or if
@@ -129,8 +132,7 @@ const Address IPKCacheStorage::packetAddress() const {
 
 /* Returns the remaining number of entries in the cache. */
 const uint16_t IPKCacheStorage::remainingSpace() const {
-  uint16_t space = this->size() - fillCount;
-  return space;
+  return this->size() - fillCount;
 }
 
 const Address IPKCacheStorage::getInstLocation() const {
@@ -156,8 +158,8 @@ bool IPKCacheStorage::full() const {
 
 /* Begin reading the packet which is queued up to execute next. */
 void IPKCacheStorage::switchToPendingPacket() {
+  currInstBackup = currInst - 1;  // We have incremented currInst
 
-  currInstBackup = currInst.value() - 1;  // We have incremented currInst
   if(pendingPacket == NOT_IN_USE) currInst.setNull();
   else                            currInst = pendingPacket;
   currentPacket = pendingPacket;

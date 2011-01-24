@@ -18,25 +18,25 @@ class CounterMap {
 
 public:
 
-  void increment(T& event) {
+  void increment(const T& event) {
     counters[event] = counters[event] + 1;
     totalEvents++;
   }
 
-  int getCount(T& event) {
+  const int getCount(const T& event) {
     return counters[event];
   }
 
-  int operator[](T& event) {
+  const int operator[](const T& event) {
     return getCount(event);
   }
 
-  void setCount(T& event, int count) {
+  void setCount(const T& event, int count) {
     totalEvents += (count - counters[event]);
     counters[event] = count;
   }
 
-  int numEvents() {
+  const int numEvents() const {
     return totalEvents;
   }
 

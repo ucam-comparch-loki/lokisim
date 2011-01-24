@@ -66,9 +66,9 @@ void     Cluster::setPersistent(bool persistent) {
   fetch->setPersistent(persistent);
 }
 
-const int32_t  Cluster::readReg(RegisterIndex reg, bool indirect) const {
+const int32_t Cluster::readReg(RegisterIndex reg, bool indirect) const {
 
-  int result;
+  int32_t result;
 
   // Check to see if the requested register is one of the previous two
   // registers written to. If so, we forward the data because the register
@@ -97,7 +97,7 @@ const int32_t  Cluster::readReg(RegisterIndex reg, bool indirect) const {
 }
 
 /* Read a register without data forwarding and without indirection. */
-const int32_t  Cluster::readRegDebug(RegisterIndex reg) const {
+const int32_t Cluster::readRegDebug(RegisterIndex reg) const {
   return regs.readDebug(reg);
 }
 
@@ -105,32 +105,49 @@ void     Cluster::writeReg(RegisterIndex reg, int32_t value, bool indirect) {
   regs.write(reg, value, indirect);
 }
 
-void Cluster::checkForwarding(DecodedInst& inst) const {
+void     Cluster::checkForwarding(DecodedInst& inst) const {
   // We don't want to use forwarded data if we read from register 0: this could
   // mean that there is just no register specified, and we are using an
   // immediate instead.
   if(inst.sourceReg1() > 0) {
-    if(inst.sourceReg1() == previousDest1) inst.operand1(previousResult1);
-    else if(inst.sourceReg1() == previousDest2) inst.operand1(previousResult2);
+    if(inst.sourceReg1() == previousDest1) {
+      inst.operand1(previousResult1);
+      Instrumentation::dataForwarded(id, previousDest1);
+    }
+    else if(inst.sourceReg1() == previousDest2){
+      inst.operand1(previousResult2);
+      Instrumentation::dataForwarded(id, previousDest2);
+    }
   }
   if(inst.sourceReg2() > 0) {
-    if(inst.sourceReg2() == previousDest1) inst.operand2(previousResult1);
-    else if(inst.sourceReg2() == previousDest2) inst.operand2(previousResult2);
+    if(inst.sourceReg2() == previousDest1) {
+      inst.operand2(previousResult1);
+      Instrumentation::dataForwarded(id, previousDest1);
+    }
+    else if(inst.sourceReg2() == previousDest2) {
+      inst.operand2(previousResult2);
+      Instrumentation::dataForwarded(id, previousDest2);
+    }
   }
 }
 
-void Cluster::updateForwarding(const DecodedInst& inst) {
-  previousDest2   = previousDest1;
-  previousResult2 = previousResult1;
-
+void     Cluster::updateForwarding(const DecodedInst& inst) {
   // We don't want to forward any data which was sent to register 0, because
   // r0 doesn't store values: it is a constant.
   // We also don't want to forward data after an indirect write, as the data
-  // won't have been stored in the destination register.
+  // won't have been stored in the destination register -- it will have been
+  // stored in the register the destination register was pointing to.
   previousDest1   = (inst.destination() == 0 ||
                      inst.operation() == InstructionMap::IWTR)
                   ? -1 : inst.destination();
   previousResult1 = inst.result();
+}
+
+void     Cluster::newCycle() {
+  // Update the forwarding values so we don't accidentally forward old data.
+  previousDest2   = previousDest1;
+  previousResult2 = previousResult1;
+  previousDest1   = -1;
 }
 
 bool     Cluster::readPredReg() const {
@@ -310,6 +327,10 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   SC_METHOD(updateIdle);
   for(uint i=0; i<stages.size(); i++) sensitive << stageIdle[i];
   // do initialise
+
+  SC_METHOD(newCycle);
+  sensitive << clock.pos();
+  dont_initialize();
 
   SC_THREAD(multiplexOutput0);
 

@@ -21,6 +21,7 @@ const int32_t IndirectRegisterFile::read(const RegisterIndex reg, bool indirect)
     return parent()->readRCET(toChannelID(index));
   }
   else {
+    Instrumentation::registerRead(id, index);
     if(DEBUG) cout << this->name() << ": Read " << regs.read(index)
                    << " from register " << (int)index << endl;
     return regs.read(index).toInt();
@@ -45,6 +46,8 @@ void IndirectRegisterFile::write(const RegisterIndex reg, const int32_t value, b
   Word w(value);
   writeReg(index, w);
   updateIndirectReg(index, w);
+
+  Instrumentation::registerWrite(id, index);
 
 }
 
@@ -124,6 +127,8 @@ IndirectRegisterFile::IndirectRegisterFile(sc_module_name name) :
     Component(name),
     regs(NUM_PHYSICAL_REGISTERS, std::string(name)),
     indirectRegs(NUM_ADDRESSABLE_REGISTERS, std::string(name)) {
+
+  id = parent()->id;
 
 }
 
