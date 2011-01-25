@@ -1,0 +1,448 @@
+//-------------------------------------------------------------------------------------------------
+// Loki Project
+// Software Simulator for Design Space Exploration
+//-------------------------------------------------------------------------------------------------
+// Shared L1 Cache Network Interface Implementation
+//-------------------------------------------------------------------------------------------------
+// Implements the interface logic between the on-chip network and the crossbar switch.
+//
+// Inputs from the network are buffered in input queues and therefore implicitly registered.
+// All output ports to the crossbar switch are registered as well.
+//
+// Protocol for communicating with a memory (currently identical to the old system):
+//  1. Claim a port in the usual way (invisible to the programmer/compiler).
+//     This is currently done automatically whenever setchmap is executed.
+//  2. Send a MemoryRequest to that port, specifying the channel ID to send
+//     results to, and saying that the MemoryRequest is to set up a connection:
+//     MemoryRequest(channel id, MemoryRequest::SETUP);
+//  3. Use the load and store instructions to send addresses/data to the
+//     memory.
+//-------------------------------------------------------------------------------------------------
+// File:       SharedL1CacheNetworkInterface.cpp
+// Author:     Andreas Koltes (andreas.koltes@cl.cam.ac.uk)
+// Created on: 11/01/2011
+//-------------------------------------------------------------------------------------------------
+
+#include "../../Datatype/AddressedWord.h"
+#include "../../Datatype/ChannelRequest.h"
+#include "../../Datatype/Data.h"
+#include "../../Datatype/Instruction.h"
+#include "../../Datatype/MemoryRequest.h"
+#include "../../Utility/Instrumentation.h"
+#include "../ConnectionStatus.h"
+#include "SharedL1CacheNetworkInterface.h"
+
+//---------------------------------------------------------------------------------------------
+// Event handlers / Processes
+//---------------------------------------------------------------------------------------------
+
+// Method which is called at the beginning of each clock cycle
+
+// In contrast to the original memory mat implementation, all channels can
+// operate in parallel now. Stalling in handled in the cache controllers
+// depending on bank conflicts and access delays.
+
+void SharedL1CacheNetworkInterface::processNewCycle() {
+	bool active = false;
+
+	for (uint channel = 0; channel < cChannels; channel++) {
+		if (rConnections[channel].AccessPending && iAcknowledge[channel].Read) {
+			// Memory access got acknowledged
+
+			if (rConnections[channel].Operation == OPERATION_STORE || rConnections[channel].Operation == OPERATION_STOREBYTE) {
+				// Write access got acknowledged
+
+				Instrumentation::memoryWrite(rConnections[channel].Address);
+				rConnections[channel].AccessPending = false;
+
+				oWriteEnable.write(false);
+
+				if (rConnections[channel].Streaming) {
+					rConnections[channel].Address += (rConnections[channel].Operation == OPERATION_STOREBYTE) ? 1 : 4;
+				} else {
+					rConnections[channel].Address = INVALID;
+					rConnections[channel].Operation = OPERATION_NONE;
+				}
+			} else if (rConnections[channel].Operation == OPERATION_LOAD || rConnections[channel].Operation == OPERATION_LOADBYTE) {
+				// Read got acknowledged
+
+				Instrumentation::memoryRead(rConnections[channel].Address, rConnections[channel].Operation == OPERATION_LOAD && rConnections[channel].Streaming);
+				rConnections[channel].AccessPending = false;
+
+				oReadEnable.write(false);
+
+				if (DEBUG)
+					cout << "Read " << iData.read() << " from memory " << id << ", address " << rConnections[channel].Address << endl;
+
+				Word responseData(iData.read());
+				ChannelID responseChannel = rConnections[channel].RemoteChannel;
+
+				bool isInstruction = rConnections[channel].Operation == OPERATION_LOAD && rConnections[channel].Streaming;
+				bool endOfPacket = true;
+
+				if (isInstruction) {
+					if (static_cast<Instruction>(responseData).endOfPacket()) {
+						rConnections[channel].Address = INVALID;
+						rConnections[channel].Operation = OPERATION_NONE;
+						rConnections[channel].Streaming = false;
+					} else {
+						rConnections[channel].Address += 4;
+						endOfPacket = false;
+					}
+				} else {
+					if (rConnections[channel].Operation == OPERATION_LOADBYTE) {
+						// Extract an individual byte
+
+						responseData = Word((responseData.lowestBits(32) >> rConnections[channel].ShiftCount) & 0xFF);
+					}
+
+					rConnections[channel].Address = INVALID;
+					rConnections[channel].Operation = OPERATION_NONE;
+					rConnections[channel].Streaming = false;
+				}
+
+				// Send data word to client
+
+				AddressedWord addressedResponseWord(responseData, responseChannel);
+
+				if (!endOfPacket)
+					addressedResponseWord.notEndOfPacket();
+
+				out[channel].write(addressedResponseWord);
+			} else {
+				cerr << "Warning: Shared L1 cache network interface received spurious acknowledge signal" << endl;
+			}
+		}
+
+	    if (!rConnections[channel].AccessPending && (rConnections[channel].Streaming || !rRequestQueues[channel].empty()) && flowControlIn[channel].read()) {
+	    	// Try to make progress if a connection is in streaming mode or a new request is available and if there is room for the response
+
+	    	if (rConnections[channel].Streaming && rConnections[channel].Operation == OPERATION_LOAD) {
+	    		// The channel is in streaming IPK read mode
+
+				active = true;
+
+				// Determinate data to send to cache controller and remove data word from request queue
+
+				uint32_t address = rConnections[channel].Address;
+
+				// Set signals to cache controller
+
+				oAddress.write(address);
+				oReadEnable.write(true);
+
+				// Enter wait state
+
+				rConnections[channel].AccessPending = true;
+
+				// Do not send a credit because no input was consumed
+	    	} else {
+	    		// There is no streaming request pending on this channel (i.e. there must be a new request)
+
+				// If we are not allowed to send any data (because of flow control),
+				// we will not be able to carry out any reads. Only peek at the
+				// next request until we know that it can be completed.
+
+				MemoryRequest request = static_cast<MemoryRequest>(rRequestQueues[channel].peek());
+
+				if (rConnections[channel].RemoteChannel == INVALID) {
+					// There is no connection set up at the moment - this must be a setup request
+
+					// Remove the request from the queue - it is always consumed if there is currently no connection
+
+					rRequestQueues[channel].read();
+
+					if (request.isSetup()) {
+						if (DEBUG)
+							cout << this->name() << " set-up connection at channel " << (int)i << endl;
+
+						active = true;
+
+						// There are no safety checks require because it is assumed that all connections are statically orchestrated
+
+						rConnections[channel].RemoteChannel = request.address();
+						rConnections[channel].Address = INVALID;
+						rConnections[channel].Operation = OPERATION_NONE;
+						rConnections[channel].Streaming = false;
+
+						// Set up a connection to the port we are now sending to: send the output port ID, and flag it as a setup message
+						// Port ID calculation might change in the future
+
+						out[channel].write(AddressedWord(Word(id * NUM_CLUSTER_OUTPUTS + channel), request.address(), true));
+
+						// Send credit
+
+						flowControlOut[channel].write(1);
+					} else {
+						// If there is no connection set up and we receive something which is not a setup request, something is wrong
+
+						cerr << "Error: unexpected input at " << this->name() << " channel " << (int)i << ": " << req << endl;
+					}
+				} else if ((rConnections[channel].RemoteChannel != INVALID && rConnections[channel].Operation == OPERATION_NONE) || request.operation() == MemoryRequest::STADDR) {
+					// There is a connection set up and it is idle or the request is a streaming store start request
+
+			        // If there is no request in progress, this must be a read request
+
+			        if (DEBUG)
+			        	cout << "Received new memory request at memory " << id << ", input " << (int)i << ": ";
+
+					if(request.isSetup()) {
+						// Lazily tear down connections when the next setup request arrives
+
+						if (DEBUG)
+							cout << "set-up connection at port " << (int)i << endl;
+
+						active = true;
+
+						// Remove setup request from the queue
+
+						rRequestQueues[channel].read();
+
+						// There are no safety checks require because it is assumed that all connections are statically orchestrated
+
+						rConnections[channel].RemoteChannel = request.address();
+						rConnections[channel].Address = INVALID;
+						rConnections[channel].Operation = OPERATION_NONE;
+						rConnections[channel].Streaming = false;
+
+						// Set up a connection to the port we are now sending to: send the output port ID, and flag it as a setup message
+						// Port ID calculation might change in the future
+
+						out[channel].write(AddressedWord(Word(id * NUM_CLUSTER_OUTPUTS + channel), request.address(), true));
+
+						// Send credit
+
+						flowControlOut[channel].write(1);
+					} else if (request.isReadRequest()) {
+						// This is either a word or byte read request or an IPK read request
+
+						if (DEBUG)
+							cout << "read from address " << req.address() << endl;
+
+						// The request can be processed only of flow control permits it
+
+						if (flowControlIn[channel].read()) {
+							rConnections[channel].Address = request.address();
+							rConnections[channel].Operation = OPERATION_LOAD;
+							rConnections[channel].Streaming = request.isIPKRequest();
+
+							active = true;
+
+							// Determinate data to send to cache controller and remove data word from request queue
+
+							uint32_t address = rConnections[channel].Address;
+
+							// Set signals to cache controller
+
+							oAddress.write(address);
+							oReadEnable.write(true);
+
+							// Enter wait state
+
+							rConnections[channel].AccessPending = true;
+
+							// Remove read request from the queue
+
+							rRequestQueues[channel].read();
+
+							// Send credit
+
+							flowControlOut[channel].write(1);
+						}
+					} else {
+						// This is a write request header
+
+						if (DEBUG)
+							cout << "store to address " << req.address() << endl;
+
+						rConnections[channel].Address = request.address();
+						rConnections[channel].Operation = OPERATION_STORE;
+						rConnections[channel].Streaming = request.operation() == MemoryRequest::STADDR;
+
+						// Remove write request from the queue
+
+						rRequestQueues[channel].read();
+
+						// Send credit
+
+						flowControlOut[channel].write(1);
+					}
+				} else {
+					// If there is an active request, this must be data to be written
+
+					active = true;
+
+					// Determinate data to send to cache controller and remove data word from request queue
+
+					uint32_t address = rConnections[channel].Address;
+					uint32_t data = rRequestQueues[channel].read().lowestBits(32);
+					uint8_t byteMask = 0xF;
+
+					if (rConnections[channel].Operation == OPERATION_STOREBYTE) {
+						uint byteAddress = address & 0x3;
+						address &= 0xFFFFFFFC;
+						byteMask = 1U << byteAddress;
+					} else {
+						if ((addres & 0x3) != 0)
+							cerr << "WARNING: Unaligned write access detected" << endl;
+					}
+
+					if (DEBUG)
+						cout << "Writing " << data << " with byte mask " << byteMask << " to memory " << id << ", address " << address << endl;
+
+					// Set signals to cache controller
+
+					oAddress.write(address);
+					oData.write(data);
+					oByteMask.write(byteMask);
+					oWriteEnable.write(true);
+
+					// Enter wait state
+
+					rConnections[channel].AccessPending = true;
+
+					// Send credit
+
+					flowControlOut[channel].write(1);
+				}
+	    	}
+	    }
+
+	    // Update activity state
+
+	    if (rConnections[channel].AccessPending || (rConnections[channel].RemoteChannel != INVALID && rConnections[channel].Operation == OPERATION_LOAD && rConnections[channel].Streaming) || !rRequestQueues[channel].empty())
+			active = true;
+	}
+
+	// Update idle signal
+
+	idle.write(!active);
+	Instrumentation::idle(id, !active);
+}
+
+// Check all input ports for new data, and put it into the request queues
+
+void SharedL1CacheNetworkInterface::processInputChanged() {
+	for (uint i = 0; i < cChannels; i++)
+		if(!rRequestQueues[i].full() && in[i].event())
+			rRequestQueues[i].write(in[i].read());
+}
+
+//---------------------------------------------------------------------------------------------
+// Constructors / Destructors
+//---------------------------------------------------------------------------------------------
+
+SharedL1CacheNetworkInterface::SharedL1CacheNetworkInterface(sc_module_name name, ComponentID id, uint channels, uint queueDepth) :
+	TileComponent(name, id),
+	rRequestQueues(channels, queueDepth, string(name))
+{
+	// The interface is likely to change again - for the moment keep it compatible with the existing system
+
+	if (channels != NUM_CLUSTER_INPUTS || channels != NUM_CLUSTER_OUTPUTS) {
+		cerr << "Shared L1 cache network interface instantiated with invalid channel count" << endl;
+		throw std::exception();
+	}
+
+	if (queueDepth != CHANNEL_END_BUFFER_SIZE) {
+		cerr << "Shared L1 cache network interface instantiated with invalid queue depth" << endl;
+		throw std::exception();
+	}
+
+	// Setup configuration parameters and dependent structures
+
+	cChannels = channels;
+
+	rConnections = new ConnectionStatus[channels];
+
+	for (uint i = 0; i < channels; i++) {
+		rConnections[i].RemoteChannel = INVALID;
+		rConnections[i].Address = INVALID;
+		rConnections[i].Operation = OPERATION_NONE;
+		rConnections[i].Streaming = false;
+		rConnections[i].AccessPending = false;
+		rConnections[i].ShiftCount = 0;
+	}
+
+	// Initialise ports
+
+	oAddress = new sc_out<uint32_t>[channels];
+	oData = new sc_out<uint32_t>[channels];
+	oByteMask = new sc_out<uint8_t>[channels];
+	oReadEnable = new sc_out<bool>[channels];
+	oWriteEnable = new sc_out<bool>[channels];
+
+	iData = new sc_in<uint32_t>[channels];
+	iAcknowledge = new sc_in<bool>[channels];
+
+	for (uint i = 0; i < channels; i++) {
+		oReadEnable[i].initialize(false);
+		oWriteEnable[i].initialize(false);
+	}
+
+	// Register processes
+
+	SC_METHOD(processNewCycle);
+	sensitive << clock.neg();		// Just need to make sure flow control arrives first
+	dont_initialize();
+
+	SC_METHOD(processInputChanged);
+	for (uint i = 0; i < channels; i++)
+		sensitive << in[i];
+	dont_initialize();
+
+	// Indicate non-default component constructor
+
+	end_module();
+}
+
+virtual SharedL1CacheNetworkInterface::~SharedL1CacheNetworkInterface() {
+	delete[] rConnections;
+
+	delete[] oAddress;
+	delete[] oData;
+	delete[] oByteMask;
+	delete[] oReadEnable;
+	delete[] oWriteEnable;
+
+	delete[] iData;
+	delete[] iAcknowledge;
+}
+
+//---------------------------------------------------------------------------------------------
+// Simulation utility methods inherited from TileComponent - not part of simulated logic
+//---------------------------------------------------------------------------------------------
+
+// The area of this component in square micrometres
+
+virtual double SharedL1CacheNetworkInterface::area() const {
+	cerr << "Shared L1 cache area estimation not yet implemented" << endl;
+	return 0.0;
+}
+
+// The energy consumed by this component in picojoules
+
+virtual double SharedL1CacheNetworkInterface::energy() const {
+	cerr << "Shared L1 cache energy estimation not yet implemented" << endl;
+	return 0.0;
+}
+
+// Initialise the contents of this memory to the Words in the given vector
+
+virtual void SharedL1CacheNetworkInterface::storeData(std::vector<Word>& data, MemoryAddr location = 0) {
+	cerr << "Shared L1 cache cannot be initialised - store data directly into background memory" << endl;
+	throw std::exception();
+}
+
+// Print the contents of this memory
+
+virtual void SharedL1CacheNetworkInterface::print(MemoryAddr start = 0, MemoryAddr end = MEMORY_SIZE) const {
+	cerr << "Shared L1 cache cannot be printed - print background memory contents directly" << endl;
+	throw std::exception();
+}
+
+// Return the value at the given address
+
+virtual Word SharedL1CacheNetworkInterface::getMemVal(MemoryAddr addr) const {
+	cerr << "Shared L1 cache cannot be accessed - access background memory directly" << endl;
+	throw std::exception();
+}
