@@ -11,57 +11,90 @@
 #ifndef PARAMETERS_H_
 #define PARAMETERS_H_
 
-typedef const unsigned int parameter;
+#include <string>
 
-extern int DEBUG;
+using std::string;
 
-extern int TIMEOUT;
+//-------------------------------------------------------------------------------------------------
+// General definitions
+//-------------------------------------------------------------------------------------------------
 
-extern int       BYTES_PER_WORD;
+typedef unsigned int parameter;
 
+//-------------------------------------------------------------------------------------------------
+// General parameters
+//-------------------------------------------------------------------------------------------------
+
+extern int			DEBUG;
+
+extern int			TIMEOUT;
+
+extern int			BYTES_PER_WORD;
+
+//-------------------------------------------------------------------------------------------------
 // Architecture size
-extern parameter CORES_PER_TILE;
-extern parameter MEMS_PER_TILE;
+//-------------------------------------------------------------------------------------------------
 
-extern parameter NUM_TILE_ROWS;
-extern parameter NUM_TILE_COLUMNS;
+extern parameter	CORES_PER_TILE;
+extern parameter	MEMS_PER_TILE;
 
+extern parameter	NUM_TILE_ROWS;
+extern parameter	NUM_TILE_COLUMNS;
+
+//-------------------------------------------------------------------------------------------------
 // Memory
-extern parameter NUM_ADDRESSABLE_REGISTERS;
-extern parameter NUM_PHYSICAL_REGISTERS;
-extern parameter IPK_FIFO_SIZE;
-extern parameter IPK_CACHE_SIZE;
-extern parameter MEMORY_SIZE;
-extern parameter CONCURRENT_MEM_OPS;
+//-------------------------------------------------------------------------------------------------
 
-extern parameter CHANNEL_MAP_SIZE;
+extern parameter	NUM_ADDRESSABLE_REGISTERS;
+extern parameter	NUM_PHYSICAL_REGISTERS;
+extern parameter	IPK_FIFO_SIZE;
+extern parameter	IPK_CACHE_SIZE;
+extern parameter	MEMORY_SIZE;
+extern parameter	CONCURRENT_MEM_OPS;
 
-extern parameter MAX_IPK_SIZE;
+extern parameter	CHANNEL_MAP_SIZE;
 
+extern parameter	MAX_IPK_SIZE;
+
+//-------------------------------------------------------------------------------------------------
 // Network
-extern parameter NUM_RECEIVE_CHANNELS;
-extern parameter NUM_SEND_CHANNELS;
-extern parameter NUM_MEMORY_INPUTS;
-extern parameter NUM_MEMORY_OUTPUTS;
-extern parameter CHANNEL_END_BUFFER_SIZE; // Different send/receive sizes?
-extern parameter ROUTER_BUFFER_SIZE;
-extern parameter NETWORK_BUFFER_SIZE;
+//-------------------------------------------------------------------------------------------------
 
-extern parameter WORMHOLE_ROUTING;
+extern parameter	NUM_RECEIVE_CHANNELS;
+#define				NUM_SEND_CHANNELS			(CHANNEL_MAP_SIZE)
+extern parameter	NUM_MEMORY_INPUTS;
+#define				NUM_MEMORY_OUTPUTS			(NUM_MEMORY_INPUTS)
+extern parameter	CHANNEL_END_BUFFER_SIZE;	// Different send/receive sizes?
+extern parameter	ROUTER_BUFFER_SIZE;
+extern parameter	NETWORK_BUFFER_SIZE;
 
+extern parameter	WORMHOLE_ROUTING;
+
+//-------------------------------------------------------------------------------------------------
 // Combinations of other parameters
-extern parameter NUM_CORE_INPUTS;
-extern parameter NUM_CORE_OUTPUTS;
-extern parameter COMPONENTS_PER_TILE;
-extern parameter NUM_TILES;
+//-------------------------------------------------------------------------------------------------
 
-extern parameter NUM_CORES;
-extern parameter NUM_MEMORIES;
-extern parameter NUM_COMPONENTS;
+#define				NUM_CORE_INPUTS				(2 + NUM_RECEIVE_CHANNELS)
+#define				NUM_CORE_OUTPUTS			(NUM_SEND_CHANNELS)
+#define				COMPONENTS_PER_TILE			(CORES_PER_TILE + MEMS_PER_TILE)
+#define				NUM_TILES					(NUM_TILE_ROWS * NUM_TILE_COLUMNS)
 
-extern parameter INPUTS_PER_TILE;
-extern parameter OUTPUTS_PER_TILE;
-extern parameter TOTAL_INPUTS;
-extern parameter TOTAL_OUTPUTS;
+#define				NUM_CORES					(CORES_PER_TILE * NUM_TILES)
+#define				NUM_MEMORIES				(MEMS_PER_TILE * NUM_TILES)
+#define				NUM_COMPONENTS				(NUM_TILES * COMPONENTS_PER_TILE)
+
+#define				INPUTS_PER_TILE				(CORES_PER_TILE * NUM_CORE_INPUTS + MEMS_PER_TILE * NUM_MEMORY_INPUTS)
+#define				OUTPUTS_PER_TILE			(CORES_PER_TILE * NUM_CORE_OUTPUTS + MEMS_PER_TILE * NUM_MEMORY_OUTPUTS)
+#define				TOTAL_INPUTS				(INPUTS_PER_TILE * NUM_TILES)
+#define				TOTAL_OUTPUTS				(OUTPUTS_PER_TILE * NUM_TILES)
+
+//-------------------------------------------------------------------------------------------------
+// Run-time parameter management
+//-------------------------------------------------------------------------------------------------
+
+class Parameters {
+public:
+	static void parseParameter(const string &name, const string &value);
+};
 
 #endif /* PARAMETERS_H_ */

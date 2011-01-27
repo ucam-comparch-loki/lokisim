@@ -10,7 +10,21 @@
  *      Author: db434
  */
 
+#include "StringManipulation.h"
 #include "Parameters.h"
+
+#include <string.h>
+
+#include <iostream>
+#include <string>
+
+using std::string;
+using std::cerr;
+using std::endl;
+
+//-------------------------------------------------------------------------------------------------
+// General parameters
+//-------------------------------------------------------------------------------------------------
 
 int DEBUG = 1;
 
@@ -18,14 +32,20 @@ int TIMEOUT = 150000;
 
 int       BYTES_PER_WORD             = 4;
 
+//-------------------------------------------------------------------------------------------------
 // Architecture size
+//-------------------------------------------------------------------------------------------------
+
 parameter CORES_PER_TILE             = 12;
 parameter MEMS_PER_TILE              = 4;
 
 parameter NUM_TILE_ROWS              = 1;
 parameter NUM_TILE_COLUMNS           = 1;
 
+//-------------------------------------------------------------------------------------------------
 // Memory
+//-------------------------------------------------------------------------------------------------
+
 parameter NUM_ADDRESSABLE_REGISTERS  = 32;
 parameter NUM_PHYSICAL_REGISTERS     = 64;
 parameter IPK_FIFO_SIZE              = 8;
@@ -37,30 +57,64 @@ parameter CHANNEL_MAP_SIZE           = 4;
 
 parameter MAX_IPK_SIZE               = 8; // Must be <= buffer size (wormhole)
 
+//-------------------------------------------------------------------------------------------------
 // Network
+//-------------------------------------------------------------------------------------------------
+
 parameter NUM_RECEIVE_CHANNELS       = 2;
-parameter NUM_SEND_CHANNELS          = CHANNEL_MAP_SIZE;
 parameter NUM_MEMORY_INPUTS          = 12; // To allow SIMD experiments (not realistic)
-parameter NUM_MEMORY_OUTPUTS         = NUM_MEMORY_INPUTS;
 parameter CHANNEL_END_BUFFER_SIZE    = 8;
 parameter ROUTER_BUFFER_SIZE         = 4;
 parameter NETWORK_BUFFER_SIZE        = 4;
 
 parameter WORMHOLE_ROUTING           = 0; // Has negative effect on performance
 
-// Combinations of other parameters
-parameter NUM_CORE_INPUTS            = 2 + NUM_RECEIVE_CHANNELS;
-parameter NUM_CORE_OUTPUTS           = NUM_SEND_CHANNELS;
-parameter COMPONENTS_PER_TILE        = CORES_PER_TILE + MEMS_PER_TILE;
-parameter NUM_TILES                  = NUM_TILE_ROWS * NUM_TILE_COLUMNS;
+//-------------------------------------------------------------------------------------------------
+// Run-time parameter management
+//-------------------------------------------------------------------------------------------------
 
-parameter NUM_CORES                  = CORES_PER_TILE * NUM_TILES;
-parameter NUM_MEMORIES               = MEMS_PER_TILE * NUM_TILES;
-parameter NUM_COMPONENTS             = NUM_TILES * COMPONENTS_PER_TILE;
+void Parameters::parseParameter(const string &name, const string &value) {
+	const char* cName = name.c_str();
+	int nValue = StringManipulation::strToInt(value);
 
-parameter INPUTS_PER_TILE            = CORES_PER_TILE * NUM_CORE_INPUTS +
-                                       MEMS_PER_TILE * NUM_MEMORY_INPUTS;
-parameter OUTPUTS_PER_TILE           = CORES_PER_TILE * NUM_CORE_OUTPUTS +
-                                       MEMS_PER_TILE * NUM_MEMORY_OUTPUTS;
-parameter TOTAL_INPUTS               = INPUTS_PER_TILE * NUM_TILES;
-parameter TOTAL_OUTPUTS              = OUTPUTS_PER_TILE * NUM_TILES;
+	if (strcasecmp(cName, "CORES_PER_TILE") == 0)
+		CORES_PER_TILE = nValue;
+	else if (strcasecmp(cName, "MEMS_PER_TILE") == 0)
+		MEMS_PER_TILE = nValue;
+	else if (strcasecmp(cName, "NUM_TILE_ROWS") == 0)
+		NUM_TILE_ROWS = nValue;
+	else if (strcasecmp(cName, "NUM_TILE_COLUMNS") == 0)
+		NUM_TILE_COLUMNS = nValue;
+	else if (strcasecmp(cName, "NUM_ADDRESSABLE_REGISTERS") == 0)
+		NUM_ADDRESSABLE_REGISTERS = nValue;
+	else if (strcasecmp(cName, "NUM_PHYSICAL_REGISTERS") == 0)
+		NUM_PHYSICAL_REGISTERS = nValue;
+	else if (strcasecmp(cName, "IPK_FIFO_SIZE") == 0)
+		IPK_FIFO_SIZE = nValue;
+	else if (strcasecmp(cName, "IPK_CACHE_SIZE") == 0)
+		IPK_CACHE_SIZE = nValue;
+	else if (strcasecmp(cName, "MEMORY_SIZE") == 0)
+		MEMORY_SIZE = nValue;
+	else if (strcasecmp(cName, "CONCURRENT_MEM_OPS") == 0)
+		CONCURRENT_MEM_OPS = nValue;
+	else if (strcasecmp(cName, "CHANNEL_MAP_SIZE") == 0)
+		CHANNEL_MAP_SIZE = nValue;
+	else if (strcasecmp(cName, "MAX_IPK_SIZE") == 0)
+		MAX_IPK_SIZE = nValue;
+	else if (strcasecmp(cName, "NUM_RECEIVE_CHANNELS") == 0)
+		NUM_RECEIVE_CHANNELS = nValue;
+	else if (strcasecmp(cName, "NUM_MEMORY_INPUTS") == 0)
+		NUM_MEMORY_INPUTS = nValue;
+	else if (strcasecmp(cName, "CHANNEL_END_BUFFER_SIZE") == 0)
+		CHANNEL_END_BUFFER_SIZE = nValue;
+	else if (strcasecmp(cName, "ROUTER_BUFFER_SIZE") == 0)
+		ROUTER_BUFFER_SIZE = nValue;
+	else if (strcasecmp(cName, "NETWORK_BUFFER_SIZE") == 0)
+		NETWORK_BUFFER_SIZE = nValue;
+	else if (strcasecmp(cName, "WORMHOLE_ROUTING") == 0)
+		WORMHOLE_ROUTING = nValue;
+	else {
+		cerr << "Encountered invalid parameter in settings file" << endl;
+		throw std::exception();
+	}
+}

@@ -21,6 +21,8 @@ bool CodeLoader::usingDebugger = false;
  *     Change the current directory
  *   loader file_name
  *     Use another file loader - useful for loading multiple (sub-)programs
+ *   parameter parameter_name parameter_value
+ *     Override default parameter setting
  *   component_id file_name
  *     Load the contents of the file into the component */
 void CodeLoader::loadCode(string& settings, Chip& tile) {
@@ -49,6 +51,9 @@ void CodeLoader::loadCode(string& settings, Chip& tile) {
       else if(words[0]=="loader") {   // Use another file loader
         string loaderFile = directory + "/" + words[1];
         loadCode(loaderFile, tile);
+      }
+      else if(words[0]=="parameter") {   // Override parameter
+    	Parameters::parseParameter(words[1], words[2]);
       }
       else {                          // Load code/data from the given file
         // If a full path is provided, use that. Otherwise, assume the file
