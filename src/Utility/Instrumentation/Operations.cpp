@@ -11,13 +11,13 @@
 
 CounterMap<int> Operations::executedOps;
 CounterMap<int> Operations::unexecutedOps;
-int Operations::numOps = 0;
-int Operations::numDecodes = 0;
+int Operations::numOps_ = 0;
+int Operations::numDecodes_ = 0;
 
 void Operations::decoded(ComponentID core, const DecodedInst& dec) {
   // May later care about the operation, since different ones require different
   // decode energies?
-  numDecodes++;
+  numDecodes_++;
 }
 
 void Operations::operation(int op, bool executed) {
@@ -26,13 +26,17 @@ void Operations::operation(int op, bool executed) {
   if(executed) executedOps.increment(opcopy);
   else unexecutedOps.increment(opcopy);
 
-  numOps++;
+  numOps_++;
 }
 
+int Operations::numDecodes()                 {return numDecodes_;}
+int Operations::numOperations()              {return numOps_;}
+int Operations::numOperations(int operation) {return executedOps[operation];}
+
 void Operations::printStats() {
-  if(numOps > 0) {
+  if(numOps_ > 0) {
     cout << "Operations:\n" <<
-      "  Total: " << numOps << "\n" <<
+      "  Total: " << numOps_ << "\n" <<
       "  Operations executed:\n";
 
     int executed = executedOps.numEvents();

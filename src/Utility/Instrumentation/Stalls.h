@@ -23,6 +23,12 @@ public:
   static void idle(ComponentID id, int cycle);
   static void active(ComponentID id, int cycle);
   static void endExecution();
+
+  static int  cyclesActive(ComponentID core);
+  static int  cyclesIdle(ComponentID core);
+  static int  cyclesStalled(ComponentID core);
+  static int  executionTime();
+
   static void printStats();
 
   enum StallReason {
@@ -54,12 +60,12 @@ private:
   static CounterMap<ComponentID> idleTimes;
 
   // The number of clusters stalled or idle at the moment.
-  static uint numStalled;
+  static uint16_t numStalled;
 
   // The cycle number at which all clusters became inactive. It is safe to
   // stop simulation if it can also be known that the networks are inactive:
   // it may be the case that a cluster is waiting for data to arrive.
-  static uint endOfExecution;
+  static uint32_t endOfExecution;
 
 };
 

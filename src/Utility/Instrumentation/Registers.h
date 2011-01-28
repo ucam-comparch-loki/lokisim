@@ -20,11 +20,15 @@ public:
   static void write(ComponentID core, RegisterIndex reg);
   static void forward(ComponentID core, RegisterIndex reg);
 
+  static int  numReads();
+  static int  numWrites();
+  static int  numForwards();
+
   static void printStats();
 
 private:
 
-  static int numReads, numWrites, numForwards;
+  static int numReads_, numWrites_, numForwards_;
 
 };
 

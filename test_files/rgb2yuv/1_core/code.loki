@@ -43,46 +43,46 @@ ori.eop             r9,  ch0, 0             ; r9 = blue
 
 % Compute Y
 fetch               r1,  100
-ori                 r13, r0,  66            ; store coefficient
-ori                 r14, r0,  129           ; store coefficient
-ori                 r15, r0,  25            ; store coefficient
+ori                 r20, r0,  66            ; store coefficient
+ori                 r21, r0,  129           ; store coefficient
+ori                 r22, r0,  25            ; store coefficient
 addui.eop           r29, r1,  20            ; store next IPK location
 
 % Store Y, compute U
-addui               r13, r13, 16            ; r13 = Y
-stb                 r13, r10, 0      > 2    ; store Y
+addui               r20, r20, 16            ; r20 = Y
+stb                 r20, r10, 0      > 2    ; store Y
 fetch               r1,  80
-ori                 r13, r0,  -38           ; store coefficient
-ori                 r14, r0,  -74           ; store coefficient
-ori                 r15, r0,  112           ; store coefficient
+ori                 r20, r0,  -38           ; store coefficient
+ori                 r21, r0,  -74           ; store coefficient
+ori                 r22, r0,  112           ; store coefficient
 addui.eop           r29, r1,  28            ; store next IPK location
 
 % Store U, compute V
-addui               r13, r13, 128           ; r13 = U
-stb                 r13, r11, 0      > 2    ; store U
+addui               r20, r20, 128           ; r20 = U
+stb                 r20, r11, 0      > 2    ; store U
 fetch               r1,  52
-ori                 r13, r0,  112           ; store coefficient
-ori                 r14, r0,  -94           ; store coefficient
-ori                 r15, r0,  -18           ; store coefficient
+ori                 r20, r0,  112           ; store coefficient
+ori                 r21, r0,  -94           ; store coefficient
+ori                 r22, r0,  -18           ; store coefficient
 addui.eop           r29, r1,  28            ; store next IPK location
 
 % Store V, loop if necessary
-addui               r13, r13, 128           ; r13 = V
-stb                 r13, r12, 0      > 2    ; store V
+addui               r20, r20, 128           ; r20 = V
+stb                 r20, r12, 0      > 2    ; store V
 addui               r10, r10, 1
 setlt.p             r0,  r10, r4            ; see if we have finished
 p?fetch             r1,  -112
 nop.eop
 
 % Subroutine to compute (xR + yG + zB + 128) >> 8
-% Excludes final addition because I currently don't have enough registers for it.
-% Assumes x is in r13, y is in r14, z is in r15 and next IPK address is in r29.
-% Leaves result in r13.
-mullw               r13, r13, r7            ; xR
-mullw               r14, r14, r8            ; yG
-mullw               r15, r15, r9            ; zB
+% Excludes final addition because it is more efficiently done with addui.
+% Assumes x is in r20, y is in r21, z is in r22 and next IPK address is in r29.
+% Leaves result in r20.
+mullw               r20, r20, r7            ; xR
+mullw               r21, r21, r8            ; yG
+mullw               r22, r22, r9            ; zB
 fetch               r29, 0
-addu                r13, r13, r14           ; xR + yG
-addu                r13, r13, r15           ; xR + yG + zB
-addui               r13, r13, 128           ; xR + yG + zB + 128
-srli.eop            r13, r13, 8             ; (xR + yG + zB + 128) >> 8
+addu                r20, r20, r21           ; xR + yG
+addu                r20, r20, r22           ; xR + yG + zB
+addui               r20, r20, 128           ; xR + yG + zB + 128
+srli.eop            r20, r20, 8             ; (xR + yG + zB + 128) >> 8

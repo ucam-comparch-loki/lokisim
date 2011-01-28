@@ -1,0 +1,20 @@
+% Energy figures extracted from James Balfour's PhD thesis at 
+% http://cva.stanford.edu/publications/2010/jbalfour-thesis.pdf
+%
+% The figures were generated using a 45nm low-leakage CMOS process, at 1.1V.
+%
+% Note that there is only a 16 bit multiplier, and that the memory accesses
+% assume that there are cache tags.
+%
+% All figures are in femtojoules.
+
+add32       520
+mul16       2200
+regread32   250
+regwrite32  470
+stallreg    330
+memread2k   3540
+memwrite2k  3530
+ipktagcheck 980
+ipkread     340
+ipkwrite    410

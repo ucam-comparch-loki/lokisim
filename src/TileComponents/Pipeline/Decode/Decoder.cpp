@@ -56,7 +56,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
   // Only perform this if we aren't blocked to prevent repeated occurrences.
   if(!blocked && !input.isALUOperation())
-    Instrumentation::operation(input, execute, id);
+    Instrumentation::operation(id, input, execute);
 
   // If the instruction may perform destructive reads from a channel-end,
   // and we know it won't execute, stop it here.

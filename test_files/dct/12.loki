@@ -35,9 +35,9 @@ addu        r8,  r7,  r3            ; position in block to write to
 slli        r8,  r8,  2             ; shift so we get a byte position
 addu        r8,  r8,  r31           ; memory location to write to
 p?or        r9,  r5,  r0            ; if p, want to write sum relatively unchanged
-!p?srli     r9,  r5,  14            ; else, need to do some fancy tricks with the sum
+!p?srai     r9,  r5,  14            ; else, need to do some fancy tricks with the sum
 !p?mullw    r9,  r9,  r29
-srli        r9,  r9,  15            ; the shift is common to both branches
+srai        r9,  r9,  15            ; the shift is common to both branches
 stw         r9,  r8,  0   > 2       ; store the value
 
 addui       r3,  r3,  1             ; increment current column
@@ -95,9 +95,9 @@ addu        r8,  r8,  r2            ; position in block to write to
 slli        r8,  r8,  2             ; shift so we have a byte position
 addu        r8,  r8,  r30           ; memory location to write to
 p?or        r9,  r5,  r0            ; if p, want to write sum relatively unchanged
-!p?srli     r9,  r5,  14            ; else, need to do some fancy tricks with the sum
+!p?srai     r9,  r5,  14            ; else, need to do some fancy tricks with the sum
 !p?mullw    r9,  r9,  r29
-srli        r9,  r9,  15            ; the shift is common to both branches
+srai        r9,  r9,  15            ; the shift is common to both branches
 stw         r9,  r8,  0   > 3       ; store the value
 
 addui       r3,  r3,  1             ; increment current row

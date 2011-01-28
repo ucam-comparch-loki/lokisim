@@ -18,7 +18,7 @@ bool ALU::execute(DecodedInst& dec) const {
   bool execute = shouldExecute(dec.predicate());
 
   if(dec.isALUOperation())
-    Instrumentation::operation(dec, execute, id);
+    Instrumentation::operation(id, dec, execute);
 
   if(dec.operation() == InstructionMap::NOP) return false;
   if(!execute) return false;
@@ -37,11 +37,11 @@ bool ALU::execute(DecodedInst& dec) const {
   switch(dec.operation()) {
 
     case InstructionMap::SLLI:
-    case InstructionMap::SLL:   result = val1 << val2; break;
+    case InstructionMap::SLL:      result = val1 << val2; break;
     case InstructionMap::SRLI:
-    case InstructionMap::SRL:   result = val1 >> val2; break;
+    case InstructionMap::SRL:      result = (uint32_t)val1 >> val2; break;
     case InstructionMap::SRAI:
-    case InstructionMap::SRA:   result = val1 >> val2; break;
+    case InstructionMap::SRA:      result = val1 >> val2; break;
 
     case InstructionMap::SETEQ:
     case InstructionMap::SETEQI:   result = (val1 == val2); break;
@@ -55,26 +55,26 @@ bool ALU::execute(DecodedInst& dec) const {
     case InstructionMap::SETGTEU:
     case InstructionMap::SETGTEUI: result = ((uint32_t)val1 >= (uint32_t)val2); break;
 
-    case InstructionMap::LUI:    result = val2 << 16; break;
+    case InstructionMap::LUI:      result = val2 << 16; break;
 
-    case InstructionMap::PSEL:   result = pred ? val1 : val2; break;
+    case InstructionMap::PSEL:     result = pred ? val1 : val2; break;
 
 //    case InstructionMap::CLZ:    result = 32 - math.log(2, val1) + 1; break;
 
     case InstructionMap::NOR:
-    case InstructionMap::NORI:   result = ~(val1 | val2); break;
+    case InstructionMap::NORI:     result = ~(val1 | val2); break;
     case InstructionMap::AND:
-    case InstructionMap::ANDI:   result = val1 & val2; break;
+    case InstructionMap::ANDI:     result = val1 & val2; break;
     case InstructionMap::OR:
-    case InstructionMap::ORI:    result = val1 | val2; break;
+    case InstructionMap::ORI:      result = val1 | val2; break;
     case InstructionMap::XOR:
-    case InstructionMap::XORI:   result = val1 ^ val2; break;
+    case InstructionMap::XORI:     result = val1 ^ val2; break;
 
-    case InstructionMap::NAND:   result = ~(val1 & val2); break;
-    case InstructionMap::CLR:    result = val1 & ~val2; break;
-    case InstructionMap::ORC:    result = val1 | ~val2; break;
-    case InstructionMap::POPC:   result = __builtin_popcount(val1); break;
-    case InstructionMap::RSUBI:  result = val2 - val1; break;
+    case InstructionMap::NAND:     result = ~(val1 & val2); break;
+    case InstructionMap::CLR:      result = val1 & ~val2; break;
+    case InstructionMap::ORC:      result = val1 | ~val2; break;
+    case InstructionMap::POPC:     result = __builtin_popcount(val1); break;
+    case InstructionMap::RSUBI:    result = val2 - val1; break;
 
     case InstructionMap::LDW:
     case InstructionMap::LDBU:

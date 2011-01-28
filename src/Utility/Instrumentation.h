@@ -4,6 +4,8 @@
  * Record statistics on runtime behaviour, so they can be collated and
  * summarised when execution completes.
  *
+ * To extract the statistics, use the Statistics class.
+ *
  *  Created on: 16 Jun 2010
  *      Author: db434
  */
@@ -64,10 +66,7 @@ namespace Instrumentation {
                        ChannelIndex destination, double distance, int bitsSwitched);
 
   // Record whether a particular operation was executed or not.
-  void operation(const DecodedInst& inst, bool executed, ComponentID id);
-
-  // Print the results of instrumentation.
-  void printStats();
+  void operation(ComponentID id, const DecodedInst& inst, bool executed);
 
   // Return the current clock cycle count.
   int currentCycle();

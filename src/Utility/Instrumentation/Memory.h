@@ -20,6 +20,9 @@ public:
   static void read(MemoryAddr address, bool isInstruction);
   static void write(MemoryAddr address);
 
+  static int  numReads();
+  static int  numWrites();
+
   static void printStats();
 
 private:

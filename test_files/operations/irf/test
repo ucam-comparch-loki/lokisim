@@ -34,7 +34,7 @@ class IndirectRegisterTest(mod.SimulatorTest):
         self.executeAll(0, instructions)
         
         self.assertEqual(32, self.readReg(0,32), "didn't write to indirect register")
-        self.assertEqual(32, self.readReg(0,4), "RAW dependency")
+        self.assertEqual(32, self.readReg(0,4), "aliasing issues")
             
 if __name__ == '__main__':
     IndirectRegisterTest().runAllTests()

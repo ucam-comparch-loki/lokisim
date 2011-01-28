@@ -4,15 +4,15 @@
  * Current layout: 64 bit value containing:
  *    1 bit saying whether the predicate register should be set
  *    2 predicate bits
- *    6 bit opcode
- *    5 bit destination register location
- *    5 bit source 1 register location
- *    5 bit source 2 register location
- *    8 bit remote channel ID
+ *    7 bit opcode
+ *    6 bit destination register location
+ *    6 bit source 1 register location
+ *    6 bit source 2 register location
+ *    4 bit remote channel ID
  *    32 bit immediate
  *
- *    | setpred | pred | opcode | dest | source1 | source2 | channel ID | immed |
- *     63        62     60       54     49        44        39           31    0
+ *  | setpred | pred | opcode | dest | source1 | source2 | channel ID | immed |
+ *   63        62     60       53     47        41        35           31    0
  *
  *  Although instructions are currently encoded using 64 bits, they are treated
  *  as though they are only 32 bits long. We eventually intend to have a 32 bit
@@ -36,11 +36,11 @@ typedef IndirectRegisterFile Registers;
 
 const short startImmediate = 0;
 const short startChannelID = startImmediate + 32; // 32
-const short startSrc2      = startChannelID + 8;  // 40
-const short startSrc1      = startSrc2 + 5;       // 45
-const short startDest      = startSrc1 + 5;       // 50
-const short startOpcode    = startDest + 5;       // 55
-const short startPredicate = startOpcode + 6;     // 61
+const short startSrc2      = startChannelID + 4;  // 36
+const short startSrc1      = startSrc2 + 6;       // 42
+const short startDest      = startSrc1 + 6;       // 48
+const short startOpcode    = startDest + 6;       // 54
+const short startPredicate = startOpcode + 7;     // 61
 const short startSetPred   = startPredicate + 2;  // 63
 const short end            = startSetPred + 1;    // 64
 

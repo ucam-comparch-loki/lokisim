@@ -57,6 +57,10 @@ private:
   // Print the value of the predicate register.
   static void printPred(ComponentID core=defaultCore);
 
+  // Print the named statistic, using the parameter to, for example, choose a
+  // core or an ALU operation.
+  static void printStatistic(const std::string& statName, int parameter=-1);
+
   // Print a list of possible commands.
   static void printHelp();
 

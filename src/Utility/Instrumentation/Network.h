@@ -27,6 +27,8 @@ public:
   static void activity(ComponentID network, ChannelIndex source,
       ChannelIndex destination, double distance, int bitsSwitched);
 
+  static double totalDistance();
+
   static void printStats();
 
 private:
@@ -43,11 +45,11 @@ private:
   // iterating through the map. TODO: sort + iterator.
   static int maxDistance;
 
-  static double totalDistance;
+  static double totalDistance_;
 
   // Take into account the distance signals travel, as well as the number of
   // bits which changed.
-  static double totalBitDistance;
+  static double totalBitDistance_;
 
 };
 

@@ -75,21 +75,11 @@ void Instrumentation::networkActivity(ComponentID network, ChannelIndex source,
   Network::activity(network, source, destination, distance, bitsSwitched);
 }
 
-void Instrumentation::operation(const DecodedInst& inst, bool executed, ComponentID id) {
+void Instrumentation::operation(ComponentID id, const DecodedInst& inst, bool executed) {
   Operations::operation(inst.operation(), executed);
 
   if(CodeLoader::usingDebugger)
     Debugger::executedInstruction(inst, id, executed);
-}
-
-void Instrumentation::printStats() {
-  std::cout.precision(3);
-  IPKCache::printStats();
-  Memory::printStats();
-  Network::printStats();
-  Operations::printStats();
-  Registers::printStats();
-  Stalls::printStats();
 }
 
 int Instrumentation::currentCycle() {

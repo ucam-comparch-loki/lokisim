@@ -6,6 +6,7 @@
  */
 
 #include "Debugger.h"
+#include "Statistics.h"
 #include "StringManipulation.h"
 #include "../Chip.h"
 #include "../Datatype/DecodedInst.h"
@@ -48,6 +49,8 @@ const string CHANGECORE   = "changecore";
 const string CHANGECORE_S = "cc";
 const string CHANGEMEM    = "changememory";
 const string CHANGEMEM_S  = "cm";
+const string STATISTIC    = "statistic";
+const string STATISTIC_S  = "s";
 const string QUIT         = "quit";
 const string QUIT_S       = "q";
 
@@ -107,6 +110,11 @@ void Debugger::waitForInput() {
       DEBUG = !DEBUG;
       if(mode == DEBUGGER)
         cout << "Switching to " << (DEBUG?"high":"low") << "-detail mode." << endl;
+    }
+    else if(words[0] == STATISTIC  || words[0] == STATISTIC_S) {
+      int parameter = -1;
+      if(words.size() > 2) parameter = StringManipulation::strToInt(words[2]);
+      printStatistic(words[1], parameter);
     }
     else if(words[0] == QUIT       || words[0] == QUIT_S || words[0] == "exit") {
       Instrumentation::endExecution();
@@ -311,6 +319,10 @@ void Debugger::removeBreakpoint(Address addr) {
   for(uint j=0; j<breakpoints.size(); j++) {
     if(addr==breakpoints[j]) breakpoints.erase(breakpoints.begin()+j);
   }
+}
+
+void Debugger::printStatistic(const std::string& statName, int parameter) {
+  cout << Statistics::getStat(statName, parameter) << "\n";
 }
 
 // Formats the list of commands

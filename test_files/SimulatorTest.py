@@ -46,20 +46,11 @@ class SimulatorTest(unittest.TestCase):
         for instruction in instructions:
             self._runCommand("execute " + instruction)
         self._runCommand("finish")
-        
-    # End simulation and retrieve statistics about the execution.
-    def stats(self):
-        if self._simulation.poll() == None:
-            self._runCommand("quit")
-            self.statistics = self._getOutput(-1)
             
     # Return the execution time so far.
     def numCycles(self):
-        self.stats()
-        cycleLine = self.statistics[-1]
-        # "Total execution time: xxx cycles" => "xxx"
-        cycles = cycleLine.split(" ")[3]
-        return int(cycles)
+        self._runCommand("statistic execution_time")
+        return self._getOutput()[0]
         
     # Compare a list of values with the values in the given file or in a second
     # list. Either the filename or the second list must be supplied.

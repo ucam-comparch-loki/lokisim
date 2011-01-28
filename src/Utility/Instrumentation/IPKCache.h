@@ -20,11 +20,17 @@ public:
   static void read(ComponentID core);
   static void write(ComponentID core);
 
+  static int  numTagChecks();
+  static int  numHits();
+  static int  numMisses();
+  static int  numReads();
+  static int  numWrites();
+
   static void printStats();
 
 private:
 
-  static int numHits, numMisses, numReads, numWrites;
+  static int numHits_, numMisses_, numReads_, numWrites_;
 
 };
 

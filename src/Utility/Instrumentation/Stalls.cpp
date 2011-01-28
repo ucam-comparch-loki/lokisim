@@ -7,6 +7,7 @@
 
 #include <systemc>
 #include "Stalls.h"
+#include "../Instrumentation.h"
 #include "../Parameters.h"
 
 std::map<ComponentID, int> Stalls::startedStalling;
@@ -18,8 +19,8 @@ CounterMap<ComponentID> Stalls::predicateStalls;
 std::map<ComponentID, int> Stalls::stallReason;
 
 CounterMap<ComponentID> Stalls::idleTimes;
-uint Stalls::numStalled = (CORES_PER_TILE-MEMS_PER_TILE) * NUM_TILES; // Messy - fix?
-uint Stalls::endOfExecution = 0;
+uint16_t Stalls::numStalled = NUM_CORES;
+uint32_t Stalls::endOfExecution = 0;
 
 // If a core is not currently stalled, it should map to this value in the
 // "stalled" mapping.
@@ -89,6 +90,22 @@ void Stalls::endExecution() {
     endOfExecution = sc_core::sc_time_stamp().to_default_time_units();
 }
 
+int  Stalls::cyclesActive(ComponentID core) {
+  return endOfExecution - cyclesStalled(core) - cyclesIdle(core);
+}
+
+int  Stalls::cyclesIdle(ComponentID core) {
+  return idleTimes[core];
+}
+
+int  Stalls::cyclesStalled(ComponentID core) {
+  return inputStalls[core] + outputStalls[core] + predicateStalls[core];
+}
+
+int  Stalls::executionTime() {
+  return endOfExecution;
+}
+
 void Stalls::printStats() {
 
   cout << "Cluster activity:" << endl;
@@ -104,8 +121,8 @@ void Stalls::printStats() {
 
     // Only print statistics for clusters which have seen some activity.
     if((uint)idleTimes[i] < endOfExecution) {
-      int totalStalled = inputStalls[i] + outputStalls[i] + predicateStalls[i];
-      int activeCycles = endOfExecution - totalStalled - idleTimes[i];
+      int totalStalled = cyclesStalled(i);
+      int activeCycles = cyclesActive(i);
       cout << "  " << i << "\t\t" <<
           asPercentage(activeCycles, endOfExecution) << "\t" <<
           asPercentage(idleTimes[i], endOfExecution) << "\t" <<

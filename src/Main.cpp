@@ -6,8 +6,9 @@
  */
 
 #include <systemc.h>
-#include "Utility/StartUp/CodeLoader.h"
 #include "Utility/Debugger.h"
+#include "Utility/StartUp/CodeLoader.h"
+#include "Utility/Statistics.h"
 #include "Tests/Test.h"
 
 using std::vector;
@@ -70,7 +71,7 @@ int sc_main(int argc, char* argv[]) {
     }
   }
 
-  Instrumentation::printStats();
+  if(DEBUG) Statistics::printStats();
 
   return 0;
 }

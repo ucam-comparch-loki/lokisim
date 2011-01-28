@@ -7,31 +7,27 @@
 
 #include "Registers.h"
 
-int Registers::numReads = 0;
-int Registers::numWrites = 0;
-int Registers::numForwards = 0;
+int Registers::numReads_ = 0;
+int Registers::numWrites_ = 0;
+int Registers::numForwards_ = 0;
 
 // TODO: determine which reads/writes were wasted, and could have been replaced
 // by explicit data forwarding.
 // This is the case when a value is forwarded, and then that register is written
 // before it is read (or not read at all).
 
-void Registers::read(ComponentID core, RegisterIndex reg) {
-  numReads++;
-}
+void Registers::read(ComponentID core, RegisterIndex reg)    {numReads_++;}
+void Registers::write(ComponentID core, RegisterIndex reg)   {numWrites_++;}
+void Registers::forward(ComponentID core, RegisterIndex reg) {numForwards_++;}
 
-void Registers::write(ComponentID core, RegisterIndex reg) {
-  numWrites++;
-}
-
-void Registers::forward(ComponentID core, RegisterIndex reg) {
-  numForwards++;
-}
+int  Registers::numReads()    {return numReads_;}
+int  Registers::numWrites()   {return numWrites_;}
+int  Registers::numForwards() {return numForwards_;}
 
 void Registers::printStats() {
   cout <<
     "Registers:\n" <<
-    "  Reads:    " << numReads << "\n" <<
-    "  Writes:   " << numWrites << "\n" <<
-    "  Forwards: " << numForwards << "\t(" << asPercentage(numForwards,numReads) << ")\n";
+    "  Reads:    " << numReads() << "\n" <<
+    "  Writes:   " << numWrites() << "\n" <<
+    "  Forwards: " << numForwards() << "\t(" << asPercentage(numForwards(),numReads()) << ")\n";
 }

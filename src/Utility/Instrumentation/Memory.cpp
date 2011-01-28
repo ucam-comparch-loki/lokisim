@@ -22,9 +22,12 @@ void Memory::write(MemoryAddr address) {
   writes.increment(address);
 }
 
+int Memory::numReads()  {return reads.numEvents();}
+int Memory::numWrites() {return writes.numEvents();}
+
 void Memory::printStats() {
-  int readCount = reads.numEvents();
-  int writeCount = writes.numEvents();
+  int readCount = numReads();
+  int writeCount = numWrites();
 
   if(readCount>0 || writeCount>0) {
     int accesses = readCount + writeCount;
