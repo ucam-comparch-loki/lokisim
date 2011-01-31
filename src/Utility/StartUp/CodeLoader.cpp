@@ -53,7 +53,10 @@ void CodeLoader::loadCode(string& settings, Chip& tile) {
         loadCode(loaderFile, tile);
       }
       else if(words[0]=="parameter") {   // Override parameter
-    	Parameters::parseParameter(words[1], words[2]);
+        Parameters::parseParameter(words[1], words[2]);
+      }
+      else if(words[0]=="power") {
+        Instrumentation::loadPowerLibrary(words[1]);
       }
       else {                          // Load code/data from the given file
         // If a full path is provided, use that. Otherwise, assume the file

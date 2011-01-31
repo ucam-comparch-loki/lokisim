@@ -27,6 +27,7 @@ public:
 
   static int executionTime();
   static int energy();
+  static int fJPerOp();
 
   static int tagChecks();
   static int cacheHits();
@@ -39,6 +40,7 @@ public:
   static int registerReads();
   static int registerWrites();
   static int dataForwards();
+  static int stallRegUses();
 
   static int operations();
   static int operations(int operation);

@@ -13,6 +13,7 @@
 #ifndef INSTRUMENTATION_H_
 #define INSTRUMENTATION_H_
 
+#include <string>
 #include "../Typedefs.h"
 
 class DecodedInst;
@@ -42,6 +43,9 @@ namespace Instrumentation {
   // A register was written to.
   void registerWrite(ComponentID core, RegisterIndex reg);
 
+  // Record that a stall (pipeline) register was used.
+  void stallRegUse(ComponentID core);
+
   // Record that memory was read from.
   void memoryRead(MemoryAddr address, bool isInstruction);
 
@@ -70,6 +74,9 @@ namespace Instrumentation {
 
   // Return the current clock cycle count.
   int currentCycle();
+
+  // Load a library to allow power consumption estimates later.
+  void loadPowerLibrary(const std::string& filename);
 
 }
 

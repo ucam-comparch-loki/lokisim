@@ -8,6 +8,7 @@
 #include "Instrumentation.h"
 #include "StartUp/CodeLoader.h"
 #include "Debugger.h"
+#include "Instrumentation/Energy.h"
 #include "Instrumentation/IPKCache.h"
 #include "Instrumentation/Memory.h"
 #include "Instrumentation/Network.h"
@@ -42,6 +43,10 @@ void Instrumentation::registerRead(ComponentID core, RegisterIndex reg) {
 
 void Instrumentation::registerWrite(ComponentID core, RegisterIndex reg) {
   Registers::write(core, reg);
+}
+
+void Instrumentation::stallRegUse(ComponentID core) {
+  Registers::stallReg(core);
 }
 
 void Instrumentation::memoryRead(MemoryAddr address, bool isInstruction) {
@@ -84,4 +89,8 @@ void Instrumentation::operation(ComponentID id, const DecodedInst& inst, bool ex
 
 int Instrumentation::currentCycle() {
   return sc_core::sc_time_stamp().to_default_time_units();
+}
+
+void Instrumentation::loadPowerLibrary(const std::string& filename) {
+  Energy::loadLibrary(filename);
 }

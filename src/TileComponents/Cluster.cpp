@@ -274,7 +274,7 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
 
   // Wire the stall registers up.
   for(uint i=0; i<stages.size()-1; i++) {
-    StallRegister* stallReg = new StallRegister("stall"+i);
+    StallRegister* stallReg = new StallRegister("stall"+i, id);
 
     stallReg->clock(clock);               stallReg->readyOut(stallRegReady[i]);
     stallReg->dataIn(dataFromStage[i]);   stallReg->dataOut(dataToStage[i]);

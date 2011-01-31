@@ -25,6 +25,7 @@ vector<DataBlock>& ELFFileReader::extractData() const {
   char line[100];
 
   // Step through each line of information, looking for ones of interest.
+  // fgets only returns a word, not a whole line?
   while(fgets(line, 100, terminalOutput) != NULL) {
     string lineStr(line);
     vector<string>& words = StringManipulation::split(lineStr, ' ');
@@ -138,11 +139,9 @@ DataBlock& ELFFileReader::loaderProgram() const {
   vector<Word>* instructions = new vector<Word>();
   instructions->push_back(storeChannel);
   instructions->push_back(nop);
-  instructions->push_back(nop); // Need 2 nops to ensure that r3 has been written.
   instructions->push_back(setfetchch);
   instructions->push_back(connect);
   instructions->push_back(nop);
-  instructions->push_back(nop); // Make sure we have connected to mem before fetch.
   instructions->push_back(fetch);
 
   cout << "Should give \"" << fetch << "\" to core " << core_ << endl;

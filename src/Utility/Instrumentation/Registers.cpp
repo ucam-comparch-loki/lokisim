@@ -10,6 +10,7 @@
 int Registers::numReads_ = 0;
 int Registers::numWrites_ = 0;
 int Registers::numForwards_ = 0;
+int Registers::stallRegs_ = 0;
 
 // TODO: determine which reads/writes were wasted, and could have been replaced
 // by explicit data forwarding.
@@ -19,10 +20,12 @@ int Registers::numForwards_ = 0;
 void Registers::read(ComponentID core, RegisterIndex reg)    {numReads_++;}
 void Registers::write(ComponentID core, RegisterIndex reg)   {numWrites_++;}
 void Registers::forward(ComponentID core, RegisterIndex reg) {numForwards_++;}
+void Registers::stallReg(ComponentID core)                   {stallRegs_++;}
 
-int  Registers::numReads()    {return numReads_;}
-int  Registers::numWrites()   {return numWrites_;}
-int  Registers::numForwards() {return numForwards_;}
+int  Registers::numReads()      {return numReads_;}
+int  Registers::numWrites()     {return numWrites_;}
+int  Registers::numForwards()   {return numForwards_;}
+int  Registers::stallRegUses()  {return stallRegs_;}
 
 void Registers::printStats() {
   cout <<

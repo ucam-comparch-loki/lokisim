@@ -19,16 +19,18 @@ public:
   static void read(ComponentID core, RegisterIndex reg);
   static void write(ComponentID core, RegisterIndex reg);
   static void forward(ComponentID core, RegisterIndex reg);
+  static void stallReg(ComponentID core);
 
   static int  numReads();
   static int  numWrites();
   static int  numForwards();
+  static int  stallRegUses();
 
   static void printStats();
 
 private:
 
-  static int numReads_, numWrites_, numForwards_;
+  static int numReads_, numWrites_, numForwards_, stallRegs_;
 
 };
 

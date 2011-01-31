@@ -3,18 +3,18 @@
 %
 % The figures were generated using a 45nm low-leakage CMOS process, at 1.1V.
 %
-% Note that there is only a 16 bit multiplier, and that the memory accesses
-% assume that there are cache tags.
+% Note that the memory accesses assume that there are cache tags, and that
+% the memory is 4-way set-associative, so energy usage is overestimated.
 %
 % All figures are in femtojoules.
 
-add32       520
-mul16       2200
-regread32   250
-regwrite32  470
+add         520
+mul         2200
+regread     250
+regwrite    470
 stallreg    330
-memread2k   3540
-memwrite2k  3530
-ipktagcheck 980
-ipkread     340
-ipkwrite    410
+memread     3540
+memwrite    3530
+tagcheck    980
+cacheread   340
+cachewrite  410
