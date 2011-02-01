@@ -14,11 +14,12 @@
 
 bool Energy::libraryLoaded = false;
 
-int regRead=0, regWrite=0, stallReg=0;
-int cacheRead=0, cacheWrite=0, tagCheck=0;
-int memoryRead=0, memoryWrite=0;
-int op=0, multiply=0;
-int bitMillimetre=0;
+int Energy::regRead=0, Energy::regWrite=0, Energy::stallReg=0;
+int Energy::l0Read=0,  Energy::l0Write=0,  Energy::l0TagCheck=0;
+int Energy::l1Read=0,  Energy::l1Write=0,  Energy::l1TagCheck=0;
+int Energy::decode = 0;
+int Energy::op=0, Energy::multiply=0;
+int Energy::bitMillimetre=0;
 
 void Energy::loadLibrary(const std::string& filename) {
   std::string fullname = "power_libraries/" + filename;
@@ -42,14 +43,17 @@ void Energy::loadLibrary(const std::string& filename) {
       // don't know which information we will be able to get in our own one.
       if(words[0] == "add")             op = value;
       else if(words[0] == "mul")        multiply = value;
+      else if(words[0] == "decode")     decode = value;
       else if(words[0] == "regread")    regRead = value;
       else if(words[0] == "regwrite")   regWrite = value;
       else if(words[0] == "stallreg")   stallReg = value;
-      else if(words[0] == "tagcheck")   tagCheck = value;
-      else if(words[0] == "cacheread")  cacheRead = value;
-      else if(words[0] == "cachewrite") cacheWrite = value;
-      else if(words[0] == "memread")    memoryRead = value;
-      else if(words[0] == "memwrite")   memoryWrite = value;
+      else if(words[0] == "l0tagcheck") l0TagCheck = value;
+      else if(words[0] == "l0read")     l0Read = value;
+      else if(words[0] == "l0write")    l0Write = value;
+      else if(words[0] == "l1tagcheck") l1TagCheck = value;
+      else if(words[0] == "l1read")     l1Read = value;
+      else if(words[0] == "l1write")    l1Write = value;
+      else if(words[0] == "bitmm")      bitMillimetre = value;
       else std::cerr << "Warning: can't handle energy costs of " << words[0] << "\n";
 
       // Rough estimate of communication costs based on "transmitting 1 word
@@ -85,16 +89,20 @@ void Energy::printStats() {
   long regs    = registerEnergy();
   long cache   = cacheEnergy();
   long mem     = memoryEnergy();
+  long dec     = decodeEnergy();
   long ops     = operationEnergy();
   long network = networkEnergy();
 
+  if(total == 0) return;
+
   cout <<
-    "Total energy: " << total << "fJ\t(" << pJPerOp() << "pJ/op)\n" <<
-    "  Registers:        " << regs << " (" << asPercentage(regs,total) << ")\n" <<
-    "  Cache:            " << cache << " (" << asPercentage(cache,total) << ")\n" <<
-    "  Memory:           " << mem << " (" << asPercentage(mem,total) << ")\n" <<
-    "  Functional units: " << ops << " (" << asPercentage(ops,total) << ")\n" <<
-    "  Network:          " << network << " (" << asPercentage(network,total) << ")\n";
+    "Total energy: " << total << " fJ\t(" << pJPerOp() << " pJ/op)\n" <<
+    "  Registers:        " << regs << " fJ (" << percentage(regs,total) << ")\n" <<
+    "  Cache:            " << cache << " fJ (" << percentage(cache,total) << ")\n" <<
+    "  Memory:           " << mem << " fJ (" << percentage(mem,total) << ")\n" <<
+    "  Decode:           " << dec << " fJ (" << percentage(dec,total) << ")\n" <<
+    "  Functional units: " << ops << " fJ (" << percentage(ops,total) << ")\n" <<
+    "  Network:          " << network << " fJ (" << percentage(network,total) << ")\n";
 }
 
 long Energy::registerEnergy() {
@@ -104,14 +112,19 @@ long Energy::registerEnergy() {
 }
 
 long Energy::cacheEnergy() {
-  return cacheRead  * Statistics::cacheReads() +
-         cacheWrite * Statistics::cacheWrites() +
-         tagCheck   * (Statistics::cacheHits() + Statistics::cacheMisses());
+  return l0Read     * Statistics::l0Reads() +
+         l0Write    * Statistics::l0Writes() +
+         l0TagCheck * Statistics::l0TagChecks();
 }
 
 long Energy::memoryEnergy() {
-  return memoryRead  * Statistics::memoryReads() +
-         memoryWrite * Statistics::memoryWrites();
+  return l1Read     * Statistics::l1Reads() +
+         l1Write    * Statistics::l1Writes() +
+         l1TagCheck * Statistics::l1TagChecks();
+}
+
+long Energy::decodeEnergy() {
+  return decode * Statistics::decodes();
 }
 
 long Energy::operationEnergy() {

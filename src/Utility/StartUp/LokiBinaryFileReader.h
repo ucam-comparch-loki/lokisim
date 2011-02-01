@@ -14,7 +14,7 @@ class LokiBinaryFileReader: public LokiFileReader {
 
 public:
 
-  LokiBinaryFileReader(std::string& filename, int component);
+  LokiBinaryFileReader(std::string& filename, ComponentID component, MemoryAddr position);
   virtual ~LokiBinaryFileReader();
 
 protected:

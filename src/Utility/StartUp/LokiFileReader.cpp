@@ -44,7 +44,7 @@ vector<DataBlock>& LokiFileReader::extractData() const {
   file.close();
 
   vector<DataBlock>* blocks = new vector<DataBlock>();
-  blocks->push_back(DataBlock(words, componentID_));
+  blocks->push_back(DataBlock(words, componentID_, position_));
 
   return *blocks;
 }
@@ -57,8 +57,8 @@ Word LokiFileReader::nextWord(std::ifstream& file) const {
   return Instruction(line);
 }
 
-LokiFileReader::LokiFileReader(std::string& filename, int component) :
-    FileReader(filename, component) {
+LokiFileReader::LokiFileReader(std::string& filename, ComponentID component, MemoryAddr position) :
+    FileReader(filename, component, position) {
 
 }
 

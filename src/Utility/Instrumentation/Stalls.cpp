@@ -107,6 +107,7 @@ int  Stalls::executionTime() {
 }
 
 void Stalls::printStats() {
+  if(endOfExecution == 0) return;
 
   cout << "Cluster activity:" << endl;
   cout << "  Cluster\tActive\tIdle\tStalled (input|output|predicate)" << endl;
@@ -124,12 +125,12 @@ void Stalls::printStats() {
       int totalStalled = cyclesStalled(i);
       int activeCycles = cyclesActive(i);
       cout << "  " << i << "\t\t" <<
-          asPercentage(activeCycles, endOfExecution) << "\t" <<
-          asPercentage(idleTimes[i], endOfExecution) << "\t" <<
-          asPercentage(totalStalled, endOfExecution) << "\t(" <<
-          asPercentage(inputStalls[i], totalStalled) << "|" <<
-          asPercentage(outputStalls[i], totalStalled) << "|" <<
-          asPercentage(predicateStalls[i], totalStalled) << ")" << endl;
+          percentage(activeCycles, endOfExecution) << "\t" <<
+          percentage(idleTimes[i], endOfExecution) << "\t" <<
+          percentage(totalStalled, endOfExecution) << "\t(" <<
+          percentage(inputStalls[i], totalStalled) << "|" <<
+          percentage(outputStalls[i], totalStalled) << "|" <<
+          percentage(predicateStalls[i], totalStalled) << ")" << endl;
     }
   }
 

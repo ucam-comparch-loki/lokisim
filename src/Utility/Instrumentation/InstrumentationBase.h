@@ -29,7 +29,7 @@ public:
 
 protected:
 
-  static string asPercentage(int value, int total);
+  static string percentage(int value, int total);
 
 };
 

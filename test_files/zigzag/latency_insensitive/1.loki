@@ -1,0 +1,10 @@
+ori         r3,  r0,  (0,3)
+ori         r4,  r0,  (12,2)
+setchmap    r3,       1         ; cluster 0's input = map 1
+setchmap    r4,       2         ; output memory = map 2
+ori         r0,  r0,  8  > 1    ; tell cluster 0 to look for data at position 2
+ori         r0,  r0,  (1,3) > 2 ; connect to memory
+stwaddr     r0,  r0,  2048  > 2    ; prepare to start streaming to memory
+ori         r0,  ch0, 0  > 2    ; remove any received data from the input channel
+ibjmp       -4                  ; repeat
+nop.eop

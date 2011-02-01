@@ -21,13 +21,13 @@ class DecodedInst;
 namespace Instrumentation {
 
   // Record whether there was a cache hit or miss when a fetch occurred.
-  void IPKCacheHit(ComponentID core, bool hit);
+  void l0TagCheck(ComponentID core, bool hit);
 
   // Instruction packet cache was read from.
-  void cacheRead(ComponentID core);
+  void l0Read(ComponentID core);
 
   // Instruction packet cache was written to.
-  void cacheWrite(ComponentID core);
+  void l0Write(ComponentID core);
 
   // The decoder consumes a significant amount of energy, and there are a few
   // techniques to reduce its activity, so record how active it is.
@@ -46,11 +46,14 @@ namespace Instrumentation {
   // Record that a stall (pipeline) register was used.
   void stallRegUse(ComponentID core);
 
+  // Record that memory performed a tag check.
+  void l1TagCheck(MemoryAddr address, bool hit);
+
   // Record that memory was read from.
-  void memoryRead(MemoryAddr address, bool isInstruction);
+  void l1Read(MemoryAddr address, bool isInstruction);
 
   // Record that memory was written to.
-  void memoryWrite(MemoryAddr address);
+  void l1Write(MemoryAddr address);
 
   // Record that a particular core stalled or unstalled.
   void stalled(ComponentID id, bool stalled, int reason=0);

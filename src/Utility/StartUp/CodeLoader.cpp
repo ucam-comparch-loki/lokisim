@@ -83,7 +83,7 @@ void CodeLoader::loadCode(string& settings, Chip& tile) {
   std::ifstream file(settings.c_str());
 
   // Strip away "/loader.txt" to get the directory path.
-  int pos = settings.find("loader.txt");
+  int pos = settings.find("loader");
   string directory = settings.substr(0,pos-1);
 
   while(!file.fail()) {
@@ -105,10 +105,14 @@ void CodeLoader::loadCode(string& settings, Chip& tile) {
       else if(words[0]=="power") {
         Instrumentation::loadPowerLibrary(words[1]);
       }
+      else if(words[0]=="parameter") {
+        // Do nothing: parameters are dealt with in loadParameters()
+      }
       else {                          // Load code/data from the given file
         // If a full path is provided, use that. Otherwise, assume the file
         // is in the previously specified directory.
-        words[1] = (words[1][0]=='/') ? words[1] : directory + "/" + words[1];
+        std::string filename = words.back();
+        words.back() = (filename[0]=='/') ? filename : directory + "/" + filename;
 
         loadCode(words, tile);
       }

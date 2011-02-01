@@ -41,7 +41,7 @@ vector<DataBlock>& DataFileReader::extractData() const {
   file.close();
 
   vector<DataBlock>* blocks = new vector<DataBlock>();
-  blocks->push_back(DataBlock(words, componentID_));
+  blocks->push_back(DataBlock(words, componentID_, position_));
 
   return *blocks;
 }
@@ -66,8 +66,8 @@ Word DataFileReader::nextWord(std::ifstream& file) const {
   }
 }
 
-DataFileReader::DataFileReader(std::string& filename, int component) :
-    FileReader(filename, component) {
+DataFileReader::DataFileReader(std::string& filename, ComponentID component, MemoryAddr position) :
+    FileReader(filename, component, position) {
 
 }
 

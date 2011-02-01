@@ -441,7 +441,7 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 				if ((vRequest.address() & 0x3) != 0)
 					cerr << "WARNING: Unaligned write access detected" << endl;
 
-				Instrumentation::memoryRead(vRequest.address(), true);
+				Instrumentation::l1Read(vRequest.address(), true);
 
 				sNextState.write(STATE_READ_IPK_PENDING);
 			} else if (false) {									//TODO: Fix condition as soon as the interface supports byte reads
@@ -449,14 +449,14 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 
 				sByteSelect.write(vRequest.address() & 0x3);
 
-				Instrumentation::memoryRead(vRequest.address(), false);
+				Instrumentation::l1Read(vRequest.address(), false);
 
 				sNextState.write(STATE_READ_BYTE_PENDING);
 			} else {
 				if ((vRequest.address() & 0x3) != 0)
 					cerr << "WARNING: Unaligned write access detected" << endl;
 
-				Instrumentation::memoryRead(vRequest.address(), false);
+				Instrumentation::l1Read(vRequest.address(), false);
 
 				sNextState.write(STATE_READ_WORD_PENDING);
 			}
@@ -466,7 +466,7 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 			if (DEBUG)
 				cout << "store to address " << vRequest.address() << endl;
 
-			Instrumentation::memoryWrite(vRequest.address());
+			Instrumentation::l1Write(vRequest.address());
 
 			// The request always can proceed
 

@@ -16,7 +16,7 @@
 /* Print an instruction in the form:
  *   [position] instruction
  * in such a way that everything aligns nicely. */
-void FileReader::printInstruction(Instruction i, int address) {
+void FileReader::printInstruction(Instruction i, MemoryAddr address) {
   // Set up some output formatting so numbers are all the same length.
   std::cout.fill('0');
 
@@ -35,48 +35,48 @@ FileReader& FileReader::makeFileReader(vector<std::string>& words) {
     std::cerr << "Error: wrong number of loader file arguments." << std::endl;
     throw std::exception();
   }
-  else if(words.size()==2) {
+  else /*if(words.size()==2)*/ {
     int component = StringManipulation::strToInt(words[0]);
+    int position = 0;
+    std::string filename;
 
-    // Split the filename into the name and the extension.
-    vector<std::string>& parts = StringManipulation::split(words[1], '.');
-
-    if(parts.back() == "loki") {
-      reader = new LokiFileReader(words[1], component);
-    }
-    else if(parts.back() == "data") {
-      reader = new DataFileReader(words[1], component);
-    }
-    else if(parts.back() == "bloki") {
-      reader = new LokiBinaryFileReader(words[1], component);
+    if(words.size()==3) {
+      position = StringManipulation::strToInt(words[1]);
+      filename = words[2];
     }
     else {
-      std::cerr << "Unknown file format: " << words[1] << std::endl;
+      filename = words[1];
+    }
+
+    // Split the filename into the name and the extension.
+    vector<std::string>& parts = StringManipulation::split(filename, '.');
+
+    if(parts.size() == 1) {
+      reader = new ELFFileReader(filename, component, position);
+    }
+    if(parts.back() == "loki") {
+      reader = new LokiFileReader(filename, component, position);
+    }
+    else if(parts.back() == "data") {
+      reader = new DataFileReader(filename, component, position);
+    }
+    else if(parts.back() == "bloki") {
+      reader = new LokiBinaryFileReader(filename, component, position);
+    }
+    else {
+      std::cerr << "Unknown file format: " << filename << std::endl;
       throw std::exception();
     }
 
-  }
-  else if(words.size()==3) {
-    int memory = StringManipulation::strToInt(words[0]);
-    int core = StringManipulation::strToInt(words[1]);
-
-    // TODO: change BYTES_PER_WORD to 8, before the chip is made.
-
-    reader = new ELFFileReader(words[2], memory, core);
-  }
-  else {
-    std::cerr << "Invalid loader request:";
-    for(uint i=0; i<words.size(); i++) std::cerr << " " << words[i];
-    std::cerr << std::endl;
-    throw std::exception();
   }
 
   return *reader;
 }
 
-FileReader::FileReader(std::string& filename, int component) {
+FileReader::FileReader(std::string& filename, ComponentID component, MemoryAddr position) {
   filename_ = filename;
   componentID_ = component;
+  position_ = position;
 }
 
 FileReader::~FileReader() {

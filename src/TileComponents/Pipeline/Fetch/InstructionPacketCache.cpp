@@ -23,7 +23,7 @@ void InstructionPacketCache::storeCode(const std::vector<Instruction>& instructi
 
 Instruction InstructionPacketCache::read() {
   Instruction inst = cache.read();
-  Instrumentation::cacheRead(id);
+  Instrumentation::l0Read(id);
 
   if(finishedPacketRead) startOfPacketTasks();
   if(inst.endOfPacket()) endOfPacketTasks();
@@ -59,7 +59,7 @@ void InstructionPacketCache::write(const Instruction inst) {
   // Make a note for next cycle if it will be the start of a new packet.
   finishedPacketWrite = inst.endOfPacket();
 
-  Instrumentation::cacheWrite(id);
+  Instrumentation::l0Write(id);
   if(DEBUG) cout << this->name() << " received Instruction: " << inst << endl;
 
 }
@@ -85,7 +85,7 @@ bool InstructionPacketCache::lookup(const Address addr) {
     pendingPacket = addr;
   }
 
-  Instrumentation::IPKCacheHit(id, inCache);
+  Instrumentation::l0TagCheck(id, inCache);
 
   return inCache;
 

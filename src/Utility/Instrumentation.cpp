@@ -17,15 +17,15 @@
 #include "Instrumentation/Stalls.h"
 #include "../Datatype/DecodedInst.h"
 
-void Instrumentation::IPKCacheHit(ComponentID core, bool hit) {
+void Instrumentation::l0TagCheck(ComponentID core, bool hit) {
   IPKCache::tagCheck(core, hit);
 }
 
-void Instrumentation::cacheRead(ComponentID core) {
+void Instrumentation::l0Read(ComponentID core) {
   IPKCache::read(core);
 }
 
-void Instrumentation::cacheWrite(ComponentID core) {
+void Instrumentation::l0Write(ComponentID core) {
   IPKCache::write(core);
 }
 
@@ -49,11 +49,15 @@ void Instrumentation::stallRegUse(ComponentID core) {
   Registers::stallReg(core);
 }
 
-void Instrumentation::memoryRead(MemoryAddr address, bool isInstruction) {
+void Instrumentation::l1TagCheck(MemoryAddr address, bool hit) {
+  Memory::tagCheck(address, hit);
+}
+
+void Instrumentation::l1Read(MemoryAddr address, bool isInstruction) {
   Memory::read(address, isInstruction);
 }
 
-void Instrumentation::memoryWrite(MemoryAddr address) {
+void Instrumentation::l1Write(MemoryAddr address) {
   Memory::write(address);
 }
 

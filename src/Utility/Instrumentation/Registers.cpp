@@ -28,9 +28,11 @@ int  Registers::numForwards()   {return numForwards_;}
 int  Registers::stallRegUses()  {return stallRegs_;}
 
 void Registers::printStats() {
+  if(numReads_ == 0 && numWrites_ == 0) return;
+
   cout <<
     "Registers:\n" <<
     "  Reads:    " << numReads() << "\n" <<
     "  Writes:   " << numWrites() << "\n" <<
-    "  Forwards: " << numForwards() << "\t(" << asPercentage(numForwards(),numReads()) << ")\n";
+    "  Forwards: " << numForwards() << "\t(" << percentage(numForwards(),numReads()) << ")\n";
 }

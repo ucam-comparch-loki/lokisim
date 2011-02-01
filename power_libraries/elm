@@ -13,8 +13,8 @@ mul         2200
 regread     250
 regwrite    470
 stallreg    330
-memread     3540
-memwrite    3530
-tagcheck    980
-cacheread   340
-cachewrite  410
+l1read      3540
+l1write     3530
+l0tagcheck  980
+l0read      340
+l0write     410

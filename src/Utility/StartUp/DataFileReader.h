@@ -20,7 +20,7 @@ public:
   // to put the data in the required components.
   virtual vector<DataBlock>& extractData() const;
 
-  DataFileReader(std::string& filename, int component);
+  DataFileReader(std::string& filename, ComponentID component, MemoryAddr position);
   virtual ~DataFileReader();
 
 private:

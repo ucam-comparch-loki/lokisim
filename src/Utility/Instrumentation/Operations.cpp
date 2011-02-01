@@ -49,7 +49,7 @@ void Operations::printStats() {
         cout.width(14);
 
         cout << std::left << name << executedOps[i]
-             << "\t(" << asPercentage(executedOps[i],executed) << ")\n";
+             << "\t(" << percentage(executedOps[i],executed) << ")\n";
       }
     }
   }

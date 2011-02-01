@@ -41,7 +41,7 @@ void IPKCache::printStats() {
       "  Reads:    " << numReads_ << "\n" <<
       "  Writes:   " << numWrites_ << "\n" <<
       "  Tag checks: " << tagChecks << "\n" <<
-      "    Hits:   " << numHits_ << "\t(" << asPercentage(numHits_,tagChecks) << ")\n" <<
-      "    Misses: " << numMisses_ << "\t(" << asPercentage(numMisses_,tagChecks) << ")\n";
+      "    Hits:   " << numHits_ << "\t(" << percentage(numHits_,tagChecks) << ")\n" <<
+      "    Misses: " << numMisses_ << "\t(" << percentage(numMisses_,tagChecks) << ")\n";
   }
 }

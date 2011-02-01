@@ -19,16 +19,20 @@ public:
 
   static void read(MemoryAddr address, bool isInstruction);
   static void write(MemoryAddr address);
+  static void tagCheck(MemoryAddr address, bool hit);
 
   static int  numReads();
   static int  numWrites();
+  static int  numHits();
+  static int  numMisses();
+  static int  numTagChecks();
 
   static void printStats();
 
 private:
 
   static CounterMap<MemoryAddr> reads, writes;
-  static int instReadCount, dataReadCount;
+  static int instReadCount_, dataReadCount_, numHits_, numMisses_;
 
 };
 

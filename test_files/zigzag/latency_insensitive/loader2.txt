@@ -1,0 +1,6 @@
+% Quick hacky loader to test new memory system.
+
+0 0.loki
+1 1.loki
+12 0 12_lat.loki
+12 2048 ../13.data

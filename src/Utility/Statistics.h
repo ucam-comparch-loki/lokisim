@@ -29,24 +29,27 @@ public:
   static int energy();
   static int fJPerOp();
 
-  static int tagChecks();
-  static int cacheHits();
-  static int cacheMisses();
-  static int cacheReads();
-  static int cacheWrites();
-
   static int decodes();
+
+  static int operations();
+  static int operations(int operation);
 
   static int registerReads();
   static int registerWrites();
   static int dataForwards();
   static int stallRegUses();
 
-  static int operations();
-  static int operations(int operation);
+  static int l0TagChecks();
+  static int l0Hits();
+  static int l0Misses();
+  static int l0Reads();
+  static int l0Writes();
 
-  static int memoryReads();
-  static int memoryWrites();
+  static int l1TagChecks();
+  static int l1Hits();
+  static int l1Misses();
+  static int l1Reads();
+  static int l1Writes();
 
   static double networkDistance();
 

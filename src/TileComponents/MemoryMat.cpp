@@ -121,7 +121,7 @@ void MemoryMat::read(ChannelIndex port) {
   if(!endOfPacket) aw.notEndOfPacket();
   out[port].write(aw);
 
-  Instrumentation::memoryRead(addr, isInstruction);
+  Instrumentation::l1Read(addr, isInstruction);
   if(DEBUG) cout << "Read " << data << " from memory " << id << ", address "
                  << addr << endl;
 
@@ -152,7 +152,7 @@ void MemoryMat::write(ChannelIndex port) {
     if(!inputBuffers_[port].empty()) newOperation(port);
   }
 
-  Instrumentation::memoryWrite(addr);
+  Instrumentation::l1Write(addr);
   if(DEBUG) cout << "Wrote " << data << " to memory " << id
                  << ", address " << addr << endl;
 }

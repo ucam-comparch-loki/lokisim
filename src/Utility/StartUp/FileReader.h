@@ -10,6 +10,7 @@
 
 #include <string>
 #include <vector>
+#include "../../Typedefs.h"
 
 using std::vector;
 
@@ -28,17 +29,18 @@ public:
   // of reading the specified filetype.
   static FileReader& makeFileReader(vector<std::string>& commandWords);
 
-  FileReader(std::string& filename, int component);
+  FileReader(std::string& filename, ComponentID component, MemoryAddr position=0);
   virtual ~FileReader();
 
 protected:
 
   // Prints an instruction in a formatted way for the debugger. Address is
   // in bytes.
-  static void printInstruction(Instruction i, int address);
+  static void printInstruction(Instruction i, MemoryAddr address);
 
   std::string filename_;
-  int componentID_;
+  ComponentID componentID_;
+  MemoryAddr position_;
 
 };
 
