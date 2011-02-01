@@ -139,8 +139,10 @@ SharedL1CacheCrossbarSwitch::SharedL1CacheCrossbarSwitch(sc_module_name name, Co
 	// Register processes
 
 	SC_METHOD(processInputChanged);
-	for (uint i = 0; i < channels; i++)
-		sensitive << iAddress[i] << iWriteData[i] << iByteMask[i] << iReadEnable[i] << iWriteEnable[i] << iReadData[i] << iAcknowledge[i];
+	for (uint i = 0; i < cChannels; i++)
+		sensitive << iAddress[i] << iWriteData[i] << iByteMask[i] << iReadEnable[i] << iWriteEnable[i];
+	for (uint i = 0; i < cMemoryBanks; i++)
+		sensitive << iReadData[i] << iAcknowledge[i];
 	dont_initialize();
 
 	// Indicate non-default component constructor

@@ -21,6 +21,8 @@ using std::string;
 }
 
 int sc_main(int argc, char* argv[]) {
+  string settingsFile("test_files/loader.txt");
+  CodeLoader::loadParameters(settingsFile);
 
   Chip chip("chip", 0);
   sc_clock clock("clock", 1, SC_NS, 0.5);
@@ -44,7 +46,6 @@ int sc_main(int argc, char* argv[]) {
     }
   }
 
-  string settingsFile("test_files/loader.txt");
   CodeLoader::loadCode(settingsFile, chip);
 
   if(debugMode) {

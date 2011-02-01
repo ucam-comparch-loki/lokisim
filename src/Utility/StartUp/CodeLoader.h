@@ -26,6 +26,9 @@ public:
   static bool usingDebugger;
 
   // Read a file which tells which files to read.
+  static void loadParameters(string& settingsFile);
+
+  // Read a file which tells which files to read.
   static void loadCode(string& settingsFile, Chip& tile);
 
 private:

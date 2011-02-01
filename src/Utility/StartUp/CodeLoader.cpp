@@ -22,7 +22,57 @@ bool CodeLoader::usingDebugger = false;
  *   loader file_name
  *     Use another file loader - useful for loading multiple (sub-)programs
  *   parameter parameter_name parameter_value
- *     Override default parameter setting
+ *     Override default parameter setting */
+void CodeLoader::loadParameters(string& settings) {
+
+	  char line[200];   // An array of chars to load a line from the file into.
+
+	  // Open the settings file.
+	  std::ifstream file(settings.c_str());
+
+	  // Strip away "/loader.txt" to get the directory path.
+	  int pos = settings.find("loader.txt");
+	  string directory = settings.substr(0,pos-1);
+
+	  while(!file.fail()) {
+	    try {
+	      file.getline(line, 200, '\n');
+	      string s(line);
+
+	      if(s[0]=='%' || s[0]=='\0') continue;   // Skip past any comments
+
+	      vector<string>& words = StringManipulation::split(s, ' ');
+
+	      if(words[0]=="directory") {     // Update the current directory
+	        directory = directory + "/" + words[1];
+	      }
+	      else if(words[0]=="loader") {   // Use another file loader
+	        string loaderFile = directory + "/" + words[1];
+	        loadParameters(loaderFile);
+	      }
+	      else if(words[0]=="parameter") {   // Override parameter
+	        Parameters::parseParameter(words[1], words[2]);
+	      }
+
+	      delete &words;
+
+	      if(file.eof()) break;
+	    }
+	    catch(std::exception& e) {
+	      std::cerr << "Error: could not read file " << settings << endl;
+	      break;
+	    }
+	  }
+
+	  file.close();
+}
+
+/* Use an external file to tell which files to read.
+ * The file should contain lines of the following forms:
+ *   directory directory_name
+ *     Change the current directory
+ *   loader file_name
+ *     Use another file loader - useful for loading multiple (sub-)programs
  *   component_id file_name
  *     Load the contents of the file into the component */
 void CodeLoader::loadCode(string& settings, Chip& tile) {
@@ -51,9 +101,6 @@ void CodeLoader::loadCode(string& settings, Chip& tile) {
       else if(words[0]=="loader") {   // Use another file loader
         string loaderFile = directory + "/" + words[1];
         loadCode(loaderFile, tile);
-      }
-      else if(words[0]=="parameter") {   // Override parameter
-        Parameters::parseParameter(words[1], words[2]);
       }
       else if(words[0]=="power") {
         Instrumentation::loadPowerLibrary(words[1]);
