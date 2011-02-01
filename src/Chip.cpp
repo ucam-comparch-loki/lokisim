@@ -8,6 +8,7 @@
 #include "Chip.h"
 #include "TileComponents/Cluster.h"
 #include "TileComponents/MemoryMat.h"
+#include "TileComponents/Memory/SharedL1CacheSubsystem.h"
 #include "Datatype/Address.h"
 
 double Chip::area() const {
@@ -95,11 +96,18 @@ Chip::Chip(sc_module_name name, ComponentID ID) :
     }
 
     // Initialise the memories of this Tile
-    for(uint i=CORES_PER_TILE; i<COMPONENTS_PER_TILE; i++) {
-      ComponentID memoryID = j*COMPONENTS_PER_TILE + i;
-      MemoryMat* m = new MemoryMat("memory", memoryID);
-      m->idle(idleSig[memoryID]);
-      contents.push_back(m);
+    if (ENABLE_SHARED_L1_CACHE_SUBSYSTEM == 0) {
+		for(uint i=CORES_PER_TILE; i<COMPONENTS_PER_TILE; i++) {
+			ComponentID memoryID = j*COMPONENTS_PER_TILE + i;
+			MemoryMat* m = new MemoryMat("memory", memoryID);
+			m->idle(idleSig[memoryID]);
+			contents.push_back(m);
+		}
+    } else {
+		ComponentID memoryID = j * COMPONENTS_PER_TILE;
+		SharedL1CacheSubsystem* m = new SharedL1CacheSubsystem("memory", memoryID);
+		m->idle(idleSig[memoryID]);
+		contents.push_back(m);
     }
   }
 

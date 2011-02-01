@@ -197,6 +197,39 @@ SimplifiedBackgroundMemory::~SimplifiedBackgroundMemory() {
 }
 
 //-------------------------------------------------------------------------------------------------
+// Simulation utility methods - not part of simulated logic
+//-------------------------------------------------------------------------------------------------
+
+// Initialise the memory contents
+
+void SimplifiedBackgroundMemory::setWords(uint32_t address, const uint64_t *data, uint32_t count) {
+	for (uint32_t index = 0; index < count; index++) {
+		uint32_t currAddress = address + index * 4;
+		uint tableSlot = currAddress >> 16;
+		uint subAddress = currAddress & 0xFFFFUL;
+
+		if (vMemoryTable[tableSlot] == NULL) {
+			vMemoryTable[tableSlot] = new uint64_t[65536];
+			memset(vMemoryTable[tableSlot], 0x00, sizeof(uint64_t) * 65536);
+		}
+
+		vMemoryTable[tableSlot][subAddress] = data[index];
+	}
+}
+
+// Retrieve the memory contents
+
+void SimplifiedBackgroundMemory::getWords(uint32_t address, uint64_t *data, uint32_t count) const {
+	for (uint32_t index = 0; index < count; index++) {
+		uint32_t currAddress = address + index * 4;
+		uint tableSlot = currAddress >> 16;
+		uint subAddress = currAddress & 0xFFFFUL;
+
+		data[index] = (vMemoryTable[tableSlot] == NULL) ? 0 : vMemoryTable[tableSlot][subAddress];
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
 // Simulation utility methods inherited from Component - not part of simulated logic
 //-------------------------------------------------------------------------------------------------
 

@@ -57,6 +57,26 @@ extern parameter	CHANNEL_MAP_SIZE;
 extern parameter	MAX_IPK_SIZE;
 
 //-------------------------------------------------------------------------------------------------
+// Shared L1 cache subsystem
+//-------------------------------------------------------------------------------------------------
+
+extern parameter	ENABLE_SHARED_L1_CACHE_SUBSYSTEM;
+
+extern parameter	SHARED_L1_CACHE_CHANNELS;
+extern parameter	SHARED_L1_CACHE_INTERFACE_QUEUE_DEPTH;
+
+extern parameter	SHARED_L1_CACHE_BANKS;
+extern parameter	SHARED_L1_CACHE_SETS_PER_BANK;
+extern parameter	SHARED_L1_CACHE_ASSOCIATIVITY;
+extern parameter	SHARED_L1_CACHE_LINE_SIZE;
+
+extern parameter	SHARED_L1_CACHE_SEQUENTIAL_SEARCH;
+extern parameter	SHARED_L1_CACHE_RANDOM_REPLACEMENT;
+
+extern parameter	SHARED_L1_CACHE_MEMORY_QUEUE_DEPTH;
+extern parameter	SHARED_L1_CACHE_MEMORY_DELAY_CYCLES;
+
+//-------------------------------------------------------------------------------------------------
 // Network
 //-------------------------------------------------------------------------------------------------
 

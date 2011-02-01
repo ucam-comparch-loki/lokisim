@@ -113,6 +113,20 @@ public:
 	virtual ~SimplifiedBackgroundMemory();
 
 	//---------------------------------------------------------------------------------------------
+	// Simulation utility methods - not part of simulated logic
+	//---------------------------------------------------------------------------------------------
+
+public:
+
+	// Initialise the memory contents
+
+	virtual void setWords(uint32_t address, const uint64_t *data, uint32_t count);
+
+	// Retrieve the memory contents
+
+	virtual void getWords(uint32_t address, uint64_t *data, uint32_t count) const;
+
+	//---------------------------------------------------------------------------------------------
 	// Simulation utility methods inherited from Component - not part of simulated logic
 	//---------------------------------------------------------------------------------------------
 

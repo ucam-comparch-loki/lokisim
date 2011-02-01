@@ -40,23 +40,23 @@ public:
 	// Ports to cache controller
 
 	sc_in<uint32_t>			*iAddress;				// Addresses input from cache controllers (one per channel)
-	sc_in<uint32_t>			*iWriteData;			// Data words input from cache controllers (one per channel)
+	sc_in<uint64_t>			*iWriteData;			// Data words input from cache controllers (one per channel)
 	sc_in<uint8_t>			*iByteMask;				// Byte masks input from cache controllers (one per channel)
 	sc_in<bool>				*iReadEnable;			// Read enable signals input from cache controllers (one per channel)
 	sc_in<bool>				*iWriteEnable;			// Write enable signals input from cache controllers (one per channel)
 
-	sc_out<uint32_t>		*oReadData;				// Data words output to cache controllers (one per channel)
+	sc_out<uint64_t>		*oReadData;				// Data words output to cache controllers (one per channel)
 	sc_out<bool>			*oAcknowledge;			// Acknowledgement signals output to cache controllers (one per channel)
 
 	// Ports to memory banks
 
 	sc_out<uint32_t>		*oAddress;				// Addresses output to memory banks (one per memory bank)
-	sc_out<uint32_t>		*oWriteData;			// Data words output to memory banks (one per memory bank)
+	sc_out<uint64_t>		*oWriteData;			// Data words output to memory banks (one per memory bank)
 	sc_out<uint8_t>			*oByteMask;				// Byte masks output to memory banks (one per memory bank)
 	sc_out<bool>			*oReadEnable;			// Read enable signals output to memory banks (one per memory bank)
 	sc_out<bool>			*oWriteEnable;			// Write enable signals output to memory banks (one per memory bank)
 
-	sc_in<uint32_t>			*iReadData;				// Data words input from memory banks (one per memory bank)
+	sc_in<uint64_t>			*iReadData;				// Data words input from memory banks (one per memory bank)
 	sc_in<bool>				*iAcknowledge;			// Acknowledgement signals input from memory banks (one per memory bank)
 
 	//---------------------------------------------------------------------------------------------

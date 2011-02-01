@@ -19,6 +19,7 @@
 
 #include "../../Component.h"
 #include "../../Datatype/AddressedWord.h"
+#include "../../Datatype/MemoryRequest.h"
 #include "../../Datatype/Word.h"
 
 class SharedL1CacheController : public Component {

@@ -23,6 +23,8 @@ class SharedL1CacheBank : public Component {
 
 private:
 
+	uint					cBankNumber;			// Number of this memory bank
+
 	uint					cMemoryBanks;			// Number of memory banks
 	uint					cMemoryBankSize;		// Size of memory bank
 	uint					cSetCount;				// Number of sets in the memory bank
@@ -187,8 +189,22 @@ private:
 public:
 
 	SC_HAS_PROCESS(SharedL1CacheBank);
-	SharedL1CacheBank(sc_module_name name, ComponentID id, uint memoryBanks, uint cacheSetCount, uint associativity, uint cacheLineSize, bool sequentialSearch, bool randomReplacement);
+	SharedL1CacheBank(sc_module_name name, ComponentID id, uint bankNumber, uint memoryBanks, uint cacheSetCount, uint associativity, uint cacheLineSize, bool sequentialSearch, bool randomReplacement);
 	virtual ~SharedL1CacheBank();
+
+	//---------------------------------------------------------------------------------------------
+	// Simulation utility methods - not part of simulated logic
+	//---------------------------------------------------------------------------------------------
+
+public:
+
+	// Update the memory contents
+
+	virtual bool setWord(uint32_t address, const uint64_t data);
+
+	// Retrieve the memory contents
+
+	virtual bool getWord(uint32_t address, uint64_t &data);
 
 	//---------------------------------------------------------------------------------------------
 	// Simulation utility methods inherited from Component - not part of simulated logic

@@ -58,6 +58,26 @@ parameter CHANNEL_MAP_SIZE           = 4;
 parameter MAX_IPK_SIZE               = 8; // Must be <= buffer size (wormhole)
 
 //-------------------------------------------------------------------------------------------------
+// Shared L1 cache subsystem
+//-------------------------------------------------------------------------------------------------
+
+parameter ENABLE_SHARED_L1_CACHE_SUBSYSTEM			= 0;
+
+parameter SHARED_L1_CACHE_CHANNELS					= 12;
+parameter SHARED_L1_CACHE_INTERFACE_QUEUE_DEPTH		= 16;
+
+parameter SHARED_L1_CACHE_BANKS						= 1;
+parameter SHARED_L1_CACHE_SETS_PER_BANK				= 8192;
+parameter SHARED_L1_CACHE_ASSOCIATIVITY				= 1;
+parameter SHARED_L1_CACHE_LINE_SIZE					= 4;
+
+parameter SHARED_L1_CACHE_SEQUENTIAL_SEARCH			= 0;
+parameter SHARED_L1_CACHE_RANDOM_REPLACEMENT		= 1;
+
+parameter SHARED_L1_CACHE_MEMORY_QUEUE_DEPTH		= 16;
+parameter SHARED_L1_CACHE_MEMORY_DELAY_CYCLES		= 100;
+
+//-------------------------------------------------------------------------------------------------
 // Network
 //-------------------------------------------------------------------------------------------------
 
@@ -101,6 +121,28 @@ void Parameters::parseParameter(const string &name, const string &value) {
 		CHANNEL_MAP_SIZE = nValue;
 	else if (strcasecmp(cName, "MAX_IPK_SIZE") == 0)
 		MAX_IPK_SIZE = nValue;
+	else if (strcasecmp(cName, "ENABLE_SHARED_L1_CACHE_SUBSYSTEM") == 0)
+		ENABLE_SHARED_L1_CACHE_SUBSYSTEM = nValue;
+	else if (strcasecmp(cName, "SHARED_L1_CACHE_CHANNELS") == 0)
+		SHARED_L1_CACHE_CHANNELS = nValue;
+	else if (strcasecmp(cName, "SHARED_L1_CACHE_INTERFACE_QUEUE_DEPTH") == 0)
+		SHARED_L1_CACHE_INTERFACE_QUEUE_DEPTH = nValue;
+	else if (strcasecmp(cName, "SHARED_L1_CACHE_BANKS") == 0)
+		SHARED_L1_CACHE_BANKS = nValue;
+	else if (strcasecmp(cName, "SHARED_L1_CACHE_SETS_PER_BANK") == 0)
+		SHARED_L1_CACHE_SETS_PER_BANK = nValue;
+	else if (strcasecmp(cName, "SHARED_L1_CACHE_ASSOCIATIVITY") == 0)
+		SHARED_L1_CACHE_ASSOCIATIVITY = nValue;
+	else if (strcasecmp(cName, "SHARED_L1_CACHE_LINE_SIZE") == 0)
+		SHARED_L1_CACHE_LINE_SIZE = nValue;
+	else if (strcasecmp(cName, "SHARED_L1_CACHE_SEQUENTIAL_SEARCH") == 0)
+		SHARED_L1_CACHE_SEQUENTIAL_SEARCH = nValue;
+	else if (strcasecmp(cName, "SHARED_L1_CACHE_RANDOM_REPLACEMENT") == 0)
+		SHARED_L1_CACHE_RANDOM_REPLACEMENT = nValue;
+	else if (strcasecmp(cName, "SHARED_L1_CACHE_MEMORY_QUEUE_DEPTH") == 0)
+		SHARED_L1_CACHE_MEMORY_QUEUE_DEPTH = nValue;
+	else if (strcasecmp(cName, "SHARED_L1_CACHE_MEMORY_DELAY_CYCLES") == 0)
+		SHARED_L1_CACHE_MEMORY_DELAY_CYCLES = nValue;
 	else if (strcasecmp(cName, "NUM_RECEIVE_CHANNELS") == 0)
 		NUM_RECEIVE_CHANNELS = nValue;
 	else if (strcasecmp(cName, "NUM_MEMORY_INPUTS") == 0)

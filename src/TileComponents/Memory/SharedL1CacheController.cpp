@@ -23,6 +23,7 @@
 #include "../../Datatype/Word.h"
 #include "../../Utility/Instrumentation.h"
 #include "../../Utility/Parameters.h"
+#include "../TileComponent.h"
 #include "SharedL1CacheController.h"
 
 //-------------------------------------------------------------------------------------------------
@@ -94,7 +95,8 @@ void SharedL1CacheController::processFSMCombinational() {
 
 				// Send response word to client
 
-				oDataTx.write(AddressedWord(Word(id * NUM_MEMORY_OUTPUTS + cChannel), vRequest.address(), true));
+				int portID = TileComponent::outputPortID(id, cChannel);
+				oDataTx.write(AddressedWord(Word(portID), vRequest.address(), true));
 				oDataTxEnable.write(true);
 
 				sNextState.write(STATE_CONNECTED_IDLE);
@@ -406,7 +408,8 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 
 				// Send response word to client
 
-				oDataTx.write(AddressedWord(Word(id * NUM_MEMORY_OUTPUTS + cChannel), vRequest.address(), true));
+				int portID = TileComponent::outputPortID(id, cChannel);
+				oDataTx.write(AddressedWord(Word(portID), vRequest.address(), true));
 				oDataTxEnable.write(true);
 			}
 

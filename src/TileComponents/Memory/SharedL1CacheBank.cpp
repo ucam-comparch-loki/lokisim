@@ -702,9 +702,11 @@ void SharedL1CacheBank::subProcessInitiateRequest() {
 	if (iReadEnable.read()) {
 		// Initiate read request
 
-		if (iWriteEnable.read()) {
+		if (iWriteEnable.read())
 			cerr << "Error: Read and Write Enable signals asserted together" << endl;
-		}
+
+		if (sInputBankAddress.read() != cBankNumber)
+			cerr << "Error: Read access routed to wrong bank" << endl;
 
 		sCacheSetAddress.write(sInputSetAddress.read());
 		sCacheLineAddress.write(sInputLineAddress.read());
@@ -721,9 +723,11 @@ void SharedL1CacheBank::subProcessInitiateRequest() {
 	} else if (iWriteEnable.read()) {
 		// Initiate write request
 
-		if (iReadEnable.read()) {
+		if (iReadEnable.read())
 			cerr << "Error: Read and Write Enable signals asserted together" << endl;
-		}
+
+		if (sInputBankAddress.read() != cBankNumber)
+			cerr << "Error: Write access routed to wrong bank" << endl;
 
 		sCacheSetAddress.write(sInputSetAddress.read());
 		sCacheLineAddress.write(sInputLineAddress.read());
@@ -1059,10 +1063,12 @@ void SharedL1CacheBank::processCacheMemory() {
 // Constructors / Destructors
 //-------------------------------------------------------------------------------------------------
 
-SharedL1CacheBank::SharedL1CacheBank(sc_module_name name, ComponentID id, uint memoryBanks, uint cacheSetCount, uint associativity, uint cacheLineSize, bool sequentialSearch, bool randomReplacement) :
+SharedL1CacheBank::SharedL1CacheBank(sc_module_name name, ComponentID id, uint bankNumber, uint memoryBanks, uint cacheSetCount, uint associativity, uint cacheLineSize, bool sequentialSearch, bool randomReplacement) :
 	Component(name, id)
 {
 	// Initialise configuration
+
+	cBankNumber = bankNumber;
 
 	uint temp = memoryBanks >> 1;
 	uint bitCount = 0;
@@ -1189,6 +1195,63 @@ SharedL1CacheBank::~SharedL1CacheBank() {
 	delete[] rCellsLRUCounters;
 	delete[] rCellsCacheTags;
 	delete[] rCellsCacheData;
+}
+
+//-------------------------------------------------------------------------------------------------
+// Simulation utility methods - not part of simulated logic
+//-------------------------------------------------------------------------------------------------
+
+// Update the memory contents
+
+bool SharedL1CacheBank::setWord(uint32_t address, const uint64_t data) {
+	uint32_t addressTag = address & ~((1UL << cCacheLineBits) - 1);
+	uint32_t setAddress = (address >> (cBankSelectionBits + cCacheLineBits)) & ((1UL << cSetSelectionBits) - 1);
+	uint32_t bankAddress = (address >> cCacheLineBits) & ((1UL << cBankSelectionBits) - 1);
+	uint32_t lineAddress = (address & ((1UL << cCacheLineBits) - 1)) >> 2;
+
+	if (bankAddress != cBankNumber)
+		return false;
+
+	uint32_t physicalSlotAddress = setAddress * cAssociativity * cCacheLineSize / 4;
+
+	for (uint setIndex = 0; setIndex < cAssociativity; setIndex++) {
+		if (rCellsValidFlags[physicalSlotAddress].read() && rCellsCacheTags[physicalSlotAddress].read() == addressTag) {
+			uint32_t physicalWordAddress = physicalSlotAddress + setIndex * cCacheLineSize / 4 + lineAddress;
+
+			rCellsDirtyFlags[physicalSlotAddress].write(true);
+			rCellsCacheData[physicalWordAddress].write(data);
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+// Retrieve the memory contents
+
+bool SharedL1CacheBank::getWord(uint32_t address, uint64_t &data) {
+	uint32_t addressTag = address & ~((1UL << cCacheLineBits) - 1);
+	uint32_t setAddress = (address >> (cBankSelectionBits + cCacheLineBits)) & ((1UL << cSetSelectionBits) - 1);
+	uint32_t bankAddress = (address >> cCacheLineBits) & ((1UL << cBankSelectionBits) - 1);
+	uint32_t lineAddress = (address & ((1UL << cCacheLineBits) - 1)) >> 2;
+
+	if (bankAddress != cBankNumber)
+		return false;
+
+	uint32_t physicalSlotAddress = setAddress * cAssociativity * cCacheLineSize / 4;
+
+	for (uint setIndex = 0; setIndex < cAssociativity; setIndex++) {
+		if (rCellsValidFlags[physicalSlotAddress].read() && rCellsCacheTags[physicalSlotAddress].read() == addressTag) {
+			uint32_t physicalWordAddress = physicalSlotAddress + setIndex * cCacheLineSize / 4 + lineAddress;
+
+			data = rCellsCacheData[physicalWordAddress].read();
+
+			return true;
+		}
+	}
+
+	return false;
 }
 
 //-------------------------------------------------------------------------------------------------

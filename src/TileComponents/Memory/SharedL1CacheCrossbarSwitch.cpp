@@ -109,12 +109,12 @@ SharedL1CacheCrossbarSwitch::SharedL1CacheCrossbarSwitch(sc_module_name name, Co
 	// Initialise network interface ports
 
 	iAddress = new sc_in<uint32_t>[cChannels];
-	iWriteData = new sc_in<uint32_t>[cChannels];
+	iWriteData = new sc_in<uint64_t>[cChannels];
 	iByteMask = new sc_in<uint8_t>[cChannels];
 	iReadEnable = new sc_in<bool>[cChannels];
 	iWriteEnable = new sc_in<bool>[cChannels];
 
-	oReadData = new sc_out<uint32_t>[cChannels];
+	oReadData = new sc_out<uint64_t>[cChannels];
 	oAcknowledge = new sc_out<bool>[cChannels];
 
 	for (uint i = 0; i < channels; i++)
@@ -123,12 +123,12 @@ SharedL1CacheCrossbarSwitch::SharedL1CacheCrossbarSwitch(sc_module_name name, Co
 	// Initialise memory bank ports
 
 	oAddress = new sc_out<uint32_t>[cMemoryBanks];
-	oWriteData = new sc_out<uint32_t>[cMemoryBanks];
+	oWriteData = new sc_out<uint64_t>[cMemoryBanks];
 	oByteMask = new sc_out<uint8_t>[cMemoryBanks];
 	oReadEnable = new sc_out<bool>[cMemoryBanks];
 	oWriteEnable = new sc_out<bool>[cMemoryBanks];
 
-	iReadData = new sc_in<uint32_t>[cMemoryBanks];
+	iReadData = new sc_in<uint64_t>[cMemoryBanks];
 	iAcknowledge = new sc_in<bool>[cMemoryBanks];
 
 	for (uint i = 0; i < cMemoryBanks; i++) {

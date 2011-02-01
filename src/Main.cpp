@@ -9,10 +9,16 @@
 #include "Utility/Debugger.h"
 #include "Utility/StartUp/CodeLoader.h"
 #include "Utility/Statistics.h"
-#include "Tests/Test.h"
 
 using std::vector;
 using std::string;
+
+// A small unit of simulation time, allowing signals to propagate
+#define TIMESTEP {\
+  static int cycleNumber = 0;\
+  if(DEBUG) cout << "\n======= Cycle " << cycleNumber++ << " =======" << endl;\
+  sc_start(1, SC_NS);\
+}
 
 int sc_main(int argc, char* argv[]) {
 
