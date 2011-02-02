@@ -104,7 +104,7 @@ Chip::Chip(sc_module_name name, ComponentID ID) :
 			contents.push_back(m);
 		}
     } else {
-		ComponentID memoryID = j * COMPONENTS_PER_TILE;
+		ComponentID memoryID = j * COMPONENTS_PER_TILE + CORES_PER_TILE;
 		SharedL1CacheSubsystem* m = new SharedL1CacheSubsystem("memory", memoryID);
 		m->idle(idleSig[memoryID]);
 		contents.push_back(m);

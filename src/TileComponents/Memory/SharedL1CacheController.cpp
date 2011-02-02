@@ -27,12 +27,42 @@
 #include "SharedL1CacheController.h"
 
 //-------------------------------------------------------------------------------------------------
+// Simulation utility methods
+//-------------------------------------------------------------------------------------------------
+
+void SharedL1CacheController::debugOutputMessage(const char* message, long long arg1 = 0, long long arg2 = 0, long long arg3 = 0) {
+	if (!DEBUG)
+		return;
+
+	cout << this->name();
+
+	switch (rCurrentState.read()) {
+	case STATE_IDLE:				cout << " [IDLE]: "; break;
+	case STATE_CONNECTED_IDLE:		cout << " [CONNECTED_IDLE]: "; break;
+	case STATE_READ_WORD_PENDING:	cout << " [READ_WORD_PENDING]: "; break;
+	case STATE_READ_BYTE_PENDING:	cout << " [READ_BYTE_PENDING]: "; break;
+	case STATE_READ_IPK_PENDING:	cout << " [READ_IPK_PENDING]: "; break;
+	case STATE_READ_STALLED:		cout << " [READ_STALLED]: "; break;
+	case STATE_READ_IPK_STALLED:	cout << " [READ_IPK_STALLED]: "; break;
+	case STATE_WRITE_DATA:			cout << " [WRITE_DATA]: "; break;
+	case STATE_WRITE_PENDING:		cout << " [WRITE_PENDING]: "; break;
+	}
+
+	char formatMessage[1024];
+	sprintf(formatMessage, message, arg1, arg2, arg3);
+
+	cout << formatMessage << endl;
+}
+
+//-------------------------------------------------------------------------------------------------
 // Processes
 //-------------------------------------------------------------------------------------------------
 
 // FSM register logic sensitive to negative clock edge
 
 void SharedL1CacheController::processFSMRegisters() {
+	debugOutputMessage("Updating registers");
+
 	rCurrentState.write(sNextState.read());
 	rRemoteChannel.write(sRemoteChannel.read());
 	rAddress.write(sAddress.read());
@@ -86,8 +116,7 @@ void SharedL1CacheController::processFSMCombinational() {
 			// There is no connection set up at the moment - this must be a setup request, otherwise there is an error
 
 			if (vRequest.isSetup()) {
-				if (DEBUG)
-					cout << this->name() << " set-up connection at channel " << (int)cChannel << endl;
+				debugOutputMessage("Set-up connection at channel %lld", cChannel);
 
 				// Load response address into register
 
@@ -128,10 +157,9 @@ void SharedL1CacheController::processFSMCombinational() {
 		if (iAcknowledge.read()) {
 			// Memory access completed - data must be consumed and request signals cleared unless there is another request
 
-			if (DEBUG)
-				cout << "Read word " << iData.read() << " from memory " << id << ", address " << rAddress.read() << endl;
-
 			if (iDataTxFree.read()) {
+				debugOutputMessage("Pending word read acknowledged and forwarded - read 0x%.8llX from address %lld", iData.read(), rAddress.read());
+
 				// Sending back data is possible - do so immediately
 
 				oDataTx.write(AddressedWord(Word(iData.read()), rRemoteChannel.read()));
@@ -141,6 +169,8 @@ void SharedL1CacheController::processFSMCombinational() {
 
 				subProcessInitiateRequest(vRequest);
 			} else {
+				debugOutputMessage("Pending word read acknowledged and stalled due to flow control - read 0x%.8llX from address %lld", iData.read(), rAddress.read());
+
 				// Flow control does not permit sending back data - stall read operation (ports cleared implicitly)
 
 				// Buffer data read in controller until it can be sent back to client
@@ -150,6 +180,8 @@ void SharedL1CacheController::processFSMCombinational() {
 				sNextState.write(STATE_READ_STALLED);
 			}
 		} else {
+			debugOutputMessage("Pending word read in progress from address %lld", rAddress.read());
+
 			// Memory access not yet completed - hold request signals and try again next cycle
 
 			oAddress.write(rAddress.read());
@@ -166,10 +198,9 @@ void SharedL1CacheController::processFSMCombinational() {
 		if (iAcknowledge.read()) {
 			// Memory access completed - data must be consumed and request signals cleared unless there is another request
 
-			if (DEBUG)
-				cout << "Read byte " << ((iData.read() >> rByteSelect.read()) & 0xFFUL) << " from memory " << id << ", address " << rAddress.read() << endl;
-
 			if (iDataTxFree.read()) {
+				debugOutputMessage("Pending byte read acknowledged and forwarded - read 0x%.2llX from address %lld", ((iData.read() >> rByteSelect.read()) & 0xFFUL), rAddress.read());
+
 				// Sending back data is possible - do so immediately
 
 				// Extract an individual byte and zero extend
@@ -181,6 +212,8 @@ void SharedL1CacheController::processFSMCombinational() {
 
 				subProcessInitiateRequest(vRequest);
 			} else {
+				debugOutputMessage("Pending byte read acknowledged and stalled due to flow control - read 0x%.2llX from address %lld", ((iData.read() >> rByteSelect.read()) & 0xFFUL), rAddress.read());
+
 				// Flow control does not permit sending back data - stall read operation (ports cleared implicitly)
 
 				// Extract an individual byte from data read, zero extend and buffer it in controller until it can be sent back to client
@@ -190,6 +223,8 @@ void SharedL1CacheController::processFSMCombinational() {
 				sNextState.write(STATE_READ_STALLED);
 			}
 		} else {
+			debugOutputMessage("Pending byte read in progress from address %lld", rAddress.read());
+
 			// Memory access not yet completed - hold request signals and try again next cycle
 
 			oAddress.write(rAddress.read());
@@ -206,13 +241,12 @@ void SharedL1CacheController::processFSMCombinational() {
 		if (iAcknowledge.read()) {
 			// Memory access completed - data must be consumed and request signals cleared unless there is another request
 
-			if (DEBUG)
-				cout << "Read instruction " << iData.read() << " from memory " << id << ", address " << rAddress.read() << endl;
-
 			if (iDataTxFree.read()) {
 				// Sending back data is possible - do so immediately
 
 				if (static_cast<Instruction>(Word(iData.read())).endOfPacket()) {
+					debugOutputMessage("Pending instruction read acknowledged and forwarded - read 0x%.16llX from address %lld (last instruction)", iData.read(), rAddress.read());
+
 					// This is the last instruction in the packet
 
 					AddressedWord outWord(Word(iData.read()), rRemoteChannel.read());
@@ -223,6 +257,8 @@ void SharedL1CacheController::processFSMCombinational() {
 
 					subProcessInitiateRequest(vRequest);
 				} else {
+					debugOutputMessage("Pending instruction read acknowledged and forwarded - read 0x%.16llX from address %lld (packet continues)", iData.read(), rAddress.read());
+
 					// There are more instructions in the packet
 
 					AddressedWord outWord(Word(iData.read()), rRemoteChannel.read());
@@ -231,6 +267,7 @@ void SharedL1CacheController::processFSMCombinational() {
 					oDataTxEnable.write(true);
 
 					// Load new memory address into register
+					debugOutputMessage("Pending instruction read acknowledged and stalled due to flow control - read 0x%.16llX from address %lld", iData.read(), rAddress.read());
 
 					sAddress.write(rAddress.read() + 4);
 
@@ -242,6 +279,8 @@ void SharedL1CacheController::processFSMCombinational() {
 					sNextState.write(STATE_READ_IPK_PENDING);
 				}
 			} else {
+				debugOutputMessage("Pending instruction read acknowledged and stalled due to flow control - read 0x%.16llX from address %lld", iData.read(), rAddress.read());
+
 				// Flow control does not permit sending back data - stall read operation (ports cleared implicitly)
 
 				// Buffer data read in controller until it can be sent back to client
@@ -251,6 +290,8 @@ void SharedL1CacheController::processFSMCombinational() {
 				sNextState.write(STATE_READ_IPK_STALLED);
 			}
 		} else {
+			debugOutputMessage("Pending instruction read in progress from address %lld", rAddress.read());
+
 			// Memory access not yet completed - hold request signals and try again next cycle
 
 			oAddress.write(rAddress.read());
@@ -265,6 +306,8 @@ void SharedL1CacheController::processFSMCombinational() {
 		// Memory access completed but flow control does not permit sending back the data
 
 		if (iDataTxFree.read()) {
+			debugOutputMessage("Stalled data read completed - sent %0x.8llX", rDataBuffer.read());
+
 			// Sending back data is possible - do so
 
 			oDataTx.write(AddressedWord(Word(rDataBuffer.read()), rRemoteChannel.read()));
@@ -274,6 +317,8 @@ void SharedL1CacheController::processFSMCombinational() {
 
 			subProcessInitiateRequest(vRequest);
 		} else {
+			debugOutputMessage("Stalled data read pending");
+
 			// Flow control does not permit sending back data - try again next cycle
 
 			sNextState.write(STATE_READ_STALLED);
@@ -288,6 +333,8 @@ void SharedL1CacheController::processFSMCombinational() {
 			// Sending back data is possible - do so
 
 			if (static_cast<Instruction>(Word(rDataBuffer.read())).endOfPacket()) {
+				debugOutputMessage("Stalled instruction read completed - sent %0x.16llX (last instruction)", rDataBuffer.read());
+
 				// This is the last instruction in the packet
 
 				AddressedWord outWord(Word(rDataBuffer.read()), rRemoteChannel.read());
@@ -298,6 +345,8 @@ void SharedL1CacheController::processFSMCombinational() {
 
 				subProcessInitiateRequest(vRequest);
 			} else {
+				debugOutputMessage("Stalled instruction read completed - sent %0x.16llX (packet continues)", rDataBuffer.read());
+
 				// There are more instructions in the packet
 
 				AddressedWord outWord(Word(rDataBuffer.read()), rRemoteChannel.read());
@@ -317,6 +366,8 @@ void SharedL1CacheController::processFSMCombinational() {
 				sNextState.write(STATE_READ_IPK_PENDING);
 			}
 		} else {
+			debugOutputMessage("Stalled instruction read pending");
+
 			// Flow control does not permit sending back data - try again next cycle
 
 			sNextState.write(STATE_READ_IPK_STALLED);
@@ -328,6 +379,8 @@ void SharedL1CacheController::processFSMCombinational() {
 		// Waiting for data to write (word or byte)
 
 		if (iDataRxAvailable.read()) {
+			debugOutputMessage("Data to write available - writing 0x%.8llX (byte mask 0x%.1llX) to address %lld", (uint64_t)(iDataRx.read().toLong()), rByteMask.read(), rAddress.read());
+
 			// Data is available - initiate memory access
 
 			// The request always can proceed - flow control dependent stall cycles are inserted after carrying out the read operation
@@ -349,6 +402,8 @@ void SharedL1CacheController::processFSMCombinational() {
 
 			sNextState.write(STATE_WRITE_PENDING);
 		} else {
+			debugOutputMessage("Waiting for data to write");
+
 			// Data not yet available - wait for data to arrive
 
 			sNextState.write(STATE_WRITE_DATA);
@@ -362,13 +417,14 @@ void SharedL1CacheController::processFSMCombinational() {
 		if (iAcknowledge.read()) {
 			// Memory access completed - request signals must be cleared unless there is another request (ports cleared implicitly)
 
-			if (DEBUG)
-				cout << "Wrote " << rDataBuffer.read() << " with byte mask " << rByteMask.read() << " to memory " << id << ", address " << rAddress.read() << endl;
+			debugOutputMessage("Write completed - wrote 0x%.8llX (byte mask 0x%.1llX) to address %lld", rDataBuffer.read(), rByteMask.read(), rAddress.read());
 
 			// Check whether chaining another request without stall cycle is possible
 
 			subProcessInitiateRequest(vRequest);
 		} else {
+			debugOutputMessage("Write in progress");
+
 			// Memory access not yet completed - hold request signals and try again next cycle
 
 			oAddress.write(rAddress.read());
@@ -395,8 +451,7 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 			if (iDataTxFree.read()) {
 				// Flow control permits sending message to client (otherwise try again next clock cycle)
 
-				if (DEBUG)
-					cout << "set-up connection at channel " << (int)cChannel << endl;
+				debugOutputMessage("Set-up replacement connection at channel %lld", cChannel);
 
 				// Remove request from input queue
 
@@ -411,14 +466,13 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 				int portID = TileComponent::outputPortID(id, cChannel);
 				oDataTx.write(AddressedWord(Word(portID), vRequest.address(), true));
 				oDataTxEnable.write(true);
+			} else {
+				debugOutputMessage("Set-up of replacement connection at channel %lld delayed by flow control", cChannel);
 			}
 
 			sNextState.write(STATE_CONNECTED_IDLE);
 		} else if (vRequest.isReadRequest()) {
 			// This is either a word or byte read request or an IPK read request
-
-			if (DEBUG)
-				cout << "read from address " << vRequest.address() << endl;
 
 			// The request always can proceed - flow control dependent stall cycles are inserted after carrying out the read operation
 
@@ -438,6 +492,8 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 			// Set next state based on type of operation
 
 			if (vRequest.isIPKRequest()) {
+				debugOutputMessage("IPK load from address %lld", vRequest.address());
+
 				if ((vRequest.address() & 0x3) != 0)
 					cerr << "WARNING: Unaligned write access detected" << endl;
 
@@ -445,6 +501,8 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 
 				sNextState.write(STATE_READ_IPK_PENDING);
 			} else if (false) {									//TODO: Fix condition as soon as the interface supports byte reads
+				debugOutputMessage("Byte load from address %lld", vRequest.address());
+
 				// Load byte selector into register
 
 				sByteSelect.write(vRequest.address() & 0x3);
@@ -453,6 +511,8 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 
 				sNextState.write(STATE_READ_BYTE_PENDING);
 			} else {
+				debugOutputMessage("Word load from address %lld", vRequest.address());
+
 				if ((vRequest.address() & 0x3) != 0)
 					cerr << "WARNING: Unaligned write access detected" << endl;
 
@@ -462,9 +522,6 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 			}
 		} else {
 			// This is a write request header
-
-			if (DEBUG)
-				cout << "store to address " << vRequest.address() << endl;
 
 			Instrumentation::l1Write(vRequest.address());
 
@@ -481,8 +538,12 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 			// Load byte mask into register
 
 			if (false) {				//TODO: Fix condition and byte mask as soon as the interface supports byte reads
+				debugOutputMessage("Byte store to address %lld", vRequest.address());
+
 				sByteMask.write(1UL << (vRequest.address() & 0x3));
 			} else {
+				debugOutputMessage("Word store to address %lld", vRequest.address());
+
 				if ((vRequest.address() & 0x3) != 0)
 					cerr << "WARNING: Unaligned write access detected" << endl;
 
@@ -493,6 +554,8 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 		}
 	} else {
 		// No new request available - return to idle state
+
+		debugOutputMessage("No pending request available - returning to idle state");
 
 		sNextState.write(STATE_CONNECTED_IDLE);
 	}

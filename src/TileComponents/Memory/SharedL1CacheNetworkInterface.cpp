@@ -40,6 +40,15 @@ void SharedL1CacheNetworkInterface::processInputDataChanged() {
 		if (vInputDataChanged) {
 			cerr << "Error: Observed multiple input data changes during clock cycle" << endl;
 		} else {
+			if (DEBUG) {
+				cout << this->name();
+
+				char formatMessage[1024];
+				sprintf(formatMessage, ": Received word 0x%.16llX", iDataRx.read().toLong());
+
+				cout << formatMessage << endl;
+			}
+
 			vInputDataChanged = true;
 			vNewInputData = iDataRx.read();
 		}
@@ -55,6 +64,26 @@ void SharedL1CacheNetworkInterface::processFlowControlChanged() {
 // Called at the negative clock edge to modify the queue registers
 
 void SharedL1CacheNetworkInterface::processQueueRegisters() {
+	if (DEBUG) {
+		if (vInputDataChanged) {
+			cout << this->name();
+
+			char formatMessage[1024];
+			sprintf(formatMessage, ": Inserted word 0x%.16llX into queue", vNewInputData.toLong());
+
+			cout << formatMessage << endl;
+		}
+
+		if (iDataRxAcknowledge.read()) {
+			cout << this->name();
+
+			char formatMessage[1024];
+			sprintf(formatMessage, ": Removed word 0x%.16llX from queue", rQueueData[rQueueReadCursor.read()].read().toLong());
+
+			cout << formatMessage << endl;
+		}
+	}
+
 	if (vInputDataChanged && iDataRxAcknowledge.read()) {
 		// Read and write concurrently
 
@@ -69,6 +98,8 @@ void SharedL1CacheNetworkInterface::processQueueRegisters() {
 		rQueueWriteCursor.write((rQueueWriteCursor.read() + 1) % cQueueDepth);
 
 		// Do not change counter
+
+		vInputDataChanged = false;
 	} else if (vInputDataChanged) {
 		// Write only
 
@@ -79,6 +110,8 @@ void SharedL1CacheNetworkInterface::processQueueRegisters() {
 			rQueueWriteCursor.write((rQueueWriteCursor.read() + 1) % cQueueDepth);
 			rQueueCounter.write(rQueueCounter.read() + 1);
 		}
+
+		vInputDataChanged = false;
 	} else if (iDataRxAcknowledge.read()) {
 		// Read only
 
