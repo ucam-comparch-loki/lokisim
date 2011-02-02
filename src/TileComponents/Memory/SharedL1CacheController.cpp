@@ -67,6 +67,8 @@ void SharedL1CacheController::processFSMRegisters() {
 	rRemoteChannel.write(sRemoteChannel.read());
 	rAddress.write(sAddress.read());
 	rByteMask.write(sByteMask.read());
+	rDataBuffer.write(sDataBuffer.read());
+	rByteSelect.write(sByteSelect.read());
 }
 
 // Combinational FSM logic
