@@ -46,6 +46,12 @@ void SharedL1CacheNetworkInterface::processInputDataChanged() {
 	}
 }
 
+// Called whenever iFlowControlTx might have changed in the immediately preceding delta cycle and forwards the value (workaround for limited SystemC port bindings)
+
+void SharedL1CacheNetworkInterface::processFlowControlChanged() {
+	oDataTxFree.write(iFlowControlTx.read());
+}
+
 // Called at the negative clock edge to modify the queue registers
 
 void SharedL1CacheNetworkInterface::processQueueRegisters() {
@@ -131,7 +137,7 @@ SharedL1CacheNetworkInterface::SharedL1CacheNetworkInterface(sc_module_name name
 	// Connect signals
 
 	//oDataTxFree.bind(iFlowControlTx);
-	iFlowControlTx.bind(oDataTxFree);
+	//iFlowControlTx.bind(oDataTxFree);
 
 	// Initialise ports and
 
@@ -151,6 +157,10 @@ SharedL1CacheNetworkInterface::SharedL1CacheNetworkInterface(sc_module_name name
 
 	SC_METHOD(processInputDataChanged);
 	sensitive << iDataRx;
+	dont_initialize();
+
+	SC_METHOD(processFlowControlChanged);
+	sensitive << iFlowControlTx;
 	dont_initialize();
 
 	SC_METHOD(processQueueRegisters);

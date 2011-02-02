@@ -80,7 +80,6 @@ public:
 	//---------------------------------------------------------------------------------------------
 
 private:
-
 	sc_signal<Word>			*rQueueData;			// Data stored in input queue
 	sc_signal<uint>			rQueueWriteCursor;		// Input queue write cursor
 	sc_signal<uint>			rQueueReadCursor;		// Input queue read cursor
@@ -95,6 +94,10 @@ private:
 	// Called whenever iDataRx might have changed in the immediately preceding delta cycle and loads the data into the queue
 
 	void processInputDataChanged();
+
+	// Called whenever iFlowControlTx might have changed in the immediately preceding delta cycle and forwards the value (workaround for limited SystemC port bindings)
+
+	void processFlowControlChanged();
 
 	// Called at the negative clock edge to modify the queue registers
 

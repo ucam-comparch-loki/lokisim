@@ -77,11 +77,57 @@ SharedL1CacheSubsystem::SharedL1CacheSubsystem(sc_module_name name, ComponentID 
 	sNetworkInterfaceIdle = new sc_signal<bool>[SHARED_L1_CACHE_CHANNELS];
 	sControllerIdle = new sc_signal<bool>[SHARED_L1_CACHE_CHANNELS];
 
+	// Connections between network interfaces and controllers
+
+	sN2CDataRx = new sc_signal<Word>[SHARED_L1_CACHE_CHANNELS];
+	sN2CDataRxAvailable = new sc_signal<bool>[SHARED_L1_CACHE_CHANNELS];
+	sC2NDataRxAcknowledge = new sc_signal<bool>[SHARED_L1_CACHE_CHANNELS];
+
+	sC2NDataTx = new sc_signal<AddressedWord>[SHARED_L1_CACHE_CHANNELS];
+	sC2NDataTxEnable = new sc_signal<bool>[SHARED_L1_CACHE_CHANNELS];
+	sN2CDataTxFree = new sc_signal<bool>[SHARED_L1_CACHE_CHANNELS];
+
+	// Connections between controllers and crossbar switch
+
+	sC2SAddress = new sc_signal<uint32_t>[SHARED_L1_CACHE_CHANNELS];
+	sC2SData = new sc_signal<uint64_t>[SHARED_L1_CACHE_CHANNELS];
+	sC2SByteMask = new sc_signal<uint8_t>[SHARED_L1_CACHE_CHANNELS];
+	sC2SReadEnable = new sc_signal<bool>[SHARED_L1_CACHE_CHANNELS];
+	sC2SWriteEnable = new sc_signal<bool>[SHARED_L1_CACHE_CHANNELS];
+
+	sS2CData = new sc_signal<uint64_t>[SHARED_L1_CACHE_CHANNELS];
+	sS2CAcknowledge = new sc_signal<bool>[SHARED_L1_CACHE_CHANNELS];
+
+	// Connections between crossbar switch and memory banks
+
+	sS2MAddress = new sc_signal<uint32_t>[SHARED_L1_CACHE_BANKS];
+	sS2MWriteData = new sc_signal<uint64_t>[SHARED_L1_CACHE_BANKS];
+	sS2MByteMask = new sc_signal<uint8_t>[SHARED_L1_CACHE_BANKS];
+	sS2MReadEnable = new sc_signal<bool>[SHARED_L1_CACHE_BANKS];
+	sS2MWriteEnable = new sc_signal<bool>[SHARED_L1_CACHE_BANKS];
+
+	sM2SReadData = new sc_signal<uint64_t>[SHARED_L1_CACHE_BANKS];
+	sM2SAcknowledge = new sc_signal<bool>[SHARED_L1_CACHE_BANKS];
+
+	// Connections between memory banks and background memory
+
+	sM2BAddress = new sc_signal<uint32_t>[SHARED_L1_CACHE_BANKS];
+	sM2BWriteData = new sc_signal<uint64_t>[SHARED_L1_CACHE_BANKS];
+	sM2BReadEnable = new sc_signal<bool>[SHARED_L1_CACHE_BANKS];
+	sM2BWriteEnable = new sc_signal<bool>[SHARED_L1_CACHE_BANKS];
+
+	sB2MReadData = new sc_signal<uint64_t>[SHARED_L1_CACHE_BANKS];
+	sB2MAcknowledge = new sc_signal<bool>[SHARED_L1_CACHE_BANKS];
+
 	// Network interface and cache controller port connections
 
 	for (uint i = 0; i < SHARED_L1_CACHE_CHANNELS; i++) {
+		// Initialize idle signal collectors
+
 		sNetworkInterfaceIdle[i].write(true);
 		sControllerIdle[i].write(true);
+
+		// Network interface front end
 
 		mNetworkInterfaces[i]->iClock.bind(clock);
 
@@ -93,52 +139,64 @@ SharedL1CacheSubsystem::SharedL1CacheSubsystem(sc_module_name name, ComponentID 
 
 		mNetworkInterfaces[i]->oIdle.bind(sNetworkInterfaceIdle[i]);
 
+		// Controller front end
+
 		mControllers[i]->iClock.bind(clock);
-
-		mControllers[i]->iDataRx.bind(mNetworkInterfaces[i]->oDataRx);
-		mControllers[i]->iDataRxAvailable.bind(mNetworkInterfaces[i]->oDataRxAvailable);
-		mNetworkInterfaces[i]->iDataRxAcknowledge.bind(mControllers[i]->oDataRxAcknowledge);
-
-		mNetworkInterfaces[i]->iDataTx.bind(mControllers[i]->oDataTx);
-		mNetworkInterfaces[i]->iDataTxEnable.bind(mControllers[i]->oDataTxEnable);
-		mControllers[i]->iDataTxFree.bind(mNetworkInterfaces[i]->oDataTxFree);
-
 		mControllers[i]->oIdle.bind(sControllerIdle[i]);
 
-		mCrossbarSwitch.iAddress[i].bind(mControllers[i]->oAddress);
-		mCrossbarSwitch.iWriteData[i].bind(mControllers[i]->oData);
-		mCrossbarSwitch.iByteMask[i].bind(mControllers[i]->oByteMask);
-		mCrossbarSwitch.iReadEnable[i].bind(mControllers[i]->oReadEnable);
-		mCrossbarSwitch.iWriteEnable[i].bind(mControllers[i]->oWriteEnable);
+		// Connections between network interfaces and controllers
 
-		mControllers[i]->iData.bind(mCrossbarSwitch.oReadData[i]);
-		mControllers[i]->iAcknowledge.bind(mCrossbarSwitch.oAcknowledge[i]);
+		mNetworkInterfaces[i]->oDataRx.bind(sN2CDataRx[i]);						mControllers[i]->iDataRx.bind(sN2CDataRx[i]);
+		mNetworkInterfaces[i]->oDataRxAvailable.bind(sN2CDataRxAvailable[i]);	mControllers[i]->iDataRxAvailable.bind(sN2CDataRxAvailable[i]);
+		mControllers[i]->oDataRxAcknowledge.bind(sC2NDataRxAcknowledge[i]);		mNetworkInterfaces[i]->iDataRxAcknowledge.bind(sC2NDataRxAcknowledge[i]);
+
+		mControllers[i]->oDataTx.bind(sC2NDataTx[i]);							mNetworkInterfaces[i]->iDataTx.bind(sC2NDataTx[i]);
+		mControllers[i]->oDataTxEnable.bind(sC2NDataTxEnable[i]);				mNetworkInterfaces[i]->iDataTxEnable.bind(sC2NDataTxEnable[i]);
+		mNetworkInterfaces[i]->oDataTxFree.bind(sN2CDataTxFree[i]);				mControllers[i]->iDataTxFree.bind(sN2CDataTxFree[i]);
+
+		// Connections between controllers and crossbar switch
+
+		mControllers[i]->oAddress.bind(sC2SAddress[i]);							mCrossbarSwitch.iAddress[i].bind(sC2SAddress[i]);
+		mControllers[i]->oData.bind(sC2SData[i]);								mCrossbarSwitch.iWriteData[i].bind(sC2SData[i]);
+		mControllers[i]->oByteMask.bind(sC2SByteMask[i]);						mCrossbarSwitch.iByteMask[i].bind(sC2SByteMask[i]);
+		mControllers[i]->oReadEnable.bind(sC2SReadEnable[i]);					mCrossbarSwitch.iReadEnable[i].bind(sC2SReadEnable[i]);
+		mControllers[i]->oWriteEnable.bind(sC2SWriteEnable[i]);					mCrossbarSwitch.iWriteEnable[i].bind(sC2SWriteEnable[i]);
+
+		mCrossbarSwitch.oReadData[i].bind(sS2CData[i]);							mControllers[i]->iData.bind(sS2CData[i]);
+		mCrossbarSwitch.oAcknowledge[i].bind(sS2CAcknowledge[i]);				mControllers[i]->iAcknowledge.bind(sS2CAcknowledge[i]);
 	}
 
 	// Memory bank and background memory port connections
 
+	// Background memory front end
+
 	mBackgroundMemory.iClock.bind(clock);
 
 	for (uint i = 0; i < SHARED_L1_CACHE_BANKS; i++) {
+		// Memory bank front end
+
 		mMemoryBanks[i]->iClock.bind(clock);
 
-		mMemoryBanks[i]->iAddress.bind(mCrossbarSwitch.oAddress[i]);
-		mMemoryBanks[i]->iWriteData.bind(mCrossbarSwitch.oWriteData[i]);
-		mMemoryBanks[i]->iByteMask.bind(mCrossbarSwitch.oByteMask[i]);
-		mMemoryBanks[i]->iReadEnable.bind(mCrossbarSwitch.oReadEnable[i]);
-		mMemoryBanks[i]->iWriteEnable.bind(mCrossbarSwitch.oWriteEnable[i]);
+		// Connections between crossbar switch and memory banks
 
-		mCrossbarSwitch.iReadData[i].bind(mMemoryBanks[i]->oReadData);
-		mCrossbarSwitch.iAcknowledge[i].bind(mMemoryBanks[i]->oAcknowledge);
+		mCrossbarSwitch.oAddress[i].bind(sS2MAddress[i]);						mMemoryBanks[i]->iAddress.bind(sS2MAddress[i]);
+		mCrossbarSwitch.oWriteData[i].bind(sS2MWriteData[i]);					mMemoryBanks[i]->iWriteData.bind(sS2MWriteData[i]);
+		mCrossbarSwitch.oByteMask[i].bind(sS2MByteMask[i]);						mMemoryBanks[i]->iByteMask.bind(sS2MByteMask[i]);
+		mCrossbarSwitch.oReadEnable[i].bind(sS2MReadEnable[i]);					mMemoryBanks[i]->iReadEnable.bind(sS2MReadEnable[i]);
+		mCrossbarSwitch.oWriteEnable[i].bind(sS2MWriteEnable[i]);				mMemoryBanks[i]->iWriteEnable.bind(sS2MWriteEnable[i]);
 
-		mBackgroundMemory.iAddress[i].bind(mMemoryBanks[i]->oAddress);
-		mBackgroundMemory.iWriteData[i].bind(mMemoryBanks[i]->oWriteData);
-		mBackgroundMemory.iReadEnable[i].bind(mMemoryBanks[i]->oReadEnable);
-		mBackgroundMemory.iWriteEnable[i].bind(mMemoryBanks[i]->oWriteEnable);
+		mMemoryBanks[i]->oReadData.bind(sM2SReadData[i]);						mCrossbarSwitch.iReadData[i].bind(sM2SReadData[i]);
+		mMemoryBanks[i]->oAcknowledge.bind(sM2SAcknowledge[i]);					mCrossbarSwitch.iAcknowledge[i].bind(sM2SAcknowledge[i]);
 
-		mMemoryBanks[i]->iReadData.bind(mBackgroundMemory.oReadData[i]);
-		mMemoryBanks[i]->iAcknowledge.bind(mBackgroundMemory.oAcknowledge[i]);
+		// Connections between memory banks and background memory
 
+		mMemoryBanks[i]->oAddress.bind(sM2BAddress[i]);							mBackgroundMemory.iAddress[i].bind(sM2BAddress[i]);
+		mMemoryBanks[i]->oWriteData.bind(sM2BWriteData[i]);						mBackgroundMemory.iWriteData[i].bind(sM2BWriteData[i]);
+		mMemoryBanks[i]->oReadEnable.bind(sM2BReadEnable[i]);					mBackgroundMemory.iReadEnable[i].bind(sM2BReadEnable[i]);
+		mMemoryBanks[i]->oWriteEnable.bind(sM2BWriteEnable[i]);					mBackgroundMemory.iWriteEnable[i].bind(sM2BWriteEnable[i]);
+
+		mBackgroundMemory.oReadData[i].bind(sB2MReadData[i]);					mMemoryBanks[i]->iReadData.bind(sB2MReadData[i]);
+		mBackgroundMemory.oAcknowledge[i].bind(sB2MAcknowledge[i]);				mMemoryBanks[i]->iAcknowledge.bind(sB2MAcknowledge[i]);
 	}
 
 	// Register processes
@@ -179,6 +237,48 @@ SharedL1CacheSubsystem::~SharedL1CacheSubsystem() {
 
 	delete[] sNetworkInterfaceIdle;
 	delete[] sControllerIdle;
+
+	// Connections between network interfaces and controllers
+
+	delete[] sN2CDataRx;
+	delete[] sN2CDataRxAvailable;
+	delete[] sC2NDataRxAcknowledge;
+
+	delete[] sC2NDataTx;
+	delete[] sC2NDataTxEnable;
+	delete[] sN2CDataTxFree;
+
+	// Connections between controllers and crossbar switch
+
+	delete[] sC2SAddress;
+	delete[] sC2SData;
+	delete[] sC2SByteMask;
+	delete[] sC2SReadEnable;
+	delete[] sC2SWriteEnable;
+
+	delete[] sS2CData;
+	delete[] sS2CAcknowledge;
+
+	// Connections between crossbar switch and memory banks
+
+	delete[] sS2MAddress;
+	delete[] sS2MWriteData;
+	delete[] sS2MByteMask;
+	delete[] sS2MReadEnable;
+	delete[] sS2MWriteEnable;
+
+	delete[] sM2SReadData;
+	delete[] sM2SAcknowledge;
+
+	// Connections between memory banks and background memory
+
+	delete[] sM2BAddress;
+	delete[] sM2BWriteData;
+	delete[] sM2BReadEnable;
+	delete[] sM2BWriteEnable;
+
+	delete[] sB2MReadData;
+	delete[] sB2MAcknowledge;
 }
 
 //-------------------------------------------------------------------------------------------------
