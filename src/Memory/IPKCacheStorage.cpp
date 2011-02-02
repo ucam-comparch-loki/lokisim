@@ -63,7 +63,7 @@ void IPKCacheStorage::write(const Address& key, const Instruction& newData) {
     // instruction packet, and so this instruction is next to the previous
     // one.
     Address prev = this->locations[refill-1];
-    Address newAddr = prev.addOffset(4);
+    Address newAddr = prev.addOffset(BYTES_PER_WORD);
     locations[refill.value()] = newAddr;
   }
   else locations[refill.value()] = key;

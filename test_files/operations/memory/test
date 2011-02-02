@@ -15,8 +15,13 @@ class MemoryOperationTest(mod.SimulatorTest):
         
         self.compare(memoryContents, correct=expected)
         
+        self.assertEqual(1337, self.readReg(0,5), "load word")
+        self.assertEqual(57, self.readReg(0,6), "load byte")
+        self.assertEqual(5, self.readReg(0,7), "load byte")
+        self.assertEqual(1337, self.readMemory(12, 996)[0], "store byte")
+        
         # 20 cycles to get to the stores + 32 stores (2 cycles each)
-        assert self.numCycles() < 100, "execution slower than expected"
+        assert self.numCycles() < 120, "execution slower than expected"
         assert self.numCycles() > 50, "execution faster than expected"
         
             

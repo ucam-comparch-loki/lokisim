@@ -57,7 +57,7 @@ bool Chip::getPredReg(ComponentID component) const {
 void Chip::updateIdle() {
   idleVal = true;
 
-  for(uint i=0; i<COMPONENTS_PER_TILE; i++) {
+  for(uint i=0; i<NUM_COMPONENTS; i++) {
     idleVal &= idleSig[i].read();
   }
 

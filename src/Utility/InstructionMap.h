@@ -42,12 +42,12 @@ public:
   // Returns the name of the given instruction.
   static std::string& name(int operation);
 
-  enum Instructions {
+  enum Operation {
 
     NOP,          // No operation                         nop
 
     LDW,          // Load word                            ldw rs, immed -> rch
-    LDBU,         // Load byte (zero-extended)            ldb rs, immed -> rch
+    LDBU,         // Load byte (zero-extended)            ldbu rs, immed -> rch
     STW,          // Store word                           stw rs, rt, immed -> rch
     STB,          // Store byte                           stb rs, rt, immed -> rch
     STWADDR,      // Store address                        stwaddr rt, immed -> rch

@@ -225,7 +225,7 @@ void     Cluster::updateIdle() {
   }
 
   // Is this what we really want?
-  idle.write(isIdle || currentlyStalled);
+  idle.write(isIdle);// || currentlyStalled);
 
   Instrumentation::idle(id, isIdle);
 }
@@ -274,7 +274,7 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
 
   // Wire the stall registers up.
   for(uint i=0; i<stages.size()-1; i++) {
-    StallRegister* stallReg = new StallRegister("stall"+i, id);
+    StallRegister* stallReg = new StallRegister("stall", i);
 
     stallReg->clock(clock);               stallReg->readyOut(stallRegReady[i]);
     stallReg->dataIn(dataFromStage[i]);   stallReg->dataOut(dataToStage[i]);

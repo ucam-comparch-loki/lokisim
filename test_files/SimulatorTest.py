@@ -66,7 +66,7 @@ class SimulatorTest(unittest.TestCase):
         
         # Assume that the "correct" list is now complete.
         for actual, expected in zip(result, correct):
-            self.assertEqual(int(actual), expected)
+            self.assertEqual(actual, expected)
             
     # Return the list of integers contained in the given file.
     def fileContents(self, filename):

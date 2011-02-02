@@ -40,4 +40,14 @@ stw                 r2,  r3,  108    > 1
 stw                 r2,  r3,  112    > 1
 stw                 r2,  r3,  116    > 1
 stw                 r2,  r3,  120    > 1
-stw.eop             r2,  r3,  124    > 1
+stw.eop                 r2,  r3,  124    > 1
+
+% A quick test of the remaining memory operations.
+ldw                 r3,  0           > 1
+ldbu                r3,  0           > 1
+ldbu                r3,  1           > 1
+ori                 r5,  ch0, r0
+ori                 r6,  ch0, r0
+ori                 r7,  ch0, r0
+stb                 r7,  r3,  -3     > 1
+stb.eop             r6,  r3,  -4     > 1

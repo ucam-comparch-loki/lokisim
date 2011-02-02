@@ -23,6 +23,7 @@ void StallRegister::newCycle() {
 }
 
 void StallRegister::newData() {
+  cout << this->name() << endl;
   assert(!buffer.full());
   buffer.write(dataIn.read());
   Instrumentation::stallRegUse(id);
@@ -33,10 +34,8 @@ void StallRegister::receivedReady() {
 }
 
 StallRegister::StallRegister(sc_module_name name, ComponentID ID) :
-    Component(name),
+    Component(name, ID),
     buffer(2, std::string(name)) {  // Buffer with size 2 and a name for debug.
-
-  id = ID;
 
   SC_METHOD(newCycle);              // Behaves like:
   sensitive << clock.pos();         // always@(posedge clk)
@@ -51,6 +50,8 @@ StallRegister::StallRegister(sc_module_name name, ComponentID ID) :
   // do initialise
 
 //  readyOut.initialize(true);
+
+  end_module();
 
 }
 

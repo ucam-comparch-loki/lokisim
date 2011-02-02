@@ -81,9 +81,9 @@ extern parameter	SHARED_L1_CACHE_MEMORY_DELAY_CYCLES;
 //-------------------------------------------------------------------------------------------------
 
 extern parameter	NUM_RECEIVE_CHANNELS;
-#define				NUM_SEND_CHANNELS			(CHANNEL_MAP_SIZE)
+#define           NUM_SEND_CHANNELS			(CHANNEL_MAP_SIZE)
 extern parameter	NUM_MEMORY_INPUTS;
-#define				NUM_MEMORY_OUTPUTS			(NUM_MEMORY_INPUTS)
+#define           NUM_MEMORY_OUTPUTS			(NUM_MEMORY_INPUTS)
 extern parameter	CHANNEL_END_BUFFER_SIZE;	// Different send/receive sizes?
 extern parameter	ROUTER_BUFFER_SIZE;
 extern parameter	NETWORK_BUFFER_SIZE;

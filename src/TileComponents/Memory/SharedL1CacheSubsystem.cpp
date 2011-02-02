@@ -25,7 +25,7 @@
 //-------------------------------------------------------------------------------------------------
 
 void SharedL1CacheSubsystem::processUpdateIdle() {
-	bool product = false;
+	bool product = true;
 
 	for (uint i = 0; i < SHARED_L1_CACHE_CHANNELS; i++) {
 		product &= sNetworkInterfaceIdle[i].read();
