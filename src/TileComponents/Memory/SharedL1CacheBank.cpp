@@ -15,6 +15,32 @@
 #include "SharedL1CacheBank.h"
 
 //-------------------------------------------------------------------------------------------------
+// Simulation utility methods
+//-------------------------------------------------------------------------------------------------
+
+void SharedL1CacheBank::debugOutputMessage(const char* message, long long arg1 = 0, long long arg2 = 0, long long arg3 = 0) {
+	if (!DEBUG)
+		return;
+
+	cout << this->name();
+
+	switch (rCurrentState.read()) {
+	case STATE_READY:					cout << " [READY]: "; break;
+	case STATE_READ_LOOKUP:				cout << " [READ_LOOKUP]: "; break;
+	case STATE_WRITE_LOOKUP:			cout << " [WRITE_LOOKUP]: "; break;
+	case STATE_REPLACE_QUERY:			cout << " [REPLACE_QUERY]: "; break;
+	case STATE_REPLACE_WRITE_BACK:		cout << " [REPLACE_WRITE_BACK]: "; break;
+	case STATE_REPLACE_FETCH_REQUEST:	cout << " [REPLACE_FETCH_REQUEST]: "; break;
+	case STATE_REPLACE_FETCH_STORE:		cout << " [REPLACE_FETCH_STORE]: "; break;
+	}
+
+	char formatMessage[1024];
+	sprintf(formatMessage, message, arg1, arg2, arg3);
+
+	cout << formatMessage << endl;
+}
+
+//-------------------------------------------------------------------------------------------------
 // Processes
 //-------------------------------------------------------------------------------------------------
 
@@ -68,6 +94,8 @@ void SharedL1CacheBank::processUtilitySignals() {
 //-------------------------------------------------------------------------------------------------
 
 void SharedL1CacheBank::processFSMRegisters() {
+	debugOutputMessage("Updating registers");
+
 	rCurrentState.write(sNextState.read());
 
 	if (cSequentialSearch)
@@ -238,6 +266,8 @@ void SharedL1CacheBank::subProcessStateReadLookup() {
 	// Comparing cache tags due to pending read request
 
 	if (rCacheHit.read()) {
+		debugOutputMessage("Cache hit - retrieved word 0x%.16llX", rCacheData.read());
+
 		// Cache line was found in cache
 
 		oReadData.write(rCacheData.read());
@@ -247,6 +277,8 @@ void SharedL1CacheBank::subProcessStateReadLookup() {
 
 		subProcessInitiateRequest();
 	} else if (cSequentialSearch && rTagCursor.read() != cAssociativity - 1) {
+		debugOutputMessage("Sequential search in progress - compared entry %lld", rTagCursor.read());
+
 		// Cache line was not found in cache yet - search needs to proceed
 
 		sCacheSetAddress.write(sInputSetAddress.read());
@@ -260,6 +292,8 @@ void SharedL1CacheBank::subProcessStateReadLookup() {
 
 		sNextState.write(STATE_READ_LOOKUP);
 	} else {
+		debugOutputMessage("Cache miss - initiating replacement query");
+
 		// Cache line was not found in cache - query cache for cache line to replace
 
 		sCacheSetAddress.write(sInputSetAddress.read());
@@ -327,6 +361,8 @@ void SharedL1CacheBank::subProcessStateWriteLookup() {
 	// Comparing cache tags due to pending read request
 
 	if (rCacheHit.read()) {
+		debugOutputMessage("Cache hit - updated cache line");
+
 		// Cache line was found in cache
 
 		oAcknowledge.write(true);
@@ -335,6 +371,8 @@ void SharedL1CacheBank::subProcessStateWriteLookup() {
 
 		subProcessInitiateRequest();
 	} else if (cSequentialSearch && rTagCursor.read() != cAssociativity - 1) {
+		debugOutputMessage("Sequential search in progress - compared entry %lld", rTagCursor.read());
+
 		// Cache line was not found in cache yet - search needs to proceed
 
 		sCacheSetAddress.write(sInputSetAddress.read());
@@ -351,6 +389,8 @@ void SharedL1CacheBank::subProcessStateWriteLookup() {
 
 		sNextState.write(STATE_WRITE_LOOKUP);
 	} else {
+		debugOutputMessage("Cache miss - initiating replacement query");
+
 		// Cache line was not found in cache - query cache for cache line to replace
 
 		sCacheSetAddress.write(sInputSetAddress.read());
@@ -411,6 +451,8 @@ void SharedL1CacheBank::subProcessStateReplaceQuery() {
 	// Cache miss occurred
 
 	if (rCacheDirty.read()) {
+		debugOutputMessage("Cache line dirty - bank number %lld, set address %lld, set index %lld", cBankNumber, sInputSetAddress.read(), rCacheSetIndex.read());
+
 		// Cache line needs to be written back to background memory
 
 		sCacheSetAddress.write(sInputSetAddress.read());
@@ -425,6 +467,8 @@ void SharedL1CacheBank::subProcessStateReplaceQuery() {
 
 		sNextState.write(STATE_REPLACE_WRITE_BACK);
 	} else {
+		debugOutputMessage("Cache line clean - bank number %lld, set address %lld, set index %lld", cBankNumber, sInputSetAddress.read(), rCacheSetIndex.read());
+
 		// Cache line can be discarded - start to fetch new data directly
 
 		oAddress.write(sInputAddressTag.read());
@@ -490,6 +534,8 @@ void SharedL1CacheBank::subProcessStateReplaceWriteBack() {
 	// Cache line to replace got selected and is dirty
 
 	if (rLineCursor.read() < cCacheLineSize / 4 - 1) {
+		debugOutputMessage("Write back in progress - line address %lld", rLineCursor.read());
+
 		// Data word needs to be written back to background memory
 
 		oAddress.write(rMemoryAddress.read() + rLineCursor.read() * 4);
@@ -506,6 +552,8 @@ void SharedL1CacheBank::subProcessStateReplaceWriteBack() {
 
 		sNextState.write(STATE_REPLACE_WRITE_BACK);
 	} else if (rLineCursor.read() == cCacheLineSize / 4 - 1) {
+		debugOutputMessage("Write back finishing - line address %lld", rLineCursor.read());
+
 		// Last data word needs to be written back to background memory
 
 		oAddress.write(rMemoryAddress.read() + rLineCursor.read() * 4);
@@ -516,6 +564,8 @@ void SharedL1CacheBank::subProcessStateReplaceWriteBack() {
 
 		sNextState.write(STATE_REPLACE_WRITE_BACK);
 	} else {
+		debugOutputMessage("Write back completed - initiating fetch from background memory");
+
 		// Cache line written back - initiate fetch of new cache line
 
 		oAddress.write(sInputAddressTag.read());
@@ -570,6 +620,8 @@ void SharedL1CacheBank::subProcessStateReplaceFetchRequest() {
 		cerr << "Error: Background memory delay is too short" << endl;
 
 	if (rLineCursor.read() < cCacheLineSize / 4 - 1) {
+		debugOutputMessage("Fetch command sequence in progress - line address %lld", rLineCursor.read());
+
 		// Fetch command sequence not yet completed
 
 		oAddress.write(sInputAddressTag.read() + (rLineCursor.read() + 1) * 4);
@@ -579,6 +631,8 @@ void SharedL1CacheBank::subProcessStateReplaceFetchRequest() {
 
 		sNextState.write(STATE_REPLACE_FETCH_REQUEST);
 	} else {
+		debugOutputMessage("Fetch command sequence finishing - line address %lld", rLineCursor.read());
+
 		// Last fetch command
 
 		oAddress.write(sInputAddressTag.read() + (rLineCursor.read() + 1) * 4);
@@ -635,6 +689,8 @@ void SharedL1CacheBank::subProcessStateReplaceFetchStore() {
 	// Wait for the background memory to send the requested data words and store them into the cache memory
 
 	if (iAcknowledge.read()) {
+		debugOutputMessage("Storing word to cache - line address %lld", rLineCursor.read());
+
 		sCacheSetAddress.write(sInputSetAddress);
 		sCacheSetIndex.write(rSetIndex.read());
 		sCacheLineAddress.write(rLineCursor.read());
@@ -653,9 +709,11 @@ void SharedL1CacheBank::subProcessStateReplaceFetchStore() {
 		if (rLineCursor.read() < cCacheLineSize / 4 - 1) {
 			sNextState.write(STATE_REPLACE_FETCH_STORE);
 		} else {
-			subProcessInitiateRequest();
+			sNextState.write(STATE_READY);
 		}
 	} else {
+		debugOutputMessage("Waiting for background memory response");
+
 		// Store sequence not yet completed and no data available
 
 		sNextState.write(STATE_REPLACE_FETCH_STORE);
@@ -708,6 +766,8 @@ void SharedL1CacheBank::subProcessInitiateRequest() {
 		if (sInputBankAddress.read() != cBankNumber)
 			cerr << "Error: Read access routed to wrong bank" << endl;
 
+		debugOutputMessage("Initiating read lookup - address tag 0x%.8llX, set address %lld, line address %lld", sInputAddressTag.read(), sInputSetAddress.read(), sInputLineAddress.read());
+
 		sCacheSetAddress.write(sInputSetAddress.read());
 		sCacheLineAddress.write(sInputLineAddress.read());
 		sCacheTag.write(sInputAddressTag.read());
@@ -729,6 +789,8 @@ void SharedL1CacheBank::subProcessInitiateRequest() {
 		if (sInputBankAddress.read() != cBankNumber)
 			cerr << "Error: Write access routed to wrong bank" << endl;
 
+		debugOutputMessage("Initiating write lookup - address tag 0x%.8llX, set address %lld, line address %lld", sInputAddressTag.read(), sInputSetAddress.read(), sInputLineAddress.read());
+
 		sCacheSetAddress.write(sInputSetAddress.read());
 		sCacheLineAddress.write(sInputLineAddress.read());
 		sCacheTag.write(sInputAddressTag.read());
@@ -745,6 +807,8 @@ void SharedL1CacheBank::subProcessInitiateRequest() {
 
 		sNextState.write(STATE_WRITE_LOOKUP);
 	} else {
+		debugOutputMessage("No request pending - return to ready state");
+
 		// Stay / become ready
 
 		sNextState.write(STATE_READY);
@@ -774,6 +838,8 @@ void SharedL1CacheBank::subProcessEnableLFSR() {
 	uint newBit = ((oldValue >> 5) & 0x1) ^ ((oldValue >> 3) & 0x1) ^ ((oldValue >> 2) & 0x1) ^ (oldValue & 0x1);
 	uint newValue = (oldValue >> 1) | (newBit << 15);
 	sLFSR.write(newValue);
+
+	debugOutputMessage("Updating LFSR - old state 0x%.4llX, new state 0x%.4llX", oldValue, newValue);
 }
 
 //-------------------------------------------------------------------------------------------------

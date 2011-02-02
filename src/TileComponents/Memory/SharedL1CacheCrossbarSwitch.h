@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------
 // Shared L1 Cache Crossbar Switch Definition
 //-------------------------------------------------------------------------------------------------
-// Defines a fully combinational crossbar switch connecting the cache controllers with the
+// Defines a semi-combinational crossbar switch connecting the cache controllers with the
 // memory banks.
 //-------------------------------------------------------------------------------------------------
 // File:       SharedL1CacheCrossbarSwitch.h
@@ -37,6 +37,10 @@ private:
 
 public:
 
+	// Clock
+
+	sc_in<bool>				iClock;					// Clock
+
 	// Ports to cache controller
 
 	sc_in<uint32_t>			*iAddress;				// Addresses input from cache controllers (one per channel)
@@ -60,6 +64,13 @@ public:
 	sc_in<bool>				*iAcknowledge;			// Acknowledgement signals input from memory banks (one per memory bank)
 
 	//---------------------------------------------------------------------------------------------
+	// Signals
+	//---------------------------------------------------------------------------------------------
+
+	sc_signal<bool>			*rBankConnectionLocked;	// Indicates that a memory bank is locked to a particular connection
+	sc_signal<uint>			*rBankConnectionPort;	// Cache controller port connected to memory bank
+
+	//---------------------------------------------------------------------------------------------
 	// Event handlers / Processes
 	//---------------------------------------------------------------------------------------------
 
@@ -68,6 +79,10 @@ private:
 	// Check all input ports for new data and update output ports
 
 	void processInputChanged();
+
+	// Updates the connection state of the switch - sensitive to negative clock edge
+
+	void processUpdateState();
 
 	//---------------------------------------------------------------------------------------------
 	// Constructors / Destructors

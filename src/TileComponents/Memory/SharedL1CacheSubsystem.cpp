@@ -25,14 +25,14 @@
 //-------------------------------------------------------------------------------------------------
 
 void SharedL1CacheSubsystem::processUpdateIdle() {
-	bool sum = false;
+	bool product = false;
 
 	for (uint i = 0; i < SHARED_L1_CACHE_CHANNELS; i++) {
-		sum |= sNetworkInterfaceIdle[i].read();
-		sum |= sControllerIdle[i].read();
+		product &= sNetworkInterfaceIdle[i].read();
+		product &= sControllerIdle[i].read();
 	}
 
-	idle.write(sum);
+	idle.write(product);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -44,12 +44,13 @@ SharedL1CacheSubsystem::SharedL1CacheSubsystem(sc_module_name name, ComponentID 
 	mCrossbarSwitch("shared_l1_cache_crossbar_switch", id, SHARED_L1_CACHE_CHANNELS, SHARED_L1_CACHE_BANKS, SHARED_L1_CACHE_LINE_SIZE),
 	mBackgroundMemory("shared_l1_cache_background_memory", id, SHARED_L1_CACHE_BANKS, SHARED_L1_CACHE_MEMORY_QUEUE_DEPTH, SHARED_L1_CACHE_MEMORY_DELAY_CYCLES)
 {
+	// Initialise top-level ports of cache subsystem
 
-  flowControlOut = new sc_out<int>[SHARED_L1_CACHE_CHANNELS];
-  in             = new sc_in<Word>[SHARED_L1_CACHE_CHANNELS];
+	flowControlOut = new sc_out<int>[SHARED_L1_CACHE_CHANNELS];
+	in             = new sc_in<Word>[SHARED_L1_CACHE_CHANNELS];
 
-  flowControlIn  = new sc_in<bool>[SHARED_L1_CACHE_CHANNELS];
-  out            = new sc_out<AddressedWord>[SHARED_L1_CACHE_CHANNELS];
+	flowControlIn  = new sc_in<bool>[SHARED_L1_CACHE_CHANNELS];
+	out            = new sc_out<AddressedWord>[SHARED_L1_CACHE_CHANNELS];
 
 	// Construct network interfaces
 
@@ -120,6 +121,10 @@ SharedL1CacheSubsystem::SharedL1CacheSubsystem(sc_module_name name, ComponentID 
 	sB2MAcknowledge = new sc_signal<bool>[SHARED_L1_CACHE_BANKS];
 
 	// Network interface and cache controller port connections
+
+	// Crossbar switch frontend
+
+	mCrossbarSwitch.iClock.bind(clock);
 
 	for (uint i = 0; i < SHARED_L1_CACHE_CHANNELS; i++) {
 		// Initialize idle signal collectors

@@ -306,7 +306,7 @@ void SharedL1CacheController::processFSMCombinational() {
 		// Memory access completed but flow control does not permit sending back the data
 
 		if (iDataTxFree.read()) {
-			debugOutputMessage("Stalled data read completed - sent %0x.8llX", rDataBuffer.read());
+			debugOutputMessage("Stalled data read completed - sent 0x%.8llX", rDataBuffer.read());
 
 			// Sending back data is possible - do so
 
@@ -333,7 +333,7 @@ void SharedL1CacheController::processFSMCombinational() {
 			// Sending back data is possible - do so
 
 			if (static_cast<Instruction>(Word(rDataBuffer.read())).endOfPacket()) {
-				debugOutputMessage("Stalled instruction read completed - sent %0x.16llX (last instruction)", rDataBuffer.read());
+				debugOutputMessage("Stalled instruction read completed - sent 0x%.16llX (last instruction)", rDataBuffer.read());
 
 				// This is the last instruction in the packet
 
@@ -345,7 +345,7 @@ void SharedL1CacheController::processFSMCombinational() {
 
 				subProcessInitiateRequest(vRequest);
 			} else {
-				debugOutputMessage("Stalled instruction read completed - sent %0x.16llX (packet continues)", rDataBuffer.read());
+				debugOutputMessage("Stalled instruction read completed - sent 0x%.16llX (packet continues)", rDataBuffer.read());
 
 				// There are more instructions in the packet
 

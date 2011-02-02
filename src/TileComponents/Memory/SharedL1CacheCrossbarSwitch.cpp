@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------
 // Shared L1 Cache Crossbar Switch Implementation
 //-------------------------------------------------------------------------------------------------
-// Implements a fully combinational crossbar switch connecting the cache controllers with the
+// Implements a semi-combinational crossbar switch connecting the cache controllers with the
 // memory banks.
 //-------------------------------------------------------------------------------------------------
 // File:       SharedL1CacheCrossbarSwitch.cpp
@@ -34,28 +34,72 @@ void SharedL1CacheCrossbarSwitch::processInputChanged() {
 		oReadEnable[bank].write(false);
 		oWriteEnable[bank].write(false);
 
-		for (uint channel = 0; channel < cChannels; channel++) {
-			// Extract number of memory bank
+		if (rBankConnectionLocked[bank].read()) {
+			uint channel = rBankConnectionPort[bank].read();
 
-			uint bankAddress = (iAddress[channel].read() >> cCacheLineBits) & ((1UL << cBankSelectionBits) - 1);
+			// Forward routing
 
-			// Route signals
+			oAddress[bank].write(iAddress[channel].read());
+			oWriteData[bank].write(iWriteData[channel].read());
+			oByteMask[bank].write(iByteMask[channel].read());
+			oReadEnable[bank].write(iReadEnable[channel].read());
+			oWriteEnable[bank].write(iWriteEnable[channel].read());
 
-			if ((iReadEnable[channel].read() || iWriteEnable[channel].read()) && bankAddress == bank) {
-				// Forward routing
+			// Backward routing
 
-				oAddress[bank].write(iAddress[channel].read());
-				oWriteData[bank].write(iWriteData[channel].read());
-				oByteMask[bank].write(iByteMask[channel].read());
-				oReadEnable[bank].write(iReadEnable[channel].read());
-				oWriteEnable[bank].write(iWriteEnable[channel].read());
+			oReadData[channel].write(iReadData[bank].read());
+			oAcknowledge[channel].write(iAcknowledge[bank].read());
+		} else {
+			// Forward request combinationally to save a clock cycle
 
-				// Backward routing
+			for (uint channel = 0; channel < cChannels; channel++) {
+				// Extract number of memory bank
 
-				oReadData[channel].write(iReadData[bank].read());
-				oAcknowledge[channel].write(iAcknowledge[bank].read());
+				uint bankAddress = (iAddress[channel].read() >> cCacheLineBits) & ((1UL << cBankSelectionBits) - 1);
 
-				break;
+				// Route signals
+
+				if ((iReadEnable[channel].read() || iWriteEnable[channel].read()) && bankAddress == bank) {
+					// Forward routing
+
+					oAddress[bank].write(iAddress[channel].read());
+					oWriteData[bank].write(iWriteData[channel].read());
+					oByteMask[bank].write(iByteMask[channel].read());
+					oReadEnable[bank].write(iReadEnable[channel].read());
+					oWriteEnable[bank].write(iWriteEnable[channel].read());
+
+					// Backward routing
+
+					oReadData[channel].write(iReadData[bank].read());
+					oAcknowledge[channel].write(iAcknowledge[bank].read());
+
+					break;
+				}
+			}
+		}
+	}
+}
+
+// Updates the connection state of the switch - sensitive to negative clock edge
+
+void SharedL1CacheCrossbarSwitch::processUpdateState() {
+	for (uint bank = 0; bank < cMemoryBanks; bank++) {
+		if (!rBankConnectionLocked[bank].read() || iAcknowledge[bank].read()) {
+			rBankConnectionLocked[bank].write(false);
+
+			for (uint channel = 0; channel < cChannels; channel++) {
+				// Extract number of memory bank
+
+				uint bankAddress = (iAddress[channel].read() >> cCacheLineBits) & ((1UL << cBankSelectionBits) - 1);
+
+				// Route signals
+
+				if ((iReadEnable[channel].read() || iWriteEnable[channel].read()) && bankAddress == bank) {
+					rBankConnectionLocked[bank].write(true);
+					rBankConnectionPort[bank].write(channel);
+
+					break;
+				}
 			}
 		}
 	}
@@ -136,6 +180,14 @@ SharedL1CacheCrossbarSwitch::SharedL1CacheCrossbarSwitch(sc_module_name name, Co
 		oWriteEnable[i].initialize(false);
 	}
 
+	// Initialise signals
+
+	rBankConnectionLocked = new sc_signal<bool>[cMemoryBanks];
+	rBankConnectionPort = new sc_signal<uint>[cMemoryBanks];
+
+	for (uint i = 0; i < cMemoryBanks; i++)
+		rBankConnectionLocked[i].write(false);
+
 	// Register processes
 
 	SC_METHOD(processInputChanged);
@@ -143,6 +195,10 @@ SharedL1CacheCrossbarSwitch::SharedL1CacheCrossbarSwitch(sc_module_name name, Co
 		sensitive << iAddress[i] << iWriteData[i] << iByteMask[i] << iReadEnable[i] << iWriteEnable[i];
 	for (uint i = 0; i < cMemoryBanks; i++)
 		sensitive << iReadData[i] << iAcknowledge[i];
+	dont_initialize();
+
+	SC_METHOD(processUpdateState);
+	sensitive << iClock.neg();
 	dont_initialize();
 
 	// Indicate non-default component constructor
@@ -168,6 +224,9 @@ SharedL1CacheCrossbarSwitch::~SharedL1CacheCrossbarSwitch() {
 
 	delete[] iReadData;
 	delete[] iAcknowledge;
+
+	delete[] rBankConnectionLocked;
+	delete[] rBankConnectionPort;
 }
 
 //---------------------------------------------------------------------------------------------

@@ -154,6 +154,12 @@ private:
 	sc_signal<uint64_t>		*rCellsCacheData;		// Cache data array (theoretically cAssociativity individual memories)
 
 	//---------------------------------------------------------------------------------------------
+	// Simulation utility methods
+	//---------------------------------------------------------------------------------------------
+
+	void debugOutputMessage(const char* message, long long arg1, long long arg2, long long arg3);
+
+	//---------------------------------------------------------------------------------------------
 	// Processes
 	//---------------------------------------------------------------------------------------------
 
