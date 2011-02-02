@@ -27,20 +27,22 @@ class TileComponent : public Component {
 
 public:
 
-  // Clock
+  // Clock.
   sc_in<bool>            clock;
 
-  // All inputs to the component. There should be NUM_CLUSTER_INPUTS of them.
+  // All inputs to the component.
   sc_in<Word>           *in;
 
-  // All outputs of the component. There should be NUM_CLUSTER_OUTPUTS of them.
+  // All outputs of the component.
   sc_out<AddressedWord> *out;
 
-  // A flow control signal for each output (NUM_CLUSTER_OUTPUTS).
+  // A flow control signal for each output.
   sc_in<bool>           *flowControlIn;
 
-  // A flow control signal for each input (NUM_CLUSTER_INPUTS). Each one tells
-  // how much space is remaining in a particular input buffer.
+  // A flow control signal for each input. Each one tells how much space is
+  // remaining in a particular input buffer.
+  // Note: although this is possible, the usage now seems to be to always send
+  // "1", representing a single credit.
   sc_out<int>           *flowControlOut;
 
   // Signal that this component is not currently doing any work.
@@ -89,8 +91,6 @@ public:
   // Convert a unique port address into the form "(component, port)".
   static const std::string inputPortString(ChannelID port);
   static const std::string outputPortString(ChannelID port);
-
-  enum Type {CLUSTER, MEMORY};
 
 };
 

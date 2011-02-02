@@ -24,7 +24,7 @@ class Word {
 public:
 
   Word();
-  explicit Word(const uint64_t data_);
+  Word(const uint64_t data_);
   virtual ~Word();
 
 //==============================//

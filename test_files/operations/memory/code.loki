@@ -1,42 +1,43 @@
 % Connect to memory.
-ori                 r5,  r0,  (13,0)
+ori                 r5,  r0,  (12,1)
 setchmap            r5,  1
 ori                 r0,  r0,  (0,2)  > 1
 
+addui               r3,  r0,  1000          ; The address to store to.
 addui               r2,  r0,  1337          ; The number to store.
 
 % Send a stream of stores to memory to make sure none go missing.
 % Note that reading this instruction packet has the side effect of testing
 % many consecutive read operations.
-stw                 r2,  r0,  0      > 1
-stw                 r2,  r0,  4      > 1
-stw                 r2,  r0,  8      > 1
-stw                 r2,  r0,  12     > 1
-stw                 r2,  r0,  16     > 1
-stw                 r2,  r0,  20     > 1
-stw                 r2,  r0,  24     > 1
-stw                 r2,  r0,  28     > 1
-stw                 r2,  r0,  32     > 1
-stw                 r2,  r0,  36     > 1
-stw                 r2,  r0,  40     > 1
-stw                 r2,  r0,  44     > 1
-stw                 r2,  r0,  48     > 1
-stw                 r2,  r0,  52     > 1
-stw                 r2,  r0,  56     > 1
-stw                 r2,  r0,  60     > 1
-stw                 r2,  r0,  64     > 1
-stw                 r2,  r0,  68     > 1
-stw                 r2,  r0,  72     > 1
-stw                 r2,  r0,  76     > 1
-stw                 r2,  r0,  80     > 1
-stw                 r2,  r0,  84     > 1
-stw                 r2,  r0,  88     > 1
-stw                 r2,  r0,  92     > 1
-stw                 r2,  r0,  96     > 1
-stw                 r2,  r0,  100    > 1
-stw                 r2,  r0,  104    > 1
-stw                 r2,  r0,  108    > 1
-stw                 r2,  r0,  112    > 1
-stw                 r2,  r0,  116    > 1
-stw                 r2,  r0,  120    > 1
-stw.eop             r2,  r0,  124    > 1
+stw                 r2,  r3,  0      > 1
+stw                 r2,  r3,  4      > 1
+stw                 r2,  r3,  8      > 1
+stw                 r2,  r3,  12     > 1
+stw                 r2,  r3,  16     > 1
+stw                 r2,  r3,  20     > 1
+stw                 r2,  r3,  24     > 1
+stw                 r2,  r3,  28     > 1
+stw                 r2,  r3,  32     > 1
+stw                 r2,  r3,  36     > 1
+stw                 r2,  r3,  40     > 1
+stw                 r2,  r3,  44     > 1
+stw                 r2,  r3,  48     > 1
+stw                 r2,  r3,  52     > 1
+stw                 r2,  r3,  56     > 1
+stw                 r2,  r3,  60     > 1
+stw                 r2,  r3,  64     > 1
+stw                 r2,  r3,  68     > 1
+stw                 r2,  r3,  72     > 1
+stw                 r2,  r3,  76     > 1
+stw                 r2,  r3,  80     > 1
+stw                 r2,  r3,  84     > 1
+stw                 r2,  r3,  88     > 1
+stw                 r2,  r3,  92     > 1
+stw                 r2,  r3,  96     > 1
+stw                 r2,  r3,  100    > 1
+stw                 r2,  r3,  104    > 1
+stw                 r2,  r3,  108    > 1
+stw                 r2,  r3,  112    > 1
+stw                 r2,  r3,  116    > 1
+stw                 r2,  r3,  120    > 1
+stw.eop             r2,  r3,  124    > 1
