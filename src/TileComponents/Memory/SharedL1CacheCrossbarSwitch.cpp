@@ -15,22 +15,35 @@
 #include "../../Component.h"
 #include "SharedL1CacheCrossbarSwitch.h"
 
+//-------------------------------------------------------------------------------------------------
+// Simulation utility methods
+//-------------------------------------------------------------------------------------------------
+
+void SharedL1CacheCrossbarSwitch::debugOutputMessage(const char* message, long long arg1 = 0, long long arg2 = 0, long long arg3 = 0) {
+	if (!DEBUG)
+		return;
+
+	cout << this->name() << ": ";
+
+	char formatMessage[1024];
+	sprintf(formatMessage, message, arg1, arg2, arg3);
+
+	cout << formatMessage << endl;
+}
+
 //---------------------------------------------------------------------------------------------
-// Event handlers / Processes
+// Processes
 //---------------------------------------------------------------------------------------------
 
 // Check all input ports for new data and update output ports
 
 void SharedL1CacheCrossbarSwitch::processInputChanged() {
-	if (DEBUG) {
-		cout << "Established crossbar switch connections:" << endl;
-		for (uint bank = 0; bank < cMemoryBanks; bank++)
-			if (rBankForwardConnection[bank].read())
-				printf("Channel %u -> Bank %u\n", rBankForwardChannel[bank].read(), bank);
-		for (uint channel = 0; channel < cChannels; channel++)
-			if (rChannelBackwardConnection[channel].read())
-				printf("Channel %u <- Bank %u\n", channel, rChannelBackwardBank[channel].read());
-	}
+	for (uint bank = 0; bank < cMemoryBanks; bank++)
+		if (rBankForwardConnection[bank].read())
+			debugOutputMessage("Channel %lld -> Bank %lld\n", rBankForwardChannel[bank].read(), bank);
+	for (uint channel = 0; channel < cChannels; channel++)
+		if (rChannelBackwardConnection[channel].read())
+			debugOutputMessage("Channel %lld <- Bank %lld\n", channel, rChannelBackwardBank[channel].read());
 
 	// Forward routing
 
@@ -112,8 +125,7 @@ void SharedL1CacheCrossbarSwitch::processUpdateState() {
 					rChannelBackwardConnection[channel].write(true);
 					rChannelBackwardBank[channel].write(bank);
 
-					if (DEBUG)
-						printf("Shared L1 cache crossbar switch: Connecting channel %u to bank %u\n", channel, bank);
+					debugOutputMessage("Shared L1 cache crossbar switch: Connecting channel %u to bank %lld\n", channel, bank);
 
 					// Disconnect existing channel
 

@@ -74,7 +74,13 @@ public:
 	sc_signal<uint>			*rChannelBackwardBank;			// Memory bank connected to cache controller channel for backward path
 
 	//---------------------------------------------------------------------------------------------
-	// Event handlers / Processes
+	// Simulation utility methods
+	//---------------------------------------------------------------------------------------------
+
+	void debugOutputMessage(const char* message, long long arg1, long long arg2, long long arg3);
+
+	//---------------------------------------------------------------------------------------------
+	// Processes
 	//---------------------------------------------------------------------------------------------
 
 private:

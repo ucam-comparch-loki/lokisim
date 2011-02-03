@@ -19,6 +19,22 @@
 #include "SimplifiedBackgroundMemory.h"
 
 //-------------------------------------------------------------------------------------------------
+// Simulation utility methods
+//-------------------------------------------------------------------------------------------------
+
+void SimplifiedBackgroundMemory::debugOutputMessage(const char* message, long long arg1 = 0, long long arg2 = 0, long long arg3 = 0) {
+	if (!DEBUG)
+		return;
+
+	cout << this->name() << ": ";
+
+	char formatMessage[1024];
+	sprintf(formatMessage, message, arg1, arg2, arg3);
+
+	cout << formatMessage << endl;
+}
+
+//-------------------------------------------------------------------------------------------------
 // Processes
 //-------------------------------------------------------------------------------------------------
 
@@ -29,8 +45,7 @@ void SimplifiedBackgroundMemory::processMemory() {
 
 	for (uint bank = 0; bank < cMemoryBanks; bank++) {
 		if (iReadEnable[bank].read() || iWriteEnable[bank].read()) {
-			if (DEBUG)
-				printf("Simplified background memory: Received request from bank %u\n", bank);
+			debugOutputMessage("Simplified background memory: Received request from bank %lld\n", bank);
 
 			if (iReadEnable[bank].read() && iWriteEnable[bank].read()) {
 				cerr << "Error: Read and Write Enable signals to simplified background memory asserted at the same time" << endl;
@@ -96,8 +111,7 @@ void SimplifiedBackgroundMemory::processMemory() {
 	}
 
 	if (vDelayedOutputBuffer[vDelayedOutputReadCursor].Valid) {
-		if (DEBUG)
-			printf("Simplified background memory: Sent data %.16llX to bank %u\n", vDelayedOutputBuffer[vDelayedOutputReadCursor].Data, vDelayedOutputBuffer[vDelayedOutputReadCursor].BankNumber);
+		debugOutputMessage("Simplified background memory: Sent data %.16llX to bank %lld\n", vDelayedOutputBuffer[vDelayedOutputReadCursor].Data, vDelayedOutputBuffer[vDelayedOutputReadCursor].BankNumber);
 
 		oReadData[vDelayedOutputBuffer[vDelayedOutputReadCursor].BankNumber].write(vDelayedOutputBuffer[vDelayedOutputReadCursor].Data);
 		oAcknowledge[vDelayedOutputBuffer[vDelayedOutputReadCursor].BankNumber].write(true);
