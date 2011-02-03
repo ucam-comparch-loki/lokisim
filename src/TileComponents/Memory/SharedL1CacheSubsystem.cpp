@@ -33,6 +33,8 @@ void SharedL1CacheSubsystem::processUpdateIdle() {
 	}
 
 	idle.write(product);
+
+	Instrumentation::idle(id, product);
 }
 
 //-------------------------------------------------------------------------------------------------

@@ -61,7 +61,7 @@ int sc_main(int argc, char* argv[]) {
         TIMESTEP;
         if(idle.read()) {
           cyclesIdle++;
-          if(cyclesIdle >= 10) {
+          if(cyclesIdle >= 100) {
             cout << "\nSystem has been idle for " << cyclesIdle << " cycles." << endl;
             sc_stop();
             Instrumentation::endExecution();

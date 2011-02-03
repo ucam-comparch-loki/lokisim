@@ -76,7 +76,7 @@ void SharedL1CacheController::processFSMRegisters() {
 void SharedL1CacheController::processFSMCombinational() {
 	// Update instrumentation
 
-	Instrumentation::idle(id, rCurrentState.read() == STATE_IDLE || rCurrentState.read() == STATE_CONNECTED_IDLE);
+	//Instrumentation::idle(id, rCurrentState.read() == STATE_IDLE || rCurrentState.read() == STATE_CONNECTED_IDLE);
 
 	// Convert memory request
 
