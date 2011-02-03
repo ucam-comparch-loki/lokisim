@@ -35,20 +35,55 @@ void SharedL1CacheCrossbarSwitch::processInputChanged() {
 		oWriteEnable[bank].write(false);
 
 		if (rBankConnectionLocked[bank].read()) {
-			uint channel = rBankConnectionPort[bank].read();
+			if (iAcknowledge[bank].read()) {
+				// Switch forward path to next connection in order to overlap operations
 
-			// Forward routing
+				// Forward routing
 
-			oAddress[bank].write(iAddress[channel].read());
-			oWriteData[bank].write(iWriteData[channel].read());
-			oByteMask[bank].write(iByteMask[channel].read());
-			oReadEnable[bank].write(iReadEnable[channel].read());
-			oWriteEnable[bank].write(iWriteEnable[channel].read());
+				for (uint channel = 0; channel < cChannels; channel++) {
+					// Extract number of memory bank
 
-			// Backward routing
+					uint bankAddress = (iAddress[channel].read() >> cCacheLineBits) & ((1UL << cBankSelectionBits) - 1);
 
-			oReadData[channel].write(iReadData[bank].read());
-			oAcknowledge[channel].write(iAcknowledge[bank].read());
+					// Route signals
+
+					if ((iReadEnable[channel].read() || iWriteEnable[channel].read()) && bankAddress == bank) {
+						// Forward routing
+
+						oAddress[bank].write(iAddress[channel].read());
+						oWriteData[bank].write(iWriteData[channel].read());
+						oByteMask[bank].write(iByteMask[channel].read());
+						oReadEnable[bank].write(iReadEnable[channel].read());
+						oWriteEnable[bank].write(iWriteEnable[channel].read());
+
+						break;
+					}
+				}
+
+				// Backward routing
+
+				uint prevChannel = rBankConnectionPort[bank].read();
+
+				oReadData[prevChannel].write(iReadData[bank].read());
+				oAcknowledge[prevChannel].write(iAcknowledge[bank].read());
+			} else {
+				// Hold both paths
+
+				uint channel = rBankConnectionPort[bank].read();
+
+				// Forward routing
+
+				oAddress[bank].write(iAddress[channel].read());
+				oWriteData[bank].write(iWriteData[channel].read());
+				oByteMask[bank].write(iByteMask[channel].read());
+				oReadEnable[bank].write(iReadEnable[channel].read());
+				oWriteEnable[bank].write(iWriteEnable[channel].read());
+
+				// Backward routing
+
+				oReadData[channel].write(iReadData[bank].read());
+				oAcknowledge[channel].write(iAcknowledge[bank].read());
+			}
 		} else {
 			// Forward request combinationally to save a clock cycle
 
