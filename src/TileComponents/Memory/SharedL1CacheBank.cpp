@@ -892,7 +892,7 @@ void SharedL1CacheBank::processCacheMemory() {
 
 			uint32_t physicalWordAddress = sCacheSetAddress.read() * cAssociativity * cCacheLineSize / 4;
 			physicalWordAddress += sCacheSetIndex.read() * cCacheLineSize / 4;
-			physicalWordAddress += sCacheLineAddress.read() / 4;
+			physicalWordAddress += sCacheLineAddress.read();
 
 			if (rCellsValidFlags[physicalSlotAddress].read() && rCellsCacheTags[physicalSlotAddress].read() == sCacheTag.read()) {
 				rCacheHit.write(true);
@@ -913,7 +913,7 @@ void SharedL1CacheBank::processCacheMemory() {
 
 				uint32_t physicalWordAddress = sCacheSetAddress.read() * cAssociativity * cCacheLineSize / 4;
 				physicalWordAddress += setIndex * cCacheLineSize / 4;
-				physicalWordAddress += sCacheLineAddress.read() / 4;
+				physicalWordAddress += sCacheLineAddress.read();
 
 				if (rCellsValidFlags[physicalSlotAddress].read() && rCellsCacheTags[physicalSlotAddress].read() == sCacheTag.read()) {
 					rCacheHit.write(true);
@@ -1305,12 +1305,14 @@ bool SharedL1CacheBank::setWord(uint32_t address, const uint64_t data) {
 	if (bankAddress != cBankNumber)
 		return false;
 
-	uint32_t physicalSlotAddress = setAddress * cAssociativity * cCacheLineSize / 4;
-
 	for (uint setIndex = 0; setIndex < cAssociativity; setIndex++) {
-		if (rCellsValidFlags[physicalSlotAddress].read() && rCellsCacheTags[physicalSlotAddress].read() == addressTag) {
-			uint32_t physicalWordAddress = physicalSlotAddress + setIndex * cCacheLineSize / 4 + lineAddress;
+		uint32_t physicalSlotAddress = setAddress * cAssociativity + setIndex;
 
+		uint32_t physicalWordAddress = setAddress * cAssociativity * cCacheLineSize / 4;
+		physicalWordAddress += setIndex * cCacheLineSize / 4;
+		physicalWordAddress += lineAddress;
+
+		if (rCellsValidFlags[physicalSlotAddress].read() && rCellsCacheTags[physicalSlotAddress].read() == addressTag) {
 			rCellsDirtyFlags[physicalSlotAddress].write(true);
 			rCellsCacheData[physicalWordAddress].write(data);
 
@@ -1332,14 +1334,15 @@ bool SharedL1CacheBank::getWord(uint32_t address, uint64_t &data) {
 	if (bankAddress != cBankNumber)
 		return false;
 
-	uint32_t physicalSlotAddress = setAddress * cAssociativity * cCacheLineSize / 4;
-
 	for (uint setIndex = 0; setIndex < cAssociativity; setIndex++) {
+		uint32_t physicalSlotAddress = setAddress * cAssociativity + setIndex;
+
+		uint32_t physicalWordAddress = setAddress * cAssociativity * cCacheLineSize / 4;
+		physicalWordAddress += setIndex * cCacheLineSize / 4;
+		physicalWordAddress += lineAddress;
+
 		if (rCellsValidFlags[physicalSlotAddress].read() && rCellsCacheTags[physicalSlotAddress].read() == addressTag) {
-			uint32_t physicalWordAddress = physicalSlotAddress + setIndex * cCacheLineSize / 4 + lineAddress;
-
 			data = rCellsCacheData[physicalWordAddress].read();
-
 			return true;
 		}
 	}
