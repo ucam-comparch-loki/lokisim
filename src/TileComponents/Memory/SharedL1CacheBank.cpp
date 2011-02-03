@@ -962,6 +962,10 @@ void SharedL1CacheBank::processCacheMemory() {
 				updateLRUCounters = true;
 				updateLRUIndex = sCacheSetIndex.read();
 
+				// Mark cache line as being dirty
+
+				rCellsDirtyFlags[physicalSlotAddress].write(true);
+
 				if (sCacheByteMask.read() == 0xF) {
 					// Workaround for 64-bit instructions
 
@@ -1004,6 +1008,10 @@ void SharedL1CacheBank::processCacheMemory() {
 
 					updateLRUCounters = true;
 					updateLRUIndex = setIndex;
+
+					// Mark cache line as being dirty
+
+					rCellsDirtyFlags[physicalSlotAddress].write(true);
 
 					if (sCacheByteMask.read() == 0xF) {
 						// Workaround for 64-bit instructions
