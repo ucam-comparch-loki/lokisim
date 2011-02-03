@@ -67,8 +67,11 @@ public:
 	// Signals
 	//---------------------------------------------------------------------------------------------
 
-	sc_signal<bool>			*rBankConnectionLocked;	// Indicates that a memory bank is locked to a particular connection
-	sc_signal<uint>			*rBankConnectionPort;	// Cache controller port connected to memory bank
+	sc_signal<bool>			*rBankForwardConnection;		// Indicates that a memory bank is connected to a particular cache controller channel
+	sc_signal<uint>			*rBankForwardChannel;			// Cache controller channel connected to memory bank for forward path
+
+	sc_signal<bool>			*rChannelBackwardConnection;	// Indicates that a cache controller channel is connected to a particular memory bank
+	sc_signal<uint>			*rChannelBackwardBank;			// Memory bank connected to cache controller channel for backward path
 
 	//---------------------------------------------------------------------------------------------
 	// Event handlers / Processes

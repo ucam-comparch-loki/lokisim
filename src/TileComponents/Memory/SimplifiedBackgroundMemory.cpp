@@ -29,6 +29,9 @@ void SimplifiedBackgroundMemory::processMemory() {
 
 	for (uint bank = 0; bank < cMemoryBanks; bank++) {
 		if (iReadEnable[bank].read() || iWriteEnable[bank].read()) {
+			if (DEBUG)
+				printf("Simplified background memory: Received request from bank %u\n", bank);
+
 			if (iReadEnable[bank].read() && iWriteEnable[bank].read()) {
 				cerr << "Error: Read and Write Enable signals to simplified background memory asserted at the same time" << endl;
 				continue;
@@ -52,8 +55,11 @@ void SimplifiedBackgroundMemory::processMemory() {
 
 	vDelayedOutputBuffer[vDelayedOutputWriteCursor].Valid = false;
 
-	for (uint bank = 0; bank < cMemoryBanks; bank++) {
-		if (vRequestQueueCounter[vNextRequestIndex] > 0) {
+	for (uint counter = 0; counter < cMemoryBanks; counter++) {
+		uint bank = vNextRequestIndex;
+		vNextRequestIndex = (vNextRequestIndex + 1) % cMemoryBanks;
+
+		if (vRequestQueueCounter[bank] > 0) {
 			uint32_t address = vRequestQueueData[bank * cQueueLength + vRequestQueueReadCursor[bank]].Address;
 			uint tableSlot = address >> 16;
 			uint subAddress = address & 0xFFFFUL;
@@ -78,12 +84,8 @@ void SimplifiedBackgroundMemory::processMemory() {
 			vRequestQueueReadCursor[bank] = (vRequestQueueReadCursor[bank] + 1) % cQueueLength;
 			vRequestQueueCounter[bank]--;
 
-			vNextRequestIndex = (vNextRequestIndex + 1) % cMemoryBanks;
-
 			break;
 		}
-
-		vNextRequestIndex = (vNextRequestIndex + 1) % cMemoryBanks;
 	}
 
 	// Send data from delayed output buffer (if valid)
@@ -94,6 +96,9 @@ void SimplifiedBackgroundMemory::processMemory() {
 	}
 
 	if (vDelayedOutputBuffer[vDelayedOutputReadCursor].Valid) {
+		if (DEBUG)
+			printf("Simplified background memory: Sent data %.16llX to bank %u\n", vDelayedOutputBuffer[vDelayedOutputReadCursor].Data, vDelayedOutputBuffer[vDelayedOutputReadCursor].BankNumber);
+
 		oReadData[vDelayedOutputBuffer[vDelayedOutputReadCursor].BankNumber].write(vDelayedOutputBuffer[vDelayedOutputReadCursor].Data);
 		oAcknowledge[vDelayedOutputBuffer[vDelayedOutputReadCursor].BankNumber].write(true);
 	}

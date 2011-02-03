@@ -22,70 +22,37 @@
 // Check all input ports for new data and update output ports
 
 void SharedL1CacheCrossbarSwitch::processInputChanged() {
-	for (uint channel = 0; channel < cChannels; channel++) {
-		oReadData[channel].write(0);			// Should really be don't care - needed to break dependency chains
-		oAcknowledge[channel].write(false);
+	if (DEBUG) {
+		cout << "Established crossbar switch connections:" << endl;
+		for (uint bank = 0; bank < cMemoryBanks; bank++)
+			if (rBankForwardConnection[bank].read())
+				printf("Channel %u -> Bank %u\n", rBankForwardChannel[bank].read(), bank);
+		for (uint channel = 0; channel < cChannels; channel++)
+			if (rChannelBackwardConnection[channel].read())
+				printf("Channel %u <- Bank %u\n", channel, rChannelBackwardBank[channel].read());
 	}
 
+	// Forward routing
+
 	for (uint bank = 0; bank < cMemoryBanks; bank++) {
-		oAddress[bank].write(0);				// Should really be don't care - needed to break dependency chains
-		oWriteData[bank].write(0);				// Should really be don't care - needed to break dependency chains
-		oByteMask[bank].write(0);				// Should really be don't care - needed to break dependency chains
-		oReadEnable[bank].write(false);
-		oWriteEnable[bank].write(false);
+		if (rBankForwardConnection[bank].read() && !iAcknowledge[bank].read()) {
+			// Hold forward path
 
-		if (rBankConnectionLocked[bank].read()) {
-			if (iAcknowledge[bank].read()) {
-				// Switch forward path to next connection in order to overlap operations
+			uint channel = rBankForwardChannel[bank].read();
 
-				// Forward routing
-
-				for (uint channel = 0; channel < cChannels; channel++) {
-					// Extract number of memory bank
-
-					uint bankAddress = (iAddress[channel].read() >> cCacheLineBits) & ((1UL << cBankSelectionBits) - 1);
-
-					// Route signals
-
-					if ((iReadEnable[channel].read() || iWriteEnable[channel].read()) && bankAddress == bank) {
-						// Forward routing
-
-						oAddress[bank].write(iAddress[channel].read());
-						oWriteData[bank].write(iWriteData[channel].read());
-						oByteMask[bank].write(iByteMask[channel].read());
-						oReadEnable[bank].write(iReadEnable[channel].read());
-						oWriteEnable[bank].write(iWriteEnable[channel].read());
-
-						break;
-					}
-				}
-
-				// Backward routing
-
-				uint prevChannel = rBankConnectionPort[bank].read();
-
-				oReadData[prevChannel].write(iReadData[bank].read());
-				oAcknowledge[prevChannel].write(iAcknowledge[bank].read());
-			} else {
-				// Hold both paths
-
-				uint channel = rBankConnectionPort[bank].read();
-
-				// Forward routing
-
-				oAddress[bank].write(iAddress[channel].read());
-				oWriteData[bank].write(iWriteData[channel].read());
-				oByteMask[bank].write(iByteMask[channel].read());
-				oReadEnable[bank].write(iReadEnable[channel].read());
-				oWriteEnable[bank].write(iWriteEnable[channel].read());
-
-				// Backward routing
-
-				oReadData[channel].write(iReadData[bank].read());
-				oAcknowledge[channel].write(iAcknowledge[bank].read());
-			}
+			oAddress[bank].write(iAddress[channel].read());
+			oWriteData[bank].write(iWriteData[channel].read());
+			oByteMask[bank].write(iByteMask[channel].read());
+			oReadEnable[bank].write(iReadEnable[channel].read());
+			oWriteEnable[bank].write(iWriteEnable[channel].read());
 		} else {
-			// Forward request combinationally to save a clock cycle
+			// Switch forward path combinationally to next connection in order to overlap operations
+
+			oAddress[bank].write(0);				// Should really be don't care - needed to break dependency chains
+			oWriteData[bank].write(0);				// Should really be don't care - needed to break dependency chains
+			oByteMask[bank].write(0);				// Should really be don't care - needed to break dependency chains
+			oReadEnable[bank].write(false);
+			oWriteEnable[bank].write(false);
 
 			for (uint channel = 0; channel < cChannels; channel++) {
 				// Extract number of memory bank
@@ -103,14 +70,23 @@ void SharedL1CacheCrossbarSwitch::processInputChanged() {
 					oReadEnable[bank].write(iReadEnable[channel].read());
 					oWriteEnable[bank].write(iWriteEnable[channel].read());
 
-					// Backward routing
-
-					oReadData[channel].write(iReadData[bank].read());
-					oAcknowledge[channel].write(iAcknowledge[bank].read());
-
 					break;
 				}
 			}
+		}
+	}
+
+	// Backward routing
+
+	for (uint channel = 0; channel < cChannels; channel++) {
+		if (rChannelBackwardConnection[channel].read()) {
+			uint bank = rChannelBackwardBank[channel].read();
+
+			oReadData[channel].write(iReadData[bank].read());
+			oAcknowledge[channel].write(iAcknowledge[bank].read());
+		} else {
+			oReadData[channel].write(0);			// Should really be don't care - needed to break dependency chains
+			oAcknowledge[channel].write(false);
 		}
 	}
 }
@@ -119,8 +95,8 @@ void SharedL1CacheCrossbarSwitch::processInputChanged() {
 
 void SharedL1CacheCrossbarSwitch::processUpdateState() {
 	for (uint bank = 0; bank < cMemoryBanks; bank++) {
-		if (!rBankConnectionLocked[bank].read() || iAcknowledge[bank].read()) {
-			rBankConnectionLocked[bank].write(false);
+		if (!rBankForwardConnection[bank].read() || iAcknowledge[bank].read()) {
+			rBankForwardConnection[bank].write(false);
 
 			for (uint channel = 0; channel < cChannels; channel++) {
 				// Extract number of memory bank
@@ -130,8 +106,20 @@ void SharedL1CacheCrossbarSwitch::processUpdateState() {
 				// Route signals
 
 				if ((iReadEnable[channel].read() || iWriteEnable[channel].read()) && bankAddress == bank) {
-					rBankConnectionLocked[bank].write(true);
-					rBankConnectionPort[bank].write(channel);
+					rBankForwardConnection[bank].write(true);
+					rBankForwardChannel[bank].write(channel);
+
+					rChannelBackwardConnection[channel].write(true);
+					rChannelBackwardBank[channel].write(bank);
+
+					if (DEBUG)
+						printf("Shared L1 cache crossbar switch: Connecting channel %u to bank %u\n", channel, bank);
+
+					// Disconnect existing channel
+
+					for (uint disconnectChannel = 0; disconnectChannel < cChannels; disconnectChannel++)
+						if (disconnectChannel != channel && rChannelBackwardBank[disconnectChannel].read() == bank)
+							rChannelBackwardConnection[disconnectChannel].write(false);
 
 					break;
 				}
@@ -217,11 +205,17 @@ SharedL1CacheCrossbarSwitch::SharedL1CacheCrossbarSwitch(sc_module_name name, Co
 
 	// Initialise signals
 
-	rBankConnectionLocked = new sc_signal<bool>[cMemoryBanks];
-	rBankConnectionPort = new sc_signal<uint>[cMemoryBanks];
+	rBankForwardConnection = new sc_signal<bool>[cMemoryBanks];
+	rBankForwardChannel = new sc_signal<uint>[cMemoryBanks];
 
 	for (uint i = 0; i < cMemoryBanks; i++)
-		rBankConnectionLocked[i].write(false);
+		rBankForwardConnection[i].write(false);
+
+	rChannelBackwardConnection = new sc_signal<bool>[cChannels];
+	rChannelBackwardBank = new sc_signal<uint>[cChannels];
+
+	for (uint i = 0; i < cChannels; i++)
+		rChannelBackwardConnection[i].write(false);
 
 	// Register processes
 
@@ -260,8 +254,11 @@ SharedL1CacheCrossbarSwitch::~SharedL1CacheCrossbarSwitch() {
 	delete[] iReadData;
 	delete[] iAcknowledge;
 
-	delete[] rBankConnectionLocked;
-	delete[] rBankConnectionPort;
+	delete[] rBankForwardConnection;
+	delete[] rBankForwardChannel;
+
+	delete[] rChannelBackwardConnection;
+	delete[] rChannelBackwardBank;
 }
 
 //---------------------------------------------------------------------------------------------

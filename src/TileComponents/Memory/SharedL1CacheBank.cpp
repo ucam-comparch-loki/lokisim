@@ -70,6 +70,15 @@ void SharedL1CacheBank::processUtilitySignals() {
 	sInputSetAddress.write((address >> (cBankSelectionBits + cCacheLineBits)) & ((1UL << cSetSelectionBits) - 1));
 	sInputBankAddress.write((address >> cCacheLineBits) & ((1UL << cBankSelectionBits) - 1));
 	sInputLineAddress.write((address & ((1UL << cCacheLineBits) - 1)) >> 2);
+
+	if (DEBUG)
+		printf("Bank %u: address = 0x%.8X, address tag = 0x%.8X, set address = 0x%.8X, bank address = 0x%.8X, line address = 0x%.8X\n",
+				cBankNumber,
+				address,
+				address & ~((1UL << cCacheLineBits) - 1),
+				(address >> (cBankSelectionBits + cCacheLineBits)) & ((1UL << cSetSelectionBits) - 1),
+				(address >> cCacheLineBits) & ((1UL << cBankSelectionBits) - 1),
+				(address & ((1UL << cCacheLineBits) - 1)) >> 2);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -444,7 +453,8 @@ void SharedL1CacheBank::subProcessStateWriteLookup() {
 // - sLineCursor is initialised to point at the first word in the cache line to replace
 // - sSetIndex is set to the set index selected for replacement (buffering of cache memory
 //   output needed)
-// - Next FSM state: STATE_REPLACE_FETCH_REQUEST
+// - Next FSM state: STATE_REPLACE_FETCH_REQUEST if cache line size > 4,
+//   STATE_REPLACE_FETCH_STORE otherwise
 //-------------------------------------------------------------------------------------------------
 
 void SharedL1CacheBank::subProcessStateReplaceQuery() {
@@ -477,7 +487,10 @@ void SharedL1CacheBank::subProcessStateReplaceQuery() {
 		sSetIndex.write(rCacheSetIndex.read());
 		sLineCursor.write(0);
 
-		sNextState.write(STATE_REPLACE_FETCH_REQUEST);
+		if (cCacheLineSize > 4)
+			sNextState.write(STATE_REPLACE_FETCH_REQUEST);
+		else
+			sNextState.write(STATE_REPLACE_FETCH_STORE);
 	}
 }
 
@@ -527,7 +540,8 @@ void SharedL1CacheBank::subProcessStateReplaceQuery() {
 // - oAddress points at the first data address in the background memory to read
 // - oReadEnable is asserted
 // - sLineCursor is reset to point at the first word in the cache line to replace
-// - Next FSM state: STATE_REPLACE_FETCH_REQUEST
+// - Next FSM state: STATE_REPLACE_FETCH_REQUEST if cache line size > 4,
+//   STATE_REPLACE_FETCH_STORE otherwise
 //-------------------------------------------------------------------------------------------------
 
 void SharedL1CacheBank::subProcessStateReplaceWriteBack() {
@@ -573,7 +587,10 @@ void SharedL1CacheBank::subProcessStateReplaceWriteBack() {
 
 		sLineCursor.write(0);
 
-		sNextState.write(STATE_REPLACE_FETCH_REQUEST);
+		if (cCacheLineSize > 4)
+			sNextState.write(STATE_REPLACE_FETCH_REQUEST);
+		else
+			sNextState.write(STATE_REPLACE_FETCH_STORE);
 	}
 }
 
@@ -617,9 +634,9 @@ void SharedL1CacheBank::subProcessStateReplaceFetchRequest() {
 	// Request data words of new cache line from the background memory
 
 	if (iAcknowledge.read())
-		cerr << "Error: Background memory delay is too short" << endl;
+		cerr << "Error: Background memory delay is too short (bank " << cBankNumber << ")" << endl;
 
-	if (rLineCursor.read() < cCacheLineSize / 4 - 1) {
+	if (rLineCursor.read() < cCacheLineSize / 4 - 2) {
 		debugOutputMessage("Fetch command sequence in progress - line address %lld", rLineCursor.read());
 
 		// Fetch command sequence not yet completed
@@ -637,6 +654,8 @@ void SharedL1CacheBank::subProcessStateReplaceFetchRequest() {
 
 		oAddress.write(sInputAddressTag.read() + (rLineCursor.read() + 1) * 4);
 		oReadEnable.write(true);
+
+		sLineCursor.write(0);
 
 		sNextState.write(STATE_REPLACE_FETCH_STORE);
 	}
@@ -763,8 +782,12 @@ void SharedL1CacheBank::subProcessInitiateRequest() {
 		if (iWriteEnable.read())
 			cerr << "Error: Read and Write Enable signals asserted together" << endl;
 
+		/*
+		Might happen during delta cycle
+
 		if (sInputBankAddress.read() != cBankNumber)
-			cerr << "Error: Read access routed to wrong bank" << endl;
+			cerr << "Error: Read access routed to wrong bank (access to bank " << sInputBankAddress.read() << " routed to bank " << cBankNumber << ")" << endl;
+		*/
 
 		debugOutputMessage("Initiating read lookup - address tag 0x%.8llX, set address %lld, line address %lld", sInputAddressTag.read(), sInputSetAddress.read(), sInputLineAddress.read());
 
@@ -786,8 +809,12 @@ void SharedL1CacheBank::subProcessInitiateRequest() {
 		if (iReadEnable.read())
 			cerr << "Error: Read and Write Enable signals asserted together" << endl;
 
+		/*
+		Might happen during delta cycle
+
 		if (sInputBankAddress.read() != cBankNumber)
 			cerr << "Error: Write access routed to wrong bank" << endl;
+		*/
 
 		debugOutputMessage("Initiating write lookup - address tag 0x%.8llX, set address %lld, line address %lld", sInputAddressTag.read(), sInputSetAddress.read(), sInputLineAddress.read());
 
