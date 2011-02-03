@@ -44,7 +44,8 @@ void SharedL1CacheController::debugOutputMessage(const char* message, long long 
 	case STATE_READ_IPK_PENDING:	cout << " [READ_IPK_PENDING]: "; break;
 	case STATE_READ_STALLED:		cout << " [READ_STALLED]: "; break;
 	case STATE_READ_IPK_STALLED:	cout << " [READ_IPK_STALLED]: "; break;
-	case STATE_WRITE_DATA:			cout << " [WRITE_DATA]: "; break;
+	case STATE_WRITE_WORD_DATA:		cout << " [WRITE_WORD_DATA]: "; break;
+	case STATE_WRITE_BYTE_DATA:		cout << " [WRITE_BYTE_DATA]: "; break;
 	case STATE_WRITE_PENDING:		cout << " [WRITE_PENDING]: "; break;
 	}
 
@@ -201,26 +202,26 @@ void SharedL1CacheController::processFSMCombinational() {
 			// Memory access completed - data must be consumed and request signals cleared unless there is another request
 
 			if (iDataTxFree.read()) {
-				debugOutputMessage("Pending byte read acknowledged and forwarded - read 0x%.2llX from address %lld", ((iData.read() >> rByteSelect.read()) & 0xFFUL), rAddress.read());
+				debugOutputMessage("Pending byte read acknowledged and forwarded - read 0x%.2llX from address %lld", ((iData.read() >> (rByteSelect.read() * 8)) & 0xFFUL), rAddress.read());
 
 				// Sending back data is possible - do so immediately
 
 				// Extract an individual byte and zero extend
 
-				oDataTx.write(AddressedWord(Word((iData.read() >> rByteSelect.read()) & 0xFFUL), rRemoteChannel.read()));
+				oDataTx.write(AddressedWord(Word((iData.read() >> (rByteSelect.read() * 8)) & 0xFFUL), rRemoteChannel.read()));
 				oDataTxEnable.write(true);
 
 				// Check whether chaining another request without stall cycle is possible
 
 				subProcessInitiateRequest(vRequest);
 			} else {
-				debugOutputMessage("Pending byte read acknowledged and stalled due to flow control - read 0x%.2llX from address %lld", ((iData.read() >> rByteSelect.read()) & 0xFFUL), rAddress.read());
+				debugOutputMessage("Pending byte read acknowledged and stalled due to flow control - read 0x%.2llX from address %lld", ((iData.read() >> (rByteSelect.read() * 8)) & 0xFFUL), rAddress.read());
 
 				// Flow control does not permit sending back data - stall read operation (ports cleared implicitly)
 
 				// Extract an individual byte from data read, zero extend and buffer it in controller until it can be sent back to client
 
-				sDataBuffer.write((iData.read() >> rByteSelect.read()) & 0xFFUL);
+				sDataBuffer.write((iData.read() >> (rByteSelect.read() * 8)) & 0xFFUL);
 
 				sNextState.write(STATE_READ_STALLED);
 			}
@@ -377,11 +378,11 @@ void SharedL1CacheController::processFSMCombinational() {
 
 		break;
 
-	case STATE_WRITE_DATA:
-		// Waiting for data to write (word or byte)
+	case STATE_WRITE_WORD_DATA:
+		// Waiting for data word to write
 
 		if (iDataRxAvailable.read()) {
-			debugOutputMessage("Data to write available - writing 0x%.8llX (byte mask 0x%.1llX) to address %lld", (uint64_t)(iDataRx.read().toLong()), rByteMask.read(), rAddress.read());
+			debugOutputMessage("Data word to write available - writing 0x%.8llX (byte mask 0x%.1llX) to address %lld", (uint64_t)(iDataRx.read().toLong()), rByteMask.read(), rAddress.read());
 
 			// Data is available - initiate memory access
 
@@ -404,11 +405,47 @@ void SharedL1CacheController::processFSMCombinational() {
 
 			sNextState.write(STATE_WRITE_PENDING);
 		} else {
-			debugOutputMessage("Waiting for data to write");
+			debugOutputMessage("Waiting for data word to write");
 
 			// Data not yet available - wait for data to arrive
 
-			sNextState.write(STATE_WRITE_DATA);
+			sNextState.write(STATE_WRITE_WORD_DATA);
+		}
+
+		break;
+
+	case STATE_WRITE_BYTE_DATA:
+		// Waiting for data byte to write
+
+		if (iDataRxAvailable.read()) {
+			debugOutputMessage("Data byte to write available - writing 0x%.8llX (byte mask 0x%.1llX) to address %lld", (uint64_t)(iDataRx.read().toLong()), rByteMask.read(), rAddress.read());
+
+			// Data is available - initiate memory access
+
+			// The request always can proceed - flow control dependent stall cycles are inserted after carrying out the read operation
+
+			// Remove request from input queue
+
+			oDataRxAcknowledge.write(true);
+
+			// Buffer data to write
+
+			sDataBuffer.write((uint64_t)(iDataRx.read().toLong()) << (rByteSelect.read() * 8));
+
+			// Directly forward write command and data to memory bank to save a clock cycle
+
+			oAddress.write(rAddress.read());
+			oData.write((uint64_t)(iDataRx.read().toLong()) << (rByteSelect.read() * 8));
+			oByteMask.write(rByteMask.read());
+			oWriteEnable.write(true);
+
+			sNextState.write(STATE_WRITE_PENDING);
+		} else {
+			debugOutputMessage("Waiting for data byte to write");
+
+			// Data not yet available - wait for data to arrive
+
+			sNextState.write(STATE_WRITE_BYTE_DATA);
 		}
 
 		break;
@@ -482,15 +519,6 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 
 			oDataRxAcknowledge.write(true);
 
-			// Load memory address into register
-
-			sAddress.write(vRequest.address());
-
-			// Directly forward read command to memory bank to save a clock cycle
-
-			oAddress.write(vRequest.address());
-			oReadEnable.write(true);
-
 			// Set next state based on type of operation
 
 			if (vRequest.isIPKRequest()) {
@@ -499,11 +527,29 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 				if ((vRequest.address() & 0x3) != 0)
 					cerr << "WARNING: Unaligned write access detected" << endl;
 
+				// Load memory address into register
+
+				sAddress.write(vRequest.address());
+
+				// Directly forward read command to memory bank to save a clock cycle
+
+				oAddress.write(vRequest.address());
+				oReadEnable.write(true);
+
 				Instrumentation::l1Read(vRequest.address(), true);
 
 				sNextState.write(STATE_READ_IPK_PENDING);
-			} else if (false) {									//TODO: Fix condition as soon as the interface supports byte reads
+			} else if (vRequest.byteAccess()) {
 				debugOutputMessage("Byte load from address %lld", vRequest.address());
+
+				// Load memory address into register
+
+				sAddress.write(vRequest.address() & 0xFFFFFFFC);
+
+				// Directly forward read command to memory bank to save a clock cycle
+
+				oAddress.write(vRequest.address() & 0xFFFFFFFC);
+				oReadEnable.write(true);
 
 				// Load byte selector into register
 
@@ -518,6 +564,15 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 				if ((vRequest.address() & 0x3) != 0)
 					cerr << "WARNING: Unaligned write access detected" << endl;
 
+				// Load memory address into register
+
+				sAddress.write(vRequest.address());
+
+				// Directly forward read command to memory bank to save a clock cycle
+
+				oAddress.write(vRequest.address());
+				oReadEnable.write(true);
+
 				Instrumentation::l1Read(vRequest.address(), false);
 
 				sNextState.write(STATE_READ_WORD_PENDING);
@@ -527,32 +582,34 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 
 			Instrumentation::l1Write(vRequest.address());
 
-			// The request always can proceed
-
-			// Remove request from input queue
+			// The request always can proceed - remove request from input queue
 
 			oDataRxAcknowledge.write(true);
 
-			// Load memory address into register
+			// Load memory address and byte mask into registers
 
-			sAddress.write(vRequest.address());
-
-			// Load byte mask into register
-
-			if (false) {				//TODO: Fix condition and byte mask as soon as the interface supports byte reads
+			if (vRequest.byteAccess()) {
 				debugOutputMessage("Byte store to address %lld", vRequest.address());
 
+				sAddress.write(vRequest.address() & 0xFFFFFFFC);
 				sByteMask.write(1UL << (vRequest.address() & 0x3));
+
+				// Load byte selector into register
+
+				sByteSelect.write(vRequest.address() & 0x3);
+
+				sNextState.write(STATE_WRITE_BYTE_DATA);
 			} else {
 				debugOutputMessage("Word store to address %lld", vRequest.address());
 
 				if ((vRequest.address() & 0x3) != 0)
 					cerr << "WARNING: Unaligned write access detected" << endl;
 
+				sAddress.write(vRequest.address());
 				sByteMask.write(0xF);
-			}
 
-			sNextState.write(STATE_WRITE_DATA);
+				sNextState.write(STATE_WRITE_WORD_DATA);
+			}
 		}
 	} else {
 		// No new request available - return to idle state

@@ -945,10 +945,10 @@ void SharedL1CacheBank::processCacheMemory() {
 					uint64_t writeBitMask = 0;
 
 					switch (sCacheByteMask.read()) {
-					case 0x1:	writeBitMask = 0xFF;		break;
-					case 0x2:	writeBitMask = 0xFF00;		break;
-					case 0x4:	writeBitMask = 0xFF0000;	break;
-					case 0x8:	writeBitMask = 0xFF000000;	break;
+					case 0x1:	writeBitMask = 0x000000FFULL;	break;
+					case 0x2:	writeBitMask = 0x0000FF00ULL;	break;
+					case 0x4:	writeBitMask = 0x00FF0000ULL;	break;
+					case 0x8:	writeBitMask = 0xFF000000ULL;	break;
 					default:
 						cerr << "Error: Invalid byte mask encountered on cache access" << endl;
 						break;
@@ -988,10 +988,10 @@ void SharedL1CacheBank::processCacheMemory() {
 						uint64_t writeBitMask = 0;
 
 						switch (sCacheByteMask.read()) {
-						case 0x1:	writeBitMask = 0xFF;		break;
-						case 0x2:	writeBitMask = 0xFF00;		break;
-						case 0x4:	writeBitMask = 0xFF0000;	break;
-						case 0x8:	writeBitMask = 0xFF000000;	break;
+						case 0x1:	writeBitMask = 0x000000FFULL;	break;
+						case 0x2:	writeBitMask = 0x0000FF00ULL;	break;
+						case 0x4:	writeBitMask = 0x00FF0000ULL;	break;
+						case 0x8:	writeBitMask = 0xFF000000ULL;	break;
 						default:
 							cerr << "Error: Invalid byte mask encountered on cache access" << endl;
 							break;

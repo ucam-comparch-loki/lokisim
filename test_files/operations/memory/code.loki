@@ -40,7 +40,7 @@ stw                 r2,  r3,  108    > 1
 stw                 r2,  r3,  112    > 1
 stw                 r2,  r3,  116    > 1
 stw                 r2,  r3,  120    > 1
-stw.eop                 r2,  r3,  124    > 1
+stw                 r2,  r3,  124    > 1
 
 % A quick test of the remaining memory operations.
 ldw                 r3,  0           > 1

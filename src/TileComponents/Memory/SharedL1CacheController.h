@@ -78,7 +78,8 @@ private:
 		STATE_READ_IPK_PENDING,						// Waiting for memory to read word - IPK streaming in progress
 		STATE_READ_STALLED,							// Memory access completed but flow control does not permit sending back the data
 		STATE_READ_IPK_STALLED,						// IPK related memory access completed but flow control does not permit sending back the data
-		STATE_WRITE_DATA,							// Waiting for data to write (word or byte)
+		STATE_WRITE_WORD_DATA,						// Waiting for data word to write
+		STATE_WRITE_BYTE_DATA,						// Waiting for data byte to write
 		STATE_WRITE_PENDING							// Waiting for memory to write data (word or byte)
 	};
 
