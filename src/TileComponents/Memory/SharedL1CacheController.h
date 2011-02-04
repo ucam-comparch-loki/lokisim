@@ -21,6 +21,7 @@
 #include "../../Datatype/AddressedWord.h"
 #include "../../Datatype/MemoryRequest.h"
 #include "../../Datatype/Word.h"
+#include "../../Utility/BatchMode/BatchModeEventRecorder.h"
 
 class SharedL1CacheController : public Component {
 	//---------------------------------------------------------------------------------------------
@@ -104,6 +105,14 @@ private:
 	sc_signal<uint8_t>		sByteSelect;			// New byte selector
 
 	//---------------------------------------------------------------------------------------------
+	// Utility definitions
+	//---------------------------------------------------------------------------------------------
+
+private:
+
+	BatchModeEventRecorder	*vEventRecorder;
+
+	//---------------------------------------------------------------------------------------------
 	// Simulation utility methods
 	//---------------------------------------------------------------------------------------------
 
@@ -137,7 +146,7 @@ private:
 public:
 
 	SC_HAS_PROCESS(SharedL1CacheController);
-	SharedL1CacheController(sc_module_name name, ComponentID id, uint channel);
+	SharedL1CacheController(sc_module_name name, ComponentID id, BatchModeEventRecorder *eventRecorder, uint channel);
 	virtual ~SharedL1CacheController();
 
 	//---------------------------------------------------------------------------------------------

@@ -15,6 +15,7 @@
 #define SHAREDL1CACHESUBSYSTEM_HPP_
 
 #include "../../Utility/Parameters.h"
+#include "../../Utility/BatchMode/BatchModeEventRecorder.h"
 #include "../TileComponent.h"
 #include "SharedL1CacheBank.h"
 #include "SharedL1CacheCrossbarSwitch.h"
@@ -102,6 +103,14 @@ private:
 	sc_signal<bool>				*sB2MAcknowledge;			// Acknowledgement signal input from background memory
 
 	//---------------------------------------------------------------------------------------------
+	// Utility definitions
+	//---------------------------------------------------------------------------------------------
+
+private:
+
+	BatchModeEventRecorder		*vEventRecorder;
+
+	//---------------------------------------------------------------------------------------------
 	// Processes
 	//---------------------------------------------------------------------------------------------
 
@@ -116,7 +125,7 @@ private:
 public:
 
 	SC_HAS_PROCESS(SharedL1CacheSubsystem);
-	SharedL1CacheSubsystem(sc_module_name name, ComponentID id);
+	SharedL1CacheSubsystem(sc_module_name name, ComponentID id, BatchModeEventRecorder *eventRecorder);
 	virtual ~SharedL1CacheSubsystem();
 
 	//---------------------------------------------------------------------------------------------

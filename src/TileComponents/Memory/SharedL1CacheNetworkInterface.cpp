@@ -25,6 +25,7 @@
 #include "../../Component.h"
 #include "../../Datatype/AddressedWord.h"
 #include "../../Datatype/Word.h"
+#include "../../Utility/BatchMode/BatchModeEventRecorder.h"
 #include "SharedL1CacheNetworkInterface.h"
 
 //-------------------------------------------------------------------------------------------------
@@ -147,9 +148,18 @@ void SharedL1CacheNetworkInterface::processSendData() {
 // Constructors / Destructors
 //-------------------------------------------------------------------------------------------------
 
-SharedL1CacheNetworkInterface::SharedL1CacheNetworkInterface(sc_module_name name, ComponentID id, uint queueDepth) :
+SharedL1CacheNetworkInterface::SharedL1CacheNetworkInterface(sc_module_name name, ComponentID id, BatchModeEventRecorder *eventRecorder, uint channel, uint queueDepth) :
 	Component(name, id)
 {
+	// Instrumentation
+
+	vEventRecorder = eventRecorder;
+
+	if (vEventRecorder != NULL) {
+		vEventRecorder->registerInstance(this, BatchModeEventRecorder::kInstanceSharedL1CacheNetworkInterface);
+		vEventRecorder->setInstanceProperty(this, BatchModeEventRecorder::kPropertySharedL1CacheChannelNumber, channel);
+	}
+
 	// Check and setup configuration parameters
 
 	if (queueDepth == 0) {

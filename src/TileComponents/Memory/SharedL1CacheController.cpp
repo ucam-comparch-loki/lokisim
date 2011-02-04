@@ -23,6 +23,7 @@
 #include "../../Datatype/Word.h"
 #include "../../Utility/Instrumentation.h"
 #include "../../Utility/Parameters.h"
+#include "../../Utility/BatchMode/BatchModeEventRecorder.h"
 #include "../TileComponent.h"
 #include "SharedL1CacheController.h"
 
@@ -630,9 +631,18 @@ void SharedL1CacheController::processIdleSignal() {
 // Constructors / Destructors
 //-------------------------------------------------------------------------------------------------
 
-SharedL1CacheController::SharedL1CacheController(sc_module_name name, ComponentID id, uint channel) :
+SharedL1CacheController::SharedL1CacheController(sc_module_name name, ComponentID id, BatchModeEventRecorder *eventRecorder, uint channel) :
 	Component(name, id)
 {
+	// Instrumentation
+
+	vEventRecorder = eventRecorder;
+
+	if (vEventRecorder != NULL) {
+		vEventRecorder->registerInstance(this, BatchModeEventRecorder::kInstanceSharedL1CacheController);
+		vEventRecorder->setInstanceProperty(this, BatchModeEventRecorder::kPropertySharedL1CacheChannelNumber, channel);
+	}
+
 	// Setup configuration
 
 	cChannel = channel;

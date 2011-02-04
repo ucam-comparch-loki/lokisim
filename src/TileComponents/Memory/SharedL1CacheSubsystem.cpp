@@ -12,6 +12,7 @@
 //-------------------------------------------------------------------------------------------------
 
 #include "../../Utility/Parameters.h"
+#include "../../Utility/BatchMode/BatchModeEventRecorder.h"
 #include "../TileComponent.h"
 #include "SharedL1CacheBank.h"
 #include "SharedL1CacheCrossbarSwitch.h"
@@ -41,11 +42,18 @@ void SharedL1CacheSubsystem::processUpdateIdle() {
 // Constructors / Destructors
 //-------------------------------------------------------------------------------------------------
 
-SharedL1CacheSubsystem::SharedL1CacheSubsystem(sc_module_name name, ComponentID id) :
+SharedL1CacheSubsystem::SharedL1CacheSubsystem(sc_module_name name, ComponentID id, BatchModeEventRecorder *eventRecorder) :
 	TileComponent(name, id),
-	mCrossbarSwitch("shared_l1_cache_crossbar_switch", id, SHARED_L1_CACHE_CHANNELS, SHARED_L1_CACHE_BANKS, SHARED_L1_CACHE_LINE_SIZE),
-	mBackgroundMemory("shared_l1_cache_background_memory", id, SHARED_L1_CACHE_BANKS, SHARED_L1_CACHE_MEMORY_QUEUE_DEPTH, SHARED_L1_CACHE_MEMORY_DELAY_CYCLES)
+	mCrossbarSwitch("shared_l1_cache_crossbar_switch", id, eventRecorder, SHARED_L1_CACHE_CHANNELS, SHARED_L1_CACHE_BANKS, SHARED_L1_CACHE_LINE_SIZE),
+	mBackgroundMemory("shared_l1_cache_background_memory", id, eventRecorder, SHARED_L1_CACHE_BANKS, SHARED_L1_CACHE_MEMORY_QUEUE_DEPTH, SHARED_L1_CACHE_MEMORY_DELAY_CYCLES)
 {
+	// Instrumentation
+
+	vEventRecorder = eventRecorder;
+
+	if (vEventRecorder != NULL)
+		vEventRecorder->registerInstance(this, BatchModeEventRecorder::kInstanceSharedL1CacheSubsystem);
+
 	// Initialise top-level ports of cache subsystem
 
 	flowControlOut = new sc_out<int>[SHARED_L1_CACHE_CHANNELS];
@@ -59,21 +67,21 @@ SharedL1CacheSubsystem::SharedL1CacheSubsystem(sc_module_name name, ComponentID 
 	mNetworkInterfaces = new SharedL1CacheNetworkInterface*[SHARED_L1_CACHE_CHANNELS];
 
 	for (uint i = 0; i < SHARED_L1_CACHE_CHANNELS; i++)
-		mNetworkInterfaces[i] = new SharedL1CacheNetworkInterface("shared_l1_cache_network_interface", id, SHARED_L1_CACHE_INTERFACE_QUEUE_DEPTH);
+		mNetworkInterfaces[i] = new SharedL1CacheNetworkInterface("shared_l1_cache_network_interface", id, eventRecorder, (uint)i, SHARED_L1_CACHE_INTERFACE_QUEUE_DEPTH);
 
 	// Construct cache controllers
 
 	mControllers = new SharedL1CacheController*[SHARED_L1_CACHE_CHANNELS];
 
 	for (uint i = 0; i < SHARED_L1_CACHE_CHANNELS; i++)
-		mControllers[i] = new SharedL1CacheController("shared_l1_cache_controller", id, (uint)i);
+		mControllers[i] = new SharedL1CacheController("shared_l1_cache_controller", id, eventRecorder, (uint)i);
 
 	// Construct memory banks
 
 	mMemoryBanks = new SharedL1CacheBank*[SHARED_L1_CACHE_BANKS];
 
 	for (uint i = 0; i < SHARED_L1_CACHE_BANKS; i++)
-		mMemoryBanks[i] = new SharedL1CacheBank("shared_l1_cache_bank", id, (uint)i, SHARED_L1_CACHE_BANKS, SHARED_L1_CACHE_SETS_PER_BANK, SHARED_L1_CACHE_ASSOCIATIVITY, SHARED_L1_CACHE_LINE_SIZE, SHARED_L1_CACHE_SEQUENTIAL_SEARCH != 0, SHARED_L1_CACHE_RANDOM_REPLACEMENT != 0);
+		mMemoryBanks[i] = new SharedL1CacheBank("shared_l1_cache_bank", id, eventRecorder, (uint)i, SHARED_L1_CACHE_BANKS, SHARED_L1_CACHE_SETS_PER_BANK, SHARED_L1_CACHE_ASSOCIATIVITY, SHARED_L1_CACHE_LINE_SIZE, SHARED_L1_CACHE_SEQUENTIAL_SEARCH != 0, SHARED_L1_CACHE_RANDOM_REPLACEMENT != 0);
 
 	// Initialise signals
 

@@ -28,6 +28,7 @@
 #include "../../Component.h"
 #include "../../Datatype/AddressedWord.h"
 #include "../../Datatype/Word.h"
+#include "../../Utility/BatchMode/BatchModeEventRecorder.h"
 
 class SharedL1CacheNetworkInterface : public Component {
 	//---------------------------------------------------------------------------------------------
@@ -72,8 +73,12 @@ public:
 	// Utility definitions
 	//---------------------------------------------------------------------------------------------
 
+private:
+
 	bool					vInputDataChanged;		// Workaround for old event driven interface
 	Word					vNewInputData;			// Workaround for old event driven interface
+
+	BatchModeEventRecorder	*vEventRecorder;
 
 	//---------------------------------------------------------------------------------------------
 	// Signals
@@ -118,7 +123,7 @@ private:
 public:
 
 	SC_HAS_PROCESS(SharedL1CacheNetworkInterface);
-	SharedL1CacheNetworkInterface(sc_module_name name, ComponentID id, uint queueDepth);
+	SharedL1CacheNetworkInterface(sc_module_name name, ComponentID id, BatchModeEventRecorder *eventRecorder, uint channel, uint queueDepth);
 	virtual ~SharedL1CacheNetworkInterface();
 
 	//---------------------------------------------------------------------------------------------

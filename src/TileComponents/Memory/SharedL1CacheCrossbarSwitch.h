@@ -16,6 +16,7 @@
 #define SHAREDL1CACHECROSSBARSWITCH_HPP_
 
 #include "../../Component.h"
+#include "../../Utility/BatchMode/BatchModeEventRecorder.h"
 
 class SharedL1CacheCrossbarSwitch : public Component {
 	//---------------------------------------------------------------------------------------------
@@ -67,6 +68,8 @@ public:
 	// Signals
 	//---------------------------------------------------------------------------------------------
 
+private:
+
 	sc_signal<bool>			*rBankForwardConnection;		// Indicates that a memory bank is connected to a particular cache controller channel
 	sc_signal<uint>			*rBankForwardChannel;			// Cache controller channel connected to memory bank for forward path
 
@@ -74,8 +77,18 @@ public:
 	sc_signal<uint>			*rChannelBackwardBank;			// Memory bank connected to cache controller channel for backward path
 
 	//---------------------------------------------------------------------------------------------
+	// Utility definitions
+	//---------------------------------------------------------------------------------------------
+
+private:
+
+	BatchModeEventRecorder	*vEventRecorder;
+
+	//---------------------------------------------------------------------------------------------
 	// Simulation utility methods
 	//---------------------------------------------------------------------------------------------
+
+private:
 
 	void debugOutputMessage(const char* message, long long arg1, long long arg2, long long arg3);
 
@@ -100,7 +113,7 @@ private:
 public:
 
 	SC_HAS_PROCESS(SharedL1CacheCrossbarSwitch);
-	SharedL1CacheCrossbarSwitch(sc_module_name name, ComponentID id, uint channels, uint memoryBanks, uint cacheLineSize);
+	SharedL1CacheCrossbarSwitch(sc_module_name name, ComponentID id, BatchModeEventRecorder *eventRecorder, uint channels, uint memoryBanks, uint cacheLineSize);
 	virtual ~SharedL1CacheCrossbarSwitch();
 
 	//---------------------------------------------------------------------------------------------

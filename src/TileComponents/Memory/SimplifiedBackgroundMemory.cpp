@@ -16,6 +16,7 @@
 //-------------------------------------------------------------------------------------------------
 
 #include "../../Component.h"
+#include "../../Utility/BatchMode/BatchModeEventRecorder.h"
 #include "SimplifiedBackgroundMemory.h"
 
 //-------------------------------------------------------------------------------------------------
@@ -127,9 +128,16 @@ void SimplifiedBackgroundMemory::processMemory() {
 // Constructors / Destructors
 //-------------------------------------------------------------------------------------------------
 
-SimplifiedBackgroundMemory::SimplifiedBackgroundMemory(sc_module_name name, ComponentID id, uint memoryBanks, uint queueLength, uint accessDelayCycles) :
+SimplifiedBackgroundMemory::SimplifiedBackgroundMemory(sc_module_name name, ComponentID id, BatchModeEventRecorder *eventRecorder, uint memoryBanks, uint queueLength, uint accessDelayCycles) :
 	Component(name, id)
 {
+	// Instrumentation
+
+	vEventRecorder = eventRecorder;
+
+	if (vEventRecorder != NULL)
+		vEventRecorder->registerInstance(this, BatchModeEventRecorder::kInstanceSimplifiedBackgroundMemory);
+
 	// Initialise configuration
 
 	cMemoryBanks = memoryBanks;

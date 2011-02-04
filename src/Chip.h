@@ -16,6 +16,7 @@
 #include "Component.h"
 #include "flag_signal.h"
 #include "Network/NetworkHierarchy.h"
+#include "Utility/BatchMode/BatchModeEventRecorder.h"
 
 using std::vector;
 
@@ -41,7 +42,7 @@ public:
 public:
 
   SC_HAS_PROCESS(Chip);
-  Chip(sc_module_name name, ComponentID ID);
+  Chip(sc_module_name name, ComponentID ID, BatchModeEventRecorder *eventRecorder);
   virtual ~Chip();
 
 //==============================//

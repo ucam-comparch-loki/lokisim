@@ -12,6 +12,7 @@
 //-------------------------------------------------------------------------------------------------
 
 #include "../../Component.h"
+#include "../../Utility/BatchMode/BatchModeEventRecorder.h"
 #include "SharedL1CacheBank.h"
 
 //-------------------------------------------------------------------------------------------------
@@ -1164,9 +1165,18 @@ void SharedL1CacheBank::processCacheMemory() {
 // Constructors / Destructors
 //-------------------------------------------------------------------------------------------------
 
-SharedL1CacheBank::SharedL1CacheBank(sc_module_name name, ComponentID id, uint bankNumber, uint memoryBanks, uint cacheSetCount, uint associativity, uint cacheLineSize, bool sequentialSearch, bool randomReplacement) :
+SharedL1CacheBank::SharedL1CacheBank(sc_module_name name, ComponentID id, BatchModeEventRecorder *eventRecorder, uint bankNumber, uint memoryBanks, uint cacheSetCount, uint associativity, uint cacheLineSize, bool sequentialSearch, bool randomReplacement) :
 	Component(name, id)
 {
+	// Instrumentation
+
+	vEventRecorder = eventRecorder;
+
+	if (vEventRecorder != NULL) {
+		vEventRecorder->registerInstance(this, BatchModeEventRecorder::kInstanceSharedL1CacheBank);
+		vEventRecorder->setInstanceProperty(this, BatchModeEventRecorder::kPropertySharedL1CacheBankNumber, bankNumber);
+	}
+
 	// Initialise configuration
 
 	cBankNumber = bankNumber;

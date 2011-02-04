@@ -13,6 +13,7 @@
 //-------------------------------------------------------------------------------------------------
 
 #include "../../Component.h"
+#include "../../Utility/BatchMode/BatchModeEventRecorder.h"
 #include "SharedL1CacheCrossbarSwitch.h"
 
 //-------------------------------------------------------------------------------------------------
@@ -144,9 +145,16 @@ void SharedL1CacheCrossbarSwitch::processUpdateState() {
 // Constructors / Destructors
 //---------------------------------------------------------------------------------------------
 
-SharedL1CacheCrossbarSwitch::SharedL1CacheCrossbarSwitch(sc_module_name name, ComponentID id, uint channels, uint memoryBanks, uint cacheLineSize) :
+SharedL1CacheCrossbarSwitch::SharedL1CacheCrossbarSwitch(sc_module_name name, ComponentID id, BatchModeEventRecorder *eventRecorder, uint channels, uint memoryBanks, uint cacheLineSize) :
 	Component(name, id)
 {
+	// Instrumentation
+
+	vEventRecorder = eventRecorder;
+
+	if (vEventRecorder != NULL)
+		vEventRecorder->registerInstance(this, BatchModeEventRecorder::kInstanceSharedL1CacheCrossbarSwitch);
+
 	// Setup configuration parameters and dependent structures
 
 	cChannels = channels;

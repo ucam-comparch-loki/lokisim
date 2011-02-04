@@ -19,6 +19,7 @@
 #define SIMPLIFIEDBACKGROUNDMEMORY_HPP_
 
 #include "../../Component.h"
+#include "../../Utility/BatchMode/BatchModeEventRecorder.h"
 
 class SimplifiedBackgroundMemory : public Component {
 	//---------------------------------------------------------------------------------------------
@@ -93,8 +94,18 @@ private:
 	uint64_t **vMemoryTable;
 
 	//---------------------------------------------------------------------------------------------
+	// Utility definitions
+	//---------------------------------------------------------------------------------------------
+
+private:
+
+	BatchModeEventRecorder *vEventRecorder;
+
+	//---------------------------------------------------------------------------------------------
 	// Simulation utility methods
 	//---------------------------------------------------------------------------------------------
+
+private:
 
 	void debugOutputMessage(const char* message, long long arg1, long long arg2, long long arg3);
 
@@ -115,7 +126,7 @@ private:
 public:
 
 	SC_HAS_PROCESS(SimplifiedBackgroundMemory);
-	SimplifiedBackgroundMemory(sc_module_name name, ComponentID id, uint memoryBanks, uint queueLength, uint accessDelayCycles);
+	SimplifiedBackgroundMemory(sc_module_name name, ComponentID id, BatchModeEventRecorder *eventRecorder, uint memoryBanks, uint queueLength, uint accessDelayCycles);
 	virtual ~SimplifiedBackgroundMemory();
 
 	//---------------------------------------------------------------------------------------------

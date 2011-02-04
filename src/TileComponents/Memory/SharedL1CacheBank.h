@@ -15,6 +15,7 @@
 #define SHAREDL1CACHEBANK_HPP_
 
 #include "../../Component.h"
+#include "../../Utility/BatchMode/BatchModeEventRecorder.h"
 
 class SharedL1CacheBank : public Component {
 	//---------------------------------------------------------------------------------------------
@@ -154,8 +155,18 @@ private:
 	sc_signal<uint64_t>		*rCellsCacheData;		// Cache data array (theoretically cAssociativity individual memories)
 
 	//---------------------------------------------------------------------------------------------
+	// Utility definitions
+	//---------------------------------------------------------------------------------------------
+
+private:
+
+	BatchModeEventRecorder	*vEventRecorder;
+
+	//---------------------------------------------------------------------------------------------
 	// Simulation utility methods
 	//---------------------------------------------------------------------------------------------
+
+private:
 
 	void debugOutputMessage(const char* message, long long arg1, long long arg2, long long arg3);
 
@@ -164,6 +175,7 @@ private:
 	//---------------------------------------------------------------------------------------------
 
 private:
+
 	// Utility signal process
 
 	void processUtilitySignals();
@@ -195,7 +207,7 @@ private:
 public:
 
 	SC_HAS_PROCESS(SharedL1CacheBank);
-	SharedL1CacheBank(sc_module_name name, ComponentID id, uint bankNumber, uint memoryBanks, uint cacheSetCount, uint associativity, uint cacheLineSize, bool sequentialSearch, bool randomReplacement);
+	SharedL1CacheBank(sc_module_name name, ComponentID id, BatchModeEventRecorder *eventRecorder, uint bankNumber, uint memoryBanks, uint cacheSetCount, uint associativity, uint cacheLineSize, bool sequentialSearch, bool randomReplacement);
 	virtual ~SharedL1CacheBank();
 
 	//---------------------------------------------------------------------------------------------

@@ -66,7 +66,7 @@ void Chip::updateIdle() {
   idle.write(idleVal);
 }
 
-Chip::Chip(sc_module_name name, ComponentID ID) :
+Chip::Chip(sc_module_name name, ComponentID ID, BatchModeEventRecorder *eventRecorder) :
     Component(name),
     network("network") {
 
@@ -105,7 +105,7 @@ Chip::Chip(sc_module_name name, ComponentID ID) :
 		}
     } else {
 		ComponentID memoryID = j * COMPONENTS_PER_TILE + CORES_PER_TILE;
-		SharedL1CacheSubsystem* m = new SharedL1CacheSubsystem("memory", memoryID);
+		SharedL1CacheSubsystem* m = new SharedL1CacheSubsystem("memory", memoryID, eventRecorder);
 		m->idle(idleSig[memoryID]);
 		contents.push_back(m);
     }

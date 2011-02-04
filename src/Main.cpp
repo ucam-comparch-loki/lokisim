@@ -7,8 +7,11 @@
 
 #include <systemc.h>
 #include "Utility/Debugger.h"
+#include "Utility/BatchMode/BatchModeEventRecorder.h"
 #include "Utility/StartUp/CodeLoader.h"
 #include "Utility/Statistics.h"
+
+#include <stdio.h>
 
 using std::vector;
 using std::string;
@@ -21,17 +24,29 @@ using std::string;
 }
 
 int sc_main(int argc, char* argv[]) {
-  string settingsFile("test_files/loader.txt");
+  bool batchMode = false;
+
+  if (argc > 3) {
+    string firstArg(argv[1]);
+    if (firstArg == "batch")
+	  batchMode = true;
+  }
+
+  string settingsFile(batchMode ? argv[2] : "test_files/loader.txt");
   CodeLoader::loadParameters(settingsFile);
 
-  Chip chip("chip", 0);
+  BatchModeEventRecorder *eventRecorder = NULL;
+  if (batchMode)
+	  eventRecorder = new BatchModeEventRecorder();
+
+  Chip chip("chip", 0, eventRecorder);
   sc_clock clock("clock", 1, SC_NS, 0.5);
   sc_signal<bool> idle;
   chip.clock(clock);
   chip.idle(idle);
 
   bool debugMode = false;
-  if(argc > 1) {
+  if(!batchMode && argc > 1) {
     string firstArg(argv[1]);
     if(firstArg == "debug") {
       debugMode = true;
@@ -69,6 +84,12 @@ int sc_main(int argc, char* argv[]) {
           }
         }
         else cyclesIdle = 0;
+      }
+
+      if (batchMode) {
+    	FILE *statsFile = fopen(argv[3], "wb");
+    	eventRecorder->storeStatisticsToFile(statsFile);
+    	fclose(statsFile);
       }
     }
     catch(std::exception& e) {
