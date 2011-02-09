@@ -23,7 +23,6 @@ void StallRegister::newCycle() {
 }
 
 void StallRegister::newData() {
-  cout << this->name() << endl;
   assert(!buffer.full());
   buffer.write(dataIn.read());
   Instrumentation::stallRegUse(id);

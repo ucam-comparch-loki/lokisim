@@ -38,11 +38,23 @@ void Chip::print(ComponentID component, MemoryAddr start, MemoryAddr end) const 
   else          contents[component]->print(end, start);
 }
 
-Word Chip::getMemVal(ComponentID component, MemoryAddr addr) const {
-  return contents[component]->getMemVal(addr);
+Word Chip::readWord(ComponentID component, MemoryAddr addr) const {
+  return contents[component]->readWord(addr);
 }
 
-int Chip::getRegVal(ComponentID component, RegisterIndex reg) const {
+Word Chip::readByte(ComponentID component, MemoryAddr addr) const {
+  return contents[component]->readByte(addr);
+}
+
+void Chip::writeWord(ComponentID component, MemoryAddr addr, Word data) const {
+  return contents[component]->writeWord(addr, data);
+}
+
+void Chip::writeByte(ComponentID component, MemoryAddr addr, Word data) const {
+  return contents[component]->writeByte(addr, data);
+}
+
+int Chip::readRegister(ComponentID component, RegisterIndex reg) const {
   return contents[component]->readRegDebug(reg);
 }
 
@@ -50,7 +62,7 @@ Address Chip::getInstIndex(ComponentID component) const {
   return contents[component]->getInstIndex();
 }
 
-bool Chip::getPredReg(ComponentID component) const {
+bool Chip::readPredicate(ComponentID component) const {
   return contents[component]->readPredReg();
 }
 

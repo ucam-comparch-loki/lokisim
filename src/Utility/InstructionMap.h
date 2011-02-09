@@ -44,14 +44,21 @@ public:
 
   enum Operation {
 
-    NOP,          // No operation                         nop
+    NOP,          // No operation (use or r0 r0 r0?)      nop
 
     LDW,          // Load word                            ldw rs, immed -> rch
+    LDHWU,        // Load halfword (zero-extended)        ldhwu rs, immed -> rch
     LDBU,         // Load byte (zero-extended)            ldbu rs, immed -> rch
     STW,          // Store word                           stw rs, rt, immed -> rch
+    STHW,         // Store halfword                       sthw rs, rt, immed -> rch
     STB,          // Store byte                           stb rs, rt, immed -> rch
     STWADDR,      // Store address                        stwaddr rt, immed -> rch
     STBADDR,      // Store byte address                   stbaddr rt, immed -> rch
+
+    LDVECTOR,     // Load data to all SIMD cores
+    LDSTREAM,     // Load stream of data to this core
+    STVECTOR,     // Store data from all SIMD cores
+    STSTREAM,     // Store stream of data from this core
 
     SLL,          // Shift left logical variable          sll rd, rs, rt
     SRL,          // Shift right logical variable         srl rd, rs, rt
@@ -119,7 +126,9 @@ public:
     RMTEXECUTE,   // Remote execute (specify target)      rmtexecute -> rch
     RMTNXIPK,     // "Next IPK" to remote cluster         rmtnxipk -> rch
 
-    SETCHMAP      // Set channel map entry                setchmap immed, rs
+    SETCHMAP,     // Set channel map entry                setchmap immed, rs
+
+    SYSCALL       // System call                          syscall immed
 
   };
 
@@ -132,7 +141,7 @@ private:
   static void initialise();
 
   // Add a single instruction to all maps.
-  static void addToMaps(std::string name, short opcode, int instruction);
+  static void addToMaps(const std::string& name, short opcode, int instruction);
 
 };
 

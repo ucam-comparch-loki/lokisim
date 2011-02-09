@@ -32,12 +32,14 @@ int TIMEOUT = 150000;
 
 int       BYTES_PER_WORD             = 4;
 
+int RETURN_CODE = 0;
+
 //-------------------------------------------------------------------------------------------------
 // Architecture size
 //-------------------------------------------------------------------------------------------------
 
 parameter CORES_PER_TILE             = 12;
-parameter MEMS_PER_TILE              = 1;
+parameter MEMS_PER_TILE              = 4;
 
 parameter NUM_TILE_ROWS              = 1;
 parameter NUM_TILE_COLUMNS           = 1;

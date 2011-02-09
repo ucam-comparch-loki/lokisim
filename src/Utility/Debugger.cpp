@@ -59,7 +59,7 @@ void Debugger::waitForInput() {
   if(mode == DEBUGGER)
     cout << "\nEntering debug mode. Press return to begin execution." << endl;
 
-  while(true) {
+  while(!sc_core::sc_end_of_simulation_invoked()) {
     string input;
     std::getline(std::cin, input);
     vector<string>& words = StringManipulation::split(input, ' ');
@@ -136,12 +136,12 @@ void Debugger::setBreakPoint(vector<int>& bps, ComponentID memory) {
 
     if(isBreakpoint(addr)) {
       if(mode == DEBUGGER)
-        cout << "Removed breakpoint: " << chip->getMemVal(memory, bps[j]) << endl;
+        cout << "Removed breakpoint: " << chip->readWord(memory, bps[j]) << endl;
       removeBreakpoint(addr);
     }
     else {
       if(mode == DEBUGGER)
-        cout << "Set breakpoint: " << chip->getMemVal(memory, bps[j]) << endl;
+        cout << "Set breakpoint: " << chip->readWord(memory, bps[j]) << endl;
       addBreakpoint(addr);
     }
   }
@@ -152,7 +152,7 @@ void Debugger::printStack(ComponentID core, ComponentID memory) {
   static const RegisterIndex stackReg = 2;
   static const int frameSize = 28;
 
-  int stackPointer = chip->getRegVal(core, stackReg);
+  int stackPointer = chip->readRegister(core, stackReg);
   chip->print(memory, stackPointer, stackPointer+frameSize);
 }
 
@@ -161,7 +161,7 @@ void Debugger::printMemLocations(vector<int>& locs, ComponentID memory) {
     cout << "Printing value(s) from memory " << memory << endl;
 
   for(uint i=0; i<locs.size(); i++) {
-    int val = chip->getMemVal(memory, locs[i]).toInt();
+    int val = chip->readWord(memory, locs[i]).toInt();
 
     if(mode == DEBUGGER) cout << locs[i] << "\t";
     cout << val << "\n";
@@ -175,7 +175,7 @@ void Debugger::printRegs(vector<int>& regs, ComponentID core) {
   if(regs.size() == 0) {
     // If no registers were specified, print them all.
     for(uint i=0; i<NUM_ADDRESSABLE_REGISTERS; i++) {  // physical regs instead?
-      int regVal = chip->getRegVal(core, i);
+      int regVal = chip->readRegister(core, i);
 
       if(mode == DEBUGGER) cout << "r" << i << "\t";
       cout << regVal << "\n";
@@ -183,7 +183,7 @@ void Debugger::printRegs(vector<int>& regs, ComponentID core) {
   }
   else {
     for(uint i=0; i<regs.size(); i++) {
-      int regVal = chip->getRegVal(core, regs[i]);
+      int regVal = chip->readRegister(core, regs[i]);
 
       if(mode == DEBUGGER) cout << "r" << regs[i] << "\t";
       cout << regVal << "\n";
@@ -193,7 +193,7 @@ void Debugger::printRegs(vector<int>& regs, ComponentID core) {
 
 void Debugger::printPred(ComponentID core) {
   if(mode == DEBUGGER) cout << "pred\t";
-  cout << chip->getPredReg(core) << "\n";
+  cout << chip->readPredicate(core) << "\n";
 }
 
 void Debugger::executedInstruction(DecodedInst inst, ComponentID core, bool executed) {
@@ -211,7 +211,7 @@ void Debugger::executedInstruction(DecodedInst inst, ComponentID core, bool exec
 
 }
 
-void Debugger::setTile(Chip* c) {
+void Debugger::setChip(Chip* c) {
   chip = c;
 }
 

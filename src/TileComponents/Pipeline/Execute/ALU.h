@@ -14,6 +14,7 @@
 
 class DecodedInst;
 class ExecuteStage;
+class Word;
 
 class ALU: public Component {
 
@@ -40,11 +41,22 @@ private:
 
   void setPred(bool val) const;
 
+  int32_t readReg(RegisterIndex reg) const;
+  int32_t readWord(MemoryAddr addr) const;
+  int32_t readByte(MemoryAddr addr) const;
+
+  void writeReg(RegisterIndex reg, Word data) const;
+  void writeWord(MemoryAddr addr, Word data) const;
+  void writeByte(MemoryAddr addr, Word data) const;
+
   // Determine whether the current instruction should be executed, based on its
   // predicate bits, and the contents of the predicate register.
   bool shouldExecute(short predBits) const;
 
   ExecuteStage* parent() const;
+
+  void systemCall(int code) const;
+  uint convertTargetFlags(uint tflags) const;
 
 };
 

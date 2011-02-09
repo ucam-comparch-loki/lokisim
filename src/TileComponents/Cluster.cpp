@@ -168,8 +168,7 @@ void     Cluster::updateCurrentPacket(Address addr) {
 }
 
 void     Cluster::pipelineStalled(bool stalled) {
-//  Instrumentation::stalled(id, stalled);
-
+  // Instrumentation is done at the source of the stall, so isn't needed here.
   currentlyStalled = stalled;
 
   if(DEBUG) {
@@ -225,7 +224,7 @@ void     Cluster::updateIdle() {
   }
 
   // Is this what we really want?
-  idle.write(isIdle);// || currentlyStalled);
+  idle.write(isIdle || currentlyStalled);
 
   Instrumentation::idle(id, isIdle);
 }

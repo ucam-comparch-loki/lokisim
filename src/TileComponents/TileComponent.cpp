@@ -6,6 +6,7 @@
  */
 
 #include "TileComponent.h"
+#include "../Chip.h"
 #include "../Datatype/Address.h"
 #include "../Datatype/AddressedWord.h"
 
@@ -13,9 +14,10 @@ void TileComponent::print(MemoryAddr start, MemoryAddr end) const {
   // Do nothing if print isn't defined
 }
 
-const Word TileComponent::getMemVal(MemoryAddr addr) const {
-  return Word(-1);
-}
+const Word TileComponent::readWord(MemoryAddr addr) const {return Word(-1);}
+const Word TileComponent::readByte(MemoryAddr addr) const {return Word(-1);}
+void TileComponent::writeWord(MemoryAddr addr, Word data) const {}
+void TileComponent::writeByte(MemoryAddr addr, Word data) const {}
 
 const int32_t TileComponent::readRegDebug(RegisterIndex reg) const {
   return -1;
@@ -132,12 +134,51 @@ const std::string TileComponent::outputPortString(ChannelID port) {
   return result;
 }
 
+int32_t TileComponent::readMemWord(MemoryAddr addr) const {
+  // Assuming we want the first memory on this tile, and that its ID comes
+  // after all the cores.
+  int tile = id / COMPONENTS_PER_TILE;
+  ComponentID memory = tile*COMPONENTS_PER_TILE + CORES_PER_TILE;
+
+  return parent()->readWord(memory, addr).toInt();
+}
+
+int32_t TileComponent::readMemByte(MemoryAddr addr) const {
+  // Assuming we want the first memory on this tile, and that its ID comes
+  // after all the cores.
+  int tile = id / COMPONENTS_PER_TILE;
+  ComponentID memory = tile*COMPONENTS_PER_TILE + CORES_PER_TILE;
+
+  return parent()->readByte(memory, addr).toInt();
+}
+
+void TileComponent::writeMemWord(MemoryAddr addr, Word data) const {
+  // Assuming we want the first memory on this tile, and that its ID comes
+  // after all the cores.
+  int tile = id / COMPONENTS_PER_TILE;
+  ComponentID memory = tile*COMPONENTS_PER_TILE + CORES_PER_TILE;
+
+  parent()->writeWord(memory, addr, data);
+}
+
+void TileComponent::writeMemByte(MemoryAddr addr, Word data) const {
+  // Assuming we want the first memory on this tile, and that its ID comes
+  // after all the cores.
+  int tile = id / COMPONENTS_PER_TILE;
+  ComponentID memory = tile*COMPONENTS_PER_TILE + CORES_PER_TILE;
+
+  parent()->writeByte(memory, addr, data);
+}
+
+Chip* TileComponent::parent() const {
+  return static_cast<Chip*>(this->get_parent());
+}
+
 /* Constructors and destructors */
 TileComponent::TileComponent(sc_module_name name, ComponentID ID) :
     Component(name, ID) {
 
   idle.initialize(true);
-  Instrumentation::idle(id, true);
 
 }
 

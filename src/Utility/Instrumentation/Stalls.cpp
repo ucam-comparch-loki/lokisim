@@ -19,7 +19,7 @@ CounterMap<ComponentID> Stalls::predicateStalls;
 std::map<ComponentID, int> Stalls::stallReason;
 
 CounterMap<ComponentID> Stalls::idleTimes;
-uint16_t Stalls::numStalled = NUM_CORES;
+uint16_t Stalls::numStalled = 0;
 uint32_t Stalls::endOfExecution = 0;
 
 // If a core is not currently stalled, it should map to this value in the

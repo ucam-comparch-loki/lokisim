@@ -64,7 +64,7 @@ int sc_main(int argc, char* argv[]) {
   CodeLoader::loadCode(settingsFile, chip);
 
   if(debugMode) {
-    Debugger::setTile(&chip);
+    Debugger::setChip(&chip);
     Debugger::waitForInput();
   }
   else {
@@ -72,7 +72,7 @@ int sc_main(int argc, char* argv[]) {
     int i;
 
     try {
-      for(i=0; i<TIMEOUT; i++) {
+      for(i=0; i<TIMEOUT && !sc_core::sc_end_of_simulation_invoked(); i++) {
         TIMESTEP;
         if(idle.read()) {
           cyclesIdle++;
@@ -80,6 +80,7 @@ int sc_main(int argc, char* argv[]) {
             cout << "\nSystem has been idle for " << cyclesIdle << " cycles." << endl;
             sc_stop();
             Instrumentation::endExecution();
+            RETURN_CODE = 1; // Should this be some other number?
             break;
           }
         }
@@ -101,5 +102,5 @@ int sc_main(int argc, char* argv[]) {
 
   if(DEBUG) Statistics::printStats();
 
-  return 0;
+  return RETURN_CODE;
 }

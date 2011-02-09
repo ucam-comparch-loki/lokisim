@@ -144,7 +144,7 @@ public:
 
 	// Return the value at the given address
 
-	virtual const Word getMemVal(MemoryAddr addr) const;
+	virtual const Word readWord(MemoryAddr addr) const;
 
 	//---------------------------------------------------------------------------------------------
 	// Simulation utility methods inherited from Component - not part of simulated logic

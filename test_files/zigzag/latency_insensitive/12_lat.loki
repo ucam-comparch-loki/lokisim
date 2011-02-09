@@ -46,5 +46,5 @@ p?addui         r11, r11, 32
 p?fetch         r1,       -116          ; switch to moving up
 nop.eop
 
-fetch           r1,       -160          ; end of block: restart and wait for new block address
+%fetch           r1,       -160          ; end of block: restart and wait for new block address
 addui.eop       r0,  ch0, 0   > 2       ; send the final value late

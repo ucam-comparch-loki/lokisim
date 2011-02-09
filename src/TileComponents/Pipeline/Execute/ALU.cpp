@@ -23,7 +23,7 @@ bool ALU::execute(DecodedInst& dec) const {
   if(dec.operation() == InstructionMap::NOP) return false;
   if(!execute) return false;
 
-  bool pred = parent()->getPredicate();
+  bool pred = parent()->readPredicate();
 
   // Cast to 32 bits because our architecture is supposed to use 32-bit
   // arithmetic.
@@ -89,6 +89,8 @@ bool ALU::execute(DecodedInst& dec) const {
                                            (uint64_t)((uint32_t)val2)) >> 32; break;
     case InstructionMap::MULLW:  result = ((int64_t)val1 * (int64_t)val2) & -1; break;
 
+    case InstructionMap::SYSCALL:  result = 0; systemCall(val2); break;
+
     default: result = val1; // Is this a good default?
   }
 
@@ -136,12 +138,12 @@ bool ALU::execute(DecodedInst& dec) const {
 }
 
 void ALU::setPred(bool val) const {
-  parent()->setPredicate(val);
+  parent()->writePredicate(val);
 }
 
 /* Determine whether this instruction should be executed. */
 bool ALU::shouldExecute(short predBits) const {
-  bool pred = parent()->getPredicate();
+  bool pred = parent()->readPredicate();
 
   bool result = (predBits == Instruction::ALWAYS) ||
                 (predBits == Instruction::END_OF_PACKET) ||
@@ -156,10 +158,119 @@ ExecuteStage* ALU::parent() const {
   return dynamic_cast<ExecuteStage*>(this->get_parent());
 }
 
+int32_t ALU::readReg(RegisterIndex reg) const {return parent()->readReg(reg);}
+int32_t ALU::readWord(MemoryAddr addr) const {return parent()->readWord(addr);}
+int32_t ALU::readByte(MemoryAddr addr) const {return parent()->readByte(addr);}
+
+void ALU::writeReg(RegisterIndex reg, Word data) const {parent()->writeReg(reg, data);}
+void ALU::writeWord(MemoryAddr addr, Word data) const {parent()->writeWord(addr, data);}
+void ALU::writeByte(MemoryAddr addr, Word data) const {parent()->writeByte(addr, data);}
+
 ALU::ALU(sc_module_name name) : Component(name) {
   id = parent()->id;
 }
 
 ALU::~ALU() {
 
+}
+
+//==============================//
+// System call stuff
+//==============================//
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+void ALU::systemCall(int code) const {
+  // Note: for now, all system calls will complete instantaneously. This is
+  // not at all realistic, so performance of programs executing system calls
+  // should be measured with care.
+
+  switch (code) {
+    case 0x1: { /* SYS_exit */
+      RETURN_CODE = readReg(6);
+      sc_stop();
+      Instrumentation::endExecution();
+      break;
+    }
+    case 0x2: { /* SYS_open */
+      char fname[1024];
+      int mode = (int)convertTargetFlags((unsigned)readReg(7));
+      int perm = (int)readReg(8);
+      int i;
+      int fd;
+      /* read fname from Loki memory */
+      for (i=0; i < 1024; i++) {
+        char next = readByte(readReg(6) + i);
+        fname[i] = next;
+        if(next == '\0') break;
+      }
+      fd = open(fname, mode, perm);
+      if (fd < 0) {
+        perror("problem opening file");
+      }
+      /* FIXME - set errno */
+      writeReg(4, fd);
+      break;
+    }
+    case 0x3: { /* SYS_close */
+      int fd = readReg(6);
+//      fd = change_fd_if_stdio(fd);
+      writeReg(4, close(fd));
+      /* FIXME - set errno */
+      break;
+    }
+    case 0x4: { /* SYS_read */
+      int fd = readReg(6);
+//      fd = change_fd_if_stdio(fd);
+      unsigned len = (unsigned)readReg(8);
+      char *buf = (char*)malloc(len);
+      uint i;
+      writeReg(4, read(fd, buf, len));
+      for (i=0; i < len; i++) {
+        writeByte(readReg(7)+i, buf[i]);
+      }
+      free(buf);
+      /* FIXME - set errno */
+      break;
+    }
+    case 0x5: { /* SYS_write */
+      unsigned len = (unsigned)readReg(8);
+      char *str = (char*)malloc(len);
+      uint i;
+      int fd = readReg(6);
+//      fd = change_fd_if_stdio(fd);
+      /* copy string out of Loki memory */
+      for (i=0; i < len; i++) {
+        str[i] = readByte(readReg(7) + i);
+      }
+      writeReg(4, write(fd, str, len));
+      free(str);
+      break;
+    }
+  }
+}
+
+/* convert_target_flags taken from moxie interp */
+#define CHECK_FLAG(T,H) if(tflags & T) { hflags |= H; tflags ^= T; }
+
+/* Convert between newlib flag constants and Linux ones. */
+uint ALU::convertTargetFlags(uint tflags) const {
+  uint hflags = 0x0;
+
+  CHECK_FLAG(0x0001, O_WRONLY);
+  CHECK_FLAG(0x0002, O_RDWR);
+  CHECK_FLAG(0x0008, O_APPEND);
+  CHECK_FLAG(0x0200, O_CREAT);
+  CHECK_FLAG(0x0400, O_TRUNC);
+  CHECK_FLAG(0x0800, O_EXCL);
+  CHECK_FLAG(0x2000, O_SYNC);
+
+  if(tflags != 0x0)
+    fprintf (stderr,
+       "Simulator Error: problem converting target open flags for host.  0x%x\n",
+       tflags);
+
+  return hflags;
 }

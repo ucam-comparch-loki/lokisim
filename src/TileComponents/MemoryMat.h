@@ -64,7 +64,10 @@ public:
   virtual void print(MemoryAddr start=0, MemoryAddr end=MEMORY_SIZE) const;
 
   // Return the value at the given address.
-  virtual const Word getMemVal(MemoryAddr addr) const;
+  virtual const Word readWord(MemoryAddr addr) const;
+  virtual const Word readByte(MemoryAddr addr) const;
+  virtual void writeWord(MemoryAddr addr, Word data);
+  virtual void writeByte(MemoryAddr addr, Word data);
 
 private:
 

@@ -57,10 +57,16 @@ private:
   virtual bool isStalled() const;
 
   // Read the predicate register.
-  bool getPredicate() const;
+  bool readPredicate() const;
+  int32_t readReg(RegisterIndex reg) const;
+  int32_t readWord(MemoryAddr addr) const;
+  int32_t readByte(MemoryAddr addr) const;
 
   // Write to the predicate register.
-  void setPredicate(bool val) const;
+  void writePredicate(bool val) const;
+  void writeReg(RegisterIndex reg, Word data) const;
+  void writeWord(MemoryAddr addr, Word data) const;
+  void writeByte(MemoryAddr addr, Word data) const;
 
   // Check the forwarding paths to see if this instruction is expecting a value
   // which hasn't been written to registers yet.

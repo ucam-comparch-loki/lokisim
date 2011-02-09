@@ -6,6 +6,7 @@
  */
 
 #include "InstructionMap.h"
+#include <set>
 
 // Need to define static class members
 std::map<std::string, short> InstructionMap::nto; // name to opcode
@@ -31,45 +32,57 @@ std::string& InstructionMap::name(int operation) {
 
 /* Return whether the instruction contains an immediate value */
 bool InstructionMap::hasImmediate(short op) {
-  /*
-   * Instructions with immediates:
-   *  LDW, LDB, STW, STB, STWADDR, STBADDR,
-   *  SLLI, SRLI, SRAI,
-   *  SETEQI, SETNEI, SETLTI, SETLTUI, SETGTEUI, LUI
-   *  NORI, ANDI, ORI, XORI
-   *  ADDUI, RSUBI
-   *  FETCH, FETCHPST, RMTFETCH, RMTFETCHPST, IBJMP, RMTFILL
-   */
+  static const short withImmed[] = {
+      LDW, LDBU, STW, STB, STWADDR, STBADDR,
+      SLLI, SRLI, SRAI,
+      SETEQI, SETNEI, SETLTI, SETLTUI, SETGTEUI, LUI,
+      NORI, ANDI, ORI, XORI,
+      ADDUI, RSUBI,
+      FETCH, FETCHPST, RMTFETCH, RMTFETCHPST, IBJMP, RMTFILL,
+      SETCHMAP, SYSCALL
+  };
 
-  return (op>=LDW && op<=STBADDR) || (op>=SLLI && op <=SRAI)
-      || (op>=SETEQI && op<=LUI) || (op>=NORI && op<=XORI)
-      || (op == RSUBI) || (op == ADDUI) || (op>=IBJMP && op<=RMTFILL);
+  static const std::set<short> ops(withImmed, withImmed+29);
+
+  // The operation has an immediate if it is in the set.
+  return ops.find(op) != ops.end();
 
 }
 
 /* Return whether the instruction specifies a remote channel */
 bool InstructionMap::hasRemoteChannel(short op) {
-  /*
-   * Instructions with remote channels:
-   *  LDW, LDB, STW, STB, STWADDR, STBADDR,
-   *  RMTFETCH, RMTFETCHPST, RMTFILL, RMTEXECUTE, RMTNXIPK
-   */
+  // Since so many instructions may send their results onto the network, we
+  // only list the ones which don't here.
+  // Note that the number of instructions with remote channels may decrease
+  // when we finalise an instruction encoding.
+  static const short noChannel[] = {
+      NOP,
+      WOCHE, TSTCH, SELCH,
+      SETFETCHCH, IBJMP, FETCH, PSELFETCH, FETCHPST, SETCHMAP,
+      SYSCALL
+  };
 
-  // For Version 1.0, allow all instructions to specify remote channels
-  return isALUOperation(op) || (op == TSTCH) || (op == SELCH) || (op>=LDW && op<=STBADDR);// || (op>=RMTFETCH && op<=RMTNXIPK);
+  static const std::set<short> ops(noChannel, noChannel+11);
+
+  // The operation has a remote channel if it isn't in the set.
+  return ops.find(op) == ops.end();
 }
 
 /* Return whether the operation requires use of the ALU */
 bool InstructionMap::isALUOperation(short op) {
-  /*
-   * Instructions which DON'T use the ALU:
-   * LDW, LDB, STW, STB, STWADDR, STBADDR,   // Not sure about these
-   * WOCHE, TSTCH, SELCH
-   * SETFETCHCH, IBJMP, FETCH, FETCHPST, RMTFETCH, RMTFETCHPST, RMTFILL,
-   * RMTEXECUTE, RMTNXIPK
-   */
+  // Since there are far more instructions which use the ALU than which don't,
+  // we only list the ones that don't here.
+  static const short notALU[] = {
+      /*LDW, LDBU,*/ STW, STB, STWADDR, STBADDR,
+      WOCHE, TSTCH, SELCH,
+      SETFETCHCH, IBJMP, FETCH, PSELFETCH, FETCHPST, RMTFETCH, RMTFETCHPST,
+      RMTFILL, RMTEXECUTE, RMTNXIPK, SETCHMAP, SYSCALL
+  };
 
-  return !(op>=/*LDW*/STW && op<=STBADDR) && !(op>=WOCHE && op<=SETCHMAP);
+  static const std::set<short> ops(notALU, notALU+17);
+
+  // The operation is an ALU operation if it isn't in the set.
+  return ops.find(op) == ops.end();
 }
 
 
@@ -85,11 +98,18 @@ void InstructionMap::initialise() {
   a=0;    addToMaps("nop", a, NOP);
 
   a++;    addToMaps("ldw", a, LDW);
+  a++;    addToMaps("ldhwu", a, LDHWU);
   a++;    addToMaps("ldbu", a, LDBU);
   a++;    addToMaps("stw", a, STW);
+  a++;    addToMaps("sthw", a, STHW);
   a++;    addToMaps("stb", a, STB);
   a++;    addToMaps("stwaddr", a, STWADDR);
   a++;    addToMaps("stbaddr", a, STBADDR);
+
+  a++;    addToMaps("ldvec", a, LDVECTOR);
+  a++;    addToMaps("ldstr", a, LDSTREAM);
+  a++;    addToMaps("stvec", a, STVECTOR);
+  a++;    addToMaps("ststr", a, STSTREAM);
 
   a++;    addToMaps("sll", a, SLL);
   a++;    addToMaps("srl", a, SRL);
@@ -159,12 +179,14 @@ void InstructionMap::initialise() {
 
   a++;    addToMaps("setchmap", a, SETCHMAP);
 
+  a++;    addToMaps("syscall", a, SYSCALL);
+
 
   initialised = true;
 
 }
 
-void InstructionMap::addToMaps(std::string name, short opcode, int instruction) {
+void InstructionMap::addToMaps(const std::string& name, short opcode, int instruction) {
   nto[name] = opcode;
   oti[opcode] = instruction;
   itn[instruction] = name;

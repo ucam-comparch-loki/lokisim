@@ -31,6 +31,9 @@ extern int			TIMEOUT;
 
 extern int			BYTES_PER_WORD;
 
+// Not a parameter, but may be used anywhere. Any ideas where to put this?
+extern int      RETURN_CODE;
+
 //-------------------------------------------------------------------------------------------------
 // Architecture size
 //-------------------------------------------------------------------------------------------------

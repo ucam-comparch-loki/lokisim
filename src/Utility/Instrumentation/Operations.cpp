@@ -41,7 +41,7 @@ void Operations::printStats() {
 
     int executed = executedOps.numEvents();
 
-    for(int i=0; i<InstructionMap::SETCHMAP; i++) {
+    for(int i=0; i<InstructionMap::SYSCALL; i++) {
       if(executedOps[i] > 0 || unexecutedOps[i] > 0) {
         string name = InstructionMap::name(i);
 

@@ -60,10 +60,13 @@ public:
   void    storeData(vector<Word>& data, ComponentID component, MemoryAddr location=0);
 
   void    print(ComponentID component, MemoryAddr start, MemoryAddr end) const;
-  Word    getMemVal(ComponentID component, MemoryAddr addr) const;
-  int     getRegVal(ComponentID component, RegisterIndex reg) const;
+  Word    readWord(ComponentID component, MemoryAddr addr) const;
+  Word    readByte(ComponentID component, MemoryAddr addr) const;
+  void    writeWord(ComponentID component, MemoryAddr addr, Word data) const;
+  void    writeByte(ComponentID component, MemoryAddr addr, Word data) const;
+  int     readRegister(ComponentID component, RegisterIndex reg) const;
   Address getInstIndex(ComponentID component) const;
-  bool    getPredReg(ComponentID component) const;
+  bool    readPredicate(ComponentID component) const;
 
 private:
 

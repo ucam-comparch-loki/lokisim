@@ -338,7 +338,7 @@ void SharedL1CacheSubsystem::print(MemoryAddr start = 0, MemoryAddr end = MEMORY
 
 // Return the value at the given address
 
-const Word SharedL1CacheSubsystem::getMemVal(MemoryAddr addr) const {
+const Word SharedL1CacheSubsystem::readWord(MemoryAddr addr) const {
 	uint32_t address = addr;
 	uint64_t data;
 

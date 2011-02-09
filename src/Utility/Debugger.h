@@ -35,7 +35,7 @@ public:
   static void executedInstruction(DecodedInst i, ComponentID core, bool executed);
 
   // Choose the tile to debug. Make this more general later.
-  static void setTile(Chip* c);
+  static void setChip(Chip* c);
 
 private:
 

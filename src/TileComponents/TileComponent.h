@@ -17,6 +17,7 @@
 
 class Address;
 class AddressedWord;
+class Chip;
 class Word;
 
 class TileComponent : public Component {
@@ -69,8 +70,11 @@ public:
   // Print information about the component.
   virtual void print(MemoryAddr start, MemoryAddr end) const;
 
-  // Return the data held at the given memory address.
-  virtual const Word getMemVal(MemoryAddr addr) const;
+  // Access the memory contents of this component.
+  virtual const Word readWord(MemoryAddr addr) const;
+  virtual const Word readByte(MemoryAddr addr) const;
+  virtual void writeWord(MemoryAddr addr, Word data) const;
+  virtual void writeByte(MemoryAddr addr, Word data) const;
 
   // Return the value held in the specified register.
   virtual const int32_t readRegDebug(RegisterIndex reg) const;
@@ -91,6 +95,16 @@ public:
   // Convert a unique port address into the form "(component, port)".
   static const std::string inputPortString(ChannelID port);
   static const std::string outputPortString(ChannelID port);
+
+protected:
+
+  // Methods used by a core or memory to access the contents of memory.
+  int32_t readMemWord(MemoryAddr addr) const;
+  int32_t readMemByte(MemoryAddr addr) const;
+  void writeMemWord(MemoryAddr addr, Word data) const;
+  void writeMemByte(MemoryAddr addr, Word data) const;
+
+  Chip*            parent() const;
 
 };
 

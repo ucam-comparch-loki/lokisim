@@ -49,7 +49,7 @@ seteqi.p    r0,  r2,  8             ; set predicate if we've finished all 8 rows
 nop                                ;  can't remove this nop for some reason
 !p?ibjmp    -128                    ; jump back to start of loop (column = 0)
 
-or          r0,  r31, r0  > 3       ; send a pointer to the output block to the next core
+or.eop      r0,  r31, r0  > 3       ; send a pointer to the output block to the next core
 ibjmp.eop   -148                    ; jump to beginning (wait for input)
 
 
@@ -108,4 +108,5 @@ addui       r2,  r2,  1             ; increment current column
 seteqi.p    r0,  r2,  8             ; set predicate if we've finished all 8 columns
 !p?ibjmp    -128                    ; jump back to start of loop (row = 0)
 
+nop.eop
 ibjmp.eop   -140                    ; jump to beginning (wait for input)

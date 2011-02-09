@@ -84,7 +84,7 @@ void MemoryMat::read(ChannelIndex port) {
 
   ConnectionStatus& connection = connections_[port];
   MemoryAddr addr = connection.address();
-  Word data = getMemVal(addr);
+  Word data = readWord(addr);
   ChannelID returnAddr = connection.channel();
 
   // Collect some information about the read.
@@ -137,12 +137,8 @@ void MemoryMat::write(ChannelIndex port) {
   Word data = inputBuffers_[port].read();
   sendCredit(port); // Removed something from the buffer so send a credit.
 
-  if(connection.isByteAccess()) {
-    Word current = getMemVal(addr);
-    Word updated = current.setByte(addr%BYTES_PER_WORD, data.toInt());
-    writeMemory(addr, updated);
-  }
-  else writeMemory(addr, data);
+  if(connection.isByteAccess()) writeByte(addr, data);
+  else                          writeWord(addr, data);
 
   // If we're expecting more writes, update the address, otherwise clear it
   // and check for another operation.
@@ -302,6 +298,7 @@ void MemoryMat::arbitrate(std::vector<ChannelIndex>& inputs) {
 /* Update this memory's idle status, saying whether anything happened or was
  * waiting to happen this cycle. */
 void MemoryMat::updateIdle() {
+  if(active == !idle.read()) return;
   idle.write(!active);
   Instrumentation::idle(id, !active);
 }
@@ -341,8 +338,22 @@ void MemoryMat::print(MemoryAddr start, MemoryAddr end) const {
   data_.print(start/BYTES_PER_WORD, end/BYTES_PER_WORD);
 }
 
-const Word MemoryMat::getMemVal(MemoryAddr addr) const {
+const Word MemoryMat::readWord(MemoryAddr addr) const {
   return data_.read(addr/BYTES_PER_WORD);
+}
+
+const Word MemoryMat::readByte(MemoryAddr addr) const {
+  return data_.read(addr/BYTES_PER_WORD).getByte(addr%BYTES_PER_WORD);
+}
+
+void MemoryMat::writeWord(MemoryAddr addr, Word data) {
+  writeMemory(addr, data);
+}
+
+void MemoryMat::writeByte(MemoryAddr addr, Word data) {
+  Word current = readWord(addr);
+  Word updated = current.setByte(addr%BYTES_PER_WORD, data.toInt());
+  writeMemory(addr, updated);
 }
 
 void MemoryMat::writeMemory(MemoryAddr addr, Word data) {
@@ -369,6 +380,8 @@ MemoryMat::MemoryMat(sc_module_name name, ComponentID ID) :
   SC_METHOD(newData);
   for(uint i=0; i<NUM_MEMORY_INPUTS; i++) sensitive << in[i];
   dont_initialize();
+
+  Instrumentation::idle(id, true);
 
   end_module(); // Needed because we're using a different Component constructor
 
