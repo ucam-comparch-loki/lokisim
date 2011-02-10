@@ -80,6 +80,18 @@ void SimplifiedBackgroundMemory::processMemory() {
 			uint tableSlot = address >> 16;
 			uint subAddress = address & 0xFFFFUL;
 
+			if (vMinimumAddress > address) {
+				vMinimumAddress = address;
+				if (vEventRecorder != NULL)
+					vEventRecorder->setInstanceProperty(this, kPropertyAddressSpaceUsedMinimum, vMinimumAddress);
+			}
+
+			if (vMaximumAddress < address) {
+				vMaximumAddress = address;
+				if (vEventRecorder != NULL)
+					vEventRecorder->setInstanceProperty(this, kPropertyAddressSpaceUsedMaximum, vMaximumAddress);
+			}
+
 			if (vRequestQueueData[bank * cQueueLength + vRequestQueueReadCursor[bank]].WriteAccess) {
 				// Write request
 
@@ -89,12 +101,18 @@ void SimplifiedBackgroundMemory::processMemory() {
 				}
 
 				vMemoryTable[tableSlot][subAddress] = vRequestQueueData[bank * cQueueLength + vRequestQueueReadCursor[bank]].Data;
+
+				if (vEventRecorder != NULL)
+					vEventRecorder->recordInstanceEventNT(this, kEventWrite);
 			} else {
 				// Read request
 
 				vDelayedOutputBuffer[vDelayedOutputWriteCursor].BankNumber = bank;
 				vDelayedOutputBuffer[vDelayedOutputWriteCursor].Data = (vMemoryTable[tableSlot] == NULL) ? 0 : vMemoryTable[tableSlot][subAddress];
 				vDelayedOutputBuffer[vDelayedOutputWriteCursor].Valid = true;
+
+				if (vEventRecorder != NULL)
+					vEventRecorder->recordInstanceEventNT(this, kEventRead);
 			}
 
 			vRequestQueueReadCursor[bank] = (vRequestQueueReadCursor[bank] + 1) % cQueueLength;
@@ -126,7 +144,7 @@ void SimplifiedBackgroundMemory::processMemory() {
 
 //-------------------------------------------------------------------------------------------------
 // Constructors / Destructors
-//-------------------------------------------------------------------------------------------------
+//-------------------------vMinimumAddress------------------------------------------------------------------------
 
 SimplifiedBackgroundMemory::SimplifiedBackgroundMemory(sc_module_name name, ComponentID id, BatchModeEventRecorder *eventRecorder, uint memoryBanks, uint queueLength, uint accessDelayCycles) :
 	Component(name, id)
@@ -137,6 +155,9 @@ SimplifiedBackgroundMemory::SimplifiedBackgroundMemory(sc_module_name name, Comp
 
 	if (vEventRecorder != NULL)
 		vEventRecorder->registerInstance(this, BatchModeEventRecorder::kInstanceSimplifiedBackgroundMemory);
+
+	vMinimumAddress = 0xFFFFFFFFUL;
+	vMaximumAddress = 0;
 
 	// Initialise configuration
 

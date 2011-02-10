@@ -157,7 +157,7 @@ SharedL1CacheNetworkInterface::SharedL1CacheNetworkInterface(sc_module_name name
 
 	if (vEventRecorder != NULL) {
 		vEventRecorder->registerInstance(this, BatchModeEventRecorder::kInstanceSharedL1CacheNetworkInterface);
-		vEventRecorder->setInstanceProperty(this, BatchModeEventRecorder::kPropertySharedL1CacheChannelNumber, channel);
+		vEventRecorder->setInstanceProperty(this, kPropertyChannelNumber, channel);
 	}
 
 	// Check and setup configuration parameters

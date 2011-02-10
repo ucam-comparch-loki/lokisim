@@ -110,6 +110,17 @@ private:
 
 	BatchModeEventRecorder		*vEventRecorder;
 
+	static const int			kPropertyChannels				= 1000;
+	static const int			kPropertyInterfaceQueueDepth	= 1001;
+	static const int			kPropertyBanks					= 1002;
+	static const int			kPropertySetsPerBank			= 1003;
+	static const int			kPropertyAssociativity			= 1004;
+	static const int			kPropertyLineSize				= 1005;
+	static const int			kPropertySequentialSearch		= 1006;
+	static const int			kPropertyRandomReplacement		= 1007;
+	static const int			kPropertyMemoryQueueDepth		= 1008;
+	static const int			kPropertyMemoryDelayCycles		= 1009;
+
 	//---------------------------------------------------------------------------------------------
 	// Processes
 	//---------------------------------------------------------------------------------------------

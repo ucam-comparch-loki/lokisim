@@ -99,7 +99,16 @@ private:
 
 private:
 
+	uint32_t vMinimumAddress;
+	uint32_t vMaximumAddress;
+
 	BatchModeEventRecorder *vEventRecorder;
+
+	static const int kPropertyAddressSpaceUsedMinimum	= 1100;
+	static const int kPropertyAddressSpaceUsedMaximum	= 1101;
+
+	static const int kEventRead							= 1;
+	static const int kEventWrite						= 2;
 
 	//---------------------------------------------------------------------------------------------
 	// Simulation utility methods

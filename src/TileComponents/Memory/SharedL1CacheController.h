@@ -112,6 +112,37 @@ private:
 
 	BatchModeEventRecorder	*vEventRecorder;
 
+	static const int		kPropertyChannelNumber				= 1050;
+
+	static const int		kEvent_STATE_IDLE					= 1;
+	static const int		kEvent_STATE_CONNECTED_IDLE			= 2;
+	static const int		kEvent_STATE_READ_WORD_PENDING		= 3;
+	static const int		kEvent_STATE_READ_BYTE_PENDING		= 4;
+	static const int		kEvent_STATE_READ_IPK_PENDING		= 5;
+	static const int		kEvent_STATE_READ_STALLED			= 6;
+	static const int		kEvent_STATE_READ_IPK_STALLED		= 7;
+	static const int		kEvent_STATE_WRITE_WORD_DATA		= 8;
+	static const int		kEvent_STATE_WRITE_BYTE_DATA		= 9;
+	static const int		kEvent_STATE_WRITE_PENDING			= 10;
+
+	static const int		kEventConnectionSetup				= 20;
+	static const int		kEventConnectionSetupStalled		= 21;
+	static const int		kEventReadWordStart					= 22;
+	static const int		kEventReadByteStart					= 23;
+	static const int		kEventReadIPKStart					= 24;
+	static const int		kEventWriteWordStart				= 25;
+	static const int		kEventWriteByteStart				= 26;
+
+	static const int		kEventChainedOffset					= 10;
+
+	static const int		kEventConnectionSetupChained		= kEventConnectionSetup + kEventChainedOffset;
+	static const int		kEventConnectionSetupChainedStalled	= kEventConnectionSetupStalled + kEventChainedOffset;
+	static const int		kEventReadWordChained				= kEventReadWordStart + kEventChainedOffset;
+	static const int		kEventReadByteChained				= kEventReadByteStart + kEventChainedOffset;
+	static const int		kEventReadIPKChained				= kEventReadIPKStart + kEventChainedOffset;
+	static const int		kEventWriteWordChained				= kEventWriteWordStart + kEventChainedOffset;
+	static const int		kEventWriteByteChained				= kEventWriteByteStart + kEventChainedOffset;
+
 	//---------------------------------------------------------------------------------------------
 	// Simulation utility methods
 	//---------------------------------------------------------------------------------------------
@@ -133,7 +164,7 @@ private:
 	// Combinational FSM logic
 
 	void processFSMCombinational();
-	void subProcessInitiateRequest(MemoryRequest &vRequest);
+	void subProcessInitiateRequest(MemoryRequest &vRequest, bool chained);
 
 	// Idle signal steering
 

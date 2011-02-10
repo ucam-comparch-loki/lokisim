@@ -65,6 +65,9 @@ void SharedL1CacheController::debugOutputMessage(const char* message, long long 
 void SharedL1CacheController::processFSMRegisters() {
 	debugOutputMessage("Updating registers");
 
+	if (vEventRecorder != NULL)
+		vEventRecorder->commitInstanceEvents(this);
+
 	rCurrentState.write(sNextState.read());
 	rRemoteChannel.write(sRemoteChannel.read());
 	rAddress.write(sAddress.read());
@@ -79,6 +82,9 @@ void SharedL1CacheController::processFSMCombinational() {
 	// Update instrumentation
 
 	//Instrumentation::idle(id, rCurrentState.read() == STATE_IDLE || rCurrentState.read() == STATE_CONNECTED_IDLE);
+
+	if (vEventRecorder != NULL)
+		vEventRecorder->resetInstanceEvents(this);
 
 	// Convert memory request
 
@@ -110,6 +116,9 @@ void SharedL1CacheController::processFSMCombinational() {
 	case STATE_IDLE:
 		// No connection established
 
+		if (vEventRecorder != NULL)
+			vEventRecorder->recordInstanceEvent(this, kEvent_STATE_IDLE);
+
 		if (iDataRxAvailable.read() && iDataTxFree.read()) {
 			// New request data is available and flow control permits sending message to client
 
@@ -121,6 +130,9 @@ void SharedL1CacheController::processFSMCombinational() {
 
 			if (vRequest.isSetup()) {
 				debugOutputMessage("Set-up connection at channel %lld", cChannel);
+
+				if (vEventRecorder != NULL)
+					vEventRecorder->recordInstanceEvent(this, kEventConnectionSetup);
 
 				// Load response address into register
 
@@ -141,6 +153,9 @@ void SharedL1CacheController::processFSMCombinational() {
 		} else {
 			// No new request available or sending data not permitted - stay idle
 
+			if (vEventRecorder != NULL && iDataRxAvailable.read())
+				vEventRecorder->recordInstanceEvent(this, kEventConnectionSetupStalled);
+
 			sNextState.write(STATE_IDLE);
 		}
 
@@ -149,14 +164,20 @@ void SharedL1CacheController::processFSMCombinational() {
 	case STATE_CONNECTED_IDLE:
 		// Connection established and idle
 
+		if (vEventRecorder != NULL)
+			vEventRecorder->recordInstanceEvent(this, kEvent_STATE_CONNECTED_IDLE);
+
 		// Check whether there is an request ready and initiate it
 
-		subProcessInitiateRequest(vRequest);
+		subProcessInitiateRequest(vRequest, false);
 
 		break;
 
 	case STATE_READ_WORD_PENDING:
 		// Waiting for memory to read word
+
+		if (vEventRecorder != NULL)
+			vEventRecorder->recordInstanceEvent(this, kEvent_STATE_READ_WORD_PENDING);
 
 		if (iAcknowledge.read()) {
 			// Memory access completed - data must be consumed and request signals cleared unless there is another request
@@ -171,7 +192,7 @@ void SharedL1CacheController::processFSMCombinational() {
 
 				// Check whether chaining another request without stall cycle is possible
 
-				subProcessInitiateRequest(vRequest);
+				subProcessInitiateRequest(vRequest, true);
 			} else {
 				debugOutputMessage("Pending word read acknowledged and stalled due to flow control - read 0x%.8llX from address %lld", iData.read(), rAddress.read());
 
@@ -199,6 +220,9 @@ void SharedL1CacheController::processFSMCombinational() {
 	case STATE_READ_BYTE_PENDING:
 		// Waiting for memory to read word - byte extraction needed
 
+		if (vEventRecorder != NULL)
+			vEventRecorder->recordInstanceEvent(this, kEvent_STATE_READ_BYTE_PENDING);
+
 		if (iAcknowledge.read()) {
 			// Memory access completed - data must be consumed and request signals cleared unless there is another request
 
@@ -214,7 +238,7 @@ void SharedL1CacheController::processFSMCombinational() {
 
 				// Check whether chaining another request without stall cycle is possible
 
-				subProcessInitiateRequest(vRequest);
+				subProcessInitiateRequest(vRequest, true);
 			} else {
 				debugOutputMessage("Pending byte read acknowledged and stalled due to flow control - read 0x%.2llX from address %lld", ((iData.read() >> (rByteSelect.read() * 8)) & 0xFFUL), rAddress.read());
 
@@ -242,6 +266,9 @@ void SharedL1CacheController::processFSMCombinational() {
 	case STATE_READ_IPK_PENDING:
 		// Waiting for memory to read word - IPK streaming in progress
 
+		if (vEventRecorder != NULL)
+			vEventRecorder->recordInstanceEvent(this, kEvent_STATE_READ_IPK_PENDING);
+
 		if (iAcknowledge.read()) {
 			// Memory access completed - data must be consumed and request signals cleared unless there is another request
 
@@ -259,7 +286,7 @@ void SharedL1CacheController::processFSMCombinational() {
 
 					// Check whether chaining another request without stall cycle is possible
 
-					subProcessInitiateRequest(vRequest);
+					subProcessInitiateRequest(vRequest, true);
 				} else {
 					debugOutputMessage("Pending instruction read acknowledged and forwarded - read 0x%.16llX from address %lld (packet continues)", iData.read(), rAddress.read());
 
@@ -271,7 +298,6 @@ void SharedL1CacheController::processFSMCombinational() {
 					oDataTxEnable.write(true);
 
 					// Load new memory address into register
-					debugOutputMessage("Pending instruction read acknowledged and stalled due to flow control - read 0x%.16llX from address %lld", iData.read(), rAddress.read());
 
 					sAddress.write(rAddress.read() + 4);
 
@@ -309,6 +335,9 @@ void SharedL1CacheController::processFSMCombinational() {
 	case STATE_READ_STALLED:
 		// Memory access completed but flow control does not permit sending back the data
 
+		if (vEventRecorder != NULL)
+			vEventRecorder->recordInstanceEvent(this, kEvent_STATE_READ_STALLED);
+
 		if (iDataTxFree.read()) {
 			debugOutputMessage("Stalled data read completed - sent 0x%.8llX", rDataBuffer.read());
 
@@ -319,7 +348,7 @@ void SharedL1CacheController::processFSMCombinational() {
 
 			// Check whether chaining another request without stall cycle is possible
 
-			subProcessInitiateRequest(vRequest);
+			subProcessInitiateRequest(vRequest, true);
 		} else {
 			debugOutputMessage("Stalled data read pending");
 
@@ -332,6 +361,9 @@ void SharedL1CacheController::processFSMCombinational() {
 
 	case STATE_READ_IPK_STALLED:
 		// IPK related memory access completed but flow control does not permit sending back the data
+
+		if (vEventRecorder != NULL)
+			vEventRecorder->recordInstanceEvent(this, kEvent_STATE_READ_IPK_STALLED);
 
 		if (iDataTxFree.read()) {
 			// Sending back data is possible - do so
@@ -347,7 +379,7 @@ void SharedL1CacheController::processFSMCombinational() {
 
 				// Check whether chaining another request without stall cycle is possible
 
-				subProcessInitiateRequest(vRequest);
+				subProcessInitiateRequest(vRequest, true);
 			} else {
 				debugOutputMessage("Stalled instruction read completed - sent 0x%.16llX (packet continues)", rDataBuffer.read());
 
@@ -381,6 +413,9 @@ void SharedL1CacheController::processFSMCombinational() {
 
 	case STATE_WRITE_WORD_DATA:
 		// Waiting for data word to write
+
+		if (vEventRecorder != NULL)
+			vEventRecorder->recordInstanceEvent(this, kEvent_STATE_WRITE_WORD_DATA);
 
 		if (iDataRxAvailable.read()) {
 			debugOutputMessage("Data word to write available - writing 0x%.8llX (byte mask 0x%.1llX) to address %lld", (uint64_t)(iDataRx.read().toLong()), rByteMask.read(), rAddress.read());
@@ -418,6 +453,9 @@ void SharedL1CacheController::processFSMCombinational() {
 	case STATE_WRITE_BYTE_DATA:
 		// Waiting for data byte to write
 
+		if (vEventRecorder != NULL)
+			vEventRecorder->recordInstanceEvent(this, kEvent_STATE_WRITE_BYTE_DATA);
+
 		if (iDataRxAvailable.read()) {
 			debugOutputMessage("Data byte to write available - writing 0x%.8llX (byte mask 0x%.1llX) to address %lld", (uint64_t)(iDataRx.read().toLong()), rByteMask.read(), rAddress.read());
 
@@ -454,6 +492,9 @@ void SharedL1CacheController::processFSMCombinational() {
 	case STATE_WRITE_PENDING:
 		// Waiting for memory to write data (word or byte)
 
+		if (vEventRecorder != NULL)
+			vEventRecorder->recordInstanceEvent(this, kEvent_STATE_WRITE_PENDING);
+
 		if (iAcknowledge.read()) {
 			// Memory access completed - request signals must be cleared unless there is another request (ports cleared implicitly)
 
@@ -461,7 +502,7 @@ void SharedL1CacheController::processFSMCombinational() {
 
 			// Check whether chaining another request without stall cycle is possible
 
-			subProcessInitiateRequest(vRequest);
+			subProcessInitiateRequest(vRequest, true);
 		} else {
 			debugOutputMessage("Write in progress");
 
@@ -481,7 +522,7 @@ void SharedL1CacheController::processFSMCombinational() {
 
 // Checks whether a request is ready at the input ports and initiates it, otherwise it returns to connected idle state
 
-void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest) {
+void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest, bool chained) {
 	if (iDataRxAvailable.read()) {
 		// New request data is available
 
@@ -492,6 +533,9 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 				// Flow control permits sending message to client (otherwise try again next clock cycle)
 
 				debugOutputMessage("Set-up replacement connection at channel %lld", cChannel);
+
+				if (vEventRecorder != NULL)
+					vEventRecorder->recordInstanceEvent(this, kEventConnectionSetup + (chained ? kEventChainedOffset : 0));
 
 				// Remove request from input queue
 
@@ -508,6 +552,9 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 				oDataTxEnable.write(true);
 			} else {
 				debugOutputMessage("Set-up of replacement connection at channel %lld delayed by flow control", cChannel);
+
+				if (vEventRecorder != NULL)
+					vEventRecorder->recordInstanceEvent(this, kEventConnectionSetupStalled + (chained ? kEventChainedOffset : 0));
 			}
 
 			sNextState.write(STATE_CONNECTED_IDLE);
@@ -524,6 +571,9 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 
 			if (vRequest.isIPKRequest()) {
 				debugOutputMessage("IPK load from address %lld", vRequest.address());
+
+				if (vEventRecorder != NULL)
+					vEventRecorder->recordInstanceEvent(this, kEventReadIPKStart + (chained ? kEventChainedOffset : 0));
 
 				if ((vRequest.address() & 0x3) != 0)
 					cerr << "WARNING: Unaligned write access detected" << endl;
@@ -543,6 +593,9 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 			} else if (vRequest.byteAccess()) {
 				debugOutputMessage("Byte load from address %lld", vRequest.address());
 
+				if (vEventRecorder != NULL)
+					vEventRecorder->recordInstanceEvent(this, kEventReadByteStart + (chained ? kEventChainedOffset : 0));
+
 				// Load memory address into register
 
 				sAddress.write(vRequest.address() & 0xFFFFFFFC);
@@ -561,6 +614,9 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 				sNextState.write(STATE_READ_BYTE_PENDING);
 			} else {
 				debugOutputMessage("Word load from address %lld", vRequest.address());
+
+				if (vEventRecorder != NULL)
+					vEventRecorder->recordInstanceEvent(this, kEventReadWordStart + (chained ? kEventChainedOffset : 0));
 
 				if ((vRequest.address() & 0x3) != 0)
 					cerr << "WARNING: Unaligned write access detected" << endl;
@@ -592,6 +648,9 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 			if (vRequest.byteAccess()) {
 				debugOutputMessage("Byte store to address %lld", vRequest.address());
 
+				if (vEventRecorder != NULL)
+					vEventRecorder->recordInstanceEvent(this, kEventWriteByteStart + (chained ? kEventChainedOffset : 0));
+
 				sAddress.write(vRequest.address() & 0xFFFFFFFC);
 				sByteMask.write(1UL << (vRequest.address() & 0x3));
 
@@ -602,6 +661,9 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest)
 				sNextState.write(STATE_WRITE_BYTE_DATA);
 			} else {
 				debugOutputMessage("Word store to address %lld", vRequest.address());
+
+				if (vEventRecorder != NULL)
+					vEventRecorder->recordInstanceEvent(this, kEventWriteWordStart + (chained ? kEventChainedOffset : 0));
 
 				if ((vRequest.address() & 0x3) != 0)
 					cerr << "WARNING: Unaligned write access detected" << endl;
@@ -640,7 +702,7 @@ SharedL1CacheController::SharedL1CacheController(sc_module_name name, ComponentI
 
 	if (vEventRecorder != NULL) {
 		vEventRecorder->registerInstance(this, BatchModeEventRecorder::kInstanceSharedL1CacheController);
-		vEventRecorder->setInstanceProperty(this, BatchModeEventRecorder::kPropertySharedL1CacheChannelNumber, channel);
+		vEventRecorder->setInstanceProperty(this, kPropertyChannelNumber, channel);
 	}
 
 	// Setup configuration

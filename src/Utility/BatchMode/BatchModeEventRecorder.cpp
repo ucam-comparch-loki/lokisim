@@ -157,6 +157,11 @@ void BatchModeEventRecorder::recordInstanceEvent(void *instancePtr, int eventTyp
 	instData->EventFrequenciesPending[eventType]++;
 }
 
+void BatchModeEventRecorder::recordInstanceEventNT(void *instancePtr, int eventType) {
+	InstanceData *instData = getInstanceData(instancePtr);
+	instData->EventFrequenciesCommitted[eventType]++;
+}
+
 void BatchModeEventRecorder::storeStatisticsToFile(FILE *outputFile) {
 	long long bytesWritten = 0;
 

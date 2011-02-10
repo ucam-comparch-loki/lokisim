@@ -106,6 +106,9 @@ void SharedL1CacheBank::processUtilitySignals() {
 void SharedL1CacheBank::processFSMRegisters() {
 	debugOutputMessage("Updating registers");
 
+	if (vEventRecorder != NULL)
+		vEventRecorder->commitInstanceEvents(this);
+
 	rCurrentState.write(sNextState.read());
 
 	if (cSequentialSearch)
@@ -138,6 +141,9 @@ void SharedL1CacheBank::processFSMRegisters() {
 //-------------------------------------------------------------------------------------------------
 
 void SharedL1CacheBank::processFSMCombinational() {
+	if (vEventRecorder != NULL)
+		vEventRecorder->resetInstanceEvents(this);
+
 	// Break dependency chains on port values to make the following code more compact
 
 	oReadData.write(0);					// Should really be don't care
@@ -185,11 +191,17 @@ void SharedL1CacheBank::processFSMCombinational() {
 	case STATE_READY:
 		// Ready to service memory request
 
+		if (vEventRecorder != NULL)
+			vEventRecorder->recordInstanceEvent(this, kEvent_STATE_READY);
+
 		subProcessInitiateRequest();
 		break;
 
 	case STATE_READ_LOOKUP:
 		// Comparing cache tags due to pending read request
+
+		if (vEventRecorder != NULL)
+			vEventRecorder->recordInstanceEvent(this, kEvent_STATE_READ_LOOKUP);
 
 		subProcessStateReadLookup();
 		break;
@@ -197,11 +209,17 @@ void SharedL1CacheBank::processFSMCombinational() {
 	case STATE_WRITE_LOOKUP:
 		// Comparing cache tags due to pending write request
 
+		if (vEventRecorder != NULL)
+			vEventRecorder->recordInstanceEvent(this, kEvent_STATE_WRITE_LOOKUP);
+
 		subProcessStateWriteLookup();
 		break;
 
 	case STATE_REPLACE_QUERY:
 		// Cache miss occurred
+
+		if (vEventRecorder != NULL)
+			vEventRecorder->recordInstanceEvent(this, kEvent_STATE_REPLACE_QUERY);
 
 		subProcessStateReplaceQuery();
 		break;
@@ -209,17 +227,26 @@ void SharedL1CacheBank::processFSMCombinational() {
 	case STATE_REPLACE_WRITE_BACK:
 		// Cache line to replace got selected and is dirty
 
+		if (vEventRecorder != NULL)
+			vEventRecorder->recordInstanceEvent(this, kEvent_STATE_REPLACE_WRITE_BACK);
+
 		subProcessStateReplaceWriteBack();
 		break;
 
 	case STATE_REPLACE_FETCH_REQUEST:
 		// Requesting data words of new cache line from the background memory
 
+		if (vEventRecorder != NULL)
+			vEventRecorder->recordInstanceEvent(this, kEvent_STATE_REPLACE_FETCH_REQUEST);
+
 		subProcessStateReplaceFetchRequest();
 		break;
 
 	case STATE_REPLACE_FETCH_STORE:
 		// Waiting for the background memory to send the requested data words and store them into the cache memory
+
+		if (vEventRecorder != NULL)
+			vEventRecorder->recordInstanceEvent(this, kEvent_STATE_REPLACE_FETCH_STORE);
 
 		subProcessStateReplaceFetchStore();
 		break;
@@ -889,6 +916,11 @@ void SharedL1CacheBank::processCacheMemory() {
 		if (cSequentialSearch) {
 			// Compare single cache tag
 
+			if (vEventRecorder != NULL) {
+				vEventRecorder->recordInstanceEventNT(this, kEventTagRead);
+				vEventRecorder->recordInstanceEventNT(this, kEventTagCompare);
+			}
+
 			uint32_t physicalSlotAddress = sCacheSetAddress.read() * cAssociativity + sCacheSetIndex.read();
 
 			uint32_t physicalWordAddress = sCacheSetAddress.read() * cAssociativity * cCacheLineSize / 4;
@@ -899,15 +931,31 @@ void SharedL1CacheBank::processCacheMemory() {
 				rCacheHit.write(true);
 				rCacheData.write(rCellsCacheData[physicalWordAddress].read());
 
+				if (vEventRecorder != NULL) {
+					vEventRecorder->recordInstanceEventNT(this, kEventHitOnRead);
+					vEventRecorder->recordInstanceEventNT(this, kEventDataRead);
+				}
+
 				updateLRUCounters = true;
 				updateLRUIndex = sCacheSetIndex.read();
 			} else {
 				rCacheHit.write(false);
+
+				if (vEventRecorder != NULL && sCacheSetIndex.read() == cAssociativity - 1)
+					vEventRecorder->recordInstanceEventNT(this, kEventMissOnRead);
 			}
 		} else {
 			// Compare all cache tags
 
+			if (vEventRecorder != NULL) {
+				for (uint setIndex = 0; setIndex < cAssociativity; setIndex++) {
+					vEventRecorder->recordInstanceEventNT(this, kEventTagRead);
+					vEventRecorder->recordInstanceEventNT(this, kEventTagCompare);
+				}
+			}
+
 			rCacheHit.write(false);
+			bool hit = false;
 
 			for (uint setIndex = 0; setIndex < cAssociativity; setIndex++) {
 				uint32_t physicalSlotAddress = sCacheSetAddress.read() * cAssociativity + setIndex;
@@ -920,12 +968,21 @@ void SharedL1CacheBank::processCacheMemory() {
 					rCacheHit.write(true);
 					rCacheData.write(rCellsCacheData[physicalWordAddress].read());
 
+					hit = true;
+					if (vEventRecorder != NULL) {
+						vEventRecorder->recordInstanceEventNT(this, kEventHitOnRead);
+						vEventRecorder->recordInstanceEventNT(this, kEventDataRead);
+					}
+
 					updateLRUCounters = true;
 					updateLRUIndex = setIndex;
 
 					break;
 				}
 			}
+
+			if (vEventRecorder != NULL && !hit)
+				vEventRecorder->recordInstanceEventNT(this, kEventMissOnRead);
 		}
 
 		// Update LRU counters
@@ -951,6 +1008,11 @@ void SharedL1CacheBank::processCacheMemory() {
 		if (cSequentialSearch) {
 			// Compare single cache tag
 
+			if (vEventRecorder != NULL) {
+				vEventRecorder->recordInstanceEventNT(this, kEventTagRead);
+				vEventRecorder->recordInstanceEventNT(this, kEventTagCompare);
+			}
+
 			uint32_t physicalSlotAddress = sCacheSetAddress.read() * cAssociativity + sCacheSetIndex.read();
 
 			uint32_t physicalWordAddress = sCacheSetAddress.read() * cAssociativity * cCacheLineSize / 4;
@@ -959,6 +1021,11 @@ void SharedL1CacheBank::processCacheMemory() {
 
 			if (rCellsValidFlags[physicalSlotAddress].read() && rCellsCacheTags[physicalSlotAddress].read() == sCacheTag.read()) {
 				rCacheHit.write(true);
+
+				if (vEventRecorder != NULL) {
+					vEventRecorder->recordInstanceEventNT(this, kEventHitOnWrite);
+					vEventRecorder->recordInstanceEventNT(this, kEventDataWrite);
+				}
 
 				updateLRUCounters = true;
 				updateLRUIndex = sCacheSetIndex.read();
@@ -991,11 +1058,22 @@ void SharedL1CacheBank::processCacheMemory() {
 				}
 			} else {
 				rCacheHit.write(false);
+
+				if (vEventRecorder != NULL && sCacheSetIndex.read() == cAssociativity - 1)
+					vEventRecorder->recordInstanceEventNT(this, kEventMissOnWrite);
 			}
 		} else {
 			// Compare all cache tags
 
+			if (vEventRecorder != NULL) {
+				for (uint setIndex = 0; setIndex < cAssociativity; setIndex++) {
+					vEventRecorder->recordInstanceEventNT(this, kEventTagRead);
+					vEventRecorder->recordInstanceEventNT(this, kEventTagCompare);
+				}
+			}
+
 			rCacheHit.write(false);
+			bool hit = false;
 
 			for (uint setIndex = 0; setIndex < cAssociativity; setIndex++) {
 				uint32_t physicalSlotAddress = sCacheSetAddress.read() * cAssociativity + setIndex;
@@ -1006,6 +1084,12 @@ void SharedL1CacheBank::processCacheMemory() {
 
 				if (rCellsValidFlags[physicalSlotAddress].read() && rCellsCacheTags[physicalSlotAddress].read() == sCacheTag.read()) {
 					rCacheHit.write(true);
+
+					hit = true;
+					if (vEventRecorder != NULL) {
+						vEventRecorder->recordInstanceEventNT(this, kEventHitOnWrite);
+						vEventRecorder->recordInstanceEventNT(this, kEventDataWrite);
+					}
 
 					updateLRUCounters = true;
 					updateLRUIndex = setIndex;
@@ -1040,6 +1124,9 @@ void SharedL1CacheBank::processCacheMemory() {
 					break;
 				}
 			}
+
+			if (vEventRecorder != NULL && !hit)
+				vEventRecorder->recordInstanceEventNT(this, kEventMissOnWrite);
 		}
 
 		// Update LRU counters
@@ -1069,6 +1156,9 @@ void SharedL1CacheBank::processCacheMemory() {
 
 				rCacheSetIndex.write(setIndex);
 				rCacheDirty.write(false);
+
+				if (vEventRecorder != NULL)
+					vEventRecorder->recordInstanceEventNT(this, kEventReplaceClean);
 
 				selectionDone = true;
 				break;
@@ -1111,12 +1201,23 @@ void SharedL1CacheBank::processCacheMemory() {
 			if (rCellsDirtyFlags[physicalSlotAddress].read()) {
 				rCacheDirty.write(true);
 				rCacheTag.write(rCellsCacheTags[physicalSlotAddress].read());
+
+				if (vEventRecorder != NULL) {
+					vEventRecorder->recordInstanceEventNT(this, kEventReplaceDirty);
+					vEventRecorder->recordInstanceEventNT(this, kEventTagRead);
+				}
 			} else {
 				rCacheDirty.write(false);
+
+				if (vEventRecorder != NULL)
+					vEventRecorder->recordInstanceEventNT(this, kEventReplaceClean);
 			}
 		}
 	} else if (sCacheReadEnable.read()) {
 		// Perform unconditional read
+
+		if (vEventRecorder != NULL)
+			vEventRecorder->recordInstanceEventNT(this, kEventDataRead);
 
 		uint32_t physicalWordAddress = sCacheSetAddress.read() * cAssociativity * cCacheLineSize / 4;
 		physicalWordAddress += sCacheSetIndex.read() * cCacheLineSize / 4;
@@ -1132,6 +1233,9 @@ void SharedL1CacheBank::processCacheMemory() {
 			rCellsValidFlags[physicalSlotAddress].write(true);
 			rCellsDirtyFlags[physicalSlotAddress].write(false);
 			rCellsCacheTags[physicalSlotAddress].write(sCacheTag.read());
+
+			if (vEventRecorder != NULL)
+				vEventRecorder->recordInstanceEventNT(this, kEventTagWrite);
 
 			// Update LRU counters
 
@@ -1151,6 +1255,9 @@ void SharedL1CacheBank::processCacheMemory() {
 
 		if (sCacheWriteEnable.read()) {
 			// Perform unconditional write
+
+			if (vEventRecorder != NULL)
+				vEventRecorder->recordInstanceEventNT(this, kEventDataWrite);
 
 			uint32_t physicalWordAddress = sCacheSetAddress.read() * cAssociativity * cCacheLineSize / 4;
 			physicalWordAddress += sCacheSetIndex.read() * cCacheLineSize / 4;
@@ -1174,7 +1281,7 @@ SharedL1CacheBank::SharedL1CacheBank(sc_module_name name, ComponentID id, BatchM
 
 	if (vEventRecorder != NULL) {
 		vEventRecorder->registerInstance(this, BatchModeEventRecorder::kInstanceSharedL1CacheBank);
-		vEventRecorder->setInstanceProperty(this, BatchModeEventRecorder::kPropertySharedL1CacheBankNumber, bankNumber);
+		vEventRecorder->setInstanceProperty(this, kPropertyBankNumber, bankNumber);
 	}
 
 	// Initialise configuration

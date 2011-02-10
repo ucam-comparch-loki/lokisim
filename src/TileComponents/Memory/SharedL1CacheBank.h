@@ -162,6 +162,28 @@ private:
 
 	BatchModeEventRecorder	*vEventRecorder;
 
+	static const int		kPropertyBankNumber					= 1051;
+
+	static const int		kEvent_STATE_READY					= 1;
+	static const int		kEvent_STATE_READ_LOOKUP			= 2;
+	static const int		kEvent_STATE_WRITE_LOOKUP			= 3;
+	static const int		kEvent_STATE_REPLACE_QUERY			= 4;
+	static const int		kEvent_STATE_REPLACE_WRITE_BACK		= 5;
+	static const int		kEvent_STATE_REPLACE_FETCH_REQUEST	= 6;
+	static const int		kEvent_STATE_REPLACE_FETCH_STORE	= 7;
+
+	static const int		kEventHitOnRead						= 20;
+	static const int		kEventHitOnWrite					= 21;
+	static const int		kEventMissOnRead					= 22;
+	static const int		kEventMissOnWrite					= 23;
+	static const int		kEventReplaceClean					= 24;
+	static const int		kEventReplaceDirty					= 25;
+	static const int		kEventDataRead						= 26;
+	static const int		kEventDataWrite						= 27;
+	static const int		kEventTagRead						= 28;
+	static const int		kEventTagWrite						= 29;
+	static const int		kEventTagCompare					= 30;
+
 	//---------------------------------------------------------------------------------------------
 	// Simulation utility methods
 	//---------------------------------------------------------------------------------------------

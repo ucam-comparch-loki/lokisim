@@ -97,20 +97,6 @@ public:
 	static const int kInstanceSharedL1CacheBank						= 1013;
 	static const int kInstanceSimplifiedBackgroundMemory			= 1100;
 
-	static const int kPropertySharedL1CacheChannels					= 1000;
-	static const int kPropertySharedL1CacheInterfaceQueueDepth		= 1001;
-	static const int kPropertySharedL1CacheBanks					= 1002;
-	static const int kPropertySharedL1CacheSetsPerBank				= 1003;
-	static const int kPropertySharedL1CacheAssociativity			= 1004;
-	static const int kPropertySharedL1CacheLineSize					= 1005;
-	static const int kPropertySharedL1CacheSequentialSearch			= 1006;
-	static const int kPropertySharedL1CacheRandomReplacement		= 1007;
-	static const int kPropertySharedL1CacheMemoryQueueDepth			= 1008;
-	static const int kPropertySharedL1CacheMemoryDelayCycles		= 1009;
-
-	static const int kPropertySharedL1CacheChannelNumber			= 1050;
-	static const int kPropertySharedL1CacheBankNumber				= 1051;
-
 	BatchModeEventRecorder();
 	~BatchModeEventRecorder();
 
@@ -122,6 +108,8 @@ public:
 	void resetInstanceEvents(void *instancePtr);
 	void commitInstanceEvents(void *instancePtr);
 	void recordInstanceEvent(void *instancePtr, int eventType);
+
+	void recordInstanceEventNT(void *instancePtr, int eventType);
 
 	void storeStatisticsToFile(FILE *outputFile);
 };
