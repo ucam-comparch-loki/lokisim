@@ -117,6 +117,11 @@ private:
   // we must sometimes stall if we need the predicate's latest value.
   bool settingPredicate;
 
+  // Keep track of which register the previous instruction wrote to.
+  // This allows us to stall for one cycle if we need a value which has not
+  // even been computed yet.
+  RegisterIndex previousDest;
+
 };
 
 #endif /* DECODER_H_ */

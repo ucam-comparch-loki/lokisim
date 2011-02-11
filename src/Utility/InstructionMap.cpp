@@ -33,7 +33,7 @@ std::string& InstructionMap::name(int operation) {
 /* Return whether the instruction contains an immediate value */
 bool InstructionMap::hasImmediate(short op) {
   static const short withImmed[] = {
-      LDW, LDBU, STW, STB, STWADDR, STBADDR,
+      LDW, LDHWU, LDBU, STW, STHW, STB, STWADDR, STBADDR,
       SLLI, SRLI, SRAI,
       SETEQI, SETNEI, SETLTI, SETLTUI, SETGTEUI, LUI,
       NORI, ANDI, ORI, XORI,
@@ -42,7 +42,7 @@ bool InstructionMap::hasImmediate(short op) {
       SETCHMAP, SYSCALL
   };
 
-  static const std::set<short> ops(withImmed, withImmed+29);
+  static const std::set<short> ops(withImmed, withImmed+31);
 
   // The operation has an immediate if it is in the set.
   return ops.find(op) != ops.end();
@@ -73,7 +73,7 @@ bool InstructionMap::isALUOperation(short op) {
   // Since there are far more instructions which use the ALU than which don't,
   // we only list the ones that don't here.
   static const short notALU[] = {
-      /*LDW, LDBU,*/ STW, STB, STWADDR, STBADDR,
+      /*LDW, LDBU,*/ STW, STHW, STB, STWADDR, STBADDR,
       WOCHE, TSTCH, SELCH,
       SETFETCHCH, IBJMP, FETCH, PSELFETCH, FETCHPST, RMTFETCH, RMTFETCHPST,
       RMTFILL, RMTEXECUTE, RMTNXIPK, SETCHMAP, SYSCALL
@@ -82,6 +82,23 @@ bool InstructionMap::isALUOperation(short op) {
   static const std::set<short> ops(notALU, notALU+17);
 
   // The operation is an ALU operation if it isn't in the set.
+  return ops.find(op) == ops.end();
+}
+
+/* Return whether the operation requires use of the ALU */
+bool InstructionMap::storesResult(short op) {
+  // Since there are far more instructions which use the ALU than which don't,
+  // we only list the ones that don't here.
+  static const short doesntStore[] = {
+      NOP, LDW, LDHWU, LDBU, STW, STHW, STB, STWADDR, STBADDR,
+      WOCHE,
+      SETFETCHCH, IBJMP, FETCH, PSELFETCH, FETCHPST, RMTFETCH, RMTFETCHPST,
+      RMTFILL, RMTEXECUTE, RMTNXIPK, SETCHMAP, SYSCALL
+  };
+
+  static const std::set<short> ops(doesntStore, doesntStore+20);
+
+  // The operation stores its result if it isn't in the set.
   return ops.find(op) == ops.end();
 }
 

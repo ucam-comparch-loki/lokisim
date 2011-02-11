@@ -16,14 +16,14 @@
  */
 
 /* Boundary between address and channel ID */
-const short boundary = 16;
+const short boundary = 8;
 
 /* Accessing information */
-uint16_t Address::address() const {
+MemoryAddr Address::address() const {
   return getBits(boundary, 31);
 }
 
-uint16_t Address::channelID() const {
+ChannelID Address::channelID() const {
   return getBits(1, boundary-1);
 }
 
@@ -46,7 +46,7 @@ Address::Address(const Word& other) : Word(other) {
 
 }
 
-Address::Address(const uint16_t addr, const uint16_t channel) : Word() {
+Address::Address(const MemoryAddr addr, const ChannelID channel) : Word() {
   address(addr);
   channelID(channel);
 
@@ -58,11 +58,11 @@ Address::~Address() {
 
 }
 
-void Address::address(const uint16_t addr) {
+void Address::address(const MemoryAddr addr) {
   setBits(boundary, 31, addr);
 }
 
-void Address::channelID(const uint16_t channelID) {
+void Address::channelID(const ChannelID channelID) {
   setBits(1, boundary-1, channelID);
 }
 

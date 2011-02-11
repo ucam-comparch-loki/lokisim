@@ -29,7 +29,17 @@ void     Cluster::storeData(const std::vector<Word>& data, MemoryAddr location) 
 
   // Convert all of the words to instructions
   for(uint i=0; i<data.size(); i++) {
-    instructions.push_back(static_cast<Instruction>(data[i]));
+    if(BYTES_PER_INSTRUCTION > BYTES_PER_WORD) {
+      // Need to load multiple words to create each instruction.
+      uint32_t first = (uint32_t)data[i].toInt();
+      uint32_t second = (uint32_t)data[i+1].toInt();
+      uint64_t total = ((uint64_t)first << 32) + second;
+      instructions.push_back(Instruction(total));
+      i++;
+    }
+    else {
+      instructions.push_back(static_cast<Instruction>(data[i]));
+    }
   }
 
   FetchStage*  fetch  = dynamic_cast<FetchStage*>(stages.front());
@@ -77,14 +87,14 @@ const int32_t Cluster::readReg(RegisterIndex reg, bool indirect) const {
   if(reg>0) {
     if(reg == previousDest1) {
       if(DEBUG) cout << this->name() << " forwarded contents of register "
-                     << (int)reg << endl;
+                     << (int)reg << " (" << previousResult1 << ")" << endl;
 
       if(indirect) result = regs.read(previousResult1, false);
       else         result = previousResult1;
     }
     else if(reg == previousDest2) {
       if(DEBUG) cout << this->name() << " forwarded contents of register "
-                     << (int)reg << endl;
+                     << (int)reg << " (" << previousResult2 << ")" << endl;
 
       if(indirect) result = regs.read(previousResult2, false);
       else         result = previousResult2;
@@ -132,6 +142,8 @@ void     Cluster::checkForwarding(DecodedInst& inst) const {
 }
 
 void     Cluster::updateForwarding(const DecodedInst& inst) {
+  if(!InstructionMap::storesResult(inst.operation())) return;
+
   // We don't want to forward any data which was sent to register 0, because
   // r0 doesn't store values: it is a constant.
   // We also don't want to forward data after an indirect write, as the data

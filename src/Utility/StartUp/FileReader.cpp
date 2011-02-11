@@ -54,7 +54,7 @@ FileReader& FileReader::makeFileReader(vector<std::string>& words) {
     if(parts.size() == 1) {
       reader = new ELFFileReader(filename, component, position);
     }
-    if(parts.back() == "loki") {
+    else if(parts.back() == "loki") {
       reader = new LokiFileReader(filename, component, position);
     }
     else if(parts.back() == "data") {

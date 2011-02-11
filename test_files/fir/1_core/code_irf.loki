@@ -1,7 +1,7 @@
 % Very similar to default code, but makes use of indirect register file to
 % cache the taps. We can have no more than 32 taps.
 
-fetch           r1,  76                 ; get the next instruction packet
+fetch           r1,  152                 ; get the next instruction packet
 
 % Load the parameters for this filter. (May deadlock if buffers are small?)
 ldw             r0,  4        > 1
@@ -29,14 +29,14 @@ addu            r28, r11, r26           ; r28 = end of taps
 ori.eop         r4,  r13, 0             ; r4 = position in outer loop
 
 % Load taps into indirect register file.
-fetch           r1,  36
+fetch           r1,  72
 ori             r5,  r0,  32            ; r5 = pointer to register to store tap in
 ldw             r11, 0          > 1     ; load a tap
 addui           r11, r11, 4             ; move to next tap
 iwtr            r5,  ch0                ; store the tap in the IRF
 addui           r5,  r5,  1             ; move to next register
 setgteu.p       r0,  r28, r11           ; see if we have gone through all taps yet
-p?ibjmp         -20                     ; if not, load another tap
+p?ibjmp         -40                     ; if not, load another tap
 addui.eop       r8,  r10, 32            ; r8 = first register with no tap in it
 
 % Start of outer loop
@@ -55,14 +55,14 @@ p?addu          r9,  r9,  r7            ; add new value to result
 
 setlt.p         r0,  r5,  r8            ; see if we have gone through all taps yet
 addui           r6,  r6,  4             ; move to next input element
-p?ibjmp         -36
+p?ibjmp         -72
 % End of inner loop
 
 addui           r4,  r4,  4             ; increment position in outer loop
 stw             r9,  r14, 0     > 2     ; store the result
 setgteu.p       r0,  r27, r4            ; see if we have finished the outer loop
 addui           r14, r14, 4             ; update store location for next time
-p?ibjmp         -68
+p?ibjmp         -136
 % End of outer loop
 
 nop.eop

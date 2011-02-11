@@ -9,6 +9,7 @@
 #define ADDRESS_H_
 
 #include "Word.h"
+#include "../Typedefs.h"
 
 class Address: public Word {
 
@@ -19,10 +20,10 @@ class Address: public Word {
 public:
 
   // Return the memory address being referred to.
-  uint16_t address() const;
+  MemoryAddr address() const;
 
   // Return the channel ID of the memory we want the data from.
-  uint16_t channelID() const;
+  ChannelID channelID() const;
 
   // Tell whether we are accessing the memory address to read or write it.
   // 1 = read, 0 = write.
@@ -38,8 +39,8 @@ public:
 
 private:
 
-  void address(const uint16_t addr);
-  void channelID(const uint16_t channelID);
+  void address(const MemoryAddr addr);
+  void channelID(const ChannelID channelID);
   void setRWBit(const bool read);
 
 //==============================//
@@ -50,7 +51,7 @@ public:
 
   Address();
   Address(const Word& other);
-  Address(const uint16_t addr, const uint16_t channelID);
+  Address(const MemoryAddr addr, const ChannelID channelID);
   virtual ~Address();
 };
 

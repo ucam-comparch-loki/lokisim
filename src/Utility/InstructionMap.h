@@ -33,6 +33,9 @@ public:
   // Returns whether the given operation uses the ALU.
   static bool isALUOperation(short operation);
 
+  // Returns whether the operation stores its result in a register.
+  static bool storesResult(short operation);
+
   // Returns the opcode of the given operation name.
   static short opcode(const std::string& name);
 

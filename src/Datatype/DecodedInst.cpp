@@ -10,71 +10,29 @@
 #include "MemoryRequest.h"
 #include "../Utility/InstructionMap.h"
 
-const uint8_t DecodedInst::operation() const {
-  return operation_;
-}
+const uint8_t       DecodedInst::operation()       const {return operation_;}
+const RegisterIndex DecodedInst::sourceReg1()      const {return sourceReg1_;}
+const RegisterIndex DecodedInst::sourceReg2()      const {return sourceReg2_;}
+const RegisterIndex DecodedInst::destination()     const {return destReg_;}
+const int32_t       DecodedInst::immediate()       const {return immediate_;}
+const ChannelIndex  DecodedInst::channelMapEntry() const {return channelMapEntry_;}
+const uint8_t       DecodedInst::predicate()       const {return predicate_;}
+const bool          DecodedInst::setsPredicate()   const {return setsPred_;}
+const uint8_t       DecodedInst::memoryOp()        const {return memoryOp_;}
 
-const RegisterIndex DecodedInst::sourceReg1() const {
-  return sourceReg1_;
-}
+const int32_t       DecodedInst::operand1()        const {return operand1_;}
+const int32_t       DecodedInst::operand2()        const {return operand2_;}
+const int64_t       DecodedInst::result()          const {return result_;}
 
-const RegisterIndex DecodedInst::sourceReg2() const {
-  return sourceReg2_;
-}
-
-const RegisterIndex DecodedInst::destination() const {
-  return destReg_;
-}
-
-const int32_t DecodedInst::immediate() const {
-  return immediate_;
-}
-
-const ChannelIndex DecodedInst::channelMapEntry() const {
-  return channelMapEntry_;
-}
-
-const uint8_t DecodedInst::predicate() const {
-  return predicate_;
-}
-
-const bool    DecodedInst::setsPredicate() const {
-  return setsPred_;
-}
-
-const uint8_t DecodedInst::memoryOp() const {
-  return memoryOp_;
-}
-
-
-const int32_t DecodedInst::operand1() const {
-  return operand1_;
-}
-
-const int32_t DecodedInst::operand2() const {
-  return operand2_;
-}
-
-const int64_t DecodedInst::result() const {
-  return result_;
-}
-
-const Address DecodedInst::location() const {
-  return location_;
-}
+const Address       DecodedInst::location()        const {return location_;}
 
 
 const bool    DecodedInst::usesPredicate() const {
   return (predicate_ == Instruction::NOT_P) || (predicate_ == Instruction::P);
 }
 
-const bool    DecodedInst::hasOperand1() const {
-  return hasOperand1_;
-}
-
-const bool    DecodedInst::hasResult() const {
-  return hasResult_;
-}
+const bool    DecodedInst::hasOperand1() const {return hasOperand1_;}
+const bool    DecodedInst::hasResult() const {return hasResult_;}
 
 
 const bool    DecodedInst::hasImmediate() const {
@@ -90,71 +48,77 @@ const std::string& DecodedInst::name() const {
 }
 
 
-void    DecodedInst::operation(const uint8_t val) {
-  operation_ = val;
-}
+void DecodedInst::operation(const uint8_t val)            {operation_ = val;}
+void DecodedInst::sourceReg1(const RegisterIndex val)     {sourceReg1_ = val;}
+void DecodedInst::sourceReg2(const RegisterIndex val)     {sourceReg2_ = val;}
+void DecodedInst::destination(const RegisterIndex val)    {destReg_ = val;}
+void DecodedInst::immediate(const int32_t val)            {immediate_ = val;}
+void DecodedInst::channelMapEntry(const ChannelIndex val) {channelMapEntry_ = val;}
+void DecodedInst::predicate(const uint8_t val)            {predicate_ = val;}
+void DecodedInst::setsPredicate(const bool val)           {setsPred_ = val;}
+void DecodedInst::memoryOp(const uint8_t val)             {memoryOp_ = val;}
 
-void    DecodedInst::sourceReg1(const RegisterIndex val) {
-  sourceReg1_ = val;
-}
+void DecodedInst::operand1(const int32_t val)             {operand1_ = val;}
+void DecodedInst::operand2(const int32_t val)             {operand2_ = val;}
 
-void    DecodedInst::sourceReg2(const RegisterIndex val) {
-  sourceReg2_ = val;
-}
-
-void    DecodedInst::destination(const RegisterIndex val) {
-  destReg_ = val;
-}
-
-void    DecodedInst::immediate(const int32_t val) {
-  immediate_ = val;
-}
-
-void    DecodedInst::channelMapEntry(const ChannelIndex val) {
-  channelMapEntry_ = val;
-}
-
-void    DecodedInst::predicate(const uint8_t val) {
-  predicate_ = val;
-}
-
-void    DecodedInst::setsPredicate(const bool val) {
-  setsPred_ = val;
-}
-
-void    DecodedInst::memoryOp(const uint8_t val) {
-  memoryOp_ = val;
-}
-
-
-void    DecodedInst::operand1(const int32_t val) {
-  operand1_ = val;
-}
-
-void    DecodedInst::operand2(const int32_t val) {
-  operand2_ = val;
-}
-
-void    DecodedInst::result(const int64_t val) {
+void DecodedInst::result(const int64_t val) {
   result_ = val;
   hasResult_ = true;
 }
 
-void    DecodedInst::location(const Address val) {
-  location_ = val;
-}
+void DecodedInst::location(const Address val)             {location_ = val;}
 
 
 Instruction DecodedInst::toInstruction() const {
   Instruction i;
   i.opcode(InstructionMap::opcode(name()));
-  i.destination(destReg_);
-  i.sourceReg1(sourceReg1_);
-  i.sourceReg2(sourceReg2_);
+//  i.destination(destReg_);
+//  i.sourceReg1(sourceReg1_);
+//  i.sourceReg2(sourceReg2_);
   i.immediate(immediate_);
   i.remoteChannel(channelMapEntry_);
   i.predicate(predicate_);
   i.setsPredicate(setsPred_);
+
+  switch(operation_) {
+    // Single source, no destination.
+    case InstructionMap::LDW :
+    case InstructionMap::LDHWU :
+    case InstructionMap::LDBU :
+    case InstructionMap::STWADDR :
+    case InstructionMap::STBADDR :
+    case InstructionMap::FETCH :
+    case InstructionMap::FETCHPST :
+    case InstructionMap::RMTFETCH :
+    case InstructionMap::RMTFETCHPST :
+    case InstructionMap::RMTFILL :
+    case InstructionMap::SETCHMAP : {
+      i.destination(sourceReg1_);
+      i.sourceReg1(0);
+      i.sourceReg2(0);
+      break;
+    }
+
+    // Two sources, no destination.
+    case InstructionMap::STW :
+    case InstructionMap::STHW :
+    case InstructionMap::STB :
+    case InstructionMap::PSELFETCH : {
+      i.destination(sourceReg1_);
+      i.sourceReg1(sourceReg2_);
+      i.sourceReg2(0);
+      break;
+    }
+
+    // Two sources and a destination.
+    default : {
+      i.destination(destReg_);
+      i.sourceReg1(sourceReg1_);
+      i.sourceReg2(sourceReg2_);
+      break;
+    }
+  }
+
   return i;
 }
 
@@ -223,9 +187,6 @@ DecodedInst::DecodedInst() {
 
 DecodedInst::DecodedInst(const Instruction i) {
   operation_       = InstructionMap::operation(i.opcode());
-  sourceReg1_      = i.sourceReg1();
-  sourceReg2_      = i.sourceReg2();
-  destReg_         = i.destination();
   immediate_       = i.immediate();
   channelMapEntry_ = i.remoteChannel();
   predicate_       = i.predicate();
@@ -237,6 +198,45 @@ DecodedInst::DecodedInst(const Instruction i) {
   result_          = 0;
 
   hasOperand1_ = hasResult_ = false;
+
+  switch(operation_) {
+    // Single source, no destination.
+    case InstructionMap::LDW :
+    case InstructionMap::LDHWU :
+    case InstructionMap::LDBU :
+    case InstructionMap::STWADDR :
+    case InstructionMap::STBADDR :
+    case InstructionMap::FETCH :
+    case InstructionMap::FETCHPST :
+    case InstructionMap::RMTFETCH :
+    case InstructionMap::RMTFETCHPST :
+    case InstructionMap::RMTFILL :
+    case InstructionMap::SETCHMAP : {
+      destReg_ = 0;
+      sourceReg1_ = i.destination();
+      sourceReg2_ = 0;
+      break;
+    }
+
+    // Two sources, no destination.
+    case InstructionMap::STW :
+    case InstructionMap::STHW :
+    case InstructionMap::STB :
+    case InstructionMap::PSELFETCH : {
+      destReg_ = 0;
+      sourceReg1_ = i.destination();
+      sourceReg2_ = i.sourceReg1();
+      break;
+    }
+
+    // Two sources and a destination.
+    default : {
+      destReg_ = i.destination();
+      sourceReg1_ = i.sourceReg1();
+      sourceReg2_ = i.sourceReg2();
+      break;
+    }
+  }
 }
 
 DecodedInst::~DecodedInst() {

@@ -5,6 +5,7 @@
  *      Author: db434
  */
 
+#include <iomanip>
 #include "Instrumentation.h"
 #include "StartUp/CodeLoader.h"
 #include "Debugger.h"
@@ -31,6 +32,13 @@ void Instrumentation::l0Write(ComponentID core) {
 
 void Instrumentation::decoded(ComponentID core, const DecodedInst& dec) {
   Operations::decoded(core, dec);
+
+  if(TRACE) {
+    MemoryAddr location = dec.location().address();
+    std::cout << "0x";
+    std::cout.width(8);
+    std::cout << std::hex << std::setfill('0') << location << endl;
+  }
 }
 
 void Instrumentation::dataForwarded(ComponentID core, RegisterIndex reg) {

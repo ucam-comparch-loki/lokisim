@@ -17,7 +17,7 @@ bool Energy::libraryLoaded = false;
 int Energy::regRead=0, Energy::regWrite=0, Energy::stallReg=0;
 int Energy::l0Read=0,  Energy::l0Write=0,  Energy::l0TagCheck=0;
 int Energy::l1Read=0,  Energy::l1Write=0,  Energy::l1TagCheck=0;
-int Energy::decode = 0;
+int Energy::decode = 1000;
 int Energy::op=0, Energy::multiply=0;
 int Energy::bitMillimetre=0;
 

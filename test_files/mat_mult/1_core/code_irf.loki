@@ -1,5 +1,5 @@
 % Set up connections to memories
-fetch               r1,  40
+fetch               r1,  80
 ori                 r5,  r0,  (13,0)
 ori                 r6,  r0,  (14,0)
 ori                 r7,  r0,  (15,0)
@@ -11,7 +11,7 @@ ori                 r0,  r0,  (0,3)  > 2
 ori.eop             r0,  r0,  (0,0)  > 3
 
 % Load parameters
-fetch               r1,  32
+fetch               r1,  64
 ldw                 r0,  4           > 1
 ldw                 r0,  8           > 1
 ldw                 r0,  12          > 1
@@ -21,7 +21,7 @@ ori                 r4,  ch0, 0             ; r4 = columns of matrix 2
 ori.eop             r11, r0,  0             ; r11 = current output row
 
 % Load row of matrix 1 into IRF
-fetch               r1,  48
+fetch               r1,  96
 ori                 r10, r0,  32            ; r10 = pointer into IRF
 addu                r12, r10, r3            ; r12 = register to stop putting values in
 mullw               r5,  r3,  r11
@@ -31,7 +31,7 @@ addui               r5,  r5,  4             ; move to next value (move to before
 iwtr                r10, ch0                ; store the value in the IRF
 addui               r10, r10, 1             ; move to next register
 setlt.p             r0,  r10, r12           ; see if we have values left to load
-p?ibjmp             -20                     ; if so, load another
+p?ibjmp             -40                     ; if so, load another
 nop.eop
 
 % Start of main loop
@@ -54,7 +54,7 @@ irdr                r7,  r7
 seteq.p             r0,  r14, r3            ; see if we will have finished this result
 mullw               r7,  r7,  ch1           ; multiply matrix elements
 addu                r13, r13, r7            ; add result to total so far
-!p?ibjmp            -40                     ; if not finished, loop
+!p?ibjmp            -80                     ; if not finished, loop
 
 % Compute where to store the result
 mullw               r7,  r11, r4            ; start of row = row * num columns
@@ -64,10 +64,10 @@ stw                 r13, r7,  0      > 3    ; store result
 
 addui               r12, r12, 1             ; move to next output column
 seteq.p             r0,  r12, r4            ; see if we have finished the row
-!p?ibjmp            -76                     ; if not, loop
+!p?ibjmp            -152                     ; if not, loop
 
 addui               r11, r11, 1             ; move to next output row
 seteq.p             r0,  r11, r2            ; see if we have finished the matrix
-!p?fetch            r1,  -48                ; if not, loop
+!p?fetch            r1,  -96                ; if not, loop
 
 nop.eop                                     ; if so, end

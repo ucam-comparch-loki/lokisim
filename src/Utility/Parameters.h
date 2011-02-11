@@ -26,10 +26,12 @@ typedef unsigned int parameter;
 //-------------------------------------------------------------------------------------------------
 
 extern int			DEBUG;
+extern int      TRACE;
 
 extern int			TIMEOUT;
 
 extern int			BYTES_PER_WORD;
+extern int      BYTES_PER_INSTRUCTION;
 
 // Not a parameter, but may be used anywhere. Any ideas where to put this?
 extern int      RETURN_CODE;

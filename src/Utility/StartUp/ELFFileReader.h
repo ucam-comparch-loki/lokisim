@@ -28,6 +28,10 @@ public:
 
 private:
 
+  // Add the instruction to the vector, splitting it into multiple parts if
+  // necessary.
+  static void addInstToVector(vector<Word>* vec, Instruction inst);
+
   // Data values and instructions have different sizes and formats in the file,
   // so need to be read in different ways.
   Word nextWord(std::ifstream& file, bool isInstruction) const;

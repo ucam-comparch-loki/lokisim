@@ -1,4 +1,4 @@
-fetch           r1,  76                 ; get the next instruction packet
+fetch           r1,  152                 ; get the next instruction packet
 
 % Load the parameters for this filter. (May deadlock if buffers are small?)
 ldw             r0,  4        > 1
@@ -42,14 +42,14 @@ p?addu          r9,  r9,  r7            ; add new value to result
 
 setgteu.p       r0,  r28, r5            ; see if we have gone through all taps yet
 addui           r6,  r6,  4             ; move to next input element
-p?ibjmp         -40
+p?ibjmp         -80
 % End of inner loop
 
 addui           r4,  r4,  4             ; increment position in outer loop
 stw             r9,  r14, 0     > 2     ; store the result
 setgteu.p       r0,  r27, r4            ; see if we have finished the outer loop
 addui           r14, r14, 4             ; update store location for next time
-p?ibjmp         -72
+p?ibjmp         -152
 % End of outer loop
 
 nop.eop

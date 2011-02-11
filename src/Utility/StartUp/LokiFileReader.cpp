@@ -20,10 +20,16 @@ vector<DataBlock>& LokiFileReader::extractData() const {
 
     try {
       Word w = nextWord(file);
-      words->push_back(w);
+
+      // If an instruction occupies more than one word, split what we have in two.
+      if(BYTES_PER_INSTRUCTION > BYTES_PER_WORD) {
+        words->push_back(((Instruction)w).firstWord());
+        words->push_back(((Instruction)w).secondWord());
+      }
+      else words->push_back(w);
 
       if(CodeLoader::usingDebugger) {
-        printInstruction((Instruction)w, wordsRead*BYTES_PER_WORD);
+        printInstruction((Instruction)w, wordsRead*BYTES_PER_INSTRUCTION);
       }
     }
     catch (std::exception& e) {

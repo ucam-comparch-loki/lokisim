@@ -29,6 +29,7 @@ public:
   bool isIPKRequest() const;
   bool isSetup() const;
   bool streaming() const;
+  bool halfWordAccess() const;
   bool byteAccess() const;
 
   void incrementAddress();
@@ -58,9 +59,9 @@ public:
   enum MemoryOp {
     NONE,
     SETUP=0,  // Currently have no way to tag a value as a setup request
-    LOAD, LOAD_B,
+    LOAD_W, LOAD_HW, LOAD_B,
     IPK_READ,
-    STORE, STORE_B,
+    STORE_W, STORE_HW, STORE_B,
     STADDR, STBADDR
   };
 

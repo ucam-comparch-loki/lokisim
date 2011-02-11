@@ -46,7 +46,8 @@ public:
 
   // Distinguish between instruction that read/write whole words, and those
   // that deal with individual bytes.
-  bool isByteAccess() const;
+  bool byteAccess() const;
+  bool halfWordAccess() const;
 
   // Increments the address of the operation, so the next load/store accesses
   // the next location in memory.
@@ -70,11 +71,11 @@ public:
 
   // Set the memory address to read from, and whether we want to access bytes
   // or words.
-  void readAddress(MemoryAddr addr, bool byteAccess);
+  void readAddress(MemoryAddr addr, int operation);
 
   // Set the memory address to write to, and whether we want to access bytes
   // or words.
-  void writeAddress(MemoryAddr addr, bool byteAccess);
+  void writeAddress(MemoryAddr addr, int operation);
 
   // Start a streaming operation.
   void startStreaming();
@@ -98,15 +99,16 @@ public:
 
 private:
 
-  enum Operation {NONE, LOAD, LOADBYTE, STORE, STOREBYTE};
+  enum Operation {NONE, LOAD, LOADHW, LOADBYTE, STORE, STOREHW, STOREBYTE};
 
   static const int UNUSED = -1;
-  static const int STRIDE = 1;
+
 
   ChannelID  remoteChannel_;
   MemoryAddr address_;
   short operation_;
   bool  repeatOperation_;
+  int stride_;
 
 };
 

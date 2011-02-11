@@ -36,12 +36,13 @@ uint8_t MemoryRequest::operation() const {
 /* Return whether or not the request is to read data. */
 bool MemoryRequest::isReadRequest() const {
   short op = operation();
-  return op == LOAD || op == LOAD_B || op == IPK_READ;
+  return op == LOAD_W || op == LOAD_HW || op == LOAD_B || op == IPK_READ;
 }
 
 bool MemoryRequest::isWriteRequest() const {
   short op = operation();
-  return op == STORE || op == STORE_B || op == STADDR || op == STBADDR;
+  return op == STORE_W || op == STORE_HW || op == STORE_B ||
+         op == STADDR || op == STBADDR;
 }
 
 /* Return whether or not the request is for an entire instruction packet. */
@@ -56,6 +57,11 @@ bool MemoryRequest::isSetup() const {
 bool MemoryRequest::streaming() const {
   short op = operation();
   return op == IPK_READ || op == STADDR || op == STBADDR;
+}
+
+bool MemoryRequest::halfWordAccess() const {
+  short op = operation();
+  return op == LOAD_HW || op == STORE_HW;
 }
 
 bool MemoryRequest::byteAccess() const {

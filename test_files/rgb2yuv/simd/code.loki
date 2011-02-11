@@ -8,7 +8,7 @@
 %   V = ((112R -  94G -  18B + 128) >> 8) + 128
 
 % Set up connections to memories
-fetch               r1,  28
+fetch               r1,  56
 addui               r5,  r30, (13,0)
 addui               r6,  r30, (14,0)
 setchmap            r5,  1                  ; input = map 1
@@ -17,7 +17,7 @@ addui               r0,  r8,  (0,2)  > 1
 addui.eop           r0,  r8,  (0,0)  > 2
 
 % Load parameters
-fetch               r1,  36
+fetch               r1,  72
 ldw                 r0,  4           > 1
 ldw                 r0,  8           > 1
 ori                 r2,  ch0, 0             ; r2 = rows of input
@@ -31,7 +31,7 @@ or.eop              r10, r0,  r30           ; r10 = current location
 
 % Start of loop
 % Load subpixel values
-fetch               r1,  36
+fetch               r1,  72
 ldbu                r10, 12          > 1    ; load red (offset = length of params)
 addu                r11, r5,  r10           ; r11 = position in green array
 ldbu                r11, 12          > 1    ; load green
@@ -42,36 +42,36 @@ ori                 r8,  ch0, 0             ; r8 = green
 ori.eop             r9,  ch0, 0             ; r9 = blue
 
 % Compute Y
-fetch               r1,  100
+fetch               r1,  200
 ori                 r13, r0,  66            ; store coefficient
 ori                 r14, r0,  129           ; store coefficient
 ori                 r15, r0,  25            ; store coefficient
-addui.eop           r29, r1,  20            ; store next IPK location
+addui.eop           r29, r1,  40            ; store next IPK location
 
 % Store Y, compute U
 addui               r13, r13, 16            ; r13 = Y
 stb                 r13, r10, 0      > 2    ; store Y
-fetch               r1,  80
+fetch               r1,  160
 ori                 r13, r0,  -38           ; store coefficient
 ori                 r14, r0,  -74           ; store coefficient
 ori                 r15, r0,  112           ; store coefficient
-addui.eop           r29, r1,  28            ; store next IPK location
+addui.eop           r29, r1,  56            ; store next IPK location
 
 % Store U, compute V
 addui               r13, r13, 128           ; r13 = U
 stb                 r13, r11, 0      > 2    ; store U
-fetch               r1,  52
+fetch               r1,  104
 ori                 r13, r0,  112           ; store coefficient
 ori                 r14, r0,  -94           ; store coefficient
 ori                 r15, r0,  -18           ; store coefficient
-addui.eop           r29, r1,  28            ; store next IPK location
+addui.eop           r29, r1,  56            ; store next IPK location
 
 % Store V, loop if necessary
 addui               r13, r13, 128           ; r13 = V
 stb                 r13, r12, 0      > 2    ; store V
 addu                r10, r10, r31           ; move to next pixel
 setlt.p             r0,  r10, r4            ; see if we have finished
-p?fetch             r1,  -112
+p?fetch             r1,  -224
 nop.eop
 
 % Subroutine to compute (xR + yG + zB + 128) >> 8

@@ -12,7 +12,7 @@ const Word AddressedWord::payload() const {
   return payload_;
 }
 
-const uint16_t AddressedWord::channelID() const {
+const ChannelID AddressedWord::channelID() const {
   return channelID_;
 }
 
@@ -33,13 +33,13 @@ AddressedWord::AddressedWord() {
   channelID_ = 0;
 }
 
-AddressedWord::AddressedWord(const Word w, const uint16_t id, const bool portClaim) {
+AddressedWord::AddressedWord(const Word w, const ChannelID id, const bool portClaim) {
   payload_ = w;
   channelID_ = id;
   portClaim_ = portClaim;
   endOfPacket_ = true;
 
-  if((int)id < 0 || (int)id > TOTAL_INPUTS || (int)id > TOTAL_OUTPUTS) {
+  if((int)id < 0 || (id > TOTAL_INPUTS && id > TOTAL_OUTPUTS)) {
     std::cerr << "Warning: planning to send to channel " << (int)id << std::endl;
   }
 }

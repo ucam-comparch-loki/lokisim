@@ -37,7 +37,8 @@ void SendChannelEndTable::write(const DecodedInst& dec) {
       // Generate a special memory request if we are doing a load/store/etc.
       w = makeMemoryRequest(dec);
 
-      if(dec.memoryOp() == MemoryRequest::STORE ||
+      if(dec.memoryOp() == MemoryRequest::STORE_W ||
+         dec.memoryOp() == MemoryRequest::STORE_HW ||
          dec.memoryOp() == MemoryRequest::STORE_B) {
         endOfPacket = false;
       }

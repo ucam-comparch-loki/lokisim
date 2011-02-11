@@ -26,8 +26,10 @@ void WriteStage::newInput(DecodedInst& data) {
   scet.write(data);
 
   // Write to registers (they ignore the write if the index is invalid).
-  writeReg(data.destination(), data.result(),
-           data.operation() == InstructionMap::IWTR);
+  if(InstructionMap::storesResult(data.operation())) {
+    writeReg(data.destination(), data.result(),
+             data.operation() == InstructionMap::IWTR);
+  }
 
   // Do we need to say we are stalling because of output if the SCET is full?
 }

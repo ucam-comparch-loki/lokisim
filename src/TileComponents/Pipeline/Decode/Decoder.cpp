@@ -68,6 +68,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   }
 
   settingPredicate = input.setsPredicate();
+  previousDest = (input.destination()==0) ? -1 : input.destination();
 
   // Need a big try block in case we block when reading from a channel end.
   try {
@@ -79,16 +80,20 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     switch(operation) {
 
       case InstructionMap::LDW :
+      case InstructionMap::LDHWU :
       case InstructionMap::LDBU : {
         setOperand1ToValue(output, output.sourceReg1());
         setOperand2ToValue(output, 0, output.immediate());
         if(operation == InstructionMap::LDW)
-             output.memoryOp(MemoryRequest::LOAD);
+             output.memoryOp(MemoryRequest::LOAD_W);
+        else if(operation == InstructionMap::LDHWU)
+             output.memoryOp(MemoryRequest::LOAD_HW);
         else output.memoryOp(MemoryRequest::LOAD_B);
         break;
       }
 
       case InstructionMap::STW :
+      case InstructionMap::STHW :
       case InstructionMap::STB : {
         setOperand1ToValue(output, output.sourceReg2());
         setOperand2ToValue(output, 0, output.immediate());
@@ -96,7 +101,9 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
         output.sourceReg1(output.sourceReg2()); output.sourceReg2(0);
         currentlyWriting = true;
         if(operation == InstructionMap::STW)
-             output.memoryOp(MemoryRequest::STORE);
+             output.memoryOp(MemoryRequest::STORE_W);
+        else if(operation == InstructionMap::STHW)
+             output.memoryOp(MemoryRequest::STORE_HW);
         else output.memoryOp(MemoryRequest::STORE_B);
         break;
       }
@@ -135,7 +142,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
           // the next instruction.
           if(haveStalled) {
             bool discarded = discardNextInst();
-            if(discarded) jump -= BYTES_PER_WORD;
+            if(discarded) jump -= BYTES_PER_INSTRUCTION;
           }
 
           parent()->jump(jump);
@@ -330,10 +337,27 @@ bool Decoder::completeWrite(const DecodedInst& input, DecodedInst& output) {
 /* Determine whether this instruction should be executed. */
 bool Decoder::shouldExecute(const DecodedInst& inst) {
 
+  if((inst.sourceReg1()==previousDest || inst.sourceReg2()==previousDest) &&
+     (inst.operation()==InstructionMap::FETCH || inst.operation()==InstructionMap::PSELFETCH)) {
+    // We need a value in this cycle which has not yet been computed, so can't
+    // be forwarded. We need to wait for one cycle.
+    if(DEBUG) cout << this->name()
+        << " waiting one cycle for value to be computed." << endl;
+
+    blocked = true;
+    Instrumentation::stalled(id, true, Stalls::PREDICATE);
+    wait(1, sc_core::SC_NS);
+    blocked = false;
+    Instrumentation::stalled(id, false);
+
+    haveStalled = true;
+
+  }
+
   // If the previous instruction sets the predicate bit, and we need to access
   // it in this pipeline stage, we must stall for a cycle until it has been
   // written.
-  if(settingPredicate && inst.usesPredicate()) {
+  if(settingPredicate && inst.usesPredicate() && !haveStalled) {
 
     // We need to know the predicate value in this cycle if we are doing
     // something like a fetch, which is carried out in the decode stage, or if
@@ -376,6 +400,7 @@ Decoder::Decoder(sc_module_name name, ComponentID ID) : Component(name) {
 
   sendChannel = -1;
   remoteExecute = false;
+  previousDest = -1;
 
 }
 

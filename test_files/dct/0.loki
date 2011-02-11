@@ -25,6 +25,6 @@ p?setchmap      r8        1             ; weights memory = map 1
 p?ori           r0,  r0,  (2,1) > 0     ; connect to instruction memory
 p?setchmap      r9,       2             ; input image memory = map 2
 p?setchmap      r10,      3             ; output image memory = map 3
-p?fetch         r0,       164
+p?fetch         r0,       328
 ori             r0,  r0,  512 > 3       ; Tell Cluster 1 where its first block is
 ori.eop         r0,  r0,  0   > 3       ; Tell Cluster 1 where to store its output

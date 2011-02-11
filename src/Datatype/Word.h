@@ -36,7 +36,9 @@ public:
   int32_t  toInt() const;
   int64_t  toLong() const;
   Word     getByte(int byte) const;
+  Word     getHalfWord(int half) const;
   Word     setByte(int byte, int newData) const;
+  Word     setHalfWord(int half, int newData) const;
 
   // Returns an integer representing the least significant specified number
   // of bits.

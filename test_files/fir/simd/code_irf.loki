@@ -2,7 +2,7 @@
 % cache the taps. We can have no more than 32 taps.
 
 % Set up connections to memories (instruction memory is already sorted).
-fetch           r1,       28            ; fetch main program
+fetch           r1,       56            ; fetch main program
 addui           r5,  r30, (13,0)
 addui           r6,  r30, (14,0)
 setchmap        r5,       1             ; input data memory = map 1
@@ -10,7 +10,7 @@ setchmap        r6,       2             ; output data memory = map 2
 addui           r0,  r8,  2   > 1       ; connect to the input data memory
 addui.eop       r0,  r8,  3   > 2       ; connect to the output data memory
 
-fetch           r1,  84                 ; get the next instruction packet
+fetch           r1,  168                 ; get the next instruction packet
 
 % Load the parameters for this filter. (May deadlock if buffers are small?)
 ldw             r0,  4        > 1
@@ -41,14 +41,14 @@ addu            r28, r11, r26           ; r28 = end of taps
 addu.eop        r4,  r13, r2            ; r4 = position in outer loop
 
 % Load taps into indirect register file.
-fetch           r1,  36
+fetch           r1,  72
 ori             r5,  r0,  32            ; r5 = pointer to register to store tap in
 ldw             r11, 0          > 1     ; load a tap
 addui           r11, r11, 4             ; move to next tap
 iwtr            r5,  ch0                ; store the tap in the IRF
 addui           r5,  r5,  1             ; move to next register
 setgteu.p       r0,  r28, r11           ; see if we have gone through all taps yet
-p?ibjmp         -20                     ; if not, load another tap
+p?ibjmp         -40                     ; if not, load another tap
 addui.eop       r8,  r10, 32            ; r8 = first register with no tap in it
 
 % Start of outer loop
@@ -67,14 +67,14 @@ p?addu          r9,  r9,  r7            ; add new value to result
 
 setlt.p         r0,  r5,  r8            ; see if we have gone through all taps yet
 addui           r6,  r6,  4             ; move to next input element
-p?ibjmp         -36
+p?ibjmp         -72
 % End of inner loop
 
 addu            r4,  r4,  r3            ; increment position in outer loop
 stw             r9,  r14, 0     > 2     ; store the result
 setgteu.p       r0,  r27, r4            ; see if we have finished the outer loop
 addu            r14, r14, r3            ; update store location for next time
-p?ibjmp         -68
+p?ibjmp         -136
 % End of outer loop
 
 nop.eop

@@ -30,6 +30,7 @@ bool Chip::isIdle() const {
 }
 
 void Chip::storeData(vector<Word>& data, ComponentID component, MemoryAddr location) {
+  assert(component < contents.size());
   contents[component]->storeData(data, location);
 }
 

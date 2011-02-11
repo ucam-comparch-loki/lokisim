@@ -31,7 +31,7 @@ vector<DataBlock>& ELFFileReader::extractData() const {
     vector<string>& words = StringManipulation::split(lineStr, ' ');
 
     // We're only interested in a few particular lines of the information.
-    if(words.size() == 7 && (words[1]==".text" || words[1]==".data")) {
+    if(words.size() == 7 && (words[1]==".text" || words[1]==".data" || words[1]==".rodata" /*|| words[1]==".bss"*/)) {
       string name      = words[1];
       int size         = StringManipulation::strToInt("0x"+words[2]);
 //      int virtPosition = StringManipulation::strToInt("0x"+words[3]);
@@ -45,16 +45,25 @@ vector<DataBlock>& ELFFileReader::extractData() const {
 
       if(name == ".text") {
         // Read in "size" bytes (remembering that each instruction is 8 bytes).
-        for(int i=0; i<size; i+=8) {
+        for(int i=0; i<size; i+=BYTES_PER_INSTRUCTION) {
           Instruction inst = nextWord(elfFile, true);
-          data->push_back(inst);
+
+          if(BYTES_PER_INSTRUCTION > BYTES_PER_WORD) {
+            // Need to split the instruction in two.
+            uint64_t val = (uint64_t)inst.toLong();
+            Word first(val >> 32);
+            Word second(val & 0xFFFFFFFF);
+            data->push_back(first);
+            data->push_back(second);
+          }
+          else data->push_back(inst);
 
           if(CodeLoader::usingDebugger) printInstruction(inst, physPosition+i);
         }
       }
       else {
         // Data words are only 4 bytes long (I think).
-        for(int i=0; i<size; i+=4) {
+        for(int i=0; i<size; i+=BYTES_PER_WORD) {
           Word w = nextWord(elfFile, false);
           data->push_back(w);
         }
@@ -74,6 +83,14 @@ vector<DataBlock>& ELFFileReader::extractData() const {
   blocks->push_back(loaderProgram());
 
   return *blocks;
+}
+
+void ELFFileReader::addInstToVector(vector<Word>* vec, Instruction inst) {
+  if(BYTES_PER_INSTRUCTION > BYTES_PER_WORD) {
+    vec->push_back(inst.firstWord());
+    vec->push_back(inst.secondWord());
+  }
+  else vec->push_back(inst);
 }
 
 Word ELFFileReader::nextWord(std::ifstream& file, bool isInstruction) const {
@@ -137,14 +154,14 @@ DataBlock& ELFFileReader::loaderProgram() const {
   fetch.immediate(mainPos);
 
   vector<Word>* instructions = new vector<Word>();
-  instructions->push_back(storeChannel);
-  instructions->push_back(nop);
-  instructions->push_back(setfetchch);
-  instructions->push_back(connect);
-  instructions->push_back(nop);
-  instructions->push_back(fetch);
+  addInstToVector(instructions, storeChannel);
+  addInstToVector(instructions, nop);
+  addInstToVector(instructions, setfetchch);
+  addInstToVector(instructions, connect);
+  addInstToVector(instructions, nop);
+  addInstToVector(instructions, fetch);
 
-  cout << "Should give \"" << fetch << "\" to core " << core_ << endl;
+//  cout << "Should give \"" << fetch << "\" to core " << core_ << endl;
 
   DataBlock* block = new DataBlock(instructions, core_);
 
@@ -153,40 +170,43 @@ DataBlock& ELFFileReader::loaderProgram() const {
 
 int ELFFileReader::findMain() const {
 
-  // Execute a command which returns information on all of the ELF sections.
-  FILE* terminalOutput;
-  string command("loki-elf-objdump -t " + filename_);
-  terminalOutput = popen(command.c_str(), "r");
+  // Now looking for _start, not main, and it is always at 0x1000.
+  return 0x1000;
 
-  char line[100];
-  int mainPos = 0;
-  bool foundMainPos = false;
-
-  // Step through each line of information, looking for the one corresponding
-  // to main().
-  while(fgets(line, 100, terminalOutput) != NULL) {
-    string lineStr(line);
-    vector<string>& words = StringManipulation::split(lineStr, ' ');
-
-    // We're only interested one line of the information.
-    if(words.back()=="main\n") {
-      mainPos = StringManipulation::strToInt("0x"+words[0]);
-      foundMainPos = true;
-      break;
-    }
-
-    delete &words;
-  }
-
-  fclose(terminalOutput);
-
-  if(foundMainPos) {
-    return mainPos;
-  }
-  else {
-    cerr << "Error: unable to find main() in " << filename_ << endl;
-    throw std::exception();
-  }
+//  // Execute a command which returns information on all of the ELF sections.
+//  FILE* terminalOutput;
+//  string command("loki-elf-objdump -t " + filename_);
+//  terminalOutput = popen(command.c_str(), "r");
+//
+//  char line[100];
+//  int mainPos = 0;
+//  bool foundMainPos = false;
+//
+//  // Step through each line of information, looking for the one corresponding
+//  // to main().
+//  while(fgets(line, 100, terminalOutput) != NULL) {
+//    string lineStr(line);
+//    vector<string>& words = StringManipulation::split(lineStr, ' ');
+//
+//    // We're only interested one line of the information.
+//    if(words.back()=="main\n") {
+//      mainPos = StringManipulation::strToInt("0x"+words[0]);
+//      foundMainPos = true;
+//      break;
+//    }
+//
+//    delete &words;
+//  }
+//
+//  fclose(terminalOutput);
+//
+//  if(foundMainPos) {
+//    return mainPos;
+//  }
+//  else {
+//    cerr << "Error: unable to find main() in " << filename_ << endl;
+//    throw std::exception();
+//  }
 
 }
 

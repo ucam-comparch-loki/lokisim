@@ -90,6 +90,14 @@ bool Instruction::operator== (const Instruction& other) const {
   return this->data_ == other.data_;
 }
 
+Word Instruction::firstWord() const {
+  return Word(data_ >> 32);
+}
+
+Word Instruction::secondWord() const {
+  return Word(data_ & 0xFFFFFFFF);
+}
+
 /* Constructors and destructors */
 Instruction::Instruction() : Word() {
   // Do nothing
@@ -295,28 +303,22 @@ void Instruction::setFields(const RegisterIndex reg1, const RegisterIndex reg2,
   switch(operation) {
 
     // Single source, no destination.
-    case InstructionMap::LDW :
-    case InstructionMap::LDBU :
     case InstructionMap::STWADDR :
     case InstructionMap::STBADDR :
-    case InstructionMap::FETCH :
-    case InstructionMap::FETCHPST :
     case InstructionMap::RMTFETCH :
     case InstructionMap::RMTFETCHPST :
-    case InstructionMap::RMTFILL :
-    case InstructionMap::SETCHMAP : {
+    case InstructionMap::RMTFILL : {
       sourceReg1(reg1);
       break;
     }
 
     // Two sources, no destination.
-    case InstructionMap::STW :
-    case InstructionMap::STB :
-    case InstructionMap::PSELFETCH : {
-      sourceReg1(reg1);
-      sourceReg2(reg2);
-      break;
-    }
+//    case InstructionMap::STW :
+//    case InstructionMap::STB : {
+//      sourceReg1(reg1);
+//      sourceReg2(reg2);
+//      break;
+//    }
 
     // Two sources and a destination.
     default : {

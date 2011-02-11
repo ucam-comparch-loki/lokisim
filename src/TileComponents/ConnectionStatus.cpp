@@ -6,6 +6,7 @@
  */
 
 #include "ConnectionStatus.h"
+#include "../Datatype/MemoryRequest.h"
 #include "../Utility/Parameters.h"
 
 /* Tells whether there is a connection set up at all. */
@@ -20,11 +21,11 @@ bool ConnectionStatus::idle() const {
 }
 
 bool ConnectionStatus::isRead() const {
-  return operation_ == LOAD || operation_ == LOADBYTE;
+  return operation_ == LOAD || operation_ == LOADHW || operation_ == LOADBYTE;
 }
 
 bool ConnectionStatus::isWrite() const {
-  return operation_ == STORE || operation_ == STOREBYTE;
+  return operation_ == STORE || operation_ == STOREHW || operation_ == STOREBYTE;
 }
 
 bool ConnectionStatus::streaming() const {
@@ -38,13 +39,19 @@ bool ConnectionStatus::readingIPK() const {
   return streaming() && isRead();
 }
 
-bool ConnectionStatus::isByteAccess() const {
-  return (operation_ == LOADBYTE || operation_ == STOREBYTE);
+bool ConnectionStatus::byteAccess() const {
+  return operation_ == LOADBYTE || operation_ == STOREBYTE;
+}
+
+bool ConnectionStatus::halfWordAccess() const {
+  return operation_ == LOADHW || operation_ == STOREHW;
 }
 
 void ConnectionStatus::incrementAddress() {
-  if(isByteAccess()) address_ += STRIDE;
-  else               address_ += STRIDE * BYTES_PER_WORD;
+  if(byteAccess())    address_ += stride_;
+  else if(halfWordAccess()) address_ += stride_ * (BYTES_PER_WORD/2);
+  else if(readingIPK()) address_ += stride_ * BYTES_PER_INSTRUCTION;
+  else                  address_ += stride_ * BYTES_PER_WORD;
 }
 
 /* End the current operation, but keep the connection up so new operations
@@ -53,6 +60,7 @@ void ConnectionStatus::clear() {
   address_ = UNUSED;
   operation_ = NONE;
   repeatOperation_ = false;
+  stride_ = 1;
 }
 
 /* Completely remove the connection, allowing a new component to connect to
@@ -74,14 +82,31 @@ void ConnectionStatus::channel(ChannelID channel) {
   remoteChannel_ = channel;
 }
 
-void ConnectionStatus::readAddress(MemoryAddr addr, bool byteAccess) {
+void ConnectionStatus::readAddress(MemoryAddr addr, int operation) {
   address_ = addr;
-  operation_ = byteAccess ? LOADBYTE : LOAD;
+  if(operation == MemoryRequest::LOAD_W || operation == MemoryRequest::IPK_READ)
+    operation_ = LOAD;
+  else if(operation == MemoryRequest::LOAD_HW) operation_ = LOADHW;
+  else if(operation == MemoryRequest::LOAD_B) operation_ = LOADBYTE;
+  else std::cerr << "Unknown memory operation in ConnectionStatus::readAddress: "
+                 << operation << std::endl;
 }
 
-void ConnectionStatus::writeAddress(MemoryAddr addr, bool byteAccess) {
+void ConnectionStatus::writeAddress(MemoryAddr addr, int operation) {
   address_ = addr;
-  operation_ = byteAccess ? STOREBYTE : STORE;
+  if(operation == MemoryRequest::STORE_W) operation_ = STORE;
+  else if(operation == MemoryRequest::STORE_HW) operation_ = STOREHW;
+  else if(operation == MemoryRequest::STORE_B) operation_ = STOREBYTE;
+  else if(operation == MemoryRequest::STADDR) {
+    operation_ = STORE;
+    repeatOperation_ = true;
+  }
+  else if(operation == MemoryRequest::STBADDR) {
+    operation_ = STOREBYTE;
+    repeatOperation_ = true;
+  }
+  else std::cerr << "Unknown memory operation in ConnectionStatus::writeAddress: "
+                 << operation << std::endl;
 }
 
 void ConnectionStatus::startStreaming() {
@@ -96,6 +121,7 @@ ConnectionStatus::ConnectionStatus() {
   remoteChannel_ = UNUSED;
   address_       = UNUSED;
   operation_     = NONE;
+  stride_        = 1;
 }
 
 ConnectionStatus::~ConnectionStatus() {

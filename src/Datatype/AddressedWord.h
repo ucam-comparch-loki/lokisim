@@ -8,6 +8,7 @@
 #ifndef ADDRESSEDWORD_H_
 #define ADDRESSEDWORD_H_
 
+#include "../Typedefs.h"
 #include "Word.h"
 
 class AddressedWord {
@@ -18,8 +19,8 @@ class AddressedWord {
 
 public:
 
-  const Word     payload() const;
-  const uint16_t channelID() const;
+  const Word      payload() const;
+  const ChannelID channelID() const;
   bool     portClaim() const;
   bool     endOfPacket() const;
 
@@ -46,7 +47,7 @@ public:
 public:
 
   AddressedWord();
-  AddressedWord(const Word w, const uint16_t chID, const bool portClaim=false);
+  AddressedWord(const Word w, const ChannelID chID, const bool portClaim=false);
   virtual ~AddressedWord();
 
 //==============================//
@@ -59,7 +60,7 @@ private:
   Word payload_;
 
   // The location the data is being transmitted to.
-  uint16_t channelID_;
+  ChannelID channelID_;
 
   // Marks whether or not this is a claim for a port. Once an input port is
   // claimed, all of its responses will be sent back to the sending output port.

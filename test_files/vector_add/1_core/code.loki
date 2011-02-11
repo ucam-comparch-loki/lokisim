@@ -1,5 +1,5 @@
 % Set up connections to memories
-fetch               r1,  40
+fetch               r1,  80
 ori                 r5,  r0,  (13,0)
 ori                 r6,  r0,  (14,0)
 ori                 r7,  r0,  (15,0)
@@ -11,7 +11,7 @@ ori                 r0,  r0,  (0,3)  > 2
 ori.eop             r0,  r0,  (0,0)  > 3
 
 % Load parameter(s)
-fetch               r1,  20
+fetch               r1,  40
 ldw                 r0,  4           > 1
 ori                 r11, r0,  0             ; r11 = current position
 slli                r10, ch0, 2             ; r10 = byte-length of vectors
@@ -24,5 +24,5 @@ setlt.p             r0,  r11, r10           ; see if we have work left to do
 addui               r11, r11, 4             ; move to next element
 addu                r12, ch0, ch1           ; r12 = sum of vector elements
 stw                 r12, r11, -4     > 3    ; store result
-p?ibjmp             -24
+p?ibjmp             -48
 nop.eop

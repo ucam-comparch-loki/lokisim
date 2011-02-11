@@ -59,6 +59,10 @@ int sc_main(int argc, char* argv[]) {
       DEBUG = 0;
       Debugger::mode = Debugger::TEST;
     }
+    else if(firstArg == "trace") {
+      DEBUG = 0;
+      TRACE = 1;
+    }
   }
 
   CodeLoader::loadCode(settingsFile, chip);

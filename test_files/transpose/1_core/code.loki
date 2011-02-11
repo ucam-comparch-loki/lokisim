@@ -5,7 +5,7 @@
 % instruction (stwaddr), but no streaming read instruction.
 
 % Set up connections to memories
-fetch               r1,  28
+fetch               r1,  56
 ori                 r5,  r0,  (13,0)
 ori                 r6,  r0,  (14,0)
 setchmap            r5,  1                  ; input = map 1
@@ -14,7 +14,7 @@ ori                 r0,  r0,  (0,2)  > 1
 ori.eop             r0,  r0,  (0,0)  > 2
 
 % Load parameters
-fetch               r1,  24
+fetch               r1,  48
 ldw                 r0,  4           > 1
 ldw                 r0,  8           > 1
 ori                 r2,  ch0, 0             ; r2 = rows of input (columns of output)
@@ -35,12 +35,12 @@ addu                r13, r13, r5            ; increment load address
 seteq.p             r0,  r12, r2            ; see if we have finished this column
 stw                 ch0, r14, 0      > 2    ; store received value
 addui               r14, r14, 4             ; increment store address
-!p?ibjmp            -24                     ; continue along row if not finished
+!p?ibjmp            -48                     ; continue along row if not finished
 % End of inner loop
 
 addui               r11, r11, 1             ; increment current input column
 setgte.p            r0,  r11, r3            ; see if we have finished the whole matrix
-!p?ibjmp            -52                     ; if not, do another column
+!p?ibjmp            -104                     ; if not, do another column
 % End of outer loop
 
 nop.eop

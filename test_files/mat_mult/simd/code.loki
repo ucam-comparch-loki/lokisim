@@ -1,5 +1,5 @@
 % Set up connections to memories
-fetch               r1,  40
+fetch               r1,  80
 addui               r5,  r30, (13,0)
 addui               r6,  r30, (14,0)
 addui               r7,  r30, (15,0)
@@ -11,7 +11,7 @@ addui               r0,  r8,  (0,3)  > 2
 addui.eop           r0,  r8,  (0,0)  > 3
 
 % Load parameters
-fetch               r1,  28
+fetch               r1,  56
 ldw                 r0,  4           > 1
 ldw                 r0,  8           > 1
 ldw                 r0,  12          > 1
@@ -42,7 +42,7 @@ addui               r14, r14, 1             ; increment iteration variable
 seteq.p             r0,  r14, r3            ; see if we will have finished this result
 mullw               r7,  ch0, ch1           ; multiply matrix elements
 addu                r13, r13, r7            ; add result to total so far
-!p?ibjmp            -48                     ; if not finished, loop
+!p?ibjmp            -96                     ; if not finished, loop
 
 % Compute where to store the result
 mullw               r7,  r11, r4            ; start of row = row * num columns
@@ -52,10 +52,10 @@ stw                 r13, r7,  0      > 3    ; store result
 
 addui               r12, r12, 1             ; move to next output column
 seteq.p             r0,  r12, r4            ; see if we have finished the row
-!p?ibjmp            -84                     ; if not, loop
+!p?ibjmp            -168                     ; if not, loop
 
 addu                r11, r11, r31           ; move to next output row
 setgte.p            r0,  r11, r2            ; see if we have finished the matrix
-!p?ibjmp            -100                    ; if not, loop
+!p?ibjmp            -200                    ; if not, loop
 
 nop.eop                                     ; if so, end

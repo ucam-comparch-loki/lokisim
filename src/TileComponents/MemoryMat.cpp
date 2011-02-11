@@ -84,8 +84,10 @@ void MemoryMat::read(ChannelIndex port) {
 
   ConnectionStatus& connection = connections_[port];
   MemoryAddr addr = connection.address();
-  Word data = readWord(addr);
+  Word data;
   ChannelID returnAddr = connection.channel();
+
+  if(DEBUG) cout << "Reading from memory " << id << ", address " << addr << ": ";
 
   // Collect some information about the read.
   bool endOfPacket = true;
@@ -93,6 +95,15 @@ void MemoryMat::read(ChannelIndex port) {
 
   if(connection.readingIPK()) {
     isInstruction = true;
+    data = readWord(addr);
+
+    // May need to read additional data to get a whole instruction.
+    if(BYTES_PER_INSTRUCTION > BYTES_PER_WORD) {
+      uint32_t first = (uint32_t)data.toInt();
+      uint32_t second = (uint32_t)readWord(addr+BYTES_PER_WORD).toInt();
+      uint64_t total = ((uint64_t)first << 32) + second;
+      data = Word(total);
+    }
 
     if(static_cast<Instruction>(data).endOfPacket()) {
       // If this is the end of the packet, end this operation and check for
@@ -106,12 +117,16 @@ void MemoryMat::read(ChannelIndex port) {
     }
   }
   else {
-    if(connection.isByteAccess()) {
-      data = data.getByte(addr % BYTES_PER_WORD);
+    if(connection.byteAccess()) {
+      data = readByte(addr);
+    }
+    else if(connection.halfWordAccess()) {
+      assert(addr%(BYTES_PER_WORD/2) == 0);
+      data = readHalfWord(addr);
     }
     else {
-      if(addr%BYTES_PER_WORD != 0)
-        cerr << "Warning: Misaligned address: " << addr << endl;
+      assert(addr%BYTES_PER_WORD == 0);
+      data = readWord(addr);
     }
     connection.clear(); activeConnections--;
   }
@@ -122,8 +137,7 @@ void MemoryMat::read(ChannelIndex port) {
   out[port].write(aw);
 
   Instrumentation::l1Read(addr, isInstruction);
-  if(DEBUG) cout << "Read " << data << " from memory " << id << ", address "
-                 << addr << endl;
+  if(DEBUG) cout << data << endl;
 
 }
 
@@ -137,8 +151,13 @@ void MemoryMat::write(ChannelIndex port) {
   Word data = inputBuffers_[port].read();
   sendCredit(port); // Removed something from the buffer so send a credit.
 
-  if(connection.isByteAccess()) writeByte(addr, data);
-  else                          writeWord(addr, data);
+  Instrumentation::l1Write(addr);
+  if(DEBUG) cout << "Writing " << data << " to memory " << id
+                 << ", address " << addr << endl;
+
+  if(connection.byteAccess())          writeByte(addr, data);
+  else if(connection.halfWordAccess()) writeHalfWord(addr, data);
+  else                                 writeWord(addr, data);
 
   // If we're expecting more writes, update the address, otherwise clear it
   // and check for another operation.
@@ -147,10 +166,6 @@ void MemoryMat::write(ChannelIndex port) {
     connection.clear(); activeConnections--;
     if(!inputBuffers_[port].empty()) newOperation(port);
   }
-
-  Instrumentation::l1Write(addr);
-  if(DEBUG) cout << "Wrote " << data << " to memory " << id
-                 << ", address " << addr << endl;
 }
 
 /* Returns a vector of all input ports at which there are memory operations
@@ -207,10 +222,10 @@ void MemoryMat::newOperation(ChannelIndex port) {
   }
   else {
     if(request.isReadRequest()) {
-      connections_[port].readAddress(request.address(), request.byteAccess());
+      connections_[port].readAddress(request.address(), request.operation());
     }
     else if(request.isWriteRequest()) {
-      connections_[port].writeAddress(request.address(), request.byteAccess());
+      connections_[port].writeAddress(request.address(), request.operation());
     }
     else cerr << "Warning: Unknown memory request." << endl;
 
@@ -257,37 +272,20 @@ void MemoryMat::arbitrate(std::vector<ChannelIndex>& inputs) {
   }
 
   uint numAccepted = 0;
-  uint start = 0;
+  std::vector<ChannelIndex>::iterator iter = inputs.begin();
 
-  // Find the position in the input vector to start from. This is the first
-  // input after the one we most recently served.
-  while(start < inputs.size() && inputs[start] <= lastAccepted) start++;
+  while(iter < inputs.end() && *iter <= lastAccepted) iter++;
 
-  uint i = start;
+  uint startSize = inputs.size();
+  for(uint i=0; i<startSize; i++) {
+    // Loop the iterator back to the beginning if necessary.
+    if(iter >= inputs.end()) iter = inputs.begin();
 
-  // Round-robin scheduling: go from the last accepted position to the end.
-  while(i<inputs.size()) {
     if(numAccepted<CONCURRENT_MEM_OPS) {
-      i++;
       numAccepted++;
+      iter++;
     }
-    else {
-      inputs.erase(inputs.begin()+i, inputs.end());
-      break;
-    }
-  }
-
-  // Then go from the start to the last accepted position.
-  i = 0;
-  while(i<start) {
-    if(numAccepted<CONCURRENT_MEM_OPS) {
-      i++;
-      numAccepted++;
-    }
-    else {
-      inputs.erase(inputs.begin()+i, inputs.begin()+start);
-      break;
-    }
+    else iter = inputs.erase(iter);
   }
 
   if(inputs.size() > 0) lastAccepted = inputs.back();
@@ -339,7 +337,13 @@ void MemoryMat::print(MemoryAddr start, MemoryAddr end) const {
 }
 
 const Word MemoryMat::readWord(MemoryAddr addr) const {
+  assert(addr%BYTES_PER_WORD == 0);
   return data_.read(addr/BYTES_PER_WORD);
+}
+
+const Word MemoryMat::readHalfWord(MemoryAddr addr) const {
+  assert(addr%(BYTES_PER_WORD/2) == 0);
+  return data_.read(addr/BYTES_PER_WORD).getHalfWord((addr%BYTES_PER_WORD)/(BYTES_PER_WORD/2));
 }
 
 const Word MemoryMat::readByte(MemoryAddr addr) const {
@@ -347,11 +351,19 @@ const Word MemoryMat::readByte(MemoryAddr addr) const {
 }
 
 void MemoryMat::writeWord(MemoryAddr addr, Word data) {
+  assert(addr%BYTES_PER_WORD == 0);
   writeMemory(addr, data);
 }
 
+void MemoryMat::writeHalfWord(MemoryAddr addr, Word data) {
+  assert(addr%(BYTES_PER_WORD/2) == 0);
+  Word current = readWord(addr - (addr%BYTES_PER_WORD));
+  Word updated = current.setHalfWord((addr%BYTES_PER_WORD)/(BYTES_PER_WORD/2), data.toInt());
+  writeMemory(addr, updated);
+}
+
 void MemoryMat::writeByte(MemoryAddr addr, Word data) {
-  Word current = readWord(addr);
+  Word current = readWord(addr - (addr%BYTES_PER_WORD));
   Word updated = current.setByte(addr%BYTES_PER_WORD, data.toInt());
   writeMemory(addr, updated);
 }

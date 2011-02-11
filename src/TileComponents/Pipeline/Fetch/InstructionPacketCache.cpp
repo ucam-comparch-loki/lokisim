@@ -95,7 +95,7 @@ bool InstructionPacketCache::lookup(const Address addr) {
 void InstructionPacketCache::jump(const JumpOffset offset) {
   if(DEBUG) cout << this->name() << ": ";   // cache prints the rest
 
-  cache.jump(offset/BYTES_PER_WORD);
+  cache.jump(offset/BYTES_PER_INSTRUCTION);
 }
 
 void InstructionPacketCache::updatePersistent(bool persistent) {

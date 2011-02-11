@@ -65,8 +65,10 @@ public:
 
   // Return the value at the given address.
   virtual const Word readWord(MemoryAddr addr) const;
+          const Word readHalfWord(MemoryAddr addr) const;
   virtual const Word readByte(MemoryAddr addr) const;
   virtual void writeWord(MemoryAddr addr, Word data);
+          void writeHalfWord(MemoryAddr addr, Word data);
   virtual void writeByte(MemoryAddr addr, Word data);
 
 private:

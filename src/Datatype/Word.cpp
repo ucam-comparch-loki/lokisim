@@ -18,15 +18,28 @@ int64_t Word::toLong() const {
 }
 
 Word Word::getByte(int byte) const {
-  assert(byte < BYTES_PER_WORD);
+  assert(byte < BYTES_PER_WORD && byte >= 0);
   int value = getBits(byte*8, byte*8 + 7);
   return Word(value);
 }
 
+Word Word::getHalfWord(int half) const {
+  assert(half < 2 && half >= 0);
+  int value = getBits(half*16, half*16 + 15);
+  return Word(value);
+}
+
 Word Word::setByte(int byte, int newData) const {
-  assert(byte < BYTES_PER_WORD);
+  assert(byte < BYTES_PER_WORD && byte >= 0);
   Word newWord(*this);
   newWord.setBits(byte*8, byte*8 + 7, newData);
+  return newWord;
+}
+
+Word Word::setHalfWord(int half, int newData) const {
+  assert(half < 2 && half >= 0);
+  Word newWord(*this);
+  newWord.setBits(half*16, half*16 + 15, newData);
   return newWord;
 }
 

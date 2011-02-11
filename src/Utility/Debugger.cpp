@@ -35,6 +35,8 @@ const string EXECUTE      = "execute";
 const string EXECUTE_S    = "e";
 const string FINISH       = "finish";
 const string FINISH_S     = "f";
+const string HELP         = "help";
+const string HELP_S       = "h";
 const string PRINTREGS    = "printregs";
 const string PRINTREGS_S  = "pr";
 const string PRINTPRED    = "printpred";
@@ -84,6 +86,9 @@ void Debugger::waitForInput() {
     else if(words[0] == FINISH     || words[0] == FINISH_S) {
       finishExecution();
     }
+    else if(words[0] == HELP       || words[0] == HELP_S) {
+      printHelp();
+    }
     else if(words[0] == PRINTREGS  || words[0] == PRINTREGS_S) {
       words.erase(words.begin());
       printRegs(parseIntVector(words, true));
@@ -122,7 +127,7 @@ void Debugger::waitForInput() {
     }
     else {
       cout << "Unrecognised command: " << words[0] << "\n";
-      printHelp();
+      cout << "Type \"help\" for a list of commands.\n";
     }
 
     delete &words;
@@ -230,7 +235,8 @@ void Debugger::executeUntilBreakpoint() {
     executeSingleCycle();
   }
   else {
-    while(!hitBreakpoint && cyclesIdle<maxIdleTime && cycleNumber<TIMEOUT) {
+    while(!hitBreakpoint && cyclesIdle<maxIdleTime && cycleNumber<TIMEOUT &&
+          !sc_core::sc_end_of_simulation_invoked()) {
       executeSingleCycle();
     }
   }
@@ -241,7 +247,10 @@ void Debugger::executeUntilBreakpoint() {
 }
 
 void Debugger::finishExecution() {
-  while(cyclesIdle<maxIdleTime && cycleNumber<TIMEOUT) executeSingleCycle();
+  while(cyclesIdle<maxIdleTime && cycleNumber<TIMEOUT &&
+        !sc_core::sc_end_of_simulation_invoked()) {
+    executeSingleCycle();
+  }
   if(mode == DEBUGGER) cout << "\nExecution ended successfully.\n";
 }
 
@@ -249,7 +258,16 @@ void Debugger::execute(string instruction) {
   // Create an instruction and pass it to a core.
   Instruction inst(instruction);
   vector<Word> instVector;
-  instVector.push_back(inst);
+
+  if(BYTES_PER_INSTRUCTION > BYTES_PER_WORD) {
+    // Need to split the instruction into multiple words.
+    uint64_t val = (uint64_t)inst.toLong();
+    Word first(val >> 32);
+    Word second(val & 0xFFFFFFFF);
+    instVector.push_back(first);
+    instVector.push_back(second);
+  }
+  else instVector.push_back(inst);
 
   if(mode == DEBUGGER)
     cout << "Passing " << inst << " to core " << defaultCore << "\n";
