@@ -26,10 +26,10 @@ using std::endl;
 // General parameters
 //-------------------------------------------------------------------------------------------------
 
-int DEBUG = 1;
+int DEBUG = 0;
 int TRACE = 0;
 
-int TIMEOUT = 1500000;
+int TIMEOUT = 15000;
 
 int BYTES_PER_WORD = 4;
 int BYTES_PER_INSTRUCTION = 8;
@@ -53,7 +53,7 @@ parameter NUM_TILE_COLUMNS           = 1;
 parameter NUM_ADDRESSABLE_REGISTERS  = 32;
 parameter NUM_PHYSICAL_REGISTERS     = 64;
 parameter IPK_FIFO_SIZE              = 8;
-parameter IPK_CACHE_SIZE             = 64;
+parameter IPK_CACHE_SIZE             = 1024;
 parameter MEMORY_SIZE                = 10000000;
 parameter CONCURRENT_MEM_OPS         = 1;//NUM_CLUSTER_INPUTS;
 
