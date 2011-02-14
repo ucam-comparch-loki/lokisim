@@ -26,10 +26,10 @@ using std::endl;
 // General parameters
 //-------------------------------------------------------------------------------------------------
 
-int DEBUG = 0;
+int DEBUG = 1;
 int TRACE = 0;
 
-int TIMEOUT = 150000;
+int TIMEOUT = 1500000;
 
 int BYTES_PER_WORD = 4;
 int BYTES_PER_INSTRUCTION = 8;

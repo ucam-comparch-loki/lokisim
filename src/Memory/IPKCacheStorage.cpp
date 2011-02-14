@@ -18,6 +18,10 @@ bool IPKCacheStorage::checkTags(const Address& key) {
       if(currInst.isNull()) {
         currInst = i;
         currentPacket = i;
+
+        // If we've found a packet in the cache, we know it is valid and
+        // will want to read it.
+        lastOpWasARead = false;
         updateFillCount();
       }
       else pendingPacket = i;

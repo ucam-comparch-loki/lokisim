@@ -118,25 +118,32 @@ void simulate(Chip& chip) {
     int cyclesIdle = 0;
 
     try {
-      for(int i=0; i<TIMEOUT && !sc_core::sc_end_of_simulation_invoked(); i++) {
+      int i;
+      for(i=0; i<TIMEOUT && !sc_core::sc_end_of_simulation_invoked(); i++) {
         TIMESTEP;
         if(idle.read()) {
           cyclesIdle++;
           if(cyclesIdle >= 100) {
-            if(DEBUG) cout << "\nSystem has been idle for " << cyclesIdle << " cycles." << endl;
             sc_stop();
             Instrumentation::endExecution();
+            cerr << "\nSystem has been idle for " << cyclesIdle << " cycles." << endl;
             RETURN_CODE = 1; // Should this be some other number?
             break;
           }
         }
         else cyclesIdle = 0;
       }
+
+      if(i >= TIMEOUT) {
+        cerr << "Simulation timed out after " << TIMEOUT << " cycles." << endl;
+        RETURN_CODE = 1;
+      }
     }
     catch(std::exception& e) {
       // If there's no error message, it might mean that not everything is
       // connected properly.
       cerr << "Execution ended unexpectedly:\n" << e.what() << endl;
+      RETURN_CODE = 1;
     }
   }
 

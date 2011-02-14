@@ -241,7 +241,15 @@ void Debugger::executeUntilBreakpoint() {
     }
   }
 
-  if(mode == DEBUGGER) cout << "Now at cycle " << cycleNumber << "\n";
+  if(cycleNumber >= TIMEOUT) {
+    cerr << "Simulation timed out after " << TIMEOUT << " cycles." << endl;
+    RETURN_CODE = 1;
+  }
+  else if(cyclesIdle >= maxIdleTime) {
+    cerr << "System was idle for " << cyclesIdle << " cycles." << endl;
+    RETURN_CODE = 1;
+  }
+  else if(mode == DEBUGGER) cout << "Now at cycle " << cycleNumber << "\n";
 
   hitBreakpoint = false;
 }
@@ -251,7 +259,16 @@ void Debugger::finishExecution() {
         !sc_core::sc_end_of_simulation_invoked()) {
     executeSingleCycle();
   }
-  if(mode == DEBUGGER) cout << "\nExecution ended successfully.\n";
+
+  if(cycleNumber >= TIMEOUT) {
+    cerr << "Simulation timed out after " << TIMEOUT << " cycles." << endl;
+    RETURN_CODE = 1;
+  }
+  else if(cyclesIdle >= maxIdleTime) {
+    cerr << "System was idle for " << cyclesIdle << " cycles." << endl;
+    RETURN_CODE = 1;
+  }
+  else if(mode == DEBUGGER) cout << "\nExecution ended successfully.\n";
 }
 
 void Debugger::execute(string instruction) {
