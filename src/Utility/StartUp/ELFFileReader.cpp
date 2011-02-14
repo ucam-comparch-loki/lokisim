@@ -31,7 +31,7 @@ vector<DataBlock>& ELFFileReader::extractData() const {
     vector<string>& words = StringManipulation::split(lineStr, ' ');
 
     // We're only interested in a few particular lines of the information.
-    if(words.size() == 7 && (words[1]==".text" || words[1]==".data" || words[1]==".rodata" /*|| words[1]==".bss"*/)) {
+    if(words.size() == 7 && (words[1]==".text" || words[1]==".data" || words[1]==".rodata")) {
       string name      = words[1];
       int size         = StringManipulation::strToInt("0x"+words[2]);
 //      int virtPosition = StringManipulation::strToInt("0x"+words[3]);

@@ -75,7 +75,7 @@ void CodeLoader::loadParameters(string& settings) {
  *     Use another file loader - useful for loading multiple (sub-)programs
  *   component_id file_name
  *     Load the contents of the file into the component */
-void CodeLoader::loadCode(string& settings, Chip& tile) {
+void CodeLoader::loadCode(string& settings, Chip& chip) {
 
   char line[200];   // An array of chars to load a line from the file into.
 
@@ -83,7 +83,16 @@ void CodeLoader::loadCode(string& settings, Chip& tile) {
   std::ifstream file(settings.c_str());
 
   // Strip away "/loader.txt" to get the directory path.
-  int pos = settings.find("loader");
+  uint pos = settings.find("loader");
+
+  if(pos >= settings.length()) {
+    // Put the string in a vector so we can use existing methods.
+    vector<string> vec;
+    vec.push_back(settings);
+    loadCode(vec, chip);
+    return;
+  }
+
   string directory = settings.substr(0,pos-1);
 
   while(!file.fail()) {
@@ -100,7 +109,7 @@ void CodeLoader::loadCode(string& settings, Chip& tile) {
       }
       else if(words[0]=="loader") {   // Use another file loader
         string loaderFile = directory + "/" + words[1];
-        loadCode(loaderFile, tile);
+        loadCode(loaderFile, chip);
       }
       else if(words[0]=="power") {
         Instrumentation::loadPowerLibrary(words[1]);
@@ -114,7 +123,7 @@ void CodeLoader::loadCode(string& settings, Chip& tile) {
         std::string filename = words.back();
         words.back() = (filename[0]=='/') ? filename : directory + "/" + filename;
 
-        loadCode(words, tile);
+        loadCode(words, chip);
       }
 
       delete &words;
@@ -131,12 +140,12 @@ void CodeLoader::loadCode(string& settings, Chip& tile) {
 
 }
 
-void CodeLoader::loadCode(vector<string>& command, Chip& tile) {
+void CodeLoader::loadCode(vector<string>& command, Chip& chip) {
   FileReader& reader = FileReader::makeFileReader(command);
   vector<DataBlock>& blocks = reader.extractData();
 
   for(uint i=0; i<blocks.size(); i++) {
-    tile.storeData(blocks[i].data(), blocks[i].component(),
+    chip.storeData(blocks[i].data(), blocks[i].component(),
                    blocks[i].position()/BYTES_PER_WORD);
     delete &(blocks[i].data());
   }

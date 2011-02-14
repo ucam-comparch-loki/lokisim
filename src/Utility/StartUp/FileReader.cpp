@@ -10,6 +10,7 @@
 #include "ELFFileReader.h"
 #include "LokiFileReader.h"
 #include "LokiBinaryFileReader.h"
+#include "../Parameters.h"
 #include "../StringManipulation.h"
 #include "../../Datatype/Instruction.h"
 
@@ -31,7 +32,12 @@ void FileReader::printInstruction(Instruction i, MemoryAddr address) {
 FileReader& FileReader::makeFileReader(vector<std::string>& words) {
   FileReader* reader;
 
-  if(words.size()<2 || words.size()>3) {
+  if(words.size() == 1) {
+    // Assume that we want the code to go into the first memory (component
+    // with ID CORES_PER_TILE) and that the first core should execute it.
+    reader = new ELFFileReader(words[0], CORES_PER_TILE, 0);
+  }
+  else if(words.size()<2 || words.size()>3) {
     std::cerr << "Error: wrong number of loader file arguments." << std::endl;
     throw std::exception();
   }

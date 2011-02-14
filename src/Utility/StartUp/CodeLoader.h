@@ -29,14 +29,14 @@ public:
   static void loadParameters(string& settingsFile);
 
   // Read a file which tells which files to read.
-  static void loadCode(string& settingsFile, Chip& tile);
+  static void loadCode(string& settingsFile, Chip& chip);
 
 private:
 
-  // Store the contents of the given file into the component of the tile at
+  // Store the contents of the given file into the component of the chip at
   // the given position. command is a vector of words from a loader file, e.g.:
   //   "12", "filename.loki"
-  static void loadCode(vector<string>& command, Chip& tile);
+  static void loadCode(vector<string>& command, Chip& chip);
 
 };
 

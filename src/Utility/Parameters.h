@@ -25,8 +25,8 @@ typedef unsigned int parameter;
 // General parameters
 //-------------------------------------------------------------------------------------------------
 
-extern int			DEBUG;
-extern int      TRACE;
+extern int			DEBUG;    // Print out lots of information during execution
+extern int      TRACE;    // Print out only the addresses of executed instructions
 
 extern int			TIMEOUT;
 
