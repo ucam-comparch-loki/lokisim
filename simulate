@@ -11,7 +11,7 @@ if not os.path.exists(sys.argv[1]):
     print "Error:", sys.argv[1], "not found"
     sys.exit(-1)
     
-simpath = "Debug/Loki2"
+simpath = os.path.dirname(os.path.realpath(__file__)) + "/Debug/Loki2"
 
 if not os.path.exists(simpath):
     print "Error: simulator not found (" + simpath + ")"
