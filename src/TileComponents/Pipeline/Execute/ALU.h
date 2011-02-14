@@ -57,6 +57,7 @@ private:
 
   void systemCall(int code) const;
   uint convertTargetFlags(uint tflags) const;
+  int changeFDIfStdIO(int fd) const;
 
 };
 

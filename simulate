@@ -20,15 +20,14 @@ if not os.path.isfile(simpath):
 # Base command.
 command = simpath + " -run " + sys.argv[1]
 
-# Add arguments if any.
+# Add arguments, if any.
 if len(sys.argv) > 2:
     command = command + " --args"
     for i in range(2, len(sys.argv)):
         command = command + " " + sys.argv[i]
 
 # Discard anything sent on the error channel (e.g. SystemC info).
-command = command + " 2> /dev/null"
-
+command = command# + " 2> /dev/null"
 simulation = subprocess.Popen(command, shell=True)
 returncode = simulation.wait()
 

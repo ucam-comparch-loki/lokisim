@@ -191,9 +191,9 @@ void ALU::systemCall(int code) const {
   switch (code) {
     case 0x1: { /* SYS_exit */
       RETURN_CODE = readReg(6);
+      std::cerr << "Simulation ended with sys_exit." << endl;
       sc_stop();
       Instrumentation::endExecution();
-      std::cerr << "Simulation ended with sys_exit." << endl;
       break;
     }
     case 0x2: { /* SYS_open */
@@ -218,14 +218,18 @@ void ALU::systemCall(int code) const {
     }
     case 0x3: { /* SYS_close */
       int fd = readReg(6);
-//      fd = change_fd_if_stdio(fd);
-      writeReg(4, close(fd));
+      fd = changeFDIfStdIO(fd);
+      if(fd <= 2) { // Don't allow simulated program to close stdio pipes.
+        fsync(fd);
+        writeReg(4, 0);
+      }
+      else writeReg(4, close(fd));
       /* FIXME - set errno */
       break;
     }
     case 0x4: { /* SYS_read */
       int fd = readReg(6);
-//      fd = change_fd_if_stdio(fd);
+      fd = changeFDIfStdIO(fd);
       unsigned len = (unsigned)readReg(8);
       char *buf = (char*)malloc(len);
       uint i;
@@ -242,7 +246,7 @@ void ALU::systemCall(int code) const {
       char *str = (char*)malloc(len);
       uint i;
       int fd = readReg(6);
-//      fd = change_fd_if_stdio(fd);
+      fd = changeFDIfStdIO(fd);
       /* copy string out of Loki memory */
       for (i=0; i < len; i++) {
         str[i] = readByte(readReg(7) + i);
@@ -254,7 +258,7 @@ void ALU::systemCall(int code) const {
   }
 }
 
-/* convert_target_flags taken from moxie interp */
+/* Convert_target_flags taken from moxie interp */
 #define CHECK_FLAG(T,H) if(tflags & T) { hflags |= H; tflags ^= T; }
 
 /* Convert between newlib flag constants and Linux ones. */
@@ -275,4 +279,15 @@ uint ALU::convertTargetFlags(uint tflags) const {
        tflags);
 
   return hflags;
+}
+
+/* We may want to map the simulated stdio pipes to alternate file descriptors,
+ * so that simulator output doesn't clash with output of the simulated program. */
+int ALU::changeFDIfStdIO(int fd) const {
+  switch(fd) {
+    case 0: return LOKI_STDIN;
+    case 1: return LOKI_STDOUT;
+    case 2: return LOKI_STDERR;
+    default: return fd;
+  }
 }

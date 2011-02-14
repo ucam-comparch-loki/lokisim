@@ -13,10 +13,8 @@
 #include "StringManipulation.h"
 #include "Parameters.h"
 
-#include <string.h>
-
 #include <iostream>
-#include <string>
+#include <string.h>
 
 using std::string;
 using std::cerr;
@@ -29,12 +27,19 @@ using std::endl;
 int DEBUG = 0;
 int TRACE = 0;
 
-int TIMEOUT = 15000;
+int TIMEOUT = 150000;
 
 int BYTES_PER_WORD = 4;
 int BYTES_PER_INSTRUCTION = 8;
 
+//-------------------------------------------------------------------------------------------------
+// Global variables (is there a better place to put these?)
+//-------------------------------------------------------------------------------------------------
+
 int RETURN_CODE = 0;
+int LOKI_STDIN = 0;
+int LOKI_STDOUT = 1;
+int LOKI_STDERR = 2;
 
 //-------------------------------------------------------------------------------------------------
 // Architecture size
@@ -54,7 +59,7 @@ parameter NUM_ADDRESSABLE_REGISTERS  = 32;
 parameter NUM_PHYSICAL_REGISTERS     = 64;
 parameter IPK_FIFO_SIZE              = 8;
 parameter IPK_CACHE_SIZE             = 1024;
-parameter MEMORY_SIZE                = 10000000;
+parameter MEMORY_SIZE                = 4 * 1024 * 1024;
 parameter CONCURRENT_MEM_OPS         = 1;//NUM_CLUSTER_INPUTS;
 
 parameter CHANNEL_MAP_SIZE           = 4;

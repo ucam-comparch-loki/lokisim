@@ -33,8 +33,14 @@ extern int			TIMEOUT;
 extern int			BYTES_PER_WORD;
 extern int      BYTES_PER_INSTRUCTION;
 
-// Not a parameter, but may be used anywhere. Any ideas where to put this?
+//-------------------------------------------------------------------------------------------------
+// Global variables (is there a better place to put these?)
+//-------------------------------------------------------------------------------------------------
+
 extern int      RETURN_CODE;
+extern int      LOKI_STDIN;
+extern int      LOKI_STDOUT;
+extern int      LOKI_STDERR;
 
 //-------------------------------------------------------------------------------------------------
 // Architecture size

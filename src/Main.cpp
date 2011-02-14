@@ -7,6 +7,9 @@
 
 #include <systemc.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "Utility/Debugger.h"
 #include "Utility/BatchMode/BatchModeEventRecorder.h"
 #include "Utility/StartUp/CodeLoader.h"
@@ -93,6 +96,13 @@ void parseArguments(uint argc, char* argv[], Chip& chip) {
         codeLoaded = true;
         DEBUG = 0;
       }
+      else if(argument == "pipe") {
+        // Create special pipes so simulator output is separate from the
+        // output of the simulated program.
+        LOKI_STDIN = open("loki_stdin", O_RDONLY);
+        LOKI_STDOUT = open("loki_stdout", O_WRONLY);
+        LOKI_STDERR = open("loki_stderr", O_WRONLY);
+      }
       else if(argument == "--args") {
         // Pass command line options to the simulated program.
         argv[i] = argv[0];
@@ -177,6 +187,10 @@ int sc_main(int argc, char* argv[]) {
     eventRecorder->storeStatisticsToFile(statsFile);
     fclose(statsFile);
   }
+
+  close(LOKI_STDIN);
+  close(LOKI_STDOUT);
+  close(LOKI_STDERR);
 
   return RETURN_CODE;
 }

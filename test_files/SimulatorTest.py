@@ -174,7 +174,7 @@ class SimulatorTest(unittest.TestCase):
     def setUp(self):
         os.chdir(self._basedir)
         
-        location = "Debug/Loki2"
+        location = os.path.realpath("Debug/Loki2")
         arguments = "test"
         self._simulation = subprocess.Popen(location + " " + arguments,\
                                             shell=True,\
