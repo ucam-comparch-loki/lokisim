@@ -16,8 +16,8 @@ void TileComponent::print(MemoryAddr start, MemoryAddr end) const {
 
 const Word TileComponent::readWord(MemoryAddr addr) const {return Word(-1);}
 const Word TileComponent::readByte(MemoryAddr addr) const {return Word(-1);}
-void TileComponent::writeWord(MemoryAddr addr, Word data) const {}
-void TileComponent::writeByte(MemoryAddr addr, Word data) const {}
+void TileComponent::writeWord(MemoryAddr addr, Word data) {}
+void TileComponent::writeByte(MemoryAddr addr, Word data) {}
 
 const int32_t TileComponent::readRegDebug(RegisterIndex reg) const {
   return -1;

@@ -95,6 +95,7 @@ void parseArguments(uint argc, char* argv[], Chip& chip) {
       }
       else if(argument == "--args") {
         // Pass command line options to the simulated program.
+        argv[i] = argv[0];
         storeArguments(argc-i, argv+i, chip);
       }
     }

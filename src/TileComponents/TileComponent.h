@@ -73,8 +73,8 @@ public:
   // Access the memory contents of this component.
   virtual const Word readWord(MemoryAddr addr) const;
   virtual const Word readByte(MemoryAddr addr) const;
-  virtual void writeWord(MemoryAddr addr, Word data) const;
-  virtual void writeByte(MemoryAddr addr, Word data) const;
+  virtual void writeWord(MemoryAddr addr, Word data);
+  virtual void writeByte(MemoryAddr addr, Word data);
 
   // Return the value held in the specified register.
   virtual const int32_t readRegDebug(RegisterIndex reg) const;
