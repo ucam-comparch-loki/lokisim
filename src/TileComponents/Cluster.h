@@ -69,7 +69,7 @@ public:
 
   // Get the memory location of the current instruction being decoded, so
   // we can have breakpoints set to particular instructions in memory.
-  virtual const Address  getInstIndex() const;
+  virtual const MemoryAddr  getInstIndex() const;
 
   // Read a value from a register, without redirecting to the RCET.
   virtual const int32_t  readRegDebug(RegisterIndex reg) const;
@@ -81,7 +81,7 @@ private:
 
   // Determine if the instruction packet from the given location is currently
   // in the instruction packet cache.
-  bool             inCache(const Address a);
+  bool             inCache(const MemoryAddr a);
 
   // Determine if there is room in the cache to fetch another instruction
   // packet, assuming that it is of maximum size.
@@ -126,7 +126,7 @@ private:
 
   // Update the address of the currently executing instruction packet so we
   // can fetch more packets from relative locations.
-  void             updateCurrentPacket(Address addr);
+  void             updateCurrentPacket(MemoryAddr addr);
 
   // Tell the cluster whether it is currently stalled or not.
   void             pipelineStalled(bool stalled);

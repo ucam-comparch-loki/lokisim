@@ -11,7 +11,7 @@
 #include "../Utility/Parameters.h"
 
 /* Returns whether the given address matches any of the tags. */
-bool IPKCacheStorage::checkTags(const Address& key) {
+bool IPKCacheStorage::checkTags(const MemoryAddr& key) {
 
   for(uint i=0; i<this->tags.size(); i++) {
     if(this->tags[i] == key) {
@@ -57,17 +57,17 @@ const Instruction& IPKCacheStorage::read() {
 }
 
 /* Writes new data to a position determined using the given key. */
-void IPKCacheStorage::write(const Address& key, const Instruction& newData) {
+void IPKCacheStorage::write(const MemoryAddr& key, const Instruction& newData) {
   this->tags[refill.value()] = key;
   this->data_[refill.value()] = newData;
 
   // Store memory address of this instruction for debug reasons.
-  if(key == Address()) {
+  if(key == 0xFFFFFFFF) {
     // If there is no supplied address, this is the continuation of an
     // instruction packet, and so this instruction is next to the previous
     // one.
-    Address prev = this->locations[refill-1];
-    Address newAddr = prev.addOffset(BYTES_PER_INSTRUCTION);
+    MemoryAddr prev = this->locations[refill-1];
+    MemoryAddr newAddr = prev + BYTES_PER_INSTRUCTION;
     locations[refill.value()] = newAddr;
   }
   else locations[refill.value()] = key;
@@ -84,7 +84,7 @@ void IPKCacheStorage::write(const Address& key, const Instruction& newData) {
   }
   // If it's the start of a new packet, queue it up to execute next.
   // A default key value shows that the instruction is continuing a packet.
-  else if(!(key == Address())) pendingPacket = refill.value();
+  else if(key != 0xFFFFFFFF) pendingPacket = refill.value();
   // We need to fetch the pending packet if we are now overwriting it.
   else needRefetch = (refill == pendingPacket);
 
@@ -104,7 +104,7 @@ void IPKCacheStorage::jump(const JumpOffset offset) {
 
   // Hack: if we move to the next packet, then discover we should have jumped,
   // reset the next packet pointer.
-  if(!(this->tags[currInst.value()] == Address())) {
+  if(this->tags[currInst.value()] != 0xFFFFFFFF) {
     pendingPacket = currInst.value();
   }
 
@@ -119,7 +119,7 @@ void IPKCacheStorage::jump(const JumpOffset offset) {
 
   // Update currentPacket if we have jumped to the start of a packet, or if
   // currentPacket was previously an invalid value.
-  if(!(this->tags[currInst.value()] == Address()) || currentPacket == NOT_IN_USE) {
+  if(this->tags[currInst.value()] != 0xFFFFFFFF || currentPacket == NOT_IN_USE) {
     currentPacket = currInst.value();
   }
 
@@ -130,7 +130,7 @@ void IPKCacheStorage::jump(const JumpOffset offset) {
 /* Return the memory address of the currently-executing packet. Only returns
  * a useful value for the first instruction in each packet, as this is the
  * only instruction which gets a tag. */
-const Address IPKCacheStorage::packetAddress() const {
+const MemoryAddr IPKCacheStorage::packetAddress() const {
   return this->tags[currentPacket];
 }
 
@@ -139,7 +139,7 @@ const uint16_t IPKCacheStorage::remainingSpace() const {
   return this->size() - fillCount;
 }
 
-const Address IPKCacheStorage::getInstLocation() const {
+const MemoryAddr IPKCacheStorage::getInstLocation() const {
   return previousLocation;
 }
 
@@ -187,18 +187,18 @@ void IPKCacheStorage::storeCode(const std::vector<Instruction>& code) {
   }
 
   for(uint i=0; i<code.size() && i<this->size(); i++) {
-    write(Address(), code[i]);
+    write(0xFFFFFFFF, code[i]);
   }
 }
 
 /* Returns the data corresponding to the given address.
  * Private because we don't want to use this version for IPK caches. */
-const Instruction& IPKCacheStorage::read(const Address& key) {
+const Instruction& IPKCacheStorage::read(const MemoryAddr& key) {
   throw new std::exception();
 }
 
 /* Returns the position that data with the given address tag should be stored. */
-uint16_t IPKCacheStorage::getPosition(const Address& key) {
+uint16_t IPKCacheStorage::getPosition(const MemoryAddr& key) {
   return refill.value();
 }
 
@@ -229,7 +229,7 @@ void IPKCacheStorage::updateFillCount() {
 }
 
 IPKCacheStorage::IPKCacheStorage(const uint16_t size, std::string name) :
-    MappedStorage<Address, Instruction>(size, name),
+    MappedStorage<MemoryAddr, Instruction>(size, name),
     currInst(size),
     refill(size),
     locations(size) {
@@ -241,6 +241,8 @@ IPKCacheStorage::IPKCacheStorage(const uint16_t size, std::string name) :
   pendingPacket = NOT_IN_USE;
 
   lastOpWasARead = true;
+
+  for(uint i=0; i<tags.size(); i++) tags[i] = 0xFFFFFFFF;
 
 }
 

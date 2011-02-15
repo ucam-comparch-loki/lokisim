@@ -8,7 +8,6 @@
 #include <math.h>
 #include "IndirectRegisterFile.h"
 #include "../Cluster.h"
-#include "../../Datatype/Address.h"
 #include "../../Datatype/Word.h"
 
 const int32_t IndirectRegisterFile::read(const RegisterIndex reg, bool indirect) const {
@@ -104,9 +103,8 @@ RegisterIndex IndirectRegisterFile::fromChannelID(RegisterIndex position) {
   return position + START_OF_INPUT_CHANNELS;
 }
 
-void IndirectRegisterFile::updateCurrentIPK(const Address addr) {
-  // setfetchch specifies the channel, so only the address is required here.
-  Word w(addr.address());
+void IndirectRegisterFile::updateCurrentIPK(const MemoryAddr addr) {
+  Word w(addr);
   writeReg(1, w);
 }
 

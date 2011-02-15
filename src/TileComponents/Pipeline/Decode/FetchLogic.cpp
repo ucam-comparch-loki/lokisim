@@ -8,7 +8,6 @@
 #include "FetchLogic.h"
 #include "DecodeStage.h"
 #include "../../TileComponent.h"
-#include "../../../Datatype/Address.h"
 #include "../../../Datatype/MemoryRequest.h"
 
 void FetchLogic::fetch(const MemoryAddr addr) {
@@ -18,7 +17,7 @@ void FetchLogic::fetch(const MemoryAddr addr) {
 
   // Play with fetchChannel so we have the component ID, rather than the port
   // number.
-  if(!inCache(Address(addr, TileComponent::component(fetchChannel)))) {
+  if(!inCache(addr)) {
     toSend.write(request);     // Put the new request in the queue
   }
   else {
@@ -65,7 +64,7 @@ void FetchLogic::send() {
   }
 }
 
-bool FetchLogic::inCache(const Address addr) const {
+bool FetchLogic::inCache(const MemoryAddr addr) const {
   return parent()->inCache(addr);
 }
 

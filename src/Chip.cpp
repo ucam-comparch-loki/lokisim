@@ -9,7 +9,6 @@
 #include "TileComponents/Cluster.h"
 #include "TileComponents/MemoryMat.h"
 #include "TileComponents/Memory/SharedL1CacheSubsystem.h"
-#include "Datatype/Address.h"
 
 double Chip::area() const {
   // Update this if allowing heterogeneity.
@@ -59,7 +58,7 @@ int Chip::readRegister(ComponentID component, RegisterIndex reg) const {
   return contents[component]->readRegDebug(reg);
 }
 
-Address Chip::getInstIndex(ComponentID component) const {
+MemoryAddr Chip::getInstIndex(ComponentID component) const {
   return contents[component]->getInstIndex();
 }
 

@@ -34,7 +34,7 @@ void Instrumentation::decoded(ComponentID core, const DecodedInst& dec) {
   Operations::decoded(core, dec);
 
   if(TRACE) {
-    MemoryAddr location = dec.location().address();
+    MemoryAddr location = dec.location();
     std::cout << "0x";
     std::cout.width(8);
     std::cout << std::hex << std::setfill('0') << location << endl;

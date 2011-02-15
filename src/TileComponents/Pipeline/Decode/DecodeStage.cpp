@@ -7,6 +7,7 @@
 
 #include "DecodeStage.h"
 #include "../../Cluster.h"
+#include "../../../Datatype/DecodedInst.h"
 
 double       DecodeStage::area() const {
   return fl.area() + rcet.area() + decoder.area() + extend.area();
@@ -73,7 +74,7 @@ void         DecodeStage::refetch() {
   fl.refetch();
 }
 
-bool         DecodeStage::inCache(const Address a) const {
+bool         DecodeStage::inCache(const MemoryAddr a) const {
   return parent()->inCache(a);
 }
 

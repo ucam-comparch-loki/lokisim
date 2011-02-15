@@ -21,7 +21,6 @@
 #include "../../Component.h"
 #include "../../Memory/AddressedStorage.h"
 
-class Address;
 class Cluster;
 class Word;
 
@@ -70,7 +69,7 @@ public:
   // current instruction packet. It is acceptable to have this as a separate
   // method since there is only one writer, and they only write to this one
   // register.
-  void updateCurrentIPK(const Address addr);
+  void updateCurrentIPK(const MemoryAddr addr);
 
 private:
 

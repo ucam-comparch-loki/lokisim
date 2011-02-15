@@ -11,7 +11,6 @@
 #include <inttypes.h>
 #include "../Typedefs.h"
 #include "systemc.h"
-#include "Address.h"
 
 class Instruction;
 
@@ -36,7 +35,7 @@ public:
   const int32_t operand1() const;
   const int32_t operand2() const;
   const int64_t result() const;
-  const Address location() const;
+  const MemoryAddr location() const;
 
   const bool    usesPredicate() const;
   const bool    hasOperand1() const;
@@ -59,7 +58,7 @@ public:
   void    operand1(const int32_t val);
   void    operand2(const int32_t val);
   void    result(const int64_t val);
-  void    location(const Address val);
+  void    location(const MemoryAddr val);
 
   Instruction toInstruction() const;
 
@@ -122,7 +121,7 @@ private:
   int32_t operand2_;
   int64_t result_;    // May be an instruction
 
-  Address location_;  // The position in memory that this instruction comes from.
+  MemoryAddr location_;  // The position in memory that this instruction comes from.
 
   // Use to determine whether fields have already been set.
   // Can't just use != 0 because they may have been set to 0.

@@ -20,7 +20,6 @@
 
 using std::vector;
 
-class Address;
 class TileComponent;
 
 class Chip : public Component {
@@ -65,7 +64,7 @@ public:
   void    writeWord(ComponentID component, MemoryAddr addr, Word data) const;
   void    writeByte(ComponentID component, MemoryAddr addr, Word data) const;
   int     readRegister(ComponentID component, RegisterIndex reg) const;
-  Address getInstIndex(ComponentID component) const;
+  MemoryAddr getInstIndex(ComponentID component) const;
   bool    readPredicate(ComponentID component) const;
 
 private:

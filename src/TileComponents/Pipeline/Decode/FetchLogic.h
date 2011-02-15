@@ -15,7 +15,6 @@
 #include "../../../Datatype/AddressedWord.h"
 #include "../../../Memory/Buffer.h"
 
-class Address;
 class DecodeStage;
 
 class FetchLogic: public Component {
@@ -67,7 +66,7 @@ public:
 private:
 
   // Find out whether the wanted instruction packet is in the cache.
-  bool inCache(const Address addr) const;
+  bool inCache(const MemoryAddr addr) const;
 
   // Find out if there is room in the cache to accommodate another instruction
   // packet. Assumes that the packet being fetched is of the maximum size.

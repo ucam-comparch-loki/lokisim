@@ -15,7 +15,6 @@
 using std::string;
 using std::vector;
 
-class Address;
 class DecodedInst;
 class Chip;
 
@@ -41,9 +40,9 @@ private:
 
   // Set a breakpoint corresponding to an instruction location.
   static void setBreakPoint(vector<int>& bps, ComponentID memory=defaultInstMemory);
-  static bool isBreakpoint(Address addr);
-  static void addBreakpoint(Address addr);
-  static void removeBreakpoint(Address addr);
+  static bool isBreakpoint(MemoryAddr addr);
+  static void addBreakpoint(MemoryAddr addr);
+  static void removeBreakpoint(MemoryAddr addr);
 
   // Print the current stack.
   static void printStack(ComponentID core=defaultCore,
@@ -91,7 +90,7 @@ private:
 
   static bool hitBreakpoint;
 
-  static vector<Address> breakpoints;
+  static vector<MemoryAddr> breakpoints;
   static Chip* chip;
 
   static int cycleNumber;

@@ -15,7 +15,6 @@
 
 #include "../../../Component.h"
 
-class Address;
 class DecodedInst;
 class DecodeStage;
 class Instruction;

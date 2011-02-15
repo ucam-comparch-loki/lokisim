@@ -7,7 +7,6 @@
 
 #include "TileComponent.h"
 #include "../Chip.h"
-#include "../Datatype/Address.h"
 #include "../Datatype/AddressedWord.h"
 
 void TileComponent::print(MemoryAddr start, MemoryAddr end) const {
@@ -23,8 +22,8 @@ const int32_t TileComponent::readRegDebug(RegisterIndex reg) const {
   return -1;
 }
 
-const Address TileComponent::getInstIndex() const {
-  return Address(-1, -1);
+const MemoryAddr TileComponent::getInstIndex() const {
+  return 0xFFFFFFFF;
 }
 
 bool TileComponent::readPredReg() const {

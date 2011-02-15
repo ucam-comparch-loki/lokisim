@@ -9,7 +9,7 @@
 #include "DataBlock.h"
 #include "../Parameters.h"
 #include "../StringManipulation.h"
-#include "../../Datatype/Data.h"
+#include "../../Datatype/Word.h"
 
 vector<DataBlock>& DataFileReader::extractData() const {
   std::ifstream file(filename_.c_str());
@@ -62,7 +62,7 @@ Word DataFileReader::nextWord(std::ifstream& file) const {
     string first = StringManipulation::split(str, ' ')[0];
 
     int val = StringManipulation::strToInt(first);
-    return Data(val);
+    return Word(val);
   }
 }
 

@@ -7,6 +7,9 @@ if len(sys.argv) < 2:
     print "Usage: simulate <ELF/loader file> [<arg1> [...]]"
     sys.exit(-1)
 
+if os.path.isdir(sys.argv[1]):
+    sys.argv[1] = sys.argv[1] + "/loader.txt"
+
 if not os.path.isfile(sys.argv[1]):
     print "Error:", sys.argv[1], "not found"
     sys.exit(-1)

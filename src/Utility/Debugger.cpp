@@ -16,12 +16,12 @@ int Debugger::mode = DEBUGGER;
 
 bool Debugger::hitBreakpoint = false;
 Chip* Debugger::chip = 0;
-vector<Address> Debugger::breakpoints;
+vector<MemoryAddr> Debugger::breakpoints;
 
 int Debugger::cycleNumber = 0;
-ComponentID Debugger::defaultCore = 1;
-ComponentID Debugger::defaultInstMemory = 12;
-ComponentID Debugger::defaultDataMemory = 13;
+ComponentID Debugger::defaultCore = 0;
+ComponentID Debugger::defaultInstMemory = CORES_PER_TILE;
+ComponentID Debugger::defaultDataMemory = CORES_PER_TILE + 1;
 
 int Debugger::cyclesIdle = 0;
 int Debugger::maxIdleTime = 10;
@@ -137,16 +137,16 @@ void Debugger::waitForInput() {
 void Debugger::setBreakPoint(vector<int>& bps, ComponentID memory) {
 
   for(uint j=0; j<bps.size(); j++) {
-    Address addr(bps[j], memory);
+    MemoryAddr addr = bps[j];
 
     if(isBreakpoint(addr)) {
       if(mode == DEBUGGER)
-        cout << "Removed breakpoint: " << chip->readWord(memory, bps[j]) << endl;
+        cout << "Removed breakpoint: " << chip->readWord(memory, addr) << endl;
       removeBreakpoint(addr);
     }
     else {
       if(mode == DEBUGGER)
-        cout << "Set breakpoint: " << chip->readWord(memory, bps[j]) << endl;
+        cout << "Set breakpoint: " << chip->readWord(memory, addr) << endl;
       addBreakpoint(addr);
     }
   }
@@ -204,14 +204,14 @@ void Debugger::printPred(ComponentID core) {
 void Debugger::executedInstruction(DecodedInst inst, ComponentID core, bool executed) {
 
   if(mode == DEBUGGER) {
-    cout << core << ":\t" << "[" << inst.location().address() << "]\t" << inst
+    cout << core << ":\t" << "[" << inst.location() << "]\t" << inst
          << (executed ? "" : " (not executed)") << endl;
   }
 
   if(isBreakpoint(inst.location())) {
     hitBreakpoint = true;
     defaultCore = core;
-    defaultInstMemory = inst.location().channelID();
+//    defaultInstMemory = inst.location().channelID();
   }
 
 }
@@ -339,18 +339,18 @@ vector<int>& Debugger::parseIntVector(vector<string>& words, bool registers) {
   return *locations;
 }
 
-bool Debugger::isBreakpoint(Address addr) {
+bool Debugger::isBreakpoint(MemoryAddr addr) {
   for(uint j=0; j<breakpoints.size(); j++) {
     if(addr==breakpoints[j]) return true;
   }
   return false;
 }
 
-void Debugger::addBreakpoint(Address addr) {
+void Debugger::addBreakpoint(MemoryAddr addr) {
   breakpoints.push_back(addr);
 }
 
-void Debugger::removeBreakpoint(Address addr) {
+void Debugger::removeBreakpoint(MemoryAddr addr) {
   for(uint j=0; j<breakpoints.size(); j++) {
     if(addr==breakpoints[j]) breakpoints.erase(breakpoints.begin()+j);
   }

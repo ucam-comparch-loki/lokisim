@@ -24,7 +24,7 @@ const int32_t       DecodedInst::operand1()        const {return operand1_;}
 const int32_t       DecodedInst::operand2()        const {return operand2_;}
 const int64_t       DecodedInst::result()          const {return result_;}
 
-const Address       DecodedInst::location()        const {return location_;}
+const MemoryAddr    DecodedInst::location()        const {return location_;}
 
 
 const bool    DecodedInst::usesPredicate() const {
@@ -66,15 +66,12 @@ void DecodedInst::result(const int64_t val) {
   hasResult_ = true;
 }
 
-void DecodedInst::location(const Address val)             {location_ = val;}
+void DecodedInst::location(const MemoryAddr val)          {location_ = val;}
 
 
 Instruction DecodedInst::toInstruction() const {
   Instruction i;
   i.opcode(InstructionMap::opcode(name()));
-//  i.destination(destReg_);
-//  i.sourceReg1(sourceReg1_);
-//  i.sourceReg2(sourceReg2_);
   i.immediate(immediate_);
   i.remoteChannel(channelMapEntry_);
   i.predicate(predicate_);

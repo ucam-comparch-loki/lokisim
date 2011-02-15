@@ -14,11 +14,10 @@
 #include "MappedStorage.h"
 #include "../Typedefs.h"
 #include "../Utility/LoopCounter.h"
-#include "../Datatype/Address.h"
 
 class Instruction;
 
-class IPKCacheStorage : public MappedStorage<Address, Instruction> {
+class IPKCacheStorage : public MappedStorage<MemoryAddr, Instruction> {
 
 //==============================//
 // Constructors and destructors
@@ -36,25 +35,25 @@ public:
 public:
 
   // Returns whether the given address matches any of the tags.
-  virtual bool checkTags(const Address& key);
+  virtual bool checkTags(const MemoryAddr& key);
 
   // Returns the next item in the cache.
   virtual const Instruction& read();
 
   // Writes new data to a position determined using the given key.
-  virtual void write(const Address& key, const Instruction& newData);
+  virtual void write(const MemoryAddr& key, const Instruction& newData);
 
   // Jump to a new instruction at a given offset.
   void jump(const JumpOffset offset);
 
   // Return the memory address of the currently-executing packet.
-  const Address packetAddress() const;
+  const MemoryAddr packetAddress() const;
 
   // Returns the remaining number of entries in the cache.
   const uint16_t remainingSpace() const;
 
   // Return the memory index of the instruction sent most recently.
-  const Address getInstLocation() const;
+  const MemoryAddr getInstLocation() const;
 
   // Returns whether the cache is empty. Note that even if a cache is empty,
   // it is still possible to access its contents if an appropriate tag is
@@ -76,10 +75,10 @@ private:
 
   // Returns the data corresponding to the given address.
   // Private because we don't want to use this version for IPK caches.
-  virtual const Instruction& read(const Address& key);
+  virtual const Instruction& read(const MemoryAddr& key);
 
   // Returns the position that data with the given address tag should be stored
-  virtual uint16_t getPosition(const Address& key);
+  virtual uint16_t getPosition(const MemoryAddr& key);
 
   void incrementRefill();
   void incrementCurrent();
@@ -117,10 +116,10 @@ private:
   // For debug purposes, we store the memory address which each instruction is
   // from. This allows us to set breakpoints easily, and also allows us to
   // determine which parts of the program are the hotspots.
-  vector<Address> locations;
+  vector<MemoryAddr> locations;
 
   // Store the most recent instruction address, so it can be accessed easily.
-  Address previousLocation;
+  MemoryAddr previousLocation;
 
   static const uint16_t NOT_IN_USE = -1;
 

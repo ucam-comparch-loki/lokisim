@@ -24,7 +24,7 @@ using std::endl;
 // General parameters
 //-------------------------------------------------------------------------------------------------
 
-int DEBUG = 0;
+int DEBUG = 1;
 int TRACE = 0;
 
 int TIMEOUT = 150000;
@@ -58,9 +58,9 @@ parameter NUM_TILE_COLUMNS           = 1;
 parameter NUM_ADDRESSABLE_REGISTERS  = 32;
 parameter NUM_PHYSICAL_REGISTERS     = 64;
 parameter IPK_FIFO_SIZE              = 8;
-parameter IPK_CACHE_SIZE             = 1024;
-parameter MEMORY_SIZE                = 4 * 1024 * 1024;
-parameter CONCURRENT_MEM_OPS         = 1;//NUM_CLUSTER_INPUTS;
+parameter IPK_CACHE_SIZE             = 64;//= 1024;
+parameter MEMORY_SIZE                = 2048;//= 4 * 1024 * 1024;
+parameter CONCURRENT_MEM_OPS         = 1;//NUM_MEMORY_INPUTS;
 
 parameter CHANNEL_MAP_SIZE           = 4;
 
@@ -165,7 +165,7 @@ void Parameters::parseParameter(const string &name, const string &value) {
 	else if (strcasecmp(cName, "WORMHOLE_ROUTING") == 0)
 		WORMHOLE_ROUTING = nValue;
 	else {
-		cerr << "Encountered invalid parameter in settings file" << endl;
+		cerr << "Encountered invalid parameter in settings file: " << name << endl;
 		throw std::exception();
 	}
 }

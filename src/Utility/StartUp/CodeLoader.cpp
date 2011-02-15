@@ -10,7 +10,6 @@
 #include "FileReader.h"
 #include "../Parameters.h"
 #include "../StringManipulation.h"
-#include "../../Datatype/Data.h"
 #include "../../Datatype/Instruction.h"
 
 bool CodeLoader::usingDebugger = false;

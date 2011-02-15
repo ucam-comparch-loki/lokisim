@@ -34,7 +34,7 @@ Instruction InstructionPacketCache::read() {
 }
 
 void InstructionPacketCache::write(const Instruction inst) {
-  Address addr;
+  MemoryAddr addr;
 
   if(!addresses.empty() && finishedPacketWrite) {
     // Only associate the tag with the first instruction of the packet.
@@ -42,7 +42,7 @@ void InstructionPacketCache::write(const Instruction inst) {
     addr = addresses.read();
   }
   else {
-    addr = Address();
+    addr = 0xFFFFFFFF;
     // Deal with remote fills in here -- received packet, but have no address
   }
 
@@ -66,7 +66,7 @@ void InstructionPacketCache::write(const Instruction inst) {
 
 /* See if an instruction packet is in the cache, and if so, prepare to
  * execute it. */
-bool InstructionPacketCache::lookup(const Address addr) {
+bool InstructionPacketCache::lookup(const MemoryAddr addr) {
 
   bool inCache = cache.checkTags(addr);
 
@@ -108,7 +108,7 @@ void InstructionPacketCache::sendCredit() {
   flowControl.write(1);
 }
 
-void InstructionPacketCache::updatePacketAddress(const Address addr) const {
+void InstructionPacketCache::updatePacketAddress(const MemoryAddr addr) const {
   parent()->updatePacketAddress(addr);
 }
 
@@ -116,7 +116,7 @@ void InstructionPacketCache::refetch() const {
   parent()->refetch();
 }
 
-Address InstructionPacketCache::getInstAddress() const {
+MemoryAddr InstructionPacketCache::getInstAddress() const {
   return cache.getInstLocation();
 }
 

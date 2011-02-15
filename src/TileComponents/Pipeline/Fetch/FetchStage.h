@@ -67,10 +67,10 @@ public:
   void          storeCode(const std::vector<Instruction>& instructions);
 
   // Return the memory address of the last instruction sent.
-  Address       getInstIndex() const;
+  MemoryAddr    getInstIndex() const;
 
   // Tells whether the packet from location a is currently in the cache.
-  bool          inCache(const Address a);
+  bool          inCache(const MemoryAddr a);
 
   // Tells whether there is room in the cache to fetch another instruction
   // packet, assuming the packet is of maximum size.
@@ -102,7 +102,7 @@ private:
   void          calculateSelect();
 
   // Update the register holding the address of the current packet.
-  void          updatePacketAddress(const Address addr) const;
+  void          updatePacketAddress(const MemoryAddr addr) const;
 
   // We have overwritten the packet due to execute next, so it needs to be
   // fetched again.

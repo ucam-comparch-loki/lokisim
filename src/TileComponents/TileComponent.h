@@ -15,7 +15,6 @@
 
 #include "../Component.h"
 
-class Address;
 class AddressedWord;
 class Chip;
 class Word;
@@ -80,7 +79,7 @@ public:
   virtual const int32_t readRegDebug(RegisterIndex reg) const;
 
   // Return the memory index of the instruction currently being decoded.
-  virtual const Address getInstIndex() const;
+  virtual const MemoryAddr getInstIndex() const;
 
   // Return the value of the predicate register.
   virtual bool readPredReg() const;

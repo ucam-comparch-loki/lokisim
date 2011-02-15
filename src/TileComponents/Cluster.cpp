@@ -6,12 +6,13 @@
  */
 
 #include "Cluster.h"
-#include "../Utility/InstructionMap.h"
 #include "Pipeline/StallRegister.h"
 #include "Pipeline/Fetch/FetchStage.h"
 #include "Pipeline/Decode/DecodeStage.h"
 #include "Pipeline/Execute/ExecuteStage.h"
 #include "Pipeline/Write/WriteStage.h"
+#include "../Utility/InstructionMap.h"
+#include "../Datatype/DecodedInst.h"
 
 double   Cluster::area() const {
   return regs.area()   + pred.area();//    + fetch.area() +
@@ -46,12 +47,12 @@ void     Cluster::storeData(const std::vector<Word>& data, MemoryAddr location) 
   fetch->storeCode(instructions);
 }
 
-const Address Cluster::getInstIndex() const {
+const MemoryAddr Cluster::getInstIndex() const {
   FetchStage*  fetch  = dynamic_cast<FetchStage*>(stages.front());
   return fetch->getInstIndex();
 }
 
-bool     Cluster::inCache(const Address a) {
+bool     Cluster::inCache(const MemoryAddr a) {
   FetchStage*  fetch  = dynamic_cast<FetchStage*>(stages.front());
   return fetch->inCache(a);
 }
@@ -175,7 +176,7 @@ const int32_t  Cluster::readRCET(ChannelIndex channel) {
   return decode->readRCET(channel);
 }
 
-void     Cluster::updateCurrentPacket(Address addr) {
+void     Cluster::updateCurrentPacket(MemoryAddr addr) {
   regs.updateCurrentIPK(addr);
 }
 

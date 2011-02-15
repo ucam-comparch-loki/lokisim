@@ -39,7 +39,7 @@ void FetchStage::cycleSecondHalf() {
     // Select a new instruction if the decode stage is ready for one, unless
     // the FIFO and cache are both empty.
     if(!cache.isEmpty() || !fifo.isEmpty()) {
-      Address instAddr;
+      MemoryAddr instAddr;
 
       if(usingCache) {
         lastInstruction = cache.read();
@@ -49,7 +49,7 @@ void FetchStage::cycleSecondHalf() {
         lastInstruction = fifo.read();
         // We don't know the address this instruction came from, so make
         // something up which would never happen.
-        instAddr = Address(-1, -1);
+        instAddr = 0xFFFFFFFF;
       }
 
       DecodedInst decoded(lastInstruction);
@@ -90,11 +90,11 @@ void FetchStage::storeCode(const std::vector<Instruction>& instructions) {
   cache.storeCode(instructions);
 }
 
-Address FetchStage::getInstIndex() const {
+MemoryAddr FetchStage::getInstIndex() const {
   return cache.getInstAddress();
 }
 
-bool FetchStage::inCache(const Address a) {
+bool FetchStage::inCache(const MemoryAddr a) {
   return cache.lookup(a);
 }
 
@@ -112,7 +112,7 @@ void FetchStage::setPersistent(bool persistent) {
   cache.updatePersistent(persistent);
 }
 
-void FetchStage::updatePacketAddress(const Address addr) const {
+void FetchStage::updatePacketAddress(const MemoryAddr addr) const {
   parent()->updateCurrentPacket(addr);
 }
 

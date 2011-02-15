@@ -8,7 +8,7 @@
 #include "Decoder.h"
 #include "DecodeStage.h"
 #include "../IndirectRegisterFile.h"
-#include "../../../Datatype/Address.h"
+#include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
 #include "../../../Datatype/MemoryRequest.h"
 #include "../../../Exceptions/BlockedException.h"

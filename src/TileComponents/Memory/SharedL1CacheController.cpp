@@ -16,8 +16,6 @@
 
 #include "../../Component.h"
 #include "../../Datatype/AddressedWord.h"
-#include "../../Datatype/ChannelRequest.h"
-#include "../../Datatype/Data.h"
 #include "../../Datatype/Instruction.h"
 #include "../../Datatype/MemoryRequest.h"
 #include "../../Datatype/Word.h"

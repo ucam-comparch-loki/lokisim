@@ -55,7 +55,7 @@ public:
   void write(const Instruction inst);
 
   // Return the index into the current packet of the current instruction.
-  Address getInstAddress() const;
+  MemoryAddr getInstAddress() const;
 
   // Tells whether the cache considers itself empty. This may be because there
   // are no instructions in the cache, or because all instructions have been
@@ -70,7 +70,7 @@ public:
   // See if an instruction packet is in the cache, using its address as a tag,
   // and if so, prepare to execute it. Returns whether or not the packet is
   // in the cache.
-  bool lookup(const Address addr);
+  bool lookup(const MemoryAddr addr);
 
   // Jump to a new instruction specified by the offset.
   void jump(const JumpOffset offset);
@@ -86,7 +86,7 @@ private:
 
   // Update the output holding the address of the currently-executing
   // instruction packet.
-  void updatePacketAddress(const Address addr) const;
+  void updatePacketAddress(const MemoryAddr addr) const;
 
   // We have overwritten the packet which was due to execute next, so we
   // need to fetch it again.
@@ -113,7 +113,7 @@ private:
 private:
 
   IPKCacheStorage cache;
-  Buffer<Address> addresses;
+  Buffer<MemoryAddr> addresses;
 
   // We have just finished writing an instruction packet.
   bool            finishedPacketWrite;
@@ -123,7 +123,7 @@ private:
 
   // The address of the pending packet. We store it in case the packet gets
   // overwritten and needs to be refetched.
-  Address         pendingPacket;
+  MemoryAddr         pendingPacket;
 
 };
 

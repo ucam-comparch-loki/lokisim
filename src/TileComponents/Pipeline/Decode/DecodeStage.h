@@ -12,11 +12,8 @@
 #ifndef DECODESTAGE_H_
 #define DECODESTAGE_H_
 
-//#include "../PipelineStage.h"
 #include "../StageWithSuccessor.h"
 #include "../StageWithPredecessor.h"
-#include "../../../Datatype/DecodedInst.h"
-#include "../../../Datatype/Instruction.h"
 #include "FetchLogic.h"
 #include "ReceiveChannelEndTable.h"
 #include "Decoder.h"
@@ -108,7 +105,7 @@ private:
 
   // Find out if the instruction packet from the given location is currently
   // in the instruction packet cache.
-  bool           inCache(const Address a) const;
+  bool           inCache(const MemoryAddr a) const;
 
   // Find out if there is room in the cache to fetch another packet.
   bool           roomToFetch() const;
