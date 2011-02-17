@@ -1,3 +1,5 @@
+# Build script to be executed using 'redo'
+# https://github.com/apenwarr/redo
 case $1 in
   *.o)
     CPP_SOURCE="${1%.o}.cpp" # default.do doesn't strip extension
