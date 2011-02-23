@@ -84,7 +84,6 @@ public:
   Instruction(const Word& other);
   Instruction(const uint64_t inst);  // For reading binary
   Instruction(const string& inst);   // For reading assembler
-  virtual ~Instruction();
 
 //==============================//
 // Local state

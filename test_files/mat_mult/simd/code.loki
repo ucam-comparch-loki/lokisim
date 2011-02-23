@@ -3,9 +3,9 @@ fetch               r1,  80
 addui               r5,  r30, (13,0)
 addui               r6,  r30, (14,0)
 addui               r7,  r30, (15,0)
-setchmap            r5,  1                  ; matrix 1 = map 1
-setchmap            r6,  2                  ; matrix 2 = map 2
-setchmap            r7,  3                  ; output = map 3
+setchmap            1,   r5                 ; matrix 1 = map 1
+setchmap            2,   r6                 ; matrix 2 = map 2
+setchmap            3,   r7                 ; output = map 3
 addui               r0,  r8,  (0,2)  > 1
 addui               r0,  r8,  (0,3)  > 2
 addui.eop           r0,  r8,  (0,0)  > 3

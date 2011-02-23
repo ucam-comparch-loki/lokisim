@@ -48,7 +48,6 @@ public:
 
   AddressedWord();
   AddressedWord(const Word w, const ChannelID chID, const bool portClaim=false);
-  virtual ~AddressedWord();
 
 //==============================//
 // Local state

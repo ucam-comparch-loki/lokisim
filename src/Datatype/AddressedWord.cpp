@@ -29,7 +29,7 @@ void AddressedWord::notEndOfPacket() {
 }
 
 AddressedWord::AddressedWord() {
-  payload_ = *(new Word());
+  payload_ = Word();
   channelID_ = 0;
 }
 
@@ -42,10 +42,6 @@ AddressedWord::AddressedWord(const Word w, const ChannelID id, const bool portCl
   if((int)id < 0 || (id > TOTAL_INPUTS && id > TOTAL_OUTPUTS)) {
     std::cerr << "Warning: planning to send to channel " << (int)id << std::endl;
   }
-}
-
-AddressedWord::~AddressedWord() {
-
 }
 
 

@@ -41,6 +41,9 @@ public:
   const bool    hasOperand1() const;
   const bool    hasResult() const;
 
+  const bool    hasDestReg() const;
+  const bool    hasSrcReg1() const;
+  const bool    hasSrcReg2() const;
   const bool    hasImmediate() const;
   const bool    isALUOperation() const;
   const std::string& name() const;

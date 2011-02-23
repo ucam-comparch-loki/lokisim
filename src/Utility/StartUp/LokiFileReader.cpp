@@ -6,8 +6,9 @@
  */
 
 #include "LokiFileReader.h"
-#include "CodeLoader.h"
 #include "DataBlock.h"
+#include "../Debugger.h"
+#include "../Parameters.h"
 #include "../../Datatype/Instruction.h"
 
 vector<DataBlock>& LokiFileReader::extractData() const {
@@ -28,7 +29,7 @@ vector<DataBlock>& LokiFileReader::extractData() const {
       }
       else words->push_back(w);
 
-      if(CodeLoader::usingDebugger) {
+      if(Debugger::mode == Debugger::DEBUGGER) {
         printInstruction((Instruction)w, wordsRead*BYTES_PER_INSTRUCTION);
       }
     }
@@ -43,9 +44,9 @@ vector<DataBlock>& LokiFileReader::extractData() const {
   }
 
   if(words->size() == 0)
-    std::cerr << "Error: read 0 words from file " << filename_ << endl;
-  else if(DEBUG) cout << "Retrieved " << words->size() <<
-    " words from file " << filename_ << endl;
+    std::cerr << "Error: read 0 words from file " << filename_ << std::endl;
+  else if(DEBUG) std::cout << "Retrieved " << words->size() <<
+    " words from file " << filename_ << std::endl;
 
   file.close();
 

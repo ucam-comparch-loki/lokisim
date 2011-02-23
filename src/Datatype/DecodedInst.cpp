@@ -35,6 +35,18 @@ const bool    DecodedInst::hasOperand1() const {return hasOperand1_;}
 const bool    DecodedInst::hasResult() const {return hasResult_;}
 
 
+const bool    DecodedInst::hasDestReg() const {
+  return InstructionMap::hasDestReg(operation_);
+}
+
+const bool    DecodedInst::hasSrcReg1() const {
+  return InstructionMap::hasSrcReg1(operation_);
+}
+
+const bool    DecodedInst::hasSrcReg2() const {
+  return InstructionMap::hasSrcReg2(operation_);
+}
+
 const bool    DecodedInst::hasImmediate() const {
   return InstructionMap::hasImmediate(operation_);
 }
@@ -164,13 +176,40 @@ DecodedInst& DecodedInst::operator= (const DecodedInst& other) {
 }
 
 std::ostream& DecodedInst::print(std::ostream& os) const {
-  if(predicate() == Instruction::P) os << "p?";
-  else if(predicate() == Instruction::NOT_P) os << "!p?";
+  if(predicate() == Instruction::P) os << "ifp?";
+  else if(predicate() == Instruction::NOT_P) os << "if!p?";
 
-  os << name()
-     << (setsPredicate()?".p":"") << (predicate()==Instruction::END_OF_PACKET?".eop":"")
-     << " r" << (int)destination() << " r" << (int)sourceReg1()
-     << " r" << (int)sourceReg2()     << " "  << immediate();
+  os << name() << (setsPredicate() ? ".p" : "")
+     << (predicate()==Instruction::END_OF_PACKET ? ".eop" : "");
+
+  // Special case for setchmap: immediate is printed before register.
+  if(operation_ == InstructionMap::SETCHMAP) {
+    os << " " << immediate() << ", r" << (int)sourceReg1();
+    return os;
+  }
+
+  // Special case for loads: print the form 8(r2).
+  if(operation_ >= InstructionMap::LDW && operation_ <= InstructionMap::LDBU) {
+    os << " " << immediate() << "(r" << (int)sourceReg1() << ")";
+  }
+  // Special case for stores: print the form r3 8(r2).
+  else if(operation_ >= InstructionMap::STW && operation_ <= InstructionMap::STB) {
+    os << " r" << (int)sourceReg1() << ", " << immediate() << "(r"
+       << (int)sourceReg2() << ")";
+  }
+  // Default case.
+  else {
+    // Figure out where commas are needed.
+    bool fieldAfterSrc2 = hasImmediate();
+    bool fieldAfterSrc1 = fieldAfterSrc2 || hasSrcReg2();
+    bool fieldAfterDest = fieldAfterSrc1 || hasSrcReg1();
+
+    if(hasDestReg()) os << " r" << (int)destination() << (fieldAfterDest?",":"");
+    if(hasSrcReg1()) os << " r" << (int)sourceReg1() << (fieldAfterSrc1?",":"");
+    if(hasSrcReg2()) os << " r" << (int)sourceReg2() << (fieldAfterSrc2?",":"");
+    if(hasImmediate()) os << " "  << immediate();
+  }
+
   if(channelMapEntry() != Instruction::NO_CHANNEL)
     os << " -> " << (int)channelMapEntry();
 

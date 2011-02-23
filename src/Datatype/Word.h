@@ -5,6 +5,12 @@
  * and operators. Each subclass defines its own way of interpreting the data
  * held in a Word.
  *
+ * TODO: a Word is 16 bytes (holds a long and a virtual function table pointer),
+ * so allocating huge vectors of Words is very expensive. When storing Words, we
+ * should probably only store the integer contents.
+ *  * Update: removed all virtual methods, so now down to 8 bytes. Can continue
+ *    to 4 bytes when we have a better instruction encoding.
+ *
  *  Created on: 5 Jan 2010
  *      Author: db434
  */
@@ -25,7 +31,6 @@ public:
 
   Word();
   Word(const uint64_t data_);
-  virtual ~Word();
 
 //==============================//
 // Methods

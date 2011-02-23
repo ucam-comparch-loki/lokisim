@@ -38,6 +38,10 @@ protected:
   // in bytes.
   static void printInstruction(Instruction i, MemoryAddr address);
 
+  // Perform some small parameter-dependent transformations on the assembly
+  // code. For example, change "ch1" to "r17".
+  static void translateAssembly(std::string& infile, std::string& outfile);
+
   std::string filename_;
   ComponentID componentID_;
   MemoryAddr position_;

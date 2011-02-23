@@ -65,6 +65,10 @@ public:
     }
   }
 
+  virtual ~BufferArray() {
+    for(uint i=0; i<size(); i++) delete buffers[i];
+  }
+
 //==============================//
 // Local state
 //==============================//

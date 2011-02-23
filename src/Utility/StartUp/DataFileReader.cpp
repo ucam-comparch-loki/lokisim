@@ -59,7 +59,10 @@ Word DataFileReader::nextWord(std::ifstream& file) const {
     // If there are multiple words on a line, we're only interested in the
     // first one. The rest are comments.
     string str(line);
-    string first = StringManipulation::split(str, ' ')[0];
+
+    vector<string>& words = StringManipulation::split(str, ' ');
+    string first = words[0];
+    delete &words;
 
     int val = StringManipulation::strToInt(first);
     return Word(val);

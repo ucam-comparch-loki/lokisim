@@ -6,8 +6,9 @@
  */
 
 #include "ELFFileReader.h"
-#include "CodeLoader.h"
 #include "DataBlock.h"
+#include "../Debugger.h"
+#include "../Parameters.h"
 #include "../StringManipulation.h"
 #include "../../Datatype/Instruction.h"
 
@@ -58,7 +59,7 @@ vector<DataBlock>& ELFFileReader::extractData() const {
           }
           else data->push_back(inst);
 
-          if(CodeLoader::usingDebugger) printInstruction(inst, physPosition+i);
+          if(Debugger::mode == Debugger::DEBUGGER) printInstruction(inst, physPosition+i);
         }
       }
       else {
@@ -138,12 +139,13 @@ Word ELFFileReader::nextWord(std::ifstream& file, bool isInstruction) const {
 DataBlock& ELFFileReader::loaderProgram() const {
   // Find the position of main(), so we can get a core to fetch it.
   int mainPos = findMain();
-  if(CodeLoader::usingDebugger) cout << "\nmain() is at address " << mainPos << endl;
+  if(Debugger::mode == Debugger::DEBUGGER)
+    std::cout << "\nmain() is at address " << mainPos << std::endl;
 
   Instruction storeChannel("ori r3 r0 0");
   storeChannel.immediate(componentID_*NUM_CORE_INPUTS); // Memory's first input.
 
-  Instruction setfetchch("setchmap r3 0");
+  Instruction setfetchch("setchmap 0 r3");
 
   Instruction connect("ori r0 r0 0 > 0");
   connect.immediate(core_*NUM_CORE_INPUTS + 1); // Core's IPK cache
@@ -171,42 +173,42 @@ DataBlock& ELFFileReader::loaderProgram() const {
 int ELFFileReader::findMain() const {
 
   // Now looking for _start, not main, and it is always at 0x1000.
-  return 0x1000;
+//  return 0x1000;
 
-//  // Execute a command which returns information on all of the ELF sections.
-//  FILE* terminalOutput;
-//  string command("loki-elf-objdump -t " + filename_);
-//  terminalOutput = popen(command.c_str(), "r");
-//
-//  char line[100];
-//  int mainPos = 0;
-//  bool foundMainPos = false;
-//
-//  // Step through each line of information, looking for the one corresponding
-//  // to main().
-//  while(fgets(line, 100, terminalOutput) != NULL) {
-//    string lineStr(line);
-//    vector<string>& words = StringManipulation::split(lineStr, ' ');
-//
-//    // We're only interested one line of the information.
-//    if(words.back()=="main\n") {
-//      mainPos = StringManipulation::strToInt("0x"+words[0]);
-//      foundMainPos = true;
-//      break;
-//    }
-//
-//    delete &words;
-//  }
-//
-//  fclose(terminalOutput);
-//
-//  if(foundMainPos) {
-//    return mainPos;
-//  }
-//  else {
-//    cerr << "Error: unable to find main() in " << filename_ << endl;
-//    throw std::exception();
-//  }
+  // Execute a command which returns information on all of the ELF sections.
+  FILE* terminalOutput;
+  string command("loki-elf-objdump -t " + filename_);
+  terminalOutput = popen(command.c_str(), "r");
+
+  char line[100];
+  int mainPos = 0;
+  bool foundMainPos = false;
+
+  // Step through each line of information, looking for the one corresponding
+  // to main().
+  while(fgets(line, 100, terminalOutput) != NULL) {
+    string lineStr(line);
+    vector<string>& words = StringManipulation::split(lineStr, ' ');
+
+    // We're only interested one line of the information.
+    if(words.back()=="_start\n") {
+      mainPos = StringManipulation::strToInt("0x"+words[0]);
+      foundMainPos = true;
+      break;
+    }
+
+    delete &words;
+  }
+
+  fclose(terminalOutput);
+
+  if(foundMainPos) {
+    return mainPos;
+  }
+  else {
+    std::cerr << "Error: unable to find main() in " << filename_ << std::endl;
+    throw std::exception();
+  }
 
 }
 

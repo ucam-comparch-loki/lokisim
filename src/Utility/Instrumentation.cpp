@@ -81,6 +81,10 @@ void Instrumentation::idle(ComponentID id, bool idle) {
 
 void Instrumentation::endExecution() {
   Stalls::endExecution();
+
+  // Only end simulation if we aren't using the debugger: we may still want to
+  // probe memory contents.
+  if(!Debugger::usingDebugger) sc_stop();
 }
 
 void Instrumentation::networkTraffic(ChannelID startID, ChannelID endID) {
@@ -95,7 +99,7 @@ void Instrumentation::networkActivity(ComponentID network, ChannelIndex source,
 void Instrumentation::operation(ComponentID id, const DecodedInst& inst, bool executed) {
   Operations::operation(inst.operation(), executed);
 
-  if(CodeLoader::usingDebugger)
+  if(Debugger::mode == Debugger::DEBUGGER)
     Debugger::executedInstruction(inst, id, executed);
 }
 

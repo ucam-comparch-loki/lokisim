@@ -192,7 +192,6 @@ void ALU::systemCall(int code) const {
     case 0x1: { /* SYS_exit */
       RETURN_CODE = readReg(6);
       std::cerr << "Simulation ended with sys_exit." << endl;
-      sc_stop();
       Instrumentation::endExecution();
       break;
     }

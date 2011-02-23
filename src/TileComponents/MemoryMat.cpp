@@ -169,7 +169,7 @@ void MemoryMat::write(ChannelIndex port) {
 }
 
 /* Returns a vector of all input ports at which there are memory operations
- * ready to execute. */
+ * ready to execute. The vector should be deleted when finished with. */
 std::vector<ChannelIndex>& MemoryMat::allRequests() {
   std::vector<ChannelIndex>* requests = new std::vector<ChannelIndex>();
   for(ChannelIndex i=0; i<inputBuffers_.size(); i++) {
@@ -314,6 +314,8 @@ void MemoryMat::newData() {
 
 /* Initialise the contents of this memory to the Words in the given vector. */
 void MemoryMat::storeData(const std::vector<Word>& data, MemoryAddr location) {
+  assert(data.size() + location <= data_.size());
+
   // wordsLoaded is used to keep track of where to put new data. If we have
   // been given a location, we already know where to put the data, so do not
   // need wordsLoaded.

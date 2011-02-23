@@ -14,6 +14,7 @@
 #include "Parameters.h"
 
 #include <iostream>
+#include <stdlib.h>
 #include <string.h>
 
 using std::string;
@@ -27,7 +28,7 @@ using std::endl;
 int DEBUG = 1;
 int TRACE = 0;
 
-int TIMEOUT = 150000;
+int TIMEOUT = 15000000;
 
 int BYTES_PER_WORD = 4;
 int BYTES_PER_INSTRUCTION = 8;
@@ -36,7 +37,7 @@ int BYTES_PER_INSTRUCTION = 8;
 // Global variables (is there a better place to put these?)
 //-------------------------------------------------------------------------------------------------
 
-int RETURN_CODE = 0;
+int RETURN_CODE = EXIT_SUCCESS;
 int LOKI_STDIN = 0;
 int LOKI_STDOUT = 1;
 int LOKI_STDERR = 2;
@@ -58,8 +59,8 @@ parameter NUM_TILE_COLUMNS           = 1;
 parameter NUM_ADDRESSABLE_REGISTERS  = 32;
 parameter NUM_PHYSICAL_REGISTERS     = 64;
 parameter IPK_FIFO_SIZE              = 8;
-parameter IPK_CACHE_SIZE             = 64;//= 1024;
-parameter MEMORY_SIZE                = 2048;//= 4 * 1024 * 1024;
+parameter IPK_CACHE_SIZE             = 64;//1024;
+parameter MEMORY_SIZE                = 2048;//8 * 1024 * 1024;
 parameter CONCURRENT_MEM_OPS         = 1;//NUM_MEMORY_INPUTS;
 
 parameter CHANNEL_MAP_SIZE           = 4;

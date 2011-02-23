@@ -16,18 +16,54 @@ std::map<int, std::string> InstructionMap::itn; // instruction to name
 /* Return the opcode of the given instruction name */
 short InstructionMap::opcode(const std::string& name) {
   InstructionMap::initialise();
-  return nto[name];
+  if(nto.find(name) == nto.end()) throw std::exception();
+  else return nto[name];
 }
 
 /* Returns the instruction identifier of the given opcode */
 short InstructionMap::operation(short opcode) {
   InstructionMap::initialise();
-  return (short)(oti[opcode]);
+  if(oti.find(opcode) == oti.end()) throw std::exception();
+  else return (short)(oti[opcode]);
 }
 
 std::string& InstructionMap::name(int operation) {
   InstructionMap::initialise();
-  return itn[operation];
+  if(itn.find(operation) == itn.end()) throw std::exception();
+  else return itn[operation];
+}
+
+/* Return whether the instruction has a register which it stores its result in. */
+bool InstructionMap::hasDestReg(short op) {
+  return storesResult(op);
+}
+
+/* Return whether the instruction uses the first source register. */
+bool InstructionMap::hasSrcReg1(short op) {
+  static const short withoutSource1[] = {
+      NOP, LUI, SELCH, IBJMP, RMTEXECUTE, RMTNXIPK, SYSCALL
+  };
+
+  static const std::set<short> ops(withoutSource1, withoutSource1+7);
+
+  // The operation has a source register if it isn't in the set.
+  return ops.find(op) == ops.end();
+}
+
+/* Return whether the instruction uses the second source register. */
+bool InstructionMap::hasSrcReg2(short op) {
+  static const short withSource2[] = {
+      STW, STHW, STB,
+      SLL, SRL, SRA,
+      SETEQ, SETNE, SETLT, SETLTU, SETGTE, SETGTEU,
+      PSEL, NOR, AND, OR, XOR, NAND, CLR, ORC,
+      ADDU, SUBU, MULHW, MULLW, MULHWU
+  };
+
+  static const std::set<short> ops(withSource2, withSource2+25);
+
+  // The operation has a source register if it is in the set.
+  return ops.find(op) != ops.end();
 }
 
 /* Return whether the instruction contains an immediate value */
@@ -46,7 +82,6 @@ bool InstructionMap::hasImmediate(short op) {
 
   // The operation has an immediate if it is in the set.
   return ops.find(op) != ops.end();
-
 }
 
 /* Return whether the instruction specifies a remote channel */
@@ -85,10 +120,10 @@ bool InstructionMap::isALUOperation(short op) {
   return ops.find(op) == ops.end();
 }
 
-/* Return whether the operation requires use of the ALU */
+/* Return whether the operation stores its result. */
 bool InstructionMap::storesResult(short op) {
-  // Since there are far more instructions which use the ALU than which don't,
-  // we only list the ones that don't here.
+  // Since there are far more instructions which store their results than which
+  // don't, we only list the ones that don't here.
   static const short doesntStore[] = {
       NOP, LDW, LDHWU, LDBU, STW, STHW, STB, STWADDR, STBADDR,
       WOCHE,
@@ -96,7 +131,7 @@ bool InstructionMap::storesResult(short op) {
       RMTFILL, RMTEXECUTE, RMTNXIPK, SETCHMAP, SYSCALL
   };
 
-  static const std::set<short> ops(doesntStore, doesntStore+20);
+  static const std::set<short> ops(doesntStore, doesntStore+22);
 
   // The operation stores its result if it isn't in the set.
   return ops.find(op) == ops.end();

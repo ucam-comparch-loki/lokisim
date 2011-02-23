@@ -8,8 +8,8 @@
 fetch               r1,  56
 addui               r5,  r30, (13,0)
 addui               r6,  r30, (14,0)
-setchmap            r5,  1                  ; input = map 1
-setchmap            r6,  2                  ; output = map 2
+setchmap            1,   r5                  ; input = map 1
+setchmap            2,   r6                  ; output = map 2
 addui               r0,  r8,  (0,2)  > 1
 addui.eop           r0,  r8,  (0,0)  > 2
 

@@ -49,7 +49,6 @@ public:
   MemoryRequest();
   MemoryRequest(MemoryAddr address, uint8_t operation);
   MemoryRequest(const Word& other);
-  virtual ~MemoryRequest();
 
 //==============================//
 // Local state

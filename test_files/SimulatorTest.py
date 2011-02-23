@@ -120,8 +120,16 @@ class SimulatorTest(unittest.TestCase):
             # terminated, because readlines hangs otherwise.
             return self._simulation.stdout.readlines()
         else:
-            output = [int(self._simulation.stdout.readline()) \
-                      for i in range(0, expectedLines)]
+            output = []
+            for i in range(0, expectedLines):
+                try:
+                    val = int(self._simulation.stdout.readline())
+                    output.append(val)
+                except Exception as e:
+                    # Found a non-numeric line, so this read didn't count.
+                    i = i-1
+            #output = [int(self._simulation.stdout.readline()) \
+            #          for i in range(0, expectedLines)]
             return output
         
         

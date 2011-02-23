@@ -2,10 +2,10 @@
 
 ori             r4,  r0,  (12,0)
 ori             r6,  r0,  (13,0)
-setchmap        r4,       0             ; instruction memory = map 0 (fetch channel)
-setchmap        r6,       1             ; data memory = map 1
+setchmap        0,   r4                 ; instruction memory = map 0 (fetch channel)
+setchmap        1,   r6                 ; data memory = map 1
 ori             r7,  r0,  (1,2)
 ori             r0,  r0,  (0,1) > 0     ; connect to the instruction memory
 addui           r0,  r0,  (0,2) > 1     ; connect to the data memory
-setchmap        r7,       2             ; cluster 1 = map 2
+setchmap        2,   r7                 ; cluster 1 = map 2
 fetch.eop       r0,       0             ; fetch main program

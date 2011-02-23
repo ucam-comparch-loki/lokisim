@@ -185,9 +185,7 @@ void     Cluster::pipelineStalled(bool stalled) {
   currentlyStalled = stalled;
 
   if(DEBUG) {
-    cout << this->name() << ": ";
-    if(stalled) cout << "pipeline stalled" << endl;
-    else        cout << "pipeline unstalled" << endl;
+    cout << this->name() << ": pipeline " << (stalled ? "stalled" : "unstalled") << endl;
   }
 }
 
@@ -353,5 +351,12 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
 }
 
 Cluster::~Cluster() {
+  delete[] stageIdle;
+  delete[] stallRegReady;
+  delete[] stageStalled;
+  delete[] dataToStage;
+  delete[] dataFromStage;
 
+  for(uint i=0; i<stages.size(); i++) delete stages[i];
+  for(uint i=0; i<stallRegs.size(); i++) delete stallRegs[i];
 }

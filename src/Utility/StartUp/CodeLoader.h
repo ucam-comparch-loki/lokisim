@@ -23,8 +23,6 @@ class CodeLoader {
 
 public:
 
-  static bool usingDebugger;
-
   // Read a file which tells which files to read.
   static void loadParameters(string& settingsFile);
 

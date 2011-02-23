@@ -12,8 +12,6 @@
 #include "../StringManipulation.h"
 #include "../../Datatype/Instruction.h"
 
-bool CodeLoader::usingDebugger = false;
-
 /* Use an external file to tell which files to read.
  * The file should contain lines of the following forms:
  *   directory directory_name

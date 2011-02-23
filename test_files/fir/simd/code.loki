@@ -3,8 +3,8 @@
 fetch           r1,       56            ; fetch main program
 addui           r5,  r30, (13,0)
 addui           r6,  r30, (14,0)
-setchmap        r5,       1             ; input data memory = map 1
-setchmap        r6,       2             ; output data memory = map 2
+setchmap        1,   r5                 ; input data memory = map 1
+setchmap        2,   r6                 ; output data memory = map 2
 addui           r0,  r8,  2   > 1       ; connect to the input data memory
 addui.eop       r0,  r8,  3   > 2       ; connect to the output data memory
 

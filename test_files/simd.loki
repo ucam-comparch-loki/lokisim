@@ -11,7 +11,7 @@
 % Set up connection to memory containing arguments
 ori                 r4,  r0,  (13,0)
 fetch               r1,  72
-setchmap            r4,  1
+setchmap            1,   r4
 ori                 r0,  r0,  2    > 1      ; connect to the argument memory
 ldw                 r0,  0         > 1      ; load number of SIMD members
 
@@ -22,8 +22,8 @@ ori                 r6,  r0,  2             ; r6 = remote core's data input
 ori.eop             r10, ch0, 0             ; r10 = number of SIMD members
 
 % Set up connections to remote core
-setchmap            r5,  2                  ; instruction input = map 2
-setchmap            r6,  3                  ; data input = map 3
+setchmap            2,   r5                 ; instruction input = map 2
+setchmap            3,   r6                 ; data input = map 3
 
 % Send core any parameters it needs
 ori                 r0,  r7,  0    > 3      ; send core its ID
@@ -36,7 +36,7 @@ p?ori               r30, ch0, 0             ; r30 = this core's SIMD ID
 p?addui             r4,  r30, (12,0)        ; compute memory port to use
 p?ori               r8,  r0,  (1,0)         ; number of ports per core
 p?mullw             r8,  r8,  r30           ; r8 = first local port
-p?setchmap          r4,  0
+p?setchmap          0,   r4
 p?addui             r0,  r8,  1    > 0      ; connect to the instruction memory
 p?ori               r31, ch0, 0             ; r31 = number of SIMD members
 p?fetch             r0,  224                ; load program

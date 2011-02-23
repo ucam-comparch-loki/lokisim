@@ -24,6 +24,7 @@
  */
 
 #include "Instruction.h"
+#include "DecodedInst.h"
 #include "../Exceptions/InvalidInstructionException.h"
 #include "../TileComponents/TileComponent.h"
 #include "../TileComponents/Pipeline/IndirectRegisterFile.h"
@@ -116,18 +117,24 @@ Instruction::Instruction(const uint64_t inst) : Word(inst) {
 Instruction::Instruction(const string& inst) {
 
   // Skip this line if it is a comment or empty
-  if((inst[0]=='%') || (inst[0]==';') || (inst[0]=='\n') || (inst[0]=='\r'))
+  if((inst[0]=='%') || (inst[0]==';') || (inst[0]=='#') || (inst[0]=='\n') || (inst[0]=='\r'))
     throw InvalidInstructionException();
 
   // Remove any comments by splitting around ';' and only keeping the first part
   vector<string>& words = Strings::split(inst, ';');
+
+  // Should words be deleted before we reassign to it?
+  if(words.size() > 0) words = Strings::split(words[0], '#');
 
   // If there is no text, abandon the creation of the Instruction
   if(words.size() == 0) throw InvalidInstructionException();
 
   // Split around "->" to see if there is a remote channel specified
   words = Strings::split(words.front(), '>');
-  if(words.size() > 1) remoteChannel(decodeRChannel(words[1]));
+  if(words.size() > 1) {
+    remoteChannel(decodeRChannel(words[1]));
+    words.front().erase(words.front().end()-1); // Remove the "-" from "->"
+  }
   else remoteChannel(NO_CHANNEL);
 
   // Split around ' ' to separate all remaining parts of the instruction
@@ -137,12 +144,20 @@ Instruction::Instruction(const string& inst) {
   decodeOpcode(words.front());
 
   // Determine which registers/immediates any remaining strings represent
-  uint8_t reg1 = (words.size() > 1) ? decodeField(words[1]) : 0;
-  uint8_t reg2 = (words.size() > 2) ? decodeField(words[2]) : 0;
-  uint8_t reg3 = (words.size() > 3) ? decodeField(words[3]) : 0;
-  setFields(reg1, reg2, reg3);
+  RegisterIndex reg1 = (words.size() > 1) ? decodeField(words[1]) : 0;
+  RegisterIndex reg2 = (words.size() > 2) ? decodeField(words[2]) : 0;
+  RegisterIndex reg3 = (words.size() > 3) ? decodeField(words[3]) : 0;
 
   delete &words;
+
+  // Special case for setchmap because its register and immediate are in a
+  // different order.
+  if(InstructionMap::operation(opcode()) == InstructionMap::SETCHMAP) {
+    reg1 = reg2;
+    reg2 = 0;
+  }
+
+  setFields(reg1, reg2, reg3);
 
   // Perform a small check to catch a possible problem.
   string nop("nop");
@@ -150,12 +165,9 @@ Instruction::Instruction(const string& inst) {
     if(reg1 != 0 || reg2 != 0 || reg3 != 0 || remoteChannel() != NO_CHANNEL) {
       cerr << "Warning: possible invalid instruction: " << *this
            << "\n  (generated from " << inst << ")" << endl;
+      throw InvalidInstructionException();
     }
   }
-
-}
-
-Instruction::~Instruction() {
 
 }
 
@@ -206,7 +218,8 @@ RegisterIndex Instruction::decodeField(const string& str) {
 
     return value;
   }
-  else if(reg[0] == 'c') {            // Channels are optionally marked with "ch"
+
+  if(reg[0] == 'c') {                 // Channels are optionally marked with "ch"
     reg.erase(0,2);                   // Remove the "ch"
 
     // Convert from the channel index to the register index.
@@ -214,13 +227,27 @@ RegisterIndex Instruction::decodeField(const string& str) {
 
     return value;
   }
-  // Check that this instruction should have an immediate?
-  else {
-    // Use decodeRChannel to allow the immediate to be written in remote
-    // channel notation: (12,2).
-    immediate(decodeRChannel(reg));
-    return 0;
+
+  vector<string>& parts = Strings::split(reg, '(');
+
+  if(parts.size() > 1) {              // Dealing with load/store notation: 8(r2)
+    immediate(Strings::strToInt(parts[0]));
+
+    parts[1].erase(parts[1].end()-1); // Erase the closing bracket.
+    RegisterIndex result = decodeField(parts[1]);
+
+    delete &parts;
+    return result;
   }
+
+  delete &parts;
+
+  // Check that this instruction should have an immediate?
+
+  // Use decodeRChannel to allow the immediate to be written in remote
+  // channel notation: (12,2).
+  immediate(decodeRChannel(reg));
+  return 0;
 
 }
 
@@ -244,6 +271,9 @@ void Instruction::decodeOpcode(const string& name) {
     opcodeString = opcodeParts[0];
   }
 
+  // Does opcodeParts need deleting here, before we assign to it again?
+//  delete &opcodeParts;
+
   // See if the instruction sets the predicate register, or is the end of packet
   opcodeParts = Strings::split(opcodeString, '.');
 
@@ -263,8 +293,15 @@ void Instruction::decodeOpcode(const string& name) {
   }
 
   // Look up operation in InstructionMap
-  short op = InstructionMap::opcode(opcodeParts.front());
-  opcode(op);
+  try {
+    short op = InstructionMap::opcode(opcodeParts.front());
+    opcode(op);
+  }
+  catch(std::exception& e) {
+    // Not a valid operation name.
+    if(DEBUG) cerr << "Error: invalid operation name: " << opcodeParts.front() << endl;
+    throw InvalidInstructionException();
+  }
 
   delete &opcodeParts;
 
@@ -275,13 +312,11 @@ void Instruction::decodeOpcode(const string& name) {
  * representing a component and one of its input ports.
  * Returns a signed int because this method is also used to decode immediates. */
 int32_t Instruction::decodeRChannel(const string& channel) {
-
   vector<string>& parts = Strings::split(channel, ',');
+  ChannelID channelID;
 
   if(parts.size() == 1) {
-    int channelID = Strings::strToInt(parts[0]);
-    delete &parts;
-    return channelID;
+    channelID = Strings::strToInt(parts[0]);
   }
   else {
     // We should now have two strings of the form "(x" and "y)".
@@ -289,11 +324,12 @@ int32_t Instruction::decodeRChannel(const string& channel) {
 
     parts[0].erase(parts[0].begin());           // Remove the bracket
     parts[1].erase(parts[1].end()-1);           // Remove the bracket
-    int channelID = TileComponent::inputPortID(Strings::strToInt(parts[0]),
-                                               Strings::strToInt(parts[1]));
-    delete &parts;
-    return channelID;
+    channelID = TileComponent::inputPortID(Strings::strToInt(parts[0]),
+                                           Strings::strToInt(parts[1]));
   }
+
+  delete &parts;
+  return channelID;
 }
 
 void Instruction::setFields(const RegisterIndex reg1, const RegisterIndex reg2,
@@ -312,14 +348,6 @@ void Instruction::setFields(const RegisterIndex reg1, const RegisterIndex reg2,
       break;
     }
 
-    // Two sources, no destination.
-//    case InstructionMap::STW :
-//    case InstructionMap::STB : {
-//      sourceReg1(reg1);
-//      sourceReg2(reg2);
-//      break;
-//    }
-
     // Two sources and a destination.
     default : {
       destination(reg1);
@@ -331,13 +359,8 @@ void Instruction::setFields(const RegisterIndex reg1, const RegisterIndex reg2,
 }
 
 std::ostream& Instruction::print(std::ostream& os) const {
-  if(predicate() == P) os << "p?";
-  else if(predicate() == NOT_P) os << "!p?";
-
-  os << InstructionMap::name(InstructionMap::operation(opcode()))
-     << (setsPredicate()?".p":"")  << (endOfPacket()?".eop":"")
-     << " r" << (int)destination() << " r" << (int)sourceReg1()
-     << " r" << (int)sourceReg2()  << " "  << immediate();
-  if(remoteChannel() != NO_CHANNEL) os << " -> " << (int)remoteChannel();
+  // It is easier to print from DecodedInst, as it has all of the fields
+  // separated.
+  os << DecodedInst(*this);
   return os;
 }

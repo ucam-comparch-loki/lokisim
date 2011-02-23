@@ -1,5 +1,6 @@
-0  ../../init.loki
-12 code.loki
+%0  ../../init.loki
+%12 code.loki
+vector_add.s
 
 % Each data memory contains information on the length/position of its vector
 13 ../params.data

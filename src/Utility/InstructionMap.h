@@ -24,10 +24,11 @@ class InstructionMap {
 
 public:
 
-  // Returns whether the given operation should specify an immediate value.
+  // Return whether the given operation should specify a particular field.
+  static bool hasDestReg(short operation);
+  static bool hasSrcReg1(short operation);
+  static bool hasSrcReg2(short operation);
   static bool hasImmediate(short operation);
-
-  // Returns whether the given operation should specify a remote channel.
   static bool hasRemoteChannel(short operation);
 
   // Returns whether the given operation uses the ALU.

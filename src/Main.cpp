@@ -74,13 +74,15 @@ void parseArguments(uint argc, char* argv[], Chip& chip) {
       if(argument == "debug") {
         // Print out lots of information about execution.
         debugMode = true;
-        CodeLoader::usingDebugger = true;
+        Debugger::usingDebugger = true;
+        Debugger::mode = Debugger::DEBUGGER;
       }
       else if(argument == "test") {
         // Switch off all status reporting, so we only get the information we
         // want. This allows much faster testing.
         debugMode = true;
         DEBUG = 0;
+        Debugger::usingDebugger = true;
         Debugger::mode = Debugger::TEST;
       }
       else if(argument == "trace") {
@@ -137,7 +139,7 @@ void simulate(Chip& chip) {
             sc_stop();
             Instrumentation::endExecution();
             cerr << "\nSystem has been idle for " << cyclesIdle << " cycles." << endl;
-            RETURN_CODE = 1; // Should this be some other number?
+            RETURN_CODE = EXIT_FAILURE;
             break;
           }
         }
@@ -146,18 +148,19 @@ void simulate(Chip& chip) {
 
       if(i >= TIMEOUT) {
         cerr << "Simulation timed out after " << TIMEOUT << " cycles." << endl;
-        RETURN_CODE = 1;
+        RETURN_CODE = EXIT_FAILURE;
       }
     }
     catch(std::exception& e) {
       // If there's no error message, it might mean that not everything is
       // connected properly.
       cerr << "Execution ended unexpectedly:\n" << e.what() << endl;
-      RETURN_CODE = 1;
+      RETURN_CODE = EXIT_FAILURE;
     }
   }
 
 }
+#include "Datatype/AddressedWord.h"
 
 int sc_main(int argc, char* argv[]) {
 

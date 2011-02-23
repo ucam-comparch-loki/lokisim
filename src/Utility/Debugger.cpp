@@ -12,7 +12,8 @@
 #include "../Datatype/DecodedInst.h"
 #include "../Datatype/Instruction.h"
 
-int Debugger::mode = DEBUGGER;
+bool Debugger::usingDebugger = false;
+int Debugger::mode = NOT_IN_USE;
 
 bool Debugger::hitBreakpoint = false;
 Chip* Debugger::chip = 0;

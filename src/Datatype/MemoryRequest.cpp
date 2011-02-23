@@ -97,10 +97,6 @@ MemoryRequest::MemoryRequest(const Word& other) : Word(other) {
 
 }
 
-MemoryRequest::~MemoryRequest() {
-
-}
-
 /* Private setter methods */
 void MemoryRequest::address(MemoryAddr val) {
   setBits(startAddress, startOperation - 1, val);

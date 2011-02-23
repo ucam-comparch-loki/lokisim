@@ -81,10 +81,11 @@ private:
 public:
 
   static int mode;
+  static bool usingDebugger;
 
   // Test mode uses much of the same functionality as debug mode, but only
   // wants the bare minimum of information printed out.
-  enum Mode {DEBUGGER, TEST};
+  enum Mode {NOT_IN_USE, DEBUGGER, TEST};
 
 private:
 
