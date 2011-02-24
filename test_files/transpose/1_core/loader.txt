@@ -1,4 +1,4 @@
-0  ../../init.loki
-12 code.loki
+transpose
+
 13 ../params.data
 13 ../matrix.data

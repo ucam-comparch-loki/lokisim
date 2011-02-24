@@ -57,7 +57,7 @@ void CodeLoader::loadParameters(string& settings) {
 	    }
 	    catch(std::exception& e) {
 	      std::cerr << "Error: could not read file " << settings << endl;
-	      break;
+	      continue;
 	    }
 	  }
 
@@ -80,8 +80,10 @@ void CodeLoader::loadCode(string& settings, Chip& chip) {
   std::ifstream file(settings.c_str());
 
   // Strip away "/loader.txt" to get the directory path.
-  uint pos = settings.find("loader");
+//  uint pos = settings.find("loader");
+  uint pos = settings.find(".txt");
 
+  // If the line doesn't specify a text file, it is probably an executable.
   if(pos >= settings.length()) {
     // Put the string in a vector so we can use existing methods.
     vector<string> vec;
@@ -90,7 +92,9 @@ void CodeLoader::loadCode(string& settings, Chip& chip) {
     return;
   }
 
-  string directory = settings.substr(0,pos-1);
+  // Find out which directory the file is in.
+  pos = settings.rfind("/");
+  string directory = settings.substr(0,pos);
 
   while(!file.fail()) {
     try {
@@ -129,7 +133,7 @@ void CodeLoader::loadCode(string& settings, Chip& chip) {
     }
     catch(std::exception& e) {
       std::cerr << "Error: could not read file " << settings << endl;
-      break;
+      continue;
     }
   }
 
