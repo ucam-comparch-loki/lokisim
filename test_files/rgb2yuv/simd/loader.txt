@@ -1,6 +1,5 @@
-0  ../../init.loki
-12 ../../simd.loki
-12 code.loki
+rgb2yuv_simd
+
 13 ../params.data
 13 ../red.data
 13 ../green.data

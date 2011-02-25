@@ -1,5 +1,5 @@
-0  init.loki
-12 code_irf.loki
+fir_irf
+
 13 ../params.data
 13 ../taps.data
 13 ../input.data

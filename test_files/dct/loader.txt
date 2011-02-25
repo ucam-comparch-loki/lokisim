@@ -1,3 +1,2 @@
-0 0.loki
-12 12.loki
+dct
 13 weights.data

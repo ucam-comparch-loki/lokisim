@@ -1,2 +1,1 @@
-0  ../../init.loki
-12 code.loki
+memory
