@@ -48,19 +48,24 @@ void SendChannelEndTable::write(const DecodedInst& dec) {
     }
 
     AddressedWord aw(w, getChannel(dec.channelMapEntry()));
-    ChannelIndex index = chooseBuffer(dec.channelMapEntry());
-
     if(!endOfPacket) aw.notEndOfPacket();
 
-    // We know it is safe to write to any buffer because we block the rest
-    // of the pipeline if a buffer is full.
-    assert(!buffers[index].full());
-    buffers[index].write(aw);
-
-    if(DEBUG) cout << this->name() << " wrote " << w
-                   << " to output buffer " << (int)index << endl;
+    write(aw, dec.channelMapEntry());
   }
 
+}
+
+void SendChannelEndTable::write(const AddressedWord& data, MapIndex output) {
+  // There may be a different number of output ports to channel map entries.
+  ChannelIndex index = chooseBuffer(output);
+
+  // We know it is safe to write to any buffer because we block the rest
+  // of the pipeline if a buffer is full.
+  assert(!buffers[index].full());
+  buffers[index].write(data);
+
+  if(DEBUG) cout << this->name() << " wrote " << data.payload()
+                 << " to output buffer " << (int)index << endl;
 }
 
 /* Generate a memory request using the address from the ALU and the operation
@@ -128,7 +133,7 @@ ChannelID SendChannelEndTable::portID(ChannelIndex channel) const {
 
 /* Update an entry in the channel mapping table. */
 void SendChannelEndTable::updateMap(MapIndex entry, ChannelID newVal) {
-  assert(entry < NUM_SEND_CHANNELS);
+  assert(entry < CHANNEL_MAP_SIZE);
   assert(newVal < TOTAL_INPUTS);
   channelMap.write(newVal, entry);
 

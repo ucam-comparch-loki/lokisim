@@ -9,7 +9,7 @@ class ALUTest(mod.SimulatorTest):
 
     def runTest(self):
         bigNum = 0x12345678
-    
+        
         # Addition, subtraction, simple multiplication.
         self.execute(0, "addui r10 r0 " + str(bigNum))
         self.execute(0, "subu  r11 r0 r10")
@@ -38,7 +38,7 @@ class ALUTest(mod.SimulatorTest):
         unsignedExpected = ctypes.c_uint32(-bigNum).value * bigNum
         signedResult = (self.readReg(0,14)<<32)|(reg13)
         unsignedResult = (reg15<<32)|(reg12)
-                
+        
         self.assertEqual(bigNum ** 2, signedResult, "mulhw")
         self.assertEqual(unsignedExpected, unsignedResult, "mulhwu")
         

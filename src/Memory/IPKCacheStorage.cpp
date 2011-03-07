@@ -46,8 +46,10 @@ const Instruction& IPKCacheStorage::read() {
     incrementCurrent();
 
     lastOpWasARead = true;
-
     previousLocation = locations[i];
+    lastInstWasNew = !haveRead[i];
+    haveRead[i] = true;
+
     return this->data_[i];
   }
   else {
@@ -89,6 +91,7 @@ void IPKCacheStorage::write(const MemoryAddr& key, const Instruction& newData) {
   else needRefetch = (refill == pendingPacket);
 
   lastOpWasARead = false;
+  haveRead[refill.value()] = false;
 
   incrementRefill();
 
@@ -132,6 +135,10 @@ void IPKCacheStorage::jump(const JumpOffset offset) {
  * only instruction which gets a tag. */
 const MemoryAddr IPKCacheStorage::packetAddress() const {
   return this->tags[currentPacket];
+}
+
+bool IPKCacheStorage::justReadNewInst() const {
+  return lastInstWasNew;
 }
 
 /* Returns the remaining number of entries in the cache. */
@@ -188,6 +195,10 @@ void IPKCacheStorage::storeCode(const std::vector<Instruction>& code) {
 
   for(uint i=0; i<code.size() && i<this->size(); i++) {
     write(0xFFFFFFFF, code[i]);
+
+    // Don't want to send credits for these instructions, so pretend they are
+    // not new.
+    haveRead[refill.value()-1] = true;
   }
 }
 
@@ -232,7 +243,8 @@ IPKCacheStorage::IPKCacheStorage(const uint16_t size, std::string name) :
     MappedStorage<MemoryAddr, Instruction>(size, name),
     currInst(size),
     refill(size),
-    locations(size) {
+    locations(size),
+    haveRead(size) {
 
   currInst.setNull();
   refill = 0;

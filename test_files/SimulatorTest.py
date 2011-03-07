@@ -124,7 +124,8 @@ class SimulatorTest(unittest.TestCase):
             output = []
             for i in range(0, expectedLines):
                 try:
-                    val = int(self._simulation.stdout.readline())
+                    line = self._simulation.stdout.readline()
+                    val = int(line)
                     output.append(val)
                 except Exception as e:
                     # Found a non-numeric line, so this read didn't count.

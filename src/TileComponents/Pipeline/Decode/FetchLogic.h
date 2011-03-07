@@ -13,7 +13,7 @@
 
 #include "../../../Component.h"
 #include "../../../Datatype/AddressedWord.h"
-#include "../../../Memory/Buffer.h"
+#include "../../../Memory/BufferStorage.h"
 
 class DecodeStage;
 
@@ -84,7 +84,7 @@ private:
 private:
 
   // A queue of requests, waiting to be sent.
-  Buffer<AddressedWord> toSend;
+  BufferStorage<AddressedWord> toSend;
 
   // The network channel we send all of our fetch requests to.
   ChannelID             fetchChannel;

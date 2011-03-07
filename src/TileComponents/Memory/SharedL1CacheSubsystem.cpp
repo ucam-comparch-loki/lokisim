@@ -43,7 +43,7 @@ void SharedL1CacheSubsystem::processUpdateIdle() {
 //-------------------------------------------------------------------------------------------------
 
 SharedL1CacheSubsystem::SharedL1CacheSubsystem(sc_module_name name, ComponentID id, BatchModeEventRecorder *eventRecorder) :
-	TileComponent(name, id),
+	TileComponent(name, id, SHARED_L1_CACHE_CHANNELS, SHARED_L1_CACHE_CHANNELS),
 	mCrossbarSwitch("shared_l1_cache_crossbar_switch", id, eventRecorder, SHARED_L1_CACHE_CHANNELS, SHARED_L1_CACHE_BANKS, SHARED_L1_CACHE_LINE_SIZE),
 	mBackgroundMemory("shared_l1_cache_background_memory", id, eventRecorder, SHARED_L1_CACHE_BANKS, SHARED_L1_CACHE_MEMORY_QUEUE_DEPTH, SHARED_L1_CACHE_MEMORY_DELAY_CYCLES)
 {

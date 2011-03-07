@@ -18,6 +18,32 @@ double WriteStage::energy() const {
   return scet.energy();
 }
 
+void WriteStage::execute() {
+  while(true) {
+    // Wait for a new instruction to arrive.
+    wait(dataIn.default_event() | fromFetchLogic.default_event());
+
+    // Deal with the new input. We are currently not idle.
+    idle.write(false);
+
+    // Enter a loop in case we receive data from both inputs at once.
+    while(true) {
+      if(dataIn.event()) {
+        DecodedInst inst = dataIn.read(); // Don't want a const input.
+        newInput(inst);
+      }
+      else if(fromFetchLogic.event()) {
+        scet.write(fromFetchLogic.read(), 0);
+      }
+      else break;
+
+      wait(clock.posedge_event());
+    }
+
+    idle.write(true);
+  }
+}
+
 void WriteStage::newInput(DecodedInst& data) {
   if(DEBUG) cout << this->name() << " received Data: " << data.result()
                  << endl;

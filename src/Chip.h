@@ -89,7 +89,7 @@ private:
   flag_signal<AddressedWord> *dataFromComponents;
   flag_signal<Word>          *dataToComponents;
   flag_signal<int>           *creditsFromComponents;
-  sc_signal<bool>            *readyToComponents;
+  flag_signal<bool>          *creditsToComponents;
   sc_signal<bool>            *idleSig;
 
 //==============================//

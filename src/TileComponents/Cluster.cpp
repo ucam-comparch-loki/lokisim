@@ -195,34 +195,6 @@ bool     Cluster::discardInstruction(int stage) {
   return stallRegs[stage-2]->discard();
 }
 
-void     Cluster::multiplexOutput0() {
-
-  while(true) {
-    // Wait for a signal to arrive.
-    wait(out0Decode.default_event() | out0Write.default_event());
-
-    // Whilst dealing with new outputs, more outputs may appear, so we need
-    // a loop.
-    while(true) {
-      // If both signals arrive at the same time, the write signal gets
-      // priority. This is because the write will probably be setting up a
-      // connection with a memory, and the decode signal will probably be a
-      // subsequent fetch from that memory.
-      if(out0Write.event()) {
-        out[0].write(out0Write.read());
-        wait(1, sc_core::SC_NS);
-      }
-      else if(out0Decode.event()){
-        out[0].write(out0Decode.read());
-        wait(1, sc_core::SC_NS);
-      }
-      // If there are no more new inputs, stop looping.
-      else break;
-    }
-  }
-
-}
-
 void     Cluster::updateIdle() {
   constantHigh.write(true);   // Hack: find a better way of doing this.
 
@@ -256,15 +228,9 @@ ChannelID Cluster::RCETInput(ComponentID ID, ChannelIndex channel) {
 }
 
 Cluster::Cluster(sc_module_name name, ComponentID ID) :
-    TileComponent(name, ID),
+    TileComponent(name, ID, NUM_CORE_INPUTS, NUM_CORE_OUTPUTS),
     regs("regs"),
     pred("predicate") {
-
-  flowControlOut = new sc_out<int>[NUM_CORE_INPUTS];
-  in             = new sc_in<Word>[NUM_CORE_INPUTS];
-
-  flowControlIn  = new sc_in<bool>[NUM_CORE_OUTPUTS];
-  out            = new sc_out<AddressedWord>[NUM_CORE_OUTPUTS];
 
   previousDest1 = previousDest2 = -1;
 
@@ -279,8 +245,8 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   stageIdle     = new sc_signal<bool>[stages.size()];
   stallRegReady = new sc_signal<bool>[stages.size()-1];
   stageStalled  = new sc_signal<bool>[stages.size()-1];
-  dataToStage   = new sc_buffer<DecodedInst>[stages.size()-1];
-  dataFromStage = new sc_buffer<DecodedInst>[stages.size()-1];
+  dataToStage   = new flag_signal<DecodedInst>[stages.size()-1];
+  dataFromStage = new flag_signal<DecodedInst>[stages.size()-1];
 
   // Wire the stall registers up.
   for(uint i=0; i<stages.size()-1; i++) {
@@ -321,16 +287,15 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   fetch->readyIn(stallRegReady[0]);
 
   DecodeStage* decode = dynamic_cast<DecodeStage*>(stages[1]);
-  decode->fetchOut(out0Decode);           decode->flowControlIn(flowControlIn[0]);
+  decode->fetchOut(fetchSignal);          decode->flowControlIn(flowControlIn[0]);
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     decode->rcetIn[i](in[i+2]);
     decode->flowControlOut[i](flowControlOut[i+2]);
   }
 
   WriteStage*  write  = dynamic_cast<WriteStage*>(stages.back());
-  // The first output is shared with the decode stage, so is treated differently.
-  write->output[0](out0Write);            write->flowControl[0](flowControlIn[0]);
-  for(uint i=1; i<NUM_SEND_CHANNELS; i++) {
+  write->fromFetchLogic(fetchSignal);
+  for(uint i=0; i<NUM_SEND_CHANNELS; i++) {
     write->output[i](out[i]);             write->flowControl[i](flowControlIn[i]);
   }
 
@@ -341,8 +306,6 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   SC_METHOD(newCycle);
   sensitive << clock.pos();
   dont_initialize();
-
-  SC_THREAD(multiplexOutput0);
 
   // Initialise the values in some wires.
   idle.initialize(true);

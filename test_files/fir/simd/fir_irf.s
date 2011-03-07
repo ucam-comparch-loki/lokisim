@@ -81,4 +81,6 @@ loop:
     p?ibjmp         -136
 # End of outer loop
 
-    syscall.eop     1
+    seteqi.p        r0,  r30, 0             # only exit if we're the last core
+    ifp?syscall     1
+    or.eop          r0,  r0,  r0

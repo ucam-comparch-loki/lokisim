@@ -78,7 +78,7 @@ void Word::clearBits(const int start, const int end) {
 std::ostream& Word::print(std::ostream& os) const {
   // Instructions are the only datatypes capable of using more than 32 bits,
   // and they are also the ones which are most useful to print differently.
-  if(data_ >> 32) {
+  if((data_ >> 32) && (data_ >> 32 != 0xFFFFFFFF)) {
     os << static_cast<Instruction>(*this);
   }
   else os << toLong();
@@ -88,6 +88,10 @@ std::ostream& Word::print(std::ostream& os) const {
 /* Constructors and destructors */
 Word::Word() {
   data_ = 0;
+}
+
+Word::Word(const Word& other) {
+  data_ = other.data_;
 }
 
 Word::Word(const uint64_t data_) : data_(data_) {

@@ -14,6 +14,7 @@
 #define TILECOMPONENT_H_
 
 #include "../Component.h"
+//#include "OutputBuffers.h"
 
 class AddressedWord;
 class Chip;
@@ -54,7 +55,8 @@ public:
 
 public:
 
-  TileComponent(sc_module_name name, ComponentID ID);
+  TileComponent(sc_module_name name, ComponentID ID,
+                int inputPorts, int outputPorts);
   virtual ~TileComponent();
 
 //==============================//
@@ -104,6 +106,16 @@ protected:
   void writeMemByte(MemoryAddr addr, Word data) const;
 
   Chip*            parent() const;
+
+//==============================//
+// Components
+//==============================//
+
+//protected:
+//
+//  OutputBuffers outBuffers;
+//  sc_buffer<AddressedWord> *toOutputBuffers;
+//  sc_buffer<bool> *bufferAvailable, *emptyOutputBuffer;
 
 };
 

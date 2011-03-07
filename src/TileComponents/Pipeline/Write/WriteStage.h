@@ -29,6 +29,9 @@ public:
 //   sc_in<DecodedInst> dataIn
 //   sc_out<bool>       stallOut
 
+  // Fetch logic will sometimes provide messages to put into the output buffers.
+  sc_in<AddressedWord>    fromFetchLogic;
+
   // The NUM_SEND_CHANNELS output channels.
   sc_out<AddressedWord>  *output;
 
@@ -56,6 +59,7 @@ public:
 
 private:
 
+  virtual void   execute();
   virtual void   newInput(DecodedInst& data);
 
   virtual bool   isStalled() const;

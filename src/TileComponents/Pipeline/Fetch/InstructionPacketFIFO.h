@@ -11,7 +11,7 @@
 #define INSTRUCTIONPACKETFIFO_H_
 
 #include "../../../Component.h"
-#include "../../../Memory/Buffer.h"
+#include "../../../Memory/BufferStorage.h"
 
 class Instruction;
 
@@ -60,7 +60,7 @@ private:
 
 private:
 
-  Buffer<Instruction> fifo;
+  BufferStorage<Instruction> fifo;
 
 };
 

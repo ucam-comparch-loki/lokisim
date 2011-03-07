@@ -222,8 +222,11 @@ RegisterIndex Instruction::decodeField(const string& str) {
   if(reg[0] == 'c') {                 // Channels are optionally marked with "ch"
     reg.erase(0,2);                   // Remove the "ch"
 
+    ChannelIndex channel = Strings::strToInt(reg);
+    assert(channel < NUM_RECEIVE_CHANNELS);
+
     // Convert from the channel index to the register index.
-    int value = Registers::fromChannelID(Strings::strToInt(reg));
+    RegisterIndex value = Registers::fromChannelID(channel);
 
     return value;
   }

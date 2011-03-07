@@ -135,11 +135,6 @@ private:
   // Returns whether or not anything was discarded.
   bool             discardInstruction(int stage);
 
-  // The fetch port and the send channel-end table's first port share the same
-  // destination and output port, so data sent from either of them need to be
-  // multiplexed.
-  void             multiplexOutput0();
-
   // Update whether this core is idle or not.
   void             updateIdle();
 
@@ -190,10 +185,10 @@ private:
 
   // Transmission of the instruction along the pipeline. sc_buffers because we
   // want to trigger an event even if the instruction is identical.
-  sc_buffer<DecodedInst>    *dataToStage, *dataFromStage;
+  flag_signal<DecodedInst>  *dataToStage, *dataFromStage;
 
-  // Signals used to multiplex output 0.
-  flag_signal<AddressedWord> out0Decode, out0Write;
+  // Signal going straight from fetch logic to output buffers.
+  flag_signal<AddressedWord> fetchSignal;
 
 };
 

@@ -51,6 +51,9 @@ public:
   // Write the result of an operation to one of the output buffers.
   void          write(const DecodedInst& dec);
 
+  // Write some data to a particular output.
+  void          write(const AddressedWord& data, MapIndex output);
+
   // Returns true if the table is incapable of accepting new data at the moment.
   bool          full() const;
 

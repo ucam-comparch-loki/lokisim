@@ -39,7 +39,7 @@ protected:
 
 public:
 
-  ~PipelineStage();
+  virtual ~PipelineStage();
 
 //==============================//
 // Methods

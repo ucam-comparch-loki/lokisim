@@ -15,7 +15,7 @@
 
 #include "../../../Component.h"
 #include "../../../Memory/IPKCacheStorage.h"
-#include "../../../Memory/Buffer.h"
+#include "../../../Memory/BufferStorage.h"
 
 class FetchStage;
 
@@ -113,7 +113,7 @@ private:
 private:
 
   IPKCacheStorage cache;
-  Buffer<MemoryAddr> addresses;
+  BufferStorage<MemoryAddr> addresses;
 
   // We have just finished writing an instruction packet.
   bool            finishedPacketWrite;

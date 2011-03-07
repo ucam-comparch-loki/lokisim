@@ -91,10 +91,10 @@ Chip::Chip(sc_module_name name, ComponentID ID, BatchModeEventRecorder *eventRec
   int numOutputs = TOTAL_OUTPUTS;
   int numInputs  = TOTAL_INPUTS;
 
-  dataFromComponents = new flag_signal<AddressedWord>[numOutputs];
-  dataToComponents = new flag_signal<Word>[numInputs];
+  dataFromComponents    = new flag_signal<AddressedWord>[numOutputs];
+  dataToComponents      = new flag_signal<Word>[numInputs];
   creditsFromComponents = new flag_signal<int>[numInputs];
-  readyToComponents = new sc_signal<bool>[numOutputs];
+  creditsToComponents   = new flag_signal<bool>[numOutputs];
 
   network.clock(clock);
 
@@ -143,8 +143,8 @@ Chip::Chip(sc_module_name name, ComponentID ID, BatchModeEventRecorder *eventRec
 
       contents[i]->out[j](dataFromComponents[index]);
       network.dataIn[index](dataFromComponents[index]);
-      contents[i]->flowControlIn[j](readyToComponents[index]);
-      network.readyOut[index](readyToComponents[index]);
+      contents[i]->flowControlIn[j](creditsToComponents[index]);
+      network.readyOut[index](creditsToComponents[index]);
     }
 
     contents[i]->clock(clock);
@@ -158,7 +158,7 @@ Chip::~Chip() {
   delete[] dataFromComponents;
   delete[] dataToComponents;
   delete[] creditsFromComponents;
-  delete[] readyToComponents;
+  delete[] creditsToComponents;
 
   for(uint i=0; i<contents.size(); i++) delete contents[i];
 }

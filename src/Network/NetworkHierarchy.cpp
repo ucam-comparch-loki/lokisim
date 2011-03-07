@@ -254,7 +254,7 @@ NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
   dataIn    = new sc_in<DataType>[TOTAL_OUTPUTS];
   dataOut   = new sc_out<Word>[TOTAL_INPUTS];
   creditsIn = new sc_in<int>[TOTAL_INPUTS];
-  readyOut  = new sc_out<bool>[TOTAL_OUTPUTS];
+  readyOut = new sc_out<bool>[TOTAL_OUTPUTS];
 
   // Make wires. We have one extra wire of each type because we have an
   // additional connection to the off-chip component.

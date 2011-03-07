@@ -58,7 +58,7 @@ parameter NUM_TILE_COLUMNS           = 1;
 
 parameter NUM_ADDRESSABLE_REGISTERS  = 32;
 parameter NUM_PHYSICAL_REGISTERS     = 64;
-parameter IPK_FIFO_SIZE              = 8;
+parameter IPK_FIFO_SIZE              = 16;
 parameter IPK_CACHE_SIZE             = 64;//1024;
 parameter MEMORY_SIZE                = 2048;//8 * 1024 * 1024;
 parameter CONCURRENT_MEM_OPS         = 1;//NUM_MEMORY_INPUTS;
@@ -71,100 +71,80 @@ parameter MAX_IPK_SIZE               = 8; // Must be <= buffer size (wormhole)
 // Shared L1 cache subsystem
 //-------------------------------------------------------------------------------------------------
 
-parameter ENABLE_SHARED_L1_CACHE_SUBSYSTEM			= 0;
+parameter ENABLE_SHARED_L1_CACHE_SUBSYSTEM      = 0;
 
-parameter SHARED_L1_CACHE_CHANNELS					= 12;
-parameter SHARED_L1_CACHE_INTERFACE_QUEUE_DEPTH		= 16;
+parameter SHARED_L1_CACHE_CHANNELS              = 12;
+parameter SHARED_L1_CACHE_INTERFACE_QUEUE_DEPTH = 16;
 
-parameter SHARED_L1_CACHE_BANKS						= 1;
-parameter SHARED_L1_CACHE_SETS_PER_BANK				= 8192;
-parameter SHARED_L1_CACHE_ASSOCIATIVITY				= 1;
-parameter SHARED_L1_CACHE_LINE_SIZE					= 4;
+parameter SHARED_L1_CACHE_BANKS                 = 1;
+parameter SHARED_L1_CACHE_SETS_PER_BANK         = 8192;
+parameter SHARED_L1_CACHE_ASSOCIATIVITY         = 1;
+parameter SHARED_L1_CACHE_LINE_SIZE             = 4;
 
-parameter SHARED_L1_CACHE_SEQUENTIAL_SEARCH			= 0;
-parameter SHARED_L1_CACHE_RANDOM_REPLACEMENT		= 1;
+parameter SHARED_L1_CACHE_SEQUENTIAL_SEARCH     = 0;
+parameter SHARED_L1_CACHE_RANDOM_REPLACEMENT    = 1;
 
-parameter SHARED_L1_CACHE_MEMORY_QUEUE_DEPTH		= 16;
-parameter SHARED_L1_CACHE_MEMORY_DELAY_CYCLES		= 100;
+parameter SHARED_L1_CACHE_MEMORY_QUEUE_DEPTH    = 16;
+parameter SHARED_L1_CACHE_MEMORY_DELAY_CYCLES   = 100;
 
 //-------------------------------------------------------------------------------------------------
 // Network
 //-------------------------------------------------------------------------------------------------
 
 parameter NUM_RECEIVE_CHANNELS       = 2;
+parameter NUM_SEND_CHANNELS          = 4;  // Default = CHANNEL_MAP_SIZE
 parameter NUM_MEMORY_INPUTS          = 12; // To allow SIMD experiments (not realistic)
-parameter CHANNEL_END_BUFFER_SIZE    = 8;
+parameter NUM_MEMORY_OUTPUTS         = 12; // Default = NUM_MEMORY_INPUTS
+parameter CHANNEL_END_BUFFER_SIZE    = 16;
 parameter ROUTER_BUFFER_SIZE         = 4;
 parameter NETWORK_BUFFER_SIZE        = 4;
 
+// TODO: make wormhole routing a per-network property, rather than a global property.
 parameter WORMHOLE_ROUTING           = 0; // Has negative effect on performance
 
 //-------------------------------------------------------------------------------------------------
 // Run-time parameter management
 //-------------------------------------------------------------------------------------------------
 
+// If "name" matches the name of the parameter, set the parameter to the value.
+#define SET_IF_MATCH(name, value, param) if(strcasecmp(name, #param)==0)\
+  param = value
+
 void Parameters::parseParameter(const string &name, const string &value) {
 	const char* cName = name.c_str();
 	int nValue = StringManipulation::strToInt(value);
 
-	if (strcasecmp(cName, "CORES_PER_TILE") == 0)
-		CORES_PER_TILE = nValue;
-	else if (strcasecmp(cName, "MEMS_PER_TILE") == 0)
-		MEMS_PER_TILE = nValue;
-	else if (strcasecmp(cName, "NUM_TILE_ROWS") == 0)
-		NUM_TILE_ROWS = nValue;
-	else if (strcasecmp(cName, "NUM_TILE_COLUMNS") == 0)
-		NUM_TILE_COLUMNS = nValue;
-	else if (strcasecmp(cName, "NUM_ADDRESSABLE_REGISTERS") == 0)
-		NUM_ADDRESSABLE_REGISTERS = nValue;
-	else if (strcasecmp(cName, "NUM_PHYSICAL_REGISTERS") == 0)
-		NUM_PHYSICAL_REGISTERS = nValue;
-	else if (strcasecmp(cName, "IPK_FIFO_SIZE") == 0)
-		IPK_FIFO_SIZE = nValue;
-	else if (strcasecmp(cName, "IPK_CACHE_SIZE") == 0)
-		IPK_CACHE_SIZE = nValue;
-	else if (strcasecmp(cName, "MEMORY_SIZE") == 0)
-		MEMORY_SIZE = nValue;
-	else if (strcasecmp(cName, "CONCURRENT_MEM_OPS") == 0)
-		CONCURRENT_MEM_OPS = nValue;
-	else if (strcasecmp(cName, "CHANNEL_MAP_SIZE") == 0)
-		CHANNEL_MAP_SIZE = nValue;
-	else if (strcasecmp(cName, "MAX_IPK_SIZE") == 0)
-		MAX_IPK_SIZE = nValue;
-	else if (strcasecmp(cName, "ENABLE_SHARED_L1_CACHE_SUBSYSTEM") == 0)
-		ENABLE_SHARED_L1_CACHE_SUBSYSTEM = nValue;
-	else if (strcasecmp(cName, "SHARED_L1_CACHE_CHANNELS") == 0)
-		SHARED_L1_CACHE_CHANNELS = nValue;
-	else if (strcasecmp(cName, "SHARED_L1_CACHE_INTERFACE_QUEUE_DEPTH") == 0)
-		SHARED_L1_CACHE_INTERFACE_QUEUE_DEPTH = nValue;
-	else if (strcasecmp(cName, "SHARED_L1_CACHE_BANKS") == 0)
-		SHARED_L1_CACHE_BANKS = nValue;
-	else if (strcasecmp(cName, "SHARED_L1_CACHE_SETS_PER_BANK") == 0)
-		SHARED_L1_CACHE_SETS_PER_BANK = nValue;
-	else if (strcasecmp(cName, "SHARED_L1_CACHE_ASSOCIATIVITY") == 0)
-		SHARED_L1_CACHE_ASSOCIATIVITY = nValue;
-	else if (strcasecmp(cName, "SHARED_L1_CACHE_LINE_SIZE") == 0)
-		SHARED_L1_CACHE_LINE_SIZE = nValue;
-	else if (strcasecmp(cName, "SHARED_L1_CACHE_SEQUENTIAL_SEARCH") == 0)
-		SHARED_L1_CACHE_SEQUENTIAL_SEARCH = nValue;
-	else if (strcasecmp(cName, "SHARED_L1_CACHE_RANDOM_REPLACEMENT") == 0)
-		SHARED_L1_CACHE_RANDOM_REPLACEMENT = nValue;
-	else if (strcasecmp(cName, "SHARED_L1_CACHE_MEMORY_QUEUE_DEPTH") == 0)
-		SHARED_L1_CACHE_MEMORY_QUEUE_DEPTH = nValue;
-	else if (strcasecmp(cName, "SHARED_L1_CACHE_MEMORY_DELAY_CYCLES") == 0)
-		SHARED_L1_CACHE_MEMORY_DELAY_CYCLES = nValue;
-	else if (strcasecmp(cName, "NUM_RECEIVE_CHANNELS") == 0)
-		NUM_RECEIVE_CHANNELS = nValue;
-	else if (strcasecmp(cName, "NUM_MEMORY_INPUTS") == 0)
-		NUM_MEMORY_INPUTS = nValue;
-	else if (strcasecmp(cName, "CHANNEL_END_BUFFER_SIZE") == 0)
-		CHANNEL_END_BUFFER_SIZE = nValue;
-	else if (strcasecmp(cName, "ROUTER_BUFFER_SIZE") == 0)
-		ROUTER_BUFFER_SIZE = nValue;
-	else if (strcasecmp(cName, "NETWORK_BUFFER_SIZE") == 0)
-		NETWORK_BUFFER_SIZE = nValue;
-	else if (strcasecmp(cName, "WORMHOLE_ROUTING") == 0)
-		WORMHOLE_ROUTING = nValue;
+	SET_IF_MATCH(cName, nValue, CORES_PER_TILE);
+	else SET_IF_MATCH(cName, nValue, MEMS_PER_TILE);
+	else SET_IF_MATCH(cName, nValue, NUM_TILE_ROWS);
+	else SET_IF_MATCH(cName, nValue, NUM_TILE_COLUMNS);
+	else SET_IF_MATCH(cName, nValue, NUM_ADDRESSABLE_REGISTERS);
+	else SET_IF_MATCH(cName, nValue, NUM_PHYSICAL_REGISTERS);
+	else SET_IF_MATCH(cName, nValue, IPK_FIFO_SIZE);
+	else SET_IF_MATCH(cName, nValue, IPK_CACHE_SIZE);
+	else SET_IF_MATCH(cName, nValue, MEMORY_SIZE);
+	else SET_IF_MATCH(cName, nValue, CONCURRENT_MEM_OPS);
+	else SET_IF_MATCH(cName, nValue, CHANNEL_MAP_SIZE);
+	else SET_IF_MATCH(cName, nValue, MAX_IPK_SIZE);
+	else SET_IF_MATCH(cName, nValue, ENABLE_SHARED_L1_CACHE_SUBSYSTEM);
+	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_CHANNELS);
+	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_INTERFACE_QUEUE_DEPTH);
+	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_BANKS);
+	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_SETS_PER_BANK);
+	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_ASSOCIATIVITY);
+	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_LINE_SIZE);
+	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_SEQUENTIAL_SEARCH);
+	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_RANDOM_REPLACEMENT);
+	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_MEMORY_QUEUE_DEPTH);
+	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_MEMORY_DELAY_CYCLES);
+	else SET_IF_MATCH(cName, nValue, NUM_RECEIVE_CHANNELS);
+  else SET_IF_MATCH(cName, nValue, NUM_SEND_CHANNELS);
+	else SET_IF_MATCH(cName, nValue, NUM_MEMORY_INPUTS);
+  else SET_IF_MATCH(cName, nValue, NUM_MEMORY_OUTPUTS);
+	else SET_IF_MATCH(cName, nValue, CHANNEL_END_BUFFER_SIZE);
+	else SET_IF_MATCH(cName, nValue, ROUTER_BUFFER_SIZE);
+	else SET_IF_MATCH(cName, nValue, NETWORK_BUFFER_SIZE);
+	else SET_IF_MATCH(cName, nValue, WORMHOLE_ROUTING);
 	else {
 		cerr << "Encountered invalid parameter in settings file: " << name << endl;
 		throw std::exception();

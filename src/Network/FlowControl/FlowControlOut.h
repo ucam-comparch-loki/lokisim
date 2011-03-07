@@ -76,7 +76,7 @@ protected:
 protected:
 
   // Store the number of credits the output port has.
-  int  creditCount;
+  unsigned int creditCount;
 
 };
 

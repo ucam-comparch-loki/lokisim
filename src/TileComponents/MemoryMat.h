@@ -93,6 +93,9 @@ private:
   // ready to execute.
   std::vector<ChannelIndex>& allRequests();
 
+  // Determine which output port a request at a particular input should use.
+  ChannelIndex outputToUse(ChannelIndex input) const;
+
   // Tells whether we are able to carry out a waiting operation at the given
   // port.
   bool canAcceptRequest(ChannelIndex port) const;
@@ -136,6 +139,10 @@ private:
 
   // A queue of operations from each input port.
   BufferArray<Word> inputBuffers_;
+
+  // Record whether each output has been used in a particular clock cycle, to
+  // ensure that the same port isn't written to twice.
+  std::vector<bool> outputsUsed;
 
   // The number of words we have initially put in this memory. Allows multiple
   // files to be put into the same memory.

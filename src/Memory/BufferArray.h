@@ -14,7 +14,7 @@
 #ifndef BUFFERARRAY_H_
 #define BUFFERARRAY_H_
 
-#include "Buffer.h"
+#include "BufferStorage.h"
 
 template<class T>
 class BufferArray {
@@ -36,7 +36,7 @@ public:
   }
 
   // Allows any method of the Buffer to be called
-  Buffer<T>& operator[] (const uint index) const {
+  BufferStorage<T>& operator[] (const uint index) const {
     return *(buffers[index]);
   }
 
@@ -61,7 +61,7 @@ public:
     for(uint i=0; i<numBuffers; i++) {
       std::string buffName = name + ".buffer";
       buffName += i;
-      buffers.push_back(new Buffer<T>(buffSize, buffName));
+      buffers.push_back(new BufferStorage<T>(buffSize, buffName));
     }
   }
 
@@ -75,7 +75,7 @@ public:
 
 private:
 
-  std::vector<Buffer<T>* > buffers;
+  std::vector<BufferStorage<T>* > buffers;
 
 };
 

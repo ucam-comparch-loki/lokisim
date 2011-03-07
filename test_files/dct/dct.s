@@ -95,12 +95,12 @@ core1:
 # Prologue: connect to data memories
 core2:
     ori         r0,  r0,  (2,3) > 3     # connect to memory to write output
-    ori         r0,  r0,  (2,2) > 2     # connect to memory to read intermediate image
     ori         r0,  r0,  (2,3) > 1     # connect to memory to read DCT weights
     ori         r29, r0,  11585         # store a value we need
 
 # Initialisation: receive parameters
     or          r30, ch0, r0            # wait for location of input/output block
+    ori         r0,  r0,  (2,2) > 2     # connect to memory to read intermediate image
 
     and         r2,  r2,  r0            # current column = 0
     and         r3,  r3,  r0            # current row = 0

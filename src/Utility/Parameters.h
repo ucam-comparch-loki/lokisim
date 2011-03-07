@@ -28,7 +28,7 @@ typedef unsigned int parameter;
 extern int			DEBUG;    // Print out lots of information during execution
 extern int      TRACE;    // Print out only the addresses of executed instructions
 
-extern int			TIMEOUT;
+extern int			TIMEOUT;  // Number of cycles before we assume something's gone wrong.
 
 extern int			BYTES_PER_WORD;
 extern int      BYTES_PER_INSTRUCTION;
@@ -92,9 +92,9 @@ extern parameter	SHARED_L1_CACHE_MEMORY_DELAY_CYCLES;
 //-------------------------------------------------------------------------------------------------
 
 extern parameter	NUM_RECEIVE_CHANNELS;
-#define           NUM_SEND_CHANNELS			(CHANNEL_MAP_SIZE)
+extern parameter  NUM_SEND_CHANNELS;
 extern parameter	NUM_MEMORY_INPUTS;
-#define           NUM_MEMORY_OUTPUTS			(NUM_MEMORY_INPUTS)
+extern parameter  NUM_MEMORY_OUTPUTS;
 extern parameter	CHANNEL_END_BUFFER_SIZE;	// Different send/receive sizes?
 extern parameter	ROUTER_BUFFER_SIZE;
 extern parameter	NETWORK_BUFFER_SIZE;
@@ -105,19 +105,19 @@ extern parameter	WORMHOLE_ROUTING;
 // Combinations of other parameters
 //-------------------------------------------------------------------------------------------------
 
-#define				NUM_CORE_INPUTS				(2 + NUM_RECEIVE_CHANNELS)
-#define				NUM_CORE_OUTPUTS			(NUM_SEND_CHANNELS)
-#define				COMPONENTS_PER_TILE			(CORES_PER_TILE + ((ENABLE_SHARED_L1_CACHE_SUBSYSTEM == 0) ? MEMS_PER_TILE : 1))
-#define				NUM_TILES					(NUM_TILE_ROWS * NUM_TILE_COLUMNS)
+#define				NUM_CORE_INPUTS      (2 + NUM_RECEIVE_CHANNELS)
+#define				NUM_CORE_OUTPUTS     (NUM_SEND_CHANNELS)
+#define				COMPONENTS_PER_TILE  (CORES_PER_TILE + ((ENABLE_SHARED_L1_CACHE_SUBSYSTEM == 0) ? MEMS_PER_TILE : 1))
+#define				NUM_TILES            (NUM_TILE_ROWS * NUM_TILE_COLUMNS)
 
-#define				NUM_CORES					(CORES_PER_TILE * NUM_TILES)
-#define				NUM_MEMORIES				((ENABLE_SHARED_L1_CACHE_SUBSYSTEM == 0) ? (MEMS_PER_TILE * NUM_TILES) : (NUM_TILES))
-#define				NUM_COMPONENTS				(NUM_TILES * COMPONENTS_PER_TILE)
+#define				NUM_CORES            (CORES_PER_TILE * NUM_TILES)
+#define				NUM_MEMORIES         ((ENABLE_SHARED_L1_CACHE_SUBSYSTEM == 0) ? (MEMS_PER_TILE * NUM_TILES) : (NUM_TILES))
+#define				NUM_COMPONENTS       (NUM_TILES * COMPONENTS_PER_TILE)
 
-#define				INPUTS_PER_TILE				(CORES_PER_TILE * NUM_CORE_INPUTS + ((ENABLE_SHARED_L1_CACHE_SUBSYSTEM == 0) ? MEMS_PER_TILE : 1) * NUM_MEMORY_INPUTS)
-#define				OUTPUTS_PER_TILE			(CORES_PER_TILE * NUM_CORE_OUTPUTS + ((ENABLE_SHARED_L1_CACHE_SUBSYSTEM == 0) ? MEMS_PER_TILE : 1) * NUM_MEMORY_OUTPUTS)
-#define				TOTAL_INPUTS				(INPUTS_PER_TILE * NUM_TILES)
-#define				TOTAL_OUTPUTS				(OUTPUTS_PER_TILE * NUM_TILES)
+#define				INPUTS_PER_TILE      (CORES_PER_TILE * NUM_CORE_INPUTS + ((ENABLE_SHARED_L1_CACHE_SUBSYSTEM == 0) ? MEMS_PER_TILE : 1) * NUM_MEMORY_INPUTS)
+#define				OUTPUTS_PER_TILE     (CORES_PER_TILE * NUM_CORE_OUTPUTS + ((ENABLE_SHARED_L1_CACHE_SUBSYSTEM == 0) ? MEMS_PER_TILE : 1) * NUM_MEMORY_OUTPUTS)
+#define				TOTAL_INPUTS         (INPUTS_PER_TILE * NUM_TILES)
+#define				TOTAL_OUTPUTS        (OUTPUTS_PER_TILE * NUM_TILES)
 
 //-------------------------------------------------------------------------------------------------
 // Run-time parameter management

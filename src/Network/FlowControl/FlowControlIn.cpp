@@ -6,10 +6,9 @@
  */
 
 #include "FlowControlIn.h"
-#include "../NetworkHierarchy.h"
-#include "../../TileComponents/TileComponent.h"
-
+#include "../../Datatype/AddressedWord.h"
 #include "../../Datatype/MemoryRequest.h"
+#include "../../TileComponents/TileComponent.h"
 
 /* Put any new data into the buffer. Since we approved the request to send
  * data, it is known that there is enough room. */
@@ -17,6 +16,11 @@ void FlowControlIn::receivedData() {
   if(dataIn.read().portClaim()) {
     // Set the return address so we can send flow control.
     returnAddress = dataIn.read().payload().toInt();
+    numCredits++;
+    assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
+
+    // Wake up the sendCredit thread.
+    newCredit.notify(sc_core::SC_ZERO_TIME);
 
     if(DEBUG) cout << "Port " << TileComponent::inputPortString(id)
          << " was claimed by " << TileComponent::outputPortString(returnAddress)
@@ -32,6 +36,7 @@ void FlowControlIn::receiveFlowControl() {
   while(true) {
     wait(flowControlIn.default_event());
     numCredits++;
+    assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
 
     // Wake up the sendCredit thread.
     newCredit.notify(sc_core::SC_ZERO_TIME);
@@ -52,9 +57,11 @@ void FlowControlIn::sendCredit() {
       AddressedWord aw(Word(1), returnAddress);
       creditsOut.write(aw);
       numCredits--;
+      assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
 
 //    if(DEBUG) cout << "Sent credit to port "
-//         << NetworkHierarchy::portLocation(returnAddress, false) << endl;
+//         << TileComponent::outputPortString(returnAddress) << " from "
+//         << TileComponent::inputPortString(id) << endl;
     }
   }
 }

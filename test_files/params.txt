@@ -2,3 +2,5 @@ parameter CORES_PER_TILE 12
 parameter MEMS_PER_TILE 4
 parameter IPK_CACHE_SIZE 64
 parameter MEMORY_SIZE 2048
+parameter NUM_SEND_CHANNELS 1
+parameter NUM_MEMORY_OUTPUTS 12

@@ -28,7 +28,7 @@ Instruction InstructionPacketCache::read() {
   if(finishedPacketRead) startOfPacketTasks();
   if(inst.endOfPacket()) endOfPacketTasks();
 
-  sendCredit();
+  if(cache.justReadNewInst()) sendCredit();
 
   return inst;
 }

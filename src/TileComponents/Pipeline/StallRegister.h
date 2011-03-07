@@ -15,7 +15,7 @@
 #define STALLREGISTER_H_
 
 #include "../../Component.h"
-#include "../../Memory/Buffer.h"
+#include "../../Memory/BufferStorage.h"
 
 class DecodedInst;
 
@@ -83,7 +83,7 @@ public:
 private:
 
   // My implementation of the two registers.
-  Buffer<DecodedInst> buffer;
+  BufferStorage<DecodedInst> buffer;
 
 };
 

@@ -174,8 +174,34 @@ Chip* TileComponent::parent() const {
 }
 
 /* Constructors and destructors */
-TileComponent::TileComponent(sc_module_name name, ComponentID ID) :
-    Component(name, ID) {
+TileComponent::TileComponent(sc_module_name name, ComponentID ID,
+                             int inputPorts, int outputPorts) :
+    Component(name, ID)/*,
+    outBuffers("outputs", outputBuffers, outputPorts)*/ {
+
+  flowControlOut = new sc_out<int>[inputPorts];
+  in             = new sc_in<Word>[inputPorts];
+
+  flowControlIn  = new sc_in<bool>[outputPorts];
+  out            = new sc_out<AddressedWord>[outputPorts];
+
+//  toOutputBuffers = new sc_buffer<AddressedWord>[outputBuffers];
+//  bufferAvailable = new sc_buffer<bool>[outputBuffers];
+//  emptyOutputBuffer = new sc_buffer<bool>[outputBuffers];
+
+//  // Connect things up.
+//  outBuffers.clock(clock);
+//
+//  for(int i=0; i<outputPorts; i++) {
+//    outBuffers.dataOut[i](out[i]);
+//    outBuffers.creditsIn[i](flowControlIn[i]);
+//  }
+//
+//  for(int i=0; i<outputBuffers; i++) {
+//    outBuffers.dataIn[i](toOutputBuffers[i]);
+//    outBuffers.emptyBuffer[i](emptyOutputBuffer[i]);
+//    outBuffers.flowControlOut[i](bufferAvailable[i]);
+//  }
 
   idle.initialize(true);
 
@@ -186,4 +212,8 @@ TileComponent::~TileComponent() {
   delete[] out;
   delete[] flowControlIn;
   delete[] flowControlOut;
+
+//  delete[] toOutputBuffers;
+//  delete[] emptyOutputBuffer;
+//  delete[] bufferAvailable;
 }

@@ -27,13 +27,6 @@ void FlowControlOut::sendData() {
   bool success; // Record whether the data was sent successfully.
 
   if(dataIn.read().portClaim()) {
-    // Reset our credit count if we are communicating with someone new.
-    // We currently assume that the end buffer will be empty when we set
-    // up the connection, but this may not be the case later on.
-    // Warning: flow control currently doesn't have buffering, so this may
-    // not always be valid.
-    creditCount = CHANNEL_END_BUFFER_SIZE;
-
     // This message is allowed to send even if we have no credits
     // because it is not buffered -- it is immediately consumed to store
     // the return address at the destination.
@@ -41,6 +34,9 @@ void FlowControlOut::sendData() {
     success = true;
 //      if(DEBUG) cout << "Sending port claim from component " << id
 //                     << ", port " << i << endl;
+
+    creditCount--;
+    assert(creditCount >= 0 && creditCount <= CHANNEL_END_BUFFER_SIZE);
   }
   else {
     if(creditCount <= 0) {  // We are not able to send the new data yet.
@@ -51,15 +47,16 @@ void FlowControlOut::sendData() {
       wait(creditsIn.default_event());
     }
 
-    dataOut.write(dataIn.read());
-    creditCount--;
-
-    Instrumentation::networkTraffic(id, dataIn.read().channelID());
-
     if(DEBUG) cout << "Network sending " << dataIn.read().payload() << " from "
         << TileComponent::outputPortString(id) << " to "
         << TileComponent::inputPortString(dataIn.read().channelID())
         << endl;
+
+    dataOut.write(dataIn.read());
+    creditCount--;
+    assert(creditCount >= 0 && creditCount <= CHANNEL_END_BUFFER_SIZE);
+
+    Instrumentation::networkTraffic(id, dataIn.read().channelID());
   }
 
   flowControlOut.write(true);
@@ -71,6 +68,7 @@ void FlowControlOut::receivedCredit() {
 
   if(DEBUG) cout << "Received credit at port "
        << TileComponent::outputPortString(id) << endl;
+  assert(creditCount >= 0 && creditCount <= CHANNEL_END_BUFFER_SIZE);
 }
 
 FlowControlOut::FlowControlOut(sc_module_name name, ComponentID ID) :
@@ -78,7 +76,7 @@ FlowControlOut::FlowControlOut(sc_module_name name, ComponentID ID) :
 
   id = ID;
 
-  creditCount = 0;
+  creditCount = CHANNEL_END_BUFFER_SIZE;
 
   SC_THREAD(mainLoop);
 

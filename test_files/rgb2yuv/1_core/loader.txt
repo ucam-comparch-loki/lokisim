@@ -1,5 +1,3 @@
-%0  ../../init.loki
-%12 code.loki
 rgb2yuv
 
 13 ../params.data

@@ -49,6 +49,10 @@ public:
   // Return the memory address of the currently-executing packet.
   const MemoryAddr packetAddress() const;
 
+  // Returns whether the last read was of a new instruction, or one which had
+  // been read before. This allows us to only send credits when necessary.
+  bool justReadNewInst() const;
+
   // Returns the remaining number of entries in the cache.
   const uint16_t remainingSpace() const;
 
@@ -120,6 +124,13 @@ private:
 
   // Store the most recent instruction address, so it can be accessed easily.
   MemoryAddr previousLocation;
+
+  // Record which locations in the cache have/have not been read, so we know
+  // when we should send a credit.
+  vector<bool> haveRead;
+
+  // Record whether the most-recently accessed instruction has been read before.
+  bool lastInstWasNew;
 
   static const uint16_t NOT_IN_USE = -1;
 

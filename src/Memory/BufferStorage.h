@@ -10,8 +10,8 @@
  *      Author: db434
  */
 
-#ifndef BUFFER_H_
-#define BUFFER_H_
+#ifndef BUFFERSTORAGE_H_
+#define BUFFERSTORAGE_H_
 
 #include "Storage.h"
 #include "../Exceptions/ReadingFromEmptyException.h"
@@ -19,7 +19,7 @@
 #include "../Utility/LoopCounter.h"
 
 template<class T>
-class Buffer: public Storage<T> {
+class BufferStorage: public Storage<T> {
 
 //==============================//
 // Methods
@@ -106,14 +106,14 @@ private:
 
 public:
 
-  Buffer(const uint16_t size, std::string name) :
+  BufferStorage(const uint16_t size, std::string name) :
       Storage<T>(size, name),
       readPos(size),
       writePos(size) {
     readPos = writePos = fillCount = 0;
   }
 
-  virtual ~Buffer() {
+  virtual ~BufferStorage() {
 
   }
 
@@ -128,4 +128,4 @@ private:
 
 };
 
-#endif /* BUFFER_H_ */
+#endif /* BUFFERSTORAGE_H_ */
