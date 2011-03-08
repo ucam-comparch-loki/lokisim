@@ -133,6 +133,8 @@ ChannelID SendChannelEndTable::portID(ChannelIndex channel) const {
 
 /* Update an entry in the channel mapping table. */
 void SendChannelEndTable::updateMap(MapIndex entry, ChannelID newVal) {
+  cerr << "Updating channel map " << (int)entry << " to " << newVal << endl;
+  cerr << "Total inputs = " << TOTAL_INPUTS << endl;
   assert(entry < CHANNEL_MAP_SIZE);
   assert(newVal < TOTAL_INPUTS);
   channelMap.write(newVal, entry);

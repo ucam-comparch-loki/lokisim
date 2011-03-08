@@ -1,2 +1,2 @@
-dct
+dct.s
 9 weights.data

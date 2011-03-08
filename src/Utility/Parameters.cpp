@@ -73,7 +73,7 @@ parameter MAX_IPK_SIZE               = 8; // Must be <= buffer size (wormhole)
 
 parameter ENABLE_SHARED_L1_CACHE_SUBSYSTEM      = 0;
 
-parameter SHARED_L1_CACHE_CHANNELS              = 12;
+parameter SHARED_L1_CACHE_CHANNELS              = 8;
 parameter SHARED_L1_CACHE_INTERFACE_QUEUE_DEPTH = 16;
 
 parameter SHARED_L1_CACHE_BANKS                 = 1;
@@ -93,8 +93,8 @@ parameter SHARED_L1_CACHE_MEMORY_DELAY_CYCLES   = 100;
 
 parameter NUM_RECEIVE_CHANNELS       = 2;
 parameter NUM_SEND_CHANNELS          = 4;  // Default = CHANNEL_MAP_SIZE
-parameter NUM_MEMORY_INPUTS          = 12; // To allow SIMD experiments (not realistic)
-parameter NUM_MEMORY_OUTPUTS         = 12; // Default = NUM_MEMORY_INPUTS
+parameter NUM_MEMORY_INPUTS          = 8; // To allow SIMD experiments (not realistic)
+parameter NUM_MEMORY_OUTPUTS         = 8; // Default = NUM_MEMORY_INPUTS
 parameter CHANNEL_END_BUFFER_SIZE    = 16;
 parameter ROUTER_BUFFER_SIZE         = 4;
 parameter NETWORK_BUFFER_SIZE        = 4;

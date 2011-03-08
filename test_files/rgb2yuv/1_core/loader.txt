@@ -1,4 +1,4 @@
-rgb2yuv
+rgb2yuv.s
 
 9 ../params.data
 9 ../red.data

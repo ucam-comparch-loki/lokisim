@@ -1,4 +1,4 @@
-mat_mult_irf
+mat_mult_irf.s
 
 9  ../params.data
 9  ../mat1.data
