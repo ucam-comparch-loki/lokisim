@@ -10,7 +10,7 @@
 
 # Set up connection to memory containing arguments
 _start:
-    ori                 r4,  r0,  (13,0)
+    ori                 r4,  r0,  (9,0)
     fetch               r0,  setuploop
     setchmap            1,   r4
     ori                 r0,  r0,  (0,2) -> 1    # connect to the argument memory
@@ -35,7 +35,7 @@ setuploop:
 # Note that we need the IPK FIFO to be at least as long as this code sequence.
     rmtexecute                         -> 2
     p?ori               r30, ch0, 0             # r30 = this core's SIMD ID
-    p?addui             r4,  r30, (12,0)        # compute memory port to use
+    p?addui             r4,  r30, (8,0)         # compute memory port to use
     p?ori               r8,  r0,  (1,0)         # number of ports per core
     p?mullw             r8,  r8,  r30           # r8 = first local port
     p?setchmap          0,   r4

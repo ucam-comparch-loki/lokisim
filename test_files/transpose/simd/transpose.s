@@ -7,8 +7,8 @@
 # Set up connections to memories
 simdstart:
     fetch               r0,  params
-    addui               r5,  r30, (13,0)
-    addui               r6,  r30, (14,0)
+    addui               r5,  r30, (9,0)
+    addui               r6,  r30, (10,0)
     setchmap            1,   r5                  # input = map 1
     setchmap            2,   r6                  # output = map 2
     addui               r0,  r8,  (0,2)  > 1

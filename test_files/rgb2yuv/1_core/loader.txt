@@ -1,6 +1,6 @@
 rgb2yuv
 
-13 ../params.data
-13 ../red.data
-13 ../green.data
-13 ../blue.data
+9 ../params.data
+9 ../red.data
+9 ../green.data
+9 ../blue.data

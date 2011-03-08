@@ -1,4 +1,4 @@
 transpose_simd
 
-13 ../params.data
-13 ../matrix.data
+9 ../params.data
+9 ../matrix.data

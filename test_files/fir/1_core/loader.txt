@@ -1,5 +1,5 @@
 fir_irf
 
-13 ../params.data
-13 ../taps.data
-13 ../input.data
+9 ../params.data
+9 ../taps.data
+9 ../input.data

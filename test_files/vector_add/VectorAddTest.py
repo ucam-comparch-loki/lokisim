@@ -15,8 +15,8 @@ class VectorAddTest(mod.SimulatorTest):
         # Compute the result we expect.
         expected = [x + y for x,y in zip(vector1, vector2)]
     
-        # Read the result vector from memory 15.
-        result = self.readMemory(15, 0, len(expected))
+        # Read the result vector from memory 11.
+        result = self.readMemory(11, 0, len(expected))
         
         # See if the memory contents match the values we computed.
         self.compare(result, correct=expected)

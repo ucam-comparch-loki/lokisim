@@ -84,8 +84,6 @@ private:
   // Determine the number of bits which changed value when sending data.
   int bitsSwitched(ChannelIndex from, ChannelIndex to, AddressedWord data) const;
 
-  void printDebugMessage(ChannelIndex from, ChannelIndex to, AddressedWord data) const;
-
 //==============================//
 // Methods
 //==============================//

@@ -1,8 +1,8 @@
 # Set up connections to memories (instruction memory is already sorted).
 simdstart:
     fetch           r0,  params             # fetch main program
-    addui           r5,  r30, (13,0)
-    addui           r6,  r30, (14,0)
+    addui           r5,  r30, (9,0)
+    addui           r6,  r30, (10,0)
     setchmap        1,   r5                 # input data memory = map 1
     setchmap        2,   r6                 # output data memory = map 2
     addui           r0,  r8,  2   > 1       # connect to the input data memory

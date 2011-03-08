@@ -10,7 +10,7 @@ class RGB2YUVSIMDTest(mod.RGB2YUVTest):
    def runAllTests(self):
         # May want to change number of SIMD members and test several times.
         # TODO: check command line options for this.
-        self.simdTest(12,12)
+        self.simdTest(8,8)
     
 if __name__ == '__main__':
     RGB2YUVSIMDTest().runAllTests()

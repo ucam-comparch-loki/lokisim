@@ -1,7 +1,7 @@
 % Initialise the mapping table and fetch the particular implementation being used.
 
-ori             r4,  r0,  (12,0)
-ori             r6,  r0,  (13,0)
+ori             r4,  r0,  (8,0)
+ori             r6,  r0,  (9,0)
 setchmap        0,   r4                 ; instruction memory = map 0 (fetch channel)
 setchmap        1,   r6                 ; data memory = map 1
 ori             r7,  r0,  (1,2)

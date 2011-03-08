@@ -7,8 +7,8 @@
 # Set up connections to memories
 _start:
     fetch               r1,  56
-    ori                 r5,  r0,  (13,0)
-    ori                 r6,  r0,  (14,0)
+    ori                 r5,  r0,  (9,0)
+    ori                 r6,  r0,  (10,0)
     setchmap            1,   r5                 # input = map 1
     setchmap            2,   r6                 # output = map 2
     ori                 r0,  r0,  (0,2)  > 1

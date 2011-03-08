@@ -6,9 +6,9 @@ _start:
     setchmap        2,   r4                 # map 2 = cluster 2
     setchmap        3,   r5                 # map 3 = cluster 1 data
     rmtexecute                    > 1       # start sending instructions to cluster 1
-    ifp?ori         r4,  r0,  (12,1)
-    ifp?ori         r7,  r0,  (13,1)
-    ifp?ori         r8,  r0,  (14,1)
+    ifp?ori         r4,  r0,  (8,1)
+    ifp?ori         r7,  r0,  (9,1)
+    ifp?ori         r8,  r0,  (10,1)
     ifp?ori         r9,  r0,  (2,2)
     ifp?setchmap    0,   r4                 # instruction memory = map 0
     ifp?setchmap    1,   r7                 # input image memory = map 1
@@ -17,10 +17,10 @@ _start:
     ifp?setchmap    3,   r9                 # next core in pipeline = map 3
     ifp?fetch       r0,  core1
     rmtexecute                    > 2       # start sending instructions to cluster 2
-    ifp?ori         r7,  r0,  (12,2)
-    ifp?ori         r8,  r0,  (13,2)
-    ifp?ori         r9,  r0,  (14,2)
-    ifp?ori         r10, r0,  (15,0)
+    ifp?ori         r7,  r0,  (8,2)
+    ifp?ori         r8,  r0,  (9,2)
+    ifp?ori         r9,  r0,  (10,2)
+    ifp?ori         r10, r0,  (11,0)
     ifp?setchmap    0,   r7                 # instruction memory = map 0
     ifp?setchmap    1    r8                 # weights memory = map 1
     ifp?ori         r0,  r0,  (2,1) > 0     # connect to instruction memory

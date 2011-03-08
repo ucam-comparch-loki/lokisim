@@ -1,7 +1,7 @@
 vector_add_simd
 
 % Each data memory contains information on the length/position of its vector
-13 ../params.data
-14 ../params.data
-13 ../vector1.data
-14 ../vector2.data
+9  ../params.data
+10 ../params.data
+9  ../vector1.data
+10 ../vector2.data

@@ -87,20 +87,6 @@ int RoutingComponent::bitsSwitched(ChannelIndex from, ChannelIndex to,
   }
 }
 
-void RoutingComponent::printDebugMessage(ChannelIndex from, ChannelIndex to,
-                                         AddressedWord data) const {
-
-  std::string in   = "input ";
-  std::string out  = "output ";
-//  int inChans      = fromOutputs ? NUM_CLUSTER_OUTPUTS : NUM_CLUSTER_INPUTS;
-//  int outChans     = fromOutputs ? NUM_CLUSTER_INPUTS  : NUM_CLUSTER_OUTPUTS;
-//
-//  cout << this->name() << " sent " << data.payload() <<
-//          " from channel "<<from<<" (comp "<<from/inChans<<", "<<out<<from%inChans<<
-//          ") to channel "<<to<<" (comp "<<to/outChans<<", "<<in<<to%outChans
-//          << ")" << endl;
-}
-
 RoutingComponent::RoutingComponent(sc_module_name name,
                                    ComponentID ID,
                                    int numInputs,

@@ -1,5 +1,5 @@
 mat_mult_irf_simd
 
-13 ../params.data
-13 ../mat1.data
-14 ../mat2.data
+9  ../params.data
+9  ../mat1.data
+10 ../mat2.data

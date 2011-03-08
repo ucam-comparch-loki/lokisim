@@ -10,7 +10,7 @@ class MemoryOperationTest(mod.SimulatorTest):
     def runTest(self):
     
         # Check that all 32 consecutive stores were successful.
-        memoryContents = self.readMemory(12, 1000, 32)        
+        memoryContents = self.readMemory(8, 1000, 32)        
         expected = [1337 for value in range(32)]
         
         self.compare(memoryContents, correct=expected)
@@ -18,7 +18,7 @@ class MemoryOperationTest(mod.SimulatorTest):
         #self.assertEqual(1337, self.readReg(0,5), "load word")
         #self.assertEqual(57, self.readReg(0,6), "load byte")
         #self.assertEqual(5, self.readReg(0,7), "load byte")
-        #self.assertEqual(1337, self.readMemory(12, 996)[0], "store byte")
+        #self.assertEqual(1337, self.readMemory(8, 996)[0], "store byte")
         
         # 20 cycles to get to the stores + 32 stores (2 cycles each)
         assert self.numCycles() < 120, "execution slower than expected"

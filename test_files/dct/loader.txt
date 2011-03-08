@@ -1,2 +1,2 @@
 dct
-13 weights.data
+9 weights.data

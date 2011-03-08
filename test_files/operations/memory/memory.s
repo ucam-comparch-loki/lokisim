@@ -1,6 +1,6 @@
 # Connect to memory.
 _start:
-    ori                 r5,  r0,  (12,1)
+    ori                 r5,  r0,  (8,1)
     setchmap            1,   r5
     ori                 r0,  r0,  (0,2)  > 1
 

@@ -46,7 +46,7 @@ int LOKI_STDERR = 2;
 // Architecture size
 //-------------------------------------------------------------------------------------------------
 
-parameter CORES_PER_TILE             = 12;
+parameter CORES_PER_TILE             = 8;
 parameter MEMS_PER_TILE              = 4;
 
 parameter NUM_TILE_ROWS              = 1;
