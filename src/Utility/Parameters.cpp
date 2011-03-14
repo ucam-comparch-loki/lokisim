@@ -92,10 +92,10 @@ parameter SHARED_L1_CACHE_MEMORY_DELAY_CYCLES   = 100;
 //-------------------------------------------------------------------------------------------------
 
 parameter NUM_RECEIVE_CHANNELS       = 2;
-parameter NUM_SEND_CHANNELS          = 4;  // Default = CHANNEL_MAP_SIZE
+parameter NUM_SEND_CHANNELS          = 1;
 parameter NUM_MEMORY_INPUTS          = 8; // To allow SIMD experiments (not realistic)
-parameter NUM_MEMORY_OUTPUTS         = 8; // Default = NUM_MEMORY_INPUTS
-parameter CHANNEL_END_BUFFER_SIZE    = 16;
+parameter NUM_MEMORY_OUTPUTS         = 1;
+parameter CHANNEL_END_BUFFER_SIZE    = 32; // TODO: reduce once credit counters are fixed
 parameter ROUTER_BUFFER_SIZE         = 4;
 parameter NETWORK_BUFFER_SIZE        = 4;
 

@@ -24,19 +24,15 @@ void FlowControlOut::sendData() {
   // Wait for the ready signal to be set, if it is not already.
   if(!readyIn.read()) wait(readyIn.posedge_event());
 
-  bool success; // Record whether the data was sent successfully.
-
   if(dataIn.read().portClaim()) {
     // This message is allowed to send even if we have no credits
     // because it is not buffered -- it is immediately consumed to store
     // the return address at the destination.
-    dataOut.write(dataIn.read());
-    success = true;
-//      if(DEBUG) cout << "Sending port claim from component " << id
-//                     << ", port " << i << endl;
 
-    creditCount--;
-    assert(creditCount >= 0 && creditCount <= CHANNEL_END_BUFFER_SIZE);
+//    if(DEBUG) cout << "Sending port claim from "
+//                   << TileComponent::outputPortString(id) << " to "
+//                   << TileComponent::inputPortString(dataIn.read().channelID())
+//                   << endl;
   }
   else {
     if(creditCount <= 0) {  // We are not able to send the new data yet.
@@ -52,13 +48,12 @@ void FlowControlOut::sendData() {
         << TileComponent::inputPortString(dataIn.read().channelID())
         << endl;
 
-    dataOut.write(dataIn.read());
-    creditCount--;
-    assert(creditCount >= 0 && creditCount <= CHANNEL_END_BUFFER_SIZE);
-
     Instrumentation::networkTraffic(id, dataIn.read().channelID());
   }
 
+  dataOut.write(dataIn.read());
+  creditCount--;
+  assert(creditCount >= 0 && creditCount <= CHANNEL_END_BUFFER_SIZE);
   flowControlOut.write(true);
 
 }

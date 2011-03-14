@@ -11,8 +11,8 @@
 #define SENDCHANNELENDTABLE_H_
 
 #include "../../../Component.h"
-#include "../../../Memory/AddressedStorage.h"
-#include "../../../Memory/BufferArray.h"
+#include "../../../Memory/BufferStorage.h"
+#include "../../ChannelMapEntry.h"
 
 class AddressedWord;
 class DecodedInst;
@@ -26,12 +26,19 @@ class SendChannelEndTable: public Component {
 
 public:
 
-  // The outputs to the network. There should be NUM_SEND_CHANNELS of them.
-  sc_out<AddressedWord>  *output;
+  // Data output to the network.
+  sc_out<AddressedWord>  output;
 
-  // A flow control signal for each output (NUM_SEND_CHANNELS), saying
-  // whether or not it is allowed to send its next value.
-  sc_in<bool>            *flowControl;
+  // A select signal to tell which network this data should be sent on.
+  sc_out<int>            network;
+
+  // A flow control signal saying whether or not the network is ready for more
+  // data.
+  sc_in<bool>            flowControl;
+
+  // Credits received over the network. Each credit will still have its
+  // destination attached, so we know which table entry to give the credit to.
+  sc_in<AddressedWord>   creditsIn;
 
 //==============================//
 // Constructors and destructors
@@ -39,8 +46,8 @@ public:
 
 public:
 
+  SC_HAS_PROCESS(SendChannelEndTable);
   SendChannelEndTable(sc_module_name name, ComponentID ID);
-  virtual ~SendChannelEndTable();
 
 //==============================//
 // Methods
@@ -61,20 +68,16 @@ public:
   // allow it.
   void          send();
 
-protected:
+private:
 
   // Stall the pipeline until the channel specified is empty.
-  void          waitUntilEmpty(ChannelIndex channel);
+  void          waitUntilEmpty(MapIndex channel);
 
   // Update an entry in the channel mapping table.
   void          updateMap(MapIndex entry, ChannelID newVal);
 
   // Retrieve an entry from the channel mapping table.
   ChannelID     getChannel(MapIndex mapEntry) const;
-
-  // Choose which buffer to put the new data into (multiple channels may
-  // share a buffer to reduce buffer space/energy).
-  virtual ChannelIndex chooseBuffer(MapIndex channelMapEntry) const;
 
   // Compute the global channel ID of the given output channel. Note that
   // since this is an output channel, the ID computation is different to
@@ -86,30 +89,30 @@ protected:
   // will result in an operation being carried out there.
   Word          makeMemoryRequest(const DecodedInst& dec) const;
 
+  // A credit was received, so update the corresponding credit counter.
+  void          receivedCredit();
+
 //==============================//
 // Local state
 //==============================//
 
 protected:
 
-  // A buffer for each output channel.
-  BufferArray<AddressedWord>  buffers;
+  // A buffer for outgoing data.
+  BufferStorage<AddressedWord> buffer;
 
   // Channel mapping table used to store addresses of destinations of sent
   // data. Note that mapping 0 is held both here and in the decode stage --
   // it may be possible to optimise this away at some point.
-  AddressedStorage<ChannelID> channelMap;
-
-  // Tells which channel we are waiting on. -1 means no channel.
-  ChannelIndex                waitingOn;
+  vector<ChannelMapEntry>      channelMap;
 
   // Anything sent to the null channel ID doesn't get sent at all. This allows
   // more code re-use, even in situations where we don't want to send results.
-  static const ChannelID      NULL_MAPPING = -1;
+  static const ChannelID       NULL_MAPPING = -1;
 
   // Used to tell that we are not currently waiting for any output buffers
   // to empty.
-  static const ChannelIndex   NO_CHANNEL = -1;
+  static const ChannelIndex    NO_CHANNEL = -1;
 
 };
 

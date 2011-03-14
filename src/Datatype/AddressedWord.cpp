@@ -8,20 +8,13 @@
 #include "../Utility/Parameters.h"
 #include "AddressedWord.h"
 
-const Word AddressedWord::payload() const {
-  return payload_;
-}
+const Word      AddressedWord::payload()     const {return payload_;}
+const ChannelID AddressedWord::channelID()   const {return channelID_;}
+bool            AddressedWord::portClaim()   const {return portClaim_;}
+bool            AddressedWord::endOfPacket() const {return endOfPacket_;}
 
-const ChannelID AddressedWord::channelID() const {
-  return channelID_;
-}
-
-bool AddressedWord::portClaim() const {
-  return portClaim_;
-}
-
-bool AddressedWord::endOfPacket() const {
-  return endOfPacket_;
+void AddressedWord::channelID(ChannelID id) {
+  channelID_ = id;
 }
 
 void AddressedWord::notEndOfPacket() {

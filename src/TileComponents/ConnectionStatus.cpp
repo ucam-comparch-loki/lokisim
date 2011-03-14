@@ -9,15 +9,10 @@
 #include "../Datatype/MemoryRequest.h"
 #include "../Utility/Parameters.h"
 
-/* Tells whether there is a connection set up at all. */
-bool ConnectionStatus::active() const {
-  return (int)remoteChannel_ != UNUSED;
-}
-
 /* Tells whether there is a connection set up, but not currently carrying
  * out an operation. */
 bool ConnectionStatus::idle() const {
-  return active() && (operation_ == NONE);
+  return operation_ == NONE;
 }
 
 bool ConnectionStatus::isRead() const {
@@ -66,20 +61,11 @@ void ConnectionStatus::clear() {
 /* Completely remove the connection, allowing a new component to connect to
  * this port. */
 void ConnectionStatus::teardown() {
-  remoteChannel_   = UNUSED;
   clear();
-}
-
-ChannelID ConnectionStatus::channel() const {
-  return remoteChannel_;
 }
 
 MemoryAddr ConnectionStatus::address() const {
   return address_;
-}
-
-void ConnectionStatus::channel(ChannelID channel) {
-  remoteChannel_ = channel;
 }
 
 void ConnectionStatus::readAddress(MemoryAddr addr, int operation) {
@@ -118,12 +104,7 @@ void ConnectionStatus::stopStreaming() {
 }
 
 ConnectionStatus::ConnectionStatus() {
-  remoteChannel_ = UNUSED;
   address_       = UNUSED;
   operation_     = NONE;
   stride_        = 1;
-}
-
-ConnectionStatus::~ConnectionStatus() {
-
 }

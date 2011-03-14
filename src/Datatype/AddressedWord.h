@@ -24,6 +24,7 @@ public:
   bool     portClaim() const;
   bool     endOfPacket() const;
 
+  void     channelID(ChannelID id);
   void     notEndOfPacket();
 
   friend void sc_trace(sc_core::sc_trace_file*& tf, const AddressedWord& w, const std::string& txt) {

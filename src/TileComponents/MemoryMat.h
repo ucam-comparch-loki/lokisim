@@ -21,8 +21,11 @@
 #define MEMORYMAT_H_
 
 #include "TileComponent.h"
+#include "ChannelMapEntry.h"
 #include "../Memory/AddressedStorage.h"
 #include "../Memory/BufferArray.h"
+
+using std::vector;
 
 class ConnectionStatus;
 class Word;
@@ -58,7 +61,7 @@ public:
 public:
 
   // Initialise the contents of this memory to the Words in the given vector.
-  virtual void storeData(const std::vector<Word>& data, MemoryAddr location=0);
+  virtual void storeData(const vector<Word>& data, MemoryAddr location=0);
 
   // Print the contents of this memory.
   virtual void print(MemoryAddr start=0, MemoryAddr end=MEMORY_SIZE) const;
@@ -91,7 +94,7 @@ private:
 
   // Returns a vector of all input ports at which there are memory operations
   // ready to execute.
-  std::vector<ChannelIndex>& allRequests();
+  vector<ChannelIndex>& allRequests();
 
   // Determine which output port a request at a particular input should use.
   ChannelIndex outputToUse(ChannelIndex input) const;
@@ -110,7 +113,7 @@ private:
 
   // Choose which of the provided inputs are allowed to perform an operation
   // concurrently. Leaves only the allowed inputs in the vector.
-  void arbitrate(std::vector<ChannelIndex>& inputs);
+  void arbitrate(vector<ChannelIndex>& inputs);
 
   // Update the output signal telling whether the memory is idle.
   void updateIdle();
@@ -135,14 +138,12 @@ private:
   AddressedStorage<Word> data_;
 
   // Information on the channels set up with each of this memory's inputs.
-  std::vector<ConnectionStatus> connections_;
+  vector<ConnectionStatus> connections_;
+
+  vector<ChannelMapEntry> sendTable_;
 
   // A queue of operations from each input port.
   BufferArray<Word> inputBuffers_;
-
-  // Record whether each output has been used in a particular clock cycle, to
-  // ensure that the same port isn't written to twice.
-  std::vector<bool> outputsUsed;
 
   // The number of words we have initially put in this memory. Allows multiple
   // files to be put into the same memory.

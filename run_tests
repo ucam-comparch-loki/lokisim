@@ -24,6 +24,7 @@ parallel = False
 def runTest(directory):
     cwd = os.getcwd()
     os.chdir(directory)
+    #command = directory + "/test"
     command = "./test"
     if parallel:
         thread = Test(command)

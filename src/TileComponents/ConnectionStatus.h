@@ -24,9 +24,6 @@ class ConnectionStatus {
 
 public:
 
-  // Tells whether there is a connection set up.
-  bool active() const;
-
   // Tells whether there is a connection set up, but not currently carrying
   // out an operation.
   bool idle() const;
@@ -60,14 +57,8 @@ public:
   // connect to.
   void teardown();
 
-  // Return the remote channel connected to this port.
-  ChannelID channel() const;
-
   // Return the address to access in memory.
   MemoryAddr address() const;
-
-  // Set the remote channel connected to this port.
-  void channel(ChannelID channel);
 
   // Set the memory address to read from, and whether we want to access bytes
   // or words.
@@ -91,7 +82,6 @@ public:
 public:
 
   ConnectionStatus();
-  virtual ~ConnectionStatus();
 
 //==============================//
 // Local state
@@ -103,8 +93,6 @@ private:
 
   static const int UNUSED = -1;
 
-
-  ChannelID  remoteChannel_;
   MemoryAddr address_;
   short operation_;
   bool  repeatOperation_;

@@ -18,6 +18,7 @@
 #include "Utility/Parameters.h"
 
 using sc_core::sc_in;
+using sc_core::sc_inout;
 using sc_core::sc_out;
 using sc_core::sc_signal;
 using sc_core::sc_buffer;   // Like an sc_signal, but every write makes an event

@@ -143,6 +143,8 @@ class SimulatorTest(unittest.TestCase):
         
         # basedir = where we execute the simulator from.
         self._basedir = os.getcwd().split("test_files")[0]
+        if self._basedir[-1] != "/":
+            self._basedir = self._basedir + "/"
     
         # If the directory is a full path, strip away anything unnecessary.
         directory = directory.split("test_files/")[-1]

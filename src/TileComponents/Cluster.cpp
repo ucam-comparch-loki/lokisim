@@ -295,9 +295,12 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
 
   WriteStage*  write  = dynamic_cast<WriteStage*>(stages.back());
   write->fromFetchLogic(fetchSignal);
-  for(uint i=0; i<NUM_SEND_CHANNELS; i++) {
-    write->output[i](out[i]);             write->flowControl[i](flowControlIn[i]);
-  }
+  write->output(out[0]);             write->flowControl(flowControlIn[0]);
+  // temporary signals
+  sc_signal<int>* network = new sc_signal<int>();
+  sc_signal<AddressedWord>* credits = new sc_signal<AddressedWord>();
+  write->network(*network);
+  write->creditsIn(*credits);
 
   SC_METHOD(updateIdle);
   for(uint i=0; i<stages.size(); i++) sensitive << stageIdle[i];

@@ -79,18 +79,10 @@ WriteStage::WriteStage(sc_module_name name, ComponentID ID) :
 
   id = ID;
 
-  output      = new sc_out<AddressedWord>[NUM_SEND_CHANNELS];
-  flowControl = new sc_in<bool>[NUM_SEND_CHANNELS];
-
   // Connect the SCET to the network.
-  for(uint i=0; i<NUM_SEND_CHANNELS; i++) {
-    scet.output[i](output[i]);
-    scet.flowControl[i](flowControl[i]);
-  }
+  scet.output(output);
+  scet.network(network);
+  scet.flowControl(flowControl);
+  scet.creditsIn(creditsIn);
 
-}
-
-WriteStage::~WriteStage() {
-  delete[] output;
-  delete[] flowControl;
 }

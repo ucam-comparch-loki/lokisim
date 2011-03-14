@@ -58,13 +58,10 @@ void MemoryMat::checkInputs() {
 void MemoryMat::performOperations() {
   if(activeConnections == 0 && inputBuffers_.empty()) return;
 
-  // Clear the outputs used.
-  outputsUsed.assign(NUM_MEMORY_OUTPUTS, false);
-
   // Collect a list of all input ports which have received a memory request
   // which has not yet been carried out, and then remove any conflicting
   // requests.
-  std::vector<ChannelIndex>& requests = allRequests();
+  vector<ChannelIndex>& requests = allRequests();
   if(requests.size() > 0) active = true;
   arbitrate(requests);
 
@@ -73,7 +70,8 @@ void MemoryMat::performOperations() {
     ChannelIndex port = requests[j];
     ConnectionStatus& connection = connections_[port];
 
-    if(connection.isRead())       read(port);
+    if(connection.idle())         newOperation(port);
+    else if(connection.isRead())  read(port);
     else if(connection.isWrite()) write(port);
   }
 
@@ -89,8 +87,8 @@ void MemoryMat::read(ChannelIndex input) {
 
   ConnectionStatus& connection = connections_[input];
   MemoryAddr addr = connection.address();
+  ChannelID returnAddr = sendTable_[input].destination();
   Word data;
-  ChannelID returnAddr = connection.channel();
 
   if(DEBUG) cout << "Reading from memory " << id << ", address " << addr << ": ";
 
@@ -111,10 +109,8 @@ void MemoryMat::read(ChannelIndex input) {
     }
 
     if(static_cast<Instruction>(data).endOfPacket()) {
-      // If this is the end of the packet, end this operation and check for
-      // another.
+      // If this is the end of the packet, end this operation.
       connection.clear(); activeConnections--;
-      if(!inputBuffers_[input].empty()) newOperation(input);
     }
     else {
       endOfPacket = false;
@@ -137,7 +133,9 @@ void MemoryMat::read(ChannelIndex input) {
   // Send the result of the read.
   AddressedWord aw(data, returnAddr);
   if(!endOfPacket) aw.notEndOfPacket();
+
   out[output].write(aw);
+//  sendTable_[input].removeCredit();
 
   Instrumentation::l1Read(addr, isInstruction);
   if(DEBUG) cout << data << endl;
@@ -162,28 +160,21 @@ void MemoryMat::write(ChannelIndex port) {
   else if(connection.halfWordAccess()) writeHalfWord(addr, data);
   else                                 writeWord(addr, data);
 
-  // If we're expecting more writes, update the address, otherwise clear it
-  // and check for another operation.
+  // If we're expecting more writes, update the address, otherwise clear it.
   if(connection.streaming()) connection.incrementAddress();
   else {
     connection.clear(); activeConnections--;
-    if(!inputBuffers_[port].empty()) newOperation(port);
   }
 }
 
 /* Returns a vector of all input ports at which there are memory operations
  * ready to execute. The vector should be deleted when finished with. */
-std::vector<ChannelIndex>& MemoryMat::allRequests() {
-  std::vector<ChannelIndex>* requests = new std::vector<ChannelIndex>();
+vector<ChannelIndex>& MemoryMat::allRequests() {
+  vector<ChannelIndex>* requests = new vector<ChannelIndex>();
   for(ChannelIndex i=0; i<inputBuffers_.size(); i++) {
-    // If there is something waiting in the buffer, and nothing currently
-    // executing, prepare the operation in the buffer.
-    if(!inputBuffers_[i].empty() &&
-       (connections_[i].idle() || !connections_[i].active())) {
-      newOperation(i);
+    if((!inputBuffers_[i].empty() && connections_[i].idle()) || canAcceptRequest(i)) {
+      requests->push_back(i);
     }
-
-    if(canAcceptRequest(i)) requests->push_back(i);
   }
 
   return *requests;
@@ -208,7 +199,7 @@ bool MemoryMat::canAcceptRequest(ChannelIndex i) const {
   // If a result will need to be sent, check that the flow control signal
   // allows this.
   ChannelIndex output = outputToUse(i);
-  bool canSend = flowControlIn[output].read();
+  bool canSend = flowControlIn[output].read() && sendTable_[i].canSend();
 
   // Writes require data to write, so see if it has arrived yet.
   bool moreData = !inputBuffers_[i].empty();
@@ -217,8 +208,7 @@ bool MemoryMat::canAcceptRequest(ChannelIndex i) const {
 }
 
 /* There is no active operation at the given port, but there is one waiting in
- * the input buffer. Prepare the operation, but do not carry it out yet. It
- * will be carried out by the performOperations() method, after arbitration. */
+ * the input buffer. Prepare the operation, and carry it out if appropriate. */
 void MemoryMat::newOperation(ChannelIndex port) {
   assert(!inputBuffers_[port].empty());
 
@@ -230,18 +220,21 @@ void MemoryMat::newOperation(ChannelIndex port) {
                    << (int)port << endl;
     updateControl(port, request.address());
   }
-  else {
-    if(request.isReadRequest()) {
-      connections_[port].readAddress(request.address(), request.operation());
-    }
-    else if(request.isWriteRequest()) {
-      connections_[port].writeAddress(request.address(), request.operation());
-    }
-    else cerr << "Warning: Unknown memory request." << endl;
+  else if(request.isReadRequest()) {
+    connections_[port].readAddress(request.address(), request.operation());
+    if(request.streaming()) connections_[port].startStreaming();
+    activeConnections++;
 
+    // Assuming it's possible to set up a read and perform a read in one cycle.
+    ChannelIndex output = outputToUse(port);
+    if(flowControlIn[output].read()) read(port);
+  }
+  else if(request.isWriteRequest()) {
+    connections_[port].writeAddress(request.address(), request.operation());
     if(request.streaming()) connections_[port].startStreaming();
     activeConnections++;
   }
+  else cerr << "Warning: Unknown memory request." << endl;
 }
 
 /* Set up a new connection at the given input port. All requests to this port
@@ -250,32 +243,36 @@ void MemoryMat::updateControl(ChannelIndex input, ChannelID returnAddr) {
   active = true;
 
   ChannelIndex output = outputToUse(input);
-  if(outputsUsed[output] || !flowControlIn[output].read()) return;
 
   // We don't have to do any safety checks because we assume that all
   // connections are statically scheduled.
-  ConnectionStatus& connection = connections_[input];
-  connection.clear();
-  connection.channel(returnAddr);
+  connections_[input].clear();
+
+  // Wait until all data sent has been consumed before changing the destination.
+  while(!sendTable_[input].haveAllCredits()) {
+    // TODO: wait for credit
+  }
+  sendTable_[input].destination(returnAddr);
 
   // Set up a connection to the port we are now sending to: send the output
   // port's ID, and flag it as a setup message.
-  int portID = outputPortID(id, input);
+  int portID = outputPortID(id, output);
   AddressedWord aw(Word(portID), returnAddr, true);
 
-  outputsUsed[output] = true;
+  assert(flowControlIn[output].read());
   out[output].write(aw);
+//  sendTable_[input].removeCredit();
 }
 
 /* Determine which of the operations at the given inputs may be carried out
  * concurrently. */
-void MemoryMat::arbitrate(std::vector<ChannelIndex>& inputs) {
+void MemoryMat::arbitrate(vector<ChannelIndex>& inputs) {
   // TODO: make all writes happen before any reads? Or vice versa.
   // TODO: extract arbitration into a separate component (possibly reusing
   //       network arbiters?)
 
   uint numAccepted = 0;
-  std::vector<ChannelIndex>::iterator iter = inputs.begin();
+  vector<ChannelIndex>::iterator iter = inputs.begin();
 
   // Find the position to start from.
   while(iter < inputs.end() && *iter <= lastAccepted) iter++;
@@ -285,11 +282,9 @@ void MemoryMat::arbitrate(std::vector<ChannelIndex>& inputs) {
     // Loop the iterator back to the beginning if necessary.
     if(iter >= inputs.end()) iter = inputs.begin();
 
-    ChannelIndex outputPort = outputToUse(*iter);
-    if(numAccepted<CONCURRENT_MEM_OPS && !outputsUsed[outputPort]) {
+    if(numAccepted<CONCURRENT_MEM_OPS) {
       numAccepted++;
       iter++;
-      outputsUsed[outputPort] = true;
     }
     else iter = inputs.erase(iter);
   }
@@ -319,7 +314,7 @@ void MemoryMat::newData() {
 }
 
 /* Initialise the contents of this memory to the Words in the given vector. */
-void MemoryMat::storeData(const std::vector<Word>& data, MemoryAddr location) {
+void MemoryMat::storeData(const vector<Word>& data, MemoryAddr location) {
   assert(data.size() + location <= data_.size());
 
   // wordsLoaded is used to keep track of where to put new data. If we have
@@ -384,8 +379,8 @@ MemoryMat::MemoryMat(sc_module_name name, ComponentID ID) :
     TileComponent(name, ID, NUM_MEMORY_INPUTS, NUM_MEMORY_OUTPUTS),
     data_(MEMORY_SIZE, string(name)),
     connections_(NUM_MEMORY_INPUTS),
-    inputBuffers_(NUM_MEMORY_INPUTS, CHANNEL_END_BUFFER_SIZE, string(name)),
-    outputsUsed(NUM_MEMORY_OUTPUTS) {
+    sendTable_(NUM_MEMORY_INPUTS),
+    inputBuffers_(NUM_MEMORY_INPUTS, CHANNEL_END_BUFFER_SIZE, string(name)) {
 
   wordsLoaded_ = 0;
   newData_ = false;

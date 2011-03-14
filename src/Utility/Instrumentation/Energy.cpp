@@ -75,7 +75,7 @@ void Energy::loadLibrary(const std::string& filename) {
 long Energy::totalEnergy() {
   if(!libraryLoaded) return 0;
   return registerEnergy() + cacheEnergy() + memoryEnergy() +
-         operationEnergy() + networkEnergy();
+         + decodeEnergy() + operationEnergy() + networkEnergy();
 }
 
 double Energy::pJPerOp() {

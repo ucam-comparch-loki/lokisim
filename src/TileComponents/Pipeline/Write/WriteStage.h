@@ -29,14 +29,21 @@ public:
 //   sc_in<DecodedInst> dataIn
 //   sc_out<bool>       stallOut
 
-  // Fetch logic will sometimes provide messages to put into the output buffers.
-  sc_in<AddressedWord>    fromFetchLogic;
+  // Fetch logic will sometimes provide messages to put into the output buffer.
+  sc_in<AddressedWord>  fromFetchLogic;
 
-  // The NUM_SEND_CHANNELS output channels.
-  sc_out<AddressedWord>  *output;
+  // Data to send onto the network.
+  sc_out<AddressedWord> output;
 
-  // A flow control signal for each output (NUM_SEND_CHANNELS).
-  sc_in<bool>            *flowControl;
+  // A select signal to tell which network this data should be sent on.
+  sc_out<int>           network;
+
+  // Signal telling us whether we are able to send.
+  sc_in<bool>           flowControl;
+
+  // Credits received over the network. Each credit will still have its
+  // destination attached, so we know which table entry to give the credit to.
+  sc_in<AddressedWord>  creditsIn;
 
 //==============================//
 // Constructors and destructors
@@ -46,7 +53,6 @@ public:
 
   SC_HAS_PROCESS(WriteStage);
   WriteStage(sc_module_name name, ComponentID ID);
-  virtual ~WriteStage();
 
 //==============================//
 // Methods

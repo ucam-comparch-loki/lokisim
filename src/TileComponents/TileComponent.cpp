@@ -38,10 +38,12 @@ ChannelID TileComponent::inputPortID(ComponentID component, ChannelIndex port) {
   ChannelID result = tile * INPUTS_PER_TILE;
 
   if(position >= CORES_PER_TILE) {
+    assert(port <= NUM_MEMORY_INPUTS);
     result += CORES_PER_TILE * NUM_CORE_INPUTS;
     result += (position - CORES_PER_TILE) * NUM_MEMORY_INPUTS;
   }
   else {
+    assert(port <= NUM_CORE_INPUTS);
     result += position * NUM_CORE_INPUTS;
   }
 
