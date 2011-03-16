@@ -88,8 +88,8 @@ Chip::Chip(sc_module_name name, ComponentID ID, BatchModeEventRecorder *eventRec
   for(uint i=0; i<NUM_COMPONENTS; i++) sensitive << idleSig[i];
   // do initialise
 
-  int numOutputs = TOTAL_OUTPUTS;
-  int numInputs  = TOTAL_INPUTS;
+  int numOutputs = TOTAL_OUTPUT_PORTS;
+  int numInputs  = TOTAL_INPUT_PORTS;
 
   dataFromComponents    = new flag_signal<AddressedWord>[numOutputs];
   dataToComponents      = new flag_signal<Word>[numInputs];
@@ -126,10 +126,10 @@ Chip::Chip(sc_module_name name, ComponentID ID, BatchModeEventRecorder *eventRec
   // Connect the clusters and memories to the local interconnect
   for(uint i=0; i<NUM_COMPONENTS; i++) {
     bool isCore = (i%COMPONENTS_PER_TILE) < CORES_PER_TILE;
-    int numInputs = isCore ? NUM_CORE_INPUTS : NUM_MEMORY_INPUTS;
-    int numOutputs = isCore ? NUM_CORE_OUTPUTS : NUM_MEMORY_OUTPUTS;
+    int inputs = isCore ? CORE_INPUT_PORTS : MEMORY_INPUT_PORTS;
+    int outputs = isCore ? CORE_OUTPUT_PORTS : MEMORY_OUTPUT_PORTS;
 
-    for(int j=0; j<numInputs; j++) {
+    for(int j=0; j<inputs; j++) {
       int index = TileComponent::inputPortID(i,j);  // Position in network's array
 
       contents[i]->in[j](dataToComponents[index]);
@@ -138,7 +138,7 @@ Chip::Chip(sc_module_name name, ComponentID ID, BatchModeEventRecorder *eventRec
       network.creditsIn[index](creditsFromComponents[index]);
     }
 
-    for(int j=0; j<numOutputs; j++) {
+    for(int j=0; j<outputs; j++) {
       int index = TileComponent::outputPortID(i,j); // Position in network's array
 
       contents[i]->out[j](dataFromComponents[index]);

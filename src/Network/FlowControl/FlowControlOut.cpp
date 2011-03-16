@@ -29,10 +29,10 @@ void FlowControlOut::sendData() {
     // because it is not buffered -- it is immediately consumed to store
     // the return address at the destination.
 
-//    if(DEBUG) cout << "Sending port claim from "
-//                   << TileComponent::outputPortString(id) << " to "
-//                   << TileComponent::inputPortString(dataIn.read().channelID())
-//                   << endl;
+    if(DEBUG) cout << "Sending port claim from "
+                   << TileComponent::outputPortString(id) << " to "
+                   << TileComponent::inputPortString(dataIn.read().channelID())
+                   << endl;
   }
   else {
     if(creditCount <= 0) {  // We are not able to send the new data yet.

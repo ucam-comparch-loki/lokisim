@@ -107,13 +107,14 @@ void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
 /* Return a unique ID for an output port, so credits can be routed back to
  * it. This will become obsolete if/when we have static routing. */
 ChannelID SendChannelEndTable::portID(ChannelIndex channel) const {
+  // TODO: outputChannelID, 0 -> channel
   return TileComponent::outputPortID(id, /*channel*/0);
 }
 
 /* Update an entry in the channel mapping table. */
 void SendChannelEndTable::updateMap(MapIndex entry, ChannelID newVal) {
   assert(entry < CHANNEL_MAP_SIZE);
-  assert(newVal < TOTAL_INPUTS);
+  assert(newVal < TOTAL_INPUT_CHANNELS);
 
   // All data sent to previous destinations must have been consumed before
   // we can change the destination.

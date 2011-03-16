@@ -138,7 +138,7 @@ void SharedL1CacheController::processFSMCombinational() {
 
 				// Send response word to client
 
-				int portID = TileComponent::outputPortID(id, cChannel);
+				int portID = TileComponent::outputChannelID(id, cChannel);
 				oDataTx.write(AddressedWord(Word(portID), vRequest.address(), true));
 				oDataTxEnable.write(true);
 
@@ -545,7 +545,7 @@ void SharedL1CacheController::subProcessInitiateRequest(MemoryRequest &vRequest,
 
 				// Send response word to client
 
-				int portID = TileComponent::outputPortID(id, cChannel);
+				int portID = TileComponent::outputChannelID(id, cChannel);
 				oDataTx.write(AddressedWord(Word(portID), vRequest.address(), true));
 				oDataTxEnable.write(true);
 			} else {

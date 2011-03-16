@@ -35,16 +35,16 @@ bool TileComponent::readPredReg() const {
 ChannelID TileComponent::inputPortID(ComponentID component, ChannelIndex port) {
   uint tile = component / COMPONENTS_PER_TILE;
   uint position = component % COMPONENTS_PER_TILE;
-  ChannelID result = tile * INPUTS_PER_TILE;
+  ChannelID result = tile * INPUT_PORTS_PER_TILE;
 
   if(position >= CORES_PER_TILE) {
-    assert(port <= NUM_MEMORY_INPUTS);
-    result += CORES_PER_TILE * NUM_CORE_INPUTS;
-    result += (position - CORES_PER_TILE) * NUM_MEMORY_INPUTS;
+    assert(port < MEMORY_INPUT_PORTS);
+    result += CORES_PER_TILE * CORE_INPUT_PORTS;
+    result += (position - CORES_PER_TILE) * MEMORY_INPUT_PORTS;
   }
   else {
-    assert(port <= NUM_CORE_INPUTS);
-    result += position * NUM_CORE_INPUTS;
+    assert(port < CORE_INPUT_PORTS);
+    result += position * CORE_INPUT_PORTS;
   }
 
   return result + port;
@@ -52,84 +52,126 @@ ChannelID TileComponent::inputPortID(ComponentID component, ChannelIndex port) {
 
 /* Generate a global port ID using the component and the index of the port
  * on that component. */
-ChannelID TileComponent::outputPortID(ComponentID component, ChannelIndex port) {
+ChannelID TileComponent::outputPortID(ComponentID component, PortIndex port) {
   uint tile = component / COMPONENTS_PER_TILE;
   uint position = component % COMPONENTS_PER_TILE;
-  ChannelID result = tile * OUTPUTS_PER_TILE;
+  ChannelID result = tile * OUTPUT_PORTS_PER_TILE;
 
   if(position >= CORES_PER_TILE) {
-    result += CORES_PER_TILE * NUM_CORE_OUTPUTS;
-    result += (position - CORES_PER_TILE) * NUM_MEMORY_OUTPUTS;
+    assert(port < MEMORY_OUTPUT_PORTS);
+    result += CORES_PER_TILE * CORE_OUTPUT_PORTS;
+    result += (position - CORES_PER_TILE) * MEMORY_OUTPUT_PORTS;
   }
   else {
-    result += position * NUM_CORE_OUTPUTS;
+    assert(port < CORE_OUTPUT_PORTS);
+    result += position * CORE_OUTPUT_PORTS;
   }
 
   return result + port;
 }
 
-/* Determine which component holds the given input port. */
-ComponentID TileComponent::component(ChannelID port) {
-  uint tile = port / INPUTS_PER_TILE;
-  uint position = port % INPUTS_PER_TILE;
-  ComponentID component = tile * COMPONENTS_PER_TILE;
+/* Generate a global channel ID using the component and the index of the channel
+ * on that component. */
+ChannelID TileComponent::inputChannelID(ComponentID component, ChannelIndex channel) {
+  uint tile = component / COMPONENTS_PER_TILE;
+  uint position = component % COMPONENTS_PER_TILE;
+  ChannelID result = tile * INPUT_CHANNELS_PER_TILE;
 
-  if(position >= CORES_PER_TILE*NUM_CORE_INPUTS) {
-    component += CORES_PER_TILE;
-    position  -= CORES_PER_TILE*NUM_CORE_INPUTS;
-    component += position / NUM_MEMORY_INPUTS;
+  if(position >= CORES_PER_TILE) {
+    assert(channel < MEMORY_INPUT_CHANNELS);
+    result += CORES_PER_TILE * CORE_INPUT_CHANNELS;
+    result += (position - CORES_PER_TILE) * MEMORY_INPUT_CHANNELS;
   }
   else {
-    component += position / NUM_CORE_INPUTS;
+    assert(channel < CORE_INPUT_CHANNELS);
+    result += position * CORE_INPUT_CHANNELS;
+  }
+
+  return result + channel;
+}
+
+/* Generate a global channel ID using the component and the index of the channel
+ * on that component. */
+ChannelID TileComponent::outputChannelID(ComponentID component, ChannelIndex channel) {
+  uint tile = component / COMPONENTS_PER_TILE;
+  uint position = component % COMPONENTS_PER_TILE;
+  ChannelID result = tile * OUTPUT_CHANNELS_PER_TILE;
+
+  if(position >= CORES_PER_TILE) {
+    assert(channel < MEMORY_OUTPUT_CHANNELS);
+    result += CORES_PER_TILE * CORE_OUTPUT_CHANNELS;
+    result += (position - CORES_PER_TILE) * MEMORY_OUTPUT_CHANNELS;
+  }
+  else {
+    assert(channel < CORE_OUTPUT_CHANNELS);
+    result += position * CORE_OUTPUT_CHANNELS;
+  }
+
+  return result + channel;
+}
+
+/* Determine which component holds the given input channel. */
+ComponentID TileComponent::component(ChannelID channel) {
+  uint tile = channel / INPUT_CHANNELS_PER_TILE;
+  uint position = channel % INPUT_CHANNELS_PER_TILE;
+  ComponentID component = tile * COMPONENTS_PER_TILE;
+
+  if(position >= CORES_PER_TILE*CORE_INPUT_CHANNELS) {
+    component += CORES_PER_TILE;
+    position  -= CORES_PER_TILE*CORE_INPUT_CHANNELS;
+    component += position / MEMORY_INPUT_CHANNELS;
+  }
+  else {
+    component += position / CORE_INPUT_CHANNELS;
   }
   return component;
 }
 
-/* Convert a global port ID into a string of the form "(component, port)". */
-const std::string TileComponent::inputPortString(ChannelID port) {
-  uint tile = port / INPUTS_PER_TILE;
-  uint position = port % INPUTS_PER_TILE;
+/* Convert a global channel ID into a string of the form "(component, channel)". */
+const std::string TileComponent::inputPortString(ChannelID channel) {
+  uint tile = channel / INPUT_PORTS_PER_TILE;
+  uint position = channel % INPUT_PORTS_PER_TILE;
   ComponentID component = tile * COMPONENTS_PER_TILE;
-  ChannelIndex portIndex;
+  ChannelIndex channelIndex;
 
-  if(position >= CORES_PER_TILE*NUM_CORE_INPUTS) {
+  if(position >= CORES_PER_TILE*CORE_INPUT_PORTS) {
     component += CORES_PER_TILE;
-    position  -= CORES_PER_TILE*NUM_CORE_INPUTS;
-    component += position / NUM_MEMORY_INPUTS;
-    portIndex  = position % NUM_MEMORY_INPUTS;
+    position  -= CORES_PER_TILE*CORE_INPUT_PORTS;
+    component += position / MEMORY_INPUT_PORTS;
+    channelIndex  = position % MEMORY_INPUT_PORTS;
   }
   else {
-    component += position / NUM_CORE_INPUTS;
-    portIndex  = position % NUM_CORE_INPUTS;
+    component += position / CORE_INPUT_PORTS;
+    channelIndex  = position % CORE_INPUT_PORTS;
   }
 
   std::stringstream ss;
-  ss << "(" << component << "," << (int)portIndex << ")";
+  ss << "(" << component << "," << (int)channelIndex << ")";
   std::string result;
   ss >> result;
   return result;
 }
 
-/* Convert a global port ID into a string of the form "(component, port)". */
-const std::string TileComponent::outputPortString(ChannelID port) {
-  uint tile = port / OUTPUTS_PER_TILE;
-  uint position = port % OUTPUTS_PER_TILE;
+/* Convert a global channel ID into a string of the form "(component, channel)". */
+const std::string TileComponent::outputPortString(ChannelID channel) {
+  uint tile = channel / OUTPUT_PORTS_PER_TILE;
+  uint position = channel % OUTPUT_PORTS_PER_TILE;
   ComponentID component = tile * COMPONENTS_PER_TILE;
-  ChannelIndex portIndex;
+  ChannelIndex channelIndex;
 
-  if(position >= CORES_PER_TILE*NUM_CORE_OUTPUTS) {
+  if(position >= CORES_PER_TILE*CORE_OUTPUT_PORTS) {
     component += CORES_PER_TILE;
-    position  -= CORES_PER_TILE*NUM_CORE_OUTPUTS;
-    component += position / NUM_MEMORY_OUTPUTS;
-    portIndex  = position % NUM_MEMORY_OUTPUTS;
+    position  -= CORES_PER_TILE*CORE_OUTPUT_PORTS;
+    component += position / MEMORY_OUTPUT_PORTS;
+    channelIndex  = position % MEMORY_OUTPUT_PORTS;
   }
   else {
-    component += position / NUM_CORE_OUTPUTS;
-    portIndex  = position % NUM_CORE_OUTPUTS;
+    component += position / CORE_OUTPUT_PORTS;
+    channelIndex  = position % CORE_OUTPUT_PORTS;
   }
 
   std::stringstream ss;
-  ss << "(" << component << "," << (int)portIndex << ")";
+  ss << "(" << component << "," << (int)channelIndex << ")";
   std::string result;
   ss >> result;
   return result;
@@ -178,8 +220,7 @@ Chip* TileComponent::parent() const {
 /* Constructors and destructors */
 TileComponent::TileComponent(sc_module_name name, ComponentID ID,
                              int inputPorts, int outputPorts) :
-    Component(name, ID)/*,
-    outBuffers("outputs", outputBuffers, outputPorts)*/ {
+    Component(name, ID) {
 
   flowControlOut = new sc_out<int>[inputPorts];
   in             = new sc_in<Word>[inputPorts];
@@ -187,25 +228,11 @@ TileComponent::TileComponent(sc_module_name name, ComponentID ID,
   flowControlIn  = new sc_in<bool>[outputPorts];
   out            = new sc_out<AddressedWord>[outputPorts];
 
-//  toOutputBuffers = new sc_buffer<AddressedWord>[outputBuffers];
-//  bufferAvailable = new sc_buffer<bool>[outputBuffers];
-//  emptyOutputBuffer = new sc_buffer<bool>[outputBuffers];
-
-//  // Connect things up.
-//  outBuffers.clock(clock);
-//
-//  for(int i=0; i<outputPorts; i++) {
-//    outBuffers.dataOut[i](out[i]);
-//    outBuffers.creditsIn[i](flowControlIn[i]);
-//  }
-//
-//  for(int i=0; i<outputBuffers; i++) {
-//    outBuffers.dataIn[i](toOutputBuffers[i]);
-//    outBuffers.emptyBuffer[i](emptyOutputBuffer[i]);
-//    outBuffers.flowControlOut[i](bufferAvailable[i]);
-//  }
+//  creditsIn      = new sc_in<AddressedWord>[outputPorts];
+//  readyForCredits = new sc_out<bool>[outputPorts];
 
   idle.initialize(true);
+//  for(int i=0; i<outputPorts; i++) readyForCredits[i].initialize(true);
 
 }
 
@@ -214,8 +241,6 @@ TileComponent::~TileComponent() {
   delete[] out;
   delete[] flowControlIn;
   delete[] flowControlOut;
-
-//  delete[] toOutputBuffers;
-//  delete[] emptyOutputBuffer;
-//  delete[] bufferAvailable;
+//  delete[] creditsIn;
+//  delete[] readyForCredits;
 }

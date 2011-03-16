@@ -6,6 +6,7 @@
  */
 
 #include "MemoryMat.h"
+#include "ChannelMapEntry.h"
 #include "ConnectionStatus.h"
 #include "../Datatype/AddressedWord.h"
 #include "../Datatype/Instruction.h"
@@ -183,7 +184,7 @@ vector<ChannelIndex>& MemoryMat::allRequests() {
 /* Determine which output port a request at a particular input should use. */
 ChannelIndex MemoryMat::outputToUse(ChannelIndex input) const {
   // Could do something more complicated, like a mapping table.
-  return input % NUM_MEMORY_OUTPUTS;
+  return input % MEMORY_OUTPUT_PORTS;
 }
 
 /* Tells whether we are able to carry out a waiting operation at the given
@@ -256,7 +257,7 @@ void MemoryMat::updateControl(ChannelIndex input, ChannelID returnAddr) {
 
   // Set up a connection to the port we are now sending to: send the output
   // port's ID, and flag it as a setup message.
-  int portID = outputPortID(id, output);
+  int portID = outputPortID(id, output);  // TODO: change to input, outputChannelID
   AddressedWord aw(Word(portID), returnAddr, true);
 
   assert(flowControlIn[output].read());
@@ -311,6 +312,13 @@ void MemoryMat::sendCredit(ChannelIndex position) {
 
 void MemoryMat::newData() {
   newData_ = true;
+}
+
+void MemoryMat::newCredit() {
+  // Note: this may not work if we have multiple tiles: it relies on all of the
+  // addresses being neatly aligned.
+//  ChannelIndex targetCounter = creditsIn[0].read().channelID() % MEMORY_OUTPUT_CHANNELS;
+//  sendTable_[targetCounter].addCredit();
 }
 
 /* Initialise the contents of this memory to the Words in the given vector. */
@@ -376,11 +384,11 @@ void MemoryMat::writeMemory(MemoryAddr addr, Word data) {
 }
 
 MemoryMat::MemoryMat(sc_module_name name, ComponentID ID) :
-    TileComponent(name, ID, NUM_MEMORY_INPUTS, NUM_MEMORY_OUTPUTS),
+    TileComponent(name, ID, MEMORY_INPUT_PORTS, MEMORY_OUTPUT_PORTS),
     data_(MEMORY_SIZE, string(name)),
-    connections_(NUM_MEMORY_INPUTS),
-    sendTable_(NUM_MEMORY_INPUTS),
-    inputBuffers_(NUM_MEMORY_INPUTS, CHANNEL_END_BUFFER_SIZE, string(name)) {
+    connections_(MEMORY_INPUT_CHANNELS),
+    sendTable_(MEMORY_OUTPUT_CHANNELS),
+    inputBuffers_(MEMORY_INPUT_CHANNELS, CHANNEL_END_BUFFER_SIZE, string(name)) {
 
   wordsLoaded_ = 0;
   newData_ = false;
@@ -388,15 +396,15 @@ MemoryMat::MemoryMat(sc_module_name name, ComponentID ID) :
   SC_THREAD(mainLoop);
 
   SC_METHOD(newData);
-  for(uint i=0; i<NUM_MEMORY_INPUTS; i++) sensitive << in[i];
+  for(uint i=0; i<MEMORY_INPUT_PORTS; i++) sensitive << in[i];
   dont_initialize();
+
+//  SC_METHOD(newCredit);
+//  sensitive << creditsIn[0];
+//  dont_initialize();
 
   Instrumentation::idle(id, true);
 
   end_module(); // Needed because we're using a different Component constructor
-
-}
-
-MemoryMat::~MemoryMat() {
 
 }

@@ -14,7 +14,6 @@
 #define TILECOMPONENT_H_
 
 #include "../Component.h"
-//#include "OutputBuffers.h"
 
 class AddressedWord;
 class Chip;
@@ -45,6 +44,9 @@ public:
   // Note: although this is possible, the usage now seems to be to always send
   // "1", representing a single credit.
   sc_out<int>           *flowControlOut;
+
+//  sc_in<AddressedWord>  *creditsIn;
+//  sc_out<bool>          *readyForCredits;
 
   // Signal that this component is not currently doing any work.
   sc_out<bool>           idle;
@@ -87,8 +89,10 @@ public:
   virtual bool readPredReg() const;
 
   // Return a unique address for each input/output port of each core/memory.
-  static ChannelID inputPortID(ComponentID component, ChannelIndex port);
-  static ChannelID outputPortID(ComponentID component, ChannelIndex port);
+  static ChannelID inputPortID(ComponentID component, PortIndex port);
+  static ChannelID outputPortID(ComponentID component, PortIndex port);
+  static ChannelID inputChannelID(ComponentID component, ChannelIndex channel);
+  static ChannelID outputChannelID(ComponentID component, ChannelIndex channel);
 
   // Determine which component holds the given port.
   static ComponentID component(ChannelID port);
@@ -106,16 +110,6 @@ protected:
   void writeMemByte(MemoryAddr addr, Word data) const;
 
   Chip*            parent() const;
-
-//==============================//
-// Components
-//==============================//
-
-//protected:
-//
-//  OutputBuffers outBuffers;
-//  sc_buffer<AddressedWord> *toOutputBuffers;
-//  sc_buffer<bool> *bufferAvailable, *emptyOutputBuffer;
 
 };
 

@@ -32,7 +32,7 @@ AddressedWord::AddressedWord(const Word w, const ChannelID id, const bool portCl
   portClaim_ = portClaim;
   endOfPacket_ = true;
 
-  if((int)id < 0 || (id > TOTAL_INPUTS && id > TOTAL_OUTPUTS)) {
+  if((int)id < 0 || (id > TOTAL_INPUT_PORTS && id > TOTAL_OUTPUT_PORTS)) {
     std::cerr << "Warning: planning to send to channel " << (int)id << std::endl;
   }
 }

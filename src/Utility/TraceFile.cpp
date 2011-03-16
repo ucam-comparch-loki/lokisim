@@ -46,7 +46,7 @@ string TraceFile::parameterSummary() {
   s << "  Register file size:            " << NUM_ADDRESSABLE_REGISTERS << "\n";
   s << "Channel ends:\n";
   s << "  Input:                         " << NUM_RECEIVE_CHANNELS << "\n";
-  s << "  Output:                        " << NUM_SEND_CHANNELS << "\n";
+  s << "  Output:                        " << CORE_OUTPUT_CHANNELS << "\n";
   s << "  Buffer size:                   " << CHANNEL_END_BUFFER_SIZE << "\n";
   s << "Maximum instruction packet size: " << MAX_IPK_SIZE;
 

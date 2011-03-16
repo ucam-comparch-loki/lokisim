@@ -21,12 +21,12 @@
 #define MEMORYMAT_H_
 
 #include "TileComponent.h"
-#include "ChannelMapEntry.h"
 #include "../Memory/AddressedStorage.h"
 #include "../Memory/BufferArray.h"
 
 using std::vector;
 
+class ChannelMapEntry;
 class ConnectionStatus;
 class Word;
 
@@ -52,7 +52,6 @@ public:
 
   SC_HAS_PROCESS(MemoryMat);
   MemoryMat(sc_module_name name, ComponentID ID);
-  virtual ~MemoryMat();
 
 //==============================//
 // Methods
@@ -128,6 +127,9 @@ private:
   // the inputs when we know there is something to find.
   void newData();
 
+  // Perform any necessary actions when a new credit arrives.
+  void newCredit();
+
 //==============================//
 // Local state
 //==============================//
@@ -140,6 +142,8 @@ private:
   // Information on the channels set up with each of this memory's inputs.
   vector<ConnectionStatus> connections_;
 
+  // An equivalent of the channel map table in a core. Stores addresses and
+  // credit counts of all output channels.
   vector<ChannelMapEntry> sendTable_;
 
   // A queue of operations from each input port.

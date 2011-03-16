@@ -71,6 +71,7 @@ bool FetchLogic::roomInCache() const {
 }
 
 ChannelID FetchLogic::portID() const {
+  // TODO: outputChannelID
   return TileComponent::outputPortID(id, 0);
 }
 

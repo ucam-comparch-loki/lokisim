@@ -214,21 +214,21 @@ void     Cluster::updateIdle() {
 
 /* Returns the channel ID of this cluster's instruction packet FIFO. */
 ChannelID Cluster::IPKFIFOInput(ComponentID ID) {
-  return inputPortID(ID, 0);
+  return inputChannelID(ID, 0);
 }
 
 /* Returns the channel ID of this cluster's instruction packet cache. */
 ChannelID Cluster::IPKCacheInput(ComponentID ID) {
-  return inputPortID(ID, 1);
+  return inputChannelID(ID, 1);
 }
 
 /* Returns the channel ID of this cluster's specified input channel. */
 ChannelID Cluster::RCETInput(ComponentID ID, ChannelIndex channel) {
-  return inputPortID(ID, 2 + channel);
+  return inputChannelID(ID, 2 + channel);
 }
 
 Cluster::Cluster(sc_module_name name, ComponentID ID) :
-    TileComponent(name, ID, NUM_CORE_INPUTS, NUM_CORE_OUTPUTS),
+    TileComponent(name, ID, CORE_INPUT_PORTS, CORE_OUTPUT_PORTS),
     regs("regs"),
     pred("predicate") {
 
@@ -298,9 +298,10 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   write->output(out[0]);             write->flowControl(flowControlIn[0]);
   // temporary signals
   sc_signal<int>* network = new sc_signal<int>();
-  sc_signal<AddressedWord>* credits = new sc_signal<AddressedWord>();
   write->network(*network);
+  sc_signal<AddressedWord>* credits = new sc_signal<AddressedWord>();
   write->creditsIn(*credits);
+//  write->creditsIn(creditsIn[0]);
 
   SC_METHOD(updateIdle);
   for(uint i=0; i<stages.size(); i++) sensitive << stageIdle[i];

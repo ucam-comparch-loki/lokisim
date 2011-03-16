@@ -89,12 +89,23 @@ extern parameter	SHARED_L1_CACHE_MEMORY_DELAY_CYCLES;
 
 //-------------------------------------------------------------------------------------------------
 // Network
+//
+// Note: a port is a physical connection to the network, whereas a channel is
+// an address accessible through the network. There may be many channels
+// accessible through each port.
 //-------------------------------------------------------------------------------------------------
 
-extern parameter	NUM_RECEIVE_CHANNELS;
-extern parameter  NUM_SEND_CHANNELS;
-extern parameter	NUM_MEMORY_INPUTS;
-extern parameter  NUM_MEMORY_OUTPUTS;
+extern parameter  CORE_INPUT_PORTS;
+extern parameter  CORE_OUTPUT_PORTS;
+extern parameter	NUM_RECEIVE_CHANNELS;     // Register-mapped inputs only
+#define           CORE_INPUT_CHANNELS       (2 + NUM_RECEIVE_CHANNELS)
+#define           CORE_OUTPUT_CHANNELS      (CHANNEL_MAP_SIZE)
+
+extern parameter	MEMORY_INPUT_PORTS;
+extern parameter  MEMORY_OUTPUT_PORTS;
+extern parameter  MEMORY_INPUT_CHANNELS;
+extern parameter  MEMORY_OUTPUT_CHANNELS;
+
 extern parameter	CHANNEL_END_BUFFER_SIZE;	// Different send/receive sizes?
 extern parameter	ROUTER_BUFFER_SIZE;
 extern parameter	NETWORK_BUFFER_SIZE;
@@ -105,8 +116,6 @@ extern parameter	WORMHOLE_ROUTING;
 // Combinations of other parameters
 //-------------------------------------------------------------------------------------------------
 
-#define				NUM_CORE_INPUTS      (2 + NUM_RECEIVE_CHANNELS)
-#define				NUM_CORE_OUTPUTS     (NUM_SEND_CHANNELS)
 #define				COMPONENTS_PER_TILE  (CORES_PER_TILE + ((ENABLE_SHARED_L1_CACHE_SUBSYSTEM == 0) ? MEMS_PER_TILE : 1))
 #define				NUM_TILES            (NUM_TILE_ROWS * NUM_TILE_COLUMNS)
 
@@ -114,10 +123,15 @@ extern parameter	WORMHOLE_ROUTING;
 #define				NUM_MEMORIES         ((ENABLE_SHARED_L1_CACHE_SUBSYSTEM == 0) ? (MEMS_PER_TILE * NUM_TILES) : (NUM_TILES))
 #define				NUM_COMPONENTS       (NUM_TILES * COMPONENTS_PER_TILE)
 
-#define				INPUTS_PER_TILE      (CORES_PER_TILE * NUM_CORE_INPUTS + ((ENABLE_SHARED_L1_CACHE_SUBSYSTEM == 0) ? MEMS_PER_TILE : 1) * NUM_MEMORY_INPUTS)
-#define				OUTPUTS_PER_TILE     (CORES_PER_TILE * NUM_CORE_OUTPUTS + ((ENABLE_SHARED_L1_CACHE_SUBSYSTEM == 0) ? MEMS_PER_TILE : 1) * NUM_MEMORY_OUTPUTS)
-#define				TOTAL_INPUTS         (INPUTS_PER_TILE * NUM_TILES)
-#define				TOTAL_OUTPUTS        (OUTPUTS_PER_TILE * NUM_TILES)
+#define				INPUT_PORTS_PER_TILE      (CORES_PER_TILE * CORE_INPUT_PORTS + ((ENABLE_SHARED_L1_CACHE_SUBSYSTEM == 0) ? MEMS_PER_TILE : 1) * MEMORY_INPUT_PORTS)
+#define				OUTPUT_PORTS_PER_TILE     (CORES_PER_TILE * CORE_OUTPUT_PORTS + ((ENABLE_SHARED_L1_CACHE_SUBSYSTEM == 0) ? MEMS_PER_TILE : 1) * MEMORY_OUTPUT_PORTS)
+#define				TOTAL_INPUT_PORTS         (INPUT_PORTS_PER_TILE * NUM_TILES)
+#define				TOTAL_OUTPUT_PORTS        (OUTPUT_PORTS_PER_TILE * NUM_TILES)
+
+#define       INPUT_CHANNELS_PER_TILE   (CORES_PER_TILE * CORE_INPUT_CHANNELS + ((ENABLE_SHARED_L1_CACHE_SUBSYSTEM == 0) ? MEMS_PER_TILE : 1) * MEMORY_INPUT_CHANNELS)
+#define       OUTPUT_CHANNELS_PER_TILE  (CORES_PER_TILE * CORE_OUTPUT_CHANNELS + ((ENABLE_SHARED_L1_CACHE_SUBSYSTEM == 0) ? MEMS_PER_TILE : 1) * MEMORY_OUTPUT_CHANNELS)
+#define       TOTAL_INPUT_CHANNELS      (INPUT_CHANNELS_PER_TILE * NUM_TILES)
+#define       TOTAL_OUTPUT_CHANNELS     (OUTPUT_CHANNELS_PER_TILE * NUM_TILES)
 
 //-------------------------------------------------------------------------------------------------
 // Run-time parameter management

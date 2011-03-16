@@ -89,12 +89,21 @@ parameter SHARED_L1_CACHE_MEMORY_DELAY_CYCLES   = 100;
 
 //-------------------------------------------------------------------------------------------------
 // Network
+//
+// Note: a port is a physical connection to the network, whereas a channel is
+// an address accessible through the network. There may be many channels
+// accessible through each port.
 //-------------------------------------------------------------------------------------------------
 
-parameter NUM_RECEIVE_CHANNELS       = 2;
-parameter NUM_SEND_CHANNELS          = 1;
-parameter NUM_MEMORY_INPUTS          = 8; // To allow SIMD experiments (not realistic)
-parameter NUM_MEMORY_OUTPUTS         = 1;
+parameter  CORE_INPUT_PORTS         = 4;  // Current = input channels. Aim = 2.
+parameter  CORE_OUTPUT_PORTS        = 1;
+parameter  NUM_RECEIVE_CHANNELS     = 2;  // Register-mapped inputs only
+
+parameter  MEMORY_INPUT_PORTS       = 8;  // Current = input channels. Aim = 1.
+parameter  MEMORY_OUTPUT_PORTS      = 1;
+parameter  MEMORY_INPUT_CHANNELS    = 8;  // Cores per tile + some extra?
+parameter  MEMORY_OUTPUT_CHANNELS   = 8;  // Same as input channels (use #define?)
+
 parameter CHANNEL_END_BUFFER_SIZE    = 32; // TODO: reduce once credit counters are fixed
 parameter ROUTER_BUFFER_SIZE         = 4;
 parameter NETWORK_BUFFER_SIZE        = 4;
@@ -138,9 +147,8 @@ void Parameters::parseParameter(const string &name, const string &value) {
 	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_MEMORY_QUEUE_DEPTH);
 	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_MEMORY_DELAY_CYCLES);
 	else SET_IF_MATCH(cName, nValue, NUM_RECEIVE_CHANNELS);
-  else SET_IF_MATCH(cName, nValue, NUM_SEND_CHANNELS);
-	else SET_IF_MATCH(cName, nValue, NUM_MEMORY_INPUTS);
-  else SET_IF_MATCH(cName, nValue, NUM_MEMORY_OUTPUTS);
+	else SET_IF_MATCH(cName, nValue, MEMORY_INPUT_CHANNELS);
+  else SET_IF_MATCH(cName, nValue, MEMORY_OUTPUT_CHANNELS);
 	else SET_IF_MATCH(cName, nValue, CHANNEL_END_BUFFER_SIZE);
 	else SET_IF_MATCH(cName, nValue, ROUTER_BUFFER_SIZE);
 	else SET_IF_MATCH(cName, nValue, NETWORK_BUFFER_SIZE);

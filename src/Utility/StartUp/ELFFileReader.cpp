@@ -143,12 +143,12 @@ DataBlock& ELFFileReader::loaderProgram() const {
     std::cout << "\nmain() is at address " << mainPos << std::endl;
 
   Instruction storeChannel("ori r3 r0 0");
-  storeChannel.immediate(componentID_*NUM_CORE_INPUTS); // Memory's first input.
+  storeChannel.immediate(componentID_*CORE_INPUT_CHANNELS); // Memory's first input.
 
   Instruction setfetchch("setchmap 0 r3");
 
   Instruction connect("ori r0 r0 0 > 0");
-  connect.immediate(core_*NUM_CORE_INPUTS + 1); // Core's IPK cache
+  connect.immediate(core_*CORE_INPUT_CHANNELS + 1); // Core's IPK cache
 
   Instruction nop("nop r0 r0 r0");
 

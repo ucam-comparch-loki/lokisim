@@ -22,6 +22,9 @@ typedef uint32_t ComponentID;
 // An index within a component's own input/output channels.
 typedef uint8_t  ChannelIndex;
 
+// An index within a component's own input/output ports.
+typedef uint8_t  PortIndex;
+
 // An index within the channel map table.
 typedef uint8_t  MapIndex;
 

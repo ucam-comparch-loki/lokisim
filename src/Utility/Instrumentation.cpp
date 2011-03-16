@@ -88,7 +88,8 @@ void Instrumentation::endExecution() {
 }
 
 void Instrumentation::networkTraffic(ChannelID startID, ChannelID endID) {
-  Network::traffic(startID/NUM_CORE_OUTPUTS, endID/NUM_CORE_INPUTS);
+  // TODO: this only works if cores and memories are the same.
+  Network::traffic(startID/CORE_OUTPUT_PORTS, endID/CORE_INPUT_PORTS);
 }
 
 void Instrumentation::networkActivity(ComponentID network, ChannelIndex source,
