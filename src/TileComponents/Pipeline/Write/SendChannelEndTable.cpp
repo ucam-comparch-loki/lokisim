@@ -59,12 +59,11 @@ void SendChannelEndTable::write(const AddressedWord& data, MapIndex output) {
   // We know it is safe to write to any buffer because we block the rest
   // of the pipeline if a buffer is full.
   assert(!buffer.full());
-  AddressedWord adjusted = data;
-//  adjusted.channelID(output);
-  buffer.write(adjusted);
-//  channelMap[output].removeCredit();
+  assert(output < CHANNEL_MAP_SIZE);
+  buffer.write(data);
+  mapEntries.write(output);
 
-  if(DEBUG) cout << this->name() << " wrote " << data.payload()
+  if(DEBUG) cout << this->name() << " wrote " << data
                  << " to output buffer" << endl;
 }
 
@@ -76,39 +75,52 @@ Word SendChannelEndTable::makeMemoryRequest(const DecodedInst& dec) const {
 }
 
 bool SendChannelEndTable::full() const {
-  return buffer.full();
+  return buffer.full() || waiting;
 }
 
 void SendChannelEndTable::send() {
   // If a buffer has information, and is allowed to send, send it
-  if(!(buffer.empty()) && flowControl.read()) {
+  if(!buffer.empty() && flowControl.read()) {
+    MapIndex entry = mapEntries.peek();
+
+    // If we don't have enough credits, abandon sending the data.
+    if(!channelMap[entry].canSend()) return;
+
     AddressedWord data = buffer.read();
-//    MapIndex entry = data.channelID();
-//    data.channelID(channelMap[entry].destination());
+    entry = mapEntries.read(); // Need to remove from the buffer after peeking earlier.
+
+    if(DEBUG) cout << "Sending " << data.payload()
+        << " from (" << id << "," << (int)entry << ") to "
+        << TileComponent::inputPortString(data.channelID())
+        << endl;
 
     output.write(data);
-//    network.write(channelMap[entry].network());
+    channelMap[entry].removeCredit();
+    network.write(channelMap[entry].network());
   }
 }
 
 /* Stall the pipeline until the specified channel is empty. */
 void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
   Instrumentation::stalled(id, true, Stalls::OUTPUT);
+  waiting = true;
 
   // Whilst the chosen channel does not have all of its credits, wait until a
   // new credit is received.
   while(!channelMap[channel].haveAllCredits()) {
     wait(creditsIn.default_event());
+    // Wait a fraction longer to ensure the credit count is updated first.
+    wait(sc_core::SC_ZERO_TIME);
   }
 
   Instrumentation::stalled(id, false);
+  waiting = false;
 }
 
 /* Return a unique ID for an output port, so credits can be routed back to
  * it. This will become obsolete if/when we have static routing. */
 ChannelID SendChannelEndTable::portID(ChannelIndex channel) const {
-  // TODO: outputChannelID, 0 -> channel
-  return TileComponent::outputPortID(id, /*channel*/0);
+  return TileComponent::outputChannelID(id, channel);
 }
 
 /* Update an entry in the channel mapping table. */
@@ -127,6 +139,7 @@ void SendChannelEndTable::updateMap(MapIndex entry, ChannelID newVal) {
   if(entry != 0) {
     AddressedWord aw(Word(portID(entry)), newVal, true);
     buffer.write(aw);
+    mapEntries.write(entry);
   }
 
   if(DEBUG) cout << this->name() << " updated map " << (int)entry << " to "
@@ -141,12 +154,17 @@ void SendChannelEndTable::receivedCredit() {
     // Note: this may not work if we have multiple tiles: it relies on all of the
     // addresses being neatly aligned.
     ChannelIndex targetCounter = creditsIn.read().channelID() % CHANNEL_MAP_SIZE;
+
+    if(DEBUG) cout << "Received credit at (" << id << "," << (int)targetCounter
+                   << ")" << endl;
+
     channelMap[targetCounter].addCredit();
 }
 
 SendChannelEndTable::SendChannelEndTable(sc_module_name name, ComponentID ID) :
     Component(name),
     buffer(CHANNEL_END_BUFFER_SIZE, string(name)),
+    mapEntries(CHANNEL_END_BUFFER_SIZE, string(name)),
     channelMap(CHANNEL_MAP_SIZE) {
 
   id = ID;

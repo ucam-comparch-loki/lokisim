@@ -45,8 +45,8 @@ public:
   // "1", representing a single credit.
   sc_out<int>           *flowControlOut;
 
-//  sc_in<AddressedWord>  *creditsIn;
-//  sc_out<bool>          *readyForCredits;
+  sc_in<AddressedWord>  *creditsIn;
+  sc_out<bool>          *readyForCredits;
 
   // Signal that this component is not currently doing any work.
   sc_out<bool>           idle;

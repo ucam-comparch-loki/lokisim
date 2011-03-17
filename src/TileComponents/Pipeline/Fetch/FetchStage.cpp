@@ -69,7 +69,7 @@ void FetchStage::cycleSecondHalf() {
   else idle.write(true);    // Idle if we can't send any instructions.
 }
 
-void FetchStage::updateStall() {
+void FetchStage::updateReady() {
   // Consider the pipeline to be stalled if the first pipeline stage is not
   // allowed to do any work. Only report the stall status when it changes.
   while(true) {

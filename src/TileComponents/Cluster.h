@@ -181,7 +181,7 @@ private:
   sc_signal<bool>            constantHigh;
 
   // Signals telling us which stages are idle, able to send data, or stalled.
-  sc_signal<bool>           *stageIdle, *stallRegReady, *stageStalled;
+  sc_signal<bool>           *stageIdle, *stallRegReady, *stageReady;
 
   // Transmission of the instruction along the pipeline. sc_buffers because we
   // want to trigger an event even if the instruction is identical.

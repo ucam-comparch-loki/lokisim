@@ -20,22 +20,26 @@ double WriteStage::energy() const {
 
 void WriteStage::execute() {
   while(true) {
-    // Wait for a new instruction to arrive.
+    // Wait for new data to arrive.
     wait(dataIn.default_event() | fromFetchLogic.default_event());
 
-    // Deal with the new input. We are currently not idle.
+    // Whilst dealing with the new input, we are not idle.
     idle.write(false);
 
     // Enter a loop in case we receive data from both inputs at once.
     while(true) {
-      if(dataIn.event()) {
-        DecodedInst inst = dataIn.read(); // Don't want a const input.
-        newInput(inst);
+      if(!isStalled()) {
+        if(dataIn.event()) {
+//          cout << "data from execute" << endl;
+          DecodedInst inst = dataIn.read(); // Don't want a const input.
+          newInput(inst);
+        }
+        else if(fromFetchLogic.event()) {
+//          cout << "data from decode" << endl;
+          scet.write(fromFetchLogic.read(), 0);
+        }
+        else break;
       }
-      else if(fromFetchLogic.event()) {
-        scet.write(fromFetchLogic.read(), 0);
-      }
-      else break;
 
       wait(clock.posedge_event());
     }

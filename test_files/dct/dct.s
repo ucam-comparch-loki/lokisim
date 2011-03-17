@@ -16,6 +16,8 @@ _start:
     ifp?setchmap    2,   r8                 # output image memory = map 2
     ifp?setchmap    3,   r9                 # next core in pipeline = map 3
     ifp?fetch       r0,  core1
+    ori             r0,  r0,  512 > 3       # Tell Cluster 1 where its first block is
+    ori             r0,  r0,  0   > 3       # Tell Cluster 1 where to store its output
     rmtexecute                    > 2       # start sending instructions to cluster 2
     ifp?ori         r7,  r0,  (8,2)
     ifp?ori         r8,  r0,  (9,2)
@@ -27,22 +29,21 @@ _start:
     ifp?setchmap    2,   r9                 # input image memory = map 2
     ifp?setchmap    3,   r10                # output image memory = map 3
     ifp?fetch       r0,  core2
-    ori             r0,  r0,  512 > 3       # Tell Cluster 1 where its first block is
-    ori.eop         r0,  r0,  0   > 3       # Tell Cluster 1 where to store its output
+    or.eop          r0,  r0,  r0
 
 
 # 1D DCT along rows
 
 # Prologue: connect to data memories
 core1:
+    or          r30, ch0, r0            # wait for location of input block
+    or          r31, ch0, r0            # wait for location of output block
+
     ori         r0,  r0,  (1,2) > 2     # connect to memory to write intermediate image
     ori         r0,  r0,  (1,3) > 1     # connect to memory to read input image and DCT weights
     ori         r29, r0,  11585         # store a value we need
 
 # Initialisation: receive parameters
-    or          r30, ch0, r0            # wait for location of input block
-    or          r31, ch0, r0            # wait for location of output block
-
     and         r2,  r2,  r0            # current row = 0
     and         r3,  r3,  r0            # current column = 0
     and         r4,  r4,  r0            # index of current weight = 0 (k)

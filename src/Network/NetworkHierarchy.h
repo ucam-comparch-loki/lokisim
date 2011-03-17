@@ -52,6 +52,9 @@ public:
   // A signal telling each output whether it is allowed to send more data.
   sc_out<bool>       *readyOut;
 
+  sc_out<CreditType> *creditsOut;
+  sc_in<bool>        *readyCredits;
+
 //==============================//
 // Constructors and destructors
 //==============================//

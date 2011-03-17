@@ -11,6 +11,7 @@
 #include "../Parameters.h"
 #include "../StringManipulation.h"
 #include "../../Datatype/Instruction.h"
+#include "../../TileComponents/Cluster.h"
 
 vector<DataBlock>& ELFFileReader::extractData() const {
   vector<DataBlock>* blocks = new vector<DataBlock>();
@@ -143,14 +144,16 @@ DataBlock& ELFFileReader::loaderProgram() const {
     std::cout << "\nmain() is at address " << mainPos << std::endl;
 
   Instruction storeChannel("ori r3 r0 0");
-  storeChannel.immediate(componentID_*CORE_INPUT_CHANNELS); // Memory's first input.
+  ChannelID firstMemInput = TileComponent::inputChannelID(componentID_, 0);
+  storeChannel.immediate(firstMemInput);
 
   Instruction setfetchch("setchmap 0 r3");
 
   Instruction connect("ori r0 r0 0 > 0");
-  connect.immediate(core_*CORE_INPUT_CHANNELS + 1); // Core's IPK cache
+  ChannelID ipkCache = Cluster::IPKCacheInput(core_);
+  connect.immediate(ipkCache);
 
-  Instruction nop("nop r0 r0 r0");
+  Instruction nop("or r0 r0 r0");
 
   Instruction fetch("fetch.eop r0 0");
   fetch.immediate(mainPos);

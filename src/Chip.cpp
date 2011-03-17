@@ -94,7 +94,10 @@ Chip::Chip(sc_module_name name, ComponentID ID, BatchModeEventRecorder *eventRec
   dataFromComponents    = new flag_signal<AddressedWord>[numOutputs];
   dataToComponents      = new flag_signal<Word>[numInputs];
   creditsFromComponents = new flag_signal<int>[numInputs];
-  creditsToComponents   = new flag_signal<bool>[numOutputs];
+  networkReadyForData   = new flag_signal<bool>[numOutputs];
+
+  creditsToComponents   = new sc_buffer<AddressedWord>[numOutputs];
+  compsReadyForCredits  = new sc_signal<bool>[numOutputs];
 
   network.clock(clock);
 
@@ -143,8 +146,13 @@ Chip::Chip(sc_module_name name, ComponentID ID, BatchModeEventRecorder *eventRec
 
       contents[i]->out[j](dataFromComponents[index]);
       network.dataIn[index](dataFromComponents[index]);
-      contents[i]->flowControlIn[j](creditsToComponents[index]);
-      network.readyOut[index](creditsToComponents[index]);
+      contents[i]->flowControlIn[j](networkReadyForData[index]);
+      network.readyOut[index](networkReadyForData[index]);
+
+      contents[i]->creditsIn[j](creditsToComponents[index]);
+      network.creditsOut[index](creditsToComponents[index]);
+      contents[i]->readyForCredits[j](compsReadyForCredits[index]);
+      network.readyCredits[index](compsReadyForCredits[index]);
     }
 
     contents[i]->clock(clock);
@@ -158,7 +166,10 @@ Chip::~Chip() {
   delete[] dataFromComponents;
   delete[] dataToComponents;
   delete[] creditsFromComponents;
+  delete[] networkReadyForData;
+
   delete[] creditsToComponents;
+  delete[] compsReadyForCredits;
 
   for(uint i=0; i<contents.size(); i++) delete contents[i];
 }

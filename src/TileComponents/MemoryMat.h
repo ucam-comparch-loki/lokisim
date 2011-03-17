@@ -123,6 +123,8 @@ private:
   // Send a flow control credit from a particular port.
   void sendCredit(ChannelIndex position);
 
+  void sendData(AddressedWord& data, MapIndex channel);
+
   // Slight optimisation: signal that data has arrived, so we only look through
   // the inputs when we know there is something to find.
   void newData();

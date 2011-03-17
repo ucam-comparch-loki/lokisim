@@ -24,7 +24,7 @@ void StageWithPredecessor::execute() {
   }
 }
 
-void StageWithPredecessor::updateStall() {
+void StageWithPredecessor::updateReady() {
   while(true) {
     // Wait until late in the cycle so we know that other tasks have completed.
     wait(clock.negedge_event());
@@ -33,19 +33,19 @@ void StageWithPredecessor::updateStall() {
     // TODO: only call this method if we know there is something to send.
     sendOutputs();
 
-    if(DEBUG && isStalled() && !stallOut.read()) {
+    if(DEBUG && isStalled() && readyOut.read()) {
       cout << this->name() << " stalled." << endl;
     }
 
     // Write our current stall status.
-    stallOut.write(isStalled());
+    readyOut.write(!isStalled());
   }
 }
 
 StageWithPredecessor::StageWithPredecessor(sc_module_name name, ComponentID ID) :
     PipelineStage(name, ID) {
 
-  stallOut.initialize(false);
+  readyOut.initialize(false);
 
 }
 

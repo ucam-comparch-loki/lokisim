@@ -154,20 +154,20 @@ const std::string TileComponent::inputPortString(ChannelID channel) {
 
 /* Convert a global channel ID into a string of the form "(component, channel)". */
 const std::string TileComponent::outputPortString(ChannelID channel) {
-  uint tile = channel / OUTPUT_PORTS_PER_TILE;
-  uint position = channel % OUTPUT_PORTS_PER_TILE;
+  uint tile = channel / OUTPUT_CHANNELS_PER_TILE;
+  uint position = channel % OUTPUT_CHANNELS_PER_TILE;
   ComponentID component = tile * COMPONENTS_PER_TILE;
   ChannelIndex channelIndex;
 
-  if(position >= CORES_PER_TILE*CORE_OUTPUT_PORTS) {
+  if(position >= CORES_PER_TILE*CORE_OUTPUT_CHANNELS) {
     component += CORES_PER_TILE;
-    position  -= CORES_PER_TILE*CORE_OUTPUT_PORTS;
-    component += position / MEMORY_OUTPUT_PORTS;
-    channelIndex  = position % MEMORY_OUTPUT_PORTS;
+    position  -= CORES_PER_TILE*CORE_OUTPUT_CHANNELS;
+    component += position / MEMORY_OUTPUT_CHANNELS;
+    channelIndex  = position % MEMORY_OUTPUT_CHANNELS;
   }
   else {
-    component += position / CORE_OUTPUT_PORTS;
-    channelIndex  = position % CORE_OUTPUT_PORTS;
+    component += position / CORE_OUTPUT_CHANNELS;
+    channelIndex  = position % CORE_OUTPUT_CHANNELS;
   }
 
   std::stringstream ss;
@@ -228,11 +228,11 @@ TileComponent::TileComponent(sc_module_name name, ComponentID ID,
   flowControlIn  = new sc_in<bool>[outputPorts];
   out            = new sc_out<AddressedWord>[outputPorts];
 
-//  creditsIn      = new sc_in<AddressedWord>[outputPorts];
-//  readyForCredits = new sc_out<bool>[outputPorts];
+  creditsIn      = new sc_in<AddressedWord>[outputPorts];
+  readyForCredits = new sc_out<bool>[outputPorts];
 
   idle.initialize(true);
-//  for(int i=0; i<outputPorts; i++) readyForCredits[i].initialize(true);
+  for(int i=0; i<outputPorts; i++) readyForCredits[i].initialize(true);
 
 }
 
@@ -241,6 +241,6 @@ TileComponent::~TileComponent() {
   delete[] out;
   delete[] flowControlIn;
   delete[] flowControlOut;
-//  delete[] creditsIn;
-//  delete[] readyForCredits;
+  delete[] creditsIn;
+  delete[] readyForCredits;
 }

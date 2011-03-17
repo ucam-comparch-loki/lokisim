@@ -102,7 +102,6 @@ public:
 
   DecodedInst();
   DecodedInst(const Instruction i);
-  virtual ~DecodedInst();
 
 //==============================//
 // Local state

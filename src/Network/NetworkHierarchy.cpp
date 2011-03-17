@@ -30,22 +30,6 @@ void NetworkHierarchy::setupFlowControl() {
     fc->readyIn(readyForCredits[input]);
   }
 
-  // Create all FlowControlOuts.
-  for(uint output=0; output<TOTAL_OUTPUT_PORTS; output++) {
-    FlowControlOut* fc = new FlowControlOut("fc_out", output);
-    flowControlOut.push_back(fc);
-
-    // Bind to network's inputs/outputs.
-    fc->dataIn(dataIn[output]);
-    fc->flowControlOut(readyOut[output]);
-
-    // Connect up internal signals.
-    fc->dataOut(dataFromComponents[output]);
-    fc->readyIn(readyForData[output]);
-    fc->creditsIn(creditsToComponents[output]);
-    fc->readyOut(compReadyForCredits[output]);
-  }
-
   // Attach flow control units to the off-chip component too.
   FlowControlIn* fcin = new FlowControlIn("fc_in", TOTAL_INPUT_PORTS);
   flowControlIn.push_back(fcin);
@@ -103,8 +87,8 @@ void NetworkHierarchy::makeLocalDataNetwork(int tileID) {
   }
   for(uint i=0; i<OUTPUT_PORTS_PER_TILE; i++) {
     int inputIndex = (tileID * OUTPUT_PORTS_PER_TILE) + i;
-    localNetwork->dataIn[i](dataFromComponents[inputIndex]);
-    localNetwork->readyOut[i](readyForData[inputIndex]);
+    localNetwork->dataIn[i](dataIn[inputIndex]);
+    localNetwork->readyOut[i](readyOut[inputIndex]);
   }
 
   localNetwork->clock(clock);
@@ -171,8 +155,8 @@ void NetworkHierarchy::makeCreditNetwork() {
 void NetworkHierarchy::makeLocalCreditNetwork(int tileID) {
 
   // Create a local network.
-  ChannelID lowestID = tileID * OUTPUT_PORTS_PER_TILE;  // TODO: CHANNELS
-  ChannelID highestID = lowestID + OUTPUT_PORTS_PER_TILE - 1; // TODO: CHANNELS
+  ChannelID lowestID = tileID * OUTPUT_CHANNELS_PER_TILE;  // TODO: CHANNELS
+  ChannelID highestID = lowestID + OUTPUT_CHANNELS_PER_TILE - 1; // TODO: CHANNELS
   Arbiter* arbiter = Arbiter::localCreditArbiter(INPUT_PORTS_PER_TILE, OUTPUT_PORTS_PER_TILE);
   Network* localNetwork = new Crossbar("local_credit_net",
                                        tileID,
@@ -187,8 +171,8 @@ void NetworkHierarchy::makeLocalCreditNetwork(int tileID) {
   // Connect things up.
   for(uint i=0; i<OUTPUT_PORTS_PER_TILE; i++) {
     int outputIndex = (tileID * OUTPUT_PORTS_PER_TILE) + i;
-    localNetwork->dataOut[i](creditsToComponents[outputIndex]);
-    localNetwork->readyIn[i](compReadyForCredits[outputIndex]);
+    localNetwork->dataOut[i](creditsOut[outputIndex]);
+    localNetwork->readyIn[i](readyCredits[outputIndex]);
   }
   for(uint i=0; i<INPUT_PORTS_PER_TILE; i++) {
     int inputIndex = (tileID * INPUT_PORTS_PER_TILE) + i;
@@ -256,6 +240,9 @@ NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
   creditsIn = new sc_in<int>[TOTAL_INPUT_PORTS];
   readyOut = new sc_out<bool>[TOTAL_OUTPUT_PORTS];
 
+  creditsOut = new sc_out<CreditType>[TOTAL_OUTPUT_PORTS];
+  readyCredits = new sc_in<bool>[TOTAL_OUTPUT_PORTS];
+
   // Make wires. We have one extra wire of each type because we have an
   // additional connection to the off-chip component.
   dataFromComponents    = new DataSignal[TOTAL_OUTPUT_PORTS+1];
@@ -286,6 +273,8 @@ NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
 NetworkHierarchy::~NetworkHierarchy() {
   delete[] dataIn;                    delete[] dataOut;
   delete[] creditsIn;                 delete[] readyOut;
+
+  delete[] creditsOut;                delete[] readyCredits;
 
   delete[] dataFromComponents;        delete[] dataToComponents;
   delete[] creditsFromComponents;     delete[] creditsToComponents;

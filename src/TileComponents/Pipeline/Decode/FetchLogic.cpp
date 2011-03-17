@@ -30,7 +30,7 @@ void FetchLogic::setFetchChannel(const ChannelID channelID) {
 
   // Need to claim this port so that it sends flow control information back
   // here.
-  AddressedWord aw(Word(portID()), channelID, true);
+  AddressedWord aw(Word(portID()), fetchChannel, true);
   toSend.write(aw);
 
   // Block if the buffer is now full?
@@ -43,6 +43,9 @@ void FetchLogic::refetch() {
 }
 
 void FetchLogic::send() {
+  // Why does this help?
+//  wait(0.1, sc_core::SC_NS);
+
   // Three conditions must be satisfied before we can send a fetch request:
   //  1. There must be something to send.
   //  2. Flow control must allow us to send.
@@ -71,8 +74,7 @@ bool FetchLogic::roomInCache() const {
 }
 
 ChannelID FetchLogic::portID() const {
-  // TODO: outputChannelID
-  return TileComponent::outputPortID(id, 0);
+  return TileComponent::outputChannelID(id, 0);
 }
 
 DecodeStage* FetchLogic::parent() const {

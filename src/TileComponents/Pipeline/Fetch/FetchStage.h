@@ -96,7 +96,7 @@ private:
   virtual void  initialise();
 
   // Recompute whether this pipeline stage is stalled.
-  virtual void  updateStall();
+  virtual void  updateReady();
 
   // Determine whether to take an instruction from the FIFO or cache.
   void          calculateSelect();

@@ -17,7 +17,7 @@ bool StallRegister::discard() {
 }
 
 void StallRegister::newCycle() {
-  if(!buffer.empty() && readyIn.read() && !localStageStalled.read()) {
+  if(!buffer.empty() && readyIn.read() && localStageReady.read()) {
     dataOut.write(buffer.read());
   }
 }
@@ -29,7 +29,7 @@ void StallRegister::newData() {
 }
 
 void StallRegister::receivedReady() {
-  readyOut.write(readyIn.read() && !localStageStalled.read());
+  readyOut.write(readyIn.read() && localStageReady.read());
 }
 
 StallRegister::StallRegister(sc_module_name name, ComponentID ID) :
@@ -45,7 +45,7 @@ StallRegister::StallRegister(sc_module_name name, ComponentID ID) :
   dont_initialize();
 
   SC_METHOD(receivedReady);
-  sensitive << readyIn << localStageStalled;
+  sensitive << readyIn << localStageReady;
   // do initialise
 
 //  readyOut.initialize(true);

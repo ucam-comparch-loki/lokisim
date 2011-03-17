@@ -63,7 +63,7 @@ parameter IPK_CACHE_SIZE             = 64;//1024;
 parameter MEMORY_SIZE                = 2048;//8 * 1024 * 1024;
 parameter CONCURRENT_MEM_OPS         = 1;//NUM_MEMORY_INPUTS;
 
-parameter CHANNEL_MAP_SIZE           = 4;
+parameter CHANNEL_MAP_SIZE           = 8;
 
 parameter MAX_IPK_SIZE               = 8; // Must be <= buffer size (wormhole)
 

@@ -59,9 +59,9 @@ void FlowControlIn::sendCredit() {
       numCredits--;
       assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
 
-//    if(DEBUG) cout << "Sent credit to port "
-//         << TileComponent::outputPortString(returnAddress) << " from "
-//         << TileComponent::inputPortString(id) << endl;
+    if(DEBUG) cout << "Sent credit from port "
+         << TileComponent::inputPortString(id) << " to "
+         << TileComponent::outputPortString(returnAddress) << endl;
     }
   }
 }

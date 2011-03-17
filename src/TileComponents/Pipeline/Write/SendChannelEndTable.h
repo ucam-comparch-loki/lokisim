@@ -101,10 +101,18 @@ protected:
   // A buffer for outgoing data.
   BufferStorage<AddressedWord> buffer;
 
+  // Store the map index associated with each entry in the main buffer, so we
+  // know where to take credits from, etc.
+  BufferStorage<MapIndex>      mapEntries;
+
   // Channel mapping table used to store addresses of destinations of sent
   // data. Note that mapping 0 is held both here and in the decode stage --
   // it may be possible to optimise this away at some point.
   vector<ChannelMapEntry>      channelMap;
+
+  // Currently waiting for some event to occur. (e.g. Credits to arrive or
+  // buffer to empty.)
+  bool waiting;
 
   // Anything sent to the null channel ID doesn't get sent at all. This allows
   // more code re-use, even in situations where we don't want to send results.

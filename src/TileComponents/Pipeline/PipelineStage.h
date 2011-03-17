@@ -37,10 +37,6 @@ protected:
   SC_HAS_PROCESS(PipelineStage);
   PipelineStage(sc_module_name name, ComponentID ID);
 
-public:
-
-  virtual ~PipelineStage();
-
 //==============================//
 // Methods
 //==============================//
@@ -70,8 +66,8 @@ protected:
   // any data on them now.
   virtual void sendOutputs();
 
-  // Recompute whether this pipeline stage is stalled.
-  virtual void updateStall() = 0;
+  // Recompute whether this pipeline stage is ready for new input.
+  virtual void updateReady() = 0;
 
   // Some components require initialisation before execution begins.
   // Initialisation may involve operations such as setting flow control values.

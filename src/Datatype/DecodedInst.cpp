@@ -274,7 +274,3 @@ DecodedInst::DecodedInst(const Instruction i) {
     }
   }
 }
-
-DecodedInst::~DecodedInst() {
-
-}

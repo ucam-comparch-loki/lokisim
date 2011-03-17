@@ -73,5 +73,8 @@ loop:
     addu                r11, r11, r31           # move to next output row
     setgte.p            r0,  r11, r2            # see if we have finished the matrix
     if!p?fetch          r0,  loadrow            # if not, loop
+    ifp?fetch           r0,  end
+    or.eop              r0,  r0,  r0
 
+end:
     syscall.eop         1                       # if so, end

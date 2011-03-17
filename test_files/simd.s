@@ -11,16 +11,16 @@
 # Set up connection to memory containing arguments
 _start:
     ori                 r4,  r0,  (9,0)
-    fetch               r0,  setuploop
     setchmap            1,   r4
     ori                 r0,  r0,  (0,2) -> 1    # connect to the argument memory
     ldw                 r0,  0          -> 1    # load number of SIMD members
+    fetch               r0,  setuploop
 
-# Load number of SIMD members
-    ori                 r7,  r0,  0             # r7 = current core we're sending to
-    ori                 r5,  r0,  0             # r5 = remote core's instruction input
-    ori                 r6,  r0,  2             # r6 = remote core's data input
-    ori.eop             r10, ch0, 0             # r10 = number of SIMD members
+    or                  r10, ch0, r0            # r10 = number of SIMD members
+    addui               r7,  r10, -1            # r7 = current core we're sending to
+    ori                 r8,  r0,  (1,0)         # r8 = input ports per core
+    mullw               r5,  r7,  r8            # r5 = remote core's instruction input
+    addui.eop           r6,  r5,  2             # r6 = remote core's data input
 
 # Set up connections to remote core
 setuploop:
@@ -41,12 +41,12 @@ setuploop:
     p?setchmap          0,   r4
     p?addui             r0,  r8,  1    -> 0     # connect to the instruction memory
     p?ori               r31, ch0, 0             # r31 = number of SIMD members
-    p?fetch             r0,  4320               # load program (hardcoded address = bad)
+    p?fetch             r0,  4328               # load program (hardcoded address = bad)
 
 # If more members, loop
-    addui               r7,  r7,  1             # update to next member
-    setlt.p             r0,  r7,  r10           # see if we have started all members
-    p?addui             r5,  r5,  (1,0)         # update instruction input
-    p?addui             r6,  r6,  (1,0)         # update data input
+    addui               r7,  r7,  -1            # update to next member
+    setgte.p            r0,  r7,  r0            # see if we have started all members
+    p?subu              r5,  r5,  r8            # update instruction input
+    p?subu              r6,  r6,  r8            # update data input
     p?ibjmp             -136                    # loop if there's another member
     or.eop              r0,  r0,  r0

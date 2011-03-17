@@ -328,9 +328,18 @@ int32_t Instruction::decodeRChannel(const string& channel) {
     parts[0].erase(parts[0].begin());           // Remove the bracket
     parts[1].erase(parts[1].end()-1);           // Remove the bracket
 
+    int component = Strings::strToInt(parts[0]);
+    int channelIndex = Strings::strToInt(parts[1]);
+    bool negative = false;
+
+    if(component < 0) {
+      negative = true;
+      component = -component;
+    }
+
     // TODO: inputChannelID
-    channelID = TileComponent::inputPortID(Strings::strToInt(parts[0]),
-                                              Strings::strToInt(parts[1]));
+    channelID = TileComponent::inputPortID(component, channelIndex);
+    if(negative) channelID = -channelID;
   }
 
   delete &parts;

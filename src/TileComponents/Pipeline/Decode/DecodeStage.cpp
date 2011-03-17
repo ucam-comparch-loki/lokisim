@@ -25,7 +25,15 @@ void         DecodeStage::newInput(DecodedInst& inst) {
     DecodedInst decoded;
     bool success = decoder.decodeInstruction(inst, decoded);
 
-    if(success) dataOut.write(decoded);
+    if(success) {
+      // Wait until flow control allows us to send.
+      if(!readyIn.read()) {
+        waitingToSend = true;
+        wait(readyIn.posedge_event());
+        waitingToSend = false;
+      }
+      dataOut.write(decoded);
+    }
 
     // If the decoder is ready, we have finished the decode.
     if(decoder.ready()) break;
@@ -39,7 +47,7 @@ void         DecodeStage::sendOutputs() {
 }
 
 bool         DecodeStage::isStalled() const {
-  return !decoder.ready();  // Take into account fetch buffers too?
+  return !decoder.ready() || waitingToSend;  // Take into account fetch buffers too?
 }
 
 int32_t      DecodeStage::readReg(RegisterIndex index, bool indirect) const {
@@ -105,6 +113,7 @@ DecodeStage::DecodeStage(sc_module_name name, ComponentID ID) :
     extend("signextend") {
 
   id = ID;
+  waitingToSend = false;
 
   rcetIn         = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
   flowControlOut = new sc_out<int>[NUM_RECEIVE_CHANNELS];

@@ -244,7 +244,7 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   // Create signals, with the number based on the length of the pipeline.
   stageIdle     = new sc_signal<bool>[stages.size()];
   stallRegReady = new sc_signal<bool>[stages.size()-1];
-  stageStalled  = new sc_signal<bool>[stages.size()-1];
+  stageReady  = new sc_signal<bool>[stages.size()-1];
   dataToStage   = new flag_signal<DecodedInst>[stages.size()-1];
   dataFromStage = new flag_signal<DecodedInst>[stages.size()-1];
 
@@ -254,7 +254,7 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
 
     stallReg->clock(clock);               stallReg->readyOut(stallRegReady[i]);
     stallReg->dataIn(dataFromStage[i]);   stallReg->dataOut(dataToStage[i]);
-    stallReg->localStageStalled(stageStalled[i]);
+    stallReg->localStageReady(stageReady[i]);
 
     // The final stall register gets a different ready signal.
     if(i<stages.size()-2) stallReg->readyIn(stallRegReady[i+1]);
@@ -270,7 +270,7 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
     // All stages except the first have some ports.
     if(i>0) {
       StageWithPredecessor* stage = dynamic_cast<StageWithPredecessor*>(stages[i]);
-      stage->stallOut(stageStalled[i-1]); stage->dataIn(dataToStage[i-1]);
+      stage->readyOut(stageReady[i-1]); stage->dataIn(dataToStage[i-1]);
     }
 
     // All stages except the last have some ports.
@@ -287,7 +287,9 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   fetch->readyIn(stallRegReady[0]);
 
   DecodeStage* decode = dynamic_cast<DecodeStage*>(stages[1]);
-  decode->fetchOut(fetchSignal);          decode->flowControlIn(flowControlIn[0]);
+  decode->fetchOut(fetchSignal);
+  decode->flowControlIn(stageReady[stages.size()-2]); // Flow control from output buffers
+  decode->readyIn(stallRegReady[1]);
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     decode->rcetIn[i](in[i+2]);
     decode->flowControlOut[i](flowControlOut[i+2]);
@@ -299,9 +301,7 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   // temporary signals
   sc_signal<int>* network = new sc_signal<int>();
   write->network(*network);
-  sc_signal<AddressedWord>* credits = new sc_signal<AddressedWord>();
-  write->creditsIn(*credits);
-//  write->creditsIn(creditsIn[0]);
+  write->creditsIn(creditsIn[0]);
 
   SC_METHOD(updateIdle);
   for(uint i=0; i<stages.size(); i++) sensitive << stageIdle[i];
@@ -320,7 +320,7 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
 Cluster::~Cluster() {
   delete[] stageIdle;
   delete[] stallRegReady;
-  delete[] stageStalled;
+  delete[] stageReady;
   delete[] dataToStage;
   delete[] dataFromStage;
 

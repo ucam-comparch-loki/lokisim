@@ -103,9 +103,9 @@ void MemoryMat::read(ChannelIndex input) {
 
     // May need to read additional data to get a whole instruction.
     if(BYTES_PER_INSTRUCTION > BYTES_PER_WORD) {
-      uint32_t first = (uint32_t)data.toInt();
+      uint32_t first  = (uint32_t)data.toInt();
       uint32_t second = (uint32_t)readWord(addr+BYTES_PER_WORD).toInt();
-      uint64_t total = ((uint64_t)first << 32) + second;
+      uint64_t total  = ((uint64_t)first << 32) + second;
       data = Word(total);
     }
 
@@ -119,28 +119,20 @@ void MemoryMat::read(ChannelIndex input) {
     }
   }
   else {
-    if(connection.byteAccess()) {
-      data = readByte(addr);
-    }
-    else if(connection.halfWordAccess()) {
-      data = readHalfWord(addr);
-    }
-    else {
-      data = readWord(addr);
-    }
+    if(connection.byteAccess())          {data = readByte(addr);}
+    else if(connection.halfWordAccess()) {data = readHalfWord(addr);}
+    else                                 {data = readWord(addr);}
+
     connection.clear(); activeConnections--;
   }
+
+  if(DEBUG) cout << data << endl;
+  Instrumentation::l1Read(addr, isInstruction);
 
   // Send the result of the read.
   AddressedWord aw(data, returnAddr);
   if(!endOfPacket) aw.notEndOfPacket();
-
-  out[output].write(aw);
-//  sendTable_[input].removeCredit();
-
-  Instrumentation::l1Read(addr, isInstruction);
-  if(DEBUG) cout << data << endl;
-
+  sendData(aw, input);
 }
 
 /* Carry out a write for the transaction at the given input port. */
@@ -243,26 +235,23 @@ void MemoryMat::newOperation(ChannelIndex port) {
 void MemoryMat::updateControl(ChannelIndex input, ChannelID returnAddr) {
   active = true;
 
-  ChannelIndex output = outputToUse(input);
-
   // We don't have to do any safety checks because we assume that all
   // connections are statically scheduled.
   connections_[input].clear();
 
   // Wait until all data sent has been consumed before changing the destination.
   while(!sendTable_[input].haveAllCredits()) {
-    // TODO: wait for credit
+    wait(creditsIn[0].default_event());
   }
   sendTable_[input].destination(returnAddr);
 
   // Set up a connection to the port we are now sending to: send the output
   // port's ID, and flag it as a setup message.
-  int portID = outputPortID(id, output);  // TODO: change to input, outputChannelID
+  int portID = outputChannelID(id, input);
   AddressedWord aw(Word(portID), returnAddr, true);
 
-  assert(flowControlIn[output].read());
-  out[output].write(aw);
-//  sendTable_[input].removeCredit();
+  // Send the port claim onto the network.
+  sendData(aw, input);
 }
 
 /* Determine which of the operations at the given inputs may be carried out
@@ -310,6 +299,24 @@ void MemoryMat::sendCredit(ChannelIndex position) {
   flowControlOut[position].write(1);
 }
 
+void MemoryMat::sendData(AddressedWord& data, MapIndex channel) {
+  // Block until this channel has enough credits to send.
+  while(!sendTable_[channel].canSend()) {
+    wait(creditsIn[0].default_event());
+    // Wait a fraction longer to ensure credit count is updated first.
+    wait(sc_core::SC_ZERO_TIME);
+  }
+
+  if(DEBUG) cout << "Sending " << data.payload()
+                 << " from (" << id << "," << (int)channel << ") to "
+                 << TileComponent::inputPortString(data.channelID())
+                 << endl;
+
+  assert(flowControlIn[0].read());
+  out[0].write(data);
+  sendTable_[channel].removeCredit();
+}
+
 void MemoryMat::newData() {
   newData_ = true;
 }
@@ -317,8 +324,12 @@ void MemoryMat::newData() {
 void MemoryMat::newCredit() {
   // Note: this may not work if we have multiple tiles: it relies on all of the
   // addresses being neatly aligned.
-//  ChannelIndex targetCounter = creditsIn[0].read().channelID() % MEMORY_OUTPUT_CHANNELS;
-//  sendTable_[targetCounter].addCredit();
+  ChannelIndex targetCounter = creditsIn[0].read().channelID() % MEMORY_OUTPUT_CHANNELS;
+
+  if(DEBUG) cout << "Received credit at (" << id << "," << (int)targetCounter
+                 << ")" << endl;
+
+  sendTable_[targetCounter].addCredit();
 }
 
 /* Initialise the contents of this memory to the Words in the given vector. */
@@ -399,9 +410,9 @@ MemoryMat::MemoryMat(sc_module_name name, ComponentID ID) :
   for(uint i=0; i<MEMORY_INPUT_PORTS; i++) sensitive << in[i];
   dont_initialize();
 
-//  SC_METHOD(newCredit);
-//  sensitive << creditsIn[0];
-//  dont_initialize();
+  SC_METHOD(newCredit);
+  sensitive << creditsIn[0];
+  dont_initialize();
 
   Instrumentation::idle(id, true);
 

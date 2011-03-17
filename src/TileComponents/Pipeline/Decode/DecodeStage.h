@@ -43,8 +43,12 @@ public:
   // An output used to send FETCH requests.
   sc_out<AddressedWord> fetchOut;
 
-  // A flow control signal for the output.
+  // A flow control signal for the output to the network.
   sc_in<bool>           flowControlIn;
+
+  // Since this stage can produce multiple outputs from a single input
+  // instruction, it needs to be told when it can send data.
+  sc_in<bool>           readyIn;
 
 //==============================//
 // Constructors and destructors
@@ -135,6 +139,8 @@ private:
   friend class Decoder;
   friend class ReceiveChannelEndTable;
   friend class SignExtend;
+
+  bool waitingToSend;
 
 };
 

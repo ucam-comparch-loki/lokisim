@@ -32,7 +32,7 @@ public:
 
   // Tells whether the local pipeline stage (the one immediately following this
   // stall register) is stalling.
-  sc_in<bool>         localStageStalled;
+  sc_in<bool>         localStageReady;
 
   // Tells whether the next stall register is ready to receive new data.
   sc_in<bool>         readyIn;

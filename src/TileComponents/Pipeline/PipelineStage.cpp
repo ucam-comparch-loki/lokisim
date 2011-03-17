@@ -49,12 +49,8 @@ PipelineStage::PipelineStage(sc_module_name name, ComponentID ID) : Component(na
   id = ID;
 
   SC_THREAD(execute);
-  SC_THREAD(updateStall);
+  SC_THREAD(updateReady);
 
   idle.initialize(true);
-
-}
-
-PipelineStage::~PipelineStage() {
 
 }

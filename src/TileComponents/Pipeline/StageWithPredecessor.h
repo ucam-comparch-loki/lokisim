@@ -29,8 +29,8 @@ public:
   // required for any pipeline stage to do its work.
   sc_in<DecodedInst> dataIn;
 
-  // Tell whether this stage is stalling (ignoring effects of any other stages).
-  sc_out<bool>       stallOut;
+  // Tell whether this stage is ready for input (ignoring effects of any other stages).
+  sc_out<bool>       readyOut;
 
 //==============================//
 // Methods
@@ -44,7 +44,7 @@ protected:  // See if we can get away with execute and updateStall being private
 
   // Determine whether this stage is stalled or not, and write the appropriate
   // output.
-  virtual void updateStall();
+  virtual void updateReady();
 
   // Returns whether this stage is currently stalled (ignoring effects of any
   // other stages).
