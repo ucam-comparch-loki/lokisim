@@ -255,7 +255,7 @@ void Debugger::executeUntilBreakpoint() {
   hitBreakpoint = false;
 }
 
-void Debugger::finishExecution() {cerr << "hello?" << endl;
+void Debugger::finishExecution() {
   while(cyclesIdle<maxIdleTime && cycleNumber<TIMEOUT &&
         !sc_core::sc_end_of_simulation_invoked()) {
     executeSingleCycle();

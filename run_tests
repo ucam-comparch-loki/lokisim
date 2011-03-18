@@ -8,16 +8,15 @@ import os, subprocess, sys, threading, time
 
 # The start of a parallel implementation.
 # Problems:
-#  * Competition for loader file => pass argument to simulator instead
 #  * The tests keep changing the current working directory.
-#class Test(threading.Thread):
-#    def __init__(self, command):
-#        threading.Thread.__init__(self)
-#        self._command = command
-#    
-#    def run(self):
-#        process = subprocess.Popen(self._command)
-#        process.wait()
+class Test(threading.Thread):
+    def __init__(self, command):
+        threading.Thread.__init__(self)
+        self._command = command
+    
+    def run(self):
+        process = subprocess.Popen(self._command)
+        process.wait()
 
 parallel = False
     
@@ -79,6 +78,7 @@ if len(sys.argv) >= 2:
             testCount += testAll(subdir)
         elif argument == "-p":
             parallel = True
+            testCount = testAll(directory)
 else:
     # Run all tests.
     testCount = testAll(directory)

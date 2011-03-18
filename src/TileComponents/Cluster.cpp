@@ -6,6 +6,7 @@
  */
 
 #include "Cluster.h"
+#include "InputCrossbar.h"
 #include "Pipeline/StallRegister.h"
 #include "Pipeline/Fetch/FetchStage.h"
 #include "Pipeline/Decode/DecodeStage.h"
@@ -234,6 +235,8 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
 
   previousDest1 = previousDest2 = -1;
 
+  inputCrossbar = new InputCrossbar("input", ID, CORE_INPUT_PORTS, CORE_INPUT_CHANNELS);
+
   // Create pipeline stages and put into a vector (allows arbitrary length
   // pipeline).
   stages.push_back(new FetchStage("fetch", ID));
@@ -244,9 +247,25 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   // Create signals, with the number based on the length of the pipeline.
   stageIdle     = new sc_signal<bool>[stages.size()];
   stallRegReady = new sc_signal<bool>[stages.size()-1];
-  stageReady  = new sc_signal<bool>[stages.size()-1];
+  stageReady    = new sc_signal<bool>[stages.size()-1];
   dataToStage   = new flag_signal<DecodedInst>[stages.size()-1];
   dataFromStage = new flag_signal<DecodedInst>[stages.size()-1];
+
+  fcFromBuffers = new sc_buffer<int>[CORE_INPUT_CHANNELS];
+  dataToBuffers = new flag_signal<Word>[CORE_INPUT_CHANNELS];
+
+  // Wire the input ports to the input buffers.
+  for(uint i=0; i<CORE_INPUT_PORTS; i++) {
+    inputCrossbar->dataIn[i](in[i]);
+    inputCrossbar->creditsOut[i](creditsOut[i]);
+    inputCrossbar->readyOut[i](canReceiveData[i]);
+    inputCrossbar->readyIn[i](canSendCredit[i]);
+  }
+
+  for(uint i=0; i<CORE_INPUT_CHANNELS; i++) {
+    inputCrossbar->dataOut[i](dataToBuffers[i]);
+    inputCrossbar->flowControlIn[i](fcFromBuffers[i]);
+  }
 
   // Wire the stall registers up.
   for(uint i=0; i<stages.size()-1; i++) {
@@ -282,8 +301,8 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
 
   // Wire up unique inputs/outputs which can't be done in the loops above.
   FetchStage*  fetch  = dynamic_cast<FetchStage*>(stages.front());
-  fetch->toIPKFIFO(in[0]);                fetch->flowControl[0](flowControlOut[0]);
-  fetch->toIPKCache(in[1]);               fetch->flowControl[1](flowControlOut[1]);
+  fetch->toIPKFIFO(dataToBuffers[0]);     fetch->flowControl[0](fcFromBuffers[0]);
+  fetch->toIPKCache(dataToBuffers[1]);    fetch->flowControl[1](fcFromBuffers[1]);
   fetch->readyIn(stallRegReady[0]);
 
   DecodeStage* decode = dynamic_cast<DecodeStage*>(stages[1]);
@@ -291,13 +310,13 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   decode->flowControlIn(stageReady[stages.size()-2]); // Flow control from output buffers
   decode->readyIn(stallRegReady[1]);
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
-    decode->rcetIn[i](in[i+2]);
-    decode->flowControlOut[i](flowControlOut[i+2]);
+    decode->rcetIn[i](dataToBuffers[i+2]);
+    decode->flowControlOut[i](fcFromBuffers[i+2]);
   }
 
   WriteStage*  write  = dynamic_cast<WriteStage*>(stages.back());
   write->fromFetchLogic(fetchSignal);
-  write->output(out[0]);             write->flowControl(flowControlIn[0]);
+  write->output(out[0]);             write->flowControl(canSendData[0]);
   // temporary signals
   sc_signal<int>* network = new sc_signal<int>();
   write->network(*network);
@@ -318,6 +337,8 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
 }
 
 Cluster::~Cluster() {
+  delete inputCrossbar;
+
   delete[] stageIdle;
   delete[] stallRegReady;
   delete[] stageReady;

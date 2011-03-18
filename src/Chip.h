@@ -86,14 +86,18 @@ private:
 
 private:
 
-  flag_signal<AddressedWord> *dataFromComponents;
-  flag_signal<Word>          *dataToComponents;
-  flag_signal<int>           *creditsFromComponents;
-  flag_signal<bool>          *networkReadyForData;
   sc_signal<bool>            *idleSig;
+
+  flag_signal<AddressedWord> *dataFromComponents;
+  flag_signal<AddressedWord> *dataToComponents;
+  flag_signal<AddressedWord> *creditsFromComponents;
+  flag_signal<bool>          *networkReadyForData;  // sc_signal?
 
   sc_buffer<AddressedWord>   *creditsToComponents;
   sc_signal<bool>            *compsReadyForCredits;
+
+  sc_signal<bool>            *compsReadyForData;
+  sc_signal<bool>            *networkReadyForCredits;
 
 //==============================//
 // Local state

@@ -141,6 +141,9 @@ private:
   // The data stored by this memory.
   AddressedStorage<Word> data_;
 
+  // The addresses to send credits back to.
+  vector<ChannelID> creditDestinations_;
+
   // Information on the channels set up with each of this memory's inputs.
   vector<ConnectionStatus> connections_;
 

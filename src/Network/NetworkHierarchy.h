@@ -26,8 +26,10 @@ class TileComponent;
 
 typedef AddressedWord CreditType;     // May be a bool one day
 typedef AddressedWord DataType;
+typedef bool ReadyType;
 typedef flag_signal<CreditType> CreditSignal;
 typedef flag_signal<DataType> DataSignal;
+typedef sc_signal<ReadyType> ReadySignal;
 
 class NetworkHierarchy : public Component {
 
@@ -44,16 +46,19 @@ public:
 
   // Data sent to each networked component (after having its address removed
   // by the flow control components).
-  sc_out<Word>       *dataOut;
+  sc_out<AddressedWord> *dataOut;
 
   // Flow control information received from each input of each component.
-  sc_in<int>         *creditsIn;
+  sc_in<CreditType>  *creditsIn;
 
   // A signal telling each output whether it is allowed to send more data.
-  sc_out<bool>       *readyOut;
+  sc_out<ReadyType>  *canReceiveData;
 
   sc_out<CreditType> *creditsOut;
-  sc_in<bool>        *readyCredits;
+  sc_in<ReadyType>   *canSendCredit;
+
+  sc_in<ReadyType>   *canSendData;
+  sc_out<ReadyType>  *canReceiveCredit;
 
 //==============================//
 // Constructors and destructors
@@ -105,20 +110,20 @@ private:
   // Local network
   DataSignal        *dataToComponents, *dataFromComponents;
   CreditSignal      *creditsToComponents, *creditsFromComponents;
-  sc_signal<bool>   *compReadyForData, *compReadyForCredits,
+  ReadySignal       *compReadyForData, *compReadyForCredits,
                     *readyForData, *readyForCredits;
 
   // Global network
   DataSignal        *dataToLocalNet, *dataFromLocalNet;
   CreditSignal      *creditsToLocalNet, *creditsFromLocalNet;
-  sc_signal<bool>   *localReadyForData, *localReadyForCredits,
+  ReadySignal       *localReadyForData, *localReadyForCredits,
                     *globalReadyForData, *globalReadyForCredits;
 
   // Off-chip
-  flag_signal<DataType> dataFromOffChip;
-  flag_signal<Word> dataToOffChip;
-  flag_signal<int> creditsFromOffChip;
-  sc_signal<bool> readyToOffChip;
+  DataSignal         dataFromOffChip;
+  flag_signal<Word>  dataToOffChip;
+  flag_signal<int>   creditsFromOffChip;
+  ReadySignal        readyToOffChip;
 
 };
 

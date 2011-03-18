@@ -4,7 +4,7 @@ case $1 in
   *.o)
     CPP_SOURCE="${1%.o}.cpp" # default.do doesn't strip extension
     redo-ifchange $CPP_SOURCE
-    g++ -O2 -MMD -MF $3.deps.tmp -c -o $3 $CPP_SOURCE
+    g++ -O2 -ffast-math -MMD -MF $3.deps.tmp -c -o $3 $CPP_SOURCE
     read DEPS <$3.deps.tmp
     rm -f $3.deps.tmp
 #    redo-ifchange ${DEPS#*:} TODO: work out how this triggers a redo bug

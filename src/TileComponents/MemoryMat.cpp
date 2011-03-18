@@ -44,10 +44,23 @@ void MemoryMat::checkInputs() {
 
   for(ChannelIndex i=0; i<inputBuffers_.size(); i++) {
     if(in[i].event()) {
-      // Flow control means there should be at least one buffer space available.
-      assert(!inputBuffers_[i].full());
+      AddressedWord input = in[i].read();
 
-      inputBuffers_[i].write(in[i].read());
+      // Store the first input channel ID so it doesn't have to be recomputed?
+      ChannelIndex channel = input.channelID() - inputChannelID(id, 0);
+
+      if(input.portClaim()) {
+        // assert(inputBuffers_[channel].empty()); ?
+        // Claim this input channel for the sending output channel. Store
+        // the output channel's address so we can send credits back.
+        creditDestinations_[channel] = input.payload().toInt();
+        sendCredit(channel);
+      }
+      else {
+        // Flow control means there should be at least one buffer space available.
+        assert(!inputBuffers_[channel].full());
+        inputBuffers_[channel].write(input.payload());
+      }
     }
   }
 
@@ -84,7 +97,7 @@ void MemoryMat::read(ChannelIndex input) {
   ChannelIndex output = outputToUse(input);
 
   // If we are reading, we should be allowed to send the result.
-  assert(flowControlIn[output].read());
+  assert(canSendData[output].read());
 
   ConnectionStatus& connection = connections_[input];
   MemoryAddr addr = connection.address();
@@ -192,7 +205,7 @@ bool MemoryMat::canAcceptRequest(ChannelIndex i) const {
   // If a result will need to be sent, check that the flow control signal
   // allows this.
   ChannelIndex output = outputToUse(i);
-  bool canSend = flowControlIn[output].read() && sendTable_[i].canSend();
+  bool canSend = canSendData[output].read() && sendTable_[i].canSend();
 
   // Writes require data to write, so see if it has arrived yet.
   bool moreData = !inputBuffers_[i].empty();
@@ -220,7 +233,7 @@ void MemoryMat::newOperation(ChannelIndex port) {
 
     // Assuming it's possible to set up a read and perform a read in one cycle.
     ChannelIndex output = outputToUse(port);
-    if(flowControlIn[output].read()) read(port);
+    if(canSendData[output].read()) read(port);
   }
   else if(request.isWriteRequest()) {
     connections_[port].writeAddress(request.address(), request.operation());
@@ -296,7 +309,8 @@ void MemoryMat::updateIdle() {
  * buffer. Would ideally like to combine the credit sending with the buffer
  * reading so we can be sure that the credit is always sent. */
 void MemoryMat::sendCredit(ChannelIndex position) {
-  flowControlOut[position].write(1);
+  ChannelID returnAddr = creditDestinations_[position];
+  creditsOut[position].write(AddressedWord(1, returnAddr));
 }
 
 void MemoryMat::sendData(AddressedWord& data, MapIndex channel) {
@@ -312,7 +326,7 @@ void MemoryMat::sendData(AddressedWord& data, MapIndex channel) {
                  << TileComponent::inputPortString(data.channelID())
                  << endl;
 
-  assert(flowControlIn[0].read());
+  assert(canSendData[0].read());
   out[0].write(data);
   sendTable_[channel].removeCredit();
 }
@@ -397,6 +411,7 @@ void MemoryMat::writeMemory(MemoryAddr addr, Word data) {
 MemoryMat::MemoryMat(sc_module_name name, ComponentID ID) :
     TileComponent(name, ID, MEMORY_INPUT_PORTS, MEMORY_OUTPUT_PORTS),
     data_(MEMORY_SIZE, string(name)),
+    creditDestinations_(MEMORY_INPUT_CHANNELS),
     connections_(MEMORY_INPUT_CHANNELS),
     sendTable_(MEMORY_OUTPUT_CHANNELS),
     inputBuffers_(MEMORY_INPUT_CHANNELS, CHANNEL_END_BUFFER_SIZE, string(name)) {

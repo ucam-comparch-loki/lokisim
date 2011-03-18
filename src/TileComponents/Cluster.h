@@ -19,6 +19,7 @@
 #include "Pipeline/IndirectRegisterFile.h"
 #include "Pipeline/PredicateRegister.h"
 
+class InputCrossbar;
 class PipelineStage;
 class StallRegister;
 
@@ -144,6 +145,10 @@ private:
 
 private:
 
+  // Very small crossbar between input ports and input buffers. Allows there to
+  // be fewer network connections, making the tile network simpler.
+  InputCrossbar*           inputCrossbar;
+
   IndirectRegisterFile     regs;
   PredicateRegister        pred;
 
@@ -182,6 +187,9 @@ private:
 
   // Signals telling us which stages are idle, able to send data, or stalled.
   sc_signal<bool>           *stageIdle, *stallRegReady, *stageReady;
+
+  flag_signal<Word>         *dataToBuffers; // TODO: don't require flag_signal
+  sc_buffer<int>            *fcFromBuffers;
 
   // Transmission of the instruction along the pipeline. sc_buffers because we
   // want to trigger an event even if the instruction is identical.

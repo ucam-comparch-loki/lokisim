@@ -31,22 +31,20 @@ public:
   sc_in<bool>            clock;
 
   // All inputs to the component.
-  sc_in<Word>           *in;
+  sc_in<AddressedWord>  *in;
+  sc_out<bool>          *canReceiveData;
 
   // All outputs of the component.
   sc_out<AddressedWord> *out;
+  sc_in<bool>           *canSendData;
 
-  // A flow control signal for each output.
-  sc_in<bool>           *flowControlIn;
+  // Credits to be sent across the network.
+  sc_out<AddressedWord> *creditsOut;
+  sc_in<bool>           *canSendCredit;
 
-  // A flow control signal for each input. Each one tells how much space is
-  // remaining in a particular input buffer.
-  // Note: although this is possible, the usage now seems to be to always send
-  // "1", representing a single credit.
-  sc_out<int>           *flowControlOut;
-
+  // Credits received from the network.
   sc_in<AddressedWord>  *creditsIn;
-  sc_out<bool>          *readyForCredits;
+  sc_out<bool>          *canReceiveCredit;
 
   // Signal that this component is not currently doing any work.
   sc_out<bool>           idle;

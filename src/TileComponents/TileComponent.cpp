@@ -222,25 +222,29 @@ TileComponent::TileComponent(sc_module_name name, ComponentID ID,
                              int inputPorts, int outputPorts) :
     Component(name, ID) {
 
-  flowControlOut = new sc_out<int>[inputPorts];
-  in             = new sc_in<Word>[inputPorts];
+  in               = new sc_in<AddressedWord>[inputPorts];
+  canReceiveData   = new sc_out<bool>[inputPorts];
 
-  flowControlIn  = new sc_in<bool>[outputPorts];
-  out            = new sc_out<AddressedWord>[outputPorts];
+  out              = new sc_out<AddressedWord>[outputPorts];
+  canSendData      = new sc_in<bool>[outputPorts];
 
-  creditsIn      = new sc_in<AddressedWord>[outputPorts];
-  readyForCredits = new sc_out<bool>[outputPorts];
+  creditsOut       = new sc_out<AddressedWord>[inputPorts];
+  canSendCredit    = new sc_in<bool>[inputPorts];
+
+  creditsIn        = new sc_in<AddressedWord>[outputPorts];
+  canReceiveCredit = new sc_out<bool>[outputPorts];
 
   idle.initialize(true);
-  for(int i=0; i<outputPorts; i++) readyForCredits[i].initialize(true);
+  for(int i=0; i<outputPorts; i++) canReceiveCredit[i].initialize(true);
+  for(int i=0; i<inputPorts; i++)  canReceiveData[i].initialize(true);
 
 }
 
 TileComponent::~TileComponent() {
   delete[] in;
   delete[] out;
-  delete[] flowControlIn;
-  delete[] flowControlOut;
+  delete[] canSendData;
+  delete[] creditsOut;
   delete[] creditsIn;
-  delete[] readyForCredits;
+  delete[] canReceiveCredit;
 }

@@ -56,10 +56,10 @@ SharedL1CacheSubsystem::SharedL1CacheSubsystem(sc_module_name name, ComponentID 
 
 	// Initialise top-level ports of cache subsystem
 
-	flowControlOut = new sc_out<int>[SHARED_L1_CACHE_CHANNELS];
-	in             = new sc_in<Word>[SHARED_L1_CACHE_CHANNELS];
+	creditsOut = new sc_out<AddressedWord>[SHARED_L1_CACHE_CHANNELS];    // db434
+	in             = new sc_in<AddressedWord>[SHARED_L1_CACHE_CHANNELS]; // db434
 
-	flowControlIn  = new sc_in<bool>[SHARED_L1_CACHE_CHANNELS];
+	canSendData  = new sc_in<bool>[SHARED_L1_CACHE_CHANNELS];
 	out            = new sc_out<AddressedWord>[SHARED_L1_CACHE_CHANNELS];
 
 	// Construct network interfaces
@@ -146,11 +146,11 @@ SharedL1CacheSubsystem::SharedL1CacheSubsystem(sc_module_name name, ComponentID 
 
 		mNetworkInterfaces[i]->iClock.bind(clock);
 
-		mNetworkInterfaces[i]->iDataRx.bind(in[i]);
-		mNetworkInterfaces[i]->oFlowControlRx.bind(flowControlOut[i]);
+//		mNetworkInterfaces[i]->iDataRx.bind(in[i]);                 // db434
+//		mNetworkInterfaces[i]->oFlowControlRx.bind(creditsOut[i]);  // db434
 
 		mNetworkInterfaces[i]->oDataTx.bind(out[i]);
-		mNetworkInterfaces[i]->iFlowControlTx.bind(flowControlIn[i]);
+		mNetworkInterfaces[i]->iFlowControlTx.bind(canSendData[i]);
 
 		mNetworkInterfaces[i]->oIdle.bind(sNetworkInterfaceIdle[i]);
 

@@ -14,24 +14,10 @@
 
 void NetworkHierarchy::setupFlowControl() {
 
-  // Create all FlowControlIns.
-  for(uint input=0; input<TOTAL_INPUT_PORTS; input++) {
-    FlowControlIn* fc = new FlowControlIn("fc_in", input);
-    flowControlIn.push_back(fc);
-
-    // Bind to network's inputs/outputs.
-    fc->flowControlIn(creditsIn[input]);
-    fc->dataOut(dataOut[input]);
-
-    // Connect up internal signals.
-    fc->dataIn(dataToComponents[input]);
-    fc->readyOut(compReadyForData[input]);
-    fc->creditsOut(creditsFromComponents[input]);
-    fc->readyIn(readyForCredits[input]);
-  }
+  // All cores and memories are now responsible for their own flow control.
 
   // Attach flow control units to the off-chip component too.
-  FlowControlIn* fcin = new FlowControlIn("fc_in", TOTAL_INPUT_PORTS);
+  FlowControlIn*  fcin  = new FlowControlIn("fc_in", TOTAL_INPUT_PORTS);
   flowControlIn.push_back(fcin);
   FlowControlOut* fcout = new FlowControlOut("fc_out", TOTAL_OUTPUT_PORTS);
   flowControlOut.push_back(fcout);
@@ -82,13 +68,13 @@ void NetworkHierarchy::makeLocalDataNetwork(int tileID) {
   // Connect things up.
   for(uint i=0; i<INPUT_PORTS_PER_TILE; i++) {
     int outputIndex = (tileID * INPUT_PORTS_PER_TILE) + i;
-    localNetwork->dataOut[i](dataToComponents[outputIndex]);
-    localNetwork->readyIn[i](compReadyForData[outputIndex]);
+    localNetwork->dataOut[i](dataOut[outputIndex]);
+    localNetwork->readyIn[i](canSendData[outputIndex]);
   }
   for(uint i=0; i<OUTPUT_PORTS_PER_TILE; i++) {
     int inputIndex = (tileID * OUTPUT_PORTS_PER_TILE) + i;
     localNetwork->dataIn[i](dataIn[inputIndex]);
-    localNetwork->readyOut[i](readyOut[inputIndex]);
+    localNetwork->readyOut[i](canReceiveData[inputIndex]);
   }
 
   localNetwork->clock(clock);
@@ -155,8 +141,8 @@ void NetworkHierarchy::makeCreditNetwork() {
 void NetworkHierarchy::makeLocalCreditNetwork(int tileID) {
 
   // Create a local network.
-  ChannelID lowestID = tileID * OUTPUT_CHANNELS_PER_TILE;  // TODO: CHANNELS
-  ChannelID highestID = lowestID + OUTPUT_CHANNELS_PER_TILE - 1; // TODO: CHANNELS
+  ChannelID lowestID = tileID * OUTPUT_CHANNELS_PER_TILE;
+  ChannelID highestID = lowestID + OUTPUT_CHANNELS_PER_TILE - 1;
   Arbiter* arbiter = Arbiter::localCreditArbiter(INPUT_PORTS_PER_TILE, OUTPUT_PORTS_PER_TILE);
   Network* localNetwork = new Crossbar("local_credit_net",
                                        tileID,
@@ -172,12 +158,12 @@ void NetworkHierarchy::makeLocalCreditNetwork(int tileID) {
   for(uint i=0; i<OUTPUT_PORTS_PER_TILE; i++) {
     int outputIndex = (tileID * OUTPUT_PORTS_PER_TILE) + i;
     localNetwork->dataOut[i](creditsOut[outputIndex]);
-    localNetwork->readyIn[i](readyCredits[outputIndex]);
+    localNetwork->readyIn[i](canSendCredit[outputIndex]);
   }
   for(uint i=0; i<INPUT_PORTS_PER_TILE; i++) {
     int inputIndex = (tileID * INPUT_PORTS_PER_TILE) + i;
-    localNetwork->dataIn[i](creditsFromComponents[inputIndex]);
-    localNetwork->readyOut[i](readyForCredits[inputIndex]);
+    localNetwork->dataIn[i](creditsIn[inputIndex]);
+    localNetwork->readyOut[i](canReceiveCredit[inputIndex]);
   }
 
   localNetwork->clock(clock);
@@ -235,13 +221,16 @@ NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
     offChip("offchip") {
 
   // Make ports.
-  dataIn    = new sc_in<DataType>[TOTAL_OUTPUT_PORTS];
-  dataOut   = new sc_out<Word>[TOTAL_INPUT_PORTS];
-  creditsIn = new sc_in<int>[TOTAL_INPUT_PORTS];
-  readyOut = new sc_out<bool>[TOTAL_OUTPUT_PORTS];
+  dataIn                = new sc_in<DataType>[TOTAL_OUTPUT_PORTS];
+  dataOut               = new sc_out<DataType>[TOTAL_INPUT_PORTS];
+  creditsIn             = new sc_in<CreditType>[TOTAL_INPUT_PORTS];
+  canReceiveData        = new sc_out<ReadyType>[TOTAL_OUTPUT_PORTS];
 
-  creditsOut = new sc_out<CreditType>[TOTAL_OUTPUT_PORTS];
-  readyCredits = new sc_in<bool>[TOTAL_OUTPUT_PORTS];
+  creditsOut            = new sc_out<CreditType>[TOTAL_OUTPUT_PORTS];
+  canSendCredit         = new sc_in<ReadyType>[TOTAL_OUTPUT_PORTS];
+
+  canSendData           = new sc_in<ReadyType>[TOTAL_INPUT_PORTS];
+  canReceiveCredit      = new sc_out<ReadyType>[TOTAL_INPUT_PORTS];
 
   // Make wires. We have one extra wire of each type because we have an
   // additional connection to the off-chip component.
@@ -249,19 +238,19 @@ NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
   dataToComponents      = new DataSignal[TOTAL_INPUT_PORTS+1];
   creditsFromComponents = new CreditSignal[TOTAL_INPUT_PORTS+1];
   creditsToComponents   = new CreditSignal[TOTAL_OUTPUT_PORTS+1];
-  compReadyForData      = new sc_signal<bool>[TOTAL_INPUT_PORTS+1];
-  compReadyForCredits   = new sc_signal<bool>[TOTAL_OUTPUT_PORTS+1];
-  readyForData          = new sc_signal<bool>[TOTAL_OUTPUT_PORTS+1];
-  readyForCredits       = new sc_signal<bool>[TOTAL_INPUT_PORTS+1];
+  compReadyForData      = new ReadySignal[TOTAL_INPUT_PORTS+1];
+  compReadyForCredits   = new ReadySignal[TOTAL_OUTPUT_PORTS+1];
+  readyForData          = new ReadySignal[TOTAL_OUTPUT_PORTS+1];
+  readyForCredits       = new ReadySignal[TOTAL_INPUT_PORTS+1];
 
   dataFromLocalNet      = new DataSignal[NUM_TILES];
   dataToLocalNet        = new DataSignal[NUM_TILES];
   creditsFromLocalNet   = new CreditSignal[NUM_TILES];
   creditsToLocalNet     = new CreditSignal[NUM_TILES];
-  localReadyForData     = new sc_signal<bool>[NUM_TILES];
-  localReadyForCredits  = new sc_signal<bool>[NUM_TILES];
-  globalReadyForData    = new sc_signal<bool>[NUM_TILES];
-  globalReadyForCredits = new sc_signal<bool>[NUM_TILES];
+  localReadyForData     = new ReadySignal[NUM_TILES];
+  localReadyForCredits  = new ReadySignal[NUM_TILES];
+  globalReadyForData    = new ReadySignal[NUM_TILES];
+  globalReadyForCredits = new ReadySignal[NUM_TILES];
 
   // Make networks.
   setupFlowControl();
@@ -272,9 +261,9 @@ NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
 
 NetworkHierarchy::~NetworkHierarchy() {
   delete[] dataIn;                    delete[] dataOut;
-  delete[] creditsIn;                 delete[] readyOut;
-
-  delete[] creditsOut;                delete[] readyCredits;
+  delete[] creditsIn;                 delete[] creditsOut;
+  delete[] canReceiveData;            delete[] canSendData;
+  delete[] canReceiveCredit;          delete[] canSendCredit;
 
   delete[] dataFromComponents;        delete[] dataToComponents;
   delete[] creditsFromComponents;     delete[] creditsToComponents;
