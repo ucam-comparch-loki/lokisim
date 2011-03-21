@@ -86,7 +86,3 @@ FlowControlOut::FlowControlOut(sc_module_name name, ComponentID ID) :
   end_module(); // Needed because we're using a different Component constructor
 
 }
-
-FlowControlOut::~FlowControlOut() {
-
-}

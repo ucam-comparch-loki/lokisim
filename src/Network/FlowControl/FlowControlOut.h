@@ -53,13 +53,12 @@ public:
 
   SC_HAS_PROCESS(FlowControlOut);
   FlowControlOut(sc_module_name name, ComponentID ID);
-  virtual ~FlowControlOut();
 
 //==============================//
 // Methods
 //==============================//
 
-protected:
+private:
 
   // Attempt to send new data whenever it arrives.
   void          mainLoop();
@@ -75,7 +74,7 @@ protected:
 // Local state
 //==============================//
 
-protected:
+private:
 
   // Store the number of credits the output port has.
   unsigned int creditCount;

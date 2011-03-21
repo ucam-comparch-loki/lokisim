@@ -8,7 +8,7 @@
 # Piggybacks on Python's existing unit testing framework, but discards some of
 # the automation to give more control.
 
-import os, subprocess, unittest
+import os, subprocess, sys, unittest
 
 class SimulatorTest(unittest.TestCase):
             
@@ -77,12 +77,13 @@ class SimulatorTest(unittest.TestCase):
         
     # Do a simple search for the requested file in parent directories.
     def find(self, filename):
-        if(os.path.exists(filename)):
-            return filename
-        elif(os.path.exists("../"+filename)):
-            return "../" + filename
+        directory = os.path.dirname(sys.argv[0]) + "/"
+        if(os.path.exists(directory + filename)):
+            return directory + filename
+        elif(os.path.exists(directory + "../"+filename)):
+            return directory + "../" + filename
         else:
-            return "../../" + filename
+            return directory + "../../" + filename
         
     
         
@@ -137,10 +138,7 @@ class SimulatorTest(unittest.TestCase):
         
     # Run a single test in a subdirectory. The description can be used to
     # provide additional information (e.g. number of SIMD members).
-    def test(self, directory=os.getcwd(), description=""):
-        # currdir = where we execute the test from
-        self._currdir = os.getcwd()
-        
+    def test(self, directory=os.path.realpath(os.path.dirname(sys.argv[0])), description=""):        
         # basedir = where we execute the simulator from.
         self._basedir = os.getcwd().split("test_files")[0]
         if self._basedir[-1] != "/":
@@ -150,7 +148,6 @@ class SimulatorTest(unittest.TestCase):
         
         # If the directory is a full path, strip away anything unnecessary.
         directory = directory.split("test_files/")[-1]
-        self._updateLoader(directory)
         self.setUp()
         
         try:
@@ -192,20 +189,17 @@ class SimulatorTest(unittest.TestCase):
             self.test(description = str(simdMembers) + " cores")
     
     # Start up the simulator in test mode.
-    def setUp(self):
-        os.chdir(self._basedir)
-        
-        location = os.path.realpath("Debug/Loki2")
+    def setUp(self):        
+        simulator = os.path.realpath("Debug/Loki2")
+        config = os.path.realpath("test_files/loader.txt")
         
         # One "-run" loads the config file, the other loads the program.
-        arguments = "test -run " + self._basedir + "test_files/loader.txt -run " + self._loaderFile
-        self._simulation = subprocess.Popen(location + " " + arguments,\
+        arguments = "test -run " + config + " -run " + self._loaderFile
+        self._simulation = subprocess.Popen(simulator + " " + arguments,\
                                             shell=True,\
                                             stdin=subprocess.PIPE,\
                                             stdout=subprocess.PIPE,\
                                             stderr=subprocess.PIPE)
-                                            
-        os.chdir(self._currdir)
         
         # Execute until idle.
         try:

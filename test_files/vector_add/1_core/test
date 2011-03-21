@@ -2,7 +2,7 @@
 
 import imp
 
-module, path, description = imp.find_module("VectorAddTest", [".."])
+module, path, description = imp.find_module("VectorAddTest", ["..", "test_files/vector_add"])
 mod = imp.load_module("VectorAddTest", module, path, description)
 
 class VectorAdd1CoreTest(mod.VectorAddTest):

@@ -6,9 +6,7 @@
 
 import os, subprocess, sys, threading, time
 
-# The start of a parallel implementation.
-# Problems:
-#  * The tests keep changing the current working directory.
+# Allow parallel tests by spawning a new thread for each test.
 class Test(threading.Thread):
     def __init__(self, command):
         threading.Thread.__init__(self)
@@ -17,21 +15,20 @@ class Test(threading.Thread):
     def run(self):
         process = subprocess.Popen(self._command)
         process.wait()
+        threadFinishedFlag.set()
 
 parallel = False
-    
+threadFinishedFlag = None
+
+# Run a single test in a single directory.
 def runTest(directory):
-    cwd = os.getcwd()
-    os.chdir(directory)
-    #command = directory + "/test"
-    command = "./test"
+    command = directory + "/test"
     if parallel:
         thread = Test(command)
         thread.start()
     else:
         process = subprocess.Popen(command)
         process.wait()
-    os.chdir(cwd)
 
 # Determine whether this collection of files contains all information required
 # to run a test.
@@ -58,7 +55,9 @@ def testAll(directory):
 # See if there is a simulator where we expect it to be.
 def simulatorFound(location):
     return os.path.exists(location)
-        
+
+################################################################################
+
 # Execution starts here.
 directory = "test_files"
 testCount = 0
@@ -76,16 +75,19 @@ if len(sys.argv) >= 2:
         if argument[0] != "-":
             subdir = directory + "/" + argument
             testCount += testAll(subdir)
-        elif argument == "-p":
+        elif argument == "-p" or argument == "-turbo":
             parallel = True
+            threadFinishedFlag = threading.Event()
             testCount = testAll(directory)
 else:
     # Run all tests.
     testCount = testAll(directory)
     
-# If there are multiple threads, wait until they have all finished.
+# If there are multiple threads, wait until they have all finished. Each will
+# set the flag to say that they have finished.
 while threading.activeCount() > 1:
-    pass
+    threadFinishedFlag.wait()
+    threadFinishedFlag.clear()
 
 elapsedTime = time.time() - startTime
 print "Completed %(tests)s tests in %(time).3f s" % {'tests': testCount, 'time': elapsedTime}

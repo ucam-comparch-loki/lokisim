@@ -2,7 +2,7 @@
 
 import imp
 
-module, path, description = imp.find_module("MatMultTest", [".."])
+module, path, description = imp.find_module("MatMultTest", ["..", "test_files/mat_mult"])
 mod = imp.load_module("MatMultTest", module, path, description)
 
 class MatMult1CoreTest(mod.MatMultTest):

@@ -34,10 +34,10 @@ InputCrossbar::InputCrossbar(sc_module_name name, ComponentID ID, int inputs, in
     // assumption ASAP.
     fc->dataIn(dataIn[i]);
     fc->dataOut(dataOut[i]);
-    fc->flowControlIn(flowControlIn[i]);
+    fc->creditsIn(flowControlIn[i]);
     fc->creditsOut(creditsOut[i]);
-    fc->readyIn(readyIn[i]);
-    fc->readyOut(readyOut[i]);
+    fc->canSendCredits(readyIn[i]);
+    fc->canReceiveData(readyOut[i]);
   }
 
 }

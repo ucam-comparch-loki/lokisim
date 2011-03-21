@@ -23,11 +23,11 @@ void NetworkHierarchy::setupFlowControl() {
   flowControlOut.push_back(fcout);
 
   fcin->dataOut(dataToOffChip);            offChip.dataIn(dataToOffChip);
-  fcin->flowControlIn(creditsFromOffChip); offChip.creditsOut(creditsFromOffChip);
+  fcin->creditsIn(creditsFromOffChip);     offChip.creditsOut(creditsFromOffChip);
   fcin->dataIn(dataToComponents[TOTAL_INPUT_PORTS]);
-  fcin->readyOut(compReadyForData[TOTAL_INPUT_PORTS]);
+  fcin->canReceiveData(compReadyForData[TOTAL_INPUT_PORTS]);
   fcin->creditsOut(creditsFromComponents[TOTAL_INPUT_PORTS]);
-  fcin->readyIn(readyForCredits[TOTAL_INPUT_PORTS]);
+  fcin->canSendCredits(readyForCredits[TOTAL_INPUT_PORTS]);
 
   fcout->dataIn(dataFromOffChip);          offChip.dataOut(dataFromOffChip);
   fcout->flowControlOut(readyToOffChip);   offChip.readyIn(readyToOffChip);

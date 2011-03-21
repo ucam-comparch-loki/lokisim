@@ -2,7 +2,7 @@
 
 import imp
 
-module, path, description = imp.find_module("RGB2YUVTest", [".."])
+module, path, description = imp.find_module("RGB2YUVTest", ["..", "test_files/rgb2yuv"])
 mod = imp.load_module("RGB2YUVTest", module, path, description)
 
 class RGB2YUVSIMDTest(mod.RGB2YUVTest):

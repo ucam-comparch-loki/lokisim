@@ -2,7 +2,7 @@
 
 import ctypes, imp
 
-module, path, description = imp.find_module("SimulatorTest", ["..", "../..", "../../.."])
+module, path, description = imp.find_module("SimulatorTest", ["test_files", "../.."])
 mod = imp.load_module("SimulatorTest", module, path, description)
 
 class ALUTest(mod.SimulatorTest):

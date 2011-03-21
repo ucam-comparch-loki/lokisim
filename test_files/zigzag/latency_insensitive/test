@@ -2,7 +2,7 @@
 
 import imp
 
-module, path, description = imp.find_module("ZigzagTest", [".."])
+module, path, description = imp.find_module("ZigzagTest", ["..", "test_files/zigzag"])
 mod = imp.load_module("ZigzagTest", module, path, description)
 
 class ZigzagLatencyTest(mod.ZigzagTest):

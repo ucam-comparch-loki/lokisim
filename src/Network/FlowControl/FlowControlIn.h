@@ -35,14 +35,14 @@ public:
   sc_out<AddressedWord> creditsOut;
 
   // Signal from the network telling us when it is safe to send credits.
-  sc_in<bool>           readyIn;
+  sc_in<bool>           canSendCredits;
 
   // Signal to the network that it is safe to send new data to this input.
-  sc_out<bool>          readyOut;
+  sc_out<bool>          canReceiveData;
 
   // Flow control signals from the component's input, saying how
   // much space is in its buffer.
-  sc_in<int>            flowControlIn;
+  sc_in<int>            creditsIn;
 
 //==============================//
 // Constructors and destructors
@@ -52,13 +52,12 @@ public:
 
   SC_HAS_PROCESS(FlowControlIn);
   FlowControlIn(sc_module_name name, ComponentID ID);
-  virtual ~FlowControlIn();
 
 //==============================//
 // Methods
 //==============================//
 
-protected:
+private:
 
   // Data has arrived over the network.
   void         receivedData();
@@ -73,7 +72,7 @@ protected:
 // Local state
 //==============================//
 
-protected:
+private:
 
   // Address of port connected to each of our input port. We need the
   // address so we can send flow control information back to the source.

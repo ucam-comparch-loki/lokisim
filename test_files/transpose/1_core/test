@@ -2,7 +2,7 @@
 
 import imp
 
-module, path, description = imp.find_module("TransposeTest", [".."])
+module, path, description = imp.find_module("TransposeTest", ["..", "test_files/transpose"])
 mod = imp.load_module("TransposeTest", module, path, description)
 
 class Transpose1CoreTest(mod.TransposeTest):

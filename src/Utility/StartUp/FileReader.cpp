@@ -69,7 +69,7 @@ FileReader& FileReader::makeFileReader(vector<std::string>& words) {
     reader = new LokiBinaryFileReader(filename, component, position);
   }
   else if(parts.back() == "s") {
-    string tempfile = "temp.s";
+    string tempfile = parts.front() + "_temp.s";
     string elfFile = parts.front();
     translateAssembly(filename, tempfile);
 
