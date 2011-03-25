@@ -38,10 +38,10 @@ class MemoryMat: public TileComponent {
 
 // Inherited from TileComponent:
 //   clock
-//   in
-//   out
-//   flowControlIn
-//   flowControlOut
+//   dataIn       canReceiveData
+//   dataOut      canSendData
+//   creditsIn    canReceiveCredit
+//   creditsOut   canSendCredit
 //   idle
 
 //==============================//

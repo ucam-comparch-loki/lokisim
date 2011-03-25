@@ -249,23 +249,25 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   stallRegReady = new sc_signal<bool>[stages.size()-1];
   stageReady    = new sc_signal<bool>[stages.size()-1];
   dataToStage   = new flag_signal<DecodedInst>[stages.size()-1];
-  dataFromStage = new flag_signal<DecodedInst>[stages.size()-1];
+  dataFromStage = new sc_buffer<DecodedInst>[stages.size()-1];
 
   fcFromBuffers = new sc_buffer<int>[CORE_INPUT_CHANNELS];
   dataToBuffers = new flag_signal<Word>[CORE_INPUT_CHANNELS];
 
   // Wire the input ports to the input buffers.
   for(uint i=0; i<CORE_INPUT_PORTS; i++) {
-    inputCrossbar->dataIn[i](in[i]);
+    inputCrossbar->dataIn[i](dataIn[i]);
     inputCrossbar->creditsOut[i](creditsOut[i]);
-    inputCrossbar->readyOut[i](canReceiveData[i]);
-    inputCrossbar->readyIn[i](canSendCredit[i]);
+    inputCrossbar->canReceiveData[i](canReceiveData[i]);
+    inputCrossbar->canSendCredits[i](canSendCredit[i]);
   }
 
   for(uint i=0; i<CORE_INPUT_CHANNELS; i++) {
     inputCrossbar->dataOut[i](dataToBuffers[i]);
-    inputCrossbar->flowControlIn[i](fcFromBuffers[i]);
+    inputCrossbar->creditsIn[i](fcFromBuffers[i]);
   }
+
+  inputCrossbar->clock(clock);
 
   // Wire the stall registers up.
   for(uint i=0; i<stages.size()-1; i++) {
@@ -316,7 +318,7 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
 
   WriteStage*  write  = dynamic_cast<WriteStage*>(stages.back());
   write->fromFetchLogic(fetchSignal);
-  write->output(out[0]);             write->flowControl(canSendData[0]);
+  write->output(dataOut[0]);             write->flowControl(canSendData[0]);
   // temporary signals
   sc_signal<int>* network = new sc_signal<int>();
   write->network(*network);

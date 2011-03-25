@@ -31,11 +31,11 @@ public:
   sc_in<bool>            clock;
 
   // All inputs to the component.
-  sc_in<AddressedWord>  *in;
+  sc_in<AddressedWord>  *dataIn;
   sc_out<bool>          *canReceiveData;
 
   // All outputs of the component.
-  sc_out<AddressedWord> *out;
+  sc_out<AddressedWord> *dataOut;
   sc_in<bool>           *canSendData;
 
   // Credits to be sent across the network.

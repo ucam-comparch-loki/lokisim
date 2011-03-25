@@ -34,7 +34,7 @@ void ArbiterComponent::arbitrate() {
     const int output = grants[i].second;
     if(readyIn[output].read()) {
       dataOut[output].write(dataIn[input].read());
-      newData[input].write(false);
+      readData[input].write(!readData[input].read()); // Toggle value
     }
   }
 }
@@ -47,29 +47,33 @@ ArbiterComponent::ArbiterComponent(sc_module_name name, ComponentID ID,
                                    int inputs, int outputs) :
     Component(name, ID) {
 
-  numInputs = inputs;
+  numInputs  = inputs;
   numOutputs = outputs;
 
-  dataIn  = new sc_in<AddressedWord>[inputs];
-  dataOut = new sc_out<AddressedWord>[outputs];
-  newData = new sc_inout<bool>[inputs];
-  readyIn = new sc_in<bool>[outputs];
+  dataIn     = new sc_in<AddressedWord>[inputs];
+  dataOut    = new sc_out<AddressedWord>[outputs];
+  newData    = new sc_in<bool>[inputs];
+  readData   = new sc_out<bool>[inputs];
+  readyIn    = new sc_in<bool>[outputs];
 
-  arbiter = new RoundRobinArbiter2(inputs, outputs, false);
-
-  SC_METHOD(arbitrate);
-  sensitive << clock.neg(); // Sensible?
-  dont_initialize();
+  arbiter    = new RoundRobinArbiter2(inputs, outputs, false);
 
   SC_METHOD(dataArrived);
   for(int i=0; i<inputs; i++) sensitive << newData[i].pos();
   dont_initialize();
+
+  SC_METHOD(arbitrate);
+  sensitive << clock.pos();   // Is this right?
+  dont_initialize();
+
+  end_module();
 }
 
 ArbiterComponent::~ArbiterComponent() {
   delete[] dataIn;
   delete[] dataOut;
   delete[] newData;
+  delete[] readData;
   delete[] readyIn;
 
   delete arbiter;

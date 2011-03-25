@@ -337,8 +337,7 @@ int32_t Instruction::decodeRChannel(const string& channel) {
       component = -component;
     }
 
-    // TODO: inputChannelID
-    channelID = TileComponent::inputPortID(component, channelIndex);
+    channelID = TileComponent::inputChannelID(component, channelIndex);
     if(negative) channelID = -channelID;
   }
 

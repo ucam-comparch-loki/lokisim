@@ -8,9 +8,20 @@
 #include "Bus.h"
 #include "../../Datatype/AddressedWord.h"
 
-void Bus::receivedData() {
-  assert(readyOut.read());
+void Bus::mainLoop() {
+  while(true) {
+    wait(dataIn.default_event());
+    readyOut.write(false);
+    receivedData();
+    while(!outstandingCredits.empty()) {
+      wait(credit);
+      receivedCredit();
+    }
+    readyOut.write(true);
+  }
+}
 
+void Bus::receivedData() {
   AddressedWord data = dataIn.read();
   std::vector<uint8_t> destinations;
 
@@ -19,28 +30,25 @@ void Bus::receivedData() {
 
   for(unsigned int i=0; i<destinations.size(); i++) {
     const int output = destinations[i];
-
     // If multicasting, may need to change the channel ID for each output.
     dataOut[output].write(data);
     newData[output].write(true);
     outstandingCredits.push_back(output);
   }
-
-  readyOut.write(false);
 }
 
 void Bus::receivedCredit() {
   std::list<uint8_t>::iterator iter = outstandingCredits.begin();
+  int size = outstandingCredits.size();
 
-  while(iter != outstandingCredits.end()) {
-    // If a recipient has deasserted the "newData" signal, remove them from
-    // the list of recipients we are waiting for.
-    if(!newData[*iter].read()) outstandingCredits.erase(iter);
-    iter++;
-  }
-
-  if(outstandingCredits.empty()) {
-    readyOut.write(true);
+  for(int i=0; i < size; i++, iter++) {
+    // If a recipient has consumed the given data, remove them from the list of
+    // recipients we are waiting for, and deassert the newData signal.
+    if(dataRead[*iter].event()) {
+      outstandingCredits.erase(iter);
+      newData[*iter].write(false);
+      iter--;
+    }
   }
 }
 
@@ -54,18 +62,34 @@ void Bus::getDestinations(ChannelID address, std::vector<uint8_t>& outputs) cons
   }
 }
 
+void Bus::creditArrived() {
+  credit.notify(sc_core::SC_ZERO_TIME);
+}
+
 Bus::Bus(sc_module_name name, ComponentID ID, int numOutputs,
          int channelsPerOutput, ChannelID startAddr) :
     Component(name, ID) {
   dataOut = new DataOutput[numOutputs];
-  newData = new sc_inout<bool>[numOutputs];
+  newData = new ReadyOutput[numOutputs];
+  dataRead = new ReadyInput[numOutputs];
 
   this->numOutputs = numOutputs;
   this->channelsPerOutput = channelsPerOutput;
   this->startAddress = startAddr;
+
+  SC_THREAD(mainLoop);
+
+  SC_METHOD(creditArrived);
+  for(int i=0; i<numOutputs; i++) sensitive << dataRead[i];
+  dont_initialize();
+
+  readyOut.initialize(true);
+
+  end_module();
 }
 
 Bus::~Bus() {
   delete[] dataOut;
   delete[] newData;
+  delete[] dataRead;
 }

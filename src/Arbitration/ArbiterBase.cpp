@@ -13,10 +13,10 @@ void ArbiterBase::arbitrate(RequestList& requests, GrantList& grants) {
   if(requests.empty()) return;
 
   // Wipe the outputsUsed vector: nothing has been used yet.
-  outputsUsed.assign(outputsUsed.size(), false);
+  outputsUsed.assign(outputs, false);
 
   // Do the arbitration.
-  arbitrate(requests, grants);
+  arbitrateLogic(requests, grants);
 }
 
 void ArbiterBase::wormholeGrant(Request& request, GrantList& grants) {

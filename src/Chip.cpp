@@ -91,16 +91,15 @@ Chip::Chip(sc_module_name name, ComponentID ID, BatchModeEventRecorder *eventRec
   int numOutputs = TOTAL_OUTPUT_PORTS;
   int numInputs  = TOTAL_INPUT_PORTS;
 
-  dataFromComponents     = new flag_signal<AddressedWord>[numOutputs];
-  dataToComponents       = new flag_signal<AddressedWord>[numInputs];
-  creditsFromComponents  = new flag_signal<AddressedWord>[numInputs];
-  networkReadyForData    = new flag_signal<bool>[numOutputs];
+  dataFromComponents     = new flag_signal<DataType>[numOutputs];
+  dataToComponents       = new flag_signal<DataType>[numInputs];
+  creditsFromComponents  = new flag_signal<CreditType>[numInputs];
+  creditsToComponents    = new sc_buffer<CreditType>[numOutputs];
 
-  creditsToComponents    = new sc_buffer<AddressedWord>[numOutputs];
-  compsReadyForCredits   = new sc_signal<bool>[numOutputs];
-
-  compsReadyForData      = new sc_signal<bool>[numInputs];
-  networkReadyForCredits = new sc_signal<bool>[numInputs];
+  networkReadyForData    = new sc_signal<ReadyType>[numOutputs];
+  compsReadyForCredits   = new sc_signal<ReadyType>[numOutputs];
+  compsReadyForData      = new sc_signal<ReadyType>[numInputs];
+  networkReadyForCredits = new sc_signal<ReadyType>[numInputs];
 
   network.clock(clock);
 
@@ -138,7 +137,7 @@ Chip::Chip(sc_module_name name, ComponentID ID, BatchModeEventRecorder *eventRec
     for(int j=0; j<inputs; j++) {
       int index = TileComponent::inputPortID(i,j);  // Position in network's array
 
-      contents[i]->in[j](dataToComponents[index]);
+      contents[i]->dataIn[j](dataToComponents[index]);
       network.dataOut[index](dataToComponents[index]);
       contents[i]->creditsOut[j](creditsFromComponents[index]);
       network.creditsIn[index](creditsFromComponents[index]);
@@ -152,7 +151,7 @@ Chip::Chip(sc_module_name name, ComponentID ID, BatchModeEventRecorder *eventRec
     for(int j=0; j<outputs; j++) {
       int index = TileComponent::outputPortID(i,j); // Position in network's array
 
-      contents[i]->out[j](dataFromComponents[index]);
+      contents[i]->dataOut[j](dataFromComponents[index]);
       network.dataIn[index](dataFromComponents[index]);
       contents[i]->canSendData[j](networkReadyForData[index]);
       network.canReceiveData[index](networkReadyForData[index]);

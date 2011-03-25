@@ -31,10 +31,10 @@ class Cluster : public TileComponent {
 
 // Inherited from TileComponent:
 //   clock
-//   in
-//   out
-//   flowControlIn
-//   flowControlOut
+//   dataIn       canReceiveData
+//   dataOut      canSendData
+//   creditsIn    canReceiveCredit
+//   creditsOut   canSendCredit
 //   idle
 
 //==============================//
@@ -193,7 +193,8 @@ private:
 
   // Transmission of the instruction along the pipeline. sc_buffers because we
   // want to trigger an event even if the instruction is identical.
-  flag_signal<DecodedInst>  *dataToStage, *dataFromStage;
+  flag_signal<DecodedInst>  *dataToStage;
+  sc_buffer<DecodedInst>    *dataFromStage;
 
   // Signal going straight from fetch logic to output buffers.
   flag_signal<AddressedWord> fetchSignal;

@@ -6,6 +6,7 @@
  */
 
 #include "ChannelMapEntry.h"
+#include <iostream>
 
 #define MAX_CREDITS CHANNEL_END_BUFFER_SIZE
 

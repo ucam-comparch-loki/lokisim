@@ -43,8 +43,8 @@ void MemoryMat::checkInputs() {
   if(!newData_) return;
 
   for(ChannelIndex i=0; i<inputBuffers_.size(); i++) {
-    if(in[i].event()) {
-      AddressedWord input = in[i].read();
+    if(dataIn[i].event()) {
+      AddressedWord input = dataIn[i].read();
 
       // Store the first input channel ID so it doesn't have to be recomputed?
       ChannelIndex channel = input.channelID() - inputChannelID(id, 0);
@@ -311,6 +311,9 @@ void MemoryMat::updateIdle() {
 void MemoryMat::sendCredit(ChannelIndex position) {
   ChannelID returnAddr = creditDestinations_[position];
   creditsOut[position].write(AddressedWord(1, returnAddr));
+
+  if(DEBUG) cout << "Sent credit from (" << id << "," << (int)position << ") to "
+                 << TileComponent::outputPortString(returnAddr) << endl;
 }
 
 void MemoryMat::sendData(AddressedWord& data, MapIndex channel) {
@@ -318,7 +321,8 @@ void MemoryMat::sendData(AddressedWord& data, MapIndex channel) {
   while(!sendTable_[channel].canSend()) {
     wait(creditsIn[0].default_event());
     // Wait a fraction longer to ensure credit count is updated first.
-    wait(sc_core::SC_ZERO_TIME);
+//    wait(sc_core::SC_ZERO_TIME);
+    wait(clock.negedge_event());
   }
 
   if(DEBUG) cout << "Sending " << data.payload()
@@ -327,7 +331,7 @@ void MemoryMat::sendData(AddressedWord& data, MapIndex channel) {
                  << endl;
 
   assert(canSendData[0].read());
-  out[0].write(data);
+  dataOut[0].write(data);
   sendTable_[channel].removeCredit();
 }
 
@@ -422,7 +426,7 @@ MemoryMat::MemoryMat(sc_module_name name, ComponentID ID) :
   SC_THREAD(mainLoop);
 
   SC_METHOD(newData);
-  for(uint i=0; i<MEMORY_INPUT_PORTS; i++) sensitive << in[i];
+  for(uint i=0; i<MEMORY_INPUT_PORTS; i++) sensitive << dataIn[i];
   dont_initialize();
 
   SC_METHOD(newCredit);

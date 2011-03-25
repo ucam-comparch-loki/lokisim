@@ -14,7 +14,6 @@
 #include <vector>
 #include "../Component.h"
 #include "OffChip.h"
-#include "../flag_signal.h"
 #include "../Datatype/AddressedWord.h"
 
 using std::vector;
@@ -22,14 +21,21 @@ using std::vector;
 class FlowControlIn;
 class FlowControlOut;
 class Network;
-class TileComponent;
 
-typedef AddressedWord CreditType;     // May be a bool one day
-typedef AddressedWord DataType;
-typedef bool ReadyType;
-typedef flag_signal<CreditType> CreditSignal;
-typedef flag_signal<DataType> DataSignal;
-typedef sc_signal<ReadyType> ReadySignal;
+typedef AddressedWord         CreditType;     // May be a bool one day
+typedef AddressedWord         DataType;
+typedef bool                  ReadyType;
+
+typedef sc_buffer<CreditType> CreditSignal;
+typedef sc_buffer<DataType>   DataSignal;
+typedef sc_signal<ReadyType>  ReadySignal;
+
+typedef sc_in<DataType>       DataInput;
+typedef sc_out<DataType>      DataOutput;
+typedef sc_in<ReadyType>      ReadyInput;
+typedef sc_out<ReadyType>     ReadyOutput;
+typedef sc_in<CreditType>     CreditInput;
+typedef sc_out<CreditType>    CreditOutput;
 
 class NetworkHierarchy : public Component {
 
@@ -39,26 +45,25 @@ class NetworkHierarchy : public Component {
 
 public:
 
-  sc_in<bool>         clock;
+  sc_in<bool>   clock;
 
   // Data received from each output of each networked component.
-  sc_in<DataType>    *dataIn;
+  DataInput    *dataIn;
+  ReadyOutput  *canReceiveData;
 
   // Data sent to each networked component (after having its address removed
   // by the flow control components).
-  sc_out<AddressedWord> *dataOut;
+  DataOutput   *dataOut;
+  ReadyInput   *canSendData;
 
   // Flow control information received from each input of each component.
-  sc_in<CreditType>  *creditsIn;
+  CreditInput  *creditsIn;
+  ReadyOutput  *canReceiveCredit;
 
-  // A signal telling each output whether it is allowed to send more data.
-  sc_out<ReadyType>  *canReceiveData;
+  // A signal telling each inputput whether it is allowed to send a credit.
+  CreditOutput *creditsOut;
+  ReadyInput   *canSendCredit;
 
-  sc_out<CreditType> *creditsOut;
-  sc_in<ReadyType>   *canSendCredit;
-
-  sc_in<ReadyType>   *canSendData;
-  sc_out<ReadyType>  *canReceiveCredit;
 
 //==============================//
 // Constructors and destructors
@@ -108,21 +113,21 @@ private:
 private:
 
   // Local network
-  DataSignal        *dataToComponents, *dataFromComponents;
+  DataSignal        *dataToComponents,    *dataFromComponents;
   CreditSignal      *creditsToComponents, *creditsFromComponents;
-  ReadySignal       *compReadyForData, *compReadyForCredits,
-                    *readyForData, *readyForCredits;
+  ReadySignal       *compReadyForData,    *compReadyForCredits,
+                    *readyForData,        *readyForCredits;
 
   // Global network
-  DataSignal        *dataToLocalNet, *dataFromLocalNet;
-  CreditSignal      *creditsToLocalNet, *creditsFromLocalNet;
-  ReadySignal       *localReadyForData, *localReadyForCredits,
-                    *globalReadyForData, *globalReadyForCredits;
+  DataSignal        *dataToLocalNet,      *dataFromLocalNet;
+  CreditSignal      *creditsToLocalNet,   *creditsFromLocalNet;
+  ReadySignal       *localReadyForData,   *localReadyForCredits,
+                    *globalReadyForData,  *globalReadyForCredits;
 
   // Off-chip
   DataSignal         dataFromOffChip;
-  flag_signal<Word>  dataToOffChip;
-  flag_signal<int>   creditsFromOffChip;
+  sc_signal<Word>    dataToOffChip;
+  sc_signal<int>     creditsFromOffChip;
   ReadySignal        readyToOffChip;
 
 };

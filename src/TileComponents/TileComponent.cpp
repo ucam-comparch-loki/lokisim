@@ -222,10 +222,10 @@ TileComponent::TileComponent(sc_module_name name, ComponentID ID,
                              int inputPorts, int outputPorts) :
     Component(name, ID) {
 
-  in               = new sc_in<AddressedWord>[inputPorts];
+  dataIn               = new sc_in<AddressedWord>[inputPorts];
   canReceiveData   = new sc_out<bool>[inputPorts];
 
-  out              = new sc_out<AddressedWord>[outputPorts];
+  dataOut              = new sc_out<AddressedWord>[outputPorts];
   canSendData      = new sc_in<bool>[outputPorts];
 
   creditsOut       = new sc_out<AddressedWord>[inputPorts];
@@ -241,8 +241,8 @@ TileComponent::TileComponent(sc_module_name name, ComponentID ID,
 }
 
 TileComponent::~TileComponent() {
-  delete[] in;
-  delete[] out;
+  delete[] dataIn;
+  delete[] dataOut;
   delete[] canSendData;
   delete[] creditsOut;
   delete[] creditsIn;

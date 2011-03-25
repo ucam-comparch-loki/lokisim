@@ -12,6 +12,7 @@
 #define INPUTCROSSBAR_H_
 
 #include "../Component.h"
+#include "../Network/Topologies/NormalCrossbar.h"
 
 class AddressedWord;
 class FlowControlIn;
@@ -25,14 +26,16 @@ class InputCrossbar: public Component {
 
 public:
 
-  sc_in<AddressedWord>  *dataIn;
-  sc_out<Word>          *dataOut;
+  sc_in<bool>   clock;
 
-  sc_in<int>            *flowControlIn;
-  sc_out<AddressedWord> *creditsOut;
+  DataInput    *dataIn;
+  sc_out<Word> *dataOut;
 
-  sc_in<bool>           *readyIn;
-  sc_out<bool>          *readyOut;
+  sc_in<int>   *creditsIn;
+  CreditOutput *creditsOut;
+
+  ReadyInput   *canSendCredits;
+  ReadyOutput  *canReceiveData;
 
 //==============================//
 // Constructors and destructors
@@ -53,6 +56,12 @@ private:
   int numInputs, numOutputs;
 
   std::vector<FlowControlIn*> flowControl;
+  NormalCrossbar dataXbar;
+  NormalCrossbar creditXbar;
+
+  sc_buffer<DataType>   *dataToBuffer;
+  sc_buffer<CreditType> *creditsToNetwork;
+  sc_signal<ReadyType>  *readyForData, *readyForCredit;
 
 };
 

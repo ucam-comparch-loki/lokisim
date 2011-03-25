@@ -11,33 +11,54 @@
 #include "../TileComponents/TileComponent.h"
 
 InputCrossbar::InputCrossbar(sc_module_name name, ComponentID ID, int inputs, int outputs) :
-    Component(name) {
+    Component(name),
+    dataXbar("data", ID, inputs, outputs, 1, 1, TileComponent::inputChannelID(ID,0)),
+    creditXbar("credit", ID, outputs, inputs, inputs, TOTAL_OUTPUT_CHANNELS, 0) {
 
   id = ID;
-  firstInput    = TileComponent::inputChannelID(id, 0);
-  numInputs     = inputs;
-  numOutputs    = outputs;
+  firstInput     = TileComponent::inputChannelID(id, 0);
+  numInputs      = inputs;
+  numOutputs     = outputs;
 
-  dataIn        = new sc_in<AddressedWord>[inputs];
-  dataOut       = new sc_out<Word>[outputs];
-  flowControlIn = new sc_in<int>[outputs];
-  creditsOut    = new sc_out<AddressedWord>[inputs];
-  readyIn       = new sc_in<bool>[outputs];
-  readyOut      = new sc_out<bool>[inputs];
+  dataIn         = new DataInput[inputs];
+  dataOut        = new sc_out<Word>[outputs];
+  creditsIn      = new sc_in<int>[outputs];
+  creditsOut     = new CreditOutput[inputs];
+  canSendCredits = new ReadyInput[outputs];
+  canReceiveData = new ReadyOutput[inputs];
+
+  dataToBuffer   = new sc_buffer<DataType>[outputs];
+  creditsToNetwork = new sc_buffer<CreditType>[outputs];
+  readyForData   = new sc_signal<ReadyType>[outputs];
+  readyForCredit = new sc_signal<ReadyType>[outputs];
+
+  dataXbar.clock(clock);
+  creditXbar.clock(clock);
+
+  for(int i=0; i<inputs; i++) {
+    dataXbar.dataIn[i](dataIn[i]);
+    dataXbar.canReceiveData[i](canReceiveData[i]);
+    creditXbar.dataOut[i](creditsOut[i]);
+    creditXbar.canSendData[i](canSendCredits[i]);
+  }
 
   // Create and wire up all flow control units.
   for(int i=0; i<outputs; i++) {
     FlowControlIn* fc = new FlowControlIn("fc_in", firstInput+i);
     flowControl.push_back(fc);
 
-    // Currently assuming same number of inputs as outputs -- break this
-    // assumption ASAP.
-    fc->dataIn(dataIn[i]);
     fc->dataOut(dataOut[i]);
-    fc->creditsIn(flowControlIn[i]);
-    fc->creditsOut(creditsOut[i]);
-    fc->canSendCredits(readyIn[i]);
-    fc->canReceiveData(readyOut[i]);
+    fc->creditsIn(creditsIn[i]);
+
+    fc->dataIn(dataToBuffer[i]);
+    fc->canReceiveData(readyForData[i]);
+    fc->creditsOut(creditsToNetwork[i]);
+    fc->canSendCredits(readyForCredit[i]);
+
+    dataXbar.dataOut[i](dataToBuffer[i]);
+    dataXbar.canSendData[i](readyForData[i]);
+    creditXbar.dataIn[i](creditsToNetwork[i]);
+    creditXbar.canReceiveData[i](readyForCredit[i]);
   }
 
 }
@@ -45,10 +66,10 @@ InputCrossbar::InputCrossbar(sc_module_name name, ComponentID ID, int inputs, in
 InputCrossbar::~InputCrossbar() {
   delete[] dataIn;
   delete[] dataOut;
-  delete[] flowControlIn;
+  delete[] creditsIn;
   delete[] creditsOut;
-  delete[] readyIn;
-  delete[] readyOut;
+  delete[] canSendCredits;
+  delete[] canReceiveData;
 
   for(unsigned int i=0; i<flowControl.size(); i++) delete flowControl[i];
 }

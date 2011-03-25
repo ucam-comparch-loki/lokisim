@@ -1,6 +1,11 @@
 /*
  * MulticastCrossbar.h
  *
+ * A crossbar with multicast functionality.
+ *
+ * Multicast and credits don't mix well, so this crossbar only makes use of
+ * link-level flow control.
+ *
  *  Created on: 9 Mar 2011
  *      Author: db434
  */
@@ -21,7 +26,7 @@ class MulticastCrossbar: public Component {
 
 public:
 
-  sc_in<bool>   clock;
+//  sc_in<bool>   clock;
 
   DataInput    *dataIn;
   DataOutput   *dataOut;
@@ -29,12 +34,12 @@ public:
   CreditInput  *creditsIn;
   CreditOutput *creditsOut;
 
-  ReadyInput   *readyIn;
-  ReadyOutput  *readyOut;
+  ReadyInput   *canSendData;
+  ReadyOutput  *canReceiveData;
 
   // To be removed when network interface is changed.
-  ReadyInput   *readyInCredits;
-  ReadyOutput  *readyOutCredits;
+  ReadyInput   *canSendCredits;
+  ReadyOutput  *canReceiveCredits;
 
 //==============================//
 // Constructors and destructors

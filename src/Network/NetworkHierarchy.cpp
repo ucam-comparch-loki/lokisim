@@ -24,17 +24,17 @@ void NetworkHierarchy::setupFlowControl() {
 
   fcin->dataOut(dataToOffChip);            offChip.dataIn(dataToOffChip);
   fcin->creditsIn(creditsFromOffChip);     offChip.creditsOut(creditsFromOffChip);
-  fcin->dataIn(dataToComponents[TOTAL_INPUT_PORTS]);
-  fcin->canReceiveData(compReadyForData[TOTAL_INPUT_PORTS]);
-  fcin->creditsOut(creditsFromComponents[TOTAL_INPUT_PORTS]);
-  fcin->canSendCredits(readyForCredits[TOTAL_INPUT_PORTS]);
+  fcin->dataIn(dataToComponents[/*TOTAL_INPUT_PORTS*/0]);
+  fcin->canReceiveData(compReadyForData[/*TOTAL_INPUT_PORTS*/0]);
+  fcin->creditsOut(creditsFromComponents[/*TOTAL_INPUT_PORTS*/0]);
+  fcin->canSendCredits(readyForCredits[/*TOTAL_INPUT_PORTS*/0]);
 
   fcout->dataIn(dataFromOffChip);          offChip.dataOut(dataFromOffChip);
   fcout->flowControlOut(readyToOffChip);   offChip.readyIn(readyToOffChip);
-  fcout->dataOut(dataFromComponents[TOTAL_OUTPUT_PORTS]);
-  fcout->readyIn(readyForData[TOTAL_OUTPUT_PORTS]);
-  fcout->creditsIn(creditsToComponents[TOTAL_OUTPUT_PORTS]);
-  fcout->readyOut(compReadyForCredits[TOTAL_OUTPUT_PORTS]);
+  fcout->dataOut(dataFromComponents[/*TOTAL_OUTPUT_PORTS*/0]);
+  fcout->readyIn(readyForData[/*TOTAL_OUTPUT_PORTS*/0]);
+  fcout->creditsIn(creditsToComponents[/*TOTAL_OUTPUT_PORTS*/0]);
+  fcout->readyOut(compReadyForCredits[/*TOTAL_OUTPUT_PORTS*/0]);
 
 }
 
@@ -83,10 +83,10 @@ void NetworkHierarchy::makeLocalDataNetwork(int tileID) {
   // need for a global network, so this local network can connect directly
   // to the OffChip component.
   if(NUM_TILES == 1) {
-    localNetwork->externalInput()(dataFromComponents[TOTAL_OUTPUT_PORTS]);
-    localNetwork->externalOutput()(dataToComponents[TOTAL_INPUT_PORTS]);
-    localNetwork->externalReadyInput()(compReadyForData[TOTAL_INPUT_PORTS]);
-    localNetwork->externalReadyOutput()(readyForData[TOTAL_OUTPUT_PORTS]);
+    localNetwork->externalInput()(dataFromComponents[/*TOTAL_OUTPUT_PORTS*/0]);
+    localNetwork->externalOutput()(dataToComponents[/*TOTAL_INPUT_PORTS*/0]);
+    localNetwork->externalReadyInput()(compReadyForData[/*TOTAL_INPUT_PORTS*/0]);
+    localNetwork->externalReadyOutput()(readyForData[/*TOTAL_OUTPUT_PORTS*/0]);
   }
 
 }
@@ -108,10 +108,10 @@ void NetworkHierarchy::makeGlobalDataNetwork() {
   globalDataNetwork->clock(clock);
 
   // Connect the global network to the off-chip component.
-  globalDataNetwork->externalInput()(dataFromComponents[TOTAL_OUTPUT_PORTS]);
-  globalDataNetwork->externalOutput()(dataToComponents[TOTAL_INPUT_PORTS]);
-  globalDataNetwork->externalReadyInput()(compReadyForData[TOTAL_INPUT_PORTS]);
-  globalDataNetwork->externalReadyOutput()(readyForData[TOTAL_OUTPUT_PORTS]);
+  globalDataNetwork->externalInput()(dataFromComponents[/*TOTAL_OUTPUT_PORTS*/0]);
+  globalDataNetwork->externalOutput()(dataToComponents[/*TOTAL_INPUT_PORTS*/0]);
+  globalDataNetwork->externalReadyInput()(compReadyForData[/*TOTAL_INPUT_PORTS*/0]);
+  globalDataNetwork->externalReadyOutput()(readyForData[/*TOTAL_OUTPUT_PORTS*/0]);
 
   for(uint i=0; i<localDataNetworks.size(); i++) {
     Network* n = localDataNetworks[i];
@@ -172,10 +172,10 @@ void NetworkHierarchy::makeLocalCreditNetwork(int tileID) {
   // need for a global network, and this local network can connect directly
   // to the OffChip component.
   if(NUM_TILES == 1) {
-    localNetwork->externalInput()(creditsFromComponents[TOTAL_INPUT_PORTS]);
-    localNetwork->externalOutput()(creditsToComponents[TOTAL_OUTPUT_PORTS]);
-    localNetwork->externalReadyInput()(compReadyForCredits[TOTAL_OUTPUT_PORTS]);
-    localNetwork->externalReadyOutput()(readyForCredits[TOTAL_INPUT_PORTS]);
+    localNetwork->externalInput()(creditsFromComponents[/*TOTAL_INPUT_PORTS*/0]);
+    localNetwork->externalOutput()(creditsToComponents[/*TOTAL_OUTPUT_PORTS*/0]);
+    localNetwork->externalReadyInput()(compReadyForCredits[/*TOTAL_OUTPUT_PORTS*/0]);
+    localNetwork->externalReadyOutput()(readyForCredits[/*TOTAL_INPUT_PORTS*/0]);
   }
 
 }
@@ -197,10 +197,10 @@ void NetworkHierarchy::makeGlobalCreditNetwork() {
   globalCreditNetwork->clock(clock);
 
   // Connect the global network to the off-chip component.
-  globalCreditNetwork->externalInput()(creditsFromComponents[TOTAL_INPUT_PORTS]);
-  globalCreditNetwork->externalOutput()(creditsToComponents[TOTAL_OUTPUT_PORTS]);
-  globalCreditNetwork->externalReadyInput()(compReadyForCredits[TOTAL_OUTPUT_PORTS]);
-  globalCreditNetwork->externalReadyOutput()(readyForCredits[TOTAL_INPUT_PORTS]);
+  globalCreditNetwork->externalInput()(creditsFromComponents[/*TOTAL_INPUT_PORTS*/0]);
+  globalCreditNetwork->externalOutput()(creditsToComponents[/*TOTAL_OUTPUT_PORTS*/0]);
+  globalCreditNetwork->externalReadyInput()(compReadyForCredits[/*TOTAL_OUTPUT_PORTS*/0]);
+  globalCreditNetwork->externalReadyOutput()(readyForCredits[/*TOTAL_INPUT_PORTS*/0]);
 
   for(uint i=0; i<localCreditNetworks.size(); i++) {
     Network* n = localCreditNetworks[i];
@@ -221,27 +221,25 @@ NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
     offChip("offchip") {
 
   // Make ports.
-  dataIn                = new sc_in<DataType>[TOTAL_OUTPUT_PORTS];
-  dataOut               = new sc_out<DataType>[TOTAL_INPUT_PORTS];
-  creditsIn             = new sc_in<CreditType>[TOTAL_INPUT_PORTS];
-  canReceiveData        = new sc_out<ReadyType>[TOTAL_OUTPUT_PORTS];
-
-  creditsOut            = new sc_out<CreditType>[TOTAL_OUTPUT_PORTS];
-  canSendCredit         = new sc_in<ReadyType>[TOTAL_OUTPUT_PORTS];
-
-  canSendData           = new sc_in<ReadyType>[TOTAL_INPUT_PORTS];
-  canReceiveCredit      = new sc_out<ReadyType>[TOTAL_INPUT_PORTS];
+  dataIn                = new DataInput[TOTAL_OUTPUT_PORTS];
+  dataOut               = new DataOutput[TOTAL_INPUT_PORTS];
+  creditsIn             = new CreditInput[TOTAL_INPUT_PORTS];
+  creditsOut            = new CreditOutput[TOTAL_OUTPUT_PORTS];
+  canReceiveData        = new ReadyOutput[TOTAL_OUTPUT_PORTS];
+  canSendData           = new ReadyInput[TOTAL_INPUT_PORTS];
+  canReceiveCredit      = new ReadyOutput[TOTAL_INPUT_PORTS];
+  canSendCredit         = new ReadyInput[TOTAL_OUTPUT_PORTS];
 
   // Make wires. We have one extra wire of each type because we have an
   // additional connection to the off-chip component.
-  dataFromComponents    = new DataSignal[TOTAL_OUTPUT_PORTS+1];
-  dataToComponents      = new DataSignal[TOTAL_INPUT_PORTS+1];
-  creditsFromComponents = new CreditSignal[TOTAL_INPUT_PORTS+1];
-  creditsToComponents   = new CreditSignal[TOTAL_OUTPUT_PORTS+1];
-  compReadyForData      = new ReadySignal[TOTAL_INPUT_PORTS+1];
-  compReadyForCredits   = new ReadySignal[TOTAL_OUTPUT_PORTS+1];
-  readyForData          = new ReadySignal[TOTAL_OUTPUT_PORTS+1];
-  readyForCredits       = new ReadySignal[TOTAL_INPUT_PORTS+1];
+  dataFromComponents    = new DataSignal[/*TOTAL_OUTPUT_PORTS+*/1];
+  dataToComponents      = new DataSignal[/*TOTAL_INPUT_PORTS+*/1];
+  creditsFromComponents = new CreditSignal[/*TOTAL_INPUT_PORTS+*/1];
+  creditsToComponents   = new CreditSignal[/*TOTAL_OUTPUT_PORTS+*/1];
+  compReadyForData      = new ReadySignal[/*TOTAL_INPUT_PORTS+*/1];
+  compReadyForCredits   = new ReadySignal[/*TOTAL_OUTPUT_PORTS+*/1];
+  readyForData          = new ReadySignal[/*TOTAL_OUTPUT_PORTS+*/1];
+  readyForCredits       = new ReadySignal[/*TOTAL_INPUT_PORTS+*/1];
 
   dataFromLocalNet      = new DataSignal[NUM_TILES];
   dataToLocalNet        = new DataSignal[NUM_TILES];

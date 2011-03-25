@@ -86,18 +86,17 @@ private:
 
 private:
 
-  sc_signal<bool>            *idleSig;
+  sc_signal<bool>         *idleSig;
 
-  flag_signal<AddressedWord> *dataFromComponents;
-  flag_signal<AddressedWord> *dataToComponents;
-  flag_signal<AddressedWord> *creditsFromComponents;
-  flag_signal<bool>          *networkReadyForData;  // sc_signal?
+  flag_signal<DataType>   *dataFromComponents;
+  flag_signal<DataType>   *dataToComponents;
+  flag_signal<CreditType> *creditsFromComponents;
+  sc_buffer<CreditType>   *creditsToComponents;
 
-  sc_buffer<AddressedWord>   *creditsToComponents;
-  sc_signal<bool>            *compsReadyForCredits;
-
-  sc_signal<bool>            *compsReadyForData;
-  sc_signal<bool>            *networkReadyForCredits;
+  sc_signal<ReadyType>    *networkReadyForData;
+  sc_signal<ReadyType>    *compsReadyForCredits;
+  sc_signal<ReadyType>    *compsReadyForData;
+  sc_signal<ReadyType>    *networkReadyForCredits;
 
 //==============================//
 // Local state
