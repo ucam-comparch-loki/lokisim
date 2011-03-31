@@ -102,6 +102,12 @@ void InstructionPacketCache::updatePersistent(bool persistent) {
   cache.setPersistent(persistent);
 }
 
+void InstructionPacketCache::receivedInst() {
+  // Need to cast from Word to Instruction.
+  Instruction inst = static_cast<Instruction>(instructionIn.read());
+  write(inst);
+}
+
 /* Update the signal saying whether there is enough room to fetch another
  * packet. */
 void InstructionPacketCache::sendCredit() {
@@ -159,8 +165,8 @@ InstructionPacketCache::InstructionPacketCache(sc_module_name name) :
   finishedPacketRead = true;
   finishedPacketWrite = true;
 
-}
-
-InstructionPacketCache::~InstructionPacketCache() {
+  SC_METHOD(receivedInst);
+  sensitive << instructionIn;
+  dont_initialize();
 
 }

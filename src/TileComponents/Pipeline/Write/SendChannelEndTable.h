@@ -26,6 +26,8 @@ class SendChannelEndTable: public Component {
 
 public:
 
+  sc_in<bool>            clock;
+
   // Data output to the network.
   sc_out<AddressedWord>  output;
 
@@ -64,11 +66,11 @@ public:
   // Returns true if the table is incapable of accepting new data at the moment.
   bool          full() const;
 
+private:
+
   // Send the oldest value in each output buffer, if the flow control signals
   // allow it.
   void          send();
-
-private:
 
   // Stall the pipeline until the channel specified is empty.
   void          waitUntilEmpty(MapIndex channel);

@@ -26,19 +26,16 @@ void StageWithPredecessor::execute() {
 
 void StageWithPredecessor::updateReady() {
   while(true) {
-    // Wait until late in the cycle so we know that other tasks have completed.
+    // Wait until some point late in the cycle, so we know that any operations
+    // will have completed.
     wait(clock.negedge_event());
 
-    // Send any waiting outputs (this may clear space in buffers and unstall us).
-    // TODO: only call this method if we know there is something to send.
-    sendOutputs();
+    // Write our current stall status.
+    readyOut.write(!isStalled());
 
     if(DEBUG && isStalled() && readyOut.read()) {
       cout << this->name() << " stalled." << endl;
     }
-
-    // Write our current stall status.
-    readyOut.write(!isStalled());
   }
 }
 

@@ -85,15 +85,11 @@ public:
 
 private:
 
-  // If any new instructions have arrived, pass them to the corresponding components.
-  virtual void  newCycle();
+  virtual void  execute();
 
   // The fetch stage needs to be sure that other tasks have completed before
   // reading from the cache, so waits until later in the cycle to do it.
-  virtual void  cycleSecondHalf();
-
-  // Send out initial flow control values.
-  virtual void  initialise();
+  void          cycleSecondHalf();
 
   // Recompute whether this pipeline stage is stalled.
   virtual void  updateReady();

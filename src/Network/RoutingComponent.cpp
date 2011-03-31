@@ -22,7 +22,7 @@ void RoutingComponent::sendData() {
     for(ChannelIndex input=0; input<numInputs; input++) {
 
       // Check for new input data.
-      if(dataIn[input].event()) {
+      if(canReceiveData[input].read() && dataIn[input].event()) { // hack (only want second part)
         assert(!inputBuffers[input].full());
 
         inputBuffers[input].write(dataIn[input].read());
@@ -38,7 +38,7 @@ void RoutingComponent::sendData() {
         // Collect set of inputs and destinations (where destination is ready),
         // and pass them to an Arbiter, which returns the set of inputs which
         // may send.
-        if(readyIn[outPort].read()) {
+        if(canSendData[outPort].read()) {
           Path p(input, outPort, inputBuffers[input].peek());
           requests.push_back(p);
         }
@@ -70,7 +70,7 @@ void RoutingComponent::sendData() {
 
 void RoutingComponent::updateReady(ChannelIndex input) {
   // We can accept new data if the buffer is not full.
-  readyOut[input].write(!inputBuffers[input].full());
+  canReceiveData[input].write(!inputBuffers[input].full());
 }
 
 int RoutingComponent::bitsSwitched(ChannelIndex from, ChannelIndex to,
@@ -102,8 +102,8 @@ RoutingComponent::RoutingComponent(sc_module_name name,
 
   dataIn   = new sc_in<AddressedWord>[numInputs];
   dataOut  = new sc_out<AddressedWord>[numOutputs];
-  readyIn  = new sc_in<bool>[numOutputs];
-  readyOut = new sc_out<bool>[numInputs];
+  canSendData  = new sc_in<bool>[numOutputs];
+  canReceiveData = new sc_out<bool>[numInputs];
 
   SC_METHOD(newData);
   for(int i=0; i<numInputs; i++) sensitive << dataIn[i];
@@ -114,7 +114,7 @@ RoutingComponent::RoutingComponent(sc_module_name name,
   dont_initialize();
 
   // We start off accepting any input.
-  for(int i=0; i<numInputs; i++) readyOut[i].initialize(true);
+  for(int i=0; i<numInputs; i++) canReceiveData[i].initialize(true);
 
   end_module();
 }
@@ -122,8 +122,8 @@ RoutingComponent::RoutingComponent(sc_module_name name,
 RoutingComponent::~RoutingComponent() {
   delete[] dataIn;
   delete[] dataOut;
-  delete[] readyOut;
-  delete[] readyIn;
+  delete[] canReceiveData;
+  delete[] canSendData;
 
   delete arbiter_;
 }

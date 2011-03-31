@@ -252,7 +252,7 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   dataFromStage = new sc_buffer<DecodedInst>[stages.size()-1];
 
   fcFromBuffers = new sc_buffer<int>[CORE_INPUT_CHANNELS];
-  dataToBuffers = new flag_signal<Word>[CORE_INPUT_CHANNELS];
+  dataToBuffers = new sc_buffer<Word>[CORE_INPUT_CHANNELS];
 
   // Wire the input ports to the input buffers.
   for(uint i=0; i<CORE_INPUT_PORTS; i++) {

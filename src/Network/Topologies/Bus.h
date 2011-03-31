@@ -91,7 +91,7 @@ private:
   int channelsPerOutput;
 
   // Multicast is complicated unless we keep track of which outputs owe credits.
-  std::list<uint8_t> outstandingCredits;
+  std::list<PortIndex> outstandingCredits;
 
   sc_core::sc_event readyChanged;
   sc_core::sc_event credit;

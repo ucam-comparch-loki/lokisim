@@ -20,9 +20,9 @@ void FlowControlIn::receivedData() {
     assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
 
     // Wake up the sendCredit thread.
-    newCredit.notify(sc_core::SC_ZERO_TIME);
+    newCredit.notify();
 
-    if(DEBUG) cout << "Port " << TileComponent::inputPortString(id)
+    if(DEBUG) cout << "Channel " << TileComponent::inputPortString(id)
          << " was claimed by " << TileComponent::outputPortString(returnAddress)
          << endl;
   }
@@ -39,7 +39,7 @@ void FlowControlIn::receiveFlowControl() {
     assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
 
     // Wake up the sendCredit thread.
-    newCredit.notify(sc_core::SC_ZERO_TIME);
+    newCredit.notify();
   }
 }
 

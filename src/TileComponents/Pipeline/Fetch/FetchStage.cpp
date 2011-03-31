@@ -17,54 +17,43 @@ double FetchStage::energy() const {
   return cache.energy() + fifo.energy();
 }
 
-void FetchStage::newCycle() {
-  // Would like this to be its own SC_METHOD, but that causes problems with
-  // virtual inheritance for some reason.
-
-  if(toIPKFIFO.event()) {
-    Instruction instToFIFO = static_cast<Instruction>(toIPKFIFO.read());
-    fifo.write(instToFIFO);
-  }
-  if(toIPKCache.event()) {
-    Instruction instToCache = static_cast<Instruction>(toIPKCache.read());
-    cache.write(instToCache);
+void FetchStage::execute() {
+  // Loop forever, executing the appropriate tasks each clock cycle.
+  while(true) {
+    wait(clock.negedge_event());
+    cycleSecondHalf();
   }
 }
 
 void FetchStage::cycleSecondHalf() {
+  // Select a new instruction if the decode stage is ready for one, unless
+  // the FIFO and cache are both empty.
+  if(readyIn.read() && (!cache.isEmpty() || !fifo.isEmpty())) {
+    calculateSelect();
+    MemoryAddr instAddr;
 
-  calculateSelect();
-
-  if(readyIn.read()) {
-    // Select a new instruction if the decode stage is ready for one, unless
-    // the FIFO and cache are both empty.
-    if(!cache.isEmpty() || !fifo.isEmpty()) {
-      MemoryAddr instAddr;
-
-      if(usingCache) {
-        lastInstruction = cache.read();
-        instAddr = cache.getInstAddress();
-      }
-      else {
-        lastInstruction = fifo.read();
-        // We don't know the address this instruction came from, so make
-        // something up which would never happen.
-        instAddr = 0xFFFFFFFF;
-      }
-
-      DecodedInst decoded(lastInstruction);
-      decoded.location(instAddr);
-
-      dataOut.write(decoded);
-      idle.write(false);
-
-      if(DEBUG) {
-        printf("%s selected instruction from %s: ", this->name(),
-                                                    usingCache?"cache":"FIFO");
-        cout << lastInstruction << endl;
-      }
+    if(usingCache) {
+      lastInstruction = cache.read();
+      instAddr = cache.getInstAddress();
     }
-    else idle.write(true);  // Idle if we have no instructions.
+    else {
+      lastInstruction = fifo.read();
+      // We don't know the address this instruction came from, so make
+      // something up which would never happen.
+      instAddr = 0xFFFFFFFF;
+    }
+
+    DecodedInst decoded(lastInstruction);
+    decoded.location(instAddr);
+
+    dataOut.write(decoded);
+    idle.write(false);
+
+    if(DEBUG) {
+      printf("%s selected instruction from %s: ", this->name(),
+                                                  usingCache?"cache":"FIFO");
+      cout << lastInstruction << endl;
+    }
   }
   else idle.write(true);    // Idle if we can't send any instructions.
 }
@@ -82,12 +71,9 @@ void FetchStage::updateReady() {
   }
 }
 
-void FetchStage::initialise() {
-  idle.write(cache.isEmpty());
-}
-
 void FetchStage::storeCode(const std::vector<Instruction>& instructions) {
   cache.storeCode(instructions);
+  idle.write(false);
 }
 
 MemoryAddr FetchStage::getInstIndex() const {
@@ -148,8 +134,12 @@ FetchStage::FetchStage(sc_module_name name, ComponentID ID) :
   flowControl = new sc_out<int>[2];
 
   // Connect FIFO and cache to network
+  fifo.instructionIn(toIPKFIFO);
   fifo.flowControl(flowControl[0]);
+  cache.instructionIn(toIPKCache);
   cache.flowControl(flowControl[1]);
+
+  idle.initialize(true);
 
 }
 

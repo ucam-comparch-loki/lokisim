@@ -70,8 +70,6 @@ private:
 
   virtual bool   isStalled() const;
 
-  virtual void   sendOutputs();
-
   // Write a new value to a register.
   void           writeReg(RegisterIndex reg, int32_t value, bool indirect = false) const;
 

@@ -91,9 +91,9 @@ Chip::Chip(sc_module_name name, ComponentID ID, BatchModeEventRecorder *eventRec
   int numOutputs = TOTAL_OUTPUT_PORTS;
   int numInputs  = TOTAL_INPUT_PORTS;
 
-  dataFromComponents     = new flag_signal<DataType>[numOutputs];
+  dataFromComponents     = new sc_buffer<DataType>[numOutputs];
   dataToComponents       = new flag_signal<DataType>[numInputs];
-  creditsFromComponents  = new flag_signal<CreditType>[numInputs];
+  creditsFromComponents  = new sc_buffer<CreditType>[numInputs];
   creditsToComponents    = new sc_buffer<CreditType>[numOutputs];
 
   networkReadyForData    = new sc_signal<ReadyType>[numOutputs];

@@ -19,20 +19,26 @@ void InstructionPacketFIFO::write(const Instruction inst) {
   if(DEBUG) cout << this->name() << " received Instruction:  " << inst << endl;
 }
 
-void InstructionPacketFIFO::sendCredit() {
-  flowControl.write(1);
-}
-
 bool InstructionPacketFIFO::isEmpty() const {
   return fifo.empty();
+}
+
+void InstructionPacketFIFO::receivedInst() {
+  // Need to cast input Word to Instruction.
+  Instruction inst = static_cast<Instruction>(instructionIn.read());
+  write(inst);
+}
+
+void InstructionPacketFIFO::sendCredit() {
+  flowControl.write(1);
 }
 
 InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
     Component(name),
     fifo(IPK_FIFO_SIZE, std::string(name)) {
 
-}
-
-InstructionPacketFIFO::~InstructionPacketFIFO() {
+  SC_METHOD(receivedInst);
+  sensitive << instructionIn;
+  dont_initialize();
 
 }

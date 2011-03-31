@@ -10,6 +10,7 @@
 #include "../../Datatype/AddressedWord.h"
 
 void ArbiterComponent::arbitrate() {
+
   if(!haveData) return;
 
   RequestList requests;
@@ -32,6 +33,9 @@ void ArbiterComponent::arbitrate() {
   for(unsigned int i=0; i<grants.size(); i++) {
     const int input = grants[i].first;
     const int output = grants[i].second;
+
+    // FIXME: a request may be granted, but then blocked by flow control.
+    // Another, later request may still be allowed to send. Seems unfair.
     if(readyIn[output].read()) {
       dataOut[output].write(dataIn[input].read());
       readData[input].write(!readData[input].read()); // Toggle value
@@ -63,7 +67,7 @@ ArbiterComponent::ArbiterComponent(sc_module_name name, ComponentID ID,
   dont_initialize();
 
   SC_METHOD(arbitrate);
-  sensitive << clock.pos();   // Is this right?
+  sensitive << clock.neg();   // Is this right?
   dont_initialize();
 
   end_module();

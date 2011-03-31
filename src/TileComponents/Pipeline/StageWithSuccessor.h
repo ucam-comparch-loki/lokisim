@@ -37,7 +37,6 @@ public:
 public:
 
   StageWithSuccessor(sc_module_name name, ComponentID ID);
-  virtual ~StageWithSuccessor();
 
 };
 

@@ -38,8 +38,8 @@ public:
 
 public:
 
+  SC_HAS_PROCESS(FetchLogic);
   FetchLogic(sc_module_name name, int ID);
-  virtual ~FetchLogic();
 
 //==============================//
 // Methods
@@ -59,11 +59,13 @@ public:
   // overwritten. Send a fetch request to get it back.
   void refetch();
 
-  // Attempt to send the fetch request onto the network. This may fail if
-  // flow control stops it, or if there is not enough room in the cache.
-  void send();
-
 private:
+
+  // Prepare a request to be sent on the network.
+  void sendRequest(AddressedWord& data);
+
+  // Send a request onto the network whenever notified by sendRequest.
+  void send();
 
   // Find out whether the wanted instruction packet is in the cache.
   bool inCache(const MemoryAddr addr) const;
@@ -83,9 +85,6 @@ private:
 
 private:
 
-  // A queue of requests, waiting to be sent.
-  BufferStorage<AddressedWord> toSend;
-
   // The network channel we send all of our fetch requests to.
   ChannelID             fetchChannel;
 
@@ -93,6 +92,9 @@ private:
   // already in the cache. We need to be able to refetch the packet in case
   // it gets overwritten.
   AddressedWord         refetchRequest;
+
+  AddressedWord         dataToSend;
+  sc_core::sc_event     sendEvent;
 
 };
 

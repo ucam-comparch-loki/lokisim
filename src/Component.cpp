@@ -19,10 +19,6 @@ Component::Component(sc_module_name& name, ComponentID ID)
 
 }
 
-Component::~Component() {
-
-}
-
 double Component::area() const {
   std::cerr << "No area data for " << this->basename() << endl;
   return 0.0;

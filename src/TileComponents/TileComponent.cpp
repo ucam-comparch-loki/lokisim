@@ -129,20 +129,20 @@ ComponentID TileComponent::component(ChannelID channel) {
 
 /* Convert a global channel ID into a string of the form "(component, channel)". */
 const std::string TileComponent::inputPortString(ChannelID channel) {
-  uint tile = channel / INPUT_PORTS_PER_TILE;
-  uint position = channel % INPUT_PORTS_PER_TILE;
+  uint tile = channel / INPUT_CHANNELS_PER_TILE;
+  uint position = channel % INPUT_CHANNELS_PER_TILE;
   ComponentID component = tile * COMPONENTS_PER_TILE;
   ChannelIndex channelIndex;
 
-  if(position >= CORES_PER_TILE*CORE_INPUT_PORTS) {
+  if(position >= CORES_PER_TILE*CORE_INPUT_CHANNELS) {
     component += CORES_PER_TILE;
-    position  -= CORES_PER_TILE*CORE_INPUT_PORTS;
-    component += position / MEMORY_INPUT_PORTS;
-    channelIndex  = position % MEMORY_INPUT_PORTS;
+    position  -= CORES_PER_TILE*CORE_INPUT_CHANNELS;
+    component += position / MEMORY_INPUT_CHANNELS;
+    channelIndex  = position % MEMORY_INPUT_CHANNELS;
   }
   else {
-    component += position / CORE_INPUT_PORTS;
-    channelIndex  = position % CORE_INPUT_PORTS;
+    component += position / CORE_INPUT_CHANNELS;
+    channelIndex  = position % CORE_INPUT_CHANNELS;
   }
 
   std::stringstream ss;

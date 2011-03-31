@@ -42,10 +42,6 @@ void         DecodeStage::newInput(DecodedInst& inst) {
   }
 }
 
-void         DecodeStage::sendOutputs() {
-  fl.send();
-}
-
 bool         DecodeStage::isStalled() const {
   return !decoder.ready() || waitingToSend;  // Take into account fetch buffers too?
 }

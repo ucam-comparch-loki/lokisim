@@ -95,16 +95,16 @@ parameter SHARED_L1_CACHE_MEMORY_DELAY_CYCLES   = 100;
 // accessible through each port.
 //-------------------------------------------------------------------------------------------------
 
-parameter  CORE_INPUT_PORTS         = 4;  // Current = input channels. Aim = 2.
+parameter  CORE_INPUT_PORTS         = 2;  // Current = input channels. Aim = 2.
 parameter  CORE_OUTPUT_PORTS        = 1;
-parameter  NUM_RECEIVE_CHANNELS     = 2;  // Register-mapped inputs only
+parameter  NUM_RECEIVE_CHANNELS     = 6;  // Register-mapped inputs only
 
-parameter  MEMORY_INPUT_PORTS       = 8;  // Current = input channels. Aim = 1.
+parameter  MEMORY_INPUT_PORTS       = 2;  // Current = input channels. Aim = 1.
 parameter  MEMORY_OUTPUT_PORTS      = 1;
 parameter  MEMORY_INPUT_CHANNELS    = 8;  // Cores per tile + some extra?
 parameter  MEMORY_OUTPUT_CHANNELS   = 8;  // Same as input channels (use #define?)
 
-parameter CHANNEL_END_BUFFER_SIZE    = 32; // TODO: reduce once credit counters are fixed
+parameter CHANNEL_END_BUFFER_SIZE    = 8;
 parameter ROUTER_BUFFER_SIZE         = 4;
 parameter NETWORK_BUFFER_SIZE        = 4;
 

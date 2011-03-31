@@ -10,6 +10,23 @@
 #include "../Network/FlowControl/FlowControlIn.h"
 #include "../TileComponents/TileComponent.h"
 
+void InputCrossbar::dataArrived() {
+  newData.notify();
+}
+
+void InputCrossbar::sendData() {
+  while(true) {
+    // We want to send data on to the buffers as soon as it arrives over the
+    // network.
+    wait(newData);
+
+    // Generate a negative edge to trigger sending of data.
+    sendDataSig.write(false);
+    wait(sc_core::SC_ZERO_TIME);
+    sendDataSig.write(true);
+  }
+}
+
 InputCrossbar::InputCrossbar(sc_module_name name, ComponentID ID, int inputs, int outputs) :
     Component(name),
     dataXbar("data", ID, inputs, outputs, 1, 1, TileComponent::inputChannelID(ID,0)),
@@ -24,7 +41,7 @@ InputCrossbar::InputCrossbar(sc_module_name name, ComponentID ID, int inputs, in
   dataOut        = new sc_out<Word>[outputs];
   creditsIn      = new sc_in<int>[outputs];
   creditsOut     = new CreditOutput[inputs];
-  canSendCredits = new ReadyInput[outputs];
+  canSendCredits = new ReadyInput[inputs];
   canReceiveData = new ReadyOutput[inputs];
 
   dataToBuffer   = new sc_buffer<DataType>[outputs];
@@ -32,8 +49,9 @@ InputCrossbar::InputCrossbar(sc_module_name name, ComponentID ID, int inputs, in
   readyForData   = new sc_signal<ReadyType>[outputs];
   readyForCredit = new sc_signal<ReadyType>[outputs];
 
-  dataXbar.clock(clock);
   creditXbar.clock(clock);
+  dataXbar.clock(sendDataSig);
+  sendDataSig.write(true);
 
   for(int i=0; i<inputs; i++) {
     dataXbar.dataIn[i](dataIn[i]);
@@ -60,6 +78,12 @@ InputCrossbar::InputCrossbar(sc_module_name name, ComponentID ID, int inputs, in
     creditXbar.dataIn[i](creditsToNetwork[i]);
     creditXbar.canReceiveData[i](readyForCredit[i]);
   }
+
+  SC_METHOD(dataArrived);
+  for(int i=0; i<inputs; i++) sensitive << dataIn[i];
+  dont_initialize();
+
+  SC_THREAD(sendData);
 
 }
 

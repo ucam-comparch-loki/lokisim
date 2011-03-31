@@ -10,8 +10,13 @@
  *  2. Send a MemoryRequest to that port, specifying the channel ID to send
  *     results to, and saying that the MemoryRequest is to set up a connection:
  *     MemoryRequest(channel id, MemoryRequest::SETUP);
+ *     In practice, this amounts to sending the return address to the memory.
  *  3. Use the load and store instructions to send addresses/data to the
  *     memory.
+ *
+ * Note that although the number of input and output ports are currently
+ * parameters, it is intended that they will both eventually be 1. It is the
+ * number of channels which will change.
  *
  *  Created on: 6 Jan 2010
  *      Author: db434
@@ -23,6 +28,7 @@
 #include "TileComponent.h"
 #include "../Memory/AddressedStorage.h"
 #include "../Memory/BufferArray.h"
+#include "../Utility/LoopCounter.h"
 
 using std::vector;
 
@@ -91,12 +97,8 @@ private:
   // Carry out a write for the transaction at input "position".
   void write(ChannelIndex position);
 
-  // Returns a vector of all input ports at which there are memory operations
-  // ready to execute.
-  vector<ChannelIndex>& allRequests();
-
-  // Determine which output port a request at a particular input should use.
-  ChannelIndex outputToUse(ChannelIndex input) const;
+  // Returns the channel of the next request which should be accepted.
+  ChannelIndex nextRequest();
 
   // Tells whether we are able to carry out a waiting operation at the given
   // port.
@@ -110,10 +112,6 @@ private:
   // are sent back to returnAddr.
   void updateControl(ChannelIndex port, ChannelID returnAddr);
 
-  // Choose which of the provided inputs are allowed to perform an operation
-  // concurrently. Leaves only the allowed inputs in the vector.
-  void arbitrate(vector<ChannelIndex>& inputs);
-
   // Update the output signal telling whether the memory is idle.
   void updateIdle();
 
@@ -123,11 +121,11 @@ private:
   // Send a flow control credit from a particular port.
   void sendCredit(ChannelIndex position);
 
-  void sendData(AddressedWord& data, MapIndex channel);
+  // Put data into the output buffer.
+  void queueData(AddressedWord& data, MapIndex channel);
 
-  // Slight optimisation: signal that data has arrived, so we only look through
-  // the inputs when we know there is something to find.
-  void newData();
+  // Send data from the output buffer onto the network.
+  void sendData();
 
   // Perform any necessary actions when a new credit arrives.
   void newCredit();
@@ -154,6 +152,9 @@ private:
   // A queue of operations from each input port.
   BufferArray<Word> inputBuffers_;
 
+  // A queue of data to be sent from the output port.
+  BufferStorage<AddressedWord> outputBuffer_;
+
   // The number of words we have initially put in this memory. Allows multiple
   // files to be put into the same memory.
   int wordsLoaded_;
@@ -161,16 +162,15 @@ private:
   // Tells whether this memory has done something productive this cycle.
   bool active;
 
-  // Flag telling whether data has arrived since we last checked.
-  bool newData_;
-
-  // Used for arbitration. Stores the input port for which a request was most
-  // recently granted.
-  int lastAccepted;
+  // Keep track of which input we last accepted from, so we can implement
+  // round-robin arbitration.
+  LoopCounter currChannel;
 
   // Optimisation: only see which work can be done if there is actually work
   // to do.
   int activeConnections;
+
+  int creditssent;  // Temporary hack: remove asap
 
 };
 

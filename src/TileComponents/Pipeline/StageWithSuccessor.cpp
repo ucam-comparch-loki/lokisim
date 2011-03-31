@@ -12,7 +12,3 @@ StageWithSuccessor::StageWithSuccessor(sc_module_name name, ComponentID ID) :
     PipelineStage(name, ID) {
 
 }
-
-StageWithSuccessor::~StageWithSuccessor() {
-
-}

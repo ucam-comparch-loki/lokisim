@@ -68,10 +68,6 @@ bool WriteStage::isStalled() const {
   return scet.full();
 }
 
-void WriteStage::sendOutputs() {
-  scet.send();
-}
-
 void WriteStage::writeReg(RegisterIndex reg, int32_t value, bool indirect) const {
   parent()->writeReg(reg, value, indirect);
 }
@@ -84,6 +80,7 @@ WriteStage::WriteStage(sc_module_name name, ComponentID ID) :
   id = ID;
 
   // Connect the SCET to the network.
+  scet.clock(clock);
   scet.output(output);
   scet.network(network);
   scet.flowControl(flowControl);

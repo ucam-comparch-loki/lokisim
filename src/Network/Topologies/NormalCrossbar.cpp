@@ -25,8 +25,8 @@ NormalCrossbar::NormalCrossbar(sc_module_name name, ComponentID ID, int inputs,
   canReceiveData     = new ReadyOutput[inputs];
 
   busToMux           = new sc_signal<DataType>[numBuses*numMuxes];
-  newData            = new sc_signal<bool>[numBuses*numMuxes];
-  readData           = new flag_signal<bool>[numBuses*numMuxes];
+  newData            = new sc_signal<ReadyType>[numBuses*numMuxes];
+  readData           = new sc_signal<ReadyType>[numBuses*numMuxes];
 
   // Generate and connect up buses.
   for(int i=0; i<numBuses; i++) {

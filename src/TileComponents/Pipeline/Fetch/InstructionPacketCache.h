@@ -18,6 +18,7 @@
 #include "../../../Memory/BufferStorage.h"
 
 class FetchStage;
+class Word;
 
 class InstructionPacketCache : public Component {
 
@@ -27,8 +28,10 @@ class InstructionPacketCache : public Component {
 
 public:
 
+  sc_in<Word> instructionIn;
+
   // Signal telling the flow control unit how much space is left in the cache.
-  sc_out<int>         flowControl;
+  sc_out<int> flowControl;
 
 //==============================//
 // Constructors and destructors
@@ -36,8 +39,8 @@ public:
 
 public:
 
+  SC_HAS_PROCESS(InstructionPacketCache);
   InstructionPacketCache(sc_module_name name);
-  virtual ~InstructionPacketCache();
 
 //==============================//
 // Methods
@@ -80,6 +83,8 @@ public:
   void updatePersistent(bool persistent);
 
 private:
+
+  void receivedInst();
 
   // Update the output flow control signal.
   void sendCredit();

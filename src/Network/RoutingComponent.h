@@ -38,8 +38,8 @@ public:
   // Implement link-level flow control using ready signals. Note that this is
   // a completely separate mechanism to end-to-end flow control, which has its
   // own dedicated network.
-  sc_in<bool>           *readyIn;
-  sc_out<bool>          *readyOut;
+  sc_in<bool>           *canSendData;
+  sc_out<bool>          *canReceiveData;
 
 //==============================//
 // Constructors and destructors

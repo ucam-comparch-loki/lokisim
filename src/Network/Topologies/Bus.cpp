@@ -17,19 +17,24 @@ void Bus::mainLoop() {
       wait(credit);
       receivedCredit();
     }
+
     readyOut.write(true);
   }
 }
 
 void Bus::receivedData() {
+  assert(outstandingCredits.empty());
+
   AddressedWord data = dataIn.read();
-  std::vector<uint8_t> destinations;
+  std::vector<PortIndex> destinations;
 
   // Find out which outputs to send this data on.
   getDestinations(data.channelID(), destinations);
 
   for(unsigned int i=0; i<destinations.size(); i++) {
     const int output = destinations[i];
+    assert(output < numOutputs);
+
     // If multicasting, may need to change the channel ID for each output.
     dataOut[output].write(data);
     newData[output].write(true);
@@ -38,7 +43,7 @@ void Bus::receivedData() {
 }
 
 void Bus::receivedCredit() {
-  std::list<uint8_t>::iterator iter = outstandingCredits.begin();
+  std::list<PortIndex>::iterator iter = outstandingCredits.begin();
   int size = outstandingCredits.size();
 
   for(int i=0; i < size; i++, iter++) {
@@ -52,7 +57,7 @@ void Bus::receivedCredit() {
   }
 }
 
-void Bus::getDestinations(ChannelID address, std::vector<uint8_t>& outputs) const {
+void Bus::getDestinations(ChannelID address, std::vector<PortIndex>& outputs) const {
   bool multicast = false;
   if(multicast) {
     // Figure out which destinations are represented by the address.
@@ -63,7 +68,7 @@ void Bus::getDestinations(ChannelID address, std::vector<uint8_t>& outputs) cons
 }
 
 void Bus::creditArrived() {
-  credit.notify(sc_core::SC_ZERO_TIME);
+  credit.notify();
 }
 
 Bus::Bus(sc_module_name name, ComponentID ID, int numOutputs,

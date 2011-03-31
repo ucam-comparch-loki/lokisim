@@ -16,7 +16,7 @@ void FetchLogic::fetch(const MemoryAddr addr) {
   AddressedWord request(mr, fetchChannel);
 
   if(!inCache(addr)) {
-    toSend.write(request);     // Put the new request in the queue
+    sendRequest(request);
   }
   else {
     // Store the request in case the packet gets overwritten and needs to
@@ -31,37 +31,31 @@ void FetchLogic::setFetchChannel(const ChannelID channelID) {
   // Need to claim this port so that it sends flow control information back
   // here.
   AddressedWord aw(Word(portID()), fetchChannel, true);
-  toSend.write(aw);
 
-  // Block if the buffer is now full?
+  // Not ideal: the send method waits for there to be room in the cache, but
+  // for just claiming a port, this isn't necessary.
+  sendRequest(aw);
 }
 
 void FetchLogic::refetch() {
-  // What happens if toSend is full? Is it safe to assume that we will never
-  // write to a full buffer?
-  toSend.write(refetchRequest);
+  sendRequest(refetchRequest);
+}
+
+void FetchLogic::sendRequest(AddressedWord& data) {
+  dataToSend = data;
+  sendEvent.notify(sc_core::SC_ZERO_TIME);
 }
 
 void FetchLogic::send() {
-  // Why does this help?
-//  wait(0.1, sc_core::SC_NS);
+  while(true) {
+    wait(sendEvent);
 
-  // Three conditions must be satisfied before we can send a fetch request:
-  //  1. There must be something to send.
-  //  2. Flow control must allow us to send.
-  //  3. There must be enough room in the cache for a new packet.
-  if(!toSend.empty() && flowControl.read()) {
-    // Setting up a memory connection doesn't result in receiving a packet,
-    // so it is safe to send even if there isn't space in the cache.
-    if(toSend.peek().portClaim()) {
-      toNetwork.write(toSend.read());
+    // FIXME: whilst waiting for flow control and cache, etc. we may receive
+    // another request. One will be lost.
+    while(!flowControl.read() && !roomInCache()) {
+      wait(1, sc_core::SC_NS);
     }
-    else if(roomInCache()) {
-      AddressedWord aw = toSend.read();
-      toNetwork.write(aw);
-      if(DEBUG) cout << this->name() << " sending fetch: " << aw
-                     << "." << endl;
-    }
+    toNetwork.write(dataToSend);
   }
 }
 
@@ -83,14 +77,11 @@ DecodeStage* FetchLogic::parent() const {
 }
 
 FetchLogic::FetchLogic(sc_module_name name, int ID) :
-    Component(name),
-    toSend(4, std::string(name)) { // Can have 4 outstanding fetches (make a parameter?)
+    Component(name) {
 
   id = ID;
   fetchChannel = -1;      // So we get warnings if we fetch before setting this.
 
-}
-
-FetchLogic::~FetchLogic() {
+  SC_THREAD(send);
 
 }

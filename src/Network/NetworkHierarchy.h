@@ -21,6 +21,7 @@ using std::vector;
 class FlowControlIn;
 class FlowControlOut;
 class Network;
+class NormalCrossbar;
 
 typedef AddressedWord         CreditType;     // May be a bool one day
 typedef AddressedWord         DataType;
@@ -102,8 +103,12 @@ private:
   // Flow control at each component's outputs.
   vector<FlowControlOut*> flowControlOut;
 
-  vector<Network*> localDataNetworks, localCreditNetworks;
+//  vector<Network*> localDataNetworks;
+//  vector<Network*> localCreditNetworks;
   Network *globalDataNetwork, *globalCreditNetwork;
+  vector<NormalCrossbar*> localDataNetworks;
+  vector<NormalCrossbar*> localCreditNetworks;
+//  NormalCrossbar *globalDataNetwork, *globalCreditNetwork;
   OffChip offChip;  // Should this be in here, or outside?
 
 //==============================//

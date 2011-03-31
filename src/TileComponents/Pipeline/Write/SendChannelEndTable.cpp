@@ -169,6 +169,10 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, ComponentID ID) :
 
   id = ID;
 
+  SC_METHOD(send);
+  sensitive << clock.pos();
+  dont_initialize();
+
   SC_METHOD(receivedCredit);
   sensitive << creditsIn;
   dont_initialize();

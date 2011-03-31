@@ -11,6 +11,7 @@
 #include "FlowControl/FlowControlIn.h"
 #include "FlowControl/FlowControlOut.h"
 #include "Topologies/Crossbar.h"
+#include "Topologies/NormalCrossbar.h"
 
 void NetworkHierarchy::setupFlowControl() {
 
@@ -53,28 +54,35 @@ void NetworkHierarchy::makeLocalDataNetwork(int tileID) {
 
   // Create a local network.
   ChannelID lowestID = tileID * INPUT_CHANNELS_PER_TILE;
-  ChannelID highestID = lowestID + INPUT_CHANNELS_PER_TILE - 1;
-  Arbiter* arbiter = Arbiter::localDataArbiter(OUTPUT_PORTS_PER_TILE, INPUT_PORTS_PER_TILE);
-  Network* localNetwork = new Crossbar("local_data_net",
-                                       tileID,
-                                       lowestID,
-                                       highestID,
-                                       OUTPUT_PORTS_PER_TILE,
-                                       INPUT_PORTS_PER_TILE,
-                                       RoutingComponent::LOC_DATA,
-                                       arbiter);
+//  ChannelID highestID = lowestID + INPUT_CHANNELS_PER_TILE - 1;
+//  Arbiter* arbiter = Arbiter::localDataArbiter(OUTPUT_PORTS_PER_TILE, INPUT_PORTS_PER_TILE);
+//  Network* localNetwork = new Crossbar("local_data_net",
+//                                       tileID,
+//                                       lowestID,
+//                                       highestID,
+//                                       OUTPUT_PORTS_PER_TILE,
+//                                       INPUT_PORTS_PER_TILE,
+//                                       RoutingComponent::LOC_DATA,
+//                                       arbiter);
+  NormalCrossbar* localNetwork = new NormalCrossbar("data_net",
+                                                    tileID,
+                                                    OUTPUT_PORTS_PER_TILE+1,
+                                                    INPUT_PORTS_PER_TILE+1,
+                                                    1,//CORE_INPUT_PORTS,
+                                                    CORE_INPUT_CHANNELS/CORE_INPUT_PORTS,
+                                                    lowestID);
   localDataNetworks.push_back(localNetwork);
 
   // Connect things up.
   for(uint i=0; i<INPUT_PORTS_PER_TILE; i++) {
     int outputIndex = (tileID * INPUT_PORTS_PER_TILE) + i;
     localNetwork->dataOut[i](dataOut[outputIndex]);
-    localNetwork->readyIn[i](canSendData[outputIndex]);
+    localNetwork->canSendData[i](canSendData[outputIndex]);
   }
   for(uint i=0; i<OUTPUT_PORTS_PER_TILE; i++) {
     int inputIndex = (tileID * OUTPUT_PORTS_PER_TILE) + i;
     localNetwork->dataIn[i](dataIn[inputIndex]);
-    localNetwork->readyOut[i](canReceiveData[inputIndex]);
+    localNetwork->canReceiveData[i](canReceiveData[inputIndex]);
   }
 
   localNetwork->clock(clock);
@@ -83,10 +91,14 @@ void NetworkHierarchy::makeLocalDataNetwork(int tileID) {
   // need for a global network, so this local network can connect directly
   // to the OffChip component.
   if(NUM_TILES == 1) {
-    localNetwork->externalInput()(dataFromComponents[/*TOTAL_OUTPUT_PORTS*/0]);
-    localNetwork->externalOutput()(dataToComponents[/*TOTAL_INPUT_PORTS*/0]);
-    localNetwork->externalReadyInput()(compReadyForData[/*TOTAL_INPUT_PORTS*/0]);
-    localNetwork->externalReadyOutput()(readyForData[/*TOTAL_OUTPUT_PORTS*/0]);
+    localNetwork->dataIn[OUTPUT_PORTS_PER_TILE](dataFromComponents[0]);
+    localNetwork->canReceiveData[OUTPUT_PORTS_PER_TILE](readyForData[0]);
+    localNetwork->dataOut[INPUT_PORTS_PER_TILE](dataToComponents[0]);
+    localNetwork->canSendData[INPUT_PORTS_PER_TILE](compReadyForData[0]);
+//    localNetwork->externalInput()(dataFromComponents[/*TOTAL_OUTPUT_PORTS*/0]);
+//    localNetwork->externalOutput()(dataToComponents[/*TOTAL_INPUT_PORTS*/0]);
+//    localNetwork->externalReadyInput()(compReadyForData[/*TOTAL_INPUT_PORTS*/0]);
+//    localNetwork->externalReadyOutput()(readyForData[/*TOTAL_OUTPUT_PORTS*/0]);
   }
 
 }
@@ -114,15 +126,20 @@ void NetworkHierarchy::makeGlobalDataNetwork() {
   globalDataNetwork->externalReadyOutput()(readyForData[/*TOTAL_OUTPUT_PORTS*/0]);
 
   for(uint i=0; i<localDataNetworks.size(); i++) {
-    Network* n = localDataNetworks[i];
-    n->externalInput()(dataToLocalNet[i]);
-    n->externalOutput()(dataFromLocalNet[i]);
-    n->externalReadyInput()(globalReadyForData[i]);
-    n->externalReadyOutput()(localReadyForData[i]);
+//    Network* n = localDataNetworks[i];
+//    n->externalInput()(dataToLocalNet[i]);
+//    n->externalOutput()(dataFromLocalNet[i]);
+//    n->externalReadyInput()(globalReadyForData[i]);
+//    n->externalReadyOutput()(localReadyForData[i]);
+    NormalCrossbar* n = localDataNetworks[i];
+    n->dataIn[OUTPUT_PORTS_PER_TILE](dataToLocalNet[i]);
+    n->dataOut[INPUT_PORTS_PER_TILE](dataFromLocalNet[i]);
+    n->canSendData[INPUT_PORTS_PER_TILE](globalReadyForData[i]);
+    n->canReceiveData[OUTPUT_PORTS_PER_TILE](localReadyForData[i]);
     globalDataNetwork->dataOut[i](dataToLocalNet[i]);
     globalDataNetwork->dataIn[i](dataFromLocalNet[i]);
-    globalDataNetwork->readyOut[i](globalReadyForData[i]);
-    globalDataNetwork->readyIn[i](localReadyForData[i]);
+    globalDataNetwork->canReceiveData[i](globalReadyForData[i]);
+    globalDataNetwork->canSendData[i](localReadyForData[i]);
   }
 
 }
@@ -142,28 +159,35 @@ void NetworkHierarchy::makeLocalCreditNetwork(int tileID) {
 
   // Create a local network.
   ChannelID lowestID = tileID * OUTPUT_CHANNELS_PER_TILE;
-  ChannelID highestID = lowestID + OUTPUT_CHANNELS_PER_TILE - 1;
-  Arbiter* arbiter = Arbiter::localCreditArbiter(INPUT_PORTS_PER_TILE, OUTPUT_PORTS_PER_TILE);
-  Network* localNetwork = new Crossbar("local_credit_net",
-                                       tileID,
-                                       lowestID,
-                                       highestID,
-                                       INPUT_PORTS_PER_TILE,
-                                       OUTPUT_PORTS_PER_TILE,
-                                       RoutingComponent::LOC_CREDIT,
-                                       arbiter);
+//  ChannelID highestID = lowestID + OUTPUT_CHANNELS_PER_TILE - 1;
+//  Arbiter* arbiter = Arbiter::localCreditArbiter(INPUT_PORTS_PER_TILE, OUTPUT_PORTS_PER_TILE);
+//  Network* localNetwork = new Crossbar("local_credit_net",
+//                                       tileID,
+//                                       lowestID,
+//                                       highestID,
+//                                       INPUT_PORTS_PER_TILE,
+//                                       OUTPUT_PORTS_PER_TILE,
+//                                       RoutingComponent::LOC_CREDIT,
+//                                       arbiter);
+  NormalCrossbar* localNetwork = new NormalCrossbar("credit_net",
+                                                    tileID,
+                                                    INPUT_PORTS_PER_TILE+1,
+                                                    OUTPUT_PORTS_PER_TILE+1,
+                                                    CORE_OUTPUT_PORTS,
+                                                    CORE_OUTPUT_CHANNELS,
+                                                    lowestID);
   localCreditNetworks.push_back(localNetwork);
 
   // Connect things up.
   for(uint i=0; i<OUTPUT_PORTS_PER_TILE; i++) {
     int outputIndex = (tileID * OUTPUT_PORTS_PER_TILE) + i;
     localNetwork->dataOut[i](creditsOut[outputIndex]);
-    localNetwork->readyIn[i](canSendCredit[outputIndex]);
+    localNetwork->canSendData[i](canSendCredit[outputIndex]);
   }
   for(uint i=0; i<INPUT_PORTS_PER_TILE; i++) {
     int inputIndex = (tileID * INPUT_PORTS_PER_TILE) + i;
     localNetwork->dataIn[i](creditsIn[inputIndex]);
-    localNetwork->readyOut[i](canReceiveCredit[inputIndex]);
+    localNetwork->canReceiveData[i](canReceiveCredit[inputIndex]);
   }
 
   localNetwork->clock(clock);
@@ -172,10 +196,14 @@ void NetworkHierarchy::makeLocalCreditNetwork(int tileID) {
   // need for a global network, and this local network can connect directly
   // to the OffChip component.
   if(NUM_TILES == 1) {
-    localNetwork->externalInput()(creditsFromComponents[/*TOTAL_INPUT_PORTS*/0]);
-    localNetwork->externalOutput()(creditsToComponents[/*TOTAL_OUTPUT_PORTS*/0]);
-    localNetwork->externalReadyInput()(compReadyForCredits[/*TOTAL_OUTPUT_PORTS*/0]);
-    localNetwork->externalReadyOutput()(readyForCredits[/*TOTAL_INPUT_PORTS*/0]);
+//    localNetwork->externalInput()(creditsFromComponents[/*TOTAL_INPUT_PORTS*/0]);
+//    localNetwork->externalOutput()(creditsToComponents[/*TOTAL_OUTPUT_PORTS*/0]);
+//    localNetwork->externalReadyInput()(compReadyForCredits[/*TOTAL_OUTPUT_PORTS*/0]);
+//    localNetwork->externalReadyOutput()(readyForCredits[/*TOTAL_INPUT_PORTS*/0]);
+    localNetwork->dataIn[INPUT_PORTS_PER_TILE](creditsFromComponents[0]);
+    localNetwork->canReceiveData[INPUT_PORTS_PER_TILE](readyForCredits[0]);
+    localNetwork->dataOut[OUTPUT_PORTS_PER_TILE](creditsToComponents[0]);
+    localNetwork->canSendData[OUTPUT_PORTS_PER_TILE](compReadyForCredits[0]);
   }
 
 }
@@ -203,15 +231,20 @@ void NetworkHierarchy::makeGlobalCreditNetwork() {
   globalCreditNetwork->externalReadyOutput()(readyForCredits[/*TOTAL_INPUT_PORTS*/0]);
 
   for(uint i=0; i<localCreditNetworks.size(); i++) {
-    Network* n = localCreditNetworks[i];
-    n->externalInput()(creditsToLocalNet[i]);
-    n->externalOutput()(creditsFromLocalNet[i]);
-    n->externalReadyInput()(globalReadyForCredits[i]);
-    n->externalReadyOutput()(localReadyForCredits[i]);
+//    Network* n = localCreditNetworks[i];
+//    n->externalInput()(creditsToLocalNet[i]);
+//    n->externalOutput()(creditsFromLocalNet[i]);
+//    n->externalReadyInput()(globalReadyForCredits[i]);
+//    n->externalReadyOutput()(localReadyForCredits[i]);
+    NormalCrossbar* n = localCreditNetworks[i];
+    n->dataIn[INPUT_PORTS_PER_TILE](creditsToLocalNet[i]);
+    n->dataOut[OUTPUT_PORTS_PER_TILE](creditsFromLocalNet[i]);
+    n->canSendData[OUTPUT_PORTS_PER_TILE](globalReadyForCredits[i]);
+    n->canReceiveData[INPUT_PORTS_PER_TILE](localReadyForCredits[i]);
     globalCreditNetwork->dataOut[i](creditsToLocalNet[i]);
     globalCreditNetwork->dataIn[i](creditsFromLocalNet[i]);
-    globalCreditNetwork->readyOut[i](globalReadyForCredits[i]);
-    globalCreditNetwork->readyIn[i](localReadyForCredits[i]);
+    globalCreditNetwork->canReceiveData[i](globalReadyForCredits[i]);
+    globalCreditNetwork->canSendData[i](localReadyForCredits[i]);
   }
 
 }

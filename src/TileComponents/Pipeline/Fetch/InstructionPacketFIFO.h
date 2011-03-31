@@ -14,6 +14,7 @@
 #include "../../../Memory/BufferStorage.h"
 
 class Instruction;
+class Word;
 
 class InstructionPacketFIFO : public Component {
 
@@ -23,8 +24,10 @@ class InstructionPacketFIFO : public Component {
 
 public:
 
+  sc_in<Word> instructionIn;
+
   // Signal telling the flow control unit how much space is left in the FIFO.
-  sc_out<int>         flowControl;
+  sc_out<int> flowControl;
 
 //==============================//
 // Constructors and destructors
@@ -32,8 +35,8 @@ public:
 
 public:
 
+  SC_HAS_PROCESS(InstructionPacketFIFO);
   InstructionPacketFIFO(sc_module_name name);
-  virtual ~InstructionPacketFIFO();
 
 //==============================//
 // Methods
@@ -52,6 +55,7 @@ public:
 
 private:
 
+  void receivedInst();
   void sendCredit();
 
 //==============================//

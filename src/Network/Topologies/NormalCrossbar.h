@@ -12,7 +12,6 @@
 #define NORMALCROSSBAR_H_
 
 #include "../../Component.h"
-#include "../../flag_signal.h"
 #include "Bus.h"
 
 class ArbiterComponent;
@@ -52,8 +51,8 @@ private:
   std::vector<ArbiterComponent*> arbiters;
 
   sc_signal<DataType>           *busToMux;
-  sc_signal<bool>               *newData;
-  flag_signal<bool>             *readData;
+  sc_signal<ReadyType>          *newData;
+  sc_signal<ReadyType>          *readData;
 
 };
 

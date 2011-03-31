@@ -16,11 +16,11 @@ sc_out<AddressedWord>& Network::externalOutput() const {
 }
 
 sc_in<bool>& Network::externalReadyInput() const {
-  return readyIn[numOutputs-1];
+  return canSendData[numOutputs-1];
 }
 
 sc_out<bool>& Network::externalReadyOutput() const {
-  return readyOut[numInputs-1];
+  return canReceiveData[numInputs-1];
 }
 
 Network::Network(sc_module_name name,

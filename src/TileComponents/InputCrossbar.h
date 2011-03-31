@@ -43,8 +43,18 @@ public:
 
 public:
 
+  SC_HAS_PROCESS(InputCrossbar);
   InputCrossbar(sc_module_name name, ComponentID ID, int inputs, int outputs);
   virtual ~InputCrossbar();
+
+//==============================//
+// Methods
+//==============================//
+
+private:
+
+  void dataArrived();
+  void sendData();
 
 //==============================//
 // Local state
@@ -62,6 +72,13 @@ private:
   sc_buffer<DataType>   *dataToBuffer;
   sc_buffer<CreditType> *creditsToNetwork;
   sc_signal<ReadyType>  *readyForData, *readyForCredit;
+
+  // This signal behaves like a clock for the data network: we generate a
+  // negative edge when we want the network to send data.
+  // The equivalent credit network can use the ordinary clock, so this is not
+  // needed.
+  sc_signal<bool> sendDataSig;
+  sc_core::sc_event newData;
 
 };
 

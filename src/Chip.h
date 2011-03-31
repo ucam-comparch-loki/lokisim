@@ -88,9 +88,9 @@ private:
 
   sc_signal<bool>         *idleSig;
 
-  flag_signal<DataType>   *dataFromComponents;
+  sc_buffer<DataType>     *dataFromComponents;
   flag_signal<DataType>   *dataToComponents;
-  flag_signal<CreditType> *creditsFromComponents;
+  sc_buffer<CreditType>   *creditsFromComponents;
   sc_buffer<CreditType>   *creditsToComponents;
 
   sc_signal<ReadyType>    *networkReadyForData;

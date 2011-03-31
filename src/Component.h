@@ -46,7 +46,6 @@ public:
 
   Component(sc_module_name& name);
   Component(sc_module_name& name, ComponentID ID);
-  ~Component();
 
   // DO NOT MAKE A COPY CONSTRUCTOR. SYSTEMC MODULES SHOULD NOT BE COPIED.
 

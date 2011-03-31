@@ -188,7 +188,7 @@ private:
   // Signals telling us which stages are idle, able to send data, or stalled.
   sc_signal<bool>           *stageIdle, *stallRegReady, *stageReady;
 
-  flag_signal<Word>         *dataToBuffers; // TODO: don't require flag_signal
+  sc_buffer<Word>           *dataToBuffers;
   sc_buffer<int>            *fcFromBuffers;
 
   // Transmission of the instruction along the pipeline. sc_buffers because we

@@ -86,9 +86,6 @@ private:
   // other stages).
   virtual bool   isStalled() const;
 
-  // Send any pending data onto the network.
-  virtual void   sendOutputs();
-
   // Read a register value (for Decoder).
   int32_t        readReg(RegisterIndex index, bool indirect = false) const;
 
