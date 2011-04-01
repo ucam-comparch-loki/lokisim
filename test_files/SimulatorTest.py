@@ -150,11 +150,15 @@ class SimulatorTest(unittest.TestCase):
         directory = directory.split("test_files/")[-1]
         self.setUp()
         
+        testName = directory
+        if description != "":
+            testName = testName + " (" + description + ")"
+        
         try:
             self.runTest()
-            self._success(directory)
+            self._success(testName)
         except Exception as e:
-            self._failure(directory, str(e))
+            self._failure(testName, str(e))
         finally:
             self.tearDown()
             

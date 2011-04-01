@@ -13,6 +13,7 @@
 
 #include <vector>
 #include "../Component.h"
+#include "Network.h"
 #include "OffChip.h"
 #include "../Datatype/AddressedWord.h"
 
@@ -20,23 +21,6 @@ using std::vector;
 
 class FlowControlIn;
 class FlowControlOut;
-class Network;
-class NormalCrossbar;
-
-typedef AddressedWord         CreditType;     // May be a bool one day
-typedef AddressedWord         DataType;
-typedef bool                  ReadyType;
-
-typedef sc_buffer<CreditType> CreditSignal;
-typedef sc_buffer<DataType>   DataSignal;
-typedef sc_signal<ReadyType>  ReadySignal;
-
-typedef sc_in<DataType>       DataInput;
-typedef sc_out<DataType>      DataOutput;
-typedef sc_in<ReadyType>      ReadyInput;
-typedef sc_out<ReadyType>     ReadyOutput;
-typedef sc_in<CreditType>     CreditInput;
-typedef sc_out<CreditType>    CreditOutput;
 
 class NetworkHierarchy : public Component {
 
@@ -103,12 +87,9 @@ private:
   // Flow control at each component's outputs.
   vector<FlowControlOut*> flowControlOut;
 
-//  vector<Network*> localDataNetworks;
-//  vector<Network*> localCreditNetworks;
+  vector<Network*> localDataNetworks;
+  vector<Network*> localCreditNetworks;
   Network *globalDataNetwork, *globalCreditNetwork;
-  vector<NormalCrossbar*> localDataNetworks;
-  vector<NormalCrossbar*> localCreditNetworks;
-//  NormalCrossbar *globalDataNetwork, *globalCreditNetwork;
   OffChip offChip;  // Should this be in here, or outside?
 
 //==============================//

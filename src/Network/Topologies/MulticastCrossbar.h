@@ -14,10 +14,11 @@
 #define MULTICASTCROSSBAR_H_
 
 #include "../../Component.h"
-#include "Bus.h"
+#include "MulticastBus.h"
 
 class ArbiterComponent;
 
+// Should inherit from Crossbar
 class MulticastCrossbar: public Component {
 
 //==============================//
@@ -48,7 +49,8 @@ public:
 public:
 
   MulticastCrossbar(sc_module_name name, ComponentID ID, int inputs, int outputs,
-                    int outputsPerComponent, int channelsPerOutput, ChannelID startAddr);
+                    int outputsPerComponent, int channelsPerOutput, ChannelID startAddr,
+                    Dimension size);
   virtual ~MulticastCrossbar();
 
 //==============================//
@@ -57,7 +59,7 @@ public:
 
 private:
 
-  std::vector<Bus*> buses;
+  std::vector<MulticastBus*> buses;
   std::vector<ArbiterComponent*> arbiters;
 
   sc_signal<DataType> *busToMux;

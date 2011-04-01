@@ -1,57 +1,69 @@
 /*
  * Crossbar.cpp
  *
- *  Created on: 3 Nov 2010
+ *  Created on: 21 Mar 2011
  *      Author: db434
  */
 
 #include "Crossbar.h"
+#include "../Arbiters/ArbiterComponent.h"
 #include "../../Datatype/AddressedWord.h"
-#include "../Arbiters/RoundRobinArbiter.h"
 
-ChannelIndex Crossbar::computeOutput(ChannelIndex source,
-                                     ChannelID destination) const {
-  // Not sure if this is right, but it seems to work for now.
-  // Would expect to have ">= endID" instead of only "> endID".
-  if(destination<startID || destination>endID) return offNetworkOutput;
-  else return (destination-startID)/idsPerChannel;
-}
+Crossbar::Crossbar(sc_module_name name, ComponentID ID, int inputs, int outputs,
+                   int outputsPerComponent, int channelsPerOutput,
+                   ChannelID startAddr, Dimension size, bool externalConnection) :
+    Network(name, ID, inputs, outputs, size, externalConnection) {
 
-/* Computes the distance a signal must travel through the crossbar.
- * Assumes that the ports are split in half: half above the crossbar and half
- * below (except for the connections to the next level of the hierarchy, which
- * are at one end). Also assumes a constant height for the crossbar. */
-double Crossbar::distance(ChannelIndex inPort, ChannelIndex outPort) const {
-  static double crossbarHeight = 0.2;
-  static double crossbarWidth = 1.0;  // We expect tiles to be 1mm^2
-  static double inPortSpacing = crossbarWidth/(numInputs/2);
-  static double outPortSpacing = crossbarWidth/(numOutputs/2);
+  id = ID;
 
-  // Not sure if this is correct.
-  double hDist = (inPort%(numInputs/2)) * inPortSpacing -
-                 (outPort%(numOutputs/2)) * outPortSpacing;
-  if(hDist < 0) hDist = -hDist;
+  const int numBuses = numInputs;
+  const int numMuxes = numOutputs/outputsPerComponent;
 
-  // See if both ports are on the top/bottom, or if they are on different halves.
-  double vDist = (inPort/(numInputs/2)) == (outPort/(numOutputs/2)) ? 0
-                                                                    : crossbarHeight;
-  return hDist + vDist;
-}
+  busToMux           = new sc_signal<DataType>[numBuses*numMuxes];
+  newData            = new sc_signal<ReadyType>[numBuses*numMuxes];
+  readData           = new sc_signal<ReadyType>[numBuses*numMuxes];
 
-Crossbar::Crossbar(sc_module_name name,
-                   ComponentID ID,
-                   ChannelID lowestID,
-                   ChannelID highestID,
-                   int numInputs,
-                   int numOutputs,
-                   int networkType,
-                   Arbiter* arbiter) :
-    Network(name, ID, lowestID, highestID, numInputs, numOutputs, networkType) {
+  // Generate and connect up buses.
+  for(int i=0; i<numBuses; i++) {
+    Bus* bus = new Bus("bus", i, numMuxes, numOutputs*channelsPerOutput, startAddr, size);
+    buses.push_back(bus);
+    bus->dataIn(dataIn[i]);
+    bus->readyOut(canReceiveData[i]);
 
-  arbiter_ = arbiter;
+    for(int j=0; j<numMuxes; j++) {
+      bus->dataOut[j](busToMux[i*numMuxes + j]);
+      bus->newData[j](newData[i*numMuxes + j]);
+      bus->dataRead[j](readData[i*numMuxes + j]);
+    }
+  }
+
+  // Generate and connect up arbitrated multiplexers.
+  for(int i=0; i<numMuxes; i++) {
+    ArbiterComponent* arbiter = new ArbiterComponent("arbiter", i, numBuses, outputsPerComponent);
+    arbiters.push_back(arbiter);
+    arbiter->clock(clock);
+
+    for(int j=0; j<numBuses; j++) {
+      arbiter->dataIn[j](busToMux[j*numMuxes + i]);
+      arbiter->newData[j](newData[j*numMuxes + i]);
+      arbiter->readData[j](readData[j*numMuxes + i]);
+    }
+
+    for(int j=0; j<outputsPerComponent; j++) {
+      arbiter->dataOut[j](dataOut[i*outputsPerComponent + j]);
+      arbiter->readyIn[j](canSendData[i*outputsPerComponent + j]);
+    }
+  }
+
+  end_module();
 
 }
 
 Crossbar::~Crossbar() {
+  delete[] busToMux;
+  delete[] newData;
+  delete[] readData;
 
+  for(unsigned int i=0; i<buses.size(); i++) delete buses[i];
+  for(unsigned int i=0; i<arbiters.size(); i++) delete arbiters[i];
 }

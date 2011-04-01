@@ -1,7 +1,9 @@
 /*
  * Crossbar.h
  *
- *  Created on: 3 Nov 2010
+ * A crossbar without multicast functionality.
+ *
+ *  Created on: 21 Mar 2011
  *      Author: db434
  */
 
@@ -9,39 +11,48 @@
 #define CROSSBAR_H_
 
 #include "../Network.h"
+#include "Bus.h"
+
+class ArbiterComponent;
 
 class Crossbar: public Network {
+
+//==============================//
+// Ports
+//==============================//
+
+// Inherited from Network:
+//
+//  sc_in<bool>   clock;
+//
+//  DataInput    *dataIn;
+//  DataOutput   *dataOut;
+//
+//  ReadyInput   *canSendData;
+//  ReadyOutput  *canReceiveData;
 
 //==============================//
 // Constructors and destructors
 //==============================//
 
 public:
-
-  SC_HAS_PROCESS(Crossbar);
-  Crossbar(sc_module_name name,
-           ComponentID ID,
-           ChannelID lowestID,   // Lowest channel ID accessible on this network
-           ChannelID highestID,  // Highest channel ID accessible on this network
-           int numInputs,        // Number of inputs this network has
-           int numOutputs,       // Number of outputs this network has
-           int networkType,
-           Arbiter* arbiter);
-
+  Crossbar(sc_module_name name, ComponentID ID, int inputs, int outputs,
+           int outputsPerComponent, int channelsPerOutput, ChannelID startAddr,
+           Dimension size, bool externalConnection = false);
   virtual ~Crossbar();
 
 //==============================//
-// Methods
+// Components
 //==============================//
 
 private:
 
-  // Compute which port to send the data out on, given the port it was received
-  // on, and its ultimate destination.
-  virtual ChannelIndex computeOutput(ChannelIndex source,
-                                     ChannelID destination) const;
+  std::vector<Bus*>              buses;
+  std::vector<ArbiterComponent*> arbiters;
 
-  virtual double distance(ChannelIndex inPort, ChannelIndex outPort) const;
+  sc_signal<DataType>           *busToMux;
+  sc_signal<ReadyType>          *newData;
+  sc_signal<ReadyType>          *readData;
 
 };
 

@@ -11,7 +11,8 @@
 
 MulticastCrossbar::MulticastCrossbar(sc_module_name name, ComponentID ID, int inputs,
                                      int outputs, int outputsPerComponent,
-                                     int channelsPerOutput, ChannelID startAddr) :
+                                     int channelsPerOutput, ChannelID startAddr,
+                                     Dimension size) :
     Component(name, ID) {
 
   const int numBuses = inputs;
@@ -31,7 +32,7 @@ MulticastCrossbar::MulticastCrossbar(sc_module_name name, ComponentID ID, int in
 
   // Generate and connect up buses.
   for(int i=0; i<numBuses; i++) {
-    Bus* bus = new Bus("bus", i, numMuxes, channelsPerOutput, startAddr);
+    MulticastBus* bus = new MulticastBus("bus", i, numMuxes, channelsPerOutput, startAddr, size);
     buses.push_back(bus);
     bus->dataIn(dataIn[i]);
     bus->readyOut(canReceiveData[i]);

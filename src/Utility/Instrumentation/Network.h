@@ -5,8 +5,8 @@
  *      Author: db434
  */
 
-#ifndef NETWORK_H_
-#define NETWORK_H_
+#ifndef NETWORK_INSTRUMENTATION_H_
+#define NETWORK_INSTRUMENTATION_H_
 
 #include "InstrumentationBase.h"
 #include "CounterMap.h"
@@ -55,4 +55,4 @@ private:
 
 }
 
-#endif /* NETWORK_H_ */
+#endif /* NETWORK_INSTRUMENTATION_H_ */

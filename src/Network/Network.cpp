@@ -6,39 +6,58 @@
  */
 
 #include "Network.h"
+#include "../Datatype/AddressedWord.h"
 
-sc_in<AddressedWord>& Network::externalInput() const {
+DataInput& Network::externalInput() const {
+  assert(externalConnection);
   return dataIn[numInputs-1];
 }
 
-sc_out<AddressedWord>& Network::externalOutput() const {
+DataOutput& Network::externalOutput() const {
+  assert(externalConnection);
   return dataOut[numOutputs-1];
 }
 
-sc_in<bool>& Network::externalReadyInput() const {
+ReadyInput& Network::externalReadyInput() const {
+  assert(externalConnection);
   return canSendData[numOutputs-1];
 }
 
-sc_out<bool>& Network::externalReadyOutput() const {
+ReadyOutput& Network::externalReadyOutput() const {
+  assert(externalConnection);
   return canReceiveData[numInputs-1];
 }
 
 Network::Network(sc_module_name name,
-                 ComponentID ID,
-                 ChannelID lowestID,
-                 ChannelID highestID,
-                 int numInputs,
-                 int numOutputs,
-                 int networkType) :
-  RoutingComponent(name, ID, numInputs+1, numOutputs+1, NETWORK_BUFFER_SIZE, networkType) {
+    ComponentID ID,
+    int numInputs,        // Number of inputs this network has
+    int numOutputs,       // Number of outputs this network has
+    Dimension size,       // The physical size of this network (width, height)
+    bool externalConnection) : // Is there a port to send data on if it
+                               // isn't for any local component?
+  Component(name, ID) {
 
-  startID          = lowestID;
-  endID            = highestID;
-  idsPerChannel    = (highestID - lowestID + 1)/numOutputs;
-  offNetworkOutput = numOutputs;
+  this->numInputs  = externalConnection ? numInputs+1 : numInputs;
+  this->numOutputs = externalConnection ? numOutputs+1 : numOutputs;
+  this->externalConnection = externalConnection;
+  this->size = size;
+
+  dataIn         = new DataInput[this->numInputs];
+  dataOut        = new DataOutput[this->numOutputs];
+  canSendData    = new ReadyInput[this->numOutputs];
+  canReceiveData = new ReadyOutput[this->numInputs];
+
+  // We start off accepting any input.
+  for(int i=0; i<this->numInputs; i++) canReceiveData[i].initialize(true);
+
+  // Need to call end_module in every subclass.
+//  end_module();
 
 }
 
 Network::~Network() {
-
+  delete[] dataIn;
+  delete[] dataOut;
+  delete[] canReceiveData;
+  delete[] canSendData;
 }

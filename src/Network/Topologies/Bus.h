@@ -1,7 +1,7 @@
 /*
  * Bus.h
  *
- *  Created on: 8 Mar 2011
+ *  Created on: 31 Mar 2011
  *      Author: db434
  */
 
@@ -9,9 +9,7 @@
 #define BUS_H_
 
 #include "../../Component.h"
-#include <list>
-
-class AddressedWord;
+#include "../../Datatype/AddressedWord.h"
 
 typedef AddressedWord       DataType;
 typedef AddressedWord       CreditType;
@@ -23,6 +21,9 @@ typedef sc_in<ReadyType>    ReadyInput;
 typedef sc_out<ReadyType>   ReadyOutput;
 typedef sc_in<CreditType>   CreditInput;
 typedef sc_out<CreditType>  CreditOutput;
+
+// (width, height) of this network, used to determine switching activity.
+typedef std::pair<double,double> Dimension;
 
 class Bus: public Component {
 
@@ -57,30 +58,34 @@ public:
   //                     of this bus. e.g. A memory may have 8 input channels,
   //                     which share only one input port.
   // startAddr         = the first channelID accessible through this network.
-  Bus(sc_module_name name, ComponentID ID, int numOutputs,
-      int channelsPerOutput, ChannelID startAddr);
+  Bus(sc_module_name name, ComponentID ID, int numOutputPorts,
+      int numOutputChannels, ChannelID startAddr, Dimension size);
   virtual ~Bus();
 
 //==============================//
 // Methods
 //==============================//
 
+protected:
+
+  virtual void mainLoop();
+  virtual void receivedData();
+  virtual void receivedCredit(PortIndex output);
+
 private:
 
-  void mainLoop();
-  void receivedData();
-  void receivedCredit();
-  void creditArrived();
+  // Compute how many bits switched, and call the appropriate instrumentation
+  // methods.
+  void computeSwitching();
 
-  // Compute which outputs of this bus will be used by the given address. This
-  // allows an address to represent multiple destinations.
-  void getDestinations(ChannelID address, std::vector<uint8_t>& outputs) const;
+  // Compute which output of this bus will be used by the given address.
+  PortIndex getDestination(ChannelID address) const;
 
 //==============================//
 // Local state
 //==============================//
 
-private:
+protected:
 
   int numOutputs;
 
@@ -90,11 +95,14 @@ private:
   // The number of ChannelIDs accessible through each output of this bus.
   int channelsPerOutput;
 
-  // Multicast is complicated unless we keep track of which outputs owe credits.
-  std::list<PortIndex> outstandingCredits;
+private:
 
-  sc_core::sc_event readyChanged;
-  sc_core::sc_event credit;
+  // The physical size of this network.
+  Dimension size;
+
+  // Store the previous value, so we can compute how many bits change when a
+  // new value arrives.
+  DataType lastData;
 
 };
 

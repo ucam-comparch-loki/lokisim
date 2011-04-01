@@ -43,7 +43,7 @@ void FetchLogic::refetch() {
 
 void FetchLogic::sendRequest(AddressedWord& data) {
   dataToSend = data;
-  sendEvent.notify(sc_core::SC_ZERO_TIME);
+  sendEvent.notify();
 }
 
 void FetchLogic::send() {

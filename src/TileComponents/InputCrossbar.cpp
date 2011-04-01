@@ -29,8 +29,8 @@ void InputCrossbar::sendData() {
 
 InputCrossbar::InputCrossbar(sc_module_name name, ComponentID ID, int inputs, int outputs) :
     Component(name),
-    dataXbar("data", ID, inputs, outputs, 1, 1, TileComponent::inputChannelID(ID,0)),
-    creditXbar("credit", ID, outputs, inputs, inputs, TOTAL_OUTPUT_CHANNELS, 0) {
+    dataXbar("data", ID, inputs, outputs, 1, 1, TileComponent::inputChannelID(ID,0), Dimension(1.0/CORES_PER_TILE, 0.05)),
+    creditXbar("credit", ID, outputs, inputs, inputs, TOTAL_OUTPUT_CHANNELS, 0, Dimension(1.0/CORES_PER_TILE, 0.05)) {
 
   id = ID;
   firstInput     = TileComponent::inputChannelID(id, 0);

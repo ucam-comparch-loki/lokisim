@@ -1,95 +1,82 @@
 /*
  * Bus.cpp
  *
- *  Created on: 8 Mar 2011
+ *  Created on: 31 Mar 2011
  *      Author: db434
  */
 
 #include "Bus.h"
-#include "../../Datatype/AddressedWord.h"
 
 void Bus::mainLoop() {
   while(true) {
     wait(dataIn.default_event());
     readyOut.write(false);
     receivedData();
-    while(!outstandingCredits.empty()) {
-      wait(credit);
-      receivedCredit();
-    }
-
     readyOut.write(true);
   }
 }
 
 void Bus::receivedData() {
-  assert(outstandingCredits.empty());
+  DataType data = dataIn.read();
 
-  AddressedWord data = dataIn.read();
-  std::vector<PortIndex> destinations;
+  const PortIndex output = getDestination(data.channelID());
+  assert(output < numOutputs);
 
-  // Find out which outputs to send this data on.
-  getDestinations(data.channelID(), destinations);
+  // If multicasting, may need to change the channel ID for each output.
+  dataOut[output].write(data);
+  newData[output].write(true);
 
-  for(unsigned int i=0; i<destinations.size(); i++) {
-    const int output = destinations[i];
-    assert(output < numOutputs);
-
-    // If multicasting, may need to change the channel ID for each output.
-    dataOut[output].write(data);
-    newData[output].write(true);
-    outstandingCredits.push_back(output);
-  }
+  // Wait until receipt of the data is acknowledged.
+  wait(dataRead[output].default_event());
+  receivedCredit(output);
 }
 
-void Bus::receivedCredit() {
-  std::list<PortIndex>::iterator iter = outstandingCredits.begin();
-  int size = outstandingCredits.size();
-
-  for(int i=0; i < size; i++, iter++) {
-    // If a recipient has consumed the given data, remove them from the list of
-    // recipients we are waiting for, and deassert the newData signal.
-    if(dataRead[*iter].event()) {
-      outstandingCredits.erase(iter);
-      newData[*iter].write(false);
-      iter--;
-    }
-  }
+void Bus::receivedCredit(PortIndex output) {
+  newData[output].write(false);
 }
 
-void Bus::getDestinations(ChannelID address, std::vector<PortIndex>& outputs) const {
-  bool multicast = false;
-  if(multicast) {
-    // Figure out which destinations are represented by the address.
-  }
-  else {
-    outputs.push_back((address - startAddress)/channelsPerOutput);
-  }
+PortIndex Bus::getDestination(ChannelID address) const {
+  return (address - startAddress)/channelsPerOutput;
 }
 
-void Bus::creditArrived() {
-  credit.notify();
+void Bus::computeSwitching() {
+  DataType newData = dataIn.read();
+  unsigned int dataDiff = newData.payload().toInt() ^ lastData.payload().toInt();
+  unsigned int channelDiff = newData.channelID() ^ lastData.channelID();
+
+  int bitsSwitched = __builtin_popcount(dataDiff) + __builtin_popcount(channelDiff);
+
+  // Is the distance that the switching occurred over:
+  //  1. The width of the network (length of the bus), or
+  //  2. Width + height?
+  Instrumentation::networkActivity(id, 0, 0, size.first, bitsSwitched);
+
+  lastData = newData;
 }
 
-Bus::Bus(sc_module_name name, ComponentID ID, int numOutputs,
-         int channelsPerOutput, ChannelID startAddr) :
+Bus::Bus(sc_module_name name, ComponentID ID, int numOutputPorts,
+         int numOutputChannels, ChannelID startAddr, Dimension size) :
     Component(name, ID) {
-  dataOut = new DataOutput[numOutputs];
-  newData = new ReadyOutput[numOutputs];
-  dataRead = new ReadyInput[numOutputs];
 
-  this->numOutputs = numOutputs;
-  this->channelsPerOutput = channelsPerOutput;
+  dataOut  = new DataOutput[numOutputPorts];
+  newData  = new ReadyOutput[numOutputPorts];
+  dataRead = new ReadyInput[numOutputPorts];
+
+  this->numOutputs = numOutputPorts;
+  this->channelsPerOutput = numOutputChannels/numOutputPorts;
   this->startAddress = startAddr;
+  this->size = size;
 
   SC_THREAD(mainLoop);
 
-  SC_METHOD(creditArrived);
-  for(int i=0; i<numOutputs; i++) sensitive << dataRead[i];
+  SC_METHOD(computeSwitching);
+  sensitive << dataIn;
   dont_initialize();
 
   readyOut.initialize(true);
 
+  // If this is here, we can't use MulticastBus.
+  // If it isn't here, we can't use Bus.
   end_module();
 }
 

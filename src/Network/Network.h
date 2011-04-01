@@ -8,20 +8,43 @@
 #ifndef NETWORK_H_
 #define NETWORK_H_
 
-#include "RoutingComponent.h"
+#include "../Component.h"
 
-class Network : public RoutingComponent {
+class AddressedWord;
+
+typedef AddressedWord       DataType;
+typedef AddressedWord       CreditType;
+typedef bool                ReadyType;
+
+typedef sc_buffer<CreditType> CreditSignal;
+typedef sc_buffer<DataType>   DataSignal;
+typedef sc_signal<ReadyType>  ReadySignal;
+
+typedef sc_in<DataType>     DataInput;
+typedef sc_out<DataType>    DataOutput;
+typedef sc_in<ReadyType>    ReadyInput;
+typedef sc_out<ReadyType>   ReadyOutput;
+typedef sc_in<CreditType>   CreditInput;
+typedef sc_out<CreditType>  CreditOutput;
+
+// (width, height) of this network, used to determine switching activity.
+typedef std::pair<double,double> Dimension;
+
+class Network : public Component {
 
 //==============================//
 // Ports
 //==============================//
 
-// Inherited from RoutingComponent:
-//   clock
-//   dataIn
-//   dataOut
-//   readyIn
-//   readyOut
+public:
+
+  sc_in<bool>   clock;
+
+  DataInput    *dataIn;
+  DataOutput   *dataOut;
+
+  ReadyInput   *canSendData;
+  ReadyOutput  *canReceiveData;
 
 //==============================//
 // Constructors and destructors
@@ -29,14 +52,13 @@ class Network : public RoutingComponent {
 
 public:
 
-  SC_HAS_PROCESS(Network);
   Network(sc_module_name name,
           ComponentID ID,
-          ChannelID lowestID,   // Lowest channel ID accessible on this network
-          ChannelID highestID,  // Highest channel ID accessible on this network
           int numInputs,        // Number of inputs this network has
           int numOutputs,       // Number of outputs this network has
-          int networkType);
+          Dimension size,       // The physical size of this network (width, height)
+          bool externalConnection=false); // Is there a port to send data on if it
+                                          // isn't for any local component?
 
   virtual ~Network();
 
@@ -48,14 +70,14 @@ public:
 
   // The input port to this network which comes from the next level of network
   // hierarchy (or off-chip).
-  sc_in<AddressedWord>& externalInput() const;
+  DataInput& externalInput() const;
 
   // The output port of this network which goes to the next level of network
   // hierarchy (or off-chip).
-  sc_out<AddressedWord>& externalOutput() const;
+  DataOutput& externalOutput() const;
 
-  sc_in<bool>& externalReadyInput() const;
-  sc_out<bool>& externalReadyOutput() const;
+  ReadyInput& externalReadyInput() const;
+  ReadyOutput& externalReadyOutput() const;
 
 //==============================//
 // Local state
@@ -63,19 +85,14 @@ public:
 
 protected:
 
-  // The lowest and highest channel IDs accessible on this network. Anything
-  // outside this range should be sent up to the next level of network
-  // hierarchy.
-  ChannelID startID, endID;
+  int numInputs, numOutputs;
 
-  // We may be on an upper level of the network hierarchy, where each output
-  // leads to an entire subnetwork. We need to know how many channel IDs are
-  // reachable through each output, so we know where to send data.
-  int idsPerChannel;
+  // Tells whether this network has an extra connection to handle data which
+  // isn't for any local component. This extra connection will typically
+  // connect to the next level of the network hierarchy.
+  bool externalConnection;
 
-  // The output to send data to if it is not destined for any component on this
-  // network.
-  int offNetworkOutput;
+  Dimension size;
 
 };
 

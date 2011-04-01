@@ -12,7 +12,7 @@
 #define INPUTCROSSBAR_H_
 
 #include "../Component.h"
-#include "../Network/Topologies/NormalCrossbar.h"
+#include "../Network/Topologies/Crossbar.h"
 
 class AddressedWord;
 class FlowControlIn;
@@ -66,8 +66,8 @@ private:
   int numInputs, numOutputs;
 
   std::vector<FlowControlIn*> flowControl;
-  NormalCrossbar dataXbar;
-  NormalCrossbar creditXbar;
+  Crossbar dataXbar;
+  Crossbar creditXbar;
 
   sc_buffer<DataType>   *dataToBuffer;
   sc_buffer<CreditType> *creditsToNetwork;

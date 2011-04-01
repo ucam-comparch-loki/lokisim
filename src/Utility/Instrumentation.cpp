@@ -88,10 +88,12 @@ void Instrumentation::endExecution() {
 }
 
 void Instrumentation::networkTraffic(ChannelID startID, ChannelID endID) {
-  // TODO: this only works if cores and memories are the same.
+  // FIXME: this only works if cores and memories are the same.
   Network::traffic(startID/CORE_OUTPUT_PORTS, endID/CORE_INPUT_PORTS);
 }
 
+// Remove some parameters? The distance and bitsSwitched are the only
+// interesting ones.
 void Instrumentation::networkActivity(ComponentID network, ChannelIndex source,
     ChannelIndex destination, double distance, int bitsSwitched) {
   Network::activity(network, source, destination, distance, bitsSwitched);
