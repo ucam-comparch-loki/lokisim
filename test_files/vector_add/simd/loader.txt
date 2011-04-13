@@ -1,4 +1,5 @@
-vector_add_simd
+../../simd.s
+vector_add.s
 
 % Each data memory contains information on the length/position of its vector
 9  ../params.data

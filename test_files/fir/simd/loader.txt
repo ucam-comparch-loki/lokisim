@@ -1,4 +1,5 @@
-fir_irf_simd
+../../simd.s
+fir_irf.s
 
 9 ../params.data
 9 ../taps.data

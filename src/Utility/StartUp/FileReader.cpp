@@ -15,24 +15,29 @@
 #include "../../Datatype/DecodedInst.h"
 #include "../../Datatype/Instruction.h"
 
+#include <sys/stat.h>
+
+vector<string> FileReader::filesToLink;
+string         FileReader::linkedFile;
+
 /* Print an instruction in the form:
  *   [position] instruction
  * in such a way that everything aligns nicely. */
 void FileReader::printInstruction(Instruction i, MemoryAddr address) {
   // Set up some output formatting so numbers are all the same length.
-  std::cout.fill('0');
+  cout.fill('0');
 
-  std::cout << "\[";
-  std::cout.width(4);
-  std::cout << std::right << address << "]\t" << i << std::endl;
+  cout << "\[";
+  cout.width(4);
+  cout << std::right << address << "]\t" << i << endl;
 
   // Undo the formatting changes.
-  std::cout.fill(' ');
+  cout.fill(' ');
 }
 
-FileReader& FileReader::makeFileReader(vector<std::string>& words) {
+FileReader* FileReader::makeFileReader(vector<string>& words) {
   FileReader* reader;
-  std::string filename;
+  string filename;
   int component;
   int position;
 
@@ -49,54 +54,112 @@ FileReader& FileReader::makeFileReader(vector<std::string>& words) {
     filename = words[1];
   }
   else {
-    std::cerr << "Error: wrong number of loader file arguments." << std::endl;
+    cerr << "Error: wrong number of loader file arguments." << endl;
     throw std::exception();
   }
 
   // Split the filename into the name and the extension.
-  vector<std::string>& parts = StringManipulation::split(filename, '.');
+  int dotPos = filename.find_last_of('.');
+  string name = filename.substr(0, dotPos);
+  string extension = filename.substr(dotPos+1);
 
-  if(parts.size() == 1) {
-    reader = new ELFFileReader(filename, component, position);
+  if(extension == "") {
+    filesToLink.push_back(name);
+    reader = NULL;
   }
-  else if(parts.back() == "loki") {
+  else if(extension == "loki") {
     reader = new LokiFileReader(filename, component, position);
   }
-  else if(parts.back() == "data") {
+  else if(extension == "data") {
     reader = new DataFileReader(filename, component, position);
   }
-  else if(parts.back() == "bloki") {
+  else if(extension == "bloki") {
     reader = new LokiBinaryFileReader(filename, component, position);
   }
-  else if(parts.back() == "s") {
-    string tempfile = parts.front() + "_temp.s";
-    string elfFile = parts.front();
+  else if(extension == "s") {
+    string tempfile = name + "_temp.s";
+    string elfFile = name;
     translateAssembly(filename, tempfile);
 
     string makeELF = "loki-elf-as " + tempfile + " -o " + elfFile;
-    string deleteTemp = "rm " + tempfile;
 
     int failure = system(makeELF.c_str());
     if(failure) {
-      cerr << "Error: unable to use loki-elf-as" << endl;
+      cerr << "Error: unable to assemble file using command:\n  " << makeELF << endl;
       throw std::exception();
     }
 
-    failure = system(deleteTemp.c_str());
-    if(failure) cerr << "Warning: unable to delete temporary files." << endl;
+    deleteFile(tempfile);
 
-    reader = new ELFFileReader(elfFile, component, position);
+    filesToLink.push_back(elfFile);
+    reader = NULL;
   }
   else {
-    std::cerr << "Unknown file format: " << filename << std::endl;
+    cerr << "Unknown file format: " << filename << endl;
     throw std::exception();
   }
 
-  delete &parts;
-  return *reader;
+  return reader;
 }
 
-void FileReader::translateAssembly(std::string& infile, std::string& outfile) {
+FileReader* FileReader::linkFiles() {
+  switch(filesToLink.size()) {
+    case 0: return NULL;
+    case 1: return new ELFFileReader(filesToLink[0], CORES_PER_TILE, 0);
+    default: {
+      // Make sure the linking library exists.
+      string directory = "/local/scratch/db434/workspace/lokiprefix/loki-elf/lib";
+      string library = "sim.ld";
+      string fullpath = directory + "/" + library;
+
+      struct stat fileInfo;
+      int failure = stat(fullpath.c_str(), &fileInfo);
+
+      if(failure) {
+        cerr << "Error: FileReader unable to access linker:\n  " << fullpath << endl;
+        throw std::exception();
+      }
+
+      // Build up the required command.
+      string command = "loki-elf-ld -o ";
+
+      linkedFile = filesToLink.back() + "_linked";  // Output file
+      command += linkedFile + " ";
+
+      for(unsigned int i=0; i<filesToLink.size(); i++) {
+        command += filesToLink[i] + " ";
+      }
+
+      command += "-L" + directory;
+      command += " -T" + library;
+
+      // Execute the command.
+      failure = system(command.c_str());
+      if(failure) {
+        cerr << "Error: unable to link files using command:\n  " << command << endl;
+        throw std::exception();
+      }
+
+      // Generate a FileReader for the output ELF file.
+      return new ELFFileReader(linkedFile, CORES_PER_TILE, 0);
+    }
+  }
+}
+
+/* Delete all of the temporary object files we created, so the filesystem is
+ * kept tidy. There is no point in keeping them because they will be re-made
+ * next time the simulator is run. */
+void FileReader::tidy() {
+  for(unsigned int i=0; i<filesToLink.size(); i++) {
+    deleteFile(filesToLink[i]);
+  }
+
+  if(linkedFile != string()) deleteFile(linkedFile);
+}
+
+/* Perform some small parameter-dependent transformations on the assembly
+ * code. For example, change "ch1" to "r17". */
+void FileReader::translateAssembly(string& infile, string& outfile) {
   std::ifstream in(infile.c_str());
   std::ofstream out(outfile.c_str());
 
@@ -112,12 +175,12 @@ void FileReader::translateAssembly(std::string& infile, std::string& outfile) {
       DecodedInst dec(i);
       std::stringstream ss;
       ss << dec;
-      out << "\t" << ss.rdbuf()->str() << std::endl;
+      out << "\t" << ss.rdbuf()->str() << "\n";
     }
     catch(std::exception& e) {
       // If we couldn't make an instruction, just copy the line across.
       // It may be a label or some other important line.
-      out << line << std::endl;
+      out << line << "\n";
     }
   }
 
@@ -125,12 +188,15 @@ void FileReader::translateAssembly(std::string& infile, std::string& outfile) {
   out.close();
 }
 
-FileReader::FileReader(std::string& filename, ComponentID component, MemoryAddr position) {
+void FileReader::deleteFile(string& filename) {
+  string command = "rm " + filename;
+  int failure = system(command.c_str());
+  if(failure) cerr << "Warning: unable to delete temporary file "
+                   << filename << endl;
+}
+
+FileReader::FileReader(string& filename, ComponentID component, MemoryAddr position) {
   filename_ = filename;
   componentID_ = component;
   position_ = position;
-}
-
-FileReader::~FileReader() {
-
 }

@@ -12,6 +12,7 @@
 #include <vector>
 #include "../../Typedefs.h"
 
+using std::string;
 using std::vector;
 
 class DataBlock;
@@ -27,10 +28,19 @@ public:
 
   // Parse the command (e.g. "12 code.loki") and generate a FileReader capable
   // of reading the specified filetype.
-  static FileReader& makeFileReader(vector<std::string>& commandWords);
+  // This method returns NULL if, for example, it is collecting a group of
+  // object files to link together at the end.
+  static FileReader* makeFileReader(vector<string>& commandWords);
 
-  FileReader(std::string& filename, ComponentID component, MemoryAddr position=0);
-  virtual ~FileReader();
+  // If there are any object files which need linking together to form a single
+  // executable, link them now.
+  // Returns NULL if there are no files to link.
+  static FileReader* linkFiles();
+
+  // Delete any temporary files created in the linking process.
+  static void tidy();
+
+  FileReader(string& filename, ComponentID component, MemoryAddr position=0);
 
 protected:
 
@@ -40,11 +50,18 @@ protected:
 
   // Perform some small parameter-dependent transformations on the assembly
   // code. For example, change "ch1" to "r17".
-  static void translateAssembly(std::string& infile, std::string& outfile);
+  static void translateAssembly(string& infile, string& outfile);
 
-  std::string filename_;
+  string      filename_;
   ComponentID componentID_;
-  MemoryAddr position_;
+  MemoryAddr  position_;
+
+private:
+
+  static void deleteFile(string& filename);
+
+  static vector<string> filesToLink;
+  static string         linkedFile;
 
 };
 

@@ -45,7 +45,6 @@ public:
 
   ReadyOutput   readyOut;
 
-
 //==============================//
 // Constructors and destructors
 //==============================//

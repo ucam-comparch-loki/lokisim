@@ -1,4 +1,5 @@
-mat_mult_irf_simd
+../../simd.s
+mat_mult_irf.s
 
 9  ../params.data
 9  ../mat1.data

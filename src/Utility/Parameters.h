@@ -38,9 +38,6 @@ extern int      BYTES_PER_INSTRUCTION;
 //-------------------------------------------------------------------------------------------------
 
 extern int      RETURN_CODE;
-extern int      LOKI_STDIN;
-extern int      LOKI_STDOUT;
-extern int      LOKI_STDERR;
 
 //-------------------------------------------------------------------------------------------------
 // Architecture size

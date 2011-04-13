@@ -25,7 +25,6 @@ class ALU: public Component {
 public:
 
   ALU(sc_module_name name);
-  virtual ~ALU();
 
 //==============================//
 // Methods
@@ -57,7 +56,6 @@ private:
 
   void systemCall(int code) const;
   uint convertTargetFlags(uint tflags) const;
-  int changeFDIfStdIO(int fd) const;
 
 };
 

@@ -88,7 +88,7 @@ void CodeLoader::loadCode(string& settings, Chip& chip) {
     // Put the string in a vector so we can use existing methods.
     vector<string> vec;
     vec.push_back(settings);
-    loadCode(vec, chip);
+    loadFromCommand(vec, chip);
     return;
   }
 
@@ -124,7 +124,7 @@ void CodeLoader::loadCode(string& settings, Chip& chip) {
         std::string filename = words.back();
         words.back() = (filename[0]=='/') ? filename : directory + "/" + filename;
 
-        loadCode(words, chip);
+        loadFromCommand(words, chip);
       }
 
       delete &words;
@@ -141,9 +141,24 @@ void CodeLoader::loadCode(string& settings, Chip& chip) {
 
 }
 
-void CodeLoader::loadCode(vector<string>& command, Chip& chip) {
-  FileReader& reader = FileReader::makeFileReader(command);
-  vector<DataBlock>& blocks = reader.extractData();
+void CodeLoader::makeExecutable(Chip& chip) {
+  FileReader* reader = FileReader::linkFiles();
+  loadFromReader(reader, chip);
+
+  // Now that the whole program is in simulated memory, any temporary program
+  // files can be deleted.
+  FileReader::tidy();
+}
+
+void CodeLoader::loadFromCommand(vector<string>& command, Chip& chip) {
+  FileReader* reader = FileReader::makeFileReader(command);
+  loadFromReader(reader, chip);
+}
+
+void CodeLoader::loadFromReader(FileReader* reader, Chip& chip) {
+  if(reader == NULL) return;
+
+  vector<DataBlock>& blocks = reader->extractData();
 
   for(uint i=0; i<blocks.size(); i++) {
     chip.storeData(blocks[i].data(), blocks[i].component(),
@@ -152,5 +167,5 @@ void CodeLoader::loadCode(vector<string>& command, Chip& chip) {
   }
 
   delete &blocks;
-  delete &reader;
+  delete reader;
 }

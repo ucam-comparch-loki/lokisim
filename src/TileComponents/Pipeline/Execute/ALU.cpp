@@ -171,10 +171,6 @@ ALU::ALU(sc_module_name name) : Component(name) {
   id = parent()->id;
 }
 
-ALU::~ALU() {
-
-}
-
 //==============================//
 // System call stuff
 //==============================//
@@ -217,7 +213,6 @@ void ALU::systemCall(int code) const {
     }
     case 0x3: { /* SYS_close */
       int fd = readReg(6);
-      fd = changeFDIfStdIO(fd);
       if(fd <= 2) { // Don't allow simulated program to close stdio pipes.
         fsync(fd);
         writeReg(4, 0);
@@ -228,7 +223,6 @@ void ALU::systemCall(int code) const {
     }
     case 0x4: { /* SYS_read */
       int fd = readReg(6);
-      fd = changeFDIfStdIO(fd);
       unsigned len = (unsigned)readReg(8);
       char *buf = (char*)malloc(len);
       uint i;
@@ -245,7 +239,6 @@ void ALU::systemCall(int code) const {
       char *str = (char*)malloc(len);
       uint i;
       int fd = readReg(6);
-      fd = changeFDIfStdIO(fd);
       /* copy string out of Loki memory */
       for (i=0; i < len; i++) {
         str[i] = readByte(readReg(7) + i);
@@ -278,15 +271,4 @@ uint ALU::convertTargetFlags(uint tflags) const {
        tflags);
 
   return hflags;
-}
-
-/* We may want to map the simulated stdio pipes to alternate file descriptors,
- * so that simulator output doesn't clash with output of the simulated program. */
-int ALU::changeFDIfStdIO(int fd) const {
-  switch(fd) {
-    case 0: return LOKI_STDIN;
-    case 1: return LOKI_STDOUT;
-    case 2: return LOKI_STDERR;
-    default: return fd;
-  }
 }

@@ -1,4 +1,5 @@
-rgb2yuv_simd
+../../simd.s
+rgb2yuv.s
 
 9 ../params.data
 9 ../red.data
