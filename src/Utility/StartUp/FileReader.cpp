@@ -12,10 +12,13 @@
 #include "LokiBinaryFileReader.h"
 #include "../Parameters.h"
 #include "../StringManipulation.h"
-#include "../../Datatype/DecodedInst.h"
 #include "../../Datatype/Instruction.h"
 
 #include <sys/stat.h>
+
+using std::cout;
+using std::cerr;
+using std::endl;
 
 vector<string> FileReader::filesToLink;
 string         FileReader::linkedFile;
@@ -108,6 +111,9 @@ FileReader* FileReader::linkFiles() {
     case 1: return new ELFFileReader(filesToLink[0], CORES_PER_TILE, 0);
     default: {
       // Make sure the linking library exists.
+      // TODO: make library location a parameter.
+      // Could store file of these locations, and ask user if the required
+      // location isn't listed.
       string directory = "/local/scratch/db434/workspace/lokiprefix/loki-elf/lib";
       string library = "sim.ld";
       string fullpath = directory + "/" + library;
@@ -117,6 +123,7 @@ FileReader* FileReader::linkFiles() {
 
       if(failure) {
         cerr << "Error: FileReader unable to access linker:\n  " << fullpath << endl;
+        cerr << "Ask Alex for the latest version." << endl;
         throw std::exception();
       }
 
@@ -154,6 +161,7 @@ void FileReader::tidy() {
     deleteFile(filesToLink[i]);
   }
 
+  // Might like to keep this one so the linker isn't needed?
   if(linkedFile != string()) deleteFile(linkedFile);
 }
 
@@ -172,9 +180,8 @@ void FileReader::translateAssembly(string& infile, string& outfile) {
       // Try to make an instruction out of the line. In creating the
       // instruction, all of the transformations we want to do are performed.
       Instruction i(line);
-      DecodedInst dec(i);
       std::stringstream ss;
-      ss << dec;
+      ss << i;
       out << "\t" << ss.rdbuf()->str() << "\n";
     }
     catch(std::exception& e) {
@@ -189,8 +196,7 @@ void FileReader::translateAssembly(string& infile, string& outfile) {
 }
 
 void FileReader::deleteFile(string& filename) {
-  string command = "rm " + filename;
-  int failure = system(command.c_str());
+  int failure = remove(filename.c_str());
   if(failure) cerr << "Warning: unable to delete temporary file "
                    << filename << endl;
 }
