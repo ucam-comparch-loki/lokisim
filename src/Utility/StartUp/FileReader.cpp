@@ -10,6 +10,7 @@
 #include "ELFFileReader.h"
 #include "LokiFileReader.h"
 #include "LokiBinaryFileReader.h"
+#include "../Config.h"
 #include "../Parameters.h"
 #include "../StringManipulation.h"
 #include "../../Datatype/Instruction.h"
@@ -92,6 +93,8 @@ FileReader* FileReader::makeFileReader(vector<string>& words) {
     uniqueName >> elfFile;
     asmFile = elfFile + ".s";
 
+    // Parse any assembly notation which is parameter-dependent: e.g. (12,4),
+    // and create a file which can be passed to the proper assembler.
     translateAssembly(filename, asmFile);
 
     string makeELF = "loki-elf-as " + asmFile + " -o " + elfFile;
@@ -122,20 +125,17 @@ FileReader* FileReader::linkFiles() {
     case 0: return NULL;
     case 1: return new ELFFileReader(filesToLink[0], CORES_PER_TILE, 0);
     default: {
-      // Make sure the linking library exists.
-      // TODO: make library location a parameter.
-      // Could store file of these locations, and ask user if the required
-      // location isn't listed.
-      string directory = "/local/scratch/db434/workspace/lokiprefix/loki-elf/lib";
+      string directory = Config::getAttribute("sim.ld",
+          "directory containing sim.ld (ask Alex if you don't have it)");
       string library = "sim.ld";
       string fullpath = directory + "/" + library;
 
+      // Make sure the linking library exists.
       struct stat fileInfo;
       int failure = stat(fullpath.c_str(), &fileInfo);
 
       if(failure) {
         cerr << "Error: FileReader unable to access linker:\n  " << fullpath << endl;
-        cerr << "Ask Alex for the latest version." << endl;
         tidy();
         throw std::exception();
       }

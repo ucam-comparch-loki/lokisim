@@ -27,8 +27,7 @@ def executeTest(command):
     process = subprocess.Popen(command)
     process.wait()
     if process.returncode == 0:
-        testsPassed += 1
-    
+        testsPassed += 1    
 
 # Run a single test in a single directory.
 def runTest(directory):
@@ -43,8 +42,7 @@ def runTest(directory):
 # to run a test.
 def containsTest(directory):
     return "test" in directory
-    
-    
+        
 # Traverse the directory tree depth-first, running tests wherever possible.
 def testAll(directory):
     contents = os.listdir(directory)
