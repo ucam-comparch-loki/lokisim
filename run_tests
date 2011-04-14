@@ -6,6 +6,11 @@
 
 import os, subprocess, sys, threading, time
 
+parallel = False
+threadFinishedFlag = None
+testCount = 0
+testsPassed = 0
+
 # Allow parallel tests by spawning a new thread for each test.
 class Test(threading.Thread):
     def __init__(self, command):
@@ -13,12 +18,17 @@ class Test(threading.Thread):
         self._command = command
     
     def run(self):
-        process = subprocess.Popen(self._command)
-        process.wait()
+        executeTest(self._command)
         threadFinishedFlag.set()
-
-parallel = False
-threadFinishedFlag = None
+        
+def executeTest(command):
+    global testCount, testsPassed
+    testCount += 1
+    process = subprocess.Popen(command)
+    process.wait()
+    if process.returncode == 0:
+        testsPassed += 1
+    
 
 # Run a single test in a single directory.
 def runTest(directory):
@@ -27,8 +37,7 @@ def runTest(directory):
         thread = Test(command)
         thread.start()
     else:
-        process = subprocess.Popen(command)
-        process.wait()
+        executeTest(command)
 
 # Determine whether this collection of files contains all information required
 # to run a test.
@@ -38,19 +47,16 @@ def containsTest(directory):
     
 # Traverse the directory tree depth-first, running tests wherever possible.
 def testAll(directory):
-    testCount = 0
     contents = os.listdir(directory)
     contents.sort()
     if containsTest(contents):
         runTest(directory)
-        testCount = testCount + 1
     if ".svn" in contents:
         contents.remove(".svn")
     for entry in contents:
         fullpath = directory + "/" + entry
         if os.path.isdir(fullpath):
-            testCount += testAll(fullpath)
-    return testCount
+            testAll(fullpath)
     
 # See if there is a simulator where we expect it to be.
 def simulatorFound(location):
@@ -60,13 +66,12 @@ def simulatorFound(location):
 
 # Execution starts here.
 directory = "test_files"
-testCount = 0
 startTime = time.time()
 
 simulator = "Debug/Loki2"
 if not simulatorFound(simulator):
     print "Error: no simulator found at " + simulator
-    exit()
+    exit(1)
 
 if len(sys.argv) >= 2:
     # Run tests in all named subdirectories.
@@ -74,14 +79,14 @@ if len(sys.argv) >= 2:
         argument = sys.argv[i]
         if argument[0] != "-":
             subdir = directory + "/" + argument
-            testCount += testAll(subdir)
+            testAll(subdir)
         elif argument == "-p" or argument == "-turbo":
             parallel = True
             threadFinishedFlag = threading.Event()
-            testCount = testAll(directory)
+            testAll(directory)
 else:
     # Run all tests.
-    testCount = testAll(directory)
+    testAll(directory)
     
 # If there are multiple threads, wait until they have all finished. Each will
 # set the flag to say that they have finished.
@@ -90,5 +95,6 @@ while threading.activeCount() > 1:
     threadFinishedFlag.clear()
 
 elapsedTime = time.time() - startTime
-print "Completed %(tests)s tests in %(time).3f s" % {'tests': testCount, 'time': elapsedTime}
+print "Passed %(passed)s/%(tests)s tests in %(time).3f s" % \
+      {'tests': testCount, 'passed': testsPassed, 'time': elapsedTime}
 

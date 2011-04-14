@@ -8,7 +8,7 @@
 # Piggybacks on Python's existing unit testing framework, but discards some of
 # the automation to give more control.
 
-import os, subprocess, sys, unittest
+import os, string, subprocess, sys, unittest
 
 class SimulatorTest(unittest.TestCase):
             
@@ -112,7 +112,9 @@ class SimulatorTest(unittest.TestCase):
         if self._simulation.poll() == None:
             self._simulation.stdin.write(command + "\n")
         else:
-            raise Exception("simulation ended unexpectedly")
+            error = self._simulation.stderr.readlines()[4:] # Trim away SystemC intro
+            errortext = "\n" + string.join(error, "")
+            raise Exception(errortext)
         
     # Collect a list of lines of simulator output.
     def _getOutput(self, expectedLines=1):
@@ -162,6 +164,8 @@ class SimulatorTest(unittest.TestCase):
         finally:
             self.tearDown()
             
+        exit(self.returncode)
+            
     # Print a message explaining why the test failed.
     def _failure(self, testName, reason):
         red = "\033[91m"
@@ -169,6 +173,7 @@ class SimulatorTest(unittest.TestCase):
         firstPart = "[" + red + "FAILED" + endColour + "] " + testName
         print firstPart.ljust(49),  # colour resets position in the line?
         print "(" + reason + ")"
+        self.returncode = 1
         
     # Print a message with information about the successful test.
     def _success(self, testName):
@@ -178,6 +183,7 @@ class SimulatorTest(unittest.TestCase):
         print firstPart.ljust(40),
         print cycles.ljust(14),
         print energy
+        self.returncode = 0
             
     # The default behaviour is to execute the test in the current directory.
     # This should be overridden in subclasses to allow the same test to be run
@@ -210,7 +216,7 @@ class SimulatorTest(unittest.TestCase):
             self._runCommand("finish")
         except Exception as e:
             self.failure(str(e))
-            exit()
+            exit(1)
     
     # If the simulator is still running, stop it.
     def tearDown(self):

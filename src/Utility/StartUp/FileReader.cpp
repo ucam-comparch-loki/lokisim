@@ -14,6 +14,7 @@
 #include "../StringManipulation.h"
 #include "../../Datatype/Instruction.h"
 
+#include <sstream>
 #include <sys/stat.h>
 
 using std::cout;
@@ -58,6 +59,7 @@ FileReader* FileReader::makeFileReader(vector<string>& words) {
   }
   else {
     cerr << "Error: wrong number of loader file arguments." << endl;
+    tidy();
     throw std::exception();
   }
 
@@ -80,25 +82,35 @@ FileReader* FileReader::makeFileReader(vector<string>& words) {
     reader = new LokiBinaryFileReader(filename, component, position);
   }
   else if(extension == "s") {
-    string tempfile = name + "_temp.s";
-    string elfFile = name;
-    translateAssembly(filename, tempfile);
+    string asmFile, elfFile;
 
-    string makeELF = "loki-elf-as " + tempfile + " -o " + elfFile;
+    // Add a salt to temporary filenames so there aren't conflicts if multiple
+    // instances of the simulator run at once.
+    int salt = getpid();
+    std::stringstream uniqueName;
+    uniqueName << name << salt;
+    uniqueName >> elfFile;
+    asmFile = elfFile + ".s";
+
+    translateAssembly(filename, asmFile);
+
+    string makeELF = "loki-elf-as " + asmFile + " -o " + elfFile;
 
     int failure = system(makeELF.c_str());
     if(failure) {
       cerr << "Error: unable to assemble file using command:\n  " << makeELF << endl;
+      tidy();
       throw std::exception();
     }
 
-    deleteFile(tempfile);
+    deleteFile(asmFile);
 
     filesToLink.push_back(elfFile);
     reader = NULL;
   }
   else {
     cerr << "Unknown file format: " << filename << endl;
+    tidy();
     throw std::exception();
   }
 
@@ -124,6 +136,7 @@ FileReader* FileReader::linkFiles() {
       if(failure) {
         cerr << "Error: FileReader unable to access linker:\n  " << fullpath << endl;
         cerr << "Ask Alex for the latest version." << endl;
+        tidy();
         throw std::exception();
       }
 
@@ -144,6 +157,7 @@ FileReader* FileReader::linkFiles() {
       failure = system(command.c_str());
       if(failure) {
         cerr << "Error: unable to link files using command:\n  " << command << endl;
+        tidy();
         throw std::exception();
       }
 
