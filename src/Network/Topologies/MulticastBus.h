@@ -17,12 +17,20 @@ class MulticastBus: public Bus {
 // Ports
 //==============================//
 
+public:
+
 // Inherited from Bus:
 //  DataInput     dataIn;
 //  DataOutput   *dataOut;
-//  ReadyOutput  *newData;
-//  ReadyInput   *dataRead;
-//  ReadyOutput   readyOut;
+//  ReadyOutput  *validOut;
+//  ReadyInput   *ackIn;
+//  ReadyOutput   canReceiveData;
+
+  CreditInput  *creditsIn;
+  ReadyOutput  *canReceiveCredits;
+
+  CreditOutput  creditsOut;
+  ReadyInput    canSendCredits;
 
 
 //==============================//
@@ -39,6 +47,7 @@ public:
   // startAddr         = the first channelID accessible through this network.
   MulticastBus(sc_module_name name, ComponentID ID, int numOutputs,
                int channelsPerOutput, ChannelID startAddr, Dimension size);
+  virtual ~MulticastBus();
 
 //==============================//
 // Methods
@@ -66,6 +75,10 @@ private:
 
   // Multicast is complicated unless we keep track of which outputs owe credits.
   std::list<PortIndex> outstandingCredits;
+
+  // The destination to send credits back to. We can't just forward all credits
+  // received because there may be multiple credits for a single message.
+  ChannelID creditDestination;
 
   sc_core::sc_event credit;
 

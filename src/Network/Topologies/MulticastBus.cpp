@@ -11,13 +11,16 @@
 void MulticastBus::mainLoop() {
   while(true) {
     wait(dataIn.default_event());
-    readyOut.write(false);
+    canReceiveData.write(false);
     receivedData();
     while(!outstandingCredits.empty()) {
       wait(credit);
       checkCredits();
     }
-    readyOut.write(true);
+    canReceiveData.write(true);
+
+    if(!canSendCredits.read()) wait(canSendCredits.posedge_event());
+    creditsOut.write(AddressedWord(1, creditDestination));
   }
 }
 
@@ -36,7 +39,7 @@ void MulticastBus::receivedData() {
 
     // If multicasting, may need to change the channel ID for each output.
     dataOut[output].write(data);
-    newData[output].write(true);
+    validOut[output].write(true);
     outstandingCredits.push_back(output);
   }
 }
@@ -48,8 +51,9 @@ void MulticastBus::checkCredits() {
   for(int i=0; i < size; i++, iter++) {
     // If a recipient has consumed the given data, remove them from the list of
     // recipients we are waiting for, and deassert the newData signal.
-    if(dataRead[*iter].event()) {
+    if(creditsIn[*iter].event()) {
       receivedCredit(*iter);
+      creditDestination = creditsIn[*iter].read().channelID();
       outstandingCredits.erase(iter);
       iter--;
     }
@@ -59,6 +63,7 @@ void MulticastBus::checkCredits() {
 void MulticastBus::getDestinations(ChannelID address, std::vector<PortIndex>& outputs) const {
   // Would it be sensible to enforce that MulticastBuses only ever receive
   // multicast addresses? Might make things simpler.
+  // But that would make it difficult to deal with non-local traffic.
   bool multicast = false;
   if(multicast) {
     // Figure out which destinations are represented by the address.
@@ -76,9 +81,19 @@ MulticastBus::MulticastBus(sc_module_name name, ComponentID ID, int numOutputs,
                            int channelsPerOutput, ChannelID startAddr, Dimension size) :
     Bus(name, ID, numOutputs, channelsPerOutput, startAddr, size) {
 
+  creditsIn         = new CreditInput[numOutputs];
+  canReceiveCredits = new ReadyOutput[numOutputs];
+
+  for(int i=0; i<numOutputs; i++) canReceiveCredits[i].initialize(true);
+
   SC_METHOD(creditArrived);
-  for(int i=0; i<numOutputs; i++) sensitive << dataRead[i];
+  for(int i=0; i<numOutputs; i++) sensitive << creditsIn[i];
   dont_initialize();
 
   end_module();
+}
+
+MulticastBus::~MulticastBus() {
+  delete[] creditsIn;
+  delete[] canReceiveCredits;
 }

@@ -3,8 +3,8 @@
  *
  * A crossbar with multicast functionality.
  *
- * Multicast and credits don't mix well, so this crossbar only makes use of
- * link-level flow control.
+ * Multicast and credits don't mix well, so this crossbar reduces credits to
+ * behave like an acknowledge signal.
  *
  *  Created on: 9 Mar 2011
  *      Author: db434
@@ -13,13 +13,12 @@
 #ifndef MULTICASTCROSSBAR_H_
 #define MULTICASTCROSSBAR_H_
 
-#include "../../Component.h"
-#include "MulticastBus.h"
+#include "Crossbar.h"
 
 class ArbiterComponent;
 
 // Should inherit from Crossbar
-class MulticastCrossbar: public Component {
+class MulticastCrossbar: public Crossbar {
 
 //==============================//
 // Ports
@@ -27,20 +26,32 @@ class MulticastCrossbar: public Component {
 
 public:
 
+// Inherited from Crossbar:
 //  sc_in<bool>   clock;
-
-  DataInput    *dataIn;
-  DataOutput   *dataOut;
+//  DataInput    *dataIn;
+//  DataOutput   *dataOut;
+//  ReadyInput   *canSendData;
+//  ReadyOutput  *canReceiveData;
 
   CreditInput  *creditsIn;
   CreditOutput *creditsOut;
 
-  ReadyInput   *canSendData;
-  ReadyOutput  *canReceiveData;
-
-  // To be removed when network interface is changed.
   ReadyInput   *canSendCredits;
   ReadyOutput  *canReceiveCredits;
+
+//==============================//
+// Methods
+//==============================//
+
+protected:
+
+  virtual void makeBuses(int numBuses, int numArbiters, int channelsPerOutput, ChannelID startAddr);
+
+private:
+
+  // TODO: use a demultiplexer component at each credit input, instead of
+  // checking all inputs using this method.
+  void creditArrived();
 
 //==============================//
 // Constructors and destructors
@@ -48,9 +59,10 @@ public:
 
 public:
 
+  SC_HAS_PROCESS(MulticastCrossbar);
   MulticastCrossbar(sc_module_name name, ComponentID ID, int inputs, int outputs,
                     int outputsPerComponent, int channelsPerOutput, ChannelID startAddr,
-                    Dimension size);
+                    Dimension size, bool externalConnection=false);
   virtual ~MulticastCrossbar();
 
 //==============================//
@@ -59,11 +71,8 @@ public:
 
 private:
 
-  std::vector<MulticastBus*> buses;
-  std::vector<ArbiterComponent*> arbiters;
-
-  sc_signal<DataType> *busToMux;
-  sc_signal<bool> *newData;
+  sc_buffer<CreditType> **creditsToBus;
+  sc_signal<ReadyType>  **busReadyCredits;
 
 };
 

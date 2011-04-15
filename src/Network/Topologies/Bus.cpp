@@ -10,9 +10,9 @@
 void Bus::mainLoop() {
   while(true) {
     wait(dataIn.default_event());
-    readyOut.write(false);
+    canReceiveData.write(false);
     receivedData();
-    readyOut.write(true);
+    canReceiveData.write(true);
   }
 }
 
@@ -24,18 +24,19 @@ void Bus::receivedData() {
 
   // If multicasting, may need to change the channel ID for each output.
   dataOut[output].write(data);
-  newData[output].write(true);
+  validOut[output].write(true);
 
   // Wait until receipt of the data is acknowledged.
-  wait(dataRead[output].default_event());
+  wait(ackIn[output].default_event());
   receivedCredit(output);
 }
 
 void Bus::receivedCredit(PortIndex output) {
-  newData[output].write(false);
+  validOut[output].write(false);
 }
 
 PortIndex Bus::getDestination(ChannelID address) const {
+  // TODO: allow non-local communication
   return (address - startAddress)/channelsPerOutput;
 }
 
@@ -59,8 +60,8 @@ Bus::Bus(sc_module_name name, ComponentID ID, int numOutputPorts,
     Component(name, ID) {
 
   dataOut  = new DataOutput[numOutputPorts];
-  newData  = new ReadyOutput[numOutputPorts];
-  dataRead = new ReadyInput[numOutputPorts];
+  validOut  = new ReadyOutput[numOutputPorts];
+  ackIn = new ReadyInput[numOutputPorts];
 
   this->numOutputs = numOutputPorts;
   this->channelsPerOutput = numOutputChannels/numOutputPorts;
@@ -73,7 +74,7 @@ Bus::Bus(sc_module_name name, ComponentID ID, int numOutputPorts,
   sensitive << dataIn;
   dont_initialize();
 
-  readyOut.initialize(true);
+  canReceiveData.initialize(true);
 
   // If this is here, we can't use MulticastBus.
   // If it isn't here, we can't use Bus.
@@ -82,6 +83,6 @@ Bus::Bus(sc_module_name name, ComponentID ID, int numOutputPorts,
 
 Bus::~Bus() {
   delete[] dataOut;
-  delete[] newData;
-  delete[] dataRead;
+  delete[] validOut;
+  delete[] ackIn;
 }

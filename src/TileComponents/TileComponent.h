@@ -30,7 +30,8 @@ public:
   // Clock.
   sc_in<bool>            clock;
 
-  // All inputs to the component.
+  // All inputs to the component. They still have addresses in case there are
+  // multiple channel ends accessible through each port.
   sc_in<AddressedWord>  *dataIn;
   sc_out<bool>          *canReceiveData;
 
@@ -42,7 +43,8 @@ public:
   sc_out<AddressedWord> *creditsOut;
   sc_in<bool>           *canSendCredit;
 
-  // Credits received from the network.
+  // Credits received from the network. They still have addresses in case there
+  // are multiple channel ends accessible through each port.
   sc_in<AddressedWord>  *creditsIn;
   sc_out<bool>          *canReceiveCredit;
 

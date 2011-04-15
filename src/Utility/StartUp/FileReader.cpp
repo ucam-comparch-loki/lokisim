@@ -135,6 +135,7 @@ FileReader* FileReader::linkFiles() {
       int failure = stat(fullpath.c_str(), &fileInfo);
 
       if(failure) {
+        // The location could be wrong: ask the user to try again?
         cerr << "Error: FileReader unable to access linker:\n  " << fullpath << endl;
         tidy();
         throw std::exception();
