@@ -24,11 +24,11 @@ void MemoryMat::mainLoop() {
     // operation takes place, this will be set to true.
     active = false;
 
-    canReceiveData[0].write(false); canReceiveData[1].write(false);
+    ackDataIn[0].write(false); ackDataIn[1].write(false);
     checkInputs();
     performOperations();
     updateIdle();
-    canReceiveData[0].write(true); canReceiveData[1].write(true);
+    ackDataIn[0].write(true); ackDataIn[1].write(true);
   }
 }
 
@@ -87,7 +87,7 @@ void MemoryMat::performOperations() {
 /* Carry out a read for the transaction at the given input. */
 void MemoryMat::read(ChannelIndex input) {
   // If we are reading, we should be allowed to send the result.
-  assert(canSendData[0].read());
+  assert(ackDataOut[0].read());
 
   ConnectionStatus& connection = connections_[input];
   MemoryAddr addr = connection.address();
@@ -191,7 +191,7 @@ bool MemoryMat::canAcceptRequest(ChannelIndex i) const {
 
   // If a result will need to be sent, check that the flow control signal
   // allows this.
-  bool canSend = canSendData[0].read() && sendTable_[i].canSend();
+  bool canSend = ackDataOut[0].read() && sendTable_[i].canSend();
 
   // Writes require data to write, so see if it has arrived yet.
   bool moreData = !inputBuffers_[i].empty();
@@ -218,7 +218,7 @@ void MemoryMat::newOperation(ChannelIndex port) {
     activeConnections++;
 
     // Assuming it's possible to set up a read and perform a read in one cycle.
-    if(canSendData[0].read()) read(port);
+    if(ackDataOut[0].read()) read(port);
   }
   else if(request.isWriteRequest()) {
     connections_[port].writeAddress(request.address(), request.operation());
@@ -270,7 +270,7 @@ void MemoryMat::sendCredit(ChannelIndex position) {
   unsigned int output = creditssent++;
   assert(output < MEMORY_INPUT_PORTS);
 
-  if(!canSendCredit[output].read()) wait(canSendCredit[output].posedge_event());
+  if(!ackCreditOut[output].read()) wait(ackCreditOut[output].posedge_event());
 
   creditsOut[output].write(AddressedWord(1, returnAddr));
 
@@ -297,7 +297,7 @@ void MemoryMat::queueData(AddressedWord& data, MapIndex channel) {
 }
 
 void MemoryMat::sendData() {
-  if(!outputBuffer_.empty() && canSendData[0].read()) {
+  if(!outputBuffer_.empty() && ackDataOut[0].read()) {
     dataOut[0].write(outputBuffer_.read());
   }
 }

@@ -96,10 +96,15 @@ Chip::Chip(sc_module_name name, ComponentID ID, BatchModeEventRecorder *eventRec
   creditsFromComponents  = new sc_buffer<CreditType>[numInputs];
   creditsToComponents    = new sc_buffer<CreditType>[numOutputs];
 
-  networkReadyForData    = new sc_signal<ReadyType>[numOutputs];
-  compsReadyForCredits   = new sc_signal<ReadyType>[numOutputs];
-  compsReadyForData      = new sc_signal<ReadyType>[numInputs];
-  networkReadyForCredits = new sc_signal<ReadyType>[numInputs];
+  ackDataFromComps    = new sc_signal<ReadyType>[numOutputs];
+  ackCreditToComps   = new sc_signal<ReadyType>[numOutputs];
+  ackDataToComps      = new sc_signal<ReadyType>[numInputs];
+  ackCreditFromComps = new sc_signal<ReadyType>[numInputs];
+
+  validDataFromComps     = new sc_signal<ReadyType>[numOutputs];
+  validDataToComps       = new sc_signal<ReadyType>[numInputs];
+  validCreditFromComps   = new sc_signal<ReadyType>[numInputs];
+  validCreditToComps     = new sc_signal<ReadyType>[numOutputs];
 
   network.clock(clock);
 
@@ -142,10 +147,15 @@ Chip::Chip(sc_module_name name, ComponentID ID, BatchModeEventRecorder *eventRec
       contents[i]->creditsOut[j](creditsFromComponents[index]);
       network.creditsIn[index](creditsFromComponents[index]);
 
-      contents[i]->canReceiveData[j](compsReadyForData[index]);
-      network.canSendData[index](compsReadyForData[index]);
-      contents[i]->canSendCredit[j](networkReadyForCredits[index]);
-      network.canReceiveCredit[index](networkReadyForCredits[index]);
+      contents[i]->ackDataIn[j](ackDataToComps[index]);
+      network.ackDataOut[index](ackDataToComps[index]);
+      contents[i]->ackCreditOut[j](ackCreditFromComps[index]);
+      network.ackCreditIn[index](ackCreditFromComps[index]);
+
+      contents[i]->validDataIn[j](validDataToComps[index]);
+      network.validDataOut[index](validDataToComps[index]);
+      contents[i]->validCreditOut[j](validCreditFromComps[index]);
+      network.validCreditIn[index](validCreditFromComps[index]);
     }
 
     for(int j=0; j<outputs; j++) {
@@ -153,13 +163,18 @@ Chip::Chip(sc_module_name name, ComponentID ID, BatchModeEventRecorder *eventRec
 
       contents[i]->dataOut[j](dataFromComponents[index]);
       network.dataIn[index](dataFromComponents[index]);
-      contents[i]->canSendData[j](networkReadyForData[index]);
-      network.canReceiveData[index](networkReadyForData[index]);
+      contents[i]->ackDataOut[j](ackDataFromComps[index]);
+      network.ackDataIn[index](ackDataFromComps[index]);
 
       contents[i]->creditsIn[j](creditsToComponents[index]);
       network.creditsOut[index](creditsToComponents[index]);
-      contents[i]->canReceiveCredit[j](compsReadyForCredits[index]);
-      network.canSendCredit[index](compsReadyForCredits[index]);
+      contents[i]->ackCreditIn[j](ackCreditToComps[index]);
+      network.ackCreditOut[index](ackCreditToComps[index]);
+
+      contents[i]->validDataOut[j](validDataFromComps[index]);
+      network.validDataIn[index](validDataFromComps[index]);
+      contents[i]->validCreditIn[j](validCreditToComps[index]);
+      network.validCreditOut[index](validCreditToComps[index]);
     }
 
     contents[i]->clock(clock);
@@ -173,13 +188,17 @@ Chip::~Chip() {
   delete[] dataFromComponents;
   delete[] dataToComponents;
   delete[] creditsFromComponents;
-  delete[] networkReadyForData;
-
   delete[] creditsToComponents;
-  delete[] compsReadyForCredits;
 
-  delete[] compsReadyForData;
-  delete[] networkReadyForCredits;
+  delete[] ackDataFromComps;
+  delete[] ackCreditToComps;
+  delete[] ackDataToComps;
+  delete[] ackCreditFromComps;
+
+  delete[] validDataFromComps;
+  delete[] validDataToComps;
+  delete[] validCreditFromComps;
+  delete[] validCreditToComps;
 
   for(uint i=0; i<contents.size(); i++) delete contents[i];
 }

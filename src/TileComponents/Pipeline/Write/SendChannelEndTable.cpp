@@ -80,7 +80,7 @@ bool SendChannelEndTable::full() const {
 
 void SendChannelEndTable::send() {
   // If a buffer has information, and is allowed to send, send it
-  if(!buffer.empty() && flowControl.read()) {
+  if(!buffer.empty() && ackOutput.read()) {
     MapIndex entry = mapEntries.peek();
 
     // If we don't have enough credits, abandon sending the data.
@@ -96,7 +96,6 @@ void SendChannelEndTable::send() {
 
     output.write(data);
     channelMap[entry].removeCredit();
-    network.write(channelMap[entry].network());
   }
 }
 
@@ -174,7 +173,7 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, ComponentID ID) :
   dont_initialize();
 
   SC_METHOD(receivedCredit);
-  sensitive << creditsIn;
+  sensitive << creditsIn;   // TODO: use validCredit
   dont_initialize();
 
 }

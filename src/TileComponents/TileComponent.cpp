@@ -222,29 +222,42 @@ TileComponent::TileComponent(sc_module_name name, ComponentID ID,
                              int inputPorts, int outputPorts) :
     Component(name, ID) {
 
-  dataIn               = new sc_in<AddressedWord>[inputPorts];
-  canReceiveData   = new sc_out<bool>[inputPorts];
+  dataIn           = new sc_in<AddressedWord>[inputPorts];
+  validDataIn      = new sc_in<bool>[inputPorts];
+  ackDataIn   = new sc_out<bool>[inputPorts];
 
-  dataOut              = new sc_out<AddressedWord>[outputPorts];
-  canSendData      = new sc_in<bool>[outputPorts];
+  dataOut          = new sc_out<AddressedWord>[outputPorts];
+  validDataOut     = new sc_out<bool>[outputPorts];
+  ackDataOut      = new sc_in<bool>[outputPorts];
 
   creditsOut       = new sc_out<AddressedWord>[inputPorts];
-  canSendCredit    = new sc_in<bool>[inputPorts];
+  validCreditOut   = new sc_out<bool>[inputPorts];
+  ackCreditOut    = new sc_in<bool>[inputPorts];
 
   creditsIn        = new sc_in<AddressedWord>[outputPorts];
-  canReceiveCredit = new sc_out<bool>[outputPorts];
+  validCreditIn    = new sc_in<bool>[outputPorts];
+  ackCreditIn = new sc_out<bool>[outputPorts];
 
   idle.initialize(true);
-  for(int i=0; i<outputPorts; i++) canReceiveCredit[i].initialize(true);
-  for(int i=0; i<inputPorts; i++)  canReceiveData[i].initialize(true);
+  for(int i=0; i<outputPorts; i++) ackCreditIn[i].initialize(true);
+  for(int i=0; i<inputPorts; i++)  ackDataIn[i].initialize(true);
 
 }
 
 TileComponent::~TileComponent() {
   delete[] dataIn;
+  delete[] validDataIn;
+  delete[] ackDataIn;
+
   delete[] dataOut;
-  delete[] canSendData;
+  delete[] validDataOut;
+  delete[] ackDataOut;
+
   delete[] creditsOut;
+  delete[] validCreditOut;
+  delete[] ackCreditOut;
+
   delete[] creditsIn;
-  delete[] canReceiveCredit;
+  delete[] validCreditIn;
+  delete[] ackCreditIn;
 }

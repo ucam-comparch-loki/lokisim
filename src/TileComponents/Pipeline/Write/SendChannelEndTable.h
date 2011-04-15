@@ -30,17 +30,13 @@ public:
 
   // Data output to the network.
   sc_out<AddressedWord>  output;
-
-  // A select signal to tell which network this data should be sent on.
-  sc_out<int>            network;
-
-  // A flow control signal saying whether or not the network is ready for more
-  // data.
-  sc_in<bool>            flowControl;
+  sc_out<bool>           validOutput;
+  sc_in<bool>            ackOutput;
 
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.
   sc_in<AddressedWord>   creditsIn;
+  sc_in<bool>            validCredit;
 
 //==============================//
 // Constructors and destructors

@@ -17,7 +17,7 @@ void ArbiterComponent::arbitrate() {
   GrantList grants;
 
   for(int i=0; i<numInputs; i++) {
-    if(newData[i].read()) {
+    if(validDataIn[i].read()) {
       Request request(i, dataIn[i].read().endOfPacket());
       requests.push_back(request);
     }
@@ -36,9 +36,9 @@ void ArbiterComponent::arbitrate() {
 
     // FIXME: a request may be granted, but then blocked by flow control.
     // Another, later request may still be allowed to send. Seems unfair.
-    if(readyIn[output].read()) {
+    if(ackDataOut[output].read()) {
       dataOut[output].write(dataIn[input].read());
-      readData[input].write(!readData[input].read()); // Toggle value
+      ackDataIn[input].write(!ackDataIn[input].read()); // Toggle value
     }
   }
 }
@@ -51,19 +51,21 @@ ArbiterComponent::ArbiterComponent(sc_module_name name, ComponentID ID,
                                    int inputs, int outputs) :
     Component(name, ID) {
 
-  numInputs  = inputs;
-  numOutputs = outputs;
+  numInputs    = inputs;
+  numOutputs   = outputs;
 
-  dataIn     = new sc_in<AddressedWord>[inputs];
-  dataOut    = new sc_out<AddressedWord>[outputs];
-  newData    = new sc_in<bool>[inputs];
-  readData   = new sc_out<bool>[inputs];
-  readyIn    = new sc_in<bool>[outputs];
+  dataIn       = new sc_in<AddressedWord>[inputs];
+  validDataIn  = new sc_in<bool>[inputs];
+  ackDataIn    = new sc_out<bool>[inputs];
 
-  arbiter    = new RoundRobinArbiter2(inputs, outputs, false);
+  dataOut      = new sc_out<AddressedWord>[outputs];
+  validDataOut = new sc_out<bool>[outputs];
+  ackDataOut   = new sc_in<bool>[outputs];
+
+  arbiter      = new RoundRobinArbiter2(inputs, outputs, false);
 
   SC_METHOD(dataArrived);
-  for(int i=0; i<inputs; i++) sensitive << newData[i].pos();
+  for(int i=0; i<inputs; i++) sensitive << validDataIn[i].pos();
   dont_initialize();
 
   SC_METHOD(arbitrate);
@@ -75,10 +77,12 @@ ArbiterComponent::ArbiterComponent(sc_module_name name, ComponentID ID,
 
 ArbiterComponent::~ArbiterComponent() {
   delete[] dataIn;
+  delete[] validDataIn;
+  delete[] ackDataIn;
+
   delete[] dataOut;
-  delete[] newData;
-  delete[] readData;
-  delete[] readyIn;
+  delete[] validDataOut;
+  delete[] ackDataOut;
 
   delete arbiter;
 }

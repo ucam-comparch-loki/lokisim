@@ -34,10 +34,12 @@ public:
 //  ReadyOutput  *canReceiveData;
 
   CreditInput  *creditsIn;
-  CreditOutput *creditsOut;
+  ReadyInput   *validCreditIn;
+  ReadyOutput  *ackCreditIn;
 
-  ReadyInput   *canSendCredits;
-  ReadyOutput  *canReceiveCredits;
+  CreditOutput *creditsOut;
+  ReadyOutput  *validCreditOut;
+  ReadyInput   *ackCreditOut;
 
 //==============================//
 // Methods

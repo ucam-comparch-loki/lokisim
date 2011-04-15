@@ -31,16 +31,12 @@ public:
   sc_in<bool>            clock;
 
   sc_in<AddressedWord>  *dataIn;
+  sc_in<bool>           *validDataIn;
+  sc_out<bool>          *ackDataIn;
+
   sc_out<AddressedWord> *dataOut;
-
-  // Signal whether the data at each input port has been used yet.
-  sc_in<bool>           *newData;
-
-  // Signal to sender that a particular data item has been consumed. Signal by
-  // toggling the value, rather than using true/false. Is this bad?
-  sc_out<bool>          *readData;
-
-  sc_in<bool>           *readyIn;
+  sc_out<bool>          *validDataOut;
+  sc_in<bool>           *ackDataOut;
 
 //==============================//
 // Constructors and destructors

@@ -34,16 +34,12 @@ class Bus: public Component {
 public:
 
   DataInput     dataIn;
+  ReadyInput    validDataIn;
+  ReadyOutput   ackDataIn;
+
   DataOutput   *dataOut;
-
-  // Set to 1 when sending new data, and clear when recipient has consumed it.
-  ReadyOutput  *validOut;
-
-  // Input which toggles whenever the recipient has consumed the data sent to
-  // it. This means it is safe to send the next data.
-  ReadyInput   *ackIn;
-
-  ReadyOutput   canReceiveData;
+  ReadyOutput  *validDataOut;
+  ReadyInput   *ackDataOut;
 
 //==============================//
 // Constructors and destructors

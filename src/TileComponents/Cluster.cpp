@@ -257,9 +257,12 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   // Wire the input ports to the input buffers.
   for(uint i=0; i<CORE_INPUT_PORTS; i++) {
     inputCrossbar->dataIn[i](dataIn[i]);
+    inputCrossbar->validDataIn[i](validDataIn[i]);
+    inputCrossbar->ackDataIn[i](ackDataIn[i]);
+
     inputCrossbar->creditsOut[i](creditsOut[i]);
-    inputCrossbar->canReceiveData[i](canReceiveData[i]);
-    inputCrossbar->canSendCredits[i](canSendCredit[i]);
+    inputCrossbar->validCreditOut[i](validCreditOut[i]);
+    inputCrossbar->ackCreditOut[i](ackCreditOut[i]);
   }
 
   for(uint i=0; i<CORE_INPUT_CHANNELS; i++) {
@@ -318,11 +321,9 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
 
   WriteStage*  write  = dynamic_cast<WriteStage*>(stages.back());
   write->fromFetchLogic(fetchSignal);
-  write->output(dataOut[0]);             write->flowControl(canSendData[0]);
-  // temporary signals
-  sc_signal<int>* network = new sc_signal<int>();
-  write->network(*network);
-  write->creditsIn(creditsIn[0]);
+  write->output(dataOut[0]);              write->creditsIn(creditsIn[0]);
+  write->validOutput(validDataOut[0]);    write->validCredit(validCreditIn[0]);
+  write->ackOutput(ackDataOut[0]);
 
   SC_METHOD(updateIdle);
   for(uint i=0; i<stages.size(); i++) sensitive << stageIdle[i];

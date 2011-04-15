@@ -29,13 +29,16 @@ public:
   sc_in<bool>   clock;
 
   DataInput    *dataIn;
+  ReadyInput   *validDataIn;
+  ReadyOutput  *ackDataIn;
+
   sc_out<Word> *dataOut;
 
   sc_in<int>   *creditsIn;
-  CreditOutput *creditsOut;
 
-  ReadyInput   *canSendCredits;
-  ReadyOutput  *canReceiveData;
+  CreditOutput *creditsOut;
+  ReadyOutput  *validCreditOut;
+  ReadyInput   *ackCreditOut;
 
 //==============================//
 // Constructors and destructors
@@ -72,6 +75,7 @@ private:
   sc_buffer<DataType>   *dataToBuffer;
   sc_buffer<CreditType> *creditsToNetwork;
   sc_signal<ReadyType>  *readyForData, *readyForCredit;
+  sc_signal<ReadyType>  *validData, *validCredit;
 
   // This signal behaves like a clock for the data network: we generate a
   // negative edge when we want the network to send data.

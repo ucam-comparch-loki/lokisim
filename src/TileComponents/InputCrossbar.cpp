@@ -33,21 +33,28 @@ InputCrossbar::InputCrossbar(sc_module_name name, ComponentID ID, int inputs, in
     creditXbar("credit", ID, outputs, inputs, inputs, TOTAL_OUTPUT_CHANNELS, 0, Dimension(1.0/CORES_PER_TILE, 0.05)) {
 
   id = ID;
-  firstInput     = TileComponent::inputChannelID(id, 0);
-  numInputs      = inputs;
-  numOutputs     = outputs;
+  firstInput       = TileComponent::inputChannelID(id, 0);
+  numInputs        = inputs;
+  numOutputs       = outputs;
 
-  dataIn         = new DataInput[inputs];
-  dataOut        = new sc_out<Word>[outputs];
-  creditsIn      = new sc_in<int>[outputs];
-  creditsOut     = new CreditOutput[inputs];
-  canSendCredits = new ReadyInput[inputs];
-  canReceiveData = new ReadyOutput[inputs];
+  dataIn           = new DataInput[inputs];
+  validDataIn      = new ReadyInput[inputs];
+  ackDataIn        = new ReadyOutput[inputs];
 
-  dataToBuffer   = new sc_buffer<DataType>[outputs];
+  dataOut          = new sc_out<Word>[outputs];
+
+  creditsIn        = new sc_in<int>[outputs];
+
+  creditsOut       = new CreditOutput[inputs];
+  validCreditOut   = new ReadyOutput[inputs];
+  ackCreditOut     = new ReadyInput[inputs];
+
+  dataToBuffer     = new sc_buffer<DataType>[outputs];
   creditsToNetwork = new sc_buffer<CreditType>[outputs];
-  readyForData   = new sc_signal<ReadyType>[outputs];
-  readyForCredit = new sc_signal<ReadyType>[outputs];
+  readyForData     = new sc_signal<ReadyType>[outputs];
+  readyForCredit   = new sc_signal<ReadyType>[outputs];
+  validData        = new sc_signal<ReadyType>[outputs];
+  validCredit      = new sc_signal<ReadyType>[outputs];
 
   creditXbar.clock(clock);
   dataXbar.clock(sendDataSig);
@@ -55,9 +62,11 @@ InputCrossbar::InputCrossbar(sc_module_name name, ComponentID ID, int inputs, in
 
   for(int i=0; i<inputs; i++) {
     dataXbar.dataIn[i](dataIn[i]);
-    dataXbar.canReceiveData[i](canReceiveData[i]);
+    dataXbar.validDataIn[i](validDataIn[i]);
+    dataXbar.ackDataIn[i](ackDataIn[i]);
     creditXbar.dataOut[i](creditsOut[i]);
-    creditXbar.canSendData[i](canSendCredits[i]);
+    creditXbar.validDataOut[i](validCreditOut[i]);
+    creditXbar.ackDataOut[i](ackCreditOut[i]);
   }
 
   // Create and wire up all flow control units.
@@ -69,14 +78,18 @@ InputCrossbar::InputCrossbar(sc_module_name name, ComponentID ID, int inputs, in
     fc->creditsIn(creditsIn[i]);
 
     fc->dataIn(dataToBuffer[i]);
-    fc->canReceiveData(readyForData[i]);
+    fc->validDataIn(validData[i]);
+    fc->ackDataIn(readyForData[i]);
     fc->creditsOut(creditsToNetwork[i]);
-    fc->canSendCredits(readyForCredit[i]);
+    fc->validCreditOut(validCredit[i]);
+    fc->ackCreditOut(readyForCredit[i]);
 
     dataXbar.dataOut[i](dataToBuffer[i]);
-    dataXbar.canSendData[i](readyForData[i]);
+    dataXbar.validDataOut[i](validData[i]);
+    dataXbar.ackDataOut[i](readyForData[i]);
     creditXbar.dataIn[i](creditsToNetwork[i]);
-    creditXbar.canReceiveData[i](readyForCredit[i]);
+    creditXbar.validDataIn[i](validCredit[i]);
+    creditXbar.ackDataIn[i](readyForCredit[i]);
   }
 
   SC_METHOD(dataArrived);
@@ -89,11 +102,16 @@ InputCrossbar::InputCrossbar(sc_module_name name, ComponentID ID, int inputs, in
 
 InputCrossbar::~InputCrossbar() {
   delete[] dataIn;
+  delete[] validDataIn;
+  delete[] ackDataIn;
+
   delete[] dataOut;
+
   delete[] creditsIn;
+
   delete[] creditsOut;
-  delete[] canSendCredits;
-  delete[] canReceiveData;
+  delete[] validCreditOut;
+  delete[] ackCreditOut;
 
   for(unsigned int i=0; i<flowControl.size(); i++) delete flowControl[i];
 }

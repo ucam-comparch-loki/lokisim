@@ -17,14 +17,15 @@ void MulticastCrossbar::makeBuses(int numBuses, int numArbiters, int channelsPer
     buses.push_back(bus);
 
     bus->dataIn(dataIn[i]);
-    bus->canReceiveData(canReceiveData[i]);
+    bus->validDataIn(validDataIn[i]);
+    bus->ackDataIn(ackDataIn[i]);
     bus->creditsOut(creditsOut[i]);
-    bus->canSendCredits(canSendCredits[i]);
+    bus->canSendCredits(ackCreditOut[i]);
 
     for(int j=0; j<numArbiters; j++) {
       bus->dataOut[j](busToMux[i][j]);
-      bus->validOut[j](newData[i][j]);
-      bus->ackIn[j](readData[i][j]);
+      bus->validDataOut[j](newData[i][j]);
+      bus->ackDataOut[j](readData[i][j]);
       bus->creditsIn[j](creditsToBus[i][j]);
       bus->canReceiveCredits[j](busReadyCredits[i][j]);
     }
@@ -52,8 +53,8 @@ MulticastCrossbar::MulticastCrossbar(sc_module_name name, ComponentID ID, int in
   creditsIn          = new CreditInput[outputs];
   creditsOut         = new CreditOutput[inputs];
 
-  canSendCredits     = new ReadyInput[inputs];
-  canReceiveCredits  = new ReadyOutput[outputs];
+  ackCreditOut     = new ReadyInput[inputs];
+  ackCreditIn  = new ReadyOutput[outputs];
 
   creditsToBus       = new sc_buffer<CreditType>*[numBuses];
   busReadyCredits    = new sc_signal<ReadyType>*[numBuses];
@@ -63,7 +64,7 @@ MulticastCrossbar::MulticastCrossbar(sc_module_name name, ComponentID ID, int in
     busReadyCredits[i] = new sc_signal<ReadyType>[numMuxes];
   }
 
-  for(int i=0; i<outputs; i++) canReceiveCredits[i].initialize(true);
+  for(int i=0; i<outputs; i++) ackCreditIn[i].initialize(true);
 
   end_module();
 }
@@ -71,8 +72,8 @@ MulticastCrossbar::MulticastCrossbar(sc_module_name name, ComponentID ID, int in
 MulticastCrossbar::~MulticastCrossbar() {
   delete[] creditsIn;
   delete[] creditsOut;
-  delete[] canSendCredits;
-  delete[] canReceiveCredits;
+  delete[] ackCreditOut;
+  delete[] ackCreditIn;
 
   for(int i=0; i<numBuses; i++) {
     delete[] creditsToBus[i];

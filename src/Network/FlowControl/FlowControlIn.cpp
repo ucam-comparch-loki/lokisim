@@ -44,13 +44,15 @@ void FlowControlIn::receiveFlowControl() {
 }
 
 void FlowControlIn::sendCredit() {
+  // TODO: use valid signals
+
   while(true) {
     // Wait until our next credit arrives, unless we already have one waiting.
     if(numCredits>0) wait(1, sc_core::SC_NS);
     else wait(newCredit);
 
     // Wait until we are allowed to send the credit.
-    if(!canSendCredits.read()) wait(canSendCredits.posedge_event());
+    if(!ackCreditOut.read()) wait(ackCreditOut.posedge_event());
 
     // Send the new credit if someone is communicating with this port.
     if((int)returnAddress != -1) {
@@ -73,13 +75,13 @@ FlowControlIn::FlowControlIn(sc_module_name name, ComponentID ID) :
   numCredits = 0;
 
   SC_METHOD(receivedData);
-  sensitive << dataIn;
+  sensitive << dataIn;  // Change to use validDataIn
   dont_initialize();
 
   SC_THREAD(receiveFlowControl);
   SC_THREAD(sendCredit);
 
-  canReceiveData.initialize(true);
+  ackDataIn.initialize(true);
 
   end_module(); // Needed because we're using a different Component constructor
 

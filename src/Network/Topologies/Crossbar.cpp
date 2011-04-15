@@ -14,13 +14,15 @@ void Crossbar::makeBuses(int numBuses, int numArbiters, int channelsPerOutput, C
   for(int i=0; i<numBuses; i++) {
     Bus* bus = new Bus("bus", i, numArbiters, numOutputs*channelsPerOutput, startAddr, size);
     buses.push_back(bus);
+
     bus->dataIn(dataIn[i]);
-    bus->canReceiveData(canReceiveData[i]);
+    bus->validDataIn(validDataIn[i]);
+    bus->ackDataIn(ackDataIn[i]);
 
     for(int j=0; j<numArbiters; j++) {
       bus->dataOut[j](busToMux[i][j]);
-      bus->validOut[j](newData[i][j]);
-      bus->ackIn[j](readData[i][j]);
+      bus->validDataOut[j](newData[i][j]);
+      bus->ackDataOut[j](readData[i][j]);
     }
   }
 }
@@ -34,13 +36,14 @@ void Crossbar::makeArbiters(int numBuses, int numArbiters, int outputsPerCompone
 
     for(int j=0; j<numBuses; j++) {
       arbiter->dataIn[j](busToMux[j][i]);
-      arbiter->newData[j](newData[j][i]);
-      arbiter->readData[j](readData[j][i]);
+      arbiter->validDataIn[j](newData[j][i]);
+      arbiter->ackDataIn[j](readData[j][i]);
     }
 
     for(int j=0; j<outputsPerComponent; j++) {
       arbiter->dataOut[j](dataOut[i*outputsPerComponent + j]);
-      arbiter->readyIn[j](canSendData[i*outputsPerComponent + j]);
+      arbiter->validDataOut[j](validDataOut[i*outputsPerComponent + j]);
+      arbiter->ackDataOut[j](ackDataOut[i*outputsPerComponent + j]);
     }
   }
 }

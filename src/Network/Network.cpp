@@ -18,14 +18,24 @@ DataOutput& Network::externalOutput() const {
   return dataOut[numOutputs-1];
 }
 
+ReadyInput& Network::externalValidInput() const {
+  assert(externalConnection);
+  return validDataIn[numInputs-1];
+}
+
+ReadyOutput& Network::externalValidOutput() const {
+  assert(externalConnection);
+  return validDataOut[numOutputs-1];
+}
+
 ReadyInput& Network::externalReadyInput() const {
   assert(externalConnection);
-  return canSendData[numOutputs-1];
+  return ackDataOut[numOutputs-1];
 }
 
 ReadyOutput& Network::externalReadyOutput() const {
   assert(externalConnection);
-  return canReceiveData[numInputs-1];
+  return ackDataIn[numInputs-1];
 }
 
 Network::Network(sc_module_name name,
@@ -42,13 +52,16 @@ Network::Network(sc_module_name name,
   this->externalConnection = externalConnection;
   this->size = size;
 
-  dataIn         = new DataInput[this->numInputs];
-  dataOut        = new DataOutput[this->numOutputs];
-  canSendData    = new ReadyInput[this->numOutputs];
-  canReceiveData = new ReadyOutput[this->numInputs];
+  dataIn       = new DataInput[this->numInputs];
+  validDataIn  = new ReadyInput[this->numInputs];
+  ackDataIn    = new ReadyOutput[this->numInputs];
+
+  dataOut      = new DataOutput[this->numOutputs];
+  validDataOut = new ReadyOutput[this->numOutputs];
+  ackDataOut   = new ReadyInput[this->numOutputs];
 
   // We start off accepting any input.
-  for(int i=0; i<this->numInputs; i++) canReceiveData[i].initialize(true);
+  for(int i=0; i<this->numInputs; i++) ackDataIn[i].initialize(true);
 
   // Need to call end_module in every subclass.
 //  end_module();
@@ -57,7 +70,10 @@ Network::Network(sc_module_name name,
 
 Network::~Network() {
   delete[] dataIn;
+  delete[] validDataIn;
+  delete[] ackDataIn;
+
   delete[] dataOut;
-  delete[] canReceiveData;
-  delete[] canSendData;
+  delete[] validDataOut;
+  delete[] ackDataOut;
 }

@@ -41,10 +41,12 @@ public:
   sc_in<bool>   clock;
 
   DataInput    *dataIn;
-  DataOutput   *dataOut;
+  ReadyInput   *validDataIn;
+  ReadyOutput  *ackDataIn;
 
-  ReadyInput   *canSendData;
-  ReadyOutput  *canReceiveData;
+  DataOutput   *dataOut;
+  ReadyOutput  *validDataOut;
+  ReadyInput   *ackDataOut;
 
 //==============================//
 // Constructors and destructors
@@ -75,6 +77,9 @@ public:
   // The output port of this network which goes to the next level of network
   // hierarchy (or off-chip).
   DataOutput& externalOutput() const;
+
+  ReadyInput& externalValidInput() const;
+  ReadyOutput& externalValidOutput() const;
 
   ReadyInput& externalReadyInput() const;
   ReadyOutput& externalReadyOutput() const;

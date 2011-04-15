@@ -82,8 +82,8 @@ WriteStage::WriteStage(sc_module_name name, ComponentID ID) :
   // Connect the SCET to the network.
   scet.clock(clock);
   scet.output(output);
-  scet.network(network);
-  scet.flowControl(flowControl);
+  scet.validOutput(validOutput);
+  scet.ackOutput(ackOutput);
   scet.creditsIn(creditsIn);
-
+  scet.validCredit(validCredit);
 }

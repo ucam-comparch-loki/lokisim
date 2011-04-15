@@ -168,11 +168,15 @@ class SimulatorTest(unittest.TestCase):
             
     # Print a message explaining why the test failed.
     def _failure(self, testName, reason):
+        errormessage = reason
+        if errormessage == "" or errormessage.isspace():
+            errormessage = "unknown reason"
+            
         red = "\033[91m"
         endColour = "\033[0m"
         firstPart = "[" + red + "FAILED" + endColour + "] " + testName
         print firstPart.ljust(49),  # colour resets position in the line?
-        print "(" + reason + ")"
+        print "(" + errormessage + ")"
         self.returncode = 1
         
     # Print a message with information about the successful test.

@@ -33,20 +33,24 @@ public:
   // All inputs to the component. They still have addresses in case there are
   // multiple channel ends accessible through each port.
   sc_in<AddressedWord>  *dataIn;
-  sc_out<bool>          *canReceiveData;
+  sc_in<bool>           *validDataIn;
+  sc_out<bool>          *ackDataIn;
 
   // All outputs of the component.
   sc_out<AddressedWord> *dataOut;
-  sc_in<bool>           *canSendData;
+  sc_out<bool>          *validDataOut;
+  sc_in<bool>           *ackDataOut;
 
   // Credits to be sent across the network.
   sc_out<AddressedWord> *creditsOut;
-  sc_in<bool>           *canSendCredit;
+  sc_out<bool>          *validCreditOut;
+  sc_in<bool>           *ackCreditOut;
 
   // Credits received from the network. They still have addresses in case there
   // are multiple channel ends accessible through each port.
   sc_in<AddressedWord>  *creditsIn;
-  sc_out<bool>          *canReceiveCredit;
+  sc_in<bool>           *validCreditIn;
+  sc_out<bool>          *ackCreditIn;
 
   // Signal that this component is not currently doing any work.
   sc_out<bool>           idle;

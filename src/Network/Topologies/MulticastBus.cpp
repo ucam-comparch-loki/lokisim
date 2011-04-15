@@ -11,13 +11,13 @@
 void MulticastBus::mainLoop() {
   while(true) {
     wait(dataIn.default_event());
-    canReceiveData.write(false);
+    ackDataIn.write(false);
     receivedData();
     while(!outstandingCredits.empty()) {
       wait(credit);
       checkCredits();
     }
-    canReceiveData.write(true);
+    ackDataIn.write(true);
 
     if(!canSendCredits.read()) wait(canSendCredits.posedge_event());
     creditsOut.write(AddressedWord(1, creditDestination));
@@ -39,7 +39,7 @@ void MulticastBus::receivedData() {
 
     // If multicasting, may need to change the channel ID for each output.
     dataOut[output].write(data);
-    validOut[output].write(true);
+    validDataOut[output].write(true);
     outstandingCredits.push_back(output);
   }
 }

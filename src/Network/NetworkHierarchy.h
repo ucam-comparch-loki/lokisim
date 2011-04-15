@@ -34,20 +34,24 @@ public:
 
   // Data received from each output of each networked component.
   DataInput    *dataIn;
-  ReadyOutput  *canReceiveData;
+  ReadyInput   *validDataIn;
+  ReadyOutput  *ackDataIn;
 
   // Data sent to each networked component (after having its address removed
   // by the flow control components).
   DataOutput   *dataOut;
-  ReadyInput   *canSendData;
+  ReadyOutput  *validDataOut;
+  ReadyInput   *ackDataOut;
 
   // Flow control information received from each input of each component.
   CreditInput  *creditsIn;
-  ReadyOutput  *canReceiveCredit;
+  ReadyInput   *validCreditIn;
+  ReadyOutput  *ackCreditIn;
 
-  // A signal telling each inputput whether it is allowed to send a credit.
+  // A signal telling each input whether it is allowed to send a credit.
   CreditOutput *creditsOut;
-  ReadyInput   *canSendCredit;
+  ReadyOutput  *validCreditOut;
+  ReadyInput   *ackCreditOut;
 
 
 //==============================//
@@ -98,19 +102,23 @@ private:
 
 private:
 
-  // Local network
+  // Signals between the network and off-chip component.
   DataSignal        *dataToComponents,    *dataFromComponents;
   CreditSignal      *creditsToComponents, *creditsFromComponents;
-  ReadySignal       *compReadyForData,    *compReadyForCredits,
-                    *readyForData,        *readyForCredits;
+  ReadySignal       *validDataToComps,    *validDataFromComps,
+                    *validCreditToComps,  *validCreditFromComps;
+  ReadySignal       *ackDataToComps,      *ackDataFromComps,
+                    *ackCreditToComps,    *ackCreditFromComps;
 
-  // Global network
+  // Signals between local and global networks.
   DataSignal        *dataToLocalNet,      *dataFromLocalNet;
   CreditSignal      *creditsToLocalNet,   *creditsFromLocalNet;
+  ReadySignal       *validDataToLocal,    *validDataFromLocal,
+                    *validCreditToLocal,  *validCreditFromLocal;
   ReadySignal       *localReadyForData,   *localReadyForCredits,
                     *globalReadyForData,  *globalReadyForCredits;
 
-  // Off-chip
+  // Signals between off-chip and its flow control component.
   DataSignal         dataFromOffChip;
   sc_signal<Word>    dataToOffChip;
   sc_signal<int>     creditsFromOffChip;

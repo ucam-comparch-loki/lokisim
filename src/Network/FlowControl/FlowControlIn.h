@@ -27,18 +27,16 @@ public:
 
   // Data received over the network, to be sent to a component's input.
   sc_in<AddressedWord>  dataIn;
+  sc_in<bool>           validDataIn;
+  sc_out<bool>          ackDataIn;
 
   // Data to be sent to the component's input.
   sc_out<Word>          dataOut;
 
   // Responses to requests from each input.
   sc_out<AddressedWord> creditsOut;
-
-  // Signal from the network telling us when it is safe to send credits.
-  sc_in<bool>           canSendCredits;
-
-  // Signal to the network that it is safe to send new data to this input.
-  sc_out<bool>          canReceiveData;
+  sc_out<bool>          validCreditOut;
+  sc_in<bool>           ackCreditOut;
 
   // Flow control signals from the component's input, saying how
   // much space is in its buffer.
