@@ -60,9 +60,6 @@ Network::Network(sc_module_name name,
   validDataOut = new ReadyOutput[this->numOutputs];
   ackDataOut   = new ReadyInput[this->numOutputs];
 
-  // We start off accepting any input.
-  for(int i=0; i<this->numInputs; i++) ackDataIn[i].initialize(true);
-
   // Need to call end_module in every subclass.
 //  end_module();
 

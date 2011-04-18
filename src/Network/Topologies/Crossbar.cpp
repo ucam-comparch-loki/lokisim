@@ -58,9 +58,6 @@ Crossbar::Crossbar(sc_module_name name, ComponentID ID, int inputs, int outputs,
 
   id = ID;
 
-//  const int numBuses = numInputs;
-//  const int numMuxes = numOutputs/outputsPerComponent;
-
   busToMux = new sc_signal<DataType>*[numBuses];
   newData  = new sc_signal<ReadyType>*[numBuses];
   readData = new sc_signal<ReadyType>*[numBuses];

@@ -54,7 +54,11 @@ public:
 
 private:
 
+  void mainLoop();
+
   void arbitrate();
+
+  void ackArrived();
   void dataArrived();
 
 //==============================//
@@ -68,6 +72,8 @@ private:
 
   // Optimisation: skip work if we know there is no data to arbitrate.
   bool haveData;
+
+  sc_core::sc_event ack;
 
 };
 

@@ -61,6 +61,7 @@ public:
 
 public:
 
+  SC_HAS_PROCESS(TileComponent);
   TileComponent(sc_module_name name, ComponentID ID,
                 int inputPorts, int outputPorts);
   virtual ~TileComponent();
@@ -113,7 +114,22 @@ protected:
   void writeMemWord(MemoryAddr addr, Word data) const;
   void writeMemByte(MemoryAddr addr, Word data) const;
 
-  Chip*            parent() const;
+  Chip* parent() const;
+
+private:
+
+  void acknowledgeCredit();
+  void receivedCredit();
+
+//==============================//
+// Local state
+//==============================//
+
+private:
+
+  int numInputPorts, numOutputPorts;
+
+  sc_core::sc_event credit;
 
 };
 

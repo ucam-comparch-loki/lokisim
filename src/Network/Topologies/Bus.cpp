@@ -10,9 +10,12 @@
 void Bus::mainLoop() {
   while(true) {
     wait(dataIn.default_event());
-    ackDataIn.write(false);
     receivedData();
+
+    // Pulse an acknowledgement.
     ackDataIn.write(true);
+    wait(sc_core::SC_ZERO_TIME);
+    ackDataIn.write(false);
   }
 }
 
@@ -59,9 +62,9 @@ Bus::Bus(sc_module_name name, ComponentID ID, int numOutputPorts,
          int numOutputChannels, ChannelID startAddr, Dimension size) :
     Component(name, ID) {
 
-  dataOut  = new DataOutput[numOutputPorts];
-  validDataOut  = new ReadyOutput[numOutputPorts];
-  ackDataOut = new ReadyInput[numOutputPorts];
+  dataOut      = new DataOutput[numOutputPorts];
+  validDataOut = new ReadyOutput[numOutputPorts];
+  ackDataOut   = new ReadyInput[numOutputPorts];
 
   this->numOutputs = numOutputPorts;
   this->channelsPerOutput = numOutputChannels/numOutputPorts;
@@ -73,8 +76,6 @@ Bus::Bus(sc_module_name name, ComponentID ID, int numOutputPorts,
   SC_METHOD(computeSwitching);
   sensitive << dataIn;
   dont_initialize();
-
-  ackDataIn.initialize(true);
 
   // If this is here, we can't use MulticastBus.
   // If it isn't here, we can't use Bus.

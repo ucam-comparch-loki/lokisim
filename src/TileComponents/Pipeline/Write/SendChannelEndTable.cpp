@@ -79,23 +79,31 @@ bool SendChannelEndTable::full() const {
 }
 
 void SendChannelEndTable::send() {
-  // If a buffer has information, and is allowed to send, send it
-  if(!buffer.empty() && ackOutput.read()) {
-    MapIndex entry = mapEntries.peek();
+  while(true) {
+    wait(clock.posedge_event());
 
-    // If we don't have enough credits, abandon sending the data.
-    if(!channelMap[entry].canSend()) return;
+    if(!buffer.empty()) {
+      MapIndex entry = mapEntries.peek();
 
-    AddressedWord data = buffer.read();
-    entry = mapEntries.read(); // Need to remove from the buffer after peeking earlier.
+      // If we don't have enough credits, abandon sending the data.
+      if(!channelMap[entry].canSend()) continue;
 
-    if(DEBUG) cout << "Sending " << data.payload()
-        << " from (" << id << "," << (int)entry << ") to "
-        << TileComponent::inputPortString(data.channelID())
-        << endl;
+      AddressedWord data = buffer.read();
+      entry = mapEntries.read(); // Need to remove from the buffer after peeking earlier.
 
-    output.write(data);
-    channelMap[entry].removeCredit();
+      if(DEBUG) cout << "Sending " << data.payload()
+          << " from (" << id << "," << (int)entry << ") to "
+          << TileComponent::inputPortString(data.channelID())
+          << endl;
+
+      output.write(data);
+      validOutput.write(true);
+      channelMap[entry].removeCredit();
+
+      // Deassert the valid signal when an acknowledgement arrives.
+      wait(ackOutput.posedge_event());
+      validOutput.write(false);
+    }
   }
 }
 
@@ -168,12 +176,10 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, ComponentID ID) :
 
   id = ID;
 
-  SC_METHOD(send);
-  sensitive << clock.pos();
-  dont_initialize();
+  SC_THREAD(send);
 
   SC_METHOD(receivedCredit);
-  sensitive << creditsIn;   // TODO: use validCredit
+  sensitive << validCredit.pos();
   dont_initialize();
 
 }

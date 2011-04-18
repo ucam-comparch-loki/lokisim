@@ -24,11 +24,9 @@ void MemoryMat::mainLoop() {
     // operation takes place, this will be set to true.
     active = false;
 
-    ackDataIn[0].write(false); ackDataIn[1].write(false);
     checkInputs();
     performOperations();
     updateIdle();
-    ackDataIn[0].write(true); ackDataIn[1].write(true);
   }
 }
 
@@ -37,7 +35,7 @@ void MemoryMat::mainLoop() {
  * received request for execution. */
 void MemoryMat::checkInputs() {
   for(PortIndex i=0; i<MEMORY_INPUT_PORTS; i++) {
-    if(dataIn[i].event()) {
+    if(validDataIn[i].read()) {
       AddressedWord input = dataIn[i].read();
 
       // Store the first input channel ID so it doesn't have to be recomputed?
@@ -60,6 +58,11 @@ void MemoryMat::checkInputs() {
         assert(!inputBuffers_[channel].full());
         inputBuffers_[channel].write(input.payload());
       }
+
+      // Acknowledge the received data.
+      ackDataIn[i].write(true);
+      wait(sc_core::SC_ZERO_TIME);
+      ackDataIn[i].write(false);
     }
   }
 }
@@ -87,7 +90,7 @@ void MemoryMat::performOperations() {
 /* Carry out a read for the transaction at the given input. */
 void MemoryMat::read(ChannelIndex input) {
   // If we are reading, we should be allowed to send the result.
-  assert(ackDataOut[0].read());
+  assert(!validDataOut[0].read());
 
   ConnectionStatus& connection = connections_[input];
   MemoryAddr addr = connection.address();
@@ -191,7 +194,7 @@ bool MemoryMat::canAcceptRequest(ChannelIndex i) const {
 
   // If a result will need to be sent, check that the flow control signal
   // allows this.
-  bool canSend = ackDataOut[0].read() && sendTable_[i].canSend();
+  bool canSend = !validDataOut[0].read() && sendTable_[i].canSend();
 
   // Writes require data to write, so see if it has arrived yet.
   bool moreData = !inputBuffers_[i].empty();
@@ -218,7 +221,7 @@ void MemoryMat::newOperation(ChannelIndex port) {
     activeConnections++;
 
     // Assuming it's possible to set up a read and perform a read in one cycle.
-    if(ackDataOut[0].read()) read(port);
+    if(!validDataOut[0].read()) read(port);
   }
   else if(request.isWriteRequest()) {
     connections_[port].writeAddress(request.address(), request.operation());
@@ -270,12 +273,16 @@ void MemoryMat::sendCredit(ChannelIndex position) {
   unsigned int output = creditssent++;
   assert(output < MEMORY_INPUT_PORTS);
 
-  if(!ackCreditOut[output].read()) wait(ackCreditOut[output].posedge_event());
-
+  // TODO: create a separate thread to do this part so useful work can still
+  // be done.
   creditsOut[output].write(AddressedWord(1, returnAddr));
+  validCreditOut[output].write(true);
 
   if(DEBUG) cout << "Sent credit from (" << id << "," << (int)position << ") to "
                  << TileComponent::outputPortString(returnAddr) << endl;
+
+  wait(ackCreditOut[output].posedge_event());
+  validCreditOut[output].write(false);
 }
 
 void MemoryMat::queueData(AddressedWord& data, MapIndex channel) {
@@ -297,8 +304,16 @@ void MemoryMat::queueData(AddressedWord& data, MapIndex channel) {
 }
 
 void MemoryMat::sendData() {
-  if(!outputBuffer_.empty() && ackDataOut[0].read()) {
-    dataOut[0].write(outputBuffer_.read());
+  while(true) {
+    wait(clock.posedge_event());
+
+    if(!outputBuffer_.empty()) {
+      dataOut[0].write(outputBuffer_.read());
+      validDataOut[0].write(true);
+
+      wait(ackDataOut[0].posedge_event());
+      validDataOut[0].write(false);
+    }
   }
 }
 
@@ -394,9 +409,7 @@ MemoryMat::MemoryMat(sc_module_name name, ComponentID ID) :
   sensitive << creditsIn[0];
   dont_initialize();
 
-  SC_METHOD(sendData);
-  sensitive << clock.pos();
-  dont_initialize();
+  SC_THREAD(sendData);
 
   Instrumentation::idle(id, true);
 

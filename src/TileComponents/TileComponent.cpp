@@ -217,30 +217,58 @@ Chip* TileComponent::parent() const {
   return static_cast<Chip*>(this->get_parent());
 }
 
+void TileComponent::acknowledgeCredit() {
+  while(true) {
+    // Wait until a credit arrives.
+    wait(credit);
+
+    for(int i=0; i<numOutputPorts; i++) {
+      // Send an acknowledgement straight away. Credits are always immediately
+      // consumed.
+      if(validCreditIn[i].read()) {
+        ackCreditIn[i].write(true);
+        wait(sc_core::SC_ZERO_TIME);
+        ackCreditIn[i].write(false);
+      }
+    }
+  }
+}
+
+void TileComponent::receivedCredit() {
+  credit.notify();
+}
+
 /* Constructors and destructors */
 TileComponent::TileComponent(sc_module_name name, ComponentID ID,
                              int inputPorts, int outputPorts) :
     Component(name, ID) {
 
-  dataIn           = new sc_in<AddressedWord>[inputPorts];
-  validDataIn      = new sc_in<bool>[inputPorts];
-  ackDataIn   = new sc_out<bool>[inputPorts];
+  numInputPorts  = inputPorts;
+  numOutputPorts = outputPorts;
 
-  dataOut          = new sc_out<AddressedWord>[outputPorts];
-  validDataOut     = new sc_out<bool>[outputPorts];
-  ackDataOut      = new sc_in<bool>[outputPorts];
+  dataIn         = new sc_in<AddressedWord>[inputPorts];
+  validDataIn    = new sc_in<bool>[inputPorts];
+  ackDataIn      = new sc_out<bool>[inputPorts];
 
-  creditsOut       = new sc_out<AddressedWord>[inputPorts];
-  validCreditOut   = new sc_out<bool>[inputPorts];
-  ackCreditOut    = new sc_in<bool>[inputPorts];
+  dataOut        = new sc_out<AddressedWord>[outputPorts];
+  validDataOut   = new sc_out<bool>[outputPorts];
+  ackDataOut     = new sc_in<bool>[outputPorts];
 
-  creditsIn        = new sc_in<AddressedWord>[outputPorts];
-  validCreditIn    = new sc_in<bool>[outputPorts];
-  ackCreditIn = new sc_out<bool>[outputPorts];
+  creditsOut     = new sc_out<AddressedWord>[inputPorts];
+  validCreditOut = new sc_out<bool>[inputPorts];
+  ackCreditOut   = new sc_in<bool>[inputPorts];
+
+  creditsIn      = new sc_in<AddressedWord>[outputPorts];
+  validCreditIn  = new sc_in<bool>[outputPorts];
+  ackCreditIn    = new sc_out<bool>[outputPorts];
+
+  SC_METHOD(receivedCredit);
+  for(int i=0; i<outputPorts; i++) sensitive << validCreditIn[i].pos();
+  dont_initialize();
+
+  SC_THREAD(acknowledgeCredit);
 
   idle.initialize(true);
-  for(int i=0; i<outputPorts; i++) ackCreditIn[i].initialize(true);
-  for(int i=0; i<inputPorts; i++)  ackDataIn[i].initialize(true);
 
 }
 

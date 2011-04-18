@@ -9,6 +9,21 @@
 #include "../../Arbitration/RoundRobinArbiter.h"
 #include "../../Datatype/AddressedWord.h"
 
+void ArbiterComponent::mainLoop() {
+  while(true) {
+    // Wait for something interesting to happen.
+    wait(clock.negedge_event() | ack);
+
+    if(clock.negedge()) arbitrate();
+    else {
+      // Pull down the valid signal for any outputs which have sent acknowledgements.
+      for(int i=0; i<numOutputs; i++) {
+        if(ackDataOut[i].read()) validDataOut[i].write(false);
+      }
+    }
+  }
+}
+
 void ArbiterComponent::arbitrate() {
 
   if(!haveData) return;
@@ -36,11 +51,17 @@ void ArbiterComponent::arbitrate() {
 
     // FIXME: a request may be granted, but then blocked by flow control.
     // Another, later request may still be allowed to send. Seems unfair.
-    if(ackDataOut[output].read()) {
+    if(!validDataOut[output].read()) {
       dataOut[output].write(dataIn[input].read());
+      validDataOut[output].write(true);
       ackDataIn[input].write(!ackDataIn[input].read()); // Toggle value
     }
   }
+
+}
+
+void ArbiterComponent::ackArrived() {
+  ack.notify();
 }
 
 void ArbiterComponent::dataArrived() {
@@ -64,12 +85,14 @@ ArbiterComponent::ArbiterComponent(sc_module_name name, ComponentID ID,
 
   arbiter      = new RoundRobinArbiter2(inputs, outputs, false);
 
+  SC_THREAD(mainLoop);
+
   SC_METHOD(dataArrived);
   for(int i=0; i<inputs; i++) sensitive << validDataIn[i].pos();
   dont_initialize();
 
-  SC_METHOD(arbitrate);
-  sensitive << clock.neg();   // Is this right?
+  SC_METHOD(ackArrived);
+  for(int i=0; i<outputs; i++) sensitive << ackDataOut[i].pos();
   dont_initialize();
 
   end_module();
