@@ -155,12 +155,10 @@ FetchStage* InstructionPacketCache::parent() const {
 }
 
 /* Constructors and destructors */
-InstructionPacketCache::InstructionPacketCache(sc_module_name name) :
-    Component(name),
+InstructionPacketCache::InstructionPacketCache(sc_module_name name, ComponentID ID) :
+    Component(name, ID),
     cache(IPK_CACHE_SIZE, string(name)),
     addresses(4, string(name)) {  // 4 = max outstanding fetches allowed
-
-  id = parent()->id;
 
   finishedPacketRead = true;
   finishedPacketWrite = true;

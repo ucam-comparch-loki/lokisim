@@ -77,9 +77,8 @@ DecodeStage* FetchLogic::parent() const {
 }
 
 FetchLogic::FetchLogic(sc_module_name name, int ID) :
-    Component(name) {
+    Component(name, ID) {
 
-  id = ID;
   fetchChannel = -1;      // So we get warnings if we fetch before setting this.
 
   SC_THREAD(send);

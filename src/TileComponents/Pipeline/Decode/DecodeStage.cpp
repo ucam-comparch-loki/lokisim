@@ -104,11 +104,9 @@ DecodeStage::DecodeStage(sc_module_name name, ComponentID ID) :
     StageWithSuccessor(name, ID),
     StageWithPredecessor(name, ID),
     fl("fetchlogic", ID),
-    rcet("rcet"),
+    rcet("rcet", ID),
     decoder("decoder", ID),
     extend("signextend") {
-
-  id = ID;
   waitingToSend = false;
 
   rcetIn         = new sc_in<Word>[NUM_RECEIVE_CHANNELS];

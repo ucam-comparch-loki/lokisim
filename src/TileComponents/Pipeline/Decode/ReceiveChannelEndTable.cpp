@@ -80,12 +80,10 @@ DecodeStage* ReceiveChannelEndTable::parent() const {
   return dynamic_cast<DecodeStage*>(this->get_parent());
 }
 
-ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name) :
-    Component(name),
+ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name, ComponentID ID) :
+    Component(name, ID),
     buffers(NUM_RECEIVE_CHANNELS, CHANNEL_END_BUFFER_SIZE, string(name)),
     currentChannel(NUM_RECEIVE_CHANNELS) {
-
-  id = parent()->id;
 
   flowControl = new sc_out<int>[NUM_RECEIVE_CHANNELS];
   fromNetwork = new sc_in<Word>[NUM_RECEIVE_CHANNELS];

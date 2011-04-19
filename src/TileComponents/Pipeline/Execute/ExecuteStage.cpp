@@ -61,7 +61,7 @@ ExecuteStage::ExecuteStage(sc_module_name name, ComponentID ID) :
     PipelineStage(name, ID),
     StageWithPredecessor(name, ID),
     StageWithSuccessor(name, ID),
-    alu("alu") {
+    alu("alu", ID) {
 
 }
 

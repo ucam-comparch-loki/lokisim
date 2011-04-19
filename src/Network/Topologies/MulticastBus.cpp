@@ -89,8 +89,6 @@ MulticastBus::MulticastBus(sc_module_name name, ComponentID ID, int numOutputs,
   SC_METHOD(creditArrived);
   for(int i=0; i<numOutputs; i++) sensitive << creditsIn[i];
   dont_initialize();
-
-  end_module();
 }
 
 MulticastBus::~MulticastBus() {

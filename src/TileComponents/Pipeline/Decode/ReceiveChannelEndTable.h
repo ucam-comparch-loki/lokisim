@@ -43,7 +43,7 @@ public:
 public:
 
   SC_HAS_PROCESS(ReceiveChannelEndTable);
-  ReceiveChannelEndTable(sc_module_name name);
+  ReceiveChannelEndTable(sc_module_name name, ComponentID ID);
   virtual ~ReceiveChannelEndTable();
 
 //==============================//

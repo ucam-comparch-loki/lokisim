@@ -69,8 +69,6 @@ void FlowControlOut::receivedCredit() {
 FlowControlOut::FlowControlOut(sc_module_name name, ComponentID ID) :
     Component(name, ID) {
 
-  id = ID;
-
   creditCount = CHANNEL_END_BUFFER_SIZE;
 
   SC_THREAD(mainLoop);

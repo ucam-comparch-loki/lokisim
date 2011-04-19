@@ -76,10 +76,6 @@ Bus::Bus(sc_module_name name, ComponentID ID, int numOutputPorts,
   SC_METHOD(computeSwitching);
   sensitive << dataIn;
   dont_initialize();
-
-  // If this is here, we can't use MulticastBus.
-  // If it isn't here, we can't use Bus.
-  end_module();
 }
 
 Bus::~Bus() {

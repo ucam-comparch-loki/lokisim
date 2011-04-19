@@ -12,7 +12,8 @@
 void Crossbar::makeBuses(int numBuses, int numArbiters, int channelsPerOutput, ChannelID startAddr) {
   // Generate and connect up buses.
   for(int i=0; i<numBuses; i++) {
-    Bus* bus = new Bus("bus", i, numArbiters, numOutputs*channelsPerOutput, startAddr, size);
+    Bus* bus = new Bus(sc_core::sc_gen_unique_name("bus"), i, numArbiters,
+                       numOutputs*channelsPerOutput, startAddr, size);
     buses.push_back(bus);
 
     bus->dataIn(dataIn[i]);
@@ -30,7 +31,8 @@ void Crossbar::makeBuses(int numBuses, int numArbiters, int channelsPerOutput, C
 void Crossbar::makeArbiters(int numBuses, int numArbiters, int outputsPerComponent) {
   // Generate and connect up arbitrated multiplexers.
   for(int i=0; i<numArbiters; i++) {
-    ArbiterComponent* arbiter = new ArbiterComponent("arbiter", i, numBuses, outputsPerComponent);
+    ArbiterComponent* arbiter = new ArbiterComponent(sc_core::sc_gen_unique_name("arbiter"),
+                                                     i, numBuses, outputsPerComponent);
     arbiters.push_back(arbiter);
     arbiter->clock(clock);
 
@@ -56,8 +58,6 @@ Crossbar::Crossbar(sc_module_name name, ComponentID ID, int inputs, int outputs,
     numMuxes(numOutputs/outputsPerComponent),
     outputsPerComponent(outputsPerComponent) {
 
-  id = ID;
-
   busToMux = new sc_signal<DataType>*[numBuses];
   newData  = new sc_signal<ReadyType>*[numBuses];
   readData = new sc_signal<ReadyType>*[numBuses];
@@ -70,8 +70,6 @@ Crossbar::Crossbar(sc_module_name name, ComponentID ID, int inputs, int outputs,
 
   makeBuses(numBuses, numMuxes, channelsPerOutput, startAddr);
   makeArbiters(numBuses, numMuxes, outputsPerComponent);
-
-  end_module();
 
 }
 

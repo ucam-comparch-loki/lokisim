@@ -169,12 +169,10 @@ void SendChannelEndTable::receivedCredit() {
 }
 
 SendChannelEndTable::SendChannelEndTable(sc_module_name name, ComponentID ID) :
-    Component(name),
+    Component(name, ID),
     buffer(CHANNEL_END_BUFFER_SIZE, string(name)),
     mapEntries(CHANNEL_END_BUFFER_SIZE, string(name)),
     channelMap(CHANNEL_MAP_SIZE) {
-
-  id = ID;
 
   SC_THREAD(send);
 

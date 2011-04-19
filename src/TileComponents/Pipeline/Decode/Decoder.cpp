@@ -394,9 +394,7 @@ DecodeStage* Decoder::parent() const {
   return dynamic_cast<DecodeStage*>(this->get_parent());
 }
 
-Decoder::Decoder(sc_module_name name, ComponentID ID) : Component(name) {
-
-  this->id = ID;
+Decoder::Decoder(sc_module_name name, ComponentID ID) : Component(name, ID) {
 
   sendChannel = -1;
   remoteExecute = false;

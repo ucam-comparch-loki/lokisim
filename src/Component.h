@@ -36,7 +36,7 @@ SC_MODULE (Component) {
 
 public:
 
-  ComponentID id; // Would like to be const, but seems hard to do
+  const ComponentID id;
 
 //==============================//
 // Constructors and destructors
@@ -44,8 +44,8 @@ public:
 
 public:
 
-  Component(sc_module_name& name);
-  Component(sc_module_name& name, ComponentID ID);
+  Component(const sc_module_name& name);
+  Component(const sc_module_name& name, ComponentID ID);
 
   // DO NOT MAKE A COPY CONSTRUCTOR. SYSTEMC MODULES SHOULD NOT BE COPIED.
 
@@ -60,11 +60,6 @@ public:
 
   // An estimate of the energy consumed by the component in picojoules.
   virtual double energy() const;
-
-private:
-
-  // Generate a unique name for this component, using its ID.
-  static const std::string makeName(sc_module_name& name, ComponentID ID);
 
 };
 

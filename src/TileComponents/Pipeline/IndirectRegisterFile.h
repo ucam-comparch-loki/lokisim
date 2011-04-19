@@ -32,8 +32,7 @@ class IndirectRegisterFile: public Component {
 
 public:
 
-  IndirectRegisterFile(sc_module_name name);
-  virtual ~IndirectRegisterFile();
+  IndirectRegisterFile(sc_module_name name, ComponentID ID);
 
 //==============================//
 // Methods

@@ -413,6 +413,4 @@ MemoryMat::MemoryMat(sc_module_name name, ComponentID ID) :
 
   Instrumentation::idle(id, true);
 
-  end_module(); // Needed because we're using a different Component constructor
-
 }

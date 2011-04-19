@@ -230,7 +230,7 @@ ChannelID Cluster::RCETInput(ComponentID ID, ChannelIndex channel) {
 
 Cluster::Cluster(sc_module_name name, ComponentID ID) :
     TileComponent(name, ID, CORE_INPUT_PORTS, CORE_OUTPUT_PORTS),
-    regs("regs"),
+    regs("regs", ID),
     pred("predicate") {
 
   previousDest1 = previousDest2 = -1;
@@ -274,7 +274,7 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
 
   // Wire the stall registers up.
   for(uint i=0; i<stages.size()-1; i++) {
-    StallRegister* stallReg = new StallRegister("stall", i);
+    StallRegister* stallReg = new StallRegister(sc_core::sc_gen_unique_name("stall"), i);
 
     stallReg->clock(clock);               stallReg->readyOut(stallRegReady[i]);
     stallReg->dataIn(dataFromStage[i]);   stallReg->dataOut(dataToStage[i]);
@@ -335,8 +335,6 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
 
   // Initialise the values in some wires.
   idle.initialize(true);
-
-  end_module(); // Needed because we're using a different Component constructor
 }
 
 Cluster::~Cluster() {

@@ -91,28 +91,36 @@ Chip::Chip(sc_module_name name, ComponentID ID, BatchModeEventRecorder *eventRec
   int numOutputs = TOTAL_OUTPUT_PORTS;
   int numInputs  = TOTAL_INPUT_PORTS;
 
-  dataFromComponents     = new sc_buffer<DataType>[numOutputs];
-  dataToComponents       = new flag_signal<DataType>[numInputs];
-  creditsFromComponents  = new sc_buffer<CreditType>[numInputs];
-  creditsToComponents    = new sc_buffer<CreditType>[numOutputs];
+  dataFromComponents    = new sc_buffer<DataType>[numOutputs];
+  dataToComponents      = new flag_signal<DataType>[numInputs];
+  creditsFromComponents = new sc_buffer<CreditType>[numInputs];
+  creditsToComponents   = new sc_buffer<CreditType>[numOutputs];
 
-  ackDataFromComps    = new sc_signal<ReadyType>[numOutputs];
-  ackCreditToComps   = new sc_signal<ReadyType>[numOutputs];
-  ackDataToComps      = new sc_signal<ReadyType>[numInputs];
-  ackCreditFromComps = new sc_signal<ReadyType>[numInputs];
+  ackDataFromComps      = new sc_signal<ReadyType>[numOutputs];
+  ackCreditToComps      = new sc_signal<ReadyType>[numOutputs];
+  ackDataToComps        = new sc_signal<ReadyType>[numInputs];
+  ackCreditFromComps    = new sc_signal<ReadyType>[numInputs];
 
-  validDataFromComps     = new sc_signal<ReadyType>[numOutputs];
-  validDataToComps       = new sc_signal<ReadyType>[numInputs];
-  validCreditFromComps   = new sc_signal<ReadyType>[numInputs];
-  validCreditToComps     = new sc_signal<ReadyType>[numOutputs];
+  validDataFromComps    = new sc_signal<ReadyType>[numOutputs];
+  validDataToComps      = new sc_signal<ReadyType>[numInputs];
+  validCreditFromComps  = new sc_signal<ReadyType>[numInputs];
+  validCreditToComps    = new sc_signal<ReadyType>[numOutputs];
 
   network.clock(clock);
 
   for(uint j=0; j<NUM_TILES; j++) {
+    std::stringstream namebuilder;
+    std::string name;
+
     // Initialise the Clusters of this Tile
     for(uint i=0; i<CORES_PER_TILE; i++) {
       ComponentID clusterID = j*COMPONENTS_PER_TILE + i;
-      Cluster* c = new Cluster("cluster", clusterID);
+
+      namebuilder << "core_" << clusterID;
+      namebuilder >> name;
+      namebuilder.clear();
+
+      Cluster* c = new Cluster(name.c_str(), clusterID);
       c->idle(idleSig[clusterID]);
       contents.push_back(c);
     }
@@ -121,15 +129,26 @@ Chip::Chip(sc_module_name name, ComponentID ID, BatchModeEventRecorder *eventRec
     if (ENABLE_SHARED_L1_CACHE_SUBSYSTEM == 0) {
 		for(uint i=CORES_PER_TILE; i<COMPONENTS_PER_TILE; i++) {
 			ComponentID memoryID = j*COMPONENTS_PER_TILE + i;
-			MemoryMat* m = new MemoryMat("memory", memoryID);
+
+      namebuilder << "memory_" << memoryID;
+      namebuilder >> name;
+      namebuilder.clear();
+
+			MemoryMat* m = new MemoryMat(name.c_str(), memoryID);
 			m->idle(idleSig[memoryID]);
 			contents.push_back(m);
 		}
     } else {
-		ComponentID memoryID = j * COMPONENTS_PER_TILE + CORES_PER_TILE;
-		SharedL1CacheSubsystem* m = new SharedL1CacheSubsystem("memory", memoryID, eventRecorder);
-		m->idle(idleSig[memoryID]);
-		contents.push_back(m);
+      ComponentID memoryID = j * COMPONENTS_PER_TILE + CORES_PER_TILE;
+
+      namebuilder << "memory_" << memoryID;
+      namebuilder >> name;
+      namebuilder.clear();
+
+      SharedL1CacheSubsystem* m =
+          new SharedL1CacheSubsystem(name.c_str(), memoryID, eventRecorder);
+      m->idle(idleSig[memoryID]);
+      contents.push_back(m);
     }
   }
 

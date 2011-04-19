@@ -63,10 +63,6 @@ MulticastCrossbar::MulticastCrossbar(sc_module_name name, ComponentID ID, int in
     creditsToBus[i]    = new sc_buffer<CreditType>[numMuxes];
     busReadyCredits[i] = new sc_signal<ReadyType>[numMuxes];
   }
-
-  for(int i=0; i<outputs; i++) ackCreditIn[i].initialize(true);
-
-  end_module();
 }
 
 MulticastCrossbar::~MulticastCrossbar() {

@@ -121,15 +121,9 @@ Cluster* IndirectRegisterFile::parent() const {
   return (Cluster*)(this->get_parent());
 }
 
-IndirectRegisterFile::IndirectRegisterFile(sc_module_name name) :
-    Component(name),
+IndirectRegisterFile::IndirectRegisterFile(sc_module_name name, ComponentID ID) :
+    Component(name, ID),
     regs(NUM_PHYSICAL_REGISTERS, std::string(name)),
     indirectRegs(NUM_ADDRESSABLE_REGISTERS, std::string(name)) {
-
-  id = parent()->id;
-
-}
-
-IndirectRegisterFile::~IndirectRegisterFile() {
 
 }

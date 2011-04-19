@@ -7,15 +7,12 @@
 
 #include "Component.h"
 
-Component::Component(sc_module_name& name) : sc_module(name), id(-1) {
+Component::Component(const sc_module_name& name) : id(-1) {
 
 }
 
-
-/* NOTE: if this constructor is used, end_module() must be placed at
- *       the end of the constructor this is called from. */
-Component::Component(sc_module_name& name, ComponentID ID)
-    : sc_module(makeName(name, ID)), id(ID) {
+Component::Component(const sc_module_name& name, ComponentID ID) :
+    id(ID) {
 
 }
 
@@ -27,14 +24,4 @@ double Component::area() const {
 double Component::energy() const {
   std::cerr << "No power data for " << this->basename() << endl;
   return 0.0;
-}
-
-const std::string Component::makeName(sc_module_name& name, ComponentID ID) {
-  std::stringstream ss;
-  std::string result;
-
-  ss << name << "_" << ID;
-  ss >> result;
-
-  return result;
 }

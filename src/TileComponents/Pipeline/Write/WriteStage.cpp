@@ -77,8 +77,6 @@ WriteStage::WriteStage(sc_module_name name, ComponentID ID) :
     StageWithPredecessor(name, ID),
     scet("scet", ID) {
 
-  id = ID;
-
   // Connect the SCET to the network.
   scet.clock(clock);
   scet.output(output);

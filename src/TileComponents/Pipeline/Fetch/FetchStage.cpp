@@ -124,10 +124,8 @@ void FetchStage::calculateSelect() {
 FetchStage::FetchStage(sc_module_name name, ComponentID ID) :
     PipelineStage(name, ID),
     StageWithSuccessor(name, ID),
-    cache("IPKcache"),
+    cache("IPKcache", ID),
     fifo("IPKfifo") {
-
-  id = ID;
 
   stalled     = false;  // Start off idle, but not stalled.
   usingCache  = true;
