@@ -58,15 +58,16 @@ Chip* TileComponent::parent() const {
 void TileComponent::acknowledgeCredit() {
   while(true) {
     // Wait until a credit arrives.
-    wait(credit);
+//    wait(credit);
+    wait(clock.posedge_event());
 
     for(int i=0; i<numOutputPorts; i++) {
+      ackCreditIn[i].write(false);
+
       // Send an acknowledgement straight away. Credits are always immediately
       // consumed.
       if(validCreditIn[i].read()) {
         ackCreditIn[i].write(true);
-        wait(sc_core::SC_ZERO_TIME);
-        ackCreditIn[i].write(false);
       }
     }
   }

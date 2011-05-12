@@ -9,19 +9,18 @@
 
 void Bus::mainLoop() {
   while(true) {
-    wait(validDataIn.posedge_event());
+    wait(clock.posedge_event());
+    ackDataIn.write(false);
+    if(!validDataIn.read()) continue;
     receivedData();
 
     // Pulse an acknowledgement.
     ackDataIn.write(true);
-    wait(sc_core::SC_ZERO_TIME);
-    ackDataIn.write(false);
   }
 }
 
 void Bus::receivedData() {
   DataType data = dataIn.read();
-  cout << this->name() << " received " << data << endl;
 
   const PortIndex output = getDestination(data.channelID());
   assert(output < numOutputs);

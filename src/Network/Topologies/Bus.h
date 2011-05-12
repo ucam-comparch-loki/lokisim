@@ -33,6 +33,8 @@ class Bus: public Component {
 
 public:
 
+  sc_in<bool>   clock;
+
   DataInput     dataIn;
   ReadyInput    validDataIn;
   ReadyOutput   ackDataIn;

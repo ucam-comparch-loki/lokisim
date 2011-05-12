@@ -15,9 +15,9 @@
 void FlowControlIn::receivedData() {
   while(true) {
     // Wait for data to arrive.
-	wait(validDataIn.posedge_event());
-
-	cout << "received " << dataIn.read() << " at channel " << channel.getString() << endl;
+    wait(clock.posedge_event());
+    ackDataIn.write(false);
+    if(!validDataIn.read()) continue;
 
     if(dataIn.read().portClaim()) {
       // TODO: only accept the port claim when we have no credits left to send.
@@ -40,8 +40,6 @@ void FlowControlIn::receivedData() {
     }
 
     ackDataIn.write(true);
-    wait(sc_core::SC_ZERO_TIME);
-    ackDataIn.write(false);
   }
 }
 

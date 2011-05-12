@@ -15,6 +15,7 @@ void Crossbar::makeBuses(int numBuses, int numArbiters, int channelsPerOutput, c
     Bus* bus = new Bus(sc_core::sc_gen_unique_name("bus"), i, numArbiters,
                        numOutputs*channelsPerOutput, startAddr, size);
     buses.push_back(bus);
+    bus->clock(clock);
 
     bus->dataIn(dataIn[i]);
     bus->validDataIn(validDataIn[i]);

@@ -73,6 +73,8 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID, int inp
     FlowControlIn* fc = new FlowControlIn(sc_core::sc_gen_unique_name("fc_in"), firstInput.getComponentID(), firstInput.addChannel(i, outputs));
     flowControl.push_back(fc);
 
+    fc->clock(clock);
+
     fc->dataOut(dataOut[i]);
     fc->creditsIn(creditsIn[i]);
 

@@ -10,8 +10,10 @@
 
 void MulticastBus::mainLoop() {
   while(true) {
-    wait(dataIn.default_event());
+    wait(clock.posedge_event());
     ackDataIn.write(false);
+    if(!validDataIn.read()) continue;
+
     receivedData();
     while(!outstandingCredits.empty()) {
       wait(credit);

@@ -20,6 +20,7 @@ void NetworkHierarchy::setupFlowControl() {
   FlowControlOut* fcout = new FlowControlOut("fc_out", ComponentID()/*TOTAL_OUTPUT_PORTS*/, ChannelID());
   flowControlOut.push_back(fcout);
 
+  fcin->clock(clock);
   fcin->dataOut(dataToOffChip);            offChip.dataIn(dataToOffChip);
   fcin->creditsIn(creditsFromOffChip);     offChip.creditsOut(creditsFromOffChip);
   fcin->dataIn(dataToComponents[0]);
