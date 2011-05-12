@@ -13,8 +13,7 @@
 void FetchLogic::fetch(const MemoryAddr addr) {
 	// Create a new memory request
 
-	MemoryRequest mr;
-	mr.setHeader(MemoryRequest::IPK_READ, addr);
+	MemoryRequest mr(MemoryRequest::IPK_READ, addr);
 
 	// Adjust fetch channel based on memory configuration if necessary
 
@@ -53,7 +52,8 @@ void FetchLogic::setFetchChannel(const ChannelID& channelID, uint groupBits) {
 		// Need to claim this port so that it sends flow control information back
 		// here.
 
-		AddressedWord aw(Word(returnChannel.getData()), fetchChannel, true);
+		AddressedWord aw(Word(returnChannel.getData()), fetchChannel);
+		aw.setPortClaim(true, true);
 
 		// Not ideal: the send method waits for there to be room in the cache, but
 		// for just claiming a port, this isn't necessary.
@@ -62,12 +62,14 @@ void FetchLogic::setFetchChannel(const ChannelID& channelID, uint groupBits) {
 	} else {
 		// Destination is a memory
 
+		/*
 		// Send memory channel table setup request
 
 		MemoryRequest mr;
 		mr.setHeaderSetTableEntry(returnChannel.getData());
 		AddressedWord aw(mr, fetchChannel);
 		sendRequest(aw);
+		*/
 	}
 }
 

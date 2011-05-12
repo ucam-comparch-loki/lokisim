@@ -24,15 +24,21 @@ private:
 	// claimed, all of its responses will be sent back to the sending output port.
 	bool portClaim_;
 
+	// Indicates whether a connection set up through a port claim message uses
+	// credit based flow control.
+	bool useCredits_;
+
 	bool endOfPacket_;
 public:
-	inline Word payload() const					{return payload_;}
-	inline ChannelID channelID() const			{return channelID_;}
-	inline bool portClaim() const				{return portClaim_;}
-	inline bool endOfPacket() const				{return endOfPacket_;}
+	inline Word payload() const									{return payload_;}
+	inline ChannelID channelID() const							{return channelID_;}
+	inline bool portClaim() const								{return portClaim_;}
+	inline bool useCredits() const								{return useCredits_;}
+	inline bool endOfPacket() const								{return endOfPacket_;}
 
-	inline void channelID(ChannelID id)			{channelID_ = id;}
-	inline void notEndOfPacket()				{endOfPacket_ = false;}
+	inline void setChannelID(const ChannelID& id)				{channelID_ = id;}
+	inline void setPortClaim(bool portClaim, bool useCredits)	{portClaim_ = portClaim; useCredits_ = useCredits;}
+	inline void setEndOfPacket(bool endOfPacket)				{endOfPacket_ = endOfPacket;}
 
 	friend void sc_trace(sc_core::sc_trace_file*& tf, const AddressedWord& w, const std::string& txt) {
 		sc_trace(tf, w.payload_, txt + ".payload");
@@ -45,6 +51,7 @@ public:
 		return (this->payload_ == other.payload_)
 			&& (this->channelID_ == other.channelID_)
 			&& (this->portClaim_ == other.portClaim_)
+			&& (this->useCredits_ == other.useCredits_)
 			&& (this->endOfPacket_ == other.endOfPacket_);
 	}
 
@@ -52,25 +59,30 @@ public:
 		payload_ = other.payload_;
 		channelID_ = other.channelID_;
 		portClaim_ = other.portClaim_;
+		useCredits_ = other.useCredits_;
 		endOfPacket_ = other.endOfPacket_;
 
 		return *this;
 	}
 
 	friend std::ostream& operator<< (std::ostream& os, AddressedWord const& v) {
-		os << "(" << v.payload_ << " -> " << v.channelID_ << ")";
+		os << "[" << v.payload_ << " -> " << v.channelID_.getString() << " " << v.portClaim_ << "|" << v.useCredits_ << "|" << v.endOfPacket_ << "]";
 		return os;
 	}
 
 	AddressedWord() {
 		payload_ = Word(0);
 		channelID_ = ChannelID(0, 0);
+		portClaim_ = false;
+		useCredits_ = true;
+		endOfPacket_ = true;
 	}
 
-	AddressedWord(const Word& w, const ChannelID& id, bool portClaim=false) {
+	AddressedWord(const Word& w, const ChannelID& id) {
 		payload_ = w;
 		channelID_ = id;
-		portClaim_ = portClaim;
+		portClaim_ = false;
+		useCredits_ = true;
 		endOfPacket_ = true;
 
 		/*

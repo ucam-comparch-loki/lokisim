@@ -15,9 +15,7 @@
 #include "../../../Utility/Instrumentation/Stalls.h"
 
 void SendChannelEndTable::write(const DecodedInst& dec) {
-	if (dec.operation() == InstructionMap::CFGMEM)
-		configureMemory(dec.immediate(), dec.result());
-	else if (dec.operation() == InstructionMap::SETCHMAP)
+	if (dec.operation() == InstructionMap::SETCHMAP)
 		updateMap(dec.immediate(), dec.result());
 	else if (dec.operation() == InstructionMap::WOCHE)
 		waitUntilEmpty(dec.result());
@@ -30,7 +28,7 @@ void SendChannelEndTable::write(const AddressedWord& data, MapIndex output) {
   // of the pipeline if a buffer is full.
   assert(!buffer.full());
   cerr << (int)output << endl;
-  assert(output < CHANNEL_MAP_SIZE || output == NO_ENTRY);
+  assert(output < CHANNEL_MAP_SIZE);
   buffer.write(data);
   mapEntries.write(output);
 
@@ -50,7 +48,7 @@ void SendChannelEndTable::send() {
       MapIndex entry = mapEntries.peek();
 
       // If we don't have enough credits, abandon sending the data.
-      if(entry != NO_ENTRY && !channelMap[entry].canSend()) continue;
+      if(!channelMap[entry].canSend()) continue;
 
       AddressedWord data = buffer.read();
       entry = mapEntries.read(); // Need to remove from the buffer after peeking earlier.
@@ -62,37 +60,13 @@ void SendChannelEndTable::send() {
 
       output.write(data);
       validOutput.write(true);
-      if(entry != NO_ENTRY) channelMap[entry].removeCredit();
+      channelMap[entry].removeCredit();
 
       // Deassert the valid signal when an acknowledgement arrives.
       wait(ackOutput.posedge_event());
       validOutput.write(false);
     }
   }
-}
-
-/* Configure a virtual memory group. */
-void SendChannelEndTable::configureMemory(int32_t mode, int64_t destination) {
-	// Send a memory configuration message to the first bank in the virtual
-	// memory group. The channel map table entry was already set up before.
-
-	// Encoded destination format:
-	// | Tile : 16 | Position : 8 | Channel : 4 | Memory group bits : 4 |
-
-	uint32_t encodedDestination = (uint32_t)destination;
-	uint destTile = encodedDestination >> 16;
-	uint destPosition = (encodedDestination >> 8) & 0xFF;
-	uint destChannel = (encodedDestination >> 4) & 0xF;
-	uint destGroupBits = encodedDestination & 0xF;
-
-	ChannelID channel(destTile, destPosition, destChannel);
-
-	MemoryRequest mr;
-	mr.setHeaderSetMode(mode == 0 ? MemoryRequest::SCRATCHPAD : MemoryRequest::GP_CACHE, 1UL << destGroupBits);
-
-	AddressedWord aw(mr, channel);
-
-	write(aw, NO_ENTRY);
 }
 
 /* Update an entry in the channel mapping table. */
@@ -137,7 +111,8 @@ void SendChannelEndTable::updateMap(MapIndex entry, int64_t newVal) {
 		// FetchLogic sends out the claims for entry 0
 
 		if (entry != 0) {
-			AddressedWord aw(Word(returnChannel.getData()), sendChannel, true);
+			AddressedWord aw(Word(returnChannel.getData()), sendChannel);
+			aw.setPortClaim(true, true);
 			buffer.write(aw);
 			mapEntries.write(entry);
 		}
@@ -146,6 +121,7 @@ void SendChannelEndTable::updateMap(MapIndex entry, int64_t newVal) {
 
 		channelMap[entry].setMemoryDestination(sendChannel, newGroupBits);
 
+		/*
 		// Send memory channel table setup request
 		// FetchLogic sends out the claims for entry 0
 
@@ -156,6 +132,7 @@ void SendChannelEndTable::updateMap(MapIndex entry, int64_t newVal) {
 			buffer.write(aw);
 			mapEntries.write(entry);
 		}
+		*/
 	}
 
 	if (DEBUG)
@@ -196,9 +173,7 @@ void SendChannelEndTable::executeMemoryOp(MapIndex entry, MemoryRequest::MemoryO
 		// supplied by the decoder. The memory request will be sent to a memory and
 		// will result in an operation being carried out there.
 
-		MemoryRequest mr;
-		mr.setHeader(memoryOp, (uint32_t)data);
-		w = mr;
+		w = MemoryRequest(memoryOp, (uint32_t)data);
 
 		if (memoryOp == MemoryRequest::STORE_W || memoryOp == MemoryRequest::STORE_HW || memoryOp == MemoryRequest::STORE_B)
 			endOfPacket = false;
@@ -219,7 +194,7 @@ void SendChannelEndTable::executeMemoryOp(MapIndex entry, MemoryRequest::MemoryO
 
 	AddressedWord aw(w, channel);
 	if(!endOfPacket)
-		aw.notEndOfPacket();
+		aw.setEndOfPacket(false);
 
 	write(aw, entry);
 }

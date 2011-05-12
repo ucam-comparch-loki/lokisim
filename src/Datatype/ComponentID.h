@@ -16,9 +16,9 @@
 
 class ComponentID : public Word {
 private:
-	static const uint OFFSET_TILE = 0;
+	static const uint OFFSET_TILE = 16;
 	static const uint WIDTH_TILE = 16;
-	static const uint OFFSET_POSITION = 16;
+	static const uint OFFSET_POSITION = 8;
 	static const uint WIDTH_POSITION = 8;
 public:
 	inline uint32_t getData() const					{return data_ & 0xFFFFFFFFULL;}

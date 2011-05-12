@@ -13,45 +13,51 @@
 /* Put any new data into the buffer. Since we approved the request to send
  * data, it is known that there is enough room. */
 void FlowControlIn::receivedData() {
-  while(true) {
-    // Wait for data to arrive.
-    wait(clock.posedge_event());
-    ackDataIn.write(false);
-    if(!validDataIn.read()) continue;
+	while(true) {
+		// Wait for data to arrive.
+		wait(clock.posedge_event());
+		ackDataIn.write(false);
+		if(!validDataIn.read())
+			continue;
 
-    if(dataIn.read().portClaim()) {
-      // TODO: only accept the port claim when we have no credits left to send.
+		if(dataIn.read().portClaim()) {
+			// TODO: only accept the port claim when we have no credits left to send.
 
-      // Set the return address so we can send flow control.
-      returnAddress = dataIn.read().payload().toInt();
-      numCredits++;
-      assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
+			// Set the return address so we can send flow control.
+			returnAddress = dataIn.read().payload().toInt();
+			useCredits = dataIn.read().useCredits();
 
-      // Wake up the sendCredit thread.
-      newCredit.notify();
+			if (useCredits) {
+				numCredits++;
+				assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
 
-      if(DEBUG) cout << "Channel " << channel.getString()
-           << " was claimed by " << returnAddress.getString()
-           << endl;
-    }
-    else {
-      // Pass the value to the component.
-      dataOut.write(dataIn.read().payload());
-    }
+				// Wake up the sendCredit thread.
+				newCredit.notify();
+			}
 
-    ackDataIn.write(true);
-  }
+			if(DEBUG)
+				cout << "Channel " << channel.getString() << " was claimed by " << returnAddress.getString() << " [flow control " << (useCredits ? "enabled" : "disabled") << "]" << endl;
+		} else {
+			// Pass the value to the component.
+			dataOut.write(dataIn.read().payload());
+		}
+
+		ackDataIn.write(true);
+	}
 }
 
 void FlowControlIn::receiveFlowControl() {
-  while(true) {
-    wait(creditsIn.default_event());
-    numCredits++;
-    assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
+	while(true) {
+		wait(creditsIn.default_event());
 
-    // Wake up the sendCredit thread.
-    newCredit.notify();
-  }
+		if (useCredits) {
+			numCredits++;
+			assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
+
+			// Wake up the sendCredit thread.
+			newCredit.notify();
+		}
+	}
 }
 
 void FlowControlIn::sendCredit() {
@@ -59,6 +65,9 @@ void FlowControlIn::sendCredit() {
     // Wait until our next credit arrives, unless we already have one waiting.
     if(numCredits>0) wait(1, sc_core::SC_NS);
     else wait(newCredit);
+
+    // This should not execute if credits are disabled
+    assert(useCredits);
 
     // Send the new credit if someone is communicating with this port.
     if(!returnAddress.isNullMapping()) {
@@ -84,6 +93,7 @@ FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const C
 
   channel = channelManaged;
   returnAddress = -1;
+  useCredits = true;
   numCredits = 0;
 
   SC_THREAD(receivedData);

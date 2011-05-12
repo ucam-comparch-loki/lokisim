@@ -140,8 +140,9 @@ ReevaluateRequest:
 		// A bit of a hack but simplifies the code considerably
 
 		mActiveTableIndex = mActiveRingRequestInput.Header.BurstReadHandOff.TableIndex;
-		mActiveRequest.setHeader(MemoryRequest::BURST_READ, mActiveRingRequestInput.Header.BurstReadHandOff.Count, MemoryRequest::ESCAPE_ADDRESS_LONG);
+		mActiveRequest = MemoryRequest(MemoryRequest::BURST_READ, 0);
 		mActiveAddress = mActiveRingRequestInput.Header.BurstReadHandOff.Address;
+		mActiveBurstLength = mActiveRingRequestInput.Header.BurstReadHandOff.Count;
 
 		mFSMState = STATE_LOCAL_BURST_READ;
 		break;
@@ -149,8 +150,9 @@ ReevaluateRequest:
 	case RING_BURST_WRITE_FORWARD:
 		// A bit of a hack but simplifies the code considerably
 
-		mActiveRequest.setHeader(MemoryRequest::BURST_WRITE, mActiveRingRequestInput.Header.BurstWriteForward.Count, MemoryRequest::ESCAPE_ADDRESS_LONG);
+		mActiveRequest = MemoryRequest(MemoryRequest::BURST_WRITE, 0);
 		mActiveAddress = mActiveRingRequestInput.Header.BurstWriteForward.Address;
+		mActiveBurstLength = mActiveRingRequestInput.Header.BurstWriteForward.Count;
 
 		mFSMState = STATE_BURST_WRITE_SLAVE;
 		break;
@@ -159,7 +161,7 @@ ReevaluateRequest:
 		// A bit of a hack but simplifies the code considerably
 
 		mActiveTableIndex = mActiveRingRequestInput.Header.IPKReadHandOff.TableIndex;
-		mActiveRequest.setHeader(MemoryRequest::IPK_READ, MemoryRequest::ESCAPE_ADDRESS_LONG);
+		mActiveRequest = MemoryRequest(MemoryRequest::IPK_READ, 0);
 		mActiveAddress = mActiveRingRequestInput.Header.IPKReadHandOff.Address;
 
 		mFSMState = STATE_LOCAL_IPK_READ;
@@ -226,86 +228,108 @@ bool MemoryBank::processMessageHeader() {
 	bool inputWordProcessed = true;
 
 	switch (mActiveRequest.getOperation()) {
-	case MemoryRequest::SET_MODE:
+	case MemoryRequest::CONTROL:
 		if (DEBUG)
-			cout << this->name() << " received SET_MODE request" << endl;
+			cout << this->name() << " received CONTROL request on channel " << mActiveTableIndex << endl;
 
-		mGroupBaseBank = cBankNumber;
-		mGroupIndex = 0;
-		mGroupSize = mActiveRequest.getGroupSize();
+		if (mChannelMapTable[mActiveTableIndex].FetchPending) {
+			if (DEBUG)
+				cout << this->name() << " received channel address" << endl;
 
-		assert(mGroupIndex <= mGroupSize);
+			if (!mOutputQueue.empty()) {
+				cout << this->name() << " output queue not empty" << endl;
 
-		if (mActiveRequest.getMode() == MemoryRequest::SCRATCHPAD) {
-			mBankMode = MODE_SCRATCHPAD;
-			mScratchpadModeHandler.activate(mGroupIndex, mGroupSize);
-		} else {
-			mBankMode = MODE_GP_CACHE;
-			mGeneralPurposeCacheHandler.activate(mGroupIndex, mGroupSize);
-		}
+				// Drain output queue before changing table
 
-		if (mGroupIndex < mGroupSize - 1) {
-			// Forward request through ring network
-
-			if (mRingRequestOutputPending) {
-				mDelayedRingRequestOutput.Header.RequestType = RING_SET_MODE;
-				mDelayedRingRequestOutput.Header.SetMode.NewMode = mBankMode;
-				mDelayedRingRequestOutput.Header.SetMode.GroupBaseBank = mGroupBaseBank;
-				mDelayedRingRequestOutput.Header.SetMode.GroupIndex = mGroupIndex + 1;
-				mDelayedRingRequestOutput.Header.SetMode.GroupSize = mGroupSize;
-				mFSMState = STATE_WAIT_RING_OUTPUT;
+				inputWordProcessed = false;
+				mFSMState = STATE_IDLE;
 			} else {
-				mRingRequestOutputPending = true;
-				mActiveRingRequestOutput.Header.RequestType = RING_SET_MODE;
-				mActiveRingRequestOutput.Header.SetMode.NewMode = mBankMode;
-				mActiveRingRequestOutput.Header.SetMode.GroupBaseBank = mGroupBaseBank;
-				mActiveRingRequestOutput.Header.SetMode.GroupIndex = mGroupIndex + 1;
-				mActiveRingRequestOutput.Header.SetMode.GroupSize = mGroupSize;
+				// Update channel map table
+
+				mChannelMapTable[mActiveTableIndex].Valid = true;
+				mChannelMapTable[mActiveTableIndex].FetchPending = false;
+				mChannelMapTable[mActiveTableIndex].ReturnChannel = mActiveRequest.getChannelID();
+
+				// Send port claim message to return channel
+
+				OutputWord outWord;
+				outWord.TableIndex = mActiveTableIndex;
+				outWord.Data = ChannelID(id, mActiveTableIndex);
+				outWord.PortClaim = true;
+				outWord.LastWord = true;
+
+				mOutputQueue.write(outWord);
+
+				if (mGroupIndex < mGroupSize - 1) {
+					// Forward request through ring network
+
+					if (mRingRequestOutputPending) {
+						mDelayedRingRequestOutput.Header.RequestType = RING_SET_TABLE_ENTRY;
+						mDelayedRingRequestOutput.Header.SetTableEntry.TableIndex = mActiveTableIndex;
+						mDelayedRingRequestOutput.Header.SetTableEntry.TableEntry = mActiveRequest.getChannelID();
+						mFSMState = STATE_WAIT_RING_OUTPUT;
+					} else {
+						mRingRequestOutputPending = true;
+						mActiveRingRequestOutput.Header.RequestType = RING_SET_TABLE_ENTRY;
+						mActiveRingRequestOutput.Header.SetTableEntry.TableIndex = mActiveTableIndex;
+						mActiveRingRequestOutput.Header.SetTableEntry.TableEntry = mActiveRequest.getChannelID();
+						mFSMState = STATE_IDLE;
+					}
+				} else {
+					mFSMState = STATE_IDLE;
+				}
+			}
+		} else if (mActiveRequest.getOpCode() == MemoryRequest::SET_MODE) {
+			if (DEBUG)
+				cout << this->name() << " received SET_MODE opcode on channel " << mActiveTableIndex << endl;
+
+			mGroupBaseBank = cBankNumber;
+			mGroupIndex = 0;
+			mGroupSize = 1UL << mActiveRequest.getGroupBits();
+
+			assert(mGroupIndex <= mGroupSize);
+
+			if (mActiveRequest.getMode() == MemoryRequest::SCRATCHPAD) {
+				mBankMode = MODE_SCRATCHPAD;
+				mScratchpadModeHandler.activate(mGroupIndex, mGroupSize);
+			} else {
+				mBankMode = MODE_GP_CACHE;
+				mGeneralPurposeCacheHandler.activate(mGroupIndex, mGroupSize);
+			}
+
+			if (mGroupIndex < mGroupSize - 1) {
+				// Forward request through ring network
+
+				if (mRingRequestOutputPending) {
+					mDelayedRingRequestOutput.Header.RequestType = RING_SET_MODE;
+					mDelayedRingRequestOutput.Header.SetMode.NewMode = mBankMode;
+					mDelayedRingRequestOutput.Header.SetMode.GroupBaseBank = mGroupBaseBank;
+					mDelayedRingRequestOutput.Header.SetMode.GroupIndex = mGroupIndex + 1;
+					mDelayedRingRequestOutput.Header.SetMode.GroupSize = mGroupSize;
+					mFSMState = STATE_WAIT_RING_OUTPUT;
+				} else {
+					mRingRequestOutputPending = true;
+					mActiveRingRequestOutput.Header.RequestType = RING_SET_MODE;
+					mActiveRingRequestOutput.Header.SetMode.NewMode = mBankMode;
+					mActiveRingRequestOutput.Header.SetMode.GroupBaseBank = mGroupBaseBank;
+					mActiveRingRequestOutput.Header.SetMode.GroupIndex = mGroupIndex + 1;
+					mActiveRingRequestOutput.Header.SetMode.GroupSize = mGroupSize;
+					mFSMState = STATE_IDLE;
+				}
+			} else {
 				mFSMState = STATE_IDLE;
 			}
 		} else {
+			assert(mActiveRequest.getOpCode() == MemoryRequest::SET_CHMAP);
+
+			if (DEBUG)
+				cout << this->name() << " received SET_CHMAP opcode on channel " << mActiveTableIndex << endl;
+
+			mChannelMapTable[mActiveTableIndex].FetchPending = true;
+
 			mFSMState = STATE_IDLE;
 		}
 
-		break;
-
-	case MemoryRequest::SET_CHMAP:
-		if (DEBUG)
-			cout << this->name() << " received SET_CHMAP request" << endl;
-
-		// Drain output queue before changing table
-
-		if (!mOutputQueue.empty()) {
-			inputWordProcessed = false;
-			mFSMState = STATE_IDLE;
-			break;
-		}
-
-		// Update channel map table
-
-		mChannelMapTable[mActiveTableIndex].Valid = true;
-		mChannelMapTable[mActiveTableIndex].ReturnChannel = mActiveRequest.getChannelID();
-
-		if (mGroupIndex < mGroupSize - 1) {
-			// Forward request through ring network
-
-			if (mRingRequestOutputPending) {
-				mDelayedRingRequestOutput.Header.RequestType = RING_SET_TABLE_ENTRY;
-				mDelayedRingRequestOutput.Header.SetTableEntry.TableIndex = mActiveTableIndex;
-				mDelayedRingRequestOutput.Header.SetTableEntry.TableEntry = mActiveRequest.getChannelID();
-				mFSMState = STATE_WAIT_RING_OUTPUT;
-			} else {
-				mRingRequestOutputPending = true;
-				mActiveRingRequestOutput.Header.RequestType = RING_SET_TABLE_ENTRY;
-				mActiveRingRequestOutput.Header.SetTableEntry.TableIndex = mActiveTableIndex;
-				mActiveRingRequestOutput.Header.SetTableEntry.TableEntry = mActiveRequest.getChannelID();
-				mFSMState = STATE_IDLE;
-			}
-		} else {
-			mFSMState = STATE_IDLE;
-		}
-
-		mFSMState = STATE_IDLE;
 		break;
 
 	case MemoryRequest::LOAD_W:
@@ -315,57 +339,39 @@ bool MemoryBank::processMessageHeader() {
 	case MemoryRequest::STORE_HW:
 	case MemoryRequest::STORE_B:
 		if (DEBUG)
-			cout << this->name() << " received scalar request" << endl;
+			cout << this->name() << " received scalar request on channel " << mActiveTableIndex << endl;
 
-		if (mActiveRequest.getAddressLong() == MemoryRequest::ESCAPE_ADDRESS_LONG) {
-			mFSMCallbackState = STATE_LOCAL_MEMORY_ACCESS;
-			mFSMState = STATE_FETCH_ADDRESS;
-		} else {
-			mActiveAddress = mActiveRequest.getAddressLong();
-			mFSMState = STATE_LOCAL_MEMORY_ACCESS;
-		}
+		mActiveAddress = mActiveRequest.getPayload();
+		mFSMState = STATE_LOCAL_MEMORY_ACCESS;
 
 		break;
 
 	case MemoryRequest::IPK_READ:
 		if (DEBUG)
-			cout << this->name() << " received IPK_READ request" << endl;
+			cout << this->name() << " received IPK_READ request on channel " << mActiveTableIndex << endl;
 
-		if (mActiveRequest.getAddressLong() == MemoryRequest::ESCAPE_ADDRESS_LONG) {
-			mFSMCallbackState = STATE_LOCAL_IPK_READ;
-			mFSMState = STATE_FETCH_ADDRESS;
-		} else {
-			mActiveAddress = mActiveRequest.getAddressLong();
-			mFSMState = STATE_LOCAL_IPK_READ;
-		}
+		mActiveAddress = mActiveRequest.getPayload();
+		mFSMState = STATE_LOCAL_IPK_READ;
 
 		break;
 
 	case MemoryRequest::BURST_READ:
 		if (DEBUG)
-			cout << this->name() << " received BURST_READ request" << endl;
+			cout << this->name() << " received BURST_READ request on channel " << mActiveTableIndex << endl;
 
-		if (mActiveRequest.getAddressLong() == MemoryRequest::ESCAPE_ADDRESS_LONG) {
-			mFSMCallbackState = STATE_LOCAL_BURST_READ;
-			mFSMState = STATE_FETCH_ADDRESS;
-		} else {
-			mActiveAddress = mActiveRequest.getAddressLong();
-			mFSMState = STATE_LOCAL_BURST_READ;
-		}
+		mActiveAddress = mActiveRequest.getPayload();
+		mFSMCallbackState = STATE_LOCAL_BURST_READ;
+		mFSMState = STATE_FETCH_BURST_LENGTH;
 
 		break;
 
 	case MemoryRequest::BURST_WRITE:
 		if (DEBUG)
-			cout << this->name() << " received BURST_WRITE request" << endl;
+			cout << this->name() << " received BURST_WRITE request on channel " << mActiveTableIndex << endl;
 
-		if (mActiveRequest.getAddressLong() == MemoryRequest::ESCAPE_ADDRESS_SHORT) {
-			mFSMCallbackState = STATE_BURST_WRITE_MASTER;
-			mFSMState = STATE_FETCH_ADDRESS;
-		} else {
-			mActiveAddress = mActiveRequest.getAddressLong();
-			mFSMState = STATE_BURST_WRITE_MASTER;
-		}
+		mActiveAddress = mActiveRequest.getPayload();
+		mFSMCallbackState = STATE_BURST_WRITE_MASTER;
+		mFSMState = STATE_FETCH_BURST_LENGTH;
 
 		break;
 
@@ -382,11 +388,11 @@ bool MemoryBank::processMessageHeader() {
 	}
 }
 
-void MemoryBank::processAddressFetch() {
+void MemoryBank::processFetchBurstLength() {
 	if (!mInputQueue.empty()) {
-		MemoryRequest payload(mInputQueue.read().payload());
-
-		mActiveAddress = payload.getData();
+		MemoryRequest request(mInputQueue.read().payload());
+		assert(request.getOperation() == MemoryRequest::PAYLOAD_ONLY);
+		mActiveBurstLength = request.getPayload();
 		mFSMState = mFSMCallbackState;
 	}
 }
@@ -417,6 +423,7 @@ void MemoryBank::processLocalMemoryAccess() {
 			OutputWord outWord;
 			outWord.TableIndex = mActiveTableIndex;
 			outWord.Data = Word(data);
+			outWord.PortClaim = false;
 			outWord.LastWord = true;
 
 			mOutputQueue.write(outWord);
@@ -425,11 +432,12 @@ void MemoryBank::processLocalMemoryAccess() {
 				return;
 
 			MemoryRequest payload(mInputQueue.read().payload());
+			assert(payload.getOperation() == MemoryRequest::PAYLOAD_ONLY);
 
 			switch (mActiveRequest.getOperation()) {
-			case MemoryRequest::STORE_W:	mScratchpadModeHandler.writeWord(mActiveAddress, payload.getData());		break;
-			case MemoryRequest::STORE_HW:	mScratchpadModeHandler.writeHalfWord(mActiveAddress, payload.getData());	break;
-			case MemoryRequest::STORE_B:	mScratchpadModeHandler.writeByte(mActiveAddress, payload.getData());		break;
+			case MemoryRequest::STORE_W:	mScratchpadModeHandler.writeWord(mActiveAddress, payload.getPayload());		break;
+			case MemoryRequest::STORE_HW:	mScratchpadModeHandler.writeHalfWord(mActiveAddress, payload.getPayload());	break;
+			case MemoryRequest::STORE_B:	mScratchpadModeHandler.writeByte(mActiveAddress, payload.getPayload());		break;
 			default:						assert(false);																break;
 			}
 		} else {
@@ -463,6 +471,7 @@ void MemoryBank::processLocalMemoryAccess() {
 				OutputWord outWord;
 				outWord.TableIndex = mActiveTableIndex;
 				outWord.Data = Word(data);
+				outWord.PortClaim = false;
 				outWord.LastWord = true;
 
 				mOutputQueue.write(outWord);
@@ -482,11 +491,12 @@ void MemoryBank::processLocalMemoryAccess() {
 
 			bool cacheHit;
 			MemoryRequest payload(mInputQueue.read().payload());
+			assert(payload.getOperation() == MemoryRequest::PAYLOAD_ONLY);
 
 			switch (mActiveRequest.getOperation()) {
-			case MemoryRequest::STORE_W:	cacheHit = mGeneralPurposeCacheHandler.writeWord(mActiveAddress, payload.getData(), mCacheResumeRequest, false);		break;
-			case MemoryRequest::STORE_HW:	cacheHit = mGeneralPurposeCacheHandler.writeHalfWord(mActiveAddress, payload.getData(), mCacheResumeRequest, false);	break;
-			case MemoryRequest::STORE_B:	cacheHit = mGeneralPurposeCacheHandler.writeByte(mActiveAddress, payload.getData(), mCacheResumeRequest, false);		break;
+			case MemoryRequest::STORE_W:	cacheHit = mGeneralPurposeCacheHandler.writeWord(mActiveAddress, payload.getPayload(), mCacheResumeRequest, false);		break;
+			case MemoryRequest::STORE_HW:	cacheHit = mGeneralPurposeCacheHandler.writeHalfWord(mActiveAddress, payload.getPayload(), mCacheResumeRequest, false);	break;
+			case MemoryRequest::STORE_B:	cacheHit = mGeneralPurposeCacheHandler.writeByte(mActiveAddress, payload.getPayload(), mCacheResumeRequest, false);		break;
 			default:						assert(false);																											break;
 			}
 
@@ -536,6 +546,7 @@ void MemoryBank::processLocalIPKRead() {
 			OutputWord outWord;
 			outWord.TableIndex = mActiveTableIndex;
 			outWord.Data = inst;
+			outWord.PortClaim = false;
 			outWord.LastWord = endOfPacket;
 
 			mOutputQueue.write(outWord);
@@ -637,6 +648,7 @@ void MemoryBank::processLocalIPKRead() {
 				OutputWord outWord;
 				outWord.TableIndex = mActiveTableIndex;
 				outWord.Data = inst;
+				outWord.PortClaim = false;
 				outWord.LastWord = endOfPacket;
 
 				mOutputQueue.write(outWord);
@@ -864,10 +876,9 @@ void MemoryBank::handleNetworkInterfacesPost() {
 	if (!mOutputWordPending && !mOutputQueue.empty()) {
 		OutputWord outWord = mOutputQueue.read();
 
-		AddressedWord word(outWord.Data, mChannelMapTable[outWord.TableIndex].ReturnChannel, false);
-
-		if (!outWord.LastWord)
-			word.notEndOfPacket();
+		AddressedWord word(outWord.Data, mChannelMapTable[outWord.TableIndex].ReturnChannel);
+		word.setPortClaim(outWord.PortClaim, false);
+		word.setEndOfPacket(outWord.LastWord);
 
 		mOutputWordPending = true;
 		mActiveOutputWord = word;
@@ -898,8 +909,8 @@ void MemoryBank::mainLoop() {
 
 			break;
 
-		case STATE_FETCH_ADDRESS:
-			processAddressFetch();
+		case STATE_FETCH_BURST_LENGTH:
+			processFetchBurstLength();
 			break;
 
 		case STATE_LOCAL_MEMORY_ACCESS:

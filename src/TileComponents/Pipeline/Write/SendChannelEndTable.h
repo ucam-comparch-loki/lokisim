@@ -69,9 +69,6 @@ private:
   // allow it.
   void          send();
 
-  // Configure a virtual memory group.
-  void          configureMemory(int32_t mode, int64_t destination);
-
   // Update an entry in the channel mapping table.
   void          updateMap(MapIndex entry, int64_t newVal);
 
@@ -109,9 +106,6 @@ protected:
   // Used to tell that we are not currently waiting for any output buffers
   // to empty.
   static const ChannelIndex    NO_CHANNEL = -1;
-
-  // Used to send messages independant of a channel map table entry.
-  static const MapIndex        NO_ENTRY = -1;
 
 };
 

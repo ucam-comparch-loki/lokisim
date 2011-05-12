@@ -81,6 +81,7 @@ private:
   // address so we can send flow control information back to the source.
   ChannelID returnAddress;
 
+  bool useCredits;
   unsigned int numCredits;
 
   sc_core::sc_event newCredit;

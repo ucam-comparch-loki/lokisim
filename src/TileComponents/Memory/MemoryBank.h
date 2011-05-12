@@ -178,7 +178,7 @@ private:
 
 	enum FSMState {
 		STATE_IDLE,											// Ready to service incoming message
-		STATE_FETCH_ADDRESS,								// Fetch address for memory access
+		STATE_FETCH_BURST_LENGTH,							// Fetch burst length from separate word
 		STATE_LOCAL_MEMORY_ACCESS,							// Access local memory (simulate single cycle access latency)
 		STATE_LOCAL_IPK_READ,								// Read instruction packet from local memory (simulate single cycle access latency)
 		STATE_LOCAL_BURST_READ,								// Read data burst from local memory (simulate single cycle access latency)
@@ -202,6 +202,7 @@ private:
 	struct ChannelMapTableEntry {
 	public:
 		bool Valid;											// Flag indicating whether a connection is set up
+		bool FetchPending;									// Flag indicating whether a Channel ID fetch for this entry is pending
 		ChannelID ReturnChannel;							// Number of destination tile
 	};
 
@@ -209,6 +210,7 @@ private:
 	public:
 		Word Data;											// Data word to send
 		uint TableIndex;									// Index of channel map table entry describing the destination
+		bool PortClaim;										// Indicates whether this is a port claim message
 		bool LastWord;										// Indicates whether this is the last word of the message
 	};
 
@@ -241,6 +243,7 @@ private:
 	uint mActiveTableIndex;									// Currently selected index in channel map table
 	MemoryRequest mActiveRequest;							// Currently active memory request
 	uint32_t mActiveAddress;								// Current address for memory access in progress
+	uint32_t mActiveBurstLength;							// Current burst length for memory access in progress
 
 	bool mPartialInstructionPending;						// Indicates that half of the current instruction was already read
 	uint32_t mPartialInstructionData;						// First half of instruction already read
@@ -283,7 +286,7 @@ private:
 	bool processRingEvent();
 	bool processMessageHeader();
 
-	void processAddressFetch();
+	void processFetchBurstLength();
 	void processLocalMemoryAccess();
 	void processLocalIPKRead();
 	void processLocalBurstRead();

@@ -17,69 +17,70 @@
 
 class MemoryRequest : public Word {
 private:
-	static const uint OFFSET_OPERATION = 0;
+	// | Memory operation : 4 | Opcode : 8 | Unused : 8 | Mode : 8 | Group bits : 8 |
+	// | Memory operation : 4 | Address : 32                                        |
+	// | Memory operation : 4 | Burst length : 32                                   |
+	// | Memory operation : 4 | Channel ID : 32                                     |
+
+	static const uint OFFSET_OPERATION = 32;
 	static const uint WIDTH_OPERATION = 4;
 
-	static const uint OFFSET_MODE = 4;
-	static const uint WIDTH_MODE = 4;
-	static const uint OFFSET_GROUP_SIZE = 16;
-	static const uint WIDTH_GROUP_SIZE = 8;
-
-	static const uint OFFSET_CHANNEL_ID = 32;		// Simplification for modelling purposes
-	static const uint WIDTH_CHANNEL_ID = 32;
-
-	static const uint OFFSET_ADDRESS_LONG = 8;
-	static const uint WIDTH_ADDRESS_LONG = 24;
-
-	static const uint OFFSET_BURST_LENGTH = 8;
-	static const uint WIDTH_BURST_LENGTH = 8;
-	static const uint OFFSET_ADDRESS_SHORT = 16;
-	static const uint WIDTH_ADDRESS_SHORT = 16;
+	static const uint OFFSET_OPCODE = 24;
+	static const uint WIDTH_OPCODE = 8;
+	static const uint OFFSET_MODE = 8;
+	static const uint WIDTH_MODE = 8;
+	static const uint OFFSET_GROUP_BITS = 0;
+	static const uint WIDTH_GROUP_BITS = 8;
 public:
 	enum MemoryOperation {
-		NONE = 0,
-		SET_MODE,
-		SET_CHMAP,
-		LOAD_W,
-		LOAD_HW,
-		LOAD_B,
-		STORE_W,
-		STORE_HW,
-		STORE_B,
-		IPK_READ,
-		BURST_READ,
-		BURST_WRITE
+		CONTROL = 0,
+		PAYLOAD_ONLY = 1,
+		LOAD_W = 2,
+		LOAD_HW = 3,
+		LOAD_B = 4,
+		STORE_W = 5,
+		STORE_HW = 6,
+		STORE_B = 7,
+		IPK_READ = 8,
+		BURST_READ = 9,
+		BURST_WRITE = 10,
+		NONE = 15
+	};
+
+	enum MemoryOpCode {
+		SET_MODE = 0,
+		SET_CHMAP = 1
 	};
 
 	enum MemoryMode {
 		SCRATCHPAD = 0,
-		GP_CACHE
+		GP_CACHE = 1
 	};
 
-	static const uint32_t ESCAPE_ADDRESS_LONG = 0xFFFFFFUL;
-	static const uint32_t ESCAPE_ADDRESS_SHORT = 0xFFFFUL;
+	inline uint32_t getPayload() const						{return data_ & 0xFFFFFFFFULL;}
+	inline ChannelID getChannelID() const					{return ChannelID(data_ & 0xFFFFFFFFULL);}
 
-	inline uint32_t getData() const							{return data_ & 0xFFFFFFFFULL;}
-	inline ChannelID getChannelID() const					{return ChannelID(getBits(OFFSET_CHANNEL_ID, OFFSET_CHANNEL_ID + WIDTH_CHANNEL_ID - 1));}
-
-	inline MemoryOperation getOperation() const				{return (MemoryOperation)getBits(OFFSET_OPERATION, OFFSET_OPERATION + WIDTH_OPERATION - 1);}
+	inline MemoryOperation getOperation() const				{return (MemoryOperation)(data_ >> OFFSET_OPERATION);}
+	inline MemoryOpCode getOpCode() const					{return (MemoryOpCode)getBits(OFFSET_OPCODE, OFFSET_OPCODE + WIDTH_OPCODE - 1);}
 	inline MemoryMode getMode() const						{return (MemoryMode)getBits(OFFSET_MODE, OFFSET_MODE + WIDTH_MODE - 1);}
-	inline uint getGroupSize() const						{return getBits(OFFSET_GROUP_SIZE, OFFSET_GROUP_SIZE + WIDTH_GROUP_SIZE - 1);}
-	inline uint32_t getAddressLong() const					{return getBits(OFFSET_ADDRESS_LONG, OFFSET_ADDRESS_LONG + WIDTH_ADDRESS_LONG - 1);}
-	inline uint32_t getAddressShort() const					{return getBits(OFFSET_ADDRESS_SHORT, OFFSET_ADDRESS_SHORT + WIDTH_ADDRESS_SHORT - 1);}
-	inline uint getBurstLength() const						{return getBits(OFFSET_BURST_LENGTH, OFFSET_BURST_LENGTH + WIDTH_BURST_LENGTH - 1);}
+	inline uint getGroupBits() const						{return getBits(OFFSET_GROUP_BITS, OFFSET_GROUP_BITS + WIDTH_GROUP_BITS - 1);}
 
-	inline void setData(uint32_t data)						{data_ = data;}
-	inline void setChannelID(const ChannelID& channelID)	{data_ = 0; setBits(OFFSET_CHANNEL_ID, OFFSET_CHANNEL_ID + WIDTH_CHANNEL_ID - 1, channelID.getData());}
 
-	void setHeaderSetMode(MemoryMode mode, uint groupSize);
-	void setHeaderSetTableEntry(const ChannelID& returnID);
-	void setHeader(MemoryOperation operation, uint32_t address);
-	void setHeader(MemoryOperation operation, uint burstLength, uint32_t address);
+	MemoryRequest() : Word() {
+		// Nothing
+	}
 
-	MemoryRequest();
-	MemoryRequest(uint32_t opaque);
-	MemoryRequest(const Word& other);
+	MemoryRequest(MemoryOperation operation, uint32_t payload) : Word() {
+		data_ = (((int64_t)operation) << OFFSET_OPERATION) | payload;
+	}
+
+	MemoryRequest(MemoryOperation operation, const ChannelID& channel) : Word() {
+		data_ = (((int64_t)operation) << OFFSET_OPERATION) | channel.getData();
+	}
+
+	MemoryRequest(const Word& other) : Word(other) {
+		// Nothing
+	}
 };
 
 #endif /* MEMORYREQUEST_H_ */

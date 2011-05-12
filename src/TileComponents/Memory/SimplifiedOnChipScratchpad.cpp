@@ -63,7 +63,7 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 
 			switch (mPortData[port].State) {
 			case STATE_IDLE:
-				if (!mInputQueues[port].empty() && mInputQueues[port].peek().EarliestExecutionCycle >= mCycleCounter) {
+				if (!mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
 					uint32_t word = mInputQueues[port].read().Data.toUInt();
 					mPortData[port].WordsLeft = word & 0x7FFFFFFFUL;
 
@@ -75,7 +75,7 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 				break;
 
 			case STATE_READ_ADDRESS:
-				if (!mInputQueues[port].empty() && mInputQueues[port].peek().EarliestExecutionCycle >= mCycleCounter) {
+				if (!mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
 					uint32_t word = mInputQueues[port].read().Data.toUInt();
 					mPortData[port].Address = word;
 
@@ -98,7 +98,7 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 					mPortData[port].WordsLeft--;
 
 					if (mPortData[port].WordsLeft == 0) {
-						if (!mInputQueues[port].empty() && mInputQueues[port].peek().EarliestExecutionCycle >= mCycleCounter) {
+						if (!mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
 							uint32_t word = mInputQueues[port].read().Data.toUInt();
 							mPortData[port].WordsLeft = word & 0x7FFFFFFFUL;
 
@@ -116,7 +116,7 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 				break;
 
 			case STATE_WRITE_ADDRESS:
-				if (!mInputQueues[port].empty() && mInputQueues[port].peek().EarliestExecutionCycle >= mCycleCounter) {
+				if (!mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
 					uint32_t word = mInputQueues[port].read().Data.toUInt();
 					mPortData[port].Address = word;
 
@@ -129,7 +129,7 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 				break;
 
 			case STATE_WRITING:
-				if (accessCount < cPorts && !mInputQueues[port].empty() && mInputQueues[port].peek().EarliestExecutionCycle >= mCycleCounter) {
+				if (accessCount < cPorts && !mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
 					mData[mPortData[port].Address / 4] = mInputQueues[port].read().Data.toUInt();
 					mPortData[port].Address += 4;
 					mPortData[port].WordsLeft--;
