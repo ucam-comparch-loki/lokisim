@@ -131,8 +131,8 @@ void GeneralPurposeCacheHandler::activate(uint groupIndex, uint groupSize) {
 	memset(mLineValid, 0x00, cSetCount * cWayCount * sizeof(bool));
 
 	mGroupIndex = groupIndex;
-	mGroupBits = log2Exact(groupSize);
-	mGroupMask = ((1UL << mGroupBits) - 1UL) << mLineBits;
+	mGroupBits = (groupSize == 1) ? 0 : log2Exact(groupSize);
+	mGroupMask = (groupSize == 1) ? 0 : (((1UL << mGroupBits) - 1UL) << mLineBits);
 
 	mSetShift = mGroupBits + mLineBits;
 	mSetMask = ((1UL << mSetBits) - 1UL) << mSetShift;

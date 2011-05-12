@@ -242,6 +242,9 @@ private:
 	MemoryRequest mActiveRequest;							// Currently active memory request
 	uint32_t mActiveAddress;								// Current address for memory access in progress
 
+	bool mPartialInstructionPending;						// Indicates that half of the current instruction was already read
+	uint32_t mPartialInstructionData;						// First half of instruction already read
+
 	//-- Scratchpad mode state --------------------------------------------------------------------
 
 	ScratchpadModeHandler mScratchpadModeHandler;			// Scratchpad mode handler

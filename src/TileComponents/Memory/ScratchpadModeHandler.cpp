@@ -65,8 +65,8 @@ void ScratchpadModeHandler::activate(uint groupIndex, uint groupSize) {
 	memset(mData, 0x00, cSetCount * cWayCount * cLineSize / 4);
 
 	mGroupIndex = groupIndex;
-	mGroupBits = log2Exact(groupSize);
-	mGroupMask = ((1UL << mGroupBits) - 1UL) << mLineBits;
+	mGroupBits = (groupSize == 1) ? 0 : log2Exact(groupSize);
+	mGroupMask = (groupSize == 1) ? 0 : (((1UL << mGroupBits) - 1UL) << mLineBits);
 }
 
 bool ScratchpadModeHandler::containsAddress(uint32_t address) {

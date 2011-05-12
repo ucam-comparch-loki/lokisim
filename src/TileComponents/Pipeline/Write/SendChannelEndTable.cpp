@@ -56,7 +56,7 @@ void SendChannelEndTable::send() {
       entry = mapEntries.read(); // Need to remove from the buffer after peeking earlier.
 
       if(DEBUG) cout << "Sending " << data.payload()
-          << " from (" << id << "," << (int)entry << ") to "
+          << " from " << ChannelID(id, (int)entry).getString() << " to "
           << data.channelID().getString()
           << endl;
 

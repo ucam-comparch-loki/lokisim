@@ -58,6 +58,15 @@ public:
 		return result;
 	}
 
+	inline const std::string getNameString() const {
+		// Convert a unique port address into the form "tile_position"
+
+		std::stringstream ss;
+		ss << getTile() << "_" << getPosition();
+		std::string result;
+		ss >> result;
+		return result;
+	}
 
 	friend void sc_trace(sc_core::sc_trace_file*& tf, const ComponentID& w, const std::string& txt) {
 		sc_trace(tf, w.getTile(), txt + ".tile");

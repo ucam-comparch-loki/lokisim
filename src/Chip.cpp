@@ -144,7 +144,7 @@ Chip::Chip(sc_module_name name, const ComponentID& ID) :
 		for (uint i = 0; i < CORES_PER_TILE; i++) {
 			ComponentID clusterID(j, i);
 
-			namebuilder << "core_" << clusterID;
+			namebuilder << "core_" << clusterID.getNameString();
 			namebuilder >> name;
 			namebuilder.clear();
 
@@ -178,7 +178,7 @@ Chip::Chip(sc_module_name name, const ComponentID& ID) :
 		for (uint i = 0; i < MEMS_PER_TILE; i++) {
 			ComponentID memoryID(j, CORES_PER_TILE + i);
 
-			namebuilder << "memory_" << memoryID;
+			namebuilder << "memory_" << memoryID.getNameString();
 			namebuilder >> name;
 			namebuilder.clear();
 

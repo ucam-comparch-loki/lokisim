@@ -216,8 +216,12 @@ void SimplifiedOnChipScratchpad::storeData(vector<Word>& data, MemoryAddr locati
 	assert(location % 4 == 0);
 	assert(location + count * 4 < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 
-	for (size_t i = 0; i < count; i++)
+	for (size_t i = 0; i < count; i++) {
+		if (DEBUG)
+			cout << this->name() << " store 0x" << setprecision(8) << setfill('0') << hex << ((address + i) * 4) << ":  " << "0x" << setprecision(8) << setfill('0') << hex << data[i].toUInt() << endl << dec;
+
 		mData[address + i] = data[i].toUInt();
+	}
 }
 
 void SimplifiedOnChipScratchpad::print(MemoryAddr start, MemoryAddr end) {
@@ -234,7 +238,7 @@ void SimplifiedOnChipScratchpad::print(MemoryAddr start, MemoryAddr end) {
 
 	while (address < limit) {
 		assert(address * 4 < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
-		cout << "0x" << setprecision(8) << hex << (address * 4) << ":  " << "0x" << setprecision(8) << hex << mData[address] << endl;
+		cout << "0x" << setprecision(8) << setfill('0') << hex << (address * 4) << ":  " << "0x" << setprecision(8) << setfill('0') << hex << mData[address] << endl << dec;
 		address++;
 	}
 }
