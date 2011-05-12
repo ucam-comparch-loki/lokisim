@@ -9,7 +9,7 @@
 
 void Bus::mainLoop() {
   while(true) {
-    wait(dataIn.default_event());
+    wait(validDataIn.posedge_event());
     receivedData();
 
     // Pulse an acknowledgement.
@@ -21,6 +21,7 @@ void Bus::mainLoop() {
 
 void Bus::receivedData() {
   DataType data = dataIn.read();
+  cout << this->name() << " received " << data << endl;
 
   const PortIndex output = getDestination(data.channelID());
   assert(output < numOutputs);

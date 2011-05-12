@@ -59,7 +59,7 @@ public:
 
   // Store the given instructions or data into the component at the given index.
   void    storeInstructions(vector<Word>& instructions, const ComponentID& component);
-  void    storeData(vector<Word>& data, MemoryAddr location=0);
+  void    storeData(vector<Word>& data, const ComponentID& component, MemoryAddr location=0);
 
   void    print(const ComponentID& component, MemoryAddr start, MemoryAddr end);
   Word    readWord(const ComponentID& component, MemoryAddr addr);

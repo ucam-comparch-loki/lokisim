@@ -29,7 +29,8 @@ void SendChannelEndTable::write(const AddressedWord& data, MapIndex output) {
   // We know it is safe to write to any buffer because we block the rest
   // of the pipeline if a buffer is full.
   assert(!buffer.full());
-  assert(output < CHANNEL_MAP_SIZE);
+  cerr << (int)output << endl;
+  assert(output < CHANNEL_MAP_SIZE || output == NO_ENTRY);
   buffer.write(data);
   mapEntries.write(output);
 

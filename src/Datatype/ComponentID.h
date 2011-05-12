@@ -29,8 +29,8 @@ public:
 	inline uint getColumn() const					{return getTile() % NUM_TILE_COLUMNS;}
 	inline uint getRow() const						{return getTile() / NUM_TILE_COLUMNS;}
 
-	inline bool isCore() const						{return getBits(OFFSET_POSITION, OFFSET_POSITION + WIDTH_POSITION - 1) < CORES_PER_TILE;}
-	inline bool isMemory() const					{return getBits(OFFSET_POSITION, OFFSET_POSITION + WIDTH_POSITION - 1) >= CORES_PER_TILE;}
+	inline bool isCore() const						{return !isNullMapping() && getBits(OFFSET_POSITION, OFFSET_POSITION + WIDTH_POSITION - 1) < CORES_PER_TILE;}
+	inline bool isMemory() const					{return !isNullMapping() && getBits(OFFSET_POSITION, OFFSET_POSITION + WIDTH_POSITION - 1) >= CORES_PER_TILE;}
 
 	inline bool isNullMapping() const				{return data_ == 0xFFFFFFFFULL;}
 

@@ -16,6 +16,7 @@ void FlowControlIn::receivedData() {
   while(true) {
     // Wait for data to arrive.
     wait(validDataIn.posedge_event());
+    cout << "received " << dataIn.read() << " at channel " << id.getString() << endl;
 
     if(dataIn.read().portClaim()) {
       // TODO: only accept the port claim when we have no credits left to send.

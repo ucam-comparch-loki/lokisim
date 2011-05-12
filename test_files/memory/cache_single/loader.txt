@@ -1,2 +1,2 @@
-0 config.s
-memory.s
+0 config.loki
+memory.loki

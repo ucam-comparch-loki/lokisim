@@ -52,6 +52,7 @@ void ArbiterComponent::arbitrate() {
     // FIXME: a request may be granted, but then blocked by flow control.
     // Another, later request may still be allowed to send. Seems unfair.
     if(!validDataOut[output].read()) {
+      cout << this->name() << " sending data " << dataIn[input].read() << endl;
       dataOut[output].write(dataIn[input].read());
       validDataOut[output].write(true);
       ackDataIn[input].write(!ackDataIn[input].read()); // Toggle value

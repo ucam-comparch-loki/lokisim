@@ -25,6 +25,8 @@ using std::endl;
 vector<string> FileReader::filesToLink;
 string         FileReader::linkedFile;
 
+const int BACKGROUND_MEMORY = -1;
+
 /* Print an instruction in the form:
  *   [position] instruction
  * in such a way that everything aligns nicely. */
@@ -50,7 +52,7 @@ FileReader* FileReader::makeFileReader(vector<string>& words) {
     // Assume that we want the code to go into the first memory (component
     // with ID CORES_PER_TILE) and that the first core should execute it.
     filename = words[0];
-    component = CORES_PER_TILE;
+    component = BACKGROUND_MEMORY;
     position = 0;
   }
   else if(words.size() == 2) {
@@ -69,18 +71,21 @@ FileReader* FileReader::makeFileReader(vector<string>& words) {
   string name = filename.substr(0, dotPos);
   string extension = filename.substr(dotPos+1);
 
+  ComponentID id;
+  if(component != BACKGROUND_MEMORY) id = ComponentID(0, component);
+
   if(extension == "") {
     filesToLink.push_back(name);
     reader = NULL;
   }
   else if(extension == "loki") {
-    reader = new LokiFileReader(filename, component, position);
+    reader = new LokiFileReader(filename, id, position);
   }
   else if(extension == "data") {
-    reader = new DataFileReader(filename, component, position);
+    reader = new DataFileReader(filename, id, position);
   }
   else if(extension == "bloki") {
-    reader = new LokiBinaryFileReader(filename, component, position);
+    reader = new LokiBinaryFileReader(filename, id, position);
   }
   else if(extension == "s") {
     string asmFile, elfFile;

@@ -30,8 +30,14 @@ void Chip::storeInstructions(vector<Word>& instructions, const ComponentID& comp
 	clusters[component.getGlobalCoreNumber()]->storeData(instructions);
 }
 
-void Chip::storeData(vector<Word>& data, MemoryAddr location) {
-	backgroundMemory.storeData(data, location);
+void Chip::storeData(vector<Word>& data, const ComponentID& component, MemoryAddr location) {
+  if(component.isCore()) {
+    clusters[component.getGlobalCoreNumber()]->storeData(data, location);
+  }
+  else if(component.isMemory()) {
+    memories[component.getGlobalMemoryNumber()]->storeData(data,location);
+  }
+  else backgroundMemory.storeData(data, location);
 }
 
 void Chip::print(const ComponentID& component, MemoryAddr start, MemoryAddr end) {
