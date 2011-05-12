@@ -12,6 +12,7 @@
 
 #include "../../../Component.h"
 #include "../../../Memory/BufferStorage.h"
+#include "../../../Datatype/MemoryRequest.h"
 #include "../../ChannelMapEntry.h"
 
 class AddressedWord;
@@ -45,7 +46,7 @@ public:
 public:
 
   SC_HAS_PROCESS(SendChannelEndTable);
-  SendChannelEndTable(sc_module_name name, ComponentID ID);
+  SendChannelEndTable(sc_module_name name, const ComponentID& ID);
 
 //==============================//
 // Methods
@@ -68,24 +69,17 @@ private:
   // allow it.
   void          send();
 
+  // Configure a virtual memory group.
+  void          configureMemory(int32_t mode, int64_t destination);
+
+  // Update an entry in the channel mapping table.
+  void          updateMap(MapIndex entry, int64_t newVal);
+
   // Stall the pipeline until the channel specified is empty.
   void          waitUntilEmpty(MapIndex channel);
 
-  // Update an entry in the channel mapping table.
-  void          updateMap(MapIndex entry, ChannelID newVal);
-
-  // Retrieve an entry from the channel mapping table.
-  ChannelID     getChannel(MapIndex mapEntry) const;
-
-  // Compute the global channel ID of the given output channel. Note that
-  // since this is an output channel, the ID computation is different to
-  // input channels.
-  ChannelID     portID(ChannelIndex channel) const;
-
-  // Generate a memory request using the address from the ALU and the operation
-  // supplied by the decoder. The memory request will be sent to a memory and
-  // will result in an operation being carried out there.
-  Word          makeMemoryRequest(const DecodedInst& dec) const;
+  // Execute a memory operation.
+  void          executeMemoryOp(MapIndex entry, MemoryRequest::MemoryOperation memoryOp, int64_t data);
 
   // A credit was received, so update the corresponding credit counter.
   void          receivedCredit();
@@ -112,13 +106,12 @@ protected:
   // buffer to empty.)
   bool waiting;
 
-  // Anything sent to the null channel ID doesn't get sent at all. This allows
-  // more code re-use, even in situations where we don't want to send results.
-  static const ChannelID       NULL_MAPPING = -1;
-
   // Used to tell that we are not currently waiting for any output buffers
   // to empty.
   static const ChannelIndex    NO_CHANNEL = -1;
+
+  // Used to send messages independant of a channel map table entry.
+  static const MapIndex        NO_ENTRY = -1;
 
 };
 

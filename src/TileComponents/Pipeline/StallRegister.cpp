@@ -32,7 +32,7 @@ void StallRegister::receivedReady() {
   readyOut.write(readyIn.read() && localStageReady.read());
 }
 
-StallRegister::StallRegister(sc_module_name name, ComponentID ID) :
+StallRegister::StallRegister(sc_module_name name, const ComponentID& ID) :
     Component(name, ID),
     buffer(2, std::string(name)) {  // Buffer with size 2 and a name for debug.
 

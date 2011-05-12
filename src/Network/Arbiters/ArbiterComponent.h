@@ -45,7 +45,7 @@ public:
 public:
 
   SC_HAS_PROCESS(ArbiterComponent);
-  ArbiterComponent(sc_module_name name, ComponentID ID, int inputs, int outputs);
+  ArbiterComponent(sc_module_name name, const ComponentID& ID, int inputs, int outputs);
   virtual ~ArbiterComponent();
 
 //==============================//

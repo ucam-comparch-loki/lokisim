@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <string>
+#include "../Datatype/ComponentID.h"
 #include "../Typedefs.h"
 
 using std::string;
@@ -31,7 +32,7 @@ public:
 
   // Receive notification that a particular core executed a particular
   // instruction.
-  static void executedInstruction(DecodedInst i, ComponentID core, bool executed);
+  static void executedInstruction(DecodedInst i, const ComponentID& core, bool executed);
 
   // Choose the tile to debug. Make this more general later.
   static void setChip(Chip* c);
@@ -39,22 +40,22 @@ public:
 private:
 
   // Set a breakpoint corresponding to an instruction location.
-  static void setBreakPoint(vector<int>& bps, ComponentID memory=defaultInstMemory);
+  static void setBreakPoint(vector<int>& bps, const ComponentID& memory=defaultInstMemory);
   static bool isBreakpoint(MemoryAddr addr);
   static void addBreakpoint(MemoryAddr addr);
   static void removeBreakpoint(MemoryAddr addr);
 
   // Print the current stack.
-  static void printStack(ComponentID core=defaultCore,
-                         ComponentID memory=defaultDataMemory);
+  static void printStack(const ComponentID& core=defaultCore,
+		                 const ComponentID& memory=defaultDataMemory);
 
-  static void printMemLocations(vector<int>& locs, ComponentID memory=defaultDataMemory);
+  static void printMemLocations(vector<int>& locs, const ComponentID& memory=defaultDataMemory);
 
   // Print the values of the given registers.
-  static void printRegs(vector<int>& regs, ComponentID core=defaultCore);
+  static void printRegs(vector<int>& regs, const ComponentID& core=defaultCore);
 
   // Print the value of the predicate register.
-  static void printPred(ComponentID core=defaultCore);
+  static void printPred(const ComponentID& core=defaultCore);
 
   // Print the named statistic, using the parameter to, for example, choose a
   // core or an ALU operation.
@@ -69,8 +70,8 @@ private:
 
   static void execute(string instruction);
 
-  static void changeCore(ComponentID core);
-  static void changeMemory(ComponentID memory);
+  static void changeCore(const ComponentID& core);
+  static void changeMemory(const ComponentID& memory);
 
   static vector<int>& parseIntVector(vector<string>& s, bool registers);
 

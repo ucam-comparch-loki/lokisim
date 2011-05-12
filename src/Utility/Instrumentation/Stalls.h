@@ -8,6 +8,7 @@
 #ifndef STALLS_H_
 #define STALLS_H_
 
+#include "../../Datatype/ComponentID.h"
 #include "InstrumentationBase.h"
 #include "CounterMap.h"
 #include <map>
@@ -18,15 +19,15 @@ class Stalls: public InstrumentationBase {
 
 public:
 
-  static void stall(ComponentID id, int cycle, int reason);
-  static void unstall(ComponentID id, int cycle);
-  static void idle(ComponentID id, int cycle);
-  static void active(ComponentID id, int cycle);
+  static void stall(const ComponentID& id, int cycle, int reason);
+  static void unstall(const ComponentID& id, int cycle);
+  static void idle(const ComponentID& id, int cycle);
+  static void active(const ComponentID& id, int cycle);
   static void endExecution();
 
-  static int  cyclesActive(ComponentID core);
-  static int  cyclesIdle(ComponentID core);
-  static int  cyclesStalled(ComponentID core);
+  static int  cyclesActive(const ComponentID& core);
+  static int  cyclesIdle(const ComponentID& core);
+  static int  cyclesStalled(const ComponentID& core);
   static int  executionTime();
 
   static void printStats();

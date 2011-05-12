@@ -1,107 +1,55 @@
 /*
  * MemoryRequest.cpp
  *
- * Current layout:
- *    28 bit read/write address
- *    4 bit operation (read/write/fetch/setup/etc.)
- *    Lots of bits spare (could include a stride length?)
- *
- *    |          spare           | operation |       address       |
- *     63                         31          27                   0
- *
- * Since setup requests have to be hand coded at the moment, the setup
- * operation has value 0. This means that the setup request only involves
- * sending the channel ID of the port where we want the data from memory to go.
- *
  *  Created on: 3 Mar 2010
  *      Author: db434
  */
 
 #include "MemoryRequest.h"
 
-const short startAddress   = 0;
-const short startOperation = startAddress + 28;
-const short end            = startOperation + 4;
+void MemoryRequest::setHeaderSetMode(MemoryMode mode, uint groupSize) {
+	assert(groupSize < (1UL << WIDTH_GROUP_SIZE));
 
-/* Return the memory address to read from or write to. */
-uint32_t MemoryRequest::address() const {
-  return getBits(startAddress, startOperation - 1);
+	data_ = 0;
+	setBits(OFFSET_OPERATION, OFFSET_OPERATION + WIDTH_OPERATION - 1, SET_MODE);
+	setBits(OFFSET_MODE, OFFSET_MODE + WIDTH_MODE - 1, mode);
+	setBits(OFFSET_GROUP_SIZE, OFFSET_GROUP_SIZE + WIDTH_GROUP_SIZE - 1, groupSize);
 }
 
-/* Return the number of reads/writes the client would like to carry out. */
-uint8_t MemoryRequest::operation() const {
-  return getBits(startOperation, end - 1);
+void MemoryRequest::setHeaderSetTableEntry(const ChannelID& returnID) {
+	data_ = 0;
+	setBits(OFFSET_OPERATION, OFFSET_OPERATION + WIDTH_OPERATION - 1, SET_CHMAP);
+	setBits(OFFSET_CHANNEL_ID, OFFSET_CHANNEL_ID + WIDTH_CHANNEL_ID - 1, returnID.getData());
 }
 
-/* Return whether or not the request is to read data. */
-bool MemoryRequest::isReadRequest() const {
-  short op = operation();
-  return op == LOAD_W || op == LOAD_HW || op == LOAD_B || op == IPK_READ;
+void MemoryRequest::setHeader(MemoryOperation operation, uint32_t address) {
+	assert(operation == LOAD_W || operation == LOAD_HW || operation == LOAD_B || operation == STORE_W || operation == STORE_HW || operation == STORE_B || operation == IPK_READ);
+	assert(address <= ESCAPE_ADDRESS_LONG);
+
+	data_ = 0;
+	setBits(OFFSET_OPERATION, OFFSET_OPERATION + WIDTH_OPERATION - 1, operation);
+	setBits(OFFSET_ADDRESS_LONG, OFFSET_ADDRESS_LONG + WIDTH_ADDRESS_LONG - 1, address);
 }
 
-bool MemoryRequest::isWriteRequest() const {
-  short op = operation();
-  return op == STORE_W || op == STORE_HW || op == STORE_B ||
-         op == STADDR || op == STBADDR;
+void MemoryRequest::setHeader(MemoryOperation operation, uint burstLength, uint32_t address) {
+	assert(operation == BURST_READ || operation == BURST_WRITE);
+	assert(address <= ESCAPE_ADDRESS_SHORT);
+	assert(burstLength < (1UL << WIDTH_BURST_LENGTH));
+
+	data_ = 0;
+	setBits(OFFSET_OPERATION, OFFSET_OPERATION + WIDTH_OPERATION - 1, operation);
+	setBits(OFFSET_BURST_LENGTH, OFFSET_BURST_LENGTH + WIDTH_BURST_LENGTH - 1, burstLength);
+	setBits(OFFSET_ADDRESS_SHORT, OFFSET_ADDRESS_SHORT + WIDTH_ADDRESS_SHORT - 1, address);
 }
 
-/* Return whether or not the request is for an entire instruction packet. */
-bool MemoryRequest::isIPKRequest() const {
-  return operation() == IPK_READ;
-}
-
-bool MemoryRequest::isSetup() const {
-  return operation() == SETUP;
-}
-
-bool MemoryRequest::streaming() const {
-  short op = operation();
-  return op == IPK_READ || op == STADDR || op == STBADDR;
-}
-
-bool MemoryRequest::halfWordAccess() const {
-  short op = operation();
-  return op == LOAD_HW || op == STORE_HW;
-}
-
-bool MemoryRequest::byteAccess() const {
-  short op = operation();
-  return op == LOAD_B || op == STORE_B;
-}
-
-/* Increments the address to read/write. To be used when an operation has
- * completed. */
-void MemoryRequest::incrementAddress() {
-  int strideLength = 1;
-  address(address() + strideLength);
-}
-
-/* Sets whether the request is for an entire instruction packet. Should be
- * used to set "false" when the end of an instruction packet is reached. */
-void MemoryRequest::setIPKRequest(bool val) {
-  operation(IPK_READ);
-}
-
-/* Constructors and destructors */
 MemoryRequest::MemoryRequest() : Word() {
-
+	// Nothing
 }
 
-MemoryRequest::MemoryRequest(MemoryAddr addr, uint8_t opType) :
-    Word() {
-  address(addr);
-  operation(opType);
+MemoryRequest::MemoryRequest(uint32_t opaque) : Word(opaque) {
+	// Nothing
 }
 
 MemoryRequest::MemoryRequest(const Word& other) : Word(other) {
-
-}
-
-/* Private setter methods */
-void MemoryRequest::address(MemoryAddr val) {
-  setBits(startAddress, startOperation - 1, val);
-}
-
-void MemoryRequest::operation(uint8_t val) {
-  setBits(startOperation, end - 1, val);
+	// Nothing
 }

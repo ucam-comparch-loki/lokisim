@@ -10,7 +10,7 @@
 #include "../Arbiters/ArbiterComponent.h"
 #include "../../Datatype/AddressedWord.h"
 
-void MulticastCrossbar::makeBuses(int numBuses, int numArbiters, int channelsPerOutput, ChannelID startAddr) {
+void MulticastCrossbar::makeBuses(int numBuses, int numArbiters, int channelsPerOutput, const ChannelID& startAddr) {
   // Generate and connect up buses.
   for(int i=0; i<numBuses; i++) {
     MulticastBus* bus = new MulticastBus("bus", i, numArbiters, numOutputs*channelsPerOutput, startAddr, size);
@@ -35,7 +35,7 @@ void MulticastCrossbar::makeBuses(int numBuses, int numArbiters, int channelsPer
 void MulticastCrossbar::creditArrived() {
   for(int i=0; i<numOutputs; i++) {
     if(creditsIn[i].event()) {
-      int destinationBus = creditsIn[i].read().channelID() % numInputs; // is this right?
+      int destinationBus = creditsIn[i].read().channelID().getChannel(); // is this right?
 
       assert(busReadyCredits[destinationBus][i/outputsPerComponent].read());
       creditsToBus[destinationBus][i/outputsPerComponent].write(creditsIn[i].read());
@@ -43,9 +43,9 @@ void MulticastCrossbar::creditArrived() {
   }
 }
 
-MulticastCrossbar::MulticastCrossbar(sc_module_name name, ComponentID ID, int inputs,
+MulticastCrossbar::MulticastCrossbar(sc_module_name name, const ComponentID& ID, int inputs,
                                      int outputs, int outputsPerComponent,
-                                     int channelsPerOutput, ChannelID startAddr,
+                                     int channelsPerOutput, const ChannelID& startAddr,
                                      Dimension size, bool externalConnection) :
     Crossbar(name, ID, inputs, outputs, outputsPerComponent, channelsPerOutput,
              startAddr, size, externalConnection) {

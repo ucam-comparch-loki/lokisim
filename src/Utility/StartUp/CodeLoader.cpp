@@ -161,8 +161,7 @@ void CodeLoader::loadFromReader(FileReader* reader, Chip& chip) {
   vector<DataBlock>& blocks = reader->extractData();
 
   for(uint i=0; i<blocks.size(); i++) {
-    chip.storeData(blocks[i].data(), blocks[i].component(),
-                   blocks[i].position()/BYTES_PER_WORD);
+    chip.storeData(blocks[i].data(), blocks[i].position()/BYTES_PER_WORD);
     delete &(blocks[i].data());
   }
 

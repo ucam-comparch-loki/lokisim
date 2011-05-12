@@ -57,7 +57,7 @@ public:
 public:
 
   SC_HAS_PROCESS(DecodeStage);
-  DecodeStage(sc_module_name name, ComponentID ID);
+  DecodeStage(sc_module_name name, const ComponentID& ID);
   virtual ~DecodeStage();
 
 //==============================//
@@ -102,7 +102,7 @@ private:
   void           fetch(const MemoryAddr addr);
 
   // Change the channel to which we send our fetch requests.
-  void           setFetchChannel(const ChannelID channelID);
+  void           setFetchChannel(const ChannelID& channelID, uint groupBits);
 
   // Find out if the instruction packet from the given location is currently
   // in the instruction packet cache.

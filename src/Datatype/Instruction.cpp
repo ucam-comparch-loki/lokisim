@@ -150,9 +150,9 @@ Instruction::Instruction(const string& inst) {
 
   delete &words;
 
-  // Special case for setchmap because its register and immediate are in a
-  // different order.
-  if(InstructionMap::operation(opcode()) == InstructionMap::SETCHMAP) {
+  // Special case for cfgmem and setchmap because their register and immediate
+  // are in a different order.
+  if(InstructionMap::operation(opcode()) == InstructionMap::CFGMEM || InstructionMap::operation(opcode()) == InstructionMap::SETCHMAP) {
     reg1 = reg2;
     reg2 = 0;
   }
@@ -311,38 +311,59 @@ void Instruction::decodeOpcode(const string& name) {
 }
 
 /* Set the remote channel field depending on the contents of the given string.
- * The string may contain an integer, or a pair of integers in the form (x,y),
- * representing a component and one of its input ports.
+ * The string may contain an integer, a triple of integers in the form
+ * (x,y,z), representing a component and one of its input channels, or a
+ * quadruple (x,y,z,s) referencing a virtual memory group.
  * Returns a signed int because this method is also used to decode immediates. */
 int32_t Instruction::decodeRChannel(const string& channel) {
-  vector<string>& parts = Strings::split(channel, ',');
-  ChannelID channelID;
+	vector<string>& parts = Strings::split(channel, ',');
+	int32_t channelID;
 
-  if(parts.size() == 1) {
-    channelID = Strings::strToInt(parts[0]);
-  }
-  else {
-    // We should now have two strings of the form "(x" and "y)".
-    assert(parts.size()==2);
+	if (parts.size() == 1) {
+		channelID = Strings::strToInt(parts[0]);
+	} else if (parts.size() == 3) {
+		// We should now have strings of the form "(x", "y" and "z)"
 
-    parts[0].erase(parts[0].begin());           // Remove the bracket
-    parts[1].erase(parts[1].end()-1);           // Remove the bracket
+		parts[0].erase(parts[0].begin());           // Remove the bracket
+		parts[2].erase(parts[2].end()-1);           // Remove the bracket
 
-    int component = Strings::strToInt(parts[0]);
-    int channelIndex = Strings::strToInt(parts[1]);
-    bool negative = false;
+		int tile = Strings::strToInt(parts[0]);
+		int position = Strings::strToInt(parts[1]);
+		int channelIndex = Strings::strToInt(parts[2]);
 
-    if(component < 0) {
-      negative = true;
-      component = -component;
-    }
+		ComponentID checkID(tile, position);
+		assert(checkID.isCore() && channelIndex < (int)CORE_INPUT_CHANNELS);
 
-    channelID = TileComponent::inputChannelID(component, channelIndex);
-    if(negative) channelID = -channelID;
-  }
+		// Encoded entry format:
+		// | Tile : 16 | Position : 8 | Channel : 4 | Memory group bits : 4 |
 
-  delete &parts;
-  return channelID;
+		channelID = (tile << 16) | (position << 8) | (channelIndex << 4);
+	} else if (parts.size() == 4) {
+		// We should now have strings of the form "(x", "y", "z" and "s)"
+
+		parts[0].erase(parts[0].begin());           // Remove the bracket
+		parts[3].erase(parts[3].end()-1);           // Remove the bracket
+
+		int tile = Strings::strToInt(parts[0]);
+		int position = Strings::strToInt(parts[1]);
+		int channelIndex = Strings::strToInt(parts[2]);
+		int groupBits = Strings::strToInt(parts[3]);
+
+		ComponentID checkID(tile, position);
+		assert(checkID.isMemory() && channelIndex < (int)MEMORY_CHANNEL_MAP_TABLE_ENTRIES);
+
+		// Encoded entry format:
+		// | Tile : 16 | Position : 8 | Channel : 4 | Memory group bits : 4 |
+
+		channelID = (tile << 16) | (position << 8) | (channelIndex << 4) | groupBits;
+	} else {
+		// Invalid format
+
+		assert(false);
+	}
+
+	delete &parts;
+	return channelID;
 }
 
 void Instruction::setFields(const RegisterIndex reg1, const RegisterIndex reg2,

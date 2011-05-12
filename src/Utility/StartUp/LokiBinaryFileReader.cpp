@@ -22,7 +22,7 @@ Word LokiBinaryFileReader::nextWord(std::ifstream& file) const {
   return Instruction(val);
 }
 
-LokiBinaryFileReader::LokiBinaryFileReader(std::string& filename, ComponentID component, MemoryAddr position) :
+LokiBinaryFileReader::LokiBinaryFileReader(std::string& filename, const ComponentID& component, MemoryAddr position) :
     LokiFileReader(filename, component, position) {
 
 }

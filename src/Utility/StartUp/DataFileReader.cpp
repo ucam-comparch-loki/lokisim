@@ -9,6 +9,7 @@
 #include "DataBlock.h"
 #include "../Parameters.h"
 #include "../StringManipulation.h"
+#include "../../Datatype/ComponentID.h"
 #include "../../Datatype/Word.h"
 
 vector<DataBlock>& DataFileReader::extractData() const {
@@ -69,7 +70,7 @@ Word DataFileReader::nextWord(std::ifstream& file) const {
   }
 }
 
-DataFileReader::DataFileReader(std::string& filename, ComponentID component, MemoryAddr position) :
+DataFileReader::DataFileReader(std::string& filename, const ComponentID& component, MemoryAddr position) :
     FileReader(filename, component, position) {
 
 }

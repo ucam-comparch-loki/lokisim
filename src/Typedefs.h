@@ -16,9 +16,6 @@
 
 #include <inttypes.h>
 
-// A unique identifier for each core and memory on the chip.
-typedef uint32_t ComponentID;
-
 // An index within a component's own input/output channels.
 typedef uint8_t  ChannelIndex;
 
@@ -28,9 +25,6 @@ typedef uint8_t  PortIndex;
 // An index within the channel map table.
 typedef uint8_t  MapIndex;
 
-// The global address of a component's input/output port.
-typedef uint32_t ChannelID;
-
 // The index of a register within a register file.
 typedef uint8_t  RegisterIndex;
 
@@ -39,5 +33,9 @@ typedef uint32_t MemoryAddr;
 
 // An offset to jump by in the instruction packet cache.
 typedef int16_t  JumpOffset;
+
+#ifndef uint
+typedef unsigned int uint;
+#endif
 
 #endif /* TYPEDEFS_H_ */

@@ -27,12 +27,12 @@ void InputCrossbar::sendData() {
   }
 }
 
-InputCrossbar::InputCrossbar(sc_module_name name, ComponentID ID, int inputs, int outputs) :
+InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID, int inputs, int outputs) :
     Component(name, ID),
-    dataXbar("data", ID, inputs, outputs, 1, 1, TileComponent::inputChannelID(ID,0), Dimension(1.0/CORES_PER_TILE, 0.05)),
-    creditXbar("credit", ID, outputs, inputs, inputs, TOTAL_OUTPUT_CHANNELS, 0, Dimension(1.0/CORES_PER_TILE, 0.05)) {
+    dataXbar("data", ID, inputs, outputs, 1, 1, ChannelID(ID, 0), Dimension(1.0/CORES_PER_TILE, 0.05)),
+    creditXbar("credit", ID, outputs, inputs, inputs, TOTAL_OUTPUT_CHANNELS, ChannelID(0), Dimension(1.0/CORES_PER_TILE, 0.05)) {
 
-  firstInput       = TileComponent::inputChannelID(id, 0);
+  firstInput       = ChannelID(id, 0);
   numInputs        = inputs;
   numOutputs       = outputs;
 
@@ -70,7 +70,7 @@ InputCrossbar::InputCrossbar(sc_module_name name, ComponentID ID, int inputs, in
 
   // Create and wire up all flow control units.
   for(int i=0; i<outputs; i++) {
-    FlowControlIn* fc = new FlowControlIn(sc_core::sc_gen_unique_name("fc_in"), firstInput+i);
+    FlowControlIn* fc = new FlowControlIn(sc_core::sc_gen_unique_name("fc_in"), firstInput.getComponentID(), firstInput.addChannel(i, outputs));
     flowControl.push_back(fc);
 
     fc->dataOut(dataOut[i]);

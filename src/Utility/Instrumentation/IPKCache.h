@@ -10,15 +10,17 @@
 
 #include "InstrumentationBase.h"
 
+#include "../../Datatype/ComponentID.h"
+
 namespace Instrumentation {
 
 class IPKCache: public InstrumentationBase {
 
 public:
 
-  static void tagCheck(ComponentID core, bool hit);
-  static void read(ComponentID core);
-  static void write(ComponentID core);
+  static void tagCheck(const ComponentID& core, bool hit);
+  static void read(const ComponentID& core);
+  static void write(const ComponentID& core);
 
   static int  numTagChecks();
   static int  numHits();

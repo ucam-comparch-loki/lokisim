@@ -37,7 +37,7 @@ public:
 public:
 
   SC_HAS_PROCESS(ExecuteStage);
-  ExecuteStage(sc_module_name name, ComponentID ID);
+  ExecuteStage(sc_module_name name, const ComponentID& ID);
   virtual ~ExecuteStage();
 
 //==============================//

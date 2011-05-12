@@ -40,7 +40,7 @@ public:
 public:
 
   SC_HAS_PROCESS(InstructionPacketCache);
-  InstructionPacketCache(sc_module_name name, ComponentID ID);
+  InstructionPacketCache(sc_module_name name, const ComponentID& ID);
 
 //==============================//
 // Methods

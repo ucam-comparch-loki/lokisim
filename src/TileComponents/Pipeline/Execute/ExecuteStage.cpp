@@ -57,7 +57,7 @@ void ExecuteStage::updateForwarding(const DecodedInst& inst) const {
   parent()->updateForwarding(inst);
 }
 
-ExecuteStage::ExecuteStage(sc_module_name name, ComponentID ID) :
+ExecuteStage::ExecuteStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
     StageWithPredecessor(name, ID),
     StageWithSuccessor(name, ID),

@@ -68,7 +68,7 @@ void ArbiterComponent::dataArrived() {
   haveData = true;
 }
 
-ArbiterComponent::ArbiterComponent(sc_module_name name, ComponentID ID,
+ArbiterComponent::ArbiterComponent(sc_module_name name, const ComponentID& ID,
                                    int inputs, int outputs) :
     Component(name, ID) {
 

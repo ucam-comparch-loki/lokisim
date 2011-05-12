@@ -8,6 +8,7 @@
 #ifndef NETWORK_INSTRUMENTATION_H_
 #define NETWORK_INSTRUMENTATION_H_
 
+#include "../../Datatype/ComponentID.h"
 #include "InstrumentationBase.h"
 #include "CounterMap.h"
 
@@ -18,13 +19,13 @@ class Network: public InstrumentationBase {
 public:
 
   // Tells who is communicating with who.
-  static void traffic(ComponentID startID, ComponentID endID);
+  static void traffic(const ComponentID& startID, const ComponentID& endID);
 
   // Tells how the communication is happening, to help determine bottlenecks
   // and power consumption.
   // Instead of ComponentID, ask for pointer to component, so we can ask it
   // as many questions as we like?
-  static void activity(ComponentID network, ChannelIndex source,
+  static void activity(const ComponentID& network, ChannelIndex source,
       ChannelIndex destination, double distance, int bitsSwitched);
 
   static double totalDistance();

@@ -38,15 +38,16 @@ void Bus::receivedCredit(PortIndex output) {
   validDataOut[output].write(false);
 }
 
-PortIndex Bus::getDestination(ChannelID address) const {
+PortIndex Bus::getDestination(const ChannelID& address) const {
   // TODO: allow non-local communication
-  return (address - startAddress)/channelsPerOutput;
+  //TODO: Check again - unsure whether this is doing what is intended
+  return (address.getGlobalChannelNumber(OUTPUT_CHANNELS_PER_TILE, CORE_OUTPUT_CHANNELS) - startAddress.getGlobalChannelNumber(OUTPUT_CHANNELS_PER_TILE, CORE_OUTPUT_CHANNELS))/channelsPerOutput;
 }
 
 void Bus::computeSwitching() {
   DataType newData = dataIn.read();
   unsigned int dataDiff = newData.payload().toInt() ^ lastData.payload().toInt();
-  unsigned int channelDiff = newData.channelID() ^ lastData.channelID();
+  unsigned int channelDiff = newData.channelID().getData() ^ lastData.channelID().getData();
 
   int bitsSwitched = __builtin_popcount(dataDiff) + __builtin_popcount(channelDiff);
 
@@ -58,8 +59,8 @@ void Bus::computeSwitching() {
   lastData = newData;
 }
 
-Bus::Bus(sc_module_name name, ComponentID ID, int numOutputPorts,
-         int numOutputChannels, ChannelID startAddr, Dimension size) :
+Bus::Bus(sc_module_name name, const ComponentID& ID, int numOutputPorts,
+         int numOutputChannels, const ChannelID& startAddr, Dimension size) :
     Component(name, ID) {
 
   dataOut      = new DataOutput[numOutputPorts];

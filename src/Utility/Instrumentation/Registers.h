@@ -8,6 +8,7 @@
 #ifndef REGISTERS_H_
 #define REGISTERS_H_
 
+#include "../../Datatype/ComponentID.h"
 #include "InstrumentationBase.h"
 
 namespace Instrumentation {
@@ -16,10 +17,10 @@ class Registers: public InstrumentationBase {
 
 public:
 
-  static void read(ComponentID core, RegisterIndex reg);
-  static void write(ComponentID core, RegisterIndex reg);
-  static void forward(ComponentID core, RegisterIndex reg);
-  static void stallReg(ComponentID core);
+  static void read(const ComponentID& core, RegisterIndex reg);
+  static void write(const ComponentID& core, RegisterIndex reg);
+  static void forward(const ComponentID& core, RegisterIndex reg);
+  static void stallReg(const ComponentID& core);
 
   static int  numReads();
   static int  numWrites();

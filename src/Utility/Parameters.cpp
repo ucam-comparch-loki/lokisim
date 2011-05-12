@@ -44,7 +44,7 @@ int RETURN_CODE = EXIT_SUCCESS;
 //-------------------------------------------------------------------------------------------------
 
 parameter CORES_PER_TILE             = 8;
-parameter MEMS_PER_TILE              = 4;
+parameter MEMS_PER_TILE              = 8;
 
 parameter NUM_TILE_ROWS              = 1;
 parameter NUM_TILE_COLUMNS           = 1;
@@ -57,7 +57,7 @@ parameter NUM_ADDRESSABLE_REGISTERS  = 32;
 parameter NUM_PHYSICAL_REGISTERS     = 64;
 parameter IPK_FIFO_SIZE              = 16;
 parameter IPK_CACHE_SIZE             = 64;//1024;
-parameter MEMORY_SIZE                = 2048;//8 * 1024 * 1024;
+//parameter MEMORY_SIZE                = 2048;//8 * 1024 * 1024;
 parameter CONCURRENT_MEM_OPS         = 1;//NUM_MEMORY_INPUTS;
 
 parameter CHANNEL_MAP_SIZE           = 8;
@@ -65,24 +65,20 @@ parameter CHANNEL_MAP_SIZE           = 8;
 parameter MAX_IPK_SIZE               = 8; // Must be <= buffer size (wormhole)
 
 //-------------------------------------------------------------------------------------------------
-// Shared L1 cache subsystem
+// Configurable memory system
 //-------------------------------------------------------------------------------------------------
 
-parameter ENABLE_SHARED_L1_CACHE_SUBSYSTEM      = 0;
+parameter MEMORY_CHANNEL_MAP_TABLE_ENTRIES		= 16;
 
-parameter SHARED_L1_CACHE_CHANNELS              = 8;
-parameter SHARED_L1_CACHE_INTERFACE_QUEUE_DEPTH = 16;
+parameter MEMORY_CACHE_SET_COUNT				= 1024;		// 8 KB per bank
+parameter MEMORY_CACHE_WAY_COUNT				= 1;
+parameter MEMORY_CACHE_LINE_SIZE				= 4;
 
-parameter SHARED_L1_CACHE_BANKS                 = 1;
-parameter SHARED_L1_CACHE_SETS_PER_BANK         = 8192;
-parameter SHARED_L1_CACHE_ASSOCIATIVITY         = 1;
-parameter SHARED_L1_CACHE_LINE_SIZE             = 4;
+parameter MEMORY_CACHE_RANDOM_REPLACEMENT		= 0;		// 0 = Ideal LRU, 1 = Random / LFSR
 
-parameter SHARED_L1_CACHE_SEQUENTIAL_SEARCH     = 0;
-parameter SHARED_L1_CACHE_RANDOM_REPLACEMENT    = 1;
-
-parameter SHARED_L1_CACHE_MEMORY_QUEUE_DEPTH    = 16;
-parameter SHARED_L1_CACHE_MEMORY_DELAY_CYCLES   = 100;
+parameter MEMORY_ON_CHIP_SCRATCHPAD_DELAY		= 20;
+parameter MEMORY_ON_CHIP_SCRATCHPAD_SIZE		= 1024 * 1024;
+parameter MEMORY_ON_CHIP_SCRATCHPAD_PORTS		= 2;
 
 //-------------------------------------------------------------------------------------------------
 // Network
@@ -96,10 +92,10 @@ parameter  CORE_INPUT_PORTS         = 2;  // Current = input channels. Aim = 2.
 parameter  CORE_OUTPUT_PORTS        = 1;
 parameter  NUM_RECEIVE_CHANNELS     = 6;  // Register-mapped inputs only
 
-parameter  MEMORY_INPUT_PORTS       = 2;  // Current = input channels. Aim = 1.
-parameter  MEMORY_OUTPUT_PORTS      = 1;
-parameter  MEMORY_INPUT_CHANNELS    = 8;  // Cores per tile + some extra?
-parameter  MEMORY_OUTPUT_CHANNELS   = 8;  // Same as input channels (use #define?)
+//parameter  MEMORY_INPUT_PORTS       = 2;  // Current = input channels. Aim = 1.
+//parameter  MEMORY_OUTPUT_PORTS      = 1;
+//parameter  MEMORY_INPUT_CHANNELS    = 8;  // Cores per tile + some extra?
+//parameter  MEMORY_OUTPUT_CHANNELS   = 8;  // Same as input channels (use #define?)
 
 parameter CHANNEL_END_BUFFER_SIZE    = 8;
 parameter ROUTER_BUFFER_SIZE         = 4;
@@ -128,10 +124,11 @@ void Parameters::parseParameter(const string &name, const string &value) {
 	else SET_IF_MATCH(cName, nValue, NUM_PHYSICAL_REGISTERS);
 	else SET_IF_MATCH(cName, nValue, IPK_FIFO_SIZE);
 	else SET_IF_MATCH(cName, nValue, IPK_CACHE_SIZE);
-	else SET_IF_MATCH(cName, nValue, MEMORY_SIZE);
+	//else SET_IF_MATCH(cName, nValue, MEMORY_SIZE);
 	else SET_IF_MATCH(cName, nValue, CONCURRENT_MEM_OPS);
 	else SET_IF_MATCH(cName, nValue, CHANNEL_MAP_SIZE);
 	else SET_IF_MATCH(cName, nValue, MAX_IPK_SIZE);
+	/*
 	else SET_IF_MATCH(cName, nValue, ENABLE_SHARED_L1_CACHE_SUBSYSTEM);
 	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_CHANNELS);
 	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_INTERFACE_QUEUE_DEPTH);
@@ -143,9 +140,17 @@ void Parameters::parseParameter(const string &name, const string &value) {
 	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_RANDOM_REPLACEMENT);
 	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_MEMORY_QUEUE_DEPTH);
 	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_MEMORY_DELAY_CYCLES);
+	*/
+	else SET_IF_MATCH(cName, nValue, MEMORY_CHANNEL_MAP_TABLE_ENTRIES);
+	else SET_IF_MATCH(cName, nValue, MEMORY_CACHE_SET_COUNT);
+	else SET_IF_MATCH(cName, nValue, MEMORY_CACHE_WAY_COUNT);
+	else SET_IF_MATCH(cName, nValue, MEMORY_CACHE_LINE_SIZE);
+	else SET_IF_MATCH(cName, nValue, MEMORY_CACHE_RANDOM_REPLACEMENT);
+	else SET_IF_MATCH(cName, nValue, MEMORY_ON_CHIP_SCRATCHPAD_DELAY);
+	else SET_IF_MATCH(cName, nValue, MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 	else SET_IF_MATCH(cName, nValue, NUM_RECEIVE_CHANNELS);
-	else SET_IF_MATCH(cName, nValue, MEMORY_INPUT_CHANNELS);
-  else SET_IF_MATCH(cName, nValue, MEMORY_OUTPUT_CHANNELS);
+	//else SET_IF_MATCH(cName, nValue, MEMORY_INPUT_CHANNELS);
+	//else SET_IF_MATCH(cName, nValue, MEMORY_OUTPUT_CHANNELS);
 	else SET_IF_MATCH(cName, nValue, CHANNEL_END_BUFFER_SIZE);
 	else SET_IF_MATCH(cName, nValue, ROUTER_BUFFER_SIZE);
 	else SET_IF_MATCH(cName, nValue, NETWORK_BUFFER_SIZE);

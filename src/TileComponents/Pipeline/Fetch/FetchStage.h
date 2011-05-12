@@ -51,7 +51,7 @@ public:
 public:
 
   SC_HAS_PROCESS(FetchStage);
-  FetchStage(sc_module_name name, ComponentID ID);
+  FetchStage(sc_module_name name, const ComponentID& ID);
   virtual ~FetchStage();
 
 //==============================//

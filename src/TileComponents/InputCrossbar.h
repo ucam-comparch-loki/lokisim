@@ -47,7 +47,7 @@ public:
 public:
 
   SC_HAS_PROCESS(InputCrossbar);
-  InputCrossbar(sc_module_name name, ComponentID ID, int inputs, int outputs);
+  InputCrossbar(sc_module_name name, const ComponentID& ID, int inputs, int outputs);
   virtual ~InputCrossbar();
 
 //==============================//

@@ -45,7 +45,7 @@ public:
 public:
 
   Component(const sc_module_name& name);
-  Component(const sc_module_name& name, ComponentID ID);
+  Component(const sc_module_name& name, const ComponentID& ID);
 
   // DO NOT MAKE A COPY CONSTRUCTOR. SYSTEMC MODULES SHOULD NOT BE COPIED.
 

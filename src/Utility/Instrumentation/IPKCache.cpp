@@ -7,21 +7,23 @@
 
 #include "IPKCache.h"
 
+#include "../../Datatype/ComponentID.h"
+
 int IPKCache::numHits_ = 0;
 int IPKCache::numMisses_ = 0;
 int IPKCache::numReads_ = 0;
 int IPKCache::numWrites_ = 0;
 
-void IPKCache::tagCheck(ComponentID core, bool hit) {
+void IPKCache::tagCheck(const ComponentID& core, bool hit) {
   if(hit) numHits_++;
   else numMisses_++;
 }
 
-void IPKCache::read(ComponentID core) {
+void IPKCache::read(const ComponentID& core) {
   numReads_++;
 }
 
-void IPKCache::write(ComponentID core) {
+void IPKCache::write(const ComponentID& core) {
   numWrites_++;
 }
 

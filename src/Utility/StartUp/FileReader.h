@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include "../../Typedefs.h"
+#include "../../Datatype/ComponentID.h"
 
 using std::string;
 using std::vector;
@@ -40,7 +41,7 @@ public:
   // Delete any temporary files created in the linking process.
   static void tidy();
 
-  FileReader(string& filename, ComponentID component, MemoryAddr position=0);
+  FileReader(string& filename, const ComponentID& component, MemoryAddr position=0);
 
 protected:
 

@@ -53,8 +53,8 @@ public:
   //                     of this bus. e.g. A memory may have 8 input channels,
   //                     which share only one input port.
   // startAddr         = the first channelID accessible through this network.
-  Bus(sc_module_name name, ComponentID ID, int numOutputPorts,
-      int numOutputChannels, ChannelID startAddr, Dimension size);
+  Bus(sc_module_name name, const ComponentID& ID, int numOutputPorts,
+      int numOutputChannels, const ChannelID& startAddr, Dimension size);
   virtual ~Bus();
 
 //==============================//
@@ -74,7 +74,7 @@ private:
   void computeSwitching();
 
   // Compute which output of this bus will be used by the given address.
-  PortIndex getDestination(ChannelID address) const;
+  PortIndex getDestination(const ChannelID& address) const;
 
 //==============================//
 // Local state

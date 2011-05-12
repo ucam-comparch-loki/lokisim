@@ -5,6 +5,7 @@
  *      Author: db434
  */
 
+#include "../../Datatype/ComponentID.h"
 #include "Registers.h"
 
 int Registers::numReads_ = 0;
@@ -17,10 +18,10 @@ int Registers::stallRegs_ = 0;
 // This is the case when a value is forwarded, and then that register is written
 // before it is read (or not read at all).
 
-void Registers::read(ComponentID core, RegisterIndex reg)    {numReads_++;}
-void Registers::write(ComponentID core, RegisterIndex reg)   {numWrites_++;}
-void Registers::forward(ComponentID core, RegisterIndex reg) {numForwards_++;}
-void Registers::stallReg(ComponentID core)                   {stallRegs_++;}
+void Registers::read(const ComponentID& core, RegisterIndex reg)    {numReads_++;}
+void Registers::write(const ComponentID& core, RegisterIndex reg)   {numWrites_++;}
+void Registers::forward(const ComponentID& core, RegisterIndex reg) {numForwards_++;}
+void Registers::stallReg(const ComponentID& core)                   {stallRegs_++;}
 
 int  Registers::numReads()      {return numReads_;}
 int  Registers::numWrites()     {return numWrites_;}

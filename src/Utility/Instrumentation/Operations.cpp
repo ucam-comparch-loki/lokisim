@@ -7,6 +7,7 @@
 
 #include "Operations.h"
 #include "../InstructionMap.h"
+#include "../../Datatype/ComponentID.h"
 #include "../../Datatype/DecodedInst.h"
 
 CounterMap<int> Operations::executedOps;
@@ -14,7 +15,7 @@ CounterMap<int> Operations::unexecutedOps;
 int Operations::numOps_ = 0;
 int Operations::numDecodes_ = 0;
 
-void Operations::decoded(ComponentID core, const DecodedInst& dec) {
+void Operations::decoded(const ComponentID &core, const DecodedInst& dec) {
   // May later care about the operation, since different ones require different
   // decode energies?
   numDecodes_++;

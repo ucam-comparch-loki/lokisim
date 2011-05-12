@@ -8,6 +8,7 @@
 #include "TileComponent.h"
 #include "../Chip.h"
 #include "../Datatype/AddressedWord.h"
+#include "../Datatype/ChannelID.h"
 
 void TileComponent::print(MemoryAddr start, MemoryAddr end) const {
   // Do nothing if print isn't defined
@@ -30,187 +31,24 @@ bool TileComponent::readPredReg() const {
   return false;
 }
 
-/* Generate a global port ID using the component and the index of the port
- * on that component. */
-ChannelID TileComponent::inputPortID(ComponentID component, ChannelIndex port) {
-  uint tile = component / COMPONENTS_PER_TILE;
-  uint position = component % COMPONENTS_PER_TILE;
-  ChannelID result = tile * INPUT_PORTS_PER_TILE;
-
-  if(position >= CORES_PER_TILE) {
-    assert(port < MEMORY_INPUT_PORTS);
-    result += CORES_PER_TILE * CORE_INPUT_PORTS;
-    result += (position - CORES_PER_TILE) * MEMORY_INPUT_PORTS;
-  }
-  else {
-    assert(port < CORE_INPUT_PORTS);
-    result += position * CORE_INPUT_PORTS;
-  }
-
-  return result + port;
+int32_t TileComponent::readMemWord(MemoryAddr addr) {
+	// For now, this always reads from the background memory
+	return parent()->readWord(id, addr).toInt();
 }
 
-/* Generate a global port ID using the component and the index of the port
- * on that component. */
-ChannelID TileComponent::outputPortID(ComponentID component, PortIndex port) {
-  uint tile = component / COMPONENTS_PER_TILE;
-  uint position = component % COMPONENTS_PER_TILE;
-  ChannelID result = tile * OUTPUT_PORTS_PER_TILE;
-
-  if(position >= CORES_PER_TILE) {
-    assert(port < MEMORY_OUTPUT_PORTS);
-    result += CORES_PER_TILE * CORE_OUTPUT_PORTS;
-    result += (position - CORES_PER_TILE) * MEMORY_OUTPUT_PORTS;
-  }
-  else {
-    assert(port < CORE_OUTPUT_PORTS);
-    result += position * CORE_OUTPUT_PORTS;
-  }
-
-  return result + port;
+int32_t TileComponent::readMemByte(MemoryAddr addr) {
+	// For now, this always reads from the background memory
+	return parent()->readByte(id, addr).toInt();
 }
 
-/* Generate a global channel ID using the component and the index of the channel
- * on that component. */
-ChannelID TileComponent::inputChannelID(ComponentID component, ChannelIndex channel) {
-  uint tile = component / COMPONENTS_PER_TILE;
-  uint position = component % COMPONENTS_PER_TILE;
-  ChannelID result = tile * INPUT_CHANNELS_PER_TILE;
-
-  if(position >= CORES_PER_TILE) {
-    assert(channel < MEMORY_INPUT_CHANNELS);
-    result += CORES_PER_TILE * CORE_INPUT_CHANNELS;
-    result += (position - CORES_PER_TILE) * MEMORY_INPUT_CHANNELS;
-  }
-  else {
-    assert(channel < CORE_INPUT_CHANNELS);
-    result += position * CORE_INPUT_CHANNELS;
-  }
-
-  return result + channel;
+void TileComponent::writeMemWord(MemoryAddr addr, Word data) {
+	// For now, this always writes to the background memory
+	parent()->writeWord(id, addr, data);
 }
 
-/* Generate a global channel ID using the component and the index of the channel
- * on that component. */
-ChannelID TileComponent::outputChannelID(ComponentID component, ChannelIndex channel) {
-  uint tile = component / COMPONENTS_PER_TILE;
-  uint position = component % COMPONENTS_PER_TILE;
-  ChannelID result = tile * OUTPUT_CHANNELS_PER_TILE;
-
-  if(position >= CORES_PER_TILE) {
-    assert(channel < MEMORY_OUTPUT_CHANNELS);
-    result += CORES_PER_TILE * CORE_OUTPUT_CHANNELS;
-    result += (position - CORES_PER_TILE) * MEMORY_OUTPUT_CHANNELS;
-  }
-  else {
-    assert(channel < CORE_OUTPUT_CHANNELS);
-    result += position * CORE_OUTPUT_CHANNELS;
-  }
-
-  return result + channel;
-}
-
-/* Determine which component holds the given input channel. */
-ComponentID TileComponent::component(ChannelID channel) {
-  uint tile = channel / INPUT_CHANNELS_PER_TILE;
-  uint position = channel % INPUT_CHANNELS_PER_TILE;
-  ComponentID component = tile * COMPONENTS_PER_TILE;
-
-  if(position >= CORES_PER_TILE*CORE_INPUT_CHANNELS) {
-    component += CORES_PER_TILE;
-    position  -= CORES_PER_TILE*CORE_INPUT_CHANNELS;
-    component += position / MEMORY_INPUT_CHANNELS;
-  }
-  else {
-    component += position / CORE_INPUT_CHANNELS;
-  }
-  return component;
-}
-
-/* Convert a global channel ID into a string of the form "(component, channel)". */
-const std::string TileComponent::inputPortString(ChannelID channel) {
-  uint tile = channel / INPUT_CHANNELS_PER_TILE;
-  uint position = channel % INPUT_CHANNELS_PER_TILE;
-  ComponentID component = tile * COMPONENTS_PER_TILE;
-  ChannelIndex channelIndex;
-
-  if(position >= CORES_PER_TILE*CORE_INPUT_CHANNELS) {
-    component += CORES_PER_TILE;
-    position  -= CORES_PER_TILE*CORE_INPUT_CHANNELS;
-    component += position / MEMORY_INPUT_CHANNELS;
-    channelIndex  = position % MEMORY_INPUT_CHANNELS;
-  }
-  else {
-    component += position / CORE_INPUT_CHANNELS;
-    channelIndex  = position % CORE_INPUT_CHANNELS;
-  }
-
-  std::stringstream ss;
-  ss << "(" << component << "," << (int)channelIndex << ")";
-  std::string result;
-  ss >> result;
-  return result;
-}
-
-/* Convert a global channel ID into a string of the form "(component, channel)". */
-const std::string TileComponent::outputPortString(ChannelID channel) {
-  uint tile = channel / OUTPUT_CHANNELS_PER_TILE;
-  uint position = channel % OUTPUT_CHANNELS_PER_TILE;
-  ComponentID component = tile * COMPONENTS_PER_TILE;
-  ChannelIndex channelIndex;
-
-  if(position >= CORES_PER_TILE*CORE_OUTPUT_CHANNELS) {
-    component += CORES_PER_TILE;
-    position  -= CORES_PER_TILE*CORE_OUTPUT_CHANNELS;
-    component += position / MEMORY_OUTPUT_CHANNELS;
-    channelIndex  = position % MEMORY_OUTPUT_CHANNELS;
-  }
-  else {
-    component += position / CORE_OUTPUT_CHANNELS;
-    channelIndex  = position % CORE_OUTPUT_CHANNELS;
-  }
-
-  std::stringstream ss;
-  ss << "(" << component << "," << (int)channelIndex << ")";
-  std::string result;
-  ss >> result;
-  return result;
-}
-
-int32_t TileComponent::readMemWord(MemoryAddr addr) const {
-  // Assuming we want the first memory on this tile, and that its ID comes
-  // after all the cores.
-  int tile = id / COMPONENTS_PER_TILE;
-  ComponentID memory = tile*COMPONENTS_PER_TILE + CORES_PER_TILE;
-
-  return parent()->readWord(memory, addr).toInt();
-}
-
-int32_t TileComponent::readMemByte(MemoryAddr addr) const {
-  // Assuming we want the first memory on this tile, and that its ID comes
-  // after all the cores.
-  int tile = id / COMPONENTS_PER_TILE;
-  ComponentID memory = tile*COMPONENTS_PER_TILE + CORES_PER_TILE;
-
-  return parent()->readByte(memory, addr).toInt();
-}
-
-void TileComponent::writeMemWord(MemoryAddr addr, Word data) const {
-  // Assuming we want the first memory on this tile, and that its ID comes
-  // after all the cores.
-  int tile = id / COMPONENTS_PER_TILE;
-  ComponentID memory = tile*COMPONENTS_PER_TILE + CORES_PER_TILE;
-
-  parent()->writeWord(memory, addr, data);
-}
-
-void TileComponent::writeMemByte(MemoryAddr addr, Word data) const {
-  // Assuming we want the first memory on this tile, and that its ID comes
-  // after all the cores.
-  int tile = id / COMPONENTS_PER_TILE;
-  ComponentID memory = tile*COMPONENTS_PER_TILE + CORES_PER_TILE;
-
-  parent()->writeByte(memory, addr, data);
+void TileComponent::writeMemByte(MemoryAddr addr, Word data) {
+	// For now, this always writes to the background memory
+	parent()->writeByte(id, addr, data);
 }
 
 Chip* TileComponent::parent() const {
@@ -239,7 +77,7 @@ void TileComponent::receivedCredit() {
 }
 
 /* Constructors and destructors */
-TileComponent::TileComponent(sc_module_name name, ComponentID ID,
+TileComponent::TileComponent(sc_module_name name, const ComponentID& ID,
                              int inputPorts, int outputPorts) :
     Component(name, ID) {
 

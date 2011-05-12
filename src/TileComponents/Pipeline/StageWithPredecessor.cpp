@@ -39,7 +39,7 @@ void StageWithPredecessor::updateReady() {
   }
 }
 
-StageWithPredecessor::StageWithPredecessor(sc_module_name name, ComponentID ID) :
+StageWithPredecessor::StageWithPredecessor(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID) {
 
   readyOut.initialize(false);

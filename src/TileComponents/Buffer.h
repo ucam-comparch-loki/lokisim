@@ -34,7 +34,7 @@ public:
 
   SC_HAS_PROCESS(Buffer);
 
-  Buffer(sc_module_name name, ComponentID ID, uint size) :
+  Buffer(sc_module_name name, const ComponentID& ID, uint size) :
     Component(name, ID),
     buffer(size, this->name()) {
 

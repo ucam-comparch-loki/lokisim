@@ -20,7 +20,7 @@ public:
   // to put the data in the required components.
   virtual vector<DataBlock>& extractData() const;
 
-  LokiFileReader(std::string& filename, ComponentID component, MemoryAddr position);
+  LokiFileReader(std::string& filename, const ComponentID& component, MemoryAddr position);
   virtual ~LokiFileReader();
 
 protected:

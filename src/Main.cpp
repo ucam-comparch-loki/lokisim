@@ -12,7 +12,6 @@
 #include <fcntl.h>
 #include "Datatype/AddressedWord.h"
 #include "Utility/Debugger.h"
-#include "Utility/BatchMode/BatchModeEventRecorder.h"
 #include "Utility/StartUp/CodeLoader.h"
 #include "Utility/Statistics.h"
 
@@ -45,7 +44,7 @@ void storeArguments(uint argc, char* argv[], Chip& chip) {
      0x0000???? zero word
      0x0000???? start of data pointed to by argv  */
 
-  ComponentID firstMem = CORES_PER_TILE;
+  ComponentID firstMem(0, CORES_PER_TILE);
   chip.writeWord(firstMem, 0, Word(0));
   chip.writeWord(firstMem, 4, Word(argc));
 
@@ -166,11 +165,7 @@ int sc_main(int argc, char* argv[]) {
   string settingsFile(batchMode ? argv[2] : "test_files/loader.txt");
   CodeLoader::loadParameters(settingsFile);
 
-  BatchModeEventRecorder *eventRecorder = NULL;
-  if (batchMode)
-	  eventRecorder = new BatchModeEventRecorder();
-
-  Chip chip("chip", 0, eventRecorder);
+  Chip chip("chip", 0);
 
   // Load any configuration parameters or code.
   parseArguments(argc, argv, chip);
@@ -179,12 +174,6 @@ int sc_main(int argc, char* argv[]) {
   simulate(chip);
 
   if(DEBUG) Statistics::printStats();
-
-  if (batchMode) {
-    FILE *statsFile = fopen(argv[3], "wb");
-    eventRecorder->storeStatisticsToFile(statsFile);
-    fclose(statsFile);
-  }
 
   return RETURN_CODE;
 }

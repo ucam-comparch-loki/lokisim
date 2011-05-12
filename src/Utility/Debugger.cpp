@@ -20,9 +20,9 @@ Chip* Debugger::chip = 0;
 vector<MemoryAddr> Debugger::breakpoints;
 
 int Debugger::cycleNumber = 0;
-ComponentID Debugger::defaultCore = 0;
-ComponentID Debugger::defaultInstMemory = CORES_PER_TILE;
-ComponentID Debugger::defaultDataMemory = CORES_PER_TILE + 1;
+ComponentID Debugger::defaultCore(0, 0);
+ComponentID Debugger::defaultInstMemory(0, CORES_PER_TILE);
+ComponentID Debugger::defaultDataMemory(0, CORES_PER_TILE + 1);
 
 int Debugger::cyclesIdle = 0;
 int Debugger::maxIdleTime = 10;
@@ -135,7 +135,7 @@ void Debugger::waitForInput() {
   }
 }
 
-void Debugger::setBreakPoint(vector<int>& bps, ComponentID memory) {
+void Debugger::setBreakPoint(vector<int>& bps, const ComponentID& memory) {
 
   for(uint j=0; j<bps.size(); j++) {
     MemoryAddr addr = bps[j];
@@ -154,7 +154,7 @@ void Debugger::setBreakPoint(vector<int>& bps, ComponentID memory) {
 
 }
 
-void Debugger::printStack(ComponentID core, ComponentID memory) {
+void Debugger::printStack(const ComponentID& core, const ComponentID& memory) {
   static const RegisterIndex stackReg = 2;
   static const int frameSize = 28;
 
@@ -162,7 +162,7 @@ void Debugger::printStack(ComponentID core, ComponentID memory) {
   chip->print(memory, stackPointer, stackPointer+frameSize);
 }
 
-void Debugger::printMemLocations(vector<int>& locs, ComponentID memory) {
+void Debugger::printMemLocations(vector<int>& locs, const ComponentID& memory) {
   if(mode == DEBUGGER)
     cout << "Printing value(s) from memory " << memory << endl;
 
@@ -174,7 +174,7 @@ void Debugger::printMemLocations(vector<int>& locs, ComponentID memory) {
   }
 }
 
-void Debugger::printRegs(vector<int>& regs, ComponentID core) {
+void Debugger::printRegs(vector<int>& regs, const ComponentID& core) {
   if(mode == DEBUGGER)
     cout << "Printing core " << core << "'s register values:" << endl;
 
@@ -197,12 +197,12 @@ void Debugger::printRegs(vector<int>& regs, ComponentID core) {
   }
 }
 
-void Debugger::printPred(ComponentID core) {
+void Debugger::printPred(const ComponentID& core) {
   if(mode == DEBUGGER) cout << "pred\t";
   cout << chip->readPredicate(core) << "\n";
 }
 
-void Debugger::executedInstruction(DecodedInst inst, ComponentID core, bool executed) {
+void Debugger::executedInstruction(DecodedInst inst, const ComponentID& core, bool executed) {
 
   if(mode == DEBUGGER) {
     cout << core << ":\t" << "[" << inst.location() << "]\t" << inst
@@ -289,12 +289,12 @@ void Debugger::execute(string instruction) {
 
   if(mode == DEBUGGER)
     cout << "Passing " << inst << " to core " << defaultCore << "\n";
-  chip->storeData(instVector, defaultCore);
+  chip->storeInstructions(instVector, defaultCore);
 
   cyclesIdle = 0;
 }
 
-void Debugger::changeCore(ComponentID core) {
+void Debugger::changeCore(const ComponentID& core) {
   // Should this be a persistent change? Currently, it will change as soon as
   // a different core executes a breakpoint instruction.
   if(mode == DEBUGGER)
@@ -304,7 +304,7 @@ void Debugger::changeCore(ComponentID core) {
   defaultCore = core;
 }
 
-void Debugger::changeMemory(ComponentID memory) {
+void Debugger::changeMemory(const ComponentID& memory) {
   if(mode == DEBUGGER)
     cout << "Will now print details for memory " << memory << "\n";
 

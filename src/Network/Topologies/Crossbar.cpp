@@ -9,7 +9,7 @@
 #include "../Arbiters/ArbiterComponent.h"
 #include "../../Datatype/AddressedWord.h"
 
-void Crossbar::makeBuses(int numBuses, int numArbiters, int channelsPerOutput, ChannelID startAddr) {
+void Crossbar::makeBuses(int numBuses, int numArbiters, int channelsPerOutput, const ChannelID& startAddr) {
   // Generate and connect up buses.
   for(int i=0; i<numBuses; i++) {
     Bus* bus = new Bus(sc_core::sc_gen_unique_name("bus"), i, numArbiters,
@@ -50,9 +50,9 @@ void Crossbar::makeArbiters(int numBuses, int numArbiters, int outputsPerCompone
   }
 }
 
-Crossbar::Crossbar(sc_module_name name, ComponentID ID, int inputs, int outputs,
+Crossbar::Crossbar(sc_module_name name, const ComponentID& ID, int inputs, int outputs,
                    int outputsPerComponent, int channelsPerOutput,
-                   ChannelID startAddr, Dimension size, bool externalConnection) :
+                   const ChannelID& startAddr, Dimension size, bool externalConnection) :
     Network(name, ID, inputs, outputs, size, externalConnection),
     numBuses(numInputs),
     numMuxes(numOutputs/outputsPerComponent),

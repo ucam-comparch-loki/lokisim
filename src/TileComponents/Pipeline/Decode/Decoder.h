@@ -63,7 +63,7 @@ private:
   void    fetch(MemoryAddr addr) const;
 
   // Update the channel to which we send fetch requests.
-  void    setFetchChannel(ChannelID channelID) const;
+  void    setFetchChannel(uint32_t encodedChannel) const;
 
   // If an instruction is waiting to be decoded, discard it. Returns whether
   // anything was discarded.
@@ -85,7 +85,7 @@ private:
 
 public:
 
-  Decoder(sc_module_name name, ComponentID id);
+  Decoder(sc_module_name name, const ComponentID& id);
   virtual ~Decoder();
 
 //==============================//
@@ -95,7 +95,7 @@ public:
 private:
 
   // The remote channel we are sending instructions to.
-  ChannelID sendChannel;
+  ChannelIndex sendChannel;
 
   // Tells whether or not we are in remote execution mode.
   bool remoteExecute;

@@ -39,7 +39,7 @@ ReadyOutput& Network::externalReadyOutput() const {
 }
 
 Network::Network(sc_module_name name,
-    ComponentID ID,
+    const ComponentID& ID,
     int numInputs,        // Number of inputs this network has
     int numOutputs,       // Number of outputs this network has
     Dimension size,       // The physical size of this network (width, height)

@@ -15,9 +15,9 @@ void NetworkHierarchy::setupFlowControl() {
   // All cores and memories are now responsible for their own flow control.
 
   // Attach flow control units to the off-chip component too.
-  FlowControlIn*  fcin  = new FlowControlIn("fc_in", TOTAL_INPUT_PORTS);
+  FlowControlIn*  fcin  = new FlowControlIn("fc_in", ComponentID()/*TOTAL_INPUT_PORTS*/, ChannelID());
   flowControlIn.push_back(fcin);
-  FlowControlOut* fcout = new FlowControlOut("fc_out", TOTAL_OUTPUT_PORTS);
+  FlowControlOut* fcout = new FlowControlOut("fc_out", ComponentID()/*TOTAL_OUTPUT_PORTS*/, ChannelID());
   flowControlOut.push_back(fcout);
 
   fcin->dataOut(dataToOffChip);            offChip.dataIn(dataToOffChip);
@@ -52,7 +52,7 @@ void NetworkHierarchy::makeDataNetwork() {
 void NetworkHierarchy::makeLocalDataNetwork(int tileID) {
 
   // Create a local network.
-  ChannelID lowestID = tileID * INPUT_CHANNELS_PER_TILE;
+  ChannelID lowestID(tileID, 0, 0);	//TODO: Global IDs?
   Network* localNetwork = new Crossbar("data_net",
                                        tileID,
                                        OUTPUT_PORTS_PER_TILE,
@@ -148,7 +148,7 @@ void NetworkHierarchy::makeCreditNetwork() {
 void NetworkHierarchy::makeLocalCreditNetwork(int tileID) {
 
   // Create a local network.
-  ChannelID lowestID = tileID * OUTPUT_CHANNELS_PER_TILE;
+  ChannelID lowestID(tileID, 0, 0);	//TODO: Global IDs?
   Network* localNetwork = new Crossbar("credit_net",
                                        tileID,
                                        INPUT_PORTS_PER_TILE,

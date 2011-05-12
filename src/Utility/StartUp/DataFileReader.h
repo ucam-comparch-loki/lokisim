@@ -9,6 +9,7 @@
 #define DATAFILEREADER_H_
 
 #include "FileReader.h"
+#include "../../Datatype/ComponentID.h"
 
 class Word;
 
@@ -20,7 +21,7 @@ public:
   // to put the data in the required components.
   virtual vector<DataBlock>& extractData() const;
 
-  DataFileReader(std::string& filename, ComponentID component, MemoryAddr position);
+  DataFileReader(std::string& filename, const ComponentID& component, MemoryAddr position);
   virtual ~DataFileReader();
 
 private:

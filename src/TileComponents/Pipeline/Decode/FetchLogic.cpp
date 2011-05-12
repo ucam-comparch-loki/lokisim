@@ -11,37 +11,71 @@
 #include "../../../Datatype/MemoryRequest.h"
 
 void FetchLogic::fetch(const MemoryAddr addr) {
-  // Create a new memory request and wrap it up in an AddressedWord
-  MemoryRequest mr(addr, MemoryRequest::IPK_READ);
-  AddressedWord request(mr, fetchChannel);
+	// Create a new memory request
 
-  if(!inCache(addr)) {
-    sendRequest(request);
-  }
-  else {
-    // Store the request in case the packet gets overwritten and needs to
-    // be refetched.
-    refetchRequest = request;
-  }
+	MemoryRequest mr;
+	mr.setHeader(MemoryRequest::IPK_READ, addr);
+
+	// Adjust fetch channel based on memory configuration if necessary
+
+	ChannelID channel = fetchChannel;
+
+	if (fetchChannel.isMemory() && memoryGroupBits > 0) {
+		uint32_t increment = (uint32_t)addr;
+		increment %= MEMORY_CACHE_LINE_SIZE * (1UL << memoryGroupBits);
+		increment /= MEMORY_CACHE_LINE_SIZE;
+		channel = channel.addPosition(increment);
+	}
+
+	// Send request if necessary or store it for later use
+
+	AddressedWord request(mr, channel);
+
+	if(!inCache(addr)) {
+		sendRequest(request);
+	} else {
+		// Store the request in case the packet gets overwritten and needs to
+		// be refetched.
+
+		refetchRequest = request;
+	}
 }
 
-void FetchLogic::setFetchChannel(const ChannelID channelID) {
-  fetchChannel = channelID;
+void FetchLogic::setFetchChannel(const ChannelID& channelID, uint groupBits) {
+	fetchChannel = channelID;
+	memoryGroupBits = groupBits;
 
-  // Need to claim this port so that it sends flow control information back
-  // here.
-  AddressedWord aw(Word(portID()), fetchChannel, true);
+	ChannelID returnChannel(id, 0);
 
-  // Not ideal: the send method waits for there to be room in the cache, but
-  // for just claiming a port, this isn't necessary.
-  sendRequest(aw);
+	if (fetchChannel.isCore()) {
+		// Destination is a core
+
+		// Need to claim this port so that it sends flow control information back
+		// here.
+
+		AddressedWord aw(Word(returnChannel.getData()), fetchChannel, true);
+
+		// Not ideal: the send method waits for there to be room in the cache, but
+		// for just claiming a port, this isn't necessary.
+
+		sendRequest(aw);
+	} else {
+		// Destination is a memory
+
+		// Send memory channel table setup request
+
+		MemoryRequest mr;
+		mr.setHeaderSetTableEntry(returnChannel.getData());
+		AddressedWord aw(mr, fetchChannel);
+		sendRequest(aw);
+	}
 }
 
 void FetchLogic::refetch() {
   sendRequest(refetchRequest);
 }
 
-void FetchLogic::sendRequest(AddressedWord& data) {
+void FetchLogic::sendRequest(const AddressedWord& data) {
   dataToSend = data;
   sendEvent.notify();
 }
@@ -67,16 +101,12 @@ bool FetchLogic::roomInCache() const {
   return parent()->roomToFetch();
 }
 
-ChannelID FetchLogic::portID() const {
-  return TileComponent::outputChannelID(id, 0);
-}
-
 DecodeStage* FetchLogic::parent() const {
   // Need a dynamic cast because DecodeStage uses virtual inheritance.
   return dynamic_cast<DecodeStage*>(this->get_parent());
 }
 
-FetchLogic::FetchLogic(sc_module_name name, int ID) :
+FetchLogic::FetchLogic(sc_module_name name, const ComponentID& ID) :
     Component(name, ID) {
 
   fetchChannel = -1;      // So we get warnings if we fetch before setting this.

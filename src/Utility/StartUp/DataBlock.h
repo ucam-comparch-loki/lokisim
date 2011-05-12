@@ -13,6 +13,8 @@
 
 #include <vector>
 
+#include "../../Datatype/ComponentID.h"
+
 using std::vector;
 
 class Word;
@@ -22,16 +24,16 @@ class DataBlock {
 public:
 
   vector<Word>& data() const;
-  int component() const;
+  ComponentID component() const;
   int position() const;
 
-  DataBlock(vector<Word>* data, int component, int position=0);
+  DataBlock(vector<Word>* data, const ComponentID& component, int position=0);
   virtual ~DataBlock();
 
 private:
 
   vector<Word>* data_;
-  int component_;
+  ComponentID component_;
   int position_;
 
 };

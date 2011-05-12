@@ -101,6 +101,7 @@ Instruction DecodedInst::toInstruction() const {
     case InstructionMap::RMTFETCH :
     case InstructionMap::RMTFETCHPST :
     case InstructionMap::RMTFILL :
+    case InstructionMap::CFGMEM :
     case InstructionMap::SETCHMAP : {
       i.destination(sourceReg1_);
       i.sourceReg1(0);
@@ -182,8 +183,8 @@ std::ostream& DecodedInst::print(std::ostream& os) const {
   os << name() << (setsPredicate() ? ".p" : "")
      << (predicate()==Instruction::END_OF_PACKET ? ".eop" : "");
 
-  // Special case for setchmap: immediate is printed before register.
-  if(operation_ == InstructionMap::SETCHMAP) {
+  // Special case for cfgmem and setchmap: immediate is printed before register.
+  if(operation_ == InstructionMap::CFGMEM || operation_ == InstructionMap::SETCHMAP) {
     os << " " << immediate() << ", r" << (int)sourceReg1();
     return os;
   }
@@ -247,6 +248,7 @@ DecodedInst::DecodedInst(const Instruction i) {
     case InstructionMap::RMTFETCH :
     case InstructionMap::RMTFETCHPST :
     case InstructionMap::RMTFILL :
+    case InstructionMap::CFGMEM :
     case InstructionMap::SETCHMAP : {
       destReg_ = 0;
       sourceReg1_ = i.destination();

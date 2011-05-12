@@ -85,6 +85,6 @@ int Statistics::l1Writes()           {return Memory::numWrites();}
 
 double Statistics::networkDistance() {return Network::totalDistance();}
 
-int Statistics::cyclesActive(ComponentID core)  {return Stalls::cyclesActive(core);}
-int Statistics::cyclesIdle(ComponentID core)    {return Stalls::cyclesIdle(core);}
-int Statistics::cyclesStalled(ComponentID core) {return Stalls::cyclesStalled(core);}
+int Statistics::cyclesActive(const ComponentID& core)  {return Stalls::cyclesActive(core);}
+int Statistics::cyclesIdle(const ComponentID& core)    {return Stalls::cyclesIdle(core);}
+int Statistics::cyclesStalled(const ComponentID& core) {return Stalls::cyclesStalled(core);}

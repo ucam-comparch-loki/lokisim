@@ -47,7 +47,7 @@ public:
 
 protected:
 
-  virtual void makeBuses(int numBuses, int numArbiters, int channelsPerOutput, ChannelID startAddr);
+  virtual void makeBuses(int numBuses, int numArbiters, int channelsPerOutput, const ChannelID& startAddr);
 
 private:
 
@@ -62,8 +62,8 @@ private:
 public:
 
   SC_HAS_PROCESS(MulticastCrossbar);
-  MulticastCrossbar(sc_module_name name, ComponentID ID, int inputs, int outputs,
-                    int outputsPerComponent, int channelsPerOutput, ChannelID startAddr,
+  MulticastCrossbar(sc_module_name name, const ComponentID& ID, int inputs, int outputs,
+                    int outputsPerComponent, int channelsPerOutput, const ChannelID& startAddr,
                     Dimension size, bool externalConnection=false);
   virtual ~MulticastCrossbar();
 

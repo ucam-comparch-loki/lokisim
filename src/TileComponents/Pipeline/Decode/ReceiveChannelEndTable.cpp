@@ -80,7 +80,7 @@ DecodeStage* ReceiveChannelEndTable::parent() const {
   return dynamic_cast<DecodeStage*>(this->get_parent());
 }
 
-ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name, ComponentID ID) :
+ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name, const ComponentID& ID) :
     Component(name, ID),
     buffers(NUM_RECEIVE_CHANNELS, CHANNEL_END_BUFFER_SIZE, string(name)),
     currentChannel(NUM_RECEIVE_CHANNELS) {

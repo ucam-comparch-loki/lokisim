@@ -1,0 +1,12 @@
+# Configure single general purpose cache bank
+
+	ori					r5, r0, (0,0,8,0)		# First memory bank, single bank group
+	cfgmem				1, r5					# Configure memory bank as general purpose cache
+	setchmap			0, r5					# Set fetch channel to memory bank
+
+	or					r0, r0, r0				# Make sure there are no timing problems
+	or					r0, r0, r0				# Make sure there are no timing problems
+	or					r0, r0, r0				# Make sure there are no timing problems
+	or					r0, r0, r0				# Make sure there are no timing problems
+
+	fetch.eop			r0, 0					# Fetch first instruction packet of program

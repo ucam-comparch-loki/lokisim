@@ -49,7 +49,7 @@ public:
 public:
 
   SC_HAS_PROCESS(FlowControlIn);
-  FlowControlIn(sc_module_name name, ComponentID ID);
+  FlowControlIn(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged);
 
 //==============================//
 // Methods
@@ -71,6 +71,9 @@ private:
 //==============================//
 
 private:
+
+  // Address of channel managed by this flow control unit.
+  ChannelID channel;
 
   // Address of port connected to each of our input port. We need the
   // address so we can send flow control information back to the source.

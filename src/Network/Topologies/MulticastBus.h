@@ -45,8 +45,8 @@ public:
   //                     of this bus. e.g. A memory may have 8 input channels,
   //                     which share only one input port.
   // startAddr         = the first channelID accessible through this network.
-  MulticastBus(sc_module_name name, ComponentID ID, int numOutputs,
-               int channelsPerOutput, ChannelID startAddr, Dimension size);
+  MulticastBus(sc_module_name name, const ComponentID& ID, int numOutputs,
+               int channelsPerOutput, const ChannelID& startAddr, Dimension size);
   virtual ~MulticastBus();
 
 //==============================//
@@ -65,7 +65,7 @@ private:
 
   // Compute which outputs of this bus will be used by the given address. This
   // allows an address to represent multiple destinations.
-  void getDestinations(ChannelID address, std::vector<PortIndex>& outputs) const;
+  void getDestinations(const ChannelID& address, std::vector<PortIndex>& outputs) const;
 
 //==============================//
 // Local state

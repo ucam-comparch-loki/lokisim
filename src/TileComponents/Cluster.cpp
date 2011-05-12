@@ -13,6 +13,7 @@
 #include "Pipeline/Execute/ExecuteStage.h"
 #include "Pipeline/Write/WriteStage.h"
 #include "../Utility/InstructionMap.h"
+#include "../Datatype/ChannelID.h"
 #include "../Datatype/DecodedInst.h"
 
 double   Cluster::area() const {
@@ -214,21 +215,21 @@ void     Cluster::updateIdle() {
 }
 
 /* Returns the channel ID of this cluster's instruction packet FIFO. */
-ChannelID Cluster::IPKFIFOInput(ComponentID ID) {
-  return inputChannelID(ID, 0);
+ChannelID Cluster::IPKFIFOInput(const ComponentID& ID) {
+  return ChannelID(ID, 0);
 }
 
 /* Returns the channel ID of this cluster's instruction packet cache. */
-ChannelID Cluster::IPKCacheInput(ComponentID ID) {
-  return inputChannelID(ID, 1);
+ChannelID Cluster::IPKCacheInput(const ComponentID& ID) {
+  return ChannelID(ID, 1);
 }
 
 /* Returns the channel ID of this cluster's specified input channel. */
-ChannelID Cluster::RCETInput(ComponentID ID, ChannelIndex channel) {
-  return inputChannelID(ID, 2 + channel);
+ChannelID Cluster::RCETInput(const ComponentID& ID, ChannelIndex channel) {
+  return ChannelID(ID, 2 + channel);
 }
 
-Cluster::Cluster(sc_module_name name, ComponentID ID) :
+Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
     TileComponent(name, ID, CORE_INPUT_PORTS, CORE_OUTPUT_PORTS),
     regs("regs", ID),
     pred("predicate") {

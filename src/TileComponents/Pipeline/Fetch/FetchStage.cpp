@@ -121,7 +121,7 @@ void FetchStage::calculateSelect() {
   }
 }
 
-FetchStage::FetchStage(sc_module_name name, ComponentID ID) :
+FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
     StageWithSuccessor(name, ID),
     cache("IPKcache", ID),

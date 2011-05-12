@@ -37,7 +37,7 @@ public:
 
   SC_HAS_PROCESS(Router);
   Router(sc_module_name name,
-         ComponentID ID,
+		 const ComponentID& ID,
          int inputsPerTile,
          int networkType,
          Arbiter* arbiter);
@@ -51,7 +51,7 @@ private:
 
   // Determine which output port should be used to reach the given destination.
   virtual ChannelIndex computeOutput(ChannelIndex source,
-                                     ChannelID destination) const;
+		                             const ChannelID& destination) const;
 
   virtual double distance(ChannelIndex inPort, ChannelIndex outPort) const;
 

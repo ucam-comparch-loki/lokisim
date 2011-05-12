@@ -32,7 +32,7 @@ class IndirectRegisterFile: public Component {
 
 public:
 
-  IndirectRegisterFile(sc_module_name name, ComponentID ID);
+  IndirectRegisterFile(sc_module_name name, const ComponentID& ID);
 
 //==============================//
 // Methods

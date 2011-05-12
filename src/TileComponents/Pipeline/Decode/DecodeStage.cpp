@@ -70,8 +70,8 @@ void         DecodeStage::fetch(const MemoryAddr addr) {
   fl.fetch(addr);
 }
 
-void         DecodeStage::setFetchChannel(const ChannelID channelID) {
-  fl.setFetchChannel(channelID);
+void         DecodeStage::setFetchChannel(const ChannelID& channelID, uint groupBits) {
+  fl.setFetchChannel(channelID, groupBits);
 }
 
 void         DecodeStage::refetch() {
@@ -99,7 +99,7 @@ bool         DecodeStage::discardNextInst() const {
   return parent()->discardInstruction(2);
 }
 
-DecodeStage::DecodeStage(sc_module_name name, ComponentID ID) :
+DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
     StageWithSuccessor(name, ID),
     StageWithPredecessor(name, ID),

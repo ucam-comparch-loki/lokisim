@@ -10,6 +10,7 @@
 #include "../Debugger.h"
 #include "../Parameters.h"
 #include "../StringManipulation.h"
+#include "../../Datatype/ChannelID.h"
 #include "../../Datatype/Instruction.h"
 #include "../../TileComponents/Cluster.h"
 
@@ -144,14 +145,14 @@ DataBlock& ELFFileReader::loaderProgram() const {
     std::cout << "\nmain() is at address " << mainPos << std::endl;
 
   Instruction storeChannel("ori r3 r0 0");
-  ChannelID firstMemInput = TileComponent::inputChannelID(componentID_, 0);
-  storeChannel.immediate(firstMemInput);
+  ChannelID firstMemInput(componentID_, 0);
+  storeChannel.immediate(firstMemInput.getData());
 
   Instruction setfetchch("setchmap 0 r3");
 
   Instruction connect("ori r0 r0 0 > 0");
   ChannelID ipkCache = Cluster::IPKCacheInput(core_);
-  connect.immediate(ipkCache);
+  connect.immediate(ipkCache.getData());
 
   Instruction nop("or r0 r0 r0");
 

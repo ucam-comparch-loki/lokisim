@@ -49,7 +49,7 @@ public:
 public:
 
   SC_HAS_PROCESS(WriteStage);
-  WriteStage(sc_module_name name, ComponentID ID);
+  WriteStage(sc_module_name name, const ComponentID& ID);
 
 //==============================//
 // Methods

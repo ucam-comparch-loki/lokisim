@@ -216,7 +216,7 @@ void FileReader::deleteFile(string& filename) {
                    << filename << endl;
 }
 
-FileReader::FileReader(string& filename, ComponentID component, MemoryAddr position) {
+FileReader::FileReader(string& filename, const ComponentID& component, MemoryAddr position) {
   filename_ = filename;
   componentID_ = component;
   position_ = position;

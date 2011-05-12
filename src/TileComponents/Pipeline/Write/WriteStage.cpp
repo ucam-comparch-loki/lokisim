@@ -72,7 +72,7 @@ void WriteStage::writeReg(RegisterIndex reg, int32_t value, bool indirect) const
   parent()->writeReg(reg, value, indirect);
 }
 
-WriteStage::WriteStage(sc_module_name name, ComponentID ID) :
+WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
     StageWithPredecessor(name, ID),
     scet("scet", ID) {

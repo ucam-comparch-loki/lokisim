@@ -37,7 +37,7 @@ class Crossbar: public Network {
 
 protected:
 
-  virtual void makeBuses(int numBuses, int numArbiters, int channelsPerOutput, ChannelID startAddr);
+  virtual void makeBuses(int numBuses, int numArbiters, int channelsPerOutput, const ChannelID& startAddr);
   virtual void makeArbiters(int numBuses, int numArbiters, int outputsPerComponent);
 
 //==============================//
@@ -52,8 +52,8 @@ public:
   // startAddr           = the lowest channel ID accessible through a local output
   // externalConnection  = flag telling whether there is an extra input/output
   //                       connected to the next level of network hierarchy
-  Crossbar(sc_module_name name, ComponentID ID, int inputs, int outputs,
-           int outputsPerComponent, int channelsPerOutput, ChannelID startAddr,
+  Crossbar(sc_module_name name, const ComponentID& ID, int inputs, int outputs,
+           int outputsPerComponent, int channelsPerOutput, const ChannelID& startAddr,
            Dimension size, bool externalConnection = false);
   virtual ~Crossbar();
 

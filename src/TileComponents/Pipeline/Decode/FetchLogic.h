@@ -39,7 +39,7 @@ public:
 public:
 
   SC_HAS_PROCESS(FetchLogic);
-  FetchLogic(sc_module_name name, int ID);
+  FetchLogic(sc_module_name name, const ComponentID& ID);
 
 //==============================//
 // Methods
@@ -53,7 +53,7 @@ public:
   void fetch(const MemoryAddr addr);
 
   // Update the channel to which we send fetch requests.
-  void setFetchChannel(const ChannelID channelID);
+  void setFetchChannel(const ChannelID& channelID, uint groupBits);
 
   // The packet to fetch was in the cache at fetch time, but has since been
   // overwritten. Send a fetch request to get it back.
@@ -62,7 +62,7 @@ public:
 private:
 
   // Prepare a request to be sent on the network.
-  void sendRequest(AddressedWord& data);
+  void sendRequest(const AddressedWord& data);
 
   // Send a request onto the network whenever notified by sendRequest.
   void send();
@@ -74,9 +74,6 @@ private:
   // packet. Assumes that the packet being fetched is of the maximum size.
   bool roomInCache() const;
 
-  // Returns a unique identifier for this fetch logic's output port.
-  ChannelID portID() const;
-
   DecodeStage* parent() const;
 
 //==============================//
@@ -87,6 +84,9 @@ private:
 
   // The network channel we send all of our fetch requests to.
   ChannelID             fetchChannel;
+
+  // Number of group bits describing virtual memory bank.
+  unsigned int          memoryGroupBits;
 
   // A memory request for the next packet to be executed, where the packet is
   // already in the cache. We need to be able to refetch the packet in case

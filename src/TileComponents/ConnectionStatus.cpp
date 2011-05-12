@@ -83,14 +83,6 @@ void ConnectionStatus::writeAddress(MemoryAddr addr, int operation) {
   if(operation == MemoryRequest::STORE_W) operation_ = STORE;
   else if(operation == MemoryRequest::STORE_HW) operation_ = STOREHW;
   else if(operation == MemoryRequest::STORE_B) operation_ = STOREBYTE;
-  else if(operation == MemoryRequest::STADDR) {
-    operation_ = STORE;
-    repeatOperation_ = true;
-  }
-  else if(operation == MemoryRequest::STBADDR) {
-    operation_ = STOREBYTE;
-    repeatOperation_ = true;
-  }
   else std::cerr << "Unknown memory operation in ConnectionStatus::writeAddress: "
                  << operation << std::endl;
 }

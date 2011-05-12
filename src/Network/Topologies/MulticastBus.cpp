@@ -60,7 +60,7 @@ void MulticastBus::checkCredits() {
   }
 }
 
-void MulticastBus::getDestinations(ChannelID address, std::vector<PortIndex>& outputs) const {
+void MulticastBus::getDestinations(const ChannelID& address, std::vector<PortIndex>& outputs) const {
   // Would it be sensible to enforce that MulticastBuses only ever receive
   // multicast addresses? Might make things simpler.
   // But that would make it difficult to deal with non-local traffic.
@@ -69,7 +69,8 @@ void MulticastBus::getDestinations(ChannelID address, std::vector<PortIndex>& ou
     // Figure out which destinations are represented by the address.
   }
   else {
-    outputs.push_back((address - startAddress)/channelsPerOutput);
+    //TODO: Check again - unsure whether this is doing what is intended
+    outputs.push_back((address.getGlobalChannelNumber(OUTPUT_CHANNELS_PER_TILE, CORE_OUTPUT_CHANNELS) - startAddress.getGlobalChannelNumber(OUTPUT_CHANNELS_PER_TILE, CORE_OUTPUT_CHANNELS))/channelsPerOutput);
   }
 }
 
@@ -77,8 +78,8 @@ void MulticastBus::creditArrived() {
   credit.notify();
 }
 
-MulticastBus::MulticastBus(sc_module_name name, ComponentID ID, int numOutputs,
-                           int channelsPerOutput, ChannelID startAddr, Dimension size) :
+MulticastBus::MulticastBus(sc_module_name name, const ComponentID& ID, int numOutputs,
+                           int channelsPerOutput, const ChannelID& startAddr, Dimension size) :
     Bus(name, ID, numOutputs, channelsPerOutput, startAddr, size) {
 
   creditsIn         = new CreditInput[numOutputs];

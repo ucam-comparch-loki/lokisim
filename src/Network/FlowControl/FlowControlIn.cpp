@@ -28,8 +28,8 @@ void FlowControlIn::receivedData() {
       // Wake up the sendCredit thread.
       newCredit.notify();
 
-      if(DEBUG) cout << "Channel " << TileComponent::inputPortString(id)
-           << " was claimed by " << TileComponent::outputPortString(returnAddress)
+      if(DEBUG) cout << "Channel " << channel.getString()
+           << " was claimed by " << returnAddress.getString()
            << endl;
     }
     else {
@@ -61,7 +61,7 @@ void FlowControlIn::sendCredit() {
     else wait(newCredit);
 
     // Send the new credit if someone is communicating with this port.
-    if((int)returnAddress != -1) {
+    if(!returnAddress.isNullMapping()) {
       AddressedWord aw(Word(1), returnAddress);
       creditsOut.write(aw);
       validCreditOut.write(true);
@@ -69,8 +69,8 @@ void FlowControlIn::sendCredit() {
       assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
 
       if(DEBUG) cout << "Sent credit from "
-         << TileComponent::inputPortString(id) << " to "
-         << TileComponent::outputPortString(returnAddress) << endl;
+         << channel.getString() << " to "
+         << returnAddress.getString() << endl;
 
       // Deassert the valid signal when the acknowledgement arrives.
       wait(ackCreditOut.posedge_event());
@@ -79,9 +79,10 @@ void FlowControlIn::sendCredit() {
   }
 }
 
-FlowControlIn::FlowControlIn(sc_module_name name, ComponentID ID) :
+FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :
     Component(name, ID) {
 
+  channel = channelManaged;
   returnAddress = -1;
   numCredits = 0;
 

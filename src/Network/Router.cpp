@@ -9,8 +9,8 @@
 #include "Arbiters/RoundRobinArbiter.h"
 
 ChannelIndex Router::computeOutput(ChannelIndex source,
-                                   ChannelID destination) const {
-  int destTile   = destination / inputsPerTile;
+                                   const ChannelID& destination) const {
+  int destTile   = destination.getTile();
   int destColumn = destTile % NUM_TILE_COLUMNS;
   int destRow    = destTile / NUM_TILE_COLUMNS;
 
@@ -33,7 +33,7 @@ double Router::distance(ChannelIndex inPort, ChannelIndex outPort) const {
 }
 
 Router::Router(sc_module_name name,
-               ComponentID ID,
+               const ComponentID& ID,
                int inputsPerTile,
                int networkType,
                Arbiter* arbiter) :
@@ -41,8 +41,8 @@ Router::Router(sc_module_name name,
     inputsPerTile(inputsPerTile) {
 
   // Use our ID to determine where we are on the network.
-  column = id % NUM_TILE_COLUMNS;
-  row    = id / NUM_TILE_COLUMNS;
+  column = id.getColumn();
+  row    = id.getRow();
 
   arbiter_ = arbiter;
 
