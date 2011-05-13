@@ -53,6 +53,8 @@ public:
   //                     of this bus. e.g. A memory may have 8 input channels,
   //                     which share only one input port.
   // startAddr         = the first channelID accessible through this network.
+  // TODO: remove numOutputChannels and startAddr when ChannelIDs are updated
+  //       to hold (tile, component, channel).
   Bus(sc_module_name name, ComponentID ID, int numOutputPorts,
       int numOutputChannels, ChannelID startAddr, Dimension size);
   virtual ~Bus();

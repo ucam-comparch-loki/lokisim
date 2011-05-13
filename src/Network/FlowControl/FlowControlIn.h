@@ -25,6 +25,9 @@ class FlowControlIn: public Component {
 
 public:
 
+  // Credits are sent at the positive edge of the clock.
+  sc_in<bool>           clock;
+
   // Data received over the network, to be sent to a component's input.
   sc_in<AddressedWord>  dataIn;
   sc_in<bool>           validDataIn;

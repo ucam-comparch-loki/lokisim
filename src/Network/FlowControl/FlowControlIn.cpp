@@ -19,14 +19,11 @@ void FlowControlIn::receivedData() {
 
     if(dataIn.read().portClaim()) {
       // TODO: only accept the port claim when we have no credits left to send.
-
       // Set the return address so we can send flow control.
       returnAddress = dataIn.read().payload().toInt();
+
       numCredits++;
       assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
-
-      // Wake up the sendCredit thread.
-      newCredit.notify();
 
       if(DEBUG) cout << "Channel " << TileComponent::inputPortString(id)
            << " was claimed by " << TileComponent::outputPortString(returnAddress)
@@ -48,23 +45,20 @@ void FlowControlIn::receiveFlowControl() {
     wait(creditsIn.default_event());
     numCredits++;
     assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
-
-    // Wake up the sendCredit thread.
-    newCredit.notify();
   }
 }
 
 void FlowControlIn::sendCredit() {
   while(true) {
-    // Wait until our next credit arrives, unless we already have one waiting.
-    if(numCredits>0) wait(1, sc_core::SC_NS);
-    else wait(newCredit);
+    wait(clock.posedge_event());
+    if(numCredits == 0) continue;
 
     // Send the new credit if someone is communicating with this port.
     if((int)returnAddress != -1) {
       AddressedWord aw(Word(1), returnAddress);
       creditsOut.write(aw);
       validCreditOut.write(true);
+
       numCredits--;
       assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
 
@@ -88,7 +82,4 @@ FlowControlIn::FlowControlIn(sc_module_name name, ComponentID ID) :
   SC_THREAD(receivedData);
   SC_THREAD(receiveFlowControl);
   SC_THREAD(sendCredit);
-
-  end_module(); // Needed because we're using a different Component constructor
-
 }

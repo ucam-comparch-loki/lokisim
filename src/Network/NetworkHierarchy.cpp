@@ -9,6 +9,7 @@
 #include "FlowControl/FlowControlIn.h"
 #include "FlowControl/FlowControlOut.h"
 #include "Topologies/Crossbar.h"
+#include "Topologies/LocalNetwork.h"
 
 void NetworkHierarchy::setupFlowControl() {
 
@@ -20,6 +21,7 @@ void NetworkHierarchy::setupFlowControl() {
   FlowControlOut* fcout = new FlowControlOut("fc_out", TOTAL_OUTPUT_PORTS);
   flowControlOut.push_back(fcout);
 
+  fcin->clock(clock);
   fcin->dataOut(dataToOffChip);            offChip.dataIn(dataToOffChip);
   fcin->creditsIn(creditsFromOffChip);     offChip.creditsOut(creditsFromOffChip);
   fcin->dataIn(dataToComponents[0]);
@@ -38,47 +40,36 @@ void NetworkHierarchy::setupFlowControl() {
 
 }
 
-void NetworkHierarchy::makeDataNetwork() {
-  // Make a local network for each tile. This includes all wiring up and
-  // creation of a router.
-  for(uint tile=0; tile<NUM_TILES; tile++) {
-    makeLocalDataNetwork(tile);
-  }
-
-  // Only need a global network if there is more than one tile to link together.
-  if(NUM_TILES>1) makeGlobalDataNetwork();
-}
-
-void NetworkHierarchy::makeLocalDataNetwork(int tileID) {
+void NetworkHierarchy::makeLocalNetwork(int tileID) {
 
   // Create a local network.
-  ChannelID lowestID = tileID * INPUT_CHANNELS_PER_TILE;
-  Network* localNetwork = new Crossbar("data_net",
-                                       tileID,
-                                       OUTPUT_PORTS_PER_TILE,
-                                       INPUT_PORTS_PER_TILE,
-                                       1,//CORE_INPUT_PORTS,
-                                       CORE_INPUT_CHANNELS/CORE_INPUT_PORTS,
-                                       lowestID,
-                                       Dimension(1.0, 0.2),
-                                       true);
-  localDataNetworks.push_back(localNetwork);
+  LocalNetwork* localNetwork = new LocalNetwork(sc_gen_unique_name("data_net"), tileID);
+  localNetworks.push_back(localNetwork);
 
   // Connect things up.
-  for(uint i=0; i<INPUT_PORTS_PER_TILE; i++) {
+  localNetwork->clock(clock);
+
+  for(unsigned int i=0; i<INPUT_PORTS_PER_TILE; i++) {
     int outputIndex = (tileID * INPUT_PORTS_PER_TILE) + i;
     localNetwork->dataOut[i](dataOut[outputIndex]);
     localNetwork->validDataOut[i](validDataOut[outputIndex]);
     localNetwork->ackDataOut[i](ackDataOut[outputIndex]);
+
+    localNetwork->creditsIn[i](creditsIn[outputIndex]);
+    localNetwork->validCreditIn[i](validCreditIn[outputIndex]);
+    localNetwork->ackCreditIn[i](ackCreditIn[outputIndex]);
   }
-  for(uint i=0; i<OUTPUT_PORTS_PER_TILE; i++) {
+
+  for(unsigned int i=0; i<OUTPUT_PORTS_PER_TILE; i++) {
     int inputIndex = (tileID * OUTPUT_PORTS_PER_TILE) + i;
     localNetwork->dataIn[i](dataIn[inputIndex]);
     localNetwork->validDataIn[i](validDataIn[inputIndex]);
     localNetwork->ackDataIn[i](ackDataIn[inputIndex]);
-  }
 
-  localNetwork->clock(clock);
+    localNetwork->creditsOut[i](creditsOut[inputIndex]);
+    localNetwork->validCreditOut[i](validCreditOut[inputIndex]);
+    localNetwork->ackCreditOut[i](ackCreditOut[inputIndex]);
+  }
 
   // Simplify the network if there is only one tile: there is no longer any
   // need for a global network, so this local network can connect directly
@@ -90,12 +81,19 @@ void NetworkHierarchy::makeLocalDataNetwork(int tileID) {
     localNetwork->externalOutput()(dataToComponents[0]);
     localNetwork->externalValidOutput()(validDataFromComps[0]);
     localNetwork->externalReadyInput()(ackDataToComps[0]);
-  }
 
+    localNetwork->externalCreditIn()(creditsFromComponents[0]);
+    localNetwork->externalValidCreditIn()(validCreditFromComps[0]);
+    localNetwork->externalAckCreditOut()(ackCreditFromComps[0]);
+    localNetwork->externalCreditOut()(creditsToComponents[0]);
+    localNetwork->externalValidCreditOut()(validCreditToComps[0]);
+    localNetwork->externalAckCreditIn()(ackCreditToComps[0]);
+  }
 }
 
-void NetworkHierarchy::makeGlobalDataNetwork() {
+void NetworkHierarchy::makeGlobalNetwork() {
 
+  // Make data network.
   globalDataNetwork = new Crossbar("global_data_net",
                                    0,
                                    NUM_TILES,
@@ -116,8 +114,8 @@ void NetworkHierarchy::makeGlobalDataNetwork() {
   globalDataNetwork->externalReadyOutput()(ackDataToComps[0]);
   globalDataNetwork->externalReadyInput()(ackDataFromComps[0]);
 
-  for(uint i=0; i<localDataNetworks.size(); i++) {
-    Network* n = localDataNetworks[i];
+  for(uint i=0; i<localNetworks.size(); i++) {
+    Network* n = localNetworks[i];
     n->externalInput()(dataToLocalNet[i]);
     n->externalOutput()(dataFromLocalNet[i]);
     n->externalValidInput()(validDataToLocal[i]);
@@ -132,66 +130,8 @@ void NetworkHierarchy::makeGlobalDataNetwork() {
     globalDataNetwork->ackDataOut[i](localReadyForData[i]);
   }
 
-}
-
-void NetworkHierarchy::makeCreditNetwork() {
-  // Make a local network for each tile. This includes all wiring up and
-  // creation of a router.
-  for(uint tile=0; tile<NUM_TILES; tile++) {
-    makeLocalCreditNetwork(tile);
-  }
-
-  // Only need a global network if there is more than one tile to link together.
-  if(NUM_TILES>1) makeGlobalCreditNetwork();
-}
-
-void NetworkHierarchy::makeLocalCreditNetwork(int tileID) {
-
-  // Create a local network.
-  ChannelID lowestID = tileID * OUTPUT_CHANNELS_PER_TILE;
-  Network* localNetwork = new Crossbar("credit_net",
-                                       tileID,
-                                       INPUT_PORTS_PER_TILE,
-                                       OUTPUT_PORTS_PER_TILE,
-                                       CORE_OUTPUT_PORTS,
-                                       CORE_OUTPUT_CHANNELS,
-                                       lowestID,
-                                       Dimension(1.0, 0.2),
-                                       true);
-  localCreditNetworks.push_back(localNetwork);
-
-  // Connect things up.
-  for(uint i=0; i<OUTPUT_PORTS_PER_TILE; i++) {
-    int outputIndex = (tileID * OUTPUT_PORTS_PER_TILE) + i;
-    localNetwork->dataOut[i](creditsOut[outputIndex]);
-    localNetwork->validDataOut[i](validCreditOut[outputIndex]);
-    localNetwork->ackDataOut[i](ackCreditOut[outputIndex]);
-  }
-  for(uint i=0; i<INPUT_PORTS_PER_TILE; i++) {
-    int inputIndex = (tileID * INPUT_PORTS_PER_TILE) + i;
-    localNetwork->dataIn[i](creditsIn[inputIndex]);
-    localNetwork->validDataIn[i](validCreditIn[inputIndex]);
-    localNetwork->ackDataIn[i](ackCreditIn[inputIndex]);
-  }
-
-  localNetwork->clock(clock);
-
-  // Simplify the network if there is only one tile: there is no longer any
-  // need for a global network, and this local network can connect directly
-  // to the OffChip component.
-  if(NUM_TILES == 1) {
-    localNetwork->externalInput()(creditsFromComponents[0]);
-    localNetwork->externalValidInput()(validCreditFromComps[0]);
-    localNetwork->externalReadyOutput()(ackCreditFromComps[0]);
-    localNetwork->externalOutput()(creditsToComponents[0]);
-    localNetwork->externalValidOutput()(validCreditToComps[0]);
-    localNetwork->externalReadyInput()(ackCreditToComps[0]);
-  }
-
-}
-
-void NetworkHierarchy::makeGlobalCreditNetwork() {
-
+  // Make credit network.
+  // TODO: integrate both networks into one GlobalNetwork.
   globalDataNetwork = new Crossbar("global_credit_net",
                                    0,
                                    NUM_TILES,
@@ -212,8 +152,8 @@ void NetworkHierarchy::makeGlobalCreditNetwork() {
   globalCreditNetwork->externalReadyOutput()(ackCreditToComps[0]);
   globalCreditNetwork->externalReadyInput()(ackCreditFromComps[0]);
 
-  for(uint i=0; i<localCreditNetworks.size(); i++) {
-    Network* n = localCreditNetworks[i];
+  for(uint i=0; i<localNetworks.size(); i++) {
+    Network* n = localNetworks[i];
     n->externalInput()(creditsToLocalNet[i]);
     n->externalOutput()(creditsFromLocalNet[i]);
     n->externalValidInput()(validCreditToLocal[i]);
@@ -276,10 +216,18 @@ NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
   globalReadyForData    = new ReadySignal[NUM_TILES];
   globalReadyForCredits = new ReadySignal[NUM_TILES];
 
-  // Make networks.
+  // Make flow control (only necessary for off-chip component - integrate there
+  // too?)
   setupFlowControl();
-  makeDataNetwork();
-  makeCreditNetwork();
+
+  // Make a local network for each tile. This includes all wiring up and
+  // creation of a router.
+  for(unsigned int tile=0; tile<NUM_TILES; tile++) {
+    makeLocalNetwork(tile);
+  }
+
+  // Only need a global network if there is more than one tile to link together.
+  if(NUM_TILES>1) makeGlobalNetwork();
 
 }
 
@@ -309,8 +257,7 @@ NetworkHierarchy::~NetworkHierarchy() {
   for(uint i=0; i<flowControlOut.size(); i++) delete flowControlOut[i];
 
   // Delete networks
-  for(uint i=0; i<localDataNetworks.size(); i++) delete localDataNetworks[i];
-  for(uint i=0; i<localCreditNetworks.size(); i++) delete localCreditNetworks[i];
+  for(uint i=0; i<localNetworks.size(); i++) delete localNetworks[i];
 
   // The global networks won't exist if there is only one tile, so we can't
   // delete them.

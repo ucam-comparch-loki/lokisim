@@ -21,17 +21,19 @@ public:
 
 // Inherited from Bus:
 //  DataInput     dataIn;
+//  ReadyInput    validDataIn;
+//  ReadyOutput   ackDataIn;
 //  DataOutput   *dataOut;
-//  ReadyOutput  *validOut;
-//  ReadyInput   *ackIn;
-//  ReadyOutput   canReceiveData;
+//  ReadyOutput  *validDataOut;
+//  ReadyInput   *ackDataOut;
 
   CreditInput  *creditsIn;
-  ReadyOutput  *canReceiveCredits;
+  ReadyInput   *validCreditIn;
+  ReadyOutput  *ackCreditIn;
 
   CreditOutput  creditsOut;
-  ReadyInput    canSendCredits;
-
+  ReadyOutput   validCreditOut;
+  ReadyInput    ackCreditOut;
 
 //==============================//
 // Constructors and destructors
@@ -40,7 +42,6 @@ public:
 public:
 
   SC_HAS_PROCESS(MulticastBus);
-
   // channelsPerOutput = number of channel IDs accessible through each output
   //                     of this bus. e.g. A memory may have 8 input channels,
   //                     which share only one input port.
@@ -57,12 +58,12 @@ protected:
 
   virtual void mainLoop();
   virtual void receivedData();
+  virtual void receivedCredit(PortIndex output);
 
 private:
 
   void checkCredits();
   void creditArrived();
-
   // Compute which outputs of this bus will be used by the given address. This
   // allows an address to represent multiple destinations.
   void getDestinations(ChannelID address, std::vector<PortIndex>& outputs) const;
@@ -75,11 +76,9 @@ private:
 
   // Multicast is complicated unless we keep track of which outputs owe credits.
   std::list<PortIndex> outstandingCredits;
-
   // The destination to send credits back to. We can't just forward all credits
   // received because there may be multiple credits for a single message.
   ChannelID creditDestination;
-
   sc_core::sc_event credit;
 
 };

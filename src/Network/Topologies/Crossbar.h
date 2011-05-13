@@ -35,10 +35,16 @@ class Crossbar: public Network {
 // Methods
 //==============================//
 
+public:
+
+  // Create the buses and arbiters. Note that this must be called from outside
+  // the constructor, as it will be calling virtual methods.
+  void initialise();
+
 protected:
 
-  virtual void makeBuses(int numBuses, int numArbiters, int channelsPerOutput, ChannelID startAddr);
-  virtual void makeArbiters(int numBuses, int numArbiters, int outputsPerComponent);
+  virtual void makeBuses();
+  virtual void makeArbiters();
 
 //==============================//
 // Constructors and destructors
@@ -63,7 +69,9 @@ public:
 
 protected:
 
-  const int numBuses, numMuxes, outputsPerComponent;
+// Parameters of this crossbar.
+  const int numBuses, numMuxes;
+  const int outputsPerComponent, channelsPerOutput, firstOutput;
 
   std::vector<Bus*>              buses;
   std::vector<ArbiterComponent*> arbiters;

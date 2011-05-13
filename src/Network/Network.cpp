@@ -38,6 +38,14 @@ ReadyOutput& Network::externalReadyOutput() const {
   return ackDataIn[numInputs-1];
 }
 
+int Network::numInputPorts() const {
+  return numInputs;
+}
+
+int Network::numOutputPorts() const {
+  return numOutputs;
+}
+
 Network::Network(sc_module_name name,
     ComponentID ID,
     int numInputs,        // Number of inputs this network has

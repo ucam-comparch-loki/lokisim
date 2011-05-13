@@ -84,13 +84,16 @@ public:
   ReadyInput& externalReadyInput() const;
   ReadyOutput& externalReadyOutput() const;
 
+  int numInputPorts() const;
+  int numOutputPorts() const;
+
 //==============================//
 // Local state
 //==============================//
 
 protected:
 
-  int numInputs, numOutputs;
+  unsigned int numInputs, numOutputs;
 
   // Tells whether this network has an extra connection to handle data which
   // isn't for any local component. This extra connection will typically

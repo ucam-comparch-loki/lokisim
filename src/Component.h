@@ -24,6 +24,8 @@ using sc_core::sc_signal;
 using sc_core::sc_buffer;   // Like an sc_signal, but every write makes an event
 using sc_core::sc_module_name;
 
+using sc_core::sc_gen_unique_name;
+
 using std::cout;
 using std::cerr;
 using std::endl;

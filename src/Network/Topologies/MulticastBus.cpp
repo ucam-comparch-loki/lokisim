@@ -10,23 +10,33 @@
 
 void MulticastBus::mainLoop() {
   while(true) {
-    wait(dataIn.default_event());
-    ackDataIn.write(false);
+    // Wait for data to arrive.
+    wait(validDataIn.posedge_event());
     receivedData();
+
+    // Wait for all credits to arrive.
     while(!outstandingCredits.empty()) {
       wait(credit);
       checkCredits();
     }
-    ackDataIn.write(true);
 
-    if(!canSendCredits.read()) wait(canSendCredits.posedge_event());
+    // Send a credit back to the sender.
     creditsOut.write(AddressedWord(1, creditDestination));
+
+    validCreditOut.write(true);
+    wait(ackCreditOut.posedge_event());
+    validCreditOut.write(false);
+
+    // Pulse an acknowledgement. Do this very late so the component doesn't
+    // send more data before the credits have been received.
+    ackDataIn.write(true);
+    wait(sc_core::SC_ZERO_TIME);
+    ackDataIn.write(false);
   }
 }
 
 void MulticastBus::receivedData() {
   assert(outstandingCredits.empty());
-
   AddressedWord data = dataIn.read();
   std::vector<PortIndex> destinations;
 
@@ -49,15 +59,25 @@ void MulticastBus::checkCredits() {
   int size = outstandingCredits.size();
 
   for(int i=0; i < size; i++, iter++) {
+    if(ackDataOut[*iter].event()) {
+      validDataOut[*iter].write(false);
+    }
     // If a recipient has consumed the given data, remove them from the list of
     // recipients we are waiting for, and deassert the newData signal.
-    if(creditsIn[*iter].event()) {
+    if(validCreditIn[*iter].read()) {
       receivedCredit(*iter);
       creditDestination = creditsIn[*iter].read().channelID();
       outstandingCredits.erase(iter);
       iter--;
     }
   }
+}
+
+void MulticastBus::receivedCredit(PortIndex output) {
+  validDataOut[output].write(false);
+  ackCreditIn[output].write(true);
+  wait(sc_core::SC_ZERO_TIME);
+  ackCreditIn[output].write(false);
 }
 
 void MulticastBus::getDestinations(ChannelID address, std::vector<PortIndex>& outputs) const {
@@ -81,17 +101,17 @@ MulticastBus::MulticastBus(sc_module_name name, ComponentID ID, int numOutputs,
                            int channelsPerOutput, ChannelID startAddr, Dimension size) :
     Bus(name, ID, numOutputs, channelsPerOutput, startAddr, size) {
 
-  creditsIn         = new CreditInput[numOutputs];
-  canReceiveCredits = new ReadyOutput[numOutputs];
-
-  for(int i=0; i<numOutputs; i++) canReceiveCredits[i].initialize(true);
+  creditsIn     = new CreditInput[numOutputs];
+  validCreditIn = new ReadyInput[numOutputs];
+  ackCreditIn   = new ReadyOutput[numOutputs];
 
   SC_METHOD(creditArrived);
-  for(int i=0; i<numOutputs; i++) sensitive << creditsIn[i];
+  for(int i=0; i<numOutputs; i++) sensitive << validCreditIn[i].pos() << ackDataOut[i];
   dont_initialize();
 }
 
 MulticastBus::~MulticastBus() {
   delete[] creditsIn;
-  delete[] canReceiveCredits;
+  delete[] validCreditIn;
+  delete[] ackCreditIn;
 }

@@ -9,18 +9,23 @@
 #include "../Arbiters/ArbiterComponent.h"
 #include "../../Datatype/AddressedWord.h"
 
-void Crossbar::makeBuses(int numBuses, int numArbiters, int channelsPerOutput, ChannelID startAddr) {
+void Crossbar::initialise() {
+  makeBuses();
+  makeArbiters();
+}
+
+void Crossbar::makeBuses() {
   // Generate and connect up buses.
   for(int i=0; i<numBuses; i++) {
-    Bus* bus = new Bus(sc_core::sc_gen_unique_name("bus"), i, numArbiters,
-                       numOutputs*channelsPerOutput, startAddr, size);
+    Bus* bus = new Bus(sc_gen_unique_name("bus"), i, numMuxes,
+                       numOutputs*channelsPerOutput, firstOutput, size);
     buses.push_back(bus);
 
     bus->dataIn(dataIn[i]);
     bus->validDataIn(validDataIn[i]);
     bus->ackDataIn(ackDataIn[i]);
 
-    for(int j=0; j<numArbiters; j++) {
+    for(int j=0; j<numMuxes; j++) {
       bus->dataOut[j](busToMux[i][j]);
       bus->validDataOut[j](newData[i][j]);
       bus->ackDataOut[j](readData[i][j]);
@@ -28,10 +33,10 @@ void Crossbar::makeBuses(int numBuses, int numArbiters, int channelsPerOutput, C
   }
 }
 
-void Crossbar::makeArbiters(int numBuses, int numArbiters, int outputsPerComponent) {
+void Crossbar::makeArbiters() {
   // Generate and connect up arbitrated multiplexers.
-  for(int i=0; i<numArbiters; i++) {
-    ArbiterComponent* arbiter = new ArbiterComponent(sc_core::sc_gen_unique_name("arbiter"),
+  for(int i=0; i<numMuxes; i++) {
+    ArbiterComponent* arbiter = new ArbiterComponent(sc_gen_unique_name("arbiter"),
                                                      i, numBuses, outputsPerComponent);
     arbiters.push_back(arbiter);
     arbiter->clock(clock);
@@ -56,7 +61,9 @@ Crossbar::Crossbar(sc_module_name name, ComponentID ID, int inputs, int outputs,
     Network(name, ID, inputs, outputs, size, externalConnection),
     numBuses(numInputs),
     numMuxes(numOutputs/outputsPerComponent),
-    outputsPerComponent(outputsPerComponent) {
+    outputsPerComponent(outputsPerComponent),
+    channelsPerOutput(channelsPerOutput),
+    firstOutput(startAddr) {
 
   busToMux = new sc_signal<DataType>*[numBuses];
   newData  = new sc_signal<ReadyType>*[numBuses];
@@ -67,9 +74,6 @@ Crossbar::Crossbar(sc_module_name name, ComponentID ID, int inputs, int outputs,
     newData[i]  = new sc_signal<ReadyType>[numMuxes];
     readData[i] = new sc_signal<ReadyType>[numMuxes];
   }
-
-  makeBuses(numBuses, numMuxes, channelsPerOutput, startAddr);
-  makeArbiters(numBuses, numMuxes, outputsPerComponent);
 
 }
 

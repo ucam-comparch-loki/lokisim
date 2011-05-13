@@ -144,6 +144,12 @@ void     Cluster::checkForwarding(DecodedInst& inst) const {
 }
 
 void     Cluster::updateForwarding(const DecodedInst& inst) {
+  // Should this update happen every cycle, or every time the forwarding is
+  // updated?
+  previousDest2   = previousDest1;
+  previousResult2 = previousResult1;
+  previousDest1   = -1;
+
   if(!InstructionMap::storesResult(inst.operation())) return;
 
   // We don't want to forward any data which was sent to register 0, because
@@ -155,13 +161,6 @@ void     Cluster::updateForwarding(const DecodedInst& inst) {
                      inst.operation() == InstructionMap::IWTR)
                   ? -1 : inst.destination();
   previousResult1 = inst.result();
-}
-
-void     Cluster::newCycle() {
-  // Update the forwarding values so we don't accidentally forward old data.
-  previousDest2   = previousDest1;
-  previousResult2 = previousResult1;
-  previousDest1   = -1;
 }
 
 bool     Cluster::readPredReg() const {
@@ -328,10 +327,6 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   SC_METHOD(updateIdle);
   for(uint i=0; i<stages.size(); i++) sensitive << stageIdle[i];
   // do initialise
-
-  SC_METHOD(newCycle);
-  sensitive << clock.pos();
-  dont_initialize();
 
   // Initialise the values in some wires.
   idle.initialize(true);
