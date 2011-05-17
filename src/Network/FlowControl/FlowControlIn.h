@@ -25,6 +25,7 @@ class FlowControlIn: public Component {
 
 public:
 
+  // Credits are sent at the positive edge of the clock.
   sc_in<bool>           clock;
 
   // Data received over the network, to be sent to a component's input.
@@ -40,9 +41,9 @@ public:
   sc_out<bool>          validCreditOut;
   sc_in<bool>           ackCreditOut;
 
-  // Flow control signals from the component's input, saying how
-  // much space is in its buffer.
-  sc_in<int>            creditsIn;
+  // Flow control signal from the component's input, saying whether there is
+  // room in the buffer for more data.
+  sc_in<bool>           bufferHasSpace;
 
 //==============================//
 // Constructors and destructors
@@ -62,11 +63,8 @@ private:
   // Data has arrived over the network.
   void         receivedData();
 
-  // Update a credit counter whenever the component sends us a new credit.
-  void         receiveFlowControl();
-
-  // Try to send credits onto the network whenever appropriate.
-  void         sendCredit();
+  // Update the bufferHasSpace signal.
+  void         updateReady();
 
 //==============================//
 // Local state
@@ -83,8 +81,6 @@ private:
 
   bool useCredits;
   unsigned int numCredits;
-
-  sc_core::sc_event newCredit;
 
 };
 

@@ -38,7 +38,7 @@ public:
   sc_in<Word>          *rcetIn;
 
   // A flow control signal for each input (NUM_RECEIVE_CHANNELS).
-  sc_out<int>          *flowControlOut;
+  sc_out<bool>         *flowControlOut;
 
   // An output used to send FETCH requests.
   sc_out<AddressedWord> fetchOut;

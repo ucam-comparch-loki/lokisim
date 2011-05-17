@@ -110,9 +110,10 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
   waitingToSend = false;
 
   rcetIn         = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
-  flowControlOut = new sc_out<int>[NUM_RECEIVE_CHANNELS];
+  flowControlOut = new sc_out<bool>[NUM_RECEIVE_CHANNELS];
 
   // Connect everything up
+  rcet.clock(clock);
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     rcet.fromNetwork[i](rcetIn[i]);
     rcet.flowControl[i](flowControlOut[i]);

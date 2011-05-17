@@ -25,7 +25,6 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
   }
 
   int32_t result = buffers.read(channelEnd).toInt();
-  sendCredit(channelEnd);
 
   if(DEBUG) cout << this->name() << " read " << result << " from channel "
                  << (int)channelEnd << endl;
@@ -71,8 +70,10 @@ void ReceiveChannelEndTable::checkInputs() {
   }
 }
 
-void ReceiveChannelEndTable::sendCredit(ChannelIndex channelEnd) {
-  flowControl[channelEnd].write(1);
+void ReceiveChannelEndTable::updateFlowControl() {
+  for(unsigned int i=0; i<buffers.size(); i++) {
+    flowControl[i].write(!buffers[i].full());
+  }
 }
 
 DecodeStage* ReceiveChannelEndTable::parent() const {
@@ -85,12 +86,16 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name, const Compon
     buffers(NUM_RECEIVE_CHANNELS, CHANNEL_END_BUFFER_SIZE, string(name)),
     currentChannel(NUM_RECEIVE_CHANNELS) {
 
-  flowControl = new sc_out<int>[NUM_RECEIVE_CHANNELS];
+  flowControl = new sc_out<bool>[NUM_RECEIVE_CHANNELS];
   fromNetwork = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
 
   SC_METHOD(checkInputs);
   for(uint i=0; i<buffers.size(); i++) sensitive << fromNetwork[i];
   dont_initialize();
+
+  SC_METHOD(updateFlowControl);
+  sensitive << clock.neg();
+  // do initialise
 
 }
 

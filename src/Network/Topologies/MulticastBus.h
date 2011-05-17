@@ -20,18 +20,25 @@ class MulticastBus: public Bus {
 public:
 
 // Inherited from Bus:
-//  DataInput     dataIn;
-//  DataOutput   *dataOut;
-//  ReadyOutput  *validOut;
-//  ReadyInput   *ackIn;
-//  ReadyOutput   canReceiveData;
+//
+//   sc_in<bool>   clock;
+//
+//   DataInput    *dataIn;
+//   ReadyInput   *validDataIn;
+//   ReadyOutput  *ackDataIn;
+//
+//   DataOutput   *dataOut;
+//   ReadyOutput  *validDataOut;
+//   ReadyInput   *ackDataOut;
 
   CreditInput  *creditsIn;
-  ReadyOutput  *canReceiveCredits;
+  ReadyInput   *validCreditIn;
+  ReadyOutput  *ackCreditIn;
 
+  // Make these into arrays of length 1, for consistency?
   CreditOutput  creditsOut;
-  ReadyInput    canSendCredits;
-
+  ReadyOutput   validCreditOut;
+  ReadyInput    ackCreditOut;
 
 //==============================//
 // Constructors and destructors
@@ -40,13 +47,8 @@ public:
 public:
 
   SC_HAS_PROCESS(MulticastBus);
-
-  // channelsPerOutput = number of channel IDs accessible through each output
-  //                     of this bus. e.g. A memory may have 8 input channels,
-  //                     which share only one input port.
-  // startAddr         = the first channelID accessible through this network.
   MulticastBus(sc_module_name name, const ComponentID& ID, int numOutputs,
-               int channelsPerOutput, const ChannelID& startAddr, Dimension size);
+               HierarchyLevel level, Dimension size);
   virtual ~MulticastBus();
 
 //==============================//
@@ -57,12 +59,12 @@ protected:
 
   virtual void mainLoop();
   virtual void receivedData();
+  virtual void receivedCredit(PortIndex output);
 
 private:
 
   void checkCredits();
   void creditArrived();
-
   // Compute which outputs of this bus will be used by the given address. This
   // allows an address to represent multiple destinations.
   void getDestinations(const ChannelID& address, std::vector<PortIndex>& outputs) const;

@@ -27,7 +27,6 @@ void SendChannelEndTable::write(const AddressedWord& data, MapIndex output) {
   // We know it is safe to write to any buffer because we block the rest
   // of the pipeline if a buffer is full.
   assert(!buffer.full());
-  cerr << (int)output << endl;
   assert(output < CHANNEL_MAP_SIZE);
   buffer.write(data);
   mapEntries.write(output);
@@ -64,6 +63,7 @@ void SendChannelEndTable::send() {
 
       // Deassert the valid signal when an acknowledgement arrives.
       wait(ackOutput.posedge_event());
+      cout << this->name() << " received ack" << endl;
       validOutput.write(false);
     }
   }

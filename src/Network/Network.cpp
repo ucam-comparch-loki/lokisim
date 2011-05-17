@@ -8,6 +8,19 @@
 #include "Network.h"
 #include "../Datatype/AddressedWord.h"
 
+PortIndex Network::getDestination(const ChannelID& address) const {
+  // Access a different part of the address depending on where in the network
+  // we are.
+  switch(level) {
+    case TILE : return address.getTile();
+    case COMPONENT : return address.getPosition();
+    case CHANNEL : return address.getChannel();
+    case NONE : return 0;
+  }
+
+  // Add support for multicast in here?
+}
+
 DataInput& Network::externalInput() const {
   assert(externalConnection);
   return dataIn[numInputs-1];
@@ -38,10 +51,19 @@ ReadyOutput& Network::externalReadyOutput() const {
   return ackDataIn[numInputs-1];
 }
 
+int Network::numInputPorts() const {
+  return numInputs;
+}
+
+int Network::numOutputPorts() const {
+  return numOutputs;
+}
+
 Network::Network(sc_module_name name,
     const ComponentID& ID,
     int numInputs,        // Number of inputs this network has
     int numOutputs,       // Number of outputs this network has
+    HierarchyLevel level, // Position in the network hierarchy
     Dimension size,       // The physical size of this network (width, height)
     bool externalConnection) : // Is there a port to send data on if it
                                // isn't for any local component?
@@ -49,6 +71,7 @@ Network::Network(sc_module_name name,
 
   this->numInputs  = externalConnection ? numInputs+1 : numInputs;
   this->numOutputs = externalConnection ? numOutputs+1 : numOutputs;
+  this->level = level;
   this->externalConnection = externalConnection;
   this->size = size;
 
@@ -59,9 +82,6 @@ Network::Network(sc_module_name name,
   dataOut      = new DataOutput[this->numOutputs];
   validDataOut = new ReadyOutput[this->numOutputs];
   ackDataOut   = new ReadyInput[this->numOutputs];
-
-  // Need to call end_module in every subclass.
-//  end_module();
 
 }
 

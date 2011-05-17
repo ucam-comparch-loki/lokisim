@@ -17,8 +17,10 @@ class ChannelMapEntry {
 
 public:
 
+  enum NetworkType {CORE_TO_CORE, CORE_TO_MEMORY, GLOBAL};
+
   ChannelID destination() const;
-  int network() const;
+  NetworkType network() const;
   bool localMemory() const;
   int memoryGroupBits() const;
 
@@ -39,7 +41,7 @@ private:
   ChannelID destination_;
 
   // The network to send data on (e.g. core-to-core or core-to-memory).
-  unsigned int network_;
+  NetworkType network_;
 
   // Whether or not the network being used requires an up-to-date credit counter.
   bool useCredits_;

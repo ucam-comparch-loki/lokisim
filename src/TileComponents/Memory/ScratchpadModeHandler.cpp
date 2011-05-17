@@ -158,6 +158,7 @@ void ScratchpadModeHandler::writeByte(uint32_t address, uint32_t data) {
 	assert(slot <= cSetCount * cWayCount * cLineSize);
 	uint32_t oldData = mData[slot / 4];
 
+	// Are breaks needed here?
 	switch (address & 0x3) {	// Little endian
 	case 0:	mData[slot / 4] = (oldData & 0xFFFFFF00UL) | (data & 0x000000FFUL);
 	case 1:	mData[slot / 4] = (oldData & 0xFFFF00FFUL) | ((data & 0x000000FFUL) << 8);

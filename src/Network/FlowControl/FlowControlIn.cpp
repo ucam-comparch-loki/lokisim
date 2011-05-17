@@ -16,9 +16,10 @@ void FlowControlIn::receivedData() {
 	while(true) {
 		// Wait for data to arrive.
 		wait(clock.posedge_event());
+
 		ackDataIn.write(false);
-		if(!validDataIn.read())
-			continue;
+		wait(sc_core::SC_ZERO_TIME);  // Allow time for the valid signal to be deasserted.
+		if(!validDataIn.read()) continue;
 
 		if(dataIn.read().portClaim()) {
 			// TODO: only accept the port claim when we have no credits left to send.
@@ -27,44 +28,30 @@ void FlowControlIn::receivedData() {
 			returnAddress = dataIn.read().payload().toInt();
 			useCredits = dataIn.read().useCredits();
 
-			if (useCredits) {
-				numCredits++;
-				assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
-
-				// Wake up the sendCredit thread.
-				newCredit.notify();
-			}
-
 			if(DEBUG)
 				cout << "Channel " << channel.getString() << " was claimed by " << returnAddress.getString() << " [flow control " << (useCredits ? "enabled" : "disabled") << "]" << endl;
 		} else {
+		  // Wait until there is space in the buffer, if necessary
+		  if(!bufferHasSpace.read()) wait(bufferHasSpace.posedge_event());
+
 			// Pass the value to the component.
 			dataOut.write(dataIn.read().payload());
 		}
 
+    if (useCredits) {
+      numCredits++;
+      assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
+    }
+
+		// Acknowledge the data.
 		ackDataIn.write(true);
 	}
 }
 
-void FlowControlIn::receiveFlowControl() {
-	while(true) {
-		wait(creditsIn.default_event());
-
-		if (useCredits) {
-			numCredits++;
-			assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
-
-			// Wake up the sendCredit thread.
-			newCredit.notify();
-		}
-	}
-}
-
-void FlowControlIn::sendCredit() {
+void FlowControlIn::updateReady() {
   while(true) {
-    // Wait until our next credit arrives, unless we already have one waiting.
-    if(numCredits>0) wait(1, sc_core::SC_NS);
-    else wait(newCredit);
+    wait(clock.posedge_event());
+    if(numCredits == 0) continue;
 
     // This should not execute if credits are disabled
     assert(useCredits);
@@ -74,6 +61,7 @@ void FlowControlIn::sendCredit() {
       AddressedWord aw(Word(1), returnAddress);
       creditsOut.write(aw);
       validCreditOut.write(true);
+
       numCredits--;
       assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
 
@@ -97,9 +85,5 @@ FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const C
   numCredits = 0;
 
   SC_THREAD(receivedData);
-  SC_THREAD(receiveFlowControl);
-  SC_THREAD(sendCredit);
-
-  end_module(); // Needed because we're using a different Component constructor
-
+  SC_THREAD(updateReady);
 }

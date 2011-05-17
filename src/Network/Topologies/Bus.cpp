@@ -10,22 +10,24 @@
 void Bus::mainLoop() {
   while(true) {
     wait(clock.posedge_event());
-    ackDataIn.write(false);
-    if(!validDataIn.read()) continue;
+
+    ackDataIn[0].write(false);
+    wait(sc_core::SC_ZERO_TIME);  // Allow time for the valid signal to be deasserted.
+    if(!validDataIn[0].read()) continue;
+
     receivedData();
 
     // Pulse an acknowledgement.
-    ackDataIn.write(true);
+    ackDataIn[0].write(true);
   }
 }
 
 void Bus::receivedData() {
-  DataType data = dataIn.read();
+  DataType data = dataIn[0].read();
 
   const PortIndex output = getDestination(data.channelID());
   assert(output < numOutputs);
 
-  // If multicasting, may need to change the channel ID for each output.
   dataOut[output].write(data);
   validDataOut[output].write(true);
 
@@ -38,14 +40,8 @@ void Bus::receivedCredit(PortIndex output) {
   validDataOut[output].write(false);
 }
 
-PortIndex Bus::getDestination(const ChannelID& address) const {
-  // TODO: allow non-local communication
-  //TODO: Check again - unsure whether this is doing what is intended
-  return (address.getGlobalChannelNumber(OUTPUT_CHANNELS_PER_TILE, CORE_OUTPUT_CHANNELS) - startAddress.getGlobalChannelNumber(OUTPUT_CHANNELS_PER_TILE, CORE_OUTPUT_CHANNELS))/channelsPerOutput;
-}
-
 void Bus::computeSwitching() {
-  DataType newData = dataIn.read();
+  DataType newData = dataIn[0].read();
   unsigned int dataDiff = newData.payload().toInt() ^ lastData.payload().toInt();
   unsigned int channelDiff = newData.channelID().getData() ^ lastData.channelID().getData();
 
@@ -60,27 +56,12 @@ void Bus::computeSwitching() {
 }
 
 Bus::Bus(sc_module_name name, const ComponentID& ID, int numOutputPorts,
-         int numOutputChannels, const ChannelID& startAddr, Dimension size) :
-    Component(name, ID) {
-
-  dataOut      = new DataOutput[numOutputPorts];
-  validDataOut = new ReadyOutput[numOutputPorts];
-  ackDataOut   = new ReadyInput[numOutputPorts];
-
-  this->numOutputs = numOutputPorts;
-  this->channelsPerOutput = numOutputChannels/numOutputPorts;
-  this->startAddress = startAddr;
-  this->size = size;
+         HierarchyLevel level, Dimension size) :
+    Network(name, ID, 1, numOutputPorts, level, size) {
 
   SC_THREAD(mainLoop);
 
   SC_METHOD(computeSwitching);
-  sensitive << dataIn;
+  sensitive << dataIn[0];
   dont_initialize();
-}
-
-Bus::~Bus() {
-  delete[] dataOut;
-  delete[] validDataOut;
-  delete[] ackDataOut;
 }

@@ -220,7 +220,9 @@ ReevaluateRequest:
 }
 
 bool MemoryBank::processMessageHeader() {
-	if (mInputQueue.empty())
+  mFSMState = STATE_IDLE;
+
+  if (mInputQueue.empty())
 		return false;
 
 	mActiveTableIndex = mInputQueue.peek().channelID().getChannel();
@@ -490,7 +492,8 @@ void MemoryBank::processLocalMemoryAccess() {
 				return;
 
 			bool cacheHit;
-			MemoryRequest payload(mInputQueue.read().payload());
+			MemoryRequest payload(mInputQueue.peek().payload());
+
 			assert(payload.getOperation() == MemoryRequest::PAYLOAD_ONLY);
 
 			switch (mActiveRequest.getOperation()) {
@@ -504,7 +507,9 @@ void MemoryBank::processLocalMemoryAccess() {
 			mCacheResumeRequest = false;
 
 			if (cacheHit) {
-				// Chain next request
+			  mInputQueue.read();
+
+			  // Chain next request
 
 				if (!processRingEvent())
 					processMessageHeader();
@@ -833,20 +838,19 @@ void MemoryBank::processWaitRingOutput() {
 	}
 }
 
+void MemoryBank::processValidInput() {
+  // Acknowledge new data as soon as it arrives if we know it will be consumed
+  // in this clock cycle.
+  // FIXME: also needs to update whenever the queue's "full" flag changes.
+  oDataInAcknowledge.write(iDataInValid.read() && !mInputQueue.full());
+}
+
 void MemoryBank::handleNetworkInterfacesPre() {
 	// Set port defaults
 
-	oDataInAcknowledge.write(false);
 	oDataOutValid.write(false);
 	oRingAcknowledge.write(false);
 	oRingStrobe.write(false);
-
-	// Check data input ports and update queue
-
-	if (iDataInValid.read() && !mInputQueue.full()) {
-		mInputQueue.write(iDataIn.read());
-		oDataInAcknowledge.write(true);
-	}
 
 	// Check whether old output word got acknowledged
 
@@ -861,6 +865,12 @@ void MemoryBank::handleNetworkInterfacesPre() {
 
 	if (mRingRequestOutputPending && iRingAcknowledge.read())
 		mRingRequestOutputPending = false;
+
+	// Check data input ports and update queue
+
+	if (iDataInValid.read() && !mInputQueue.full()) {
+		mInputQueue.write(iDataIn.read());
+	}
 }
 
 void MemoryBank::handleNetworkInterfacesPost() {
@@ -879,7 +889,6 @@ void MemoryBank::handleNetworkInterfacesPost() {
 		AddressedWord word(outWord.Data, mChannelMapTable[outWord.TableIndex].ReturnChannel);
 		word.setPortClaim(outWord.PortClaim, false);
 		word.setEndOfPacket(outWord.LastWord);
-
 		mOutputWordPending = true;
 		mActiveOutputWord = word;
 	}
@@ -1029,6 +1038,10 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	//-- Register module with SystemC simulation kernel -------------------------------------------
 
 	SC_THREAD(mainLoop);
+
+	SC_METHOD(processValidInput);
+	sensitive << iDataInValid << iClock.neg();
+	// do initialise
 
 	Instrumentation::idle(id, true);
 

@@ -4,7 +4,8 @@
  * A crossbar with multicast functionality.
  *
  * Multicast and credits don't mix well, so this crossbar reduces credits to
- * behave like an acknowledge signal.
+ * behave like an acknowledge signal. This means that the destination(s) for
+ * data can't be changed if there are still outstanding credits.
  *
  *  Created on: 9 Mar 2011
  *      Author: db434
@@ -15,9 +16,8 @@
 
 #include "Crossbar.h"
 
-class ArbiterComponent;
+class UnclockedNetwork;
 
-// Should inherit from Crossbar
 class MulticastCrossbar: public Crossbar {
 
 //==============================//
@@ -27,11 +27,16 @@ class MulticastCrossbar: public Crossbar {
 public:
 
 // Inherited from Crossbar:
+//
 //  sc_in<bool>   clock;
+//
 //  DataInput    *dataIn;
+//  ReadyInput   *validDataIn;
+//  ReadyOutput  *ackDataIn;
+//
 //  DataOutput   *dataOut;
-//  ReadyInput   *canSendData;
-//  ReadyOutput  *canReceiveData;
+//  ReadyOutput  *validDataOut;
+//  ReadyInput   *ackDataOut;
 
   CreditInput  *creditsIn;
   ReadyInput   *validCreditIn;
@@ -45,15 +50,25 @@ public:
 // Methods
 //==============================//
 
-protected:
+public:
 
-  virtual void makeBuses(int numBuses, int numArbiters, int channelsPerOutput, const ChannelID& startAddr);
+  // The input port to this network which comes from the next level of network
+  // hierarchy (or off-chip).
+  CreditInput&  externalCreditIn() const;
+
+  // The output port of this network which goes to the next level of network
+  // hierarchy (or off-chip).
+  CreditOutput& externalCreditOut() const;
+
+  ReadyInput&   externalValidCreditIn() const;
+  ReadyOutput&  externalValidCreditOut() const;
+
+  ReadyInput&   externalAckCreditIn() const;
+  ReadyOutput&  externalAckCreditOut() const;
 
 private:
 
-  // TODO: use a demultiplexer component at each credit input, instead of
-  // checking all inputs using this method.
-  void creditArrived();
+  virtual void makeBuses();
 
 //==============================//
 // Constructors and destructors
@@ -62,9 +77,19 @@ private:
 public:
 
   SC_HAS_PROCESS(MulticastCrossbar);
-  MulticastCrossbar(sc_module_name name, const ComponentID& ID, int inputs, int outputs,
-                    int outputsPerComponent, int channelsPerOutput, const ChannelID& startAddr,
-                    Dimension size, bool externalConnection=false);
+  MulticastCrossbar(const sc_module_name& name,     // Name
+                    const ComponentID& ID,          // ID
+                    int inputs,                     // Number of crossbar inputs
+                    int outputs,                    // Number of crossbar outputs
+                    int outputsPerComponent,        // Outputs leading to same component
+//                    int channelsPerOutput,          // Channels reachable through each output
+//                    const ChannelID& firstOutput,   // Address of first reachable channel
+                    int inputsPerComponent,         // Inputs from same component
+//                    int channelsPerInput,           // Channels reachable through each input
+//                    const ChannelID& firstInput,    // Address of first reachable channel
+                    HierarchyLevel level,           // Location in network hierarchy
+                    Dimension size,                 // Physical size (width, height)
+                    bool externalConnection=false); // Add a connection to larger network?
   virtual ~MulticastCrossbar();
 
 //==============================//
@@ -73,9 +98,17 @@ public:
 
 private:
 
-  sc_buffer<CreditType> **creditsToBus;
-  sc_signal<ReadyType>  **busReadyCredits;
+  // A very small crossbar for each component, taking credits from the
+  // component's inputs to the appropriate data bus. Credits need to go to the
+  // data bus because that is where the multicast takes place, so it is where
+  // combination of credits occurs too.
+  std::vector<UnclockedNetwork*> creditCrossbars;
+
+  CreditSignal **creditsToBus;
+  ReadySignal  **validCreditToBus;
+  ReadySignal  **ackCreditToBus;
+
+  bool newCredits;
 
 };
-
 #endif /* MULTICASTCROSSBAR_H_ */

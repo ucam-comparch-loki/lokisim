@@ -332,6 +332,7 @@ bool Decoder::completeWrite(const DecodedInst& input, DecodedInst& output) {
 
   try {
     setOperand1ToValue(output, output.sourceReg1());
+    output.memoryOp(MemoryRequest::PAYLOAD_ONLY);
   }
   catch(BlockedException& b) {
     blocked = true;

@@ -71,13 +71,8 @@ private:
 
   void setupFlowControl();
 
-  void makeDataNetwork();
-  void makeLocalDataNetwork(int tileID);
-  void makeGlobalDataNetwork();
-
-  void makeCreditNetwork();
-  void makeLocalCreditNetwork(int tileID);
-  void makeGlobalCreditNetwork();
+  void makeLocalNetwork(int tileID);
+  void makeGlobalNetwork();
 
 //==============================//
 // Components
@@ -91,8 +86,7 @@ private:
   // Flow control at each component's outputs.
   vector<FlowControlOut*> flowControlOut;
 
-  vector<Network*> localDataNetworks;
-  vector<Network*> localCreditNetworks;
+  vector<Network*> localNetworks;
   Network *globalDataNetwork, *globalCreditNetwork;
   OffChip offChip;  // Should this be in here, or outside?
 
@@ -121,7 +115,7 @@ private:
   // Signals between off-chip and its flow control component.
   DataSignal         dataFromOffChip;
   sc_signal<Word>    dataToOffChip;
-  sc_signal<int>     creditsFromOffChip;
+  sc_signal<bool>    readyFromOffChip;
   ReadySignal        readyToOffChip;
 
 };

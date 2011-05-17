@@ -15,7 +15,7 @@ ChannelID ChannelMapEntry::destination() const {
   return destination_;
 }
 
-int ChannelMapEntry::network() const {
+ChannelMapEntry::NetworkType ChannelMapEntry::network() const {
   return network_;
 }
 
@@ -41,7 +41,7 @@ void ChannelMapEntry::setCoreDestination(const ChannelID& address) {
 	assert(!useCredits_ || (credits_ == MAX_CREDITS));
 
 	destination_ = address;
-	network_ = 0;
+	network_ = /*(address.getTile() == local) ?*/ CORE_TO_CORE /*: GLOBAL*/;
 	useCredits_ = true;
 	localMemory_ = false;
 }
@@ -52,7 +52,7 @@ void ChannelMapEntry::setMemoryDestination(const ChannelID& address, uint memory
 	assert(!useCredits_ || (credits_ == MAX_CREDITS));
 
 	destination_ = address;
-	network_ = 0;
+	network_ = CORE_TO_MEMORY;
 	useCredits_ = false;
 	localMemory_ = true;
 }

@@ -9,19 +9,23 @@
 #include "../Arbiters/ArbiterComponent.h"
 #include "../../Datatype/AddressedWord.h"
 
-void Crossbar::makeBuses(int numBuses, int numArbiters, int channelsPerOutput, const ChannelID& startAddr) {
+void Crossbar::initialise() {
+  makeBuses();
+  makeArbiters();
+}
+
+void Crossbar::makeBuses() {
   // Generate and connect up buses.
   for(int i=0; i<numBuses; i++) {
-    Bus* bus = new Bus(sc_core::sc_gen_unique_name("bus"), i, numArbiters,
-                       numOutputs*channelsPerOutput, startAddr, size);
+    Bus* bus = new Bus(sc_gen_unique_name("bus"), i, numMuxes, level, size);
     buses.push_back(bus);
     bus->clock(clock);
 
-    bus->dataIn(dataIn[i]);
-    bus->validDataIn(validDataIn[i]);
-    bus->ackDataIn(ackDataIn[i]);
+    bus->dataIn[0](dataIn[i]);
+    bus->validDataIn[0](validDataIn[i]);
+    bus->ackDataIn[0](ackDataIn[i]);
 
-    for(int j=0; j<numArbiters; j++) {
+    for(int j=0; j<numMuxes; j++) {
       bus->dataOut[j](busToMux[i][j]);
       bus->validDataOut[j](newData[i][j]);
       bus->ackDataOut[j](readData[i][j]);
@@ -29,10 +33,10 @@ void Crossbar::makeBuses(int numBuses, int numArbiters, int channelsPerOutput, c
   }
 }
 
-void Crossbar::makeArbiters(int numBuses, int numArbiters, int outputsPerComponent) {
+void Crossbar::makeArbiters() {
   // Generate and connect up arbitrated multiplexers.
-  for(int i=0; i<numArbiters; i++) {
-    ArbiterComponent* arbiter = new ArbiterComponent(sc_core::sc_gen_unique_name("arbiter"),
+  for(int i=0; i<numMuxes; i++) {
+    ArbiterComponent* arbiter = new ArbiterComponent(sc_gen_unique_name("arbiter"),
                                                      i, numBuses, outputsPerComponent);
     arbiters.push_back(arbiter);
     arbiter->clock(clock);
@@ -52,9 +56,9 @@ void Crossbar::makeArbiters(int numBuses, int numArbiters, int outputsPerCompone
 }
 
 Crossbar::Crossbar(sc_module_name name, const ComponentID& ID, int inputs, int outputs,
-                   int outputsPerComponent, int channelsPerOutput,
-                   const ChannelID& startAddr, Dimension size, bool externalConnection) :
-    Network(name, ID, inputs, outputs, size, externalConnection),
+                   int outputsPerComponent, HierarchyLevel level, Dimension size,
+                   bool externalConnection) :
+    Network(name, ID, inputs, outputs, level, size, externalConnection),
     numBuses(numInputs),
     numMuxes(numOutputs/outputsPerComponent),
     outputsPerComponent(outputsPerComponent) {
@@ -68,9 +72,6 @@ Crossbar::Crossbar(sc_module_name name, const ComponentID& ID, int inputs, int o
     newData[i]  = new sc_signal<ReadyType>[numMuxes];
     readData[i] = new sc_signal<ReadyType>[numMuxes];
   }
-
-  makeBuses(numBuses, numMuxes, channelsPerOutput, startAddr);
-  makeArbiters(numBuses, numMuxes, outputsPerComponent);
 
 }
 

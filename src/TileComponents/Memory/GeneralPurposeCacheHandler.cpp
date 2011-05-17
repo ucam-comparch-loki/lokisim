@@ -194,12 +194,13 @@ bool GeneralPurposeCacheHandler::readByte(uint32_t address, uint32_t &data, bool
 		Instrumentation::memoryReadByte(mBankNumber, address, false);
 
 	uint32_t fullWord = mData[slot * cLineSize / 4 + (address & mLineMask) / 4];
+  uint32_t selector = address & 0x3UL;
 
-	switch (address & 0x3) {	// Little endian
-	case 0:	data = fullWord & 0xFFUL;
-	case 1:	data = (fullWord >> 8) & 0xFFUL;
-	case 2:	data = (fullWord >> 16) & 0xFFUL;
-	case 3:	data = (fullWord >> 24) & 0xFFUL;
+	switch (selector) {	// Little endian
+	case 0:	data = fullWord & 0xFFUL;          break;
+	case 1:	data = (fullWord >> 8) & 0xFFUL;   break;
+	case 2:	data = (fullWord >> 16) & 0xFFUL;  break;
+	case 3:	data = (fullWord >> 24) & 0xFFUL;  break;
 	}
 
 	promoteCacheLine(slot);
@@ -251,8 +252,6 @@ bool GeneralPurposeCacheHandler::writeHalfWord(uint32_t address, uint32_t data, 
 }
 
 bool GeneralPurposeCacheHandler::writeByte(uint32_t address, uint32_t data, bool resume, bool debug) {
-	assert((address & 0x1) == 0);
-
 	uint slot;
 	if (!lookupCacheLine(address, slot)) {
 		assert(!resume);

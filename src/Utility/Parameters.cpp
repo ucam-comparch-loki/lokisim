@@ -88,7 +88,7 @@ parameter MEMORY_ON_CHIP_SCRATCHPAD_PORTS		= 2;
 // accessible through each port.
 //-------------------------------------------------------------------------------------------------
 
-parameter  CORE_INPUT_PORTS         = 2;  // Current = input channels. Aim = 2.
+parameter  CORE_INPUT_PORTS         = 2;
 parameter  CORE_OUTPUT_PORTS        = 1;
 parameter  NUM_RECEIVE_CHANNELS     = 6;  // Register-mapped inputs only
 
@@ -99,7 +99,7 @@ parameter  NUM_RECEIVE_CHANNELS     = 6;  // Register-mapped inputs only
 
 parameter CHANNEL_END_BUFFER_SIZE    = 8;
 parameter ROUTER_BUFFER_SIZE         = 4;
-parameter NETWORK_BUFFER_SIZE        = 4;
+parameter NETWORK_BUFFER_SIZE        = 4;   // Obsolete?
 
 // TODO: make wormhole routing a per-network property, rather than a global property.
 parameter WORMHOLE_ROUTING           = 0; // Has negative effect on performance

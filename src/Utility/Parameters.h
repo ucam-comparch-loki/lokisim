@@ -99,6 +99,12 @@ extern parameter	NUM_RECEIVE_CHANNELS;     // Register-mapped inputs only
 //extern parameter  MEMORY_INPUT_CHANNELS;
 //extern parameter  MEMORY_OUTPUT_CHANNELS;
 
+#define MEMORY_INPUT_PORTS 1
+#define MEMORY_OUTPUT_PORTS 1
+#define MEMORY_CHANNELS 16 // Memories always have the same number of input/output channels
+#define MEMORY_INPUT_CHANNELS MEMORY_CHANNELS
+#define MEMORY_OUTPUT_CHANNELS MEMORY_CHANNELS
+
 extern parameter	CHANNEL_END_BUFFER_SIZE;	// Different send/receive sizes?
 extern parameter	ROUTER_BUFFER_SIZE;
 extern parameter	NETWORK_BUFFER_SIZE;

@@ -10,7 +10,7 @@
 
 const Instruction InstructionPacketFIFO::read() {
   Instruction inst = fifo.read();
-  sendCredit();
+  updateReady();
   return inst;
 }
 
@@ -29,8 +29,9 @@ void InstructionPacketFIFO::receivedInst() {
   write(inst);
 }
 
-void InstructionPacketFIFO::sendCredit() {
-  flowControl.write(1);
+void InstructionPacketFIFO::updateReady() {
+//  flowControl.write(1);
+  flowControl.write(!fifo.full());
 }
 
 InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
@@ -40,5 +41,9 @@ InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
   SC_METHOD(receivedInst);
   sensitive << instructionIn;
   dont_initialize();
+
+  SC_METHOD(updateReady);
+  sensitive << clock.neg();
+  // do initialise
 
 }

@@ -121,10 +121,6 @@ private:
   // Update the values in the forwarding paths using a new result.
   void             updateForwarding(const DecodedInst& inst);
 
-  // Perform any activities which need to happen at the start of each clock
-  // cycle.
-  void             newCycle();
-
   // Update the address of the currently executing instruction packet so we
   // can fetch more packets from relative locations.
   void             updateCurrentPacket(MemoryAddr addr);
@@ -189,7 +185,7 @@ private:
   sc_signal<bool>           *stageIdle, *stallRegReady, *stageReady;
 
   sc_buffer<Word>           *dataToBuffers;
-  sc_buffer<int>            *fcFromBuffers;
+  sc_signal<bool>           *fcFromBuffers;
 
   // Transmission of the instruction along the pipeline. sc_buffers because we
   // want to trigger an event even if the instruction is identical.

@@ -17,6 +17,7 @@
 
 void Statistics::printStats() {
   std::cout.precision(3);
+  std::cout.fill(' ');
   IPKCache::printStats();
   Memory::printStats();
   Network::printStats();

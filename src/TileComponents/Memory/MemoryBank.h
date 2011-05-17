@@ -295,8 +295,11 @@ private:
 	void processGeneralPurposeCacheMiss();
 	void processWaitRingOutput();
 
+	void processValidInput();
+
 	void handleNetworkInterfacesPre();
 	void handleNetworkInterfacesPost();
+
 
 	void mainLoop();										// Main loop thread - running at every positive clock edge
 

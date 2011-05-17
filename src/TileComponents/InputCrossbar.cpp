@@ -8,29 +8,27 @@
 #include "InputCrossbar.h"
 #include "../Datatype/AddressedWord.h"
 #include "../Network/FlowControl/FlowControlIn.h"
+#include "../Network/Topologies/Crossbar.h"
+#include "../Network/UnclockedNetwork.h"
 #include "../TileComponents/TileComponent.h"
-
-void InputCrossbar::dataArrived() {
-  newData.notify();
-}
-
-void InputCrossbar::sendData() {
-  while(true) {
-    // We want to send data on to the buffers as soon as it arrives over the
-    // network.
-    wait(newData);
-
-    // Generate a negative edge to trigger sending of data.
-    sendDataSig.write(false);
-    wait(sc_core::SC_ZERO_TIME);
-    sendDataSig.write(true);
-  }
-}
 
 InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID, int inputs, int outputs) :
     Component(name, ID),
-    dataXbar("data", ID, inputs, outputs, 1, 1, ChannelID(ID, 0), Dimension(1.0/CORES_PER_TILE, 0.05)),
-    creditXbar("credit", ID, outputs, inputs, inputs, TOTAL_OUTPUT_CHANNELS, ChannelID(0), Dimension(1.0/CORES_PER_TILE, 0.05)) {
+    creditNet("credit", ID, outputs, inputs, inputs, Network::NONE, Dimension(1.0/CORES_PER_TILE, 0.05)),
+    dataNet("data", ID, inputs, outputs, 1, Network::CHANNEL, Dimension(1.0/CORES_PER_TILE, 0.05)),
+    creditClock("credit_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.25),
+    dataClock("data_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.75) {
+
+//  Crossbar* data = new Crossbar("data", ID, inputs, outputs, 1, Network::CHANNEL, Dimension(1.0/CORES_PER_TILE, 0.05));
+//  data->initialise();
+//  dataNet = new UnclockedNetwork("data_net", data);
+
+//  Crossbar* credit = new Crossbar("credit", ID, outputs, inputs, inputs, TOTAL_OUTPUT_CHANNELS, 0, Dimension(1.0/CORES_PER_TILE, 0.05));
+//  credit->initialise();
+//  creditNet = new UnclockedNetwork("credit_net", credit);
+
+  creditNet.initialise();
+  dataNet.initialise();
 
   firstInput       = ChannelID(id, 0);
   numInputs        = inputs;
@@ -42,7 +40,7 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID, int inp
 
   dataOut          = new sc_out<Word>[outputs];
 
-  creditsIn        = new sc_in<int>[outputs];
+  bufferHasSpace   = new sc_in<bool>[outputs];
 
   creditsOut       = new CreditOutput[inputs];
   validCreditOut   = new ReadyOutput[inputs];
@@ -55,28 +53,27 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID, int inp
   validData        = new sc_signal<ReadyType>[outputs];
   validCredit      = new sc_signal<ReadyType>[outputs];
 
-  creditXbar.clock(clock);
-  dataXbar.clock(sendDataSig);
-  sendDataSig.write(true);
+  creditNet.clock(creditClock);
+  dataNet.clock(dataClock);
 
   for(int i=0; i<inputs; i++) {
-    dataXbar.dataIn[i](dataIn[i]);
-    dataXbar.validDataIn[i](validDataIn[i]);
-    dataXbar.ackDataIn[i](ackDataIn[i]);
-    creditXbar.dataOut[i](creditsOut[i]);
-    creditXbar.validDataOut[i](validCreditOut[i]);
-    creditXbar.ackDataOut[i](ackCreditOut[i]);
+    dataNet.dataIn[i](dataIn[i]);
+    dataNet.validDataIn[i](validDataIn[i]);
+    dataNet.ackDataIn[i](ackDataIn[i]);
+    creditNet.dataOut[i](creditsOut[i]);
+    creditNet.validDataOut[i](validCreditOut[i]);
+    creditNet.ackDataOut[i](ackCreditOut[i]);
   }
 
   // Create and wire up all flow control units.
   for(int i=0; i<outputs; i++) {
-    FlowControlIn* fc = new FlowControlIn(sc_core::sc_gen_unique_name("fc_in"), firstInput.getComponentID(), firstInput.addChannel(i, outputs));
+    FlowControlIn* fc = new FlowControlIn(sc_gen_unique_name("fc_in"), firstInput.getComponentID(), firstInput.addChannel(i, outputs));
     flowControl.push_back(fc);
 
     fc->clock(clock);
 
     fc->dataOut(dataOut[i]);
-    fc->creditsIn(creditsIn[i]);
+    fc->bufferHasSpace(bufferHasSpace[i]);
 
     fc->dataIn(dataToBuffer[i]);
     fc->validDataIn(validData[i]);
@@ -85,31 +82,21 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID, int inp
     fc->validCreditOut(validCredit[i]);
     fc->ackCreditOut(readyForCredit[i]);
 
-    dataXbar.dataOut[i](dataToBuffer[i]);
-    dataXbar.validDataOut[i](validData[i]);
-    dataXbar.ackDataOut[i](readyForData[i]);
-    creditXbar.dataIn[i](creditsToNetwork[i]);
-    creditXbar.validDataIn[i](validCredit[i]);
-    creditXbar.ackDataIn[i](readyForCredit[i]);
+    dataNet.dataOut[i](dataToBuffer[i]);
+    dataNet.validDataOut[i](validData[i]);
+    dataNet.ackDataOut[i](readyForData[i]);
+    creditNet.dataIn[i](creditsToNetwork[i]);
+    creditNet.validDataIn[i](validCredit[i]);
+    creditNet.ackDataIn[i](readyForCredit[i]);
   }
-
-  SC_METHOD(dataArrived);
-  for(int i=0; i<inputs; i++) sensitive << dataIn[i];
-  dont_initialize();
-
-  SC_THREAD(sendData);
-
 }
 
 InputCrossbar::~InputCrossbar() {
   delete[] dataIn;
   delete[] validDataIn;
   delete[] ackDataIn;
-
   delete[] dataOut;
-
-  delete[] creditsIn;
-
+  delete[] bufferHasSpace;
   delete[] creditsOut;
   delete[] validCreditOut;
   delete[] ackCreditOut;

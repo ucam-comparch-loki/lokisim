@@ -39,7 +39,7 @@ public:
   sc_in<Word>         toIPKFIFO;
 
   // A flow control signal from each of the two instruction inputs.
-  sc_out<int>        *flowControl;
+  sc_out<bool>       *flowControl;
 
   // Tells whether the next stage is ready to receive a new instruction.
   sc_in<bool>         readyIn;

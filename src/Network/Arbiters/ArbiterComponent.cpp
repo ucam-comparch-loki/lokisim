@@ -11,20 +11,23 @@
 
 void ArbiterComponent::mainLoop() {
   while(true) {
-    // Wait for something interesting to happen.
-    wait(clock.negedge_event() | ack);
+    // Wait for something interesting to happen. We are sensitive to the
+    // negative edge because data is put onto networks at the positive edge
+    // and needs time to propagate through to these arbiters.
+    wait(clock.negedge_event());
+    arbitrate();
 
-    if(clock.negedge()) arbitrate();
-    else {
-      // Pull down the valid signal for any outputs which have sent acknowledgements.
-      for(int i=0; i<numOutputs; i++) {
-        if(ackDataOut[i].read()) validDataOut[i].write(false);
-      }
+    wait(clock.posedge_event());
+    // Pull down the valid signal for any outputs which have sent acknowledgements.
+    for(int i=0; i<numOutputs; i++) {
+      if(ackDataOut[i].read()) validDataOut[i].write(false);
     }
   }
 }
 
 void ArbiterComponent::arbitrate() {
+
+  wait(sc_core::SC_ZERO_TIME);
 
   if(!haveData) return;
   RequestList requests;
@@ -50,11 +53,11 @@ void ArbiterComponent::arbitrate() {
 
     // FIXME: a request may be granted, but then blocked by flow control.
     // Another, later request may still be allowed to send. Seems unfair.
-//    if(!validDataOut[output].read()) {  // is this broken now?
+    if(!validDataOut[output].read()) {
       dataOut[output].write(dataIn[input].read());
       validDataOut[output].write(true);
       ackDataIn[input].write(!ackDataIn[input].read()); // Toggle value
-//    }
+    }
   }
 
 }

@@ -13,9 +13,11 @@
 
 #include "../Component.h"
 #include "../Network/Topologies/Crossbar.h"
+#include "../Network/NetworkTypedefs.h"
 
 class AddressedWord;
 class FlowControlIn;
+class UnclockedNetwork;
 class Word;
 
 class InputCrossbar: public Component {
@@ -34,7 +36,7 @@ public:
 
   sc_out<Word> *dataOut;
 
-  sc_in<int>   *creditsIn;
+  sc_in<bool>  *bufferHasSpace;
 
   CreditOutput *creditsOut;
   ReadyOutput  *validCreditOut;
@@ -46,18 +48,8 @@ public:
 
 public:
 
-  SC_HAS_PROCESS(InputCrossbar);
   InputCrossbar(sc_module_name name, const ComponentID& ID, int inputs, int outputs);
   virtual ~InputCrossbar();
-
-//==============================//
-// Methods
-//==============================//
-
-private:
-
-  void dataArrived();
-  void sendData();
 
 //==============================//
 // Local state
@@ -69,20 +61,23 @@ private:
   int numInputs, numOutputs;
 
   std::vector<FlowControlIn*> flowControl;
-  Crossbar dataXbar;
-  Crossbar creditXbar;
+
+  Crossbar               creditNet;
+  Crossbar               dataNet;
+//  UnclockedNetwork*      dataNet;
+//  UnclockedNetwork*      creditNet;
 
   sc_buffer<DataType>   *dataToBuffer;
   sc_buffer<CreditType> *creditsToNetwork;
   sc_signal<ReadyType>  *readyForData, *readyForCredit;
   sc_signal<ReadyType>  *validData, *validCredit;
 
-  // This signal behaves like a clock for the data network: we generate a
-  // negative edge when we want the network to send data.
-  // The equivalent credit network can use the ordinary clock, so this is not
-  // needed.
-  sc_signal<bool> sendDataSig;
-  sc_core::sc_event newData;
+  // Skew the clock by 1/4 of a cycle for the two subnetworks.
+  // The credit network needs to send early, so credits get to the main network
+  // in time for the main negative edge.
+  // The data network needs to send late, so data have time to arrive after
+  // coming over the main network.
+  sc_core::sc_clock      creditClock, dataClock;
 
 };
 
