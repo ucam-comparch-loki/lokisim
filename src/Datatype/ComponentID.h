@@ -58,6 +58,11 @@ public:
 		return result;
 	}
 
+	friend std::ostream& operator<< (std::ostream& os, const ComponentID& c) {
+	  os << c.getString();
+    return os;
+  }
+
 	inline const std::string getNameString() const {
 		// Convert a unique port address into the form "tile_position"
 

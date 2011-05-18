@@ -78,6 +78,11 @@ public:
 		return result;
 	}
 
+	friend std::ostream& operator<< (std::ostream& os, const ChannelID& c) {
+	  os << c.getString();
+    return os;
+  }
+
 	friend void sc_trace(sc_core::sc_trace_file*& tf, const ChannelID& w, const std::string& txt) {
 		sc_trace(tf, w.getTile(), txt + ".tile");
 		sc_trace(tf, w.getPosition(), txt + ".position");

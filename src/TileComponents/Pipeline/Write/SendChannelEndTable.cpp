@@ -53,9 +53,8 @@ void SendChannelEndTable::send() {
       entry = mapEntries.read(); // Need to remove from the buffer after peeking earlier.
 
       if(DEBUG) cout << "Sending " << data.payload()
-          << " from " << ChannelID(id, (int)entry).getString() << " to "
-          << data.channelID().getString()
-          << endl;
+          << " from " << ChannelID(id, (int)entry) << " to "
+          << data.channelID() << endl;
 
       output.write(data);
       validOutput.write(true);
@@ -63,7 +62,6 @@ void SendChannelEndTable::send() {
 
       // Deassert the valid signal when an acknowledgement arrives.
       wait(ackOutput.posedge_event());
-      cout << this->name() << " received ack" << endl;
       validOutput.write(false);
     }
   }
@@ -136,7 +134,7 @@ void SendChannelEndTable::updateMap(MapIndex entry, int64_t newVal) {
 	}
 
 	if (DEBUG)
-		cout << this->name() << " updated map " << (int)entry << " to " << sendChannel.getString() << " [" << newGroupBits << "]" << endl;
+		cout << this->name() << " updated map " << (int)entry << " to " << sendChannel << " [" << newGroupBits << "]" << endl;
 }
 
 /* Stall the pipeline until the specified channel is empty. */
@@ -204,7 +202,7 @@ void SendChannelEndTable::receivedCredit() {
     // addresses being neatly aligned.
     ChannelIndex targetCounter = creditsIn.read().channelID().getChannel();
 
-    if(DEBUG) cout << "Received credit at " << ChannelID(id, targetCounter).getString() << endl;
+    if(DEBUG) cout << "Received credit at " << ChannelID(id, targetCounter) << endl;
 
     channelMap[targetCounter].addCredit();
 }

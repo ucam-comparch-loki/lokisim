@@ -29,24 +29,20 @@ void FlowControlOut::sendData() {
     // because it is not buffered -- it is immediately consumed to store
     // the return address at the destination.
 
-    if(DEBUG) cout << "Sending port claim from "
-                   << channel.getString() << " to "
-                   << dataIn.read().channelID().getString()
-                   << endl;
+    if(DEBUG) cout << "Sending port claim from " << channel << " to "
+                   << dataIn.read().channelID() << endl;
   }
   else {
     if(creditCount <= 0) {  // We are not able to send the new data yet.
       if(DEBUG) cout << "Can't send from "
-          << channel.getString() << ": no credits." <<  endl;
+          << channel << ": no credits." <<  endl;
 
       // Wait until we receive a credit.
       wait(creditsIn.default_event());
     }
 
     if(DEBUG) cout << "Network sending " << dataIn.read().payload() << " from "
-        << channel.getString() << " to "
-        << dataIn.read().channelID().getString()
-        << endl;
+        << channel << " to " << dataIn.read().channelID() << endl;
 
     Instrumentation::networkTraffic(id, dataIn.read().channelID());
   }
@@ -61,8 +57,7 @@ void FlowControlOut::sendData() {
 void FlowControlOut::receivedCredit() {
   creditCount++;
 
-  if(DEBUG) cout << "Received credit at port "
-       << channel.getString() << endl;
+  if(DEBUG) cout << "Received credit at port " << channel << endl;
   assert(creditCount >= 0 && creditCount <= CHANNEL_END_BUFFER_SIZE);
 }
 

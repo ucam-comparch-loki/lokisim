@@ -29,7 +29,7 @@ void FlowControlIn::receivedData() {
 			useCredits = dataIn.read().useCredits();
 
 			if(DEBUG)
-				cout << "Channel " << channel.getString() << " was claimed by " << returnAddress.getString() << " [flow control " << (useCredits ? "enabled" : "disabled") << "]" << endl;
+				cout << "Channel " << channel << " was claimed by " << returnAddress << " [flow control " << (useCredits ? "enabled" : "disabled") << "]" << endl;
 		} else {
 		  // Wait until there is space in the buffer, if necessary
 		  if(!bufferHasSpace.read()) wait(bufferHasSpace.posedge_event());
@@ -65,9 +65,8 @@ void FlowControlIn::updateReady() {
       numCredits--;
       assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
 
-      if(DEBUG) cout << "Sent credit from "
-         << channel.getString() << " to "
-         << returnAddress.getString() << endl;
+      if(DEBUG) cout << "Sent credit from " << channel << " to "
+         << returnAddress << endl;
 
       // Deassert the valid signal when the acknowledgement arrives.
       wait(ackCreditOut.posedge_event());
