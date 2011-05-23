@@ -14,23 +14,7 @@ _start:
     ori                 r4, r0, 0x00000102 > 1    # Configuration command: General purpose cache, four banks
     ori                 r4, r0, 0x01000000 > 1    # Table update command 
     ori                 r4, r0, (0,0,2) > 1       # First data channel of first core
-
-    or                  r0, r0, r0
-    or                  r0, r0, r0
-    or                  r0, r0, r0
-    or                  r0, r0, r0
-    or                  r0, r0, r0
-    or                  r0, r0, r0
-    or                  r0, r0, r0
-    or                  r0, r0, r0
-    or                  r0, r0, r0
-    or                  r0, r0, r0
-    or                  r0, r0, r0
-    or                  r0, r0, r0
-    or                  r0, r0, r0
-    or                  r0, r0, r0
-    or                  r0, r0, r0
-    or                  r0, r0, r0
+    ori                 r0, ch0, r0               # Wait for memory configuration to complete
 
     addui               r3,  r0,  1000            # The address to store to.
     addui               r2,  r0,  1337            # The number to store.

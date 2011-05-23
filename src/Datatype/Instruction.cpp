@@ -152,7 +152,7 @@ Instruction::Instruction(const string& inst) {
 
   // Special case for cfgmem and setchmap because their register and immediate
   // are in a different order.
-  if(InstructionMap::operation(opcode()) == InstructionMap::CFGMEM || InstructionMap::operation(opcode()) == InstructionMap::SETCHMAP) {
+  if(InstructionMap::operation(opcode()) == InstructionMap::SETCHMAP) {
     reg1 = reg2;
     reg2 = 0;
   }

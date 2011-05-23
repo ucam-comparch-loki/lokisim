@@ -30,6 +30,16 @@ void FlowControlIn::receivedData() {
 
 			if(DEBUG)
 				cout << "Channel " << channel << " was claimed by " << returnAddress << " [flow control " << (useCredits ? "enabled" : "disabled") << "]" << endl;
+
+			// Allow core to wait until memory setup is complete if setting up a data connection
+
+			if (!useCredits && dataIn.read().channelID().getChannel() >= 2) {
+				  // Wait until there is space in the buffer, if necessary
+				  if(!bufferHasSpace.read()) wait(bufferHasSpace.posedge_event());
+
+					// Pass the value to the component.
+					dataOut.write(dataIn.read().payload());
+			}
 		} else {
 		  // Wait until there is space in the buffer, if necessary
 		  if(!bufferHasSpace.read()) wait(bufferHasSpace.posedge_event());

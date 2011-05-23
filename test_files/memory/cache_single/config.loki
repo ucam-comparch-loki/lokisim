@@ -13,7 +13,7 @@
   ori                r4, r0, 0x01000000 > 0    # Table update command 
   ori                r4, r0, (0,0,1) > 0       # IPK cache of first core
 
-  or                 r0, r0, r0                # Make sure there are no timing problems
+  or                 r0, r0, r0                # Wait for memory configuration to complete
   or                 r0, r0, r0
   or                 r0, r0, r0
   or                 r0, r0, r0

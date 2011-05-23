@@ -130,7 +130,6 @@ public:
     RMTEXECUTE,   // Remote execute (specify target)      rmtexecute -> rch
     RMTNXIPK,     // "Next IPK" to remote cluster         rmtnxipk -> rch
 
-    CFGMEM,       // Configure memory bank				  cfgmem immed, rs
     SETCHMAP,     // Set channel map entry                setchmap immed, rs
 
     SYSCALL       // System call                          syscall immed

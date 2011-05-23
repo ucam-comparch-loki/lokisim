@@ -70,7 +70,6 @@ bool InstructionMap::hasSrcReg2(short op) {
 bool InstructionMap::hasImmediate(short op) {
   static const short withImmed[] = {
       LDW, LDHWU, LDBU, STW, STHW, STB, STWADDR, STBADDR,
-      CFGMEM,
       SLLI, SRLI, SRAI,
       SETEQI, SETNEI, SETLTI, SETLTUI, SETGTEUI, LUI,
       NORI, ANDI, ORI, XORI,
@@ -93,7 +92,6 @@ bool InstructionMap::hasRemoteChannel(short op) {
   // when we finalise an instruction encoding.
   static const short noChannel[] = {
       NOP,
-      CFGMEM,
       WOCHE, TSTCH, SELCH,
       SETFETCHCH, IBJMP, FETCH, PSELFETCH, FETCHPST, SETCHMAP,
       SYSCALL
@@ -111,7 +109,6 @@ bool InstructionMap::isALUOperation(short op) {
   // we only list the ones that don't here.
   static const short notALU[] = {
       /*LDW, LDBU,*/ STW, STHW, STB, STWADDR, STBADDR,
-      CFGMEM,
       WOCHE, TSTCH, SELCH,
       SETFETCHCH, IBJMP, FETCH, PSELFETCH, FETCHPST, RMTFETCH, RMTFETCHPST,
       RMTFILL, RMTEXECUTE, RMTNXIPK, SETCHMAP, SYSCALL
@@ -129,7 +126,6 @@ bool InstructionMap::storesResult(short op) {
   // don't, we only list the ones that don't here.
   static const short doesntStore[] = {
       NOP, LDW, LDHWU, LDBU, STW, STHW, STB, STWADDR, STBADDR,
-      CFGMEM,
       WOCHE,
       SETFETCHCH, IBJMP, FETCH, PSELFETCH, FETCHPST, RMTFETCH, RMTFETCHPST,
       RMTFILL, RMTEXECUTE, RMTNXIPK, SETCHMAP, SYSCALL
@@ -233,7 +229,6 @@ void InstructionMap::initialise() {
   a++;    addToMaps("rmtexecute", a, RMTEXECUTE);
   a++;    addToMaps("rmtnxipk", a, RMTNXIPK);
 
-  a++;    addToMaps("cfgmem", a, CFGMEM);
   a++;    addToMaps("setchmap", a, SETCHMAP);
 
   a++;    addToMaps("syscall", a, SYSCALL);

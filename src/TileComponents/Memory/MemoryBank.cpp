@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <iomanip>
+
 using namespace std;
 
 #include "../../Component.h"
@@ -137,6 +138,16 @@ ReevaluateRequest:
 				mFSMState = STATE_IDLE;
 			}
 		} else {
+			// Send port claim message to return channel
+
+			OutputWord outWord;
+			outWord.TableIndex = mActiveTableIndex;
+			outWord.Data = ChannelID(id, mActiveTableIndex);
+			outWord.PortClaim = true;
+			outWord.LastWord = true;
+
+			mOutputQueue.write(outWord);
+
 			mFSMState = STATE_IDLE;
 		}
 
@@ -274,16 +285,6 @@ bool MemoryBank::processMessageHeader() {
 				mChannelMapTable[mActiveTableIndex].FetchPending = false;
 				mChannelMapTable[mActiveTableIndex].ReturnChannel = mActiveRequest.getChannelID();
 
-				// Send port claim message to return channel
-
-				OutputWord outWord;
-				outWord.TableIndex = mActiveTableIndex;
-				outWord.Data = ChannelID(id, mActiveTableIndex);
-				outWord.PortClaim = true;
-				outWord.LastWord = true;
-
-				mOutputQueue.write(outWord);
-
 				if (mGroupIndex < mGroupSize - 1) {
 					// Forward request through ring network
 
@@ -300,6 +301,16 @@ bool MemoryBank::processMessageHeader() {
 						mFSMState = STATE_IDLE;
 					}
 				} else {
+					// Send port claim message to return channel
+
+					OutputWord outWord;
+					outWord.TableIndex = mActiveTableIndex;
+					outWord.Data = ChannelID(id, mActiveTableIndex);
+					outWord.PortClaim = true;
+					outWord.LastWord = true;
+
+					mOutputQueue.write(outWord);
+
 					mFSMState = STATE_IDLE;
 				}
 			}
