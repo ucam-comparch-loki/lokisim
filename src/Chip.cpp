@@ -158,7 +158,7 @@ Chip::Chip(sc_module_name name, const ComponentID& ID) :
 	// Initialise memories
 
 	strobeToBackgroundMemory = new sc_signal<bool>[NUM_MEMORIES];
-	dataToBackgroundMemory = new sc_signal<Word>[NUM_MEMORIES];
+	dataToBackgroundMemory = new sc_signal<MemoryRequest>[NUM_MEMORIES];
 	strobeFromBackgroundMemory = new sc_signal<bool>[NUM_MEMORIES];
 	dataFromBackgroundMemory = new sc_signal<Word>[NUM_MEMORIES];
 

@@ -155,7 +155,7 @@ public:
 	//-- Ports connected to background memory model -----------------------------------------------
 
 	sc_out<bool>				oBMDataStrobe;				// Indicate that corresponding input data word is valid
-	sc_out<Word>				oBMData;					// Data words input from cache controllers
+	sc_out<MemoryRequest>		oBMData;					// Data words input from cache controllers
 
 	sc_in<bool>					iBMDataStrobe;				// Indicate that corresponding output data word is valid
 	sc_in<Word>					iBMData;					// Data words output to cache controllers
@@ -190,11 +190,8 @@ private:
 
 	enum GeneralPurposeCacheFSMState {
 		GP_CACHE_STATE_PREPARE,
-		GP_CACHE_STATE_SEND_WRITE_COMMAND,
-		GP_CACHE_STATE_SEND_WRITE_ADDRESS,
 		GP_CACHE_STATE_SEND_DATA,
 		GP_CACHE_STATE_SEND_READ_COMMAND,
-		GP_CACHE_STATE_SEND_READ_ADDRESS,
 		GP_CACHE_STATE_READ_DATA,
 		GP_CACHE_STATE_REPLACE
 	};

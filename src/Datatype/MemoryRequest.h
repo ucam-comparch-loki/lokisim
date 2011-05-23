@@ -44,6 +44,8 @@ public:
 		IPK_READ = 8,
 		BURST_READ = 9,
 		BURST_WRITE = 10,
+		FETCH_LINE = 11,
+		STORE_LINE = 12,
 		NONE = 15
 	};
 

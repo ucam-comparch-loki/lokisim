@@ -17,9 +17,8 @@
 //
 // Communication protocol:
 //
-// 1. Send command word - highest bit: 0 = read, 1 = write, lower bits word count
-// 2. Send start address
-// 3. Send words in case of write command
+// 1. Send start address and operation
+// 2. Send words in case of write command
 //-------------------------------------------------------------------------------------------------
 // File:       SimplifiedOnChipScratchpad.h
 // Author:     Andreas Koltes (andreas.koltes@cl.cam.ac.uk)
@@ -30,6 +29,7 @@
 #define SIMPLIFIEDONCHIPSCRATCHPAD_H
 
 #include "../../Component.h"
+#include "../../Datatype/MemoryRequest.h"
 #include "../../Memory/BufferArray.h"
 
 class SimplifiedOnChipScratchpad: public Component {
@@ -42,6 +42,8 @@ private:
 	uint						cDelayCycles;			// Number of clock cycles requests are delayed
 	uint						cPorts;					// Number of memory ports
 
+	uint						cLineWords;				// Number of words in one memory line
+
 	//---------------------------------------------------------------------------------------------
 	// Ports
 	//---------------------------------------------------------------------------------------------
@@ -53,7 +55,7 @@ public:
 	sc_out<bool>				oIdle;					// Signal that this component is not currently doing any work
 
 	sc_in<bool>					*iDataStrobe;			// Indicate that corresponding input data word is valid
-	sc_in<Word>					*iData;					// Data words input from cache controllers
+	sc_in<MemoryRequest>		*iData;					// Memory request words input from cache controllers
 
 	sc_out<bool>				*oDataStrobe;			// Indicate that corresponding output data word is valid
 	sc_out<Word>				*oData;					// Data words output to cache controllers
@@ -66,9 +68,7 @@ private:
 
 	enum PortState {
 		STATE_IDLE,
-		STATE_READ_ADDRESS,
 		STATE_READING,
-		STATE_WRITE_ADDRESS,
 		STATE_WRITING
 	};
 
@@ -82,7 +82,7 @@ private:
 	struct InputWord {
 	public:
 		uint64_t EarliestExecutionCycle;
-		Word Data;
+		MemoryRequest Request;
 	};
 
 	//---------------------------------------------------------------------------------------------
@@ -104,6 +104,8 @@ private:
 	//---------------------------------------------------------------------------------------------
 
 private:
+
+	void tryStartRequest(uint port);					// Helper function starting / chaining new request
 
 	void mainLoop();									// Main loop thread - running at every positive clock edge
 

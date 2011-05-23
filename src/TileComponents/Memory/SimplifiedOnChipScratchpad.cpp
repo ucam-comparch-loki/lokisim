@@ -28,12 +28,49 @@
 
 #include <iostream>
 #include <iomanip>
+
 using namespace std;
 
 #include "../../Component.h"
+#include "../../Datatype/MemoryRequest.h"
 #include "../../Memory/BufferArray.h"
 #include "../../Utility/Instrumentation.h"
 #include "SimplifiedOnChipScratchpad.h"
+
+void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
+	mPortData[port].State = STATE_IDLE;
+
+	if (!mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
+		MemoryRequest request = mInputQueues[port].read().Request;
+
+		if (request.getOperation() == MemoryRequest::FETCH_LINE) {
+			mPortData[port].Address = request.getPayload();
+			mPortData[port].WordsLeft = cLineWords;
+
+			assert((mPortData[port].Address & 0x3) == 0);
+			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+
+			Instrumentation::backgroundMemoryRead(mPortData[port].Address, mPortData[port].WordsLeft);
+
+			// Do not output first word directly - assume one clock cycle access delay
+
+			mPortData[port].State = STATE_READING;
+		} else if (request.getOperation() == MemoryRequest::STORE_LINE) {
+			mPortData[port].Address = request.getPayload();
+			mPortData[port].WordsLeft = cLineWords;
+
+			assert((mPortData[port].Address & 0x3) == 0);
+			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+
+			Instrumentation::backgroundMemoryWrite(mPortData[port].Address, mPortData[port].WordsLeft);
+
+			mPortData[port].State = STATE_WRITING;
+		} else {
+			cout << this->name() << " encountered invalid memory operation (" << request.getOperation() << ")" << endl;
+			assert(false);
+		}
+	}
+}
 
 void SimplifiedOnChipScratchpad::mainLoop() {
 	for (;;) {
@@ -47,7 +84,7 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 			if (iDataStrobe[port].read()) {
 				InputWord newWord;
 				newWord.EarliestExecutionCycle = mCycleCounter + (uint64_t)cDelayCycles;
-				newWord.Data = iData[port].read();
+				newWord.Request = iData[port].read();
 				mInputQueues[port].write(newWord);
 			}
 		}
@@ -63,32 +100,7 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 
 			switch (mPortData[port].State) {
 			case STATE_IDLE:
-				if (!mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
-					uint32_t word = mInputQueues[port].read().Data.toUInt();
-					mPortData[port].WordsLeft = word & 0x7FFFFFFFUL;
-
-					assert(mPortData[port].WordsLeft > 0);
-
-					mPortData[port].State = ((word & 0x80000000UL) != 0) ? STATE_WRITE_ADDRESS : STATE_READ_ADDRESS;
-				}
-
-				break;
-
-			case STATE_READ_ADDRESS:
-				if (!mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
-					uint32_t word = mInputQueues[port].read().Data.toUInt();
-					mPortData[port].Address = word;
-
-					assert((mPortData[port].Address & 0x3) == 0);
-					assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
-
-					Instrumentation::backgroundMemoryRead(mPortData[port].Address, mPortData[port].WordsLeft);
-
-					// Do not output first word directly - assume one clock cycle access delay
-
-					mPortData[port].State = STATE_READING;
-				}
-
+				tryStartRequest(port);
 				break;
 
 			case STATE_READING:
@@ -99,47 +111,24 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 					mPortData[port].Address += 4;
 					mPortData[port].WordsLeft--;
 
-					if (mPortData[port].WordsLeft == 0) {
-						if (!mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
-							uint32_t word = mInputQueues[port].read().Data.toUInt();
-							mPortData[port].WordsLeft = word & 0x7FFFFFFFUL;
-
-							assert(mPortData[port].WordsLeft > 0);
-
-							mPortData[port].State = ((word & 0x80000000UL) != 0) ? STATE_WRITE_ADDRESS : STATE_READ_ADDRESS;
-						} else {
-							mPortData[port].State = STATE_IDLE;
-						}
-					}
+					if (mPortData[port].WordsLeft == 0)
+						tryStartRequest(port);
 
 					accessCount++;
 				}
 
 				break;
 
-			case STATE_WRITE_ADDRESS:
-				if (!mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
-					uint32_t word = mInputQueues[port].read().Data.toUInt();
-					mPortData[port].Address = word;
-
-					assert((mPortData[port].Address & 0x3) == 0);
-					assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
-
-					Instrumentation::backgroundMemoryWrite(mPortData[port].Address, mPortData[port].WordsLeft);
-
-					mPortData[port].State = STATE_WRITING;
-				}
-
-				break;
-
 			case STATE_WRITING:
 				if (accessCount < cPorts && !mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
-					mData[mPortData[port].Address / 4] = mInputQueues[port].read().Data.toUInt();
+					assert(mInputQueues[port].read().Request.getOperation() == MemoryRequest::PAYLOAD_ONLY);
+
+					mData[mPortData[port].Address / 4] = mInputQueues[port].read().Request.getPayload();
 					mPortData[port].Address += 4;
 					mPortData[port].WordsLeft--;
 
 					if (mPortData[port].WordsLeft == 0)
-						mPortData[port].State = STATE_IDLE;
+						tryStartRequest(port);
 
 					accessCount++;
 				}
@@ -174,14 +163,16 @@ SimplifiedOnChipScratchpad::SimplifiedOnChipScratchpad(sc_module_name name, cons
 	mInputQueues(portCount, 1024, "SimplifiedOnChipScratchpad::mInputQueues")	// Virtually infinite queue length
 {
 	assert(portCount >= 1);
+	assert(MEMORY_CACHE_LINE_SIZE % 4 == 0);
 
 	cDelayCycles = MEMORY_ON_CHIP_SCRATCHPAD_DELAY;
 	cPorts = MEMORY_ON_CHIP_SCRATCHPAD_PORTS;
+	cLineWords = MEMORY_CACHE_LINE_SIZE / 4;
 
 	oIdle.initialize(true);
 
 	iDataStrobe = new sc_in<bool>[portCount];
-	iData = new sc_in<Word>[portCount];
+	iData = new sc_in<MemoryRequest>[portCount];
 	oDataStrobe = new sc_out<bool>[portCount];
 	oData = new sc_out<Word>[portCount];
 

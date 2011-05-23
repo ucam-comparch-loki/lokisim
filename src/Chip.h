@@ -109,7 +109,7 @@ private:
 	sc_signal<ReadyType> 						*validCreditToComps;
 
 	sc_signal<bool>								*strobeToBackgroundMemory;
-	sc_signal<Word>								*dataToBackgroundMemory;
+	sc_signal<MemoryRequest>					*dataToBackgroundMemory;
 	sc_signal<bool>								*strobeFromBackgroundMemory;
 	sc_signal<Word>								*dataFromBackgroundMemory;
 

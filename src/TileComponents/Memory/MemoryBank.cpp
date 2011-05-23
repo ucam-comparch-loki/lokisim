@@ -976,40 +976,37 @@ void MemoryBank::processGeneralPurposeCacheMiss() {
 		mGeneralPurposeCacheHandler.prepareCacheLine(mActiveAddress, mWriteBackAddress, mWriteBackCount, mCacheLineBuffer, mFetchAddress, mFetchCount);
 		mCacheLineCursor = 0;
 
-		mCacheFSMState = (mWriteBackCount > 0) ? GP_CACHE_STATE_SEND_WRITE_COMMAND : GP_CACHE_STATE_SEND_READ_COMMAND;
-		break;
+		if (mWriteBackCount > 0) {
+			assert(mWriteBackCount == MEMORY_CACHE_LINE_SIZE / 4);
 
-	case GP_CACHE_STATE_SEND_WRITE_COMMAND:
-		oBMDataStrobe.write(true);
-		oBMData.write((1UL << 31) | mWriteBackCount);
+			oBMDataStrobe.write(true);
+			oBMData.write(MemoryRequest(MemoryRequest::STORE_LINE, mWriteBackAddress));
 
-		mCacheFSMState = GP_CACHE_STATE_SEND_WRITE_ADDRESS;
-		break;
+			mCacheFSMState = GP_CACHE_STATE_SEND_DATA;
+		} else {
+			assert(mFetchCount == MEMORY_CACHE_LINE_SIZE / 4);
 
-	case GP_CACHE_STATE_SEND_WRITE_ADDRESS:
-		oBMDataStrobe.write(true);
-		oBMData.write(mWriteBackAddress);
+			oBMDataStrobe.write(true);
+			oBMData.write(MemoryRequest(MemoryRequest::FETCH_LINE, mFetchAddress));
+			mCacheLineCursor = 0;
 
-		mCacheFSMState = GP_CACHE_STATE_SEND_DATA;
+			mCacheFSMState = GP_CACHE_STATE_READ_DATA;
+		}
+
 		break;
 
 	case GP_CACHE_STATE_SEND_DATA:
 		oBMDataStrobe.write(true);
-		oBMData.write(mCacheLineBuffer[mCacheLineCursor++]);
+		oBMData.write(MemoryRequest(MemoryRequest::PAYLOAD_ONLY, mCacheLineBuffer[mCacheLineCursor++]));
 
 		mCacheFSMState = (mCacheLineCursor == mWriteBackCount) ? GP_CACHE_STATE_SEND_READ_COMMAND : GP_CACHE_STATE_SEND_DATA;
 		break;
 
 	case GP_CACHE_STATE_SEND_READ_COMMAND:
-		oBMDataStrobe.write(true);
-		oBMData.write(mFetchCount);
+		assert(mFetchCount == MEMORY_CACHE_LINE_SIZE / 4);
 
-		mCacheFSMState = GP_CACHE_STATE_SEND_READ_ADDRESS;
-		break;
-
-	case GP_CACHE_STATE_SEND_READ_ADDRESS:
 		oBMDataStrobe.write(true);
-		oBMData.write(mFetchAddress);
+		oBMData.write(MemoryRequest(MemoryRequest::FETCH_LINE, mFetchAddress));
 		mCacheLineCursor = 0;
 
 		mCacheFSMState = GP_CACHE_STATE_READ_DATA;
@@ -1194,7 +1191,7 @@ void MemoryBank::mainLoop() {
 
 		// Update status signals
 
-		bool idle = mFSMState == STATE_IDLE && mInputQueue.empty() && mOutputQueue.empty() && !mOutputWordPending && !mRingRequestOutputPending;
+		bool idle = mFSMState == STATE_IDLE && mInputQueue.empty() && mOutputQueue.empty() && !mOutputWordPending && !mRingRequestInputPending && !mRingRequestOutputPending;
 		oIdle.write(idle);
 		Instrumentation::idle(id, idle);
 	}
