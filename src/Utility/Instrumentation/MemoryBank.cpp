@@ -157,16 +157,19 @@ void MemoryBank::ringPassThrough(int bank) {
 
 void MemoryBank::printStats() {
 	if (!modes_.empty()) {
-		cout <<
-			"--------------------------------------------------\n" <<
-			"Memory banks\n" <<
-			"--------------------------------------------------" << endl;
+		cout << "Memory banks:" << endl;
 
 		std::map<int, bool>::iterator it;
+		bool bankOutput = false;
 
 		for (it = modes_.begin(); it != modes_.end(); it++) {
 			int bank = it->first;
 			bool isCache = it->second;
+
+			if (bankOutput)
+				cout << "  --------------------------------------------------" << endl;
+
+			bankOutput = true;
 
 			cout << "                        Bank: " << bank << endl;
 			cout << "                        Mode: " << (isCache ? "General purpose cache" : "Scratchpad") << endl;
@@ -213,8 +216,8 @@ void MemoryBank::printStats() {
 			hits = numBurstWriteHits_[bank];	misses = numBurstWriteMisses_[bank];	burstWriteCount += hits + misses;
 			cout << "           Burst word writes: " << hits << " / " << misses << " (" << percentage(hits, hits + misses) << ")" << endl;
 
-			cout << "            Burst word reads: " << burstReadCount << " (" << percentage(burstReadCount, burstReadCount + burstWriteCount) << ")" << endl;
-			cout << "           Burst word writes: " << burstWriteCount << " (" << percentage(burstWriteCount, burstReadCount + burstWriteCount) << ")" << endl;
+			cout << "        Streaming word reads: " << burstReadCount << " (" << percentage(burstReadCount, burstReadCount + burstWriteCount) << ")" << endl;
+			cout << "       Streaming word writes: " << burstWriteCount << " (" << percentage(burstWriteCount, burstReadCount + burstWriteCount) << ")" << endl;
 
 			int cacheInvalid = numReplaceInvalid_[bank];
 			int cacheClean = numReplaceClean_[bank];
@@ -230,8 +233,6 @@ void MemoryBank::printStats() {
 
 			cout << "      Ring hand-off messages: " << ringHandOffs << " (" << percentage(ringHandOffs, ringHandOffs + ringPassThroughs) << ")" << endl;
 			cout << "  Ring pass-through messages: " << ringPassThroughs << " (" << percentage(ringPassThroughs, ringHandOffs + ringPassThroughs) << ")" << endl;
-
-			cout << "--------------------------------------------------" << endl;
 		}
 	}
 }

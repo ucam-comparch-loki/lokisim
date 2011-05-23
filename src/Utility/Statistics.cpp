@@ -7,9 +7,11 @@
 
 #include "Statistics.h"
 #include "Instrumentation.h"
+#include "Instrumentation/BackgroundMemory.h"
 #include "Instrumentation/Energy.h"
 #include "Instrumentation/IPKCache.h"
 #include "Instrumentation/Memory.h"
+#include "Instrumentation/MemoryBank.h"
 #include "Instrumentation/Network.h"
 #include "Instrumentation/Operations.h"
 #include "Instrumentation/Registers.h"
@@ -20,6 +22,8 @@ void Statistics::printStats() {
   std::cout.fill(' ');
   IPKCache::printStats();
   Memory::printStats();
+  MemoryBank::printStats();
+  BackgroundMemory::printStats();
   Network::printStats();
   Operations::printStats();
   Registers::printStats();

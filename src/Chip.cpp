@@ -208,13 +208,14 @@ Chip::Chip(sc_module_name name, const ComponentID& ID) :
 			int currIndex = j * MEMS_PER_TILE + i;
 			int nextIndex = j * MEMS_PER_TILE + ((i + 1) % MEMS_PER_TILE);
 
-			memories[currIndex]->oRingAcknowledge(ringAcknowledge[currIndex]);
-			memories[nextIndex]->iRingAcknowledge(ringAcknowledge[currIndex]);
-			memories[currIndex]->oRingStrobe(ringStrobe[currIndex]);
+			memories[nextIndex]->oRingAcknowledge(ringAcknowledge[currIndex]);
 			memories[nextIndex]->iRingStrobe(ringStrobe[currIndex]);
-			memories[currIndex]->oRingRequest(ringRequest[currIndex]);
 			memories[nextIndex]->iRingRequest(ringRequest[currIndex]);
-		}
+
+			memories[currIndex]->iRingAcknowledge(ringAcknowledge[currIndex]);
+			memories[currIndex]->oRingStrobe(ringStrobe[currIndex]);
+			memories[currIndex]->oRingRequest(ringRequest[currIndex]);
+}
 	}
 
 	// Connect clusters and memories to the local interconnect

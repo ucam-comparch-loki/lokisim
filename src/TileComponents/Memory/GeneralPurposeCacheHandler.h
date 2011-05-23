@@ -74,7 +74,7 @@ public:
 
 	bool containsAddress(uint32_t address);
 
-	bool readWord(uint32_t address, uint32_t &data, bool resume, bool debug);
+	bool readWord(uint32_t address, uint32_t &data, bool instruction, bool resume, bool debug);
 	bool readHalfWord(uint32_t address, uint32_t &data, bool resume, bool debug);
 	bool readByte(uint32_t address, uint32_t &data, bool resume, bool debug);
 

@@ -30,6 +30,9 @@ public:
   void setCoreDestination(const ChannelID& address);
   void setMemoryDestination(const ChannelID& address, uint memoryGroupBits);
 
+  void setAddressIncrement(uint increment);
+  uint getAddressIncrement();
+
   void removeCredit();
   void addCredit();
 
@@ -54,6 +57,9 @@ private:
 
   // Number of group bits describing virtual memory bank.
   unsigned int memoryGroupBits_;
+
+  // The current address increment for this entry.
+  unsigned int addressIncrement_;
 };
 
 #endif /* CHANNELMAPENTRY_H_ */

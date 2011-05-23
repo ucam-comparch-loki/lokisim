@@ -136,25 +136,37 @@ void GeneralPurposeCacheHandler::activate(uint groupIndex, uint groupSize) {
 
 	mSetShift = mGroupBits + mLineBits;
 	mSetMask = ((1UL << mSetBits) - 1UL) << mSetShift;
+
+	Instrumentation::memorySetMode(mBankNumber, true);
 }
 
 bool GeneralPurposeCacheHandler::containsAddress(uint32_t address) {
 	return (address & mGroupMask) == (mGroupIndex << mLineBits);
 }
 
-bool GeneralPurposeCacheHandler::readWord(uint32_t address, uint32_t &data, bool resume, bool debug) {
+bool GeneralPurposeCacheHandler::readWord(uint32_t address, uint32_t &data, bool instruction, bool resume, bool debug) {
 	assert((address & 0x3) == 0);
 
 	uint slot;
 	if (!lookupCacheLine(address, slot)) {
 		assert(!resume);
-		if (!debug)
-			Instrumentation::memoryReadWord(mBankNumber, address, true);
+
+		if (!debug) {
+			if (instruction)
+				Instrumentation::memoryReadIPKWord(mBankNumber, address, true);
+			else
+				Instrumentation::memoryReadWord(mBankNumber, address, true);
+		}
+
 		return false;
 	}
 
-	if (!resume && !debug)
-		Instrumentation::memoryReadWord(mBankNumber, address, false);
+	if (!resume && !debug) {
+		if (instruction)
+			Instrumentation::memoryReadIPKWord(mBankNumber, address, false);
+		else
+			Instrumentation::memoryReadWord(mBankNumber, address, false);
+	}
 
 	data = mData[slot * cLineSize / 4 + (address & mLineMask) / 4];
 	promoteCacheLine(slot);

@@ -44,6 +44,8 @@ void ChannelMapEntry::setCoreDestination(const ChannelID& address) {
 	network_ = /*(address.getTile() == local) ?*/ CORE_TO_CORE /*: GLOBAL*/;
 	useCredits_ = true;
 	localMemory_ = false;
+	memoryGroupBits_ = 0;
+	addressIncrement_ = 0;
 }
 
 void ChannelMapEntry::setMemoryDestination(const ChannelID& address, uint memoryGroupBits) {
@@ -55,6 +57,16 @@ void ChannelMapEntry::setMemoryDestination(const ChannelID& address, uint memory
 	network_ = CORE_TO_MEMORY;
 	useCredits_ = false;
 	localMemory_ = true;
+	memoryGroupBits_ = memoryGroupBits;
+	addressIncrement_ = 0;
+}
+
+void ChannelMapEntry::setAddressIncrement(uint increment) {
+	addressIncrement_ = increment;
+}
+
+uint ChannelMapEntry::getAddressIncrement() {
+	return addressIncrement_;
 }
 
 void ChannelMapEntry::removeCredit() {
@@ -79,4 +91,5 @@ ChannelMapEntry::ChannelMapEntry() {
   useCredits_ = false;
   localMemory_ = false;
   memoryGroupBits_ = 0;
+  addressIncrement_ = 0;
 }

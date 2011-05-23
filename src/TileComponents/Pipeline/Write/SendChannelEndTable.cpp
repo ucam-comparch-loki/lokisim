@@ -156,11 +156,14 @@ void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
 
 /* Execute a memory operation. */
 void SendChannelEndTable::executeMemoryOp(MapIndex entry, MemoryRequest::MemoryOperation memoryOp, int64_t data) {
+cout << ">>>> " << (uint)entry << " | " << memoryOp << " | " << data << endl;
+
 	// Most messages we send will be one flit long, so will be the end of their
 	// packets. However, packets for memory stores are two flits long (address
 	// then data), so we need to mark this special case.
 
 	ChannelID channel = channelMap[entry].destination();
+	bool addressFlit = false;
 	bool endOfPacket = true;
 	Word w;
 
@@ -173,6 +176,9 @@ void SendChannelEndTable::executeMemoryOp(MapIndex entry, MemoryRequest::MemoryO
 
 		w = MemoryRequest(memoryOp, (uint32_t)data);
 
+		if (memoryOp == MemoryRequest::LOAD_B || memoryOp == MemoryRequest::LOAD_HW || memoryOp == MemoryRequest::LOAD_W || memoryOp == MemoryRequest::STORE_W || memoryOp == MemoryRequest::STORE_HW || memoryOp == MemoryRequest::STORE_B)
+			addressFlit = true;
+
 		if (memoryOp == MemoryRequest::STORE_W || memoryOp == MemoryRequest::STORE_HW || memoryOp == MemoryRequest::STORE_B)
 			endOfPacket = false;
 	} else {
@@ -181,12 +187,20 @@ void SendChannelEndTable::executeMemoryOp(MapIndex entry, MemoryRequest::MemoryO
 
 	// Adjust destination channel based on memory configuration if necessary
 
+	uint32_t increment = 0;
+
 	if (channelMap[entry].localMemory() && channelMap[entry].memoryGroupBits() > 0) {
-		uint32_t increment = (uint32_t)data;
-		increment %= MEMORY_CACHE_LINE_SIZE * (1UL << channelMap[entry].memoryGroupBits());
-		increment /= MEMORY_CACHE_LINE_SIZE;
-		channel = channel.addPosition(increment);
+		if (addressFlit) {
+			increment = (uint32_t)data;
+			increment %= MEMORY_CACHE_LINE_SIZE * (1UL << channelMap[entry].memoryGroupBits());
+			increment /= MEMORY_CACHE_LINE_SIZE;
+			channelMap[entry].setAddressIncrement(increment);
+		} else {
+			increment = channelMap[entry].getAddressIncrement();
+		}
 	}
+
+	channel = channel.addPosition(increment);
 
 	// Send request to memory
 

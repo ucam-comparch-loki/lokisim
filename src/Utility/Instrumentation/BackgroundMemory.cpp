@@ -33,15 +33,12 @@ void BackgroundMemory::printStats() {
 		int words = numWordsRead_ + numWordsWritten_;
 
 		cout <<
-			"--------------------------------------------------\n" <<
-			"On-chip scratchpad\n" <<
-			"--------------------------------------------------\n" <<
+			"On-chip scratchpad:\n" <<
 			"    Access requests: " << accesses << "\n" <<
 			"  Words transferred: " << words << "\n" <<
 			"      Read requests: " << numReads_ << " (" << percentage(numReads_, accesses) << ")\n" <<
 			"         Words read: " << numWordsRead_ << " (" << percentage(numWordsRead_, words) << ")\n" <<
 			"     Write requests: " << numWrites_ << " (" << percentage(numWrites_, accesses) << ")\n" <<
-			"      Words written: " << numWordsWritten_ << " (" << percentage(numWordsWritten_, words) << ")\n" <<
-			"--------------------------------------------------" << endl;
+			"      Words written: " << numWordsWritten_ << " (" << percentage(numWordsWritten_, words) << ")" << endl;
 	}
 }

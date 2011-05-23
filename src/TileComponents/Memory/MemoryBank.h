@@ -268,6 +268,7 @@ private:
 
 	//-- Ring network state -----------------------------------------------------------------------
 
+	bool mRingRequestInputPending;							// Indicates that an incoming ring request is waiting to be processed
 	RingNetworkRequest mActiveRingRequestInput;				// Currently active incoming ring request
 
 	bool mRingRequestOutputPending;							// Indicates that an outgoing ring request is waiting for acknowledgement
@@ -296,10 +297,10 @@ private:
 	void processWaitRingOutput();
 
 	void processValidInput();
+	void processValidRing();
 
 	void handleNetworkInterfacesPre();
 	void handleNetworkInterfacesPost();
-
 
 	void mainLoop();										// Main loop thread - running at every positive clock edge
 

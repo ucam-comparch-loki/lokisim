@@ -1,9 +1,9 @@
 # Connect to memory.
 _start:
-#    ori                 r5,  r0,  (0,8,1,0)
+#    ori                 r5,  r0,  (0,12,0,2)
 #    setchmap            1,   r5
 
-    ori                 r5, r0, (0,8,1,0)         # First memory bank, second channel, single bank group
+    ori                 r5, r0, (0,12,0,2)         # Fifth memory bank, first channel, quad bank group
     setchmap            1, r5                     # Set fetch channel to memory bank
 
     or                  r0, r0, r0                # Make sure there are no timing problems
@@ -11,8 +11,26 @@ _start:
     or                  r0, r0, r0
     or                  r0, r0, r0
   
+    ori                 r4, r0, 0x00000102 > 1    # Configuration command: General purpose cache, four banks
     ori                 r4, r0, 0x01000000 > 1    # Table update command 
     ori                 r4, r0, (0,0,2) > 1       # First data channel of first core
+
+    or                  r0, r0, r0
+    or                  r0, r0, r0
+    or                  r0, r0, r0
+    or                  r0, r0, r0
+    or                  r0, r0, r0
+    or                  r0, r0, r0
+    or                  r0, r0, r0
+    or                  r0, r0, r0
+    or                  r0, r0, r0
+    or                  r0, r0, r0
+    or                  r0, r0, r0
+    or                  r0, r0, r0
+    or                  r0, r0, r0
+    or                  r0, r0, r0
+    or                  r0, r0, r0
+    or                  r0, r0, r0
 
     addui               r3,  r0,  1000            # The address to store to.
     addui               r2,  r0,  1337            # The number to store.

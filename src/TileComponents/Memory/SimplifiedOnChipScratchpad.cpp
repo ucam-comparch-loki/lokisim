@@ -82,6 +82,8 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 					assert((mPortData[port].Address & 0x3) == 0);
 					assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 
+					Instrumentation::backgroundMemoryRead(mPortData[port].Address, mPortData[port].WordsLeft);
+
 					// Do not output first word directly - assume one clock cycle access delay
 
 					mPortData[port].State = STATE_READING;
@@ -122,6 +124,8 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 
 					assert((mPortData[port].Address & 0x3) == 0);
 					assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+
+					Instrumentation::backgroundMemoryWrite(mPortData[port].Address, mPortData[port].WordsLeft);
 
 					mPortData[port].State = STATE_WRITING;
 				}

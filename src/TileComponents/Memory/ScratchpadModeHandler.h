@@ -58,7 +58,7 @@ public:
 
 	bool containsAddress(uint32_t address);
 
-	uint32_t readWord(uint32_t address);
+	uint32_t readWord(uint32_t address, bool instruction);
 	uint32_t readHalfWord(uint32_t address);
 	uint32_t readByte(uint32_t address);
 

@@ -67,6 +67,8 @@ void ScratchpadModeHandler::activate(uint groupIndex, uint groupSize) {
 	mGroupIndex = groupIndex;
 	mGroupBits = (groupSize == 1) ? 0 : log2Exact(groupSize);
 	mGroupMask = (groupSize == 1) ? 0 : (((1UL << mGroupBits) - 1UL) << mLineBits);
+
+	Instrumentation::memorySetMode(mBankNumber, false);
 }
 
 bool ScratchpadModeHandler::containsAddress(uint32_t address) {
@@ -74,12 +76,15 @@ bool ScratchpadModeHandler::containsAddress(uint32_t address) {
 	return (address & mGroupMask) == (mGroupIndex << mLineBits);
 }
 
-uint32_t ScratchpadModeHandler::readWord(uint32_t address) {
+uint32_t ScratchpadModeHandler::readWord(uint32_t address, bool instruction) {
 	assert(address < cSetCount * cWayCount * cLineSize * (1UL << mGroupBits));
 	assert((address & 0x3) == 0);
 	assert((address & mGroupMask) == (mGroupIndex << mLineBits));
 
-	Instrumentation::memoryReadWord(mBankNumber, address, false);
+	if (instruction)
+		Instrumentation::memoryReadIPKWord(mBankNumber, address, false);
+	else
+		Instrumentation::memoryReadWord(mBankNumber, address, false);
 
 	uint32_t slot = (address & mLineMask) | ((address >> mGroupBits) & ~mLineMask);
 	assert(slot <= cSetCount * cWayCount * cLineSize);
