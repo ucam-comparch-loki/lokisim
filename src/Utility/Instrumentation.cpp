@@ -84,7 +84,7 @@ void Instrumentation::endExecution() {
 
   // Only end simulation if we aren't using the debugger: we may still want to
   // probe memory contents.
-//  if(!Debugger::usingDebugger) sc_stop();
+  if(!Debugger::usingDebugger) sc_stop();
 }
 
 void Instrumentation::networkTraffic(ChannelID startID, ChannelID endID) {

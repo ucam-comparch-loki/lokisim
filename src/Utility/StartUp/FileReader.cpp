@@ -69,7 +69,7 @@ FileReader* FileReader::makeFileReader(vector<string>& words) {
   string name = filename.substr(0, dotPos);
   string extension = filename.substr(dotPos+1);
 
-  if(extension == "") {
+  if(extension == "" || extension == name) {
     filesToLink.push_back(name);
     reader = NULL;
   }
