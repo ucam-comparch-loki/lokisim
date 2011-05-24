@@ -76,7 +76,7 @@ parameter MEMORY_CACHE_SET_COUNT				= 1024;		// 8 KB per bank
 parameter MEMORY_CACHE_WAY_COUNT				= 1;
 parameter MEMORY_CACHE_LINE_SIZE				= 8;
 
-parameter MEMORY_CACHE_RANDOM_REPLACEMENT		= 0;		// 0 = Ideal LRU, 1 = Random / LFSR
+parameter MEMORY_CACHE_RANDOM_REPLACEMENT		= 1;		// 0 = Ideal LRU, 1 = Random / LFSR
 
 parameter MEMORY_ON_CHIP_SCRATCHPAD_DELAY		= 10;
 parameter MEMORY_ON_CHIP_SCRATCHPAD_SIZE		= 64 * 1024 * 1024;
@@ -150,6 +150,7 @@ void Parameters::parseParameter(const string &name, const string &value) {
 	else SET_IF_MATCH(cName, nValue, MEMORY_CACHE_RANDOM_REPLACEMENT);
 	else SET_IF_MATCH(cName, nValue, MEMORY_ON_CHIP_SCRATCHPAD_DELAY);
 	else SET_IF_MATCH(cName, nValue, MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+	else SET_IF_MATCH(cName, nValue, MEMORY_ON_CHIP_SCRATCHPAD_PORTS);
 	else SET_IF_MATCH(cName, nValue, NUM_RECEIVE_CHANNELS);
 	//else SET_IF_MATCH(cName, nValue, MEMORY_INPUT_CHANNELS);
 	//else SET_IF_MATCH(cName, nValue, MEMORY_OUTPUT_CHANNELS);

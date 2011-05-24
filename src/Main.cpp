@@ -27,7 +27,6 @@ static int cycleNumber = 0;
   sc_start(1, SC_NS);\
 }
 
-bool batchMode = false;
 bool debugMode = false;
 bool codeLoaded = false;
 
@@ -70,7 +69,7 @@ void storeArguments(uint argc, char* argv[], Chip& chip) {
 
 void parseArguments(uint argc, char* argv[], Chip& chip) {
 
-  if(!batchMode && argc > 1) {
+  if (argc > 1) {
     for(uint i=1; i<argc; i++) {
       string argument(argv[i]);
       if(argument == "debug") {
@@ -165,27 +164,42 @@ void simulate(Chip& chip) {
 }
 
 int sc_main(int argc, char* argv[]) {
+	// Override parameters before instantiating chip model
 
-  if (argc > 3) {
-    string firstArg(argv[1]);
-    if (firstArg == "batch")
-	  batchMode = true;
-  }
+	bool batchMode = false;
 
-  string settingsFile(batchMode ? argv[2] : "test_files/loader.txt");
-  CodeLoader::loadParameters(settingsFile);
+	if (argc >= 3) {
+		string firstArg(argv[1]);
+		if (firstArg == "-runbatch")
+			batchMode = true;
+	}
 
-  Chip chip("chip", 0);
+	string settingsFile(batchMode ? argv[2] : "test_files/loader.txt");
+	CodeLoader::loadParameters(settingsFile);
 
-  // Load any configuration parameters or code.
-  parseArguments(argc, argv, chip);
-  if(!codeLoaded) CodeLoader::loadCode(settingsFile, chip);
-  CodeLoader::makeExecutable(chip);
+	// Instantiate chip model - parameters must not be changed after this or undefined behaviour might occur
 
-  simulate(chip);
+	Chip chip("chip", 0);
 
-  if (DEBUG) Parameters::printParameters();
-  if (DEBUG) Statistics::printStats();
+	// Load code to execute
 
-  return RETURN_CODE;
+	parseArguments(argc, argv, chip);
+
+	if (!codeLoaded)
+		CodeLoader::loadCode(settingsFile, chip);
+
+	CodeLoader::makeExecutable(chip);
+
+	// Run simulation
+
+	simulate(chip);
+
+	// Print debug information
+
+	if (DEBUG) {
+		Parameters::printParameters();
+		Statistics::printStats();
+	}
+
+	return RETURN_CODE;
 }

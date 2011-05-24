@@ -101,6 +101,8 @@ public:
 			public:
 				uint32_t Address;
 				uint TableIndex;
+				bool PartialInstructionPending;
+				uint32_t PartialInstructionData;
 			} IPKReadHandOff;
 			struct PassThrough_ {
 			public:
@@ -109,6 +111,8 @@ public:
 				uint32_t Address;
 				uint Count;
 				uint TableIndex;
+				bool PartialInstructionPending;
+				uint32_t PartialInstructionData;
 			} PassThrough;
 		} Header;
 		struct Payload_ {
