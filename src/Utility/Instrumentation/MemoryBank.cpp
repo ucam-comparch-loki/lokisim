@@ -159,13 +159,13 @@ void MemoryBank::ringPassThrough(int bank) {
 void MemoryBank::printStats() {
 	if (!modes_.empty()) {
         if (BATCH_MODE) {
-        	cout << "<@SUBTABLE>memory_banks";
-
     		std::map<int, bool>::iterator it;
 
     		for (it = modes_.begin(); it != modes_.end(); it++) {
     			int bank = it->first;
     			bool isCache = it->second;
+
+            	cout << "<@SUBTABLE>memory_banks";
 
     			cout << "!bank_number:" << bank;
     			cout << "!bank_mode:" << (isCache ? "General purpose cache" : "Scratchpad");
@@ -204,9 +204,9 @@ void MemoryBank::printStats() {
 
     			cout << "!ring_hand_offs:" << numHandOffRequests_[bank];
     			cout << "!ring_pass_through:" << numPassThroughRequests_[bank];
-    		}
 
-        	cout << "</@SUBTABLE>" << endl;
+            	cout << "</@SUBTABLE>" << endl;
+    		}
         }
 
 		cout << "Memory banks:" << endl;
