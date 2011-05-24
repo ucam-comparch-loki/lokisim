@@ -19,9 +19,11 @@ using std::vector;
 using std::string;
 
 // Advance the simulation one clock cycle.
+static int cycleNumber = 0;
+
 #define TIMESTEP {\
-  static int cycleNumber = 0;\
-  if(DEBUG) cout << "\n======= Cycle " << cycleNumber++ << " =======" << endl;\
+  cycleNumber++;\
+  if(DEBUG) cout << "\n======= Cycle " << cycleNumber << " =======" << endl;\
   sc_start(1, SC_NS);\
 }
 
@@ -98,6 +100,14 @@ void parseArguments(uint argc, char* argv[], Chip& chip) {
         codeLoaded = true;
         DEBUG = 0;
       }
+      else if(argument == "-runbatch") {
+        // Command line way of choosing which program to run.
+        string filename(argv[i+1]);
+        CodeLoader::loadCode(filename, chip);
+        i++;  // Have used two arguments in this iteration.
+        codeLoaded = true;
+        BATCH_MODE = 1;
+      }
       else if(argument == "--args") {
         // Pass command line options to the simulated program.
         argv[i] = argv[0];
@@ -171,9 +181,13 @@ int sc_main(int argc, char* argv[]) {
   parseArguments(argc, argv, chip);
   if(!codeLoaded) CodeLoader::loadCode(settingsFile, chip);
   CodeLoader::makeExecutable(chip);
+
   simulate(chip);
 
-  if(DEBUG) Statistics::printStats();
+  if (DEBUG) Parameters::printParameters();
+  if (DEBUG) Statistics::printStats();
+
+  if (BATCH_MODE) cout << "<@GLOBAL>total_cycles:" << cycleNumber << "</@GLOBAL>" << endl;
 
   return RETURN_CODE;
 }

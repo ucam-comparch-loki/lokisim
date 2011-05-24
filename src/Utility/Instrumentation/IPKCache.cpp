@@ -37,13 +37,21 @@ void IPKCache::printStats() {
 
   int tagChecks = numTagChecks();
 
+  if (BATCH_MODE) {
+	cout << "<@GLOBAL>ipkcache_reads:" << numReads_ << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>ipkcache_writes:" << numWrites_ << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>ipkcache_tag_checks:" << tagChecks << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>ipkcache_hits:" << numHits_ << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>ipkcache_misses:" << numMisses_ << "</@GLOBAL>" << endl;
+  }
+
   if(tagChecks > 0) {
-    cout <<
-      "Instruction packet cache:" << "\n" <<
-      "  Reads:    " << numReads_ << "\n" <<
-      "  Writes:   " << numWrites_ << "\n" <<
-      "  Tag checks: " << tagChecks << "\n" <<
-      "    Hits:   " << numHits_ << "\t(" << percentage(numHits_,tagChecks) << ")\n" <<
-      "    Misses: " << numMisses_ << "\t(" << percentage(numMisses_,tagChecks) << ")\n";
+	cout <<
+	  "Instruction packet cache:" << "\n" <<
+	  "  Reads:    " << numReads_ << "\n" <<
+	  "  Writes:   " << numWrites_ << "\n" <<
+	  "  Tag checks: " << tagChecks << "\n" <<
+	  "    Hits:   " << numHits_ << "\t(" << percentage(numHits_,tagChecks) << ")\n" <<
+	  "    Misses: " << numMisses_ << "\t(" << percentage(numMisses_,tagChecks) << ")\n";
   }
 }

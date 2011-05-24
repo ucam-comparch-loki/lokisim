@@ -108,6 +108,8 @@ int  Stalls::executionTime() {
 }
 
 void Stalls::printStats() {
+  //TODO: Add information to database if required
+
   if(endOfExecution == 0) return;
 
   cout << "Cluster activity:" << endl;

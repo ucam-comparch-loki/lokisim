@@ -156,8 +156,6 @@ void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
 
 /* Execute a memory operation. */
 void SendChannelEndTable::executeMemoryOp(MapIndex entry, MemoryRequest::MemoryOperation memoryOp, int64_t data) {
-cout << ">>>> " << (uint)entry << " | " << memoryOp << " | " << data << endl;
-
 	// Most messages we send will be one flit long, so will be the end of their
 	// packets. However, packets for memory stores are two flits long (address
 	// then data), so we need to mark this special case.

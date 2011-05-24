@@ -95,14 +95,25 @@ void Energy::printStats() {
 
   if(total == 0) return;
 
+  if (BATCH_MODE) {
+	cout << "<@GLOBAL>energy_total_fj:" << total << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>energy_total_ops:" << Statistics::operations() << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>energy_regs_fj:" << regs << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>energy_cache_fj:" << cache << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>energy_mem_fj:" << mem << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>energy_dec_fj:" << dec << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>energy_ops_fj:" << ops << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>energy_net_fj:" << network << "</@GLOBAL>" << endl;
+  }
+
   cout <<
-    "Total energy: " << total << " fJ\t(" << pJPerOp() << " pJ/op)\n" <<
-    "  Registers:        " << regs << " fJ (" << percentage(regs,total) << ")\n" <<
-    "  Cache:            " << cache << " fJ (" << percentage(cache,total) << ")\n" <<
-    "  Memory:           " << mem << " fJ (" << percentage(mem,total) << ")\n" <<
-    "  Decode:           " << dec << " fJ (" << percentage(dec,total) << ")\n" <<
-    "  Functional units: " << ops << " fJ (" << percentage(ops,total) << ")\n" <<
-    "  Network:          " << network << " fJ (" << percentage(network,total) << ")\n";
+	"Total energy: " << total << " fJ\t(" << pJPerOp() << " pJ/op)\n" <<
+	"  Registers:        " << regs << " fJ (" << percentage(regs,total) << ")\n" <<
+	"  Cache:            " << cache << " fJ (" << percentage(cache,total) << ")\n" <<
+	"  Memory:           " << mem << " fJ (" << percentage(mem,total) << ")\n" <<
+	"  Decode:           " << dec << " fJ (" << percentage(dec,total) << ")\n" <<
+	"  Functional units: " << ops << " fJ (" << percentage(ops,total) << ")\n" <<
+	"  Network:          " << network << " fJ (" << percentage(network,total) << ")\n";
 }
 
 long Energy::registerEnergy() {

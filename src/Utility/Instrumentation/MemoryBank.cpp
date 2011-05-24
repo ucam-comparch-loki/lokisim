@@ -5,6 +5,7 @@
  *      Author: afjk2
  */
 
+#include "../Parameters.h"
 #include "MemoryBank.h"
 
 #include <map>
@@ -157,6 +158,57 @@ void MemoryBank::ringPassThrough(int bank) {
 
 void MemoryBank::printStats() {
 	if (!modes_.empty()) {
+        if (BATCH_MODE) {
+        	cout << "<@SUBTABLE>memory_banks";
+
+    		std::map<int, bool>::iterator it;
+
+    		for (it = modes_.begin(); it != modes_.end(); it++) {
+    			int bank = it->first;
+    			bool isCache = it->second;
+
+    			cout << "!bank_number:" << bank;
+    			cout << "!bank_mode:" << (isCache ? "General purpose cache" : "Scratchpad");
+
+    			cout << "!load_w_hits:" << numReadWordHits_[bank];
+    			cout << "!load_w_misses:" << numReadWordMisses_[bank];
+    			cout << "!load_hw_hits:" << numReadHalfWordHits_[bank];
+    			cout << "!load_hw_misses:" << numReadHalfWordMisses_[bank];
+    			cout << "!load_b_hits:" << numReadByteHits_[bank];
+    			cout << "!load_b_misses:" << numReadByteMisses_[bank];
+
+    			cout << "!store_w_hits:" << numWriteWordHits_[bank];
+    			cout << "!store_w_misses:" << numWriteWordMisses_[bank];
+    			cout << "!store_hw_hits:" << numWriteHalfWordHits_[bank];
+    			cout << "!store_hw_misses:" << numWriteHalfWordMisses_[bank];
+    			cout << "!store_b_hits:" << numWriteByteHits_[bank];
+    			cout << "!store_b_misses:" << numWriteByteMisses_[bank];
+
+    			cout << "!ipkread_l_starts:" << numStartIPKRead_[bank];
+    			cout << "!ipkread_l_conts:" << numContinueIPKRead_[bank];
+    			cout << "!burstread_l_starts:" << numStartBurstRead_[bank];
+    			cout << "!burstread_l_conts:" << numContinueBurstRead_[bank];
+    			cout << "!burstwrite_l_starts:" << numStartBurstWrite_[bank];
+    			cout << "!burstwrite_l_conts:" << numContinueBurstWrite_[bank];
+
+    			cout << "!ipkread_w_hits:" << numIPKReadHits_[bank];
+    			cout << "!ipkread_w_misses:" << numIPKReadMisses_[bank];
+    			cout << "!burstread_w_hits:" << numBurstReadHits_[bank];
+    			cout << "!burstread_w_misses:" << numBurstReadMisses_[bank];
+    			cout << "!burstwrite_w_hits:" << numBurstWriteHits_[bank];
+    			cout << "!burstwrite_w_misses:" << numBurstWriteMisses_[bank];
+
+    			cout << "!replace_invalid:" << numReplaceInvalid_[bank];
+    			cout << "!replace_clean:" << numReplaceClean_[bank];
+    			cout << "!replace_dirty:" << numReplaceDirty_[bank];
+
+    			cout << "!ring_hand_offs:" << numHandOffRequests_[bank];
+    			cout << "!ring_pass_through:" << numPassThroughRequests_[bank];
+    		}
+
+        	cout << "</@SUBTABLE>" << endl;
+        }
+
 		cout << "Memory banks:" << endl;
 
 		std::map<int, bool>::iterator it;

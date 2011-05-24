@@ -5,6 +5,7 @@
  *      Author: afjk2
  */
 
+#include "../Parameters.h"
 #include "BackgroundMemory.h"
 
 int BackgroundMemory::numReads_ = 0;
@@ -28,6 +29,13 @@ int BackgroundMemory::numWordsRead()		{return numWordsRead_;}
 int BackgroundMemory::numWordsWritten()		{return numWordsWritten_;}
 
 void BackgroundMemory::printStats() {
+	if (BATCH_MODE) {
+		cout << "<@GLOBAL>bgmem_read_reqs:" << numReads_ << "</@GLOBAL>" << endl;
+		cout << "<@GLOBAL>bgmem_read_words:" << numWordsRead_ << "</@GLOBAL>" << endl;
+		cout << "<@GLOBAL>bgmem_write_reqs:" << numWrites_ << "</@GLOBAL>" << endl;
+		cout << "<@GLOBAL>bgmem_write_words:" << numWordsWritten_ << "</@GLOBAL>" << endl;
+	}
+
 	if (numReads_ > 0 || numWrites_ > 0) {
 		int accesses = numReads_ + numWrites_;
 		int words = numWordsRead_ + numWordsWritten_;

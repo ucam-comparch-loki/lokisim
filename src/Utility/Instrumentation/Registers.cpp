@@ -29,6 +29,12 @@ int  Registers::numForwards()   {return numForwards_;}
 int  Registers::stallRegUses()  {return stallRegs_;}
 
 void Registers::printStats() {
+  if (BATCH_MODE) {
+	cout << "<@GLOBAL>regs_reads:" << numReads() << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>regs_writes:" << numWrites() << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>regs_forwards:" << numForwards() << "</@GLOBAL>" << endl;
+  }
+
   if(numReads_ == 0 && numWrites_ == 0) return;
 
   cout <<

@@ -35,6 +35,9 @@ int Operations::numOperations()              {return numOps_;}
 int Operations::numOperations(int operation) {return executedOps[operation];}
 
 void Operations::printStats() {
+  if (BATCH_MODE)
+	cout << "<@GLOBAL>operation_count:" << numOps_ << "</@GLOBAL>" << endl;
+
   if(numOps_ > 0) {
     cout << "Operations:\n" <<
       "  Total: " << numOps_ << "\n" <<
@@ -45,6 +48,9 @@ void Operations::printStats() {
     for(int i=0; i<InstructionMap::SYSCALL; i++) {
       if(executedOps[i] > 0 || unexecutedOps[i] > 0) {
         string name = InstructionMap::name(i);
+
+        if (BATCH_MODE)
+        	cout << "<@SUBTABLE>operations!op_name:" << name << "!exec_count:" << executedOps[i] << "</@SUBTABLE>" << endl;
 
         cout << "    ";
         cout.width(14);

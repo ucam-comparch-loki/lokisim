@@ -18,6 +18,7 @@
 #include <string.h>
 
 using std::string;
+using std::cout;
 using std::cerr;
 using std::endl;
 
@@ -27,6 +28,7 @@ using std::endl;
 
 int DEBUG = 1;
 int TRACE = 0;
+int BATCH_MODE = 0;
 
 int TIMEOUT = 15000000;
 
@@ -68,7 +70,7 @@ parameter MAX_IPK_SIZE               = 8; // Must be <= buffer size (wormhole)
 // Configurable memory system
 //-------------------------------------------------------------------------------------------------
 
-parameter MEMORY_CHANNEL_MAP_TABLE_ENTRIES		= 8;
+parameter MEMORY_CHANNEL_MAP_TABLE_ENTRIES		= 16;
 
 parameter MEMORY_CACHE_SET_COUNT				= 1024;		// 8 KB per bank
 parameter MEMORY_CACHE_WAY_COUNT				= 1;
@@ -158,5 +160,20 @@ void Parameters::parseParameter(const string &name, const string &value) {
 	else {
 		cerr << "Encountered invalid parameter in settings file: " << name << endl;
 		throw std::exception();
+	}
+}
+
+void Parameters::printParameters() {
+	// TODO: Add remaining parameters if required
+
+	if (BATCH_MODE) {
+		cout << "<@PARAM>MEMORY_CHANNEL_MAP_TABLE_ENTRIES:" << MEMORY_CHANNEL_MAP_TABLE_ENTRIES << "</@PARAM>" << endl;
+		cout << "<@PARAM>MEMORY_CACHE_SET_COUNT:" << MEMORY_CACHE_SET_COUNT << "</@PARAM>" << endl;
+		cout << "<@PARAM>MEMORY_CACHE_WAY_COUNT:" << MEMORY_CACHE_WAY_COUNT << "</@PARAM>" << endl;
+		cout << "<@PARAM>MEMORY_CACHE_LINE_SIZE:" << MEMORY_CACHE_LINE_SIZE << "</@PARAM>" << endl;
+		cout << "<@PARAM>MEMORY_CACHE_RANDOM_REPLACEMENT:" << MEMORY_CACHE_RANDOM_REPLACEMENT << "</@PARAM>" << endl;
+		cout << "<@PARAM>MEMORY_ON_CHIP_SCRATCHPAD_DELAY:" << MEMORY_ON_CHIP_SCRATCHPAD_DELAY << "</@PARAM>" << endl;
+		cout << "<@PARAM>MEMORY_ON_CHIP_SCRATCHPAD_SIZE:" << MEMORY_ON_CHIP_SCRATCHPAD_SIZE << "</@PARAM>" << endl;
+		cout << "<@PARAM>MEMORY_ON_CHIP_SCRATCHPAD_PORTS:" << MEMORY_ON_CHIP_SCRATCHPAD_PORTS << "</@PARAM>" << endl;
 	}
 }

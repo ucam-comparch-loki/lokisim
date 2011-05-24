@@ -1227,7 +1227,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	mOutputWordPending = false;
 
 	//-- Mode independent state -------------------------------------------------------------------
-	cout << cBankNumber << " - " << mActiveAddress << endl;
 
 	mGroupBaseBank = 0;
 	mGroupIndex = 0;

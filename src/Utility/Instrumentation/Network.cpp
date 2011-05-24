@@ -40,10 +40,17 @@ double Network::totalDistance() {
 }
 
 void Network::printStats() {
+  double averageDist = (commDistances.numEvents() > 0) ? ((double)totalDistance_/commDistances.numEvents()) : 0.0;
+
+  if (BATCH_MODE) {
+	cout << "<@GLOBAL>network_words:" << producers.numEvents() << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>network_avg_dist:" << averageDist << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>network_total_dist:" << totalBitDistance_ << "</@GLOBAL>" << endl;
+
+	//TODO: Add distribution to database if required
+  }
+
   if(producers.numEvents() > 0) {
-
-    double averageDist = (double)totalDistance_/commDistances.numEvents();
-
     cout <<
       "Network:" << endl <<
       "  Total words sent: " << producers.numEvents() << "\n" <<
