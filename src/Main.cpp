@@ -187,7 +187,5 @@ int sc_main(int argc, char* argv[]) {
   if (DEBUG) Parameters::printParameters();
   if (DEBUG) Statistics::printStats();
 
-  if (BATCH_MODE) cout << "<@GLOBAL>total_cycles:" << cycleNumber << "</@GLOBAL>" << endl;
-
   return RETURN_CODE;
 }
