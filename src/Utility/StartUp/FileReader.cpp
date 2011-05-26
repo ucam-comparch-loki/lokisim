@@ -23,6 +23,7 @@ using std::cerr;
 using std::endl;
 
 vector<string> FileReader::filesToLink;
+vector<string> FileReader::tempFiles;
 string         FileReader::linkedFile;
 
 /* Print an instruction in the form:
@@ -109,6 +110,7 @@ FileReader* FileReader::makeFileReader(vector<string>& words) {
     deleteFile(asmFile);
 
     filesToLink.push_back(elfFile);
+    tempFiles.push_back(elfFile);
     reader = NULL;
   }
   else {
@@ -172,8 +174,8 @@ FileReader* FileReader::linkFiles() {
  * kept tidy. There is no point in keeping them because they will be re-made
  * next time the simulator is run. */
 void FileReader::tidy() {
-  for(unsigned int i=0; i<filesToLink.size(); i++) {
-    deleteFile(filesToLink[i]);
+  for(unsigned int i=0; i<tempFiles.size(); i++) {
+    deleteFile(tempFiles[i]);
   }
 
   // Might like to keep this one so the linker isn't needed?

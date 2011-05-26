@@ -61,6 +61,7 @@ private:
   static void deleteFile(string& filename);
 
   static vector<string> filesToLink;
+  static vector<string> tempFiles;
   static string         linkedFile;
 
 };
