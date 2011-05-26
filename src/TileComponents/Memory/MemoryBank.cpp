@@ -67,6 +67,9 @@ ReevaluateRequest:
 		if (DEBUG)
 			cout << this->name() << " received RING_SET_MODE request through ring network" << endl;
 
+		mWayCount = mActiveRingRequestInput.Header.SetMode.WayCount;
+		mLineSize = mActiveRingRequestInput.Header.SetMode.LineSize;
+
 		mGroupBaseBank = mActiveRingRequestInput.Header.SetMode.GroupBaseBank;
 		mGroupIndex = mActiveRingRequestInput.Header.SetMode.GroupIndex;
 		mGroupSize = mActiveRingRequestInput.Header.SetMode.GroupSize;
@@ -75,10 +78,10 @@ ReevaluateRequest:
 
 		if (mActiveRingRequestInput.Header.SetMode.NewMode == MODE_SCRATCHPAD) {
 			mBankMode = MODE_SCRATCHPAD;
-			mScratchpadModeHandler.activate(mGroupIndex, mGroupSize);
+			mScratchpadModeHandler.activate(mGroupIndex, mGroupSize, mWayCount, mLineSize);
 		} else {
 			mBankMode = MODE_GP_CACHE;
-			mGeneralPurposeCacheHandler.activate(mGroupIndex, mGroupSize);
+			mGeneralPurposeCacheHandler.activate(mGroupIndex, mGroupSize, mWayCount, mLineSize);
 		}
 
 		if (mGroupIndex < mGroupSize - 1) {
@@ -87,6 +90,8 @@ ReevaluateRequest:
 			if (mRingRequestOutputPending) {
 				mDelayedRingRequestOutput.Header.RequestType = RING_SET_MODE;
 				mDelayedRingRequestOutput.Header.SetMode.NewMode = mBankMode;
+				mDelayedRingRequestOutput.Header.SetMode.WayCount = mWayCount;
+				mDelayedRingRequestOutput.Header.SetMode.LineSize = mLineSize;
 				mDelayedRingRequestOutput.Header.SetMode.GroupBaseBank = mGroupBaseBank;
 				mDelayedRingRequestOutput.Header.SetMode.GroupIndex = mGroupIndex + 1;
 				mDelayedRingRequestOutput.Header.SetMode.GroupSize = mGroupSize;
@@ -95,6 +100,8 @@ ReevaluateRequest:
 				mRingRequestOutputPending = true;
 				mActiveRingRequestOutput.Header.RequestType = RING_SET_MODE;
 				mActiveRingRequestOutput.Header.SetMode.NewMode = mBankMode;
+				mActiveRingRequestOutput.Header.SetMode.WayCount = mWayCount;
+				mActiveRingRequestOutput.Header.SetMode.LineSize = mLineSize;
 				mActiveRingRequestOutput.Header.SetMode.GroupBaseBank = mGroupBaseBank;
 				mActiveRingRequestOutput.Header.SetMode.GroupIndex = mGroupIndex + 1;
 				mActiveRingRequestOutput.Header.SetMode.GroupSize = mGroupSize;
@@ -322,6 +329,12 @@ bool MemoryBank::processMessageHeader() {
 			if (DEBUG)
 				cout << this->name() << " received SET_MODE opcode on channel " << mActiveTableIndex << endl;
 
+			uint wayBits = mActiveRequest.getWayBits();
+			uint lineBits = mActiveRequest.getLineBits();
+
+			mWayCount = wayBits == 0 ? MEMORY_CACHE_WAY_COUNT : (1U << (wayBits - 1));
+			mLineSize = lineBits == 0 ? MEMORY_CACHE_LINE_SIZE : (1U << (lineBits - 1));
+
 			mGroupBaseBank = cBankNumber;
 			mGroupIndex = 0;
 			mGroupSize = 1UL << mActiveRequest.getGroupBits();
@@ -330,10 +343,10 @@ bool MemoryBank::processMessageHeader() {
 
 			if (mActiveRequest.getMode() == MemoryRequest::SCRATCHPAD) {
 				mBankMode = MODE_SCRATCHPAD;
-				mScratchpadModeHandler.activate(mGroupIndex, mGroupSize);
+				mScratchpadModeHandler.activate(mGroupIndex, mGroupSize, mWayCount, mLineSize);
 			} else {
 				mBankMode = MODE_GP_CACHE;
-				mGeneralPurposeCacheHandler.activate(mGroupIndex, mGroupSize);
+				mGeneralPurposeCacheHandler.activate(mGroupIndex, mGroupSize, mWayCount, mLineSize);
 			}
 
 			if (mGroupIndex < mGroupSize - 1) {
@@ -342,6 +355,8 @@ bool MemoryBank::processMessageHeader() {
 				if (mRingRequestOutputPending) {
 					mDelayedRingRequestOutput.Header.RequestType = RING_SET_MODE;
 					mDelayedRingRequestOutput.Header.SetMode.NewMode = mBankMode;
+					mDelayedRingRequestOutput.Header.SetMode.WayCount = mWayCount;
+					mDelayedRingRequestOutput.Header.SetMode.LineSize = mLineSize;
 					mDelayedRingRequestOutput.Header.SetMode.GroupBaseBank = mGroupBaseBank;
 					mDelayedRingRequestOutput.Header.SetMode.GroupIndex = mGroupIndex + 1;
 					mDelayedRingRequestOutput.Header.SetMode.GroupSize = mGroupSize;
@@ -350,6 +365,8 @@ bool MemoryBank::processMessageHeader() {
 					mRingRequestOutputPending = true;
 					mActiveRingRequestOutput.Header.RequestType = RING_SET_MODE;
 					mActiveRingRequestOutput.Header.SetMode.NewMode = mBankMode;
+					mActiveRingRequestOutput.Header.SetMode.WayCount = mWayCount;
+					mActiveRingRequestOutput.Header.SetMode.LineSize = mLineSize;
 					mActiveRingRequestOutput.Header.SetMode.GroupBaseBank = mGroupBaseBank;
 					mActiveRingRequestOutput.Header.SetMode.GroupIndex = mGroupIndex + 1;
 					mActiveRingRequestOutput.Header.SetMode.GroupSize = mGroupSize;
@@ -1101,17 +1118,17 @@ void MemoryBank::processGeneralPurposeCacheMiss() {
 		mCacheLineCursor = 0;
 
 		if (mWriteBackCount > 0) {
-			assert(mWriteBackCount == MEMORY_CACHE_LINE_SIZE / 4);
+			assert(mWriteBackCount == mLineSize / 4);
 
 			oBMDataStrobe.write(true);
-			oBMData.write(MemoryRequest(MemoryRequest::STORE_LINE, mWriteBackAddress));
+			oBMData.write(MemoryRequest(MemoryRequest::STORE_LINE, mWriteBackAddress, mLineSize));
 
 			mCacheFSMState = GP_CACHE_STATE_SEND_DATA;
 		} else {
-			assert(mFetchCount == MEMORY_CACHE_LINE_SIZE / 4);
+			assert(mFetchCount == mLineSize / 4);
 
 			oBMDataStrobe.write(true);
-			oBMData.write(MemoryRequest(MemoryRequest::FETCH_LINE, mFetchAddress));
+			oBMData.write(MemoryRequest(MemoryRequest::FETCH_LINE, mFetchAddress, mLineSize));
 			mCacheLineCursor = 0;
 
 			mCacheFSMState = GP_CACHE_STATE_READ_DATA;
@@ -1127,10 +1144,10 @@ void MemoryBank::processGeneralPurposeCacheMiss() {
 		break;
 
 	case GP_CACHE_STATE_SEND_READ_COMMAND:
-		assert(mFetchCount == MEMORY_CACHE_LINE_SIZE / 4);
+		assert(mFetchCount == mLineSize / 4);
 
 		oBMDataStrobe.write(true);
-		oBMData.write(MemoryRequest(MemoryRequest::FETCH_LINE, mFetchAddress));
+		oBMData.write(MemoryRequest(MemoryRequest::FETCH_LINE, mFetchAddress, mLineSize));
 		mCacheLineCursor = 0;
 
 		mCacheFSMState = GP_CACHE_STATE_READ_DATA;
@@ -1337,9 +1354,8 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	cChannelMapTableEntries = MEMORY_CHANNEL_MAP_TABLE_ENTRIES;
 	cMemoryBanks = MEMS_PER_TILE;
 	cBankNumber = bankNumber;
-	cSetCount = MEMORY_CACHE_SET_COUNT;
-	cWayCount = MEMORY_CACHE_WAY_COUNT;
-	cLineSize = MEMORY_CACHE_LINE_SIZE;
+	mWayCount = MEMORY_CACHE_WAY_COUNT;
+	mLineSize = MEMORY_CACHE_LINE_SIZE;
 	cRandomReplacement = MEMORY_CACHE_RANDOM_REPLACEMENT != 0;
 
 	assert(cChannelMapTableEntries > 0);

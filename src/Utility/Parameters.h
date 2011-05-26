@@ -79,7 +79,7 @@ extern parameter		MEMORY_CACHE_RANDOM_REPLACEMENT;
 
 extern parameter		MEMORY_ON_CHIP_SCRATCHPAD_DELAY;
 extern parameter		MEMORY_ON_CHIP_SCRATCHPAD_SIZE;
-extern parameter		MEMORY_ON_CHIP_SCRATCHPAD_PORTS;
+extern parameter		MEMORY_ON_CHIP_SCRATCHPAD_BANKS;
 
 //-------------------------------------------------------------------------------------------------
 // Network

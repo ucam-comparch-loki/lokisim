@@ -40,9 +40,7 @@ class SimplifiedOnChipScratchpad: public Component {
 private:
 
 	uint						cDelayCycles;			// Number of clock cycles requests are delayed
-	uint						cPorts;					// Number of memory ports
-
-	uint						cLineWords;				// Number of words in one memory line
+	uint						cBanks;					// Number of memory banks
 
 	//---------------------------------------------------------------------------------------------
 	// Ports

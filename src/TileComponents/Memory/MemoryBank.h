@@ -42,9 +42,8 @@ private:
 
 	uint						cBankNumber;				// Number of this memory bank (off by one)
 
-	uint						cSetCount;					// Number of sets in general purpose cache mode
-	uint						cWayCount;					// Number of ways in general purpose cache mode
-	uint						cLineSize;					// Size of lines (for cache management and data interleaving)
+	uint						mWayCount;					// Number of ways in general purpose cache mode
+	uint						mLineSize;					// Size of lines (for cache management and data interleaving)
 
 	bool						cRandomReplacement;			// Replace random cache lines (instead of using LRU scheme)
 
@@ -77,6 +76,8 @@ public:
 			struct SetMode_ {
 			public:
 				BankMode NewMode;
+				uint WayCount;
+				uint LineSize;
 				uint GroupBaseBank;
 				uint GroupIndex;
 				uint GroupSize;

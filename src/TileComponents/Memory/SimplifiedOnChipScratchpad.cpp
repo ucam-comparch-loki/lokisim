@@ -45,10 +45,11 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 
 		if (request.getOperation() == MemoryRequest::FETCH_LINE) {
 			mPortData[port].Address = request.getPayload();
-			mPortData[port].WordsLeft = cLineWords;
+			mPortData[port].WordsLeft = request.getLineSize() / 4;
 
 			assert((mPortData[port].Address & 0x3) == 0);
 			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+			assert(mPortData[port].WordsLeft > 0);
 
 			Instrumentation::backgroundMemoryRead(mPortData[port].Address, mPortData[port].WordsLeft);
 
@@ -57,10 +58,11 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 			mPortData[port].State = STATE_READING;
 		} else if (request.getOperation() == MemoryRequest::STORE_LINE) {
 			mPortData[port].Address = request.getPayload();
-			mPortData[port].WordsLeft = cLineWords;
+			mPortData[port].WordsLeft = request.getLineSize() / 4;
 
 			assert((mPortData[port].Address & 0x3) == 0);
 			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+			assert(mPortData[port].WordsLeft > 0);
 
 			Instrumentation::backgroundMemoryWrite(mPortData[port].Address, mPortData[port].WordsLeft);
 
@@ -73,6 +75,8 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 }
 
 void SimplifiedOnChipScratchpad::mainLoop() {
+	assert(cBanks <= 16);
+
 	for (;;) {
 		// Wait for start of clock cycle
 
@@ -91,12 +95,14 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 
 		// Process port events
 
-		uint accessCount = 0;	// Simulate n-port memory
+		bool bankAccessed[16];	// Simulate banked memory
+		memset(bankAccessed, 0x00, sizeof(bankAccessed));
 
 		for (uint port = 0; port < mPortCount; port++) {
 			// Default to non-valid - only last change will become effective
 
 			oDataStrobe[port].write(false);
+			uint32_t bankSelected = (mPortData[port].Address / 4) % cBanks;
 
 			switch (mPortData[port].State) {
 			case STATE_IDLE:
@@ -104,7 +110,7 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 				break;
 
 			case STATE_READING:
-				if (accessCount < cPorts) {
+				if (!bankAccessed[bankSelected]) {
 					oDataStrobe[port].write(true);
 					oData[port].write(Word(mData[mPortData[port].Address / 4]));
 
@@ -114,13 +120,13 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 					if (mPortData[port].WordsLeft == 0)
 						tryStartRequest(port);
 
-					accessCount++;
+					bankAccessed[bankSelected] = true;
 				}
 
 				break;
 
 			case STATE_WRITING:
-				if (accessCount < cPorts && !mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
+				if (!bankAccessed[bankSelected] && !mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
 					assert(mInputQueues[port].read().Request.getOperation() == MemoryRequest::PAYLOAD_ONLY);
 
 					mData[mPortData[port].Address / 4] = mInputQueues[port].read().Request.getPayload();
@@ -130,7 +136,7 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 					if (mPortData[port].WordsLeft == 0)
 						tryStartRequest(port);
 
-					accessCount++;
+					bankAccessed[bankSelected] = true;
 				}
 
 				break;
@@ -166,8 +172,7 @@ SimplifiedOnChipScratchpad::SimplifiedOnChipScratchpad(sc_module_name name, cons
 	assert(MEMORY_CACHE_LINE_SIZE % 4 == 0);
 
 	cDelayCycles = MEMORY_ON_CHIP_SCRATCHPAD_DELAY;
-	cPorts = MEMORY_ON_CHIP_SCRATCHPAD_PORTS;
-	cLineWords = MEMORY_CACHE_LINE_SIZE / 4;
+	cBanks = MEMORY_ON_CHIP_SCRATCHPAD_BANKS;
 
 	oIdle.initialize(true);
 

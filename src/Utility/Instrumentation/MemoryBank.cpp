@@ -11,6 +11,9 @@
 #include <map>
 
 std::map<int, bool> MemoryBank::modes_;
+std::map<int, uint> MemoryBank::setCounts_;
+std::map<int, uint> MemoryBank::wayCounts_;
+std::map<int, uint> MemoryBank::lineSizes_;
 
 CounterMap<int> MemoryBank::numReadWordHits_;
 CounterMap<int> MemoryBank::numReadHalfWordHits_;
@@ -51,8 +54,11 @@ CounterMap<int> MemoryBank::numReplaceDirty_;
 CounterMap<int> MemoryBank::numHandOffRequests_;
 CounterMap<int> MemoryBank::numPassThroughRequests_;
 
-void MemoryBank::setMode(int bank, bool isCache) {
+void MemoryBank::setMode(int bank, bool isCache, uint setCount, uint wayCount, uint lineSize) {
 	modes_[bank] = isCache;
+	setCounts_[bank] = setCount;
+	wayCounts_[bank] = wayCount;
+	lineSizes_[bank] = lineSize;
 }
 
 void MemoryBank::readWord(int bank, MemoryAddr address, bool isMiss) {
@@ -169,6 +175,9 @@ void MemoryBank::printStats() {
 
     			cout << "!bank_number:" << bank;
     			cout << "!bank_mode:" << (isCache ? "General purpose cache" : "Scratchpad");
+    			cout << "!set_count:" << setCounts_[bank];
+    			cout << "!way_count:" << wayCounts_[bank];
+    			cout << "!line_size:" << lineSizes_[bank];
 
     			cout << "!load_w_hits:" << numReadWordHits_[bank];
     			cout << "!load_w_misses:" << numReadWordMisses_[bank];
@@ -225,6 +234,9 @@ void MemoryBank::printStats() {
 
 			cout << "                        Bank: " << bank << endl;
 			cout << "                        Mode: " << (isCache ? "General purpose cache" : "Scratchpad") << endl;
+			cout << "                   Set count: " << setCounts_[bank] << endl;
+			cout << "                   Way count: " << wayCounts_[bank] << endl;
+			cout << "                   Line size: " << lineSizes_[bank] << endl;
 
 			int scalarReadCount = 0;
 			int scalarWriteCount = 0;

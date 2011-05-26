@@ -25,9 +25,9 @@ private:
 	// Configuration parameters
 	//---------------------------------------------------------------------------------------------
 
-	uint cSetCount;							// Number of sets in general purpose cache mode
-	uint cWayCount;							// Number of ways in general purpose cache mode
-	uint cLineSize;							// Size of lines (for cache management and data interleaving)
+	uint mSetCount;							// Number of sets in general purpose cache mode
+	uint mWayCount;							// Number of ways in general purpose cache mode
+	uint mLineSize;							// Size of lines (for cache management and data interleaving)
 
 	//---------------------------------------------------------------------------------------------
 	// State
@@ -54,7 +54,7 @@ public:
 	ScratchpadModeHandler(uint bankNumber);
 	~ScratchpadModeHandler();
 
-	void activate(uint groupIndex, uint groupSize);
+	void activate(uint groupIndex, uint groupSize, uint wayCount, uint lineSize);
 
 	bool containsAddress(uint32_t address);
 

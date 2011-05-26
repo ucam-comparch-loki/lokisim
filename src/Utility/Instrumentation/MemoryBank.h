@@ -19,7 +19,7 @@ namespace Instrumentation {
 
 	public:
 
-		static void setMode(int bank, bool isCache);
+		static void setMode(int bank, bool isCache, uint setCount, uint wayCount, uint lineSize);
 
 		static void readWord(int bank, MemoryAddr address, bool isMiss);
 		static void readHalfWord(int bank, MemoryAddr address, bool isMiss);
@@ -47,6 +47,9 @@ namespace Instrumentation {
 	private:
 
 		static std::map<int, bool> modes_;
+		static std::map<int, uint> setCounts_;
+		static std::map<int, uint> wayCounts_;
+		static std::map<int, uint> lineSizes_;
 
 		static CounterMap<int> numReadWordHits_;
 		static CounterMap<int> numReadHalfWordHits_;

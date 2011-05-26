@@ -42,9 +42,9 @@ bool GeneralPurposeCacheHandler::lookupCacheLine(uint32_t address, uint &slot) {
 
 	uint32_t lineAddress = address & ~mLineMask;
 	uint setIndex = (address & mSetMask) >> mSetShift;
-	uint startSlot = setIndex * cWayCount;
+	uint startSlot = setIndex * mWayCount;
 
-	for (uint i = 0; i < cWayCount; i++) {
+	for (uint i = 0; i < mWayCount; i++) {
 		if (mLineValid[startSlot + i] && mAddresses[startSlot + i] == lineAddress) {
 			slot = startSlot + i;
 			return true;
@@ -58,15 +58,15 @@ void GeneralPurposeCacheHandler::promoteCacheLine(uint slot) {
 	if (!cRandomReplacement) {
 		// Physically swap data in the model to simplify ideal LRU implementation
 
-		assert(cLineSize <= 256);
-		uint setIndex = slot / cWayCount;
-		uint slotLimit = setIndex * cWayCount;
+		assert(mLineSize <= 256);
+		uint setIndex = slot / mWayCount;
+		uint slotLimit = setIndex * mWayCount;
 
 		while (slot > slotLimit) {
 			uint32_t tempData[64];
-			memcpy(tempData, &mData[slot * cLineSize / 4], cLineSize);
-			memcpy(&mData[slot * cLineSize / 4], &mData[(slot - 1) * cLineSize / 4], cLineSize);
-			memcpy(&mData[(slot - 1) * cLineSize / 4], tempData, cLineSize);
+			memcpy(tempData, &mData[slot * mLineSize / 4], mLineSize);
+			memcpy(&mData[slot * mLineSize / 4], &mData[(slot - 1) * mLineSize / 4], mLineSize);
+			memcpy(&mData[(slot - 1) * mLineSize / 4], tempData, mLineSize);
 
 			uint32_t tempAddress = mAddresses[slot];
 			mAddresses[slot] = mAddresses[slot - 1];
@@ -89,28 +89,28 @@ void GeneralPurposeCacheHandler::promoteCacheLine(uint slot) {
 GeneralPurposeCacheHandler::GeneralPurposeCacheHandler(uint bankNumber) {
 	//-- Configuration parameters -----------------------------------------------------------------
 
-	cSetCount = MEMORY_CACHE_SET_COUNT;
-	cWayCount = MEMORY_CACHE_WAY_COUNT;
-	cLineSize = MEMORY_CACHE_LINE_SIZE;
+	mSetCount = MEMORY_CACHE_SET_COUNT;
+	mWayCount = MEMORY_CACHE_WAY_COUNT;
+	mLineSize = MEMORY_CACHE_LINE_SIZE;
 
 	cRandomReplacement = MEMORY_CACHE_RANDOM_REPLACEMENT != 0;
 
 	//-- State ------------------------------------------------------------------------------------
 
-	mData = new uint32_t[cSetCount * cWayCount * cLineSize / 4];
-	mAddresses = new uint32_t[cSetCount * cWayCount];
-	mLineValid = new bool[cSetCount * cWayCount];
-	mLineDirty = new bool[cSetCount * cWayCount];
+	mData = new uint32_t[mSetCount * mWayCount * mLineSize / 4];
+	mAddresses = new uint32_t[mSetCount * mWayCount];
+	mLineValid = new bool[mSetCount * mWayCount];
+	mLineDirty = new bool[mSetCount * mWayCount];
 
 	mLFSRState = 0xFFFFU;
 
 	mVictimSlot = 0;
 
-	mSetBits = log2Exact(cSetCount);
+	mSetBits = log2Exact(mSetCount);
 	mSetMask = 0;
 	mSetShift = 0;
 
-	mLineBits = log2Exact(cLineSize);
+	mLineBits = log2Exact(mLineSize);
 	mLineMask = (1UL << mLineBits) - 1UL;
 
 	mGroupIndex = 0;
@@ -127,17 +127,39 @@ GeneralPurposeCacheHandler::~GeneralPurposeCacheHandler() {
 	delete[] mLineDirty;
 }
 
-void GeneralPurposeCacheHandler::activate(uint groupIndex, uint groupSize) {
-	memset(mLineValid, 0x00, cSetCount * cWayCount * sizeof(bool));
+void GeneralPurposeCacheHandler::activate(uint groupIndex, uint groupSize, uint wayCount, uint lineSize) {
+	mSetCount = MEMORY_CACHE_SET_COUNT * MEMORY_CACHE_WAY_COUNT * MEMORY_CACHE_LINE_SIZE / (wayCount * lineSize);
+	mWayCount = wayCount;
+	mLineSize = lineSize;
+
+	assert(log2Exact(mSetCount) >= 2);
+	assert(mWayCount == 1 || log2Exact(mWayCount) >= 1);
+	assert(log2Exact(mLineSize) >= 2);
+
+	delete[] mAddresses;
+	delete[] mLineValid;
+	delete[] mLineDirty;
+
+	mAddresses = new uint32_t[mSetCount * mWayCount];
+	mLineValid = new bool[mSetCount * mWayCount];
+	mLineDirty = new bool[mSetCount * mWayCount];
+
+	memset(mLineValid, 0x00, mSetCount * mWayCount * sizeof(bool));
+
+	mVictimSlot = 0;
+
+	mLineBits = log2Exact(mLineSize);
+	mLineMask = (1UL << mLineBits) - 1UL;
 
 	mGroupIndex = groupIndex;
 	mGroupBits = (groupSize == 1) ? 0 : log2Exact(groupSize);
 	mGroupMask = (groupSize == 1) ? 0 : (((1UL << mGroupBits) - 1UL) << mLineBits);
 
+	mSetBits = log2Exact(mSetCount);
 	mSetShift = mGroupBits + mLineBits;
 	mSetMask = ((1UL << mSetBits) - 1UL) << mSetShift;
 
-	Instrumentation::memorySetMode(mBankNumber, true);
+	Instrumentation::memorySetMode(mBankNumber, true, mSetCount, mWayCount, mLineSize);
 }
 
 bool GeneralPurposeCacheHandler::containsAddress(uint32_t address) {
@@ -168,7 +190,7 @@ bool GeneralPurposeCacheHandler::readWord(uint32_t address, uint32_t &data, bool
 			Instrumentation::memoryReadWord(mBankNumber, address, false);
 	}
 
-	data = mData[slot * cLineSize / 4 + (address & mLineMask) / 4];
+	data = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
 	promoteCacheLine(slot);
 	return true;
 }
@@ -187,7 +209,7 @@ bool GeneralPurposeCacheHandler::readHalfWord(uint32_t address, uint32_t &data, 
 	if (!resume && !debug)
 		Instrumentation::memoryReadHalfWord(mBankNumber, address, false);
 
-	uint32_t fullWord = mData[slot * cLineSize / 4 + (address & mLineMask) / 4];
+	uint32_t fullWord = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
 	data = ((address & 0x2) == 0) ? (fullWord & 0xFFFFUL) : (fullWord >> 16);	// Little endian
 	promoteCacheLine(slot);
 	return true;
@@ -205,14 +227,14 @@ bool GeneralPurposeCacheHandler::readByte(uint32_t address, uint32_t &data, bool
 	if (!resume && !debug)
 		Instrumentation::memoryReadByte(mBankNumber, address, false);
 
-	uint32_t fullWord = mData[slot * cLineSize / 4 + (address & mLineMask) / 4];
-  uint32_t selector = address & 0x3UL;
+	uint32_t fullWord = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
+	uint32_t selector = address & 0x3UL;
 
 	switch (selector) {	// Little endian
-	case 0:	data = fullWord & 0xFFUL;          break;
-	case 1:	data = (fullWord >> 8) & 0xFFUL;   break;
-	case 2:	data = (fullWord >> 16) & 0xFFUL;  break;
-	case 3:	data = (fullWord >> 24) & 0xFFUL;  break;
+	case 0:	data = fullWord & 0xFFUL;			break;
+	case 1:	data = (fullWord >> 8) & 0xFFUL;	break;
+	case 2:	data = (fullWord >> 16) & 0xFFUL;	break;
+	case 3:	data = (fullWord >> 24) & 0xFFUL;	break;
 	}
 
 	promoteCacheLine(slot);
@@ -233,7 +255,7 @@ bool GeneralPurposeCacheHandler::writeWord(uint32_t address, uint32_t data, bool
 	if (!resume && !debug)
 		Instrumentation::memoryWriteWord(mBankNumber, address, false);
 
-	mData[slot * cLineSize / 4 + (address & mLineMask) / 4] = data;
+	mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = data;
 	promoteCacheLine(slot);
 	return true;
 }
@@ -252,12 +274,12 @@ bool GeneralPurposeCacheHandler::writeHalfWord(uint32_t address, uint32_t data, 
 	if (!resume && !debug)
 		Instrumentation::memoryWriteHalfWord(mBankNumber, address, false);
 
-	uint32_t oldData = mData[slot * cLineSize / 4 + (address & mLineMask) / 4];
+	uint32_t oldData = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
 
 	if ((address & 0x2) == 0)	// Little endian
-		mData[slot * cLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0xFFFF0000UL) | (data & 0x0000FFFFUL);
+		mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0xFFFF0000UL) | (data & 0x0000FFFFUL);
 	else
-		mData[slot * cLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0x0000FFFFUL) | (data << 16);
+		mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0x0000FFFFUL) | (data << 16);
 
 	promoteCacheLine(slot);
 	return true;
@@ -275,13 +297,14 @@ bool GeneralPurposeCacheHandler::writeByte(uint32_t address, uint32_t data, bool
 	if (!resume && !debug)
 		Instrumentation::memoryWriteByte(mBankNumber, address, false);
 
-	uint32_t oldData = mData[slot * cLineSize / 4 + (address & mLineMask) / 4];
+	uint32_t oldData = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
+	uint32_t selector = address & 0x3UL;
 
-	switch (address & 0x3) {	// Little endian
-	case 0:	mData[slot * cLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0xFFFFFF00UL) | (data & 0x000000FFUL);
-	case 1:	mData[slot * cLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0xFFFF00FFUL) | ((data & 0x000000FFUL) << 8);
-	case 2:	mData[slot * cLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0xFF00FFFFUL) | ((data & 0x000000FFUL) << 16);
-	case 3:	mData[slot * cLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0x00FFFFFFUL) | ((data & 0x000000FFUL) << 24);
+	switch (selector) {	// Little endian
+	case 0:	mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0xFFFFFF00UL) | (data & 0x000000FFUL);				break;
+	case 1:	mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0xFFFF00FFUL) | ((data & 0x000000FFUL) << 8);		break;
+	case 2:	mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0xFF00FFFFUL) | ((data & 0x000000FFUL) << 16);		break;
+	case 3:	mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0x00FFFFFFUL) | ((data & 0x000000FFUL) << 24);		break;
 	}
 
 	promoteCacheLine(slot);
@@ -293,12 +316,12 @@ void GeneralPurposeCacheHandler::prepareCacheLine(uint32_t address, uint32_t &wr
 	assert(!lookupCacheLine(address, slot));
 
 	uint setIndex = (address & mSetMask) >> mSetShift;
-	slot = setIndex * cWayCount;
+	slot = setIndex * mWayCount;
 
 	if (cRandomReplacement) {
 		// Select way pseudo-randomly
 
-		slot += mLFSRState % cWayCount;
+		slot += mLFSRState % mWayCount;
 
 		// 16-bit Fibonacci LFSR
 
@@ -309,7 +332,7 @@ void GeneralPurposeCacheHandler::prepareCacheLine(uint32_t address, uint32_t &wr
 	} else {
 		// Oldest entry always in way with highest index
 
-		slot += cWayCount - 1;
+		slot += mWayCount - 1;
 	}
 
 	if (mLineValid[slot]) {
@@ -317,8 +340,8 @@ void GeneralPurposeCacheHandler::prepareCacheLine(uint32_t address, uint32_t &wr
 			Instrumentation::memoryReplaceCacheLine(mBankNumber, true, true);
 
 			writeBackAddress = mAddresses[slot];
-			writeBackCount = cLineSize / 4;
-			memcpy(writeBackData, &mData[slot * cLineSize / 4], cLineSize);
+			writeBackCount = mLineSize / 4;
+			memcpy(writeBackData, &mData[slot * mLineSize / 4], mLineSize);
 		} else {
 			Instrumentation::memoryReplaceCacheLine(mBankNumber, true, false);
 
@@ -331,13 +354,13 @@ void GeneralPurposeCacheHandler::prepareCacheLine(uint32_t address, uint32_t &wr
 	}
 
 	fetchAddress = address & ~mLineMask;
-	fetchCount = cLineSize / 4;
+	fetchCount = mLineSize / 4;
 
 	mVictimSlot = slot;
 }
 
 void GeneralPurposeCacheHandler::replaceCacheLine(uint32_t fetchAddress, uint32_t fetchData[]) {
-	memcpy(&mData[mVictimSlot * cLineSize / 4], fetchData, cLineSize);
+	memcpy(&mData[mVictimSlot * mLineSize / 4], fetchData, mLineSize);
 	mAddresses[mVictimSlot] = fetchAddress;
 	mLineValid[mVictimSlot] = true;
 	mLineDirty[mVictimSlot] = false;

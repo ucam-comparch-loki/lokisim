@@ -56,7 +56,7 @@ namespace Instrumentation {
   // Record that memory was written to.
   void l1Write(MemoryAddr address);
 
-  void memorySetMode(int bank, bool isCache);
+  void memorySetMode(int bank, bool isCache, uint setCount, uint wayCount, uint lineSize);
 
   void memoryReadWord(int bank, MemoryAddr address, bool isMiss);
   void memoryReadHalfWord(int bank, MemoryAddr address, bool isMiss);

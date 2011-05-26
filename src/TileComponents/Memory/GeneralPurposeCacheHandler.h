@@ -26,9 +26,9 @@ private:
 	// Configuration parameters
 	//---------------------------------------------------------------------------------------------
 
-	uint cSetCount;							// Number of sets in general purpose cache mode
-	uint cWayCount;							// Number of ways in general purpose cache mode
-	uint cLineSize;							// Size of lines (for cache management and data interleaving)
+	uint mSetCount;							// Number of sets in general purpose cache mode
+	uint mWayCount;							// Number of ways in general purpose cache mode
+	uint mLineSize;							// Size of lines (for cache management and data interleaving)
 
 	bool cRandomReplacement;				// Replace random cache lines (instead of using ideal LRU scheme)
 
@@ -70,7 +70,7 @@ public:
 	GeneralPurposeCacheHandler(uint bankNumber);
 	~GeneralPurposeCacheHandler();
 
-	void activate(uint groupIndex, uint groupSize);
+	void activate(uint groupIndex, uint groupSize, uint wayCount, uint lineSize);
 
 	bool containsAddress(uint32_t address);
 
