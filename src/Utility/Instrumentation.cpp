@@ -36,10 +36,14 @@ void Instrumentation::decoded(const ComponentID& core, const DecodedInst& dec) {
   Operations::decoded(core, dec);
 
   if(TRACE) {
+	/*
     MemoryAddr location = dec.location();
     std::cout << "0x";
     std::cout.width(8);
     std::cout << std::hex << std::setfill('0') << location << endl;
+    */
+
+	std::cout << dec << endl;
   }
 }
 
@@ -115,7 +119,7 @@ void Instrumentation::endExecution() {
 
   // Only end simulation if we aren't using the debugger: we may still want to
   // probe memory contents.
-//  if(!Debugger::usingDebugger) sc_stop();
+  if(!Debugger::usingDebugger) sc_stop();
 }
 
 void Instrumentation::networkTraffic(const ChannelID& startID, const ChannelID& endID) {

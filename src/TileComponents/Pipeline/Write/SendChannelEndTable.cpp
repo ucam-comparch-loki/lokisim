@@ -14,16 +14,21 @@
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
-void SendChannelEndTable::write(const DecodedInst& dec) {
-	if (dec.operation() == InstructionMap::SETCHMAP)
+bool SendChannelEndTable::write(const DecodedInst& dec) {
+	if (dec.operation() == InstructionMap::SETCHMAP) {
 		updateMap(dec.immediate(), dec.result());
-	else if (dec.operation() == InstructionMap::WOCHE)
+		return true;
+	} else if (dec.operation() == InstructionMap::WOCHE) {
 		waitUntilEmpty(dec.result());
-	else if (dec.channelMapEntry() != Instruction::NO_CHANNEL && !channelMap[dec.channelMapEntry()].destination().isNullMapping())
-		executeMemoryOp(dec.channelMapEntry(), (MemoryRequest::MemoryOperation)dec.memoryOp(), dec.result());
+		return true;
+	} else if (dec.channelMapEntry() != Instruction::NO_CHANNEL && !channelMap[dec.channelMapEntry()].destination().isNullMapping()) {
+		return executeMemoryOp(dec.channelMapEntry(), (MemoryRequest::MemoryOperation)dec.memoryOp(), dec.result());
+	}
+
+	return true;
 }
 
-void SendChannelEndTable::write(const AddressedWord& data, MapIndex output) {
+bool SendChannelEndTable::write(const AddressedWord& data, MapIndex output) {
   // We know it is safe to write to any buffer because we block the rest
   // of the pipeline if a buffer is full.
   assert(!buffer.full());
@@ -33,10 +38,17 @@ void SendChannelEndTable::write(const AddressedWord& data, MapIndex output) {
 
   if(DEBUG) cout << this->name() << " wrote " << data
                  << " to output buffer" << endl;
+
+  return data.endOfPacket();
 }
 
 bool SendChannelEndTable::full() const {
   return buffer.full() || waiting;
+}
+
+ComponentID SendChannelEndTable::getSystemCallMemory() const {
+	//TODO: Implement this in a tidy way
+	return channelMap[1].destination().getComponentID();
 }
 
 void SendChannelEndTable::send() {
@@ -85,13 +97,14 @@ void SendChannelEndTable::updateMap(MapIndex entry, int64_t newVal) {
 	// core to core connection.
 
 	// Encoded entry format:
-	// | Tile : 16 | Position : 8 | Channel : 4 | Memory group bits : 4 |
+	// | Tile : 12 | Position : 8 | Channel : 4 | Memory group bits : 4 | Memory line bits : 4 |
 
 	uint32_t encodedEntry = (uint32_t)newVal;
-	uint newTile = encodedEntry >> 16;
-	uint newPosition = (encodedEntry >> 8) & 0xFF;
-	uint newChannel = (encodedEntry >> 4) & 0xF;
-	uint newGroupBits = encodedEntry & 0xF;
+	uint newTile = encodedEntry >> 20;
+	uint newPosition = (encodedEntry >> 12) & 0xFFUL;
+	uint newChannel = (encodedEntry >> 8) & 0xFUL;
+	uint newGroupBits = (encodedEntry >> 4) & 0xFUL;
+	uint newLineBits = encodedEntry & 0xFUL;
 
 	// Compute the global channel ID of the given output channel. Note that
 	// since this is an output channel, the ID computation is different to
@@ -117,7 +130,7 @@ void SendChannelEndTable::updateMap(MapIndex entry, int64_t newVal) {
 	} else {
 		// Destination is a memory
 
-		channelMap[entry].setMemoryDestination(sendChannel, newGroupBits);
+		channelMap[entry].setMemoryDestination(sendChannel, newGroupBits, newLineBits);
 
 		/*
 		// Send memory channel table setup request
@@ -155,7 +168,7 @@ void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
 }
 
 /* Execute a memory operation. */
-void SendChannelEndTable::executeMemoryOp(MapIndex entry, MemoryRequest::MemoryOperation memoryOp, int64_t data) {
+bool SendChannelEndTable::executeMemoryOp(MapIndex entry, MemoryRequest::MemoryOperation memoryOp, int64_t data) {
 	// Most messages we send will be one flit long, so will be the end of their
 	// packets. However, packets for memory stores are two flits long (address
 	// then data), so we need to mark this special case.
@@ -190,8 +203,8 @@ void SendChannelEndTable::executeMemoryOp(MapIndex entry, MemoryRequest::MemoryO
 	if (channelMap[entry].localMemory() && channelMap[entry].memoryGroupBits() > 0) {
 		if (addressFlit) {
 			increment = (uint32_t)data;
-			increment %= MEMORY_CACHE_LINE_SIZE * (1UL << channelMap[entry].memoryGroupBits());
-			increment /= MEMORY_CACHE_LINE_SIZE;
+			increment &= (1UL << (channelMap[entry].memoryGroupBits() + channelMap[entry].memoryLineBits())) - 1UL;
+			increment >>= channelMap[entry].memoryLineBits();
 			channelMap[entry].setAddressIncrement(increment);
 		} else {
 			increment = channelMap[entry].getAddressIncrement();
@@ -203,10 +216,9 @@ void SendChannelEndTable::executeMemoryOp(MapIndex entry, MemoryRequest::MemoryO
 	// Send request to memory
 
 	AddressedWord aw(w, channel);
-	if(!endOfPacket)
-		aw.setEndOfPacket(false);
+	aw.setEndOfPacket(endOfPacket);
 
-	write(aw, entry);
+	return write(aw, entry);
 }
 
 void SendChannelEndTable::receivedCredit() {

@@ -5,6 +5,7 @@
  *      Author: db434
  */
 
+#include "../Chip.h"
 #include "Cluster.h"
 #include "InputCrossbar.h"
 #include "Pipeline/StallRegister.h"
@@ -166,6 +167,26 @@ void     Cluster::updateForwarding(const DecodedInst& inst) {
 
 bool     Cluster::readPredReg() const {
   return pred.read();
+}
+
+const Word Cluster::readWord(MemoryAddr addr) const {
+	WriteStage* writeStage = dynamic_cast<WriteStage*>(stages.back());
+	return Word(parent()->readWord(writeStage->getSystemCallMemory(), addr));
+}
+
+const Word Cluster::readByte(MemoryAddr addr) const {
+	WriteStage* writeStage = dynamic_cast<WriteStage*>(stages.back());
+	return Word(parent()->readByte(writeStage->getSystemCallMemory(), addr));
+}
+
+void Cluster::writeWord(MemoryAddr addr, Word data) {
+	WriteStage* writeStage = dynamic_cast<WriteStage*>(stages.back());
+	parent()->writeWord(writeStage->getSystemCallMemory(), addr, data);
+}
+
+void Cluster::writeByte(MemoryAddr addr, Word data) {
+	WriteStage* writeStage = dynamic_cast<WriteStage*>(stages.back());
+	parent()->writeByte(writeStage->getSystemCallMemory(), addr, data);
 }
 
 void     Cluster::writePredReg(bool val) {

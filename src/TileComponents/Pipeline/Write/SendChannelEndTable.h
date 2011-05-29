@@ -55,13 +55,15 @@ public:
 public:
 
   // Write the result of an operation to one of the output buffers.
-  void          write(const DecodedInst& dec);
+  bool          write(const DecodedInst& dec);
 
   // Write some data to a particular output.
-  void          write(const AddressedWord& data, MapIndex output);
+  bool          write(const AddressedWord& data, MapIndex output);
 
   // Returns true if the table is incapable of accepting new data at the moment.
   bool          full() const;
+
+  ComponentID   getSystemCallMemory() const;
 
 private:
 
@@ -76,7 +78,7 @@ private:
   void          waitUntilEmpty(MapIndex channel);
 
   // Execute a memory operation.
-  void          executeMemoryOp(MapIndex entry, MemoryRequest::MemoryOperation memoryOp, int64_t data);
+  bool          executeMemoryOp(MapIndex entry, MemoryRequest::MemoryOperation memoryOp, int64_t data);
 
   // A credit was received, so update the corresponding credit counter.
   void          receivedCredit();

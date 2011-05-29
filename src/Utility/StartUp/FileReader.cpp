@@ -23,6 +23,7 @@ using std::cerr;
 using std::endl;
 
 vector<string> FileReader::filesToLink;
+vector<string> FileReader::tempFiles;
 string         FileReader::linkedFile;
 
 const int BACKGROUND_MEMORY = -1;
@@ -42,7 +43,7 @@ void FileReader::printInstruction(Instruction i, MemoryAddr address) {
   cout.fill(' ');
 }
 
-FileReader* FileReader::makeFileReader(vector<string>& words) {
+FileReader* FileReader::makeFileReader(vector<string>& words, bool customAppLoader) {
   FileReader* reader;
   string filename;
   int component;
@@ -54,6 +55,11 @@ FileReader* FileReader::makeFileReader(vector<string>& words) {
     filename = words[0];
     component = BACKGROUND_MEMORY;
     position = 0;
+  }
+  else if(words.size() == 2 && words[0] == "apploader") {
+	component = 0;
+	position = 0;
+    filename = words[1];
   }
   else if(words.size() == 2) {
     component = StringManipulation::strToInt(words[0]);
@@ -74,7 +80,7 @@ FileReader* FileReader::makeFileReader(vector<string>& words) {
   ComponentID id;
   if(component != BACKGROUND_MEMORY) id = ComponentID(0, component);
 
-  if(extension == "") {
+  if(extension == "" || extension == name) {
     filesToLink.push_back(name);
     reader = NULL;
   }
@@ -114,6 +120,7 @@ FileReader* FileReader::makeFileReader(vector<string>& words) {
     deleteFile(asmFile);
 
     filesToLink.push_back(elfFile);
+    tempFiles.push_back(elfFile);
     reader = NULL;
   }
   else {
@@ -128,7 +135,7 @@ FileReader* FileReader::makeFileReader(vector<string>& words) {
 FileReader* FileReader::linkFiles() {
   switch(filesToLink.size()) {
     case 0: return NULL;
-    case 1: return new ELFFileReader(filesToLink[0], CORES_PER_TILE, 0);
+    case 1: return new ELFFileReader(filesToLink[0], ComponentID(), ComponentID(0, 0));
     default: {
       string directory = Config::getAttribute("sim.ld",
           "directory containing sim.ld (ask Alex if you don't have it)");
@@ -168,7 +175,7 @@ FileReader* FileReader::linkFiles() {
       }
 
       // Generate a FileReader for the output ELF file.
-      return new ELFFileReader(linkedFile, CORES_PER_TILE, 0);
+      return new ELFFileReader(linkedFile, ComponentID(), ComponentID(0, 0));
     }
   }
 }
@@ -177,8 +184,8 @@ FileReader* FileReader::linkFiles() {
  * kept tidy. There is no point in keeping them because they will be re-made
  * next time the simulator is run. */
 void FileReader::tidy() {
-  for(unsigned int i=0; i<filesToLink.size(); i++) {
-    deleteFile(filesToLink[i]);
+  for(unsigned int i=0; i<tempFiles.size(); i++) {
+    deleteFile(tempFiles[i]);
   }
 
   // Might like to keep this one so the linker isn't needed?

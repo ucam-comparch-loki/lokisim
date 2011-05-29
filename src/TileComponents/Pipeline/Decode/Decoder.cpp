@@ -310,16 +310,17 @@ void Decoder::fetch(MemoryAddr addr) const {
 
 void Decoder::setFetchChannel(uint32_t encodedChannel) const {
 	// Encoded channel format:
-	// | Tile : 16 | Position : 8 | Channel : 4 | Memory group bits : 4 |
+	// | Tile : 12 | Position : 8 | Channel : 4 | Memory group bits : 4 | Memory line bits : 4 |
 
-	uint newTile = encodedChannel >> 16;
-	uint newPosition = (encodedChannel >> 8) & 0xFF;
-	uint newChannel = (encodedChannel >> 4) & 0xF;
-	uint newGroupBits = encodedChannel & 0xF;
+	uint newTile = encodedChannel >> 20;
+	uint newPosition = (encodedChannel >> 12) & 0xFFUL;
+	uint newChannel = (encodedChannel >> 8) & 0xFUL;
+	uint newGroupBits = (encodedChannel >> 4) & 0xFUL;
+	uint newLineBits = encodedChannel & 0xFUL;
 
 	ChannelID channel(newTile, newPosition, newChannel);
 
-	parent()->setFetchChannel(channel, newGroupBits);
+	parent()->setFetchChannel(channel, newGroupBits, newLineBits);
 }
 
 bool Decoder::discardNextInst() const {

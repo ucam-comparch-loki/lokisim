@@ -53,7 +53,7 @@ public:
   void fetch(const MemoryAddr addr);
 
   // Update the channel to which we send fetch requests.
-  void setFetchChannel(const ChannelID& channelID, uint groupBits);
+  void setFetchChannel(const ChannelID& channelID, uint memoryGroupBits, uint memoryLineBits);
 
   // The packet to fetch was in the cache at fetch time, but has since been
   // overwritten. Send a fetch request to get it back.
@@ -86,7 +86,10 @@ private:
   ChannelID             fetchChannel;
 
   // Number of group bits describing virtual memory bank.
-  unsigned int          memoryGroupBits;
+  unsigned int          memoryGroupBits_;
+
+  // Number of line bits describing virtual memory bank.
+  unsigned int          memoryLineBits_;
 
   // A memory request for the next packet to be executed, where the packet is
   // already in the cache. We need to be able to refetch the packet in case

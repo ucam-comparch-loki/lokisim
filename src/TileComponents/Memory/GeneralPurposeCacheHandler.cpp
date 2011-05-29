@@ -89,33 +89,16 @@ void GeneralPurposeCacheHandler::promoteCacheLine(uint slot) {
 GeneralPurposeCacheHandler::GeneralPurposeCacheHandler(uint bankNumber) {
 	//-- Configuration parameters -----------------------------------------------------------------
 
-	mSetCount = MEMORY_CACHE_SET_COUNT;
-	mWayCount = MEMORY_CACHE_WAY_COUNT;
-	mLineSize = MEMORY_CACHE_LINE_SIZE;
-
 	cRandomReplacement = MEMORY_CACHE_RANDOM_REPLACEMENT != 0;
 
 	//-- State ------------------------------------------------------------------------------------
 
-	mData = new uint32_t[mSetCount * mWayCount * mLineSize / 4];
-	mAddresses = new uint32_t[mSetCount * mWayCount];
-	mLineValid = new bool[mSetCount * mWayCount];
-	mLineDirty = new bool[mSetCount * mWayCount];
+	mData = new uint32_t[MEMORY_BANK_SIZE / 4];
+	mAddresses = new uint32_t[1];
+	mLineValid = new bool[1];
+	mLineDirty = new bool[1];
 
 	mLFSRState = 0xFFFFU;
-
-	mVictimSlot = 0;
-
-	mSetBits = log2Exact(mSetCount);
-	mSetMask = 0;
-	mSetShift = 0;
-
-	mLineBits = log2Exact(mLineSize);
-	mLineMask = (1UL << mLineBits) - 1UL;
-
-	mGroupIndex = 0;
-	mGroupBits = 0;
-	mGroupMask = 0;
 
 	mBankNumber = bankNumber;
 }
@@ -128,7 +111,7 @@ GeneralPurposeCacheHandler::~GeneralPurposeCacheHandler() {
 }
 
 void GeneralPurposeCacheHandler::activate(uint groupIndex, uint groupSize, uint wayCount, uint lineSize) {
-	mSetCount = MEMORY_CACHE_SET_COUNT * MEMORY_CACHE_WAY_COUNT * MEMORY_CACHE_LINE_SIZE / (wayCount * lineSize);
+	mSetCount = MEMORY_BANK_SIZE / (wayCount * lineSize);
 	mWayCount = wayCount;
 	mLineSize = lineSize;
 
@@ -210,7 +193,7 @@ bool GeneralPurposeCacheHandler::readHalfWord(uint32_t address, uint32_t &data, 
 		Instrumentation::memoryReadHalfWord(mBankNumber, address, false);
 
 	uint32_t fullWord = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
-	data = ((address & 0x2) == 0) ? (fullWord & 0xFFFFUL) : (fullWord >> 16);	// Little endian
+	data = ((address & 0x3) == 0) ? (fullWord & 0xFFFFUL) : (fullWord >> 16);	// Little endian
 	promoteCacheLine(slot);
 	return true;
 }
@@ -256,6 +239,7 @@ bool GeneralPurposeCacheHandler::writeWord(uint32_t address, uint32_t data, bool
 		Instrumentation::memoryWriteWord(mBankNumber, address, false);
 
 	mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = data;
+	mLineDirty[slot] = true;
 	promoteCacheLine(slot);
 	return true;
 }
@@ -276,11 +260,12 @@ bool GeneralPurposeCacheHandler::writeHalfWord(uint32_t address, uint32_t data, 
 
 	uint32_t oldData = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
 
-	if ((address & 0x2) == 0)	// Little endian
+	if ((address & 0x3) == 0)	// Little endian
 		mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0xFFFF0000UL) | (data & 0x0000FFFFUL);
 	else
 		mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0x0000FFFFUL) | (data << 16);
 
+	mLineDirty[slot] = true;
 	promoteCacheLine(slot);
 	return true;
 }
@@ -307,6 +292,7 @@ bool GeneralPurposeCacheHandler::writeByte(uint32_t address, uint32_t data, bool
 	case 3:	mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0x00FFFFFFUL) | ((data & 0x000000FFUL) << 24);		break;
 	}
 
+	mLineDirty[slot] = true;
 	promoteCacheLine(slot);
 	return true;
 }

@@ -332,8 +332,8 @@ bool MemoryBank::processMessageHeader() {
 			uint wayBits = mActiveRequest.getWayBits();
 			uint lineBits = mActiveRequest.getLineBits();
 
-			mWayCount = wayBits == 0 ? MEMORY_CACHE_WAY_COUNT : (1U << (wayBits - 1));
-			mLineSize = lineBits == 0 ? MEMORY_CACHE_LINE_SIZE : (1U << (lineBits - 1));
+			mWayCount = 1U << wayBits;
+			mLineSize = 1U << lineBits;
 
 			mGroupBaseBank = cBankNumber;
 			mGroupIndex = 0;
@@ -463,6 +463,9 @@ void MemoryBank::processLocalMemoryAccess() {
 	if (mOutputQueue.full() && (mActiveRequest.getOperation() == MemoryRequest::LOAD_W || mActiveRequest.getOperation() == MemoryRequest::LOAD_HW || mActiveRequest.getOperation() == MemoryRequest::LOAD_B)) {
 		// Delay load request until there is room in the output queue available
 
+		if (DEBUG)
+			cout << this->name() << " delayed scalar request due to full output queue" << endl;
+
 		return;
 	} else if (mBankMode == MODE_SCRATCHPAD) {
 		assert(mScratchpadModeHandler.containsAddress(mActiveAddress));
@@ -475,6 +478,23 @@ void MemoryBank::processLocalMemoryAccess() {
 			case MemoryRequest::LOAD_HW:	data = mScratchpadModeHandler.readHalfWord(mActiveAddress);		break;
 			case MemoryRequest::LOAD_B:		data = mScratchpadModeHandler.readByte(mActiveAddress);			break;
 			default:						assert(false);													break;
+			}
+
+			if (DEBUG) {
+				switch (mActiveRequest.getOperation()) {
+				case MemoryRequest::LOAD_W:
+					cout << this->name() << " read word " << data << " from " << mActiveAddress << endl;
+					break;
+				case MemoryRequest::LOAD_HW:
+					cout << this->name() << " read half-word " << data << " from " << mActiveAddress << endl;
+					break;
+				case MemoryRequest::LOAD_B:
+					cout << this->name() << " read byte " << data << " from " << mActiveAddress << endl;
+					break;
+				default:
+					assert(false);
+					break;
+				}
 			}
 
 			// Enqueue output request
@@ -498,6 +518,23 @@ void MemoryBank::processLocalMemoryAccess() {
 			case MemoryRequest::STORE_HW:	mScratchpadModeHandler.writeHalfWord(mActiveAddress, payload.getPayload());	break;
 			case MemoryRequest::STORE_B:	mScratchpadModeHandler.writeByte(mActiveAddress, payload.getPayload());		break;
 			default:						assert(false);																break;
+			}
+
+			if (DEBUG) {
+				switch (mActiveRequest.getOperation()) {
+				case MemoryRequest::STORE_W:
+					cout << this->name() << " wrote word " << payload.getPayload() << " to " << mActiveAddress << endl;
+					break;
+				case MemoryRequest::STORE_HW:
+					cout << this->name() << " wrote half-word " << payload.getPayload() << " to " << mActiveAddress << endl;
+					break;
+				case MemoryRequest::STORE_B:
+					cout << this->name() << " wrote byte " << payload.getPayload() << " to " << mActiveAddress << endl;
+					break;
+				default:
+					assert(false);
+					break;
+				}
 			}
 		} else {
 			assert(false);
@@ -525,6 +562,23 @@ void MemoryBank::processLocalMemoryAccess() {
 			mCacheResumeRequest = false;
 
 			if (cacheHit) {
+				if (DEBUG) {
+					switch (mActiveRequest.getOperation()) {
+					case MemoryRequest::LOAD_W:
+						cout << this->name() << " read word " << data << " from " << mActiveAddress << endl;
+						break;
+					case MemoryRequest::LOAD_HW:
+						cout << this->name() << " read half-word " << data << " from " << mActiveAddress << endl;
+						break;
+					case MemoryRequest::LOAD_B:
+						cout << this->name() << " read byte " << data << " from " << mActiveAddress << endl;
+						break;
+					default:
+						assert(false);
+						break;
+					}
+				}
+
 				// Enqueue output request
 
 				OutputWord outWord;
@@ -551,6 +605,10 @@ void MemoryBank::processLocalMemoryAccess() {
 			bool cacheHit;
 			MemoryRequest payload(mInputQueue.peek().payload());
 
+			if (payload.getOperation() != MemoryRequest::PAYLOAD_ONLY) {
+				cout << "!!!! " << mActiveRequest.getOperation() << " | " << mActiveAddress << " | " << payload.getOperation() << " | " << payload.getPayload() << endl;
+			}
+
 			assert(payload.getOperation() == MemoryRequest::PAYLOAD_ONLY);
 
 			switch (mActiveRequest.getOperation()) {
@@ -564,9 +622,26 @@ void MemoryBank::processLocalMemoryAccess() {
 			mCacheResumeRequest = false;
 
 			if (cacheHit) {
-			  mInputQueue.read();
+				if (DEBUG) {
+					switch (mActiveRequest.getOperation()) {
+					case MemoryRequest::STORE_W:
+						cout << this->name() << " wrote word " << payload.getPayload() << " to " << mActiveAddress << endl;
+						break;
+					case MemoryRequest::STORE_HW:
+						cout << this->name() << " wrote half-word " << payload.getPayload() << " to " << mActiveAddress << endl;
+						break;
+					case MemoryRequest::STORE_B:
+						cout << this->name() << " wrote byte " << payload.getPayload() << " to " << mActiveAddress << endl;
+						break;
+					default:
+						assert(false);
+						break;
+					}
+				}
 
-			  // Chain next request
+				mInputQueue.read();
+
+				// Chain next request
 
 				if (!processRingEvent())
 					processMessageHeader();
@@ -1354,8 +1429,8 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	cChannelMapTableEntries = MEMORY_CHANNEL_MAP_TABLE_ENTRIES;
 	cMemoryBanks = MEMS_PER_TILE;
 	cBankNumber = bankNumber;
-	mWayCount = MEMORY_CACHE_WAY_COUNT;
-	mLineSize = MEMORY_CACHE_LINE_SIZE;
+	mWayCount = 0;
+	mLineSize = 0;
 	cRandomReplacement = MEMORY_CACHE_RANDOM_REPLACEMENT != 0;
 
 	assert(cChannelMapTableEntries > 0);

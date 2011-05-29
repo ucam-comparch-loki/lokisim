@@ -45,9 +45,8 @@ void storeArguments(uint argc, char* argv[], Chip& chip) {
      0x0000???? zero word
      0x0000???? start of data pointed to by argv  */
 
-  ComponentID firstMem(0, CORES_PER_TILE);
-  chip.writeWord(firstMem, 0, Word(0));
-  chip.writeWord(firstMem, 4, Word(argc));
+  chip.writeWord(ComponentID(), 0, Word(0));
+  chip.writeWord(ComponentID(), 4, Word(argc));
 
   /* tp is the offset of our first argv data.  */
   tp = 4 + 4 + argc*4 + 4;
@@ -55,16 +54,16 @@ void storeArguments(uint argc, char* argv[], Chip& chip) {
   for (i = 0; i < argc; i++)
   {
     /* Set the argv value.  */
-    chip.writeWord(firstMem, 4 + 4 + i*4, Word(tp));
+    chip.writeWord(ComponentID(), 4 + 4 + i*4, Word(tp));
 
     /* Store the string.  */
     for (j=0; j < (strlen(argv[i])+1); j++) {
-      chip.writeByte(firstMem, tp+j, Word(argv[i][j]));
+      chip.writeByte(ComponentID(), tp+j, Word(argv[i][j]));
     }
     tp += strlen(argv[i]) + 1;
   }
 
-  chip.writeWord(firstMem, 4 + 4 + i*4, Word(0));
+  chip.writeWord(ComponentID(), 4 + 4 + i*4, Word(0));
 }
 
 void parseArguments(uint argc, char* argv[], Chip& chip) {
@@ -105,6 +104,7 @@ void parseArguments(uint argc, char* argv[], Chip& chip) {
         CodeLoader::loadCode(filename, chip);
         i++;  // Have used two arguments in this iteration.
         codeLoaded = true;
+        DEBUG = 0;
         BATCH_MODE = 1;
       }
       else if(argument == "--args") {
@@ -196,7 +196,7 @@ int sc_main(int argc, char* argv[]) {
 
 	// Print debug information
 
-	if (DEBUG) {
+	if (DEBUG || BATCH_MODE) {
 		Parameters::printParameters();
 		Statistics::printStats();
 	}

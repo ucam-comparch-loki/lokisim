@@ -5,6 +5,8 @@
  *      Author: db434
  */
 
+#include <stdio.h>
+
 #include "ELFFileReader.h"
 #include "DataBlock.h"
 #include "../Debugger.h"
@@ -14,16 +16,24 @@
 #include "../../Datatype/Instruction.h"
 #include "../../TileComponents/Cluster.h"
 
-vector<DataBlock>& ELFFileReader::extractData() const {
+vector<DataBlock>& ELFFileReader::extractData(int& mainPos) const {
   vector<DataBlock>* blocks = new vector<DataBlock>();
 
   // Open the input file.
   std::ifstream elfFile(filename_.c_str());
 
+  string extFileName = filename_ + ".objdump-h";
+  bool useExternalMetadata = access(extFileName.c_str(), F_OK) == 0;
+
   // Execute a command which returns information on all of the ELF sections.
   FILE* terminalOutput;
-  string command("loki-elf-objdump -h " + filename_);
-  terminalOutput = popen(command.c_str(), "r");
+
+  if (useExternalMetadata) {
+	  terminalOutput = fopen(extFileName.c_str(), "r");
+  } else {
+	  string command("loki-elf-objdump -h " + filename_);
+	  terminalOutput = popen(command.c_str(), "r");
+  }
 
   char line[100];
 
@@ -83,7 +93,8 @@ vector<DataBlock>& ELFFileReader::extractData() const {
   fclose(terminalOutput);
   elfFile.close();
 
-  blocks->push_back(loaderProgram());
+  // Find the position of main(), so we can get a core to fetch it.
+  mainPos = findMain();
 
   return *blocks;
 }
@@ -138,12 +149,11 @@ Word ELFFileReader::nextWord(std::ifstream& file, bool isInstruction) const {
 /* Generate a short program which allows a core to load the program in this
  * ELF file. The program involves setting a channel map entry and then fetching
  * from it. */
-DataBlock& ELFFileReader::loaderProgram() const {
-  // Find the position of main(), so we can get a core to fetch it.
-  int mainPos = findMain();
+DataBlock& ELFFileReader::loaderProgram(const ComponentID& core, int mainPos) {
   if(Debugger::mode == Debugger::DEBUGGER)
     std::cout << "\nmain() is at address " << mainPos << std::endl;
 
+  /*
   Instruction storeChannel("ori r3 r0 0");
   ChannelID firstMemInput(componentID_, 0);
   storeChannel.immediate(firstMemInput.getData());
@@ -166,10 +176,77 @@ DataBlock& ELFFileReader::loaderProgram() const {
   addInstToVector(instructions, connect);
   addInstToVector(instructions, nop);
   addInstToVector(instructions, fetch);
+  */
+
+  Instruction inst01("ori                r3, r0, (0,8,0,3)         # First memory bank, first channel, quad bank group");
+
+  Instruction inst02("or                 r0, r0, r0                # Make sure there are no timing problems");
+  Instruction inst03("or                 r0, r0, r0");
+  Instruction inst04("or                 r0, r0, r0");
+  Instruction inst05("or                 r0, r0, r0");
+
+  Instruction inst06("setchmap           0, r3                     # Set fetch channel to memory bank");
+
+  Instruction inst07("ori                r4, r0, 0x00000103 > 0    # Configuration command: General purpose cache, eight banks");
+  Instruction inst08("ori                r4, r0, 0x01000000 > 0    # Table update command ");
+  Instruction inst09("ori                r4, r0, (0,0,1) > 0       # IPK cache of first core");
+
+  Instruction inst10("or                 r0, r0, r0                # Wait for memory configuration to complete");
+  Instruction inst11("or                 r0, r0, r0");
+  Instruction inst12("or                 r0, r0, r0");
+  Instruction inst13("or                 r0, r0, r0");
+  Instruction inst14("or                 r0, r0, r0");
+  Instruction inst15("or                 r0, r0, r0");
+  Instruction inst16("or                 r0, r0, r0");
+  Instruction inst17("or                 r0, r0, r0");
+
+  Instruction inst18("ori                r5, r0, (0,8,1,3)         # Fifth memory bank, first channel, quad bank group");
+  Instruction inst19("setchmap           1, r5                     # Set fetch channel to memory bank");
+
+  Instruction inst20("or                 r0, r0, r0                # Make sure there are no timing problems");
+  Instruction inst21("or                 r0, r0, r0");
+  Instruction inst22("or                 r0, r0, r0");
+  Instruction inst23("or                 r0, r0, r0");
+
+  Instruction inst24("ori                r4, r0, 0x01000000 > 1    # Table update command ");
+  Instruction inst25("ori                r4, r0, (0,0,2) > 1       # First data channel of first core");
+  Instruction inst26("ori                r0, ch0, r0               # Wait for memory configuration to complete");
+
+  Instruction inst27("fetch.eop          r0, 0                     # Fetch first instruction packet of program");
+  inst27.immediate(mainPos);
+
+  vector<Word>* instructions = new vector<Word>();
+  addInstToVector(instructions, inst01);
+  addInstToVector(instructions, inst02);
+  addInstToVector(instructions, inst03);
+  addInstToVector(instructions, inst04);
+  addInstToVector(instructions, inst05);
+  addInstToVector(instructions, inst06);
+  addInstToVector(instructions, inst07);
+  addInstToVector(instructions, inst08);
+  addInstToVector(instructions, inst09);
+  addInstToVector(instructions, inst10);
+  addInstToVector(instructions, inst11);
+  addInstToVector(instructions, inst12);
+  addInstToVector(instructions, inst13);
+  addInstToVector(instructions, inst14);
+  addInstToVector(instructions, inst15);
+  addInstToVector(instructions, inst16);
+  addInstToVector(instructions, inst17);
+  addInstToVector(instructions, inst18);
+  addInstToVector(instructions, inst19);
+  addInstToVector(instructions, inst20);
+  addInstToVector(instructions, inst21);
+  addInstToVector(instructions, inst22);
+  addInstToVector(instructions, inst23);
+  addInstToVector(instructions, inst24);
+  addInstToVector(instructions, inst25);
+  addInstToVector(instructions, inst26);
+  addInstToVector(instructions, inst27);
 
 //  cout << "Should give \"" << fetch << "\" to core " << core_ << endl;
 
-  DataBlock* block = new DataBlock(instructions, core_);
+  DataBlock* block = new DataBlock(instructions, core, 0);
 
   return *block;
 }
@@ -179,10 +256,18 @@ int ELFFileReader::findMain() const {
   // Now looking for _start, not main, and it is always at 0x1000.
 //  return 0x1000;
 
+  string extFileName = filename_ + ".objdump-t";
+  bool useExternalMetadata = access(extFileName.c_str(), F_OK) == 0;
+
   // Execute a command which returns information on all of the ELF sections.
   FILE* terminalOutput;
-  string command("loki-elf-objdump -t " + filename_);
-  terminalOutput = popen(command.c_str(), "r");
+
+  if (useExternalMetadata) {
+	  terminalOutput = fopen(extFileName.c_str(), "r");
+  } else {
+	  string command("loki-elf-objdump -t " + filename_);
+	  terminalOutput = popen(command.c_str(), "r");
+  }
 
   char line[100];
   int mainPos = 0;
@@ -216,7 +301,7 @@ int ELFFileReader::findMain() const {
 
 }
 
-ELFFileReader::ELFFileReader(std::string& filename, int memory, int component) :
+ELFFileReader::ELFFileReader(std::string& filename, const ComponentID& memory, const ComponentID& component) :
     FileReader(filename, memory) {
 
   core_ = component;

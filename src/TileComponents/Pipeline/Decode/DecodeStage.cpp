@@ -70,8 +70,8 @@ void         DecodeStage::fetch(const MemoryAddr addr) {
   fl.fetch(addr);
 }
 
-void         DecodeStage::setFetchChannel(const ChannelID& channelID, uint groupBits) {
-  fl.setFetchChannel(channelID, groupBits);
+void         DecodeStage::setFetchChannel(const ChannelID& channelID, uint memoryGroupBits, uint memoryLineBits) {
+  fl.setFetchChannel(channelID, memoryGroupBits, memoryLineBits);
 }
 
 void         DecodeStage::refetch() {

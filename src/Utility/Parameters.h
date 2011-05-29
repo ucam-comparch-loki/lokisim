@@ -71,9 +71,7 @@ extern parameter	MAX_IPK_SIZE;
 
 extern parameter		MEMORY_CHANNEL_MAP_TABLE_ENTRIES;
 
-extern parameter		MEMORY_CACHE_SET_COUNT;
-extern parameter		MEMORY_CACHE_WAY_COUNT;
-extern parameter		MEMORY_CACHE_LINE_SIZE;
+extern parameter		MEMORY_BANK_SIZE;
 
 extern parameter		MEMORY_CACHE_RANDOM_REPLACEMENT;
 

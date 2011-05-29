@@ -60,6 +60,8 @@ public:
   virtual double area()  const;
   virtual double energy() const;
 
+  ComponentID getSystemCallMemory() const;
+
 private:
 
   virtual void   execute();
@@ -75,6 +77,8 @@ private:
 //==============================//
 
 private:
+
+  bool endOfPacket;
 
   SendChannelEndTable scet;
 

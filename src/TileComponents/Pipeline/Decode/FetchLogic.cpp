@@ -19,10 +19,10 @@ void FetchLogic::fetch(const MemoryAddr addr) {
 
 	ChannelID channel = fetchChannel;
 
-	if (fetchChannel.isMemory() && memoryGroupBits > 0) {
+	if (fetchChannel.isMemory() && memoryGroupBits_ > 0) {
 		uint32_t increment = (uint32_t)addr;
-		increment %= MEMORY_CACHE_LINE_SIZE * (1UL << memoryGroupBits);
-		increment /= MEMORY_CACHE_LINE_SIZE;
+		increment &= (1UL << (memoryGroupBits_ + memoryLineBits_)) - 1UL;
+		increment >>= memoryLineBits_;
 		channel = channel.addPosition(increment);
 	}
 
@@ -40,9 +40,10 @@ void FetchLogic::fetch(const MemoryAddr addr) {
 	}
 }
 
-void FetchLogic::setFetchChannel(const ChannelID& channelID, uint groupBits) {
+void FetchLogic::setFetchChannel(const ChannelID& channelID, uint memoryGroupBits, uint memoryLineBits) {
 	fetchChannel = channelID;
-	memoryGroupBits = groupBits;
+	memoryGroupBits_ = memoryGroupBits;
+	memoryLineBits_ = memoryLineBits;
 
 	ChannelID returnChannel(id, 0);
 

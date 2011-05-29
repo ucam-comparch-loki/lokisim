@@ -12,7 +12,7 @@
 #include "../../Datatype/ComponentID.h"
 #include "../../Datatype/Word.h"
 
-vector<DataBlock>& DataFileReader::extractData() const {
+vector<DataBlock>& DataFileReader::extractData(int& mainPos) const {
   std::ifstream file(filename_.c_str());
   vector<Word>* words = new vector<Word>();
 

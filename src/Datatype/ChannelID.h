@@ -17,11 +17,11 @@
 
 class ChannelID : public Word {
 private:
-	static const uint OFFSET_TILE = 16;
-	static const uint WIDTH_TILE = 16;
-	static const uint OFFSET_POSITION = 8;
+	static const uint OFFSET_TILE = 20;
+	static const uint WIDTH_TILE = 12;
+	static const uint OFFSET_POSITION = 12;
 	static const uint WIDTH_POSITION = 8;
-	static const uint OFFSET_CHANNEL = 4;			// Reserve lower 4 bits for group bits
+	static const uint OFFSET_CHANNEL = 8;			// Reserve lower 8 bits for group and line bits
 	static const uint WIDTH_CHANNEL = 4;
 public:
 	inline uint32_t getData() const					{return data_ & 0xFFFFFFFFULL;}

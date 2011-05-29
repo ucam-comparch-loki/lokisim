@@ -30,7 +30,7 @@ int DEBUG = 1;
 int TRACE = 0;
 int BATCH_MODE = 0;
 
-int TIMEOUT = 15000000;
+int TIMEOUT = 0x7FFFFFFEL;
 
 int BYTES_PER_WORD = 4;
 int BYTES_PER_INSTRUCTION = 8;
@@ -72,9 +72,7 @@ parameter MAX_IPK_SIZE               = 8; // Must be <= buffer size (wormhole)
 
 parameter MEMORY_CHANNEL_MAP_TABLE_ENTRIES		= 16;
 
-parameter MEMORY_CACHE_SET_COUNT				= 1024;		// 8 KB per bank
-parameter MEMORY_CACHE_WAY_COUNT				= 1;
-parameter MEMORY_CACHE_LINE_SIZE				= 8;
+parameter MEMORY_BANK_SIZE						= 8192;		// 8 KB per bank
 
 parameter MEMORY_CACHE_RANDOM_REPLACEMENT		= 1;		// 0 = Ideal LRU, 1 = Random / LFSR
 
@@ -144,9 +142,7 @@ void Parameters::parseParameter(const string &name, const string &value) {
 	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_MEMORY_DELAY_CYCLES);
 	*/
 	else SET_IF_MATCH(cName, nValue, MEMORY_CHANNEL_MAP_TABLE_ENTRIES);
-	else SET_IF_MATCH(cName, nValue, MEMORY_CACHE_SET_COUNT);
-	else SET_IF_MATCH(cName, nValue, MEMORY_CACHE_WAY_COUNT);
-	else SET_IF_MATCH(cName, nValue, MEMORY_CACHE_LINE_SIZE);
+	else SET_IF_MATCH(cName, nValue, MEMORY_BANK_SIZE);
 	else SET_IF_MATCH(cName, nValue, MEMORY_CACHE_RANDOM_REPLACEMENT);
 	else SET_IF_MATCH(cName, nValue, MEMORY_ON_CHIP_SCRATCHPAD_DELAY);
 	else SET_IF_MATCH(cName, nValue, MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
@@ -169,9 +165,7 @@ void Parameters::printParameters() {
 
 	if (BATCH_MODE) {
 		cout << "<@PARAM>MEMORY_CHANNEL_MAP_TABLE_ENTRIES:" << MEMORY_CHANNEL_MAP_TABLE_ENTRIES << "</@PARAM>" << endl;
-		cout << "<@PARAM>MEMORY_CACHE_SET_COUNT:" << MEMORY_CACHE_SET_COUNT << "</@PARAM>" << endl;
-		cout << "<@PARAM>MEMORY_CACHE_WAY_COUNT:" << MEMORY_CACHE_WAY_COUNT << "</@PARAM>" << endl;
-		cout << "<@PARAM>MEMORY_CACHE_LINE_SIZE:" << MEMORY_CACHE_LINE_SIZE << "</@PARAM>" << endl;
+		cout << "<@PARAM>MEMORY_BANK_SIZE:" << MEMORY_BANK_SIZE << "</@PARAM>" << endl;
 		cout << "<@PARAM>MEMORY_CACHE_RANDOM_REPLACEMENT:" << MEMORY_CACHE_RANDOM_REPLACEMENT << "</@PARAM>" << endl;
 		cout << "<@PARAM>MEMORY_ON_CHIP_SCRATCHPAD_DELAY:" << MEMORY_ON_CHIP_SCRATCHPAD_DELAY << "</@PARAM>" << endl;
 		cout << "<@PARAM>MEMORY_ON_CHIP_SCRATCHPAD_SIZE:" << MEMORY_ON_CHIP_SCRATCHPAD_SIZE << "</@PARAM>" << endl;

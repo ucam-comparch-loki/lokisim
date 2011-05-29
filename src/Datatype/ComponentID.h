@@ -16,9 +16,9 @@
 
 class ComponentID : public Word {
 private:
-	static const uint OFFSET_TILE = 16;
-	static const uint WIDTH_TILE = 16;
-	static const uint OFFSET_POSITION = 8;
+	static const uint OFFSET_TILE = 20;
+	static const uint WIDTH_TILE = 12;
+	static const uint OFFSET_POSITION = 12;
 	static const uint WIDTH_POSITION = 8;
 public:
 	inline uint32_t getData() const					{return data_ & 0xFFFFFFFFULL;}
@@ -36,7 +36,7 @@ public:
 
 	inline uint getGlobalComponentNumber() const	{return getTile() * COMPONENTS_PER_TILE + getPosition();}
 	inline uint getGlobalCoreNumber() const			{return getTile() * CORES_PER_TILE + getPosition();}
-	inline uint getGlobalMemoryNumber() const		{return getTile() * MEMS_PER_TILE + getPosition();}
+	inline uint getGlobalMemoryNumber() const		{return getTile() * MEMS_PER_TILE + getPosition() - CORES_PER_TILE;}
 
 	inline void setData(uint32_t data)				{data_ = data;}
 

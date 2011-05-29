@@ -127,7 +127,7 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 
 			case STATE_WRITING:
 				if (!bankAccessed[bankSelected] && !mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
-					assert(mInputQueues[port].read().Request.getOperation() == MemoryRequest::PAYLOAD_ONLY);
+					assert(mInputQueues[port].peek().Request.getOperation() == MemoryRequest::PAYLOAD_ONLY);
 
 					mData[mPortData[port].Address / 4] = mInputQueues[port].read().Request.getPayload();
 					mPortData[port].Address += 4;
@@ -169,7 +169,6 @@ SimplifiedOnChipScratchpad::SimplifiedOnChipScratchpad(sc_module_name name, cons
 	mInputQueues(portCount, 1024, "SimplifiedOnChipScratchpad::mInputQueues")	// Virtually infinite queue length
 {
 	assert(portCount >= 1);
-	assert(MEMORY_CACHE_LINE_SIZE % 4 == 0);
 
 	cDelayCycles = MEMORY_ON_CHIP_SCRATCHPAD_DELAY;
 	cBanks = MEMORY_ON_CHIP_SCRATCHPAD_BANKS;
@@ -208,6 +207,8 @@ SimplifiedOnChipScratchpad::~SimplifiedOnChipScratchpad() {
 	delete[] mData;
 	delete[] mPortData;
 }
+
+#include "../../Datatype/Instruction.h"
 
 void SimplifiedOnChipScratchpad::storeData(vector<Word>& data, MemoryAddr location) {
 	size_t count = data.size();
@@ -252,8 +253,8 @@ Word SimplifiedOnChipScratchpad::readWord(MemoryAddr addr) {
 Word SimplifiedOnChipScratchpad::readByte(MemoryAddr addr) {
 	assert(addr < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 	uint32_t data = mData[addr / 4];
-	uint shift = (3 - (addr % 4)) * 8;
-	return Word((data >> shift) & 0xFF);
+	uint shift = (addr & 0x3UL) * 8;
+	return Word((data >> shift) & 0xFFUL);
 }
 
 void SimplifiedOnChipScratchpad::writeWord(MemoryAddr addr, Word data) {
@@ -265,10 +266,10 @@ void SimplifiedOnChipScratchpad::writeWord(MemoryAddr addr, Word data) {
 void SimplifiedOnChipScratchpad::writeByte(MemoryAddr addr, Word data) {
 	assert(addr < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 	uint32_t modData = mData[addr / 4];
-	uint shift = 3 - (addr % 4);
-	uint32_t mask = 0xFF << (shift * 8);
+	uint shift = (addr & 0x3UL) * 8;
+	uint32_t mask = 0xFFUL << shift;
 	modData &= ~mask;
-	modData |= (data.toUInt() & 0xFF) << shift;
+	modData |= (data.toUInt() & 0xFFUL) << shift;
 	mData[addr / 4] = modData;
 }
 

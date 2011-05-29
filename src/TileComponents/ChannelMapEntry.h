@@ -22,13 +22,14 @@ public:
   ChannelID destination() const;
   NetworkType network() const;
   bool localMemory() const;
-  int memoryGroupBits() const;
+  uint memoryGroupBits() const;
+  uint memoryLineBits() const;
 
   bool canSend() const;
   bool haveAllCredits() const;
 
   void setCoreDestination(const ChannelID& address);
-  void setMemoryDestination(const ChannelID& address, uint memoryGroupBits);
+  void setMemoryDestination(const ChannelID& address, uint memoryGroupBits, uint memoryLineBits);
 
   void setAddressIncrement(uint increment);
   uint getAddressIncrement();
@@ -57,6 +58,9 @@ private:
 
   // Number of group bits describing virtual memory bank.
   unsigned int memoryGroupBits_;
+
+  // Number of line bits describing virtual memory bank.
+  unsigned int memoryLineBits_;
 
   // The current address increment for this entry.
   unsigned int addressIncrement_;

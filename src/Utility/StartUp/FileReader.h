@@ -25,13 +25,13 @@ public:
 
   // Finds all useful data within the file, and returns all information needed
   // to put the data in the required components.
-  virtual vector<DataBlock>& extractData() const = 0;
+  virtual vector<DataBlock>& extractData(int& mainPos) const = 0;
 
   // Parse the command (e.g. "12 code.loki") and generate a FileReader capable
   // of reading the specified filetype.
   // This method returns NULL if, for example, it is collecting a group of
   // object files to link together at the end.
-  static FileReader* makeFileReader(vector<string>& commandWords);
+  static FileReader* makeFileReader(vector<string>& commandWords, bool customAppLoader);
 
   // If there are any object files which need linking together to form a single
   // executable, link them now.
@@ -62,6 +62,7 @@ private:
   static void deleteFile(string& filename);
 
   static vector<string> filesToLink;
+  static vector<string> tempFiles;
   static string         linkedFile;
 
 };

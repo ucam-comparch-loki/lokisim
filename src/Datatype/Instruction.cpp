@@ -335,27 +335,28 @@ int32_t Instruction::decodeRChannel(const string& channel) {
 		assert(checkID.isCore() && channelIndex < (int)CORE_INPUT_CHANNELS);
 
 		// Encoded entry format:
-		// | Tile : 16 | Position : 8 | Channel : 4 | Memory group bits : 4 |
+		// | Tile : 12 | Position : 8 | Channel : 4 | Memory group bits : 4 | Memory line bits : 4 |
 
-		channelID = (tile << 16) | (position << 8) | (channelIndex << 4);
-	} else if (parts.size() == 4) {
-		// We should now have strings of the form "(x", "y", "z" and "s)"
+		channelID = (tile << 20) | (position << 12) | (channelIndex << 8);
+	} else if (parts.size() == 5) {
+		// We should now have strings of the form "(x", "y", "z", "s" and "t)"
 
 		parts[0].erase(parts[0].begin());           // Remove the bracket
-		parts[3].erase(parts[3].end()-1);           // Remove the bracket
+		parts[4].erase(parts[4].end()-1);           // Remove the bracket
 
 		int tile = Strings::strToInt(parts[0]);
 		int position = Strings::strToInt(parts[1]);
 		int channelIndex = Strings::strToInt(parts[2]);
 		int groupBits = Strings::strToInt(parts[3]);
+		int lineBits = Strings::strToInt(parts[4]);
 
 		ComponentID checkID(tile, position);
 		assert(checkID.isMemory() && channelIndex < (int)MEMORY_CHANNEL_MAP_TABLE_ENTRIES);
 
 		// Encoded entry format:
-		// | Tile : 16 | Position : 8 | Channel : 4 | Memory group bits : 4 |
+		// | Tile : 12 | Position : 8 | Channel : 4 | Memory group bits : 4 | Memory line bits : 4 |
 
-		channelID = (tile << 16) | (position << 8) | (channelIndex << 4) | groupBits;
+		channelID = (tile << 20) | (position << 12) | (channelIndex << 8) | (groupBits << 4) | lineBits;
 	} else {
 		// Invalid format
 

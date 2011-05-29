@@ -102,7 +102,7 @@ private:
   void           fetch(const MemoryAddr addr);
 
   // Change the channel to which we send our fetch requests.
-  void           setFetchChannel(const ChannelID& channelID, uint groupBits);
+  void           setFetchChannel(const ChannelID& channelID, uint memoryGroupBits, uint memoryLineBits);
 
   // Find out if the instruction packet from the given location is currently
   // in the instruction packet cache.

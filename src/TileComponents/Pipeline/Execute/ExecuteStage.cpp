@@ -19,13 +19,13 @@ double ExecuteStage::energy() const {
 
 bool ExecuteStage::readPredicate() const {return parent()->readPredReg();}
 int32_t ExecuteStage::readReg(RegisterIndex reg) const {return parent()->readReg(reg);}
-int32_t ExecuteStage::readWord(MemoryAddr addr) const {return parent()->readMemWord(addr);}
-int32_t ExecuteStage::readByte(MemoryAddr addr) const {return parent()->readMemByte(addr);}
+int32_t ExecuteStage::readWord(MemoryAddr addr) const {return parent()->readWord(addr).toInt();}
+int32_t ExecuteStage::readByte(MemoryAddr addr) const {return parent()->readByte(addr).toInt();}
 
 void ExecuteStage::writePredicate(bool val) const {parent()->writePredReg(val);}
 void ExecuteStage::writeReg(RegisterIndex reg, Word data) const {parent()->writeReg(reg, data.toInt());}
-void ExecuteStage::writeWord(MemoryAddr addr, Word data) const {parent()->writeMemWord(addr, data);}
-void ExecuteStage::writeByte(MemoryAddr addr, Word data) const {parent()->writeMemByte(addr, data);}
+void ExecuteStage::writeWord(MemoryAddr addr, Word data) const {parent()->writeWord(addr, data);}
+void ExecuteStage::writeByte(MemoryAddr addr, Word data) const {parent()->writeByte(addr, data);}
 
 void ExecuteStage::newInput(DecodedInst& operation) {
 

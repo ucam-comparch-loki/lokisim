@@ -78,6 +78,11 @@ public:
   // Read the value of the predicate register.
   virtual bool     readPredReg() const;
 
+  const Word readWord(MemoryAddr addr) const;
+  const Word readByte(MemoryAddr addr) const;
+  void writeWord(MemoryAddr addr, Word data);
+  void writeByte(MemoryAddr addr, Word data);
+
 private:
 
   // Determine if the instruction packet from the given location is currently

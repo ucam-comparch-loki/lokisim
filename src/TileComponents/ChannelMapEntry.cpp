@@ -23,8 +23,12 @@ bool ChannelMapEntry::localMemory() const {
 	return localMemory_;
 }
 
-int ChannelMapEntry::memoryGroupBits() const {
+uint ChannelMapEntry::memoryGroupBits() const {
 	return memoryGroupBits_;
+}
+
+uint ChannelMapEntry::memoryLineBits() const {
+	return memoryLineBits_;
 }
 
 bool ChannelMapEntry::canSend() const {
@@ -48,7 +52,7 @@ void ChannelMapEntry::setCoreDestination(const ChannelID& address) {
 	addressIncrement_ = 0;
 }
 
-void ChannelMapEntry::setMemoryDestination(const ChannelID& address, uint memoryGroupBits) {
+void ChannelMapEntry::setMemoryDestination(const ChannelID& address, uint memoryGroupBits, uint memoryLineBits) {
 	// Only allow the destination to change when all credits from previous
 	// destination have been received.
 	assert(!useCredits_ || (credits_ == MAX_CREDITS));
@@ -58,6 +62,7 @@ void ChannelMapEntry::setMemoryDestination(const ChannelID& address, uint memory
 	useCredits_ = false;
 	localMemory_ = true;
 	memoryGroupBits_ = memoryGroupBits;
+	memoryLineBits_ = memoryLineBits;
 	addressIncrement_ = 0;
 }
 

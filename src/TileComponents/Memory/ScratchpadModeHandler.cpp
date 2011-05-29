@@ -37,22 +37,9 @@ uint ScratchpadModeHandler::log2Exact(uint value) {
 }
 
 ScratchpadModeHandler::ScratchpadModeHandler(uint bankNumber) {
-	//-- Configuration parameters -----------------------------------------------------------------
-
-	mSetCount = MEMORY_CACHE_SET_COUNT;
-	mWayCount = MEMORY_CACHE_WAY_COUNT;
-	mLineSize = MEMORY_CACHE_LINE_SIZE;
-
 	//-- State ------------------------------------------------------------------------------------
 
-	mData = new uint32_t[mSetCount * mWayCount * mLineSize / 4];
-
-	mLineBits = log2Exact(mLineSize);
-	mLineMask = (1UL << mLineBits) - 1UL;
-
-	mGroupIndex = 0;
-	mGroupBits = 0;
-	mGroupMask = 0;
+	mData = new uint32_t[MEMORY_BANK_SIZE / 4];
 
 	mBankNumber = bankNumber;
 }
@@ -62,7 +49,7 @@ ScratchpadModeHandler::~ScratchpadModeHandler() {
 }
 
 void ScratchpadModeHandler::activate(uint groupIndex, uint groupSize, uint wayCount, uint lineSize) {
-	mSetCount = MEMORY_CACHE_SET_COUNT * MEMORY_CACHE_WAY_COUNT * MEMORY_CACHE_LINE_SIZE / (wayCount * lineSize);
+	mSetCount = MEMORY_BANK_SIZE / (wayCount * lineSize);
 	mWayCount = wayCount;
 	mLineSize = lineSize;
 
@@ -112,7 +99,7 @@ uint32_t ScratchpadModeHandler::readHalfWord(uint32_t address) {
 	uint32_t slot = (address & mLineMask) | ((address >> mGroupBits) & ~mLineMask);
 	assert(slot <= mSetCount * mWayCount * mLineSize);
 	uint32_t data = mData[slot / 4];
-	return ((address & 0x2) == 0) ? (data & 0xFFFFUL) : (data >> 16);	// Little endian
+	return ((address & 0x3) == 0) ? (data & 0xFFFFUL) : (data >> 16);	// Little endian
 }
 
 uint32_t ScratchpadModeHandler::readByte(uint32_t address) {
@@ -159,7 +146,7 @@ void ScratchpadModeHandler::writeHalfWord(uint32_t address, uint32_t data) {
 	assert(slot <= mSetCount * mWayCount * mLineSize);
 	uint32_t oldData = mData[slot / 4];
 
-	if ((address & 0x2) == 0)	// Little endian
+	if ((address & 0x3) == 0)	// Little endian
 		mData[slot / 4] = (oldData & 0xFFFF0000UL) | (data & 0x0000FFFFUL);
 	else
 		mData[slot / 4] = (oldData & 0x0000FFFFUL) | (data << 16);

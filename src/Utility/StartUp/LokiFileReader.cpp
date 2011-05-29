@@ -11,7 +11,7 @@
 #include "../Parameters.h"
 #include "../../Datatype/Instruction.h"
 
-vector<DataBlock>& LokiFileReader::extractData() const {
+vector<DataBlock>& LokiFileReader::extractData(int& mainPos) const {
   std::ifstream file(filename_.c_str());
   vector<Word>* words = new vector<Word>();
 
