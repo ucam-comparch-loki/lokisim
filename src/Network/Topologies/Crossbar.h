@@ -12,6 +12,7 @@
 
 #include "../Network.h"
 #include "Bus.h"
+#include "FastBus.h"
 
 class ArbiterComponent;
 
@@ -74,6 +75,7 @@ protected:
   const int outputsPerComponent;
 
   std::vector<Bus*>              buses;
+  std::vector<FastBus*>          fastBuses;
   std::vector<ArbiterComponent*> arbiters;
 
   // Two-dimensional arrays of signals. One of each signal goes from each bus

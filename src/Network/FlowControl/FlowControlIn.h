@@ -61,10 +61,12 @@ public:
 private:
 
   // Data has arrived over the network.
-  void         receivedData();
+  void receivedData();
 
   // Update the bufferHasSpace signal.
-  void         updateReady();
+  void updateReady();
+
+  void clockProcess();
 
 //==============================//
 // Local state
@@ -82,6 +84,16 @@ private:
   bool useCredits;
   unsigned int numCredits;
 
+  int cycleCounter;
+
+  int execCycleData;
+  int execStateData;
+  int execCycleCredits;
+  int execStateCredits;
+
+  Word pendingData;
+
+  sc_signal<int> triggerSignal;
 };
 
 #endif /* FLOWCONTROLIN_H_ */

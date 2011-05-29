@@ -6,108 +6,84 @@
  */
 
 #include "ArbiterComponent.h"
-#include "../../Arbitration/RoundRobinArbiter.h"
 #include "../../Datatype/AddressedWord.h"
 
-void ArbiterComponent::mainLoop() {
-  while(true) {
+void ArbiterComponent::arbitrateProcess() {
     // Wait for something interesting to happen. We are sensitive to the
     // negative edge because data is put onto networks at the positive edge
     // and needs time to propagate through to these arbiters.
-    wait(clock.negedge_event());
-    arbitrate();
 
-    wait(clock.posedge_event());
-    // Pull down the valid signal for any outputs which have sent acknowledgements.
-    for(int i=0; i<numOutputs; i++) {
-      if(ackDataOut[i].read()) validDataOut[i].write(false);
-    }
-  }
+	if (clock.negedge()) {
+		int inCursor = lastAccepted.read();
+		int outCursor = 0;
+		int lastAcc = 0;
+
+		for (int i = 0; i < numInputs; i++) {
+			// Request: numinput -> endofpacket
+
+			inCursor++;
+			if (inCursor == numInputs)
+				inCursor = 0;
+
+			if (!validDataIn[inCursor].read())
+				continue;
+
+			// FIXME: a request may be granted, but then blocked by flow control.
+			// Another, later request may still be allowed to send. Seems unfair.
+			if (!validDataOut[outCursor].read()) {
+				dataOut[outCursor].write(dataIn[inCursor].read());
+				validDataOut[outCursor].write(true);
+				ackDataIn[inCursor].write(!ackDataIn[inCursor].read()); // Toggle value
+				lastAcc = inCursor;
+			}
+
+			outCursor++;
+			if (outCursor == numOutputs)
+				break;
+		}
+
+		if (outCursor != 0)
+			lastAccepted.write(lastAcc);
+	} else {
+		// Pull down the valid signal for any outputs which have sent acknowledgements.
+		for (int i = 0; i < numOutputs; i++)
+			if (ackDataOut[i].read())
+				validDataOut[i].write(false);
+	}
 }
 
-void ArbiterComponent::arbitrate() {
+ArbiterComponent::ArbiterComponent(sc_module_name name, const ComponentID& ID, int inputs, int outputs) :
+    Component(name, ID)
+{
+	numInputs    = inputs;
+	numOutputs   = outputs;
 
-  wait(sc_core::SC_ZERO_TIME);
+	dataIn       = new sc_in<AddressedWord>[inputs];
+	validDataIn  = new sc_in<bool>[inputs];
+	ackDataIn    = new sc_out<bool>[inputs];
 
-  if(!haveData) return;
-  RequestList requests;
-  GrantList grants;
+	dataOut      = new sc_out<AddressedWord>[outputs];
+	validDataOut = new sc_out<bool>[outputs];
+	ackDataOut   = new sc_in<bool>[outputs];
 
-  for(int i=0; i<numInputs; i++) {
-    if(validDataIn[i].read()) {
-      Request request(i, dataIn[i].read().endOfPacket());
-      requests.push_back(request);
-    }
-  }
+	inputs = numInputs;
+	outputs = numOutputs;
 
-  if(requests.empty()) {
-    haveData = false;
-    return;
-  }
+	lastAccepted.write(numInputs - 1);
 
-  arbiter->arbitrate(requests, grants);
+	SC_METHOD(arbitrateProcess);
+	sensitive << clock.neg() << clock.pos();
+	dont_initialize();
 
-  for(unsigned int i=0; i<grants.size(); i++) {
-    const int input = grants[i].first;
-    const int output = grants[i].second;
-
-    // FIXME: a request may be granted, but then blocked by flow control.
-    // Another, later request may still be allowed to send. Seems unfair.
-    if(!validDataOut[output].read()) {
-      dataOut[output].write(dataIn[input].read());
-      validDataOut[output].write(true);
-      ackDataIn[input].write(!ackDataIn[input].read()); // Toggle value
-    }
-  }
-
-}
-
-void ArbiterComponent::ackArrived() {
-  ack.notify();
-}
-
-void ArbiterComponent::dataArrived() {
-  haveData = true;
-}
-
-ArbiterComponent::ArbiterComponent(sc_module_name name, const ComponentID& ID,
-                                   int inputs, int outputs) :
-    Component(name, ID) {
-
-  numInputs    = inputs;
-  numOutputs   = outputs;
-
-  dataIn       = new sc_in<AddressedWord>[inputs];
-  validDataIn  = new sc_in<bool>[inputs];
-  ackDataIn    = new sc_out<bool>[inputs];
-
-  dataOut      = new sc_out<AddressedWord>[outputs];
-  validDataOut = new sc_out<bool>[outputs];
-  ackDataOut   = new sc_in<bool>[outputs];
-
-  arbiter      = new RoundRobinArbiter2(inputs, outputs, false);
-
-  SC_THREAD(mainLoop);
-
-  SC_METHOD(dataArrived);
-  for(int i=0; i<inputs; i++) sensitive << validDataIn[i].pos();
-  dont_initialize();
-
-  SC_METHOD(ackArrived);
-  for(int i=0; i<outputs; i++) sensitive << ackDataOut[i].pos();
-  dont_initialize();
-
-  end_module();
+	end_module();
 }
 
 ArbiterComponent::~ArbiterComponent() {
-  delete[] dataIn;
-  delete[] validDataIn;
-  delete[] ackDataIn;
+	delete[] dataIn;
+	delete[] validDataIn;
+	delete[] ackDataIn;
 
-  delete[] dataOut;
-  delete[] validDataOut;
-  delete[] ackDataOut;
-
-  delete arbiter;
+	delete[] dataOut;
+	delete[] validDataOut;
+	delete[] ackDataOut;
 }

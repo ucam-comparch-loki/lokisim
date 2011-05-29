@@ -17,8 +17,19 @@
 
 #include "../../Component.h"
 
+#include <utility>
+#include <vector>
+
+// int = input, bool = is final flit in packet
+typedef std::pair<int, bool> Request;
+
+// int = input, int = output
+typedef std::pair<int, int> Grant;
+
+typedef std::vector<Request> RequestList;
+typedef std::vector<Grant> GrantList;
+
 class AddressedWord;
-class ArbiterBase;
 
 class ArbiterComponent: public Component {
 
@@ -54,12 +65,7 @@ public:
 
 private:
 
-  void mainLoop();
-
-  void arbitrate();
-
-  void ackArrived();
-  void dataArrived();
+  void arbitrateProcess();
 
 //==============================//
 // Local state
@@ -67,14 +73,11 @@ private:
 
 private:
 
-  ArbiterBase* arbiter;
   int numInputs, numOutputs;
 
-  // Optimisation: skip work if we know there is no data to arbitrate.
-  bool haveData;
+  // Round robin arbiter state
 
-  sc_core::sc_event ack;
-
+  sc_signal<int> lastAccepted;
 };
 
 #endif /* ARBITERCOMPONENT_H_ */
