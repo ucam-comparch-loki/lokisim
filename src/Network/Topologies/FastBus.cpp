@@ -13,46 +13,50 @@ void FastBus::busProcess() {
 	// Please do not change anything in the following lines without thorough testing of the on-chip network
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	if (execCycle != cycleCounter) {
-		execCycle = cycleCounter;
-		execState = 0;
-	}
+	if (execState == STATE_INIT) {
+		// First call
 
-	if (execState == 0 && clock.posedge()) {
-		ackDataIn[0].write(false);
+		execState = STATE_STANDBY;
+		execCycle = 0;
+		next_trigger(validDataIn[0].default_event());
+	} else if (execState == STATE_STANDBY) {
+		if (sc_core::sc_time_stamp().value() % 1000 != 0) {
+			execState = STATE_STANDBY;
+			next_trigger(clock.posedge_event());
+		} else  if (execCycle + 750 <= sc_core::sc_time_stamp().value() && validDataIn[0].read()) {
+			DataType data = dataIn[0].read();
 
-		// Allow time for the valid signal to be deasserted
+			output = getDestination(data.channelID());
+			assert(output < numOutputs);
 
-		triggerSignal.write(triggerSignal.read() + 1);
-		execState = 1;
-	} else if (execState == 1 && triggerSignal.event()) {
-	    if (validDataIn[0].read()) {
-	        DataType data = dataIn[0].read();
+			dataOut[output].write(data);
+			validDataOut[output].write(true);
 
-	        output = getDestination(data.channelID());
-	        assert(output < numOutputs);
+			// Wait until receipt of the data is acknowledged
 
-	        dataOut[output].write(data);
-	        validDataOut[output].write(true);
-
-	        // Wait until receipt of the data is acknowledged
-
-	        execState = 2;
-	    } else {
-	    	execState = -1;
-	    }
-	} else if (execState == 2 && ackDataOut[output].event()) {
+			execState = STATE_OUTPUT_VALID;
+			execCycle = sc_core::sc_time_stamp().value();
+			next_trigger(ackDataOut[output].default_event());
+		} else {
+			execState = STATE_STANDBY;
+			next_trigger(validDataIn[0].default_event() & clock.posedge_event());
+		}
+	} else if (execState == STATE_OUTPUT_VALID) {
 	    validDataOut[output].write(false);
 
 	    // Pulse an acknowledgement.
 	    ackDataIn[0].write(true);
 
-	    execState = -1;
-	}
-}
+		execState = STATE_ACKNOWLEDGED;
+		next_trigger(clock.posedge_event());
+	} else if (execState == STATE_ACKNOWLEDGED) {
+		ackDataIn[0].write(false);
 
-void FastBus::clockProcess() {
-	cycleCounter++;
+		// Allow time for the valid signal to be deasserted.
+		triggerSignal.write(triggerSignal.read() + 1);
+		execState = STATE_STANDBY;
+		next_trigger(triggerSignal.default_event());
+	}
 }
 
 void FastBus::computeSwitching() {
@@ -75,23 +79,13 @@ FastBus::FastBus(sc_module_name name, const ComponentID& ID, int numOutputPorts,
 {
 	lastData.write(DataType());
 
-	cycleCounter = 0;
-
+	execState = STATE_INIT;
 	execCycle = 0;
-	execState = 0;
 	output = 0;
 
 	triggerSignal.write(0);
 
 	SC_METHOD(busProcess);
-	sensitive << clock.pos() << triggerSignal;
-	for (int i = 0; i < numOutputPorts; i++)
-		sensitive << ackDataOut[i];
-	dont_initialize();
-
-	SC_METHOD(clockProcess);
-	sensitive << clock.pos();
-	dont_initialize();
 
 	SC_METHOD(computeSwitching);
 	sensitive << dataIn[0];

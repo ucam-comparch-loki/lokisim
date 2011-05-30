@@ -18,18 +18,12 @@ void FlowControlIn::receivedData() {
 	// Please do not change anything in the following lines without thorough testing of the on-chip network
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	if (execStateData != 2 && execCycleData != cycleCounter) {
-		execCycleData = cycleCounter;
-		execStateData = 0;
-	}
+	if (execStateData == STATE_DATA_INIT) {
+		// First call
 
-	if (execStateData == 0 && clock.posedge()) {
-		ackDataIn.write(false);
-
-		// Allow time for the valid signal to be deasserted.
-		triggerSignal.write(triggerSignal.read() + 1);
-		execStateData = 1;
-	} else if (execStateData == 1 && triggerSignal.event()) {
+		execStateData = STATE_DATA_STANDBY;
+		next_trigger(validDataIn.default_event() & clock.posedge_event());
+	} else if (execStateData == STATE_DATA_STANDBY) {
 		if (validDataIn.read()) {
 			if (dataIn.read().portClaim()) {
 				// TODO: only accept the port claim when we have no credits left to send.
@@ -49,14 +43,19 @@ void FlowControlIn::receivedData() {
 						// Pass the value to the component.
 						dataOut.write(dataIn.read().payload());
 
-						execStateData = -1;
+						execStateData = STATE_DATA_ACKNOWLEDGED;
+						execTimeData = sc_core::sc_time_stamp().value();
+						next_trigger(clock.posedge_event());
 					} else {
 						pendingData = dataIn.read().payload();
 
-						execStateData = 2;
+						execStateData = STATE_DATA_BUFFER_FULL;
+						next_trigger(bufferHasSpace.posedge_event());
 					}
 				} else {
-					execStateData = -1;
+					execStateData = STATE_DATA_ACKNOWLEDGED;
+					execTimeData = sc_core::sc_time_stamp().value();
+					next_trigger(clock.posedge_event());
 				}
 			} else {
 				// Wait until there is space in the buffer, if necessary
@@ -64,11 +63,14 @@ void FlowControlIn::receivedData() {
 					// Pass the value to the component.
 					dataOut.write(dataIn.read().payload());
 
-					execStateData = -1;
+					execStateData = STATE_DATA_ACKNOWLEDGED;
+					execTimeData = sc_core::sc_time_stamp().value();
+					next_trigger(clock.posedge_event());
 				} else {
 					pendingData = dataIn.read().payload();
 
-					execStateData = 2;
+					execStateData = STATE_DATA_BUFFER_FULL;
+					next_trigger(bufferHasSpace.posedge_event());
 				}
 			}
 
@@ -80,13 +82,33 @@ void FlowControlIn::receivedData() {
 			// Acknowledge the data.
 			ackDataIn.write(true);
 		} else {
-			execStateData = -1;
+			execStateData = STATE_DATA_STANDBY;
+			next_trigger(validDataIn.default_event() & clock.posedge_event());
 		}
-	} else if (execStateData == 2 && bufferHasSpace.read()) {
+	} else if (execStateData == STATE_DATA_ACKNOWLEDGED) {
+		if (execTimeData != sc_core::sc_time_stamp().value()) {
+			ackDataIn.write(false);
+
+			// Allow time for the valid signal to be deasserted.
+			triggerSignal.write(triggerSignal.read() + 1);
+			execStateData = STATE_DATA_STANDBY;
+			next_trigger(triggerSignal.default_event());
+		} else {
+			execStateData = STATE_DATA_ACKNOWLEDGED;
+			next_trigger(clock.posedge_event());
+		}
+	} else if (execStateData == STATE_DATA_BUFFER_FULL) {
+		// Pass the value to the component.
 		dataOut.write(pendingData);
 
-		execStateData = -1;
+		execStateData = STATE_DATA_ACKNOWLEDGED;
+		execTimeData = sc_core::sc_time_stamp().value();
+		next_trigger(clock.posedge_event());
 	}
+
+	// Not very clean but reduces the number of credit manager runs considerably
+
+	creditsAvailable.write(numCredits > 0);
 }
 
 void FlowControlIn::updateReady() {
@@ -95,12 +117,12 @@ void FlowControlIn::updateReady() {
 	// Please do not change anything in the following lines without thorough testing of the on-chip network
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	if (execStateCredits != 1 && execCycleCredits != cycleCounter) {
-		execCycleCredits = cycleCounter;
-		execStateCredits = 0;
-	}
+	if (execStateCredits == STATE_CREDITS_INIT) {
+		// First call
 
-	if (execStateCredits == 0 && clock.posedge()) {
+		execStateCredits = STATE_CREDITS_STANDBY;
+		next_trigger(creditsAvailable.posedge_event() & clock.posedge_event());
+	} else if (execStateCredits == STATE_CREDITS_STANDBY) {
 		if (numCredits > 0) {
 			// This should not execute if credits are disabled
 			assert(useCredits);
@@ -114,25 +136,26 @@ void FlowControlIn::updateReady() {
 				numCredits--;
 				assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
 
-				if(DEBUG) cout << "Sent credit from " << channel << " to " << returnAddress << endl;
+				if (DEBUG)
+					cout << "Sent credit from " << channel << " to " << returnAddress << endl;
 
-				execStateCredits = 1;
+				execStateCredits = STATE_CREDITS_SENT;
+				next_trigger(ackCreditOut.posedge_event());
 			} else {
-				execStateCredits = -1;
+				execStateCredits = STATE_CREDITS_STANDBY;
+				next_trigger(creditsAvailable.posedge_event() & clock.posedge_event());
 			}
 		} else {
-			execStateCredits = -1;
+			execStateCredits = STATE_CREDITS_STANDBY;
+			next_trigger(creditsAvailable.posedge_event() & clock.posedge_event());
 		}
-	} else if (execStateCredits == 1 && ackCreditOut.read()) {
+	} else if (execStateCredits == STATE_CREDITS_SENT) {
 		// Deassert the valid signal when the acknowledgement arrives.
 		validCreditOut.write(false);
 
-		execStateCredits = -1;
+		execStateCredits = STATE_CREDITS_STANDBY;
+		next_trigger(creditsAvailable.posedge_event() & clock.posedge_event());
 	}
-}
-
-void FlowControlIn::clockProcess() {
-	cycleCounter++;
 }
 
 FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :
@@ -143,24 +166,17 @@ FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const C
 	useCredits = true;
 	numCredits = 0;
 
-	cycleCounter = 0;
+	execStateData = STATE_DATA_INIT;
+	execTimeData = 0;
 
-	execCycleData = 0;
-	execStateData = 0;
-	execCycleCredits = 0;
-	execStateCredits = 0;
+	execStateCredits = STATE_CREDITS_INIT;
+
+	ackDataIn.initialize(false);
 
 	triggerSignal.write(0);
+	creditsAvailable.write(false);
 
 	SC_METHOD(receivedData);
-	sensitive << clock.pos() << triggerSignal << bufferHasSpace;
-	dont_initialize();
 
 	SC_METHOD(updateReady);
-	sensitive << clock.pos() << ackCreditOut;
-	dont_initialize();
-
-	SC_METHOD(clockProcess);
-	sensitive << clock.pos();
-	dont_initialize();
 }

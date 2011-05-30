@@ -47,6 +47,9 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 			mPortData[port].Address = request.getPayload();
 			mPortData[port].WordsLeft = request.getLineSize() / 4;
 
+			if (mPortData[port].Address + mPortData[port].WordsLeft * 4 > MEMORY_ON_CHIP_SCRATCHPAD_SIZE)
+				cerr << this->name() << " fetch request outside valid memory space (address " << mPortData[port].Address << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
+
 			assert((mPortData[port].Address & 0x3) == 0);
 			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 			assert(mPortData[port].WordsLeft > 0);
@@ -59,6 +62,9 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 		} else if (request.getOperation() == MemoryRequest::STORE_LINE) {
 			mPortData[port].Address = request.getPayload();
 			mPortData[port].WordsLeft = request.getLineSize() / 4;
+
+			if (mPortData[port].Address + mPortData[port].WordsLeft * 4 > MEMORY_ON_CHIP_SCRATCHPAD_SIZE)
+				cerr << this->name() << " store request outside valid memory space (address " << mPortData[port].Address << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
 
 			assert((mPortData[port].Address & 0x3) == 0);
 			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);

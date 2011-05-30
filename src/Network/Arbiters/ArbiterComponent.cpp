@@ -13,42 +13,103 @@ void ArbiterComponent::arbitrateProcess() {
     // negative edge because data is put onto networks at the positive edge
     // and needs time to propagate through to these arbiters.
 
-	if (clock.negedge()) {
-		int inCursor = lastAccepted.read();
-		int outCursor = 0;
-		int lastAcc = 0;
+	ArbiterState state = currentState.read();
 
-		for (int i = 0; i < numInputs; i++) {
-			// Request: numinput -> endofpacket
+	if (state == STATE_INIT) {
+		sc_core::sc_event_or_list& eventList = validDataIn[0].default_event() | validDataIn[0].default_event();
 
-			inCursor++;
-			if (inCursor == numInputs)
-				inCursor = 0;
+		for (int i = 1; i < numInputs; i++)
+			eventList | validDataIn[i].default_event();
 
-			if (!validDataIn[inCursor].read())
-				continue;
+		currentState.write(STATE_STANDBY);
+		next_trigger(eventList);
+	} else if (state == STATE_STANDBY) {
+		if (clock.negedge()) {
+			arbitrate();
+		} else {
+			currentState.write(STATE_TRIGGERED);
+			next_trigger(clock.negedge_event());
+		}
+	} else if (state == STATE_TRIGGERED) {
+		arbitrate();
+	} else if (state == STATE_TRANSFER) {
+		int ackCount = 0;
 
-			// FIXME: a request may be granted, but then blocked by flow control.
-			// Another, later request may still be allowed to send. Seems unfair.
-			if (!validDataOut[outCursor].read()) {
-				dataOut[outCursor].write(dataIn[inCursor].read());
-				validDataOut[outCursor].write(true);
-				ackDataIn[inCursor].write(!ackDataIn[inCursor].read()); // Toggle value
-				lastAcc = inCursor;
+		// Pull down the valid signal for any outputs which have sent acknowledgements.
+		for (int i = 0; i < numOutputs; i++) {
+			if (ackDataOut[i].read()) {
+				validDataOut[i].write(false);
+				ackCount++;
 			}
-
-			outCursor++;
-			if (outCursor == numOutputs)
-				break;
 		}
 
-		if (outCursor != 0)
-			lastAccepted.write(lastAcc);
+		if (activeTransfers.read() == ackCount) {
+			activeTransfers.write(0);
+
+			sc_core::sc_event_or_list& eventList = validDataIn[0].default_event() | validDataIn[0].default_event();
+
+			for (int i = 1; i < numInputs; i++)
+				eventList | validDataIn[i].default_event();
+
+			currentState.write(STATE_STANDBY);
+			next_trigger(eventList);
+		} else {
+			activeTransfers.write(activeTransfers.read() - ackCount);
+
+			currentState.write(STATE_TRIGGERED);
+			next_trigger(clock.negedge_event());
+		}
+	}
+}
+
+void ArbiterComponent::arbitrate() {
+	int inCursor = lastAccepted.read();
+	int outCursor = 0;
+	int lastAcc = 0;
+
+	for (int i = 0; i < numInputs; i++) {
+		// Request: numinput -> endofpacket
+
+		inCursor++;
+		if (inCursor == numInputs)
+			inCursor = 0;
+
+		if (!validDataIn[inCursor].read())
+			continue;
+
+		// FIXME: a request may be granted, but then blocked by flow control.
+		// Another, later request may still be allowed to send. Seems unfair.
+		if (!validDataOut[outCursor].read()) {
+			dataOut[outCursor].write(dataIn[inCursor].read());
+			validDataOut[outCursor].write(true);
+			ackDataIn[inCursor].write(!ackDataIn[inCursor].read()); // Toggle value
+			lastAcc = inCursor;
+		}
+
+		outCursor++;
+		if (outCursor == numOutputs)
+			break;
+	}
+
+	if (outCursor == 0) {
+		if (activeTransfers.read() == 0) {
+			sc_core::sc_event_or_list& eventList = validDataIn[0].default_event() | validDataIn[0].default_event();
+
+			for (int i = 1; i < numInputs; i++)
+				eventList | validDataIn[i].default_event();
+
+			currentState.write(STATE_STANDBY);
+			next_trigger(eventList);
+		} else {
+			currentState.write(STATE_TRANSFER);
+			next_trigger(clock.posedge_event());
+		}
 	} else {
-		// Pull down the valid signal for any outputs which have sent acknowledgements.
-		for (int i = 0; i < numOutputs; i++)
-			if (ackDataOut[i].read())
-				validDataOut[i].write(false);
+		activeTransfers.write(activeTransfers.read() + outCursor);
+		lastAccepted.write(lastAcc);
+
+		currentState.write(STATE_TRANSFER);
+		next_trigger(clock.posedge_event());
 	}
 }
 
@@ -69,11 +130,11 @@ ArbiterComponent::ArbiterComponent(sc_module_name name, const ComponentID& ID, i
 	inputs = numInputs;
 	outputs = numOutputs;
 
+	currentState.write(STATE_INIT);
+	activeTransfers.write(0);
 	lastAccepted.write(numInputs - 1);
 
 	SC_METHOD(arbitrateProcess);
-	sensitive << clock.neg() << clock.pos();
-	dont_initialize();
 
 	end_module();
 }

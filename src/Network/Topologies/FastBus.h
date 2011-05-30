@@ -50,8 +50,6 @@ private:
 
   void busProcess();
 
-  void clockProcess();
-
   // Compute how many bits switched, and call the appropriate instrumentation
   // methods.
   void computeSwitching();
@@ -62,14 +60,19 @@ private:
 
 private:
 
+  enum BusState {
+	  STATE_INIT,
+	  STATE_STANDBY,
+	  STATE_OUTPUT_VALID,
+	  STATE_ACKNOWLEDGED
+  };
+
   // Store the previous value, so we can compute how many bits change when a
   // new value arrives.
   sc_signal<DataType> lastData;
 
-  int cycleCounter;
-
-  int execCycle;
-  int execState;
+  BusState execState;
+  unsigned long long execCycle;
   PortIndex output;
 
   sc_signal<int> triggerSignal;

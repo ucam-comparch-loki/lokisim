@@ -8,36 +8,63 @@
 #include "Bus.h"
 
 void Bus::mainLoop() {
-  while(true) {
-    wait(clock.posedge_event());
+	while(true) {
+		wait(validDataIn[0].default_event());
 
-    ackDataIn[0].write(false);
-    wait(sc_core::SC_ZERO_TIME);  // Allow time for the valid signal to be deasserted.
-    if(!validDataIn[0].read()) continue;
+		if (sc_core::sc_time_stamp().value() % 1000 != 0)
+			wait(clock.posedge_event());
 
-    receivedData();
+		wait(sc_core::SC_ZERO_TIME);  // Allow time for the valid signal to be deasserted.
+		if(!validDataIn[0].read()) continue;
 
-    // Pulse an acknowledgement.
-    ackDataIn[0].write(true);
-  }
-}
+		// Receive data
 
-void Bus::receivedData() {
-  DataType data = dataIn[0].read();
+		DataType data = dataIn[0].read();
 
-  const PortIndex output = getDestination(data.channelID());
-  assert(output < numOutputs);
+		const PortIndex output = getDestination(data.channelID());
+		assert(output < numOutputs);
 
-  dataOut[output].write(data);
-  validDataOut[output].write(true);
+		dataOut[output].write(data);
+		validDataOut[output].write(true);
 
-  // Wait until receipt of the data is acknowledged.
-  wait(ackDataOut[output].default_event());
-  receivedCredit(output);
-}
+		// Wait until receipt of the data is acknowledged.
+		wait(ackDataOut[output].default_event());
 
-void Bus::receivedCredit(PortIndex output) {
-  validDataOut[output].write(false);
+		// Receive credit
+
+		validDataOut[output].write(false);
+
+		// Pulse an acknowledgement.
+		ackDataIn[0].write(true);
+
+		for (;;) {
+			wait(clock.posedge_event());
+
+			ackDataIn[0].write(false);
+			wait(sc_core::SC_ZERO_TIME);  // Allow time for the valid signal to be deasserted.
+			if(!validDataIn[0].read()) break;
+
+			// Receive data
+
+			DataType data = dataIn[0].read();
+
+			const PortIndex output = getDestination(data.channelID());
+			assert(output < numOutputs);
+
+			dataOut[output].write(data);
+			validDataOut[output].write(true);
+
+			// Wait until receipt of the data is acknowledged.
+			wait(ackDataOut[output].default_event());
+
+			// Receive credit
+
+			validDataOut[output].write(false);
+
+			// Pulse an acknowledgement.
+			ackDataIn[0].write(true);
+		}
+	}
 }
 
 void Bus::computeSwitching() {

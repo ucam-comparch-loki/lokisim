@@ -66,13 +66,24 @@ private:
   // Update the bufferHasSpace signal.
   void updateReady();
 
-  void clockProcess();
-
 //==============================//
 // Local state
 //==============================//
 
 private:
+
+  enum ExecStateData {
+	  STATE_DATA_INIT,
+	  STATE_DATA_STANDBY,
+	  STATE_DATA_BUFFER_FULL,
+	  STATE_DATA_ACKNOWLEDGED
+  };
+
+  enum ExecStateCredits {
+	  STATE_CREDITS_INIT,
+	  STATE_CREDITS_STANDBY,
+	  STATE_CREDITS_SENT
+  };
 
   // Address of channel managed by this flow control unit.
   ChannelID channel;
@@ -86,14 +97,15 @@ private:
 
   int cycleCounter;
 
-  int execCycleData;
-  int execStateData;
-  int execCycleCredits;
-  int execStateCredits;
+  ExecStateData execStateData;
+  unsigned long long execTimeData;
+
+  ExecStateCredits execStateCredits;
 
   Word pendingData;
 
   sc_signal<int> triggerSignal;
+  sc_signal<bool> creditsAvailable;
 };
 
 #endif /* FLOWCONTROLIN_H_ */

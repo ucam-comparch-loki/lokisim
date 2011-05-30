@@ -50,8 +50,6 @@ public:
 protected:
 
   virtual void mainLoop();
-  virtual void receivedData();
-  virtual void receivedCredit(PortIndex output);
 
 private:
 

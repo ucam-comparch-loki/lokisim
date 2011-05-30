@@ -67,16 +67,25 @@ private:
 
   void arbitrateProcess();
 
+  void arbitrate();
+
 //==============================//
 // Local state
 //==============================//
 
 private:
 
+  enum ArbiterState {
+	  STATE_INIT,
+	  STATE_STANDBY,
+	  STATE_TRIGGERED,
+	  STATE_TRANSFER
+  };
+
   int numInputs, numOutputs;
 
-  // Round robin arbiter state
-
+  sc_signal<ArbiterState> currentState;
+  sc_signal<int> activeTransfers;
   sc_signal<int> lastAccepted;
 };
 
