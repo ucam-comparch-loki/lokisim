@@ -150,9 +150,6 @@ bool GeneralPurposeCacheHandler::containsAddress(uint32_t address) {
 }
 
 bool GeneralPurposeCacheHandler::readWord(uint32_t address, uint32_t &data, bool instruction, bool resume, bool debug) {
-	if ((address & 0x3) != 0)
-		std::cerr << "!!!! " << address << std::endl;
-
 	assert((address & 0x3) == 0);
 
 	uint slot;
