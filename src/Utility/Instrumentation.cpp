@@ -12,7 +12,6 @@
 #include "Instrumentation/BackgroundMemory.h"
 #include "Instrumentation/Energy.h"
 #include "Instrumentation/IPKCache.h"
-#include "Instrumentation/Memory.h"
 #include "Instrumentation/MemoryBank.h"
 #include "Instrumentation/Network.h"
 #include "Instrumentation/Operations.h"
@@ -61,18 +60,6 @@ void Instrumentation::registerWrite(const ComponentID& core, RegisterIndex reg) 
 
 void Instrumentation::stallRegUse(const ComponentID& core) {
   Registers::stallReg(core);
-}
-
-void Instrumentation::l1TagCheck(MemoryAddr address, bool hit) {
-  Memory::tagCheck(address, hit);
-}
-
-void Instrumentation::l1Read(MemoryAddr address, bool isInstruction) {
-  Memory::read(address, isInstruction);
-}
-
-void Instrumentation::l1Write(MemoryAddr address) {
-  Memory::write(address);
 }
 
 void Instrumentation::memorySetMode(int bank, bool isCache, uint setCount, uint wayCount, uint lineSize)	{MemoryBank::setMode(bank, isCache, setCount, wayCount, lineSize);}

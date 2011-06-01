@@ -23,9 +23,9 @@ public:
   static void decoded(const ComponentID &core, const DecodedInst& dec);
   static void operation(int op, bool executed);
 
-  static int  numDecodes();
-  static int  numOperations();
-  static int  numOperations(int operation);
+  static unsigned long long  numDecodes();
+  static unsigned long long  numOperations();
+  static unsigned long long  numOperations(int operation);
 
   static void printStats();
 
@@ -35,7 +35,7 @@ private:
   static CounterMap<int> unexecutedOps;
 
   // Is there a difference between numOps and numDecodes?
-  static int numOps_, numDecodes_;
+  static unsigned long long numOps_, numDecodes_;
 
 };
 

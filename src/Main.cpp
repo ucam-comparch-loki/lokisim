@@ -12,6 +12,8 @@
 #include <fcntl.h>
 #include "Datatype/AddressedWord.h"
 #include "Utility/Debugger.h"
+#include "Utility/Instrumentation.h"
+#include "Utility/Instrumentation/Operations.h"
 #include "Utility/StartUp/CodeLoader.h"
 #include "Utility/Statistics.h"
 
@@ -19,7 +21,7 @@ using std::vector;
 using std::string;
 
 // Advance the simulation one clock cycle.
-static int cycleNumber = 0;
+static unsigned long long cycleNumber = 0;
 
 #define TIMESTEP {\
   cycleNumber++;\
@@ -130,11 +132,18 @@ void simulate(Chip& chip) {
   }
   else {
     int cyclesIdle = 0;
+    int cycleCounter = 0;
 
     try {
       int i;
       for(i=0; i<TIMEOUT && !sc_core::sc_end_of_simulation_invoked(); i++) {
         TIMESTEP;
+
+        if (!DEBUG && (++cycleCounter == 1000000)) {
+          cerr << "Current cycle number: " << cycleNumber << " [" << Instrumentation::Operations::numOperations() << " operation(s) executed]" << endl;
+          cycleCounter = 0;
+        }
+
         if(idle.read()) {
           cyclesIdle++;
           if(cyclesIdle >= 100) {

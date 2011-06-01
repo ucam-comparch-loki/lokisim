@@ -22,16 +22,16 @@ public:
   static void forward(const ComponentID& core, RegisterIndex reg);
   static void stallReg(const ComponentID& core);
 
-  static int  numReads();
-  static int  numWrites();
-  static int  numForwards();
-  static int  stallRegUses();
+  static unsigned long long  numReads();
+  static unsigned long long  numWrites();
+  static unsigned long long  numForwards();
+  static unsigned long long  stallRegUses();
 
   static void printStats();
 
 private:
 
-  static int numReads_, numWrites_, numForwards_, stallRegs_;
+  static unsigned long long numReads_, numWrites_, numForwards_, stallRegs_;
 
 };
 

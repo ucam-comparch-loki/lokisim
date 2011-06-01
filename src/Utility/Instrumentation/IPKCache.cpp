@@ -9,10 +9,10 @@
 
 #include "../../Datatype/ComponentID.h"
 
-int IPKCache::numHits_ = 0;
-int IPKCache::numMisses_ = 0;
-int IPKCache::numReads_ = 0;
-int IPKCache::numWrites_ = 0;
+unsigned long long IPKCache::numHits_ = 0;
+unsigned long long IPKCache::numMisses_ = 0;
+unsigned long long IPKCache::numReads_ = 0;
+unsigned long long IPKCache::numWrites_ = 0;
 
 void IPKCache::tagCheck(const ComponentID& core, bool hit) {
   if(hit) numHits_++;
@@ -27,15 +27,15 @@ void IPKCache::write(const ComponentID& core) {
   numWrites_++;
 }
 
-int IPKCache::numTagChecks() {return numHits_ + numMisses_;}
-int IPKCache::numHits()      {return numHits_;}
-int IPKCache::numMisses()    {return numMisses_;}
-int IPKCache::numReads()     {return numReads_;}
-int IPKCache::numWrites()    {return numWrites_;}
+unsigned long long IPKCache::numTagChecks() {return numHits_ + numMisses_;}
+unsigned long long IPKCache::numHits()      {return numHits_;}
+unsigned long long IPKCache::numMisses()    {return numMisses_;}
+unsigned long long IPKCache::numReads()     {return numReads_;}
+unsigned long long IPKCache::numWrites()    {return numWrites_;}
 
 void IPKCache::printStats() {
 
-  int tagChecks = numTagChecks();
+	unsigned long long tagChecks = numTagChecks();
 
   if (BATCH_MODE) {
 	cout << "<@GLOBAL>ipkcache_reads:" << numReads_ << "</@GLOBAL>" << endl;

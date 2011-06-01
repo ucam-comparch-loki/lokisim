@@ -11,8 +11,8 @@
 #include "../Instrumentation.h"
 #include "../Parameters.h"
 
-std::map<ComponentID, int> Stalls::startedStalling;
-std::map<ComponentID, int> Stalls::startedIdle;
+std::map<ComponentID, unsigned long long> Stalls::startedStalling;
+std::map<ComponentID, unsigned long long> Stalls::startedIdle;
 
 CounterMap<ComponentID> Stalls::inputStalls;
 CounterMap<ComponentID> Stalls::outputStalls;
@@ -27,7 +27,7 @@ uint32_t Stalls::endOfExecution = 0;
 // "stalled" mapping.
 const int UNSTALLED = -1;
 
-void Stalls::stall(const ComponentID& id, int cycle, int reason) {
+void Stalls::stall(const ComponentID& id, unsigned long long cycle, int reason) {
   if(stallReason[id] == NONE) {
 
     stallReason[id] = reason;
@@ -41,9 +41,9 @@ void Stalls::stall(const ComponentID& id, int cycle, int reason) {
   }
 }
 
-void Stalls::unstall(const ComponentID& id, int cycle) {
+void Stalls::unstall(const ComponentID& id, unsigned long long cycle) {
   if(stallReason[id] != NONE) {
-    int stallLength = cycle - startedStalling[id];
+	  unsigned long long stallLength = cycle - startedStalling[id];
 
     switch(stallReason[id]) {
       case INPUT : {
@@ -66,7 +66,7 @@ void Stalls::unstall(const ComponentID& id, int cycle) {
   }
 }
 
-void Stalls::idle(const ComponentID& id, int cycle) {
+void Stalls::idle(const ComponentID& id, unsigned long long cycle) {
   if(startedIdle[id] == UNSTALLED || (startedIdle[id]==0 && idleTimes[id]==0)) {
     startedIdle[id] = cycle;
     numStalled++;
@@ -77,9 +77,9 @@ void Stalls::idle(const ComponentID& id, int cycle) {
   }
 }
 
-void Stalls::active(const ComponentID& id, int cycle) {
+void Stalls::active(const ComponentID& id, unsigned long long cycle) {
   if(startedIdle[id] != UNSTALLED) {
-    int idleLength = cycle - startedIdle[id];
+	  unsigned long long idleLength = cycle - startedIdle[id];
     idleTimes.setCount(id, idleTimes[id] + idleLength);
     startedIdle[id] = UNSTALLED;
     numStalled--;
@@ -91,19 +91,19 @@ void Stalls::endExecution() {
     endOfExecution = sc_core::sc_time_stamp().to_default_time_units();
 }
 
-int  Stalls::cyclesActive(const ComponentID& core) {
+unsigned long long  Stalls::cyclesActive(const ComponentID& core) {
   return endOfExecution - cyclesStalled(core) - cyclesIdle(core);
 }
 
-int  Stalls::cyclesIdle(const ComponentID& core) {
+unsigned long long  Stalls::cyclesIdle(const ComponentID& core) {
   return idleTimes[core];
 }
 
-int  Stalls::cyclesStalled(const ComponentID& core) {
+unsigned long long  Stalls::cyclesStalled(const ComponentID& core) {
   return inputStalls[core] + outputStalls[core] + predicateStalls[core];
 }
 
-int  Stalls::executionTime() {
+unsigned long long  Stalls::executionTime() {
   return endOfExecution;
 }
 

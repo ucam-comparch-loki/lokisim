@@ -13,69 +13,103 @@
 /* Put any new data into the buffer. Since we approved the request to send
  * data, it is known that there is enough room. */
 void FlowControlIn::receivedData() {
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// This implementation is broken - but it is broken in a way the rest of the system depends on
-	// Please do not change anything in the following lines without thorough testing of the on-chip network
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////
+	while (true) {
+		wait(validDataIn.default_event());
 
-	if (execStateData == STATE_DATA_INIT) {
-		// First call
+		if (sc_core::sc_time_stamp().value() % 1000 != 0)
+			wait(clock.posedge_event());
 
-		execStateData = STATE_DATA_STANDBY;
-		execTimeData = 0;
-		next_trigger(validDataIn.default_event());
-	} else if (execStateData == STATE_DATA_STANDBY) {
-		if (sc_core::sc_time_stamp().value() % 1000 != 0) {
-			execStateData = STATE_DATA_STANDBY;
-			next_trigger(clock.posedge_event());
-		} else  if (execTimeData + 750 <= sc_core::sc_time_stamp().value() && validDataIn.read()) {
+		wait(sc_core::SC_ZERO_TIME);  // Allow time for the valid signal to be deasserted.
+
+		if (!validDataIn.read())
+			continue;
+
+		if (dataIn.read().portClaim()) {
+			// TODO: only accept the port claim when we have no credits left to send.
+
+			// Set the return address so we can send flow control.
+			returnAddress = dataIn.read().payload().toInt();
+			useCredits = dataIn.read().useCredits();
+
+			if(DEBUG)
+				cout << "Channel " << channel << " was claimed by " << returnAddress << " [flow control " << (useCredits ? "enabled" : "disabled") << "]" << endl;
+
+			// Allow core to wait until memory setup is complete if setting up a data connection
+
+			if (!useCredits && dataIn.read().channelID().getChannel() >= 2) {
+				// Wait until there is space in the buffer, if necessary
+				if (!bufferHasSpace.read())
+					wait(bufferHasSpace.posedge_event());
+
+				// Pass the value to the component.
+				dataOut.write(dataIn.read().payload());
+			}
+		} else {
+			// Wait until there is space in the buffer, if necessary
+			if (!bufferHasSpace.read())
+				wait(bufferHasSpace.posedge_event());
+
+			// Pass the value to the component.
+			dataOut.write(dataIn.read().payload());
+		}
+
+		if (useCredits) {
+			numCredits++;
+			assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
+		}
+
+		// Acknowledge the data.
+		ackDataIn.write(true);
+
+		int inactiveCycles = 0;
+
+		while (true) {
+			// Wait for data to arrive.
+			wait(clock.posedge_event());
+
+			ackDataIn.write(false);
+
+			wait(sc_core::SC_ZERO_TIME);  // Allow time for the valid signal to be deasserted.
+
+			if (validDataIn.read()) {
+				inactiveCycles = 0;
+			} else {
+				inactiveCycles++;
+				if (inactiveCycles > 10)
+					break;
+				else
+					continue;
+			}
+
 			if (dataIn.read().portClaim()) {
 				// TODO: only accept the port claim when we have no credits left to send.
 
 				// Set the return address so we can send flow control.
 				returnAddress = dataIn.read().payload().toInt();
 				useCredits = dataIn.read().useCredits();
+				enableCreditUpdate.write(useCredits);
 
-				if (DEBUG)
+				if(DEBUG)
 					cout << "Channel " << channel << " was claimed by " << returnAddress << " [flow control " << (useCredits ? "enabled" : "disabled") << "]" << endl;
 
 				// Allow core to wait until memory setup is complete if setting up a data connection
 
 				if (!useCredits && dataIn.read().channelID().getChannel() >= 2) {
 					// Wait until there is space in the buffer, if necessary
-					if (bufferHasSpace.read()) {
-						// Pass the value to the component.
-						dataOut.write(dataIn.read().payload());
+					if (!bufferHasSpace.read())
+						wait(bufferHasSpace.posedge_event());
 
-						execStateData = STATE_DATA_ACKNOWLEDGED;
-						next_trigger(clock.posedge_event());
-					} else {
-						pendingData = dataIn.read().payload();
-
-						execStateData = STATE_DATA_BUFFER_FULL;
-						next_trigger(bufferHasSpace.posedge_event());
-					}
-				} else {
-					execStateData = STATE_DATA_ACKNOWLEDGED;
-					next_trigger(clock.posedge_event());
+					// Pass the value to the component.
+					dataOut.write(dataIn.read().payload());
 				}
 			} else {
 				// Wait until there is space in the buffer, if necessary
-				if (bufferHasSpace.read()) {
-					// Pass the value to the component.
-					dataOut.write(dataIn.read().payload());
+				if (!bufferHasSpace.read())
+					wait(bufferHasSpace.posedge_event());
 
-					execStateData = STATE_DATA_ACKNOWLEDGED;
-					next_trigger(clock.posedge_event());
-				} else {
-					pendingData = dataIn.read().payload();
-
-					execStateData = STATE_DATA_BUFFER_FULL;
-					next_trigger(bufferHasSpace.posedge_event());
-				}
+				// Pass the value to the component.
+				dataOut.write(dataIn.read().payload());
 			}
-
-			execTimeData = sc_core::sc_time_stamp().value();
 
 			if (useCredits) {
 				numCredits++;
@@ -84,43 +118,22 @@ void FlowControlIn::receivedData() {
 
 			// Acknowledge the data.
 			ackDataIn.write(true);
-		} else {
-			execStateData = STATE_DATA_STANDBY;
-			next_trigger(validDataIn.default_event());
 		}
-	} else if (execStateData == STATE_DATA_ACKNOWLEDGED) {
-		ackDataIn.write(false);
-
-		// Allow time for the valid signal to be deasserted.
-		triggerSignal.write(triggerSignal.read() + 1);
-		execStateData = STATE_DATA_STANDBY;
-		next_trigger(triggerSignal.default_event());
-	} else if (execStateData == STATE_DATA_BUFFER_FULL) {
-		// Pass the value to the component.
-		dataOut.write(pendingData);
-
-		execStateData = STATE_DATA_ACKNOWLEDGED;
-		next_trigger(clock.posedge_event());
 	}
-
-	// Not very clean but reduces the number of credit manager runs considerably
-
-	creditsAvailable.write(numCredits > 0);
 }
 
 void FlowControlIn::updateReady() {
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// This implementation is broken - but it is broken in a way the rest of the system depends on
-	// Please do not change anything in the following lines without thorough testing of the on-chip network
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////
+	while (true) {
+		//wait(enableCreditUpdate.posedge_event());
 
-	if (execStateCredits == STATE_CREDITS_INIT) {
-		// First call
+		while (true) {
+			//if (!enableCreditUpdate.read())
+			//	break;
 
-		execStateCredits = STATE_CREDITS_STANDBY;
-		next_trigger(creditsAvailable.posedge_event() & clock.posedge_event());
-	} else if (execStateCredits == STATE_CREDITS_STANDBY) {
-		if (numCredits > 0) {
+			wait(clock.posedge_event());
+			if (numCredits == 0)
+				continue;
+
 			// This should not execute if credits are disabled
 			assert(useCredits);
 
@@ -136,44 +149,24 @@ void FlowControlIn::updateReady() {
 				if (DEBUG)
 					cout << "Sent credit from " << channel << " to " << returnAddress << endl;
 
-				execStateCredits = STATE_CREDITS_SENT;
-				next_trigger(ackCreditOut.posedge_event());
-			} else {
-				execStateCredits = STATE_CREDITS_STANDBY;
-				next_trigger(creditsAvailable.posedge_event() & clock.posedge_event());
+				// Deassert the valid signal when the acknowledgement arrives.
+				wait(ackCreditOut.posedge_event());
+				validCreditOut.write(false);
 			}
-		} else {
-			execStateCredits = STATE_CREDITS_STANDBY;
-			next_trigger(creditsAvailable.posedge_event() & clock.posedge_event());
 		}
-	} else if (execStateCredits == STATE_CREDITS_SENT) {
-		// Deassert the valid signal when the acknowledgement arrives.
-		validCreditOut.write(false);
-
-		execStateCredits = STATE_CREDITS_STANDBY;
-		next_trigger(creditsAvailable.posedge_event() & clock.posedge_event());
 	}
 }
 
 FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :
-	Component(name, ID)
+    Component(name, ID)
 {
 	channel = channelManaged;
 	returnAddress = -1;
 	useCredits = true;
 	numCredits = 0;
 
-	execStateData = STATE_DATA_INIT;
-	execTimeData = 0;
+	enableCreditUpdate.write(false);
 
-	execStateCredits = STATE_CREDITS_INIT;
-
-	ackDataIn.initialize(false);
-
-	triggerSignal.write(0);
-	creditsAvailable.write(false);
-
-	SC_METHOD(receivedData);
-
-	SC_METHOD(updateReady);
+	SC_THREAD(receivedData);
+	SC_THREAD(updateReady);
 }

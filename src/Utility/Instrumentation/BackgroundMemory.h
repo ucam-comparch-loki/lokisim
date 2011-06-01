@@ -20,16 +20,16 @@ namespace Instrumentation {
 		static void read(MemoryAddr address, uint32_t count);
 		static void write(MemoryAddr address, uint32_t count);
 
-		static int  numReads();
-		static int  numWrites();
-		static int  numWordsRead();
-		static int  numWordsWritten();
+		static unsigned long long  numReads();
+		static unsigned long long  numWrites();
+		static unsigned long long  numWordsRead();
+		static unsigned long long  numWordsWritten();
 
 		static void printStats();
 
 	private:
 
-		static int numReads_, numWrites_, numWordsRead_, numWordsWritten_;
+		static unsigned long long numReads_, numWrites_, numWordsRead_, numWordsWritten_;
 
 	};
 

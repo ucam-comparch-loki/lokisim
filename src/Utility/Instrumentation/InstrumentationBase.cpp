@@ -8,7 +8,7 @@
 #include "InstrumentationBase.h"
 #include <sstream>
 
-string InstrumentationBase::percentage(int value, int total) {
+string InstrumentationBase::percentage(unsigned long long value, unsigned long long total) {
   double percentage = (total==0) ? 0.0 : (double)value/total * 100;
   std::stringstream ss;
   ss.precision(3);

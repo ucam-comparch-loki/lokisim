@@ -58,7 +58,7 @@ parameter NUM_TILE_COLUMNS           = 1;
 parameter NUM_ADDRESSABLE_REGISTERS  = 32;
 parameter NUM_PHYSICAL_REGISTERS     = 64;
 parameter IPK_FIFO_SIZE              = 16;
-parameter IPK_CACHE_SIZE             = 64;//1024;
+parameter IPK_CACHE_SIZE             = 256;//64;//1024;
 //parameter MEMORY_SIZE                = 2048;//8 * 1024 * 1024;
 parameter CONCURRENT_MEM_OPS         = 1;//NUM_MEMORY_INPUTS;
 

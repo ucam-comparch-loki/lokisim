@@ -23,20 +23,20 @@ public:
     totalEvents++;
   }
 
-  const int getCount(const T& event) {
+  const unsigned long long getCount(const T& event) {
     return counters[event];
   }
 
-  const int operator[](const T& event) {
+  const unsigned long long operator[](const T& event) {
     return getCount(event);
   }
 
-  void setCount(const T& event, int count) {
+  void setCount(const T& event, unsigned long long count) {
     totalEvents += (count - counters[event]);
     counters[event] = count;
   }
 
-  const int numEvents() const {
+  const unsigned long long numEvents() const {
     return totalEvents;
   }
 
@@ -49,8 +49,8 @@ public:
   }
 
 private:
-  std::map<T,int> counters;
-  int totalEvents;
+  std::map<T, unsigned long long> counters;
+  unsigned long long totalEvents;
 
 };
 

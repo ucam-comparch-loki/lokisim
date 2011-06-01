@@ -238,10 +238,10 @@ void MemoryBank::printStats() {
 			cout << "                   Way count: " << wayCounts_[bank] << endl;
 			cout << "                   Line size: " << lineSizes_[bank] << endl;
 
-			int scalarReadCount = 0;
-			int scalarWriteCount = 0;
-			int hits;
-			int misses;
+			unsigned long long scalarReadCount = 0;
+			unsigned long long scalarWriteCount = 0;
+			unsigned long long hits;
+			unsigned long long misses;
 
 			hits = numReadWordHits_[bank];	misses = numReadWordMisses_[bank];	scalarReadCount += hits + misses;
 			cout << "           Scalar word reads: " << hits << " / " << misses << " (" << percentage(hits, hits + misses) << ")" << endl;
@@ -260,8 +260,8 @@ void MemoryBank::printStats() {
 			cout << "        Scalar read requests: " << scalarReadCount << " (" << percentage(scalarReadCount, scalarReadCount + scalarWriteCount) << ")" << endl;
 			cout << "       Scalar write requests: " << scalarWriteCount << " (" << percentage(scalarWriteCount, scalarReadCount + scalarWriteCount) << ")" << endl;
 
-			int starts;
-			int conts;
+			unsigned long long starts;
+			unsigned long long conts;
 
 			starts = numStartIPKRead_[bank];	conts = numContinueIPKRead_[bank];
 			cout << "              IPK line reads: " << starts << " / " << conts << " (" << (starts + conts) << ")" << endl;
@@ -270,8 +270,8 @@ void MemoryBank::printStats() {
 			starts = numStartBurstWrite_[bank];	conts = numContinueBurstWrite_[bank];
 			cout << "           Burst line writes: " << starts << " / " << conts << " (" << (starts + conts) << ")" << endl;
 
-			int burstReadCount = 0;
-			int burstWriteCount = 0;
+			unsigned long long burstReadCount = 0;
+			unsigned long long burstWriteCount = 0;
 
 			hits = numIPKReadHits_[bank];	misses = numIPKReadMisses_[bank];	burstReadCount += hits + misses;
 			cout << "              IPK word reads: " << hits << " / " << misses << " (" << percentage(hits, hits + misses) << ")" << endl;
@@ -283,17 +283,17 @@ void MemoryBank::printStats() {
 			cout << "        Streaming word reads: " << burstReadCount << " (" << percentage(burstReadCount, burstReadCount + burstWriteCount) << ")" << endl;
 			cout << "       Streaming word writes: " << burstWriteCount << " (" << percentage(burstWriteCount, burstReadCount + burstWriteCount) << ")" << endl;
 
-			int cacheInvalid = numReplaceInvalid_[bank];
-			int cacheClean = numReplaceClean_[bank];
-			int cacheDirty = numReplaceDirty_[bank];
-			int cacheTotal = cacheInvalid + cacheClean + cacheDirty;
+			unsigned long long cacheInvalid = numReplaceInvalid_[bank];
+			unsigned long long cacheClean = numReplaceClean_[bank];
+			unsigned long long cacheDirty = numReplaceDirty_[bank];
+			unsigned long long cacheTotal = cacheInvalid + cacheClean + cacheDirty;
 
 			cout << "      Replaced invalid lines: " << cacheInvalid << " (" << percentage(cacheInvalid, cacheTotal) << ")" << endl;
 			cout << "        Replaced clean lines: " << cacheClean << " (" << percentage(cacheClean, cacheTotal) << ")" << endl;
 			cout << "        Replaced dirty lines: " << cacheDirty << " (" << percentage(cacheDirty, cacheTotal) << ")" << endl;
 
-			int ringHandOffs = numHandOffRequests_[bank];
-			int ringPassThroughs = numPassThroughRequests_[bank];
+			unsigned long long ringHandOffs = numHandOffRequests_[bank];
+			unsigned long long ringPassThroughs = numPassThroughRequests_[bank];
 
 			cout << "      Ring hand-off messages: " << ringHandOffs << " (" << percentage(ringHandOffs, ringHandOffs + ringPassThroughs) << ")" << endl;
 			cout << "  Ring pass-through messages: " << ringPassThroughs << " (" << percentage(ringPassThroughs, ringHandOffs + ringPassThroughs) << ")" << endl;

@@ -17,8 +17,8 @@ void Crossbar::initialise() {
 void Crossbar::makeBuses() {
   // Generate and connect up buses.
   for(int i=0; i<numBuses; i++) {
-	FastBus* bus = new FastBus(sc_gen_unique_name("bus"), i, numMuxes, level, size);
-    fastBuses.push_back(bus);
+	Bus* bus = new Bus(sc_gen_unique_name("bus"), i, numMuxes, level, size);
+    buses.push_back(bus);
     bus->clock(clock);
 
     bus->dataIn[0](dataIn[i]);
@@ -87,6 +87,5 @@ Crossbar::~Crossbar() {
   delete[] readData;
 
   for(unsigned int i=0; i<buses.size(); i++) delete buses[i];
-  for(unsigned int i=0; i<fastBuses.size(); i++) delete fastBuses[i];
   for(unsigned int i=0; i<arbiters.size(); i++) delete arbiters[i];
 }

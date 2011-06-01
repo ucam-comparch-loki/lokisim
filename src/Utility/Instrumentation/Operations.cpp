@@ -12,8 +12,8 @@
 
 CounterMap<int> Operations::executedOps;
 CounterMap<int> Operations::unexecutedOps;
-int Operations::numOps_ = 0;
-int Operations::numDecodes_ = 0;
+unsigned long long Operations::numOps_ = 0;
+unsigned long long Operations::numDecodes_ = 0;
 
 void Operations::decoded(const ComponentID &core, const DecodedInst& dec) {
   // May later care about the operation, since different ones require different
@@ -30,9 +30,9 @@ void Operations::operation(int op, bool executed) {
   numOps_++;
 }
 
-int Operations::numDecodes()                 {return numDecodes_;}
-int Operations::numOperations()              {return numOps_;}
-int Operations::numOperations(int operation) {return executedOps[operation];}
+unsigned long long Operations::numDecodes()                 {return numDecodes_;}
+unsigned long long Operations::numOperations()              {return numOps_;}
+unsigned long long Operations::numOperations(int operation) {return executedOps[operation];}
 
 void Operations::printStats() {
   if (BATCH_MODE)
