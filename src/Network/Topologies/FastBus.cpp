@@ -17,13 +17,13 @@ void FastBus::busProcess() {
 		// First call
 
 		execState = STATE_STANDBY;
-		execCycle = 0;
+		execTime = 0;
 		next_trigger(validDataIn[0].default_event());
 	} else if (execState == STATE_STANDBY) {
 		if (sc_core::sc_time_stamp().value() % 1000 != 0) {
 			execState = STATE_STANDBY;
 			next_trigger(clock.posedge_event());
-		} else  if (execCycle + 750 <= sc_core::sc_time_stamp().value() && validDataIn[0].read()) {
+		} else if (execTime + 750 <= sc_core::sc_time_stamp().value() && validDataIn[0].read()) {
 			DataType data = dataIn[0].read();
 
 			output = getDestination(data.channelID());
@@ -35,11 +35,11 @@ void FastBus::busProcess() {
 			// Wait until receipt of the data is acknowledged
 
 			execState = STATE_OUTPUT_VALID;
-			execCycle = sc_core::sc_time_stamp().value();
+			execTime = sc_core::sc_time_stamp().value();
 			next_trigger(ackDataOut[output].default_event());
 		} else {
 			execState = STATE_STANDBY;
-			next_trigger(validDataIn[0].default_event() & clock.posedge_event());
+			next_trigger(validDataIn[0].default_event());
 		}
 	} else if (execState == STATE_OUTPUT_VALID) {
 	    validDataOut[output].write(false);
@@ -80,7 +80,7 @@ FastBus::FastBus(sc_module_name name, const ComponentID& ID, int numOutputPorts,
 	lastData.write(DataType());
 
 	execState = STATE_INIT;
-	execCycle = 0;
+	execTime = 0;
 	output = 0;
 
 	triggerSignal.write(0);

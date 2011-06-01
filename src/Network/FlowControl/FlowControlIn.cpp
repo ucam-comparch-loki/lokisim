@@ -22,9 +22,13 @@ void FlowControlIn::receivedData() {
 		// First call
 
 		execStateData = STATE_DATA_STANDBY;
-		next_trigger(validDataIn.default_event() & clock.posedge_event());
+		execTimeData = 0;
+		next_trigger(validDataIn.default_event());
 	} else if (execStateData == STATE_DATA_STANDBY) {
-		if (validDataIn.read()) {
+		if (sc_core::sc_time_stamp().value() % 1000 != 0) {
+			execStateData = STATE_DATA_STANDBY;
+			next_trigger(clock.posedge_event());
+		} else  if (execTimeData + 750 <= sc_core::sc_time_stamp().value() && validDataIn.read()) {
 			if (dataIn.read().portClaim()) {
 				// TODO: only accept the port claim when we have no credits left to send.
 
@@ -44,7 +48,6 @@ void FlowControlIn::receivedData() {
 						dataOut.write(dataIn.read().payload());
 
 						execStateData = STATE_DATA_ACKNOWLEDGED;
-						execTimeData = sc_core::sc_time_stamp().value();
 						next_trigger(clock.posedge_event());
 					} else {
 						pendingData = dataIn.read().payload();
@@ -54,7 +57,6 @@ void FlowControlIn::receivedData() {
 					}
 				} else {
 					execStateData = STATE_DATA_ACKNOWLEDGED;
-					execTimeData = sc_core::sc_time_stamp().value();
 					next_trigger(clock.posedge_event());
 				}
 			} else {
@@ -64,7 +66,6 @@ void FlowControlIn::receivedData() {
 					dataOut.write(dataIn.read().payload());
 
 					execStateData = STATE_DATA_ACKNOWLEDGED;
-					execTimeData = sc_core::sc_time_stamp().value();
 					next_trigger(clock.posedge_event());
 				} else {
 					pendingData = dataIn.read().payload();
@@ -73,6 +74,8 @@ void FlowControlIn::receivedData() {
 					next_trigger(bufferHasSpace.posedge_event());
 				}
 			}
+
+			execTimeData = sc_core::sc_time_stamp().value();
 
 			if (useCredits) {
 				numCredits++;
@@ -83,26 +86,20 @@ void FlowControlIn::receivedData() {
 			ackDataIn.write(true);
 		} else {
 			execStateData = STATE_DATA_STANDBY;
-			next_trigger(validDataIn.default_event() & clock.posedge_event());
+			next_trigger(validDataIn.default_event());
 		}
 	} else if (execStateData == STATE_DATA_ACKNOWLEDGED) {
-		if (execTimeData != sc_core::sc_time_stamp().value()) {
-			ackDataIn.write(false);
+		ackDataIn.write(false);
 
-			// Allow time for the valid signal to be deasserted.
-			triggerSignal.write(triggerSignal.read() + 1);
-			execStateData = STATE_DATA_STANDBY;
-			next_trigger(triggerSignal.default_event());
-		} else {
-			execStateData = STATE_DATA_ACKNOWLEDGED;
-			next_trigger(clock.posedge_event());
-		}
+		// Allow time for the valid signal to be deasserted.
+		triggerSignal.write(triggerSignal.read() + 1);
+		execStateData = STATE_DATA_STANDBY;
+		next_trigger(triggerSignal.default_event());
 	} else if (execStateData == STATE_DATA_BUFFER_FULL) {
 		// Pass the value to the component.
 		dataOut.write(pendingData);
 
 		execStateData = STATE_DATA_ACKNOWLEDGED;
-		execTimeData = sc_core::sc_time_stamp().value();
 		next_trigger(clock.posedge_event());
 	}
 

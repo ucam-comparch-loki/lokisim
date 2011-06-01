@@ -72,7 +72,7 @@ private:
   sc_signal<DataType> lastData;
 
   BusState execState;
-  unsigned long long execCycle;
+  unsigned long long execTime;
   PortIndex output;
 
   sc_signal<int> triggerSignal;

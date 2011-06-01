@@ -95,8 +95,6 @@ private:
   bool useCredits;
   unsigned int numCredits;
 
-  int cycleCounter;
-
   ExecStateData execStateData;
   unsigned long long execTimeData;
 
