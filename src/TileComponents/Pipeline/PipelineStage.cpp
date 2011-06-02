@@ -11,7 +11,7 @@ Cluster* PipelineStage::parent() const {
   return ((Cluster*)(this->get_parent()));
 }
 
-PipelineStage::PipelineStage(sc_module_name name, ComponentID ID) :
+PipelineStage::PipelineStage(sc_module_name name, const ComponentID& ID) :
     Component(name, ID) {
 
   SC_THREAD(execute);

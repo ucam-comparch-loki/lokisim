@@ -29,7 +29,7 @@ public:
 
 protected:
 
-  static string percentage(int value, int total);
+  static string percentage(unsigned long long value, unsigned long long total);
 
 };
 

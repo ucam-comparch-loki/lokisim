@@ -60,7 +60,7 @@ protected:  // See if we can get away with execute and updateStall being private
 public:
 
   SC_HAS_PROCESS(StageWithPredecessor);
-  StageWithPredecessor(sc_module_name name, ComponentID ID);
+  StageWithPredecessor(sc_module_name name, const ComponentID& ID);
   virtual ~StageWithPredecessor();
 
 };

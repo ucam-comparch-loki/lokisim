@@ -11,7 +11,7 @@
 void OffChip::newData() {
   // Ignore the data and send a credit, so the sender doesn't block.
   cerr << "Warning: Offchip component received data: " << dataIn.read() << endl;
-  creditsOut.write(1);
+  readyOut.write(1);
 }
 
 OffChip::OffChip(sc_module_name name) : Component(name) {

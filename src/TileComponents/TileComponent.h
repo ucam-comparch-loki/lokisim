@@ -62,7 +62,7 @@ public:
 public:
 
   SC_HAS_PROCESS(TileComponent);
-  TileComponent(sc_module_name name, ComponentID ID,
+  TileComponent(sc_module_name name, const ComponentID& ID,
                 int inputPorts, int outputPorts);
   virtual ~TileComponent();
 
@@ -93,26 +93,13 @@ public:
   // Return the value of the predicate register.
   virtual bool readPredReg() const;
 
-  // Return a unique address for each input/output port of each core/memory.
-  static ChannelID inputPortID(ComponentID component, PortIndex port);
-  static ChannelID outputPortID(ComponentID component, PortIndex port);
-  static ChannelID inputChannelID(ComponentID component, ChannelIndex channel);
-  static ChannelID outputChannelID(ComponentID component, ChannelIndex channel);
-
-  // Determine which component holds the given port.
-  static ComponentID component(ChannelID port);
-
-  // Convert a unique port address into the form "(component, port)".
-  static const std::string inputPortString(ChannelID port);
-  static const std::string outputPortString(ChannelID port);
-
 protected:
 
   // Methods used by a core or memory to access the contents of memory.
-  int32_t readMemWord(MemoryAddr addr) const;
-  int32_t readMemByte(MemoryAddr addr) const;
-  void writeMemWord(MemoryAddr addr, Word data) const;
-  void writeMemByte(MemoryAddr addr, Word data) const;
+  int32_t readMemWord(MemoryAddr addr);
+  int32_t readMemByte(MemoryAddr addr);
+  void writeMemWord(MemoryAddr addr, Word data);
+  void writeMemByte(MemoryAddr addr, Word data);
 
   Chip* parent() const;
 

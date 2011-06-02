@@ -10,22 +10,32 @@
 
 #include <assert.h>
 #include "../Typedefs.h"
+#include "../Datatype/ChannelID.h"
 #include "../Utility/Parameters.h"
 
 class ChannelMapEntry {
 
 public:
 
+  enum NetworkType {CORE_TO_CORE, CORE_TO_MEMORY, GLOBAL};
+
   ChannelID destination() const;
-  int network() const;
+  NetworkType network() const;
+  bool localMemory() const;
+  uint memoryGroupBits() const;
+  uint memoryLineBits() const;
+
   bool canSend() const;
   bool haveAllCredits() const;
 
-  void destination(ChannelID address);
+  void setCoreDestination(const ChannelID& address);
+  void setMemoryDestination(const ChannelID& address, uint memoryGroupBits, uint memoryLineBits);
+
+  void setAddressIncrement(uint increment);
+  uint getAddressIncrement();
+
   void removeCredit();
   void addCredit();
-
-  ChannelMapEntry& operator=(ChannelID address);
 
   ChannelMapEntry();
 
@@ -35,7 +45,7 @@ private:
   ChannelID destination_;
 
   // The network to send data on (e.g. core-to-core or core-to-memory).
-  unsigned int network_;
+  NetworkType network_;
 
   // Whether or not the network being used requires an up-to-date credit counter.
   bool useCredits_;
@@ -43,6 +53,17 @@ private:
   // The number of credits this output has.
   unsigned int credits_;
 
+  // Whether or not this is a local memory bank.
+  bool localMemory_;
+
+  // Number of group bits describing virtual memory bank.
+  unsigned int memoryGroupBits_;
+
+  // Number of line bits describing virtual memory bank.
+  unsigned int memoryLineBits_;
+
+  // The current address increment for this entry.
+  unsigned int addressIncrement_;
 };
 
 #endif /* CHANNELMAPENTRY_H_ */

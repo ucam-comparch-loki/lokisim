@@ -20,7 +20,7 @@ public:
   static void loadLibrary(const std::string& filename);
 
   // Total energy consumed, in femtojoules.
-  static long totalEnergy();
+  static unsigned long long totalEnergy();
 
   // Picojoules used per operation, on average: our chosen metric. Target = 10.
   // Only takes into account operations which were executed; those which were
@@ -31,12 +31,12 @@ public:
 
 private:
 
-  static long registerEnergy();
-  static long cacheEnergy();
-  static long memoryEnergy();
-  static long decodeEnergy();
-  static long operationEnergy();
-  static long networkEnergy();
+  static unsigned long long registerEnergy();
+  static unsigned long long cacheEnergy();
+  static unsigned long long memoryEnergy();
+  static unsigned long long decodeEnergy();
+  static unsigned long long operationEnergy();
+  static unsigned long long networkEnergy();
 
   static bool libraryLoaded;
 

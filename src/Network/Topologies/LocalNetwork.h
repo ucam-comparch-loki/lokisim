@@ -83,8 +83,8 @@ private:
 
   // firstPort is the position in this network's ports to which the arbiter
   // should be attached.
-  void makeDataArbiter(ComponentID ID, unsigned int inputs, unsigned int outputs, unsigned int firstPort);
-  void makeCreditArbiter(ComponentID ID, unsigned int inputs, unsigned int outputs, unsigned int firstPort);
+  void makeDataArbiter(unsigned int ID, unsigned int inputs, unsigned int outputs, unsigned int firstPort);
+  void makeCreditArbiter(unsigned int ID, unsigned int inputs, unsigned int outputs, unsigned int firstPort);
 
   void makeBuses();
 

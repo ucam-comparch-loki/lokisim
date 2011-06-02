@@ -15,36 +15,37 @@
 
 #include <string>
 #include "../Typedefs.h"
+#include "../Datatype/ChannelID.h"
 
 class DecodedInst;
 
 namespace Instrumentation {
 
   // Record whether there was a cache hit or miss when a fetch occurred.
-  void l0TagCheck(ComponentID core, bool hit);
+  void l0TagCheck(const ComponentID& core, bool hit);
 
   // Instruction packet cache was read from.
-  void l0Read(ComponentID core);
+  void l0Read(const ComponentID& core);
 
   // Instruction packet cache was written to.
-  void l0Write(ComponentID core);
+  void l0Write(const ComponentID& core);
 
   // The decoder consumes a significant amount of energy, and there are a few
   // techniques to reduce its activity, so record how active it is.
-  void decoded(ComponentID core, const DecodedInst& dec);
+  void decoded(const ComponentID& core, const DecodedInst& dec);
 
   // The desired data ended up being forwarded, rather than read from a
   // register. This provides optimisation opportunities.
-  void dataForwarded(ComponentID core, RegisterIndex reg);
+  void dataForwarded(const ComponentID& core, RegisterIndex reg);
 
   // Register was read from. Collect indirect information too?
-  void registerRead(ComponentID core, RegisterIndex reg);
+  void registerRead(const ComponentID& core, RegisterIndex reg);
 
   // A register was written to.
-  void registerWrite(ComponentID core, RegisterIndex reg);
+  void registerWrite(const ComponentID& core, RegisterIndex reg);
 
   // Record that a stall (pipeline) register was used.
-  void stallRegUse(ComponentID core);
+  void stallRegUse(const ComponentID& core);
 
   // Record that memory performed a tag check.
   void l1TagCheck(MemoryAddr address, bool hit);
@@ -55,25 +56,54 @@ namespace Instrumentation {
   // Record that memory was written to.
   void l1Write(MemoryAddr address);
 
+  void memorySetMode(int bank, bool isCache, uint setCount, uint wayCount, uint lineSize);
+
+  void memoryReadWord(int bank, MemoryAddr address, bool isMiss);
+  void memoryReadHalfWord(int bank, MemoryAddr address, bool isMiss);
+  void memoryReadByte(int bank, MemoryAddr address, bool isMiss);
+
+  void memoryWriteWord(int bank, MemoryAddr address, bool isMiss);
+  void memoryWriteHalfWord(int bank, MemoryAddr address, bool isMiss);
+  void memoryWriteByte(int bank, MemoryAddr address, bool isMiss);
+
+  void memoryInitiateIPKRead(int bank, bool isHandOff);
+  void memoryInitiateBurstRead(int bank, bool isHandOff);
+  void memoryInitiateBurstWrite(int bank, bool isHandOff);
+
+  void memoryReadIPKWord(int bank, MemoryAddr address, bool isMiss);
+  void memoryReadBurstWord(int bank, MemoryAddr address, bool isMiss);
+  void memoryWriteBurstWord(int bank, MemoryAddr address, bool isMiss);
+
+  void memoryReplaceCacheLine(int bank, bool isValid, bool isDirty);
+
+  void memoryRingHandOff(int bank);
+  void memoryRingPassThrough(int bank);
+
+  // Record that background memory was read from.
+  void backgroundMemoryRead(MemoryAddr address, uint32_t count);
+
+  // Record that background memory was written to.
+  void backgroundMemoryWrite(MemoryAddr address, uint32_t count);
+
   // Record that a particular core stalled or unstalled.
-  void stalled(ComponentID id, bool stalled, int reason=0);
+  void stalled(const ComponentID& id, bool stalled, int reason=0);
 
   // Record that a particular core became idle or active.
-  void idle(ComponentID id, bool idle);
+  void idle(const ComponentID& id, bool idle);
 
   // End execution immediately.
   void endExecution();
 
   // Record that data was sent over the network from a start point to an end
   // point.
-  void networkTraffic(ChannelID startID, ChannelID endID);
+  void networkTraffic(const ChannelID& startID, const ChannelID& endID);
 
   // Record that data was sent over a particular link of the network.
-  void networkActivity(ComponentID network, ChannelIndex source,
+  void networkActivity(const ComponentID& network, ChannelIndex source,
                        ChannelIndex destination, double distance, int bitsSwitched);
 
   // Record whether a particular operation was executed or not.
-  void operation(ComponentID id, const DecodedInst& inst, bool executed);
+  void operation(const ComponentID& id, const DecodedInst& inst, bool executed);
 
   // Return the current clock cycle count.
   int currentCycle();

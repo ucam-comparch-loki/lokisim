@@ -20,17 +20,22 @@ class MulticastBus: public Bus {
 public:
 
 // Inherited from Bus:
-//  DataInput     dataIn;
-//  ReadyInput    validDataIn;
-//  ReadyOutput   ackDataIn;
-//  DataOutput   *dataOut;
-//  ReadyOutput  *validDataOut;
-//  ReadyInput   *ackDataOut;
+//
+//   sc_in<bool>   clock;
+//
+//   DataInput    *dataIn;
+//   ReadyInput   *validDataIn;
+//   ReadyOutput  *ackDataIn;
+//
+//   DataOutput   *dataOut;
+//   ReadyOutput  *validDataOut;
+//   ReadyInput   *ackDataOut;
 
   CreditInput  *creditsIn;
   ReadyInput   *validCreditIn;
   ReadyOutput  *ackCreditIn;
 
+  // Make these into arrays of length 1, for consistency?
   CreditOutput  creditsOut;
   ReadyOutput   validCreditOut;
   ReadyInput    ackCreditOut;
@@ -42,12 +47,8 @@ public:
 public:
 
   SC_HAS_PROCESS(MulticastBus);
-  // channelsPerOutput = number of channel IDs accessible through each output
-  //                     of this bus. e.g. A memory may have 8 input channels,
-  //                     which share only one input port.
-  // startAddr         = the first channelID accessible through this network.
-  MulticastBus(sc_module_name name, ComponentID ID, int numOutputs,
-               int channelsPerOutput, ChannelID startAddr, Dimension size);
+  MulticastBus(sc_module_name name, const ComponentID& ID, int numOutputs,
+               HierarchyLevel level, Dimension size);
   virtual ~MulticastBus();
 
 //==============================//
@@ -66,7 +67,7 @@ private:
   void creditArrived();
   // Compute which outputs of this bus will be used by the given address. This
   // allows an address to represent multiple destinations.
-  void getDestinations(ChannelID address, std::vector<PortIndex>& outputs) const;
+  void getDestinations(const ChannelID& address, std::vector<PortIndex>& outputs) const;
 
 //==============================//
 // Local state
@@ -76,9 +77,11 @@ private:
 
   // Multicast is complicated unless we keep track of which outputs owe credits.
   std::list<PortIndex> outstandingCredits;
+
   // The destination to send credits back to. We can't just forward all credits
   // received because there may be multiple credits for a single message.
   ChannelID creditDestination;
+
   sc_core::sc_event credit;
 
 };

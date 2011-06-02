@@ -11,7 +11,7 @@ Component::Component(const sc_module_name& name) : id(-1) {
 
 }
 
-Component::Component(const sc_module_name& name, ComponentID ID) :
+Component::Component(const sc_module_name& name, const ComponentID& ID) :
     id(ID) {
 
 }

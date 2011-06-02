@@ -10,8 +10,12 @@
 
 void MulticastBus::mainLoop() {
   while(true) {
-    // Wait for data to arrive.
-    wait(validDataIn.posedge_event());
+    wait(clock.posedge_event());
+
+    wait(sc_core::SC_ZERO_TIME);  // Allow time for the valid signal to be deasserted.
+    ackDataIn[0].write(false);
+    if(!validDataIn[0].read()) continue;
+
     receivedData();
 
     // Wait for all credits to arrive.
@@ -29,22 +33,22 @@ void MulticastBus::mainLoop() {
 
     // Pulse an acknowledgement. Do this very late so the component doesn't
     // send more data before the credits have been received.
-    ackDataIn.write(true);
+    ackDataIn[0].write(true);
     wait(sc_core::SC_ZERO_TIME);
-    ackDataIn.write(false);
+    ackDataIn[0].write(false);
   }
 }
 
 void MulticastBus::receivedData() {
   assert(outstandingCredits.empty());
-  AddressedWord data = dataIn.read();
+  AddressedWord data = dataIn[0].read();
   std::vector<PortIndex> destinations;
 
   // Find out which outputs to send this data on.
   getDestinations(data.channelID(), destinations);
 
   for(unsigned int i=0; i<destinations.size(); i++) {
-    const int output = destinations[i];
+    const unsigned int output = destinations[i];
     assert(output < numOutputs);
 
     // If multicasting, may need to change the channel ID for each output.
@@ -80,7 +84,7 @@ void MulticastBus::receivedCredit(PortIndex output) {
   ackCreditIn[output].write(false);
 }
 
-void MulticastBus::getDestinations(ChannelID address, std::vector<PortIndex>& outputs) const {
+void MulticastBus::getDestinations(const ChannelID& address, std::vector<PortIndex>& outputs) const {
   // Would it be sensible to enforce that MulticastBuses only ever receive
   // multicast addresses? Might make things simpler.
   // But that would make it difficult to deal with non-local traffic.
@@ -89,7 +93,8 @@ void MulticastBus::getDestinations(ChannelID address, std::vector<PortIndex>& ou
     // Figure out which destinations are represented by the address.
   }
   else {
-    outputs.push_back((address - startAddress)/channelsPerOutput);
+    //TODO: Check again - unsure whether this is doing what is intended
+//    outputs.push_back((address.getGlobalChannelNumber(OUTPUT_CHANNELS_PER_TILE, CORE_OUTPUT_CHANNELS) - startAddress.getGlobalChannelNumber(OUTPUT_CHANNELS_PER_TILE, CORE_OUTPUT_CHANNELS))/channelsPerOutput);
   }
 }
 
@@ -97,9 +102,9 @@ void MulticastBus::creditArrived() {
   credit.notify();
 }
 
-MulticastBus::MulticastBus(sc_module_name name, ComponentID ID, int numOutputs,
-                           int channelsPerOutput, ChannelID startAddr, Dimension size) :
-    Bus(name, ID, numOutputs, channelsPerOutput, startAddr, size) {
+MulticastBus::MulticastBus(sc_module_name name, const ComponentID& ID, int numOutputs,
+                           HierarchyLevel level, Dimension size) :
+    Bus(name, ID, numOutputs, level, size) {
 
   creditsIn     = new CreditInput[numOutputs];
   validCreditIn = new ReadyInput[numOutputs];

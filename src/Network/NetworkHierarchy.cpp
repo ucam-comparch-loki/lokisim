@@ -16,14 +16,14 @@ void NetworkHierarchy::setupFlowControl() {
   // All cores and memories are now responsible for their own flow control.
 
   // Attach flow control units to the off-chip component too.
-  FlowControlIn*  fcin  = new FlowControlIn("fc_in", TOTAL_INPUT_PORTS);
+  FlowControlIn*  fcin  = new FlowControlIn("fc_in", ComponentID()/*TOTAL_INPUT_PORTS*/, ChannelID());
   flowControlIn.push_back(fcin);
-  FlowControlOut* fcout = new FlowControlOut("fc_out", TOTAL_OUTPUT_PORTS);
+  FlowControlOut* fcout = new FlowControlOut("fc_out", ComponentID()/*TOTAL_OUTPUT_PORTS*/, ChannelID());
   flowControlOut.push_back(fcout);
 
   fcin->clock(clock);
   fcin->dataOut(dataToOffChip);            offChip.dataIn(dataToOffChip);
-  fcin->creditsIn(creditsFromOffChip);     offChip.creditsOut(creditsFromOffChip);
+  fcin->bufferHasSpace(readyFromOffChip);  offChip.readyOut(readyFromOffChip);
   fcin->dataIn(dataToComponents[0]);
   fcin->validDataIn(validDataToComps[0]);
   fcin->ackDataIn(ackDataToComps[0]);
@@ -43,7 +43,7 @@ void NetworkHierarchy::setupFlowControl() {
 void NetworkHierarchy::makeLocalNetwork(int tileID) {
 
   // Create a local network.
-  LocalNetwork* localNetwork = new LocalNetwork(sc_gen_unique_name("data_net"), tileID);
+  LocalNetwork* localNetwork = new LocalNetwork(sc_gen_unique_name("tile_net"), ComponentID(tileID, 0));
   localNetworks.push_back(localNetwork);
 
   // Connect things up.
@@ -99,8 +99,7 @@ void NetworkHierarchy::makeGlobalNetwork() {
                                    NUM_TILES,
                                    NUM_TILES,
                                    1,
-                                   INPUT_CHANNELS_PER_TILE,
-                                   0,
+                                   Network::TILE,   // This network connects tiles
                                    Dimension(NUM_TILES, NUM_TILES),
                                    true);
 
@@ -137,8 +136,7 @@ void NetworkHierarchy::makeGlobalNetwork() {
                                    NUM_TILES,
                                    NUM_TILES,
                                    1,
-                                   OUTPUT_CHANNELS_PER_TILE,
-                                   0,
+                                   Network::TILE,   // This network connects tiles
                                    Dimension(NUM_TILES, NUM_TILES),
                                    true);
 

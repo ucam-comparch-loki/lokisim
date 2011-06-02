@@ -112,9 +112,9 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       case InstructionMap::STBADDR : {
         setOperand1ToValue(output, output.sourceReg1());
         setOperand2ToValue(output, 0, output.immediate());
-        if(operation == InstructionMap::STWADDR)
-             output.memoryOp(MemoryRequest::STADDR);
-        else output.memoryOp(MemoryRequest::STBADDR);
+        //if(operation == InstructionMap::STWADDR)
+        //     output.memoryOp(MemoryRequest::STADDR);
+        //else output.memoryOp(MemoryRequest::STBADDR);
         break;
       }
 
@@ -308,8 +308,19 @@ void Decoder::fetch(MemoryAddr addr) const {
   parent()->fetch(addr);
 }
 
-void Decoder::setFetchChannel(ChannelID channelID) const {
-  parent()->setFetchChannel(channelID);
+void Decoder::setFetchChannel(uint32_t encodedChannel) const {
+	// Encoded channel format:
+	// | Tile : 12 | Position : 8 | Channel : 4 | Memory group bits : 4 | Memory line bits : 4 |
+
+	uint newTile = encodedChannel >> 20;
+	uint newPosition = (encodedChannel >> 12) & 0xFFUL;
+	uint newChannel = (encodedChannel >> 8) & 0xFUL;
+	uint newGroupBits = (encodedChannel >> 4) & 0xFUL;
+	uint newLineBits = encodedChannel & 0xFUL;
+
+	ChannelID channel(newTile, newPosition, newChannel);
+
+	parent()->setFetchChannel(channel, newGroupBits, newLineBits);
 }
 
 bool Decoder::discardNextInst() const {
@@ -322,6 +333,7 @@ bool Decoder::completeWrite(const DecodedInst& input, DecodedInst& output) {
 
   try {
     setOperand1ToValue(output, output.sourceReg1());
+    output.memoryOp(MemoryRequest::PAYLOAD_ONLY);
   }
   catch(BlockedException& b) {
     blocked = true;
@@ -394,7 +406,7 @@ DecodeStage* Decoder::parent() const {
   return dynamic_cast<DecodeStage*>(this->get_parent());
 }
 
-Decoder::Decoder(sc_module_name name, ComponentID ID) : Component(name, ID) {
+Decoder::Decoder(sc_module_name name, const ComponentID& ID) : Component(name, ID) {
 
   sendChannel = -1;
   remoteExecute = false;

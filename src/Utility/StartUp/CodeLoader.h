@@ -22,6 +22,11 @@ class Instruction;
 
 class CodeLoader {
 
+private:
+
+  static bool appLoaderInitialized;
+  static int mainOffset;
+
 public:
 
   // Read a file which tells which files to read.
@@ -39,7 +44,7 @@ private:
   // Store the contents of the given file into the component of the chip at
   // the given position. command is a vector of words from a loader file, e.g.:
   //   "12", "filename.loki"
-  static void loadFromCommand(vector<string>& command, Chip& chip);
+  static void loadFromCommand(vector<string>& command, Chip& chip, bool customAppLoader);
 
   static void loadFromReader(FileReader* reader, Chip& chip);
 

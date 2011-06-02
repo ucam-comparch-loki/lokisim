@@ -38,7 +38,7 @@ public:
   sc_in<Word>          *rcetIn;
 
   // A flow control signal for each input (NUM_RECEIVE_CHANNELS).
-  sc_out<int>          *flowControlOut;
+  sc_out<bool>         *flowControlOut;
 
   // An output used to send FETCH requests.
   sc_out<AddressedWord> fetchOut;
@@ -57,7 +57,7 @@ public:
 public:
 
   SC_HAS_PROCESS(DecodeStage);
-  DecodeStage(sc_module_name name, ComponentID ID);
+  DecodeStage(sc_module_name name, const ComponentID& ID);
   virtual ~DecodeStage();
 
 //==============================//
@@ -102,7 +102,7 @@ private:
   void           fetch(const MemoryAddr addr);
 
   // Change the channel to which we send our fetch requests.
-  void           setFetchChannel(const ChannelID channelID);
+  void           setFetchChannel(const ChannelID& channelID, uint memoryGroupBits, uint memoryLineBits);
 
   // Find out if the instruction packet from the given location is currently
   // in the instruction packet cache.

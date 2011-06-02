@@ -52,7 +52,7 @@ public:
 public:
 
   SC_HAS_PROCESS(FlowControlOut);
-  FlowControlOut(sc_module_name name, ComponentID ID);
+  FlowControlOut(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged);
 
 //==============================//
 // Methods
@@ -75,6 +75,9 @@ private:
 //==============================//
 
 private:
+
+  // Address of channel managed by this flow control unit.
+  ChannelID channel;
 
   // Store the number of credits the output port has.
   unsigned int creditCount;

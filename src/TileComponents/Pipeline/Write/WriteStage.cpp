@@ -18,34 +18,53 @@ double WriteStage::energy() const {
   return scet.energy();
 }
 
+ComponentID WriteStage::getSystemCallMemory() const {
+	return scet.getSystemCallMemory();
+}
+
 void WriteStage::execute() {
-  while(true) {
-    // Wait for new data to arrive.
-    wait(dataIn.default_event() | fromFetchLogic.default_event());
+	bool packetInProgress = false;
+	bool fetchCommandPending = false;
+	AddressedWord delayedFetchCommand;
 
-    // Whilst dealing with the new input, we are not idle.
-    idle.write(false);
+	while(true) {
+		// Wait for new data to arrive.
 
-    // Enter a loop in case we receive data from both inputs at once.
-    while(true) {
-      if(!isStalled()) {
-        if(dataIn.event()) {
-//          cout << "data from execute" << endl;
-          DecodedInst inst = dataIn.read(); // Don't want a const input.
-          newInput(inst);
-        }
-        else if(fromFetchLogic.event()) {
-//          cout << "data from decode" << endl;
-          scet.write(fromFetchLogic.read(), 0);
-        }
-        else break;
-      }
+		wait(dataIn.default_event() | fromFetchLogic.default_event());
 
-      wait(clock.posedge_event());
-    }
+		// Whilst dealing with the new input, we are not idle.
 
-    idle.write(true);
-  }
+		idle.write(false);
+
+		// Enter a loop in case we receive data from both inputs at once.
+
+		while (true) {
+			if(!isStalled()) {
+				if(dataIn.event()) {
+					DecodedInst inst = dataIn.read();
+					newInput(inst);
+					packetInProgress = !endOfPacket;
+				} else if(fromFetchLogic.event()) {
+					if (packetInProgress) {
+						assert(!fetchCommandPending);
+						fetchCommandPending = true;
+						delayedFetchCommand = fromFetchLogic.read();
+					} else {
+						scet.write(fromFetchLogic.read(), 0);
+					}
+				} else if (fetchCommandPending && !packetInProgress) {
+					fetchCommandPending = false;
+					scet.write(delayedFetchCommand, 0);
+				} else {
+					break;
+				}
+			}
+
+			wait(clock.posedge_event());
+		}
+
+		idle.write(!fetchCommandPending && !packetInProgress);
+	}
 }
 
 void WriteStage::newInput(DecodedInst& data) {
@@ -53,7 +72,7 @@ void WriteStage::newInput(DecodedInst& data) {
                  << endl;
 
   // Put data into the send channel-end table.
-  scet.write(data);
+  endOfPacket = scet.write(data);
 
   // Write to registers (they ignore the write if the index is invalid).
   if(InstructionMap::storesResult(data.operation())) {
@@ -62,6 +81,7 @@ void WriteStage::newInput(DecodedInst& data) {
   }
 
   // Do we need to say we are stalling because of output if the SCET is full?
+
 }
 
 bool WriteStage::isStalled() const {
@@ -72,10 +92,13 @@ void WriteStage::writeReg(RegisterIndex reg, int32_t value, bool indirect) const
   parent()->writeReg(reg, value, indirect);
 }
 
-WriteStage::WriteStage(sc_module_name name, ComponentID ID) :
+WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
     StageWithPredecessor(name, ID),
     scet("scet", ID) {
+
+	//TODO: Replace this hack with something more sensible
+	endOfPacket = false;
 
   // Connect the SCET to the network.
   scet.clock(clock);

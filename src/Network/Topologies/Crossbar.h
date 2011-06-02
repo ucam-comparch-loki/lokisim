@@ -26,10 +26,12 @@ class Crossbar: public Network {
 //  sc_in<bool>   clock;
 //
 //  DataInput    *dataIn;
-//  DataOutput   *dataOut;
+//  ReadyInput   *validDataIn;
+//  ReadyOutput  *ackDataIn;
 //
-//  ReadyInput   *canSendData;
-//  ReadyOutput  *canReceiveData;
+//  DataOutput   *dataOut;
+//  ReadyOutput  *validDataOut;
+//  ReadyInput   *ackDataOut;
 
 //==============================//
 // Methods
@@ -54,13 +56,11 @@ public:
 
   // outputsPerComponent = number of this network's outputs which lead to the
   //                       same component
-  // channelsPerOutput   = number of channel ends accessible through each output
-  // startAddr           = the lowest channel ID accessible through a local output
   // externalConnection  = flag telling whether there is an extra input/output
   //                       connected to the next level of network hierarchy
-  Crossbar(sc_module_name name, ComponentID ID, int inputs, int outputs,
-           int outputsPerComponent, int channelsPerOutput, ChannelID startAddr,
-           Dimension size, bool externalConnection = false);
+  Crossbar(sc_module_name name, const ComponentID& ID, int inputs, int outputs,
+           int outputsPerComponent, HierarchyLevel level, Dimension size,
+           bool externalConnection = false);
   virtual ~Crossbar();
 
 //==============================//
@@ -69,9 +69,9 @@ public:
 
 protected:
 
-// Parameters of this crossbar.
+  // Parameters of this crossbar.
   const int numBuses, numMuxes;
-  const int outputsPerComponent, channelsPerOutput, firstOutput;
+  const int outputsPerComponent;
 
   std::vector<Bus*>              buses;
   std::vector<ArbiterComponent*> arbiters;

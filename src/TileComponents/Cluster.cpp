@@ -5,6 +5,7 @@
  *      Author: db434
  */
 
+#include "../Chip.h"
 #include "Cluster.h"
 #include "InputCrossbar.h"
 #include "Pipeline/StallRegister.h"
@@ -13,6 +14,7 @@
 #include "Pipeline/Execute/ExecuteStage.h"
 #include "Pipeline/Write/WriteStage.h"
 #include "../Utility/InstructionMap.h"
+#include "../Datatype/ChannelID.h"
 #include "../Datatype/DecodedInst.h"
 
 double   Cluster::area() const {
@@ -167,6 +169,26 @@ bool     Cluster::readPredReg() const {
   return pred.read();
 }
 
+const Word Cluster::readWord(MemoryAddr addr) const {
+	WriteStage* writeStage = dynamic_cast<WriteStage*>(stages.back());
+	return Word(parent()->readWord(writeStage->getSystemCallMemory(), addr));
+}
+
+const Word Cluster::readByte(MemoryAddr addr) const {
+	WriteStage* writeStage = dynamic_cast<WriteStage*>(stages.back());
+	return Word(parent()->readByte(writeStage->getSystemCallMemory(), addr));
+}
+
+void Cluster::writeWord(MemoryAddr addr, Word data) {
+	WriteStage* writeStage = dynamic_cast<WriteStage*>(stages.back());
+	parent()->writeWord(writeStage->getSystemCallMemory(), addr, data);
+}
+
+void Cluster::writeByte(MemoryAddr addr, Word data) {
+	WriteStage* writeStage = dynamic_cast<WriteStage*>(stages.back());
+	parent()->writeByte(writeStage->getSystemCallMemory(), addr, data);
+}
+
 void     Cluster::writePredReg(bool val) {
   pred.write(val);
 }
@@ -213,21 +235,21 @@ void     Cluster::updateIdle() {
 }
 
 /* Returns the channel ID of this cluster's instruction packet FIFO. */
-ChannelID Cluster::IPKFIFOInput(ComponentID ID) {
-  return inputChannelID(ID, 0);
+ChannelID Cluster::IPKFIFOInput(const ComponentID& ID) {
+  return ChannelID(ID, 0);
 }
 
 /* Returns the channel ID of this cluster's instruction packet cache. */
-ChannelID Cluster::IPKCacheInput(ComponentID ID) {
-  return inputChannelID(ID, 1);
+ChannelID Cluster::IPKCacheInput(const ComponentID& ID) {
+  return ChannelID(ID, 1);
 }
 
 /* Returns the channel ID of this cluster's specified input channel. */
-ChannelID Cluster::RCETInput(ComponentID ID, ChannelIndex channel) {
-  return inputChannelID(ID, 2 + channel);
+ChannelID Cluster::RCETInput(const ComponentID& ID, ChannelIndex channel) {
+  return ChannelID(ID, 2 + channel);
 }
 
-Cluster::Cluster(sc_module_name name, ComponentID ID) :
+Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
     TileComponent(name, ID, CORE_INPUT_PORTS, CORE_OUTPUT_PORTS),
     regs("regs", ID),
     pred("predicate") {
@@ -250,7 +272,7 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
   dataToStage   = new flag_signal<DecodedInst>[stages.size()-1];
   dataFromStage = new sc_buffer<DecodedInst>[stages.size()-1];
 
-  fcFromBuffers = new sc_buffer<int>[CORE_INPUT_CHANNELS];
+  fcFromBuffers = new sc_signal<bool>[CORE_INPUT_CHANNELS];
   dataToBuffers = new sc_buffer<Word>[CORE_INPUT_CHANNELS];
 
   // Wire the input ports to the input buffers.
@@ -266,7 +288,7 @@ Cluster::Cluster(sc_module_name name, ComponentID ID) :
 
   for(uint i=0; i<CORE_INPUT_CHANNELS; i++) {
     inputCrossbar->dataOut[i](dataToBuffers[i]);
-    inputCrossbar->creditsIn[i](fcFromBuffers[i]);
+    inputCrossbar->bufferHasSpace[i](fcFromBuffers[i]);
   }
 
   inputCrossbar->clock(clock);

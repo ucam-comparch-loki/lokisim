@@ -182,7 +182,7 @@ std::ostream& DecodedInst::print(std::ostream& os) const {
   os << name() << (setsPredicate() ? ".p" : "")
      << (predicate()==Instruction::END_OF_PACKET ? ".eop" : "");
 
-  // Special case for setchmap: immediate is printed before register.
+  // Special case for cfgmem and setchmap: immediate is printed before register.
   if(operation_ == InstructionMap::SETCHMAP) {
     os << " " << immediate() << ", r" << (int)sourceReg1();
     return os;

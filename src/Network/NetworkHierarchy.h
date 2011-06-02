@@ -115,7 +115,7 @@ private:
   // Signals between off-chip and its flow control component.
   DataSignal         dataFromOffChip;
   sc_signal<Word>    dataToOffChip;
-  sc_signal<int>     creditsFromOffChip;
+  sc_signal<bool>    readyFromOffChip;
   ReadySignal        readyToOffChip;
 
 };

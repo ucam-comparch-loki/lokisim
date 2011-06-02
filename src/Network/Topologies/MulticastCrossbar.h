@@ -77,10 +77,19 @@ private:
 public:
 
   SC_HAS_PROCESS(MulticastCrossbar);
-  MulticastCrossbar(sc_module_name name, ComponentID ID, int inputs, int outputs,
-                    int outputsPerComponent, int channelsPerOutput, ChannelID firstOutput,
-                    int inputsPerComponent, int channelsPerInput, ChannelID firstInput,
-                    Dimension size, bool externalConnection=false);
+  MulticastCrossbar(const sc_module_name& name,     // Name
+                    const ComponentID& ID,          // ID
+                    int inputs,                     // Number of crossbar inputs
+                    int outputs,                    // Number of crossbar outputs
+                    int outputsPerComponent,        // Outputs leading to same component
+//                    int channelsPerOutput,          // Channels reachable through each output
+//                    const ChannelID& firstOutput,   // Address of first reachable channel
+                    int inputsPerComponent,         // Inputs from same component
+//                    int channelsPerInput,           // Channels reachable through each input
+//                    const ChannelID& firstInput,    // Address of first reachable channel
+                    HierarchyLevel level,           // Location in network hierarchy
+                    Dimension size,                 // Physical size (width, height)
+                    bool externalConnection=false); // Add a connection to larger network?
   virtual ~MulticastCrossbar();
 
 //==============================//

@@ -29,24 +29,20 @@ void FlowControlOut::sendData() {
     // because it is not buffered -- it is immediately consumed to store
     // the return address at the destination.
 
-    if(DEBUG) cout << "Sending port claim from "
-                   << TileComponent::outputPortString(id) << " to "
-                   << TileComponent::inputPortString(dataIn.read().channelID())
-                   << endl;
+    if(DEBUG) cout << "Sending port claim from " << channel << " to "
+                   << dataIn.read().channelID() << endl;
   }
   else {
     if(creditCount <= 0) {  // We are not able to send the new data yet.
       if(DEBUG) cout << "Can't send from "
-          << TileComponent::outputPortString(id) << ": no credits." <<  endl;
+          << channel << ": no credits." <<  endl;
 
       // Wait until we receive a credit.
       wait(creditsIn.default_event());
     }
 
     if(DEBUG) cout << "Network sending " << dataIn.read().payload() << " from "
-        << TileComponent::outputPortString(id) << " to "
-        << TileComponent::inputPortString(dataIn.read().channelID())
-        << endl;
+        << channel << " to " << dataIn.read().channelID() << endl;
 
     Instrumentation::networkTraffic(id, dataIn.read().channelID());
   }
@@ -61,13 +57,14 @@ void FlowControlOut::sendData() {
 void FlowControlOut::receivedCredit() {
   creditCount++;
 
-  if(DEBUG) cout << "Received credit at port "
-       << TileComponent::outputPortString(id) << endl;
+  if(DEBUG) cout << "Received credit at port " << channel << endl;
   assert(creditCount >= 0 && creditCount <= CHANNEL_END_BUFFER_SIZE);
 }
 
-FlowControlOut::FlowControlOut(sc_module_name name, ComponentID ID) :
+FlowControlOut::FlowControlOut(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :
     Component(name, ID) {
+
+  channel = channelManaged;
 
   creditCount = CHANNEL_END_BUFFER_SIZE;
 

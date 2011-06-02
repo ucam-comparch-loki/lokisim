@@ -45,7 +45,7 @@ public:
 public:
 
   SC_HAS_PROCESS(ArbiterComponent);
-  ArbiterComponent(sc_module_name name, ComponentID ID, int inputs, int outputs);
+  ArbiterComponent(sc_module_name name, const ComponentID& ID, int inputs, int outputs);
   virtual ~ArbiterComponent();
 
 //==============================//
@@ -56,10 +56,7 @@ private:
 
   void mainLoop();
 
-  void arbitrate();
-
-  void ackArrived();
-  void dataArrived();
+  void updateDataAvailable();
 
 //==============================//
 // Local state
@@ -67,13 +64,11 @@ private:
 
 private:
 
-  ArbiterBase* arbiter;
   int numInputs, numOutputs;
 
-  // Optimisation: skip work if we know there is no data to arbitrate.
-  bool haveData;
-
-  sc_core::sc_event ack;
+  int inactiveCycles;
+  int activeTransfers;
+  int lastAccepted;
 
 };
 

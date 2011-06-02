@@ -26,6 +26,8 @@ vector<string> FileReader::filesToLink;
 vector<string> FileReader::tempFiles;
 string         FileReader::linkedFile;
 
+const int BACKGROUND_MEMORY = -1;
+
 /* Print an instruction in the form:
  *   [position] instruction
  * in such a way that everything aligns nicely. */
@@ -41,7 +43,7 @@ void FileReader::printInstruction(Instruction i, MemoryAddr address) {
   cout.fill(' ');
 }
 
-FileReader* FileReader::makeFileReader(vector<string>& words) {
+FileReader* FileReader::makeFileReader(vector<string>& words, bool customAppLoader) {
   FileReader* reader;
   string filename;
   int component;
@@ -51,8 +53,13 @@ FileReader* FileReader::makeFileReader(vector<string>& words) {
     // Assume that we want the code to go into the first memory (component
     // with ID CORES_PER_TILE) and that the first core should execute it.
     filename = words[0];
-    component = CORES_PER_TILE;
+    component = BACKGROUND_MEMORY;
     position = 0;
+  }
+  else if(words.size() == 2 && words[0] == "apploader") {
+	component = 0;
+	position = 0;
+    filename = words[1];
   }
   else if(words.size() == 2) {
     component = StringManipulation::strToInt(words[0]);
@@ -70,18 +77,21 @@ FileReader* FileReader::makeFileReader(vector<string>& words) {
   string name = filename.substr(0, dotPos);
   string extension = filename.substr(dotPos+1);
 
+  ComponentID id;
+  if(component != BACKGROUND_MEMORY) id = ComponentID(0, component);
+
   if(extension == "" || extension == name) {
     filesToLink.push_back(name);
     reader = NULL;
   }
   else if(extension == "loki") {
-    reader = new LokiFileReader(filename, component, position);
+    reader = new LokiFileReader(filename, id, position);
   }
   else if(extension == "data") {
-    reader = new DataFileReader(filename, component, position);
+    reader = new DataFileReader(filename, id, position);
   }
   else if(extension == "bloki") {
-    reader = new LokiBinaryFileReader(filename, component, position);
+    reader = new LokiBinaryFileReader(filename, id, position);
   }
   else if(extension == "s") {
     string asmFile, elfFile;
@@ -125,7 +135,7 @@ FileReader* FileReader::makeFileReader(vector<string>& words) {
 FileReader* FileReader::linkFiles() {
   switch(filesToLink.size()) {
     case 0: return NULL;
-    case 1: return new ELFFileReader(filesToLink[0], CORES_PER_TILE, 0);
+    case 1: return new ELFFileReader(filesToLink[0], ComponentID(), ComponentID(0, 0));
     default: {
       string directory = Config::getAttribute("sim.ld",
           "directory containing sim.ld (ask Alex if you don't have it)");
@@ -165,7 +175,7 @@ FileReader* FileReader::linkFiles() {
       }
 
       // Generate a FileReader for the output ELF file.
-      return new ELFFileReader(linkedFile, CORES_PER_TILE, 0);
+      return new ELFFileReader(linkedFile, ComponentID(), ComponentID(0, 0));
     }
   }
 }
@@ -218,7 +228,7 @@ void FileReader::deleteFile(string& filename) {
                    << filename << endl;
 }
 
-FileReader::FileReader(string& filename, ComponentID component, MemoryAddr position) {
+FileReader::FileReader(string& filename, const ComponentID& component, MemoryAddr position) {
   filename_ = filename;
   componentID_ = component;
   position_ = position;

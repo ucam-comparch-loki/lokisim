@@ -36,7 +36,7 @@ public:
 
   sc_out<Word> *dataOut;
 
-  sc_in<int>   *creditsIn;
+  sc_in<bool>  *bufferHasSpace;
 
   CreditOutput *creditsOut;
   ReadyOutput  *validCreditOut;
@@ -48,7 +48,7 @@ public:
 
 public:
 
-  InputCrossbar(sc_module_name name, ComponentID ID, int inputs, int outputs);
+  InputCrossbar(sc_module_name name, const ComponentID& ID, int inputs, int outputs);
   virtual ~InputCrossbar();
 
 //==============================//
@@ -63,7 +63,8 @@ private:
   std::vector<FlowControlIn*> flowControl;
 
   Crossbar               creditNet;
-  UnclockedNetwork*      dataNet;
+  Crossbar               dataNet;
+//  UnclockedNetwork*      dataNet;
 //  UnclockedNetwork*      creditNet;
 
   sc_buffer<DataType>   *dataToBuffer;
@@ -71,11 +72,12 @@ private:
   sc_signal<ReadyType>  *readyForData, *readyForCredit;
   sc_signal<ReadyType>  *validData, *validCredit;
 
-  // Skew the clock by 1/4 of a cycle for the credit network. This is done
-  // because this small credit network is followed by the main, tile credit
-  // network, and we want the credit to get to the main network before the
-  // main network triggers the sending of credits.
-  sc_core::sc_clock      skewedClock;
+  // Skew the clock by 1/4 of a cycle for the two subnetworks.
+  // The credit network needs to send early, so credits get to the main network
+  // in time for the main negative edge.
+  // The data network needs to send late, so data have time to arrive after
+  // coming over the main network.
+  sc_core::sc_clock      creditClock, dataClock;
 
 };
 

@@ -70,7 +70,7 @@ void LocalNetwork::makeArbiters() {
   makeCreditArbiter(COMPONENTS_PER_TILE, numOutputs, creditArbiterOutputs, firstPortIndex);
 }
 
-void LocalNetwork::makeDataArbiter(ComponentID ID,
+void LocalNetwork::makeDataArbiter(unsigned int ID,
                                    unsigned int inputs,
                                    unsigned int outputs,
                                    unsigned int firstPort) {
@@ -97,7 +97,7 @@ void LocalNetwork::makeDataArbiter(ComponentID ID,
   }
 }
 
-void LocalNetwork::makeCreditArbiter(ComponentID ID,
+void LocalNetwork::makeCreditArbiter(unsigned int ID,
                                      unsigned int inputs,
                                      unsigned int outputs,
                                      unsigned int firstPort) {
@@ -125,7 +125,7 @@ void LocalNetwork::makeCreditArbiter(ComponentID ID,
 }
 
 void LocalNetwork::makeBuses() {
-  ChannelID startAddr = TileComponent::inputChannelID(id*INPUT_CHANNELS_PER_TILE, 0);
+  ChannelID startAddr(id.getTile(), 0, 0);
   for(unsigned int i=0; i<numInputs; i++) {
     int busOutPorts, busOutChannels;
     if(i<CORES_PER_TILE*CORE_OUTPUT_PORTS) {
@@ -139,12 +139,14 @@ void LocalNetwork::makeBuses() {
     }
 
     Bus* bus = new Bus(sc_gen_unique_name("data_bus"), i, busOutPorts,
-                       busOutChannels, startAddr, size);
+                       Network::COMPONENT, size);
     buses.push_back(bus);
 
-    bus->dataIn(dataIn[i]);
-    bus->validDataIn(validDataIn[i]);
-    bus->ackDataIn(ackDataIn[i]);
+    bus->clock(clock);
+
+    bus->dataIn[0](dataIn[i]);
+    bus->validDataIn[0](validDataIn[i]);
+    bus->ackDataIn[0](ackDataIn[i]);
 
     for(int j=0; j<busOutPorts; j++) {
       bus->dataOut[j](dataSig[j][i]);
@@ -153,7 +155,6 @@ void LocalNetwork::makeBuses() {
     }
   }
 
-  startAddr = TileComponent::outputChannelID(id*OUTPUT_CHANNELS_PER_TILE, 0);
   // TODO: won't need a bus for memory inputs.
   // Would it be better to have fewer credit buses so there are the same number
   // as data outputs?
@@ -170,12 +171,14 @@ void LocalNetwork::makeBuses() {
     }
 
     Bus* bus = new Bus(sc_gen_unique_name("credit_bus"), i, busOutPorts,
-                       busOutChannels, startAddr, size);
+                       Network::COMPONENT, size);
     buses.push_back(bus);
 
-    bus->dataIn(creditsIn[i]);
-    bus->validDataIn(validCreditIn[i]);
-    bus->ackDataIn(ackCreditIn[i]);
+    bus->clock(clock);
+
+    bus->dataIn[0](creditsIn[i]);
+    bus->validDataIn[0](validCreditIn[i]);
+    bus->ackDataIn[0](ackCreditIn[i]);
 
     for(int j=0; j<busOutPorts; j++) {
       bus->dataOut[j](creditSig[j][i]);
@@ -225,6 +228,7 @@ LocalNetwork::LocalNetwork(sc_module_name name, ComponentID tile) :
             tile,
             OUTPUT_PORTS_PER_TILE,  // Inputs to this network
             INPUT_PORTS_PER_TILE,   // Outputs from this network
+            Network::COMPONENT,     // This network connects components (not tiles, etc)
             Dimension(1.0, 0.2),    // Size in mm
             true) {                 // Add an extra input/output for global network
 

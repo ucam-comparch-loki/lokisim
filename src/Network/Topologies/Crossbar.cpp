@@ -17,13 +17,13 @@ void Crossbar::initialise() {
 void Crossbar::makeBuses() {
   // Generate and connect up buses.
   for(int i=0; i<numBuses; i++) {
-    Bus* bus = new Bus(sc_gen_unique_name("bus"), i, numMuxes,
-                       numOutputs*channelsPerOutput, firstOutput, size);
+	Bus* bus = new Bus(sc_gen_unique_name("bus"), i, numMuxes, level, size);
     buses.push_back(bus);
+    bus->clock(clock);
 
-    bus->dataIn(dataIn[i]);
-    bus->validDataIn(validDataIn[i]);
-    bus->ackDataIn(ackDataIn[i]);
+    bus->dataIn[0](dataIn[i]);
+    bus->validDataIn[0](validDataIn[i]);
+    bus->ackDataIn[0](ackDataIn[i]);
 
     for(int j=0; j<numMuxes; j++) {
       bus->dataOut[j](busToMux[i][j]);
@@ -55,15 +55,13 @@ void Crossbar::makeArbiters() {
   }
 }
 
-Crossbar::Crossbar(sc_module_name name, ComponentID ID, int inputs, int outputs,
-                   int outputsPerComponent, int channelsPerOutput,
-                   ChannelID startAddr, Dimension size, bool externalConnection) :
-    Network(name, ID, inputs, outputs, size, externalConnection),
+Crossbar::Crossbar(sc_module_name name, const ComponentID& ID, int inputs, int outputs,
+                   int outputsPerComponent, HierarchyLevel level, Dimension size,
+                   bool externalConnection) :
+    Network(name, ID, inputs, outputs, level, size, externalConnection),
     numBuses(numInputs),
     numMuxes(numOutputs/outputsPerComponent),
-    outputsPerComponent(outputsPerComponent),
-    channelsPerOutput(channelsPerOutput),
-    firstOutput(startAddr) {
+    outputsPerComponent(outputsPerComponent) {
 
   busToMux = new sc_signal<DataType>*[numBuses];
   newData  = new sc_signal<ReadyType>*[numBuses];

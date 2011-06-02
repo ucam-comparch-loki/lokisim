@@ -88,7 +88,7 @@ int RoutingComponent::bitsSwitched(ChannelIndex from, ChannelIndex to,
 }
 
 RoutingComponent::RoutingComponent(sc_module_name name,
-                                   ComponentID ID,
+		                           const ComponentID& ID,
                                    int numInputs,
                                    int numOutputs,
                                    int bufferSize,

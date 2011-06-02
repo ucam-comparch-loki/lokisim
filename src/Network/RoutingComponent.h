@@ -49,7 +49,7 @@ public:
 
   SC_HAS_PROCESS(RoutingComponent);
   RoutingComponent(sc_module_name name,
-                   ComponentID ID,
+		           const ComponentID& ID,
                    int numInputs,
                    int numOutputs,
                    int bufferSize,
@@ -64,7 +64,7 @@ protected:
 
   // Determine which output port should be used to reach the given destination.
   virtual ChannelIndex computeOutput(ChannelIndex source,
-                                     ChannelID destination) const = 0;
+		                             const ChannelID& destination) const = 0;
 
   // The distance a signal must travel through this component. 1 unit = 1mm?
   virtual double distance(ChannelIndex inPort, ChannelIndex outPort) const = 0;

@@ -167,7 +167,7 @@ void ALU::writeReg(RegisterIndex reg, Word data) const {parent()->writeReg(reg, 
 void ALU::writeWord(MemoryAddr addr, Word data) const {parent()->writeWord(addr, data);}
 void ALU::writeByte(MemoryAddr addr, Word data) const {parent()->writeByte(addr, data);}
 
-ALU::ALU(sc_module_name name, ComponentID ID) : Component(name, ID) {
+ALU::ALU(sc_module_name name, const ComponentID& ID) : Component(name, ID) {
 
 }
 

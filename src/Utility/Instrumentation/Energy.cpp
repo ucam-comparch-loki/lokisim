@@ -72,7 +72,7 @@ void Energy::loadLibrary(const std::string& filename) {
   libraryLoaded = true;
 }
 
-long Energy::totalEnergy() {
+unsigned long long Energy::totalEnergy() {
   if(!libraryLoaded) return 0;
   return registerEnergy() + cacheEnergy() + memoryEnergy() +
          + decodeEnergy() + operationEnergy() + networkEnergy();
@@ -85,60 +85,69 @@ double Energy::pJPerOp() {
 void Energy::printStats() {
   if(!libraryLoaded) return;
 
-  long total   = totalEnergy();
-  long regs    = registerEnergy();
-  long cache   = cacheEnergy();
-  long mem     = memoryEnergy();
-  long dec     = decodeEnergy();
-  long ops     = operationEnergy();
-  long network = networkEnergy();
+  unsigned long long total   = totalEnergy();
+  unsigned long long regs    = registerEnergy();
+  unsigned long long cache   = cacheEnergy();
+  unsigned long long mem     = memoryEnergy();
+  unsigned long long dec     = decodeEnergy();
+  unsigned long long ops     = operationEnergy();
+  unsigned long long network = networkEnergy();
 
   if(total == 0) return;
 
+  if (BATCH_MODE) {
+	cout << "<@GLOBAL>energy_total_fj:" << total << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>energy_total_ops:" << Statistics::operations() << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>energy_regs_fj:" << regs << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>energy_cache_fj:" << cache << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>energy_mem_fj:" << mem << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>energy_dec_fj:" << dec << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>energy_ops_fj:" << ops << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>energy_net_fj:" << network << "</@GLOBAL>" << endl;
+  }
+
   cout <<
-    "Total energy: " << total << " fJ\t(" << pJPerOp() << " pJ/op)\n" <<
-    "  Registers:        " << regs << " fJ (" << percentage(regs,total) << ")\n" <<
-    "  Cache:            " << cache << " fJ (" << percentage(cache,total) << ")\n" <<
-    "  Memory:           " << mem << " fJ (" << percentage(mem,total) << ")\n" <<
-    "  Decode:           " << dec << " fJ (" << percentage(dec,total) << ")\n" <<
-    "  Functional units: " << ops << " fJ (" << percentage(ops,total) << ")\n" <<
-    "  Network:          " << network << " fJ (" << percentage(network,total) << ")\n";
+	"Total energy: " << total << " fJ\t(" << pJPerOp() << " pJ/op)\n" <<
+	"  Registers:        " << regs << " fJ (" << percentage(regs,total) << ")\n" <<
+	"  Cache:            " << cache << " fJ (" << percentage(cache,total) << ")\n" <<
+	"  Memory:           " << mem << " fJ (" << percentage(mem,total) << ")\n" <<
+	"  Decode:           " << dec << " fJ (" << percentage(dec,total) << ")\n" <<
+	"  Functional units: " << ops << " fJ (" << percentage(ops,total) << ")\n" <<
+	"  Network:          " << network << " fJ (" << percentage(network,total) << ")\n";
 }
 
-long Energy::registerEnergy() {
+unsigned long long Energy::registerEnergy() {
   return regRead  * Statistics::registerReads() +
          regWrite * Statistics::registerWrites() +
          stallReg * Statistics::stallRegUses();
 }
 
-long Energy::cacheEnergy() {
+unsigned long long Energy::cacheEnergy() {
   return l0Read     * Statistics::l0Reads() +
          l0Write    * Statistics::l0Writes() +
          l0TagCheck * Statistics::l0TagChecks();
 }
 
-long Energy::memoryEnergy() {
-  return l1Read     * Statistics::l1Reads() +
-         l1Write    * Statistics::l1Writes() +
-         l1TagCheck * Statistics::l1TagChecks();
+unsigned long long Energy::memoryEnergy() {
+  return 0;
 }
 
-long Energy::decodeEnergy() {
+unsigned long long Energy::decodeEnergy() {
   return decode * Statistics::decodes();
 }
 
-long Energy::operationEnergy() {
+unsigned long long Energy::operationEnergy() {
   // Do we want to include decode energy in here?
   // Note: specialised for the ELM library at the moment. Unsure which
   // information we will eventually have.
-  long totalOps   = Statistics::operations();
-  long multiplies = Statistics::operations(InstructionMap::MULLW) +
+	unsigned long long totalOps   = Statistics::operations();
+	unsigned long long multiplies = Statistics::operations(InstructionMap::MULLW) +
                     Statistics::operations(InstructionMap::MULHW) +
                     Statistics::operations(InstructionMap::MULHWU);
   return multiply * multiplies +
          op       * (totalOps - multiplies);
 }
 
-long Energy::networkEnergy() {
+unsigned long long Energy::networkEnergy() {
   return bitMillimetre * Statistics::networkDistance();
 }

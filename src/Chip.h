@@ -15,8 +15,10 @@
 
 #include "Component.h"
 #include "flag_signal.h"
+#include "TileComponents/Cluster.h"
+#include "TileComponents/Memory/MemoryBank.h"
+#include "TileComponents/Memory/SimplifiedOnChipScratchpad.h"
 #include "Network/NetworkHierarchy.h"
-#include "Utility/BatchMode/BatchModeEventRecorder.h"
 
 using std::vector;
 
@@ -41,7 +43,7 @@ public:
 public:
 
   SC_HAS_PROCESS(Chip);
-  Chip(sc_module_name name, ComponentID ID, BatchModeEventRecorder *eventRecorder);
+  Chip(sc_module_name name, const ComponentID& ID);
   virtual ~Chip();
 
 //==============================//
@@ -56,16 +58,17 @@ public:
   bool    isIdle() const;
 
   // Store the given instructions or data into the component at the given index.
-  void    storeData(vector<Word>& data, ComponentID component, MemoryAddr location=0);
+  void    storeInstructions(vector<Word>& instructions, const ComponentID& component);
+  void    storeData(vector<Word>& data, const ComponentID& component, MemoryAddr location=0);
 
-  void    print(ComponentID component, MemoryAddr start, MemoryAddr end) const;
-  Word    readWord(ComponentID component, MemoryAddr addr) const;
-  Word    readByte(ComponentID component, MemoryAddr addr) const;
-  void    writeWord(ComponentID component, MemoryAddr addr, Word data) const;
-  void    writeByte(ComponentID component, MemoryAddr addr, Word data) const;
-  int     readRegister(ComponentID component, RegisterIndex reg) const;
-  MemoryAddr getInstIndex(ComponentID component) const;
-  bool    readPredicate(ComponentID component) const;
+  void    print(const ComponentID& component, MemoryAddr start, MemoryAddr end);
+  Word    readWord(const ComponentID& component, MemoryAddr addr);
+  Word    readByte(const ComponentID& component, MemoryAddr addr);
+  void    writeWord(const ComponentID& component, MemoryAddr addr, Word data);
+  void    writeByte(const ComponentID& component, MemoryAddr addr, Word data);
+  int     readRegister(const ComponentID& component, RegisterIndex reg) const;
+  MemoryAddr getInstIndex(const ComponentID& component) const;
+  bool    readPredicate(const ComponentID& component) const;
 
 private:
 
@@ -77,8 +80,10 @@ private:
 
 private:
 
-  vector<TileComponent*> contents;  // Clusters and memories of this tile
-  NetworkHierarchy network;
+	vector<Cluster*> clusters;  // All clusters of the chip
+	vector<MemoryBank*> memories;  // All memories of the chip
+	SimplifiedOnChipScratchpad backgroundMemory;
+	NetworkHierarchy network;
 
 //==============================//
 // Signals (wires)
@@ -86,22 +91,31 @@ private:
 
 private:
 
-  sc_signal<bool>       *idleSig;
+	sc_signal<bool> 							*idleSig;
 
-  sc_buffer<DataType>   *dataFromComponents;
-  flag_signal<DataType> *dataToComponents;
-  sc_buffer<CreditType> *creditsFromComponents;
-  sc_buffer<CreditType> *creditsToComponents;
+	sc_buffer<DataType> 						*dataFromComponents;
+	flag_signal<DataType> 						*dataToComponents;
+	sc_buffer<CreditType> 						*creditsFromComponents;
+	sc_buffer<CreditType> 						*creditsToComponents;
 
-  sc_signal<ReadyType>  *ackDataFromComps;
-  sc_signal<ReadyType>  *ackCreditToComps;
-  sc_signal<ReadyType>  *ackDataToComps;
-  sc_signal<ReadyType>  *ackCreditFromComps;
+	sc_signal<ReadyType> 						*ackDataFromComps;
+	sc_signal<ReadyType> 						*ackCreditToComps;
+	sc_signal<ReadyType> 						*ackDataToComps;
+	sc_signal<ReadyType> 						*ackCreditFromComps;
 
-  sc_signal<ReadyType>  *validDataFromComps;
-  sc_signal<ReadyType>  *validDataToComps;
-  sc_signal<ReadyType>  *validCreditFromComps;
-  sc_signal<ReadyType>  *validCreditToComps;
+	sc_signal<ReadyType> 						*validDataFromComps;
+	sc_signal<ReadyType> 						*validDataToComps;
+	sc_signal<ReadyType> 						*validCreditFromComps;
+	sc_signal<ReadyType> 						*validCreditToComps;
+
+	sc_signal<bool>								*strobeToBackgroundMemory;
+	sc_signal<MemoryRequest>					*dataToBackgroundMemory;
+	sc_signal<bool>								*strobeFromBackgroundMemory;
+	sc_signal<Word>								*dataFromBackgroundMemory;
+
+	sc_signal<bool>								*ringStrobe;
+	sc_signal<MemoryBank::RingNetworkRequest>	*ringRequest;
+	sc_signal<bool>								*ringAcknowledge;
 
 //==============================//
 // Local state

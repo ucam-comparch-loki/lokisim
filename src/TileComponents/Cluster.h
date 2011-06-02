@@ -44,7 +44,7 @@ class Cluster : public TileComponent {
 public:
 
   SC_HAS_PROCESS(Cluster);
-  Cluster(sc_module_name name, ComponentID ID);
+  Cluster(sc_module_name name, const ComponentID& ID);
   virtual ~Cluster();
 
 //==============================//
@@ -60,13 +60,13 @@ public:
   virtual void     storeData(const std::vector<Word>& data, MemoryAddr location=0);
 
   // Returns the channel ID of the specified cluster's instruction packet FIFO.
-  static ChannelID IPKFIFOInput(ComponentID ID);
+  static ChannelID IPKFIFOInput(const ComponentID& ID);
 
   // Returns the channel ID of the specified cluster's instruction packet cache.
-  static ChannelID IPKCacheInput(ComponentID ID);
+  static ChannelID IPKCacheInput(const ComponentID& ID);
 
   // Returns the channel ID of the specified cluster's input channel.
-  static ChannelID RCETInput(ComponentID ID, ChannelIndex channel);
+  static ChannelID RCETInput(const ComponentID& ID, ChannelIndex channel);
 
   // Get the memory location of the current instruction being decoded, so
   // we can have breakpoints set to particular instructions in memory.
@@ -77,6 +77,11 @@ public:
 
   // Read the value of the predicate register.
   virtual bool     readPredReg() const;
+
+  const Word readWord(MemoryAddr addr) const;
+  const Word readByte(MemoryAddr addr) const;
+  void writeWord(MemoryAddr addr, Word data);
+  void writeByte(MemoryAddr addr, Word data);
 
 private:
 
@@ -185,7 +190,7 @@ private:
   sc_signal<bool>           *stageIdle, *stallRegReady, *stageReady;
 
   sc_buffer<Word>           *dataToBuffers;
-  sc_buffer<int>            *fcFromBuffers;
+  sc_signal<bool>           *fcFromBuffers;
 
   // Transmission of the instruction along the pipeline. sc_buffers because we
   // want to trigger an event even if the instruction is identical.

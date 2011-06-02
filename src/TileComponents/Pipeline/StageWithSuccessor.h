@@ -36,7 +36,7 @@ public:
 
 public:
 
-  StageWithSuccessor(sc_module_name name, ComponentID ID);
+  StageWithSuccessor(sc_module_name name, const ComponentID& ID);
 
 };
 

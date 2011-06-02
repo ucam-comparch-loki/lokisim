@@ -28,7 +28,7 @@ public:
   sc_in<Word>           dataIn;
   sc_out<AddressedWord> dataOut;
   sc_in<bool>           readyIn;
-  sc_out<int>           creditsOut;
+  sc_out<bool>          readyOut;
 
 //==============================//
 // Constructors and destructors

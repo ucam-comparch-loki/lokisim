@@ -8,6 +8,7 @@
 #ifndef STALLS_H_
 #define STALLS_H_
 
+#include "../../Datatype/ComponentID.h"
 #include "InstrumentationBase.h"
 #include "CounterMap.h"
 #include <map>
@@ -18,16 +19,16 @@ class Stalls: public InstrumentationBase {
 
 public:
 
-  static void stall(ComponentID id, int cycle, int reason);
-  static void unstall(ComponentID id, int cycle);
-  static void idle(ComponentID id, int cycle);
-  static void active(ComponentID id, int cycle);
+  static void stall(const ComponentID& id, unsigned long long cycle, int reason);
+  static void unstall(const ComponentID& id, unsigned long long cycle);
+  static void idle(const ComponentID& id, unsigned long long cycle);
+  static void active(const ComponentID& id, unsigned long long cycle);
   static void endExecution();
 
-  static int  cyclesActive(ComponentID core);
-  static int  cyclesIdle(ComponentID core);
-  static int  cyclesStalled(ComponentID core);
-  static int  executionTime();
+  static unsigned long long  cyclesActive(const ComponentID& core);
+  static unsigned long long  cyclesIdle(const ComponentID& core);
+  static unsigned long long  cyclesStalled(const ComponentID& core);
+  static unsigned long long  executionTime();
 
   static void printStats();
 
@@ -41,7 +42,7 @@ public:
 private:
 
   // The times that each cluster started stalling.
-  static std::map<ComponentID, int> startedStalling;
+  static std::map<ComponentID, unsigned long long> startedStalling;
 
   // The reason for each cluster being stalled at the moment (if stalled).
   static std::map<ComponentID, int> stallReason;
@@ -54,7 +55,7 @@ private:
 
   // The times that each cluster became idle (or UNSTALLED if the cluster is
   // currently active).
-  static std::map<ComponentID, int> startedIdle;
+  static std::map<ComponentID, unsigned long long> startedIdle;
 
   // The total number of cycles each cluster has spent idle.
   static CounterMap<ComponentID> idleTimes;

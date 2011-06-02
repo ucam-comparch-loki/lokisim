@@ -8,7 +8,7 @@
 #include "StageWithSuccessor.h"
 #include "../../Datatype/DecodedInst.h" // Not sure why this is needed
 
-StageWithSuccessor::StageWithSuccessor(sc_module_name name, ComponentID ID) :
+StageWithSuccessor::StageWithSuccessor(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID) {
 
 }

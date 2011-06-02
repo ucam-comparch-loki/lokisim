@@ -24,7 +24,7 @@ class ALU: public Component {
 
 public:
 
-  ALU(sc_module_name name, ComponentID ID);
+  ALU(sc_module_name name, const ComponentID& ID);
 
 //==============================//
 // Methods

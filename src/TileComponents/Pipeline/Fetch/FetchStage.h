@@ -39,7 +39,7 @@ public:
   sc_in<Word>         toIPKFIFO;
 
   // A flow control signal from each of the two instruction inputs.
-  sc_out<int>        *flowControl;
+  sc_out<bool>       *flowControl;
 
   // Tells whether the next stage is ready to receive a new instruction.
   sc_in<bool>         readyIn;
@@ -51,7 +51,7 @@ public:
 public:
 
   SC_HAS_PROCESS(FetchStage);
-  FetchStage(sc_module_name name, ComponentID ID);
+  FetchStage(sc_module_name name, const ComponentID& ID);
   virtual ~FetchStage();
 
 //==============================//

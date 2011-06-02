@@ -24,10 +24,12 @@ class InstructionPacketFIFO : public Component {
 
 public:
 
+  sc_in<bool> clock;
+
   sc_in<Word> instructionIn;
 
-  // Signal telling the flow control unit how much space is left in the FIFO.
-  sc_out<int> flowControl;
+  // Signal telling the flow control unit whether there is space left in the FIFO.
+  sc_out<bool> flowControl;
 
 //==============================//
 // Constructors and destructors
@@ -56,7 +58,7 @@ public:
 private:
 
   void receivedInst();
-  void sendCredit();
+  void updateReady();
 
 //==============================//
 // Local state

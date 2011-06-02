@@ -49,7 +49,7 @@ public:
 public:
 
   SC_HAS_PROCESS(WriteStage);
-  WriteStage(sc_module_name name, ComponentID ID);
+  WriteStage(sc_module_name name, const ComponentID& ID);
 
 //==============================//
 // Methods
@@ -59,6 +59,8 @@ public:
 
   virtual double area()  const;
   virtual double energy() const;
+
+  ComponentID getSystemCallMemory() const;
 
 private:
 
@@ -75,6 +77,8 @@ private:
 //==============================//
 
 private:
+
+  bool endOfPacket;
 
   SendChannelEndTable scet;
 

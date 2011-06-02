@@ -28,7 +28,7 @@ Instruction InstructionPacketCache::read() {
   if(finishedPacketRead) startOfPacketTasks();
   if(inst.endOfPacket()) endOfPacketTasks();
 
-  if(cache.justReadNewInst()) sendCredit();
+//  if(cache.justReadNewInst()) sendCredit();
 
   return inst;
 }
@@ -111,7 +111,8 @@ void InstructionPacketCache::receivedInst() {
 /* Update the signal saying whether there is enough room to fetch another
  * packet. */
 void InstructionPacketCache::sendCredit() {
-  flowControl.write(1);
+//  flowControl.write(1);
+  flowControl.write(!cache.full());
 }
 
 void InstructionPacketCache::updatePacketAddress(const MemoryAddr addr) const {
@@ -155,7 +156,7 @@ FetchStage* InstructionPacketCache::parent() const {
 }
 
 /* Constructors and destructors */
-InstructionPacketCache::InstructionPacketCache(sc_module_name name, ComponentID ID) :
+InstructionPacketCache::InstructionPacketCache(sc_module_name name, const ComponentID& ID) :
     Component(name, ID),
     cache(IPK_CACHE_SIZE, string(name)),
     addresses(4, string(name)) {  // 4 = max outstanding fetches allowed
@@ -166,5 +167,9 @@ InstructionPacketCache::InstructionPacketCache(sc_module_name name, ComponentID 
   SC_METHOD(receivedInst);
   sensitive << instructionIn;
   dont_initialize();
+
+  SC_METHOD(sendCredit);
+  sensitive << clock.neg();
+  // do initialise
 
 }

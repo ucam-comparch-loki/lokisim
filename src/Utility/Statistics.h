@@ -15,6 +15,7 @@
 #define STATISTICS_H_
 
 #include <string>
+#include "../Datatype/ComponentID.h"
 #include "../Typedefs.h"
 
 class Statistics {
@@ -53,9 +54,9 @@ public:
 
   static double networkDistance();
 
-  static int cyclesActive(ComponentID core);
-  static int cyclesIdle(ComponentID core);
-  static int cyclesStalled(ComponentID core);
+  static int cyclesActive(const ComponentID& core);
+  static int cyclesIdle(const ComponentID& core);
+  static int cyclesStalled(const ComponentID& core);
 
 };
 

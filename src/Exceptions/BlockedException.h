@@ -14,7 +14,7 @@ class BlockedException : public std::exception {
 
 public:
 
-  BlockedException(std::string location, int clusterID) {
+  BlockedException(std::string location, const ComponentID& clusterID) {
     location_ = location;
     id_       = clusterID;
   }
@@ -34,7 +34,7 @@ public:
 private:
 
   std::string location_;
-  int         id_;
+  ComponentID         id_;
 
 };
 

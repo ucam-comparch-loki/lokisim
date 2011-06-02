@@ -28,13 +28,15 @@ class ReceiveChannelEndTable: public Component {
 
 public:
 
+  sc_in<bool>   clock;
+
   // Data values received over the network. There should be NUM_RECEIVE_CHANNELS
   // inputs in the array.
   sc_in<Word>  *fromNetwork;
 
   // A flow control signal for each input (NUM_RECEIVE_CHANNELS), to tell the
-  // flow control unit how much space is left in its buffer.
-  sc_out<int>  *flowControl;
+  // flow control unit whether there is space left in its buffer.
+  sc_out<bool> *flowControl;
 
 //==============================//
 // Constructors and destructors
@@ -43,7 +45,7 @@ public:
 public:
 
   SC_HAS_PROCESS(ReceiveChannelEndTable);
-  ReceiveChannelEndTable(sc_module_name name, ComponentID ID);
+  ReceiveChannelEndTable(sc_module_name name, const ComponentID& ID);
   virtual ~ReceiveChannelEndTable();
 
 //==============================//
@@ -69,8 +71,8 @@ public:
 
 private:
 
-  // Update the flow control value for a particular input port.
-  void sendCredit(ChannelIndex channelEnd);
+  // Update the flow control value for all input ports.
+  void updateFlowControl();
 
   DecodeStage* parent() const;
 

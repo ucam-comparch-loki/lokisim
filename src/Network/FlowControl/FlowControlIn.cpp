@@ -13,73 +13,160 @@
 /* Put any new data into the buffer. Since we approved the request to send
  * data, it is known that there is enough room. */
 void FlowControlIn::receivedData() {
-  while(true) {
-    // Wait for data to arrive.
-    wait(validDataIn.posedge_event());
+	while (true) {
+		wait(validDataIn.default_event());
 
-    if(dataIn.read().portClaim()) {
-      // TODO: only accept the port claim when we have no credits left to send.
-      // Set the return address so we can send flow control.
-      returnAddress = dataIn.read().payload().toInt();
+		if (sc_core::sc_time_stamp().value() % 1000 != 0)
+			wait(clock.posedge_event());
 
-      numCredits++;
-      assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
+		wait(sc_core::SC_ZERO_TIME);  // Allow time for the valid signal to be deasserted.
 
-      if(DEBUG) cout << "Channel " << TileComponent::inputPortString(id)
-           << " was claimed by " << TileComponent::outputPortString(returnAddress)
-           << endl;
-    }
-    else {
-      // Pass the value to the component.
-      dataOut.write(dataIn.read().payload());
-    }
+		if (!validDataIn.read())
+			continue;
 
-    ackDataIn.write(true);
-    wait(sc_core::SC_ZERO_TIME);
-    ackDataIn.write(false);
-  }
+		if (dataIn.read().portClaim()) {
+			// TODO: only accept the port claim when we have no credits left to send.
+
+			// Set the return address so we can send flow control.
+			returnAddress = dataIn.read().payload().toInt();
+			useCredits = dataIn.read().useCredits();
+
+			if(DEBUG)
+				cout << "Channel " << channel << " was claimed by " << returnAddress << " [flow control " << (useCredits ? "enabled" : "disabled") << "]" << endl;
+
+			// Allow core to wait until memory setup is complete if setting up a data connection
+
+			if (!useCredits && dataIn.read().channelID().getChannel() >= 2) {
+				// Wait until there is space in the buffer, if necessary
+				if (!bufferHasSpace.read())
+					wait(bufferHasSpace.posedge_event());
+
+				// Pass the value to the component.
+				dataOut.write(dataIn.read().payload());
+			}
+		} else {
+			// Wait until there is space in the buffer, if necessary
+			if (!bufferHasSpace.read())
+				wait(bufferHasSpace.posedge_event());
+
+			// Pass the value to the component.
+			dataOut.write(dataIn.read().payload());
+		}
+
+		if (useCredits) {
+			numCredits++;
+			assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
+		}
+
+		// Acknowledge the data.
+		ackDataIn.write(true);
+
+		int inactiveCycles = 0;
+
+		while (true) {
+			// Wait for data to arrive.
+			wait(clock.posedge_event());
+
+			ackDataIn.write(false);
+
+			wait(sc_core::SC_ZERO_TIME);  // Allow time for the valid signal to be deasserted.
+
+			if (validDataIn.read()) {
+				inactiveCycles = 0;
+			} else {
+				inactiveCycles++;
+				if (inactiveCycles > 10)
+					break;
+				else
+					continue;
+			}
+
+			if (dataIn.read().portClaim()) {
+				// TODO: only accept the port claim when we have no credits left to send.
+
+				// Set the return address so we can send flow control.
+				returnAddress = dataIn.read().payload().toInt();
+				useCredits = dataIn.read().useCredits();
+				enableCreditUpdate.write(useCredits);
+
+				if(DEBUG)
+					cout << "Channel " << channel << " was claimed by " << returnAddress << " [flow control " << (useCredits ? "enabled" : "disabled") << "]" << endl;
+
+				// Allow core to wait until memory setup is complete if setting up a data connection
+
+				if (!useCredits && dataIn.read().channelID().getChannel() >= 2) {
+					// Wait until there is space in the buffer, if necessary
+					if (!bufferHasSpace.read())
+						wait(bufferHasSpace.posedge_event());
+
+					// Pass the value to the component.
+					dataOut.write(dataIn.read().payload());
+				}
+			} else {
+				// Wait until there is space in the buffer, if necessary
+				if (!bufferHasSpace.read())
+					wait(bufferHasSpace.posedge_event());
+
+				// Pass the value to the component.
+				dataOut.write(dataIn.read().payload());
+			}
+
+			if (useCredits) {
+				numCredits++;
+				assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
+			}
+
+			// Acknowledge the data.
+			ackDataIn.write(true);
+		}
+	}
 }
 
-void FlowControlIn::receiveFlowControl() {
-  while(true) {
-    wait(creditsIn.default_event());
-    numCredits++;
-    assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
-  }
+void FlowControlIn::updateReady() {
+	while (true) {
+		//wait(enableCreditUpdate.posedge_event());
+
+		while (true) {
+			//if (!enableCreditUpdate.read())
+			//	break;
+
+			wait(clock.posedge_event());
+			if (numCredits == 0)
+				continue;
+
+			// This should not execute if credits are disabled
+			assert(useCredits);
+
+			// Send the new credit if someone is communicating with this port.
+			if (!returnAddress.isNullMapping()) {
+				AddressedWord aw(Word(1), returnAddress);
+				creditsOut.write(aw);
+				validCreditOut.write(true);
+
+				numCredits--;
+				assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
+
+				if (DEBUG)
+					cout << "Sent credit from " << channel << " to " << returnAddress << endl;
+
+				// Deassert the valid signal when the acknowledgement arrives.
+				wait(ackCreditOut.posedge_event());
+				validCreditOut.write(false);
+			}
+		}
+	}
 }
 
-void FlowControlIn::sendCredit() {
-  while(true) {
-    wait(clock.posedge_event());
-    if(numCredits == 0) continue;
+FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :
+    Component(name, ID)
+{
+	channel = channelManaged;
+	returnAddress = -1;
+	useCredits = true;
+	numCredits = 0;
 
-    // Send the new credit if someone is communicating with this port.
-    if((int)returnAddress != -1) {
-      AddressedWord aw(Word(1), returnAddress);
-      creditsOut.write(aw);
-      validCreditOut.write(true);
+	enableCreditUpdate.write(false);
 
-      numCredits--;
-      assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
-
-      if(DEBUG) cout << "Sent credit from "
-         << TileComponent::inputPortString(id) << " to "
-         << TileComponent::outputPortString(returnAddress) << endl;
-
-      // Deassert the valid signal when the acknowledgement arrives.
-      wait(ackCreditOut.posedge_event());
-      validCreditOut.write(false);
-    }
-  }
-}
-
-FlowControlIn::FlowControlIn(sc_module_name name, ComponentID ID) :
-    Component(name, ID) {
-
-  returnAddress = -1;
-  numCredits = 0;
-
-  SC_THREAD(receivedData);
-  SC_THREAD(receiveFlowControl);
-  SC_THREAD(sendCredit);
+	SC_THREAD(receivedData);
+	SC_THREAD(updateReady);
 }

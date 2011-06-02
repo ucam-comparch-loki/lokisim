@@ -8,9 +8,13 @@
 #include "CodeLoader.h"
 #include "DataBlock.h"
 #include "FileReader.h"
+#include "ELFFileReader.h"
 #include "../Parameters.h"
 #include "../StringManipulation.h"
 #include "../../Datatype/Instruction.h"
+
+bool CodeLoader::appLoaderInitialized = false;
+int CodeLoader::mainOffset = -1;
 
 /* Use an external file to tell which files to read.
  * The file should contain lines of the following forms:
@@ -88,7 +92,7 @@ void CodeLoader::loadCode(string& settings, Chip& chip) {
     // Put the string in a vector so we can use existing methods.
     vector<string> vec;
     vec.push_back(settings);
-    loadFromCommand(vec, chip);
+    loadFromCommand(vec, chip, false);
     return;
   }
 
@@ -118,13 +122,19 @@ void CodeLoader::loadCode(string& settings, Chip& chip) {
       else if(words[0]=="parameter") {
         // Do nothing: parameters are dealt with in loadParameters()
       }
+      else if(words[0]=="apploader") {
+    	  // Load application loader code from the given file
+
+    	  if (!appLoaderInitialized)
+    		  loadFromCommand(words, chip, true);
+      }
       else {                          // Load code/data from the given file
         // If a full path is provided, use that. Otherwise, assume the file
         // is in the previously specified directory.
-        std::string filename = words.back();
-        words.back() = (filename[0]=='/') ? filename : directory + "/" + filename;
+        //std::string filename = words.back();
+        //words.back() = (filename[0]=='/') ? filename : directory + "/" + filename;
 
-        loadFromCommand(words, chip);
+        loadFromCommand(words, chip, false);
       }
 
       delete &words;
@@ -142,27 +152,38 @@ void CodeLoader::loadCode(string& settings, Chip& chip) {
 }
 
 void CodeLoader::makeExecutable(Chip& chip) {
-  FileReader* reader = FileReader::linkFiles();
-  loadFromReader(reader, chip);
+	FileReader* reader = FileReader::linkFiles();
+	loadFromReader(reader, chip);
 
-  // Now that the whole program is in simulated memory, any temporary program
-  // files can be deleted.
-  FileReader::tidy();
+	// Now that the whole program is in simulated memory, any temporary program
+	// files can be deleted.
+	FileReader::tidy();
+
+	if (!appLoaderInitialized) {
+		assert(mainOffset >= 0);
+		DataBlock &block = ELFFileReader::loaderProgram(ComponentID(0, 0), mainOffset);
+		chip.storeData(block.data(), block.component(), block.position());
+		delete &block;
+
+		appLoaderInitialized = true;
+	}
 }
 
-void CodeLoader::loadFromCommand(vector<string>& command, Chip& chip) {
-  FileReader* reader = FileReader::makeFileReader(command);
+void CodeLoader::loadFromCommand(vector<string>& command, Chip& chip, bool customAppLoader) {
+  FileReader* reader = FileReader::makeFileReader(command, customAppLoader);
   loadFromReader(reader, chip);
 }
 
 void CodeLoader::loadFromReader(FileReader* reader, Chip& chip) {
   if(reader == NULL) return;
 
-  vector<DataBlock>& blocks = reader->extractData();
+  vector<DataBlock>& blocks = reader->extractData(mainOffset);
 
   for(uint i=0; i<blocks.size(); i++) {
-    chip.storeData(blocks[i].data(), blocks[i].component(),
-                   blocks[i].position()/BYTES_PER_WORD);
+	if (blocks[i].component().getTile() == 0 && blocks[i].component().getPosition() == 0 && blocks[i].position() == 0)
+      appLoaderInitialized = true;
+
+    chip.storeData(blocks[i].data(), blocks[i].component(), blocks[i].position());
     delete &(blocks[i].data());
   }
 

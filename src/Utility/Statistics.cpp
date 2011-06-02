@@ -7,9 +7,10 @@
 
 #include "Statistics.h"
 #include "Instrumentation.h"
+#include "Instrumentation/BackgroundMemory.h"
 #include "Instrumentation/Energy.h"
 #include "Instrumentation/IPKCache.h"
-#include "Instrumentation/Memory.h"
+#include "Instrumentation/MemoryBank.h"
 #include "Instrumentation/Network.h"
 #include "Instrumentation/Operations.h"
 #include "Instrumentation/Registers.h"
@@ -17,8 +18,10 @@
 
 void Statistics::printStats() {
   std::cout.precision(3);
+  std::cout.fill(' ');
   IPKCache::printStats();
-  Memory::printStats();
+  MemoryBank::printStats();
+  BackgroundMemory::printStats();
   Network::printStats();
   Operations::printStats();
   Registers::printStats();
@@ -43,11 +46,6 @@ int Statistics::getStat(const std::string& statName, int parameter) {
     if(parameter != -1)                   return operations(parameter);
     else                                  return operations();
   }
-  else if(statName == "l1_tag_checks")    return l1TagChecks();
-  else if(statName == "l1_hits")          return l1Hits();
-  else if(statName == "l1_misses")        return l1Misses();
-  else if(statName == "l1_reads")         return l1Reads();
-  else if(statName == "l1_writes")        return l1Writes();
   else if(statName == "network_distance") return (int)networkDistance();
   else if(statName == "cycles_active")    return cyclesActive(parameter);
   else if(statName == "cycles_idle")      return cyclesIdle(parameter);
@@ -77,14 +75,8 @@ int Statistics::l0Misses()           {return IPKCache::numMisses();}
 int Statistics::l0Reads()            {return IPKCache::numReads();}
 int Statistics::l0Writes()           {return IPKCache::numWrites();}
 
-int Statistics::l1TagChecks()        {return Memory::numTagChecks();}
-int Statistics::l1Hits()             {return Memory::numHits();}
-int Statistics::l1Misses()           {return Memory::numMisses();}
-int Statistics::l1Reads()            {return Memory::numReads();}
-int Statistics::l1Writes()           {return Memory::numWrites();}
-
 double Statistics::networkDistance() {return Network::totalDistance();}
 
-int Statistics::cyclesActive(ComponentID core)  {return Stalls::cyclesActive(core);}
-int Statistics::cyclesIdle(ComponentID core)    {return Stalls::cyclesIdle(core);}
-int Statistics::cyclesStalled(ComponentID core) {return Stalls::cyclesStalled(core);}
+int Statistics::cyclesActive(const ComponentID& core)  {return Stalls::cyclesActive(core);}
+int Statistics::cyclesIdle(const ComponentID& core)    {return Stalls::cyclesIdle(core);}
+int Statistics::cyclesStalled(const ComponentID& core) {return Stalls::cyclesStalled(core);}

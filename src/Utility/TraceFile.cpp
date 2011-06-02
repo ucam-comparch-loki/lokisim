@@ -40,7 +40,7 @@ string TraceFile::parameterSummary() {
   s << "  Clusters per tile:             " << CORES_PER_TILE << "\n";
   s << "  Memories per tile:             " << MEMS_PER_TILE << "\n";
   s << "Storage:\n";
-  s << "  Memory size:                   " << MEMORY_SIZE << "\n";
+  //s << "  Memory size:                   " << MEMORY_SIZE << "\n";
   s << "  Instruction packet cache size: " << IPK_CACHE_SIZE << "\n";
   s << "  Instruction packet FIFO size:  " << IPK_FIFO_SIZE << "\n";
   s << "  Register file size:            " << NUM_ADDRESSABLE_REGISTERS << "\n";
