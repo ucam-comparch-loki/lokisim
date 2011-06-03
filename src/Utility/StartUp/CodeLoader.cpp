@@ -84,8 +84,7 @@ void CodeLoader::loadCode(string& settings, Chip& chip) {
   std::ifstream file(settings.c_str());
 
   // Strip away "/loader.txt" to get the directory path.
-//  uint pos = settings.find("loader");
-  uint pos = settings.find(".txt");
+  unsigned int pos = settings.find(".txt");
 
   // If the line doesn't specify a text file, it is probably an executable.
   if(pos >= settings.length()) {
@@ -98,7 +97,7 @@ void CodeLoader::loadCode(string& settings, Chip& chip) {
 
   // Find out which directory the file is in.
   pos = settings.rfind("/");
-  string directory = settings.substr(0,pos);
+  string directory = ((int)pos == -1) ? "" : (settings.substr(0,pos) + "/");
 
   while(!file.fail()) {
     try {
@@ -110,10 +109,10 @@ void CodeLoader::loadCode(string& settings, Chip& chip) {
       vector<string>& words = StringManipulation::split(s, ' ');
 
       if(words[0]=="directory") {     // Update the current directory
-        directory = directory + "/" + words[1];
+        directory = directory + words[1];
       }
       else if(words[0]=="loader") {   // Use another file loader
-        string loaderFile = directory + "/" + words[1];
+        string loaderFile = directory + words[1];
         loadCode(loaderFile, chip);
       }
       else if(words[0]=="power") {
@@ -125,6 +124,8 @@ void CodeLoader::loadCode(string& settings, Chip& chip) {
       else if(words[0]=="apploader") {
     	  // Load application loader code from the given file
 
+        // Add the current directory onto the filename.
+        words[1] = directory + words[1];
     	  if (!appLoaderInitialized)
     		  loadFromCommand(words, chip, true);
       }
@@ -133,6 +134,10 @@ void CodeLoader::loadCode(string& settings, Chip& chip) {
         // is in the previously specified directory.
         //std::string filename = words.back();
         //words.back() = (filename[0]=='/') ? filename : directory + "/" + filename;
+
+        // Add the current directory to the filename. Assumes the first word
+        // is a filename.
+        words[0] = directory + words[0];
 
         loadFromCommand(words, chip, false);
       }
@@ -161,9 +166,9 @@ void CodeLoader::makeExecutable(Chip& chip) {
 
 	if (!appLoaderInitialized) {
 		assert(mainOffset >= 0);
-		DataBlock &block = ELFFileReader::loaderProgram(ComponentID(0, 0), mainOffset);
-		chip.storeData(block.data(), block.component(), block.position());
-		delete &block;
+//		DataBlock &block = ELFFileReader::loaderProgram(ComponentID(0, 0), mainOffset);
+//		chip.storeData(block.data(), block.component(), block.position());
+//		delete &block;
 
 		appLoaderInitialized = true;
 	}

@@ -28,8 +28,8 @@ public:
   // The ELF reader is different to the others, as it stores the contents of
   // the file in a memory, and then generates a small loader program for a
   // particular core to execute.
-  ELFFileReader(std::string& filename, const ComponentID& memory, const ComponentID& component);
-  virtual ~ELFFileReader();
+  ELFFileReader(const std::string& filename, const ComponentID& memory,
+                const ComponentID& core, const MemoryAddr location);
 
 private:
 

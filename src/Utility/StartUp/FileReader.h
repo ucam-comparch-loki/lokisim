@@ -41,7 +41,7 @@ public:
   // Delete any temporary files created in the linking process.
   static void tidy();
 
-  FileReader(string& filename, const ComponentID& component, MemoryAddr position=0);
+  FileReader(const string& filename, const ComponentID& component, const MemoryAddr position=0);
 
 protected:
 

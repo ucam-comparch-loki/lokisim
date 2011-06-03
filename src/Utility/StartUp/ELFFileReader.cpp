@@ -301,13 +301,10 @@ int ELFFileReader::findMain() const {
 
 }
 
-ELFFileReader::ELFFileReader(std::string& filename, const ComponentID& memory, const ComponentID& component) :
-    FileReader(filename, memory) {
+ELFFileReader::ELFFileReader(const std::string& filename, const ComponentID& memory,
+                             const ComponentID& core, const MemoryAddr location) :
+    FileReader(filename, memory, location) {
 
-  core_ = component;
-
-}
-
-ELFFileReader::~ELFFileReader() {
+  core_ = core;
 
 }

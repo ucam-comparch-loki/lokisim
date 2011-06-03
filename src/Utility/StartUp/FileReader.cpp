@@ -9,7 +9,6 @@
 #include "DataFileReader.h"
 #include "ELFFileReader.h"
 #include "LokiFileReader.h"
-#include "LokiBinaryFileReader.h"
 #include "../Config.h"
 #include "../Parameters.h"
 #include "../StringManipulation.h"
@@ -50,32 +49,52 @@ FileReader* FileReader::makeFileReader(vector<string>& words, bool customAppLoad
   int position;
 
   if(words.size() == 1) {
-    // Assume that we want the code to go into the first memory (component
-    // with ID CORES_PER_TILE) and that the first core should execute it.
-    filename = words[0];
+    // Assume that we want the code to go into the background memory and that
+    // the first core should execute it.
     component = BACKGROUND_MEMORY;
-    position = 0;
+    position  = 0x1000;
+    filename  = words[0];
   }
   else if(words.size() == 2 && words[0] == "apploader") {
-	component = 0;
-	position = 0;
-    filename = words[1];
+    component = 0;
+    position  = 0x1000;
+    filename  = words[1];
   }
   else if(words.size() == 2) {
     component = StringManipulation::strToInt(words[0]);
-    position = 0;
-    filename = words[1];
+    position  = 0x1000;
+    filename  = words[1];
+  }
+  else if(words.size() == 3) {
+    component = StringManipulation::strToInt(words[0]);
+    position  = StringManipulation::strToInt(words[1]);
+    filename  = words[2];
   }
   else {
-    cerr << "Error: wrong number of loader file arguments." << endl;
+    cerr << "Error: invalid loader file line:\n  ";
+    for(unsigned int i=0; i<words.size(); i++) cout << words[i] << " ";
+    cout << endl;
+
     tidy();
     throw std::exception();
   }
 
+  // TODO: make sure file exists?
+
   // Split the filename into the name and the extension.
   int dotPos = filename.find_last_of('.');
-  string name = filename.substr(0, dotPos);
-  string extension = filename.substr(dotPos+1);
+
+  string name, extension;
+
+  // If we found two dots in a row, we didn't find the file extension.
+  if(filename[dotPos-1] == '.') {
+    name = filename;
+    extension = "";
+  }
+  else {
+    name = filename.substr(0, dotPos);
+    extension = filename.substr(dotPos+1);
+  }
 
   ComponentID id;
   if(component != BACKGROUND_MEMORY) id = ComponentID(0, component);
@@ -89,9 +108,6 @@ FileReader* FileReader::makeFileReader(vector<string>& words, bool customAppLoad
   }
   else if(extension == "data") {
     reader = new DataFileReader(filename, id, position);
-  }
-  else if(extension == "bloki") {
-    reader = new LokiBinaryFileReader(filename, id, position);
   }
   else if(extension == "s") {
     string asmFile, elfFile;
@@ -135,8 +151,9 @@ FileReader* FileReader::makeFileReader(vector<string>& words, bool customAppLoad
 FileReader* FileReader::linkFiles() {
   switch(filesToLink.size()) {
     case 0: return NULL;
-    case 1: return new ELFFileReader(filesToLink[0], ComponentID(), ComponentID(0, 0));
+//    case 1: return new ELFFileReader(filesToLink[0], ComponentID(), ComponentID(0, 0), 0x1000);
     default: {
+      // TODO: sim.ld no longer needed with new build?
       string directory = Config::getAttribute("sim.ld",
           "directory containing sim.ld (ask Alex if you don't have it)");
       string library = "sim.ld";
@@ -170,12 +187,13 @@ FileReader* FileReader::linkFiles() {
       failure = system(command.c_str());
       if(failure) {
         cerr << "Error: unable to link files using command:\n  " << command << endl;
+        linkedFile = "";
         tidy();
         throw std::exception();
       }
 
       // Generate a FileReader for the output ELF file.
-      return new ELFFileReader(linkedFile, ComponentID(), ComponentID(0, 0));
+      return new ELFFileReader(linkedFile, ComponentID(), ComponentID(0, 0), 0x1000);
     }
   }
 }
@@ -228,7 +246,7 @@ void FileReader::deleteFile(string& filename) {
                    << filename << endl;
 }
 
-FileReader::FileReader(string& filename, const ComponentID& component, MemoryAddr position) {
+FileReader::FileReader(const string& filename, const ComponentID& component, const MemoryAddr position) {
   filename_ = filename;
   componentID_ = component;
   position_ = position;

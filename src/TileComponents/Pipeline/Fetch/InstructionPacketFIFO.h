@@ -68,6 +68,10 @@ private:
 
   BufferStorage<Instruction> fifo;
 
+  // An event which is triggered whenever an instruction is read from or
+  // written to the FIFO.
+  sc_core::sc_event fullnessChanged;
+
 };
 
 #endif /* INSTRUCTIONPACKETFIFO_H_ */

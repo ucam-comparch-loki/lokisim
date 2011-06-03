@@ -194,7 +194,7 @@ int sc_main(int argc, char* argv[]) {
 
 	parseArguments(argc, argv, chip);
 
-	if (!codeLoaded)
+	//if (!codeLoaded)
 		CodeLoader::loadCode(settingsFile, chip);
 
 	CodeLoader::makeExecutable(chip);

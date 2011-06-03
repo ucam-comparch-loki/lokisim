@@ -115,7 +115,6 @@ Instruction::Instruction(const uint64_t inst) : Word(inst) {
 }
 
 Instruction::Instruction(const string& inst) {
-
   // Skip this line if it is a comment or empty
   if((inst[0]=='%') || (inst[0]==';') || (inst[0]=='#') || (inst[0]=='\n') || (inst[0]=='\r'))
     throw InvalidInstructionException();
@@ -359,7 +358,7 @@ int32_t Instruction::decodeRChannel(const string& channel) {
 		channelID = (tile << 20) | (position << 12) | (channelIndex << 8) | (groupBits << 4) | lineBits;
 	} else {
 		// Invalid format
-
+	  cerr << "Error: invalid tuple length: " << channel << endl;
 		assert(false);
 	}
 
