@@ -32,6 +32,6 @@ class MatMultTest(mod.SimulatorTest):
                 expect.append(sum(i*j for i,j in zip(row, column)))
                            
         # Collect result from simulator
-        result = self.readMemory(11, 0, params[1]*params[3])
+        result = self.readMemory(8, 0x30000, params[1]*params[3])
         
         self.compare(result, correct=expect)    

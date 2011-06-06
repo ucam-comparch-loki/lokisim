@@ -41,9 +41,9 @@ class RGB2YUVTest(mod.SimulatorTest):
         length = len(pixels)/4
                            
         # Collect result from simulator
-        actualY = self.toBytes(self.readMemory(10, 0, length))
-        actualU = self.toBytes(self.readMemory(10, length*4, length))
-        actualV = self.toBytes(self.readMemory(10, length*8, length))
+        actualY = self.toBytes(self.readMemory(8, 0x20000, length))
+        actualU = self.toBytes(self.readMemory(8, 0x21000, length))
+        actualV = self.toBytes(self.readMemory(8, 0x22000, length))
         
         self.compare(actualY, correct=expectY)
         self.compare(actualU, correct=expectU)

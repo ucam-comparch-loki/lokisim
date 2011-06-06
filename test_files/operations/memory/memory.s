@@ -1,9 +1,5 @@
 # Connect to memory.
 _start:
-    ori                 r5,  r0,  (8,1)
-    setchmap            1,   r5
-    ori                 r0,  r0,  (0,2)  > 1
-
     addui               r3,  r0,  1000          # The address to store to.
     addui               r2,  r0,  1337          # The number to store.
 

@@ -1,14 +1,5 @@
 _start:
-    fetch           r0,  params
-    ori             r5,  r0,  (9,0)
-    ori             r6,  r0,  (10,0)
-    setchmap        1,   r5                 # input data memory = map 1
-    setchmap        2,   r6                 # output data memory = map 2
-    ori             r0,  r0,  (0,2)   > 1   # connect to the input data memory
-    ori.eop         r0,  r0,  (0,3)   > 2   # connect to the output data memory
-
-params:
-    fetch           r0,  loop               # get the next instruction packet
+#    fetch           r0,  loop               # get the next instruction packet
 
 # Load the parameters for this filter. (May deadlock if buffers are small?)
     ldw             r0,  4            > 1
@@ -33,7 +24,8 @@ params:
     addui           r27, r27, -4            # r27 = end point
     addu            r28, r11, r26           # r28 = end of taps
 
-    ori.eop         r4,  r13, 0             # r4 = position in outer loop
+    ori             r4,  r13, 0             # r4 = position in outer loop
+    fetch.eop       r0,  loop
 
 # Start of outer loop
 loop:
@@ -57,7 +49,7 @@ loop:
 # End of inner loop
 
     addui           r4,  r4,  4             # increment position in outer loop
-    stw             r9,  r14, 0       > 2   # store the result
+    stw             r9,  r14, 0       > 1   # store the result
     setgteu.p       r0,  r27, r4            # see if we have finished the outer loop
     addui           r14, r14, 4             # update store location for next time
     ifp?ibjmp       -144

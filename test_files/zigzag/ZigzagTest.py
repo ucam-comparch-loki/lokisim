@@ -8,8 +8,8 @@ mod = imp.load_module("SimulatorTest", module, path, description)
 class ZigzagTest(mod.SimulatorTest):
 
     def runTest(self):    
-        # Read the result vector from memory 10.
-        result = self.readMemory(10, 0, 64)
+        # Read the result vector from memory.
+        result = self.readMemory(8, 0x3000, 64)
         
         expected = self.fileContents(".expected")
         

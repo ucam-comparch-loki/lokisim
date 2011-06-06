@@ -105,12 +105,18 @@ void Debugger::waitForInput() {
       printMemLocations(parseIntVector(words, false));
     }
     else if(words[0] == CHANGECORE || words[0] == CHANGECORE_S) {
-      if(words.size() > 1)
-        changeCore(StringManipulation::strToInt(words[1]));
+      if(words.size() > 1) {
+        // Warning: assuming tile 0.
+        ComponentID id(0, StringManipulation::strToInt(words[1]));
+        changeCore(id);
+      }
     }
     else if(words[0] == CHANGEMEM  || words[0] == CHANGEMEM_S) {
-      if(words.size() > 1)
-        changeMemory(StringManipulation::strToInt(words[1]));
+      if(words.size() > 1) {
+        // Warning: assuming tile 0.
+        ComponentID id(0, StringManipulation::strToInt(words[1]));
+        changeMemory(id);
+      }
     }
     else if(words[0] == VERBOSE    || words[0] == VERBOSE_S) {
       DEBUG = !DEBUG;

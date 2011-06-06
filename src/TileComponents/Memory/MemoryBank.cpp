@@ -1650,7 +1650,7 @@ Word MemoryBank::readWord(MemoryAddr addr) {
 
 				if (!cached)
 					data = mBackgroundMemory->readWord(addr).toUInt();
-
+cerr << data << endl;
 				return Word(data);
 			}
 

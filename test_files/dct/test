@@ -8,8 +8,8 @@ mod = imp.load_module("SimulatorTest", module, path, description)
 class DCTTest(mod.SimulatorTest):
 
     def runTest(self):
-        # Read 64 values from memory 11.
-        result = self.readMemory(11, 0, 64)
+        # Read 64 values from memory.
+        result = self.readMemory(8, 0x30000, 64)
         
         # See if the memory contents match the contents of the file.
         self.compare(result, filename=".expected")

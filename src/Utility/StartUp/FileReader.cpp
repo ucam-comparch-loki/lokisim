@@ -44,36 +44,34 @@ void FileReader::printInstruction(Instruction i, MemoryAddr address) {
 
 FileReader* FileReader::makeFileReader(vector<string>& words, bool customAppLoader) {
   FileReader* reader;
-  string filename;
-  int component;
-  int position;
+
+  // Some sensible defaults.
+  string filename = words[0];
+  int component   = BACKGROUND_MEMORY;
+  int position    = 0x1000;
 
   if(words.size() == 1) {
     // Assume that we want the code to go into the background memory and that
     // the first core should execute it.
-    component = BACKGROUND_MEMORY;
-    position  = 0x1000;
-    filename  = words[0];
+
+    // Defaults are fine.
   }
   else if(words.size() == 2 && words[0] == "apploader") {
     component = 0;
-    position  = 0x1000;
+    position  = 0;
     filename  = words[1];
   }
   else if(words.size() == 2) {
-    component = StringManipulation::strToInt(words[0]);
-    position  = 0x1000;
-    filename  = words[1];
+    component = StringManipulation::strToInt(words[1]);
   }
   else if(words.size() == 3) {
-    component = StringManipulation::strToInt(words[0]);
-    position  = StringManipulation::strToInt(words[1]);
-    filename  = words[2];
+    component = StringManipulation::strToInt(words[1]);
+    position  = StringManipulation::strToInt(words[2]);
   }
   else {
     cerr << "Error: invalid loader file line:\n  ";
-    for(unsigned int i=0; i<words.size(); i++) cout << words[i] << " ";
-    cout << endl;
+    for(unsigned int i=0; i<words.size(); i++) cerr << words[i] << " ";
+    cerr << endl;
 
     tidy();
     throw std::exception();

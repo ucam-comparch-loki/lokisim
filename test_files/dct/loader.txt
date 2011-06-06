@@ -1,4 +1,4 @@
 dct.s
 
 % This needs to go into the background memory, and at position 0x10000
--1 0x10000 weights.data
+weights.data -1 0x10000

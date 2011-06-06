@@ -1,5 +1,5 @@
 fir_irf.s
 
-9 ../params.data
-9 ../taps.data
-9 ../input.data
+../params.data -1 0x00000
+../taps.data   -1 0x11000
+../input.data  -1 0x12000

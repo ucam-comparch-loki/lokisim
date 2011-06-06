@@ -57,10 +57,11 @@ bool InstructionMap::hasSrcReg2(short op) {
       SLL, SRL, SRA,
       SETEQ, SETNE, SETLT, SETLTU, SETGTE, SETGTEU,
       PSEL, NOR, AND, OR, XOR, NAND, CLR, ORC,
-      ADDU, SUBU, MULHW, MULLW, MULHWU
+      ADDU, SUBU, MULHW, MULLW, MULHWU,
+      PSELFETCH
   };
 
-  static const std::set<short> ops(withSource2, withSource2+25);
+  static const std::set<short> ops(withSource2, withSource2+26);
 
   // The operation has a source register if it is in the set.
   return ops.find(op) != ops.end();

@@ -165,7 +165,7 @@ void CodeLoader::makeExecutable(Chip& chip) {
 	FileReader::tidy();
 
 	if (!appLoaderInitialized) {
-		assert(mainOffset >= 0);
+//		assert(mainOffset >= 0);
 //		DataBlock &block = ELFFileReader::loaderProgram(ComponentID(0, 0), mainOffset);
 //		chip.storeData(block.data(), block.component(), block.position());
 //		delete &block;

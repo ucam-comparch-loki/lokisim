@@ -26,6 +26,6 @@ class TransposeTest(mod.SimulatorTest):
         matrix = [element for sublist in matrix for element in sublist]
         
         # Collect result from simulator
-        result = self.readMemory(10, 0, params[1]*params[2])
+        result = self.readMemory(8, 0x20000, params[1]*params[2])
         
         self.compare(result, correct=matrix)    

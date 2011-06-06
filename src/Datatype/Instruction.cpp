@@ -349,8 +349,11 @@ int32_t Instruction::decodeRChannel(const string& channel) {
 		int groupBits = Strings::strToInt(parts[3]);
 		int lineBits = Strings::strToInt(parts[4]);
 
-		ComponentID checkID(tile, position);
-		assert(checkID.isMemory() && channelIndex < (int)MEMORY_CHANNEL_MAP_TABLE_ENTRIES);
+		// I find it useful to add together incomplete tuples, which this assertion
+		// doesn't allow.
+		// e.g. (0,8,0,3,6) + (0,0,id,0,0)
+//		ComponentID checkID(tile, position);
+//		assert(checkID.isMemory() && channelIndex < (int)MEMORY_CHANNEL_MAP_TABLE_ENTRIES);
 
 		// Encoded entry format:
 		// | Tile : 12 | Position : 8 | Channel : 4 | Memory group bits : 4 | Memory line bits : 4 |

@@ -28,7 +28,8 @@ const MemoryAddr    DecodedInst::location()        const {return location_;}
 
 
 const bool    DecodedInst::usesPredicate() const {
-  return (predicate_ == Instruction::NOT_P) || (predicate_ == Instruction::P);
+  return (predicate_ == Instruction::NOT_P) || (predicate_ == Instruction::P) ||
+         (operation_ == InstructionMap::PSEL) || (operation_ == InstructionMap::PSELFETCH);
 }
 
 const bool    DecodedInst::hasOperand1() const {return hasOperand1_;}
