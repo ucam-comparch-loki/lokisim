@@ -51,20 +51,47 @@ void ArbiterComponent::mainLoop() {
 			if (!validDataIn[inCursor].read())
 				continue;
 
-			// FIXME: a request may be granted, but then blocked by flow control.
-			// Another, later request may still be allowed to send. Seems unfair.
+			// Determine which output to send the data to. If this arbiter makes use
+			// of wormhole routing, some outputs may be reserved.
+			int outputToUse;
+			if(wormhole && (reservations[inCursor] != NO_RESERVATION)) {
+			  outputToUse = reservations[inCursor];
+			}
+			else {
+			  // Find the next available output.
+			  while((reserved[outCursor] || inUse[outCursor]) && outCursor < numOutputs)
+			    outCursor++;
 
-			if (!validDataOut[outCursor].read()) {
-				dataOut[outCursor].write(dataIn[inCursor].read());
-				validDataOut[outCursor].write(true);
-				ackDataIn[inCursor].write(!ackDataIn[inCursor].read()); // Toggle value
-				lastAccepted = inCursor;
-				activeTransfers++;
+			  outputToUse = outCursor;
 			}
 
-			outCursor++;
-			if (outCursor == numOutputs)
-				break;
+			// Don't exit the loop if we have now been through all outputs. There may
+			// still be reservations which can be filled.
+			if(outputToUse >= numOutputs) continue;
+
+			// Send the data, if appropriate.
+			if (!inUse[outputToUse]) {
+				dataOut[outputToUse].write(dataIn[inCursor].read());
+				validDataOut[outputToUse].write(true);
+				ackDataIn[inCursor].write(!ackDataIn[inCursor].read()); // Toggle value
+
+				inUse[outputToUse] = true;
+				lastAccepted = inCursor;
+				activeTransfers++;
+
+        // Update the reservation if using wormhole routing.
+        if(wormhole) {
+          bool endOfPacket = dataIn[inCursor].read().endOfPacket();
+          if(endOfPacket) {
+            reservations[inCursor] = NO_RESERVATION;
+            reserved[outputToUse] = false;
+          }
+          else {
+            reservations[inCursor] = outputToUse;
+            reserved[outputToUse] = true;
+          }
+        }
+			}
 		}
 
 		assert(activeTransfers >= 0 && activeTransfers <= numInputs && activeTransfers <= numOutputs);
@@ -77,6 +104,7 @@ void ArbiterComponent::mainLoop() {
 			for (int i = 0; i < numOutputs; i++) {
 				if (ackDataOut[i].read()) {
 					validDataOut[i].write(false);
+					inUse[i] = false;
 					activeTransfers--;
 				}
 			}
@@ -90,11 +118,12 @@ void ArbiterComponent::mainLoop() {
 	}
 }
 
-ArbiterComponent::ArbiterComponent(sc_module_name name, const ComponentID& ID, int inputs, int outputs) :
+ArbiterComponent::ArbiterComponent(sc_module_name name, const ComponentID& ID, int inputs, int outputs, bool wormhole) :
     Component(name, ID)
 {
 	numInputs       = inputs;
 	numOutputs      = outputs;
+	this->wormhole  = wormhole;
 
 	inactiveCycles  = 0x7FFF;
 	activeTransfers = 0;
@@ -107,6 +136,16 @@ ArbiterComponent::ArbiterComponent(sc_module_name name, const ComponentID& ID, i
 	dataOut         = new sc_out<AddressedWord>[outputs];
 	validDataOut    = new sc_out<bool>[outputs];
 	ackDataOut      = new sc_in<bool>[outputs];
+
+	reservations    = new int[numInputs];
+	reserved        = new bool[numOutputs];
+	inUse           = new bool[numOutputs];
+
+	for(int i=0; i<numInputs; i++) reservations[i] = NO_RESERVATION;
+	for(int i=0; i<numOutputs; i++) {
+	  reserved[i] = false;
+	  inUse[i] = false;
+	}
 
 	SC_THREAD(mainLoop);
 

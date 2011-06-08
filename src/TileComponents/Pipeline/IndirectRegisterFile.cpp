@@ -94,12 +94,12 @@ bool IndirectRegisterFile::isInvalid(RegisterIndex position) {
 }
 
 RegisterIndex IndirectRegisterFile::toChannelID(RegisterIndex position) {
-  // Check that it is in fact a channel-end?
+  assert(isChannelEnd(position));
   return position - START_OF_INPUT_CHANNELS;
 }
 
 RegisterIndex IndirectRegisterFile::fromChannelID(RegisterIndex position) {
-  // Check that it is in fact a channel-end?
+  assert(position < NUM_RECEIVE_CHANNELS);
   return position + START_OF_INPUT_CHANNELS;
 }
 
@@ -113,8 +113,6 @@ void IndirectRegisterFile::writeReg(const RegisterIndex reg, const Word data) {
 
   if(DEBUG) cout << this->name() << ": Stored " << data << " to register " <<
       (int)reg << endl;
-
-  // Instrumentation...
 }
 
 Cluster* IndirectRegisterFile::parent() const {

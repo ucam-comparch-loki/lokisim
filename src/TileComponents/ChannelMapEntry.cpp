@@ -79,7 +79,8 @@ void ChannelMapEntry::removeCredit() {
 		return;
 
 	credits_--;
-	assert(credits_ >= 0 && credits_ <= MAX_CREDITS);
+	assert(credits_ >= 0);
+	assert(credits_ <= MAX_CREDITS);
 }
 
 void ChannelMapEntry::addCredit() {
@@ -87,7 +88,8 @@ void ChannelMapEntry::addCredit() {
 		return;
 
 	credits_++;
-	assert(credits_ >= 0 && credits_ <= MAX_CREDITS);
+	assert(credits_ >= 0);
+	assert(credits_ <= MAX_CREDITS);
 }
 
 ChannelMapEntry::ChannelMapEntry() {

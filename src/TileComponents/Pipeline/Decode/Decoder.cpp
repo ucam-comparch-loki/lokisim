@@ -95,6 +95,19 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       case InstructionMap::STW :
       case InstructionMap::STHW :
       case InstructionMap::STB : {
+        // If the store operation will need to read from a channel, wait until
+        // the data has arrived. This ensures that the two halves of the store
+        // can be sent across the network atomically, and so the possibility of
+        // deadlock is eliminated.
+        if(Registers::isChannelEnd(output.sourceReg1())) {
+          blocked = true;
+          while(!parent()->testChannel(Registers::toChannelID(output.sourceReg1()))) {
+            wait(1, sc_core::SC_NS);
+            haveStalled = true;
+          }
+          blocked = false;
+        }
+
         setOperand1ToValue(output, output.sourceReg2());
         setOperand2ToValue(output, 0, output.immediate());
         output.operation(InstructionMap::ADDUI);

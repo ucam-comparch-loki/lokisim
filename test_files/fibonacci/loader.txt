@@ -1,4 +1,0 @@
-directory fibonacci
-
-1 fib_setup.loki
-13 fib.bloki

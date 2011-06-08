@@ -45,7 +45,7 @@ public:
 public:
 
   SC_HAS_PROCESS(ArbiterComponent);
-  ArbiterComponent(sc_module_name name, const ComponentID& ID, int inputs, int outputs);
+  ArbiterComponent(sc_module_name name, const ComponentID& ID, int inputs, int outputs, bool wormhole);
   virtual ~ArbiterComponent();
 
 //==============================//
@@ -68,7 +68,23 @@ private:
 
   int inactiveCycles;
   int activeTransfers;
-  int lastAccepted;
+  int lastAccepted; // Using round-robin at the moment.
+
+  // Additional state for wormhole routing.
+
+  bool wormhole;
+
+  static const int NO_RESERVATION = -1;
+
+  // For each input port, record which output to send the rest of the packet to.
+  int* reservations;
+
+  // Record whether each output port is available to send data on (it may be
+  // reserved by another input).
+  bool* reserved;
+
+  // Record which outputs we are waiting for acknowledgements on.
+  bool* inUse;
 
 };
 

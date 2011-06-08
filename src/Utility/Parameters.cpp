@@ -57,7 +57,7 @@ parameter NUM_TILE_COLUMNS           = 1;
 
 parameter NUM_ADDRESSABLE_REGISTERS  = 32;
 parameter NUM_PHYSICAL_REGISTERS     = 64;
-parameter IPK_FIFO_SIZE              = 16;
+parameter IPK_FIFO_SIZE              = 20;  // Make smaller once SIMD is sorted
 parameter IPK_CACHE_SIZE             = 256;//64;//1024;
 //parameter MEMORY_SIZE                = 2048;//8 * 1024 * 1024;
 parameter CONCURRENT_MEM_OPS         = 1;//NUM_MEMORY_INPUTS;
@@ -97,7 +97,7 @@ parameter  NUM_RECEIVE_CHANNELS     = 6;  // Register-mapped inputs only
 //parameter  MEMORY_INPUT_CHANNELS    = 8;  // Cores per tile + some extra?
 //parameter  MEMORY_OUTPUT_CHANNELS   = 8;  // Same as input channels (use #define?)
 
-parameter CHANNEL_END_BUFFER_SIZE    = 8;
+parameter CHANNEL_END_BUFFER_SIZE    = 20;  // Make smaller once SIMD is sorted
 parameter ROUTER_BUFFER_SIZE         = 4;
 parameter NETWORK_BUFFER_SIZE        = 4;   // Obsolete?
 

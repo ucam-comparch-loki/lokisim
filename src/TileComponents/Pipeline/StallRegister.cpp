@@ -29,7 +29,7 @@ void StallRegister::newData() {
 }
 
 void StallRegister::receivedReady() {
-  readyOut.write(readyIn.read() && localStageReady.read());
+  readyOut.write(readyIn.read() && localStageReady.read() && !buffer.full());
 }
 
 StallRegister::StallRegister(sc_module_name name, const ComponentID& ID) :
@@ -45,7 +45,7 @@ StallRegister::StallRegister(sc_module_name name, const ComponentID& ID) :
   dont_initialize();
 
   SC_METHOD(receivedReady);
-  sensitive << readyIn << localStageReady;
+  sensitive << readyIn << localStageReady << clock.pos();
   // do initialise
 
 //  readyOut.initialize(true);

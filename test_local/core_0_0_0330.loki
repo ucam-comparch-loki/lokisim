@@ -1,0 +1,24 @@
+ori                r3, r0, (0,8,0,2,3)       # First memory bank, first channel, quad bank group, cache line size 8 bytes
+ori                r4, r0, (0,12,0,2,7)      # Fifth memory bank, first channel, quad bank group, cahce line size 128 bytes
+or                 r0, r0, r0                # Make sure there are no timing problems
+or                 r0, r0, r0
+or                 r0, r0, r0
+or                 r0, r0, r0
+setchmap           0, r3                     # Set instruction fetch channel to memory bank
+setchmap           1, r4                     # Set data fetch channel to memory bank
+ori                r0, r0, 0x00130102 > 0    # Configuration command: General purpose cache, four banks
+ori                r0, r0, 0x01000000 > 0    # Table update command instruction fetch channel
+ori                r0, r0, (0,0,1) > 0       # IPK cache of first core
+ori                r0, r0, 0x00170102 > 1    # Configuration command: General purpose cache, four banks
+ori                r0, r0, 0x01000000 > 1    # Table update command data fetch channel
+ori                r0, r0, (0,0,2) > 1       # First data channel of first core
+ori                r0, ch0, r0               # Wait for memory configuration to complete
+or                 r0, r0, r0                # Make sure there are no timing problems
+or                 r0, r0, r0
+or                 r0, r0, r0
+or                 r0, r0, r0
+or                 r0, r0, r0
+or                 r0, r0, r0
+or                 r0, r0, r0
+or                 r0, r0, r0
+fetch.eop          r0, 4096                  # Fetch first instruction packet of program

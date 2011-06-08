@@ -1,8 +1,6 @@
 ../../simd.s
 vector_add.s
 
-% Each data memory contains information on the length/position of its vector
-9  ../params.data
-10 ../params.data
-9  ../vector1.data
-10 ../vector2.data
+../params.data  -1  0x00000
+../vector1.data -1  0x10000
+../vector2.data -1  0x11000

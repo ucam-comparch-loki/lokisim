@@ -24,7 +24,9 @@ bool IPKCacheStorage::checkTags(const MemoryAddr& key) {
         lastOpWasARead = false;
         updateFillCount();
       }
-      else pendingPacket = i;
+      else {
+        pendingPacket = i;
+      }
 
       return true;
     }
@@ -86,9 +88,13 @@ void IPKCacheStorage::write(const MemoryAddr& key, const Instruction& newData) {
   }
   // If it's the start of a new packet, queue it up to execute next.
   // A default key value shows that the instruction is continuing a packet.
-  else if(key != 0xFFFFFFFF) pendingPacket = refill.value();
+  else if(key != 0xFFFFFFFF) {
+    pendingPacket = refill.value();
+  }
   // We need to fetch the pending packet if we are now overwriting it.
-  else needRefetch = (refill == pendingPacket);
+  else {
+    needRefetch = (refill == pendingPacket);
+  }
 
   lastOpWasARead = false;
   haveRead[refill.value()] = false;
@@ -107,7 +113,7 @@ void IPKCacheStorage::jump(const JumpOffset offset) {
 
   // Hack: if we move to the next packet, then discover we should have jumped,
   // reset the next packet pointer.
-  if(this->tags[currInst.value()] != 0xFFFFFFFF) {
+  if(this->tags[currInst.value()] != 0xFFFFFFFF && !empty()) {
     pendingPacket = currInst.value();
   }
 

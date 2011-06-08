@@ -15,6 +15,7 @@
 typedef IndirectRegisterFile Registers;
 
 int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
+  assert(channelEnd < NUM_RECEIVE_CHANNELS);
 
   // If there is no data, block until it arrives.
   if(buffers[channelEnd].empty()) {
@@ -35,7 +36,8 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
 
 /* Return whether or not the specified channel contains data. */
 bool ReceiveChannelEndTable::testChannelEnd(ChannelIndex channelEnd) const {
-  return buffers[channelEnd].empty();
+  assert(channelEnd < NUM_RECEIVE_CHANNELS);
+  return !buffers[channelEnd].empty();
 }
 
 ChannelIndex ReceiveChannelEndTable::selectChannelEnd() {

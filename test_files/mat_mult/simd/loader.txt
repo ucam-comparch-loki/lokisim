@@ -1,6 +1,6 @@
 ../../simd.s
 mat_mult_irf.s
 
-9  ../params.data
-9  ../mat1.data
-10 ../mat2.data
+../params.data  -1  0x00000
+../mat1.data    -1  0x10000
+../mat2.data    -1  0x20000

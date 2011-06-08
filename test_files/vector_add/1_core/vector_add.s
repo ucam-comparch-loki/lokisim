@@ -10,7 +10,7 @@ _start:
 
 # Main loop
 loop:
-    ldw                 0x10000(r11)    -> 1
+    ldw                 0x10000(r11)    -> 1    # load from the two vectors
     ldw                 0x11000(r11)    -> 1
     setlt.p             r0,  r11, r10           # see if we have work left to do
     addui               r11, r11, 4             # move to next element

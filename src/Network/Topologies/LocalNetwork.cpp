@@ -76,9 +76,14 @@ void LocalNetwork::makeDataArbiter(unsigned int ID,
                                    unsigned int firstPort) {
   assert(firstPort + outputs - 1 < numOutputs);
 
+  // Use wormhole routing for the memories (where memory operations must arrive
+  // atomically), but not for cores (where instruction packets can arrive from
+  // multiple memories).
+  bool useWormhole = (ID >= CORES_PER_TILE) && (ID < COMPONENTS_PER_TILE);
+
   // Create an arbiter and store it in the vector.
   ArbiterComponent* arbiter =
-      new ArbiterComponent(sc_gen_unique_name("data_arbiter"), ID, inputs, outputs);
+      new ArbiterComponent(sc_gen_unique_name("data_arbiter"), ID, inputs, outputs, useWormhole);
   arbiters.push_back(arbiter);
 
   // Connect up the new arbiter.
@@ -105,7 +110,7 @@ void LocalNetwork::makeCreditArbiter(unsigned int ID,
 
   // Create an arbiter and store it in the vector.
   ArbiterComponent* arbiter =
-      new ArbiterComponent(sc_gen_unique_name("credit_arbiter"), ID, inputs, outputs);
+      new ArbiterComponent(sc_gen_unique_name("credit_arbiter"), ID, inputs, outputs, false);
   arbiters.push_back(arbiter);
 
   // Connect up the new arbiter.

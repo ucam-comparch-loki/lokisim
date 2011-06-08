@@ -283,7 +283,8 @@ bool MemoryBank::processMessageHeader() {
 				cout << this->name() << " received channel address" << endl;
 
 			if (!mOutputQueue.empty()) {
-				cout << this->name() << " output queue not empty" << endl;
+			  if(DEBUG)
+			    cout << this->name() << " output queue not empty" << endl;
 
 				// Drain output queue before changing table
 
@@ -609,6 +610,9 @@ void MemoryBank::processLocalMemoryAccess() {
 				cout << "!!!! " << mActiveRequest.getOperation() << " | " << mActiveAddress << " | " << payload.getOperation() << " | " << payload.getPayload() << endl;
 			}
 
+			// The received word should be the continuation of the previous operation
+			// (and should come from the same source core?).
+//			assert(mActiveRequest.getChannelID().getComponentID().getPosition() == payload.getChannelID().getComponentID().getPosition());
 			assert(payload.getOperation() == MemoryRequest::PAYLOAD_ONLY);
 
 			switch (mActiveRequest.getOperation()) {
@@ -1650,7 +1654,6 @@ Word MemoryBank::readWord(MemoryAddr addr) {
 
 				if (!cached)
 					data = mBackgroundMemory->readWord(addr).toUInt();
-cerr << data << endl;
 				return Word(data);
 			}
 

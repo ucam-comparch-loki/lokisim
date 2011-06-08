@@ -7,83 +7,76 @@
 #   U = ((-38R -  74G + 112B + 128) >> 8) + 128
 #   V = ((112R -  94G -  18B + 128) >> 8) + 128
 
-# Set up connections to memories
-simdstart:
-    fetch               r0,  params
-    addui               r5,  r30, (9,0)
-    addui               r6,  r30, (10,0)
-    setchmap            1,   r5                 # input = map 1
-    setchmap            2,   r6                 # output = map 2
-    addui               r0,  r8,  (0,2)  > 1
-    addui.eop           r0,  r8,  (0,0)  > 2
-
 # Load parameters
-params:
-    fetch               r0,  load
-    ldw                 r0,  4           > 1
-    ldw                 r0,  8           > 1
+simdstart:
+#    fetch               r0,  load
+    ldw                 r0,  4           -> 1
+    ldw                 r0,  8           -> 1
     ori                 r2,  ch0, 0             # r2 = rows of input
     ori                 r3,  ch0, 0             # r3 = columns of input
     mullw               r4,  r3,  r2            # r4 = length of input
 
 # Initialisation
-    ori                 r5,  r4,  0             # r5 = start of second input (green)
-    addu                r6,  r5,  r5            # r6 = start of third input (blue)
-    or.eop              r10, r0,  r30           # r10 = current location
+    or                  r10, r0,  r30           # r10 = current location
+    fetch.eop           r0,  load
 
 # Start of loop
 # Load subpixel values
 load:
-    fetch               r0,  computey
-    ldbu                r10, 12          > 1    # load red (offset = length of params)
-    addu                r11, r5,  r10           # r11 = position in green array
-    ldbu                r11, 12          > 1    # load green
-    addu                r12, r6,  r10           # r12 = position in blue array
-    ldbu                r12, 12          > 1    # load blue
+#    fetch               r0,  computey
+    ldbu                r10, 0x10000     -> 1   # load red
+    ldbu                r10, 0x11000     -> 1   # load green
+    ldbu                r10, 0x12000     -> 1   # load blue
     ori                 r7,  ch0, 0             # r7 = red
     ori                 r8,  ch0, 0             # r8 = green
-    ori.eop             r9,  ch0, 0             # r9 = blue
+    ori                 r9,  ch0, 0             # r9 = blue
+    fetch.eop           r0,  computey
 
 # Compute Y
 computey:
-    fetch               r0,  compute
+#    fetch               r0,  compute
     ori                 r13, r0,  66            # store coefficient
     ori                 r14, r0,  129           # store coefficient
     ori                 r15, r0,  25            # store coefficient
-    addui.eop           r29, r0,  computeu      # store next IPK location
+    addui               r29, r0,  computeu      # store next IPK location
+    fetch.eop           r0,  compute
 
 # Store Y, compute U
 computeu:
     addui               r13, r13, 16            # r13 = Y
-    stb                 r13, r10, 0      > 2    # store Y
-    fetch               r0,  compute
+    stb                 r13, r10, 0x20000 -> 1  # store Y
+#    fetch               r0,  compute
     ori                 r13, r0,  -38           # store coefficient
     ori                 r14, r0,  -74           # store coefficient
     ori                 r15, r0,  112           # store coefficient
-    addui.eop           r29, r0,  computev      # store next IPK location
+    addui               r29, r0,  computev      # store next IPK location
+    fetch.eop           r0,  compute
 
 # Store U, compute V
 computev:
     addui               r13, r13, 128           # r13 = U
-    stb                 r13, r11, 0      > 2    # store U
-    fetch               r0,  compute
+    stb                 r13, r10, 0x21000 -> 1  # store U
+#    fetch               r0,  compute
     ori                 r13, r0,  112           # store coefficient
     ori                 r14, r0,  -94           # store coefficient
     ori                 r15, r0,  -18           # store coefficient
-    addui.eop           r29, r0,  endofloop     # store next IPK location
+    addui               r29, r0,  endofloop     # store next IPK location
+    fetch.eop           r0,  compute
 
 # Store V, loop if necessary
 endofloop:
     addui               r13, r13, 128           # r13 = V
-    stb                 r13, r12, 0      > 2    # store V
+    stb                 r13, r10, 0x22000 -> 1  # store V
     addu                r10, r10, r31           # move to next pixel
     setlt.p             r0,  r10, r4            # see if we have finished
-    ifp?fetch           r0,  load
-    if!p?fetch          r0,  exit
-    or.eop              r0,  r0,  r0
+    ori                 r25, r0,  load
+    ori                 r26, r0,  exit
+    psel.fetch.eop      r25, r26
 
 exit:
-    syscall.eop         1
+    seteq.p             r0,  r30, r0            # set p if we are core 0
+    ifp?syscall         1
+    or.eop              r0,  r0,  r0
 
 # Subroutine to compute (xR + yG + zB + 128) >> 8
 # Excludes final addition because I currently don't have enough registers for it.
@@ -93,8 +86,9 @@ compute:
     mullw               r13, r13, r7            # xR
     mullw               r14, r14, r8            # yG
     mullw               r15, r15, r9            # zB
-    fetch               r29, 0
+#    fetch               r29, 0
     addu                r13, r13, r14           # xR + yG
     addu                r13, r13, r15           # xR + yG + zB
     addui               r13, r13, 128           # xR + yG + zB + 128
-    srli.eop            r13, r13, 8             # (xR + yG + zB + 128) >> 8
+    srli                r13, r13, 8             # (xR + yG + zB + 128) >> 8
+    fetch.eop           r29, 0

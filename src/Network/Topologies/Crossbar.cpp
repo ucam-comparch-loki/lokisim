@@ -37,7 +37,7 @@ void Crossbar::makeArbiters() {
   // Generate and connect up arbitrated multiplexers.
   for(int i=0; i<numMuxes; i++) {
     ArbiterComponent* arbiter = new ArbiterComponent(sc_gen_unique_name("arbiter"),
-                                                     i, numBuses, outputsPerComponent);
+                                                     i, numBuses, outputsPerComponent, false);
     arbiters.push_back(arbiter);
     arbiter->clock(clock);
 

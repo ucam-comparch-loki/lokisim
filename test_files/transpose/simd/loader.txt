@@ -1,5 +1,5 @@
 ../../simd.s
 transpose.s
 
-9 ../params.data
-9 ../matrix.data
+../params.data  -1  0x00000
+../matrix.data  -1  0x10000

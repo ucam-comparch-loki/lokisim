@@ -35,7 +35,6 @@ void FetchLogic::fetch(const MemoryAddr addr) {
 	} else {
 		// Store the request in case the packet gets overwritten and needs to
 		// be refetched.
-
 		refetchRequest = request;
 	}
 }
@@ -92,6 +91,7 @@ void FetchLogic::send() {
     while(!flowControl.read() && !roomInCache()) {
       wait(1, sc_core::SC_NS);
     }
+
     toNetwork.write(dataToSend);
   }
 }

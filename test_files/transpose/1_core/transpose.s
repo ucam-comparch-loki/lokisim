@@ -17,7 +17,7 @@ _start:
 loop:
     ori                 r11, r0,  0             # r11 = current input column/output row
     ori                 r12, r0,  0             # r12 = position in current row/column
-    slli                r13, r11, 2
+    slli                r13, r11, 2             # r13 = address to load from
     mullw               r14, r11, r2
     slli                r14, r14, 2             # r14 = address to store to
 

@@ -1,18 +1,8 @@
 # Very similar to default code, but makes use of indirect register file to
 # cache the taps. We can have no more than 32 taps.
 
-# Set up connections to memories (instruction memory is already sorted).
 simdstart:
-    fetch           r0,  params             # fetch main program
-    addui           r5,  r30, (9,0)
-    addui           r6,  r30, (10,0)
-    setchmap        1,   r5                 # input data memory = map 1
-    setchmap        2,   r6                 # output data memory = map 2
-    addui           r0,  r8,  2   > 1       # connect to the input data memory
-    addui.eop       r0,  r8,  3   > 2       # connect to the output data memory
-
-params:
-    fetch           r0,  loadtaps           # get the next instruction packet
+#    fetch           r0,  loadtaps           # get the next instruction packet
 
 # Load the parameters for this filter. (May deadlock if buffers are small?)
     ldw             r0,  4        > 1
@@ -40,19 +30,21 @@ params:
     addui           r27, r27, -4            # r27 = end point
     addu            r28, r11, r26           # r28 = end of taps
 
-    addu.eop        r4,  r13, r2            # r4 = position in outer loop
+    addu            r4,  r13, r2            # r4 = position in outer loop
+    fetch.eop       r0,  loadtaps
 
 # Load taps into indirect register file.
 loadtaps:
-    fetch           r0,  loop
+#    fetch           r0,  loop
     ori             r5,  r0,  32            # r5 = pointer to register to store tap in
     ldw             r11, 0          > 1     # load a tap
     addui           r11, r11, 4             # move to next tap
     iwtr            r5,  ch0                # store the tap in the IRF
     addui           r5,  r5,  1             # move to next register
     setgteu.p       r0,  r28, r11           # see if we have gone through all taps yet
-    p?ibjmp         -40                     # if not, load another tap
-    addui.eop       r8,  r10, 32            # r8 = first register with no tap in it
+    ifp?ibjmp       -40                     # if not, load another tap
+    addui           r8,  r10, 32            # r8 = first register with no tap in it
+    fetch.eop       r0,  loop
 
 # Start of outer loop
 loop:
@@ -62,25 +54,25 @@ loop:
 
 # Start of inner loop
     setgteu.p       r0,  r6,  r13           # make sure we are beyond start of input
-    p?setltu.p      r0,  r6,  r29           # make sure we are before end of input
-    p?ldw           r6,  0          > 1     # load input data
-    p?irdr          r7,  r5                 # load tap
+    ifp?setltu.p    r0,  r6,  r29           # make sure we are before end of input
+    ifp?ldw         r6,  0          > 1     # load input data
+    ifp?irdr        r7,  r5                 # load tap
     addui           r5,  r5,  1             # move to next tap
-    p?mullw         r7,  ch0, r7
-    p?addu          r9,  r9,  r7            # add new value to result
+    ifp?mullw       r7,  ch0, r7
+    ifp?addu        r9,  r9,  r7            # add new value to result
 
     setlt.p         r0,  r5,  r8            # see if we have gone through all taps yet
     addui           r6,  r6,  4             # move to next input element
-    p?ibjmp         -72
+    ifp?ibjmp       -72
 # End of inner loop
 
     addu            r4,  r4,  r3            # increment position in outer loop
-    stw             r9,  r14, 0     > 2     # store the result
+    stw             r9,  r14, 0     > 1     # store the result
     setgteu.p       r0,  r27, r4            # see if we have finished the outer loop
     addu            r14, r14, r3            # update store location for next time
-    p?ibjmp         -136
+    ifp?ibjmp       -136
 # End of outer loop
 
-    seteqi.p        r0,  r30, 0             # only exit if we're the last core
+    seteq.p         r0,  r30, r0            # set p if we are core 0
     ifp?syscall     1
     or.eop          r0,  r0,  r0
