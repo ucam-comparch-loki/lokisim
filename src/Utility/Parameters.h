@@ -58,8 +58,6 @@ extern parameter	NUM_ADDRESSABLE_REGISTERS;
 extern parameter	NUM_PHYSICAL_REGISTERS;
 extern parameter	IPK_FIFO_SIZE;
 extern parameter	IPK_CACHE_SIZE;
-//extern parameter	MEMORY_SIZE;
-extern parameter	CONCURRENT_MEM_OPS;
 
 extern parameter	CHANNEL_MAP_SIZE;
 
@@ -93,22 +91,13 @@ extern parameter	NUM_RECEIVE_CHANNELS;     // Register-mapped inputs only
 #define           CORE_INPUT_CHANNELS       (2 + NUM_RECEIVE_CHANNELS)
 #define           CORE_OUTPUT_CHANNELS      (CHANNEL_MAP_SIZE)
 
-//extern parameter	MEMORY_INPUT_PORTS;
-//extern parameter  MEMORY_OUTPUT_PORTS;
-//extern parameter  MEMORY_INPUT_CHANNELS;
-//extern parameter  MEMORY_OUTPUT_CHANNELS;
-
-#define MEMORY_INPUT_PORTS 1
+#define MEMORY_INPUT_PORTS  1
 #define MEMORY_OUTPUT_PORTS 1
-#define MEMORY_CHANNELS 16 // Memories always have the same number of input/output channels
-#define MEMORY_INPUT_CHANNELS MEMORY_CHANNELS
-#define MEMORY_OUTPUT_CHANNELS MEMORY_CHANNELS
+#define MEMORY_INPUT_CHANNELS  MEMORY_CHANNEL_MAP_TABLE_ENTRIES
+#define MEMORY_OUTPUT_CHANNELS MEMORY_CHANNEL_MAP_TABLE_ENTRIES
 
 extern parameter	CHANNEL_END_BUFFER_SIZE;	// Different send/receive sizes?
 extern parameter	ROUTER_BUFFER_SIZE;
-extern parameter	NETWORK_BUFFER_SIZE;
-
-extern parameter	WORMHOLE_ROUTING;
 
 //-------------------------------------------------------------------------------------------------
 // Combinations of other parameters

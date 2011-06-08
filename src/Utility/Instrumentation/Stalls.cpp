@@ -25,7 +25,7 @@ uint32_t Stalls::endOfExecution = 0;
 
 // If a core is not currently stalled, it should map to this value in the
 // "stalled" mapping.
-const int UNSTALLED = -1;
+const unsigned long long UNSTALLED = -1;
 
 void Stalls::stall(const ComponentID& id, unsigned long long cycle, int reason) {
   if(stallReason[id] == NONE) {

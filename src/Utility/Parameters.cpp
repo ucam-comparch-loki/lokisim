@@ -59,8 +59,6 @@ parameter NUM_ADDRESSABLE_REGISTERS  = 32;
 parameter NUM_PHYSICAL_REGISTERS     = 64;
 parameter IPK_FIFO_SIZE              = 20;  // Make smaller once SIMD is sorted
 parameter IPK_CACHE_SIZE             = 256;//64;//1024;
-//parameter MEMORY_SIZE                = 2048;//8 * 1024 * 1024;
-parameter CONCURRENT_MEM_OPS         = 1;//NUM_MEMORY_INPUTS;
 
 parameter CHANNEL_MAP_SIZE           = 8;
 
@@ -88,21 +86,12 @@ parameter MEMORY_ON_CHIP_SCRATCHPAD_BANKS		= 4;
 // accessible through each port.
 //-------------------------------------------------------------------------------------------------
 
-parameter  CORE_INPUT_PORTS         = 2;
-parameter  CORE_OUTPUT_PORTS        = 1;
-parameter  NUM_RECEIVE_CHANNELS     = 6;  // Register-mapped inputs only
+parameter CORE_INPUT_PORTS         = 2;
+parameter CORE_OUTPUT_PORTS        = 1;
+parameter NUM_RECEIVE_CHANNELS     = 6;  // Register-mapped inputs only
 
-//parameter  MEMORY_INPUT_PORTS       = 2;  // Current = input channels. Aim = 1.
-//parameter  MEMORY_OUTPUT_PORTS      = 1;
-//parameter  MEMORY_INPUT_CHANNELS    = 8;  // Cores per tile + some extra?
-//parameter  MEMORY_OUTPUT_CHANNELS   = 8;  // Same as input channels (use #define?)
-
-parameter CHANNEL_END_BUFFER_SIZE    = 20;  // Make smaller once SIMD is sorted
-parameter ROUTER_BUFFER_SIZE         = 4;
-parameter NETWORK_BUFFER_SIZE        = 4;   // Obsolete?
-
-// TODO: make wormhole routing a per-network property, rather than a global property.
-parameter WORMHOLE_ROUTING           = 0; // Has negative effect on performance
+parameter CHANNEL_END_BUFFER_SIZE  = 20;  // Make smaller once SIMD is sorted
+parameter ROUTER_BUFFER_SIZE       = 4;
 
 //-------------------------------------------------------------------------------------------------
 // Run-time parameter management
@@ -124,23 +113,8 @@ void Parameters::parseParameter(const string &name, const string &value) {
 	else SET_IF_MATCH(cName, nValue, NUM_PHYSICAL_REGISTERS);
 	else SET_IF_MATCH(cName, nValue, IPK_FIFO_SIZE);
 	else SET_IF_MATCH(cName, nValue, IPK_CACHE_SIZE);
-	//else SET_IF_MATCH(cName, nValue, MEMORY_SIZE);
-	else SET_IF_MATCH(cName, nValue, CONCURRENT_MEM_OPS);
 	else SET_IF_MATCH(cName, nValue, CHANNEL_MAP_SIZE);
 	else SET_IF_MATCH(cName, nValue, MAX_IPK_SIZE);
-	/*
-	else SET_IF_MATCH(cName, nValue, ENABLE_SHARED_L1_CACHE_SUBSYSTEM);
-	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_CHANNELS);
-	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_INTERFACE_QUEUE_DEPTH);
-	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_BANKS);
-	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_SETS_PER_BANK);
-	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_ASSOCIATIVITY);
-	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_LINE_SIZE);
-	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_SEQUENTIAL_SEARCH);
-	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_RANDOM_REPLACEMENT);
-	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_MEMORY_QUEUE_DEPTH);
-	else SET_IF_MATCH(cName, nValue, SHARED_L1_CACHE_MEMORY_DELAY_CYCLES);
-	*/
 	else SET_IF_MATCH(cName, nValue, MEMORY_CHANNEL_MAP_TABLE_ENTRIES);
 	else SET_IF_MATCH(cName, nValue, MEMORY_BANK_SIZE);
 	else SET_IF_MATCH(cName, nValue, MEMORY_CACHE_RANDOM_REPLACEMENT);
@@ -148,12 +122,8 @@ void Parameters::parseParameter(const string &name, const string &value) {
 	else SET_IF_MATCH(cName, nValue, MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 	else SET_IF_MATCH(cName, nValue, MEMORY_ON_CHIP_SCRATCHPAD_BANKS);
 	else SET_IF_MATCH(cName, nValue, NUM_RECEIVE_CHANNELS);
-	//else SET_IF_MATCH(cName, nValue, MEMORY_INPUT_CHANNELS);
-	//else SET_IF_MATCH(cName, nValue, MEMORY_OUTPUT_CHANNELS);
 	else SET_IF_MATCH(cName, nValue, CHANNEL_END_BUFFER_SIZE);
 	else SET_IF_MATCH(cName, nValue, ROUTER_BUFFER_SIZE);
-	else SET_IF_MATCH(cName, nValue, NETWORK_BUFFER_SIZE);
-	else SET_IF_MATCH(cName, nValue, WORMHOLE_ROUTING);
 	else {
 		cerr << "Encountered invalid parameter in settings file: " << name << endl;
 		throw std::exception();

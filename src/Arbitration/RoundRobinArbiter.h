@@ -10,11 +10,11 @@
 
 #include "ArbiterBase.h"
 
-class RoundRobinArbiter2: public ArbiterBase {
+class RoundRobinArbiter: public ArbiterBase {
 
 public:
 
-  RoundRobinArbiter2(int numInputs, int numOutputs, bool wormhole);
+  RoundRobinArbiter(int numInputs, int numOutputs, bool wormhole);
 
   virtual void arbitrateLogic(RequestList& requests, GrantList& grants);
 

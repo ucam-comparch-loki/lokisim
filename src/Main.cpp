@@ -94,11 +94,11 @@ void parseArguments(uint argc, char* argv[], Chip& chip) {
       }
       else if(argument == "-run") {
         // Command line way of choosing which program to run.
+        DEBUG = 0;
         string filename(argv[i+1]);
         CodeLoader::loadCode(filename, chip);
         i++;  // Have used two arguments in this iteration.
         codeLoaded = true;
-        DEBUG = 0;
       }
       else if(argument == "-runbatch") {
         // Command line way of choosing which program to run.

@@ -7,7 +7,7 @@
 
 #include "RoundRobinArbiter.h"
 
-void RoundRobinArbiter2::arbitrateLogic(RequestList& requests, GrantList& grants) {
+void RoundRobinArbiter::arbitrateLogic(RequestList& requests, GrantList& grants) {
   RequestList::iterator iter = requests.begin();
 
   // Find the position in the list to start accepting requests.
@@ -38,7 +38,7 @@ void RoundRobinArbiter2::arbitrateLogic(RequestList& requests, GrantList& grants
   return;
 }
 
-RoundRobinArbiter2::RoundRobinArbiter2(int numInputs, int numOutputs, bool wormhole) :
+RoundRobinArbiter::RoundRobinArbiter(int numInputs, int numOutputs, bool wormhole) :
     ArbiterBase(numInputs, numOutputs, wormhole) {
 
 }
