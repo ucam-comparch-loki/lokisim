@@ -200,6 +200,8 @@ SimplifiedOnChipScratchpad::SimplifiedOnChipScratchpad(sc_module_name name, cons
 	for (uint i = 0; i < portCount; i++)
 		mPortData[i].State = STATE_IDLE;
 
+	// In most cases, we are now trying to replace threads with methods, but this
+	// one seems to perform better as a thread.
 	SC_THREAD(mainLoop);
 
 	Instrumentation::idle(id, true);

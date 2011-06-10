@@ -12,14 +12,14 @@
 #ifndef FETCHSTAGE_H_
 #define FETCHSTAGE_H_
 
-#include "../StageWithSuccessor.h"
+#include "../PipelineStage.h"
 #include "InstructionPacketCache.h"
 #include "InstructionPacketFIFO.h"
 #include "../../../Datatype/Instruction.h"
 
 class DecodedInst;
 
-class FetchStage : public StageWithSuccessor {
+class FetchStage : public PipelineStage {
 
 //==============================//
 // Ports
@@ -27,10 +27,9 @@ class FetchStage : public StageWithSuccessor {
 
 public:
 
-// Inherited from StageWithSuccessor:
+// Inherited from PipelineStage:
 //   sc_in<bool>         clock
 //   sc_out<bool>        idle
-//   sc_out<DecodedInst> dataOut;
 
   // The input instruction to be sent to the instruction packet cache.
   sc_in<Word>         toIPKCache;
@@ -40,6 +39,11 @@ public:
 
   // A flow control signal from each of the two instruction inputs.
   sc_out<bool>       *flowControl;
+
+  // The decoded instruction after passing through this pipeline stage.
+  // DecodedInst holds all necessary fields for data at all stages throughout
+  // the pipeline.
+  sc_out<DecodedInst> dataOut;
 
   // Tells whether the next stage is ready to receive a new instruction.
   sc_in<bool>         readyIn;

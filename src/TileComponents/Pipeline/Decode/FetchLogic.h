@@ -25,6 +25,8 @@ class FetchLogic: public Component {
 
 public:
 
+  sc_in<bool>           clock;
+
   // Flow control. Can only send a request onto the network if the value
   // on this port is true.
   sc_in<bool>           flowControl;
@@ -97,6 +99,8 @@ private:
   AddressedWord         refetchRequest;
 
   AddressedWord         dataToSend;
+
+  // Event which is triggered whenever there is data to send.
   sc_core::sc_event     sendEvent;
 
 };

@@ -26,7 +26,7 @@ void ArbiterComponent::arbiterLoop() {
         state = WAITING_FOR_ACKS;
         next_trigger(clock.posedge_event());  // is this right?
       }
-      else {cerr << "hello?" << endl;
+      else {
         // There are no acknowledgements to wait for, so wait until data arrives.
         next_trigger(newDataEvent);
       }

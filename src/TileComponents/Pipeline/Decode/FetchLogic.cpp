@@ -83,16 +83,13 @@ void FetchLogic::sendRequest(const AddressedWord& data) {
 }
 
 void FetchLogic::send() {
-  while(true) {
-    wait(sendEvent);
-
-    // FIXME: whilst waiting for flow control and cache, etc. we may receive
-    // another request. One will be lost.
-    while(!flowControl.read() && !roomInCache()) {
-      wait(1, sc_core::SC_NS);
-    }
-
+  // Wait until flow control allows us to send and there is room in the cache.
+  if(!flowControl.read() || !roomInCache()) {
+    next_trigger(clock.posedge_event());
+  }
+  else {
     toNetwork.write(dataToSend);
+    next_trigger(sendEvent);
   }
 }
 
@@ -114,6 +111,8 @@ FetchLogic::FetchLogic(sc_module_name name, const ComponentID& ID) :
 
   fetchChannel = -1;      // So we get warnings if we fetch before setting this.
 
-  SC_THREAD(send);
+  SC_METHOD(send);
+  sensitive << sendEvent;
+  dont_initialize();
 
 }

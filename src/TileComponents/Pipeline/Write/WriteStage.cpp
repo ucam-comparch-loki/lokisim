@@ -10,14 +10,6 @@
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Utility/InstructionMap.h"
 
-double WriteStage::area() const {
-  return scet.area();
-}
-
-double WriteStage::energy() const {
-  return scet.energy();
-}
-
 ComponentID WriteStage::getSystemCallMemory() const {
 	return scet.getSystemCallMemory();
 }
@@ -84,6 +76,19 @@ void WriteStage::newInput(DecodedInst& data) {
 
 }
 
+void WriteStage::updateReady() {
+  // Write our current stall status.
+  readyOut.write(!isStalled());
+
+  if(DEBUG && isStalled() && readyOut.read()) {
+    cout << this->name() << " stalled." << endl;
+  }
+
+  // Wait until some point late in the cycle, so we know that any operations
+  // will have completed.
+  next_trigger(clock.negedge_event());
+}
+
 bool WriteStage::isStalled() const {
   return scet.full();
 }
@@ -94,7 +99,6 @@ void WriteStage::writeReg(RegisterIndex reg, int32_t value, bool indirect) const
 
 WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
-    StageWithPredecessor(name, ID),
     scet("scet", ID) {
 
 	//TODO: Replace this hack with something more sensible
@@ -107,4 +111,6 @@ WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
   scet.ackOutput(ackOutput);
   scet.creditsIn(creditsIn);
   scet.validCredit(validCredit);
+
+  SC_THREAD(execute);
 }

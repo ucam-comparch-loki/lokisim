@@ -5,6 +5,9 @@
  * Jobs include keeping track of credits, and sending data when we have more
  * than zero.
  *
+ * NOTE: this code has been refactored, but is largely untested, as it is not
+ * actively used in the current design.
+ *
  *  Created on: 8 Nov 2010
  *      Author: db434
  */
@@ -63,9 +66,10 @@ private:
   // Attempt to send new data whenever it arrives.
   void          mainLoop();
 
-  // Attempt to send any newly-received data, blocking until credits arrive if
-  // necessary.
+  // Write data to the network. This is known to be safe.
   void          sendData();
+
+  void          handleNewData();
 
   // Update the credit count. Triggered whenever a new credit arrives.
   void          receivedCredit();
@@ -75,6 +79,10 @@ private:
 //==============================//
 
 private:
+
+  enum FCOutState {WAITING_FOR_DATA, WAITING_FOR_CREDITS};
+
+  FCOutState state;
 
   // Address of channel managed by this flow control unit.
   ChannelID channel;

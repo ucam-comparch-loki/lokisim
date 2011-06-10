@@ -9,14 +9,6 @@
 #include "../../Cluster.h"
 #include "../../../Datatype/DecodedInst.h"
 
-double ExecuteStage::area() const {
-  return alu.area();
-}
-
-double ExecuteStage::energy() const {
-  return alu.energy();
-}
-
 bool ExecuteStage::readPredicate() const {return parent()->readPredReg();}
 int32_t ExecuteStage::readReg(RegisterIndex reg) const {return parent()->readReg(reg);}
 int32_t ExecuteStage::readWord(MemoryAddr addr) const {return parent()->readWord(addr).toInt();}
@@ -26,6 +18,35 @@ void ExecuteStage::writePredicate(bool val) const {parent()->writePredReg(val);}
 void ExecuteStage::writeReg(RegisterIndex reg, Word data) const {parent()->writeReg(reg, data.toInt());}
 void ExecuteStage::writeWord(MemoryAddr addr, Word data) const {parent()->writeWord(addr, data);}
 void ExecuteStage::writeByte(MemoryAddr addr, Word data) const {parent()->writeByte(addr, data);}
+
+void ExecuteStage::execute() {
+  while(true) {
+    // Wait for a new instruction to arrive.
+    wait(dataIn.default_event());
+
+    // Deal with the new input. We are currently not idle.
+    idle.write(false);
+    DecodedInst inst = dataIn.read(); // Don't want a const input.
+    newInput(inst);
+
+    // Once the next cycle starts, revert to being idle.
+    wait(clock.posedge_event());
+    idle.write(true);
+  }
+}
+
+void ExecuteStage::updateReady() {
+  // Write our current stall status.
+  readyOut.write(!isStalled());
+
+  if(DEBUG && isStalled() && readyOut.read()) {
+    cout << this->name() << " stalled." << endl;
+  }
+
+  // Wait until some point late in the cycle, so we know that any operations
+  // will have completed.
+  next_trigger(clock.negedge_event());
+}
 
 void ExecuteStage::newInput(DecodedInst& operation) {
 
@@ -59,9 +80,9 @@ void ExecuteStage::updateForwarding(const DecodedInst& inst) const {
 
 ExecuteStage::ExecuteStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
-    StageWithPredecessor(name, ID),
-    StageWithSuccessor(name, ID),
     alu("alu", ID) {
+
+  SC_THREAD(execute);
 
 }
 

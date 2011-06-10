@@ -9,23 +9,9 @@
 #include "Cluster.h"
 #include "InputCrossbar.h"
 #include "Pipeline/StallRegister.h"
-#include "Pipeline/Fetch/FetchStage.h"
-#include "Pipeline/Decode/DecodeStage.h"
-#include "Pipeline/Execute/ExecuteStage.h"
-#include "Pipeline/Write/WriteStage.h"
 #include "../Utility/InstructionMap.h"
 #include "../Datatype/ChannelID.h"
 #include "../Datatype/DecodedInst.h"
-
-double   Cluster::area() const {
-  return regs.area()   + pred.area();//    + fetch.area() +
-         //decode.area() + execute.area() + write.area();
-}
-
-double   Cluster::energy() const {
-  return regs.energy()   + pred.energy();//    + fetch.energy() +
-         //decode.energy() + execute.energy() + write.energy();
-}
 
 /* Initialise the instructions a Cluster will execute. */
 void     Cluster::storeData(const std::vector<Word>& data, MemoryAddr location) {
@@ -46,39 +32,15 @@ void     Cluster::storeData(const std::vector<Word>& data, MemoryAddr location) 
     }
   }
 
-  FetchStage*  fetch  = dynamic_cast<FetchStage*>(stages.front());
-  fetch->storeCode(instructions);
+  fetch.storeCode(instructions);
 }
 
-const MemoryAddr Cluster::getInstIndex() const {
-  FetchStage*  fetch  = dynamic_cast<FetchStage*>(stages.front());
-  return fetch->getInstIndex();
-}
-
-bool     Cluster::inCache(const MemoryAddr a) {
-  FetchStage*  fetch  = dynamic_cast<FetchStage*>(stages.front());
-  return fetch->inCache(a);
-}
-
-bool     Cluster::roomToFetch() const {
-  FetchStage*  fetch  = dynamic_cast<FetchStage*>(stages.front());
-  return fetch->roomToFetch();
-}
-
-void     Cluster::refetch() {
-  DecodeStage* decode = dynamic_cast<DecodeStage*>(stages[1]);
-  decode->refetch();
-}
-
-void     Cluster::jump(const JumpOffset offset) {
-  FetchStage*  fetch  = dynamic_cast<FetchStage*>(stages.front());
-  fetch->jump(offset);
-}
-
-void     Cluster::setPersistent(bool persistent) {
-  FetchStage*  fetch  = dynamic_cast<FetchStage*>(stages.front());
-  fetch->setPersistent(persistent);
-}
+const MemoryAddr Cluster::getInstIndex() const   {return fetch.getInstIndex();}
+bool     Cluster::inCache(const MemoryAddr a)    {return fetch.inCache(a);}
+bool     Cluster::roomToFetch() const            {return fetch.roomToFetch();}
+void     Cluster::refetch()                      {decode.refetch();}
+void     Cluster::jump(const JumpOffset offset)  {fetch.jump(offset);}
+void     Cluster::setPersistent(bool persistent) {fetch.setPersistent(persistent);}
 
 const int32_t Cluster::readReg(RegisterIndex reg, bool indirect) const {
 
@@ -165,37 +127,27 @@ void     Cluster::updateForwarding(const DecodedInst& inst) {
   previousResult1 = inst.result();
 }
 
-bool     Cluster::readPredReg() const {
-  return pred.read();
-}
+bool     Cluster::readPredReg() const     {return pred.read();}
+void     Cluster::writePredReg(bool val)  {pred.write(val);}
 
 const Word Cluster::readWord(MemoryAddr addr) const {
-	WriteStage* writeStage = dynamic_cast<WriteStage*>(stages.back());
-	return Word(parent()->readWord(writeStage->getSystemCallMemory(), addr));
+	return Word(parent()->readWord(write.getSystemCallMemory(), addr));
 }
 
 const Word Cluster::readByte(MemoryAddr addr) const {
-	WriteStage* writeStage = dynamic_cast<WriteStage*>(stages.back());
-	return Word(parent()->readByte(writeStage->getSystemCallMemory(), addr));
+	return Word(parent()->readByte(write.getSystemCallMemory(), addr));
 }
 
 void Cluster::writeWord(MemoryAddr addr, Word data) {
-	WriteStage* writeStage = dynamic_cast<WriteStage*>(stages.back());
-	parent()->writeWord(writeStage->getSystemCallMemory(), addr, data);
+	parent()->writeWord(write.getSystemCallMemory(), addr, data);
 }
 
 void Cluster::writeByte(MemoryAddr addr, Word data) {
-	WriteStage* writeStage = dynamic_cast<WriteStage*>(stages.back());
-	parent()->writeByte(writeStage->getSystemCallMemory(), addr, data);
-}
-
-void     Cluster::writePredReg(bool val) {
-  pred.write(val);
+	parent()->writeByte(write.getSystemCallMemory(), addr, data);
 }
 
 const int32_t  Cluster::readRCET(ChannelIndex channel) {
-  DecodeStage* decode = dynamic_cast<DecodeStage*>(stages[1]);
-  return decode->readRCET(channel);
+  return decode.readRCET(channel);
 }
 
 void     Cluster::updateCurrentPacket(MemoryAddr addr) {
@@ -221,7 +173,7 @@ void     Cluster::updateIdle() {
   constantHigh.write(true);   // Hack: find a better way of doing this.
 
   bool isIdle = true;
-  for(uint i=0; i<stages.size(); i++) {
+  for(uint i=0; i<4; i++) {
     if(!stageIdle[i].read()) {
       isIdle = false;
       break;
@@ -252,25 +204,22 @@ ChannelID Cluster::RCETInput(const ComponentID& ID, ChannelIndex channel) {
 Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
     TileComponent(name, ID, CORE_INPUT_PORTS, CORE_OUTPUT_PORTS),
     regs("regs", ID),
-    pred("predicate") {
+    pred("predicate"),
+    fetch("fetch", ID),
+    decode("decode", ID),
+    execute("execute", ID),
+    write("write", ID) {
 
   previousDest1 = previousDest2 = -1;
 
   inputCrossbar = new InputCrossbar("input", ID, CORE_INPUT_PORTS, CORE_INPUT_CHANNELS);
 
-  // Create pipeline stages and put into a vector (allows arbitrary length
-  // pipeline).
-  stages.push_back(new FetchStage("fetch", ID));
-  stages.push_back(new DecodeStage("decode", ID));
-  stages.push_back(new ExecuteStage("execute", ID));
-  stages.push_back(new WriteStage("write", ID));
-
   // Create signals, with the number based on the length of the pipeline.
-  stageIdle     = new sc_signal<bool>[stages.size()];
-  stallRegReady = new sc_signal<bool>[stages.size()-1];
-  stageReady    = new sc_signal<bool>[stages.size()-1];
-  dataToStage   = new flag_signal<DecodedInst>[stages.size()-1];
-  dataFromStage = new sc_buffer<DecodedInst>[stages.size()-1];
+  stageIdle     = new sc_signal<bool>[4];
+  stallRegReady = new sc_signal<bool>[3];
+  stageReady    = new sc_signal<bool>[3];
+  dataToStage   = new flag_signal<DecodedInst>[3];
+  dataFromStage = new sc_buffer<DecodedInst>[3];
 
   fcFromBuffers = new sc_signal<bool>[CORE_INPUT_CHANNELS];
   dataToBuffers = new sc_buffer<Word>[CORE_INPUT_CHANNELS];
@@ -294,7 +243,7 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
   inputCrossbar->clock(clock);
 
   // Wire the stall registers up.
-  for(uint i=0; i<stages.size()-1; i++) {
+  for(uint i=0; i<3; i++) {
     StallRegister* stallReg = new StallRegister(sc_core::sc_gen_unique_name("stall"), i);
 
     stallReg->clock(clock);               stallReg->readyOut(stallRegReady[i]);
@@ -302,52 +251,42 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
     stallReg->localStageReady(stageReady[i]);
 
     // The final stall register gets a different ready signal.
-    if(i<stages.size()-2) stallReg->readyIn(stallRegReady[i+1]);
+    if(i < 2) stallReg->readyIn(stallRegReady[i+1]);
 
     stallRegs.push_back(stallReg);
   }
   stallRegs.back()->readyIn(constantHigh);
 
   // Wire the pipeline stages up.
-  for(uint i=0; i<stages.size(); i++) {
-    stages[i]->clock(clock);              stages[i]->idle(stageIdle[i]);
 
-    // All stages except the first have some ports.
-    if(i>0) {
-      StageWithPredecessor* stage = dynamic_cast<StageWithPredecessor*>(stages[i]);
-      stage->readyOut(stageReady[i-1]); stage->dataIn(dataToStage[i-1]);
-    }
+  fetch.clock(clock);                     fetch.idle(stageIdle[0]);
+  fetch.toIPKFIFO(dataToBuffers[0]);      fetch.flowControl[0](fcFromBuffers[0]);
+  fetch.toIPKCache(dataToBuffers[1]);     fetch.flowControl[1](fcFromBuffers[1]);
+  fetch.readyIn(stallRegReady[0]);        fetch.dataOut(dataFromStage[0]);
 
-    // All stages except the last have some ports.
-    if(i<stages.size()-1) {
-      StageWithSuccessor* stage = dynamic_cast<StageWithSuccessor*>(stages[i]);
-      stage->dataOut(dataFromStage[i]);
-    }
-  }
-
-  // Wire up unique inputs/outputs which can't be done in the loops above.
-  FetchStage*  fetch  = dynamic_cast<FetchStage*>(stages.front());
-  fetch->toIPKFIFO(dataToBuffers[0]);     fetch->flowControl[0](fcFromBuffers[0]);
-  fetch->toIPKCache(dataToBuffers[1]);    fetch->flowControl[1](fcFromBuffers[1]);
-  fetch->readyIn(stallRegReady[0]);
-
-  DecodeStage* decode = dynamic_cast<DecodeStage*>(stages[1]);
-  decode->fetchOut(fetchSignal);
-  decode->flowControlIn(stageReady[stages.size()-2]); // Flow control from output buffers
-  decode->readyIn(stallRegReady[1]);
+  decode.clock(clock);                    decode.idle(stageIdle[1]);
+  decode.fetchOut(fetchSignal);
+  decode.flowControlIn(stageReady[2]); // Flow control from output buffers
+  decode.readyIn(stallRegReady[1]);       decode.dataOut(dataFromStage[1]);
+  decode.readyOut(stageReady[0]);         decode.dataIn(dataToStage[0]);
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
-    decode->rcetIn[i](dataToBuffers[i+2]);
-    decode->flowControlOut[i](fcFromBuffers[i+2]);
+    decode.rcetIn[i](dataToBuffers[i+2]);
+    decode.flowControlOut[i](fcFromBuffers[i+2]);
   }
 
-  WriteStage*  write  = dynamic_cast<WriteStage*>(stages.back());
-  write->fromFetchLogic(fetchSignal);
-  write->output(dataOut[0]);              write->creditsIn(creditsIn[0]);
-  write->validOutput(validDataOut[0]);    write->validCredit(validCreditIn[0]);
-  write->ackOutput(ackDataOut[0]);
+  execute.clock(clock);                   execute.idle(stageIdle[2]);
+  execute.readyOut(stageReady[1]);        execute.dataIn(dataToStage[1]);
+  execute.dataOut(dataFromStage[2]);
+
+  write.clock(clock);                     write.idle(stageIdle[3]);
+  write.readyOut(stageReady[2]);          write.dataIn(dataToStage[2]);
+  write.fromFetchLogic(fetchSignal);
+  write.output(dataOut[0]);               write.creditsIn(creditsIn[0]);
+  write.validOutput(validDataOut[0]);     write.validCredit(validCreditIn[0]);
+  write.ackOutput(ackDataOut[0]);
 
   SC_METHOD(updateIdle);
-  for(uint i=0; i<stages.size(); i++) sensitive << stageIdle[i];
+  for(uint i=0; i<4; i++) sensitive << stageIdle[i];
   // do initialise
 
   // Initialise the values in some wires.
@@ -363,6 +302,5 @@ Cluster::~Cluster() {
   delete[] dataToStage;
   delete[] dataFromStage;
 
-  for(uint i=0; i<stages.size(); i++) delete stages[i];
   for(uint i=0; i<stallRegs.size(); i++) delete stallRegs[i];
 }

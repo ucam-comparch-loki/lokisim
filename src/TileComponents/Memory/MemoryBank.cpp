@@ -1350,71 +1350,68 @@ void MemoryBank::handleNetworkInterfacesPost() {
 }
 
 void MemoryBank::mainLoop() {
-	for (;;) {
-		wait(iClock.posedge_event());
 
-		handleNetworkInterfacesPre();
+  handleNetworkInterfacesPre();
 
-		// Set output port defaults - only final write will be effective
+  // Set output port defaults - only final write will be effective
 
-		oBMDataStrobe.write(false);
+  oBMDataStrobe.write(false);
 
-		// Proceed according to FSM state
+  // Proceed according to FSM state
 
-		switch (mFSMState) {
-		case STATE_IDLE:
-			if (!processRingEvent())
-				processMessageHeader();
+  switch (mFSMState) {
+  case STATE_IDLE:
+    if (!processRingEvent())
+      processMessageHeader();
 
-			break;
+    break;
 
-		case STATE_FETCH_BURST_LENGTH:
-			processFetchBurstLength();
-			break;
+  case STATE_FETCH_BURST_LENGTH:
+    processFetchBurstLength();
+    break;
 
-		case STATE_LOCAL_MEMORY_ACCESS:
-			processLocalMemoryAccess();
-			break;
+  case STATE_LOCAL_MEMORY_ACCESS:
+    processLocalMemoryAccess();
+    break;
 
-		case STATE_LOCAL_IPK_READ:
-			processLocalIPKRead();
-			break;
+  case STATE_LOCAL_IPK_READ:
+    processLocalIPKRead();
+    break;
 
-		case STATE_LOCAL_BURST_READ:
-			processLocalBurstRead();
-			break;
+  case STATE_LOCAL_BURST_READ:
+    processLocalBurstRead();
+    break;
 
-		case STATE_BURST_WRITE_MASTER:
-			processBurstWriteMaster();
-			break;
+  case STATE_BURST_WRITE_MASTER:
+    processBurstWriteMaster();
+    break;
 
-		case STATE_BURST_WRITE_SLAVE:
-			processBurstWriteSlave();
-			break;
+  case STATE_BURST_WRITE_SLAVE:
+    processBurstWriteSlave();
+    break;
 
-		case STATE_GP_CACHE_MISS:
-			processGeneralPurposeCacheMiss();
-			break;
+  case STATE_GP_CACHE_MISS:
+    processGeneralPurposeCacheMiss();
+    break;
 
-		case STATE_WAIT_RING_OUTPUT:
-			processWaitRingOutput();
-			break;
+  case STATE_WAIT_RING_OUTPUT:
+    processWaitRingOutput();
+    break;
 
-		default:
-			assert(false);
-			break;
-		}
+  default:
+    assert(false);
+    break;
+  }
 
-		// Send output if possible
+  // Send output if possible
 
-		handleNetworkInterfacesPost();
+  handleNetworkInterfacesPost();
 
-		// Update status signals
+  // Update status signals
 
-		bool idle = mFSMState == STATE_IDLE && mInputQueue.empty() && mOutputQueue.empty() && !mOutputWordPending && !mRingRequestInputPending && !mRingRequestOutputPending;
-		oIdle.write(idle);
-		Instrumentation::idle(id, idle);
-	}
+  bool idle = mFSMState == STATE_IDLE && mInputQueue.empty() && mOutputQueue.empty() && !mOutputWordPending && !mRingRequestInputPending && !mRingRequestOutputPending;
+  oIdle.write(idle);
+  Instrumentation::idle(id, idle);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1489,7 +1486,9 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 
 	Instrumentation::idle(id, true);
 
-	SC_THREAD(mainLoop);
+	SC_METHOD(mainLoop);
+	sensitive << iClock.pos();
+	dont_initialize();
 
 	SC_METHOD(processValidInput);
 	sensitive << iDataInValid << iClock.neg();

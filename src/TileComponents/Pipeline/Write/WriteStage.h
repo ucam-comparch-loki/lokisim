@@ -12,10 +12,10 @@
 #ifndef WRITESTAGE_H_
 #define WRITESTAGE_H_
 
-#include "../StageWithPredecessor.h"
+#include "../PipelineStage.h"
 #include "SendChannelEndTable.h"
 
-class WriteStage: public StageWithPredecessor {
+class WriteStage: public PipelineStage {
 
 //==============================//
 // Ports
@@ -23,11 +23,17 @@ class WriteStage: public StageWithPredecessor {
 
 public:
 
-// Inherited from StageWithPredecessor:
+// Inherited from PipelineStage:
 //   sc_in<bool>        clock
 //   sc_out<bool>       idle
-//   sc_in<DecodedInst> dataIn
 //   sc_out<bool>       stallOut
+
+  // The input instruction to be working on. DecodedInst holds all information
+  // required for any pipeline stage to do its work.
+  sc_in<DecodedInst>    dataIn;
+
+  // Tell whether this stage is ready for input (ignoring effects of any other stages).
+  sc_out<bool>          readyOut;
 
   // Fetch logic will sometimes provide messages to put into the output buffer.
   sc_in<AddressedWord>  fromFetchLogic;
@@ -57,15 +63,16 @@ public:
 
 public:
 
-  virtual double area()  const;
-  virtual double energy() const;
-
   ComponentID getSystemCallMemory() const;
 
 private:
 
   virtual void   execute();
   virtual void   newInput(DecodedInst& data);
+
+  // Determine whether this stage is stalled or not, and write the appropriate
+  // output.
+  virtual void   updateReady();
 
   virtual bool   isStalled() const;
 

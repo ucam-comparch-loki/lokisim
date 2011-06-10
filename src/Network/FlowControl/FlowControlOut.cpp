@@ -10,20 +10,48 @@
 #include "../../TileComponents/TileComponent.h"
 
 void FlowControlOut::mainLoop() {
-  while(true) {
-    wait(dataIn.default_event());
-    sendData();
-  }
+  switch(state) {
+    case WAITING_FOR_DATA : {
+      // Data has now arrived.
+
+      // Don't allow any more data until this send is complete.
+      flowControlOut.write(false);
+
+      // If the network is not ready for the data, wait until it is.
+      if(!readyIn.read())
+        next_trigger(readyIn.posedge_event());
+      else
+        handleNewData();
+
+      break;
+    }
+
+    case WAITING_FOR_CREDITS : {
+      // A credit has now arrived.
+      sendData();
+
+      state = WAITING_FOR_DATA;
+      next_trigger(dataIn.default_event());
+
+      break;
+    }
+  } // end switch
 }
 
 void FlowControlOut::sendData() {
+  assert(creditCount > 0);
 
-  // Don't allow any more data until this send is complete.
-  flowControlOut.write(false);
+  if(DEBUG) cout << "Network sending " << dataIn.read().payload() << " from "
+      << channel << " to " << dataIn.read().channelID() << endl;
 
-  // Wait for the ready signal to be set, if it is not already.
-  if(!readyIn.read()) wait(readyIn.posedge_event());
+  Instrumentation::networkTraffic(id, dataIn.read().channelID());
 
+  dataOut.write(dataIn.read());
+  creditCount--;
+  flowControlOut.write(true);
+}
+
+void FlowControlOut::handleNewData() {
   if(dataIn.read().portClaim()) {
     // This message is allowed to send even if we have no credits
     // because it is not buffered -- it is immediately consumed to store
@@ -38,37 +66,33 @@ void FlowControlOut::sendData() {
           << channel << ": no credits." <<  endl;
 
       // Wait until we receive a credit.
-      wait(creditsIn.default_event());
+      state = WAITING_FOR_CREDITS;
+      next_trigger(creditsIn.default_event());
     }
-
-    if(DEBUG) cout << "Network sending " << dataIn.read().payload() << " from "
-        << channel << " to " << dataIn.read().channelID() << endl;
-
-    Instrumentation::networkTraffic(id, dataIn.read().channelID());
+    else {
+      sendData();
+      next_trigger(dataIn.default_event());
+    }
   }
-
-  dataOut.write(dataIn.read());
-  creditCount--;
-  assert(creditCount >= 0 && creditCount <= CHANNEL_END_BUFFER_SIZE);
-  flowControlOut.write(true);
-
 }
 
 void FlowControlOut::receivedCredit() {
   creditCount++;
 
   if(DEBUG) cout << "Received credit at port " << channel << endl;
-  assert(creditCount >= 0 && creditCount <= CHANNEL_END_BUFFER_SIZE);
+  assert(creditCount <= CHANNEL_END_BUFFER_SIZE);
 }
 
 FlowControlOut::FlowControlOut(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :
     Component(name, ID) {
 
   channel = channelManaged;
-
   creditCount = CHANNEL_END_BUFFER_SIZE;
+  state = WAITING_FOR_DATA;
 
-  SC_THREAD(mainLoop);
+  SC_METHOD(mainLoop);
+  sensitive << dataIn;
+  dont_initialize();
 
   SC_METHOD(receivedCredit);
   sensitive << creditsIn;

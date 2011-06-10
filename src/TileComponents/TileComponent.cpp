@@ -56,19 +56,13 @@ Chip* TileComponent::parent() const {
 }
 
 void TileComponent::acknowledgeCredit() {
-  while(true) {
-    // Wait until a credit arrives.
-//    wait(credit);
-    wait(clock.posedge_event());
+  for(int i=0; i<numOutputPorts; i++) {
+    ackCreditIn[i].write(false);
 
-    for(int i=0; i<numOutputPorts; i++) {
-      ackCreditIn[i].write(false);
-
-      // Send an acknowledgement straight away. Credits are always immediately
-      // consumed.
-      if(validCreditIn[i].read()) {
-        ackCreditIn[i].write(true);
-      }
+    // Send an acknowledgement straight away. Credits are always immediately
+    // consumed.
+    if(validCreditIn[i].read()) {
+      ackCreditIn[i].write(true);
     }
   }
 }
@@ -105,7 +99,9 @@ TileComponent::TileComponent(sc_module_name name, const ComponentID& ID,
   for(int i=0; i<outputPorts; i++) sensitive << validCreditIn[i].pos();
   dont_initialize();
 
-  SC_THREAD(acknowledgeCredit);
+  SC_METHOD(acknowledgeCredit);
+  sensitive << clock.pos();
+  dont_initialize();
 
   idle.initialize(true);
 

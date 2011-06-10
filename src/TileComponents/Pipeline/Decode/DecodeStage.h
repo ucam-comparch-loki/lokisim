@@ -12,14 +12,13 @@
 #ifndef DECODESTAGE_H_
 #define DECODESTAGE_H_
 
-#include "../StageWithSuccessor.h"
-#include "../StageWithPredecessor.h"
+#include "../PipelineStage.h"
 #include "FetchLogic.h"
 #include "ReceiveChannelEndTable.h"
 #include "Decoder.h"
 #include "SignExtend.h"
 
-class DecodeStage: public StageWithSuccessor, public StageWithPredecessor {
+class DecodeStage: public PipelineStage {
 
 //==============================//
 // Ports
@@ -27,12 +26,26 @@ class DecodeStage: public StageWithSuccessor, public StageWithPredecessor {
 
 public:
 
-// Inherited from StageWithSuccessor, StageWithPredecessor:
+// Inherited from PipelineStage:
 //   sc_in<bool>          clock
 //   sc_out<bool>         idle
-//   sc_in<DecodedInst>   dataIn
-//   sc_out<DecodedInst>  dataOut
 //   sc_out<bool>         stallOut
+
+  // The input instruction to be working on. DecodedInst holds all information
+  // required for any pipeline stage to do its work.
+  sc_in<DecodedInst>    dataIn;
+
+  // Tell whether this stage is ready for input (ignoring effects of any other stages).
+  sc_out<bool>          readyOut;
+
+  // The decoded instruction after passing through this pipeline stage.
+  // DecodedInst holds all necessary fields for data at all stages throughout
+  // the pipeline.
+  sc_out<DecodedInst>   dataOut;
+
+  // Since this stage can produce multiple outputs from a single input
+  // instruction, it needs to be told when it can send data.
+  sc_in<bool>           readyIn;
 
   // The NUM_RECEIVE_CHANNELS inputs to the receive channel-end table.
   sc_in<Word>          *rcetIn;
@@ -45,10 +58,6 @@ public:
 
   // A flow control signal for the output to the network.
   sc_in<bool>           flowControlIn;
-
-  // Since this stage can produce multiple outputs from a single input
-  // instruction, it needs to be told when it can send data.
-  sc_in<bool>           readyIn;
 
 //==============================//
 // Constructors and destructors
@@ -66,9 +75,6 @@ public:
 
 public:
 
-  virtual double area()   const;
-  virtual double energy() const;
-
   // Read a buffer in the receive channel end table. Warning: also removes
   // this value from the buffer.
   int32_t        readRCET(ChannelIndex index);
@@ -78,6 +84,14 @@ public:
   void           refetch();
 
 private:
+
+  // The main loop controlling this stage. Involves waiting for new input,
+  // doing work on it, and sending it to the next stage.
+  virtual void   execute();
+
+  // Determine whether this stage is stalled or not, and write the appropriate
+  // output.
+  virtual void   updateReady();
 
   // Pass the given instruction to the decoder to be decoded.
   virtual void   newInput(DecodedInst& inst);

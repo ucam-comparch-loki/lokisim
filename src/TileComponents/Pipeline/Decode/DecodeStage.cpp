@@ -9,12 +9,33 @@
 #include "../../Cluster.h"
 #include "../../../Datatype/DecodedInst.h"
 
-double       DecodeStage::area() const {
-  return fl.area() + rcet.area() + decoder.area() + extend.area();
+void         DecodeStage::execute() {
+  while(true) {
+    // Wait for a new instruction to arrive.
+    wait(dataIn.default_event());
+
+    // Deal with the new input. We are currently not idle.
+    idle.write(false);
+    DecodedInst inst = dataIn.read(); // Don't want a const input.
+    newInput(inst);
+
+    // Once the next cycle starts, revert to being idle.
+    wait(clock.posedge_event());
+    idle.write(true);
+  }
 }
 
-double       DecodeStage::energy() const {
-  return fl.energy() + rcet.energy() + decoder.energy() + extend.energy();
+void         DecodeStage::updateReady() {
+  // Write our current stall status.
+  readyOut.write(!isStalled());
+
+  if(DEBUG && isStalled() && readyOut.read()) {
+    cout << this->name() << " stalled." << endl;
+  }
+
+  // Wait until some point late in the cycle, so we know that any operations
+  // will have completed.
+  next_trigger(clock.negedge_event());
 }
 
 void         DecodeStage::newInput(DecodedInst& inst) {
@@ -101,8 +122,6 @@ bool         DecodeStage::discardNextInst() const {
 
 DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
-    StageWithSuccessor(name, ID),
-    StageWithPredecessor(name, ID),
     fl("fetchlogic", ID),
     rcet("rcet", ID),
     decoder("decoder", ID),
@@ -119,8 +138,13 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
     rcet.flowControl[i](flowControlOut[i]);
   }
 
+  fl.clock(clock);
   fl.toNetwork(fetchOut);
   fl.flowControl(flowControlIn);
+
+  readyOut.initialize(false);
+
+  SC_THREAD(execute);
 
 }
 

@@ -69,6 +69,7 @@ private:
 
   // Send the oldest value in each output buffer, if the flow control signals
   // allow it.
+  void          sendLoop();
   void          send();
 
   // Update an entry in the channel mapping table.
@@ -104,6 +105,8 @@ protected:
   // Currently waiting for some event to occur. (e.g. Credits to arrive or
   // buffer to empty.)
   bool waiting;
+
+  sc_core::sc_event dataToSendEvent;
 
   // Used to tell that we are not currently waiting for any output buffers
   // to empty.

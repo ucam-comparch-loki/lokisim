@@ -18,11 +18,8 @@ double FetchStage::energy() const {
 }
 
 void FetchStage::execute() {
-  // Loop forever, executing the appropriate tasks each clock cycle.
-  while(true) {
-    wait(clock.negedge_event());
-    cycleSecondHalf();
-  }
+  // Called at negedge.
+  cycleSecondHalf();
 }
 
 void FetchStage::cycleSecondHalf() {
@@ -61,14 +58,13 @@ void FetchStage::cycleSecondHalf() {
 void FetchStage::updateReady() {
   // Consider the pipeline to be stalled if the first pipeline stage is not
   // allowed to do any work. Only report the stall status when it changes.
-  while(true) {
-    wait(readyIn.default_event());
 
-    if(readyIn.read() == stalled) {
-      parent()->pipelineStalled(!readyIn.read());
-      stalled = !readyIn.read();
-    }
+  if(readyIn.read() == stalled) {
+    parent()->pipelineStalled(!readyIn.read());
+    stalled = !readyIn.read();
   }
+
+  next_trigger(readyIn.default_event());
 }
 
 void FetchStage::storeCode(const std::vector<Instruction>& instructions) {
@@ -123,7 +119,6 @@ void FetchStage::calculateSelect() {
 
 FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
-    StageWithSuccessor(name, ID),
     cache("IPKcache", ID),
     fifo("IPKfifo") {
 
@@ -140,6 +135,10 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
   cache.flowControl(flowControl[1]);
 
   idle.initialize(true);
+
+  SC_METHOD(execute);
+  sensitive << clock.neg();
+  dont_initialize();
 
 }
 

@@ -33,7 +33,9 @@ bool SendChannelEndTable::write(const AddressedWord& data, MapIndex output) {
   // of the pipeline if a buffer is full.
   assert(!buffer.full());
   assert(output < CHANNEL_MAP_SIZE);
+
   buffer.write(data);
+  dataToSendEvent.notify();
   mapEntries.write(output);
 
   if(DEBUG) cout << this->name() << " wrote " << data
@@ -51,32 +53,54 @@ ComponentID SendChannelEndTable::getSystemCallMemory() const {
 	return channelMap[1].destination().getComponentID();
 }
 
-void SendChannelEndTable::send() {
-  while(true) {
-    wait(clock.posedge_event());
+void SendChannelEndTable::sendLoop() {
+  if(ackOutput.read()) {
+    // If we are receiving an acknowledgement, we have just sent some data.
+    validOutput.write(false);
 
-    if(!buffer.empty()) {
-      MapIndex entry = mapEntries.peek();
-
-      // If we don't have enough credits, abandon sending the data.
-      if(!channelMap[entry].canSend()) continue;
-
-      AddressedWord data = buffer.read();
-      entry = mapEntries.read(); // Need to remove from the buffer after peeking earlier.
-
-      if(DEBUG) cout << "Sending " << data.payload()
-          << " from " << ChannelID(id, (int)entry) << " to "
-          << data.channelID() << endl;
-
-      output.write(data);
-      validOutput.write(true);
-      channelMap[entry].removeCredit();
-
-      // Deassert the valid signal when an acknowledgement arrives.
-      wait(ackOutput.posedge_event());
-      validOutput.write(false);
-    }
+    if(buffer.empty())        // No data to send.
+      next_trigger(dataToSendEvent);
+    else if(clock.posedge())  // Have data and it's time to send it.
+      send();
+    else                      // Have data but it's not time to send it.
+      next_trigger(clock.posedge_event());
   }
+  else {
+    // If we are not receiving an acknowledgement, we must have data to send.
+    assert(!buffer.empty());
+
+    // Data can only be sent onto the network at the positive clock edge.
+    if(!clock.posedge())
+      next_trigger(clock.posedge_event());
+    else
+      send();
+  }
+}
+
+void SendChannelEndTable::send() {
+  assert(!buffer.empty());
+  assert(clock.posedge());
+
+  MapIndex entry = mapEntries.peek();
+
+  // If we don't have enough credits, abandon sending the data.
+  if(!channelMap[entry].canSend()) {
+    next_trigger(clock.posedge_event());
+    return;
+  }
+
+  AddressedWord data = buffer.read();
+  entry = mapEntries.read(); // Need to remove from the buffer after peeking earlier.
+
+  if(DEBUG) cout << "Sending " << data.payload()
+      << " from " << ChannelID(id, (int)entry) << " to "
+      << data.channelID() << endl;
+
+  output.write(data);
+  validOutput.write(true);
+  channelMap[entry].removeCredit();
+
+  next_trigger(ackOutput.posedge_event());
 }
 
 /* Update an entry in the channel mapping table. */
@@ -125,6 +149,7 @@ void SendChannelEndTable::updateMap(MapIndex entry, int64_t newVal) {
 			AddressedWord aw(Word(returnChannel.getData()), sendChannel);
 			aw.setPortClaim(true, true);
 			buffer.write(aw);
+			dataToSendEvent.notify();
 			mapEntries.write(entry);
 		}
 	} else {
@@ -237,7 +262,9 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID&
     mapEntries(CHANNEL_END_BUFFER_SIZE, string(name)),
     channelMap(CHANNEL_MAP_SIZE) {
 
-  SC_THREAD(send);
+  SC_METHOD(sendLoop);
+  sensitive << dataToSendEvent;
+  dont_initialize();
 
   SC_METHOD(receivedCredit);
   sensitive << validCredit.pos();

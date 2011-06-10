@@ -18,9 +18,12 @@
 #include "../Datatype/AddressedWord.h"
 #include "Pipeline/IndirectRegisterFile.h"
 #include "Pipeline/PredicateRegister.h"
+#include "Pipeline/Fetch/FetchStage.h"
+#include "Pipeline/Decode/DecodeStage.h"
+#include "Pipeline/Execute/ExecuteStage.h"
+#include "Pipeline/Write/WriteStage.h"
 
 class InputCrossbar;
-class PipelineStage;
 class StallRegister;
 
 class Cluster : public TileComponent {
@@ -52,9 +55,6 @@ public:
 //==============================//
 
 public:
-
-  virtual double   area() const;
-  virtual double   energy() const;
 
   // Initialise the instructions a Cluster will execute.
   virtual void     storeData(const std::vector<Word>& data, MemoryAddr location=0);
@@ -153,9 +153,13 @@ private:
   IndirectRegisterFile     regs;
   PredicateRegister        pred;
 
-  // An arbitrary number of pipeline stages, and a stall register to go between
-  // each pair of adjacent stages.
-  vector<PipelineStage*>   stages;
+  // Each of the pipeline stages.
+  FetchStage   fetch;
+  DecodeStage  decode;
+  ExecuteStage execute;
+  WriteStage   write;
+
+  // A stall register to go between each pair of adjacent pipeline stages.
   vector<StallRegister*>   stallRegs;
 
   friend class IndirectRegisterFile;
