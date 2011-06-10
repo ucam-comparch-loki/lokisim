@@ -13,15 +13,11 @@ void UnclockedNetwork::dataArrived() {
 }
 
 void UnclockedNetwork::generateClock() {
-  while(true) {
-    // Wait until data arrives.
-    wait(newData);
+  // The clock goes high whenever data arrives, and low immediately afterwards.
+  if(clockSig.read()) next_trigger(newData);
+  else                next_trigger(clockSig.default_event());
 
-    // Generate a clock edge to trigger the network into sending the data.
-    clockSig.write(true);
-    wait(sc_core::SC_ZERO_TIME);
-    clockSig.write(false);
-  }
+  clockSig.write(!clockSig.read());
 }
 
 UnclockedNetwork::UnclockedNetwork(sc_module_name name, Network* network) :
@@ -54,7 +50,9 @@ UnclockedNetwork::UnclockedNetwork(sc_module_name name, Network* network) :
 
   network->clock(clockSig);
 
-  SC_THREAD(generateClock);
+  SC_METHOD(generateClock);
+  sensitive << newData;
+  dont_initialize();
 
   SC_METHOD(dataArrived);
   for(int i=0; i<inputs; i++) sensitive << validDataIn[i].pos();

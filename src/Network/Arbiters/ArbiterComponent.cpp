@@ -9,113 +9,138 @@
 #include "../../Arbitration/RoundRobinArbiter.h"
 #include "../../Datatype/AddressedWord.h"
 
-void ArbiterComponent::mainLoop() {
-	while (true) {
-		// Wait for something interesting to happen. We are sensitive to the
-		// negative edge because data is put onto networks at the positive edge
-		// and needs time to propagate through to these arbiters.
+void ArbiterComponent::arbiterLoop() {
+  switch(state) {
+    case WAITING_FOR_DATA : {
+      // Arbiters wait until the middle of the clock cycle to check for data
+      // to allow time for it to be sent from all of the source components.
+      // Source components always send data on the posedge.
+      if(!clock.negedge()) {
+        next_trigger(clock.negedge_event());
+        return;
+      }
 
-		if (inactiveCycles > 10) {
-			assert(activeTransfers == 0);
+      arbitrate();
 
-			if (numInputs == 1) {
-				wait(validDataIn[0].default_event());
-			} else {
-				sc_core::sc_event_or_list& eventList = validDataIn[0].default_event() | validDataIn[1].default_event();
+      if(activeTransfers > 0) {
+        state = WAITING_FOR_ACKS;
+        next_trigger(clock.posedge_event());  // is this right?
+      }
+      else {cerr << "hello?" << endl;
+        // There are no acknowledgements to wait for, so wait until data arrives.
+        next_trigger(newDataEvent);
+      }
 
-				for (int i = 2; i < numInputs; i++)
-					eventList | validDataIn[i].default_event();
+      break;
+    }
 
-				wait(eventList);
-			}
+    case WAITING_FOR_ACKS : {
+      checkAcks();
 
-			assert(sc_core::sc_time_stamp().value() % 1000 != 500);
+      state = WAITING_FOR_DATA;
 
-			inactiveCycles = 0;
-		}
-
-		wait(clock.negedge_event());
-
-		wait(sc_core::SC_ZERO_TIME);
-
-		int inCursor = lastAccepted;
-		int outCursor = 0;
-
-		for (int i = 0; i < numInputs; i++) {
-			// Request: numInput -> endOfPacket
-
-			inCursor++;
-			if (inCursor == numInputs)
-				inCursor = 0;
-
-			if (!validDataIn[inCursor].read())
-				continue;
-
-			// Determine which output to send the data to. If this arbiter makes use
-			// of wormhole routing, some outputs may be reserved.
-			int outputToUse;
-			if(wormhole && (reservations[inCursor] != NO_RESERVATION)) {
-			  outputToUse = reservations[inCursor];
-			}
-			else {
-			  // Find the next available output.
-			  while((reserved[outCursor] || inUse[outCursor]) && outCursor < numOutputs)
-			    outCursor++;
-
-			  outputToUse = outCursor;
-			}
-
-			// Don't exit the loop if we have now been through all outputs. There may
-			// still be reservations which can be filled.
-			if(outputToUse >= numOutputs) continue;
-
-			// Send the data, if appropriate.
-			if (!inUse[outputToUse]) {
-				dataOut[outputToUse].write(dataIn[inCursor].read());
-				validDataOut[outputToUse].write(true);
-				ackDataIn[inCursor].write(!ackDataIn[inCursor].read()); // Toggle value
-
-				inUse[outputToUse] = true;
-				lastAccepted = inCursor;
-				activeTransfers++;
-
-        // Update the reservation if using wormhole routing.
-        if(wormhole) {
-          bool endOfPacket = dataIn[inCursor].read().endOfPacket();
-          if(endOfPacket) {
-            reservations[inCursor] = NO_RESERVATION;
-            reserved[outputToUse] = false;
-          }
-          else {
-            reservations[inCursor] = outputToUse;
-            reserved[outputToUse] = true;
-          }
+      // See if there is any data waiting to be sent.
+      bool haveData = false;
+      for(int i=0; i<numInputs; i++) {
+        if(validDataIn[i].read()) {
+          haveData = true;
+          break;
         }
-			}
-		}
+      }
 
-		assert(activeTransfers >= 0 && activeTransfers <= numInputs && activeTransfers <= numOutputs);
+      if(activeTransfers > 0 || haveData) next_trigger(clock.negedge_event());
+      else                                next_trigger(newDataEvent);
 
-		if (activeTransfers > 0) {
-			wait(clock.posedge_event());
+      break;
+    }
+  } // end switch
+}
 
-			// Pull down the valid signal for any outputs which have sent acknowledgements.
+void ArbiterComponent::arbitrate() {
+  // Currently implements a round-robin arbitration scheme.
+  // TODO: make use of the classes in Arbitration so the behaviour can easily
+  // be swapped in and out.
 
-			for (int i = 0; i < numOutputs; i++) {
-				if (ackDataOut[i].read()) {
-					validDataOut[i].write(false);
-					inUse[i] = false;
-					activeTransfers--;
-				}
-			}
+  int inCursor = lastAccepted;
+  int outCursor = 0;
 
-			inactiveCycles = 0;
-		} else {
-			inactiveCycles++;
-		}
+  for (int i = 0; i < numInputs; i++) {
+    // Request: numInput -> endOfPacket
 
-		assert(activeTransfers >= 0 && activeTransfers <= numInputs && activeTransfers <= numOutputs);
-	}
+    inCursor++;
+    if (inCursor == numInputs)
+      inCursor = 0;
+
+    if (!validDataIn[inCursor].read())
+      continue;
+
+    // Determine which output to send the data to. If this arbiter makes use
+    // of wormhole routing, some outputs may be reserved.
+    int outputToUse;
+    if(wormhole && (reservations[inCursor] != NO_RESERVATION)) {
+      outputToUse = reservations[inCursor];
+    }
+    else {
+      // Find the next available output (skip over any which are in use
+      // or reserved by wormhole-routed packets).
+      while((inUse[outCursor] || (wormhole && reserved[outCursor]))
+         && (outCursor < numOutputs))
+        outCursor++;
+
+      outputToUse = outCursor;
+    }
+
+    // Don't exit the loop if we have now been through all outputs. There may
+    // still be reservations which can be filled.
+    if(outputToUse >= numOutputs) continue;
+
+    // Send the data, if appropriate.
+    if (!inUse[outputToUse]) {
+      dataOut[outputToUse].write(dataIn[inCursor].read());
+      validDataOut[outputToUse].write(true);
+      ackDataIn[inCursor].write(!ackDataIn[inCursor].read()); // Toggle value
+
+      inUse[outputToUse] = true;
+      lastAccepted = inCursor;
+      activeTransfers++;
+
+      // Update the reservation if using wormhole routing.
+      if(wormhole) {
+        bool endOfPacket = dataIn[inCursor].read().endOfPacket();
+        if(endOfPacket) {
+          reservations[inCursor] = NO_RESERVATION;
+          reserved[outputToUse] = false;
+        }
+        else {
+          reservations[inCursor] = outputToUse;
+          reserved[outputToUse] = true;
+        }
+      }
+    }
+  } // end for loop
+
+  assert(activeTransfers >= 0);
+  assert(activeTransfers <= numInputs);
+  assert(activeTransfers <= numOutputs);
+}
+
+void ArbiterComponent::checkAcks() {
+  // Pull down the valid signal for any outputs which have sent acknowledgements.
+  for (int i = 0; i < numOutputs; i++) {
+    if (ackDataOut[i].read()) {
+      validDataOut[i].write(false);
+      inUse[i] = false;
+      activeTransfers--;
+    }
+  }
+
+  assert(activeTransfers >= 0);
+  assert(activeTransfers <= numInputs);
+  assert(activeTransfers <= numOutputs);
+}
+
+void ArbiterComponent::newData() {
+  newDataEvent.notify();
 }
 
 ArbiterComponent::ArbiterComponent(sc_module_name name, const ComponentID& ID, int inputs, int outputs, bool wormhole) :
@@ -125,7 +150,6 @@ ArbiterComponent::ArbiterComponent(sc_module_name name, const ComponentID& ID, i
 	numOutputs      = outputs;
 	this->wormhole  = wormhole;
 
-	inactiveCycles  = 0x7FFF;
 	activeTransfers = 0;
 	lastAccepted    = inputs - 1;
 
@@ -137,17 +161,26 @@ ArbiterComponent::ArbiterComponent(sc_module_name name, const ComponentID& ID, i
 	validDataOut    = new sc_out<bool>[outputs];
 	ackDataOut      = new sc_in<bool>[outputs];
 
-	reservations    = new int[numInputs];
-	reserved        = new bool[numOutputs];
-	inUse           = new bool[numOutputs];
+  inUse           = new bool[numOutputs];
+  for(int i=0; i<numOutputs; i++) inUse[i] = false;
 
-	for(int i=0; i<numInputs; i++) reservations[i] = NO_RESERVATION;
-	for(int i=0; i<numOutputs; i++) {
-	  reserved[i] = false;
-	  inUse[i] = false;
+	if(wormhole) {
+    reservations    = new int[numInputs];
+    reserved        = new bool[numOutputs];
+
+    for(int i=0; i<numInputs; i++)  reservations[i] = NO_RESERVATION;
+    for(int i=0; i<numOutputs; i++) reserved[i] = false;
 	}
 
-	SC_THREAD(mainLoop);
+	state = WAITING_FOR_DATA;
+
+	SC_METHOD(arbiterLoop);
+	sensitive << newDataEvent;
+	dont_initialize();
+
+	SC_METHOD(newData);
+	for(int i=0; i<numInputs; i++) sensitive << validDataIn[i].pos();
+	dont_initialize();
 
 	end_module();
 }
@@ -160,4 +193,11 @@ ArbiterComponent::~ArbiterComponent() {
 	delete[] dataOut;
 	delete[] validDataOut;
 	delete[] ackDataOut;
+
+  delete[] inUse;
+
+	if(wormhole) {
+	  delete[] reservations;
+	  delete[] reserved;
+	}
 }

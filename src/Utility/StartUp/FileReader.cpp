@@ -151,9 +151,8 @@ FileReader* FileReader::linkFiles() {
     case 0: return NULL;
 //    case 1: return new ELFFileReader(filesToLink[0], ComponentID(), ComponentID(0, 0), 0x1000);
     default: {
-      // TODO: sim.ld no longer needed with new build?
-      string directory = Config::getAttribute("sim.ld",
-          "directory containing sim.ld (ask Alex if you don't have it)");
+      string directory = Config::getAttribute("lokiprefix",
+          "location of lokiprefix (compilation tools)") + "/loki-elf/lib";
       string library = "sim.ld";
       string fullpath = directory + "/" + library;
 

@@ -1,6 +1,11 @@
 /*
  * Bus.h
  *
+ * A simple single-source, single-destination bus.
+ *
+ * Any received data is sent on as soon as it is received. It is the
+ * responsibility of the source to send a maximum of one word per cycle.
+ *
  *  Created on: 31 Mar 2011
  *      Author: db434
  */
@@ -49,7 +54,9 @@ public:
 
 protected:
 
-  virtual void mainLoop();
+  // Main loop responsible for sending and receiving data, and dealing with
+  // acknowledgements.
+  void busLoop();
 
 private:
 
@@ -63,9 +70,20 @@ private:
 
 private:
 
+  enum BusState {WAITING_FOR_DATA, WAITING_FOR_ACK, SENT_ACK};
+
+  BusState state;
+
+  // The output port we have sent data on.
+  PortIndex outputUsed;
+
   // Store the previous value, so we can compute how many bits change when a
   // new value arrives.
   sc_signal<DataType> lastData;
+
+  // Used instead of wait(SC_ZERO_TIME) to wait until slightly after the posedge.
+  // This is a hack, and should be removed if possible.
+  sc_signal<bool> tinyWait;
 
 };
 

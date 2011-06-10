@@ -7,78 +7,71 @@
 
 #include "Bus.h"
 
-void Bus::mainLoop() {
-	while (true) {
-		wait(validDataIn[0].default_event());
+void Bus::busLoop() {
+  switch(state) {
+    case WAITING_FOR_DATA : {
+      if(clock.posedge()) {
+        // Wait for a delta cycle, because the valid signal is deasserted on
+        // the clock edge.
+        next_trigger(tinyWait.default_event());
+        tinyWait.write(!tinyWait.read());
+      }
+      else if(!validDataIn[0].read()) {
+        // It turns out that there wasn't actually more data: the valid signal
+        // was deasserted on the clock edge.
+        next_trigger(validDataIn[0].posedge_event());
+      }
+      else {
+        // There definitely is data: send it.
+        DataType data = dataIn[0].read();
 
-		if (sc_core::sc_time_stamp().value() % 1000 != 0)
-			wait(clock.posedge_event());
+        outputUsed = getDestination(data.channelID());
+        assert(outputUsed < numOutputs);
 
-		wait(sc_core::SC_ZERO_TIME);  // Allow time for the valid signal to be deasserted.
+        // TODO: assert that no more than one word is sent per cycle.
+        dataOut[outputUsed].write(data);
+        validDataOut[outputUsed].write(true);
 
-		if(!validDataIn[0].read())
-			continue;
+        next_trigger(ackDataOut[outputUsed].default_event());
+        state = WAITING_FOR_ACK;
+      }
 
-		// Receive data
+      break;
+    }
 
-		DataType data = dataIn[0].read();
+    case WAITING_FOR_ACK : {
+      // The data has been consumed, so is no longer valid.
+      validDataOut[outputUsed].write(false);
 
-		const PortIndex output = getDestination(data.channelID());
-		assert(output < numOutputs);
+      // Acknowledge the input data.
+      ackDataIn[0].write(true);
 
-		dataOut[output].write(data);
-		validDataOut[output].write(true);
+      next_trigger(clock.posedge_event());
+      state = SENT_ACK;
 
-		// Wait until receipt of the data is acknowledged.
-		wait(ackDataOut[output].default_event());
+      break;
+    }
 
-		// Receive credit
+    case SENT_ACK : {
+      assert(ackDataIn[0].read());
 
-		validDataOut[output].write(false);
+      ackDataIn[0].write(false);
 
-		// Pulse an acknowledgement.
-		ackDataIn[0].write(true);
+      if(!validDataIn[0].read()) {
+        next_trigger(validDataIn[0].posedge_event());
+        state = WAITING_FOR_DATA;
+      }
+      else {
+        // The valid signal is still high at the start of the next clock cycle.
+        // This means there may be more data to consume.
+        next_trigger(tinyWait.default_event());
+        tinyWait.write(!tinyWait.read());
+        state = WAITING_FOR_DATA;
+      }
 
-		int inactiveCycles = 0;
-
-		while (true) {
-			wait(clock.posedge_event());
-
-			ackDataIn[0].write(false);
-
-			wait(sc_core::SC_ZERO_TIME);  // Allow time for the valid signal to be deasserted.
-
-			if (validDataIn[0].read()) {
-				inactiveCycles = 0;
-			} else {
-				inactiveCycles++;
-				if (inactiveCycles > 10)
-					break;
-				else
-					continue;
-			}
-
-			// Receive data
-
-			DataType data = dataIn[0].read();
-
-			const PortIndex output = getDestination(data.channelID());
-			assert(output < numOutputs);
-
-			dataOut[output].write(data);
-			validDataOut[output].write(true);
-
-			// Wait until receipt of the data is acknowledged.
-			wait(ackDataOut[output].default_event());
-
-			// Receive credit
-
-			validDataOut[output].write(false);
-
-			// Pulse an acknowledgement.
-			ackDataIn[0].write(true);
-		}
-	}
+      break;
+    }
+  } // end switch
 }
 
 void Bus::computeSwitching() {
@@ -101,7 +94,11 @@ Bus::Bus(sc_module_name name, const ComponentID& ID, int numOutputPorts, Hierarc
 {
 	lastData.write(DataType());
 
-	SC_THREAD(mainLoop);
+	state = WAITING_FOR_DATA;
+
+	SC_METHOD(busLoop);
+	sensitive << validDataIn[0].pos();
+	dont_initialize();
 
 	SC_METHOD(computeSwitching);
 	sensitive << dataIn[0];

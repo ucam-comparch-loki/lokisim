@@ -60,17 +60,37 @@ public:
 
 private:
 
-  // Data has arrived over the network.
-  void         receivedData();
+  // The main loop used to handle data: receives data, waits until there is
+  // space in the buffer (if necessary), and sends acknowledgements.
+  void dataLoop();
 
-  // Update the bufferHasSpace signal.
-  void         updateReady();
+  // Helper functions for dataLoop.
+  void handleNewData();
+  void handlePortClaim();
+  void addCredit();
+  void sendAck();
+
+  // The main loop used to handle credits: wait until there are credits to send,
+  // send them, and wait for acknowledgements.
+  void creditLoop();
+
+  // Helper function for creditLoop.
+  void sendCredit();
 
 //==============================//
 // Local state
 //==============================//
 
 private:
+
+  // State machine for receiving/sending data.
+  enum DataState {WAITING_FOR_DATA, WAITING_FOR_SPACE, SENT_ACK};
+
+  // State machine for sending credits.
+  enum CreditState {NO_CREDITS, WAITING_TO_SEND, WAITING_FOR_ACK};
+
+  DataState dataState;
+  CreditState creditState;
 
   // Address of channel managed by this flow control unit.
   ChannelID channel;
@@ -82,7 +102,11 @@ private:
   bool useCredits;
   unsigned int numCredits;
 
-  sc_signal<bool> enableCreditUpdate;
+  // Used instead of wait(SC_ZERO_TIME) to wait until slightly after the posedge.
+  // This is a hack, and should be removed if possible.
+  sc_signal<bool> tinyWait;
+
+  sc_core::sc_event newCredit;
 
 };
 

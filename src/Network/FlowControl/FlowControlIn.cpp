@@ -10,151 +10,184 @@
 #include "../../Datatype/MemoryRequest.h"
 #include "../../TileComponents/TileComponent.h"
 
-/* Put any new data into the buffer. Since we approved the request to send
- * data, it is known that there is enough room. */
-void FlowControlIn::receivedData() {
-	while (true) {
-		wait(validDataIn.default_event());
+void FlowControlIn::dataLoop() {
+  switch(dataState) {
+    case WAITING_FOR_DATA: {
+      if(clock.posedge()) {
+        // Wait for a delta cycle, because the valid signal is deasserted on
+        // the clock edge.
+        next_trigger(tinyWait.default_event());
+        tinyWait.write(!tinyWait.read());
+      }
+      else if(!validDataIn.read())
+        next_trigger(validDataIn.posedge_event());
+      else
+        handleNewData();
 
-		if (sc_core::sc_time_stamp().value() % 1000 != 0)
-			wait(clock.posedge_event());
+      break;
+    }
 
-		wait(sc_core::SC_ZERO_TIME);  // Allow time for the valid signal to be deasserted.
+    case WAITING_FOR_SPACE: {
+      assert(bufferHasSpace.read());
 
-		if (!validDataIn.read())
-			continue;
+      dataOut.write(dataIn.read().payload());
+      sendAck();
 
-		if (dataIn.read().portClaim()) {
-			// TODO: only accept the port claim when we have no credits left to send.
+      break;
+    }
 
-			// Set the return address so we can send flow control.
-			returnAddress = dataIn.read().payload().toInt();
-			useCredits = dataIn.read().useCredits();
+    case SENT_ACK: {
+      assert(ackDataIn.read());
 
-			if(DEBUG)
-				cout << "Channel " << channel << " was claimed by " << returnAddress << " [flow control " << (useCredits ? "enabled" : "disabled") << "]" << endl;
+      ackDataIn.write(false);
 
-			// Allow core to wait until memory setup is complete if setting up a data connection
+      if(!validDataIn.read()) {
+        next_trigger(validDataIn.posedge_event());
+        dataState = WAITING_FOR_DATA;
+      }
+      else {
+        // The valid signal is still high at the start of the next clock cycle.
+        // This means there may be more data to consume.
+        next_trigger(tinyWait.default_event());
+        tinyWait.write(!tinyWait.read());
+        dataState = WAITING_FOR_DATA;
+      }
 
-			if (!useCredits && dataIn.read().channelID().getChannel() >= 2) {
-				// Wait until there is space in the buffer, if necessary
-				if (!bufferHasSpace.read())
-					wait(bufferHasSpace.posedge_event());
-
-				// Pass the value to the component.
-				dataOut.write(dataIn.read().payload());
-			}
-		} else {
-			// Wait until there is space in the buffer, if necessary
-			if (!bufferHasSpace.read())
-				wait(bufferHasSpace.posedge_event());
-
-			// Pass the value to the component.
-			dataOut.write(dataIn.read().payload());
-		}
-
-		if (useCredits) {
-			numCredits++;
-			assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
-		}
-
-		// Acknowledge the data.
-		ackDataIn.write(true);
-
-		int inactiveCycles = 0;
-
-		while (true) {
-			// Wait for data to arrive.
-			wait(clock.posedge_event());
-
-			ackDataIn.write(false);
-
-			wait(sc_core::SC_ZERO_TIME);  // Allow time for the valid signal to be deasserted.
-
-			if (validDataIn.read()) {
-				inactiveCycles = 0;
-			} else {
-				inactiveCycles++;
-				if (inactiveCycles > 10)
-					break;
-				else
-					continue;
-			}
-
-			if (dataIn.read().portClaim()) {
-				// TODO: only accept the port claim when we have no credits left to send.
-
-				// Set the return address so we can send flow control.
-				returnAddress = dataIn.read().payload().toInt();
-				useCredits = dataIn.read().useCredits();
-				enableCreditUpdate.write(useCredits);
-
-				if(DEBUG)
-					cout << "Channel " << channel << " was claimed by " << returnAddress << " [flow control " << (useCredits ? "enabled" : "disabled") << "]" << endl;
-
-				// Allow core to wait until memory setup is complete if setting up a data connection
-
-				if (!useCredits && dataIn.read().channelID().getChannel() >= 2) {
-					// Wait until there is space in the buffer, if necessary
-					if (!bufferHasSpace.read())
-						wait(bufferHasSpace.posedge_event());
-
-					// Pass the value to the component.
-					dataOut.write(dataIn.read().payload());
-				}
-			} else {
-				// Wait until there is space in the buffer, if necessary
-				if (!bufferHasSpace.read())
-					wait(bufferHasSpace.posedge_event());
-
-				// Pass the value to the component.
-				dataOut.write(dataIn.read().payload());
-			}
-
-			if (useCredits) {
-				numCredits++;
-				assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
-			}
-
-			// Acknowledge the data.
-			ackDataIn.write(true);
-		}
-	}
+      break;
+    }
+  } // end switch
 }
 
-void FlowControlIn::updateReady() {
-	while (true) {
-		//wait(enableCreditUpdate.posedge_event());
+void FlowControlIn::handleNewData() {
+  if(dataIn.read().portClaim()) {
+    handlePortClaim();
+  }
+  else if (!bufferHasSpace.read()) {
+    next_trigger(bufferHasSpace.posedge_event());
+    dataState = WAITING_FOR_SPACE;
+  }
+  else {
+    dataOut.write(dataIn.read().payload());
+    sendAck();
+  }
+}
 
-		while (true) {
-			//if (!enableCreditUpdate.read())
-			//	break;
+void FlowControlIn::handlePortClaim() {
+  assert(validDataIn.read());
+  assert(dataIn.read().portClaim());
 
-			wait(clock.posedge_event());
-			if (numCredits == 0)
-				continue;
+  // TODO: only accept the port claim when we have no credits left to send.
 
-			// This should not execute if credits are disabled
-			assert(useCredits);
+  // Set the return address so we can send flow control.
+  returnAddress = dataIn.read().payload().toInt();
+  useCredits = dataIn.read().useCredits();
 
-			// Send the new credit if someone is communicating with this port.
-			if (!returnAddress.isNullMapping()) {
-				AddressedWord aw(Word(1), returnAddress);
-				creditsOut.write(aw);
-				validCreditOut.write(true);
+  if(DEBUG)
+    cout << "Channel " << channel << " was claimed by " << returnAddress << " [flow control " << (useCredits ? "enabled" : "disabled") << "]" << endl;
 
-				numCredits--;
-				assert(numCredits >= 0 && numCredits <= CHANNEL_END_BUFFER_SIZE);
+  // If this is a data input to a core, this message doubles as a
+  // synchronisation message to show that all memories are now set up. We want
+  // to forward it to the buffer when possible.
+  if (!useCredits && dataIn.read().channelID().getChannel() >= 2) {
+    // Wait until there is space in the buffer, if necessary
+    if (!bufferHasSpace.read()) {
+      next_trigger(bufferHasSpace.posedge_event());
+      dataState = WAITING_FOR_SPACE;
+      return;
+    }
+    else {
+      dataOut.write(dataIn.read().payload());
+      sendAck();
+    }
+  }
+  else {
+    // Acknowledge the port claim message.
+    sendAck();
+  }
 
-				if (DEBUG)
-					cout << "Sent credit from " << channel << " to " << returnAddress << endl;
+}
 
-				// Deassert the valid signal when the acknowledgement arrives.
-				wait(ackCreditOut.posedge_event());
-				validCreditOut.write(false);
-			}
-		}
-	}
+void FlowControlIn::addCredit() {
+  if (useCredits) {
+    numCredits++;
+    newCredit.notify();
+    assert(numCredits <= CHANNEL_END_BUFFER_SIZE);
+  }
+}
+
+void FlowControlIn::sendAck() {
+  ackDataIn.write(true);
+  addCredit();
+
+  next_trigger(clock.posedge_event());
+  dataState = SENT_ACK;
+}
+
+void FlowControlIn::creditLoop() {
+  switch(creditState) {
+    case NO_CREDITS : {
+      // Should have just received a credit.
+      assert(numCredits > 0);
+      assert(useCredits);
+
+      // Information can only be sent onto the network at a positive clock edge.
+      next_trigger(clock.posedge_event());
+      creditState = WAITING_TO_SEND;
+      break;
+    }
+
+    case WAITING_TO_SEND : {
+      assert(numCredits > 0);
+      assert(useCredits);
+
+      // Only send the credit if there is a valid address to send to.
+      if(!returnAddress.isNullMapping()) {
+        sendCredit();
+
+        // Wait for the credit to be acknowledged.
+        next_trigger(ackCreditOut.posedge_event());
+        creditState = WAITING_FOR_ACK;
+      }
+      else {
+        cerr << "Warning: trying to send credit from " << channel.getString()
+             << " when there is no connection" << endl;
+        numCredits--;
+        next_trigger(newCredit);
+        creditState = NO_CREDITS;
+      }
+
+      break;
+    }
+
+    case WAITING_FOR_ACK : {
+      assert(ackCreditOut.read());
+
+      // Deassert the valid signal when the acknowledgement arrives.
+      validCreditOut.write(false);
+
+      if(numCredits > 0) {
+        next_trigger(clock.posedge_event());
+        creditState = WAITING_TO_SEND;
+      }
+      else {
+        next_trigger(newCredit);
+        creditState = NO_CREDITS;
+      }
+
+      break;
+    }
+  } // end switch
+}
+
+void FlowControlIn::sendCredit() {
+  AddressedWord aw(Word(1), returnAddress);
+  creditsOut.write(aw);
+  validCreditOut.write(true);
+
+  numCredits--;
+
+  if (DEBUG)
+    cout << "Sent credit from " << channel << " to " << returnAddress << endl;
 }
 
 FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :
@@ -165,8 +198,14 @@ FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const C
 	useCredits = true;
 	numCredits = 0;
 
-	enableCreditUpdate.write(false);
+	dataState   = WAITING_FOR_DATA;
+	creditState = NO_CREDITS;
 
-	SC_THREAD(receivedData);
-	SC_THREAD(updateReady);
+	SC_METHOD(dataLoop);
+	sensitive << validDataIn.pos();
+	dont_initialize();
+
+	SC_METHOD(creditLoop);
+	sensitive << newCredit;
+	dont_initialize();
 }

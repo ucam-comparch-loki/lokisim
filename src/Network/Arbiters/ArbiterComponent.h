@@ -8,6 +8,9 @@
  * usually true, since the inputs will come from the same component, but it is
  * worth bearing in mind.
  *
+ * Arbiters send data on the negative clock edge to allow time for any data to
+ * arrive. Data is always sent from source components on the positive clock edge.
+ *
  *  Created on: 9 Mar 2011
  *      Author: db434
  */
@@ -32,7 +35,7 @@ public:
 
   sc_in<AddressedWord>  *dataIn;
   sc_in<bool>           *validDataIn;
-  sc_out<bool>          *ackDataIn;
+  sc_out<bool>          *ackDataIn; // toggles rather than staying high/low
 
   sc_out<AddressedWord> *dataOut;
   sc_out<bool>          *validDataOut;
@@ -54,9 +57,16 @@ public:
 
 private:
 
-  void mainLoop();
+  // Main loop responsible for sending/receiving data and dealing with
+  // acknowledgements.
+  void arbiterLoop();
 
-  void updateDataAvailable();
+  // Helper functions for arbiterLoop. arbitrate() currently implements round-
+  // robin scheduling.
+  void arbitrate();
+  void checkAcks();
+
+  void newData();
 
 //==============================//
 // Local state
@@ -64,11 +74,22 @@ private:
 
 private:
 
+  enum ArbiterState {WAITING_FOR_DATA, WAITING_FOR_ACKS};
+
+  ArbiterState state;
+
   int numInputs, numOutputs;
 
-  int inactiveCycles;
   int activeTransfers;
   int lastAccepted; // Using round-robin at the moment.
+
+  // Record which outputs we are waiting for acknowledgements on.
+  bool* inUse;
+
+  // Event which is triggered whenever new data arrives. It uses the validDataIn
+  // signals, so it doesn't notice the new data if the valid signal doesn't
+  // change.
+  sc_core::sc_event newDataEvent;
 
   // Additional state for wormhole routing.
 
@@ -82,9 +103,6 @@ private:
   // Record whether each output port is available to send data on (it may be
   // reserved by another input).
   bool* reserved;
-
-  // Record which outputs we are waiting for acknowledgements on.
-  bool* inUse;
 
 };
 
