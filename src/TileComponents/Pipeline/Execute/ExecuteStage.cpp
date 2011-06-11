@@ -20,18 +20,17 @@ void ExecuteStage::writeWord(MemoryAddr addr, Word data) const {parent()->writeW
 void ExecuteStage::writeByte(MemoryAddr addr, Word data) const {parent()->writeByte(addr, data);}
 
 void ExecuteStage::execute() {
-  while(true) {
-    // Wait for a new instruction to arrive.
-    wait(dataIn.default_event());
-
+  if(clock.posedge()) {
+    idle.write(true);
+    next_trigger(dataIn.default_event());
+  }
+  else {
     // Deal with the new input. We are currently not idle.
     idle.write(false);
     DecodedInst inst = dataIn.read(); // Don't want a const input.
     newInput(inst);
 
-    // Once the next cycle starts, revert to being idle.
-    wait(clock.posedge_event());
-    idle.write(true);
+    next_trigger(clock.posedge_event());
   }
 }
 
@@ -82,10 +81,8 @@ ExecuteStage::ExecuteStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
     alu("alu", ID) {
 
-  SC_THREAD(execute);
-
-}
-
-ExecuteStage::~ExecuteStage() {
+  SC_METHOD(execute);
+  sensitive << dataIn;
+  dont_initialize();
 
 }
