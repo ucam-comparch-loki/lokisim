@@ -79,8 +79,7 @@ void ReceiveChannelEndTable::updateFlowControl() {
 }
 
 DecodeStage* ReceiveChannelEndTable::parent() const {
-  // Need a dynamic cast because DecodeStage uses virtual inheritance.
-  return dynamic_cast<DecodeStage*>(this->get_parent());
+  return static_cast<DecodeStage*>(this->get_parent());
 }
 
 ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name, const ComponentID& ID) :

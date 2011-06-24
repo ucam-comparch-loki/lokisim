@@ -156,7 +156,7 @@ bool ALU::shouldExecute(short predBits) const {
 }
 
 ExecuteStage* ALU::parent() const {
-  return dynamic_cast<ExecuteStage*>(this->get_parent());
+  return static_cast<ExecuteStage*>(this->get_parent());
 }
 
 int32_t ALU::readReg(RegisterIndex reg) const {return parent()->readReg(reg);}

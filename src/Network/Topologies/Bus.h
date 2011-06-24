@@ -81,10 +81,6 @@ private:
   // new value arrives.
   sc_signal<DataType> lastData;
 
-  // Used instead of wait(SC_ZERO_TIME) to wait until slightly after the posedge.
-  // This is a hack, and should be removed if possible.
-  sc_signal<bool> tinyWait;
-
 };
 
 #endif /* BUS_H_ */

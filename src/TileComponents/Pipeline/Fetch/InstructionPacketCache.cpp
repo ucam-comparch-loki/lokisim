@@ -152,7 +152,7 @@ void InstructionPacketCache::startOfPacketTasks() {
 }
 
 FetchStage* InstructionPacketCache::parent() const {
-  return dynamic_cast<FetchStage*>(this->get_parent());
+  return static_cast<FetchStage*>(this->get_parent());
 }
 
 /* Constructors and destructors */

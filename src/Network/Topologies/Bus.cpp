@@ -13,8 +13,7 @@ void Bus::busLoop() {
       if(clock.posedge()) {
         // Wait for a delta cycle, because the valid signal is deasserted on
         // the clock edge.
-        next_trigger(tinyWait.default_event());
-        tinyWait.write(!tinyWait.read());
+        next_trigger(sc_core::SC_ZERO_TIME);
       }
       else if(!validDataIn[0].read()) {
         // It turns out that there wasn't actually more data: the valid signal
@@ -64,8 +63,7 @@ void Bus::busLoop() {
       else {
         // The valid signal is still high at the start of the next clock cycle.
         // This means there may be more data to consume.
-        next_trigger(tinyWait.default_event());
-        tinyWait.write(!tinyWait.read());
+        next_trigger(sc_core::SC_ZERO_TIME);
         state = WAITING_FOR_DATA;
       }
 

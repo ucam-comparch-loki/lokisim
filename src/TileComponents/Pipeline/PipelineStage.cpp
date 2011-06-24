@@ -6,9 +6,10 @@
  */
 
 #include "PipelineStage.h"
+#include "../Cluster.h"
 
 Cluster* PipelineStage::parent() const {
-  return ((Cluster*)(this->get_parent()));
+  return static_cast<Cluster*>(this->get_parent());
 }
 
 PipelineStage::PipelineStage(sc_module_name name, const ComponentID& ID) :

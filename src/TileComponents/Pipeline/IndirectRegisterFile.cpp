@@ -116,7 +116,7 @@ void IndirectRegisterFile::writeReg(const RegisterIndex reg, const Word data) {
 }
 
 Cluster* IndirectRegisterFile::parent() const {
-  return (Cluster*)(this->get_parent());
+  return static_cast<Cluster*>(this->get_parent());
 }
 
 IndirectRegisterFile::IndirectRegisterFile(sc_module_name name, const ComponentID& ID) :

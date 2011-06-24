@@ -102,8 +102,7 @@ bool FetchLogic::roomInCache() const {
 }
 
 DecodeStage* FetchLogic::parent() const {
-  // Need a dynamic cast because DecodeStage uses virtual inheritance.
-  return dynamic_cast<DecodeStage*>(this->get_parent());
+  return static_cast<DecodeStage*>(this->get_parent());
 }
 
 FetchLogic::FetchLogic(sc_module_name name, const ComponentID& ID) :

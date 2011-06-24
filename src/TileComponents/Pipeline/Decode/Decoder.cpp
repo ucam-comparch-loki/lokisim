@@ -415,8 +415,7 @@ bool Decoder::shouldExecute(const DecodedInst& inst) {
 }
 
 DecodeStage* Decoder::parent() const {
-  // Need a dynamic cast because DecodeStage uses virtual inheritance.
-  return dynamic_cast<DecodeStage*>(this->get_parent());
+  return static_cast<DecodeStage*>(this->get_parent());
 }
 
 Decoder::Decoder(sc_module_name name, const ComponentID& ID) : Component(name, ID) {
