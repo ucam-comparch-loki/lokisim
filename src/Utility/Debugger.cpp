@@ -276,6 +276,8 @@ void Debugger::finishExecution() {
     RETURN_CODE = 1;
   }
   else if(mode == DEBUGGER) cout << "\nExecution ended successfully.\n";
+
+  Instrumentation::endExecution();
 }
 
 void Debugger::execute(string instruction) {

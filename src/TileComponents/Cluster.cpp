@@ -170,6 +170,8 @@ bool     Cluster::discardInstruction(int stage) {
 }
 
 void     Cluster::updateIdle() {
+  bool wasIdle = idle.read();
+
   bool isIdle = true;
   for(uint i=0; i<4; i++) {
     if(!stageIdle[i].read()) {
@@ -181,7 +183,7 @@ void     Cluster::updateIdle() {
   // Is this what we really want?
   idle.write(isIdle || currentlyStalled);
 
-  Instrumentation::idle(id, isIdle);
+  if(wasIdle != isIdle) Instrumentation::idle(id, isIdle);
 }
 
 /* Returns the channel ID of this cluster's instruction packet FIFO. */

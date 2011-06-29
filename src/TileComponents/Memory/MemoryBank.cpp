@@ -1409,9 +1409,13 @@ void MemoryBank::mainLoop() {
 
   // Update status signals
 
-  bool idle = mFSMState == STATE_IDLE && mInputQueue.empty() && mOutputQueue.empty() && !mOutputWordPending && !mRingRequestInputPending && !mRingRequestOutputPending;
-  oIdle.write(idle);
-  Instrumentation::idle(id, idle);
+  bool wasIdle = currentlyIdle;
+  currentlyIdle = mFSMState == STATE_IDLE && mInputQueue.empty() && mOutputQueue.empty() && !mOutputWordPending && !mRingRequestInputPending && !mRingRequestOutputPending;
+
+  if(wasIdle != currentlyIdle) {
+    oIdle.write(currentlyIdle);
+    Instrumentation::idle(id, currentlyIdle);
+  }
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1484,6 +1488,8 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 
 	//-- Register module with SystemC simulation kernel -------------------------------------------
 
+	currentlyIdle = false;
+	oIdle.initialize(true);
 	Instrumentation::idle(id, true);
 
 	SC_METHOD(mainLoop);

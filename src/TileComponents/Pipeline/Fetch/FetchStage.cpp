@@ -18,11 +18,29 @@ double FetchStage::energy() const {
 }
 
 void FetchStage::execute() {
-  // Called at negedge.
-  cycleSecondHalf();
+  // An attempt to call the getInstruction method less often than every cycle.
+  // Doesn't work for some reason.
+
+//  if(fifo.isEmpty() && cache.isEmpty()) { // Wait for an instruction
+//    idle.write(true);
+//    next_trigger(toIPKFIFO.default_event() | toIPKCache.default_event());
+//  }
+//  if(!readyIn.read()) {              // Wait until decoder is ready
+//    idle.write(true);
+//    next_trigger(readyIn.posedge_event());
+//  }
+//  else if(!clock.negedge()) {             // Do fetch at negedge (why?)
+//    idle.write(true);
+//    next_trigger(clock.negedge_event());
+//  }
+//  else {                                  // Pass an instruction to pipeline
+//    idle.write(false);
+    getInstruction();
+//    next_trigger(clock.negedge_event());
+//  }
 }
 
-void FetchStage::cycleSecondHalf() {
+void FetchStage::getInstruction() {
   // Select a new instruction if the decode stage is ready for one, unless
   // the FIFO and cache are both empty.
   if(readyIn.read() && (!cache.isEmpty() || !fifo.isEmpty())) {
@@ -52,7 +70,7 @@ void FetchStage::cycleSecondHalf() {
       cout << lastInstruction << endl;
     }
   }
-  else idle.write(true);    // Idle if we can't send any instructions.
+  else idle.write(true); // Idle if we can't send any instructions.
 }
 
 void FetchStage::updateReady() {

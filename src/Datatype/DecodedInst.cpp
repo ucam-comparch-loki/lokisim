@@ -134,45 +134,30 @@ Instruction DecodedInst::toInstruction() const {
 
 
 bool DecodedInst::operator== (const DecodedInst& other) const {
-  return  operation_       == other.operation_       &&
-          sourceReg1_      == other.sourceReg1_      &&
-          sourceReg2_      == other.sourceReg2_      &&
-          destReg_         == other.destReg_         &&
-          immediate_       == other.immediate_       &&
-          channelMapEntry_ == other.channelMapEntry_ &&
-          predicate_       == other.predicate_       &&
-          setsPred_        == other.setsPred_        &&
+  return  //operation_       == other.operation_       &&
+//          sourceReg1_      == other.sourceReg1_      &&
+//          sourceReg2_      == other.sourceReg2_      &&
+//          destReg_         == other.destReg_         &&
+//          immediate_       == other.immediate_       &&
+//          channelMapEntry_ == other.channelMapEntry_ &&
+//          predicate_       == other.predicate_       &&
+//          setsPred_        == other.setsPred_        &&
+//
+//          operand1_        == other.operand1_        &&
+//          operand2_        == other.operand2_        &&
+//          result_          == other.result_          &&
+//
+//          hasOperand1_     == other.hasOperand1_     &&
+//          hasResult_       == other.hasResult_       &&
 
-          operand1_        == other.operand1_        &&
-          operand2_        == other.operand2_        &&
-          result_          == other.result_          &&
-
-          hasOperand1_     == other.hasOperand1_     &&
-          hasResult_       == other.hasResult_       &&
-
+  // Is it safe to assume that if two instructions come from the same memory
+  // address, they are the same instruction?
+  // As long as we don't have dynamic code rewriting...
           location_        == other.location_;
 }
 
 DecodedInst& DecodedInst::operator= (const DecodedInst& other) {
-  operation_       = other.operation_;
-  sourceReg1_      = other.sourceReg1_;
-  sourceReg2_      = other.sourceReg2_;
-  destReg_         = other.destReg_;
-  immediate_       = other.immediate_;
-  channelMapEntry_ = other.channelMapEntry_;
-  predicate_       = other.predicate_;
-  setsPred_        = other.setsPred_;
-  memoryOp_        = other.memoryOp_;
-
-  operand1_        = other.operand1_;
-  operand2_        = other.operand2_;
-  result_          = other.result_;
-
-  hasOperand1_     = other.hasOperand1_;
-  hasResult_       = other.hasResult_;
-
-  location_        = other.location_;
-
+  memcpy(this, &other, sizeof(other));
   return *this;
 }
 

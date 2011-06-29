@@ -85,6 +85,8 @@ private:
   // My implementation of the two registers.
   BufferStorage<DecodedInst> buffer;
 
+  sc_core::sc_event bufferFillChanged;
+
 };
 
 #endif /* STALLREGISTER_H_ */

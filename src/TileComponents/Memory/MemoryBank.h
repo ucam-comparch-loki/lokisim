@@ -222,6 +222,8 @@ private:
 
 private:
 
+	bool currentlyIdle;
+
 	//-- Data queue state -------------------------------------------------------------------------
 
 	BufferStorage<AddressedWord> mInputQueue;				// Input queue

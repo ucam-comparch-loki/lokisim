@@ -70,8 +70,8 @@ public:
 
 private:
 
-  // Update the flow control value for all input ports.
-  void updateFlowControl();
+  // Update the flow control value for an input port.
+  void updateFlowControl(ChannelIndex buffer);
 
   DecodeStage* parent() const;
 
@@ -91,6 +91,9 @@ private:
 
   // Allows round-robin selection of channels when executing selch.
   LoopCounter       currentChannel;
+
+  // An event for each buffer, to say when data has been added or removed.
+  sc_core::sc_event* bufferEvent;
 
 };
 

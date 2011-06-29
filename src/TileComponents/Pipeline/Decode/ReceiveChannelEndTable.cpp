@@ -28,6 +28,7 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
   }
 
   int32_t result = buffers.read(channelEnd).toInt();
+  bufferEvent[channelEnd].notify();
 
   if(DEBUG) cout << this->name() << " read " << result << " from channel "
                  << (int)channelEnd << endl;
@@ -63,14 +64,18 @@ void ReceiveChannelEndTable::checkInput(ChannelIndex input) {
   assert(!buffers[input].full());
 
   buffers[input].write(fromNetwork[input].read());
+  bufferEvent[input].notify();
 
   if(DEBUG) cout << this->name() << " channel " << (int)input << " received " <<
                     fromNetwork[input].read() << endl;
 }
 
-void ReceiveChannelEndTable::updateFlowControl() {
-  for(unsigned int i=0; i<buffers.size(); i++) {
-    flowControl[i].write(!buffers[i].full());
+void ReceiveChannelEndTable::updateFlowControl(ChannelIndex buffer) {
+  // Only update flow control information on the negative clock edge. (Why?)
+  if(!clock.negedge()) next_trigger(clock.negedge_event());
+  else {
+    flowControl[buffer].write(!buffers[buffer].full());
+    next_trigger(bufferEvent[buffer]);
   }
 }
 
@@ -86,6 +91,8 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name, const Compon
   flowControl = new sc_out<bool>[NUM_RECEIVE_CHANNELS];
   fromNetwork = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
 
+  bufferEvent = new sc_core::sc_event[NUM_RECEIVE_CHANNELS];
+
   // Generate a method to watch each input port, putting the data into the
   // appropriate buffer when it arrives.
   for(unsigned int i=0; i<buffers.size(); i++) {
@@ -98,13 +105,22 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name, const Compon
     sc_spawn(sc_bind(&ReceiveChannelEndTable::checkInput, this, i), 0, &options);
   }
 
-  SC_METHOD(updateFlowControl);
-  sensitive << clock.neg();
-  // do initialise
+  // Generate a method to watch each buffer, updating its flow control signal
+  // whenever data is added or removed.
+  for(unsigned int i=0; i<buffers.size(); i++) {
+    sc_core::sc_spawn_options options;
+    options.spawn_method();     // Want an efficient method, not a thread
+    options.set_sensitivity(&(bufferEvent[i])); // Sensitive to this event
+
+    // Create the method.
+    sc_spawn(sc_bind(&ReceiveChannelEndTable::updateFlowControl, this, i), 0, &options);
+  }
 
 }
 
 ReceiveChannelEndTable::~ReceiveChannelEndTable() {
   delete[] flowControl;
   delete[] fromNetwork;
+
+  delete[] bufferEvent;
 }

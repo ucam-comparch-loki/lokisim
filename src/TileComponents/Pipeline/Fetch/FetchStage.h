@@ -93,7 +93,7 @@ private:
 
   // The fetch stage needs to be sure that other tasks have completed before
   // reading from the cache, so waits until later in the cycle to do it.
-  void          cycleSecondHalf();
+  void          getInstruction();
 
   // Recompute whether this pipeline stage is stalled.
   virtual void  updateReady();
