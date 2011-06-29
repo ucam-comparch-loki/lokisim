@@ -5,6 +5,8 @@
  *      Author: db434
  */
 
+#define SC_INCLUDE_DYNAMIC_PROCESSES
+
 #include "Chip.h"
 #include "TileComponents/Cluster.h"
 #include "TileComponents/Memory/MemoryBank.h"
@@ -23,7 +25,7 @@ double Chip::energy() const {
 }
 
 bool Chip::isIdle() const {
-	return idleVal;
+  return idleComponents == NUM_COMPONENTS;
 }
 
 void Chip::storeInstructions(vector<Word>& instructions, const ComponentID& component) {
@@ -87,15 +89,28 @@ bool Chip::readPredicate(const ComponentID& component) const {
 	return clusters[component.getGlobalCoreNumber()]->readPredReg();
 }
 
+void Chip::watchIdle(int component) {
+  if(idleSig[component].read()) {
+    idleComponents++;
+    assert(idleComponents <= NUM_COMPONENTS);
+    next_trigger(idleSig[component].negedge_event());
+
+    // If all of the components are now idle, the chip is now idle.
+    if(idleComponents == NUM_COMPONENTS) idlenessChanged.notify();
+  }
+  else {
+    // If all of the components were idle, and now one is busy, the chip is
+    // no longer idle.
+    if(idleComponents == NUM_COMPONENTS) idlenessChanged.notify();
+
+    idleComponents--;
+    assert(idleComponents >= 0);
+    next_trigger(idleSig[component].posedge_event());
+  }
+}
+
 void Chip::updateIdle() {
-	idleVal = true;
-
-	for(uint i=0; i<NUM_COMPONENTS; i++)
-		idleVal &= idleSig[i].read();
-
-	// Also check network to make sure data/instructions aren't in transit
-
-	idle.write(idleVal);
+  idle.write(isIdle());
 }
 
 Chip::Chip(sc_module_name name, const ComponentID& ID) :
@@ -103,13 +118,26 @@ Chip::Chip(sc_module_name name, const ComponentID& ID) :
 	backgroundMemory("background_memory", NUM_COMPONENTS, NUM_MEMORIES),
 	network("network")
 {
+  idleComponents = 0;
+
 	// Initialise idle signal vector
 
 	idleSig = new sc_signal<bool>[NUM_COMPONENTS + 1];
 
 	SC_METHOD(updateIdle);
-	for (uint i = 0; i < NUM_COMPONENTS; i++)
-		sensitive << idleSig[i];
+	sensitive << idlenessChanged;
+
+  // Generate a method to watch each component's idle signal, so we can
+	// determine when all components are idle. For large numbers of components,
+	// this is cheaper than checking all of them whenever one changes.
+  for(unsigned int i=0; i<NUM_COMPONENTS; i++) {
+    sc_core::sc_spawn_options options;
+    options.spawn_method();     // Want an efficient method, not a thread
+    options.set_sensitivity(&(idleSig[i])); // Sensitive to this signal
+
+    // Create the method.
+    sc_spawn(sc_bind(&Chip::watchIdle, this, i), 0, &options);
+  }
 
 	// Initialise network signals
 

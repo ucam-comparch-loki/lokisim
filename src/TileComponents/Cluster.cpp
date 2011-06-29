@@ -170,8 +170,6 @@ bool     Cluster::discardInstruction(int stage) {
 }
 
 void     Cluster::updateIdle() {
-  constantHigh.write(true);   // Hack: find a better way of doing this.
-
   bool isIdle = true;
   for(uint i=0; i<4; i++) {
     if(!stageIdle[i].read()) {
@@ -291,6 +289,7 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
 
   // Initialise the values in some wires.
   idle.initialize(true);
+  constantHigh.write(true);
 }
 
 Cluster::~Cluster() {

@@ -54,9 +54,8 @@ public:
 
 public:
 
-  // If any data has arrived over the network, put it into the appropriate
-  // buffers.
-  void checkInputs();
+  // When data arrives over the network, put it into the appropriate buffer.
+  void checkInput(ChannelIndex input);
 
   // Read from the specified channel end.
   int32_t read(ChannelIndex channelEnd);

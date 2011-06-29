@@ -5,6 +5,8 @@
  *      Author: db434
  */
 
+#define SC_INCLUDE_DYNAMIC_PROCESSES
+
 #include "ReceiveChannelEndTable.h"
 #include "DecodeStage.h"
 #include "../IndirectRegisterFile.h"
@@ -56,20 +58,14 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd() {
 
 }
 
-/* Put any newly received values into their respective buffers. */
-void ReceiveChannelEndTable::checkInputs() {
-  // We only send credits when there are spaces in the buffers, so we know it
-  // is safe to write data to them now.
-  for(uint i=0; i<buffers.size(); i++) {
-    if(fromNetwork[i].event()) {
-      assert(!buffers[i].full());
+void ReceiveChannelEndTable::checkInput(ChannelIndex input) {
+  // This method is called because data has arrived on a particular input channel.
+  assert(!buffers[input].full());
 
-      buffers[i].write(fromNetwork[i].read());
+  buffers[input].write(fromNetwork[input].read());
 
-      if(DEBUG) cout << this->name() << " channel " << i << " received " <<
-                        fromNetwork[i].read() << endl;
-    }
-  }
+  if(DEBUG) cout << this->name() << " channel " << (int)input << " received " <<
+                    fromNetwork[input].read() << endl;
 }
 
 void ReceiveChannelEndTable::updateFlowControl() {
@@ -90,9 +86,17 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name, const Compon
   flowControl = new sc_out<bool>[NUM_RECEIVE_CHANNELS];
   fromNetwork = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
 
-  SC_METHOD(checkInputs);
-  for(uint i=0; i<buffers.size(); i++) sensitive << fromNetwork[i];
-  dont_initialize();
+  // Generate a method to watch each input port, putting the data into the
+  // appropriate buffer when it arrives.
+  for(unsigned int i=0; i<buffers.size(); i++) {
+    sc_core::sc_spawn_options options;
+    options.spawn_method();     // Want an efficient method, not a thread
+    options.dont_initialize();  // Only execute when triggered
+    options.set_sensitivity(&(fromNetwork[i])); // Sensitive to this port
+
+    // Create the method.
+    sc_spawn(sc_bind(&ReceiveChannelEndTable::checkInput, this, i), 0, &options);
+  }
 
   SC_METHOD(updateFlowControl);
   sensitive << clock.neg();

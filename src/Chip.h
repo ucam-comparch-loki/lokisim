@@ -72,6 +72,7 @@ public:
 
 private:
 
+  void    watchIdle(int component);
   void    updateIdle();
 
 //==============================//
@@ -123,7 +124,8 @@ private:
 
 private:
 
-  bool idleVal;
+  unsigned int idleComponents;
+  sc_core::sc_event idlenessChanged;
 
 };
 

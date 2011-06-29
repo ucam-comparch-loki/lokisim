@@ -45,7 +45,7 @@ void ChannelMapEntry::setCoreDestination(const ChannelID& address) {
 	assert(!useCredits_ || (credits_ == MAX_CREDITS));
 
 	destination_ = address;
-	network_ = /*(address.getTile() == local) ?*/ CORE_TO_CORE /*: GLOBAL*/;
+	network_ = (address.getTile() == id_.getTile()) ? CORE_TO_CORE : GLOBAL;
 	useCredits_ = true;
 	localMemory_ = false;
 	memoryGroupBits_ = 0;
@@ -92,7 +92,8 @@ void ChannelMapEntry::addCredit() {
 	assert(credits_ <= MAX_CREDITS);
 }
 
-ChannelMapEntry::ChannelMapEntry() {
+ChannelMapEntry::ChannelMapEntry(ComponentID localID) {
+  id_ = localID;
   destination_ = ChannelID();
   credits_ = MAX_CREDITS;
   useCredits_ = false;

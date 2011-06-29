@@ -47,8 +47,6 @@ public:
 
 public:
 
-  // TODO: Add a "HierarchyLevel" input (see below) to tell the network which
-  // parts of the network addresses it should be paying attention to.
   // This would work nicely when moving down the hierarchy, but what about when
   // moving up? e.g. Credits pass through a CHANNEL network on the way to the
   // local network, but we don't want them to be routed by the channel value yet.

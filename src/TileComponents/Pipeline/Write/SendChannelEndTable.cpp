@@ -260,7 +260,7 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID&
     Component(name, ID),
     buffer(CHANNEL_END_BUFFER_SIZE, string(name)),
     mapEntries(CHANNEL_END_BUFFER_SIZE, string(name)),
-    channelMap(CHANNEL_MAP_SIZE) {
+    channelMap(CHANNEL_MAP_SIZE, ChannelMapEntry(ID)) {
 
   SC_METHOD(sendLoop);
   sensitive << dataToSendEvent;

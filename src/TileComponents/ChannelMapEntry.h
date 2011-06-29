@@ -37,9 +37,13 @@ public:
   void removeCredit();
   void addCredit();
 
-  ChannelMapEntry();
+  ChannelMapEntry(ComponentID localID);
 
 private:
+
+  // The ID of the component holding this channel map entry. Used to determine
+  // whether communications are local or global.
+  ComponentID id_;
 
   // The network address to send data to.
   ChannelID destination_;

@@ -10,6 +10,7 @@
 #include "FlowControl/FlowControlOut.h"
 #include "Topologies/Crossbar.h"
 #include "Topologies/LocalNetwork.h"
+#include "Topologies/Mesh.h"
 
 void NetworkHierarchy::setupFlowControl() {
 
@@ -94,24 +95,14 @@ void NetworkHierarchy::makeLocalNetwork(int tileID) {
 void NetworkHierarchy::makeGlobalNetwork() {
 
   // Make data network.
-  globalDataNetwork = new Crossbar("global_data_net",
-                                   0,
-                                   NUM_TILES,
-                                   NUM_TILES,
-                                   1,
-                                   Network::TILE,   // This network connects tiles
-                                   Dimension(NUM_TILES, NUM_TILES),
-                                   true);
+  globalDataNetwork = new Mesh("global_data_net",
+                               0,
+                               NUM_TILE_ROWS,
+                               NUM_TILE_COLUMNS,
+                               Network::TILE,   // This network connects tiles
+                               Dimension(NUM_TILES, NUM_TILES));
 
   globalDataNetwork->clock(clock);
-
-  // Connect the global network to the off-chip component.
-  globalDataNetwork->externalOutput()(dataFromComponents[0]);
-  globalDataNetwork->externalInput()(dataToComponents[0]);
-  globalDataNetwork->externalValidOutput()(validDataFromComps[0]);
-  globalDataNetwork->externalValidInput()(validDataToComps[0]);
-  globalDataNetwork->externalReadyOutput()(ackDataToComps[0]);
-  globalDataNetwork->externalReadyInput()(ackDataFromComps[0]);
 
   for(uint i=0; i<localNetworks.size(); i++) {
     Network* n = localNetworks[i];
@@ -131,33 +122,23 @@ void NetworkHierarchy::makeGlobalNetwork() {
 
   // Make credit network.
   // TODO: integrate both networks into one GlobalNetwork.
-  globalDataNetwork = new Crossbar("global_credit_net",
-                                   0,
-                                   NUM_TILES,
-                                   NUM_TILES,
-                                   1,
-                                   Network::TILE,   // This network connects tiles
-                                   Dimension(NUM_TILES, NUM_TILES),
-                                   true);
+  globalCreditNetwork = new Mesh("global_credit_net",
+                                 0,
+                                 NUM_TILE_ROWS,
+                                 NUM_TILE_COLUMNS,
+                                 Network::TILE,   // This network connects tiles
+                                 Dimension(NUM_TILES, NUM_TILES));
 
   globalCreditNetwork->clock(clock);
 
-  // Connect the global network to the off-chip component.
-  globalCreditNetwork->externalInput()(creditsFromComponents[0]);
-  globalCreditNetwork->externalOutput()(creditsToComponents[0]);
-  globalCreditNetwork->externalValidInput()(validCreditFromComps[0]);
-  globalCreditNetwork->externalValidOutput()(validCreditToComps[0]);
-  globalCreditNetwork->externalReadyOutput()(ackCreditToComps[0]);
-  globalCreditNetwork->externalReadyInput()(ackCreditFromComps[0]);
-
   for(uint i=0; i<localNetworks.size(); i++) {
-    Network* n = localNetworks[i];
-    n->externalInput()(creditsToLocalNet[i]);
-    n->externalOutput()(creditsFromLocalNet[i]);
-    n->externalValidInput()(validCreditToLocal[i]);
-    n->externalValidOutput()(validCreditFromLocal[i]);
-    n->externalReadyInput()(globalReadyForCredits[i]);
-    n->externalReadyOutput()(localReadyForCredits[i]);
+    LocalNetwork* n = static_cast<LocalNetwork*>(localNetworks[i]);
+    n->externalCreditIn()(creditsToLocalNet[i]);
+    n->externalCreditOut()(creditsFromLocalNet[i]);
+    n->externalValidCreditIn()(validCreditToLocal[i]);
+    n->externalValidCreditOut()(validCreditFromLocal[i]);
+    n->externalAckCreditIn()(globalReadyForCredits[i]);
+    n->externalAckCreditOut()(localReadyForCredits[i]);
     globalCreditNetwork->dataOut[i](creditsToLocalNet[i]);
     globalCreditNetwork->dataIn[i](creditsFromLocalNet[i]);
     globalCreditNetwork->validDataOut[i](validCreditToLocal[i]);

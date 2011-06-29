@@ -13,8 +13,19 @@ PortIndex Network::getDestination(const ChannelID& address) const {
   // we are.
   switch(level) {
     case TILE : return address.getTile();
-    case COMPONENT : return address.getPosition();
-    case CHANNEL : return address.getChannel();
+    case COMPONENT : {
+      if(externalConnection && (address.getTile() != id.getTile()))
+        return numOutputs-1;
+      else
+        return address.getPosition();
+    }
+    case CHANNEL : {
+      if(externalConnection && ((address.getTile() != id.getTile()) ||
+                                (address.getPosition() != id.getPosition())))
+        return numOutputs-1;
+      else
+        return address.getChannel();
+    }
     case NONE : return 0;
   }
 

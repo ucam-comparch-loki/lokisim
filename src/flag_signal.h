@@ -58,9 +58,7 @@ public:
   // Determine whether an event has occurred (copied from sc_signal).
   virtual bool event() const {
     bool newData = newDataFlag;
-
-    // Need to update a value from within a const method, so use const_cast.
-    const_cast<flag_signal<T>*>(this)->newDataFlag = false;
+    newDataFlag = false;
 
     return newData || this->simcontext()->event_occurred(this->m_delta);
   }
@@ -97,7 +95,8 @@ public:
 private:
 
   // Persistent flag showing whether this signal contains new data.
-  bool newDataFlag;
+  // Mutable because it needs to be changed from within the const event() method.
+  mutable bool newDataFlag;
 
 };
 
