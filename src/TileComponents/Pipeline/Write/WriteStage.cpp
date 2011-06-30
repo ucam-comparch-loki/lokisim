@@ -86,7 +86,7 @@ void WriteStage::updateReady() {
 
   // Wait until some point late in the cycle, so we know that any operations
   // will have completed.
-  next_trigger(clock.negedge_event());
+  next_trigger(scet.stallChangedEvent());
 }
 
 bool WriteStage::isStalled() const {

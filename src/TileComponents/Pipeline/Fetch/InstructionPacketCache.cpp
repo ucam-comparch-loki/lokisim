@@ -19,6 +19,9 @@ void InstructionPacketCache::storeCode(const std::vector<Instruction>& instructi
 
   cache.storeCode(instructions);
 
+  // SystemC segfaults if we notify an event before simulation has started.
+  if(Instrumentation::currentCycle() != 0) cacheFillChanged.notify();
+
 }
 
 Instruction InstructionPacketCache::read() {
@@ -28,7 +31,7 @@ Instruction InstructionPacketCache::read() {
   if(finishedPacketRead) startOfPacketTasks();
   if(inst.endOfPacket()) endOfPacketTasks();
 
-//  if(cache.justReadNewInst()) sendCredit();
+  cacheFillChanged.notify();
 
   return inst;
 }
@@ -36,10 +39,11 @@ Instruction InstructionPacketCache::read() {
 void InstructionPacketCache::write(const Instruction inst) {
   MemoryAddr addr;
 
-  if(!addresses.empty() && finishedPacketWrite) {
+  if(finishedPacketWrite) {
     // Only associate the tag with the first instruction of the packet.
     // Means that if a packet is searched for, execution starts at the start.
-    addr = addresses.read();
+    addr = nextIPKAddress;
+    nextIPKAddress = 0xFFFFFFFF;
   }
   else {
     addr = 0xFFFFFFFF;
@@ -52,7 +56,7 @@ void InstructionPacketCache::write(const Instruction inst) {
   catch(std::exception& e) {
     // The write method throws an exception if the next packet needs to be
     // fetched again.
-    if(!addresses.full()) addresses.write(pendingPacket);
+    nextIPKAddress = pendingPacket;
     refetch();
   }
 
@@ -61,6 +65,8 @@ void InstructionPacketCache::write(const Instruction inst) {
 
   Instrumentation::l0Write(id);
   if(DEBUG) cout << this->name() << " received Instruction: " << inst << endl;
+
+  cacheFillChanged.notify();
 
 }
 
@@ -75,15 +81,15 @@ bool InstructionPacketCache::lookup(const MemoryAddr addr) {
 
   // If we don't have the instructions, we will receive them soon, so store
   // the address to use as the tag.
-  if(!inCache) {
-    if(!addresses.full()) addresses.write(addr);
-      // Stall if the buffer is now full?
-    else throw WritingToFullException(this->name());
-  }
-  else {
+  if(!inCache)
+    nextIPKAddress = addr;
+  else
     // Store the address in case we need it later.
     pendingPacket = addr;
-  }
+
+  // It is possible that looking up a tag will result in us immediately jumping
+  // to a new instruction, which would change how full the cache is.
+  cacheFillChanged.notify();
 
   Instrumentation::l0TagCheck(id, inCache);
 
@@ -96,10 +102,16 @@ void InstructionPacketCache::jump(const JumpOffset offset) {
   if(DEBUG) cout << this->name() << ": ";   // cache prints the rest
 
   cache.jump(offset/BYTES_PER_INSTRUCTION);
+
+  cacheFillChanged.notify();
 }
 
 void InstructionPacketCache::updatePersistent(bool persistent) {
   cache.setPersistent(persistent);
+}
+
+const sc_core::sc_event& InstructionPacketCache::fillChangedEvent() const {
+  return cacheFillChanged;
 }
 
 void InstructionPacketCache::receivedInst() {
@@ -111,7 +123,6 @@ void InstructionPacketCache::receivedInst() {
 /* Update the signal saying whether there is enough room to fetch another
  * packet. */
 void InstructionPacketCache::sendCredit() {
-//  flowControl.write(1);
   flowControl.write(!cache.full());
 }
 
@@ -158,8 +169,9 @@ FetchStage* InstructionPacketCache::parent() const {
 /* Constructors and destructors */
 InstructionPacketCache::InstructionPacketCache(sc_module_name name, const ComponentID& ID) :
     Component(name, ID),
-    cache(IPK_CACHE_SIZE, string(name)),
-    addresses(4, string(name)) {  // 4 = max outstanding fetches allowed
+    cache(IPK_CACHE_SIZE, string(name)) {
+
+  nextIPKAddress = 0xFFFFFFFF;
 
   finishedPacketRead = true;
   finishedPacketWrite = true;
@@ -169,7 +181,7 @@ InstructionPacketCache::InstructionPacketCache(sc_module_name name, const Compon
   dont_initialize();
 
   SC_METHOD(sendCredit);
-  sensitive << clock.neg();
+  sensitive << cacheFillChanged;
   // do initialise
 
 }

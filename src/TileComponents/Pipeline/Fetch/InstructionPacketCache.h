@@ -84,6 +84,10 @@ public:
   // execute a single instruction packet repeatedly.
   void updatePersistent(bool persistent);
 
+  // A handle to an event which is triggered whenever something is added to or
+  // removed from the cache.
+  const sc_core::sc_event& fillChangedEvent() const;
+
 private:
 
   void receivedInst();
@@ -120,7 +124,10 @@ private:
 private:
 
   IPKCacheStorage cache;
-  BufferStorage<MemoryAddr> addresses;
+
+  // Store the address of any tags which we look up and aren't in the cache.
+  // When the packet starts to arrive, this will be its tag.
+  MemoryAddr nextIPKAddress;
 
   // We have just finished writing an instruction packet.
   bool            finishedPacketWrite;
@@ -131,6 +138,10 @@ private:
   // The address of the pending packet. We store it in case the packet gets
   // overwritten and needs to be refetched.
   MemoryAddr         pendingPacket;
+
+  // Event which is triggered whenever an instruction is added to or removed
+  // from the cache.
+  sc_core::sc_event cacheFillChanged;
 
 };
 

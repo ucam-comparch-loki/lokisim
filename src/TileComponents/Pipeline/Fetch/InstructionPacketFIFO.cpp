@@ -10,18 +10,22 @@
 
 const Instruction InstructionPacketFIFO::read() {
   Instruction inst = fifo.read();
-  fullnessChanged.notify();
+  fifoFillChanged.notify();
   return inst;
 }
 
 void InstructionPacketFIFO::write(const Instruction inst) {
   fifo.write(inst);
-  fullnessChanged.notify();
+  fifoFillChanged.notify();
   if(DEBUG) cout << this->name() << " received Instruction:  " << inst << endl;
 }
 
 bool InstructionPacketFIFO::isEmpty() const {
   return fifo.empty();
+}
+
+const sc_core::sc_event& InstructionPacketFIFO::fillChangedEvent() const {
+  return fifoFillChanged;
 }
 
 void InstructionPacketFIFO::receivedInst() {
@@ -43,7 +47,7 @@ InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
   dont_initialize();
 
   SC_METHOD(updateReady);
-  sensitive << fullnessChanged;
+  sensitive << fifoFillChanged;
   // do initialise
 
 }

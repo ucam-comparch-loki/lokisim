@@ -19,36 +19,64 @@ class LoopCounter {
 public:
 
   // Return the value held by this counter.
-  int  value() const;
+  int value() const {return val;}
 
   // Set the counter to a value which isn't allowed in normal circumstances.
-  void setNull();
+  void setNull() {val = -1;}
 
   // Returns whether the counter has been set to null.
-  bool isNull() const;
+  bool isNull() const {return (val == -1);}
 
-  int  operator+ (int num) const;
-  int  operator+ (const LoopCounter& ctr) const;
-  int  operator- (int num) const;
-  int  operator- (const LoopCounter& ctr) const;
+  int operator+ (int num) const {return (val + num) % maximum;}
+  int operator- (int num) const {return (val - num + maximum) % maximum;}
 
-  int  operator++ ();
-  int  operator-- ();
-  int  operator= (int num);
-  int  operator+= (int num);
-  int  operator-= (int num);
+  int operator+ (const LoopCounter& ctr) const {return (val + ctr.val) % maximum;}
+  int operator- (const LoopCounter& ctr) const {return (val - ctr.val + maximum) % maximum;}
 
-  bool operator== (int num) const;
-  bool operator== (LoopCounter& other) const;
-  bool operator!= (int num) const;
-  bool operator> (int num) const;
-  bool operator>= (int num) const;
-  bool operator< (int num) const;
-  bool operator<= (int num) const;
+  int operator++ () {
+    val++;
+    bringWithinBounds();
+    return val;
+  }
+
+  int operator-- () {
+    val--;
+    bringWithinBounds();
+    return val;
+  }
+
+  int operator= (int num) {
+    val = num;
+    bringWithinBounds();
+    return val;
+  }
+
+  int operator+= (int num) {
+    val += num;
+    bringWithinBounds();
+    return val;
+  }
+
+  int operator-= (int num) {
+    val -= num;
+    bringWithinBounds();
+    return val;
+  }
+
+  bool operator== (int num) const            {return val == num;}
+  bool operator== (LoopCounter& other) const {return val == other.val;}
+  bool operator!= (int num) const            {return val != num;}
+  bool operator>  (int num) const            {return val >  num;}
+  bool operator>= (int num) const            {return val >= num;}
+  bool operator<  (int num) const            {return val <  num;}
+  bool operator<= (int num) const            {return val <= num;}
 
 private:
 
-  void bringWithinBounds();
+  void bringWithinBounds() {
+    // Add "maximum" first to ensure we are dealing with a positive number.
+    val = (val+maximum) % maximum;
+  }
 
 //==============================//
 // Constructors and destructors
@@ -56,8 +84,9 @@ private:
 
 public:
 
-  LoopCounter(int max);
-  virtual ~LoopCounter();
+  LoopCounter(int max) : maximum(max), val(0) {
+    // Do nothing
+  }
 
 //==============================//
 // Local state

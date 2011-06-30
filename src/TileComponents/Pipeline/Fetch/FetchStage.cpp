@@ -21,56 +21,64 @@ void FetchStage::execute() {
   // An attempt to call the getInstruction method less often than every cycle.
   // Doesn't work for some reason.
 
-//  if(fifo.isEmpty() && cache.isEmpty()) { // Wait for an instruction
-//    idle.write(true);
-//    next_trigger(toIPKFIFO.default_event() | toIPKCache.default_event());
-//  }
-//  if(!readyIn.read()) {              // Wait until decoder is ready
-//    idle.write(true);
-//    next_trigger(readyIn.posedge_event());
-//  }
-//  else if(!clock.negedge()) {             // Do fetch at negedge (why?)
-//    idle.write(true);
-//    next_trigger(clock.negedge_event());
-//  }
-//  else {                                  // Pass an instruction to pipeline
-//    idle.write(false);
+  bool isIdle;
+
+  if(cache.isEmpty() && fifo.isEmpty()) { // Wait for an instruction
+    isIdle = true;
+    next_trigger(fifo.fillChangedEvent() | cache.fillChangedEvent());
+  }
+  else if(!readyIn.read()) {              // Wait until decoder is ready
+    isIdle = false;
+    next_trigger(readyIn.posedge_event());
+  }
+  else if(!clock.negedge()) {             // Do fetch at negedge (why?)
+    isIdle = false;
+    next_trigger(clock.negedge_event());
+  }
+  else {                                  // Pass an instruction to pipeline
+    isIdle = false;
     getInstruction();
-//    next_trigger(clock.negedge_event());
-//  }
+    next_trigger(clock.negedge_event());
+  }
+
+  // Update the idle signal if there was a change.
+  if(idle.read() != isIdle) idle.write(isIdle);
 }
 
 void FetchStage::getInstruction() {
   // Select a new instruction if the decode stage is ready for one, unless
   // the FIFO and cache are both empty.
-  if(readyIn.read() && (!cache.isEmpty() || !fifo.isEmpty())) {
-    calculateSelect();
-    MemoryAddr instAddr;
 
-    if(usingCache) {
-      lastInstruction = cache.read();
-      instAddr = cache.getInstAddress();
-    }
-    else {
-      lastInstruction = fifo.read();
-      // We don't know the address this instruction came from, so make
-      // something up which would never happen.
-      instAddr = 0xFFFFFFFF;
-    }
+  assert(readyIn.read());
 
-    DecodedInst decoded(lastInstruction);
-    decoded.location(instAddr);
+  calculateSelect();
+  MemoryAddr instAddr;
 
-    dataOut.write(decoded);
-    idle.write(false);
-
-    if(DEBUG) {
-      printf("%s selected instruction from %s: ", this->name(),
-                                                  usingCache?"cache":"FIFO");
-      cout << lastInstruction << endl;
-    }
+  if(usingCache) {
+    assert(!cache.isEmpty());
+    lastInstruction = cache.read();
+    instAddr = cache.getInstAddress();
   }
-  else idle.write(true); // Idle if we can't send any instructions.
+  else {
+    assert(!fifo.isEmpty());
+    lastInstruction = fifo.read();
+    // We don't know the address this instruction came from, so make
+    // something up which would never happen.
+    instAddr = 0xFFFFFFFF;
+  }
+
+  // The instruction becomes a "DecodedInst" here to simplify various interfaces
+  // throughout the pipeline. The decoding happens in the decode stage.
+  DecodedInst decoded(lastInstruction);
+  decoded.location(instAddr);
+
+  dataOut.write(decoded);
+
+  if(DEBUG) {
+    printf("%s selected instruction from %s: ", this->name(),
+                                                usingCache?"cache":"FIFO");
+    cout << lastInstruction << endl;
+  }
 }
 
 void FetchStage::updateReady() {

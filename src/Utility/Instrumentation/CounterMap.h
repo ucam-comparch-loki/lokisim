@@ -19,7 +19,7 @@ class CounterMap {
 public:
 
   void increment(const T& event) {
-    counters[event] = counters[event] + 1;
+    counters[event]++;
     totalEvents++;
   }
 
@@ -41,10 +41,6 @@ public:
   }
 
   CounterMap() {
-
-  }
-
-  virtual ~CounterMap() {
 
   }
 

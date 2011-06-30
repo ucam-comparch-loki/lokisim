@@ -19,6 +19,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 class InstructionMap {
 
@@ -146,6 +147,10 @@ private:
 
   // Add a single instruction to all maps.
   static void addToMaps(const std::string& name, short opcode, int instruction);
+
+  // Generate a vector of boolean values showing whether each instruction
+  // satisfies a particular property.
+  static const std::vector<bool>& bitVector(bool defaultVal, const short exceptions[], int numExceptions);
 
 };
 

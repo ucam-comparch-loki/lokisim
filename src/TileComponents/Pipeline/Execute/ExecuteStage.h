@@ -96,6 +96,12 @@ private:
 
   friend class ALU;
 
+//==============================//
+// Local state
+//==============================//
+
+  sc_core::sc_event executedInstruction;
+
 };
 
 #endif /* EXECUTESTAGE_H_ */

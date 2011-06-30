@@ -55,6 +55,10 @@ public:
   // Returns whether the FIFO is empty.
   bool isEmpty() const;
 
+  // A handle to an event which is triggered whenever an instruction is added
+  // to or removed from the FIFO.
+  const sc_core::sc_event& fillChangedEvent() const;
+
 private:
 
   void receivedInst();
@@ -70,7 +74,7 @@ private:
 
   // An event which is triggered whenever an instruction is read from or
   // written to the FIFO.
-  sc_core::sc_event fullnessChanged;
+  sc_core::sc_event fifoFillChanged;
 
 };
 

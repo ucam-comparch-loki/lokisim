@@ -105,7 +105,7 @@ protected:
 
 private:
 
-  void acknowledgeCredit();
+  void acknowledgeCredit(PortIndex output);
   void receivedCredit();
 
 //==============================//

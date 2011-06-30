@@ -36,6 +36,7 @@ bool SendChannelEndTable::write(const AddressedWord& data, MapIndex output) {
 
   buffer.write(data);
   dataToSendEvent.notify();
+  bufferFillChanged.notify();
   mapEntries.write(output);
 
   if(DEBUG) cout << this->name() << " wrote " << data
@@ -51,6 +52,10 @@ bool SendChannelEndTable::full() const {
 ComponentID SendChannelEndTable::getSystemCallMemory() const {
 	//TODO: Implement this in a tidy way
 	return channelMap[1].destination().getComponentID();
+}
+
+const sc_core::sc_event& SendChannelEndTable::stallChangedEvent() const {
+  return bufferFillChanged;
 }
 
 void SendChannelEndTable::sendLoop() {
@@ -99,6 +104,8 @@ void SendChannelEndTable::send() {
   output.write(data);
   validOutput.write(true);
   channelMap[entry].removeCredit();
+
+  bufferFillChanged.notify();
 
   next_trigger(ackOutput.posedge_event());
 }
@@ -150,6 +157,7 @@ void SendChannelEndTable::updateMap(MapIndex entry, int64_t newVal) {
 			aw.setPortClaim(true, true);
 			buffer.write(aw);
 			dataToSendEvent.notify();
+			bufferFillChanged.notify();
 			mapEntries.write(entry);
 		}
 	} else {
@@ -179,6 +187,7 @@ void SendChannelEndTable::updateMap(MapIndex entry, int64_t newVal) {
 void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
   Instrumentation::stalled(id, true, Stalls::OUTPUT);
   waiting = true;
+  bufferFillChanged.notify(); // No it didn't - use separate events?
 
   // Whilst the chosen channel does not have all of its credits, wait until a
   // new credit is received.
@@ -190,6 +199,7 @@ void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
 
   Instrumentation::stalled(id, false);
   waiting = false;
+  bufferFillChanged.notify(); // No it didn't - use separate events?
 }
 
 /* Execute a memory operation. */

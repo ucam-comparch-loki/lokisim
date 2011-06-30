@@ -35,8 +35,10 @@ void ExecuteStage::execute() {
 }
 
 void ExecuteStage::updateReady() {
+  bool ready = !isStalled();
+
   // Write our current stall status.
-  readyOut.write(!isStalled());
+  if(ready != readyOut.read()) readyOut.write(ready);
 
   if(DEBUG && isStalled() && readyOut.read()) {
     cout << this->name() << " stalled." << endl;
@@ -44,7 +46,7 @@ void ExecuteStage::updateReady() {
 
   // Wait until some point late in the cycle, so we know that any operations
   // will have completed.
-  next_trigger(clock.negedge_event());
+  next_trigger(executedInstruction);
 }
 
 void ExecuteStage::newInput(DecodedInst& operation) {
@@ -55,6 +57,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
 
   // Execute the instruction.
   bool success = alu.execute(operation);
+  executedInstruction.notify();
 
   // Update the contents of any forwarding paths. Should this happen every
   // cycle, or just the ones when an instruction is executed?

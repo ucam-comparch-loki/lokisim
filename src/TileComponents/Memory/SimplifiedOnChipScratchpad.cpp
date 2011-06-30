@@ -160,9 +160,11 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 			}
 		}
 
-		oIdle.write(idle);
-
-		Instrumentation::idle(id, !idle);
+		// Only update status if status changed.
+		if(oIdle.read() != idle) {
+		  Instrumentation::idle(id, !idle);
+		  oIdle.write(idle);
+		}
 
 		// Advance cycle counter
 

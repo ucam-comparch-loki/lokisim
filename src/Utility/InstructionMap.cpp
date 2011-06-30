@@ -6,7 +6,6 @@
  */
 
 #include "InstructionMap.h"
-#include <set>
 
 // Need to define static class members
 std::map<std::string, short> InstructionMap::nto; // name to opcode
@@ -44,10 +43,10 @@ bool InstructionMap::hasSrcReg1(short op) {
       NOP, LUI, SELCH, IBJMP, RMTEXECUTE, RMTNXIPK, SYSCALL
   };
 
-  static const std::set<short> ops(withoutSource1, withoutSource1+7);
+  static const std::vector<bool>& hasSource1 =
+      bitVector(true, withoutSource1, sizeof(withoutSource1)/sizeof(short));
 
-  // The operation has a source register if it isn't in the set.
-  return ops.find(op) == ops.end();
+  return hasSource1[op];
 }
 
 /* Return whether the instruction uses the second source register. */
@@ -61,10 +60,10 @@ bool InstructionMap::hasSrcReg2(short op) {
       PSELFETCH
   };
 
-  static const std::set<short> ops(withSource2, withSource2+26);
+  static const std::vector<bool>& hasSource2 =
+      bitVector(false, withSource2, sizeof(withSource2)/sizeof(short));
 
-  // The operation has a source register if it is in the set.
-  return ops.find(op) != ops.end();
+  return hasSource2[op];
 }
 
 /* Return whether the instruction contains an immediate value */
@@ -79,10 +78,10 @@ bool InstructionMap::hasImmediate(short op) {
       SETCHMAP, SYSCALL
   };
 
-  static const std::set<short> ops(withImmed, withImmed+31);
+  static const std::vector<bool>& hasImmed =
+      bitVector(false, withImmed, sizeof(withImmed)/sizeof(short));
 
-  // The operation has an immediate if it is in the set.
-  return ops.find(op) != ops.end();
+  return hasImmed[op];
 }
 
 /* Return whether the instruction specifies a remote channel */
@@ -98,10 +97,10 @@ bool InstructionMap::hasRemoteChannel(short op) {
       SYSCALL
   };
 
-  static const std::set<short> ops(noChannel, noChannel+11);
+  static const std::vector<bool>& hasChannel =
+      bitVector(true, noChannel, sizeof(noChannel)/sizeof(short));
 
-  // The operation has a remote channel if it isn't in the set.
-  return ops.find(op) == ops.end();
+  return hasChannel[op];
 }
 
 /* Return whether the operation requires use of the ALU */
@@ -115,10 +114,10 @@ bool InstructionMap::isALUOperation(short op) {
       RMTFILL, RMTEXECUTE, RMTNXIPK, SETCHMAP, SYSCALL
   };
 
-  static const std::set<short> ops(notALU, notALU+17);
+  static const std::vector<bool>& useALU =
+      bitVector(true, notALU, sizeof(notALU)/sizeof(short));
 
-  // The operation is an ALU operation if it isn't in the set.
-  return ops.find(op) == ops.end();
+  return useALU[op];
 }
 
 /* Return whether the operation stores its result. */
@@ -132,10 +131,10 @@ bool InstructionMap::storesResult(short op) {
       RMTFILL, RMTEXECUTE, RMTNXIPK, SETCHMAP, SYSCALL
   };
 
-  static const std::set<short> ops(doesntStore, doesntStore+22);
+  static const std::vector<bool>& stores =
+      bitVector(true, doesntStore, sizeof(doesntStore)/sizeof(short));
 
-  // The operation stores its result if it isn't in the set.
-  return ops.find(op) == ops.end();
+  return stores[op];
 }
 
 
@@ -243,4 +242,15 @@ void InstructionMap::addToMaps(const std::string& name, short opcode, int instru
   nto[name] = opcode;
   oti[opcode] = instruction;
   itn[instruction] = name;
+}
+
+const std::vector<bool>& InstructionMap::bitVector(bool defaultVal, const short exceptions[], int numExceptions) {
+  // Generate a new vector, with a space for every instruction, and the
+  // default value set.
+  std::vector<bool>* vec = new std::vector<bool>(SYSCALL+1, defaultVal);
+
+  // Flip the boolean value for all exceptions.
+  for(int i=0; i<numExceptions; i++) vec->at(exceptions[i]) = !defaultVal;
+
+  return *vec;
 }

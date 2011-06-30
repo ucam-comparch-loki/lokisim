@@ -65,6 +65,10 @@ public:
 
   ComponentID   getSystemCallMemory() const;
 
+  // A handle for an event which triggers whenever the send channel-end table
+  // might stall or unstall.
+  const sc_core::sc_event& stallChangedEvent() const;
+
 private:
 
   // Send the oldest value in each output buffer, if the flow control signals
@@ -88,7 +92,7 @@ private:
 // Local state
 //==============================//
 
-protected:
+private:
 
   // A buffer for outgoing data.
   BufferStorage<AddressedWord> buffer;
@@ -107,6 +111,7 @@ protected:
   bool waiting;
 
   sc_core::sc_event dataToSendEvent;
+  sc_core::sc_event bufferFillChanged;
 
   // Used to tell that we are not currently waiting for any output buffers
   // to empty.

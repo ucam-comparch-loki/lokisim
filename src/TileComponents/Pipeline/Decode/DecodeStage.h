@@ -151,7 +151,13 @@ private:
   friend class ReceiveChannelEndTable;
   friend class SignExtend;
 
+//==============================//
+// Local state
+//==============================//
+
   bool waitingToSend;
+
+  sc_core::sc_event readyChangedEvent;
 
 };
 

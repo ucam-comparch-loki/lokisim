@@ -26,8 +26,10 @@ void         DecodeStage::execute() {
 }
 
 void         DecodeStage::updateReady() {
-  // Write our current stall status.
-  readyOut.write(!isStalled());
+  bool ready = !isStalled();
+
+  // Write our current stall status (only if it changed).
+  if(ready != readyOut.read()) readyOut.write(ready);
 
   if(DEBUG && isStalled() && readyOut.read()) {
     cout << this->name() << " stalled." << endl;
@@ -35,7 +37,7 @@ void         DecodeStage::updateReady() {
 
   // Wait until some point late in the cycle, so we know that any operations
   // will have completed.
-  next_trigger(clock.negedge_event());
+  next_trigger(readyChangedEvent);
 }
 
 void         DecodeStage::newInput(DecodedInst& inst) {
@@ -44,14 +46,20 @@ void         DecodeStage::newInput(DecodedInst& inst) {
 
   while(true) {
     DecodedInst decoded;
+    readyChangedEvent.notify();
     bool success = decoder.decodeInstruction(inst, decoded);
+    readyChangedEvent.notify();
 
     if(success) {
       // Wait until flow control allows us to send.
       if(!readyIn.read()) {
         waitingToSend = true;
+        readyChangedEvent.notify();
+
         wait(readyIn.posedge_event());
+
         waitingToSend = false;
+        readyChangedEvent.notify();
       }
       dataOut.write(decoded);
     }
@@ -64,7 +72,7 @@ void         DecodeStage::newInput(DecodedInst& inst) {
 }
 
 bool         DecodeStage::isStalled() const {
-  return !decoder.ready() || waitingToSend;  // Take into account fetch buffers too?
+  return !decoder.ready() || waitingToSend;
 }
 
 int32_t      DecodeStage::readReg(RegisterIndex index, bool indirect) const {
