@@ -17,9 +17,9 @@ void NetworkHierarchy::setupFlowControl() {
   // All cores and memories are now responsible for their own flow control.
 
   // Attach flow control units to the off-chip component too.
-  FlowControlIn*  fcin  = new FlowControlIn("fc_in", ComponentID()/*TOTAL_INPUT_PORTS*/, ChannelID());
+  FlowControlIn*  fcin  = new FlowControlIn("fc_in", ComponentID(), ChannelID());
   flowControlIn.push_back(fcin);
-  FlowControlOut* fcout = new FlowControlOut("fc_out", ComponentID()/*TOTAL_OUTPUT_PORTS*/, ChannelID());
+  FlowControlOut* fcout = new FlowControlOut("fc_out", ComponentID(), ChannelID());
   flowControlOut.push_back(fcout);
 
   fcin->clock(clock);
@@ -55,10 +55,6 @@ void NetworkHierarchy::makeLocalNetwork(int tileID) {
     localNetwork->dataOut[i](dataOut[outputIndex]);
     localNetwork->validDataOut[i](validDataOut[outputIndex]);
     localNetwork->ackDataOut[i](ackDataOut[outputIndex]);
-
-    localNetwork->creditsIn[i](creditsIn[outputIndex]);
-    localNetwork->validCreditIn[i](validCreditIn[outputIndex]);
-    localNetwork->ackCreditIn[i](ackCreditIn[outputIndex]);
   }
 
   for(unsigned int i=0; i<OUTPUT_PORTS_PER_TILE; i++) {
@@ -66,7 +62,18 @@ void NetworkHierarchy::makeLocalNetwork(int tileID) {
     localNetwork->dataIn[i](dataIn[inputIndex]);
     localNetwork->validDataIn[i](validDataIn[inputIndex]);
     localNetwork->ackDataIn[i](ackDataIn[inputIndex]);
+  }
 
+  // Memories don't have credit connections.
+  for(unsigned int i=0; i<CORES_PER_TILE*CORE_INPUT_PORTS; i++) {
+    int outputIndex = (tileID * CORES_PER_TILE * CORE_INPUT_PORTS) + i;
+    localNetwork->creditsIn[i](creditsIn[outputIndex]);
+    localNetwork->validCreditIn[i](validCreditIn[outputIndex]);
+    localNetwork->ackCreditIn[i](ackCreditIn[outputIndex]);
+  }
+
+  for(unsigned int i=0; i<CORES_PER_TILE*CORE_OUTPUT_PORTS; i++) {
+    int inputIndex = (tileID * CORES_PER_TILE * CORE_OUTPUT_PORTS) + i;
     localNetwork->creditsOut[i](creditsOut[inputIndex]);
     localNetwork->validCreditOut[i](validCreditOut[inputIndex]);
     localNetwork->ackCreditOut[i](ackCreditOut[inputIndex]);
@@ -78,10 +85,10 @@ void NetworkHierarchy::makeLocalNetwork(int tileID) {
   if(NUM_TILES == 1) {
     localNetwork->externalInput()(dataFromComponents[0]);
     localNetwork->externalValidInput()(validDataFromComps[0]);
-    localNetwork->externalReadyOutput()(ackDataFromComps[0]);
+    localNetwork->externalAckOutput()(ackDataFromComps[0]);
     localNetwork->externalOutput()(dataToComponents[0]);
     localNetwork->externalValidOutput()(validDataFromComps[0]);
-    localNetwork->externalReadyInput()(ackDataToComps[0]);
+    localNetwork->externalAckInput()(ackDataToComps[0]);
 
     localNetwork->externalCreditIn()(creditsFromComponents[0]);
     localNetwork->externalValidCreditIn()(validCreditFromComps[0]);
@@ -110,8 +117,8 @@ void NetworkHierarchy::makeGlobalNetwork() {
     n->externalOutput()(dataFromLocalNet[i]);
     n->externalValidInput()(validDataToLocal[i]);
     n->externalValidOutput()(validDataFromLocal[i]);
-    n->externalReadyInput()(globalReadyForData[i]);
-    n->externalReadyOutput()(localReadyForData[i]);
+    n->externalAckInput()(globalReadyForData[i]);
+    n->externalAckOutput()(localReadyForData[i]);
     globalDataNetwork->dataOut[i](dataToLocalNet[i]);
     globalDataNetwork->dataIn[i](dataFromLocalNet[i]);
     globalDataNetwork->validDataOut[i](validDataToLocal[i]);
@@ -156,16 +163,16 @@ NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
   // Make ports.
   dataIn                = new DataInput[TOTAL_OUTPUT_PORTS];
   dataOut               = new DataOutput[TOTAL_INPUT_PORTS];
-  creditsIn             = new CreditInput[TOTAL_INPUT_PORTS];
-  creditsOut            = new CreditOutput[TOTAL_OUTPUT_PORTS];
   validDataIn           = new ReadyInput[TOTAL_OUTPUT_PORTS];
   validDataOut          = new ReadyOutput[TOTAL_INPUT_PORTS];
-  validCreditIn         = new ReadyInput[TOTAL_INPUT_PORTS];
-  validCreditOut        = new ReadyOutput[TOTAL_OUTPUT_PORTS];
   ackDataIn             = new ReadyOutput[TOTAL_OUTPUT_PORTS];
   ackDataOut            = new ReadyInput[TOTAL_INPUT_PORTS];
-  ackCreditIn           = new ReadyOutput[TOTAL_INPUT_PORTS];
-  ackCreditOut          = new ReadyInput[TOTAL_OUTPUT_PORTS];
+  creditsIn             = new CreditInput[CORE_INPUT_PORTS * CORES_PER_TILE * NUM_TILES];
+  creditsOut            = new CreditOutput[CORE_OUTPUT_PORTS * CORES_PER_TILE * NUM_TILES];
+  validCreditIn         = new ReadyInput[CORE_INPUT_PORTS * CORES_PER_TILE * NUM_TILES];
+  validCreditOut        = new ReadyOutput[CORE_OUTPUT_PORTS * CORES_PER_TILE * NUM_TILES];
+  ackCreditIn           = new ReadyOutput[CORE_INPUT_PORTS * CORES_PER_TILE * NUM_TILES];
+  ackCreditOut          = new ReadyInput[CORE_OUTPUT_PORTS * CORES_PER_TILE * NUM_TILES];
 
   // Make wires to the off-chip component.
   dataFromComponents    = new DataSignal[1];

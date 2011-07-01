@@ -13,5 +13,5 @@ loader ../test_local/loader_0032.txt
 
 
 %% The benchmark to run (if we aren't supplying one on the command line).
-%loader mat_mult/simd/loader.txt
+%loader zigzag/loader.txt
 %../test_local/fact3

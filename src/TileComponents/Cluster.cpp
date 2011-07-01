@@ -281,9 +281,12 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
   write.clock(clock);                     write.idle(stageIdle[3]);
   write.readyOut(stageReady[2]);          write.dataIn(dataToStage[2]);
   write.fromFetchLogic(fetchSignal);
-  write.output(dataOut[0]);               write.creditsIn(creditsIn[0]);
-  write.validOutput(validDataOut[0]);     write.validCredit(validCreditIn[0]);
-  write.ackOutput(ackDataOut[0]);
+
+  for(unsigned int i=0; i<CORE_OUTPUT_PORTS; i++) {
+    write.output[i](dataOut[i]);            write.creditsIn[i](creditsIn[i]);
+    write.validOutput[i](validDataOut[i]);  write.validCredit[i](validCreditIn[i]);
+    write.ackOutput[i](ackDataOut[i]);
+  }
 
   SC_METHOD(updateIdle);
   for(uint i=0; i<4; i++) sensitive << stageIdle[i];

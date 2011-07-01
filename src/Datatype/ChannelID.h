@@ -17,21 +17,33 @@
 
 class ChannelID : public Word {
 private:
-	static const uint OFFSET_TILE = 20;
-	static const uint WIDTH_TILE = 12;
-	static const uint OFFSET_POSITION = 12;
-	static const uint WIDTH_POSITION = 8;
+
+  // Layout:
+  //
+  // 31      27              19              11       7               0
+  //  | | | |m|     tile      |    position   |channel|  group + line |
+  //
+  //  m = multicast flag (for position only - would tile multicast be useful?)
+
 	static const uint OFFSET_CHANNEL = 8;			// Reserve lower 8 bits for group and line bits
 	static const uint WIDTH_CHANNEL = 4;
+	static const uint OFFSET_POSITION = OFFSET_CHANNEL + WIDTH_CHANNEL;
+	static const uint WIDTH_POSITION = 8;
+	static const uint OFFSET_TILE = OFFSET_POSITION + WIDTH_POSITION;
+	static const uint WIDTH_TILE = 8;
+	static const uint OFFSET_MULTICAST = OFFSET_TILE + WIDTH_TILE;
+	static const uint WIDTH_MULTICAST = 1;
+	
 public:
 	inline uint32_t getData() const					{return data_ & 0xFFFFFFFFULL;}
 
 	inline uint getTile() const						{return getBits(OFFSET_TILE, OFFSET_TILE + WIDTH_TILE - 1);}
 	inline uint getPosition() const					{return getBits(OFFSET_POSITION, OFFSET_POSITION + WIDTH_POSITION - 1);}
 	inline uint getChannel() const					{return getBits(OFFSET_CHANNEL, OFFSET_CHANNEL + WIDTH_CHANNEL - 1);}
+	inline bool isMulticast() const         {return getBits(OFFSET_MULTICAST, OFFSET_MULTICAST + WIDTH_MULTICAST - 1);}
 
-	inline bool isCore() const						{return getBits(OFFSET_POSITION, OFFSET_POSITION + WIDTH_POSITION - 1) < CORES_PER_TILE;}
-	inline bool isMemory() const					{return getBits(OFFSET_POSITION, OFFSET_POSITION + WIDTH_POSITION - 1) >= CORES_PER_TILE;}
+	inline bool isCore() const						{return getBits(OFFSET_POSITION, OFFSET_POSITION + WIDTH_POSITION - 1) < CORES_PER_TILE || isMulticast();}
+	inline bool isMemory() const					{return getBits(OFFSET_POSITION, OFFSET_POSITION + WIDTH_POSITION - 1) >= CORES_PER_TILE && !isMulticast();}
 
 	inline bool isNullMapping() const				{return data_ == 0xFFFFFFFFULL;}
 
@@ -42,17 +54,21 @@ public:
 	}
 
 	inline ChannelID addPosition(uint position) {
+		bool multi = isMulticast();
 		uint tile = getTile();
 		uint pos = getPosition() + position;
 		uint ch = getChannel();
 
-		tile += pos / COMPONENTS_PER_TILE;
-		pos %= COMPONENTS_PER_TILE;
+		if(!multi) {
+      tile += pos / COMPONENTS_PER_TILE;
+      pos %= COMPONENTS_PER_TILE;
+		}
 
-		return ChannelID(tile, pos, ch);
+		return ChannelID(tile, pos, ch, multi);
 	}
 
 	inline ChannelID addChannel(uint channel, uint maxChannels) {
+    bool multi = isMulticast();
 		uint tile = getTile();
 		uint pos = getPosition();
 		uint ch = getChannel() + channel;
@@ -60,10 +76,12 @@ public:
 		pos += ch / maxChannels;
 		ch %= maxChannels;
 
-		tile += pos / COMPONENTS_PER_TILE;
-		pos %= COMPONENTS_PER_TILE;
+		if(!multi) {
+      tile += pos / COMPONENTS_PER_TILE;
+      pos %= COMPONENTS_PER_TILE;
+		}
 
-		return ChannelID(tile, pos, ch);
+		return ChannelID(tile, pos, ch, multi);
 	}
 
 	inline ComponentID getComponentID() const		{return ComponentID(getTile(), getPosition());}
@@ -72,7 +90,22 @@ public:
 		// Convert a unique port address into the form "(tile, position, channel)"
 
 		std::stringstream ss;
-		ss << "(" << getTile() << "," << getPosition() << "," << getChannel() << ")";
+
+		if(isMulticast()) {
+		  ss << "(m";
+		  unsigned int bitmask = getPosition();
+
+		  for(unsigned int i=CORES_PER_TILE-1; (int)i>=0; i--) {
+		    if((bitmask >> i) & 1) ss << "1";
+		    else                   ss << "0";
+		  }
+
+		  ss << "," << getChannel() << ")";
+		}
+		else {
+		  ss << "(" << getTile() << "," << getPosition() << "," << getChannel() << ")";
+		}
+		
 		std::string result;
 		ss >> result;
 		return result;
@@ -101,7 +134,8 @@ public:
 		// Nothing
 	}
 
-	ChannelID(uint tile, uint position, uint channel) : Word((tile << OFFSET_TILE) | (position << OFFSET_POSITION) | (channel << OFFSET_CHANNEL)) {
+	ChannelID(uint tile, uint position, uint channel, bool multicast=false) :
+	  Word((tile << OFFSET_TILE) | (position << OFFSET_POSITION) | (channel << OFFSET_CHANNEL) | ((multicast?1:0) << OFFSET_MULTICAST)) {
 		// Nothing
 	}
 

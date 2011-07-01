@@ -83,10 +83,12 @@ void FlowControlIn::handlePortClaim() {
   if(DEBUG)
     cout << "Channel " << channel << " was claimed by " << returnAddress << " [flow control " << (useCredits ? "enabled" : "disabled") << "]" << endl;
 
-  // If this is a data input to a core, this message doubles as a
-  // synchronisation message to show that all memories are now set up. We want
-  // to forward it to the buffer when possible.
-  if (!useCredits && dataIn.read().channelID().getChannel() >= 2) {
+  // If this is a port claim from a memory, to a core's data input, this
+  // message doubles as a synchronisation message to show that all memories are
+  // now set up. We want to forward it to the buffer when possible.
+  if (!useCredits &&
+      (returnAddress.getPosition() >= CORES_PER_TILE) &&
+      (dataIn.read().channelID().getChannel() >= 2)) {
     // Wait until there is space in the buffer, if necessary
     if (!bufferHasSpace.read()) {
       next_trigger(bufferHasSpace.posedge_event());
@@ -109,7 +111,7 @@ void FlowControlIn::addCredit() {
   if (useCredits) {
     numCredits++;
     newCredit.notify();
-    assert(numCredits <= CHANNEL_END_BUFFER_SIZE);
+    assert(numCredits <= IN_CHANNEL_BUFFER_SIZE);
   }
 }
 

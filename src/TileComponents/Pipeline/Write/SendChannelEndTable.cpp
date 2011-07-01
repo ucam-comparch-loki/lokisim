@@ -29,24 +29,34 @@ bool SendChannelEndTable::write(const DecodedInst& dec) {
 }
 
 bool SendChannelEndTable::write(const AddressedWord& data, MapIndex output) {
+  unsigned int bufferToUse = (int)(channelMap[output].network());
+
   // We know it is safe to write to any buffer because we block the rest
   // of the pipeline if a buffer is full.
-  assert(!buffer.full());
+  assert(!buffers[bufferToUse].full());
   assert(output < CHANNEL_MAP_SIZE);
 
-  buffer.write(data);
-  dataToSendEvent.notify();
+  buffers[bufferToUse].write(data);
+  dataToSendEvent[bufferToUse].notify();
   bufferFillChanged.notify();
-  mapEntries.write(output);
+  mapEntries[bufferToUse].write(output);
 
   if(DEBUG) cout << this->name() << " wrote " << data
-                 << " to output buffer" << endl;
+                 << " to output buffer " << bufferToUse << endl;
 
   return data.endOfPacket();
 }
 
 bool SendChannelEndTable::full() const {
-  return buffer.full() || waiting;
+  bool full = false;
+  for(unsigned int i=0; i<buffers.size(); i++) {
+    if(buffers[i].full()) {
+      full = true;
+      break;
+    }
+  }
+
+  return full || waiting;
 }
 
 ComponentID SendChannelEndTable::getSystemCallMemory() const {
@@ -58,35 +68,39 @@ const sc_core::sc_event& SendChannelEndTable::stallChangedEvent() const {
   return bufferFillChanged;
 }
 
-void SendChannelEndTable::sendLoop() {
-  if(ackOutput.read()) {
-    // If we are receiving an acknowledgement, we have just sent some data.
-    validOutput.write(false);
+void SendChannelEndTable::sendToCores()    {sendLoop(TO_CORES);}
+void SendChannelEndTable::sendToMemories() {sendLoop(TO_MEMORIES);}
+void SendChannelEndTable::sendOffTile()    {sendLoop(OFF_TILE);}
 
-    if(buffer.empty())        // No data to send.
-      next_trigger(dataToSendEvent);
+void SendChannelEndTable::sendLoop(unsigned int buffer) {
+  if(ackOutput[buffer].read()) {
+    // If we are receiving an acknowledgement, we have just sent some data.
+    validOutput[buffer].write(false);
+
+    if(buffers[buffer].empty())        // No data to send.
+      next_trigger(dataToSendEvent[buffer]);
     else if(clock.posedge())  // Have data and it's time to send it.
-      send();
+      send(buffer);
     else                      // Have data but it's not time to send it.
       next_trigger(clock.posedge_event());
   }
   else {
     // If we are not receiving an acknowledgement, we must have data to send.
-    assert(!buffer.empty());
+    assert(!buffers[buffer].empty());
 
     // Data can only be sent onto the network at the positive clock edge.
     if(!clock.posedge())
       next_trigger(clock.posedge_event());
     else
-      send();
+      send(buffer);
   }
 }
 
-void SendChannelEndTable::send() {
-  assert(!buffer.empty());
+void SendChannelEndTable::send(unsigned int buffer) {
+  assert(!buffers[buffer].empty());
   assert(clock.posedge());
 
-  MapIndex entry = mapEntries.peek();
+  MapIndex entry = mapEntries[buffer].peek();
 
   // If we don't have enough credits, abandon sending the data.
   if(!channelMap[entry].canSend()) {
@@ -94,20 +108,20 @@ void SendChannelEndTable::send() {
     return;
   }
 
-  AddressedWord data = buffer.read();
-  entry = mapEntries.read(); // Need to remove from the buffer after peeking earlier.
+  AddressedWord data = buffers[buffer].read();
+  entry = mapEntries[buffer].read(); // Need to remove from the buffer after peeking earlier.
 
   if(DEBUG) cout << "Sending " << data.payload()
       << " from " << ChannelID(id, (int)entry) << " to "
       << data.channelID() << endl;
 
-  output.write(data);
-  validOutput.write(true);
+  output[buffer].write(data);
+  validOutput[buffer].write(true);
   channelMap[entry].removeCredit();
 
   bufferFillChanged.notify();
 
-  next_trigger(ackOutput.posedge_event());
+  next_trigger(ackOutput[buffer].posedge_event());
 }
 
 /* Update an entry in the channel mapping table. */
@@ -131,7 +145,8 @@ void SendChannelEndTable::updateMap(MapIndex entry, int64_t newVal) {
 	// | Tile : 12 | Position : 8 | Channel : 4 | Memory group bits : 4 | Memory line bits : 4 |
 
 	uint32_t encodedEntry = (uint32_t)newVal;
-	uint newTile = encodedEntry >> 20;
+	bool multicast = (encodedEntry >> 28) & 0x1UL;
+	uint newTile = (encodedEntry >> 20) & 0xFFUL;
 	uint newPosition = (encodedEntry >> 12) & 0xFFUL;
 	uint newChannel = (encodedEntry >> 8) & 0xFUL;
 	uint newGroupBits = (encodedEntry >> 4) & 0xFUL;
@@ -141,7 +156,7 @@ void SendChannelEndTable::updateMap(MapIndex entry, int64_t newVal) {
 	// since this is an output channel, the ID computation is different to
 	// input channels.
 
-	ChannelID sendChannel(newTile, newPosition, newChannel);
+	ChannelID sendChannel(newTile, newPosition, newChannel, multicast);
 	ChannelID returnChannel(id, entry);
 
 	if (sendChannel.isCore()) {
@@ -154,11 +169,14 @@ void SendChannelEndTable::updateMap(MapIndex entry, int64_t newVal) {
 
 		if (entry != 0) {
 			AddressedWord aw(Word(returnChannel.getData()), sendChannel);
-			aw.setPortClaim(true, true);
-			buffer.write(aw);
-			dataToSendEvent.notify();
+			aw.setPortClaim(true, channelMap[entry].usesCredits());
+			
+			unsigned int bufferToUse = (int)(channelMap[entry].network());
+			
+			buffers[bufferToUse].write(aw);
+			dataToSendEvent[bufferToUse].notify();
 			bufferFillChanged.notify();
-			mapEntries.write(entry);
+			mapEntries[bufferToUse].write(entry);
 		}
 	} else {
 		// Destination is a memory
@@ -192,7 +210,7 @@ void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
   // Whilst the chosen channel does not have all of its credits, wait until a
   // new credit is received.
   while(!channelMap[channel].haveAllCredits()) {
-    wait(creditsIn.default_event());
+    wait(creditsIn[0].default_event() | creditsIn[1].default_event() | creditsIn[2].default_event());
     // Wait a fraction longer to ensure the credit count is updated first.
     wait(sc_core::SC_ZERO_TIME);
   }
@@ -256,28 +274,54 @@ bool SendChannelEndTable::executeMemoryOp(MapIndex entry, MemoryRequest::MemoryO
 	return write(aw, entry);
 }
 
-void SendChannelEndTable::receivedCredit() {
-    // Note: this may not work if we have multiple tiles: it relies on all of the
-    // addresses being neatly aligned.
-    ChannelIndex targetCounter = creditsIn.read().channelID().getChannel();
+void SendChannelEndTable::receivedCredit(unsigned int buffer) {
+	assert(validCredit[buffer].read());
 
-    if(DEBUG) cout << "Received credit at " << ChannelID(id, targetCounter) << endl;
+  ChannelIndex targetCounter = creditsIn[buffer].read().channelID().getChannel();
 
-    channelMap[targetCounter].addCredit();
+  if(DEBUG) cout << "Received credit at " << ChannelID(id, targetCounter) << endl;
+
+  channelMap[targetCounter].addCredit();
 }
+
+void SendChannelEndTable::creditFromCores()    {receivedCredit(TO_CORES);}
+void SendChannelEndTable::creditFromMemories() {} // Memories don't send credits
+void SendChannelEndTable::creditFromOffTile()  {receivedCredit(OFF_TILE);}
 
 SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID& ID) :
     Component(name, ID),
-    buffer(CHANNEL_END_BUFFER_SIZE, string(name)),
-    mapEntries(CHANNEL_END_BUFFER_SIZE, string(name)),
+    buffers(NUM_BUFFERS, OUT_CHANNEL_BUFFER_SIZE, string(name)),
+    mapEntries(NUM_BUFFERS, OUT_CHANNEL_BUFFER_SIZE, string(name)),
     channelMap(CHANNEL_MAP_SIZE, ChannelMapEntry(ID)) {
 
-  SC_METHOD(sendLoop);
-  sensitive << dataToSendEvent;
-  dont_initialize();
+  output      = new sc_out<AddressedWord>[NUM_BUFFERS];
+  validOutput = new sc_out<bool>[NUM_BUFFERS];
+  ackOutput   = new sc_in<bool>[NUM_BUFFERS];
 
-  SC_METHOD(receivedCredit);
-  sensitive << validCredit.pos();
-  dont_initialize();
+  creditsIn   = new sc_in<AddressedWord>[NUM_BUFFERS];
+  validCredit = new sc_in<bool>[NUM_BUFFERS];
 
+  waiting = false;
+
+  dataToSendEvent = new sc_core::sc_event[NUM_BUFFERS];
+
+  SC_METHOD(sendToCores);        sensitive << dataToSendEvent[0];   dont_initialize();
+  SC_METHOD(sendToMemories);     sensitive << dataToSendEvent[1];   dont_initialize();
+  SC_METHOD(sendOffTile);        sensitive << dataToSendEvent[2];   dont_initialize();
+
+  SC_METHOD(creditFromCores);    sensitive << validCredit[0].pos(); dont_initialize();
+  SC_METHOD(creditFromMemories); sensitive << validCredit[1].pos(); dont_initialize();
+  SC_METHOD(creditFromOffTile);  sensitive << validCredit[2].pos(); dont_initialize();
+
+}
+
+SendChannelEndTable::~SendChannelEndTable() {
+  delete[] output;
+  delete[] validOutput;
+  delete[] ackOutput;
+
+  delete[] creditsIn;
+  delete[] validCredit;
+
+  delete[] dataToSendEvent;
 }

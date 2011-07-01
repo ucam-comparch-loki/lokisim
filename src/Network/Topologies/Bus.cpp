@@ -87,8 +87,8 @@ void Bus::computeSwitching() {
 	lastData.write(newData);
 }
 
-Bus::Bus(sc_module_name name, const ComponentID& ID, int numOutputPorts, HierarchyLevel level, Dimension size) :
-    Network(name, ID, 1, numOutputPorts, level, size)
+Bus::Bus(const sc_module_name& name, const ComponentID& ID, int numOutputPorts, HierarchyLevel level, Dimension size, int firstOutput) :
+    Network(name, ID, 1, numOutputPorts, level, size, firstOutput)
 {
 	lastData.write(DataType());
 

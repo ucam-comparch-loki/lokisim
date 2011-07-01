@@ -68,13 +68,13 @@ void Mesh::wireUp() {
       router.ackDataOut[Router::SOUTH](ackSigNS[col][row+1]);
 
       // Data heading east-west
-      router.dataIn[Router::EAST](dataSigEW[col][row]);
-      router.validDataIn[Router::EAST](validSigEW[col][row]);
-      router.ackDataIn[Router::EAST](ackSigEW[col][row]);
+      router.dataIn[Router::EAST](dataSigEW[col+1][row]);
+      router.validDataIn[Router::EAST](validSigEW[col+1][row]);
+      router.ackDataIn[Router::EAST](ackSigEW[col+1][row]);
 
-      router.dataOut[Router::WEST](dataSigEW[col+1][row]);
-      router.validDataOut[Router::WEST](validSigEW[col+1][row]);
-      router.ackDataOut[Router::WEST](ackSigEW[col+1][row]);
+      router.dataOut[Router::WEST](dataSigEW[col][row]);
+      router.validDataOut[Router::WEST](validSigEW[col][row]);
+      router.ackDataOut[Router::WEST](ackSigEW[col][row]);
 
       // Data heading south-north
       router.dataIn[Router::SOUTH](dataSigSN[col][row+1]);
@@ -86,13 +86,13 @@ void Mesh::wireUp() {
       router.ackDataOut[Router::NORTH](ackSigSN[col][row]);
 
       // Data heading west-east
-      router.dataIn[Router::WEST](dataSigWE[col+1][row]);
-      router.validDataIn[Router::WEST](validSigWE[col+1][row]);
-      router.ackDataIn[Router::WEST](ackSigWE[col+1][row]);
+      router.dataIn[Router::WEST](dataSigWE[col][row]);
+      router.validDataIn[Router::WEST](validSigWE[col][row]);
+      router.ackDataIn[Router::WEST](ackSigWE[col][row]);
 
-      router.dataOut[Router::EAST](dataSigWE[col][row]);
-      router.validDataOut[Router::EAST](validSigWE[col][row]);
-      router.ackDataOut[Router::EAST](ackSigWE[col][row]);
+      router.dataOut[Router::EAST](dataSigWE[col+1][row]);
+      router.validDataOut[Router::EAST](validSigWE[col+1][row]);
+      router.ackDataOut[Router::EAST](ackSigWE[col+1][row]);
 
       // Data heading to/from local tile
       int tile = router.id.getTile();

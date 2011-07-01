@@ -43,7 +43,7 @@ public:
 public:
 
   SC_HAS_PROCESS(Chip);
-  Chip(sc_module_name name, const ComponentID& ID);
+  Chip(const sc_module_name& name, const ComponentID& ID);
   virtual ~Chip();
 
 //==============================//
@@ -51,9 +51,6 @@ public:
 //==============================//
 
 public:
-
-  virtual double area()   const;
-  virtual double energy() const;
 
   bool    isIdle() const;
 
@@ -72,6 +69,16 @@ public:
 
 private:
 
+  // Make any necessary wires needed to connect components together.
+  void    makeSignals();
+
+  // Make all cores, memories and interconnect modules.
+  void    makeComponents();
+
+  // Wire everything together.
+  void    wireUp();
+
+  // Update whether any part of the chip is doing useful work.
   void    watchIdle(int component);
   void    updateIdle();
 

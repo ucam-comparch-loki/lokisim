@@ -101,16 +101,37 @@ WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
     scet("scet", ID) {
 
+  static const unsigned int NUM_BUFFERS = 3;
+
+  output      = new sc_out<AddressedWord>[NUM_BUFFERS];
+  validOutput = new sc_out<bool>[NUM_BUFFERS];
+  ackOutput   = new sc_in<bool>[NUM_BUFFERS];
+
+  creditsIn   = new sc_in<AddressedWord>[NUM_BUFFERS];
+  validCredit = new sc_in<bool>[NUM_BUFFERS];
+
 	//TODO: Replace this hack with something more sensible
 	endOfPacket = false;
 
   // Connect the SCET to the network.
   scet.clock(clock);
-  scet.output(output);
-  scet.validOutput(validOutput);
-  scet.ackOutput(ackOutput);
-  scet.creditsIn(creditsIn);
-  scet.validCredit(validCredit);
+
+  for(unsigned int i=0; i<NUM_BUFFERS; i++) {
+    scet.output[i](output[i]);
+    scet.validOutput[i](validOutput[i]);
+    scet.ackOutput[i](ackOutput[i]);
+    scet.creditsIn[i](creditsIn[i]);
+    scet.validCredit[i](validCredit[i]);
+  }
 
   SC_THREAD(execute);
+}
+
+WriteStage::~WriteStage() {
+  delete[] output;
+  delete[] validOutput;
+  delete[] ackOutput;
+
+  delete[] creditsIn;
+  delete[] validCredit;
 }

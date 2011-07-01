@@ -8,115 +8,131 @@
 #include "MulticastBus.h"
 #include "../../Datatype/AddressedWord.h"
 
-void MulticastBus::mainLoop() {
-  while(true) {
-    wait(clock.posedge_event());
+void MulticastBus::busLoop() {
+  switch(state) {
+    case WAITING_FOR_DATA : {
+      if(clock.posedge()) {
+        // Wait for a delta cycle, because the valid signal is deasserted on
+        // the clock edge.
+        next_trigger(sc_core::SC_ZERO_TIME);
+      }
+      else if(!validDataIn[0].read()) {
+        // It turns out that there wasn't actually more data: the valid signal
+        // was deasserted on the clock edge.
+        next_trigger(validDataIn[0].posedge_event());
+      }
+      else {
+        // There definitely is data: send it.
+        DataType data = dataIn[0].read();
 
-    wait(sc_core::SC_ZERO_TIME);  // Allow time for the valid signal to be deasserted.
-    ackDataIn[0].write(false);
-    if(!validDataIn[0].read()) continue;
+        outputUsed = getDestinations(data.channelID());
+        assert(outputUsed != 0);
 
-    receivedData();
+        for(int i=0; i<8; i++) {  // 8 = number of bits in PortIndex... increase this?
+          if((outputUsed >> i) & 1) {
+            dataOut[i].write(data);
+            validDataOut[i].write(true);
+          }
+        }
 
-    // Wait for all credits to arrive.
-    while(!outstandingCredits.empty()) {
-      wait(credit);
-      checkCredits();
+        next_trigger(receivedAck);
+        state = WAITING_FOR_ACK;
+      }
+
+      break;
     }
 
-    // Send a credit back to the sender.
-    creditsOut.write(AddressedWord(1, creditDestination));
+    case WAITING_FOR_ACK : {
+      // The data has been consumed, so is no longer valid.
+      for(int i=0; i<8; i++) {  // 8 = number of bits in PortIndex... increase this?
+        if(ackDataOut[i].event()) {
+          // If we're receiving an ack, we should have sent data on that port.
+          assert((outputUsed >> i) & 1);
+          outputUsed &= ~(1 << i);  // Clear the bit
 
-    validCreditOut.write(true);
-    wait(ackCreditOut.posedge_event());
-    validCreditOut.write(false);
+          validDataOut[i].write(false);
+        }
+      }
 
-    // Pulse an acknowledgement. Do this very late so the component doesn't
-    // send more data before the credits have been received.
-    ackDataIn[0].write(true);
-    wait(sc_core::SC_ZERO_TIME);
-    ackDataIn[0].write(false);
-  }
-}
+      if(outputUsed == 0) {
+        // All acknowledgements have been received, so now it is time to
+        // acknowledge the input data.
+        ackDataIn[0].write(true);
 
-void MulticastBus::receivedData() {
-  assert(outstandingCredits.empty());
-  AddressedWord data = dataIn[0].read();
-  std::vector<PortIndex> destinations;
+        next_trigger(clock.posedge_event());
+        state = SENT_ACK;
+      }
+      else {
+        // Still more acknowledgements to wait for.
+        next_trigger(receivedAck);
+      }
 
-  // Find out which outputs to send this data on.
-  getDestinations(data.channelID(), destinations);
-
-  for(unsigned int i=0; i<destinations.size(); i++) {
-    const unsigned int output = destinations[i];
-    assert(output < numOutputs);
-
-    // If multicasting, may need to change the channel ID for each output.
-    dataOut[output].write(data);
-    validDataOut[output].write(true);
-    outstandingCredits.push_back(output);
-  }
-}
-
-void MulticastBus::checkCredits() {
-  std::list<PortIndex>::iterator iter = outstandingCredits.begin();
-  int size = outstandingCredits.size();
-
-  for(int i=0; i < size; i++, iter++) {
-    if(ackDataOut[*iter].event()) {
-      validDataOut[*iter].write(false);
+      break;
     }
-    // If a recipient has consumed the given data, remove them from the list of
-    // recipients we are waiting for, and deassert the newData signal.
-    if(validCreditIn[*iter].read()) {
-      receivedCredit(*iter);
-      creditDestination = creditsIn[*iter].read().channelID();
-      outstandingCredits.erase(iter);
-      iter--;
+
+    case SENT_ACK : {
+      assert(ackDataIn[0].read());
+
+      ackDataIn[0].write(false);
+
+      if(!validDataIn[0].read()) {
+        next_trigger(validDataIn[0].posedge_event());
+        state = WAITING_FOR_DATA;
+      }
+      else {
+        // The valid signal is still high at the start of the next clock cycle.
+        // This means there may be more data to consume.
+        next_trigger(sc_core::SC_ZERO_TIME);
+        state = WAITING_FOR_DATA;
+      }
+
+      break;
     }
-  }
+  } // end switch
 }
 
-void MulticastBus::receivedCredit(PortIndex output) {
-  validDataOut[output].write(false);
-  ackCreditIn[output].write(true);
-  wait(sc_core::SC_ZERO_TIME);
-  ackCreditIn[output].write(false);
+void MulticastBus::ackArrived() {
+  receivedAck.notify();
 }
 
-void MulticastBus::getDestinations(const ChannelID& address, std::vector<PortIndex>& outputs) const {
-  // Would it be sensible to enforce that MulticastBuses only ever receive
-  // multicast addresses? Might make things simpler.
-  // But that would make it difficult to deal with non-local traffic.
-  bool multicast = false;
-  if(multicast) {
-    // Figure out which destinations are represented by the address.
+PortIndex MulticastBus::getDestinations(const ChannelID& address) const {
+  // In practice, we would probably only allow multicast addresses, but
+  // allowing both options for the moment makes testing easier.
+
+  if(level == COMPONENT && address.isMulticast()) {
+    // The address is already correctly encoded.
+    return getDestination(address);
   }
   else {
-    //TODO: Check again - unsure whether this is doing what is intended
-//    outputs.push_back((address.getGlobalChannelNumber(OUTPUT_CHANNELS_PER_TILE, CORE_OUTPUT_CHANNELS) - startAddress.getGlobalChannelNumber(OUTPUT_CHANNELS_PER_TILE, CORE_OUTPUT_CHANNELS))/channelsPerOutput);
+    // If it is not a multicast address, there is only one destination.
+    // Shift a single bit to the correct position.
+    return 1 << getDestination(address);
   }
 }
 
-void MulticastBus::creditArrived() {
-  credit.notify();
-}
+MulticastBus::MulticastBus(const sc_module_name& name, const ComponentID& ID, int numOutputs,
+                           HierarchyLevel level, Dimension size, int firstOutput) :
+    Bus(name, ID, numOutputs, level, size, firstOutput) {
 
-MulticastBus::MulticastBus(sc_module_name name, const ComponentID& ID, int numOutputs,
-                           HierarchyLevel level, Dimension size) :
-    Bus(name, ID, numOutputs, level, size) {
+//  creditsIn      = new CreditInput[numOutputs];
+//  validCreditIn  = new ReadyInput[numOutputs];
+//  ackCreditIn    = new ReadyOutput[numOutputs];
+//
+//  creditsOut     = new CreditOutput[1];
+//  validCreditOut = new ReadyOutput[1];
+//  ackCreditOut   = new ReadyInput[1];
 
-  creditsIn     = new CreditInput[numOutputs];
-  validCreditIn = new ReadyInput[numOutputs];
-  ackCreditIn   = new ReadyOutput[numOutputs];
-
-  SC_METHOD(creditArrived);
-  for(int i=0; i<numOutputs; i++) sensitive << validCreditIn[i].pos() << ackDataOut[i];
+  SC_METHOD(ackArrived);
+  for(int i=0; i<numOutputs; i++) sensitive << ackDataOut[i];
   dont_initialize();
 }
 
 MulticastBus::~MulticastBus() {
-  delete[] creditsIn;
-  delete[] validCreditIn;
-  delete[] ackCreditIn;
+//  delete[] creditsIn;
+//  delete[] validCreditIn;
+//  delete[] ackCreditIn;
+//
+//  delete[] creditsOut;
+//  delete[] validCreditOut;
+//  delete[] ackCreditOut;
 }

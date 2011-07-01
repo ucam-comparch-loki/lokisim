@@ -96,7 +96,8 @@ extern parameter	NUM_RECEIVE_CHANNELS;     // Register-mapped inputs only
 #define MEMORY_INPUT_CHANNELS  MEMORY_CHANNEL_MAP_TABLE_ENTRIES
 #define MEMORY_OUTPUT_CHANNELS MEMORY_CHANNEL_MAP_TABLE_ENTRIES
 
-extern parameter	CHANNEL_END_BUFFER_SIZE;	// Different send/receive sizes?
+extern parameter	IN_CHANNEL_BUFFER_SIZE;
+extern parameter  OUT_CHANNEL_BUFFER_SIZE;
 extern parameter	ROUTER_BUFFER_SIZE;
 
 //-------------------------------------------------------------------------------------------------

@@ -47,7 +47,7 @@ string TraceFile::parameterSummary() {
   s << "Channel ends:\n";
   s << "  Input:                         " << NUM_RECEIVE_CHANNELS << "\n";
   s << "  Output:                        " << CORE_OUTPUT_CHANNELS << "\n";
-  s << "  Buffer size:                   " << CHANNEL_END_BUFFER_SIZE << "\n";
+  s << "  Buffer size:                   " << IN_CHANNEL_BUFFER_SIZE << "\n";
   s << "Maximum instruction packet size: " << MAX_IPK_SIZE;
 
   return s.str();

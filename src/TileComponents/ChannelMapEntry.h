@@ -37,6 +37,8 @@ public:
   void removeCredit();
   void addCredit();
 
+  bool usesCredits() const;
+
   ChannelMapEntry(ComponentID localID);
 
 private:

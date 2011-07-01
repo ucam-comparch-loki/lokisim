@@ -9,7 +9,7 @@
 #include "../Datatype/ChannelID.h"
 #include <iostream>
 
-#define MAX_CREDITS CHANNEL_END_BUFFER_SIZE
+#define MAX_CREDITS IN_CHANNEL_BUFFER_SIZE
 
 ChannelID ChannelMapEntry::destination() const {
   return destination_;
@@ -46,7 +46,7 @@ void ChannelMapEntry::setCoreDestination(const ChannelID& address) {
 
 	destination_ = address;
 	network_ = (address.getTile() == id_.getTile()) ? CORE_TO_CORE : GLOBAL;
-	useCredits_ = true;
+	useCredits_ = network_ == GLOBAL;
 	localMemory_ = false;
 	memoryGroupBits_ = 0;
 	addressIncrement_ = 0;
@@ -90,6 +90,10 @@ void ChannelMapEntry::addCredit() {
 	credits_++;
 	assert(credits_ >= 0);
 	assert(credits_ <= MAX_CREDITS);
+}
+
+bool ChannelMapEntry::usesCredits() const {
+  return useCredits_;
 }
 
 ChannelMapEntry::ChannelMapEntry(ComponentID localID) {

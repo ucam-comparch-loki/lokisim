@@ -9,7 +9,6 @@
 #define MULTICASTBUS_H_
 
 #include "Bus.h"
-#include <list>
 
 class MulticastBus: public Bus {
 
@@ -31,14 +30,14 @@ public:
 //   ReadyOutput  *validDataOut;
 //   ReadyInput   *ackDataOut;
 
-  CreditInput  *creditsIn;
-  ReadyInput   *validCreditIn;
-  ReadyOutput  *ackCreditIn;
-
-  // Make these into arrays of length 1, for consistency?
-  CreditOutput  creditsOut;
-  ReadyOutput   validCreditOut;
-  ReadyInput    ackCreditOut;
+//  CreditInput  *creditsIn;
+//  ReadyInput   *validCreditIn;
+//  ReadyOutput  *ackCreditIn;
+//
+//  // Make these into arrays of length 1, for consistency?
+//  CreditOutput *creditsOut;
+//  ReadyOutput  *validCreditOut;
+//  ReadyInput   *ackCreditOut;
 
 //==============================//
 // Constructors and destructors
@@ -47,8 +46,8 @@ public:
 public:
 
   SC_HAS_PROCESS(MulticastBus);
-  MulticastBus(sc_module_name name, const ComponentID& ID, int numOutputs,
-               HierarchyLevel level, Dimension size);
+  MulticastBus(const sc_module_name& name, const ComponentID& ID, int numOutputs,
+               HierarchyLevel level, Dimension size, int firstOutput=0);
   virtual ~MulticastBus();
 
 //==============================//
@@ -57,17 +56,17 @@ public:
 
 protected:
 
-  virtual void mainLoop();
-  virtual void receivedData();
-  virtual void receivedCredit(PortIndex output);
+  virtual void busLoop();
 
 private:
 
-  void checkCredits();
-  void creditArrived();
+  void ackArrived();
+
   // Compute which outputs of this bus will be used by the given address. This
   // allows an address to represent multiple destinations.
-  void getDestinations(const ChannelID& address, std::vector<PortIndex>& outputs) const;
+  // The PortIndex returned is a bitmask of the destinations to send to. The
+  // least significant bit represents output 0.
+  PortIndex getDestinations(const ChannelID& address) const;
 
 //==============================//
 // Local state
@@ -75,14 +74,11 @@ private:
 
 private:
 
-  // Multicast is complicated unless we keep track of which outputs owe credits.
-  std::list<PortIndex> outstandingCredits;
-
   // The destination to send credits back to. We can't just forward all credits
   // received because there may be multiple credits for a single message.
-  ChannelID creditDestination;
+//  ChannelID creditDestination;
 
-  sc_core::sc_event credit;
+  sc_core::sc_event receivedAck;
 
 };
 

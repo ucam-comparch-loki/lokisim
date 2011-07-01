@@ -50,14 +50,15 @@ public:
   // This would work nicely when moving down the hierarchy, but what about when
   // moving up? e.g. Credits pass through a CHANNEL network on the way to the
   // local network, but we don't want them to be routed by the channel value yet.
-  Network(sc_module_name name,
+  Network(const sc_module_name& name,
           const ComponentID& ID,
           int numInputs,        // Number of inputs this network has
           int numOutputs,       // Number of outputs this network has
           HierarchyLevel level, // Position in the network hierarchy
           Dimension size,       // The physical size of this network (width, height)
+          int firstOutput=0,    // The first accessible channel/component/tile
           bool externalConnection=false); // Is there a port to send data on if it
-                                          // isn't for any local component?
+                                          // isn't for any local component?);
 
   virtual ~Network();
 
@@ -78,11 +79,11 @@ public:
   ReadyInput&  externalValidInput() const;
   ReadyOutput& externalValidOutput() const;
 
-  ReadyInput&  externalReadyInput() const;
-  ReadyOutput& externalReadyOutput() const;
+  ReadyInput&  externalAckInput() const;
+  ReadyOutput& externalAckOutput() const;
 
-  int numInputPorts() const;
-  int numOutputPorts() const;
+  unsigned int numInputPorts() const;
+  unsigned int numOutputPorts() const;
 
 protected:
 
@@ -96,6 +97,11 @@ protected:
 protected:
 
   unsigned int numInputs, numOutputs;
+
+  // The channel/component/tile accessible through the first output port.
+  // For example, this network may only send to memories, so whilst the target
+  // component may have an ID of 8, we may want to use output port 0.
+  unsigned int firstOutput;
 
   HierarchyLevel level;
 

@@ -24,29 +24,29 @@ class WriteStage: public PipelineStage {
 public:
 
 // Inherited from PipelineStage:
-//   sc_in<bool>        clock
-//   sc_out<bool>       idle
-//   sc_out<bool>       stallOut
+//   sc_in<bool>         clock
+//   sc_out<bool>        idle
+//   sc_out<bool>        stallOut
 
   // The input instruction to be working on. DecodedInst holds all information
   // required for any pipeline stage to do its work.
-  sc_in<DecodedInst>    dataIn;
+  sc_in<DecodedInst>     dataIn;
 
   // Tell whether this stage is ready for input (ignoring effects of any other stages).
-  sc_out<bool>          readyOut;
+  sc_out<bool>           readyOut;
 
   // Fetch logic will sometimes provide messages to put into the output buffer.
-  sc_in<AddressedWord>  fromFetchLogic;
+  sc_in<AddressedWord>   fromFetchLogic;
 
   // Data to send onto the network.
-  sc_out<AddressedWord> output;
-  sc_out<bool>          validOutput;
-  sc_in<bool>           ackOutput;
+  sc_out<AddressedWord> *output;
+  sc_out<bool>          *validOutput;
+  sc_in<bool>           *ackOutput;
 
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.
-  sc_in<AddressedWord>  creditsIn;
-  sc_in<bool>           validCredit;
+  sc_in<AddressedWord>  *creditsIn;
+  sc_in<bool>           *validCredit;
 
 //==============================//
 // Constructors and destructors
@@ -56,6 +56,7 @@ public:
 
   SC_HAS_PROCESS(WriteStage);
   WriteStage(sc_module_name name, const ComponentID& ID);
+  virtual ~WriteStage();
 
 //==============================//
 // Methods

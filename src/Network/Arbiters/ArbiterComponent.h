@@ -48,12 +48,17 @@ public:
 public:
 
   SC_HAS_PROCESS(ArbiterComponent);
-  ArbiterComponent(sc_module_name name, const ComponentID& ID, int inputs, int outputs, bool wormhole);
+  ArbiterComponent(const sc_module_name& name, const ComponentID& ID, int inputs, int outputs, bool wormhole);
   virtual ~ArbiterComponent();
 
 //==============================//
 // Methods
 //==============================//
+
+public:
+
+  unsigned int numInputs() const;
+  unsigned int numOutputs() const;
 
 private:
 
@@ -64,7 +69,9 @@ private:
   // Helper functions for arbiterLoop. arbitrate() currently implements round-
   // robin scheduling.
   void arbitrate();
-  void checkAcks();
+  bool checkForData();
+
+  void receivedAck();
 
   void newData();
 
@@ -78,13 +85,22 @@ private:
 
   ArbiterState state;
 
-  int numInputs, numOutputs;
+  int inputs, outputs;
 
   int activeTransfers;
   int lastAccepted; // Using round-robin at the moment.
 
   // Record which outputs we are waiting for acknowledgements on.
   bool* inUse;
+
+  // Record which inputs we have accepted data from. We only acknowledge data
+  // when the output has acknowledged it, so there may be a period of time
+  // where the "valid" signal is high, but we have already used the data.
+  bool* alreadySeen;
+
+  // Record where to send acknowledgements to once the output data has been
+  // consumed. (Would this storage be needed in practice?)
+  int*  ackDestinations;
 
   // Event which is triggered whenever new data arrives. It uses the validDataIn
   // signals, so it doesn't notice the new data if the valid signal doesn't

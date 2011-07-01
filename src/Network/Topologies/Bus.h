@@ -45,8 +45,8 @@ public:
 
   SC_HAS_PROCESS(Bus);
 
-  Bus(sc_module_name name, const ComponentID& ID, int numOutputPorts,
-      HierarchyLevel level, Dimension size);
+  Bus(const sc_module_name& name, const ComponentID& ID, int numOutputPorts,
+      HierarchyLevel level, Dimension size, int firstOutput=0);
 
 //==============================//
 // Methods
@@ -56,7 +56,7 @@ protected:
 
   // Main loop responsible for sending and receiving data, and dealing with
   // acknowledgements.
-  void busLoop();
+  virtual void busLoop();
 
 private:
 
@@ -68,7 +68,7 @@ private:
 // Local state
 //==============================//
 
-private:
+protected:
 
   enum BusState {WAITING_FOR_DATA, WAITING_FOR_ACK, SENT_ACK};
 
@@ -76,6 +76,8 @@ private:
 
   // The output port we have sent data on.
   PortIndex outputUsed;
+
+private:
 
   // Store the previous value, so we can compute how many bits change when a
   // new value arrives.

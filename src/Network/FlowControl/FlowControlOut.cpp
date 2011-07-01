@@ -80,14 +80,14 @@ void FlowControlOut::receivedCredit() {
   creditCount++;
 
   if(DEBUG) cout << "Received credit at port " << channel << endl;
-  assert(creditCount <= CHANNEL_END_BUFFER_SIZE);
+  assert(creditCount <= IN_CHANNEL_BUFFER_SIZE);
 }
 
 FlowControlOut::FlowControlOut(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :
     Component(name, ID) {
 
   channel = channelManaged;
-  creditCount = CHANNEL_END_BUFFER_SIZE;
+  creditCount = IN_CHANNEL_BUFFER_SIZE;
   state = WAITING_FOR_DATA;
 
   SC_METHOD(mainLoop);

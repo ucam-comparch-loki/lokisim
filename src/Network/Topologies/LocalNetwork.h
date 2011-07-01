@@ -4,11 +4,6 @@
  * The data and credit networks within a single tile. Allows the cores to send
  * onto a multicast network whilst the memories send onto a normal crossbar.
  *
- * TODO: have multiple outputs from each core, one leading to other cores, one
- *       leading to memories, and one leading to the global network.
- * TODO: remove credits from the memory network once the new memory system is
- *       in place.
- *
  *  Created on: 9 May 2011
  *      Author: db434
  */
@@ -17,6 +12,9 @@
 #define LOCALNETWORK_H_
 
 #include "../Network.h"
+#include <vector>
+
+using std::vector;
 
 class ArbiterComponent;
 class Bus;
@@ -78,15 +76,42 @@ public:
 
 private:
 
-  void makeWires();
+  // Create all of the arbiters required in this network.
   void makeArbiters();
 
-  // firstPort is the position in this network's ports to which the arbiter
-  // should be attached.
-  void makeDataArbiter(unsigned int ID, unsigned int inputs, unsigned int outputs, unsigned int firstPort);
-  void makeCreditArbiter(unsigned int ID, unsigned int inputs, unsigned int outputs, unsigned int firstPort);
-
+  // Create all of the buses required in this network.
   void makeBuses();
+
+  // Bind the relevant arbiter ports to this network's inputs/outputs.
+  // port = the index in this network's port arrays to bind to.
+  // data = flag telling whether the arbiter handles data or credits.
+  void bindArbiter(ArbiterComponent* arbiter, PortIndex port, bool data);
+
+  // Bind the relevant bus ports to this network's inputs/outputs.
+  // port = the index in this network's port arrays to bind to.
+  // data = flag telling whether the bus handles data or credits.
+  void bindBus(Bus* bus, PortIndex port, bool data);
+
+  // Connect the arbiters and buses together.
+  void wireUp();
+
+  // Connect a group of buses to a group of arbiters.
+  // Typically, the ith output of bus j will connect to the jth input of
+  // arbiter i. This can be adjusted using firstArbiterConnection if some
+  // connections to the arbiter have already been made.
+  // data is a flag telling whether the sub-network handles data or credits.
+  void connect(vector<Bus*>& buses,
+               vector<ArbiterComponent*>& arbiters,
+               PortIndex firstArbiterConnection,
+               bool data);
+
+  // Create all signals necessary to connect one bus to one arbiter. They are
+  // pushed onto the back of vectors, for later access.
+  void makeDataSigs();
+
+  // Create all signals necessary to connect one bus to one arbiter. They are
+  // pushed onto the back of vectors, for later access.
+  void makeCreditSigs();
 
 //==============================//
 // Components
@@ -94,19 +119,27 @@ private:
 
 private:
 
-  std::vector<ArbiterComponent*> arbiters;
-  std::vector<Bus*> buses;
+  unsigned int creditInputs, creditOutputs;
 
-  // Lots of 2D arrays of wires to connect buses to arbiters.
-  // Addressing is done as: dataSig[destination_component][port]
-  DataSignal**   dataSig;
-  ReadySignal**  validDataSig;
-  ReadySignal**  ackDataSig;
+  // Buses and arbiters separated out according to the start/end components.
+  // c = core, m = memory, g = global network
+  // Note that wherever multicast-capable buses are used, credit arbiters are
+  // not needed.
+  vector<Bus*> c2cDataBuses, c2mDataBuses, c2gDataBuses, m2cDataBuses, g2cDataBuses;
+  vector<Bus*> c2cCreditBuses, c2gCreditBuses, g2cCreditBuses;
+  vector<ArbiterComponent*> cDataArbiters, mDataArbiters, gDataArbiters;
+  vector<ArbiterComponent*> cCreditArbiters, gCreditArbiters;
 
-  CreditSignal** creditSig;
-  ReadySignal**  validCreditSig;
-  ReadySignal**  ackCreditSig;
+  // There is a bus for each output port of each component. There need to be
+  // wires between each bus and all arbiters which the bus may send to.
+  // Pointers are stored here so they can all be deleted later.
+  vector<DataSignal*>   dataSigs;
+  vector<ReadySignal*>  validDataSigs;
+  vector<ReadySignal*>  ackDataSigs;
 
+  vector<CreditSignal*> creditSigs;
+  vector<ReadySignal*>  validCreditSigs;
+  vector<ReadySignal*>  ackCreditSigs;
 };
 
 #endif /* LOCALNETWORK_H_ */

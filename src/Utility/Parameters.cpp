@@ -87,10 +87,11 @@ parameter MEMORY_ON_CHIP_SCRATCHPAD_BANKS		= 4;
 //-------------------------------------------------------------------------------------------------
 
 parameter CORE_INPUT_PORTS         = 2;
-parameter CORE_OUTPUT_PORTS        = 1;
+parameter CORE_OUTPUT_PORTS        = 3;  // To cores, to memories, off tile
 parameter NUM_RECEIVE_CHANNELS     = 6;  // Register-mapped inputs only
 
-parameter CHANNEL_END_BUFFER_SIZE  = 20;  // Make smaller once SIMD is sorted
+parameter IN_CHANNEL_BUFFER_SIZE   = 20;  // Make smaller once SIMD is sorted
+parameter OUT_CHANNEL_BUFFER_SIZE  = 4;
 parameter ROUTER_BUFFER_SIZE       = 4;
 
 //-------------------------------------------------------------------------------------------------
@@ -122,7 +123,8 @@ void Parameters::parseParameter(const string &name, const string &value) {
 	else SET_IF_MATCH(cName, nValue, MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 	else SET_IF_MATCH(cName, nValue, MEMORY_ON_CHIP_SCRATCHPAD_BANKS);
 	else SET_IF_MATCH(cName, nValue, NUM_RECEIVE_CHANNELS);
-	else SET_IF_MATCH(cName, nValue, CHANNEL_END_BUFFER_SIZE);
+	else SET_IF_MATCH(cName, nValue, IN_CHANNEL_BUFFER_SIZE);
+  else SET_IF_MATCH(cName, nValue, OUT_CHANNEL_BUFFER_SIZE);
 	else SET_IF_MATCH(cName, nValue, ROUTER_BUFFER_SIZE);
 	else {
 		cerr << "Encountered invalid parameter in settings file: " << name << endl;

@@ -23,18 +23,18 @@ void MulticastCrossbar::makeBuses() {
     bus->validDataIn[0](validDataIn[i]);
     bus->ackDataIn[0](ackDataIn[i]);
 
-    bus->creditsOut(creditsOut[i]);
-    bus->validCreditOut(validCreditOut[i]);
-    bus->ackCreditOut(ackCreditOut[i]);
+//    bus->creditsOut(creditsOut[i]);
+//    bus->validCreditOut(validCreditOut[i]);
+//    bus->ackCreditOut(ackCreditOut[i]);
 
     for(int j=0; j<numMuxes; j++) {
       bus->dataOut[j](busToMux[i][j]);
       bus->validDataOut[j](newData[i][j]);
       bus->ackDataOut[j](readData[i][j]);
 
-      bus->creditsIn[j](creditsToBus[i][j]);
-      bus->validCreditIn[j](validCreditToBus[i][j]);
-      bus->ackCreditIn[j](ackCreditToBus[i][j]);
+//      bus->creditsIn[j](creditsToBus[i][j]);
+//      bus->validCreditIn[j](validCreditToBus[i][j]);
+//      bus->ackCreditIn[j](ackCreditToBus[i][j]);
     }
   }
 }

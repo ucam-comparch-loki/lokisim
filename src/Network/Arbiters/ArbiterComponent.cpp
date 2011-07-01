@@ -24,7 +24,7 @@ void ArbiterComponent::arbiterLoop() {
 
       if(activeTransfers > 0) {
         state = WAITING_FOR_ACKS;
-        next_trigger(clock.posedge_event());  // is this right?
+        next_trigger(clock.posedge_event());
       }
       else {
         // There are no acknowledgements to wait for, so wait until data arrives.
@@ -35,21 +35,25 @@ void ArbiterComponent::arbiterLoop() {
     }
 
     case WAITING_FOR_ACKS : {
-      checkAcks();
 
-      state = WAITING_FOR_DATA;
+      // Now that the clock edge has arrived, pull down any valid data signals.
+      for(int i=0; i<outputs; i++) {
+        if(!inUse[i] && validDataOut[i].read()) {
+          validDataOut[i].write(false);
 
-      // See if there is any data waiting to be sent.
-      bool haveData = false;
-      for(int i=0; i<numInputs; i++) {
-        if(validDataIn[i].read()) {
-          haveData = true;
-          break;
+          int dataSource = ackDestinations[i];
+          alreadySeen[dataSource] = false;
+
+          activeTransfers--;
         }
       }
 
-      if(activeTransfers > 0 || haveData) next_trigger(clock.negedge_event());
-      else                                next_trigger(newDataEvent);
+      state = WAITING_FOR_DATA;
+
+      // Wait until data arrives, or until the next clock edge if it is already
+      // here.
+      if(activeTransfers > 0 || checkForData()) next_trigger(clock.negedge_event());
+      else                                      next_trigger(newDataEvent);
 
       break;
     }
@@ -64,14 +68,14 @@ void ArbiterComponent::arbitrate() {
   int inCursor = lastAccepted;
   int outCursor = 0;
 
-  for (int i = 0; i < numInputs; i++) {
+  for (int i = 0; i < inputs; i++) {
     // Request: numInput -> endOfPacket
 
     inCursor++;
-    if (inCursor == numInputs)
+    if (inCursor == inputs)
       inCursor = 0;
 
-    if (!validDataIn[inCursor].read())
+    if (!validDataIn[inCursor].read() || alreadySeen[inCursor])
       continue;
 
     // Determine which output to send the data to. If this arbiter makes use
@@ -84,7 +88,7 @@ void ArbiterComponent::arbitrate() {
       // Find the next available output (skip over any which are in use
       // or reserved by wormhole-routed packets).
       while((inUse[outCursor] || (wormhole && reserved[outCursor]))
-         && (outCursor < numOutputs))
+         && (outCursor < outputs))
         outCursor++;
 
       outputToUse = outCursor;
@@ -92,13 +96,15 @@ void ArbiterComponent::arbitrate() {
 
     // Don't exit the loop if we have now been through all outputs. There may
     // still be reservations which can be filled.
-    if(outputToUse >= numOutputs) continue;
+    if(outputToUse >= outputs) continue;
 
     // Send the data, if appropriate.
     if (!inUse[outputToUse]) {
       dataOut[outputToUse].write(dataIn[inCursor].read());
       validDataOut[outputToUse].write(true);
-      ackDataIn[inCursor].write(!ackDataIn[inCursor].read()); // Toggle value
+
+      ackDestinations[outputToUse] = inCursor;
+      alreadySeen[inCursor] = true;
 
       inUse[outputToUse] = true;
       lastAccepted = inCursor;
@@ -120,34 +126,54 @@ void ArbiterComponent::arbitrate() {
   } // end for loop
 
   assert(activeTransfers >= 0);
-  assert(activeTransfers <= numInputs);
-  assert(activeTransfers <= numOutputs);
+  assert(activeTransfers <= inputs);
+  assert(activeTransfers <= outputs);
 }
 
-void ArbiterComponent::checkAcks() {
-  // Pull down the valid signal for any outputs which have sent acknowledgements.
-  for (int i = 0; i < numOutputs; i++) {
-    if (ackDataOut[i].read()) {
-      validDataOut[i].write(false);
+bool ArbiterComponent::checkForData() {
+  // See if there is any data waiting to be sent.
+  bool haveData = false;
+  for(int i=0; i<inputs; i++) {
+    if(validDataIn[i].read()) {
+      haveData = true;
+      break;
+    }
+  }
+
+  return haveData;
+}
+
+void ArbiterComponent::receivedAck() {
+  for (int i = 0; i < outputs; i++) {
+    if (inUse[i] && ackDataOut[i].read()) {
+      int dataSource = ackDestinations[i];
+
+      assert(validDataIn[dataSource].read());
+
+      // Acknowledge the input data now it has been consumed, but don't
+      // deassert the validData signal until the positive clock edge.
+      ackDataIn[dataSource].write(!ackDataIn[dataSource].read());
+
+      // Signals that this validData signal should be pulled down later.
       inUse[i] = false;
-      activeTransfers--;
     }
   }
 
   assert(activeTransfers >= 0);
-  assert(activeTransfers <= numInputs);
-  assert(activeTransfers <= numOutputs);
+  assert(activeTransfers <= inputs);
+  assert(activeTransfers <= outputs);
 }
 
-void ArbiterComponent::newData() {
-  newDataEvent.notify();
-}
+void ArbiterComponent::newData() {newDataEvent.notify();}
 
-ArbiterComponent::ArbiterComponent(sc_module_name name, const ComponentID& ID, int inputs, int outputs, bool wormhole) :
+unsigned int ArbiterComponent::numInputs()  const {return inputs;}
+unsigned int ArbiterComponent::numOutputs() const {return outputs;}
+
+ArbiterComponent::ArbiterComponent(const sc_module_name& name, const ComponentID& ID, int inputs, int outputs, bool wormhole) :
     Component(name, ID)
 {
-	numInputs       = inputs;
-	numOutputs      = outputs;
+	this->inputs    = inputs;
+	this->outputs   = outputs;
 	this->wormhole  = wormhole;
 
 	activeTransfers = 0;
@@ -161,15 +187,20 @@ ArbiterComponent::ArbiterComponent(sc_module_name name, const ComponentID& ID, i
 	validDataOut    = new sc_out<bool>[outputs];
 	ackDataOut      = new sc_in<bool>[outputs];
 
-  inUse           = new bool[numOutputs];
-  for(int i=0; i<numOutputs; i++) inUse[i] = false;
+  inUse           = new bool[outputs];
+  for(int i=0; i<outputs; i++) inUse[i] = false;
+
+  ackDestinations = new int[outputs];
+
+  alreadySeen     = new bool[inputs];
+  for(int i=0; i<inputs; i++) alreadySeen[i] = false;
 
 	if(wormhole) {
-    reservations    = new int[numInputs];
-    reserved        = new bool[numOutputs];
+    reservations    = new int[inputs];
+    reserved        = new bool[outputs];
 
-    for(int i=0; i<numInputs; i++)  reservations[i] = NO_RESERVATION;
-    for(int i=0; i<numOutputs; i++) reserved[i] = false;
+    for(int i=0; i<inputs; i++)  reservations[i] = NO_RESERVATION;
+    for(int i=0; i<outputs; i++) reserved[i] = false;
 	}
 
 	state = WAITING_FOR_DATA;
@@ -179,7 +210,11 @@ ArbiterComponent::ArbiterComponent(sc_module_name name, const ComponentID& ID, i
 	dont_initialize();
 
 	SC_METHOD(newData);
-	for(int i=0; i<numInputs; i++) sensitive << validDataIn[i].pos();
+	for(int i=0; i<inputs; i++) sensitive << validDataIn[i].pos();
+	dont_initialize();
+
+	SC_METHOD(receivedAck);
+	for(int i=0; i<outputs; i++) sensitive << ackDataOut[i].pos();
 	dont_initialize();
 
 	end_module();
@@ -195,6 +230,8 @@ ArbiterComponent::~ArbiterComponent() {
 	delete[] ackDataOut;
 
   delete[] inUse;
+  delete[] ackDestinations;
+  delete[] alreadySeen;
 
 	if(wormhole) {
 	  delete[] reservations;
