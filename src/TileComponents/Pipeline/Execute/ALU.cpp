@@ -51,7 +51,8 @@ bool ALU::execute(DecodedInst& dec) const {
     case InstructionMap::SETLTI:   result = (val1 < val2); break;
     case InstructionMap::SETLTU:
     case InstructionMap::SETLTUI:  result = ((uint32_t)val1 < (uint32_t)val2); break;
-    case InstructionMap::SETGTE:   result = (val1 >= val2); break;
+    case InstructionMap::SETGTE:
+    case InstructionMap::SETGTEI:  result = (val1 >= val2); break;
     case InstructionMap::SETGTEU:
     case InstructionMap::SETGTEUI: result = ((uint32_t)val1 >= (uint32_t)val2); break;
 

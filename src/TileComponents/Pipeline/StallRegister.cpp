@@ -11,8 +11,10 @@
 bool StallRegister::discard() {
   if(buffer.empty()) return false;
   else {
+    if(buffer.full()) bufferFillChanged.notify();
+    bufferContentsChanged.notify();
+
     buffer.discardTop();
-    bufferFillChanged.notify();
     return true;
   }
 }
@@ -24,13 +26,17 @@ void StallRegister::newCycle() {
   //  * a positive clock edge
 
   // This isn't very efficient, but simplifying it seems to break things somehow.
-  if(buffer.empty())               next_trigger(bufferFillChanged);
+  if(buffer.empty())               next_trigger(bufferContentsChanged);
   else if(!clock.posedge())        next_trigger(clock.posedge_event());
   else if(!readyIn.read())         next_trigger(readyIn.posedge_event());
   else if(!localStageReady.read()) next_trigger(localStageReady.posedge_event());
   else {
+    // If the buffer is full, it will soon not be full, so trigger the event.
+    if(buffer.full()) bufferFillChanged.notify();
+    bufferContentsChanged.notify();
+
     dataOut.write(buffer.read());
-    bufferFillChanged.notify();
+
     next_trigger(clock.posedge_event());
   }
 }
@@ -38,12 +44,23 @@ void StallRegister::newCycle() {
 void StallRegister::newData() {
   assert(!buffer.full());
   buffer.write(dataIn.read());
-  bufferFillChanged.notify();
+
+  if(buffer.full()) bufferFillChanged.notify();
+  bufferContentsChanged.notify();
+
   Instrumentation::stallRegUse(id);
 }
 
 void StallRegister::receivedReady() {
-  readyOut.write(readyIn.read() && localStageReady.read() && !buffer.full());
+  // Would ideally like to call this function at most once per clock cycle to
+  // improve simulation speed, but it isn't obvious how to do this efficiently.
+
+  bool newReady = readyIn.read() && localStageReady.read() && !buffer.full();
+
+  if(ready != newReady) {
+    ready = newReady;
+    readyOut.write(ready);
+  }
 }
 
 StallRegister::StallRegister(sc_module_name name, const ComponentID& ID) :
@@ -59,15 +76,9 @@ StallRegister::StallRegister(sc_module_name name, const ComponentID& ID) :
   dont_initialize();
 
   SC_METHOD(receivedReady);
-  sensitive << readyIn << localStageReady << bufferFillChanged;//clock.pos();
+  sensitive << readyIn << localStageReady << bufferFillChanged;
   // do initialise
 
-//  readyOut.initialize(true);
-
   end_module();
-
-}
-
-StallRegister::~StallRegister() {
 
 }

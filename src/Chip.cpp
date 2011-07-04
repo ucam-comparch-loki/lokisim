@@ -185,6 +185,8 @@ void Chip::wireUp() {
 			// This is a core
       clusters[clusterIndex]->idle(idleSig[clusterIndex+memoryIndex]);
       clusters[clusterIndex]->clock(clock);
+      clusters[clusterIndex]->fastClock(fastClock);
+      clusters[clusterIndex]->slowClock(slowClock);
 
 			for (uint j = 0; j < CORE_INPUT_PORTS; j++) {
 				uint index = dataInputCounter++;  // Position in network's array
@@ -291,7 +293,9 @@ void Chip::wireUp() {
 Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
 	Component(name),
 	backgroundMemory("background_memory", NUM_COMPONENTS, NUM_MEMORIES),
-	network("network")
+	network("network"),
+	fastClock("fast_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.25),
+  slowClock("slow_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.75)
 {
   idleComponents = 0;
 

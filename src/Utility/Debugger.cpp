@@ -228,11 +228,18 @@ void Debugger::setChip(Chip* c) {
 }
 
 void Debugger::executeSingleCycle() {
+  executeNCycles(1);
+}
+
+void Debugger::executeNCycles(int n) {
   if(DEBUG) cout << "\n======= Cycle " << cycleNumber << " =======" << "\n";
-  sc_start(1, sc_core::SC_NS);
+  sc_start(n, sc_core::SC_NS);
 
-  cycleNumber++;
+  cycleNumber += n;
 
+  // We can't assume that the chip has been idle for all n cycles, so only
+  // increment by 1. The idle count still works though - it is unlikely that
+  // the chip will be idle on many successive probes of the idle value.
   if(chip->isIdle()) cyclesIdle++;
   else cyclesIdle = 0;
 }
@@ -264,7 +271,7 @@ void Debugger::executeUntilBreakpoint() {
 void Debugger::finishExecution() {
   while(cyclesIdle<maxIdleTime && cycleNumber<TIMEOUT &&
         !sc_core::sc_end_of_simulation_invoked()) {
-    executeSingleCycle();
+    executeNCycles(100);
   }
 
   if(cycleNumber >= TIMEOUT) {

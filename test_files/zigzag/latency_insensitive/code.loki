@@ -65,4 +65,5 @@ addui           r3,  r1,  -232
 psel.fetch.eop  r3,  r2
 
 %fetch           r1,       -320          ; end of block: restart and wait for new block address
-addui.eop       r0,  ch0, 0   > 2       ; send the final value late
+addui           r0,  ch0, 0   > 2       ; send the final value late
+syscall.eop     1

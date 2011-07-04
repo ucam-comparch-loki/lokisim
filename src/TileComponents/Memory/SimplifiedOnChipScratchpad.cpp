@@ -107,7 +107,7 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 		for (uint port = 0; port < mPortCount; port++) {
 			// Default to non-valid - only last change will become effective
 
-			oDataStrobe[port].write(false);
+			if(oDataStrobe[port].read()) oDataStrobe[port].write(false);
 			uint32_t bankSelected = (mPortData[port].Address / 4) % cBanks;
 
 			switch (mPortData[port].State) {

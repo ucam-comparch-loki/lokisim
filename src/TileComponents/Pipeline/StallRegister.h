@@ -74,7 +74,6 @@ public:
   SC_HAS_PROCESS(StallRegister);  // Tell SystemC that this component has its
                                   // own methods which react to inputs.
   StallRegister(sc_module_name name, const ComponentID& ID);
-  virtual ~StallRegister();
 
 //==============================//
 // Local state
@@ -82,10 +81,18 @@ public:
 
 private:
 
+  bool ready;
+
   // My implementation of the two registers.
   BufferStorage<DecodedInst> buffer;
 
+  // Event which is triggered whenever the buffer becomes or stops being
+  // completely full.
   sc_core::sc_event bufferFillChanged;
+
+  // Event which is triggered whenever any data is added to or removed from
+  // the buffer.
+  sc_core::sc_event bufferContentsChanged;
 
 };
 

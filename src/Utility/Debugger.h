@@ -65,6 +65,7 @@ private:
   static void printHelp();
 
   static void executeSingleCycle();
+  static void executeNCycles(int n);
   static void executeUntilBreakpoint();
   static void finishExecution();
 

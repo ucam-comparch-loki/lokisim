@@ -32,6 +32,8 @@ class Cluster : public TileComponent {
 // Ports
 //==============================//
 
+public:
+
 // Inherited from TileComponent:
 //   clock
 //   dataIn       canReceiveData
@@ -39,6 +41,14 @@ class Cluster : public TileComponent {
 //   creditsIn    canReceiveCredit
 //   creditsOut   canSendCredit
 //   idle
+
+  // A slight hack to improve simulation speed. Each core contains a small
+  // network at its input buffers, so we need to skew the times that the
+  // network sends and receives data so data can get through the small
+  // network and the larger tile network in one cycle.
+  // In practice, these would probably be implemented as delays in the small
+  // network.
+  sc_in<bool> fastClock, slowClock;
 
 //==============================//
 // Constructors and destructors

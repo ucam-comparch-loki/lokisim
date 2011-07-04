@@ -9,8 +9,6 @@
 #include "../Datatype/AddressedWord.h"
 
 PortIndex Network::getDestination(const ChannelID& address) const {
-  PortIndex port;
-
   // Access a different part of the address depending on where in the network
   // we are.
   switch(level) {
@@ -30,8 +28,6 @@ PortIndex Network::getDestination(const ChannelID& address) const {
     }
     case NONE : return 0;
   }
-
-  // Add support for multicast in here?
 }
 
 DataInput& Network::externalInput() const {

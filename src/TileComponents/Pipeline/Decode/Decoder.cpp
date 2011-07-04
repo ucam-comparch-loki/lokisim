@@ -239,9 +239,20 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       }
 
       case InstructionMap::IRDR : {
-        output.result(readRegs(output.sourceReg1(), true));
-        break;
+      	blocked = true;
+      	output.result(readRegs(input.sourceReg1(), true));
+      	blocked = false;
+      	break;
       }
+
+    	case InstructionMap::IWTR : {
+     	 	// What about data forwarding?
+     	 	blocked = true;
+      	output.destination(readRegs(input.destination()));
+      	setOperand1(output);
+      	blocked = false;
+      	break;
+    	}
 
       default : {
         setOperand1(output);
@@ -423,9 +434,5 @@ Decoder::Decoder(sc_module_name name, const ComponentID& ID) : Component(name, I
   sendChannel = -1;
   remoteExecute = false;
   previousDest = -1;
-
-}
-
-Decoder::~Decoder() {
 
 }

@@ -241,6 +241,8 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
   }
 
   inputCrossbar->clock(clock);
+  inputCrossbar->creditClock(fastClock);
+  inputCrossbar->dataClock(slowClock);
 
   // Wire the stall registers up.
   for(uint i=0; i<3; i++) {

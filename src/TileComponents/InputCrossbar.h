@@ -30,6 +30,13 @@ public:
 
   sc_in<bool>   clock;
 
+  // A slight hack to improve simulation speed. We need to skew the times that
+  // this network sends and receives data so data can get through this small
+  // network and the larger tile network in one cycle.
+  // In practice, these would probably be implemented as delays in the small
+  // network.
+  sc_in<bool>   creditClock, dataClock;
+
   DataInput    *dataIn;
   ReadyInput   *validDataIn;
   ReadyOutput  *ackDataIn;
@@ -64,20 +71,11 @@ private:
 
   Crossbar               creditNet;
   Crossbar               dataNet;
-//  UnclockedNetwork*      dataNet;
-//  UnclockedNetwork*      creditNet;
 
   sc_buffer<DataType>   *dataToBuffer;
   sc_buffer<CreditType> *creditsToNetwork;
   sc_signal<ReadyType>  *readyForData, *readyForCredit;
   sc_signal<ReadyType>  *validData, *validCredit;
-
-  // Skew the clock by 1/4 of a cycle for the two subnetworks.
-  // The credit network needs to send early, so credits get to the main network
-  // in time for the main negative edge.
-  // The data network needs to send late, so data have time to arrive after
-  // coming over the main network.
-  sc_core::sc_clock      creditClock, dataClock;
 
 };
 

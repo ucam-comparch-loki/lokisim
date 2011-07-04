@@ -14,8 +14,6 @@
 #define BUFFERSTORAGE_H_
 
 #include "Storage.h"
-#include "../Exceptions/ReadingFromEmptyException.h"
-#include "../Exceptions/WritingToFullException.h"
 #include "../Utility/LoopCounter.h"
 
 template<class T>
@@ -30,36 +28,23 @@ public:
   // Read from the buffer. Returns the oldest value which has not yet been
   // read.
   virtual const T& read() {
-    if(!empty()) {
-      int i = readPos.value();
-      incrementReadFrom();
-      return this->data_[i];
-    }
-    else {
-      throw ReadingFromEmptyException("buffer (" + this->name_ + ")");
-    }
+    assert(!empty());
+    int i = readPos.value();
+    incrementReadFrom();
+    return this->data_[i];
   }
 
   // Write the given data to the buffer.
   virtual void write(const T& newData) {
-    if(!full()) {
-      this->data_[writePos.value()] = newData;
-      incrementWriteTo();
-    }
-    else {
-      cerr << "Exception in Buffer.write()" << endl;
-      throw WritingToFullException("buffer (" + this->name_ + ")");
-    }
+    assert(!full());
+    this->data_[writePos.value()] = newData;
+    incrementWriteTo();
   }
 
   // Returns the value at the front of the queue, but does not remove it.
   const T& peek() const {
-    if(!empty()) {
-      return this->data_[readPos.value()];
-    }
-    else {
-      throw ReadingFromEmptyException("buffer (" + this->name_ + ")");
-    }
+    assert(!empty());
+    return this->data_[readPos.value()];
   }
 
   // Removes the element at the front of the queue, without returning it.
@@ -111,10 +96,6 @@ public:
       readPos(size),
       writePos(size) {
     readPos = writePos = fillCount = 0;
-  }
-
-  virtual ~BufferStorage() {
-
   }
 
 //==============================//

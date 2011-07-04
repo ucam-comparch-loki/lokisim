@@ -86,7 +86,6 @@ private:
 public:
 
   Decoder(sc_module_name name, const ComponentID& id);
-  virtual ~Decoder();
 
 //==============================//
 // Local state

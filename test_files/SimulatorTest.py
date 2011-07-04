@@ -37,7 +37,7 @@ class SimulatorTest(unittest.TestCase):
     def execute(self, core, instruction):
         self._runCommand("changecore " + str(core))
         self._runCommand("execute " + instruction)
-        self._runCommand("finish")
+        self.wait(5)
         
     # Execute a sequence of instructions without waiting for the system to
     # settle down in between.
@@ -45,8 +45,13 @@ class SimulatorTest(unittest.TestCase):
         self._runCommand("changecore " + str(core))
         for instruction in instructions:
             self._runCommand("execute " + instruction)
-        self._runCommand("finish")
+        self.wait(5 + 3*len(instructions))
             
+    # Wait a given number of clock cycles.
+    def wait(self, numCycles):
+        for i in range(1,numCycles):
+            self._runCommand("")
+    
     # Return the execution time so far.
     def numCycles(self):
         self._runCommand("statistic execution_time")
@@ -214,13 +219,19 @@ class SimulatorTest(unittest.TestCase):
                                             stdin=subprocess.PIPE,\
                                             stdout=subprocess.PIPE,\
                                             stderr=subprocess.PIPE)
-        
+                
         # Execute until idle.
         try:
-            self._runCommand("finish")
+            self.initialExecution()
         except Exception as e:
             self.failure(str(e))
             exit(1)
+         
+    # Some tests may want to change the very start of execution. The default is
+    # to execute until the provided program terminates, but if there is no
+    # provided program, this is inappropriate.
+    def initialExecution(self):
+        self._runCommand("finish")
     
     # If the simulator is still running, stop it.
     def tearDown(self):

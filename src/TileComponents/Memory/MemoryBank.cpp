@@ -1270,20 +1270,22 @@ void MemoryBank::processValidInput() {
 	// Acknowledge new data as soon as it arrives if we know it will be consumed
 	// in this clock cycle.
 	// FIXME: also needs to update whenever the queue's "full" flag changes.
-	oDataInAcknowledge.write(iDataInValid.read() && !mInputQueue.full());
+  bool ack = iDataInValid.read() && !mInputQueue.full();
+	if(ack != oDataInAcknowledge.read()) oDataInAcknowledge.write(ack);
 }
 
 void MemoryBank::processValidRing() {
 	// Acknowledge new data as soon as it arrives if we know it will be consumed
 	// in this clock cycle.
-	oRingAcknowledge.write(iRingStrobe.read() && !mRingRequestInputPending);
+  bool ack = iRingStrobe.read() && !mRingRequestInputPending;
+	if(ack != oRingAcknowledge.read()) oRingAcknowledge.write(ack);
 }
 
 void MemoryBank::handleNetworkInterfacesPre() {
-	// Set port defaults
+	// Set port defaults (only if they changed)
 
-	oDataOutValid.write(false);
-	oRingStrobe.write(false);
+	if(oDataOutValid.read()) oDataOutValid.write(false);
+	if(oRingStrobe.read())   oRingStrobe.write(false);
 
 	// Check whether old output word got acknowledged
 
@@ -1355,7 +1357,7 @@ void MemoryBank::mainLoop() {
 
   // Set output port defaults - only final write will be effective
 
-  oBMDataStrobe.write(false);
+  if(oBMDataStrobe.read()) oBMDataStrobe.write(false);
 
   // Proceed according to FSM state
 

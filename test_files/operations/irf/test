@@ -5,7 +5,12 @@ import imp
 module, path, description = imp.find_module("SimulatorTest", ["test_files", "../.."])
 mod = imp.load_module("SimulatorTest", module, path, description)
 
-class IndirectRegisterTest(mod.SimulatorTest):
+class IndirectRegisterTest(mod.SimulatorTest):        
+        
+    # Don't bother executing until idle before starting this test.
+    def initialExecution(self):
+        # Wait 25 cycles until initialisation program finishes
+        self.wait(25)
 
     def runTest(self):
     

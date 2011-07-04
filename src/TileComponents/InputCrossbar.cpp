@@ -15,17 +15,7 @@
 InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID, int inputs, int outputs) :
     Component(name, ID),
     creditNet("credit", ID, outputs, inputs, inputs, Network::NONE, Dimension(1.0/CORES_PER_TILE, 0.05)),
-    dataNet("data", ID, inputs, outputs, 1, Network::CHANNEL, Dimension(1.0/CORES_PER_TILE, 0.05)),
-    creditClock("credit_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.25),
-    dataClock("data_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.75) {
-
-//  Crossbar* data = new Crossbar("data", ID, inputs, outputs, 1, Network::CHANNEL, Dimension(1.0/CORES_PER_TILE, 0.05));
-//  data->initialise();
-//  dataNet = new UnclockedNetwork("data_net", data);
-
-//  Crossbar* credit = new Crossbar("credit", ID, outputs, inputs, inputs, TOTAL_OUTPUT_CHANNELS, 0, Dimension(1.0/CORES_PER_TILE, 0.05));
-//  credit->initialise();
-//  creditNet = new UnclockedNetwork("credit_net", credit);
+    dataNet("data", ID, inputs, outputs, 1, Network::CHANNEL, Dimension(1.0/CORES_PER_TILE, 0.05)) {
 
   creditNet.initialise();
   dataNet.initialise();
