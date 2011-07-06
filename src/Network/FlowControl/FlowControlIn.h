@@ -93,7 +93,7 @@ private:
   CreditState creditState;
 
   // Address of channel managed by this flow control unit.
-  ChannelID channel;
+  const ChannelID channel;
 
   // Address of port connected to each of our input port. We need the
   // address so we can send flow control information back to the source.

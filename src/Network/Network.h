@@ -96,21 +96,21 @@ protected:
 
 protected:
 
-  unsigned int numInputs, numOutputs;
+  const unsigned int numInputs, numOutputs;
 
   // The channel/component/tile accessible through the first output port.
   // For example, this network may only send to memories, so whilst the target
   // component may have an ID of 8, we may want to use output port 0.
-  unsigned int firstOutput;
+  const unsigned int firstOutput;
 
-  HierarchyLevel level;
+  const HierarchyLevel level;
 
   // Tells whether this network has an extra connection to handle data which
   // isn't for any local component. This extra connection will typically
   // connect to the next level of the network hierarchy.
-  bool externalConnection;
+  const bool externalConnection;
 
-  Dimension size;
+  const Dimension size;
 
 };
 

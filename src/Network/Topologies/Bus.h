@@ -81,7 +81,7 @@ private:
 
   // Store the previous value, so we can compute how many bits change when a
   // new value arrives.
-  sc_signal<DataType> lastData;
+  DataType lastData;
 
 };
 

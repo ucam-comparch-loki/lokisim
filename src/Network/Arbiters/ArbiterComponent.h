@@ -85,10 +85,10 @@ private:
 
   ArbiterState state;
 
-  int inputs, outputs;
+  const unsigned int inputs, outputs;
 
-  int activeTransfers;
-  int lastAccepted; // Using round-robin at the moment.
+  unsigned int activeTransfers;
+  unsigned int lastAccepted; // Using round-robin at the moment.
 
   // Record which outputs we are waiting for acknowledgements on.
   bool* inUse;
@@ -109,12 +109,12 @@ private:
 
   // Additional state for wormhole routing.
 
-  bool wormhole;
+  const bool wormhole;
 
-  static const int NO_RESERVATION = -1;
+  static const unsigned int NO_RESERVATION = -1;
 
   // For each input port, record which output to send the rest of the packet to.
-  int* reservations;
+  unsigned int* reservations;
 
   // Record whether each output port is available to send data on (it may be
   // reserved by another input).

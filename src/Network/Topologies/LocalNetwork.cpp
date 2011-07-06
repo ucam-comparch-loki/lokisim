@@ -10,6 +10,10 @@
 #include "../Arbiters/ArbiterComponent.h"
 #include "../../TileComponents/TileComponent.h"
 
+// Only cores and the global network can send/receive credits.
+const unsigned int LocalNetwork::creditInputs  = CORES_PER_TILE + 1;
+const unsigned int LocalNetwork::creditOutputs = CORES_PER_TILE * CORE_OUTPUT_PORTS + 1;
+
 void LocalNetwork::makeArbiters() {
   // Arguments for ArbiterComponent constructor:
   //   name, ID, number of inputs, number of outputs, whether to use wormhole routing.
@@ -49,10 +53,10 @@ void LocalNetwork::makeArbiters() {
   port = 0;
 
   // Arbiters for credits entering a core.
-  // Credits can arrive from any core, or from the global network.
+  // Credits can only arrive from the global network.
   for(unsigned int i=0; i<CORES_PER_TILE; i++) {
     arbiter = new ArbiterComponent(sc_gen_unique_name("core_credit_arb"), i,
-                                   CORES_PER_TILE*CORE_INPUT_PORTS+1, 1, false); // FIXME
+                                   1, CORE_OUTPUT_PORTS, false);
     cCreditArbiters.push_back(arbiter);
     bindArbiter(arbiter, port, false);
     port += arbiter->numOutputs();
@@ -153,24 +157,15 @@ void LocalNetwork::makeBuses() {
   port = 0;
 
   // Credit buses from cores.
-  // Credits can be sent to cores or the global network.
+  // Credits can only be sent to the global network.
   for(unsigned int i=0; i<CORES_PER_TILE; i++) {
-
-    // Create a credit bus for each input port.
-    for(unsigned int j=0; j<CORE_INPUT_PORTS; j++) {
-      bus = new Bus(sc_gen_unique_name("c2c_credit_bus"), i, CORES_PER_TILE,
-                    Network::COMPONENT, size, 0);
-      c2cCreditBuses.push_back(bus);
-      bindBus(bus, port, false);
-      port++;
-    }
-
-    // TODO: create an extra one which only sends to the global network.
-//    bus = new Bus(sc_gen_unique_name("c2g_credit_bus"), i, 1,
-//                  Network::NONE, size, 0);
-//    c2gCreditBuses.push_back(bus);
-//    bindBus(bus, port, false);
-//    port++;
+    // Cores only have one credit output, which sends its credits to the global
+    // network.
+    bus = new Bus(sc_gen_unique_name("c2g_credit_bus"), i, 1,
+                  Network::NONE, size, 0);
+    c2gCreditBuses.push_back(bus);
+    bindBus(bus, port, false);
+    port++;
   }
 
   // Credit buses from the global network.
@@ -200,7 +195,7 @@ void LocalNetwork::bindBus(Bus* bus, PortIndex port, bool data) {
 void LocalNetwork::wireUp() {
   // Core-to-core sub-network.
   connect(c2cDataBuses, cDataArbiters, 0, true);
-  connect(c2cCreditBuses, cCreditArbiters, 0, false);
+//  connect(c2cCreditBuses, cCreditArbiters, 0, false);
 
   // Core-to-memory sub-network.
   connect(c2mDataBuses, mDataArbiters, 0, true);
@@ -208,18 +203,9 @@ void LocalNetwork::wireUp() {
 
   // Core-to-global-network sub-network.
   connect(c2gDataBuses, gDataArbiters, 0, true);
-  connect(g2cCreditBuses, cCreditArbiters, CORES_PER_TILE*CORE_INPUT_PORTS, false); // FIXME
+  connect(g2cCreditBuses, cCreditArbiters, 0, false);
   connect(g2cDataBuses, cDataArbiters, COMPONENTS_PER_TILE, true);
   connect(c2gCreditBuses, gCreditArbiters, 0, false);
-
-  // Temporary dummy connections until cores get an extra credit output for
-  // global communication.
-  for(unsigned int i=0; i<CORES_PER_TILE; i++) {
-    makeCreditSigs();
-    gCreditArbiters[0]->dataIn[i](*creditSigs.back());
-    gCreditArbiters[0]->validDataIn[i](*validCreditSigs.back());
-    gCreditArbiters[0]->ackDataIn[i](*ackCreditSigs.back());
-  }
 }
 
 void LocalNetwork::connect(vector<Bus*>& buses,
@@ -295,10 +281,6 @@ LocalNetwork::LocalNetwork(sc_module_name name, ComponentID tile) :
             Dimension(1.0, 0.2),    // Size in mm
             0,                      // First accessible component has ID of 0
             true) {                 // Add an extra input/output for global network
-
-  // Only cores and the global network can send/receive credits.
-  creditInputs   = CORES_PER_TILE*CORE_INPUT_PORTS + 1;
-  creditOutputs  = CORES_PER_TILE*CORE_OUTPUT_PORTS + 1;
 
   creditsIn      = new CreditInput[creditInputs];
   validCreditIn  = new ReadyInput[creditInputs];

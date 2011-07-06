@@ -119,7 +119,8 @@ private:
 
 private:
 
-  unsigned int creditInputs, creditOutputs;
+  static const unsigned int creditInputs;
+  static const unsigned int creditOutputs;
 
   // Buses and arbiters separated out according to the start/end components.
   // c = core, m = memory, g = global network

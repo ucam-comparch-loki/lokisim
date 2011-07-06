@@ -212,7 +212,7 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
 
   previousDest1 = previousDest2 = -1;
 
-  inputCrossbar = new InputCrossbar("input", ID, CORE_INPUT_PORTS, CORE_INPUT_CHANNELS);
+  inputCrossbar = new InputCrossbar("input_crossbar", ID);
 
   // Create signals, with the number based on the length of the pipeline.
   stageIdle     = new sc_signal<bool>[4];
@@ -229,11 +229,11 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
     inputCrossbar->dataIn[i](dataIn[i]);
     inputCrossbar->validDataIn[i](validDataIn[i]);
     inputCrossbar->ackDataIn[i](ackDataIn[i]);
-
-    inputCrossbar->creditsOut[i](creditsOut[i]);
-    inputCrossbar->validCreditOut[i](validCreditOut[i]);
-    inputCrossbar->ackCreditOut[i](ackCreditOut[i]);
   }
+
+  inputCrossbar->creditsOut[0](creditsOut[0]);
+  inputCrossbar->validCreditOut[0](validCreditOut[0]);
+  inputCrossbar->ackCreditOut[0](ackCreditOut[0]);
 
   for(uint i=0; i<CORE_INPUT_CHANNELS; i++) {
     inputCrossbar->dataOut[i](dataToBuffers[i]);
@@ -254,10 +254,10 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
 
     // The final stall register gets a different ready signal.
     if(i < 2) stallReg->readyIn(stallRegReady[i+1]);
+    else      stallReg->readyIn(constantHigh);
 
     stallRegs.push_back(stallReg);
   }
-  stallRegs.back()->readyIn(constantHigh);
 
   // Wire the pipeline stages up.
 
@@ -302,11 +302,9 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
 Cluster::~Cluster() {
   delete inputCrossbar;
 
-  delete[] stageIdle;
-  delete[] stallRegReady;
-  delete[] stageReady;
-  delete[] dataToStage;
-  delete[] dataFromStage;
+  delete[] stageIdle;     delete[] stallRegReady;  delete[] stageReady;
+  delete[] dataToBuffers; delete[] fcFromBuffers;
+  delete[] dataToStage;   delete[] dataFromStage;
 
   for(uint i=0; i<stallRegs.size(); i++) delete stallRegs[i];
 }

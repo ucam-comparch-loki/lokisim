@@ -12,52 +12,57 @@
 #include "../Network/UnclockedNetwork.h"
 #include "../TileComponents/TileComponent.h"
 
-InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID, int inputs, int outputs) :
+const unsigned int InputCrossbar::numInputs = CORE_INPUT_PORTS;
+const unsigned int InputCrossbar::numOutputs = CORE_INPUT_CHANNELS;
+
+InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
     Component(name, ID),
-    creditNet("credit", ID, outputs, inputs, inputs, Network::NONE, Dimension(1.0/CORES_PER_TILE, 0.05)),
-    dataNet("data", ID, inputs, outputs, 1, Network::CHANNEL, Dimension(1.0/CORES_PER_TILE, 0.05)) {
+    firstInput(ChannelID(id,0)),
+    creditNet("credit", ID, numOutputs, 1, 1, Network::NONE, Dimension(1.0/CORES_PER_TILE, 0.05)),
+    dataNet("data", ID, numInputs, numOutputs, 1, Network::CHANNEL, Dimension(1.0/CORES_PER_TILE, 0.05)) {
 
   creditNet.initialise();
   dataNet.initialise();
 
-  firstInput       = ChannelID(id, 0);
-  numInputs        = inputs;
-  numOutputs       = outputs;
+  dataIn           = new DataInput[numInputs];
+  validDataIn      = new ReadyInput[numInputs];
+  ackDataIn        = new ReadyOutput[numInputs];
 
-  dataIn           = new DataInput[inputs];
-  validDataIn      = new ReadyInput[inputs];
-  ackDataIn        = new ReadyOutput[inputs];
+  dataOut          = new sc_out<Word>[numOutputs];
 
-  dataOut          = new sc_out<Word>[outputs];
+  bufferHasSpace   = new sc_in<bool>[numOutputs];
 
-  bufferHasSpace   = new sc_in<bool>[outputs];
+  // Possibly temporary: have only one credit output port, used for sending
+  // credits to other tiles. Credits aren't used for local communication.
+  creditsOut       = new CreditOutput[1];
+  validCreditOut   = new ReadyOutput[1];
+  ackCreditOut     = new ReadyInput[1];
 
-  creditsOut       = new CreditOutput[inputs];
-  validCreditOut   = new ReadyOutput[inputs];
-  ackCreditOut     = new ReadyInput[inputs];
+  dataToBuffer     = new sc_buffer<DataType>[numOutputs];
+  creditsToNetwork = new sc_buffer<CreditType>[numOutputs];
+  ackDataSig       = new sc_signal<ReadyType>[numOutputs];
+  ackCreditSig     = new sc_signal<ReadyType>[numOutputs];
+  validDataSig     = new sc_signal<ReadyType>[numOutputs];
+  validCreditSig   = new sc_signal<ReadyType>[numOutputs];
 
-  dataToBuffer     = new sc_buffer<DataType>[outputs];
-  creditsToNetwork = new sc_buffer<CreditType>[outputs];
-  readyForData     = new sc_signal<ReadyType>[outputs];
-  readyForCredit   = new sc_signal<ReadyType>[outputs];
-  validData        = new sc_signal<ReadyType>[outputs];
-  validCredit      = new sc_signal<ReadyType>[outputs];
 
+  // Wire up the small networks.
   creditNet.clock(creditClock);
   dataNet.clock(dataClock);
 
-  for(int i=0; i<inputs; i++) {
+  for(unsigned int i=0; i<numInputs; i++) {
     dataNet.dataIn[i](dataIn[i]);
     dataNet.validDataIn[i](validDataIn[i]);
     dataNet.ackDataIn[i](ackDataIn[i]);
-    creditNet.dataOut[i](creditsOut[i]);
-    creditNet.validDataOut[i](validCreditOut[i]);
-    creditNet.ackDataOut[i](ackCreditOut[i]);
   }
 
+  creditNet.dataOut[0](creditsOut[0]);
+  creditNet.validDataOut[0](validCreditOut[0]);
+  creditNet.ackDataOut[0](ackCreditOut[0]);
+
   // Create and wire up all flow control units.
-  for(int i=0; i<outputs; i++) {
-    FlowControlIn* fc = new FlowControlIn(sc_gen_unique_name("fc_in"), firstInput.getComponentID(), firstInput.addChannel(i, outputs));
+  for(unsigned int i=0; i<numOutputs; i++) {
+    FlowControlIn* fc = new FlowControlIn(sc_gen_unique_name("fc_in"), firstInput.getComponentID(), firstInput.addChannel(i, numOutputs));
     flowControl.push_back(fc);
 
     fc->clock(clock);
@@ -66,30 +71,29 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID, int inp
     fc->bufferHasSpace(bufferHasSpace[i]);
 
     fc->dataIn(dataToBuffer[i]);
-    fc->validDataIn(validData[i]);
-    fc->ackDataIn(readyForData[i]);
+    fc->validDataIn(validDataSig[i]);
+    fc->ackDataIn(ackDataSig[i]);
     fc->creditsOut(creditsToNetwork[i]);
-    fc->validCreditOut(validCredit[i]);
-    fc->ackCreditOut(readyForCredit[i]);
+    fc->validCreditOut(validCreditSig[i]);
+    fc->ackCreditOut(ackCreditSig[i]);
 
     dataNet.dataOut[i](dataToBuffer[i]);
-    dataNet.validDataOut[i](validData[i]);
-    dataNet.ackDataOut[i](readyForData[i]);
+    dataNet.validDataOut[i](validDataSig[i]);
+    dataNet.ackDataOut[i](ackDataSig[i]);
     creditNet.dataIn[i](creditsToNetwork[i]);
-    creditNet.validDataIn[i](validCredit[i]);
-    creditNet.ackDataIn[i](readyForCredit[i]);
+    creditNet.validDataIn[i](validCreditSig[i]);
+    creditNet.ackDataIn[i](ackCreditSig[i]);
   }
 }
 
 InputCrossbar::~InputCrossbar() {
-  delete[] dataIn;
-  delete[] validDataIn;
-  delete[] ackDataIn;
+  delete[] dataIn;            delete[] validDataIn;     delete[] ackDataIn;
+  delete[] creditsOut;        delete[] validCreditOut;  delete[] ackCreditOut;
   delete[] dataOut;
   delete[] bufferHasSpace;
-  delete[] creditsOut;
-  delete[] validCreditOut;
-  delete[] ackCreditOut;
+
+  delete[] dataToBuffer;      delete[] validDataSig;    delete[] ackDataSig;
+  delete[] creditsToNetwork;  delete[] validCreditSig;  delete[] ackCreditSig;
 
   for(unsigned int i=0; i<flowControl.size(); i++) delete flowControl[i];
 }

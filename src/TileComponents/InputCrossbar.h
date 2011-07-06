@@ -55,7 +55,7 @@ public:
 
 public:
 
-  InputCrossbar(sc_module_name name, const ComponentID& ID, int inputs, int outputs);
+  InputCrossbar(sc_module_name name, const ComponentID& ID);
   virtual ~InputCrossbar();
 
 //==============================//
@@ -64,8 +64,8 @@ public:
 
 private:
 
+  static const unsigned int numInputs, numOutputs;
   ChannelID firstInput;
-  int numInputs, numOutputs;
 
   std::vector<FlowControlIn*> flowControl;
 
@@ -74,8 +74,8 @@ private:
 
   sc_buffer<DataType>   *dataToBuffer;
   sc_buffer<CreditType> *creditsToNetwork;
-  sc_signal<ReadyType>  *readyForData, *readyForCredit;
-  sc_signal<ReadyType>  *validData, *validCredit;
+  sc_signal<ReadyType>  *validDataSig, *validCreditSig;
+  sc_signal<ReadyType>  *ackDataSig,   *ackCreditSig;
 
 };
 

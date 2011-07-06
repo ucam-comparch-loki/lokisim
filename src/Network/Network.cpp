@@ -77,17 +77,16 @@ Network::Network(const sc_module_name& name,
     int firstOutput,      // The first accessible channel/component/tile
     bool externalConnection) : // Is there a port to send data on if it
                                // isn't for any local component?
-  Component(name, ID) {
+    Component(name, ID),
+    numInputs(externalConnection ? (numInputs+1) : numInputs),
+    numOutputs(externalConnection ? (numOutputs+1) : numOutputs),
+    firstOutput(firstOutput),
+    level(level),
+    externalConnection(externalConnection),
+    size(size) {
 
   assert(numInputs > 0);
   assert(numOutputs > 0);
-
-  this->numInputs  = externalConnection ? numInputs+1 : numInputs;
-  this->numOutputs = externalConnection ? numOutputs+1 : numOutputs;
-  this->firstOutput = firstOutput;
-  this->level = level;
-  this->externalConnection = externalConnection;
-  this->size = size;
 
   dataIn       = new DataInput[this->numInputs];
   validDataIn  = new ReadyInput[this->numInputs];

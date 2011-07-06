@@ -85,7 +85,7 @@ private:
 
   // The position of this router in the grid of routers. Used to decide which
   // direction data should be sent next.
-  unsigned int xPos, yPos;
+  const unsigned int xPos, yPos;
 
   // The router currently implements round-robin scheduling: store the inputs
   // which were most recently allowed to send data to each output.

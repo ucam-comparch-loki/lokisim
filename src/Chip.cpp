@@ -109,17 +109,17 @@ void Chip::makeSignals() {
 
   dataFromComponents    = new sc_buffer<DataType>[numOutputs];
   dataToComponents      = new flag_signal<DataType>[numInputs];
-  creditsFromComponents = new sc_buffer<CreditType>[numInputs];
+  creditsFromComponents = new sc_buffer<CreditType>[NUM_CORES];
   creditsToComponents   = new sc_buffer<CreditType>[numOutputs];
 
   ackDataFromComps      = new sc_signal<ReadyType>[numOutputs];
   ackCreditToComps      = new sc_signal<ReadyType>[numOutputs];
   ackDataToComps        = new sc_signal<ReadyType>[numInputs];
-  ackCreditFromComps    = new sc_signal<ReadyType>[numInputs];
+  ackCreditFromComps    = new sc_signal<ReadyType>[NUM_CORES];
 
   validDataFromComps    = new sc_signal<ReadyType>[numOutputs];
   validDataToComps      = new sc_signal<ReadyType>[numInputs];
-  validCreditFromComps  = new sc_signal<ReadyType>[numInputs];
+  validCreditFromComps  = new sc_signal<ReadyType>[NUM_CORES];
   validCreditToComps    = new sc_signal<ReadyType>[numOutputs];
 
 	strobeToBackgroundMemory   = new sc_signal<bool>[NUM_MEMORIES];
@@ -197,16 +197,16 @@ void Chip::wireUp() {
 				network.validDataOut[index](validDataToComps[index]);
 				clusters[clusterIndex]->ackDataIn[j](ackDataToComps[index]);
 				network.ackDataOut[index](ackDataToComps[index]);
-
-				index = creditOutputCounter++;
-
-				clusters[clusterIndex]->creditsOut[j](creditsFromComponents[index]);
-				network.creditsIn[index](creditsFromComponents[index]);
-				clusters[clusterIndex]->validCreditOut[j](validCreditFromComps[index]);
-				network.validCreditIn[index](validCreditFromComps[index]);
-				clusters[clusterIndex]->ackCreditOut[j](ackCreditFromComps[index]);
-				network.ackCreditIn[index](ackCreditFromComps[index]);
 			}
+
+      uint index = creditOutputCounter++;
+
+      clusters[clusterIndex]->creditsOut[0](creditsFromComponents[index]);
+      network.creditsIn[index](creditsFromComponents[index]);
+      clusters[clusterIndex]->validCreditOut[0](validCreditFromComps[index]);
+      network.validCreditIn[index](validCreditFromComps[index]);
+      clusters[clusterIndex]->ackCreditOut[0](ackCreditFromComps[index]);
+      network.ackCreditIn[index](ackCreditFromComps[index]);
 
 			for (uint j = 0; j < CORE_OUTPUT_PORTS; j++) {
 				uint index = dataOutputCounter++;  // Position in network's array

@@ -106,7 +106,6 @@ protected:
 private:
 
   void acknowledgeCredit(PortIndex output);
-  void receivedCredit();
 
 //==============================//
 // Local state
@@ -114,9 +113,7 @@ private:
 
 private:
 
-  int numInputPorts, numOutputPorts;
-
-  sc_core::sc_event credit;
+  const unsigned int numInputPorts, numOutputPorts;
 
 };
 

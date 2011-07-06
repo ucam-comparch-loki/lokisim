@@ -191,9 +191,9 @@ void FlowControlIn::sendCredit() {
 }
 
 FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :
-    Component(name, ID)
+    Component(name, ID),
+    channel(channelManaged)
 {
-	channel = channelManaged;
 	returnAddress = -1;
 	useCredits = true;
 	numCredits = 0;

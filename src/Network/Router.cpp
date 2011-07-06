@@ -100,10 +100,9 @@ Router::Direction Router::routeTo(ChannelID destination) const {
 Router::Router(const sc_module_name& name, const ComponentID& ID) :
     Component(name, ID),
     inputBuffers(5, ROUTER_BUFFER_SIZE, "input_data"),
-    outputBuffers(5, ROUTER_BUFFER_SIZE, "output_data") {
-
-  xPos = ID.getTile() % NUM_TILE_COLUMNS;
-  yPos = ID.getTile() / NUM_TILE_COLUMNS;
+    outputBuffers(5, ROUTER_BUFFER_SIZE, "output_data"),
+    xPos(ID.getTile() % NUM_TILE_COLUMNS),
+    yPos(ID.getTile() / NUM_TILE_COLUMNS) {
 
   for(int i=0; i<5; i++) lastAccepted[i] = -1;
 

@@ -37,7 +37,7 @@ void ArbiterComponent::arbiterLoop() {
     case WAITING_FOR_ACKS : {
 
       // Now that the clock edge has arrived, pull down any valid data signals.
-      for(int i=0; i<outputs; i++) {
+      for(unsigned int i=0; i<outputs; i++) {
         if(!inUse[i] && validDataOut[i].read()) {
           validDataOut[i].write(false);
 
@@ -65,10 +65,10 @@ void ArbiterComponent::arbitrate() {
   // TODO: make use of the classes in Arbitration so the behaviour can easily
   // be swapped in and out.
 
-  int inCursor = lastAccepted;
-  int outCursor = 0;
+  unsigned int inCursor = lastAccepted;
+  unsigned int outCursor = 0;
 
-  for (int i = 0; i < inputs; i++) {
+  for (unsigned int i = 0; i < inputs; i++) {
     // Request: numInput -> endOfPacket
 
     inCursor++;
@@ -80,7 +80,7 @@ void ArbiterComponent::arbitrate() {
 
     // Determine which output to send the data to. If this arbiter makes use
     // of wormhole routing, some outputs may be reserved.
-    int outputToUse;
+    unsigned int outputToUse;
     if(wormhole && (reservations[inCursor] != NO_RESERVATION)) {
       outputToUse = reservations[inCursor];
     }
@@ -133,7 +133,7 @@ void ArbiterComponent::arbitrate() {
 bool ArbiterComponent::checkForData() {
   // See if there is any data waiting to be sent.
   bool haveData = false;
-  for(int i=0; i<inputs; i++) {
+  for(unsigned int i=0; i<inputs; i++) {
     if(validDataIn[i].read()) {
       haveData = true;
       break;
@@ -144,7 +144,7 @@ bool ArbiterComponent::checkForData() {
 }
 
 void ArbiterComponent::receivedAck() {
-  for (int i = 0; i < outputs; i++) {
+  for (unsigned int i = 0; i < outputs; i++) {
     if (inUse[i] && ackDataOut[i].read()) {
       int dataSource = ackDestinations[i];
 
@@ -170,11 +170,11 @@ unsigned int ArbiterComponent::numInputs()  const {return inputs;}
 unsigned int ArbiterComponent::numOutputs() const {return outputs;}
 
 ArbiterComponent::ArbiterComponent(const sc_module_name& name, const ComponentID& ID, int inputs, int outputs, bool wormhole) :
-    Component(name, ID)
+    Component(name, ID),
+    inputs(inputs),
+    outputs(outputs),
+    wormhole(wormhole)
 {
-	this->inputs    = inputs;
-	this->outputs   = outputs;
-	this->wormhole  = wormhole;
 
 	activeTransfers = 0;
 	lastAccepted    = inputs - 1;
@@ -196,7 +196,7 @@ ArbiterComponent::ArbiterComponent(const sc_module_name& name, const ComponentID
   for(int i=0; i<inputs; i++) alreadySeen[i] = false;
 
 	if(wormhole) {
-    reservations    = new int[inputs];
+    reservations    = new unsigned int[inputs];
     reserved        = new bool[outputs];
 
     for(int i=0; i<inputs; i++)  reservations[i] = NO_RESERVATION;

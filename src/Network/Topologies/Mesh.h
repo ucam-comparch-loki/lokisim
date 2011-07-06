@@ -82,7 +82,7 @@ private:
 
 private:
 
-  int numColumns, numRows;
+  const unsigned int numColumns, numRows;
 
 };
 

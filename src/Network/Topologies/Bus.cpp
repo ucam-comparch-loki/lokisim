@@ -27,7 +27,6 @@ void Bus::busLoop() {
         outputUsed = getDestination(data.channelID());
         assert(outputUsed < numOutputs);
 
-        // TODO: assert that no more than one word is sent per cycle.
         dataOut[outputUsed].write(data);
         validDataOut[outputUsed].write(true);
 
@@ -73,9 +72,11 @@ void Bus::busLoop() {
 }
 
 void Bus::computeSwitching() {
+  // TODO: assert that no more than one word is sent per cycle.
+
 	DataType newData = dataIn[0].read();
-	unsigned int dataDiff = newData.payload().toInt() ^ lastData.read().payload().toInt();
-	unsigned int channelDiff = newData.channelID().getData() ^ lastData.read().channelID().getData();
+	unsigned int dataDiff = newData.payload().toInt() ^ lastData.payload().toInt();
+	unsigned int channelDiff = newData.channelID().getData() ^ lastData.channelID().getData();
 
 	int bitsSwitched = __builtin_popcount(dataDiff) + __builtin_popcount(channelDiff);
 
@@ -84,13 +85,13 @@ void Bus::computeSwitching() {
 	//  2. Width + height?
 	Instrumentation::networkActivity(id, 0, 0, size.first, bitsSwitched);
 
-	lastData.write(newData);
+	lastData = newData;
 }
 
 Bus::Bus(const sc_module_name& name, const ComponentID& ID, int numOutputPorts, HierarchyLevel level, Dimension size, int firstOutput) :
     Network(name, ID, 1, numOutputPorts, level, size, firstOutput)
 {
-	lastData.write(DataType());
+	lastData = DataType();
 
 	state = WAITING_FOR_DATA;
 

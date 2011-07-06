@@ -10,8 +10,8 @@
 
 void Mesh::makeRouters() {
   int tile = 0;
-  for(int col=0; col<numColumns; col++) {
-    for(int row=0; row<numRows; row++) {
+  for(unsigned int row=0; row<numRows; row++) {
+    for(unsigned int col=0; col<numColumns; col++) {
       routers[col][row] = new Router(sc_gen_unique_name("router"),
                                      ComponentID(tile,0));
       tile++;
@@ -36,7 +36,7 @@ void Mesh::makeWires() {
   ackSigEW   = new ReadySignal*[numColumns+1];
   ackSigWE   = new ReadySignal*[numColumns+1];
 
-  for(int col=0; col<=numColumns; col++) {
+  for(unsigned int col=0; col<=numColumns; col++) {
     dataSigNS[col]  = new DataSignal[numRows+1];
     dataSigSN[col]  = new DataSignal[numRows+1];
     dataSigEW[col]  = new DataSignal[numRows+1];
@@ -53,8 +53,8 @@ void Mesh::makeWires() {
 }
 
 void Mesh::wireUp() {
-  for(int col=0; col<numColumns; col++) {
-    for(int row=0; row<numRows; row++) {
+  for(unsigned int col=0; col<numColumns; col++) {
+    for(unsigned int row=0; row<numRows; row++) {
       Router& router = *routers[col][row];
       router.clock(clock);
 
@@ -114,13 +114,12 @@ Mesh::Mesh(const sc_module_name& name,
            HierarchyLevel level,
            Dimension size) :
     Network(name, ID, rows*columns, rows*columns, level, size),
-    routers(columns, std::vector<Router*>(rows)){
+    routers(columns, std::vector<Router*>(rows)),
+    numColumns(columns),
+    numRows(rows) {
 
   // Can only handle inter-tile mesh networks at the moment.
   assert(level == Network::TILE);
-
-  numRows = rows;
-  numColumns = columns;
 
   makeRouters();
   makeWires();
@@ -129,8 +128,8 @@ Mesh::Mesh(const sc_module_name& name,
 }
 
 Mesh::~Mesh() {
-  for(int col=0; col<numColumns; col++) {
-    for(int row=0; row<numRows; row++) delete routers[col][row];
+  for(unsigned int col=0; col<numColumns; col++) {
+    for(unsigned int row=0; row<numRows; row++) delete routers[col][row];
 
     delete[] dataSigNS[col]; delete[] validSigNS[col]; delete[] ackSigNS[col];
     delete[] dataSigSN[col]; delete[] validSigSN[col]; delete[] ackSigSN[col];

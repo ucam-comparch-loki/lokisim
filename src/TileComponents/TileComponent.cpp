@@ -78,17 +78,12 @@ void TileComponent::acknowledgeCredit(PortIndex output) {
   }
 }
 
-void TileComponent::receivedCredit() {
-  credit.notify();
-}
-
 /* Constructors and destructors */
 TileComponent::TileComponent(sc_module_name name, const ComponentID& ID,
                              int inputPorts, int outputPorts) :
-    Component(name, ID) {
-
-  numInputPorts  = inputPorts;
-  numOutputPorts = outputPorts;
+    Component(name, ID),
+    numInputPorts(inputPorts),
+    numOutputPorts(outputPorts) {
 
   dataIn         = new sc_in<AddressedWord>[inputPorts];
   validDataIn    = new sc_in<bool>[inputPorts];
@@ -98,21 +93,19 @@ TileComponent::TileComponent(sc_module_name name, const ComponentID& ID,
   validDataOut   = new sc_out<bool>[outputPorts];
   ackDataOut     = new sc_in<bool>[outputPorts];
 
-  creditsOut     = new sc_out<AddressedWord>[inputPorts];
-  validCreditOut = new sc_out<bool>[inputPorts];
-  ackCreditOut   = new sc_in<bool>[inputPorts];
+  // Temporary? Only have a single credit output, used to send credits to other
+  // tiles. Credits aren't used for local communication.
+  creditsOut     = new sc_out<AddressedWord>[1];
+  validCreditOut = new sc_out<bool>[1];
+  ackCreditOut   = new sc_in<bool>[1];
 
   creditsIn      = new sc_in<AddressedWord>[outputPorts];
   validCreditIn  = new sc_in<bool>[outputPorts];
   ackCreditIn    = new sc_out<bool>[outputPorts];
 
-  SC_METHOD(receivedCredit);
-  for(int i=0; i<outputPorts; i++) sensitive << validCreditIn[i].pos();
-  dont_initialize();
-
   // Generate a method to watch each credit input port, and send an
   // acknowledgement whenever a credit arrives.
-  for(int i=0; i<numOutputPorts; i++) {
+  for(unsigned int i=0; i<numOutputPorts; i++) {
     sc_core::sc_spawn_options options;
     options.spawn_method();     // Want an efficient method, not a thread
     options.dont_initialize();  // Only execute when triggered
