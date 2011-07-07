@@ -1,0 +1,10 @@
+ori         r2,  r0,  (0,4,2)               # Core 4, first channel
+ori         r3,  r0,  (0,6,3)               # Core 6, second channel
+setchmap    1,   r2
+setchmap    2,   r3
+ori         r10, r0,  -38                   # r10 = this core's constant
+
+# Loop
+or          r5,  ch0, r0        -> 1        # Receive and send newest R value
+mullw       r0,  r10, r5        -> 2        # Send product to next core
+ibjmp.eop   -16

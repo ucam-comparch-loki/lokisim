@@ -22,11 +22,12 @@ using std::string;
 
 // Advance the simulation one clock cycle.
 static unsigned long long cycleNumber = 0;
+static unsigned int cyclesPerStep = 1;
 
 #define TIMESTEP {\
-  cycleNumber++;\
+  cycleNumber += cyclesPerStep;\
   if(DEBUG) cout << "\n======= Cycle " << cycleNumber << " =======" << endl;\
-  sc_start(1, SC_NS);\
+  sc_start(cyclesPerStep, SC_NS);\
 }
 
 bool debugMode = false;
@@ -136,12 +137,13 @@ void simulate(Chip& chip) {
 
     try {
       int i;
-      for(i=0; i<TIMEOUT && !sc_core::sc_end_of_simulation_invoked(); i++) {
+      for(i=0; i<TIMEOUT && !sc_core::sc_end_of_simulation_invoked(); i+=cyclesPerStep) {
         TIMESTEP;
 
-        if (!DEBUG && (++cycleCounter == 1000000)) {
+        cycleCounter += cyclesPerStep;
+        if (!DEBUG && (cycleCounter >= 1000000)) {
           cerr << "Current cycle number: " << cycleNumber << " [" << Instrumentation::Operations::numOperations() << " operation(s) executed]" << endl;
-          cycleCounter = 0;
+          cycleCounter -= 1000000;
         }
 
         if(idle.read()) {
@@ -184,7 +186,18 @@ int sc_main(int argc, char* argv[]) {
 	}
 
 	string settingsFile(batchMode ? argv[2] : "test_files/loader.txt");
+
+	// Load parameters from the main settings file.
 	CodeLoader::loadParameters(settingsFile);
+
+	// Load parameters from any other files which have been passed as command
+	// line arguments.
+	for(int i=0; i<argc; i++) {
+	  if(string(argv[i]) == "-run") {
+	    string file = string(argv[i+1]);
+	    CodeLoader::loadParameters(file);
+	  }
+	}
 
 	// Instantiate chip model - parameters must not be changed after this or undefined behaviour might occur
 

@@ -1,0 +1,22 @@
+# Set up connection with memory.
+ori                r3, r0, (1,8,1,3,6)       # First memory bank, first channel, eight bank group
+setchmap           1,  r3                    # Set data fetch channel to memory bank
+ori                r0, r0, 0x00360103 > 1    # Configuration command: General purpose cache, eight banks
+ori                r0, r0, 0x01000000 > 1    # Table update command data fetch channel
+ori                r0, r0, (1,6,3) > 1       # Second data channel of this core
+or                 r5, r0,  r0               # r5 = position in array
+ori                r0, ch1, r0               # Wait for memory configuration to complete
+
+# Load parameters
+ldw                r0,  4           -> 1
+ldw                r0,  8           -> 1
+ori                r2,  ch1, 0               # r2 = rows of input
+ori                r3,  ch1, 0               # r3 = columns of input
+mullw              r4,  r3,  r2              # r4 = length of input
+
+# Loop
+stb                ch0, r5, 0x20000 -> 1
+addui              r5,  r5, 1
+seteq.p            r0,  r5, r4               # See if we have reached the end of data
+if!p?ibjmp         -24
+or.eop             r0,  r0, r0

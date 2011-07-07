@@ -26,6 +26,13 @@ class RGB2YUVTest(mod.SimulatorTest):
         green = self.toBytes(self.fileContents("green.data"))
         blue  = self.toBytes(self.fileContents("blue.data"))
         return zip(red,green,blue)
+    
+    # Collect result from simulator
+    def getResult(self):
+        y = self.toBytes(self.readMemory(8, 0x20000, self.length))
+        u = self.toBytes(self.readMemory(8, 0x21000, self.length))
+        v = self.toBytes(self.readMemory(8, 0x22000, self.length))
+        return zip(y,u,v)
 
     def runTest(self):
         pixels = self.getPixels()
@@ -36,15 +43,12 @@ class RGB2YUVTest(mod.SimulatorTest):
         expectY = [(( 66*r + 129*g +  25*b + 128) >> 8) +  16 for (r,g,b) in pixels]
         expectU = [((-38*r -  74*g + 112*b + 128) >> 8) + 128 for (r,g,b) in pixels]
         expectV = [((112*r -  94*g -  18*b + 128) >> 8) + 128 for (r,g,b) in pixels]
+        expected = zip(expectY, expectU, expectV)
         
         # Number of words to collect from the simulator for each output channel.
-        length = len(pixels)/4
-                           
-        # Collect result from simulator
-        actualY = self.toBytes(self.readMemory(8, 0x20000, length))
-        actualU = self.toBytes(self.readMemory(8, 0x21000, length))
-        actualV = self.toBytes(self.readMemory(8, 0x22000, length))
+        self.length = len(pixels)/4
         
-        self.compare(actualY, correct=expectY)
-        self.compare(actualU, correct=expectU)
-        self.compare(actualV, correct=expectV)
+        # Collect result from simulator
+        result = self.getResult()
+        
+        self.compare(result, correct=expected)

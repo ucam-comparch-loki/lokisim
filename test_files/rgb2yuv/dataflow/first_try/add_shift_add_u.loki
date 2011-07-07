@@ -1,0 +1,8 @@
+ori         r2,  r0,  (1,7,2)               # Core 15, first channel
+setchmap    1,   r2
+
+# Loop
+addui       r5,  ch0, 128
+srli        r5,  r5,  8
+addui       r0,  r5,  128       -> 1
+ibjmp.eop   -24

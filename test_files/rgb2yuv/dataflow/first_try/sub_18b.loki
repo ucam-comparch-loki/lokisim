@@ -1,0 +1,8 @@
+ori         r3,  r0,  (2,0,2)               # Core 16, first channel
+setchmap    2,   r3
+ori         r10, r0,  -18                   # r10 = this core's constant
+
+# Loop
+mullw       r5,  r10, ch0                   # Multiply by constant
+addu        r0,  r5,  ch1       -> 2        # Add to value from previous core
+ibjmp.eop   -16

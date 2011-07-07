@@ -1,0 +1,7 @@
+ori         r3,  r0,  (0,7,3)               # Core 7, second channel
+setchmap    2,   r3
+ori         r10, r0,  112                   # r10 = this core's constant
+
+# Loop
+mullw       r0,  r10, ch0       -> 2        # Send product to next core
+ibjmp.eop   -8

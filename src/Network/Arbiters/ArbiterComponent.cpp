@@ -20,7 +20,8 @@ void ArbiterComponent::arbiterLoop() {
         return;
       }
 
-      arbitrate();
+      // Try to accept more data if all outputs are not already busy.
+      if(activeTransfers < outputs) arbitrate();
 
       if(activeTransfers > 0) {
         state = WAITING_FOR_ACKS;
@@ -45,6 +46,10 @@ void ArbiterComponent::arbiterLoop() {
           alreadySeen[dataSource] = false;
 
           activeTransfers--;
+
+          assert(activeTransfers >= 0);
+          assert(activeTransfers <= inputs);
+          assert(activeTransfers <= outputs);
         }
       }
 
@@ -127,6 +132,11 @@ void ArbiterComponent::arbitrate() {
 
   assert(activeTransfers >= 0);
   assert(activeTransfers <= inputs);
+
+  if(activeTransfers > outputs) {
+    cout << this->name() << endl;
+    cout << "active transfers: " << activeTransfers << ", outputs: " << outputs << endl;
+  }
   assert(activeTransfers <= outputs);
 }
 
@@ -158,10 +168,6 @@ void ArbiterComponent::receivedAck() {
       inUse[i] = false;
     }
   }
-
-  assert(activeTransfers >= 0);
-  assert(activeTransfers <= inputs);
-  assert(activeTransfers <= outputs);
 }
 
 void ArbiterComponent::newData() {newDataEvent.notify();}

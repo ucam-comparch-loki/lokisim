@@ -18,9 +18,11 @@ void Chip::storeInstructions(vector<Word>& instructions, const ComponentID& comp
 
 void Chip::storeData(vector<Word>& data, const ComponentID& component, MemoryAddr location) {
   if(component.isCore()) {
+    assert(component.getGlobalCoreNumber() < clusters.size());
     clusters[component.getGlobalCoreNumber()]->storeData(data, location);
   }
   else if(component.isMemory()) {
+    assert(component.getGlobalMemoryNumber() < memories.size());
     memories[component.getGlobalMemoryNumber()]->storeData(data,location);
   }
   else backgroundMemory.storeData(data, location);
@@ -34,42 +36,56 @@ void Chip::print(const ComponentID& component, MemoryAddr start, MemoryAddr end)
 }
 
 Word Chip::readWord(const ComponentID& component, MemoryAddr addr) {
-	if (component.isMemory())
-		return memories[component.getGlobalMemoryNumber()]->readWord(addr);
+	if (component.isMemory()) {
+	  assert(component.getGlobalMemoryNumber() < memories.size());
+	  return memories[component.getGlobalMemoryNumber()]->readWord(addr);
+	}
 	else
 		return backgroundMemory.readWord(addr);
 }
 
 Word Chip::readByte(const ComponentID& component, MemoryAddr addr) {
-	if (component.isMemory())
-		return memories[component.getGlobalMemoryNumber()]->readByte(addr);
+	if (component.isMemory()) {
+    assert(component.getGlobalMemoryNumber() < memories.size());
+	  return memories[component.getGlobalMemoryNumber()]->readByte(addr);
+	}
 	else
 		return backgroundMemory.readByte(addr);
 }
 
 void Chip::writeWord(const ComponentID& component, MemoryAddr addr, Word data) {
-	if (component.isMemory())
-		return memories[component.getGlobalMemoryNumber()]->writeWord(addr, data);
+	if (component.isMemory()) {
+    assert(component.getGlobalMemoryNumber() < memories.size());
+	  return memories[component.getGlobalMemoryNumber()]->writeWord(addr, data);
+	}
 	else
 		return backgroundMemory.writeWord(addr, data);
 }
 
 void Chip::writeByte(const ComponentID& component, MemoryAddr addr, Word data) {
-	if (component.isMemory())
-		return memories[component.getGlobalMemoryNumber()]->writeByte(addr, data);
+	if (component.isMemory()) {
+    assert(component.getGlobalMemoryNumber() < memories.size());
+	  return memories[component.getGlobalMemoryNumber()]->writeByte(addr, data);
+	}
 	else
 		return backgroundMemory.writeByte(addr, data);
 }
 
 int Chip::readRegister(const ComponentID& component, RegisterIndex reg) const {
+  assert(component.getGlobalCoreNumber() < clusters.size());
+
 	return clusters[component.getGlobalCoreNumber()]->readRegDebug(reg);
 }
 
 MemoryAddr Chip::getInstIndex(const ComponentID& component) const {
+  assert(component.getGlobalCoreNumber() < clusters.size());
+
 	return clusters[component.getGlobalCoreNumber()]->getInstIndex();
 }
 
 bool Chip::readPredicate(const ComponentID& component) const {
+  assert(component.getGlobalCoreNumber() < clusters.size());
+
 	return clusters[component.getGlobalCoreNumber()]->readPredReg();
 }
 

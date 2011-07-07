@@ -95,7 +95,8 @@ FileReader* FileReader::makeFileReader(vector<string>& words, bool customAppLoad
   }
 
   ComponentID id;
-  if(component != BACKGROUND_MEMORY) id = ComponentID(0, component);
+  if(component != BACKGROUND_MEMORY) id = ComponentID(component/COMPONENTS_PER_TILE,
+                                                      component%COMPONENTS_PER_TILE);
 
   if(extension == "" || extension == name) {
     filesToLink.push_back(name);

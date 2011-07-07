@@ -301,7 +301,7 @@ void Instruction::decodeOpcode(const string& name) {
   }
   catch(std::exception& e) {
     // Not a valid operation name.
-    if(DEBUG) cerr << "Error: invalid operation name: " << opcodeParts.front() << endl;
+    if(DEBUG) cerr << "Error: invalid operation name: " << name << endl;
     throw InvalidInstructionException();
   }
 
