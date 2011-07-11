@@ -54,13 +54,16 @@ class SimulatorTest(unittest.TestCase):
     
     # Return the execution time so far.
     def numCycles(self):
-        self._runCommand("statistic execution_time")
-        return self._getOutput()[0]
+        return self.getStat("execution_time")
         
     # Return the energy consumed to execute each useful operation.
     def energyPerOp(self):
-        self._runCommand("statistic fj_per_op")
-        return float(self._getOutput()[0]) / 1000
+        return float(self.getStat("fj_per_op")) / 1000
+    
+    # Request a statistic from the simulator by name.
+    def getStat(self, stat):
+        self._runCommand("statistic " + stat)
+        return self._getOutput()[0]
         
     # Compare a list of values with the values in the given file or in a second
     # list. Either the filename or the second list must be supplied.
@@ -188,7 +191,8 @@ class SimulatorTest(unittest.TestCase):
     def _success(self, testName):
         firstPart = "[PASSED] " + testName
         cycles = str(self.numCycles()) + " cycles"
-        energy = "%(val).1f pJ/op" % {'val':self.energyPerOp()}
+        #energy = "%(val).1f pJ/op" % {'val':self.energyPerOp()}
+        energy = str(self.getStat("energy")/1000) + " nJ"
         print firstPart.ljust(40),
         print cycles.ljust(14),
         print energy

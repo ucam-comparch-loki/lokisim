@@ -1,0 +1,46 @@
+parameter NUM_TILE_COLUMNS 3
+parameter NUM_TILE_ROWS 2
+
+code.s              -1  0x1000
+
+core_0_0.loki       0
+core_0_1.loki       1
+core_0_2.loki       2
+core_0_3.loki       3
+core_0_4.loki       4
+
+core_1_0.loki       16
+core_1_1.loki       17
+core_1_2.loki       18
+core_1_3.loki       19
+core_1_4.loki       20
+
+core_2_0.loki       32
+core_2_1.loki       33
+core_2_2.loki       34
+core_2_3.loki       35
+core_2_4.loki       36
+
+core_3_0.loki       48
+core_3_1.loki       49
+core_3_2.loki       50
+core_3_3.loki       51
+core_3_4.loki       52
+core_3_5.loki       53
+core_3_6.loki       54
+
+core_4_0.loki       64
+core_4_1.loki       65
+core_4_2.loki       66
+core_4_3.loki       67
+core_4_4.loki       68
+core_4_5.loki       69
+core_4_6.loki       70
+
+core_5_0.loki       80
+core_5_1.loki       81
+core_5_2.loki       82
+core_5_3.loki       83
+core_5_4.loki       84
+core_5_5.loki       85
+core_5_6.loki       86

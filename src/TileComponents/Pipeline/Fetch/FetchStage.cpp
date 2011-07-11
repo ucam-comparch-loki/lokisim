@@ -163,8 +163,7 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
   idle.initialize(true);
 
   SC_METHOD(execute);
-  sensitive << clock.neg();
-  dont_initialize();
+  // do initialise
 
 }
 

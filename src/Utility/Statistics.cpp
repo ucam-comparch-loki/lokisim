@@ -31,6 +31,7 @@ void Statistics::printStats() {
 
 int Statistics::getStat(const std::string& statName, int parameter) {
   if(statName == "execution_time")        return executionTime();
+  else if(statName == "current_cycle")    return currentCycle();
   else if(statName == "energy")           return energy();
   else if(statName == "fj_per_op")        return fJPerOp();
   else if(statName == "l0_tag_checks")    return l0TagChecks();
@@ -53,6 +54,11 @@ int Statistics::getStat(const std::string& statName, int parameter) {
   else std::cerr << "Unknown statistic requested: " << statName << "\n";
 
   return 0;
+}
+
+int Statistics::currentCycle() {
+  if(sc_core::sc_end_of_simulation_invoked()) return executionTime();
+  else return Instrumentation::currentCycle();
 }
 
 int Statistics::executionTime()      {return Stalls::executionTime();}

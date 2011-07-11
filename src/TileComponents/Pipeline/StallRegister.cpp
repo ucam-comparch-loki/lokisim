@@ -52,14 +52,21 @@ void StallRegister::newData() {
 }
 
 void StallRegister::receivedReady() {
-  // Would ideally like to call this function at most once per clock cycle to
-  // improve simulation speed, but it isn't obvious how to do this efficiently.
+  if(clock.posedge()) {
+    bool newReady = readyIn.read() && localStageReady.read() && !buffer.full();
 
-  bool newReady = readyIn.read() && localStageReady.read() && !buffer.full();
+    if(ready != newReady) {
+      ready = newReady;
+      readyOut.write(ready);
+    }
 
-  if(ready != newReady) {
-    ready = newReady;
-    readyOut.write(ready);
+    next_trigger(readyIn.default_event() | localStageReady.default_event() | bufferFillChanged);
+  }
+  else {
+    // Wait until the clock edge to update the ready signal. If we flip to not
+    // being ready too quickly, no instructions ever get buffered up, reducing
+    // performance.
+    next_trigger(clock.posedge_event());
   }
 }
 
@@ -67,16 +74,14 @@ StallRegister::StallRegister(sc_module_name name, const ComponentID& ID) :
     Component(name, ID),
     buffer(2, std::string(name)) {  // Buffer with size 2 and a name for debug.
 
-  SC_METHOD(newCycle);              // Behaves like:
-  sensitive << clock.pos();         // always@(posedge clk)
-  dont_initialize();                //   newCycle();
+  SC_METHOD(newCycle);
+  // do initialise
 
   SC_METHOD(newData);
   sensitive << dataIn;
   dont_initialize();
 
   SC_METHOD(receivedReady);
-  sensitive << readyIn << localStageReady << bufferFillChanged;
   // do initialise
 
   end_module();

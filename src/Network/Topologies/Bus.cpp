@@ -96,8 +96,7 @@ Bus::Bus(const sc_module_name& name, const ComponentID& ID, int numOutputPorts, 
 	state = WAITING_FOR_DATA;
 
 	SC_METHOD(busLoop);
-	sensitive << validDataIn[0].pos();
-	dont_initialize();
+	// do initialise
 
 	SC_METHOD(computeSwitching);
 	sensitive << dataIn[0];

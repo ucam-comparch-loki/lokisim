@@ -27,6 +27,7 @@ public:
   static int getStat(const std::string& statName, int parameter = -1);
 
   static int executionTime();
+  static int currentCycle();
   static int energy();
   static int fJPerOp();
 
