@@ -120,19 +120,8 @@ TileComponent::TileComponent(sc_module_name name, const ComponentID& ID,
 }
 
 TileComponent::~TileComponent() {
-  delete[] dataIn;
-  delete[] validDataIn;
-  delete[] ackDataIn;
-
-  delete[] dataOut;
-  delete[] validDataOut;
-  delete[] ackDataOut;
-
-  delete[] creditsOut;
-  delete[] validCreditOut;
-  delete[] ackCreditOut;
-
-  delete[] creditsIn;
-  delete[] validCreditIn;
-  delete[] ackCreditIn;
+  delete[] dataIn;      delete[] validDataIn;     delete[] ackDataIn;
+  delete[] dataOut;     delete[] validDataOut;    delete[] ackDataOut;
+  delete[] creditsOut;  delete[] validCreditOut;  delete[] ackCreditOut;
+  delete[] creditsIn;   delete[] validCreditIn;   delete[] ackCreditIn;
 }

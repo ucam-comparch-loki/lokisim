@@ -20,11 +20,6 @@ public:
   // to put the data in the required components.
   virtual vector<DataBlock>& extractData(int& mainPos) const;
 
-  // Generate a short program to give to a core, which sets an entry in its
-  // channel map table, and then sends a fetch request for the main method of
-  // the program.
-  static DataBlock& loaderProgram(const ComponentID& core, int mainPos);
-
   // The ELF reader is different to the others, as it stores the contents of
   // the file in a memory, and then generates a small loader program for a
   // particular core to execute.

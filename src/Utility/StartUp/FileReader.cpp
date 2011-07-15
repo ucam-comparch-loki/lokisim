@@ -150,6 +150,8 @@ FileReader* FileReader::makeFileReader(vector<string>& words, bool customAppLoad
 FileReader* FileReader::linkFiles() {
   switch(filesToLink.size()) {
     case 0: return NULL;
+    // Need to link even single files so that the code gets put in the right
+    // position in memory.
 //    case 1: return new ELFFileReader(filesToLink[0], ComponentID(), ComponentID(0, 0), 0x1000);
     default: {
       string directory = Config::getAttribute("lokiprefix",

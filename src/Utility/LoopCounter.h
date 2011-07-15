@@ -51,6 +51,12 @@ public:
     return val;
   }
 
+  int operator= (const LoopCounter& other) {
+    assert(maximum == other.maximum);
+    val = other.val;
+    return val;
+  }
+
   int operator+= (int num) {
     val += num;
     bringWithinBounds();
@@ -95,7 +101,7 @@ public:
 private:
 
   // The number of values this counter is allowed to hold (= max value + 1).
-  int maximum;
+  const int maximum;
 
   // The value the counter currently holds.
   int val;

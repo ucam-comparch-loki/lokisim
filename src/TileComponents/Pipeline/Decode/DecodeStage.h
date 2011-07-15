@@ -112,6 +112,8 @@ private:
   // Perform a SELCH operation.
   ChannelIndex   selectChannel();
 
+  sc_core::sc_event& receivedDataEvent(ChannelIndex buffer) const;
+
   // Fetch an instruction packet from the given address.
   void           fetch(const MemoryAddr addr);
 

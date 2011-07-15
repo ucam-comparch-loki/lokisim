@@ -76,10 +76,12 @@ void WriteStage::newInput(DecodedInst& data) {
 }
 
 void WriteStage::updateReady() {
-  // Write our current stall status.
-  readyOut.write(!isStalled());
+  bool ready = !isStalled();
 
-  if(DEBUG && isStalled() && readyOut.read()) {
+  // Write our current stall status.
+  if(ready != readyOut.read()) readyOut.write(ready);
+
+  if(DEBUG && !ready && readyOut.read()) {
     cout << this->name() << " stalled." << endl;
   }
 

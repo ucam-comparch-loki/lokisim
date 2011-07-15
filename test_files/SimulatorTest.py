@@ -192,7 +192,7 @@ class SimulatorTest(unittest.TestCase):
         firstPart = "[PASSED] " + testName
         cycles = str(self.numCycles()) + " cycles"
         #energy = "%(val).1f pJ/op" % {'val':self.energyPerOp()}
-        energy = str(self.getStat("energy")/1000) + " nJ"
+        energy = str(self.getStat("energy")/1000) + " pJ"
         print firstPart.ljust(40),
         print cycles.ljust(14),
         print energy

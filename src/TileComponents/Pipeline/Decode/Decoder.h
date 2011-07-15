@@ -58,6 +58,9 @@ private:
   // Read a value from an input buffer.
   int32_t readRCET(ChannelIndex index);
 
+  // Wait until there is data in a particular input buffer.
+  void    waitUntilArrival(ChannelIndex channel);
+
   // Ensure that the instruction packet from the given address is in the
   // instruction packet cache. Nothing will be done if it is already there.
   void    fetch(MemoryAddr addr) const;
@@ -71,7 +74,7 @@ private:
 
   // Write operations take two cycles since there are two flits to send. This
   // method sends the second part.
-  bool completeWrite(const DecodedInst& input, DecodedInst& output);
+  bool continueOp(const DecodedInst& input, DecodedInst& output);
 
   // Determine whether the current instruction should be executed, based on its
   // predicate bits, and the contents of the predicate register.
@@ -100,7 +103,7 @@ private:
   bool remoteExecute;
 
   // Tells whether we have started a two-cycle store operation.
-  bool currentlyWriting;
+  bool multiCycleOp;
 
   // Tells whether we are blocked (probably trying to read from an empty
   // channel).

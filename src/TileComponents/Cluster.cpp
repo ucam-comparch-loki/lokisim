@@ -181,7 +181,8 @@ void     Cluster::updateIdle() {
   }
 
   // Is this what we really want?
-  idle.write(isIdle || currentlyStalled);
+  if(wasIdle != (isIdle || currentlyStalled))
+    idle.write(isIdle || currentlyStalled);
 
   if(wasIdle != isIdle) Instrumentation::idle(id, isIdle);
 }

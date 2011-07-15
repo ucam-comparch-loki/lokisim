@@ -84,10 +84,6 @@ public:
     newDataFlag = false;
   }
 
-  virtual ~flag_signal() {
-
-  }
-
 //==============================//
 // Local state
 //==============================//

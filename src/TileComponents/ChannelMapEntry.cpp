@@ -42,7 +42,7 @@ bool ChannelMapEntry::haveAllCredits() const {
 void ChannelMapEntry::setCoreDestination(const ChannelID& address) {
 	// Only allow the destination to change when all credits from previous
 	// destination have been received.
-	assert(!useCredits_ || (credits_ == MAX_CREDITS));
+	assert(haveAllCredits());
 
 	destination_ = address;
 	network_ = (address.getTile() == id_.getTile()) ? CORE_TO_CORE : GLOBAL;

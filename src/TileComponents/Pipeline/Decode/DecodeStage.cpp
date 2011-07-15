@@ -95,6 +95,10 @@ ChannelIndex DecodeStage::selectChannel() {
   return rcet.selectChannelEnd();
 }
 
+sc_core::sc_event& DecodeStage::receivedDataEvent(ChannelIndex buffer) const {
+  return rcet.receivedDataEvent(buffer);
+}
+
 void         DecodeStage::fetch(const MemoryAddr addr) {
   fl.fetch(addr);
 }

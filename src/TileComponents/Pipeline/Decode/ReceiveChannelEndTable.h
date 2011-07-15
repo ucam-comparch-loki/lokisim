@@ -68,6 +68,8 @@ public:
   // mapped index (e.g. if channel 0 contains data, 16 would be returned).
   ChannelIndex selectChannelEnd();
 
+  sc_core::sc_event& receivedDataEvent(ChannelIndex buffer) const;
+
 private:
 
   // Update the flow control value for an input port.
