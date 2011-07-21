@@ -30,7 +30,7 @@ void Bus::busLoop() {
         dataOut[outputUsed].write(data);
         validDataOut[outputUsed].write(true);
 
-        next_trigger(ackDataOut[outputUsed].default_event());
+        next_trigger(ackDataOut[outputUsed].posedge_event());
         state = WAITING_FOR_ACK;
       }
 
@@ -44,6 +44,7 @@ void Bus::busLoop() {
       // Acknowledge the input data.
       ackDataIn[0].write(true);
 
+      // Wait until the next clock edge to deassert the acknowledgement.
       next_trigger(clock.posedge_event());
       state = SENT_ACK;
 
@@ -72,7 +73,9 @@ void Bus::busLoop() {
 }
 
 void Bus::computeSwitching() {
-  // TODO: assert that no more than one word is sent per cycle.
+  unsigned long cycle = Instrumentation::currentCycle();
+  assert(lastWriteTime != cycle);
+  lastWriteTime = cycle;
 
 	DataType newData = dataIn[0].read();
 	unsigned int dataDiff = newData.payload().toInt() ^ lastData.payload().toInt();
@@ -92,6 +95,7 @@ Bus::Bus(const sc_module_name& name, const ComponentID& ID, int numOutputPorts, 
     Network(name, ID, 1, numOutputPorts, level, size, firstOutput)
 {
 	lastData = DataType();
+	lastWriteTime = -1;
 
 	state = WAITING_FOR_DATA;
 

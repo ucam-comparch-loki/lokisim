@@ -1,9 +1,6 @@
 /*
  * ArbiterComponent.h
  *
- * An arbitrated multiplexer with input/output ports. Note that the arbiters
- * from Arbitration are used: the ones in this directory are to be phased out.
- *
  * It is assumed that all inputs will arrive in the same delta-cycle. This is
  * usually true, since the inputs will come from the same component, but it is
  * worth bearing in mind.
@@ -35,7 +32,7 @@ public:
 
   sc_in<AddressedWord>  *dataIn;
   sc_in<bool>           *validDataIn;
-  sc_out<bool>          *ackDataIn; // toggles rather than staying high/low
+  sc_out<bool>          *ackDataIn;
 
   sc_out<AddressedWord> *dataOut;
   sc_out<bool>          *validDataOut;
@@ -69,11 +66,12 @@ private:
   // Helper functions for arbiterLoop. arbitrate() currently implements round-
   // robin scheduling.
   void arbitrate();
-  bool checkForData();
+  bool haveData();
 
   void receivedAck();
+  void sendAck(PortIndex input);
 
-  void newData();
+  void newData(PortIndex input);
 
 //==============================//
 // Local state
@@ -88,6 +86,7 @@ private:
   const unsigned int inputs, outputs;
 
   unsigned int activeTransfers;
+  unsigned int numValidInputs;
   unsigned int lastAccepted; // Using round-robin at the moment.
 
   // Record which outputs we are waiting for acknowledgements on.
@@ -106,6 +105,9 @@ private:
   // signals, so it doesn't notice the new data if the valid signal doesn't
   // change.
   sc_core::sc_event newDataEvent;
+
+  // Events to notify to send an acknowledgement on each input.
+  sc_core::sc_event* sendAckEvent;
 
   // Additional state for wormhole routing.
 

@@ -5,6 +5,8 @@
  *      Author: db434
  */
 
+#define SC_INCLUDE_DYNAMIC_PROCESSES
+
 #include "ArbiterComponent.h"
 #include "../../Arbitration/RoundRobinArbiter.h"
 #include "../../Datatype/AddressedWord.h"
@@ -57,8 +59,8 @@ void ArbiterComponent::arbiterLoop() {
 
       // Wait until data arrives, or until the next clock edge if it is already
       // here.
-      if(activeTransfers > 0 || checkForData()) next_trigger(clock.negedge_event());
-      else                                      next_trigger(newDataEvent);
+      if(activeTransfers > 0 || haveData()) next_trigger(clock.negedge_event());
+      else                                  next_trigger(newDataEvent);
 
       break;
     }
@@ -132,37 +134,25 @@ void ArbiterComponent::arbitrate() {
 
   assert(activeTransfers >= 0);
   assert(activeTransfers <= inputs);
-
-  if(activeTransfers > outputs) {
-    cout << this->name() << endl;
-    cout << "active transfers: " << activeTransfers << ", outputs: " << outputs << endl;
-  }
   assert(activeTransfers <= outputs);
 }
 
-bool ArbiterComponent::checkForData() {
-  // See if there is any data waiting to be sent.
-  bool haveData = false;
-  for(unsigned int i=0; i<inputs; i++) {
-    if(validDataIn[i].read()) {
-      haveData = true;
-      break;
-    }
-  }
-
-  return haveData;
+bool ArbiterComponent::haveData() {
+  return numValidInputs > 0;
 }
 
 void ArbiterComponent::receivedAck() {
   for (unsigned int i = 0; i < outputs; i++) {
     if (inUse[i] && ackDataOut[i].read()) {
+      // Recall which input the data came from so we know where to send the
+      // acknowledgement.
       int dataSource = ackDestinations[i];
 
       assert(validDataIn[dataSource].read());
 
       // Acknowledge the input data now it has been consumed, but don't
       // deassert the validData signal until the positive clock edge.
-      ackDataIn[dataSource].write(!ackDataIn[dataSource].read());
+      sendAckEvent[dataSource].notify();
 
       // Signals that this validData signal should be pulled down later.
       inUse[i] = false;
@@ -170,7 +160,33 @@ void ArbiterComponent::receivedAck() {
   }
 }
 
-void ArbiterComponent::newData() {newDataEvent.notify();}
+// Set the acknowledgement signal high when sendAckEvent is triggered, and
+// low at the next clock edge.
+void ArbiterComponent::sendAck(PortIndex input) {
+  if(clock.posedge()) {
+    ackDataIn[input].write(false);
+    next_trigger(sendAckEvent[input]);
+  }
+  else {
+    ackDataIn[input].write(true);
+    next_trigger(clock.posedge_event());
+  }
+}
+
+// Keep track of the number of input ports which currently have valid data,
+// so we can quickly check whether any of them have data without looping
+// through all of them.
+void ArbiterComponent::newData(PortIndex input) {
+  if(validDataIn[input].read()) {
+    newDataEvent.notify();
+    numValidInputs++;
+    next_trigger(validDataIn[input].negedge_event());
+  }
+  else {
+    numValidInputs--;
+    next_trigger(validDataIn[input].posedge_event());
+  }
+}
 
 unsigned int ArbiterComponent::numInputs()  const {return inputs;}
 unsigned int ArbiterComponent::numOutputs() const {return outputs;}
@@ -183,6 +199,7 @@ ArbiterComponent::ArbiterComponent(const sc_module_name& name, const ComponentID
 {
 
 	activeTransfers = 0;
+	numValidInputs  = inputs;  // Will be taken down to 0 immediately
 	lastAccepted    = inputs - 1;
 
 	dataIn          = new sc_in<AddressedWord>[inputs];
@@ -192,6 +209,8 @@ ArbiterComponent::ArbiterComponent(const sc_module_name& name, const ComponentID
 	dataOut         = new sc_out<AddressedWord>[outputs];
 	validDataOut    = new sc_out<bool>[outputs];
 	ackDataOut      = new sc_in<bool>[outputs];
+
+	sendAckEvent    = new sc_core::sc_event[inputs];
 
   inUse           = new bool[outputs];
   for(int i=0; i<outputs; i++) inUse[i] = false;
@@ -211,29 +230,44 @@ ArbiterComponent::ArbiterComponent(const sc_module_name& name, const ComponentID
 
 	state = WAITING_FOR_DATA;
 
+	// Start arbitrating when data arrives.
 	SC_METHOD(arbiterLoop);
 	sensitive << newDataEvent;
-	dont_initialize();
-
-	SC_METHOD(newData);
-	for(int i=0; i<inputs; i++) sensitive << validDataIn[i].pos();
 	dont_initialize();
 
 	SC_METHOD(receivedAck);
 	for(int i=0; i<outputs; i++) sensitive << ackDataOut[i].pos();
 	dont_initialize();
 
+  // Generate a method to watch each input port, keeping track of when there is
+	// at least one port with valid data.
+  for(int i=0; i<inputs; i++) {
+    sc_core::sc_spawn_options options;
+    options.spawn_method();     // Want an efficient method, not a thread
+
+    // Create the method.
+    sc_spawn(sc_bind(&ArbiterComponent::newData, this, i), 0, &options);
+  }
+
+  // Generate a method to send acknowledgements on each input port.
+  for(int i=0; i<inputs; i++) {
+    sc_core::sc_spawn_options options;
+    options.spawn_method();     // Want an efficient method, not a thread
+    options.dont_initialize();  // Only execute when triggered
+    options.set_sensitivity(&(sendAckEvent[i])); // Sensitive to this event
+
+    // Create the method.
+    sc_spawn(sc_bind(&ArbiterComponent::sendAck, this, i), 0, &options);
+  }
+
 	end_module();
 }
 
 ArbiterComponent::~ArbiterComponent() {
-	delete[] dataIn;
-	delete[] validDataIn;
-	delete[] ackDataIn;
+	delete[] dataIn;	delete[] validDataIn;	  delete[] ackDataIn;
+	delete[] dataOut;	delete[] validDataOut;	delete[] ackDataOut;
 
-	delete[] dataOut;
-	delete[] validDataOut;
-	delete[] ackDataOut;
+	delete[] sendAckEvent;
 
   delete[] inUse;
   delete[] ackDestinations;

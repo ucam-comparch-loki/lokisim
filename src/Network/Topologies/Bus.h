@@ -83,6 +83,10 @@ private:
   // new value arrives.
   DataType lastData;
 
+  // The cycle during which data was last written to the bus. Data should be
+  // written at most once per clock cycle.
+  unsigned long lastWriteTime;
+
 };
 
 #endif /* BUS_H_ */

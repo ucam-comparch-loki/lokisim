@@ -106,7 +106,7 @@ namespace Instrumentation {
   void operation(const ComponentID& id, const DecodedInst& inst, bool executed);
 
   // Return the current clock cycle count.
-  int currentCycle();
+  unsigned long currentCycle();
 
   // Load a library to allow power consumption estimates later.
   void loadPowerLibrary(const std::string& filename);

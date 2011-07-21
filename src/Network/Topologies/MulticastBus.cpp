@@ -123,7 +123,7 @@ MulticastBus::MulticastBus(const sc_module_name& name, const ComponentID& ID, in
 //  ackCreditOut   = new ReadyInput[1];
 
   SC_METHOD(ackArrived);
-  for(int i=0; i<numOutputs; i++) sensitive << ackDataOut[i];
+  for(int i=0; i<numOutputs; i++) sensitive << ackDataOut[i].pos();
   dont_initialize();
 }
 

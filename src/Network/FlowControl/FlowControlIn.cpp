@@ -126,8 +126,11 @@ void FlowControlIn::sendAck() {
 void FlowControlIn::creditLoop() {
   switch(creditState) {
     case NO_CREDITS : {
-      // Should have just received a credit.
-      assert(numCredits > 0);
+      if(numCredits == 0) {
+        next_trigger(newCredit);
+        return;
+      }
+
       assert(useCredits);
 
       // Information can only be sent onto the network at a positive clock edge.
@@ -202,10 +205,5 @@ FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const C
 	creditState = NO_CREDITS;
 
 	SC_METHOD(dataLoop);
-	sensitive << validDataIn.pos();
-	dont_initialize();
-
 	SC_METHOD(creditLoop);
-	sensitive << newCredit;
-	dont_initialize();
 }

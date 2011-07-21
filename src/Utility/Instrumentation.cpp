@@ -127,7 +127,7 @@ void Instrumentation::operation(const ComponentID& id, const DecodedInst& inst, 
     Debugger::executedInstruction(inst, id, executed);
 }
 
-int Instrumentation::currentCycle() {
+unsigned long Instrumentation::currentCycle() {
   return sc_core::sc_time_stamp().to_default_time_units();
 }
 

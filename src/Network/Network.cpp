@@ -60,13 +60,8 @@ ReadyOutput& Network::externalAckOutput() const {
   return ackDataIn[numInputs-1];
 }
 
-unsigned int Network::numInputPorts() const {
-  return numInputs;
-}
-
-unsigned int Network::numOutputPorts() const {
-  return numOutputs;
-}
+unsigned int Network::numInputPorts()  const {return numInputs;}
+unsigned int Network::numOutputPorts() const {return numOutputs;}
 
 Network::Network(const sc_module_name& name,
     const ComponentID& ID,
@@ -99,11 +94,6 @@ Network::Network(const sc_module_name& name,
 }
 
 Network::~Network() {
-  delete[] dataIn;
-  delete[] validDataIn;
-  delete[] ackDataIn;
-
-  delete[] dataOut;
-  delete[] validDataOut;
-  delete[] ackDataOut;
+  delete[] dataIn;   delete[] validDataIn;   delete[] ackDataIn;
+  delete[] dataOut;  delete[] validDataOut;  delete[] ackDataOut;
 }
