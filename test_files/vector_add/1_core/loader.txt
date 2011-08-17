@@ -1,4 +1,4 @@
-vector_add.s
+vector_add_lat.s
 
 ../params.data  -1  0x00000
 ../vector1.data -1  0x10000

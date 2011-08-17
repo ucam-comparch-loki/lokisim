@@ -33,7 +33,7 @@ private:
 	static const uint WIDTH_TILE = 8;
 	static const uint OFFSET_MULTICAST = OFFSET_TILE + WIDTH_TILE;
 	static const uint WIDTH_MULTICAST = 1;
-	
+
 public:
 	inline uint32_t getData() const					{return data_ & 0xFFFFFFFFULL;}
 
@@ -105,7 +105,7 @@ public:
 		else {
 		  ss << "(" << getTile() << "," << getPosition() << "," << getChannel() << ")";
 		}
-		
+
 		std::string result;
 		ss >> result;
 		return result;

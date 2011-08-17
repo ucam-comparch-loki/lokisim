@@ -17,7 +17,7 @@ void Crossbar::initialise() {
 void Crossbar::makeBuses() {
   // Generate and connect up buses.
   for(int i=0; i<numBuses; i++) {
-	Bus* bus = new Bus(sc_gen_unique_name("bus"), i, numMuxes, level, size);
+    Bus* bus = new Bus(sc_gen_unique_name("bus"), i, numMuxes, level, size);
     buses.push_back(bus);
     bus->clock(clock);
 
@@ -58,7 +58,7 @@ void Crossbar::makeArbiters() {
 Crossbar::Crossbar(sc_module_name name, const ComponentID& ID, int inputs, int outputs,
                    int outputsPerComponent, HierarchyLevel level, Dimension size,
                    bool externalConnection) :
-    Network(name, ID, inputs, outputs, level, size, externalConnection),
+    Network(name, ID, inputs, outputs, level, size, 0, externalConnection),
     numBuses(numInputs),
     numMuxes(numOutputs/outputsPerComponent),
     outputsPerComponent(outputsPerComponent) {

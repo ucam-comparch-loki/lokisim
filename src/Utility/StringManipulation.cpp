@@ -40,7 +40,7 @@ int StringManipulation::strToInt(const string& str) {
   // See if the string actually represents a number.
   for(unsigned int i=0; i<copy.length(); i++) {
     if(!std::isxdigit(copy[i]) && !std::isspace(copy[i]) && copy[i] != '-' && copy[i] != ',') {
-      //std::cerr << "Not a number: " << copy << std::endl;
+//      std::cerr << "Not a number: " << copy << std::endl;
       throw std::exception();
     }
   }

@@ -44,6 +44,11 @@ namespace Instrumentation {
 
 		static void printStats();
 
+		// Some very crude access methods to give energy estimation some concept
+		// of memories.
+		static long long numReads();
+		static long long numWrites();
+
 	private:
 
 		static std::map<int, bool> modes_;

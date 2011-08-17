@@ -5,9 +5,14 @@ simdstart:
 #    fetch           r0,  loadtaps           # get the next instruction packet
 
 # Load the parameters for this filter. (May deadlock if buffers are small?)
+# Some of the channel reads also have to go here to prevent the data being
+# reordered. This should be fixed eventually.
     ldw             r0,  4        > 1
+    ori             r10, ch0, 0             # r10 = number of taps
     ldw             r0,  8        > 1
+    ori             r11, ch0, 0             # r11 = location of taps
     ldw             r0,  12       > 1
+    ori             r12, ch0, 0             # r12 = length of input
     ldw             r0,  16       > 1
     ldw             r0,  20       > 1
 
@@ -15,9 +20,6 @@ simdstart:
     slli            r3,  r31, 2             # r3 = stride length
 
 # Store the parameters locally.
-    ori             r10, ch0, 0             # r10 = number of taps
-    ori             r11, ch0, 0             # r11 = location of taps
-    ori             r12, ch0, 0             # r12 = length of input
     ori             r13, ch0, 0             # r13 = location of input
     addu            r14, ch0, r2            # r14 = location to write output
 
@@ -37,12 +39,17 @@ simdstart:
 loadtaps:
 #    fetch           r0,  loop
     ori             r5,  r0,  32            # r5 = pointer to register to store tap in
+    ldw             r11, 0          > 1     # load a tap (early)
+    addui           r11, r11, 4             # move to next tap
+
     ldw             r11, 0          > 1     # load a tap
     addui           r11, r11, 4             # move to next tap
     iwtr            r5,  ch0                # store the tap in the IRF
     addui           r5,  r5,  1             # move to next register
     setgteu.p       r0,  r28, r11           # see if we have gone through all taps yet
     ifp?ibjmp       -40                     # if not, load another tap
+
+    iwtr            r5,  ch0                # store the tap in the IRF (late)
     addui           r8,  r10, 32            # r8 = first register with no tap in it
     fetch.eop       r0,  loop
 
@@ -50,19 +57,20 @@ loadtaps:
 loop:
     ori             r9,  r0,  0             # r9 = accumulated result
     subu            r6,  r4,  r26           # r6 = current input element
+    ldw             r6,  0          > 1     # load input data
     ori             r5,  r0,  32            # move back to start of taps
 
 # Start of inner loop
     setgteu.p       r0,  r6,  r13           # make sure we are beyond start of input
     ifp?setltu.p    r0,  r6,  r29           # make sure we are before end of input
-    ifp?ldw         r6,  0          > 1     # load input data
+    addui           r6,  r6,  4             # move to next input element
     ifp?irdr        r7,  r5                 # load tap
     addui           r5,  r5,  1             # move to next tap
-    ifp?mullw       r7,  ch0, r7
+    mullw           r7,  ch0, r7
     ifp?addu        r9,  r9,  r7            # add new value to result
 
     setlt.p         r0,  r5,  r8            # see if we have gone through all taps yet
-    addui           r6,  r6,  4             # move to next input element
+    ifp?ldw         r6,  0          > 1     # load input data
     ifp?ibjmp       -72
 # End of inner loop
 
@@ -70,7 +78,7 @@ loop:
     stw             r9,  r14, 0     > 1     # store the result
     setgteu.p       r0,  r27, r4            # see if we have finished the outer loop
     addu            r14, r14, r3            # update store location for next time
-    ifp?ibjmp       -136
+    ifp?ibjmp       -144
 # End of outer loop
 
     seteq.p         r0,  r30, r0            # set p if we are core 0

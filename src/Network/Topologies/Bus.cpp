@@ -77,32 +77,32 @@ void Bus::computeSwitching() {
   assert(lastWriteTime != cycle);
   lastWriteTime = cycle;
 
-	DataType newData = dataIn[0].read();
-	unsigned int dataDiff = newData.payload().toInt() ^ lastData.payload().toInt();
-	unsigned int channelDiff = newData.channelID().getData() ^ lastData.channelID().getData();
+  DataType newData = dataIn[0].read();
+  unsigned int dataDiff = newData.payload().toInt() ^ lastData.payload().toInt();
+  unsigned int channelDiff = newData.channelID().getData() ^ lastData.channelID().getData();
 
-	int bitsSwitched = __builtin_popcount(dataDiff) + __builtin_popcount(channelDiff);
+  int bitsSwitched = __builtin_popcount(dataDiff) + __builtin_popcount(channelDiff);
 
-	// Is the distance that the switching occurred over:
-	//  1. The width of the network (length of the bus), or
-	//  2. Width + height?
-	Instrumentation::networkActivity(id, 0, 0, size.first, bitsSwitched);
+  // Is the distance that the switching occurred over:
+  //  1. The width of the network (length of the bus), or
+  //  2. Width + height?
+  Instrumentation::networkActivity(id, 0, 0, size.first, bitsSwitched);
 
-	lastData = newData;
+  lastData = newData;
 }
 
 Bus::Bus(const sc_module_name& name, const ComponentID& ID, int numOutputPorts, HierarchyLevel level, Dimension size, int firstOutput) :
     Network(name, ID, 1, numOutputPorts, level, size, firstOutput)
 {
-	lastData = DataType();
-	lastWriteTime = -1;
+  lastData = DataType();
+  lastWriteTime = -1;
 
-	state = WAITING_FOR_DATA;
+  state = WAITING_FOR_DATA;
 
-	SC_METHOD(busLoop);
-	// do initialise
+  SC_METHOD(busLoop);
+  // do initialise
 
-	SC_METHOD(computeSwitching);
-	sensitive << dataIn[0];
-	dont_initialize();
+  SC_METHOD(computeSwitching);
+  sensitive << dataIn[0];
+  dont_initialize();
 }

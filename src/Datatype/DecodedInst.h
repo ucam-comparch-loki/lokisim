@@ -9,8 +9,9 @@
 #define DECODEDINST_H_
 
 #include <inttypes.h>
-#include "../Typedefs.h"
 #include "systemc.h"
+#include "../Typedefs.h"
+#include "../Utility/InstructionMap.h"
 
 class Instruction;
 
@@ -22,7 +23,7 @@ class DecodedInst {
 
 public:
 
-  const uint8_t operation() const;
+  const operation_t   operation() const;
   const RegisterIndex sourceReg1() const;
   const RegisterIndex sourceReg2() const;
   const RegisterIndex destination() const;
@@ -38,7 +39,6 @@ public:
   const MemoryAddr location() const;
 
   const bool    usesPredicate() const;
-  const bool    hasOperand1() const;
   const bool    hasResult() const;
 
   const bool    hasDestReg() const;
@@ -46,9 +46,10 @@ public:
   const bool    hasSrcReg2() const;
   const bool    hasImmediate() const;
   const bool    isALUOperation() const;
-  const std::string& name() const;
+  const bool    endOfPacket() const;
+  const inst_name_t& name() const;
 
-  void    operation(const uint8_t val);
+  void    operation(const operation_t val);
   void    sourceReg1(const RegisterIndex val);
   void    sourceReg2(const RegisterIndex val);
   void    destination(const RegisterIndex val);
@@ -109,7 +110,7 @@ public:
 
 private:
 
-  uint8_t operation_;
+  operation_t operation_;
   RegisterIndex sourceReg1_;
   RegisterIndex sourceReg2_;
   RegisterIndex destReg_;
@@ -121,13 +122,12 @@ private:
 
   int32_t operand1_;
   int32_t operand2_;
-  int64_t result_;    // May be an instruction
+  int64_t result_;    // May be an instruction so need 64 bits (for now)
 
   MemoryAddr location_;  // The position in memory that this instruction comes from.
 
   // Use to determine whether fields have already been set.
   // Can't just use != 0 because they may have been set to 0.
-  bool    hasOperand1_;
   bool    hasResult_;
 
 };

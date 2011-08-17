@@ -15,6 +15,7 @@
 #define STATISTICS_H_
 
 #include <string>
+#include "InstructionMap.h"
 #include "../Datatype/ComponentID.h"
 #include "../Typedefs.h"
 
@@ -34,7 +35,7 @@ public:
   static int decodes();
 
   static int operations();
-  static int operations(int operation);
+  static int operations(operation_t operation);
 
   static int registerReads();
   static int registerWrites();

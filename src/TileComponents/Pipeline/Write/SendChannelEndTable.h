@@ -128,7 +128,9 @@ private:
   // buffer to empty.)
   bool waiting;
 
-  sc_core::sc_event *dataToSendEvent;   // array
+  // An event for each buffer, which is triggered whenever data is inserted
+  // into the buffer.
+  sc_core::sc_event* dataToSendEvent;   // array
   sc_core::sc_event  bufferFillChanged;
 
   // Used to tell that we are not currently waiting for any output buffers

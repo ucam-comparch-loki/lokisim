@@ -101,7 +101,7 @@ private:
 
   // We have overwritten the packet which was due to execute next, so we
   // need to fetch it again.
-  void refetch() const;
+  void refetch(const MemoryAddr addr) const;
 
   // Perform any necessary tasks when starting to read a new instruction packet.
   void startOfPacketTasks();
@@ -127,7 +127,7 @@ private:
 
   // Store the address of any tags which we look up and aren't in the cache.
   // When the packet starts to arrive, this will be its tag.
-  MemoryAddr nextIPKAddress;
+  MemoryAddr      nextIPKAddress;
 
   // We have just finished writing an instruction packet.
   bool            finishedPacketWrite;
@@ -137,7 +137,11 @@ private:
 
   // The address of the pending packet. We store it in case the packet gets
   // overwritten and needs to be refetched.
-  MemoryAddr         pendingPacket;
+  MemoryAddr      pendingPacket;
+
+  // Flag telling whether the cache missed this cycle.
+  unsigned long timeLastChecked;
+  sc_core::sc_event cacheMissEvent;
 
   // Event which is triggered whenever an instruction is added to or removed
   // from the cache.

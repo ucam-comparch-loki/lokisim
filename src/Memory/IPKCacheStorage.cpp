@@ -10,20 +10,24 @@
 #include "../Exceptions/ReadingFromEmptyException.h"
 #include "../Utility/Parameters.h"
 
+const MemoryAddr IPKCacheStorage::DEFAULT_TAG;
+
 /* Returns whether the given address matches any of the tags. */
 bool IPKCacheStorage::checkTags(const MemoryAddr& key) {
 
   for(uint i=0; i<this->tags.size(); i++) {
-    if(this->tags[i] == key) {
-      if(currInst.isNull()) {
-        currInst = i;
+    if(this->tags[i] == key) {  // Found a match
+
+      // If we don't have an instruction ready to execute next, jump to the one
+      // we just found.
+      if(readPointer.isNull()) {
+        readPointer = i;
         currentPacket = i;
 
-        // If we've found a packet in the cache, we know it is valid and
-        // will want to read it.
-        lastOpWasARead = false;
         updateFillCount();
       }
+      // If we do have an instruction ready to execute next, queue the packet
+      // we just found to execute when this packet finishes.
       else {
         pendingPacket = i;
       }
@@ -42,70 +46,56 @@ bool IPKCacheStorage::checkTags(const MemoryAddr& key) {
 
 /* Returns the next item in the cache. */
 const Instruction& IPKCacheStorage::read() {
+  assert(!readPointer.isNull());
 
-  if(!currInst.isNull()) {
-    int i = currInst.value();
-    incrementCurrent();
+  int i = readPointer.value();
+  incrementReadPos();
 
-    lastOpWasARead = true;
-    previousLocation = locations[i];
-    lastInstWasNew = !haveRead[i];
-    haveRead[i] = true;
+  previousLocation = locations[i];
 
-    return this->data_[i];
-  }
-  else {
-    throw ReadingFromEmptyException("instruction packet cache");
-  }
-
+  return this->data_[i];
 }
 
-/* Writes new data to a position determined using the given key. */
+/* Writes new data to a position determined using the given key.
+ * An exception is thrown if the packet queued up to execute next is being
+ * overwritten. */
 void IPKCacheStorage::write(const MemoryAddr& key, const Instruction& newData) {
-  this->tags[refill.value()] = key;
-  this->data_[refill.value()] = newData;
+  this->tags[writePointer.value()] = key;
+  this->data_[writePointer.value()] = newData;
 
   // Store memory address of this instruction for debug reasons.
-  if(key == 0xFFFFFFFF) {
+  if(key == DEFAULT_TAG) {
     // If there is no supplied address, this is the continuation of an
     // instruction packet, and so this instruction is next to the previous
     // one.
-    MemoryAddr prev = this->locations[refill-1];
+    MemoryAddr prev = this->locations[writePointer-1];
     MemoryAddr newAddr = prev + BYTES_PER_INSTRUCTION;
-    locations[refill.value()] = newAddr;
+    locations[writePointer.value()] = newAddr;
   }
-  else locations[refill.value()] = key;
-
-  bool needRefetch = false;
+  else locations[writePointer.value()] = key;
 
   // If we're not serving instructions at the moment, start serving from here.
-  if(currInst.isNull()) {
-    currInst = refill;
-    currentPacket = refill.value();
+  if(readPointer.isNull()) {
+    readPointer = writePointer;
+    currentPacket = writePointer.value();
 
     // If we're executing this packet repeatedly, set it to execute next too.
-    if(persistentMode) pendingPacket = refill.value();
+    if(persistentMode) pendingPacket = writePointer.value();
   }
   // If it's the start of a new packet, queue it up to execute next.
   // A default key value shows that the instruction is continuing a packet.
-  else if(key != 0xFFFFFFFF) {
-    pendingPacket = refill.value();
+  else if(key != DEFAULT_TAG) {
+    pendingPacket = writePointer.value();
   }
-  // We need to fetch the pending packet if we are now overwriting it.
-  else {
-    needRefetch = (refill == pendingPacket);
-  }
+  // We need to refetch the pending packet if we are now overwriting it.
+  else if(writePointer == pendingPacket) {
+    incrementWritePos();
 
-  lastOpWasARead = false;
-  haveRead[refill.value()] = false;
-
-  incrementRefill();
-
-  if(needRefetch) {
     pendingPacket = NOT_IN_USE;
     throw std::exception(); // Use a subclass of exception?
   }
 
+  incrementWritePos();
 }
 
 /* Jump to a new instruction at a given offset. */
@@ -113,27 +103,24 @@ void IPKCacheStorage::jump(const JumpOffset offset) {
 
   // Hack: if we move to the next packet, then discover we should have jumped,
   // reset the next packet pointer.
-  if(this->tags[currInst.value()] != 0xFFFFFFFF && !empty()) {
-    pendingPacket = currInst.value();
+  if(this->tags[readPointer.value()] != DEFAULT_TAG && !empty()) {
+    pendingPacket = readPointer.value();
   }
 
-  // Restore the current instruction pointer if it was not being used.
-  if(currInst.isNull()) currInst = currInstBackup + offset;
-  else currInst += offset - 1; // -1 because we have already incremented currInst
+  // Restore the read pointer if it was not being used.
+  if(readPointer.isNull()) readPointer = currInstBackup + offset;
+  else readPointer += offset - 1; // -1 because we have already incremented readPointer
 
-  // We have just jumped, so expect there to be data to read. Ensure that in
-  // the case where refill = current, we don't see the cache as being empty.
-  lastOpWasARead = false;
   updateFillCount();
 
   // Update currentPacket if we have jumped to the start of a packet, or if
   // currentPacket was previously an invalid value.
-  if(this->tags[currInst.value()] != 0xFFFFFFFF || currentPacket == NOT_IN_USE) {
-    currentPacket = currInst.value();
+  if(this->tags[readPointer.value()] != DEFAULT_TAG || currentPacket == NOT_IN_USE) {
+    currentPacket = readPointer.value();
   }
 
   if(DEBUG) cout << "Jumped by " << (int)offset << " to instruction " <<
-      currInst.value() << endl;
+      readPointer.value() << endl;
 }
 
 /* Return the memory address of the currently-executing packet. Only returns
@@ -141,10 +128,6 @@ void IPKCacheStorage::jump(const JumpOffset offset) {
  * only instruction which gets a tag. */
 const MemoryAddr IPKCacheStorage::packetAddress() const {
   return this->tags[currentPacket];
-}
-
-bool IPKCacheStorage::justReadNewInst() const {
-  return lastInstWasNew;
 }
 
 /* Returns the remaining number of entries in the cache. */
@@ -160,12 +143,7 @@ const MemoryAddr IPKCacheStorage::getInstLocation() const {
  * it is still possible to access its contents if an appropriate tag is
  * looked up. */
 bool IPKCacheStorage::empty() const {
-  // Definition of "empty" is slightly tricky: if the current instruction
-  // pointer and the refill pointer are in the same place, this could mean
-  // that the cache is either empty or full. Need to take into account
-  // whether the last operation was a read or a write.
-  // If it was a read, the cache is now empty; if it was a write, it is full.
-  return (currInst.isNull()) || (fillCount == 0);
+  return (readPointer.isNull()) || (fillCount == 0);
 }
 
 /* Returns whether the cache is full. */
@@ -175,17 +153,18 @@ bool IPKCacheStorage::full() const {
 
 /* Begin reading the packet which is queued up to execute next. */
 void IPKCacheStorage::switchToPendingPacket() {
-  currInstBackup = currInst - 1;  // We have incremented currInst
+  currInstBackup = readPointer - 1;  // We have incremented readPointer
 
-  if(pendingPacket == NOT_IN_USE) currInst.setNull();
-  else                            currInst = pendingPacket;
+  if(pendingPacket == NOT_IN_USE) readPointer.setNull();
+  else                            readPointer = pendingPacket;
+
   currentPacket = pendingPacket;
-
   if(!persistentMode) pendingPacket = NOT_IN_USE;
+
   updateFillCount();
 
   if(DEBUG) cout << "Switched to pending packet: current = " <<
-      currInst.value() << ", refill = " << refill.value() << endl;
+      readPointer.value() << ", refill = " << writePointer.value() << endl;
 }
 
 void IPKCacheStorage::setPersistent(const bool persistent) {
@@ -200,70 +179,53 @@ void IPKCacheStorage::storeCode(const std::vector<Instruction>& code) {
   }
 
   for(uint i=0; i<code.size() && i<this->size(); i++) {
-    write(0xFFFFFFFF, code[i]);
-
-    // Don't want to send credits for these instructions, so pretend they are
-    // not new.
-    haveRead[refill.value()-1] = true;
+    write(DEFAULT_TAG, code[i]);
   }
 }
 
 /* Returns the data corresponding to the given address.
  * Private because we don't want to use this version for IPK caches. */
 const Instruction& IPKCacheStorage::read(const MemoryAddr& key) {
-  throw new std::exception();
+  assert(false);
 }
 
 /* Returns the position that data with the given address tag should be stored. */
 uint16_t IPKCacheStorage::getPosition(const MemoryAddr& key) {
-  return refill.value();
+  return writePointer.value();
 }
 
-void IPKCacheStorage::incrementRefill() {
-  ++refill;
+void IPKCacheStorage::incrementWritePos() {
+  ++writePointer;
   fillCount++;
 }
 
-void IPKCacheStorage::incrementCurrent() {
-  ++currInst;
+void IPKCacheStorage::incrementReadPos() {
+  ++readPointer;
   fillCount--;
 }
 
 void IPKCacheStorage::updateFillCount() {
-  if(refill == currInst) {
-    // If we just read something, the cache must now be empty.
-    // If we wrote something, it must now be full.
-    fillCount = lastOpWasARead ? 0 : this->size();
-    return;
-  }
-  else if(currInst.isNull()) {
+  if(writePointer == readPointer)
+    fillCount = this->size();
+  else if(readPointer.isNull())
     fillCount = 0;
-    return;
-  }
-
-  // Add the size of the cache to ensure that the value is not negative.
-  fillCount = (refill - currInst + this->size()) % this->size();
+  else
+    fillCount = writePointer - readPointer;
 }
 
-IPKCacheStorage::IPKCacheStorage(const uint16_t size, std::string name) :
+IPKCacheStorage::IPKCacheStorage(const uint16_t size, const std::string& name) :
     MappedStorage<MemoryAddr, Instruction>(size, name),
-    currInst(size),
-    refill(size),
-    locations(size),
-    haveRead(size) {
+    readPointer(size),
+    writePointer(size),
+    locations(size) {
 
-  currInst.setNull();
-  refill = 0;
+  readPointer.setNull();
+  writePointer = 0;
 
   fillCount = 0;
   pendingPacket = NOT_IN_USE;
 
-  lastOpWasARead = true;
-
-  for(uint i=0; i<tags.size(); i++) tags[i] = 0xFFFFFFFF;
-
-}
-
-IPKCacheStorage::~IPKCacheStorage() {
-
+  // Set all tags to a default value which is unlikely to be encountered in
+  // execution.
+  tags.assign(tags.size(), DEFAULT_TAG);
 }

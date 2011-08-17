@@ -6,52 +6,56 @@
  */
 
 #include "InstructionMap.h"
+#include <iostream>
 
 // Need to define static class members
-std::map<std::string, short> InstructionMap::nto; // name to opcode
-std::map<short, int> InstructionMap::oti; // opcode to instruction
-std::map<int, std::string> InstructionMap::itn; // instruction to name
+std::map<inst_name_t, opcode_t> InstructionMap::nto; // name to opcode
+std::map<opcode_t, operation_t> InstructionMap::oti; // opcode to instruction
+std::map<operation_t, inst_name_t> InstructionMap::itn; // instruction to name
 
 /* Return the opcode of the given instruction name */
-short InstructionMap::opcode(const std::string& name) {
+opcode_t InstructionMap::opcode(const inst_name_t& name) {
   InstructionMap::initialise();
-  if(nto.find(name) == nto.end()) throw std::exception();
+  if(nto.find(name) == nto.end()) {
+    std::cerr << "Error: unknown instruction: " << name << std::endl;
+    throw std::exception();
+  }
   else return nto[name];
 }
 
 /* Returns the instruction identifier of the given opcode */
-short InstructionMap::operation(short opcode) {
+operation_t InstructionMap::operation(opcode_t opcode) {
   InstructionMap::initialise();
   if(oti.find(opcode) == oti.end()) throw std::exception();
-  else return (short)(oti[opcode]);
+  else return oti[opcode];
 }
 
-std::string& InstructionMap::name(int operation) {
+const inst_name_t& InstructionMap::name(operation_t operation) {
   InstructionMap::initialise();
   if(itn.find(operation) == itn.end()) throw std::exception();
   else return itn[operation];
 }
 
 /* Return whether the instruction has a register which it stores its result in. */
-bool InstructionMap::hasDestReg(short op) {
+bool InstructionMap::hasDestReg(operation_t op) {
   return storesResult(op);
 }
 
 /* Return whether the instruction uses the first source register. */
-bool InstructionMap::hasSrcReg1(short op) {
-  static const short withoutSource1[] = {
+bool InstructionMap::hasSrcReg1(operation_t op) {
+  static const operation_t withoutSource1[] = {
       NOP, LUI, SELCH, IBJMP, RMTEXECUTE, RMTNXIPK, SYSCALL
   };
 
   static const std::vector<bool>& hasSource1 =
-      bitVector(true, withoutSource1, sizeof(withoutSource1)/sizeof(short));
+      bitVector(true, withoutSource1, sizeof(withoutSource1)/sizeof(operation_t));
 
   return hasSource1[op];
 }
 
 /* Return whether the instruction uses the second source register. */
-bool InstructionMap::hasSrcReg2(short op) {
-  static const short withSource2[] = {
+bool InstructionMap::hasSrcReg2(operation_t op) {
+  static const operation_t withSource2[] = {
       STW, STHW, STB,
       SLL, SRL, SRA,
       SETEQ, SETNE, SETLT, SETLTU, SETGTE, SETGTEU,
@@ -61,17 +65,17 @@ bool InstructionMap::hasSrcReg2(short op) {
   };
 
   static const std::vector<bool>& hasSource2 =
-      bitVector(false, withSource2, sizeof(withSource2)/sizeof(short));
+      bitVector(false, withSource2, sizeof(withSource2)/sizeof(operation_t));
 
   return hasSource2[op];
 }
 
 /* Return whether the instruction contains an immediate value */
-bool InstructionMap::hasImmediate(short op) {
-  static const short withImmed[] = {
+bool InstructionMap::hasImmediate(operation_t op) {
+  static const operation_t withImmed[] = {
       LDW, LDHWU, LDBU, STW, STHW, STB, STWADDR, STBADDR,
       SLLI, SRLI, SRAI,
-      SETEQI, SETNEI, SETLTI, SETLTUI, SETGTEUI, LUI,
+      SETEQI, SETNEI, SETLTI, SETLTUI, SETGTEI, SETGTEUI, LUI,
       NORI, ANDI, ORI, XORI,
       ADDUI, RSUBI,
       FETCH, FETCHPST, RMTFETCH, RMTFETCHPST, IBJMP, RMTFILL,
@@ -79,18 +83,18 @@ bool InstructionMap::hasImmediate(short op) {
   };
 
   static const std::vector<bool>& hasImmed =
-      bitVector(false, withImmed, sizeof(withImmed)/sizeof(short));
+      bitVector(false, withImmed, sizeof(withImmed)/sizeof(operation_t));
 
   return hasImmed[op];
 }
 
 /* Return whether the instruction specifies a remote channel */
-bool InstructionMap::hasRemoteChannel(short op) {
+bool InstructionMap::hasRemoteChannel(operation_t op) {
   // Since so many instructions may send their results onto the network, we
   // only list the ones which don't here.
   // Note that the number of instructions with remote channels may decrease
   // when we finalise an instruction encoding.
-  static const short noChannel[] = {
+  static const operation_t noChannel[] = {
       NOP,
       WOCHE, TSTCH, SELCH,
       SETFETCHCH, IBJMP, FETCH, PSELFETCH, FETCHPST, SETCHMAP,
@@ -98,33 +102,33 @@ bool InstructionMap::hasRemoteChannel(short op) {
   };
 
   static const std::vector<bool>& hasChannel =
-      bitVector(true, noChannel, sizeof(noChannel)/sizeof(short));
+      bitVector(true, noChannel, sizeof(noChannel)/sizeof(operation_t));
 
   return hasChannel[op];
 }
 
 /* Return whether the operation requires use of the ALU */
-bool InstructionMap::isALUOperation(short op) {
+bool InstructionMap::isALUOperation(operation_t op) {
   // Since there are far more instructions which use the ALU than which don't,
   // we only list the ones that don't here.
-  static const short notALU[] = {
-      /*LDW, LDBU,*/ STW, STHW, STB, STWADDR, STBADDR,
+  static const operation_t notALU[] = {
+      /*LDW, LDBU, STW, STHW, STB,*/ STWADDR, STBADDR,
       WOCHE, TSTCH, SELCH,
       SETFETCHCH, IBJMP, FETCH, PSELFETCH, FETCHPST, RMTFETCH, RMTFETCHPST,
       RMTFILL, RMTEXECUTE, RMTNXIPK, SETCHMAP, SYSCALL
   };
 
   static const std::vector<bool>& useALU =
-      bitVector(true, notALU, sizeof(notALU)/sizeof(short));
+      bitVector(true, notALU, sizeof(notALU)/sizeof(operation_t));
 
   return useALU[op];
 }
 
 /* Return whether the operation stores its result. */
-bool InstructionMap::storesResult(short op) {
+bool InstructionMap::storesResult(operation_t op) {
   // Since there are far more instructions which store their results than which
   // don't, we only list the ones that don't here.
-  static const short doesntStore[] = {
+  static const operation_t doesntStore[] = {
       NOP, LDW, LDHWU, LDBU, STW, STHW, STB, STWADDR, STBADDR,
       WOCHE,
       SETFETCHCH, IBJMP, FETCH, PSELFETCH, FETCHPST, RMTFETCH, RMTFETCHPST,
@@ -132,7 +136,7 @@ bool InstructionMap::storesResult(short op) {
   };
 
   static const std::vector<bool>& stores =
-      bitVector(true, doesntStore, sizeof(doesntStore)/sizeof(short));
+      bitVector(true, doesntStore, sizeof(doesntStore)/sizeof(operation_t));
 
   return stores[op];
 }
@@ -140,12 +144,12 @@ bool InstructionMap::storesResult(short op) {
 
 /* Put all of the mappings into the data structures */
 void InstructionMap::initialise() {
-
   static bool initialised = false;
   if(initialised) return;
 
-  // Could make a a static variable in addToMaps
-  short a;  // Makes consistency easier below
+  // Keeping track of the opcode gives us more control below. It allows us to
+  // decide that some opcodes should be skipped, allowing better alignment.
+  short a;
 
   a=0;    addToMaps("nop", a, NOP);
 
@@ -159,9 +163,9 @@ void InstructionMap::initialise() {
   a++;    addToMaps("stbaddr", a, STBADDR);
 
   a++;    addToMaps("ldvec", a, LDVECTOR);
-  a++;    addToMaps("ldstr", a, LDSTREAM);
+  a++;    addToMaps("ldstream", a, LDSTREAM);
   a++;    addToMaps("stvec", a, STVECTOR);
-  a++;    addToMaps("ststr", a, STSTREAM);
+  a++;    addToMaps("ststream", a, STSTREAM);
 
   a++;    addToMaps("sll", a, SLL);
   a++;    addToMaps("srl", a, SRL);
@@ -238,13 +242,15 @@ void InstructionMap::initialise() {
 
 }
 
-void InstructionMap::addToMaps(const std::string& name, short opcode, int instruction) {
+void InstructionMap::addToMaps(const inst_name_t& name,
+                               opcode_t opcode,
+                               operation_t instruction) {
   nto[name] = opcode;
   oti[opcode] = instruction;
   itn[instruction] = name;
 }
 
-const std::vector<bool>& InstructionMap::bitVector(bool defaultVal, const short exceptions[], int numExceptions) {
+const std::vector<bool>& InstructionMap::bitVector(bool defaultVal, const operation_t exceptions[], int numExceptions) {
   // Generate a new vector, with a space for every instruction, and the
   // default value set.
   std::vector<bool>* vec = new std::vector<bool>(SYSCALL+1, defaultVal);

@@ -9,6 +9,7 @@
 #include "FlowControl/FlowControlIn.h"
 #include "FlowControl/FlowControlOut.h"
 #include "Topologies/Crossbar.h"
+#include "Topologies/MulticastCrossbar.h"
 #include "Topologies/LocalNetwork.h"
 #include "Topologies/Mesh.h"
 
@@ -108,7 +109,7 @@ void NetworkHierarchy::makeGlobalNetwork() {
                                NUM_TILE_COLUMNS,
                                Network::TILE,   // This network connects tiles
                                Dimension(NUM_TILES, NUM_TILES));
-
+                               
   globalDataNetwork->clock(clock);
 
   for(uint i=0; i<localNetworks.size(); i++) {
@@ -161,6 +162,7 @@ NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
     offChip("offchip") {
 
   // Make ports.
+  // There are data ports for all components, but credit ports only for cores.
   dataIn                = new DataInput[TOTAL_OUTPUT_PORTS];
   dataOut               = new DataOutput[TOTAL_INPUT_PORTS];
   validDataIn           = new ReadyInput[TOTAL_OUTPUT_PORTS];

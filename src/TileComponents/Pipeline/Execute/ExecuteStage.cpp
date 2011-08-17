@@ -7,7 +7,6 @@
 
 #include "ExecuteStage.h"
 #include "../../Cluster.h"
-#include "../../../Datatype/DecodedInst.h"
 
 bool ExecuteStage::readPredicate() const {return parent()->readPredReg();}
 int32_t ExecuteStage::readReg(RegisterIndex reg) const {return parent()->readReg(reg);}
@@ -23,14 +22,19 @@ void ExecuteStage::execute() {
   if(dataIn.event()) {
     // Deal with the new input. We are currently not idle.
     idle.write(false);
-    DecodedInst inst = dataIn.read(); // Don't want a const input.
-    newInput(inst);
+    DecodedInst instruction = dataIn.read();
+    newInput(instruction);
 
     next_trigger(clock.posedge_event());
   }
   else {
     // There is no instruction to execute - wait for one.
     idle.write(true);
+
+    // Invalidate the current instruction so its data isn't forwarded anymore.
+    currentInst.destination(0);
+    currentInst.setsPredicate(false);
+
     next_trigger(dataIn.default_event());
   }
 }
@@ -51,34 +55,56 @@ void ExecuteStage::updateReady() {
 }
 
 void ExecuteStage::newInput(DecodedInst& operation) {
+  currentInst = operation;
 
-  // Receive any forwarded values if they had not been written to registers
-  // early enough.
-  checkForwarding(operation);
+  // Block forwarding of data if this is an indirect write - the result won't
+  // actually get into the stated destination register.
+  if(currentInst.operation() == InstructionMap::IWTR) currentInst.destination(0);
 
-  // Execute the instruction.
-  bool success = alu.execute(operation);
-  executedInstruction.notify();
+  // See if the instruction should execute.
+  bool willExecute = checkPredicate(operation);
 
-  // Update the contents of any forwarding paths. Should this happen every
-  // cycle, or just the ones when an instruction is executed?
-  if(success) {
-    updateForwarding(operation);
-    dataOut.write(operation);
+  if(operation.isALUOperation())
+    Instrumentation::operation(id, operation, willExecute);
+
+  if(willExecute) {
+    // Execute the instruction.
+    bool success = alu.execute(operation);
+    currentInst.result(operation.result());
+    executedInstruction.notify();
+
+    if(success) dataOut.write(operation);
   }
-
+  else {
+    // If the instruction will not be executed, invalidate it so we don't
+    // try to forward data from it.
+    currentInst.destination(0);
+    currentInst.setsPredicate(false);
+  }
 }
 
 bool ExecuteStage::isStalled() const {
   return false; // alu.isBusy(); if/when we have multi-cycle operations
 }
 
-void ExecuteStage::checkForwarding(DecodedInst& inst) const {
-  parent()->checkForwarding(inst);
+bool ExecuteStage::checkPredicate(DecodedInst& inst) {
+  bool pred = readPredicate();
+  short predBits = inst.predicate();
+
+  bool result = (predBits == Instruction::ALWAYS) ||
+                (predBits == Instruction::END_OF_PACKET) ||
+                (predBits == Instruction::P     &&  pred) ||
+                (predBits == Instruction::NOT_P && !pred);
+
+  return result;
 }
 
-void ExecuteStage::updateForwarding(const DecodedInst& inst) const {
-  parent()->updateForwarding(inst);
+const DecodedInst& ExecuteStage::currentInstruction() const {
+  return currentInst;
+}
+
+const sc_event& ExecuteStage::executedEvent() const {
+  return executedInstruction;
 }
 
 ExecuteStage::ExecuteStage(sc_module_name name, const ComponentID& ID) :

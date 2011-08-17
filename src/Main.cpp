@@ -127,15 +127,15 @@ void simulate(Chip& chip) {
   chip.clock(clock);
   chip.idle(idle);
 
-  if(debugMode) {
-    Debugger::setChip(&chip);
-    Debugger::waitForInput();
-  }
-  else {
-    int cyclesIdle = 0;
-    int cycleCounter = 0;
+  try {
+    if(debugMode) {
+      Debugger::setChip(&chip);
+      Debugger::waitForInput();
+    }
+    else {
+      int cyclesIdle = 0;
+      int cycleCounter = 0;
 
-    try {
       int i;
       for(i=0; i<TIMEOUT && !sc_core::sc_end_of_simulation_invoked(); i+=cyclesPerStep) {
         TIMESTEP;
@@ -164,12 +164,12 @@ void simulate(Chip& chip) {
         RETURN_CODE = EXIT_FAILURE;
       }
     }
-    catch(std::exception& e) {
-      // If there's no error message, it might mean that not everything is
-      // connected properly.
-      cerr << "Execution ended unexpectedly:\n" << e.what() << endl;
-      RETURN_CODE = EXIT_FAILURE;
-    }
+  }
+  catch(std::exception& e) {
+    // If there's no error message, it might mean that not everything is
+    // connected properly.
+    cerr << "Execution ended unexpectedly:\n" << e.what() << endl;
+    RETURN_CODE = EXIT_FAILURE;
   }
 
 }

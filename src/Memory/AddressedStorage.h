@@ -44,11 +44,8 @@ public:
 
 public:
 
-  AddressedStorage(uint32_t size, std::string name) : Storage<T>(size, name) {
-
-  }
-
-  virtual ~AddressedStorage() {
+  AddressedStorage(const uint32_t size, const std::string& name) :
+    Storage<T>(size, name) {
 
   }
 

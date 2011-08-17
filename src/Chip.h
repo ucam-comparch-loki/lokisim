@@ -15,10 +15,10 @@
 
 #include "Component.h"
 #include "flag_signal.h"
+#include "Network/NetworkHierarchy.h"
 #include "TileComponents/Cluster.h"
 #include "TileComponents/Memory/MemoryBank.h"
 #include "TileComponents/Memory/SimplifiedOnChipScratchpad.h"
-#include "Network/NetworkHierarchy.h"
 
 using std::vector;
 
@@ -99,31 +99,31 @@ private:
 
 private:
 
-	sc_signal<bool> 							*idleSig;
+  sc_signal<bool>       *idleSig;
 
-	sc_buffer<DataType> 						*dataFromComponents;
-	flag_signal<DataType> 						*dataToComponents;
-	sc_buffer<CreditType> 						*creditsFromComponents;
-	sc_buffer<CreditType> 						*creditsToComponents;
+  sc_buffer<DataType>   *dataFromComponents;
+  flag_signal<DataType> *dataToComponents;
+  sc_buffer<CreditType> *creditsFromComponents;
+  sc_buffer<CreditType> *creditsToComponents;
 
-	sc_signal<ReadyType> 						*ackDataFromComps;
-	sc_signal<ReadyType> 						*ackCreditToComps;
-	sc_signal<ReadyType> 						*ackDataToComps;
-	sc_signal<ReadyType> 						*ackCreditFromComps;
+  sc_signal<ReadyType>  *ackDataFromComps;
+  sc_signal<ReadyType>  *ackCreditToComps;
+  sc_signal<ReadyType>  *ackDataToComps;
+  sc_signal<ReadyType>  *ackCreditFromComps;
 
-	sc_signal<ReadyType> 						*validDataFromComps;
-	sc_signal<ReadyType> 						*validDataToComps;
-	sc_signal<ReadyType> 						*validCreditFromComps;
-	sc_signal<ReadyType> 						*validCreditToComps;
+  sc_signal<ReadyType>  *validDataFromComps;
+  sc_signal<ReadyType>  *validDataToComps;
+  sc_signal<ReadyType>  *validCreditFromComps;
+  sc_signal<ReadyType>  *validCreditToComps;
 
-	sc_signal<bool>								*strobeToBackgroundMemory;
-	sc_signal<MemoryRequest>					*dataToBackgroundMemory;
-	sc_signal<bool>								*strobeFromBackgroundMemory;
-	sc_signal<Word>								*dataFromBackgroundMemory;
+	sc_signal<bool>				*strobeToBackgroundMemory;
+	sc_signal<MemoryRequest> *dataToBackgroundMemory;
+	sc_signal<bool>				*strobeFromBackgroundMemory;
+	sc_signal<Word>				*dataFromBackgroundMemory;
 
-	sc_signal<bool>								*ringStrobe;
-	sc_signal<MemoryBank::RingNetworkRequest>	*ringRequest;
-	sc_signal<bool>								*ringAcknowledge;
+	sc_signal<bool>				*ringStrobe;
+	sc_signal<MemoryBank::RingNetworkRequest> *ringRequest;
+	sc_signal<bool>				*ringAcknowledge;
 
 	// Delays in SystemC slow simulation right down, so instead, make separate
 	// clocks. The fast clock has its negative edge 1/4 of a cycle early, and the

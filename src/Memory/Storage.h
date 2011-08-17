@@ -64,7 +64,7 @@ protected:
 //    assert(addr < size());
 
     if((addr < 0) || (addr >= size())) {
-      throw OutOfBoundsException(addr, size());
+      throw OutOfBoundsException(addr, size()-1);
     }
   }
 
@@ -74,11 +74,7 @@ protected:
 
 public:
 
-  Storage(const uint32_t size, std::string& name) : data_(size), name_(name) {
-
-  }
-
-  virtual ~Storage() {
+  Storage(const uint32_t size, const std::string& name) : data_(size), name_(name) {
 
   }
 

@@ -7,11 +7,15 @@
 
 #include "WriteStage.h"
 #include "../../Cluster.h"
-#include "../../../Datatype/DecodedInst.h"
 #include "../../../Utility/InstructionMap.h"
+#include "../../../Utility/Instrumentation/Stalls.h"
 
 ComponentID WriteStage::getSystemCallMemory() const {
 	return scet.getSystemCallMemory();
+}
+
+const DecodedInst& WriteStage::currentInstruction() const {
+  return currentInst;
 }
 
 void WriteStage::execute() {
@@ -33,8 +37,8 @@ void WriteStage::execute() {
 		while (true) {
 			if(!isStalled()) {
 				if(dataIn.event()) {
-					DecodedInst inst = dataIn.read();
-					newInput(inst);
+				  DecodedInst instruction = dataIn.read();
+					newInput(instruction);
 					packetInProgress = !endOfPacket;
 				} else if(fromFetchLogic.event()) {
 					if (packetInProgress) {
@@ -53,6 +57,10 @@ void WriteStage::execute() {
 			}
 
 			wait(clock.posedge_event());
+
+			// Invalidate the current instruction at the start of the next cycle so
+			// we don't forward old data.
+			currentInst.destination(0);
 		}
 
 		idle.write(!fetchCommandPending && !packetInProgress);
@@ -63,26 +71,32 @@ void WriteStage::newInput(DecodedInst& data) {
   if(DEBUG) cout << this->name() << " received Data: " << data.result()
                  << endl;
 
+  currentInst = data;
+
+  // We can't forward data if this is an indirect write because we don't
+  // yet know where the data will be written.
+  bool indirect = (data.operation() == InstructionMap::IWTR);
+  if(indirect) currentInst.destination(0);
+
   // Put data into the send channel-end table.
   endOfPacket = scet.write(data);
 
   // Write to registers (they ignore the write if the index is invalid).
-  if(InstructionMap::storesResult(data.operation())) {
-    writeReg(data.destination(), data.result(), false);
-  }
-
-  // Do we need to say we are stalling because of output if the SCET is full?
-
+  if(InstructionMap::storesResult(data.operation()))
+    writeReg(data.destination(), data.result(), indirect);
 }
 
 void WriteStage::updateReady() {
   bool ready = !isStalled();
 
-  // Write our current stall status.
-  if(ready != readyOut.read()) readyOut.write(ready);
-
   if(DEBUG && !ready && readyOut.read()) {
     cout << this->name() << " stalled." << endl;
+  }
+
+  // Write our current stall status.
+  if(ready != readyOut.read()) {
+    readyOut.write(ready);
+    Instrumentation::stalled(id, !ready, Stalls::OUTPUT);
   }
 
   // Wait until some point late in the cycle, so we know that any operations

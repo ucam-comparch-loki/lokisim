@@ -1,4 +1,4 @@
-rgb2yuv.s
+rgb2yuv_lat.s
 
 ../params.data  -1  0x00000
 ../red.data     -1  0x10000

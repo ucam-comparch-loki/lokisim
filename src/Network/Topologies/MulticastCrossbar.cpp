@@ -15,17 +15,16 @@ void MulticastCrossbar::makeBuses() {
   // Generate and connect up buses.
   for(int i=0; i<numBuses; i++) {
     MulticastBus* bus = new MulticastBus(sc_gen_unique_name("bus"),
-                                         i, numMuxes, /*numOutputs*channelsPerOutput,
-                                         firstOutput,*/ level, size);
+                                         i, numMuxes, level, size);
     buses.push_back(bus);
 
     bus->dataIn[0](dataIn[i]);
     bus->validDataIn[0](validDataIn[i]);
     bus->ackDataIn[0](ackDataIn[i]);
 
-//    bus->creditsOut(creditsOut[i]);
-//    bus->validCreditOut(validCreditOut[i]);
-//    bus->ackCreditOut(ackCreditOut[i]);
+//    bus->creditsOut[0](creditsOut[i]);
+//    bus->validCreditOut[0](validCreditOut[i]);
+//    bus->ackCreditOut[0](ackCreditOut[i]);
 
     for(int j=0; j<numMuxes; j++) {
       bus->dataOut[j](busToMux[i][j]);
@@ -75,16 +74,12 @@ MulticastCrossbar::MulticastCrossbar(const sc_module_name& name,
                                      int inputs,
                                      int outputs,
                                      int outputsPerComponent,
-//                                     int channelsPerOutput,
-//                                     const ChannelID& firstOutput,
                                      int inputsPerComponent,
-//                                     int channelsPerInput,
-//                                     const ChannelID& firstInput,
                                      HierarchyLevel level,
                                      Dimension size,
                                      bool externalConnection) :
-    Crossbar(name, ID, inputs, outputs, outputsPerComponent, /*channelsPerOutput,
-             firstOutput,*/level, size, externalConnection) {
+    Crossbar(name, ID, inputs, outputs, outputsPerComponent,
+             level, size, externalConnection) {
 
   creditsIn        = new CreditInput[numOutputs];
   validCreditIn    = new ReadyInput[numOutputs];
@@ -112,7 +107,7 @@ MulticastCrossbar::MulticastCrossbar(const sc_module_name& name,
     // Create the crossbar.
     Crossbar* c = new Crossbar(sc_gen_unique_name("credit"), i,
                                outputsPerComponent, numBuses, inputsPerComponent,
-                               /*channelsPerInput, firstInput,*/level, size, false);
+                               level, size, false);
     c->initialise();
     UnclockedNetwork* n = new UnclockedNetwork(sc_gen_unique_name("wrapper"),c);
     creditCrossbars.push_back(n);
@@ -130,6 +125,7 @@ MulticastCrossbar::MulticastCrossbar(const sc_module_name& name,
       n->ackDataOut[j](ackCreditToBus[j][i]);
     }
   }
+
 }
 
 MulticastCrossbar::~MulticastCrossbar() {

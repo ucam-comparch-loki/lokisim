@@ -69,7 +69,10 @@ public:
 
   // Print the contents of the buffer.
   void print() const {
-    for(uint i=0; i<this->size(); i++) cout << this->data[i] << " ";
+    for(uint i=0; i<fillCount; i++) {
+      int position = (readPos.value() + i) % this->size();
+      cout << this->data_[position] << " ";
+    }
     cout << endl;
   }
 
@@ -91,7 +94,7 @@ private:
 
 public:
 
-  BufferStorage(const uint16_t size, std::string name) :
+  BufferStorage(const uint16_t size, const std::string& name) :
       Storage<T>(size, name),
       readPos(size),
       writePos(size) {

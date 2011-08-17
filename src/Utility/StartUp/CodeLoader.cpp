@@ -124,12 +124,12 @@ void CodeLoader::loadCode(string& settings, Chip& chip) {
         // Do nothing: parameters are dealt with in loadParameters()
       }
       else if(words[0]=="apploader") {
-    	  // Load application loader code from the given file
+        // Load application loader code from the given file
 
         // Add the current directory onto the filename.
         words[1] = directory + words[1];
-    	  if (!appLoaderInitialized)
-    		  loadFromCommand(words, chip, true);
+        if (!appLoaderInitialized)
+          loadFromCommand(words, chip, true);
       }
       else {                          // Load code/data from the given file
         // If a full path is provided, use that. Otherwise, assume the file
@@ -159,21 +159,21 @@ void CodeLoader::loadCode(string& settings, Chip& chip) {
 }
 
 void CodeLoader::makeExecutable(Chip& chip) {
-	FileReader* reader = FileReader::linkFiles();
-	loadFromReader(reader, chip);
+  FileReader* reader = FileReader::linkFiles();
+  loadFromReader(reader, chip);
 
-	// Now that the whole program is in simulated memory, any temporary program
-	// files can be deleted.
-	FileReader::tidy();
+  // Now that the whole program is in simulated memory, any temporary program
+  // files can be deleted.
+  FileReader::tidy();
 
-	if (!appLoaderInitialized) {
-//		assert(mainOffset >= 0);
-//		DataBlock &block = ELFFileReader::loaderProgram(ComponentID(0, 0), mainOffset);
-//		chip.storeData(block.data(), block.component(), block.position());
-//		delete &block;
+  if (!appLoaderInitialized) {
+//    assert(mainOffset >= 0);
+//    DataBlock &block = ELFFileReader::loaderProgram(ComponentID(0, 0), mainOffset);
+//    chip.storeData(block.data(), block.component(), block.position());
+//    delete &block;
 
-		appLoaderInitialized = true;
-	}
+    appLoaderInitialized = true;
+  }
 }
 
 void CodeLoader::loadFromCommand(vector<string>& command, Chip& chip, bool customAppLoader) {
@@ -187,7 +187,7 @@ void CodeLoader::loadFromReader(FileReader* reader, Chip& chip) {
   vector<DataBlock>& blocks = reader->extractData(mainOffset);
 
   for(uint i=0; i<blocks.size(); i++) {
-	if (blocks[i].component().getTile() == 0 && blocks[i].component().getPosition() == 0 && blocks[i].position() == 0)
+    if (blocks[i].component().getTile() == 0 && blocks[i].component().getPosition() == 0 && blocks[i].position() == 0)
       appLoaderInitialized = true;
 
     chip.storeData(blocks[i].data(), blocks[i].component(), blocks[i].position());

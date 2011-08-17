@@ -82,11 +82,7 @@ public:
                     int inputs,                     // Number of crossbar inputs
                     int outputs,                    // Number of crossbar outputs
                     int outputsPerComponent,        // Outputs leading to same component
-//                    int channelsPerOutput,          // Channels reachable through each output
-//                    const ChannelID& firstOutput,   // Address of first reachable channel
-                    int inputsPerComponent,         // Inputs from same component
-//                    int channelsPerInput,           // Channels reachable through each input
-//                    const ChannelID& firstInput,    // Address of first reachable channel
+	                  int inputsPerComponent,         // Inputs from same component
                     HierarchyLevel level,           // Location in network hierarchy
                     Dimension size,                 // Physical size (width, height)
                     bool externalConnection=false); // Add a connection to larger network?
@@ -111,4 +107,5 @@ private:
   bool newCredits;
 
 };
+
 #endif /* MULTICASTCROSSBAR_H_ */

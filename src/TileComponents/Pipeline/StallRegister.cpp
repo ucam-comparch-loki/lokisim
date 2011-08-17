@@ -47,7 +47,7 @@ void StallRegister::newData() {
 
   if(buffer.full()) bufferFillChanged.notify();
   bufferContentsChanged.notify();
-
+  
   Instrumentation::stallRegUse(id);
 }
 
@@ -70,19 +70,17 @@ void StallRegister::receivedReady() {
   }
 }
 
-StallRegister::StallRegister(sc_module_name name, const ComponentID& ID) :
+StallRegister::StallRegister(const sc_module_name& name, const ComponentID& ID) :
     Component(name, ID),
     buffer(2, std::string(name)) {  // Buffer with size 2 and a name for debug.
 
   SC_METHOD(newCycle);
-  // do initialise
 
   SC_METHOD(newData);
   sensitive << dataIn;
   dont_initialize();
 
   SC_METHOD(receivedReady);
-  // do initialise
 
   end_module();
 

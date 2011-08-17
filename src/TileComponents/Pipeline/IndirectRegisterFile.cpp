@@ -11,7 +11,18 @@
 #include "../../Datatype/Word.h"
 
 const int32_t IndirectRegisterFile::read(const RegisterIndex reg, bool indirect) const {
-  RegisterIndex index = indirect ? indirectRegs.read(reg) : reg;
+  RegisterIndex index;
+
+  if(indirect) {
+    if(isChannelEnd(reg)) index = parent()->readRCET(toChannelID(reg));
+    else                  index = regs.read(reg).toInt();
+  }
+  else index = reg;
+
+  // What if indirect reading results in accessing the receive channel-end table
+  // twice in one cycle? That probably wouldn't fit in one cycle.
+  //  1. Get RCET to notice this and add a delay.
+  //  2. Disallow this at software level.
 
   // If the indirect address points to a channel-end, read from there instead
   if(isChannelEnd(index)) {
@@ -109,10 +120,10 @@ void IndirectRegisterFile::updateCurrentIPK(const MemoryAddr addr) {
 }
 
 void IndirectRegisterFile::writeReg(const RegisterIndex reg, const Word data) {
-  regs.write(data, reg);
-
   if(DEBUG) cout << this->name() << ": Stored " << data << " to register " <<
       (int)reg << endl;
+
+  regs.write(data, reg);
 }
 
 Cluster* IndirectRegisterFile::parent() const {

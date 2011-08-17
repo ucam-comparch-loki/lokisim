@@ -14,6 +14,7 @@
 
 #include "../PipelineStage.h"
 #include "SendChannelEndTable.h"
+#include "../../../Datatype/DecodedInst.h"
 
 class WriteStage: public PipelineStage {
 
@@ -66,6 +67,10 @@ public:
 
   ComponentID getSystemCallMemory() const;
 
+  // The instruction whose result is currently being written to registers or
+  // the network. Used to determine whether forwarding is required.
+  const DecodedInst& currentInstruction() const;
+
 private:
 
   virtual void   execute();
@@ -86,11 +91,21 @@ private:
 
 private:
 
-  bool endOfPacket;
-
   SendChannelEndTable scet;
 
   friend class SendChannelEndTable;
+
+//==============================//
+// Local state
+//==============================//
+
+private:
+
+  bool endOfPacket;
+
+  // The instruction whose result is currently being written to registers or
+  // the network. Used to determine whether forwarding is required.
+  DecodedInst currentInst;
 
 };
 

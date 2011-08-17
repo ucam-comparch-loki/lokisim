@@ -8,9 +8,8 @@
 #include "DecodedInst.h"
 #include "Instruction.h"
 #include "MemoryRequest.h"
-#include "../Utility/InstructionMap.h"
 
-const uint8_t       DecodedInst::operation()       const {return operation_;}
+const operation_t   DecodedInst::operation()       const {return operation_;}
 const RegisterIndex DecodedInst::sourceReg1()      const {return sourceReg1_;}
 const RegisterIndex DecodedInst::sourceReg2()      const {return sourceReg2_;}
 const RegisterIndex DecodedInst::destination()     const {return destReg_;}
@@ -32,8 +31,7 @@ const bool    DecodedInst::usesPredicate() const {
          (operation_ == InstructionMap::PSEL) || (operation_ == InstructionMap::PSELFETCH);
 }
 
-const bool    DecodedInst::hasOperand1() const {return hasOperand1_;}
-const bool    DecodedInst::hasResult() const {return hasResult_;}
+const bool    DecodedInst::hasResult()             const {return hasResult_;}
 
 
 const bool    DecodedInst::hasDestReg() const {
@@ -56,12 +54,16 @@ const bool    DecodedInst::isALUOperation() const {
   return InstructionMap::isALUOperation(operation_);
 }
 
+const bool    DecodedInst::endOfPacket() const {
+  return predicate() == Instruction::END_OF_PACKET;
+}
+
 const std::string& DecodedInst::name() const {
   return InstructionMap::name(operation_);
 }
 
 
-void DecodedInst::operation(const uint8_t val)            {operation_ = val;}
+void DecodedInst::operation(const operation_t val) 				{operation_ = val;}
 void DecodedInst::sourceReg1(const RegisterIndex val)     {sourceReg1_ = val;}
 void DecodedInst::sourceReg2(const RegisterIndex val)     {sourceReg2_ = val;}
 void DecodedInst::destination(const RegisterIndex val)    {destReg_ = val;}
@@ -134,26 +136,10 @@ Instruction DecodedInst::toInstruction() const {
 
 
 bool DecodedInst::operator== (const DecodedInst& other) const {
-  return  //operation_       == other.operation_       &&
-//          sourceReg1_      == other.sourceReg1_      &&
-//          sourceReg2_      == other.sourceReg2_      &&
-//          destReg_         == other.destReg_         &&
-//          immediate_       == other.immediate_       &&
-//          channelMapEntry_ == other.channelMapEntry_ &&
-//          predicate_       == other.predicate_       &&
-//          setsPred_        == other.setsPred_        &&
-//
-//          operand1_        == other.operand1_        &&
-//          operand2_        == other.operand2_        &&
-//          result_          == other.result_          &&
-//
-//          hasOperand1_     == other.hasOperand1_     &&
-//          hasResult_       == other.hasResult_       &&
-
   // Is it safe to assume that if two instructions come from the same memory
   // address, they are the same instruction?
   // As long as we don't have dynamic code rewriting...
-          location_        == other.location_;
+  return location_ == other.location_;
 }
 
 DecodedInst& DecodedInst::operator= (const DecodedInst& other) {
@@ -219,7 +205,7 @@ DecodedInst::DecodedInst(const Instruction i) {
   operand2_        = 0;
   result_          = 0;
 
-  hasOperand1_ = hasResult_ = false;
+  hasResult_       = false;
 
   switch(operation_) {
     // Single source, no destination.

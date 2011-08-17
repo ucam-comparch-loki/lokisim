@@ -15,13 +15,7 @@ bool ALU::execute(DecodedInst& dec) const {
 
   if(dec.hasResult()) return true;
 
-  bool execute = shouldExecute(dec.predicate());
-
-  if(dec.isALUOperation())
-    Instrumentation::operation(id, dec, execute);
-
   if(dec.operation() == InstructionMap::NOP) return false;
-  if(!execute) return false;
 
   bool pred = parent()->readPredicate();
 
@@ -153,7 +147,6 @@ bool ALU::shouldExecute(short predBits) const {
                 (predBits == Instruction::NOT_P && !pred);
 
   return result;
-
 }
 
 ExecuteStage* ALU::parent() const {

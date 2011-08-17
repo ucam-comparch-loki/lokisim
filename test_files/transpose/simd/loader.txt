@@ -1,5 +1,10 @@
-../../simd.s
-transpose.s
+% Ordinary SIMD
+../../simd_basic.s
+basic_lat.s
+
+% Using data multicast
+%../../simd_multicast.s
+%multicast_lat.s
 
 ../params.data  -1  0x00000
 ../matrix.data  -1  0x10000

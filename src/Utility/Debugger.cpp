@@ -284,7 +284,7 @@ void Debugger::finishExecution() {
   }
   else if(mode == DEBUGGER) cout << "\nExecution ended successfully.\n";
 
-  Instrumentation::endExecution();
+//  Instrumentation::endExecution();
 }
 
 void Debugger::execute(string instruction) {

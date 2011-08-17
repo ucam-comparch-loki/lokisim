@@ -1,4 +1,4 @@
-transpose.s
+transpose_lat.s
 
 ../params.data  -1  0x00000
 ../matrix.data  -1  0x10000

@@ -9,18 +9,7 @@
 #include "../../Cluster.h"
 #include "../../../Datatype/DecodedInst.h"
 
-double FetchStage::area() const {
-  return cache.area() + fifo.area();
-}
-
-double FetchStage::energy() const {
-  return cache.energy() + fifo.energy();
-}
-
 void FetchStage::execute() {
-  // An attempt to call the getInstruction method less often than every cycle.
-  // Doesn't work for some reason.
-
   bool isIdle;
 
   if(cache.isEmpty() && fifo.isEmpty()) { // Wait for an instruction
@@ -55,12 +44,21 @@ void FetchStage::getInstruction() {
   MemoryAddr instAddr;
 
   if(usingCache) {
-    assert(!cache.isEmpty());
+    if(cache.isEmpty()) {
+      next_trigger(cache.fillChangedEvent());
+      return;
+    }
+
     lastInstruction = cache.read();
     instAddr = cache.getInstAddress();
   }
   else {
     assert(!fifo.isEmpty());
+//    if(fifo.isEmpty()) {
+//      next_trigger(fifo.fillChangedEvent());
+//      return;
+//    }
+
     lastInstruction = fifo.read();
     // We don't know the address this instruction came from, so make
     // something up which would never happen.
@@ -102,8 +100,8 @@ MemoryAddr FetchStage::getInstIndex() const {
   return cache.getInstAddress();
 }
 
-bool FetchStage::inCache(const MemoryAddr a) {
-  return cache.lookup(a);
+bool FetchStage::inCache(const MemoryAddr addr) {
+  return cache.lookup(addr);
 }
 
 bool FetchStage::roomToFetch() const {
@@ -124,8 +122,8 @@ void FetchStage::updatePacketAddress(const MemoryAddr addr) const {
   parent()->updateCurrentPacket(addr);
 }
 
-void FetchStage::refetch() const {
-  parent()->refetch();
+void FetchStage::refetch(const MemoryAddr addr) const {
+  parent()->refetch(addr);
 }
 
 /* Choose whether to take an instruction from the cache or FIFO next.
@@ -136,7 +134,7 @@ void FetchStage::refetch() const {
 void FetchStage::calculateSelect() {
   if(usingCache) {
     justFinishedPacket = lastInstruction.endOfPacket();
-    usingCache = (fifo.isEmpty() || !justFinishedPacket) && !cache.isEmpty();
+    usingCache = (fifo.isEmpty() || !justFinishedPacket);// && !cache.isEmpty();
   }
   else {
     usingCache = fifo.isEmpty();
@@ -151,6 +149,10 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
   stalled     = false;  // Start off idle, but not stalled.
   usingCache  = true;
   flowControl = new sc_out<bool>[2];
+
+  // The last instruction "executed" was the last in its packet, so the first
+  // instruction that arrives (through either input) is the one to execute.
+  lastInstruction = Instruction("or.eop r0 r0 r0");
 
   // Connect FIFO and cache to network
   fifo.clock(clock);

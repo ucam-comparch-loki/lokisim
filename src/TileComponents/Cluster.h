@@ -5,6 +5,9 @@
  * subcomponents, and this class just serves to hold them all in one place and
  * connect them together correctly.
  *
+ * There is currently an odd mix of SystemC signals and function calls within
+ * a Cluster. This should be tidied up at some point to make things consistent.
+ *
  *  Created on: 5 Jan 2010
  *      Author: db434
  */
@@ -16,6 +19,7 @@
 #include "../flag_signal.h"
 
 #include "../Datatype/AddressedWord.h"
+#include "../Datatype/DecodedInst.h"
 #include "Pipeline/IndirectRegisterFile.h"
 #include "Pipeline/PredicateRegister.h"
 #include "Pipeline/Fetch/FetchStage.h"
@@ -36,10 +40,10 @@ public:
 
 // Inherited from TileComponent:
 //   clock
-//   dataIn       canReceiveData
-//   dataOut      canSendData
-//   creditsIn    canReceiveCredit
-//   creditsOut   canSendCredit
+//   dataIn,      validDataIn,    ackDataIn;
+//   dataOut,     validDataOut,   ackDataOut;
+//   creditsOut,  validCreditOut, ackCreditOut;
+//   creditsIn,   validCreditIn,  ackCreditIn;
 //   idle
 
   // A slight hack to improve simulation speed. Each core contains a small
@@ -86,7 +90,9 @@ public:
   virtual const int32_t  readRegDebug(RegisterIndex reg) const;
 
   // Read the value of the predicate register.
-  virtual bool     readPredReg() const;
+  // The optional wait parameter makes it possible to wait until the latest
+  // predicate has been computed, if it will be written this cycle.
+  virtual bool     readPredReg(bool wait=false);
 
   const Word readWord(MemoryAddr addr) const;
   const Word readByte(MemoryAddr addr) const;
@@ -105,7 +111,7 @@ private:
 
   // An instruction packet was in the cache, and set to execute next, but has
   // since been overwritten, so needs to be fetched again.
-  void             refetch();
+  void             refetch(const MemoryAddr addr);
 
   // Perform an IBJMP and jump to a new instruction in the cache.
   void             jump(const JumpOffset offset);
@@ -116,7 +122,7 @@ private:
   // Read a value from a register. This method will redirect the request to
   // the receive channel-end table if the register index corresponds to a
   // channel end.
-  const int32_t    readReg(RegisterIndex reg, bool indirect = false) const;
+  const int32_t    readReg(RegisterIndex reg, bool indirect = false);
 
   // Read a value from a channel end. Warning: this removes the value from
   // the input buffer.
@@ -128,13 +134,6 @@ private:
 
   // Write a value to the predicate register.
   void             writePredReg(bool val);
-
-  // Check the forwarding paths to see if this instruction requires values
-  // which haven't been written to registers yet.
-  void             checkForwarding(DecodedInst& inst) const;
-
-  // Update the values in the forwarding paths using a new result.
-  void             updateForwarding(const DecodedInst& inst);
 
   // Update the address of the currently executing instruction packet so we
   // can fetch more packets from relative locations.
@@ -185,6 +184,7 @@ private:
 private:
 
   bool currentlyStalled;
+  sc_core::sc_event stallEvent;
 
   // Store the previous two results and destination registers, to allow data
   // forwarding when necessary. 2 is older than 1.
@@ -208,8 +208,8 @@ private:
 
   // Transmission of the instruction along the pipeline. sc_buffers because we
   // want to trigger an event even if the instruction is identical.
-  flag_signal<DecodedInst>  *dataToStage;
-  sc_buffer<DecodedInst>    *dataFromStage;
+  flag_signal<DecodedInst>  *instToStage;
+  sc_buffer<DecodedInst>    *instFromStage;
 
   // Signal going straight from fetch logic to output buffers.
   flag_signal<AddressedWord> fetchSignal;

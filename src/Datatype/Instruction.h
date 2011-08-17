@@ -14,6 +14,7 @@
 
 #include "Word.h"
 #include "../Typedefs.h"
+#include "../Utility/InstructionMap.h"
 
 using std::string;
 
@@ -26,7 +27,7 @@ class Instruction: public Word {
 public:
 
   // Accessors
-  uint8_t  opcode() const;
+  opcode_t  opcode() const;
   RegisterIndex destination() const;
   RegisterIndex sourceReg1() const;
   RegisterIndex sourceReg2() const;
@@ -37,7 +38,7 @@ public:
   bool     endOfPacket() const;
 
   // Mutators
-  void     opcode(const uint8_t val);
+  void     opcode(const opcode_t val);
   void     destination(const RegisterIndex val);
   void     sourceReg1(const RegisterIndex val);
   void     sourceReg2(const RegisterIndex val);
@@ -63,7 +64,7 @@ private:
 
   void    decodeOpcode(const string& opcode);
   RegisterIndex decodeField(const string& s);
-  int32_t decodeRChannel(const string& channel);
+  int32_t decodeImmediate(const string& channel);
 
   // Set the appropriate register fields in this instruction. Some operations
   // may not have a destination register, for example, so it should not be used.
@@ -83,7 +84,7 @@ public:
   Instruction();
   Instruction(const Word& other);
   Instruction(const uint64_t inst);  // For reading binary
-  Instruction(const string& inst);   // For reading assembler
+  Instruction(const string& inst);   // For reading assembly
 
 //==============================//
 // Local state

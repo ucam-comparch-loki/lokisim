@@ -9,8 +9,8 @@ class PredicateTest(mod.SimulatorTest):
         
     # Don't bother executing until idle before starting this test.
     def initialExecution(self):
-        # Wait 25 cycles until initialisation program finishes
-        self.wait(25)
+        # Wait 60 cycles until initialisation program finishes
+        self.wait(60)
 
     # Helper function to execute the instruction and get the resultant predicate
     # value automatically.

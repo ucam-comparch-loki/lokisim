@@ -13,6 +13,7 @@
 
 #include "../PipelineStage.h"
 #include "ALU.h"
+#include "../../../Datatype/DecodedInst.h"
 
 class ExecuteStage: public PipelineStage {
 
@@ -52,6 +53,15 @@ public:
 // Methods
 //==============================//
 
+public:
+
+  // The instruction currently being executed. It may be useful to access this
+  // to see if its result will need to be forwarded.
+  const DecodedInst& currentInstruction() const;
+
+  // An event which is triggered whenever execution of an instruction completes.
+  const sc_event& executedEvent() const;
+
 private:
 
   // The main loop controlling this stage. Involves waiting for new input,
@@ -79,12 +89,9 @@ private:
   void writeWord(MemoryAddr addr, Word data) const;
   void writeByte(MemoryAddr addr, Word data) const;
 
-  // Check the forwarding paths to see if this instruction is expecting a value
-  // which hasn't been written to registers yet.
-  void checkForwarding(DecodedInst& inst) const;
-
-  // Update the forwarding paths using this recently-executed instruction.
-  void updateForwarding(const DecodedInst& inst) const;
+  // Check the predicate bits of this instruction and the predicate register to
+  // see if this instruction should execute.
+  bool checkPredicate(DecodedInst& inst);
 
 //==============================//
 // Components
@@ -100,7 +107,14 @@ private:
 // Local state
 //==============================//
 
-  sc_core::sc_event executedInstruction;
+private:
+
+  // The instruction currently being executed. Used to determine if forwarding
+  // is required.
+  DecodedInst currentInst;
+
+  // Event which is triggered whenever an instruction's execution finishes.
+  sc_event executedInstruction;
 
 };
 

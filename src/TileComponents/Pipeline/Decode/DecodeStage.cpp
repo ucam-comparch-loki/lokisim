@@ -8,6 +8,7 @@
 #include "DecodeStage.h"
 #include "../../Cluster.h"
 #include "../../../Datatype/DecodedInst.h"
+#include "../../../Datatype/Instruction.h"
 
 void         DecodeStage::execute() {
   while(true) {
@@ -29,40 +30,43 @@ void         DecodeStage::updateReady() {
   bool ready = !isStalled();
 
   // Write our current stall status (only if it changed).
-  if(ready != readyOut.read()) readyOut.write(ready);
+  if(ready != readyOut.read()) {
+    readyOut.write(ready);
 
-  if(DEBUG && isStalled() && readyOut.read()) {
-    cout << this->name() << " stalled." << endl;
+    if(DEBUG && !ready) cout << this->name() << " stalled." << endl;
   }
 
-  // Wait until some point late in the cycle, so we know that any operations
-  // will have completed.
-  next_trigger(readyChangedEvent);
+  // Wait until something happens which may have changed the ready state.
+  next_trigger(readyChangedEvent | decoder.stalledEvent());
 }
 
 void         DecodeStage::newInput(DecodedInst& inst) {
   if(DEBUG) cout << decoder.name() << " received Instruction: "
-                 << dataIn.read() << endl;
+                 << inst << endl;
 
+  // If this is the first instruction of a new packet, update the current
+  // packet pointer.
+  if(startingNewPacket) parent()->updateCurrentPacket(inst.location());
+
+  // The next instruction will be the start of a new packet if this is the
+  // end of the current one.
+  startingNewPacket = (inst.predicate() == Instruction::END_OF_PACKET);
+
+  // Use a while loop to decode the instruction in case multiple outputs
+  // are produced.
   while(true) {
     DecodedInst decoded;
-    readyChangedEvent.notify();
-    bool success = decoder.decodeInstruction(inst, decoded);
-    readyChangedEvent.notify();
 
-    if(success) {
-      // Wait until flow control allows us to send.
-      if(!readyIn.read()) {
-        waitingToSend = true;
-        readyChangedEvent.notify();
+    // Wait a small (arbitrary) amount of time to make sure the other pipeline
+    // stages receive their instructions first, and so know whether they should
+    // forward data to this instruction.
+    wait(sc_core::SC_ZERO_TIME);
 
-        wait(readyIn.posedge_event());
+    // Some instructions don't produce any output, or won't be executed.
+    bool usefulOutput = decoder.decodeInstruction(inst, decoded);
 
-        waitingToSend = false;
-        readyChangedEvent.notify();
-      }
-      dataOut.write(decoded);
-    }
+    // Send the output, if there is any.
+    if(usefulOutput) dataOut.write(decoded);
 
     // If the decoder is ready, we have finished the decode.
     if(decoder.ready()) break;
@@ -72,7 +76,7 @@ void         DecodeStage::newInput(DecodedInst& inst) {
 }
 
 bool         DecodeStage::isStalled() const {
-  return !decoder.ready() || waitingToSend;
+  return !decoder.ready();
 }
 
 int32_t      DecodeStage::readReg(RegisterIndex index, bool indirect) const {
@@ -80,7 +84,9 @@ int32_t      DecodeStage::readReg(RegisterIndex index, bool indirect) const {
 }
 
 bool         DecodeStage::predicate() const {
-  return parent()->readPredReg();
+  // true = wait for the execute stage to write the predicate first, if
+  // necessary
+  return parent()->readPredReg(true);
 }
 
 int32_t      DecodeStage::readRCET(ChannelIndex index) {
@@ -95,20 +101,16 @@ ChannelIndex DecodeStage::selectChannel() {
   return rcet.selectChannelEnd();
 }
 
-sc_core::sc_event& DecodeStage::receivedDataEvent(ChannelIndex buffer) const {
+const sc_event& DecodeStage::receivedDataEvent(ChannelIndex buffer) const {
   return rcet.receivedDataEvent(buffer);
 }
 
-void         DecodeStage::fetch(const MemoryAddr addr) {
-  fl.fetch(addr);
+void         DecodeStage::fetch(const MemoryAddr addr, bool checkedCache) {
+  fl.fetch(addr, checkedCache);
 }
 
 void         DecodeStage::setFetchChannel(const ChannelID& channelID, uint memoryGroupBits, uint memoryLineBits) {
   fl.setFetchChannel(channelID, memoryGroupBits, memoryLineBits);
-}
-
-void         DecodeStage::refetch() {
-  fl.refetch();
 }
 
 bool         DecodeStage::inCache(const MemoryAddr a) const {
@@ -138,7 +140,6 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
     rcet("rcet", ID),
     decoder("decoder", ID),
     extend("signextend") {
-  waitingToSend = false;
 
   rcetIn         = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
   flowControlOut = new sc_out<bool>[NUM_RECEIVE_CHANNELS];

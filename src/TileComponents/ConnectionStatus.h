@@ -68,12 +68,14 @@ public:
   // or words.
   void writeAddress(MemoryAddr addr, int operation);
 
+  void streamLength(int length);
+  void stride(int stride);
+
   // Start a streaming operation.
   void startStreaming();
 
   // End a streaming operation.
   void stopStreaming();
-
 
 //==============================//
 // Constructors and destructors
@@ -96,6 +98,7 @@ private:
   MemoryAddr address_;
   short operation_;
   bool  repeatOperation_;
+  int length_;
   int stride_;
 
 };

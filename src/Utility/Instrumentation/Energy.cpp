@@ -129,7 +129,9 @@ unsigned long long Energy::cacheEnergy() {
 }
 
 unsigned long long Energy::memoryEnergy() {
-  return 0;
+  return l1Read     * Statistics::l1Reads() +
+         l1Write    * Statistics::l1Writes()/* +
+         l1TagCheck * Statistics::l1TagChecks()*/;
 }
 
 unsigned long long Energy::decodeEnergy() {

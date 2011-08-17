@@ -39,12 +39,14 @@ int Statistics::getStat(const std::string& statName, int parameter) {
   else if(statName == "l0_misses")        return l0Misses();
   else if(statName == "l0_reads")         return l0Reads();
   else if(statName == "l0_writes")        return l0Writes();
+  else if(statName == "l1_reads")         return l1Reads();
+  else if(statName == "l1 writes")        return l1Writes();
   else if(statName == "decodes")          return decodes();
   else if(statName == "reg_reads")        return registerReads();
   else if(statName == "reg_writes")       return registerWrites();
   else if(statName == "data_forwards")    return dataForwards();
   else if(statName == "operations") {
-    if(parameter != -1)                   return operations(parameter);
+    if(parameter != -1)                   return operations((operation_t)parameter);
     else                                  return operations();
   }
   else if(statName == "network_distance") return (int)networkDistance();
@@ -68,7 +70,7 @@ int Statistics::fJPerOp()            {return Energy::pJPerOp()*1000;}
 int Statistics::decodes()            {return Operations::numDecodes();}
 
 int Statistics::operations()         {return Operations::numOperations();}
-int Statistics::operations(int operation) {return Operations::numOperations(operation);}
+int Statistics::operations(operation_t operation) {return Operations::numOperations(operation);}
 
 int Statistics::registerReads()      {return Registers::numReads();}
 int Statistics::registerWrites()     {return Registers::numWrites();}
@@ -80,6 +82,9 @@ int Statistics::l0Hits()             {return IPKCache::numHits();}
 int Statistics::l0Misses()           {return IPKCache::numMisses();}
 int Statistics::l0Reads()            {return IPKCache::numReads();}
 int Statistics::l0Writes()           {return IPKCache::numWrites();}
+
+int Statistics::l1Reads()            {return MemoryBank::numReads();}
+int Statistics::l1Writes()           {return MemoryBank::numWrites();}
 
 double Statistics::networkDistance() {return Network::totalDistance();}
 

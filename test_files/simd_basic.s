@@ -31,8 +31,6 @@ setuploop:
 
 # Set up remote core's channel map table and fetch program.
 # Note that we need the IPK FIFO to be at least as long as this code sequence.
-# TODO: turn this into an instruction packet (or two), and put it in one core's
-# cache (using fill, rather than fetch). Then have the whole group gfetch it.
     rmtexecute                         -> 2
     p?or                r30, ch5, r0            # r30 = this core's SIMD ID
     p?ori               r5,  r0,  (0,0,1,0,0)

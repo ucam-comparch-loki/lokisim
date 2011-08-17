@@ -9,25 +9,33 @@
 #include "../Datatype/AddressedWord.h"
 
 PortIndex Network::getDestination(const ChannelID& address) const {
+  PortIndex port;
+
   // Access a different part of the address depending on where in the network
   // we are.
   switch(level) {
-    case TILE : return address.getTile() - firstOutput;
+    case TILE : port = address.getTile(); break;
     case COMPONENT : {
       if(externalConnection && (address.getTile() != id.getTile()))
         return numOutputs-1;
       else
-        return address.getPosition() - firstOutput;
+        port = address.getPosition();
+      break;
     }
     case CHANNEL : {
       if(externalConnection && ((address.getTile() != id.getTile()) ||
                                 (address.getPosition() != id.getPosition())))
         return numOutputs-1;
       else
-        return address.getChannel() - firstOutput;
+        port = address.getChannel();
+      break;
     }
     case NONE : return 0;
   }
+
+  // Make an adjustment in case this network is not capable of sending to
+  // address 0.
+  return port - firstOutput;
 }
 
 DataInput& Network::externalInput() const {

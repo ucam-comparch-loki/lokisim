@@ -7,6 +7,7 @@
 
 #include "LocalNetwork.h"
 #include "Bus.h"
+#include "MulticastBus.h"
 #include "../Arbiters/ArbiterComponent.h"
 #include "../../TileComponents/TileComponent.h"
 
@@ -109,8 +110,8 @@ void LocalNetwork::makeBuses() {
 
       switch(j) {
         case 0: { // To cores
-          bus = new Bus(sc_gen_unique_name("c2c_data_bus"), i, CORES_PER_TILE,
-                        Network::COMPONENT, size, 0);
+          bus = new MulticastBus(sc_gen_unique_name("c2c_data_bus"), i, CORES_PER_TILE,
+                                 Network::COMPONENT, size, 0);
           c2cDataBuses.push_back(bus);
           break;
         }

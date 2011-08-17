@@ -52,7 +52,9 @@ public:
   // Send a fetch request for the instruction packet at the given address,
   // in the memory we are set to fetch from, but only if it is not already in
   // the instruction packet cache.
-  void fetch(const MemoryAddr addr);
+  // checkedCache signals whether the cache has already been checked. If it has,
+  // we can issue the fetch immediately.
+  void fetch(const MemoryAddr addr, bool checkedCache);
 
   // Update the channel to which we send fetch requests.
   void setFetchChannel(const ChannelID& channelID, uint memoryGroupBits, uint memoryLineBits);
@@ -93,11 +95,7 @@ private:
   // Number of line bits describing virtual memory bank.
   unsigned int          memoryLineBits_;
 
-  // A memory request for the next packet to be executed, where the packet is
-  // already in the cache. We need to be able to refetch the packet in case
-  // it gets overwritten.
-  AddressedWord         refetchRequest;
-
+  // The memory request to be sent onto the network.
   AddressedWord         dataToSend;
 
   // Event which is triggered whenever there is data to send.

@@ -68,7 +68,7 @@ private:
   ChannelID firstInput;
 
   std::vector<FlowControlIn*> flowControl;
-
+  
   Crossbar               creditNet;
   Crossbar               dataNet;
 

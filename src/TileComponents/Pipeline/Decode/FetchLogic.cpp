@@ -10,7 +10,7 @@
 #include "../../TileComponent.h"
 #include "../../../Datatype/MemoryRequest.h"
 
-void FetchLogic::fetch(const MemoryAddr addr) {
+void FetchLogic::fetch(const MemoryAddr addr, bool checkedCache) {
 	// Create a new memory request
 
 	MemoryRequest mr(MemoryRequest::IPK_READ, addr);
@@ -26,17 +26,11 @@ void FetchLogic::fetch(const MemoryAddr addr) {
 		channel = channel.addPosition(increment);
 	}
 
-	// Send request if necessary or store it for later use
-
-	AddressedWord request(mr, channel);
-
-	if(!inCache(addr)) {
-		sendRequest(request);
-	} else {
-		// Store the request in case the packet gets overwritten and needs to
-		// be refetched.
-		refetchRequest = request;
-	}
+	// If we know that the packet isn't in the cache, send a request to memory.
+  if(checkedCache || !inCache(addr)) {
+    AddressedWord request(mr, channel);
+    sendRequest(request);
+  }
 }
 
 void FetchLogic::setFetchChannel(const ChannelID& channelID, uint memoryGroupBits, uint memoryLineBits) {
@@ -73,16 +67,14 @@ void FetchLogic::setFetchChannel(const ChannelID& channelID, uint memoryGroupBit
 	}
 }
 
-void FetchLogic::refetch() {
-  sendRequest(refetchRequest);
-}
-
 void FetchLogic::sendRequest(const AddressedWord& data) {
   dataToSend = data;
   sendEvent.notify();
 }
 
 void FetchLogic::send() {
+	// Assert dataToSend is new/valid.
+
   // Wait until flow control allows us to send and there is room in the cache.
   if(!flowControl.read() || !roomInCache()) {
     next_trigger(clock.posedge_event());

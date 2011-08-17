@@ -307,19 +307,19 @@ void Chip::wireUp() {
 }
 
 Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
-	Component(name),
-	backgroundMemory("background_memory", NUM_COMPONENTS, NUM_MEMORIES),
-	network("network"),
-	fastClock("fast_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.25),
-  slowClock("slow_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.75)
-{
+    Component(name),
+    backgroundMemory("background_memory", NUM_COMPONENTS, NUM_MEMORIES),
+    network("network"),
+    fastClock("fast_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.25),
+    slowClock("slow_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.75) {
+  
   idleComponents = 0;
 
   makeSignals();
   makeComponents();
   wireUp();
 
-	SC_METHOD(updateIdle);
+  SC_METHOD(updateIdle);
 	sensitive << idlenessChanged;
 
   // Generate a method to watch each component's idle signal, so we can
@@ -333,18 +333,20 @@ Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
     // Create the method.
     sc_spawn(sc_bind(&Chip::watchIdle, this, i), 0, &options);
   }
+
 }
 
 Chip::~Chip() {
-	delete[] idleSig;
-	delete[] dataFromComponents;  			delete[] dataToComponents;
-	delete[] creditsFromComponents; 		delete[] creditsToComponents;
+  delete[] idleSig;
 
-	delete[] ackDataFromComps;  				delete[] ackCreditToComps;
-	delete[] ackDataToComps;  					delete[] ackCreditFromComps;
+  delete[] dataFromComponents;      delete[] dataToComponents;
+  delete[] creditsFromComponents;   delete[] creditsToComponents;
 
-	delete[] validDataFromComps;  			delete[] validDataToComps;
-	delete[] validCreditFromComps;  		delete[] validCreditToComps;
+  delete[] ackDataFromComps;        delete[] ackCreditToComps;
+  delete[] ackDataToComps;          delete[] ackCreditFromComps;
+
+  delete[] validDataFromComps;      delete[] validDataToComps;
+  delete[] validCreditFromComps;    delete[] validCreditToComps;
 
 	delete[] strobeToBackgroundMemory;	delete[] strobeFromBackgroundMemory;
 	delete[] dataToBackgroundMemory;		delete[] dataFromBackgroundMemory;

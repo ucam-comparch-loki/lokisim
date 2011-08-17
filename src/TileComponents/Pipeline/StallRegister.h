@@ -73,7 +73,7 @@ public:
 
   SC_HAS_PROCESS(StallRegister);  // Tell SystemC that this component has its
                                   // own methods which react to inputs.
-  StallRegister(sc_module_name name, const ComponentID& ID);
+  StallRegister(const sc_module_name& name, const ComponentID& ID);
 
 //==============================//
 // Local state

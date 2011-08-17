@@ -98,6 +98,8 @@ class CollectStats(mod.SimulatorTest):
         self.cacheHitLatency = self.findLatency("Cache hit",
                                                 lambda:self.readReg(0,11) == 1000,
                                                 offset = expectedLatency)
+                                                
+        print "Delay between load and consume:\t", (self.cacheHitLatency + expectedLatency - 2), "cycles"
     
     def findRouterLatency(self):
         pass

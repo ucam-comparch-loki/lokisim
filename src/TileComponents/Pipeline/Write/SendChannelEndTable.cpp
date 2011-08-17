@@ -11,7 +11,6 @@
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
 #include "../../../Datatype/MemoryRequest.h"
-#include "../../../Utility/InstructionMap.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
 bool SendChannelEndTable::write(const DecodedInst& dec) {
@@ -24,7 +23,7 @@ bool SendChannelEndTable::write(const DecodedInst& dec) {
 	} else if (dec.channelMapEntry() != Instruction::NO_CHANNEL && !channelMap[dec.channelMapEntry()].destination().isNullMapping()) {
 		return executeMemoryOp(dec.channelMapEntry(), (MemoryRequest::MemoryOperation)dec.memoryOp(), dec.result());
 	}
-
+	
 	return true;
 }
 
@@ -73,8 +72,9 @@ void SendChannelEndTable::sendToMemories() {sendLoop(TO_MEMORIES);}
 void SendChannelEndTable::sendOffTile()    {sendLoop(OFF_TILE);}
 
 void SendChannelEndTable::sendLoop(unsigned int buffer) {
-  if(ackOutput[buffer].read()) {
+  if(ackOutput[buffer].posedge()) {
     // If we are receiving an acknowledgement, we have just sent some data.
+    assert(validOutput[buffer].read());
     validOutput[buffer].write(false);
 
     if(buffers[buffer].empty())        // No data to send.
@@ -145,12 +145,13 @@ void SendChannelEndTable::updateMap(MapIndex entry, int64_t newVal) {
 	// | Tile : 12 | Position : 8 | Channel : 4 | Memory group bits : 4 | Memory line bits : 4 |
 
 	uint32_t encodedEntry = (uint32_t)newVal;
-	bool multicast = (encodedEntry >> 28) & 0x1UL;
-	uint newTile = (encodedEntry >> 20) & 0xFFUL;
-	uint newPosition = (encodedEntry >> 12) & 0xFFUL;
-	uint newChannel = (encodedEntry >> 8) & 0xFUL;
+	bool multicast    = (encodedEntry >> 28) & 0x1UL;
+	// Hack: tile shouldn't be necessary for multicast addresses
+	uint newTile      = multicast ? id.getTile() : ((encodedEntry >> 20) & 0xFFUL);
+	uint newPosition  = (encodedEntry >> 12) & 0xFFUL;
+	uint newChannel   = (encodedEntry >> 8) & 0xFUL;
 	uint newGroupBits = (encodedEntry >> 4) & 0xFUL;
-	uint newLineBits = encodedEntry & 0xFUL;
+	uint newLineBits  = encodedEntry & 0xFUL;
 
 	// Compute the global channel ID of the given output channel. Note that
 	// since this is an output channel, the ID computation is different to
@@ -170,9 +171,9 @@ void SendChannelEndTable::updateMap(MapIndex entry, int64_t newVal) {
 		if (entry != 0) {
 			AddressedWord aw(Word(returnChannel.getData()), sendChannel);
 			aw.setPortClaim(true, channelMap[entry].usesCredits());
-			
+
 			unsigned int bufferToUse = (int)(channelMap[entry].network());
-			
+
 			buffers[bufferToUse].write(aw);
 			dataToSendEvent[bufferToUse].notify();
 			bufferFillChanged.notify();
@@ -275,7 +276,7 @@ bool SendChannelEndTable::executeMemoryOp(MapIndex entry, MemoryRequest::MemoryO
 }
 
 void SendChannelEndTable::receivedCredit(unsigned int buffer) {
-	assert(validCredit[buffer].read());
+  assert(validCredit[buffer].read());
 
   ChannelIndex targetCounter = creditsIn[buffer].read().channelID().getChannel();
 

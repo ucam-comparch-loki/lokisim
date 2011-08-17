@@ -30,6 +30,7 @@ public:
   DataInput    *dataIn;
   ReadyInput   *validDataIn;
   ReadyOutput  *ackDataIn;
+
   DataOutput   *dataOut;
   ReadyOutput  *validDataOut;
   ReadyInput   *ackDataOut;

@@ -57,7 +57,7 @@ public:
 
 public:
 
-  BufferArray(const uint numBuffers, const uint buffSize, std::string name) {
+  BufferArray(const uint numBuffers, const uint buffSize, const std::string& name) {
     for(uint i=0; i<numBuffers; i++) {
       std::string buffName = name + ".buffer";
       buffName += i;

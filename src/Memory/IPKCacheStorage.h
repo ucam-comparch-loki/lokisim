@@ -25,8 +25,7 @@ class IPKCacheStorage : public MappedStorage<MemoryAddr, Instruction> {
 
 public:
 
-  IPKCacheStorage(const uint16_t size, std::string name);
-  virtual ~IPKCacheStorage();
+  IPKCacheStorage(const uint16_t size, const std::string& name);
 
 //==============================//
 // Methods
@@ -48,10 +47,6 @@ public:
 
   // Return the memory address of the currently-executing packet.
   const MemoryAddr packetAddress() const;
-
-  // Returns whether the last read was of a new instruction, or one which had
-  // been read before. This allows us to only send credits when necessary.
-  bool justReadNewInst() const;
 
   // Returns the remaining number of entries in the cache.
   const uint16_t remainingSpace() const;
@@ -84,8 +79,8 @@ private:
   // Returns the position that data with the given address tag should be stored
   virtual uint16_t getPosition(const MemoryAddr& key);
 
-  void incrementRefill();
-  void incrementCurrent();
+  void incrementWritePos();
+  void incrementReadPos();
 
   void updateFillCount();
 
@@ -96,12 +91,13 @@ private:
 private:
 
   // Current instruction pointer and refill pointer.
-  LoopCounter currInst, refill;
+  LoopCounter readPointer, writePointer;
 
   uint16_t fillCount;
   uint16_t currInstBackup;   // In case it goes NOT_IN_USE and then a jump is used
 
-  // Tells if we are reading the same packet repeatedly
+  // Tells if we are reading the same packet repeatedly. Should this be here,
+  // or in the decoder? We may want to shut the cache off, for example.
   bool persistentMode;
 
   // Location of the next packet to be executed.
@@ -111,12 +107,6 @@ private:
   // The index of the first instruction of the current instruction packet.
   uint16_t currentPacket;
 
-  // Knowing what the last operation was helps us determine whether the cache
-  // is full or empty when the current instruction and refill pointer are in
-  // the same place. If we read an instruction, the cache can be considered
-  // empty, but if we wrote one, it is full.
-  bool lastOpWasARead;
-
   // For debug purposes, we store the memory address which each instruction is
   // from. This allows us to set breakpoints easily, and also allows us to
   // determine which parts of the program are the hotspots.
@@ -125,14 +115,8 @@ private:
   // Store the most recent instruction address, so it can be accessed easily.
   MemoryAddr previousLocation;
 
-  // Record which locations in the cache have/have not been read, so we know
-  // when we should send a credit.
-  vector<bool> haveRead;
-
-  // Record whether the most-recently accessed instruction has been read before.
-  bool lastInstWasNew;
-
   static const uint16_t NOT_IN_USE = -1;
+  static const MemoryAddr DEFAULT_TAG = 0xFFFFFFFF;
 
 };
 

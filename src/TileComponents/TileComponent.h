@@ -72,6 +72,9 @@ public:
 
 public:
 
+  int numInputs() const;
+  int numOutputs() const;
+
   // Store initial instructions or data into this cluster or memory.
   virtual void storeData(const std::vector<Word>& data, MemoryAddr location=0) = 0;
 

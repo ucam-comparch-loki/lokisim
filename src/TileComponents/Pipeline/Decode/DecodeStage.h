@@ -79,9 +79,10 @@ public:
   // this value from the buffer.
   int32_t        readRCET(ChannelIndex index);
 
-  // Request to refetch the pending instruction packet because it has been
-  // overwritten since it was marked as being in the cache.
-  void           refetch();
+  // Fetch an instruction packet from the given address. Optionally tell
+  // whether the cache has already been checked - can go straight to sending
+  // the memory request if we know we don't have it.
+  void           fetch(const MemoryAddr addr, bool checkedCache=false);
 
 private:
 
@@ -112,10 +113,7 @@ private:
   // Perform a SELCH operation.
   ChannelIndex   selectChannel();
 
-  sc_core::sc_event& receivedDataEvent(ChannelIndex buffer) const;
-
-  // Fetch an instruction packet from the given address.
-  void           fetch(const MemoryAddr addr);
+  const sc_event& receivedDataEvent(ChannelIndex buffer) const;
 
   // Change the channel to which we send our fetch requests.
   void           setFetchChannel(const ChannelID& channelID, uint memoryGroupBits, uint memoryLineBits);
@@ -157,8 +155,12 @@ private:
 // Local state
 //==============================//
 
-  bool waitingToSend;
+private:
 
+  bool startingNewPacket;
+
+  // An event which is triggered whenever something happens which may change
+  // whether this pipeline stage is busy or not.
   sc_core::sc_event readyChangedEvent;
 
 };

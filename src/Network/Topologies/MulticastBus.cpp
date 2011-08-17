@@ -5,6 +5,8 @@
  *      Author: db434
  */
 
+#define SC_INCLUDE_DYNAMIC_PROCESSES
+
 #include "MulticastBus.h"
 #include "../../Datatype/AddressedWord.h"
 
@@ -31,11 +33,11 @@ void MulticastBus::busLoop() {
         for(int i=0; i<8; i++) {  // 8 = number of bits in PortIndex... increase this?
           if((outputUsed >> i) & 1) {
             dataOut[i].write(data);
-            validDataOut[i].write(true);
+//            validDataOut[i].write(true);
           }
         }
 
-        next_trigger(receivedAck);
+        next_trigger(receivedAllAcks);
         state = WAITING_FOR_ACK;
       }
 
@@ -43,29 +45,12 @@ void MulticastBus::busLoop() {
     }
 
     case WAITING_FOR_ACK : {
-      // The data has been consumed, so is no longer valid.
-      for(int i=0; i<8; i++) {  // 8 = number of bits in PortIndex... increase this?
-        if(ackDataOut[i].event()) {
-          // If we're receiving an ack, we should have sent data on that port.
-          assert((outputUsed >> i) & 1);
-          outputUsed &= ~(1 << i);  // Clear the bit
+      // All acknowledgements have been received, so now it is time to
+      // acknowledge the input data.
+      ackDataIn[0].write(true);
 
-          validDataOut[i].write(false);
-        }
-      }
-
-      if(outputUsed == 0) {
-        // All acknowledgements have been received, so now it is time to
-        // acknowledge the input data.
-        ackDataIn[0].write(true);
-
-        next_trigger(clock.posedge_event());
-        state = SENT_ACK;
-      }
-      else {
-        // Still more acknowledgements to wait for.
-        next_trigger(receivedAck);
-      }
+      next_trigger(clock.posedge_event());
+      state = SENT_ACK;
 
       break;
     }
@@ -75,24 +60,41 @@ void MulticastBus::busLoop() {
 
       ackDataIn[0].write(false);
 
-      if(!validDataIn[0].read()) {
-        next_trigger(validDataIn[0].posedge_event());
-        state = WAITING_FOR_DATA;
-      }
-      else {
-        // The valid signal is still high at the start of the next clock cycle.
-        // This means there may be more data to consume.
-        next_trigger(sc_core::SC_ZERO_TIME);
-        state = WAITING_FOR_DATA;
-      }
+      state = WAITING_FOR_DATA;
+      next_trigger(sc_core::SC_ZERO_TIME);
 
       break;
     }
   } // end switch
 }
 
-void MulticastBus::ackArrived() {
-  receivedAck.notify();
+void MulticastBus::ackArrived(PortIndex port) {
+  if(ackDataOut[port].event()) {
+    // If we're receiving an ack, we should have sent data on that port.
+    assert((outputUsed >> port) & 1);
+    outputUsed &= ~(1 << port);  // Clear the bit
+
+    validDataOut[port].write(false);
+
+    // If outputUsed is 0, it means there are no more outstanding
+    // acknowledgements.
+    if(outputUsed == 0) {
+      receivedAllAcks.notify();
+    }
+
+    next_trigger(dataOut[port].default_event());
+  }
+  else {
+    // If no ack arrived, it means data is being sent on this port.
+    // Since this method is responsible for taking down the validDataOut signal,
+    // it must also be responsible for putting it up.
+    assert((outputUsed >> port) & 1);
+
+    validDataOut[port].write(true);
+
+    // Wait until the acknowledgement arrives.
+    next_trigger(ackDataOut[port].posedge_event());
+  }
 }
 
 PortIndex MulticastBus::getDestinations(const ChannelID& address) const {
@@ -122,9 +124,17 @@ MulticastBus::MulticastBus(const sc_module_name& name, const ComponentID& ID, in
 //  validCreditOut = new ReadyOutput[1];
 //  ackCreditOut   = new ReadyInput[1];
 
-  SC_METHOD(ackArrived);
-  for(int i=0; i<numOutputs; i++) sensitive << ackDataOut[i].pos();
-  dont_initialize();
+  // Generate a method for each output port, to wait for acknowledgements and
+  // notify the main process when all have been received.
+  for(int i=0; i<numOutputs; i++) {
+    sc_core::sc_spawn_options options;
+    options.spawn_method();     // Want an efficient method, not a thread
+    options.dont_initialize();
+    options.set_sensitivity(&(dataOut[i].value_changed())); // Sensitive to this event
+
+    // Create the method.
+    sc_spawn(sc_bind(&MulticastBus::ackArrived, this, i), 0, &options);
+  }
 }
 
 MulticastBus::~MulticastBus() {

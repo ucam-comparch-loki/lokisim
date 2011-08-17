@@ -21,35 +21,23 @@
 #include <string>
 #include <vector>
 
+// The typedef for Operation is forced to be after the enumeration has been
+// defined. There is therefore one typedef in the class definition, allowing
+// methods to use it, and one outside, allowing other files to use it.
+
+// Opcodes used in the binary instruction encoding.
+typedef short opcode_t;
+
+// Textual representation of an instruction.
+typedef std::string inst_name_t;
+
 class InstructionMap {
 
 public:
 
-  // Return whether the given operation should specify a particular field.
-  static bool hasDestReg(short operation);
-  static bool hasSrcReg1(short operation);
-  static bool hasSrcReg2(short operation);
-  static bool hasImmediate(short operation);
-  static bool hasRemoteChannel(short operation);
-
-  // Returns whether the given operation uses the ALU.
-  static bool isALUOperation(short operation);
-
-  // Returns whether the operation stores its result in a register.
-  static bool storesResult(short operation);
-
-  // Returns the opcode of the given operation name.
-  static short opcode(const std::string& name);
-
-  // Returns the decoded operation value from the given opcode.
-  static short operation(short opcode);
-
-  // Returns the name of the given instruction.
-  static std::string& name(int operation);
-
   enum Operation {
 
-    NOP,          // No operation (use or r0 r0 r0?)      nop
+    NOP,          // No operation (deprecated: use or)    nop
 
     LDW,          // Load word                            ldw rs, immed -> rch
     LDHWU,        // Load halfword (zero-extended)        ldhwu rs, immed -> rch
@@ -61,9 +49,9 @@ public:
     STBADDR,      // Store byte address                   stbaddr rt, immed -> rch
 
     LDVECTOR,     // Load data to all SIMD cores
-    LDSTREAM,     // Load stream of data to this core
+    LDSTREAM,     // Load stream of data to this core     ldstream rs, rt, ru -> rch
     STVECTOR,     // Store data from all SIMD cores
-    STSTREAM,     // Store stream of data from this core
+    STSTREAM,     // Store stream of data from this core  ststream rs, rt, ru -> rch
 
     SLL,          // Shift left logical variable          sll rd, rs, rt
     SRL,          // Shift right logical variable         srl rd, rs, rt
@@ -120,7 +108,7 @@ public:
     TSTCH,        // Test channel (see if holding data)   tstch rd, ch
     SELCH,        // Select channel (with data)           selch rd
 
-    SETFETCHCH,   // Set fetch channel (ch to fetch from) setfetchch ch
+    SETFETCHCH,   // Set fetch channel (deprecated)       setfetchch ch
     IBJMP,        // In buffer jump                       ibjmp immed
     FETCH,        // Fetch instruction packet             fetch rs, immed
     PSELFETCH,    // Fetch dependent on predicate         psel.fetch rs rt
@@ -137,21 +125,48 @@ public:
 
   };
 
+  typedef InstructionMap::Operation operation_t;
+
+  // Return whether the given operation should specify a particular field.
+  static bool hasDestReg(operation_t operation);
+  static bool hasSrcReg1(operation_t operation);
+  static bool hasSrcReg2(operation_t operation);
+  static bool hasImmediate(operation_t operation);
+  static bool hasRemoteChannel(operation_t operation);
+
+  // Returns whether the given operation uses the ALU.
+  static bool isALUOperation(operation_t operation);
+
+  // Returns whether the operation stores its result in a register.
+  static bool storesResult(operation_t operation);
+
+  // Returns the opcode of the given operation name.
+  static opcode_t opcode(const inst_name_t& name);
+
+  // Returns the decoded operation value from the given opcode.
+  static operation_t operation(opcode_t opcode);
+
+  // Returns the name of the given instruction.
+  static const inst_name_t& name(operation_t operation);
+
 private:
-  static std::map<std::string, short> nto; // name to opcode
-  static std::map<short, int> oti; // opcode to instruction
-  static std::map<int, std::string> itn; // instruction to name
+  static std::map<inst_name_t, opcode_t> nto; // name to opcode
+  static std::map<opcode_t, operation_t> oti; // opcode to instruction
+  static std::map<operation_t, inst_name_t> itn; // instruction to name
 
   // Fill up the maps with the correct values.
   static void initialise();
 
   // Add a single instruction to all maps.
-  static void addToMaps(const std::string& name, short opcode, int instruction);
+  static void addToMaps(const inst_name_t& name, opcode_t opcode, operation_t instruction);
 
   // Generate a vector of boolean values showing whether each instruction
   // satisfies a particular property.
-  static const std::vector<bool>& bitVector(bool defaultVal, const short exceptions[], int numExceptions);
+  static const std::vector<bool>& bitVector(bool defaultVal, const operation_t exceptions[], int numExceptions);
 
 };
+
+// Operation for a core to perform.
+typedef InstructionMap::Operation operation_t;
 
 #endif /* INSTRUCTIONMAP_H_ */

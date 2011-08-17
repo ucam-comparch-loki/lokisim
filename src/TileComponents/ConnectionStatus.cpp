@@ -30,7 +30,7 @@ bool ConnectionStatus::streaming() const {
 }
 
 bool ConnectionStatus::readingIPK() const {
-  // This will not always be valid: we may eventually want to stream data too.
+  // FIXME: this will not always be valid - we may eventually want to stream data too.
   return streaming() && isRead();
 }
 
@@ -43,10 +43,13 @@ bool ConnectionStatus::halfWordAccess() const {
 }
 
 void ConnectionStatus::incrementAddress() {
-  if(byteAccess())    address_ += stride_;
+  if(byteAccess())          address_ += stride_;
   else if(halfWordAccess()) address_ += stride_ * (BYTES_PER_WORD/2);
-  else if(readingIPK()) address_ += stride_ * BYTES_PER_INSTRUCTION;
-  else                  address_ += stride_ * BYTES_PER_WORD;
+  else if(readingIPK())     address_ += stride_ * BYTES_PER_INSTRUCTION;
+  else                      address_ += stride_ * BYTES_PER_WORD;
+
+  length_--;
+//  if(length_ == 0 && !readingIPK()) clear();
 }
 
 /* End the current operation, but keep the connection up so new operations
@@ -55,6 +58,7 @@ void ConnectionStatus::clear() {
   address_ = UNUSED;
   operation_ = NONE;
   repeatOperation_ = false;
+  length_ = 1;
   stride_ = 1;
 }
 
@@ -68,32 +72,33 @@ MemoryAddr ConnectionStatus::address() const {
   return address_;
 }
 
-void ConnectionStatus::readAddress(MemoryAddr addr, int operation) {
+void ConnectionStatus::readAddress(MemoryAddr addr, int op) {
   address_ = addr;
-  if(operation == MemoryRequest::LOAD_W || operation == MemoryRequest::IPK_READ)
+  if(op == MemoryRequest::LOAD_W) operation_ = LOAD;
+  else if(op == MemoryRequest::IPK_READ) {
     operation_ = LOAD;
-  else if(operation == MemoryRequest::LOAD_HW) operation_ = LOADHW;
-  else if(operation == MemoryRequest::LOAD_B) operation_ = LOADBYTE;
+    repeatOperation_ = true;
+  }
+  else if(op == MemoryRequest::LOAD_HW) operation_ = LOADHW;
+  else if(op == MemoryRequest::LOAD_B) operation_ = LOADBYTE;
   else std::cerr << "Unknown memory operation in ConnectionStatus::readAddress: "
-                 << operation << std::endl;
+                 << op << std::endl;
 }
 
-void ConnectionStatus::writeAddress(MemoryAddr addr, int operation) {
+void ConnectionStatus::writeAddress(MemoryAddr addr, int op) {
   address_ = addr;
-  if(operation == MemoryRequest::STORE_W) operation_ = STORE;
-  else if(operation == MemoryRequest::STORE_HW) operation_ = STOREHW;
-  else if(operation == MemoryRequest::STORE_B) operation_ = STOREBYTE;
+  if(op == MemoryRequest::STORE_W) operation_ = STORE;
+  else if(op == MemoryRequest::STORE_HW) operation_ = STOREHW;
+  else if(op == MemoryRequest::STORE_B) operation_ = STOREBYTE;
   else std::cerr << "Unknown memory operation in ConnectionStatus::writeAddress: "
-                 << operation << std::endl;
+                 << op << std::endl;
 }
 
-void ConnectionStatus::startStreaming() {
-  repeatOperation_ = true;
-}
+void ConnectionStatus::streamLength(int length) {length_ = length;}
+void ConnectionStatus::stride(int stride)       {stride_ = stride;}
 
-void ConnectionStatus::stopStreaming() {
-  repeatOperation_ = false;
-}
+void ConnectionStatus::startStreaming()         {repeatOperation_ = true;}
+void ConnectionStatus::stopStreaming()          {repeatOperation_ = false;}
 
 ConnectionStatus::ConnectionStatus() {
   address_       = UNUSED;

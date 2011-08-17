@@ -300,3 +300,15 @@ void MemoryBank::printStats() {
 		}
 	}
 }
+
+long long MemoryBank::numReads() {
+  return numReadWordHits_.numEvents()
+       + numReadHalfWordHits_.numEvents()
+       + numReadByteHits_.numEvents();
+}
+
+long long MemoryBank::numWrites() {
+  return numWriteWordHits_.numEvents()
+       + numWriteHalfWordHits_.numEvents()
+       + numWriteByteHits_.numEvents();
+}

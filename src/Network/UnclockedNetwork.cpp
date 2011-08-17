@@ -32,6 +32,7 @@ UnclockedNetwork::UnclockedNetwork(sc_module_name name, Network* network) :
   dataIn       = new DataInput[inputs];
   validDataIn  = new ReadyInput[inputs];
   ackDataIn    = new ReadyOutput[inputs];
+
   dataOut      = new DataOutput[outputs];
   validDataOut = new ReadyOutput[outputs];
   ackDataOut   = new ReadyInput[outputs];
@@ -57,6 +58,7 @@ UnclockedNetwork::UnclockedNetwork(sc_module_name name, Network* network) :
   SC_METHOD(dataArrived);
   for(int i=0; i<inputs; i++) sensitive << validDataIn[i].pos();
   dont_initialize();
+
 }
 
 UnclockedNetwork::~UnclockedNetwork() {

@@ -35,7 +35,7 @@ public:
 protected:
 
   SC_HAS_PROCESS(PipelineStage);
-  PipelineStage(sc_module_name name, const ComponentID& ID);
+  PipelineStage(const sc_module_name& name, const ComponentID& ID);
 
 //==============================//
 // Methods

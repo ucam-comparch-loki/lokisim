@@ -18,7 +18,7 @@ void     Cluster::storeData(const std::vector<Word>& data, MemoryAddr location) 
   std::vector<Instruction> instructions;
 
   // Convert all of the words to instructions
-  for(uint i=0; i<data.size(); i++) {
+  for(unsigned int i=0; i<data.size(); i++) {
     if(BYTES_PER_INSTRUCTION > BYTES_PER_WORD) {
       // Need to load multiple words to create each instruction.
       uint32_t first = (uint32_t)data[i].toInt();
@@ -38,36 +38,47 @@ void     Cluster::storeData(const std::vector<Word>& data, MemoryAddr location) 
 const MemoryAddr Cluster::getInstIndex() const   {return fetch.getInstIndex();}
 bool     Cluster::inCache(const MemoryAddr a)    {return fetch.inCache(a);}
 bool     Cluster::roomToFetch() const            {return fetch.roomToFetch();}
-void     Cluster::refetch()                      {decode.refetch();}
+void     Cluster::refetch(const MemoryAddr addr) {decode.fetch(addr, true);}
 void     Cluster::jump(const JumpOffset offset)  {fetch.jump(offset);}
 void     Cluster::setPersistent(bool persistent) {fetch.setPersistent(persistent);}
 
-const int32_t Cluster::readReg(RegisterIndex reg, bool indirect) const {
+const int32_t Cluster::readReg(RegisterIndex reg, bool indirect) {
 
   int32_t result;
 
-  // Check to see if the requested register is one of the previous two
-  // registers written to. If so, we forward the data because the register
-  // might not have been written to yet.
+  // Check to see if the requested register is one which will be written to by
+  // an instruction which is still in the pipeline. If so, we forward the data.
   // Slightly complicated by the possibility of indirect register reads.
   if(reg>0) {
-    if(reg == previousDest1) {
-      if(DEBUG) cout << this->name() << " forwarded contents of register "
-                     << (int)reg << " (" << previousResult1 << ")" << endl;
+    if(reg == execute.currentInstruction().destination()) {
+      // If the instruction in the execute stage will write to the register we
+      // want to read, but it hasn't produced a result yet, wait until
+      // execution completes.
+      if(!execute.currentInstruction().hasResult())
+        wait(execute.executedEvent());
 
-      if(indirect) result = regs.read(previousResult1, false);
-      else         result = previousResult1;
+      result = execute.currentInstruction().result();
+
+      if(DEBUG) cout << this->name() << " forwarded contents of register "
+                     << (int)reg << " (" << result << ")" << endl;
+      Instrumentation::dataForwarded(id, reg);
+
+      if(indirect) result = regs.read(result, false);
     }
-    else if(reg == previousDest2) {
-      if(DEBUG) cout << this->name() << " forwarded contents of register "
-                     << (int)reg << " (" << previousResult2 << ")" << endl;
+    else if(reg == write.currentInstruction().destination()) {
+      // No waiting required this time - if the instruction is in the write
+      // stage, it definitely has a result.
+      result = write.currentInstruction().result();
 
-      if(indirect) result = regs.read(previousResult2, false);
-      else         result = previousResult2;
+      if(DEBUG) cout << this->name() << " forwarded contents of register "
+                     << (int)reg << " (" << result << ")" << endl;
+      Instrumentation::dataForwarded(id, reg);
+
+      if(indirect) result = regs.read(result, false);
     }
     else result = regs.read(reg, indirect);
   }
-  else result = regs.read(reg, indirect);
+  else result = 0;
 
   return result;
 }
@@ -81,53 +92,17 @@ void     Cluster::writeReg(RegisterIndex reg, int32_t value, bool indirect) {
   regs.write(reg, value, indirect);
 }
 
-void     Cluster::checkForwarding(DecodedInst& inst) const {
-  // We don't want to use forwarded data if we read from register 0: this could
-  // mean that there is just no register specified, and we are using an
-  // immediate instead.
-  if(inst.sourceReg1() > 0) {
-    if(inst.sourceReg1() == previousDest1) {
-      inst.operand1(previousResult1);
-      Instrumentation::dataForwarded(id, previousDest1);
-    }
-    else if(inst.sourceReg1() == previousDest2){
-      inst.operand1(previousResult2);
-      Instrumentation::dataForwarded(id, previousDest2);
-    }
+bool     Cluster::readPredReg(bool waitForExecution) {
+  // The wait parameter tells us to wait for the predicate to be written if
+  // the instruction in the execute stage will set it.
+  if(waitForExecution && execute.currentInstruction().setsPredicate()
+                      && !execute.currentInstruction().hasResult()) {
+    wait(execute.executedEvent());
   }
-  if(inst.sourceReg2() > 0) {
-    if(inst.sourceReg2() == previousDest1) {
-      inst.operand2(previousResult1);
-      Instrumentation::dataForwarded(id, previousDest1);
-    }
-    else if(inst.sourceReg2() == previousDest2) {
-      inst.operand2(previousResult2);
-      Instrumentation::dataForwarded(id, previousDest2);
-    }
-  }
+
+  return pred.read();
 }
 
-void     Cluster::updateForwarding(const DecodedInst& inst) {
-  // Should this update happen every cycle, or every time the forwarding is
-  // updated?
-  previousDest2   = previousDest1;
-  previousResult2 = previousResult1;
-  previousDest1   = -1;
-
-  if(!InstructionMap::storesResult(inst.operation())) return;
-
-  // We don't want to forward any data which was sent to register 0, because
-  // r0 doesn't store values: it is a constant.
-  // We also don't want to forward data after an indirect write, as the data
-  // won't have been stored in the destination register -- it will have been
-  // stored in the register the destination register was pointing to.
-  previousDest1   = (inst.destination() == 0 ||
-                     inst.operation() == InstructionMap::IWTR)
-                  ? -1 : inst.destination();
-  previousResult1 = inst.result();
-}
-
-bool     Cluster::readPredReg() const     {return pred.read();}
 void     Cluster::writePredReg(bool val)  {pred.write(val);}
 
 const Word Cluster::readWord(MemoryAddr addr) const {
@@ -157,6 +132,7 @@ void     Cluster::updateCurrentPacket(MemoryAddr addr) {
 void     Cluster::pipelineStalled(bool stalled) {
   // Instrumentation is done at the source of the stall, so isn't needed here.
   currentlyStalled = stalled;
+  stallEvent.notify();
 
   if(DEBUG) {
     cout << this->name() << ": pipeline " << (stalled ? "stalled" : "unstalled") << endl;
@@ -180,9 +156,9 @@ void     Cluster::updateIdle() {
     }
   }
 
-  // Is this what we really want?
-  if(wasIdle != (isIdle || currentlyStalled))
-    idle.write(isIdle || currentlyStalled);
+  // Is this what we really want (including stall state in an idle signal)?
+  if((isIdle || currentlyStalled) != idle.read())
+  	idle.write(isIdle || currentlyStalled);
 
   if(wasIdle != isIdle) Instrumentation::idle(id, isIdle);
 }
@@ -219,14 +195,14 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
   stageIdle     = new sc_signal<bool>[4];
   stallRegReady = new sc_signal<bool>[3];
   stageReady    = new sc_signal<bool>[3];
-  dataToStage   = new flag_signal<DecodedInst>[3];
-  dataFromStage = new sc_buffer<DecodedInst>[3];
+  instToStage   = new flag_signal<DecodedInst>[3];
+  instFromStage = new sc_buffer<DecodedInst>[3];
 
   fcFromBuffers = new sc_signal<bool>[CORE_INPUT_CHANNELS];
   dataToBuffers = new sc_buffer<Word>[CORE_INPUT_CHANNELS];
 
   // Wire the input ports to the input buffers.
-  for(uint i=0; i<CORE_INPUT_PORTS; i++) {
+  for(unsigned int i=0; i<CORE_INPUT_PORTS; i++) {
     inputCrossbar->dataIn[i](dataIn[i]);
     inputCrossbar->validDataIn[i](validDataIn[i]);
     inputCrossbar->ackDataIn[i](ackDataIn[i]);
@@ -236,7 +212,7 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
   inputCrossbar->validCreditOut[0](validCreditOut[0]);
   inputCrossbar->ackCreditOut[0](ackCreditOut[0]);
 
-  for(uint i=0; i<CORE_INPUT_CHANNELS; i++) {
+  for(unsigned int i=0; i<CORE_INPUT_CHANNELS; i++) {
     inputCrossbar->dataOut[i](dataToBuffers[i]);
     inputCrossbar->bufferHasSpace[i](fcFromBuffers[i]);
   }
@@ -246,16 +222,18 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
   inputCrossbar->dataClock(slowClock);
 
   // Wire the stall registers up.
-  for(uint i=0; i<3; i++) {
+  for(unsigned int i=0; i<3; i++) {
     StallRegister* stallReg = new StallRegister(sc_core::sc_gen_unique_name("stall"), i);
 
     stallReg->clock(clock);               stallReg->readyOut(stallRegReady[i]);
-    stallReg->dataIn(dataFromStage[i]);   stallReg->dataOut(dataToStage[i]);
+    stallReg->dataIn(instFromStage[i]);   stallReg->dataOut(instToStage[i]);
     stallReg->localStageReady(stageReady[i]);
 
-    // The final stall register gets a different ready signal.
-    if(i < 2) stallReg->readyIn(stallRegReady[i+1]);
-    else      stallReg->readyIn(constantHigh);
+    // Allow instant propagation from the final stall register to all previous
+    // ones. This is required to stop a decoder-only instruction accidentally
+    // executing when the pipeline is stalled.
+    if(i < 2) stallReg->readyIn(stallRegReady[2]);
+    else 			stallReg->readyIn(constantHigh);
 
     stallRegs.push_back(stallReg);
   }
@@ -265,24 +243,24 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
   fetch.clock(clock);                     fetch.idle(stageIdle[0]);
   fetch.toIPKFIFO(dataToBuffers[0]);      fetch.flowControl[0](fcFromBuffers[0]);
   fetch.toIPKCache(dataToBuffers[1]);     fetch.flowControl[1](fcFromBuffers[1]);
-  fetch.readyIn(stallRegReady[0]);        fetch.dataOut(dataFromStage[0]);
+  fetch.readyIn(stallRegReady[0]);				fetch.dataOut(instFromStage[0]);
 
   decode.clock(clock);                    decode.idle(stageIdle[1]);
   decode.fetchOut(fetchSignal);
   decode.flowControlIn(stageReady[2]); // Flow control from output buffers
-  decode.readyIn(stallRegReady[1]);       decode.dataOut(dataFromStage[1]);
-  decode.readyOut(stageReady[0]);         decode.dataIn(dataToStage[0]);
+  decode.readyIn(stallRegReady[1]);       decode.dataOut(instFromStage[1]);
+  decode.readyOut(stageReady[0]);         decode.dataIn(instToStage[0]);
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     decode.rcetIn[i](dataToBuffers[i+2]);
     decode.flowControlOut[i](fcFromBuffers[i+2]);
   }
 
   execute.clock(clock);                   execute.idle(stageIdle[2]);
-  execute.readyOut(stageReady[1]);        execute.dataIn(dataToStage[1]);
-  execute.dataOut(dataFromStage[2]);
+  execute.readyOut(stageReady[1]);        execute.dataIn(instToStage[1]);
+  execute.dataOut(instFromStage[2]);
 
   write.clock(clock);                     write.idle(stageIdle[3]);
-  write.readyOut(stageReady[2]);          write.dataIn(dataToStage[2]);
+  write.readyOut(stageReady[2]);          write.dataIn(instToStage[2]);
   write.fromFetchLogic(fetchSignal);
 
   for(unsigned int i=0; i<CORE_OUTPUT_PORTS; i++) {
@@ -292,7 +270,8 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
   }
 
   SC_METHOD(updateIdle);
-  for(uint i=0; i<4; i++) sensitive << stageIdle[i];
+  for(unsigned int i=0; i<4; i++) sensitive << stageIdle[i];
+  sensitive << stallEvent;
   // do initialise
 
   // Initialise the values in some wires.
@@ -303,9 +282,9 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
 Cluster::~Cluster() {
   delete inputCrossbar;
 
-  delete[] stageIdle;     delete[] stallRegReady;  delete[] stageReady;
+  delete[] stageIdle;  		delete[] stallRegReady;  delete[] stageReady;
   delete[] dataToBuffers; delete[] fcFromBuffers;
-  delete[] dataToStage;   delete[] dataFromStage;
+  delete[] instToStage;  	delete[] instFromStage;
 
-  for(uint i=0; i<stallRegs.size(); i++) delete stallRegs[i];
+  for(unsigned int i=0; i<stallRegs.size(); i++) delete stallRegs[i];
 }

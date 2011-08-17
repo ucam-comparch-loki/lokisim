@@ -17,8 +17,6 @@
 #include "InstructionPacketFIFO.h"
 #include "../../../Datatype/Instruction.h"
 
-class DecodedInst;
-
 class FetchStage : public PipelineStage {
 
 //==============================//
@@ -64,9 +62,6 @@ public:
 
 public:
 
-  virtual double area()   const;
-  virtual double energy() const;
-
   // Store some instructions in the Instruction Packet Cache.
   void          storeCode(const std::vector<Instruction>& instructions);
 
@@ -106,7 +101,7 @@ private:
 
   // We have overwritten the packet due to execute next, so it needs to be
   // fetched again.
-  void          refetch() const;
+  void          refetch(const MemoryAddr addr) const;
 
 //==============================//
 // Components

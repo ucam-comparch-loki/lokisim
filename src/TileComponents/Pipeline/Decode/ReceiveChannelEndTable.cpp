@@ -23,7 +23,7 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
   int32_t result = buffers.read(channelEnd).toInt();
   bufferEvent[channelEnd].notify();
 
-  if(DEBUG) cout << this->name() << " read " << result << " from channel "
+  if(DEBUG) cout << this->name() << " read " << result << " from buffer "
                  << (int)channelEnd << endl;
 
   return result;

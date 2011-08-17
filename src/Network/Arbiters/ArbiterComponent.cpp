@@ -198,19 +198,19 @@ ArbiterComponent::ArbiterComponent(const sc_module_name& name, const ComponentID
     wormhole(wormhole)
 {
 
-	activeTransfers = 0;
-	numValidInputs  = inputs;  // Will be taken down to 0 immediately
-	lastAccepted    = inputs - 1;
+  activeTransfers = 0;
+  numValidInputs  = inputs;  // Will be taken down to 0 immediately
+  lastAccepted    = inputs - 1;
 
-	dataIn          = new sc_in<AddressedWord>[inputs];
-	validDataIn     = new sc_in<bool>[inputs];
-	ackDataIn       = new sc_out<bool>[inputs];
+  dataIn          = new sc_in<AddressedWord>[inputs];
+  validDataIn     = new sc_in<bool>[inputs];
+  ackDataIn       = new sc_out<bool>[inputs];
 
-	dataOut         = new sc_out<AddressedWord>[outputs];
-	validDataOut    = new sc_out<bool>[outputs];
-	ackDataOut      = new sc_in<bool>[outputs];
+  dataOut         = new sc_out<AddressedWord>[outputs];
+  validDataOut    = new sc_out<bool>[outputs];
+  ackDataOut      = new sc_in<bool>[outputs];
 
-	sendAckEvent    = new sc_core::sc_event[inputs];
+  sendAckEvent    = new sc_core::sc_event[inputs];
 
   inUse           = new bool[outputs];
   for(int i=0; i<outputs; i++) inUse[i] = false;
@@ -220,27 +220,27 @@ ArbiterComponent::ArbiterComponent(const sc_module_name& name, const ComponentID
   alreadySeen     = new bool[inputs];
   for(int i=0; i<inputs; i++) alreadySeen[i] = false;
 
-	if(wormhole) {
+  if(wormhole) {
     reservations    = new unsigned int[inputs];
     reserved        = new bool[outputs];
 
     for(int i=0; i<inputs; i++)  reservations[i] = NO_RESERVATION;
     for(int i=0; i<outputs; i++) reserved[i] = false;
-	}
+  }
 
-	state = WAITING_FOR_DATA;
+  state = WAITING_FOR_DATA;
 
-	// Start arbitrating when data arrives.
-	SC_METHOD(arbiterLoop);
-	sensitive << newDataEvent;
-	dont_initialize();
+  // Start arbitrating when data arrives.
+  SC_METHOD(arbiterLoop);
+  sensitive << newDataEvent;
+  dont_initialize();
 
-	SC_METHOD(receivedAck);
-	for(int i=0; i<outputs; i++) sensitive << ackDataOut[i].pos();
-	dont_initialize();
+  SC_METHOD(receivedAck);
+  for(int i=0; i<outputs; i++) sensitive << ackDataOut[i].pos();
+  dont_initialize();
 
   // Generate a method to watch each input port, keeping track of when there is
-	// at least one port with valid data.
+  // at least one port with valid data.
   for(int i=0; i<inputs; i++) {
     sc_core::sc_spawn_options options;
     options.spawn_method();     // Want an efficient method, not a thread
@@ -260,21 +260,21 @@ ArbiterComponent::ArbiterComponent(const sc_module_name& name, const ComponentID
     sc_spawn(sc_bind(&ArbiterComponent::sendAck, this, i), 0, &options);
   }
 
-	end_module();
+  end_module();
 }
 
 ArbiterComponent::~ArbiterComponent() {
-	delete[] dataIn;	delete[] validDataIn;	  delete[] ackDataIn;
-	delete[] dataOut;	delete[] validDataOut;	delete[] ackDataOut;
+  delete[] dataIn;  delete[] validDataIn;   delete[] ackDataIn;
+  delete[] dataOut; delete[] validDataOut;  delete[] ackDataOut;
 
-	delete[] sendAckEvent;
+  delete[] sendAckEvent;
 
   delete[] inUse;
   delete[] ackDestinations;
   delete[] alreadySeen;
 
-	if(wormhole) {
-	  delete[] reservations;
-	  delete[] reserved;
-	}
+  if(wormhole) {
+    delete[] reservations;
+    delete[] reserved;
+  }
 }

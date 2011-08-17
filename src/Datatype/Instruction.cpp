@@ -46,7 +46,7 @@ const short startSetPred   = startPredicate + 2;  // 63
 const short end            = startSetPred + 1;    // 64
 
 /* Public getter methods */
-uint8_t Instruction::opcode() const {
+opcode_t Instruction::opcode() const {
   return getBits(startOpcode, startPredicate-1);
 }
 
@@ -111,7 +111,8 @@ Instruction::Instruction(const Word& other) : Word(other) {
 Instruction::Instruction(const uint64_t inst) : Word(inst) {
   // Need to change the opcode representation in case it has changed
   // internally.
-  opcode(InstructionMap::opcode(InstructionMap::name(opcode())));
+  operation_t temp = static_cast<operation_t>(opcode());
+  opcode(InstructionMap::opcode(InstructionMap::name(temp)));
 }
 
 Instruction::Instruction(const string& inst) {
@@ -131,7 +132,7 @@ Instruction::Instruction(const string& inst) {
   // Split around "->" to see if there is a remote channel specified
   words = Strings::split(words.front(), '>');
   if(words.size() > 1) {
-    remoteChannel(decodeRChannel(words[1]));
+    remoteChannel(decodeImmediate(words[1]));
     words.front().erase(words.front().end()-1); // Remove the "-" from "->"
   }
   else remoteChannel(NO_CHANNEL);
@@ -159,7 +160,7 @@ Instruction::Instruction(const string& inst) {
   setFields(reg1, reg2, reg3);
 
   // Perform a small check to catch a possible problem.
-  string nop("nop");
+  static const string nop("nop");
   if(opcode() == InstructionMap::opcode(nop)) {
     if(reg1 != 0 || reg2 != 0 || reg3 != 0 || remoteChannel() != NO_CHANNEL) {
       cerr << "Warning: possible invalid instruction: " << *this
@@ -171,7 +172,7 @@ Instruction::Instruction(const string& inst) {
 }
 
 /* Private setter methods */
-void Instruction::opcode(const uint8_t val) {
+void Instruction::opcode(const opcode_t val) {
   setBits(startOpcode, startPredicate-1, val);
 }
 
@@ -248,7 +249,7 @@ RegisterIndex Instruction::decodeField(const string& str) {
 
   // Use decodeRChannel to allow the immediate to be written in remote
   // channel notation: (12,2).
-  immediate(decodeRChannel(reg));
+  immediate(decodeImmediate(reg));
   return 0;
 
 }
@@ -294,14 +295,22 @@ void Instruction::decodeOpcode(const string& name) {
     else setsPredicate(false);
   }
 
+  string opname = opcodeParts.front();
+  // If the "opcode" is an assembly label.
+  if(opname[opname.length()-1] == ':') {
+    delete &opcodeParts;
+    throw InvalidInstructionException();
+  }
+
   // Look up operation in InstructionMap
   try {
-    short op = InstructionMap::opcode(opcodeParts.front());
+    short op = InstructionMap::opcode(opname);
     opcode(op);
   }
   catch(std::exception& e) {
-    // Not a valid operation name.
-    if(DEBUG) cerr << "Error: invalid operation name: " << name << endl;
+    // Not a valid operation name (and not a label).
+    if(DEBUG) cerr << "Error: invalid operation name: " << opname << endl;
+    delete &opcodeParts;
     throw InvalidInstructionException();
   }
 
@@ -309,18 +318,43 @@ void Instruction::decodeOpcode(const string& name) {
 
 }
 
-/* Set the remote channel field depending on the contents of the given string.
- * The string may contain an integer, a triple of integers in the form
- * (x,y,z), representing a component and one of its input channels, or a
- * quadruple (x,y,z,s) referencing a virtual memory group.
- * Returns a signed int because this method is also used to decode immediates. */
-int32_t Instruction::decodeRChannel(const string& channel) {
-	vector<string>& parts = Strings::split(channel, ',');
-	int32_t channelID;
+/* Parse a number of possible notations for immediates.
+ * The string may contain:
+ *  - an integer,
+ *  - a tuple in the form (mxxxxxxxx, y), representing a multicast address and
+ *    the input channel to use,
+ *  - a triple of integers in the form (x,y,z), representing a component and
+ *    one of its input channels,
+ *  - a 5-tuple (x,y,z,s,t) referencing a virtual memory group. */
+int32_t Instruction::decodeImmediate(const string& immed) {
+	vector<string>& parts = Strings::split(immed, ',');
+	int32_t value;
 
 	if (parts.size() == 1) {
-		channelID = Strings::strToInt(parts[0]);
+	  // Plain integer - just parse it.
+		value = Strings::strToInt(parts[0]);
+	} else if (parts.size() == 2) {
+	  // This should be a multicast address - no tile ID is needed.
+	  // Strings should be of the form "(m01010110", and "channel)"
+
+	  assert(parts[0][1] == 'm');
+
+    parts[0].erase(0,2);                        // Remove the bracket and the m
+    parts[1].erase(parts[1].end()-1);           // Remove the bracket
+
+    assert(parts[0].length() == CORES_PER_TILE);
+
+    int mcastAddress = 0;
+    int channel = Strings::strToInt(parts[1]);
+
+    for(unsigned int i=0; i < CORES_PER_TILE; i++) {
+      int shiftAmount = CORES_PER_TILE - i - 1;
+      if(parts[0][i] == '1') mcastAddress |= (1 << shiftAmount);
+    }
+
+    value = ChannelID(0, mcastAddress, channel, true).getData();
 	} else if (parts.size() == 3) {
+
 		// We should now have strings of the form "(x", "y" and "z)"
 
 		parts[0].erase(parts[0].begin());           // Remove the bracket
@@ -333,10 +367,7 @@ int32_t Instruction::decodeRChannel(const string& channel) {
 		ComponentID checkID(tile, position);
 		assert(checkID.isCore() && channelIndex < (int)CORE_INPUT_CHANNELS);
 
-		// Encoded entry format:
-		// | Tile : 12 | Position : 8 | Channel : 4 | Memory group bits : 4 | Memory line bits : 4 |
-
-		channelID = (tile << 20) | (position << 12) | (channelIndex << 8);
+		value = ChannelID(tile, position, channelIndex).getData();
 	} else if (parts.size() == 5) {
 		// We should now have strings of the form "(x", "y", "z", "s" and "t)"
 
@@ -358,15 +389,15 @@ int32_t Instruction::decodeRChannel(const string& channel) {
 		// Encoded entry format:
 		// | Tile : 12 | Position : 8 | Channel : 4 | Memory group bits : 4 | Memory line bits : 4 |
 
-		channelID = (tile << 20) | (position << 12) | (channelIndex << 8) | (groupBits << 4) | lineBits;
+		value = ChannelID(tile, position, channelIndex).getData() | (groupBits << 4) | lineBits;
 	} else {
 		// Invalid format
-	  cerr << "Error: invalid tuple length: " << channel << endl;
+	  cerr << "Error: invalid tuple length: " << immed << endl;
 		assert(false);
 	}
 
 	delete &parts;
-	return channelID;
+	return value;
 }
 
 void Instruction::setFields(const RegisterIndex reg1, const RegisterIndex reg2,

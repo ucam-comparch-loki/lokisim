@@ -9,7 +9,6 @@
 #include "../Datatype/AddressedWord.h"
 #include "../Network/FlowControl/FlowControlIn.h"
 #include "../Network/Topologies/Crossbar.h"
-#include "../Network/UnclockedNetwork.h"
 #include "../TileComponents/TileComponent.h"
 
 const unsigned int InputCrossbar::numInputs = CORE_INPUT_PORTS;

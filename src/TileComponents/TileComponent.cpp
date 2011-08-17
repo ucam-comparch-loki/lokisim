@@ -12,6 +12,9 @@
 #include "../Datatype/AddressedWord.h"
 #include "../Datatype/ChannelID.h"
 
+int TileComponent::numInputs()  const {return numInputPorts;}
+int TileComponent::numOutputs() const {return numOutputPorts;}
+
 void TileComponent::print(MemoryAddr start, MemoryAddr end) const {
   // Do nothing if print isn't defined
 }

@@ -49,7 +49,7 @@ class SimulatorTest(unittest.TestCase):
             
     # Wait a given number of clock cycles.
     def wait(self, numCycles):
-        for i in range(1,numCycles):
+        for i in range(numCycles):
             self._runCommand("")
     
     # Return the execution time so far.

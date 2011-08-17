@@ -130,7 +130,7 @@ void FlowControlIn::creditLoop() {
         next_trigger(newCredit);
         return;
       }
-
+      
       assert(useCredits);
 
       // Information can only be sent onto the network at a positive clock edge.
@@ -197,13 +197,13 @@ FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const C
     Component(name, ID),
     channel(channelManaged)
 {
-	returnAddress = -1;
-	useCredits = true;
-	numCredits = 0;
+  returnAddress = -1;
+  useCredits = true;
+  numCredits = 0;
 
-	dataState   = WAITING_FOR_DATA;
-	creditState = NO_CREDITS;
+  dataState   = WAITING_FOR_DATA;
+  creditState = NO_CREDITS;
 
-	SC_METHOD(dataLoop);
-	SC_METHOD(creditLoop);
+  SC_METHOD(dataLoop);
+  SC_METHOD(creditLoop);
 }
