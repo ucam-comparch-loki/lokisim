@@ -20,11 +20,9 @@ class ALUTest(mod.SimulatorTest):
         self.execute(0, "subu  r11 r0 r10")
         self.execute(0, "addui r2 r0 -1")
         self.execute(0, "mullw r12 r11 r2")
-        self.execute(0, "rsubi r13 r11 0")
         self.assertEqual(bigNum,  self.readReg(0,10), "addui")
         self.assertEqual(-bigNum, self.readReg(0,11), "subu")
         self.assertEqual(bigNum,  self.readReg(0,12), "mullw")
-        self.assertEqual(bigNum,  self.readReg(0,13), "rsubi")
         
         # Multiplication with long results.
         # Not 100% confident that the test for mulhwu is correct, because
@@ -56,16 +54,10 @@ class ALUTest(mod.SimulatorTest):
         self.execute(0, "and r8 r5 r6")
         self.execute(0, "nor r9 r5 r6")
         self.execute(0, "xor r12 r5 r6")
-        self.execute(0, "nand r13 r5 r6")
-        self.execute(0, "clr r14 r5 r6")
-        self.execute(0, "orc r15 r5 r6")
         self.assertEqual(  r5 |  r6,  self.readReg(0,7),  "or")
         self.assertEqual(  r5 &  r6,  self.readReg(0,8),  "and")
         self.assertEqual(~(r5 |  r6), self.readReg(0,9),  "nor")
         self.assertEqual(  r5 ^  r6,  self.readReg(0,12), "xor")
-        self.assertEqual(~(r5 &  r6), self.readReg(0,13), "nand")
-        self.assertEqual(  r5 & ~r6,  self.readReg(0,14), "clr")
-        self.assertEqual(  r5 | ~r6,  self.readReg(0,15), "orc")
         
         # Other.
         self.execute(0, "popc r5 r10")

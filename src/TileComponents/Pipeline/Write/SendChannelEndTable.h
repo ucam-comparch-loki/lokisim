@@ -13,11 +13,18 @@
 #include "../../../Component.h"
 #include "../../../Memory/BufferArray.h"
 #include "../../../Datatype/MemoryRequest.h"
-#include "../../ChannelMapEntry.h"
 
 class AddressedWord;
+class ChannelMapTable;
 class DecodedInst;
 class Word;
+class WriteStage;
+
+// Into the output buffers, we store both the data to send, and its associated
+// channel map table entry. This increases the buffer width by 4 bits, but
+// allows the pipeline to continue for longer, as credits can be checked as
+// late as possible.
+typedef std::pair<AddressedWord, MapIndex> BufferedInfo;
 
 class SendChannelEndTable: public Component {
 
@@ -46,7 +53,7 @@ public:
 public:
 
   SC_HAS_PROCESS(SendChannelEndTable);
-  SendChannelEndTable(sc_module_name name, const ComponentID& ID);
+  SendChannelEndTable(sc_module_name name, const ComponentID& ID, ChannelMapTable* cmt);
   virtual ~SendChannelEndTable();
 
 //==============================//
@@ -68,7 +75,7 @@ public:
 
   // A handle for an event which triggers whenever the send channel-end table
   // might stall or unstall.
-  const sc_core::sc_event& stallChangedEvent() const;
+  const sc_event& stallChangedEvent() const;
 
 private:
 
@@ -82,14 +89,15 @@ private:
   void          sendToMemories();
   void          sendOffTile();
 
-  // Update an entry in the channel mapping table.
-  void          updateMap(MapIndex entry, int64_t newVal);
-
   // Stall the pipeline until the channel specified is empty.
   void          waitUntilEmpty(MapIndex channel);
 
   // Execute a memory operation.
-  bool          executeMemoryOp(MapIndex entry, MemoryRequest::MemoryOperation memoryOp, int64_t data);
+  bool          executeMemoryOp(MapIndex entry, MemoryRequest::MemoryOperation memoryOp,
+                                int64_t data, ChannelID destination);
+
+  // Generate a port claim message to send whenever a new connection is set up.
+  void          createPortClaim(MapIndex channel);
 
   // A credit was received, so update the corresponding credit counter.
   void          receivedCredit(unsigned int buffer);
@@ -97,6 +105,8 @@ private:
   void          creditFromCores();
   void          creditFromMemories(); // For consistency only. Should be unused.
   void          creditFromOffTile();
+
+  WriteStage*   parent() const;
 
 //==============================//
 // Local state
@@ -106,23 +116,16 @@ private:
 
   // Use a different buffer depending on the destination to avoid deadlock,
   // and allow different flow control, etc.
-  static const unsigned int TO_CORES = 0;
-  static const unsigned int TO_MEMORIES = 1;
-  static const unsigned int OFF_TILE = 2;
-
+  enum BufferIndex {TO_CORES = 0, TO_MEMORIES = 1, OFF_TILE = 2};
   static const unsigned int NUM_BUFFERS = 3;
 
-  // A buffer for outgoing data.
-  BufferArray<AddressedWord> buffers;
+  // Buffers for storing outgoing data. One buffer for each network.
+  BufferArray<BufferedInfo> buffers;
 
-  // Store the map index associated with each entry in the main buffer, so we
-  // know where to take credits from, etc.
-  BufferArray<MapIndex>      mapEntries;
-
-  // Channel mapping table used to store addresses of destinations of sent
-  // data. Note that mapping 0 is held both here and in the decode stage --
-  // it may be possible to optimise this away at some point.
-  vector<ChannelMapEntry>    channelMap;
+  // A pointer to this core's channel map table. The table itself is in the
+  // Cluster class. No reading or writing of destinations should occur here -
+  // this part of the core should only deal with credits.
+  ChannelMapTable* channelMapTable;
 
   // Currently waiting for some event to occur. (e.g. Credits to arrive or
   // buffer to empty.)
@@ -130,8 +133,8 @@ private:
 
   // An event for each buffer, which is triggered whenever data is inserted
   // into the buffer.
-  sc_core::sc_event* dataToSendEvent;   // array
-  sc_core::sc_event  bufferFillChanged;
+  sc_event* dataToSendEvent;   // array
+  sc_event  bufferFillChanged;
 
   // Used to tell that we are not currently waiting for any output buffers
   // to empty.

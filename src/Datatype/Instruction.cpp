@@ -247,7 +247,7 @@ RegisterIndex Instruction::decodeField(const string& str) {
 
   // Check that this instruction should have an immediate?
 
-  // Use decodeRChannel to allow the immediate to be written in remote
+  // Use decodeImmediate to allow the immediate to be written in remote
   // channel notation: (12,2).
   immediate(decodeImmediate(reg));
   return 0;
@@ -407,11 +407,7 @@ void Instruction::setFields(const RegisterIndex reg1, const RegisterIndex reg2,
   switch(operation) {
 
     // Single source, no destination.
-    case InstructionMap::STWADDR :
-    case InstructionMap::STBADDR :
-    case InstructionMap::RMTFETCH :
-    case InstructionMap::RMTFETCHPST :
-    case InstructionMap::RMTFILL : {
+    case InstructionMap::FILL : {
       sourceReg1(reg1);
       break;
     }

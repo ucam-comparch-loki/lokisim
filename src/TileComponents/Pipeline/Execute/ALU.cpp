@@ -65,17 +65,11 @@ bool ALU::execute(DecodedInst& dec) const {
     case InstructionMap::XOR:
     case InstructionMap::XORI:     result = val1 ^ val2; break;
 
-    case InstructionMap::NAND:     result = ~(val1 & val2); break;
-    case InstructionMap::CLR:      result = val1 & ~val2; break;
-    case InstructionMap::ORC:      result = val1 | ~val2; break;
     case InstructionMap::POPC:     result = __builtin_popcount(val1); break;
-    case InstructionMap::RSUBI:    result = val2 - val1; break;
 
     case InstructionMap::LDW:
     case InstructionMap::LDHWU:
     case InstructionMap::LDBU:
-    case InstructionMap::STWADDR:
-    case InstructionMap::STBADDR:
     case InstructionMap::ADDU:
     case InstructionMap::ADDUI:  result = val1 + val2; break;
     case InstructionMap::SUBU:   result = val1 - val2; break;
@@ -108,15 +102,9 @@ bool ALU::execute(DecodedInst& dec) const {
 
       // The 68k and x86 set the borrow bit if a - b < 0 for subtractions.
       // The 6502 and PowerPC treat it as a carry bit.
-      // http://en.wikipedia.org/wiki/Carry_flag
+      // http://en.wikipedia.org/wiki/Carry_flag#Carry_flag_vs._Borrow_flag
       case InstructionMap::SUBU: {
         int64_t result64 = (int64_t)val1 - (int64_t)val2;
-        newPredicate = (result64 > INT_MAX) || (result64 < INT_MIN);
-        break;
-      }
-
-      case InstructionMap::RSUBI: {
-        int64_t result64 = (int64_t)val2 - (int64_t)val1;
         newPredicate = (result64 > INT_MAX) || (result64 < INT_MIN);
         break;
       }

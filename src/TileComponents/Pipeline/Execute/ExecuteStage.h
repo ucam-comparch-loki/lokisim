@@ -75,6 +75,8 @@ private:
   // The task performed when a new operation is received.
   virtual void newInput(DecodedInst& operation);
 
+  void setChannelMap(MapIndex entry, uint32_t value);
+
   virtual bool isStalled() const;
 
   // Read the predicate register.

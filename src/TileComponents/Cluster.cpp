@@ -185,9 +185,8 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
     fetch("fetch", ID),
     decode("decode", ID),
     execute("execute", ID),
-    write("write", ID) {
-
-  previousDest1 = previousDest2 = -1;
+    write("write", ID),
+    channelMapTable("channel_map_table", ID) {
 
   inputCrossbar = new InputCrossbar("input_crossbar", ID);
 
@@ -232,6 +231,7 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
     // Allow instant propagation from the final stall register to all previous
     // ones. This is required to stop a decoder-only instruction accidentally
     // executing when the pipeline is stalled.
+    // TODO: for the first stall register, get the AND of the two ready signals.
     if(i < 2) stallReg->readyIn(stallRegReady[2]);
     else 			stallReg->readyIn(constantHigh);
 

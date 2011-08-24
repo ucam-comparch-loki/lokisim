@@ -13,5 +13,5 @@ loader ../test_local/loader_0032.txt
 
 
 %% The benchmark to run (if we aren't supplying one on the command line).
-%loader rgb2yuv/dataflow/loader.txt
+%loader mat_mult/simd/loader.txt
 %../test_local/fact3

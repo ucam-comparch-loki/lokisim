@@ -14,6 +14,7 @@
 
 #include "../PipelineStage.h"
 #include "SendChannelEndTable.h"
+#include "../../ChannelMapEntry.h"
 #include "../../../Datatype/DecodedInst.h"
 
 class WriteStage: public PipelineStage {

@@ -6,6 +6,8 @@
  */
 
 #include "SendChannelEndTable.h"
+#include "WriteStage.h"
+#include "../ChannelMapTable.h"
 #include "../../TileComponent.h"
 #include "../../../Datatype/AddressedWord.h"
 #include "../../../Datatype/DecodedInst.h"
@@ -14,31 +16,30 @@
 #include "../../../Utility/Instrumentation/Stalls.h"
 
 bool SendChannelEndTable::write(const DecodedInst& dec) {
-	if (dec.operation() == InstructionMap::SETCHMAP) {
-		updateMap(dec.immediate(), dec.result());
-		return true;
-	} else if (dec.operation() == InstructionMap::WOCHE) {
+	if(dec.operation() == InstructionMap::SETCHMAP) {
+	  // Send out a port claim message if we have just set up a new connection.
+	  createPortClaim(dec.immediate());
+	}
+  else if (dec.operation() == InstructionMap::WOCHE) {
 		waitUntilEmpty(dec.result());
-		return true;
-	} else if (dec.channelMapEntry() != Instruction::NO_CHANNEL && !channelMap[dec.channelMapEntry()].destination().isNullMapping()) {
-		return executeMemoryOp(dec.channelMapEntry(), (MemoryRequest::MemoryOperation)dec.memoryOp(), dec.result());
+	} else if (dec.channelMapEntry() != Instruction::NO_CHANNEL && !dec.networkDestination().isNullMapping()) {
+		return executeMemoryOp(dec.channelMapEntry(), (MemoryRequest::MemoryOperation)dec.memoryOp(), dec.result(), dec.networkDestination());
 	}
 	
 	return true;
 }
 
 bool SendChannelEndTable::write(const AddressedWord& data, MapIndex output) {
-  unsigned int bufferToUse = (int)(channelMap[output].network());
+  unsigned int bufferToUse = (int)channelMapTable->getNetwork(output);
 
   // We know it is safe to write to any buffer because we block the rest
   // of the pipeline if a buffer is full.
   assert(!buffers[bufferToUse].full());
   assert(output < CHANNEL_MAP_SIZE);
 
-  buffers[bufferToUse].write(data);
+  buffers[bufferToUse].write(BufferedInfo(data, output));
   dataToSendEvent[bufferToUse].notify();
   bufferFillChanged.notify();
-  mapEntries[bufferToUse].write(output);
 
   if(DEBUG) cout << this->name() << " wrote " << data
                  << " to output buffer " << bufferToUse << endl;
@@ -60,10 +61,10 @@ bool SendChannelEndTable::full() const {
 
 ComponentID SendChannelEndTable::getSystemCallMemory() const {
 	//TODO: Implement this in a tidy way
-	return channelMap[1].destination().getComponentID();
+	return channelMapTable->read(1).getComponentID();
 }
 
-const sc_core::sc_event& SendChannelEndTable::stallChangedEvent() const {
+const sc_event& SendChannelEndTable::stallChangedEvent() const {
   return bufferFillChanged;
 }
 
@@ -88,28 +89,26 @@ void SendChannelEndTable::sendLoop(unsigned int buffer) {
     // If we are not receiving an acknowledgement, we must have data to send.
     assert(!buffers[buffer].empty());
 
-    // Data can only be sent onto the network at the positive clock edge.
-    if(!clock.posedge())
-      next_trigger(clock.posedge_event());
-    else
+//    // Data can only be sent onto the network at the positive clock edge.
+//    if(!clock.posedge())
+//      next_trigger(clock.posedge_event());
+//    else
       send(buffer);
   }
 }
 
 void SendChannelEndTable::send(unsigned int buffer) {
   assert(!buffers[buffer].empty());
-  assert(clock.posedge());
 
-  MapIndex entry = mapEntries[buffer].peek();
+  MapIndex entry = buffers[buffer].peek().second;
 
   // If we don't have enough credits, abandon sending the data.
-  if(!channelMap[entry].canSend()) {
+  if(!channelMapTable->canSend(entry)) {
     next_trigger(clock.posedge_event());
     return;
   }
 
-  AddressedWord data = buffers[buffer].read();
-  entry = mapEntries[buffer].read(); // Need to remove from the buffer after peeking earlier.
+  AddressedWord data = buffers[buffer].read().first;
 
   if(DEBUG) cout << "Sending " << data.payload()
       << " from " << ChannelID(id, (int)entry) << " to "
@@ -117,89 +116,11 @@ void SendChannelEndTable::send(unsigned int buffer) {
 
   output[buffer].write(data);
   validOutput[buffer].write(true);
-  channelMap[entry].removeCredit();
+  channelMapTable->removeCredit(entry);
 
   bufferFillChanged.notify();
 
   next_trigger(ackOutput[buffer].posedge_event());
-}
-
-/* Update an entry in the channel mapping table. */
-void SendChannelEndTable::updateMap(MapIndex entry, int64_t newVal) {
-	assert(entry < CHANNEL_MAP_SIZE);
-
-	// All data sent to previous destinations must have been consumed before
-	// we can change the destination. Stateless connections not using credits
-	// are managed implicitely by the channel map table entry.
-
-	if (!channelMap[entry].haveAllCredits())
-		waitUntilEmpty(entry);
-
-	// There are two separate scenarios to handle:
-	// If the destination is a memory, the entry is referring to the first
-	// bank in the memory group and carries the group size. If it is referring
-	// to a core imitating a memory it needs to be set up like a regular
-	// core to core connection.
-
-	// Encoded entry format:
-	// | Tile : 12 | Position : 8 | Channel : 4 | Memory group bits : 4 | Memory line bits : 4 |
-
-	uint32_t encodedEntry = (uint32_t)newVal;
-	bool multicast    = (encodedEntry >> 28) & 0x1UL;
-	// Hack: tile shouldn't be necessary for multicast addresses
-	uint newTile      = multicast ? id.getTile() : ((encodedEntry >> 20) & 0xFFUL);
-	uint newPosition  = (encodedEntry >> 12) & 0xFFUL;
-	uint newChannel   = (encodedEntry >> 8) & 0xFUL;
-	uint newGroupBits = (encodedEntry >> 4) & 0xFUL;
-	uint newLineBits  = encodedEntry & 0xFUL;
-
-	// Compute the global channel ID of the given output channel. Note that
-	// since this is an output channel, the ID computation is different to
-	// input channels.
-
-	ChannelID sendChannel(newTile, newPosition, newChannel, multicast);
-	ChannelID returnChannel(id, entry);
-
-	if (sendChannel.isCore()) {
-		// Destination is a core
-
-		channelMap[entry].setCoreDestination(sendChannel);
-
-		// Send port acquisition request
-		// FetchLogic sends out the claims for entry 0
-
-		if (entry != 0) {
-			AddressedWord aw(Word(returnChannel.getData()), sendChannel);
-			aw.setPortClaim(true, channelMap[entry].usesCredits());
-
-			unsigned int bufferToUse = (int)(channelMap[entry].network());
-
-			buffers[bufferToUse].write(aw);
-			dataToSendEvent[bufferToUse].notify();
-			bufferFillChanged.notify();
-			mapEntries[bufferToUse].write(entry);
-		}
-	} else {
-		// Destination is a memory
-
-		channelMap[entry].setMemoryDestination(sendChannel, newGroupBits, newLineBits);
-
-		/*
-		// Send memory channel table setup request
-		// FetchLogic sends out the claims for entry 0
-
-		if (entry != 0) {
-			MemoryRequest mr;
-			mr.setHeaderSetTableEntry(returnChannel.getData());
-			AddressedWord aw(mr, sendChannel);
-			buffer.write(aw);
-			mapEntries.write(entry);
-		}
-		*/
-	}
-
-	if (DEBUG)
-		cout << this->name() << " updated map " << (int)entry << " to " << sendChannel << " [" << newGroupBits << "]" << endl;
 }
 
 /* Stall the pipeline until the specified channel is empty. */
@@ -208,13 +129,9 @@ void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
   waiting = true;
   bufferFillChanged.notify(); // No it didn't - use separate events?
 
-  // Whilst the chosen channel does not have all of its credits, wait until a
-  // new credit is received.
-  while(!channelMap[channel].haveAllCredits()) {
-    wait(creditsIn[0].default_event() | creditsIn[1].default_event() | creditsIn[2].default_event());
-    // Wait a fraction longer to ensure the credit count is updated first.
-    wait(sc_core::SC_ZERO_TIME);
-  }
+  // Wait until the channel's credit counter reaches its maximum value, if it
+  // is using credits.
+  channelMapTable->waitForAllCredits(channel);
 
   Instrumentation::stalled(id, false);
   waiting = false;
@@ -222,12 +139,15 @@ void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
 }
 
 /* Execute a memory operation. */
-bool SendChannelEndTable::executeMemoryOp(MapIndex entry, MemoryRequest::MemoryOperation memoryOp, int64_t data) {
+bool SendChannelEndTable::executeMemoryOp(MapIndex entry,
+                                          MemoryRequest::MemoryOperation memoryOp,
+                                          int64_t data,
+                                          ChannelID destination) {
 	// Most messages we send will be one flit long, so will be the end of their
 	// packets. However, packets for memory stores are two flits long (address
 	// then data), so we need to mark this special case.
 
-	ChannelID channel = channelMap[entry].destination();
+	ChannelID channel = destination;
 	bool addressFlit = false;
 	bool endOfPacket = true;
 	Word w;
@@ -254,16 +174,20 @@ bool SendChannelEndTable::executeMemoryOp(MapIndex entry, MemoryRequest::MemoryO
 
 	uint32_t increment = 0;
 
-	if (channelMap[entry].localMemory() && channelMap[entry].memoryGroupBits() > 0) {
-		if (addressFlit) {
-			increment = (uint32_t)data;
-			increment &= (1UL << (channelMap[entry].memoryGroupBits() + channelMap[entry].memoryLineBits())) - 1UL;
-			increment >>= channelMap[entry].memoryLineBits();
-			channelMap[entry].setAddressIncrement(increment);
-		} else {
-			increment = channelMap[entry].getAddressIncrement();
-		}
-	}
+	// We want to access lots of information from the channel map table, so get
+	// the entire entry.
+	ChannelMapEntry& channelMapEntry = channelMapTable->getEntry(entry);
+
+	if (channelMapEntry.localMemory() && channelMapEntry.memoryGroupBits() > 0) {
+    if (addressFlit) {
+      increment = (uint32_t)data;
+      increment &= (1UL << (channelMapEntry.memoryGroupBits() + channelMapEntry.memoryLineBits())) - 1UL;
+      increment >>= channelMapEntry.memoryLineBits();
+      channelMapEntry.setAddressIncrement(increment);
+    } else {
+      increment = channelMapEntry.getAddressIncrement();
+    }
+  }
 
 	channel = channel.addPosition(increment);
 
@@ -275,6 +199,28 @@ bool SendChannelEndTable::executeMemoryOp(MapIndex entry, MemoryRequest::MemoryO
 	return write(aw, entry);
 }
 
+void SendChannelEndTable::createPortClaim(MapIndex channel) {
+  // The destination channel end to claim (a table read isn't necessary here -
+  // the information could be extracted from the instruction).
+  ChannelID destination = channelMapTable->read(channel);
+
+  // The address to send credits back to (if applicable).
+  ChannelID returnChannel(id, channel);
+
+  if (destination.isCore()) {
+    // Send port acquisition request
+    // FetchLogic sends out the claims for entry 0
+    if (channel != 0) {
+      AddressedWord aw(returnChannel, destination);
+      aw.setPortClaim(true, channelMapTable->getEntry(channel).usesCredits());
+      unsigned int bufferToUse = (int)(channelMapTable->getNetwork(channel));
+      buffers[bufferToUse].write(BufferedInfo(aw, channel));
+      dataToSendEvent[bufferToUse].notify();
+      bufferFillChanged.notify();
+    }
+  }
+}
+
 void SendChannelEndTable::receivedCredit(unsigned int buffer) {
   assert(validCredit[buffer].read());
 
@@ -282,18 +228,22 @@ void SendChannelEndTable::receivedCredit(unsigned int buffer) {
 
   if(DEBUG) cout << "Received credit at " << ChannelID(id, targetCounter) << endl;
 
-  channelMap[targetCounter].addCredit();
+  channelMapTable->addCredit(buffer);
 }
 
 void SendChannelEndTable::creditFromCores()    {receivedCredit(TO_CORES);}
 void SendChannelEndTable::creditFromMemories() {} // Memories don't send credits
 void SendChannelEndTable::creditFromOffTile()  {receivedCredit(OFF_TILE);}
 
-SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID& ID) :
+WriteStage* SendChannelEndTable::parent() const {
+  return static_cast<WriteStage*>(this->get_parent());
+}
+
+SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID& ID, ChannelMapTable* cmt) :
     Component(name, ID),
-    buffers(NUM_BUFFERS, OUT_CHANNEL_BUFFER_SIZE, string(name)),
-    mapEntries(NUM_BUFFERS, OUT_CHANNEL_BUFFER_SIZE, string(name)),
-    channelMap(CHANNEL_MAP_SIZE, ChannelMapEntry(ID)) {
+    buffers(NUM_BUFFERS, OUT_CHANNEL_BUFFER_SIZE, string(name)) {
+
+  channelMapTable = cmt;
 
   output      = new sc_out<AddressedWord>[NUM_BUFFERS];
   validOutput = new sc_out<bool>[NUM_BUFFERS];
@@ -304,7 +254,7 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID&
 
   waiting = false;
 
-  dataToSendEvent = new sc_core::sc_event[NUM_BUFFERS];
+  dataToSendEvent = new sc_event[NUM_BUFFERS];
 
   SC_METHOD(sendToCores);        sensitive << dataToSendEvent[0];   dont_initialize();
   SC_METHOD(sendToMemories);     sensitive << dataToSendEvent[1];   dont_initialize();

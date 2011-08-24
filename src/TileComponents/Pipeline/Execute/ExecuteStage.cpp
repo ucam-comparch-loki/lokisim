@@ -68,10 +68,25 @@ void ExecuteStage::newInput(DecodedInst& operation) {
     Instrumentation::operation(id, operation, willExecute);
 
   if(willExecute) {
+    if(operation.operation() == InstructionMap::SETCHMAP) {
+      // TODO: SETCHMAPI
+      setChannelMap(operation.immediate(), operation.operand1());
+//      executedInstruction.notify();
+//      return;
+    }
+
     // Execute the instruction.
     bool success = alu.execute(operation);
     currentInst.result(operation.result());
     executedInstruction.notify();
+
+    MapIndex channel = operation.channelMapEntry();
+    if(channel != Instruction::NO_CHANNEL) {
+      ChannelID destination = parent()->channelMapTable.read(channel);
+
+      if(!destination.isNullMapping())
+        operation.networkDestination(destination);
+    }
 
     if(success) dataOut.write(operation);
   }
@@ -81,6 +96,23 @@ void ExecuteStage::newInput(DecodedInst& operation) {
     currentInst.destination(0);
     currentInst.setsPredicate(false);
   }
+}
+
+void ExecuteStage::setChannelMap(MapIndex entry, uint32_t value) {
+  // Extract all of the relevant sections from the encoded destination, and
+  // create a ChannelID out of them.
+  bool multicast = (value >> 28) & 0x1UL;
+  // Hack: tile shouldn't be necessary for multicast addresses
+  uint tile      = multicast ? id.getTile() : ((value >> 20) & 0xFFUL);
+  uint position  = (value >> 12) & 0xFFUL;
+  uint channel   = (value >> 8) & 0xFUL;
+  uint groupBits = (value >> 4) & 0xFUL;
+  uint lineBits  = value & 0xFUL;
+
+  ChannelID sendChannel(tile, position, channel, multicast);
+
+  // Write to the channel map table.
+  parent()->channelMapTable.write(entry, sendChannel, groupBits, lineBits);
 }
 
 bool ExecuteStage::isStalled() const {

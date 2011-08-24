@@ -75,7 +75,7 @@ class CollectStats(mod.SimulatorTest):
         # Before the value appears in the remote core's register, the instruction
         # must pass right through core 0, and the received data must get through
         # the execute and write stages of core 1
-        expectedLatency = self.pipelineLatency + 2
+        expectedLatency = self.pipelineLatency + 1
         
         self.localNetworkLatency = self.findLatency("Local network",
                                                     lambda:self.readReg(1,10) == 1337,
@@ -85,7 +85,7 @@ class CollectStats(mod.SimulatorTest):
         # When loading a value from memory, the load instruction must pass through
         # the pipeline, the request must cross the network, the data must be loaded,
         # the data must come back, and get through the final two pipeline stages.
-        expectedLatency = self.pipelineLatency + 2*self.localNetworkLatency + 2
+        expectedLatency = self.pipelineLatency + 2*self.localNetworkLatency + 1
         
         self.execute(0, "ldw r0 0x2000 -> 1")
         self.execute(0, "or.eop r10 ch0 r0")

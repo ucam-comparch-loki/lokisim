@@ -45,7 +45,7 @@ void Operations::printStats() {
 
     int executed = executedOps.numEvents();
 
-    for(int i=0; i<(int)InstructionMap::SYSCALL; i++) {
+    for(int i=0; i<InstructionMap::numInstructions(); i++) {
       operation_t op = static_cast<operation_t>(i);
 
       if(executedOps[op] > 0 || unexecutedOps[op] > 0) {

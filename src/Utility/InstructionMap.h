@@ -6,10 +6,6 @@
  * by the simulator. Having this level of abstraction allows us to easily
  * modify the subset of instructions used, or the coding of instructions.
  *
- * Name = string representation
- * Opcode = intermediate representation stored in Instruction datatype
- * Instruction = select value sent to ALU
- *
  *  Created on: 18 Jan 2010
  *      Author: db434
  */
@@ -37,7 +33,7 @@ public:
 
   enum Operation {
 
-    NOP,          // No operation (deprecated: use or)    nop
+    NOP,          // REMOVE
 
     LDW,          // Load word                            ldw rs, immed -> rch
     LDHWU,        // Load halfword (zero-extended)        ldhwu rs, immed -> rch
@@ -45,13 +41,13 @@ public:
     STW,          // Store word                           stw rs, rt, immed -> rch
     STHW,         // Store halfword                       sthw rs, rt, immed -> rch
     STB,          // Store byte                           stb rs, rt, immed -> rch
-    STWADDR,      // Store address                        stwaddr rt, immed -> rch
-    STBADDR,      // Store byte address                   stbaddr rt, immed -> rch
+    STWADDR,      // REMOVE
+    STBADDR,      // REMOVE
 
-    LDVECTOR,     // Load data to all SIMD cores
-    LDSTREAM,     // Load stream of data to this core     ldstream rs, rt, ru -> rch
-    STVECTOR,     // Store data from all SIMD cores
-    STSTREAM,     // Store stream of data from this core  ststream rs, rt, ru -> rch
+    LDVECTOR,     // REMOVE
+    LDSTREAM,     // REMOVE
+    STVECTOR,     // REMOVE
+    STSTREAM,     // REMOVE
 
     SLL,          // Shift left logical variable          sll rd, rs, rt
     SRL,          // Shift right logical variable         srl rd, rs, rt
@@ -88,11 +84,11 @@ public:
     ORI,          // Or immediate                         ori rd, rs, immed
     XORI,         // Xor immediate                        xori rd, rs, immed
 
-    NAND,         // Nand                                 nand rd, rs, rt
-    CLR,          // Bitwise clear (rd = rs & ~rt)        clr rd, rs, rt
-    ORC,          // Or complement (rd = rs | ~rt)        orc rd, rs, rt
-    POPC,         // Population count (number of 1s)      popc rd, rs
-    RSUBI,        // Reverse subtract immed (immed-rs)    rsubi rd, rs, immed
+    NAND,         // REMOVE
+    CLR,          // REMOVE
+    ORC,          // REMOVE
+    POPC,         // REMOVE
+    RSUBI,        // REMOVE
 
     ADDU,         // Add unsigned                         addu rd, rs, rt
     ADDUI,        // Add unsigned immediate               addui rd, rs, immed
@@ -108,16 +104,16 @@ public:
     TSTCH,        // Test channel (see if holding data)   tstch rd, ch
     SELCH,        // Select channel (with data)           selch rd
 
-    SETFETCHCH,   // Set fetch channel (deprecated)       setfetchch ch
+    SETFETCHCH,   // REMOVE
     IBJMP,        // In buffer jump                       ibjmp immed
     FETCH,        // Fetch instruction packet             fetch rs, immed
     PSELFETCH,    // Fetch dependent on predicate         psel.fetch rs rt
     FETCHPST,     // Fetch persistent (repeat execution)  fetchpst rs, immed
-    RMTFETCH,     // "Fetch" to remote cluster            rmtfetch rs, immed -> rch
-    RMTFETCHPST,  // "Fetch persistent" to remote cluster rmtfetchpst rs, immed -> rch
-    RMTFILL,      // Remote fill (no auto execution)      rmtfill rs, immed -> rch
+    RMTFETCH,     // REMOVE
+    RMTFETCHPST,  // REMOVE
+    FILL,         // Fill (fetch but don't execute)       fill rs, immed
     RMTEXECUTE,   // Remote execute (specify target)      rmtexecute -> rch
-    RMTNXIPK,     // "Next IPK" to remote cluster         rmtnxipk -> rch
+    NXIPK,        // Start next IPK immediately           nxipk
 
     SETCHMAP,     // Set channel map entry                setchmap immed, rs
 
@@ -148,6 +144,9 @@ public:
 
   // Returns the name of the given instruction.
   static const inst_name_t& name(operation_t operation);
+
+  // Returns the total number of instructions currently supported.
+  static int numInstructions();
 
 private:
   static std::map<inst_name_t, opcode_t> nto; // name to opcode

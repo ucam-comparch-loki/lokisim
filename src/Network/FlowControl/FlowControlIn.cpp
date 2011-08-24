@@ -8,7 +8,6 @@
 #include "FlowControlIn.h"
 #include "../../Datatype/AddressedWord.h"
 #include "../../Datatype/MemoryRequest.h"
-#include "../../TileComponents/TileComponent.h"
 
 void FlowControlIn::dataLoop() {
   switch(dataState) {

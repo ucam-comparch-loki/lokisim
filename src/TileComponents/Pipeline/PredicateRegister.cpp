@@ -16,12 +16,8 @@ void PredicateRegister::write(bool val) {
   if(DEBUG) cout << this->name() << " set to " << val << endl;
 }
 
-PredicateRegister::PredicateRegister(sc_module_name name) : Component(name) {
+PredicateRegister::PredicateRegister(const sc_module_name& name) : Component(name) {
 
   predicate = false;
-
-}
-
-PredicateRegister::~PredicateRegister() {
 
 }

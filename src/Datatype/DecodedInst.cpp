@@ -23,6 +23,7 @@ const int32_t       DecodedInst::operand1()        const {return operand1_;}
 const int32_t       DecodedInst::operand2()        const {return operand2_;}
 const int64_t       DecodedInst::result()          const {return result_;}
 
+const ChannelID     DecodedInst::networkDestination() const {return networkDest_;}
 const MemoryAddr    DecodedInst::location()        const {return location_;}
 
 
@@ -81,6 +82,7 @@ void DecodedInst::result(const int64_t val) {
   hasResult_ = true;
 }
 
+void DecodedInst::networkDestination(const ChannelID val) {networkDest_ = val;}
 void DecodedInst::location(const MemoryAddr val)          {location_ = val;}
 
 
@@ -97,13 +99,9 @@ Instruction DecodedInst::toInstruction() const {
     case InstructionMap::LDW :
     case InstructionMap::LDHWU :
     case InstructionMap::LDBU :
-    case InstructionMap::STWADDR :
-    case InstructionMap::STBADDR :
     case InstructionMap::FETCH :
     case InstructionMap::FETCHPST :
-    case InstructionMap::RMTFETCH :
-    case InstructionMap::RMTFETCHPST :
-    case InstructionMap::RMTFILL :
+    case InstructionMap::FILL :
     case InstructionMap::SETCHMAP : {
       i.destination(sourceReg1_);
       i.sourceReg1(0);
@@ -212,13 +210,9 @@ DecodedInst::DecodedInst(const Instruction i) {
     case InstructionMap::LDW :
     case InstructionMap::LDHWU :
     case InstructionMap::LDBU :
-    case InstructionMap::STWADDR :
-    case InstructionMap::STBADDR :
     case InstructionMap::FETCH :
     case InstructionMap::FETCHPST :
-    case InstructionMap::RMTFETCH :
-    case InstructionMap::RMTFETCHPST :
-    case InstructionMap::RMTFILL :
+    case InstructionMap::FILL :
     case InstructionMap::SETCHMAP : {
       destReg_ = 0;
       sourceReg1_ = i.destination();

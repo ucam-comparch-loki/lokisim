@@ -26,6 +26,7 @@
 #include "Pipeline/Decode/DecodeStage.h"
 #include "Pipeline/Execute/ExecuteStage.h"
 #include "Pipeline/Write/WriteStage.h"
+#include "Pipeline/ChannelMapTable.h"
 
 class InputCrossbar;
 class StallRegister;
@@ -157,19 +158,21 @@ private:
 
   // Very small crossbar between input ports and input buffers. Allows there to
   // be fewer network connections, making the tile network simpler.
-  InputCrossbar*           inputCrossbar;
+  InputCrossbar*         inputCrossbar;
 
-  IndirectRegisterFile     regs;
-  PredicateRegister        pred;
+  IndirectRegisterFile   regs;
+  PredicateRegister      pred;
 
   // Each of the pipeline stages.
-  FetchStage   fetch;
-  DecodeStage  decode;
-  ExecuteStage execute;
-  WriteStage   write;
+  FetchStage             fetch;
+  DecodeStage            decode;
+  ExecuteStage           execute;
+  WriteStage             write;
 
   // A stall register to go between each pair of adjacent pipeline stages.
-  vector<StallRegister*>   stallRegs;
+  vector<StallRegister*> stallRegs;
+
+  ChannelMapTable        channelMapTable;
 
   friend class IndirectRegisterFile;
   friend class FetchStage;
@@ -185,11 +188,6 @@ private:
 
   bool currentlyStalled;
   sc_core::sc_event stallEvent;
-
-  // Store the previous two results and destination registers, to allow data
-  // forwarding when necessary. 2 is older than 1.
-  RegisterIndex previousDest1, previousDest2;
-  int64_t previousResult1, previousResult2;
 
 //==============================//
 // Signals (wires)

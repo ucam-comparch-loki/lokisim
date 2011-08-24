@@ -32,8 +32,7 @@ public:
 
 public:
 
-  PredicateRegister(sc_module_name name);
-  virtual ~PredicateRegister();
+  PredicateRegister(const sc_module_name& name);
 
 //==============================//
 // Local state

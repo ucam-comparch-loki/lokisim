@@ -36,6 +36,10 @@ const inst_name_t& InstructionMap::name(operation_t operation) {
   else return itn[operation];
 }
 
+int InstructionMap::numInstructions() {
+  return SYSCALL + 1;
+}
+
 /* Return whether the instruction has a register which it stores its result in. */
 bool InstructionMap::hasDestReg(operation_t op) {
   return storesResult(op);
@@ -44,7 +48,7 @@ bool InstructionMap::hasDestReg(operation_t op) {
 /* Return whether the instruction uses the first source register. */
 bool InstructionMap::hasSrcReg1(operation_t op) {
   static const operation_t withoutSource1[] = {
-      NOP, LUI, SELCH, IBJMP, RMTEXECUTE, RMTNXIPK, SYSCALL
+      NOP, LUI, SELCH, IBJMP, RMTEXECUTE, NXIPK, SYSCALL
   };
 
   static const std::vector<bool>& hasSource1 =
@@ -59,7 +63,7 @@ bool InstructionMap::hasSrcReg2(operation_t op) {
       STW, STHW, STB,
       SLL, SRL, SRA,
       SETEQ, SETNE, SETLT, SETLTU, SETGTE, SETGTEU,
-      PSEL, NOR, AND, OR, XOR, NAND, CLR, ORC,
+      PSEL, NOR, AND, OR, XOR,
       ADDU, SUBU, MULHW, MULLW, MULHWU,
       PSELFETCH
   };
@@ -73,12 +77,12 @@ bool InstructionMap::hasSrcReg2(operation_t op) {
 /* Return whether the instruction contains an immediate value */
 bool InstructionMap::hasImmediate(operation_t op) {
   static const operation_t withImmed[] = {
-      LDW, LDHWU, LDBU, STW, STHW, STB, STWADDR, STBADDR,
+      LDW, LDHWU, LDBU, STW, STHW, STB,
       SLLI, SRLI, SRAI,
       SETEQI, SETNEI, SETLTI, SETLTUI, SETGTEI, SETGTEUI, LUI,
       NORI, ANDI, ORI, XORI,
-      ADDUI, RSUBI,
-      FETCH, FETCHPST, RMTFETCH, RMTFETCHPST, IBJMP, RMTFILL,
+      ADDUI,
+      FETCH, FETCHPST, IBJMP, FILL,
       SETCHMAP, SYSCALL
   };
 
@@ -97,7 +101,7 @@ bool InstructionMap::hasRemoteChannel(operation_t op) {
   static const operation_t noChannel[] = {
       NOP,
       WOCHE, TSTCH, SELCH,
-      SETFETCHCH, IBJMP, FETCH, PSELFETCH, FETCHPST, SETCHMAP,
+      IBJMP, FETCH, PSELFETCH, FETCHPST, SETCHMAP,
       SYSCALL
   };
 
@@ -112,10 +116,10 @@ bool InstructionMap::isALUOperation(operation_t op) {
   // Since there are far more instructions which use the ALU than which don't,
   // we only list the ones that don't here.
   static const operation_t notALU[] = {
-      /*LDW, LDBU, STW, STHW, STB,*/ STWADDR, STBADDR,
+      /*LDW, LDBU, STW, STHW, STB,*/
       WOCHE, TSTCH, SELCH,
-      SETFETCHCH, IBJMP, FETCH, PSELFETCH, FETCHPST, RMTFETCH, RMTFETCHPST,
-      RMTFILL, RMTEXECUTE, RMTNXIPK, SETCHMAP, SYSCALL
+      IBJMP, FETCH, PSELFETCH, FETCHPST,
+      FILL, RMTEXECUTE, NXIPK, SETCHMAP, SYSCALL
   };
 
   static const std::vector<bool>& useALU =
@@ -129,10 +133,10 @@ bool InstructionMap::storesResult(operation_t op) {
   // Since there are far more instructions which store their results than which
   // don't, we only list the ones that don't here.
   static const operation_t doesntStore[] = {
-      NOP, LDW, LDHWU, LDBU, STW, STHW, STB, STWADDR, STBADDR,
+      NOP, LDW, LDHWU, LDBU, STW, STHW, STB,
       WOCHE,
-      SETFETCHCH, IBJMP, FETCH, PSELFETCH, FETCHPST, RMTFETCH, RMTFETCHPST,
-      RMTFILL, RMTEXECUTE, RMTNXIPK, SETCHMAP, SYSCALL
+      IBJMP, FETCH, PSELFETCH, FETCHPST,
+      FILL, RMTEXECUTE, NXIPK, SETCHMAP, SYSCALL
   };
 
   static const std::vector<bool>& stores =
@@ -229,9 +233,9 @@ void InstructionMap::initialise() {
   a++;    addToMaps("fetchpst", a, FETCHPST);
   a++;    addToMaps("rmtfetch", a, RMTFETCH);
   a++;    addToMaps("rmtfetchpst", a, RMTFETCHPST);
-  a++;    addToMaps("rmtfill", a, RMTFILL);
+  a++;    addToMaps("fill", a, FILL);
   a++;    addToMaps("rmtexecute", a, RMTEXECUTE);
-  a++;    addToMaps("rmtnxipk", a, RMTNXIPK);
+  a++;    addToMaps("nxipk", a, NXIPK);
 
   a++;    addToMaps("setchmap", a, SETCHMAP);
 
@@ -253,7 +257,7 @@ void InstructionMap::addToMaps(const inst_name_t& name,
 const std::vector<bool>& InstructionMap::bitVector(bool defaultVal, const operation_t exceptions[], int numExceptions) {
   // Generate a new vector, with a space for every instruction, and the
   // default value set.
-  std::vector<bool>* vec = new std::vector<bool>(SYSCALL+1, defaultVal);
+  std::vector<bool>* vec = new std::vector<bool>(numInstructions(), defaultVal);
 
   // Flip the boolean value for all exceptions.
   for(int i=0; i<numExceptions; i++) vec->at(exceptions[i]) = !defaultVal;

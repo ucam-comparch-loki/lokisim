@@ -43,7 +43,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   blockedEvent.notify();
 
   // Determine if this instruction should execute. This may require waiting for
-  // the previous instruction to set the predicate bit, if this instruction
+  // the previous instruction to set the predicate bit if this instruction
   // is completed in the decode stage, or if the instruction may perform an
   // irreversible channel read.
   bool execute = shouldExecute(input);
@@ -134,34 +134,15 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       break;
     }
 
-    case InstructionMap::RMTFETCH : {
-      static const string opName = "fetch";
-      Instruction copy = input.toInstruction();
-      copy.opcode(InstructionMap::opcode(opName));
-      copy.predicate(Instruction::END_OF_PACKET);
-      output.result(copy.toLong());
-      break;
-    }
-
-    case InstructionMap::RMTFETCHPST : {
-      static const string opName = "fetchpst";
-      Instruction copy = input.toInstruction();
-      copy.opcode(InstructionMap::opcode(opName));
-      copy.predicate(Instruction::END_OF_PACKET);
-      output.result(copy.toLong());
-      break;
-    }
-
-    //case InstructionMap::RMTFILL :
     //case InstructionMap::RMTNXIPK :
+    //case InstructionMap::FILL :
 
     case InstructionMap::FETCH :
     case InstructionMap::FETCHPST : {
       // Fetches never reach the execute stage, where the predicate bit is
       // usually checked. We have to do the check here instead.
-      if(execute) {
+      if(execute)
         parent()->setPersistent(operation == InstructionMap::FETCHPST);
-      }
 
       continueToExecute = false;
       break;
@@ -210,7 +191,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       uint32_t selected;
       if(parent()->predicate()) selected = output.operand1();
       else                      selected = output.operand2();
-      fetch(input.immediate() + selected);
+      fetch(selected);
 
       break;
     }

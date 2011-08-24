@@ -10,6 +10,7 @@
 
 #include <inttypes.h>
 #include "systemc.h"
+#include "ChannelID.h"
 #include "../Typedefs.h"
 #include "../Utility/InstructionMap.h"
 
@@ -38,6 +39,8 @@ public:
   const int64_t result() const;
   const MemoryAddr location() const;
 
+  const ChannelID networkDestination() const;
+
   const bool    usesPredicate() const;
   const bool    hasResult() const;
 
@@ -63,6 +66,8 @@ public:
   void    operand2(const int32_t val);
   void    result(const int64_t val);
   void    location(const MemoryAddr val);
+
+  void    networkDestination(const ChannelID val);
 
   Instruction toInstruction() const;
 
@@ -123,6 +128,8 @@ private:
   int32_t operand1_;
   int32_t operand2_;
   int64_t result_;    // May be an instruction so need 64 bits (for now)
+
+  ChannelID networkDest_;
 
   MemoryAddr location_;  // The position in memory that this instruction comes from.
 

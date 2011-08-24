@@ -114,7 +114,7 @@ void WriteStage::writeReg(RegisterIndex reg, int32_t value, bool indirect) const
 
 WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
-    scet("scet", ID) {
+    scet("scet", ID, &(parent()->channelMapTable)) {
 
   static const unsigned int NUM_BUFFERS = 3;
 

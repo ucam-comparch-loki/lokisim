@@ -59,10 +59,6 @@ public:
   // Update the channel to which we send fetch requests.
   void setFetchChannel(const ChannelID& channelID, uint memoryGroupBits, uint memoryLineBits);
 
-  // The packet to fetch was in the cache at fetch time, but has since been
-  // overwritten. Send a fetch request to get it back.
-  void refetch();
-
 private:
 
   // Prepare a request to be sent on the network.
