@@ -177,18 +177,22 @@ void Instruction::opcode(const opcode_t val) {
 }
 
 void Instruction::destination(const RegisterIndex val) {
+  assert(val < NUM_ADDRESSABLE_REGISTERS);
   setBits(startDest, startOpcode-1, val);
 }
 
 void Instruction::sourceReg1(const RegisterIndex val) {
+  assert(val < NUM_ADDRESSABLE_REGISTERS);
   setBits(startSrc1, startDest-1, val);
 }
 
 void Instruction::sourceReg2(const RegisterIndex val) {
+  assert(val < NUM_ADDRESSABLE_REGISTERS);
   setBits(startSrc2, startSrc1-1, val);
 }
 
 void Instruction::remoteChannel(const ChannelIndex val) {
+  assert(val == NO_CHANNEL || val < CHANNEL_MAP_SIZE);
   setBits(startChannelID, startSrc2-1, val);
 }
 

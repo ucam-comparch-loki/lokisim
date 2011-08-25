@@ -65,6 +65,10 @@ private:
   static vector<string> tempFiles;
   static string         linkedFile;
 
+  // The linker always need to be invoked if an assembly file is involved. This
+  // is because the linker puts the code in the correct position in memory.
+  static bool           foundAsmFile;
+
 };
 
 #endif /* FILEREADER_H_ */

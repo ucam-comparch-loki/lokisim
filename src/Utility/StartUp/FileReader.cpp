@@ -24,6 +24,7 @@ using std::endl;
 vector<string> FileReader::filesToLink;
 vector<string> FileReader::tempFiles;
 string         FileReader::linkedFile;
+bool           FileReader::foundAsmFile = false;
 
 const int BACKGROUND_MEMORY = -1;
 
@@ -136,6 +137,7 @@ FileReader* FileReader::makeFileReader(vector<string>& words, bool customAppLoad
 
     filesToLink.push_back(elfFile);
     tempFiles.push_back(elfFile);
+    foundAsmFile = true;
     reader = NULL;
   }
   else {
@@ -150,9 +152,14 @@ FileReader* FileReader::makeFileReader(vector<string>& words, bool customAppLoad
 FileReader* FileReader::linkFiles() {
   switch(filesToLink.size()) {
     case 0: return NULL;
-    // Need to link even single files so that the code gets put in the right
-    // position in memory.
-//    case 1: return new ELFFileReader(filesToLink[0], ComponentID(), ComponentID(0, 0), 0x1000);
+    case 1: {
+      // Don't need to link a single ELF file.
+      if(!foundAsmFile) return new ELFFileReader(filesToLink[0], ComponentID(),
+                                                 ComponentID(0, 0), 0x1000);
+      // Else, if an assembly file was found, drop through to the "default" and
+      // invoke the linker. This will ensure the code is put in the correct
+      // position in memory.
+    }
     default: {
       string directory = Config::getAttribute("lokiprefix",
           "location of lokiprefix (compilation tools)") + "/loki-elf/lib";

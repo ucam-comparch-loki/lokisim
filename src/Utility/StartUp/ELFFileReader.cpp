@@ -169,6 +169,7 @@ int ELFFileReader::findMain() const {
     if(words.back()=="_start\n") {
       mainPos = StringManipulation::strToInt("0x"+words[0]);
       foundMainPos = true;
+      delete &words;
       break;
     }
 

@@ -45,6 +45,7 @@ void CodeLoader::loadParameters(string& settings) {
       if(s[0]=='%' || s[0]=='\0') continue;   // Skip past any comments
 
       vector<string>& words = StringManipulation::split(s, ' ');
+      if(words.size() == 0) continue;
 
       if(words[0]=="directory") {     // Update the current directory
         directory = directory + "/" + words[1];
