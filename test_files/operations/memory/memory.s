@@ -6,46 +6,46 @@ _start:
 # Send a stream of stores to memory to make sure none go missing.
 # Note that reading this instruction packet has the side effect of testing
 # many consecutive read operations.
-    stw                 r2,  r3,  0      > 1
-    stw                 r2,  r3,  4      > 1
-    stw                 r2,  r3,  8      > 1
-    stw                 r2,  r3,  12     > 1
-    stw                 r2,  r3,  16     > 1
-    stw                 r2,  r3,  20     > 1
-    stw                 r2,  r3,  24     > 1
-    stw                 r2,  r3,  28     > 1
-    stw                 r2,  r3,  32     > 1
-    stw                 r2,  r3,  36     > 1
-    stw                 r2,  r3,  40     > 1
-    stw                 r2,  r3,  44     > 1
-    stw                 r2,  r3,  48     > 1
-    stw                 r2,  r3,  52     > 1
-    stw                 r2,  r3,  56     > 1
-    stw                 r2,  r3,  60     > 1
-    stw                 r2,  r3,  64     > 1
-    stw                 r2,  r3,  68     > 1
-    stw                 r2,  r3,  72     > 1
-    stw                 r2,  r3,  76     > 1
-    stw                 r2,  r3,  80     > 1
-    stw                 r2,  r3,  84     > 1
-    stw                 r2,  r3,  88     > 1
-    stw                 r2,  r3,  92     > 1
-    stw                 r2,  r3,  96     > 1
-    stw                 r2,  r3,  100    > 1
-    stw                 r2,  r3,  104    > 1
-    stw                 r2,  r3,  108    > 1
-    stw                 r2,  r3,  112    > 1
-    stw                 r2,  r3,  116    > 1
-    stw                 r2,  r3,  120    > 1
-    stw                 r2,  r3,  124    > 1
+    stw                 r2,  0(r3)      -> 1
+    stw                 r2,  4(r3)      -> 1
+    stw                 r2,  8(r3)      -> 1
+    stw                 r2,  12(r3)     -> 1
+    stw                 r2,  16(r3)     -> 1
+    stw                 r2,  20(r3)     -> 1
+    stw                 r2,  24(r3)     -> 1
+    stw                 r2,  28(r3)     -> 1
+    stw                 r2,  32(r3)     -> 1
+    stw                 r2,  36(r3)     -> 1
+    stw                 r2,  40(r3)     -> 1
+    stw                 r2,  44(r3)     -> 1
+    stw                 r2,  48(r3)     -> 1
+    stw                 r2,  52(r3)     -> 1
+    stw                 r2,  56(r3)     -> 1
+    stw                 r2,  60(r3)     -> 1
+    stw                 r2,  64(r3)     -> 1
+    stw                 r2,  68(r3)     -> 1
+    stw                 r2,  72(r3)     -> 1
+    stw                 r2,  76(r3)     -> 1
+    stw                 r2,  80(r3)     -> 1
+    stw                 r2,  84(r3)     -> 1
+    stw                 r2,  88(r3)     -> 1
+    stw                 r2,  92(r3)     -> 1
+    stw                 r2,  96(r3)     -> 1
+    stw                 r2,  100(r3)    -> 1
+    stw                 r2,  104(r3)    -> 1
+    stw                 r2,  108(r3)    -> 1
+    stw                 r2,  112(r3)    -> 1
+    stw                 r2,  116(r3)    -> 1
+    stw                 r2,  120(r3)    -> 1
+    stw                 r2,  124(r3)    -> 1
 
 # A quick test of the remaining memory operations.
-    ldw                 r3,  0           > 1
-    ldbu                r3,  0           > 1
-    ldbu                r3,  1           > 1
+    ldw                 0(r3)           -> 1
+    ldbu                0(r3)           -> 1
+    ldbu                1(r3)           -> 1
     ori                 r5,  ch0, r0
     ori                 r6,  ch0, r0
     ori                 r7,  ch0, r0
-    stb                 r7,  r3,  -3     > 1
-    stb                 r6,  r3,  -4     > 1
+    stb                 r7,  -3(r3)     -> 1
+    stb                 r6,  -4(r3)     -> 1
     syscall.eop         1

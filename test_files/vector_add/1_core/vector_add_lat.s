@@ -1,6 +1,6 @@
 # Load parameter(s)
 _start:
-#    fetch               r0,  loop
+    fetch               r0,  loop
     ldw                 4(r0)           -> 1
     ori                 r11, r0,  0             # r11 = current load position
     ldw                 0x10000(r11)     -> 1   # load from the two vectors early
@@ -8,11 +8,10 @@ _start:
     addui               r11, r11, 4             # move to next element
     slli                r10, ch0, 2             # r10 = byte-length of vectors
     addui               r10, r10, -4            # r10 = offset of final element
-    ori                 r14, r0,  0             # r14 = current store position
-    fetch.eop           r0,  loop
+    ori.eop             r14, r0,  0             # r14 = current store position
 
-or.eop r0 r0 r0
-or.eop r0 r0 r0
+or.eop r0, r0, r0
+or.eop r0, r0, r0
 
 # Main loop
 loop:

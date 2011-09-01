@@ -14,6 +14,7 @@
 #include "MappedStorage.h"
 #include "../Typedefs.h"
 #include "../Utility/LoopCounter.h"
+#include "../Utility/InstructionMap.h"
 
 class Instruction;
 
@@ -34,7 +35,9 @@ public:
 public:
 
   // Returns whether the given address matches any of the tags.
-  virtual bool checkTags(const MemoryAddr& key);
+  // There are many different ways of fetching instructions, so provide the
+  // operation too.
+  virtual bool checkTags(const MemoryAddr& key, operation_t operation);
 
   // Returns the next item in the cache.
   virtual const Instruction& read();
@@ -62,10 +65,13 @@ public:
   // Returns whether the cache is full.
   bool full() const;
 
+  // Return whether this core is allowed to send out a new fetch request.
+  // It is not allowed to send the request if there is not room for a maximum-
+  // size packet, or if any fetches are already taking place.
+  bool canFetch() const;
+
   // Begin reading the packet which is queued up to execute next.
   void switchToPendingPacket();
-
-  void setPersistent(const bool persistent);
 
   // Store some initial instructions in the cache.
   void storeCode(const std::vector<Instruction>& code);
@@ -90,22 +96,35 @@ private:
 
 private:
 
+  // A collection of information about an instruction packet and how it should
+  // be executed.
+  typedef struct {
+    MemoryAddr memAddr;     // Memory address of this packet (mainly for debug)
+    uint16_t   cacheIndex;  // Position in cache of first instruction
+    bool       persistent;  // Persistent packets repeat until NXIPK is received
+    bool       isFill;      // FILLs don't execute instructions when they arrive
+    bool       inCache;     // Can't send a FETCH until previous one finishes
+
+    void reset() {
+      memAddr = DEFAULT_TAG; cacheIndex = NOT_IN_CACHE; inCache = false;
+    }
+    bool arriving() const {
+      return (memAddr != DEFAULT_TAG) && !inCache && (cacheIndex != NOT_IN_CACHE);
+    }
+  } PacketInfo;
+
   // Current instruction pointer and refill pointer.
   LoopCounter readPointer, writePointer;
 
   uint16_t fillCount;
   uint16_t currInstBackup;   // In case it goes NOT_IN_USE and then a jump is used
 
-  // Tells if we are reading the same packet repeatedly. Should this be here,
-  // or in the decoder? We may want to shut the cache off, for example.
-  bool persistentMode;
-
   // Location of the next packet to be executed.
   // Do we want a single pending packet, or a queue of them?
-  uint16_t pendingPacket;
+  PacketInfo pendingPacket;
 
   // The index of the first instruction of the current instruction packet.
-  uint16_t currentPacket;
+  PacketInfo currentPacket;
 
   // For debug purposes, we store the memory address which each instruction is
   // from. This allows us to set breakpoints easily, and also allows us to
@@ -115,8 +134,8 @@ private:
   // Store the most recent instruction address, so it can be accessed easily.
   MemoryAddr previousLocation;
 
-  static const uint16_t NOT_IN_USE = -1;
-  static const MemoryAddr DEFAULT_TAG = 0xFFFFFFFF;
+  static const uint16_t   NOT_IN_CACHE = -1;
+  static const MemoryAddr DEFAULT_TAG  = 0xFFFFFFFF;
 
 };
 

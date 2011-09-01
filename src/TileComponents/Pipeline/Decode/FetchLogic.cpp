@@ -10,7 +10,7 @@
 #include "../../TileComponent.h"
 #include "../../../Datatype/MemoryRequest.h"
 
-void FetchLogic::fetch(const MemoryAddr addr, bool checkedCache) {
+void FetchLogic::fetch(const MemoryAddr addr, operation_t operation, bool checkedCache) {
 	// Create a new memory request
 
 	MemoryRequest mr(MemoryRequest::IPK_READ, addr);
@@ -27,7 +27,7 @@ void FetchLogic::fetch(const MemoryAddr addr, bool checkedCache) {
 	}
 
 	// If we know that the packet isn't in the cache, send a request to memory.
-  if(checkedCache || !inCache(addr)) {
+  if(checkedCache || !inCache(addr, operation)) {
     AddressedWord request(mr, channel);
     sendRequest(request);
   }
@@ -85,8 +85,8 @@ void FetchLogic::send() {
   }
 }
 
-bool FetchLogic::inCache(const MemoryAddr addr) const {
-  return parent()->inCache(addr);
+bool FetchLogic::inCache(const MemoryAddr addr, operation_t operation) const {
+  return parent()->inCache(addr, operation);
 }
 
 bool FetchLogic::roomInCache() const {

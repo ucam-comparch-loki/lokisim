@@ -135,15 +135,10 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     }
 
     //case InstructionMap::RMTNXIPK :
-    //case InstructionMap::FILL :
 
+    case InstructionMap::FILL :
     case InstructionMap::FETCH :
     case InstructionMap::FETCHPST : {
-      // Fetches never reach the execute stage, where the predicate bit is
-      // usually checked. We have to do the check here instead.
-      if(execute)
-        parent()->setPersistent(operation == InstructionMap::FETCHPST);
-
       continueToExecute = false;
       break;
     }
@@ -153,8 +148,6 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       // it isn't read.
       if(parent()->predicate()) output.sourceReg2(0);
       else                      output.sourceReg1(0);
-
-      parent()->setPersistent(false);
 
       continueToExecute = false;
       break;
@@ -176,13 +169,17 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       break;
     }
 
+    case InstructionMap::FILL :
     case InstructionMap::FETCH :
     case InstructionMap::FETCHPST : {
       // Is it possible to read a register, add it to an immediate, and check
       // cache tags all in one cycle? Probably not?
       if(execute) {
         fetchAddress = output.operand1() + output.operand2();
-        fetch(fetchAddress);
+
+        // If the instruction is not a FILL, we want to execute the fetched
+        // packet next.
+        fetch(fetchAddress, operation);
       }
       break;
     }
@@ -191,7 +188,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       uint32_t selected;
       if(parent()->predicate()) selected = output.operand1();
       else                      selected = output.operand2();
-      fetch(selected);
+      fetch(selected, operation);
 
       break;
     }
@@ -275,8 +272,8 @@ void Decoder::remoteExecution(DecodedInst& instruction) const {
   instruction.destination(0);
 }
 
-void Decoder::fetch(MemoryAddr addr) const {
-  parent()->fetch(addr);
+void Decoder::fetch(MemoryAddr addr, operation_t operation) const {
+  parent()->fetch(addr, operation);
 }
 
 void Decoder::setFetchChannel(uint32_t encodedChannel) const {

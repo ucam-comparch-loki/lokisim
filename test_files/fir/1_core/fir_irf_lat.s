@@ -2,14 +2,15 @@
 # cache the taps. We can have no more than 32 taps.
 
 _start:
-#    fetch           r0,  loadtaps           # get the next instruction packet
 
 # Load the parameters for this filter. (May deadlock if buffers are small?)
-    ldw             r0,  4        > 1
-    ldw             r0,  8        > 1
-    ldw             r0,  12       > 1
-    ldw             r0,  16       > 1
-    ldw             r0,  20       > 1
+    ldw             4(r0)       -> 1
+    ldw             8(r0)       -> 1
+    ldw             12(r0)      -> 1
+    ldw             16(r0)      -> 1
+    ldw             20(r0)      -> 1
+
+    fetch           r0,  loadtaps           # get the next instruction packet
 
 # Store the parameters locally.
     ori             r10, ch0, 0             # r10 = number of taps
@@ -27,17 +28,16 @@ _start:
     addui           r27, r27, -4            # r27 = end point
     addu            r28, r11, r26           # r28 = end of taps
 
-    ori             r4,  r13, 0             # r4 = position in outer loop
-    fetch.eop       r0,  loadtaps
+    ori.eop         r4,  r13, 0             # r4 = position in outer loop
 
 # Load taps into indirect register file.
 loadtaps:
-#    fetch           r0,  loop
+    fetch           r0,  loop
     ori             r5,  r0,  32            # r5 = pointer to register to store tap in
-    ldw             r11, 0          > 1     # load a tap (early)
+    ldw             0(r11)         -> 1     # load a tap (early)
     addui           r11, r11, 4             # move to next tap
 
-    ldw             r11, 0          > 1     # load a tap
+    ldw             0(r11)         -> 1     # load a tap
     addui           r11, r11, 4             # move to next tap
     iwtr            r5,  ch0                # store the tap in the IRF
     addui           r5,  r5,  1             # move to next register
@@ -45,14 +45,13 @@ loadtaps:
     ifp?ibjmp       -40                     # if not, load another tap
 
     iwtr            r5,  ch0                # store the tap in the IRF (late)
-    addui           r8,  r10, 32            # r8 = first register with no tap in it
-    fetch.eop       r0,  loop
+    addui.eop       r8,  r10, 32            # r8 = first register with no tap in it
 
 # Start of outer loop
 loop:
     ori             r9,  r0,  0             # r9 = accumulated result
     subu            r6,  r4,  r26           # r6 = current input element
-    ldw             r6,  0          > 1     # load input data early
+    ldw             0(r6)          -> 1     # load input data early
     ori             r5,  r0,  32            # move back to start of taps
 
 # Start of inner loop
@@ -65,12 +64,12 @@ loop:
     ifp?addu        r9,  r9,  r7            # add new value to result
 
     setlt.p         r0,  r5,  r8            # see if we have gone through all taps yet
-    ifp?ldw         r6,  0          > 1     # load input data
+    ifp?ldw         0(r6)          -> 1     # load input data
     ifp?ibjmp       -72
 # End of inner loop
 
     addui           r4,  r4,  4             # increment position in outer loop
-    stw             r9,  r14, 0     > 1     # store the result
+    stw             r9,  0(r14)    -> 1     # store the result
     setgteu.p       r0,  r27, r4            # see if we have finished the outer loop
     addui           r14, r14, 4             # update store location for next time
     ifp?ibjmp       -144

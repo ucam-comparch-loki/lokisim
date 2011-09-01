@@ -1,36 +1,34 @@
 # Load parameters
 _start:
-#    fetch               r0,  loadrow
-    ldw                 r0,  4           > 1
-    ldw                 r0,  8           > 1
-    ldw                 r0,  12          > 1
+    ldw                 4(r0)          -> 1
+    ldw                 8(r0)          -> 1
+    ldw                 12(r0)         -> 1
+    fetch               r0,  loadrow
     ori                 r2,  ch0, 0             # r2 = rows of matrix 1
     ori                 r3,  ch0, 0             # r3 = columns of matrix 1 (rows of mat 2)
     ori                 r4,  ch0, 0             # r4 = columns of matrix 2
     ori                 r11, r0,  0             # r11 = current output row
     ori                 r25, r0,  loadrow
-    ori                 r26, r0,  end           # some branch addresses for later
-    fetch.eop           r0,  loadrow
+    ori.eop             r26, r0,  end           # some branch addresses for later
 
 # Load row of matrix 1 into IRF
 loadrow:
-#    fetch               r0,  loop
+    fetch               r0,  loop
     ori                 r10, r0,  32            # r10 = pointer into IRF
     addu                r12, r10, r3            # r12 = register to stop putting values in
     mullw               r5,  r3,  r11
     slli                r5,  r5,  2             # computed location of start of row
-    ldw                 r5,  0x10000     > 1    # load a value
+    ldw                 0x10000(r5)     -> 1    # load a value
     addui               r5,  r5,  4             # move to next value (move to before jump?)
 
-    ldw                 r5,  0x10000     > 1    # load a value
+    ldw                 0x10000(r5)     -> 1    # load a value
     addui               r5,  r5,  4             # move to next value (move to before jump?)
     iwtr                r10, ch0                # store the value in the IRF
     addui               r10, r10, 1             # move to next register
     setlt.p             r0,  r10, r12           # see if we have values left to load
     ifp?ibjmp           -40                     # if so, load another
 
-    iwtr                r10, ch0                # store the value in the IRF
-    fetch.eop           r0,  loop
+    iwtr.eop            r10, ch0                # store the value in the IRF
 
 # Start of main loop
 loop:
@@ -43,14 +41,14 @@ loop:
     mullw               r6,  r4,  r15           # start of row = num columns * row
     addu                r6,  r6,  r12           # element = start of row + column
     slli                r6,  r6,  2             # get address
-    ldw                 r6,  0x20000     > 1    # load element
+    ldw                 0x20000(r6)     -> 1    # load element
     addui               r15, r15, 1
 
 # Compute where to load from in matrix 2
     mullw               r6,  r4,  r15           # start of row = num columns * row
     addu                r6,  r6,  r12           # element = start of row + column
     slli                r6,  r6,  2             # get address
-    ldw                 r6,  0x20000     > 1    # load element
+    ldw                 0x20000(r6)     -> 1    # load element
     addui               r15, r15, 1
 
 # Retrieve matrix 1 value from IRF
@@ -74,7 +72,7 @@ loop:
     mullw               r7,  r11, r4            # start of row = row * num columns
     addu                r7,  r7,  r12           # element = start of row + column
     slli                r7,  r7,  2             # get address
-    stw                 r13, r7,  0x30000 > 1   # store result
+    stw                 r13, 0x30000(r7) -> 1   # store result
 
     addui               r12, r12, 1             # move to next output column
     seteq.p             r0,  r12, r4            # see if we have finished the row

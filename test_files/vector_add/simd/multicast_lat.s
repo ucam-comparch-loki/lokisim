@@ -10,19 +10,18 @@ hackystart:
 
 # Load parameter(s)
 simdstart:
-#    fetch               r0,  loop
-    or r0 r0 r0
-    or r0 r0 r0
+    fetch               r0,  loop
+    or r0, r0, r0
+    or r0, r0, r0
     addui               r11, r30, -1            # core 0 does no work => subtract 1
     slli                r11, r11, 2             # r11 = current load position
     ldw                 0x10000(r11)     -> 1   # load from the two vectors
     ldw                 0x11000(r11)     -> 1
     or                  r14, r11, r0            # r14 = current store position
     slli                r12, r31, 2             # r12 = stride length
-    addu                r11, r11, r12           # move to next element
-    fetch.eop           r0,  loop
+    addu.eop            r11, r11, r12           # move to next element
 
-or.eop r0 r0 r0
+or.eop r0, r0, r0
 
 # Main loop
 loop:

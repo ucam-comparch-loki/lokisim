@@ -1,13 +1,12 @@
 # Load parameters
 simdstart:
-#    fetch               r0,  loop
-    ldw                 r0,  4           > 1
-    ldw                 r0,  8           > 1
-    ldw                 r0,  12          > 1
+    fetch               r0,  loop
+    ldw                 4(r0)          -> 1
+    ldw                 8(r0)          -> 1
+    ldw                 12(r0)         -> 1
     ori                 r2,  ch0, 0             # r2 = rows of matrix 1
     ori                 r3,  ch0, 0             # r3 = columns of matrix 1 (rows of mat 2)
-    ori                 r4,  ch0, 0             # r4 = columns of matrix 2
-    fetch.eop           r0,  loop
+    ori.eop             r4,  ch0, 0             # r4 = columns of matrix 2
 
 # Start of main loop
 loop:
@@ -20,13 +19,13 @@ loop:
     mullw               r5,  r3,  r11           # start of row = row * num columns
     addu                r5,  r5,  r14           # element = start of row + column
     slli                r5,  r5,  2             # get address
-    ldw                 r5,  0x10000     > 1    # load element (skipping over parameters)
+    ldw                 0x10000(r5)     -> 1    # load element (skipping over parameters)
 
 # Compute where to load from in matrix 2
     mullw               r6,  r4,  r14           # start of row = num columns * row
     addu                r6,  r6,  r12           # element = start of row + column
     slli                r6,  r6,  2             # get address
-    ldw                 r6,  0x20000     > 1    # load element
+    ldw                 0x20000(r6)     -> 1    # load element
 
 # Deal with inputs (and loop if necessary)
     addui               r14, r14, 1             # increment iteration variable
@@ -40,7 +39,7 @@ loop:
     mullw               r7,  r11, r4            # start of row = row * num columns
     addu                r7,  r7,  r12           # element = start of row + column
     slli                r7,  r7,  2             # get address
-    stw                 r13, r7,  0x30000 > 1   # store result
+    stw                 r13, 0x30000(r7) -> 1   # store result
 
     addui               r12, r12, 1             # move to next output column
     seteq.p             r0,  r12, r4            # see if we have finished the row

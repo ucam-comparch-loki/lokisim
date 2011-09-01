@@ -25,10 +25,10 @@ loop:
     slli                r14, r14, 2             # r14 = address to store this row
 
 # Start of inner loop (go through one column of input)
-    ldw                 r13, 0x10000     > 1    # load matrix element
+    ldw                 0x10000(r13)    -> 1    # load matrix element
     addu                r13, r13, r5            # increment load address
     setne.p             r0,  ch5, r0            # receive predicate from helper core
-    stw                 ch0, r14, 0x20000 > 1   # store received value
+    stw                 ch0, 0x20000(r14) -> 1  # store received value
     addui               r14, r14, 4             # increment store address
     if!p?ibjmp          -40                     # continue along row if not finished
 # End of inner loop
@@ -58,11 +58,11 @@ lastiteration:
     slli                r14, r14, 2             # r14 = address to store this row
 
 # Go through one column of input
-    ldw                 r13, 0x10000     > 1    # load matrix element
+    ldw                 0x10000(r13)    -> 1    # load matrix element
     addui               r12, r12, 1             # increment current element
     addu                r13, r13, r5            # increment load address
     seteq.p             r0,  r12, r2            # see if we have finished this column
-    stw                 ch0, r14, 0x20000 > 1   # store received value
+    stw                 ch0, 0x20000(r14) -> 1  # store received value
     addui               r14, r14, 4             # increment store address
     if!p?ibjmp          -48                     # continue along row if not finished
     fetch.eop           r0,  end
@@ -76,20 +76,20 @@ end:
 
 # Code to be run by the single helper core.
 helpercode:
-    ldw                 r0,  4           > 1
-    ldw                 r0,  8           > 1
-    ori                 r2,  ch0, 0      > 3    # r2 = rows of input (columns of output)
-    ori                 r3,  ch0, 0      > 3    # r3 = columns of input (rows of output)
+    ldw                 4(r0)           -> 1
+    ldw                 8(r0)           -> 1
+    ori                 r2,  ch0, 0     -> 3    # r2 = rows of input (columns of output)
+    ori                 r3,  ch0, 0     -> 3    # r3 = columns of input (rows of output)
     addui               r11, r31, -1            # r11 = maximum current row/column
 #    or                  r11, r0,  0             # r11 = current row/column
 
     or                  r12, r0,  r0            # r12 = position in current row/column
     addui               r12, r12, 1
-    seteq.p             r0,  r12, r2     > 3    # see if we have finished this column
+    seteq.p             r0,  r12, r2    -> 3    # see if we have finished this column
     if!p?ibjmp          -16                     # continue along row if not finished
 
     addu                r11, r11, r31           # update row/column
-    setgte.p            r0,  r11, r3     > 3    # see if we have finished the whole matrix
+    setgte.p            r0,  r11, r3    -> 3    # see if we have finished the whole matrix
     if!p?ibjmp          -48                     # do another column if not finished
 
     fetch.eop           r0,  newmask
@@ -103,4 +103,4 @@ newmask:
     ori                 r14, r0,  1
     sll                 r14, r14, r13
     addui               r14, r14, -1            # r14 = mask to apply to existing group
-    and.eop             r29, r29, r14    > 3    # apply mask and send to everyone
+    and.eop             r29, r29, r14   -> 3    # apply mask and send to everyone

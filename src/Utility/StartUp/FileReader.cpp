@@ -135,10 +135,15 @@ FileReader* FileReader::makeFileReader(vector<string>& words, bool customAppLoad
 
     deleteFile(asmFile);
 
-    filesToLink.push_back(elfFile);
-    tempFiles.push_back(elfFile);
-    foundAsmFile = true;
-    reader = NULL;
+    if(component == BACKGROUND_MEMORY) {
+      filesToLink.push_back(elfFile);
+      tempFiles.push_back(elfFile);
+      foundAsmFile = true;
+      reader = NULL;
+    }
+    else {
+      reader = new ELFFileReader(elfFile, component, component, 0);
+    }
   }
   else {
     cerr << "Unknown file format: " << filename << endl;

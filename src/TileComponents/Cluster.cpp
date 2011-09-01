@@ -36,11 +36,13 @@ void     Cluster::storeData(const std::vector<Word>& data, MemoryAddr location) 
 }
 
 const MemoryAddr Cluster::getInstIndex() const   {return fetch.getInstIndex();}
-bool     Cluster::inCache(const MemoryAddr a)    {return fetch.inCache(a);}
 bool     Cluster::roomToFetch() const            {return fetch.roomToFetch();}
-void     Cluster::refetch(const MemoryAddr addr) {decode.fetch(addr, true);}
+void     Cluster::refetch(const MemoryAddr addr) {decode.fetch(addr, InstructionMap::FETCH, true);}
 void     Cluster::jump(const JumpOffset offset)  {fetch.jump(offset);}
-void     Cluster::setPersistent(bool persistent) {fetch.setPersistent(persistent);}
+
+bool     Cluster::inCache(const MemoryAddr addr, operation_t operation) {
+  return fetch.inCache(addr, operation);
+}
 
 const int32_t Cluster::readReg(RegisterIndex reg, bool indirect) {
 

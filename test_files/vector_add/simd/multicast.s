@@ -5,11 +5,10 @@ hackystart:
 
 # Load parameter(s)
 simdstart:
-#    fetch               r0,  loop
+    fetch               r0,  loop
     addui               r11, r30, -1            # core 0 does no work => subtract 1
     slli                r11, r11, 2             # r11 = current position
-    slli                r12, r31, 2             # r12 = stride length
-    fetch.eop           r0,  loop
+    slli.eop            r12, r31, 2             # r12 = stride length
 
 # Main loop
 loop:
@@ -28,11 +27,10 @@ loop:
 
 
 helpercode:
-#    fetch               r0,  helploop
+    fetch               r0,  helploop
     ldw                 4(r0)            -> 1   # load length of vectors
     or                  r11, r0,  r0            # r11 = current position
-    addui               r10, ch0, -1            # r10 = index of final element
-    fetch.eop           r0,  helploop
+    addui.eop           r10, ch0, -1            # r10 = index of final element
 
 # Main loop
 helploop:

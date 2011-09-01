@@ -100,8 +100,8 @@ MemoryAddr FetchStage::getInstIndex() const {
   return cache.getInstAddress();
 }
 
-bool FetchStage::inCache(const MemoryAddr addr) {
-  return cache.lookup(addr);
+bool FetchStage::inCache(const MemoryAddr addr, operation_t operation) {
+  return cache.lookup(addr, operation);
 }
 
 bool FetchStage::roomToFetch() const {
@@ -112,10 +112,6 @@ bool FetchStage::roomToFetch() const {
 void FetchStage::jump(const JumpOffset offset) {
   usingCache = true;
   cache.jump(offset);
-}
-
-void FetchStage::setPersistent(bool persistent) {
-  cache.updatePersistent(persistent);
 }
 
 void FetchStage::updatePacketAddress(const MemoryAddr addr) const {
@@ -152,7 +148,8 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
 
   // The last instruction "executed" was the last in its packet, so the first
   // instruction that arrives (through either input) is the one to execute.
-  lastInstruction = Instruction("or.eop r0 r0 r0");
+  lastInstruction = Instruction(0);
+  lastInstruction.predicate(Instruction::END_OF_PACKET);
 
   // Connect FIFO and cache to network
   fifo.clock(clock);

@@ -1,12 +1,11 @@
 # Load parameter(s)
 simdstart:
-#    fetch               r0,  loop
+    fetch               r0,  loop
     ldw                 4(r0)            -> 1   # load length of vectors
     slli                r11, r30, 2             # r11 = current position
     slli                r12, r31, 2             # r12 = stride length
     slli                r10, ch0, 2             # r10 = byte-length of vectors
-    addui               r10, r10, -4            # r10 = offset of final element
-    fetch.eop           r0,  loop
+    addui.eop           r10, r10, -4            # r10 = offset of final element
 
 # Main loop
 loop:

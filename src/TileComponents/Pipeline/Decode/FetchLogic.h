@@ -14,6 +14,7 @@
 #include "../../../Component.h"
 #include "../../../Datatype/AddressedWord.h"
 #include "../../../Memory/BufferStorage.h"
+#include "../../../Utility/InstructionMap.h"
 
 class DecodeStage;
 
@@ -52,9 +53,11 @@ public:
   // Send a fetch request for the instruction packet at the given address,
   // in the memory we are set to fetch from, but only if it is not already in
   // the instruction packet cache.
+  // There are many different ways of fetching instructions, so provide the
+  // operation too.
   // checkedCache signals whether the cache has already been checked. If it has,
   // we can issue the fetch immediately.
-  void fetch(const MemoryAddr addr, bool checkedCache);
+  void fetch(const MemoryAddr addr, operation_t operation, bool checkedCache);
 
   // Update the channel to which we send fetch requests.
   void setFetchChannel(const ChannelID& channelID, uint memoryGroupBits, uint memoryLineBits);
@@ -68,7 +71,7 @@ private:
   void send();
 
   // Find out whether the wanted instruction packet is in the cache.
-  bool inCache(const MemoryAddr addr) const;
+  bool inCache(const MemoryAddr addr, operation_t operation) const;
 
   // Find out if there is room in the cache to accommodate another instruction
   // packet. Assumes that the packet being fetched is of the maximum size.

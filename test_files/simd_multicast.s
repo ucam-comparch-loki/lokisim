@@ -12,7 +12,7 @@
 # overwritten by the SIMD program. r29 holds a bitmask of the group members.
 
 _start:
-    ldw                 r0,  0          -> 1    # load number of SIMD members
+    ldw                 0(r0)           -> 1    # load number of SIMD members
 #    fetch               r0,  send_ids
 
 # Load arguments and prepare to communicate with other cores in the group.
@@ -37,8 +37,8 @@ send_ids:
     or                  r11, r11, r5            # add the bit to the multicast address
     addui               r7,  r7,  -1            # update to next member
     setgtei.p           r0,  r7,  1             # see if we have sent ID to all members
-    p?subu              r6,  r6,  r8            # update data input
-    p?ibjmp             -56                     # loop if there's another member
+    ifp?subu            r6,  r6,  r8            # update data input
+    ifp?ibjmp           -56                     # loop if there's another member
     addui               r12, r11, (0,0,7)       # another multicast address for data
     fetch.eop           r0,  send_code
 
@@ -55,23 +55,23 @@ send_code:
 # TODO: turn this into an instruction packet (or two), and put it in one core's
 # cache (using fill, rather than fetch). Then have the whole group gfetch it.
     rmtexecute                         -> 2
-    p?or                r30, ch5, r0            # r30 = this core's SIMD ID
-    p?ori               r5,  r0,  (0,0,1,0,0)
-    p?mullw             r6,  r5,  r30
-    p?slli              r6,  r6,  1             # claim pairs of ports => multiply by 2
-    p?addu              r3,  ch5, r6            # instruction memory connection
-    p?addu              r4,  r3,  r5            # data memory connection
-    p?ori               r8,  r0,  (0,1,0)       # number of ports per core
-    p?mullw             r8,  r8,  r30           # r8 = first local port
-    p?setchmap          0,   r3
-    p?ori               r0,  r0,  0x01000000 > 0  # tell memory we're about to connect
-    p?addui             r0,  r8,  (0,0,1) -> 0  # connect to the instruction memory
-    p?setchmap          1,   r4
-    p?ori               r0,  r0,  0x01000000 > 1  # tell memory we're about to connect
-    p?addui             r0,  r8,  (0,0,2) -> 1  # connect to the data memory
-    p?or                r29, ch5, r0            # r29 = bitmask of group members
-    p?popc              r31, r29                # r31 = number of SIMD members
-    p?or                r0,  ch0, r0            # consume memory's sync message
-    p?fetch             r0,  4472               # load program (hardcoded address = bad)
+    ifp?or              r30, ch5, r0            # r30 = this core's SIMD ID
+    ifp?ori             r5,  r0,  (0,0,1,0,0)
+    ifp?mullw           r6,  r5,  r30
+    ifp?slli            r6,  r6,  1             # claim pairs of ports => multiply by 2
+    ifp?addu            r3,  ch5, r6            # instruction memory connection
+    ifp?addu            r4,  r3,  r5            # data memory connection
+    ifp?ori             r8,  r0,  (0,1,0)       # number of ports per core
+    ifp?mullw           r8,  r8,  r30           # r8 = first local port
+    ifp?setchmap        0,   r3
+    ifp?ori             r0,  r0,  0x01000000 -> 0  # tell memory we're about to connect
+    ifp?addui           r0,  r8,  (0,0,1) -> 0  # connect to the instruction memory
+    ifp?setchmap        1,   r4
+    ifp?ori             r0,  r0,  0x01000000 -> 1  # tell memory we're about to connect
+    ifp?addui           r0,  r8,  (0,0,2) -> 1  # connect to the data memory
+    ifp?or              r29, ch5, r0            # r29 = bitmask of group members
+    ifp?popc            r31, r29                # r31 = number of SIMD members
+    ifp?or              r0,  ch0, r0            # consume memory's sync message
+    ifp?fetch           r0,  4472               # load program (hardcoded address = bad)
 
     fetch.eop           r0,  4464               # load helper program

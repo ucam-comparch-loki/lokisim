@@ -104,7 +104,9 @@ private:
 
   // Determine if the instruction packet from the given location is currently
   // in the instruction packet cache.
-  bool             inCache(const MemoryAddr a);
+  // There are many different ways of fetching instructions, so provide the
+  // operation too.
+  bool             inCache(const MemoryAddr addr, operation_t operation);
 
   // Determine if there is room in the cache to fetch another instruction
   // packet, assuming that it is of maximum size.
@@ -116,9 +118,6 @@ private:
 
   // Perform an IBJMP and jump to a new instruction in the cache.
   void             jump(const JumpOffset offset);
-
-  // Set whether the cache is in persistent or non-persistent mode.
-  void             setPersistent(bool persistent);
 
   // Read a value from a register. This method will redirect the request to
   // the receive channel-end table if the register index corresponds to a

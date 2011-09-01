@@ -105,16 +105,16 @@ const sc_event& DecodeStage::receivedDataEvent(ChannelIndex buffer) const {
   return rcet.receivedDataEvent(buffer);
 }
 
-void         DecodeStage::fetch(const MemoryAddr addr, bool checkedCache) {
-  fl.fetch(addr, checkedCache);
+void         DecodeStage::fetch(const MemoryAddr addr, operation_t operation, bool checkedCache) {
+  fl.fetch(addr, operation, checkedCache);
 }
 
 void         DecodeStage::setFetchChannel(const ChannelID& channelID, uint memoryGroupBits, uint memoryLineBits) {
   fl.setFetchChannel(channelID, memoryGroupBits, memoryLineBits);
 }
 
-bool         DecodeStage::inCache(const MemoryAddr a) const {
-  return parent()->inCache(a);
+bool         DecodeStage::inCache(const MemoryAddr addr, operation_t operation) const {
+  return parent()->inCache(addr, operation);
 }
 
 bool         DecodeStage::roomToFetch() const {
@@ -123,10 +123,6 @@ bool         DecodeStage::roomToFetch() const {
 
 void         DecodeStage::jump(JumpOffset offset) const {
   parent()->jump(offset);
-}
-
-void         DecodeStage::setPersistent(bool persistent) const {
-  parent()->setPersistent(persistent);
 }
 
 bool         DecodeStage::discardNextInst() const {

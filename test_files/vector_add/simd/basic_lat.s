@@ -1,6 +1,6 @@
 # Load parameter(s)
 simdstart:
-#    fetch               r0,  loop
+    fetch               r0,  loop
     ldw                 4(r0)            -> 1   # load length of vectors
     slli                r11, r30, 2             # r11 = current position
     ldw                 0x10000(r11)     -> 1   # load from the two vectors early
@@ -9,10 +9,9 @@ simdstart:
     addu                r11, r11, r12           # move to next element
     slli                r10, ch0, 2             # r10 = byte-length of vectors
     addui               r10, r10, -4            # r10 = offset of final element
-    slli                r14, r30, 2             # r14 = current store position
-    fetch.eop           r0,  loop
+    slli.eop            r14, r30, 2             # r14 = current store position
 
-or.eop r0 r0 r0
+or.eop r0, r0, r0
 
 # Main loop
 loop:

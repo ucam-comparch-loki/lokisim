@@ -14,6 +14,7 @@
 #define DECODER_H_
 
 #include "../../../Component.h"
+#include "../../../Utility/InstructionMap.h"
 
 class DecodedInst;
 class DecodeStage;
@@ -63,7 +64,9 @@ private:
 
   // Ensure that the instruction packet from the given address is in the
   // instruction packet cache. Nothing will be done if it is already there.
-  void    fetch(MemoryAddr addr) const;
+  // There are many different ways of fetching instructions, so provide the
+  // operation too.
+  void    fetch(MemoryAddr addr, operation_t operation) const;
 
   // Update the channel to which we send fetch requests.
   void    setFetchChannel(uint32_t encodedChannel) const;

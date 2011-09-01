@@ -79,10 +79,12 @@ public:
   // this value from the buffer.
   int32_t        readRCET(ChannelIndex index);
 
-  // Fetch an instruction packet from the given address. Optionally tell
-  // whether the cache has already been checked - can go straight to sending
-  // the memory request if we know we don't have it.
-  void           fetch(const MemoryAddr addr, bool checkedCache=false);
+  // Fetch an instruction packet from the given address.
+  // There are many different ways of fetching instructions, so provide the
+  // operation too.
+  // Optionally tell whether the cache has already been checked - can go
+  // straight to sending the memory request if we know we don't have it.
+  void           fetch(const MemoryAddr addr, operation_t op, bool checkedCache=false);
 
 private:
 
@@ -120,16 +122,15 @@ private:
 
   // Find out if the instruction packet from the given location is currently
   // in the instruction packet cache.
-  bool           inCache(const MemoryAddr a) const;
+  // There are many different ways of fetching instructions, so provide the
+  // operation too.
+  bool           inCache(const MemoryAddr addr, operation_t operation) const;
 
   // Find out if there is room in the cache to fetch another packet.
   bool           roomToFetch() const;
 
   // Tell the instruction packet cache to jump to a new instruction.
   void           jump(JumpOffset offset) const;
-
-  // Set the instruction packet cache into persistent or non-persistent mode.
-  void           setPersistent(bool persistent) const;
 
   // If an instruction is waiting to enter this pipeline stage, discard it.
   // Returns whether anything was discarded.

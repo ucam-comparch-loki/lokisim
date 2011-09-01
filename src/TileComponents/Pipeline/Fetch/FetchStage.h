@@ -69,7 +69,9 @@ public:
   MemoryAddr    getInstIndex() const;
 
   // Tells whether the packet from location a is currently in the cache.
-  bool          inCache(const MemoryAddr a);
+  // There are many different ways of fetching instructions, so provide the
+  // operation too.
+  bool          inCache(const MemoryAddr a, operation_t operation);
 
   // Tells whether there is room in the cache to fetch another instruction
   // packet, assuming the packet is of maximum size.
@@ -77,10 +79,6 @@ public:
 
   // Jump to a different instruction in the Instruction Packet Cache.
   void          jump(const JumpOffset offset);
-
-  // Put the cache into persistent mode, where it executes the same instruction
-  // packet repeatedly, or take it out of persistent mode.
-  void          setPersistent(bool persistent);
 
 private:
 
@@ -101,6 +99,7 @@ private:
 
   // We have overwritten the packet due to execute next, so it needs to be
   // fetched again.
+  // Alternative: stall any tag lookups until instructions stop arriving.
   void          refetch(const MemoryAddr addr) const;
 
 //==============================//

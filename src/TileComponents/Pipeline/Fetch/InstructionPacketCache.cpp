@@ -69,14 +69,14 @@ void InstructionPacketCache::write(const Instruction inst) {
 
 /* See if an instruction packet is in the cache, and if so, prepare to
  * execute it. */
-bool InstructionPacketCache::lookup(const MemoryAddr addr) {
+bool InstructionPacketCache::lookup(const MemoryAddr addr, operation_t operation) {
   if(DEBUG) cout << this->name() << " looking up tag " << addr << ": ";
 
   // Shouldn't check tags more than once in a clock cycle.
   assert(timeLastChecked != Instrumentation::currentCycle());
   timeLastChecked = Instrumentation::currentCycle();
 
-  bool inCache = cache.checkTags(addr);
+  bool inCache = cache.checkTags(addr, operation);
   if(DEBUG) cout << (inCache ? "" : "not ") << "in cache" << endl;
 
   if(inCache) {
@@ -108,10 +108,6 @@ void InstructionPacketCache::jump(const JumpOffset offset) {
   cache.jump(offset/BYTES_PER_INSTRUCTION);
 
   cacheFillChanged.notify();
-}
-
-void InstructionPacketCache::updatePersistent(bool persistent) {
-  cache.setPersistent(persistent);
 }
 
 const sc_core::sc_event& InstructionPacketCache::fillChangedEvent() const {
@@ -148,7 +144,7 @@ bool InstructionPacketCache::isEmpty() const {
 }
 
 bool InstructionPacketCache::roomToFetch() const {
-  return cache.remainingSpace() >= MAX_IPK_SIZE;
+  return cache.canFetch();
 }
 
 /* Perform any necessary tasks when the end of an instruction packet has been

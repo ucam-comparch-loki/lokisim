@@ -1,69 +1,50 @@
-#fetch           r1,       64
+fetch           r1,       64
 addui           r9,  r0,  28            ; store 7, since it is a common offset
 addui           r10, ch1, 0             ; wait until we receive an address, and store it
-ldw             r10,      0   > 1       ; load the first value early
-fetch.eop       r1,  64
+ldw.eop         r10,      0   > 1       ; load the first value early
 
-#fetch           r1,       32            ; MOVING UPWARDS
+fetch           r1,       32            ; MOVING UPWARDS
 addu            r12, r10, r11           ; ============================
 ldw             r12,      0   > 1       ;  Load and forward data item
-addui           r0,  ch0, 0   > 2       ; ============================
-fetch.eop       r1,  32
+addui.eop       r0,  ch0, 0   > 2       ; ============================
 
 setlti.p        r0,  r11, 32            ; see if we have hit the top of the grid
-#!p?fetch        r1,       40
-addui           r2,  r1,  40
+!p?fetch        r1,       40
 p?addui         r11, r11, 4
-#p?fetch         r1,       128            ; switch to moving down
-#nop.eop
-addui           r3,  r1,  128
-psel.fetch.eop  r3,  r2
+p?fetch         r1,       128           ; switch to moving down
+nop.eop
 
 seteqi.p        r0,  r11, 252           ; see if we have finished
-#!p?fetch        r1,       32            ; check the final condition
-#p?fetch         r1,       216           ; end
-#nop.eop
-addui           r2,  r1,  32
-addui           r3,  r1,  216
-psel.fetch.eop  r3,  r2
+!p?fetch        r1,       32            ; check the final condition
+p?fetch         r1,       216           ; end
+nop.eop
 
 and             r13, r11, r9
 seteq.p         r0,  r13, r9            ; see if we have hit the right of the grid
 !p?subu         r11, r11, r9
-#!p?fetch        r1,       -104           ; keep moving up
-addui           r2,  r1,  -104
+!p?fetch        r1,       -104          ; keep moving up
 p?addui         r11, r11, 32
-#p?fetch         r1,       56            ; switch to moving down
-#nop.eop
-addui           r3,  r1,  56
-psel.fetch.eop  r3,  r2
+p?fetch         r1,       56            ; switch to moving down
+nop.eop
 
-#fetch           r1,       32            ; MOVING DOWNWARDS
+fetch           r1,       32            ; MOVING DOWNWARDS
 addu            r12, r10, r11           ; ============================
 ldw             r12,      0   > 1       ;  Load and forward data item
-addui           r0,  ch0, 0   > 2       ; ============================
-fetch.eop       r1,  32
+addui.eop       r0,  ch0, 0   > 2       ; ============================
 
 setlti.p        r0,  r11, 224           ; see if we have reached the bottom of the grid
-#p?fetch         r1,       40            ; we haven't, so check the other condition
+p?fetch         r1,       40            ; we haven't, so check the other condition
 !p?addui        r11, r11, 4
-#!p?fetch        r1,       -192           ; we have, so switch to moving up
-#nop.eop
-addui           r2,  r1,  40
-addui           r3,  r1,  -192
-psel.fetch.eop  r2,  r3
+!p?fetch        r1,       -192          ; we have, so switch to moving up
+nop.eop
 
 and             r13, r11, r9
 seteq.p         r0,  r13, r0            ; see if we have reached the left of the grid
 !p?addu         r11, r11, r9
-#!p?fetch        r1,       -72           ; keep moving down
+!p?fetch        r1,       -72           ; keep moving down
 p?addui         r11, r11, 32
-#p?fetch         r1,       -232          ; switch to moving up
-#nop.eop
-addui           r2,  r1,  -72
-addui           r3,  r1,  -232
-psel.fetch.eop  r3,  r2
+p?fetch         r1,       -232          ; switch to moving up
+nop.eop
 
-%fetch           r1,       -320          ; end of block: restart and wait for new block address
 addui           r0,  ch0, 0   > 2       ; send the final value late
 syscall.eop     1
