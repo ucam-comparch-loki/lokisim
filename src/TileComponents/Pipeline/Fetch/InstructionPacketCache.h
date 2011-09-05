@@ -15,7 +15,6 @@
 
 #include "../../../Component.h"
 #include "../../../Memory/IPKCacheStorage.h"
-#include "../../../Memory/BufferStorage.h"
 
 class FetchStage;
 class Word;
@@ -93,21 +92,6 @@ private:
   // Update the output flow control signal.
   void sendCredit();
 
-  // Update the output holding the address of the currently-executing
-  // instruction packet.
-  void updatePacketAddress(const MemoryAddr addr) const;
-
-  // We have overwritten the packet which was due to execute next, so we
-  // need to fetch it again.
-  void refetch(const MemoryAddr addr) const;
-
-  // Perform any necessary tasks when starting to read a new instruction packet.
-  void startOfPacketTasks();
-
-  // Perform any necessary tasks when the end of an instruction packet has been
-  // reached.
-  void endOfPacketTasks();
-
   // Tells whether an instruction was sent this cycle -- sometimes there may
   // be potential instructions both in the cache and arriving on the network
   // and we don't want to send both in the same cycle.
@@ -122,20 +106,6 @@ private:
 private:
 
   IPKCacheStorage cache;
-
-  // Store the address of any tags which we look up and aren't in the cache.
-  // When the packet starts to arrive, this will be its tag.
-  MemoryAddr      nextIPKAddress;
-
-  // We have just finished writing an instruction packet.
-  bool            finishedPacketWrite;
-
-  // We have just finished reading an instruction packet.
-  bool            finishedPacketRead;
-
-  // The address of the pending packet. We store it in case the packet gets
-  // overwritten and needs to be refetched.
-  MemoryAddr      pendingPacket;
 
   // Flag telling whether the cache missed this cycle.
   unsigned long timeLastChecked;

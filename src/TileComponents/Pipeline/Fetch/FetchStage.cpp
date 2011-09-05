@@ -114,14 +114,6 @@ void FetchStage::jump(const JumpOffset offset) {
   cache.jump(offset);
 }
 
-void FetchStage::updatePacketAddress(const MemoryAddr addr) const {
-  parent()->updateCurrentPacket(addr);
-}
-
-void FetchStage::refetch(const MemoryAddr addr) const {
-  parent()->refetch(addr);
-}
-
 /* Choose whether to take an instruction from the cache or FIFO next.
  * Use FIFO if already executing a packet from FIFO,
  *          or cache finished a packet and FIFO has instructions.

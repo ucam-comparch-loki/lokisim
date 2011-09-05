@@ -62,15 +62,6 @@ private:
   // Prepare this instruction to be sent to a remote core.
   void    remoteExecution(DecodedInst& instruction) const;
 
-  // Ensure that the instruction packet from the given address is in the
-  // instruction packet cache. Nothing will be done if it is already there.
-  // There are many different ways of fetching instructions, so provide the
-  // operation too.
-  void    fetch(MemoryAddr addr, operation_t operation) const;
-
-  // Update the channel to which we send fetch requests.
-  void    setFetchChannel(uint32_t encodedChannel) const;
-
   // If an instruction is waiting to be decoded, discard it. Returns whether
   // anything was discarded.
   bool    discardNextInst() const;
@@ -103,9 +94,6 @@ private:
 
   // The remote channel we are sending instructions to.
   ChannelIndex sendChannel;
-
-  // The location in memory to fetch instructions from.
-  MemoryAddr fetchAddress;
 
   // Tells whether or not we are in remote execution mode.
   bool remoteExecute;

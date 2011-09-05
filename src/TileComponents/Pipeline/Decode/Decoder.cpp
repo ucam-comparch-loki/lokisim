@@ -11,7 +11,6 @@
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
 #include "../../../Datatype/MemoryRequest.h"
-#include "../../../Exceptions/BlockedException.h"
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
@@ -88,6 +87,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     case InstructionMap::STHW :
     case InstructionMap::STB : {
       multiCycleOp = true;
+      output.endOfNetworkPacket(false);
       blockedEvent.notify();
 
       // The first part of a store is computing the address. This uses the
@@ -136,20 +136,13 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
     //case InstructionMap::RMTNXIPK :
 
-    case InstructionMap::FILL :
-    case InstructionMap::FETCH :
-    case InstructionMap::FETCHPST : {
-      continueToExecute = false;
-      break;
-    }
-
-    case InstructionMap::PSELFETCH : {
-      // We will only be using one of the registers - set the other to 0 so
-      // it isn't read.
-      if(parent()->predicate()) output.sourceReg2(0);
-      else                      output.sourceReg1(0);
-
-      continueToExecute = false;
+    case InstructionMap::FETCH:
+    case InstructionMap::FETCHPST:
+    case InstructionMap::FILL:
+    case InstructionMap::PSELFETCH: {
+      // Fetches implicitly access channel map table entry 0. This may change.
+      output.channelMapEntry(0);
+      output.memoryOp(MemoryRequest::IPK_READ);
       break;
     }
 
@@ -164,34 +157,6 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   // Some instructions which complete in the decode stage need to do a little
   // work now that they have their operands.
   switch(operation) {
-    case InstructionMap::SETCHMAP: {
-      if(input.immediate() == 0) setFetchChannel(output.operand1());
-      break;
-    }
-
-    case InstructionMap::FILL :
-    case InstructionMap::FETCH :
-    case InstructionMap::FETCHPST : {
-      // Is it possible to read a register, add it to an immediate, and check
-      // cache tags all in one cycle? Probably not?
-      if(execute) {
-        fetchAddress = output.operand1() + output.operand2();
-
-        // If the instruction is not a FILL, we want to execute the fetched
-        // packet next.
-        fetch(fetchAddress, operation);
-      }
-      break;
-    }
-
-    case InstructionMap::PSELFETCH : {
-      uint32_t selected;
-      if(parent()->predicate()) selected = output.operand1();
-      else                      selected = output.operand2();
-      fetch(selected, operation);
-
-      break;
-    }
 
     // A bit of a hack: if we are indirecting through a channel end, we need to
     // consume the value now so that channel reads are in program order. This
@@ -270,25 +235,6 @@ void Decoder::remoteExecution(DecodedInst& instruction) const {
   instruction.predicate(Instruction::ALWAYS);
   instruction.operation(InstructionMap::OR);
   instruction.destination(0);
-}
-
-void Decoder::fetch(MemoryAddr addr, operation_t operation) const {
-  parent()->fetch(addr, operation);
-}
-
-void Decoder::setFetchChannel(uint32_t encodedChannel) const {
-	// Encoded channel format:
-	// | Tile : 12 | Position : 8 | Channel : 4 | Memory group bits : 4 | Memory line bits : 4 |
-
-	uint newTile = encodedChannel >> 20;
-	uint newPosition = (encodedChannel >> 12) & 0xFFUL;
-	uint newChannel = (encodedChannel >> 8) & 0xFUL;
-	uint newGroupBits = (encodedChannel >> 4) & 0xFUL;
-	uint newLineBits = encodedChannel & 0xFUL;
-
-	ChannelID channel(newTile, newPosition, newChannel);
-
-	parent()->setFetchChannel(channel, newGroupBits, newLineBits);
 }
 
 bool Decoder::discardNextInst() const {

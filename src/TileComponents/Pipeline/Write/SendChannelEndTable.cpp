@@ -16,15 +16,11 @@
 #include "../../../Utility/Instrumentation/Stalls.h"
 
 bool SendChannelEndTable::write(const DecodedInst& dec) {
-	if(dec.operation() == InstructionMap::SETCHMAP) {
-	  // Send out a port claim message if we have just set up a new connection.
-	  createPortClaim(dec.immediate());
-	}
-  else if (dec.operation() == InstructionMap::WOCHE) {
+
+  if(dec.sendsOnNetwork())
+    write(dec.toAddressedWord(), dec.channelMapEntry());
+  else if (dec.operation() == InstructionMap::WOCHE)
 		waitUntilEmpty(dec.result());
-	} else if (dec.channelMapEntry() != Instruction::NO_CHANNEL && !dec.networkDestination().isNullMapping()) {
-		return executeMemoryOp(dec.channelMapEntry(), (MemoryRequest::MemoryOperation)dec.memoryOp(), dec.result(), dec.networkDestination());
-	}
 	
 	return true;
 }
@@ -59,11 +55,6 @@ bool SendChannelEndTable::full() const {
   return full || waiting;
 }
 
-ComponentID SendChannelEndTable::getSystemCallMemory() const {
-	//TODO: Implement this in a tidy way
-	return channelMapTable->read(1).getComponentID();
-}
-
 const sc_event& SendChannelEndTable::stallChangedEvent() const {
   return bufferFillChanged;
 }
@@ -89,11 +80,7 @@ void SendChannelEndTable::sendLoop(unsigned int buffer) {
     // If we are not receiving an acknowledgement, we must have data to send.
     assert(!buffers[buffer].empty());
 
-//    // Data can only be sent onto the network at the positive clock edge.
-//    if(!clock.posedge())
-//      next_trigger(clock.posedge_event());
-//    else
-      send(buffer);
+    send(buffer);
   }
 }
 
@@ -136,89 +123,6 @@ void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
   Instrumentation::stalled(id, false);
   waiting = false;
   bufferFillChanged.notify(); // No it didn't - use separate events?
-}
-
-/* Execute a memory operation. */
-bool SendChannelEndTable::executeMemoryOp(MapIndex entry,
-                                          MemoryRequest::MemoryOperation memoryOp,
-                                          int64_t data,
-                                          ChannelID destination) {
-	// Most messages we send will be one flit long, so will be the end of their
-	// packets. However, packets for memory stores are two flits long (address
-	// then data), so we need to mark this special case.
-
-	ChannelID channel = destination;
-	bool addressFlit = false;
-	bool endOfPacket = true;
-	Word w;
-
-	if (memoryOp != MemoryRequest::NONE) {
-		// Generate a special memory request if we are doing a load/store/etc.
-
-		// Generate a memory request using the address from the ALU and the operation
-		// supplied by the decoder. The memory request will be sent to a memory and
-		// will result in an operation being carried out there.
-
-		w = MemoryRequest(memoryOp, (uint32_t)data);
-
-		if (memoryOp == MemoryRequest::LOAD_B || memoryOp == MemoryRequest::LOAD_HW || memoryOp == MemoryRequest::LOAD_W || memoryOp == MemoryRequest::STORE_W || memoryOp == MemoryRequest::STORE_HW || memoryOp == MemoryRequest::STORE_B)
-			addressFlit = true;
-
-		if (memoryOp == MemoryRequest::STORE_W || memoryOp == MemoryRequest::STORE_HW || memoryOp == MemoryRequest::STORE_B)
-			endOfPacket = false;
-	} else {
-		w = Word(data);
-	}
-
-	// Adjust destination channel based on memory configuration if necessary
-
-	uint32_t increment = 0;
-
-	// We want to access lots of information from the channel map table, so get
-	// the entire entry.
-	ChannelMapEntry& channelMapEntry = channelMapTable->getEntry(entry);
-
-	if (channelMapEntry.localMemory() && channelMapEntry.memoryGroupBits() > 0) {
-    if (addressFlit) {
-      increment = (uint32_t)data;
-      increment &= (1UL << (channelMapEntry.memoryGroupBits() + channelMapEntry.memoryLineBits())) - 1UL;
-      increment >>= channelMapEntry.memoryLineBits();
-      channelMapEntry.setAddressIncrement(increment);
-    } else {
-      increment = channelMapEntry.getAddressIncrement();
-    }
-  }
-
-	channel = channel.addPosition(increment);
-
-	// Send request to memory
-
-	AddressedWord aw(w, channel);
-	aw.setEndOfPacket(endOfPacket);
-
-	return write(aw, entry);
-}
-
-void SendChannelEndTable::createPortClaim(MapIndex channel) {
-  // The destination channel end to claim (a table read isn't necessary here -
-  // the information could be extracted from the instruction).
-  ChannelID destination = channelMapTable->read(channel);
-
-  // The address to send credits back to (if applicable).
-  ChannelID returnChannel(id, channel);
-
-  if (destination.isCore()) {
-    // Send port acquisition request
-    // FetchLogic sends out the claims for entry 0
-    if (channel != 0) {
-      AddressedWord aw(returnChannel, destination);
-      aw.setPortClaim(true, channelMapTable->getEntry(channel).usesCredits());
-      unsigned int bufferToUse = (int)(channelMapTable->getNetwork(channel));
-      buffers[bufferToUse].write(BufferedInfo(aw, channel));
-      dataToSendEvent[bufferToUse].notify();
-      bufferFillChanged.notify();
-    }
-  }
 }
 
 void SendChannelEndTable::receivedCredit(unsigned int buffer) {

@@ -71,8 +71,6 @@ public:
   // Returns true if the table is incapable of accepting new data at the moment.
   bool          full() const;
 
-  ComponentID   getSystemCallMemory() const;
-
   // A handle for an event which triggers whenever the send channel-end table
   // might stall or unstall.
   const sc_event& stallChangedEvent() const;
@@ -91,13 +89,6 @@ private:
 
   // Stall the pipeline until the channel specified is empty.
   void          waitUntilEmpty(MapIndex channel);
-
-  // Execute a memory operation.
-  bool          executeMemoryOp(MapIndex entry, MemoryRequest::MemoryOperation memoryOp,
-                                int64_t data, ChannelID destination);
-
-  // Generate a port claim message to send whenever a new connection is set up.
-  void          createPortClaim(MapIndex channel);
 
   // A credit was received, so update the corresponding credit counter.
   void          receivedCredit(unsigned int buffer);

@@ -36,8 +36,7 @@ void     Cluster::storeData(const std::vector<Word>& data, MemoryAddr location) 
 }
 
 const MemoryAddr Cluster::getInstIndex() const   {return fetch.getInstIndex();}
-bool     Cluster::roomToFetch() const            {return fetch.roomToFetch();}
-void     Cluster::refetch(const MemoryAddr addr) {decode.fetch(addr, InstructionMap::FETCH, true);}
+bool     Cluster::readyToFetch() const            {return fetch.roomToFetch();}
 void     Cluster::jump(const JumpOffset offset)  {fetch.jump(offset);}
 
 bool     Cluster::inCache(const MemoryAddr addr, operation_t operation) {
@@ -108,19 +107,19 @@ bool     Cluster::readPredReg(bool waitForExecution) {
 void     Cluster::writePredReg(bool val)  {pred.write(val);}
 
 const Word Cluster::readWord(MemoryAddr addr) const {
-	return Word(parent()->readWord(write.getSystemCallMemory(), addr));
+	return Word(parent()->readWord(getSystemCallMemory(), addr));
 }
 
 const Word Cluster::readByte(MemoryAddr addr) const {
-	return Word(parent()->readByte(write.getSystemCallMemory(), addr));
+	return Word(parent()->readByte(getSystemCallMemory(), addr));
 }
 
 void Cluster::writeWord(MemoryAddr addr, Word data) {
-	parent()->writeWord(write.getSystemCallMemory(), addr, data);
+	parent()->writeWord(getSystemCallMemory(), addr, data);
 }
 
 void Cluster::writeByte(MemoryAddr addr, Word data) {
-	parent()->writeByte(write.getSystemCallMemory(), addr, data);
+	parent()->writeByte(getSystemCallMemory(), addr, data);
 }
 
 const int32_t  Cluster::readRCET(ChannelIndex channel) {
@@ -163,6 +162,12 @@ void     Cluster::updateIdle() {
   	idle.write(isIdle || currentlyStalled);
 
   if(wasIdle != isIdle) Instrumentation::idle(id, isIdle);
+}
+
+ComponentID Cluster::getSystemCallMemory() const {
+  // TODO: Stop assuming that the first channel map entry after the fetch
+  // channel corresponds to the memory system calls want to access.
+  return channelMapTable.read(1).getComponentID();
 }
 
 /* Returns the channel ID of this cluster's instruction packet FIFO. */
@@ -224,7 +229,7 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
 
   // Wire the stall registers up.
   for(unsigned int i=0; i<3; i++) {
-    StallRegister* stallReg = new StallRegister(sc_core::sc_gen_unique_name("stall"), i);
+    StallRegister* stallReg = new StallRegister(sc_gen_unique_name("stall"), i);
 
     stallReg->clock(clock);               stallReg->readyOut(stallRegReady[i]);
     stallReg->dataIn(instFromStage[i]);   stallReg->dataOut(instToStage[i]);
@@ -234,7 +239,7 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
     // ones. This is required to stop a decoder-only instruction accidentally
     // executing when the pipeline is stalled.
     // TODO: for the first stall register, get the AND of the two ready signals.
-    if(i < 2) stallReg->readyIn(stallRegReady[2]);
+    if(i < 2) stallReg->readyIn(stallRegReady[i+1]);
     else 			stallReg->readyIn(constantHigh);
 
     stallRegs.push_back(stallReg);
@@ -248,8 +253,6 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
   fetch.readyIn(stallRegReady[0]);				fetch.dataOut(instFromStage[0]);
 
   decode.clock(clock);                    decode.idle(stageIdle[1]);
-  decode.fetchOut(fetchSignal);
-  decode.flowControlIn(stageReady[2]); // Flow control from output buffers
   decode.readyIn(stallRegReady[1]);       decode.dataOut(instFromStage[1]);
   decode.readyOut(stageReady[0]);         decode.dataIn(instToStage[0]);
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
@@ -263,7 +266,6 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
 
   write.clock(clock);                     write.idle(stageIdle[3]);
   write.readyOut(stageReady[2]);          write.dataIn(instToStage[2]);
-  write.fromFetchLogic(fetchSignal);
 
   for(unsigned int i=0; i<CORE_OUTPUT_PORTS; i++) {
     write.output[i](dataOut[i]);            write.creditsIn[i](creditsIn[i]);

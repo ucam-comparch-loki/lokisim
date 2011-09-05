@@ -55,7 +55,11 @@ const bool    DecodedInst::isALUOperation() const {
   return InstructionMap::isALUOperation(operation_);
 }
 
-const bool    DecodedInst::endOfPacket() const {
+const bool    DecodedInst::isMemoryOperation() const {
+  return memoryOp_ != MemoryRequest::NONE;
+}
+
+const bool    DecodedInst::endOfIPK() const {
   return predicate() == Instruction::END_OF_PACKET;
 }
 
@@ -82,6 +86,9 @@ void DecodedInst::result(const int64_t val) {
   hasResult_ = true;
 }
 
+void DecodedInst::endOfNetworkPacket(const bool val)      {endOfPacket_ = val;}
+void DecodedInst::portClaim(const bool val)               {portClaim_ = val;}
+void DecodedInst::usesCredits(const bool val)             {useCredits_ = val;}
 void DecodedInst::networkDestination(const ChannelID val) {networkDest_ = val;}
 void DecodedInst::location(const MemoryAddr val)          {location_ = val;}
 
@@ -130,6 +137,18 @@ Instruction DecodedInst::toInstruction() const {
   }
 
   return i;
+}
+
+const bool DecodedInst::sendsOnNetwork() const {
+  return channelMapEntry() != Instruction::NO_CHANNEL &&
+      !networkDestination().isNullMapping();
+}
+
+const AddressedWord DecodedInst::toAddressedWord() const {
+  AddressedWord aw(result(), networkDestination());
+  aw.setPortClaim(portClaim_, useCredits_);
+  aw.setEndOfPacket(endOfPacket_);
+  return aw;
 }
 
 
@@ -189,6 +208,9 @@ std::ostream& DecodedInst::print(std::ostream& os) const {
 
 DecodedInst::DecodedInst() {
   // Everything should default to 0.
+  endOfPacket_ = true;
+  portClaim_ = false;
+  useCredits_ = false;
 }
 
 DecodedInst::DecodedInst(const Instruction i) {
@@ -204,6 +226,10 @@ DecodedInst::DecodedInst(const Instruction i) {
   result_          = 0;
 
   hasResult_       = false;
+
+  endOfPacket_     = true;
+  portClaim_       = false;
+  useCredits_      = false;
 
   switch(operation_) {
     // Single source, no destination.

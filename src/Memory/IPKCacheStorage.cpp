@@ -16,6 +16,9 @@ bool IPKCacheStorage::checkTags(const MemoryAddr& key, operation_t operation) {
   // Depending on whether are are currently executing a packet or not, we may
   // want to store information in either currentPacket or pendingPacket.
   PacketInfo* packet;
+  if(readPointer.isNull()) packet = &currentPacket;
+  else                     packet = &pendingPacket;
+
   bool foundMatch = false;
 
   for(uint i=0; i<this->tags.size(); i++) {
@@ -25,16 +28,10 @@ bool IPKCacheStorage::checkTags(const MemoryAddr& key, operation_t operation) {
       // we just found.
       if(readPointer.isNull()) {
         readPointer = i;
-        packet = &currentPacket;
-
         updateFillCount();
       }
-      // If we do have an instruction ready to execute next, queue the packet
-      // we just found to execute when this packet finishes.
-      else {
-        packet = &pendingPacket;
-      }
 
+      // We know that the packet starts at this position in the cache.
       packet->cacheIndex = i;
 
       foundMatch = true;
@@ -42,11 +39,7 @@ bool IPKCacheStorage::checkTags(const MemoryAddr& key, operation_t operation) {
     }
   }
 
-  if(!foundMatch) {
-    if(readPointer.isNull()) packet = &currentPacket;
-    else                     packet = &pendingPacket;
-    packet->cacheIndex = NOT_IN_CACHE;
-  }
+  if(!foundMatch) packet->cacheIndex = NOT_IN_CACHE;
 
   packet->memAddr    = key;
   packet->inCache    = foundMatch;
@@ -66,15 +59,16 @@ const Instruction& IPKCacheStorage::read() {
 
   previousLocation = locations[i];
 
-  return this->data_[i];
+  Instruction& inst = this->data_[i];
+  if(inst.endOfPacket()) switchToPendingPacket();
+
+  return inst;
 }
 
 /* Writes new data to a position determined using the given key.
  * An exception is thrown if the packet queued up to execute next is being
  * overwritten. */
-void IPKCacheStorage::write(const MemoryAddr& key, const Instruction& newData) {
-  this->tags[writePointer.value()] = key;
-  this->data_[writePointer.value()] = newData;
+void IPKCacheStorage::write(const Instruction& newData) {
 
   // Determine whether this instruction is part of the packet which is currently
   // executing, or part of the packet due to execute next.
@@ -82,20 +76,22 @@ void IPKCacheStorage::write(const MemoryAddr& key, const Instruction& newData) {
   if(!currentPacket.inCache) packet = &currentPacket;
   else                       packet = &pendingPacket;
 
-  // If this is the first instruction of the packet, keep track of where in the
-  // cache it is going (allows us to jump there when this packet finishes).
-  if(packet->cacheIndex == NOT_IN_CACHE) packet->cacheIndex = writePointer.value();
+  // Write the data to the cache.
+  this->data_[writePointer.value()] = newData;
 
-  // Store memory address of this instruction for debug reasons.
-  if(key == DEFAULT_TAG) {
-    // If there is no supplied address, this is the continuation of an
-    // instruction packet, and so this instruction is next to the previous
-    // one.
-    MemoryAddr prev = this->locations[writePointer-1];
-    MemoryAddr newAddr = prev + BYTES_PER_INSTRUCTION;
-    locations[writePointer.value()] = newAddr;
+  // If this is the first instruction of the packet, tag it with the address
+  // from which it was fetched. Also keep track of where in the cache it is
+  // going (allows us to jump there when this packet finishes).
+  if(packet->cacheIndex == NOT_IN_CACHE) {
+    this->tags[writePointer.value()] = packet->memAddr;
+    packet->cacheIndex = writePointer.value();
   }
-  else locations[writePointer.value()] = key;
+  else this->tags[writePointer.value()] = DEFAULT_TAG;
+
+  // Only the first instruction in each packet has a tag, but we keep track of
+  // the locations of all instructions for debug reasons.
+  locations[writePointer.value()] = packet->memAddr;
+  packet->memAddr += BYTES_PER_INSTRUCTION;
 
   // If we're not serving instructions at the moment, start serving from here.
   if(readPointer.isNull()) readPointer = writePointer;
@@ -112,7 +108,7 @@ void IPKCacheStorage::jump(const JumpOffset offset) {
 
   // Hack: if we move to the next packet, then discover we should have jumped,
   // reset the next packet pointer.
-  if(this->tags[readPointer.value()] != DEFAULT_TAG && !empty()) {
+  if(startOfPacket(readPointer.value()) && !empty()) {
     pendingPacket.cacheIndex = readPointer.value();
   }
 
@@ -124,7 +120,7 @@ void IPKCacheStorage::jump(const JumpOffset offset) {
 
   // Update currentPacket if we have jumped to the start of a packet, or if
   // currentPacket was previously an invalid value.
-  if(this->tags[readPointer.value()] != DEFAULT_TAG || currentPacket.cacheIndex == NOT_IN_CACHE) {
+  if(startOfPacket(readPointer.value()) || currentPacket.cacheIndex == NOT_IN_CACHE) {
     currentPacket.cacheIndex = readPointer.value();
   }
 
@@ -188,7 +184,7 @@ void IPKCacheStorage::switchToPendingPacket() {
 
   updateFillCount();
 
-  if(DEBUG) cout << "Switched to pending packet: current = " <<
+  if(DEBUG) cout << this->name_ << " switched to pending packet: current = " <<
       readPointer.value() << ", refill = " << writePointer.value() << endl;
 }
 
@@ -200,7 +196,7 @@ void IPKCacheStorage::storeCode(const std::vector<Instruction>& code) {
   }
 
   for(uint i=0; i<code.size() && i<this->size(); i++) {
-    write(DEFAULT_TAG, code[i]);
+    write(code[i]);
   }
 }
 
@@ -213,6 +209,12 @@ const Instruction& IPKCacheStorage::read(const MemoryAddr& key) {
 /* Returns the position that data with the given address tag should be stored. */
 uint16_t IPKCacheStorage::getPosition(const MemoryAddr& key) {
   return writePointer.value();
+}
+
+bool IPKCacheStorage::startOfPacket(uint16_t cacheIndex) const {
+  // The first instruction of each packet will have a proper tag, not the
+  // default.
+  return this->tags[cacheIndex] != DEFAULT_TAG;
 }
 
 void IPKCacheStorage::incrementWritePos() {

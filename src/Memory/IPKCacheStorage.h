@@ -42,8 +42,9 @@ public:
   // Returns the next item in the cache.
   virtual const Instruction& read();
 
-  // Writes new data to a position determined using the given key.
-  virtual void write(const MemoryAddr& key, const Instruction& newData);
+  // Writes new data to the cache. The position to write to, and the tag for
+  // the data, are already known.
+  void write(const Instruction& inst);
 
   // Jump to a new instruction at a given offset.
   void jump(const JumpOffset offset);
@@ -84,6 +85,10 @@ private:
 
   // Returns the position that data with the given address tag should be stored
   virtual uint16_t getPosition(const MemoryAddr& key);
+
+  // Returns whether the instruction stored at the given position in the cache
+  // is the first instruction of its packet.
+  bool startOfPacket(uint16_t cacheIndex) const;
 
   void incrementWritePos();
   void incrementReadPos();

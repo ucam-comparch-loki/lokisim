@@ -94,14 +94,6 @@ private:
   // Determine whether to take an instruction from the FIFO or cache.
   void          calculateSelect();
 
-  // Update the register holding the address of the current packet.
-  void          updatePacketAddress(const MemoryAddr addr) const;
-
-  // We have overwritten the packet due to execute next, so it needs to be
-  // fetched again.
-  // Alternative: stall any tag lookups until instructions stop arriving.
-  void          refetch(const MemoryAddr addr) const;
-
 //==============================//
 // Components
 //==============================//

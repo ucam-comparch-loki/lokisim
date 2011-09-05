@@ -13,10 +13,9 @@
 #define DECODESTAGE_H_
 
 #include "../PipelineStage.h"
-#include "FetchLogic.h"
 #include "ReceiveChannelEndTable.h"
 #include "Decoder.h"
-#include "SignExtend.h"
+#include "../../ChannelMapEntry.h"
 
 class DecodeStage: public PipelineStage {
 
@@ -53,12 +52,6 @@ public:
   // A flow control signal for each input (NUM_RECEIVE_CHANNELS).
   sc_out<bool>         *flowControlOut;
 
-  // An output used to send FETCH requests.
-  sc_out<AddressedWord> fetchOut;
-
-  // A flow control signal for the output to the network.
-  sc_in<bool>           flowControlIn;
-
 //==============================//
 // Constructors and destructors
 //==============================//
@@ -78,13 +71,6 @@ public:
   // Read a buffer in the receive channel end table. Warning: also removes
   // this value from the buffer.
   int32_t        readRCET(ChannelIndex index);
-
-  // Fetch an instruction packet from the given address.
-  // There are many different ways of fetching instructions, so provide the
-  // operation too.
-  // Optionally tell whether the cache has already been checked - can go
-  // straight to sending the memory request if we know we don't have it.
-  void           fetch(const MemoryAddr addr, operation_t op, bool checkedCache=false);
 
 private:
 
@@ -109,6 +95,11 @@ private:
   // Get the value of the predicate register.
   bool           predicate() const;
 
+  // Retrieve the instruction's network destination from the channel map table,
+  // if appropriate.
+  void           readChannelMapTable(DecodedInst& inst) const;
+  const ChannelMapEntry& channelMapTableEntry(MapIndex entry) const;
+
   // Perform a TESTCH operation.
   bool           testChannel(ChannelIndex index) const;
 
@@ -117,17 +108,15 @@ private:
 
   const sc_event& receivedDataEvent(ChannelIndex buffer) const;
 
-  // Change the channel to which we send our fetch requests.
-  void           setFetchChannel(const ChannelID& channelID, uint memoryGroupBits, uint memoryLineBits);
-
   // Find out if the instruction packet from the given location is currently
   // in the instruction packet cache.
   // There are many different ways of fetching instructions, so provide the
   // operation too.
   bool           inCache(const MemoryAddr addr, operation_t operation) const;
 
-  // Find out if there is room in the cache to fetch another packet.
-  bool           roomToFetch() const;
+  // Find out if there is room in the cache to fetch another packet, and if
+  // there is not another fetch already in progress.
+  bool           readyToFetch() const;
 
   // Tell the instruction packet cache to jump to a new instruction.
   void           jump(JumpOffset offset) const;
@@ -142,15 +131,11 @@ private:
 
 private:
 
-  FetchLogic              fl;
   ReceiveChannelEndTable  rcet;
   Decoder                 decoder;
-  SignExtend              extend;
 
-  friend class FetchLogic;
   friend class Decoder;
   friend class ReceiveChannelEndTable;
-  friend class SignExtend;
 
 //==============================//
 // Local state
@@ -162,7 +147,7 @@ private:
 
   // An event which is triggered whenever something happens which may change
   // whether this pipeline stage is busy or not.
-  sc_core::sc_event readyChangedEvent;
+  sc_event readyChangedEvent;
 
 };
 

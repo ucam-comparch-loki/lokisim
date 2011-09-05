@@ -10,60 +10,31 @@
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
-ComponentID WriteStage::getSystemCallMemory() const {
-	return scet.getSystemCallMemory();
-}
-
 const DecodedInst& WriteStage::currentInstruction() const {
   return currentInst;
 }
 
 void WriteStage::execute() {
 	bool packetInProgress = false;
-	bool fetchCommandPending = false;
-	AddressedWord delayedFetchCommand;
 
+	// TODO: turn this into an SC_METHOD once the output buffers are gone.
+	// Need to handle WOCHE (or would this happen in ExecuteStage?).
 	while(true) {
 		// Wait for new data to arrive.
+		wait(dataIn.default_event());
 
-		wait(dataIn.default_event() | fromFetchLogic.default_event());
+    if(!isStalled()) {
+      DecodedInst instruction = dataIn.read();
+      newInput(instruction);
+      packetInProgress = !endOfPacket;
+    }
 
-		// Whilst dealing with the new input, we are not idle.
+		idle.write(!packetInProgress);
 
-		idle.write(false);
-
-		// Enter a loop in case we receive data from both inputs at once.
-
-		while (true) {
-			if(!isStalled()) {
-				if(dataIn.event()) {
-				  DecodedInst instruction = dataIn.read();
-					newInput(instruction);
-					packetInProgress = !endOfPacket;
-				} else if(fromFetchLogic.event()) {
-					if (packetInProgress) {
-						assert(!fetchCommandPending);
-						fetchCommandPending = true;
-						delayedFetchCommand = fromFetchLogic.read();
-					} else {
-						scet.write(fromFetchLogic.read(), 0);
-					}
-				} else if (fetchCommandPending && !packetInProgress) {
-					fetchCommandPending = false;
-					scet.write(delayedFetchCommand, 0);
-				} else {
-					break;
-				}
-			}
-
-			wait(clock.posedge_event());
-
-			// Invalidate the current instruction at the start of the next cycle so
-			// we don't forward old data.
-			currentInst.destination(0);
-		}
-
-		idle.write(!fetchCommandPending && !packetInProgress);
+    // Invalidate the current instruction at the start of the next cycle so
+    // we don't forward old data.
+    wait(clock.posedge_event());
+    currentInst.destination(0);
 	}
 }
 

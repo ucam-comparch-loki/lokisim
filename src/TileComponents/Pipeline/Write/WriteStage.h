@@ -37,9 +37,6 @@ public:
   // Tell whether this stage is ready for input (ignoring effects of any other stages).
   sc_out<bool>           readyOut;
 
-  // Fetch logic will sometimes provide messages to put into the output buffer.
-  sc_in<AddressedWord>   fromFetchLogic;
-
   // Data to send onto the network.
   sc_out<AddressedWord> *output;
   sc_out<bool>          *validOutput;
@@ -65,8 +62,6 @@ public:
 //==============================//
 
 public:
-
-  ComponentID getSystemCallMemory() const;
 
   // The instruction whose result is currently being written to registers or
   // the network. Used to determine whether forwarding is required.

@@ -19,7 +19,25 @@ void ExecuteStage::writeWord(MemoryAddr addr, Word data) const {parent()->writeW
 void ExecuteStage::writeByte(MemoryAddr addr, Word data) const {parent()->writeByte(addr, data);}
 
 void ExecuteStage::execute() {
-  if(dataIn.event()) {
+  if(waitingToFetch) {
+    DecodedInst instruction = dataIn.read();
+    bool success = fetch(instruction);
+
+    if(success) {
+      adjustNetworkAddress(instruction);
+      dataOut.write(instruction);
+      executedInstruction.notify();
+      waitingToFetch = false;
+      // TODO: instrumentation
+
+      next_trigger(dataIn.default_event());
+    }
+    else{
+      // Try again next cycle.
+      next_trigger(clock.posedge_event());
+    }
+  }
+  else if(dataIn.event()) {
     // Deal with the new input. We are currently not idle.
     idle.write(false);
     DecodedInst instruction = dataIn.read();
@@ -68,25 +86,38 @@ void ExecuteStage::newInput(DecodedInst& operation) {
     Instrumentation::operation(id, operation, willExecute);
 
   if(willExecute) {
-    if(operation.operation() == InstructionMap::SETCHMAP) {
-      // TODO: SETCHMAPI
-      setChannelMap(operation.immediate(), operation.operand1());
-//      executedInstruction.notify();
-//      return;
+    bool success;
+
+    // Special cases for any instructions which don't use the ALU.
+    switch(operation.operation()) {
+      case InstructionMap::SETCHMAP:
+//      case InstructionMap::SETCHMAPI:
+        setChannelMap(operation);
+        success = true;
+        break;
+
+      case InstructionMap::FETCH:
+      case InstructionMap::FETCHPST:
+      case InstructionMap::FILL:
+      case InstructionMap::PSELFETCH:
+        success = fetch(operation);
+        break;
+
+      default:
+        success = alu.execute(operation);
+        break;
     }
 
-    // Execute the instruction.
-    bool success = alu.execute(operation);
     currentInst.result(operation.result());
+
+    // Memory operations may be sent to different memory banks depending on the
+    // address accessed.
+    // In practice, this would be performed by a separate, small functional
+    // unit in parallel with the main ALU, so that there is time left to request
+    // a path to memory.
+    if(operation.isMemoryOperation()) adjustNetworkAddress(operation);
+
     executedInstruction.notify();
-
-    MapIndex channel = operation.channelMapEntry();
-    if(channel != Instruction::NO_CHANNEL) {
-      ChannelID destination = parent()->channelMapTable.read(channel);
-
-      if(!destination.isNullMapping())
-        operation.networkDestination(destination);
-    }
 
     if(success) dataOut.write(operation);
   }
@@ -98,7 +129,49 @@ void ExecuteStage::newInput(DecodedInst& operation) {
   }
 }
 
-void ExecuteStage::setChannelMap(MapIndex entry, uint32_t value) {
+bool ExecuteStage::fetch(DecodedInst& inst) {
+  MemoryAddr fetchAddress;
+
+  // Compute the address to fetch from, depending on which operation this is.
+  switch(inst.operation()) {
+    case InstructionMap::FETCH:
+    case InstructionMap::FETCHPST:
+    case InstructionMap::FILL:
+      fetchAddress = inst.operand1() + inst.operand2();
+      break;
+
+    case InstructionMap::PSELFETCH:
+      fetchAddress = readPredicate() ? inst.operand1() : inst.operand2();
+      break;
+
+    default:
+      cerr << "Error: called ExecuteStage::fetch with non-fetch instruction." << endl;
+      assert(false);
+  }
+
+
+  // Return whether the fetch request should be sent (it should be sent if the
+  // tag is not in the cache).
+  if(!waitingToFetch && parent()->inCache(fetchAddress, inst.operation())) {
+    return false;
+  }
+  else if(parent()->readyToFetch()) {
+    // Generate a fetch request.
+    MemoryRequest request(MemoryRequest::IPK_READ, fetchAddress);
+    inst.result(request.toULong());
+    return true;
+  }
+  else {
+    waitingToFetch = true;
+    // TODO: instrumentation
+    return false;
+  }
+}
+
+void ExecuteStage::setChannelMap(DecodedInst& inst) const {
+  MapIndex entry = inst.immediate();
+  uint32_t value = inst.operand1();
+
   // Extract all of the relevant sections from the encoded destination, and
   // create a ChannelID out of them.
   bool multicast = (value >> 28) & 0x1UL;
@@ -113,10 +186,62 @@ void ExecuteStage::setChannelMap(MapIndex entry, uint32_t value) {
 
   // Write to the channel map table.
   parent()->channelMapTable.write(entry, sendChannel, groupBits, lineBits);
+
+  // Generate a message to claim the port we have just stored the address of.
+  if(sendChannel.isCore()) {
+    ChannelID returnChannel(id, entry);
+    inst.result(returnChannel.toInt());
+    inst.channelMapEntry(entry);
+    inst.networkDestination(sendChannel);
+    inst.portClaim(true);
+    inst.usesCredits(parent()->channelMapTable.getEntry(entry).usesCredits());
+  }
+}
+
+void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
+  assert(inst.isMemoryOperation());
+  MemoryRequest::MemoryOperation op = (MemoryRequest::MemoryOperation)inst.memoryOp();
+
+  Word w = MemoryRequest(op, inst.result());
+  bool addressFlit = op == MemoryRequest::LOAD_B ||
+                     op == MemoryRequest::LOAD_HW ||
+                     op == MemoryRequest::LOAD_W ||
+                     op == MemoryRequest::STORE_B ||
+                     op == MemoryRequest::STORE_HW ||
+                     op == MemoryRequest::STORE_W ||
+                     op == MemoryRequest::IPK_READ;
+
+  // Adjust destination channel based on memory configuration if necessary
+  uint32_t increment = 0;
+
+  // We want to access lots of information from the channel map table, so get
+  // the entire entry.
+  ChannelMapEntry& channelMapEntry = parent()->channelMapTable.getEntry(inst.channelMapEntry());
+
+  if (channelMapEntry.localMemory() && channelMapEntry.memoryGroupBits() > 0) {
+    if (addressFlit) {
+      increment = (uint32_t)inst.result();
+      increment &= (1UL << (channelMapEntry.memoryGroupBits() + channelMapEntry.memoryLineBits())) - 1UL;
+      increment >>= channelMapEntry.memoryLineBits();
+
+      // Store the adjustment which must be made, so that any subsequent flits
+      // can also access the same memory.
+      channelMapEntry.setAddressIncrement(increment);
+    } else {
+      increment = channelMapEntry.getAddressIncrement();
+    }
+  }
+
+  // Set the instruction's result to the data + memory operation
+  inst.result(w.toULong());
+
+  ChannelID adjusted = inst.networkDestination();
+  adjusted = adjusted.addPosition(increment);
+  inst.networkDestination(adjusted);
 }
 
 bool ExecuteStage::isStalled() const {
-  return false; // alu.isBusy(); if/when we have multi-cycle operations
+  return waitingToFetch; // alu.isBusy(); if/when we have multi-cycle operations
 }
 
 bool ExecuteStage::checkPredicate(DecodedInst& inst) {

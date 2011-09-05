@@ -10,14 +10,13 @@
 
 _start:
     ldw                 0(r0)           -> 1    # load number of SIMD members
-#    fetch               r0,  setuploop
+    fetch               r0,  setuploop
 
     or                  r10, ch0, r0            # r10 = number of SIMD members
     addui               r7,  r10, -1            # r7 = current core we're sending to
     ori                 r8,  r0,  (0,1,0)       # r8 = input ports per core
     mullw               r5,  r7,  r8            # r5 = remote core's instruction input
-    addui               r6,  r5,  (0,0,7)       # r6 = remote core's last data input
-    fetch.eop           r0,  setuploop
+    addui.eop           r6,  r5,  (0,0,7)       # r6 = remote core's last data input
 
 # Set up connections to remote core
 setuploop:

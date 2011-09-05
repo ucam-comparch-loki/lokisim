@@ -109,12 +109,9 @@ private:
   bool             inCache(const MemoryAddr addr, operation_t operation);
 
   // Determine if there is room in the cache to fetch another instruction
-  // packet, assuming that it is of maximum size.
-  bool             roomToFetch() const;
-
-  // An instruction packet was in the cache, and set to execute next, but has
-  // since been overwritten, so needs to be fetched again.
-  void             refetch(const MemoryAddr addr);
+  // packet, assuming that it is of maximum size. Also make sure there is not
+  // another fetch already in progress.
+  bool             readyToFetch() const;
 
   // Perform an IBJMP and jump to a new instruction in the cache.
   void             jump(const JumpOffset offset);
@@ -148,6 +145,8 @@ private:
 
   // Update whether this core is idle or not.
   void             updateIdle();
+
+  ComponentID      getSystemCallMemory() const;
 
 //==============================//
 // Components
@@ -186,7 +185,7 @@ private:
 private:
 
   bool currentlyStalled;
-  sc_core::sc_event stallEvent;
+  sc_event stallEvent;
 
 //==============================//
 // Signals (wires)
@@ -207,9 +206,6 @@ private:
   // want to trigger an event even if the instruction is identical.
   flag_signal<DecodedInst>  *instToStage;
   sc_buffer<DecodedInst>    *instFromStage;
-
-  // Signal going straight from fetch logic to output buffers.
-  flag_signal<AddressedWord> fetchSignal;
 
 };
 

@@ -13,7 +13,7 @@
 
 _start:
     ldw                 0(r0)           -> 1    # load number of SIMD members
-#    fetch               r0,  send_ids
+    fetch               r0,  send_ids
 
 # Load arguments and prepare to communicate with other cores in the group.
     or                  r31, ch0, r0            # r31 = number of SIMD members
@@ -25,12 +25,12 @@ _start:
     sll                 r29, r29, r31           # r29 = 0b100000000
     addui               r29, r29, -2            # r29 = 0b011111110 = bitmask of group members
     ori                 r11, r0,  (m00000000,0) # r11 = multicast address to be built
-    addui               r31, r31, -1            # helper core => 1 less group member
-    fetch.eop           r0,  send_ids
+    addui.eop           r31, r31, -1            # helper core => 1 less group member
 
 # Send any core-specific data to each member of the group, and build up the
 # multicast addresses needed.
 send_ids:
+    fetch               r0,  send_code
     setchmap            3,   r6                 # data input = map 3
     ori                 r0,  r7,  0    -> 3     # send core its ID
     sll                 r5,  r8,  r7            # r5 = multicast bit for this core
@@ -39,8 +39,7 @@ send_ids:
     setgtei.p           r0,  r7,  1             # see if we have sent ID to all members
     ifp?subu            r6,  r6,  r8            # update data input
     ifp?ibjmp           -56                     # loop if there's another member
-    addui               r12, r11, (0,0,7)       # another multicast address for data
-    fetch.eop           r0,  send_code
+    addui.eop           r12, r11, (0,0,7)       # another multicast address for data
 
 # Send any data/instructions which can be multicast.
 send_code:

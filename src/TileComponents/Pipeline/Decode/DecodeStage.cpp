@@ -66,7 +66,13 @@ void         DecodeStage::newInput(DecodedInst& inst) {
     bool usefulOutput = decoder.decodeInstruction(inst, decoded);
 
     // Send the output, if there is any.
-    if(usefulOutput) dataOut.write(decoded);
+    if(usefulOutput) {
+      // Need to access the channel map table inside the loop because decoding
+      // the instruction may change its destination.
+      readChannelMapTable(decoded);
+
+      dataOut.write(decoded);
+    }
 
     // If the decoder is ready, we have finished the decode.
     if(decoder.ready()) break;
@@ -89,6 +95,22 @@ bool         DecodeStage::predicate() const {
   return parent()->readPredReg(true);
 }
 
+void         DecodeStage::readChannelMapTable(DecodedInst& inst) const {
+  MapIndex channel = inst.channelMapEntry();
+  if(channel != Instruction::NO_CHANNEL) {
+    ChannelID destination = parent()->channelMapTable.read(channel);
+
+    if(!destination.isNullMapping()) {
+      inst.networkDestination(destination);
+      inst.usesCredits(parent()->channelMapTable.getEntry(channel).usesCredits());
+    }
+  }
+}
+
+const ChannelMapEntry& DecodeStage::channelMapTableEntry(MapIndex entry) const {
+  return parent()->channelMapTable.getEntry(entry);
+}
+
 int32_t      DecodeStage::readRCET(ChannelIndex index) {
   return rcet.read(index);
 }
@@ -105,20 +127,12 @@ const sc_event& DecodeStage::receivedDataEvent(ChannelIndex buffer) const {
   return rcet.receivedDataEvent(buffer);
 }
 
-void         DecodeStage::fetch(const MemoryAddr addr, operation_t operation, bool checkedCache) {
-  fl.fetch(addr, operation, checkedCache);
-}
-
-void         DecodeStage::setFetchChannel(const ChannelID& channelID, uint memoryGroupBits, uint memoryLineBits) {
-  fl.setFetchChannel(channelID, memoryGroupBits, memoryLineBits);
-}
-
 bool         DecodeStage::inCache(const MemoryAddr addr, operation_t operation) const {
   return parent()->inCache(addr, operation);
 }
 
-bool         DecodeStage::roomToFetch() const {
-  return parent()->roomToFetch();
+bool         DecodeStage::readyToFetch() const {
+  return parent()->readyToFetch();
 }
 
 void         DecodeStage::jump(JumpOffset offset) const {
@@ -132,10 +146,8 @@ bool         DecodeStage::discardNextInst() const {
 
 DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
-    fl("fetchlogic", ID),
     rcet("rcet", ID),
-    decoder("decoder", ID),
-    extend("signextend") {
+    decoder("decoder", ID) {
 
   rcetIn         = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
   flowControlOut = new sc_out<bool>[NUM_RECEIVE_CHANNELS];
@@ -146,10 +158,6 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
     rcet.fromNetwork[i](rcetIn[i]);
     rcet.flowControl[i](flowControlOut[i]);
   }
-
-  fl.clock(clock);
-  fl.toNetwork(fetchOut);
-  fl.flowControl(flowControlIn);
 
   readyOut.initialize(false);
 

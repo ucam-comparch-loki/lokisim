@@ -1,6 +1,9 @@
 /*
  * DecodedInst.h
  *
+ * A container for all information an instruction may acquire as it passes
+ * through the pipeline.
+ *
  *  Created on: 11 Sep 2010
  *      Author: daniel
  */
@@ -10,6 +13,7 @@
 
 #include <inttypes.h>
 #include "systemc.h"
+#include "AddressedWord.h"
 #include "ChannelID.h"
 #include "../Typedefs.h"
 #include "../Utility/InstructionMap.h"
@@ -49,7 +53,8 @@ public:
   const bool    hasSrcReg2() const;
   const bool    hasImmediate() const;
   const bool    isALUOperation() const;
-  const bool    endOfPacket() const;
+  const bool    isMemoryOperation() const;
+  const bool    endOfIPK() const;
   const inst_name_t& name() const;
 
   void    operation(const operation_t val);
@@ -67,9 +72,15 @@ public:
   void    result(const int64_t val);
   void    location(const MemoryAddr val);
 
+  void    endOfNetworkPacket(const bool val);
+  void    portClaim(const bool val);
+  void    usesCredits(const bool val);
   void    networkDestination(const ChannelID val);
 
   Instruction toInstruction() const;
+
+  const bool sendsOnNetwork() const;
+  const AddressedWord toAddressedWord() const;
 
   friend void sc_trace(sc_core::sc_trace_file*& tf, const DecodedInst& i, const std::string& txt) {
     sc_core::sc_trace(tf, i.operation_,       txt + ".operation");
@@ -129,6 +140,9 @@ private:
   int32_t operand2_;
   int64_t result_;    // May be an instruction so need 64 bits (for now)
 
+  bool    portClaim_;
+  bool    useCredits_;
+  bool    endOfPacket_;
   ChannelID networkDest_;
 
   MemoryAddr location_;  // The position in memory that this instruction comes from.

@@ -75,7 +75,12 @@ private:
   // The task performed when a new operation is received.
   virtual void newInput(DecodedInst& operation);
 
-  void setChannelMap(MapIndex entry, uint32_t value);
+  // Returns whether a fetch request should be sent (and stores the request in
+  // operation's "result" field, if appropriate).
+  bool fetch(DecodedInst& operation);
+
+  void setChannelMap(DecodedInst& operation) const;
+  void adjustNetworkAddress(DecodedInst& operation) const;
 
   virtual bool isStalled() const;
 
@@ -110,6 +115,8 @@ private:
 //==============================//
 
 private:
+
+  bool waitingToFetch;
 
   // The instruction currently being executed. Used to determine if forwarding
   // is required.
