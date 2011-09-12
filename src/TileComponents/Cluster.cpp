@@ -49,9 +49,11 @@ const int32_t Cluster::readReg(RegisterIndex reg, bool indirect) {
 
   // Check to see if the requested register is one which will be written to by
   // an instruction which is still in the pipeline. If so, we forward the data.
-  // Slightly complicated by the possibility of indirect register reads.
+  // Slightly complicated by the possibility of indirect register access - the
+  // stated register may not actually be the one providing/receiving the data.
   if(reg>0) {
-    if(reg == execute.currentInstruction().destination()) {
+    if(reg == execute.currentInstruction().destination() &&
+       execute.currentInstruction().operation() != InstructionMap::IWTR) {
       // If the instruction in the execute stage will write to the register we
       // want to read, but it hasn't produced a result yet, wait until
       // execution completes.
@@ -66,7 +68,8 @@ const int32_t Cluster::readReg(RegisterIndex reg, bool indirect) {
 
       if(indirect) result = regs.read(result, false);
     }
-    else if(reg == write.currentInstruction().destination()) {
+    else if(reg == write.currentInstruction().destination() &&
+            write.currentInstruction().operation() != InstructionMap::IWTR) {
       // No waiting required this time - if the instruction is in the write
       // stage, it definitely has a result.
       result = write.currentInstruction().result();
@@ -235,10 +238,6 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
     stallReg->dataIn(instFromStage[i]);   stallReg->dataOut(instToStage[i]);
     stallReg->localStageReady(stageReady[i]);
 
-    // Allow instant propagation from the final stall register to all previous
-    // ones. This is required to stop a decoder-only instruction accidentally
-    // executing when the pipeline is stalled.
-    // TODO: for the first stall register, get the AND of the two ready signals.
     if(i < 2) stallReg->readyIn(stallRegReady[i+1]);
     else 			stallReg->readyIn(constantHigh);
 

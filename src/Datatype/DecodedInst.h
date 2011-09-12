@@ -55,6 +55,7 @@ public:
   const bool    isALUOperation() const;
   const bool    isMemoryOperation() const;
   const bool    endOfIPK() const;
+  const bool    endOfNetworkPacket() const;
   const inst_name_t& name() const;
 
   void    operation(const operation_t val);

@@ -10,52 +10,38 @@
 #ifndef ARBITERBASE_H_
 #define ARBITERBASE_H_
 
-#include <utility>
 #include <vector>
 
-// int = input, bool = is final flit in packet
-typedef std::pair<int, bool> Request;
-
-// int = input, int = output
-typedef std::pair<int, int> Grant;
-
-typedef std::vector<Request> RequestList;
-typedef std::vector<Grant> GrantList;
+typedef std::vector<bool> RequestList;
+typedef std::vector<bool> GrantList;
 
 class ArbiterBase {
 
 public:
 
-  void arbitrate(RequestList& requests, GrantList& grants);
+  static const int NO_GRANT = -1;
+
+  // Returns the index of the request which should be granted next, or NO_GRANT
+  // if none should be granted.
+  virtual int getGrant() = 0;
+
+  enum ArbiterType {ROUND_ROBIN, MATRIX, PRIORITY};
+
+  static ArbiterBase* makeArbiter(ArbiterType type,
+                                  const RequestList* requestVec,
+                                  const GrantList* grantVec);
 
 protected:
 
-  ArbiterBase(int numInputs, int numOutputs, bool useWormhole);
+  ArbiterBase(const RequestList* requestVec, const GrantList* grantVec);
 
-  virtual void arbitrateLogic(RequestList& requests, GrantList& grants) = 0;
+  int numInputs() const;
 
-  // Look through the reservations to see if this request can send, and add
-  // a grant to the list if necessary.
-  void wormholeGrant(Request& request, GrantList& grants);
+  // A pointer to the requests the arbiter has received.
+  const RequestList* requests;
 
-  // Allow a given request to send its data to the given output.
-  void grant(Request& request, int output, GrantList& grants);
-
-  unsigned int inputs, outputs;
-  bool wormhole;
-
-private:
-
-  // Record which inputs have reserved each output. This is used to implement
-  // wormhole routing, where once a packet starts being sent, it should not
-  // be interrupted.
-  std::vector<int> reservations;
-
-  static const int NO_RESERVATION = -1;
-
-  // Record which outputs have been used this cycle so we don't use them
-  // multiple times.
-  std::vector<bool> outputsUsed;
+  // A pointer to the grants the arbiter has sent.
+  const GrantList*   grants;
 
 };
 

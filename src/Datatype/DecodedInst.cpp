@@ -63,6 +63,10 @@ const bool    DecodedInst::endOfIPK() const {
   return predicate() == Instruction::END_OF_PACKET;
 }
 
+const bool    DecodedInst::endOfNetworkPacket() const {
+  return endOfPacket_;
+}
+
 const std::string& DecodedInst::name() const {
   return InstructionMap::name(operation_);
 }

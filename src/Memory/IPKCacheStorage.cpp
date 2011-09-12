@@ -65,9 +65,7 @@ const Instruction& IPKCacheStorage::read() {
   return inst;
 }
 
-/* Writes new data to a position determined using the given key.
- * An exception is thrown if the packet queued up to execute next is being
- * overwritten. */
+/* Writes new data to a position determined using the given key. */
 void IPKCacheStorage::write(const Instruction& newData) {
 
   // Determine whether this instruction is part of the packet which is currently

@@ -118,8 +118,8 @@ bool InstructionMap::isALUOperation(operation_t op) {
   static const operation_t notALU[] = {
       /*LDW, LDBU, STW, STHW, STB,*/
       WOCHE, TSTCH, SELCH,
-      IBJMP, FETCH, PSELFETCH, FETCHPST,
-      FILL, RMTEXECUTE, NXIPK, SETCHMAP, SYSCALL
+      IBJMP, /*FETCH, PSELFETCH, FETCHPST,
+      FILL,*/ RMTEXECUTE, NXIPK, SETCHMAP, SYSCALL
   };
 
   static const std::vector<bool>& useALU =

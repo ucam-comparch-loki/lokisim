@@ -7,38 +7,26 @@
 
 #include "RoundRobinArbiter.h"
 
-void RoundRobinArbiter::arbitrateLogic(RequestList& requests, GrantList& grants) {
-  RequestList::iterator iter = requests.begin();
+int RoundRobinArbiter::getGrant() {
+  for(int i=0; i<numInputs(); i++) {
+    // Increment pointer, wrapping around if necessary.
+    lastAccepted++;
+    if(lastAccepted >= numInputs()) lastAccepted = 0;
 
-  // Find the position in the list to start accepting requests.
-  while(iter < requests.end() && iter->first <= lastAccepted) {
-    iter++;
+    // Accept a request if there is a request, and it hasn't already been
+    // granted.
+    if(requests->at(i) && !grants->at(i)) return i;
   }
 
-  // Return to the beginning of the vector and continue until we pass the
-  // starting point.
-  for(unsigned int i=0; i<requests.size(); i++) {
-    // Loop the iterator back to the beginning if necessary.
-    if(iter >= requests.end()) iter = requests.begin();
-
-    if(wormhole) {
-      wormholeGrant(*iter, grants);
-    }
-    else {
-      // We are definitely allowed to send.
-      grant(*iter, grants.size(), grants);
-    }
-
-    if(grants.size() >= outputs) break;
-
-    iter++;
-  }
-
-  if(!grants.empty()) lastAccepted = grants.back().first;
-  return;
+  // If we escape the loop, there are no requests we can grant.
+  return NO_GRANT;
 }
 
-RoundRobinArbiter::RoundRobinArbiter(int numInputs, int numOutputs, bool wormhole) :
-    ArbiterBase(numInputs, numOutputs, wormhole) {
+RoundRobinArbiter::RoundRobinArbiter(const RequestList* requestVec,
+                                     const GrantList* grantVec) :
+    ArbiterBase(requestVec, grantVec) {
+
+  // Start at -1, so when incremented for the first time, we start looking at 0.
+  lastAccepted = -1;
 
 }

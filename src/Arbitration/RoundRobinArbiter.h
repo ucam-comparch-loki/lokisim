@@ -14,9 +14,9 @@ class RoundRobinArbiter: public ArbiterBase {
 
 public:
 
-  RoundRobinArbiter(int numInputs, int numOutputs, bool wormhole);
+  RoundRobinArbiter(const RequestList* requestVec, const GrantList* grantVec);
 
-  virtual void arbitrateLogic(RequestList& requests, GrantList& grants);
+  virtual int getGrant();
 
 private:
 

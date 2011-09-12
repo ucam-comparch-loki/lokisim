@@ -79,6 +79,11 @@ private:
   // operation's "result" field, if appropriate).
   bool fetch(DecodedInst& operation);
 
+  // Send a request to reserve (or release) a connection to a particular
+  // destination component. May cause re-execution of the calling method when
+  // the request is granted.
+  void requestArbitration(ChannelID destination, bool request);
+
   void setChannelMap(DecodedInst& operation) const;
   void adjustNetworkAddress(DecodedInst& operation) const;
 
@@ -116,7 +121,15 @@ private:
 
 private:
 
-  bool waitingToFetch;
+  enum ExecuteState {
+    NO_INSTRUCTION,   // Have no instruction to execute
+    EXECUTING,        // Executing an instruction
+    ARBITRATING,      // Sent arbitration request; waiting for response
+    WAITING_TO_FETCH, // Received fetch instruction; waiting until cache is ready to send
+    FINISHED          // Do any necessary tidying once execution has finished
+  };
+
+  ExecuteState state;
 
   // The instruction currently being executed. Used to determine if forwarding
   // is required.

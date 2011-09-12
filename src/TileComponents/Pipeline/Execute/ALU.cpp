@@ -11,11 +11,9 @@
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
 
-bool ALU::execute(DecodedInst& dec) const {
+void ALU::execute(DecodedInst& dec) const {
 
-  if(dec.hasResult()) return true;
-
-  if(dec.operation() == InstructionMap::NOP) return false;
+  if(dec.hasResult()) return;
 
   bool pred = parent()->readPredicate();
 
@@ -117,24 +115,10 @@ bool ALU::execute(DecodedInst& dec) const {
     setPred(newPredicate);
   }
 
-  return true;
-
 }
 
 void ALU::setPred(bool val) const {
   parent()->writePredicate(val);
-}
-
-/* Determine whether this instruction should be executed. */
-bool ALU::shouldExecute(short predBits) const {
-  bool pred = parent()->readPredicate();
-
-  bool result = (predBits == Instruction::ALWAYS) ||
-                (predBits == Instruction::END_OF_PACKET) ||
-                (predBits == Instruction::P     &&  pred) ||
-                (predBits == Instruction::NOT_P && !pred);
-
-  return result;
 }
 
 ExecuteStage* ALU::parent() const {
@@ -149,8 +133,8 @@ void ALU::writeReg(RegisterIndex reg, Word data) const {parent()->writeReg(reg, 
 void ALU::writeWord(MemoryAddr addr, Word data) const {parent()->writeWord(addr, data);}
 void ALU::writeByte(MemoryAddr addr, Word data) const {parent()->writeByte(addr, data);}
 
-ALU::ALU(sc_module_name name, const ComponentID& ID) : Component(name, ID) {
-
+ALU::ALU(const sc_module_name& name, const ComponentID& ID) : Component(name, ID) {
+  // Nothing
 }
 
 //==============================//

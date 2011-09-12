@@ -24,7 +24,7 @@ class ALU: public Component {
 
 public:
 
-  ALU(sc_module_name name, const ComponentID& ID);
+  ALU(const sc_module_name& name, const ComponentID& ID);
 
 //==============================//
 // Methods
@@ -33,8 +33,8 @@ public:
 public:
 
   // Calculate the result of the given operation, and store it in the
-  // provided decoded instruction. Returns false if there is no result.
-  bool execute(DecodedInst& operation) const;
+  // provided decoded instruction.
+  void execute(DecodedInst& operation) const;
 
 private:
 
@@ -47,10 +47,6 @@ private:
   void writeReg(RegisterIndex reg, Word data) const;
   void writeWord(MemoryAddr addr, Word data) const;
   void writeByte(MemoryAddr addr, Word data) const;
-
-  // Determine whether the current instruction should be executed, based on its
-  // predicate bits, and the contents of the predicate register.
-  bool shouldExecute(short predBits) const;
 
   ExecuteStage* parent() const;
 
