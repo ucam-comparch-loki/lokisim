@@ -14,6 +14,7 @@
 #include "Utility/Debugger.h"
 #include "Utility/Instrumentation.h"
 #include "Utility/Instrumentation/Operations.h"
+#include "Utility/MemoryTrace.h"
 #include "Utility/StartUp/CodeLoader.h"
 #include "Utility/Statistics.h"
 
@@ -27,6 +28,7 @@ static unsigned int cyclesPerStep = 1;
 #define TIMESTEP {\
   cycleNumber += cyclesPerStep;\
   if(DEBUG) cout << "\n======= Cycle " << cycleNumber << " =======" << endl;\
+  if(MEMORY_TRACE) MemoryTrace::setClockCycle(cycleNumber);\
   sc_start(cyclesPerStep, SC_NS);\
 }
 
@@ -101,14 +103,17 @@ void parseArguments(uint argc, char* argv[], Chip& chip) {
         i++;  // Have used two arguments in this iteration.
         codeLoaded = true;
       }
-      else if(argument == "-runbatch") {
-        // Command line way of choosing which program to run.
-        string filename(argv[i+1]);
-        CodeLoader::loadCode(filename, chip);
-        i++;  // Have used two arguments in this iteration.
-        codeLoaded = true;
+      else if(argument == "-batch") {
+        // Enable batch mode.
         DEBUG = 0;
         BATCH_MODE = 1;
+      }
+      else if(argument == "-memtrace") {
+    	// Enable memory trace.
+        string filename(argv[i+1]);
+        MemoryTrace::start(filename);
+        i++;  // Have used two arguments in this iteration.
+    	MEMORY_TRACE = 1;
       }
       else if(argument == "--args") {
         // Pass command line options to the simulated program.
@@ -177,15 +182,17 @@ void simulate(Chip& chip) {
 int sc_main(int argc, char* argv[]) {
 	// Override parameters before instantiating chip model
 
-	bool batchMode = false;
+	int settingsArg = 0;
 
-	if (argc >= 3) {
-		string firstArg(argv[1]);
-		if (firstArg == "-runbatch")
-			batchMode = true;
+	// Load settings from settings file if present
+	for(int i=0; i<argc; i++) {
+	  if(string(argv[i]) == "-settings") {
+		settingsArg = i+1;
+		break;
+	  }
 	}
 
-	string settingsFile(batchMode ? argv[2] : "test_files/loader.txt");
+	string settingsFile(settingsArg > 0 ? argv[settingsArg] : "test_files/loader.txt");
 
 	// Load parameters from the main settings file.
 	CodeLoader::loadParameters(settingsFile);
@@ -221,6 +228,12 @@ int sc_main(int argc, char* argv[]) {
 	if (DEBUG || BATCH_MODE) {
 		Parameters::printParameters();
 		Statistics::printStats();
+	}
+
+	// Stop memory trace
+
+	if (MEMORY_TRACE) {
+		MemoryTrace::stop();
 	}
 
 	return RETURN_CODE;

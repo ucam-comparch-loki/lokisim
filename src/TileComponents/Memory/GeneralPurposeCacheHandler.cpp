@@ -17,6 +17,7 @@
 
 #include "../../Typedefs.h"
 #include "../../Utility/Instrumentation.h"
+#include "../../Utility/MemoryTrace.h"
 #include "GeneralPurposeCacheHandler.h"
 
 #include <cassert>
@@ -163,6 +164,13 @@ bool GeneralPurposeCacheHandler::readWord(uint32_t address, uint32_t &data, bool
 				Instrumentation::memoryReadWord(mBankNumber, address, true);
 		}
 
+		if (MEMORY_TRACE && !debug) {
+			if (instruction)
+				MemoryTrace::readIPKWord(mBankNumber, address);
+			else
+				MemoryTrace::readWord(mBankNumber, address);
+		}
+
 		return false;
 	}
 
@@ -171,6 +179,13 @@ bool GeneralPurposeCacheHandler::readWord(uint32_t address, uint32_t &data, bool
 			Instrumentation::memoryReadIPKWord(mBankNumber, address, false);
 		else
 			Instrumentation::memoryReadWord(mBankNumber, address, false);
+	}
+
+	if (MEMORY_TRACE && !resume && !debug) {
+		if (instruction)
+			MemoryTrace::readIPKWord(mBankNumber, address);
+		else
+			MemoryTrace::readWord(mBankNumber, address);
 	}
 
 	data = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
@@ -186,11 +201,16 @@ bool GeneralPurposeCacheHandler::readHalfWord(uint32_t address, uint32_t &data, 
 		assert(!resume);
 		if (!debug)
 			Instrumentation::memoryReadHalfWord(mBankNumber, address, true);
+		if (MEMORY_TRACE && !debug)
+			MemoryTrace::readHalfWord(mBankNumber, address);
 		return false;
 	}
 
 	if (!resume && !debug)
 		Instrumentation::memoryReadHalfWord(mBankNumber, address, false);
+
+	if (MEMORY_TRACE && !resume && !debug)
+		MemoryTrace::readHalfWord(mBankNumber, address);
 
 	uint32_t fullWord = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
 	data = ((address & 0x3) == 0) ? (fullWord & 0xFFFFUL) : (fullWord >> 16);	// Little endian
@@ -204,11 +224,16 @@ bool GeneralPurposeCacheHandler::readByte(uint32_t address, uint32_t &data, bool
 		assert(!resume);
 		if (!debug)
 			Instrumentation::memoryReadByte(mBankNumber, address, true);
+		if (MEMORY_TRACE && !debug)
+			MemoryTrace::readByte(mBankNumber, address);
 		return false;
 	}
 
 	if (!resume && !debug)
 		Instrumentation::memoryReadByte(mBankNumber, address, false);
+
+	if (MEMORY_TRACE && !resume && !debug)
+		MemoryTrace::readByte(mBankNumber, address);
 
 	uint32_t fullWord = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
 	uint32_t selector = address & 0x3UL;
@@ -232,11 +257,16 @@ bool GeneralPurposeCacheHandler::writeWord(uint32_t address, uint32_t data, bool
 		assert(!resume);
 		if (!debug)
 			Instrumentation::memoryWriteWord(mBankNumber, address, true);
+		if (MEMORY_TRACE && !debug)
+			MemoryTrace::writeWord(mBankNumber, address);
 		return false;
 	}
 
 	if (!resume && !debug)
 		Instrumentation::memoryWriteWord(mBankNumber, address, false);
+
+	if (MEMORY_TRACE && !resume && !debug)
+		MemoryTrace::writeWord(mBankNumber, address);
 
 	mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = data;
 	mLineDirty[slot] = true;
@@ -252,11 +282,16 @@ bool GeneralPurposeCacheHandler::writeHalfWord(uint32_t address, uint32_t data, 
 		assert(!resume);
 		if (!debug)
 			Instrumentation::memoryWriteHalfWord(mBankNumber, address, true);
+		if (MEMORY_TRACE && !debug)
+			MemoryTrace::writeHalfWord(mBankNumber, address);
 		return false;
 	}
 
 	if (!resume && !debug)
 		Instrumentation::memoryWriteHalfWord(mBankNumber, address, false);
+
+	if (MEMORY_TRACE && !resume && !debug)
+		MemoryTrace::writeHalfWord(mBankNumber, address);
 
 	uint32_t oldData = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
 
@@ -276,11 +311,16 @@ bool GeneralPurposeCacheHandler::writeByte(uint32_t address, uint32_t data, bool
 		assert(!resume);
 		if (!debug)
 			Instrumentation::memoryWriteByte(mBankNumber, address, true);
+		if (MEMORY_TRACE && !debug)
+			MemoryTrace::writeByte(mBankNumber, address);
 		return false;
 	}
 
 	if (!resume && !debug)
 		Instrumentation::memoryWriteByte(mBankNumber, address, false);
+
+	if (MEMORY_TRACE && !resume && !debug)
+		MemoryTrace::writeByte(mBankNumber, address);
 
 	uint32_t oldData = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
 	uint32_t selector = address & 0x3UL;

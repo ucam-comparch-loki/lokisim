@@ -28,6 +28,7 @@ typedef unsigned int parameter;
 extern int			DEBUG;    // Print out lots of information during execution
 extern int      TRACE;    // Print out only the addresses of executed instructions
 extern int      BATCH_MODE;    // Print out machine readable tagged information
+extern int		MEMORY_TRACE;	// Enable creation of memory trace file
 
 extern int			TIMEOUT;  // Number of cycles before we assume something's gone wrong.
 

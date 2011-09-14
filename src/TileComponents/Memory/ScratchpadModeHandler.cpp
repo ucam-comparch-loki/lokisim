@@ -16,6 +16,7 @@
 
 #include "../../Typedefs.h"
 #include "../../Utility/Instrumentation.h"
+#include "../../Utility/MemoryTrace.h"
 #include "ScratchpadModeHandler.h"
 
 #include <cassert>
@@ -84,6 +85,13 @@ uint32_t ScratchpadModeHandler::readWord(uint32_t address, bool instruction) {
 	else
 		Instrumentation::memoryReadWord(mBankNumber, address, false);
 
+	if (MEMORY_TRACE) {
+		if (instruction)
+			MemoryTrace::readIPKWord(mBankNumber, address);
+		else
+			MemoryTrace::readWord(mBankNumber, address);
+	}
+
 	uint32_t slot = (address & mLineMask) | ((address >> mGroupBits) & ~mLineMask);
 	assert(slot <= mSetCount * mWayCount * mLineSize);
 	return mData[slot / 4];
@@ -96,6 +104,9 @@ uint32_t ScratchpadModeHandler::readHalfWord(uint32_t address) {
 
 	Instrumentation::memoryReadHalfWord(mBankNumber, address, false);
 
+	if (MEMORY_TRACE)
+		MemoryTrace::readHalfWord(mBankNumber, address);
+
 	uint32_t slot = (address & mLineMask) | ((address >> mGroupBits) & ~mLineMask);
 	assert(slot <= mSetCount * mWayCount * mLineSize);
 	uint32_t data = mData[slot / 4];
@@ -107,6 +118,9 @@ uint32_t ScratchpadModeHandler::readByte(uint32_t address) {
 	assert((address & mGroupMask) == (mGroupIndex << mLineBits));
 
 	Instrumentation::memoryReadByte(mBankNumber, address, false);
+
+	if (MEMORY_TRACE)
+		MemoryTrace::readByte(mBankNumber, address);
 
 	uint32_t slot = (address & mLineMask) | ((address >> mGroupBits) & ~mLineMask);
 	assert(slot <= mSetCount * mWayCount * mLineSize);
@@ -130,6 +144,9 @@ void ScratchpadModeHandler::writeWord(uint32_t address, uint32_t data) {
 
 	Instrumentation::memoryWriteWord(mBankNumber, address, false);
 
+	if (MEMORY_TRACE)
+		MemoryTrace::writeWord(mBankNumber, address);
+
 	uint32_t slot = (address & mLineMask) | ((address >> mGroupBits) & ~mLineMask);
 	assert(slot <= mSetCount * mWayCount * mLineSize);
 	mData[slot / 4] = data;
@@ -141,6 +158,9 @@ void ScratchpadModeHandler::writeHalfWord(uint32_t address, uint32_t data) {
 	assert((address & mGroupMask) == (mGroupIndex << mLineBits));
 
 	Instrumentation::memoryWriteHalfWord(mBankNumber, address, false);
+
+	if (MEMORY_TRACE)
+		MemoryTrace::writeHalfWord(mBankNumber, address);
 
 	uint32_t slot = (address & mLineMask) | ((address >> mGroupBits) & ~mLineMask);
 	assert(slot <= mSetCount * mWayCount * mLineSize);
@@ -157,6 +177,9 @@ void ScratchpadModeHandler::writeByte(uint32_t address, uint32_t data) {
 	assert((address & mGroupMask) == (mGroupIndex << mLineBits));
 
 	Instrumentation::memoryWriteByte(mBankNumber, address, false);
+
+	if (MEMORY_TRACE)
+		MemoryTrace::writeByte(mBankNumber, address);
 
 	uint32_t slot = (address & mLineMask) | ((address >> mGroupBits) & ~mLineMask);
 	assert(slot <= mSetCount * mWayCount * mLineSize);
