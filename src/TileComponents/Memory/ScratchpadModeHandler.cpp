@@ -75,6 +75,14 @@ bool ScratchpadModeHandler::containsAddress(uint32_t address) {
 	return (address & mGroupMask) == (mGroupIndex << mLineBits);
 }
 
+bool ScratchpadModeHandler::sameLine(uint32_t address1, uint32_t address2) {
+	assert(address1 < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
+	assert(address2 < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
+	assert((address1 & mGroupMask) == (mGroupIndex << mLineBits));
+	assert((address2 & mGroupMask) == (mGroupIndex << mLineBits));
+	return (address1 >> (mGroupBits + mLineBits)) == (address2 >> (mGroupBits + mLineBits));
+}
+
 uint32_t ScratchpadModeHandler::readWord(uint32_t address, bool instruction) {
 	assert(address < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
 	assert((address & 0x3) == 0);

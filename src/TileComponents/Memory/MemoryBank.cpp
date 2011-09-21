@@ -28,6 +28,7 @@ using namespace std;
 #include "../../Datatype/Instruction.h"
 #include "../../Datatype/MemoryRequest.h"
 #include "../../Memory/BufferStorage.h"
+#include "../../Utility/MemoryTrace.h"
 #include "../../Utility/Parameters.h"
 #include "GeneralPurposeCacheHandler.h"
 #include "ScratchpadModeHandler.h"
@@ -695,6 +696,8 @@ void MemoryBank::processLocalIPKRead() {
 			// Handle IPK streaming
 
 			if (endOfPacket) {
+				MemoryTrace::stopIPK(cBankNumber, mActiveAddress);
+
 				// Chain next request
 
 				if (!processRingEvent())
@@ -703,8 +706,13 @@ void MemoryBank::processLocalIPKRead() {
 				mActiveAddress += 4;
 
 				if (mScratchpadModeHandler.containsAddress(mActiveAddress)) {
+					if (!mScratchpadModeHandler.sameLine(mActiveAddress - 4, mActiveAddress))
+						MemoryTrace::splitLineIPK(cBankNumber, mActiveAddress);
+
 					mFSMState = STATE_LOCAL_IPK_READ;
 				} else {
+					MemoryTrace::splitBankIPK(cBankNumber, mActiveAddress);
+
 					if (mGroupIndex == mGroupSize - 1) {
 						if (mRingRequestOutputPending) {
 							mDelayedRingRequestOutput.Header.RequestType = RING_PASS_THROUGH;
@@ -762,11 +770,16 @@ void MemoryBank::processLocalIPKRead() {
 			mActiveAddress += 4;
 
 			if (mScratchpadModeHandler.containsAddress(mActiveAddress)) {
+				if (!mScratchpadModeHandler.sameLine(mActiveAddress - 4, mActiveAddress))
+					MemoryTrace::splitLineIPK(cBankNumber, mActiveAddress);
+
 				mPartialInstructionPending = true;
 				mPartialInstructionData = data;
 
 				mFSMState = STATE_LOCAL_IPK_READ;
 			} else {
+				MemoryTrace::splitBankIPK(cBankNumber, mActiveAddress);
+
 				if (mGroupIndex == mGroupSize - 1) {
 					if (mRingRequestOutputPending) {
 						mDelayedRingRequestOutput.Header.RequestType = RING_PASS_THROUGH;
@@ -857,6 +870,8 @@ void MemoryBank::processLocalIPKRead() {
 				// Handle IPK streaming
 
 				if (endOfPacket) {
+					MemoryTrace::stopIPK(cBankNumber, mActiveAddress);
+
 					// Chain next request
 
 					if (!processRingEvent())
@@ -865,8 +880,13 @@ void MemoryBank::processLocalIPKRead() {
 					mActiveAddress += 4;
 
 					if (mGeneralPurposeCacheHandler.containsAddress(mActiveAddress)) {
+						if (!mGeneralPurposeCacheHandler.sameLine(mActiveAddress - 4, mActiveAddress))
+							MemoryTrace::splitLineIPK(cBankNumber, mActiveAddress);
+
 						mFSMState = STATE_LOCAL_IPK_READ;
 					} else {
+						MemoryTrace::splitBankIPK(cBankNumber, mActiveAddress);
+
 						if (mGroupIndex == mGroupSize - 1) {
 							if (mRingRequestOutputPending) {
 								mDelayedRingRequestOutput.Header.RequestType = RING_PASS_THROUGH;
@@ -927,11 +947,16 @@ void MemoryBank::processLocalIPKRead() {
 				mActiveAddress += 4;
 
 				if (mGeneralPurposeCacheHandler.containsAddress(mActiveAddress)) {
+					if (!mGeneralPurposeCacheHandler.sameLine(mActiveAddress - 4, mActiveAddress))
+						MemoryTrace::splitLineIPK(cBankNumber, mActiveAddress);
+
 					mPartialInstructionPending = true;
 					mPartialInstructionData = data;
 
 					mFSMState = STATE_LOCAL_IPK_READ;
 				} else {
+					MemoryTrace::splitBankIPK(cBankNumber, mActiveAddress);
+
 					if (mGroupIndex == mGroupSize - 1) {
 						if (mRingRequestOutputPending) {
 							mDelayedRingRequestOutput.Header.RequestType = RING_PASS_THROUGH;

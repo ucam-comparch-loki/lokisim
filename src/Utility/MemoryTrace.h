@@ -34,6 +34,10 @@ namespace MemoryTrace {
   void writeHalfWord(unsigned long bankNumber, unsigned long address);
   void writeByte(unsigned long bankNumber, unsigned long address);
 
+  void splitLineIPK(unsigned long bankNumber, unsigned long address);
+  void splitBankIPK(unsigned long bankNumber, unsigned long address);
+  void stopIPK(unsigned long bankNumber, unsigned long address);
+
   // Finalize memory trace
   void stop();
 

@@ -31,7 +31,7 @@ int TRACE = 0;
 int BATCH_MODE = 0;
 int MEMORY_TRACE = 0;
 
-int TIMEOUT = 0x7FFFFFFEL;
+unsigned long long TIMEOUT = 1000000000000ULL;
 
 int BYTES_PER_WORD = 4;
 int BYTES_PER_INSTRUCTION = 8;

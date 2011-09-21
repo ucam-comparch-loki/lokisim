@@ -73,6 +73,7 @@ public:
 	void activate(uint groupIndex, uint groupSize, uint wayCount, uint lineSize);
 
 	bool containsAddress(uint32_t address);
+	bool sameLine(uint32_t address1, uint32_t address2);
 
 	bool readWord(uint32_t address, uint32_t &data, bool instruction, bool resume, bool debug);
 	bool readHalfWord(uint32_t address, uint32_t &data, bool resume, bool debug);

@@ -150,6 +150,12 @@ bool GeneralPurposeCacheHandler::containsAddress(uint32_t address) {
 	return (address & mGroupMask) == (mGroupIndex << mLineBits);
 }
 
+bool GeneralPurposeCacheHandler::sameLine(uint32_t address1, uint32_t address2) {
+	assert((address1 & mGroupMask) == (mGroupIndex << mLineBits));
+	assert((address2 & mGroupMask) == (mGroupIndex << mLineBits));
+	return (address1 & mSetMask) == (address2 & mSetMask);
+}
+
 bool GeneralPurposeCacheHandler::readWord(uint32_t address, uint32_t &data, bool instruction, bool resume, bool debug) {
 	assert((address & 0x3) == 0);
 

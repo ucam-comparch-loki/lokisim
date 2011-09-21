@@ -141,7 +141,7 @@ void simulate(Chip& chip) {
       int cyclesIdle = 0;
       int cycleCounter = 0;
 
-      int i;
+      unsigned long long i;
       for(i=0; i<TIMEOUT && !sc_core::sc_end_of_simulation_invoked(); i+=cyclesPerStep) {
         TIMESTEP;
 

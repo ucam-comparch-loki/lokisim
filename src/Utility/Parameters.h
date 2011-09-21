@@ -30,7 +30,7 @@ extern int      TRACE;    // Print out only the addresses of executed instructio
 extern int      BATCH_MODE;    // Print out machine readable tagged information
 extern int		MEMORY_TRACE;	// Enable creation of memory trace file
 
-extern int			TIMEOUT;  // Number of cycles before we assume something's gone wrong.
+extern unsigned long long			TIMEOUT;  // Number of cycles before we assume something's gone wrong.
 
 extern int			BYTES_PER_WORD;
 extern int      BYTES_PER_INSTRUCTION;
