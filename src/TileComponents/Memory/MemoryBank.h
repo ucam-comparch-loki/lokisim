@@ -327,9 +327,13 @@ private:
 	MemoryBank *mNextMemoryBank;
 	SimplifiedOnChipScratchpad *mBackgroundMemory;
 
+	// Pointer to network, allowing new interfaces to be experimented with quickly.
+	local_net_t *localNetwork;
+
 public:
 
 	void setAdjacentMemories(MemoryBank *prevMemoryBank, MemoryBank *nextMemoryBank, SimplifiedOnChipScratchpad *backgroundMemory);
+	void setLocalNetwork(local_net_t* network);
 
 	void storeData(vector<Word>& data, MemoryAddr location);
 

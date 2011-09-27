@@ -105,6 +105,7 @@ void NewCrossbar::makeMuxes() {
   for(int i=0; i<numMuxes; i++) {
     Multiplexer* mux = new Multiplexer(sc_gen_unique_name("mux"), numBuses);
 
+    mux->clock(clock);
     mux->dataOut(dataOut[i]);
     mux->validOut(validDataOut[i]);
     mux->ackOut(ackDataOut[i]);

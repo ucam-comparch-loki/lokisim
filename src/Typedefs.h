@@ -34,6 +34,14 @@ typedef uint32_t MemoryAddr;
 // An offset to jump by in the instruction packet cache.
 typedef int16_t  JumpOffset;
 
+// The topology of the network in each tile.
+class NewLocalNetwork;
+typedef NewLocalNetwork local_net_t;
+
+// The topology of the network between tiles.
+class Mesh;
+typedef Mesh global_net_t;
+
 #ifndef uint
 typedef unsigned int uint;
 #endif

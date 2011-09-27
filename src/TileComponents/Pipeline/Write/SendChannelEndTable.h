@@ -79,6 +79,7 @@ private:
 
   // Send the oldest value in each output buffer, if the flow control signals
   // allow it.
+  void          sendLoop2();
   void          sendLoop(unsigned int buffer);
   void          send(unsigned int buffer);
 
@@ -108,7 +109,14 @@ private:
   // Use a different buffer depending on the destination to avoid deadlock,
   // and allow different flow control, etc.
   enum BufferIndex {TO_CORES = 0, TO_MEMORIES = 1, OFF_TILE = 2};
-  static const unsigned int NUM_BUFFERS = 3;
+
+  enum SendState {
+    IDLE,
+    HAVE_DATA,
+    SENT_DATA
+  };
+
+  SendState state;
 
   // Buffers for storing outgoing data. One buffer for each network.
   BufferArray<BufferedInfo> buffers;

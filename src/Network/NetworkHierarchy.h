@@ -32,6 +32,10 @@ public:
 
   sc_in<bool>   clock;
 
+  // Additional clocks which are skewed, allowing multiple clocked events
+  // to happen in one cycle.
+  sc_in<bool>   fastClock, slowClock;
+
   // Data received from each output of each networked component.
   DataInput    *dataIn;
   ReadyInput   *validDataIn;
@@ -67,6 +71,12 @@ public:
 // Methods
 //==============================//
 
+public:
+
+  // Return a pointer to the given component's local network. This allows new
+  // interfaces to be tried out more quickly.
+  local_net_t* getLocalNetwork(ComponentID component) const;
+
 private:
 
   void setupFlowControl();
@@ -86,8 +96,8 @@ private:
   // Flow control at each component's outputs.
   vector<FlowControlOut*> flowControlOut;
 
-  vector<Network*> localNetworks;
-  Network *globalDataNetwork, *globalCreditNetwork;
+  vector<local_net_t*> localNetworks;
+  global_net_t *globalDataNetwork, *globalCreditNetwork;
   OffChip offChip;  // Should this be in here, or outside?
 
 //==============================//

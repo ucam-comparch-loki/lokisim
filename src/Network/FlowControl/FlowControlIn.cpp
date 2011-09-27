@@ -14,7 +14,7 @@ void FlowControlIn::dataLoop() {
     case WAITING_FOR_DATA: {
       if(clock.posedge()) {
         // Wait for a delta cycle, because the valid signal is deasserted on
-        // the clock edge.
+        // the positive clock edge.
         next_trigger(sc_core::SC_ZERO_TIME);
       }
       else if(!validDataIn.read())
@@ -115,6 +115,7 @@ void FlowControlIn::addCredit() {
 }
 
 void FlowControlIn::sendAck() {
+  assert(!ackDataIn.read());
   ackDataIn.write(true);
   addCredit();
 

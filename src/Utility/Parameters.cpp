@@ -88,7 +88,7 @@ parameter MEMORY_ON_CHIP_SCRATCHPAD_BANKS		= 4;
 //-------------------------------------------------------------------------------------------------
 
 parameter CORE_INPUT_PORTS         = 2;
-parameter CORE_OUTPUT_PORTS        = 3;  // To cores, to memories, off tile
+parameter CORE_OUTPUT_PORTS        = 1;  // To cores, to memories, off tile
 parameter NUM_RECEIVE_CHANNELS     = 6;  // Register-mapped inputs only
 
 parameter IN_CHANNEL_BUFFER_SIZE   = 20;  // Make smaller once SIMD is sorted

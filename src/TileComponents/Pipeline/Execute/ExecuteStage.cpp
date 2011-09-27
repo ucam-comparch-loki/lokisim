@@ -32,16 +32,23 @@ void ExecuteStage::execute() {
     }
 
     case EXECUTING:
-      // This method should never be called when already executing an instruction.
-      assert(false);
+      assert(currentInst.sendsOnNetwork());
+
+      // Memory operations may be sent to different memory banks depending on the
+      // address accessed.
+      // In practice, this would be performed by a separate, small functional
+      // unit in parallel with the main ALU, so that there is time left to request
+      // a path to memory.
+      if(currentInst.isMemoryOperation()) adjustNetworkAddress(currentInst);
+      requestArbitration(currentInst.networkDestination(), true);
+
+      break;
 
     case ARBITRATING: {
-      // Have just received a grant from the arbiter.
-      dataOut.write(currentInst);
 
-      // Take down the request if this is the last flit of the packet.
-      if(currentInst.endOfNetworkPacket())
-        requestArbitration(currentInst.networkDestination(), false);
+      // Have just received a grant from the arbiter (if one was needed).
+      dataOut.write(currentInst);
+      executedInstruction.notify();
 
       state = FINISHED;
       next_trigger(clock.posedge_event());
@@ -63,7 +70,9 @@ void ExecuteStage::execute() {
 
         // TODO: tell instrumentation that we are no longer stalled
       }
-      else next_trigger(clock.posedge_event());
+      // Wait until negative edge because that's when arbitration requests must
+      // be sent.
+      else next_trigger(clock.negedge_event());
 
       break;
     }
@@ -71,6 +80,11 @@ void ExecuteStage::execute() {
     case FINISHED: {
       // Have now finished executing, so this pipeline stage is idle.
       idle.write(true);
+
+      // Take down the request if this is the last flit of the packet.
+      if(currentInst.sendsOnNetwork() && currentInst.endOfNetworkPacket()) {
+        requestArbitration(currentInst.networkDestination(), false);
+      }
 
       // Invalidate the current instruction so its data isn't forwarded anymore.
       currentInst.destination(0);
@@ -136,24 +150,18 @@ void ExecuteStage::newInput(DecodedInst& operation) {
     executedInstruction.notify();
 
     if(success) {
-
-      // Memory operations may be sent to different memory banks depending on the
-      // address accessed.
-      // In practice, this would be performed by a separate, small functional
-      // unit in parallel with the main ALU, so that there is time left to request
-      // a path to memory.
-      if(currentInst.isMemoryOperation()) adjustNetworkAddress(currentInst);
-
       if(currentInst.sendsOnNetwork()) {
-        requestArbitration(currentInst.networkDestination(), true);
+        // Will need to request network resources - wait some time to
+        // simulate the computation of which resources are needed.
+        next_trigger(clock.negedge_event());
       }
       else {
         state = ARBITRATING;
         next_trigger(sc_core::SC_ZERO_TIME);
       }
-
     }
-    else next_trigger(clock.posedge_event());
+    // success can only be false if we can't send a fetch - wait a cycle
+    else next_trigger(clock.negedge_event());
   }
   else {
     // If the instruction will not be executed, invalidate it so we don't
@@ -212,13 +220,13 @@ void ExecuteStage::requestArbitration(ChannelID destination, bool request) {
     state = ARBITRATING;
 
     // Call execute() again when the request is granted.
-//    next_trigger(parent()->requestArbitration(destination, request));
-    next_trigger(sc_core::SC_ZERO_TIME);
+    next_trigger(parent()->requestArbitration(destination, request));
+//    next_trigger(sc_core::SC_ZERO_TIME);
   }
   else {
     // We are not sending a request which will be granted, so don't use
     // next_trigger this time.
-//    parent()->requestArbitration(destination, request);
+    parent()->requestArbitration(destination, request);
   }
 }
 
@@ -295,7 +303,7 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
 }
 
 bool ExecuteStage::isStalled() const {
-  return state == WAITING_TO_FETCH || state == EXECUTING;
+  return state == WAITING_TO_FETCH || state == EXECUTING || state == ARBITRATING;
 }
 
 bool ExecuteStage::checkPredicate(DecodedInst& inst) {

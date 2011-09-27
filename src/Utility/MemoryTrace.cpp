@@ -11,7 +11,7 @@
 
 #include <string>
 
-#include <zlib.h>
+#include <zlib.h>   // Add "z" to linked libraries
 
 #include "Parameters.h"
 #include "MemoryTrace.h"

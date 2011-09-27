@@ -161,7 +161,7 @@ void Chip::makeComponents() {
       namebuilder >> name;
       namebuilder.clear();
 
-      Cluster* c = new Cluster(name.c_str(), clusterID);
+      Cluster* c = new Cluster(name.c_str(), clusterID, network.getLocalNetwork(clusterID));
       
       clusters.push_back(c);
     }
@@ -175,6 +175,7 @@ void Chip::makeComponents() {
 			namebuilder.clear();
 
 			MemoryBank* m = new MemoryBank(name.c_str(), memoryID, i);
+			m->setLocalNetwork(network.getLocalNetwork(memoryID));
 
 			memories.push_back(m);
 		}
@@ -183,6 +184,8 @@ void Chip::makeComponents() {
 
 void Chip::wireUp() {
   network.clock(clock);
+  network.fastClock(fastClock);
+  network.slowClock(slowClock);
 
 	backgroundMemory.iClock(clock);
 	backgroundMemory.oIdle(idleSig[NUM_COMPONENTS]);

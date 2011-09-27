@@ -13,25 +13,53 @@ int Multiplexer::inputs() const {
 
 void Multiplexer::handleData() {
   int selection = select.read();
-  assert(selection < inputs());
 
-  if(validIn[selection].read()) {  // Data arrived on the selected input
-    dataOut.write(dataIn[selection].read());
-    validOut.write(true);
+  if(select.event()) {
+    if(validOut.read())
+      validOut.write(false);
+
+    cout << this->name() << " select changed to " << select.read() << endl;
+
+    if(selection >= 0) {
+      next_trigger(validIn[selection].posedge_event());
+      cout << this->name() << " waiting only for valid signal\n";
+    }
+    else               next_trigger(select.default_event());
   }
+  else if(validIn[selection].read()) {  // Data arrived on the selected input
+    dataOut.write(dataIn[selection].read());
+    cout << this->name() << " received " << dataIn[selection].read() << endl;
+    validOut.write(true);
 
-  // Wait until the selection changes, or new data is received.
-  next_trigger(select.default_event() | validIn[selection].posedge_event());
+    // Is it possible for the selection to change before the data goes invalid?
+    next_trigger(select.default_event() | validIn[selection].negedge_event());
+  }
+  else {                                // The input data is no longer valid
+    validOut.write(false);
+
+    // Wait until the selection changes, or new data is received.
+    next_trigger(select.default_event() | validIn[selection].posedge_event());
+  }
 }
 
 void Multiplexer::handleAcks() {
   int selection = select.read();
   assert(selection < inputs());
+  assert(selection >= 0);
 
-  // Just copy the acknowledgement through to the appropriate input whenever
-  // it changes.
-  assert(ackIn[selection].read() != ackOut.read());
-  ackIn[selection].write(ackOut.read());
+  if(clock.posedge()) {
+    // Clear the ack on the clock edge, and wait for the next ack to arrive.
+    cout << this->name() << " waiting for ack\n";
+    ackIn[selection].write(false);
+    next_trigger(ackOut.posedge_event());
+  }
+  else {
+    // When an ack arrives, forward it to the correct port.
+    assert(ackOut.posedge());
+cout << this->name() << " received ack - sent to output " << selection <<  " - waiting for clock\n";
+    ackIn[selection].write(true);
+    next_trigger(clock.posedge_event());
+  }
 }
 
 Multiplexer::Multiplexer(const sc_module_name& name, int numInputs) :
@@ -47,7 +75,7 @@ Multiplexer::Multiplexer(const sc_module_name& name, int numInputs) :
   dont_initialize();
 
   SC_METHOD(handleAcks);
-  sensitive << ackOut;
+  sensitive << ackOut.pos();
   dont_initialize();
 
 }

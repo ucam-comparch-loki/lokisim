@@ -12,6 +12,7 @@
 #include "../Utility/InstructionMap.h"
 #include "../Datatype/ChannelID.h"
 #include "../Datatype/DecodedInst.h"
+#include "../Network/Topologies/NewLocalNetwork.h"
 
 /* Initialise the instructions a Cluster will execute. */
 void     Cluster::storeData(const std::vector<Word>& data, MemoryAddr location) {
@@ -36,7 +37,7 @@ void     Cluster::storeData(const std::vector<Word>& data, MemoryAddr location) 
 }
 
 const MemoryAddr Cluster::getInstIndex() const   {return fetch.getInstIndex();}
-bool     Cluster::readyToFetch() const            {return fetch.roomToFetch();}
+bool     Cluster::readyToFetch() const           {return fetch.roomToFetch();}
 void     Cluster::jump(const JumpOffset offset)  {fetch.jump(offset);}
 
 bool     Cluster::inCache(const MemoryAddr addr, operation_t operation) {
@@ -167,9 +168,15 @@ void     Cluster::updateIdle() {
   if(wasIdle != isIdle) Instrumentation::idle(id, isIdle);
 }
 
+const sc_event& Cluster::requestArbitration(ChannelID destination, bool request) {
+  // Could have extra ports and write to them from here, but for the moment,
+  // access the network directly.
+  return localNetwork->makeRequest(id, destination, request);
+}
+
 ComponentID Cluster::getSystemCallMemory() const {
   // TODO: Stop assuming that the first channel map entry after the fetch
-  // channel corresponds to the memory system calls want to access.
+  // channel corresponds to the memory that system calls want to access.
   return channelMapTable.read(1).getComponentID();
 }
 
@@ -188,7 +195,7 @@ ChannelID Cluster::RCETInput(const ComponentID& ID, ChannelIndex channel) {
   return ChannelID(ID, 2 + channel);
 }
 
-Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
+Cluster::Cluster(sc_module_name name, const ComponentID& ID, local_net_t* network) :
     TileComponent(name, ID, CORE_INPUT_PORTS, CORE_OUTPUT_PORTS),
     regs("regs", ID),
     pred("predicate"),
@@ -197,6 +204,8 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
     execute("execute", ID),
     write("write", ID),
     channelMapTable("channel_map_table", ID) {
+
+  localNetwork  = network;
 
   inputCrossbar = new InputCrossbar("input_crossbar", ID);
 

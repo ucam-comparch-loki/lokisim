@@ -12,6 +12,8 @@
 #include "Crossbar.h"
 #include "NewCrossbar.h"
 
+class OrGate;
+
 class NewLocalNetwork: public Network {
 
 //==============================//
@@ -31,6 +33,17 @@ public:
 //  DataOutput   *dataOut;
 //  ReadyOutput  *validDataOut;
 //  ReadyInput   *ackDataOut;
+
+  // Additional clocks which are skewed, allowing multiple clocked events
+  // to happen in series in one cycle.
+  sc_in<bool>   fastClock, slowClock;
+
+  // Quick hack: want a posedge early in the cycle (though not at the same time
+  // as the main clock) and a negedge fairly late.
+  // The delayed posedge means select signals don't change until deasserted acks
+  // have been routed back (can we avoid routing them back?), and the late
+  // negedge allows time for the arbiters in the subnetworks to finish first.
+  sc_core::sc_clock arbiterClock;
 
   CreditInput  *creditsIn;
   ReadyInput   *validCreditIn;
@@ -91,6 +104,11 @@ private:
 
   std::vector<BasicArbiter*> arbiters;
   std::vector<Multiplexer*>  muxes;
+
+  // Used to combine acknowledgements from multiple possible destinations -
+  // only one of them can ever be high at once.
+  std::vector<OrGate*>       orGates;
+  ReadySignal              **combineAcks;
 
   // Signals connecting to muxes.
   // Address using dataSig[destination component][position]

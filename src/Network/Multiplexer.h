@@ -20,6 +20,9 @@ class Multiplexer: public Component {
 
 public:
 
+  // Acknowledgements are cleared on the positive clock edge.
+  sc_in<bool>  clock;
+
   sc_in<int>   select;
 
   DataInput   *dataIn;

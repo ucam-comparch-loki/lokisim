@@ -87,7 +87,7 @@ WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
     scet("scet", ID, &(parent()->channelMapTable)) {
 
-  static const unsigned int NUM_BUFFERS = 3;
+  static const unsigned int NUM_BUFFERS = CORE_OUTPUT_PORTS;
 
   output      = new sc_out<AddressedWord>[NUM_BUFFERS];
   validOutput = new sc_out<bool>[NUM_BUFFERS];

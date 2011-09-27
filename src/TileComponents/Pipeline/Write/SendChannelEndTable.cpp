@@ -63,24 +63,50 @@ void SendChannelEndTable::sendToCores()    {sendLoop(TO_CORES);}
 void SendChannelEndTable::sendToMemories() {sendLoop(TO_MEMORIES);}
 void SendChannelEndTable::sendOffTile()    {sendLoop(OFF_TILE);}
 
+void SendChannelEndTable::sendLoop2() {
+  switch(state) {
+    case IDLE:      // Wait for data to arrive/wait for the time to send data
+      // Data becomes invalid on the clock edge.
+      validOutput[0].write(false);
+
+      if(buffers[0].empty()) next_trigger(dataToSendEvent[0]);
+      else {
+        // If we have data, wait until a little after the clock edge for
+        // arbitration signals, etc., to settle down.
+        state = HAVE_DATA;
+        next_trigger(0.1, sc_core::SC_NS);
+      }
+      break;
+
+    case HAVE_DATA: // Send the data waiting in the buffer
+      assert(!buffers[0].empty());
+
+      send(0);
+      state = SENT_DATA;
+      break;
+
+    case SENT_DATA: // Receive acknowledgement and restart loop
+      assert(ackOutput[0].read() == true);
+
+      state = IDLE;
+      next_trigger(clock.posedge_event());
+      break;
+  }
+}
+
 void SendChannelEndTable::sendLoop(unsigned int buffer) {
   if(ackOutput[buffer].posedge()) {
-    // If we are receiving an acknowledgement, we have just sent some data.
-    assert(validOutput[buffer].read());
-    validOutput[buffer].write(false);
-
-    if(buffers[buffer].empty())        // No data to send.
-      next_trigger(dataToSendEvent[buffer]);
-    else if(clock.posedge())  // Have data and it's time to send it.
-      send(buffer);
-    else                      // Have data but it's not time to send it.
-      next_trigger(clock.posedge_event());
+    // Wait until the clock edge after the ack to take down the valid data signal.
+    next_trigger(clock.posedge_event());
   }
   else {
-    // If we are not receiving an acknowledgement, we must have data to send.
-    assert(!buffers[buffer].empty());
-
-    send(buffer);
+    // Attempt to send data.
+    if(buffers[buffer].empty()) {        // No data to send.
+      validOutput[buffer].write(false);
+      next_trigger(dataToSendEvent[buffer]);
+    }
+    else
+      send(buffer);
   }
 }
 
@@ -145,9 +171,11 @@ WriteStage* SendChannelEndTable::parent() const {
 
 SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID& ID, ChannelMapTable* cmt) :
     Component(name, ID),
-    buffers(NUM_BUFFERS, OUT_CHANNEL_BUFFER_SIZE, string(name)) {
+    buffers(CORE_OUTPUT_PORTS, OUT_CHANNEL_BUFFER_SIZE, string(name)) {
 
   channelMapTable = cmt;
+
+  static const unsigned int NUM_BUFFERS = CORE_OUTPUT_PORTS;
 
   output      = new sc_out<AddressedWord>[NUM_BUFFERS];
   validOutput = new sc_out<bool>[NUM_BUFFERS];
@@ -156,17 +184,20 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID&
   creditsIn   = new sc_in<AddressedWord>[NUM_BUFFERS];
   validCredit = new sc_in<bool>[NUM_BUFFERS];
 
+  state = IDLE;
+
   waiting = false;
 
   dataToSendEvent = new sc_event[NUM_BUFFERS];
 
-  SC_METHOD(sendToCores);        sensitive << dataToSendEvent[0];   dont_initialize();
-  SC_METHOD(sendToMemories);     sensitive << dataToSendEvent[1];   dont_initialize();
-  SC_METHOD(sendOffTile);        sensitive << dataToSendEvent[2];   dont_initialize();
+  SC_METHOD(sendLoop2);
+//  SC_METHOD(sendToCores);        sensitive << dataToSendEvent[0];   dont_initialize();
+//  SC_METHOD(sendToMemories);     sensitive << dataToSendEvent[1];   dont_initialize();
+//  SC_METHOD(sendOffTile);        sensitive << dataToSendEvent[2];   dont_initialize();
 
   SC_METHOD(creditFromCores);    sensitive << validCredit[0].pos(); dont_initialize();
-  SC_METHOD(creditFromMemories); sensitive << validCredit[1].pos(); dont_initialize();
-  SC_METHOD(creditFromOffTile);  sensitive << validCredit[2].pos(); dont_initialize();
+//  SC_METHOD(creditFromMemories); sensitive << validCredit[1].pos(); dont_initialize();
+//  SC_METHOD(creditFromOffTile);  sensitive << validCredit[2].pos(); dont_initialize();
 
 }
 

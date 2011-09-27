@@ -62,7 +62,7 @@ public:
 public:
 
   SC_HAS_PROCESS(Cluster);
-  Cluster(sc_module_name name, const ComponentID& ID);
+  Cluster(sc_module_name name, const ComponentID& ID, local_net_t* network);
   virtual ~Cluster();
 
 //==============================//
@@ -146,6 +146,10 @@ private:
   // Update whether this core is idle or not.
   void             updateIdle();
 
+  // Request to reserve a path through the network to the given destination.
+  // Returns an event which will be triggered when the request is granted.
+  const sc_event&  requestArbitration(ChannelID destination, bool request);
+
   ComponentID      getSystemCallMemory() const;
 
 //==============================//
@@ -186,6 +190,10 @@ private:
 
   bool currentlyStalled;
   sc_event stallEvent;
+
+  // Store a pointer to the network so new ways of accessing it can be
+  // experimented with without having to create lots of ports and signals.
+  local_net_t* localNetwork;
 
 //==============================//
 // Signals (wires)

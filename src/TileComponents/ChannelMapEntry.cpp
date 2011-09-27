@@ -16,7 +16,7 @@ ChannelID ChannelMapEntry::destination() const {
 }
 
 ChannelMapEntry::NetworkType ChannelMapEntry::network() const {
-  return network_;
+  return CORE_TO_CORE;//network_;
 }
 
 bool ChannelMapEntry::localMemory() const {

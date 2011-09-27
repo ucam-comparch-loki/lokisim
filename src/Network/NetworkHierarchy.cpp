@@ -10,8 +10,14 @@
 #include "FlowControl/FlowControlOut.h"
 #include "Topologies/Crossbar.h"
 #include "Topologies/MulticastCrossbar.h"
-#include "Topologies/LocalNetwork.h"
+#include "Topologies/NewLocalNetwork.h"
 #include "Topologies/Mesh.h"
+
+local_net_t* NetworkHierarchy::getLocalNetwork(ComponentID component) const {
+  unsigned int tile = component.getTile();
+  assert(tile < localNetworks.size());
+  return localNetworks[tile];
+}
 
 void NetworkHierarchy::setupFlowControl() {
 
@@ -45,11 +51,13 @@ void NetworkHierarchy::setupFlowControl() {
 void NetworkHierarchy::makeLocalNetwork(int tileID) {
 
   // Create a local network.
-  LocalNetwork* localNetwork = new LocalNetwork(sc_gen_unique_name("tile_net"), ComponentID(tileID, 0));
+  local_net_t* localNetwork = new local_net_t(sc_gen_unique_name("tile_net"), ComponentID(tileID, 0));
   localNetworks.push_back(localNetwork);
 
   // Connect things up.
   localNetwork->clock(clock);
+  localNetwork->fastClock(fastClock);
+  localNetwork->slowClock(slowClock);
 
   for(unsigned int i=0; i<INPUT_PORTS_PER_TILE; i++) {
     int outputIndex = (tileID * INPUT_PORTS_PER_TILE) + i;
@@ -103,17 +111,17 @@ void NetworkHierarchy::makeLocalNetwork(int tileID) {
 void NetworkHierarchy::makeGlobalNetwork() {
 
   // Make data network.
-  globalDataNetwork = new Mesh("global_data_net",
-                               0,
-                               NUM_TILE_ROWS,
-                               NUM_TILE_COLUMNS,
-                               Network::TILE,   // This network connects tiles
-                               Dimension(NUM_TILES, NUM_TILES));
+  globalDataNetwork = new global_net_t("global_data_net",
+                                       0,
+                                       NUM_TILE_ROWS,
+                                       NUM_TILE_COLUMNS,
+                                       Network::TILE,   // This network connects tiles
+                                       Dimension(NUM_TILES, NUM_TILES));
                                
   globalDataNetwork->clock(clock);
 
   for(uint i=0; i<localNetworks.size(); i++) {
-    Network* n = localNetworks[i];
+    local_net_t* n = localNetworks[i];
     n->externalInput()(dataToLocalNet[i]);
     n->externalOutput()(dataFromLocalNet[i]);
     n->externalValidInput()(validDataToLocal[i]);
@@ -130,17 +138,17 @@ void NetworkHierarchy::makeGlobalNetwork() {
 
   // Make credit network.
   // TODO: integrate both networks into one GlobalNetwork.
-  globalCreditNetwork = new Mesh("global_credit_net",
-                                 0,
-                                 NUM_TILE_ROWS,
-                                 NUM_TILE_COLUMNS,
-                                 Network::TILE,   // This network connects tiles
-                                 Dimension(NUM_TILES, NUM_TILES));
+  globalCreditNetwork = new global_net_t("global_credit_net",
+                                         0,
+                                         NUM_TILE_ROWS,
+                                         NUM_TILE_COLUMNS,
+                                         Network::TILE,   // This network connects tiles
+                                         Dimension(NUM_TILES, NUM_TILES));
 
   globalCreditNetwork->clock(clock);
 
   for(uint i=0; i<localNetworks.size(); i++) {
-    LocalNetwork* n = static_cast<LocalNetwork*>(localNetworks[i]);
+    local_net_t* n = localNetworks[i];
     n->externalCreditIn()(creditsToLocalNet[i]);
     n->externalCreditOut()(creditsFromLocalNet[i]);
     n->externalValidCreditIn()(validCreditToLocal[i]);
