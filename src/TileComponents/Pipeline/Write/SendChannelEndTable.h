@@ -39,7 +39,6 @@ public:
   // Data outputs to the network.
   sc_out<AddressedWord> *output;
   sc_out<bool>          *validOutput;
-  sc_in<bool>           *ackOutput;
 
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.
@@ -79,14 +78,8 @@ private:
 
   // Send the oldest value in each output buffer, if the flow control signals
   // allow it.
-  void          sendLoop2();
-  void          sendLoop(unsigned int buffer);
+  void          sendLoop();
   void          send(unsigned int buffer);
-
-  // A separate thread/method for each buffer, making them completely independent.
-  void          sendToCores();
-  void          sendToMemories();
-  void          sendOffTile();
 
   // Stall the pipeline until the channel specified is empty.
   void          waitUntilEmpty(MapIndex channel);
@@ -112,8 +105,8 @@ private:
 
   enum SendState {
     IDLE,
-    HAVE_DATA,
-    SENT_DATA
+    HAVE_DATA/*,
+    SENT_DATA*/
   };
 
   SendState state;

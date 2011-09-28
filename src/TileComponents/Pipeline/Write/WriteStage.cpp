@@ -91,7 +91,6 @@ WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
 
   output      = new sc_out<AddressedWord>[NUM_BUFFERS];
   validOutput = new sc_out<bool>[NUM_BUFFERS];
-  ackOutput   = new sc_in<bool>[NUM_BUFFERS];
 
   creditsIn   = new sc_in<AddressedWord>[NUM_BUFFERS];
   validCredit = new sc_in<bool>[NUM_BUFFERS];
@@ -105,7 +104,6 @@ WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
   for(unsigned int i=0; i<NUM_BUFFERS; i++) {
     scet.output[i](output[i]);
     scet.validOutput[i](validOutput[i]);
-    scet.ackOutput[i](ackOutput[i]);
     scet.creditsIn[i](creditsIn[i]);
     scet.validCredit[i](validCredit[i]);
   }
@@ -116,7 +114,6 @@ WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
 WriteStage::~WriteStage() {
   delete[] output;
   delete[] validOutput;
-  delete[] ackOutput;
 
   delete[] creditsIn;
   delete[] validCredit;

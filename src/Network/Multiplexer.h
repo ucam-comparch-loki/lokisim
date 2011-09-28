@@ -20,18 +20,13 @@ class Multiplexer: public Component {
 
 public:
 
-  // Acknowledgements are cleared on the positive clock edge.
-  sc_in<bool>  clock;
-
   sc_in<int>   select;
 
   DataInput   *dataIn;
   ReadyInput  *validIn;
-  ReadyOutput *ackIn;
 
   DataOutput   dataOut;
   ReadyOutput  validOut;
-  ReadyInput   ackOut;
 
 //==============================//
 // Constructors and destructors
@@ -54,7 +49,6 @@ public:
 private:
 
   void handleData();
-  void handleAcks();
 
 //==============================//
 // Local state

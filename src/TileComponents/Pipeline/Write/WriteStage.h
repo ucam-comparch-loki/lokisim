@@ -40,7 +40,6 @@ public:
   // Data to send onto the network.
   sc_out<AddressedWord> *output;
   sc_out<bool>          *validOutput;
-  sc_in<bool>           *ackOutput;
 
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.

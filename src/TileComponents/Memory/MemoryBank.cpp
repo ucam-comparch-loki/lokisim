@@ -1293,21 +1293,13 @@ void MemoryBank::processWaitRingOutput() {
 }
 
 void MemoryBank::processValidInput() {
-	// Acknowledge new data as soon as it arrives if we know it will be consumed
-	// in this clock cycle.
-  // Pull the acknowledgement down on the negative clock edge.
+	// Update the ready signal to show whether there is room in the input buffer
+  // to receive more data.
 	// FIXME: also needs to update whenever the queue's "full" flag changes.
 
-  if(iClock.posedge() && oDataInAcknowledge.read()) {
-    oDataInAcknowledge.write(false);
-    cout << this->name() << " removed ack\n";
-  }
-  else {
-    bool ack = iDataInValid.read() && !mInputQueue.full();
-    if(ack != oDataInAcknowledge.read()) {
-      oDataInAcknowledge.write(ack);
-      if(ack) cout << this->name() << " sent ack\n";
-    }
+  bool ready = !mInputQueue.full();
+  if(ready != oReadyForData.read()) {
+    oReadyForData.write(ready);
   }
 }
 
@@ -1321,12 +1313,9 @@ void MemoryBank::processValidRing() {
 void MemoryBank::handleNetworkInterfacesPre() {
 
   if(iClock.posedge()) {
-    // Check whether old output word got acknowledged
+    // The output word has been sent and received by now
 
-    if (mOutputWordPending && iDataOutAcknowledge.read()) {
-      if (DEBUG)
-        cout << this->name() << " output word got acknowledged" << endl;
-
+    if (mOutputWordPending && oDataOutValid.read()) {
       mOutputWordPending = false;
     }
 
@@ -1376,10 +1365,6 @@ void MemoryBank::handleNetworkInterfacesPost() {
 	if (!mOutputWordPending && !mOutputQueue.empty()) {
 		OutputWord outWord = mOutputQueue.read();
 
-    // See if this flit is the start of a packet by checking whether the
-    // previous flit was the end of a packet.
-    bool startOfPacket = mActiveOutputWord.endOfPacket();
-
 		AddressedWord word(outWord.Data, mChannelMapTable[outWord.TableIndex].ReturnChannel);
 		word.setPortClaim(outWord.PortClaim, false);
 		word.setEndOfPacket(outWord.LastWord);
@@ -1387,14 +1372,7 @@ void MemoryBank::handleNetworkInterfacesPost() {
 		mActiveOutputWord = word;
 
     // Request arbitration, and wait until the request is granted.
-    // If arbitration is not needed, wait until the negative clock edge, when
-    // data is sent.
-    if(startOfPacket)
-      // FIXME: does this cause problems if output signals need to be reset on
-      // the posedge?
-      next_trigger(localNetwork->makeRequest(id, mActiveOutputWord.channelID(), true));
-    else
-      next_trigger(iClock.posedge_event());
+    next_trigger(localNetwork->makeRequest(id, mActiveOutputWord.channelID(), true));
 	}
 	// If no output word is available, wait until the next clock cycle to perform
 	// the next operation.
@@ -1440,8 +1418,6 @@ void MemoryBank::mainLoop() {
     if(mOutputWordPending) {
       oDataOutValid.write(true);
       oDataOut.write(mActiveOutputWord);
-
-      cout << "memory sent new data\n";
     }
 
     // Proceed according to FSM state
@@ -1572,7 +1548,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	//-- Port initialization ----------------------------------------------------------------------
 
 	oIdle.initialize(true);
-	oDataInAcknowledge.initialize(false);
+	oReadyForData.initialize(false);
 	oDataOutValid.initialize(false);
 	oBMDataStrobe.initialize(false);
 	oRingAcknowledge.initialize(false);

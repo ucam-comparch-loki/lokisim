@@ -8,13 +8,13 @@
 #ifndef NEWLOCALNETWORK_H_
 #define NEWLOCALNETWORK_H_
 
-#include "../Network.h"
+#include "../NewNetwork.h"
 #include "Crossbar.h"
 #include "NewCrossbar.h"
 
-class OrGate;
+class EndArbiter;
 
-class NewLocalNetwork: public Network {
+class NewLocalNetwork: public NewNetwork {
 
 //==============================//
 // Ports
@@ -28,11 +28,10 @@ public:
 //
 //  DataInput    *dataIn;
 //  ReadyInput   *validDataIn;
-//  ReadyOutput  *ackDataIn;
 //
 //  DataOutput   *dataOut;
 //  ReadyOutput  *validDataOut;
-//  ReadyInput   *ackDataOut;
+//  ReadyInput   *readyDataOut;
 
   // Additional clocks which are skewed, allowing multiple clocked events
   // to happen in series in one cycle.
@@ -52,6 +51,10 @@ public:
   CreditOutput *creditsOut;
   ReadyOutput  *validCreditOut;
   ReadyInput   *ackCreditOut;
+
+  // A signal from each component, telling whether it is ready to receive
+  // more data.
+  ReadyInput   *readyIn;
 
 //==============================//
 // Constructors and destructors
@@ -74,6 +77,8 @@ public:
   const sc_event& makeRequest(ComponentID source, ChannelID destination, bool request);
 
   // Inputs and outputs which connect to the global network.
+  ReadyInput&   externalReadyInput() const;
+
   CreditInput&  externalCreditIn() const;
   CreditOutput& externalCreditOut() const;
   ReadyInput&   externalValidCreditIn() const;
@@ -102,13 +107,8 @@ private:
   // Bring globalToCore down here too?
   Crossbar c2gCredits, g2cCredits;
 
-  std::vector<BasicArbiter*> arbiters;
+  std::vector<EndArbiter*>   arbiters;
   std::vector<Multiplexer*>  muxes;
-
-  // Used to combine acknowledgements from multiple possible destinations -
-  // only one of them can ever be high at once.
-  std::vector<OrGate*>       orGates;
-  ReadySignal              **combineAcks;
 
   // Signals connecting to muxes.
   // Address using dataSig[destination component][position]
@@ -117,7 +117,6 @@ private:
   //         globalToCore connects to position 4
   DataSignal               **dataSig;
   ReadySignal              **validSig;
-  ReadySignal              **ackSig;
 
   // Signals connecting arbiters to arbiters.
   // Address using selectSig[arbiter][port]
@@ -145,6 +144,14 @@ private:
 
   // The number of inputs to each arbiter/mux in this network.
   static const unsigned int muxInputs;
+
+  // If a connection is already set up between two components, when a request
+  // is made, it will not be granted again.
+  // Use this event to trigger any methods which depend on the request being
+  // granted.
+  // To be removed when the request/grant interface is integrated into
+  // components properly.
+  sc_event grantEvent;
 
 };
 

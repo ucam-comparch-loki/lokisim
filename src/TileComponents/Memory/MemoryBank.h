@@ -151,11 +151,10 @@ public:
 
 	sc_in<AddressedWord>		iDataIn;					// Input data sent to the memory bank
 	sc_in<bool>					iDataInValid;				// Indicates that a new input data word is available
-	sc_out<bool>				oDataInAcknowledge;			// Acknowledges a new input word
+	sc_out<bool>				oReadyForData;			// Indicates that there is buffer space for new input
 
 	sc_out<AddressedWord>		oDataOut;					// Output data sent to the processing elements
 	sc_out<bool>				oDataOutValid;				// Indicates that new output data is available
-	sc_in<bool>					iDataOutAcknowledge;		// Acknowledges an output word
 
 	//-- Ports connected to background memory model -----------------------------------------------
 

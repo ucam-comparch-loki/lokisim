@@ -1,6 +1,9 @@
 /*
  * NewBus.h
  *
+ * Performs exactly the same job as a pair of sc_signals, but allows extra
+ * monitoring to be done (e.g. count bits which switched).
+ *
  *  Created on: 8 Sep 2011
  *      Author: db434
  */
@@ -21,14 +24,9 @@ public:
 
    DataInput    dataIn;
    ReadyInput   validDataIn;
-   ReadyOutput  ackDataIn;
 
    DataOutput   dataOut;
    ReadyOutput  validDataOut;
-
-   // Received acknowledgements are the only ports which require one port per
-   // destination. The same data and valid signal can go to all destinations.
-   ReadyInput  *ackDataOut;
 
 //==============================//
 // Constructors and destructors
@@ -39,7 +37,6 @@ public:
   SC_HAS_PROCESS(NewBus);
   NewBus(const sc_module_name& name, const ComponentID& ID, int numOutputPorts,
          Dimension size);
-  virtual ~NewBus();
 
 //==============================//
 // Methods
@@ -52,10 +49,6 @@ public:
 protected:
 
   virtual void receivedData();
-  virtual void receivedAck(int output);
-
-  // Triggered whenever receivedAllAcks is notified.
-  virtual void sendAck();
 
 private:
 
@@ -66,11 +59,6 @@ private:
 //==============================//
 // Local state
 //==============================//
-
-protected:
-
-  // Event which is notified when all acknowledgements have been received.
-  sc_event receivedAllAcks, allAcksDeasserted;
 
 private:
 

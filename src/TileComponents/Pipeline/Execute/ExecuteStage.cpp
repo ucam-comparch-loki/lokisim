@@ -221,7 +221,6 @@ void ExecuteStage::requestArbitration(ChannelID destination, bool request) {
 
     // Call execute() again when the request is granted.
     next_trigger(parent()->requestArbitration(destination, request));
-//    next_trigger(sc_core::SC_ZERO_TIME);
   }
   else {
     // We are not sending a request which will be granted, so don't use

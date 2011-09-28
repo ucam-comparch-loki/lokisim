@@ -15,6 +15,13 @@ const sc_event& ChainedArbiter::canGrantNow(int output) {
   return grantIn[output].posedge_event();
 }
 
+const sc_event& ChainedArbiter::stallGrant(int output) {
+  // We must stop granting requests if the next arbiter removes its grant.
+  // This probably means the destination buffer is full.
+
+  return grantIn[output].negedge_event();
+}
+
 void ChainedArbiter::deassertGrant(int input, int output) {
   // Do everything that parent class does.
   BasicArbiter::deassertGrant(input, output);

@@ -42,14 +42,11 @@ void BasicArbiter::arbitrate(int output) {
         // but don't change the signal until we are sure that it is possible to
         // send the data.
         grantVec[grant] = true;
-        cout << this->name() << " output " << output << " is now taken\n";
-        cout << this->name() << " granted request from input " << grant << " at " << sc_core::sc_simulation_time() << endl;
 
         state[output] = WAITING_TO_GRANT;
         next_trigger(canGrantNow(output));
       }
       else {
-        if(haveRequest()) cout << this->name() << " has request but can't grant it\n";
         // If we couldn't grant anything, wait until next cycle.
         state[output] = NO_REQUESTS;
         next_trigger(clock.negedge_event());
@@ -66,12 +63,10 @@ void BasicArbiter::arbitrate(int output) {
 
       requestGranted[granted].notify();
 
-      cout << this->name() << " sent grant for input " << granted << " at " << sc_core::sc_simulation_time() << endl;
-
       // Wait until the request line is deasserted. This means all flits in
       // the packet have been sent. (Make this wormhole behaviour optional?)
       state[output] = GRANTED;
-      next_trigger(requests[granted].negedge_event());
+      next_trigger(requests[granted].negedge_event() | stallGrant(output));
 
       break;
     }
@@ -83,18 +78,31 @@ void BasicArbiter::arbitrate(int output) {
       assert(granted < inputs);
       assert(granted >= 0);
 
-      deassertGrant(granted, output);
-      cout << this->name() << " output " << output << " is now available\n";
+      if(requests[granted].negedge()) {
+        // The request was removed, meaning the communication completed
+        // successfully.
 
-      if(haveRequest()) {
-        // Wait until next cycle to try and grant a new request.
-        state[output] = HAVE_REQUESTS;
-        next_trigger(clock.negedge_event());
+        deassertGrant(granted, output);
+
+        if(haveRequest()) {
+          // Wait until next cycle to try and grant a new request.
+          state[output] = HAVE_REQUESTS;
+          next_trigger(clock.negedge_event());
+        }
+        else {
+          // Wait until a request is received.
+          state[output] = NO_REQUESTS;
+          next_trigger(clock.negedge_event());
+        }
       }
       else {
-        // Wait until a request is received.
-        state[output] = NO_REQUESTS;
-        next_trigger(clock.negedge_event());
+        // The destination cannot receive any more data at the moment. Wait
+        // until it is ready again.
+
+        deassertGrant(granted, output);
+
+        state[output] = WAITING_TO_GRANT;
+        next_trigger(canGrantNow(output));
       }
 
       break;
@@ -128,10 +136,8 @@ bool BasicArbiter::haveRequest() const {
 void BasicArbiter::requestChanged(int input) {
   requestVec[input] = requests[input].read();
 
-  if(requestVec[input]) {
-    cout << this->name() << " received request at input " << input << " at " << sc_core::sc_simulation_time() << endl;
+  if(requestVec[input])
     receivedRequest.notify();
-  }
 }
 
 void BasicArbiter::updateGrant(int input) {
@@ -145,7 +151,6 @@ void BasicArbiter::updateSelect(int output) {
   // We actually write the signal a fraction after the clock edge to avoid
   // race conditions with other signals.
   if(clock.posedge()) {   // The clock edge
-    cout << this->name() << " wrote new select value: " << selectVec[output] << endl;
     select[output].write(selectVec[output]);
     next_trigger(selectionChanged[output]);
   }

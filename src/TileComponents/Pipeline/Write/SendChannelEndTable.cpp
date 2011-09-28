@@ -59,11 +59,7 @@ const sc_event& SendChannelEndTable::stallChangedEvent() const {
   return bufferFillChanged;
 }
 
-void SendChannelEndTable::sendToCores()    {sendLoop(TO_CORES);}
-void SendChannelEndTable::sendToMemories() {sendLoop(TO_MEMORIES);}
-void SendChannelEndTable::sendOffTile()    {sendLoop(OFF_TILE);}
-
-void SendChannelEndTable::sendLoop2() {
+void SendChannelEndTable::sendLoop() {
   switch(state) {
     case IDLE:      // Wait for data to arrive/wait for the time to send data
       // Data becomes invalid on the clock edge.
@@ -82,31 +78,9 @@ void SendChannelEndTable::sendLoop2() {
       assert(!buffers[0].empty());
 
       send(0);
-      state = SENT_DATA;
-      break;
-
-    case SENT_DATA: // Receive acknowledgement and restart loop
-      assert(ackOutput[0].read() == true);
-
       state = IDLE;
       next_trigger(clock.posedge_event());
       break;
-  }
-}
-
-void SendChannelEndTable::sendLoop(unsigned int buffer) {
-  if(ackOutput[buffer].posedge()) {
-    // Wait until the clock edge after the ack to take down the valid data signal.
-    next_trigger(clock.posedge_event());
-  }
-  else {
-    // Attempt to send data.
-    if(buffers[buffer].empty()) {        // No data to send.
-      validOutput[buffer].write(false);
-      next_trigger(dataToSendEvent[buffer]);
-    }
-    else
-      send(buffer);
   }
 }
 
@@ -116,10 +90,8 @@ void SendChannelEndTable::send(unsigned int buffer) {
   MapIndex entry = buffers[buffer].peek().second;
 
   // If we don't have enough credits, abandon sending the data.
-  if(!channelMapTable->canSend(entry)) {
-    next_trigger(clock.posedge_event());
+  if(!channelMapTable->canSend(entry))
     return;
-  }
 
   AddressedWord data = buffers[buffer].read().first;
 
@@ -132,8 +104,6 @@ void SendChannelEndTable::send(unsigned int buffer) {
   channelMapTable->removeCredit(entry);
 
   bufferFillChanged.notify();
-
-  next_trigger(ackOutput[buffer].posedge_event());
 }
 
 /* Stall the pipeline until the specified channel is empty. */
@@ -179,7 +149,6 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID&
 
   output      = new sc_out<AddressedWord>[NUM_BUFFERS];
   validOutput = new sc_out<bool>[NUM_BUFFERS];
-  ackOutput   = new sc_in<bool>[NUM_BUFFERS];
 
   creditsIn   = new sc_in<AddressedWord>[NUM_BUFFERS];
   validCredit = new sc_in<bool>[NUM_BUFFERS];
@@ -190,10 +159,7 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID&
 
   dataToSendEvent = new sc_event[NUM_BUFFERS];
 
-  SC_METHOD(sendLoop2);
-//  SC_METHOD(sendToCores);        sensitive << dataToSendEvent[0];   dont_initialize();
-//  SC_METHOD(sendToMemories);     sensitive << dataToSendEvent[1];   dont_initialize();
-//  SC_METHOD(sendOffTile);        sensitive << dataToSendEvent[2];   dont_initialize();
+  SC_METHOD(sendLoop);
 
   SC_METHOD(creditFromCores);    sensitive << validCredit[0].pos(); dont_initialize();
 //  SC_METHOD(creditFromMemories); sensitive << validCredit[1].pos(); dont_initialize();
@@ -204,7 +170,6 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID&
 SendChannelEndTable::~SendChannelEndTable() {
   delete[] output;
   delete[] validOutput;
-  delete[] ackOutput;
 
   delete[] creditsIn;
   delete[] validCredit;

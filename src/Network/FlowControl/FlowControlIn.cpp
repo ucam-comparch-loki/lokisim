@@ -10,63 +10,24 @@
 #include "../../Datatype/MemoryRequest.h"
 
 void FlowControlIn::dataLoop() {
-  switch(dataState) {
-    case WAITING_FOR_DATA: {
-      if(clock.posedge()) {
-        // Wait for a delta cycle, because the valid signal is deasserted on
-        // the positive clock edge.
-        next_trigger(sc_core::SC_ZERO_TIME);
-      }
-      else if(!validDataIn.read())
-        next_trigger(validDataIn.posedge_event());
-      else
-        handleNewData();
-
-      break;
-    }
-
-    case WAITING_FOR_SPACE: {
-      assert(bufferHasSpace.read());
-
-      dataOut.write(dataIn.read().payload());
-      sendAck();
-
-      break;
-    }
-
-    case SENT_ACK: {
-      assert(ackDataIn.read());
-
-      ackDataIn.write(false);
-
-      if(!validDataIn.read()) {
-        next_trigger(validDataIn.posedge_event());
-        dataState = WAITING_FOR_DATA;
-      }
-      else {
-        // The valid signal is still high at the start of the next clock cycle.
-        // This means there may be more data to consume.
-        next_trigger(sc_core::SC_ZERO_TIME);
-        dataState = WAITING_FOR_DATA;
-      }
-
-      break;
-    }
-  } // end switch
+  if(clock.posedge()) {
+    // Wait for a delta cycle, because the valid signal is deasserted on
+    // the positive clock edge.
+    next_trigger(sc_core::SC_ZERO_TIME);
+  }
+  else if(!validDataIn.read())
+    next_trigger(validDataIn.posedge_event());
+  else {
+    handleNewData();
+    next_trigger(clock.posedge_event());
+  }
 }
 
 void FlowControlIn::handleNewData() {
-  if(dataIn.read().portClaim()) {
+  if(dataIn.read().portClaim())
     handlePortClaim();
-  }
-  else if (!bufferHasSpace.read()) {
-    next_trigger(bufferHasSpace.posedge_event());
-    dataState = WAITING_FOR_SPACE;
-  }
-  else {
+  else
     dataOut.write(dataIn.read().payload());
-    sendAck();
-  }
 }
 
 void FlowControlIn::handlePortClaim() {
@@ -88,20 +49,8 @@ void FlowControlIn::handlePortClaim() {
   if (!useCredits &&
       (returnAddress.getPosition() >= CORES_PER_TILE) &&
       (dataIn.read().channelID().getChannel() >= 2)) {
-    // Wait until there is space in the buffer, if necessary
-    if (!bufferHasSpace.read()) {
-      next_trigger(bufferHasSpace.posedge_event());
-      dataState = WAITING_FOR_SPACE;
-      return;
-    }
-    else {
-      dataOut.write(dataIn.read().payload());
-      sendAck();
-    }
-  }
-  else {
-    // Acknowledge the port claim message.
-    sendAck();
+
+    dataOut.write(dataIn.read().payload());
   }
 
 }
@@ -112,15 +61,6 @@ void FlowControlIn::addCredit() {
     newCredit.notify();
     assert(numCredits <= IN_CHANNEL_BUFFER_SIZE);
   }
-}
-
-void FlowControlIn::sendAck() {
-  assert(!ackDataIn.read());
-  ackDataIn.write(true);
-  addCredit();
-
-  next_trigger(clock.posedge_event());
-  dataState = SENT_ACK;
 }
 
 void FlowControlIn::creditLoop() {
@@ -201,7 +141,6 @@ FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const C
   useCredits = true;
   numCredits = 0;
 
-  dataState   = WAITING_FOR_DATA;
   creditState = NO_CREDITS;
 
   SC_METHOD(dataLoop);

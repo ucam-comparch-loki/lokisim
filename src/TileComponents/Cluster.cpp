@@ -223,12 +223,12 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID, local_net_t* networ
   for(unsigned int i=0; i<CORE_INPUT_PORTS; i++) {
     inputCrossbar->dataIn[i](dataIn[i]);
     inputCrossbar->validDataIn[i](validDataIn[i]);
-    inputCrossbar->ackDataIn[i](ackDataIn[i]);
   }
 
   inputCrossbar->creditsOut[0](creditsOut[0]);
   inputCrossbar->validCreditOut[0](validCreditOut[0]);
   inputCrossbar->ackCreditOut[0](ackCreditOut[0]);
+  inputCrossbar->readyOut(readyOut);
 
   for(unsigned int i=0; i<CORE_INPUT_CHANNELS; i++) {
     inputCrossbar->dataOut[i](dataToBuffers[i]);
@@ -278,7 +278,6 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID, local_net_t* networ
   for(unsigned int i=0; i<CORE_OUTPUT_PORTS; i++) {
     write.output[i](dataOut[i]);            write.creditsIn[i](creditsIn[i]);
     write.validOutput[i](validDataOut[i]);  write.validCredit[i](validCreditIn[i]);
-    write.ackOutput[i](ackDataOut[i]);
   }
 
   SC_METHOD(updateIdle);

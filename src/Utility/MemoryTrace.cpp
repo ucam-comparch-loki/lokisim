@@ -57,7 +57,9 @@ static void flushTraceBuffer(bool finish) {
 }
 
 static void writeRecord(unsigned long controlByte, unsigned long bankNumber, unsigned long address) {
-	traceBuffer[traceBufferCursor++] = (unsigned char)controlByte;
+	if(traceBuffer == NULL) return;
+
+  traceBuffer[traceBufferCursor++] = (unsigned char)controlByte;
 	traceBuffer[traceBufferCursor++] = (unsigned char)bankNumber;
 
 	unsigned long deltaAddress = address - prevAddress;

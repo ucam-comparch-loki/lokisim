@@ -31,7 +31,6 @@ public:
   // Data received over the network, to be sent to a component's input.
   sc_in<AddressedWord>  dataIn;
   sc_in<bool>           validDataIn;
-  sc_out<bool>          ackDataIn;
 
   // Data to be sent to the component's input.
   sc_out<Word>          dataOut;
@@ -39,11 +38,8 @@ public:
   // Responses to requests from each input.
   sc_out<AddressedWord> creditsOut;
   sc_out<bool>          validCreditOut;
+  // keep this for the moment - credits still use old network system
   sc_in<bool>           ackCreditOut;
-
-  // Flow control signal from the component's input, saying whether there is
-  // room in the buffer for more data.
-  sc_in<bool>           bufferHasSpace;
 
 //==============================//
 // Constructors and destructors
@@ -68,7 +64,6 @@ private:
   void handleNewData();
   void handlePortClaim();
   void addCredit();
-  void sendAck();
 
   // The main loop used to handle credits: wait until there are credits to send,
   // send them, and wait for acknowledgements.
@@ -83,13 +78,9 @@ private:
 
 private:
 
-  // State machine for receiving/sending data.
-  enum DataState {WAITING_FOR_DATA, WAITING_FOR_SPACE, SENT_ACK};
-
   // State machine for sending credits.
   enum CreditState {NO_CREDITS, WAITING_TO_SEND, WAITING_FOR_ACK};
 
-  DataState dataState;
   CreditState creditState;
 
   // Address of channel managed by this flow control unit.

@@ -63,6 +63,10 @@ protected:
   // possible to send data to the given output.
   virtual const sc_event& canGrantNow(int output) = 0;
 
+  // An event which is triggered if the grant must be temporarily removed,
+  // because the destination is not capable of receiving more data yet.
+  virtual const sc_event& stallGrant(int output) = 0;
+
   virtual void deassertGrant(int input, int output);
 
 private:

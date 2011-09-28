@@ -41,8 +41,8 @@ public:
 
 // Inherited from TileComponent:
 //   clock
-//   dataIn,      validDataIn,    ackDataIn;
-//   dataOut,     validDataOut,   ackDataOut;
+//   dataIn,      validDataIn,    readyOut;
+//   dataOut,     validDataOut;
 //   creditsOut,  validCreditOut, ackCreditOut;
 //   creditsIn,   validCreditIn,  ackCreditIn;
 //   idle

@@ -52,6 +52,7 @@ public:
 protected:
 
   virtual const sc_event& canGrantNow(int output);
+  virtual const sc_event& stallGrant(int output);
 
   virtual void deassertGrant(int input, int output);
 

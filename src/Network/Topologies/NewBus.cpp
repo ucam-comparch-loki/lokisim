@@ -21,24 +21,6 @@ void NewBus::receivedData() {
   if(validDataIn.read()) dataOut.write(dataIn.read());
 }
 
-void NewBus::receivedAck(int output) {
-  // Since this is a simple single-destination bus, we know that any received
-  // acknowledgement is the final one.
-  if(ackDataOut[output].read()) receivedAllAcks.notify();
-  else                          allAcksDeasserted.notify();
-}
-
-void NewBus::sendAck() {
-  if(ackDataIn.read()) {
-    ackDataIn.write(false);
-    next_trigger(receivedAllAcks);
-  }
-  else {
-    ackDataIn.write(true);
-    next_trigger(allAcksDeasserted);
-  }
-}
-
 void NewBus::computeSwitching() {
   unsigned long cycle = Instrumentation::currentCycle();
   assert(lastWriteTime != cycle);
@@ -64,8 +46,6 @@ NewBus::NewBus(const sc_module_name& name, const ComponentID& ID, int numOutputP
     outputs(numOutputPorts),
     size(size) {
 
-  ackDataOut = new ReadyInput[numOutputPorts];
-
   lastData = DataType();
   lastWriteTime = -1;
 
@@ -77,24 +57,4 @@ NewBus::NewBus(const sc_module_name& name, const ComponentID& ID, int numOutputP
   sensitive << dataIn;
   dont_initialize();
 
-  SC_METHOD(sendAck);
-  sensitive << receivedAllAcks;
-  dont_initialize();
-
-  // Generate a method for each acknowledgement port, to keep track of how many
-  // acks we are waiting for at any given time.
-  for(int i=0; i<outputs; i++) {
-    sc_core::sc_spawn_options options;
-    options.spawn_method();     // Want an efficient method, not a thread
-    options.dont_initialize();
-    options.set_sensitivity(&(ackDataOut[i].value_changed())); // Sensitive to this event
-
-    // Create the method.
-    sc_spawn(sc_bind(&NewBus::receivedAck, this, i), 0, &options);
-  }
-
-}
-
-NewBus::~NewBus() {
-  delete[] ackDataOut;
 }

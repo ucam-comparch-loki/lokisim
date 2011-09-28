@@ -108,7 +108,7 @@ private:
 
   sc_signal<ReadyType>  *ackDataFromComps;
   sc_signal<ReadyType>  *ackCreditToComps;
-  sc_signal<ReadyType>  *ackDataToComps;
+  sc_signal<ReadyType>  *readyFromComps;
   sc_signal<ReadyType>  *ackCreditFromComps;
 
   sc_signal<ReadyType>  *validDataFromComps;
