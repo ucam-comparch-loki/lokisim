@@ -14,6 +14,7 @@
 #include "Utility/Debugger.h"
 #include "Utility/Instrumentation.h"
 #include "Utility/Instrumentation/Operations.h"
+#include "Utility/CoreTrace.h"
 #include "Utility/MemoryTrace.h"
 #include "Utility/StartUp/CodeLoader.h"
 #include "Utility/Statistics.h"
@@ -28,6 +29,7 @@ static unsigned int cyclesPerStep = 1;
 #define TIMESTEP {\
   cycleNumber += cyclesPerStep;\
   if(DEBUG) cout << "\n======= Cycle " << cycleNumber << " =======" << endl;\
+  if(CORE_TRACE) CoreTrace::setClockCycle(cycleNumber);\
   if(MEMORY_TRACE) MemoryTrace::setClockCycle(cycleNumber);\
   sc_start(cyclesPerStep, SC_NS);\
 }
@@ -107,6 +109,13 @@ void parseArguments(uint argc, char* argv[], Chip& chip) {
         // Enable batch mode.
         DEBUG = 0;
         BATCH_MODE = 1;
+      }
+      else if(argument == "-coretrace") {
+    	// Enable memory trace.
+        string filename(argv[i+1]);
+        CoreTrace::start(filename);
+        i++;  // Have used two arguments in this iteration.
+    	CORE_TRACE = 1;
       }
       else if(argument == "-memtrace") {
     	// Enable memory trace.

@@ -29,6 +29,7 @@ using std::endl;
 int DEBUG = 1;
 int TRACE = 0;
 int BATCH_MODE = 0;
+int CORE_TRACE = 0;
 int MEMORY_TRACE = 0;
 
 unsigned long long TIMEOUT = 1000000000000ULL;

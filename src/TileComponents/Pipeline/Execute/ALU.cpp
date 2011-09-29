@@ -213,6 +213,14 @@ void ALU::systemCall(int code) const {
       free(str);
       break;
     }
+    case 0x6: { /* SYS_lseek */
+      int fd = readReg(6);
+      int offset = readReg(7);
+      int whence = readReg(8);
+      writeReg(4, lseek(fd, offset, whence));
+      /* FIXME - set errno */
+      break;
+    }
   }
 }
 

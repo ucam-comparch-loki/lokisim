@@ -1,7 +1,7 @@
 /*
- * MemoryTrace.cpp
+ * CoreTrace.cpp
  *
- *  Created on: 13 Sep 2011
+ *  Created on: 28 Sep 2011
  *      Author: afjk2
  */
 
@@ -14,10 +14,10 @@
 #include <zlib.h>
 
 #include "Parameters.h"
-#include "MemoryTrace.h"
+#include "CoreTrace.h"
 
-#define MEMORY_TRACE_BUFFER_SIZE (1024 * 1024)
-#define MEMORY_TRACE_BUFFER_THRESHOLD (MEMORY_TRACE_BUFFER_SIZE - 1024)
+#define CORE_TRACE_BUFFER_SIZE (1024 * 1024)
+#define CORE_TRACE_BUFFER_THRESHOLD (CORE_TRACE_BUFFER_SIZE - 1024)
 
 static FILE *traceFile = NULL;
 
@@ -40,7 +40,7 @@ static void flushTraceBuffer(bool finish) {
 	gzipStream.next_in = (Bytef*)traceBuffer;
 	gzipStream.avail_in = (uInt)traceBufferCursor;
 	gzipStream.next_out = traceCompressBuffer;
-	gzipStream.avail_out = (uInt)MEMORY_TRACE_BUFFER_SIZE;
+	gzipStream.avail_out = (uInt)CORE_TRACE_BUFFER_SIZE;
 
     int err = deflate(&gzipStream, finish ? Z_FINISH : Z_NO_FLUSH);
     assert((finish && err == Z_STREAM_END) || (!finish && err == Z_OK));
@@ -49,16 +49,16 @@ static void flushTraceBuffer(bool finish) {
     	memmove(traceBuffer, traceBuffer + traceBufferCursor - gzipStream.avail_in, gzipStream.avail_in);
 
     traceBufferCursor = gzipStream.avail_in;
-    assert((finish && traceBufferCursor == 0) || (!finish && traceBufferCursor < MEMORY_TRACE_BUFFER_THRESHOLD));
+    assert((finish && traceBufferCursor == 0) || (!finish && traceBufferCursor < CORE_TRACE_BUFFER_THRESHOLD));
 
     size_t bytesOut = gzipStream.next_out - traceCompressBuffer;
 	size_t count = fwrite(traceCompressBuffer, 1, bytesOut, traceFile);
 	assert(count == bytesOut);
 }
 
-static void writeRecord(unsigned long controlByte, unsigned long bankNumber, unsigned long address) {
+static void writeRecord(unsigned long controlByte, unsigned long coreNumber, unsigned long address) {
 	traceBuffer[traceBufferCursor++] = (unsigned char)controlByte;
-	traceBuffer[traceBufferCursor++] = (unsigned char)bankNumber;
+	traceBuffer[traceBufferCursor++] = (unsigned char)coreNumber;
 
 	unsigned long deltaAddress = address - prevAddress;
 	signed long signedDeltaAddress = (signed long)deltaAddress;
@@ -77,22 +77,22 @@ static void writeRecord(unsigned long controlByte, unsigned long bankNumber, uns
 	}
 	prevCycleNumber = currentCycleNumber;
 
-	if (traceBufferCursor > MEMORY_TRACE_BUFFER_THRESHOLD)
+	if (traceBufferCursor > CORE_TRACE_BUFFER_THRESHOLD)
 		flushTraceBuffer(false);
 }
 
 // Initialize memory tracing engine
-void MemoryTrace::start(const std::string& filename) {
+void CoreTrace::start(const std::string& filename) {
 	traceFile = fopen(filename.c_str(), "wb");
 
-	traceBuffer = new unsigned char[MEMORY_TRACE_BUFFER_SIZE];
-	traceCompressBuffer = new unsigned char[MEMORY_TRACE_BUFFER_SIZE];
+	traceBuffer = new unsigned char[CORE_TRACE_BUFFER_SIZE];
+	traceCompressBuffer = new unsigned char[CORE_TRACE_BUFFER_SIZE];
 	traceBufferCursor = 0;
 
 	gzipStream.next_in = (Bytef*)traceBuffer;
     gzipStream.avail_in = (uInt)0;
     gzipStream.next_out = traceCompressBuffer;
-    gzipStream.avail_out = (uInt)MEMORY_TRACE_BUFFER_SIZE;
+    gzipStream.avail_out = (uInt)CORE_TRACE_BUFFER_SIZE;
 
     gzipStream.zalloc = (alloc_func)0;
     gzipStream.zfree = (free_func)0;
@@ -106,53 +106,17 @@ void MemoryTrace::start(const std::string& filename) {
 }
 
 // Update clock cycle
-void MemoryTrace::setClockCycle(unsigned long long cycleNumber) {
+void CoreTrace::setClockCycle(unsigned long long cycleNumber) {
 	currentCycleNumber = cycleNumber;
 }
 
-// Log memory accesses
-void MemoryTrace::readIPKWord(unsigned long bankNumber, unsigned long address) {
-	writeRecord(0x01, bankNumber, address);
-}
-
-void MemoryTrace::readWord(unsigned long bankNumber, unsigned long address) {
-	writeRecord(0x02, bankNumber, address);
-}
-
-void MemoryTrace::readHalfWord(unsigned long bankNumber, unsigned long address) {
-	writeRecord(0x03, bankNumber, address);
-}
-
-void MemoryTrace::readByte(unsigned long bankNumber, unsigned long address) {
-	writeRecord(0x04, bankNumber, address);
-}
-
-void MemoryTrace::writeWord(unsigned long bankNumber, unsigned long address) {
-	writeRecord(0x05, bankNumber, address);
-}
-
-void MemoryTrace::writeHalfWord(unsigned long bankNumber, unsigned long address) {
-	writeRecord(0x06, bankNumber, address);
-}
-
-void MemoryTrace::writeByte(unsigned long bankNumber, unsigned long address) {
-	writeRecord(0x07, bankNumber, address);
-}
-
-void MemoryTrace::splitLineIPK(unsigned long bankNumber, unsigned long address) {
-	writeRecord(0x08, bankNumber, address);
-}
-
-void MemoryTrace::splitBankIPK(unsigned long bankNumber, unsigned long address) {
-	writeRecord(0x09, bankNumber, address);
-}
-
-void MemoryTrace::stopIPK(unsigned long bankNumber, unsigned long address) {
-	writeRecord(0x0A, bankNumber, address);
+// Log core activity
+void CoreTrace::decodeInstruction(unsigned long coreNumber, unsigned long address, bool endOfPacket) {
+	writeRecord(endOfPacket ? 0x02 : 0x01, coreNumber, address);
 }
 
 // Finalize memory trace
-void MemoryTrace::stop() {
+void CoreTrace::stop() {
 	flushTraceBuffer(true);
     int err = deflateEnd(&gzipStream);
     assert(err == Z_OK);
