@@ -163,9 +163,10 @@ void ALU::systemCall(int code) const {
       int perm = (int)readReg(8);
       int i;
       int fd;
+      int start = readReg(6);
       /* read fname from Loki memory */
       for (i=0; i < 1024; i++) {
-        char next = readByte(readReg(6) + i);
+        char next = readByte(start + i);
         fname[i] = next;
         if(next == '\0') break;
       }
@@ -193,8 +194,9 @@ void ALU::systemCall(int code) const {
       char *buf = (char*)malloc(len);
       uint i;
       writeReg(4, read(fd, buf, len));
+      int start = readReg(7);
       for (i=0; i < len; i++) {
-        writeByte(readReg(7)+i, buf[i]);
+        writeByte(start+i, buf[i]);
       }
       free(buf);
       /* FIXME - set errno */
@@ -205,9 +207,10 @@ void ALU::systemCall(int code) const {
       char *str = (char*)malloc(len);
       uint i;
       int fd = readReg(6);
+      int start = readReg(7);
       /* copy string out of Loki memory */
       for (i=0; i < len; i++) {
-        str[i] = readByte(readReg(7) + i);
+        str[i] = readByte(start + i);
       }
       writeReg(4, write(fd, str, len));
       free(str);

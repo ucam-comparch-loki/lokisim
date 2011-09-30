@@ -115,7 +115,7 @@ private:
   sc_event receivedRequest;
 
   // Array of events which tell when to change each grant signal.
-  sc_event *requestGranted;
+  sc_event *grantChanged;
   sc_event *selectionChanged;
 
 };

@@ -299,7 +299,6 @@ private:
 	void processGeneralPurposeCacheMiss();
 	void processWaitRingOutput();
 
-	void processValidInput();
 	void processValidRing();
 
 	void handleNetworkInterfacesPre();

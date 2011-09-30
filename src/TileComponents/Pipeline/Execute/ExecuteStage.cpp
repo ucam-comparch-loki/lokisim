@@ -32,6 +32,17 @@ void ExecuteStage::execute() {
     }
 
     case EXECUTING:
+      if(clock.negedge()) {
+        // FIXME
+        // Quick hack: send arbitration requests slightly after the clock edge.
+        // This is because the memory receives data on the clock edge, and may
+        // discover that its buffers are now full and it can't take any more.
+        // Would prefer to have the memory put data in its buffer as soon as it
+        // arrives, rather than on the clock edge.
+        next_trigger(0.1, sc_core::SC_NS);
+        return;
+      }
+
       assert(currentInst.sendsOnNetwork());
 
       // Memory operations may be sent to different memory banks depending on the
@@ -58,9 +69,9 @@ void ExecuteStage::execute() {
 
     case WAITING_TO_FETCH: {
       DecodedInst instruction = dataIn.read();
-      bool success = fetch(instruction);
+      bool sendFetch = fetch(instruction);
 
-      if(success) {
+      if(sendFetch) {
         currentInst.result(instruction.result());
         adjustNetworkAddress(currentInst);
         executedInstruction.notify();

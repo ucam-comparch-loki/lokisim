@@ -103,14 +103,6 @@ private:
   // and allow different flow control, etc.
   enum BufferIndex {TO_CORES = 0, TO_MEMORIES = 1, OFF_TILE = 2};
 
-  enum SendState {
-    IDLE,
-    HAVE_DATA/*,
-    SENT_DATA*/
-  };
-
-  SendState state;
-
   // Buffers for storing outgoing data. One buffer for each network.
   BufferArray<BufferedInfo> buffers;
 

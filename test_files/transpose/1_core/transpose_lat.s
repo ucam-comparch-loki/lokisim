@@ -27,8 +27,8 @@ loop:
     ldw                 0x10000(r13)    -> 1    # load matrix element
     addui               r12, r12, 1             # increment current element
     addu                r13, r13, r5            # increment load address
-    seteq.p             r0,  r12, r2            # see if we have finished this column
     stw                 ch0, 0x20000(r14) -> 1  # store received value
+    seteq.p             r0,  r12, r2            # see if we have finished this column
     addui               r14, r14, 4             # increment store address
     if!p?ibjmp          -48                     # continue along row if not finished
 # End of inner loop

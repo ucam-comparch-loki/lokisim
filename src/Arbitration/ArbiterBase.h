@@ -35,7 +35,7 @@ protected:
 
   ArbiterBase(const RequestList* requestVec, const GrantList* grantVec);
 
-  int numInputs() const;
+  inline int numInputs() const {return requests->size();}
 
   // A pointer to the requests the arbiter has received.
   const RequestList* requests;

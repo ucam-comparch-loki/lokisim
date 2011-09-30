@@ -61,12 +61,22 @@ void BasicArbiter::arbitrate(int output) {
       assert(granted < inputs);
       assert(granted >= 0);
 
-      requestGranted[granted].notify();
+      bool requestStillActive = requests[granted].read();
 
-      // Wait until the request line is deasserted. This means all flits in
-      // the packet have been sent. (Make this wormhole behaviour optional?)
-      state[output] = GRANTED;
-      next_trigger(requests[granted].negedge_event() | stallGrant(output));
+      if(requestStillActive) {
+        grantVec[granted] = true;
+        grantChanged[granted].notify();
+
+        // Wait until the request line is deasserted. This means all flits in
+        // the packet have been sent. (Make this wormhole behaviour optional?)
+        state[output] = GRANTED;
+        next_trigger(requests[granted].negedge_event() | stallGrant(output));
+      }
+      else {
+        deassertGrant(granted, output);
+        state[output] = NO_REQUESTS;
+        next_trigger(clock.negedge_event());
+      }
 
       break;
     }
@@ -97,12 +107,12 @@ void BasicArbiter::arbitrate(int output) {
       }
       else {
         // The destination cannot receive any more data at the moment. Wait
-        // until it is ready again.
-
-        deassertGrant(granted, output);
+        // until it is ready again (or until the request is removed).
+        grantVec[granted] = false;
+        grantChanged[granted].notify();
 
         state[output] = WAITING_TO_GRANT;
-        next_trigger(canGrantNow(output));
+        next_trigger(canGrantNow(output) | requests[granted].negedge_event());
       }
 
       break;
@@ -112,7 +122,7 @@ void BasicArbiter::arbitrate(int output) {
 
 void BasicArbiter::deassertGrant(int input, int output) {
   grantVec[input] = false;
-  requestGranted[input].notify();
+  grantChanged[input].notify();
 
   changeSelection(output, -1);
 }
@@ -174,7 +184,7 @@ BasicArbiter::BasicArbiter(const sc_module_name& name, ComponentID ID,
   grants   = new sc_out<bool>[inputs];
   select   = new sc_out<int>[outputs];
 
-  requestGranted = new sc_event[inputs];
+  grantChanged = new sc_event[inputs];
   selectionChanged = new sc_event[outputs];
 
   // Set some initial value for the select signals, so they generate an event
@@ -212,7 +222,7 @@ BasicArbiter::BasicArbiter(const sc_module_name& name, ComponentID ID,
     sc_core::sc_spawn_options options;
     options.spawn_method();     // Want an efficient method, not a thread
     options.dont_initialize();  // Only execute when triggered
-    options.set_sensitivity(&(requestGranted[i]));
+    options.set_sensitivity(&(grantChanged[i]));
 
     // Create the method.
     sc_spawn(sc_bind(&BasicArbiter::updateGrant, this, i), 0, &options);
@@ -236,7 +246,7 @@ BasicArbiter::~BasicArbiter() {
   delete[] grants;
   delete[] select;
 
-  delete[] requestGranted;
+  delete[] grantChanged;
   delete[] selectionChanged;
 
   delete arbiter;

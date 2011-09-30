@@ -32,6 +32,7 @@ bool SendChannelEndTable::write(const AddressedWord& data, MapIndex output) {
   // of the pipeline if a buffer is full.
   assert(!buffers[bufferToUse].full());
   assert(output < CHANNEL_MAP_SIZE);
+  assert(buffers[bufferToUse].empty()); // Temporary
 
   buffers[bufferToUse].write(BufferedInfo(data, output));
   dataToSendEvent[bufferToUse].notify();
@@ -60,27 +61,14 @@ const sc_event& SendChannelEndTable::stallChangedEvent() const {
 }
 
 void SendChannelEndTable::sendLoop() {
-  switch(state) {
-    case IDLE:      // Wait for data to arrive/wait for the time to send data
-      // Data becomes invalid on the clock edge.
-      validOutput[0].write(false);
+  // Data becomes invalid on the clock edge.
+  if(validOutput[0].read()) validOutput[0].write(false);
 
-      if(buffers[0].empty()) next_trigger(dataToSendEvent[0]);
-      else {
-        // If we have data, wait until a little after the clock edge for
-        // arbitration signals, etc., to settle down.
-        state = HAVE_DATA;
-        next_trigger(0.1, sc_core::SC_NS);
-      }
-      break;
-
-    case HAVE_DATA: // Send the data waiting in the buffer
-      assert(!buffers[0].empty());
-
-      send(0);
-      state = IDLE;
-      next_trigger(clock.posedge_event());
-      break;
+  if(buffers[0].empty())
+    next_trigger(dataToSendEvent[0]);
+  else {
+    send(0);
+    next_trigger(clock.posedge_event());
   }
 }
 
@@ -97,7 +85,7 @@ void SendChannelEndTable::send(unsigned int buffer) {
 
   if(DEBUG) cout << "Sending " << data.payload()
       << " from " << ChannelID(id, (int)entry) << " to "
-      << data.channelID() << endl;
+      << data.channelID() << " at " << sc_core::sc_simulation_time()<< endl;
 
   output[buffer].write(data);
   validOutput[buffer].write(true);
@@ -152,8 +140,6 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID&
 
   creditsIn   = new sc_in<AddressedWord>[NUM_BUFFERS];
   validCredit = new sc_in<bool>[NUM_BUFFERS];
-
-  state = IDLE;
 
   waiting = false;
 

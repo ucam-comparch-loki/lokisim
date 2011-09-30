@@ -36,6 +36,12 @@ using namespace std;
 #include "SimplifiedOnChipScratchpad.h"
 #include "MemoryBank.h"
 
+// A "fast" memory is capable of receiving a request, decoding it, performing
+// the operation, and sending the result, all in one clock cycle.
+// A "slow" memory receives and decodes the request in one cycle, and performs
+// it on the next.
+#define FAST_MEMORY (true)
+
 //-------------------------------------------------------------------------------------------------
 // Internal functions
 //-------------------------------------------------------------------------------------------------
@@ -1292,17 +1298,6 @@ void MemoryBank::processWaitRingOutput() {
 	}
 }
 
-void MemoryBank::processValidInput() {
-	// Update the ready signal to show whether there is room in the input buffer
-  // to receive more data.
-	// FIXME: also needs to update whenever the queue's "full" flag changes.
-
-  bool ready = !mInputQueue.full();
-  if(ready != oReadyForData.read()) {
-    oReadyForData.write(ready);
-  }
-}
-
 void MemoryBank::processValidRing() {
 	// Acknowledge new data as soon as it arrives if we know it will be consumed
 	// in this clock cycle.
@@ -1312,57 +1307,61 @@ void MemoryBank::processValidRing() {
 
 void MemoryBank::handleNetworkInterfacesPre() {
 
-  if(iClock.posedge()) {
-    // The output word has been sent and received by now
+  // Set output port defaults - only final write will be effective
 
-    if (mOutputWordPending && oDataOutValid.read()) {
-      mOutputWordPending = false;
-    }
+  if(oDataOutValid.read()) {
+    oDataOutValid.write(false);
 
-    // Check whether old ring output got acknowledged
+    // If it was the final flit in the packet, remove the request for network
+    // resources.
+    if(mActiveOutputWord.endOfPacket())
+      localNetwork->makeRequest(id, mActiveOutputWord.channelID(), false);
 
-    if (mRingRequestOutputPending && iRingAcknowledge.read()) {
-      if (DEBUG)
-        cout << this->name() << " ring request got acknowledged" << endl;
+    if(mOutputWordPending) mOutputWordPending = false;
 
-      mRingRequestOutputPending = false;
-    }
-
-    next_trigger(iClock.negedge_event());
   }
-  else if(iClock.negedge()) {
+  if(oRingStrobe.read())   oRingStrobe.write(false);
+  if(oBMDataStrobe.read()) oBMDataStrobe.write(false);
 
-    // Check ring input ports and update request registers
+  // Check whether old ring output got acknowledged
 
-    if (iRingStrobe.read() && !mRingRequestInputPending) {
-      // Acknowledgement handled by separate methods
+  if (mRingRequestOutputPending && iRingAcknowledge.read()) {
+    if (DEBUG)
+      cout << this->name() << " ring request got acknowledged" << endl;
 
-      mRingRequestInputPending = true;
-      mActiveRingRequestInput = iRingRequest.read();
-    }
-
-    // Signals from the network may change on the clock cycle, so wait a
-    // fraction longer so we see the new values.
-    next_trigger(sc_core::SC_ZERO_TIME);
+    mRingRequestOutputPending = false;
   }
-  else {
-    // Check data input ports and update queue
 
-    if (iDataInValid.read() && !mInputQueue.full()) {
-      // Acknowledgement handled by separate methods
+  // Pass the memory operation on to the next bank, if possible.
+  // To ensure that everything arrives in the correct order, all data must have
+  // been sent before the request can be passed on.
 
-      mInputQueue.write(iDataIn.read());
-    }
+  if (mRingRequestOutputPending) {// && !mOutputWordPending) {// && mOutputQueue.empty()) {
+    oRingStrobe.write(true);
+    oRingRequest.write(mActiveRingRequestOutput);
 
-    next_trigger(iClock.posedge_event());
+    // If we are passing the memory operation on to another component, we
+    // can remove our claim for network resources.
+    localNetwork->makeRequest(id, mActiveOutputWord.channelID(), false);
+    mActiveOutputWord.setEndOfPacket(true);
   }
+
 }
 
 void MemoryBank::handleNetworkInterfacesPost() {
 
-	// Request to send new output word if available
+  // Data is sent on the negative clock edge, if there is any
+  if(mOutputWordPending) {
+    oDataOutValid.write(true);
+    oDataOut.write(mActiveOutputWord);
 
-	if (!mOutputWordPending && !mOutputQueue.empty()) {
+    if(DEBUG)
+      cout << this->name() << " sent " << mActiveOutputWord << endl;
+  }
+
+	// Request to send next output word if available
+
+	if (!mOutputWordPending && !mOutputQueue.empty() ) {
 		OutputWord outWord = mOutputQueue.read();
 
 		AddressedWord word(outWord.Data, mChannelMapTable[outWord.TableIndex].ReturnChannel);
@@ -1372,7 +1371,7 @@ void MemoryBank::handleNetworkInterfacesPost() {
 		mActiveOutputWord = word;
 
     // Request arbitration, and wait until the request is granted.
-    next_trigger(localNetwork->makeRequest(id, mActiveOutputWord.channelID(), true));
+		next_trigger(localNetwork->makeRequest(id, mActiveOutputWord.channelID(), true));
 	}
 	// If no output word is available, wait until the next clock cycle to perform
 	// the next operation.
@@ -1383,51 +1382,47 @@ void MemoryBank::mainLoop() {
 
   if(iClock.posedge()) {
 
-    // Set output port defaults - only final write will be effective
-
-    if(oDataOutValid.read()) {
-      oDataOutValid.write(false);
-
-      // If it was the final flit in the packet, remove the request for network
-      // resources.
-      if(mActiveOutputWord.endOfPacket())
-        localNetwork->makeRequest(id, mActiveOutputWord.channelID(), false);
-
-    }
-    if(oRingStrobe.read())   oRingStrobe.write(false);
-    if(oBMDataStrobe.read()) oBMDataStrobe.write(false);
-
-    // Send ring output if possible
-
-    if (mRingRequestOutputPending) {
-      oRingStrobe.write(true);
-      oRingRequest.write(mActiveRingRequestOutput);
-
-      // If we are passing the memory operation on to another component, we
-      // can remove our claim for network resources.
-      localNetwork->makeRequest(id, mActiveOutputWord.channelID(), false);
-      mActiveOutputWord.setEndOfPacket(true);
-    }
+    handleNetworkInterfacesPre();
 
     next_trigger(iClock.negedge_event());
 
   }
   else if(iClock.negedge()) {
 
-    // Data is sent on the negative clock edge, if there is any
-    if(mOutputWordPending) {
-      oDataOutValid.write(true);
-      oDataOut.write(mActiveOutputWord);
+    // Check data input ports and update queue
+
+    if (iDataInValid.read()) {
+      assert(!mInputQueue.full());
+
+      // Acknowledgement handled by separate methods
+      if(DEBUG) cout << this->name() << " received " << iDataIn.read() << endl;
+      mInputQueue.write(iDataIn.read());
+    }
+
+    // Check ring input ports and update request registers
+
+    if (iRingStrobe.read() && !mRingRequestInputPending) {
+      // Acknowledgement handled by separate methods
+
+      mRingRequestInputPending = true;
+      mActiveRingRequestInput = iRingRequest.read();
     }
 
     // Proceed according to FSM state
 
-    switch (mFSMState) {
-    case STATE_IDLE:
+    // If we have a "fast" memory, decode the request and get into the correct
+    // state before performing the operation.
+    if(FAST_MEMORY && mFSMState == STATE_IDLE) {
       if (!processRingEvent())
         processMessageHeader();
-      // Note that there is a 1 cycle gap between processing the header and
-      // performing the operation. Could this be removed?
+    }
+
+    switch (mFSMState) {
+    case STATE_IDLE:
+      if(!FAST_MEMORY) {
+        if (!processRingEvent())
+          processMessageHeader();
+      }
 
       break;
 
@@ -1472,6 +1467,8 @@ void MemoryBank::mainLoop() {
   }
   else { // Neither clock edge: just received a grant from the network.
     assert(mOutputWordPending);
+
+    // Wait until a particular time to send the data.
     next_trigger(iClock.posedge_event());
   }
 
@@ -1483,6 +1480,11 @@ void MemoryBank::mainLoop() {
   if(wasIdle != currentlyIdle) {
     oIdle.write(currentlyIdle);
     Instrumentation::idle(id, currentlyIdle);
+  }
+
+  bool ready = !mInputQueue.full();
+  if(ready != oReadyForData.read()) {
+    oReadyForData.write(ready);
   }
 }
 
@@ -1560,17 +1562,9 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	oIdle.initialize(true);
 	Instrumentation::idle(id, true);
 
-	SC_METHOD(handleNetworkInterfacesPre);
-	sensitive << iClock.neg();
-	dont_initialize();
-
 	SC_METHOD(mainLoop);
 	sensitive << iClock.pos();
 	dont_initialize();
-
-	SC_METHOD(processValidInput);
-	sensitive << iDataInValid << iClock.pos();
-	// do initialise
 
 	SC_METHOD(processValidRing);
 	sensitive << iRingStrobe << iClock.neg();
