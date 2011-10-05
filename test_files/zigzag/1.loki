@@ -1,14 +1,31 @@
-ori         r3,  r0,  (0,0,3)
-addui       r4,  ch0, (0,0,2,0,0)       ; receive cache configuration from core 0
-setchmap    1,   r3                     ; core 0's input = map 1
-setchmap    2,   r4                     ; output memory = map 2
-ori         r0,  r0,  0x2000  > 1       ; tell core 0 to look for data at position 2
-ori         r0,  r0,  0x01000000 > 2    ; tell memory we're about to connect
-ori         r0,  r0,  (0,1,3) > 2       ; connect to memory
-ori         r0,  ch1, r0                ; receive sync message from memory
+#ori         r3,  r0,  (0,0,3)
+lli         r10, 0x0300
 
-ori         r5,  r0,  0x3000
-stw         ch0, r5,  0  > 2
-addui       r5,  r5,  4
-ibjmp       -16                          ; repeat
-nop.eop
+lli         r11, 0x0200
+#addui       r4,  ch0, (0,0,2,0,0)       ; receive cache configuration from core 0
+addu        r11, ch0, r11
+
+setchmapi   1,   r10                    ; core 0's input = map 1
+setchmapi   2,   r11                    ; output memory = map 2
+
+#ori         r0,  r0,  0x2000  > 1       ; tell core 0 to look for data at position 2000
+lli         r12, 0x2000
+addu        r0,  r12, r0         -> 1
+
+#ori         r0,  r0,  0x01000000 > 2    ; tell memory we're about to connect
+lui         r13, 0x0100
+addu        r0,  r13, r0         -> 2
+
+#ori         r0,  r0,  (0,1,3) > 2       ; connect to memory
+lli         r14, 0x1300
+addu        r0,  r14, r0         -> 2
+
+addu        r0,  ch1, r0                ; receive sync message from memory
+
+#ori         r5,  r0,  0x3000
+lli         r15,  0x3000
+
+stw         ch0, r15, 0          -> 2
+addui       r15, r15, 4
+ibjmp       -8                          ; repeat
+addu.eop    r0,  r0,  r0

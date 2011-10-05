@@ -35,47 +35,50 @@
 typedef StringManipulation Strings;
 typedef IndirectRegisterFile Registers;
 
-const short startImmediate = 0;
-const short startChannelID = startImmediate + 32; // 32
-const short startSrc2      = startChannelID + 4;  // 36
-const short startSrc1      = startSrc2 + 6;       // 42
-const short startDest      = startSrc1 + 6;       // 48
-const short startOpcode    = startDest + 6;       // 54
-const short startPredicate = startOpcode + 7;     // 61
-const short startSetPred   = startPredicate + 2;  // 63
-const short end            = startSetPred + 1;    // 64
+const short startPredicate = 30, endPredicate = 31;
+const short startOpcode    = 23, endOpcode    = 29;
+const short startReg1      = 18, endReg1      = 22;
+const short startReg2      =  9, endReg2      = 13;
+const short startReg3      =  4, endReg3      =  8;
+const short startChannel   = 14, endChannel   = 17;
+const short startFunction  =  0, endFunction  =  3;
+
+// Return the entire word as the immediate: the decoding chooses which part is
+// relevant.
+const short startImmediate =  0, endImmediate = 31;
+
 
 /* Public getter methods */
 opcode_t Instruction::opcode() const {
-  return getBits(startOpcode, startPredicate-1);
+  return (opcode_t)getBits(startOpcode, endOpcode);
 }
 
-RegisterIndex Instruction::destination() const {
-  return getBits(startDest, startOpcode-1);
+function_t Instruction::function() const {
+  return (function_t)getBits(startFunction, endFunction);
 }
 
-RegisterIndex Instruction::sourceReg1() const {
-  return getBits(startSrc1, startDest-1);
+RegisterIndex Instruction::reg1() const {
+  return getBits(startReg1, endReg1);
 }
 
-RegisterIndex Instruction::sourceReg2() const {
-  return getBits(startSrc2, startSrc1-1);
+RegisterIndex Instruction::reg2() const {
+  return getBits(startReg2, endReg2);
+}
+
+RegisterIndex Instruction::reg3() const {
+  return getBits(startReg3, endReg3);
 }
 
 ChannelIndex Instruction::remoteChannel() const {
-  return getBits(startChannelID, startSrc2-1);
+  return getBits(startChannel, endChannel);
 }
 
 int32_t Instruction::immediate() const {
-  return (int32_t)getBits(startImmediate, startChannelID-1);
+  return (int32_t)getBits(startImmediate, endImmediate);
 }
 
-uint8_t Instruction::predicate() const {
-  return getBits(startPredicate, startSetPred-1);
-}
-
-bool Instruction::setsPredicate() const {
-  return getBits(startSetPred, end-1);
+predicate_t Instruction::predicate() const {
+  return (predicate_t)getBits(startPredicate, endPredicate);
 }
 
 bool Instruction::endOfPacket() const {
@@ -109,10 +112,7 @@ Instruction::Instruction(const Word& other) : Word(other) {
 }
 
 Instruction::Instruction(const uint64_t inst) : Word(inst) {
-  // Need to change the opcode representation in case it has changed
-  // internally.
-  operation_t temp = static_cast<operation_t>(opcode());
-  opcode(InstructionMap::opcode(InstructionMap::name(temp)));
+  // Do nothing
 }
 
 Instruction::Instruction(const string& inst) {
@@ -120,7 +120,7 @@ Instruction::Instruction(const string& inst) {
   if((inst[0]=='%') || (inst[0]==';') || (inst[0]=='#') || (inst[0]=='\n') || (inst[0]=='\r'))
     throw InvalidInstructionException();
 
-  // Remove any comments by splitting around ';' and only keeping the first part
+  // Remove comments - split around ';' and only keep the first part
   vector<string>& words = Strings::split(inst, ';');
 
   // Should words be deleted before we reassign to it?
@@ -129,7 +129,7 @@ Instruction::Instruction(const string& inst) {
   // If there is no text, abandon the creation of the Instruction
   if(words.size() == 0) throw InvalidInstructionException();
 
-  // Split around "->" to see if there is a remote channel specified
+  // Remote channel - split around "->"
   words = Strings::split(words.front(), '>');
   if(words.size() > 1) {
     remoteChannel(decodeImmediate(words[1]));
@@ -140,71 +140,82 @@ Instruction::Instruction(const string& inst) {
   // Split around ' ' to separate all remaining parts of the instruction
   words = Strings::split(words.front(), ' ');
 
-  // Extract information from the opcode
+  // Opcode
   decodeOpcode(words.front());
 
-  // Determine which registers/immediates any remaining strings represent
+  // Registers/immediates
   RegisterIndex reg1 = (words.size() > 1) ? decodeField(words[1]) : 0;
   RegisterIndex reg2 = (words.size() > 2) ? decodeField(words[2]) : 0;
   RegisterIndex reg3 = (words.size() > 3) ? decodeField(words[3]) : 0;
 
   delete &words;
 
-  // Special case for cfgmem and setchmap because their register and immediate
+  // Special case for setchmap because its register and immediate
   // are in a different order.
-  if(InstructionMap::operation(opcode()) == InstructionMap::SETCHMAP) {
+  if(opcode() == InstructionMap::OP_SETCHMAP ||
+     opcode() == InstructionMap::OP_SETCHMAPI) {
     reg1 = reg2;
     reg2 = 0;
   }
 
   setFields(reg1, reg2, reg3);
 
-  // Perform a small check to catch a possible problem.
-  if(opcode() == InstructionMap::NOP) {
-    if(reg1 != 0 || reg2 != 0 || reg3 != 0 || remoteChannel() != NO_CHANNEL) {
-      cerr << "Warning: possible invalid instruction: " << *this
-           << "\n  (generated from " << inst << ")" << endl;
-      throw InvalidInstructionException();
-    }
-  }
-
 }
 
 /* Private setter methods */
 void Instruction::opcode(const opcode_t val) {
-  setBits(startOpcode, startPredicate-1, val);
+  setBits(startOpcode, endOpcode, (int)val);
 }
 
-void Instruction::destination(const RegisterIndex val) {
-  assert(val < NUM_ADDRESSABLE_REGISTERS);
-  setBits(startDest, startOpcode-1, val);
+void Instruction::function(const function_t val) {
+  setBits(startFunction, endFunction, (int)val);
 }
 
-void Instruction::sourceReg1(const RegisterIndex val) {
+void Instruction::reg1(const RegisterIndex val) {
   assert(val < NUM_ADDRESSABLE_REGISTERS);
-  setBits(startSrc1, startDest-1, val);
+  setBits(startReg1, endReg1, val);
 }
 
-void Instruction::sourceReg2(const RegisterIndex val) {
+void Instruction::reg2(const RegisterIndex val) {
   assert(val < NUM_ADDRESSABLE_REGISTERS);
-  setBits(startSrc2, startSrc1-1, val);
+  setBits(startReg2, endReg2, val);
+}
+
+void Instruction::reg3(const RegisterIndex val) {
+  assert(val < NUM_ADDRESSABLE_REGISTERS);
+  setBits(startReg3, endReg3, val);
 }
 
 void Instruction::remoteChannel(const ChannelIndex val) {
   assert(val == NO_CHANNEL || val < CHANNEL_MAP_SIZE);
-  setBits(startChannelID, startSrc2-1, val);
+  setBits(startChannel, endChannel, val);
 }
 
 void Instruction::immediate(const int32_t val) {
-  setBits(startImmediate, startChannelID-1, val);
+  // Immediates have different lengths, depending on the instruction type.
+  int length = 0;
+  switch(InstructionMap::format(opcode())) {
+    case InstructionMap::FMT_FF:   length = 23; break;
+
+    case InstructionMap::FMT_0R:
+    case InstructionMap::FMT_0Rnc:
+    case InstructionMap::FMT_1R:   length = 14; break;
+
+    case InstructionMap::FMT_1Rnc: length = 16; break;
+
+    case InstructionMap::FMT_2R:
+    case InstructionMap::FMT_2Rnc: length = 9; break;
+
+    case InstructionMap::FMT_2Rs:  length = 5; break;
+
+    case InstructionMap::FMT_3R:   length = 0; break;
+  }
+
+  setBits(startImmediate, length-1, val);
 }
 
-void Instruction::predicate(const uint8_t val) {
-  setBits(startPredicate, startSetPred-1, val);
-}
-
-void Instruction::setsPredicate(const bool val) {
-  setBits(startSetPred, end-1, val?1:0);
+void Instruction::predicate(const predicate_t val) {
+  setBits(startPredicate, endPredicate, (int)val);
 }
 
 /* Determine which register the given string represents. It may be simply a
@@ -277,28 +288,25 @@ void Instruction::decodeOpcode(const string& name) {
     opcodeString = opcodeParts[0];
   }
 
-  // Does opcodeParts need deleting here, before we assign to it again?
-//  delete &opcodeParts;
-
   // See if the instruction sets the predicate register, or is the end of packet
   opcodeParts = Strings::split(opcodeString, '.');
+  string opname = opcodeParts.front();
 
   if(opcodeParts.size() > 1) {
     string setting = opcodeParts[1];
     if(setting == "eop") predicate(END_OF_PACKET);
-    else if(setting == "p") setsPredicate(true);
     else if(setting == "fetch") {
-      string pselfetch = "psel.fetch";
-      opcode(InstructionMap::opcode(pselfetch));
+      opcode(InstructionMap::OP_PSEL_FETCH);
       if(opcodeParts.size() > 2 && opcodeParts[2] == "eop")
         predicate(END_OF_PACKET);
-      setsPredicate(false);
       return;
     }
-    else setsPredicate(false);
+    else if(setting == "p") {
+      // ".p" modes are now included as separate opcodes.
+      opname = opcodeString;
+    }
   }
 
-  string opname = opcodeParts.front();
   // If the "opcode" is an assembly label.
   if(opname[opname.length()-1] == ':') {
     delete &opcodeParts;
@@ -307,8 +315,13 @@ void Instruction::decodeOpcode(const string& name) {
 
   // Look up operation in InstructionMap
   try {
-    short op = InstructionMap::opcode(opname);
+    opcode_t op = InstructionMap::opcode(opname);
     opcode(op);
+
+    if(op == 0 || op == 1) {
+      function_t fn = InstructionMap::function(opname);
+      function(fn);
+    }
   }
   catch(std::exception& e) {
     // Not a valid operation name (and not a label).
@@ -403,25 +416,30 @@ int32_t Instruction::decodeImmediate(const string& immed) {
 	return value;
 }
 
-void Instruction::setFields(const RegisterIndex reg1, const RegisterIndex reg2,
-                            const RegisterIndex reg3) {
-  int operation = InstructionMap::operation(opcode());
+void Instruction::setFields(const RegisterIndex val1, const RegisterIndex val2,
+                            const RegisterIndex val3) {
 
-  switch(operation) {
-
-    // Single source, no destination.
-    case InstructionMap::FILL : {
-      sourceReg1(reg1);
+  switch(InstructionMap::format(opcode())) {
+    case InstructionMap::FMT_1R:
+    case InstructionMap::FMT_1Rnc:
+      reg1(val1);
       break;
-    }
 
-    // Two sources and a destination.
-    default : {
-      destination(reg1);
-      sourceReg1(reg2);
-      sourceReg2(reg3);
+    case InstructionMap::FMT_2R:
+    case InstructionMap::FMT_2Rnc:
+    case InstructionMap::FMT_2Rs:
+      reg1(val1);
+      reg2(val2);
       break;
-    }
+
+    case InstructionMap::FMT_3R:
+      reg1(val1);
+      reg2(val2);
+      reg3(val3);
+      break;
+
+    default:
+      break;
   }
 }
 

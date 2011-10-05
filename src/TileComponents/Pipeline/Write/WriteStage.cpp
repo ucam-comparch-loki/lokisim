@@ -46,14 +46,14 @@ void WriteStage::newInput(DecodedInst& data) {
 
   // We can't forward data if this is an indirect write because we don't
   // yet know where the data will be written.
-  bool indirect = (data.operation() == InstructionMap::IWTR);
+  bool indirect = (data.opcode() == InstructionMap::OP_IWTR);
   if(indirect) currentInst.destination(0);
 
   // Put data into the send channel-end table.
   endOfPacket = scet.write(data);
 
   // Write to registers (they ignore the write if the index is invalid).
-  if(InstructionMap::storesResult(data.operation()))
+  if(InstructionMap::storesResult(data.opcode()))
     writeReg(data.destination(), data.result(), indirect);
 }
 

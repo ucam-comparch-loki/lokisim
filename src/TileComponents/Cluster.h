@@ -106,7 +106,7 @@ private:
   // in the instruction packet cache.
   // There are many different ways of fetching instructions, so provide the
   // operation too.
-  bool             inCache(const MemoryAddr addr, operation_t operation);
+  bool             inCache(const MemoryAddr addr, opcode_t operation);
 
   // Determine if there is room in the cache to fetch another instruction
   // packet, assuming that it is of maximum size. Also make sure there is not

@@ -20,18 +20,18 @@ class Operations: public InstrumentationBase {
 public:
 
   static void decoded(const ComponentID& core, const DecodedInst& dec);
-  static void operation(operation_t op, bool executed);
+  static void operation(opcode_t op, bool executed);
 
   static unsigned long long numDecodes();
   static unsigned long long numOperations();
-  static unsigned long long numOperations(operation_t operation);
+  static unsigned long long numOperations(opcode_t operation);
 
   static void printStats();
 
 private:
 
-  static CounterMap<operation_t> executedOps;
-  static CounterMap<operation_t> unexecutedOps;
+  static CounterMap<opcode_t> executedOps;
+  static CounterMap<opcode_t> unexecutedOps;
 
   // Is there a difference between numOps and numDecodes?
   static unsigned long long numOps_, numDecodes_;

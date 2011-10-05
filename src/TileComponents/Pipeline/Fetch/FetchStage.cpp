@@ -100,7 +100,7 @@ MemoryAddr FetchStage::getInstIndex() const {
   return cache.getInstAddress();
 }
 
-bool FetchStage::inCache(const MemoryAddr addr, operation_t operation) {
+bool FetchStage::inCache(const MemoryAddr addr, opcode_t operation) {
   return cache.lookup(addr, operation);
 }
 

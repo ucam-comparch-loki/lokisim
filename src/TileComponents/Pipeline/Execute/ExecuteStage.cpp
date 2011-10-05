@@ -98,8 +98,7 @@ void ExecuteStage::execute() {
       }
 
       // Invalidate the current instruction so its data isn't forwarded anymore.
-      currentInst.destination(0);
-      currentInst.setsPredicate(false);
+      currentInst.preventForwarding();
 
       state = NO_INSTRUCTION;
       next_trigger(dataIn.default_event());
@@ -131,26 +130,46 @@ void ExecuteStage::newInput(DecodedInst& operation) {
     Instrumentation::operation(id, operation, willExecute);
 
   if(willExecute) {
-    bool success;
+    bool success = true;
+
+    if(DEBUG) cout << this->name() << ": executing " << operation.name()
+        << " on " << operation.operand1() << " and " << operation.operand2() << endl;
 
     // Special cases for any instructions which don't use the ALU.
-    switch(operation.operation()) {
-      case InstructionMap::SETCHMAP:
-//      case InstructionMap::SETCHMAPI:
+    switch(operation.opcode()) {
+      case InstructionMap::OP_SETCHMAP:
+      case InstructionMap::OP_SETCHMAPI:
         setChannelMap(operation);
-        success = true;
         break;
 
-      case InstructionMap::FETCH:
-      case InstructionMap::FETCHPST:
-      case InstructionMap::FILL:
-      case InstructionMap::PSELFETCH:
+      case InstructionMap::OP_FETCH:
+      case InstructionMap::OP_FETCHR:
+      case InstructionMap::OP_FETCHPST:
+      case InstructionMap::OP_FETCHPSTR:
+      case InstructionMap::OP_FILL:
+      case InstructionMap::OP_FILLR:
+      case InstructionMap::OP_PSEL_FETCH:
         success = fetch(operation);
         break;
 
+      case InstructionMap::OP_LLI:
+        // FIXME: should LLI happen in execute stage or during register write?
+        operation.result((operation.operand1() & 0xFFFF0000) | operation.operand2());
+        break;
+
+      case InstructionMap::OP_LUI:
+        operation.result(operation.operand2() << 16);
+        break;
+
+      case InstructionMap::OP_SYSCALL:
+        alu.systemCall(operation.immediate());
+        break;
+
+//      case InstructionMap::OP_WOCHE ?
+
       default:
-        alu.execute(operation);
-        success = true;
+        if(InstructionMap::isALUOperation(operation.opcode()))
+          alu.execute(operation);
         break;
     }
 
@@ -173,12 +192,12 @@ void ExecuteStage::newInput(DecodedInst& operation) {
     }
     // success can only be false if we can't send a fetch - wait a cycle
     else next_trigger(clock.negedge_event());
-  }
+  } // if will execute
   else {
     // If the instruction will not be executed, invalidate it so we don't
     // try to forward data from it.
-    currentInst.destination(0);
-    currentInst.setsPredicate(false);
+    currentInst.preventForwarding();
+
     state = FINISHED;
     next_trigger(clock.posedge_event());
   }
@@ -188,14 +207,17 @@ bool ExecuteStage::fetch(DecodedInst& inst) {
   MemoryAddr fetchAddress;
 
   // Compute the address to fetch from, depending on which operation this is.
-  switch(inst.operation()) {
-    case InstructionMap::FETCH:
-    case InstructionMap::FETCHPST:
-    case InstructionMap::FILL:
+  switch(inst.opcode()) {
+    case InstructionMap::OP_FETCH:
+    case InstructionMap::OP_FETCHR:
+    case InstructionMap::OP_FETCHPST:
+    case InstructionMap::OP_FETCHPSTR:
+    case InstructionMap::OP_FILL:
+    case InstructionMap::OP_FILLR:
       fetchAddress = inst.operand1() + inst.operand2();
       break;
 
-    case InstructionMap::PSELFETCH:
+    case InstructionMap::OP_PSEL_FETCH:
       fetchAddress = readPredicate() ? inst.operand1() : inst.operand2();
       break;
 
@@ -206,7 +228,7 @@ bool ExecuteStage::fetch(DecodedInst& inst) {
 
   // Return whether the fetch request should be sent (it should be sent if the
   // tag is not in the cache).
-  if(state != WAITING_TO_FETCH && parent()->inCache(fetchAddress, inst.operation())) {
+  if(state != WAITING_TO_FETCH && parent()->inCache(fetchAddress, inst.opcode())) {
     // Packet is already in the cache: don't fetch.
     state = FINISHED;
     return false;

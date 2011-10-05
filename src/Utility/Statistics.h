@@ -35,7 +35,7 @@ public:
   static int decodes();
 
   static int operations();
-  static int operations(operation_t operation);
+  static int operations(opcode_t operation);
 
   static int registerReads();
   static int registerWrites();

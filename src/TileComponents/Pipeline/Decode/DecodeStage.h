@@ -112,7 +112,7 @@ private:
   // in the instruction packet cache.
   // There are many different ways of fetching instructions, so provide the
   // operation too.
-  bool           inCache(const MemoryAddr addr, operation_t operation) const;
+  bool           inCache(const MemoryAddr addr, opcode_t operation) const;
 
   // Find out if there is room in the cache to fetch another packet, and if
   // there is not another fetch already in progress.

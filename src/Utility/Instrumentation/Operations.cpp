@@ -10,8 +10,8 @@
 #include "../../Datatype/ComponentID.h"
 #include "../../Datatype/DecodedInst.h"
 
-CounterMap<operation_t> Operations::executedOps;
-CounterMap<operation_t> Operations::unexecutedOps;
+CounterMap<opcode_t> Operations::executedOps;
+CounterMap<opcode_t> Operations::unexecutedOps;
 unsigned long long Operations::numOps_ = 0;
 unsigned long long Operations::numDecodes_ = 0;
 
@@ -21,8 +21,8 @@ void Operations::decoded(const ComponentID &core, const DecodedInst& dec) {
   numDecodes_++;
 }
 
-void Operations::operation(operation_t op, bool executed) {
-  operation_t opcopy = op;  // Hack so we can pass a reference
+void Operations::operation(opcode_t op, bool executed) {
+  opcode_t opcopy = op;  // Hack so we can pass a reference
 
   if(executed) executedOps.increment(opcopy);
   else unexecutedOps.increment(opcopy);
@@ -30,9 +30,9 @@ void Operations::operation(operation_t op, bool executed) {
   numOps_++;
 }
 
-unsigned long long Operations::numDecodes()                         {return numDecodes_;}
-unsigned long long Operations::numOperations()                      {return numOps_;}
-unsigned long long Operations::numOperations(operation_t operation) {return executedOps[operation];}
+unsigned long long Operations::numDecodes()               {return numDecodes_;}
+unsigned long long Operations::numOperations()            {return numOps_;}
+unsigned long long Operations::numOperations(opcode_t op) {return executedOps[op];}
 
 void Operations::printStats() {
   if (BATCH_MODE)
@@ -46,7 +46,7 @@ void Operations::printStats() {
     int executed = executedOps.numEvents();
 
     for(int i=0; i<InstructionMap::numInstructions(); i++) {
-      operation_t op = static_cast<operation_t>(i);
+      opcode_t op = static_cast<opcode_t>(i);
 
       if(executedOps[op] > 0 || unexecutedOps[op] > 0) {
         inst_name_t name = InstructionMap::name(op);

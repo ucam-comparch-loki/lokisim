@@ -13,7 +13,9 @@
 
 void ALU::execute(DecodedInst& dec) const {
 
-  if(dec.hasResult()) return;
+  assert(dec.isALUOperation());
+
+  if(dec.hasResult()) return; // TODO: remove?
 
   bool pred = parent()->readPredicate();
 
@@ -23,63 +25,49 @@ void ALU::execute(DecodedInst& dec) const {
   int32_t val2 = dec.operand2();
   int32_t result;
 
-  if(DEBUG) cout << this->name() << ": executing " <<
-    dec.name() << " on " << val1 << " and " << val2 << endl;
+  switch(dec.function()) {
+    case InstructionMap::FN_NOR:     result = ~(val1 | val2); break;
+    case InstructionMap::FN_AND:     result = val1 & val2; break;
+    case InstructionMap::FN_OR:      result = val1 | val2; break;
+    case InstructionMap::FN_XOR:     result = val1 ^ val2; break;
 
-  switch(dec.operation()) {
+    case InstructionMap::FN_SETEQ:   result = (val1 == val2); break;
+    case InstructionMap::FN_SETNE:   result = (val1 != val2); break;
+    case InstructionMap::FN_SETLT:   result = (val1 < val2); break;
+    case InstructionMap::FN_SETLTU:  result = ((uint32_t)val1 < (uint32_t)val2); break;
+    case InstructionMap::FN_SETGTE:  result = (val1 >= val2); break;
+    case InstructionMap::FN_SETGTEU: result = ((uint32_t)val1 >= (uint32_t)val2); break;
 
-    case InstructionMap::SLLI:
-    case InstructionMap::SLL:      result = val1 << val2; break;
-    case InstructionMap::SRLI:
-    case InstructionMap::SRL:      result = (uint32_t)val1 >> val2; break;
-    case InstructionMap::SRAI:
-    case InstructionMap::SRA:      result = val1 >> val2; break;
+    case InstructionMap::FN_SLL:     result = val1 << val2; break;
+    case InstructionMap::FN_SRL:     result = (uint32_t)val1 >> val2; break;
+    case InstructionMap::FN_SRA:     result = val1 >> val2; break;
 
-    case InstructionMap::SETEQ:
-    case InstructionMap::SETEQI:   result = (val1 == val2); break;
-    case InstructionMap::SETNE:
-    case InstructionMap::SETNEI:   result = (val1 != val2); break;
-    case InstructionMap::SETLT:
-    case InstructionMap::SETLTI:   result = (val1 < val2); break;
-    case InstructionMap::SETLTU:
-    case InstructionMap::SETLTUI:  result = ((uint32_t)val1 < (uint32_t)val2); break;
-    case InstructionMap::SETGTE:
-    case InstructionMap::SETGTEI:  result = (val1 >= val2); break;
-    case InstructionMap::SETGTEU:
-    case InstructionMap::SETGTEUI: result = ((uint32_t)val1 >= (uint32_t)val2); break;
+    case InstructionMap::FN_ADDU:    result = val1 + val2; break;
+    case InstructionMap::FN_SUBU:    result = val1 - val2; break;
 
-    case InstructionMap::LUI:      result = val2 << 16; break;
+    case InstructionMap::FN_PSEL:    result = pred ? val1 : val2; break;
 
-    case InstructionMap::PSEL:     result = pred ? val1 : val2; break;
+    case InstructionMap::FN_MULHW:   result = ((int64_t)val1 * (int64_t)val2) >> 32; break;
+    case InstructionMap::FN_MULLW:   result = ((int64_t)val1 * (int64_t)val2) & 0xFFFFFFFF; break;
+    case InstructionMap::FN_MULHWU:  result = ((uint64_t)((uint32_t)val1) *
+                                               (uint64_t)((uint32_t)val2)) >> 32; break;
 
-//    case InstructionMap::CLZ:    result = 32 - math.log(2, val1) + 1; break;
+    case InstructionMap::FN_CLZ:
+      // Would prefer to use a single instruction for this, but I don't expect
+      // this is going to be called often.
+      // If there are any bits set, copy them into every less-significant position.
+      val1 |= (val1 >> 1);
+      val1 |= (val1 >> 2);
+      val1 |= (val1 >> 4);
+      val1 |= (val1 >> 8);
+      val1 |= (val1 >> 16);
+      result = 32 - __builtin_popcount(val1);
+      break;
 
-    case InstructionMap::NOR:
-    case InstructionMap::NORI:     result = ~(val1 | val2); break;
-    case InstructionMap::AND:
-    case InstructionMap::ANDI:     result = val1 & val2; break;
-    case InstructionMap::OR:
-    case InstructionMap::ORI:      result = val1 | val2; break;
-    case InstructionMap::XOR:
-    case InstructionMap::XORI:     result = val1 ^ val2; break;
-
-    case InstructionMap::POPC:     result = __builtin_popcount(val1); break;
-
-    case InstructionMap::LDW:
-    case InstructionMap::LDHWU:
-    case InstructionMap::LDBU:
-    case InstructionMap::ADDU:
-    case InstructionMap::ADDUI:  result = val1 + val2; break;
-    case InstructionMap::SUBU:   result = val1 - val2; break;
-    case InstructionMap::MULHW:  result = ((int64_t)val1 * (int64_t)val2) >> 32; break;
-                                 // Convert to unsigned ints, then pad to 64 bits.
-    case InstructionMap::MULHWU: result = ((uint64_t)((uint32_t)val1) *
-                                           (uint64_t)((uint32_t)val2)) >> 32; break;
-    case InstructionMap::MULLW:  result = ((int64_t)val1 * (int64_t)val2) & -1; break;
-
-    case InstructionMap::SYSCALL:  result = 0; systemCall(val2); break;
-
-    default: result = val1; // Is this a good default?
+    default:
+      cerr << "Invalid function code: " << dec.function() << endl;
+      cerr << dec << endl;
+      assert(false);
   }
 
   dec.result(result);
@@ -88,11 +76,10 @@ void ALU::execute(DecodedInst& dec) const {
 
     bool newPredicate;
 
-    switch(dec.operation()) {
+    switch(dec.function()) {
       // For additions and subtractions, the predicate signals overflow or
       // underflow.
-      case InstructionMap::ADDU:
-      case InstructionMap::ADDUI: {
+      case InstructionMap::FN_ADDU: {
         int64_t result64 = (int64_t)val1 + (int64_t)val2;
         newPredicate = (result64 > INT_MAX) || (result64 < INT_MIN);
         break;
@@ -101,7 +88,7 @@ void ALU::execute(DecodedInst& dec) const {
       // The 68k and x86 set the borrow bit if a - b < 0 for subtractions.
       // The 6502 and PowerPC treat it as a carry bit.
       // http://en.wikipedia.org/wiki/Carry_flag#Carry_flag_vs._Borrow_flag
-      case InstructionMap::SUBU: {
+      case InstructionMap::FN_SUBU: {
         int64_t result64 = (int64_t)val1 - (int64_t)val2;
         newPredicate = (result64 > INT_MAX) || (result64 < INT_MIN);
         break;
@@ -109,7 +96,8 @@ void ALU::execute(DecodedInst& dec) const {
 
       // Otherwise, it holds the least significant bit of the result.
       // Potential alternative: newPredicate = (result != 0)
-      default: newPredicate = result&1;
+      default:
+        newPredicate = result&1;
     }
 
     setPred(newPredicate);
@@ -149,21 +137,24 @@ void ALU::systemCall(int code) const {
   // Note: for now, all system calls will complete instantaneously. This is
   // not at all realistic, so performance of programs executing system calls
   // should be measured with care.
+  // Check regularly to ensure that the implementation exactly matches that in
+  // Alex's interp.c.
 
   switch (code) {
     case 0x1: { /* SYS_exit */
-      RETURN_CODE = readReg(6);
-      std::cerr << "Simulation ended with sys_exit." << endl;
+      RETURN_CODE = readReg(13);
+      std::cerr << "Simulation ended with sys_exit after "
+                << sc_core::sc_time_stamp().to_default_time_units() << " cycles." << endl;
       Instrumentation::endExecution();
       break;
     }
     case 0x2: { /* SYS_open */
       char fname[1024];
-      int mode = (int)convertTargetFlags((unsigned)readReg(7));
-      int perm = (int)readReg(8);
+      int mode = (int)convertTargetFlags((unsigned)readReg(14));
+      int perm = (int)readReg(15);
       int i;
       int fd;
-      int start = readReg(6);
+      int start = readReg(13);
       /* read fname from Loki memory */
       for (i=0; i < 1024; i++) {
         char next = readByte(start + i);
@@ -175,26 +166,26 @@ void ALU::systemCall(int code) const {
         perror("problem opening file");
       }
       /* FIXME - set errno */
-      writeReg(4, fd);
+      writeReg(11, fd);
       break;
     }
     case 0x3: { /* SYS_close */
-      int fd = readReg(6);
+      int fd = readReg(13);
       if(fd <= 2) { // Don't allow simulated program to close stdio pipes.
         fsync(fd);
-        writeReg(4, 0);
+        writeReg(11, 0);
       }
-      else writeReg(4, close(fd));
+      else writeReg(11, close(fd));
       /* FIXME - set errno */
       break;
     }
     case 0x4: { /* SYS_read */
-      int fd = readReg(6);
-      unsigned len = (unsigned)readReg(8);
+      int fd = readReg(13);
+      unsigned len = (unsigned)readReg(15);
       char *buf = (char*)malloc(len);
       uint i;
-      writeReg(4, read(fd, buf, len));
-      int start = readReg(7);
+      writeReg(11, read(fd, buf, len));
+      int start = readReg(14);
       for (i=0; i < len; i++) {
         writeByte(start+i, buf[i]);
       }
@@ -203,17 +194,26 @@ void ALU::systemCall(int code) const {
       break;
     }
     case 0x5: { /* SYS_write */
-      unsigned len = (unsigned)readReg(8);
+      unsigned len = (unsigned)readReg(15);
       char *str = (char*)malloc(len);
       uint i;
-      int fd = readReg(6);
-      int start = readReg(7);
+      int fd = readReg(13);
+      int start = readReg(14);
       /* copy string out of Loki memory */
       for (i=0; i < len; i++) {
         str[i] = readByte(start + i);
       }
-      writeReg(4, write(fd, str, len));
+      writeReg(11, write(fd, str, len));
       free(str);
+      break;
+    }
+    case 0x6: { /* SYS_lseek */
+      int fd = readReg(13);
+      int offset = readReg(14);
+      int whence = readReg(15);
+      writeReg(11, lseek(fd, offset, whence));
+      /* implicit assumption that whence value meanings are the
+       * same on host as the target OS */
       break;
     }
   }

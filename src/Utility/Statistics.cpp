@@ -46,7 +46,7 @@ int Statistics::getStat(const std::string& statName, int parameter) {
   else if(statName == "reg_writes")       return registerWrites();
   else if(statName == "data_forwards")    return dataForwards();
   else if(statName == "operations") {
-    if(parameter != -1)                   return operations((operation_t)parameter);
+    if(parameter != -1)                   return operations((opcode_t)parameter);
     else                                  return operations();
   }
   else if(statName == "network_distance") return (int)networkDistance();
@@ -63,30 +63,30 @@ int Statistics::currentCycle() {
   else return Instrumentation::currentCycle();
 }
 
-int Statistics::executionTime()      {return Stalls::executionTime();}
-int Statistics::energy()             {return Energy::totalEnergy();}
-int Statistics::fJPerOp()            {return Energy::pJPerOp()*1000;}
+int Statistics::executionTime()         {return Stalls::executionTime();}
+int Statistics::energy()                {return Energy::totalEnergy();}
+int Statistics::fJPerOp()               {return Energy::pJPerOp()*1000;}
 
-int Statistics::decodes()            {return Operations::numDecodes();}
+int Statistics::decodes()               {return Operations::numDecodes();}
 
-int Statistics::operations()         {return Operations::numOperations();}
-int Statistics::operations(operation_t operation) {return Operations::numOperations(operation);}
+int Statistics::operations()            {return Operations::numOperations();}
+int Statistics::operations(opcode_t op) {return Operations::numOperations(op);}
 
-int Statistics::registerReads()      {return Registers::numReads();}
-int Statistics::registerWrites()     {return Registers::numWrites();}
-int Statistics::dataForwards()       {return Registers::numForwards();}
-int Statistics::stallRegUses()       {return Registers::stallRegUses();}
+int Statistics::registerReads()         {return Registers::numReads();}
+int Statistics::registerWrites()        {return Registers::numWrites();}
+int Statistics::dataForwards()          {return Registers::numForwards();}
+int Statistics::stallRegUses()          {return Registers::stallRegUses();}
 
-int Statistics::l0TagChecks()        {return IPKCache::numTagChecks();}
-int Statistics::l0Hits()             {return IPKCache::numHits();}
-int Statistics::l0Misses()           {return IPKCache::numMisses();}
-int Statistics::l0Reads()            {return IPKCache::numReads();}
-int Statistics::l0Writes()           {return IPKCache::numWrites();}
+int Statistics::l0TagChecks()           {return IPKCache::numTagChecks();}
+int Statistics::l0Hits()                {return IPKCache::numHits();}
+int Statistics::l0Misses()              {return IPKCache::numMisses();}
+int Statistics::l0Reads()               {return IPKCache::numReads();}
+int Statistics::l0Writes()              {return IPKCache::numWrites();}
 
-int Statistics::l1Reads()            {return MemoryBank::numReads();}
-int Statistics::l1Writes()           {return MemoryBank::numWrites();}
+int Statistics::l1Reads()               {return MemoryBank::numReads();}
+int Statistics::l1Writes()              {return MemoryBank::numWrites();}
 
-double Statistics::networkDistance() {return Network::totalDistance();}
+double Statistics::networkDistance()    {return Network::totalDistance();}
 
 int Statistics::cyclesActive(const ComponentID& core)  {return Stalls::cyclesActive(core);}
 int Statistics::cyclesIdle(const ComponentID& core)    {return Stalls::cyclesIdle(core);}

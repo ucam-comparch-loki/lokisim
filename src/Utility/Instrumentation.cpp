@@ -121,7 +121,7 @@ void Instrumentation::networkActivity(const ComponentID& network, ChannelIndex s
 }
 
 void Instrumentation::operation(const ComponentID& id, const DecodedInst& inst, bool executed) {
-  Operations::operation(inst.operation(), executed);
+  Operations::operation(inst.opcode(), executed);
 
   if(Debugger::mode == Debugger::DEBUGGER)
     Debugger::executedInstruction(inst, id, executed);

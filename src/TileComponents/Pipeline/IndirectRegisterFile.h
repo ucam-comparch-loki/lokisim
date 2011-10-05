@@ -91,7 +91,7 @@ private:
   AddressedStorage<RegisterIndex> indirectRegs;
 
   // The register index at which the input channels begin.
-  static const RegisterIndex START_OF_INPUT_CHANNELS = 16;
+  static const RegisterIndex START_OF_INPUT_CHANNELS = 2;
 
 };
 

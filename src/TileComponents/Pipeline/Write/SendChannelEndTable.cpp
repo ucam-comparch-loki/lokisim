@@ -19,7 +19,7 @@ bool SendChannelEndTable::write(const DecodedInst& dec) {
 
   if(dec.sendsOnNetwork())
     write(dec.toAddressedWord(), dec.channelMapEntry());
-  else if (dec.operation() == InstructionMap::WOCHE)
+  else if (dec.opcode() == InstructionMap::OP_WOCHE)
 		waitUntilEmpty(dec.result());
 	
 	return true;
@@ -85,7 +85,7 @@ void SendChannelEndTable::send(unsigned int buffer) {
 
   if(DEBUG) cout << "Sending " << data.payload()
       << " from " << ChannelID(id, (int)entry) << " to "
-      << data.channelID() << " at " << sc_core::sc_simulation_time()<< endl;
+      << data.channelID() << endl;
 
   output[buffer].write(data);
   validOutput[buffer].write(true);

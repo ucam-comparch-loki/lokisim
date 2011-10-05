@@ -31,6 +31,11 @@ protected:
 
 	/* Replace the specified bit range by the specified value */
 	inline void setBits(int start, int end, uint64_t value) {
+	  // Is this any better?
+	  // uint64_t newval = value << start;
+	  // uint64_t mask   = ((1L << (end - start + 1)) - 1) << start;
+	  // data_           = (data_ & ~mask) | (newval & mask);
+
 		// Ensure that value only sets bits in the specified range
 		unsigned long maskedValue = value % (1L << (end - start + 1));
 		// Clear any existing bits in this word

@@ -36,6 +36,9 @@ public:
   // provided decoded instruction.
   void execute(DecodedInst& operation) const;
 
+  // Carry out a system call. All system calls are currently instant.
+  void systemCall(int code) const;
+
 private:
 
   void setPred(bool val) const;
@@ -50,7 +53,6 @@ private:
 
   ExecuteStage* parent() const;
 
-  void systemCall(int code) const;
   uint convertTargetFlags(uint tflags) const;
 
 };

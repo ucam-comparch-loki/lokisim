@@ -21,6 +21,23 @@ using std::string;
 class Instruction: public Word {
 
 //==============================//
+// Local state
+//==============================//
+
+public:
+
+  // The options for the predicate value.
+  //   ALWAYS        = always execute
+  //   P             = execute only if the predicate register holds 1
+  //   NOT_P         = execute only if the predicate register holds 0
+  //   END_OF_PACKET = this instruction is the last in the current packet
+  enum Predicate {ALWAYS, P, NOT_P, END_OF_PACKET};
+  typedef Instruction::Predicate predicate_t;
+
+  // A remote channel value signifying that no channel was specified.
+  static const ChannelIndex NO_CHANNEL = 15;
+
+//==============================//
 // Methods
 //==============================//
 
@@ -28,24 +45,24 @@ public:
 
   // Accessors
   opcode_t  opcode() const;
-  RegisterIndex destination() const;
-  RegisterIndex sourceReg1() const;
-  RegisterIndex sourceReg2() const;
+  function_t function() const;
+  RegisterIndex reg1() const;
+  RegisterIndex reg2() const;
+  RegisterIndex reg3() const;
   ChannelIndex  remoteChannel() const;
   int32_t  immediate() const;
-  uint8_t  predicate() const;
-  bool     setsPredicate() const;
+  predicate_t predicate() const;
   bool     endOfPacket() const;
 
   // Mutators
   void     opcode(const opcode_t val);
-  void     destination(const RegisterIndex val);
-  void     sourceReg1(const RegisterIndex val);
-  void     sourceReg2(const RegisterIndex val);
+  void     function(const function_t val);
+  void     reg1(const RegisterIndex val);
+  void     reg2(const RegisterIndex val);
+  void     reg3(const RegisterIndex val);
   void     remoteChannel(const ChannelIndex val);
   void     immediate(const int32_t val);
-  void     predicate(const uint8_t val);
-  void     setsPredicate(const bool val);
+  void     predicate(const predicate_t val);
 
   uint64_t toLong() const;
   bool     operator== (const Instruction& other) const;
@@ -86,22 +103,8 @@ public:
   Instruction(const uint64_t inst);  // For reading binary
   Instruction(const string& inst);   // For reading assembly
 
-//==============================//
-// Local state
-//==============================//
-
-public:
-
-  // The options for the predicate value.
-  //   ALWAYS        = always execute
-  //   P             = execute only if the predicate register holds 1
-  //   NOT_P         = execute only if the predicate register holds 0
-  //   END_OF_PACKET = this instruction is the last in the current packet
-  enum Predicate {ALWAYS, P, NOT_P, END_OF_PACKET};
-
-  // A remote channel value signifying that no channel was specified.
-  static const ChannelIndex NO_CHANNEL = 15;
-
 };
+
+typedef Instruction::Predicate predicate_t;
 
 #endif /* INSTRUCTION_H_ */

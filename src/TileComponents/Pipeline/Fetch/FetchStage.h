@@ -71,7 +71,7 @@ public:
   // Tells whether the packet from location a is currently in the cache.
   // There are many different ways of fetching instructions, so provide the
   // operation too.
-  bool          inCache(const MemoryAddr a, operation_t operation);
+  bool          inCache(const MemoryAddr a, opcode_t operation);
 
   // Tells whether there is room in the cache to fetch another instruction
   // packet, assuming the packet is of maximum size.

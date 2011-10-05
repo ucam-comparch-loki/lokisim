@@ -143,9 +143,9 @@ unsigned long long Energy::operationEnergy() {
   // Note: specialised for the ELM library at the moment. Unsure which
   // information we will eventually have.
 	unsigned long long totalOps   = Statistics::operations();
-	unsigned long long multiplies = Statistics::operations(InstructionMap::MULLW) +
-                    Statistics::operations(InstructionMap::MULHW) +
-                    Statistics::operations(InstructionMap::MULHWU);
+	unsigned long long multiplies = Statistics::operations(InstructionMap::OP_MULLW) +
+                    Statistics::operations(InstructionMap::OP_MULHW) +
+                    Statistics::operations(InstructionMap::OP_MULHWU);
   return multiply * multiplies +
          op       * (totalOps - multiplies);
 }

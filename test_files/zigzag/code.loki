@@ -1,48 +1,49 @@
-fetch           r1,  24
+fetchr          16
 addui           r9,  r0,  28            ; store 7, since it is a common offset
+addu            r11, r0,  r0            ; set offset to 0
 addui.eop       r10, ch1, 0             ; wait until we receive a block location
 
-fetch           r1,  32                 ; MOVING UPWARDS
+fetchr          16                      ; MOVING UPWARDS
 addu            r12, r10, r11           ; ============================
 ldw             r12, 0        > 1       ;  Load and forward data item
 addui.eop       r0,  ch0, 0   > 2       ; ============================
 
 setlti.p        r0,  r11, 32            ; see if we have hit the top of the grid
-!p?fetch        r1,  40                 ; we haven't: check the next condition
+!p?fetchr       20                      ; we haven't: check the next condition
 p?addui         r11, r11, 4
-p?fetch         r1,  136                ; we have: switch to moving down
-nop.eop
+p?fetchr        68                      ; we have: switch to moving down
+addu.eop        r0,  r0,  r0
 
 seteqi.p        r0,  r11, 252           ; see if we have finished the block
-!p?fetch        r1,  32                 ; we haven't: check the final condition
-p?fetch         r1,  88                 ; we have: end/restart
-nop.eop
+!p?fetchr       16                      ; we haven't: check the final condition
+p?fetchr        44                      ; we have: end/restart
+addu.eop        r0,  r0,  r0
 
 and             r13, r11, r9
 seteq.p         r0,  r13, r9            ; see if we have hit the right of the grid
 !p?subu         r11, r11, r9
-!p?fetch        r1,  -104               ; we haven't: keep moving up
+!p?fetchr       -52                     ; we haven't: keep moving up
 p?addui         r11, r11, 32
-p?fetch         r1,  64                 ; we have: switch to moving down
-nop.eop
+p?fetchr        32                      ; we have: switch to moving down
+addu.eop        r0,  r0,  r0
 
 syscall.eop     1
 
-fetch           r1,  32                 ; MOVING DOWNWARDS
+fetchr          16                      ; MOVING DOWNWARDS
 addu            r12, r10, r11           ; ============================
 ldw             r12, 0        > 1       ;  Load and forward data item
 addui.eop       r0,  ch0, 0   > 2       ; ============================
 
 setlti.p        r0,  r11, 224           ; see if we have reached the bottom of the grid
-p?fetch         r1,  40                 ; we haven't: check the other condition
+p?fetchr        20                      ; we haven't: check the other condition
 !p?addui        r11, r11, 4
-!p?fetch        r1,  -200               ; we have: switch to moving up
-nop.eop
+!p?fetchr       -100                    ; we have: switch to moving up
+addu.eop        r0,  r0,  r0
 
 and             r13, r11, r9
 seteq.p         r0,  r13, r0            ; see if we have reached the left of the grid
 !p?addu         r11, r11, r9
-!p?fetch        r1,  -72                ; we haven't: keep moving down
+!p?fetchr       -36                     ; we haven't: keep moving down
 p?addui         r11, r11, 32
-p?fetch         r1,  -240               ; we have: switch to moving up
-nop.eop
+p?fetchr        -120                    ; we have: switch to moving up
+addu.eop        r0,  r0,  r0

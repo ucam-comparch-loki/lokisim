@@ -127,7 +127,7 @@ const sc_event& DecodeStage::receivedDataEvent(ChannelIndex buffer) const {
   return rcet.receivedDataEvent(buffer);
 }
 
-bool         DecodeStage::inCache(const MemoryAddr addr, operation_t operation) const {
+bool         DecodeStage::inCache(const MemoryAddr addr, opcode_t operation) const {
   return parent()->inCache(addr, operation);
 }
 

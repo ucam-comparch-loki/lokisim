@@ -20,17 +20,7 @@ void     Cluster::storeData(const std::vector<Word>& data, MemoryAddr location) 
 
   // Convert all of the words to instructions
   for(unsigned int i=0; i<data.size(); i++) {
-    if(BYTES_PER_INSTRUCTION > BYTES_PER_WORD) {
-      // Need to load multiple words to create each instruction.
-      uint32_t first = (uint32_t)data[i].toInt();
-      uint32_t second = (uint32_t)data[i+1].toInt();
-      uint64_t total = ((uint64_t)first << 32) + second;
-      instructions.push_back(Instruction(total));
-      i++;
-    }
-    else {
-      instructions.push_back(static_cast<Instruction>(data[i]));
-    }
+    instructions.push_back(static_cast<Instruction>(data[i]));
   }
 
   fetch.storeCode(instructions);
@@ -40,7 +30,7 @@ const MemoryAddr Cluster::getInstIndex() const   {return fetch.getInstIndex();}
 bool     Cluster::readyToFetch() const           {return fetch.roomToFetch();}
 void     Cluster::jump(const JumpOffset offset)  {fetch.jump(offset);}
 
-bool     Cluster::inCache(const MemoryAddr addr, operation_t operation) {
+bool     Cluster::inCache(const MemoryAddr addr, opcode_t operation) {
   return fetch.inCache(addr, operation);
 }
 
@@ -54,7 +44,7 @@ const int32_t Cluster::readReg(RegisterIndex reg, bool indirect) {
   // stated register may not actually be the one providing/receiving the data.
   if(reg>0) {
     if(reg == execute.currentInstruction().destination() &&
-       execute.currentInstruction().operation() != InstructionMap::IWTR) {
+       execute.currentInstruction().opcode() != InstructionMap::OP_IWTR) {
       // If the instruction in the execute stage will write to the register we
       // want to read, but it hasn't produced a result yet, wait until
       // execution completes.
@@ -70,7 +60,7 @@ const int32_t Cluster::readReg(RegisterIndex reg, bool indirect) {
       if(indirect) result = regs.read(result, false);
     }
     else if(reg == write.currentInstruction().destination() &&
-            write.currentInstruction().operation() != InstructionMap::IWTR) {
+            write.currentInstruction().opcode() != InstructionMap::OP_IWTR) {
       // No waiting required this time - if the instruction is in the write
       // stage, it definitely has a result.
       result = write.currentInstruction().result();

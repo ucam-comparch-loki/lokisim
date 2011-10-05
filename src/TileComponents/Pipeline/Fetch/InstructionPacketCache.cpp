@@ -38,7 +38,7 @@ void InstructionPacketCache::write(const Instruction inst) {
 
 /* See if an instruction packet is in the cache, and if so, prepare to
  * execute it. */
-bool InstructionPacketCache::lookup(const MemoryAddr addr, operation_t operation) {
+bool InstructionPacketCache::lookup(const MemoryAddr addr, opcode_t operation) {
   if(DEBUG) cout << this->name() << " looking up tag " << addr << ": ";
 
   // Shouldn't check tags more than once in a clock cycle.
@@ -66,7 +66,7 @@ bool InstructionPacketCache::lookup(const MemoryAddr addr, operation_t operation
 void InstructionPacketCache::jump(const JumpOffset offset) {
   if(DEBUG) cout << this->name() << ": ";   // cache prints the rest
 
-  cache.jump(offset/BYTES_PER_INSTRUCTION);
+  cache.jump(offset/BYTES_PER_WORD);
 
   cacheFillChanged.notify();
 }

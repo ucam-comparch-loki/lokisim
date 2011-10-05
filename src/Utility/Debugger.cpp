@@ -19,13 +19,13 @@ bool Debugger::hitBreakpoint = false;
 Chip* Debugger::chip = 0;
 vector<MemoryAddr> Debugger::breakpoints;
 
-int Debugger::cycleNumber = 0;
+unsigned int Debugger::cycleNumber = 0;
 ComponentID Debugger::defaultCore(0, 0);
 ComponentID Debugger::defaultInstMemory(0, CORES_PER_TILE);
 ComponentID Debugger::defaultDataMemory(0, CORES_PER_TILE + 1);
 
-int Debugger::cyclesIdle = 0;
-int Debugger::maxIdleTime = 10;
+unsigned int Debugger::cyclesIdle = 0;
+unsigned int Debugger::maxIdleTime = 10;
 
 // _S = short version
 const string BREAKPOINT   = "breakpoint";
@@ -292,15 +292,7 @@ void Debugger::execute(string instruction) {
   Instruction inst(instruction);
   vector<Word> instVector;
 
-  if(BYTES_PER_INSTRUCTION > BYTES_PER_WORD) {
-    // Need to split the instruction into multiple words.
-    uint64_t val = (uint64_t)inst.toLong();
-    Word first(val >> 32);
-    Word second(val & 0xFFFFFFFF);
-    instVector.push_back(first);
-    instVector.push_back(second);
-  }
-  else instVector.push_back(inst);
+  instVector.push_back(inst);
 
   if(mode == DEBUGGER)
     cout << "Passing " << inst << " to core " << defaultCore << "\n";

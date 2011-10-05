@@ -34,7 +34,6 @@ int MEMORY_TRACE = 0;
 unsigned long long TIMEOUT = 1000000000000ULL;
 
 int BYTES_PER_WORD = 4;
-int BYTES_PER_INSTRUCTION = 8;
 
 //-------------------------------------------------------------------------------------------------
 // Global variables (is there a better place to put these?)

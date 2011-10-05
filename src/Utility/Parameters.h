@@ -33,7 +33,6 @@ extern int		MEMORY_TRACE;	// Enable creation of memory trace file
 extern unsigned long long			TIMEOUT;  // Number of cycles before we assume something's gone wrong.
 
 extern int			BYTES_PER_WORD;
-extern int      BYTES_PER_INSTRUCTION;
 
 //-------------------------------------------------------------------------------------------------
 // Global variables (is there a better place to put these?)
