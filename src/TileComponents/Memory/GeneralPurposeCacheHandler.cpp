@@ -17,7 +17,7 @@
 
 #include "../../Typedefs.h"
 #include "../../Utility/Instrumentation.h"
-#include "../../Utility/MemoryTrace.h"
+#include "../../Utility/Trace/MemoryTrace.h"
 #include "GeneralPurposeCacheHandler.h"
 
 #include <cassert>

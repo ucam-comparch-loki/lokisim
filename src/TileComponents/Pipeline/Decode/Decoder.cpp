@@ -11,7 +11,7 @@
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
 #include "../../../Datatype/MemoryRequest.h"
-#include "../../../Utility/CoreTrace.h"
+#include "../../../Utility/Trace/CoreTrace.h"
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 

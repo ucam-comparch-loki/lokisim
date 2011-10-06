@@ -28,7 +28,7 @@ using namespace std;
 #include "../../Datatype/Instruction.h"
 #include "../../Datatype/MemoryRequest.h"
 #include "../../Memory/BufferStorage.h"
-#include "../../Utility/MemoryTrace.h"
+#include "../../Utility/Trace/MemoryTrace.h"
 #include "../../Utility/Parameters.h"
 #include "GeneralPurposeCacheHandler.h"
 #include "ScratchpadModeHandler.h"

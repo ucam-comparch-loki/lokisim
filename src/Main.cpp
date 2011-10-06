@@ -14,8 +14,8 @@
 #include "Utility/Debugger.h"
 #include "Utility/Instrumentation.h"
 #include "Utility/Instrumentation/Operations.h"
-#include "Utility/CoreTrace.h"
-#include "Utility/MemoryTrace.h"
+#include "Utility/Trace/CoreTrace.h"
+#include "Utility/Trace/MemoryTrace.h"
 #include "Utility/StartUp/CodeLoader.h"
 #include "Utility/Statistics.h"
 

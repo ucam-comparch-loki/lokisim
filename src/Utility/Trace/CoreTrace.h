@@ -10,7 +10,7 @@
 
 #include <string>
 
-#include "Parameters.h"
+#include "../Parameters.h"
 
 namespace CoreTrace {
 
