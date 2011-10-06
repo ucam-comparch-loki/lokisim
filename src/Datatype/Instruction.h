@@ -67,11 +67,6 @@ public:
   uint64_t toLong() const;
   bool     operator== (const Instruction& other) const;
 
-  // If the size of an instruction is greater than the size of the word, we
-  // would like to be able to split it into word-size chunks for storage.
-  Word     firstWord() const;
-  Word     secondWord() const;
-
   // Has to go in header
   friend std::ostream& operator<< (std::ostream& os, const Instruction& v) {
     return v.print(os);

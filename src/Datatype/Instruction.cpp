@@ -94,14 +94,6 @@ bool Instruction::operator== (const Instruction& other) const {
   return this->data_ == other.data_;
 }
 
-Word Instruction::firstWord() const {
-  return Word(data_ >> 32);
-}
-
-Word Instruction::secondWord() const {
-  return Word(data_ & 0xFFFFFFFF);
-}
-
 /* Constructors and destructors */
 Instruction::Instruction() : Word() {
   // Do nothing

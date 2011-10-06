@@ -99,52 +99,52 @@ void DecodedInst::location(const MemoryAddr val)          {location_ = val;}
 
 
 Instruction DecodedInst::toInstruction() const {
-  Instruction i;
+  Instruction inst;
 
-  i.immediate(immediate_);
+  inst.predicate(predicate_);
+  inst.opcode(opcode_);
 
-  i.predicate(predicate_);
-  i.opcode(InstructionMap::opcode(name()));
+  if(opcode_ == 0 || opcode_ == 1)
+    inst.function(function_);
+
   if(InstructionMap::hasRemoteChannel(opcode_))
-    i.remoteChannel(channelMapEntry_);
+    inst.remoteChannel(channelMapEntry_);
 
+  if(InstructionMap::hasImmediate(opcode_))
+    inst.immediate(immediate_);
 
-  switch(opcode_) {
-    // Single source, no destination.
-    case InstructionMap::OP_LDW :
-    case InstructionMap::OP_LDHWU :
-    case InstructionMap::OP_LDBU :
-    case InstructionMap::OP_FETCH :
-    case InstructionMap::OP_FETCHPST :
-    case InstructionMap::OP_FILL :
-    case InstructionMap::OP_SETCHMAP : {
-      i.reg1(sourceReg1_);
-      //i.reg2(0);
-      //i.reg3(0);
-      break;
+  // When the instruction was decoded, the registers were "unpacked" - the
+  // first register could have been the destination or a source, or may not
+  // have been specified. This loop packs the registers up again by seeing
+  // which registers are needed, and keeping track of where they should go.
+  int registersAssigned = 0;
+  for(int registersRetrieved=0; registersRetrieved<3; registersRetrieved++) {
+    bool hasThisRegister;
+    RegisterIndex reg;
+
+    if(registersRetrieved == 0) {
+      hasThisRegister = InstructionMap::hasDestReg(opcode_);
+      reg = destReg_;
+    }
+    else if(registersRetrieved == 1) {
+      hasThisRegister = InstructionMap::hasSrcReg1(opcode_);
+      reg = sourceReg1_;
+    }
+    else {
+      hasThisRegister = InstructionMap::hasSrcReg2(opcode_);
+      reg = sourceReg2_;
     }
 
-    // Two sources, no destination.
-    case InstructionMap::OP_STW :
-    case InstructionMap::OP_STHW :
-    case InstructionMap::OP_STB :
-    case InstructionMap::OP_PSEL_FETCH : {
-      i.reg1(sourceReg1_);
-      i.reg2(sourceReg2_);
-      //i.reg3(0);
-      break;
-    }
+    if(hasThisRegister) {
+      if(registersAssigned == 0)      inst.reg1(reg);
+      else if(registersAssigned == 1) inst.reg2(reg);
+      else                            inst.reg3(reg);
 
-    // Two sources and a destination.
-    default : {
-      i.reg1(destReg_);
-      i.reg2(sourceReg1_);
-      i.reg3(sourceReg2_);
-      break;
+      registersAssigned++;
     }
   }
 
-  return i;
+  return inst;
 }
 
 const bool DecodedInst::sendsOnNetwork() const {
@@ -234,19 +234,19 @@ DecodedInst::DecodedInst() {
   useCredits_ = false;
 }
 
-DecodedInst::DecodedInst(const Instruction i) {
-  predicate_       = i.predicate();
-  opcode_          = i.opcode();
+DecodedInst::DecodedInst(const Instruction inst) {
+  predicate_       = inst.predicate();
+  opcode_          = inst.opcode();
 
   // The first two opcodes have the ALU function encoded as well. For all
   // others, we must look it up.
   if(opcode_ == 0 || opcode_ == 1)
-    function_      = i.function();
+    function_      = inst.function();
   else
     function_      = InstructionMap::function(opcode_);
 
   if(InstructionMap::hasRemoteChannel(opcode_))
-    channelMapEntry_ = i.remoteChannel();
+    channelMapEntry_ = inst.remoteChannel();
   else
     channelMapEntry_ = Instruction::NO_CHANNEL;
 
@@ -269,30 +269,30 @@ DecodedInst::DecodedInst(const Instruction i) {
   // Different instruction formats have immediate fields of different sizes.
   switch(format_) {
     case InstructionMap::FMT_FF:
-      if(signedImmed) immediate_ = signextend<int32_t,  23>(i.immediate());
-      else            immediate_ = signextend<uint32_t, 23>(i.immediate());
+      if(signedImmed) immediate_ = signextend<int32_t,  23>(inst.immediate());
+      else            immediate_ = signextend<uint32_t, 23>(inst.immediate());
       break;
 
     case InstructionMap::FMT_0R:
     case InstructionMap::FMT_0Rnc:
     case InstructionMap::FMT_1R:
-      if(signedImmed) immediate_ = signextend<int32_t,  14>(i.immediate());
-      else            immediate_ = signextend<uint32_t, 14>(i.immediate());
+      if(signedImmed) immediate_ = signextend<int32_t,  14>(inst.immediate());
+      else            immediate_ = signextend<uint32_t, 14>(inst.immediate());
       break;
 
     case InstructionMap::FMT_1Rnc:
-      if(signedImmed) immediate_ = signextend<int32_t,  16>(i.immediate());
-      else            immediate_ = signextend<uint32_t, 16>(i.immediate());
+      if(signedImmed) immediate_ = signextend<int32_t,  16>(inst.immediate());
+      else            immediate_ = signextend<uint32_t, 16>(inst.immediate());
       break;
 
     case InstructionMap::FMT_2R:
     case InstructionMap::FMT_2Rnc:
-      if(signedImmed) immediate_ = signextend<int32_t,   9>(i.immediate());
-      else            immediate_ = signextend<uint32_t,  9>(i.immediate());
+      if(signedImmed) immediate_ = signextend<int32_t,   9>(inst.immediate());
+      else            immediate_ = signextend<uint32_t,  9>(inst.immediate());
       break;
 
     case InstructionMap::FMT_2Rs:
-      immediate_ = signextend<uint32_t, 5>(i.immediate());
+      immediate_ = signextend<uint32_t, 5>(inst.immediate());
       break;
 
     case InstructionMap::FMT_3R:
@@ -300,46 +300,37 @@ DecodedInst::DecodedInst(const Instruction i) {
       break;
   }
 
-  // Should format be used instead here?
-  switch(opcode_) {
-    // No registers
-    case InstructionMap::OP_IBJMP:
-    case InstructionMap::OP_NXIPK:
-    case InstructionMap::OP_SYSCALL:
-      destReg_ = 0;
-      sourceReg1_ = 0;
-      sourceReg2_ = 0;
-      break;
+  // "Unpack" the registers held in the encoded instruction. For example, the
+  // first register could be a destination or a source, or may not be defined
+  // at all.
+  int registersRetrieved = 0;
+  for(int registersAssigned=0; registersAssigned<3; registersAssigned++) {
+    RegisterIndex reg;
 
-    // Single source, no destination.
-    case InstructionMap::OP_LDW:
-    case InstructionMap::OP_LDHWU:
-    case InstructionMap::OP_LDBU:
-    case InstructionMap::OP_FETCH:
-    case InstructionMap::OP_FETCHPST:
-    case InstructionMap::OP_FILL:
-    case InstructionMap::OP_SETCHMAP:
-    case InstructionMap::OP_SETCHMAPI:
-      destReg_    = 0;
-      sourceReg1_ = i.reg1();
-      sourceReg2_ = 0;
-      break;
+    if(registersRetrieved == 0)      reg = inst.reg1();
+    else if(registersRetrieved == 1) reg = inst.reg2();
+    else                             reg = inst.reg3();
 
-    // Two sources, no destination.
-    case InstructionMap::OP_STW:
-    case InstructionMap::OP_STHW:
-    case InstructionMap::OP_STB:
-    case InstructionMap::OP_PSEL_FETCH:
-      destReg_    = 0;
-      sourceReg1_ = i.reg1();
-      sourceReg2_ = i.reg2();
-      break;
-
-    // Two sources and a destination.
-    default:
-      destReg_    = i.reg1();
-      sourceReg1_ = i.reg2();
-      sourceReg2_ = i.reg3();
-      break;
+    if(registersAssigned == 0) {
+      if(InstructionMap::hasDestReg(opcode_)) {
+        destReg_ = reg;
+        registersRetrieved++;
+      }
+      else destReg_ = 0;
+    }
+    else if(registersAssigned == 1) {
+      if(InstructionMap::hasSrcReg1(opcode_)) {
+        sourceReg1_ = reg;
+        registersRetrieved++;
+      }
+      else sourceReg1_ = 0;
+    }
+    else {
+      if(InstructionMap::hasSrcReg2(opcode_)) {
+        sourceReg2_ = reg;
+        registersRetrieved++;
+      }
+      else sourceReg2_ = 0;
+    }
   }
 }

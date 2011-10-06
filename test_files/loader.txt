@@ -13,6 +13,5 @@ loader bootloader.txt
 
 
 %% The benchmark to run (if we aren't supplying one on the command line).
-%loader zigzag/loader.txt
+%loader dct/loader.txt
 %../test_local/fact3
-%../../../../../../home/db434/Public/hello
