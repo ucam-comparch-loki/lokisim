@@ -241,6 +241,10 @@ int sc_main(int argc, char* argv[]) {
 
 	// Stop memory trace
 
+	if (CORE_TRACE) {
+		CoreTrace::stop();
+	}
+
 	if (MEMORY_TRACE) {
 		MemoryTrace::stop();
 	}
