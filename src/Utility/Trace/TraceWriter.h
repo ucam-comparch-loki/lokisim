@@ -28,6 +28,8 @@ private:
 	unsigned char *mCompressionBuffer;
 	size_t mBufferCursor;
 
+	unsigned long long mSequenceNumber;
+
 	unsigned long long mCurrentCycleNumber;
 
 	unsigned long mPreviousAddress;

@@ -19,14 +19,16 @@
 #pragma pack(push)
 #pragma pack(1)
 
-typedef struct TraceDataPacketHeader {
+struct TraceDataPacketHeader {
 public:
-	static const unsigned int kSignature = 0x31304454;
+	static const unsigned int kSignaturePacket = 0x31304454;
+	static const unsigned int kSignatureTerminator = 0x32304454;
 
 	unsigned int Singature;
 	unsigned int UncompressedSize;
 	unsigned int CompressedSize;
 	unsigned int Checksum;
+	unsigned long long SequenceNumber;
 };
 
 #pragma pack(pop)
@@ -55,10 +57,11 @@ void TraceWriter::flushBuffer() {
     size_t bytesOut = stream.next_out - mCompressionBuffer;
 
     TraceDataPacketHeader header;
-    header.Singature = TraceDataPacketHeader::kSignature;
+    header.Singature = TraceDataPacketHeader::kSignaturePacket;
     header.UncompressedSize = mBufferCursor;
     header.CompressedSize = bytesOut;
     header.Checksum = crc32(crc32(0L, Z_NULL, 0), mBuffer, mBufferCursor);
+    header.SequenceNumber = mSequenceNumber++;
 
     size_t count = fwrite(&header, 1, sizeof(header), mTraceFile);
 	assert(count == sizeof(header));
@@ -78,6 +81,8 @@ TraceWriter::TraceWriter(const std::string& filename) {
 	mCompressionBuffer = new unsigned char[kCompressionBufferSzie];
 	mBufferCursor = 0;
 
+	mSequenceNumber = 0;
+
 	mCurrentCycleNumber = 0;
 
 	mPreviousAddress = 0;
@@ -87,6 +92,16 @@ TraceWriter::TraceWriter(const std::string& filename) {
 TraceWriter::~TraceWriter() {
 	if (mBufferCursor > 0)
 		flushBuffer();
+
+    TraceDataPacketHeader header;
+    header.Singature = TraceDataPacketHeader::kSignatureTerminator;
+    header.UncompressedSize = 0;
+    header.CompressedSize = 0;
+    header.Checksum = crc32(0L, Z_NULL, 0);
+    header.SequenceNumber = mSequenceNumber++;
+
+    size_t count = fwrite(&header, 1, sizeof(header), mTraceFile);
+	assert(count == sizeof(header));
 
 	fclose(mTraceFile);
 
