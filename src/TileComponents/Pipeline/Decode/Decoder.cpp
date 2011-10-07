@@ -34,6 +34,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     // Drop out of remote execution mode when we find an unmarked instruction.
     else {
       remoteExecute = false;
+      sendChannel = -1;
       if(DEBUG) cout << this->name() << " ending remote execution" << endl;
     }
   }
@@ -92,7 +93,6 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
       // The first part of a store is computing the address. This uses the
       // second source register and the immediate.
-//      output.opcode(InstructionMap::OP_ADDUI);
       output.sourceReg1(output.sourceReg2()); output.sourceReg2(0);
 
       if(operation == InstructionMap::OP_STW)
@@ -144,7 +144,9 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       break;
     }
 
-    //case InstructionMap::RMTNXIPK :
+    case InstructionMap::OP_RMTNXIPK :
+      // TODO: implement rmtnxipk
+      break;
 
     case InstructionMap::OP_FETCHR:
     case InstructionMap::OP_FETCHPSTR:
@@ -198,6 +200,13 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   blocked = false;
   blockedEvent.notify();
 
+  // Update the destination register so the next instruction knows whether its
+  // operand(s) will need to be forwarded to it.
+  if(execute && InstructionMap::hasDestReg(input.opcode()) && input.destination() != 0)/* && !input.opcode() == InstructionMap::OP_IWTR)*/
+    previousDestination = input.destination();
+  else
+    previousDestination = -1;
+
   return continueToExecute;
 }
 
@@ -218,14 +227,34 @@ void Decoder::waitForOperands(const DecodedInst& dec) {
 void Decoder::setOperand1(DecodedInst& dec) {
   RegisterIndex reg = dec.sourceReg1();
   bool indirect = dec.opcode() == InstructionMap::OP_IRDR;
-  dec.operand1(readRegs(reg, indirect));
+
+  // FIXME: if this is an indirect read, and the pipeline has recently stalled,
+  // it may be possible that the instruction producing the operand we need will
+  // be sitting in a pipeline register. We therefore won't get the correct operand.
+
+  if((reg == previousDestination) && !indirect)
+    dec.operand1Source(DecodedInst::BYPASS);
+  else {
+    dec.operand1(readRegs(reg, indirect));
+    dec.operand1Source(DecodedInst::REGISTER);
+  }
 }
 
 void Decoder::setOperand2(DecodedInst& dec) {
-  if(dec.hasImmediate())
+  if(dec.hasImmediate()) {
     dec.operand2(dec.immediate());
-  else if(dec.hasSrcReg2())
-    dec.operand2(readRegs(dec.sourceReg2()));
+    dec.operand2Source(DecodedInst::IMMEDIATE);
+  }
+  else if(dec.hasSrcReg2()) {
+    RegisterIndex reg = dec.sourceReg2();
+
+    if(reg == previousDestination)
+      dec.operand2Source(DecodedInst::BYPASS);
+    else {
+      dec.operand2(readRegs(dec.sourceReg2()));
+      dec.operand2Source(DecodedInst::REGISTER);
+    }
+  }
 }
 
 int32_t Decoder::readRegs(RegisterIndex index, bool indirect) {
@@ -328,4 +357,5 @@ Decoder::Decoder(const sc_module_name& name, const ComponentID& ID) :
 	  Component(name, ID) {
   sendChannel = -1;
   remoteExecute = false;
+  previousDestination = -1;
 }

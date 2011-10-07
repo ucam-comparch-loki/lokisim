@@ -19,6 +19,18 @@
 
 class DecodedInst {
 
+public:
+
+  // All possible places an operand could come from. Could be used to drive
+  // select signals for multiplexers at ALU inputs.
+  enum OperandSource {
+    NONE,       // This instruction does not have this operand
+    REGISTER,   // The operand comes from a register
+    CHANNEL,    // The operand is to be read from a channel-end
+    IMMEDIATE,  // The operand is an immediate, encoded in the instruction
+    BYPASS      // The operand needs to be forwarded from the previous instruction
+  };
+
 //==============================//
 // Methods
 //==============================//
@@ -36,6 +48,9 @@ public:
   const predicate_t   predicate() const;
   const bool    setsPredicate() const;
   const uint8_t memoryOp() const;
+
+  const OperandSource operand1Source() const;
+  const OperandSource operand2Source() const;
 
   const int32_t operand1() const;
   const int32_t operand2() const;
@@ -67,6 +82,9 @@ public:
   void    predicate(const predicate_t val);
   void    setsPredicate(const bool val);
   void    memoryOp(const uint8_t val);
+
+  void    operand1Source(const OperandSource src);
+  void    operand2Source(const OperandSource src);
 
   void    operand1(const int32_t val);
   void    operand2(const int32_t val);
@@ -150,6 +168,9 @@ private:
   predicate_t predicate_;
   bool    setsPred_;
   uint8_t memoryOp_;
+
+  OperandSource op1Source_;
+  OperandSource op2Source_;
 
   int32_t operand1_;
   int32_t operand2_;

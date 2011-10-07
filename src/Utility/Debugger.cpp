@@ -298,8 +298,6 @@ void Debugger::execute(string instruction) {
     cout << "Passing " << inst << " to core " << defaultCore << "\n";
   chip->storeInstructions(instVector, defaultCore);
 
-  cout << DecodedInst(inst).toInstruction() << endl;
-
   cyclesIdle = 0;
 }
 

@@ -132,6 +132,17 @@ void ExecuteStage::newInput(DecodedInst& operation) {
   if(willExecute) {
     bool success = true;
 
+    // Forward data from the previous instruction if necessary.
+    if(operation.operand1Source() == DecodedInst::BYPASS) {
+      operation.operand1(currentInst.result());
+      if(DEBUG) cout << this->name() << " forwarding contents of register "
+          << (int)operation.sourceReg1() << ": " << currentInst.result() << endl;
+    }
+    if(operation.operand2Source() == DecodedInst::BYPASS)
+      operation.operand2(currentInst.result());
+      if(DEBUG) cout << this->name() << " forwarding contents of register "
+          << (int)operation.sourceReg2() << ": " << currentInst.result() << endl;
+
     if(DEBUG) cout << this->name() << ": executing " << operation.name()
         << " on " << operation.operand1() << " and " << operation.operand2() << endl;
 
@@ -192,7 +203,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
     }
     // success can only be false if we can't send a fetch - wait a cycle
     else next_trigger(clock.negedge_event());
-  } // if will execute
+  } // end if will execute
   else {
     // If the instruction will not be executed, invalidate it so we don't
     // try to forward data from it.

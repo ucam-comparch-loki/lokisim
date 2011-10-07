@@ -8,7 +8,7 @@
 #include "DecodedInst.h"
 #include "MemoryRequest.h"
 
-const opcode_t      DecodedInst::opcode()       const {return opcode_;}
+const opcode_t      DecodedInst::opcode()          const {return opcode_;}
 const function_t    DecodedInst::function()        const {return function_;}
 const format_t      DecodedInst::format()          const {return format_;}
 const RegisterIndex DecodedInst::sourceReg1()      const {return sourceReg1_;}
@@ -19,6 +19,10 @@ const ChannelIndex  DecodedInst::channelMapEntry() const {return channelMapEntry
 const predicate_t   DecodedInst::predicate()       const {return predicate_;}
 const bool          DecodedInst::setsPredicate()   const {return setsPred_;}
 const uint8_t       DecodedInst::memoryOp()        const {return memoryOp_;}
+
+typedef DecodedInst::OperandSource OperandSource;
+const OperandSource DecodedInst::operand1Source()  const {return op1Source_;}
+const OperandSource DecodedInst::operand2Source()  const {return op2Source_;}
 
 const int32_t       DecodedInst::operand1()        const {return operand1_;}
 const int32_t       DecodedInst::operand2()        const {return operand2_;}
@@ -82,6 +86,9 @@ void DecodedInst::immediate(const int32_t val)            {immediate_ = val;}
 void DecodedInst::channelMapEntry(const ChannelIndex val) {channelMapEntry_ = val;}
 void DecodedInst::predicate(const predicate_t val)        {predicate_ = val;}
 void DecodedInst::memoryOp(const uint8_t val)             {memoryOp_ = val;}
+
+void DecodedInst::operand1Source(const OperandSource src) {op1Source_ = src;}
+void DecodedInst::operand2Source(const OperandSource src) {op2Source_ = src;}
 
 void DecodedInst::operand1(const int32_t val)             {operand1_ = val;}
 void DecodedInst::operand2(const int32_t val)             {operand2_ = val;}
@@ -253,6 +260,9 @@ DecodedInst::DecodedInst(const Instruction inst) {
   setsPred_        = InstructionMap::setsPredicate(opcode_);
   format_          = InstructionMap::format(opcode_);
   memoryOp_        = MemoryRequest::NONE;
+
+  op1Source_       = NONE;
+  op2Source_       = NONE;
 
   operand1_        = 0;
   operand2_        = 0;

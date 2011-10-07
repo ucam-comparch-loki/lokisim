@@ -106,6 +106,10 @@ private:
   bool blocked;
   sc_core::sc_event blockedEvent;
 
+  // The register the previous instruction wrote to. Used to determine whether
+  // data forwarding is required.
+  RegisterIndex previousDestination;
+
 };
 
 #endif /* DECODER_H_ */
