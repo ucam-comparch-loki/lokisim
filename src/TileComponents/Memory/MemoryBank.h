@@ -151,11 +151,10 @@ public:
 
 	sc_in<AddressedWord>		iDataIn;					// Input data sent to the memory bank
 	sc_in<bool>					iDataInValid;				// Indicates that a new input data word is available
-	sc_out<bool>				oDataInAcknowledge;			// Acknowledges a new input word
+	sc_out<bool>				oReadyForData;			// Indicates that there is buffer space for new input
 
 	sc_out<AddressedWord>		oDataOut;					// Output data sent to the processing elements
 	sc_out<bool>				oDataOutValid;				// Indicates that new output data is available
-	sc_in<bool>					iDataOutAcknowledge;		// Acknowledges an output word
 
 	//-- Ports connected to background memory model -----------------------------------------------
 
@@ -300,7 +299,6 @@ private:
 	void processGeneralPurposeCacheMiss();
 	void processWaitRingOutput();
 
-	void processValidInput();
 	void processValidRing();
 
 	void handleNetworkInterfacesPre();
@@ -327,9 +325,13 @@ private:
 	MemoryBank *mNextMemoryBank;
 	SimplifiedOnChipScratchpad *mBackgroundMemory;
 
+	// Pointer to network, allowing new interfaces to be experimented with quickly.
+	local_net_t *localNetwork;
+
 public:
 
 	void setAdjacentMemories(MemoryBank *prevMemoryBank, MemoryBank *nextMemoryBank, SimplifiedOnChipScratchpad *backgroundMemory);
+	void setLocalNetwork(local_net_t* network);
 
 	void storeData(vector<Word>& data, MemoryAddr location);
 

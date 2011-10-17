@@ -8,11 +8,13 @@
 #ifndef NEWLOCALNETWORK_H_
 #define NEWLOCALNETWORK_H_
 
-#include "../Network.h"
+#include "../NewNetwork.h"
 #include "Crossbar.h"
 #include "NewCrossbar.h"
 
-class NewLocalNetwork: public Network {
+class EndArbiter;
+
+class NewLocalNetwork: public NewNetwork {
 
 //==============================//
 // Ports
@@ -26,11 +28,21 @@ public:
 //
 //  DataInput    *dataIn;
 //  ReadyInput   *validDataIn;
-//  ReadyOutput  *ackDataIn;
 //
 //  DataOutput   *dataOut;
 //  ReadyOutput  *validDataOut;
-//  ReadyInput   *ackDataOut;
+//  ReadyInput   *readyDataOut;
+
+  // Additional clocks which are skewed, allowing multiple clocked events
+  // to happen in series in one cycle.
+  sc_in<bool>   fastClock, slowClock;
+
+  // Quick hack: want a posedge early in the cycle (though not at the same time
+  // as the main clock) and a negedge fairly late.
+  // The delayed posedge means select signals don't change until deasserted acks
+  // have been routed back (can we avoid routing them back?), and the late
+  // negedge allows time for the arbiters in the subnetworks to finish first.
+  sc_core::sc_clock arbiterClock;
 
   CreditInput  *creditsIn;
   ReadyInput   *validCreditIn;
@@ -39,6 +51,10 @@ public:
   CreditOutput *creditsOut;
   ReadyOutput  *validCreditOut;
   ReadyInput   *ackCreditOut;
+
+  // A signal from each component, telling whether it is ready to receive
+  // more data.
+  ReadyInput   *readyIn;
 
 //==============================//
 // Constructors and destructors
@@ -61,6 +77,8 @@ public:
   const sc_event& makeRequest(ComponentID source, ChannelID destination, bool request);
 
   // Inputs and outputs which connect to the global network.
+  ReadyInput&   externalReadyInput() const;
+
   CreditInput&  externalCreditIn() const;
   CreditOutput& externalCreditOut() const;
   ReadyInput&   externalValidCreditIn() const;
@@ -89,7 +107,7 @@ private:
   // Bring globalToCore down here too?
   Crossbar c2gCredits, g2cCredits;
 
-  std::vector<BasicArbiter*> arbiters;
+  std::vector<EndArbiter*>   arbiters;
   std::vector<Multiplexer*>  muxes;
 
   // Signals connecting to muxes.
@@ -99,7 +117,6 @@ private:
   //         globalToCore connects to position 4
   DataSignal               **dataSig;
   ReadySignal              **validSig;
-  ReadySignal              **ackSig;
 
   // Signals connecting arbiters to arbiters.
   // Address using selectSig[arbiter][port]
@@ -127,6 +144,14 @@ private:
 
   // The number of inputs to each arbiter/mux in this network.
   static const unsigned int muxInputs;
+
+  // If a connection is already set up between two components, when a request
+  // is made, it will not be granted again.
+  // Use this event to trigger any methods which depend on the request being
+  // granted.
+  // To be removed when the request/grant interface is integrated into
+  // components properly.
+  sc_event grantEvent;
 
 };
 

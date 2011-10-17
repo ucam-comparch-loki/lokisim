@@ -90,11 +90,9 @@ TileComponent::TileComponent(sc_module_name name, const ComponentID& ID,
 
   dataIn         = new sc_in<AddressedWord>[inputPorts];
   validDataIn    = new sc_in<bool>[inputPorts];
-  ackDataIn      = new sc_out<bool>[inputPorts];
 
   dataOut        = new sc_out<AddressedWord>[outputPorts];
   validDataOut   = new sc_out<bool>[outputPorts];
-  ackDataOut     = new sc_in<bool>[outputPorts];
 
   // Temporary? Only have a single credit output, used to send credits to other
   // tiles. Credits aren't used for local communication.
@@ -123,8 +121,8 @@ TileComponent::TileComponent(sc_module_name name, const ComponentID& ID,
 }
 
 TileComponent::~TileComponent() {
-  delete[] dataIn;      delete[] validDataIn;     delete[] ackDataIn;
-  delete[] dataOut;     delete[] validDataOut;    delete[] ackDataOut;
+  delete[] dataIn;      delete[] validDataIn;
+  delete[] dataOut;     delete[] validDataOut;
   delete[] creditsOut;  delete[] validCreditOut;  delete[] ackCreditOut;
   delete[] creditsIn;   delete[] validCreditIn;   delete[] ackCreditIn;
 }

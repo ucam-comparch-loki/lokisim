@@ -15,12 +15,21 @@
 #include "systemc.h"
 #include "AddressedWord.h"
 #include "ChannelID.h"
-#include "../Typedefs.h"
-#include "../Utility/InstructionMap.h"
-
-class Instruction;
+#include "Instruction.h"
 
 class DecodedInst {
+
+public:
+
+  // All possible places an operand could come from. Could be used to drive
+  // select signals for multiplexers at ALU inputs.
+  enum OperandSource {
+    NONE,       // This instruction does not have this operand
+    REGISTER,   // The operand comes from a register
+    CHANNEL,    // The operand is to be read from a channel-end
+    IMMEDIATE,  // The operand is an immediate, encoded in the instruction
+    BYPASS      // The operand needs to be forwarded from the previous instruction
+  };
 
 //==============================//
 // Methods
@@ -28,15 +37,20 @@ class DecodedInst {
 
 public:
 
-  const operation_t   operation() const;
+  const opcode_t      opcode() const;
+  const function_t    function() const;
+  const format_t      format() const;
   const RegisterIndex sourceReg1() const;
   const RegisterIndex sourceReg2() const;
   const RegisterIndex destination() const;
-  const int32_t immediate() const;
-  const ChannelIndex channelMapEntry() const;
-  const uint8_t predicate() const;
+  const int32_t       immediate() const;
+  const ChannelIndex  channelMapEntry() const;
+  const predicate_t   predicate() const;
   const bool    setsPredicate() const;
   const uint8_t memoryOp() const;
+
+  const OperandSource operand1Source() const;
+  const OperandSource operand2Source() const;
 
   const int32_t operand1() const;
   const int32_t operand2() const;
@@ -58,15 +72,19 @@ public:
   const bool    endOfNetworkPacket() const;
   const inst_name_t& name() const;
 
-  void    operation(const operation_t val);
+  void    opcode(const opcode_t val);
+  void    function(const function_t val);
   void    sourceReg1(const RegisterIndex val);
   void    sourceReg2(const RegisterIndex val);
   void    destination(const RegisterIndex val);
   void    immediate(const int32_t val);
   void    channelMapEntry(const ChannelIndex val);
-  void    predicate(const uint8_t val);
+  void    predicate(const predicate_t val);
   void    setsPredicate(const bool val);
   void    memoryOp(const uint8_t val);
+
+  void    operand1Source(const OperandSource src);
+  void    operand2Source(const OperandSource src);
 
   void    operand1(const int32_t val);
   void    operand2(const int32_t val);
@@ -83,15 +101,19 @@ public:
   const bool sendsOnNetwork() const;
   const AddressedWord toAddressedWord() const;
 
+  // Invalidate this instruction in such a way that it will never be able to
+  // forward its result to another instruction. This may be useful if the
+  // instruction will not be executed, or is more than a cycle old.
+  void    preventForwarding();
+
   friend void sc_trace(sc_core::sc_trace_file*& tf, const DecodedInst& i, const std::string& txt) {
-    sc_core::sc_trace(tf, i.operation_,       txt + ".operation");
+    sc_core::sc_trace(tf, i.opcode_,          txt + ".opcode");
     sc_core::sc_trace(tf, i.destReg_,         txt + ".rd");
     sc_core::sc_trace(tf, i.sourceReg1_,      txt + ".rs");
     sc_core::sc_trace(tf, i.sourceReg2_,      txt + ".rt");
     sc_core::sc_trace(tf, i.immediate_,       txt + ".immediate");
     sc_core::sc_trace(tf, i.channelMapEntry_, txt + ".channel");
     sc_core::sc_trace(tf, i.predicate_,       txt + ".predicate");
-    sc_core::sc_trace(tf, i.setsPred_,        txt + ".set_predicate");
 
     sc_core::sc_trace(tf, i.operand1_,        txt + ".operand1");
     sc_core::sc_trace(tf, i.operand2_,        txt + ".operand2");
@@ -107,6 +129,14 @@ public:
   }
 
 private:
+
+  // Sign extend a value of type T which is represented using B bits.
+  // Set T to signed/unsigned to choose sign-extension technique.
+  template <typename T, unsigned B>
+  inline T signextend(const T x) {
+    struct {T x:B;} s;
+    return s.x = x;
+  }
 
   // Holds implementation of the << operator, so it doesn't have to go in the
   // header.
@@ -127,15 +157,20 @@ public:
 
 private:
 
-  operation_t operation_;
+  opcode_t opcode_;
+  function_t function_;
+  format_t format_;
+  RegisterIndex destReg_;
   RegisterIndex sourceReg1_;
   RegisterIndex sourceReg2_;
-  RegisterIndex destReg_;
   int32_t immediate_;
   ChannelIndex channelMapEntry_;
-  uint8_t predicate_;
+  predicate_t predicate_;
   bool    setsPred_;
   uint8_t memoryOp_;
+
+  OperandSource op1Source_;
+  OperandSource op2Source_;
 
   int32_t operand1_;
   int32_t operand2_;
@@ -148,8 +183,8 @@ private:
 
   MemoryAddr location_;  // The position in memory that this instruction comes from.
 
-  // Use to determine whether fields have already been set.
-  // Can't just use != 0 because they may have been set to 0.
+  // Use to determine whether the result has already been set.
+  // Can't just use != 0 because it may have been set to 0.
   bool    hasResult_;
 
 };

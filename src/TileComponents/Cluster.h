@@ -41,8 +41,8 @@ public:
 
 // Inherited from TileComponent:
 //   clock
-//   dataIn,      validDataIn,    ackDataIn;
-//   dataOut,     validDataOut,   ackDataOut;
+//   dataIn,      validDataIn,    readyOut;
+//   dataOut,     validDataOut;
 //   creditsOut,  validCreditOut, ackCreditOut;
 //   creditsIn,   validCreditIn,  ackCreditIn;
 //   idle
@@ -62,7 +62,7 @@ public:
 public:
 
   SC_HAS_PROCESS(Cluster);
-  Cluster(sc_module_name name, const ComponentID& ID);
+  Cluster(sc_module_name name, const ComponentID& ID, local_net_t* network);
   virtual ~Cluster();
 
 //==============================//
@@ -106,7 +106,7 @@ private:
   // in the instruction packet cache.
   // There are many different ways of fetching instructions, so provide the
   // operation too.
-  bool             inCache(const MemoryAddr addr, operation_t operation);
+  bool             inCache(const MemoryAddr addr, opcode_t operation);
 
   // Determine if there is room in the cache to fetch another instruction
   // packet, assuming that it is of maximum size. Also make sure there is not
@@ -145,6 +145,10 @@ private:
 
   // Update whether this core is idle or not.
   void             updateIdle();
+
+  // Request to reserve a path through the network to the given destination.
+  // Returns an event which will be triggered when the request is granted.
+  const sc_event&  requestArbitration(ChannelID destination, bool request);
 
   ComponentID      getSystemCallMemory() const;
 
@@ -187,6 +191,10 @@ private:
   bool currentlyStalled;
   sc_event stallEvent;
 
+  // Store a pointer to the network so new ways of accessing it can be
+  // experimented with without having to create lots of ports and signals.
+  local_net_t* localNetwork;
+
 //==============================//
 // Signals (wires)
 //==============================//
@@ -199,6 +207,7 @@ private:
   // Signals telling us which stages are idle, able to send data, or stalled.
   sc_signal<bool>           *stageIdle, *stallRegReady, *stageReady;
 
+  // Connections between the input crossbar and the input buffers.
   sc_buffer<Word>           *dataToBuffers;
   sc_signal<bool>           *fcFromBuffers;
 
@@ -206,6 +215,9 @@ private:
   // want to trigger an event even if the instruction is identical.
   flag_signal<DecodedInst>  *instToStage;
   sc_buffer<DecodedInst>    *instFromStage;
+
+  // Data being sent to the output buffer.
+  sc_buffer<DecodedInst>     outputData;
 
 };
 

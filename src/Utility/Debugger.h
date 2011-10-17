@@ -96,13 +96,13 @@ private:
   static vector<MemoryAddr> breakpoints;
   static Chip* chip;
 
-  static int cycleNumber;
+  static unsigned int cycleNumber;
   static ComponentID defaultCore;
   static ComponentID defaultInstMemory;
   static ComponentID defaultDataMemory;
 
-  static int cyclesIdle;
-  static int maxIdleTime;
+  static unsigned int cyclesIdle;
+  static unsigned int maxIdleTime;
 
 };
 

@@ -41,7 +41,7 @@ public:
   // The decoded instruction after passing through this pipeline stage.
   // DecodedInst holds all necessary fields for data at all stages throughout
   // the pipeline.
-  sc_out<DecodedInst> dataOut;
+  sc_out<DecodedInst> instructionOut;
 
   // Tells whether the next stage is ready to receive a new instruction.
   sc_in<bool>         readyIn;
@@ -71,7 +71,7 @@ public:
   // Tells whether the packet from location a is currently in the cache.
   // There are many different ways of fetching instructions, so provide the
   // operation too.
-  bool          inCache(const MemoryAddr a, operation_t operation);
+  bool          inCache(const MemoryAddr a, opcode_t operation);
 
   // Tells whether there is room in the cache to fetch another instruction
   // packet, assuming the packet is of maximum size.

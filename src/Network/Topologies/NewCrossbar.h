@@ -8,13 +8,13 @@
 #ifndef NEWCROSSBAR_H_
 #define NEWCROSSBAR_H_
 
-#include "../Network.h"
+#include "../NewNetwork.h"
 
 class BasicArbiter;
 class Multiplexer;
 class NewBus;
 
-class NewCrossbar: public Network {
+class NewCrossbar: public NewNetwork {
 
 //==============================//
 // Ports
@@ -28,11 +28,9 @@ public:
 //
 //  DataInput    *dataIn;
 //  ReadyInput   *validDataIn;
-//  ReadyOutput  *ackDataIn;
 //
 //  DataOutput   *dataOut;
 //  ReadyOutput  *validDataOut;
-//  ReadyInput   *ackDataOut;
 
   // A request/grant signal for each input to reserve each output.
   // Indexed as: requestsIn[input][output]
@@ -43,6 +41,10 @@ public:
   // This extra arbitration is not needed if the "chained" parameter is false.
   sc_out<bool>  **requestsOut;
   sc_in<bool>   **grantsIn;
+
+  // A signal from each component telling whether it is ready to receive data.
+  // These ports are not needed if the "chained" parameter is true.
+  sc_in<bool>    *readyIn;
 
 //==============================//
 // Constructors and destructors
@@ -101,7 +103,6 @@ protected:
 
   DataSignal                *dataSig;
   ReadySignal               *validSig;
-  ReadySignal              **ackSig;
   sc_signal<int>           **selectSig;
 
 };

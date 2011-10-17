@@ -29,17 +29,16 @@ void NewCrossbar::makePorts() {
       grantsIn[i]    = new sc_in<bool>[outputsPerComponent];
     }
   }
+  else {
+    readyIn = new sc_in<bool>[numArbiters];
+  }
 }
 
 void NewCrossbar::makeSignals() {
   dataSig   = new DataSignal[numBuses];
   validSig  = new ReadySignal[numBuses];
-  ackSig    = new ReadySignal*[numBuses];
   selectSig = new sc_signal<int>*[numArbiters];
 
-  for(int i=0; i<numBuses; i++) {
-    ackSig[i] = new ReadySignal[numMuxes];
-  }
   for(int i=0; i<numArbiters; i++) {
     selectSig[i] = new sc_signal<int>[outputsPerComponent];
   }
@@ -65,6 +64,9 @@ void NewCrossbar::makeArbiters() {
     else {
       arb = new EndArbiter(sc_gen_unique_name("arbiter"), i,
                            numBuses, outputsPerComponent, true);
+
+      // Connect up ports which are unique to this type of arbiter.
+      (static_cast<EndArbiter*>(arb))->readyIn(readyIn[i]);
     }
 
     // Connect up all ports which are common to the two types of arbiter.
@@ -88,14 +90,9 @@ void NewCrossbar::makeBuses() {
 
     bus->dataIn(dataIn[i]);
     bus->validDataIn(validDataIn[i]);
-    bus->ackDataIn(ackDataIn[i]);
 
     bus->dataOut(dataSig[i]);
     bus->validDataOut(validSig[i]);
-
-    for(int j=0; j<numMuxes; j++) {
-      bus->ackDataOut[j](ackSig[i][j]);
-    }
 
     buses.push_back(bus);
   }
@@ -107,12 +104,10 @@ void NewCrossbar::makeMuxes() {
 
     mux->dataOut(dataOut[i]);
     mux->validOut(validDataOut[i]);
-    mux->ackOut(ackDataOut[i]);
 
     for(int j=0; j<numBuses; j++) {
       mux->dataIn[j](dataSig[j]);
       mux->validIn[j](validSig[j]);
-      mux->ackIn[j](ackSig[j][i]);
     }
 
     int arbiter = i/outputsPerComponent;
@@ -131,7 +126,7 @@ NewCrossbar::NewCrossbar(const sc_module_name& name,
                          HierarchyLevel level,
                          Dimension size,
                          bool chained) :
-    Network(name, ID, inputs, outputs, level, size),
+    NewNetwork(name, ID, inputs, outputs, level, size),
     numArbiters(outputs/outputsPerComponent),
     numBuses(inputs),
     numMuxes(outputs),
@@ -149,9 +144,7 @@ NewCrossbar::NewCrossbar(const sc_module_name& name,
 NewCrossbar::~NewCrossbar() {
   delete[] dataSig;  delete[] validSig;
 
-  for(int i=0; i<numBuses; i++)    delete[] ackSig[i];
   for(int i=0; i<numArbiters; i++) delete[] selectSig[i];
-  delete[] ackSig;
   delete[] selectSig;
 
   for(unsigned int i=0; i<arbiters.size(); i++) delete arbiters[i];
@@ -171,4 +164,6 @@ NewCrossbar::~NewCrossbar() {
 
     delete[] requestsOut; delete[] grantsIn;
   }
+  else
+    delete[] readyIn;
 }

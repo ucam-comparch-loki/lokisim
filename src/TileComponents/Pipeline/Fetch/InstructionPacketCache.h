@@ -76,7 +76,7 @@ public:
   // in the cache.
   // There are many different ways of fetching instructions, so provide the
   // operation too.
-  bool lookup(const MemoryAddr addr, operation_t operation);
+  bool lookup(const MemoryAddr addr, opcode_t operation);
 
   // Jump to a new instruction specified by the offset.
   void jump(const JumpOffset offset);

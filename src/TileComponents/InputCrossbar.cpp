@@ -5,6 +5,8 @@
  *      Author: db434
  */
 
+#define SC_INCLUDE_DYNAMIC_PROCESSES
+
 #include "InputCrossbar.h"
 #include "../Datatype/AddressedWord.h"
 #include "../Network/FlowControl/FlowControlIn.h"
@@ -14,21 +16,66 @@
 const unsigned int InputCrossbar::numInputs = CORE_INPUT_PORTS;
 const unsigned int InputCrossbar::numOutputs = CORE_INPUT_CHANNELS;
 
+void InputCrossbar::newData(PortIndex input) {
+  assert(validDataIn[input].read());
+
+  // We have new data - forward it to the correct channel end.
+  const AddressedWord& data = dataIn[input].read();
+  ChannelIndex destination = data.channelID().getChannel();
+  assert(destination < numOutputs);
+
+  // Trigger a method which will send the data.
+  dataSource[destination] = input;
+  sendData[destination].notify();
+}
+
+void InputCrossbar::writeToBuffer(ChannelIndex output) {
+  if(clock.posedge()) {
+    // Invalidate data on the clock edge.
+    assert(validDataSig[output].read() == true);
+    validDataSig[output].write(false);
+
+    // Wait until there is new data to send.
+    next_trigger(sendData[output]);
+  }
+  else {
+    // There is data to send.
+    PortIndex source = dataSource[output];
+    dataToBuffer[output].write(dataIn[source].read());
+    validDataSig[output].write(true);
+
+    // Wait until the clock edge to invalidate the data.
+    next_trigger(clock.posedge_event());
+  }
+}
+
+void InputCrossbar::readyChanged() {
+  for(unsigned int i=0; i<numOutputs; i++) {
+    if(!bufferHasSpace[i].read()) {
+      // We have found a buffer which can't receive any more data. Since we
+      // don't know which buffer new data will be heading to, we must block
+      // all new data until there is space again.
+      readyOut.write(false);
+      return;
+    }
+  }
+
+  // If we have got this far, all buffers have space.
+  readyOut.write(true);
+}
+
 InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
     Component(name, ID),
     firstInput(ChannelID(id,0)),
     creditNet("credit", ID, numOutputs, 1, 1, Network::NONE, Dimension(1.0/CORES_PER_TILE, 0.05)),
-    dataNet("data", ID, numInputs, numOutputs, 1, Network::CHANNEL, Dimension(1.0/CORES_PER_TILE, 0.05)) {
+    dataSource(numOutputs) {
 
   creditNet.initialise();
-  dataNet.initialise();
 
   dataIn           = new DataInput[numInputs];
   validDataIn      = new ReadyInput[numInputs];
-  ackDataIn        = new ReadyOutput[numInputs];
 
   dataOut          = new sc_out<Word>[numOutputs];
-
   bufferHasSpace   = new sc_in<bool>[numOutputs];
 
   // Possibly temporary: have only one credit output port, used for sending
@@ -39,22 +86,44 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
 
   dataToBuffer     = new sc_buffer<DataType>[numOutputs];
   creditsToNetwork = new sc_buffer<CreditType>[numOutputs];
-  ackDataSig       = new sc_signal<ReadyType>[numOutputs];
   ackCreditSig     = new sc_signal<ReadyType>[numOutputs];
   validDataSig     = new sc_signal<ReadyType>[numOutputs];
   validCreditSig   = new sc_signal<ReadyType>[numOutputs];
 
+  sendData         = new sc_event[numOutputs];
+
+  SC_METHOD(readyChanged);
+  for(unsigned int i=0; i<numOutputs; i++) sensitive << bufferHasSpace[i];
+  // do initialise
+
+  // Method for each input port, forwarding data to the correct buffer when it
+  // arrives. Each channel end has a single writer, so it is impossible to
+  // receive multiple data for the same channel end in one cycle.
+  for(PortIndex i=0; i<numInputs; i++) {
+    sc_core::sc_spawn_options options;
+    options.spawn_method();     // Want an efficient method, not a thread
+    options.dont_initialize();
+    options.set_sensitivity(&(validDataIn[i].pos())); // Sensitive to this event
+    // Note that there is the assumption that the valid signal will toggle
+    // whenever new data arrives.
+
+    // Create the method.
+    sc_spawn(sc_bind(&InputCrossbar::newData, this, i), 0, &options);
+  }
+
+  // Method for each output port, writing data into each buffer.
+  for(ChannelIndex i=0; i<numOutputs; i++) {
+    sc_core::sc_spawn_options options;
+    options.spawn_method();     // Want an efficient method, not a thread
+    options.set_sensitivity(&(sendData[i])); // Sensitive to this event
+    options.dont_initialize();
+
+    // Create the method.
+    sc_spawn(sc_bind(&InputCrossbar::writeToBuffer, this, i), 0, &options);
+  }
 
   // Wire up the small networks.
   creditNet.clock(creditClock);
-  dataNet.clock(dataClock);
-
-  for(unsigned int i=0; i<numInputs; i++) {
-    dataNet.dataIn[i](dataIn[i]);
-    dataNet.validDataIn[i](validDataIn[i]);
-    dataNet.ackDataIn[i](ackDataIn[i]);
-  }
-
   creditNet.dataOut[0](creditsOut[0]);
   creditNet.validDataOut[0](validCreditOut[0]);
   creditNet.ackDataOut[0](ackCreditOut[0]);
@@ -67,18 +136,13 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
     fc->clock(clock);
 
     fc->dataOut(dataOut[i]);
-    fc->bufferHasSpace(bufferHasSpace[i]);
 
     fc->dataIn(dataToBuffer[i]);
     fc->validDataIn(validDataSig[i]);
-    fc->ackDataIn(ackDataSig[i]);
     fc->creditsOut(creditsToNetwork[i]);
     fc->validCreditOut(validCreditSig[i]);
     fc->ackCreditOut(ackCreditSig[i]);
 
-    dataNet.dataOut[i](dataToBuffer[i]);
-    dataNet.validDataOut[i](validDataSig[i]);
-    dataNet.ackDataOut[i](ackDataSig[i]);
     creditNet.dataIn[i](creditsToNetwork[i]);
     creditNet.validDataIn[i](validCreditSig[i]);
     creditNet.ackDataIn[i](ackCreditSig[i]);
@@ -86,13 +150,15 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
 }
 
 InputCrossbar::~InputCrossbar() {
-  delete[] dataIn;            delete[] validDataIn;     delete[] ackDataIn;
+  delete[] dataIn;            delete[] validDataIn;
   delete[] creditsOut;        delete[] validCreditOut;  delete[] ackCreditOut;
   delete[] dataOut;
   delete[] bufferHasSpace;
 
-  delete[] dataToBuffer;      delete[] validDataSig;    delete[] ackDataSig;
+  delete[] dataToBuffer;      delete[] validDataSig;
   delete[] creditsToNetwork;  delete[] validCreditSig;  delete[] ackCreditSig;
+
+  delete[] sendData;
 
   for(unsigned int i=0; i<flowControl.size(); i++) delete flowControl[i];
 }

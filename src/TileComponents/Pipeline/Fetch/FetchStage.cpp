@@ -70,7 +70,7 @@ void FetchStage::getInstruction() {
   DecodedInst decoded(lastInstruction);
   decoded.location(instAddr);
 
-  dataOut.write(decoded);
+  instructionOut.write(decoded);
 
   if(DEBUG) {
     printf("%s selected instruction from %s: ", this->name(),
@@ -100,7 +100,7 @@ MemoryAddr FetchStage::getInstIndex() const {
   return cache.getInstAddress();
 }
 
-bool FetchStage::inCache(const MemoryAddr addr, operation_t operation) {
+bool FetchStage::inCache(const MemoryAddr addr, opcode_t operation) {
   return cache.lookup(addr, operation);
 }
 

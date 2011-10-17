@@ -8,6 +8,7 @@
 #include "NewLocalNetwork.h"
 #include "../Multiplexer.h"
 #include "../Arbiters/EndArbiter.h"
+#include "../../OrGate.h"
 
 // Only cores and the global network can send/receive credits.
 const unsigned int NewLocalNetwork::creditInputs  = CORES_PER_TILE + 1;
@@ -20,6 +21,7 @@ const unsigned int NewLocalNetwork::muxInputs = CORE_INPUT_PORTS + CORE_INPUT_PO
 const sc_event& NewLocalNetwork::makeRequest(ComponentID source,
                                              ChannelID destination,
                                              bool request) {
+
   // Find out which signal to write the request to (and read the grant from).
   sc_signal<bool> *requestSignal, *grantSignal;
 
@@ -48,13 +50,21 @@ const sc_event& NewLocalNetwork::makeRequest(ComponentID source,
     }
   }
 
-  // Send the request.
-  requestSignal->write(request);
+  if(request && grantSignal->read()) {
+    // If there is already a connection set up, return an event which will be
+    // triggered immediately.
+    grantEvent.notify(sc_core::SC_ZERO_TIME);
+    return grantEvent;
+  }
+  else {
+    // Send the request.
+    requestSignal->write(request);
 
-  // Return an event which will be triggered when the request is granted (if
-  // a request was made). If no request was made, this event is not meaningful,
-  // and can be ignored.
-  return grantSignal->posedge_event();
+    // Return an event which will be triggered when the request is granted (if
+    // a request was made). If no request was made, this event is not meaningful,
+    // and can be ignored.
+    return grantSignal->posedge_event();
+  }
 }
 
 void NewLocalNetwork::createArbiters() {
@@ -66,7 +76,7 @@ void NewLocalNetwork::createArbiters() {
                                      true);
 
     // Is this right? Does the arbiter need to have its clock skewed at all?
-    arb->clock(clock);
+    arb->clock(arbiterClock);
 
     for(int j=0; j<arb->numInputs(); j++) {
       arb->requests[j](requestSig[i][j]);
@@ -95,12 +105,10 @@ void NewLocalNetwork::createMuxes() {
       // all muxes leading to the same component. All are controlled by 1 arbiter.
       mux->dataIn[j](dataSig[arbiter][j]);
       mux->validIn[j](validSig[arbiter][j]);
-      mux->ackIn[j](ackSig[arbiter][j]);
     }
 
     mux->dataOut(dataOut[i]);
     mux->validOut(validDataOut[i]);
-    mux->ackOut(ackDataOut[i]);
 
     muxes.push_back(mux);
   }
@@ -109,7 +117,6 @@ void NewLocalNetwork::createMuxes() {
 void NewLocalNetwork::createSignals() {
   dataSig    = new DataSignal*[CORES_PER_TILE];
   validSig   = new ReadySignal*[CORES_PER_TILE];
-  ackSig     = new ReadySignal*[CORES_PER_TILE];
   selectSig  = new sc_signal<int>*[CORES_PER_TILE];
   requestSig = new sc_signal<bool>*[CORES_PER_TILE];
   grantSig   = new sc_signal<bool>*[CORES_PER_TILE];
@@ -117,7 +124,6 @@ void NewLocalNetwork::createSignals() {
   for(unsigned int i=0; i<CORES_PER_TILE; i++) {
     dataSig[i]    = new DataSignal[muxInputs];
     validSig[i]   = new ReadySignal[muxInputs];
-    ackSig[i]     = new ReadySignal[muxInputs];
 
     selectSig[i]  = new sc_signal<int>[CORE_INPUT_PORTS];
     requestSig[i] = new sc_signal<bool>[muxInputs];
@@ -153,9 +159,13 @@ void NewLocalNetwork::createSignals() {
 }
 
 void NewLocalNetwork::wireUpSubnetworks() {
-  coreToCore.clock(clock); coreToMemory.clock(clock); coreToGlobal.clock(clock);
-  memoryToCore.clock(clock); globalToCore.clock(clock);
-  c2gCredits.clock(clock); g2cCredits.clock(clock);
+  // Each subnetwork contains arbiters, and the outputs of the networks
+  // are themselves arbitrated. Use the slow clock because the memory sends
+  // its data on the negative edge, and the core may need the time to compute
+  // which memory bank it is sending to.
+  coreToCore.clock(slowClock); coreToMemory.clock(slowClock); coreToGlobal.clock(slowClock);
+  memoryToCore.clock(slowClock); globalToCore.clock(slowClock);
+  c2gCredits.clock(clock); g2cCredits.clock(clock);   // Use fastClock too?
 
   // Keep track of how many ports in each array have been bound, so that if
   // multiple networks connect to the same array, they can start where the
@@ -167,27 +177,22 @@ void NewLocalNetwork::wireUpSubnetworks() {
     // Data from cores can go to all three core-to-X networks. In practice,
     // there might be a demux to reduce switching.
     coreToCore.dataIn[i](dataIn[portsBound]);
-    coreToCore.validDataIn[i](validDataIn[portsBound]);
-    coreToCore.ackDataIn[i](ackDataIn[portsBound]);
     coreToMemory.dataIn[i](dataIn[portsBound]);
-    coreToMemory.validDataIn[i](validDataIn[portsBound]);
-    coreToMemory.ackDataIn[i](ackDataIn[portsBound]);
     coreToGlobal.dataIn[i](dataIn[portsBound]);
+    coreToCore.validDataIn[i](validDataIn[portsBound]);
+    coreToMemory.validDataIn[i](validDataIn[portsBound]);
     coreToGlobal.validDataIn[i](validDataIn[portsBound]);
-    coreToGlobal.ackDataIn[i](ackDataIn[portsBound]);
 
     portsBound++;
   }
   for(unsigned int i=0; i<memoryToCore.numInputPorts(); i++) {
     memoryToCore.dataIn[i](dataIn[portsBound]);
     memoryToCore.validDataIn[i](validDataIn[portsBound]);
-    memoryToCore.ackDataIn[i](ackDataIn[portsBound]);
     portsBound++;
   }
   for(unsigned int i=0; i<globalToCore.numInputPorts(); i++) {
     globalToCore.dataIn[i](dataIn[portsBound]);
     globalToCore.validDataIn[i](validDataIn[portsBound]);
-    globalToCore.ackDataIn[i](ackDataIn[portsBound]);
     portsBound++;
   }
 
@@ -196,7 +201,6 @@ void NewLocalNetwork::wireUpSubnetworks() {
     int arbiterInput = i%CORE_INPUT_PORTS;
     coreToCore.dataOut[i](dataSig[arbiter][arbiterInput]);
     coreToCore.validDataOut[i](validSig[arbiter][arbiterInput]);
-    coreToCore.ackDataOut[i](ackSig[arbiter][arbiterInput]);
 
     int arbiterOutput = i % CORE_INPUT_PORTS;
     coreToCore.requestsOut[arbiter][arbiterOutput](requestSig[arbiter][arbiterInput]);
@@ -207,7 +211,6 @@ void NewLocalNetwork::wireUpSubnetworks() {
     int arbiterInput = (i%CORE_INPUT_PORTS) + CORE_INPUT_PORTS;
     memoryToCore.dataOut[i](dataSig[arbiter][arbiterInput]);
     memoryToCore.validDataOut[i](validSig[arbiter][arbiterInput]);
-    memoryToCore.ackDataOut[i](ackSig[arbiter][arbiterInput]);
 
     int arbiterOutput = i % CORE_INPUT_PORTS;
     memoryToCore.requestsOut[arbiter][arbiterOutput](requestSig[arbiter][arbiterInput]);
@@ -218,7 +221,6 @@ void NewLocalNetwork::wireUpSubnetworks() {
     int arbiterInput = CORE_INPUT_PORTS + CORE_INPUT_PORTS;
     globalToCore.dataOut[i](dataSig[arbiter][arbiterInput]);
     globalToCore.validDataOut[i](validSig[arbiter][arbiterInput]);
-    globalToCore.ackDataOut[i](ackSig[arbiter][arbiterInput]);
 
     int arbiterOutput = 0;
     globalToCore.requestsOut[arbiter][arbiterOutput](requestSig[arbiter][arbiterInput]);
@@ -229,7 +231,6 @@ void NewLocalNetwork::wireUpSubnetworks() {
     int port = i + (CORES_PER_TILE*CORE_INPUT_PORTS);
     coreToMemory.dataOut[i](dataOut[port]);
     coreToMemory.validDataOut[i](validDataOut[port]);
-    coreToMemory.ackDataOut[i](ackDataOut[port]);
   }
   for(unsigned int i=0; i<coreToGlobal.numOutputPorts(); i++) {
     // Some ports will have already been connected.
@@ -237,7 +238,6 @@ void NewLocalNetwork::wireUpSubnetworks() {
                  + (MEMS_PER_TILE*MEMORY_INPUT_PORTS);
     coreToGlobal.dataOut[i](dataOut[port]);
     coreToGlobal.validDataOut[i](validDataOut[port]);
-    coreToGlobal.ackDataOut[i](ackDataOut[port]);
   }
 
   // Credit networks
@@ -294,8 +294,16 @@ void NewLocalNetwork::wireUpSubnetworks() {
     globalToCore.requestsIn[0][output](coreRequests[input][output]);
     globalToCore.grantsOut[0][output](coreGrants[input][output]);
   }
+
+  // Ready signals
+  for(unsigned int i=0; i<CORES_PER_TILE; i++)
+    arbiters[i]->readyIn(readyIn[i]);
+  for(unsigned int i=0; i<MEMS_PER_TILE; i++)
+    coreToMemory.readyIn[i](readyIn[i + CORES_PER_TILE]);
+  coreToGlobal.readyIn[0](readyIn[CORES_PER_TILE + MEMS_PER_TILE]);
 }
 
+ReadyInput&   NewLocalNetwork::externalReadyInput()     const {return readyIn[COMPONENTS_PER_TILE];}
 CreditInput&  NewLocalNetwork::externalCreditIn()       const {return creditsIn[creditInputs-1];}
 CreditOutput& NewLocalNetwork::externalCreditOut()      const {return creditsOut[creditOutputs-1];}
 ReadyInput&   NewLocalNetwork::externalValidCreditIn()  const {return validCreditIn[creditInputs-1];}
@@ -304,14 +312,15 @@ ReadyInput&   NewLocalNetwork::externalAckCreditIn()    const {return ackCreditO
 ReadyOutput&  NewLocalNetwork::externalAckCreditOut()   const {return ackCreditIn[creditInputs-1];}
 
 NewLocalNetwork::NewLocalNetwork(const sc_module_name& name, ComponentID tile) :
-    Network(name, tile, OUTPUT_PORTS_PER_TILE, INPUT_PORTS_PER_TILE, Network::COMPONENT, Dimension(1.0, 0.03), 0, true),
+    NewNetwork(name, tile, OUTPUT_PORTS_PER_TILE, INPUT_PORTS_PER_TILE, NewNetwork::COMPONENT, Dimension(1.0, 0.03), 0, true),
+    arbiterClock("test", sc_core::sc_time(1.0, sc_core::SC_NS), 0.8),
     coreToCore("core_to_core", tile, CORES_PER_TILE, CORES_PER_TILE*CORE_INPUT_PORTS, CORE_INPUT_PORTS, level, size, true),
     coreToMemory("core_to_mem", tile, CORES_PER_TILE, MEMS_PER_TILE, MEMORY_INPUT_PORTS, level, size, false),
     memoryToCore("mem_to_core", tile, MEMS_PER_TILE, CORES_PER_TILE*CORE_INPUT_PORTS, CORE_INPUT_PORTS, level, size, true),
     coreToGlobal("core_to_global", tile, CORES_PER_TILE, 1, 1, level, size, false),
     globalToCore("global_to_core", tile, 1, CORES_PER_TILE, 1, level, size, true),
-    c2gCredits("c2g_credits", tile, CORES_PER_TILE, 1, 1, level, size),
-    g2cCredits("g2c_credits", tile, 1, CORES_PER_TILE, 1, level, size) {
+    c2gCredits("c2g_credits", tile, CORES_PER_TILE, 1, 1, (Network::HierarchyLevel)level, size),
+    g2cCredits("g2c_credits", tile, 1, CORES_PER_TILE, 1, (Network::HierarchyLevel)level, size) {
 
   creditsIn      = new CreditInput[creditInputs];
   validCreditIn  = new ReadyInput[creditInputs];
@@ -320,6 +329,9 @@ NewLocalNetwork::NewLocalNetwork(const sc_module_name& name, ComponentID tile) :
   creditsOut     = new CreditOutput[creditOutputs];
   validCreditOut = new ReadyOutput[creditOutputs];
   ackCreditOut   = new ReadyInput[creditOutputs];
+
+  // A ready signal from each component and the router.
+  readyIn        = new ReadyInput[COMPONENTS_PER_TILE + 1];
 
   createSignals();
   createArbiters();
@@ -333,11 +345,11 @@ NewLocalNetwork::~NewLocalNetwork() {
   delete[] creditsOut;     delete[] validCreditOut; delete[] ackCreditOut;
 
   for(unsigned int i=0; i<CORES_PER_TILE; i++) {
-    delete[] dataSig[i];   delete[] validSig[i];    delete[] ackSig[i];
+    delete[] dataSig[i];   delete[] validSig[i];
     delete[] selectSig[i]; delete[] requestSig[i];  delete[] grantSig[i];
   }
 
-  delete[] dataSig;        delete[] validSig;       delete[] ackSig;
+  delete[] dataSig;        delete[] validSig;
   delete[] selectSig;      delete[] requestSig;     delete[] grantSig;
 
   for(unsigned int i=0; i<CORES_PER_TILE+MEMS_PER_TILE+1; i++) {

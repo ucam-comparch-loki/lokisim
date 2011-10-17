@@ -9,10 +9,6 @@
 #include "RoundRobinArbiter.h"
 #include <assert.h>
 
-int ArbiterBase::numInputs() const {
-  return requests->size();
-}
-
 ArbiterBase* ArbiterBase::makeArbiter(ArbiterType type,
                                       const RequestList* requestVec,
                                       const GrantList* grantVec) {

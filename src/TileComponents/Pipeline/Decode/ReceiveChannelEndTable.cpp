@@ -54,13 +54,14 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd() {
 
 void ReceiveChannelEndTable::checkInput(ChannelIndex input) {
   // This method is called because data has arrived on a particular input channel.
+
+  if(DEBUG) cout << this->name() << " channel " << (int)input << " received " <<
+                    fromNetwork[input].read() << endl;
+
   assert(!buffers[input].full());
 
   buffers[input].write(fromNetwork[input].read());
   bufferEvent[input].notify();
-
-  if(DEBUG) cout << this->name() << " channel " << (int)input << " received " <<
-                    fromNetwork[input].read() << endl;
 }
 
 sc_core::sc_event& ReceiveChannelEndTable::receivedDataEvent(ChannelIndex buffer) const {

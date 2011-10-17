@@ -32,6 +32,11 @@ public:
 
   // The input instruction to be working on. DecodedInst holds all information
   // required for any pipeline stage to do its work.
+  // Instructions should arrive on the positive clock edge.
+  sc_in<DecodedInst>     instructionIn;
+
+  // Data (with an address) to be sent over the network.
+  // Data can arrive at any time.
   sc_in<DecodedInst>     dataIn;
 
   // Tell whether this stage is ready for input (ignoring effects of any other stages).
@@ -40,7 +45,6 @@ public:
   // Data to send onto the network.
   sc_out<AddressedWord> *output;
   sc_out<bool>          *validOutput;
-  sc_in<bool>           *ackOutput;
 
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.
@@ -70,7 +74,12 @@ public:
 private:
 
   virtual void   execute();
-  virtual void   newInput(DecodedInst& data);
+  virtual void   newInput(DecodedInst& inst);
+
+  // Set any default values at the start of each clock cycle.
+  void           reset();
+
+  void           sendData();
 
   // Determine whether this stage is stalled or not, and write the appropriate
   // output.
@@ -80,6 +89,12 @@ private:
 
   // Write a new value to a register.
   void           writeReg(RegisterIndex reg, int32_t value, bool indirect = false) const;
+
+  const sc_event& requestArbitration(ChannelID destination, bool request);
+
+  // Returns whether this core is ready to issue an instruction packet fetch
+  // request to memory.
+  bool           readyToFetch() const;
 
 //==============================//
 // Components
@@ -96,8 +111,6 @@ private:
 //==============================//
 
 private:
-
-  bool endOfPacket;
 
   // The instruction whose result is currently being written to registers or
   // the network. Used to determine whether forwarding is required.

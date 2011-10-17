@@ -8,13 +8,23 @@
 #include "EndArbiter.h"
 
 const sc_event& EndArbiter::canGrantNow(int output) {
-  // The sender knows when it's safe to send data, so we don't need to monitor
-  // acks. If we also enforce that the sender only takes down their request
-  // after the final ack has been received, we know that it is immediately safe
-  // to grant a new request.
+  // If the destination is ready to receive data, we can send the grant
+  // immediately.
+  if(readyIn.read()) {
+    grantEvent.notify(sc_core::SC_ZERO_TIME);
+    return grantEvent;
+  }
+  // Otherwise, we must wait until the destination is ready.
+  else {
+    return readyIn.posedge_event();
+  }
+}
 
-  grantEvent.notify(sc_core::SC_ZERO_TIME);
-  return grantEvent;
+const sc_event& EndArbiter::stallGrant(int output) {
+  // We must stop granting requests if the destination component stops being
+  // ready to receive more data.
+
+  return readyIn.negedge_event();
 }
 
 EndArbiter::EndArbiter(const sc_module_name& name, ComponentID ID,

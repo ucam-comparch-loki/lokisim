@@ -22,6 +22,8 @@ vector<DataBlock>& ELFFileReader::extractData(int& mainPos) const {
   // Open the input file.
   std::ifstream elfFile(filename_.c_str());
 
+  // For machines which can't run the Loki toolchain, we provide the section
+  // headers in a separate file.
   string extFileName = filename_ + ".objdump-h";
   bool useExternalMetadata = access(extFileName.c_str(), F_OK) == 0;
 
@@ -57,18 +59,16 @@ vector<DataBlock>& ELFFileReader::extractData(int& mainPos) const {
       vector<Word>* data = new vector<Word>();
 
       if(name == ".text") {
-        // Read in "size" bytes (remembering that each instruction is 8 bytes).
-        for(int i=0; i<size; i+=BYTES_PER_INSTRUCTION) {
-          Instruction inst = nextWord(elfFile, true);
-          addInstToVector(data, inst);
+        for(int i=0; i<size; i+=BYTES_PER_WORD) {
+          Instruction inst = nextWord(elfFile);
+          data->push_back(inst);
 
           if(Debugger::mode == Debugger::DEBUGGER) printInstruction(inst, physPosition+i);
         }
       }
       else {
-        // Data words are only 4 bytes long (I think).
         for(int i=0; i<size; i+=BYTES_PER_WORD) {
-          Word w = nextWord(elfFile, false);
+          Word w = nextWord(elfFile);
           data->push_back(w);
         }
       }
@@ -90,51 +90,20 @@ vector<DataBlock>& ELFFileReader::extractData(int& mainPos) const {
   return *blocks;
 }
 
-void ELFFileReader::addInstToVector(vector<Word>* vec, Instruction inst) {
-  if(BYTES_PER_INSTRUCTION > BYTES_PER_WORD) {
-    vec->push_back(inst.firstWord());
-    vec->push_back(inst.secondWord());
-  }
-  else vec->push_back(inst);
-}
+Word ELFFileReader::nextWord(std::ifstream& file) const {
+  uint64_t result=0, byte=0;
 
-Word ELFFileReader::nextWord(std::ifstream& file, bool isInstruction) const {
-    uint64_t result=0, byte=0;
+  // Find a neater way to reverse endianness? ntohs?
+  byte = file.get();
+  result |= byte << 0;
+  byte = file.get();
+  result |= byte << 8;
+  byte = file.get();
+  result |= byte << 16;
+  byte = file.get();
+  result |= byte << 24;
 
-  if(isInstruction) {
-    // Find a neater way to reverse endianness?
-    byte = file.get();
-    result |= byte << 32;
-    byte = file.get();
-    result |= byte << 40;
-    byte = file.get();
-    result |= byte << 48;
-    byte = file.get();
-    result |= byte << 56;
-
-    byte = file.get();
-    result |= byte << 0;
-    byte = file.get();
-    result |= byte << 8;
-    byte = file.get();
-    result |= byte << 16;
-    byte = file.get();
-    result |= byte << 24;
-
-    return Instruction(result);
-  }
-  else {
-    byte = file.get();
-    result |= byte << 0;
-    byte = file.get();
-    result |= byte << 8;
-    byte = file.get();
-    result |= byte << 16;
-    byte = file.get();
-    result |= byte << 24;
-
-    return Word(result);
-  }
+  return Word(result);
 }
 
 int ELFFileReader::findMain() const {

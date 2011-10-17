@@ -39,7 +39,6 @@ public:
   // Data outputs to the network.
   sc_out<AddressedWord> *output;
   sc_out<bool>          *validOutput;
-  sc_in<bool>           *ackOutput;
 
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.
@@ -62,11 +61,8 @@ public:
 
 public:
 
-  // Write the result of an operation to one of the output buffers.
-  bool          write(const DecodedInst& dec);
-
-  // Write some data to a particular output.
-  bool          write(const AddressedWord& data, MapIndex output);
+  // Write some data to the output buffer.
+  void          write(const DecodedInst& data);
 
   // Returns true if the table is incapable of accepting new data at the moment.
   bool          full() const;
@@ -77,15 +73,9 @@ public:
 
 private:
 
-  // Send the oldest value in each output buffer, if the flow control signals
+  // Send the oldest value in the output buffer, if the flow control signals
   // allow it.
-  void          sendLoop(unsigned int buffer);
-  void          send(unsigned int buffer);
-
-  // A separate thread/method for each buffer, making them completely independent.
-  void          sendToCores();
-  void          sendToMemories();
-  void          sendOffTile();
+  void          sendLoop();
 
   // Stall the pipeline until the channel specified is empty.
   void          waitUntilEmpty(MapIndex channel);
@@ -97,6 +87,11 @@ private:
   void          creditFromMemories(); // For consistency only. Should be unused.
   void          creditFromOffTile();
 
+  // Send a request to reserve (or release) a connection to a particular
+  // destination component. May cause re-execution of the calling method when
+  // the request is granted.
+  void          requestArbitration(ChannelID destination, bool request);
+
   WriteStage*   parent() const;
 
 //==============================//
@@ -105,13 +100,20 @@ private:
 
 private:
 
+  enum SendState {
+    IDLE,
+    DATA_READY,
+    ARBITRATING,
+    CAN_SEND
+  };
+
+  SendState state;
+
   // Use a different buffer depending on the destination to avoid deadlock,
   // and allow different flow control, etc.
   enum BufferIndex {TO_CORES = 0, TO_MEMORIES = 1, OFF_TILE = 2};
-  static const unsigned int NUM_BUFFERS = 3;
 
-  // Buffers for storing outgoing data. One buffer for each network.
-  BufferArray<BufferedInfo> buffers;
+  BufferStorage<DecodedInst> buffer;
 
   // A pointer to this core's channel map table. The table itself is in the
   // Cluster class. No reading or writing of destinations should occur here -
@@ -122,14 +124,9 @@ private:
   // buffer to empty.)
   bool waiting;
 
-  // An event for each buffer, which is triggered whenever data is inserted
-  // into the buffer.
-  sc_event* dataToSendEvent;   // array
+  // An event which is triggered whenever data is inserted into the buffer.
+  sc_event  dataToSendEvent;
   sc_event  bufferFillChanged;
-
-  // Used to tell that we are not currently waiting for any output buffers
-  // to empty.
-  static const ChannelIndex  NO_CHANNEL = -1;
 
 };
 

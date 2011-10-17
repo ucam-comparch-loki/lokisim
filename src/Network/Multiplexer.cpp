@@ -13,25 +13,27 @@ int Multiplexer::inputs() const {
 
 void Multiplexer::handleData() {
   int selection = select.read();
-  assert(selection < inputs());
 
-  if(validIn[selection].read()) {  // Data arrived on the selected input
+  if(select.event()) {
+    if(validOut.read())
+      validOut.write(false);
+
+    if(selection >= 0) next_trigger(validIn[selection].posedge_event());
+    else               next_trigger(select.default_event());
+  }
+  else if(validIn[selection].read()) {  // Data arrived on the selected input
     dataOut.write(dataIn[selection].read());
     validOut.write(true);
+
+    // Is it possible for the selection to change before the data goes invalid?
+    next_trigger(select.default_event() | validIn[selection].negedge_event());
   }
+  else {                                // The input data is no longer valid
+    validOut.write(false);
 
-  // Wait until the selection changes, or new data is received.
-  next_trigger(select.default_event() | validIn[selection].posedge_event());
-}
-
-void Multiplexer::handleAcks() {
-  int selection = select.read();
-  assert(selection < inputs());
-
-  // Just copy the acknowledgement through to the appropriate input whenever
-  // it changes.
-  assert(ackIn[selection].read() != ackOut.read());
-  ackIn[selection].write(ackOut.read());
+    // Wait until the selection changes, or new data is received.
+    next_trigger(select.default_event() | validIn[selection].posedge_event());
+  }
 }
 
 Multiplexer::Multiplexer(const sc_module_name& name, int numInputs) :
@@ -40,14 +42,9 @@ Multiplexer::Multiplexer(const sc_module_name& name, int numInputs) :
 
   dataIn  = new DataInput[numInputs];
   validIn = new ReadyInput[numInputs];
-  ackIn   = new ReadyOutput[numInputs];
 
   SC_METHOD(handleData);
   sensitive << select;
-  dont_initialize();
-
-  SC_METHOD(handleAcks);
-  sensitive << ackOut;
   dont_initialize();
 
 }
@@ -55,5 +52,4 @@ Multiplexer::Multiplexer(const sc_module_name& name, int numInputs) :
 Multiplexer::~Multiplexer() {
   delete[] dataIn;
   delete[] validIn;
-  delete[] ackIn;
 }

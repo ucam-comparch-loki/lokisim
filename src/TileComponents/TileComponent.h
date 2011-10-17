@@ -34,12 +34,12 @@ public:
   // multiple channel ends accessible through each port.
   sc_in<AddressedWord>  *dataIn;
   sc_in<bool>           *validDataIn;
-  sc_out<bool>          *ackDataIn;
+
+  sc_out<bool>           readyOut;
 
   // All outputs of the component.
   sc_out<AddressedWord> *dataOut;
   sc_out<bool>          *validDataOut;
-  sc_in<bool>           *ackDataOut;
 
   // Credits to be sent across the network.
   sc_out<AddressedWord> *creditsOut;

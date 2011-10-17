@@ -12,6 +12,7 @@
 #include "../Utility/InstructionMap.h"
 #include "../Datatype/ChannelID.h"
 #include "../Datatype/DecodedInst.h"
+#include "../Network/Topologies/NewLocalNetwork.h"
 
 /* Initialise the instructions a Cluster will execute. */
 void     Cluster::storeData(const std::vector<Word>& data, MemoryAddr location) {
@@ -19,27 +20,17 @@ void     Cluster::storeData(const std::vector<Word>& data, MemoryAddr location) 
 
   // Convert all of the words to instructions
   for(unsigned int i=0; i<data.size(); i++) {
-    if(BYTES_PER_INSTRUCTION > BYTES_PER_WORD) {
-      // Need to load multiple words to create each instruction.
-      uint32_t first = (uint32_t)data[i].toInt();
-      uint32_t second = (uint32_t)data[i+1].toInt();
-      uint64_t total = ((uint64_t)first << 32) + second;
-      instructions.push_back(Instruction(total));
-      i++;
-    }
-    else {
-      instructions.push_back(static_cast<Instruction>(data[i]));
-    }
+    instructions.push_back(static_cast<Instruction>(data[i]));
   }
 
   fetch.storeCode(instructions);
 }
 
 const MemoryAddr Cluster::getInstIndex() const   {return fetch.getInstIndex();}
-bool     Cluster::readyToFetch() const            {return fetch.roomToFetch();}
+bool     Cluster::readyToFetch() const           {return fetch.roomToFetch();}
 void     Cluster::jump(const JumpOffset offset)  {fetch.jump(offset);}
 
-bool     Cluster::inCache(const MemoryAddr addr, operation_t operation) {
+bool     Cluster::inCache(const MemoryAddr addr, opcode_t operation) {
   return fetch.inCache(addr, operation);
 }
 
@@ -53,7 +44,7 @@ const int32_t Cluster::readReg(RegisterIndex reg, bool indirect) {
   // stated register may not actually be the one providing/receiving the data.
   if(reg>0) {
     if(reg == execute.currentInstruction().destination() &&
-       execute.currentInstruction().operation() != InstructionMap::IWTR) {
+       execute.currentInstruction().opcode() != InstructionMap::OP_IWTR) {
       // If the instruction in the execute stage will write to the register we
       // want to read, but it hasn't produced a result yet, wait until
       // execution completes.
@@ -69,7 +60,7 @@ const int32_t Cluster::readReg(RegisterIndex reg, bool indirect) {
       if(indirect) result = regs.read(result, false);
     }
     else if(reg == write.currentInstruction().destination() &&
-            write.currentInstruction().operation() != InstructionMap::IWTR) {
+            write.currentInstruction().opcode() != InstructionMap::OP_IWTR) {
       // No waiting required this time - if the instruction is in the write
       // stage, it definitely has a result.
       result = write.currentInstruction().result();
@@ -167,9 +158,15 @@ void     Cluster::updateIdle() {
   if(wasIdle != isIdle) Instrumentation::idle(id, isIdle);
 }
 
+const sc_event& Cluster::requestArbitration(ChannelID destination, bool request) {
+  // Could have extra ports and write to them from here, but for the moment,
+  // access the network directly.
+  return localNetwork->makeRequest(id, destination, request);
+}
+
 ComponentID Cluster::getSystemCallMemory() const {
   // TODO: Stop assuming that the first channel map entry after the fetch
-  // channel corresponds to the memory system calls want to access.
+  // channel corresponds to the memory that system calls want to access.
   return channelMapTable.read(1).getComponentID();
 }
 
@@ -188,7 +185,7 @@ ChannelID Cluster::RCETInput(const ComponentID& ID, ChannelIndex channel) {
   return ChannelID(ID, 2 + channel);
 }
 
-Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
+Cluster::Cluster(sc_module_name name, const ComponentID& ID, local_net_t* network) :
     TileComponent(name, ID, CORE_INPUT_PORTS, CORE_OUTPUT_PORTS),
     regs("regs", ID),
     pred("predicate"),
@@ -197,6 +194,8 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
     execute("execute", ID),
     write("write", ID),
     channelMapTable("channel_map_table", ID) {
+
+  localNetwork  = network;
 
   inputCrossbar = new InputCrossbar("input_crossbar", ID);
 
@@ -214,12 +213,12 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
   for(unsigned int i=0; i<CORE_INPUT_PORTS; i++) {
     inputCrossbar->dataIn[i](dataIn[i]);
     inputCrossbar->validDataIn[i](validDataIn[i]);
-    inputCrossbar->ackDataIn[i](ackDataIn[i]);
   }
 
   inputCrossbar->creditsOut[0](creditsOut[0]);
   inputCrossbar->validCreditOut[0](validCreditOut[0]);
   inputCrossbar->ackCreditOut[0](ackCreditOut[0]);
+  inputCrossbar->readyOut(readyOut);
 
   for(unsigned int i=0; i<CORE_INPUT_CHANNELS; i++) {
     inputCrossbar->dataOut[i](dataToBuffers[i]);
@@ -236,7 +235,12 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
 
     stallReg->clock(clock);               stallReg->readyOut(stallRegReady[i]);
     stallReg->dataIn(instFromStage[i]);   stallReg->dataOut(instToStage[i]);
-    stallReg->localStageReady(stageReady[i]);
+
+    // A quick hack: allow the write stage's "ready" signal to propagate back
+    // two stages at once: the execute stage can write data straight into the
+    // output buffer. This means the execute stage's ready signal is ignored.
+    if(i == 0) stallReg->localStageReady(stageReady[i]);
+    else stallReg->localStageReady(stageReady[2]);
 
     if(i < 2) stallReg->readyIn(stallRegReady[i+1]);
     else 			stallReg->readyIn(constantHigh);
@@ -249,27 +253,28 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID) :
   fetch.clock(clock);                     fetch.idle(stageIdle[0]);
   fetch.toIPKFIFO(dataToBuffers[0]);      fetch.flowControl[0](fcFromBuffers[0]);
   fetch.toIPKCache(dataToBuffers[1]);     fetch.flowControl[1](fcFromBuffers[1]);
-  fetch.readyIn(stallRegReady[0]);				fetch.dataOut(instFromStage[0]);
+  fetch.readyIn(stallRegReady[0]);				fetch.instructionOut(instFromStage[0]);
 
   decode.clock(clock);                    decode.idle(stageIdle[1]);
-  decode.readyIn(stallRegReady[1]);       decode.dataOut(instFromStage[1]);
-  decode.readyOut(stageReady[0]);         decode.dataIn(instToStage[0]);
+  decode.readyIn(stallRegReady[1]);       decode.instructionOut(instFromStage[1]);
+  decode.readyOut(stageReady[0]);         decode.instructionIn(instToStage[0]);
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
-    decode.rcetIn[i](dataToBuffers[i+2]);
+    decode.dataIn[i](dataToBuffers[i+2]);
     decode.flowControlOut[i](fcFromBuffers[i+2]);
   }
 
   execute.clock(clock);                   execute.idle(stageIdle[2]);
-  execute.readyOut(stageReady[1]);        execute.dataIn(instToStage[1]);
-  execute.dataOut(instFromStage[2]);
+  execute.readyOut(stageReady[1]);        execute.instructionIn(instToStage[1]);
+  execute.instructionOut(instFromStage[2]);
+  execute.dataOut(outputData);
 
   write.clock(clock);                     write.idle(stageIdle[3]);
-  write.readyOut(stageReady[2]);          write.dataIn(instToStage[2]);
+  write.readyOut(stageReady[2]);          write.instructionIn(instToStage[2]);
+  write.dataIn(outputData);
 
   for(unsigned int i=0; i<CORE_OUTPUT_PORTS; i++) {
     write.output[i](dataOut[i]);            write.creditsIn[i](creditsIn[i]);
     write.validOutput[i](validDataOut[i]);  write.validCredit[i](validCreditIn[i]);
-    write.ackOutput[i](ackDataOut[i]);
   }
 
   SC_METHOD(updateIdle);

@@ -1,7 +1,7 @@
 % Initialise the mapping table and fetch the particular implementation being used.
 
-ori             r7,  r0,  (0,1,2)
-setchmap        2,   r7                 ; core 1 = map 2
-ori             r0,  r0,  (0,0,3)       ; claim core 1's port  
-or              r0,  r3,  r0    -> 2    ; send cache configuration to core 1
-fetch.eop       r0,  0x1100             ; fetch main program
+lli             r15, (0,1,2)
+setchmapi       2,   r15                ; core 1 = map 2
+
+or              r0,  r10, r0    -> 2    ; send cache configuration to core 1
+fetchr.eop      0x0100                  ; fetch main program

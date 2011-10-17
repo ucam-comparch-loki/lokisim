@@ -35,14 +35,14 @@ void Instrumentation::decoded(const ComponentID& core, const DecodedInst& dec) {
   Operations::decoded(core, dec);
 
   if(TRACE) {
-	/*
+
     MemoryAddr location = dec.location();
     std::cout << "0x";
     std::cout.width(8);
     std::cout << std::hex << std::setfill('0') << location << endl;
-    */
 
-	std::cout << dec << endl;
+
+//    std::cout << dec << endl;
   }
 }
 
@@ -121,7 +121,7 @@ void Instrumentation::networkActivity(const ComponentID& network, ChannelIndex s
 }
 
 void Instrumentation::operation(const ComponentID& id, const DecodedInst& inst, bool executed) {
-  Operations::operation(inst.operation(), executed);
+  Operations::operation(inst.opcode(), executed);
 
   if(Debugger::mode == Debugger::DEBUGGER)
     Debugger::executedInstruction(inst, id, executed);

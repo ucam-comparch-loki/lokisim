@@ -35,6 +35,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     // Drop out of remote execution mode when we find an unmarked instruction.
     else {
       remoteExecute = false;
+      sendChannel = -1;
       if(DEBUG) cout << this->name() << " ending remote execution" << endl;
     }
   }
@@ -70,47 +71,56 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   bool continueToExecute = true;
 
   // Perform any operation-specific work.
-  operation_t operation = input.operation();
+  opcode_t operation = input.opcode();
   switch(operation) {
 
-    case InstructionMap::LDW :
-    case InstructionMap::LDHWU :
-    case InstructionMap::LDBU : {
-      if(operation == InstructionMap::LDW)
+    case InstructionMap::OP_LDW:
+    case InstructionMap::OP_LDHWU:
+    case InstructionMap::OP_LDBU: {
+      if(operation == InstructionMap::OP_LDW)
         output.memoryOp(MemoryRequest::LOAD_W);
-      else if(operation == InstructionMap::LDHWU)
+      else if(operation == InstructionMap::OP_LDHWU)
         output.memoryOp(MemoryRequest::LOAD_HW);
       else
         output.memoryOp(MemoryRequest::LOAD_B);
       break;
     }
 
-    case InstructionMap::STW :
-    case InstructionMap::STHW :
-    case InstructionMap::STB : {
+    case InstructionMap::OP_STW:
+    case InstructionMap::OP_STHW:
+    case InstructionMap::OP_STB: {
       multiCycleOp = true;
       output.endOfNetworkPacket(false);
       blockedEvent.notify();
 
       // The first part of a store is computing the address. This uses the
       // second source register and the immediate.
-      output.operation(InstructionMap::ADDUI);
       output.sourceReg1(output.sourceReg2()); output.sourceReg2(0);
 
-      if(operation == InstructionMap::STW)
+      if(operation == InstructionMap::OP_STW)
         output.memoryOp(MemoryRequest::STORE_W);
-      else if(operation == InstructionMap::STHW)
+      else if(operation == InstructionMap::OP_STHW)
         output.memoryOp(MemoryRequest::STORE_HW);
       else
         output.memoryOp(MemoryRequest::STORE_B);
       break;
     }
 
-    case InstructionMap::WOCHE : output.result(output.immediate()); break;
-    case InstructionMap::TSTCH : output.result(parent()->testChannel(output.immediate())); break;
-    case InstructionMap::SELCH : output.result(parent()->selectChannel()); break;
+    // lui only overwrites part of the word, so we need to read the word first.
+    // Alternative: have an "lui mode" for register-writing.
+    case InstructionMap::OP_LUI: output.sourceReg1(output.destination()); break;
 
-    case InstructionMap::IBJMP : {
+    case InstructionMap::OP_WOCHE: output.result(output.immediate()); break;
+
+    case InstructionMap::OP_TSTCH:
+    case InstructionMap::OP_TSTCHI:
+    case InstructionMap::OP_TSTCH_P:
+    case InstructionMap::OP_TSTCHI_P:
+      output.result(parent()->testChannel(output.immediate())); break;
+
+    case InstructionMap::OP_SELCH: output.result(parent()->selectChannel()); break;
+
+    case InstructionMap::OP_IBJMP: {
       JumpOffset jump = (JumpOffset)output.immediate();
 
       // If we know that this jump is going to execute, and the fetch stage has
@@ -118,7 +128,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       // change the amount we need to jump by.
       if(execute) {
         bool discarded = discardNextInst();
-        if(discarded) jump -= BYTES_PER_INSTRUCTION;
+        if(discarded) jump -= BYTES_PER_WORD;
         parent()->jump(jump);
       }
 
@@ -126,7 +136,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       break;
     }
 
-    case InstructionMap::RMTEXECUTE : {
+    case InstructionMap::OP_RMTEXECUTE: {
       remoteExecute = true;
       sendChannel = output.channelMapEntry();
 
@@ -136,12 +146,28 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       break;
     }
 
-    //case InstructionMap::RMTNXIPK :
+    case InstructionMap::OP_RMTNXIPK :
+      // TODO: implement rmtnxipk
+      break;
 
-    case InstructionMap::FETCH:
-    case InstructionMap::FETCHPST:
-    case InstructionMap::FILL:
-    case InstructionMap::PSELFETCH: {
+    case InstructionMap::OP_FETCHR:
+    case InstructionMap::OP_FETCHPSTR:
+    case InstructionMap::OP_FILLR: {
+      // Fetches implicitly access channel map table entry 0. This may change.
+      output.channelMapEntry(0);
+      output.memoryOp(MemoryRequest::IPK_READ);
+
+      // The "relative" versions of these instructions have r1 (current IPK
+      // address) as an implicit argument.
+      output.sourceReg1(1);
+
+      break;
+    }
+
+    case InstructionMap::OP_FETCH:
+    case InstructionMap::OP_FETCHPST:
+    case InstructionMap::OP_FILL:
+    case InstructionMap::OP_PSEL_FETCH: {
       // Fetches implicitly access channel map table entry 0. This may change.
       output.channelMapEntry(0);
       output.memoryOp(MemoryRequest::IPK_READ);
@@ -163,11 +189,13 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     // A bit of a hack: if we are indirecting through a channel end, we need to
     // consume the value now so that channel reads are in program order. This
     // means the write is no longer indirect, so change the operation to "or".
-    case InstructionMap::IWTR : {
-      if(Registers::isChannelEnd(input.destination())) {
-        output.destination(readRegs(input.destination()));
-        output.operation(InstructionMap::OR);
+    case InstructionMap::OP_IWTR: {
+      if(Registers::isChannelEnd(input.sourceReg1())) {
+        output.sourceReg1(readRegs(input.sourceReg1()));
+        output.opcode(InstructionMap::OP_OR);
       }
+
+      output.destination(output.sourceReg1());
     }
 
     default: break;
@@ -175,6 +203,13 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
   blocked = false;
   blockedEvent.notify();
+
+  // Update the destination register so the next instruction knows whether its
+  // operand(s) will need to be forwarded to it.
+  if(execute && InstructionMap::hasDestReg(input.opcode()) && input.destination() != 0)/* && !input.opcode() == InstructionMap::OP_IWTR)*/
+    previousDestination = input.destination();
+  else
+    previousDestination = -1;
 
   return continueToExecute;
 }
@@ -185,24 +220,45 @@ bool Decoder::ready() const {
 
 void Decoder::waitForOperands(const DecodedInst& dec) {
   // Wait until all data has arrived from the network.
-  if(Registers::isChannelEnd(dec.destination()))
+  if(InstructionMap::hasDestReg(dec.opcode()) && Registers::isChannelEnd(dec.destination()))
     waitUntilArrival(Registers::toChannelID(dec.destination()));
-  if(Registers::isChannelEnd(dec.sourceReg1()))
+  if(InstructionMap::hasSrcReg1(dec.opcode()) && Registers::isChannelEnd(dec.sourceReg1()))
     waitUntilArrival(Registers::toChannelID(dec.sourceReg1()));
-  if(Registers::isChannelEnd(dec.sourceReg2()))
+  if(InstructionMap::hasSrcReg2(dec.opcode()) && Registers::isChannelEnd(dec.sourceReg2()))
     waitUntilArrival(Registers::toChannelID(dec.sourceReg2()));
 }
 
 void Decoder::setOperand1(DecodedInst& dec) {
   RegisterIndex reg = dec.sourceReg1();
-  dec.operand1(readRegs(reg, dec.operation() == InstructionMap::IRDR));
+  bool indirect = dec.opcode() == InstructionMap::OP_IRDR;
+
+  // FIXME: if this is an indirect read, and the pipeline has recently stalled,
+  // it may be possible that the instruction producing the operand we need will
+  // be sitting in a pipeline register. We therefore won't get the correct operand.
+
+  if((reg == previousDestination) && !indirect)
+    dec.operand1Source(DecodedInst::BYPASS);
+  else {
+    dec.operand1(readRegs(reg, indirect));
+    dec.operand1Source(DecodedInst::REGISTER);
+  }
 }
 
 void Decoder::setOperand2(DecodedInst& dec) {
-  if(dec.hasSrcReg2())
-    dec.operand2(readRegs(dec.sourceReg2()));
-  else
+  if(dec.hasImmediate()) {
     dec.operand2(dec.immediate());
+    dec.operand2Source(DecodedInst::IMMEDIATE);
+  }
+  else if(dec.hasSrcReg2()) {
+    RegisterIndex reg = dec.sourceReg2();
+
+    if(reg == previousDestination)
+      dec.operand2Source(DecodedInst::BYPASS);
+    else {
+      dec.operand2(readRegs(dec.sourceReg2()));
+      dec.operand2Source(DecodedInst::REGISTER);
+    }
+  }
 }
 
 int32_t Decoder::readRegs(RegisterIndex index, bool indirect) {
@@ -213,6 +269,9 @@ void Decoder::waitUntilArrival(ChannelIndex channel) {
   // Test the channel to see if the data is already there.
   if(!parent()->testChannel(channel)) {
     stall(true, Stalls::INPUT);
+
+    if(DEBUG)
+      cout << this->name() << " waiting for channel " << (int)channel << endl;
 
     // Wait until something arrives.
     wait(parent()->receivedDataEvent(channel));
@@ -235,7 +294,7 @@ void Decoder::remoteExecution(DecodedInst& instruction) const {
 
   // Prevent other stages from trying to execute this instruction.
   instruction.predicate(Instruction::ALWAYS);
-  instruction.operation(InstructionMap::OR);
+  instruction.opcode(InstructionMap::OP_OR);
   instruction.destination(0);
 }
 
@@ -302,4 +361,5 @@ Decoder::Decoder(const sc_module_name& name, const ComponentID& ID) :
 	  Component(name, ID) {
   sendChannel = -1;
   remoteExecute = false;
+  previousDestination = -1;
 }

@@ -24,11 +24,9 @@ public:
 
   DataInput   *dataIn;
   ReadyInput  *validIn;
-  ReadyOutput *ackIn;
 
   DataOutput   dataOut;
   ReadyOutput  validOut;
-  ReadyInput   ackOut;
 
 //==============================//
 // Constructors and destructors
@@ -51,7 +49,6 @@ public:
 private:
 
   void handleData();
-  void handleAcks();
 
 //==============================//
 // Local state

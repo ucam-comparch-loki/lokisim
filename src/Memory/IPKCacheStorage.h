@@ -37,7 +37,7 @@ public:
   // Returns whether the given address matches any of the tags.
   // There are many different ways of fetching instructions, so provide the
   // operation too.
-  virtual bool checkTags(const MemoryAddr& key, operation_t operation);
+  virtual bool checkTags(const MemoryAddr& key, opcode_t operation);
 
   // Returns the next item in the cache.
   virtual const Instruction& read();

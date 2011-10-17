@@ -10,8 +10,14 @@
 #include "FlowControl/FlowControlOut.h"
 #include "Topologies/Crossbar.h"
 #include "Topologies/MulticastCrossbar.h"
-#include "Topologies/LocalNetwork.h"
+#include "Topologies/NewLocalNetwork.h"
 #include "Topologies/Mesh.h"
+
+local_net_t* NetworkHierarchy::getLocalNetwork(ComponentID component) const {
+  unsigned int tile = component.getTile();
+  assert(tile < localNetworks.size());
+  return localNetworks[tile];
+}
 
 void NetworkHierarchy::setupFlowControl() {
 
@@ -25,44 +31,48 @@ void NetworkHierarchy::setupFlowControl() {
 
   fcin->clock(clock);
   fcin->dataOut(dataToOffChip);            offChip.dataIn(dataToOffChip);
-  fcin->bufferHasSpace(readyFromOffChip);  offChip.readyOut(readyFromOffChip);
-  fcin->dataIn(dataToComponents[0]);
-  fcin->validDataIn(validDataToComps[0]);
-  fcin->ackDataIn(ackDataToComps[0]);
-  fcin->creditsOut(creditsFromComponents[0]);
-  fcin->validCreditOut(validCreditFromComps[0]);
-  fcin->ackCreditOut(ackCreditFromComps[0]);
+                                           offChip.readyOut(readyDataFromOffchip);
+  fcin->dataIn(dataFromOffchip);
+  fcin->validDataIn(validDataFromOffchip);
+  fcin->creditsOut(creditsToOffchip);
+  fcin->validCreditOut(validCreditToOffchip);
+  fcin->ackCreditOut(ackCreditToOffchip);
 
   fcout->dataIn(dataFromOffChip);          offChip.dataOut(dataFromOffChip);
   fcout->flowControlOut(readyToOffChip);   offChip.readyIn(readyToOffChip);
-  fcout->dataOut(dataFromComponents[0]);
-  fcout->readyIn(ackDataFromComps[0]);
-  fcout->creditsIn(creditsToComponents[0]);
-  fcout->readyOut(ackCreditToComps[0]);
+  fcout->dataOut(dataToOffchip);
+  fcout->readyIn(readyDataFromOffchip);
+  fcout->creditsIn(creditsFromOffchip);
+  fcout->readyOut(ackCreditFromOffchip);
 
 }
 
 void NetworkHierarchy::makeLocalNetwork(int tileID) {
 
   // Create a local network.
-  LocalNetwork* localNetwork = new LocalNetwork(sc_gen_unique_name("tile_net"), ComponentID(tileID, 0));
+  local_net_t* localNetwork = new local_net_t(sc_gen_unique_name("tile_net"), ComponentID(tileID, 0));
   localNetworks.push_back(localNetwork);
 
   // Connect things up.
   localNetwork->clock(clock);
+  localNetwork->fastClock(fastClock);
+  localNetwork->slowClock(slowClock);
 
   for(unsigned int i=0; i<INPUT_PORTS_PER_TILE; i++) {
     int outputIndex = (tileID * INPUT_PORTS_PER_TILE) + i;
     localNetwork->dataOut[i](dataOut[outputIndex]);
     localNetwork->validDataOut[i](validDataOut[outputIndex]);
-    localNetwork->ackDataOut[i](ackDataOut[outputIndex]);
+  }
+
+  for(unsigned int i=0; i<COMPONENTS_PER_TILE; i++) {
+    int outputIndex = (tileID * COMPONENTS_PER_TILE) + i;
+    localNetwork->readyIn[i](readyDataOut[outputIndex]);
   }
 
   for(unsigned int i=0; i<OUTPUT_PORTS_PER_TILE; i++) {
     int inputIndex = (tileID * OUTPUT_PORTS_PER_TILE) + i;
     localNetwork->dataIn[i](dataIn[inputIndex]);
     localNetwork->validDataIn[i](validDataIn[inputIndex]);
-    localNetwork->ackDataIn[i](ackDataIn[inputIndex]);
   }
 
   // Memories don't have credit connections.
@@ -84,42 +94,40 @@ void NetworkHierarchy::makeLocalNetwork(int tileID) {
   // need for a global network, so this local network can connect directly
   // to the OffChip component.
   if(NUM_TILES == 1) {
-    localNetwork->externalInput()(dataFromComponents[0]);
-    localNetwork->externalValidInput()(validDataFromComps[0]);
-    localNetwork->externalAckOutput()(ackDataFromComps[0]);
-    localNetwork->externalOutput()(dataToComponents[0]);
-    localNetwork->externalValidOutput()(validDataFromComps[0]);
-    localNetwork->externalAckInput()(ackDataToComps[0]);
+    localNetwork->externalInput()(dataToOffchip);
+    localNetwork->externalValidInput()(validDataToOffchip);
+    localNetwork->externalOutput()(dataFromOffchip);
+    localNetwork->externalValidOutput()(validDataToOffchip);
+    localNetwork->externalReadyInput()(readyDataFromOffchip);
 
-    localNetwork->externalCreditIn()(creditsFromComponents[0]);
-    localNetwork->externalValidCreditIn()(validCreditFromComps[0]);
-    localNetwork->externalAckCreditOut()(ackCreditFromComps[0]);
-    localNetwork->externalCreditOut()(creditsToComponents[0]);
-    localNetwork->externalValidCreditOut()(validCreditToComps[0]);
-    localNetwork->externalAckCreditIn()(ackCreditToComps[0]);
+    localNetwork->externalCreditIn()(creditsToOffchip);
+    localNetwork->externalValidCreditIn()(validCreditToOffchip);
+    localNetwork->externalAckCreditOut()(ackCreditToOffchip);
+    localNetwork->externalCreditOut()(creditsFromOffchip);
+    localNetwork->externalValidCreditOut()(validCreditFromOffchip);
+    localNetwork->externalAckCreditIn()(ackCreditFromOffchip);
   }
 }
 
 void NetworkHierarchy::makeGlobalNetwork() {
 
   // Make data network.
-  globalDataNetwork = new Mesh("global_data_net",
-                               0,
-                               NUM_TILE_ROWS,
-                               NUM_TILE_COLUMNS,
-                               Network::TILE,   // This network connects tiles
-                               Dimension(NUM_TILES, NUM_TILES));
+  globalDataNetwork = new global_net_t("global_data_net",
+                                       0,
+                                       NUM_TILE_ROWS,
+                                       NUM_TILE_COLUMNS,
+                                       Network::TILE,   // This network connects tiles
+                                       Dimension(NUM_TILES, NUM_TILES));
                                
   globalDataNetwork->clock(clock);
 
   for(uint i=0; i<localNetworks.size(); i++) {
-    Network* n = localNetworks[i];
+    local_net_t* n = localNetworks[i];
     n->externalInput()(dataToLocalNet[i]);
     n->externalOutput()(dataFromLocalNet[i]);
     n->externalValidInput()(validDataToLocal[i]);
     n->externalValidOutput()(validDataFromLocal[i]);
-    n->externalAckInput()(globalReadyForData[i]);
-    n->externalAckOutput()(localReadyForData[i]);
+    n->externalReadyInput()(globalReadyForData[i]);
     globalDataNetwork->dataOut[i](dataToLocalNet[i]);
     globalDataNetwork->dataIn[i](dataFromLocalNet[i]);
     globalDataNetwork->validDataOut[i](validDataToLocal[i]);
@@ -130,17 +138,17 @@ void NetworkHierarchy::makeGlobalNetwork() {
 
   // Make credit network.
   // TODO: integrate both networks into one GlobalNetwork.
-  globalCreditNetwork = new Mesh("global_credit_net",
-                                 0,
-                                 NUM_TILE_ROWS,
-                                 NUM_TILE_COLUMNS,
-                                 Network::TILE,   // This network connects tiles
-                                 Dimension(NUM_TILES, NUM_TILES));
+  globalCreditNetwork = new global_net_t("global_credit_net",
+                                         0,
+                                         NUM_TILE_ROWS,
+                                         NUM_TILE_COLUMNS,
+                                         Network::TILE,   // This network connects tiles
+                                         Dimension(NUM_TILES, NUM_TILES));
 
   globalCreditNetwork->clock(clock);
 
   for(uint i=0; i<localNetworks.size(); i++) {
-    LocalNetwork* n = static_cast<LocalNetwork*>(localNetworks[i]);
+    local_net_t* n = localNetworks[i];
     n->externalCreditIn()(creditsToLocalNet[i]);
     n->externalCreditOut()(creditsFromLocalNet[i]);
     n->externalValidCreditIn()(validCreditToLocal[i]);
@@ -167,28 +175,13 @@ NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
   dataOut               = new DataOutput[TOTAL_INPUT_PORTS];
   validDataIn           = new ReadyInput[TOTAL_OUTPUT_PORTS];
   validDataOut          = new ReadyOutput[TOTAL_INPUT_PORTS];
-  ackDataIn             = new ReadyOutput[TOTAL_OUTPUT_PORTS];
-  ackDataOut            = new ReadyInput[TOTAL_INPUT_PORTS];
+  readyDataOut          = new ReadyInput[NUM_COMPONENTS];
   creditsIn             = new CreditInput[NUM_CORES];
   creditsOut            = new CreditOutput[CORE_OUTPUT_PORTS * NUM_CORES];
   validCreditIn         = new ReadyInput[NUM_CORES];
   validCreditOut        = new ReadyOutput[CORE_OUTPUT_PORTS * NUM_CORES];
   ackCreditIn           = new ReadyOutput[NUM_CORES];
   ackCreditOut          = new ReadyInput[CORE_OUTPUT_PORTS * NUM_CORES];
-
-  // Make wires to the off-chip component.
-  dataFromComponents    = new DataSignal[1];
-  dataToComponents      = new DataSignal[1];
-  creditsFromComponents = new CreditSignal[1];
-  creditsToComponents   = new CreditSignal[1];
-  validDataToComps      = new ReadySignal[1];
-  validCreditToComps    = new ReadySignal[1];
-  validDataFromComps    = new ReadySignal[1];
-  validCreditFromComps  = new ReadySignal[1];
-  ackDataToComps        = new ReadySignal[1];
-  ackCreditToComps      = new ReadySignal[1];
-  ackDataFromComps      = new ReadySignal[1];
-  ackCreditFromComps    = new ReadySignal[1];
 
   // Make wires between local and global networks.
   dataFromLocalNet      = new DataSignal[NUM_TILES];
@@ -224,15 +217,8 @@ NetworkHierarchy::~NetworkHierarchy() {
   delete[] creditsIn;                 delete[] creditsOut;
   delete[] validDataIn;               delete[] validDataOut;
   delete[] validCreditIn;             delete[] validCreditOut;
-  delete[] ackDataIn;                 delete[] ackDataOut;
+  delete[] readyDataOut;
   delete[] ackCreditIn;               delete[] ackCreditOut;
-
-  delete[] dataFromComponents;        delete[] dataToComponents;
-  delete[] creditsFromComponents;     delete[] creditsToComponents;
-  delete[] validDataToComps;          delete[] validDataFromComps;
-  delete[] validCreditToComps;        delete[] validCreditFromComps;
-  delete[] ackDataToComps;            delete[] ackDataFromComps;
-  delete[] ackCreditToComps;          delete[] ackCreditFromComps;
 
   delete[] dataToLocalNet;            delete[] dataFromLocalNet;
   delete[] creditsToLocalNet;         delete[] creditsFromLocalNet;

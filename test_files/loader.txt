@@ -9,9 +9,9 @@ power elm
 %% The "bootloader" program to be executed by core 0.
 %% This loader configures the memories to behave as a simple cache by default
 %% and then fetches the main program.
-loader ../test_local/loader_0032.txt
+loader bootloader.txt
 
 
 %% The benchmark to run (if we aren't supplying one on the command line).
-%loader mat_mult/simd/loader.txt
-%../test_local/fact3
+%loader mat_mult/1_core/loader.txt
+%../test_local/cjpeg

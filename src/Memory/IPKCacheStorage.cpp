@@ -12,7 +12,7 @@
 const MemoryAddr IPKCacheStorage::DEFAULT_TAG;
 
 /* Returns whether the given address matches any of the tags. */
-bool IPKCacheStorage::checkTags(const MemoryAddr& key, operation_t operation) {
+bool IPKCacheStorage::checkTags(const MemoryAddr& key, opcode_t operation) {
   // Depending on whether are are currently executing a packet or not, we may
   // want to store information in either currentPacket or pendingPacket.
   PacketInfo* packet;
@@ -43,8 +43,10 @@ bool IPKCacheStorage::checkTags(const MemoryAddr& key, operation_t operation) {
 
   packet->memAddr    = key;
   packet->inCache    = foundMatch;
-  packet->isFill     = operation == InstructionMap::FILL;     // TODO: FILLR
-  packet->persistent = operation == InstructionMap::FETCHPST; // TODO: FETCHPSTR
+  packet->isFill     = operation == InstructionMap::OP_FILL ||
+                       operation == InstructionMap::OP_FILLR;
+  packet->persistent = operation == InstructionMap::OP_FETCHPST ||
+                       operation == InstructionMap::OP_FETCHPSTR;
 
   return foundMatch;
 
@@ -89,7 +91,7 @@ void IPKCacheStorage::write(const Instruction& newData) {
   // Only the first instruction in each packet has a tag, but we keep track of
   // the locations of all instructions for debug reasons.
   locations[writePointer.value()] = packet->memAddr;
-  packet->memAddr += BYTES_PER_INSTRUCTION;
+  packet->memAddr += BYTES_PER_WORD;
 
   // If we're not serving instructions at the moment, start serving from here.
   if(readPointer.isNull()) readPointer = writePointer;

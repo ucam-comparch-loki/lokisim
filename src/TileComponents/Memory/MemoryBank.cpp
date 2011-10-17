@@ -28,12 +28,19 @@ using namespace std;
 #include "../../Datatype/Instruction.h"
 #include "../../Datatype/MemoryRequest.h"
 #include "../../Memory/BufferStorage.h"
+#include "../../Network/Topologies/NewLocalNetwork.h"
 #include "../../Utility/Trace/MemoryTrace.h"
 #include "../../Utility/Parameters.h"
 #include "GeneralPurposeCacheHandler.h"
 #include "ScratchpadModeHandler.h"
 #include "SimplifiedOnChipScratchpad.h"
 #include "MemoryBank.h"
+
+// A "fast" memory is capable of receiving a request, decoding it, performing
+// the operation, and sending the result, all in one clock cycle.
+// A "slow" memory receives and decodes the request in one cycle, and performs
+// it on the next.
+#define FAST_MEMORY (true)
 
 //-------------------------------------------------------------------------------------------------
 // Internal functions
@@ -675,164 +682,92 @@ void MemoryBank::processLocalIPKRead() {
 
 		uint32_t data = mScratchpadModeHandler.readWord(mActiveAddress, true);
 
-		if (mPartialInstructionPending) {
-			//TODO: This is broken - but it is broken in a way the code loader depends on (will be cleaned up with new encoding)
-			uint64_t fullData = ((uint64_t)mPartialInstructionData << 32) | (uint64_t)data;
-			mPartialInstructionPending = false;
+    Instruction inst(data);
+    bool endOfPacket = inst.endOfPacket();
 
-			Instruction inst(fullData);
-			bool endOfPacket = inst.endOfPacket();
+    // Enqueue output request
 
-			// Enqueue output request
+    OutputWord outWord;
+    outWord.TableIndex = mActiveTableIndex;
+    outWord.Data = inst;
+    outWord.PortClaim = false;
+    outWord.LastWord = endOfPacket;
 
-			OutputWord outWord;
-			outWord.TableIndex = mActiveTableIndex;
-			outWord.Data = inst;
-			outWord.PortClaim = false;
-			outWord.LastWord = endOfPacket;
+    mOutputQueue.write(outWord);
 
-			mOutputQueue.write(outWord);
+    // Handle IPK streaming
 
-			// Handle IPK streaming
+    if (endOfPacket) {
+      if(MEMORY_TRACE == 1) MemoryTrace::stopIPK(cBankNumber, mActiveAddress);
 
-			if (endOfPacket) {
-				MemoryTrace::stopIPK(cBankNumber, mActiveAddress);
+      // Chain next request
 
-				// Chain next request
+      if (!processRingEvent())
+        processMessageHeader();
+    } else {
+      mActiveAddress += 4;
 
-				if (!processRingEvent())
-					processMessageHeader();
-			} else {
-				mActiveAddress += 4;
+      if (mScratchpadModeHandler.containsAddress(mActiveAddress)) {
+        if (!mScratchpadModeHandler.sameLine(mActiveAddress - 4, mActiveAddress))
+          if(MEMORY_TRACE == 1) MemoryTrace::splitLineIPK(cBankNumber, mActiveAddress);
 
-				if (mScratchpadModeHandler.containsAddress(mActiveAddress)) {
-					if (!mScratchpadModeHandler.sameLine(mActiveAddress - 4, mActiveAddress))
-						MemoryTrace::splitLineIPK(cBankNumber, mActiveAddress);
+        mFSMState = STATE_LOCAL_IPK_READ;
+      } else {
+        if(MEMORY_TRACE == 1) MemoryTrace::splitBankIPK(cBankNumber, mActiveAddress);
 
-					mFSMState = STATE_LOCAL_IPK_READ;
-				} else {
-					MemoryTrace::splitBankIPK(cBankNumber, mActiveAddress);
+        if (mGroupIndex == mGroupSize - 1) {
+          if (mRingRequestOutputPending) {
+            mDelayedRingRequestOutput.Header.RequestType = RING_PASS_THROUGH;
+            mDelayedRingRequestOutput.Header.PassThrough.DestinationBankNumber = mGroupBaseBank;
+            mDelayedRingRequestOutput.Header.PassThrough.EnvelopedRequestType = RING_IPK_READ_HAND_OFF;
+            mDelayedRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
+            mDelayedRingRequestOutput.Header.PassThrough.Count = 0;
+            mDelayedRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
+            mDelayedRingRequestOutput.Header.PassThrough.PartialInstructionPending = false;
+            mDelayedRingRequestOutput.Header.PassThrough.PartialInstructionData = 0;
 
-					if (mGroupIndex == mGroupSize - 1) {
-						if (mRingRequestOutputPending) {
-							mDelayedRingRequestOutput.Header.RequestType = RING_PASS_THROUGH;
-							mDelayedRingRequestOutput.Header.PassThrough.DestinationBankNumber = mGroupBaseBank;
-							mDelayedRingRequestOutput.Header.PassThrough.EnvelopedRequestType = RING_IPK_READ_HAND_OFF;
-							mDelayedRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
-							mDelayedRingRequestOutput.Header.PassThrough.Count = 0;
-							mDelayedRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
-							mDelayedRingRequestOutput.Header.PassThrough.PartialInstructionPending = false;
-							mDelayedRingRequestOutput.Header.PassThrough.PartialInstructionData = 0;
+            mFSMState = STATE_WAIT_RING_OUTPUT;
+          } else {
+            mRingRequestOutputPending = true;
+            mActiveRingRequestOutput.Header.RequestType = RING_PASS_THROUGH;
+            mActiveRingRequestOutput.Header.PassThrough.DestinationBankNumber = mGroupBaseBank;
+            mActiveRingRequestOutput.Header.PassThrough.EnvelopedRequestType = RING_IPK_READ_HAND_OFF;
+            mActiveRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
+            mActiveRingRequestOutput.Header.PassThrough.Count = 0;
+            mActiveRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
+            mActiveRingRequestOutput.Header.PassThrough.PartialInstructionPending = false;
+            mActiveRingRequestOutput.Header.PassThrough.PartialInstructionData = 0;
 
-							mFSMState = STATE_WAIT_RING_OUTPUT;
-						} else {
-							mRingRequestOutputPending = true;
-							mActiveRingRequestOutput.Header.RequestType = RING_PASS_THROUGH;
-							mActiveRingRequestOutput.Header.PassThrough.DestinationBankNumber = mGroupBaseBank;
-							mActiveRingRequestOutput.Header.PassThrough.EnvelopedRequestType = RING_IPK_READ_HAND_OFF;
-							mActiveRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
-							mActiveRingRequestOutput.Header.PassThrough.Count = 0;
-							mActiveRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
-							mActiveRingRequestOutput.Header.PassThrough.PartialInstructionPending = false;
-							mActiveRingRequestOutput.Header.PassThrough.PartialInstructionData = 0;
+            // Chain next request
 
-							// Chain next request
+            if (!processRingEvent())
+              processMessageHeader();
+          }
+        } else {
+          if (mRingRequestOutputPending) {
+            mDelayedRingRequestOutput.Header.RequestType = RING_IPK_READ_HAND_OFF;
+            mDelayedRingRequestOutput.Header.IPKReadHandOff.Address = mActiveAddress;
+            mDelayedRingRequestOutput.Header.IPKReadHandOff.TableIndex = mActiveTableIndex;
+            mDelayedRingRequestOutput.Header.IPKReadHandOff.PartialInstructionPending = false;
+            mDelayedRingRequestOutput.Header.IPKReadHandOff.PartialInstructionData = 0;
 
-							if (!processRingEvent())
-								processMessageHeader();
-						}
-					} else {
-						if (mRingRequestOutputPending) {
-							mDelayedRingRequestOutput.Header.RequestType = RING_IPK_READ_HAND_OFF;
-							mDelayedRingRequestOutput.Header.IPKReadHandOff.Address = mActiveAddress;
-							mDelayedRingRequestOutput.Header.IPKReadHandOff.TableIndex = mActiveTableIndex;
-							mDelayedRingRequestOutput.Header.IPKReadHandOff.PartialInstructionPending = false;
-							mDelayedRingRequestOutput.Header.IPKReadHandOff.PartialInstructionData = 0;
+            mFSMState = STATE_WAIT_RING_OUTPUT;
+          } else {
+            mRingRequestOutputPending = true;
+            mActiveRingRequestOutput.Header.RequestType = RING_IPK_READ_HAND_OFF;
+            mActiveRingRequestOutput.Header.IPKReadHandOff.Address = mActiveAddress;
+            mActiveRingRequestOutput.Header.IPKReadHandOff.TableIndex = mActiveTableIndex;
+            mActiveRingRequestOutput.Header.IPKReadHandOff.PartialInstructionPending = false;
+            mActiveRingRequestOutput.Header.IPKReadHandOff.PartialInstructionData = 0;
 
-							mFSMState = STATE_WAIT_RING_OUTPUT;
-						} else {
-							mRingRequestOutputPending = true;
-							mActiveRingRequestOutput.Header.RequestType = RING_IPK_READ_HAND_OFF;
-							mActiveRingRequestOutput.Header.IPKReadHandOff.Address = mActiveAddress;
-							mActiveRingRequestOutput.Header.IPKReadHandOff.TableIndex = mActiveTableIndex;
-							mActiveRingRequestOutput.Header.IPKReadHandOff.PartialInstructionPending = false;
-							mActiveRingRequestOutput.Header.IPKReadHandOff.PartialInstructionData = 0;
+            // Chain next request
 
-							// Chain next request
-
-							if (!processRingEvent())
-								processMessageHeader();
-						}
-					}
-				}
-			}
-		} else {
-			mActiveAddress += 4;
-
-			if (mScratchpadModeHandler.containsAddress(mActiveAddress)) {
-				if (!mScratchpadModeHandler.sameLine(mActiveAddress - 4, mActiveAddress))
-					MemoryTrace::splitLineIPK(cBankNumber, mActiveAddress);
-
-				mPartialInstructionPending = true;
-				mPartialInstructionData = data;
-
-				mFSMState = STATE_LOCAL_IPK_READ;
-			} else {
-				MemoryTrace::splitBankIPK(cBankNumber, mActiveAddress);
-
-				if (mGroupIndex == mGroupSize - 1) {
-					if (mRingRequestOutputPending) {
-						mDelayedRingRequestOutput.Header.RequestType = RING_PASS_THROUGH;
-						mDelayedRingRequestOutput.Header.PassThrough.DestinationBankNumber = mGroupBaseBank;
-						mDelayedRingRequestOutput.Header.PassThrough.EnvelopedRequestType = RING_IPK_READ_HAND_OFF;
-						mDelayedRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
-						mDelayedRingRequestOutput.Header.PassThrough.Count = 0;
-						mDelayedRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
-						mDelayedRingRequestOutput.Header.PassThrough.PartialInstructionPending = true;
-						mDelayedRingRequestOutput.Header.PassThrough.PartialInstructionData = data;
-
-						mFSMState = STATE_WAIT_RING_OUTPUT;
-					} else {
-						mRingRequestOutputPending = true;
-						mActiveRingRequestOutput.Header.RequestType = RING_PASS_THROUGH;
-						mActiveRingRequestOutput.Header.PassThrough.DestinationBankNumber = mGroupBaseBank;
-						mActiveRingRequestOutput.Header.PassThrough.EnvelopedRequestType = RING_IPK_READ_HAND_OFF;
-						mActiveRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
-						mActiveRingRequestOutput.Header.PassThrough.Count = 0;
-						mActiveRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
-						mActiveRingRequestOutput.Header.PassThrough.PartialInstructionPending = true;
-						mActiveRingRequestOutput.Header.PassThrough.PartialInstructionData = data;
-
-						// Chain next request
-
-						if (!processRingEvent())
-							processMessageHeader();
-					}
-				} else {
-					if (mRingRequestOutputPending) {
-						mDelayedRingRequestOutput.Header.RequestType = RING_IPK_READ_HAND_OFF;
-						mDelayedRingRequestOutput.Header.IPKReadHandOff.Address = mActiveAddress;
-						mDelayedRingRequestOutput.Header.IPKReadHandOff.TableIndex = mActiveTableIndex;
-						mDelayedRingRequestOutput.Header.IPKReadHandOff.PartialInstructionPending = true;
-						mDelayedRingRequestOutput.Header.IPKReadHandOff.PartialInstructionData = data;
-
-						mFSMState = STATE_WAIT_RING_OUTPUT;
-					} else {
-						mRingRequestOutputPending = true;
-						mActiveRingRequestOutput.Header.RequestType = RING_IPK_READ_HAND_OFF;
-						mActiveRingRequestOutput.Header.IPKReadHandOff.Address = mActiveAddress;
-						mActiveRingRequestOutput.Header.IPKReadHandOff.TableIndex = mActiveTableIndex;
-						mActiveRingRequestOutput.Header.IPKReadHandOff.PartialInstructionPending = true;
-						mActiveRingRequestOutput.Header.IPKReadHandOff.PartialInstructionData = data;
-
-						// Chain next request
-
-						if (!processRingEvent())
-							processMessageHeader();
-					}
-				}
-			}
-		}
+            if (!processRingEvent())
+              processMessageHeader();
+          }
+        }
+      }
+    }
 	} else {
 		if (DEBUG)
 			cout << this->name() << " reading instruction at address " << mActiveAddress << " from local cache" << endl;
@@ -846,170 +781,96 @@ void MemoryBank::processLocalIPKRead() {
 		mCacheResumeRequest = false;
 
 		if (cacheHit) {
-			if (mPartialInstructionPending) {
-				//TODO: This is broken - but it is broken in a way the code loader depends on (will be cleaned up with new encoding)
-				uint64_t fullData = ((uint64_t)mPartialInstructionData << 32) | (uint64_t)data;
-				mPartialInstructionPending = false;
 
-				Instruction inst(fullData);
-				bool endOfPacket = inst.endOfPacket();
+      Instruction inst(data);
+      bool endOfPacket = inst.endOfPacket();
 
-				if (DEBUG)
-					cout << this->name() << " cache hit " << (endOfPacket ? "(end of packet reached)" : "(end of packet not reached)") << ": " << inst << endl;
+      if (DEBUG)
+        cout << this->name() << " cache hit " << (endOfPacket ? "(end of packet reached)" : "(end of packet not reached)") << ": " << inst << endl;
 
-				// Enqueue output request
+      // Enqueue output request
 
-				OutputWord outWord;
-				outWord.TableIndex = mActiveTableIndex;
-				outWord.Data = inst;
-				outWord.PortClaim = false;
-				outWord.LastWord = endOfPacket;
+      OutputWord outWord;
+      outWord.TableIndex = mActiveTableIndex;
+      outWord.Data = inst;
+      outWord.PortClaim = false;
+      outWord.LastWord = endOfPacket;
 
-				mOutputQueue.write(outWord);
+      mOutputQueue.write(outWord);
 
-				// Handle IPK streaming
+      // Handle IPK streaming
 
-				if (endOfPacket) {
-					MemoryTrace::stopIPK(cBankNumber, mActiveAddress);
+      if (endOfPacket) {
+        if(MEMORY_TRACE == 1) MemoryTrace::stopIPK(cBankNumber, mActiveAddress);
 
-					// Chain next request
+        // Chain next request
 
-					if (!processRingEvent())
-						processMessageHeader();
-				} else {
-					mActiveAddress += 4;
+        if (!processRingEvent())
+          processMessageHeader();
+      } else {
+        mActiveAddress += 4;
 
-					if (mGeneralPurposeCacheHandler.containsAddress(mActiveAddress)) {
-						if (!mGeneralPurposeCacheHandler.sameLine(mActiveAddress - 4, mActiveAddress))
-							MemoryTrace::splitLineIPK(cBankNumber, mActiveAddress);
+        if (mGeneralPurposeCacheHandler.containsAddress(mActiveAddress)) {
+          if (!mGeneralPurposeCacheHandler.sameLine(mActiveAddress - 4, mActiveAddress))
+            if(MEMORY_TRACE == 1) MemoryTrace::splitLineIPK(cBankNumber, mActiveAddress);
 
-						mFSMState = STATE_LOCAL_IPK_READ;
-					} else {
-						MemoryTrace::splitBankIPK(cBankNumber, mActiveAddress);
+          mFSMState = STATE_LOCAL_IPK_READ;
+        } else {
+          if(MEMORY_TRACE == 1) MemoryTrace::splitBankIPK(cBankNumber, mActiveAddress);
 
-						if (mGroupIndex == mGroupSize - 1) {
-							if (mRingRequestOutputPending) {
-								mDelayedRingRequestOutput.Header.RequestType = RING_PASS_THROUGH;
-								mDelayedRingRequestOutput.Header.PassThrough.DestinationBankNumber = mGroupBaseBank;
-								mDelayedRingRequestOutput.Header.PassThrough.EnvelopedRequestType = RING_IPK_READ_HAND_OFF;
-								mDelayedRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
-								mDelayedRingRequestOutput.Header.PassThrough.Count = 0;
-								mDelayedRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
-								mDelayedRingRequestOutput.Header.PassThrough.PartialInstructionPending = false;
-								mDelayedRingRequestOutput.Header.PassThrough.PartialInstructionData = 0;
+          if (mGroupIndex == mGroupSize - 1) {
+            if (mRingRequestOutputPending) {
+              mDelayedRingRequestOutput.Header.RequestType = RING_PASS_THROUGH;
+              mDelayedRingRequestOutput.Header.PassThrough.DestinationBankNumber = mGroupBaseBank;
+              mDelayedRingRequestOutput.Header.PassThrough.EnvelopedRequestType = RING_IPK_READ_HAND_OFF;
+              mDelayedRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
+              mDelayedRingRequestOutput.Header.PassThrough.Count = 0;
+              mDelayedRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
+              mDelayedRingRequestOutput.Header.PassThrough.PartialInstructionPending = false;
+              mDelayedRingRequestOutput.Header.PassThrough.PartialInstructionData = 0;
 
-								mFSMState = STATE_WAIT_RING_OUTPUT;
-							} else {
-								mRingRequestOutputPending = true;
-								mActiveRingRequestOutput.Header.RequestType = RING_PASS_THROUGH;
-								mActiveRingRequestOutput.Header.PassThrough.DestinationBankNumber = mGroupBaseBank;
-								mActiveRingRequestOutput.Header.PassThrough.EnvelopedRequestType = RING_IPK_READ_HAND_OFF;
-								mActiveRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
-								mActiveRingRequestOutput.Header.PassThrough.Count = 0;
-								mActiveRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
-								mActiveRingRequestOutput.Header.PassThrough.PartialInstructionPending = false;
-								mActiveRingRequestOutput.Header.PassThrough.PartialInstructionData = 0;
+              mFSMState = STATE_WAIT_RING_OUTPUT;
+            } else {
+              mRingRequestOutputPending = true;
+              mActiveRingRequestOutput.Header.RequestType = RING_PASS_THROUGH;
+              mActiveRingRequestOutput.Header.PassThrough.DestinationBankNumber = mGroupBaseBank;
+              mActiveRingRequestOutput.Header.PassThrough.EnvelopedRequestType = RING_IPK_READ_HAND_OFF;
+              mActiveRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
+              mActiveRingRequestOutput.Header.PassThrough.Count = 0;
+              mActiveRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
+              mActiveRingRequestOutput.Header.PassThrough.PartialInstructionPending = false;
+              mActiveRingRequestOutput.Header.PassThrough.PartialInstructionData = 0;
 
-								// Chain next request
+              // Chain next request
 
-								if (!processRingEvent())
-									processMessageHeader();
-							}
-						} else {
-							if (mRingRequestOutputPending) {
-								mDelayedRingRequestOutput.Header.RequestType = RING_IPK_READ_HAND_OFF;
-								mDelayedRingRequestOutput.Header.IPKReadHandOff.Address = mActiveAddress;
-								mDelayedRingRequestOutput.Header.IPKReadHandOff.TableIndex = mActiveTableIndex;
-								mDelayedRingRequestOutput.Header.IPKReadHandOff.PartialInstructionPending = false;
-								mDelayedRingRequestOutput.Header.IPKReadHandOff.PartialInstructionData = 0;
+              if (!processRingEvent())
+                processMessageHeader();
+            }
+          } else {
+            if (mRingRequestOutputPending) {
+              mDelayedRingRequestOutput.Header.RequestType = RING_IPK_READ_HAND_OFF;
+              mDelayedRingRequestOutput.Header.IPKReadHandOff.Address = mActiveAddress;
+              mDelayedRingRequestOutput.Header.IPKReadHandOff.TableIndex = mActiveTableIndex;
+              mDelayedRingRequestOutput.Header.IPKReadHandOff.PartialInstructionPending = false;
+              mDelayedRingRequestOutput.Header.IPKReadHandOff.PartialInstructionData = 0;
 
-								mFSMState = STATE_WAIT_RING_OUTPUT;
-							} else {
-								mRingRequestOutputPending = true;
-								mActiveRingRequestOutput.Header.RequestType = RING_IPK_READ_HAND_OFF;
-								mActiveRingRequestOutput.Header.IPKReadHandOff.Address = mActiveAddress;
-								mActiveRingRequestOutput.Header.IPKReadHandOff.TableIndex = mActiveTableIndex;
-								mActiveRingRequestOutput.Header.IPKReadHandOff.PartialInstructionPending = false;
-								mActiveRingRequestOutput.Header.IPKReadHandOff.PartialInstructionData = 0;
+              mFSMState = STATE_WAIT_RING_OUTPUT;
+            } else {
+              mRingRequestOutputPending = true;
+              mActiveRingRequestOutput.Header.RequestType = RING_IPK_READ_HAND_OFF;
+              mActiveRingRequestOutput.Header.IPKReadHandOff.Address = mActiveAddress;
+              mActiveRingRequestOutput.Header.IPKReadHandOff.TableIndex = mActiveTableIndex;
+              mActiveRingRequestOutput.Header.IPKReadHandOff.PartialInstructionPending = false;
+              mActiveRingRequestOutput.Header.IPKReadHandOff.PartialInstructionData = 0;
 
-								// Chain next request
+              // Chain next request
 
-								if (!processRingEvent())
-									processMessageHeader();
-							}
-						}
-					}
-				}
-			} else {
-				if (DEBUG)
-					cout << this->name() << " cache hit (partial instruction)" << endl;
-
-				mActiveAddress += 4;
-
-				if (mGeneralPurposeCacheHandler.containsAddress(mActiveAddress)) {
-					if (!mGeneralPurposeCacheHandler.sameLine(mActiveAddress - 4, mActiveAddress))
-						MemoryTrace::splitLineIPK(cBankNumber, mActiveAddress);
-
-					mPartialInstructionPending = true;
-					mPartialInstructionData = data;
-
-					mFSMState = STATE_LOCAL_IPK_READ;
-				} else {
-					MemoryTrace::splitBankIPK(cBankNumber, mActiveAddress);
-
-					if (mGroupIndex == mGroupSize - 1) {
-						if (mRingRequestOutputPending) {
-							mDelayedRingRequestOutput.Header.RequestType = RING_PASS_THROUGH;
-							mDelayedRingRequestOutput.Header.PassThrough.DestinationBankNumber = mGroupBaseBank;
-							mDelayedRingRequestOutput.Header.PassThrough.EnvelopedRequestType = RING_IPK_READ_HAND_OFF;
-							mDelayedRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
-							mDelayedRingRequestOutput.Header.PassThrough.Count = 0;
-							mDelayedRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
-							mDelayedRingRequestOutput.Header.PassThrough.PartialInstructionPending = true;
-							mDelayedRingRequestOutput.Header.PassThrough.PartialInstructionData = data;
-
-							mFSMState = STATE_WAIT_RING_OUTPUT;
-						} else {
-							mRingRequestOutputPending = true;
-							mActiveRingRequestOutput.Header.RequestType = RING_PASS_THROUGH;
-							mActiveRingRequestOutput.Header.PassThrough.DestinationBankNumber = mGroupBaseBank;
-							mActiveRingRequestOutput.Header.PassThrough.EnvelopedRequestType = RING_IPK_READ_HAND_OFF;
-							mActiveRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
-							mActiveRingRequestOutput.Header.PassThrough.Count = 0;
-							mActiveRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
-							mActiveRingRequestOutput.Header.PassThrough.PartialInstructionPending = true;
-							mActiveRingRequestOutput.Header.PassThrough.PartialInstructionData = data;
-
-							// Chain next request
-
-							if (!processRingEvent())
-								processMessageHeader();
-						}
-					} else {
-						if (mRingRequestOutputPending) {
-							mDelayedRingRequestOutput.Header.RequestType = RING_IPK_READ_HAND_OFF;
-							mDelayedRingRequestOutput.Header.IPKReadHandOff.Address = mActiveAddress;
-							mDelayedRingRequestOutput.Header.IPKReadHandOff.TableIndex = mActiveTableIndex;
-							mDelayedRingRequestOutput.Header.IPKReadHandOff.PartialInstructionPending = true;
-							mDelayedRingRequestOutput.Header.IPKReadHandOff.PartialInstructionData = data;
-
-							mFSMState = STATE_WAIT_RING_OUTPUT;
-						} else {
-							mRingRequestOutputPending = true;
-							mActiveRingRequestOutput.Header.RequestType = RING_IPK_READ_HAND_OFF;
-							mActiveRingRequestOutput.Header.IPKReadHandOff.Address = mActiveAddress;
-							mActiveRingRequestOutput.Header.IPKReadHandOff.TableIndex = mActiveTableIndex;
-							mActiveRingRequestOutput.Header.IPKReadHandOff.PartialInstructionPending = true;
-							mActiveRingRequestOutput.Header.IPKReadHandOff.PartialInstructionData = data;
-
-							// Chain next request
-
-							if (!processRingEvent())
-								processMessageHeader();
-						}
-					}
-				}
-			}
+              if (!processRingEvent())
+                processMessageHeader();
+            }
+          }
+        }
+      }
 		} else {
 			if (DEBUG)
 				cout << this->name() << " cache miss" << endl;
@@ -1291,14 +1152,6 @@ void MemoryBank::processWaitRingOutput() {
 	}
 }
 
-void MemoryBank::processValidInput() {
-	// Acknowledge new data as soon as it arrives if we know it will be consumed
-	// in this clock cycle.
-	// FIXME: also needs to update whenever the queue's "full" flag changes.
-  bool ack = iDataInValid.read() && !mInputQueue.full();
-	if(ack != oDataInAcknowledge.read()) oDataInAcknowledge.write(ack);
-}
-
 void MemoryBank::processValidRing() {
 	// Acknowledge new data as soon as it arrives if we know it will be consumed
 	// in this clock cycle.
@@ -1307,58 +1160,62 @@ void MemoryBank::processValidRing() {
 }
 
 void MemoryBank::handleNetworkInterfacesPre() {
-	// Set port defaults (only if they changed)
 
-	if(oDataOutValid.read()) oDataOutValid.write(false);
-	if(oRingStrobe.read())   oRingStrobe.write(false);
+  // Set output port defaults - only final write will be effective
 
-	// Check whether old output word got acknowledged
+  if(oDataOutValid.read()) {
+    oDataOutValid.write(false);
 
-	if (mOutputWordPending && iDataOutAcknowledge.read()) {
-		if (DEBUG)
-			cout << this->name() << " output word got acknowledged" << endl;
+    // If it was the final flit in the packet, remove the request for network
+    // resources.
+    if(mActiveOutputWord.endOfPacket())
+      localNetwork->makeRequest(id, mActiveOutputWord.channelID(), false);
 
-		mOutputWordPending = false;
-	}
+  }
+  if(oRingStrobe.read())   oRingStrobe.write(false);
+  if(oBMDataStrobe.read()) oBMDataStrobe.write(false);
 
-	// Check whether old ring output got acknowledged
+  // Check whether old ring output got acknowledged
 
-	if (mRingRequestOutputPending && iRingAcknowledge.read()) {
-		if (DEBUG)
-			cout << this->name() << " ring request got acknowledged" << endl;
+  if (mRingRequestOutputPending && iRingAcknowledge.read()) {
+    if (DEBUG)
+      cout << this->name() << " ring request got acknowledged" << endl;
 
-		mRingRequestOutputPending = false;
-	}
+    mRingRequestOutputPending = false;
+  }
 
-	// Check data input ports and update queue
+  // Pass the memory operation on to the next bank, if possible.
+  // To ensure that everything arrives in the correct order, all data must have
+  // been sent before the request can be passed on.
 
-	if (iDataInValid.read() && !mInputQueue.full()) {
-		// Acknowledgement handled by separate methods
+  if (mRingRequestOutputPending && !mOutputWordPending && mOutputQueue.empty()) {
+    oRingStrobe.write(true);
+    oRingRequest.write(mActiveRingRequestOutput);
 
-		mInputQueue.write(iDataIn.read());
-	}
+    // If we are passing the memory operation on to another component, we
+    // can remove our claim for network resources.
+    localNetwork->makeRequest(id, mActiveOutputWord.channelID(), false);
+    mActiveOutputWord.setEndOfPacket(true);
+  }
 
-	// Check ring input ports and update request registers
-
-	if (iRingStrobe.read() && !mRingRequestInputPending) {
-		// Acknowledgement handled by separate methods
-
-		mRingRequestInputPending = true;
-		mActiveRingRequestInput = iRingRequest.read();
-	}
 }
 
 void MemoryBank::handleNetworkInterfacesPost() {
-	// Send ring output if possible
 
-	if (mRingRequestOutputPending) {
-		oRingStrobe.write(true);
-		oRingRequest.write(mActiveRingRequestOutput);
-	}
+  // Data is sent on the negative clock edge, if there is any
+  if(mOutputWordPending) {
+    oDataOutValid.write(true);
+    oDataOut.write(mActiveOutputWord);
 
-	// Try to send new output word if available
+    mOutputWordPending = false;
 
-	if (!mOutputWordPending && !mOutputQueue.empty()) {
+    if(DEBUG)
+      cout << this->name() << " sent " << mActiveOutputWord << endl;
+  }
+
+	// Request to send next output word if available
+
+	if (!mOutputWordPending && !mOutputQueue.empty() ) {
 		OutputWord outWord = mOutputQueue.read();
 
 		AddressedWord word(outWord.Data, mChannelMapTable[outWord.TableIndex].ReturnChannel);
@@ -1366,73 +1223,114 @@ void MemoryBank::handleNetworkInterfacesPost() {
 		word.setEndOfPacket(outWord.LastWord);
 		mOutputWordPending = true;
 		mActiveOutputWord = word;
-	}
 
-	// Update ports
-
-	if (mOutputWordPending) {
-		oDataOutValid.write(true);
-		oDataOut.write(mActiveOutputWord);
+    // Request arbitration, and wait until the request is granted.
+		// FIXME: memory stalls until it is able to send result. Reading from
+		// and writing to the queue should be asynchronous.
+		// But: if there is nothing in the queue, we want the queue-writer to
+		// send the request.
+		next_trigger(localNetwork->makeRequest(id, mActiveOutputWord.channelID(), true));
 	}
+	// If no output word is available, wait until the next clock cycle to perform
+	// the next operation.
+	else next_trigger(iClock.posedge_event());
 }
 
 void MemoryBank::mainLoop() {
 
-  handleNetworkInterfacesPre();
+  if(iClock.posedge()) {
 
-  // Set output port defaults - only final write will be effective
+    handleNetworkInterfacesPre();
 
-  if(oBMDataStrobe.read()) oBMDataStrobe.write(false);
+    next_trigger(iClock.negedge_event());
 
-  // Proceed according to FSM state
-
-  switch (mFSMState) {
-  case STATE_IDLE:
-    if (!processRingEvent())
-      processMessageHeader();
-
-    break;
-
-  case STATE_FETCH_BURST_LENGTH:
-    processFetchBurstLength();
-    break;
-
-  case STATE_LOCAL_MEMORY_ACCESS:
-    processLocalMemoryAccess();
-    break;
-
-  case STATE_LOCAL_IPK_READ:
-    processLocalIPKRead();
-    break;
-
-  case STATE_LOCAL_BURST_READ:
-    processLocalBurstRead();
-    break;
-
-  case STATE_BURST_WRITE_MASTER:
-    processBurstWriteMaster();
-    break;
-
-  case STATE_BURST_WRITE_SLAVE:
-    processBurstWriteSlave();
-    break;
-
-  case STATE_GP_CACHE_MISS:
-    processGeneralPurposeCacheMiss();
-    break;
-
-  case STATE_WAIT_RING_OUTPUT:
-    processWaitRingOutput();
-    break;
-
-  default:
-    assert(false);
-    break;
   }
+  else if(iClock.negedge()) {
 
-  // Send output if possible
+    // Check data input ports and update queue
 
-  handleNetworkInterfacesPost();
+    if (iDataInValid.read()) {
+      assert(!mInputQueue.full());
+
+      // Acknowledgement handled by separate methods
+      if(DEBUG) cout << this->name() << " received " << iDataIn.read() << endl;
+      mInputQueue.write(iDataIn.read());
+    }
+
+    // Check ring input ports and update request registers
+
+    if (iRingStrobe.read() && !mRingRequestInputPending) {
+      // Acknowledgement handled by separate methods
+
+      mRingRequestInputPending = true;
+      mActiveRingRequestInput = iRingRequest.read();
+    }
+
+    // Proceed according to FSM state
+
+    // If we have a "fast" memory, decode the request and get into the correct
+    // state before performing the operation.
+    if(FAST_MEMORY && mFSMState == STATE_IDLE) {
+      if (!processRingEvent())
+        processMessageHeader();
+    }
+
+    switch (mFSMState) {
+    case STATE_IDLE:
+      // If the memory is not "fast", the operation has to be decoded in one
+      // cycle, and performed in the next.
+      if(!FAST_MEMORY) {
+        if (!processRingEvent())
+          processMessageHeader();
+      }
+
+      break;
+
+    case STATE_FETCH_BURST_LENGTH:
+      processFetchBurstLength();
+      break;
+
+    case STATE_LOCAL_MEMORY_ACCESS:
+      processLocalMemoryAccess();
+      break;
+
+    case STATE_LOCAL_IPK_READ:
+      processLocalIPKRead();
+      break;
+
+    case STATE_LOCAL_BURST_READ:
+      processLocalBurstRead();
+      break;
+
+    case STATE_BURST_WRITE_MASTER:
+      processBurstWriteMaster();
+      break;
+
+    case STATE_BURST_WRITE_SLAVE:
+      processBurstWriteSlave();
+      break;
+
+    case STATE_GP_CACHE_MISS:
+      processGeneralPurposeCacheMiss();
+      break;
+
+    case STATE_WAIT_RING_OUTPUT:
+      processWaitRingOutput();
+      break;
+
+    default:
+      assert(false);
+      break;
+    }
+
+    handleNetworkInterfacesPost();
+  }
+  else { // Neither clock edge: just received a grant from the network.
+    assert(mOutputWordPending);
+
+    // Wait until a particular time to send the data.
+    next_trigger(iClock.posedge_event());
+  }
 
   // Update status signals
 
@@ -1442,6 +1340,11 @@ void MemoryBank::mainLoop() {
   if(wasIdle != currentlyIdle) {
     oIdle.write(currentlyIdle);
     Instrumentation::idle(id, currentlyIdle);
+  }
+
+  bool ready = !mInputQueue.full();
+  if(ready != oReadyForData.read()) {
+    oReadyForData.write(ready);
   }
 }
 
@@ -1507,7 +1410,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	//-- Port initialization ----------------------------------------------------------------------
 
 	oIdle.initialize(true);
-	oDataInAcknowledge.initialize(false);
+	oReadyForData.initialize(false);
 	oDataOutValid.initialize(false);
 	oBMDataStrobe.initialize(false);
 	oRingAcknowledge.initialize(false);
@@ -1522,10 +1425,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	SC_METHOD(mainLoop);
 	sensitive << iClock.pos();
 	dont_initialize();
-
-	SC_METHOD(processValidInput);
-	sensitive << iDataInValid << iClock.neg();
-	// do initialise
 
 	SC_METHOD(processValidRing);
 	sensitive << iRingStrobe << iClock.neg();
@@ -1542,6 +1441,10 @@ void MemoryBank::setAdjacentMemories(MemoryBank *prevMemoryBank, MemoryBank *nex
 	mPrevMemoryBank = prevMemoryBank;
 	mNextMemoryBank = nextMemoryBank;
 	mBackgroundMemory = backgroundMemory;
+}
+
+void MemoryBank::setLocalNetwork(local_net_t* network) {
+  localNetwork = network;
 }
 
 void MemoryBank::storeData(vector<Word>& data, MemoryAddr location) {

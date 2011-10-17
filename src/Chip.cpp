@@ -130,7 +130,7 @@ void Chip::makeSignals() {
 
   ackDataFromComps      = new sc_signal<ReadyType>[numOutputs];
   ackCreditToComps      = new sc_signal<ReadyType>[numOutputs];
-  ackDataToComps        = new sc_signal<ReadyType>[numInputs];
+  readyFromComps        = new sc_signal<ReadyType>[numInputs];
   ackCreditFromComps    = new sc_signal<ReadyType>[NUM_CORES];
 
   validDataFromComps    = new sc_signal<ReadyType>[numOutputs];
@@ -161,7 +161,7 @@ void Chip::makeComponents() {
       namebuilder >> name;
       namebuilder.clear();
 
-      Cluster* c = new Cluster(name.c_str(), clusterID);
+      Cluster* c = new Cluster(name.c_str(), clusterID, network.getLocalNetwork(clusterID));
       
       clusters.push_back(c);
     }
@@ -175,6 +175,7 @@ void Chip::makeComponents() {
 			namebuilder.clear();
 
 			MemoryBank* m = new MemoryBank(name.c_str(), memoryID, i);
+			m->setLocalNetwork(network.getLocalNetwork(memoryID));
 
 			memories.push_back(m);
 		}
@@ -183,6 +184,8 @@ void Chip::makeComponents() {
 
 void Chip::wireUp() {
   network.clock(clock);
+  network.fastClock(fastClock);
+  network.slowClock(slowClock);
 
 	backgroundMemory.iClock(clock);
 	backgroundMemory.oIdle(idleSig[NUM_COMPONENTS]);
@@ -204,6 +207,8 @@ void Chip::wireUp() {
       clusters[clusterIndex]->fastClock(fastClock);
       clusters[clusterIndex]->slowClock(slowClock);
 
+      clusters[clusterIndex]->readyOut(readyFromComps[i]);
+
 			for (uint j = 0; j < CORE_INPUT_PORTS; j++) {
 				uint index = dataInputCounter++;  // Position in network's array
 
@@ -211,8 +216,6 @@ void Chip::wireUp() {
 				network.dataOut[index](dataToComponents[index]);
 				clusters[clusterIndex]->validDataIn[j](validDataToComps[index]);
 				network.validDataOut[index](validDataToComps[index]);
-				clusters[clusterIndex]->ackDataIn[j](ackDataToComps[index]);
-				network.ackDataOut[index](ackDataToComps[index]);
 			}
 
       uint index = creditOutputCounter++;
@@ -231,8 +234,6 @@ void Chip::wireUp() {
 				network.dataIn[index](dataFromComponents[index]);
 				clusters[clusterIndex]->validDataOut[j](validDataFromComps[index]);
 				network.validDataIn[index](validDataFromComps[index]);
-				clusters[clusterIndex]->ackDataOut[j](ackDataFromComps[index]);
-				network.ackDataIn[index](ackDataFromComps[index]);
 
 				index = creditInputCounter++;
 
@@ -252,8 +253,6 @@ void Chip::wireUp() {
 			network.dataOut[indexInput](dataToComponents[indexInput]);
 			memories[memoryIndex]->iDataInValid(validDataToComps[indexInput]);
 			network.validDataOut[indexInput](validDataToComps[indexInput]);
-			memories[memoryIndex]->oDataInAcknowledge(ackDataToComps[indexInput]);
-			network.ackDataOut[indexInput](ackDataToComps[indexInput]);
 
 			uint indexOutput = dataOutputCounter++;  // Position in network's array
 
@@ -261,11 +260,14 @@ void Chip::wireUp() {
 			network.dataIn[indexOutput](dataFromComponents[indexOutput]);
 			memories[memoryIndex]->oDataOutValid(validDataFromComps[indexOutput]);
 			network.validDataIn[indexOutput](validDataFromComps[indexOutput]);
-			memories[memoryIndex]->iDataOutAcknowledge(ackDataFromComps[indexOutput]);
-			network.ackDataIn[indexOutput](ackDataFromComps[indexOutput]);
+
+			memories[memoryIndex]->oReadyForData(readyFromComps[i]);
 
 			memoryIndex++;
 		}
+
+		// All components have exactly one ready signal.
+		network.readyDataOut[i](readyFromComps[i]);
 	}
   
   for(uint j=0; j<NUM_TILES; j++) {
@@ -342,8 +344,8 @@ Chip::~Chip() {
   delete[] dataFromComponents;      delete[] dataToComponents;
   delete[] creditsFromComponents;   delete[] creditsToComponents;
 
-  delete[] ackDataFromComps;        delete[] ackCreditToComps;
-  delete[] ackDataToComps;          delete[] ackCreditFromComps;
+  delete[] readyFromComps;
+  delete[] ackCreditToComps;        delete[] ackCreditFromComps;
 
   delete[] validDataFromComps;      delete[] validDataToComps;
   delete[] validCreditFromComps;    delete[] validCreditToComps;

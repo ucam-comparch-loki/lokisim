@@ -29,6 +29,9 @@ public:
 //  sc_out<bool> *grants;
 //  sc_out<int>  *select;
 
+  // Signal from the component telling if it is able to receive more data.
+  sc_in<bool>     readyIn;
+
 //==============================//
 // Constructors and destructors
 //==============================//
@@ -45,6 +48,7 @@ public:
 protected:
 
   virtual const sc_event& canGrantNow(int output);
+  virtual const sc_event& stallGrant(int output);
 
 //==============================//
 // Methods
