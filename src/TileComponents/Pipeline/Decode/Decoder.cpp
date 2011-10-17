@@ -11,6 +11,7 @@
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
 #include "../../../Datatype/MemoryRequest.h"
+#include "../../../Utility/Trace/CoreTrace.h"
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
@@ -49,6 +50,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   bool execute = shouldExecute(input);
 
   Instrumentation::decoded(id, input);
+  CoreTrace::decodeInstruction(id.getPosition(), input.location(), input.endOfIPK());
   if(!input.isALUOperation()) Instrumentation::operation(id, input, execute);
 
   // If the instruction may perform irreversible reads from a channel-end,

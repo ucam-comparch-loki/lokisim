@@ -29,7 +29,7 @@ using namespace std;
 #include "../../Datatype/MemoryRequest.h"
 #include "../../Memory/BufferStorage.h"
 #include "../../Network/Topologies/NewLocalNetwork.h"
-#include "../../Utility/MemoryTrace.h"
+#include "../../Utility/Trace/MemoryTrace.h"
 #include "../../Utility/Parameters.h"
 #include "GeneralPurposeCacheHandler.h"
 #include "ScratchpadModeHandler.h"
@@ -698,7 +698,7 @@ void MemoryBank::processLocalIPKRead() {
     // Handle IPK streaming
 
     if (endOfPacket) {
-      MemoryTrace::stopIPK(cBankNumber, mActiveAddress);
+      if(MEMORY_TRACE == 1) MemoryTrace::stopIPK(cBankNumber, mActiveAddress);
 
       // Chain next request
 
@@ -709,11 +709,11 @@ void MemoryBank::processLocalIPKRead() {
 
       if (mScratchpadModeHandler.containsAddress(mActiveAddress)) {
         if (!mScratchpadModeHandler.sameLine(mActiveAddress - 4, mActiveAddress))
-          MemoryTrace::splitLineIPK(cBankNumber, mActiveAddress);
+          if(MEMORY_TRACE == 1) MemoryTrace::splitLineIPK(cBankNumber, mActiveAddress);
 
         mFSMState = STATE_LOCAL_IPK_READ;
       } else {
-        MemoryTrace::splitBankIPK(cBankNumber, mActiveAddress);
+        if(MEMORY_TRACE == 1) MemoryTrace::splitBankIPK(cBankNumber, mActiveAddress);
 
         if (mGroupIndex == mGroupSize - 1) {
           if (mRingRequestOutputPending) {
@@ -801,7 +801,7 @@ void MemoryBank::processLocalIPKRead() {
       // Handle IPK streaming
 
       if (endOfPacket) {
-        MemoryTrace::stopIPK(cBankNumber, mActiveAddress);
+        if(MEMORY_TRACE == 1) MemoryTrace::stopIPK(cBankNumber, mActiveAddress);
 
         // Chain next request
 
@@ -812,11 +812,11 @@ void MemoryBank::processLocalIPKRead() {
 
         if (mGeneralPurposeCacheHandler.containsAddress(mActiveAddress)) {
           if (!mGeneralPurposeCacheHandler.sameLine(mActiveAddress - 4, mActiveAddress))
-            MemoryTrace::splitLineIPK(cBankNumber, mActiveAddress);
+            if(MEMORY_TRACE == 1) MemoryTrace::splitLineIPK(cBankNumber, mActiveAddress);
 
           mFSMState = STATE_LOCAL_IPK_READ;
         } else {
-          MemoryTrace::splitBankIPK(cBankNumber, mActiveAddress);
+          if(MEMORY_TRACE == 1) MemoryTrace::splitBankIPK(cBankNumber, mActiveAddress);
 
           if (mGroupIndex == mGroupSize - 1) {
             if (mRingRequestOutputPending) {
