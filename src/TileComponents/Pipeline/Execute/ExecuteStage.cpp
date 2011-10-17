@@ -19,91 +19,28 @@ void ExecuteStage::writeWord(MemoryAddr addr, Word data) const {parent()->writeW
 void ExecuteStage::writeByte(MemoryAddr addr, Word data) const {parent()->writeByte(addr, data);}
 
 void ExecuteStage::execute() {
-  switch(state) {
-    case NO_INSTRUCTION: {
-      assert(dataIn.event());
+  // Reset everything on the clock edge.
+  if(clock.posedge()) {
+    // Have now finished executing, so this pipeline stage is idle.
+    idle.write(true);
 
-      idle.write(false);
-      DecodedInst instruction = dataIn.read();
-      state = EXECUTING;
-      newInput(instruction);
+    // Invalidate the current instruction so its data isn't forwarded anymore.
+    currentInst.preventForwarding();
 
-      break;
-    }
+    next_trigger(instructionIn.default_event());
+  }
+  // If it isn't a clock edge, it means an instruction has just arrived.
+  else {
+    assert(instructionIn.event());
+    idle.write(false);
 
-    case EXECUTING:
-      if(clock.negedge()) {
-        // FIXME
-        // Quick hack: send arbitration requests slightly after the clock edge.
-        // This is because the memory receives data on the clock edge, and may
-        // discover that its buffers are now full and it can't take any more.
-        // Would prefer to have the memory put data in its buffer as soon as it
-        // arrives, rather than on the clock edge.
-        next_trigger(0.1, sc_core::SC_NS);
-        return;
-      }
+    DecodedInst instruction = instructionIn.read();
 
-      assert(currentInst.sendsOnNetwork());
+    // Execute the instruction and pass its output to any appropriate modules
+    // (i.e. register file, output buffer).
+    newInput(instruction);
 
-      // Memory operations may be sent to different memory banks depending on the
-      // address accessed.
-      // In practice, this would be performed by a separate, small functional
-      // unit in parallel with the main ALU, so that there is time left to request
-      // a path to memory.
-      if(currentInst.isMemoryOperation()) adjustNetworkAddress(currentInst);
-      requestArbitration(currentInst.networkDestination(), true);
-
-      break;
-
-    case ARBITRATING: {
-
-      // Have just received a grant from the arbiter (if one was needed).
-      dataOut.write(currentInst);
-      executedInstruction.notify();
-
-      state = FINISHED;
-      next_trigger(clock.posedge_event());
-
-      break;
-    }
-
-    case WAITING_TO_FETCH: {
-      DecodedInst instruction = dataIn.read();
-      bool sendFetch = fetch(instruction);
-
-      if(sendFetch) {
-        currentInst.result(instruction.result());
-        adjustNetworkAddress(currentInst);
-        executedInstruction.notify();
-
-        // Apply to send the fetch onto the network if the cache is now ready.
-        requestArbitration(currentInst.networkDestination(), true);
-
-        // TODO: tell instrumentation that we are no longer stalled
-      }
-      // Wait until negative edge because that's when arbitration requests must
-      // be sent.
-      else next_trigger(clock.negedge_event());
-
-      break;
-    }
-
-    case FINISHED: {
-      // Have now finished executing, so this pipeline stage is idle.
-      idle.write(true);
-
-      // Take down the request if this is the last flit of the packet.
-      if(currentInst.sendsOnNetwork() && currentInst.endOfNetworkPacket()) {
-        requestArbitration(currentInst.networkDestination(), false);
-      }
-
-      // Invalidate the current instruction so its data isn't forwarded anymore.
-      currentInst.preventForwarding();
-
-      state = NO_INSTRUCTION;
-      next_trigger(dataIn.default_event());
-      break;
-    }
+    next_trigger(clock.posedge_event());
   }
 }
 
@@ -138,10 +75,11 @@ void ExecuteStage::newInput(DecodedInst& operation) {
       if(DEBUG) cout << this->name() << " forwarding contents of register "
           << (int)operation.sourceReg1() << ": " << currentInst.result() << endl;
     }
-    if(operation.operand2Source() == DecodedInst::BYPASS)
+    if(operation.operand2Source() == DecodedInst::BYPASS) {
       operation.operand2(currentInst.result());
       if(DEBUG) cout << this->name() << " forwarding contents of register "
           << (int)operation.sourceReg2() << ": " << currentInst.result() << endl;
+    }
 
     if(DEBUG) cout << this->name() << ": executing " << operation.name()
         << " on " << operation.operand1() << " and " << operation.operand2() << endl;
@@ -150,6 +88,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
     switch(operation.opcode()) {
       case InstructionMap::OP_SETCHMAP:
       case InstructionMap::OP_SETCHMAPI:
+        // FIXME: should we wait for all credits to arrive before writing?
         setChannelMap(operation);
         break;
 
@@ -163,20 +102,30 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         success = fetch(operation);
         break;
 
+      case InstructionMap::OP_IWTR:
+        operation.result(operation.operand2());
+        break;
+
+      case InstructionMap::OP_IRDR:
+        operation.result(operation.operand1());
+        break;
+
       case InstructionMap::OP_LLI:
         // FIXME: should LLI happen in execute stage or during register write?
-        operation.result((operation.operand1() & 0xFFFF0000) | operation.operand2());
+        operation.result(operation.operand2());
         break;
 
       case InstructionMap::OP_LUI:
-        operation.result(operation.operand2() << 16);
+        operation.result((operation.operand1() & 0xFFFF) | (operation.operand2() << 16));
         break;
 
       case InstructionMap::OP_SYSCALL:
         alu.systemCall(operation.immediate());
         break;
 
-//      case InstructionMap::OP_WOCHE ?
+      case InstructionMap::OP_WOCHE:
+        cerr << "woche not yet implemented" << endl;
+        assert(false);
 
       default:
         if(InstructionMap::isALUOperation(operation.opcode()))
@@ -192,25 +141,26 @@ void ExecuteStage::newInput(DecodedInst& operation) {
 
     if(success) {
       if(currentInst.sendsOnNetwork()) {
-        // Will need to request network resources - wait some time to
-        // simulate the computation of which resources are needed.
-        next_trigger(clock.negedge_event());
+        // Memory operations may be sent to different memory banks depending on the
+        // address accessed.
+        // In practice, this would be performed by a separate, small functional
+        // unit in parallel with the main ALU, so that there is time left to request
+        // a path to memory.
+        if(currentInst.isMemoryOperation()) adjustNetworkAddress(currentInst);
+
+        // Send the data to the output buffer - it will arrive immediately.
+        dataOut.write(currentInst);
       }
-      else {
-        state = ARBITRATING;
-        next_trigger(sc_core::SC_ZERO_TIME);
-      }
+
+      // Send the data to the register file - it will arrive at the beginning
+      // of the next clock cycle.
+      instructionOut.write(currentInst);
     }
-    // success can only be false if we can't send a fetch - wait a cycle
-    else next_trigger(clock.negedge_event());
   } // end if will execute
   else {
     // If the instruction will not be executed, invalidate it so we don't
     // try to forward data from it.
     currentInst.preventForwarding();
-
-    state = FINISHED;
-    next_trigger(clock.posedge_event());
   }
 }
 
@@ -239,37 +189,15 @@ bool ExecuteStage::fetch(DecodedInst& inst) {
 
   // Return whether the fetch request should be sent (it should be sent if the
   // tag is not in the cache).
-  if(state != WAITING_TO_FETCH && parent()->inCache(fetchAddress, inst.opcode())) {
+  if(parent()->inCache(fetchAddress, inst.opcode())) {
     // Packet is already in the cache: don't fetch.
-    state = FINISHED;
     return false;
   }
-  else if(parent()->readyToFetch()) {
-    // Packet is not in the cache, and there is space for the new packet: fetch.
+  else {
+    // Packet is not in the cache: fetch.
     MemoryRequest request(MemoryRequest::IPK_READ, fetchAddress);
     inst.result(request.toULong());
     return true;
-  }
-  else {
-    // Packet is not in the cache, but there is not space for the new packet:
-    // don't fetch yet.
-    state = WAITING_TO_FETCH;
-    // TODO: instrumentation
-    return false;
-  }
-}
-
-void ExecuteStage::requestArbitration(ChannelID destination, bool request) {
-  if(request) {
-    state = ARBITRATING;
-
-    // Call execute() again when the request is granted.
-    next_trigger(parent()->requestArbitration(destination, request));
-  }
-  else {
-    // We are not sending a request which will be granted, so don't use
-    // next_trigger this time.
-    parent()->requestArbitration(destination, request);
   }
 }
 
@@ -346,7 +274,9 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
 }
 
 bool ExecuteStage::isStalled() const {
-  return state == WAITING_TO_FETCH || state == EXECUTING || state == ARBITRATING;
+  // When we have multi-cycle operations (e.g. multiplies), we will need to use
+  // this.
+  return false;
 }
 
 bool ExecuteStage::checkPredicate(DecodedInst& inst) {
@@ -373,11 +303,8 @@ ExecuteStage::ExecuteStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
     alu("alu", ID) {
 
-  // Initial state is FINISHED, so that when execute() is first called, it
-  // tidies/initialises everything correctly and waits for the first instruction.
-  state = FINISHED;
-
   SC_METHOD(execute);
-  // do initialise
+  sensitive << clock.pos();
+  dont_initialize();
 
 }

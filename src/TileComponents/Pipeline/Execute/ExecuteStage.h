@@ -30,7 +30,7 @@ public:
 
   // The input instruction to be working on. DecodedInst holds all information
   // required for any pipeline stage to do its work.
-  sc_in<DecodedInst>  dataIn;
+  sc_in<DecodedInst>  instructionIn;
 
   // Tell whether this stage is ready for input (ignoring effects of any other stages).
   sc_out<bool>        readyOut;
@@ -38,6 +38,9 @@ public:
   // The decoded instruction after passing through this pipeline stage.
   // DecodedInst holds all necessary fields for data at all stages throughout
   // the pipeline.
+  sc_out<DecodedInst> instructionOut;
+
+  // Data to be sent over the network.
   sc_out<DecodedInst> dataOut;
 
 //==============================//
@@ -120,16 +123,6 @@ private:
 //==============================//
 
 private:
-
-  enum ExecuteState {
-    NO_INSTRUCTION,   // Have no instruction to execute
-    EXECUTING,        // Executing an instruction
-    ARBITRATING,      // Sent arbitration request; waiting for response
-    WAITING_TO_FETCH, // Received fetch instruction; waiting until cache is ready to send
-    FINISHED          // Do any necessary tidying once execution has finished
-  };
-
-  ExecuteState state;
 
   // The instruction currently being executed. Used to determine if forwarding
   // is required.

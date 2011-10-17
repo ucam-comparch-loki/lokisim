@@ -9,63 +9,74 @@
 
 # Load parameters
 _start:
-    ldw                 4(r0)            -> 1
-    ldw                 8(r0)            -> 1
-    fetch               r0,  load
-    ori                 r2,  ch0, 0             # r2 = rows of input
-    ori                 r3,  ch0, 0             # r3 = columns of input
-    mullw               r4,  r3,  r2            # r4 = length of input
+    ldw                 4(r0)           -> 1
+    ldw                 8(r0)           -> 1
+    fetchr              load
+    lli                 r20, %lo(0x10000)       # r20 = start of input
+    lui                 r20, %hi(0x10000)
+    lli                 r21, %lo(0x20000)       # r21 = start of output
+    lui                 r21, %hi(0x20000)
+    lli                 r22, 0x1000             # r22 = distance between arrays
+    addu                r12, ch0, r0            # r12 = rows of input
+    addu                r13, ch0, r0            # r13 = columns of input
+    mullw               r14, r13, r12           # r14 = length of input
 
 # Initialisation
-    ori.eop             r10, r0,  0             # r10 = current location
+    addu.eop            r10, r0,  r0            # r10 = current location
 
 # Start of loop
 # Load subpixel values
 load:
-    ldbu                0x10000(r10)     -> 1   # load red
-    ldbu                0x11000(r10)     -> 1   # load green
-    ldbu                0x12000(r10)     -> 1   # load blue
-    fetch               r0,  computey
-    ori                 r7,  ch0, 0             # r7 = red
-    ori                 r8,  ch0, 0             # r8 = green
-    ori.eop             r9,  ch0, 0             # r9 = blue
+    addu                r11, r10, r20           # r11 = first input array
+    ldbu                0(r11)          -> 1    # load red
+    addu                r11, r11, r22           # r11 = second input array
+    ldbu                0(r11)          -> 1    # load green
+    addu                r11, r11, r22           # r11 = third input array
+    ldbu                0(r11)          -> 1    # load blue
+    fetchr              computey
+    addu                r17, ch0, r0            # r17 = red
+    addu                r18, ch0, r0            # r18 = green
+    addu.eop            r19, ch0, r0            # r19 = blue
 
 # Compute Y
 computey:
-    fetch               r0,  compute
-    ori                 r25, r0,  66            # store coefficient
-    ori                 r26, r0,  129           # store coefficient
-    ori                 r27, r0,  25            # store coefficient
-    addui.eop           r29, r0,  computeu      # store next IPK location
+    fetchr              compute
+    addui               r25, r0,  66            # store coefficient
+    addui               r26, r0,  129           # store coefficient
+    addui               r27, r0,  25            # store coefficient
+    lli.eop             r29, computeu           # store next IPK location
 
 # Store Y, compute U
 computeu:
     addui               r25, r25, 16            # r25 = Y
-    stb                 r25, 0x20000(r10) -> 1  # store Y
-    fetch               r0,  compute
-    ori                 r25, r0,  -38           # store coefficient
-    ori                 r26, r0,  -74           # store coefficient
-    ori                 r27, r0,  112           # store coefficient
-    addui.eop           r29, r0,  computev      # store next IPK location
+    addu                r11, r10, r21           # r11 = first output array
+    stb                 r25, 0(r11)     -> 1    # store Y
+    fetchr              compute
+    addui               r25, r0,  -38           # store coefficient
+    addui               r26, r0,  -74           # store coefficient
+    addui               r27, r0,  112           # store coefficient
+    lli.eop             r29, computev           # store next IPK location
 
 # Store U, compute V
 computev:
     addui               r25, r25, 128           # r25 = U
-    stb                 r25, 0x21000(r10) -> 1  # store U
-    fetch               r0,  compute
-    ori                 r25, r0,  112           # store coefficient
-    ori                 r26, r0,  -94           # store coefficient
-    ori                 r27, r0,  -18           # store coefficient
-    addui.eop           r29, r0,  endofloop     # store next IPK location
+    addu                r11, r11, r22           # r11 = second output array
+    stb                 r25, 0(r11)     -> 1    # store U
+    fetchr              compute
+    addui               r25, r0,  112           # store coefficient
+    addui               r26, r0,  -94           # store coefficient
+    addui               r27, r0,  -18           # store coefficient
+    lli.eop             r29, endofloop          # store next IPK location
 
 # Store V, loop if necessary
 endofloop:
     addui               r25, r25, 128           # r25 = V
-    stb                 r25, 0x22000(r10) -> 1  # store V
+    addu                r11, r11, r22           # r11 = third output array
+    stb                 r25, 0(r11)     -> 1    # store V
     addui               r10, r10, 1
-    setlt.p             r0,  r10, r4            # see if we have finished
-    ori                 r25, r0,  load
-    ori                 r26, r0,  exit
+    setlt.p             r0,  r10, r14           # see if we have finished
+    lli                 r25, load
+    lli                 r26, exit
     psel.fetch.eop      r25, r26
 
 exit:
@@ -76,10 +87,10 @@ exit:
 # Assumes x is in r25, y is in r26, z is in r27 and next IPK address is in r29.
 # Leaves result in r25.
 compute:
-    fetch               r29, 0
-    mullw               r25, r25, r7            # xR
-    mullw               r26, r26, r8            # yG
-    mullw               r27, r27, r9            # zB
+    fetch               r29
+    mullw               r25, r25, r17           # xR
+    mullw               r26, r26, r18           # yG
+    mullw               r27, r27, r19           # zB
     addu                r25, r25, r26           # xR + yG
     addu                r25, r25, r27           # xR + yG + zB
     addui               r25, r25, 128           # xR + yG + zB + 128

@@ -10,8 +10,8 @@
  setchmapi          1,   r11                  # Set data fetch channel to memory bank
 
 # ori                r0,  r0, 0x00340103 -> 0  # Configuration command: General purpose cache, eight banks
- lui                r12, 0x0034
  lli                r12, 0x0103
+ lui                r12, 0x0034
  addu               r0,  r12, r0        -> 0
 
 # ori                r0,  r0, 0x01000000 -> 0  # Table update command instruction fetch channel

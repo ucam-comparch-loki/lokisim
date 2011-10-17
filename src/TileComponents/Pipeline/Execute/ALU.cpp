@@ -144,7 +144,7 @@ void ALU::systemCall(int code) const {
     case 0x1: { /* SYS_exit */
       RETURN_CODE = readReg(13);
       std::cerr << "Simulation ended with sys_exit after "
-                << sc_core::sc_time_stamp().to_default_time_units() << " cycles." << endl;
+                << (int)sc_core::sc_time_stamp().to_default_time_units() << " cycles." << endl;
       Instrumentation::endExecution();
       break;
     }

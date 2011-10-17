@@ -13,11 +13,11 @@
 void         DecodeStage::execute() {
   while(true) {
     // Wait for a new instruction to arrive.
-    wait(dataIn.default_event());
+    wait(instructionIn.default_event());
 
     // Deal with the new input. We are currently not idle.
     idle.write(false);
-    DecodedInst inst = dataIn.read(); // Don't want a const input.
+    DecodedInst inst = instructionIn.read(); // Don't want a const input.
     newInput(inst);
 
     // Once the next cycle starts, revert to being idle.
@@ -71,7 +71,7 @@ void         DecodeStage::newInput(DecodedInst& inst) {
       // the instruction may change its destination.
       readChannelMapTable(decoded);
 
-      dataOut.write(decoded);
+      instructionOut.write(decoded);
     }
 
     // If the decoder is ready, we have finished the decode.
@@ -149,13 +149,13 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
     rcet("rcet", ID),
     decoder("decoder", ID) {
 
-  rcetIn         = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
+  dataIn         = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
   flowControlOut = new sc_out<bool>[NUM_RECEIVE_CHANNELS];
 
   // Connect everything up
   rcet.clock(clock);
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
-    rcet.fromNetwork[i](rcetIn[i]);
+    rcet.fromNetwork[i](dataIn[i]);
     rcet.flowControl[i](flowControlOut[i]);
   }
 
@@ -166,6 +166,6 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
 }
 
 DecodeStage::~DecodeStage() {
-  delete[] rcetIn;
+  delete[] dataIn;
   delete[] flowControlOut;
 }

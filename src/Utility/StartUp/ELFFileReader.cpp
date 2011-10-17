@@ -22,6 +22,8 @@ vector<DataBlock>& ELFFileReader::extractData(int& mainPos) const {
   // Open the input file.
   std::ifstream elfFile(filename_.c_str());
 
+  // For machines which can't run the Loki toolchain, we provide the section
+  // headers in a separate file.
   string extFileName = filename_ + ".objdump-h";
   bool useExternalMetadata = access(extFileName.c_str(), F_OK) == 0;
 

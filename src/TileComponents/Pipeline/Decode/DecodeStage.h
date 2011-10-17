@@ -32,7 +32,7 @@ public:
 
   // The input instruction to be working on. DecodedInst holds all information
   // required for any pipeline stage to do its work.
-  sc_in<DecodedInst>    dataIn;
+  sc_in<DecodedInst>    instructionIn;
 
   // Tell whether this stage is ready for input (ignoring effects of any other stages).
   sc_out<bool>          readyOut;
@@ -40,14 +40,14 @@ public:
   // The decoded instruction after passing through this pipeline stage.
   // DecodedInst holds all necessary fields for data at all stages throughout
   // the pipeline.
-  sc_out<DecodedInst>   dataOut;
+  sc_out<DecodedInst>   instructionOut;
 
   // Since this stage can produce multiple outputs from a single input
   // instruction, it needs to be told when it can send data.
   sc_in<bool>           readyIn;
 
   // The NUM_RECEIVE_CHANNELS inputs to the receive channel-end table.
-  sc_in<Word>          *rcetIn;
+  sc_in<Word>          *dataIn;
 
   // A flow control signal for each input (NUM_RECEIVE_CHANNELS).
   sc_out<bool>         *flowControlOut;

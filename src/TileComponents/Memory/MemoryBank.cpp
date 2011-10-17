@@ -1277,6 +1277,8 @@ void MemoryBank::mainLoop() {
 
     switch (mFSMState) {
     case STATE_IDLE:
+      // If the memory is not "fast", the operation has to be decoded in one
+      // cycle, and performed in the next.
       if(!FAST_MEMORY) {
         if (!processRingEvent())
           processMessageHeader();

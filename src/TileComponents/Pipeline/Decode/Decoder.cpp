@@ -72,9 +72,9 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   opcode_t operation = input.opcode();
   switch(operation) {
 
-    case InstructionMap::OP_LDW :
-    case InstructionMap::OP_LDHWU :
-    case InstructionMap::OP_LDBU : {
+    case InstructionMap::OP_LDW:
+    case InstructionMap::OP_LDHWU:
+    case InstructionMap::OP_LDBU: {
       if(operation == InstructionMap::OP_LDW)
         output.memoryOp(MemoryRequest::LOAD_W);
       else if(operation == InstructionMap::OP_LDHWU)
@@ -84,9 +84,9 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       break;
     }
 
-    case InstructionMap::OP_STW :
-    case InstructionMap::OP_STHW :
-    case InstructionMap::OP_STB : {
+    case InstructionMap::OP_STW:
+    case InstructionMap::OP_STHW:
+    case InstructionMap::OP_STB: {
       multiCycleOp = true;
       output.endOfNetworkPacket(false);
       blockedEvent.notify();
@@ -104,11 +104,11 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       break;
     }
 
-    // lli only overwrites part of the word, so we need to read the word first.
-    // Alternative: have an "lli mode" for register-writing.
-    case InstructionMap::OP_LLI : output.sourceReg1(output.destination()); break;
+    // lui only overwrites part of the word, so we need to read the word first.
+    // Alternative: have an "lui mode" for register-writing.
+    case InstructionMap::OP_LUI: output.sourceReg1(output.destination()); break;
 
-    case InstructionMap::OP_WOCHE : output.result(output.immediate()); break;
+    case InstructionMap::OP_WOCHE: output.result(output.immediate()); break;
 
     case InstructionMap::OP_TSTCH:
     case InstructionMap::OP_TSTCHI:
@@ -116,9 +116,9 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     case InstructionMap::OP_TSTCHI_P:
       output.result(parent()->testChannel(output.immediate())); break;
 
-    case InstructionMap::OP_SELCH : output.result(parent()->selectChannel()); break;
+    case InstructionMap::OP_SELCH: output.result(parent()->selectChannel()); break;
 
-    case InstructionMap::OP_IBJMP : {
+    case InstructionMap::OP_IBJMP: {
       JumpOffset jump = (JumpOffset)output.immediate();
 
       // If we know that this jump is going to execute, and the fetch stage has
@@ -134,7 +134,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       break;
     }
 
-    case InstructionMap::OP_RMTEXECUTE : {
+    case InstructionMap::OP_RMTEXECUTE: {
       remoteExecute = true;
       sendChannel = output.channelMapEntry();
 
@@ -187,11 +187,13 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     // A bit of a hack: if we are indirecting through a channel end, we need to
     // consume the value now so that channel reads are in program order. This
     // means the write is no longer indirect, so change the operation to "or".
-    case InstructionMap::OP_IWTR : {
-      if(Registers::isChannelEnd(input.destination())) {
-        output.destination(readRegs(input.destination()));
+    case InstructionMap::OP_IWTR: {
+      if(Registers::isChannelEnd(input.sourceReg1())) {
+        output.sourceReg1(readRegs(input.sourceReg1()));
         output.opcode(InstructionMap::OP_OR);
       }
+
+      output.destination(output.sourceReg1());
     }
 
     default: break;

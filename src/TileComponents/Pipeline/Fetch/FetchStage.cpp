@@ -70,7 +70,7 @@ void FetchStage::getInstruction() {
   DecodedInst decoded(lastInstruction);
   decoded.location(instAddr);
 
-  dataOut.write(decoded);
+  instructionOut.write(decoded);
 
   if(DEBUG) {
     printf("%s selected instruction from %s: ", this->name(),

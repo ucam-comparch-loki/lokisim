@@ -11,49 +11,21 @@
 #include "../../TileComponent.h"
 #include "../../../Datatype/AddressedWord.h"
 #include "../../../Datatype/DecodedInst.h"
-#include "../../../Datatype/Instruction.h"
 #include "../../../Datatype/MemoryRequest.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
-bool SendChannelEndTable::write(const DecodedInst& dec) {
+void SendChannelEndTable::write(const DecodedInst& data) {
+  if(DEBUG) cout << this->name() << " writing " << data.result() << " to output buffer\n";
 
-  if(dec.sendsOnNetwork())
-    write(dec.toAddressedWord(), dec.channelMapEntry());
-  else if (dec.opcode() == InstructionMap::OP_WOCHE)
-		waitUntilEmpty(dec.result());
-	
-	return true;
-}
+  assert(!buffer.full());
 
-bool SendChannelEndTable::write(const AddressedWord& data, MapIndex output) {
-  unsigned int bufferToUse = (int)channelMapTable->getNetwork(output);
-
-  // We know it is safe to write to any buffer because we block the rest
-  // of the pipeline if a buffer is full.
-  assert(!buffers[bufferToUse].full());
-  assert(output < CHANNEL_MAP_SIZE);
-  assert(buffers[bufferToUse].empty()); // Temporary
-
-  buffers[bufferToUse].write(BufferedInfo(data, output));
-  dataToSendEvent[bufferToUse].notify();
+  buffer.write(data);
+  dataToSendEvent.notify();
   bufferFillChanged.notify();
-
-  if(DEBUG) cout << this->name() << " wrote " << data
-                 << " to output buffer " << bufferToUse << endl;
-
-  return data.endOfPacket();
 }
 
 bool SendChannelEndTable::full() const {
-  bool full = false;
-  for(unsigned int i=0; i<buffers.size(); i++) {
-    if(buffers[i].full()) {
-      full = true;
-      break;
-    }
-  }
-
-  return full || waiting;
+  return buffer.full() || waiting;
 }
 
 const sc_event& SendChannelEndTable::stallChangedEvent() const {
@@ -61,37 +33,96 @@ const sc_event& SendChannelEndTable::stallChangedEvent() const {
 }
 
 void SendChannelEndTable::sendLoop() {
+
   // Data becomes invalid on the clock edge.
-  if(validOutput[0].read()) validOutput[0].write(false);
+  if(clock.posedge() && validOutput[0].read())
+    validOutput[0].write(false);
 
-  if(buffers[0].empty())
-    next_trigger(dataToSendEvent[0]);
-  else {
-    send(0);
-    next_trigger(clock.posedge_event());
+  switch(state) {
+    case IDLE: {
+
+      if(buffer.empty()) {
+        // When will this event be triggered? Will waiting 0.6 cycles always work?
+        // Can we ensure that the data always arrives at the start of the cycle?
+        next_trigger(dataToSendEvent);
+      }
+      else {
+        state = DATA_READY;
+
+        // Wait until slightly after the negative clock edge to request arbitration
+        // because the memory updates its flow control signals on the negedge.
+        next_trigger(0.6, sc_core::SC_NS);
+      }
+
+      break;
+    }
+
+    case DATA_READY: {
+      assert(!buffer.empty());
+
+      // Before requesting network resources, we must first make sure that the
+      // destination core is ready to receive more data, and that if we are
+      // issuing an instruction packet fetch, there is space in the local cache.
+      if(!channelMapTable->canSend(buffer.peek().channelMapEntry())) {
+        next_trigger(1.0, sc_core::SC_NS);
+      }
+      else if((buffer.peek().memoryOp() == MemoryRequest::IPK_READ) &&
+              !parent()->readyToFetch()) {
+        next_trigger(1.0, sc_core::SC_NS);
+      }
+      else {
+        // Request arbitration and wait for response.
+        requestArbitration(buffer.peek().networkDestination(), true);
+        state = ARBITRATING;
+      }
+
+      break;
+    }
+
+    case ARBITRATING: {
+      // Wait for clock edge before sending data
+      next_trigger(clock.posedge_event());
+      state = CAN_SEND;
+
+      break;
+    }
+
+    case CAN_SEND: {
+      assert(!buffer.empty());
+
+      // Wait until an arbitrarily small time after the clock edge to allow the
+      // network's select signals to settle down.
+      if(clock.posedge()) {
+        next_trigger(0.05, sc_core::SC_NS);
+        break;
+      }
+
+      const DecodedInst& inst = buffer.read();
+      bufferFillChanged.notify();
+
+      // Send data
+      AddressedWord data = inst.toAddressedWord();
+
+      if(DEBUG) cout << this->name() << " sending " << data << endl;
+
+      output[0].write(data);
+      validOutput[0].write(true);
+      channelMapTable->removeCredit(inst.channelMapEntry());
+
+      // If this was the final flit in the packet, remove the request for
+      // network resources.
+      if(data.endOfPacket())
+        requestArbitration(data.channelID(), false);
+
+      // Return to IDLE state immediately
+      state = IDLE;
+      next_trigger(sc_core::SC_ZERO_TIME);
+
+      break;
+    }
+
   }
-}
 
-void SendChannelEndTable::send(unsigned int buffer) {
-  assert(!buffers[buffer].empty());
-
-  MapIndex entry = buffers[buffer].peek().second;
-
-  // If we don't have enough credits, abandon sending the data.
-  if(!channelMapTable->canSend(entry))
-    return;
-
-  AddressedWord data = buffers[buffer].read().first;
-
-  if(DEBUG) cout << "Sending " << data.payload()
-      << " from " << ChannelID(id, (int)entry) << " to "
-      << data.channelID() << endl;
-
-  output[buffer].write(data);
-  validOutput[buffer].write(true);
-  channelMapTable->removeCredit(entry);
-
-  bufferFillChanged.notify();
 }
 
 /* Stall the pipeline until the specified channel is empty. */
@@ -107,6 +138,18 @@ void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
   Instrumentation::stalled(id, false);
   waiting = false;
   bufferFillChanged.notify(); // No it didn't - use separate events?
+}
+
+void SendChannelEndTable::requestArbitration(ChannelID destination, bool request) {
+  if(request) {
+    // Call execute() again when the request is granted.
+    next_trigger(parent()->requestArbitration(destination, request));
+  }
+  else {
+    // We are not sending a request which will be granted, so don't use
+    // next_trigger this time.
+    parent()->requestArbitration(destination, request);
+  }
 }
 
 void SendChannelEndTable::receivedCredit(unsigned int buffer) {
@@ -129,9 +172,10 @@ WriteStage* SendChannelEndTable::parent() const {
 
 SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID& ID, ChannelMapTable* cmt) :
     Component(name, ID),
-    buffers(CORE_OUTPUT_PORTS, OUT_CHANNEL_BUFFER_SIZE, string(name)) {
+    buffer(OUT_CHANNEL_BUFFER_SIZE, string(name)) {
 
   channelMapTable = cmt;
+  state = IDLE;
 
   static const unsigned int NUM_BUFFERS = CORE_OUTPUT_PORTS;
 
@@ -142,8 +186,6 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID&
   validCredit = new sc_in<bool>[NUM_BUFFERS];
 
   waiting = false;
-
-  dataToSendEvent = new sc_event[NUM_BUFFERS];
 
   SC_METHOD(sendLoop);
 
@@ -159,6 +201,4 @@ SendChannelEndTable::~SendChannelEndTable() {
 
   delete[] creditsIn;
   delete[] validCredit;
-
-  delete[] dataToSendEvent;
 }

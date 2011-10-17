@@ -146,6 +146,9 @@ FileReader* FileReader::makeFileReader(vector<string>& words, bool customAppLoad
     }
   }
   else {
+//    // Assume the dot was just part of the filename/path
+//    filesToLink.push_back(filename);
+//    reader = NULL;
     cerr << "Unknown file format: " << filename << endl;
     tidy();
     throw std::exception();

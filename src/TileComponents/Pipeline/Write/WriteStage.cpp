@@ -15,54 +15,40 @@ const DecodedInst& WriteStage::currentInstruction() const {
 }
 
 void WriteStage::execute() {
-	bool packetInProgress = false;
+  DecodedInst instruction = instructionIn.read();
+  newInput(instruction);
+  bool packetInProgress = !instruction.endOfNetworkPacket();
 
-	// TODO: turn this into an SC_METHOD once the output buffers are gone.
-	// Need to handle WOCHE (or would this happen in ExecuteStage?).
-	while(true) {
-		// Wait for new data to arrive.
-		wait(dataIn.default_event());
-
-    if(!isStalled()) {
-      DecodedInst instruction = dataIn.read();
-      newInput(instruction);
-      packetInProgress = !endOfPacket;
-    }
-
-		idle.write(!packetInProgress);
-
-    // Invalidate the current instruction at the start of the next cycle so
-    // we don't forward old data.
-    wait(clock.posedge_event());
-    currentInst.destination(0);
-	}
+  if(idle.read() == packetInProgress)
+    idle.write(!packetInProgress);
 }
 
-void WriteStage::newInput(DecodedInst& data) {
-  if(DEBUG) cout << this->name() << " received Data: " << data.result()
-                 << endl;
-
-  currentInst = data;
+void WriteStage::newInput(DecodedInst& inst) {
+  currentInst = inst;
 
   // We can't forward data if this is an indirect write because we don't
   // yet know where the data will be written.
-  bool indirect = (data.opcode() == InstructionMap::OP_IWTR);
+  bool indirect = (inst.opcode() == InstructionMap::OP_IWTR);
   if(indirect) currentInst.destination(0);
 
-  // Put data into the send channel-end table.
-  endOfPacket = scet.write(data);
-
   // Write to registers (they ignore the write if the index is invalid).
-  if(InstructionMap::storesResult(data.opcode()))
-    writeReg(data.destination(), data.result(), indirect);
+  if(InstructionMap::storesResult(inst.opcode()) || indirect)
+    writeReg(inst.destination(), inst.result(), indirect);
+}
+
+void WriteStage::reset() {
+  currentInst.destination(0);
+}
+
+void WriteStage::sendData() {
+  scet.write(dataIn.read());
 }
 
 void WriteStage::updateReady() {
   bool ready = !isStalled();
 
-  if(DEBUG && !ready && readyOut.read()) {
+  if(DEBUG && !ready && readyOut.read())
     cout << this->name() << " stalled." << endl;
-  }
 
   // Write our current stall status.
   if(ready != readyOut.read()) {
@@ -83,6 +69,14 @@ void WriteStage::writeReg(RegisterIndex reg, int32_t value, bool indirect) const
   parent()->writeReg(reg, value, indirect);
 }
 
+const sc_event& WriteStage::requestArbitration(ChannelID destination, bool request) {
+  return parent()->requestArbitration(destination, request);
+}
+
+bool WriteStage::readyToFetch() const {
+  return parent()->readyToFetch();
+}
+
 WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
     scet("scet", ID, &(parent()->channelMapTable)) {
@@ -95,9 +89,6 @@ WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
   creditsIn   = new sc_in<AddressedWord>[NUM_BUFFERS];
   validCredit = new sc_in<bool>[NUM_BUFFERS];
 
-	//TODO: Replace this hack with something more sensible
-	endOfPacket = false;
-
   // Connect the SCET to the network.
   scet.clock(clock);
 
@@ -108,7 +99,17 @@ WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
     scet.validCredit[i](validCredit[i]);
   }
 
-  SC_THREAD(execute);
+  SC_METHOD(execute);
+  sensitive << instructionIn;
+  dont_initialize();
+
+  SC_METHOD(reset);
+  sensitive << clock.pos();
+  dont_initialize();
+
+  SC_METHOD(sendData);
+  sensitive << dataIn;
+  dont_initialize();
 }
 
 WriteStage::~WriteStage() {

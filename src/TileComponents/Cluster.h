@@ -207,6 +207,7 @@ private:
   // Signals telling us which stages are idle, able to send data, or stalled.
   sc_signal<bool>           *stageIdle, *stallRegReady, *stageReady;
 
+  // Connections between the input crossbar and the input buffers.
   sc_buffer<Word>           *dataToBuffers;
   sc_signal<bool>           *fcFromBuffers;
 
@@ -214,6 +215,9 @@ private:
   // want to trigger an event even if the instruction is identical.
   flag_signal<DecodedInst>  *instToStage;
   sc_buffer<DecodedInst>    *instFromStage;
+
+  // Data being sent to the output buffer.
+  sc_buffer<DecodedInst>     outputData;
 
 };
 

@@ -41,7 +41,7 @@ public:
   // The decoded instruction after passing through this pipeline stage.
   // DecodedInst holds all necessary fields for data at all stages throughout
   // the pipeline.
-  sc_out<DecodedInst> dataOut;
+  sc_out<DecodedInst> instructionOut;
 
   // Tells whether the next stage is ready to receive a new instruction.
   sc_in<bool>         readyIn;

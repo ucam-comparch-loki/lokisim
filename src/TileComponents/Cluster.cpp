@@ -235,7 +235,12 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID, local_net_t* networ
 
     stallReg->clock(clock);               stallReg->readyOut(stallRegReady[i]);
     stallReg->dataIn(instFromStage[i]);   stallReg->dataOut(instToStage[i]);
-    stallReg->localStageReady(stageReady[i]);
+
+    // A quick hack: allow the write stage's "ready" signal to propagate back
+    // two stages at once: the execute stage can write data straight into the
+    // output buffer. This means the execute stage's ready signal is ignored.
+    if(i == 0) stallReg->localStageReady(stageReady[i]);
+    else stallReg->localStageReady(stageReady[2]);
 
     if(i < 2) stallReg->readyIn(stallRegReady[i+1]);
     else 			stallReg->readyIn(constantHigh);
@@ -248,22 +253,24 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID, local_net_t* networ
   fetch.clock(clock);                     fetch.idle(stageIdle[0]);
   fetch.toIPKFIFO(dataToBuffers[0]);      fetch.flowControl[0](fcFromBuffers[0]);
   fetch.toIPKCache(dataToBuffers[1]);     fetch.flowControl[1](fcFromBuffers[1]);
-  fetch.readyIn(stallRegReady[0]);				fetch.dataOut(instFromStage[0]);
+  fetch.readyIn(stallRegReady[0]);				fetch.instructionOut(instFromStage[0]);
 
   decode.clock(clock);                    decode.idle(stageIdle[1]);
-  decode.readyIn(stallRegReady[1]);       decode.dataOut(instFromStage[1]);
-  decode.readyOut(stageReady[0]);         decode.dataIn(instToStage[0]);
+  decode.readyIn(stallRegReady[1]);       decode.instructionOut(instFromStage[1]);
+  decode.readyOut(stageReady[0]);         decode.instructionIn(instToStage[0]);
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
-    decode.rcetIn[i](dataToBuffers[i+2]);
+    decode.dataIn[i](dataToBuffers[i+2]);
     decode.flowControlOut[i](fcFromBuffers[i+2]);
   }
 
   execute.clock(clock);                   execute.idle(stageIdle[2]);
-  execute.readyOut(stageReady[1]);        execute.dataIn(instToStage[1]);
-  execute.dataOut(instFromStage[2]);
+  execute.readyOut(stageReady[1]);        execute.instructionIn(instToStage[1]);
+  execute.instructionOut(instFromStage[2]);
+  execute.dataOut(outputData);
 
   write.clock(clock);                     write.idle(stageIdle[3]);
-  write.readyOut(stageReady[2]);          write.dataIn(instToStage[2]);
+  write.readyOut(stageReady[2]);          write.instructionIn(instToStage[2]);
+  write.dataIn(outputData);
 
   for(unsigned int i=0; i<CORE_OUTPUT_PORTS; i++) {
     write.output[i](dataOut[i]);            write.creditsIn[i](creditsIn[i]);
