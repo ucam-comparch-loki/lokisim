@@ -12,6 +12,7 @@
 #define COMPONENT_H_
 
 #include "systemc"
+#include <vector>
 #include "Typedefs.h"
 
 #include "Utility/Instrumentation.h"
@@ -30,6 +31,8 @@ using sc_core::sc_gen_unique_name;
 using std::cout;
 using std::cerr;
 using std::endl;
+
+using std::vector;
 
 SC_MODULE (Component) {
 

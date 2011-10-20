@@ -82,7 +82,7 @@ endofloop:
     addui               r25, r25, 128           # r25 = V
     addu                r9,  r9,  r22           # r9 = third output array
     stb                 r25, 0(r9)      -> 1    # store V
-    addui               r8, r8, 1
+    addui               r8,  r8,  1
     setlt.p             r0,  r8,  r14           # see if we have finished
     lli                 r25, load
     lli                 r26, exit

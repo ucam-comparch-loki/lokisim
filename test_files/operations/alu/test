@@ -16,10 +16,11 @@ class ALUTest(mod.SimulatorTest):
         bigNum = 0x12345678
         
         # Addition, subtraction, simple multiplication.
-        self.execute(0, "addui r10 r0 " + str(bigNum))
+        self.execute(0, "lli r10 " + str(bigNum & 0xFFFF))
+        self.execute(0, "lui r10 " + str(bigNum >> 16))
         self.execute(0, "subu  r11 r0 r10")
-        self.execute(0, "addui r2 r0 -1")
-        self.execute(0, "mullw r12 r11 r2")
+        self.execute(0, "addui r22 r0 -1")
+        self.execute(0, "mullw r12 r11 r22")
         self.assertEqual(bigNum,  self.readReg(0,10), "addui")
         self.assertEqual(-bigNum, self.readReg(0,11), "subu")
         self.assertEqual(bigNum,  self.readReg(0,12), "mullw")
@@ -46,22 +47,24 @@ class ALUTest(mod.SimulatorTest):
         self.assertEqual(unsignedExpected, unsignedResult, "mulhwu")
         
         # Bitwise operations.
-        r5 = 0x00FF
-        r6 = 0x0FF0
-        self.execute(0, "ori r5 r0 "+str(r5))
-        self.execute(0, "ori r6 r0 "+str(r6))
-        self.execute(0, "or  r7 r5 r6")
-        self.execute(0, "and r8 r5 r6")
-        self.execute(0, "nor r9 r5 r6")
-        self.execute(0, "xor r12 r5 r6")
-        self.assertEqual(  r5 |  r6,  self.readReg(0,7),  "or")
-        self.assertEqual(  r5 &  r6,  self.readReg(0,8),  "and")
-        self.assertEqual(~(r5 |  r6), self.readReg(0,9),  "nor")
-        self.assertEqual(  r5 ^  r6,  self.readReg(0,12), "xor")
+        r25 = 0x00FF
+        r26 = 0x0FF0
+        self.execute(0, "lli r25 "+str(r25))
+        self.execute(0, "lli r26 "+str(r26))
+        self.execute(0, "or  r27 r25 r26")
+        self.execute(0, "and r28 r25 r26")
+        self.execute(0, "nor r29 r25 r26")
+        self.execute(0, "xor r12 r25 r26")
+        self.assertEqual(  r25 |  r26,  self.readReg(0,27), "or")
+        self.assertEqual(  r25 &  r26,  self.readReg(0,28), "and")
+        self.assertEqual(~(r25 |  r26), self.readReg(0,29), "nor")
+        self.assertEqual(  r25 ^  r26,  self.readReg(0,12), "xor")
         
         # Other.
-        self.execute(0, "popc r5 r10")
-        self.assertEqual(bin(bigNum).count('1'), self.readReg(0,5), "popc")
+        
+        # Population count is no longer supported
+        #self.execute(0, "popc r25 r10")
+        #self.assertEqual(bin(bigNum).count('1'), self.readReg(0,25), "popc")
         
         
 if __name__ == '__main__':

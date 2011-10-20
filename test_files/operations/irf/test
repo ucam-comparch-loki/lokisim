@@ -16,14 +16,14 @@ class IndirectRegisterTest(mod.SimulatorTest):
     
         # Check that we can update a pointer through the IRF
         instructions = []
-        instructions.append("ori r3, r0, 40")
-        instructions.append("iwtr r3, r3")
-        instructions.append("addui r3, r3, 1")
-        instructions.append("iwtr r3, r3")
-        instructions.append("addui r3, r3, 1")
-        instructions.append("iwtr r3, r3")
-        instructions.append("addui r3, r3, 1")
-        instructions.append("iwtr r3, r3")
+        instructions.append("addui r13, r0, 40")
+        instructions.append("iwtr r13, r13")
+        instructions.append("addui r13, r13, 1")
+        instructions.append("iwtr r13, r13")
+        instructions.append("addui r13, r13, 1")
+        instructions.append("iwtr r13, r13")
+        instructions.append("addui r13, r13, 1")
+        instructions.append("iwtr r13, r13")
         self.executeAll(0, instructions)
         
         self.assertEqual(40, self.readReg(0,40))
@@ -32,14 +32,18 @@ class IndirectRegisterTest(mod.SimulatorTest):
         self.assertEqual(43, self.readReg(0,43))
         
         # See if there are any problems with data forwarding
-        instructions = []
-        instructions.append("ori r3, r0, 32")
-        instructions.append("iwtr r3, r3")
-        instructions.append("irdr r4, r3")
-        self.executeAll(0, instructions)
+        # NOTE: this section of the test has been removed, since it has been
+        # agreed that aliasing in the indirect register file is something the
+        # compiler should deal with.
         
-        self.assertEqual(32, self.readReg(0,32), "didn't write to indirect register")
-        self.assertEqual(32, self.readReg(0,4), "aliasing issues")
+        #instructions = []
+        #instructions.append("ori r13, r0, 32")
+        #instructions.append("iwtr r13, r13")
+        #instructions.append("irdr r14, r13")
+        #self.executeAll(0, instructions)
+        
+        #self.assertEqual(32, self.readReg(0,32), "didn't write to indirect register")
+        #self.assertEqual(32, self.readReg(0,14), "aliasing issues")
             
 if __name__ == '__main__':
     IndirectRegisterTest().runAllTests()

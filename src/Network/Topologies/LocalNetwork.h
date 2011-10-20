@@ -1,25 +1,20 @@
 /*
- * LocalNetwork.h
+ * NewLocalNetwork.h
  *
- * The data and credit networks within a single tile. Allows the cores to send
- * onto a multicast network whilst the memories send onto a normal crossbar.
- *
- *  Created on: 9 May 2011
+ *  Created on: 9 Sep 2011
  *      Author: db434
  */
 
-#ifndef LOCALNETWORK_H_
-#define LOCALNETWORK_H_
+#ifndef NEWLOCALNETWORK_H_
+#define NEWLOCALNETWORK_H_
 
-#include "../Network.h"
-#include <vector>
+#include "../NewNetwork.h"
+#include "Crossbar.h"
+#include "NewCrossbar.h"
 
-using std::vector;
+class EndArbiter;
 
-class ArbiterComponent;
-class Bus;
-
-class LocalNetwork: public Network {
+class LocalNetwork: public NewNetwork {
 
 //==============================//
 // Ports
@@ -33,11 +28,21 @@ public:
 //
 //  DataInput    *dataIn;
 //  ReadyInput   *validDataIn;
-//  ReadyOutput  *ackDataIn;
 //
 //  DataOutput   *dataOut;
 //  ReadyOutput  *validDataOut;
-//  ReadyInput   *ackDataOut;
+//  ReadyInput   *readyDataOut;
+
+  // Additional clocks which are skewed, allowing multiple clocked events
+  // to happen in series in one cycle.
+  sc_in<bool>   fastClock, slowClock;
+
+  // Quick hack: want a posedge early in the cycle (though not at the same time
+  // as the main clock) and a negedge fairly late.
+  // The delayed posedge means select signals don't change until deasserted acks
+  // have been routed back (can we avoid routing them back?), and the late
+  // negedge allows time for the arbiters in the subnetworks to finish first.
+  sc_core::sc_clock arbiterClock;
 
   CreditInput  *creditsIn;
   ReadyInput   *validCreditIn;
@@ -47,13 +52,17 @@ public:
   ReadyOutput  *validCreditOut;
   ReadyInput   *ackCreditOut;
 
+  // A signal from each component, telling whether it is ready to receive
+  // more data.
+  ReadyInput   *readyIn;
+
 //==============================//
 // Constructors and destructors
 //==============================//
 
 public:
 
-  LocalNetwork(sc_module_name name, ComponentID tile);
+  LocalNetwork(const sc_module_name& name, ComponentID tile);
   virtual ~LocalNetwork();
 
 //==============================//
@@ -62,56 +71,27 @@ public:
 
 public:
 
-  // The input port to this network which comes from the global network.
+  // Issue a request for arbitration. This should only be called for the first
+  // and last flits of each packet.
+  // Returns an event which will be triggered when the request is granted.
+  const sc_event& makeRequest(ComponentID source, ChannelID destination, bool request);
+
+  // Inputs and outputs which connect to the global network.
+  ReadyInput&   externalReadyInput() const;
+
   CreditInput&  externalCreditIn() const;
-
-  // The output port of this network which goes to the global network.
   CreditOutput& externalCreditOut() const;
-
   ReadyInput&   externalValidCreditIn() const;
   ReadyOutput&  externalValidCreditOut() const;
-
   ReadyInput&   externalAckCreditIn() const;
   ReadyOutput&  externalAckCreditOut() const;
 
 private:
 
-  // Create all of the arbiters required in this network.
-  void makeArbiters();
-
-  // Create all of the buses required in this network.
-  void makeBuses();
-
-  // Bind the relevant arbiter ports to this network's inputs/outputs.
-  // port = the index in this network's port arrays to bind to.
-  // data = flag telling whether the arbiter handles data or credits.
-  void bindArbiter(ArbiterComponent* arbiter, PortIndex port, bool data);
-
-  // Bind the relevant bus ports to this network's inputs/outputs.
-  // port = the index in this network's port arrays to bind to.
-  // data = flag telling whether the bus handles data or credits.
-  void bindBus(Bus* bus, PortIndex port, bool data);
-
-  // Connect the arbiters and buses together.
-  void wireUp();
-
-  // Connect a group of buses to a group of arbiters.
-  // Typically, the ith output of bus j will connect to the jth input of
-  // arbiter i. This can be adjusted using firstArbiterConnection if some
-  // connections to the arbiter have already been made.
-  // data is a flag telling whether the sub-network handles data or credits.
-  void connect(vector<Bus*>& buses,
-               vector<ArbiterComponent*>& arbiters,
-               PortIndex firstArbiterConnection,
-               bool data);
-
-  // Create all signals necessary to connect one bus to one arbiter. They are
-  // pushed onto the back of vectors, for later access.
-  void makeDataSigs();
-
-  // Create all signals necessary to connect one bus to one arbiter. They are
-  // pushed onto the back of vectors, for later access.
-  void makeCreditSigs();
+  void createArbiters();
+  void createMuxes();
+  void createSignals();
+  void wireUpSubnetworks();
 
 //==============================//
 // Components
@@ -119,28 +99,60 @@ private:
 
 private:
 
+  NewCrossbar coreToCore, coreToMemory, memoryToCore, coreToGlobal, globalToCore;
+
+  // Don't want the new-style crossbar for credits - we don't know in advance
+  // when we will need to send one (and the crossbar transition isn't forced to
+  // fit in half a clock cycle).
+  // Bring globalToCore down here too?
+  Crossbar c2gCredits, g2cCredits;
+
+  std::vector<EndArbiter*>   arbiters;
+  std::vector<Multiplexer*>  muxes;
+
+  // Signals connecting to muxes.
+  // Address using dataSig[destination component][position]
+  //   where coreToCore connects to positions 0 and 1,
+  //         memoryToCore connects to positions 2 and 3,
+  //         globalToCore connects to position 4
+  DataSignal               **dataSig;
+  ReadySignal              **validSig;
+
+  // Signals connecting arbiters to arbiters.
+  // Address using selectSig[arbiter][port]
+  sc_signal<int>           **selectSig;
+  sc_signal<bool>          **requestSig;
+  sc_signal<bool>          **grantSig;
+
+  // Signals allowing arbitration requests to be made for cores/memories/routers.
+  // Currently the signals are written using a function call, but they can
+  // be removed if we set up a proper SystemC channel connection.
+  // Addressed using coreRequests[requester][destination]
+  sc_signal<bool>          **coreRequests, **memRequests, **globalRequests;
+  sc_signal<bool>          **coreGrants,   **memGrants,   **globalGrants;
+
+//==============================//
+// Local state
+//==============================//
+
+private:
+
+  // The numbers of ports required for credits. This is less than the number
+  // required for data because credits are only used for some connections.
   static const unsigned int creditInputs;
   static const unsigned int creditOutputs;
 
-  // Buses and arbiters separated out according to the start/end components.
-  // c = core, m = memory, g = global network
-  // Note that wherever multicast-capable buses are used, credit arbiters are
-  // not needed.
-  vector<Bus*> c2cDataBuses, c2mDataBuses, c2gDataBuses, m2cDataBuses, g2cDataBuses;
-  vector<Bus*> c2cCreditBuses, c2gCreditBuses, g2cCreditBuses;
-  vector<ArbiterComponent*> cDataArbiters, mDataArbiters, gDataArbiters;
-  vector<ArbiterComponent*> cCreditArbiters, gCreditArbiters;
+  // The number of inputs to each arbiter/mux in this network.
+  static const unsigned int muxInputs;
 
-  // There is a bus for each output port of each component. There need to be
-  // wires between each bus and all arbiters which the bus may send to.
-  // Pointers are stored here so they can all be deleted later.
-  vector<DataSignal*>   dataSigs;
-  vector<ReadySignal*>  validDataSigs;
-  vector<ReadySignal*>  ackDataSigs;
+  // If a connection is already set up between two components, when a request
+  // is made, it will not be granted again.
+  // Use this event to trigger any methods which depend on the request being
+  // granted.
+  // To be removed when the request/grant interface is integrated into
+  // components properly.
+  sc_event grantEvent;
 
-  vector<CreditSignal*> creditSigs;
-  vector<ReadySignal*>  validCreditSigs;
-  vector<ReadySignal*>  ackCreditSigs;
 };
 
-#endif /* LOCALNETWORK_H_ */
+#endif /* NEWLOCALNETWORK_H_ */

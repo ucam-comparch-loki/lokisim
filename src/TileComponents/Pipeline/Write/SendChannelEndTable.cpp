@@ -34,8 +34,8 @@ const sc_event& SendChannelEndTable::stallChangedEvent() const {
 
 void SendChannelEndTable::sendLoop() {
 
-  // Data becomes invalid on the clock edge.
-  if(clock.posedge() && validOutput[0].read())
+  // Data becomes invalid in the second half of the clock cycle. Hack?
+  if(!clock.read() && validOutput[0].read())
     validOutput[0].write(false);
 
   switch(state) {
@@ -114,7 +114,7 @@ void SendChannelEndTable::sendLoop() {
       if(data.endOfPacket())
         requestArbitration(data.channelID(), false);
 
-      // Return to IDLE state immediately
+      // Return to IDLE state immediately to see if there is more data to send.
       state = IDLE;
       next_trigger(sc_core::SC_ZERO_TIME);
 

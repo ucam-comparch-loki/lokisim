@@ -13,5 +13,5 @@ loader bootloader.txt
 
 
 %% The benchmark to run (if we aren't supplying one on the command line).
-%loader mat_mult/1_core/loader.txt
+%loader mat_mult/simd/loader.txt
 %../test_local/cjpeg

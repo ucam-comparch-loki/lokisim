@@ -1,12 +1,12 @@
 # Load parameters
 _start:
+    fetchr              loadrow
     ldw                 4(r0)          -> 1
     ldw                 8(r0)          -> 1
     ldw                 12(r0)         -> 1
-    fetchr              loadrow
-    addu                r8,  r0,  r0
-    addu                r9,  r0,  r0
-    addu                r10, r0,  r0
+    lli                 r8,  %lo(0x10000)
+    lli                 r9,  %lo(0x20000)
+    lli                 r10, %lo(0x30000)
     lui                 r8,  %hi(0x10000)       # r8 = start of input matrix 1
     lui                 r9,  %hi(0x20000)       # r9 = start of input matrix 2
     lui                 r10, %hi(0x30000)       # r10 = start of output matrix

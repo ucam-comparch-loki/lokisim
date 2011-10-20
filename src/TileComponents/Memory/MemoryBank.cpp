@@ -28,7 +28,7 @@ using namespace std;
 #include "../../Datatype/Instruction.h"
 #include "../../Datatype/MemoryRequest.h"
 #include "../../Memory/BufferStorage.h"
-#include "../../Network/Topologies/NewLocalNetwork.h"
+#include "../../Network/Topologies/LocalNetwork.h"
 #include "../../Utility/Trace/MemoryTrace.h"
 #include "../../Utility/Parameters.h"
 #include "GeneralPurposeCacheHandler.h"
@@ -1207,6 +1207,14 @@ void MemoryBank::handleNetworkInterfacesPost() {
     oDataOutValid.write(true);
     oDataOut.write(mActiveOutputWord);
 
+    // This seems to be the most sensible place to remove a request (after the
+    // final flit has been sent), but it doesn't seem to work.
+    // Could there be an issue if the next packet also goes to the same component?
+    // Then we'd be writing the same signal twice at the same time, but there'd
+    // be no positive/negative edges for other components to notice.
+//    if(mActiveOutputWord.endOfPacket())
+//      localNetwork->makeRequest(id, mActiveOutputWord.channelID(), false);
+
     mOutputWordPending = false;
 
     if(DEBUG)
@@ -1222,6 +1230,12 @@ void MemoryBank::handleNetworkInterfacesPost() {
 		word.setPortClaim(outWord.PortClaim, false);
 		word.setEndOfPacket(outWord.LastWord);
 		mOutputWordPending = true;
+
+		// Remove the previous request if we are sending to a new destination.
+		// Is this a hack, or is this reasonable?
+		if(mActiveOutputWord.channelID().getComponentID() != word.channelID().getComponentID())
+	    localNetwork->makeRequest(id, mActiveOutputWord.channelID(), false);
+
 		mActiveOutputWord = word;
 
     // Request arbitration, and wait until the request is granted.
@@ -1250,10 +1264,10 @@ void MemoryBank::mainLoop() {
     // Check data input ports and update queue
 
     if (iDataInValid.read()) {
+      if(DEBUG) cout << this->name() << " received " << iDataIn.read() << endl;
       assert(!mInputQueue.full());
 
       // Acknowledgement handled by separate methods
-      if(DEBUG) cout << this->name() << " received " << iDataIn.read() << endl;
       mInputQueue.write(iDataIn.read());
     }
 

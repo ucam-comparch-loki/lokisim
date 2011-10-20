@@ -1,287 +1,326 @@
 /*
- * LocalNetwork.cpp
+ * NewLocalNetwork.cpp
  *
- *  Created on: 9 May 2011
+ *  Created on: 9 Sep 2011
  *      Author: db434
  */
 
 #include "LocalNetwork.h"
-#include "Bus.h"
-#include "MulticastBus.h"
-#include "../Arbiters/ArbiterComponent.h"
-#include "../../TileComponents/TileComponent.h"
+#include "../Multiplexer.h"
+#include "../Arbiters/EndArbiter.h"
+#include "../../OrGate.h"
 
 // Only cores and the global network can send/receive credits.
 const unsigned int LocalNetwork::creditInputs  = CORES_PER_TILE + 1;
-const unsigned int LocalNetwork::creditOutputs = CORES_PER_TILE * CORE_OUTPUT_PORTS + 1;
+const unsigned int LocalNetwork::creditOutputs = CORES_PER_TILE + 1;
 
-void LocalNetwork::makeArbiters() {
-  // Arguments for ArbiterComponent constructor:
-  //   name, ID, number of inputs, number of outputs, whether to use wormhole routing.
+// 2 inputs each from core-to-core and memory-to-core networks, plus one
+// from the router.
+const unsigned int LocalNetwork::muxInputs = CORE_INPUT_PORTS + CORE_INPUT_PORTS + 1;
 
-  // Keep track of how many ports have been bound, so we know which to bind next.
-  PortIndex port = 0;
-  ArbiterComponent* arbiter;
+const sc_event& LocalNetwork::makeRequest(ComponentID source,
+                                             ChannelID destination,
+                                             bool request) {
 
-  // Arbiters for data entering a core.
-  // Data can arrive from any core, any memory, or the global network.
-  for(unsigned int i=0; i<CORES_PER_TILE; i++) {
-    arbiter = new ArbiterComponent(sc_gen_unique_name("core_data_arb"), i,
-                                   COMPONENTS_PER_TILE+1, CORE_INPUT_PORTS, false);
-    cDataArbiters.push_back(arbiter);
-    bindArbiter(arbiter, port, true);
-    port += arbiter->numOutputs();
+  // Find out which signal to write the request to (and read the grant from).
+  sc_signal<bool> *requestSignal, *grantSignal;
+
+  if(source.isMemory()) {                             // Memory to core
+    assert(destination.isCore());
+    requestSignal = &coreRequests[source.getPosition()][destination.getPosition()];
+    grantSignal   = &coreGrants[source.getPosition()][destination.getPosition()];
   }
-
-  // Arbiters for data entering a memory.
-  // Data can arrive from any core.
-  for(unsigned int i=0; i<MEMS_PER_TILE; i++) {
-    arbiter = new ArbiterComponent(sc_gen_unique_name("mem_data_arb"), i,
-                                   CORES_PER_TILE, MEMORY_INPUT_PORTS, true);
-    mDataArbiters.push_back(arbiter);
-    bindArbiter(arbiter, port, true);
-    port += arbiter->numOutputs();
-  }
-
-  // Arbiters for data heading to the global network.
-  // Data can arrive from any core.
-  arbiter = new ArbiterComponent(sc_gen_unique_name("global_data_arb"), 0,
-                                 CORES_PER_TILE, 1, false);
-  gDataArbiters.push_back(arbiter);
-  bindArbiter(arbiter, port, true);
-
-  // Reset the port counter because we are now moving on to credit ports.
-  port = 0;
-
-  // Arbiters for credits entering a core.
-  // Credits can only arrive from the global network.
-  for(unsigned int i=0; i<CORES_PER_TILE; i++) {
-    arbiter = new ArbiterComponent(sc_gen_unique_name("core_credit_arb"), i,
-                                   1, CORE_OUTPUT_PORTS, false);
-    cCreditArbiters.push_back(arbiter);
-    bindArbiter(arbiter, port, false);
-    port += arbiter->numOutputs();
-  }
-
-  // Arbiters for credits heading to the global network.
-  // Credits can arrive from any core.
-  arbiter = new ArbiterComponent(sc_gen_unique_name("global_credit_arb"), 0,
-                                 CORES_PER_TILE, 1, false);
-  gCreditArbiters.push_back(arbiter);
-  bindArbiter(arbiter, port, false);
-
-}
-
-void LocalNetwork::bindArbiter(ArbiterComponent* arbiter, PortIndex port, bool data) {
-  arbiter->clock(clock);
-
-  if(data) {
-    // Connect to data outputs.
-    for(unsigned int i=0; i<arbiter->numOutputs(); i++) {
-      arbiter->dataOut[i](dataOut[port+i]);
-      arbiter->validDataOut[i](validDataOut[port+i]);
-      arbiter->ackDataOut[i](ackDataOut[port+i]);
-    }
+  else if(source.getTile() != id.getTile()) {         // Global to core
+    assert(destination.isCore());
+    requestSignal = &coreRequests[COMPONENTS_PER_TILE][destination.getPosition()];
+    grantSignal   = &coreGrants[COMPONENTS_PER_TILE][destination.getPosition()];
   }
   else {
-    // Connect to credit outputs.
-    for(unsigned int i=0; i<arbiter->numOutputs(); i++) {
-      arbiter->dataOut[i](creditsOut[port+i]);
-      arbiter->validDataOut[i](validCreditOut[port+i]);
-      arbiter->ackDataOut[i](ackCreditOut[port+i]);
+    if(destination.isMemory()) {                      // Core to memory
+      requestSignal = &memRequests[source.getPosition()][destination.getPosition()-CORES_PER_TILE];
+      grantSignal   = &memGrants[source.getPosition()][destination.getPosition()-CORES_PER_TILE];
     }
-  }
-}
-
-void LocalNetwork::makeBuses() {
-  // Arguments for Bus constructor:
-  //   name, ID, number of outputs, position in hierarchy, size, first addressable output.
-
-  // Keep track of how many input ports we have bound so far.
-  PortIndex port = 0;
-  Bus* bus;
-
-  // Data buses from cores.
-  // Data can be sent to cores, memories, or the global network.
-  for(unsigned int i=0; i<CORES_PER_TILE; i++) {
-
-    // Make a separate bus for each output port of the core.
-    for(unsigned int j=0; j<CORE_OUTPUT_PORTS; j++) {
-
-      switch(j) {
-        case 0: { // To cores
-          bus = new MulticastBus(sc_gen_unique_name("c2c_data_bus"), i, CORES_PER_TILE,
-                                 Network::COMPONENT, size, 0);
-          c2cDataBuses.push_back(bus);
-          break;
-        }
-        case 1: { // To memories
-          bus = new Bus(sc_gen_unique_name("c2m_data_bus"), i, MEMS_PER_TILE,
-                        Network::COMPONENT, size, CORES_PER_TILE);
-          c2mDataBuses.push_back(bus);
-          break;
-        }
-        case 2: { // To global network
-          bus = new Bus(sc_gen_unique_name("c2g_data_bus"), i, 1,
-                        Network::NONE, size, 0);
-          c2gDataBuses.push_back(bus);
-          break;
-        }
-        default: assert(false);
-      }
-
-      bindBus(bus, port, true);
-      port++;
+    else if(destination.getTile() != id.getTile()) {  // Core to global
+      requestSignal = &globalRequests[source.getPosition()][0];
+      grantSignal   = &globalGrants[source.getPosition()][0];
+    }
+    else {                                            // Core to core
+      requestSignal = &coreRequests[source.getPosition()][destination.getPosition()];
+      grantSignal   = &coreGrants[source.getPosition()][destination.getPosition()];
     }
   }
 
-  // Data buses from memories.
-  // Data can be sent to cores.
-  for(unsigned int i=0; i<MEMS_PER_TILE; i++) {
-    assert(MEMORY_OUTPUT_PORTS == 1);
-
-    bus = new Bus(sc_gen_unique_name("m2c_data_bus"), i, CORES_PER_TILE,
-                  Network::COMPONENT, size, 0);
-    m2cDataBuses.push_back(bus);
-    bindBus(bus, port, true);
-    port++;
-  }
-
-  // Data buses from the global network.
-  // Data can be sent to cores.
-  bus = new Bus(sc_gen_unique_name("g2c_data_bus"), 0, CORES_PER_TILE,
-                Network::COMPONENT, size, 0);
-  g2cDataBuses.push_back(bus);
-  bindBus(bus, port, true);
-
-  // Reset the port counter now that we are moving on to credits.
-  port = 0;
-
-  // Credit buses from cores.
-  // Credits can only be sent to the global network.
-  for(unsigned int i=0; i<CORES_PER_TILE; i++) {
-    // Cores only have one credit output, which sends its credits to the global
-    // network.
-    bus = new Bus(sc_gen_unique_name("c2g_credit_bus"), i, 1,
-                  Network::NONE, size, 0);
-    c2gCreditBuses.push_back(bus);
-    bindBus(bus, port, false);
-    port++;
-  }
-
-  // Credit buses from the global network.
-  // Credits can be sent to cores.
-  bus = new Bus(sc_gen_unique_name("g2c_credit_bus"), 0, CORES_PER_TILE,
-                Network::COMPONENT, size, 0);
-  g2cCreditBuses.push_back(bus);
-  bindBus(bus, port, false);
-
-}
-
-void LocalNetwork::bindBus(Bus* bus, PortIndex port, bool data) {
-  bus->clock(clock);
-
-  if(data) {
-    bus->dataIn[0](dataIn[port]);
-    bus->validDataIn[0](validDataIn[port]);
-    bus->ackDataIn[0](ackDataIn[port]);
+  if(request && grantSignal->read()) {
+    // If there is already a connection set up, return an event which will be
+    // triggered immediately.
+    grantEvent.notify(sc_core::SC_ZERO_TIME);
+    return grantEvent;
   }
   else {
-    bus->dataIn[0](creditsIn[port]);
-    bus->validDataIn[0](validCreditIn[port]);
-    bus->ackDataIn[0](ackCreditIn[port]);
+    // Send the request.
+    requestSignal->write(request);
+
+    // Return an event which will be triggered when the request is granted (if
+    // a request was made). If no request was made, this event is not meaningful,
+    // and can be ignored.
+    return grantSignal->posedge_event();
   }
 }
 
-void LocalNetwork::wireUp() {
-  // Core-to-core sub-network.
-  connect(c2cDataBuses, cDataArbiters, 0, true);
-//  connect(c2cCreditBuses, cCreditArbiters, 0, false);
+void LocalNetwork::createArbiters() {
+  for(unsigned int i=0; i<CORES_PER_TILE; i++) {
+    EndArbiter* arb = new EndArbiter(sc_gen_unique_name("arbiter"),
+                                     id,
+                                     muxInputs,
+                                     CORE_INPUT_PORTS,
+                                     true);
 
-  // Core-to-memory sub-network.
-  connect(c2mDataBuses, mDataArbiters, 0, true);
-  connect(m2cDataBuses, cDataArbiters, CORES_PER_TILE, true);
+    // Is this right? Does the arbiter need to have its clock skewed at all?
+    arb->clock(arbiterClock);
 
-  // Core-to-global-network sub-network.
-  connect(c2gDataBuses, gDataArbiters, 0, true);
-  connect(g2cCreditBuses, cCreditArbiters, 0, false);
-  connect(g2cDataBuses, cDataArbiters, COMPONENTS_PER_TILE, true);
-  connect(c2gCreditBuses, gCreditArbiters, 0, false);
+    for(int j=0; j<arb->numInputs(); j++) {
+      arb->requests[j](requestSig[i][j]);
+      arb->grants[j](grantSig[i][j]);
+    }
+    for(int j=0; j<arb->numOutputs(); j++) {
+      arb->select[j](selectSig[i][j]);
+    }
+
+    arbiters.push_back(arb);
+  }
 }
 
-void LocalNetwork::connect(vector<Bus*>& buses,
-                           vector<ArbiterComponent*>& arbiters,
-                           PortIndex firstArbiterConnection,
-                           bool data) {
+void LocalNetwork::createMuxes() {
+  for(unsigned int i=0; i<CORES_PER_TILE*CORE_INPUT_PORTS; i++) {
+    Multiplexer* mux = new Multiplexer(sc_gen_unique_name("mux"), muxInputs);
 
-  if(buses.empty() || arbiters.empty()) return;
+    // Since each arbiter may control multiple multiplexers, determine which
+    // arbiter is controlling this one.
+    int arbiter = i/CORE_INPUT_PORTS;
+    int arbiterSelection = i % CORE_INPUT_PORTS;
+    mux->select(selectSig[arbiter][arbiterSelection]);
 
-  assert(buses.size() <= arbiters[0]->numInputs());
-  assert(buses[0]->numOutputPorts() == arbiters.size());
+    for(int j=0; j<mux->inputs(); j++) {
+      // Use "arbiter" rather than "i" as the index because the same data go to
+      // all muxes leading to the same component. All are controlled by 1 arbiter.
+      mux->dataIn[j](dataSig[arbiter][j]);
+      mux->validIn[j](validSig[arbiter][j]);
+    }
 
-  // Connect the jth output of bus i to the ith input of arbiter j.
-  for(unsigned int i=0; i<buses.size(); i++) {
-    Bus* bus = buses[i];
+    mux->dataOut(dataOut[i]);
+    mux->validOut(validDataOut[i]);
 
-    for(unsigned int j=0; j<arbiters.size(); j++) {
-      ArbiterComponent* arb = arbiters[j];
+    muxes.push_back(mux);
+  }
+}
 
-      if(data) {
-        // Create the wires needed to connect this bus to this arbiter.
-        makeDataSigs();
+void LocalNetwork::createSignals() {
+  dataSig    = new DataSignal*[CORES_PER_TILE];
+  validSig   = new ReadySignal*[CORES_PER_TILE];
+  selectSig  = new sc_signal<int>*[CORES_PER_TILE];
+  requestSig = new sc_signal<bool>*[CORES_PER_TILE];
+  grantSig   = new sc_signal<bool>*[CORES_PER_TILE];
 
-        bus->dataOut[j](*dataSigs.back());
-        bus->validDataOut[j](*validDataSigs.back());
-        bus->ackDataOut[j](*ackDataSigs.back());
-        arb->dataIn[firstArbiterConnection + i](*dataSigs.back());
-        arb->validDataIn[firstArbiterConnection + i](*validDataSigs.back());
-        arb->ackDataIn[firstArbiterConnection + i](*ackDataSigs.back());
-      }
-      else {
-        // Create the wires needed to connect this bus to this arbiter.
-        makeCreditSigs();
+  for(unsigned int i=0; i<CORES_PER_TILE; i++) {
+    dataSig[i]    = new DataSignal[muxInputs];
+    validSig[i]   = new ReadySignal[muxInputs];
 
-        bus->dataOut[j](*creditSigs.back());
-        bus->validDataOut[j](*validCreditSigs.back());
-        bus->ackDataOut[j](*ackCreditSigs.back());
-        arb->dataIn[firstArbiterConnection + i](*creditSigs.back());
-        arb->validDataIn[firstArbiterConnection + i](*validCreditSigs.back());
-        arb->ackDataIn[firstArbiterConnection + i](*ackCreditSigs.back());
-      }
+    selectSig[i]  = new sc_signal<int>[CORE_INPUT_PORTS];
+    requestSig[i] = new sc_signal<bool>[muxInputs];
+    grantSig[i]   = new sc_signal<bool>[muxInputs];
+  }
+
+  int numCores = CORES_PER_TILE;
+  int sendToCores = CORES_PER_TILE + MEMS_PER_TILE + 1;
+  coreRequests = new sc_signal<bool>*[sendToCores];
+  coreGrants   = new sc_signal<bool>*[sendToCores];
+  for(int i=0; i<sendToCores; i++) {
+    coreRequests[i] = new sc_signal<bool>[numCores];
+    coreGrants[i]   = new sc_signal<bool>[numCores];
+  }
+
+  int numMems = MEMS_PER_TILE;
+  int sendToMems = CORES_PER_TILE;
+  memRequests = new sc_signal<bool>*[sendToMems];
+  memGrants   = new sc_signal<bool>*[sendToMems];
+  for(int i=0; i<sendToMems; i++) {
+    memRequests[i] = new sc_signal<bool>[numMems];
+    memGrants[i]   = new sc_signal<bool>[numMems];
+  }
+
+  int numRouterLinks = 1;
+  int sendToRouters = CORES_PER_TILE;
+  globalRequests = new sc_signal<bool>*[sendToRouters];
+  globalGrants   = new sc_signal<bool>*[sendToRouters];
+  for(int i=0; i<sendToRouters; i++) {
+    globalRequests[i] = new sc_signal<bool>[numRouterLinks];
+    globalGrants[i]   = new sc_signal<bool>[numRouterLinks];
+  }
+}
+
+void LocalNetwork::wireUpSubnetworks() {
+  // Each subnetwork contains arbiters, and the outputs of the networks
+  // are themselves arbitrated. Use the slow clock because the memory sends
+  // its data on the negative edge, and the core may need the time to compute
+  // which memory bank it is sending to.
+  coreToCore.clock(slowClock); coreToMemory.clock(slowClock); coreToGlobal.clock(slowClock);
+  memoryToCore.clock(slowClock); globalToCore.clock(slowClock);
+  c2gCredits.clock(clock); g2cCredits.clock(clock);   // Use fastClock too?
+
+  // Keep track of how many ports in each array have been bound, so that if
+  // multiple networks connect to the same array, they can start where the
+  // previous network finished.
+  int portsBound = 0;
+
+  // Data networks
+  for(unsigned int i=0; i<coreToCore.numInputPorts(); i++) {
+    // Data from cores can go to all three core-to-X networks. In practice,
+    // there might be a demux to reduce switching.
+    coreToCore.dataIn[i](dataIn[portsBound]);
+    coreToMemory.dataIn[i](dataIn[portsBound]);
+    coreToGlobal.dataIn[i](dataIn[portsBound]);
+    coreToCore.validDataIn[i](validDataIn[portsBound]);
+    coreToMemory.validDataIn[i](validDataIn[portsBound]);
+    coreToGlobal.validDataIn[i](validDataIn[portsBound]);
+
+    portsBound++;
+  }
+  for(unsigned int i=0; i<memoryToCore.numInputPorts(); i++) {
+    memoryToCore.dataIn[i](dataIn[portsBound]);
+    memoryToCore.validDataIn[i](validDataIn[portsBound]);
+    portsBound++;
+  }
+  for(unsigned int i=0; i<globalToCore.numInputPorts(); i++) {
+    globalToCore.dataIn[i](dataIn[portsBound]);
+    globalToCore.validDataIn[i](validDataIn[portsBound]);
+    portsBound++;
+  }
+
+  for(unsigned int i=0; i<coreToCore.numOutputPorts(); i++) {
+    int arbiter = i/CORE_INPUT_PORTS;
+    int arbiterInput = i%CORE_INPUT_PORTS;
+    coreToCore.dataOut[i](dataSig[arbiter][arbiterInput]);
+    coreToCore.validDataOut[i](validSig[arbiter][arbiterInput]);
+
+    int arbiterOutput = i % CORE_INPUT_PORTS;
+    coreToCore.requestsOut[arbiter][arbiterOutput](requestSig[arbiter][arbiterInput]);
+    coreToCore.grantsIn[arbiter][arbiterOutput](grantSig[arbiter][arbiterInput]);
+  }
+  for(unsigned int i=0; i<memoryToCore.numOutputPorts(); i++) {
+    int arbiter = i/CORE_INPUT_PORTS;
+    int arbiterInput = (i%CORE_INPUT_PORTS) + CORE_INPUT_PORTS;
+    memoryToCore.dataOut[i](dataSig[arbiter][arbiterInput]);
+    memoryToCore.validDataOut[i](validSig[arbiter][arbiterInput]);
+
+    int arbiterOutput = i % CORE_INPUT_PORTS;
+    memoryToCore.requestsOut[arbiter][arbiterOutput](requestSig[arbiter][arbiterInput]);
+    memoryToCore.grantsIn[arbiter][arbiterOutput](grantSig[arbiter][arbiterInput]);
+  }
+  for(unsigned int i=0; i<globalToCore.numOutputPorts(); i++) {
+    int arbiter = i;  // Only one output per core
+    int arbiterInput = CORE_INPUT_PORTS + CORE_INPUT_PORTS;
+    globalToCore.dataOut[i](dataSig[arbiter][arbiterInput]);
+    globalToCore.validDataOut[i](validSig[arbiter][arbiterInput]);
+
+    int arbiterOutput = 0;
+    globalToCore.requestsOut[arbiter][arbiterOutput](requestSig[arbiter][arbiterInput]);
+    globalToCore.grantsIn[arbiter][arbiterOutput](grantSig[arbiter][arbiterInput]);
+  }
+  for(unsigned int i=0; i<coreToMemory.numOutputPorts(); i++) {
+    // Some ports will have already been connected.
+    int port = i + (CORES_PER_TILE*CORE_INPUT_PORTS);
+    coreToMemory.dataOut[i](dataOut[port]);
+    coreToMemory.validDataOut[i](validDataOut[port]);
+  }
+  for(unsigned int i=0; i<coreToGlobal.numOutputPorts(); i++) {
+    // Some ports will have already been connected.
+    int port = i + (CORES_PER_TILE*CORE_INPUT_PORTS)
+                 + (MEMS_PER_TILE*MEMORY_INPUT_PORTS);
+    coreToGlobal.dataOut[i](dataOut[port]);
+    coreToGlobal.validDataOut[i](validDataOut[port]);
+  }
+
+  // Credit networks
+  portsBound = 0;
+  for(unsigned int i=0; i<c2gCredits.numInputPorts(); i++) {
+    c2gCredits.dataIn[i](creditsIn[portsBound]);
+    c2gCredits.validDataIn[i](validCreditIn[portsBound]);
+    c2gCredits.ackDataIn[i](ackCreditIn[portsBound]);
+    portsBound++;
+  }
+  for(unsigned int i=0; i<g2cCredits.numInputPorts(); i++) {
+    g2cCredits.dataIn[i](creditsIn[portsBound]);
+    g2cCredits.validDataIn[i](validCreditIn[portsBound]);
+    g2cCredits.ackDataIn[i](ackCreditIn[portsBound]);
+    portsBound++;
+  }
+
+  portsBound = 0;
+  for(unsigned int i=0; i<g2cCredits.numOutputPorts(); i++) {
+    g2cCredits.dataOut[i](creditsOut[portsBound]);
+    g2cCredits.validDataOut[i](validCreditOut[portsBound]);
+    g2cCredits.ackDataOut[i](ackCreditOut[portsBound]);
+    portsBound++;
+  }
+  for(unsigned int i=0; i<c2gCredits.numOutputPorts(); i++) {
+    c2gCredits.dataOut[i](creditsOut[portsBound]);
+    c2gCredits.validDataOut[i](validCreditOut[portsBound]);
+    c2gCredits.ackDataOut[i](ackCreditOut[portsBound]);
+    portsBound++;
+  }
+
+  // Requests/grants for arbitration.
+  for(unsigned int input=0; input<CORES_PER_TILE; input++) {
+    for(unsigned int output=0; output<CORES_PER_TILE; output++) {
+      coreToCore.requestsIn[input][output](coreRequests[input][output]);
+      coreToCore.grantsOut[input][output](coreGrants[input][output]);
+    }
+    for(unsigned int output=0; output<MEMS_PER_TILE; output++) {
+      coreToMemory.requestsIn[input][output](memRequests[input][output]);
+      coreToMemory.grantsOut[input][output](memGrants[input][output]);
+    }
+    coreToGlobal.requestsIn[input][0](globalRequests[input][0]);
+    coreToGlobal.grantsOut[input][0](globalGrants[input][0]);
+  }
+  for(unsigned int i=0; i<MEMS_PER_TILE; i++) {
+    int input = i + CORES_PER_TILE; // Memories start at offset CORES_PER_TILE
+    for(unsigned int output=0; output<CORES_PER_TILE; output++) {
+      memoryToCore.requestsIn[i][output](coreRequests[input][output]);
+      memoryToCore.grantsOut[i][output](coreGrants[input][output]);
     }
   }
+  int input = CORES_PER_TILE + MEMS_PER_TILE;
+  for(unsigned int output=0; output<CORES_PER_TILE; output++) {
+    globalToCore.requestsIn[0][output](coreRequests[input][output]);
+    globalToCore.grantsOut[0][output](coreGrants[input][output]);
+  }
+
+  // Ready signals
+  for(unsigned int i=0; i<CORES_PER_TILE; i++)
+    arbiters[i]->readyIn(readyIn[i]);
+  for(unsigned int i=0; i<MEMS_PER_TILE; i++)
+    coreToMemory.readyIn[i](readyIn[i + CORES_PER_TILE]);
+  coreToGlobal.readyIn[0](readyIn[CORES_PER_TILE + MEMS_PER_TILE]);
 }
 
-void LocalNetwork::makeDataSigs() {
-  // Make a set of data/valid/acknowledge signals, and append them to the vectors.
-  dataSigs.push_back(new DataSignal());
-  validDataSigs.push_back(new ReadySignal());
-  ackDataSigs.push_back(new ReadySignal());
-}
-
-void LocalNetwork::makeCreditSigs() {
-  // Make a set of credit/valid/acknowledge signals, and append them to the vectors.
-  creditSigs.push_back(new CreditSignal());
-  validCreditSigs.push_back(new ReadySignal());
-  ackCreditSigs.push_back(new ReadySignal());
-}
-
-CreditInput&  LocalNetwork::externalCreditIn() const       {return creditsIn[creditInputs-1];}
-CreditOutput& LocalNetwork::externalCreditOut() const      {return creditsOut[creditOutputs-1];}
-ReadyInput&   LocalNetwork::externalValidCreditIn() const  {return validCreditIn[creditInputs-1];}
+ReadyInput&   LocalNetwork::externalReadyInput()     const {return readyIn[COMPONENTS_PER_TILE];}
+CreditInput&  LocalNetwork::externalCreditIn()       const {return creditsIn[creditInputs-1];}
+CreditOutput& LocalNetwork::externalCreditOut()      const {return creditsOut[creditOutputs-1];}
+ReadyInput&   LocalNetwork::externalValidCreditIn()  const {return validCreditIn[creditInputs-1];}
 ReadyOutput&  LocalNetwork::externalValidCreditOut() const {return validCreditOut[creditOutputs-1];}
-ReadyInput&   LocalNetwork::externalAckCreditIn() const    {return ackCreditOut[creditOutputs-1];}
-ReadyOutput&  LocalNetwork::externalAckCreditOut() const   {return ackCreditIn[creditInputs-1];}
+ReadyInput&   LocalNetwork::externalAckCreditIn()    const {return ackCreditOut[creditOutputs-1];}
+ReadyOutput&  LocalNetwork::externalAckCreditOut()   const {return ackCreditIn[creditInputs-1];}
 
-LocalNetwork::LocalNetwork(sc_module_name name, ComponentID tile) :
-    Network(name,
-            tile,
-            OUTPUT_PORTS_PER_TILE,  // Inputs to this network
-            INPUT_PORTS_PER_TILE,   // Outputs from this network
-            Network::COMPONENT,     // This network connects components (not tiles, etc)
-            Dimension(1.0, 0.2),    // Size in mm
-            0,                      // First accessible component has ID of 0
-            true) {                 // Add an extra input/output for global network
+LocalNetwork::LocalNetwork(const sc_module_name& name, ComponentID tile) :
+    NewNetwork(name, tile, OUTPUT_PORTS_PER_TILE, INPUT_PORTS_PER_TILE, NewNetwork::COMPONENT, Dimension(1.0, 0.03), 0, true),
+    arbiterClock("test", sc_core::sc_time(1.0, sc_core::SC_NS), 0.8),
+    coreToCore("core_to_core", tile, CORES_PER_TILE, CORES_PER_TILE*CORE_INPUT_PORTS, CORE_INPUT_PORTS, level, size, true),
+    coreToMemory("core_to_mem", tile, CORES_PER_TILE, MEMS_PER_TILE, MEMORY_INPUT_PORTS, level, size, false),
+    memoryToCore("mem_to_core", tile, MEMS_PER_TILE, CORES_PER_TILE*CORE_INPUT_PORTS, CORE_INPUT_PORTS, level, size, true),
+    coreToGlobal("core_to_global", tile, CORES_PER_TILE, 1, 1, level, size, false),
+    globalToCore("global_to_core", tile, 1, CORES_PER_TILE, 1, level, size, true),
+    c2gCredits("c2g_credits", tile, CORES_PER_TILE, 1, 1, (Network::HierarchyLevel)level, size),
+    g2cCredits("g2c_credits", tile, 1, CORES_PER_TILE, 1, (Network::HierarchyLevel)level, size) {
 
   creditsIn      = new CreditInput[creditInputs];
   validCreditIn  = new ReadyInput[creditInputs];
@@ -291,34 +330,39 @@ LocalNetwork::LocalNetwork(sc_module_name name, ComponentID tile) :
   validCreditOut = new ReadyOutput[creditOutputs];
   ackCreditOut   = new ReadyInput[creditOutputs];
 
-  makeArbiters();
-  makeBuses();
-  wireUp();
+  // A ready signal from each component and the router.
+  readyIn        = new ReadyInput[COMPONENTS_PER_TILE + 1];
+
+  createSignals();
+  createArbiters();
+  createMuxes();
+  wireUpSubnetworks();
+
 }
 
 LocalNetwork::~LocalNetwork() {
-  delete[] creditsIn;             delete[] creditsOut;
-  delete[] validCreditIn;         delete[] validCreditOut;
-  delete[] ackCreditIn;           delete[] ackCreditOut;
+  delete[] creditsIn;      delete[] validCreditIn;  delete[] ackCreditIn;
+  delete[] creditsOut;     delete[] validCreditOut; delete[] ackCreditOut;
 
-  for(unsigned int i=0; i<c2cDataBuses.size();    i++) delete c2cDataBuses[i];
-  for(unsigned int i=0; i<c2mDataBuses.size();    i++) delete c2mDataBuses[i];
-  for(unsigned int i=0; i<c2gDataBuses.size();    i++) delete c2gDataBuses[i];
-  for(unsigned int i=0; i<m2cDataBuses.size();    i++) delete m2cDataBuses[i];
-  for(unsigned int i=0; i<g2cDataBuses.size();    i++) delete g2cDataBuses[i];
-  for(unsigned int i=0; i<c2cCreditBuses.size();  i++) delete c2cCreditBuses[i];
-  for(unsigned int i=0; i<c2gCreditBuses.size();  i++) delete c2gCreditBuses[i];
-  for(unsigned int i=0; i<g2cCreditBuses.size();  i++) delete g2cCreditBuses[i];
-  for(unsigned int i=0; i<cDataArbiters.size();   i++) delete cDataArbiters[i];
-  for(unsigned int i=0; i<mDataArbiters.size();   i++) delete mDataArbiters[i];
-  for(unsigned int i=0; i<gDataArbiters.size();   i++) delete gDataArbiters[i];
-  for(unsigned int i=0; i<cCreditArbiters.size(); i++) delete cCreditArbiters[i];
-  for(unsigned int i=0; i<gCreditArbiters.size(); i++) delete gCreditArbiters[i];
+  for(unsigned int i=0; i<CORES_PER_TILE; i++) {
+    delete[] dataSig[i];   delete[] validSig[i];
+    delete[] selectSig[i]; delete[] requestSig[i];  delete[] grantSig[i];
+  }
 
-  for(unsigned int i=0; i<dataSigs.size();        i++) delete dataSigs[i];
-  for(unsigned int i=0; i<validDataSigs.size();   i++) delete validDataSigs[i];
-  for(unsigned int i=0; i<ackDataSigs.size();     i++) delete ackDataSigs[i];
-  for(unsigned int i=0; i<creditSigs.size();      i++) delete creditSigs[i];
-  for(unsigned int i=0; i<validCreditSigs.size(); i++) delete validCreditSigs[i];
-  for(unsigned int i=0; i<ackCreditSigs.size();   i++) delete ackCreditSigs[i];
+  delete[] dataSig;        delete[] validSig;
+  delete[] selectSig;      delete[] requestSig;     delete[] grantSig;
+
+  for(unsigned int i=0; i<CORES_PER_TILE+MEMS_PER_TILE+1; i++) {
+    delete[] coreRequests[i];   delete[] coreGrants[i];
+  }
+  for(unsigned int i=0; i<CORES_PER_TILE; i++) {
+    delete[] memRequests[i];    delete[] memGrants[i];
+    delete[] globalRequests[i]; delete[] globalGrants[i];
+  }
+
+  delete[] coreRequests;   delete[] memRequests;    delete[] globalRequests;
+  delete[] coreGrants;     delete[] memGrants;      delete[] globalGrants;
+
+  for(unsigned int i=0; i<arbiters.size(); i++)     delete arbiters[i];
+  for(unsigned int i=0; i<muxes.size();    i++)     delete muxes[i];
 }

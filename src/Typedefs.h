@@ -35,8 +35,8 @@ typedef uint32_t MemoryAddr;
 typedef int16_t  JumpOffset;
 
 // The topology of the network in each tile.
-class NewLocalNetwork;
-typedef NewLocalNetwork local_net_t;
+class LocalNetwork;
+typedef LocalNetwork local_net_t;
 
 // The topology of the network between tiles.
 class Mesh;

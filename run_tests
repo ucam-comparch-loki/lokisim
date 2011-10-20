@@ -44,17 +44,20 @@ def containsTest(directory):
     return "test" in directory
         
 # Traverse the directory tree depth-first, running tests wherever possible.
-def testAll(directory):
+# The filter argument allows only a subset of tests to be run which contain
+# the filter text (e.g. "vector_add", "simd") as part of their path.
+# TODO: full regexp support.
+def testAll(directory, filter=""):
     contents = os.listdir(directory)
     contents.sort()
-    if containsTest(contents):
+    if containsTest(contents) and directory.find(filter) >= 0:
         runTest(directory)
     if ".svn" in contents:
         contents.remove(".svn")
     for entry in contents:
         fullpath = directory + "/" + entry
         if os.path.isdir(fullpath):
-            testAll(fullpath)
+            testAll(fullpath, filter)
     
 # See if there is a simulator where we expect it to be.
 def simulatorFound(location):
@@ -71,20 +74,20 @@ if not simulatorFound(simulator):
     print "Error: no simulator found at " + simulator
     exit(1)
 
-if len(sys.argv) >= 2:
-    # Run tests in all named subdirectories.
-    for i in range(1, len(sys.argv)):
-        argument = sys.argv[i]
-        if argument[0] != "-":
-            subdir = directory + "/" + argument
-            testAll(subdir)
-        elif argument == "-p" or argument == "-turbo":
-            parallel = True
-            threadFinishedFlag = threading.Event()
-            testAll(directory)
-else:
-    # Run all tests.
-    testAll(directory)
+# The filter controls which tests to run by seeing if the test name contains
+# the filter text. TODO: full regexp support.
+filter = ""
+
+# Run tests in all named subdirectories.
+for i in range(1, len(sys.argv)):
+    argument = sys.argv[i]
+    if argument[0] != "-":
+        filter = argument.rstrip("/")   # remove any trailing slashes
+    elif argument == "-p" or argument == "-turbo":
+        parallel = True
+        threadFinishedFlag = threading.Event()
+        
+testAll(directory, filter)
     
 # If there are multiple threads, wait until they have all finished. Each will
 # set the flag to say that they have finished.

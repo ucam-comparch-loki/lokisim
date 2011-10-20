@@ -128,8 +128,10 @@ void BasicArbiter::deassertGrant(int input, int output) {
 }
 
 void BasicArbiter::changeSelection(int output, int value) {
-  selectVec[output] = value;
-  selectionChanged[output].notify();
+  if(value != selectVec[output]) {
+    selectVec[output] = value;
+    selectionChanged[output].notify();
+  }
 }
 
 bool BasicArbiter::haveRequest() const {

@@ -10,7 +10,7 @@
 #include "FlowControl/FlowControlOut.h"
 #include "Topologies/Crossbar.h"
 #include "Topologies/MulticastCrossbar.h"
-#include "Topologies/NewLocalNetwork.h"
+#include "Topologies/LocalNetwork.h"
 #include "Topologies/Mesh.h"
 
 local_net_t* NetworkHierarchy::getLocalNetwork(ComponentID component) const {

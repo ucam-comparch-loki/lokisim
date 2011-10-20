@@ -10,49 +10,52 @@
 
 _start:
     ldw                 0(r0)           -> 1    # load number of SIMD members
-    fetch               r0,  setuploop
+    fetchr              setuploop
 
-    or                  r10, ch0, r0            # r10 = number of SIMD members
-    addui               r7,  r10, -1            # r7 = current core we're sending to
-    ori                 r8,  r0,  (0,1,0)       # r8 = input ports per core
-    mullw               r5,  r7,  r8            # r5 = remote core's instruction input
-    addui.eop           r6,  r5,  (0,0,7)       # r6 = remote core's last data input
+    addu                r31, ch0, r0            # r31 = number of SIMD members
+    addui               r21, r31, -1            # r21 = current core we're sending to
+    lli                 r22, (0,1,0)            # r22 = input ports per core
+    mullw               r19, r21, r22           # r19 = remote core's instruction input
+    lli                 r20, (0,0,7)            # final input port of a core
+    addu.eop            r20, r19, r20           # r20 = remote core's last data input
 
 # Set up connections to remote core
 setuploop:
-    setchmap            2,   r5                 # instruction input = map 2
-    setchmap            3,   r6                 # data input = map 3
+    setchmapi           2,   r19                # instruction input = map 2
+    setchmapi           3,   r20                # data input = map 3
 
 # Send core any parameters it needs
-    ori                 r0,  r7,  0    -> 3     # send core its ID
-    ori                 r0,  r3,  0    -> 3     # send core cache configuration
-    ori                 r0,  r10, 0    -> 3     # send core number of members
+    addu                r0,  r21, r0   -> 3     # send core its ID
+    addu                r0,  r10, r0   -> 3     # send core cache configuration
+    addu                r0,  r31, r0   -> 3     # send core number of members
 
 # Set up remote core's channel map table and fetch program.
 # Note that we need the IPK FIFO to be at least as long as this code sequence.
     rmtexecute                         -> 2
-    ifp?or              r30, ch5, r0            # r30 = this core's SIMD ID
-    ifp?ori             r5,  r0,  (0,0,1,0,0)
-    ifp?mullw           r6,  r5,  r30
-    ifp?slli            r6,  r6,  1             # claim pairs of ports => multiply by 2
-    ifp?addu            r3,  ch5, r6            # instruction memory connection
-    ifp?addu            r4,  r3,  r5            # data memory connection
-    ifp?ori             r8,  r0,  (0,1,0)       # number of ports per core
-    ifp?mullw           r8,  r8,  r30           # r8 = first local port
-    ifp?setchmap        0,   r3
-    ifp?ori             r0,  r0,  0x01000000 -> 0  # tell memory we're about to connect
-    ifp?addui           r0,  r8,  (0,0,1) -> 0  # connect to the instruction memory
-    ifp?setchmap        1,   r4
-    ifp?ori             r0,  r0,  0x01000000 -> 1  # tell memory we're about to connect
-    ifp?addui           r0,  r8,  (0,0,2) -> 1  # connect to the data memory
-    ifp?or              r31, ch5, r0            # r31 = number of SIMD members
-    ifp?or              r0,  ch0, r0            # consume memory's sync message
-    ifp?fetch           r0,  4384               # load program (hardcoded address = bad)
+    ifp?addu            r30, ch5, r0            # r30 = this core's SIMD ID
+    ifp?lli             r19, (0,0,1,0,0)
+    ifp?mullw           r20, r19, r30
+    ifp?slli            r20, r20, 1             # claim pairs of ports => multiply by 2
+    ifp?addu            r17, ch5, r20           # instruction memory connection
+    ifp?addu            r18, r17, r19           # data memory connection
+    ifp?lli             r22, (0,1,0)            # number of ports per core
+    ifp?mullw           r22, r22, r30           # r22 = first local port
+    ifp?setchmapi       0,   r17
+    ifp?lui             r8,  0x0100
+    ifp?addu            r0,  r8,  r0   -> 0     # tell memory we're about to connect
+    ifp?addu            r22, r22, r19  -> 0     # connect to the instruction memory
+    ifp?setchmapi       1,   r18
+    ifp?addu            r0,  r8,  r0   -> 1     # tell memory we're about to connect
+    ifp?addu            r22, r22, r19  -> 1     # connect to the data memory
+    ifp?addu            r31, ch5, r0            # r31 = number of SIMD members
+    ifp?addu            r0,  ch0, r0            # consume memory's sync message
+    ifp?lli             r8,  4252
+    ifp?fetch           r8                      # load program (hardcoded address = bad)
 
 # If more members, loop
-    addui               r7,  r7,  -1            # update to next member
-    setgte.p            r0,  r7,  r0            # see if we have started all members
-    ifp?subu            r5,  r5,  r8            # update instruction input
-    ifp?subu            r6,  r6,  r8            # update data input
-    ifp?ibjmp           -216                    # loop if there's another member
-    or.eop              r0,  r0,  r0
+    addui               r21, r21, -1            # update to next member
+    setgte.p            r0,  r21, r0            # see if we have started all members
+    ifp?subu            r19, r19, r22           # update instruction input
+    ifp?subu            r20, r20, r22           # update data input
+    ifp?ibjmp           -116                    # loop if there's another member
+    addu.eop            r0,  r0,  r0

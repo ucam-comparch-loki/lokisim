@@ -148,8 +148,6 @@ TraceWriter::~TraceWriter() {
  */
 
 void TraceWriter::writeRecord(unsigned long controlByte, unsigned long componentIndex, unsigned long address) {
-  printf("%d\n", mBufferCursor);
-  printf("%d\n", kBufferThreshold);
 	assert(mBufferCursor < kBufferThreshold);
 	assert(controlByte <= 0x7F);
 	assert(componentIndex <= 0xFF);

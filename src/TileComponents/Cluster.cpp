@@ -12,7 +12,7 @@
 #include "../Utility/InstructionMap.h"
 #include "../Datatype/ChannelID.h"
 #include "../Datatype/DecodedInst.h"
-#include "../Network/Topologies/NewLocalNetwork.h"
+#include "../Network/Topologies/LocalNetwork.h"
 
 /* Initialise the instructions a Cluster will execute. */
 void     Cluster::storeData(const std::vector<Word>& data, MemoryAddr location) {

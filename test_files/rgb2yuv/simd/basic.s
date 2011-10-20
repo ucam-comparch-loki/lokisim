@@ -9,80 +9,91 @@
 
 # Load parameters
 simdstart:
-    ldw                 4(r0)            -> 1
-    ldw                 8(r0)            -> 1
-    fetch               r0,  load
-    ori                 r2,  ch0, 0             # r2 = rows of input
-    ori                 r3,  ch0, 0             # r3 = columns of input
-    mullw               r4,  r3,  r2            # r4 = length of input
+    ldw                 4(r0)           -> 1
+    ldw                 8(r0)           -> 1
+    fetchr              load
+    lli                 r20, %lo(0x10000)       # r20 = start of input
+    lui                 r20, %hi(0x10000)
+    lli                 r21, %lo(0x20000)       # r21 = start of output
+    lui                 r21, %hi(0x20000)
+    lli                 r22, 0x1000             # r22 = distance between arrays
+    addu                r12, ch0, r0            # r12 = rows of input
+    addu                r13, ch0, r0            # r13 = columns of input
+    mullw               r14, r13, r12           # r14 = length of input
 
 # Initialisation
-    or.eop              r10, r0,  r30           # r10 = current location
+    addu.eop            r10, r0,  r30           # r10 = current location
 
 # Start of loop
 # Load subpixel values
 load:
-    ldbu                0x10000(r10)     -> 1   # load red
-    ldbu                0x11000(r10)     -> 1   # load green
-    ldbu                0x12000(r10)     -> 1   # load blue
-    fetch               r0,  computey
-    ori                 r7,  ch0, 0             # r7 = red
-    ori                 r8,  ch0, 0             # r8 = green
-    ori.eop             r9,  ch0, 0             # r9 = blue
+    addu                r11, r10, r20           # r11 = first input array
+    ldbu                0(r11)          -> 1    # load red
+    addu                r11, r11, r22           # r11 = second input array
+    ldbu                0(r11)          -> 1    # load green
+    addu                r11, r11, r22           # r11 = third input array
+    ldbu                0(r11)          -> 1    # load blue
+    fetchr              computey
+    addu                r17, ch0, r0            # r17 = red
+    addu                r18, ch0, r0            # r18 = green
+    addu.eop            r19, ch0, r0            # r19 = blue
 
 # Compute Y
 computey:
-    fetch               r0,  compute
-    ori                 r13, r0,  66            # store coefficient
-    ori                 r14, r0,  129           # store coefficient
-    ori                 r15, r0,  25            # store coefficient
-    addui.eop           r29, r0,  computeu      # store next IPK location
+    fetchr              compute
+    addui               r25, r0,  66            # store coefficient
+    addui               r26, r0,  129           # store coefficient
+    addui               r27, r0,  25            # store coefficient
+    lli.eop             r29, computeu           # store next IPK location
 
 # Store Y, compute U
 computeu:
-    addui               r13, r13, 16            # r13 = Y
-    stb                 r13, 0x20000(r10) -> 1  # store Y
-    fetch               r0,  compute
-    ori                 r13, r0,  -38           # store coefficient
-    ori                 r14, r0,  -74           # store coefficient
-    ori                 r15, r0,  112           # store coefficient
-    addui.eop           r29, r0,  computev      # store next IPK location
+    addui               r25, r25, 16            # r25 = Y
+    addu                r11, r10, r21           # r11 = first output array
+    stb                 r25, 0(r11)     -> 1    # store Y
+    fetchr              compute
+    addui               r25, r0,  -38           # store coefficient
+    addui               r26, r0,  -74           # store coefficient
+    addui               r27, r0,  112           # store coefficient
+    lli.eop             r29, computev           # store next IPK location
 
 # Store U, compute V
 computev:
-    addui               r13, r13, 128           # r13 = U
-    stb                 r13, 0x21000(r10) -> 1  # store U
-    fetch               r0,  compute
-    ori                 r13, r0,  112           # store coefficient
-    ori                 r14, r0,  -94           # store coefficient
-    ori                 r15, r0,  -18           # store coefficient
-    addui.eop           r29, r0,  endofloop     # store next IPK location
+    addui               r25, r25, 128           # r25 = U
+    addu                r11, r11, r22           # r11 = second output array
+    stb                 r25, 0(r11)     -> 1    # store U
+    fetchr              compute
+    addui               r25, r0,  112           # store coefficient
+    addui               r26, r0,  -94           # store coefficient
+    addui               r27, r0,  -18           # store coefficient
+    lli.eop             r29, endofloop          # store next IPK location
 
 # Store V, loop if necessary
 endofloop:
-    addui               r13, r13, 128           # r13 = V
-    stb                 r13, 0x22000(r10) -> 1  # store V
+    addui               r25, r25, 128           # r25 = V
+    addu                r11, r11, r22           # r11 = third output array
+    stb                 r25, 0(r11)     -> 1    # store V
     addu                r10, r10, r31           # move to next pixel
-    setlt.p             r0,  r10, r4            # see if we have finished
-    ori                 r25, r0,  load
-    ori                 r26, r0,  exit
+    setlt.p             r0,  r10, r14           # see if we have finished
+    lli                 r25, load
+    lli                 r26, exit
     psel.fetch.eop      r25, r26
 
 exit:
     seteq.p             r0,  r30, r0            # set p if we are core 0
     ifp?syscall         1
-    or.eop              r0,  r0,  r0
+    addu.eop            r0,  r0,  r0
 
 # Subroutine to compute (xR + yG + zB + 128) >> 8
-# Excludes final addition because I currently don't have enough registers for it.
-# Assumes x is in r13, y is in r14, z is in r15 and next IPK address is in r29.
-# Leaves result in r13.
+# Excludes final addition because it is more efficiently done with addui.
+# Assumes x is in r25, y is in r26, z is in r27 and next IPK address is in r29.
+# Leaves result in r25.
 compute:
-    fetch               r29, 0
-    mullw               r13, r13, r7            # xR
-    mullw               r14, r14, r8            # yG
-    mullw               r15, r15, r9            # zB
-    addu                r13, r13, r14           # xR + yG
-    addu                r13, r13, r15           # xR + yG + zB
-    addui               r13, r13, 128           # xR + yG + zB + 128
-    srli.eop            r13, r13, 8             # (xR + yG + zB + 128) >> 8
+    fetch               r29
+    mullw               r25, r25, r17           # xR
+    mullw               r26, r26, r18           # yG
+    mullw               r27, r27, r19           # zB
+    addu                r25, r25, r26           # xR + yG
+    addu                r25, r25, r27           # xR + yG + zB
+    addui               r25, r25, 128           # xR + yG + zB + 128
+    srli.eop            r25, r25, 8             # (xR + yG + zB + 128) >> 8
