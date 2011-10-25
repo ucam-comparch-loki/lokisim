@@ -1,3 +1,5 @@
+parameter TIMEOUT 200000
+
 % Ordinary SIMD
 ../../simd_basic.s
 basic_lat.s

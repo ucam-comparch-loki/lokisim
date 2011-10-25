@@ -51,7 +51,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
   Instrumentation::decoded(id, input);
   CoreTrace::decodeInstruction(id.getPosition(), input.location(), input.endOfIPK());
-  if(!input.isALUOperation()) Instrumentation::operation(id, input, execute);
+  if(!input.isALUOperation()) Instrumentation::executed(id, input, execute);
 
   // If the instruction may perform irreversible reads from a channel-end,
   // and we know it won't execute, stop it here.
@@ -231,10 +231,6 @@ void Decoder::waitForOperands(const DecodedInst& dec) {
 void Decoder::setOperand1(DecodedInst& dec) {
   RegisterIndex reg = dec.sourceReg1();
   bool indirect = dec.opcode() == InstructionMap::OP_IRDR;
-
-  // FIXME: if this is an indirect read, and the pipeline has recently stalled,
-  // it may be possible that the instruction producing the operand we need will
-  // be sitting in a pipeline register. We therefore won't get the correct operand.
 
   if((reg == previousDestination) && !indirect)
     dec.operand1Source(DecodedInst::BYPASS);

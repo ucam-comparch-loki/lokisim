@@ -103,7 +103,7 @@ namespace Instrumentation {
                        ChannelIndex destination, double distance, int bitsSwitched);
 
   // Record whether a particular operation was executed or not.
-  void operation(const ComponentID& id, const DecodedInst& inst, bool executed);
+  void executed(const ComponentID& id, const DecodedInst& inst, bool executed);
 
   // Return the current clock cycle count.
   unsigned long currentCycle();

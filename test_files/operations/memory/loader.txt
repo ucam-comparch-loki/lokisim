@@ -1,1 +1,3 @@
+parameter TIMEOUT 10000
+
 memory.s

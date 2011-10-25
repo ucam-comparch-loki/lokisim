@@ -1,3 +1,5 @@
+parameter TIMEOUT 200000
+
 % All cores executing independently.
 ../../simd_basic.s
 basic_irf_lat.s

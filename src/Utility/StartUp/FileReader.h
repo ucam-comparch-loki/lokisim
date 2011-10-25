@@ -38,6 +38,9 @@ public:
   // Returns NULL if there are no files to link.
   static FileReader* linkFiles();
 
+  // Returns whether a file with the given name exists.
+  static bool exists(const string& filename);
+
   // Delete any temporary files created in the linking process.
   static void tidy();
 
@@ -53,9 +56,9 @@ protected:
   // code. For example, change "ch1" to "r17".
   static void translateAssembly(string& infile, string& outfile);
 
-  string      filename_;
-  ComponentID componentID_;
-  MemoryAddr  position_;
+  const string      filename_;
+  const ComponentID componentID_;
+  const MemoryAddr  position_;
 
 private:
 

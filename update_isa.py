@@ -17,7 +17,7 @@ class Operation:
         self.mnemonic = parts[0]
         self.opcode = int(parts[1], 2)
         self.fullformat = parts[2]
-        self.format = parts[2].split('(')[0]
+        self.format = parts[2].split('(')[0]  # e.g. just "3R"
         
         if parts[3] == '-':
             self.function = 0
@@ -102,11 +102,13 @@ with open(definition_file) as openfile:
 # Filter out comments and blank lines
 operations = filter(lambda x: x[0] != '%' and not x[0].isspace(), operations)
 
+# Generate an Operation type for each line of text remaining.
 operations = [Operation(operation) for operation in operations]
 
-# TODO: don't assume that this script will be run from the directory it is in.
-target_header = "src/Utility/InstructionMap.h"
-target_source = "src/Utility/InstructionMap.cpp"
+# The files we are going to write into.
+directory = os.path.dirname(os.path.realpath(__file__))
+target_header = directory + "/src/Utility/InstructionMap.h"
+target_source = directory + "/src/Utility/InstructionMap.cpp"
 
 # Return a string representing a comma-separated list of booleans showing which 
 # operations satisfy the filter function.
@@ -255,7 +257,8 @@ typedef InstructionMap::Function function_t;
 typedef InstructionMap::Format format_t;
 
 #endif /* INSTRUCTIONMAP_H_ */\n"""
-    
+
+# Write file
 with open(target_header, "w") as header_file:
     header_file.write(header_text)
     print "Wrote", os.path.abspath(target_header)
@@ -390,11 +393,7 @@ source_text += """};
 }
 """
 
-# Strategy for some of the remaining maps:
-#  Create a python dict() which maps each opcode (0..127) to a string
-#  For each operation, add its name to the corresponding position
-#  Use viewvalues() to get all of the strings in order
-    
+# Write file 
 with open(target_source, "w") as source_file:
     source_file.write(source_text)
     print "Wrote", os.path.abspath(target_source)

@@ -78,7 +78,12 @@ FileReader* FileReader::makeFileReader(vector<string>& words, bool customAppLoad
     throw std::exception();
   }
 
-  // TODO: make sure file exists?
+  // Make sure file exists.
+  if(!exists(filename)) {
+    cerr << "Error: could not find input file " << filename << endl;
+    tidy();
+    throw std::exception();
+  }
 
   // Split the filename into the name and the extension.
   int dotPos = filename.find_last_of('.');
@@ -126,8 +131,8 @@ FileReader* FileReader::makeFileReader(vector<string>& words, bool customAppLoad
 
     string makeELF = "loki-elf-as " + asmFile + " -o " + elfFile;
 
-    int failure = system(makeELF.c_str());
-    if(failure) {
+    int returnCode = system(makeELF.c_str());
+    if(returnCode != 0) {
       cerr << "Error: unable to assemble file using command:\n  " << makeELF << endl;
       tidy();
       throw std::exception();
@@ -175,10 +180,7 @@ FileReader* FileReader::linkFiles() {
       string fullpath = directory + "/" + library;
 
       // Make sure the linking library exists.
-      struct stat fileInfo;
-      int failure = stat(fullpath.c_str(), &fileInfo);
-
-      if(failure) {
+      if(!exists(fullpath)) {
         // The location could be wrong: ask the user to try again?
         cerr << "Error: FileReader unable to access linker:\n  " << fullpath << endl;
         tidy();
@@ -199,8 +201,8 @@ FileReader* FileReader::linkFiles() {
       command += " -T" + library;
 
       // Execute the command.
-      failure = system(command.c_str());
-      if(failure) {
+      int returnCode = system(command.c_str());
+      if(returnCode != 0) {
         cerr << "Error: unable to link files using command:\n  " << command << endl;
         linkedFile = "";
         tidy();
@@ -211,6 +213,10 @@ FileReader* FileReader::linkFiles() {
       return new ELFFileReader(linkedFile, ComponentID(), ComponentID(0, 0), 0x1000);
     }
   }
+}
+
+bool FileReader::exists(const string& filename) {
+  return access(filename.c_str(), F_OK) == 0;
 }
 
 /* Delete all of the temporary object files we created, so the filesystem is
@@ -261,8 +267,11 @@ void FileReader::deleteFile(string& filename) {
                    << filename << endl;
 }
 
-FileReader::FileReader(const string& filename, const ComponentID& component, const MemoryAddr position) {
-  filename_ = filename;
-  componentID_ = component;
-  position_ = position;
+FileReader::FileReader(const string& filename, const ComponentID& component, const MemoryAddr position) :
+    filename_(filename),
+    componentID_(component),
+    position_(position) {
+
+  // Do nothing
+
 }

@@ -36,9 +36,17 @@ void ExecuteStage::execute() {
 
     DecodedInst instruction = instructionIn.read();
 
+    // If the instruction already has a result, pass it straight on to the
+    // write stage.
+    if(instruction.hasResult()) {
+      currentInst = instruction;
+      executedInstruction.notify();
+      sendOutput();
+    }
     // Execute the instruction and pass its output to any appropriate modules
     // (i.e. register file, output buffer).
-    newInput(instruction);
+    else
+      newInput(instruction);
 
     next_trigger(clock.posedge_event());
   }
@@ -64,7 +72,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
   bool willExecute = checkPredicate(operation);
 
   if(operation.isALUOperation())
-    Instrumentation::operation(id, operation, willExecute);
+    Instrumentation::executed(id, operation, willExecute);
 
   if(willExecute) {
     bool success = true;
@@ -139,29 +147,34 @@ void ExecuteStage::newInput(DecodedInst& operation) {
 
     executedInstruction.notify();
 
-    if(success) {
-      if(currentInst.sendsOnNetwork()) {
-        // Memory operations may be sent to different memory banks depending on the
-        // address accessed.
-        // In practice, this would be performed by a separate, small functional
-        // unit in parallel with the main ALU, so that there is time left to request
-        // a path to memory.
-        if(currentInst.isMemoryOperation()) adjustNetworkAddress(currentInst);
+    if(success)
+      sendOutput();
 
-        // Send the data to the output buffer - it will arrive immediately.
-        dataOut.write(currentInst);
-      }
-
-      // Send the data to the register file - it will arrive at the beginning
-      // of the next clock cycle.
-      instructionOut.write(currentInst);
-    }
   } // end if will execute
   else {
     // If the instruction will not be executed, invalidate it so we don't
     // try to forward data from it.
     currentInst.preventForwarding();
   }
+}
+
+void ExecuteStage::sendOutput() {
+  if(currentInst.sendsOnNetwork()) {
+    // Memory operations may be sent to different memory banks depending on the
+    // address accessed.
+    // In practice, this would be performed by a separate, small functional
+    // unit in parallel with the main ALU, so that there is time left to request
+    // a path to memory.
+    if(currentInst.isMemoryOperation()) adjustNetworkAddress(currentInst);
+
+    // Send the data to the output buffer - it will arrive immediately so that
+    // network resources can be requested the cycle before they are used.
+    dataOut.write(currentInst);
+  }
+
+  // Send the data to the register file - it will arrive at the beginning
+  // of the next clock cycle.
+  instructionOut.write(currentInst);
 }
 
 bool ExecuteStage::fetch(DecodedInst& inst) {

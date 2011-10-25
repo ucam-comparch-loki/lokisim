@@ -77,6 +77,7 @@ private:
 
   // The task performed when a new operation is received.
   virtual void newInput(DecodedInst& operation);
+  void sendOutput();
 
   // Returns whether a fetch request should be sent (and stores the request in
   // operation's "result" field, if appropriate).

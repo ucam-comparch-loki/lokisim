@@ -34,7 +34,4 @@ class MatMultTest(mod.SimulatorTest):
         # Collect result from simulator
         result = self.readMemory(8, 0x30000, params[1]*params[3])
         
-#        for x,y in zip(expect, result):
-#          print x,y
-        
         self.compare(result, correct=expect)    

@@ -15,8 +15,6 @@ void ALU::execute(DecodedInst& dec) const {
 
   assert(dec.isALUOperation());
 
-  if(dec.hasResult()) return; // TODO: remove?
-
   bool pred = parent()->readPredicate();
 
   // Cast to 32 bits because our architecture is supposed to use 32-bit

@@ -1,3 +1,5 @@
+parameter TIMEOUT 200000
+
 mat_mult_irf.s
 
 ../params.data  -1  0x00000

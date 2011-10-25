@@ -107,7 +107,8 @@ void Parameters::parseParameter(const string &name, const string &value) {
 	const char* cName = name.c_str();
 	int nValue = StringManipulation::strToInt(value);
 
-	SET_IF_MATCH(cName, nValue, CORES_PER_TILE);
+  SET_IF_MATCH(cName, nValue, TIMEOUT);
+  else SET_IF_MATCH(cName, nValue, CORES_PER_TILE);
 	else SET_IF_MATCH(cName, nValue, MEMS_PER_TILE);
 	else SET_IF_MATCH(cName, nValue, NUM_TILE_ROWS);
 	else SET_IF_MATCH(cName, nValue, NUM_TILE_COLUMNS);

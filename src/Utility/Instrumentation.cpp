@@ -120,8 +120,8 @@ void Instrumentation::networkActivity(const ComponentID& network, ChannelIndex s
   Network::activity(network, source, destination, distance, bitsSwitched);
 }
 
-void Instrumentation::operation(const ComponentID& id, const DecodedInst& inst, bool executed) {
-  Operations::operation(inst.opcode(), executed);
+void Instrumentation::executed(const ComponentID& id, const DecodedInst& inst, bool executed) {
+  Operations::executed(id, inst, executed);
 
   if(Debugger::mode == Debugger::DEBUGGER)
     Debugger::executedInstruction(inst, id, executed);

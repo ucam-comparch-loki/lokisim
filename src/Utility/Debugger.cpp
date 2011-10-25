@@ -258,6 +258,7 @@ void Debugger::executeUntilBreakpoint() {
   if(cycleNumber >= TIMEOUT) {
     cerr << "Simulation timed out after " << TIMEOUT << " cycles." << endl;
     RETURN_CODE = 1;
+    exit(1);
   }
   else if(cyclesIdle >= maxIdleTime) {
     cerr << "System was idle for " << cyclesIdle << " cycles." << endl;
@@ -277,6 +278,7 @@ void Debugger::finishExecution() {
   if(cycleNumber >= TIMEOUT) {
     cerr << "Simulation timed out after " << TIMEOUT << " cycles." << endl;
     RETURN_CODE = 1;
+    exit(1);
   }
   else if(cyclesIdle >= maxIdleTime) {
     cerr << "System was idle for " << cyclesIdle << " cycles." << endl;

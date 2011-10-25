@@ -40,6 +40,16 @@ public:
     return totalEvents;
   }
 
+  typedef typename std::map<T, unsigned long long>::iterator iterator;
+
+  iterator begin() {
+    return counters.begin();
+  }
+
+  iterator end() {
+    return counters.end();
+  }
+
   CounterMap() {
 
   }

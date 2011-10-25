@@ -176,7 +176,7 @@ class SimulatorTest(unittest.TestCase):
             
     # Print a message explaining why the test failed.
     def _failure(self, testName, reason):
-        errormessage = reason
+        errormessage = reason.strip()
         if errormessage == "" or errormessage.isspace():
             errormessage = "unknown reason"
             

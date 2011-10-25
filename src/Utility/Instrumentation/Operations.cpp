@@ -10,29 +10,37 @@
 #include "../../Datatype/ComponentID.h"
 #include "../../Datatype/DecodedInst.h"
 
-CounterMap<opcode_t> Operations::executedOps;
-CounterMap<opcode_t> Operations::unexecutedOps;
+CounterMap<operation_key> Operations::executedOps;
+CounterMap<operation_key> Operations::unexecutedOps;
 unsigned long long Operations::numOps_ = 0;
 unsigned long long Operations::numDecodes_ = 0;
 
-void Operations::decoded(const ComponentID &core, const DecodedInst& dec) {
+void Operations::decoded(const ComponentID& core, const DecodedInst& dec) {
   // May later care about the operation, since different ones require different
   // decode energies?
   numDecodes_++;
 }
 
-void Operations::operation(opcode_t op, bool executed) {
-  opcode_t opcopy = op;  // Hack so we can pass a reference
+void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool executed) {
+  operation_key key;
+  key.opcode = dec.opcode();
+  key.function = dec.function();
 
-  if(executed) executedOps.increment(opcopy);
-  else unexecutedOps.increment(opcopy);
+  if(executed) executedOps.increment(key);
+  else unexecutedOps.increment(key);
 
   numOps_++;
 }
 
 unsigned long long Operations::numDecodes()               {return numDecodes_;}
 unsigned long long Operations::numOperations()            {return numOps_;}
-unsigned long long Operations::numOperations(opcode_t op) {return executedOps[op];}
+
+unsigned long long Operations::numOperations(opcode_t op, function_t function) {
+  operation_key key;
+  key.opcode = op;
+  key.function = function;
+  return executedOps[key];
+}
 
 void Operations::printStats() {
   if (BATCH_MODE)
@@ -45,11 +53,13 @@ void Operations::printStats() {
 
     int executed = executedOps.numEvents();
 
-    for(int i=0; i<InstructionMap::numInstructions(); i++) {
-      opcode_t op = static_cast<opcode_t>(i);
+    CounterMap<operation_key>::iterator it;
+
+    for(it=executedOps.begin(); it != executedOps.end(); it++) {
+      operation_key op = it->first;
 
       if(executedOps[op] > 0 || unexecutedOps[op] > 0) {
-        inst_name_t name = InstructionMap::name(op);
+        const inst_name_t& name = InstructionMap::name(op.opcode, op.function);
 
         if (BATCH_MODE)
         	cout << "<@SUBTABLE>operations!op_name:" << name << "!exec_count:" << executedOps[op] << "</@SUBTABLE>" << endl;

@@ -36,7 +36,7 @@ private:
 
   // The core which will execute this program needs to be given a small loader
   // program.
-  ComponentID core_;
+  const ComponentID core_;
 
 };
 

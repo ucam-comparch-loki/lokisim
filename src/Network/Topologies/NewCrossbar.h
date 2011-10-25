@@ -57,7 +57,6 @@ public:
   // chained             = whether there needs to be a multiplexer after this
   //                       network, allowing many network to send to the same
   //                       destination
-  // TODO: remove level?
   NewCrossbar(const sc_module_name& name,
               const ComponentID& ID,
               int inputs,

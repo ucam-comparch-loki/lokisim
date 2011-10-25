@@ -25,7 +25,7 @@ vector<DataBlock>& ELFFileReader::extractData(int& mainPos) const {
   // For machines which can't run the Loki toolchain, we provide the section
   // headers in a separate file.
   string extFileName = filename_ + ".objdump-h";
-  bool useExternalMetadata = access(extFileName.c_str(), F_OK) == 0;
+  bool useExternalMetadata = exists(extFileName);
 
   // Execute a command which returns information on all of the ELF sections.
   FILE* terminalOutput;
@@ -112,7 +112,7 @@ int ELFFileReader::findMain() const {
 //  return 0x1000;
 
   string extFileName = filename_ + ".objdump-t";
-  bool useExternalMetadata = access(extFileName.c_str(), F_OK) == 0;
+  bool useExternalMetadata = exists(extFileName);
 
   // Execute a command which returns information on all of the ELF sections.
   FILE* terminalOutput;
@@ -159,8 +159,9 @@ int ELFFileReader::findMain() const {
 
 ELFFileReader::ELFFileReader(const std::string& filename, const ComponentID& memory,
                              const ComponentID& core, const MemoryAddr location) :
-    FileReader(filename, memory, location) {
+    FileReader(filename, memory, location),
+    core_(core) {
 
-  core_ = core;
+  // Do nothing
 
 }
