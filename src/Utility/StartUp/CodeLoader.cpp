@@ -25,6 +25,7 @@ int CodeLoader::mainOffset = -1;
  *   parameter parameter_name parameter_value
  *     Override default parameter setting */
 void CodeLoader::loadParameters(string& settings) {
+
   // Check that this is actually a settings file.
   if(settings.find(".txt") == settings.size()) return;
 

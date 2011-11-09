@@ -91,7 +91,8 @@ FileReader* FileReader::makeFileReader(vector<string>& words, bool customAppLoad
   string name, extension;
 
   // If we found two dots in a row, we didn't find the file extension.
-  if(filename[dotPos-1] == '.') {
+  // Similarly if we've found "./filename"
+  if(filename[dotPos-1] == '.' || filename[dotPos+1] == '/') {
     name = filename;
     extension = "";
   }
@@ -151,12 +152,12 @@ FileReader* FileReader::makeFileReader(vector<string>& words, bool customAppLoad
     }
   }
   else {
-//    // Assume the dot was just part of the filename/path
-//    filesToLink.push_back(filename);
-//    reader = NULL;
-    cerr << "Unknown file format: " << filename << endl;
-    tidy();
-    throw std::exception();
+    // Assume the dot was just part of the filename/path
+    filesToLink.push_back(filename);
+    reader = NULL;
+//    cerr << "Unknown file format: " << filename << endl;
+//    tidy();
+//    throw std::exception();
   }
 
   return reader;

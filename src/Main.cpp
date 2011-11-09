@@ -192,16 +192,18 @@ int sc_main(int argc, char* argv[]) {
 	// Override parameters before instantiating chip model
 
 	int settingsArg = 0;
+	const string simPath = string(argv[0]);
+	const string simDir = simPath.substr(0, simPath.rfind('/'));
+	string settingsFile = simDir + "/../test_files/loader.txt";
 
-	// Load settings from settings file if present
-	for(int i=0; i<argc; i++) {
-	  if(string(argv[i]) == "-settings") {
-		settingsArg = i+1;
-		break;
-	  }
-	}
-
-	string settingsFile(settingsArg > 0 ? argv[settingsArg] : "test_files/loader.txt");
+  // Load settings from settings file if present
+  for(int i=0; i<argc; i++) {
+    if(string(argv[i]) == "-settings") {
+	    settingsArg = i+1;
+	    settingsFile = argv[settingsArg];
+	    break;
+    }
+  }
 
 	// Load parameters from the main settings file.
 	CodeLoader::loadParameters(settingsFile);

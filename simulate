@@ -4,33 +4,77 @@ import os, subprocess, sys
 
 if len(sys.argv) < 2:
     print "simulate: a simplified interface to the Loki simulator"
-    print "Usage: simulate <ELF/loader file> [<arg1> [...]]"
+    print "Usage: simulate [simulator args] <ELF/loader file> [program args]"
+    print "Options:"
+    print "  -trace, -t     Generate an instruction trace"
+    print "  -fast, -f      Use a much faster, but less accurate, simulator"
     sys.exit(-1)
 
-if os.path.isdir(sys.argv[1]):
-    sys.argv[1] = sys.argv[1] + "/loader.txt"
+# Parts of the command which will be executed
+program = ""
+programargs = ""
+command = ""
 
-if not os.path.isfile(sys.argv[1]):
-    print "Error:", sys.argv[1], "not found"
-    sys.exit(-1)
+# Simulator parameters
+use_fast_sim = False
+trace = False
     
-simpath = os.path.dirname(os.path.realpath(__file__)) + "/Debug/Loki2"
+currentArg = 1
 
-if not os.path.isfile(simpath):
-    print "Error: simulator not found (" + simpath + ")"
-    sys.exit(-1)
+# Get any simulator parameters (all parameters beginning with "-" until we find
+# one without the "-")
+for i in range(currentArg, len(sys.argv)):
+    if sys.argv[i][0] == "-":
+        if sys.argv[i] == "-trace" or sys.argv[i] == "-t":
+            trace = True
+        elif sys.argv[i] == "-fast" or sys.argv[i] == "-f":
+            use_fast_sim = True
+            
+        currentArg += 1
+    else:
+        break
 
-# Base command.
-command = simpath + " -run " + sys.argv[1]
+# The program to run
+program = sys.argv[currentArg]
+currentArg += 1
+
+if os.path.isdir(program):
+    program += "/loader.txt"
+
+if not os.path.isfile(program):
+    print "Error: program ", program, "not found"
+    sys.exit(-1)    
 
 # Add arguments, if any.
-if len(sys.argv) > 2:
-    command = command + " --args"
-    for i in range(2, len(sys.argv)):
-        command = command + " " + sys.argv[i]
+if len(sys.argv) >= currentArg:
+    for i in range(currentArg, len(sys.argv)):
+        programargs = programargs + " " + sys.argv[i]
+        currentArg += 1
 
-# Discard anything sent on the error channel (e.g. SystemC info).
-command = command# + " 2> /dev/null"
+
+# Differences in syntax for the two simulators
+if use_fast_sim:
+    command = "loki-elf-run "
+    
+    if trace:
+        command += "-t "
+        
+    command += program + " -- " + programargs
+else:
+    simulator = os.path.dirname(os.path.realpath(__file__)) + "/Debug/Loki2"
+    
+    if not os.path.isfile(simulator):
+        print "Error: simulator not found (" + simulator + ")"
+        sys.exit(-1)
+    
+    command = simulator + " "
+    
+    if trace:
+        command += "-coretrace " + program + ".trace "
+        
+    command += "-run " + program + " --args " + programargs
+
+# Run the simulator
 simulation = subprocess.Popen(command, shell=True)
 returncode = simulation.wait()
 
