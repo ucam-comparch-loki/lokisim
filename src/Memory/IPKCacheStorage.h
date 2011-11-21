@@ -66,6 +66,10 @@ public:
   // Returns whether the cache is full.
   bool full() const;
 
+  // Returns whether this cache is stalled, waiting for instructions to arrive
+  // from memory.
+  bool stalled() const;
+
   // Return whether this core is allowed to send out a new fetch request.
   // It is not allowed to send the request if there is not room for a maximum-
   // size packet, or if any fetches are already taking place.

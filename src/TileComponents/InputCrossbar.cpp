@@ -22,6 +22,8 @@ void InputCrossbar::newData(PortIndex input) {
   // We have new data - forward it to the correct channel end.
   const AddressedWord& data = dataIn[input].read();
   ChannelIndex destination = data.channelID().getChannel();
+
+  if(destination >= numOutputs) cout << "Trying to send to " << data.channelID() << endl;
   assert(destination < numOutputs);
 
   // Trigger a method which will send the data.

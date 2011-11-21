@@ -71,6 +71,12 @@ void         DecodeStage::newInput(DecodedInst& inst) {
       // the instruction may change its destination.
       readChannelMapTable(decoded);
 
+      while(!readyIn.read()) {
+        waitingToSend = true;
+        wait(1, sc_core::SC_NS);
+      }
+
+      waitingToSend = false;
       instructionOut.write(decoded);
     }
 
@@ -82,7 +88,7 @@ void         DecodeStage::newInput(DecodedInst& inst) {
 }
 
 bool         DecodeStage::isStalled() const {
-  return !decoder.ready();
+  return !decoder.ready() && !waitingToSend;
 }
 
 int32_t      DecodeStage::readReg(RegisterIndex index, bool indirect) const {

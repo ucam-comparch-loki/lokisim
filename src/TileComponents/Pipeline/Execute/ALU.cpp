@@ -214,6 +214,21 @@ void ALU::systemCall(int code) const {
        * same on host as the target OS */
       break;
     }
+
+    case 0x10: { /* tile ID */
+      int tile = this->id.getTile();
+      writeReg(11, tile);
+      break;
+    }
+    case 0x11: { /* position within tile */
+      int position = this->id.getPosition();
+      writeReg(11, position);
+      break;
+    }
+
+    default:
+      cerr << "Warning: unrecognised system call opcode: " << code << endl;
+      assert(false);
   }
 }
 

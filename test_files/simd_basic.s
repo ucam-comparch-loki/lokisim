@@ -16,17 +16,17 @@ _start:
     addui               r21, r31, -1            # r21 = current core we're sending to
     lli                 r22, (0,1,0)            # r22 = input ports per core
     mullw               r19, r21, r22           # r19 = remote core's instruction input
-    lli                 r20, (0,0,7)            # final input port of a core
-    addu.eop            r20, r19, r20           # r20 = remote core's last data input
+    lli                 r23, (0,0,7)            # final input port of a core
+    addu.eop            r23, r19, r23           # r23 = remote core's last data input
 
 # Set up connections to remote core
 setuploop:
     setchmapi           2,   r19                # instruction input = map 2
-    setchmapi           3,   r20                # data input = map 3
+    setchmapi           3,   r23                # data input = map 3
 
 # Send core any parameters it needs
     addu                r0,  r21, r0   -> 3     # send core its ID
-    addu                r0,  r10, r0   -> 3     # send core cache configuration
+    addu                r0,  r20, r0   -> 3     # send core cache configuration
     addu                r0,  r31, r0   -> 3     # send core number of members
 
 # Set up remote core's channel map table and fetch program.
@@ -34,9 +34,9 @@ setuploop:
     rmtexecute                         -> 2
     ifp?addu            r30, ch5, r0            # r30 = this core's SIMD ID
     ifp?lli             r19, (0,0,1,0,0)
-    ifp?mullw           r20, r19, r30
-    ifp?slli            r20, r20, 1             # claim pairs of ports => multiply by 2
-    ifp?addu            r17, ch5, r20           # instruction memory connection
+    ifp?mullw           r23, r19, r30
+    ifp?slli            r23, r23, 1             # claim pairs of ports => multiply by 2
+    ifp?addu            r17, ch5, r23           # instruction memory connection
     ifp?addu            r18, r17, r19           # data memory connection
     ifp?lli             r22, (0,1,0)            # number of ports per core
     ifp?mullw           r22, r22, r30           # r22 = first local port
@@ -56,6 +56,6 @@ setuploop:
     addui               r21, r21, -1            # update to next member
     setgte.p            r0,  r21, r0            # see if we have started all members
     ifp?subu            r19, r19, r22           # update instruction input
-    ifp?subu            r20, r20, r22           # update data input
+    ifp?subu            r23, r23, r22           # update data input
     ifp?ibjmp           -116                    # loop if there's another member
     addu.eop            r0,  r0,  r0

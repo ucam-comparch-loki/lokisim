@@ -8,8 +8,8 @@ _start:
     setchmapi       2,   r12                # map 2 = cluster 2 instructions
     setchmapi       3,   r13                # map 3 = cluster 1 data
     setchmapi       4,   r14                # map 4 = cluster 2 data
-    addu            r0,  r10, r0  -> 3      # send cache configuration to core 1
-    addu.eop        r0,  r10, r0  -> 4      # send cache configuration to core 2
+    addu            r0,  r20, r0  -> 3      # send cache configuration to core 1
+    addu.eop        r0,  r20, r0  -> 4      # send cache configuration to core 2
 
 tocore1:
     fetchr          tocore2

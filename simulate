@@ -48,13 +48,13 @@ if not os.path.isfile(program):
 # Add arguments, if any.
 if len(sys.argv) >= currentArg:
     for i in range(currentArg, len(sys.argv)):
-        programargs = programargs + " " + sys.argv[i]
+        programargs = programargs + sys.argv[i] + " "
         currentArg += 1
 
 
 # Differences in syntax for the two simulators
 if use_fast_sim:
-    command = "loki-elf-run "
+    command = "loki-elf-run -v "
     
     if trace:
         command += "-t "
@@ -75,6 +75,7 @@ else:
     command += "-run " + program + " --args " + programargs
 
 # Run the simulator
+print command
 simulation = subprocess.Popen(command, shell=True)
 returncode = simulation.wait()
 

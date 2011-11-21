@@ -53,7 +53,7 @@ void WriteStage::updateReady() {
   // Write our current stall status.
   if(ready != readyOut.read()) {
     readyOut.write(ready);
-    Instrumentation::stalled(id, !ready, Stalls::OUTPUT);
+    Instrumentation::stalled(id, !ready, Stalls::STALL_OUTPUT);
   }
 
   // Wait until some point late in the cycle, so we know that any operations

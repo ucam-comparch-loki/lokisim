@@ -71,7 +71,10 @@ void ExecuteStage::newInput(DecodedInst& operation) {
   // See if the instruction should execute.
   bool willExecute = checkPredicate(operation);
 
-  if(operation.isALUOperation())
+  // Only instrument operations which will be executed in this pipeline stage.
+  // PAYLOAD_ONLY means this is the second half of a store operation - we don't
+  // want to instrument it twice.
+  if(operation.isALUOperation() && operation.memoryOp() != MemoryRequest::PAYLOAD_ONLY)
     Instrumentation::executed(id, operation, willExecute);
 
   if(willExecute) {

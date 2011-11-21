@@ -158,6 +158,13 @@ bool IPKCacheStorage::full() const {
   return fillCount == this->size();
 }
 
+/* Returns whether this cache is stalled, waiting for instructions to arrive
+ * from memory. */
+bool IPKCacheStorage::stalled() const {
+  // Will this work? What if the cache is just plain empty?
+  return empty() && !currentPacket.inCache;
+}
+
 /* We can issue a new fetch command if there is space in the cache for a
  * maximum-sized instruction packet, and no other fetches are already in
  * progress. */

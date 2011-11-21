@@ -127,7 +127,7 @@ void SendChannelEndTable::sendLoop() {
 
 /* Stall the pipeline until the specified channel is empty. */
 void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
-  Instrumentation::stalled(id, true, Stalls::OUTPUT);
+  Instrumentation::stalled(id, true, Stalls::STALL_OUTPUT);
   waiting = true;
   bufferFillChanged.notify(); // No it didn't - use separate events?
 

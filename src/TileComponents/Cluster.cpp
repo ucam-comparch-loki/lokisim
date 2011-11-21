@@ -92,7 +92,9 @@ bool     Cluster::readPredReg(bool waitForExecution) {
   // the instruction in the execute stage will set it.
   if(waitForExecution && execute.currentInstruction().setsPredicate()
                       && !execute.currentInstruction().hasResult()) {
+    Instrumentation::stalled(id, true, Stalls::STALL_FORWARDING);
     wait(execute.executedEvent());
+    Instrumentation::stalled(id, false);
   }
 
   return pred.read();

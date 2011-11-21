@@ -13,7 +13,6 @@
 #include "../../../Datatype/MemoryRequest.h"
 #include "../../../Utility/Trace/CoreTrace.h"
 #include "../../../Utility/InstructionMap.h"
-#include "../../../Utility/Instrumentation/Stalls.h"
 
 typedef IndirectRegisterFile Registers;
 
@@ -229,6 +228,13 @@ void Decoder::waitForOperands(const DecodedInst& dec) {
 }
 
 void Decoder::setOperand1(DecodedInst& dec) {
+  // Avoid reading an operand if we know we won't need it. This is especially
+  // necessary if the operand is on a channel end - it may not be there at all.
+  if((dec.opcode() == InstructionMap::OP_PSEL ||
+      dec.opcode() == InstructionMap::OP_PSEL_FETCH) &&
+     !parent()->predicate())
+    return;
+
   RegisterIndex reg = dec.sourceReg1();
   bool indirect = dec.opcode() == InstructionMap::OP_IRDR;
 
@@ -241,6 +247,13 @@ void Decoder::setOperand1(DecodedInst& dec) {
 }
 
 void Decoder::setOperand2(DecodedInst& dec) {
+  // Avoid reading an operand if we know we won't need it. This is especially
+  // necessary if the operand is on a channel end - it may not be there at all.
+  if((dec.opcode() == InstructionMap::OP_PSEL ||
+      dec.opcode() == InstructionMap::OP_PSEL_FETCH) &&
+     parent()->predicate())
+    return;
+
   if(dec.hasImmediate()) {
     dec.operand2(dec.immediate());
     dec.operand2Source(DecodedInst::IMMEDIATE);
@@ -264,7 +277,7 @@ int32_t Decoder::readRegs(RegisterIndex index, bool indirect) {
 void Decoder::waitUntilArrival(ChannelIndex channel) {
   // Test the channel to see if the data is already there.
   if(!parent()->testChannel(channel)) {
-    stall(true, Stalls::INPUT);
+    stall(true, Stalls::STALL_DATA);
 
     if(DEBUG)
       cout << this->name() << " waiting for channel " << (int)channel << endl;
@@ -331,7 +344,9 @@ bool Decoder::shouldExecute(const DecodedInst& inst) {
 
     short predBits = inst.predicate();
 
-    result = (predBits == Instruction::P     &&  parent()->predicate()) ||
+    result = //(predBits == Instruction::ALWAYS) ||
+             //(predBits == Instruction::END_OF_PACKET) ||
+             (predBits == Instruction::P     &&  parent()->predicate()) ||
              (predBits == Instruction::NOT_P && !parent()->predicate());
   }
   else result = true;
@@ -339,7 +354,7 @@ bool Decoder::shouldExecute(const DecodedInst& inst) {
   return result;
 }
 
-void Decoder::stall(bool stall, int reason) {
+void Decoder::stall(bool stall, Stalls::StallReason reason) {
   blocked = stall;
   Instrumentation::stalled(id, stall, reason);
   blockedEvent.notify();

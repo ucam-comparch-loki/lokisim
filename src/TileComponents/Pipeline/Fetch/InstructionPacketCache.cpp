@@ -7,6 +7,7 @@
 
 #include "InstructionPacketCache.h"
 #include "FetchStage.h"
+#include "../../../Utility/Instrumentation/Stalls.h"
 
 /* Initialise the contents of the cache with a list of Instructions. */
 void InstructionPacketCache::storeCode(const std::vector<Instruction>& instructions) {
@@ -25,10 +26,19 @@ Instruction InstructionPacketCache::read() {
   Instruction inst = cache.read();
   cacheFillChanged.notify();
 
+  // If we the cache is now empty, but we are still waiting for instructions,
+  // record this.
+  if(cache.stalled())
+    Instrumentation::stalled(id, true, Stalls::STALL_INSTRUCTIONS);
+
   return inst;
 }
 
 void InstructionPacketCache::write(const Instruction inst) {
+  // If the cache was blocked, it isn't any more.
+  if(cache.stalled())
+    Instrumentation::stalled(id, false);
+
   Instrumentation::l0Write(id);
   if(DEBUG) cout << this->name() << " received Instruction: " << inst << endl;
 

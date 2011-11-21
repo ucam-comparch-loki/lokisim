@@ -33,10 +33,11 @@ public:
   static void printStats();
 
   enum StallReason {
-    NONE,       // Not currently stalled.
-    INPUT,      // Waiting for input to arrive.
-    OUTPUT,     // Waiting for output channel to clear.
-    PREDICATE   // Waiting to determine predicate's value.
+    NOT_STALLED,        // Not currently stalled.
+    STALL_DATA,         // Waiting for input data to arrive.
+    STALL_INSTRUCTIONS, // Waiting for instructions to arrive.
+    STALL_OUTPUT,       // Waiting for output channel to clear.
+    STALL_FORWARDING    // Waiting for a result to be forwarded.
   };
 
 private:
@@ -49,9 +50,10 @@ private:
 
   // The total number of cycles each cluster has spent stalled for various
   // reasons.
-  static CounterMap<ComponentID> inputStalls;
+  static CounterMap<ComponentID> dataStalls;
+  static CounterMap<ComponentID> instructionStalls;
   static CounterMap<ComponentID> outputStalls;
-  static CounterMap<ComponentID> predicateStalls;
+  static CounterMap<ComponentID> bypassStalls;
 
   // The times that each cluster became idle (or UNSTALLED if the cluster is
   // currently active).

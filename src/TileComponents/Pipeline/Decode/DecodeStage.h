@@ -145,6 +145,8 @@ private:
 
   bool startingNewPacket;
 
+  bool waitingToSend;
+
   // An event which is triggered whenever something happens which may change
   // whether this pipeline stage is busy or not.
   sc_event readyChangedEvent;

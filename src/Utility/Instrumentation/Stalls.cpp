@@ -14,9 +14,10 @@
 std::map<ComponentID, unsigned long long> Stalls::startedStalling;
 std::map<ComponentID, unsigned long long> Stalls::startedIdle;
 
-CounterMap<ComponentID> Stalls::inputStalls;
+CounterMap<ComponentID> Stalls::dataStalls;
+CounterMap<ComponentID> Stalls::instructionStalls;
 CounterMap<ComponentID> Stalls::outputStalls;
-CounterMap<ComponentID> Stalls::predicateStalls;
+CounterMap<ComponentID> Stalls::bypassStalls;
 std::map<ComponentID, int> Stalls::stallReason;
 
 CounterMap<ComponentID> Stalls::idleTimes;
@@ -28,7 +29,7 @@ uint32_t Stalls::endOfExecution = 0;
 const unsigned long long UNSTALLED = -1;
 
 void Stalls::stall(const ComponentID& id, unsigned long long cycle, int reason) {
-  if(stallReason[id] == NONE) {
+  if(stallReason[id] == NOT_STALLED) {
 
     stallReason[id] = reason;
 
@@ -42,26 +43,30 @@ void Stalls::stall(const ComponentID& id, unsigned long long cycle, int reason) 
 }
 
 void Stalls::unstall(const ComponentID& id, unsigned long long cycle) {
-  if(stallReason[id] != NONE) {
+  if(stallReason[id] != NOT_STALLED) {
 	  unsigned long long stallLength = cycle - startedStalling[id];
 
     switch(stallReason[id]) {
-      case INPUT : {
-        inputStalls.setCount(id, inputStalls[id] + stallLength);
+      case STALL_DATA:
+        dataStalls.setCount(id, dataStalls[id] + stallLength);
         break;
-      }
-      case OUTPUT : {
+
+      case STALL_INSTRUCTIONS:
+        instructionStalls.setCount(id, instructionStalls[id] + stallLength);
+        break;
+
+      case STALL_OUTPUT:
         outputStalls.setCount(id, outputStalls[id] + stallLength);
         break;
-      }
-      case PREDICATE : {
-        predicateStalls.setCount(id, predicateStalls[id] + stallLength);
+
+      case STALL_FORWARDING:
+        bypassStalls.setCount(id, bypassStalls[id] + stallLength);
         break;
-      }
-      default : std::cerr << "Warning: Unknown stall reason." << endl;
+
+      default: std::cerr << "Warning: Unknown stall reason." << endl;
     }
 
-    stallReason[id] = NONE;
+    stallReason[id] = NOT_STALLED;
     numStalled--;
   }
 }
@@ -100,7 +105,7 @@ unsigned long long  Stalls::cyclesIdle(const ComponentID& core) {
 }
 
 unsigned long long  Stalls::cyclesStalled(const ComponentID& core) {
-  return inputStalls[core] + outputStalls[core] + predicateStalls[core];
+  return dataStalls[core] + outputStalls[core] + bypassStalls[core];
 }
 
 unsigned long long  Stalls::executionTime() {
@@ -134,9 +139,9 @@ void Stalls::printStats() {
 				percentage(activeCycles, endOfExecution) << "\t" <<
 				percentage(idleTimes[id], endOfExecution) << "\t" <<
 				percentage(totalStalled, endOfExecution) << "\t(" <<
-				percentage(inputStalls[id], totalStalled) << "|" <<
+				percentage(dataStalls[id], totalStalled) << "|" <<
 				percentage(outputStalls[id], totalStalled) << "|" <<
-				percentage(predicateStalls[id], totalStalled) << ")" << endl;
+				percentage(bypassStalls[id], totalStalled) << ")" << endl;
 			}
 		}
 	}

@@ -15,6 +15,7 @@
 
 #include "../../../Component.h"
 #include "../../../Utility/InstructionMap.h"
+#include "../../../Utility/Instrumentation/Stalls.h"
 
 class DecodedInst;
 class DecodeStage;
@@ -74,7 +75,7 @@ private:
   // predicate bits, and the contents of the predicate register.
   bool shouldExecute(const DecodedInst& inst);
 
-  void stall(bool stall, int reason = 0);
+  void stall(bool stall, Stalls::StallReason reason = Stalls::NOT_STALLED);
 
   DecodeStage* parent() const;
 
@@ -104,7 +105,7 @@ private:
   // Tells whether we are blocked (probably trying to read from an empty
   // channel).
   bool blocked;
-  sc_core::sc_event blockedEvent;
+  sc_event blockedEvent;
 
   // The register the previous instruction wrote to. Used to determine whether
   // data forwarding is required.

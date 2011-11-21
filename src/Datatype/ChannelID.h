@@ -136,7 +136,11 @@ public:
 
 	ChannelID(uint tile, uint position, uint channel, bool multicast=false) :
 	  Word((tile << OFFSET_TILE) | (position << OFFSET_POSITION) | (channel << OFFSET_CHANNEL) | ((multicast?1:0) << OFFSET_MULTICAST)) {
-		// Nothing
+
+	  assert(tile < NUM_TILES);
+	  assert(position < COMPONENTS_PER_TILE);
+	  assert(channel < CORE_INPUT_CHANNELS || channel < MEMORY_INPUT_CHANNELS);
+
 	}
 
 	ChannelID(const ComponentID& component, uint channel) : Word() {
