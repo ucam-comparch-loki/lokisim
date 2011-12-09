@@ -162,7 +162,7 @@ bool IPKCacheStorage::full() const {
  * from memory. */
 bool IPKCacheStorage::stalled() const {
   // Will this work? What if the cache is just plain empty?
-  return empty() && !currentPacket.inCache;
+  return empty() && currentPacket.arriving();
 }
 
 /* We can issue a new fetch command if there is space in the cache for a

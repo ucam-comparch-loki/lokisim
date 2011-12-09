@@ -37,18 +37,25 @@ bool ReceiveChannelEndTable::testChannelEnd(ChannelIndex channelEnd) const {
 }
 
 ChannelIndex ReceiveChannelEndTable::selectChannelEnd() {
-  int current = currentChannel.value();
+  int startPoint = currentChannel.value();
+
+  if(buffers.empty())
+    wait(newData);
 
   // Check all of the channels in a round-robin style, using a LoopCounter.
-  for(int i = ++currentChannel; i != current; ++currentChannel) {
+  // Return the register-mapping of the first channel which has data.
+  for(int i = ++currentChannel; i != startPoint; ++currentChannel) {
+    i = currentChannel.value();
+
     if(!buffers[i].empty()) {
       // Adjust address so it can be accessed like a register
       return Registers::fromChannelID(i);
     }
   }
 
-  // If we have got this far, all the buffers are empty
-  throw BlockedException("receive channel-end table", id);
+  // We should always find something in one of the buffers, because we wait
+  // until at least one of them has data.
+  assert(false);
 
 }
 
@@ -62,6 +69,7 @@ void ReceiveChannelEndTable::checkInput(ChannelIndex input) {
 
   buffers[input].write(fromNetwork[input].read());
   bufferEvent[input].notify();
+  newData.notify();
 }
 
 sc_core::sc_event& ReceiveChannelEndTable::receivedDataEvent(ChannelIndex buffer) const {
@@ -81,7 +89,7 @@ DecodeStage* ReceiveChannelEndTable::parent() const {
   return static_cast<DecodeStage*>(this->get_parent());
 }
 
-ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name, const ComponentID& ID) :
+ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name, const ComponentID& ID) :
     Component(name, ID),
     buffers(NUM_RECEIVE_CHANNELS, IN_CHANNEL_BUFFER_SIZE, string(name)),
     currentChannel(NUM_RECEIVE_CHANNELS) {
@@ -93,26 +101,13 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(sc_module_name name, const Compon
 
   // Generate a method to watch each input port, putting the data into the
   // appropriate buffer when it arrives.
-  for(unsigned int i=0; i<buffers.size(); i++) {
-    sc_core::sc_spawn_options options;
-    options.spawn_method();     // Want an efficient method, not a thread
-    options.dont_initialize();  // Only execute when triggered
-    options.set_sensitivity(&(fromNetwork[i])); // Sensitive to this port
-
-    // Create the method.
-    sc_spawn(sc_bind(&ReceiveChannelEndTable::checkInput, this, i), 0, &options);
-  }
+  for(unsigned int i=0; i<buffers.size(); i++)
+    SPAWN_METHOD(fromNetwork[i], ReceiveChannelEndTable::checkInput, i, false);
 
   // Generate a method to watch each buffer, updating its flow control signal
   // whenever data is added or removed.
-  for(unsigned int i=0; i<buffers.size(); i++) {
-    sc_core::sc_spawn_options options;
-    options.spawn_method();     // Want an efficient method, not a thread
-    options.set_sensitivity(&(bufferEvent[i])); // Sensitive to this event
-
-    // Create the method.
-    sc_spawn(sc_bind(&ReceiveChannelEndTable::updateFlowControl, this, i), 0, &options);
-  }
+  for(unsigned int i=0; i<buffers.size(); i++)
+    SPAWN_METHOD(bufferEvent[i], ReceiveChannelEndTable::updateFlowControl, i, true);
 
 }
 

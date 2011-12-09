@@ -11,7 +11,7 @@ addui.eop       r0,  ch0, 0   > 2       ; ============================
 setlti.p        r0,  r11, 32            ; see if we have hit the top of the grid
 !p?fetchr       20                      ; we haven't: check the next condition
 p?addui         r11, r11, 4
-p?fetchr        68                      ; we have: switch to moving down
+p?fetchr        80                      ; we have: switch to moving down
 addu.eop        r0,  r0,  r0
 
 seteqi.p        r0,  r11, 252           ; see if we have finished the block
@@ -24,9 +24,12 @@ seteq.p         r0,  r13, r9            ; see if we have hit the right of the gr
 !p?subu         r11, r11, r9
 !p?fetchr       -52                     ; we haven't: keep moving up
 p?addui         r11, r11, 32
-p?fetchr        32                      ; we have: switch to moving down
+p?fetchr        44                      ; we have: switch to moving down
 addu.eop        r0,  r0,  r0
 
+lli             r11, (0,1,0)            ; core 1's instruction fifo
+setchmapi       3, r11
+rmtnxipk                      > 3       ; tell core 1 to stop its infinite loop
 syscall.eop     1
 
 fetchr          16                      ; MOVING DOWNWARDS
@@ -37,7 +40,7 @@ addui.eop       r0,  ch0, 0   > 2       ; ============================
 setlti.p        r0,  r11, 224           ; see if we have reached the bottom of the grid
 p?fetchr        20                      ; we haven't: check the other condition
 !p?addui        r11, r11, 4
-!p?fetchr       -100                    ; we have: switch to moving up
+!p?fetchr       -112                    ; we have: switch to moving up
 addu.eop        r0,  r0,  r0
 
 and             r13, r11, r9
@@ -45,5 +48,5 @@ seteq.p         r0,  r13, r0            ; see if we have reached the left of the
 !p?addu         r11, r11, r9
 !p?fetchr       -36                     ; we haven't: keep moving down
 p?addui         r11, r11, 32
-p?fetchr        -120                    ; we have: switch to moving up
+p?fetchr        -132                    ; we have: switch to moving up
 addu.eop        r0,  r0,  r0

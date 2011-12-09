@@ -90,7 +90,7 @@ private:
 
 public:
 
-  LoopCounter(int max) : maximum(max), val(0) {
+  LoopCounter(int max) : maximum(max), val(max-1) {
     // Do nothing
   }
 

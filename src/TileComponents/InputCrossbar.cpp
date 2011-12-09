@@ -101,28 +101,12 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
   // Method for each input port, forwarding data to the correct buffer when it
   // arrives. Each channel end has a single writer, so it is impossible to
   // receive multiple data for the same channel end in one cycle.
-  for(PortIndex i=0; i<numInputs; i++) {
-    sc_core::sc_spawn_options options;
-    options.spawn_method();     // Want an efficient method, not a thread
-    options.dont_initialize();
-    options.set_sensitivity(&(validDataIn[i].pos())); // Sensitive to this event
-    // Note that there is the assumption that the valid signal will toggle
-    // whenever new data arrives.
-
-    // Create the method.
-    sc_spawn(sc_bind(&InputCrossbar::newData, this, i), 0, &options);
-  }
+  for(PortIndex i=0; i<numInputs; i++)
+    SPAWN_METHOD(validDataIn[i].pos(), InputCrossbar::newData, i, false);
 
   // Method for each output port, writing data into each buffer.
-  for(ChannelIndex i=0; i<numOutputs; i++) {
-    sc_core::sc_spawn_options options;
-    options.spawn_method();     // Want an efficient method, not a thread
-    options.set_sensitivity(&(sendData[i])); // Sensitive to this event
-    options.dont_initialize();
-
-    // Create the method.
-    sc_spawn(sc_bind(&InputCrossbar::writeToBuffer, this, i), 0, &options);
-  }
+  for(ChannelIndex i=0; i<numOutputs; i++)
+    SPAWN_METHOD(sendData[i], InputCrossbar::writeToBuffer, i, false);
 
   // Wire up the small networks.
   creditNet.clock(creditClock);

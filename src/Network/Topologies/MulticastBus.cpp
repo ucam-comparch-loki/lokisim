@@ -126,15 +126,8 @@ MulticastBus::MulticastBus(const sc_module_name& name, const ComponentID& ID, in
 
   // Generate a method for each output port, to wait for acknowledgements and
   // notify the main process when all have been received.
-  for(int i=0; i<numOutputs; i++) {
-    sc_core::sc_spawn_options options;
-    options.spawn_method();     // Want an efficient method, not a thread
-    options.dont_initialize();
-    options.set_sensitivity(&(dataOut[i].value_changed())); // Sensitive to this event
-
-    // Create the method.
-    sc_spawn(sc_bind(&MulticastBus::ackArrived, this, i), 0, &options);
-  }
+  for(int i=0; i<numOutputs; i++)
+    SPAWN_METHOD(dataOut[i].value_changed(), MulticastBus::ackArrived, i, false);
 }
 
 MulticastBus::~MulticastBus() {

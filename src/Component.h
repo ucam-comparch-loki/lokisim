@@ -69,4 +69,24 @@ public:
 
 };
 
+// Macro to hide much of the boilerplate code required to generate a dynamic
+// process.
+//   sensitive_to = event, port, signal, etc
+//   function = fully qualified function
+//   argument = function's argument
+//   initialise = boolean telling whether function should be executed immediately
+// Note that SC_INCLUDE_DYNAMIC_PROCESSES must be defined wherever this macro
+// is used.
+#define SPAWN_METHOD(sensitive_to, function, argument, initialise) {\
+    sc_core::sc_spawn_options options; \
+    options.spawn_method();     /* Want an efficient method, not a thread */ \
+    options.set_sensitivity(&(sensitive_to)); /* Sensitive to this event */ \
+\
+    if(!initialise)\
+      options.dont_initialize();\
+\
+    /* Create the method. */ \
+    sc_spawn(sc_bind(&function, this, argument), 0, &options);\
+}
+
 #endif /* COMPONENT_H_ */

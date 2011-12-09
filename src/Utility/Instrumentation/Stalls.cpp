@@ -23,6 +23,7 @@ std::map<ComponentID, int> Stalls::stallReason;
 CounterMap<ComponentID> Stalls::idleTimes;
 uint16_t Stalls::numStalled = 0;
 uint32_t Stalls::endOfExecution = 0;
+bool Stalls::endExecutionCalled = false;
 
 // If a core is not currently stalled, it should map to this value in the
 // "stalled" mapping.
@@ -94,6 +95,11 @@ void Stalls::active(const ComponentID& id, unsigned long long cycle) {
 void Stalls::endExecution() {
   if(numStalled < NUM_COMPONENTS)
     endOfExecution = sc_core::sc_time_stamp().to_default_time_units();
+  endExecutionCalled = true;
+}
+
+bool Stalls::executionFinished() {
+  return endExecutionCalled;
 }
 
 unsigned long long  Stalls::cyclesActive(const ComponentID& core) {
@@ -105,7 +111,8 @@ unsigned long long  Stalls::cyclesIdle(const ComponentID& core) {
 }
 
 unsigned long long  Stalls::cyclesStalled(const ComponentID& core) {
-  return dataStalls[core] + outputStalls[core] + bypassStalls[core];
+  return instructionStalls[core] + dataStalls[core] +
+         outputStalls[core]      + bypassStalls[core];
 }
 
 unsigned long long  Stalls::executionTime() {
@@ -118,7 +125,7 @@ void Stalls::printStats() {
   if(endOfExecution == 0) return;
 
   cout << "Cluster activity:" << endl;
-  cout << "  Cluster\tActive\tIdle\tStalled (input|output|predicate)" << endl;
+  cout << "  Cluster\tActive\tIdle\tStalled (insts|data|bypass|output)" << endl;
 
 	for(uint i=0; i<NUM_TILES; i++) {
 		for(uint j=0; j<COMPONENTS_PER_TILE; j++) {
@@ -139,9 +146,10 @@ void Stalls::printStats() {
 				percentage(activeCycles, endOfExecution) << "\t" <<
 				percentage(idleTimes[id], endOfExecution) << "\t" <<
 				percentage(totalStalled, endOfExecution) << "\t(" <<
-				percentage(dataStalls[id], totalStalled) << "|" <<
-				percentage(outputStalls[id], totalStalled) << "|" <<
-				percentage(bypassStalls[id], totalStalled) << ")" << endl;
+        percentage(instructionStalls[id], totalStalled) << "|" <<
+        percentage(dataStalls[id], totalStalled) << "|" <<
+				percentage(bypassStalls[id], totalStalled) << "|" <<
+				percentage(outputStalls[id], totalStalled) << ")" << endl;
 			}
 		}
 	}

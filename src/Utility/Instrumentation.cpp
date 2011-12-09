@@ -109,6 +109,10 @@ void Instrumentation::endExecution() {
   if(!Debugger::usingDebugger) sc_stop();
 }
 
+bool Instrumentation::executionFinished() {
+  return Stalls::executionFinished();
+}
+
 void Instrumentation::networkTraffic(const ChannelID& startID, const ChannelID& endID) {
 	Network::traffic(startID.getComponentID(), endID.getComponentID());
 }

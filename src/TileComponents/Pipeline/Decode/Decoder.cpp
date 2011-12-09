@@ -65,6 +65,14 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   // by being forwarded from the execute stage).
   waitForOperands(input);
 
+  // Terminate the instruction here if it has been cancelled.
+  if(instructionCancelled) {
+    blocked = false;
+    instructionCancelled = false;
+    blockedEvent.notify();
+    return false;
+  }
+
   // Some operations will not need to continue to the execute stage. They
   // complete all their work in the decode stage.
   bool continueToExecute = true;
@@ -145,9 +153,12 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       break;
     }
 
-    case InstructionMap::OP_RMTNXIPK :
-      // TODO: implement rmtnxipk
+    case InstructionMap::OP_RMTNXIPK: {
+      Instruction inst = input.toInstruction();
+      inst.opcode(InstructionMap::OP_NXIPK);
+      output.result(inst.toLong());
       break;
+    }
 
     case InstructionMap::OP_FETCHR:
     case InstructionMap::OP_FETCHPSTR:
@@ -283,7 +294,7 @@ void Decoder::waitUntilArrival(ChannelIndex channel) {
       cout << this->name() << " waiting for channel " << (int)channel << endl;
 
     // Wait until something arrives.
-    wait(parent()->receivedDataEvent(channel));
+    wait(parent()->receivedDataEvent(channel) | cancelEvent);
 
     stall(false);
   }
@@ -309,6 +320,11 @@ void Decoder::remoteExecution(DecodedInst& instruction) const {
 
 bool Decoder::discardNextInst() const {
   return parent()->discardNextInst();
+}
+
+void Decoder::cancelInstruction() {
+  instructionCancelled = true;
+  cancelEvent.notify();
 }
 
 /* Sends the second part of a two-flit store operation (the data to send). */

@@ -45,7 +45,7 @@ public:
 public:
 
   SC_HAS_PROCESS(ReceiveChannelEndTable);
-  ReceiveChannelEndTable(sc_module_name name, const ComponentID& ID);
+  ReceiveChannelEndTable(const sc_module_name& name, const ComponentID& ID);
   virtual ~ReceiveChannelEndTable();
 
 //==============================//
@@ -68,7 +68,7 @@ public:
   // mapped index (e.g. if channel 0 contains data, 16 would be returned).
   ChannelIndex selectChannelEnd();
 
-  sc_core::sc_event& receivedDataEvent(ChannelIndex buffer) const;
+  sc_event& receivedDataEvent(ChannelIndex buffer) const;
 
 private:
 
@@ -95,7 +95,10 @@ private:
   LoopCounter       currentChannel;
 
   // An event for each buffer, to say when data has been added or removed.
-  sc_core::sc_event* bufferEvent;
+  sc_event* bufferEvent;
+
+  // One event for the whole table to signal when new data has arrived.
+  sc_event newData;
 
 };
 

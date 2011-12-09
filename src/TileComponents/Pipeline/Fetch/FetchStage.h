@@ -94,6 +94,10 @@ private:
   // Determine whether to take an instruction from the FIFO or cache.
   void          calculateSelect();
 
+  // Move to the next instruction packet on demand, rather than when reaching
+  // a ".eop" marker.
+  void          nextIPK();
+
 //==============================//
 // Components
 //==============================//

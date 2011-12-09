@@ -44,7 +44,7 @@ const int32_t IndirectRegisterFile::readDebug(const RegisterIndex reg) const {
 
 void IndirectRegisterFile::write(const RegisterIndex reg, const int32_t value, bool indirect) {
 
-  RegisterIndex index = indirect ? indirectRegs.read(reg) : reg;
+  RegisterIndex index = indirect ? regs.read(reg).toInt() : reg;
 
   // There are some registers that we can't write to.
   if(isReserved(index)/* || isChannelEnd(index)*/) {
@@ -55,24 +55,8 @@ void IndirectRegisterFile::write(const RegisterIndex reg, const int32_t value, b
 
   Word w(value);
   writeReg(index, w);
-  updateIndirectReg(index, w);
 
   Instrumentation::registerWrite(id, index);
-
-}
-
-/* Store a subsection of the data into the indirect register at position
- * "address". Since NUM_PHYSICAL_REGISTERS registers must be accessible, the
- * indirect registers must hold ceil(log2(NUM_PHYSICAL_REGISTERS)) bits each. */
-void IndirectRegisterFile::updateIndirectReg(const RegisterIndex address, const Word data) {
-
-  // Don't store anything if there is no indirect register to store to.
-  if(address >= NUM_ADDRESSABLE_REGISTERS) return;
-
-  static int numBits = ceil(log2(NUM_PHYSICAL_REGISTERS));
-
-  uint8_t lowestBits = data.lowestBits(numBits);
-  indirectRegs.write(lowestBits, address);
 
 }
 
@@ -132,7 +116,6 @@ Cluster* IndirectRegisterFile::parent() const {
 
 IndirectRegisterFile::IndirectRegisterFile(sc_module_name name, const ComponentID& ID) :
     Component(name, ID),
-    regs(NUM_PHYSICAL_REGISTERS, std::string(name)),
-    indirectRegs(NUM_ADDRESSABLE_REGISTERS, std::string(name)) {
+    regs(NUM_PHYSICAL_REGISTERS, std::string(name)) {
 
 }

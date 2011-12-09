@@ -25,6 +25,8 @@ public:
   static void active(const ComponentID& id, unsigned long long cycle);
   static void endExecution();
 
+  static bool executionFinished();
+
   static unsigned long long  cyclesActive(const ComponentID& core);
   static unsigned long long  cyclesIdle(const ComponentID& core);
   static unsigned long long  cyclesStalled(const ComponentID& core);
@@ -69,6 +71,8 @@ private:
   // stop simulation if it can also be known that the networks are inactive:
   // it may be the case that a cluster is waiting for data to arrive.
   static uint32_t endOfExecution;
+
+  static bool endExecutionCalled;
 
 };
 

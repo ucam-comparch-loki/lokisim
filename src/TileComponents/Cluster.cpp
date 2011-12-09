@@ -142,22 +142,19 @@ bool     Cluster::discardInstruction(int stage) {
   return stallRegs[stage-2]->discard();
 }
 
-void     Cluster::updateIdle() {
-  bool wasIdle = idle.read();
+void     Cluster::nextIPK() {
+  // If we are stalled waiting for any input, unstall.
+  decode.unstall();
 
-  bool isIdle = true;
-  for(uint i=0; i<4; i++) {
-    if(!stageIdle[i].read()) {
-      isIdle = false;
-      break;
-    }
-  }
+  // Discard any instructions which were queued up behind any stalled stages.
+  while(stallRegs[0]->discard())
+    /* continue discarding */;
+}
 
-  // Is this what we really want (including stall state in an idle signal)?
-  if((isIdle || currentlyStalled) != idle.read())
-  	idle.write(isIdle || currentlyStalled);
-
-  if(wasIdle != isIdle) Instrumentation::idle(id, isIdle);
+void     Cluster::idlenessChanged() {
+  // Use the decoder as the arbiter of idleness - we may sometimes bypass the
+  // fetch stage.
+  Instrumentation::idle(id, decode.idle.read());
 }
 
 const sc_event& Cluster::requestArbitration(ChannelID destination, bool request) {
@@ -187,7 +184,7 @@ ChannelID Cluster::RCETInput(const ComponentID& ID, ChannelIndex channel) {
   return ChannelID(ID, 2 + channel);
 }
 
-Cluster::Cluster(sc_module_name name, const ComponentID& ID, local_net_t* network) :
+Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t* network) :
     TileComponent(name, ID, CORE_INPUT_PORTS, CORE_OUTPUT_PORTS),
     regs("regs", ID),
     pred("predicate"),
@@ -257,7 +254,7 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID, local_net_t* networ
   fetch.toIPKCache(dataToBuffers[1]);     fetch.flowControl[1](fcFromBuffers[1]);
   fetch.readyIn(stallRegReady[0]);				fetch.instructionOut(instFromStage[0]);
 
-  decode.clock(clock);                    decode.idle(stageIdle[1]);
+  decode.clock(clock);                    decode.idle(/*stageIdle[1]*/idle);
   decode.readyIn(stallRegReady[1]);       decode.instructionOut(instFromStage[1]);
   decode.readyOut(stageReady[0]);         decode.instructionIn(instToStage[0]);
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
@@ -279,13 +276,16 @@ Cluster::Cluster(sc_module_name name, const ComponentID& ID, local_net_t* networ
     write.validOutput[i](validDataOut[i]);  write.validCredit[i](validCreditIn[i]);
   }
 
-  SC_METHOD(updateIdle);
-  for(unsigned int i=0; i<4; i++) sensitive << stageIdle[i];
-  sensitive << stallEvent;
+  // The core is considered idle if it did not decode a new instruction this
+  // cycle. This is better than being controlled by the fetch stage because
+  // some instructions take multiple cycles to decode, and because we may
+  // bypass the fetch stage and receive instructions from other cores.
+  // Problem: what about instructions that take multiple cycles to execute?
+  SC_METHOD(idlenessChanged);
+  sensitive << stageIdle[1];
   // do initialise
 
   // Initialise the values in some wires.
-  idle.initialize(true);
   constantHigh.write(true);
 }
 

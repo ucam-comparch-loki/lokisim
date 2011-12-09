@@ -159,4 +159,8 @@ ldw          r10 248    > 1
 addu         r0  ch0 r0 > 2
 ldw          r10 252    > 1
 addu         r0  ch0 r0 > 2
+
+lli          r11, (0,1,0)         ; core 1's instruction fifo
+setchmapi    3, r11
+rmtnxipk                > 3       ; tell core 1 to stop its infinite loop
 syscall.eop  1

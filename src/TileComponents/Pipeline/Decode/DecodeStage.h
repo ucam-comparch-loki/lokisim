@@ -72,6 +72,10 @@ public:
   // this value from the buffer.
   int32_t        readRCET(ChannelIndex index);
 
+  // If we are currently stalled waiting for input, stop waiting. Cancel the
+  // current operation.
+  void           unstall();
+
 private:
 
   // The main loop controlling this stage. Involves waiting for new input,

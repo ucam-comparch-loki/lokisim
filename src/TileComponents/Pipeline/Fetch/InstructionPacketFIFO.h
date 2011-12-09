@@ -13,6 +13,7 @@
 #include "../../../Component.h"
 #include "../../../Memory/BufferStorage.h"
 
+class FetchStage;
 class Instruction;
 class Word;
 
@@ -63,6 +64,8 @@ private:
 
   void receivedInst();
   void updateReady();
+
+  FetchStage* parent() const;
 
 //==============================//
 // Local state

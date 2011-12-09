@@ -48,4 +48,7 @@ p?fetchr        -116                    ; switch to moving up
 addu.eop        r0,  r0,  r0
 
 addui           r0,  ch0, 0   > 2       ; send the final value late
+lli             r11, (0,1,0)            ; core 1's instruction fifo
+setchmapi       3, r11
+rmtnxipk                      > 3       ; tell core 1 to stop its infinite loop
 syscall.eop     1

@@ -35,6 +35,10 @@ public:
   // will return false.
   bool decodeInstruction(const DecodedInst& input, DecodedInst& output);
 
+  // Abort the instruction which is currently decoding (if any), even if it is
+  // stalled waiting for data to arrive.
+  void cancelInstruction();
+
   // Returns whether the decoder is ready to accept a new instruction.
   bool ready() const;
   const sc_event& stalledEvent() const;
@@ -106,6 +110,9 @@ private:
   // channel).
   bool blocked;
   sc_event blockedEvent;
+
+  bool instructionCancelled;
+  sc_event cancelEvent;
 
   // The register the previous instruction wrote to. Used to determine whether
   // data forwarding is required.

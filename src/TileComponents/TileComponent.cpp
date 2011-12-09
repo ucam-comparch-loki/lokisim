@@ -106,17 +106,8 @@ TileComponent::TileComponent(sc_module_name name, const ComponentID& ID,
 
   // Generate a method to watch each credit input port, and send an
   // acknowledgement whenever a credit arrives.
-  for(unsigned int i=0; i<numOutputPorts; i++) {
-    sc_core::sc_spawn_options options;
-    options.spawn_method();     // Want an efficient method, not a thread
-    options.dont_initialize();  // Only execute when triggered
-    options.set_sensitivity(&(validCreditIn[i].pos())); // Sensitive to this port
-
-    // Create the method.
-    sc_spawn(sc_bind(&TileComponent::acknowledgeCredit, this, i), 0, &options);
-  }
-
-  idle.initialize(true);
+  for(unsigned int i=0; i<numOutputPorts; i++)
+    SPAWN_METHOD(validCreditIn[i].pos(), TileComponent::acknowledgeCredit, i, false);
 
 }
 

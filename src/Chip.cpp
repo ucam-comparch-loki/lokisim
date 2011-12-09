@@ -327,14 +327,8 @@ Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
   // Generate a method to watch each component's idle signal, so we can
 	// determine when all components are idle. For large numbers of components,
 	// this is cheaper than checking all of them whenever one changes.
-  for(unsigned int i=0; i<NUM_COMPONENTS; i++) {
-    sc_core::sc_spawn_options options;
-    options.spawn_method();     // Want an efficient method, not a thread
-    options.set_sensitivity(&(idleSig[i])); // Sensitive to this signal
-
-    // Create the method.
-    sc_spawn(sc_bind(&Chip::watchIdle, this, i), 0, &options);
-  }
+  for(unsigned int i=0; i<NUM_COMPONENTS; i++)
+    SPAWN_METHOD(idleSig[i], Chip::watchIdle, i, true);
 
 }
 

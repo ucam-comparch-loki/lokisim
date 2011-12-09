@@ -250,6 +250,7 @@ void Debugger::executeUntilBreakpoint() {
   }
   else {
     while(!hitBreakpoint && cyclesIdle<maxIdleTime && cycleNumber<TIMEOUT &&
+//          !Instrumentation::executionFinished() &&
           !sc_core::sc_end_of_simulation_invoked()) {
       executeSingleCycle();
     }
@@ -270,9 +271,14 @@ void Debugger::executeUntilBreakpoint() {
 }
 
 void Debugger::finishExecution() {
+  // If the timeout is particularly small, we need to take smaller steps, so
+  // we can detect idleness before the timeout arrives.
+  static int cyclesPerStep = (100 < TIMEOUT/50) ? 100 : TIMEOUT/50;
+
   while(cyclesIdle<maxIdleTime && cycleNumber<TIMEOUT &&
+//        !Instrumentation::executionFinished() &&
         !sc_core::sc_end_of_simulation_invoked()) {
-    executeNCycles(100);
+    executeNCycles(cyclesPerStep);
   }
 
   if(cycleNumber >= TIMEOUT) {

@@ -150,6 +150,16 @@ bool         DecodeStage::discardNextInst() const {
   return parent()->discardInstruction(2);
 }
 
+void         DecodeStage::unstall() {
+  decoder.cancelInstruction();
+
+  // Note that there is a very small chance that we could be stalled waiting to
+  // send output (in newInput()). This situation is not addressed.
+  // There is also the possibility that we are stalled creating the second half
+  // of a store message. We will need to send some result so that memory is not
+  // stalled forever.
+}
+
 DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
     rcet("rcet", ID),

@@ -129,6 +129,11 @@ void FetchStage::calculateSelect() {
   }
 }
 
+void FetchStage::nextIPK() {
+  cache.nextIPK();
+  parent()->nextIPK();
+}
+
 FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
     cache("IPKcache", ID),

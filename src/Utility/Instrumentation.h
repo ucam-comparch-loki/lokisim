@@ -94,6 +94,9 @@ namespace Instrumentation {
   // End execution immediately.
   void endExecution();
 
+  // Returns whether execution has finished.
+  bool executionFinished();
+
   // Record that data was sent over the network from a start point to an end
   // point.
   void networkTraffic(const ChannelID& startID, const ChannelID& endID);

@@ -62,7 +62,7 @@ public:
 public:
 
   SC_HAS_PROCESS(Cluster);
-  Cluster(sc_module_name name, const ComponentID& ID, local_net_t* network);
+  Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t* network);
   virtual ~Cluster();
 
 //==============================//
@@ -143,8 +143,12 @@ private:
   // Returns whether or not anything was discarded.
   bool             discardInstruction(int stage);
 
+  // Finish executing the current instruction packet immediately, rather than
+  // waiting for an ".eop" marker.
+  void             nextIPK();
+
   // Update whether this core is idle or not.
-  void             updateIdle();
+  void             idlenessChanged();
 
   // Request to reserve a path through the network to the given destination.
   // Returns an event which will be triggered when the request is granted.

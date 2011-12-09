@@ -2,8 +2,8 @@
  * IndirectRegisterFile.h
  *
  * A class representing a register file capable of indirect reads and writes.
- * This is achieved by having two separate Storages, with one indexing into
- * the other.
+ * This is achieved by having a copy of the lowest few bits of each register,
+ * which itself can be interpreted as a register index.
  *
  * Register 0 is reserved to hold the value 0.
  * Register 1 is reserved to hold the address of the current instruction packet.
@@ -72,10 +72,6 @@ public:
 
 private:
 
-  // Store a subsection of the data into the indirect register at position
-  // "address".
-  void updateIndirectReg(const RegisterIndex reg, const Word data);
-
   // Perform the register write (no safety checks, etc.).
   void writeReg(const RegisterIndex reg, const Word value);
 
@@ -88,7 +84,6 @@ private:
 private:
 
   AddressedStorage<Word>          regs;
-  AddressedStorage<RegisterIndex> indirectRegs;
 
   // The register index at which the input channels begin.
   static const RegisterIndex START_OF_INPUT_CHANNELS = 2;

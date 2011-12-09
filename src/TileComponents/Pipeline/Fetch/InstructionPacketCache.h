@@ -81,6 +81,10 @@ public:
   // Jump to a new instruction specified by the offset.
   void jump(const JumpOffset offset);
 
+  // Switch to the next instruction packet immediately, rather than waiting
+  // for an ".eop" marker.
+  void nextIPK();
+
   // A handle to an event which is triggered whenever something is added to or
   // removed from the cache.
   const sc_event& fillChangedEvent() const;

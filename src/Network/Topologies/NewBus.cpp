@@ -5,8 +5,6 @@
  *      Author: db434
  */
 
-#define SC_INCLUDE_DYNAMIC_PROCESSES
-
 #include "NewBus.h"
 
 int NewBus::numOutputs() const {

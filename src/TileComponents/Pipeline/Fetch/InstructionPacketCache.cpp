@@ -81,6 +81,10 @@ void InstructionPacketCache::jump(const JumpOffset offset) {
   cacheFillChanged.notify();
 }
 
+void InstructionPacketCache::nextIPK() {
+  cache.switchToPendingPacket();
+}
+
 const sc_event& InstructionPacketCache::fillChangedEvent() const {
   return cacheFillChanged;
 }
