@@ -23,21 +23,12 @@ public:
 //   sc_in<bool>   clock;
 //
 //   DataInput    *dataIn;
-//   ReadyInput   *validDataIn;
-//   ReadyOutput  *ackDataIn;
-//
 //   DataOutput   *dataOut;
-//   ReadyOutput  *validDataOut;
-//   ReadyInput   *ackDataOut;
 
 //  CreditInput  *creditsIn;
-//  ReadyInput   *validCreditIn;
-//  ReadyOutput  *ackCreditIn;
 //
 //  // Make these into arrays of length 1, for consistency?
 //  CreditOutput *creditsOut;
-//  ReadyOutput  *validCreditOut;
-//  ReadyInput   *ackCreditOut;
 
 //==============================//
 // Constructors and destructors

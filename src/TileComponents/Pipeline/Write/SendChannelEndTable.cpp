@@ -20,7 +20,6 @@ void SendChannelEndTable::write(const DecodedInst& data) {
   assert(!buffer.full());
 
   buffer.write(data);
-  dataToSendEvent.notify();
   bufferFillChanged.notify();
 }
 
@@ -34,17 +33,13 @@ const sc_event& SendChannelEndTable::stallChangedEvent() const {
 
 void SendChannelEndTable::sendLoop() {
 
-  // Data becomes invalid in the second half of the clock cycle. Hack?
-  if(!clock.read() && validOutput[0].read())
-    validOutput[0].write(false);
-
   switch(state) {
     case IDLE: {
 
       if(buffer.empty()) {
         // When will this event be triggered? Will waiting 0.6 cycles always work?
         // Can we ensure that the data always arrives at the start of the cycle?
-        next_trigger(dataToSendEvent);
+        next_trigger(buffer.newDataEvent());
       }
       else {
         state = DATA_READY;
@@ -106,7 +101,6 @@ void SendChannelEndTable::sendLoop() {
       if(DEBUG) cout << this->name() << " sending " << data << endl;
 
       output[0].write(data);
-      validOutput[0].write(true);
       channelMapTable->removeCredit(inst.channelMapEntry());
 
       // If this was the final flit in the packet, remove the request for
@@ -153,7 +147,7 @@ void SendChannelEndTable::requestArbitration(ChannelID destination, bool request
 }
 
 void SendChannelEndTable::receivedCredit(unsigned int buffer) {
-  assert(validCredit[buffer].read());
+  assert(creditsIn[buffer].valid());
 
   ChannelIndex targetCounter = creditsIn[buffer].read().channelID().getChannel();
 
@@ -179,26 +173,18 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID&
 
   static const unsigned int NUM_BUFFERS = CORE_OUTPUT_PORTS;
 
-  output      = new sc_out<AddressedWord>[NUM_BUFFERS];
-  validOutput = new sc_out<bool>[NUM_BUFFERS];
-
-  creditsIn   = new sc_in<AddressedWord>[NUM_BUFFERS];
-  validCredit = new sc_in<bool>[NUM_BUFFERS];
+  output      = new loki_out<AddressedWord>[NUM_BUFFERS];
+  creditsIn   = new loki_in<AddressedWord>[NUM_BUFFERS];
 
   waiting = false;
 
   SC_METHOD(sendLoop);
 
-  SC_METHOD(creditFromCores);    sensitive << validCredit[0].pos(); dont_initialize();
-//  SC_METHOD(creditFromMemories); sensitive << validCredit[1].pos(); dont_initialize();
-//  SC_METHOD(creditFromOffTile);  sensitive << validCredit[2].pos(); dont_initialize();
+  SC_METHOD(creditFromCores);  sensitive << creditsIn[0];  dont_initialize();
 
 }
 
 SendChannelEndTable::~SendChannelEndTable() {
   delete[] output;
-  delete[] validOutput;
-
   delete[] creditsIn;
-  delete[] validCredit;
 }

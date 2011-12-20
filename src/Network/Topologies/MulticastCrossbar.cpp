@@ -19,21 +19,13 @@ void MulticastCrossbar::makeBuses() {
     buses.push_back(bus);
 
     bus->dataIn[0](dataIn[i]);
-    bus->validDataIn[0](validDataIn[i]);
-    bus->ackDataIn[0](ackDataIn[i]);
 
 //    bus->creditsOut[0](creditsOut[i]);
-//    bus->validCreditOut[0](validCreditOut[i]);
-//    bus->ackCreditOut[0](ackCreditOut[i]);
 
     for(int j=0; j<numMuxes; j++) {
       bus->dataOut[j](busToMux[i][j]);
-      bus->validDataOut[j](newData[i][j]);
-      bus->ackDataOut[j](readData[i][j]);
 
 //      bus->creditsIn[j](creditsToBus[i][j]);
-//      bus->validCreditIn[j](validCreditToBus[i][j]);
-//      bus->ackCreditIn[j](ackCreditToBus[i][j]);
     }
   }
 }
@@ -46,26 +38,6 @@ CreditInput& MulticastCrossbar::externalCreditIn() const {
 CreditOutput& MulticastCrossbar::externalCreditOut() const {
   assert(externalConnection);
   return creditsOut[numInputs-1];
-}
-
-ReadyInput& MulticastCrossbar::externalValidCreditIn() const {
-  assert(externalConnection);
-  return validCreditIn[numOutputs-1];
-}
-
-ReadyOutput& MulticastCrossbar::externalValidCreditOut() const {
-  assert(externalConnection);
-  return validCreditOut[numInputs-1];
-}
-
-ReadyInput& MulticastCrossbar::externalAckCreditIn() const {
-  assert(externalConnection);
-  return ackCreditOut[numInputs-1];
-}
-
-ReadyOutput& MulticastCrossbar::externalAckCreditOut() const {
-  assert(externalConnection);
-  return ackCreditIn[numOutputs-1];
 }
 
 // Sort out arguments so there are fewer/they make more sense?
@@ -82,22 +54,12 @@ MulticastCrossbar::MulticastCrossbar(const sc_module_name& name,
              level, size, externalConnection) {
 
   creditsIn        = new CreditInput[numOutputs];
-  validCreditIn    = new ReadyInput[numOutputs];
-  ackCreditIn      = new ReadyOutput[numOutputs];
-
   creditsOut       = new CreditOutput[numInputs];
-  validCreditOut   = new ReadyOutput[numInputs];
-  ackCreditOut     = new ReadyInput[numInputs];
 
   creditsToBus     = new CreditSignal*[numBuses];
-  validCreditToBus = new ReadySignal*[numBuses];
-  ackCreditToBus   = new ReadySignal*[numBuses];
 
-  for(int i=0; i<numBuses; i++) {
+  for(int i=0; i<numBuses; i++)
     creditsToBus[i]     = new CreditSignal[numMuxes];
-    validCreditToBus[i] = new ReadySignal[numMuxes];
-    ackCreditToBus[i]   = new ReadySignal[numMuxes];
-  }
 
   // Create an UnclockedNetwork containing an ordinary crossbar to carry
   // credits to the appropriate buses. (Some form of multi-input demux would be
@@ -113,39 +75,23 @@ MulticastCrossbar::MulticastCrossbar(const sc_module_name& name,
     creditCrossbars.push_back(n);
 
     // Wire the new crossbar up.
-    for(int j=0; j<outputsPerComponent; j++) {
+    for(int j=0; j<outputsPerComponent; j++)
       n->dataIn[j](creditsIn[i*outputsPerComponent + j]);
-      n->validDataIn[j](validCreditIn[i*outputsPerComponent + j]);
-      n->ackDataIn[j](ackCreditIn[i*outputsPerComponent + j]);
-    }
 
-    for(int j=0; j<numBuses; j++) {
+    for(int j=0; j<numBuses; j++)
       n->dataOut[j](creditsToBus[j][i]);
-      n->validDataOut[j](validCreditToBus[j][i]);
-      n->ackDataOut[j](ackCreditToBus[j][i]);
-    }
   }
 
 }
 
 MulticastCrossbar::~MulticastCrossbar() {
   delete[] creditsIn;
-  delete[] validCreditIn;
-  delete[] ackCreditIn;
-
   delete[] creditsOut;
-  delete[] validCreditOut;
-  delete[] ackCreditOut;
 
-  for(int i=0; i<numBuses; i++) {
+  for(int i=0; i<numBuses; i++)
     delete[] creditsToBus[i];
-    delete[] validCreditToBus[i];
-    delete[] ackCreditToBus[i];
-  }
 
   delete[] creditsToBus;
-  delete[] validCreditToBus;
-  delete[] ackCreditToBus;
 
   for(unsigned int i=0; i<creditCrossbars.size(); i++) delete creditCrossbars[i];
 }

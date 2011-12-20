@@ -197,49 +197,21 @@ BasicArbiter::BasicArbiter(const sc_module_name& name, ComponentID ID,
 
   // Generate a method for each output port, granting new requests whenever
   // the output becomes free.
-  for(int i=0; i<outputs; i++) {
-    sc_core::sc_spawn_options options;
-    options.spawn_method();     // Want an efficient method, not a thread
-    options.dont_initialize();  // Only execute when triggered
-    options.set_sensitivity(&receivedRequest);
-
-    // Create the method.
-    sc_spawn(sc_bind(&BasicArbiter::arbitrate, this, i), 0, &options);
-  }
+  for(int i=0; i<outputs; i++)
+    SPAWN_METHOD(receivedRequest, BasicArbiter::arbitrate, i, false);
 
   // Generate a method to watch each request port, taking appropriate action
   // whenever the signal changes.
-  for(int i=0; i<inputs; i++) {
-    sc_core::sc_spawn_options options;
-    options.spawn_method();     // Want an efficient method, not a thread
-    options.dont_initialize();  // Only execute when triggered
-    options.set_sensitivity(&(requests[i])); // Sensitive to this port
-
-    // Create the method.
-    sc_spawn(sc_bind(&BasicArbiter::requestChanged, this, i), 0, &options);
-  }
+  for(int i=0; i<inputs; i++)
+    SPAWN_METHOD(requests[i], BasicArbiter::requestChanged, i, false);
 
   // Method for each grant port, updating the grant signal when appropriate.
-  for(int i=0; i<inputs; i++) {
-    sc_core::sc_spawn_options options;
-    options.spawn_method();     // Want an efficient method, not a thread
-    options.dont_initialize();  // Only execute when triggered
-    options.set_sensitivity(&(grantChanged[i]));
-
-    // Create the method.
-    sc_spawn(sc_bind(&BasicArbiter::updateGrant, this, i), 0, &options);
-  }
+  for(int i=0; i<inputs; i++)
+    SPAWN_METHOD(grantChanged[i], BasicArbiter::updateGrant, i, false);
 
   // Method for each select port, updating the signal when appropriate.
-  for(int i=0; i<outputs; i++) {
-    sc_core::sc_spawn_options options;
-    options.spawn_method();     // Want an efficient method, not a thread
-    options.dont_initialize();  // Only execute when triggered
-    options.set_sensitivity(&(selectionChanged[i]));
-
-    // Create the method.
-    sc_spawn(sc_bind(&BasicArbiter::updateSelect, this, i), 0, &options);
-  }
+  for(int i=0; i<outputs; i++)
+    SPAWN_METHOD(selectionChanged[i], BasicArbiter::updateSelect, i, false);
 
 }
 

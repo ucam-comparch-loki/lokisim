@@ -10,17 +10,14 @@
 #include "Router.h"
 
 void Router::receiveData(PortIndex input) {
-  if(clock.posedge()) {
-    // Deassert the previous acknowledgement.
-    if(ackDataIn[input].read()) ackDataIn[input].write(false);
-
-    // Wait a delta cycle in case the valid signal is deasserted.
-    next_trigger(sc_core::SC_ZERO_TIME);
-  }
-  else {
-    if(!validDataIn[input].read()) {
+//  if(clock.posedge()) {
+//    // Wait a delta cycle in case the valid signal is deasserted.
+//    next_trigger(sc_core::SC_ZERO_TIME);
+//  }
+//  else {
+    if(!dataIn[input].valid()) {
       // The valid signal was deasserted - wait until it goes high again.
-      next_trigger(validDataIn[input].posedge_event());
+      next_trigger(dataIn[input].default_event());
     }
     else if(inputBuffers[input].full()) {
       // There is no space to read the value from the network - wait a clock
@@ -30,12 +27,12 @@ void Router::receiveData(PortIndex input) {
     else {
       // Put the new data into a buffer.
       inputBuffers[input].write(dataIn[input].read());
-      ackDataIn[input].write(true);
+      dataIn[input].ack();
 
       // Wait until the clock edge to deassert the acknowledgement.
       next_trigger(clock.posedge_event());
     }
-  }
+//  }
 }
 
 void Router::routeData() {
@@ -72,14 +69,10 @@ void Router::routeData() {
 
 void Router::sendData() {
   for(int i=0; i<5; i++) {
-    // Deassert the valid signal for all outputs which have been acknowledged.
-    if(ackDataOut[i].read()) validDataOut[i].write(false);
-
     // We can send data if there is data to send, and there is no unacknowledged
     // data already on the output port.
-    if(!outputBuffers[i].empty() && (!validDataOut[i].read() || ackDataOut[i].read())) {
+    if(!outputBuffers[i].empty() && !dataOut[i].valid()) {
       dataOut[i].write(outputBuffers[i].read());
-      validDataOut[i].write(true);
     }
   }
 }
@@ -106,21 +99,12 @@ Router::Router(const sc_module_name& name, const ComponentID& ID) :
 
   for(int i=0; i<5; i++) lastAccepted[i] = -1;
 
-  dataIn        = new DataInput[5];     dataOut        = new DataOutput[5];
-  validDataIn   = new ReadyInput[5];    validDataOut   = new ReadyOutput[5];
-  ackDataIn     = new ReadyOutput[5];   ackDataOut     = new ReadyInput[5];
+  dataIn = new loki_in<DataType>[5];    dataOut = new loki_out<DataType>[5];
 
   // Generate a method to watch each input port, putting the data into the
   // appropriate buffer when it arrives.
-  for(int i=0; i<5; i++) {
-    sc_core::sc_spawn_options options;
-    options.spawn_method();     // Want an efficient method, not a thread
-    options.dont_initialize();  // Only execute when triggered
-    options.set_sensitivity(&(validDataIn[i].pos())); // Sensitive to this port
-
-    // Create the method.
-    sc_spawn(sc_bind(&Router::receiveData, this, i), 0, &options);
-  }
+  for(int i=0; i<5; i++)
+    SPAWN_METHOD(dataIn[i], Router::receiveData, i, false);
 
   SC_METHOD(routeData);
   sensitive << clock.pos(); // Plus a delta cycle or two
@@ -135,6 +119,6 @@ Router::Router(const sc_module_name& name, const ComponentID& ID) :
 }
 
 Router::~Router() {
-  delete[] dataIn;    delete[] validDataIn;    delete[] ackDataIn;
-  delete[] dataOut;   delete[] validDataOut;   delete[] ackDataOut;
+  delete[] dataIn;
+  delete[] dataOut;
 }

@@ -31,20 +31,10 @@ public:
 //  sc_in<bool>   clock;
 //
 //  DataInput    *dataIn;
-//  ReadyInput   *validDataIn;
-//  ReadyOutput  *ackDataIn;
-//
 //  DataOutput   *dataOut;
-//  ReadyOutput  *validDataOut;
-//  ReadyInput   *ackDataOut;
 
   CreditInput  *creditsIn;
-  ReadyInput   *validCreditIn;
-  ReadyOutput  *ackCreditIn;
-
   CreditOutput *creditsOut;
-  ReadyOutput  *validCreditOut;
-  ReadyInput   *ackCreditOut;
 
 //==============================//
 // Methods
@@ -59,12 +49,6 @@ public:
   // The output port of this network which goes to the next level of network
   // hierarchy (or off-chip).
   CreditOutput& externalCreditOut() const;
-
-  ReadyInput&   externalValidCreditIn() const;
-  ReadyOutput&  externalValidCreditOut() const;
-
-  ReadyInput&   externalAckCreditIn() const;
-  ReadyOutput&  externalAckCreditOut() const;
 
 private:
 
@@ -101,8 +85,6 @@ private:
   std::vector<UnclockedNetwork*> creditCrossbars;
 
   CreditSignal **creditsToBus;
-  ReadySignal  **validCreditToBus;
-  ReadySignal  **ackCreditToBus;
 
   bool newCredits;
 

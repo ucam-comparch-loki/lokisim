@@ -27,12 +27,7 @@ class Mesh : public Network {
 //  sc_in<bool>   clock;
 //
 //  DataInput    *dataIn;
-//  ReadyInput   *validDataIn;
-//  ReadyOutput  *ackDataIn;
-//
 //  DataOutput   *dataOut;
-//  ReadyOutput  *validDataOut;
-//  ReadyInput   *ackDataOut;
 
 //==============================//
 // Constructors and destructors
@@ -73,8 +68,6 @@ private:
   // array[column][row]. Each array name is tagged with the direction it
   // carries data, e.g. NS = north to south.
   DataSignal  **dataSigNS,  **dataSigSN,  **dataSigEW,  **dataSigWE;
-  ReadySignal **validSigNS, **validSigSN, **validSigEW, **validSigWE;
-  ReadySignal **ackSigNS,   **ackSigSN,   **ackSigEW,   **ackSigWE;
 
 //==============================//
 // Local state

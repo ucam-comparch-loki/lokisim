@@ -26,12 +26,7 @@ class Crossbar: public Network {
 //  sc_in<bool>   clock;
 //
 //  DataInput    *dataIn;
-//  ReadyInput   *validDataIn;
-//  ReadyOutput  *ackDataIn;
-//
 //  DataOutput   *dataOut;
-//  ReadyOutput  *validDataOut;
-//  ReadyInput   *ackDataOut;
 
 //==============================//
 // Methods
@@ -78,9 +73,7 @@ protected:
 
   // Two-dimensional arrays of signals. One of each signal goes from each bus
   // to each mux/arbiter.
-  sc_signal<DataType>          **busToMux;
-  sc_signal<ReadyType>         **newData;
-  sc_signal<ReadyType>         **readData;
+  DataSignal        **busToMux;
 
 };
 

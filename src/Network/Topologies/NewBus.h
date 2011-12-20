@@ -22,11 +22,8 @@ class NewBus: public Component {
 
 public:
 
-   DataInput    dataIn;
-   ReadyInput   validDataIn;
-
-   DataOutput   dataOut;
-   ReadyOutput  validDataOut;
+  DataInput  dataIn;
+  DataOutput dataOut;
 
 //==============================//
 // Constructors and destructors
@@ -48,7 +45,10 @@ public:
 
 protected:
 
+  // FIXME: These seem to be unnecessary overhead - connect the signals directly
+  // to the destinations?
   virtual void receivedData();
+  virtual void receivedAck();
 
 private:
 

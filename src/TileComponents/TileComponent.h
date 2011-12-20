@@ -14,6 +14,7 @@
 #define TILECOMPONENT_H_
 
 #include "../Component.h"
+#include "../Communication/loki_ports.h"
 
 class AddressedWord;
 class Chip;
@@ -32,25 +33,18 @@ public:
 
   // All inputs to the component. They still have addresses in case there are
   // multiple channel ends accessible through each port.
-  sc_in<AddressedWord>  *dataIn;
-  sc_in<bool>           *validDataIn;
-
-  sc_out<bool>           readyOut;
+  loki_in<AddressedWord>  *dataIn;
+  sc_out<bool>          *readyOut;
 
   // All outputs of the component.
-  sc_out<AddressedWord> *dataOut;
-  sc_out<bool>          *validDataOut;
+  loki_out<AddressedWord> *dataOut;
 
   // Credits to be sent across the network.
-  sc_out<AddressedWord> *creditsOut;
-  sc_out<bool>          *validCreditOut;
-  sc_in<bool>           *ackCreditOut;
+  loki_out<AddressedWord> *creditsOut;
 
   // Credits received from the network. They still have addresses in case there
   // are multiple channel ends accessible through each port.
-  sc_in<AddressedWord>  *creditsIn;
-  sc_in<bool>           *validCreditIn;
-  sc_out<bool>          *ackCreditIn;
+  loki_in<AddressedWord>  *creditsIn;
 
   // Signal that this component is not currently doing any work.
   sc_out<bool>           idle;

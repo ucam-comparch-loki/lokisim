@@ -211,13 +211,10 @@ Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t*
   // Wire the input ports to the input buffers.
   for(unsigned int i=0; i<CORE_INPUT_PORTS; i++) {
     inputCrossbar->dataIn[i](dataIn[i]);
-    inputCrossbar->validDataIn[i](validDataIn[i]);
+    inputCrossbar->readyOut[i](readyOut[i]);
   }
 
   inputCrossbar->creditsOut[0](creditsOut[0]);
-  inputCrossbar->validCreditOut[0](validCreditOut[0]);
-  inputCrossbar->ackCreditOut[0](ackCreditOut[0]);
-  inputCrossbar->readyOut(readyOut);
 
   for(unsigned int i=0; i<CORE_INPUT_CHANNELS; i++) {
     inputCrossbar->dataOut[i](dataToBuffers[i]);
@@ -273,7 +270,6 @@ Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t*
 
   for(unsigned int i=0; i<CORE_OUTPUT_PORTS; i++) {
     write.output[i](dataOut[i]);            write.creditsIn[i](creditsIn[i]);
-    write.validOutput[i](validDataOut[i]);  write.validCredit[i](validCreditIn[i]);
   }
 
   // The core is considered idle if it did not decode a new instruction this

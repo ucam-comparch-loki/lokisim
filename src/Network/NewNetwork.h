@@ -35,13 +35,11 @@ public:
 
   // Data coming in to the network, and an extra bit to say whether the data
   // is currently valid.
-  DataInput    *dataIn;
-  ReadyInput   *validDataIn;
+  DataInput *dataIn;
 
   // Data leaving the network, and an extra bit to say whether the data is
   // currently valid.
-  DataOutput   *dataOut;
-  ReadyOutput  *validDataOut;
+  DataOutput *dataOut;
 
 //==============================//
 // Constructors and destructors
@@ -77,9 +75,6 @@ public:
   // The output port of this network which goes to the next level of network
   // hierarchy (or off-chip).
   DataOutput&  externalOutput() const;
-
-  ReadyInput&  externalValidInput() const;
-  ReadyOutput& externalValidOutput() const;
 
   unsigned int numInputPorts() const;
   unsigned int numOutputPorts() const;

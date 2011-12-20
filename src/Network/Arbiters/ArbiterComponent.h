@@ -16,6 +16,7 @@
 #define ARBITERCOMPONENT_H_
 
 #include "../../Component.h"
+#include "../NetworkTypedefs.h"
 
 class AddressedWord;
 class ArbiterBase;
@@ -28,15 +29,10 @@ class ArbiterComponent: public Component {
 
 public:
 
-  sc_in<bool>            clock;
+  sc_in<bool>    clock;
 
-  sc_in<AddressedWord>  *dataIn;
-  sc_in<bool>           *validDataIn;
-  sc_out<bool>          *ackDataIn;
-
-  sc_out<AddressedWord> *dataOut;
-  sc_out<bool>          *validDataOut;
-  sc_in<bool>           *ackDataOut;
+  DataInput     *dataIn;
+  DataOutput    *dataOut;
 
 //==============================//
 // Constructors and destructors
@@ -69,7 +65,6 @@ private:
   bool haveData();
 
   void receivedAck();
-  void sendAck(PortIndex input);
 
   void newData(PortIndex input);
 
@@ -104,10 +99,8 @@ private:
   // Event which is triggered whenever new data arrives. It uses the validDataIn
   // signals, so it doesn't notice the new data if the valid signal doesn't
   // change.
-  sc_core::sc_event newDataEvent;
+  sc_event newDataEvent;
 
-  // Events to notify to send an acknowledgement on each input.
-  sc_core::sc_event* sendAckEvent;
 
   // Additional state for wormhole routing.
 

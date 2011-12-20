@@ -48,16 +48,6 @@ DataOutput& NewNetwork::externalOutput() const {
   return dataOut[numOutputs-1];
 }
 
-ReadyInput& NewNetwork::externalValidInput() const {
-  assert(externalConnection);
-  return validDataIn[numInputs-1];
-}
-
-ReadyOutput& NewNetwork::externalValidOutput() const {
-  assert(externalConnection);
-  return validDataOut[numOutputs-1];
-}
-
 unsigned int NewNetwork::numInputPorts()  const {return numInputs;}
 unsigned int NewNetwork::numOutputPorts() const {return numOutputs;}
 
@@ -81,15 +71,12 @@ NewNetwork::NewNetwork(const sc_module_name& name,
   assert(numInputs > 0);
   assert(numOutputs > 0);
 
-  dataIn       = new DataInput[this->numInputs];
-  validDataIn  = new ReadyInput[this->numInputs];
-
-  dataOut      = new DataOutput[this->numOutputs];
-  validDataOut = new ReadyOutput[this->numOutputs];
+  dataIn  = new DataInput[this->numInputs];
+  dataOut = new DataOutput[this->numOutputs];
 
 }
 
 NewNetwork::~NewNetwork() {
-  delete[] dataIn;   delete[] validDataIn;
-  delete[] dataOut;  delete[] validDataOut;
+  delete[] dataIn;
+  delete[] dataOut;
 }

@@ -15,6 +15,8 @@
 #include "../Network/Topologies/Crossbar.h"
 #include "../Network/NetworkTypedefs.h"
 
+#include "../Communication/loki_signal.h"
+
 class AddressedWord;
 class FlowControlIn;
 class UnclockedNetwork;
@@ -37,17 +39,14 @@ public:
   // network.
   sc_in<bool>   creditClock, dataClock;
 
-  DataInput    *dataIn;
-  ReadyInput   *validDataIn;
-  ReadyOutput   readyOut;
+  loki_in<DataType> *dataIn;
+  ReadyOutput  *readyOut;
 
   sc_out<Word> *dataOut;
 
   sc_in<bool>  *bufferHasSpace;
 
-  CreditOutput *creditsOut;
-  ReadyOutput  *validCreditOut;
-  ReadyInput   *ackCreditOut;
+  loki_out<CreditType> *creditsOut;
 
 //==============================//
 // Constructors and destructors
@@ -73,12 +72,6 @@ private:
   // from is stored in the dataSource vector.
   void writeToBuffer(ChannelIndex output);
 
-  // Since data on any input can go to any output, we have to block all input
-  // if any buffer is full. This method keeps the single ready output up to
-  // date, based on the signals from each buffer.
-  // FIXME: could this behaviour cause deadlock?
-  void readyChanged();
-
 //==============================//
 // Local state
 //==============================//
@@ -92,10 +85,8 @@ private:
   
   Crossbar               creditNet;
 
-  sc_buffer<DataType>   *dataToBuffer;
-  sc_buffer<CreditType> *creditsToNetwork;
-  sc_signal<ReadyType>  *validDataSig, *validCreditSig;
-  sc_signal<ReadyType>  *ackCreditSig;
+  loki_signal<DataType> *dataToBuffer;
+  loki_signal<CreditType> *creditsToNetwork;
 
   // An event for each output port which is triggered when there is data to
   // put into its buffer.

@@ -101,20 +101,12 @@ private:
 
   sc_signal<bool>       *idleSig;
 
-  sc_buffer<DataType>   *dataFromComponents;
-  flag_signal<DataType> *dataToComponents;
-  sc_buffer<CreditType> *creditsFromComponents;
-  sc_buffer<CreditType> *creditsToComponents;
+  DataSignal            *dataFromComponents;
+  DataSignal            *dataToComponents;
+  CreditSignal          *creditsFromComponents;
+  CreditSignal          *creditsToComponents;
 
-  sc_signal<ReadyType>  *ackDataFromComps;
-  sc_signal<ReadyType>  *ackCreditToComps;
-  sc_signal<ReadyType>  *readyFromComps;
-  sc_signal<ReadyType>  *ackCreditFromComps;
-
-  sc_signal<ReadyType>  *validDataFromComps;
-  sc_signal<ReadyType>  *validDataToComps;
-  sc_signal<ReadyType>  *validCreditFromComps;
-  sc_signal<ReadyType>  *validCreditToComps;
+  ReadySignal           *readyFromComps;
 
 	sc_signal<bool>				*strobeToBackgroundMemory;
 	sc_signal<MemoryRequest> *dataToBackgroundMemory;
@@ -141,7 +133,7 @@ private:
 private:
 
   unsigned int idleComponents;
-  sc_core::sc_event idlenessChanged;
+  sc_event idlenessChanged;
 
 };
 

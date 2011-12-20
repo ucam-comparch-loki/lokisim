@@ -15,6 +15,7 @@
 #include "../PipelineStage.h"
 #include "SendChannelEndTable.h"
 #include "../../ChannelMapEntry.h"
+#include "../../../Communication/loki_ports.h"
 #include "../../../Datatype/DecodedInst.h"
 
 class WriteStage: public PipelineStage {
@@ -43,13 +44,11 @@ public:
   sc_out<bool>           readyOut;
 
   // Data to send onto the network.
-  sc_out<AddressedWord> *output;
-  sc_out<bool>          *validOutput;
+  loki_out<AddressedWord> *output;
 
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.
-  sc_in<AddressedWord>  *creditsIn;
-  sc_in<bool>           *validCredit;
+  loki_in<AddressedWord>  *creditsIn;
 
 //==============================//
 // Constructors and destructors

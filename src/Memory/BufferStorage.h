@@ -14,7 +14,10 @@
 #define BUFFERSTORAGE_H_
 
 #include "Storage.h"
+#include "systemc.h"
 #include "../Utility/LoopCounter.h"
+
+using sc_core::sc_event;
 
 template<class T>
 class BufferStorage: public Storage<T> {
@@ -38,6 +41,7 @@ public:
   virtual void write(const T& newData) {
     assert(!full());
     this->data_[writePos.value()] = newData;
+    this->newData.notify();
     incrementWriteTo();
   }
 
@@ -65,6 +69,10 @@ public:
   // Returns the remaining space in the buffer.
   uint16_t remainingSpace() const {
     return this->size() - fillCount;
+  }
+
+  const sc_event& newDataEvent() const {
+    return newData;
   }
 
   // Print the contents of the buffer.
@@ -109,6 +117,8 @@ private:
 
   LoopCounter readPos, writePos;
   uint16_t fillCount;
+
+  sc_event newData;
 
 };
 

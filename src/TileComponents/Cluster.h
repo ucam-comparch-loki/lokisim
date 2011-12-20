@@ -41,10 +41,10 @@ public:
 
 // Inherited from TileComponent:
 //   clock
-//   dataIn,      validDataIn,    readyOut;
-//   dataOut,     validDataOut;
-//   creditsOut,  validCreditOut, ackCreditOut;
-//   creditsIn,   validCreditIn,  ackCreditIn;
+//   dataIn,      readyOut;
+//   dataOut;
+//   creditsOut;
+//   creditsIn;
 //   idle
 
   // A slight hack to improve simulation speed. Each core contains a small

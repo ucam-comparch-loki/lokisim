@@ -27,10 +27,8 @@ public:
 //  sc_in<bool>   clock;
 //
 //  DataInput    *dataIn;
-//  ReadyInput   *validDataIn;
 //
 //  DataOutput   *dataOut;
-//  ReadyOutput  *validDataOut;
 //  ReadyInput   *readyDataOut;
 
   // Additional clocks which are skewed, allowing multiple clocked events
@@ -44,13 +42,8 @@ public:
   // negedge allows time for the arbiters in the subnetworks to finish first.
   sc_core::sc_clock arbiterClock;
 
-  CreditInput  *creditsIn;
-  ReadyInput   *validCreditIn;
-  ReadyOutput  *ackCreditIn;
-
+  CreditInput *creditsIn;
   CreditOutput *creditsOut;
-  ReadyOutput  *validCreditOut;
-  ReadyInput   *ackCreditOut;
 
   // A signal from each component, telling whether it is ready to receive
   // more data.
@@ -81,10 +74,6 @@ public:
 
   CreditInput&  externalCreditIn() const;
   CreditOutput& externalCreditOut() const;
-  ReadyInput&   externalValidCreditIn() const;
-  ReadyOutput&  externalValidCreditOut() const;
-  ReadyInput&   externalAckCreditIn() const;
-  ReadyOutput&  externalAckCreditOut() const;
 
 private:
 
@@ -116,7 +105,6 @@ private:
   //         memoryToCore connects to positions 2 and 3,
   //         globalToCore connects to position 4
   DataSignal               **dataSig;
-  ReadySignal              **validSig;
 
   // Signals connecting arbiters to arbiters.
   // Address using selectSig[arbiter][port]

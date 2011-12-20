@@ -16,6 +16,7 @@
 #define FLOWCONTROLOUT_H_
 
 #include "../../Component.h"
+#include "../NetworkTypedefs.h"
 
 class AddressedWord;
 
@@ -28,25 +29,25 @@ class FlowControlOut: public Component {
 public:
 
   // Data received from the component to be sent out onto the network.
-  sc_in<AddressedWord>   dataIn;
+  DataInput     dataIn;
 
   // Flow control credits received over the network.
-  sc_in<AddressedWord>   creditsIn;
+  CreditInput   creditsIn;
 
   // Data sent out onto the network.
-  sc_out<AddressedWord>  dataOut;
+  DataOutput    dataOut;
 
   // Signal from the network telling us that it is safe to send data.
-  sc_in<bool>            readyIn;
+  sc_in<bool>   readyIn;
 
   // Signal telling the network it is safe to send credits to this port.
   // Never actually used, but allows data and credit networks to have the same
   // interface.
-  sc_out<bool>           readyOut;
+  sc_out<bool>  readyOut;
 
   // A flow control signal for each output of the component, controlling when
   // new data is allowed to arrive.
-  sc_out<bool>           flowControlOut;
+  sc_out<bool>  flowControlOut;
 
 //==============================//
 // Constructors and destructors

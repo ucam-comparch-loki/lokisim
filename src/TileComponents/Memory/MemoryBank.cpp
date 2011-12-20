@@ -1159,19 +1159,60 @@ void MemoryBank::processValidRing() {
 	if(ack != oRingAcknowledge.read()) oRingAcknowledge.write(ack);
 }
 
-void MemoryBank::handleNetworkInterfacesPre() {
+void MemoryBank::handleDataOutput() {
+  // If we have new data to send:
+  if(!mOutputWordPending) {
+    if(mOutputQueue.empty()) {
+      next_trigger(mOutputQueue.newDataEvent());
+    }
+    else {
+      OutputWord outWord = mOutputQueue.read();
 
-  // Set output port defaults - only final write will be effective
+      AddressedWord word(outWord.Data, mChannelMapTable[outWord.TableIndex].ReturnChannel);
+      word.setPortClaim(outWord.PortClaim, false);
+      word.setEndOfPacket(outWord.LastWord);
+      mOutputWordPending = true;
 
-  if(oDataOutValid.read()) {
-    oDataOutValid.write(false);
+      // Remove the previous request if we are sending to a new destination.
+      // Is this a hack, or is this reasonable?
+      if(mActiveOutputWord.channelID().getComponentID() != word.channelID().getComponentID())
+        localNetwork->makeRequest(id, mActiveOutputWord.channelID(), false);
 
-    // If it was the final flit in the packet, remove the request for network
-    // resources.
+      mActiveOutputWord = word;
+
+      next_trigger(localNetwork->makeRequest(id, mActiveOutputWord.channelID(), true));
+    }
+  }
+  // If we have just been granted network access:
+  else if(!iClock.negedge()) {
+    // Data is always sent on the negative clock edge.
+    next_trigger(iClock.negedge_event());
+  }
+  // If it is time to send data:
+  else {
+    if(DEBUG)
+      cout << this->name() << " sent " << mActiveOutputWord << endl;
+
+    oDataOut.write(mActiveOutputWord);
+
+    // If we are passing the memory operation on to another component, split
+    // the packet up so network resources can be reallocated to the next memory.
+    if (mRingRequestOutputPending && mOutputQueue.empty())
+      mActiveOutputWord.setEndOfPacket(true);
+
+    // Remove the request for network resources.
     if(mActiveOutputWord.endOfPacket())
       localNetwork->makeRequest(id, mActiveOutputWord.channelID(), false);
 
+    mOutputWordPending = false;
+
+    next_trigger(oDataOut.ack_event());
   }
+}
+
+void MemoryBank::handleNetworkInterfacesPre() {
+
+  // Set output port defaults - only final write will be effective
   if(oRingStrobe.read())   oRingStrobe.write(false);
   if(oBMDataStrobe.read()) oBMDataStrobe.write(false);
 
@@ -1191,63 +1232,8 @@ void MemoryBank::handleNetworkInterfacesPre() {
   if (mRingRequestOutputPending && !mOutputWordPending && mOutputQueue.empty()) {
     oRingStrobe.write(true);
     oRingRequest.write(mActiveRingRequestOutput);
-
-    // If we are passing the memory operation on to another component, we
-    // can remove our claim for network resources.
-    localNetwork->makeRequest(id, mActiveOutputWord.channelID(), false);
-    mActiveOutputWord.setEndOfPacket(true);
   }
 
-}
-
-void MemoryBank::handleNetworkInterfacesPost() {
-
-  // Data is sent on the negative clock edge, if there is any
-  if(mOutputWordPending) {
-    oDataOutValid.write(true);
-    oDataOut.write(mActiveOutputWord);
-
-    // This seems to be the most sensible place to remove a request (after the
-    // final flit has been sent), but it doesn't seem to work.
-    // Could there be an issue if the next packet also goes to the same component?
-    // Then we'd be writing the same signal twice at the same time, but there'd
-    // be no positive/negative edges for other components to notice.
-//    if(mActiveOutputWord.endOfPacket())
-//      localNetwork->makeRequest(id, mActiveOutputWord.channelID(), false);
-
-    mOutputWordPending = false;
-
-    if(DEBUG)
-      cout << this->name() << " sent " << mActiveOutputWord << endl;
-  }
-
-	// Request to send next output word if available
-
-	if (!mOutputWordPending && !mOutputQueue.empty() ) {
-		OutputWord outWord = mOutputQueue.read();
-
-		AddressedWord word(outWord.Data, mChannelMapTable[outWord.TableIndex].ReturnChannel);
-		word.setPortClaim(outWord.PortClaim, false);
-		word.setEndOfPacket(outWord.LastWord);
-		mOutputWordPending = true;
-
-		// Remove the previous request if we are sending to a new destination.
-		// Is this a hack, or is this reasonable?
-		if(mActiveOutputWord.channelID().getComponentID() != word.channelID().getComponentID())
-	    localNetwork->makeRequest(id, mActiveOutputWord.channelID(), false);
-
-		mActiveOutputWord = word;
-
-    // Request arbitration, and wait until the request is granted.
-		// FIXME: memory stalls until it is able to send result. Reading from
-		// and writing to the queue should be asynchronous.
-		// But: if there is nothing in the queue, we want the queue-writer to
-		// send the request.
-		next_trigger(localNetwork->makeRequest(id, mActiveOutputWord.channelID(), true));
-	}
-	// If no output word is available, wait until the next clock cycle to perform
-	// the next operation.
-	else next_trigger(iClock.posedge_event());
 }
 
 void MemoryBank::mainLoop() {
@@ -1256,19 +1242,17 @@ void MemoryBank::mainLoop() {
 
     handleNetworkInterfacesPre();
 
-    next_trigger(iClock.negedge_event());
-
   }
   else if(iClock.negedge()) {
 
     // Check data input ports and update queue
 
-    if (iDataInValid.read()) {
+    if (iDataIn.valid()) {
       if(DEBUG) cout << this->name() << " received " << iDataIn.read() << endl;
       assert(!mInputQueue.full());
 
-      // Acknowledgement handled by separate methods
       mInputQueue.write(iDataIn.read());
+      iDataIn.ack();
     }
 
     // Check ring input ports and update request registers
@@ -1336,14 +1320,6 @@ void MemoryBank::mainLoop() {
       assert(false);
       break;
     }
-
-    handleNetworkInterfacesPost();
-  }
-  else { // Neither clock edge: just received a grant from the network.
-    assert(mOutputWordPending);
-
-    // Wait until a particular time to send the data.
-    next_trigger(iClock.posedge_event());
   }
 
   // Update status signals
@@ -1425,7 +1401,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 
 	oIdle.initialize(true);
 	oReadyForData.initialize(false);
-	oDataOutValid.initialize(false);
 	oBMDataStrobe.initialize(false);
 	oRingAcknowledge.initialize(false);
 	oRingStrobe.initialize(false);
@@ -1437,12 +1412,14 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	Instrumentation::idle(id, true);
 
 	SC_METHOD(mainLoop);
-	sensitive << iClock.pos();
+	sensitive << iClock;
 	dont_initialize();
 
 	SC_METHOD(processValidRing);
 	sensitive << iRingStrobe << iClock.neg();
 	// do initialise
+
+	SC_METHOD(handleDataOutput);
 
 	end_module(); // Needed because we're using a different Component constructor
 }

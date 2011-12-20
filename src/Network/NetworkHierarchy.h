@@ -37,24 +37,18 @@ public:
   sc_in<bool>   fastClock, slowClock;
 
   // Data received from each output of each networked component.
-  DataInput    *dataIn;
-  ReadyInput   *validDataIn;
+  DataInput *dataIn;
 
   // Data sent to each networked component (after having its address removed
   // by the flow control components).
-  DataOutput   *dataOut;
-  ReadyOutput  *validDataOut;
-  ReadyInput   *readyDataOut;
+  DataOutput *dataOut;
+  ReadyInput *readyDataOut;
 
   // Flow control information received from each input of each component.
-  CreditInput  *creditsIn;
-  ReadyInput   *validCreditIn;
-  ReadyOutput  *ackCreditIn;
+  CreditInput *creditsIn;
 
   // A signal telling each input whether it is allowed to send a credit.
   CreditOutput *creditsOut;
-  ReadyOutput  *validCreditOut;
-  ReadyInput   *ackCreditOut;
 
 
 //==============================//
@@ -106,20 +100,16 @@ private:
 private:
 
   // Signals between the network and off-chip component.
-  DataSignal        dataFromOffchip,        dataToOffchip;
-  CreditSignal      creditsFromOffchip,     creditsToOffchip;
-  ReadySignal       validDataFromOffchip,   validDataToOffchip,
-                    validCreditFromOffchip, validCreditToOffchip;
-  ReadySignal       readyDataToOffchip,     readyDataFromOffchip,
-                    ackCreditFromOffchip,   ackCreditToOffchip;
+  DataSignal    dataFromOffchip,       dataToOffchip;
+  CreditSignal  creditsFromOffchip,    creditsToOffchip;
+  ReadySignal   readyDataToOffchip,    readyDataFromOffchip,
+                ackCreditFromOffchip,  ackCreditToOffchip;
 
   // Signals between local and global networks.
-  DataSignal        *dataToLocalNet,       *dataFromLocalNet;
-  CreditSignal      *creditsToLocalNet,    *creditsFromLocalNet;
-  ReadySignal       *validDataToLocal,     *validDataFromLocal,
-                    *validCreditToLocal,   *validCreditFromLocal;
-  ReadySignal       *localReadyForData,    *localReadyForCredits,
-                    *globalReadyForData,   *globalReadyForCredits;
+  DataSignal   *dataToLocalNet,       *dataFromLocalNet;
+  CreditSignal *creditsToLocalNet,    *creditsFromLocalNet;
+  ReadySignal  *localReadyForData,    *localReadyForCredits,
+               *globalReadyForData,   *globalReadyForCredits;
 
   // Signals between off-chip and its flow control component.
   DataSignal         dataFromOffChip;

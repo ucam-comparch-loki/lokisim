@@ -36,7 +36,6 @@ void NewCrossbar::makePorts() {
 
 void NewCrossbar::makeSignals() {
   dataSig   = new DataSignal[numBuses];
-  validSig  = new ReadySignal[numBuses];
   selectSig = new sc_signal<int>*[numArbiters];
 
   for(int i=0; i<numArbiters; i++) {
@@ -66,7 +65,8 @@ void NewCrossbar::makeArbiters() {
                            numBuses, outputsPerComponent, true);
 
       // Connect up ports which are unique to this type of arbiter.
-      (static_cast<EndArbiter*>(arb))->readyIn(readyIn[i]);
+      for(int j=0; j<outputsPerComponent; j++)
+        (static_cast<EndArbiter*>(arb))->readyIn[j](readyIn[j + i*outputsPerComponent]);
     }
 
     // Connect up all ports which are common to the two types of arbiter.
@@ -89,10 +89,7 @@ void NewCrossbar::makeBuses() {
     NewBus* bus = new NewBus(sc_gen_unique_name("bus"), i, numMuxes, size);
 
     bus->dataIn(dataIn[i]);
-    bus->validDataIn(validDataIn[i]);
-
     bus->dataOut(dataSig[i]);
-    bus->validDataOut(validSig[i]);
 
     buses.push_back(bus);
   }
@@ -103,12 +100,9 @@ void NewCrossbar::makeMuxes() {
     Multiplexer* mux = new Multiplexer(sc_gen_unique_name("mux"), numBuses);
 
     mux->dataOut(dataOut[i]);
-    mux->validOut(validDataOut[i]);
 
-    for(int j=0; j<numBuses; j++) {
+    for(int j=0; j<numBuses; j++)
       mux->dataIn[j](dataSig[j]);
-      mux->validIn[j](validSig[j]);
-    }
 
     int arbiter = i/outputsPerComponent;
     int arbiterSelect = i%outputsPerComponent;
@@ -142,7 +136,7 @@ NewCrossbar::NewCrossbar(const sc_module_name& name,
 }
 
 NewCrossbar::~NewCrossbar() {
-  delete[] dataSig;  delete[] validSig;
+  delete[] dataSig;
 
   for(int i=0; i<numArbiters; i++) delete[] selectSig[i];
   delete[] selectSig;

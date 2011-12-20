@@ -27,13 +27,8 @@ class UnclockedNetwork: public Component {
 
 public:
 
-  DataInput    *dataIn;
-  ReadyInput   *validDataIn;
-  ReadyOutput  *ackDataIn;
-
-  DataOutput   *dataOut;
-  ReadyOutput  *validDataOut;
-  ReadyInput   *ackDataOut;
+  DataInput  *dataIn;
+  DataOutput *dataOut;
 
 //==============================//
 // Methods
@@ -68,7 +63,7 @@ private:
 
   Network* network_;
   sc_signal<bool> clockSig;
-  sc_core::sc_event newData;
+  sc_event newData;
 
 };
 

@@ -104,11 +104,9 @@ void LocalNetwork::createMuxes() {
       // Use "arbiter" rather than "i" as the index because the same data go to
       // all muxes leading to the same component. All are controlled by 1 arbiter.
       mux->dataIn[j](dataSig[arbiter][j]);
-      mux->validIn[j](validSig[arbiter][j]);
     }
 
     mux->dataOut(dataOut[i]);
-    mux->validOut(validDataOut[i]);
 
     muxes.push_back(mux);
   }
@@ -116,14 +114,12 @@ void LocalNetwork::createMuxes() {
 
 void LocalNetwork::createSignals() {
   dataSig    = new DataSignal*[CORES_PER_TILE];
-  validSig   = new ReadySignal*[CORES_PER_TILE];
   selectSig  = new sc_signal<int>*[CORES_PER_TILE];
   requestSig = new sc_signal<bool>*[CORES_PER_TILE];
   grantSig   = new sc_signal<bool>*[CORES_PER_TILE];
 
   for(unsigned int i=0; i<CORES_PER_TILE; i++) {
     dataSig[i]    = new DataSignal[muxInputs];
-    validSig[i]   = new ReadySignal[muxInputs];
 
     selectSig[i]  = new sc_signal<int>[CORE_INPUT_PORTS];
     requestSig[i] = new sc_signal<bool>[muxInputs];
@@ -179,20 +175,15 @@ void LocalNetwork::wireUpSubnetworks() {
     coreToCore.dataIn[i](dataIn[portsBound]);
     coreToMemory.dataIn[i](dataIn[portsBound]);
     coreToGlobal.dataIn[i](dataIn[portsBound]);
-    coreToCore.validDataIn[i](validDataIn[portsBound]);
-    coreToMemory.validDataIn[i](validDataIn[portsBound]);
-    coreToGlobal.validDataIn[i](validDataIn[portsBound]);
 
     portsBound++;
   }
   for(unsigned int i=0; i<memoryToCore.numInputPorts(); i++) {
     memoryToCore.dataIn[i](dataIn[portsBound]);
-    memoryToCore.validDataIn[i](validDataIn[portsBound]);
     portsBound++;
   }
   for(unsigned int i=0; i<globalToCore.numInputPorts(); i++) {
     globalToCore.dataIn[i](dataIn[portsBound]);
-    globalToCore.validDataIn[i](validDataIn[portsBound]);
     portsBound++;
   }
 
@@ -200,7 +191,6 @@ void LocalNetwork::wireUpSubnetworks() {
     int arbiter = i/CORE_INPUT_PORTS;
     int arbiterInput = i%CORE_INPUT_PORTS;
     coreToCore.dataOut[i](dataSig[arbiter][arbiterInput]);
-    coreToCore.validDataOut[i](validSig[arbiter][arbiterInput]);
 
     int arbiterOutput = i % CORE_INPUT_PORTS;
     coreToCore.requestsOut[arbiter][arbiterOutput](requestSig[arbiter][arbiterInput]);
@@ -210,7 +200,6 @@ void LocalNetwork::wireUpSubnetworks() {
     int arbiter = i/CORE_INPUT_PORTS;
     int arbiterInput = (i%CORE_INPUT_PORTS) + CORE_INPUT_PORTS;
     memoryToCore.dataOut[i](dataSig[arbiter][arbiterInput]);
-    memoryToCore.validDataOut[i](validSig[arbiter][arbiterInput]);
 
     int arbiterOutput = i % CORE_INPUT_PORTS;
     memoryToCore.requestsOut[arbiter][arbiterOutput](requestSig[arbiter][arbiterInput]);
@@ -220,7 +209,6 @@ void LocalNetwork::wireUpSubnetworks() {
     int arbiter = i;  // Only one output per core
     int arbiterInput = CORE_INPUT_PORTS + CORE_INPUT_PORTS;
     globalToCore.dataOut[i](dataSig[arbiter][arbiterInput]);
-    globalToCore.validDataOut[i](validSig[arbiter][arbiterInput]);
 
     int arbiterOutput = 0;
     globalToCore.requestsOut[arbiter][arbiterOutput](requestSig[arbiter][arbiterInput]);
@@ -230,42 +218,32 @@ void LocalNetwork::wireUpSubnetworks() {
     // Some ports will have already been connected.
     int port = i + (CORES_PER_TILE*CORE_INPUT_PORTS);
     coreToMemory.dataOut[i](dataOut[port]);
-    coreToMemory.validDataOut[i](validDataOut[port]);
   }
   for(unsigned int i=0; i<coreToGlobal.numOutputPorts(); i++) {
     // Some ports will have already been connected.
     int port = i + (CORES_PER_TILE*CORE_INPUT_PORTS)
                  + (MEMS_PER_TILE*MEMORY_INPUT_PORTS);
     coreToGlobal.dataOut[i](dataOut[port]);
-    coreToGlobal.validDataOut[i](validDataOut[port]);
   }
 
   // Credit networks
   portsBound = 0;
   for(unsigned int i=0; i<c2gCredits.numInputPorts(); i++) {
     c2gCredits.dataIn[i](creditsIn[portsBound]);
-    c2gCredits.validDataIn[i](validCreditIn[portsBound]);
-    c2gCredits.ackDataIn[i](ackCreditIn[portsBound]);
     portsBound++;
   }
   for(unsigned int i=0; i<g2cCredits.numInputPorts(); i++) {
     g2cCredits.dataIn[i](creditsIn[portsBound]);
-    g2cCredits.validDataIn[i](validCreditIn[portsBound]);
-    g2cCredits.ackDataIn[i](ackCreditIn[portsBound]);
     portsBound++;
   }
 
   portsBound = 0;
   for(unsigned int i=0; i<g2cCredits.numOutputPorts(); i++) {
     g2cCredits.dataOut[i](creditsOut[portsBound]);
-    g2cCredits.validDataOut[i](validCreditOut[portsBound]);
-    g2cCredits.ackDataOut[i](ackCreditOut[portsBound]);
     portsBound++;
   }
   for(unsigned int i=0; i<c2gCredits.numOutputPorts(); i++) {
     c2gCredits.dataOut[i](creditsOut[portsBound]);
-    c2gCredits.validDataOut[i](validCreditOut[portsBound]);
-    c2gCredits.ackDataOut[i](ackCreditOut[portsBound]);
     portsBound++;
   }
 
@@ -297,19 +275,16 @@ void LocalNetwork::wireUpSubnetworks() {
 
   // Ready signals
   for(unsigned int i=0; i<CORES_PER_TILE; i++)
-    arbiters[i]->readyIn(readyIn[i]);
+    for(unsigned int j=0; j<CORE_INPUT_PORTS; j++)
+      arbiters[i]->readyIn[j](readyIn[i*CORE_INPUT_PORTS + j]);
   for(unsigned int i=0; i<MEMS_PER_TILE; i++)
-    coreToMemory.readyIn[i](readyIn[i + CORES_PER_TILE]);
-  coreToGlobal.readyIn[0](readyIn[CORES_PER_TILE + MEMS_PER_TILE]);
+    coreToMemory.readyIn[i](readyIn[i + CORES_PER_TILE*CORE_INPUT_PORTS]);
+  coreToGlobal.readyIn[0](readyIn[INPUT_PORTS_PER_TILE]);
 }
 
-ReadyInput&   LocalNetwork::externalReadyInput()     const {return readyIn[COMPONENTS_PER_TILE];}
-CreditInput&  LocalNetwork::externalCreditIn()       const {return creditsIn[creditInputs-1];}
-CreditOutput& LocalNetwork::externalCreditOut()      const {return creditsOut[creditOutputs-1];}
-ReadyInput&   LocalNetwork::externalValidCreditIn()  const {return validCreditIn[creditInputs-1];}
-ReadyOutput&  LocalNetwork::externalValidCreditOut() const {return validCreditOut[creditOutputs-1];}
-ReadyInput&   LocalNetwork::externalAckCreditIn()    const {return ackCreditOut[creditOutputs-1];}
-ReadyOutput&  LocalNetwork::externalAckCreditOut()   const {return ackCreditIn[creditInputs-1];}
+ReadyInput&   LocalNetwork::externalReadyInput() const {return readyIn[INPUT_PORTS_PER_TILE];}
+CreditInput&  LocalNetwork::externalCreditIn()   const {return creditsIn[creditInputs-1];}
+CreditOutput& LocalNetwork::externalCreditOut()  const {return creditsOut[creditOutputs-1];}
 
 LocalNetwork::LocalNetwork(const sc_module_name& name, ComponentID tile) :
     NewNetwork(name, tile, OUTPUT_PORTS_PER_TILE, INPUT_PORTS_PER_TILE, NewNetwork::COMPONENT, Dimension(1.0, 0.03), 0, true),
@@ -323,15 +298,10 @@ LocalNetwork::LocalNetwork(const sc_module_name& name, ComponentID tile) :
     g2cCredits("g2c_credits", tile, 1, CORES_PER_TILE, 1, (Network::HierarchyLevel)level, size) {
 
   creditsIn      = new CreditInput[creditInputs];
-  validCreditIn  = new ReadyInput[creditInputs];
-  ackCreditIn    = new ReadyOutput[creditInputs];
-
   creditsOut     = new CreditOutput[creditOutputs];
-  validCreditOut = new ReadyOutput[creditOutputs];
-  ackCreditOut   = new ReadyInput[creditOutputs];
 
-  // A ready signal from each component and the router.
-  readyIn        = new ReadyInput[COMPONENTS_PER_TILE + 1];
+  // Ready signal from each component, plus one from the router.
+  readyIn        = new ReadyInput[INPUT_PORTS_PER_TILE + 1];
 
   createSignals();
   createArbiters();
@@ -341,15 +311,15 @@ LocalNetwork::LocalNetwork(const sc_module_name& name, ComponentID tile) :
 }
 
 LocalNetwork::~LocalNetwork() {
-  delete[] creditsIn;      delete[] validCreditIn;  delete[] ackCreditIn;
-  delete[] creditsOut;     delete[] validCreditOut; delete[] ackCreditOut;
+  delete[] creditsIn;
+  delete[] creditsOut;
 
   for(unsigned int i=0; i<CORES_PER_TILE; i++) {
-    delete[] dataSig[i];   delete[] validSig[i];
+    delete[] dataSig[i];
     delete[] selectSig[i]; delete[] requestSig[i];  delete[] grantSig[i];
   }
 
-  delete[] dataSig;        delete[] validSig;
+  delete[] dataSig;
   delete[] selectSig;      delete[] requestSig;     delete[] grantSig;
 
   for(unsigned int i=0; i<CORES_PER_TILE+MEMS_PER_TILE+1; i++) {

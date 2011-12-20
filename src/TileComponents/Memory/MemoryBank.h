@@ -149,12 +149,10 @@ public:
 
 	//-- Ports connected to on-chip networks ------------------------------------------------------
 
-	sc_in<AddressedWord>		iDataIn;					// Input data sent to the memory bank
-	sc_in<bool>					iDataInValid;				// Indicates that a new input data word is available
+	loki_in<AddressedWord>  iDataIn;         // Input data sent to the memory bank
 	sc_out<bool>				oReadyForData;			// Indicates that there is buffer space for new input
 
-	sc_out<AddressedWord>		oDataOut;					// Output data sent to the processing elements
-	sc_out<bool>				oDataOutValid;				// Indicates that new output data is available
+	loki_out<AddressedWord> oDataOut;         // Output data sent to the processing elements
 
 	//-- Ports connected to background memory model -----------------------------------------------
 
@@ -302,7 +300,7 @@ private:
 	void processValidRing();
 
 	void handleNetworkInterfacesPre();
-	void handleNetworkInterfacesPost();
+	void handleDataOutput();
 
 	void mainLoop();										// Main loop thread - running at every positive clock edge
 

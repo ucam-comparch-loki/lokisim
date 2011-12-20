@@ -30,12 +30,7 @@ public:
 //   sc_in<bool>   clock;
 //
 //   DataInput    *dataIn;
-//   ReadyInput   *validDataIn;
-//   ReadyOutput  *ackDataIn;
-//
 //   DataOutput   *dataOut;
-//   ReadyOutput  *validDataOut;
-//   ReadyInput   *ackDataOut;
 
 //==============================//
 // Constructors and destructors
@@ -70,7 +65,7 @@ private:
 
 protected:
 
-  enum BusState {WAITING_FOR_DATA, WAITING_FOR_ACK, SENT_ACK};
+  enum BusState {WAITING_FOR_DATA, WAITING_FOR_ACK};
 
   BusState state;
 

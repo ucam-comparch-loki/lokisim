@@ -48,26 +48,6 @@ DataOutput& Network::externalOutput() const {
   return dataOut[numOutputs-1];
 }
 
-ReadyInput& Network::externalValidInput() const {
-  assert(externalConnection);
-  return validDataIn[numInputs-1];
-}
-
-ReadyOutput& Network::externalValidOutput() const {
-  assert(externalConnection);
-  return validDataOut[numOutputs-1];
-}
-
-ReadyInput& Network::externalAckInput() const {
-  assert(externalConnection);
-  return ackDataOut[numOutputs-1];
-}
-
-ReadyOutput& Network::externalAckOutput() const {
-  assert(externalConnection);
-  return ackDataIn[numInputs-1];
-}
-
 unsigned int Network::numInputPorts()  const {return numInputs;}
 unsigned int Network::numOutputPorts() const {return numOutputs;}
 
@@ -91,17 +71,12 @@ Network::Network(const sc_module_name& name,
   assert(numInputs > 0);
   assert(numOutputs > 0);
 
-  dataIn       = new DataInput[this->numInputs];
-  validDataIn  = new ReadyInput[this->numInputs];
-  ackDataIn    = new ReadyOutput[this->numInputs];
-
-  dataOut      = new DataOutput[this->numOutputs];
-  validDataOut = new ReadyOutput[this->numOutputs];
-  ackDataOut   = new ReadyInput[this->numOutputs];
+  dataIn  = new DataInput[this->numInputs];
+  dataOut = new DataOutput[this->numOutputs];
 
 }
 
 Network::~Network() {
-  delete[] dataIn;   delete[] validDataIn;   delete[] ackDataIn;
-  delete[] dataOut;  delete[] validDataOut;  delete[] ackDataOut;
+  delete[] dataIn;
+  delete[] dataOut;
 }

@@ -10,16 +10,10 @@
 void Bus::busLoop() {
   switch(state) {
     case WAITING_FOR_DATA : {
-      if(clock.posedge()) {
-        // Wait for a delta cycle, because the valid signal is deasserted on
-        // the clock edge.
-        next_trigger(100, sc_core::SC_PS);
-        //next_trigger(sc_core::SC_ZERO_TIME);
-      }
-      else if(!validDataIn[0].read()) {
-        // It turns out that there wasn't actually more data: the valid signal
-        // was deasserted on the clock edge.
-        next_trigger(validDataIn[0].posedge_event());
+      if(!dataIn[0].valid()) {
+        // It turns out that there wasn't actually more data: wait until some
+        // arrives.
+        next_trigger(dataIn[0].default_event());
       }
       else {
         // There definitely is data: send it.
@@ -29,9 +23,8 @@ void Bus::busLoop() {
         assert(outputUsed < numOutputs);
 
         dataOut[outputUsed].write(data);
-        validDataOut[outputUsed].write(true);
 
-        next_trigger(ackDataOut[outputUsed].posedge_event());
+        next_trigger(dataOut[outputUsed].ack_event());
         state = WAITING_FOR_ACK;
       }
 
@@ -39,38 +32,16 @@ void Bus::busLoop() {
     }
 
     case WAITING_FOR_ACK : {
-      // The data has been consumed, so is no longer valid.
-      validDataOut[outputUsed].write(false);
-
       // Acknowledge the input data.
-      ackDataIn[0].write(true);
+      dataIn[0].ack();
 
       // Wait until the next clock edge to deassert the acknowledgement.
-      next_trigger(clock.posedge_event());
-      state = SENT_ACK;
+      next_trigger(dataIn[0].default_event());
+      state = WAITING_FOR_DATA;
 
       break;
     }
 
-    case SENT_ACK : {
-      assert(ackDataIn[0].read());
-
-      ackDataIn[0].write(false);
-
-      if(!validDataIn[0].read()) {
-        next_trigger(validDataIn[0].posedge_event());
-        state = WAITING_FOR_DATA;
-      }
-      else {
-        // The valid signal is still high at the start of the next clock cycle.
-        // This means there may be more data to consume.
-        next_trigger(100, sc_core::SC_PS);
-        //next_trigger(sc_core::SC_ZERO_TIME);
-        state = WAITING_FOR_DATA;
-      }
-
-      break;
-    }
   } // end switch
 }
 

@@ -72,17 +72,12 @@ void ReceiveChannelEndTable::checkInput(ChannelIndex input) {
   newData.notify();
 }
 
-sc_core::sc_event& ReceiveChannelEndTable::receivedDataEvent(ChannelIndex buffer) const {
-  return bufferEvent[buffer];
+const sc_event& ReceiveChannelEndTable::receivedDataEvent(ChannelIndex buffer) const {
+  return buffers[buffer].newDataEvent();
 }
 
 void ReceiveChannelEndTable::updateFlowControl(ChannelIndex buffer) {
-  // Only update flow control information on the negative clock edge. (Why?)
-  if(!clock.negedge()) next_trigger(clock.negedge_event());
-  else {
-    flowControl[buffer].write(!buffers[buffer].full());
-    next_trigger(bufferEvent[buffer]);
-  }
+  flowControl[buffer].write(!buffers[buffer].full());
 }
 
 DecodeStage* ReceiveChannelEndTable::parent() const {
@@ -97,7 +92,7 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name, const
   flowControl = new sc_out<bool>[NUM_RECEIVE_CHANNELS];
   fromNetwork = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
 
-  bufferEvent = new sc_core::sc_event[NUM_RECEIVE_CHANNELS];
+  bufferEvent = new sc_event[NUM_RECEIVE_CHANNELS];
 
   // Generate a method to watch each input port, putting the data into the
   // appropriate buffer when it arrives.

@@ -61,24 +61,21 @@ Chip* TileComponent::parent() const {
 }
 
 void TileComponent::acknowledgeCredit(PortIndex output) {
-  if(clock.posedge()) {
-    // Deassert the acknowledgement on the clock edge.
-    ackCreditIn[output].write(false);
-
-    // The valid signal gets deasserted on this clock edge, so will still appear
-    // to be high. Wait a delta cycle.
-    next_trigger(sc_core::SC_ZERO_TIME);
-  }
-  else if(validCreditIn[output].read()) {
-    // A credit has arrived: we can safely acknowledge any credit because they
-    // are immediately consumed.
-    ackCreditIn[output].write(true);
-    next_trigger(clock.posedge_event());
-  }
-  else {
-    // Wait until the next credit arrives.
-    next_trigger(validCreditIn[output].posedge_event());
-  }
+//  if(clock.posedge()) {
+//    // The valid signal gets deasserted on this clock edge, so will still appear
+//    // to be high. Wait a delta cycle.
+//    next_trigger(sc_core::SC_ZERO_TIME);
+//  }
+//  else if(creditsIn[output].valid()) {
+//    // A credit has arrived: we can safely acknowledge any credit because they
+//    // are immediately consumed.
+    creditsIn[output].ack();
+//    next_trigger(clock.posedge_event());
+//  }
+//  else {
+//    // Wait until the next credit arrives.
+//    next_trigger(creditsIn[output].default_event());
+//  }
 }
 
 /* Constructors and destructors */
@@ -88,32 +85,26 @@ TileComponent::TileComponent(sc_module_name name, const ComponentID& ID,
     numInputPorts(inputPorts),
     numOutputPorts(outputPorts) {
 
-  dataIn         = new sc_in<AddressedWord>[inputPorts];
-  validDataIn    = new sc_in<bool>[inputPorts];
+  dataIn         = new loki_in<AddressedWord>[inputPorts];
+  readyOut       = new sc_out<bool>[inputPorts];
 
-  dataOut        = new sc_out<AddressedWord>[outputPorts];
-  validDataOut   = new sc_out<bool>[outputPorts];
+  dataOut        = new loki_out<AddressedWord>[outputPorts];
 
   // Temporary? Only have a single credit output, used to send credits to other
   // tiles. Credits aren't used for local communication.
-  creditsOut     = new sc_out<AddressedWord>[1];
-  validCreditOut = new sc_out<bool>[1];
-  ackCreditOut   = new sc_in<bool>[1];
-
-  creditsIn      = new sc_in<AddressedWord>[outputPorts];
-  validCreditIn  = new sc_in<bool>[outputPorts];
-  ackCreditIn    = new sc_out<bool>[outputPorts];
+  creditsOut     = new loki_out<AddressedWord>[1];
+  creditsIn      = new loki_in<AddressedWord>[outputPorts];
 
   // Generate a method to watch each credit input port, and send an
   // acknowledgement whenever a credit arrives.
   for(unsigned int i=0; i<numOutputPorts; i++)
-    SPAWN_METHOD(validCreditIn[i].pos(), TileComponent::acknowledgeCredit, i, false);
+    SPAWN_METHOD(creditsIn[i], TileComponent::acknowledgeCredit, i, false);
 
 }
 
 TileComponent::~TileComponent() {
-  delete[] dataIn;      delete[] validDataIn;
-  delete[] dataOut;     delete[] validDataOut;
-  delete[] creditsOut;  delete[] validCreditOut;  delete[] ackCreditOut;
-  delete[] creditsIn;   delete[] validCreditIn;   delete[] ackCreditIn;
+  delete[] dataIn;      delete[] readyOut;
+  delete[] dataOut;
+  delete[] creditsOut;
+  delete[] creditsIn;
 }

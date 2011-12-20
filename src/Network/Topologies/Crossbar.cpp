@@ -22,13 +22,9 @@ void Crossbar::makeBuses() {
     bus->clock(clock);
 
     bus->dataIn[0](dataIn[i]);
-    bus->validDataIn[0](validDataIn[i]);
-    bus->ackDataIn[0](ackDataIn[i]);
 
     for(int j=0; j<numMuxes; j++) {
       bus->dataOut[j](busToMux[i][j]);
-      bus->validDataOut[j](newData[i][j]);
-      bus->ackDataOut[j](readData[i][j]);
     }
   }
 }
@@ -41,17 +37,11 @@ void Crossbar::makeArbiters() {
     arbiters.push_back(arbiter);
     arbiter->clock(clock);
 
-    for(int j=0; j<numBuses; j++) {
+    for(int j=0; j<numBuses; j++)
       arbiter->dataIn[j](busToMux[j][i]);
-      arbiter->validDataIn[j](newData[j][i]);
-      arbiter->ackDataIn[j](readData[j][i]);
-    }
 
-    for(int j=0; j<outputsPerComponent; j++) {
+    for(int j=0; j<outputsPerComponent; j++)
       arbiter->dataOut[j](dataOut[i*outputsPerComponent + j]);
-      arbiter->validDataOut[j](validDataOut[i*outputsPerComponent + j]);
-      arbiter->ackDataOut[j](ackDataOut[i*outputsPerComponent + j]);
-    }
   }
 }
 
@@ -63,28 +53,18 @@ Crossbar::Crossbar(sc_module_name name, const ComponentID& ID, int inputs, int o
     numMuxes(numOutputs/outputsPerComponent),
     outputsPerComponent(outputsPerComponent) {
 
-  busToMux = new sc_signal<DataType>*[numBuses];
-  newData  = new sc_signal<ReadyType>*[numBuses];
-  readData = new sc_signal<ReadyType>*[numBuses];
+  busToMux = new DataSignal*[numBuses];
 
-  for(int i=0; i<numBuses; i++) {
-    busToMux[i] = new sc_signal<DataType>[numMuxes];
-    newData[i]  = new sc_signal<ReadyType>[numMuxes];
-    readData[i] = new sc_signal<ReadyType>[numMuxes];
-  }
+  for(int i=0; i<numBuses; i++)
+    busToMux[i] = new DataSignal[numMuxes];
 
 }
 
 Crossbar::~Crossbar() {
-  for(int i=0; i<numBuses; i++) {
+  for(int i=0; i<numBuses; i++)
     delete[] busToMux[i];
-    delete[] newData[i];
-    delete[] readData[i];
-  }
 
   delete[] busToMux;
-  delete[] newData;
-  delete[] readData;
 
   for(unsigned int i=0; i<buses.size(); i++) delete buses[i];
   for(unsigned int i=0; i<arbiters.size(); i++) delete arbiters[i];

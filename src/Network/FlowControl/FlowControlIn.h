@@ -13,6 +13,7 @@
 #define FLOWCONTROLIN_H_
 
 #include "../../Component.h"
+#include "../NetworkTypedefs.h"
 
 class AddressedWord;
 class Word;
@@ -26,20 +27,16 @@ class FlowControlIn: public Component {
 public:
 
   // Credits are sent at the positive edge of the clock.
-  sc_in<bool>           clock;
+  sc_in<bool>   clock;
 
   // Data received over the network, to be sent to a component's input.
-  sc_in<AddressedWord>  dataIn;
-  sc_in<bool>           validDataIn;
+  DataInput     dataIn;
 
   // Data to be sent to the component's input.
-  sc_out<Word>          dataOut;
+  sc_out<Word>  dataOut;
 
   // Responses to requests from each input.
-  sc_out<AddressedWord> creditsOut;
-  sc_out<bool>          validCreditOut;
-  // keep this for the moment - credits still use old network system
-  sc_in<bool>           ackCreditOut;
+  CreditOutput  creditsOut;
 
 //==============================//
 // Constructors and destructors
@@ -61,7 +58,6 @@ private:
   void dataLoop();
 
   // Helper functions for dataLoop.
-  void handleNewData();
   void handlePortClaim();
   void addCredit();
 
@@ -93,7 +89,7 @@ private:
   bool useCredits;
   unsigned int numCredits;
 
-  sc_core::sc_event newCredit;
+  sc_event newCredit;
 
 };
 

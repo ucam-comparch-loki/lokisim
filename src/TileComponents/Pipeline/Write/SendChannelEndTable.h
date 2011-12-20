@@ -11,8 +11,9 @@
 #define SENDCHANNELENDTABLE_H_
 
 #include "../../../Component.h"
-#include "../../../Memory/BufferArray.h"
+#include "../../../Communication/loki_ports.h"
 #include "../../../Datatype/MemoryRequest.h"
+#include "../../../Memory/BufferArray.h"
 
 class AddressedWord;
 class ChannelMapTable;
@@ -37,13 +38,11 @@ public:
   sc_in<bool>            clock;
 
   // Data outputs to the network.
-  sc_out<AddressedWord> *output;
-  sc_out<bool>          *validOutput;
+  loki_out<AddressedWord> *output;
 
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.
-  sc_in<AddressedWord>  *creditsIn;
-  sc_in<bool>           *validCredit;
+  loki_in<AddressedWord>  *creditsIn;
 
 //==============================//
 // Constructors and destructors
@@ -125,7 +124,6 @@ private:
   bool waiting;
 
   // An event which is triggered whenever data is inserted into the buffer.
-  sc_event  dataToSendEvent;
   sc_event  bufferFillChanged;
 
 };

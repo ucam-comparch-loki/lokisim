@@ -33,10 +33,7 @@ void NetworkHierarchy::setupFlowControl() {
   fcin->dataOut(dataToOffChip);            offChip.dataIn(dataToOffChip);
                                            offChip.readyOut(readyDataFromOffchip);
   fcin->dataIn(dataFromOffchip);
-  fcin->validDataIn(validDataFromOffchip);
   fcin->creditsOut(creditsToOffchip);
-  fcin->validCreditOut(validCreditToOffchip);
-  fcin->ackCreditOut(ackCreditToOffchip);
 
   fcout->dataIn(dataFromOffChip);          offChip.dataOut(dataFromOffChip);
   fcout->flowControlOut(readyToOffChip);   offChip.readyIn(readyToOffChip);
@@ -61,33 +58,23 @@ void NetworkHierarchy::makeLocalNetwork(int tileID) {
   for(unsigned int i=0; i<INPUT_PORTS_PER_TILE; i++) {
     int outputIndex = (tileID * INPUT_PORTS_PER_TILE) + i;
     localNetwork->dataOut[i](dataOut[outputIndex]);
-    localNetwork->validDataOut[i](validDataOut[outputIndex]);
-  }
-
-  for(unsigned int i=0; i<COMPONENTS_PER_TILE; i++) {
-    int outputIndex = (tileID * COMPONENTS_PER_TILE) + i;
     localNetwork->readyIn[i](readyDataOut[outputIndex]);
   }
 
   for(unsigned int i=0; i<OUTPUT_PORTS_PER_TILE; i++) {
     int inputIndex = (tileID * OUTPUT_PORTS_PER_TILE) + i;
     localNetwork->dataIn[i](dataIn[inputIndex]);
-    localNetwork->validDataIn[i](validDataIn[inputIndex]);
   }
 
   // Memories don't have credit connections.
   for(unsigned int i=0; i<CORES_PER_TILE; i++) {
     int outputIndex = (tileID * CORES_PER_TILE) + i;
     localNetwork->creditsIn[i](creditsIn[outputIndex]);
-    localNetwork->validCreditIn[i](validCreditIn[outputIndex]);
-    localNetwork->ackCreditIn[i](ackCreditIn[outputIndex]);
   }
 
   for(unsigned int i=0; i<CORES_PER_TILE*CORE_OUTPUT_PORTS; i++) {
     int inputIndex = (tileID * CORES_PER_TILE * CORE_OUTPUT_PORTS) + i;
     localNetwork->creditsOut[i](creditsOut[inputIndex]);
-    localNetwork->validCreditOut[i](validCreditOut[inputIndex]);
-    localNetwork->ackCreditOut[i](ackCreditOut[inputIndex]);
   }
 
   // Simplify the network if there is only one tile: there is no longer any
@@ -95,17 +82,11 @@ void NetworkHierarchy::makeLocalNetwork(int tileID) {
   // to the OffChip component.
   if(NUM_TILES == 1) {
     localNetwork->externalInput()(dataToOffchip);
-    localNetwork->externalValidInput()(validDataToOffchip);
     localNetwork->externalOutput()(dataFromOffchip);
-    localNetwork->externalValidOutput()(validDataToOffchip);
     localNetwork->externalReadyInput()(readyDataFromOffchip);
 
     localNetwork->externalCreditIn()(creditsToOffchip);
-    localNetwork->externalValidCreditIn()(validCreditToOffchip);
-    localNetwork->externalAckCreditOut()(ackCreditToOffchip);
     localNetwork->externalCreditOut()(creditsFromOffchip);
-    localNetwork->externalValidCreditOut()(validCreditFromOffchip);
-    localNetwork->externalAckCreditIn()(ackCreditFromOffchip);
   }
 }
 
@@ -125,15 +106,9 @@ void NetworkHierarchy::makeGlobalNetwork() {
     local_net_t* n = localNetworks[i];
     n->externalInput()(dataToLocalNet[i]);
     n->externalOutput()(dataFromLocalNet[i]);
-    n->externalValidInput()(validDataToLocal[i]);
-    n->externalValidOutput()(validDataFromLocal[i]);
     n->externalReadyInput()(globalReadyForData[i]);
     globalDataNetwork->dataOut[i](dataToLocalNet[i]);
     globalDataNetwork->dataIn[i](dataFromLocalNet[i]);
-    globalDataNetwork->validDataOut[i](validDataToLocal[i]);
-    globalDataNetwork->validDataIn[i](validDataFromLocal[i]);
-    globalDataNetwork->ackDataIn[i](globalReadyForData[i]);
-    globalDataNetwork->ackDataOut[i](localReadyForData[i]);
   }
 
   // Make credit network.
@@ -151,16 +126,8 @@ void NetworkHierarchy::makeGlobalNetwork() {
     local_net_t* n = localNetworks[i];
     n->externalCreditIn()(creditsToLocalNet[i]);
     n->externalCreditOut()(creditsFromLocalNet[i]);
-    n->externalValidCreditIn()(validCreditToLocal[i]);
-    n->externalValidCreditOut()(validCreditFromLocal[i]);
-    n->externalAckCreditIn()(globalReadyForCredits[i]);
-    n->externalAckCreditOut()(localReadyForCredits[i]);
     globalCreditNetwork->dataOut[i](creditsToLocalNet[i]);
     globalCreditNetwork->dataIn[i](creditsFromLocalNet[i]);
-    globalCreditNetwork->validDataOut[i](validCreditToLocal[i]);
-    globalCreditNetwork->validDataIn[i](validCreditFromLocal[i]);
-    globalCreditNetwork->ackDataIn[i](globalReadyForCredits[i]);
-    globalCreditNetwork->ackDataOut[i](localReadyForCredits[i]);
   }
 
 }
@@ -173,25 +140,15 @@ NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
   // There are data ports for all components, but credit ports only for cores.
   dataIn                = new DataInput[TOTAL_OUTPUT_PORTS];
   dataOut               = new DataOutput[TOTAL_INPUT_PORTS];
-  validDataIn           = new ReadyInput[TOTAL_OUTPUT_PORTS];
-  validDataOut          = new ReadyOutput[TOTAL_INPUT_PORTS];
-  readyDataOut          = new ReadyInput[NUM_COMPONENTS];
+  readyDataOut          = new ReadyInput[TOTAL_INPUT_PORTS];
   creditsIn             = new CreditInput[NUM_CORES];
   creditsOut            = new CreditOutput[CORE_OUTPUT_PORTS * NUM_CORES];
-  validCreditIn         = new ReadyInput[NUM_CORES];
-  validCreditOut        = new ReadyOutput[CORE_OUTPUT_PORTS * NUM_CORES];
-  ackCreditIn           = new ReadyOutput[NUM_CORES];
-  ackCreditOut          = new ReadyInput[CORE_OUTPUT_PORTS * NUM_CORES];
 
   // Make wires between local and global networks.
   dataFromLocalNet      = new DataSignal[NUM_TILES];
   dataToLocalNet        = new DataSignal[NUM_TILES];
   creditsFromLocalNet   = new CreditSignal[NUM_TILES];
   creditsToLocalNet     = new CreditSignal[NUM_TILES];
-  validDataToLocal      = new ReadySignal[NUM_TILES];
-  validDataFromLocal    = new ReadySignal[NUM_TILES];
-  validCreditToLocal    = new ReadySignal[NUM_TILES];
-  validCreditFromLocal  = new ReadySignal[NUM_TILES];
   localReadyForData     = new ReadySignal[NUM_TILES];
   localReadyForCredits  = new ReadySignal[NUM_TILES];
   globalReadyForData    = new ReadySignal[NUM_TILES];
@@ -215,15 +172,10 @@ NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
 NetworkHierarchy::~NetworkHierarchy() {
   delete[] dataIn;                    delete[] dataOut;
   delete[] creditsIn;                 delete[] creditsOut;
-  delete[] validDataIn;               delete[] validDataOut;
-  delete[] validCreditIn;             delete[] validCreditOut;
   delete[] readyDataOut;
-  delete[] ackCreditIn;               delete[] ackCreditOut;
 
   delete[] dataToLocalNet;            delete[] dataFromLocalNet;
   delete[] creditsToLocalNet;         delete[] creditsFromLocalNet;
-  delete[] validDataToLocal;          delete[] validDataFromLocal;
-  delete[] validCreditToLocal;        delete[] validCreditFromLocal;
   delete[] localReadyForData;         delete[] globalReadyForData;
   delete[] localReadyForCredits;      delete[] globalReadyForCredits;
 

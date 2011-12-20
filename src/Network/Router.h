@@ -30,14 +30,10 @@ public:
   sc_in<bool>   clock;
 
   // Data inputs
-  DataInput    *dataIn;
-  ReadyInput   *validDataIn;
-  ReadyOutput  *ackDataIn;
+  DataInput  *dataIn;
 
   // Data outputs
-  DataOutput   *dataOut;
-  ReadyOutput  *validDataOut;
-  ReadyInput   *ackDataOut;
+  DataOutput *dataOut;
 
 //==============================//
 // Constructors and destructors

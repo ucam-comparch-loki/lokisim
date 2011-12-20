@@ -13,15 +13,10 @@
 void MulticastBus::busLoop() {
   switch(state) {
     case WAITING_FOR_DATA : {
-      if(clock.posedge()) {
-        // Wait for a delta cycle, because the valid signal is deasserted on
-        // the clock edge.
-        next_trigger(sc_core::SC_ZERO_TIME);
-      }
-      else if(!validDataIn[0].read()) {
-        // It turns out that there wasn't actually more data: the valid signal
-        // was deasserted on the clock edge.
-        next_trigger(validDataIn[0].posedge_event());
+      if(!dataIn[0].valid()) {
+        // It turns out that there wasn't actually more data: wait until some
+        // arrives.
+        next_trigger(dataIn[0].default_event());
       }
       else {
         // There definitely is data: send it.
@@ -31,10 +26,8 @@ void MulticastBus::busLoop() {
         assert(outputUsed != 0);
 
         for(int i=0; i<8; i++) {  // 8 = number of bits in PortIndex... increase this?
-          if((outputUsed >> i) & 1) {
+          if((outputUsed >> i) & 1)
             dataOut[i].write(data);
-//            validDataOut[i].write(true);
-          }
         }
 
         next_trigger(receivedAllAcks);
@@ -47,54 +40,27 @@ void MulticastBus::busLoop() {
     case WAITING_FOR_ACK : {
       // All acknowledgements have been received, so now it is time to
       // acknowledge the input data.
-      ackDataIn[0].write(true);
+      dataIn[0].ack();
 
-      next_trigger(clock.posedge_event());
-      state = SENT_ACK;
-
-      break;
-    }
-
-    case SENT_ACK : {
-      assert(ackDataIn[0].read());
-
-      ackDataIn[0].write(false);
-
+      next_trigger(dataIn[0].default_event());
       state = WAITING_FOR_DATA;
-      next_trigger(sc_core::SC_ZERO_TIME);
 
       break;
     }
+
   } // end switch
 }
 
 void MulticastBus::ackArrived(PortIndex port) {
-  if(ackDataOut[port].event()) {
     // If we're receiving an ack, we should have sent data on that port.
     assert((outputUsed >> port) & 1);
     outputUsed &= ~(1 << port);  // Clear the bit
-
-    validDataOut[port].write(false);
 
     // If outputUsed is 0, it means there are no more outstanding
     // acknowledgements.
     if(outputUsed == 0) {
       receivedAllAcks.notify();
     }
-
-    next_trigger(dataOut[port].default_event());
-  }
-  else {
-    // If no ack arrived, it means data is being sent on this port.
-    // Since this method is responsible for taking down the validDataOut signal,
-    // it must also be responsible for putting it up.
-    assert((outputUsed >> port) & 1);
-
-    validDataOut[port].write(true);
-
-    // Wait until the acknowledgement arrives.
-    next_trigger(ackDataOut[port].posedge_event());
-  }
 }
 
 PortIndex MulticastBus::getDestinations(const ChannelID& address) const {
@@ -117,25 +83,15 @@ MulticastBus::MulticastBus(const sc_module_name& name, const ComponentID& ID, in
     Bus(name, ID, numOutputs, level, size, firstOutput) {
 
 //  creditsIn      = new CreditInput[numOutputs];
-//  validCreditIn  = new ReadyInput[numOutputs];
-//  ackCreditIn    = new ReadyOutput[numOutputs];
-//
 //  creditsOut     = new CreditOutput[1];
-//  validCreditOut = new ReadyOutput[1];
-//  ackCreditOut   = new ReadyInput[1];
 
   // Generate a method for each output port, to wait for acknowledgements and
   // notify the main process when all have been received.
   for(int i=0; i<numOutputs; i++)
-    SPAWN_METHOD(dataOut[i].value_changed(), MulticastBus::ackArrived, i, false);
+    SPAWN_METHOD(dataOut[i].ack_event(), MulticastBus::ackArrived, i, false);
 }
 
 MulticastBus::~MulticastBus() {
 //  delete[] creditsIn;
-//  delete[] validCreditIn;
-//  delete[] ackCreditIn;
-//
 //  delete[] creditsOut;
-//  delete[] validCreditOut;
-//  delete[] ackCreditOut;
 }

@@ -29,8 +29,8 @@ public:
 //  sc_out<bool> *grants;
 //  sc_out<int>  *select;
 
-  // Signal from the component telling if it is able to receive more data.
-  sc_in<bool>     readyIn;
+  // Signals from the component telling if it is able to receive more data.
+  sc_in<bool>    *readyIn;
 
 //==============================//
 // Constructors and destructors
@@ -40,6 +40,7 @@ public:
 
   EndArbiter(const sc_module_name& name, ComponentID ID,
              int inputs, int outputs, bool wormhole);
+  virtual ~EndArbiter();
 
 //==============================//
 // Methods

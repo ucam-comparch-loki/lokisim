@@ -23,10 +23,7 @@ public:
   sc_in<int>   select;
 
   DataInput   *dataIn;
-  ReadyInput  *validIn;
-
   DataOutput   dataOut;
-  ReadyOutput  validOut;
 
 //==============================//
 // Constructors and destructors

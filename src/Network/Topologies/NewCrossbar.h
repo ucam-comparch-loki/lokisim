@@ -27,10 +27,7 @@ public:
 //  sc_in<bool>   clock;
 //
 //  DataInput    *dataIn;
-//  ReadyInput   *validDataIn;
-//
 //  DataOutput   *dataOut;
-//  ReadyOutput  *validDataOut;
 
   // A request/grant signal for each input to reserve each output.
   // Indexed as: requestsIn[input][output]
@@ -101,7 +98,6 @@ protected:
   std::vector<Multiplexer*>  muxes;
 
   DataSignal                *dataSig;
-  ReadySignal               *validSig;
   sc_signal<int>           **selectSig;
 
 };

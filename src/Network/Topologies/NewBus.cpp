@@ -13,10 +13,12 @@ int NewBus::numOutputs() const {
 
 void NewBus::receivedData() {
   // Just copy the values straight through.
-  validDataOut.write(validDataIn.read());
+  dataOut.write(dataIn.read());
+  computeSwitching();
+}
 
-  // Only perform the expensive write if the data has changed.
-  if(validDataIn.read()) dataOut.write(dataIn.read());
+void NewBus::receivedAck() {
+  dataIn.ack();
 }
 
 void NewBus::computeSwitching() {
@@ -48,11 +50,11 @@ NewBus::NewBus(const sc_module_name& name, const ComponentID& ID, int numOutputP
   lastWriteTime = -1;
 
   SC_METHOD(receivedData);
-  sensitive << validDataIn;
+  sensitive << dataIn;
   dont_initialize();
 
-  SC_METHOD(computeSwitching);
-  sensitive << dataIn;
+  SC_METHOD(receivedAck);
+  sensitive << dataOut.ack_finder();
   dont_initialize();
 
 }
