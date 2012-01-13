@@ -298,6 +298,7 @@ private:
 	void processWaitRingOutput();
 
 	void processValidRing();
+	void processValidInput();
 
 	void handleNetworkInterfacesPre();
 	void handleDataOutput();

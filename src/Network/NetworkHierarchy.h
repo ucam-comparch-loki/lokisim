@@ -103,7 +103,7 @@ private:
   DataSignal    dataFromOffchip,       dataToOffchip;
   CreditSignal  creditsFromOffchip,    creditsToOffchip;
   ReadySignal   readyDataToOffchip,    readyDataFromOffchip,
-                ackCreditFromOffchip,  ackCreditToOffchip;
+                readyCreditFromOffchip;
 
   // Signals between local and global networks.
   DataSignal   *dataToLocalNet,       *dataFromLocalNet;
@@ -114,7 +114,7 @@ private:
   // Signals between off-chip and its flow control component.
   DataSignal         dataFromOffChip;
   sc_signal<Word>    dataToOffChip;
-  sc_signal<bool>    readyFromOffChip;
+  ReadySignal        readyFromOffChip;
   ReadySignal        readyToOffChip;
 
 };

@@ -40,7 +40,7 @@ void NetworkHierarchy::setupFlowControl() {
   fcout->dataOut(dataToOffchip);
   fcout->readyIn(readyDataFromOffchip);
   fcout->creditsIn(creditsFromOffchip);
-  fcout->readyOut(ackCreditFromOffchip);
+  fcout->readyOut(readyCreditFromOffchip);
 
 }
 
@@ -58,6 +58,10 @@ void NetworkHierarchy::makeLocalNetwork(int tileID) {
   for(unsigned int i=0; i<INPUT_PORTS_PER_TILE; i++) {
     int outputIndex = (tileID * INPUT_PORTS_PER_TILE) + i;
     localNetwork->dataOut[i](dataOut[outputIndex]);
+  }
+
+  for(unsigned int i=0; i<INPUT_CHANNELS_PER_TILE; i++) {
+    int outputIndex = (tileID * INPUT_CHANNELS_PER_TILE) + i;
     localNetwork->readyIn[i](readyDataOut[outputIndex]);
   }
 
@@ -140,9 +144,11 @@ NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
   // There are data ports for all components, but credit ports only for cores.
   dataIn                = new DataInput[TOTAL_OUTPUT_PORTS];
   dataOut               = new DataOutput[TOTAL_INPUT_PORTS];
-  readyDataOut          = new ReadyInput[TOTAL_INPUT_PORTS];
   creditsIn             = new CreditInput[NUM_CORES];
   creditsOut            = new CreditOutput[CORE_OUTPUT_PORTS * NUM_CORES];
+
+  int readyPorts = (CORES_PER_TILE * CORE_INPUT_CHANNELS + MEMS_PER_TILE) * NUM_TILES;
+  readyDataOut          = new ReadyInput[readyPorts];
 
   // Make wires between local and global networks.
   dataFromLocalNet      = new DataSignal[NUM_TILES];

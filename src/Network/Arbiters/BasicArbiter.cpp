@@ -24,7 +24,7 @@ void BasicArbiter::arbitrate(int output) {
         // Fall through to HAVE_REQUESTS case.
       }
       else {
-        changeSelection(output, -1);
+        changeSelection(output, NO_SELECTION);
         next_trigger(receivedRequest);
         break;
       }
@@ -32,7 +32,7 @@ void BasicArbiter::arbitrate(int output) {
 
     // We have requests, and it is time to perform the arbitration.
     case HAVE_REQUESTS: {
-      int grant = arbiter->getGrant();
+      SelectType grant = arbiter->getGrant();
       changeSelection(output, grant);
 
       if(grant != ArbiterBase::NO_GRANT) {    // Successful grant
@@ -44,7 +44,10 @@ void BasicArbiter::arbitrate(int output) {
         grantVec[grant] = true;
 
         state[output] = WAITING_TO_GRANT;
-        next_trigger(canGrantNow(output));
+
+        // FIXME: would prefer to only consider requests which we know can be
+        // granted, rather than selecting one, and waiting to be able to grant.
+        next_trigger(canGrantNow(output, requests[grant].read()));
       }
       else {
         // If we couldn't grant anything, wait until next cycle.
@@ -57,11 +60,11 @@ void BasicArbiter::arbitrate(int output) {
     // We have determined which request to grant, but haven't yet been able
     // to send the grant. Send it now.
     case WAITING_TO_GRANT: {
-      int granted = selectVec[output];
+      SelectType granted = selectVec[output];
       assert(granted < inputs);
       assert(granted >= 0);
 
-      bool requestStillActive = requests[granted].read();
+      bool requestStillActive = (requests[granted].read() != NO_REQUEST);
 
       if(requestStillActive) {
         grantVec[granted] = true;
@@ -70,7 +73,7 @@ void BasicArbiter::arbitrate(int output) {
         // Wait until the request line is deasserted. This means all flits in
         // the packet have been sent. (Make this wormhole behaviour optional?)
         state[output] = GRANTED;
-        next_trigger(requests[granted].negedge_event() | stallGrant(output));
+        next_trigger(requests[granted].default_event() | stallGrant(output));
       }
       else {
         deassertGrant(granted, output);
@@ -84,11 +87,11 @@ void BasicArbiter::arbitrate(int output) {
     // We have sent the grant and the request has been removed. Remove the
     // grant now.
     case GRANTED: {
-      int granted = selectVec[output];
+      SelectType granted = selectVec[output];
       assert(granted < inputs);
-      assert(granted >= 0);
+      assert(granted != NO_SELECTION);
 
-      if(requests[granted].negedge()) {
+      if(requests[granted].read() == NO_REQUEST) {
         // The request was removed, meaning the communication completed
         // successfully.
 
@@ -112,7 +115,8 @@ void BasicArbiter::arbitrate(int output) {
         grantChanged[granted].notify();
 
         state[output] = WAITING_TO_GRANT;
-        next_trigger(canGrantNow(output) | requests[granted].negedge_event());
+        next_trigger(canGrantNow(output, requests[granted].read()) |
+                     requests[granted].default_event());
       }
 
       break;
@@ -124,10 +128,10 @@ void BasicArbiter::deassertGrant(int input, int output) {
   grantVec[input] = false;
   grantChanged[input].notify();
 
-  changeSelection(output, -1);
+  changeSelection(output, NO_SELECTION);
 }
 
-void BasicArbiter::changeSelection(int output, int value) {
+void BasicArbiter::changeSelection(int output, SelectType value) {
   if(value != selectVec[output]) {
     selectVec[output] = value;
     selectionChanged[output].notify();
@@ -146,7 +150,7 @@ bool BasicArbiter::haveRequest() const {
 }
 
 void BasicArbiter::requestChanged(int input) {
-  requestVec[input] = requests[input].read();
+  requestVec[input] = (requests[input].read() != NO_REQUEST);
 
   if(requestVec[input])
     receivedRequest.notify();
@@ -160,8 +164,6 @@ void BasicArbiter::updateGrant(int input) {
 void BasicArbiter::updateSelect(int output) {
   // Wait until the start of the next cycle before changing the select signal.
   // Arbitration is done the cycle before data is sent.
-  // We actually write the signal a fraction after the clock edge to avoid
-  // race conditions with other signals.
   if(clock.posedge()) {   // The clock edge
     select[output].write(selectVec[output]);
     next_trigger(selectionChanged[output]);
@@ -177,21 +179,21 @@ BasicArbiter::BasicArbiter(const sc_module_name& name, ComponentID ID,
     inputs(inputs),
     outputs(outputs),
     wormhole(wormhole),
-    state(outputs, NO_REQUESTS),
     requestVec(inputs, false),
     grantVec(inputs, false),
-    selectVec(outputs, -1) {
+    selectVec(outputs, -1),
+    state(outputs, NO_REQUESTS) {
 
-  requests = new sc_in<bool>[inputs];
-  grants   = new sc_out<bool>[inputs];
-  select   = new sc_out<int>[outputs];
+  requests = new RequestInput[inputs];
+  grants   = new GrantOutput[inputs];
+  select   = new SelectOutput[outputs];
 
   grantChanged = new sc_event[inputs];
   selectionChanged = new sc_event[outputs];
 
   // Set some initial value for the select signals, so they generate an event
   // whenever they change to a valid value.
-  for(int i=0; i<outputs; i++) select[i].initialize(-1);
+  for(int i=0; i<outputs; i++) select[i].initialize(NO_SELECTION);
 
   arbiter = ArbiterBase::makeArbiter(ArbiterBase::ROUND_ROBIN, &requestVec, &grantVec);
 

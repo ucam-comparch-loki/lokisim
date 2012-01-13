@@ -39,14 +39,14 @@ public:
   // network.
   sc_in<bool>   creditClock, dataClock;
 
-  loki_in<DataType> *dataIn;
+  DataInput    *dataIn;
   ReadyOutput  *readyOut;
 
   sc_out<Word> *dataOut;
 
-  sc_in<bool>  *bufferHasSpace;
+  ReadyInput   *bufferHasSpace;
 
-  loki_out<CreditType> *creditsOut;
+  CreditOutput *creditsOut;
 
 //==============================//
 // Constructors and destructors
@@ -72,6 +72,10 @@ private:
   // from is stored in the dataSource vector.
   void writeToBuffer(ChannelIndex output);
 
+  // Update the flow control signal for a particular buffer. I would prefer to
+  // use the signal straight from the buffer, but this does not seem possible.
+  void updateFlowControl(ChannelIndex input);
+
 //==============================//
 // Local state
 //==============================//
@@ -85,8 +89,8 @@ private:
   
   Crossbar               creditNet;
 
-  loki_signal<DataType> *dataToBuffer;
-  loki_signal<CreditType> *creditsToNetwork;
+  DataSignal            *dataToBuffer;
+  CreditSignal          *creditsToNetwork;
 
   // An event for each output port which is triggered when there is data to
   // put into its buffer.

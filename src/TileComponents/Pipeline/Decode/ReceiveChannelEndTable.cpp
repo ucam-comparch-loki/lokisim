@@ -20,14 +20,15 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
   assert(channelEnd < NUM_RECEIVE_CHANNELS);
   assert(!buffers[channelEnd].empty());
 
+  if(buffers[channelEnd].full())
+    bufferEvent[channelEnd].notify();
+
   int32_t result = buffers.read(channelEnd).toInt();
-  bufferEvent[channelEnd].notify();
 
   if(DEBUG) cout << this->name() << " read " << result << " from buffer "
                  << (int)channelEnd << endl;
 
   return result;
-
 }
 
 /* Return whether or not the specified channel contains data. */
@@ -68,7 +69,9 @@ void ReceiveChannelEndTable::checkInput(ChannelIndex input) {
   assert(!buffers[input].full());
 
   buffers[input].write(fromNetwork[input].read());
-  bufferEvent[input].notify();
+
+  if(buffers[input].full())
+    bufferEvent[input].notify();
   newData.notify();
 }
 

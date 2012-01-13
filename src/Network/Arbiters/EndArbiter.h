@@ -25,12 +25,12 @@ public:
 
 // Inherited from BasicArbiter:
 //  sc_in<bool>   clock;
-//  sc_in<bool>  *requests;
-//  sc_out<bool> *grants;
-//  sc_out<int>  *select;
+//  RequestInput *requests;
+//  GrantOutput  *grants;
+//  SelectOutput *select;
 
   // Signals from the component telling if it is able to receive more data.
-  sc_in<bool>    *readyIn;
+  ReadyInput *readyIn;
 
 //==============================//
 // Constructors and destructors
@@ -48,8 +48,17 @@ public:
 
 protected:
 
-  virtual const sc_event& canGrantNow(int output);
+  virtual const sc_event& canGrantNow(int output, const ChannelIndex destination);
   virtual const sc_event& stallGrant(int output);
+
+  // The task to perform whenever a request input changes.
+  virtual void requestChanged(int input);
+
+private:
+
+  // Return which ready signal dictates when the input data will be allowed
+  // to send.
+  PortIndex outputToUse(PortIndex input);
 
 //==============================//
 // Methods

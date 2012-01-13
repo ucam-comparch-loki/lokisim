@@ -17,41 +17,32 @@ const unsigned int InputCrossbar::numInputs = CORE_INPUT_PORTS;
 const unsigned int InputCrossbar::numOutputs = CORE_INPUT_CHANNELS;
 
 void InputCrossbar::newData(PortIndex input) {
+  assert(dataIn[input].valid());
+
   const AddressedWord& data = dataIn[input].read();
   ChannelIndex destination = data.channelID().getChannel();
 
-  // If we are ready for data, then this method being called means data has
-  // arrived.
-  if(readyOut[input].read()) {
-    assert(dataIn[input].valid());
+  if(destination >= numOutputs) cout << "Trying to send to " << data.channelID() << endl;
+  assert(destination < numOutputs);
 
-    if(destination >= numOutputs) cout << "Trying to send to " << data.channelID() << endl;
-    assert(destination < numOutputs);
-
-    // Trigger a method which will send the data.
-    dataSource[destination] = input;
-    sendData[destination].notify();
-
-    readyOut[input].write(false);
-    next_trigger(sc_core::SC_ZERO_TIME);  // zero time, or clock edge?
-  }
-  // We are not ready for data - waiting for confirmation from the buffer that
-  // there is space for more data.
-  else {
-    if(bufferHasSpace[destination].read()) {
-      readyOut[input].write(true);
-      next_trigger(dataIn[input].default_event());
-    }
-    else
-      next_trigger(bufferHasSpace[destination].posedge_event());
-  }
+  // Trigger a method which will write the data to the appropriate output.
+  dataSource[destination] = input;
+  sendData[destination].notify();
 }
 
 void InputCrossbar::writeToBuffer(ChannelIndex output) {
+  assert(bufferHasSpace[output].read());
+
   // There is data to send.
   PortIndex source = dataSource[output];
   dataToBuffer[output].write(dataIn[source].read());
   dataIn[source].ack();
+}
+
+void InputCrossbar::updateFlowControl(ChannelIndex input) {
+  // I would prefer to connect the bufferHasSpace inputs directly to the
+  // readyOut outputs, but SystemC does not allow this.
+  readyOut[input].write(bufferHasSpace[input].read());
 }
 
 InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
@@ -62,18 +53,18 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
 
   creditNet.initialise();
 
-  dataIn           = new loki_in<DataType>[numInputs];
-  readyOut         = new ReadyOutput[numInputs];
+  dataIn           = new DataInput[numInputs];
+  readyOut         = new ReadyOutput[numOutputs];
 
   dataOut          = new sc_out<Word>[numOutputs];
-  bufferHasSpace   = new sc_in<bool>[numOutputs];
+  bufferHasSpace   = new ReadyInput[numOutputs];
 
   // Possibly temporary: have only one credit output port, used for sending
   // credits to other tiles. Credits aren't used for local communication.
-  creditsOut       = new loki_out<CreditType>[1];
+  creditsOut       = new CreditOutput[1];
 
-  dataToBuffer     = new loki_signal<DataType>[numOutputs];
-  creditsToNetwork = new loki_signal<CreditType>[numOutputs];
+  dataToBuffer     = new DataSignal[numOutputs];
+  creditsToNetwork = new CreditSignal[numOutputs];
 
   sendData         = new sc_event[numOutputs];
 
@@ -87,8 +78,8 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
   for(ChannelIndex i=0; i<numOutputs; i++)
     SPAWN_METHOD(sendData[i], InputCrossbar::writeToBuffer, i, false);
 
-  for(unsigned int i=0; i<numInputs; i++)
-    readyOut[i].initialize(true);
+  for(ChannelIndex i=0; i<numOutputs; i++)
+    SPAWN_METHOD(bufferHasSpace[i], InputCrossbar::updateFlowControl, i, true);
 
   // Wire up the small networks.
   creditNet.clock(creditClock);

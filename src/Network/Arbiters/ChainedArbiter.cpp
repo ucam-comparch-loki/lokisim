@@ -7,9 +7,9 @@
 
 #include "ChainedArbiter.h"
 
-const sc_event& ChainedArbiter::canGrantNow(int output) {
+const sc_event& ChainedArbiter::canGrantNow(int output, const ChannelIndex destination) {
   // Send a request to the next arbiter in the chain.
-  requestOut[output].write(true);
+  requestOut[output].write(destination);
 
   // We know it is safe to send data when we get the grant back.
   return grantIn[output].posedge_event();
@@ -28,15 +28,15 @@ void ChainedArbiter::deassertGrant(int input, int output) {
 
   // As well as deasserting the grant, we need to deassert the request to the
   // next arbiter.
-  requestOut[output].write(false);
+  requestOut[output].write(NO_REQUEST);
 }
 
 ChainedArbiter::ChainedArbiter(const sc_module_name& name, ComponentID ID,
                                int inputs, int outputs, bool wormhole) :
     BasicArbiter(name, ID, inputs, outputs, wormhole) {
 
-  requestOut = new sc_out<bool>[outputs];
-  grantIn    = new sc_in<bool>[outputs];
+  requestOut = new RequestOutput[outputs];
+  grantIn    = new GrantInput[outputs];
 
 }
 

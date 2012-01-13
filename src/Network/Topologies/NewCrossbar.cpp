@@ -12,34 +12,34 @@
 #include "../Arbiters/EndArbiter.h"
 
 void NewCrossbar::makePorts() {
-  requestsIn = new sc_in<bool>*[numBuses];
-  grantsOut  = new sc_out<bool>*[numBuses];
+  requestsIn = new RequestInput*[numBuses];
+  grantsOut  = new GrantOutput*[numBuses];
 
   for(int i=0; i<numBuses; i++) {
-    requestsIn[i] = new sc_in<bool>[numArbiters];
-    grantsOut[i]  = new sc_out<bool>[numArbiters];
+    requestsIn[i] = new RequestInput[numArbiters];
+    grantsOut[i]  = new GrantOutput[numArbiters];
   }
 
   if(chained) {
-    requestsOut = new sc_out<bool>*[numArbiters];
-    grantsIn    = new sc_in<bool>*[numArbiters];
+    requestsOut = new RequestOutput*[numArbiters];
+    grantsIn    = new GrantInput*[numArbiters];
 
     for(int i=0; i<numArbiters; i++) {
-      requestsOut[i] = new sc_out<bool>[outputsPerComponent];
-      grantsIn[i]    = new sc_in<bool>[outputsPerComponent];
+      requestsOut[i] = new RequestOutput[outputsPerComponent];
+      grantsIn[i]    = new GrantInput[outputsPerComponent];
     }
   }
   else {
-    readyIn = new sc_in<bool>[numArbiters];
+    readyIn = new ReadyInput[numArbiters];
   }
 }
 
 void NewCrossbar::makeSignals() {
   dataSig   = new DataSignal[numBuses];
-  selectSig = new sc_signal<int>*[numArbiters];
+  selectSig = new SelectSignal*[numArbiters];
 
   for(int i=0; i<numArbiters; i++) {
-    selectSig[i] = new sc_signal<int>[outputsPerComponent];
+    selectSig[i] = new SelectSignal[outputsPerComponent];
   }
 }
 

@@ -99,7 +99,7 @@ Router::Router(const sc_module_name& name, const ComponentID& ID) :
 
   for(int i=0; i<5; i++) lastAccepted[i] = -1;
 
-  dataIn = new loki_in<DataType>[5];    dataOut = new loki_out<DataType>[5];
+  dataIn = new DataInput[5];    dataOut = new DataOutput[5];
 
   // Generate a method to watch each input port, putting the data into the
   // appropriate buffer when it arrives.

@@ -110,7 +110,8 @@ void SendChannelEndTable::sendLoop() {
 
       // Return to IDLE state immediately to see if there is more data to send.
       state = IDLE;
-      next_trigger(sc_core::SC_ZERO_TIME);
+      next_trigger(output[0].ack_event());
+//      next_trigger(sc_core::SC_ZERO_TIME);
 
       break;
     }

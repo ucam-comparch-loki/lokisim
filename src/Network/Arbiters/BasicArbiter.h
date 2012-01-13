@@ -19,6 +19,7 @@
 #define BASICARBITER_H_
 
 #include "../../Component.h"
+#include "../NetworkTypedefs.h"
 
 class ArbiterBase;
 
@@ -32,10 +33,10 @@ public:
 
   sc_in<bool>   clock;
 
-  sc_in<bool>  *requests;
-  sc_out<bool> *grants;
+  RequestInput *requests;
+  GrantOutput  *grants;
 
-  sc_out<int>  *select;
+  SelectOutput *select;
 
 //==============================//
 // Constructors and destructors
@@ -61,7 +62,7 @@ protected:
 
   // Returns a reference to an event which will be triggered when it is
   // possible to send data to the given output.
-  virtual const sc_event& canGrantNow(int output) = 0;
+  virtual const sc_event& canGrantNow(int output, const ChannelIndex destination) = 0;
 
   // An event which is triggered if the grant must be temporarily removed,
   // because the destination is not capable of receiving more data yet.
@@ -69,15 +70,17 @@ protected:
 
   virtual void deassertGrant(int input, int output);
 
+  // The task to perform whenever a request input changes.
+  virtual void requestChanged(int input);
+
 private:
 
   // Change a particular select output to a particular value.
-  void changeSelection(int output, int value);
+  void changeSelection(int output, SelectType value);
 
   void arbitrate(int output);
 
   bool haveRequest() const;
-  void requestChanged(int input);
 
   void updateGrant(int input);
   void updateSelect(int output);
@@ -90,6 +93,12 @@ protected:
 
   const int inputs, outputs;
   bool wormhole;
+
+  // Store values of all inputs/outputs in vectors. This makes the information
+  // cheaper to access, and makes it easier to share with the behavioural model.
+  std::vector<bool> requestVec, grantVec;
+  std::vector<SelectType> selectVec;
+  sc_event receivedRequest;
 
 private:
 
@@ -107,12 +116,6 @@ private:
   // The class implementing the behaviour of this component. Can be easily
   // changed, without changing this component.
   ArbiterBase* arbiter;
-
-  // Store values of all inputs/outputs in vectors. This makes the information
-  // cheaper to access, and makes it easier to share with the behavioural model.
-  std::vector<bool> requestVec, grantVec;
-  std::vector<int>  selectVec;
-  sc_event receivedRequest;
 
   // Array of events which tell when to change each grant signal.
   sc_event *grantChanged;

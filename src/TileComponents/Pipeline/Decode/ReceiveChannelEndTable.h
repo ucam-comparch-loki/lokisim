@@ -94,7 +94,8 @@ private:
   // Allows round-robin selection of channels when executing selch.
   LoopCounter       currentChannel;
 
-  // An event for each buffer, to say when data has been added or removed.
+  // An event for each buffer, to signal that there is now room (or no room)
+  // for new data.
   sc_event* bufferEvent;
 
   // One event for the whole table to signal when new data has arrived.

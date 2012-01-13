@@ -131,9 +131,8 @@ void     Cluster::pipelineStalled(bool stalled) {
   currentlyStalled = stalled;
   stallEvent.notify();
 
-  if(DEBUG) {
+  if(DEBUG)
     cout << this->name() << ": pipeline " << (stalled ? "stalled" : "unstalled") << endl;
-  }
 }
 
 bool     Cluster::discardInstruction(int stage) {
@@ -200,23 +199,21 @@ Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t*
 
   // Create signals, with the number based on the length of the pipeline.
   stageIdle     = new sc_signal<bool>[4];
-  stallRegReady = new sc_signal<bool>[3];
-  stageReady    = new sc_signal<bool>[3];
+  stallRegReady = new ReadySignal[3];
+  stageReady    = new ReadySignal[3];
   instToStage   = new flag_signal<DecodedInst>[3];
   instFromStage = new sc_buffer<DecodedInst>[3];
 
-  fcFromBuffers = new sc_signal<bool>[CORE_INPUT_CHANNELS];
+  readyOut      = new ReadyOutput[CORE_INPUT_CHANNELS];
+  fcFromBuffers = new ReadySignal[CORE_INPUT_CHANNELS];
   dataToBuffers = new sc_buffer<Word>[CORE_INPUT_CHANNELS];
 
   // Wire the input ports to the input buffers.
-  for(unsigned int i=0; i<CORE_INPUT_PORTS; i++) {
+  for(unsigned int i=0; i<CORE_INPUT_PORTS; i++)
     inputCrossbar->dataIn[i](dataIn[i]);
-    inputCrossbar->readyOut[i](readyOut[i]);
-  }
-
-  inputCrossbar->creditsOut[0](creditsOut[0]);
 
   for(unsigned int i=0; i<CORE_INPUT_CHANNELS; i++) {
+    inputCrossbar->readyOut[i](readyOut[i]);
     inputCrossbar->dataOut[i](dataToBuffers[i]);
     inputCrossbar->bufferHasSpace[i](fcFromBuffers[i]);
   }
@@ -224,6 +221,7 @@ Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t*
   inputCrossbar->clock(clock);
   inputCrossbar->creditClock(fastClock);
   inputCrossbar->dataClock(slowClock);
+  inputCrossbar->creditsOut[0](creditsOut[0]);
 
   // Wire the stall registers up.
   for(unsigned int i=0; i<3; i++) {
@@ -234,7 +232,8 @@ Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t*
 
     // A quick hack: allow the write stage's "ready" signal to propagate back
     // two stages at once: the execute stage can write data straight into the
-    // output buffer. This means the execute stage's ready signal is ignored.
+    // output buffer. This means the execute stage's ready signal is ignored,
+    // which may become a problem when operations can take multiple cycles.
     if(i == 0) stallReg->localStageReady(stageReady[i]);
     else stallReg->localStageReady(stageReady[2]);
 
@@ -288,6 +287,7 @@ Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t*
 Cluster::~Cluster() {
   delete inputCrossbar;
 
+  delete[] readyOut;
   delete[] stageIdle;  		delete[] stallRegReady;  delete[] stageReady;
   delete[] dataToBuffers; delete[] fcFromBuffers;
   delete[] instToStage;  	delete[] instFromStage;

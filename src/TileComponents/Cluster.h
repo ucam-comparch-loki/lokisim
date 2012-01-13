@@ -41,11 +41,13 @@ public:
 
 // Inherited from TileComponent:
 //   clock
-//   dataIn,      readyOut;
+//   dataIn;
 //   dataOut;
 //   creditsOut;
 //   creditsIn;
 //   idle
+
+  ReadyOutput          *readyOut;
 
   // A slight hack to improve simulation speed. Each core contains a small
   // network at its input buffers, so we need to skew the times that the
@@ -209,11 +211,12 @@ private:
   sc_signal<bool>            constantHigh;
 
   // Signals telling us which stages are idle, able to send data, or stalled.
-  sc_signal<bool>           *stageIdle, *stallRegReady, *stageReady;
+  sc_signal<bool>           *stageIdle;
+  ReadySignal               *stallRegReady, *stageReady;
 
   // Connections between the input crossbar and the input buffers.
   sc_buffer<Word>           *dataToBuffers;
-  sc_signal<bool>           *fcFromBuffers;
+  ReadySignal               *fcFromBuffers;
 
   // Transmission of the instruction along the pipeline. sc_buffers because we
   // want to trigger an event even if the instruction is identical.

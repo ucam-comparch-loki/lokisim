@@ -85,15 +85,13 @@ TileComponent::TileComponent(sc_module_name name, const ComponentID& ID,
     numInputPorts(inputPorts),
     numOutputPorts(outputPorts) {
 
-  dataIn         = new loki_in<AddressedWord>[inputPorts];
-  readyOut       = new sc_out<bool>[inputPorts];
-
-  dataOut        = new loki_out<AddressedWord>[outputPorts];
+  dataIn     = new DataInput[inputPorts];
+  dataOut    = new DataOutput[outputPorts];
 
   // Temporary? Only have a single credit output, used to send credits to other
   // tiles. Credits aren't used for local communication.
-  creditsOut     = new loki_out<AddressedWord>[1];
-  creditsIn      = new loki_in<AddressedWord>[outputPorts];
+  creditsOut = new CreditOutput[1];
+  creditsIn  = new CreditInput[outputPorts];
 
   // Generate a method to watch each credit input port, and send an
   // acknowledgement whenever a credit arrives.
@@ -103,7 +101,7 @@ TileComponent::TileComponent(sc_module_name name, const ComponentID& ID,
 }
 
 TileComponent::~TileComponent() {
-  delete[] dataIn;      delete[] readyOut;
+  delete[] dataIn;
   delete[] dataOut;
   delete[] creditsOut;
   delete[] creditsIn;

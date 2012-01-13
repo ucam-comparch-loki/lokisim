@@ -31,17 +31,17 @@ public:
 
   // A request/grant signal for each input to reserve each output.
   // Indexed as: requestsIn[input][output]
-  sc_in<bool>   **requestsIn;
-  sc_out<bool>  **grantsOut;
+  RequestInput  **requestsIn;
+  GrantOutput   **grantsOut;
 
   // A request/grant signal at each output to allow data to be sent.
   // This extra arbitration is not needed if the "chained" parameter is false.
-  sc_out<bool>  **requestsOut;
-  sc_in<bool>   **grantsIn;
+  RequestOutput **requestsOut;
+  GrantInput    **grantsIn;
 
   // A signal from each component telling whether it is ready to receive data.
   // These ports are not needed if the "chained" parameter is true.
-  sc_in<bool>    *readyIn;
+  ReadyInput     *readyIn;
 
 //==============================//
 // Constructors and destructors
@@ -98,7 +98,7 @@ protected:
   std::vector<Multiplexer*>  muxes;
 
   DataSignal                *dataSig;
-  sc_signal<int>           **selectSig;
+  SelectSignal             **selectSig;
 
 };
 

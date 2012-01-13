@@ -1159,6 +1159,15 @@ void MemoryBank::processValidRing() {
 	if(ack != oRingAcknowledge.read()) oRingAcknowledge.write(ack);
 }
 
+void MemoryBank::processValidInput() {
+  if(DEBUG) cout << this->name() << " received " << iDataIn.read() << endl;
+  assert(iDataIn.valid());
+  assert(!mInputQueue.full());
+
+  mInputQueue.write(iDataIn.read());
+  iDataIn.ack();
+}
+
 void MemoryBank::handleDataOutput() {
   // If we have new data to send:
   if(!mOutputWordPending) {
@@ -1244,16 +1253,6 @@ void MemoryBank::mainLoop() {
 
   }
   else if(iClock.negedge()) {
-
-    // Check data input ports and update queue
-
-    if (iDataIn.valid()) {
-      if(DEBUG) cout << this->name() << " received " << iDataIn.read() << endl;
-      assert(!mInputQueue.full());
-
-      mInputQueue.write(iDataIn.read());
-      iDataIn.ack();
-    }
 
     // Check ring input ports and update request registers
 
@@ -1418,6 +1417,10 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	SC_METHOD(processValidRing);
 	sensitive << iRingStrobe << iClock.neg();
 	// do initialise
+
+	SC_METHOD(processValidInput);
+	sensitive << iDataIn;
+	dont_initialize();
 
 	SC_METHOD(handleDataOutput);
 

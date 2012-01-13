@@ -1,5 +1,11 @@
 /*
- * NewLocalNetwork.h
+ * LocalNetwork.h
+ *
+ * The network within a single tile. Contains various subnetworks for
+ * communicating between different classes of components, and communicating
+ * different information.
+ *
+ * Also contains a link to be connected to the global network.
  *
  *  Created on: 9 Sep 2011
  *      Author: db434
@@ -108,16 +114,16 @@ private:
 
   // Signals connecting arbiters to arbiters.
   // Address using selectSig[arbiter][port]
-  sc_signal<int>           **selectSig;
-  sc_signal<bool>          **requestSig;
-  sc_signal<bool>          **grantSig;
+  SelectSignal             **selectSig;
+  RequestSignal            **requestSig;
+  GrantSignal              **grantSig;
 
   // Signals allowing arbitration requests to be made for cores/memories/routers.
   // Currently the signals are written using a function call, but they can
   // be removed if we set up a proper SystemC channel connection.
   // Addressed using coreRequests[requester][destination]
-  sc_signal<bool>          **coreRequests, **memRequests, **globalRequests;
-  sc_signal<bool>          **coreGrants,   **memGrants,   **globalGrants;
+  RequestSignal            **coreRequests, **memRequests, **globalRequests;
+  GrantSignal              **coreGrants,   **memGrants,   **globalGrants;
 
 //==============================//
 // Local state

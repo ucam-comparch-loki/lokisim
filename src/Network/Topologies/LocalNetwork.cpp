@@ -19,11 +19,12 @@ const unsigned int LocalNetwork::creditOutputs = CORES_PER_TILE + 1;
 const unsigned int LocalNetwork::muxInputs = CORE_INPUT_PORTS + CORE_INPUT_PORTS + 1;
 
 const sc_event& LocalNetwork::makeRequest(ComponentID source,
-                                             ChannelID destination,
-                                             bool request) {
+                                          ChannelID destination,
+                                          bool request) {
 
   // Find out which signal to write the request to (and read the grant from).
-  sc_signal<bool> *requestSignal, *grantSignal;
+  RequestSignal *requestSignal;
+  GrantSignal   *grantSignal;
 
   if(source.isMemory()) {                             // Memory to core
     assert(destination.isCore());
@@ -58,7 +59,10 @@ const sc_event& LocalNetwork::makeRequest(ComponentID source,
   }
   else {
     // Send the request.
-    requestSignal->write(request);
+    if(request)
+      requestSignal->write(destination.getChannel());
+    else
+      requestSignal->write(NO_REQUEST);
 
     // Return an event which will be triggered when the request is granted (if
     // a request was made). If no request was made, this event is not meaningful,
@@ -114,43 +118,55 @@ void LocalNetwork::createMuxes() {
 
 void LocalNetwork::createSignals() {
   dataSig    = new DataSignal*[CORES_PER_TILE];
-  selectSig  = new sc_signal<int>*[CORES_PER_TILE];
-  requestSig = new sc_signal<bool>*[CORES_PER_TILE];
-  grantSig   = new sc_signal<bool>*[CORES_PER_TILE];
+  selectSig  = new SelectSignal*[CORES_PER_TILE];
+  requestSig = new RequestSignal*[CORES_PER_TILE];
+  grantSig   = new GrantSignal*[CORES_PER_TILE];
 
   for(unsigned int i=0; i<CORES_PER_TILE; i++) {
     dataSig[i]    = new DataSignal[muxInputs];
 
-    selectSig[i]  = new sc_signal<int>[CORE_INPUT_PORTS];
-    requestSig[i] = new sc_signal<bool>[muxInputs];
-    grantSig[i]   = new sc_signal<bool>[muxInputs];
+    selectSig[i]  = new SelectSignal[CORE_INPUT_PORTS];
+    requestSig[i] = new RequestSignal[muxInputs];
+    grantSig[i]   = new GrantSignal[muxInputs];
+
+    for(unsigned int j=0; j<muxInputs; j++)
+      requestSig[i][j].write(NO_REQUEST);
   }
 
   int numCores = CORES_PER_TILE;
   int sendToCores = CORES_PER_TILE + MEMS_PER_TILE + 1;
-  coreRequests = new sc_signal<bool>*[sendToCores];
-  coreGrants   = new sc_signal<bool>*[sendToCores];
+  coreRequests = new RequestSignal*[sendToCores];
+  coreGrants   = new GrantSignal*[sendToCores];
   for(int i=0; i<sendToCores; i++) {
-    coreRequests[i] = new sc_signal<bool>[numCores];
-    coreGrants[i]   = new sc_signal<bool>[numCores];
+    coreRequests[i] = new RequestSignal[numCores];
+    coreGrants[i]   = new GrantSignal[numCores];
+
+    for(int j=0; j<numCores; j++)
+      coreRequests[i][j].write(NO_REQUEST);
   }
 
   int numMems = MEMS_PER_TILE;
   int sendToMems = CORES_PER_TILE;
-  memRequests = new sc_signal<bool>*[sendToMems];
-  memGrants   = new sc_signal<bool>*[sendToMems];
+  memRequests = new RequestSignal*[sendToMems];
+  memGrants   = new GrantSignal*[sendToMems];
   for(int i=0; i<sendToMems; i++) {
-    memRequests[i] = new sc_signal<bool>[numMems];
-    memGrants[i]   = new sc_signal<bool>[numMems];
+    memRequests[i] = new RequestSignal[numMems];
+    memGrants[i]   = new GrantSignal[numMems];
+
+    for(int j=0; j<numMems; j++)
+      memRequests[i][j].write(NO_REQUEST);
   }
 
   int numRouterLinks = 1;
   int sendToRouters = CORES_PER_TILE;
-  globalRequests = new sc_signal<bool>*[sendToRouters];
-  globalGrants   = new sc_signal<bool>*[sendToRouters];
+  globalRequests = new RequestSignal*[sendToRouters];
+  globalGrants   = new GrantSignal*[sendToRouters];
   for(int i=0; i<sendToRouters; i++) {
-    globalRequests[i] = new sc_signal<bool>[numRouterLinks];
-    globalGrants[i]   = new sc_signal<bool>[numRouterLinks];
+    globalRequests[i] = new RequestSignal[numRouterLinks];
+    globalGrants[i]   = new GrantSignal[numRouterLinks];
+
+    for(int j=0; j<numRouterLinks; j++)
+      globalRequests[i][j].write(NO_REQUEST);
   }
 }
 
@@ -275,14 +291,14 @@ void LocalNetwork::wireUpSubnetworks() {
 
   // Ready signals
   for(unsigned int i=0; i<CORES_PER_TILE; i++)
-    for(unsigned int j=0; j<CORE_INPUT_PORTS; j++)
-      arbiters[i]->readyIn[j](readyIn[i*CORE_INPUT_PORTS + j]);
+    for(unsigned int j=0; j<CORE_INPUT_CHANNELS; j++)
+      arbiters[i]->readyIn[j](readyIn[i*CORE_INPUT_CHANNELS + j]);
   for(unsigned int i=0; i<MEMS_PER_TILE; i++)
-    coreToMemory.readyIn[i](readyIn[i + CORES_PER_TILE*CORE_INPUT_PORTS]);
-  coreToGlobal.readyIn[0](readyIn[INPUT_PORTS_PER_TILE]);
+    coreToMemory.readyIn[i](readyIn[i + CORES_PER_TILE*CORE_INPUT_CHANNELS]);
+  coreToGlobal.readyIn[0](readyIn[INPUT_CHANNELS_PER_TILE]);
 }
 
-ReadyInput&   LocalNetwork::externalReadyInput() const {return readyIn[INPUT_PORTS_PER_TILE];}
+ReadyInput&   LocalNetwork::externalReadyInput() const {return readyIn[INPUT_CHANNELS_PER_TILE];}
 CreditInput&  LocalNetwork::externalCreditIn()   const {return creditsIn[creditInputs-1];}
 CreditOutput& LocalNetwork::externalCreditOut()  const {return creditsOut[creditOutputs-1];}
 
@@ -300,8 +316,8 @@ LocalNetwork::LocalNetwork(const sc_module_name& name, ComponentID tile) :
   creditsIn      = new CreditInput[creditInputs];
   creditsOut     = new CreditOutput[creditOutputs];
 
-  // Ready signal from each component, plus one from the router.
-  readyIn        = new ReadyInput[INPUT_PORTS_PER_TILE + 1];
+  // Ready signals from each component, plus one from the router.
+  readyIn        = new ReadyInput[INPUT_CHANNELS_PER_TILE + 1];
 
   createSignals();
   createArbiters();

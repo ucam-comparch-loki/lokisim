@@ -14,7 +14,7 @@
 #define TILECOMPONENT_H_
 
 #include "../Component.h"
-#include "../Communication/loki_ports.h"
+#include "../Network/NetworkTypedefs.h"
 
 class AddressedWord;
 class Chip;
@@ -29,25 +29,24 @@ class TileComponent : public Component {
 public:
 
   // Clock.
-  sc_in<bool>            clock;
+  sc_in<bool>    clock;
 
   // All inputs to the component. They still have addresses in case there are
   // multiple channel ends accessible through each port.
-  loki_in<AddressedWord>  *dataIn;
-  sc_out<bool>          *readyOut;
+  DataInput     *dataIn;
 
   // All outputs of the component.
-  loki_out<AddressedWord> *dataOut;
+  DataOutput    *dataOut;
 
   // Credits to be sent across the network.
-  loki_out<AddressedWord> *creditsOut;
+  CreditOutput  *creditsOut;
 
   // Credits received from the network. They still have addresses in case there
   // are multiple channel ends accessible through each port.
-  loki_in<AddressedWord>  *creditsIn;
+  CreditInput   *creditsIn;
 
   // Signal that this component is not currently doing any work.
-  sc_out<bool>           idle;
+  sc_out<bool>   idle;
 
 //==============================//
 // Constructors and destructors

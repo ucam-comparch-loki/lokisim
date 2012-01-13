@@ -128,7 +128,7 @@ void Chip::makeSignals() {
   creditsFromComponents = new CreditSignal[NUM_CORES];
   creditsToComponents   = new CreditSignal[numOutputs];
 
-  readyFromComps        = new ReadySignal[numInputs];
+  readyFromComps        = new ReadySignal[NUM_CORES * CORE_INPUT_CHANNELS + NUM_MEMORIES];
 
 	strobeToBackgroundMemory   = new sc_signal<bool>[NUM_MEMORIES];
 	dataToBackgroundMemory 	   = new sc_signal<MemoryRequest>[NUM_MEMORIES];
@@ -190,6 +190,7 @@ void Chip::wireUp() {
 	uint dataOutputCounter = 0;
   uint creditInputCounter = 0;
   uint creditOutputCounter = 0;
+  uint readyInputCounter = 0;
 
 	for (uint i = 0; i < NUM_COMPONENTS; i++) {
 		if ((i % COMPONENTS_PER_TILE) < CORES_PER_TILE) {
@@ -204,8 +205,13 @@ void Chip::wireUp() {
 
 				clusters[clusterIndex]->dataIn[j](dataToComponents[index]);
 				network.dataOut[index](dataToComponents[index]);
-				clusters[clusterIndex]->readyOut[j](readyFromComps[index]);
-		    network.readyDataOut[index](readyFromComps[index]);
+			}
+
+			for (uint j = 0; j < CORE_INPUT_CHANNELS; j++) {
+			  uint index = readyInputCounter++;  // Position in network's array
+
+        clusters[clusterIndex]->readyOut[j](readyFromComps[index]);
+        network.readyDataOut[index](readyFromComps[index]);
 			}
 
       uint index = creditOutputCounter++;
@@ -228,14 +234,14 @@ void Chip::wireUp() {
 			clusterIndex++;
 		} else {
 			uint indexInput = dataInputCounter++;  // Position in network's array
-
 			memories[memoryIndex]->iDataIn(dataToComponents[indexInput]);
 			network.dataOut[indexInput](dataToComponents[indexInput]);
-			memories[memoryIndex]->oReadyForData(readyFromComps[indexInput]);
-	    network.readyDataOut[indexInput](readyFromComps[indexInput]);
+
+			uint indexReady = readyInputCounter++;  // Position in network's array
+			memories[memoryIndex]->oReadyForData(readyFromComps[indexReady]);
+	    network.readyDataOut[indexReady](readyFromComps[indexReady]);
 
 			uint indexOutput = dataOutputCounter++;  // Position in network's array
-
 			memories[memoryIndex]->oDataOut(dataFromComponents[indexOutput]);
 			network.dataIn[indexOutput](dataFromComponents[indexOutput]);
 

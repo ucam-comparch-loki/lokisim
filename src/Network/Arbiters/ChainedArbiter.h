@@ -27,13 +27,13 @@ public:
 
 // Inherited from BasicArbiter:
 //  sc_in<bool>   clock;
-//  sc_in<bool>  *requests;
-//  sc_out<bool> *grants;
-//  sc_out<int>  *select;
+//  RequestInput *requests;
+//  GrantOutput  *grants;
+//  SelectOutput *select;
 
   // Connections to the next arbiter in the chain.
-  sc_out<bool> *requestOut;
-  sc_in<bool>  *grantIn;
+  RequestOutput *requestOut;
+  GrantInput    *grantIn;
 
 //==============================//
 // Constructors and destructors
@@ -51,7 +51,7 @@ public:
 
 protected:
 
-  virtual const sc_event& canGrantNow(int output);
+  virtual const sc_event& canGrantNow(int output, const ChannelIndex destination);
   virtual const sc_event& stallGrant(int output);
 
   virtual void deassertGrant(int input, int output);

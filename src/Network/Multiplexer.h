@@ -20,7 +20,7 @@ class Multiplexer: public Component {
 
 public:
 
-  sc_in<int>   select;
+  SelectInput  select;
 
   DataInput   *dataIn;
   DataOutput   dataOut;
@@ -54,6 +54,8 @@ private:
 private:
 
   const int numInputs;
+
+  bool haveSentData;
 
 };
 
