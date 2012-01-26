@@ -57,7 +57,6 @@ loop:
     addu                r26, r26, r12           # element = start of row + column
     slli                r26, r26, 2             # get address
     addu                r26, r26, r9
-    ldw                 0(r26)          -> 1    # load element
     addui               r15, r15, 1
 
 # Retrieve matrix 1 value from IRF
@@ -68,6 +67,7 @@ loop:
 # Deal with inputs (and loop if necessary)
     seteq.p             r0,  r15, r23           # see if we will have finished this result
     mullw               r27, r27, ch0           # multiply matrix elements
+    ldw                 0(r26)          -> 1    # load next element
     addu                r13, r13, r27           # add result to total so far
     if!p?ibjmp          -48                     # if not finished, loop
 

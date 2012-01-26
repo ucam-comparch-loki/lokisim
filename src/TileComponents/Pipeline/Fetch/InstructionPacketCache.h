@@ -85,6 +85,10 @@ public:
   // for an ".eop" marker.
   void nextIPK();
 
+  // Tells whether the cache is in the middle of issuing an instruction packet
+  // to the pipeline.
+  bool packetInProgress() const;
+
   // A handle to an event which is triggered whenever something is added to or
   // removed from the cache.
   const sc_event& fillChangedEvent() const;

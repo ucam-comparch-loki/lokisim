@@ -58,14 +58,12 @@ bool InstructionPacketCache::lookup(const MemoryAddr addr, opcode_t operation) {
   bool inCache = cache.checkTags(addr, operation);
   if(DEBUG) cout << (inCache ? "" : "not ") << "in cache" << endl;
 
-  if(inCache) {
-    // It is possible that looking up a tag will result in us immediately jumping
-    // to a new instruction, which would change how full the cache is.
+  // It is possible that looking up a tag will result in us immediately jumping
+  // to a new instruction, which would change how full the cache is.
+  if(inCache)
     cacheFillChanged.notify();
-  }
-  else {
+  else
     cacheMissEvent.notify();
-  }
 
   Instrumentation::l0TagCheck(id, inCache);
 
@@ -82,7 +80,11 @@ void InstructionPacketCache::jump(const JumpOffset offset) {
 }
 
 void InstructionPacketCache::nextIPK() {
-  cache.switchToPendingPacket();
+  cache.cancelPacket();
+}
+
+bool InstructionPacketCache::packetInProgress() const {
+  return cache.packetInProgress();
 }
 
 const sc_event& InstructionPacketCache::fillChangedEvent() const {

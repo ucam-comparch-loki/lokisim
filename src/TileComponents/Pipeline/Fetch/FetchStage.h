@@ -122,12 +122,6 @@ private:
   // Tells whether the last operation read from the cache or not.
   bool usingCache;
 
-  // Tells whether the last instruction sent was the end of a packet.
-  bool justFinishedPacket;
-
-  // The most-recently-sent instruction.
-  Instruction lastInstruction;
-
 };
 
 #endif /* FETCHSTAGE_H_ */

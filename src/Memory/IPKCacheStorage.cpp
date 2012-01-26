@@ -43,8 +43,8 @@ bool IPKCacheStorage::checkTags(const MemoryAddr& key, opcode_t operation) {
 
   packet->memAddr    = key;
   packet->inCache    = foundMatch;
-  packet->isFill     = operation == InstructionMap::OP_FILL ||
-                       operation == InstructionMap::OP_FILLR;
+  packet->execute    = operation != InstructionMap::OP_FILL &&
+                       operation != InstructionMap::OP_FILLR;
   packet->persistent = operation == InstructionMap::OP_FETCHPST ||
                        operation == InstructionMap::OP_FETCHPSTR;
 
@@ -96,11 +96,17 @@ void IPKCacheStorage::write(const Instruction& newData) {
   // If we're not serving instructions at the moment, start serving from here.
   if(readPointer.isNull()) readPointer = writePointer;
 
+  incrementWritePos();
+
   // If this is the end of an instruction packet, mark the packet as being
   // in the cache - this may allow the next fetch request to be sent.
-  if(newData.endOfPacket()) packet->inCache = true;
+  if(newData.endOfPacket()) {
+    packet->inCache = true;
 
-  incrementWritePos();
+    // If this packet isn't being executed, move on and wait for the next one.
+    if(packet == &currentPacket && !packet->execute)
+      switchToPendingPacket();
+  }
 }
 
 /* Jump to a new instruction at a given offset. */
@@ -147,10 +153,10 @@ const MemoryAddr IPKCacheStorage::getInstLocation() const {
 /* Returns whether the cache is empty. Note that even if a cache is empty,
  * it is still possible to access its contents if an appropriate tag is
  * looked up.
- * The cache pretends to be empty if the current packet is being filled (and
- * not fetched). This is because we don't want the packet to execute yet. */
+ * The cache pretends to be empty if the current packet is set to not execute
+ * immediately - the packet is being preloaded, or has been aborted. */
 bool IPKCacheStorage::empty() const {
-  return (readPointer.isNull()) || (fillCount == 0) || currentPacket.isFill;
+  return (readPointer.isNull()) || (fillCount == 0) || !currentPacket.execute;
 }
 
 /* Returns whether the cache is full. */
@@ -173,6 +179,10 @@ bool IPKCacheStorage::canFetch() const {
       !currentPacket.arriving() && !pendingPacket.arriving();
 }
 
+bool IPKCacheStorage::packetInProgress() const {
+  return currentPacket.memAddr != DEFAULT_TAG;
+}
+
 /* Begin reading the packet which is queued up to execute next. */
 void IPKCacheStorage::switchToPendingPacket() {
   currInstBackup = readPointer - 1;  // We have incremented readPointer
@@ -193,6 +203,14 @@ void IPKCacheStorage::switchToPendingPacket() {
 
   if(DEBUG) cout << this->name_ << " switched to pending packet: current = " <<
       readPointer.value() << ", refill = " << writePointer.value() << endl;
+}
+
+void IPKCacheStorage::cancelPacket() {
+  // Stop the current packet executing if it hasn't finished arriving yet.
+  if(currentPacket.arriving())
+    currentPacket.execute = false;
+  else
+    switchToPendingPacket();
 }
 
 /* Store some initial instructions in the cache. */
@@ -255,6 +273,8 @@ IPKCacheStorage::IPKCacheStorage(const uint16_t size, const std::string& name) :
   fillCount = 0;
   currentPacket.reset();
   pendingPacket.reset();
+
+  currentPacket.execute = true;
 
   // Set all tags to a default value which is unlikely to be encountered in
   // execution.

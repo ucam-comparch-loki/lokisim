@@ -182,7 +182,8 @@ void simulate(Chip& chip) {
   catch(std::exception& e) {
     // If there's no error message, it might mean that not everything is
     // connected properly.
-    cerr << "Execution ended unexpectedly:\n" << e.what() << endl;
+    cerr << "Execution ended unexpectedly at cycle " << cycleNumber << ":\n"
+         << e.what() << endl;
     RETURN_CODE = EXIT_FAILURE;
   }
 

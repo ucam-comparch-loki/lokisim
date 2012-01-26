@@ -1202,12 +1202,12 @@ void MemoryBank::handleDataOutput() {
     if(DEBUG)
       cout << this->name() << " sent " << mActiveOutputWord << endl;
 
-    oDataOut.write(mActiveOutputWord);
-
     // If we are passing the memory operation on to another component, split
     // the packet up so network resources can be reallocated to the next memory.
     if (mRingRequestOutputPending && mOutputQueue.empty())
       mActiveOutputWord.setEndOfPacket(true);
+
+    oDataOut.write(mActiveOutputWord);
 
     // Remove the request for network resources.
     if(mActiveOutputWord.endOfPacket())
@@ -1267,7 +1267,9 @@ void MemoryBank::mainLoop() {
 
     // If we have a "fast" memory, decode the request and get into the correct
     // state before performing the operation.
-    if(FAST_MEMORY && mFSMState == STATE_IDLE) {
+    // Also, don't allow a new operation to start until any ring requests have
+    // been passed on - ensures that data is sent in correct order.
+    if(FAST_MEMORY && mFSMState == STATE_IDLE && !mRingRequestOutputPending) {
       if (!processRingEvent())
         processMessageHeader();
     }
@@ -1276,7 +1278,9 @@ void MemoryBank::mainLoop() {
     case STATE_IDLE:
       // If the memory is not "fast", the operation has to be decoded in one
       // cycle, and performed in the next.
-      if(!FAST_MEMORY) {
+      // Also, don't allow a new operation to start until any ring requests have
+      // been passed on - ensures that data is sent in correct order.
+      if(!FAST_MEMORY && !mRingRequestOutputPending) {
         if (!processRingEvent())
           processMessageHeader();
       }

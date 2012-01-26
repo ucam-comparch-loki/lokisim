@@ -16,7 +16,6 @@ const Instruction InstructionPacketFIFO::read() {
 }
 
 void InstructionPacketFIFO::write(const Instruction inst) {
-  if(DEBUG) cout << this->name() << " received Instruction:  " << inst << endl;
   fifo.write(inst);
   fifoFillChanged.notify();
 }
@@ -32,6 +31,7 @@ const sc_core::sc_event& InstructionPacketFIFO::fillChangedEvent() const {
 void InstructionPacketFIFO::receivedInst() {
   // Need to cast input Word to Instruction.
   Instruction inst = static_cast<Instruction>(instructionIn.read());
+  if(DEBUG) cout << this->name() << " received Instruction:  " << inst << endl;
 
   // If this is a "next instruction packet" command, don't write it to the FIFO,
   // but instead immediately move to the next packet, if there is one.

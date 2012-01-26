@@ -67,6 +67,8 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
   // Terminate the instruction here if it has been cancelled.
   if(instructionCancelled) {
+    if(DEBUG)
+      cout << this->name() << " aborting " << input << endl;
     blocked = false;
     instructionCancelled = false;
     blockedEvent.notify();
@@ -236,6 +238,10 @@ void Decoder::waitForOperands(const DecodedInst& dec) {
     waitUntilArrival(Registers::toChannelID(dec.sourceReg1()));
   if(InstructionMap::hasSrcReg2(dec.opcode()) && Registers::isChannelEnd(dec.sourceReg2()))
     waitUntilArrival(Registers::toChannelID(dec.sourceReg2()));
+
+  // FIXME: there is currently a problem if we are indirectly reading from a
+  // channel end, and the instruction is aborted. This method doesn't wait for
+  // registers specified by indirect reads.
 }
 
 void Decoder::setOperand1(DecodedInst& dec) {

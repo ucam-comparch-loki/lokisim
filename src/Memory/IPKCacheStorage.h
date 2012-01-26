@@ -75,8 +75,14 @@ public:
   // size packet, or if any fetches are already taking place.
   bool canFetch() const;
 
+  bool packetInProgress() const;
+
   // Begin reading the packet which is queued up to execute next.
   void switchToPendingPacket();
+
+  // Abort execution of this instruction packet, and resume when the next packet
+  // arrives.
+  void cancelPacket();
 
   // Store some initial instructions in the cache.
   void storeCode(const std::vector<Instruction>& code);
@@ -111,11 +117,11 @@ private:
     MemoryAddr memAddr;     // Memory address of this packet (mainly for debug)
     uint16_t   cacheIndex;  // Position in cache of first instruction
     bool       persistent;  // Persistent packets repeat until NXIPK is received
-    bool       isFill;      // FILLs don't execute instructions when they arrive
+    bool       execute;     // Should these instructions be executed immediately?
     bool       inCache;     // Can't send a FETCH until previous one finishes
 
     void reset() {
-      memAddr = DEFAULT_TAG; cacheIndex = NOT_IN_CACHE; inCache = false;
+      memAddr = DEFAULT_TAG; cacheIndex = NOT_IN_CACHE; inCache = false; execute = true;
     }
     bool arriving() const {
       return (memAddr != DEFAULT_TAG) && !inCache && (cacheIndex != NOT_IN_CACHE);

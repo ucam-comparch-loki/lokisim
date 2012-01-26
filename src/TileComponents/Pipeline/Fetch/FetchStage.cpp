@@ -42,6 +42,7 @@ void FetchStage::getInstruction() {
 
   calculateSelect();
   MemoryAddr instAddr;
+  Instruction instruction;
 
   if(usingCache) {
     if(cache.isEmpty()) {
@@ -49,7 +50,7 @@ void FetchStage::getInstruction() {
       return;
     }
 
-    lastInstruction = cache.read();
+    instruction = cache.read();
     instAddr = cache.getInstAddress();
   }
   else {
@@ -59,7 +60,7 @@ void FetchStage::getInstruction() {
 //      return;
 //    }
 
-    lastInstruction = fifo.read();
+    instruction = fifo.read();
     // We don't know the address this instruction came from, so make
     // something up which would never happen.
     instAddr = 0xFFFFFFFF;
@@ -67,7 +68,7 @@ void FetchStage::getInstruction() {
 
   // The instruction becomes a "DecodedInst" here to simplify various interfaces
   // throughout the pipeline. The decoding happens in the decode stage.
-  DecodedInst decoded(lastInstruction);
+  DecodedInst decoded(instruction);
   decoded.location(instAddr);
 
   instructionOut.write(decoded);
@@ -75,7 +76,7 @@ void FetchStage::getInstruction() {
   if(DEBUG) {
     printf("%s selected instruction from %s: ", this->name(),
                                                 usingCache?"cache":"FIFO");
-    cout << lastInstruction << endl;
+    cout << decoded << endl;
   }
 }
 
@@ -121,8 +122,7 @@ void FetchStage::jump(const JumpOffset offset) {
  *          or FIFO is empty and cache has instructions. */
 void FetchStage::calculateSelect() {
   if(usingCache) {
-    justFinishedPacket = lastInstruction.endOfPacket();
-    usingCache = (fifo.isEmpty() || !justFinishedPacket);// && !cache.isEmpty();
+    usingCache = (fifo.isEmpty() || cache.packetInProgress());// && !cache.isEmpty();
   }
   else {
     usingCache = fifo.isEmpty();
@@ -142,11 +142,6 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
   stalled     = false;  // Start off idle, but not stalled.
   usingCache  = true;
   flowControl = new sc_out<bool>[2];
-
-  // The last instruction "executed" was the last in its packet, so the first
-  // instruction that arrives (through either input) is the one to execute.
-  lastInstruction = Instruction(0);
-  lastInstruction.predicate(Instruction::END_OF_PACKET);
 
   // Connect FIFO and cache to network
   fifo.clock(clock);
