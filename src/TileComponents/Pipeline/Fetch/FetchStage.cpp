@@ -88,8 +88,6 @@ void FetchStage::updateReady() {
     parent()->pipelineStalled(!readyIn.read());
     stalled = !readyIn.read();
   }
-
-  next_trigger(readyIn.default_event());
 }
 
 void FetchStage::storeCode(const std::vector<Instruction>& instructions) {
@@ -154,6 +152,10 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
   idle.initialize(true);
 
   SC_METHOD(execute);
+  // do initialise
+
+  SC_METHOD(updateReady);
+  sensitive << readyIn;
   // do initialise
 
 }

@@ -35,9 +35,6 @@ void         DecodeStage::updateReady() {
 
     if(DEBUG && !ready) cout << this->name() << " stalled." << endl;
   }
-
-  // Wait until something happens which may have changed the ready state.
-  next_trigger(readyChangedEvent | decoder.stalledEvent());
 }
 
 void         DecodeStage::newInput(DecodedInst& inst) {
@@ -50,7 +47,7 @@ void         DecodeStage::newInput(DecodedInst& inst) {
 
   // The next instruction will be the start of a new packet if this is the
   // end of the current one.
-  startingNewPacket = (inst.predicate() == Instruction::END_OF_PACKET);
+  startingNewPacket = inst.endOfIPK();
 
   // Use a while loop to decode the instruction in case multiple outputs
   // are produced.
@@ -153,9 +150,7 @@ bool         DecodeStage::discardNextInst() const {
 void         DecodeStage::unstall() {
   decoder.cancelInstruction();
 
-  // Note that there is a very small chance that we could be stalled waiting to
-  // send output (in newInput()). This situation is not addressed.
-  // There is also the possibility that we are stalled creating the second half
+  // There is the possibility that we are stalled creating the second half
   // of a store message. We will need to send some result so that memory is not
   // stalled forever.
 }
@@ -178,6 +173,10 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
   readyOut.initialize(false);
 
   SC_THREAD(execute);
+
+  SC_METHOD(updateReady);
+  sensitive << readyChangedEvent << decoder.stalledEvent();
+  // do initialise
 
 }
 

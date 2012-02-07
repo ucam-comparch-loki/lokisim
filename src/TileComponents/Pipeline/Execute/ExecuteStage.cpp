@@ -56,15 +56,11 @@ void ExecuteStage::updateReady() {
   bool ready = !isStalled();
 
   // Write our current stall status.
-  if(ready != readyOut.read()) readyOut.write(ready);
+  if(ready != readyOut.read())
+    readyOut.write(ready);
 
-  if(DEBUG && isStalled() && readyOut.read()) {
+  if(DEBUG && isStalled() && readyOut.read())
     cout << this->name() << " stalled." << endl;
-  }
-
-  // Wait until some point late in the cycle, so we know that any operations
-  // will have completed.
-  next_trigger(executedInstruction);
 }
 
 void ExecuteStage::newInput(DecodedInst& operation) {
@@ -322,5 +318,9 @@ ExecuteStage::ExecuteStage(sc_module_name name, const ComponentID& ID) :
   SC_METHOD(execute);
   sensitive << clock.pos();
   dont_initialize();
+
+  SC_METHOD(updateReady);
+  sensitive << executedInstruction;
+  // do initialise
 
 }

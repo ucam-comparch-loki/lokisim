@@ -40,13 +40,20 @@ vector<DataBlock>& ELFFileReader::extractData(int& mainPos) const {
   char line[100];
 
   // Step through each line of information, looking for ones of interest.
-  // fgets only returns a word, not a whole line?
   while(fgets(line, 100, terminalOutput) != NULL) {
     string lineStr(line);
     vector<string>& words = StringManipulation::split(lineStr, ' ');
 
-    // We're only interested in a few particular lines of the information.
-    if(words.size() == 7 && (words[1]==".text" || words[1]==".data" || words[1]==".rodata")) {
+    // We're only interested in descriptions of each section.
+    if(words.size() == 7) {
+      char properties[100];
+      if(fgets(properties, 100, terminalOutput) == NULL)
+        break;
+
+      // We are only interested in sections with the "LOAD" property.
+      if(strstr(properties, "LOAD") == NULL)
+        continue;
+
       string name      = words[1];
       int size         = StringManipulation::strToInt("0x"+words[2]);
 //      int virtPosition = StringManipulation::strToInt("0x"+words[3]);

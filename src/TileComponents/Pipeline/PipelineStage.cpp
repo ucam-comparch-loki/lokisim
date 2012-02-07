@@ -15,8 +15,6 @@ Cluster* PipelineStage::parent() const {
 PipelineStage::PipelineStage(const sc_module_name& name, const ComponentID& ID) :
     Component(name, ID) {
 
-  SC_METHOD(updateReady);
-
   idle.initialize(true);
 
 }

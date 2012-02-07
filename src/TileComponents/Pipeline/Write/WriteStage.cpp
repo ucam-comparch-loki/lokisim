@@ -55,10 +55,6 @@ void WriteStage::updateReady() {
     readyOut.write(ready);
     Instrumentation::stalled(id, !ready, Stalls::STALL_OUTPUT);
   }
-
-  // Wait until some point late in the cycle, so we know that any operations
-  // will have completed.
-  next_trigger(scet.stallChangedEvent());
 }
 
 bool WriteStage::isStalled() const {
@@ -105,6 +101,10 @@ WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
   SC_METHOD(sendData);
   sensitive << dataIn;
   dont_initialize();
+
+  SC_METHOD(updateReady);
+  sensitive << scet.stallChangedEvent();
+  // do initialise
 }
 
 WriteStage::~WriteStage() {
