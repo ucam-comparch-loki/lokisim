@@ -156,10 +156,14 @@ void     Cluster::idlenessChanged() {
   Instrumentation::idle(id, decode.idle.read());
 }
 
-const sc_event& Cluster::requestArbitration(ChannelID destination, bool request) {
+void Cluster::requestArbitration(ChannelID destination, bool request) {
   // Could have extra ports and write to them from here, but for the moment,
   // access the network directly.
-  return localNetwork->makeRequest(id, destination, request);
+  localNetwork->makeRequest(id, destination, request);
+}
+
+bool Cluster::requestGranted(ChannelID destination) const {
+  return localNetwork->requestGranted(id, destination);
 }
 
 ComponentID Cluster::getSystemCallMemory() const {

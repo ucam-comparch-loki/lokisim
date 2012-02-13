@@ -33,7 +33,20 @@ const sc_event& EndArbiter::stallGrant(int output) {
   // We must stop granting requests if the destination component stops being
   // ready to receive more data.
 
-  return readyIn[output].negedge_event();
+  // The channel we are aiming to reach through this output.
+  ChannelIndex target;
+
+  if(outputs == 1)  // Hack
+    target = 0;
+  else {
+    SelectType input = selectVec[output];
+    assert(input != NO_SELECTION);
+
+    target = requests[input].read();
+    assert(target != NO_REQUEST);
+  }
+
+  return readyIn[target].negedge_event();
 }
 
 // Override BasicArbiter's implementation so the request is only officially

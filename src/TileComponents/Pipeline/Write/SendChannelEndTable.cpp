@@ -66,8 +66,9 @@ void SendChannelEndTable::sendLoop() {
         next_trigger(1.0, sc_core::SC_NS);
       }
       else {
-        // Request arbitration and wait for response.
+        // Request arbitration.
         requestArbitration(buffer.peek().networkDestination(), true);
+        next_trigger(clock.posedge_event());
         state = ARBITRATING;
       }
 
@@ -75,11 +76,16 @@ void SendChannelEndTable::sendLoop() {
     }
 
     case ARBITRATING: {
-      // Wait for clock edge before sending data
-      next_trigger(clock.posedge_event());
-      state = CAN_SEND;
-
-      break;
+      // If the network has granted our request to send data, send it.
+      // Otherwise, wait another cycle.
+      if(requestGranted(buffer.peek().networkDestination())) {
+        state = CAN_SEND;
+        // fall through to CAN_SEND state
+      }
+      else {
+        next_trigger(clock.posedge_event());
+        break;
+      }
     }
 
     case CAN_SEND: {
@@ -136,15 +142,11 @@ void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
 }
 
 void SendChannelEndTable::requestArbitration(ChannelID destination, bool request) {
-  if(request) {
-    // Call execute() again when the request is granted.
-    next_trigger(parent()->requestArbitration(destination, request));
-  }
-  else {
-    // We are not sending a request which will be granted, so don't use
-    // next_trigger this time.
-    parent()->requestArbitration(destination, request);
-  }
+  parent()->requestArbitration(destination, request);
+}
+
+bool SendChannelEndTable::requestGranted(ChannelID destination) const {
+  return parent()->requestGranted(destination);
 }
 
 void SendChannelEndTable::receivedCredit(unsigned int buffer) {

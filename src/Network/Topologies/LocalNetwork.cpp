@@ -18,57 +18,56 @@ const unsigned int LocalNetwork::creditOutputs = CORES_PER_TILE + 1;
 // from the router.
 const unsigned int LocalNetwork::muxInputs = CORE_INPUT_PORTS + CORE_INPUT_PORTS + 1;
 
-const sc_event& LocalNetwork::makeRequest(ComponentID source,
-                                          ChannelID destination,
-                                          bool request) {
+void LocalNetwork::makeRequest(ComponentID source, ChannelID destination, bool request) {
 
-  // Find out which signal to write the request to (and read the grant from).
+  // Find out which signal to write the request to.
   RequestSignal *requestSignal;
-  GrantSignal   *grantSignal;
 
   if(source.isMemory()) {                             // Memory to core
     assert(destination.isCore());
     requestSignal = &coreRequests[source.getPosition()][destination.getPosition()];
-    grantSignal   = &coreGrants[source.getPosition()][destination.getPosition()];
   }
   else if(source.getTile() != id.getTile()) {         // Global to core
     assert(destination.isCore());
     requestSignal = &coreRequests[COMPONENTS_PER_TILE][destination.getPosition()];
+  }
+  else {
+    if(destination.isMemory())                        // Core to memory
+      requestSignal = &memRequests[source.getPosition()][destination.getPosition()-CORES_PER_TILE];
+    else if(destination.getTile() != id.getTile())    // Core to global
+      requestSignal = &globalRequests[source.getPosition()][0];
+    else                                              // Core to core
+      requestSignal = &coreRequests[source.getPosition()][destination.getPosition()];
+  }
+
+  // Send the request.
+  if(request)
+    requestSignal->write(destination.getChannel());
+  else
+    requestSignal->write(NO_REQUEST);
+}
+
+bool LocalNetwork::requestGranted(ComponentID source, ChannelID destination) const {
+  GrantSignal   *grantSignal;
+
+  if(source.isMemory()) {                             // Memory to core
+    assert(destination.isCore());
+    grantSignal   = &coreGrants[source.getPosition()][destination.getPosition()];
+  }
+  else if(source.getTile() != id.getTile()) {         // Global to core
+    assert(destination.isCore());
     grantSignal   = &coreGrants[COMPONENTS_PER_TILE][destination.getPosition()];
   }
   else {
-    if(destination.isMemory()) {                      // Core to memory
-      requestSignal = &memRequests[source.getPosition()][destination.getPosition()-CORES_PER_TILE];
+    if(destination.isMemory())                        // Core to memory
       grantSignal   = &memGrants[source.getPosition()][destination.getPosition()-CORES_PER_TILE];
-    }
-    else if(destination.getTile() != id.getTile()) {  // Core to global
-      requestSignal = &globalRequests[source.getPosition()][0];
+    else if(destination.getTile() != id.getTile())    // Core to global
       grantSignal   = &globalGrants[source.getPosition()][0];
-    }
-    else {                                            // Core to core
-      requestSignal = &coreRequests[source.getPosition()][destination.getPosition()];
+    else                                              // Core to core
       grantSignal   = &coreGrants[source.getPosition()][destination.getPosition()];
-    }
   }
 
-  if(request && grantSignal->read()) {
-    // If there is already a connection set up, return an event which will be
-    // triggered immediately.
-    grantEvent.notify(sc_core::SC_ZERO_TIME);
-    return grantEvent;
-  }
-  else {
-    // Send the request.
-    if(request)
-      requestSignal->write(destination.getChannel());
-    else
-      requestSignal->write(NO_REQUEST);
-
-    // Return an event which will be triggered when the request is granted (if
-    // a request was made). If no request was made, this event is not meaningful,
-    // and can be ignored.
-    return grantSignal->posedge_event();
-  }
+  return grantSignal->read();
 }
 
 void LocalNetwork::createArbiters() {

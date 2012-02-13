@@ -35,6 +35,9 @@ void BasicArbiter::arbitrate(int output) {
       SelectType grant = arbiter->getGrant();
       changeSelection(output, grant);
 
+      // Remove the granted request from consideration.
+      requestVec[grant] = false;
+
       if(grant != ArbiterBase::NO_GRANT) {    // Successful grant
         assert(grant < inputs);
 
@@ -45,8 +48,6 @@ void BasicArbiter::arbitrate(int output) {
 
         state[output] = WAITING_TO_GRANT;
 
-        // FIXME: would prefer to only consider requests which we know can be
-        // granted, rather than selecting one, and waiting to be able to grant.
         next_trigger(canGrantNow(output, requests[grant].read()));
       }
       else {
@@ -67,11 +68,12 @@ void BasicArbiter::arbitrate(int output) {
       bool requestStillActive = (requests[granted].read() != NO_REQUEST);
 
       if(requestStillActive) {
-        grantVec[granted] = true;
-        grantChanged[granted].notify();
+        grant(granted, output);
 
         // Wait until the request line is deasserted. This means all flits in
         // the packet have been sent. (Make this wormhole behaviour optional?)
+        // Alternatively, a flow control signal may force us to stall the
+        // sending of data.
         state[output] = GRANTED;
         next_trigger(requests[granted].default_event() | stallGrant(output));
       }
@@ -94,7 +96,6 @@ void BasicArbiter::arbitrate(int output) {
       if(requests[granted].read() == NO_REQUEST) {
         // The request was removed, meaning the communication completed
         // successfully.
-
         deassertGrant(granted, output);
 
         if(haveRequest()) {
@@ -122,6 +123,13 @@ void BasicArbiter::arbitrate(int output) {
       break;
     }
   } // end switch
+}
+
+void BasicArbiter::grant(int input, int output) {
+  grantVec[input] = true;
+  grantChanged[input].notify();
+
+  changeSelection(output, input);
 }
 
 void BasicArbiter::deassertGrant(int input, int output) {

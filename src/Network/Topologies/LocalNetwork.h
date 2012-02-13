@@ -72,8 +72,10 @@ public:
 
   // Issue a request for arbitration. This should only be called for the first
   // and last flits of each packet.
-  // Returns an event which will be triggered when the request is granted.
-  const sc_event& makeRequest(ComponentID source, ChannelID destination, bool request);
+  void makeRequest(ComponentID source, ChannelID destination, bool request);
+
+  // See if the request from source to destination has been granted.
+  bool requestGranted(ComponentID source, ChannelID destination) const;
 
   // Inputs and outputs which connect to the global network.
   ReadyInput&   externalReadyInput() const;

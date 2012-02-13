@@ -65,8 +65,12 @@ void WriteStage::writeReg(RegisterIndex reg, int32_t value, bool indirect) const
   parent()->writeReg(reg, value, indirect);
 }
 
-const sc_event& WriteStage::requestArbitration(ChannelID destination, bool request) {
-  return parent()->requestArbitration(destination, request);
+void WriteStage::requestArbitration(ChannelID destination, bool request) {
+  parent()->requestArbitration(destination, request);
+}
+
+bool WriteStage::requestGranted(ChannelID destination) const {
+  return parent()->requestGranted(destination);
 }
 
 bool WriteStage::readyToFetch() const {

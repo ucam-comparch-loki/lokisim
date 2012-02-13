@@ -22,7 +22,7 @@ void InputCrossbar::newData(PortIndex input) {
   const AddressedWord& data = dataIn[input].read();
   ChannelIndex destination = data.channelID().getChannel();
 
-  if(destination >= numOutputs) cout << "Trying to send to " << data.channelID() << endl;
+  if(destination >= numOutputs) cerr << "Trying to send to " << data.channelID() << endl;
   assert(destination < numOutputs);
 
   // Trigger a method which will write the data to the appropriate output.

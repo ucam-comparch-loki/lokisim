@@ -153,8 +153,10 @@ private:
   void             idlenessChanged();
 
   // Request to reserve a path through the network to the given destination.
-  // Returns an event which will be triggered when the request is granted.
-  const sc_event&  requestArbitration(ChannelID destination, bool request);
+  void             requestArbitration(ChannelID destination, bool request);
+
+  // Determine if a request to a particular destination has been granted.
+  bool             requestGranted(ChannelID destination) const;
 
   ComponentID      getSystemCallMemory() const;
 

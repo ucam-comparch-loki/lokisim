@@ -90,6 +90,7 @@ private:
   // destination component. May cause re-execution of the calling method when
   // the request is granted.
   void          requestArbitration(ChannelID destination, bool request);
+  bool          requestGranted(ChannelID destination) const;
 
   WriteStage*   parent() const;
 

@@ -89,7 +89,8 @@ private:
   // Write a new value to a register.
   void           writeReg(RegisterIndex reg, int32_t value, bool indirect = false) const;
 
-  const sc_event& requestArbitration(ChannelID destination, bool request);
+  void           requestArbitration(ChannelID destination, bool request);
+  bool           requestGranted(ChannelID destination) const;
 
   // Returns whether this core is ready to issue an instruction packet fetch
   // request to memory.

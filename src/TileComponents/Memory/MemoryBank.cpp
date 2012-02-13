@@ -1189,16 +1189,18 @@ void MemoryBank::handleDataOutput() {
 
       mActiveOutputWord = word;
 
-      next_trigger(localNetwork->makeRequest(id, mActiveOutputWord.channelID(), true));
+      localNetwork->makeRequest(id, mActiveOutputWord.channelID(), true);
+      next_trigger(iClock.negedge_event());
     }
   }
-  // If we have just been granted network access:
-  else if(!iClock.negedge()) {
-    // Data is always sent on the negative clock edge.
+  // Check to see whether we are allowed to send data yet.
+  else if(!localNetwork->requestGranted(id, mActiveOutputWord.channelID())) {
+    // If not, wait another cycle.
     next_trigger(iClock.negedge_event());
   }
   // If it is time to send data:
   else {
+
     if(DEBUG)
       cout << this->name() << " sent " << mActiveOutputWord << endl;
 

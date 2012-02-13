@@ -68,6 +68,7 @@ protected:
   // because the destination is not capable of receiving more data yet.
   virtual const sc_event& stallGrant(int output) = 0;
 
+  virtual void grant(int input, int output);
   virtual void deassertGrant(int input, int output);
 
   // The task to perform whenever a request input changes.

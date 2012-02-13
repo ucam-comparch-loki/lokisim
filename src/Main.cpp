@@ -149,15 +149,28 @@ void simulate(Chip& chip) {
     else {
       int cyclesIdle = 0;
       int cycleCounter = 0;
+      int operationCount = 0;
 
       unsigned long long i;
       for(i=0; i<TIMEOUT && !sc_core::sc_end_of_simulation_invoked(); i+=cyclesPerStep) {
         TIMESTEP;
 
         cycleCounter += cyclesPerStep;
-        if (!DEBUG && (cycleCounter >= 1000000)) {
-          cerr << "Current cycle number: " << cycleNumber << " [" << Instrumentation::Operations::numOperations() << " operation(s) executed]" << endl;
+        if (cycleCounter >= 1000000) {
+          int newOperationCount = Instrumentation::Operations::numOperations();
+          if(!DEBUG)
+            cerr << "Current cycle number: " << cycleNumber << " [" << newOperationCount << " operation(s) executed]" << endl;
           cycleCounter -= 1000000;
+
+          if(newOperationCount == operationCount) {
+            sc_stop();
+            Instrumentation::endExecution();
+            cerr << "\nNo progress has been made for 1000000 cycles. Aborting." << endl;
+            RETURN_CODE = EXIT_FAILURE;
+            break;
+          }
+
+          operationCount = newOperationCount;
         }
 
         if(idle.read()) {
@@ -165,7 +178,7 @@ void simulate(Chip& chip) {
           if(cyclesIdle >= 100) {
             sc_stop();
             Instrumentation::endExecution();
-            cerr << "\nSystem has been idle for " << cyclesIdle << " cycles." << endl;
+            cerr << "\nSystem has been idle for " << cyclesIdle << " cycles. Aborting." << endl;
             RETURN_CODE = EXIT_FAILURE;
             break;
           }
