@@ -12,7 +12,7 @@ const sc_event& EndArbiter::canGrantNow(int output, const ChannelIndex destinati
 
   // Determine which "ready" signal to check. Memories only have one, but cores
   // have one for each buffer.
-  if(outputs == 1)
+  if(flowControlSignals == 1)
     channel = 0;
   else
     channel = destination;
@@ -36,7 +36,7 @@ const sc_event& EndArbiter::stallGrant(int output) {
   // The channel we are aiming to reach through this output.
   ChannelIndex target;
 
-  if(outputs == 1)  // Hack
+  if(flowControlSignals == 1)  // Hack
     target = 0;
   else {
     SelectType input = selectVec[output];
@@ -72,24 +72,18 @@ PortIndex EndArbiter::outputToUse(PortIndex input) {
   // Memories only have one buffer and one ready signal which cover all channels.
   // Cores have separate buffers and separate ready signals.
 
-  if(outputs == 1)
+  if(flowControlSignals == 1)
     return 0;
   else
     return requests[input].read();
 }
 
 EndArbiter::EndArbiter(const sc_module_name& name, ComponentID ID,
-                       int inputs, int outputs, bool wormhole) :
-    BasicArbiter(name, ID, inputs, outputs, wormhole) {
+                       int inputs, int outputs, bool wormhole, int flowControlSignals) :
+    BasicArbiter(name, ID, inputs, outputs, wormhole),
+    flowControlSignals(flowControlSignals) {
 
-  // FIXME: would prefer this as a constructor argument.
-  // If this arbiter is connected to a core, there will be more ready signals
-  // than there are data signals. There is one ready signal for each buffer.
-  int readyInputs;
-  if(outputs == 1) readyInputs = 1;
-  else             readyInputs = CORE_INPUT_CHANNELS;
-
-  readyIn = new ReadyInput[readyInputs];
+  readyIn = new ReadyInput[flowControlSignals];
 
 }
 

@@ -163,10 +163,15 @@ void simulate(Chip& chip) {
           cycleCounter -= 1000000;
 
           if(newOperationCount == operationCount) {
-            sc_stop();
-            Instrumentation::endExecution();
             cerr << "\nNo progress has been made for 1000000 cycles. Aborting." << endl;
+
+            ComponentID core0(0,0); // Assume core 0 is stalled
+            fprintf(stderr, "Stuck at instruction packet at 0x%x\n",
+                            chip.readRegister(core0, 1));
+
+            Instrumentation::endExecution();
             RETURN_CODE = EXIT_FAILURE;
+
             break;
           }
 
@@ -176,9 +181,9 @@ void simulate(Chip& chip) {
         if(idle.read()) {
           cyclesIdle++;
           if(cyclesIdle >= 100) {
+            cerr << "\nSystem has been idle for " << cyclesIdle << " cycles. Aborting." << endl;
             sc_stop();
             Instrumentation::endExecution();
-            cerr << "\nSystem has been idle for " << cyclesIdle << " cycles. Aborting." << endl;
             RETURN_CODE = EXIT_FAILURE;
             break;
           }

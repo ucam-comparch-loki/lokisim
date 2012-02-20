@@ -55,31 +55,29 @@ void NetworkHierarchy::makeLocalNetwork(int tileID) {
   localNetwork->fastClock(fastClock);
   localNetwork->slowClock(slowClock);
 
-  for(unsigned int i=0; i<INPUT_PORTS_PER_TILE; i++) {
-    int outputIndex = (tileID * INPUT_PORTS_PER_TILE) + i;
-    localNetwork->dataOut[i](dataOut[outputIndex]);
+  int portIndex = tileID * INPUT_PORTS_PER_TILE;
+  for(unsigned int i=0; i<INPUT_PORTS_PER_TILE; i++, portIndex++)
+    localNetwork->dataOut[i](dataOut[portIndex]);
+
+  portIndex = tileID * INPUT_CHANNELS_PER_TILE;
+  for(unsigned int i=0; i<COMPONENTS_PER_TILE; i++) {
+    unsigned int channels = (i < CORES_PER_TILE) ? CORE_INPUT_CHANNELS : 1;
+    for(unsigned int j=0; j<channels; j++, portIndex++)
+      localNetwork->readyIn[i][j](readyDataOut[portIndex]);
   }
 
-  for(unsigned int i=0; i<INPUT_CHANNELS_PER_TILE; i++) {
-    int outputIndex = (tileID * INPUT_CHANNELS_PER_TILE) + i;
-    localNetwork->readyIn[i](readyDataOut[outputIndex]);
-  }
-
-  for(unsigned int i=0; i<OUTPUT_PORTS_PER_TILE; i++) {
-    int inputIndex = (tileID * OUTPUT_PORTS_PER_TILE) + i;
-    localNetwork->dataIn[i](dataIn[inputIndex]);
-  }
+  portIndex = tileID * OUTPUT_PORTS_PER_TILE;
+  for(unsigned int i=0; i<OUTPUT_PORTS_PER_TILE; i++, portIndex++)
+    localNetwork->dataIn[i](dataIn[portIndex]);
 
   // Memories don't have credit connections.
-  for(unsigned int i=0; i<CORES_PER_TILE; i++) {
-    int outputIndex = (tileID * CORES_PER_TILE) + i;
-    localNetwork->creditsIn[i](creditsIn[outputIndex]);
-  }
+  portIndex = tileID * CORES_PER_TILE;
+  for(unsigned int i=0; i<CORES_PER_TILE; i++, portIndex++)
+    localNetwork->creditsIn[i](creditsIn[portIndex]);
 
-  for(unsigned int i=0; i<CORES_PER_TILE*CORE_OUTPUT_PORTS; i++) {
-    int inputIndex = (tileID * CORES_PER_TILE * CORE_OUTPUT_PORTS) + i;
-    localNetwork->creditsOut[i](creditsOut[inputIndex]);
-  }
+  portIndex = tileID * CORES_PER_TILE * CORE_OUTPUT_PORTS;
+  for(unsigned int i=0; i<CORES_PER_TILE*CORE_OUTPUT_PORTS; i++, portIndex++)
+    localNetwork->creditsOut[i](creditsOut[portIndex]);
 
   // Simplify the network if there is only one tile: there is no longer any
   // need for a global network, so this local network can connect directly

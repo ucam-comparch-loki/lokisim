@@ -39,7 +39,7 @@ public:
 public:
 
   EndArbiter(const sc_module_name& name, ComponentID ID,
-             int inputs, int outputs, bool wormhole);
+             int inputs, int outputs, bool wormhole, int flowControlSignals);
   virtual ~EndArbiter();
 
 //==============================//
@@ -65,6 +65,9 @@ private:
 //==============================//
 
 private:
+
+  // The number of flow control signals this arbiter receives.
+  const int flowControlSignals;
 
   // An event which is notified whenever canGrantNow determines that it is safe
   // to grant a request.

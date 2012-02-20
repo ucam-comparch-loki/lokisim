@@ -41,19 +41,12 @@ public:
   // to happen in series in one cycle.
   sc_in<bool>   fastClock, slowClock;
 
-  // Quick hack: want a posedge early in the cycle (though not at the same time
-  // as the main clock) and a negedge fairly late.
-  // The delayed posedge means select signals don't change until deasserted acks
-  // have been routed back (can we avoid routing them back?), and the late
-  // negedge allows time for the arbiters in the subnetworks to finish first.
-  sc_core::sc_clock arbiterClock;
-
-  CreditInput *creditsIn;
+  CreditInput  *creditsIn;
   CreditOutput *creditsOut;
 
-  // A signal from each component, telling whether it is ready to receive
-  // more data.
-  ReadyInput   *readyIn;
+  // An array of signals from each component, telling whether each of the
+  // component's input buffers are ready to receive data.
+  ReadyInput  **readyIn;
 
 //==============================//
 // Constructors and destructors
@@ -85,14 +78,17 @@ public:
 
 private:
 
-  void createArbiters();
-  void createMuxes();
   void createSignals();
   void wireUpSubnetworks();
 
 //==============================//
 // Components
 //==============================//
+
+private:
+  // FIXME: this signal is unused - delete it.
+  // Seems to cause segfaults if removed (or moved any lower than this).
+  sc_signal<bool> deleteme;
 
 private:
 
@@ -103,22 +99,6 @@ private:
   // fit in half a clock cycle).
   // Bring globalToCore down here too?
   Crossbar c2gCredits, g2cCredits;
-
-  std::vector<EndArbiter*>   arbiters;
-  std::vector<Multiplexer*>  muxes;
-
-  // Signals connecting to muxes.
-  // Address using dataSig[destination component][position]
-  //   where coreToCore connects to positions 0 and 1,
-  //         memoryToCore connects to positions 2 and 3,
-  //         globalToCore connects to position 4
-  DataSignal               **dataSig;
-
-  // Signals connecting arbiters to arbiters.
-  // Address using selectSig[arbiter][port]
-  SelectSignal             **selectSig;
-  RequestSignal            **requestSig;
-  GrantSignal              **grantSig;
 
   // Signals allowing arbitration requests to be made for cores/memories/routers.
   // Currently the signals are written using a function call, but they can
@@ -137,9 +117,6 @@ private:
   // required for data because credits are only used for some connections.
   static const unsigned int creditInputs;
   static const unsigned int creditOutputs;
-
-  // The number of inputs to each arbiter/mux in this network.
-  static const unsigned int muxInputs;
 
   // If a connection is already set up between two components, when a request
   // is made, it will not be granted again.

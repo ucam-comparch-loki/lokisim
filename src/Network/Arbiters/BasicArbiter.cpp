@@ -35,11 +35,11 @@ void BasicArbiter::arbitrate(int output) {
       SelectType grant = arbiter->getGrant();
       changeSelection(output, grant);
 
-      // Remove the granted request from consideration.
-      requestVec[grant] = false;
-
       if(grant != ArbiterBase::NO_GRANT) {    // Successful grant
         assert(grant < inputs);
+
+        // Remove the granted request from consideration.
+        requestVec[grant] = false;
 
         // Update the internal array so that no one else issues the same grant,
         // but don't change the signal until we are sure that it is possible to

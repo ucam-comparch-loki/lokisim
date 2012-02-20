@@ -20,65 +20,35 @@ void NewCrossbar::makePorts() {
     grantsOut[i]  = new GrantOutput[numArbiters];
   }
 
-  if(chained) {
-    requestsOut = new RequestOutput*[numArbiters];
-    grantsIn    = new GrantInput*[numArbiters];
-
-    for(int i=0; i<numArbiters; i++) {
-      requestsOut[i] = new RequestOutput[outputsPerComponent];
-      grantsIn[i]    = new GrantInput[outputsPerComponent];
-    }
-  }
-  else {
-    readyIn = new ReadyInput[numArbiters];
-  }
+  readyIn = new ReadyInput*[numArbiters];
+  for(int i=0; i<numArbiters; i++)
+    readyIn[i] = new ReadyInput[buffersPerComponent];
 }
 
 void NewCrossbar::makeSignals() {
   dataSig   = new DataSignal[numBuses];
   selectSig = new SelectSignal*[numArbiters];
 
-  for(int i=0; i<numArbiters; i++) {
+  for(int i=0; i<numArbiters; i++)
     selectSig[i] = new SelectSignal[outputsPerComponent];
-  }
 }
 
 void NewCrossbar::makeArbiters() {
   for(int i=0; i<numArbiters; i++) {
-    BasicArbiter* arb;
+    EndArbiter* arb;
+    arb = new EndArbiter(sc_gen_unique_name("arbiter"), i,
+                         numBuses, outputsPerComponent, true, buffersPerComponent);
 
-    // Need a different type of arbiter depending on if more arbitration is
-    // needed after this network.
-    if(chained) {
-      arb = new ChainedArbiter(sc_gen_unique_name("arbiter"), i,
-                               numBuses, outputsPerComponent, true);
-
-      // Connect up ports which are unique to this type of arbiter, allowing it
-      // to issue an arbitration request to the next arbiter in the chain.
-      for(int j=0; j<outputsPerComponent; j++) {
-        (static_cast<ChainedArbiter*>(arb))->requestOut[j](requestsOut[i][j]);
-        (static_cast<ChainedArbiter*>(arb))->grantIn[j](grantsIn[i][j]);
-      }
-    }
-    else {
-      arb = new EndArbiter(sc_gen_unique_name("arbiter"), i,
-                           numBuses, outputsPerComponent, true);
-
-      // Connect up ports which are unique to this type of arbiter.
-      for(int j=0; j<outputsPerComponent; j++)
-        (static_cast<EndArbiter*>(arb))->readyIn[j](readyIn[j + i*outputsPerComponent]);
-    }
-
-    // Connect up all ports which are common to the two types of arbiter.
     arb->clock(clock);
 
+    for(int j=0; j<buffersPerComponent; j++)
+      arb->readyIn[j](readyIn[i][j]);
     for(int j=0; j<numBuses; j++) {
       arb->requests[j](requestsIn[j][i]);
       arb->grants[j](grantsOut[j][i]);
     }
-    for(int j=0; j<outputsPerComponent; j++) {
+    for(int j=0; j<outputsPerComponent; j++)
       arb->select[j](selectSig[i][j]);
-    }
 
     arbiters.push_back(arb);
   }
@@ -119,13 +89,13 @@ NewCrossbar::NewCrossbar(const sc_module_name& name,
                          int outputsPerComponent,
                          HierarchyLevel level,
                          Dimension size,
-                         bool chained) :
+                         int buffersPerComponent) :
     NewNetwork(name, ID, inputs, outputs, level, size),
     numArbiters(outputs/outputsPerComponent),
     numBuses(inputs),
     numMuxes(outputs),
     outputsPerComponent(outputsPerComponent),
-    chained(chained) {
+    buffersPerComponent(buffersPerComponent) {
 
   makePorts();
   makeSignals();
@@ -138,7 +108,8 @@ NewCrossbar::NewCrossbar(const sc_module_name& name,
 NewCrossbar::~NewCrossbar() {
   delete[] dataSig;
 
-  for(int i=0; i<numArbiters; i++) delete[] selectSig[i];
+  for(int i=0; i<numArbiters; i++)
+    delete[] selectSig[i];
   delete[] selectSig;
 
   for(unsigned int i=0; i<arbiters.size(); i++) delete arbiters[i];
@@ -149,15 +120,7 @@ NewCrossbar::~NewCrossbar() {
     delete[] requestsIn[i];  delete[] grantsOut[i];
   }
 
-  delete[] requestsIn;  delete[] grantsOut;
-
-  if(chained) {
-    for(int i=0; i<numArbiters; i++) {
-      delete[] requestsOut[i]; delete[] grantsIn[i];
-    }
-
-    delete[] requestsOut; delete[] grantsIn;
-  }
-  else
-    delete[] readyIn;
+  for(int i=0; i<numArbiters; i++)
+    delete[] readyIn[i];
+  delete[] readyIn;
 }
