@@ -150,6 +150,10 @@ bool         DecodeStage::discardNextInst() const {
 void         DecodeStage::unstall() {
   decoder.cancelInstruction();
 
+  // We are aborting the current instruction packet, so the next instruction
+  // will be the start of a new packet.
+  startingNewPacket = true;
+
   // There is the possibility that we are stalled creating the second half
   // of a store message. We will need to send some result so that memory is not
   // stalled forever.

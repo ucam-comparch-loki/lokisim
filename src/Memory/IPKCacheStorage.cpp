@@ -206,6 +206,8 @@ void IPKCacheStorage::switchToPendingPacket() {
 }
 
 void IPKCacheStorage::cancelPacket() {
+  currentPacket.persistent = false;
+
   // Stop the current packet executing if it hasn't finished arriving yet.
   if(currentPacket.arriving())
     currentPacket.execute = false;

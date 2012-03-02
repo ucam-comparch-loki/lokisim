@@ -61,7 +61,7 @@ parameter NUM_PHYSICAL_REGISTERS     = 64;
 parameter IPK_FIFO_SIZE              = 24;  // Make smaller once SIMD is sorted
 parameter IPK_CACHE_SIZE             = 256;//64;//1024;
 
-parameter CHANNEL_MAP_SIZE           = 8;
+parameter CHANNEL_MAP_SIZE           = 16;
 
 parameter MAX_IPK_SIZE               = 8; // Must be <= buffer size (wormhole)
 
@@ -127,9 +127,10 @@ void Parameters::parseParameter(const string &name, const string &value) {
 	else SET_IF_MATCH(cName, nValue, NUM_RECEIVE_CHANNELS);
 	else SET_IF_MATCH(cName, nValue, IN_CHANNEL_BUFFER_SIZE);
   else SET_IF_MATCH(cName, nValue, OUT_CHANNEL_BUFFER_SIZE);
-	else SET_IF_MATCH(cName, nValue, ROUTER_BUFFER_SIZE);
+  else SET_IF_MATCH(cName, nValue, ROUTER_BUFFER_SIZE);
+  else SET_IF_MATCH(cName, nValue, DEBUG);
 	else {
-		cerr << "Encountered invalid parameter in settings file: " << name << endl;
+		cerr << "Encountered unhandled parameter in settings file: " << name << endl;
 		throw std::exception();
 	}
 }

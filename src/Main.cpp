@@ -128,6 +128,17 @@ void parseArguments(uint argc, char* argv[], Chip& chip) {
         // Pass command line options to the simulated program.
         argv[i] = argv[0];
         storeArguments(argc-i, argv+i, chip);
+        break;
+      }
+      else if(argument[0] == '-' && argument[1] == 'P') {
+        // Use "-Pparam value" to set a parameter on the command line.
+        string parameter = argument.substr(2);
+        Parameters::parseParameter(parameter, argv[i+1]);
+
+        i++;  // Have used two arguments in this iteration.
+      }
+      else {
+        cerr << "Warning: unrecognised argument: " << argument << endl;
       }
     }
   }

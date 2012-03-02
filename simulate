@@ -18,17 +18,21 @@ command = ""
 # Simulator parameters
 use_fast_sim = False
 trace = False
+dump = False
     
 currentArg = 1
 
 # Get any simulator parameters (all parameters beginning with "-" until we find
 # one without the "-")
 for i in range(currentArg, len(sys.argv)):
-    if sys.argv[i][0] == "-":
-        if sys.argv[i] == "-trace" or sys.argv[i] == "-t":
+    arg = sys.argv[i]
+    if arg[0] == "-":
+        if arg == "-trace" or arg == "-t":
             trace = True
-        elif sys.argv[i] == "-fast" or sys.argv[i] == "-f":
+        elif arg == "-fast" or arg == "-f":
             use_fast_sim = True
+        elif arg == "-dump" or arg == "-d":
+            dump = True
             
         currentArg += 1
     else:
@@ -72,7 +76,12 @@ else:
     if trace:
         command += "-coretrace " + program + ".trace "
         
-    command += "-run " + program + " --args " + programargs
+    command += "-run " + program + " "
+    
+    if dump:
+        command += "-PDEBUG 1 "
+    
+    command += "--args " + programargs
 
 # Run the simulator
 print command
