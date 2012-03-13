@@ -84,6 +84,14 @@ public:
 		return ChannelID(tile, pos, ch, multi);
 	}
 
+	inline int numDestinations() const {
+	  // Determine how many destination components this message is to be sent to.
+	  if(isMulticast())
+	    return __builtin_popcount(getPosition());
+	  else
+	    return 1;
+	}
+
 	inline ComponentID getComponentID() const		{return ComponentID(getTile(), getPosition());}
 
 	inline const std::string getString() const {

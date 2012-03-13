@@ -16,6 +16,8 @@
 #include "Typedefs.h"
 
 #include "Utility/Instrumentation.h"
+#include "Utility/LokiVector.h"
+#include "Utility/LokiVector2D.h"
 #include "Utility/Parameters.h"
 
 using sc_core::sc_in;

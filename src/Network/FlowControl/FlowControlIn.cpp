@@ -15,6 +15,8 @@ void FlowControlIn::dataLoop() {
   else
     dataOut.write(dataIn.read().payload());
 
+  addCredit();
+
   dataIn.ack();
 }
 

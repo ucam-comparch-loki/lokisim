@@ -32,12 +32,12 @@ void MulticastCrossbar::makeBuses() {
 
 CreditInput& MulticastCrossbar::externalCreditIn() const {
   assert(externalConnection);
-  return creditsIn[numOutputs-1];
+  return creditsIn[numOutputPorts()-1];
 }
 
 CreditOutput& MulticastCrossbar::externalCreditOut() const {
   assert(externalConnection);
-  return creditsOut[numInputs-1];
+  return creditsOut[numInputPorts()-1];
 }
 
 // Sort out arguments so there are fewer/they make more sense?
@@ -53,13 +53,10 @@ MulticastCrossbar::MulticastCrossbar(const sc_module_name& name,
     Crossbar(name, ID, inputs, outputs, outputsPerComponent,
              level, size, externalConnection) {
 
-  creditsIn        = new CreditInput[numOutputs];
-  creditsOut       = new CreditOutput[numInputs];
+  creditsIn.init(numOutputPorts());
+  creditsOut.init(numInputPorts());
 
-  creditsToBus     = new CreditSignal*[numBuses];
-
-  for(int i=0; i<numBuses; i++)
-    creditsToBus[i]     = new CreditSignal[numMuxes];
+  creditsToBus.init(numBuses, numMuxes);
 
   // Create an UnclockedNetwork containing an ordinary crossbar to carry
   // credits to the appropriate buses. (Some form of multi-input demux would be
@@ -85,13 +82,6 @@ MulticastCrossbar::MulticastCrossbar(const sc_module_name& name,
 }
 
 MulticastCrossbar::~MulticastCrossbar() {
-  delete[] creditsIn;
-  delete[] creditsOut;
-
-  for(int i=0; i<numBuses; i++)
-    delete[] creditsToBus[i];
-
-  delete[] creditsToBus;
-
-  for(unsigned int i=0; i<creditCrossbars.size(); i++) delete creditCrossbars[i];
+  for(unsigned int i=0; i<creditCrossbars.size(); i++)
+    delete creditCrossbars[i];
 }

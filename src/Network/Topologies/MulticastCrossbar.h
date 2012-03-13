@@ -33,8 +33,8 @@ public:
 //  DataInput    *dataIn;
 //  DataOutput   *dataOut;
 
-  CreditInput  *creditsIn;
-  CreditOutput *creditsOut;
+  LokiVector<CreditInput>  creditsIn;
+  LokiVector<CreditOutput> creditsOut;
 
 //==============================//
 // Methods
@@ -84,7 +84,7 @@ private:
   // combination of credits occurs too.
   std::vector<UnclockedNetwork*> creditCrossbars;
 
-  CreditSignal **creditsToBus;
+  LokiVector2D<CreditSignal> creditsToBus;
 
   bool newCredits;
 

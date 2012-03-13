@@ -35,12 +35,7 @@ ChainedArbiter::ChainedArbiter(const sc_module_name& name, ComponentID ID,
                                int inputs, int outputs, bool wormhole) :
     BasicArbiter(name, ID, inputs, outputs, wormhole) {
 
-  requestOut = new RequestOutput[outputs];
-  grantIn    = new GrantInput[outputs];
+  requestOut.init(outputs);
+  grantIn.init(outputs);
 
-}
-
-ChainedArbiter::~ChainedArbiter() {
-  delete[] requestOut;
-  delete[] grantIn;
 }

@@ -20,7 +20,7 @@ void Bus::busLoop() {
         DataType data = dataIn[0].read();
 
         outputUsed = getDestination(data.channelID());
-        assert(outputUsed < numOutputs);
+        assert(outputUsed < numOutputPorts());
 
         dataOut[outputUsed].write(data);
 

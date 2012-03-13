@@ -139,7 +139,7 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
 
   stalled     = false;  // Start off idle, but not stalled.
   usingCache  = true;
-  flowControl = new sc_out<bool>[2];
+  flowControl.init(2);
 
   // Connect FIFO and cache to network
   fifo.clock(clock);
@@ -158,8 +158,4 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
   sensitive << readyIn;
   // do initialise
 
-}
-
-FetchStage::~FetchStage() {
-  delete[] flowControl;
 }

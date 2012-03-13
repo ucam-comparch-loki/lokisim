@@ -30,7 +30,7 @@ public:
 //  SelectOutput *select;
 
   // Signals from the component telling if it is able to receive more data.
-  ReadyInput *readyIn;
+  LokiVector<ReadyInput> readyIn;
 
 //==============================//
 // Constructors and destructors
@@ -40,7 +40,6 @@ public:
 
   EndArbiter(const sc_module_name& name, ComponentID ID,
              int inputs, int outputs, bool wormhole, int flowControlSignals);
-  virtual ~EndArbiter();
 
 //==============================//
 // Methods

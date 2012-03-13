@@ -25,9 +25,6 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
   if(buffers[channelEnd].empty())
     wait(receivedDataEvent(channelEnd));
 
-  if(buffers[channelEnd].full())
-    bufferEvent[channelEnd].notify();
-
   int32_t result = buffers.read(channelEnd).toInt();
 
   if(DEBUG) cout << this->name() << " read " << result << " from buffer "
@@ -75,17 +72,17 @@ void ReceiveChannelEndTable::checkInput(ChannelIndex input) {
 
   buffers[input].write(fromNetwork[input].read());
 
-  if(buffers[input].full())
-    bufferEvent[input].notify();
   newData.notify();
 }
 
 const sc_event& ReceiveChannelEndTable::receivedDataEvent(ChannelIndex buffer) const {
-  return buffers[buffer].newDataEvent();
+  return buffers[buffer].writeEvent();
 }
 
 void ReceiveChannelEndTable::updateFlowControl(ChannelIndex buffer) {
-  flowControl[buffer].write(!buffers[buffer].full());
+  bool canReceive = !buffers[buffer].full();
+  if(flowControl[buffer].read() != canReceive)
+    flowControl[buffer].write(canReceive);
 }
 
 DecodeStage* ReceiveChannelEndTable::parent() const {
@@ -97,10 +94,8 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name, const
     buffers(NUM_RECEIVE_CHANNELS, IN_CHANNEL_BUFFER_SIZE, string(name)),
     currentChannel(NUM_RECEIVE_CHANNELS) {
 
-  flowControl = new sc_out<bool>[NUM_RECEIVE_CHANNELS];
-  fromNetwork = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
-
-  bufferEvent = new sc_event[NUM_RECEIVE_CHANNELS];
+  fromNetwork.init(NUM_RECEIVE_CHANNELS);
+  flowControl.init(NUM_RECEIVE_CHANNELS);
 
   // Generate a method to watch each input port, putting the data into the
   // appropriate buffer when it arrives.
@@ -109,14 +104,14 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name, const
 
   // Generate a method to watch each buffer, updating its flow control signal
   // whenever data is added or removed.
-  for(unsigned int i=0; i<buffers.size(); i++)
-    SPAWN_METHOD(bufferEvent[i], ReceiveChannelEndTable::updateFlowControl, i, true);
+  for(unsigned int i=0; i<buffers.size(); i++) {
+    sc_core::sc_spawn_options options;
+    options.spawn_method();     /* Want an efficient method, not a thread */
+    options.set_sensitivity(&(buffers[i].readEvent()));
+    options.set_sensitivity(&(buffers[i].writeEvent()));
 
-}
+    /* Create the method. */
+    sc_spawn(sc_bind(&ReceiveChannelEndTable::updateFlowControl, this, i), 0, &options);
+  }
 
-ReceiveChannelEndTable::~ReceiveChannelEndTable() {
-  delete[] flowControl;
-  delete[] fromNetwork;
-
-  delete[] bufferEvent;
 }

@@ -45,8 +45,6 @@ public:
 
 protected:
 
-  // FIXME: These seem to be unnecessary overhead - connect the signals directly
-  // to the destinations?
   virtual void receivedData();
   virtual void receivedAck();
 
@@ -64,6 +62,10 @@ private:
 
   const int outputs;
   const Dimension size;
+
+  // Record how many acknowledgements we expect to receive, so when data is
+  // multicast, we wait until it has been received by all destinations.
+  int outstandingAcks;
 
   // Store the previous value, so we can compute how many bits change when a
   // new value arrives.

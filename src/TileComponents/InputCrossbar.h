@@ -15,8 +15,6 @@
 #include "../Network/Topologies/Crossbar.h"
 #include "../Network/NetworkTypedefs.h"
 
-#include "../Communication/loki_signal.h"
-
 class AddressedWord;
 class FlowControlIn;
 class UnclockedNetwork;
@@ -39,14 +37,14 @@ public:
   // network.
   sc_in<bool>   creditClock, dataClock;
 
-  DataInput    *dataIn;
-  ReadyOutput  *readyOut;
+  LokiVector<DataInput>     dataIn;
+  LokiVector<ReadyOutput>   readyOut;
 
-  sc_out<Word> *dataOut;
+  LokiVector<sc_out<Word> > dataOut;
 
-  ReadyInput   *bufferHasSpace;
+  LokiVector<ReadyInput>    bufferHasSpace;
 
-  CreditOutput *creditsOut;
+  LokiVector<CreditOutput>  creditsOut;
 
 //==============================//
 // Constructors and destructors
@@ -87,17 +85,17 @@ private:
 
   std::vector<FlowControlIn*> flowControl;
   
-  Crossbar               creditNet;
+  Crossbar                 creditNet;
 
-  DataSignal            *dataToBuffer;
-  CreditSignal          *creditsToNetwork;
+  LokiVector<DataSignal>   dataToBuffer;
+  LokiVector<CreditSignal> creditsToNetwork;
 
   // An event for each output port which is triggered when there is data to
   // put into its buffer.
-  sc_event              *sendData;
+  LokiVector<sc_event>     sendData;
 
   // The source port of data to be written into each output buffer.
-  std::vector<PortIndex> dataSource;
+  std::vector<PortIndex>   dataSource;
 
 };
 

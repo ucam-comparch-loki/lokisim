@@ -27,13 +27,18 @@ public:
 
   enum Direction {NORTH, EAST, SOUTH, WEST, LOCAL};
 
-  sc_in<bool>   clock;
+  sc_in<bool>  clock;
 
   // Data inputs
-  DataInput  *dataIn;
+  LokiVector<DataInput> dataIn;
+
+  // A single flow control signal to the local network. The connections between
+  // routers are simple enough that acknowledgements provide flow control.
+  // FIXME: is this true?
+  ReadyOutput  readyOut;
 
   // Data outputs
-  DataOutput *dataOut;
+  LokiVector<DataOutput> dataOut;
 
 //==============================//
 // Constructors and destructors
@@ -42,8 +47,7 @@ public:
 public:
 
   SC_HAS_PROCESS(Router);
-  Router(const sc_module_name& name, const ComponentID& ID);
-  virtual ~Router();
+  Router(const sc_module_name& name, const ComponentID& ID, local_net_t* network);
 
 //==============================//
 // Methods
@@ -60,7 +64,12 @@ private:
 
   // Send data from output buffers onto the network and wait for
   // acknowledgements.
+  void sendToLocalNetwork();
   void sendData();
+
+  // Update the flow control signal for the input port connected to the local
+  // network.
+  void updateFlowControl();
 
   Direction routeTo(ChannelID destination) const;
 
@@ -79,6 +88,14 @@ private:
 
 private:
 
+  enum SendState {
+    WAITING_FOR_DATA,
+    ARBITRATING,
+    WAITING_FOR_ACK
+  };
+
+  SendState state;
+
   // The position of this router in the grid of routers. Used to decide which
   // direction data should be sent next.
   const unsigned int xPos, yPos;
@@ -86,6 +103,9 @@ private:
   // The router currently implements round-robin scheduling: store the inputs
   // which were most recently allowed to send data to each output.
   int lastAccepted[5];
+
+  // Pointer to network, allowing new interfaces to be experimented with quickly.
+  local_net_t *localNetwork;
 
 };
 

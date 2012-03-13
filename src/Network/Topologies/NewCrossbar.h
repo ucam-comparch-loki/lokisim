@@ -31,12 +31,12 @@ public:
 
   // A request/grant signal for each input to reserve each output.
   // Indexed as: requestsIn[input][output]
-  RequestInput  **requestsIn;
-  GrantOutput   **grantsOut;
+  LokiVector2D<RequestInput> requestsIn;
+  LokiVector2D<GrantOutput>  grantsOut;
 
   // A signal from each buffer of each component, telling whether it is ready
   // to receive data. Addressed using readyIn[component][buffer].
-  ReadyInput    **readyIn;
+  LokiVector2D<ReadyInput>   readyIn;
 
 //==============================//
 // Constructors and destructors
@@ -90,8 +90,8 @@ protected:
   std::vector<NewBus*>       buses;
   std::vector<Multiplexer*>  muxes;
 
-  DataSignal                *dataSig;
-  SelectSignal             **selectSig;
+  LokiVector<DataSignal>     dataSig;
+  LokiVector2D<SelectSignal> selectSig;
 
 };
 

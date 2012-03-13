@@ -8,7 +8,7 @@
 #include "Multiplexer.h"
 
 int Multiplexer::inputs() const {
-  return numInputs;
+  return dataIn.length();
 }
 
 void Multiplexer::handleData() {
@@ -21,8 +21,9 @@ void Multiplexer::handleData() {
 
   if(selection == NO_SELECTION)
     next_trigger(select.default_event());
-  else if(select.event())
+  else if(select.event()) {
     next_trigger(dataIn[selection].default_event());
+  }
   else if(dataIn[selection].valid()) { // Data arrived on the selected input
     if(!haveSentData) {
       dataOut.write(dataIn[selection].read());
@@ -38,15 +39,10 @@ void Multiplexer::handleData() {
 }
 
 Multiplexer::Multiplexer(const sc_module_name& name, int numInputs) :
-    Component(name),
-    numInputs(numInputs) {
+    Component(name) {
 
-  dataIn = new DataInput[numInputs];
+  dataIn.init(numInputs);
 
   SC_METHOD(handleData);
 
-}
-
-Multiplexer::~Multiplexer() {
-  delete[] dataIn;
 }

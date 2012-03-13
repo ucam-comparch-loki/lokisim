@@ -49,23 +49,15 @@ Crossbar::Crossbar(sc_module_name name, const ComponentID& ID, int inputs, int o
                    int outputsPerComponent, HierarchyLevel level, Dimension size,
                    bool externalConnection) :
     Network(name, ID, inputs, outputs, level, size, 0, externalConnection),
-    numBuses(numInputs),
-    numMuxes(numOutputs/outputsPerComponent),
+    numBuses(numInputPorts()),
+    numMuxes(numOutputPorts()/outputsPerComponent),
     outputsPerComponent(outputsPerComponent) {
 
-  busToMux = new DataSignal*[numBuses];
-
-  for(int i=0; i<numBuses; i++)
-    busToMux[i] = new DataSignal[numMuxes];
+  busToMux.init(numBuses, numMuxes);
 
 }
 
 Crossbar::~Crossbar() {
-  for(int i=0; i<numBuses; i++)
-    delete[] busToMux[i];
-
-  delete[] busToMux;
-
   for(unsigned int i=0; i<buses.size(); i++) delete buses[i];
   for(unsigned int i=0; i<arbiters.size(); i++) delete arbiters[i];
 }

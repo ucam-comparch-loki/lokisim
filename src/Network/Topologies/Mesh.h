@@ -22,12 +22,17 @@ class Mesh : public Network {
 // Ports
 //==============================//
 
+public:
+
 // Inherited from Network:
 //
 //  sc_in<bool>   clock;
 //
 //  DataInput    *dataIn;
 //  DataOutput   *dataOut;
+
+  // A signal from each router saying whether it is ready to receive data.
+  LokiVector<ReadyOutput> readyOut;
 
 //==============================//
 // Constructors and destructors
@@ -67,7 +72,7 @@ private:
   // Lots of 2D arrays of signals. Each 2D array is indexed using
   // array[column][row]. Each array name is tagged with the direction it
   // carries data, e.g. NS = north to south.
-  DataSignal  **dataSigNS,  **dataSigSN,  **dataSigEW,  **dataSigWE;
+  LokiVector2D<DataSignal> dataSigNS, dataSigSN, dataSigEW, dataSigWE;
 
 //==============================//
 // Local state

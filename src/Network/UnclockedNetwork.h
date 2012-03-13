@@ -27,8 +27,8 @@ class UnclockedNetwork: public Component {
 
 public:
 
-  DataInput  *dataIn;
-  DataOutput *dataOut;
+  LokiVector<DataInput>  dataIn;
+  LokiVector<DataOutput> dataOut;
 
 //==============================//
 // Methods

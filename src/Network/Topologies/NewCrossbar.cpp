@@ -12,25 +12,14 @@
 #include "../Arbiters/EndArbiter.h"
 
 void NewCrossbar::makePorts() {
-  requestsIn = new RequestInput*[numBuses];
-  grantsOut  = new GrantOutput*[numBuses];
-
-  for(int i=0; i<numBuses; i++) {
-    requestsIn[i] = new RequestInput[numArbiters];
-    grantsOut[i]  = new GrantOutput[numArbiters];
-  }
-
-  readyIn = new ReadyInput*[numArbiters];
-  for(int i=0; i<numArbiters; i++)
-    readyIn[i] = new ReadyInput[buffersPerComponent];
+  requestsIn.init(numBuses, numArbiters);
+  grantsOut.init(numBuses, numArbiters);
+  readyIn.init(numArbiters, buffersPerComponent);
 }
 
 void NewCrossbar::makeSignals() {
-  dataSig   = new DataSignal[numBuses];
-  selectSig = new SelectSignal*[numArbiters];
-
-  for(int i=0; i<numArbiters; i++)
-    selectSig[i] = new SelectSignal[outputsPerComponent];
+  dataSig.init(numBuses);
+  selectSig.init(numArbiters, outputsPerComponent);
 }
 
 void NewCrossbar::makeArbiters() {
@@ -106,21 +95,7 @@ NewCrossbar::NewCrossbar(const sc_module_name& name,
 }
 
 NewCrossbar::~NewCrossbar() {
-  delete[] dataSig;
-
-  for(int i=0; i<numArbiters; i++)
-    delete[] selectSig[i];
-  delete[] selectSig;
-
   for(unsigned int i=0; i<arbiters.size(); i++) delete arbiters[i];
   for(unsigned int i=0; i<buses.size();    i++) delete buses[i];
   for(unsigned int i=0; i<muxes.size();    i++) delete muxes[i];
-
-  for(int i=0; i<numBuses; i++) {
-    delete[] requestsIn[i];  delete[] grantsOut[i];
-  }
-
-  for(int i=0; i<numArbiters; i++)
-    delete[] readyIn[i];
-  delete[] readyIn;
 }

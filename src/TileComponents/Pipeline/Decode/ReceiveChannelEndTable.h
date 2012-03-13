@@ -15,6 +15,7 @@
 
 #include "../../../Component.h"
 #include "../../../Memory/BufferArray.h"
+#include "../../../Network/NetworkTypedefs.h"
 #include "../../../Utility/LoopCounter.h"
 
 class DecodeStage;
@@ -32,11 +33,11 @@ public:
 
   // Data values received over the network. There should be NUM_RECEIVE_CHANNELS
   // inputs in the array.
-  sc_in<Word>  *fromNetwork;
+  LokiVector<sc_in<Word> > fromNetwork;
 
   // A flow control signal for each input (NUM_RECEIVE_CHANNELS), to tell the
   // flow control unit whether there is space left in its buffer.
-  sc_out<bool> *flowControl;
+  LokiVector<ReadyOutput> flowControl;
 
 //==============================//
 // Constructors and destructors
@@ -46,7 +47,6 @@ public:
 
   SC_HAS_PROCESS(ReceiveChannelEndTable);
   ReceiveChannelEndTable(const sc_module_name& name, const ComponentID& ID);
-  virtual ~ReceiveChannelEndTable();
 
 //==============================//
 // Methods
@@ -93,10 +93,6 @@ private:
 
   // Allows round-robin selection of channels when executing selch.
   LoopCounter       currentChannel;
-
-  // An event for each buffer, to signal that there is now room (or no room)
-  // for new data.
-  sc_event* bufferEvent;
 
   // One event for the whole table to signal when new data has arrived.
   sc_event newData;

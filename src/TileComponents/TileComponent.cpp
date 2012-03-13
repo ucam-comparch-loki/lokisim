@@ -12,8 +12,8 @@
 #include "../Datatype/AddressedWord.h"
 #include "../Datatype/ChannelID.h"
 
-int TileComponent::numInputs()  const {return numInputPorts;}
-int TileComponent::numOutputs() const {return numOutputPorts;}
+int TileComponent::numInputs()  const {return dataIn.length();}
+int TileComponent::numOutputs() const {return dataOut.length();}
 
 void TileComponent::print(MemoryAddr start, MemoryAddr end) const {
   // Do nothing if print isn't defined
@@ -81,28 +81,19 @@ void TileComponent::acknowledgeCredit(PortIndex output) {
 /* Constructors and destructors */
 TileComponent::TileComponent(sc_module_name name, const ComponentID& ID,
                              int inputPorts, int outputPorts) :
-    Component(name, ID),
-    numInputPorts(inputPorts),
-    numOutputPorts(outputPorts) {
+    Component(name, ID) {
 
-  dataIn     = new DataInput[inputPorts];
-  dataOut    = new DataOutput[outputPorts];
+  dataIn.init(inputPorts);
+  dataOut.init(outputPorts);
 
   // Temporary? Only have a single credit output, used to send credits to other
   // tiles. Credits aren't used for local communication.
-  creditsOut = new CreditOutput[1];
-  creditsIn  = new CreditInput[outputPorts];
+  creditsOut.init(1);
+  creditsIn.init(outputPorts);
 
   // Generate a method to watch each credit input port, and send an
   // acknowledgement whenever a credit arrives.
-  for(unsigned int i=0; i<numOutputPorts; i++)
+  for(int i=0; i<outputPorts; i++)
     SPAWN_METHOD(creditsIn[i], TileComponent::acknowledgeCredit, i, false);
 
-}
-
-TileComponent::~TileComponent() {
-  delete[] dataIn;
-  delete[] dataOut;
-  delete[] creditsOut;
-  delete[] creditsIn;
 }

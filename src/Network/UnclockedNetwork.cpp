@@ -29,8 +29,8 @@ UnclockedNetwork::UnclockedNetwork(sc_module_name name, Network* network) :
   int inputs   = network->numInputPorts();
   int outputs  = network->numOutputPorts();
 
-  dataIn       = new DataInput[inputs];
-  dataOut      = new DataOutput[outputs];
+  dataIn.init(inputs);
+  dataOut.init(outputs);
 
   for(int i=0; i<inputs; i++)
     network->dataIn[i](dataIn[i]);
@@ -52,6 +52,4 @@ UnclockedNetwork::UnclockedNetwork(sc_module_name name, Network* network) :
 
 UnclockedNetwork::~UnclockedNetwork() {
   delete   network_;
-  delete[] dataIn;
-  delete[] dataOut;
 }

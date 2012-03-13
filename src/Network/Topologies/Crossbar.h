@@ -73,7 +73,8 @@ protected:
 
   // Two-dimensional arrays of signals. One of each signal goes from each bus
   // to each mux/arbiter.
-  DataSignal        **busToMux;
+  // Address using busToMux[bus][mux].
+  LokiVector2D<DataSignal> busToMux;
 
 };
 

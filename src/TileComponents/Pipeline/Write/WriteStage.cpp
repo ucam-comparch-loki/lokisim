@@ -83,8 +83,8 @@ WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
 
   static const unsigned int NUM_BUFFERS = CORE_OUTPUT_PORTS;
 
-  output      = new loki_out<AddressedWord>[NUM_BUFFERS];
-  creditsIn   = new loki_in<AddressedWord>[NUM_BUFFERS];
+  output.init(NUM_BUFFERS);
+  creditsIn.init(NUM_BUFFERS);
 
   // Connect the SCET to the network.
   scet.clock(clock);
@@ -109,9 +109,4 @@ WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
   SC_METHOD(updateReady);
   sensitive << scet.stallChangedEvent();
   // do initialise
-}
-
-WriteStage::~WriteStage() {
-  delete[] output;
-  delete[] creditsIn;
 }

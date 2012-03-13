@@ -12,13 +12,25 @@ int NewBus::numOutputs() const {
 }
 
 void NewBus::receivedData() {
+  assert(outstandingAcks == 0);
+
+  const DataType& data = dataIn.read();
+
   // Just copy the values straight through.
-  dataOut.write(dataIn.read());
+  dataOut.write(data);
+  outstandingAcks += data.channelID().numDestinations();
+
+  if (outstandingAcks > 1)
+    cerr << outstandingAcks << ": " << data << endl;
+
   computeSwitching();
 }
 
 void NewBus::receivedAck() {
-  dataIn.ack();
+  outstandingAcks--;
+
+  if(outstandingAcks == 0)
+    dataIn.ack();
 }
 
 void NewBus::computeSwitching() {
@@ -45,6 +57,8 @@ NewBus::NewBus(const sc_module_name& name, const ComponentID& ID, int numOutputP
     Component(name, ID),
     outputs(numOutputPorts),
     size(size) {
+
+  outstandingAcks = 0;
 
   lastData = DataType();
   lastWriteTime = -1;

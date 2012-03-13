@@ -33,8 +33,8 @@ public:
 
   sc_in<bool>   clock;
 
-  DataInput  *dataIn;
-  DataOutput *dataOut;
+  LokiVector<DataInput>  dataIn;
+  LokiVector<DataOutput> dataOut;
 
 //==============================//
 // Constructors and destructors
@@ -54,8 +54,6 @@ public:
           int firstOutput=0,    // The first accessible channel/component/tile
           bool externalConnection=false); // Is there a port to send data on if it
                                           // isn't for any local component?);
-
-  virtual ~Network();
 
 //==============================//
 // Methods
@@ -84,8 +82,6 @@ protected:
 //==============================//
 
 protected:
-
-  const unsigned int numInputs, numOutputs;
 
   // The channel/component/tile accessible through the first output port.
   // For example, this network may only send to memories, so whilst the target

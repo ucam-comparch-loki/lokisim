@@ -14,6 +14,7 @@
 #include "../../../Communication/loki_ports.h"
 #include "../../../Datatype/MemoryRequest.h"
 #include "../../../Memory/BufferArray.h"
+#include "../../../Network/NetworkTypedefs.h"
 
 class AddressedWord;
 class ChannelMapTable;
@@ -38,11 +39,11 @@ public:
   sc_in<bool>            clock;
 
   // Data outputs to the network.
-  loki_out<AddressedWord> *output;
+  LokiVector<DataOutput> output;
 
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.
-  loki_in<AddressedWord>  *creditsIn;
+  LokiVector<CreditInput> creditsIn;
 
 //==============================//
 // Constructors and destructors
@@ -52,7 +53,6 @@ public:
 
   SC_HAS_PROCESS(SendChannelEndTable);
   SendChannelEndTable(sc_module_name name, const ComponentID& ID, ChannelMapTable* cmt);
-  virtual ~SendChannelEndTable();
 
 //==============================//
 // Methods

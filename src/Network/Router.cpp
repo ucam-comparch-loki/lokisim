@@ -8,31 +8,16 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "Router.h"
+#include "Topologies/LocalNetwork.h"
 
 void Router::receiveData(PortIndex input) {
-//  if(clock.posedge()) {
-//    // Wait a delta cycle in case the valid signal is deasserted.
-//    next_trigger(sc_core::SC_ZERO_TIME);
-//  }
-//  else {
-    if(!dataIn[input].valid()) {
-      // The valid signal was deasserted - wait until it goes high again.
-      next_trigger(dataIn[input].default_event());
-    }
-    else if(inputBuffers[input].full()) {
-      // There is no space to read the value from the network - wait a clock
-      // cycle and check again.
-      next_trigger(clock.posedge_event());
-    }
-    else {
-      // Put the new data into a buffer.
-      inputBuffers[input].write(dataIn[input].read());
-      dataIn[input].ack();
+  cout << this->name() << " received data on input " << (int)input << endl;
 
-      // Wait until the clock edge to deassert the acknowledgement.
-      next_trigger(clock.posedge_event());
-    }
-//  }
+  assert(!inputBuffers[input].full());
+
+  // Put the new data into a buffer.
+  inputBuffers[input].write(dataIn[input].read());
+  dataIn[input].ack();
 }
 
 void Router::routeData() {
@@ -67,14 +52,63 @@ void Router::routeData() {
   }
 }
 
+void Router::sendToLocalNetwork() {
+  switch(state) {
+
+    case WAITING_FOR_DATA:
+      // Wait until there is data in the buffer.
+      if(outputBuffers[LOCAL].empty())
+        next_trigger(outputBuffers[LOCAL].writeEvent());
+      else {
+        // Issue a request for arbitration.
+        localNetwork->makeRequest(id, outputBuffers[LOCAL].peek().channelID(), true);
+        state = ARBITRATING;
+        next_trigger(clock.posedge_event());
+      }
+      break;
+
+    case ARBITRATING:
+      // Wait for the request to be granted.
+      if(!localNetwork->requestGranted(id, outputBuffers[LOCAL].peek().channelID())) {
+        next_trigger(clock.posedge_event());
+      }
+      else {
+        // Send the data and remove the arbitration request.
+        const AddressedWord& dataToSend = outputBuffers[LOCAL].read();
+
+        if(dataToSend.endOfPacket())
+          localNetwork->makeRequest(id, dataToSend.channelID(), false);
+
+        dataOut[LOCAL].write(dataToSend);
+
+        state = WAITING_FOR_ACK;
+        next_trigger(dataOut[LOCAL].ack_event());
+      }
+      break;
+
+    case WAITING_FOR_ACK:
+      // Wait until the beginning of the next cycle before trying to send more data.
+      state = WAITING_FOR_DATA;
+      next_trigger(sc_core::SC_ZERO_TIME);
+      break;
+
+  }// end switch
+}
+
 void Router::sendData() {
-  for(int i=0; i<5; i++) {
+  for(int i=0; i<4; i++) {
     // We can send data if there is data to send, and there is no unacknowledged
     // data already on the output port.
     if(!outputBuffers[i].empty() && !dataOut[i].valid()) {
       dataOut[i].write(outputBuffers[i].read());
     }
   }
+}
+
+void Router::updateFlowControl() {
+  bool canReceive = !inputBuffers[LOCAL].full();
+  if(readyOut.read() != canReceive)
+    readyOut.write(canReceive);
 }
 
 Router::Direction Router::routeTo(ChannelID destination) const {
@@ -90,20 +124,23 @@ Router::Direction Router::routeTo(ChannelID destination) const {
   else                  return LOCAL;
 }
 
-Router::Router(const sc_module_name& name, const ComponentID& ID) :
+Router::Router(const sc_module_name& name, const ComponentID& ID, local_net_t* network) :
     Component(name, ID),
     inputBuffers(5, ROUTER_BUFFER_SIZE, "input_data"),
     outputBuffers(5, ROUTER_BUFFER_SIZE, "output_data"),
     xPos(ID.getTile() % NUM_TILE_COLUMNS),
-    yPos(ID.getTile() / NUM_TILE_COLUMNS) {
+    yPos(ID.getTile() / NUM_TILE_COLUMNS),
+    localNetwork(network) {
+
+  state = WAITING_FOR_DATA;
 
   for(int i=0; i<5; i++) lastAccepted[i] = -1;
 
-  dataIn = new DataInput[5];    dataOut = new DataOutput[5];
+  dataIn.init(5);    dataOut.init(5);
 
   // Generate a method to watch each input port, putting the data into the
   // appropriate buffer when it arrives.
-  for(int i=0; i<5; i++)
+  for(unsigned int i=0; i<dataIn.length(); i++)
     SPAWN_METHOD(dataIn[i], Router::receiveData, i, false);
 
   SC_METHOD(routeData);
@@ -116,9 +153,11 @@ Router::Router(const sc_module_name& name, const ComponentID& ID) :
   sensitive << clock.pos();
   dont_initialize();
 
-}
+  SC_METHOD(sendToLocalNetwork);
+  // do initialise
 
-Router::~Router() {
-  delete[] dataIn;
-  delete[] dataOut;
+  SC_METHOD(updateFlowControl);
+  sensitive << inputBuffers[LOCAL].readEvent() << inputBuffers[LOCAL].writeEvent();
+  // do initialise
+
 }

@@ -6,14 +6,16 @@
  */
 
 #include "Mesh.h"
+#include "../NetworkHierarchy.h"
 #include "../Router.h"
 
 void Mesh::makeRouters() {
   int tile = 0;
   for(unsigned int row=0; row<numRows; row++) {
     for(unsigned int col=0; col<numColumns; col++) {
-      routers[col][row] = new Router(sc_gen_unique_name("router"),
-                                     ComponentID(tile,0));
+      ComponentID routerID(tile, COMPONENTS_PER_TILE);
+      local_net_t* network = ((NetworkHierarchy*)(get_parent()))->getLocalNetwork(routerID);
+      routers[col][row] = new Router(sc_gen_unique_name("router"), routerID, network);
       tile++;
     }
   }
@@ -22,18 +24,10 @@ void Mesh::makeRouters() {
 void Mesh::makeWires() {
   // Note that there is one more column and one more row of wires than there
   // are routers. This is because there are wires on each side of each router.
-
-  dataSigNS  = new DataSignal*[numColumns+1];
-  dataSigSN  = new DataSignal*[numColumns+1];
-  dataSigEW  = new DataSignal*[numColumns+1];
-  dataSigWE  = new DataSignal*[numColumns+1];
-
-  for(unsigned int col=0; col<=numColumns; col++) {
-    dataSigNS[col]  = new DataSignal[numRows+1];
-    dataSigSN[col]  = new DataSignal[numRows+1];
-    dataSigEW[col]  = new DataSignal[numRows+1];
-    dataSigWE[col]  = new DataSignal[numRows+1];
-  }
+  dataSigNS.init(numColumns+1, numRows+1);
+  dataSigSN.init(numColumns+1, numRows+1);
+  dataSigEW.init(numColumns+1, numRows+1);
+  dataSigWE.init(numColumns+1, numRows+1);
 }
 
 void Mesh::wireUp() {
@@ -62,6 +56,7 @@ void Mesh::wireUp() {
       int tile = router.id.getTile();
       router.dataIn[Router::LOCAL](dataIn[tile]);
       router.dataOut[Router::LOCAL](dataOut[tile]);
+      router.readyOut(readyOut[tile]);
     }
   }
 }
@@ -80,6 +75,8 @@ Mesh::Mesh(const sc_module_name& name,
   // Can only handle inter-tile mesh networks at the moment.
   assert(level == Network::TILE);
 
+  readyOut.init(rows*columns);
+
   makeRouters();
   makeWires();
   wireUp();
@@ -87,13 +84,7 @@ Mesh::Mesh(const sc_module_name& name,
 }
 
 Mesh::~Mesh() {
-  for(unsigned int col=0; col<numColumns; col++) {
-    for(unsigned int row=0; row<numRows; row++) delete routers[col][row];
-
-    delete[] dataSigNS[col];    delete[] dataSigSN[col];
-    delete[] dataSigEW[col];    delete[] dataSigWE[col];
-  }
-
-  delete[] dataSigNS;           delete[] dataSigSN;
-  delete[] dataSigEW;           delete[] dataSigWE;
+  for (unsigned int i=0; i<routers.size(); i++)
+    for (unsigned int j=0; j<routers[i].size(); j++)
+      delete routers[i][j];
 }

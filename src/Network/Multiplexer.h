@@ -22,8 +22,8 @@ public:
 
   SelectInput  select;
 
-  DataInput   *dataIn;
-  DataOutput   dataOut;
+  LokiVector<DataInput> dataIn;
+  DataOutput            dataOut;
 
 //==============================//
 // Constructors and destructors
@@ -33,7 +33,6 @@ public:
 
   SC_HAS_PROCESS(Multiplexer);
   Multiplexer(const sc_module_name& name, int numInputs);
-  virtual ~Multiplexer();
 
 //==============================//
 // Methods
@@ -52,8 +51,6 @@ private:
 //==============================//
 
 private:
-
-  const int numInputs;
 
   bool haveSentData;
 

@@ -201,16 +201,16 @@ Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t*
 
   inputCrossbar = new InputCrossbar("input_crossbar", ID);
 
-  // Create signals, with the number based on the length of the pipeline.
-  stageIdle     = new sc_signal<bool>[4];
-  stallRegReady = new ReadySignal[3];
-  stageReady    = new ReadySignal[3];
-  instToStage   = new flag_signal<DecodedInst>[3];
-  instFromStage = new sc_buffer<DecodedInst>[3];
+  readyOut.init(CORE_INPUT_CHANNELS);
 
-  readyOut      = new ReadyOutput[CORE_INPUT_CHANNELS];
-  fcFromBuffers = new ReadySignal[CORE_INPUT_CHANNELS];
-  dataToBuffers = new sc_buffer<Word>[CORE_INPUT_CHANNELS];
+  // Create signals which connect the pipeline stages together. There are 4
+  // stages, so 3 links between stages.
+  stageIdle.init(4);
+  stallRegReady.init(3);      stageReady.init(3);
+  instToStage.init(3);        instFromStage.init(3);
+
+  dataToBuffers.init(CORE_INPUT_CHANNELS);
+  fcFromBuffers.init(CORE_INPUT_CHANNELS);
 
   // Wire the input ports to the input buffers.
   for(unsigned int i=0; i<CORE_INPUT_PORTS; i++)
@@ -281,7 +281,7 @@ Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t*
   // bypass the fetch stage and receive instructions from other cores.
   // Problem: what about instructions that take multiple cycles to execute?
   SC_METHOD(idlenessChanged);
-  sensitive << stageIdle[1];
+  sensitive << idle;
   // do initialise
 
   // Initialise the values in some wires.
@@ -290,11 +290,6 @@ Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t*
 
 Cluster::~Cluster() {
   delete inputCrossbar;
-
-  delete[] readyOut;
-  delete[] stageIdle;  		delete[] stallRegReady;  delete[] stageReady;
-  delete[] dataToBuffers; delete[] fcFromBuffers;
-  delete[] instToStage;  	delete[] instFromStage;
 
   for(unsigned int i=0; i<stallRegs.size(); i++) delete stallRegs[i];
 }

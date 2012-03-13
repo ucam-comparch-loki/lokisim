@@ -83,10 +83,6 @@ EndArbiter::EndArbiter(const sc_module_name& name, ComponentID ID,
     BasicArbiter(name, ID, inputs, outputs, wormhole),
     flowControlSignals(flowControlSignals) {
 
-  readyIn = new ReadyInput[flowControlSignals];
+  readyIn.init(flowControlSignals);
 
-}
-
-EndArbiter::~EndArbiter() {
-  delete[] readyIn;
 }

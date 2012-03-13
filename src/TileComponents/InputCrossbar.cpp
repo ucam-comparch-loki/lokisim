@@ -20,8 +20,13 @@ void InputCrossbar::newData(PortIndex input) {
   assert(dataIn[input].valid());
 
   const AddressedWord& data = dataIn[input].read();
-  ChannelIndex destination = data.channelID().getChannel();
 
+  // For now, just ignore data which was destined for another core - we may
+  // treat it as an error later.
+//  if(data.channelID().getPosition() != id.getPosition());
+//    return;
+
+  ChannelIndex destination = data.channelID().getChannel();
   if(destination >= numOutputs) cerr << "Trying to send to " << data.channelID() << endl;
   assert(destination < numOutputs);
 
@@ -53,20 +58,19 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
 
   creditNet.initialise();
 
-  dataIn           = new DataInput[numInputs];
-  readyOut         = new ReadyOutput[numOutputs];
-
-  dataOut          = new sc_out<Word>[numOutputs];
-  bufferHasSpace   = new ReadyInput[numOutputs];
+  dataIn.init(numInputs);
+  readyOut.init(numOutputs);
+  dataOut.init(numOutputs);
+  bufferHasSpace.init(numOutputs);
 
   // Possibly temporary: have only one credit output port, used for sending
   // credits to other tiles. Credits aren't used for local communication.
-  creditsOut       = new CreditOutput[1];
+  creditsOut.init(1);
 
-  dataToBuffer     = new DataSignal[numOutputs];
-  creditsToNetwork = new CreditSignal[numOutputs];
+  dataToBuffer.init(numOutputs);
+  creditsToNetwork.init(numOutputs);
 
-  sendData         = new sc_event[numOutputs];
+  sendData.init(numOutputs);
 
   // Method for each input port, forwarding data to the correct buffer when it
   // arrives. Each channel end has a single writer, so it is impossible to
@@ -101,15 +105,6 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
 }
 
 InputCrossbar::~InputCrossbar() {
-  delete[] dataIn;            delete[] readyOut;
-  delete[] creditsOut;
-  delete[] dataOut;
-  delete[] bufferHasSpace;
-
-  delete[] dataToBuffer;
-  delete[] creditsToNetwork;
-
-  delete[] sendData;
-
-  for(unsigned int i=0; i<flowControl.size(); i++) delete flowControl[i];
+  for(unsigned int i=0; i<flowControl.size(); i++)
+    delete flowControl[i];
 }

@@ -21,6 +21,8 @@ void         DecodeStage::execute() {
     newInput(inst);
 
     // Once the next cycle starts, revert to being idle.
+    // FIXME: There are a log of signal writes going on here. Is it possible to
+    // only write "true" when we know we won't get an instruction this cycle?
     wait(clock.posedge_event());
     idle.write(true);
   }
@@ -164,8 +166,8 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
     rcet("rcet", ID),
     decoder("decoder", ID) {
 
-  dataIn         = new sc_in<Word>[NUM_RECEIVE_CHANNELS];
-  flowControlOut = new sc_out<bool>[NUM_RECEIVE_CHANNELS];
+  dataIn.init(NUM_RECEIVE_CHANNELS);
+  flowControlOut.init(NUM_RECEIVE_CHANNELS);
 
   // Connect everything up
   rcet.clock(clock);
@@ -179,12 +181,7 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
   SC_THREAD(execute);
 
   SC_METHOD(updateReady);
-  sensitive << readyChangedEvent << decoder.stalledEvent();
+  sensitive << decoder.stalledEvent();
   // do initialise
 
-}
-
-DecodeStage::~DecodeStage() {
-  delete[] dataIn;
-  delete[] flowControlOut;
 }

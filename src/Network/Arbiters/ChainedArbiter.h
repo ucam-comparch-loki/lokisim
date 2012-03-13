@@ -32,8 +32,8 @@ public:
 //  SelectOutput *select;
 
   // Connections to the next arbiter in the chain.
-  RequestOutput *requestOut;
-  GrantInput    *grantIn;
+  LokiVector<RequestOutput> requestOut;
+  LokiVector<GrantInput>    grantIn;
 
 //==============================//
 // Constructors and destructors
@@ -43,7 +43,6 @@ public:
 
   ChainedArbiter(const sc_module_name& name, ComponentID ID,
                  int inputs, int outputs, bool wormhole);
-  virtual ~ChainedArbiter();
 
 //==============================//
 // Methods

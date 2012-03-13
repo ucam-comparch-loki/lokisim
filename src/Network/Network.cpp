@@ -17,7 +17,7 @@ PortIndex Network::getDestination(const ChannelID& address) const {
     case TILE : port = address.getTile(); break;
     case COMPONENT : {
       if(externalConnection && (address.getTile() != id.getTile()))
-        return numOutputs-1;
+        return numOutputPorts()-1;
       else
         port = address.getPosition();
       break;
@@ -25,7 +25,7 @@ PortIndex Network::getDestination(const ChannelID& address) const {
     case CHANNEL : {
       if(externalConnection && ((address.getTile() != id.getTile()) ||
                                 (address.getPosition() != id.getPosition())))
-        return numOutputs-1;
+        return numOutputPorts()-1;
       else
         port = address.getChannel();
       break;
@@ -40,16 +40,16 @@ PortIndex Network::getDestination(const ChannelID& address) const {
 
 DataInput& Network::externalInput() const {
   assert(externalConnection);
-  return dataIn[numInputs-1];
+  return dataIn[numInputPorts()-1];
 }
 
 DataOutput& Network::externalOutput() const {
   assert(externalConnection);
-  return dataOut[numOutputs-1];
+  return dataOut[numOutputPorts()-1];
 }
 
-unsigned int Network::numInputPorts()  const {return numInputs;}
-unsigned int Network::numOutputPorts() const {return numOutputs;}
+unsigned int Network::numInputPorts()  const {return dataIn.length();}
+unsigned int Network::numOutputPorts() const {return dataOut.length();}
 
 Network::Network(const sc_module_name& name,
     const ComponentID& ID,
@@ -61,22 +61,14 @@ Network::Network(const sc_module_name& name,
     bool externalConnection) : // Is there a port to send data on if it
                                // isn't for any local component?
     Component(name, ID),
-    numInputs(externalConnection ? (numInputs+1) : numInputs),
-    numOutputs(externalConnection ? (numOutputs+1) : numOutputs),
     firstOutput(firstOutput),
     level(level),
     externalConnection(externalConnection),
     size(size) {
 
-  assert(numInputs > 0);
-  assert(numOutputs > 0);
+  unsigned int totalInputs  = externalConnection ? (numInputs+1) : numInputs;
+  unsigned int totalOutputs = externalConnection ? (numOutputs+1) : numOutputs;
+  dataIn.init(totalInputs);
+  dataOut.init(totalOutputs);
 
-  dataIn  = new DataInput[this->numInputs];
-  dataOut = new DataOutput[this->numOutputs];
-
-}
-
-Network::~Network() {
-  delete[] dataIn;
-  delete[] dataOut;
 }

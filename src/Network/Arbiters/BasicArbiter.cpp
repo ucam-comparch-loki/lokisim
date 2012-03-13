@@ -10,8 +10,8 @@
 #include "BasicArbiter.h"
 #include "../../Arbitration/ArbiterBase.h"
 
-int BasicArbiter::numInputs()  const {return inputs;}
-int BasicArbiter::numOutputs() const {return outputs;}
+int BasicArbiter::numInputs()  const {return requests.length();}
+int BasicArbiter::numOutputs() const {return select.length();}
 
 void BasicArbiter::arbitrate(int output) {
   switch(state[output]) {
@@ -36,7 +36,7 @@ void BasicArbiter::arbitrate(int output) {
       changeSelection(output, grant);
 
       if(grant != ArbiterBase::NO_GRANT) {    // Successful grant
-        assert(grant < inputs);
+        assert(grant < numInputs());
 
         // Remove the granted request from consideration.
         requestVec[grant] = false;
@@ -62,7 +62,7 @@ void BasicArbiter::arbitrate(int output) {
     // to send the grant. Send it now.
     case WAITING_TO_GRANT: {
       SelectType granted = selectVec[output];
-      assert(granted < inputs);
+      assert(granted < numInputs());
       assert(granted >= 0);
 
       bool requestStillActive = (requests[granted].read() != NO_REQUEST);
@@ -90,7 +90,7 @@ void BasicArbiter::arbitrate(int output) {
     // grant now.
     case GRANTED: {
       SelectType granted = selectVec[output];
-      assert(granted < inputs);
+      assert(granted < numInputs());
       assert(granted != NO_SELECTION);
 
       if(requests[granted].read() == NO_REQUEST) {
@@ -149,7 +149,7 @@ void BasicArbiter::changeSelection(int output, SelectType value) {
 bool BasicArbiter::haveRequest() const {
   // A simple loop through the vector for now. If this proves to be too
   // expensive, could keep a separate count.
-  for(int i=0; i<inputs; i++) {
+  for(int i=0; i<numInputs(); i++) {
     if(requestVec[i] && !grantVec[i]) return true;
   }
 
@@ -184,24 +184,23 @@ void BasicArbiter::updateSelect(int output) {
 BasicArbiter::BasicArbiter(const sc_module_name& name, ComponentID ID,
                            int inputs, int outputs, bool wormhole) :
     Component(name, ID),
-    inputs(inputs),
-    outputs(outputs),
     wormhole(wormhole),
     requestVec(inputs, false),
     grantVec(inputs, false),
     selectVec(outputs, -1),
     state(outputs, NO_REQUESTS) {
 
-  requests = new RequestInput[inputs];
-  grants   = new GrantOutput[inputs];
-  select   = new SelectOutput[outputs];
+  requests.init(inputs);
+  grants.init(inputs);
+  select.init(outputs);
 
-  grantChanged = new sc_event[inputs];
-  selectionChanged = new sc_event[outputs];
+  grantChanged.init(inputs);
+  selectionChanged.init(outputs);
 
   // Set some initial value for the select signals, so they generate an event
   // whenever they change to a valid value.
-  for(int i=0; i<outputs; i++) select[i].initialize(NO_SELECTION);
+  for(int i=0; i<outputs; i++)
+    select[i].initialize(NO_SELECTION);
 
   arbiter = ArbiterBase::makeArbiter(ArbiterBase::ROUND_ROBIN, &requestVec, &grantVec);
 
@@ -226,12 +225,5 @@ BasicArbiter::BasicArbiter(const sc_module_name& name, ComponentID ID,
 }
 
 BasicArbiter::~BasicArbiter() {
-  delete[] requests;
-  delete[] grants;
-  delete[] select;
-
-  delete[] grantChanged;
-  delete[] selectionChanged;
-
   delete arbiter;
 }

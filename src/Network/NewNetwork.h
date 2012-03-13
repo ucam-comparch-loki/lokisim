@@ -35,11 +35,11 @@ public:
 
   // Data coming in to the network, and an extra bit to say whether the data
   // is currently valid.
-  DataInput *dataIn;
+  LokiVector<DataInput>  dataIn;
 
   // Data leaving the network, and an extra bit to say whether the data is
   // currently valid.
-  DataOutput *dataOut;
+  LokiVector<DataOutput> dataOut;
 
 //==============================//
 // Constructors and destructors
@@ -59,8 +59,6 @@ public:
           int firstOutput=0,    // The first accessible channel/component/tile
           bool externalConnection=false); // Is there a port to send data on if it
                                           // isn't for any local component?);
-
-  virtual ~NewNetwork();
 
 //==============================//
 // Methods
@@ -89,8 +87,6 @@ protected:
 //==============================//
 
 protected:
-
-  const unsigned int numInputs, numOutputs;
 
   // The channel/component/tile accessible through the first output port.
   // For example, this network may only send to memories, so whilst the target

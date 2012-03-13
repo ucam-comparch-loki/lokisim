@@ -1172,7 +1172,7 @@ void MemoryBank::handleDataOutput() {
   // If we have new data to send:
   if(!mOutputWordPending) {
     if(mOutputQueue.empty()) {
-      next_trigger(mOutputQueue.newDataEvent());
+      next_trigger(mOutputQueue.writeEvent());
     }
     else {
       OutputWord outWord = mOutputQueue.read();

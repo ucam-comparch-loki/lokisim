@@ -16,6 +16,7 @@
 #include "InstructionPacketCache.h"
 #include "InstructionPacketFIFO.h"
 #include "../../../Datatype/Instruction.h"
+#include "../../../Network/NetworkTypedefs.h"
 
 class FetchStage : public PipelineStage {
 
@@ -36,7 +37,7 @@ public:
   sc_in<Word>         toIPKFIFO;
 
   // A flow control signal from each of the two instruction inputs.
-  sc_out<bool>       *flowControl;
+  LokiVector<ReadyOutput> flowControl;
 
   // The decoded instruction after passing through this pipeline stage.
   // DecodedInst holds all necessary fields for data at all stages throughout
@@ -44,7 +45,7 @@ public:
   sc_out<DecodedInst> instructionOut;
 
   // Tells whether the next stage is ready to receive a new instruction.
-  sc_in<bool>         readyIn;
+  ReadyInput          readyIn;
 
 //==============================//
 // Constructors and destructors
@@ -54,7 +55,6 @@ public:
 
   SC_HAS_PROCESS(FetchStage);
   FetchStage(sc_module_name name, const ComponentID& ID);
-  virtual ~FetchStage();
 
 //==============================//
 // Methods

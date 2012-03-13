@@ -111,6 +111,7 @@ void NetworkHierarchy::makeGlobalNetwork() {
     n->externalReadyInput()(globalReadyForData[i]);
     globalDataNetwork->dataOut[i](dataToLocalNet[i]);
     globalDataNetwork->dataIn[i](dataFromLocalNet[i]);
+    globalDataNetwork->readyOut[i](globalReadyForData[i]);
   }
 
   // Make credit network.
@@ -128,8 +129,10 @@ void NetworkHierarchy::makeGlobalNetwork() {
     local_net_t* n = localNetworks[i];
     n->externalCreditIn()(creditsToLocalNet[i]);
     n->externalCreditOut()(creditsFromLocalNet[i]);
+//    n->externalReadyInput()(globalReadyForCredits[i]);
     globalCreditNetwork->dataOut[i](creditsToLocalNet[i]);
     globalCreditNetwork->dataIn[i](creditsFromLocalNet[i]);
+    globalCreditNetwork->readyOut[i](globalReadyForCredits[i]);
   }
 
 }
@@ -140,23 +143,23 @@ NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
 
   // Make ports.
   // There are data ports for all components, but credit ports only for cores.
-  dataIn                = new DataInput[TOTAL_OUTPUT_PORTS];
-  dataOut               = new DataOutput[TOTAL_INPUT_PORTS];
-  creditsIn             = new CreditInput[NUM_CORES];
-  creditsOut            = new CreditOutput[CORE_OUTPUT_PORTS * NUM_CORES];
+  dataIn.init(TOTAL_OUTPUT_PORTS);
+  dataOut.init(TOTAL_INPUT_PORTS);
+  creditsIn.init(NUM_CORES);
+  creditsOut.init(CORE_OUTPUT_PORTS * NUM_CORES);
 
   int readyPorts = (CORES_PER_TILE * CORE_INPUT_CHANNELS + MEMS_PER_TILE) * NUM_TILES;
-  readyDataOut          = new ReadyInput[readyPorts];
+  readyDataOut.init(readyPorts);
 
   // Make wires between local and global networks.
-  dataFromLocalNet      = new DataSignal[NUM_TILES];
-  dataToLocalNet        = new DataSignal[NUM_TILES];
-  creditsFromLocalNet   = new CreditSignal[NUM_TILES];
-  creditsToLocalNet     = new CreditSignal[NUM_TILES];
-  localReadyForData     = new ReadySignal[NUM_TILES];
-  localReadyForCredits  = new ReadySignal[NUM_TILES];
-  globalReadyForData    = new ReadySignal[NUM_TILES];
-  globalReadyForCredits = new ReadySignal[NUM_TILES];
+  dataFromLocalNet.init(NUM_TILES);
+  dataToLocalNet.init(NUM_TILES);
+  creditsFromLocalNet.init(NUM_TILES);
+  creditsToLocalNet.init(NUM_TILES);
+  localReadyForData.init(NUM_TILES);
+  localReadyForCredits.init(NUM_TILES);
+  globalReadyForData.init(NUM_TILES);
+  globalReadyForCredits.init(NUM_TILES);
 
   // Make flow control (only necessary for off-chip component - integrate there
   // too?)
@@ -174,15 +177,6 @@ NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
 }
 
 NetworkHierarchy::~NetworkHierarchy() {
-  delete[] dataIn;                    delete[] dataOut;
-  delete[] creditsIn;                 delete[] creditsOut;
-  delete[] readyDataOut;
-
-  delete[] dataToLocalNet;            delete[] dataFromLocalNet;
-  delete[] creditsToLocalNet;         delete[] creditsFromLocalNet;
-  delete[] localReadyForData;         delete[] globalReadyForData;
-  delete[] localReadyForCredits;      delete[] globalReadyForCredits;
-
   for(uint i=0; i<flowControlIn.size(); i++) delete flowControlIn[i];
   for(uint i=0; i<flowControlOut.size(); i++) delete flowControlOut[i];
 

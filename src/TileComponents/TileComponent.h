@@ -33,17 +33,17 @@ public:
 
   // All inputs to the component. They still have addresses in case there are
   // multiple channel ends accessible through each port.
-  DataInput     *dataIn;
+  LokiVector<DataInput>    dataIn;
 
   // All outputs of the component.
-  DataOutput    *dataOut;
+  LokiVector<DataOutput>   dataOut;
 
   // Credits to be sent across the network.
-  CreditOutput  *creditsOut;
+  LokiVector<CreditOutput> creditsOut;
 
   // Credits received from the network. They still have addresses in case there
   // are multiple channel ends accessible through each port.
-  CreditInput   *creditsIn;
+  LokiVector<CreditInput>  creditsIn;
 
   // Signal that this component is not currently doing any work.
   sc_out<bool>   idle;
@@ -57,7 +57,6 @@ public:
   SC_HAS_PROCESS(TileComponent);
   TileComponent(sc_module_name name, const ComponentID& ID,
                 int inputPorts, int outputPorts);
-  virtual ~TileComponent();
 
 //==============================//
 // Methods
@@ -102,14 +101,6 @@ protected:
 private:
 
   void acknowledgeCredit(PortIndex output);
-
-//==============================//
-// Local state
-//==============================//
-
-private:
-
-  const unsigned int numInputPorts, numOutputPorts;
 
 };
 

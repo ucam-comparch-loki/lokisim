@@ -39,7 +39,7 @@ void SendChannelEndTable::sendLoop() {
       if(buffer.empty()) {
         // When will this event be triggered? Will waiting 0.6 cycles always work?
         // Can we ensure that the data always arrives at the start of the cycle?
-        next_trigger(buffer.newDataEvent());
+        next_trigger(buffer.writeEvent());
       }
       else {
         state = DATA_READY;
@@ -176,8 +176,8 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID&
 
   static const unsigned int NUM_BUFFERS = CORE_OUTPUT_PORTS;
 
-  output      = new loki_out<AddressedWord>[NUM_BUFFERS];
-  creditsIn   = new loki_in<AddressedWord>[NUM_BUFFERS];
+  output.init(NUM_BUFFERS);
+  creditsIn.init(NUM_BUFFERS);
 
   waiting = false;
 
@@ -185,9 +185,4 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID&
 
   SC_METHOD(creditFromCores);  sensitive << creditsIn[0];  dont_initialize();
 
-}
-
-SendChannelEndTable::~SendChannelEndTable() {
-  delete[] output;
-  delete[] creditsIn;
 }

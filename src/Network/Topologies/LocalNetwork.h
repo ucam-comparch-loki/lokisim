@@ -17,6 +17,7 @@
 #include "../NewNetwork.h"
 #include "Crossbar.h"
 #include "NewCrossbar.h"
+#include "../../Utility/LokiVector2D.h"
 
 class EndArbiter;
 
@@ -41,12 +42,13 @@ public:
   // to happen in series in one cycle.
   sc_in<bool>   fastClock, slowClock;
 
-  CreditInput  *creditsIn;
-  CreditOutput *creditsOut;
+  LokiVector<CreditInput>  creditsIn;
+  LokiVector<CreditOutput> creditsOut;
 
   // An array of signals from each component, telling whether each of the
   // component's input buffers are ready to receive data.
-  ReadyInput  **readyIn;
+  // Address using readyIn[component][buffer]
+  LokiVector2D<ReadyInput>  readyIn;
 
 //==============================//
 // Constructors and destructors
@@ -55,7 +57,6 @@ public:
 public:
 
   LocalNetwork(const sc_module_name& name, ComponentID tile);
-  virtual ~LocalNetwork();
 
 //==============================//
 // Methods
@@ -81,6 +82,10 @@ private:
   void createSignals();
   void wireUpSubnetworks();
 
+  // Method triggered whenever a core sends new data onto the network.
+  void newCoreData(int core);
+  void coreDataAck(int core);
+
 //==============================//
 // Components
 //==============================//
@@ -92,6 +97,13 @@ private:
 
 private:
 
+  // The possible component types to which data can be sent.
+  enum Destination {
+    CORE,
+    MEMORY,
+    GLOBAL_NETWORK
+  };
+
   NewCrossbar coreToCore, coreToMemory, memoryToCore, coreToGlobal, globalToCore;
 
   // Don't want the new-style crossbar for credits - we don't know in advance
@@ -100,12 +112,16 @@ private:
   // Bring globalToCore down here too?
   Crossbar c2gCredits, g2cCredits;
 
+  // Data from each core to each of the subnetworks.
+  // Addressed using dataSig[core][Destination]
+  LokiVector2D<DataSignal> dataSig;
+
   // Signals allowing arbitration requests to be made for cores/memories/routers.
   // Currently the signals are written using a function call, but they can
   // be removed if we set up a proper SystemC channel connection.
   // Addressed using coreRequests[requester][destination]
-  RequestSignal            **coreRequests, **memRequests, **globalRequests;
-  GrantSignal              **coreGrants,   **memGrants,   **globalGrants;
+  LokiVector2D<RequestSignal> coreRequests, memRequests, globalRequests;
+  LokiVector2D<GrantSignal>   coreGrants,   memGrants,   globalGrants;
 
 //==============================//
 // Local state

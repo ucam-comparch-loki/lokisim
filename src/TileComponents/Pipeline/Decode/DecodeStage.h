@@ -16,6 +16,7 @@
 #include "ReceiveChannelEndTable.h"
 #include "Decoder.h"
 #include "../../ChannelMapEntry.h"
+#include "../../../Network/NetworkTypedefs.h"
 
 class DecodeStage: public PipelineStage {
 
@@ -35,7 +36,7 @@ public:
   sc_in<DecodedInst>    instructionIn;
 
   // Tell whether this stage is ready for input (ignoring effects of any other stages).
-  sc_out<bool>          readyOut;
+  ReadyOutput           readyOut;
 
   // The decoded instruction after passing through this pipeline stage.
   // DecodedInst holds all necessary fields for data at all stages throughout
@@ -44,13 +45,13 @@ public:
 
   // Since this stage can produce multiple outputs from a single input
   // instruction, it needs to be told when it can send data.
-  sc_in<bool>           readyIn;
+  ReadyInput            readyIn;
 
   // The NUM_RECEIVE_CHANNELS inputs to the receive channel-end table.
-  sc_in<Word>          *dataIn;
+  LokiVector<sc_in<Word> > dataIn;
 
   // A flow control signal for each input (NUM_RECEIVE_CHANNELS).
-  sc_out<bool>         *flowControlOut;
+  LokiVector<ReadyOutput>  flowControlOut;
 
 //==============================//
 // Constructors and destructors
@@ -60,7 +61,6 @@ public:
 
   SC_HAS_PROCESS(DecodeStage);
   DecodeStage(sc_module_name name, const ComponentID& ID);
-  virtual ~DecodeStage();
 
 //==============================//
 // Methods
@@ -150,10 +150,6 @@ private:
   bool startingNewPacket;
 
   bool waitingToSend;
-
-  // An event which is triggered whenever something happens which may change
-  // whether this pipeline stage is busy or not.
-  sc_event readyChangedEvent;
 
 };
 

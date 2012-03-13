@@ -124,8 +124,8 @@ void Stalls::printStats() {
 
   if(endOfExecution == 0) return;
 
-  cout << "Cluster activity:" << endl;
-  cout << "  Cluster\tActive\tIdle\tStalled (insts|data|bypass|output)" << endl;
+  cout << "Core activity:" << endl;
+  cout << "  Core\t\tActive\tIdle\tStalled (insts|data|bypass|output)" << endl;
 
 	for(uint i=0; i<NUM_TILES; i++) {
 		for(uint j=0; j<COMPONENTS_PER_TILE; j++) {

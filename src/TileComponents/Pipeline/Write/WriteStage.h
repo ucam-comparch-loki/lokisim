@@ -15,8 +15,8 @@
 #include "../PipelineStage.h"
 #include "SendChannelEndTable.h"
 #include "../../ChannelMapEntry.h"
-#include "../../../Communication/loki_ports.h"
 #include "../../../Datatype/DecodedInst.h"
+#include "../../../Network/NetworkTypedefs.h"
 
 class WriteStage: public PipelineStage {
 
@@ -34,21 +34,21 @@ public:
   // The input instruction to be working on. DecodedInst holds all information
   // required for any pipeline stage to do its work.
   // Instructions should arrive on the positive clock edge.
-  sc_in<DecodedInst>     instructionIn;
+  sc_in<DecodedInst>      instructionIn;
 
   // Data (with an address) to be sent over the network.
   // Data can arrive at any time.
-  sc_in<DecodedInst>     dataIn;
+  sc_in<DecodedInst>      dataIn;
 
   // Tell whether this stage is ready for input (ignoring effects of any other stages).
-  sc_out<bool>           readyOut;
+  ReadyOutput             readyOut;
 
   // Data to send onto the network.
-  loki_out<AddressedWord> *output;
+  LokiVector<DataOutput>  output;
 
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.
-  loki_in<AddressedWord>  *creditsIn;
+  LokiVector<CreditInput> creditsIn;
 
 //==============================//
 // Constructors and destructors
@@ -58,7 +58,6 @@ public:
 
   SC_HAS_PROCESS(WriteStage);
   WriteStage(sc_module_name name, const ComponentID& ID);
-  virtual ~WriteStage();
 
 //==============================//
 // Methods

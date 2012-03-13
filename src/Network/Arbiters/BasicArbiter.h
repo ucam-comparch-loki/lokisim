@@ -33,10 +33,10 @@ public:
 
   sc_in<bool>   clock;
 
-  RequestInput *requests;
-  GrantOutput  *grants;
+  LokiVector<RequestInput> requests;
+  LokiVector<GrantOutput>  grants;
 
-  SelectOutput *select;
+  LokiVector<SelectOutput> select;
 
 //==============================//
 // Constructors and destructors
@@ -92,7 +92,6 @@ private:
 
 protected:
 
-  const int inputs, outputs;
   bool wormhole;
 
   // Store values of all inputs/outputs in vectors. This makes the information
@@ -119,8 +118,7 @@ private:
   ArbiterBase* arbiter;
 
   // Array of events which tell when to change each grant signal.
-  sc_event *grantChanged;
-  sc_event *selectionChanged;
+  LokiVector<sc_event> grantChanged, selectionChanged;
 
 };
 

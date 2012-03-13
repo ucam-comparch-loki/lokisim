@@ -34,6 +34,7 @@ public:
     assert(!empty());
     int i = readPos.value();
     incrementReadFrom();
+    this->readEvent_.notify();
     return this->data_[i];
   }
 
@@ -41,7 +42,7 @@ public:
   virtual void write(const T& newData) {
     assert(!full());
     this->data_[writePos.value()] = newData;
-    this->newData.notify();
+    this->writeEvent_.notify();
     incrementWriteTo();
   }
 
@@ -71,8 +72,14 @@ public:
     return this->size() - fillCount;
   }
 
-  const sc_event& newDataEvent() const {
-    return newData;
+  // Event which is triggered whenever data is read from the buffer.
+  const sc_event& readEvent() const {
+    return readEvent_;
+  }
+
+  // Event which is triggered whenever data is written to the buffer.
+  const sc_event& writeEvent() const {
+    return writeEvent_;
   }
 
   // Print the contents of the buffer.
@@ -118,7 +125,7 @@ private:
   LoopCounter readPos, writePos;
   uint16_t fillCount;
 
-  sc_event newData;
+  sc_event readEvent_, writeEvent_;
 
 };
 

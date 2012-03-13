@@ -37,18 +37,18 @@ public:
   sc_in<bool>   fastClock, slowClock;
 
   // Data received from each output of each networked component.
-  DataInput *dataIn;
+  LokiVector<DataInput>    dataIn;
 
   // Data sent to each networked component (after having its address removed
   // by the flow control components).
-  DataOutput *dataOut;
-  ReadyInput *readyDataOut;
+  LokiVector<DataOutput>   dataOut;
+  LokiVector<ReadyInput>   readyDataOut;
 
   // Flow control information received from each input of each component.
-  CreditInput *creditsIn;
+  LokiVector<CreditInput>  creditsIn;
 
   // A signal telling each input whether it is allowed to send a credit.
-  CreditOutput *creditsOut;
+  LokiVector<CreditOutput> creditsOut;
 
 
 //==============================//
@@ -106,10 +106,10 @@ private:
                 readyCreditFromOffchip;
 
   // Signals between local and global networks.
-  DataSignal   *dataToLocalNet,       *dataFromLocalNet;
-  CreditSignal *creditsToLocalNet,    *creditsFromLocalNet;
-  ReadySignal  *localReadyForData,    *localReadyForCredits,
-               *globalReadyForData,   *globalReadyForCredits;
+  LokiVector<DataSignal>   dataToLocalNet,       dataFromLocalNet;
+  LokiVector<CreditSignal> creditsToLocalNet,    creditsFromLocalNet;
+  LokiVector<ReadySignal>  localReadyForData,    localReadyForCredits,
+                           globalReadyForData,   globalReadyForCredits;
 
   // Signals between off-chip and its flow control component.
   DataSignal         dataFromOffChip;
