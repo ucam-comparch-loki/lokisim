@@ -29,7 +29,7 @@
 #include "Pipeline/ChannelMapTable.h"
 
 class InputCrossbar;
-class StallRegister;
+class PipelineRegister;
 
 class Cluster : public TileComponent {
 
@@ -48,7 +48,6 @@ public:
 //   idle
 
   LokiVector<ReadyOutput> readyOut;
-//  ReadyOutput          *readyOut;
 
   // A slight hack to improve simulation speed. Each core contains a small
   // network at its input buffers, so we need to skew the times that the
@@ -181,7 +180,7 @@ private:
   WriteStage             write;
 
   // A stall register to go between each pair of adjacent pipeline stages.
-  vector<StallRegister*> stallRegs;
+  vector<PipelineRegister*> pipelineRegs;
 
   ChannelMapTable        channelMapTable;
 
@@ -211,23 +210,18 @@ private:
 private:
 
   // A signal set to constantly hold "true".
-  sc_signal<bool>            constantHigh;
+  sc_signal<bool>              constantHigh;
 
   // Signals telling us which stages are idle, able to send data, or stalled.
   LokiVector<sc_signal<bool> > stageIdle;
-  LokiVector<ReadySignal>      stallRegReady, stageReady;
+  LokiVector<ReadySignal>      stageReady;
 
   // Connections between the input crossbar and the input buffers.
   LokiVector<sc_buffer<Word> > dataToBuffers;
   LokiVector<ReadySignal>      fcFromBuffers;
 
-  // Transmission of the instruction along the pipeline. sc_buffers because we
-  // want to trigger an event even if the instruction is identical.
-  LokiVector<flag_signal<DecodedInst> > instToStage;
-  LokiVector<sc_buffer<DecodedInst> >   instFromStage;
-
   // Data being sent to the output buffer.
-  sc_buffer<DecodedInst>     outputData;
+  sc_buffer<DecodedInst>       outputData;
 
 };
 

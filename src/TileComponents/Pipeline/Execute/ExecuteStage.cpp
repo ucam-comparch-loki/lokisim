@@ -19,37 +19,14 @@ void ExecuteStage::writeWord(MemoryAddr addr, Word data) const {parent()->writeW
 void ExecuteStage::writeByte(MemoryAddr addr, Word data) const {parent()->writeByte(addr, data);}
 
 void ExecuteStage::execute() {
-  // Reset everything on the clock edge.
-  if(clock.posedge()) {
-    // Have now finished executing, so this pipeline stage is idle.
-    idle.write(true);
+  if(currentInst.hasResult())
+    sendOutput();             // If there is already a result, don't do anything
+  else
+    newInput(currentInst);
 
-    // Invalidate the current instruction so its data isn't forwarded anymore.
-    currentInst.preventForwarding();
+  forwardedResult = currentInst.result();
 
-    next_trigger(instructionIn.default_event());
-  }
-  // If it isn't a clock edge, it means an instruction has just arrived.
-  else {
-    assert(instructionIn.event());
-    idle.write(false);
-
-    DecodedInst instruction = instructionIn.read();
-
-    // If the instruction already has a result, pass it straight on to the
-    // write stage.
-    if(instruction.hasResult()) {
-      currentInst = instruction;
-      executedInstruction.notify();
-      sendOutput();
-    }
-    // Execute the instruction and pass its output to any appropriate modules
-    // (i.e. register file, output buffer).
-    else
-      newInput(instruction);
-
-    next_trigger(clock.posedge_event());
-  }
+  instructionCompleted();
 }
 
 void ExecuteStage::updateReady() {
@@ -77,15 +54,15 @@ void ExecuteStage::newInput(DecodedInst& operation) {
     bool success = true;
 
     // Forward data from the previous instruction if necessary.
-    if(operation.operand1Source() == DecodedInst::BYPASS) {
-      operation.operand1(currentInst.result());
+    if(operation.operand1Source() == DecodedInst::BYPASS && previousInstExecuted) {
+      operation.operand1(forwardedResult);
       if(DEBUG) cout << this->name() << " forwarding contents of register "
-          << (int)operation.sourceReg1() << ": " << currentInst.result() << endl;
+          << (int)operation.sourceReg1() << ": " << forwardedResult << endl;
     }
-    if(operation.operand2Source() == DecodedInst::BYPASS) {
-      operation.operand2(currentInst.result());
+    if(operation.operand2Source() == DecodedInst::BYPASS && previousInstExecuted) {
+      operation.operand2(forwardedResult);
       if(DEBUG) cout << this->name() << " forwarding contents of register "
-          << (int)operation.sourceReg2() << ": " << currentInst.result() << endl;
+          << (int)operation.sourceReg2() << ": " << forwardedResult << endl;
     }
 
     if(DEBUG) cout << this->name() << ": executing " << operation.name()
@@ -138,13 +115,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         if(InstructionMap::isALUOperation(operation.opcode()))
           alu.execute(operation);
         break;
-    }
-
-    // Store the instruction now that it has a result which can be forwarded.
-    // This may need to change if ALU operations can ever take more than 1 cycle.
-    currentInst = operation;
-
-    executedInstruction.notify();
+    } // end switch
 
     if(success)
       sendOutput();
@@ -155,6 +126,8 @@ void ExecuteStage::newInput(DecodedInst& operation) {
     // try to forward data from it.
     currentInst.preventForwarding();
   }
+
+  previousInstExecuted = willExecute;
 }
 
 void ExecuteStage::sendOutput() {
@@ -164,7 +137,8 @@ void ExecuteStage::sendOutput() {
     // In practice, this would be performed by a separate, small functional
     // unit in parallel with the main ALU, so that there is time left to request
     // a path to memory.
-    if(currentInst.isMemoryOperation()) adjustNetworkAddress(currentInst);
+    if(currentInst.isMemoryOperation())
+      adjustNetworkAddress(currentInst);
 
     // Send the data to the output buffer - it will arrive immediately so that
     // network resources can be requested the cycle before they are used.
@@ -173,7 +147,7 @@ void ExecuteStage::sendOutput() {
 
   // Send the data to the register file - it will arrive at the beginning
   // of the next clock cycle.
-  instructionOut.write(currentInst);
+  outputInstruction(currentInst);
 }
 
 bool ExecuteStage::fetch(DecodedInst& inst) {
@@ -288,7 +262,7 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
 bool ExecuteStage::isStalled() const {
   // When we have multi-cycle operations (e.g. multiplies), we will need to use
   // this.
-  return false;
+  return !readyIn.read();
 }
 
 bool ExecuteStage::checkPredicate(DecodedInst& inst) {
@@ -308,7 +282,7 @@ const DecodedInst& ExecuteStage::currentInstruction() const {
 }
 
 const sc_event& ExecuteStage::executedEvent() const {
-  return executedInstruction;
+  return instructionCompletedEvent;
 }
 
 ExecuteStage::ExecuteStage(sc_module_name name, const ComponentID& ID) :
@@ -316,11 +290,11 @@ ExecuteStage::ExecuteStage(sc_module_name name, const ComponentID& ID) :
     alu("alu", ID) {
 
   SC_METHOD(execute);
-  sensitive << clock.pos();
+  sensitive << newInstructionEvent;
   dont_initialize();
 
   SC_METHOD(updateReady);
-  sensitive << executedInstruction;
+  sensitive << instructionCompletedEvent;
   // do initialise
 
 }

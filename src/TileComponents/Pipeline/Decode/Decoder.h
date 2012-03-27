@@ -118,6 +118,10 @@ private:
   // data forwarding is required.
   RegisterIndex previousDestination;
 
+  // If the previous instruction was predicated, we may not know whether
+  // forwarding will be possible, so must be pessimistic and read registers too.
+  bool previousInstPredicated;
+
 };
 
 #endif /* DECODER_H_ */

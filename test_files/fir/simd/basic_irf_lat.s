@@ -79,6 +79,22 @@ loop:
     ifp?ibjmp       -72
 # End of outer loop
 
-    seteq.p         r0,  r30, r0            # set p if we are core 0
-    ifp?syscall     1
-    addu.eop        r0,  r0,  r0
+    #seteq.p         r0,  r30, r0            # set p if we are core 0
+    #ifp?syscall     1
+    #addu.eop        r0,  r0,  r0
+
+    addui               r31, r31, -1            # num cores -> highest core index
+    setlt.p             r0,  r30, r31           # all cores except the highest receive word
+    ifp?addu            r0,  ch4, r0            # receive word
+
+    seteq.p             r0,  r30, r0            # all cores except 0 send a word
+    if!p?lli            r10, (0,1,0)            # start computing address of prev core
+    if!p?lli            r11, (0,0,6)            # want to send to input 6 (ch4)
+    if!p?addui          r12, r30, -1            # previous core id
+    if!p?mullw          r10, r10, r12           # now have something like (0,4,0)
+    if!p?addu           r10, r10, r11           # now have something like (0,4,6)
+    if!p?setchmapi      4,   r10
+    if!p?addu           r0,  r0,  r0    -> 4    # send sync message
+
+    ifp?syscall         1                       # if we are core 0, end
+    addu.eop            r0,  r0,  r0

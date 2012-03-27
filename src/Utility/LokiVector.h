@@ -25,6 +25,7 @@ public:
 
   LokiVector() {
     size_ = 0;
+    data_ = NULL;
   }
 
   LokiVector(size_t size) {

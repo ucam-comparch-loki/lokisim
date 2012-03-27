@@ -31,11 +31,6 @@ public:
 //   sc_out<bool>        idle
 //   sc_out<bool>        stallOut
 
-  // The input instruction to be working on. DecodedInst holds all information
-  // required for any pipeline stage to do its work.
-  // Instructions should arrive on the positive clock edge.
-  sc_in<DecodedInst>      instructionIn;
-
   // Data (with an address) to be sent over the network.
   // Data can arrive at any time.
   sc_in<DecodedInst>      dataIn;
@@ -74,9 +69,6 @@ private:
   virtual void   execute();
   virtual void   newInput(DecodedInst& inst);
 
-  // Set any default values at the start of each clock cycle.
-  void           reset();
-
   void           sendData();
 
   // Determine whether this stage is stalled or not, and write the appropriate
@@ -104,16 +96,6 @@ private:
   SendChannelEndTable scet;
 
   friend class SendChannelEndTable;
-
-//==============================//
-// Local state
-//==============================//
-
-private:
-
-  // The instruction whose result is currently being written to registers or
-  // the network. Used to determine whether forwarding is required.
-  DecodedInst currentInst;
 
 };
 

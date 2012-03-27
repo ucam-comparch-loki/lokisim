@@ -21,6 +21,7 @@ public:
 
   LokiVector2D() {
     size_ = 0;
+    data_ = NULL;
   }
 
   LokiVector2D(size_t width, size_t length) {

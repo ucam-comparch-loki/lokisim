@@ -12,19 +12,9 @@
 
 void         DecodeStage::execute() {
   while(true) {
-    // Wait for a new instruction to arrive.
-    wait(instructionIn.default_event());
-
-    // Deal with the new input. We are currently not idle.
-    idle.write(false);
-    DecodedInst inst = instructionIn.read(); // Don't want a const input.
-    newInput(inst);
-
-    // Once the next cycle starts, revert to being idle.
-    // FIXME: There are a log of signal writes going on here. Is it possible to
-    // only write "true" when we know we won't get an instruction this cycle?
-    wait(clock.posedge_event());
-    idle.write(true);
+    wait(newInstructionEvent);
+    newInput(currentInst);
+    instructionCompleted();
   }
 }
 
@@ -56,11 +46,6 @@ void         DecodeStage::newInput(DecodedInst& inst) {
   while(true) {
     DecodedInst decoded;
 
-    // Wait a small (arbitrary) amount of time to make sure the other pipeline
-    // stages receive their instructions first, and so know whether they should
-    // forward data to this instruction.
-    wait(sc_core::SC_ZERO_TIME);
-
     // Some instructions don't produce any output, or won't be executed.
     bool usefulOutput = decoder.decodeInstruction(inst, decoded);
 
@@ -70,13 +55,15 @@ void         DecodeStage::newInput(DecodedInst& inst) {
       // the instruction may change its destination.
       readChannelMapTable(decoded);
 
-      while(!readyIn.read()) {
+      // Need to double check whether we are able to send, because we may be
+      // sending multiple outputs.
+      while(!canSendInstruction()) {
         waitingToSend = true;
-        wait(1, sc_core::SC_NS);
+        wait(canSendEvent());
       }
 
       waitingToSend = false;
-      instructionOut.write(decoded);
+      outputInstruction(decoded);
     }
 
     // If the decoder is ready, we have finished the decode.
@@ -142,11 +129,6 @@ bool         DecodeStage::readyToFetch() const {
 
 void         DecodeStage::jump(JumpOffset offset) const {
   parent()->jump(offset);
-}
-
-bool         DecodeStage::discardNextInst() const {
-  // This is the 2nd pipeline stage, so the argument is 2.
-  return parent()->discardInstruction(2);
 }
 
 void         DecodeStage::unstall() {

@@ -10,22 +10,19 @@
 #include "../../../Datatype/DecodedInst.h"
 
 void FetchStage::execute() {
-  bool isIdle;
+  bool isIdle = false;
 
   if(cache.isEmpty() && fifo.isEmpty()) { // Wait for an instruction
     isIdle = true;
     next_trigger(fifo.fillChangedEvent() | cache.fillChangedEvent());
   }
-  else if(!readyIn.read()) {              // Wait until decoder is ready
-    isIdle = false;
-    next_trigger(readyIn.posedge_event());
+  else if(!canSendInstruction()) {        // Wait until decoder is ready
+    next_trigger(canSendEvent());
   }
   else if(!clock.negedge()) {             // Do fetch at negedge (why?)
-    isIdle = false;
     next_trigger(clock.negedge_event());
   }
   else {                                  // Pass an instruction to pipeline
-    isIdle = false;
     getInstruction();
     next_trigger(clock.negedge_event());
   }
@@ -38,7 +35,7 @@ void FetchStage::getInstruction() {
   // Select a new instruction if the decode stage is ready for one, unless
   // the FIFO and cache are both empty.
 
-  assert(readyIn.read());
+  assert(canSendInstruction());
 
   calculateSelect();
   MemoryAddr instAddr;
@@ -71,7 +68,8 @@ void FetchStage::getInstruction() {
   DecodedInst decoded(instruction);
   decoded.location(instAddr);
 
-  instructionOut.write(decoded);
+  outputInstruction(decoded);
+  instructionCompleted();
 
   if(DEBUG) {
     printf("%s selected instruction from %s: ", this->name(),
@@ -84,9 +82,9 @@ void FetchStage::updateReady() {
   // Consider the pipeline to be stalled if the first pipeline stage is not
   // allowed to do any work. Only report the stall status when it changes.
 
-  if(readyIn.read() == stalled) {
-    parent()->pipelineStalled(!readyIn.read());
-    stalled = !readyIn.read();
+  if(canSendInstruction() == stalled) {
+    stalled = !canSendInstruction();
+    parent()->pipelineStalled(stalled);
   }
 }
 
@@ -132,6 +130,12 @@ void FetchStage::nextIPK() {
   parent()->nextIPK();
 }
 
+void FetchStage::getNextInstruction() {
+  // This pipeline stage is dedicated to getting instructions, so call the main
+  // method from here.
+  execute();
+}
+
 FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
     cache("IPKcache", ID),
@@ -151,11 +155,8 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
 
   idle.initialize(true);
 
-  SC_METHOD(execute);
-  // do initialise
-
   SC_METHOD(updateReady);
-  sensitive << readyIn;
+  sensitive << /*canSendEvent() << FIXME*/ instructionCompletedEvent;
   // do initialise
 
 }

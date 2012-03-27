@@ -11,8 +11,10 @@
 #define PIPELINESTAGE_H_
 
 #include "../../Component.h"
+#include "../../Datatype/DecodedInst.h"
 
 class Cluster;
+class PipelineRegister;
 
 class PipelineStage : public Component {
 
@@ -41,6 +43,12 @@ protected:
 // Methods
 //==============================//
 
+public:
+
+  // Provide access to the surrounding pipeline registers. Either of these can
+  // be NULL - used at the ends of the pipeline.
+  void initPipeline(PipelineRegister* prev, PipelineRegister* next);
+
 protected:
 
   // Do I want a parent() method, so the user has to know the module hierarchy,
@@ -54,6 +62,47 @@ protected:
 
   // Recompute whether this pipeline stage is ready for new input.
   virtual void updateReady() = 0;
+  virtual bool isStalled() const;
+
+  // Obtain the next instruction to work on, and put it in the currentInst
+  // field.
+  virtual void getNextInstruction();
+
+  // Send the transformed instruction on to the next pipeline stage.
+  void outputInstruction(const DecodedInst& inst);
+
+  // Signal that this pipeline stage has finished work on the current
+  // instruction. This is separate from outputInstruction, above, as it is
+  // possible to produce multiple outputs from a single instruction (stw).
+  void instructionCompleted();
+
+  virtual bool canReceiveInstruction() const;
+  virtual bool canSendInstruction() const;
+
+  // Immediately after these events have been triggered, the outputs of the
+  // two methods above are known to be true.
+  const sc_event& canReceiveEvent() const;
+  const sc_event& canSendEvent() const;
+
+  // Discard the next instruction to be executed, which is currently waiting in
+  // a pipeline register. Returns whether anything was discarded.
+  bool discardNextInst();
+
+//==============================//
+// Local state
+//==============================//
+
+protected:
+
+  // The instruction currently being worked on.
+  DecodedInst currentInst;
+  bool currentInstValid;
+
+  sc_event newInstructionEvent, instructionCompletedEvent;
+
+private:
+
+  PipelineRegister *prev, *next;
 
 };
 

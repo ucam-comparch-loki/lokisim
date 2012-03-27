@@ -28,20 +28,12 @@ public:
 //   sc_out<bool>         idle
 //   sc_out<bool>         stallOut
 
-  // The input instruction to be working on. DecodedInst holds all information
-  // required for any pipeline stage to do its work.
-  sc_in<DecodedInst>  instructionIn;
-
   // Tell whether this stage is ready for input (ignoring effects of any other stages).
   sc_out<bool>        readyOut;
 
-  // The decoded instruction after passing through this pipeline stage.
-  // DecodedInst holds all necessary fields for data at all stages throughout
-  // the pipeline.
-  sc_out<DecodedInst> instructionOut;
-
   // Data to be sent over the network.
   sc_out<DecodedInst> dataOut;
+  sc_in<bool>         readyIn;
 
 //==============================//
 // Constructors and destructors
@@ -125,12 +117,10 @@ private:
 
 private:
 
-  // The instruction currently being executed. Used to determine if forwarding
-  // is required.
-  DecodedInst currentInst;
+  int32_t forwardedResult;
 
-  // Event which is triggered whenever an instruction's execution finishes.
-  sc_event executedInstruction;
+  // Don't use data forwarding if the previous instruction didn't execute.
+  bool previousInstExecuted;
 
 };
 

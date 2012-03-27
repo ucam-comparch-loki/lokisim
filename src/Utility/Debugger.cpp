@@ -276,7 +276,7 @@ void Debugger::finishExecution() {
   static int cyclesPerStep = (100 < TIMEOUT/50) ? 100 : TIMEOUT/50;
 
   while(cyclesIdle<maxIdleTime && cycleNumber<TIMEOUT &&
-//        !Instrumentation::executionFinished() &&
+        !Instrumentation::executionFinished() &&
         !sc_core::sc_end_of_simulation_invoked()) {
     executeNCycles(cyclesPerStep);
   }

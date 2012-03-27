@@ -131,8 +131,14 @@ private:
   // Current instruction pointer and refill pointer.
   LoopCounter readPointer, writePointer;
 
+  JumpOffset jumpAmount;
+  bool finishedPacket;
+
+  // When the read and write pointers are in the same place, we use this to
+  // tell whether the cache is full or empty.
+  bool lastOpWasARead;
+
   uint16_t fillCount;
-  uint16_t currInstBackup;   // In case it goes NOT_IN_USE and then a jump is used
 
   // Location of the next packet to be executed.
   // Do we want a single pending packet, or a queue of them?
@@ -145,9 +151,6 @@ private:
   // from. This allows us to set breakpoints easily, and also allows us to
   // determine which parts of the program are the hotspots.
   vector<MemoryAddr> locations;
-
-  // Store the most recent instruction address, so it can be accessed easily.
-  MemoryAddr previousLocation;
 
   static const uint16_t   NOT_IN_CACHE = -1;
   static const MemoryAddr DEFAULT_TAG  = 0xFFFFFFFF;

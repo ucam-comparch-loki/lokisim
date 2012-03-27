@@ -8,7 +8,7 @@
 # Piggybacks on Python's existing unit testing framework, but discards some of
 # the automation to give more control.
 
-import os, string, subprocess, sys, unittest
+import os, string, subprocess, sys, textwrap, unittest
 
 class SimulatorTest(unittest.TestCase):
             
@@ -183,8 +183,9 @@ class SimulatorTest(unittest.TestCase):
         red = "\033[91m"
         endColour = "\033[0m"
         firstPart = "[" + red + "FAILED" + endColour + "] " + testName
-        print firstPart.ljust(49),  # colour resets position in the line?
-        print "(" + errormessage + ")"
+        print firstPart.ljust(49)  # colour resets position in the line?
+        wrapper = textwrap.TextWrapper(width=78, initial_indent="  ", subsequent_indent="  ")
+        print wrapper.fill(errormessage)
         self.returncode = 1
         
     # Print a message with information about the successful test.

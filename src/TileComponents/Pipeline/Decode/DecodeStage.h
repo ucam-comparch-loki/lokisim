@@ -31,21 +31,8 @@ public:
 //   sc_out<bool>         idle
 //   sc_out<bool>         stallOut
 
-  // The input instruction to be working on. DecodedInst holds all information
-  // required for any pipeline stage to do its work.
-  sc_in<DecodedInst>    instructionIn;
-
   // Tell whether this stage is ready for input (ignoring effects of any other stages).
   ReadyOutput           readyOut;
-
-  // The decoded instruction after passing through this pipeline stage.
-  // DecodedInst holds all necessary fields for data at all stages throughout
-  // the pipeline.
-  sc_out<DecodedInst>   instructionOut;
-
-  // Since this stage can produce multiple outputs from a single input
-  // instruction, it needs to be told when it can send data.
-  ReadyInput            readyIn;
 
   // The NUM_RECEIVE_CHANNELS inputs to the receive channel-end table.
   LokiVector<sc_in<Word> > dataIn;
@@ -124,10 +111,6 @@ private:
 
   // Tell the instruction packet cache to jump to a new instruction.
   void           jump(JumpOffset offset) const;
-
-  // If an instruction is waiting to enter this pipeline stage, discard it.
-  // Returns whether anything was discarded.
-  bool           discardNextInst() const;
 
 //==============================//
 // Components

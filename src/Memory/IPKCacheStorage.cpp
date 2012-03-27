@@ -23,14 +23,6 @@ bool IPKCacheStorage::checkTags(const MemoryAddr& key, opcode_t operation) {
 
   for(uint i=0; i<this->tags.size(); i++) {
     if(this->tags[i] == key) {  // Found a match
-
-      // If we don't have an instruction ready to execute next, jump to the one
-      // we just found.
-      if(readPointer.isNull()) {
-        readPointer = i;
-        updateFillCount();
-      }
-
       // We know that the packet starts at this position in the cache.
       packet->cacheIndex = i;
 
@@ -54,21 +46,33 @@ bool IPKCacheStorage::checkTags(const MemoryAddr& key, opcode_t operation) {
 
 /* Returns the next item in the cache. */
 const Instruction& IPKCacheStorage::read() {
+
+  // Move the read pointer to the next instruction. In the common case, this
+  // will just be an increment, but we could also perform an in-buffer jump or
+  // switch to a new instruction packet.
+  if(jumpAmount != 0) {
+    readPointer += jumpAmount;
+    jumpAmount = 0;
+    updateFillCount();
+  }
+  else if(finishedPacket)
+    switchToPendingPacket();
+  else
+    incrementReadPos();
+
   assert(!readPointer.isNull());
 
-  int i = readPointer.value();
-  incrementReadPos();
-
-  previousLocation = locations[i];
-
-  Instruction& inst = this->data_[i];
-  if(inst.endOfPacket()) switchToPendingPacket();
+  Instruction& inst = this->data_[readPointer.value()];
+  finishedPacket = inst.endOfPacket();
+  lastOpWasARead = true;
 
   return inst;
 }
 
 /* Writes new data to a position determined using the given key. */
 void IPKCacheStorage::write(const Instruction& newData) {
+
+  incrementWritePos();
 
   // Determine whether this instruction is part of the packet which is currently
   // executing, or part of the packet due to execute next.
@@ -93,45 +97,20 @@ void IPKCacheStorage::write(const Instruction& newData) {
   locations[writePointer.value()] = packet->memAddr;
   packet->memAddr += BYTES_PER_WORD;
 
-  // If we're not serving instructions at the moment, start serving from here.
-  if(readPointer.isNull()) readPointer = writePointer;
-
-  incrementWritePos();
-
   // If this is the end of an instruction packet, mark the packet as being
   // in the cache - this may allow the next fetch request to be sent.
   if(newData.endOfPacket()) {
     packet->inCache = true;
-
-    // If this packet isn't being executed, move on and wait for the next one.
-    if(packet == &currentPacket && !packet->execute)
-      switchToPendingPacket();
+    lastOpWasARead = false;
   }
 }
 
 /* Jump to a new instruction at a given offset. */
 void IPKCacheStorage::jump(const JumpOffset offset) {
-
-  // Hack: if we move to the next packet, then discover we should have jumped,
-  // reset the next packet pointer.
-  if(startOfPacket(readPointer.value()) && !empty()) {
-    pendingPacket.cacheIndex = readPointer.value();
-  }
-
-  // Restore the read pointer if it was not being used.
-  if(readPointer.isNull()) readPointer = currInstBackup + offset;
-  else readPointer += offset - 1; // -1 because we have already incremented readPointer
-
-  updateFillCount();
-
-  // Update currentPacket if we have jumped to the start of a packet, or if
-  // currentPacket was previously an invalid value.
-  if(startOfPacket(readPointer.value()) || currentPacket.cacheIndex == NOT_IN_CACHE) {
-    currentPacket.cacheIndex = readPointer.value();
-  }
-
-  if(DEBUG) cout << "Jumped by " << (int)offset << " to instruction " <<
-      readPointer.value() << endl;
+  // Store the offset. The jump will be made next time an instruction is read
+  // from the cache.
+  jumpAmount = offset;
+  lastOpWasARead = false;
 }
 
 /* Return the memory address of the currently-executing packet. Only returns
@@ -147,16 +126,23 @@ const uint16_t IPKCacheStorage::remainingSpace() const {
 }
 
 const MemoryAddr IPKCacheStorage::getInstLocation() const {
-  return previousLocation;
+  return locations[readPointer.value()];
 }
 
 /* Returns whether the cache is empty. Note that even if a cache is empty,
  * it is still possible to access its contents if an appropriate tag is
  * looked up.
- * The cache pretends to be empty if the current packet is set to not execute
- * immediately - the packet is being preloaded, or has been aborted. */
+ * This behaviour makes it awkward to tell when the cache is actually empty!
+ * Need to take into account whether there are any packets queued up too. */
 bool IPKCacheStorage::empty() const {
-  return (readPointer.isNull()) || (fillCount == 0) || !currentPacket.execute;
+  if(currentPacket.cacheIndex == NOT_IN_CACHE)
+    return true;
+  else if(finishedPacket)
+    return (pendingPacket.cacheIndex == NOT_IN_CACHE) && (jumpAmount == 0);
+  else
+    return (fillCount == 0);
+
+  // FIXME: probably also need currentPacket.execute
 }
 
 /* Returns whether the cache is full. */
@@ -180,24 +166,23 @@ bool IPKCacheStorage::canFetch() const {
 }
 
 bool IPKCacheStorage::packetInProgress() const {
-  return currentPacket.memAddr != DEFAULT_TAG;
+  return currentPacket.memAddr != DEFAULT_TAG && !finishedPacket;
 }
 
 /* Begin reading the packet which is queued up to execute next. */
 void IPKCacheStorage::switchToPendingPacket() {
-  currInstBackup = readPointer - 1;  // We have incremented readPointer
 
   if(currentPacket.persistent)
     readPointer = currentPacket.cacheIndex;
   else {
+    assert(pendingPacket.cacheIndex != NOT_IN_CACHE);
     currentPacket = pendingPacket;
     pendingPacket.reset();
 
-    if(currentPacket.cacheIndex == NOT_IN_CACHE)
-      readPointer.setNull();
-    else
-      readPointer = currentPacket.cacheIndex;
+    readPointer = currentPacket.cacheIndex;
   }
+
+  lastOpWasARead = true;
 
   updateFillCount();
 
@@ -211,8 +196,6 @@ void IPKCacheStorage::cancelPacket() {
   // Stop the current packet executing if it hasn't finished arriving yet.
   if(currentPacket.arriving())
     currentPacket.execute = false;
-  else
-    switchToPendingPacket();
 }
 
 /* Store some initial instructions in the cache. */
@@ -255,10 +238,13 @@ void IPKCacheStorage::incrementReadPos() {
 }
 
 void IPKCacheStorage::updateFillCount() {
+  // Read and write pointers being in the same place could mean that the cache
+  // is full or empty. Determine which case it is using the most recent operation.
   if(writePointer == readPointer)
-    fillCount = this->size();
-  else if(readPointer.isNull())
-    fillCount = 0;
+    if(lastOpWasARead)
+      fillCount = 0;
+    else
+      fillCount = this->size();
   else
     fillCount = writePointer - readPointer;
 }
@@ -270,13 +256,16 @@ IPKCacheStorage::IPKCacheStorage(const uint16_t size, const std::string& name) :
     locations(size) {
 
   readPointer.setNull();
-  writePointer = 0;
+  writePointer = -1;
+
+  jumpAmount = 0;
 
   fillCount = 0;
   currentPacket.reset();
   pendingPacket.reset();
 
   currentPacket.execute = true;
+  finishedPacket = false;
 
   // Set all tags to a default value which is unlikely to be encountered in
   // execution.

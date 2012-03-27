@@ -223,6 +223,9 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   else
     previousDestination = -1;
 
+  previousInstPredicated = (input.predicate() == Instruction::P) ||
+                           (input.predicate() == Instruction::NOT_P);
+
   return continueToExecute;
 }
 
@@ -255,8 +258,11 @@ void Decoder::setOperand1(DecodedInst& dec) {
   RegisterIndex reg = dec.sourceReg1();
   bool indirect = dec.opcode() == InstructionMap::OP_IRDR;
 
-  if((reg == previousDestination) && !indirect)
+  if((reg == previousDestination) && !indirect) {
     dec.operand1Source(DecodedInst::BYPASS);
+    if(previousInstPredicated)
+      dec.operand1(readRegs(reg));
+  }
   else {
     dec.operand1(readRegs(reg, indirect));
     dec.operand1Source(DecodedInst::REGISTER);
@@ -278,8 +284,11 @@ void Decoder::setOperand2(DecodedInst& dec) {
   else if(dec.hasSrcReg2()) {
     RegisterIndex reg = dec.sourceReg2();
 
-    if(reg == previousDestination)
+    if(reg == previousDestination) {
       dec.operand2Source(DecodedInst::BYPASS);
+      if(previousInstPredicated)
+        dec.operand2(readRegs(reg));
+    }
     else {
       dec.operand2(readRegs(dec.sourceReg2()));
       dec.operand2Source(DecodedInst::REGISTER);
@@ -366,9 +375,7 @@ bool Decoder::shouldExecute(const DecodedInst& inst) {
 
     short predBits = inst.predicate();
 
-    result = //(predBits == Instruction::ALWAYS) ||
-             //(predBits == Instruction::END_OF_PACKET) ||
-             (predBits == Instruction::P     &&  parent()->predicate()) ||
+    result = (predBits == Instruction::P     &&  parent()->predicate()) ||
              (predBits == Instruction::NOT_P && !parent()->predicate());
   }
   else result = true;

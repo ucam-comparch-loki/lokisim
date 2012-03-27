@@ -8,7 +8,7 @@
 #include "../Chip.h"
 #include "Cluster.h"
 #include "InputCrossbar.h"
-#include "Pipeline/StallRegister.h"
+#include "Pipeline/PipelineRegister.h"
 #include "../Utility/InstructionMap.h"
 #include "../Datatype/ChannelID.h"
 #include "../Datatype/DecodedInst.h"
@@ -138,7 +138,7 @@ void     Cluster::pipelineStalled(bool stalled) {
 bool     Cluster::discardInstruction(int stage) {
   // The first pipeline stage to have a stall register before it is the 2nd.
   // Therefore reduce the index by 2 to get the position in the array.
-  return stallRegs[stage-2]->discard();
+  return pipelineRegs[stage-2]->discard();
 }
 
 void     Cluster::nextIPK() {
@@ -146,14 +146,14 @@ void     Cluster::nextIPK() {
   decode.unstall();
 
   // Discard any instructions which were queued up behind any stalled stages.
-  while(stallRegs[0]->discard())
+  while(pipelineRegs[0]->discard())
     /* continue discarding */;
 }
 
 void     Cluster::idlenessChanged() {
   // Use the decoder as the arbiter of idleness - we may sometimes bypass the
   // fetch stage.
-  Instrumentation::idle(id, decode.idle.read());
+  Instrumentation::idle(id, idle.read());
 }
 
 void Cluster::requestArbitration(ChannelID destination, bool request) {
@@ -206,8 +206,7 @@ Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t*
   // Create signals which connect the pipeline stages together. There are 4
   // stages, so 3 links between stages.
   stageIdle.init(4);
-  stallRegReady.init(3);      stageReady.init(3);
-  instToStage.init(3);        instFromStage.init(3);
+  stageReady.init(3);
 
   dataToBuffers.init(CORE_INPUT_CHANNELS);
   fcFromBuffers.init(CORE_INPUT_CHANNELS);
@@ -227,24 +226,10 @@ Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t*
   inputCrossbar->dataClock(slowClock);
   inputCrossbar->creditsOut[0](creditsOut[0]);
 
-  // Wire the stall registers up.
+  // Create pipeline registers.
   for(unsigned int i=0; i<3; i++) {
-    StallRegister* stallReg = new StallRegister(sc_gen_unique_name("stall"), i);
-
-    stallReg->clock(clock);               stallReg->readyOut(stallRegReady[i]);
-    stallReg->dataIn(instFromStage[i]);   stallReg->dataOut(instToStage[i]);
-
-    // A quick hack: allow the write stage's "ready" signal to propagate back
-    // two stages at once: the execute stage can write data straight into the
-    // output buffer. This means the execute stage's ready signal is ignored,
-    // which may become a problem when operations can take multiple cycles.
-    if(i == 0) stallReg->localStageReady(stageReady[i]);
-    else stallReg->localStageReady(stageReady[2]);
-
-    if(i < 2) stallReg->readyIn(stallRegReady[i+1]);
-    else 			stallReg->readyIn(constantHigh);
-
-    stallRegs.push_back(stallReg);
+    PipelineRegister* reg = new PipelineRegister(sc_gen_unique_name("pipe_reg"), i);
+    pipelineRegs.push_back(reg);
   }
 
   // Wire the pipeline stages up.
@@ -252,24 +237,25 @@ Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t*
   fetch.clock(clock);                     fetch.idle(stageIdle[0]);
   fetch.toIPKFIFO(dataToBuffers[0]);      fetch.flowControl[0](fcFromBuffers[0]);
   fetch.toIPKCache(dataToBuffers[1]);     fetch.flowControl[1](fcFromBuffers[1]);
-  fetch.readyIn(stallRegReady[0]);				fetch.instructionOut(instFromStage[0]);
+  fetch.initPipeline(NULL, pipelineRegs[0]);
 
   decode.clock(clock);                    decode.idle(/*stageIdle[1]*/idle);
-  decode.readyIn(stallRegReady[1]);       decode.instructionOut(instFromStage[1]);
-  decode.readyOut(stageReady[0]);         decode.instructionIn(instToStage[0]);
+  decode.readyOut(stageReady[0]);
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     decode.dataIn[i](dataToBuffers[i+2]);
     decode.flowControlOut[i](fcFromBuffers[i+2]);
   }
+  decode.initPipeline(pipelineRegs[0], pipelineRegs[1]);
 
   execute.clock(clock);                   execute.idle(stageIdle[2]);
-  execute.readyOut(stageReady[1]);        execute.instructionIn(instToStage[1]);
-  execute.instructionOut(instFromStage[2]);
-  execute.dataOut(outputData);
+  execute.readyOut(stageReady[1]);
+  execute.dataOut(outputData);            execute.readyIn(stageReady[2]);
+  execute.initPipeline(pipelineRegs[1], pipelineRegs[2]);
 
   write.clock(clock);                     write.idle(stageIdle[3]);
-  write.readyOut(stageReady[2]);          write.instructionIn(instToStage[2]);
+  write.readyOut(stageReady[2]);
   write.dataIn(outputData);
+  write.initPipeline(pipelineRegs[2], NULL);
 
   for(unsigned int i=0; i<CORE_OUTPUT_PORTS; i++) {
     write.output[i](dataOut[i]);            write.creditsIn[i](creditsIn[i]);
@@ -290,6 +276,4 @@ Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t*
 
 Cluster::~Cluster() {
   delete inputCrossbar;
-
-  for(unsigned int i=0; i<stallRegs.size(); i++) delete stallRegs[i];
 }

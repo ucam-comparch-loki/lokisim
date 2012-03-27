@@ -39,14 +39,6 @@ public:
   // A flow control signal from each of the two instruction inputs.
   LokiVector<ReadyOutput> flowControl;
 
-  // The decoded instruction after passing through this pipeline stage.
-  // DecodedInst holds all necessary fields for data at all stages throughout
-  // the pipeline.
-  sc_out<DecodedInst> instructionOut;
-
-  // Tells whether the next stage is ready to receive a new instruction.
-  ReadyInput          readyIn;
-
 //==============================//
 // Constructors and destructors
 //==============================//
@@ -97,6 +89,9 @@ private:
   // Move to the next instruction packet on demand, rather than when reaching
   // a ".eop" marker.
   void          nextIPK();
+
+  // Override PipelineStage's implementation.
+  virtual void  getNextInstruction();
 
 //==============================//
 // Components
