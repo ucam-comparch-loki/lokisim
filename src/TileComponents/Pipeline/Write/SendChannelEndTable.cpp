@@ -36,6 +36,12 @@ void SendChannelEndTable::sendLoop() {
   switch(state) {
     case IDLE: {
 
+      // Remove the request for network resources if the previous data sent was
+      // the end of a data packet.
+      const AddressedWord& data = output[0].read();
+      if(data.endOfPacket())
+        requestArbitration(data.channelID(), false);
+
       if(buffer.empty()) {
         // When will this event be triggered? Will waiting 0.6 cycles always work?
         // Can we ensure that the data always arrives at the start of the cycle?
@@ -91,33 +97,20 @@ void SendChannelEndTable::sendLoop() {
     case CAN_SEND: {
       assert(!buffer.empty());
 
-      // Wait until an arbitrarily small time after the clock edge to allow the
-      // network's select signals to settle down.
-      if(clock.posedge()) {
-        next_trigger(0.05, sc_core::SC_NS);
-        break;
-      }
-
       const DecodedInst& inst = buffer.read();
       bufferFillChanged.notify();
 
       // Send data
-      AddressedWord data = inst.toAddressedWord();
+      const AddressedWord data = inst.toAddressedWord();
 
       if(DEBUG) cout << this->name() << " sending " << data << endl;
 
       output[0].write(data);
       channelMapTable->removeCredit(inst.channelMapEntry());
 
-      // If this was the final flit in the packet, remove the request for
-      // network resources.
-      if(data.endOfPacket())
-        requestArbitration(data.channelID(), false);
-
-      // Return to IDLE state immediately to see if there is more data to send.
+      // Return to IDLE state and see if there is more data to send.
       state = IDLE;
       next_trigger(output[0].ack_event());
-//      next_trigger(sc_core::SC_ZERO_TIME);
 
       break;
     }
@@ -169,9 +162,9 @@ WriteStage* SendChannelEndTable::parent() const {
 
 SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID& ID, ChannelMapTable* cmt) :
     Component(name, ID),
-    buffer(OUT_CHANNEL_BUFFER_SIZE, string(name)) {
+    buffer(OUT_CHANNEL_BUFFER_SIZE, string(name)),
+    channelMapTable(cmt) {
 
-  channelMapTable = cmt;
   state = IDLE;
 
   static const unsigned int NUM_BUFFERS = CORE_OUTPUT_PORTS;

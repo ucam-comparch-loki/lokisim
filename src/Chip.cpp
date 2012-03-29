@@ -121,23 +121,23 @@ void Chip::makeSignals() {
   int numOutputs = TOTAL_OUTPUT_PORTS;
   int numInputs  = TOTAL_INPUT_PORTS;
 
-  idleSig               = new sc_signal<bool>[NUM_COMPONENTS + 1];
+  idleSig.init(NUM_COMPONENTS + 1);
 
-  dataFromComponents    = new DataSignal[numOutputs];
-  dataToComponents      = new DataSignal[numInputs];
-  creditsFromComponents = new CreditSignal[NUM_CORES];
-  creditsToComponents   = new CreditSignal[numOutputs];
+  dataFromComponents.init(numOutputs);
+  dataToComponents.init(numInputs);
+  creditsFromComponents.init(NUM_CORES);
+  creditsToComponents.init(numOutputs);
 
-  readyFromComps        = new ReadySignal[NUM_CORES * CORE_INPUT_CHANNELS + NUM_MEMORIES];
+  readyFromComps.init(NUM_CORES * CORE_INPUT_CHANNELS + NUM_MEMORIES);
 
-	strobeToBackgroundMemory   = new sc_signal<bool>[NUM_MEMORIES];
-	dataToBackgroundMemory 	   = new sc_signal<MemoryRequest>[NUM_MEMORIES];
-	strobeFromBackgroundMemory = new sc_signal<bool>[NUM_MEMORIES];
-	dataFromBackgroundMemory 	 = new sc_signal<Word>[NUM_MEMORIES];
+	strobeToBackgroundMemory.init(NUM_MEMORIES);
+	dataToBackgroundMemory.init(NUM_MEMORIES);
+	strobeFromBackgroundMemory.init(NUM_MEMORIES);
+	dataFromBackgroundMemory.init(NUM_MEMORIES);
 
-	ringStrobe 								 = new sc_signal<bool>[NUM_MEMORIES];
-	ringRequest 							 = new sc_signal<MemoryBank::RingNetworkRequest>[NUM_MEMORIES];
-	ringAcknowledge 					 = new sc_signal<bool>[NUM_MEMORIES];
+	ringStrobe.init(NUM_MEMORIES);
+	ringRequest.init(NUM_MEMORIES);
+	ringAcknowledge.init(NUM_MEMORIES);
 }
 
 void Chip::makeComponents() {
@@ -312,20 +312,6 @@ Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
 }
 
 Chip::~Chip() {
-  delete[] idleSig;
-
-  delete[] dataFromComponents;      delete[] dataToComponents;
-  delete[] creditsFromComponents;   delete[] creditsToComponents;
-
-  delete[] readyFromComps;
-
-	delete[] strobeToBackgroundMemory;	delete[] strobeFromBackgroundMemory;
-	delete[] dataToBackgroundMemory;		delete[] dataFromBackgroundMemory;
-
-	delete[] ringStrobe;
-	delete[] ringRequest;
-	delete[] ringAcknowledge;
-
 	for(uint i = 0; i < clusters.size(); i++)	delete clusters[i];
 	for(uint i = 0; i < memories.size(); i++)	delete memories[i];
 }

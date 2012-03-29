@@ -185,7 +185,8 @@ class SimulatorTest(unittest.TestCase):
         firstPart = "[" + red + "FAILED" + endColour + "] " + testName
         print firstPart.ljust(49)  # colour resets position in the line?
         wrapper = textwrap.TextWrapper(width=78, initial_indent="  ", subsequent_indent="  ")
-        print wrapper.fill(errormessage)
+        for line in errormessage.splitlines():
+          print wrapper.fill(line)
         self.returncode = 1
         
     # Print a message with information about the successful test.

@@ -27,7 +27,7 @@ public:
 
   enum Direction {NORTH, EAST, SOUTH, WEST, LOCAL};
 
-  sc_in<bool>  clock;
+  ClockInput   clock;
 
   // Data inputs
   LokiVector<DataInput> dataIn;

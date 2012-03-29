@@ -7,7 +7,6 @@
 
 #include "../Chip.h"
 #include "Cluster.h"
-#include "InputCrossbar.h"
 #include "Pipeline/PipelineRegister.h"
 #include "../Utility/InstructionMap.h"
 #include "../Datatype/ChannelID.h"
@@ -189,17 +188,15 @@ ChannelID Cluster::RCETInput(const ComponentID& ID, ChannelIndex channel) {
 
 Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t* network) :
     TileComponent(name, ID, CORE_INPUT_PORTS, CORE_OUTPUT_PORTS),
+    inputCrossbar("input_crossbar", ID),
     regs("regs", ID),
     pred("predicate"),
     fetch("fetch", ID),
     decode("decode", ID),
     execute("execute", ID),
     write("write", ID),
-    channelMapTable("channel_map_table", ID) {
-
-  localNetwork  = network;
-
-  inputCrossbar = new InputCrossbar("input_crossbar", ID);
+    channelMapTable("channel_map_table", ID),
+    localNetwork(network) {
 
   readyOut.init(CORE_INPUT_CHANNELS);
 
@@ -213,18 +210,18 @@ Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t*
 
   // Wire the input ports to the input buffers.
   for(unsigned int i=0; i<CORE_INPUT_PORTS; i++)
-    inputCrossbar->dataIn[i](dataIn[i]);
+    inputCrossbar.dataIn[i](dataIn[i]);
 
   for(unsigned int i=0; i<CORE_INPUT_CHANNELS; i++) {
-    inputCrossbar->readyOut[i](readyOut[i]);
-    inputCrossbar->dataOut[i](dataToBuffers[i]);
-    inputCrossbar->bufferHasSpace[i](fcFromBuffers[i]);
+    inputCrossbar.readyOut[i](readyOut[i]);
+    inputCrossbar.dataOut[i](dataToBuffers[i]);
+    inputCrossbar.bufferHasSpace[i](fcFromBuffers[i]);
   }
 
-  inputCrossbar->clock(clock);
-  inputCrossbar->creditClock(fastClock);
-  inputCrossbar->dataClock(slowClock);
-  inputCrossbar->creditsOut[0](creditsOut[0]);
+  inputCrossbar.clock(clock);
+  inputCrossbar.creditClock(fastClock);
+  inputCrossbar.dataClock(slowClock);
+  inputCrossbar.creditsOut[0](creditsOut[0]);
 
   // Create pipeline registers.
   for(unsigned int i=0; i<3; i++) {
@@ -272,8 +269,4 @@ Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t*
 
   // Initialise the values in some wires.
   constantHigh.write(true);
-}
-
-Cluster::~Cluster() {
-  delete inputCrossbar;
 }

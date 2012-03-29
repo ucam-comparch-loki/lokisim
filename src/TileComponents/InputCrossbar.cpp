@@ -21,11 +21,6 @@ void InputCrossbar::newData(PortIndex input) {
 
   const AddressedWord& data = dataIn[input].read();
 
-  // For now, just ignore data which was destined for another core - we may
-  // treat it as an error later.
-//  if(data.channelID().getPosition() != id.getPosition());
-//    return;
-
   ChannelIndex destination = data.channelID().getChannel();
   if(destination >= numOutputs) cerr << "Trying to send to " << data.channelID() << endl;
   assert(destination < numOutputs);

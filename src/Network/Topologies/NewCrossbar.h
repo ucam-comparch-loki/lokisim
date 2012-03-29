@@ -12,7 +12,6 @@
 
 class BasicArbiter;
 class Multiplexer;
-class NewBus;
 
 class NewCrossbar: public NewNetwork {
 
@@ -67,7 +66,6 @@ private:
   void makePorts();
   void makeSignals();
   void makeArbiters();
-  void makeBuses();
   void makeMuxes();
 
 //==============================//
@@ -76,7 +74,7 @@ private:
 
 protected:
 
-  const int numArbiters, numBuses, numMuxes;
+  const int numArbiters, numMuxes;
 
   // The number of output ports which lead to the same component. Each
   // component will have one arbiter, but this many multiplexers.
@@ -87,10 +85,8 @@ protected:
   const int buffersPerComponent;
 
   std::vector<BasicArbiter*> arbiters;
-  std::vector<NewBus*>       buses;
   std::vector<Multiplexer*>  muxes;
 
-  LokiVector<DataSignal>     dataSig;
   LokiVector2D<SelectSignal> selectSig;
 
 };

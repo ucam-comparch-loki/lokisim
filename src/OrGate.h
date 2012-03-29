@@ -18,8 +18,8 @@ class OrGate: public Component {
 
 public:
 
-  sc_in<bool>  *dataIn;
-  sc_out<bool>  dataOut;
+  LokiVector<sc_in<bool> > dataIn;
+  sc_out<bool>             dataOut;
 
 //==============================//
 // Constructors and destructors
@@ -32,15 +32,11 @@ public:
   OrGate(const sc_module_name& name, int inputs) :
       Component(name),
       inputs(inputs) {
-    dataIn = new sc_in<bool>[inputs];
+    dataIn.init(inputs);
 
     SC_METHOD(inputChanged);
-    for(int i=0; i<inputs; i++) sensitive << dataIn[i];
+    for(int i=0; i<dataIn.length(); i++) sensitive << dataIn[i];
     // do initialise
-  }
-
-  virtual ~OrGate() {
-    delete[] dataIn;
   }
 
 //==============================//
@@ -50,7 +46,7 @@ public:
 private:
 
   void inputChanged() {
-    for(int i=0; i<inputs; i++) {
+    for(int i=0; i<dataIn.length(); i++) {
       if(dataIn[i].read()) {
         dataOut.write(true);
         return;
@@ -59,14 +55,6 @@ private:
 
     dataOut.write(false);
   }
-
-//==============================//
-// Local state
-//==============================//
-
-private:
-
-  int inputs;
 
 };
 

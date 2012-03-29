@@ -33,7 +33,7 @@ void BasicArbiter::arbitrate(int output) {
     // We have requests, and it is time to perform the arbitration.
     case HAVE_REQUESTS: {
       SelectType grant = arbiter->getGrant();
-      changeSelection(output, grant);
+      selectVec[output] = grant;
 
       if(grant != ArbiterBase::NO_GRANT) {    // Successful grant
         assert(grant < numInputs());
@@ -98,16 +98,12 @@ void BasicArbiter::arbitrate(int output) {
         // successfully.
         deassertGrant(granted, output);
 
-        if(haveRequest()) {
-          // Wait until next cycle to try and grant a new request.
+        if(haveRequest())
           state[output] = HAVE_REQUESTS;
-          next_trigger(clock.negedge_event());
-        }
-        else {
-          // Wait until a request is received.
+        else
           state[output] = NO_REQUESTS;
-          next_trigger(clock.negedge_event());
-        }
+
+        next_trigger(clock.negedge_event());
       }
       else {
         // The destination cannot receive any more data at the moment. Wait
@@ -140,10 +136,10 @@ void BasicArbiter::deassertGrant(int input, int output) {
 }
 
 void BasicArbiter::changeSelection(int output, SelectType value) {
-  if(value != selectVec[output]) {
+//  if(value != selectVec[output]) {
     selectVec[output] = value;
     selectionChanged[output].notify();
-  }
+//  }
 }
 
 bool BasicArbiter::haveRequest() const {

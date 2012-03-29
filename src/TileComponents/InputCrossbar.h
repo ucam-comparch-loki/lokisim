@@ -28,14 +28,14 @@ class InputCrossbar: public Component {
 
 public:
 
-  sc_in<bool>   clock;
+  ClockInput   clock;
 
   // A slight hack to improve simulation speed. We need to skew the times that
   // this network sends and receives data so data can get through this small
   // network and the larger tile network in one cycle.
   // In practice, these would probably be implemented as delays in the small
   // network.
-  sc_in<bool>   creditClock, dataClock;
+  ClockInput   creditClock, dataClock;
 
   LokiVector<DataInput>     dataIn;
   LokiVector<ReadyOutput>   readyOut;

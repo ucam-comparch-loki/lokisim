@@ -13,6 +13,7 @@
 #define OFFCHIP_H_
 
 #include "../Component.h"
+#include "NetworkTypedefs.h"
 
 class AddressedWord;
 class Word;
@@ -25,10 +26,10 @@ class OffChip: public Component {
 
 public:
 
-  sc_in<Word>           dataIn;
-  sc_out<AddressedWord> dataOut;
-  sc_in<bool>           readyIn;
-  sc_out<bool>          readyOut;
+  sc_in<Word> dataIn;
+  DataOutput  dataOut;
+  ReadyInput  readyIn;
+  ReadyOutput readyOut;
 
 //==============================//
 // Constructors and destructors

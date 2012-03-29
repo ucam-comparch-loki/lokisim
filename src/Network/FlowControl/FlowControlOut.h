@@ -38,16 +38,16 @@ public:
   DataOutput    dataOut;
 
   // Signal from the network telling us that it is safe to send data.
-  sc_in<bool>   readyIn;
+  ReadyInput    readyIn;
 
   // Signal telling the network it is safe to send credits to this port.
   // Never actually used, but allows data and credit networks to have the same
   // interface.
-  sc_out<bool>  readyOut;
+  ReadyOutput   readyOut;
 
   // A flow control signal for each output of the component, controlling when
   // new data is allowed to arrive.
-  sc_out<bool>  flowControlOut;
+  ReadyOutput   flowControlOut;
 
 //==============================//
 // Constructors and destructors

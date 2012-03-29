@@ -32,7 +32,7 @@ public:
   void setMemoryDestination(const ChannelID& address, uint memoryGroupBits, uint memoryLineBits);
 
   void setAddressIncrement(uint increment);
-  uint getAddressIncrement();
+  uint getAddressIncrement() const;
 
   void removeCredit();
   void addCredit();

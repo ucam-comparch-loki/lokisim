@@ -12,6 +12,7 @@
 
 #include "../../../Component.h"
 #include "../../../Memory/BufferStorage.h"
+#include "../../../Network/NetworkTypedefs.h"
 
 class FetchStage;
 class Instruction;
@@ -25,12 +26,12 @@ class InstructionPacketFIFO : public Component {
 
 public:
 
-  sc_in<bool> clock;
+  ClockInput  clock;
 
   sc_in<Word> instructionIn;
 
   // Signal telling the flow control unit whether there is space left in the FIFO.
-  sc_out<bool> flowControl;
+  ReadyOutput flowControl;
 
 //==============================//
 // Constructors and destructors

@@ -31,7 +31,7 @@ class BasicArbiter: public Component {
 
 public:
 
-  sc_in<bool>   clock;
+  ClockInput   clock;
 
   LokiVector<RequestInput> requests;
   LokiVector<GrantOutput>  grants;

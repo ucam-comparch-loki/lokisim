@@ -16,7 +16,7 @@
 #define CLUSTER_H_
 
 #include "TileComponent.h"
-#include "../flag_signal.h"
+#include "InputCrossbar.h"
 
 #include "../Datatype/AddressedWord.h"
 #include "../Datatype/DecodedInst.h"
@@ -28,7 +28,6 @@
 #include "Pipeline/Write/WriteStage.h"
 #include "Pipeline/ChannelMapTable.h"
 
-class InputCrossbar;
 class PipelineRegister;
 
 class Cluster : public TileComponent {
@@ -55,7 +54,7 @@ public:
   // network and the larger tile network in one cycle.
   // In practice, these would probably be implemented as delays in the small
   // network.
-  sc_in<bool> fastClock, slowClock;
+  ClockInput fastClock, slowClock;
 
 //==============================//
 // Constructors and destructors
@@ -65,7 +64,6 @@ public:
 
   SC_HAS_PROCESS(Cluster);
   Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t* network);
-  virtual ~Cluster();
 
 //==============================//
 // Methods
@@ -168,7 +166,7 @@ private:
 
   // Very small crossbar between input ports and input buffers. Allows there to
   // be fewer network connections, making the tile network simpler.
-  InputCrossbar*         inputCrossbar;
+  InputCrossbar          inputCrossbar;
 
   IndirectRegisterFile   regs;
   PredicateRegister      pred;
@@ -201,7 +199,7 @@ private:
 
   // Store a pointer to the network so new ways of accessing it can be
   // experimented with without having to create lots of ports and signals.
-  local_net_t* localNetwork;
+  local_net_t* const localNetwork;
 
 //==============================//
 // Signals (wires)
@@ -210,10 +208,10 @@ private:
 private:
 
   // A signal set to constantly hold "true".
-  sc_signal<bool>              constantHigh;
+  ReadySignal                  constantHigh;
 
   // Signals telling us which stages are idle, able to send data, or stalled.
-  LokiVector<sc_signal<bool> > stageIdle;
+  LokiVector<IdleSignal>       stageIdle;
   LokiVector<ReadySignal>      stageReady;
 
   // Connections between the input crossbar and the input buffers.

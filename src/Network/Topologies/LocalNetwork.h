@@ -17,6 +17,7 @@
 #include "../NewNetwork.h"
 #include "Crossbar.h"
 #include "NewCrossbar.h"
+#include "../../Communication/loki_bus.h"
 #include "../../Utility/LokiVector2D.h"
 
 class EndArbiter;
@@ -40,7 +41,7 @@ public:
 
   // Additional clocks which are skewed, allowing multiple clocked events
   // to happen in series in one cycle.
-  sc_in<bool>   fastClock, slowClock;
+  ClockInput   fastClock, slowClock;
 
   LokiVector<CreditInput>  creditsIn;
   LokiVector<CreditOutput> creditsOut;
@@ -79,6 +80,10 @@ public:
 
 private:
 
+  // Helper methods for makeRequest.
+  void multicastRequest(ComponentID source, ChannelID destination, bool request);
+  void pointToPointRequest(ComponentID source, ChannelID destination, bool request);
+
   void createSignals();
   void wireUpSubnetworks();
 
@@ -89,11 +94,6 @@ private:
 //==============================//
 // Components
 //==============================//
-
-private:
-  // FIXME: this signal is unused - delete it.
-  // Seems to cause segfaults if removed (or moved any lower than this).
-  sc_signal<bool> deleteme;
 
 private:
 
@@ -114,7 +114,7 @@ private:
 
   // Data from each core to each of the subnetworks.
   // Addressed using dataSig[core][Destination]
-  LokiVector2D<DataSignal> dataSig;
+  LokiVector2D<loki_bus> dataSig;
 
   // Signals allowing arbitration requests to be made for cores/memories/routers.
   // Currently the signals are written using a function call, but they can
@@ -133,14 +133,6 @@ private:
   // required for data because credits are only used for some connections.
   static const unsigned int creditInputs;
   static const unsigned int creditOutputs;
-
-  // If a connection is already set up between two components, when a request
-  // is made, it will not be granted again.
-  // Use this event to trigger any methods which depend on the request being
-  // granted.
-  // To be removed when the request/grant interface is integrated into
-  // components properly.
-  sc_event grantEvent;
 
 };
 

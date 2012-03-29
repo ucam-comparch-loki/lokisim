@@ -31,7 +31,7 @@ public:
 
 public:
 
-  sc_in<bool>   clock;
+  ClockInput   clock;
 
   LokiVector<DataInput>  dataIn;
   LokiVector<DataOutput> dataOut;

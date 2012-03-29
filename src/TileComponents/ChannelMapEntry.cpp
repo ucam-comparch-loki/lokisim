@@ -70,7 +70,7 @@ void ChannelMapEntry::setAddressIncrement(uint increment) {
   addressIncrement_ = increment;
 }
 
-uint ChannelMapEntry::getAddressIncrement() {
+uint ChannelMapEntry::getAddressIncrement() const {
   return addressIncrement_;
 }
 

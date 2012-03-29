@@ -31,7 +31,7 @@ public:
 
 public:
 
-  sc_in<bool>   clock;
+  ClockInput             clock;
 
   // Data coming in to the network, and an extra bit to say whether the data
   // is currently valid.

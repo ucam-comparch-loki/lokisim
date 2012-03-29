@@ -24,8 +24,8 @@ public:
     data_ = NULL;
   }
 
-  LokiVector2D(size_t width, size_t length) {
-    init(width, length);
+  LokiVector2D(size_t length, size_t width) {
+    init(length, width);
   }
 
   virtual ~LokiVector2D() {
@@ -41,34 +41,34 @@ public:
 
   // Initialise the vector to the given size. The default constructor will be
   // used to create all contents, so such a constructor must exist.
-  inline void init(size_t width, size_t length) {
-    init(width);
+  inline void init(size_t length, size_t width) {
+    init(length);
 
-    for (unsigned int i=0; i<width; i++)
-      data_[i].init(length);
+    for (unsigned int i=0; i<length; i++)
+      data_[i].init(width);
   }
 
   // Initialise with only one parameter - allows different subvectors to be
   // different lengths, if necessary.
-  inline void init(size_t width) {
-    size_ = width;
-    data_ = new LokiVector<T>[width];
+  inline void init(size_t length) {
+    size_ = length;
+    data_ = new LokiVector<T>[length];
   }
 
   inline const size_t width() const {
-    return size_;
-  }
-
-  inline const size_t length() const {
     if(data_ != NULL)
       return data_[0].length();
     else
       return 0;
   }
 
+  inline const size_t length() const {
+    return size_;
+  }
+
   inline LokiVector<T>& operator[](unsigned int position) const {
     assert(position >= 0);
-    assert(position < width());
+    assert(position < length());
 
     return data_[position];
   }

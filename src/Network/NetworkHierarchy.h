@@ -30,11 +30,11 @@ class NetworkHierarchy : public Component {
 
 public:
 
-  sc_in<bool>   clock;
+  ClockInput   clock;
 
   // Additional clocks which are skewed, allowing multiple clocked events
   // to happen in one cycle.
-  sc_in<bool>   fastClock, slowClock;
+  ClockInput   fastClock, slowClock;
 
   // Data received from each output of each networked component.
   LokiVector<DataInput>    dataIn;

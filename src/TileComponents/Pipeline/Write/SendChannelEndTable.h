@@ -36,10 +36,10 @@ class SendChannelEndTable: public Component {
 
 public:
 
-  sc_in<bool>            clock;
+  ClockInput              clock;
 
   // Data outputs to the network.
-  LokiVector<DataOutput> output;
+  LokiVector<DataOutput>  output;
 
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.
@@ -118,7 +118,7 @@ private:
   // A pointer to this core's channel map table. The table itself is in the
   // Cluster class. No reading or writing of destinations should occur here -
   // this part of the core should only deal with credits.
-  ChannelMapTable* channelMapTable;
+  ChannelMapTable* const channelMapTable;
 
   // Currently waiting for some event to occur. (e.g. Credits to arrive or
   // buffer to empty.)

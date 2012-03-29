@@ -29,7 +29,7 @@ class TileComponent : public Component {
 public:
 
   // Clock.
-  sc_in<bool>    clock;
+  ClockInput     clock;
 
   // All inputs to the component. They still have addresses in case there are
   // multiple channel ends accessible through each port.
@@ -46,7 +46,7 @@ public:
   LokiVector<CreditInput>  creditsIn;
 
   // Signal that this component is not currently doing any work.
-  sc_out<bool>   idle;
+  IdleOutput     idle;
 
 //==============================//
 // Constructors and destructors

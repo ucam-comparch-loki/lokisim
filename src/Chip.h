@@ -14,7 +14,6 @@
 #define CHIP_H_
 
 #include "Component.h"
-#include "flag_signal.h"
 #include "Network/NetworkHierarchy.h"
 #include "TileComponents/Cluster.h"
 #include "TileComponents/Memory/MemoryBank.h"
@@ -32,9 +31,9 @@ class Chip : public Component {
 
 public:
 
-  sc_in<bool>  clock;
+  ClockInput clock;
 
-  sc_out<bool> idle;
+  IdleOutput idle;
 
 //==============================//
 // Constructors and destructors
@@ -99,23 +98,20 @@ private:
 
 private:
 
-  sc_signal<bool>       *idleSig;
+	LokiVector<IdleSignal>   idleSig;
 
-  DataSignal            *dataFromComponents;
-  DataSignal            *dataToComponents;
-  CreditSignal          *creditsFromComponents;
-  CreditSignal          *creditsToComponents;
+	LokiVector<DataSignal>   dataFromComponents,    dataToComponents;
+	LokiVector<CreditSignal> creditsFromComponents, creditsToComponents;
 
-  ReadySignal           *readyFromComps;
+  LokiVector<ReadySignal>  readyFromComps;
 
-	sc_signal<bool>				*strobeToBackgroundMemory;
-	sc_signal<MemoryRequest> *dataToBackgroundMemory;
-	sc_signal<bool>				*strobeFromBackgroundMemory;
-	sc_signal<Word>				*dataFromBackgroundMemory;
+  LokiVector<sc_signal<bool> > strobeToBackgroundMemory, strobeFromBackgroundMemory;
+  LokiVector<sc_signal<MemoryRequest> > dataToBackgroundMemory;
+  LokiVector<sc_signal<Word> > dataFromBackgroundMemory;
 
-	sc_signal<bool>				*ringStrobe;
-	sc_signal<MemoryBank::RingNetworkRequest> *ringRequest;
-	sc_signal<bool>				*ringAcknowledge;
+  LokiVector<sc_signal<bool> > ringStrobe;
+	LokiVector<sc_signal<MemoryBank::RingNetworkRequest> > ringRequest;
+	LokiVector<sc_signal<bool> > ringAcknowledge;
 
 	// Delays in SystemC slow simulation right down, so instead, make separate
 	// clocks. The fast clock has its negative edge 1/4 of a cycle early, and the

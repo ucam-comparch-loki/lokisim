@@ -15,6 +15,7 @@
 
 #include "../../../Component.h"
 #include "../../../Memory/IPKCacheStorage.h"
+#include "../../../Network/NetworkTypedefs.h"
 
 class FetchStage;
 class Word;
@@ -27,12 +28,12 @@ class InstructionPacketCache : public Component {
 
 public:
 
-  sc_in<bool> clock;
+  ClockInput  clock;
 
   sc_in<Word> instructionIn;
 
   // Signal telling the flow control unit whether there is space left in the cache.
-  sc_out<bool> flowControl;
+  ReadyOutput flowControl;
 
 //==============================//
 // Constructors and destructors

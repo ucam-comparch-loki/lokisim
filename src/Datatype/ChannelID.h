@@ -146,8 +146,11 @@ public:
 	  Word((tile << OFFSET_TILE) | (position << OFFSET_POSITION) | (channel << OFFSET_CHANNEL) | ((multicast?1:0) << OFFSET_MULTICAST)) {
 
 	  assert(tile < NUM_TILES);
-	  assert(position < COMPONENTS_PER_TILE);
 	  assert(channel < CORE_INPUT_CHANNELS || channel < MEMORY_INPUT_CHANNELS);
+
+	  // Multicast addresses use a bitmask instead of a position.
+	  if(!multicast)
+	    assert(position < COMPONENTS_PER_TILE);
 
 	}
 

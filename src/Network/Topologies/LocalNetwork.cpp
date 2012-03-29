@@ -14,6 +14,30 @@ const unsigned int LocalNetwork::creditInputs  = CORES_PER_TILE + 1;
 const unsigned int LocalNetwork::creditOutputs = CORES_PER_TILE + 1;
 
 void LocalNetwork::makeRequest(ComponentID source, ChannelID destination, bool request) {
+  if(destination.isMulticast())
+    multicastRequest(source, destination, request);
+  else
+    pointToPointRequest(source, destination, request);
+}
+
+void LocalNetwork::multicastRequest(ComponentID source, ChannelID destination, bool request) {
+  assert(destination.isMulticast());
+
+  // For multicast addresses, instead of a component ID, we have a bitmask of
+  // cores in this tile which should receive the data.
+  unsigned int bitmask = destination.getPosition();
+
+  // Loop through all bits in the bitmask, and send a request for each bit set.
+  for(int i=0; i<8; i++) {
+    if((bitmask >> i) & 1) {
+      ChannelID core(destination.getTile(), i, destination.getChannel());
+      pointToPointRequest(source, core, request);
+    }
+  }
+}
+
+void LocalNetwork::pointToPointRequest(ComponentID source, ChannelID destination, bool request) {
+  assert(!destination.isMulticast());
 
   // Find out which signal to write the request to.
   RequestSignal *requestSignal;
@@ -39,6 +63,12 @@ void LocalNetwork::makeRequest(ComponentID source, ChannelID destination, bool r
 }
 
 bool LocalNetwork::requestGranted(ComponentID source, ChannelID destination) const {
+  // Multicast requests are treated specially: they are allowed onto the
+  // network immediately, and then all arbiters select the data at their own
+  // pace.
+  if(destination.isMulticast())
+    return true;
+
   GrantSignal   *grantSignal;
 
   if(!source.isCore()) {                              // Memory/global to core
@@ -62,12 +92,12 @@ void LocalNetwork::createSignals() {
 
   // Ready signals from each component, plus one from the router.
   readyIn.init(COMPONENTS_PER_TILE + 1);
-  for(unsigned int i=0; i<COMPONENTS_PER_TILE + 1; i++) {
-    if(i<CORES_PER_TILE)
+  for(unsigned int i=0; i<readyIn.length(); i++) {
+    if(i<CORES_PER_TILE)            // cores have multiple buffers
       readyIn[i].init(CORE_INPUT_CHANNELS);
-    else if(i<COMPONENTS_PER_TILE)
+    else if(i<COMPONENTS_PER_TILE)  // memories have one buffer each
       readyIn[i].init(1);
-    else
+    else                            // router has one buffer
       readyIn[i].init(1);
   }
 

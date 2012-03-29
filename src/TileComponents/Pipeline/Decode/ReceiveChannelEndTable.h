@@ -29,7 +29,7 @@ class ReceiveChannelEndTable: public Component {
 
 public:
 
-  sc_in<bool>   clock;
+  ClockInput   clock;
 
   // Data values received over the network. There should be NUM_RECEIVE_CHANNELS
   // inputs in the array.

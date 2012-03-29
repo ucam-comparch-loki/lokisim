@@ -25,10 +25,10 @@ class PipelineStage : public Component {
 public:
 
   // Clock.
-  sc_in<bool>  clock;
+  ClockInput clock;
 
   // Signal that this pipeline stage is currently idle.
-  sc_out<bool> idle;
+  IdleOutput idle;
 
 //==============================//
 // Constructors and destructors

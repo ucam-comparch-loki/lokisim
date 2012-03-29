@@ -52,10 +52,6 @@ void FetchStage::getInstruction() {
   }
   else {
     assert(!fifo.isEmpty());
-//    if(fifo.isEmpty()) {
-//      next_trigger(fifo.fillChangedEvent());
-//      return;
-//    }
 
     instruction = fifo.read();
     // We don't know the address this instruction came from, so make
@@ -152,8 +148,6 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
   cache.clock(clock);
   cache.instructionIn(toIPKCache);
   cache.flowControl(flowControl[1]);
-
-  idle.initialize(true);
 
   SC_METHOD(updateReady);
   sensitive << /*canSendEvent() << FIXME*/ instructionCompletedEvent;

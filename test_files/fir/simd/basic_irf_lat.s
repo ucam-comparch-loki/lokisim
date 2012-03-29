@@ -79,9 +79,9 @@ loop:
     ifp?ibjmp       -72
 # End of outer loop
 
-    #seteq.p         r0,  r30, r0            # set p if we are core 0
-    #ifp?syscall     1
-    #addu.eop        r0,  r0,  r0
+#    seteq.p         r0,  r30, r0            # set p if we are core 0
+#    ifp?syscall     1
+#    addu.eop        r0,  r0,  r0
 
     addui               r31, r31, -1            # num cores -> highest core index
     setlt.p             r0,  r30, r31           # all cores except the highest receive word

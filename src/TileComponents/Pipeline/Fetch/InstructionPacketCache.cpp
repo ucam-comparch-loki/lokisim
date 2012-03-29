@@ -72,10 +72,7 @@ bool InstructionPacketCache::lookup(const MemoryAddr addr, opcode_t operation) {
 
 /* Jump to a new instruction specified by the offset amount. */
 void InstructionPacketCache::jump(const JumpOffset offset) {
-  if(DEBUG) cout << this->name() << ": ";   // cache prints the rest
-
   cache.jump(offset/BYTES_PER_WORD);
-
   cacheFillChanged.notify();
 }
 
