@@ -138,7 +138,7 @@ void Stalls::printStats() {
 			unstall(id, endOfExecution);
 			active(id, endOfExecution);
 
-			// Only print statistics for clusters which have seen some activity.
+			// Only print statistics for cores which have seen some activity.
 			if((uint)idleTimes[id] < endOfExecution) {
 				int totalStalled = cyclesStalled(id);
 				int activeCycles = cyclesActive(id);

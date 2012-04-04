@@ -138,7 +138,9 @@ bool IPKCacheStorage::empty() const {
   if(currentPacket.cacheIndex == NOT_IN_CACHE)
     return true;
   else if(finishedPacket)
-    return (pendingPacket.cacheIndex == NOT_IN_CACHE) && (jumpAmount == 0);
+    return (pendingPacket.cacheIndex == NOT_IN_CACHE) &&
+           (jumpAmount == 0) &&
+           !currentPacket.persistent;
   else
     return (fillCount == 0);
 
@@ -192,6 +194,7 @@ void IPKCacheStorage::switchToPendingPacket() {
 
 void IPKCacheStorage::cancelPacket() {
   currentPacket.persistent = false;
+  finishedPacket = true;
 
   // Stop the current packet executing if it hasn't finished arriving yet.
   if(currentPacket.arriving())

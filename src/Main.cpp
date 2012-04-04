@@ -7,10 +7,7 @@
 
 #include <systemc.h>
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include "Datatype/AddressedWord.h"
+#include "Utility/Arguments.h"
 #include "Utility/Debugger.h"
 #include "Utility/Instrumentation.h"
 #include "Utility/Instrumentation/Operations.h"
@@ -34,126 +31,29 @@ static unsigned int cyclesPerStep = 1;
   sc_start(cyclesPerStep, SC_NS);\
 }
 
-bool debugMode = false;
-bool codeLoaded = false;
+int simulate();
 
-// Store any relevant arguments in the Loki memory. These arguments are
-// separated from the simulator arguments by "--args".
-// Borrowed from Alex, in turn borrowed from moxie backend.
-void storeArguments(uint argc, char* argv[], Chip& chip) {
-  uint i, j, tp;
+int sc_main(int argc, char* argv[]) {
+  Arguments::parse(argc, argv);
 
-  /* Target memory looks like this:
-     0x00000000 zero word
-     0x00000004 argc word
-     0x00000008 start of argv
-     .
-     0x0000???? end of argv
-     0x0000???? zero word
-     0x0000???? start of data pointed to by argv  */
-
-  chip.writeWord(ComponentID(), 0, Word(0));
-  chip.writeWord(ComponentID(), 4, Word(argc));
-
-  /* tp is the offset of our first argv data.  */
-  tp = 4 + 4 + argc*4 + 4;
-
-  for (i = 0; i < argc; i++)
-  {
-    /* Set the argv value.  */
-    chip.writeWord(ComponentID(), 4 + 4 + i*4, Word(tp));
-
-    /* Store the string.  */
-    for (j=0; j < (strlen(argv[i])+1); j++) {
-      chip.writeByte(ComponentID(), tp+j, Word(argv[i][j]));
-    }
-    tp += strlen(argv[i]) + 1;
+  if(Arguments::simulate())
+    return simulate();
+  else {
+    return 0;
   }
-
-  chip.writeWord(ComponentID(), 4 + 4 + i*4, Word(0));
-}
-
-void parseArguments(uint argc, char* argv[], Chip& chip) {
-
-  if (argc > 1) {
-    for(uint i=1; i<argc; i++) {
-      string argument(argv[i]);
-      if(argument == "debug") {
-        // Print out lots of information about execution.
-        debugMode = true;
-        Debugger::usingDebugger = true;
-        Debugger::mode = Debugger::DEBUGGER;
-      }
-      else if(argument == "test") {
-        // Switch off all status reporting, so we only get the information we
-        // want. This allows much faster testing.
-        debugMode = true;
-        DEBUG = 0;
-        Debugger::usingDebugger = true;
-        Debugger::mode = Debugger::TEST;
-      }
-      else if(argument == "trace") {
-        // Print out only the addresses of each instruction executed.
-        DEBUG = 0;
-        TRACE = 1;
-      }
-      else if(argument == "-run") {
-        // Command line way of choosing which program to run.
-        DEBUG = 0;
-        string filename(argv[i+1]);
-        CodeLoader::loadCode(filename, chip);
-        i++;  // Have used two arguments in this iteration.
-        codeLoaded = true;
-      }
-      else if(argument == "-batch") {
-        // Enable batch mode.
-        DEBUG = 0;
-        BATCH_MODE = 1;
-      }
-      else if(argument == "-coretrace") {
-    	// Enable memory trace.
-        string filename(argv[i+1]);
-        CoreTrace::start(filename);
-        i++;  // Have used two arguments in this iteration.
-    	CORE_TRACE = 1;
-      }
-      else if(argument == "-memtrace") {
-    	// Enable memory trace.
-        string filename(argv[i+1]);
-        MemoryTrace::start(filename);
-        i++;  // Have used two arguments in this iteration.
-    	MEMORY_TRACE = 1;
-      }
-      else if(argument == "--args") {
-        // Pass command line options to the simulated program.
-        argv[i] = argv[0];
-        storeArguments(argc-i, argv+i, chip);
-        break;
-      }
-      else if(argument[0] == '-' && argument[1] == 'P') {
-        // Use "-Pparam value" to set a parameter on the command line.
-        string parameter = argument.substr(2);
-        Parameters::parseParameter(parameter, argv[i+1]);
-
-        i++;  // Have used two arguments in this iteration.
-      }
-      else {
-        cerr << "Warning: unrecognised argument: " << argument << endl;
-      }
-    }
-  }
-
 }
 
 void simulate(Chip& chip) {
 
-  sc_clock clock("clock", 1, SC_NS, 0.5);
-  sc_signal<bool> idle;
-  chip.clock(clock);
-  chip.idle(idle);
+  // Simulate multiple cycles in a row when possible to reduce the overheads of
+  // stopping and starting simulation.
+  if(DEBUG)
+    cyclesPerStep = 1;
+  else
+    cyclesPerStep = (100 < TIMEOUT/50) ? 100 : TIMEOUT/50;
 
   try {
-    if(debugMode) {
+    if(Debugger::usingDebugger) {
       Debugger::setChip(&chip);
       Debugger::waitForInput();
     }
@@ -189,7 +89,7 @@ void simulate(Chip& chip) {
           operationCount = newOperationCount;
         }
 
-        if(idle.read()) {
+        if(chip.isIdle()) {
           cyclesIdle++;
           if(cyclesIdle >= 100) {
             cerr << "\nSystem has been idle for " << cyclesIdle << " cycles. Aborting." << endl;
@@ -218,68 +118,39 @@ void simulate(Chip& chip) {
 
 }
 
-int sc_main(int argc, char* argv[]) {
-	// Override parameters before instantiating chip model
+// Wrapper for the chip simulation function above.
+int simulate() {
+  // Override parameters before instantiating chip model
+  for(unsigned int i=0; i<Arguments::code().size(); i++)
+    CodeLoader::loadParameters(Arguments::code()[i]);
 
-	int settingsArg = 0;
-	const string simPath = string(argv[0]);
-	const string simDir = simPath.substr(0, simPath.rfind('/'));
-	string settingsFile = simDir + "/../test_files/loader.txt";
+  // Instantiate chip model - changing a parameter after this point has
+  // undefined behaviour.
+  Chip chip("chip", 0);
 
-  // Load settings from settings file if present
-  for(int i=0; i<argc; i++) {
-    if(string(argv[i]) == "-settings") {
-	    settingsArg = i+1;
-	    settingsFile = argv[settingsArg];
-	    break;
-    }
+  // Put arguments for the simulated program into simulated memory.
+  Arguments::storeArguments(chip);
+
+  // Load code to execute, and link it all into one program.
+  for(unsigned int i=0; i<Arguments::code().size(); i++)
+    CodeLoader::loadCode(Arguments::code()[i], chip);
+
+  CodeLoader::makeExecutable(chip);
+
+  // Run simulation
+  simulate(chip);
+
+  // Print debug information
+  if (DEBUG || BATCH_MODE) {
+    Parameters::printParameters();
+    Statistics::printStats();
   }
 
-	// Load parameters from the main settings file.
-	CodeLoader::loadParameters(settingsFile);
+  // Stop traces
+  if (CORE_TRACE)
+    CoreTrace::stop();
+  if (MEMORY_TRACE)
+    MemoryTrace::stop();
 
-	// Load parameters from any other files which have been passed as command
-	// line arguments.
-	for(int i=0; i<argc; i++) {
-	  if(string(argv[i]) == "-run") {
-	    string file = string(argv[i+1]);
-	    CodeLoader::loadParameters(file);
-	  }
-	}
-
-	// Instantiate chip model - parameters must not be changed after this or undefined behaviour might occur
-
-	Chip chip("chip", 0);
-
-	// Load code to execute
-
-	parseArguments(argc, argv, chip);
-
-	//if (!codeLoaded)
-		CodeLoader::loadCode(settingsFile, chip);
-
-	CodeLoader::makeExecutable(chip);
-
-	// Run simulation
-
-	simulate(chip);
-
-	// Print debug information
-
-	if (DEBUG || BATCH_MODE) {
-		Parameters::printParameters();
-		Statistics::printStats();
-	}
-
-	// Stop memory trace
-
-	if (CORE_TRACE) {
-		CoreTrace::stop();
-	}
-
-	if (MEMORY_TRACE) {
-		MemoryTrace::stop();
-	}
-
-	return RETURN_CODE;
+  return RETURN_CODE;
 }

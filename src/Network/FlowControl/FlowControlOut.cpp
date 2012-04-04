@@ -44,8 +44,6 @@ void FlowControlOut::sendData() {
   if(DEBUG) cout << "Network sending " << dataIn.read().payload() << " from "
       << channel << " to " << dataIn.read().channelID() << endl;
 
-  Instrumentation::networkTraffic(id, dataIn.read().channelID());
-
   dataOut.write(dataIn.read());
   creditCount--;
   flowControlOut.write(true);

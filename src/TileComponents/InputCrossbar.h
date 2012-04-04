@@ -35,7 +35,7 @@ public:
   // network and the larger tile network in one cycle.
   // In practice, these would probably be implemented as delays in the small
   // network.
-  ClockInput   creditClock, dataClock;
+  ClockInput   creditClock;
 
   LokiVector<DataInput>     dataIn;
   LokiVector<ReadyOutput>   readyOut;

@@ -11,7 +11,7 @@
 unsigned long long Registers::numReads_ = 0;
 unsigned long long Registers::numWrites_ = 0;
 unsigned long long Registers::numForwards_ = 0;
-unsigned long long Registers::stallRegs_ = 0;
+unsigned long long Registers::pipelineRegs_ = 0;
 
 // TODO: determine which reads/writes were wasted, and could have been replaced
 // by explicit data forwarding.
@@ -21,12 +21,12 @@ unsigned long long Registers::stallRegs_ = 0;
 void Registers::read(const ComponentID& core, RegisterIndex reg)    {numReads_++;}
 void Registers::write(const ComponentID& core, RegisterIndex reg)   {numWrites_++;}
 void Registers::forward(const ComponentID& core, RegisterIndex reg) {numForwards_++;}
-void Registers::stallReg(const ComponentID& core)                   {stallRegs_++;}
+void Registers::pipelineReg(const ComponentID& core)                {pipelineRegs_++;}
 
-unsigned long long  Registers::numReads()      {return numReads_;}
-unsigned long long  Registers::numWrites()     {return numWrites_;}
-unsigned long long  Registers::numForwards()   {return numForwards_;}
-unsigned long long  Registers::stallRegUses()  {return stallRegs_;}
+unsigned long long  Registers::numReads()        {return numReads_;}
+unsigned long long  Registers::numWrites()       {return numWrites_;}
+unsigned long long  Registers::numForwards()     {return numForwards_;}
+unsigned long long  Registers::pipelineRegUses() {return pipelineRegs_;}
 
 void Registers::printStats() {
   if (BATCH_MODE) {

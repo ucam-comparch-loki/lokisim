@@ -192,12 +192,9 @@ class SimulatorTest(unittest.TestCase):
     # Print a message with information about the successful test.
     def _success(self, testName):
         firstPart = "[PASSED] " + testName
-        cycles = str(self.numCycles()) + " cycles"
-        #energy = "%(val).1f pJ/op" % {'val':self.energyPerOp()}
-        energy = str(self.getStat("energy")/1000) + " pJ"
+        cycles = str(self.numCycles())
         print firstPart.ljust(40),
-        print cycles.ljust(14),
-        print energy
+        print cycles.rjust(20), "cycles"
         self.returncode = 0
             
     # The default behaviour is to execute the test in the current directory.

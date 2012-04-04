@@ -104,6 +104,7 @@ void SendChannelEndTable::sendLoop() {
       const AddressedWord data = inst.toAddressedWord();
 
       if(DEBUG) cout << this->name() << " sending " << data << endl;
+      Instrumentation::networkTraffic(id, data.channelID(), data.payload().toInt());
 
       output[0].write(data);
       channelMapTable->removeCredit(inst.channelMapEntry());

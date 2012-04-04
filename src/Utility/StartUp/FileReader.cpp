@@ -43,7 +43,7 @@ void FileReader::printInstruction(Instruction i, MemoryAddr address) {
   cout.fill(' ');
 }
 
-FileReader* FileReader::makeFileReader(vector<string>& words, bool customAppLoader) {
+FileReader* FileReader::makeFileReader(const vector<string>& words, bool customAppLoader) {
   FileReader* reader;
 
   // Some sensible defaults.

@@ -31,7 +31,7 @@ public:
   // of reading the specified filetype.
   // This method returns NULL if, for example, it is collecting a group of
   // object files to link together at the end.
-  static FileReader* makeFileReader(vector<string>& commandWords, bool customAppLoader);
+  static FileReader* makeFileReader(const vector<string>& commandWords, bool customAppLoader);
 
   // If there are any object files which need linking together to form a single
   // executable, link them now.

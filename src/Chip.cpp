@@ -94,15 +94,8 @@ void Chip::watchIdle(int component) {
     idleComponents++;
     assert(idleComponents <= NUM_COMPONENTS);
     next_trigger(idleSig[component].negedge_event());
-
-    // If all of the components are now idle, the chip is now idle.
-    if(isIdle()) idlenessChanged.notify();
   }
   else {
-    // If all of the components were idle, and now one is busy, the chip is
-    // no longer idle.
-    if(isIdle()) idlenessChanged.notify();
-
     idleComponents--;
     assert(idleComponents >= 0);
     next_trigger(idleSig[component].posedge_event());
@@ -111,10 +104,6 @@ void Chip::watchIdle(int component) {
 
 bool Chip::isIdle() const {
   return idleComponents == NUM_COMPONENTS;
-}
-
-void Chip::updateIdle() {
-  idle.write(isIdle());
 }
 
 void Chip::makeSignals() {
@@ -198,7 +187,6 @@ void Chip::wireUp() {
       clusters[clusterIndex]->idle(idleSig[clusterIndex+memoryIndex]);
       clusters[clusterIndex]->clock(clock);
       clusters[clusterIndex]->fastClock(fastClock);
-      clusters[clusterIndex]->slowClock(slowClock);
 
 			for (uint j = 0; j < CORE_INPUT_PORTS; j++) {
 				uint index = dataInputCounter++;  // Position in network's array
@@ -291,6 +279,7 @@ Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
     Component(name),
     backgroundMemory("background_memory", NUM_COMPONENTS, NUM_MEMORIES),
     network("network"),
+    clock("clock", 1, SC_NS, 0.5),
     fastClock("fast_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.25),
     slowClock("slow_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.75) {
   
@@ -299,9 +288,6 @@ Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
   makeSignals();
   makeComponents();
   wireUp();
-
-  SC_METHOD(updateIdle);
-	sensitive << idlenessChanged;
 
   // Generate a method to watch each component's idle signal, so we can
 	// determine when all components are idle. For large numbers of components,

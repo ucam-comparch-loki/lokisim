@@ -9,6 +9,7 @@
 
 #include "BasicArbiter.h"
 #include "../../Arbitration/ArbiterBase.h"
+#include "../../Utility/Energy/EnergyTraceWriter.h"
 
 int BasicArbiter::numInputs()  const {return requests.length();}
 int BasicArbiter::numOutputs() const {return select.length();}
@@ -37,6 +38,8 @@ void BasicArbiter::arbitrate(int output) {
 
       if(grant != ArbiterBase::NO_GRANT) {    // Successful grant
         assert(grant < numInputs());
+
+        EnergyTraceWriter::arbitration(numInputs());
 
         // Remove the granted request from consideration.
         requestVec[grant] = false;

@@ -32,7 +32,7 @@ public:
 //   sc_out<bool>         stallOut
 
   // Tell whether this stage is ready for input (ignoring effects of any other stages).
-  ReadyOutput           readyOut;
+  ReadyOutput              readyOut;
 
   // The NUM_RECEIVE_CHANNELS inputs to the receive channel-end table.
   LokiVector<sc_in<Word> > dataIn;

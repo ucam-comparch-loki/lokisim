@@ -39,21 +39,7 @@ protected:
     assert(outstandingAcks == 0);
     outstandingAcks = this->m_new_val.channelID().numDestinations();
 
-    computeSwitching(this->m_cur_val, this->m_new_val);
-
     loki_signal<DataType>::update();
-  }
-
-  void computeSwitching(const DataType& oldval, const DataType& newval) const {
-    unsigned int dataDiff = newval.payload().toInt() ^ oldval.payload().toInt();
-    unsigned int channelDiff = newval.channelID().getData() ^ oldval.channelID().getData();
-
-    int bitsSwitched = __builtin_popcount(dataDiff) + __builtin_popcount(channelDiff);
-
-    // TODO: figure out how we can associate the number of bits switched with
-    // the length of this wire. We probably want to be able to change the
-    // length outside of the simulation, so the wire won't know its own length.
-    Instrumentation::networkActivity(0, 0, 0, 0, bitsSwitched);
   }
 
 //==============================//

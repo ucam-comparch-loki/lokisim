@@ -15,6 +15,7 @@
 
 #include "Storage.h"
 #include "systemc.h"
+#include "../Utility/Energy/EnergyTraceWriter.h"
 #include "../Utility/LoopCounter.h"
 
 using sc_core::sc_event;
@@ -35,6 +36,9 @@ public:
     int i = readPos.value();
     incrementReadFrom();
     this->readEvent_.notify();
+
+    EnergyTraceWriter::fifoRead(this->size());
+
     return this->data_[i];
   }
 
@@ -43,6 +47,9 @@ public:
     assert(!full());
     this->data_[writePos.value()] = newData;
     this->writeEvent_.notify();
+
+    EnergyTraceWriter::fifoWrite(this->size());
+
     incrementWriteTo();
   }
 

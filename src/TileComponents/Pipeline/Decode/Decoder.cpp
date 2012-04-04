@@ -16,6 +16,9 @@
 
 typedef IndirectRegisterFile Registers;
 
+// TODO: change what the return value means, or remove it altogether.
+// If this is being triggered multiple times, it can only return whether the
+// instruction has finished.
 bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   // If this operation produces multiple outputs, produce the next one.
   if(multiCycleOp) return continueOp(input, output);
@@ -39,9 +42,6 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     }
   }
 
-  blocked = true;
-  blockedEvent.notify();
-
   // Determine if this instruction should execute. This may require waiting for
   // the previous instruction to set the predicate bit if this instruction
   // is completed in the decode stage, or if the instruction may perform an
@@ -56,22 +56,29 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   // and we know it won't execute, stop it here.
   if(!execute && (Registers::isChannelEnd(input.sourceReg1()) ||
                   Registers::isChannelEnd(input.sourceReg2()))) {
-    blocked = false;
-    blockedEvent.notify();
     return true;
   }
+
+  // TODO: set checkpoint here so we don't repeat the instrumentation, etc.
+  // Could use a state machine?
+  // Or could split this method in two and have DecodeStage call them separately.
+  //   predecode(const DecodedInst& inst) - set current to inst
+  //   do collectOperands() while(!decoder.hasAllOperands())
+  //   while(decoder.hasMoreOutput()) decode() - return output
 
   // Wait for any unavailable operands to arrive (either over the network, or
   // by being forwarded from the execute stage).
   waitForOperands(input);
 
+  // TODO: also have a checkpoint here?
+
   // Terminate the instruction here if it has been cancelled.
+  // TODO: have this executed every time this method is triggered.
+  // It's currently possible that we could remain stuck inside waitForOperands.
   if(instructionCancelled) {
     if(DEBUG)
       cout << this->name() << " aborting " << input << endl;
-    blocked = false;
     instructionCancelled = false;
-    blockedEvent.notify();
     return false;
   }
 
@@ -212,9 +219,6 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
     default: break;
   } // end switch
-
-  blocked = false;
-  blockedEvent.notify();
 
   // Update the destination register so the next instruction knows whether its
   // operand(s) will need to be forwarded to it.

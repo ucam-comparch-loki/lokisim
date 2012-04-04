@@ -8,6 +8,8 @@ if len(sys.argv) < 2:
     print "Options:"
     print "  -trace, -t     Generate an instruction trace"
     print "  -fast, -f      Use a much faster, but less accurate, simulator"
+    print "  -dump, -d      Print lots of debug information (slow sim only)"
+    print "  -energy, -e    Generate a log of all main energy-consuming operations"
     sys.exit(-1)
 
 # Parts of the command which will be executed
@@ -19,6 +21,7 @@ command = ""
 use_fast_sim = False
 trace = False
 dump = False
+energy = False
     
 currentArg = 1
 
@@ -33,6 +36,8 @@ for i in range(currentArg, len(sys.argv)):
             use_fast_sim = True
         elif arg == "-dump" or arg == "-d":
             dump = True
+        elif arg == "-energy" or arg == "-e":
+            energy = True
             
         currentArg += 1
     else:
@@ -75,11 +80,13 @@ else:
     
     if trace:
         command += "-coretrace " + program + ".trace "
+    if energy:
+        command += "-energytrace " + program + ".events "
         
     command += "-run " + program + " "
     
     if dump:
-        command += "-PDEBUG 1 "
+        command += "-PDEBUG=1 "
     
     command += "--args " + programargs
 

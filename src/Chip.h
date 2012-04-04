@@ -26,16 +26,6 @@ class TileComponent;
 class Chip : public Component {
 
 //==============================//
-// Ports
-//==============================//
-
-public:
-
-  ClockInput clock;
-
-  IdleOutput idle;
-
-//==============================//
 // Constructors and destructors
 //==============================//
 
@@ -79,7 +69,6 @@ private:
 
   // Update whether any part of the chip is doing useful work.
   void    watchIdle(int component);
-  void    updateIdle();
 
 //==============================//
 // Components
@@ -97,6 +86,8 @@ private:
 //==============================//
 
 private:
+
+	sc_clock clock;
 
 	LokiVector<IdleSignal>   idleSig;
 
@@ -120,7 +111,7 @@ private:
 	// These are used for the small input crossbar in each core, to ensure that
 	// credits get to the local tile network in time to be sent, and to allow
 	// time for data to arrive from the tile network.
-	sc_core::sc_clock fastClock, slowClock;
+	sc_clock fastClock, slowClock;
 
 //==============================//
 // Local state
@@ -129,7 +120,6 @@ private:
 private:
 
   unsigned int idleComponents;
-  sc_event idlenessChanged;
 
 };
 

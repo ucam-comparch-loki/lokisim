@@ -8,7 +8,6 @@
 #include "Statistics.h"
 #include "Instrumentation.h"
 #include "Instrumentation/BackgroundMemory.h"
-#include "Instrumentation/Energy.h"
 #include "Instrumentation/IPKCache.h"
 #include "Instrumentation/MemoryBank.h"
 #include "Instrumentation/Network.h"
@@ -25,15 +24,12 @@ void Statistics::printStats() {
   Network::printStats();
   Operations::printStats();
   Registers::printStats();
-  Energy::printStats();
   Stalls::printStats();
 }
 
 int Statistics::getStat(const std::string& statName, int parameter) {
   if(statName == "execution_time")        return executionTime();
   else if(statName == "current_cycle")    return currentCycle();
-  else if(statName == "energy")           return energy();
-  else if(statName == "fj_per_op")        return fJPerOp();
   else if(statName == "l0_tag_checks")    return l0TagChecks();
   else if(statName == "l0_hits")          return l0Hits();
   else if(statName == "l0_misses")        return l0Misses();
@@ -49,7 +45,6 @@ int Statistics::getStat(const std::string& statName, int parameter) {
     if(parameter != -1)                   return operations((opcode_t)parameter);
     else                                  return operations();
   }
-  else if(statName == "network_distance") return (int)networkDistance();
   else if(statName == "cycles_active")    return cyclesActive(parameter);
   else if(statName == "cycles_idle")      return cyclesIdle(parameter);
   else if(statName == "cycles_stalled")   return cyclesStalled(parameter);
@@ -64,8 +59,6 @@ int Statistics::currentCycle() {
 }
 
 int Statistics::executionTime()         {return Stalls::executionTime();}
-int Statistics::energy()                {return Energy::totalEnergy();}
-int Statistics::fJPerOp()               {return Energy::pJPerOp()*1000;}
 
 int Statistics::decodes()               {return Operations::numDecodes();}
 
@@ -75,7 +68,7 @@ int Statistics::operations(opcode_t op) {return Operations::numOperations(op);}
 int Statistics::registerReads()         {return Registers::numReads();}
 int Statistics::registerWrites()        {return Registers::numWrites();}
 int Statistics::dataForwards()          {return Registers::numForwards();}
-int Statistics::stallRegUses()          {return Registers::stallRegUses();}
+int Statistics::stallRegUses()          {return Registers::pipelineRegUses();}
 
 int Statistics::l0TagChecks()           {return IPKCache::numTagChecks();}
 int Statistics::l0Hits()                {return IPKCache::numHits();}
@@ -85,8 +78,6 @@ int Statistics::l0Writes()              {return IPKCache::numWrites();}
 
 int Statistics::l1Reads()               {return MemoryBank::numReads();}
 int Statistics::l1Writes()              {return MemoryBank::numWrites();}
-
-double Statistics::networkDistance()    {return Network::totalDistance();}
 
 int Statistics::cyclesActive(const ComponentID& core)  {return Stalls::cyclesActive(core);}
 int Statistics::cyclesIdle(const ComponentID& core)    {return Stalls::cyclesIdle(core);}

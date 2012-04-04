@@ -31,7 +31,7 @@ const int32_t IndirectRegisterFile::read(const RegisterIndex reg, bool indirect)
     return parent()->readRCET(toChannelID(index));
   }
   else {
-    Instrumentation::registerRead(id, index);
+    Instrumentation::registerRead(id, index, indirect);
     if(DEBUG) cout << this->name() << ": Read " << regs.read(index)
                    << " from register " << (int)index << endl;
     return regs.read(index).toInt();
@@ -56,7 +56,7 @@ void IndirectRegisterFile::write(const RegisterIndex reg, const int32_t value, b
   Word w(value);
   writeReg(index, w);
 
-  Instrumentation::registerWrite(id, index);
+  Instrumentation::registerWrite(id, index, indirect);
 
 }
 

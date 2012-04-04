@@ -24,7 +24,7 @@ int CodeLoader::mainOffset = -1;
  *     Use another file loader - useful for loading multiple (sub-)programs
  *   parameter parameter_name parameter_value
  *     Override default parameter setting */
-void CodeLoader::loadParameters(string& settings) {
+void CodeLoader::loadParameters(const string& settings) {
 
   // Check that this is actually a settings file.
   if(settings.find(".txt") == settings.size()) return;
@@ -80,7 +80,7 @@ void CodeLoader::loadParameters(string& settings) {
  *     Use another file loader - useful for loading multiple (sub-)programs
  *   component_id file_name
  *     Load the contents of the file into the component */
-void CodeLoader::loadCode(string& settings, Chip& chip) {
+void CodeLoader::loadCode(const string& settings, Chip& chip) {
 
   char line[200];   // An array of chars to load a line from the file into.
 
@@ -118,9 +118,6 @@ void CodeLoader::loadCode(string& settings, Chip& chip) {
       else if(words[0]=="loader") {   // Use another file loader
         string loaderFile = directory + words[1];
         loadCode(loaderFile, chip);
-      }
-      else if(words[0]=="power") {
-        Instrumentation::loadPowerLibrary(words[1]);
       }
       else if(words[0]=="parameter") {
         // Do nothing: parameters are dealt with in loadParameters()
@@ -178,7 +175,7 @@ void CodeLoader::makeExecutable(Chip& chip) {
   }
 }
 
-void CodeLoader::loadFromCommand(vector<string>& command, Chip& chip, bool customAppLoader) {
+void CodeLoader::loadFromCommand(const vector<string>& command, Chip& chip, bool customAppLoader) {
   FileReader* reader = FileReader::makeFileReader(command, customAppLoader);
   loadFromReader(reader, chip);
 }

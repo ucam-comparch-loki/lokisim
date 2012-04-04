@@ -53,12 +53,6 @@ protected:
   // acknowledgements.
   virtual void busLoop();
 
-private:
-
-  // Compute how many bits switched, and call the appropriate instrumentation
-  // methods.
-  void computeSwitching();
-
 //==============================//
 // Local state
 //==============================//
@@ -73,10 +67,6 @@ protected:
   PortIndex outputUsed;
 
 private:
-
-  // Store the previous value, so we can compute how many bits change when a
-  // new value arrives.
-  DataType lastData;
 
   // The cycle during which data was last written to the bus. Data should be
   // written at most once per clock cycle.

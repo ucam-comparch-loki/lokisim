@@ -1203,6 +1203,8 @@ void MemoryBank::handleDataOutput() {
 
     if(DEBUG)
       cout << this->name() << " sent " << mActiveOutputWord << endl;
+    Instrumentation::networkTraffic(id, mActiveOutputWord.channelID(),
+                                    mActiveOutputWord.payload().toInt());
 
     // If we are passing the memory operation on to another component, split
     // the packet up so network resources can be reallocated to the next memory.

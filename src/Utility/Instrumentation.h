@@ -36,13 +36,13 @@ namespace Instrumentation {
 
   // The desired data ended up being forwarded, rather than read from a
   // register. This provides optimisation opportunities.
-  void dataForwarded(const ComponentID& core, RegisterIndex reg);
+  void dataForwarded(const ComponentID& core, RegisterIndex reg, int32_t data);
 
-  // Register was read from. Collect indirect information too?
-  void registerRead(const ComponentID& core, RegisterIndex reg);
+  // Register was read from.
+  void registerRead(const ComponentID& core, RegisterIndex reg, bool indirect);
 
   // A register was written to.
-  void registerWrite(const ComponentID& core, RegisterIndex reg);
+  void registerWrite(const ComponentID& core, RegisterIndex reg, bool indirect);
 
   // Record that a stall (pipeline) register was used.
   void stallRegUse(const ComponentID& core);
@@ -99,20 +99,13 @@ namespace Instrumentation {
 
   // Record that data was sent over the network from a start point to an end
   // point.
-  void networkTraffic(const ChannelID& startID, const ChannelID& endID);
-
-  // Record that data was sent over a particular link of the network.
-  void networkActivity(const ComponentID& network, ChannelIndex source,
-                       ChannelIndex destination, double distance, int bitsSwitched);
+  void networkTraffic(const ComponentID& start, const ChannelID& end, int32_t data);
 
   // Record whether a particular operation was executed or not.
   void executed(const ComponentID& id, const DecodedInst& inst, bool executed);
 
   // Return the current clock cycle count.
   unsigned long currentCycle();
-
-  // Load a library to allow power consumption estimates later.
-  void loadPowerLibrary(const std::string& filename);
 
 }
 

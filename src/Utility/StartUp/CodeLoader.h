@@ -30,10 +30,10 @@ private:
 public:
 
   // Read a file which tells which files to read.
-  static void loadParameters(string& settingsFile);
+  static void loadParameters(const string& settingsFile);
 
   // Read a file which tells which files to read.
-  static void loadCode(string& settingsFile, Chip& chip);
+  static void loadCode(const string& settingsFile, Chip& chip);
 
   // If appropriate, link all object files together to make a single executable,
   // and load this program into the system.
@@ -44,7 +44,7 @@ private:
   // Store the contents of the given file into the component of the chip at
   // the given position. command is a vector of words from a loader file, e.g.:
   //   "12", "filename.loki"
-  static void loadFromCommand(vector<string>& command, Chip& chip, bool customAppLoader);
+  static void loadFromCommand(const vector<string>& command, Chip& chip, bool customAppLoader);
 
   static void loadFromReader(FileReader* reader, Chip& chip);
 

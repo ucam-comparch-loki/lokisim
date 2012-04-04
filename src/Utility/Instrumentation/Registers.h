@@ -20,18 +20,18 @@ public:
   static void read(const ComponentID& core, RegisterIndex reg);
   static void write(const ComponentID& core, RegisterIndex reg);
   static void forward(const ComponentID& core, RegisterIndex reg);
-  static void stallReg(const ComponentID& core);
+  static void pipelineReg(const ComponentID& core);
 
   static unsigned long long  numReads();
   static unsigned long long  numWrites();
   static unsigned long long  numForwards();
-  static unsigned long long  stallRegUses();
+  static unsigned long long  pipelineRegUses();
 
   static void printStats();
 
 private:
 
-  static unsigned long long numReads_, numWrites_, numForwards_, stallRegs_;
+  static unsigned long long numReads_, numWrites_, numForwards_, pipelineRegs_;
 
 };
 

@@ -2,10 +2,6 @@
 loader params.txt
 
 
-%% The power figures we are using.
-power elm
-
-
 %% The "bootloader" program to be executed by core 0.
 %% This loader configures the memories to behave as a simple cache by default
 %% and then fetches the main program.

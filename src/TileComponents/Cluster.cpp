@@ -54,8 +54,7 @@ const int32_t Cluster::readReg(RegisterIndex reg, bool indirect) {
 
       if(DEBUG) cout << this->name() << " forwarded contents of register "
                      << (int)reg << " (" << result << ")" << endl;
-      Instrumentation::dataForwarded(id, reg);
-
+      Instrumentation::dataForwarded(id, reg, result);
       if(indirect) result = regs.read(result, false);
     }
     else if(reg == write.currentInstruction().destination() &&
@@ -66,7 +65,7 @@ const int32_t Cluster::readReg(RegisterIndex reg, bool indirect) {
 
       if(DEBUG) cout << this->name() << " forwarded contents of register "
                      << (int)reg << " (" << result << ")" << endl;
-      Instrumentation::dataForwarded(id, reg);
+      Instrumentation::dataForwarded(id, reg, result);
 
       if(indirect) result = regs.read(result, false);
     }
@@ -220,7 +219,6 @@ Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t*
 
   inputCrossbar.clock(clock);
   inputCrossbar.creditClock(fastClock);
-  inputCrossbar.dataClock(slowClock);
   inputCrossbar.creditsOut[0](creditsOut[0]);
 
   // Create pipeline registers.
