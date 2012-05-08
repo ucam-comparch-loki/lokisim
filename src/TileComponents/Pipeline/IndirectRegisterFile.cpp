@@ -5,12 +5,12 @@
  *      Author: db434
  */
 
-#include <math.h>
 #include "IndirectRegisterFile.h"
 #include "../Cluster.h"
 #include "../../Datatype/Word.h"
+#include "../../Utility/Instrumentation/Registers.h"
 
-const int32_t IndirectRegisterFile::read(const RegisterIndex reg, bool indirect) const {
+const int32_t IndirectRegisterFile::read(PortIndex port, RegisterIndex reg, bool indirect) const {
   RegisterIndex index;
 
   if(indirect) {
@@ -31,10 +31,12 @@ const int32_t IndirectRegisterFile::read(const RegisterIndex reg, bool indirect)
     return parent()->readRCET(toChannelID(index));
   }
   else {
-    Instrumentation::registerRead(id, index, indirect);
-    if(DEBUG) cout << this->name() << ": Read " << regs.read(index)
+    int data = regs.read(index).toInt();
+
+    Instrumentation::Registers::read(port, reg, data);
+    if(DEBUG) cout << this->name() << ": Read " << data
                    << " from register " << (int)index << endl;
-    return regs.read(index).toInt();
+    return data;
   }
 }
 
@@ -53,10 +55,12 @@ void IndirectRegisterFile::write(const RegisterIndex reg, const int32_t value, b
     return;
   }
 
+  int oldData = regs.read(index).toInt();
+
   Word w(value);
   writeReg(index, w);
 
-  Instrumentation::registerWrite(id, index, indirect);
+  Instrumentation::Registers::write(index, oldData, value);
 
 }
 

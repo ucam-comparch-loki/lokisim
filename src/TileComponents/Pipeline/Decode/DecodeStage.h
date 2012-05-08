@@ -68,6 +68,7 @@ private:
   // The main loop controlling this stage. Involves waiting for new input,
   // doing work on it, and sending it to the next stage.
   virtual void   execute();
+  void execute2();
 
   // Determine whether this stage is stalled or not, and write the appropriate
   // output.
@@ -81,7 +82,7 @@ private:
   virtual bool   isStalled() const;
 
   // Read a register value (for Decoder).
-  int32_t        readReg(RegisterIndex index, bool indirect = false) const;
+  int32_t        readReg(PortIndex port, RegisterIndex index, bool indirect = false) const;
 
   // Get the value of the predicate register.
   bool           predicate() const;
@@ -129,6 +130,16 @@ private:
 //==============================//
 
 private:
+
+  enum DecodeState {
+    INIT,
+    NEW_INSTRUCTION,
+    DECODE,
+    WAIT_FOR_OPERANDS,
+    SEND_RESULT
+  };
+
+  DecodeState state;
 
   bool startingNewPacket;
 

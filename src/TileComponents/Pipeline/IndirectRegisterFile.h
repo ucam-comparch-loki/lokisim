@@ -41,7 +41,7 @@ public:
 public:
 
   // Read from a register, redirecting to RCET if necessary.
-  const int32_t read(const RegisterIndex reg, bool indirect) const;
+  const int32_t read(PortIndex port, RegisterIndex reg, bool indirect) const;
 
   // Read from a register without redirecting to RCET.
   const int32_t readDebug(const RegisterIndex reg) const;

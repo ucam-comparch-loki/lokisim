@@ -122,7 +122,10 @@ const MemoryAddr IPKCacheStorage::packetAddress() const {
 
 /* Returns the remaining number of entries in the cache. */
 const uint16_t IPKCacheStorage::remainingSpace() const {
-  return this->size() - fillCount;
+  if(finishedPacket)
+    return this->size();
+  else
+    return this->size() - fillCount;
 }
 
 const MemoryAddr IPKCacheStorage::getInstLocation() const {

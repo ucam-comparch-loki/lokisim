@@ -21,6 +21,10 @@ class DecodedInst;
 
 namespace Instrumentation {
 
+  void initialise();
+  void end();
+  void dumpEventCounts(std::ostream& os);
+
   // Record whether there was a cache hit or miss when a fetch occurred.
   void l0TagCheck(const ComponentID& core, bool hit);
 
@@ -33,16 +37,6 @@ namespace Instrumentation {
   // The decoder consumes a significant amount of energy, and there are a few
   // techniques to reduce its activity, so record how active it is.
   void decoded(const ComponentID& core, const DecodedInst& dec);
-
-  // The desired data ended up being forwarded, rather than read from a
-  // register. This provides optimisation opportunities.
-  void dataForwarded(const ComponentID& core, RegisterIndex reg, int32_t data);
-
-  // Register was read from.
-  void registerRead(const ComponentID& core, RegisterIndex reg, bool indirect);
-
-  // A register was written to.
-  void registerWrite(const ComponentID& core, RegisterIndex reg, bool indirect);
 
   // Record that a stall (pipeline) register was used.
   void stallRegUse(const ComponentID& core);

@@ -35,6 +35,9 @@ simdstart:
 # Start of loop
 # Load subpixel values
 load:
+    addu                r17, ch0, r0            # r17 = red
+    addu                r18, ch0, r0            # r18 = green
+    addu                r19, ch0, r0            # r19 = blue
     addu                r11, r10, r20           # r11 = first input array
     ldbu                0(r11)          -> 1    # load red
     addu                r11, r11, r22           # r11 = second input array
@@ -42,10 +45,7 @@ load:
     addu                r11, r11, r22           # r11 = third input array
     ldbu                0(r11)          -> 1    # load blue
     fetchr              computey
-    addu                r10, r10, r31           # move to next pixel
-    addu                r17, ch0, r0            # r17 = red
-    addu                r18, ch0, r0            # r18 = green
-    addu.eop            r19, ch0, r0            # r19 = blue
+    addu.eop            r10, r10, r31           # move to next pixel
 
 # Compute Y
 computey:
@@ -88,15 +88,29 @@ endofloop:
     lli                 r26, exit
     psel.fetch.eop      r25, r26
 
+# Only one core should call sys_exit, and it should make sure that all other
+# cores have finished first.
 exit:
-    seteq.p             r0,  r30, r0            # set p if we are core 0
-    ifp?syscall         1
+    addui               r31, r31, -1            # num cores -> highest core index
+    setlt.p             r0,  r30, r31           # all cores except the highest receive word
+    ifp?addu            r0,  ch4, r0            # receive word
+
+    seteq.p             r0,  r30, r0            # all cores except 0 send a word
+    if!p?lli            r10, (0,1,0)            # start computing address of prev core
+    if!p?lli            r11, (0,0,6)            # want to send to input 6 (ch4)
+    if!p?addui          r12, r30, -1            # previous core id
+    if!p?mullw          r10, r10, r12           # now have something like (0,4,0)
+    if!p?addu           r10, r10, r11           # now have something like (0,4,6)
+    if!p?setchmapi      4,   r10
+    if!p?addu           r0,  r0,  r0    -> 4    # send sync message
+
+    ifp?syscall         1                       # if we are core 0, end
     addu.eop            r0,  r0,  r0
 
 # Subroutine to compute (xR + yG + zB + 128) >> 8
 # Excludes final addition because I currently don't have enough registers for it.
-# Assumes x is in r13, y is in r14, z is in r15 and next IPK address is in r29.
-# Leaves result in r13.
+# Assumes x is in r25, y is in r26, z is in r27 and next IPK address is in r29.
+# Leaves result in r25.
 compute:
     fetch               r29
     mullw               r25, r25, r17           # xR

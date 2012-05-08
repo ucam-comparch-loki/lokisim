@@ -119,7 +119,7 @@ private:
   // Read a value from a register. This method will redirect the request to
   // the receive channel-end table if the register index corresponds to a
   // channel end.
-  const int32_t    readReg(RegisterIndex reg, bool indirect = false);
+  const int32_t    readReg(PortIndex port, RegisterIndex reg, bool indirect = false);
 
   // Read a value from a channel end. Warning: this removes the value from
   // the input buffer.

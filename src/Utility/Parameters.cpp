@@ -91,7 +91,7 @@ parameter CORE_INPUT_PORTS         = 5;  // 2 from cores, 2 from memories, 1 fro
 parameter CORE_OUTPUT_PORTS        = 1;  // To cores, to memories, off tile
 parameter NUM_RECEIVE_CHANNELS     = 6;  // Register-mapped inputs only
 
-parameter IN_CHANNEL_BUFFER_SIZE   = 20;  // Make smaller once SIMD is sorted
+parameter IN_CHANNEL_BUFFER_SIZE   = 4;
 parameter OUT_CHANNEL_BUFFER_SIZE  = 4;
 parameter ROUTER_BUFFER_SIZE       = 4;
 

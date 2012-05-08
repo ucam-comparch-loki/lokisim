@@ -8,10 +8,11 @@
 #include "../Chip.h"
 #include "Cluster.h"
 #include "Pipeline/PipelineRegister.h"
-#include "../Utility/InstructionMap.h"
 #include "../Datatype/ChannelID.h"
 #include "../Datatype/DecodedInst.h"
 #include "../Network/Topologies/LocalNetwork.h"
+#include "../Utility/InstructionMap.h"
+#include "../Utility/Instrumentation/Registers.h"
 
 /* Initialise the instructions a Cluster will execute. */
 void     Cluster::storeData(const std::vector<Word>& data, MemoryAddr location) {
@@ -33,45 +34,52 @@ bool     Cluster::inCache(const MemoryAddr addr, opcode_t operation) {
   return fetch.inCache(addr, operation);
 }
 
-const int32_t Cluster::readReg(RegisterIndex reg, bool indirect) {
+const int32_t Cluster::readReg(PortIndex port, RegisterIndex reg, bool indirect) {
 
   int32_t result;
+
+  // Register 0 is hard-wired to 0.
+  if(reg == 0)
+    return 0;
 
   // Check to see if the requested register is one which will be written to by
   // an instruction which is still in the pipeline. If so, we forward the data.
   // Slightly complicated by the possibility of indirect register access - the
   // stated register may not actually be the one providing/receiving the data.
-  if(reg>0) {
-    if(reg == execute.currentInstruction().destination() &&
-       execute.currentInstruction().opcode() != InstructionMap::OP_IWTR) {
-      // If the instruction in the execute stage will write to the register we
-      // want to read, but it hasn't produced a result yet, wait until
-      // execution completes.
-      if(!execute.currentInstruction().hasResult())
-        wait(execute.executedEvent());
+  if(reg == execute.currentInstruction().destination() &&
+     execute.currentInstruction().opcode() != InstructionMap::OP_IWTR) {
+    // If the instruction in the execute stage will write to the register we
+    // want to read, but it hasn't produced a result yet, wait until
+    // execution completes.
+    if(!execute.currentInstruction().hasResult())
+      wait(execute.executedEvent());
+      // TODO - eliminate SC_THREADs
+//      next_trigger(execute.executedEvent());
 
-      result = execute.currentInstruction().result();
+    result = execute.currentInstruction().result();
 
-      if(DEBUG) cout << this->name() << " forwarded contents of register "
-                     << (int)reg << " (" << result << ")" << endl;
-      Instrumentation::dataForwarded(id, reg, result);
-      if(indirect) result = regs.read(result, false);
-    }
-    else if(reg == write.currentInstruction().destination() &&
-            write.currentInstruction().opcode() != InstructionMap::OP_IWTR) {
-      // No waiting required this time - if the instruction is in the write
-      // stage, it definitely has a result.
-      result = write.currentInstruction().result();
-
-      if(DEBUG) cout << this->name() << " forwarded contents of register "
-                     << (int)reg << " (" << result << ")" << endl;
-      Instrumentation::dataForwarded(id, reg, result);
-
-      if(indirect) result = regs.read(result, false);
-    }
-    else result = regs.read(reg, indirect);
+    if(DEBUG) cout << this->name() << " forwarded contents of register "
+                   << (int)reg << " (" << result << ")" << endl;
+    Instrumentation::Registers::forward(port);
+    if(indirect) result = regs.read(port, result, false);
   }
-  else result = 0;
+  else if(reg == write.currentInstruction().destination() &&
+          write.currentInstruction().opcode() != InstructionMap::OP_IWTR) {
+    // No waiting required this time - if the instruction is in the write
+    // stage, it definitely has a result.
+    result = write.currentInstruction().result();
+
+    // In a real system, we wouldn't know we were bypassing until too late, so
+    // we have to perform the read anyway.
+    regs.read(port, reg, false);
+
+    if(DEBUG) cout << this->name() << " bypassed read of register "
+                   << (int)reg << " (" << result << ")" << endl;
+    Instrumentation::Registers::bypass(port);
+
+    if(indirect) result = regs.read(port, result, false);
+  }
+  else result = regs.read(port, reg, indirect);
 
   return result;
 }

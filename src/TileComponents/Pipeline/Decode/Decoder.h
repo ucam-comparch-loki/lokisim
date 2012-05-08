@@ -14,12 +14,11 @@
 #define DECODER_H_
 
 #include "../../../Component.h"
+#include "../../../Datatype/DecodedInst.h"
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
-class DecodedInst;
 class DecodeStage;
-class Instruction;
 
 class Decoder: public Component {
 
@@ -28,6 +27,17 @@ class Decoder: public Component {
 //==============================//
 
 public:
+
+  void initialise(const DecodedInst& input);
+  void decode();
+  void collectOperands();
+  void instructionFinished();
+  bool needPredicateNow(const DecodedInst& inst) const;
+  bool allOperandsReady() const;
+  bool hasOutput() const;
+  const DecodedInst& getOutput() const;
+  bool checkChannelInput(ChannelIndex channel);
+  void waitForOperands2(const DecodedInst& inst);
 
   // Extract information from the input instruction and determine what the
   // operands are to be. Stores result in output. Returns whether there
@@ -59,7 +69,7 @@ private:
   void setOperand2(DecodedInst& dec);
 
   // Read a register value.
-  int32_t readRegs(RegisterIndex index, bool indirect = false);
+  int32_t readRegs(PortIndex port, RegisterIndex index, bool indirect = false);
 
   // Wait until there is data in a particular input buffer.
   void    waitUntilArrival(ChannelIndex channel);
@@ -97,11 +107,15 @@ public:
 
 private:
 
-  // The remote channel we are sending instructions to.
-  ChannelIndex sendChannel;
+  DecodedInst current, output;
+  bool continueToExecute, execute, haveAllOperands;
+  int outputsRemaining;
+  bool needDestination, needOperand1, needOperand2;
 
-  // Tells whether or not we are in remote execution mode.
-  bool remoteExecute;
+
+  // The remote channel we are sending instructions to.
+  // Set to Instruction::NO_CHANNEL if we are not sending instructions.
+  ChannelIndex sendChannel;
 
   // Tells whether we have started a two-cycle store operation.
   bool multiCycleOp;
@@ -121,6 +135,7 @@ private:
   // If the previous instruction was predicated, we may not know whether
   // forwarding will be possible, so must be pessimistic and read registers too.
   bool previousInstPredicated;
+  bool previousInstSetPredicate;
 
 };
 

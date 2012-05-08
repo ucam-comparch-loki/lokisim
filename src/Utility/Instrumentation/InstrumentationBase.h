@@ -19,6 +19,8 @@ using std::string;
 using std::cout;
 using std::endl;
 
+typedef unsigned long long count_t;
+
 namespace Instrumentation {
 
 class InstrumentationBase {
@@ -27,9 +29,18 @@ public:
 
   static void printStats();
 
+  // Perform any necessary initialisation before data collection begins.
+  static void init();
+
+  // Tidy up after all data has been retrieved.
+  static void end();
+
 protected:
 
-  static string percentage(unsigned long long value, unsigned long long total);
+  static int popcount(uint value);
+  static int hammingDistance(uint val1, uint val2);
+
+  static string percentage(count_t value, count_t total);
 
 };
 

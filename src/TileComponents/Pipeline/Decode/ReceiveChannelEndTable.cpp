@@ -18,12 +18,12 @@ typedef IndirectRegisterFile Registers;
 
 int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
   assert(channelEnd < NUM_RECEIVE_CHANNELS);
-//  assert(!buffers[channelEnd].empty());
+  assert(!buffers[channelEnd].empty());
 
   // This path can only be followed from SC_THREADs. SC_METHODs must check
   // whether there is data in the buffer before reading from it.
-  if(buffers[channelEnd].empty())
-    wait(receivedDataEvent(channelEnd));
+//  if(buffers[channelEnd].empty())
+//    wait(receivedDataEvent(channelEnd));
 
   int32_t result = buffers.read(channelEnd).toInt();
 

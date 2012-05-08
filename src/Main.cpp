@@ -38,16 +38,15 @@ int sc_main(int argc, char* argv[]) {
 
   if(Arguments::simulate())
     return simulate();
-  else {
+  else
     return 0;
-  }
 }
 
 void simulate(Chip& chip) {
 
   // Simulate multiple cycles in a row when possible to reduce the overheads of
   // stopping and starting simulation.
-  if(DEBUG)
+  if(DEBUG || CORE_TRACE || MEMORY_TRACE)
     cyclesPerStep = 1;
   else
     cyclesPerStep = (100 < TIMEOUT/50) ? 100 : TIMEOUT/50;
@@ -111,7 +110,7 @@ void simulate(Chip& chip) {
   catch(std::exception& e) {
     // If there's no error message, it might mean that not everything is
     // connected properly.
-    cerr << "Execution ended unexpectedly at cycle " << cycleNumber << ":\n"
+    cerr << "Execution ended unexpectedly at cycle " << sc_core::sc_time_stamp().to_double() << ":\n"
          << e.what() << endl;
     RETURN_CODE = EXIT_FAILURE;
   }
@@ -123,6 +122,8 @@ int simulate() {
   // Override parameters before instantiating chip model
   for(unsigned int i=0; i<Arguments::code().size(); i++)
     CodeLoader::loadParameters(Arguments::code()[i]);
+
+  Instrumentation::initialise();
 
   // Instantiate chip model - changing a parameter after this point has
   // undefined behaviour.
@@ -145,6 +146,9 @@ int simulate() {
     Parameters::printParameters();
     Statistics::printStats();
   }
+
+//  Instrumentation::dumpEventCounts(std::cout);
+  Instrumentation::end();
 
   // Stop traces
   if (CORE_TRACE)

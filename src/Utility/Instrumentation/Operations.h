@@ -13,41 +13,42 @@
 #include "../../Datatype/ComponentID.h"
 #include "../../Datatype/DecodedInst.h"
 
-// Would prefer this to be private.
-// Uniquely identify an operation through both its opcode and ALU function.
-struct operation_key {
-  opcode_t   opcode;
-  function_t function;
-
-  bool operator <(const operation_key& rhs) const {
-    return (opcode < rhs.opcode) ||
-           (opcode == rhs.opcode && function < rhs.function);
-  }
-};
-
 namespace Instrumentation {
 
 class Operations: public InstrumentationBase {
 
 public:
 
+  static void init();
+  static void end();
+
   static void decoded(const ComponentID& core, const DecodedInst& dec);
   static void executed(const ComponentID& core, const DecodedInst& dec, bool executed);
 
-  static unsigned long long numDecodes();
-  static unsigned long long numOperations();
-  static unsigned long long numOperations(opcode_t operation,
-                                          function_t function = (function_t)0);
+  static count_t numDecodes();
+  static count_t numOperations();
+  static count_t numOperations(opcode_t operation,
+                               function_t function = (function_t)0);
 
   static void printStats();
+  static void dumpEventCounts(std::ostream& os);
 
 private:
 
-  static CounterMap<operation_key> executedOps;
-  static CounterMap<operation_key> unexecutedOps;
+  static CounterMap<opcode_t> executedOps;
+  static CounterMap<function_t> executedFns;
+  static count_t unexecuted;
+
+  // Store the previous inputs, outputs, and operations seen, so that we can
+  // compare them to the latest values.
+  static int32_t *lastIn1, *lastIn2, *lastOut;
+  static function_t *lastFn;
+
+  // Counters used to help compute energy consumption. hd = Hamming distance.
+  static count_t hdIn1, hdIn2, hdOut, sameOp;
 
   // Is there a difference between numOps and numDecodes?
-  static unsigned long long numOps_, numDecodes_;
+  static count_t numOps_, numDecodes_;
 
 };
 

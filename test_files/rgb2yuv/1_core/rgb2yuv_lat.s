@@ -35,6 +35,9 @@ _start:
 # Start of loop
 # Load subpixel values
 load:
+    addu                r17, ch0, r0            # r17 = red
+    addu                r18, ch0, r0            # r18 = green
+    addu                r19, ch0, r0            # r19 = blue
     addu                r11, r10, r20           # r11 = first input array
     ldbu                0(r11)          -> 1    # load red
     addu                r11, r11, r22           # r11 = second input array
@@ -42,10 +45,7 @@ load:
     addu                r11, r11, r22           # r11 = third input array
     ldbu                0(r11)          -> 1    # load blue
     fetchr              computey
-    addui               r10, r10, 1             # move to next pixel
-    addu                r17, ch0, r0            # r17 = red
-    addu                r18, ch0, r0            # r18 = green
-    addu.eop            r19, ch0, r0            # r19 = blue
+    addui.eop           r10, r10, 1             # move to next pixel
 
 # Compute Y
 computey:
