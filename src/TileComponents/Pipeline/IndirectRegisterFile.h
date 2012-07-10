@@ -85,6 +85,10 @@ private:
 
   AddressedStorage<Word>          regs;
 
+  // Data from previous read on each port. Used to compute Hamming distances
+  // for energy models. (wr=0, rd1=1, rd2=2)
+  vector<int> prevRead;
+
   // The register index at which the input channels begin.
   static const RegisterIndex START_OF_INPUT_CHANNELS = 2;
 

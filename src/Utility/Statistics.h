@@ -40,7 +40,6 @@ public:
   static int registerReads();
   static int registerWrites();
   static int dataForwards();
-  static int stallRegUses();
 
   static int l0TagChecks();
   static int l0Hits();

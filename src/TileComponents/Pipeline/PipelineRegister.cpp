@@ -6,42 +6,63 @@
  */
 
 #include "PipelineRegister.h"
+#include "../../Utility/Instrumentation/PipelineReg.h"
 
 bool PipelineRegister::ready() const {
-  return !buffer.full();
+//  return !buffer.full();
+  return !valid;
 }
 
 void PipelineRegister::write(const DecodedInst& inst) {
-  buffer.write(inst);
+  if (ENERGY_TRACE)
+    Instrumentation::PipelineReg::activity(data, inst, position);
+
+//  buffer.write(inst);
+  assert(!valid);
+  data = inst;
+  valid = true;
+  writeEvent.notify();
 }
 
 bool PipelineRegister::hasData() const {
-  return !buffer.empty();
+//  return !buffer.empty();
+  return valid;
 }
 
 const DecodedInst& PipelineRegister::read() {
-  return buffer.read();
+//  return buffer.read();
+  assert(valid);
+  readEvent.notify();
+  valid = false;
+  return data;
 }
 
 const sc_event& PipelineRegister::dataArrived() const {
-  return buffer.writeEvent();
+//  return buffer.writeEvent();
+  return writeEvent;
 }
 
 const sc_event& PipelineRegister::dataLeft() const {
-  return buffer.readEvent();
+//  return buffer.readEvent();
+  return readEvent;
 }
 
 bool PipelineRegister::discard() {
-  if(buffer.empty())
+//  if(buffer.empty())
+  if (!valid)
     return false;
   else {
-    buffer.discardTop();
+//    buffer.discardTop();
+    valid = false;
     return true;
   }
 }
 
-PipelineRegister::PipelineRegister(const sc_module_name& name, const ComponentID ID) :
+PipelineRegister::PipelineRegister(const sc_module_name& name,
+                                   const ComponentID ID,
+                                   const PipelinePosition pos) :
   Component(name, ID),
-  buffer(2, std::string(name)) {  // Buffer has 2 spaces and a name for debug
+//  buffer(1, std::string(name)) {  // Buffer has 2 spaces and a name for debug
+  position(pos) {
 
 }

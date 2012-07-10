@@ -73,6 +73,7 @@ loop:
 
 # Receive one last value from network
     addui               r27, r14, 32
+    or                  r0, r0, r0              # nop - can't forward to the irdr
     irdr                r27, r27
     mullw               r27, r27, ch0           # multiply matrix elements
     addu                r13, r13, r27           # add result to total so far
@@ -86,7 +87,7 @@ loop:
 
     addui               r12, r12, 1             # move to next output column
     seteq.p             r0,  r12, r24           # see if we have finished the row
-    if!p?ibjmp          -132                    # if not, loop
+    if!p?ibjmp          -136                    # if not, loop
 
     addu                r11, r11, r31           # move to next output row
     setgte.p            r0,  r11, r22           # see if we have finished the matrix

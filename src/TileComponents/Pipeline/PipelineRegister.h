@@ -7,6 +7,9 @@
  * Loosely based (much higher-level) on the implementation in
  * http://www.cl.cam.ac.uk/~rdm34/Memos/localstall.pdf
  *
+ * NOTE: I have switched back to a one-register implementation, as having two
+ * registers makes forwarding awkward.
+ *
  *  Created on: 15 Mar 2012
  *      Author: db434
  */
@@ -21,12 +24,29 @@
 class PipelineRegister: public Component {
 
 //==============================//
+// Types
+//==============================//
+
+public:
+
+  // Since we are using DecodedInst as a uniform datatype to pass down the
+  // pipeline, we need a way of distinguishing between the registers in
+  // different positions - they are all of different widths.
+  enum PipelinePosition {
+    FETCH_DECODE,
+    DECODE_EXECUTE,
+    EXECUTE_WRITE
+  };
+
+//==============================//
 // Constructors and destructors
 //==============================//
 
 public:
 
-  PipelineRegister(const sc_module_name& name, const ComponentID ID);
+  PipelineRegister(const sc_module_name& name,
+                   const ComponentID ID,
+                   const PipelinePosition pos);
 
 //==============================//
 // Methods
@@ -56,7 +76,14 @@ public:
 private:
 
   // My implementation of the two registers.
-  BufferStorage<DecodedInst> buffer;
+//  BufferStorage<DecodedInst> buffer;
+
+  DecodedInst data;
+  bool valid;
+
+  sc_event readEvent, writeEvent;
+
+  const PipelinePosition position;
 
 };
 

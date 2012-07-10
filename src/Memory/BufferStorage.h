@@ -37,7 +37,11 @@ public:
     incrementReadFrom();
     this->readEvent_.notify();
 
-    Instrumentation::FIFO::pop(this->size());
+    // Hack: small FIFOs are probably pipeline registers, and need more
+    // information. It is awkward to measure the Hamming distance in a templated
+    // class.
+    if (ENERGY_TRACE)
+      Instrumentation::FIFO::pop(this->size());
 
     return this->data_[i];
   }
@@ -48,7 +52,11 @@ public:
     this->data_[writePos.value()] = newData;
     this->writeEvent_.notify();
 
-    Instrumentation::FIFO::push(this->size());
+    // Hack: small FIFOs are probably pipeline registers, and need more
+    // information. It is awkward to measure the Hamming distance in a templated
+    // class.
+    if (ENERGY_TRACE)
+      Instrumentation::FIFO::push(this->size());
 
     incrementWriteTo();
   }

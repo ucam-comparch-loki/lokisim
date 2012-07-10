@@ -31,6 +31,7 @@ int TRACE = 0;
 int BATCH_MODE = 0;
 int CORE_TRACE = 0;
 int MEMORY_TRACE = 0;
+int ENERGY_TRACE = 0;
 
 unsigned long long TIMEOUT = 1000000000000ULL;
 
@@ -59,7 +60,8 @@ parameter NUM_TILE_COLUMNS           = 1;
 parameter NUM_ADDRESSABLE_REGISTERS  = 32;
 parameter NUM_PHYSICAL_REGISTERS     = 64;
 parameter IPK_FIFO_SIZE              = 24;  // Make smaller once SIMD is sorted
-parameter IPK_CACHE_SIZE             = 256;//64;//1024;
+parameter IPK_CACHE_SIZE             = 64;//1024;
+parameter IPK_CACHE_TAGS             = IPK_CACHE_SIZE;
 
 parameter CHANNEL_MAP_SIZE           = 16;
 
@@ -115,7 +117,8 @@ void Parameters::parseParameter(const string &name, const string &value) {
 	else SET_IF_MATCH(cName, nValue, NUM_ADDRESSABLE_REGISTERS);
 	else SET_IF_MATCH(cName, nValue, NUM_PHYSICAL_REGISTERS);
 	else SET_IF_MATCH(cName, nValue, IPK_FIFO_SIZE);
-	else SET_IF_MATCH(cName, nValue, IPK_CACHE_SIZE);
+  else SET_IF_MATCH(cName, nValue, IPK_CACHE_SIZE);
+  else SET_IF_MATCH(cName, nValue, IPK_CACHE_TAGS);
 	else SET_IF_MATCH(cName, nValue, CHANNEL_MAP_SIZE);
 	else SET_IF_MATCH(cName, nValue, MAX_IPK_SIZE);
 	else SET_IF_MATCH(cName, nValue, MEMORY_CHANNEL_MAP_TABLE_ENTRIES);
@@ -146,4 +149,21 @@ void Parameters::printParameters() {
 		cout << "<@PARAM>MEMORY_ON_CHIP_SCRATCHPAD_SIZE:" << MEMORY_ON_CHIP_SCRATCHPAD_SIZE << "</@PARAM>" << endl;
 		cout << "<@PARAM>MEMORY_ON_CHIP_SCRATCHPAD_BANKS:" << MEMORY_ON_CHIP_SCRATCHPAD_BANKS << "</@PARAM>" << endl;
 	}
+}
+
+#define XML_LINE(name, value) "\t<" << name << ">" << value << "</" << name << ">\n"
+
+void Parameters::printParametersXML(std::ostream& os) {
+  os << "<parameters>\n"
+     << XML_LINE("cores_per_tile", CORES_PER_TILE)
+     << XML_LINE("memories_per_tile", MEMS_PER_TILE)
+     << XML_LINE("tile_rows", NUM_TILE_ROWS)
+     << XML_LINE("tile_columns", NUM_TILE_COLUMNS)
+     << XML_LINE("addressable_regs", NUM_ADDRESSABLE_REGISTERS)
+     << XML_LINE("physical_regs", NUM_PHYSICAL_REGISTERS)
+     << XML_LINE("ipk_cache_size", IPK_CACHE_SIZE)
+     << XML_LINE("ipk_cache_tags", IPK_CACHE_TAGS)
+     << XML_LINE("channel_map_size", CHANNEL_MAP_SIZE)
+     << XML_LINE("memory_bank_size", MEMORY_BANK_SIZE)
+     << "</parameters>\n";
 }

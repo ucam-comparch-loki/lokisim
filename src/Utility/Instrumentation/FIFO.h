@@ -17,9 +17,6 @@ class FIFO : public InstrumentationBase {
 
 public:
 
-  static void init();
-  static void end();
-
   // Record whenever data is added to or removed from the FIFO. size is the
   // total number of elements the FIFO can hold. (Include bit width too?)
   static void push(size_t size);

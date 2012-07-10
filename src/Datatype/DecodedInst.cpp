@@ -85,6 +85,7 @@ void DecodedInst::destination(const RegisterIndex val)    {destReg_ = val;}
 void DecodedInst::immediate(const int32_t val)            {immediate_ = val;}
 void DecodedInst::channelMapEntry(const ChannelIndex val) {channelMapEntry_ = val;}
 void DecodedInst::predicate(const predicate_t val)        {predicate_ = val;}
+void DecodedInst::setsPredicate(const bool val)           {setsPred_ = val;}
 void DecodedInst::memoryOp(const uint8_t val)             {memoryOp_ = val;}
 
 void DecodedInst::operand1Source(const OperandSource src) {op1Source_ = src;}
@@ -106,52 +107,7 @@ void DecodedInst::location(const MemoryAddr val)          {location_ = val;}
 
 
 Instruction DecodedInst::toInstruction() const {
-  Instruction inst;
-
-  inst.predicate(predicate_);
-  inst.opcode(opcode_);
-
-  if(opcode_ == 0 || opcode_ == 1)
-    inst.function(function_);
-
-  if(InstructionMap::hasRemoteChannel(opcode_))
-    inst.remoteChannel(channelMapEntry_);
-
-  if(InstructionMap::hasImmediate(opcode_))
-    inst.immediate(immediate_);
-
-  // When the instruction was decoded, the registers were "unpacked" - the
-  // first register could have been the destination or a source, or may not
-  // have been specified. This loop packs the registers up again by seeing
-  // which registers are needed, and keeping track of where they should go.
-  int registersAssigned = 0;
-  for(int registersRetrieved=0; registersRetrieved<3; registersRetrieved++) {
-    bool hasThisRegister;
-    RegisterIndex reg;
-
-    if(registersRetrieved == 0) {
-      hasThisRegister = InstructionMap::hasDestReg(opcode_);
-      reg = destReg_;
-    }
-    else if(registersRetrieved == 1) {
-      hasThisRegister = InstructionMap::hasSrcReg1(opcode_);
-      reg = sourceReg1_;
-    }
-    else {
-      hasThisRegister = InstructionMap::hasSrcReg2(opcode_);
-      reg = sourceReg2_;
-    }
-
-    if(hasThisRegister) {
-      if(registersAssigned == 0)      inst.reg1(reg);
-      else if(registersAssigned == 1) inst.reg2(reg);
-      else                            inst.reg3(reg);
-
-      registersAssigned++;
-    }
-  }
-
-  return inst;
+  return original_;
 }
 
 const bool DecodedInst::sendsOnNetwork() const {
@@ -233,15 +189,38 @@ std::ostream& DecodedInst::print(std::ostream& os) const {
   return os;
 }
 
-
-DecodedInst::DecodedInst() {
-  // Everything should default to 0.
-  endOfPacket_ = true;
-  portClaim_ = false;
-  useCredits_ = false;
+void DecodedInst::init() {
+  opcode_           = static_cast<opcode_t>(0);
+  function_         = static_cast<function_t>(0);
+  format_           = static_cast<format_t>(0);
+  destReg_          = 0;
+  sourceReg1_       = 0;
+  sourceReg2_       = 0;
+  immediate_        = 0;
+  channelMapEntry_  = 0;
+  predicate_        = static_cast<predicate_t>(0);
+  setsPred_         = false;
+  memoryOp_         = MemoryRequest::NONE;  // non-zero
+  op1Source_        = NONE;
+  op2Source_        = NONE;
+  operand1_         = 0;
+  operand2_         = 0;
+  result_           = 0;
+  portClaim_        = false;
+  useCredits_       = false;
+  endOfPacket_      = true;                 // non-zero
+  networkDest_      = ChannelID();          // non-zero
+  location_         = 0;
+  hasResult_        = false;
 }
 
-DecodedInst::DecodedInst(const Instruction inst) {
+DecodedInst::DecodedInst() {
+  init();
+}
+
+DecodedInst::DecodedInst(const Instruction inst) : original_(inst) {
+  init();
+
   predicate_       = inst.predicate();
   opcode_          = inst.opcode();
 
@@ -259,20 +238,6 @@ DecodedInst::DecodedInst(const Instruction inst) {
 
   setsPred_        = InstructionMap::setsPredicate(opcode_);
   format_          = InstructionMap::format(opcode_);
-  memoryOp_        = MemoryRequest::NONE;
-
-  op1Source_       = NONE;
-  op2Source_       = NONE;
-
-  operand1_        = 0;
-  operand2_        = 0;
-  result_          = 0;
-
-  hasResult_       = false;
-
-  endOfPacket_     = true;
-  portClaim_       = false;
-  useCredits_      = false;
 
   bool signedImmed = InstructionMap::hasSignedImmediate(opcode_);
 

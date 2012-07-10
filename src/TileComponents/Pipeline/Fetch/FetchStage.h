@@ -15,7 +15,6 @@
 #include "../PipelineStage.h"
 #include "InstructionPacketCache.h"
 #include "InstructionPacketFIFO.h"
-#include "../../../Datatype/Instruction.h"
 #include "../../../Network/NetworkTypedefs.h"
 
 class FetchStage : public PipelineStage {

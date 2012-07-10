@@ -151,11 +151,17 @@ public:
   DecodedInst();
   DecodedInst(const Instruction i);
 
+private:
+
+  void init();
+
 //==============================//
 // Local state
 //==============================//
 
 private:
+  // The original, encoded instruction.
+  const Instruction original_;
 
   opcode_t opcode_;
   function_t function_;

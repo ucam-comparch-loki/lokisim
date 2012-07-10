@@ -10,6 +10,8 @@
 #include "../../Datatype/ComponentID.h"
 #include "../../Datatype/DecodedInst.h"
 
+using namespace Instrumentation;
+
 CounterMap<opcode_t> Operations::executedOps;
 CounterMap<function_t> Operations::executedFns;
 count_t Operations::unexecuted;
@@ -131,14 +133,18 @@ void Operations::printStats() {
 }
 
 void Operations::dumpEventCounts(std::ostream& os) {
-  os << "# ALU\n";
+  os << xmlBegin("decoder") << "\n"
+     << xmlNode("decodes", numDecodes_) << "\n"
+     << xmlEnd("decoder") << "\n";
+
+  os << xmlBegin("alu") << "\n";
 
   // Special case for the ALU operations
   CounterMap<function_t>::iterator it;
   for(it = executedFns.begin(); it != executedFns.end(); it++) {
     function_t fn = it->first;
     const inst_name_t& name = InstructionMap::name((opcode_t)0, fn);
-    os << name << "\t" << executedFns[fn] << "\n";
+    os << xmlNode(name.c_str(), executedFns[fn]) << "\n";
   }
 
   // Non-ALU operations
@@ -146,12 +152,40 @@ void Operations::dumpEventCounts(std::ostream& os) {
   for(it2 = executedOps.begin(); it2 != executedOps.end(); it2++) {
     opcode_t op = it2->first;
     const inst_name_t& name = InstructionMap::name(op);
-    os << name << "\t" << executedOps[op] << "\n";
+    os << xmlNode(name.c_str(), executedOps[op]) << "\n";
   }
 
-  os << "hd_in1\t" << hdIn1 << "\n"
-        "hd_in2\t" << hdIn2 << "\n"
-        "hd_out\t" << hdOut << "\n"
-        "same_op\t" << sameOp << "\n"
-        "\n";
+  // Initial modelling suggests that a couple of operations consume
+  // significantly more energy than the others.
+  count_t highEnergy = executedFns[InstructionMap::FN_SETGTE]
+                     + executedOps[InstructionMap::OP_SETGTEI]
+                     + executedOps[InstructionMap::OP_SETGTEI_P]
+                     + executedFns[InstructionMap::FN_ADDU]
+                     + executedOps[InstructionMap::OP_ADDUI]
+                     + executedOps[InstructionMap::OP_ADDUI_P];
+
+  // Record multiplier activity separately from ALU activity.
+  count_t totalOps   = executedOps.numEvents() + executedFns.numEvents()
+                     - executedOps[InstructionMap::OP_MULHW]
+                     - executedOps[InstructionMap::OP_MULHWU]
+                     - executedOps[InstructionMap::OP_MULLW];
+
+  os << xmlNode("hd_in1", hdIn1) << "\n"
+     << xmlNode("hd_in2", hdIn2) << "\n"
+     << xmlNode("hd_out", hdOut) << "\n"
+     << xmlNode("same_op", sameOp) << "\n"
+     << xmlNode("total_ops", totalOps) << "\n"
+     << xmlNode("high_energy", highEnergy) << "\n"
+     << xmlEnd("alu") << "\n";
+
+  count_t multiplies = executedOps[InstructionMap::OP_MULHW]
+                     + executedOps[InstructionMap::OP_MULHWU]
+                     + executedOps[InstructionMap::OP_MULLW];
+  count_t highWord   = executedOps[InstructionMap::OP_MULHW]
+                     + executedOps[InstructionMap::OP_MULHWU];
+
+  os << xmlBegin("multiplier") << "\n"
+     << xmlNode("active", multiplies) << "\n"
+     << xmlNode("high_word", highWord) << "\n"
+     << xmlEnd("multiplier") << "\n";
 }

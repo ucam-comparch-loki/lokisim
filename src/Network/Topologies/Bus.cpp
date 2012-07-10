@@ -6,6 +6,7 @@
  */
 
 #include "Bus.h"
+#include "../../Utility/Instrumentation.h"
 
 void Bus::busLoop() {
   switch(state) {

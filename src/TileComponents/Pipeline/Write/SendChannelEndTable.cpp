@@ -12,10 +12,12 @@
 #include "../../../Datatype/AddressedWord.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/MemoryRequest.h"
+#include "../../../Utility/Instrumentation/Network.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
 void SendChannelEndTable::write(const DecodedInst& data) {
-  if(DEBUG) cout << this->name() << " writing " << data.result() << " to output buffer\n";
+  if (DEBUG)
+    cout << this->name() << " writing " << data.result() << " to output buffer\n";
 
   assert(!buffer.full());
 
@@ -33,16 +35,16 @@ const sc_event& SendChannelEndTable::stallChangedEvent() const {
 
 void SendChannelEndTable::sendLoop() {
 
-  switch(state) {
+  switch (state) {
     case IDLE: {
 
       // Remove the request for network resources if the previous data sent was
       // the end of a data packet.
       const AddressedWord& data = output[0].read();
-      if(data.endOfPacket())
+      if (data.endOfPacket())
         requestArbitration(data.channelID(), false);
 
-      if(buffer.empty()) {
+      if (buffer.empty()) {
         // When will this event be triggered? Will waiting 0.6 cycles always work?
         // Can we ensure that the data always arrives at the start of the cycle?
         next_trigger(buffer.writeEvent());
@@ -64,11 +66,11 @@ void SendChannelEndTable::sendLoop() {
       // Before requesting network resources, we must first make sure that the
       // destination core is ready to receive more data, and that if we are
       // issuing an instruction packet fetch, there is space in the local cache.
-      if(!channelMapTable->canSend(buffer.peek().channelMapEntry())) {
+      if (!channelMapTable->canSend(buffer.peek().channelMapEntry())) {
         next_trigger(1.0, sc_core::SC_NS);
       }
-      else if((buffer.peek().memoryOp() == MemoryRequest::IPK_READ) &&
-              !parent()->readyToFetch()) {
+      else if ((buffer.peek().memoryOp() == MemoryRequest::IPK_READ) &&
+               !parent()->readyToFetch()) {
         next_trigger(1.0, sc_core::SC_NS);
       }
       else {
@@ -84,7 +86,7 @@ void SendChannelEndTable::sendLoop() {
     case ARBITRATING: {
       // If the network has granted our request to send data, send it.
       // Otherwise, wait another cycle.
-      if(requestGranted(buffer.peek().networkDestination())) {
+      if (requestGranted(buffer.peek().networkDestination())) {
         state = CAN_SEND;
         // fall through to CAN_SEND state
       }
@@ -103,8 +105,10 @@ void SendChannelEndTable::sendLoop() {
       // Send data
       const AddressedWord data = inst.toAddressedWord();
 
-      if(DEBUG) cout << this->name() << " sending " << data << endl;
-      Instrumentation::networkTraffic(id, data.channelID(), data.payload().toInt());
+      if (DEBUG)
+        cout << this->name() << " sending " << data << endl;
+      if (ENERGY_TRACE)
+        Instrumentation::Network::traffic(id, data.channelID().getComponentID());
 
       output[0].write(data);
       channelMapTable->removeCredit(inst.channelMapEntry());
@@ -122,7 +126,7 @@ void SendChannelEndTable::sendLoop() {
 
 /* Stall the pipeline until the specified channel is empty. */
 void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
-  Instrumentation::stalled(id, true, Stalls::STALL_OUTPUT);
+  Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT);
   waiting = true;
   bufferFillChanged.notify(); // No it didn't - use separate events?
 
@@ -130,7 +134,7 @@ void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
   // is using credits.
   channelMapTable->waitForAllCredits(channel);
 
-  Instrumentation::stalled(id, false);
+  Instrumentation::Stalls::unstall(id);
   waiting = false;
   bufferFillChanged.notify(); // No it didn't - use separate events?
 }
@@ -148,7 +152,8 @@ void SendChannelEndTable::receivedCredit(unsigned int buffer) {
 
   ChannelIndex targetCounter = creditsIn[buffer].read().channelID().getChannel();
 
-  if(DEBUG) cout << "Received credit at " << ChannelID(id, targetCounter) << endl;
+  if (DEBUG)
+    cout << "Received credit at " << ChannelID(id, targetCounter) << endl;
 
   channelMapTable->addCredit(buffer);
 }

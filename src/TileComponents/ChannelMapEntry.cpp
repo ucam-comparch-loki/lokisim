@@ -96,6 +96,18 @@ bool ChannelMapEntry::usesCredits() const {
   return useCredits_;
 }
 
+uint ChannelMapEntry::popCount() const {
+  return __builtin_popcount(destination_.toInt()) +
+         __builtin_popcount(memoryGroupBits_) +
+         __builtin_popcount(memoryLineBits_);
+}
+
+uint ChannelMapEntry::hammingDistance(const ChannelMapEntry& other) const {
+  return __builtin_popcount(destination_.toInt() ^ other.destination_.toInt()) +
+         __builtin_popcount(memoryGroupBits_ ^ other.memoryGroupBits_) +
+         __builtin_popcount(memoryLineBits_ ^ other.memoryLineBits_);
+}
+
 ChannelMapEntry::ChannelMapEntry(ComponentID localID) {
   id_ = localID;
   destination_ = ChannelID();

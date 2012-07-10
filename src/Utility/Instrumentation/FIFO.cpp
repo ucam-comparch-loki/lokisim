@@ -7,15 +7,9 @@
 
 #include "FIFO.h"
 
+using namespace Instrumentation;
+
 CounterMap<size_t> FIFO::pushes, FIFO::pops;
-
-void FIFO::init() {
-  // Do nothing.
-}
-
-void FIFO::end() {
-  // Do nothing.
-}
 
 void FIFO::push(size_t size) {
   pushes.increment(size);
@@ -28,15 +22,25 @@ void FIFO::pop(size_t size) {
 void FIFO::dumpEventCounts(std::ostream& os) {
   CounterMap<size_t>::iterator it;
 
-  for(it = pushes.begin(); it != pushes.end(); it++) {
+  for (it = pushes.begin(); it != pushes.end(); it++) {
     size_t size = it->first;
-    count_t num = it->second;
-    os << "fifo" << size << "_push\t" << num << "\n";
-  }
+    count_t numPushes = it->second;
+    count_t numPops = pops[size];
 
-  for(it = pops.begin(); it != pops.end(); it++) {
-    size_t size = it->first;
-    count_t num = it->second;
-    os << "fifo" << size << "_pop\t" << num << "\n";
+    // For the moment, we assume that all small FIFOs are pipeline registers.
+    // There is a good chance that this is true, but it might not be.
+    // TODO: parameterise width too
+    if (size <= 2) {
+      os << "<pipeline_register width=\"32\">\n"
+         << xmlNode("read", numPops) << "\n"
+         << xmlNode("write", numPushes) << "\n"
+         << xmlEnd("pipeline_register") << "\n";
+    }
+    else {
+      os << "<fifo entries=\"" << size << "\" width=\"32\">\n"
+         << xmlNode("push", numPushes) << "\n"
+         << xmlNode("pop", numPops) << "\n"
+         << xmlEnd("fifo") << "\n";
+    }
   }
 }

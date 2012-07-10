@@ -8,43 +8,68 @@
 #include <iomanip>
 #include "Instrumentation.h"
 #include "StartUp/CodeLoader.h"
+#include "Arguments.h"
 #include "Debugger.h"
 #include "Instrumentation/BackgroundMemory.h"
+#include "Instrumentation/ChannelMap.h"
 #include "Instrumentation/FIFO.h"
 #include "Instrumentation/IPKCache.h"
 #include "Instrumentation/MemoryBank.h"
 #include "Instrumentation/Network.h"
 #include "Instrumentation/Operations.h"
+#include "Instrumentation/PipelineReg.h"
 #include "Instrumentation/Registers.h"
 #include "Instrumentation/Stalls.h"
+#include "../Datatype/AddressedWord.h"
 #include "../Datatype/DecodedInst.h"
 
 void Instrumentation::initialise() {
+  ChannelMap::init();
   FIFO::init();
+  IPKCache::init();
+  MemoryBank::init();
+  Network::init();
   Operations::init();
+  PipelineReg::init();
   Registers::init();
 }
 
 void Instrumentation::end() {
+  ChannelMap::end();
   FIFO::end();
+  IPKCache::end();
+  MemoryBank::end();
+  Network::end();
   Operations::end();
+  PipelineReg::end();
   Registers::end();
 }
 
 void Instrumentation::dumpEventCounts(std::ostream& os) {
-  Registers::dumpEventCounts(os);
-}
+  os << "<lokitrace>\n\n";
 
-void Instrumentation::l0TagCheck(const ComponentID& core, bool hit) {
-  IPKCache::tagCheck(core, hit);
-}
+  os << "<invocation>" << Arguments::invocation() << "</invocation>\n";
+  os << "\n";
+  os << "<time>" << time(NULL) << "</time>\n";
+  os << "\n";
+  Parameters::printParametersXML(os);
+  os << "\n";
+  os << "<cycles>" << Stalls::executionTime() << "</cycles>\n";
+  os << "\n";
 
-void Instrumentation::l0Read(const ComponentID& core) {
-  IPKCache::read(core);
-}
+  // Program name?
+  // Cycles each component was active
 
-void Instrumentation::l0Write(const ComponentID& core) {
-  IPKCache::write(core);
+  ChannelMap::dumpEventCounts(os);    os << "\n";
+  FIFO::dumpEventCounts(os);          os << "\n";
+  IPKCache::dumpEventCounts(os);      os << "\n";
+  MemoryBank::dumpEventCounts(os);    os << "\n";
+  Network::dumpEventCounts(os);       os << "\n";
+  Operations::dumpEventCounts(os);    os << "\n";
+  PipelineReg::dumpEventCounts(os);   os << "\n";
+  Registers::dumpEventCounts(os);     os << "\n";
+
+  os << "</lokitrace>\n";
 }
 
 void Instrumentation::decoded(const ComponentID& core, const DecodedInst& dec) {
@@ -60,10 +85,6 @@ void Instrumentation::decoded(const ComponentID& core, const DecodedInst& dec) {
 
 //    std::cout << dec << endl;
   }
-}
-
-void Instrumentation::stallRegUse(const ComponentID& core) {
-  Registers::pipelineReg(core);
 }
 
 void Instrumentation::memorySetMode(int bank, bool isCache, uint setCount, uint wayCount, uint lineSize)	{MemoryBank::setMode(bank, isCache, setCount, wayCount, lineSize);}
@@ -95,10 +116,6 @@ void Instrumentation::backgroundMemoryRead(MemoryAddr address, uint32_t count) {
 // Record that background memory was written to.
 void Instrumentation::backgroundMemoryWrite(MemoryAddr address, uint32_t count)								{BackgroundMemory::write(address, count);}
 
-void Instrumentation::stalled(const ComponentID& id, bool stalled, int reason) {
-  if(stalled) Stalls::stall(id, currentCycle(), reason);
-  else Stalls::unstall(id, currentCycle());
-}
 
 void Instrumentation::idle(const ComponentID& id, bool idle) {
   if(idle) Stalls::idle(id, currentCycle());
@@ -117,14 +134,11 @@ bool Instrumentation::executionFinished() {
   return Stalls::executionFinished();
 }
 
-void Instrumentation::networkTraffic(const ComponentID& start, const ChannelID& end, int32_t data) {
-	Network::traffic(start, end.getComponentID());
-}
-
 void Instrumentation::executed(const ComponentID& id, const DecodedInst& inst, bool executed) {
-  Operations::executed(id, inst, executed);
+  if (ENERGY_TRACE)
+    Operations::executed(id, inst, executed);
 
-  if(Debugger::mode == Debugger::DEBUGGER)
+  if (Debugger::mode == Debugger::DEBUGGER)
     Debugger::executedInstruction(inst, id, executed);
 }
 

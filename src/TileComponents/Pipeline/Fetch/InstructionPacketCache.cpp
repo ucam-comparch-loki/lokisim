@@ -7,6 +7,8 @@
 
 #include "InstructionPacketCache.h"
 #include "FetchStage.h"
+#include "../../../Utility/Instrumentation.h"
+#include "../../../Utility/Instrumentation/IPKCache.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
 /* Initialise the contents of the cache with a list of Instructions. */
@@ -17,30 +19,34 @@ void InstructionPacketCache::storeCode(const std::vector<Instruction>& instructi
   cache.storeCode(instructions);
 
   // SystemC segfaults if we notify an event before simulation has started.
-  if(sc_core::sc_start_of_simulation_invoked()) cacheFillChanged.notify();
+  if (sc_core::sc_start_of_simulation_invoked())
+    cacheFillChanged.notify();
 }
 
 Instruction InstructionPacketCache::read() {
-  Instrumentation::l0Read(id);
+  if (ENERGY_TRACE)
+    Instrumentation::IPKCache::read(id);
 
   Instruction inst = cache.read();
   cacheFillChanged.notify();
 
   // If we the cache is now empty, but we are still waiting for instructions,
   // record this.
-  if(cache.stalled())
-    Instrumentation::stalled(id, true, Stalls::STALL_INSTRUCTIONS);
+  if (cache.stalled())
+    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS);
 
   return inst;
 }
 
 void InstructionPacketCache::write(const Instruction inst) {
   // If the cache was blocked, it isn't any more.
-  if(cache.stalled())
-    Instrumentation::stalled(id, false);
+  if (cache.stalled())
+    Instrumentation::Stalls::unstall(id);
 
-  Instrumentation::l0Write(id);
-  if(DEBUG) cout << this->name() << " received Instruction: " << inst << endl;
+  if (ENERGY_TRACE)
+    Instrumentation::IPKCache::write(id);
+  if (DEBUG)
+    cout << this->name() << " received Instruction: " << inst << endl;
 
   cache.write(inst);
   cacheFillChanged.notify();
@@ -49,23 +55,26 @@ void InstructionPacketCache::write(const Instruction inst) {
 /* See if an instruction packet is in the cache, and if so, prepare to
  * execute it. */
 bool InstructionPacketCache::lookup(const MemoryAddr addr, opcode_t operation) {
-  if(DEBUG) cout << this->name() << " looking up tag " << addr << ": ";
+  if (DEBUG)
+    cout << this->name() << " looking up tag " << addr << ": ";
 
   // Shouldn't check tags more than once in a clock cycle.
   assert(timeLastChecked != Instrumentation::currentCycle());
   timeLastChecked = Instrumentation::currentCycle();
 
   bool inCache = cache.checkTags(addr, operation);
-  if(DEBUG) cout << (inCache ? "" : "not ") << "in cache" << endl;
+  if (DEBUG)
+    cout << (inCache ? "" : "not ") << "in cache" << endl;
 
   // It is possible that looking up a tag will result in us immediately jumping
   // to a new instruction, which would change how full the cache is.
-  if(inCache)
+  if (inCache)
     cacheFillChanged.notify();
   else
     cacheMissEvent.notify();
 
-  Instrumentation::l0TagCheck(id, inCache);
+  if (ENERGY_TRACE)
+    Instrumentation::IPKCache::tagCheck(id, inCache);
 
   return inCache;
 }

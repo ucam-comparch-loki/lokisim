@@ -41,11 +41,15 @@ void WriteStage::updateReady() {
   bool ready = !isStalled();
 
   // Write our current stall status.
-  if(ready != readyOut.read()) {
+  if (ready != readyOut.read()) {
     readyOut.write(ready);
-    Instrumentation::stalled(id, !ready, Stalls::STALL_OUTPUT);
 
-    if(DEBUG && !ready)
+    if (ready)
+      Instrumentation::Stalls::unstall(id);
+    else
+      Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT);
+
+    if (DEBUG && !ready)
       cout << this->name() << " stalled." << endl;
   }
 }

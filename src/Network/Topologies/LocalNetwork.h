@@ -104,6 +104,7 @@ private:
     GLOBAL_NETWORK
   };
 
+  // TODO: turn coreToCore into a proper multicast network.
   NewCrossbar coreToCore, coreToMemory, memoryToCore, coreToGlobal, globalToCore;
 
   // Don't want the new-style crossbar for credits - we don't know in advance

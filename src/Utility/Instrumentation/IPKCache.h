@@ -19,20 +19,22 @@ class IPKCache: public InstrumentationBase {
 public:
 
   static void tagCheck(const ComponentID& core, bool hit);
+  static void tagWrite(const MemoryAddr oldTag, const MemoryAddr newTag);
   static void read(const ComponentID& core);
   static void write(const ComponentID& core);
 
-  static unsigned long long  numTagChecks();
-  static unsigned long long  numHits();
-  static unsigned long long  numMisses();
-  static unsigned long long  numReads();
-  static unsigned long long  numWrites();
+  static count_t numTagChecks();
+  static count_t numHits();
+  static count_t numMisses();
+  static count_t numReads();
+  static count_t numWrites();
 
   static void printStats();
+  static void dumpEventCounts(std::ostream& os);
 
 private:
 
-  static unsigned long long numHits_, numMisses_, numReads_, numWrites_;
+  static count_t numHits_, numMisses_, numReads_, numWrites_, tagHD_;
 
 };
 

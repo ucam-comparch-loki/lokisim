@@ -23,7 +23,7 @@ public:
 
 // Data logging
   static void write(RegisterIndex reg, int oldData, int newData);
-  static void read(PortIndex port, RegisterIndex reg, int data);
+  static void read(PortIndex port, RegisterIndex reg, int oldData, int newData);
 
   // Data was forwarded from the execute stage's output back to its input.
   // Since the wire may be quite long, do we want to collect the data too?
@@ -33,15 +33,10 @@ public:
   // the same clock cycle.
   static void bypass(PortIndex port);
 
-  // TODO: remove this. Pipeline registers will be treated as FIFOs, and fall
-  // under the FIFO energy model.
-  static void pipelineReg(const ComponentID& core);
-
 // Data retrieval
   static count_t numReads();
   static count_t numWrites();
   static count_t numForwards();
-  static count_t pipelineRegUses();
 
   static count_t numReads(RegisterIndex reg);
   static count_t numWrites(RegisterIndex reg);
@@ -68,15 +63,15 @@ private:
   // Total number of operations performed on each of the three ports.
   static count_t  operations[3];
 
-  // Hamming distance for write data, and pop count for read data.
-  static count_t  popCount[3];
+  // Information about switching.
+  static count_t  popCount[3], hammingDist[3];
 
   // Number of times data was read from a register in the same cycle as it was
   // written.
   static count_t  bypasses[3];
 
 // Extra usage data which may be of interest.
-  static count_t  numForwards_, pipelineRegs_;
+  static count_t  numForwards_;
   static count_t* writesPerReg;
   static count_t* readsPerReg;
 

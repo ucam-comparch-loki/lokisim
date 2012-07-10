@@ -7,6 +7,7 @@
 
 #include "IPKCacheStorage.h"
 #include "../Datatype/Instruction.h"
+#include "../Utility/Instrumentation/IPKCache.h"
 #include "../Utility/Parameters.h"
 
 const MemoryAddr IPKCacheStorage::DEFAULT_TAG;
@@ -87,7 +88,11 @@ void IPKCacheStorage::write(const Instruction& newData) {
   // from which it was fetched. Also keep track of where in the cache it is
   // going (allows us to jump there when this packet finishes).
   if(packet->cacheIndex == NOT_IN_CACHE) {
-    this->tags[writePointer.value()] = packet->memAddr;
+    MemoryAddr oldTag = this->tags[writePointer.value()];
+    MemoryAddr newTag = packet->memAddr;
+    Instrumentation::IPKCache::tagWrite(oldTag, newTag);
+
+    this->tags[writePointer.value()] = newTag;
     packet->cacheIndex = writePointer.value();
   }
   else this->tags[writePointer.value()] = DEFAULT_TAG;

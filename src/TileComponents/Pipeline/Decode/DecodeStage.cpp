@@ -11,7 +11,7 @@
 #include "../../../Datatype/Instruction.h"
 
 void         DecodeStage::execute() {
-  while(true) {
+  while (true) {
     wait(newInstructionEvent);
     newInput(currentInst);
     instructionCompleted();
@@ -22,17 +22,18 @@ void         DecodeStage::updateReady() {
   bool ready = !isStalled();
 
   // Write our current stall status (only if it changed).
-  if(ready != readyOut.read()) {
+  if (ready != readyOut.read()) {
     readyOut.write(ready);
 
-    if(DEBUG && !ready) cout << this->name() << " stalled." << endl;
+    if (DEBUG && !ready)
+      cout << this->name() << " stalled." << endl;
   }
 }
 
 void DecodeStage::execute2() {
   // No matter which state we are in, we must stall if there is no room in the
   // output pipeline register.
-  if(!canSendInstruction()) {
+  if (!canSendInstruction()) {
     waitingToSend = true;
     next_trigger(canSendEvent());
     return;
@@ -44,7 +45,7 @@ void DecodeStage::execute2() {
   // sections, each of which could require the pipeline to stall.
   // This avoids the need for expensive SC_THREADs, and reduces the amount of
   // work which must be repeated after stalling.
-  switch(state) {
+  switch (state) {
 
     case INIT:
       state = NEW_INSTRUCTION;
@@ -53,10 +54,10 @@ void DecodeStage::execute2() {
 
     // All the one-off computation required when a new instruction arrives.
     case NEW_INSTRUCTION:
-      if(DEBUG) cout << decoder.name() << " received Instruction: "
-                     << currentInst << endl;
+      if (DEBUG) cout << decoder.name() << " received Instruction: "
+                      << currentInst << endl;
 
-      if(startingNewPacket)
+      if (startingNewPacket)
         parent()->updateCurrentPacket(currentInst.location());
       startingNewPacket = currentInst.endOfIPK();
 
@@ -79,14 +80,14 @@ void DecodeStage::execute2() {
 
       // If we do not have all operands, next_trigger will have been set so
       // that this method is called again when an operand arrives.
-      if(!decoder.allOperandsReady())
+      if (!decoder.allOperandsReady())
         break;
       else
         state = SEND_RESULT;
         // fall through to next case
 
     case SEND_RESULT:
-      if(decoder.hasOutput()) {
+      if (decoder.hasOutput()) {
         DecodedInst output = decoder.getOutput();
         readChannelMapTable(output);
         outputInstruction(output);
@@ -94,7 +95,7 @@ void DecodeStage::execute2() {
         // If the decoder is ready, it has produced all output, and is
         // waiting for the next instruction. Otherwise, there is more output,
         // so wait until the next cycle.
-        if(decoder.ready()) {
+        if (decoder.ready()) {
           instructionCompleted();
           decoder.instructionFinished();
           state = NEW_INSTRUCTION;
@@ -123,12 +124,12 @@ void DecodeStage::execute2() {
 }
 
 void         DecodeStage::newInput(DecodedInst& inst) {
-  if(DEBUG) cout << decoder.name() << " received Instruction: "
-                 << inst << endl;
+  if (DEBUG) cout << decoder.name() << " received Instruction: "
+                  << inst << endl;
 
   // If this is the first instruction of a new packet, update the current
   // packet pointer.
-  if(startingNewPacket) parent()->updateCurrentPacket(inst.location());
+  if (startingNewPacket) parent()->updateCurrentPacket(inst.location());
 
   // The next instruction will be the start of a new packet if this is the
   // end of the current one.
@@ -136,21 +137,21 @@ void         DecodeStage::newInput(DecodedInst& inst) {
 
   // Use a while loop to decode the instruction in case multiple outputs
   // are produced.
-  while(true) {
+  while (true) {
     DecodedInst decoded;
 
     // Some instructions don't produce any output, or won't be executed.
     bool usefulOutput = decoder.decodeInstruction(inst, decoded);
 
     // Send the output, if there is any.
-    if(usefulOutput) {
+    if (usefulOutput) {
       // Need to access the channel map table inside the loop because decoding
       // the instruction may change its destination.
       readChannelMapTable(decoded);
 
       // Need to double check whether we are able to send, because we may be
       // sending multiple outputs.
-      while(!canSendInstruction()) {
+      while (!canSendInstruction()) {
         waitingToSend = true;
         wait(canSendEvent());
       }
@@ -160,7 +161,7 @@ void         DecodeStage::newInput(DecodedInst& inst) {
     }
 
     // If the decoder is ready, we have finished the decode.
-    if(decoder.ready()) break;
+    if (decoder.ready()) break;
     // Try again next cycle if the decoder is still busy.
     else wait(clock.posedge_event());
   }
@@ -182,10 +183,10 @@ bool         DecodeStage::predicate() const {
 
 void         DecodeStage::readChannelMapTable(DecodedInst& inst) const {
   MapIndex channel = inst.channelMapEntry();
-  if(channel != Instruction::NO_CHANNEL) {
+  if (channel != Instruction::NO_CHANNEL) {
     ChannelID destination = parent()->channelMapTable.read(channel);
 
-    if(!destination.isNullMapping()) {
+    if (!destination.isNullMapping()) {
       inst.networkDestination(destination);
       inst.usesCredits(parent()->channelMapTable.getEntry(channel).usesCredits());
     }

@@ -19,6 +19,8 @@ using std::string;
 using std::cout;
 using std::endl;
 
+class AddressedWord;
+
 typedef unsigned long long count_t;
 
 namespace Instrumentation {
@@ -38,14 +40,23 @@ public:
 protected:
 
   static int popcount(uint value);
+  static int popcount(const AddressedWord& value);
   static int hammingDistance(uint val1, uint val2);
+  static int hammingDistance(const AddressedWord& val1, const AddressedWord& val2);
 
   static string percentage(count_t value, count_t total);
+
+  // Produce a line of the form: <name>
+  static const string xmlBegin(const char* name);
+
+  // Produce a line of the form: </name>
+  static const string xmlEnd(const char* name);
+
+  // Produce a line of the form: <name>value</name>
+  static const string xmlNode(const char* name, count_t value, const char* indent="\t");
 
 };
 
 }
-
-using namespace Instrumentation;
 
 #endif /* INSTRUMENTATIONBASE_H_ */

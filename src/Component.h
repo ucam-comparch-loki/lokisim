@@ -15,7 +15,8 @@
 #include <vector>
 #include "Typedefs.h"
 
-#include "Utility/Instrumentation.h"
+#include "Datatype/ComponentID.h"
+
 #include "Utility/LokiVector.h"
 #include "Utility/LokiVector2D.h"
 #include "Utility/Parameters.h"

@@ -19,6 +19,18 @@ class Stalls: public InstrumentationBase {
 
 public:
 
+  enum StallReason {
+    NOT_STALLED,        // Not currently stalled.
+    STALL_DATA,         // Waiting for input data to arrive.
+    STALL_INSTRUCTIONS, // Waiting for instructions to arrive.
+    STALL_OUTPUT,       // Waiting for output channel to clear.
+    STALL_FORWARDING    // Waiting for a result to be forwarded.
+  };
+
+  static void stall(const ComponentID& id, StallReason reason);
+  static void unstall(const ComponentID& id);
+  static void activity(const ComponentID& id, bool idle);
+
   static void stall(const ComponentID& id, unsigned long long cycle, int reason);
   static void unstall(const ComponentID& id, unsigned long long cycle);
   static void idle(const ComponentID& id, unsigned long long cycle);
@@ -33,14 +45,6 @@ public:
   static unsigned long long  executionTime();
 
   static void printStats();
-
-  enum StallReason {
-    NOT_STALLED,        // Not currently stalled.
-    STALL_DATA,         // Waiting for input data to arrive.
-    STALL_INSTRUCTIONS, // Waiting for instructions to arrive.
-    STALL_OUTPUT,       // Waiting for output channel to clear.
-    STALL_FORWARDING    // Waiting for a result to be forwarded.
-  };
 
 private:
 

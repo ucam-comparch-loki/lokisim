@@ -107,7 +107,7 @@ Instruction::Instruction(const uint64_t inst) : Word(inst) {
   // Do nothing
 }
 
-Instruction::Instruction(const string& inst) {
+Instruction::Instruction(const string& inst) : Word() {
   // Skip this line if it is a comment or empty
   if((inst[0]=='%') || (inst[0]==';') || (inst[0]=='#') || (inst[0]=='\n') || (inst[0]=='\r'))
     throw InvalidInstructionException();

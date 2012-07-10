@@ -11,13 +11,15 @@
 #include "Registers.h"
 #include "../../Datatype/ComponentID.h"
 
+using namespace Instrumentation;
+
 count_t Registers::numForwards_ = 0;
-count_t Registers::pipelineRegs_ = 0;
 
 bool    Registers::detailedLogging = false;
 
 count_t Registers::operations[3];
 count_t Registers::popCount[3];
+count_t Registers::hammingDist[3];
 count_t Registers::bypasses[3];
 
 // Call init() to create arrays of the appropriate length, once all of the
@@ -32,7 +34,6 @@ count_t Registers::zero[3],
         Registers::int8[3],  Registers::int16[3],  Registers::int24[3],  Registers::int32[3];
 
 void Registers::forward(PortIndex port)               {numForwards_++;}
-void Registers::pipelineReg(const ComponentID& core)  {pipelineRegs_++;}
 
 void Registers::init() {
   writesPerReg = new count_t[NUM_PHYSICAL_REGISTERS];
@@ -45,36 +46,40 @@ void Registers::end() {
 }
 
 void Registers::dumpEventCounts(std::ostream& os) {
-  os << "# Register file\n"
-        "w_op\t"   << operations[WR]  << "\n"
-        "w_hd\t"   << popCount[WR]    << "\n"
-        "rd1_op\t" << operations[RD1] << "\n"
-        "rd2_op\t" << operations[RD2] << "\n"
-        "rd1_oc\t" << popCount[RD1]   << "\n"
-        "rd2_oc\t" << popCount[RD2]   << "\n"
-        "by1\t"    << bypasses[RD1]   << "\n"
-        "by2\t"    << bypasses[RD2]   << "\n"
-        "\n";
+  os << "<registers rdports=\"2\" wrports=\"1\" entries=\"32\" width=\"32\">\n"
+     << xmlNode("w_op", operations[WR])     << "\n"
+     << xmlNode("w_oc", popCount[WR])       << "\n"
+     << xmlNode("w_hd", hammingDist[WR])    << "\n"
+     << xmlNode("rd1_op", operations[RD1])  << "\n"
+     << xmlNode("rd1_oc", popCount[RD1])    << "\n"
+     << xmlNode("rd1_hd", hammingDist[RD1]) << "\n"
+     << xmlNode("by1", bypasses[RD1])       << "\n"
+     << xmlNode("rd2_op", operations[RD2])  << "\n"
+     << xmlNode("rd2_oc", popCount[RD2])    << "\n"
+     << xmlNode("rd2_hd", hammingDist[RD2]) << "\n"
+     << xmlNode("by2", bypasses[RD2])       << "\n"
+     << xmlEnd("registers")                 << "\n";
 
-  if(!detailedLogging)
-    return;
-
-  os << "data type\twrites\tread 1\tread 2\n"
-        "zero\t\t"   << zero[WR]   << "\t" << zero[RD1]   << "\t" << zero[RD2]   << "\n"
-        "uint8\t\t"  << uint8[WR]  << "\t" << uint8[RD1]  << "\t" << uint8[RD2]  << "\n"
-        "uint16\t\t" << uint16[WR] << "\t" << uint16[RD1] << "\t" << uint16[RD2] << "\n"
-        "uint24\t\t" << uint24[WR] << "\t" << uint24[RD1] << "\t" << uint24[RD2] << "\n"
-        "uint32\t\t" << uint32[WR] << "\t" << uint32[RD1] << "\t" << uint32[RD2] << "\n"
-        "int8\t\t"   << int8[WR]   << "\t" << int8[RD1]   << "\t" << int8[RD2]   << "\n"
-        "int16\t\t"  << int16[WR]  << "\t" << int16[RD1]  << "\t" << int16[RD2]  << "\n"
-        "int24\t\t"  << int24[WR]  << "\t" << int24[RD1]  << "\t" << int24[RD2]  << "\n"
-        "int32\t\t"  << int32[WR]  << "\t" << int32[RD1]  << "\t" << int32[RD2]  << "\n"
-        "\n";
+//  if(!detailedLogging)
+//    return;
+//
+//  os << "data type\twrites\tread 1\tread 2\n"
+//        "zero\t\t"   << zero[WR]   << "\t" << zero[RD1]   << "\t" << zero[RD2]   << "\n"
+//        "uint8\t\t"  << uint8[WR]  << "\t" << uint8[RD1]  << "\t" << uint8[RD2]  << "\n"
+//        "uint16\t\t" << uint16[WR] << "\t" << uint16[RD1] << "\t" << uint16[RD2] << "\n"
+//        "uint24\t\t" << uint24[WR] << "\t" << uint24[RD1] << "\t" << uint24[RD2] << "\n"
+//        "uint32\t\t" << uint32[WR] << "\t" << uint32[RD1] << "\t" << uint32[RD2] << "\n"
+//        "int8\t\t"   << int8[WR]   << "\t" << int8[RD1]   << "\t" << int8[RD2]   << "\n"
+//        "int16\t\t"  << int16[WR]  << "\t" << int16[RD1]  << "\t" << int16[RD2]  << "\n"
+//        "int24\t\t"  << int24[WR]  << "\t" << int24[RD1]  << "\t" << int24[RD2]  << "\n"
+//        "int32\t\t"  << int32[WR]  << "\t" << int32[RD1]  << "\t" << int32[RD2]  << "\n"
+//        "\n";
 }
 
 void Registers::write(RegisterIndex reg, int oldData, int newData) {
   operations[WR]++;
-  popCount[WR] += hammingDistance(oldData, newData);
+  popCount[WR] += popcount(newData);
+  hammingDist[WR] += hammingDistance(oldData, newData);
 
   if(detailedLogging) {
     writesPerReg[reg]++;
@@ -82,13 +87,14 @@ void Registers::write(RegisterIndex reg, int oldData, int newData) {
   }
 }
 
-void Registers::read(PortIndex port, RegisterIndex reg, int data) {
+void Registers::read(PortIndex port, RegisterIndex reg, int oldData, int newData) {
   operations[port]++;
-  popCount[port] += popcount(data);
+  popCount[port] += popcount(newData);
+  hammingDist[port] += hammingDistance(oldData, newData);
 
   if(detailedLogging) {
     readsPerReg[reg]++;
-    valueSize(port, data);
+    valueSize(port, newData);
   }
 }
 
@@ -132,7 +138,6 @@ void Registers::valueSize(PortIndex port, int32_t data) {
 count_t Registers::numReads()                   {return operations[RD1] + operations[RD2];}
 count_t Registers::numWrites()                  {return operations[WR];}
 count_t Registers::numForwards()                {return numForwards_;}
-count_t Registers::pipelineRegUses()            {return pipelineRegs_;}
 
 count_t Registers::numReads(RegisterIndex reg)  {return readsPerReg[reg];}
 count_t Registers::numWrites(RegisterIndex reg) {return writesPerReg[reg];}

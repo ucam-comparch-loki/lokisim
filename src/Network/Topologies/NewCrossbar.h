@@ -61,6 +61,11 @@ public:
 // Methods
 //==============================//
 
+protected:
+
+  void inputChanged(const PortIndex port);
+  void outputChanged(const PortIndex port);
+
 private:
 
   void makePorts();
@@ -88,6 +93,11 @@ protected:
   std::vector<Multiplexer*>  muxes;
 
   LokiVector2D<SelectSignal> selectSig;
+
+  // Store the old data so we can compute switching activity.
+  // TODO: do this in the wire modules, where they already store this info.
+  //   Issue: wires don't know what sort of network they are a part of, if any.
+  std::vector<DataType> oldInputs, oldOutputs;
 
 };
 

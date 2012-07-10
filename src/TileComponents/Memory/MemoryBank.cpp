@@ -29,6 +29,7 @@ using namespace std;
 #include "../../Datatype/MemoryRequest.h"
 #include "../../Memory/BufferStorage.h"
 #include "../../Network/Topologies/LocalNetwork.h"
+#include "../../Utility/Instrumentation/Network.h"
 #include "../../Utility/Trace/MemoryTrace.h"
 #include "../../Utility/Parameters.h"
 #include "GeneralPurposeCacheHandler.h"
@@ -1201,10 +1202,10 @@ void MemoryBank::handleDataOutput() {
   // If it is time to send data:
   else {
 
-    if(DEBUG)
+    if (DEBUG)
       cout << this->name() << " sent " << mActiveOutputWord << endl;
-    Instrumentation::networkTraffic(id, mActiveOutputWord.channelID(),
-                                    mActiveOutputWord.payload().toInt());
+    if (ENERGY_TRACE)
+      Instrumentation::Network::traffic(id, mActiveOutputWord.channelID().getComponentID());
 
     // If we are passing the memory operation on to another component, split
     // the packet up so network resources can be reallocated to the next memory.

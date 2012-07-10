@@ -19,75 +19,88 @@ char** Arguments::programArgv = NULL;
 
 vector<string> Arguments::programFiles;
 
+string Arguments::coreTraceFile_ = "";
+string Arguments::memTraceFile_ = "";
+string Arguments::energyTraceFile_ = "";
+std::stringstream Arguments::invocation_;
+
 void Arguments::parse(int argc, char* argv[]) {
 
   bool useDefaultSettings = true;
 
-  if(argc == 1) {
+  for (int i=0; i<argc; i++)
+    invocation_ << argv[i] << " ";
+
+  if (argc == 1) {
     printHelp();
     simulate_ = false;
   }
 
-  for(int i=1; i<argc; i++) {
+  for (int i=1; i<argc; i++) {
     string argument(argv[i]);
-    if(argument == "debug") {
+    if (argument == "debug") {
       // Print out lots of information about execution.
       Debugger::usingDebugger = true;
       Debugger::mode = Debugger::DEBUGGER;
     }
-    else if(argument == "test") {
+    else if (argument == "test") {
       // Switch off all status reporting, so we only get the information we
       // want. This allows much faster testing.
       DEBUG = 0;
       Debugger::usingDebugger = true;
       Debugger::mode = Debugger::TEST;
     }
-    else if(argument == "trace") {
+    else if (argument == "trace") {
       // Print out only the addresses of each instruction executed.
       DEBUG = 0;
       TRACE = 1;
     }
-    else if(argument == "-run" || argument == "-settings") {
+    else if (argument == "-run" || argument == "-settings") {
       // Command line way of choosing which program to run.
       DEBUG = 0;
       string filename(argv[i+1]);
       programFiles.push_back(filename);
       i++;  // Have used two arguments in this iteration.
 
-      if(argument == "-settings")
+      if (argument == "-settings")
         useDefaultSettings = false;
     }
-    else if(argument == "-batch") {
+    else if (argument == "-batch") {
       // Enable batch mode.
       DEBUG = 0;
       BATCH_MODE = 1;
     }
-    else if(argument == "-coretrace") {
+    else if (argument == "-coretrace") {
       // Enable core trace.
-      string filename(argv[i+1]);
-      CoreTrace::start(filename);
+      coreTraceFile_ = string(argv[i+1]);
+      CoreTrace::start(coreTraceFile_);
       i++;  // Have used two arguments in this iteration.
       CORE_TRACE = 1;
     }
-    else if(argument == "-memtrace") {
+    else if (argument == "-memtrace") {
       // Enable memory trace.
-      string filename(argv[i+1]);
-      MemoryTrace::start(filename);
+      memTraceFile_ = string(argv[i+1]);
+      MemoryTrace::start(memTraceFile_);
       i++;  // Have used two arguments in this iteration.
       MEMORY_TRACE = 1;
     }
-    else if(argument == "--args") {
+    else if (argument == "-energytrace") {
+      energyTraceFile_ = string(argv[i+1]);
+      ENERGY_TRACE = 1;
+      i++;  // Have used two arguments in this iteration.
+    }
+    else if (argument == "--args") {
       // Pass command line options to the simulated program.
       programArgc = argc - i;
       programArgv = argv + i;
       break;
     }
-    else if(argument == "--help") {
+    else if (argument == "--help") {
       printHelp();
       simulate_ = false;
       break;
     }
-    else if(argument[0] == '-' && argument[1] == 'P') {
+    else if (argument[0] == '-' && argument[1] == 'P') {
       // Use "-Pparam=value" to set a parameter on the command line.
       string parameter = argument.substr(2);
       vector<string>& parts = StringManipulation::split(parameter, '=');
@@ -100,7 +113,7 @@ void Arguments::parse(int argc, char* argv[]) {
     }
   }
 
-  if(useDefaultSettings) {
+  if (useDefaultSettings) {
     const string simPath = string(argv[0]);
     const string simDir = simPath.substr(0, simPath.rfind('/'));
     string settingsFile = simDir + "/../test_files/loader.txt";
@@ -150,6 +163,14 @@ bool Arguments::simulate() {
 
 const vector<string>& Arguments::code() {
   return programFiles;
+}
+
+const string& Arguments::energyTraceFile() {
+  return energyTraceFile_;
+}
+
+const string Arguments::invocation() {
+  return invocation_.str();
 }
 
 void Arguments::printHelp() {

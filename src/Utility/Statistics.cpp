@@ -15,6 +15,8 @@
 #include "Instrumentation/Registers.h"
 #include "Instrumentation/Stalls.h"
 
+using namespace Instrumentation;
+
 void Statistics::printStats() {
   std::cout.precision(3);
   std::cout.fill(' ');
@@ -68,7 +70,6 @@ int Statistics::operations(opcode_t op) {return Operations::numOperations(op);}
 int Statistics::registerReads()         {return Registers::numReads();}
 int Statistics::registerWrites()        {return Registers::numWrites();}
 int Statistics::dataForwards()          {return Registers::numForwards();}
-int Statistics::stallRegUses()          {return Registers::pipelineRegUses();}
 
 int Statistics::l0TagChecks()           {return IPKCache::numTagChecks();}
 int Statistics::l0Hits()                {return IPKCache::numHits();}

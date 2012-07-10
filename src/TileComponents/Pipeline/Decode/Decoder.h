@@ -15,7 +15,6 @@
 
 #include "../../../Component.h"
 #include "../../../Datatype/DecodedInst.h"
-#include "../../../Utility/InstructionMap.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
 class DecodeStage;
@@ -89,7 +88,8 @@ private:
   // predicate bits, and the contents of the predicate register.
   bool shouldExecute(const DecodedInst& inst);
 
-  void stall(bool stall, Stalls::StallReason reason = Stalls::NOT_STALLED);
+  void stall(bool stall, Instrumentation::Stalls::StallReason reason =
+                         Instrumentation::Stalls::NOT_STALLED);
 
   DecodeStage* parent() const;
 
@@ -107,10 +107,12 @@ public:
 
 private:
 
-  DecodedInst current, output;
+  // None of the following are needed in hardware - they are just required here
+  // because of the way decoding has been split up into multiple blocks.
+  DecodedInst current, output, previous;
   bool continueToExecute, execute, haveAllOperands;
   int outputsRemaining;
-  bool needDestination, needOperand1, needOperand2;
+  bool needDestination, needOperand1, needOperand2, needChannel;
 
 
   // The remote channel we are sending instructions to.

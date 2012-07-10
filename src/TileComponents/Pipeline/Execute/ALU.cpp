@@ -7,9 +7,10 @@
 
 #include "ALU.h"
 #include "ExecuteStage.h"
-#include "../../../Utility/InstructionMap.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
+#include "../../../Utility/InstructionMap.h"
+#include "../../../Utility/Instrumentation.h"
 
 void ALU::execute(DecodedInst& dec) const {
 

@@ -81,7 +81,7 @@ else:
     if trace:
         command += "-coretrace " + program + ".trace "
     if energy:
-        command += "-energytrace " + program + ".events "
+        command += "-energytrace " + program + ".xml "
         
     command += "-run " + program + " "
     

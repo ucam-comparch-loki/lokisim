@@ -11,6 +11,8 @@
 #include "../Instrumentation.h"
 #include "../Parameters.h"
 
+using namespace Instrumentation;
+
 std::map<ComponentID, unsigned long long> Stalls::startedStalling;
 std::map<ComponentID, unsigned long long> Stalls::startedIdle;
 
@@ -28,6 +30,19 @@ bool Stalls::endExecutionCalled = false;
 // If a core is not currently stalled, it should map to this value in the
 // "stalled" mapping.
 const unsigned long long UNSTALLED = -1;
+
+void Stalls::stall(const ComponentID& id, StallReason reason) {
+  Stalls::stall(id, currentCycle(), reason);
+}
+
+void Stalls::unstall(const ComponentID& id) {
+  Stalls::unstall(id, currentCycle());
+}
+
+void Stalls::activity(const ComponentID& id, bool idle) {
+  if (idle) Stalls::idle(id, currentCycle());
+  else Stalls::active(id, currentCycle());
+}
 
 void Stalls::stall(const ComponentID& id, unsigned long long cycle, int reason) {
   if(stallReason[id] == NOT_STALLED) {

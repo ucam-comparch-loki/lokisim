@@ -15,8 +15,9 @@
 #include "../PipelineStage.h"
 #include "ReceiveChannelEndTable.h"
 #include "Decoder.h"
-#include "../../ChannelMapEntry.h"
 #include "../../../Network/NetworkTypedefs.h"
+
+class ChannelMapEntry;
 
 class DecodeStage: public PipelineStage {
 
@@ -68,7 +69,10 @@ private:
   // The main loop controlling this stage. Involves waiting for new input,
   // doing work on it, and sending it to the next stage.
   virtual void   execute();
-  void execute2();
+
+  // A second attempt at implementing execute(), but this time, avoiding the
+  // use of expensive SC_THREADs by using a state machine.
+  virtual void   execute2();
 
   // Determine whether this stage is stalled or not, and write the appropriate
   // output.

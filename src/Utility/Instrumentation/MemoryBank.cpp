@@ -10,6 +10,8 @@
 
 #include <map>
 
+using namespace Instrumentation;
+
 std::map<int, bool> MemoryBank::modes_;
 std::map<int, uint> MemoryBank::setCounts_;
 std::map<int, uint> MemoryBank::wayCounts_;
@@ -299,6 +301,13 @@ void MemoryBank::printStats() {
 			cout << "  Ring pass-through messages: " << ringPassThroughs << " (" << percentage(ringPassThroughs, ringHandOffs + ringPassThroughs) << ")" << endl;
 		}
 	}
+}
+
+void MemoryBank::dumpEventCounts(std::ostream& os) {
+  os << "<memory size=\"" << MEMORY_BANK_SIZE << "\">\n"
+     << xmlNode("read", numReads()) << "\n"
+     << xmlNode("write", numWrites()) << "\n"
+     << xmlEnd("memory") << "\n";
 }
 
 long long MemoryBank::numReads() {

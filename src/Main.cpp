@@ -23,6 +23,7 @@ using std::string;
 static unsigned long long cycleNumber = 0;
 static unsigned int cyclesPerStep = 1;
 
+// For simplicity, 1 cycle = 1 ns
 #define TIMESTEP {\
   cycleNumber += cyclesPerStep;\
   if(DEBUG) cout << "\n======= Cycle " << cycleNumber << " =======" << endl;\
@@ -147,7 +148,13 @@ int simulate() {
     Statistics::printStats();
   }
 
-//  Instrumentation::dumpEventCounts(std::cout);
+  if (!Arguments::energyTraceFile().empty()) {
+    std::ofstream output(Arguments::energyTraceFile().c_str());
+    Instrumentation::dumpEventCounts(output);
+    output.close();
+    cout << "Execution statistics written to " << Arguments::energyTraceFile() << endl;
+  }
+
   Instrumentation::end();
 
   // Stop traces

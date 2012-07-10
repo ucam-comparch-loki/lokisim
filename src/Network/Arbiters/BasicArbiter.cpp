@@ -9,6 +9,7 @@
 
 #include "BasicArbiter.h"
 #include "../../Arbitration/ArbiterBase.h"
+#include "../../Utility/Instrumentation/Network.h"
 
 int BasicArbiter::numInputs()  const {return requests.length();}
 int BasicArbiter::numOutputs() const {return select.length();}
@@ -35,10 +36,11 @@ void BasicArbiter::arbitrate(int output) {
       SelectType grant = arbiter->getGrant();
       selectVec[output] = grant;
 
+      if (ENERGY_TRACE)
+        Instrumentation::Network::arbitration();
+
       if(grant != ArbiterBase::NO_GRANT) {    // Successful grant
         assert(grant < numInputs());
-
-//        Instrumentation::arbitration(numInputs());
 
         // Remove the granted request from consideration.
         requestVec[grant] = false;
@@ -224,4 +226,5 @@ BasicArbiter::BasicArbiter(const sc_module_name& name, ComponentID ID,
 
 BasicArbiter::~BasicArbiter() {
   delete arbiter;
+  arbiter = NULL;
 }

@@ -28,8 +28,9 @@ typedef unsigned int parameter;
 extern int			DEBUG;    // Print out lots of information during execution
 extern int      TRACE;    // Print out only the addresses of executed instructions
 extern int      BATCH_MODE;    // Print out machine readable tagged information
-extern int		CORE_TRACE;	// Enable creation of core trace file
-extern int		MEMORY_TRACE;	// Enable creation of memory trace file
+extern int      CORE_TRACE;	// Enable creation of core trace file
+extern int      MEMORY_TRACE;	// Enable creation of memory trace file
+extern int      ENERGY_TRACE; // Enable creation of energy trace file
 
 extern unsigned long long			TIMEOUT;  // Number of cycles before we assume something's gone wrong.
 
@@ -59,6 +60,7 @@ extern parameter	NUM_ADDRESSABLE_REGISTERS;
 extern parameter	NUM_PHYSICAL_REGISTERS;
 extern parameter	IPK_FIFO_SIZE;
 extern parameter	IPK_CACHE_SIZE;
+extern parameter  IPK_CACHE_TAGS;
 
 extern parameter	CHANNEL_MAP_SIZE;
 
@@ -130,6 +132,7 @@ class Parameters {
 public:
 	static void parseParameter(const string &name, const string &value);
 	static void printParameters();
+	static void printParametersXML(std::ostream& os);
 };
 
 #endif /* PARAMETERS_H_ */

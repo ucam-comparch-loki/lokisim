@@ -42,31 +42,13 @@ const int32_t Cluster::readReg(PortIndex port, RegisterIndex reg, bool indirect)
   if(reg == 0)
     return 0;
 
-  // Check to see if the requested register is one which will be written to by
-  // an instruction which is still in the pipeline. If so, we forward the data.
+  // Perform data bypass if a register is being read and written in the same
+  // cycle. This would usually happen in the register file, but it is a pain to
+  // do it that way in SystemC.
   // Slightly complicated by the possibility of indirect register access - the
   // stated register may not actually be the one providing/receiving the data.
-  if(reg == execute.currentInstruction().destination() &&
-     execute.currentInstruction().opcode() != InstructionMap::OP_IWTR) {
-    // If the instruction in the execute stage will write to the register we
-    // want to read, but it hasn't produced a result yet, wait until
-    // execution completes.
-    if(!execute.currentInstruction().hasResult())
-      wait(execute.executedEvent());
-      // TODO - eliminate SC_THREADs
-//      next_trigger(execute.executedEvent());
-
-    result = execute.currentInstruction().result();
-
-    if(DEBUG) cout << this->name() << " forwarded contents of register "
-                   << (int)reg << " (" << result << ")" << endl;
-    Instrumentation::Registers::forward(port);
-    if(indirect) result = regs.read(port, result, false);
-  }
-  else if(reg == write.currentInstruction().destination() &&
-          write.currentInstruction().opcode() != InstructionMap::OP_IWTR) {
-    // No waiting required this time - if the instruction is in the write
-    // stage, it definitely has a result.
+  if(reg == write.currentInstruction().destination() &&
+     write.currentInstruction().opcode() != InstructionMap::OP_IWTR) {
     result = write.currentInstruction().result();
 
     // In a real system, we wouldn't know we were bypassing until too late, so
@@ -98,9 +80,9 @@ bool     Cluster::readPredReg(bool waitForExecution) {
   // the instruction in the execute stage will set it.
   if(waitForExecution && execute.currentInstruction().setsPredicate()
                       && !execute.currentInstruction().hasResult()) {
-    Instrumentation::stalled(id, true, Stalls::STALL_FORWARDING);
+    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_FORWARDING);
     wait(execute.executedEvent());
-    Instrumentation::stalled(id, false);
+    Instrumentation::Stalls::unstall(id);
   }
 
   return pred.read();
@@ -230,10 +212,12 @@ Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t*
   inputCrossbar.creditsOut[0](creditsOut[0]);
 
   // Create pipeline registers.
-  for(unsigned int i=0; i<3; i++) {
-    PipelineRegister* reg = new PipelineRegister(sc_gen_unique_name("pipe_reg"), i);
-    pipelineRegs.push_back(reg);
-  }
+  pipelineRegs.push_back(
+      new PipelineRegister(sc_gen_unique_name("pipe_reg"), id, PipelineRegister::FETCH_DECODE));
+  pipelineRegs.push_back(
+      new PipelineRegister(sc_gen_unique_name("pipe_reg"), id, PipelineRegister::DECODE_EXECUTE));
+  pipelineRegs.push_back(
+      new PipelineRegister(sc_gen_unique_name("pipe_reg"), id, PipelineRegister::EXECUTE_WRITE));
 
   // Wire the pipeline stages up.
 

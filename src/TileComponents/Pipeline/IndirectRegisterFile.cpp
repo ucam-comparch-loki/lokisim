@@ -13,9 +13,9 @@
 const int32_t IndirectRegisterFile::read(PortIndex port, RegisterIndex reg, bool indirect) const {
   RegisterIndex index;
 
-  if(indirect) {
-    if(isChannelEnd(reg)) index = parent()->readRCET(toChannelID(reg));
-    else                  index = regs.read(reg).toInt();
+  if (indirect) {
+    if (isChannelEnd(reg)) index = parent()->readRCET(toChannelID(reg));
+    else                   index = regs.read(reg).toInt();
   }
   else index = reg;
 
@@ -25,7 +25,7 @@ const int32_t IndirectRegisterFile::read(PortIndex port, RegisterIndex reg, bool
   //  2. Disallow this at software level.
 
   // If the indirect address points to a channel-end, read from there instead
-  if(isChannelEnd(index)) {
+  if (isChannelEnd(index)) {
     // Do we want to allow indirecting into the channel end table? I think
     // we need it to make the selch instruction useful.
     return parent()->readRCET(toChannelID(index));
@@ -33,9 +33,14 @@ const int32_t IndirectRegisterFile::read(PortIndex port, RegisterIndex reg, bool
   else {
     int data = regs.read(index).toInt();
 
-    Instrumentation::Registers::read(port, reg, data);
-    if(DEBUG) cout << this->name() << ": Read " << data
-                   << " from register " << (int)index << endl;
+    if (ENERGY_TRACE)
+      Instrumentation::Registers::read(port, reg, prevRead[port], data);
+    if (DEBUG) cout << this->name() << ": Read " << data
+                    << " from register " << (int)index << endl;
+
+    // A bit of a hack to allow us to store debug information from inside a
+    // const method.
+    const_cast<IndirectRegisterFile*>(this)->prevRead[port] = data;
     return data;
   }
 }
@@ -49,9 +54,9 @@ void IndirectRegisterFile::write(const RegisterIndex reg, const int32_t value, b
   RegisterIndex index = indirect ? regs.read(reg).toInt() : reg;
 
   // There are some registers that we can't write to.
-  if(isReserved(index)/* || isChannelEnd(index)*/) {
-    if(index != 0) cerr << "Warning: attempting to write to reserved register "
-                        << (int)index << endl;
+  if (isReserved(index)/* || isChannelEnd(index)*/) {
+    if (index != 0) cerr << "Warning: attempting to write to reserved register "
+                         << (int)index << endl;
     return;
   }
 
@@ -60,7 +65,8 @@ void IndirectRegisterFile::write(const RegisterIndex reg, const int32_t value, b
   Word w(value);
   writeReg(index, w);
 
-  Instrumentation::Registers::write(index, oldData, value);
+  if (ENERGY_TRACE)
+    Instrumentation::Registers::write(index, oldData, value);
 
 }
 
@@ -108,7 +114,7 @@ void IndirectRegisterFile::updateCurrentIPK(const MemoryAddr addr) {
 }
 
 void IndirectRegisterFile::writeReg(const RegisterIndex reg, const Word data) {
-  if(DEBUG) cout << this->name() << ": Stored " << data << " to register " <<
+  if (DEBUG) cout << this->name() << ": Stored " << data << " to register " <<
       (int)reg << endl;
 
   regs.write(data, reg);
@@ -120,6 +126,7 @@ Cluster* IndirectRegisterFile::parent() const {
 
 IndirectRegisterFile::IndirectRegisterFile(sc_module_name name, const ComponentID& ID) :
     Component(name, ID),
-    regs(NUM_PHYSICAL_REGISTERS, std::string(name)) {
+    regs(NUM_PHYSICAL_REGISTERS, std::string(name)),
+    prevRead(3) {
 
 }

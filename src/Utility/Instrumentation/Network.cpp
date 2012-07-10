@@ -5,27 +5,65 @@
  *      Author: db434
  */
 
-#include "../../Datatype/ComponentID.h"
 #include "Network.h"
 #include "../Parameters.h"
-#include "math.h"
+#include "../../Datatype/AddressedWord.h"
+#include "../../Datatype/ComponentID.h"
+
+using namespace Instrumentation;
 
 CounterMap<ComponentID> Network::producers;
 CounterMap<ComponentID> Network::consumers;
+count_t Network::arbitrations = 0;
+count_t Network::xbarInHD = 0;
+count_t Network::xbarOutHD = 0;
+count_t Network::xbarDistHD = 0;
+count_t Network::mcastHD = 0;
+count_t Network::mcastRepeatHD = 0;
+count_t Network::globalHD = 0;
 
 void Network::traffic(const ComponentID& startID, const ComponentID& endID) {
   producers.increment(startID);
   consumers.increment(endID);
 }
 
+void Network::crossbarInput(const DataType& oldData, const DataType& newData,
+                            const PortIndex input) {
+  uint hamming = hammingDistance(oldData, newData);
+  uint destinationPort = newData.channelID().getPosition();
+
+  // Cores and memories are on different networks, so adjust the position of
+  // memories to account for this.
+  if (destinationPort >= CORES_PER_TILE)
+    destinationPort -= CORES_PER_TILE;
+
+  int distance = abs(input - destinationPort);
+
+  xbarInHD += hamming;
+  xbarDistHD += hamming*distance;
+}
+
+void Network::crossbarOutput(const DataType& oldData, const DataType& newData) {
+  xbarOutHD += hammingDistance(oldData, newData);
+}
+
+void Network::multicastTraffic(const DataType& oldData, const DataType& newData,
+                               const PortIndex input) {
+  mcastHD += hammingDistance(oldData, newData);
+}
+
+void Network::globalTraffic(const DataType& oldData, const DataType& newData) {
+  globalHD += hammingDistance(oldData, newData);
+}
+
+void Network::arbitration() {
+  arbitrations++;
+}
+
 void Network::printStats() {
 
   if (BATCH_MODE) {
 	cout << "<@GLOBAL>network_words:" << producers.numEvents() << "</@GLOBAL>" << endl;
-//	cout << "<@GLOBAL>network_avg_dist:" << averageDist << "</@GLOBAL>" << endl;
-//	cout << "<@GLOBAL>network_total_dist:" << totalBitDistance_ << "</@GLOBAL>" << endl;
-
-	//TODO: Add distribution to database if required
   }
 
   if(producers.numEvents() > 0) {
@@ -43,4 +81,28 @@ void Network::printStats() {
       }
     }
   }
+}
+
+void Network::dumpEventCounts(std::ostream& os) {
+  os << xmlBegin("crossbar") << "\n"
+     << xmlNode("hd_in", xbarInHD) << "\n"
+     << xmlNode("hd_out", xbarOutHD) << "\n"
+     << xmlNode("total_dist", xbarDistHD) << "\n"
+     << xmlEnd("crossbar") << "\n"
+
+     << xmlBegin("multicast_network") << "\n"
+     << xmlNode("hd", mcastHD) << "\n"
+     << xmlEnd("multicast_network") << "\n"
+
+     << xmlBegin("global_network") << "\n"
+     << xmlNode("hd", globalHD) << "\n"
+     << xmlEnd("global_network") << "\n"
+
+     << xmlBegin("arbiter") << "\n"
+     << xmlNode("active", arbitrations) << "\n"
+     << xmlEnd("arbiter") << "\n"
+
+     << xmlBegin("router") << "\n"
+     // TODO
+     << xmlEnd("router") << "\n";
 }

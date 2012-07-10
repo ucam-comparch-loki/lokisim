@@ -8,6 +8,8 @@
 #include "../Parameters.h"
 #include "BackgroundMemory.h"
 
+using namespace Instrumentation;
+
 unsigned long long BackgroundMemory::numReads_ = 0;
 unsigned long long BackgroundMemory::numWrites_ = 0;
 unsigned long long BackgroundMemory::numWordsRead_ = 0;

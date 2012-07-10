@@ -13,7 +13,6 @@
 
 #include "../PipelineStage.h"
 #include "ALU.h"
-#include "../../../Datatype/DecodedInst.h"
 
 class ExecuteStage: public PipelineStage {
 

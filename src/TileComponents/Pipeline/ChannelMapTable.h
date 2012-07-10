@@ -46,7 +46,6 @@ public:
 public:
 
   ChannelMapTable(const sc_module_name& name, ComponentID ID);
-  virtual ~ChannelMapTable();
 
 //==============================//
 // Local state
@@ -55,7 +54,11 @@ public:
 private:
 
   std::vector<ChannelMapEntry> table;
-  sc_event* creditArrivedEvent; // array
+  LokiVector<sc_event> creditArrivedEvent;
+
+  // Store a copy of the most recently read entry so we can measure the number
+  // of bits which toggle.
+  ChannelMapEntry previousRead;
 
 };
 

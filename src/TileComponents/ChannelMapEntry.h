@@ -39,6 +39,9 @@ public:
 
   bool usesCredits() const;
 
+  uint popCount() const;
+  uint hammingDistance(const ChannelMapEntry& other) const;
+
   ChannelMapEntry(ComponentID localID);
 
 private:

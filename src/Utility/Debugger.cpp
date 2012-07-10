@@ -6,6 +6,7 @@
  */
 
 #include "Debugger.h"
+#include "Instrumentation.h"
 #include "Statistics.h"
 #include "StringManipulation.h"
 #include "../Chip.h"

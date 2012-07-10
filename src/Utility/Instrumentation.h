@@ -13,10 +13,11 @@
 #ifndef INSTRUMENTATION_H_
 #define INSTRUMENTATION_H_
 
-#include <string>
 #include "../Typedefs.h"
-#include "../Datatype/ChannelID.h"
 
+class AddressedWord;
+class ChannelID;
+class ComponentID;
 class DecodedInst;
 
 namespace Instrumentation {
@@ -25,30 +26,9 @@ namespace Instrumentation {
   void end();
   void dumpEventCounts(std::ostream& os);
 
-  // Record whether there was a cache hit or miss when a fetch occurred.
-  void l0TagCheck(const ComponentID& core, bool hit);
-
-  // Instruction packet cache was read from.
-  void l0Read(const ComponentID& core);
-
-  // Instruction packet cache was written to.
-  void l0Write(const ComponentID& core);
-
   // The decoder consumes a significant amount of energy, and there are a few
   // techniques to reduce its activity, so record how active it is.
   void decoded(const ComponentID& core, const DecodedInst& dec);
-
-  // Record that a stall (pipeline) register was used.
-  void stallRegUse(const ComponentID& core);
-
-  // Record that memory performed a tag check.
-  void l1TagCheck(MemoryAddr address, bool hit);
-
-  // Record that memory was read from.
-  void l1Read(MemoryAddr address, bool isInstruction);
-
-  // Record that memory was written to.
-  void l1Write(MemoryAddr address);
 
   void memorySetMode(int bank, bool isCache, uint setCount, uint wayCount, uint lineSize);
 
@@ -79,9 +59,6 @@ namespace Instrumentation {
   // Record that background memory was written to.
   void backgroundMemoryWrite(MemoryAddr address, uint32_t count);
 
-  // Record that a particular core stalled or unstalled.
-  void stalled(const ComponentID& id, bool stalled, int reason=0);
-
   // Record that a particular core became idle or active.
   void idle(const ComponentID& id, bool idle);
 
@@ -90,10 +67,6 @@ namespace Instrumentation {
 
   // Returns whether execution has finished.
   bool executionFinished();
-
-  // Record that data was sent over the network from a start point to an end
-  // point.
-  void networkTraffic(const ComponentID& start, const ChannelID& end, int32_t data);
 
   // Record whether a particular operation was executed or not.
   void executed(const ComponentID& id, const DecodedInst& inst, bool executed);

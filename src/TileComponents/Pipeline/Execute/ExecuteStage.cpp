@@ -7,6 +7,8 @@
 
 #include "ExecuteStage.h"
 #include "../../Cluster.h"
+#include "../../../Datatype/MemoryRequest.h"
+#include "../../../Utility/Instrumentation.h"
 #include "../../../Utility/Instrumentation/Registers.h"
 
 bool ExecuteStage::readPredicate() const {return parent()->readPredReg();}
@@ -45,24 +47,24 @@ void ExecuteStage::newInput(DecodedInst& operation) {
   // See if the instruction should execute.
   bool willExecute = checkPredicate(operation);
 
-  if(willExecute) {
+  if (willExecute) {
     bool success = true;
 
     // Forward data from the previous instruction if necessary.
-    if(operation.operand1Source() == DecodedInst::BYPASS && previousInstExecuted) {
+    if (operation.operand1Source() == DecodedInst::BYPASS && previousInstExecuted) {
       operation.operand1(forwardedResult);
-      if(DEBUG) cout << this->name() << " forwarding contents of register "
+      if (DEBUG) cout << this->name() << " forwarding contents of register "
           << (int)operation.sourceReg1() << ": " << forwardedResult << endl;
       Instrumentation::Registers::forward(1);
     }
-    if(operation.operand2Source() == DecodedInst::BYPASS && previousInstExecuted) {
+    if (operation.operand2Source() == DecodedInst::BYPASS && previousInstExecuted) {
       operation.operand2(forwardedResult);
-      if(DEBUG) cout << this->name() << " forwarding contents of register "
+      if (DEBUG) cout << this->name() << " forwarding contents of register "
           << (int)operation.sourceReg2() << ": " << forwardedResult << endl;
       Instrumentation::Registers::forward(2);
     }
 
-    if(DEBUG) cout << this->name() << ": executing " << operation.name()
+    if (DEBUG) cout << this->name() << ": executing " << operation.name()
         << " on " << operation.operand1() << " and " << operation.operand2() << endl;
 
     // Special cases for any instructions which don't use the ALU.
@@ -127,7 +129,8 @@ void ExecuteStage::newInput(DecodedInst& operation) {
   // Only instrument operations which executed in this pipeline stage.
   // PAYLOAD_ONLY means this is the second half of a store operation - we don't
   // want to instrument it twice.
-  if(operation.isALUOperation() && operation.memoryOp() != MemoryRequest::PAYLOAD_ONLY)
+  if (operation.isALUOperation() &&
+      operation.memoryOp() != MemoryRequest::PAYLOAD_ONLY)
     Instrumentation::executed(id, operation, willExecute);
 
   previousInstExecuted = willExecute;
@@ -210,7 +213,7 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) const {
   parent()->channelMapTable.write(entry, sendChannel, groupBits, lineBits);
 
   // Generate a message to claim the port we have just stored the address of.
-  if(sendChannel.isCore()) {
+  if (sendChannel.isCore()) {
     ChannelID returnChannel(id, entry);
     inst.result(returnChannel.toInt());
     inst.channelMapEntry(entry);

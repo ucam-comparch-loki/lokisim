@@ -11,8 +11,6 @@
 #define SENDCHANNELENDTABLE_H_
 
 #include "../../../Component.h"
-#include "../../../Communication/loki_ports.h"
-#include "../../../Datatype/MemoryRequest.h"
 #include "../../../Memory/BufferArray.h"
 #include "../../../Network/NetworkTypedefs.h"
 

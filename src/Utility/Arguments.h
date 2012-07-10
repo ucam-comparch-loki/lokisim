@@ -37,6 +37,10 @@ public:
 
   // A list of files containing code to be simulated.
   static const vector<string>& code();
+  static const string& energyTraceFile();
+
+  // The command used to run the simulator.
+  static const string invocation();
 
   static void printHelp();
 
@@ -54,6 +58,12 @@ private:
 
   // A list of files containing code the simulator should execute.
   static vector<string> programFiles;
+
+  // Filenames used for dumping information.
+  static string coreTraceFile_, memTraceFile_, energyTraceFile_;
+
+  // The command used to run the simulator.
+  static std::stringstream invocation_;
 
 };
 

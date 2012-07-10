@@ -18,8 +18,6 @@
 #include "TileComponent.h"
 #include "InputCrossbar.h"
 
-#include "../Datatype/AddressedWord.h"
-#include "../Datatype/DecodedInst.h"
 #include "Pipeline/IndirectRegisterFile.h"
 #include "Pipeline/PredicateRegister.h"
 #include "Pipeline/Fetch/FetchStage.h"
@@ -28,6 +26,8 @@
 #include "Pipeline/Write/WriteStage.h"
 #include "Pipeline/ChannelMapTable.h"
 
+class AddressedWord;
+class DecodedInst;
 class PipelineRegister;
 
 class Cluster : public TileComponent {
