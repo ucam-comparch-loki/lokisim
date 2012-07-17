@@ -8,6 +8,7 @@
 #include "IndirectRegisterFile.h"
 #include "../Cluster.h"
 #include "../../Datatype/Word.h"
+#include "../../Utility/Instrumentation.h"
 #include "../../Utility/Instrumentation/Registers.h"
 
 const int32_t IndirectRegisterFile::read(PortIndex port, RegisterIndex reg, bool indirect) const {
@@ -33,8 +34,11 @@ const int32_t IndirectRegisterFile::read(PortIndex port, RegisterIndex reg, bool
   else {
     int data = regs.read(index).toInt();
 
-    if (ENERGY_TRACE)
+    if (ENERGY_TRACE) {
       Instrumentation::Registers::read(port, reg, prevRead[port], data);
+      const_cast<IndirectRegisterFile*>(this)->logActivity(); // Hack
+    }
+
     if (DEBUG) cout << this->name() << ": Read " << data
                     << " from register " << (int)index << endl;
 
@@ -65,8 +69,10 @@ void IndirectRegisterFile::write(const RegisterIndex reg, const int32_t value, b
   Word w(value);
   writeReg(index, w);
 
-  if (ENERGY_TRACE)
+  if (ENERGY_TRACE) {
     Instrumentation::Registers::write(index, oldData, value);
+    logActivity();
+  }
 
 }
 
@@ -120,6 +126,14 @@ void IndirectRegisterFile::writeReg(const RegisterIndex reg, const Word data) {
   regs.write(data, reg);
 }
 
+void IndirectRegisterFile::logActivity() {
+  cycle_count_t currentCycle = Instrumentation::currentCycle();
+  if (currentCycle != lastActivity) {
+    Instrumentation::Registers::activity();
+    lastActivity = currentCycle;
+  }
+}
+
 Cluster* IndirectRegisterFile::parent() const {
   return static_cast<Cluster*>(this->get_parent());
 }
@@ -127,6 +141,7 @@ Cluster* IndirectRegisterFile::parent() const {
 IndirectRegisterFile::IndirectRegisterFile(sc_module_name name, const ComponentID& ID) :
     Component(name, ID),
     regs(NUM_PHYSICAL_REGISTERS, std::string(name)),
-    prevRead(3) {
+    prevRead(3),
+    lastActivity(-1) {
 
 }

@@ -75,6 +75,8 @@ private:
   // Perform the register write (no safety checks, etc.).
   void writeReg(const RegisterIndex reg, const Word value);
 
+  void logActivity();
+
   Cluster* parent() const;
 
 //==============================//
@@ -88,6 +90,7 @@ private:
   // Data from previous read on each port. Used to compute Hamming distances
   // for energy models. (wr=0, rd1=1, rd2=2)
   vector<int> prevRead;
+  cycle_count_t lastActivity;
 
   // The register index at which the input channels begin.
   static const RegisterIndex START_OF_INPUT_CHANNELS = 2;

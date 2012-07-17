@@ -22,12 +22,21 @@ public:
   static void push(size_t size);
   static void pop(size_t size);
 
+  static void createdFIFO(size_t size);
+  static void activeCycle(size_t size);
+
   static void dumpEventCounts(std::ostream& os);
 
 private:
 
   // Record how many pushes and pops there were for FIFOs of each size.
   static CounterMap<size_t> pushes, pops;
+
+  // Count how many FIFOs of each size there are so we can compute leakage.
+  static CounterMap<size_t> instances;
+
+  // Count how many cycles each size of FIFO is active.
+  static CounterMap<size_t> activeCycles;
 
 };
 

@@ -6,13 +6,17 @@
  */
 
 #include "ChannelMapTable.h"
+#include "../../Utility/Instrumentation.h"
 #include "../../Utility/Instrumentation/ChannelMap.h"
 
 ChannelID ChannelMapTable::read(MapIndex entry) const {
   assert(entry < table.size());
 
-  if (ENERGY_TRACE)
+  if (ENERGY_TRACE) {
     Instrumentation::ChannelMap::read(previousRead, table[entry]);
+    const_cast<ChannelMapTable*>(this)->activeCycle();
+  }
+
   const_cast<ChannelMapTable*>(this)->previousRead = table[entry];
 
   return table[entry].destination();
@@ -38,8 +42,10 @@ void ChannelMapTable::write(MapIndex entry, ChannelID destination,
   else
     table[entry].setMemoryDestination(destination, groupBits, lineBits);
 
-  if (ENERGY_TRACE)
+  if (ENERGY_TRACE) {
     Instrumentation::ChannelMap::write(previous, table[entry]);
+    activeCycle();
+  }
 
   if (DEBUG)
     cout << this->name() << " updated map " << (int)entry << " to " << destination << " [" << groupBits << "]" << endl;
@@ -74,10 +80,19 @@ ChannelMapEntry& ChannelMapTable::getEntry(MapIndex entry) {
   return table[entry];
 }
 
+void ChannelMapTable::activeCycle() {
+  cycle_count_t currentCycle = Instrumentation::currentCycle();
+  if (currentCycle != lastActivity) {
+    Instrumentation::ChannelMap::activeCycle();
+    lastActivity = currentCycle;
+  }
+}
+
 ChannelMapTable::ChannelMapTable(const sc_module_name& name, ComponentID ID) :
     Component(name, ID),
     table(CHANNEL_MAP_SIZE, ChannelMapEntry(ID)),
-    previousRead(ID) {
+    previousRead(ID),
+    lastActivity(-1) {
 
   creditArrivedEvent.init(CHANNEL_MAP_SIZE);
 }

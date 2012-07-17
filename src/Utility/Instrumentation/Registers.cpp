@@ -21,6 +21,7 @@ count_t Registers::operations[3];
 count_t Registers::popCount[3];
 count_t Registers::hammingDist[3];
 count_t Registers::bypasses[3];
+count_t Registers::cyclesActive = 0;
 
 // Call init() to create arrays of the appropriate length, once all of the
 // parameter values have been decided.
@@ -45,37 +46,6 @@ void Registers::end() {
   delete[] readsPerReg;
 }
 
-void Registers::dumpEventCounts(std::ostream& os) {
-  os << "<registers rdports=\"2\" wrports=\"1\" entries=\"32\" width=\"32\">\n"
-     << xmlNode("w_op", operations[WR])     << "\n"
-     << xmlNode("w_oc", popCount[WR])       << "\n"
-     << xmlNode("w_hd", hammingDist[WR])    << "\n"
-     << xmlNode("rd1_op", operations[RD1])  << "\n"
-     << xmlNode("rd1_oc", popCount[RD1])    << "\n"
-     << xmlNode("rd1_hd", hammingDist[RD1]) << "\n"
-     << xmlNode("by1", bypasses[RD1])       << "\n"
-     << xmlNode("rd2_op", operations[RD2])  << "\n"
-     << xmlNode("rd2_oc", popCount[RD2])    << "\n"
-     << xmlNode("rd2_hd", hammingDist[RD2]) << "\n"
-     << xmlNode("by2", bypasses[RD2])       << "\n"
-     << xmlEnd("registers")                 << "\n";
-
-//  if(!detailedLogging)
-//    return;
-//
-//  os << "data type\twrites\tread 1\tread 2\n"
-//        "zero\t\t"   << zero[WR]   << "\t" << zero[RD1]   << "\t" << zero[RD2]   << "\n"
-//        "uint8\t\t"  << uint8[WR]  << "\t" << uint8[RD1]  << "\t" << uint8[RD2]  << "\n"
-//        "uint16\t\t" << uint16[WR] << "\t" << uint16[RD1] << "\t" << uint16[RD2] << "\n"
-//        "uint24\t\t" << uint24[WR] << "\t" << uint24[RD1] << "\t" << uint24[RD2] << "\n"
-//        "uint32\t\t" << uint32[WR] << "\t" << uint32[RD1] << "\t" << uint32[RD2] << "\n"
-//        "int8\t\t"   << int8[WR]   << "\t" << int8[RD1]   << "\t" << int8[RD2]   << "\n"
-//        "int16\t\t"  << int16[WR]  << "\t" << int16[RD1]  << "\t" << int16[RD2]  << "\n"
-//        "int24\t\t"  << int24[WR]  << "\t" << int24[RD1]  << "\t" << int24[RD2]  << "\n"
-//        "int32\t\t"  << int32[WR]  << "\t" << int32[RD1]  << "\t" << int32[RD2]  << "\n"
-//        "\n";
-}
-
 void Registers::write(RegisterIndex reg, int oldData, int newData) {
   operations[WR]++;
   popCount[WR] += popcount(newData);
@@ -96,6 +66,10 @@ void Registers::read(PortIndex port, RegisterIndex reg, int oldData, int newData
     readsPerReg[reg]++;
     valueSize(port, newData);
   }
+}
+
+void Registers::activity() {
+  cyclesActive++;
 }
 
 void Registers::bypass(PortIndex port) {
@@ -156,4 +130,37 @@ void Registers::printStats() {
     "  Reads:    " << numReads() << "\n" <<
     "  Writes:   " << numWrites() << "\n" <<
     "  Forwards: " << numForwards() << "\t(" << percentage(numForwards(),numReads()) << ")\n";
+}
+
+void Registers::dumpEventCounts(std::ostream& os) {
+  os << "<registers rdports=\"2\" wrports=\"1\" entries=\"32\" width=\"32\">\n"
+     << xmlNode("instances", NUM_CORES)     << "\n"
+     << xmlNode("active", cyclesActive)     << "\n"
+     << xmlNode("w_op", operations[WR])     << "\n"
+     << xmlNode("w_oc", popCount[WR])       << "\n"
+     << xmlNode("w_hd", hammingDist[WR])    << "\n"
+     << xmlNode("rd1_op", operations[RD1])  << "\n"
+     << xmlNode("rd1_oc", popCount[RD1])    << "\n"
+     << xmlNode("rd1_hd", hammingDist[RD1]) << "\n"
+     << xmlNode("by1", bypasses[RD1])       << "\n"
+     << xmlNode("rd2_op", operations[RD2])  << "\n"
+     << xmlNode("rd2_oc", popCount[RD2])    << "\n"
+     << xmlNode("rd2_hd", hammingDist[RD2]) << "\n"
+     << xmlNode("by2", bypasses[RD2])       << "\n"
+     << xmlEnd("registers")                 << "\n";
+
+//  if(!detailedLogging)
+//    return;
+//
+//  os << "data type\twrites\tread 1\tread 2\n"
+//        "zero\t\t"   << zero[WR]   << "\t" << zero[RD1]   << "\t" << zero[RD2]   << "\n"
+//        "uint8\t\t"  << uint8[WR]  << "\t" << uint8[RD1]  << "\t" << uint8[RD2]  << "\n"
+//        "uint16\t\t" << uint16[WR] << "\t" << uint16[RD1] << "\t" << uint16[RD2] << "\n"
+//        "uint24\t\t" << uint24[WR] << "\t" << uint24[RD1] << "\t" << uint24[RD2] << "\n"
+//        "uint32\t\t" << uint32[WR] << "\t" << uint32[RD1] << "\t" << uint32[RD2] << "\n"
+//        "int8\t\t"   << int8[WR]   << "\t" << int8[RD1]   << "\t" << int8[RD2]   << "\n"
+//        "int16\t\t"  << int16[WR]  << "\t" << int16[RD1]  << "\t" << int16[RD2]  << "\n"
+//        "int24\t\t"  << int24[WR]  << "\t" << int24[RD1]  << "\t" << int24[RD2]  << "\n"
+//        "int32\t\t"  << int32[WR]  << "\t" << int32[RD1]  << "\t" << int32[RD2]  << "\n"
+//        "\n";
 }

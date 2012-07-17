@@ -60,7 +60,7 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
   else
     executedFns.increment(dec.function());
 
-  if (dec.isALUOperation()) {
+  if (ENERGY_TRACE && dec.isALUOperation()) {
     int coreID = core.getGlobalCoreNumber();
 
     hdIn1 += hammingDistance(dec.operand1(), lastIn1[coreID]);
@@ -133,11 +133,19 @@ void Operations::printStats() {
 }
 
 void Operations::dumpEventCounts(std::ostream& os) {
-  os << xmlBegin("decoder") << "\n"
-     << xmlNode("decodes", numDecodes_) << "\n"
-     << xmlEnd("decoder") << "\n";
+  // Stores take two cycles to decode, so the decoder is active for longer.
+  count_t decodeCycles = numDecodes_ + executedOps[InstructionMap::OP_STB]
+                                     + executedOps[InstructionMap::OP_STHW]
+                                     + executedOps[InstructionMap::OP_STW];
 
-  os << xmlBegin("alu") << "\n";
+  os << xmlBegin("decoder")             << "\n"
+     << xmlNode("instances", NUM_CORES) << "\n"
+     << xmlNode("active", decodeCycles) << "\n"
+     << xmlNode("decodes", numDecodes_) << "\n"
+     << xmlEnd("decoder")               << "\n";
+
+  os << xmlBegin("alu")                 << "\n"
+     << xmlNode("instances", NUM_CORES) << "\n";
 
   // Special case for the ALU operations
   CounterMap<function_t>::iterator it;
@@ -170,13 +178,14 @@ void Operations::dumpEventCounts(std::ostream& os) {
                      - executedOps[InstructionMap::OP_MULHWU]
                      - executedOps[InstructionMap::OP_MULLW];
 
-  os << xmlNode("hd_in1", hdIn1) << "\n"
-     << xmlNode("hd_in2", hdIn2) << "\n"
-     << xmlNode("hd_out", hdOut) << "\n"
-     << xmlNode("same_op", sameOp) << "\n"
-     << xmlNode("total_ops", totalOps) << "\n"
-     << xmlNode("high_energy", highEnergy) << "\n"
-     << xmlEnd("alu") << "\n";
+  os << xmlNode("hd_in1", hdIn1)            << "\n"
+     << xmlNode("hd_in2", hdIn2)            << "\n"
+     << xmlNode("hd_out", hdOut)            << "\n"
+     << xmlNode("same_op", sameOp)          << "\n"
+     << xmlNode("total_ops", totalOps)      << "\n"
+     << xmlNode("active", totalOps)         << "\n"
+     << xmlNode("high_energy", highEnergy)  << "\n"
+     << xmlEnd("alu")                       << "\n";
 
   count_t multiplies = executedOps[InstructionMap::OP_MULHW]
                      + executedOps[InstructionMap::OP_MULHWU]
@@ -184,8 +193,9 @@ void Operations::dumpEventCounts(std::ostream& os) {
   count_t highWord   = executedOps[InstructionMap::OP_MULHW]
                      + executedOps[InstructionMap::OP_MULHWU];
 
-  os << xmlBegin("multiplier") << "\n"
-     << xmlNode("active", multiplies) << "\n"
-     << xmlNode("high_word", highWord) << "\n"
-     << xmlEnd("multiplier") << "\n";
+  os << xmlBegin("multiplier")          << "\n"
+     << xmlNode("instances", NUM_CORES) << "\n"
+     << xmlNode("active", multiplies)   << "\n"
+     << xmlNode("high_word", highWord)  << "\n"
+     << xmlEnd("multiplier")            << "\n";
 }

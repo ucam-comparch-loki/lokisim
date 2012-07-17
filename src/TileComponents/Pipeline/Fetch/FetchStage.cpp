@@ -12,23 +12,24 @@
 void FetchStage::execute() {
   bool isIdle = false;
 
-  if(cache.isEmpty() && fifo.isEmpty()) { // Wait for an instruction
+  if (cache.isEmpty() && fifo.isEmpty()) { // Wait for an instruction
     isIdle = true;
     next_trigger(fifo.fillChangedEvent() | cache.fillChangedEvent());
   }
-  else if(!canSendInstruction()) {        // Wait until decoder is ready
+  else if (!canSendInstruction()) {        // Wait until decoder is ready
     next_trigger(canSendEvent());
   }
-  else if(!clock.negedge()) {             // Do fetch at negedge (why?)
+  else if (!clock.negedge()) {             // Do fetch at negedge (why?)
     next_trigger(clock.negedge_event());
   }
-  else {                                  // Pass an instruction to pipeline
+  else {                                   // Pass an instruction to pipeline
     getInstruction();
     next_trigger(clock.negedge_event());
   }
 
   // Update the idle signal if there was a change.
-  if(idle.read() != isIdle) idle.write(isIdle);
+  if (idle.read() != isIdle)
+    idle.write(isIdle);
 }
 
 void FetchStage::getInstruction() {
@@ -41,8 +42,8 @@ void FetchStage::getInstruction() {
   MemoryAddr instAddr;
   Instruction instruction;
 
-  if(usingCache) {
-    if(cache.isEmpty()) {
+  if (usingCache) {
+    if (cache.isEmpty()) {
       next_trigger(cache.fillChangedEvent());
       return;
     }
@@ -64,21 +65,23 @@ void FetchStage::getInstruction() {
   DecodedInst decoded(instruction);
   decoded.location(instAddr);
 
+  if (DEBUG)
+    cout << this->name() << " selected instruction from "
+         << (usingCache ? "cache" : "FIFO") << ": " << decoded << endl;
+
+  // Make sure we didn't read a junk instruction. "nor r0, r0, r0 -> 0" seems
+  // pretty unlikely to ever come up in a real program.
+  assert(instruction.toInt() != 0);
+
   outputInstruction(decoded);
   instructionCompleted();
-
-  if(DEBUG) {
-    printf("%s selected instruction from %s: ", this->name(),
-                                                usingCache?"cache":"FIFO");
-    cout << decoded << endl;
-  }
 }
 
 void FetchStage::updateReady() {
   // Consider the pipeline to be stalled if the first pipeline stage is not
   // allowed to do any work. Only report the stall status when it changes.
 
-  if(canSendInstruction() == stalled) {
+  if (canSendInstruction() == stalled) {
     stalled = !canSendInstruction();
     parent()->pipelineStalled(stalled);
   }
@@ -113,12 +116,10 @@ void FetchStage::jump(const JumpOffset offset) {
  * Use cache if already executing a packet from cache,
  *          or FIFO is empty and cache has instructions. */
 void FetchStage::calculateSelect() {
-  if(usingCache) {
+  if (usingCache)
     usingCache = (fifo.isEmpty() || cache.packetInProgress());// && !cache.isEmpty();
-  }
-  else {
+  else
     usingCache = fifo.isEmpty();
-  }
 }
 
 void FetchStage::nextIPK() {

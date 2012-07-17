@@ -1,5 +1,5 @@
 /*
- * InstructionPacketCache.cpp
+ * InstructionPacketcache->cpp
  *
  *  Created on: 13 Jan 2010
  *      Author: db434
@@ -7,6 +7,8 @@
 
 #include "InstructionPacketCache.h"
 #include "FetchStage.h"
+#include "../../../Memory/IPKCacheDirectMapped.h"
+#include "../../../Memory/IPKCacheFullyAssociative.h"
 #include "../../../Utility/Instrumentation.h"
 #include "../../../Utility/Instrumentation/IPKCache.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
@@ -14,9 +16,9 @@
 /* Initialise the contents of the cache with a list of Instructions. */
 void InstructionPacketCache::storeCode(const std::vector<Instruction>& instructions) {
   assert(instructions.size() > 0);
-  assert(instructions.size() <= cache.size());
+  assert(instructions.size() <= cache->size());
 
-  cache.storeCode(instructions);
+  cache->storeCode(instructions);
 
   // SystemC segfaults if we notify an event before simulation has started.
   if (sc_core::sc_start_of_simulation_invoked())
@@ -27,12 +29,12 @@ Instruction InstructionPacketCache::read() {
   if (ENERGY_TRACE)
     Instrumentation::IPKCache::read(id);
 
-  Instruction inst = cache.read();
+  Instruction inst = cache->read();
   cacheFillChanged.notify();
 
   // If we the cache is now empty, but we are still waiting for instructions,
   // record this.
-  if (cache.stalled())
+  if (cache->stalled())
     Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS);
 
   return inst;
@@ -40,7 +42,7 @@ Instruction InstructionPacketCache::read() {
 
 void InstructionPacketCache::write(const Instruction inst) {
   // If the cache was blocked, it isn't any more.
-  if (cache.stalled())
+  if (cache->stalled())
     Instrumentation::Stalls::unstall(id);
 
   if (ENERGY_TRACE)
@@ -48,7 +50,7 @@ void InstructionPacketCache::write(const Instruction inst) {
   if (DEBUG)
     cout << this->name() << " received Instruction: " << inst << endl;
 
-  cache.write(inst);
+  cache->write(inst);
   cacheFillChanged.notify();
 }
 
@@ -62,7 +64,7 @@ bool InstructionPacketCache::lookup(const MemoryAddr addr, opcode_t operation) {
   assert(timeLastChecked != Instrumentation::currentCycle());
   timeLastChecked = Instrumentation::currentCycle();
 
-  bool inCache = cache.checkTags(addr, operation);
+  bool inCache = cache->checkTags(addr, operation);
   if (DEBUG)
     cout << (inCache ? "" : "not ") << "in cache" << endl;
 
@@ -81,16 +83,16 @@ bool InstructionPacketCache::lookup(const MemoryAddr addr, opcode_t operation) {
 
 /* Jump to a new instruction specified by the offset amount. */
 void InstructionPacketCache::jump(const JumpOffset offset) {
-  cache.jump(offset/BYTES_PER_WORD);
+  cache->jump(offset/BYTES_PER_WORD);
   cacheFillChanged.notify();
 }
 
 void InstructionPacketCache::nextIPK() {
-  cache.cancelPacket();
+  cache->cancelPacket();
 }
 
 bool InstructionPacketCache::packetInProgress() const {
-  return cache.packetInProgress();
+  return cache->packetInProgress();
 }
 
 const sc_event& InstructionPacketCache::fillChangedEvent() const {
@@ -106,20 +108,20 @@ void InstructionPacketCache::receivedInst() {
 /* Update the signal saying whether there is enough room to fetch another
  * packet. */
 void InstructionPacketCache::sendCredit() {
-  flowControl.write(!cache.full());
+  flowControl.write(!cache->full());
 }
 
 MemoryAddr InstructionPacketCache::getInstAddress() const {
-  return cache.getInstLocation();
+  return cache->getInstLocation();
 }
 
 /* Returns whether or not the cache is empty. */
 bool InstructionPacketCache::isEmpty() const {
-  return cache.empty();
+  return cache->empty();
 }
 
 bool InstructionPacketCache::roomToFetch() const {
-  return cache.canFetch();
+  return cache->canFetch();
 }
 
 FetchStage* InstructionPacketCache::parent() const {
@@ -128,8 +130,10 @@ FetchStage* InstructionPacketCache::parent() const {
 
 /* Constructors and destructors */
 InstructionPacketCache::InstructionPacketCache(sc_module_name name, const ComponentID& ID) :
-    Component(name, ID),
-    cache(IPK_CACHE_SIZE, string(this->name())) {
+    Component(name, ID) {
+
+  cache = new IPKCacheFullyAssociative(IPK_CACHE_SIZE, IPK_CACHE_TAGS, string(this->name()));
+//  cache = new IPKCacheDirectMapped(IPK_CACHE_SIZE, string(this->name()));
 
   timeLastChecked = -1;
 
@@ -141,4 +145,8 @@ InstructionPacketCache::InstructionPacketCache(sc_module_name name, const Compon
   sensitive << cacheFillChanged;
   // do initialise
 
+}
+
+InstructionPacketCache::~InstructionPacketCache() {
+  delete cache;
 }

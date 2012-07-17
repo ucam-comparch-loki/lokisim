@@ -38,6 +38,11 @@ public:
   // necessary, as it may bypass functionality in other accessor methods.
   ChannelMapEntry& getEntry(MapIndex entry);
 
+private:
+
+  // Keep track of the number of cycles this component is active so we can
+  // estimate the benefits of clock gating.
+  void activeCycle();
 
 //==============================//
 // Constructors and destructors
@@ -59,6 +64,7 @@ private:
   // Store a copy of the most recently read entry so we can measure the number
   // of bits which toggle.
   ChannelMapEntry previousRead;
+  cycle_count_t lastActivity;
 
 };
 

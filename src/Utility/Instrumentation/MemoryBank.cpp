@@ -305,19 +305,36 @@ void MemoryBank::printStats() {
 
 void MemoryBank::dumpEventCounts(std::ostream& os) {
   os << "<memory size=\"" << MEMORY_BANK_SIZE << "\">\n"
-     << xmlNode("read", numReads()) << "\n"
-     << xmlNode("write", numWrites()) << "\n"
-     << xmlEnd("memory") << "\n";
+     << xmlNode("instances", NUM_MEMORIES)                                << "\n"
+     << xmlNode("active", numReads() + numWrites())  /* is this right? */ << "\n"
+     << xmlNode("read", numReads())                                       << "\n"
+     << xmlNode("write", numWrites())                                     << "\n"
+     << xmlNode("word_read", numReadWordHits_.numEvents())                << "\n"
+     << xmlNode("halfword_read", numReadHalfWordHits_.numEvents())        << "\n"
+     << xmlNode("byte_read", numReadByteHits_.numEvents())                << "\n"
+     << xmlNode("ipk_read", numIPKReadHits_.numEvents())                  << "\n"
+     << xmlNode("burst_read", numBurstReadHits_.numEvents())              << "\n"
+     << xmlNode("word_write", numWriteWordHits_.numEvents())              << "\n"
+     << xmlNode("halfword_write", numWriteHalfWordHits_.numEvents())      << "\n"
+     << xmlNode("byte_write", numWriteByteHits_.numEvents())              << "\n"
+     << xmlNode("burst_write", numBurstWriteHits_.numEvents())            << "\n"
+     << xmlNode("replace_line", numReplaceClean_.numEvents() + numReplaceDirty_.numEvents() + numReplaceInvalid_.numEvents()) << "\n"
+     << xmlNode("ring_hand_off", numHandOffRequests_.numEvents())         << "\n"
+     << xmlNode("ring_pass_through", numPassThroughRequests_.numEvents()) << "\n"
+     << xmlEnd("memory")                                                  << "\n";
 }
 
 long long MemoryBank::numReads() {
   return numReadWordHits_.numEvents()
        + numReadHalfWordHits_.numEvents()
-       + numReadByteHits_.numEvents();
+       + numReadByteHits_.numEvents()
+       + numIPKReadHits_.numEvents()
+       + numBurstReadHits_.numEvents();
 }
 
 long long MemoryBank::numWrites() {
   return numWriteWordHits_.numEvents()
        + numWriteHalfWordHits_.numEvents()
-       + numWriteByteHits_.numEvents();
+       + numWriteByteHits_.numEvents()
+       + numBurstWriteHits_.numEvents();
 }

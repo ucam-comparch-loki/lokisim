@@ -34,6 +34,7 @@ public:
 
   // An arbiter performed a computation.
   static void arbitration();
+  static void arbiterCreated();
 
   static void printStats();
   static void dumpEventCounts(std::ostream& os);
@@ -44,6 +45,7 @@ private:
   static CounterMap<ComponentID> consumers;
 
   static count_t arbitrations;
+  static count_t arbiters;
 
   // Hamming distances for the different networks.
   // In/Out = record separate Hamming distances for input and output ports.

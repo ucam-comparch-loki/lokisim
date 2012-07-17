@@ -1,6 +1,10 @@
 /*
  * NewNetwork.h
  *
+ * Base class for all networks. I intend this to replace Network.h eventually.
+ * Currently waiting for the credit subnetwork design to be confirmed - that is
+ * the only use of the old network design remaining.
+ *
  *  Created on: 2 Nov 2010
  *      Author: db434
  */

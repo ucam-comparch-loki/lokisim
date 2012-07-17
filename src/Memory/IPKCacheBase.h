@@ -1,24 +1,23 @@
 /*
- * IPKCacheStorage.h
+ * IPKCacheBase.h
  *
- * A special version of the MappedStorage class with behaviour tailored to
- * the Instruction Packet Cache.
- *
- *  Created on: 26 Jan 2010
+ *  Created on: 11 Jul 2012
  *      Author: db434
  */
 
-#ifndef IPKCACHESTORAGE_H_
-#define IPKCACHESTORAGE_H_
+#ifndef IPKCACHEBASE_H_
+#define IPKCACHEBASE_H_
 
-#include "MappedStorage.h"
+#include "../Datatype/Instruction.h"
 #include "../Typedefs.h"
 #include "../Utility/LoopCounter.h"
 #include "../Utility/InstructionMap.h"
 
-class Instruction;
 
-class IPKCacheStorage : public MappedStorage<MemoryAddr, Instruction> {
+typedef uint CacheIndex;
+typedef uint TagIndex;
+
+class IPKCacheBase {
 
 //==============================//
 // Constructors and destructors
@@ -26,7 +25,7 @@ class IPKCacheStorage : public MappedStorage<MemoryAddr, Instruction> {
 
 public:
 
-  IPKCacheStorage(const uint16_t size, const std::string& name);
+  IPKCacheBase(const size_t size, const size_t numTags, const std::string& name);
 
 //==============================//
 // Methods
@@ -37,85 +36,119 @@ public:
   // Returns whether the given address matches any of the tags.
   // There are many different ways of fetching instructions, so provide the
   // operation too.
-  virtual bool checkTags(const MemoryAddr& key, opcode_t operation);
+  virtual bool checkTags(const MemoryAddr address, const opcode_t operation);
 
   // Returns the next item in the cache.
-  virtual const Instruction& read();
+  virtual const Instruction read();
 
   // Writes new data to the cache. The position to write to, and the tag for
   // the data, are already known.
-  void write(const Instruction& inst);
+  virtual void write(const Instruction inst);
 
   // Jump to a new instruction at a given offset.
-  void jump(const JumpOffset offset);
+  virtual void jump(const JumpOffset offset);
 
   // Return the memory address of the currently-executing packet.
-  const MemoryAddr packetAddress() const;
+  virtual const MemoryAddr packetAddress() const;
 
   // Returns the remaining number of entries in the cache.
-  const uint16_t remainingSpace() const;
+  virtual const size_t remainingSpace() const;
 
   // Return the memory index of the instruction sent most recently.
-  const MemoryAddr getInstLocation() const;
+  virtual const MemoryAddr getInstLocation() const;
 
   // Returns whether the cache is empty. Note that even if a cache is empty,
   // it is still possible to access its contents if an appropriate tag is
   // looked up.
-  bool empty() const;
+  virtual bool empty() const;
 
   // Returns whether the cache is full.
-  bool full() const;
+  virtual bool full() const;
 
   // Returns whether this cache is stalled, waiting for instructions to arrive
   // from memory.
-  bool stalled() const;
+  virtual bool stalled() const;
 
   // Return whether this core is allowed to send out a new fetch request.
   // It is not allowed to send the request if there is not room for a maximum-
   // size packet, or if any fetches are already taking place.
-  bool canFetch() const;
+  virtual bool canFetch() const;
 
-  bool packetInProgress() const;
+  virtual bool packetInProgress() const;
 
   // Begin reading the packet which is queued up to execute next.
-  void switchToPendingPacket();
+  virtual void switchToPendingPacket();
 
   // Abort execution of this instruction packet, and resume when the next packet
   // arrives.
-  void cancelPacket();
+  virtual void cancelPacket();
 
   // Store some initial instructions in the cache.
-  void storeCode(const std::vector<Instruction>& code);
+  virtual void storeCode(const std::vector<Instruction>& code);
 
-private:
+  size_t size() const;
 
-  // Returns the data corresponding to the given address.
-  // Private because we don't want to use this version for IPK caches.
-  virtual const Instruction& read(const MemoryAddr& key);
+protected:
 
-  // Returns the position that data with the given address tag should be stored
-  virtual uint16_t getPosition(const MemoryAddr& key);
+  // Returns the position of the instruction from the given memory location, or
+  // NOT_IN_CACHE if it is not available.
+  virtual CacheIndex cacheIndex(const MemoryAddr address) const = 0;
+
+  virtual MemoryAddr getTag(const CacheIndex position) const = 0;
+  virtual void setTag(const CacheIndex position, const MemoryAddr tag) = 0;
+
+  // Determine which position to read from next. Executed immediately before
+  // performing the read.
+  virtual void updateReadPointer() = 0;
+
+  // Determine which position to write to next. Executed immediately before
+  // performing the write.
+  virtual void updateWritePointer() = 0;
+
+  // Returns the position that data with the given address tag should be stored.
+//  virtual CacheIndex getPosition(const MemoryAddr& address) = 0;
 
   // Returns whether the instruction stored at the given position in the cache
   // is the first instruction of its packet.
-  bool startOfPacket(uint16_t cacheIndex) const;
+  virtual bool startOfPacket(CacheIndex position) const;
 
-  void incrementWritePos();
-  void incrementReadPos();
+  virtual void incrementWritePos();
+  virtual void incrementReadPos();
 
-  void updateFillCount();
+  virtual void updateFillCount();
+
+private:
+
+  // Instrumentation helper methods.
+  void tagActivity();
+  void dataActivity();
 
 //==============================//
 // Local state
 //==============================//
 
-private:
+protected:
+
+  const std::string name;
+
+  // All accesses to tags must be through getTag and setTag, as different cache
+  // configurations use tags differently.
+  std::vector<MemoryAddr>  tags;
+  std::vector<Instruction> data;
+
+  // For debug purposes, we store the memory address which each instruction is
+  // from. This allows us to set breakpoints easily, and also allows us to
+  // determine which parts of the program are the hotspots.
+  std::vector<MemoryAddr>  locations;
+
+  static const CacheIndex NOT_IN_CACHE = -1;
+  static const MemoryAddr DEFAULT_TAG  = 0xFFFFFFFF;
 
   // A collection of information about an instruction packet and how it should
   // be executed.
   typedef struct {
     MemoryAddr memAddr;     // Memory address of this packet (mainly for debug)
-    uint16_t   cacheIndex;  // Position in cache of first instruction
+    CacheIndex cacheIndex;  // Position in cache of first instruction
     bool       persistent;  // Persistent packets repeat until NXIPK is received
     bool       execute;     // Should these instructions be executed immediately?
     bool       inCache;     // Can't send a FETCH until previous one finishes
@@ -132,13 +165,13 @@ private:
   LoopCounter readPointer, writePointer;
 
   JumpOffset jumpAmount;
-  bool finishedPacket;
+  bool finishedPacketRead, finishedPacketWrite;
 
   // When the read and write pointers are in the same place, we use this to
   // tell whether the cache is full or empty.
   bool lastOpWasARead;
 
-  uint16_t fillCount;
+  size_t fillCount;
 
   // Location of the next packet to be executed.
   // Do we want a single pending packet, or a queue of them?
@@ -147,14 +180,12 @@ private:
   // The index of the first instruction of the current instruction packet.
   PacketInfo currentPacket;
 
-  // For debug purposes, we store the memory address which each instruction is
-  // from. This allows us to set breakpoints easily, and also allows us to
-  // determine which parts of the program are the hotspots.
-  vector<MemoryAddr> locations;
+private:
 
-  static const uint16_t   NOT_IN_CACHE = -1;
-  static const MemoryAddr DEFAULT_TAG  = 0xFFFFFFFF;
+  // Keep track of which cycles the tag and data arrays were active so we can
+  // estimate potential savings of clock gating.
+  cycle_count_t lastTagActivity, lastDataActivity;
 
 };
 
-#endif /* IPKCACHESTORAGE_H_ */
+#endif /* IPKCACHEBASE_H_ */

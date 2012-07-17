@@ -135,13 +135,12 @@ bool Instrumentation::executionFinished() {
 }
 
 void Instrumentation::executed(const ComponentID& id, const DecodedInst& inst, bool executed) {
-  if (ENERGY_TRACE)
-    Operations::executed(id, inst, executed);
+  Operations::executed(id, inst, executed);
 
   if (Debugger::mode == Debugger::DEBUGGER)
     Debugger::executedInstruction(inst, id, executed);
 }
 
-unsigned long Instrumentation::currentCycle() {
+cycle_count_t Instrumentation::currentCycle() {
   return sc_core::sc_time_stamp().to_default_time_units();
 }

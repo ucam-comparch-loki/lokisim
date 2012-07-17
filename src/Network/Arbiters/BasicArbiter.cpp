@@ -190,6 +190,8 @@ BasicArbiter::BasicArbiter(const sc_module_name& name, ComponentID ID,
     selectVec(outputs, -1),
     state(outputs, NO_REQUESTS) {
 
+  Instrumentation::Network::arbiterCreated();
+
   requests.init(inputs);
   grants.init(inputs);
   select.init(outputs);

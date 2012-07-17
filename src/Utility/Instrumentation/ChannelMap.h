@@ -20,6 +20,7 @@ public:
 
   static void write(const ChannelMapEntry& oldData, const ChannelMapEntry& newData);
   static void read(const ChannelMapEntry& oldData, const ChannelMapEntry& newData);
+  static void activeCycle();
 
   // For use when the register file reads and writes to the same register in
   // the same clock cycle. Is it worth having this in the channel map table?
@@ -40,6 +41,8 @@ private:
   // Number of times data was read from a register in the same cycle as it was
   // written.
   static count_t  bypasses;
+
+  static count_t  cyclesActive;
 
 };
 

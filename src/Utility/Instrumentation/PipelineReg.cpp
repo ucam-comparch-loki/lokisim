@@ -81,7 +81,9 @@ void PipelineReg::dumpEventCounts(std::ostream& os) {
     count_t hamming = hammingDist[width];
 
     os << "<pipeline_register width=\"" << width << "\">\n"
+       << xmlNode("instances", NUM_CORES) << "\n"
        << xmlNode("active", activeCycles) << "\n"
+       << xmlNode("write", activeCycles) << "\n"
        << xmlNode("hd", hamming) << "\n"
        << xmlEnd("pipeline_register") << "\n";
   }

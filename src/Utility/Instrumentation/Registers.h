@@ -25,6 +25,10 @@ public:
   static void write(RegisterIndex reg, int oldData, int newData);
   static void read(PortIndex port, RegisterIndex reg, int oldData, int newData);
 
+  // Record the number of cycles in which register files were active. This
+  // allows us to estimate the benefits of clock gating.
+  static void activity();
+
   // Data was forwarded from the execute stage's output back to its input.
   // Since the wire may be quite long, do we want to collect the data too?
   static void forward(PortIndex port);
@@ -69,6 +73,8 @@ private:
   // Number of times data was read from a register in the same cycle as it was
   // written.
   static count_t  bypasses[3];
+
+  static count_t  cyclesActive;
 
 // Extra usage data which may be of interest.
   static count_t  numForwards_;

@@ -1,10 +1,8 @@
 /*
  * InstructionPacketCache.h
  *
- * Cache of Instructions with FIFO behaviour.
- *
- * Stores a queue of outstanding fetch addresses, so when it starts receiving
- * a new instruction packet, the address of the instructions is known.
+ * This class acts as a wrapper for the inner behavioural model. The wrapper
+ * adds SystemC ports and events and various other functionality.
  *
  *  Created on: 13 Jan 2010
  *      Author: db434
@@ -14,7 +12,7 @@
 #define INSTRUCTIONPACKETCACHE_H_
 
 #include "../../../Component.h"
-#include "../../../Memory/IPKCacheStorage.h"
+#include "../../../Memory/IPKCacheBase.h"
 #include "../../../Network/NetworkTypedefs.h"
 
 class FetchStage;
@@ -43,6 +41,7 @@ public:
 
   SC_HAS_PROCESS(InstructionPacketCache);
   InstructionPacketCache(sc_module_name name, const ComponentID& ID);
+  virtual ~InstructionPacketCache();
 
 //==============================//
 // Methods
@@ -114,10 +113,11 @@ private:
 
 private:
 
-  IPKCacheStorage cache;
+  // The behavioural model of the cache.
+  IPKCacheBase* cache;
 
   // Flag telling whether the cache missed this cycle.
-  unsigned long timeLastChecked;
+  cycle_count_t timeLastChecked;
   sc_event cacheMissEvent;
 
   // Event which is triggered whenever an instruction is added to or removed

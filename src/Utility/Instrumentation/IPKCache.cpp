@@ -15,6 +15,9 @@ count_t IPKCache::numMisses_ = 0;
 count_t IPKCache::numReads_ = 0;
 count_t IPKCache::numWrites_ = 0;
 count_t IPKCache::tagHD_ = 0;   // Total Hamming distance in written cache tags
+count_t IPKCache::tagWrites_ = 0;
+count_t IPKCache::tagsActive_ = 0;
+count_t IPKCache::dataActive_ = 0;
 
 void IPKCache::tagCheck(const ComponentID& core, bool hit) {
   if (hit) numHits_++;
@@ -23,6 +26,11 @@ void IPKCache::tagCheck(const ComponentID& core, bool hit) {
 
 void IPKCache::tagWrite(const MemoryAddr oldTag, const MemoryAddr newTag) {
   tagHD_ += hammingDistance(oldTag, newTag);
+  tagWrites_++;
+}
+
+void IPKCache::tagActivity() {
+  tagsActive_++;
 }
 
 void IPKCache::read(const ComponentID& core) {
@@ -31,6 +39,10 @@ void IPKCache::read(const ComponentID& core) {
 
 void IPKCache::write(const ComponentID& core) {
   numWrites_++;
+}
+
+void IPKCache::dataActivity() {
+  dataActive_++;
 }
 
 count_t IPKCache::numTagChecks() {return numHits_ + numMisses_;}
@@ -51,7 +63,7 @@ void IPKCache::printStats() {
 	cout << "<@GLOBAL>ipkcache_misses:" << numMisses_ << "</@GLOBAL>" << endl;
   }
 
-  if(tagChecks > 0) {
+  if (tagChecks > 0) {
 	cout <<
 	  "Instruction packet cache:" << "\n" <<
 	  "  Reads:    " << numReads_ << "\n" <<
@@ -63,13 +75,19 @@ void IPKCache::printStats() {
 }
 
 void IPKCache::dumpEventCounts(std::ostream& os) {
+  // TODO: record direct-mapped/fully-associative/etc.
   os << "<ipkcache entries=\"" << IPK_CACHE_SIZE << "\">\n"
+     << xmlNode("instances", NUM_CORES) << "\n"
+     << xmlNode("active", dataActive_) << "\n"
      << xmlNode("read", numReads_) << "\n"
      << xmlNode("write", numWrites_) << "\n"
      << xmlEnd("ipkcache") << "\n";
 
-//  os << "<ipkcachetags entries=\"" << IPK_CACHE_TAGS << "\">\n"
-  os << "<ipkcachetags entries=\"16\">\n"
+  os << "<ipkcachetags entries=\"" << IPK_CACHE_TAGS << "\">\n"
+     << xmlNode("instances", NUM_CORES) << "\n"
+     << xmlNode("active", tagsActive_) << "\n"
      << xmlNode("hd", tagHD_) << "\n"
+     << xmlNode("write", tagWrites_) << "\n"
+     << xmlNode("read", numTagChecks()) << "\n"
      << xmlEnd("ipkcachetags") << "\n";
 }

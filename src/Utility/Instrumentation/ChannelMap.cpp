@@ -14,9 +14,12 @@ count_t ChannelMap::operations[2];
 count_t ChannelMap::popCount[2];
 count_t ChannelMap::hammingDist[2];
 count_t ChannelMap::bypasses = 0;
+count_t ChannelMap::cyclesActive = 0;
 
 void ChannelMap::dumpEventCounts(std::ostream& os) {
   os << xmlBegin("channel_map_table")     << "\n"
+     << xmlNode("instances", NUM_CORES)   << "\n"  // Do memories have them too?
+     << xmlNode("active", cyclesActive)   << "\n"
      << xmlNode("w_op", operations[WR])   << "\n"
      << xmlNode("w_oc", popCount[WR])     << "\n"
      << xmlNode("w_hd", hammingDist[WR])  << "\n"
@@ -37,6 +40,10 @@ void ChannelMap::read(const ChannelMapEntry& oldData, const ChannelMapEntry& new
   operations[RD]++;
   popCount[RD] += newData.popCount();
   hammingDist[RD] += oldData.hammingDistance(newData);
+}
+
+void ChannelMap::activeCycle() {
+  cyclesActive++;
 }
 
 void ChannelMap::bypass() {

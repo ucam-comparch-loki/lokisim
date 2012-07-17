@@ -20,15 +20,15 @@ using std::vector;
 using std::string;
 
 // Advance the simulation one clock cycle.
-static unsigned long long cycleNumber = 0;
-static unsigned int cyclesPerStep = 1;
+static cycle_count_t cycleNumber = 0;
+static cycle_count_t cyclesPerStep = 1;
 
 // For simplicity, 1 cycle = 1 ns
 #define TIMESTEP {\
   cycleNumber += cyclesPerStep;\
-  if(DEBUG) cout << "\n======= Cycle " << cycleNumber << " =======" << endl;\
-  if(CORE_TRACE) CoreTrace::setClockCycle(cycleNumber);\
-  if(MEMORY_TRACE) MemoryTrace::setClockCycle(cycleNumber);\
+  if (DEBUG) cout << "\n======= Cycle " << cycleNumber << " =======" << endl;\
+  if (CORE_TRACE) CoreTrace::setClockCycle(cycleNumber);\
+  if (MEMORY_TRACE) MemoryTrace::setClockCycle(cycleNumber);\
   sc_start(cyclesPerStep, SC_NS);\
 }
 
@@ -37,7 +37,7 @@ int simulate();
 int sc_main(int argc, char* argv[]) {
   Arguments::parse(argc, argv);
 
-  if(Arguments::simulate())
+  if (Arguments::simulate())
     return simulate();
   else
     return 0;
@@ -47,33 +47,33 @@ void simulate(Chip& chip) {
 
   // Simulate multiple cycles in a row when possible to reduce the overheads of
   // stopping and starting simulation.
-  if(DEBUG || CORE_TRACE || MEMORY_TRACE)
+  if (DEBUG || CORE_TRACE || MEMORY_TRACE)
     cyclesPerStep = 1;
   else
     cyclesPerStep = (100 < TIMEOUT/50) ? 100 : TIMEOUT/50;
 
   try {
-    if(Debugger::usingDebugger) {
+    if (Debugger::usingDebugger) {
       Debugger::setChip(&chip);
       Debugger::waitForInput();
     }
     else {
-      int cyclesIdle = 0;
-      int cycleCounter = 0;
-      int operationCount = 0;
+      cycle_count_t cyclesIdle = 0;
+      cycle_count_t cycleCounter = 0;
+      count_t operationCount = 0;
 
-      unsigned long long i;
-      for(i=0; i<TIMEOUT && !sc_core::sc_end_of_simulation_invoked(); i+=cyclesPerStep) {
+      cycle_count_t i;
+      for (i=0; i<TIMEOUT && !sc_core::sc_end_of_simulation_invoked(); i+=cyclesPerStep) {
         TIMESTEP;
 
         cycleCounter += cyclesPerStep;
         if (cycleCounter >= 1000000) {
-          int newOperationCount = Instrumentation::Operations::numOperations();
-          if(!DEBUG)
+          count_t newOperationCount = Instrumentation::Operations::numOperations();
+          if (!DEBUG)
             cerr << "Current cycle number: " << cycleNumber << " [" << newOperationCount << " operation(s) executed]" << endl;
           cycleCounter -= 1000000;
 
-          if(newOperationCount == operationCount) {
+          if (newOperationCount == operationCount) {
             cerr << "\nNo progress has been made for 1000000 cycles. Aborting." << endl;
 
             ComponentID core0(0,0); // Assume core 0 is stalled
@@ -89,9 +89,9 @@ void simulate(Chip& chip) {
           operationCount = newOperationCount;
         }
 
-        if(chip.isIdle()) {
+        if (chip.isIdle()) {
           cyclesIdle++;
-          if(cyclesIdle >= 100) {
+          if (cyclesIdle >= 100) {
             cerr << "\nSystem has been idle for " << cyclesIdle << " cycles. Aborting." << endl;
             sc_stop();
             Instrumentation::endExecution();
@@ -102,13 +102,13 @@ void simulate(Chip& chip) {
         else cyclesIdle = 0;
       }
 
-      if(i >= TIMEOUT) {
+      if (i >= TIMEOUT) {
         cerr << "Simulation timed out after " << TIMEOUT << " cycles." << endl;
         RETURN_CODE = EXIT_FAILURE;
       }
     }
   }
-  catch(std::exception& e) {
+  catch (std::exception& e) {
     // If there's no error message, it might mean that not everything is
     // connected properly.
     cerr << "Execution ended unexpectedly at cycle " << sc_core::sc_time_stamp().to_double() << ":\n"
@@ -121,7 +121,7 @@ void simulate(Chip& chip) {
 // Wrapper for the chip simulation function above.
 int simulate() {
   // Override parameters before instantiating chip model
-  for(unsigned int i=0; i<Arguments::code().size(); i++)
+  for (unsigned int i=0; i<Arguments::code().size(); i++)
     CodeLoader::loadParameters(Arguments::code()[i]);
 
   Instrumentation::initialise();

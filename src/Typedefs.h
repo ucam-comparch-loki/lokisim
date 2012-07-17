@@ -17,6 +17,9 @@
 #include <inttypes.h>
 #include <systemc>
 
+typedef uint64_t count_t;
+typedef count_t  cycle_count_t;
+
 // An index within a component's own input/output channels.
 typedef uint8_t  ChannelIndex;
 

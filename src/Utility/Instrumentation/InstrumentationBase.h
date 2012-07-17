@@ -21,8 +21,6 @@ using std::endl;
 
 class AddressedWord;
 
-typedef unsigned long long count_t;
-
 namespace Instrumentation {
 
 class InstrumentationBase {

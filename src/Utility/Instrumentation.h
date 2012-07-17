@@ -72,7 +72,7 @@ namespace Instrumentation {
   void executed(const ComponentID& id, const DecodedInst& inst, bool executed);
 
   // Return the current clock cycle count.
-  unsigned long currentCycle();
+  cycle_count_t currentCycle();
 
 }
 

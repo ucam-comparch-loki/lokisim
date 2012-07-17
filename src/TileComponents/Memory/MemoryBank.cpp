@@ -1734,13 +1734,3 @@ void MemoryBank::writeByte(MemoryAddr addr, Word data) {
 		return;
 	}
 }
-
-double MemoryBank::area() const {
-	assert(false);
-	return 0.0;
-}
-
-double MemoryBank::energy() const {
-	assert(false);
-	return 0.0;
-}

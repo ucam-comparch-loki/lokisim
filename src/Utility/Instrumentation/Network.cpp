@@ -15,6 +15,7 @@ using namespace Instrumentation;
 CounterMap<ComponentID> Network::producers;
 CounterMap<ComponentID> Network::consumers;
 count_t Network::arbitrations = 0;
+count_t Network::arbiters = 0;
 count_t Network::xbarInHD = 0;
 count_t Network::xbarOutHD = 0;
 count_t Network::xbarDistHD = 0;
@@ -60,6 +61,10 @@ void Network::arbitration() {
   arbitrations++;
 }
 
+void Network::arbiterCreated() {
+  arbiters++;
+}
+
 void Network::printStats() {
 
   if (BATCH_MODE) {
@@ -84,25 +89,30 @@ void Network::printStats() {
 }
 
 void Network::dumpEventCounts(std::ostream& os) {
-  os << xmlBegin("crossbar") << "\n"
-     << xmlNode("hd_in", xbarInHD) << "\n"
-     << xmlNode("hd_out", xbarOutHD) << "\n"
+  os << xmlBegin("crossbar")              << "\n"
+     << xmlNode("instances", NUM_TILES)   << "\n"
+     << xmlNode("hd_in", xbarInHD)        << "\n"
+     << xmlNode("hd_out", xbarOutHD)      << "\n"
      << xmlNode("total_dist", xbarDistHD) << "\n"
-     << xmlEnd("crossbar") << "\n"
+     << xmlEnd("crossbar")                << "\n"
 
-     << xmlBegin("multicast_network") << "\n"
-     << xmlNode("hd", mcastHD) << "\n"
-     << xmlEnd("multicast_network") << "\n"
+     << xmlBegin("multicast_network")     << "\n"
+     << xmlNode("instances", NUM_TILES)   << "\n"
+     << xmlNode("hd", mcastHD)            << "\n"
+     << xmlEnd("multicast_network")       << "\n"
 
-     << xmlBegin("global_network") << "\n"
-     << xmlNode("hd", globalHD) << "\n"
-     << xmlEnd("global_network") << "\n"
+     << xmlBegin("global_network")        << "\n"
+     << xmlNode("instances", 1)           << "\n" // is this right?
+     << xmlNode("hd", globalHD)           << "\n"
+     << xmlEnd("global_network")          << "\n"
 
-     << xmlBegin("arbiter") << "\n"
-     << xmlNode("active", arbitrations) << "\n"
-     << xmlEnd("arbiter") << "\n"
+     << xmlBegin("arbiter")               << "\n"
+     << xmlNode("instances", arbiters)    << "\n"
+     << xmlNode("active", arbitrations)   << "\n"
+     << xmlEnd("arbiter")                 << "\n"
 
-     << xmlBegin("router") << "\n"
+     << xmlBegin("router")                << "\n"
+     << xmlNode("instances", NUM_TILES)   << "\n"
      // TODO
-     << xmlEnd("router") << "\n";
+     << xmlEnd("router")                  << "\n";
 }

@@ -20,8 +20,11 @@ public:
 
   static void tagCheck(const ComponentID& core, bool hit);
   static void tagWrite(const MemoryAddr oldTag, const MemoryAddr newTag);
+  static void tagActivity();
+
   static void read(const ComponentID& core);
   static void write(const ComponentID& core);
+  static void dataActivity();
 
   static count_t numTagChecks();
   static count_t numHits();
@@ -34,7 +37,8 @@ public:
 
 private:
 
-  static count_t numHits_, numMisses_, numReads_, numWrites_, tagHD_;
+  static count_t numHits_, numMisses_, numReads_, numWrites_, tagHD_, tagWrites_;
+  static count_t tagsActive_, dataActive_;
 
 };
 

@@ -15,6 +15,7 @@
 
 #include "Storage.h"
 #include "systemc.h"
+#include "../Utility/Instrumentation.h"
 #include "../Utility/Instrumentation/FIFO.h"
 #include "../Utility/LoopCounter.h"
 
@@ -37,11 +38,10 @@ public:
     incrementReadFrom();
     this->readEvent_.notify();
 
-    // Hack: small FIFOs are probably pipeline registers, and need more
-    // information. It is awkward to measure the Hamming distance in a templated
-    // class.
-    if (ENERGY_TRACE)
+    if (ENERGY_TRACE) {
       Instrumentation::FIFO::pop(this->size());
+      activeCycle();
+    }
 
     return this->data_[i];
   }
@@ -52,11 +52,10 @@ public:
     this->data_[writePos.value()] = newData;
     this->writeEvent_.notify();
 
-    // Hack: small FIFOs are probably pipeline registers, and need more
-    // information. It is awkward to measure the Hamming distance in a templated
-    // class.
-    if (ENERGY_TRACE)
+    if (ENERGY_TRACE) {
       Instrumentation::FIFO::push(this->size());
+      activeCycle();
+    }
 
     incrementWriteTo();
   }
@@ -118,6 +117,14 @@ private:
     fillCount++;
   }
 
+  void activeCycle() {
+    cycle_count_t currentCycle = Instrumentation::currentCycle();
+    if (currentCycle != lastActivity) {
+      Instrumentation::FIFO::activeCycle(this->size());
+      lastActivity = currentCycle;
+    }
+  }
+
 //==============================//
 // Constructors and destructors
 //==============================//
@@ -129,6 +136,9 @@ public:
       readPos(size),
       writePos(size) {
     readPos = writePos = fillCount = 0;
+    lastActivity = -1;
+
+    Instrumentation::FIFO::createdFIFO(size);
   }
 
 //==============================//
@@ -141,6 +151,8 @@ private:
   uint16_t fillCount;
 
   sc_event readEvent_, writeEvent_;
+
+  cycle_count_t lastActivity;
 
 };
 
