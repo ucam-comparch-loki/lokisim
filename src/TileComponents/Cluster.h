@@ -108,6 +108,10 @@ private:
   // operation too.
   bool             inCache(const MemoryAddr addr, opcode_t operation);
 
+  // Return whether it is possible to check the cache tags at this time. It may
+  // not be possible if there is already the maximum number of packets queued up.
+  bool             canCheckTags() const;
+
   // Determine if there is room in the cache to fetch another instruction
   // packet, assuming that it is of maximum size. Also make sure there is not
   // another fetch already in progress.

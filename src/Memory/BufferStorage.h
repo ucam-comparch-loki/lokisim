@@ -105,6 +105,12 @@ public:
     cout << endl;
   }
 
+  // Low-level access methods - use with caution!
+  uint getReadPointer()           {return readPos.value();}
+  uint getWritePointer()          {return writePos.value();}
+  void setReadPointer(uint pos)   {readPos = pos;}
+  void setWritePointer(uint pos)  {writePos = pos;}
+
 private:
 
   void incrementReadFrom() {

@@ -16,6 +16,7 @@
 
 #include "../NewNetwork.h"
 #include "Crossbar.h"
+#include "MulticastNetwork.h"
 #include "NewCrossbar.h"
 #include "../../Communication/loki_bus.h"
 #include "../../Utility/LokiVector2D.h"
@@ -104,8 +105,8 @@ private:
     GLOBAL_NETWORK
   };
 
-  // TODO: turn coreToCore into a proper multicast network.
-  NewCrossbar coreToCore, coreToMemory, memoryToCore, coreToGlobal, globalToCore;
+  MulticastNetwork coreToCore;
+  NewCrossbar coreToMemory, memoryToCore, coreToGlobal, globalToCore;
 
   // Don't want the new-style crossbar for credits - we don't know in advance
   // when we will need to send one (and the crossbar transition isn't forced to

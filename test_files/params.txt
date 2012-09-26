@@ -1,4 +1,6 @@
 parameter CORES_PER_TILE 8
 parameter MEMS_PER_TILE 8
 parameter IPK_CACHE_SIZE 64
+parameter IPK_CACHE_TAGS 16
+parameter IPK_FIFO_SIZE 64
 

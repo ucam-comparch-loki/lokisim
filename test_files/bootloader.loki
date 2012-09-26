@@ -18,14 +18,15 @@
  lui                r23, 0x0100
  addu               r0,  r23, r0        -> 0
 
- lli                r24, (0,0,1)              # IPK cache of first core
+ lli                r24, (0,0,0)              # IPK cache of first core
  addu               r0,  r24, r0        -> 0
 
 # ori                r0,  r0, 0x01000000 -> 1  # Table update command data fetch channel
  addu               r0,  r23, r0        -> 1
 
 # ori                r0,  r0, <0,0,2>    -> 1  # First data channel of first core
- addu               r0,  r24, r24       -> 1
+ lli                r24, (0,0,2)
+ addu               r0,  r24, r0        -> 1
 
 # or                 r0,  ch0, r0              # Wait for memory configuration to complete
  or                 r0,  r2,  r0

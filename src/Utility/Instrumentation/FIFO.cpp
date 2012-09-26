@@ -6,6 +6,7 @@
  */
 
 #include "FIFO.h"
+#include "../Parameters.h"
 
 using namespace Instrumentation;
 
@@ -32,6 +33,9 @@ void FIFO::dumpEventCounts(std::ostream& os) {
 
   for (it = pushes.begin(); it != pushes.end(); it++) {
     size_t size = it->first;
+    if (size == IPK_FIFO_SIZE)
+      break;    // IPK FIFO has a different implementation, so separate it
+
     count_t numPushes = it->second;
     count_t numPops = pops[size];
 
@@ -43,4 +47,11 @@ void FIFO::dumpEventCounts(std::ostream& os) {
        << xmlNode("pop", numPops)               << "\n"
        << xmlEnd("fifo")                        << "\n";
   }
+
+  os << "<ipkfifo entries=\"" << IPK_FIFO_SIZE << "\">\n"
+     << xmlNode("instances", instances[IPK_FIFO_SIZE]) << "\n"
+     << xmlNode("active", activeCycles[IPK_FIFO_SIZE]) << "\n"
+     << xmlNode("push", pushes[IPK_FIFO_SIZE])         << "\n"
+     << xmlNode("pop", pops[IPK_FIFO_SIZE])            << "\n"
+     << xmlEnd("ipkfifo")                              << "\n";
 }

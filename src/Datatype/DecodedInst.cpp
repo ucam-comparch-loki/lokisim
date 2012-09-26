@@ -23,6 +23,8 @@ const uint8_t       DecodedInst::memoryOp()        const {return memoryOp_;}
 typedef DecodedInst::OperandSource OperandSource;
 const OperandSource DecodedInst::operand1Source()  const {return op1Source_;}
 const OperandSource DecodedInst::operand2Source()  const {return op2Source_;}
+const bool          DecodedInst::hasOperand1()     const {return op1Source_ != NONE;}
+const bool          DecodedInst::hasOperand2()     const {return op2Source_ != NONE;}
 
 const int32_t       DecodedInst::operand1()        const {return operand1_;}
 const int32_t       DecodedInst::operand2()        const {return operand2_;}
@@ -113,6 +115,10 @@ Instruction DecodedInst::toInstruction() const {
 const bool DecodedInst::sendsOnNetwork() const {
   return channelMapEntry() != Instruction::NO_CHANNEL &&
       !networkDestination().isNullMapping();
+}
+
+const bool DecodedInst::storesToRegister() const {
+  return destReg_ != 0;
 }
 
 const AddressedWord DecodedInst::toAddressedWord() const {

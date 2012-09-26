@@ -12,13 +12,14 @@
 #define INSTRUCTIONPACKETCACHE_H_
 
 #include "../../../Component.h"
+#include "InstructionStore.h"
 #include "../../../Memory/IPKCacheBase.h"
 #include "../../../Network/NetworkTypedefs.h"
 
 class FetchStage;
 class Word;
 
-class InstructionPacketCache : public Component {
+class InstructionPacketCache : public Component, public InstructionStore {
 
 //==============================//
 // Ports
@@ -53,45 +54,39 @@ public:
   void storeCode(const std::vector<Instruction>& instructions);
 
   // Read the next instruction from the cache.
-  Instruction read();
+  virtual const Instruction read();
 
   // Write a new instruction to the cache.
-  void write(const Instruction inst);
+  virtual void write(const Instruction inst);
 
-  // Return the index into the current packet of the current instruction.
-  MemoryAddr getInstAddress() const;
+  // Return the position within the cache that the instruction with the given
+  // tag is, or NOT_IN_CACHE if it is not there.
+  virtual CacheIndex lookup(MemoryAddr tag);
+
+  // Prepare to read a packet with the first instruction at the given location
+  // within the cache.
+  virtual void startNewPacket(CacheIndex position);
+
+  // Switch to the next instruction packet immediately, rather than waiting
+  // for an ".eop" marker.
+  virtual void cancelPacket();
 
   // Tells whether the cache considers itself empty. This may be because there
   // are no instructions in the cache, or because all instructions have been
   // executed.
-  bool isEmpty() const;
+  virtual bool isEmpty() const;
 
   // Tells whether there is enough room in the cache to fetch another
   // instruction packet. Has to assume that the packet will be of maximum
   // size.
   bool roomToFetch() const;
 
-  // See if an instruction packet is in the cache, using its address as a tag,
-  // and if so, prepare to execute it. Returns whether or not the packet is
-  // in the cache.
-  // There are many different ways of fetching instructions, so provide the
-  // operation too.
-  bool lookup(const MemoryAddr addr, opcode_t operation);
-
   // Jump to a new instruction specified by the offset.
-  void jump(const JumpOffset offset);
-
-  // Switch to the next instruction packet immediately, rather than waiting
-  // for an ".eop" marker.
-  void nextIPK();
-
-  // Tells whether the cache is in the middle of issuing an instruction packet
-  // to the pipeline.
-  bool packetInProgress() const;
+  virtual void jump(JumpOffset offset);
 
   // A handle to an event which is triggered whenever something is added to or
   // removed from the cache.
-  const sc_event& fillChangedEvent() const;
+  virtual const sc_event& fillChangedEvent() const;
 
 private:
 
@@ -123,6 +118,9 @@ private:
   // Event which is triggered whenever an instruction is added to or removed
   // from the cache.
   sc_event cacheFillChanged;
+
+  // Flag used to detect when we are beginning to receive a new instruction packet.
+  bool finishedPacketWrite;
 
 };
 

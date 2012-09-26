@@ -59,7 +59,6 @@ public:
           int numInputs,        // Number of inputs this network has
           int numOutputs,       // Number of outputs this network has
           HierarchyLevel level, // Position in the network hierarchy
-          Dimension size,       // The physical size of this network (width, height)
           int firstOutput=0,    // The first accessible channel/component/tile
           bool externalConnection=false); // Is there a port to send data on if it
                                           // isn't for any local component?);
@@ -103,8 +102,6 @@ protected:
   // isn't for any local component. This extra connection will typically
   // connect to the next level of the network hierarchy.
   const bool externalConnection;
-
-  const Dimension size;
 
 };
 

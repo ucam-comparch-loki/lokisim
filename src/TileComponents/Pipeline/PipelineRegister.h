@@ -62,8 +62,8 @@ public:
   bool hasData() const;
   const DecodedInst& read();
 
-  const sc_event& dataArrived() const;
-  const sc_event& dataLeft() const;
+  const sc_event& dataAdded() const;
+  const sc_event& dataRemoved() const;
 
   // Discard a single instruction from the register, if there is one.
   // Returns whether an instruction was discarded.

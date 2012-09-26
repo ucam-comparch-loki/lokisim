@@ -39,9 +39,9 @@ void PipelineStage::getNextInstruction() {
   // Wait for both pipeline registers to be ready, and for the beginning of
   // a new clock cycle.
   if(!prevReady)
-    next_trigger(prev->dataArrived());
+    next_trigger(prev->dataAdded());
   else if(!nextReady)
-    next_trigger(next->dataLeft());
+    next_trigger(next->dataRemoved());
   else if(!clock.posedge() || isStalled())
     next_trigger(clock.posedge_event());
   else {
@@ -77,13 +77,13 @@ bool PipelineStage::canSendInstruction() const {
 
 const sc_event& PipelineStage::canReceiveEvent() const {
   assert(prev != NULL);
-  return prev->dataArrived();
+  return prev->dataAdded();
 }
 
 const sc_event& PipelineStage::canSendEvent() const {
   if(next == NULL) cout << this->name() << endl;
   assert(next != NULL);
-  return next->dataLeft();
+  return next->dataRemoved();
 }
 
 bool PipelineStage::discardNextInst() {

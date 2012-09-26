@@ -9,7 +9,6 @@
 #include "FlowControl/FlowControlIn.h"
 #include "FlowControl/FlowControlOut.h"
 #include "Topologies/Crossbar.h"
-#include "Topologies/MulticastCrossbar.h"
 #include "Topologies/LocalNetwork.h"
 #include "Topologies/Mesh.h"
 
@@ -99,8 +98,7 @@ void NetworkHierarchy::makeGlobalNetwork() {
                                        0,
                                        NUM_TILE_ROWS,
                                        NUM_TILE_COLUMNS,
-                                       Network::TILE,   // This network connects tiles
-                                       Dimension(NUM_TILES, NUM_TILES));
+                                       Network::TILE);  // This network connects tiles
                                
   globalDataNetwork->clock(clock);
 
@@ -120,8 +118,7 @@ void NetworkHierarchy::makeGlobalNetwork() {
                                          0,
                                          NUM_TILE_ROWS,
                                          NUM_TILE_COLUMNS,
-                                         Network::TILE,   // This network connects tiles
-                                         Dimension(NUM_TILES, NUM_TILES));
+                                         Network::TILE);  // This network connects tiles
 
   globalCreditNetwork->clock(clock);
 

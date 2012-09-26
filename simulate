@@ -79,7 +79,8 @@ else:
     command = simulator + " "
     
     if trace:
-        command += "-coretrace " + program + ".trace "
+        #command += "-coretrace " + program + ".trace "
+        command += "trace "
     if energy:
         command += "-energytrace " + program + ".xml "
         

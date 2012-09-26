@@ -27,6 +27,7 @@ void     Cluster::storeData(const std::vector<Word>& data, MemoryAddr location) 
 }
 
 const MemoryAddr Cluster::getInstIndex() const   {return fetch.getInstIndex();}
+bool     Cluster::canCheckTags() const           {return fetch.canCheckTags();}
 bool     Cluster::readyToFetch() const           {return fetch.roomToFetch();}
 void     Cluster::jump(const JumpOffset offset)  {fetch.jump(offset);}
 

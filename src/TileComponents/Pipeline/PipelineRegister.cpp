@@ -37,17 +37,19 @@ const DecodedInst& PipelineRegister::read() {
   return data;
 }
 
-const sc_event& PipelineRegister::dataArrived() const {
+const sc_event& PipelineRegister::dataAdded() const {
 //  return buffer.writeEvent();
   return writeEvent;
 }
 
-const sc_event& PipelineRegister::dataLeft() const {
+const sc_event& PipelineRegister::dataRemoved() const {
 //  return buffer.readEvent();
   return readEvent;
 }
 
 bool PipelineRegister::discard() {
+  readEvent.notify();
+
 //  if(buffer.empty())
   if (!valid)
     return false;

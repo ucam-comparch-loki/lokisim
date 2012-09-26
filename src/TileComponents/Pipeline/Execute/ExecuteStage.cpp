@@ -22,24 +22,25 @@ void ExecuteStage::writeWord(MemoryAddr addr, Word data) const {parent()->writeW
 void ExecuteStage::writeByte(MemoryAddr addr, Word data) const {parent()->writeByte(addr, data);}
 
 void ExecuteStage::execute() {
-  if(currentInst.hasResult())
+  if (currentInst.hasResult())
     sendOutput();             // If there is already a result, don't do anything
   else
     newInput(currentInst);
 
   forwardedResult = currentInst.result();
 
-  instructionCompleted();
+  if (!blocked)
+    instructionCompleted();
 }
 
 void ExecuteStage::updateReady() {
   bool ready = !isStalled();
 
   // Write our current stall status.
-  if(ready != readyOut.read())
+  if (ready != readyOut.read())
     readyOut.write(ready);
 
-  if(DEBUG && isStalled() && readyOut.read())
+  if (DEBUG && isStalled() && readyOut.read())
     cout << this->name() << " stalled." << endl;
 }
 
@@ -68,7 +69,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         << " on " << operation.operand1() << " and " << operation.operand2() << endl;
 
     // Special cases for any instructions which don't use the ALU.
-    switch(operation.opcode()) {
+    switch (operation.opcode()) {
       case InstructionMap::OP_SETCHMAP:
       case InstructionMap::OP_SETCHMAPI:
         // FIXME: should we wait for all credits to arrive before writing?
@@ -111,12 +112,12 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         assert(false);
 
       default:
-        if(InstructionMap::isALUOperation(operation.opcode()))
+        if (InstructionMap::isALUOperation(operation.opcode()))
           alu.execute(operation);
         break;
     } // end switch
 
-    if(success)
+    if (success)
       sendOutput();
 
   } // end if will execute
@@ -130,20 +131,21 @@ void ExecuteStage::newInput(DecodedInst& operation) {
   // PAYLOAD_ONLY means this is the second half of a store operation - we don't
   // want to instrument it twice.
   if (operation.isALUOperation() &&
-      operation.memoryOp() != MemoryRequest::PAYLOAD_ONLY)
+      operation.memoryOp() != MemoryRequest::PAYLOAD_ONLY &&
+      !blocked)
     Instrumentation::executed(id, operation, willExecute);
 
   previousInstExecuted = willExecute;
 }
 
 void ExecuteStage::sendOutput() {
-  if(currentInst.sendsOnNetwork()) {
+  if (currentInst.sendsOnNetwork()) {
     // Memory operations may be sent to different memory banks depending on the
     // address accessed.
     // In practice, this would be performed by a separate, small functional
     // unit in parallel with the main ALU, so that there is time left to request
     // a path to memory.
-    if(currentInst.isMemoryOperation())
+    if (currentInst.isMemoryOperation())
       adjustNetworkAddress(currentInst);
 
     // Send the data to the output buffer - it will arrive immediately so that
@@ -156,11 +158,25 @@ void ExecuteStage::sendOutput() {
   outputInstruction(currentInst);
 }
 
+bool ExecuteStage::canCheckTags() const {
+  return parent()->canCheckTags();
+}
+
 bool ExecuteStage::fetch(DecodedInst& inst) {
   MemoryAddr fetchAddress;
 
+  // If we already have the maximum number of packets queued up, wait until
+  // one of them finishes arriving.
+  if (!canCheckTags()) {
+    blocked = true;
+    next_trigger(clock.posedge_event());
+    return false;
+  }
+  else
+    blocked = false;
+
   // Compute the address to fetch from, depending on which operation this is.
-  switch(inst.opcode()) {
+  switch (inst.opcode()) {
     case InstructionMap::OP_FETCH:
     case InstructionMap::OP_FETCHR:
     case InstructionMap::OP_FETCHPST:
@@ -181,7 +197,7 @@ bool ExecuteStage::fetch(DecodedInst& inst) {
 
   // Return whether the fetch request should be sent (it should be sent if the
   // tag is not in the cache).
-  if(parent()->inCache(fetchAddress, inst.opcode())) {
+  if (parent()->inCache(fetchAddress, inst.opcode())) {
     // Packet is already in the cache: don't fetch.
     return false;
   }

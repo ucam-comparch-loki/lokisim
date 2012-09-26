@@ -172,11 +172,20 @@ void Operations::dumpEventCounts(std::ostream& os) {
                      + executedOps[InstructionMap::OP_ADDUI]
                      + executedOps[InstructionMap::OP_ADDUI_P];
 
-  // Record multiplier activity separately from ALU activity.
+  // Record multiplier activity separately from ALU activity, and remove non-ALU
+  // operations from the total count.
   count_t totalOps   = executedOps.numEvents() + executedFns.numEvents()
                      - executedOps[InstructionMap::OP_MULHW]
                      - executedOps[InstructionMap::OP_MULHWU]
-                     - executedOps[InstructionMap::OP_MULLW];
+                     - executedOps[InstructionMap::OP_MULLW]
+                     - executedOps[InstructionMap::OP_TSTCH]
+                     - executedOps[InstructionMap::OP_TSTCHI]
+                     - executedOps[InstructionMap::OP_TSTCH_P]
+                     - executedOps[InstructionMap::OP_TSTCHI_P]
+                     - executedOps[InstructionMap::OP_SELCH]
+                     - executedOps[InstructionMap::OP_IBJMP]
+                     - executedOps[InstructionMap::OP_RMTEXECUTE]
+                     - executedOps[InstructionMap::OP_RMTNXIPK];
 
   os << xmlNode("hd_in1", hdIn1)            << "\n"
      << xmlNode("hd_in2", hdIn2)            << "\n"

@@ -243,14 +243,14 @@ CreditInput&  LocalNetwork::externalCreditIn()   const {return creditsIn[creditI
 CreditOutput& LocalNetwork::externalCreditOut()  const {return creditsOut[creditOutputs-1];}
 
 LocalNetwork::LocalNetwork(const sc_module_name& name, ComponentID tile) :
-    NewNetwork(name, tile, OUTPUT_PORTS_PER_TILE, INPUT_PORTS_PER_TILE, NewNetwork::COMPONENT, Dimension(1.0, 0.03), 0, true),
-    coreToCore("core_to_core", tile, CORES_PER_TILE, CORES_PER_TILE*2, 2, level, size, CORE_INPUT_CHANNELS),
-    coreToMemory("core_to_mem", tile, CORES_PER_TILE, MEMS_PER_TILE, MEMORY_INPUT_PORTS, level, size, 1),
-    memoryToCore("mem_to_core", tile, MEMS_PER_TILE, CORES_PER_TILE*2, 2, level, size, CORE_INPUT_CHANNELS),
-    coreToGlobal("core_to_global", tile, CORES_PER_TILE, 1, 1, level, size, 1),
-    globalToCore("global_to_core", tile, 1, CORES_PER_TILE, 1, level, size, CORE_INPUT_CHANNELS),
-    c2gCredits("c2g_credits", tile, CORES_PER_TILE, 1, 1, (Network::HierarchyLevel)level, size),
-    g2cCredits("g2c_credits", tile, 1, CORES_PER_TILE, 1, (Network::HierarchyLevel)level, size) {
+    NewNetwork(name, tile, OUTPUT_PORTS_PER_TILE, INPUT_PORTS_PER_TILE, NewNetwork::COMPONENT, 0, true),
+    coreToCore("core_to_core", tile, CORES_PER_TILE, CORES_PER_TILE*2, 2, CORE_INPUT_CHANNELS),
+    coreToMemory("core_to_mem", tile, CORES_PER_TILE, MEMS_PER_TILE, MEMORY_INPUT_PORTS, level, 1),
+    memoryToCore("mem_to_core", tile, MEMS_PER_TILE, CORES_PER_TILE*2, 2, level, CORE_INPUT_CHANNELS),
+    coreToGlobal("core_to_global", tile, CORES_PER_TILE, 1, 1, level, 1),
+    globalToCore("global_to_core", tile, 1, CORES_PER_TILE, 1, level, CORE_INPUT_CHANNELS),
+    c2gCredits("c2g_credits", tile, CORES_PER_TILE, 1, 1, (Network::HierarchyLevel)level),
+    g2cCredits("g2c_credits", tile, 1, CORES_PER_TILE, 1, (Network::HierarchyLevel)level) {
 
   creditsIn.init(creditInputs);
   creditsOut.init(creditOutputs);

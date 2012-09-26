@@ -50,8 +50,8 @@ void Bus::busLoop() {
   } // end switch
 }
 
-Bus::Bus(const sc_module_name& name, const ComponentID& ID, int numOutputPorts, HierarchyLevel level, Dimension size, int firstOutput) :
-    Network(name, ID, 1, numOutputPorts, level, size, firstOutput)
+Bus::Bus(const sc_module_name& name, const ComponentID& ID, int numOutputPorts, HierarchyLevel level, int firstOutput) :
+    Network(name, ID, 1, numOutputPorts, level, firstOutput)
 {
   lastWriteTime = -1;
 

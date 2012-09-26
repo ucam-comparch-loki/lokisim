@@ -38,6 +38,9 @@ typedef uint32_t MemoryAddr;
 // An offset to jump by in the instruction packet cache.
 typedef int16_t  JumpOffset;
 
+typedef uint CacheIndex;
+typedef uint TagIndex;
+
 // The topology of the network in each tile.
 class LocalNetwork;
 typedef LocalNetwork local_net_t;

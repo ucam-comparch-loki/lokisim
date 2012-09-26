@@ -48,7 +48,7 @@ void InputCrossbar::updateFlowControl(ChannelIndex input) {
 InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
     Component(name, ID),
     firstInput(ChannelID(id,0)),
-    creditNet("credit", ID, numOutputs, 1, 1, Network::NONE, Dimension(1.0/CORES_PER_TILE, 0.05)),
+    creditNet("credit", ID, numOutputs, 1, 1, Network::NONE),
     dataSource(numOutputs) {
 
   creditNet.initialise();

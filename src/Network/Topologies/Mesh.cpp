@@ -65,9 +65,8 @@ Mesh::Mesh(const sc_module_name& name,
            ComponentID ID,
            int rows,
            int columns,
-           HierarchyLevel level,
-           Dimension size) :
-    Network(name, ID, rows*columns, rows*columns, level, size),
+           HierarchyLevel level) :
+    Network(name, ID, rows*columns, rows*columns, level),
     routers(columns, std::vector<Router*>(rows)),
     numColumns(columns),
     numRows(rows) {

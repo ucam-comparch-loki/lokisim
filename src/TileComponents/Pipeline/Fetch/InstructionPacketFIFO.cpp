@@ -16,8 +16,39 @@ const Instruction InstructionPacketFIFO::read() {
 }
 
 void InstructionPacketFIFO::write(const Instruction inst) {
+  CacheIndex writePos = fifo.getWritePointer();
+
   fifo.write(inst);
   fifoFillChanged.notify();
+
+  if (finishedPacketWrite) {
+    InstLocation location;
+    location.component = IPKFIFO;
+    location.index = writePos;
+    parent()->newPacketArriving(location);
+  }
+  finishedPacketWrite = inst.endOfPacket();
+
+  if (finishedPacketWrite)
+    parent()->packetFinishedArriving();
+}
+
+CacheIndex InstructionPacketFIFO::lookup(MemoryAddr tag) {
+  // TODO
+  return NOT_IN_CACHE;
+}
+
+void InstructionPacketFIFO::startNewPacket(CacheIndex position) {
+  fifo.setReadPointer(position);
+}
+
+void InstructionPacketFIFO::cancelPacket() {
+  // TODO
+  // readPointer = writePointer?
+}
+
+void InstructionPacketFIFO::jump(JumpOffset amount) {
+  fifo.setReadPointer(fifo.getReadPointer() + amount);
 }
 
 bool InstructionPacketFIFO::isEmpty() const {
@@ -52,6 +83,9 @@ FetchStage* InstructionPacketFIFO::parent() const {
 InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
     Component(name),
     fifo(IPK_FIFO_SIZE, std::string(name)) {
+
+  // Ensure that the first instruction to arrive gets queued up to execute.
+  finishedPacketWrite = true;
 
   SC_METHOD(receivedInst);
   sensitive << instructionIn;

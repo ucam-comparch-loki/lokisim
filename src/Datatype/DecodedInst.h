@@ -51,6 +51,8 @@ public:
 
   const OperandSource operand1Source() const;
   const OperandSource operand2Source() const;
+  const bool hasOperand1() const;
+  const bool hasOperand2() const;
 
   const int32_t operand1() const;
   const int32_t operand2() const;
@@ -99,6 +101,7 @@ public:
   Instruction toInstruction() const;
 
   const bool sendsOnNetwork() const;
+  const bool storesToRegister() const;
   const AddressedWord toAddressedWord() const;
 
   // Invalidate this instruction in such a way that it will never be able to

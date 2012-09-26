@@ -519,6 +519,9 @@ int32_t Decoder::readRegs(PortIndex port, RegisterIndex index, bool indirect) {
 }
 
 void Decoder::waitUntilArrival(ChannelIndex channel) {
+  if (instructionCancelled)
+    return;
+
   // Test the channel to see if the data is already there.
   if (!parent()->testChannel(channel)) {
     stall(true, Instrumentation::Stalls::STALL_DATA);

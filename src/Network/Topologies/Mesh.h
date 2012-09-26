@@ -44,8 +44,7 @@ public:
        ComponentID ID,
        int rows,
        int columns,
-       HierarchyLevel level,
-       Dimension size);
+       HierarchyLevel level);
 
   virtual ~Mesh();
 

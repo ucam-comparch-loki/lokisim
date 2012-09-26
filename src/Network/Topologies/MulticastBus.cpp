@@ -79,8 +79,8 @@ PortIndex MulticastBus::getDestinations(const ChannelID& address) const {
 }
 
 MulticastBus::MulticastBus(const sc_module_name& name, const ComponentID& ID, int numOutputs,
-                           HierarchyLevel level, Dimension size, int firstOutput) :
-    Bus(name, ID, numOutputs, level, size, firstOutput) {
+                           HierarchyLevel level, int firstOutput) :
+    Bus(name, ID, numOutputs, level, firstOutput) {
 
 //  creditsIn      = new CreditInput[numOutputs];
 //  creditsOut     = new CreditOutput[1];

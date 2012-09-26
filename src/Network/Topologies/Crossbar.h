@@ -54,7 +54,7 @@ public:
   // externalConnection  = flag telling whether there is an extra input/output
   //                       connected to the next level of network hierarchy
   Crossbar(sc_module_name name, const ComponentID& ID, int inputs, int outputs,
-           int outputsPerComponent, HierarchyLevel level, Dimension size,
+           int outputsPerComponent, HierarchyLevel level,
            bool externalConnection = false);
   virtual ~Crossbar();
 

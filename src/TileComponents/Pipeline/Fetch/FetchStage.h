@@ -19,6 +19,28 @@
 
 class FetchStage : public PipelineStage {
 
+private:
+
+  // A collection of information about an instruction packet and how it should
+  // be executed.
+  typedef struct {
+    MemoryAddr memAddr;     // Memory address of this packet (mainly for debug)
+    InstLocation location;  // Location of first instruction of the packet
+    bool       persistent;  // Persistent packets repeat until NXIPK is received
+    bool       execute;     // Should these instructions be executed immediately?
+    bool       inCache;     // Is the packet completely in the cache?
+
+    void reset() {
+      memAddr = DEFAULT_TAG; location.index = NOT_IN_CACHE; inCache = false; execute = true; location.component = UNKNOWN; persistent = false;
+    }
+    bool arriving() const {
+      return active() && !inCache && (location.index != NOT_IN_CACHE);
+    }
+    bool active() const {
+      return memAddr != DEFAULT_TAG;
+    }
+  } PacketInfo;
+
 //==============================//
 // Ports
 //==============================//
@@ -59,6 +81,10 @@ public:
   // Return the memory address of the last instruction sent.
   MemoryAddr    getInstIndex() const;
 
+  // Tell whether it is possible to check cache tags at this time. It may not
+  // be possible if there is already the maximum number of packets queued up.
+  bool          canCheckTags() const;
+
   // Tells whether the packet from location a is currently in the cache.
   // There are many different ways of fetching instructions, so provide the
   // operation too.
@@ -82,12 +108,32 @@ private:
   // Recompute whether this pipeline stage is stalled.
   virtual void  updateReady();
 
-  // Determine whether to take an instruction from the FIFO or cache.
-  void          calculateSelect();
-
   // Move to the next instruction packet on demand, rather than when reaching
   // a ".eop" marker.
   void          nextIPK();
+
+  // Signal to this pipeline stage that a new packet has started to arrive, and
+  // tell where it is. Returns the memory address (tag) of the packet.
+  MemoryAddr    newPacketArriving(const InstLocation& location);
+
+  // Signal that a complete instruction packet has now arrived over the network.
+  // This may allow a new fetch command to be sent.
+  void          packetFinishedArriving();
+
+  void          reachedEndOfPacket();
+  void          switchToPendingPacket();
+
+  // Return the first empty slot in the packet queue.
+  PacketInfo&   nextAvailablePacket();
+
+  // Returns whether all instruction stores are empty.
+  bool          waitingForInstructions();
+
+  // Find where in the FIFO or cache the given tag is. If it isn't anywhere,
+  // returns InstLocation(UNKNOWN, NOT_IN_CACHE).
+  const InstLocation lookup(const MemoryAddr addr);
+
+  InstructionStore& currentInstructionSource();
 
   // Override PipelineStage's implementation.
   virtual void  getNextInstruction();
@@ -110,11 +156,21 @@ private:
 
 private:
 
+  // Information on the packet currently being executed, and optionally, the
+  // packet which is due to execute next.
+  // Do we want a single pending packet, or a queue of them?
+  PacketInfo currentPacket, pendingPacket;
+
+  // Various flags which may mean we aren't executing instructions sequentially.
+  bool jumpedThisCycle, finishedPacketRead;
+
   // If this pipeline stage is stalled, we assume the whole pipeline is stalled.
   bool stalled;
 
-  // Tells whether the last operation read from the cache or not.
-  bool usingCache;
+  // Keep track of the current packet and instruction addresses so we can execute
+  // programs through the FIFO (where there are no tags). In practice, this
+  // would be handled in the compiler, but we don't have this functionality yet.
+  MemoryAddr previousFetch, currentAddr;
 
 };
 

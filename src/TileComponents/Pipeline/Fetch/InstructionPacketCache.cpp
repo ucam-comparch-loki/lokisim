@@ -18,55 +18,65 @@ void InstructionPacketCache::storeCode(const std::vector<Instruction>& instructi
   assert(instructions.size() > 0);
   assert(instructions.size() <= cache->size());
 
-  cache->storeCode(instructions);
+  CacheIndex writePos = cache->storeCode(instructions);
+
+  if (finishedPacketWrite) {
+    InstLocation location;
+    location.component = IPKCACHE;
+    location.index = writePos;
+    parent()->newPacketArriving(location);
+  }
+  finishedPacketWrite = instructions.back().endOfPacket();
+
+  if (finishedPacketWrite)
+    parent()->packetFinishedArriving();
 
   // SystemC segfaults if we notify an event before simulation has started.
   if (sc_core::sc_start_of_simulation_invoked())
     cacheFillChanged.notify();
 }
 
-Instruction InstructionPacketCache::read() {
+const Instruction InstructionPacketCache::read() {
   if (ENERGY_TRACE)
     Instrumentation::IPKCache::read(id);
 
   Instruction inst = cache->read();
   cacheFillChanged.notify();
 
-  // If we the cache is now empty, but we are still waiting for instructions,
-  // record this.
-  if (cache->stalled())
-    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS);
-
   return inst;
 }
 
 void InstructionPacketCache::write(const Instruction inst) {
-  // If the cache was blocked, it isn't any more.
-  if (cache->stalled())
-    Instrumentation::Stalls::unstall(id);
-
   if (ENERGY_TRACE)
     Instrumentation::IPKCache::write(id);
   if (DEBUG)
     cout << this->name() << " received Instruction: " << inst << endl;
 
-  cache->write(inst);
+  CacheIndex writePos = cache->write(inst);
   cacheFillChanged.notify();
+
+  // Do some bookkeeping if we have finished an instruction packet or are
+  // starting a new one.
+  if (finishedPacketWrite) {
+    InstLocation location;
+    location.component = IPKCACHE;
+    location.index = writePos;
+    MemoryAddr tag = parent()->newPacketArriving(location);
+    cache->setTag(tag);
+  }
+
+  finishedPacketWrite = inst.endOfPacket();
+  if (finishedPacketWrite)
+    parent()->packetFinishedArriving();
 }
 
-/* See if an instruction packet is in the cache, and if so, prepare to
- * execute it. */
-bool InstructionPacketCache::lookup(const MemoryAddr addr, opcode_t operation) {
-  if (DEBUG)
-    cout << this->name() << " looking up tag " << addr << ": ";
-
+CacheIndex InstructionPacketCache::lookup(MemoryAddr tag) {
   // Shouldn't check tags more than once in a clock cycle.
   assert(timeLastChecked != Instrumentation::currentCycle());
   timeLastChecked = Instrumentation::currentCycle();
 
-  bool inCache = cache->checkTags(addr, operation);
-  if (DEBUG)
-    cout << (inCache ? "" : "not ") << "in cache" << endl;
+  CacheIndex position = cache->lookup(tag);
+  bool inCache = (position != NOT_IN_CACHE);
 
   // It is possible that looking up a tag will result in us immediately jumping
   // to a new instruction, which would change how full the cache is.
@@ -75,24 +85,21 @@ bool InstructionPacketCache::lookup(const MemoryAddr addr, opcode_t operation) {
   else
     cacheMissEvent.notify();
 
-  if (ENERGY_TRACE)
-    Instrumentation::IPKCache::tagCheck(id, inCache);
+  return position;
+}
 
-  return inCache;
+void InstructionPacketCache::startNewPacket(CacheIndex position) {
+  cache->setReadPointer(position);
 }
 
 /* Jump to a new instruction specified by the offset amount. */
-void InstructionPacketCache::jump(const JumpOffset offset) {
+void InstructionPacketCache::jump(JumpOffset offset) {
   cache->jump(offset/BYTES_PER_WORD);
   cacheFillChanged.notify();
 }
 
-void InstructionPacketCache::nextIPK() {
+void InstructionPacketCache::cancelPacket() {
   cache->cancelPacket();
-}
-
-bool InstructionPacketCache::packetInProgress() const {
-  return cache->packetInProgress();
 }
 
 const sc_event& InstructionPacketCache::fillChangedEvent() const {
@@ -109,10 +116,6 @@ void InstructionPacketCache::receivedInst() {
  * packet. */
 void InstructionPacketCache::sendCredit() {
   flowControl.write(!cache->full());
-}
-
-MemoryAddr InstructionPacketCache::getInstAddress() const {
-  return cache->getInstLocation();
 }
 
 /* Returns whether or not the cache is empty. */
@@ -136,6 +139,9 @@ InstructionPacketCache::InstructionPacketCache(sc_module_name name, const Compon
 //  cache = new IPKCacheDirectMapped(IPK_CACHE_SIZE, string(this->name()));
 
   timeLastChecked = -1;
+
+  // As soon as the first instruction arrives, queue it up to execute.
+  finishedPacketWrite = true;
 
   SC_METHOD(receivedInst);
   sensitive << instructionIn;

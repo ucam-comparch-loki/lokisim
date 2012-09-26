@@ -70,6 +70,10 @@ private:
   virtual void newInput(DecodedInst& operation);
   void sendOutput();
 
+  // Returns whether is is possible to do a cache lookup at this time. It may
+  // not be possible if there is already the maximum number of fetches queued up.
+  bool canCheckTags() const;
+
   // Returns whether a fetch request should be sent (and stores the request in
   // operation's "result" field, if appropriate).
   bool fetch(DecodedInst& operation);
@@ -120,6 +124,10 @@ private:
 
   // Don't use data forwarding if the previous instruction didn't execute.
   bool previousInstExecuted;
+
+  // Don't read a new instruction from the pipeline register if we are blocked;
+  // just continue executing the same instruction.
+  bool blocked;
 
 };
 

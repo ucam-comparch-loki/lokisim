@@ -60,8 +60,8 @@ parameter NUM_TILE_COLUMNS           = 1;
 parameter NUM_ADDRESSABLE_REGISTERS  = 32;
 parameter NUM_PHYSICAL_REGISTERS     = 64;
 parameter IPK_FIFO_SIZE              = 24;  // Make smaller once SIMD is sorted
-parameter IPK_CACHE_SIZE             = 64;//1024;
-parameter IPK_CACHE_TAGS             = 64;
+parameter IPK_CACHE_SIZE             = 0;   // Set in params.txt
+parameter IPK_CACHE_TAGS             = 0;   // Set in params.txt
 
 parameter CHANNEL_MAP_SIZE           = 16;
 

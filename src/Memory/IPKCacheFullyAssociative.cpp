@@ -50,8 +50,6 @@ void IPKCacheFullyAssociative::updateReadPointer() {
     jumpAmount = 0;
     updateFillCount();
   }
-  else if (finishedPacketRead)
-    switchToPendingPacket();
   else
     incrementReadPos();
 }

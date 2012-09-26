@@ -53,7 +53,6 @@ public:
               int outputs,
               int outputsPerComponent,
               HierarchyLevel level,
-              Dimension size,
               int buffersPerComponent);
   virtual ~NewCrossbar();
 
@@ -63,8 +62,8 @@ public:
 
 protected:
 
-  void inputChanged(const PortIndex port);
-  void outputChanged(const PortIndex port);
+  virtual void inputChanged(const PortIndex port);
+  virtual void outputChanged(const PortIndex port);
 
 private:
 

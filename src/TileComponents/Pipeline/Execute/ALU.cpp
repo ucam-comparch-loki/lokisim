@@ -227,6 +227,25 @@ void ALU::systemCall(int code) const {
       break;
     }
 
+    case 0x20: /* start energy log */
+      ENERGY_TRACE = 1;
+      break;
+    case 0x21: /* end energy log */
+      ENERGY_TRACE = 0;
+      break;
+    case 0x22: /* start verbose debugging */
+      DEBUG = 1;
+      break;
+    case 0x23: /* end verbose debugging */
+      DEBUG = 0;
+      break;
+    case 0x24: /* start instruction trace */
+      CORE_TRACE = 1;
+      break;
+    case 0x25: /* end instruction trace */
+      CORE_TRACE = 0;
+      break;
+
     default:
       cerr << "Warning: unrecognised system call opcode: " << code << endl;
       assert(false);

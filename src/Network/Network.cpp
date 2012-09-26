@@ -56,15 +56,13 @@ Network::Network(const sc_module_name& name,
     int numInputs,        // Number of inputs this network has
     int numOutputs,       // Number of outputs this network has
     HierarchyLevel level, // Position in the network hierarchy
-    Dimension size,       // The physical size of this network (width, height)
     int firstOutput,      // The first accessible channel/component/tile
     bool externalConnection) : // Is there a port to send data on if it
                                // isn't for any local component?
     Component(name, ID),
     firstOutput(firstOutput),
     level(level),
-    externalConnection(externalConnection),
-    size(size) {
+    externalConnection(externalConnection) {
 
   unsigned int totalInputs  = externalConnection ? (numInputs+1) : numInputs;
   unsigned int totalOutputs = externalConnection ? (numOutputs+1) : numOutputs;
