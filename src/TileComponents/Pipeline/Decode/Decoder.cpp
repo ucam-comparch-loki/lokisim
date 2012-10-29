@@ -36,7 +36,8 @@ void Decoder::initialise(const DecodedInst& input) {
   }
 
   // Instrumentation stuff.
-  Instrumentation::decoded(id, current);
+  if (ENERGY_TRACE)
+    Instrumentation::decoded(id, current);
   CoreTrace::decodeInstruction(id.getPosition(), current.location(), current.endOfIPK());
 }
 
@@ -50,7 +51,7 @@ void Decoder::collectOperands() {
     instructionCancelled = false;
     continueToExecute = false;
     haveAllOperands = true;
-    stall(false);
+    stall(false, Instrumentation::Stalls::STALL_DATA);
     return;
   }
 
@@ -224,7 +225,7 @@ void Decoder::decode() {
 
 void Decoder::instructionFinished() {
   // If the instruction will not reach the ALU, record that it executed here.
-  if (!current.isALUOperation())
+  if (/*ENERGY_TRACE &&*/ !current.isALUOperation())
     Instrumentation::executed(id, current, execute);
 
   // Do ibjmps here, once we know whether or not this instruction will execute.
@@ -291,9 +292,11 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   // irreversible channel read.
   bool execute = shouldExecute(input);
 
-  Instrumentation::decoded(id, input);
+  if (ENERGY_TRACE)
+    Instrumentation::decoded(id, input);
   CoreTrace::decodeInstruction(id.getPosition(), input.location(), input.endOfIPK());
-  if (!input.isALUOperation()) Instrumentation::executed(id, input, execute);
+  if (/*ENERGY_TRACE &&*/ !input.isALUOperation())
+    Instrumentation::executed(id, input, execute);
 
   // If the instruction may perform irreversible reads from a channel-end,
   // and we know it won't execute, stop it here.
@@ -362,7 +365,8 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     case InstructionMap::OP_TSTCHI_P:
       output.result(parent()->testChannel(output.immediate())); break;
 
-    case InstructionMap::OP_SELCH: output.result(parent()->selectChannel()); break;
+    case InstructionMap::OP_SELCH:
+      output.result(parent()->selectChannel()); break;
 
     case InstructionMap::OP_IBJMP: {
       JumpOffset jump = (JumpOffset)output.immediate();
@@ -469,8 +473,19 @@ void Decoder::waitForOperands(const DecodedInst& dec) {
   // Wait until all data has arrived from the network.
   if (InstructionMap::hasDestReg(dec.opcode()) && Registers::isChannelEnd(dec.destination()))
     waitUntilArrival(Registers::toChannelID(dec.destination()));
-  if (InstructionMap::hasSrcReg1(dec.opcode()) && Registers::isChannelEnd(dec.sourceReg1()))
-    waitUntilArrival(Registers::toChannelID(dec.sourceReg1()));
+  if (InstructionMap::hasSrcReg1(dec.opcode())) {
+    if (Registers::isChannelEnd(dec.sourceReg1()))
+      waitUntilArrival(Registers::toChannelID(dec.sourceReg1()));
+    if (!dec.isALUOperation() && !dec.isMemoryOperation() && (dec.sourceReg1() == previous.destination())) {
+      Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_FORWARDING);
+      // HACK! May take multiple cycles. FIXME
+      // Add an extra 0.1 cycles to allow ensure that the result is ready for forwarding.
+      // Would ideally like to use execute.executedEvent(), but then also need
+      // to check for whether the instruction has already executed.
+      wait(1.1, sc_core::SC_NS);
+      Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_FORWARDING);
+    }
+  }
   if (InstructionMap::hasSrcReg2(dec.opcode()) && Registers::isChannelEnd(dec.sourceReg2()))
     waitUntilArrival(Registers::toChannelID(dec.sourceReg2()));
 
@@ -532,7 +547,7 @@ void Decoder::waitUntilArrival(ChannelIndex channel) {
     // Wait until something arrives.
     wait(parent()->receivedDataEvent(channel) | cancelEvent);
 
-    stall(false);
+    stall(false, Instrumentation::Stalls::STALL_DATA);
   }
 }
 
@@ -575,7 +590,7 @@ void Decoder::waitForOperands2(const DecodedInst& inst) {
   // If the decoder blocked waiting for any input, unblock it now that all data
   // have arrived.
   if (blocked)
-    stall(false);
+    stall(false, Instrumentation::Stalls::STALL_DATA);
 
   // FIXME: there is currently a problem if we are indirectly reading from a
   // channel end, and the instruction is aborted. This method doesn't wait for
@@ -684,7 +699,7 @@ void Decoder::stall(bool stall, Instrumentation::Stalls::StallReason reason) {
   if (stall)
     Instrumentation::Stalls::stall(id, reason);
   else
-    Instrumentation::Stalls::unstall(id);
+    Instrumentation::Stalls::unstall(id, reason);
   blockedEvent.notify();
 }
 
@@ -699,5 +714,4 @@ DecodeStage* Decoder::parent() const {
 Decoder::Decoder(const sc_module_name& name, const ComponentID& ID) :
 	  Component(name, ID) {
   sendChannel = Instruction::NO_CHANNEL;
-  previousDestination = -1;
 }

@@ -63,6 +63,11 @@ public:
   // tag is, or NOT_IN_CACHE if it is not there.
   virtual CacheIndex lookup(MemoryAddr tag);
 
+  // Returns whether there is still an instruction packet at the given position.
+  // In rare circumstances, the packet may be overwritten between first checking
+  // for it and beginning to execute it.
+  virtual bool packetExists(CacheIndex position) const;
+
   // Prepare to read a packet with the first instruction at the given location
   // within the cache.
   virtual void startNewPacket(CacheIndex position);

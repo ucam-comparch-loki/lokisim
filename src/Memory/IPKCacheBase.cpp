@@ -39,6 +39,10 @@ CacheIndex IPKCacheBase::lookup(const MemoryAddr tag) {
   return cacheIndex(tag);
 }
 
+bool IPKCacheBase::packetExists(CacheIndex position) const {
+  return getTag(position) != DEFAULT_TAG;
+}
+
 const Instruction IPKCacheBase::read() {
   if (!finishedPacketRead)
     updateReadPointer();
@@ -46,6 +50,7 @@ const Instruction IPKCacheBase::read() {
 
   const Instruction inst = data[readPointer.value()];
   dataActivity();
+  fillCount--;
 
   finishedPacketRead = inst.endOfPacket();
   lastOpWasARead = true;
@@ -146,17 +151,21 @@ size_t IPKCacheBase::size()                       const {return data.size();}
 
 CacheIndex IPKCacheBase::getReadPointer()         const {return readPointer.value();}
 CacheIndex IPKCacheBase::getWritePointer()        const {return writePointer.value();}
-void IPKCacheBase::setReadPointer(CacheIndex pos)       {readPointer = pos; lastOpWasARead = false;}
-void IPKCacheBase::setWritePointer(CacheIndex pos)      {writePointer = pos;}
+void IPKCacheBase::setReadPointer(CacheIndex pos)       {readPointer = pos; lastOpWasARead = false; updateFillCount();}
+void IPKCacheBase::setWritePointer(CacheIndex pos)      {writePointer = pos; updateFillCount();}
 
 void IPKCacheBase::incrementWritePos() {
   ++writePointer;
   fillCount++;
+
+  assert(fillCount <= size());
 }
 
 void IPKCacheBase::incrementReadPos() {
   ++readPointer;
-  fillCount--;
+//  fillCount--;
+
+  assert(fillCount <= size());
 }
 
 void IPKCacheBase::updateFillCount() {
@@ -169,6 +178,15 @@ void IPKCacheBase::updateFillCount() {
       fillCount = size();
   else
     fillCount = writePointer - readPointer;
+
+  // Hack. We have to wait until very late to increment the read pointer, in
+  // case there are any jumps to take into account, so there is sometimes one
+  // more instruction in the cache than we would expect.
+  if (finishedPacketRead && !finishedPacketWrite) {
+    fillCount++;
+    if (fillCount > size())
+      fillCount -= size();
+  }
 }
 
 void IPKCacheBase::tagActivity() {

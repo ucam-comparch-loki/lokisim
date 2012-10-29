@@ -45,7 +45,7 @@ void WriteStage::updateReady() {
     readyOut.write(ready);
 
     if (ready)
-      Instrumentation::Stalls::unstall(id);
+      Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT);
     else
       Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT);
 

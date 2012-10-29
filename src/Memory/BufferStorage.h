@@ -35,6 +35,7 @@ public:
   virtual const T& read() {
     assert(!empty());
     int i = readPos.value();
+    // FIXME: Should we move this to the end?
     incrementReadFrom();
     this->readEvent_.notify();
 
@@ -108,8 +109,8 @@ public:
   // Low-level access methods - use with caution!
   uint getReadPointer()           {return readPos.value();}
   uint getWritePointer()          {return writePos.value();}
-  void setReadPointer(uint pos)   {readPos = pos;}
-  void setWritePointer(uint pos)  {writePos = pos;}
+  void setReadPointer(uint pos)   {readPos = pos;  updateFillCount();}
+  void setWritePointer(uint pos)  {writePos = pos; updateFillCount();}
 
 private:
 
@@ -121,6 +122,14 @@ private:
   void incrementWriteTo() {
     ++writePos;
     fillCount++;
+  }
+
+  void updateFillCount() {
+    fillCount = writePos - readPos;
+
+    // TODO: make use of lastOpWasARead
+    if (fillCount >= this->size())
+      fillCount -= this->size();
   }
 
   void activeCycle() {

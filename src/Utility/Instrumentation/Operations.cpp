@@ -49,6 +49,11 @@ void Operations::decoded(const ComponentID& core, const DecodedInst& dec) {
 void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool executed) {
   numOps_++;
 
+  // Want to keep track of the number of operations so we can tell if we're
+  // making progress, but only want the rest of the data when we ask for it.
+  if (!ENERGY_TRACE)
+    return;
+
   if (!executed) {
     unexecuted++;
     return;

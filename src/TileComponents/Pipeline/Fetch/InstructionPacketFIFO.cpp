@@ -21,12 +21,18 @@ void InstructionPacketFIFO::write(const Instruction inst) {
   fifo.write(inst);
   fifoFillChanged.notify();
 
-  if (finishedPacketWrite) {
+  if (finishedPacketWrite) {  // Start of new packet
     InstLocation location;
     location.component = IPKFIFO;
     location.index = writePos;
-    parent()->newPacketArriving(location);
+    tag = parent()->newPacketArriving(location);
+    startOfPacket = writePos;
   }
+  else if (writePos == startOfPacket) { // Overwriting previous start of packet
+    startOfPacket = NOT_IN_CACHE;
+    tag = DEFAULT_TAG;
+  }
+
   finishedPacketWrite = inst.endOfPacket();
 
   if (finishedPacketWrite)
@@ -34,28 +40,43 @@ void InstructionPacketFIFO::write(const Instruction inst) {
 }
 
 CacheIndex InstructionPacketFIFO::lookup(MemoryAddr tag) {
-  // TODO
-  return NOT_IN_CACHE;
+  // Temporarily commented out because the FIFO is much bigger than it should
+  // be, and would skew the results if it worked as a cache.
+  if (this->tag == tag) {
+    fifoFillChanged.notify();
+    tagMatched = true;
+    return startOfPacket;
+  }
+  else
+    return NOT_IN_CACHE;
+}
+
+bool InstructionPacketFIFO::packetExists(CacheIndex position) const {
+  return position == startOfPacket;
 }
 
 void InstructionPacketFIFO::startNewPacket(CacheIndex position) {
   fifo.setReadPointer(position);
+  tagMatched = false;
 }
 
 void InstructionPacketFIFO::cancelPacket() {
   // TODO
-  // readPointer = writePointer?
+  fifo.setReadPointer(fifo.getWritePointer());
 }
 
 void InstructionPacketFIFO::jump(JumpOffset amount) {
+  // Do we need to do something with tagMatched here too?
   fifo.setReadPointer(fifo.getReadPointer() + amount);
 }
 
 bool InstructionPacketFIFO::isEmpty() const {
-  return fifo.empty();
+  // If we have a packet which is due to be executed soon, the FIFO is not
+  // empty.
+  return fifo.empty() && !tagMatched;
 }
 
-const sc_core::sc_event& InstructionPacketFIFO::fillChangedEvent() const {
+const sc_event& InstructionPacketFIFO::fillChangedEvent() const {
   return fifoFillChanged;
 }
 

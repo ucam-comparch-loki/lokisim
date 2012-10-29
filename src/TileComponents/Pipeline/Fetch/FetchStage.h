@@ -164,6 +164,10 @@ private:
   // Various flags which may mean we aren't executing instructions sequentially.
   bool jumpedThisCycle, finishedPacketRead;
 
+  // Flag telling if the pending packet has been overwritten, and needs to be
+  // fetched again.
+  bool needRefetch;
+
   // If this pipeline stage is stalled, we assume the whole pipeline is stalled.
   bool stalled;
 

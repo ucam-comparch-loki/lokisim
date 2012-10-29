@@ -143,7 +143,8 @@ void GeneralPurposeCacheHandler::activate(uint groupIndex, uint groupSize, uint 
 	mSetShift = mGroupBits + mLineBits;
 	mSetMask = ((1UL << mSetBits) - 1UL) << mSetShift;
 
-	Instrumentation::memorySetMode(mBankNumber, true, mSetCount, mWayCount, mLineSize);
+	if (ENERGY_TRACE)
+	  Instrumentation::memorySetMode(mBankNumber, true, mSetCount, mWayCount, mLineSize);
 }
 
 bool GeneralPurposeCacheHandler::containsAddress(uint32_t address) {
@@ -163,7 +164,7 @@ bool GeneralPurposeCacheHandler::readWord(uint32_t address, uint32_t &data, bool
 	if (!lookupCacheLine(address, slot)) {
 		assert(!resume);
 
-		if (!debug) {
+		if (ENERGY_TRACE && !debug) {
 			if (instruction)
 				Instrumentation::memoryReadIPKWord(mBankNumber, address, true);
 			else
@@ -180,7 +181,7 @@ bool GeneralPurposeCacheHandler::readWord(uint32_t address, uint32_t &data, bool
 		return false;
 	}
 
-	if (!resume && !debug) {
+	if (ENERGY_TRACE && !resume && !debug) {
 		if (instruction)
 			Instrumentation::memoryReadIPKWord(mBankNumber, address, false);
 		else
@@ -205,14 +206,14 @@ bool GeneralPurposeCacheHandler::readHalfWord(uint32_t address, uint32_t &data, 
 	uint slot;
 	if (!lookupCacheLine(address, slot)) {
 		assert(!resume);
-		if (!debug)
+		if (ENERGY_TRACE && !debug)
 			Instrumentation::memoryReadHalfWord(mBankNumber, address, true);
 		if (MEMORY_TRACE && !debug)
 			MemoryTrace::readHalfWord(mBankNumber, address);
 		return false;
 	}
 
-	if (!resume && !debug)
+	if (ENERGY_TRACE && !resume && !debug)
 		Instrumentation::memoryReadHalfWord(mBankNumber, address, false);
 
 	if (MEMORY_TRACE && !resume && !debug)
@@ -228,14 +229,14 @@ bool GeneralPurposeCacheHandler::readByte(uint32_t address, uint32_t &data, bool
 	uint slot;
 	if (!lookupCacheLine(address, slot)) {
 		assert(!resume);
-		if (!debug)
+		if (ENERGY_TRACE && !debug)
 			Instrumentation::memoryReadByte(mBankNumber, address, true);
 		if (MEMORY_TRACE && !debug)
 			MemoryTrace::readByte(mBankNumber, address);
 		return false;
 	}
 
-	if (!resume && !debug)
+	if (ENERGY_TRACE && !resume && !debug)
 		Instrumentation::memoryReadByte(mBankNumber, address, false);
 
 	if (MEMORY_TRACE && !resume && !debug)
@@ -261,14 +262,14 @@ bool GeneralPurposeCacheHandler::writeWord(uint32_t address, uint32_t data, bool
 	uint slot;
 	if (!lookupCacheLine(address, slot)) {
 		assert(!resume);
-		if (!debug)
+		if (ENERGY_TRACE && !debug)
 			Instrumentation::memoryWriteWord(mBankNumber, address, true);
 		if (MEMORY_TRACE && !debug)
 			MemoryTrace::writeWord(mBankNumber, address);
 		return false;
 	}
 
-	if (!resume && !debug)
+	if (ENERGY_TRACE && !resume && !debug)
 		Instrumentation::memoryWriteWord(mBankNumber, address, false);
 
 	if (MEMORY_TRACE && !resume && !debug)
@@ -286,14 +287,14 @@ bool GeneralPurposeCacheHandler::writeHalfWord(uint32_t address, uint32_t data, 
 	uint slot;
 	if (!lookupCacheLine(address, slot)) {
 		assert(!resume);
-		if (!debug)
+		if (ENERGY_TRACE && !debug)
 			Instrumentation::memoryWriteHalfWord(mBankNumber, address, true);
 		if (MEMORY_TRACE && !debug)
 			MemoryTrace::writeHalfWord(mBankNumber, address);
 		return false;
 	}
 
-	if (!resume && !debug)
+	if (ENERGY_TRACE && !resume && !debug)
 		Instrumentation::memoryWriteHalfWord(mBankNumber, address, false);
 
 	if (MEMORY_TRACE && !resume && !debug)
@@ -315,14 +316,14 @@ bool GeneralPurposeCacheHandler::writeByte(uint32_t address, uint32_t data, bool
 	uint slot;
 	if (!lookupCacheLine(address, slot)) {
 		assert(!resume);
-		if (!debug)
+		if (ENERGY_TRACE && !debug)
 			Instrumentation::memoryWriteByte(mBankNumber, address, true);
 		if (MEMORY_TRACE && !debug)
 			MemoryTrace::writeByte(mBankNumber, address);
 		return false;
 	}
 
-	if (!resume && !debug)
+	if (ENERGY_TRACE && !resume && !debug)
 		Instrumentation::memoryWriteByte(mBankNumber, address, false);
 
 	if (MEMORY_TRACE && !resume && !debug)
@@ -375,12 +376,14 @@ void GeneralPurposeCacheHandler::prepareCacheLine(uint32_t address, uint32_t &wr
 			writeBackCount = mLineSize / 4;
 			memcpy(writeBackData, &mData[slot * mLineSize / 4], mLineSize);
 		} else {
-			Instrumentation::memoryReplaceCacheLine(mBankNumber, true, false);
+		  if (ENERGY_TRACE)
+		    Instrumentation::memoryReplaceCacheLine(mBankNumber, true, false);
 
 			writeBackCount = 0;
 		}
 	} else {
-		Instrumentation::memoryReplaceCacheLine(mBankNumber, false, false);
+	  if (ENERGY_TRACE)
+	    Instrumentation::memoryReplaceCacheLine(mBankNumber, false, false);
 
 		writeBackCount = 0;
 	}

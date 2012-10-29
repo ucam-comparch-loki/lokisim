@@ -56,13 +56,15 @@ void ExecuteStage::newInput(DecodedInst& operation) {
       operation.operand1(forwardedResult);
       if (DEBUG) cout << this->name() << " forwarding contents of register "
           << (int)operation.sourceReg1() << ": " << forwardedResult << endl;
-      Instrumentation::Registers::forward(1);
+      if (ENERGY_TRACE)
+        Instrumentation::Registers::forward(1);
     }
     if (operation.operand2Source() == DecodedInst::BYPASS && previousInstExecuted) {
       operation.operand2(forwardedResult);
       if (DEBUG) cout << this->name() << " forwarding contents of register "
           << (int)operation.sourceReg2() << ": " << forwardedResult << endl;
-      Instrumentation::Registers::forward(2);
+      if (ENERGY_TRACE)
+        Instrumentation::Registers::forward(2);
     }
 
     if (DEBUG) cout << this->name() << ": executing " << operation.name()
@@ -130,7 +132,8 @@ void ExecuteStage::newInput(DecodedInst& operation) {
   // Only instrument operations which executed in this pipeline stage.
   // PAYLOAD_ONLY means this is the second half of a store operation - we don't
   // want to instrument it twice.
-  if (operation.isALUOperation() &&
+  if (//ENERGY_TRACE &&  <-- do this check elsewhere
+      operation.isALUOperation() &&
       operation.memoryOp() != MemoryRequest::PAYLOAD_ONLY &&
       !blocked)
     Instrumentation::executed(id, operation, willExecute);

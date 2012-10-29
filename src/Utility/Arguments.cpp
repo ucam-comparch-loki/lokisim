@@ -87,6 +87,7 @@ void Arguments::parse(int argc, char* argv[]) {
     else if (argument == "-energytrace") {
       energyTraceFile_ = string(argv[i+1]);
       ENERGY_TRACE = 1;
+      Instrumentation::startLogging();
       i++;  // Have used two arguments in this iteration.
     }
     else if (argument == "--args") {

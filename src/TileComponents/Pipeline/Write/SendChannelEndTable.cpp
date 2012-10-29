@@ -134,7 +134,7 @@ void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
   // is using credits.
   channelMapTable->waitForAllCredits(channel);
 
-  Instrumentation::Stalls::unstall(id);
+  Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT);
   waiting = false;
   bufferFillChanged.notify(); // No it didn't - use separate events?
 }

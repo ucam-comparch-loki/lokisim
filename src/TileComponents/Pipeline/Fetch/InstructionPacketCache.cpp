@@ -88,6 +88,10 @@ CacheIndex InstructionPacketCache::lookup(MemoryAddr tag) {
   return position;
 }
 
+bool InstructionPacketCache::packetExists(CacheIndex position) const {
+  return cache->packetExists(position);
+}
+
 void InstructionPacketCache::startNewPacket(CacheIndex position) {
   cache->setReadPointer(position);
 }

@@ -32,6 +32,7 @@ void Instrumentation::initialise() {
   Operations::init();
   PipelineReg::init();
   Registers::init();
+  Stalls::init();
 }
 
 void Instrumentation::end() {
@@ -43,6 +44,7 @@ void Instrumentation::end() {
   Operations::end();
   PipelineReg::end();
   Registers::end();
+  Stalls::end();
 }
 
 void Instrumentation::dumpEventCounts(std::ostream& os) {
@@ -54,11 +56,8 @@ void Instrumentation::dumpEventCounts(std::ostream& os) {
   os << "\n";
   Parameters::printParametersXML(os);
   os << "\n";
-  os << "<cycles>" << Stalls::executionTime() << "</cycles>\n";
+  os << "<cycles>" << Stalls::cyclesLogged() << "</cycles>\n";
   os << "\n";
-
-  // Program name?
-  // Cycles each component was active
 
   ChannelMap::dumpEventCounts(os);    os << "\n";
   FIFO::dumpEventCounts(os);          os << "\n";
@@ -68,8 +67,29 @@ void Instrumentation::dumpEventCounts(std::ostream& os) {
   Operations::dumpEventCounts(os);    os << "\n";
   PipelineReg::dumpEventCounts(os);   os << "\n";
   Registers::dumpEventCounts(os);     os << "\n";
+  Stalls::dumpEventCounts(os);        os << "\n";
 
   os << "</lokitrace>\n";
+}
+
+bool Instrumentation::haveEnergyData() {
+  // Assume that if we have collected energy data, at least one instruction
+  // has been executed.
+  return Stalls::cyclesLogged() > 0;
+}
+
+void Instrumentation::startLogging() {
+  // Stalls is currently the only component which needs notification: all
+  // event collection is predicated on the ENERGY_TRACE value. Stalls, however,
+  // counts cycles, so needs to be told when to suspend its counting.
+  Stalls::startLogging();
+}
+
+void Instrumentation::stopLogging() {
+  // Stalls is currently the only component which needs notification: all
+  // event collection is predicated on the ENERGY_TRACE value. Stalls, however,
+  // counts cycles, so needs to be told when to suspend its counting.
+  Stalls::stopLogging();
 }
 
 void Instrumentation::decoded(const ComponentID& core, const DecodedInst& dec) {

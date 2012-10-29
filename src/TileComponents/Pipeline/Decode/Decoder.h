@@ -88,8 +88,7 @@ private:
   // predicate bits, and the contents of the predicate register.
   bool shouldExecute(const DecodedInst& inst);
 
-  void stall(bool stall, Instrumentation::Stalls::StallReason reason =
-                         Instrumentation::Stalls::NOT_STALLED);
+  void stall(bool stall, Instrumentation::Stalls::StallReason reason);
 
   DecodeStage* parent() const;
 
@@ -129,10 +128,6 @@ private:
 
   bool instructionCancelled;
   sc_event cancelEvent;
-
-  // The register the previous instruction wrote to. Used to determine whether
-  // data forwarding is required.
-  RegisterIndex previousDestination;
 
   // If the previous instruction was predicated, we may not know whether
   // forwarding will be possible, so must be pessimistic and read registers too.

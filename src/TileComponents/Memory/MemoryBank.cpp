@@ -208,7 +208,8 @@ ReevaluateRequest:
 		mPartialInstructionPending = mActiveRingRequestInput.Header.IPKReadHandOff.PartialInstructionPending;
 		mPartialInstructionData = mActiveRingRequestInput.Header.IPKReadHandOff.PartialInstructionData;
 
-		Instrumentation::memoryInitiateIPKRead(cBankNumber, true);
+		if (ENERGY_TRACE)
+		  Instrumentation::memoryInitiateIPKRead(cBankNumber, true);
 
 		mFSMState = STATE_LOCAL_IPK_READ;
 		break;
@@ -416,7 +417,8 @@ bool MemoryBank::processMessageHeader() {
 		if (DEBUG)
 			cout << this->name() << " received IPK_READ request on channel " << mActiveTableIndex << endl;
 
-		Instrumentation::memoryInitiateIPKRead(cBankNumber, false);
+		if (ENERGY_TRACE)
+		  Instrumentation::memoryInitiateIPKRead(cBankNumber, false);
 
 		mActiveAddress = mActiveRequest.getPayload();
 		mFSMState = STATE_LOCAL_IPK_READ;

@@ -120,11 +120,11 @@ void simulate(Chip& chip) {
 
 // Wrapper for the chip simulation function above.
 int simulate() {
+  Instrumentation::initialise();
+
   // Override parameters before instantiating chip model
   for (unsigned int i=0; i<Arguments::code().size(); i++)
     CodeLoader::loadParameters(Arguments::code()[i]);
-
-  Instrumentation::initialise();
 
   // Instantiate chip model - changing a parameter after this point has
   // undefined behaviour.
@@ -148,11 +148,18 @@ int simulate() {
     Statistics::printStats();
   }
 
+  Instrumentation::stopLogging();
+
   if (!Arguments::energyTraceFile().empty()) {
     std::ofstream output(Arguments::energyTraceFile().c_str());
     Instrumentation::dumpEventCounts(output);
     output.close();
     cout << "Execution statistics written to " << Arguments::energyTraceFile() << endl;
+  }
+  else if (Instrumentation::haveEnergyData() && RETURN_CODE == EXIT_SUCCESS) {
+    // If we have collected some data but haven't been told where to put it,
+    // dump it all to stdout.
+    Instrumentation::dumpEventCounts(std::cout);
   }
 
   Instrumentation::end();

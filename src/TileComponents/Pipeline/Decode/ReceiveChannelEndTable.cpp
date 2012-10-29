@@ -27,8 +27,8 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
 
   int32_t result = buffers.read(channelEnd).toInt();
 
-  if(DEBUG) cout << this->name() << " read " << result << " from buffer "
-                 << (int)channelEnd << endl;
+  if (DEBUG) cout << this->name() << " read " << result << " from buffer "
+                  << (int)channelEnd << endl;
 
   return result;
 }
@@ -42,15 +42,18 @@ bool ReceiveChannelEndTable::testChannelEnd(ChannelIndex channelEnd) const {
 ChannelIndex ReceiveChannelEndTable::selectChannelEnd() {
   int startPoint = currentChannel.value();
 
-  if(buffers.empty())
+  if (buffers.empty()) {
+    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_DATA);
     wait(newData);
+    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_DATA);
+  }
 
   // Check all of the channels in a round-robin style, using a LoopCounter.
   // Return the register-mapping of the first channel which has data.
-  for(int i = ++currentChannel; i != startPoint; ++currentChannel) {
+  for (int i = ++currentChannel; i != startPoint; ++currentChannel) {
     i = currentChannel.value();
 
-    if(!buffers[i].empty()) {
+    if (!buffers[i].empty()) {
       // Adjust address so it can be accessed like a register
       return Registers::fromChannelID(i);
     }
@@ -65,8 +68,8 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd() {
 void ReceiveChannelEndTable::checkInput(ChannelIndex input) {
   // This method is called because data has arrived on a particular input channel.
 
-  if(DEBUG) cout << this->name() << " channel " << (int)input << " received " <<
-                    fromNetwork[input].read() << endl;
+  if (DEBUG) cout << this->name() << " channel " << (int)input << " received " <<
+                     fromNetwork[input].read() << endl;
 
   assert(!buffers[input].full());
 
@@ -81,7 +84,7 @@ const sc_event& ReceiveChannelEndTable::receivedDataEvent(ChannelIndex buffer) c
 
 void ReceiveChannelEndTable::updateFlowControl(ChannelIndex buffer) {
   bool canReceive = !buffers[buffer].full();
-  if(flowControl[buffer].read() != canReceive)
+  if (flowControl[buffer].read() != canReceive)
     flowControl[buffer].write(canReceive);
 }
 
@@ -99,12 +102,12 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name, const
 
   // Generate a method to watch each input port, putting the data into the
   // appropriate buffer when it arrives.
-  for(unsigned int i=0; i<buffers.size(); i++)
+  for (unsigned int i=0; i<buffers.size(); i++)
     SPAWN_METHOD(fromNetwork[i], ReceiveChannelEndTable::checkInput, i, false);
 
   // Generate a method to watch each buffer, updating its flow control signal
   // whenever data is added or removed.
-  for(unsigned int i=0; i<buffers.size(); i++) {
+  for (unsigned int i=0; i<buffers.size(); i++) {
     sc_core::sc_spawn_options options;
     options.spawn_method();     /* Want an efficient method, not a thread */
     options.set_sensitivity(&(buffers[i].readEvent()));

@@ -83,7 +83,7 @@ bool     Cluster::readPredReg(bool waitForExecution) {
                       && !execute.currentInstruction().hasResult()) {
     Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_FORWARDING);
     wait(execute.executedEvent());
-    Instrumentation::Stalls::unstall(id);
+    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_FORWARDING);
   }
 
   return pred.read();

@@ -32,6 +32,11 @@ public:
   // Returns whether the given address matches any of the tags.
   virtual CacheIndex lookup(const MemoryAddr tag);
 
+  // Returns whether there is still an instruction packet at the given position.
+  // In rare circumstances, the packet may be overwritten between first checking
+  // for it and beginning to execute it.
+  bool packetExists(CacheIndex position) const;
+
   // Returns the next item in the cache.
   virtual const Instruction read();
 
