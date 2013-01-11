@@ -11,6 +11,7 @@
 #include "../../../Datatype/Instruction.h"
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Utility/Instrumentation.h"
+#include "../../../Utility/Trace/SoftwareTrace.h"
 
 void ALU::execute(DecodedInst& dec) const {
 
@@ -247,6 +248,15 @@ void ALU::systemCall(int code) const {
     case 0x25: /* end instruction trace */
       CORE_TRACE = 0;
       break;
+    case 0x26: { /* software triggered register file snapshot */
+      if (SOFTWARE_TRACE) {
+        unsigned long regValues[32];
+        for (RegisterIndex i = 0; i < 32; i++)
+      	  regValues[i] = readReg(i);
+        SoftwareTrace::logRegisterFileSnapshot(regValues, 32);
+      }
+      break;
+    }
 
     default:
       cerr << "Warning: unrecognised system call opcode: " << code << endl;

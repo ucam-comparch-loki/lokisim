@@ -10,6 +10,7 @@
 #include "StringManipulation.h"
 #include "Trace/CoreTrace.h"
 #include "Trace/MemoryTrace.h"
+#include "Trace/SoftwareTrace.h"
 #include "../Chip.h"
 
 bool Arguments::simulate_ = true;
@@ -22,6 +23,7 @@ vector<string> Arguments::programFiles;
 string Arguments::coreTraceFile_ = "";
 string Arguments::memTraceFile_ = "";
 string Arguments::energyTraceFile_ = "";
+string Arguments::softwareTraceFile_ = "";
 std::stringstream Arguments::invocation_;
 
 void Arguments::parse(int argc, char* argv[]) {
@@ -88,6 +90,12 @@ void Arguments::parse(int argc, char* argv[]) {
       energyTraceFile_ = string(argv[i+1]);
       ENERGY_TRACE = 1;
       Instrumentation::startLogging();
+      i++;  // Have used two arguments in this iteration.
+    }
+    else if (argument == "-swtrace") {
+      softwareTraceFile_ = string(argv[i+1]);
+      SOFTWARE_TRACE = 1;
+      SoftwareTrace::start(softwareTraceFile_);
       i++;  // Have used two arguments in this iteration.
     }
     else if (argument == "--args") {

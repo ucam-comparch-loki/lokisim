@@ -109,16 +109,17 @@ TraceWriter::~TraceWriter() {
 	delete[] mCompressionBuffer;
 }
 
-/* Trace data format:
+/* Trace data format (MSB first / big endian):
  *
  * Initial control byte:
  *
- * 0x00 - 0x7F: Control byte followed by component index byte
+ * 0x00 - 0x7E: Control byte followed by component index byte
+ * 0x7F:        Extended record
  * 0x80 - 0xFF: 1 flag bit, 3 component index bits, 4 control bits (high to low)
  *
  * Following address / Cycle encoding byte:
  *
- * High 5 bits - address encoding:
+ * High 5 bits - address encoding (zero for extended record):
  *
  * 0x00 - Plain 4 byte address
  * 0x01 - Previous address repetition
@@ -145,11 +146,15 @@ TraceWriter::~TraceWriter() {
  * 0x5 - Previous cycle number + 4
  * 0x6 - Previous cycle number + 1 byte offset
  * 0x7 - Previous cycle number + 2 byte offset
+ *
+ * For extended record:
+ *
+ * 4 tag bytes, 4 length bytes, data following
  */
 
 void TraceWriter::writeRecord(unsigned long controlByte, unsigned long componentIndex, unsigned long address) {
 	assert(mBufferCursor < kBufferThreshold);
-	assert(controlByte <= 0x7F);
+	assert(controlByte <= 0x7E);
 	assert(componentIndex <= 0xFF);
 
 	// Encode control byte and component index
@@ -232,6 +237,11 @@ void TraceWriter::writeRecord(unsigned long controlByte, unsigned long component
 			mBuffer[mBufferCursor++] = delta >> 8;
 			mBuffer[mBufferCursor++] = delta & 0xFFULL;
 		}
+		// Flush buffer if necessary
+
+		if (mBufferCursor >= kBufferThreshold)
+			flushBuffer();
+
 	}
 
 	if (cycleNumberEncoding == 0x0) {
@@ -250,6 +260,75 @@ void TraceWriter::writeRecord(unsigned long controlByte, unsigned long component
 	// Store encoding indicator
 
 	mBuffer[encodingByteOffset] = (addressEncoding << 3) | cycleNumberEncoding;
+
+	// Flush buffer if necessary
+
+	if (mBufferCursor >= kBufferThreshold)
+		flushBuffer();
+}
+
+void TraceWriter::writeExtendedRecord(unsigned long tag, const void *data, unsigned long length) {
+	assert(mBufferCursor < kBufferThreshold);
+	assert(data != NULL);
+	assert(length <= kMaximumExtendedRecordDataLength);
+
+	// Encode control byte
+
+	mBuffer[mBufferCursor++] = 0x7F;
+
+	size_t encodingByteOffset = mBufferCursor++;
+
+	// Encode cycle number
+
+	unsigned int cycleNumberEncoding = 0x0;
+
+	if (mCurrentCycleNumber == mPreviousCycleNumber) {
+		cycleNumberEncoding = 0x01;
+	} else {
+		unsigned long long delta = mCurrentCycleNumber - mPreviousCycleNumber;
+		if (delta <= 4ULL) {
+			cycleNumberEncoding = delta + 0x1;
+		} else if (delta <= 0xFFULL) {
+			cycleNumberEncoding = 0x6;
+			mBuffer[mBufferCursor++] = delta;
+		} else if (delta <= 0xFFFFULL) {
+			cycleNumberEncoding = 0x7;
+			mBuffer[mBufferCursor++] = delta >> 8;
+			mBuffer[mBufferCursor++] = delta & 0xFFULL;
+		}
+	}
+
+	if (cycleNumberEncoding == 0x0) {
+		mBuffer[mBufferCursor++] = mCurrentCycleNumber >> 56;
+		mBuffer[mBufferCursor++] = (mCurrentCycleNumber >> 48) & 0xFFULL;
+		mBuffer[mBufferCursor++] = (mCurrentCycleNumber >> 40) & 0xFFULL;
+		mBuffer[mBufferCursor++] = (mCurrentCycleNumber >> 32) & 0xFFULL;
+		mBuffer[mBufferCursor++] = (mCurrentCycleNumber >> 24) & 0xFFULL;
+		mBuffer[mBufferCursor++] = (mCurrentCycleNumber >> 16) & 0xFFULL;
+		mBuffer[mBufferCursor++] = (mCurrentCycleNumber >> 8) & 0xFFULL;
+		mBuffer[mBufferCursor++] = mCurrentCycleNumber & 0xFFULL;
+	}
+
+	mPreviousCycleNumber = mCurrentCycleNumber;
+
+	// Store encoding indicator
+
+	mBuffer[encodingByteOffset] = cycleNumberEncoding;
+
+	// Store payload data
+
+	mBuffer[mBufferCursor++] = (tag >> 24) & 0xFFULL;
+	mBuffer[mBufferCursor++] = (tag >> 16) & 0xFFULL;
+	mBuffer[mBufferCursor++] = (tag >> 8) & 0xFFULL;
+	mBuffer[mBufferCursor++] = tag & 0xFFULL;
+
+	mBuffer[mBufferCursor++] = (length >> 24) & 0xFFULL;
+	mBuffer[mBufferCursor++] = (length >> 16) & 0xFFULL;
+	mBuffer[mBufferCursor++] = (length >> 8) & 0xFFULL;
+	mBuffer[mBufferCursor++] = length & 0xFFULL;
+
+	memcpy(&mBuffer[mBufferCursor], data, length);
+	mBufferCursor += length;
 
 	// Flush buffer if necessary
 

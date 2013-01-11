@@ -13,6 +13,7 @@
 #include "Utility/Instrumentation/Operations.h"
 #include "Utility/Trace/CoreTrace.h"
 #include "Utility/Trace/MemoryTrace.h"
+#include "Utility/Trace/SoftwareTrace.h"
 #include "Utility/StartUp/CodeLoader.h"
 #include "Utility/Statistics.h"
 
@@ -29,6 +30,7 @@ static cycle_count_t cyclesPerStep = 1;
   if (DEBUG) cout << "\n======= Cycle " << cycleNumber << " =======" << endl;\
   if (CORE_TRACE) CoreTrace::setClockCycle(cycleNumber);\
   if (MEMORY_TRACE) MemoryTrace::setClockCycle(cycleNumber);\
+  if (SOFTWARE_TRACE) SoftwareTrace::setClockCycle(cycleNumber);\
   sc_start(cyclesPerStep, SC_NS);\
 }
 
@@ -47,7 +49,7 @@ void simulate(Chip& chip) {
 
   // Simulate multiple cycles in a row when possible to reduce the overheads of
   // stopping and starting simulation.
-  if (DEBUG || CORE_TRACE || MEMORY_TRACE)
+  if (DEBUG || CORE_TRACE || MEMORY_TRACE || SOFTWARE_TRACE)
     cyclesPerStep = 1;
   else
     cyclesPerStep = (100 < TIMEOUT/50) ? 100 : TIMEOUT/50;
@@ -169,6 +171,8 @@ int simulate() {
     CoreTrace::stop();
   if (MEMORY_TRACE)
     MemoryTrace::stop();
+  if (SOFTWARE_TRACE)
+	SoftwareTrace::stop();
 
   return RETURN_CODE;
 }

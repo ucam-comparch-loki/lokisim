@@ -60,7 +60,7 @@ private:
   static vector<string> programFiles;
 
   // Filenames used for dumping information.
-  static string coreTraceFile_, memTraceFile_, energyTraceFile_;
+  static string coreTraceFile_, memTraceFile_, energyTraceFile_, softwareTraceFile_;
 
   // The command used to run the simulator.
   static std::stringstream invocation_;

@@ -31,6 +31,7 @@ extern int      BATCH_MODE;    // Print out machine readable tagged information
 extern int      CORE_TRACE;	// Enable creation of core trace file
 extern int      MEMORY_TRACE;	// Enable creation of memory trace file
 extern int      ENERGY_TRACE; // Enable creation of energy trace file
+extern int      SOFTWARE_TRACE;  // Enable creation of software triggered trace file
 
 extern unsigned long long			TIMEOUT;  // Number of cycles before we assume something's gone wrong.
 

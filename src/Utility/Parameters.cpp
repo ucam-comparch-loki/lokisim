@@ -32,6 +32,7 @@ int BATCH_MODE = 0;
 int CORE_TRACE = 0;
 int MEMORY_TRACE = 0;
 int ENERGY_TRACE = 0;
+int SOFTWARE_TRACE = 0;
 
 unsigned long long TIMEOUT = 1000000000000ULL;
 
