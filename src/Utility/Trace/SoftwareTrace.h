@@ -21,7 +21,7 @@ namespace SoftwareTrace {
   void setClockCycle(unsigned long long cycleNumber);
 
   // Log register file snapshot when requested by syscall
-  void logRegisterFileSnapshot(unsigned long data[], unsigned long count);
+  void logRegisterFileSnapshot(unsigned long coreNumber, unsigned long data[], unsigned long count);
 
   // Finalize core trace
   void stop();

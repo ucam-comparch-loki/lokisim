@@ -28,10 +28,12 @@ void SoftwareTrace::setClockCycle(unsigned long long cycleNumber) {
 }
 
 // Log register file snapshot when requested by syscall
-void SoftwareTrace::logRegisterFileSnapshot(unsigned long data[], unsigned long count) {
-	unsigned long length = count * 4;
+void SoftwareTrace::logRegisterFileSnapshot(unsigned long coreNumber, unsigned long data[], unsigned long count) {
+	unsigned long length = count * 4 + 1;
 	unsigned char *buffer = new unsigned char[length];
-	unsigned long offset = 0;
+	unsigned long offset = 1;
+
+	buffer[0] = coreNumber;
 
 	for (unsigned long i = 0; i < count; i++) {
 		buffer[offset++] = (data[i] >> 24) & 0xFFUL;

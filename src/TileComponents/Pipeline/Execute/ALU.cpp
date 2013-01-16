@@ -253,7 +253,7 @@ void ALU::systemCall(int code) const {
         unsigned long regValues[32];
         for (RegisterIndex i = 0; i < 32; i++)
       	  regValues[i] = readReg(i);
-        SoftwareTrace::logRegisterFileSnapshot(regValues, 32);
+        SoftwareTrace::logRegisterFileSnapshot(parent()->id.getGlobalCoreNumber(), regValues, 32);
       }
       break;
     }
