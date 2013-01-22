@@ -40,7 +40,7 @@ private:
 
   // If there are fewer tags than cache entries, each packet must be aligned
   // to the next tag. Tags are "alignment" entries apart.
-  typedef uint8_t Alignment;
+  typedef uint16_t Alignment;
   const Alignment alignment;
 
 };

@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <iostream>
 #include <string>
 
 #include <zlib.h>
@@ -76,6 +77,9 @@ void TraceWriter::flushBuffer() {
 
 TraceWriter::TraceWriter(const std::string& filename) {
 	mTraceFile = fopen(filename.c_str(), "wb");
+
+	if (mTraceFile == NULL)
+		std::cerr << "Error creating trace file " << filename << std::endl;
 
 	mBuffer = new unsigned char[kBufferSize];
 	mCompressionBuffer = new unsigned char[kCompressionBufferSzie];

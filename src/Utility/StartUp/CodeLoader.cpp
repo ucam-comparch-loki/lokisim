@@ -64,7 +64,7 @@ void CodeLoader::loadParameters(const string& settings) {
       if(file.eof()) break;
     }
     catch(std::exception& e) {
-      std::cerr << "Error: could not read file " << settings << endl;
+      std::cerr << "Error: could not read file " << settings << " while parsing parameters" << endl;
       continue;
     }
   }
@@ -148,7 +148,7 @@ void CodeLoader::loadCode(const string& settings, Chip& chip) {
       if(file.eof()) break;
     }
     catch(std::exception& e) {
-      std::cerr << "Error: could not read file " << settings << endl;
+      std::cerr << "Error: could not read file " << settings << " while parsing commands" << endl;
       continue;
     }
   }

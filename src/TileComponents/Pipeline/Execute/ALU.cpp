@@ -250,10 +250,16 @@ void ALU::systemCall(int code) const {
       break;
     case 0x26: { /* software triggered register file snapshot */
       if (SOFTWARE_TRACE) {
-        unsigned long regValues[32];
-        for (RegisterIndex i = 0; i < 32; i++)
-      	  regValues[i] = readReg(i);
-        SoftwareTrace::logRegisterFileSnapshot(parent()->id.getGlobalCoreNumber(), regValues, 32);
+        unsigned long regValues[64];
+        memset(regValues, 0x00, sizeof(regValues));
+
+        int count = NUM_PHYSICAL_REGISTERS <= 64 ? NUM_PHYSICAL_REGISTERS : 64;
+
+        for (int i = 0; i < count; i++)
+        	if (i < 2 || i >= 2 + NUM_RECEIVE_CHANNELS)
+        		regValues[i] = readReg(i);
+
+        SoftwareTrace::logRegisterFileSnapshot(parent()->id.getGlobalCoreNumber(), regValues, 64);
       }
       break;
     }

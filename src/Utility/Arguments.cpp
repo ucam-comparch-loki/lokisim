@@ -94,9 +94,9 @@ void Arguments::parse(int argc, char* argv[]) {
     }
     else if (argument == "-swtrace") {
       softwareTraceFile_ = string(argv[i+1]);
-      SOFTWARE_TRACE = 1;
       SoftwareTrace::start(softwareTraceFile_);
       i++;  // Have used two arguments in this iteration.
+      SOFTWARE_TRACE = 1;
     }
     else if (argument == "--args") {
       // Pass command line options to the simulated program.
@@ -191,7 +191,8 @@ void Arguments::printHelp() {
     "  trace\n\tPrint the address of each instruction executed to stdout\n"
     "  -run <program>\n\tExecute the supplied program\n"
     "  -coretrace <file>\n"
-    "  -memtrace <file>\n\tDump particular types of information to a named file\n"
+    "  -memtrace <file>\n"
+    "  -swtrace <file>\n\tDump particular types of information to a named file\n"
     "  -Pparameter=value\n\tSet a named parameter to a particular value\n"
     "  --args [...]\n\tPass all remaining arguments to the simulated program\n"
     "  --help\n\tDisplay this information and exit\n"

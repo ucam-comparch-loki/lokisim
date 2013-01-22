@@ -149,6 +149,9 @@ void Parameters::printParameters() {
 		cout << "<@PARAM>MEMORY_ON_CHIP_SCRATCHPAD_DELAY:" << MEMORY_ON_CHIP_SCRATCHPAD_DELAY << "</@PARAM>" << endl;
 		cout << "<@PARAM>MEMORY_ON_CHIP_SCRATCHPAD_SIZE:" << MEMORY_ON_CHIP_SCRATCHPAD_SIZE << "</@PARAM>" << endl;
 		cout << "<@PARAM>MEMORY_ON_CHIP_SCRATCHPAD_BANKS:" << MEMORY_ON_CHIP_SCRATCHPAD_BANKS << "</@PARAM>" << endl;
+
+		cout << "<@PARAM>IPK_CACHE_SIZE:" << IPK_CACHE_SIZE << "</@PARAM>" << endl;
+		cout << "<@PARAM>IPK_CACHE_TAGS:" << IPK_CACHE_TAGS << "</@PARAM>" << endl;
 	}
 }
 
