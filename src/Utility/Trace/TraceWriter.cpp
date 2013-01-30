@@ -241,11 +241,6 @@ void TraceWriter::writeRecord(unsigned long controlByte, unsigned long component
 			mBuffer[mBufferCursor++] = delta >> 8;
 			mBuffer[mBufferCursor++] = delta & 0xFFULL;
 		}
-		// Flush buffer if necessary
-
-		if (mBufferCursor >= kBufferThreshold)
-			flushBuffer();
-
 	}
 
 	if (cycleNumberEncoding == 0x0) {
