@@ -13,6 +13,7 @@
 
 #include "../PipelineStage.h"
 #include "ALU.h"
+#include "Scratchpad.h"
 
 class ExecuteStage: public PipelineStage {
 
@@ -111,8 +112,10 @@ private:
 private:
 
   ALU alu;
+  Scratchpad scratchpad;
 
   friend class ALU;
+  friend class Scratchpad;
 
 //==============================//
 // Local state

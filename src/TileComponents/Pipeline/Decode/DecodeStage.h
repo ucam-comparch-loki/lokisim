@@ -72,11 +72,14 @@ private:
 
   // A second attempt at implementing execute(), but this time, avoiding the
   // use of expensive SC_THREADs by using a state machine.
-  virtual void   execute2();
+//  virtual void   execute2();
 
   // Determine whether this stage is stalled or not, and write the appropriate
   // output.
   virtual void   updateReady();
+
+  // Repeatedly execute a single instruction until unstall() is called.
+  void           persistentInstruction(DecodedInst& inst);
 
   // Pass the given instruction to the decoder to be decoded.
   virtual void   newInput(DecodedInst& inst);

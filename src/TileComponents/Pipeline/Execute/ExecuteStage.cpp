@@ -54,6 +54,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
     // Forward data from the previous instruction if necessary.
     if (operation.operand1Source() == DecodedInst::BYPASS && previousInstExecuted) {
       operation.operand1(forwardedResult);
+      operation.operand1Source(DecodedInst::IMMEDIATE); // So we don't forward again.
       if (DEBUG) cout << this->name() << " forwarding contents of register "
           << (int)operation.sourceReg1() << ": " << forwardedResult << endl;
       if (ENERGY_TRACE)
@@ -61,6 +62,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
     }
     if (operation.operand2Source() == DecodedInst::BYPASS && previousInstExecuted) {
       operation.operand2(forwardedResult);
+      operation.operand2Source(DecodedInst::IMMEDIATE); // So we don't forward again.
       if (DEBUG) cout << this->name() << " forwarding contents of register "
           << (int)operation.sourceReg2() << ": " << forwardedResult << endl;
       if (ENERGY_TRACE)
@@ -89,11 +91,13 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         break;
 
       case InstructionMap::OP_IWTR:
-        operation.result(operation.operand2());
+        // Send only lowest 8 bits of address - don't need mask in hardware.
+        scratchpad.write(operation.operand1() & 0xFF, operation.operand2());
         break;
 
       case InstructionMap::OP_IRDR:
-        operation.result(operation.operand1());
+        // Send only lowest 8 bits of address - don't need mask in hardware.
+        operation.result(scratchpad.read(operation.operand1() & 0xFF));
         break;
 
       case InstructionMap::OP_LLI:
@@ -112,6 +116,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
       case InstructionMap::OP_WOCHE:
         cerr << "woche not yet implemented" << endl;
         assert(false);
+        break;
 
       default:
         if (InstructionMap::isALUOperation(operation.opcode()))
@@ -172,6 +177,7 @@ bool ExecuteStage::fetch(DecodedInst& inst) {
   // one of them finishes arriving.
   if (!canCheckTags()) {
     blocked = true;
+    currentInst = inst;
     next_trigger(clock.posedge_event());
     return false;
   }
@@ -196,6 +202,7 @@ bool ExecuteStage::fetch(DecodedInst& inst) {
     default:
       cerr << "Error: called ExecuteStage::fetch with non-fetch instruction." << endl;
       assert(false);
+      break;
   }
 
   // Return whether the fetch request should be sent (it should be sent if the
@@ -312,7 +319,8 @@ const sc_event& ExecuteStage::executedEvent() const {
 
 ExecuteStage::ExecuteStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
-    alu("alu", ID) {
+    alu("alu", ID),
+    scratchpad("scratchpad", ID) {
 
   SC_METHOD(execute);
   sensitive << newInstructionEvent;

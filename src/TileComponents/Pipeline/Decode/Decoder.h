@@ -27,9 +27,9 @@ class Decoder: public Component {
 
 public:
 
-  void initialise(const DecodedInst& input);
-  void decode();
-  void collectOperands();
+//  void initialise(const DecodedInst& input);
+//  void decode();
+//  void collectOperands();
   void instructionFinished();
   bool needPredicateNow(const DecodedInst& inst) const;
   bool allOperandsReady() const;
@@ -52,8 +52,6 @@ public:
   bool ready() const;
   const sc_event& stalledEvent() const;
 
-private:
-
   // Wait for all operands to arrive. One or more operands may come from the
   // network, or need to be forwarded from another pipeline stage, and so may
   // not be ready when this instruction first reaches the decoder.
@@ -66,6 +64,8 @@ private:
   // Determine whether to read the second operand from the receive channel-end
   // table, the ALU, the register file, or the sign extender.
   void setOperand2(DecodedInst& dec);
+
+private:
 
   // Read a register value.
   int32_t readRegs(PortIndex port, RegisterIndex index, bool indirect = false);
@@ -126,7 +126,9 @@ private:
   bool blocked;
   sc_event blockedEvent;
 
+public:
   bool instructionCancelled;
+private:
   sc_event cancelEvent;
 
   // If the previous instruction was predicated, we may not know whether

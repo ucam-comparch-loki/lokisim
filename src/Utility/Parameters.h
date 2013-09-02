@@ -59,6 +59,7 @@ extern parameter	NUM_TILE_COLUMNS;
 
 extern parameter	NUM_ADDRESSABLE_REGISTERS;
 extern parameter	NUM_PHYSICAL_REGISTERS;
+extern parameter  CORE_SCRATCHPAD_SIZE;
 extern parameter	IPK_FIFO_SIZE;
 extern parameter	IPK_CACHE_SIZE;
 extern parameter  IPK_CACHE_TAGS;

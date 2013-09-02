@@ -10,6 +10,7 @@
  setchmapi          1,   r21                  # Set data fetch channel to memory bank
 
 # ori                r0,  r0, 0x00340103 -> 0  # Configuration command: General purpose cache, eight banks
+# 00 = command, 3 = log2(associativity), 4 = log2(linesize), 01 = cache mode?, 03 = log2(banks)
  lli                r22, 0x0103
  lui                r22, 0x0005
  addu               r0,  r22, r0        -> 0

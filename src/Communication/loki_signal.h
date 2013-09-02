@@ -47,13 +47,19 @@ public:
 
   // Write a new value to the wire.
   virtual void write(const T& val) {
-    // Copied from sc_buffer
+    // Copied from sc_buffer (and updated for SystemC 2.3)
+
+#if (SC_VERSION_MAJOR >= 2) && (SC_VERSION_MINOR >= 3)
+    if( !sc_signal<T>::policy_type::check_write(this,true) )
+      return;
+#else
     sc_object* writer = sc_core::sc_get_curr_simcontext()->get_current_writer();
     if(sc_signal<T>::m_writer == 0) {
       sc_signal<T>::m_writer = writer;
     } else if(sc_signal<T>::m_writer != writer) {
       sc_signal_invalid_writer(this, sc_signal<T>::m_writer, writer);
     }
+#endif
 
     this->m_new_val = val;
     this->request_update();
@@ -94,11 +100,22 @@ protected:
 
   // Update the value held in this wire (copied from sc_buffer).
   virtual void update() {
+    // New for SystemC 2.3
+#if (SC_VERSION_MAJOR >= 2) && (SC_VERSION_MINOR >= 3)
+    sc_signal<T>::policy_type::update();
+#endif
+
     this->m_cur_val = this->m_new_val;
     validData = true;
     if (sc_signal<T>::m_change_event_p)
       sc_signal<T>::m_change_event_p->notify(sc_core::SC_ZERO_TIME);
+
+    // Changed for SystemC 2.3
+#if (SC_VERSION_MAJOR >= 2) && (SC_VERSION_MINOR >= 3)
+    this->m_change_stamp = sc_signal<T>::simcontext()->change_stamp();
+#else
     this->m_delta = sc_core::sc_delta_count();
+#endif
   }
 
 //==============================//

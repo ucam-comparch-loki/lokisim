@@ -14,18 +14,21 @@ count_t IPKCache::numHits_ = 0;
 count_t IPKCache::numMisses_ = 0;
 count_t IPKCache::numReads_ = 0;
 count_t IPKCache::numWrites_ = 0;
-count_t IPKCache::tagHD_ = 0;   // Total Hamming distance in written cache tags
+count_t IPKCache::tagWriteHD_ = 0;   // Total Hamming distance in written cache tags
 count_t IPKCache::tagWrites_ = 0;
+count_t IPKCache::tagReadHD_ = 0;    // Total Hamming distance in read cache tags
 count_t IPKCache::tagsActive_ = 0;
 count_t IPKCache::dataActive_ = 0;
 
-void IPKCache::tagCheck(const ComponentID& core, bool hit) {
+void IPKCache::tagCheck(const ComponentID& core, bool hit, const MemoryAddr tag, const MemoryAddr prevCheck) {
   if (hit) numHits_++;
   else     numMisses_++;
+
+  tagReadHD_ += hammingDistance(tag, prevCheck);
 }
 
 void IPKCache::tagWrite(const MemoryAddr oldTag, const MemoryAddr newTag) {
-  tagHD_ += hammingDistance(oldTag, newTag);
+  tagWriteHD_ += hammingDistance(oldTag, newTag);
   tagWrites_++;
 }
 
@@ -86,7 +89,8 @@ void IPKCache::dumpEventCounts(std::ostream& os) {
   os << "<ipkcachetags entries=\"" << IPK_CACHE_TAGS << "\">\n"
      << xmlNode("instances", NUM_CORES) << "\n"
      << xmlNode("active", tagsActive_) << "\n"
-     << xmlNode("hd", tagHD_) << "\n"
+     << xmlNode("hd", tagWriteHD_) << "\n"
+     << xmlNode("tag_hd", tagReadHD_) << "\n"
      << xmlNode("write", tagWrites_) << "\n"
      << xmlNode("read", numTagChecks()) << "\n"
      << xmlEnd("ipkcachetags") << "\n";

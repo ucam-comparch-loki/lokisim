@@ -31,7 +31,7 @@ static cycle_count_t cyclesPerStep = 1;
   if (CORE_TRACE) CoreTrace::setClockCycle(cycleNumber);\
   if (MEMORY_TRACE) MemoryTrace::setClockCycle(cycleNumber);\
   if (SOFTWARE_TRACE) SoftwareTrace::setClockCycle(cycleNumber);\
-  sc_start(cyclesPerStep, SC_NS);\
+  sc_start((int)cyclesPerStep, SC_NS);\
 }
 
 int simulate();

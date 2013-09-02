@@ -47,6 +47,7 @@ void Operations::decoded(const ComponentID& core, const DecodedInst& dec) {
 }
 
 void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool executed) {
+  // Always increase numOps - this is used to determine if we're making progress.
   numOps_++;
 
   // Want to keep track of the number of operations so we can tell if we're
@@ -212,4 +213,9 @@ void Operations::dumpEventCounts(std::ostream& os) {
      << xmlNode("active", multiplies)   << "\n"
      << xmlNode("high_word", highWord)  << "\n"
      << xmlEnd("multiplier")            << "\n";
+
+  // All operations, including non-ALU ones.
+  os << "\n"
+     << xmlNode("operations", executedOps.numEvents() + executedFns.numEvents())
+     << "\n";
 }

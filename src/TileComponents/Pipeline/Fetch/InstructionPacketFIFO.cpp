@@ -67,7 +67,8 @@ void InstructionPacketFIFO::cancelPacket() {
 
 void InstructionPacketFIFO::jump(JumpOffset amount) {
   // Do we need to do something with tagMatched here too?
-  fifo.setReadPointer(fifo.getReadPointer() + amount);
+  fifo.setReadPointer(fifo.getReadPointer() + amount/BYTES_PER_WORD - 1);
+  // Is the -1 a hack?
 }
 
 bool InstructionPacketFIFO::isEmpty() const {

@@ -18,7 +18,7 @@ class IPKCache: public InstrumentationBase {
 
 public:
 
-  static void tagCheck(const ComponentID& core, bool hit);
+  static void tagCheck(const ComponentID& core, bool hit, const MemoryAddr tag, const MemoryAddr prevCheck);
   static void tagWrite(const MemoryAddr oldTag, const MemoryAddr newTag);
   static void tagActivity();
 
@@ -37,7 +37,7 @@ public:
 
 private:
 
-  static count_t numHits_, numMisses_, numReads_, numWrites_, tagHD_, tagWrites_;
+  static count_t numHits_, numMisses_, numReads_, numWrites_, tagWriteHD_, tagWrites_, tagReadHD_;
   static count_t tagsActive_, dataActive_;
 
 };

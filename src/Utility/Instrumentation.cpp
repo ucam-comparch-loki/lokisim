@@ -19,6 +19,7 @@
 #include "Instrumentation/Operations.h"
 #include "Instrumentation/PipelineReg.h"
 #include "Instrumentation/Registers.h"
+#include "Instrumentation/Scratchpad.h"
 #include "Instrumentation/Stalls.h"
 #include "../Datatype/AddressedWord.h"
 #include "../Datatype/DecodedInst.h"
@@ -32,6 +33,7 @@ void Instrumentation::initialise() {
   Operations::init();
   PipelineReg::init();
   Registers::init();
+  Scratchpad::init();
   Stalls::init();
 }
 
@@ -44,6 +46,7 @@ void Instrumentation::end() {
   Operations::end();
   PipelineReg::end();
   Registers::end();
+  Scratchpad::end();
   Stalls::end();
 }
 
@@ -67,6 +70,7 @@ void Instrumentation::dumpEventCounts(std::ostream& os) {
   Operations::dumpEventCounts(os);    os << "\n";
   PipelineReg::dumpEventCounts(os);   os << "\n";
   Registers::dumpEventCounts(os);     os << "\n";
+  Scratchpad::dumpEventCounts(os);    os << "\n";
   Stalls::dumpEventCounts(os);        os << "\n";
 
   os << "</lokitrace>\n";

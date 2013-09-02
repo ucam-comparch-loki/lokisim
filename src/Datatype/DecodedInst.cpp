@@ -70,6 +70,10 @@ const bool    DecodedInst::endOfIPK() const {
   return predicate() == Instruction::END_OF_PACKET;
 }
 
+const bool    DecodedInst::persistent() const {
+  return persistent_;
+}
+
 const bool    DecodedInst::endOfNetworkPacket() const {
   return endOfPacket_;
 }
@@ -101,6 +105,7 @@ void DecodedInst::result(const int64_t val) {
   hasResult_ = true;
 }
 
+void DecodedInst::persistent(const bool val)              {persistent_ = val;}
 void DecodedInst::endOfNetworkPacket(const bool val)      {endOfPacket_ = val;}
 void DecodedInst::portClaim(const bool val)               {portClaim_ = val;}
 void DecodedInst::usesCredits(const bool val)             {useCredits_ = val;}
@@ -215,6 +220,7 @@ void DecodedInst::init() {
   portClaim_        = false;
   useCredits_       = false;
   endOfPacket_      = true;                 // non-zero
+  persistent_       = false;
   networkDest_      = ChannelID();          // non-zero
   location_         = 0;
   hasResult_        = false;

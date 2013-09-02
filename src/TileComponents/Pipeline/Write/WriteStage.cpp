@@ -25,12 +25,15 @@ void WriteStage::newInput(DecodedInst& inst) {
   bool indirect = (inst.opcode() == InstructionMap::OP_IWTR);
 
   // Write to registers (they ignore the write if the index is invalid).
-  if(InstructionMap::storesResult(inst.opcode()) || indirect)
-    writeReg(inst.destination(), inst.result(), indirect);
+  //if(InstructionMap::storesResult(inst.opcode()) || indirect)
+  //  writeReg(inst.destination(), inst.result(), indirect);
+  if (InstructionMap::storesResult(inst.opcode()) && !indirect)
+    writeReg(inst.destination(), inst.result());
 
   // We can't forward data if this is an indirect write because we don't
   // know where the data will be written.
-  if(indirect) inst.destination(0);
+  if (indirect)
+    inst.destination(0);
 }
 
 void WriteStage::sendData() {

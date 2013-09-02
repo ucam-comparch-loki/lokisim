@@ -13,7 +13,7 @@ IPKCacheFullyAssociative::IPKCacheFullyAssociative(const size_t size,
     IPKCacheBase(size, numTags, name),
     alignment(size/numTags) {
 
-  // Do nothing
+  assert(alignment != 0);
 
 }
 

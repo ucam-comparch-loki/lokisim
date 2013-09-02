@@ -26,6 +26,8 @@ private:
 
 	// Indicates whether a connection set up through a port claim message uses
 	// credit based flow control.
+	// TODO: could this be encoded in the setup message, rather than needing to
+	// be sent with every message?
 	bool useCredits_;
 
 	bool endOfPacket_;

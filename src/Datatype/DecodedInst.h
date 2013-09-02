@@ -71,6 +71,7 @@ public:
   const bool    isALUOperation() const;
   const bool    isMemoryOperation() const;
   const bool    endOfIPK() const;
+  const bool    persistent() const;
   const bool    endOfNetworkPacket() const;
   const inst_name_t& name() const;
 
@@ -93,6 +94,7 @@ public:
   void    result(const int64_t val);
   void    location(const MemoryAddr val);
 
+  void    persistent(const bool val);
   void    endOfNetworkPacket(const bool val);
   void    portClaim(const bool val);
   void    usesCredits(const bool val);
@@ -187,6 +189,7 @@ private:
 
   bool    portClaim_;
   bool    useCredits_;
+  bool    persistent_;
   bool    endOfPacket_;
   ChannelID networkDest_;
 

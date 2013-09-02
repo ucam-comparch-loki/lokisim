@@ -15,6 +15,12 @@ void         DecodeStage::execute() {
     wait(newInstructionEvent);
     newInput(currentInst);
     instructionCompleted();
+
+    // If the instruction is to be executed repeatedly, switch into persistent
+    // mode and keep issuing the now-decoded instruction.
+    // TODO: make sure currentInst is set correctly
+    if (currentInst.persistent())
+      persistentInstruction(currentInst);
   }
 }
 
@@ -30,6 +36,48 @@ void         DecodeStage::updateReady() {
   }
 }
 
+void         DecodeStage::persistentInstruction(DecodedInst& inst) {
+  // TODO: figure out what to do with store instructions.
+  // They split into two sub-ops, so we may still need the decoder.
+
+  // Determine if any of the registers read by this instruction are in fact
+  // constants. Constants only need to be read once, not every cycle.
+  bool constantReg1 = inst.hasSrcReg1() && (inst.sourceReg1() != inst.destination())
+      && !IndirectRegisterFile::isChannelEnd(inst.sourceReg1());
+  bool constantReg2 = inst.hasSrcReg2() && (inst.sourceReg2() != inst.destination())
+      && !IndirectRegisterFile::isChannelEnd(inst.sourceReg2());
+
+  while (true) {
+    wait(clock.posedge_event());
+    decoder.waitForOperands(inst);
+
+    // Bail before attempting to read any channel ends if the instruction was
+    // cancelled.
+    if (decoder.instructionCancelled) {
+      decoder.instructionCancelled = false;
+      break;
+    }
+
+    if (!constantReg1)
+      decoder.setOperand1(inst);
+    if (!constantReg2)
+      decoder.setOperand2(inst);
+
+    // Should do this check earlier, before gathering operands.
+    if (!canSendInstruction()) {
+      waitingToSend = true;
+      wait(canSendEvent());
+    }
+
+    waitingToSend = false;
+    outputInstruction(inst);
+
+    instructionCompleted();
+  }
+
+}
+
+/*
 void DecodeStage::execute2() {
   // No matter which state we are in, we must stall if there is no room in the
   // output pipeline register.
@@ -122,6 +170,7 @@ void DecodeStage::execute2() {
 
   } // end switch
 }
+*/
 
 void         DecodeStage::newInput(DecodedInst& inst) {
   if (DEBUG) cout << decoder.name() << " received Instruction: "
@@ -135,10 +184,11 @@ void         DecodeStage::newInput(DecodedInst& inst) {
   // end of the current one.
   startingNewPacket = inst.endOfIPK();
 
+  DecodedInst decoded;
+
   // Use a while loop to decode the instruction in case multiple outputs
   // are produced.
   while (true) {
-    DecodedInst decoded;
 
     // Some instructions don't produce any output, or won't be executed.
     bool usefulOutput = decoder.decodeInstruction(inst, decoded);
@@ -165,6 +215,8 @@ void         DecodeStage::newInput(DecodedInst& inst) {
     // Try again next cycle if the decoder is still busy.
     else wait(clock.posedge_event());
   }
+
+  currentInst = decoded;
 }
 
 bool         DecodeStage::isStalled() const {
@@ -227,6 +279,7 @@ void         DecodeStage::jump(JumpOffset offset) const {
 
 void         DecodeStage::unstall() {
   decoder.cancelInstruction();
+  currentInst.persistent(false);
 
   // We are aborting the current instruction packet, so the next instruction
   // will be the start of a new packet.

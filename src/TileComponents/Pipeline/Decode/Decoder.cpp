@@ -17,6 +17,7 @@
 
 typedef IndirectRegisterFile Registers;
 
+/*
 void Decoder::initialise(const DecodedInst& input) {
   current = input;
 
@@ -222,6 +223,7 @@ void Decoder::decode() {
 
   } // end switch
 }
+*/
 
 void Decoder::instructionFinished() {
   // If the instruction will not reach the ALU, record that it executed here.
@@ -440,14 +442,14 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     // consume the value now so that channel reads are in program order. This
     // means the write is no longer indirect, so change the operation to "or".
     // FIXME: this seems like an awkward thing to do. Temporarily disabled.
-    case InstructionMap::OP_IWTR: {
+//    case InstructionMap::OP_IWTR: {
 //      if(Registers::isChannelEnd(input.sourceReg1())) {
 //        output.sourceReg1(readRegs(input.sourceReg1()));
 //        output.opcode(InstructionMap::OP_OR);
 //      }
-
-      output.destination(output.sourceReg1());
-    }
+//
+//      output.destination(output.sourceReg1());
+//    }
 
     default: break;
   } // end switch
@@ -479,7 +481,7 @@ void Decoder::waitForOperands(const DecodedInst& dec) {
     if (!dec.isALUOperation() && !dec.isMemoryOperation() && (dec.sourceReg1() == previous.destination())) {
       Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_FORWARDING);
       // HACK! May take multiple cycles. FIXME
-      // Add an extra 0.1 cycles to allow ensure that the result is ready for forwarding.
+      // Add an extra 0.1 cycles to ensure that the result is ready for forwarding.
       // Would ideally like to use execute.executedEvent(), but then also need
       // to check for whether the instruction has already executed.
       wait(1.1, sc_core::SC_NS);
@@ -496,7 +498,8 @@ void Decoder::waitForOperands(const DecodedInst& dec) {
 
 void Decoder::setOperand1(DecodedInst& dec) {
   RegisterIndex reg = dec.sourceReg1();
-  bool indirect = dec.opcode() == InstructionMap::OP_IRDR;
+//  bool indirect = dec.opcode() == InstructionMap::OP_IRDR;
+  bool indirect = false;
 
   if ((reg == previous.destination()) && !indirect) {
     dec.operand1Source(DecodedInst::BYPASS);
@@ -635,8 +638,10 @@ bool Decoder::discardNextInst() const {
 }
 
 void Decoder::cancelInstruction() {
-  instructionCancelled = true;
-  cancelEvent.notify();
+  if (blocked) {
+    instructionCancelled = true;
+    cancelEvent.notify();
+  }
 }
 
 /* Sends the second part of a two-flit store operation (the data to send). */

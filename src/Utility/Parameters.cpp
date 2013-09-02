@@ -60,6 +60,7 @@ parameter NUM_TILE_COLUMNS           = 1;
 
 parameter NUM_ADDRESSABLE_REGISTERS  = 32;
 parameter NUM_PHYSICAL_REGISTERS     = 64;
+parameter CORE_SCRATCHPAD_SIZE       = 64;
 parameter IPK_FIFO_SIZE              = 24;  // Make smaller once SIMD is sorted
 parameter IPK_CACHE_SIZE             = 0;   // Set in params.txt
 parameter IPK_CACHE_TAGS             = 0;   // Set in params.txt
@@ -121,7 +122,8 @@ void Parameters::parseParameter(const string &name, const string &value) {
   else SET_IF_MATCH(cName, nValue, IPK_CACHE_SIZE);
   else SET_IF_MATCH(cName, nValue, IPK_CACHE_TAGS);
 	else SET_IF_MATCH(cName, nValue, CHANNEL_MAP_SIZE);
-	else SET_IF_MATCH(cName, nValue, MAX_IPK_SIZE);
+  else SET_IF_MATCH(cName, nValue, MAX_IPK_SIZE);
+  else SET_IF_MATCH(cName, nValue, CORE_SCRATCHPAD_SIZE);
 	else SET_IF_MATCH(cName, nValue, MEMORY_CHANNEL_MAP_TABLE_ENTRIES);
 	else SET_IF_MATCH(cName, nValue, MEMORY_BANK_SIZE);
 	else SET_IF_MATCH(cName, nValue, MEMORY_CACHE_RANDOM_REPLACEMENT);

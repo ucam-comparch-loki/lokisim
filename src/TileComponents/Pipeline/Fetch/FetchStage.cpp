@@ -51,6 +51,9 @@ bool FetchStage::waitingForInstructions() {
   if (jumpedThisCycle)
     return false;
 
+  // TODO: if the current packet isn't going to be executed, wait until it
+  // finishes arriving or switch to the pending packet.
+
   if (finishedPacketRead) {
     // See if we're due to execute the same packet again.
     if (currentPacket.persistent)
@@ -83,8 +86,6 @@ void FetchStage::getInstruction() {
 
   assert(canSendInstruction());
 
-//  cout << this->name() << " finishedPacketRead = " << finishedPacketRead << endl;
-
 
   if (finishedPacketRead) {
     switchToPendingPacket();
@@ -92,10 +93,6 @@ void FetchStage::getInstruction() {
   }
 
   MemoryAddr instAddr = currentAddr;
-
-//  cout << this->name() << " reading instruction from memory address " << instAddr << endl;
-
-  currentAddr += BYTES_PER_WORD;
   Instruction instruction;
 
   InstructionStore& source = currentInstructionSource();
@@ -130,10 +127,17 @@ void FetchStage::getInstruction() {
 
   if (decoded.endOfIPK()) {
     reachedEndOfPacket();
-//    cout << this->name() << " reached eop; finishedPacketRead = " << finishedPacketRead << endl;
+
+    // Check for the special case of single-instruction persistent packets.
+    // These do not need to be read repeatedly, so remove the persistent flag.
+    if (currentPacket.persistent && currentPacket.memAddr == currentAddr) {
+      decoded.persistent(true);
+      currentPacket.persistent = false;
+    }
   }
 
   jumpedThisCycle = false;
+  currentAddr += BYTES_PER_WORD;
 
   outputInstruction(decoded);
   instructionCompleted();
@@ -205,8 +209,16 @@ bool FetchStage::inCache(const MemoryAddr addr, opcode_t operation) {
   if (packet.inCache && !packet.execute)
     packet.reset();
 
+  // If we're in persistent execution mode, but just fetched a new packet, stop
+  // executing this packet.
+  // Note that the fetch must currently be the last instruction of the packet.
+  if (packet.execute && currentPacket.persistent)
+    nextIPK();
+
   if (ENERGY_TRACE)
-    Instrumentation::IPKCache::tagCheck(id, packet.inCache);
+    Instrumentation::IPKCache::tagCheck(id, packet.inCache, addr, previousFetch);
+
+  previousFetch = addr;
 
   if (idle.read() && !packet.inCache) {
 //    idle.write(false);
@@ -295,8 +307,6 @@ MemoryAddr FetchStage::newPacketArriving(const InstLocation& location) {
   // or by the debugger), we won't have a tag, so provide one.
   if (packet->memAddr == DEFAULT_TAG)
     packet->memAddr = 0;
-//  else
-//    cout << this->name() << " receiving packet at address " << packet->memAddr << endl;
 
   // Return the memory address, so the instruction store can give the packet a
   // tag.
