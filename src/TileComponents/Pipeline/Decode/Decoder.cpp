@@ -12,6 +12,7 @@
 #include "../../../Datatype/Instruction.h"
 #include "../../../Datatype/MemoryRequest.h"
 #include "../../../Utility/Trace/CoreTrace.h"
+#include "../../../Utility/Trace/LBTTrace.h"
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Utility/Instrumentation.h"
 
@@ -296,7 +297,86 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
   if (ENERGY_TRACE)
     Instrumentation::decoded(id, input);
+
   CoreTrace::decodeInstruction(id.getPosition(), input.location(), input.endOfIPK());
+
+  if (LBT_TRACE) {
+	LBTTrace::LBTOperationType opType;
+
+    switch (input.opcode()) {
+	case InstructionMap::OP_LDW:
+		opType = LBTTrace::LoadWord;
+		break;
+
+	case InstructionMap::OP_LDHWU:
+		opType = LBTTrace::LoadHalfWord;
+		break;
+
+	case InstructionMap::OP_LDBU:
+		opType = LBTTrace::LoadByte;
+		break;
+
+	case InstructionMap::OP_STW:
+		opType = LBTTrace::StoreWord;
+		break;
+
+	case InstructionMap::OP_STHW:
+		opType = LBTTrace::StoreHalfWord;
+		break;
+
+	case InstructionMap::OP_STB:
+		opType = LBTTrace::StoreByte;
+		break;
+
+	case InstructionMap::OP_FETCH:
+	case InstructionMap::OP_FETCHR:
+	case InstructionMap::OP_FETCHPST:
+	case InstructionMap::OP_FETCHPSTR:
+	case InstructionMap::OP_FILL:
+	case InstructionMap::OP_FILLR:
+	case InstructionMap::OP_PSEL_FETCH:
+		opType = LBTTrace::Fetch;
+		break;
+
+	case InstructionMap::OP_IWTR:
+		opType = LBTTrace::ScratchpadWrite;
+		break;
+
+	case InstructionMap::OP_IRDR:
+		opType = LBTTrace::ScratchpadRead;
+		break;
+
+	case InstructionMap::OP_LLI:
+	case InstructionMap::OP_LUI:
+		opType = LBTTrace::LoadImmediate;
+		break;
+
+	case InstructionMap::OP_SYSCALL:
+		opType = LBTTrace::SystemCall;
+		break;
+
+	default:
+		if (InstructionMap::isALUOperation(input.opcode())) {
+			if (input.function() == InstructionMap::FN_MULHW || input.function() == InstructionMap::FN_MULLW || input.function() == InstructionMap::FN_MULHWU)
+				opType = LBTTrace::ALU2;
+			else
+				opType = LBTTrace::ALU1;
+		} else {
+			opType = LBTTrace::Control;
+		}
+
+		break;
+    }
+
+	unsigned long long isid = LBTTrace::logDecodedInstruction(input.location(), opType, input.endOfIPK());
+
+	LBTTrace::setInstructionExecuteFlag(isid, execute);
+	LBTTrace::setInstructionInputChannels(isid, input.sourceReg1() - 2, Registers::isChannelEnd(input.sourceReg1()), input.sourceReg2() - 2, Registers::isChannelEnd(input.sourceReg2()));
+
+	input.isid(isid);
+	output.isid(isid);
+  }
+
   if (/*ENERGY_TRACE &&*/ !input.isALUOperation())
     Instrumentation::executed(id, input, execute);
 
@@ -304,7 +384,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   // and we know it won't execute, stop it here.
   if(!execute && (Registers::isChannelEnd(input.sourceReg1()) ||
                   Registers::isChannelEnd(input.sourceReg2()))) {
-    return true;
+	return true;
   }
 
   // Wait for any unavailable operands to arrive (either over the network, or
@@ -316,6 +396,10 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     if (DEBUG)
       cout << this->name() << " aborting " << input << endl;
     instructionCancelled = false;
+
+    if (LBT_TRACE)
+   	  LBTTrace::setInstructionExecuteFlag(input.isid(), false);
+
     return false;
   }
 

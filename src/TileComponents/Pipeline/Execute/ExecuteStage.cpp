@@ -10,6 +10,7 @@
 #include "../../../Datatype/MemoryRequest.h"
 #include "../../../Utility/Instrumentation.h"
 #include "../../../Utility/Instrumentation/Registers.h"
+#include "../../../Utility/Trace/LBTTrace.h"
 
 bool ExecuteStage::readPredicate() const {return parent()->readPredReg();}
 int32_t ExecuteStage::readReg(RegisterIndex reg) const {return parent()->readReg(1, reg);}
@@ -47,6 +48,9 @@ void ExecuteStage::updateReady() {
 void ExecuteStage::newInput(DecodedInst& operation) {
   // See if the instruction should execute.
   bool willExecute = checkPredicate(operation);
+
+  if (LBT_TRACE)
+	LBTTrace::setInstructionExecuteFlag(operation.isid(), willExecute);
 
   if (willExecute) {
     bool success = true;
@@ -110,7 +114,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         break;
 
       case InstructionMap::OP_SYSCALL:
-        alu.systemCall(operation.immediate());
+        alu.systemCall(operation);
         break;
 
       case InstructionMap::OP_WOCHE:
@@ -121,6 +125,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
       default:
         if (InstructionMap::isALUOperation(operation.opcode()))
           alu.execute(operation);
+
         break;
     } // end switch
 
@@ -148,6 +153,18 @@ void ExecuteStage::newInput(DecodedInst& operation) {
 
 void ExecuteStage::sendOutput() {
   if (currentInst.sendsOnNetwork()) {
+	if (LBT_TRACE) {
+	  // FIXME: I am not sure whether I understood the calculation of memory addresses completely - set them here to get final result
+
+	  if (currentInst.opcode() == InstructionMap::OP_LDW ||
+		currentInst.opcode() == InstructionMap::OP_LDHWU ||
+		currentInst.opcode() == InstructionMap::OP_LDBU ||
+		currentInst.opcode() == InstructionMap::OP_STW ||
+		currentInst.opcode() == InstructionMap::OP_STHW ||
+		currentInst.opcode() == InstructionMap::OP_STB)
+		LBTTrace::setInstructionMemoryAddress(currentInst.isid(), currentInst.result());
+	}
+
     // Memory operations may be sent to different memory banks depending on the
     // address accessed.
     // In practice, this would be performed by a separate, small functional
@@ -204,6 +221,9 @@ bool ExecuteStage::fetch(DecodedInst& inst) {
       assert(false);
       break;
   }
+
+  if (LBT_TRACE)
+	LBTTrace::setInstructionMemoryAddress(inst.isid(), fetchAddress);
 
   // Return whether the fetch request should be sent (it should be sent if the
   // tag is not in the cache).

@@ -12,6 +12,7 @@
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Utility/Instrumentation.h"
 #include "../../../Utility/Trace/SoftwareTrace.h"
+#include "../../../Utility/Trace/LBTTrace.h"
 
 void ALU::execute(DecodedInst& dec) const {
 
@@ -133,12 +134,29 @@ ALU::ALU(const sc_module_name& name, const ComponentID& ID) : Component(name, ID
 #include <sys/stat.h>
 #include <fcntl.h>
 
-void ALU::systemCall(int code) const {
+void ALU::systemCall(DecodedInst& dec) const {
   // Note: for now, all system calls will complete instantaneously. This is
   // not at all realistic, so performance of programs executing system calls
   // should be measured with care.
   // Check regularly to ensure that the implementation exactly matches that in
   // Alex's interp.c.
+
+  int code = dec.immediate();
+
+  unsigned long regValues[64];
+
+  if (SOFTWARE_TRACE || LBT_TRACE) {
+    memset(regValues, 0x00, sizeof(regValues));
+
+    unsigned long count = NUM_PHYSICAL_REGISTERS <= 64 ? NUM_PHYSICAL_REGISTERS : 64;
+
+    for (unsigned long i = 0; i < count; i++)
+      if (i < 2 || i >= 2 + NUM_RECEIVE_CHANNELS)
+        regValues[i] = readReg(i);
+
+    if (LBT_TRACE)
+      LBTTrace::setInstructionSystemCallInfo(dec.isid(), code, regValues, 64, NULL, 0);
+  }
 
   switch (code) {
     case 0x1: { /* SYS_exit */
@@ -249,18 +267,8 @@ void ALU::systemCall(int code) const {
       CORE_TRACE = 0;
       break;
     case 0x26: { /* software triggered register file snapshot */
-      if (SOFTWARE_TRACE) {
-        unsigned long regValues[64];
-        memset(regValues, 0x00, sizeof(regValues));
-
-        int count = NUM_PHYSICAL_REGISTERS <= 64 ? NUM_PHYSICAL_REGISTERS : 64;
-
-        for (int i = 0; i < count; i++)
-        	if (i < 2 || i >= 2 + NUM_RECEIVE_CHANNELS)
-        		regValues[i] = readReg(i);
-
+      if (SOFTWARE_TRACE)
         SoftwareTrace::logRegisterFileSnapshot(parent()->id.getGlobalCoreNumber(), regValues, 64);
-      }
       break;
     }
 

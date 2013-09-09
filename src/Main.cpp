@@ -14,6 +14,7 @@
 #include "Utility/Trace/CoreTrace.h"
 #include "Utility/Trace/MemoryTrace.h"
 #include "Utility/Trace/SoftwareTrace.h"
+#include "Utility/Trace/LBTTrace.h"
 #include "Utility/StartUp/CodeLoader.h"
 #include "Utility/Statistics.h"
 
@@ -173,6 +174,8 @@ int simulate() {
     MemoryTrace::stop();
   if (SOFTWARE_TRACE)
 	SoftwareTrace::stop();
+  if (LBT_TRACE)
+	LBTTrace::stop();
 
   return RETURN_CODE;
 }

@@ -11,6 +11,7 @@
 #include "Trace/CoreTrace.h"
 #include "Trace/MemoryTrace.h"
 #include "Trace/SoftwareTrace.h"
+#include "Trace/LBTTrace.h"
 #include "../Chip.h"
 
 bool Arguments::simulate_ = true;
@@ -24,6 +25,7 @@ string Arguments::coreTraceFile_ = "";
 string Arguments::memTraceFile_ = "";
 string Arguments::energyTraceFile_ = "";
 string Arguments::softwareTraceFile_ = "";
+string Arguments::lbtTraceFile_ = "";
 std::stringstream Arguments::invocation_;
 
 void Arguments::parse(int argc, char* argv[]) {
@@ -97,6 +99,12 @@ void Arguments::parse(int argc, char* argv[]) {
       SoftwareTrace::start(softwareTraceFile_);
       i++;  // Have used two arguments in this iteration.
       SOFTWARE_TRACE = 1;
+    }
+    else if (argument == "-lbttrace") {
+      lbtTraceFile_ = string(argv[i+1]);
+      LBTTrace::start(lbtTraceFile_);
+      i++;  // Have used two arguments in this iteration.
+      LBT_TRACE = 1;
     }
     else if (argument == "--args") {
       // Pass command line options to the simulated program.
@@ -192,7 +200,8 @@ void Arguments::printHelp() {
     "  -run <program>\n\tExecute the supplied program\n"
     "  -coretrace <file>\n"
     "  -memtrace <file>\n"
-    "  -swtrace <file>\n\tDump particular types of information to a named file\n"
+    "  -swtrace <file>\n"
+    "  -lbttrace <file>\n\tDump particular types of information to a named file\n"
     "  -Pparameter=value\n\tSet a named parameter to a particular value\n"
     "  --args [...]\n\tPass all remaining arguments to the simulated program\n"
     "  --help\n\tDisplay this information and exit\n"

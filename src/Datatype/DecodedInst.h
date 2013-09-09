@@ -106,6 +106,9 @@ public:
   const bool storesToRegister() const;
   const AddressedWord toAddressedWord() const;
 
+  void isid(const unsigned long long isid) const;
+  const unsigned long long isid() const;
+
   // Invalidate this instruction in such a way that it will never be able to
   // forward its result to another instruction. This may be useful if the
   // instruction will not be executed, or is more than a cycle old.
@@ -199,6 +202,7 @@ private:
   // Can't just use != 0 because it may have been set to 0.
   bool    hasResult_;
 
+  mutable unsigned long long isid_;
 };
 
 #endif /* DECODEDINST_H_ */

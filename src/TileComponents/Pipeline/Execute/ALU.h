@@ -37,7 +37,7 @@ public:
   void execute(DecodedInst& operation) const;
 
   // Carry out a system call. All system calls are currently instant.
-  void systemCall(int code) const;
+  void systemCall(DecodedInst& dec) const;
 
 private:
 

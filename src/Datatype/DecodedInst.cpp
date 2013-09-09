@@ -133,6 +133,14 @@ const AddressedWord DecodedInst::toAddressedWord() const {
   return aw;
 }
 
+void DecodedInst::isid(const unsigned long long isid) const {
+  isid_ = isid;
+}
+
+const unsigned long long DecodedInst::isid() const {
+  return isid_;
+}
+
 void DecodedInst::preventForwarding() {
   // No instruction reads data from register 0, so the result will not be
   // forwarded.
