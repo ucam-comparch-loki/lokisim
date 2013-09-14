@@ -16,7 +16,7 @@
 #include "LBCFFile.h"
 
 /*
- * Loki binary DUT input dump file format definitions
+ * Loki binary trace file format definitions
  */
 
 #pragma pack(push)

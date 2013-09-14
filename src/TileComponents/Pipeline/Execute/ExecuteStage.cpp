@@ -156,12 +156,12 @@ void ExecuteStage::sendOutput() {
 	if (LBT_TRACE) {
 	  // FIXME: I am not sure whether I understood the calculation of memory addresses completely - set them here to get final result
 
-	  if (currentInst.opcode() == InstructionMap::OP_LDW ||
+	  if ((currentInst.opcode() == InstructionMap::OP_LDW ||
 		currentInst.opcode() == InstructionMap::OP_LDHWU ||
 		currentInst.opcode() == InstructionMap::OP_LDBU ||
 		currentInst.opcode() == InstructionMap::OP_STW ||
 		currentInst.opcode() == InstructionMap::OP_STHW ||
-		currentInst.opcode() == InstructionMap::OP_STB)
+		currentInst.opcode() == InstructionMap::OP_STB) && currentInst.memoryOp() != MemoryRequest::PAYLOAD_ONLY)
 		LBTTrace::setInstructionMemoryAddress(currentInst.isid(), currentInst.result());
 	}
 

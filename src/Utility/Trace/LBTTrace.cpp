@@ -256,6 +256,8 @@ void setClockCycle(unsigned long long cycleNumber) {
 // Log activity
 
 unsigned long long logDecodedInstruction(unsigned long instructionAddress, LBTOperationType operationType, bool endOfPacket) {
+	assert((instructionAddress & 0x3) == 0);
+
 	if (traceWriter != NULL) {
 		flushBufferedInstruction();
 
@@ -286,6 +288,16 @@ void setInstructionMemoryAddress(unsigned long long isid, unsigned long address)
 	if (traceWriter != NULL) {
 		for (unsigned long i = 0; i < kTraceInstructionBufferSize; i++) {
 			if (traceInstructionBuffer[i].ISID == isid) {
+				assert((traceInstructionBuffer[i].OperationType == LoadWord && (address & 0x3) == 0) ||
+					(traceInstructionBuffer[i].OperationType == LoadHalfWord && (address & 0x1) == 0) ||
+					(traceInstructionBuffer[i].OperationType == LoadByte) ||
+					(traceInstructionBuffer[i].OperationType == StoreWord && (address & 0x3) == 0) ||
+					(traceInstructionBuffer[i].OperationType == StoreHalfWord && (address & 0x1) == 0) ||
+					(traceInstructionBuffer[i].OperationType == StoreByte) ||
+					(traceInstructionBuffer[i].OperationType == ScratchpadRead && (address & 0x3) == 0) ||
+					(traceInstructionBuffer[i].OperationType == ScratchpadWrite && (address & 0x3) == 0) ||
+					(traceInstructionBuffer[i].OperationType == Fetch && (address & 0x3) == 0));
+
 				traceInstructionBuffer[i].MemoryAddress = address;
 				traceInstructionBuffer[i].MemoryAddressSet = true;
 				return;
