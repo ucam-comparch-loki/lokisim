@@ -176,6 +176,7 @@ ReevaluateRequest:
 		// A bit of a hack but simplifies the code considerably
 
 		mActiveTableIndex = mActiveRingRequestInput.Header.BurstReadHandOff.TableIndex;
+		mActiveReturnChannel = mActiveRingRequestInput.Header.BurstReadHandOff.ReturnChannel;
 		mActiveRequest = MemoryRequest(MemoryRequest::BURST_READ, 0);
 		mActiveAddress = mActiveRingRequestInput.Header.BurstReadHandOff.Address;
 		mActiveBurstLength = mActiveRingRequestInput.Header.BurstReadHandOff.Count;
@@ -203,6 +204,7 @@ ReevaluateRequest:
 		// A bit of a hack but simplifies the code considerably
 
 		mActiveTableIndex = mActiveRingRequestInput.Header.IPKReadHandOff.TableIndex;
+		mActiveReturnChannel = mActiveRingRequestInput.Header.IPKReadHandOff.ReturnChannel;
 		mActiveRequest = MemoryRequest(MemoryRequest::IPK_READ, 0);
 		mActiveAddress = mActiveRingRequestInput.Header.IPKReadHandOff.Address;
 		mPartialInstructionPending = mActiveRingRequestInput.Header.IPKReadHandOff.PartialInstructionPending;
@@ -229,11 +231,13 @@ ReevaluateRequest:
 				mActiveRingRequestInput.Header.BurstReadHandOff.Address = request.Header.PassThrough.Address;
 				mActiveRingRequestInput.Header.BurstReadHandOff.Count = request.Header.PassThrough.Count;
 				mActiveRingRequestInput.Header.BurstReadHandOff.TableIndex = request.Header.PassThrough.TableIndex;
+				mActiveRingRequestInput.Header.BurstReadHandOff.ReturnChannel = request.Header.PassThrough.ReturnChannel;
 				break;
 
 			case RING_IPK_READ_HAND_OFF:
 				mActiveRingRequestInput.Header.IPKReadHandOff.Address = request.Header.PassThrough.Address;
 				mActiveRingRequestInput.Header.IPKReadHandOff.TableIndex = request.Header.PassThrough.TableIndex;
+				mActiveRingRequestInput.Header.IPKReadHandOff.ReturnChannel = request.Header.PassThrough.ReturnChannel;
 				mActiveRingRequestInput.Header.IPKReadHandOff.PartialInstructionPending = request.Header.PassThrough.PartialInstructionPending;
 				mActiveRingRequestInput.Header.IPKReadHandOff.PartialInstructionData = request.Header.PassThrough.PartialInstructionData;
 				break;
@@ -280,6 +284,7 @@ bool MemoryBank::processMessageHeader() {
 		return false;
 
 	mActiveTableIndex = mInputQueue.peek().channelID().getChannel();
+	mActiveReturnChannel = mInputQueue.peek().returnAddr();
 	mActiveRequest = MemoryRequest(mInputQueue.peek().payload());
 	bool inputWordProcessed = true;
 
@@ -470,7 +475,7 @@ void MemoryBank::processFetchBurstLength() {
 
 void MemoryBank::processLocalMemoryAccess() {
 	assert(mBankMode != MODE_INACTIVE);
-	assert(mChannelMapTable[mActiveTableIndex].Valid);
+	assert(mActiveTableIndex < 8 || mChannelMapTable[mActiveTableIndex].Valid);
 
 	if (mOutputQueue.full() && (mActiveRequest.getOperation() == MemoryRequest::LOAD_W || mActiveRequest.getOperation() == MemoryRequest::LOAD_HW || mActiveRequest.getOperation() == MemoryRequest::LOAD_B)) {
 		// Delay load request until there is room in the output queue available
@@ -513,6 +518,7 @@ void MemoryBank::processLocalMemoryAccess() {
 
 			OutputWord outWord;
 			outWord.TableIndex = mActiveTableIndex;
+			outWord.ReturnChannel = mActiveReturnChannel;
 			outWord.Data = Word(data);
 			outWord.PortClaim = false;
 			outWord.LastWord = true;
@@ -595,6 +601,7 @@ void MemoryBank::processLocalMemoryAccess() {
 
 				OutputWord outWord;
 				outWord.TableIndex = mActiveTableIndex;
+	      outWord.ReturnChannel = mActiveReturnChannel;
 				outWord.Data = Word(data);
 				outWord.PortClaim = false;
 				outWord.LastWord = true;
@@ -673,7 +680,7 @@ void MemoryBank::processLocalMemoryAccess() {
 
 void MemoryBank::processLocalIPKRead() {
 	assert(mBankMode != MODE_INACTIVE);
-	assert(mChannelMapTable[mActiveTableIndex].Valid);
+	assert(mActiveTableIndex < 8 || mChannelMapTable[mActiveTableIndex].Valid);
 	assert(mActiveRequest.getOperation() == MemoryRequest::IPK_READ);
 
 	if (mOutputQueue.full()) {
@@ -692,6 +699,7 @@ void MemoryBank::processLocalIPKRead() {
 
     OutputWord outWord;
     outWord.TableIndex = mActiveTableIndex;
+    outWord.ReturnChannel = mActiveReturnChannel;
     outWord.Data = inst;
     outWord.PortClaim = false;
     outWord.LastWord = endOfPacket;
@@ -726,6 +734,7 @@ void MemoryBank::processLocalIPKRead() {
             mDelayedRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
             mDelayedRingRequestOutput.Header.PassThrough.Count = 0;
             mDelayedRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
+            mDelayedRingRequestOutput.Header.PassThrough.ReturnChannel = mActiveReturnChannel;
             mDelayedRingRequestOutput.Header.PassThrough.PartialInstructionPending = false;
             mDelayedRingRequestOutput.Header.PassThrough.PartialInstructionData = 0;
 
@@ -738,6 +747,7 @@ void MemoryBank::processLocalIPKRead() {
             mActiveRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
             mActiveRingRequestOutput.Header.PassThrough.Count = 0;
             mActiveRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
+            mActiveRingRequestOutput.Header.PassThrough.ReturnChannel = mActiveReturnChannel;
             mActiveRingRequestOutput.Header.PassThrough.PartialInstructionPending = false;
             mActiveRingRequestOutput.Header.PassThrough.PartialInstructionData = 0;
 
@@ -751,6 +761,7 @@ void MemoryBank::processLocalIPKRead() {
             mDelayedRingRequestOutput.Header.RequestType = RING_IPK_READ_HAND_OFF;
             mDelayedRingRequestOutput.Header.IPKReadHandOff.Address = mActiveAddress;
             mDelayedRingRequestOutput.Header.IPKReadHandOff.TableIndex = mActiveTableIndex;
+            mDelayedRingRequestOutput.Header.IPKReadHandOff.ReturnChannel = mActiveReturnChannel;
             mDelayedRingRequestOutput.Header.IPKReadHandOff.PartialInstructionPending = false;
             mDelayedRingRequestOutput.Header.IPKReadHandOff.PartialInstructionData = 0;
 
@@ -760,6 +771,7 @@ void MemoryBank::processLocalIPKRead() {
             mActiveRingRequestOutput.Header.RequestType = RING_IPK_READ_HAND_OFF;
             mActiveRingRequestOutput.Header.IPKReadHandOff.Address = mActiveAddress;
             mActiveRingRequestOutput.Header.IPKReadHandOff.TableIndex = mActiveTableIndex;
+            mActiveRingRequestOutput.Header.IPKReadHandOff.ReturnChannel = mActiveReturnChannel;
             mActiveRingRequestOutput.Header.IPKReadHandOff.PartialInstructionPending = false;
             mActiveRingRequestOutput.Header.IPKReadHandOff.PartialInstructionData = 0;
 
@@ -795,6 +807,7 @@ void MemoryBank::processLocalIPKRead() {
 
       OutputWord outWord;
       outWord.TableIndex = mActiveTableIndex;
+      outWord.ReturnChannel = mActiveReturnChannel;
       outWord.Data = inst;
       outWord.PortClaim = false;
       outWord.LastWord = endOfPacket;
@@ -829,6 +842,7 @@ void MemoryBank::processLocalIPKRead() {
               mDelayedRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
               mDelayedRingRequestOutput.Header.PassThrough.Count = 0;
               mDelayedRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
+              mDelayedRingRequestOutput.Header.PassThrough.ReturnChannel = mActiveReturnChannel;
               mDelayedRingRequestOutput.Header.PassThrough.PartialInstructionPending = false;
               mDelayedRingRequestOutput.Header.PassThrough.PartialInstructionData = 0;
 
@@ -841,6 +855,7 @@ void MemoryBank::processLocalIPKRead() {
               mActiveRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
               mActiveRingRequestOutput.Header.PassThrough.Count = 0;
               mActiveRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
+              mActiveRingRequestOutput.Header.PassThrough.ReturnChannel = mActiveReturnChannel;
               mActiveRingRequestOutput.Header.PassThrough.PartialInstructionPending = false;
               mActiveRingRequestOutput.Header.PassThrough.PartialInstructionData = 0;
 
@@ -854,6 +869,7 @@ void MemoryBank::processLocalIPKRead() {
               mDelayedRingRequestOutput.Header.RequestType = RING_IPK_READ_HAND_OFF;
               mDelayedRingRequestOutput.Header.IPKReadHandOff.Address = mActiveAddress;
               mDelayedRingRequestOutput.Header.IPKReadHandOff.TableIndex = mActiveTableIndex;
+              mDelayedRingRequestOutput.Header.IPKReadHandOff.ReturnChannel = mActiveReturnChannel;
               mDelayedRingRequestOutput.Header.IPKReadHandOff.PartialInstructionPending = false;
               mDelayedRingRequestOutput.Header.IPKReadHandOff.PartialInstructionData = 0;
 
@@ -863,6 +879,7 @@ void MemoryBank::processLocalIPKRead() {
               mActiveRingRequestOutput.Header.RequestType = RING_IPK_READ_HAND_OFF;
               mActiveRingRequestOutput.Header.IPKReadHandOff.Address = mActiveAddress;
               mActiveRingRequestOutput.Header.IPKReadHandOff.TableIndex = mActiveTableIndex;
+              mActiveRingRequestOutput.Header.IPKReadHandOff.ReturnChannel = mActiveReturnChannel;
               mActiveRingRequestOutput.Header.IPKReadHandOff.PartialInstructionPending = false;
               mActiveRingRequestOutput.Header.IPKReadHandOff.PartialInstructionData = 0;
 
@@ -890,7 +907,7 @@ void MemoryBank::processLocalBurstRead() {
 	assert(false);
 
 	assert(mBankMode != MODE_INACTIVE);
-	assert(mChannelMapTable[mActiveTableIndex].Valid);
+	assert(mActiveTableIndex < 8 || mChannelMapTable[mActiveTableIndex].Valid);
 	assert(mActiveRequest.getOperation() == MemoryRequest::BURST_READ);
 
 	if (mOutputQueue.full()) {
@@ -907,6 +924,7 @@ void MemoryBank::processLocalBurstRead() {
 
 		OutputWord outWord;
 		outWord.TableIndex = mActiveTableIndex;
+    outWord.ReturnChannel = mActiveReturnChannel;
 		outWord.Data = data;
 		outWord.PortClaim = false;
 		outWord.LastWord = endOfPacket;
@@ -935,6 +953,7 @@ void MemoryBank::processLocalBurstRead() {
 						mDelayedRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
 						mDelayedRingRequestOutput.Header.PassThrough.Count = mActiveBurstLength;
 						mDelayedRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
+						mDelayedRingRequestOutput.Header.PassThrough.ReturnChannel = mActiveReturnChannel;
 
 						mFSMState = STATE_WAIT_RING_OUTPUT;
 					} else {
@@ -945,6 +964,7 @@ void MemoryBank::processLocalBurstRead() {
 						mActiveRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
 						mActiveRingRequestOutput.Header.PassThrough.Count = mActiveBurstLength;
 						mActiveRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
+						mActiveRingRequestOutput.Header.PassThrough.ReturnChannel = mActiveReturnChannel;
 
 						// Chain next request
 
@@ -957,6 +977,7 @@ void MemoryBank::processLocalBurstRead() {
 						mDelayedRingRequestOutput.Header.BurstReadHandOff.Address = mActiveAddress;
 						mDelayedRingRequestOutput.Header.BurstReadHandOff.Count = mActiveBurstLength;
 						mDelayedRingRequestOutput.Header.BurstReadHandOff.TableIndex = mActiveTableIndex;
+						mDelayedRingRequestOutput.Header.BurstReadHandOff.ReturnChannel = mActiveReturnChannel;
 
 						mFSMState = STATE_WAIT_RING_OUTPUT;
 					} else {
@@ -965,6 +986,7 @@ void MemoryBank::processLocalBurstRead() {
 						mActiveRingRequestOutput.Header.BurstReadHandOff.Address = mActiveAddress;
 						mActiveRingRequestOutput.Header.BurstReadHandOff.Count = mActiveBurstLength;
 						mActiveRingRequestOutput.Header.BurstReadHandOff.TableIndex = mActiveTableIndex;
+						mActiveRingRequestOutput.Header.BurstReadHandOff.ReturnChannel = mActiveReturnChannel;
 
 						// Chain next request
 
@@ -990,6 +1012,7 @@ void MemoryBank::processLocalBurstRead() {
 
 			OutputWord outWord;
 			outWord.TableIndex = mActiveTableIndex;
+      outWord.ReturnChannel = mActiveReturnChannel;
 			outWord.Data = data;
 			outWord.PortClaim = false;
 			outWord.LastWord = endOfPacket;
@@ -1018,6 +1041,7 @@ void MemoryBank::processLocalBurstRead() {
 							mDelayedRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
 							mDelayedRingRequestOutput.Header.PassThrough.Count = mActiveBurstLength;
 							mDelayedRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
+							mDelayedRingRequestOutput.Header.PassThrough.ReturnChannel = mActiveReturnChannel;
 
 							mFSMState = STATE_WAIT_RING_OUTPUT;
 						} else {
@@ -1028,6 +1052,7 @@ void MemoryBank::processLocalBurstRead() {
 							mActiveRingRequestOutput.Header.PassThrough.Address = mActiveAddress;
 							mActiveRingRequestOutput.Header.PassThrough.Count = mActiveBurstLength;
 							mActiveRingRequestOutput.Header.PassThrough.TableIndex = mActiveTableIndex;
+							mActiveRingRequestOutput.Header.PassThrough.ReturnChannel = mActiveReturnChannel;
 
 							// Chain next request
 
@@ -1040,6 +1065,7 @@ void MemoryBank::processLocalBurstRead() {
 							mDelayedRingRequestOutput.Header.BurstReadHandOff.Address = mActiveAddress;
 							mDelayedRingRequestOutput.Header.BurstReadHandOff.Count = mActiveBurstLength;
 							mDelayedRingRequestOutput.Header.BurstReadHandOff.TableIndex = mActiveTableIndex;
+							mDelayedRingRequestOutput.Header.BurstReadHandOff.ReturnChannel = mActiveReturnChannel;
 
 							mFSMState = STATE_WAIT_RING_OUTPUT;
 						} else {
@@ -1048,6 +1074,7 @@ void MemoryBank::processLocalBurstRead() {
 							mActiveRingRequestOutput.Header.BurstReadHandOff.Address = mActiveAddress;
 							mActiveRingRequestOutput.Header.BurstReadHandOff.Count = mActiveBurstLength;
 							mActiveRingRequestOutput.Header.BurstReadHandOff.TableIndex = mActiveTableIndex;
+							mActiveRingRequestOutput.Header.BurstReadHandOff.ReturnChannel = mActiveReturnChannel;
 
 							// Chain next request
 
@@ -1180,7 +1207,16 @@ void MemoryBank::handleDataOutput() {
     else {
       OutputWord outWord = mOutputQueue.read();
 
-      AddressedWord word(outWord.Data, mChannelMapTable[outWord.TableIndex].ReturnChannel);
+      // For 0-7, tile=tile, core=channel, channel=part of request
+      // For 8-15, return address is held in channel map table
+      ChannelID returnAddr;
+      if (outWord.TableIndex < 8) {
+        returnAddr = ChannelID(id.getTile(), outWord.TableIndex, outWord.ReturnChannel);
+      }
+      else {
+        returnAddr = mChannelMapTable[outWord.TableIndex].ReturnChannel;
+      }
+      AddressedWord word(outWord.Data, returnAddr);
       word.setPortClaim(outWord.PortClaim, false);
       word.setEndOfPacket(outWord.LastWord);
       mOutputWordPending = true;

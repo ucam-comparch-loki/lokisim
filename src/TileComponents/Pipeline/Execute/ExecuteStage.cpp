@@ -245,6 +245,8 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) const {
 
   // Extract all of the relevant sections from the encoded destination, and
   // create a ChannelID out of them.
+  // TODO: move all of this computation to within ChannelMapEntry.
+  ChannelIndex returnTo = (value >> 29) & 0x7UL;
   bool multicast = (value >> 28) & 0x1UL;
   // Hack: tile shouldn't be necessary for multicast addresses
   uint tile      = multicast ? id.getTile() : ((value >> 20) & 0xFFUL);
@@ -256,7 +258,7 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) const {
   ChannelID sendChannel(tile, position, channel, multicast);
 
   // Write to the channel map table.
-  parent()->channelMapTable.write(entry, sendChannel, groupBits, lineBits);
+  parent()->channelMapTable.write(entry, sendChannel, groupBits, lineBits, returnTo);
 
   // Generate a message to claim the port we have just stored the address of.
   if (sendChannel.isCore()) {
@@ -309,6 +311,7 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
   ChannelID adjusted = inst.networkDestination();
   adjusted = adjusted.addPosition(increment);
   inst.networkDestination(adjusted);
+  inst.returnAddr(channelMapEntry.returnChannel());
 }
 
 bool ExecuteStage::isStalled() const {

@@ -31,6 +31,10 @@ uint ChannelMapEntry::memoryLineBits() const {
   return memoryLineBits_;
 }
 
+ChannelIndex ChannelMapEntry::returnChannel() const {
+  return returnChannel_;
+}
+
 bool ChannelMapEntry::canSend() const {
   return !useCredits_ || (credits_ > 0);
 }
@@ -48,11 +52,12 @@ void ChannelMapEntry::setCoreDestination(const ChannelID& address) {
   network_ = (address.getTile() == id_.getTile()) ? CORE_TO_CORE : GLOBAL;
   useCredits_ = network_ == GLOBAL;
   localMemory_ = false;
+  returnChannel_ = 0;
   memoryGroupBits_ = 0;
   addressIncrement_ = 0;
 }
 
-void ChannelMapEntry::setMemoryDestination(const ChannelID& address, uint memoryGroupBits, uint memoryLineBits) {
+void ChannelMapEntry::setMemoryDestination(const ChannelID& address, uint memoryGroupBits, uint memoryLineBits, ChannelIndex returnTo) {
   // Only allow the destination to change when all credits from previous
   // destination have been received.
   assert(haveAllCredits());
@@ -61,6 +66,7 @@ void ChannelMapEntry::setMemoryDestination(const ChannelID& address, uint memory
   network_ = CORE_TO_MEMORY;
   useCredits_ = false;
   localMemory_ = true;
+  returnChannel_ = returnTo;
   memoryGroupBits_ = memoryGroupBits;
   memoryLineBits_ = memoryLineBits;
   addressIncrement_ = 0;

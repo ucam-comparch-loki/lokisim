@@ -28,7 +28,7 @@ ChannelMapEntry::NetworkType ChannelMapTable::getNetwork(MapIndex entry) const {
 }
 
 void ChannelMapTable::write(MapIndex entry, ChannelID destination,
-                            int groupBits, int lineBits) {
+                            int groupBits, int lineBits, ChannelIndex returnTo) {
   assert(entry < table.size());
 
   // Wait for all communication with the previous destination to complete
@@ -40,7 +40,7 @@ void ChannelMapTable::write(MapIndex entry, ChannelID destination,
   if(destination.isCore())
     table[entry].setCoreDestination(destination);
   else
-    table[entry].setMemoryDestination(destination, groupBits, lineBits);
+    table[entry].setMemoryDestination(destination, groupBits, lineBits, returnTo);
 
   if (ENERGY_TRACE) {
     Instrumentation::ChannelMap::write(previous, table[entry]);

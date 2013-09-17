@@ -46,34 +46,35 @@ public:
   const int32_t       immediate() const;
   const ChannelIndex  channelMapEntry() const;
   const predicate_t   predicate() const;
-  const bool    setsPredicate() const;
-  const uint8_t memoryOp() const;
+  const bool          setsPredicate() const;
+  const uint8_t       memoryOp() const;
 
   const OperandSource operand1Source() const;
   const OperandSource operand2Source() const;
-  const bool hasOperand1() const;
-  const bool hasOperand2() const;
+  const bool          hasOperand1() const;
+  const bool          hasOperand2() const;
 
-  const int32_t operand1() const;
-  const int32_t operand2() const;
-  const int64_t result() const;
-  const MemoryAddr location() const;
+  const int32_t       operand1() const;
+  const int32_t       operand2() const;
+  const int64_t       result() const;
+  const MemoryAddr    location() const;
 
-  const ChannelID networkDestination() const;
+  const ChannelID     networkDestination() const;
+  const ChannelIndex  returnAddr() const;
 
-  const bool    usesPredicate() const;
-  const bool    hasResult() const;
+  const bool          usesPredicate() const;
+  const bool          hasResult() const;
 
-  const bool    hasDestReg() const;
-  const bool    hasSrcReg1() const;
-  const bool    hasSrcReg2() const;
-  const bool    hasImmediate() const;
-  const bool    isALUOperation() const;
-  const bool    isMemoryOperation() const;
-  const bool    endOfIPK() const;
-  const bool    persistent() const;
-  const bool    endOfNetworkPacket() const;
-  const inst_name_t& name() const;
+  const bool          hasDestReg() const;
+  const bool          hasSrcReg1() const;
+  const bool          hasSrcReg2() const;
+  const bool          hasImmediate() const;
+  const bool          isALUOperation() const;
+  const bool          isMemoryOperation() const;
+  const bool          endOfIPK() const;
+  const bool          persistent() const;
+  const bool          endOfNetworkPacket() const;
+  const inst_name_t&  name() const;
 
   void    opcode(const opcode_t val);
   void    function(const function_t val);
@@ -99,6 +100,7 @@ public:
   void    portClaim(const bool val);
   void    usesCredits(const bool val);
   void    networkDestination(const ChannelID val);
+  void    returnAddr(const ChannelIndex val);
 
   Instruction toInstruction() const;
 
@@ -195,6 +197,7 @@ private:
   bool    persistent_;
   bool    endOfPacket_;
   ChannelID networkDest_;
+  ChannelIndex returnAddr_;
 
   MemoryAddr location_;  // The position in memory that this instruction comes from.
 

@@ -24,12 +24,13 @@ public:
   bool localMemory() const;
   uint memoryGroupBits() const;
   uint memoryLineBits() const;
+  ChannelIndex returnChannel() const;
 
   bool canSend() const;
   bool haveAllCredits() const;
 
   void setCoreDestination(const ChannelID& address);
-  void setMemoryDestination(const ChannelID& address, uint memoryGroupBits, uint memoryLineBits);
+  void setMemoryDestination(const ChannelID& address, uint memoryGroupBits, uint memoryLineBits, ChannelIndex returnTo);
 
   void setAddressIncrement(uint increment);
   uint getAddressIncrement() const;
@@ -64,6 +65,9 @@ private:
 
   // Whether or not this is a local memory bank.
   bool localMemory_;
+
+  // The input channel of this core that memory banks should send data back to.
+  ChannelIndex returnChannel_;
 
   // Number of group bits describing virtual memory bank.
   unsigned int memoryGroupBits_;

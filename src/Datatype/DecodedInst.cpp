@@ -31,6 +31,7 @@ const int32_t       DecodedInst::operand2()        const {return operand2_;}
 const int64_t       DecodedInst::result()          const {return result_;}
 
 const ChannelID     DecodedInst::networkDestination() const {return networkDest_;}
+const ChannelIndex  DecodedInst::returnAddr()      const {return returnAddr_;}
 const MemoryAddr    DecodedInst::location()        const {return location_;}
 
 
@@ -110,6 +111,7 @@ void DecodedInst::endOfNetworkPacket(const bool val)      {endOfPacket_ = val;}
 void DecodedInst::portClaim(const bool val)               {portClaim_ = val;}
 void DecodedInst::usesCredits(const bool val)             {useCredits_ = val;}
 void DecodedInst::networkDestination(const ChannelID val) {networkDest_ = val;}
+void DecodedInst::returnAddr(const ChannelIndex val)      {returnAddr_ = val;}
 void DecodedInst::location(const MemoryAddr val)          {location_ = val;}
 
 
@@ -130,6 +132,7 @@ const AddressedWord DecodedInst::toAddressedWord() const {
   AddressedWord aw(result(), networkDestination());
   aw.setPortClaim(portClaim_, useCredits_);
   aw.setEndOfPacket(endOfPacket_);
+  aw.setReturnAddr(returnAddr_);
   return aw;
 }
 

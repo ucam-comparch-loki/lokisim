@@ -25,7 +25,7 @@ public:
 
   // Update an entry of the channel map table. This may result in a wait if
   // the entry is still waiting for credits from the previous destination.
-  void write(MapIndex entry, ChannelID destination, int groupBits=0, int lineBits=0);
+  void write(MapIndex entry, ChannelID destination, int groupBits=0, int lineBits=0, ChannelIndex returnTo=0);
 
   void waitForAllCredits(MapIndex entry);
 

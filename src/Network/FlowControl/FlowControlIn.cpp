@@ -82,8 +82,8 @@ void FlowControlIn::creditLoop() {
         creditState = WAITING_FOR_ACK;
       }
       else {
-        cerr << "Warning: trying to send credit from " << channel.getString()
-             << " when there is no connection" << endl;
+//        cerr << "Warning: trying to send credit from " << channel.getString()
+//             << " when there is no connection" << endl;
         numCredits--;
         next_trigger(newCredit);
         creditState = NO_CREDITS;

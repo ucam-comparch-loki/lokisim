@@ -92,6 +92,7 @@ public:
 				uint32_t Address;
 				uint Count;
 				uint TableIndex;
+				ChannelIndex ReturnChannel;
 			} BurstReadHandOff;
 			struct BurstWriteForward_ {
 			public:
@@ -102,6 +103,7 @@ public:
 			public:
 				uint32_t Address;
 				uint TableIndex;
+				ChannelIndex ReturnChannel;
 				bool PartialInstructionPending;
 				uint32_t PartialInstructionData;
 			} IPKReadHandOff;
@@ -112,6 +114,7 @@ public:
 				uint32_t Address;
 				uint Count;
 				uint TableIndex;
+				ChannelIndex ReturnChannel;
 				bool PartialInstructionPending;
 				uint32_t PartialInstructionData;
 			} PassThrough;
@@ -209,6 +212,7 @@ private:
 	public:
 		Word Data;											// Data word to send
 		uint TableIndex;									// Index of channel map table entry describing the destination
+		ChannelIndex ReturnChannel;       // Channel to send to when rest of return address is implicit
 		bool PortClaim;										// Indicates whether this is a port claim message
 		bool LastWord;										// Indicates whether this is the last word of the message
 	};
@@ -242,6 +246,7 @@ private:
 	FSMState mFSMCallbackState;								// Next FSM state to enter after sub operation is complete
 
 	uint mActiveTableIndex;									// Currently selected index in channel map table
+	ChannelIndex mActiveReturnChannel;      // Current specified return channel (if supplied)
 	MemoryRequest mActiveRequest;							// Currently active memory request
 	uint32_t mActiveAddress;								// Current address for memory access in progress
 	uint32_t mActiveBurstLength;							// Current burst length for memory access in progress
