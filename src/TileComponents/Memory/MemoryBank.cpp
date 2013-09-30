@@ -691,7 +691,6 @@ void MemoryBank::processLocalIPKRead() {
 		assert(mScratchpadModeHandler.containsAddress(mActiveAddress));
 
 		uint32_t data = mScratchpadModeHandler.readWord(mActiveAddress, true);
-
     Instruction inst(data);
     bool endOfPacket = inst.endOfPacket();
 
@@ -702,7 +701,8 @@ void MemoryBank::processLocalIPKRead() {
     outWord.ReturnChannel = mActiveReturnChannel;
     outWord.Data = inst;
     outWord.PortClaim = false;
-    outWord.LastWord = endOfPacket;
+    outWord.LastWord = endOfPacket ||
+                       !mScratchpadModeHandler.containsAddress(mActiveAddress+4);
 
     mOutputQueue.write(outWord);
 
@@ -810,7 +810,8 @@ void MemoryBank::processLocalIPKRead() {
       outWord.ReturnChannel = mActiveReturnChannel;
       outWord.Data = inst;
       outWord.PortClaim = false;
-      outWord.LastWord = endOfPacket;
+      outWord.LastWord = endOfPacket ||
+                         !mGeneralPurposeCacheHandler.containsAddress(mActiveAddress+4);
 
       mOutputQueue.write(outWord);
 
@@ -1244,11 +1245,6 @@ void MemoryBank::handleDataOutput() {
       cout << this->name() << " sent " << mActiveOutputWord << endl;
     if (ENERGY_TRACE)
       Instrumentation::Network::traffic(id, mActiveOutputWord.channelID().getComponentID());
-
-    // If we are passing the memory operation on to another component, split
-    // the packet up so network resources can be reallocated to the next memory.
-    if (mRingRequestOutputPending && mOutputQueue.empty())
-      mActiveOutputWord.setEndOfPacket(true);
 
     oDataOut.write(mActiveOutputWord);
 

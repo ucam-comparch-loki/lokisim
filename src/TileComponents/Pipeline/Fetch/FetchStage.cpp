@@ -376,8 +376,10 @@ InstructionStore& FetchStage::currentInstructionSource() {
     return fifo;
   else if (currentPacket.location.component == IPKCACHE)
     return cache;
-  else
+  else {
     assert(false && "Invalid instruction source.");
+    throw -1;
+  }
 }
 
 void FetchStage::getNextInstruction() {
