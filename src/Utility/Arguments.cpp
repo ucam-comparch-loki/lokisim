@@ -28,6 +28,8 @@ string Arguments::softwareTraceFile_ = "";
 string Arguments::lbtTraceFile_ = "";
 std::stringstream Arguments::invocation_;
 
+bool Arguments::summarise_ = false;
+
 void Arguments::parse(int argc, char* argv[]) {
 
   bool useDefaultSettings = true;
@@ -105,6 +107,9 @@ void Arguments::parse(int argc, char* argv[]) {
       LBTTrace::start(lbtTraceFile_);
       i++;  // Have used two arguments in this iteration.
       LBT_TRACE = 1;
+    }
+    else if (argument == "-summary") {
+      summarise_ = true;
     }
     else if (argument == "--args") {
       // Pass command line options to the simulated program.
@@ -190,6 +195,10 @@ const string Arguments::invocation() {
   return invocation_.str();
 }
 
+const bool Arguments::summarise() {
+  return summarise_;
+}
+
 void Arguments::printHelp() {
   cout <<
     "Loki2: a cycle-accurate simulator for the Loki many-core architecture.\n"
@@ -198,6 +207,7 @@ void Arguments::printHelp() {
     "  debug\n\tEnter debug mode, where simulator contents can be inspected and changed\n\tat runtime\n"
     "  trace\n\tPrint the address of each instruction executed to stdout\n"
     "  -run <program>\n\tExecute the supplied program\n"
+    "  -summary\n\tPrint a summary of execution behaviour when execution finishes\n"
     "  -coretrace <file>\n"
     "  -memtrace <file>\n"
     "  -swtrace <file>\n"

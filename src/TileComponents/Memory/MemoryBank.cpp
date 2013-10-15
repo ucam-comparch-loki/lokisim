@@ -500,13 +500,13 @@ void MemoryBank::processLocalMemoryAccess() {
 			if (DEBUG) {
 				switch (mActiveRequest.getOperation()) {
 				case MemoryRequest::LOAD_W:
-					cout << this->name() << " read word " << data << " from " << mActiveAddress << endl;
+					cout << this->name() << " read word " << data << " from 0x" << std::hex << mActiveAddress << std::dec << endl;
 					break;
 				case MemoryRequest::LOAD_HW:
-					cout << this->name() << " read half-word " << data << " from " << mActiveAddress << endl;
+					cout << this->name() << " read half-word " << data << " from 0x" << std::hex << mActiveAddress << std::dec << endl;
 					break;
 				case MemoryRequest::LOAD_B:
-					cout << this->name() << " read byte " << data << " from " << mActiveAddress << endl;
+					cout << this->name() << " read byte " << data << " from 0x" << std::hex << mActiveAddress << std::dec << endl;
 					break;
 				default:
 					assert(false);
@@ -541,13 +541,13 @@ void MemoryBank::processLocalMemoryAccess() {
 			if (DEBUG) {
 				switch (mActiveRequest.getOperation()) {
 				case MemoryRequest::STORE_W:
-					cout << this->name() << " wrote word " << payload.getPayload() << " to " << mActiveAddress << endl;
+					cout << this->name() << " wrote word " << payload.getPayload() << " to 0x" << std::hex << mActiveAddress << std::dec << endl;
 					break;
 				case MemoryRequest::STORE_HW:
-					cout << this->name() << " wrote half-word " << payload.getPayload() << " to " << mActiveAddress << endl;
+					cout << this->name() << " wrote half-word " << payload.getPayload() << " to 0x" << std::hex << mActiveAddress << std::dec << endl;
 					break;
 				case MemoryRequest::STORE_B:
-					cout << this->name() << " wrote byte " << payload.getPayload() << " to " << mActiveAddress << endl;
+					cout << this->name() << " wrote byte " << payload.getPayload() << " to 0x" << std::hex << mActiveAddress << std::dec << endl;
 					break;
 				default:
 					assert(false);
@@ -583,13 +583,13 @@ void MemoryBank::processLocalMemoryAccess() {
 				if (DEBUG) {
 					switch (mActiveRequest.getOperation()) {
 					case MemoryRequest::LOAD_W:
-						cout << this->name() << " read word " << data << " from " << mActiveAddress << endl;
+						cout << this->name() << " read word " << data << " from 0x" << std::hex << mActiveAddress << std::dec << endl;
 						break;
 					case MemoryRequest::LOAD_HW:
-						cout << this->name() << " read half-word " << data << " from " << mActiveAddress << endl;
+						cout << this->name() << " read half-word " << data << " from 0x" << std::hex << mActiveAddress << std::dec << endl;
 						break;
 					case MemoryRequest::LOAD_B:
-						cout << this->name() << " read byte " << data << " from " << mActiveAddress << endl;
+						cout << this->name() << " read byte " << data << " from 0x" << std::hex << mActiveAddress << std::dec << endl;
 						break;
 					default:
 						assert(false);
@@ -647,13 +647,13 @@ void MemoryBank::processLocalMemoryAccess() {
 				if (DEBUG) {
 					switch (mActiveRequest.getOperation()) {
 					case MemoryRequest::STORE_W:
-						cout << this->name() << " wrote word " << payload.getPayload() << " to " << mActiveAddress << endl;
+						cout << this->name() << " wrote word " << payload.getPayload() << " to 0x" << std::hex << mActiveAddress << std::dec << endl;
 						break;
 					case MemoryRequest::STORE_HW:
-						cout << this->name() << " wrote half-word " << payload.getPayload() << " to " << mActiveAddress << endl;
+						cout << this->name() << " wrote half-word " << payload.getPayload() << " to 0x" << std::hex << mActiveAddress << std::dec << endl;
 						break;
 					case MemoryRequest::STORE_B:
-						cout << this->name() << " wrote byte " << payload.getPayload() << " to " << mActiveAddress << endl;
+						cout << this->name() << " wrote byte " << payload.getPayload() << " to 0x" << std::hex << mActiveAddress << std::dec << endl;
 						break;
 					default:
 						assert(false);
@@ -785,7 +785,7 @@ void MemoryBank::processLocalIPKRead() {
     }
 	} else {
 		if (DEBUG)
-			cout << this->name() << " reading instruction at address " << mActiveAddress << " from local cache" << endl;
+			cout << this->name() << " reading instruction at address 0x" << std::hex << mActiveAddress << std::dec << " from local cache" << endl;
 
 		assert(mGeneralPurposeCacheHandler.containsAddress(mActiveAddress));
 

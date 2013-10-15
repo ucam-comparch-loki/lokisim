@@ -1,6 +1,9 @@
 /*
  * Router.cpp
  *
+ * TODO: remove output buffers
+ * TODO: more dynamic processes
+ *
  *  Created on: 27 Jun 2011
  *      Author: db434
  */

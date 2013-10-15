@@ -6,10 +6,11 @@ if len(sys.argv) < 2:
     print "simulate: a simplified interface to the Loki simulator"
     print "Usage: simulate [simulator args] <ELF/loader file> [program args]"
     print "Options:"
-    print "  -trace, -t     Generate an instruction trace"
-    print "  -fast, -f      Use a much faster, but less accurate, simulator"
     print "  -dump, -d      Print lots of debug information (slow sim only)"
     print "  -energy, -e    Generate a log of all main energy-consuming operations"
+    print "  -fast, -f      Use a much faster, but less accurate, simulator"
+    print "  -summary, -s   Print a summary of execution behaviour at the end"
+    print "  -trace, -t     Generate an instruction trace"
     sys.exit(-1)
 
 # Parts of the command which will be executed
@@ -22,6 +23,7 @@ use_fast_sim = False
 trace = False
 dump = False
 energy = False
+summary = False
     
 currentArg = 1
 
@@ -38,6 +40,8 @@ for i in range(currentArg, len(sys.argv)):
             dump = True
         elif arg == "-energy" or arg == "-e":
             energy = True
+        elif arg == "-summary" or arg == "-s":
+            summary = True
             
         currentArg += 1
     else:
@@ -83,6 +87,8 @@ else:
         #command += "trace "
     if energy:
         command += "-energytrace " + program + ".xml "
+    if summary:
+        command += "-summary "
         
     command += "-run " + program + " "
     

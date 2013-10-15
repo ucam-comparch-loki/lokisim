@@ -46,14 +46,14 @@ void Stalls::init() {
     for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
       ComponentID id(i, j);
 
-      stallReason[id]             = NOT_STALLED;
+      stallReason[id]             = IDLE;//NOT_STALLED;
 
-      startedStalling[id]         = UNSTALLED;
+      startedStalling[id]         = 0;//UNSTALLED;
       startedDataStall[id]        = UNSTALLED;
       startedInstructionStall[id] = UNSTALLED;
       startedOutputStall[id]      = UNSTALLED;
       startedBypassStall[id]      = UNSTALLED;
-      startedIdle[id]             = UNSTALLED;
+      startedIdle[id]             = 0;//UNSTALLED;
     }
   }
 }
@@ -86,10 +86,11 @@ void Stalls::startLogging() {
 }
 
 void Stalls::stopLogging() {
-  if (loggingStarted == NOT_LOGGING)
-    return;
+  //if (loggingStarted == NOT_LOGGING)
+  //  return;
 
-  loggedCycles += currentCycle() - loggingStarted;
+  if (loggingStarted != NOT_LOGGING)
+    loggedCycles += currentCycle() - loggingStarted;
 
   // Unstall all cores so their stall durations are added to the totals.
   for (uint i=0; i<NUM_TILES; i++) {
@@ -161,7 +162,7 @@ void Stalls::stall(const ComponentID& id, cycle_count_t cycle, int reason) {
     case STALL_FORWARDING:   startedBypassStall[id] = cycle;      break;
     case IDLE:               startedIdle[id] = cycle;             break;
 
-    default: std::cerr << "Warning: Unknown stall reason." << endl;
+    default: std::cerr << "Warning: Unknown stall reason." << endl; break;
   }
 
 }
@@ -170,36 +171,36 @@ void Stalls::unstall(const ComponentID& id, cycle_count_t cycle, int reason) {
   if (stallReason[id] & reason) {
     switch(reason) {
       case STALL_DATA:
-        if (ENERGY_TRACE)
+        //if (ENERGY_TRACE)
           dataStalls.setCount(id, dataStalls[id] + cycle - startedDataStall[id]);
         startedDataStall[id] = UNSTALLED;
         break;
 
       case STALL_INSTRUCTIONS:
-        if (ENERGY_TRACE)
+        //if (ENERGY_TRACE)
           instructionStalls.setCount(id, instructionStalls[id] + cycle - startedInstructionStall[id]);
         startedInstructionStall[id] = UNSTALLED;
         break;
 
       case STALL_OUTPUT:
-        if (ENERGY_TRACE)
+        //if (ENERGY_TRACE)
           outputStalls.setCount(id, outputStalls[id] + cycle - startedOutputStall[id]);
         startedOutputStall[id] = UNSTALLED;
         break;
 
       case STALL_FORWARDING:
-        if (ENERGY_TRACE)
+        //if (ENERGY_TRACE)
           bypassStalls.setCount(id, bypassStalls[id] + cycle - startedBypassStall[id]);
         startedBypassStall[id] = UNSTALLED;
         break;
 
       case IDLE:
-        if (ENERGY_TRACE)
+        //if (ENERGY_TRACE)
           idleTimes.setCount(id, idleTimes[id] + cycle - startedIdle[id]);
         startedIdle[id] = UNSTALLED;
         break;
 
-      default: std::cerr << "Warning: Unknown stall reason." << endl;
+      default: std::cerr << "Warning: Unknown stall reason." << endl; break;
     }
 
     // Clear this stall reason from the bitmask.
@@ -207,7 +208,7 @@ void Stalls::unstall(const ComponentID& id, cycle_count_t cycle, int reason) {
 
     if (stallReason[id] == NOT_STALLED) {
       numStalled--;
-      if (ENERGY_TRACE)
+      //if (ENERGY_TRACE)
         totalStalls.setCount(id, totalStalls[id] + cycle - startedStalling[id]);
       startedStalling[id] = UNSTALLED;
     }
@@ -237,7 +238,10 @@ bool Stalls::executionFinished() {
 }
 
 cycle_count_t Stalls::cyclesActive(const ComponentID& core) {
-  return loggedCycles - cyclesStalled(core) - cyclesIdle(core);
+  if (loggedCycles > 0)
+    return loggedCycles - cyclesStalled(core) - cyclesIdle(core);
+  else
+    return currentCycle() - cyclesStalled(core) - cyclesIdle(core);
 }
 
 cycle_count_t Stalls::cyclesIdle(const ComponentID& core) {
@@ -264,17 +268,15 @@ void Stalls::printStats() {
   cout << "Core activity:" << endl;
   cout << "  Core\t\tActive\tIdle\tStalled (insts|data|bypass|output)" << endl;
 
+  // Flush any remaining stall/idle time into the CounterMaps.
+  stopLogging();
+
 	for (uint i=0; i<NUM_TILES; i++) {
 		for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
 			ComponentID id(i, j);
 
 			// Skip over memories for now -- they are not instrumented properly.
 			if (id.isMemory()) continue;
-
-			// Flush any remaining stall/idle time into the CounterMaps.
-//			unstall(id, endOfExecution, IDLE);
-//			active(id, endOfExecution);
-			stopLogging();
 
 			// Only print statistics for cores which have seen some activity.
 			if ((uint)idleTimes[id] < endOfExecution) {

@@ -42,6 +42,8 @@ public:
   // The command used to run the simulator.
   static const string invocation();
 
+  static const bool summarise();
+
   static void printHelp();
 
 private:
@@ -64,6 +66,9 @@ private:
 
   // The command used to run the simulator.
   static std::stringstream invocation_;
+
+  // Tells whether a summary should be printed when execution finishes.
+  static bool summarise_;
 
 };
 

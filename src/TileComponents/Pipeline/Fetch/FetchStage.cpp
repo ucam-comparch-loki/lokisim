@@ -185,6 +185,10 @@ bool FetchStage::inCache(const MemoryAddr addr, opcode_t operation) {
   if (DEBUG)
     cout << this->name() << " looking up tag " << addr << ": ";
 
+  // I suppose the address could technically be 0, but this always indicates an
+  // error with the current arrangement.
+  assert(addr > 0);
+
   // If we are looking for a packet, we are going to want to execute it at some
   // point. Find out where in the execution queue the packet should go.
   PacketInfo& packet = nextAvailablePacket();

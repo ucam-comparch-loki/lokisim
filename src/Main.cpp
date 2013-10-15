@@ -151,6 +151,9 @@ int simulate() {
     Parameters::printParameters();
     Statistics::printStats();
   }
+  else if (Arguments::summarise()) {
+    Instrumentation::Stalls::printStats();
+  }
 
   Instrumentation::stopLogging();
 
