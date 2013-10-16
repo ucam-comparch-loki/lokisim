@@ -27,6 +27,7 @@ public:
 
   static count_t numDecodes();
   static count_t numOperations();
+  static count_t numOperations(const ComponentID& core);
   static count_t numOperations(opcode_t operation,
                                function_t function = (function_t)0);
 
@@ -48,7 +49,8 @@ private:
   static count_t hdIn1, hdIn2, hdOut, sameOp;
 
   // Is there a difference between numOps and numDecodes?
-  static count_t numOps_, numDecodes_;
+  static CounterMap<ComponentID> numOps_;
+  static count_t numDecodes_;
 
 };
 

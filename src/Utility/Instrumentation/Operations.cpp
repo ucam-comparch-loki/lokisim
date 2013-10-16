@@ -26,7 +26,7 @@ count_t Operations::hdIn2 = 0;
 count_t Operations::hdOut = 0;
 count_t Operations::sameOp = 0;
 
-count_t Operations::numOps_ = 0;
+CounterMap<ComponentID> Operations::numOps_;
 count_t Operations::numDecodes_ = 0;
 
 void Operations::init() {
@@ -48,7 +48,7 @@ void Operations::decoded(const ComponentID& core, const DecodedInst& dec) {
 
 void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool executed) {
   // Always increase numOps - this is used to determine if we're making progress.
-  numOps_++;
+  numOps_.increment(core);
 
   // Want to keep track of the number of operations so we can tell if we're
   // making progress, but only want the rest of the data when we ask for it.
@@ -85,7 +85,11 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
 }
 
 count_t Operations::numDecodes()               {return numDecodes_;}
-count_t Operations::numOperations()            {return numOps_;}
+count_t Operations::numOperations()            {return numOps_.numEvents();}
+
+count_t Operations::numOperations(const ComponentID& core) {
+  return numOps_[core];
+}
 
 count_t Operations::numOperations(opcode_t op, function_t function) {
   // Special case for ALU operations.
@@ -97,11 +101,11 @@ count_t Operations::numOperations(opcode_t op, function_t function) {
 
 void Operations::printStats() {
   if (BATCH_MODE)
-	cout << "<@GLOBAL>operation_count:" << numOps_ << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>operation_count:" << numOps_.numEvents() << "</@GLOBAL>" << endl;
 
-  if(numOps_ > 0) {
+  if(numOps_.numEvents() > 0) {
     cout << "Operations:\n" <<
-      "  Total: " << numOps_ << "\n" <<
+      "  Total: " << numOps_.numEvents() << "\n" <<
       "  Operations executed:\n";
 
     int executed = executedOps.numEvents() + executedFns.numEvents();

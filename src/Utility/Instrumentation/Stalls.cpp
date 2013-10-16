@@ -7,6 +7,7 @@
 
 #include <systemc>
 #include "Stalls.h"
+#include "Operations.h"
 #include "../../Datatype/ComponentID.h"
 #include "../Instrumentation.h"
 #include "../Parameters.h"
@@ -266,7 +267,7 @@ void Stalls::printStats() {
   if (endOfExecution == 0) return;
 
   cout << "Core activity:" << endl;
-  cout << "  Core\t\tActive\tIdle\tStalled (insts|data|bypass|output)" << endl;
+  cout << "  Core\tInstructions\tActive\tIdle\tStalled (insts|data|bypass|output)" << endl;
 
   // Flush any remaining stall/idle time into the CounterMaps.
   stopLogging();
@@ -282,7 +283,8 @@ void Stalls::printStats() {
 			if ((uint)idleTimes[id] < endOfExecution) {
 				cycle_count_t totalStalled = cyclesStalled(id);
 				cycle_count_t activeCycles = cyclesActive(id);
-				cout << "  " << id << "\t\t" <<
+				cout << "  " << id << "\t" <<
+				Operations::numOperations(id) << "\t\t" <<
 				percentage(activeCycles, endOfExecution) << "\t" <<
 				percentage(idleTimes[id], endOfExecution) << "\t" <<
 				percentage(totalStalled, endOfExecution) << "\t(" <<
