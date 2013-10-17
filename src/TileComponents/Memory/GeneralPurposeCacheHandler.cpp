@@ -409,7 +409,6 @@ void GeneralPurposeCacheHandler::synchronizeData(SimplifiedOnChipScratchpad *bac
 	for (uint setIndex = 0; setIndex < mSetCount; setIndex++) {
 		for (uint setSlot = 0; setSlot < mWayCount; setSlot++) {
 			uint slot = setIndex * mWayCount + setSlot;
-
 			if (mLineValid[slot] && mLineDirty[slot]) {
 				uint address = mAddresses[slot];
 

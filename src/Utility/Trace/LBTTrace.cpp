@@ -417,7 +417,7 @@ void setInstructionExecuteFlag(unsigned long long isid, bool execute) {
 	}
 }
 
-void setInstructionSystemCallInfo(unsigned long long isid, unsigned long systemCallNumber, const unsigned long *registerValues, unsigned long registerCount, const void *extraData, unsigned long extraDataLength) {
+void setInstructionSystemCallInfo(unsigned long long isid, unsigned long systemCallNumber, const unsigned long *registerValues, unsigned long registerCount) {
 	if (traceWriter != NULL) {
 		for (unsigned long i = 0; i < kTraceInstructionBufferSize; i++) {
 			if (traceInstructionBuffer[i].ISID == isid) {
@@ -430,14 +430,35 @@ void setInstructionSystemCallInfo(unsigned long long isid, unsigned long systemC
 
 				traceInstructionBuffer[i].RegisterCount = registerCount;
 
-				if (extraDataLength > 0) {
-					traceInstructionBuffer[i].ExtraData = new unsigned char[extraDataLength];
-					memcpy(traceInstructionBuffer[i].ExtraData, extraData, extraDataLength);
-				}
-
-				traceInstructionBuffer[i].ExtraDataLength = extraDataLength;
+				traceInstructionBuffer[i].ExtraData = NULL;
+				traceInstructionBuffer[i].ExtraDataLength = 0;
 
 				traceInstructionBuffer[i].SystemCallInformationSet = true;
+				return;
+			}
+		}
+
+		cerr << "Error: LBT trace ISID not found" << endl;
+		exit(1);
+	}
+}
+
+void setInstructionSystemCallData(unsigned long long isid, const void *data, unsigned long length, bool updateMemory, unsigned long memoryAddress) {
+	if (traceWriter != NULL) {
+		for (unsigned long i = 0; i < kTraceInstructionBufferSize; i++) {
+			if (traceInstructionBuffer[i].ISID == isid) {
+				if (length > 0) {
+					traceInstructionBuffer[i].ExtraData = new unsigned char[length];
+					memcpy(traceInstructionBuffer[i].ExtraData, data, length);
+				}
+
+				traceInstructionBuffer[i].ExtraDataLength = length;
+
+				if (updateMemory) {
+					assert(memoryAddress + length <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+					memcpy(((uint8*)traceMemoryImage) + memoryAddress, data, length);
+				}
+
 				return;
 			}
 		}

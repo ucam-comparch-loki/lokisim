@@ -218,7 +218,57 @@ SimplifiedOnChipScratchpad::~SimplifiedOnChipScratchpad() {
 	delete[] mPortData;
 }
 
-#include "../../Datatype/Instruction.h"
+/*
+void SimplifiedOnChipScratchpad::flushQueues() {
+	// Process port events
+
+	bool dataProcessed;
+
+	do {
+		dataProcessed = false;
+
+		for (uint port = 0; port < mPortCount; port++) {
+			assert(mPortData[port].State == STATE_IDLE || mPortData[port].State == STATE_WRITING);
+
+			if (mPortData[port].State == STATE_IDLE) {
+				if (!mInputQueues[port].empty()) {
+					MemoryRequest request = mInputQueues[port].read().Request;
+
+					assert(request.getOperation() == MemoryRequest::STORE_LINE);
+
+					mPortData[port].Address = request.getPayload();
+					mPortData[port].WordsLeft = request.getLineSize() / 4;
+
+					if (mPortData[port].Address + mPortData[port].WordsLeft * 4 > MEMORY_ON_CHIP_SCRATCHPAD_SIZE)
+						cerr << this->name() << " store request outside valid memory space (address " << mPortData[port].Address << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
+
+					assert((mPortData[port].Address & 0x3) == 0);
+					assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+					assert(mPortData[port].WordsLeft > 0);
+
+					Instrumentation::backgroundMemoryWrite(mPortData[port].Address, mPortData[port].WordsLeft);
+
+					mPortData[port].State = STATE_WRITING;
+
+					dataProcessed = true;
+				}
+			} else {
+				assert(!mInputQueues[port].empty());
+				assert(mInputQueues[port].peek().Request.getOperation() == MemoryRequest::PAYLOAD_ONLY);
+
+				mData[mPortData[port].Address / 4] = mInputQueues[port].read().Request.getPayload();
+				mPortData[port].Address += 4;
+				mPortData[port].WordsLeft--;
+
+				if (mPortData[port].WordsLeft == 0)
+					mPortData[port].State = STATE_IDLE;
+
+				dataProcessed = true;
+			}
+		}
+	} while (dataProcessed);
+}
+*/
 
 void SimplifiedOnChipScratchpad::storeData(vector<Word>& data, MemoryAddr location) {
 	size_t count = data.size();

@@ -47,7 +47,8 @@ namespace LBTTrace {
 	void setInstructionMemoryAddress(unsigned long long isid, unsigned long address);
 	void setInstructionMemoryData(unsigned long long isid, unsigned long data);
 	void setInstructionExecuteFlag(unsigned long long isid, bool execute);
-	void setInstructionSystemCallInfo(unsigned long long isid, unsigned long systemCallNumber, const unsigned long *registerValues, unsigned long registerCount, const void *extraData, unsigned long extraDataLength);
+	void setInstructionSystemCallInfo(unsigned long long isid, unsigned long systemCallNumber, const unsigned long *registerValues, unsigned long registerCount);
+	void setInstructionSystemCallData(unsigned long long isid, const void *data, unsigned long length, bool updateMemory, unsigned long memoryAddress);
 	void setInstructionInputChannels(unsigned long long isid, unsigned long channel1, bool useChannel1, unsigned long channel2, bool useChannel2);
 
 	// Store memory image

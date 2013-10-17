@@ -31,6 +31,8 @@ void Chip::storeData(vector<Word>& data, const ComponentID& component, MemoryAdd
 const void* Chip::getMemoryData() {
 	// Synchronize data first
 
+	//backgroundMemory.flushQueues();
+
 	for (uint i = 0; i < memories.size(); i++)
 		memories[i]->synchronizeData();
 

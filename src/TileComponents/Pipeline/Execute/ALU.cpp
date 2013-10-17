@@ -155,7 +155,7 @@ void ALU::systemCall(DecodedInst& dec) const {
         regValues[i] = readReg(i);
 
     if (LBT_TRACE)
-      LBTTrace::setInstructionSystemCallInfo(dec.isid(), code, regValues, 64, NULL, 0);
+      LBTTrace::setInstructionSystemCallInfo(dec.isid(), code, regValues, 64);
   }
 
   switch (code) {
@@ -204,6 +204,8 @@ void ALU::systemCall(DecodedInst& dec) const {
       uint i;
       writeReg(11, read(fd, buf, len));
       int start = readReg(14);
+      if (LBT_TRACE)
+        LBTTrace::setInstructionSystemCallData(dec.isid(), buf, len, true, start);
       for (i=0; i < len; i++) {
         writeByte(start+i, buf[i]);
       }
@@ -221,6 +223,8 @@ void ALU::systemCall(DecodedInst& dec) const {
       for (i=0; i < len; i++) {
         str[i] = readByte(start + i);
       }
+      if (LBT_TRACE)
+        LBTTrace::setInstructionSystemCallData(dec.isid(), str, len, false, start);
       writeReg(11, write(fd, str, len));
       free(str);
       break;

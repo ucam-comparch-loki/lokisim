@@ -123,6 +123,8 @@ public:
 
 public:
 
+	//void flushQueues();
+
 	void storeData(vector<Word>& data, MemoryAddr location);
 	const void* getData();
 

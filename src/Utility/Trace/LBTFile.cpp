@@ -208,6 +208,8 @@ void CLBTFileWriter::StoreMemoryImage(const void *image, bool initialImage) {
 }
 
 void CLBTFileWriter::Flush() {
+	FlushChunkBuffer();
+
 	ulong indexChunkNumber = mWriter.AppendChunk(mChunkIndex, sizeof(uint64) * mChunkIndexCursor);
 
 	SLBTDataHeader header;
