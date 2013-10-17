@@ -35,6 +35,9 @@ public:
 	unsigned long MemoryAddress;
 	bool MemoryAddressSet;
 
+	unsigned long MemoryData;
+	bool MemoryDataSet;
+
 	unsigned long InputChannel1;
 	unsigned long InputChannel2;
 	bool UsesInputChannel1;
@@ -54,6 +57,9 @@ static LBTTraceInstruction traceInstructionBuffer[kTraceInstructionBufferSize];
 static unsigned long traceInstructionCursor = 0;
 static unsigned long long traceNextISID = 1;
 static bool traceExitCallReached = false;
+static bool traceInstructionBufferFlushed = false;
+
+static uint32 *traceMemoryImage = NULL;
 
 // Internal helper routine
 
@@ -61,89 +67,109 @@ void flushBufferedInstruction() {
 	if (traceInstructionBuffer[traceInstructionCursor].ISID != 0 && !traceExitCallReached) {
 		// Write pending instruction
 
+		uint32 modData;
+		uint shift;
+		uint32 mask;
+
 		switch (traceInstructionBuffer[traceInstructionCursor].OperationType) {
 		case NOP:
 			traceWriter->AddBasicOperation(
 				traceInstructionBuffer[traceInstructionCursor].ClockCycle,
 				traceInstructionBuffer[traceInstructionCursor].InstructionAddress,
-				SLBTChunkRecord::kOperationTypeNOP,
+				SLBTChunkExtendedRecord::kOperationTypeNOP,
 				0,
 				false,
 				0,
 				false,
 				traceInstructionBuffer[traceInstructionCursor].Executed,
 				traceInstructionBuffer[traceInstructionCursor].EndOfPacket);
+
 			break;
 		case ALU1:
 			traceWriter->AddBasicOperation(
 				traceInstructionBuffer[traceInstructionCursor].ClockCycle,
 				traceInstructionBuffer[traceInstructionCursor].InstructionAddress,
-				SLBTChunkRecord::kOperationTypeALU1,
+				SLBTChunkExtendedRecord::kOperationTypeALU1,
 				traceInstructionBuffer[traceInstructionCursor].InputChannel1,
 				traceInstructionBuffer[traceInstructionCursor].UsesInputChannel1,
 				traceInstructionBuffer[traceInstructionCursor].InputChannel2,
 				traceInstructionBuffer[traceInstructionCursor].UsesInputChannel2,
 				traceInstructionBuffer[traceInstructionCursor].Executed,
 				traceInstructionBuffer[traceInstructionCursor].EndOfPacket);
+
 			break;
 		case ALU2:
 			traceWriter->AddBasicOperation(
 				traceInstructionBuffer[traceInstructionCursor].ClockCycle,
 				traceInstructionBuffer[traceInstructionCursor].InstructionAddress,
-				SLBTChunkRecord::kOperationTypeALU2,
+				SLBTChunkExtendedRecord::kOperationTypeALU2,
 				traceInstructionBuffer[traceInstructionCursor].InputChannel1,
 				traceInstructionBuffer[traceInstructionCursor].UsesInputChannel1,
 				traceInstructionBuffer[traceInstructionCursor].InputChannel2,
 				traceInstructionBuffer[traceInstructionCursor].UsesInputChannel2,
 				traceInstructionBuffer[traceInstructionCursor].Executed,
 				traceInstructionBuffer[traceInstructionCursor].EndOfPacket);
+
 			break;
 		case Fetch:
 			assert(traceInstructionBuffer[traceInstructionCursor].MemoryAddressSet);
+
 			traceWriter->AddMemoryOperation(
 				traceInstructionBuffer[traceInstructionCursor].ClockCycle,
 				traceInstructionBuffer[traceInstructionCursor].InstructionAddress,
-				SLBTChunkRecord::kOperationTypeFetch,
+				SLBTChunkExtendedRecord::kOperationTypeFetch,
 				traceInstructionBuffer[traceInstructionCursor].MemoryAddress,
+				0,
 				traceInstructionBuffer[traceInstructionCursor].Executed,
 				traceInstructionBuffer[traceInstructionCursor].EndOfPacket);
+
 			break;
 		case ScratchpadRead:
 			assert(traceInstructionBuffer[traceInstructionCursor].MemoryAddressSet);
+
 			traceWriter->AddMemoryOperation(
 				traceInstructionBuffer[traceInstructionCursor].ClockCycle,
 				traceInstructionBuffer[traceInstructionCursor].InstructionAddress,
-				SLBTChunkRecord::kOperationTypeScratchpadRead,
+				SLBTChunkExtendedRecord::kOperationTypeScratchpadRead,
 				traceInstructionBuffer[traceInstructionCursor].MemoryAddress,
+				0,
 				traceInstructionBuffer[traceInstructionCursor].Executed,
 				traceInstructionBuffer[traceInstructionCursor].EndOfPacket);
+
 			break;
 		case ScratchpadWrite:
 			assert(traceInstructionBuffer[traceInstructionCursor].MemoryAddressSet);
+			assert(traceInstructionBuffer[traceInstructionCursor].MemoryDataSet);
+
 			traceWriter->AddMemoryOperation(
 				traceInstructionBuffer[traceInstructionCursor].ClockCycle,
 				traceInstructionBuffer[traceInstructionCursor].InstructionAddress,
-				SLBTChunkRecord::kOperationTypeScratchpadWrite,
+				SLBTChunkExtendedRecord::kOperationTypeScratchpadWrite,
 				traceInstructionBuffer[traceInstructionCursor].MemoryAddress,
+				traceInstructionBuffer[traceInstructionCursor].MemoryData,
 				traceInstructionBuffer[traceInstructionCursor].Executed,
 				traceInstructionBuffer[traceInstructionCursor].EndOfPacket);
+
 			break;
 		case LoadImmediate:
 			traceWriter->AddBasicOperation(
 				traceInstructionBuffer[traceInstructionCursor].ClockCycle,
 				traceInstructionBuffer[traceInstructionCursor].InstructionAddress,
-				SLBTChunkRecord::kOperationTypeLoadImmediate,
+				SLBTChunkExtendedRecord::kOperationTypeLoadImmediate,
 				0,
 				false,
 				0,
 				false,
 				traceInstructionBuffer[traceInstructionCursor].Executed,
 				traceInstructionBuffer[traceInstructionCursor].EndOfPacket);
+
 			break;
 		case SystemCall:
 			assert(traceInstructionBuffer[traceInstructionCursor].SystemCallInformationSet);
+
 			if (traceInstructionBuffer[traceInstructionCursor].SystemCallNumber == 0x1)
 				traceExitCallReached = true;
+
 			traceWriter->AddSystemCall(
 				traceInstructionBuffer[traceInstructionCursor].ClockCycle,
 				traceInstructionBuffer[traceInstructionCursor].InstructionAddress,
@@ -154,82 +180,130 @@ void flushBufferedInstruction() {
 				traceInstructionBuffer[traceInstructionCursor].ExtraDataLength,
 				traceInstructionBuffer[traceInstructionCursor].Executed,
 				traceInstructionBuffer[traceInstructionCursor].EndOfPacket);
+
 			if (traceInstructionBuffer[traceInstructionCursor].RegisterCount > 0)
 				delete[] traceInstructionBuffer[traceInstructionCursor].RegisterValues;
+
 			if (traceInstructionBuffer[traceInstructionCursor].ExtraDataLength > 0)
 				delete[] traceInstructionBuffer[traceInstructionCursor].ExtraData;
+
 			break;
 		case Control:
 			traceWriter->AddBasicOperation(
 				traceInstructionBuffer[traceInstructionCursor].ClockCycle,
 				traceInstructionBuffer[traceInstructionCursor].InstructionAddress,
-				SLBTChunkRecord::kOperationTypeControl,
+				SLBTChunkExtendedRecord::kOperationTypeControl,
 				traceInstructionBuffer[traceInstructionCursor].InputChannel1,
 				traceInstructionBuffer[traceInstructionCursor].UsesInputChannel1,
 				traceInstructionBuffer[traceInstructionCursor].InputChannel2,
 				traceInstructionBuffer[traceInstructionCursor].UsesInputChannel2,
 				traceInstructionBuffer[traceInstructionCursor].Executed,
 				traceInstructionBuffer[traceInstructionCursor].EndOfPacket);
+
 			break;
 		case LoadWord:
 			assert(traceInstructionBuffer[traceInstructionCursor].MemoryAddressSet);
+			assert(traceInstructionBuffer[traceInstructionCursor].MemoryAddress % 4 == 0);
+
 			traceWriter->AddMemoryOperation(
 				traceInstructionBuffer[traceInstructionCursor].ClockCycle,
 				traceInstructionBuffer[traceInstructionCursor].InstructionAddress,
-				SLBTChunkRecord::kOperationTypeLoadWord,
+				SLBTChunkExtendedRecord::kOperationTypeLoadWord,
 				traceInstructionBuffer[traceInstructionCursor].MemoryAddress,
+				traceMemoryImage[traceInstructionBuffer[traceInstructionCursor].MemoryAddress / 4],
 				traceInstructionBuffer[traceInstructionCursor].Executed,
 				traceInstructionBuffer[traceInstructionCursor].EndOfPacket);
+
 			break;
 		case LoadHalfWord:
 			assert(traceInstructionBuffer[traceInstructionCursor].MemoryAddressSet);
+			assert(traceInstructionBuffer[traceInstructionCursor].MemoryAddress % 2 == 0);
+
+			shift = (traceInstructionBuffer[traceInstructionCursor].MemoryAddress & 0x3UL) * 8;
+
 			traceWriter->AddMemoryOperation(
 				traceInstructionBuffer[traceInstructionCursor].ClockCycle,
 				traceInstructionBuffer[traceInstructionCursor].InstructionAddress,
-				SLBTChunkRecord::kOperationTypeLoadHalfWord,
+				SLBTChunkExtendedRecord::kOperationTypeLoadHalfWord,
 				traceInstructionBuffer[traceInstructionCursor].MemoryAddress,
+				(traceMemoryImage[traceInstructionBuffer[traceInstructionCursor].MemoryAddress / 4] >> shift) & 0xFFFFUL,
 				traceInstructionBuffer[traceInstructionCursor].Executed,
 				traceInstructionBuffer[traceInstructionCursor].EndOfPacket);
+
 			break;
 		case LoadByte:
 			assert(traceInstructionBuffer[traceInstructionCursor].MemoryAddressSet);
+
+			shift = (traceInstructionBuffer[traceInstructionCursor].MemoryAddress & 0x3UL) * 8;
+
 			traceWriter->AddMemoryOperation(
 				traceInstructionBuffer[traceInstructionCursor].ClockCycle,
 				traceInstructionBuffer[traceInstructionCursor].InstructionAddress,
-				SLBTChunkRecord::kOperationTypeLoadByte,
+				SLBTChunkExtendedRecord::kOperationTypeLoadByte,
 				traceInstructionBuffer[traceInstructionCursor].MemoryAddress,
+				(traceMemoryImage[traceInstructionBuffer[traceInstructionCursor].MemoryAddress / 4] >> shift) & 0xFFUL,
 				traceInstructionBuffer[traceInstructionCursor].Executed,
 				traceInstructionBuffer[traceInstructionCursor].EndOfPacket);
+
 			break;
 		case StoreWord:
 			assert(traceInstructionBuffer[traceInstructionCursor].MemoryAddressSet);
+			assert(traceInstructionBuffer[traceInstructionCursor].MemoryDataSet);
+			assert(traceInstructionBuffer[traceInstructionCursor].MemoryAddress % 4 == 0);
+
+			traceMemoryImage[traceInstructionBuffer[traceInstructionCursor].MemoryAddress / 4] = traceInstructionBuffer[traceInstructionCursor].MemoryData;
+
 			traceWriter->AddMemoryOperation(
 				traceInstructionBuffer[traceInstructionCursor].ClockCycle,
 				traceInstructionBuffer[traceInstructionCursor].InstructionAddress,
-				SLBTChunkRecord::kOperationTypeStoreWord,
+				SLBTChunkExtendedRecord::kOperationTypeStoreWord,
 				traceInstructionBuffer[traceInstructionCursor].MemoryAddress,
+				traceInstructionBuffer[traceInstructionCursor].MemoryData,
 				traceInstructionBuffer[traceInstructionCursor].Executed,
 				traceInstructionBuffer[traceInstructionCursor].EndOfPacket);
+
 			break;
 		case StoreHalfWord:
 			assert(traceInstructionBuffer[traceInstructionCursor].MemoryAddressSet);
+			assert(traceInstructionBuffer[traceInstructionCursor].MemoryDataSet);
+			assert(traceInstructionBuffer[traceInstructionCursor].MemoryAddress % 2 == 0);
+
+			modData = traceMemoryImage[traceInstructionBuffer[traceInstructionCursor].MemoryAddress / 4];
+			shift = (traceInstructionBuffer[traceInstructionCursor].MemoryAddress & 0x3UL) * 8;
+			mask = 0xFFFFUL << shift;
+			modData &= ~mask;
+			modData |= (traceInstructionBuffer[traceInstructionCursor].MemoryData & 0xFFFFUL) << shift;
+			traceMemoryImage[traceInstructionBuffer[traceInstructionCursor].MemoryAddress / 4] = modData;
+
 			traceWriter->AddMemoryOperation(
 				traceInstructionBuffer[traceInstructionCursor].ClockCycle,
 				traceInstructionBuffer[traceInstructionCursor].InstructionAddress,
-				SLBTChunkRecord::kOperationTypeStoreHalfWord,
+				SLBTChunkExtendedRecord::kOperationTypeStoreHalfWord,
 				traceInstructionBuffer[traceInstructionCursor].MemoryAddress,
+				traceInstructionBuffer[traceInstructionCursor].MemoryData,
 				traceInstructionBuffer[traceInstructionCursor].Executed,
 				traceInstructionBuffer[traceInstructionCursor].EndOfPacket);
 			break;
 		case StoreByte:
 			assert(traceInstructionBuffer[traceInstructionCursor].MemoryAddressSet);
+			assert(traceInstructionBuffer[traceInstructionCursor].MemoryDataSet);
+
+			modData = traceMemoryImage[traceInstructionBuffer[traceInstructionCursor].MemoryAddress / 4];
+			shift = (traceInstructionBuffer[traceInstructionCursor].MemoryAddress & 0x3UL) * 8;
+			mask = 0xFFUL << shift;
+			modData &= ~mask;
+			modData |= (traceInstructionBuffer[traceInstructionCursor].MemoryData & 0xFFUL) << shift;
+			traceMemoryImage[traceInstructionBuffer[traceInstructionCursor].MemoryAddress / 4] = modData;
+
 			traceWriter->AddMemoryOperation(
 				traceInstructionBuffer[traceInstructionCursor].ClockCycle,
 				traceInstructionBuffer[traceInstructionCursor].InstructionAddress,
-				SLBTChunkRecord::kOperationTypeStoreByte,
+				SLBTChunkExtendedRecord::kOperationTypeStoreByte,
 				traceInstructionBuffer[traceInstructionCursor].MemoryAddress,
+				traceInstructionBuffer[traceInstructionCursor].MemoryData,
 				traceInstructionBuffer[traceInstructionCursor].Executed,
 				traceInstructionBuffer[traceInstructionCursor].EndOfPacket);
+
 			break;
 		}
 	}
@@ -245,6 +319,7 @@ void start(const std::string& filename) {
 	traceInstructionCursor = 0;
 	traceNextISID = 1;
 	traceExitCallReached = false;
+	traceInstructionBufferFlushed = false;
 }
 
 // Update clock cycle
@@ -300,6 +375,25 @@ void setInstructionMemoryAddress(unsigned long long isid, unsigned long address)
 
 				traceInstructionBuffer[i].MemoryAddress = address;
 				traceInstructionBuffer[i].MemoryAddressSet = true;
+				return;
+			}
+		}
+
+		cerr << "Error: LBT trace ISID not found" << endl;
+		exit(1);
+	}
+}
+
+void setInstructionMemoryData(unsigned long long isid, unsigned long data) {
+	if (traceWriter != NULL) {
+		for (unsigned long i = 0; i < kTraceInstructionBufferSize; i++) {
+			if (traceInstructionBuffer[i].ISID == isid) {
+				assert(traceInstructionBuffer[i].OperationType == StoreWord ||
+					traceInstructionBuffer[i].OperationType == StoreHalfWord ||
+					traceInstructionBuffer[i].OperationType == StoreByte);
+
+				traceInstructionBuffer[i].MemoryData = data;
+				traceInstructionBuffer[i].MemoryDataSet = true;
 				return;
 			}
 		}
@@ -370,18 +464,59 @@ void setInstructionInputChannels(unsigned long long isid, unsigned long channel1
 	}
 }
 
+// Store memory image
+
+void storeInitialMemoryImage(const void *image) {
+	if (traceWriter != NULL) {
+		traceWriter->SetMemorySize(MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+		traceWriter->StoreMemoryImage(image, true);
+
+		traceMemoryImage = new uint32[MEMORY_ON_CHIP_SCRATCHPAD_SIZE / 4];
+		memcpy(traceMemoryImage, image, MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+	}
+}
+
+void storeFinalMemoryImage(const void *image) {
+	if (traceWriter != NULL) {
+		traceWriter->StoreMemoryImage(image, false);
+
+		if (!traceInstructionBufferFlushed) {
+			for (unsigned long i = 0; i < kTraceInstructionBufferSize; i++) {
+				flushBufferedInstruction();
+
+				traceInstructionBuffer[traceInstructionCursor].ISID = 0;
+
+				traceInstructionCursor++;
+				if (traceInstructionCursor == kTraceInstructionBufferSize)
+					traceInstructionCursor = 0;
+			}
+
+			traceInstructionBufferFlushed = true;
+		}
+
+		if (memcmp(traceMemoryImage, image, MEMORY_ON_CHIP_SCRATCHPAD_SIZE) != 0) {
+			cerr << "Error: Trace memory image does not match final background memory image" << endl;
+			exit(1);
+		}
+	}
+}
+
 // Finalize trace
 
 void stop() {
 	if (traceWriter != NULL) {
-		for (unsigned long i = 0; i < kTraceInstructionBufferSize; i++) {
-			flushBufferedInstruction();
+		if (!traceInstructionBufferFlushed) {
+			for (unsigned long i = 0; i < kTraceInstructionBufferSize; i++) {
+				flushBufferedInstruction();
 
-			traceInstructionBuffer[traceInstructionCursor].ISID = 0;
+				traceInstructionBuffer[traceInstructionCursor].ISID = 0;
 
-			traceInstructionCursor++;
-			if (traceInstructionCursor == kTraceInstructionBufferSize)
-				traceInstructionCursor = 0;
+				traceInstructionCursor++;
+				if (traceInstructionCursor == kTraceInstructionBufferSize)
+					traceInstructionCursor = 0;
+			}
+
+			traceInstructionBufferFlushed = true;
 		}
 
 		traceWriter->Flush();
@@ -390,6 +525,9 @@ void stop() {
 
 		traceFile = NULL;
 		traceWriter = NULL;
+
+		delete[] traceMemoryImage;
+		traceMemoryImage = NULL;
 	}
 }
 

@@ -20,6 +20,8 @@
 
 #include "../../Typedefs.h"
 
+#include "SimplifiedOnChipScratchpad.h"
+
 class GeneralPurposeCacheHandler {
 private:
 	//---------------------------------------------------------------------------------------------
@@ -85,6 +87,8 @@ public:
 
 	void prepareCacheLine(uint32_t address, uint32_t &writeBackAddress, uint &writeBackCount, uint32_t writeBackData[], uint32_t &fetchAddress, uint &fetchCount);
 	void replaceCacheLine(uint32_t fetchAddress, uint32_t fetchData[]);
+
+	void synchronizeData(SimplifiedOnChipScratchpad *backgroundMemory);
 };
 
 #endif /* GENERALPURPOSECACHEHANDLER_H_ */

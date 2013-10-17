@@ -18,6 +18,7 @@
 #include "../../Typedefs.h"
 #include "../../Utility/Instrumentation.h"
 #include "../../Utility/Trace/MemoryTrace.h"
+#include "SimplifiedOnChipScratchpad.h"
 #include "GeneralPurposeCacheHandler.h"
 
 #include <cassert>
@@ -399,4 +400,22 @@ void GeneralPurposeCacheHandler::replaceCacheLine(uint32_t fetchAddress, uint32_
 	mAddresses[mVictimSlot] = fetchAddress;
 	mLineValid[mVictimSlot] = true;
 	mLineDirty[mVictimSlot] = false;
+}
+
+
+void GeneralPurposeCacheHandler::synchronizeData(SimplifiedOnChipScratchpad *backgroundMemory) {
+	assert(backgroundMemory != NULL);
+
+	for (uint setIndex = 0; setIndex < mSetCount; setIndex++) {
+		for (uint setSlot = 0; setSlot < mWayCount; setSlot++) {
+			uint slot = setIndex * mWayCount + setSlot;
+
+			if (mLineValid[slot] && mLineDirty[slot]) {
+				uint address = mAddresses[slot];
+
+				for (uint wordIndex = 0; wordIndex < mLineSize / 4; wordIndex++)
+					backgroundMemory->writeWord(address + wordIndex * 4, mData[slot * mLineSize / 4 + wordIndex]);
+			}
+		}
+	}
 }

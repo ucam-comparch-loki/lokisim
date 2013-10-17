@@ -235,6 +235,10 @@ void SimplifiedOnChipScratchpad::storeData(vector<Word>& data, MemoryAddr locati
 	}
 }
 
+const void* SimplifiedOnChipScratchpad::getData() {
+	return mData;
+}
+
 void SimplifiedOnChipScratchpad::print(MemoryAddr start, MemoryAddr end) {
 	if (start > end) {
 		MemoryAddr temp = start;

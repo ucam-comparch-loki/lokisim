@@ -143,8 +143,16 @@ int simulate() {
 
   CodeLoader::makeExecutable(chip);
 
+  // Store initial memory image
+  if (LBT_TRACE)
+	LBTTrace::storeInitialMemoryImage(chip.getMemoryData());
+
   // Run simulation
   simulate(chip);
+
+  // Store final memory image
+  if (LBT_TRACE)
+	LBTTrace::storeFinalMemoryImage(chip.getMemoryData());
 
   // Print debug information
   if (DEBUG || BATCH_MODE) {

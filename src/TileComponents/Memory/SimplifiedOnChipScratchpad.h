@@ -124,6 +124,7 @@ public:
 public:
 
 	void storeData(vector<Word>& data, MemoryAddr location);
+	const void* getData();
 
 	void print(MemoryAddr start, MemoryAddr end);
 	Word readWord(MemoryAddr addr);

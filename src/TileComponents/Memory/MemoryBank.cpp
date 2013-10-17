@@ -1528,6 +1528,12 @@ void MemoryBank::storeData(vector<Word>& data, MemoryAddr location) {
 	}
 }
 
+void MemoryBank::synchronizeData() {
+	assert(mBackgroundMemory != 0);
+	if (mBankMode == MODE_GP_CACHE)
+		mGeneralPurposeCacheHandler.synchronizeData(mBackgroundMemory);
+}
+
 void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
 	assert(mPrevMemoryBank != 0 && mNextMemoryBank != 0 && mBackgroundMemory != 0);
 

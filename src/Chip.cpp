@@ -28,6 +28,17 @@ void Chip::storeData(vector<Word>& data, const ComponentID& component, MemoryAdd
   else backgroundMemory.storeData(data, location);
 }
 
+const void* Chip::getMemoryData() {
+	// Synchronize data first
+
+	for (uint i = 0; i < memories.size(); i++)
+		memories[i]->synchronizeData();
+
+	// Return synchronized background memory data array
+
+	return backgroundMemory.getData();
+}
+
 void Chip::print(const ComponentID& component, MemoryAddr start, MemoryAddr end) {
 	if (component.isMemory())
 		memories[component.getGlobalMemoryNumber()]->print(start, end);

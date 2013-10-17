@@ -162,7 +162,15 @@ void ExecuteStage::sendOutput() {
 		currentInst.opcode() == InstructionMap::OP_STW ||
 		currentInst.opcode() == InstructionMap::OP_STHW ||
 		currentInst.opcode() == InstructionMap::OP_STB) && currentInst.memoryOp() != MemoryRequest::PAYLOAD_ONLY)
+	  {
 		LBTTrace::setInstructionMemoryAddress(currentInst.isid(), currentInst.result());
+	  }
+	  else if ((currentInst.opcode() == InstructionMap::OP_STW ||
+		currentInst.opcode() == InstructionMap::OP_STHW ||
+		currentInst.opcode() == InstructionMap::OP_STB) && currentInst.memoryOp() == MemoryRequest::PAYLOAD_ONLY)
+	  {
+		LBTTrace::setInstructionMemoryData(currentInst.isid(), currentInst.result());
+	  }
 	}
 
     // Memory operations may be sent to different memory banks depending on the

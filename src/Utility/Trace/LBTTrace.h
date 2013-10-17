@@ -45,9 +45,15 @@ namespace LBTTrace {
 	unsigned long long logDecodedInstruction(unsigned long instructionAddress, LBTOperationType operationType, bool endOfPacket);
 
 	void setInstructionMemoryAddress(unsigned long long isid, unsigned long address);
+	void setInstructionMemoryData(unsigned long long isid, unsigned long data);
 	void setInstructionExecuteFlag(unsigned long long isid, bool execute);
 	void setInstructionSystemCallInfo(unsigned long long isid, unsigned long systemCallNumber, const unsigned long *registerValues, unsigned long registerCount, const void *extraData, unsigned long extraDataLength);
 	void setInstructionInputChannels(unsigned long long isid, unsigned long channel1, bool useChannel1, unsigned long channel2, bool useChannel2);
+
+	// Store memory image
+
+	void storeInitialMemoryImage(const void *image);
+	void storeFinalMemoryImage(const void *image);
 
 	// Finalize trace
 

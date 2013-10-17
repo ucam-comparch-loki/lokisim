@@ -338,6 +338,7 @@ public:
 	void setLocalNetwork(local_net_t* network);
 
 	void storeData(vector<Word>& data, MemoryAddr location);
+	void synchronizeData();
 
 	void print(MemoryAddr start, MemoryAddr end);
 	Word readWord(MemoryAddr addr);

@@ -47,6 +47,8 @@ public:
   void    storeInstructions(vector<Word>& instructions, const ComponentID& component);
   void    storeData(vector<Word>& data, const ComponentID& component, MemoryAddr location=0);
 
+  const void* getMemoryData();
+
   void    print(const ComponentID& component, MemoryAddr start, MemoryAddr end);
   Word    readWord(const ComponentID& component, MemoryAddr addr);
   Word    readByte(const ComponentID& component, MemoryAddr addr);

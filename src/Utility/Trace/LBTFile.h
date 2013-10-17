@@ -30,19 +30,24 @@ public:
 		| (((uint64)('$')) << 24)
 		| (((uint64)('1')) << 32)
 		| (((uint64)('$')) << 40)
-		| (((uint64)('0')) << 48)
+		| (((uint64)('1')) << 48)
 		| (26ULL << 56);
 
-	static const uint32 kFormatBasicCoreTrace = 1;
+	static const uint64 kFormatBasicCoreTrace = 1;
+	static const uint64 kFormatExtendedCoreTrace = 2;
 
 	uint64 Signature;
-	uint32 Format;
+	uint64 Format;
 	uint64 IndexChunkNumber;
 	uint64 TraceChunkCount;
 	uint64 RecordCount;
+
+	uint64 MemorySize;
+	uint64 InitialImageIndexChunkNumber;
+	uint64 FinalImageIndexChunkNumber;
 };
 
-struct SLBTChunkRecord {
+struct SLBTChunkExtendedRecord {
 public:
 	static const uint8 kOperationTypeNOP = 1;
 	static const uint8 kOperationTypeALU1 = 2;
@@ -72,6 +77,7 @@ public:
 	uint8 Parameter1;			// Input channel 1 or system call number
 	uint8 Parameter2;			// Input channel 2 or high 8 bits of chunk number holding system call information
 	uint8 Flags;
+	uint32 MemoryData;
 };
 
 /*
@@ -86,20 +92,24 @@ public:
  * Loki binary trace file writer class
  */
 
-class CLBTFileReader;
-
 class CLBTFileWriter {
 private:
-	static const usize kChunkRecordCount = 2 * 1024 * 1024;  // 40 MB
+	static const usize kChunkRecordCount = 2 * 1024 * 1024;  // 48 MB
 
 	static const usize kChunkIndexCapacityInitial = 65536;
 	static const usize kChunkIndexCapacityIncrement = 32768;
 
+	static const usize kMemoryImageChunkSize = 64 * 1024 * 1024;  // 64 MB
+
 	CFile &mFile;
 	CLBCFFileWriter mWriter;
 
+	uint64 mMemorySize;
+	uint64 mInitialImageIndexChunkNumber;
+	uint64 mFinalImageIndexChunkNumber;
+
 	CAlignedBuffer mRecordsWrapper;
-	SLBTChunkRecord *mRecords;
+	SLBTChunkExtendedRecord *mRecords;
 	usize mRecordCursor;
 
 	CAlignedBuffer mWorkBuffer;
@@ -117,76 +127,13 @@ public:
 	~CLBTFileWriter();
 
 	void AddBasicOperation(uint64 cycleNumber, ulong instructionAddress, uint operationType, uint inputChannel1, bool usesInputChannel1, uint inputChannel2, bool usesInputChannel2, bool executed, bool endOfPacket);
-	void AddMemoryOperation(uint64 cycleNumber, ulong instructionAddress, uint operationType, ulong memoryAddress, bool executed, bool endOfPacket);
+	void AddMemoryOperation(uint64 cycleNumber, ulong instructionAddress, uint operationType, ulong memoryAddress, ulong memoryData, bool executed, bool endOfPacket);
 	void AddSystemCall(uint64 cycleNumber, ulong instructionAddress, uint systemCallNumber, ulong *registerValues, usize registerCount, const void *data, usize dataLength, bool executed, bool endOfPacket);
 
+	void SetMemorySize(uint64 memorySize);
+	void StoreMemoryImage(const void *image, bool initialImage);
+
 	void Flush();
-};
-
-/*
- * Loki binary trace file reader class
- */
-
-class CLBTFileReader {
-	friend class CLBTFileWriter;
-private:
-	CFile &mFile;
-	CLBCFFileReader mReader;
-
-	CDynamicAlignedBuffer mChunkIndexWrapper;
-	uint64 *mTraceChunkNumbers;
-	usize mTraceChunkIndex;
-	usize mTraceChunkCount;
-
-	CDynamicAlignedBuffer mChunkDataBuffer;
-	uint64 *mChunkCycleNumbers;
-	uint32 *mChunkInstructionAddresses;
-	uint32 *mChunkMemoryAddresses;
-	uint8 *mChunkOperationTypes;
-	uint8 *mChunkParameters1;
-	uint8 *mChunkParameters2;
-	uint8 *mChunkFlags;
-
-	usize mChunkRecordCursor;
-	usize mChunkRecordCount;
-
-	uint64 mTotalRecordCount;
-
-	bool ReadChunk();
-public:
-	CLBTFileReader(CFile &lbtFile);
-	~CLBTFileReader();
-
-	inline void Rewind() {
-		mTraceChunkIndex = (usize)(-1LL);
-		mChunkRecordCursor = 0;
-		mChunkRecordCount = 0;
-	}
-
-	inline bool EndOfFile() const {
-		return mTraceChunkIndex == mTraceChunkCount;
-	}
-
-	inline bool Read(SLBTChunkRecord &record) {
-		if (mChunkRecordCursor == mChunkRecordCount && !ReadChunk())
-			return false;
-
-		record.CycleNumber = mChunkCycleNumbers[mChunkRecordCursor];
-		record.InstructionAddress = mChunkInstructionAddresses[mChunkRecordCursor];
-		record.MemoryAddress = mChunkMemoryAddresses[mChunkRecordCursor];
-		record.OperationType = mChunkOperationTypes[mChunkRecordCursor];
-		record.Parameter1 = mChunkParameters1[mChunkRecordCursor];
-		record.Parameter2 = mChunkParameters2[mChunkRecordCursor];
-		record.Flags = mChunkFlags[mChunkRecordCursor];
-
-		mChunkRecordCursor++;
-
-		return true;
-	}
-
-	inline const char* GetFileName() const			{ return mReader.GetFileName(); }
-
-	inline uint64 GetRecordCount() const			{ return mTotalRecordCount; }
 };
 
 #endif /*LBTFILE_H_*/
