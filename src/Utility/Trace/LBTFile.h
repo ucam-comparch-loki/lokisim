@@ -22,7 +22,7 @@
 #pragma pack(push)
 #pragma pack(1)
 
-struct SLBTDataHeader {
+struct SLBTExtendedDataHeader {
 public:
 	static const uint64 kSignature = ((uint64)('L'))  // Little endian byte order / LSB first
 		| (((uint64)('B')) << 8)

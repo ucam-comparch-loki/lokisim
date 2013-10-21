@@ -212,13 +212,16 @@ void CLBTFileWriter::Flush() {
 
 	ulong indexChunkNumber = mWriter.AppendChunk(mChunkIndex, sizeof(uint64) * mChunkIndexCursor);
 
-	SLBTDataHeader header;
-	header.Signature = SLBTDataHeader::kSignature;
-	header.Format = SLBTDataHeader::kFormatExtendedCoreTrace;
+	SLBTExtendedDataHeader header;
+	header.Signature = SLBTExtendedDataHeader::kSignature;
+	header.Format = SLBTExtendedDataHeader::kFormatExtendedCoreTrace;
 	header.IndexChunkNumber = indexChunkNumber;
 	header.TraceChunkCount = mChunkIndexCursor;
 	header.RecordCount = mTotalRecordCount;
+	header.MemorySize = mMemorySize;
+	header.InitialImageIndexChunkNumber = mInitialImageIndexChunkNumber;
+	header.FinalImageIndexChunkNumber = mFinalImageIndexChunkNumber;
 
-	mWriter.SetUserData(&header, sizeof(SLBTDataHeader));
+	mWriter.SetUserData(&header, sizeof(SLBTExtendedDataHeader));
 	mWriter.Flush();
 }
