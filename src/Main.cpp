@@ -51,7 +51,7 @@ void simulate(Chip& chip) {
 
   // Simulate multiple cycles in a row when possible to reduce the overheads of
   // stopping and starting simulation.
-  if (DEBUG || CORE_TRACE || MEMORY_TRACE || SOFTWARE_TRACE)
+  if (DEBUG || CORE_TRACE || MEMORY_TRACE || SOFTWARE_TRACE || LBT_TRACE)
     cyclesPerStep = 1;
   else
     cyclesPerStep = (100 < TIMEOUT/50) ? 100 : TIMEOUT/50;
