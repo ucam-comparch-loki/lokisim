@@ -7,7 +7,7 @@
 
 #include "Decoder.h"
 #include "DecodeStage.h"
-#include "../IndirectRegisterFile.h"
+#include "../RegisterFile.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
 #include "../../../Datatype/MemoryRequest.h"
@@ -16,7 +16,7 @@
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Utility/Instrumentation.h"
 
-typedef IndirectRegisterFile Registers;
+typedef RegisterFile Registers;
 
 /*
 void Decoder::initialise(const DecodedInst& input) {

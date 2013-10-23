@@ -6,7 +6,7 @@
  */
 
 #include "ExecuteStage.h"
-#include "../../Cluster.h"
+#include "../../Core.h"
 #include "../../../Datatype/MemoryRequest.h"
 #include "../../../Utility/Instrumentation.h"
 #include "../../../Utility/Instrumentation/Registers.h"

@@ -5,13 +5,13 @@
  *      Author: db434
  */
 
-#include "IndirectRegisterFile.h"
-#include "../Cluster.h"
+#include "RegisterFile.h"
+#include "../Core.h"
 #include "../../Datatype/Word.h"
 #include "../../Utility/Instrumentation.h"
 #include "../../Utility/Instrumentation/Registers.h"
 
-const int32_t IndirectRegisterFile::read(PortIndex port, RegisterIndex reg, bool indirect) const {
+const int32_t RegisterFile::read(PortIndex port, RegisterIndex reg, bool indirect) const {
   RegisterIndex index;
 
   if (indirect) {
@@ -36,7 +36,7 @@ const int32_t IndirectRegisterFile::read(PortIndex port, RegisterIndex reg, bool
 
     if (ENERGY_TRACE) {
       Instrumentation::Registers::read(port, reg, prevRead[port], data);
-      const_cast<IndirectRegisterFile*>(this)->logActivity(); // Hack
+      const_cast<RegisterFile*>(this)->logActivity(); // Hack
     }
 
     if (DEBUG) cout << this->name() << ": Read " << data
@@ -44,16 +44,16 @@ const int32_t IndirectRegisterFile::read(PortIndex port, RegisterIndex reg, bool
 
     // A bit of a hack to allow us to store debug information from inside a
     // const method.
-    const_cast<IndirectRegisterFile*>(this)->prevRead[port] = data;
+    const_cast<RegisterFile*>(this)->prevRead[port] = data;
     return data;
   }
 }
 
-const int32_t IndirectRegisterFile::readDebug(const RegisterIndex reg) const {
+const int32_t RegisterFile::readDebug(const RegisterIndex reg) const {
   return regs.read(reg).toInt();
 }
 
-void IndirectRegisterFile::write(const RegisterIndex reg, const int32_t value, bool indirect) {
+void RegisterFile::write(const RegisterIndex reg, const int32_t value, bool indirect) {
 
   RegisterIndex index = indirect ? regs.read(reg).toInt() : reg;
 
@@ -79,54 +79,54 @@ void IndirectRegisterFile::write(const RegisterIndex reg, const int32_t value, b
 /* Register 0 is reserved to hold the constant value 0.
  * Register 1 is reserved to hold the address of the currently executing
  * instruction packet. */
-bool IndirectRegisterFile::isReserved(RegisterIndex position) {
+bool RegisterFile::isReserved(RegisterIndex position) {
   return position >= 0
       && position <  2;
 }
 
-bool IndirectRegisterFile::isChannelEnd(RegisterIndex position) {
+bool RegisterFile::isChannelEnd(RegisterIndex position) {
   return position >= START_OF_INPUT_CHANNELS
       && position <  START_OF_INPUT_CHANNELS + NUM_RECEIVE_CHANNELS;
 }
 
-bool IndirectRegisterFile::isAddressableReg(RegisterIndex position) {
+bool RegisterFile::isAddressableReg(RegisterIndex position) {
   return !(isReserved(position) || isChannelEnd(position))
       && position < NUM_ADDRESSABLE_REGISTERS;
 }
 
-bool IndirectRegisterFile::needsIndirect(RegisterIndex position) {
+bool RegisterFile::needsIndirect(RegisterIndex position) {
   return position >= NUM_ADDRESSABLE_REGISTERS
       && position <  NUM_PHYSICAL_REGISTERS;
 }
 
-bool IndirectRegisterFile::isInvalid(RegisterIndex position) {
+bool RegisterFile::isInvalid(RegisterIndex position) {
   return position < 0
       || position > NUM_PHYSICAL_REGISTERS;
 }
 
-RegisterIndex IndirectRegisterFile::toChannelID(RegisterIndex position) {
+RegisterIndex RegisterFile::toChannelID(RegisterIndex position) {
   assert(isChannelEnd(position));
   return position - START_OF_INPUT_CHANNELS;
 }
 
-RegisterIndex IndirectRegisterFile::fromChannelID(RegisterIndex position) {
+RegisterIndex RegisterFile::fromChannelID(RegisterIndex position) {
   assert(position < NUM_RECEIVE_CHANNELS);
   return position + START_OF_INPUT_CHANNELS;
 }
 
-void IndirectRegisterFile::updateCurrentIPK(const MemoryAddr addr) {
+void RegisterFile::updateCurrentIPK(const MemoryAddr addr) {
   Word w(addr);
   writeReg(1, w);
 }
 
-void IndirectRegisterFile::writeReg(const RegisterIndex reg, const Word data) {
+void RegisterFile::writeReg(const RegisterIndex reg, const Word data) {
   if (DEBUG) cout << this->name() << ": Stored " << data << " to register " <<
       (int)reg << endl;
 
   regs.write(data, reg);
 }
 
-void IndirectRegisterFile::logActivity() {
+void RegisterFile::logActivity() {
   cycle_count_t currentCycle = Instrumentation::currentCycle();
   if (currentCycle != lastActivity) {
     Instrumentation::Registers::activity();
@@ -134,11 +134,11 @@ void IndirectRegisterFile::logActivity() {
   }
 }
 
-Cluster* IndirectRegisterFile::parent() const {
-  return static_cast<Cluster*>(this->get_parent());
+Core* RegisterFile::parent() const {
+  return static_cast<Core*>(this->get_parent());
 }
 
-IndirectRegisterFile::IndirectRegisterFile(sc_module_name name, const ComponentID& ID) :
+RegisterFile::RegisterFile(sc_module_name name, const ComponentID& ID) :
     Component(name, ID),
     regs(NUM_PHYSICAL_REGISTERS, std::string(name)),
     prevRead(3),

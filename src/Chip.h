@@ -15,7 +15,7 @@
 
 #include "Component.h"
 #include "Network/NetworkHierarchy.h"
-#include "TileComponents/Cluster.h"
+#include "TileComponents/Core.h"
 #include "TileComponents/Memory/MemoryBank.h"
 #include "TileComponents/Memory/SimplifiedOnChipScratchpad.h"
 
@@ -78,7 +78,7 @@ private:
 
 private:
 
-	vector<Cluster*> clusters;  // All clusters of the chip
+	vector<Core*> cores;  // All cores of the chip
 	vector<MemoryBank*> memories;  // All memories of the chip
 	SimplifiedOnChipScratchpad backgroundMemory;
 	NetworkHierarchy network;

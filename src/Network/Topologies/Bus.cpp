@@ -29,6 +29,8 @@ void Bus::busLoop() {
 
         dataOut[outputUsed].write(data);
 
+        cout << this->name() << " sent " << data << endl;
+
         next_trigger(dataOut[outputUsed].ack_event());
         state = WAITING_FOR_ACK;
       }

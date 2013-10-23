@@ -14,7 +14,8 @@
 #include "Topologies/LocalNetwork.h"
 
 void Router::receiveData(PortIndex input) {
-  cout << this->name() << " received data on input " << (int)input << endl;
+  if (DEBUG)
+    cout << this->name() << " received data on input " << (int)input << endl;
 
   assert(!inputBuffers[input].full());
 

@@ -6,7 +6,7 @@
  */
 
 #include "WriteStage.h"
-#include "../../Cluster.h"
+#include "../../Core.h"
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 

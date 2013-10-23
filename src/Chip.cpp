@@ -8,18 +8,15 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "Chip.h"
-#include "TileComponents/Cluster.h"
-#include "TileComponents/Memory/MemoryBank.h"
-#include "TileComponents/Memory/SimplifiedOnChipScratchpad.h"
 
 void Chip::storeInstructions(vector<Word>& instructions, const ComponentID& component) {
-	clusters[component.getGlobalCoreNumber()]->storeData(instructions);
+	cores[component.getGlobalCoreNumber()]->storeData(instructions);
 }
 
 void Chip::storeData(vector<Word>& data, const ComponentID& component, MemoryAddr location) {
   if(component.isCore()) {
-    assert(component.getGlobalCoreNumber() < clusters.size());
-    clusters[component.getGlobalCoreNumber()]->storeData(data, location);
+    assert(component.getGlobalCoreNumber() < cores.size());
+    cores[component.getGlobalCoreNumber()]->storeData(data, location);
   }
   else if(component.isMemory()) {
     assert(component.getGlobalMemoryNumber() < memories.size());
@@ -85,21 +82,21 @@ void Chip::writeByte(const ComponentID& component, MemoryAddr addr, Word data) {
 }
 
 int Chip::readRegister(const ComponentID& component, RegisterIndex reg) const {
-  assert(component.getGlobalCoreNumber() < clusters.size());
+  assert(component.getGlobalCoreNumber() < cores.size());
 
-	return clusters[component.getGlobalCoreNumber()]->readRegDebug(reg);
+	return cores[component.getGlobalCoreNumber()]->readRegDebug(reg);
 }
 
 MemoryAddr Chip::getInstIndex(const ComponentID& component) const {
-  assert(component.getGlobalCoreNumber() < clusters.size());
+  assert(component.getGlobalCoreNumber() < cores.size());
 
-	return clusters[component.getGlobalCoreNumber()]->getInstIndex();
+	return cores[component.getGlobalCoreNumber()]->getInstIndex();
 }
 
 bool Chip::readPredicate(const ComponentID& component) const {
-  assert(component.getGlobalCoreNumber() < clusters.size());
+  assert(component.getGlobalCoreNumber() < cores.size());
 
-	return clusters[component.getGlobalCoreNumber()]->readPredReg();
+	return cores[component.getGlobalCoreNumber()]->readPredReg();
 }
 
 void Chip::watchIdle(int component) {
@@ -155,9 +152,9 @@ void Chip::makeComponents() {
       namebuilder >> name;
       namebuilder.clear();
 
-      Cluster* c = new Cluster(name.c_str(), clusterID, network.getLocalNetwork(clusterID));
+      Core* c = new Core(name.c_str(), clusterID, network.getLocalNetwork(clusterID));
       
-      clusters.push_back(c);
+      cores.push_back(c);
     }
 
     // Initialise the memories of this Tile
@@ -186,7 +183,7 @@ void Chip::wireUp() {
 
 // Connect clusters and memories to the local interconnect
 
-	uint clusterIndex = 0;
+	uint coreIndex = 0;
 	uint memoryIndex = 0;
 	uint dataInputCounter = 0;
 	uint dataOutputCounter = 0;
@@ -197,42 +194,42 @@ void Chip::wireUp() {
 	for (uint i = 0; i < NUM_COMPONENTS; i++) {
 		if ((i % COMPONENTS_PER_TILE) < CORES_PER_TILE) {
 			// This is a core
-      clusters[clusterIndex]->idle(idleSig[clusterIndex+memoryIndex]);
-      clusters[clusterIndex]->clock(clock);
-      clusters[clusterIndex]->fastClock(fastClock);
+      cores[coreIndex]->idle(idleSig[coreIndex+memoryIndex]);
+      cores[coreIndex]->clock(clock);
+      cores[coreIndex]->fastClock(fastClock);
 
 			for (uint j = 0; j < CORE_INPUT_PORTS; j++) {
 				uint index = dataInputCounter++;  // Position in network's array
 
-				clusters[clusterIndex]->dataIn[j](dataToComponents[index]);
+				cores[coreIndex]->dataIn[j](dataToComponents[index]);
 				network.dataOut[index](dataToComponents[index]);
 			}
 
 			for (uint j = 0; j < CORE_INPUT_CHANNELS; j++) {
 			  uint index = readyInputCounter++;  // Position in network's array
 
-        clusters[clusterIndex]->readyOut[j](readyFromComps[index]);
+        cores[coreIndex]->readyOut[j](readyFromComps[index]);
         network.readyDataOut[index](readyFromComps[index]);
 			}
 
       uint index = creditOutputCounter++;
 
-      clusters[clusterIndex]->creditsOut[0](creditsFromComponents[index]);
+      cores[coreIndex]->creditsOut[0](creditsFromComponents[index]);
       network.creditsIn[index](creditsFromComponents[index]);
 
 			for (uint j = 0; j < CORE_OUTPUT_PORTS; j++) {
 				uint index = dataOutputCounter++;  // Position in network's array
 
-				clusters[clusterIndex]->dataOut[j](dataFromComponents[index]);
+				cores[coreIndex]->dataOut[j](dataFromComponents[index]);
 				network.dataIn[index](dataFromComponents[index]);
 
 				index = creditInputCounter++;
 
-				clusters[clusterIndex]->creditsIn[j](creditsToComponents[index]);
+				cores[coreIndex]->creditsIn[j](creditsToComponents[index]);
 				network.creditsOut[index](creditsToComponents[index]);
 			}
 
-			clusterIndex++;
+			coreIndex++;
 		} else {
 			uint indexInput = dataInputCounter++;  // Position in network's array
 			memories[memoryIndex]->iDataIn(dataToComponents[indexInput]);
@@ -311,6 +308,6 @@ Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
 }
 
 Chip::~Chip() {
-	for(uint i = 0; i < clusters.size(); i++)	delete clusters[i];
+	for(uint i = 0; i < cores.size(); i++)	  delete cores[i];
 	for(uint i = 0; i < memories.size(); i++)	delete memories[i];
 }

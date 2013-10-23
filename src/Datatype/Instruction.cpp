@@ -27,13 +27,13 @@
 #include "DecodedInst.h"
 #include "../Exceptions/InvalidInstructionException.h"
 #include "../TileComponents/TileComponent.h"
-#include "../TileComponents/Pipeline/IndirectRegisterFile.h"
+#include "../TileComponents/Pipeline/RegisterFile.h"
 #include "../Utility/InstructionMap.h"
 #include "../Utility/StringManipulation.h"
 #include "../Utility/Parameters.h"
 
 typedef StringManipulation Strings;
-typedef IndirectRegisterFile Registers;
+typedef RegisterFile Registers;
 
 const short startPredicate = 30, endPredicate = 31;
 const short startOpcode    = 23, endOpcode    = 29;

@@ -10,7 +10,7 @@
 #include "../../TileComponents/TileComponent.h"
 
 void FlowControlOut::mainLoop() {
-  switch(state) {
+  switch (state) {
     case WAITING_FOR_DATA : {
       // Data has now arrived.
 
@@ -18,7 +18,7 @@ void FlowControlOut::mainLoop() {
       flowControlOut.write(false);
 
       // If the network is not ready for the data, wait until it is.
-      if(!readyIn.read())
+      if (!readyIn.read())
         next_trigger(readyIn.posedge_event());
       else
         handleNewData();
@@ -41,7 +41,7 @@ void FlowControlOut::mainLoop() {
 void FlowControlOut::sendData() {
   assert(creditCount > 0);
 
-  if(DEBUG) cout << "Network sending " << dataIn.read().payload() << " from "
+  if (DEBUG) cout << "Network sending " << dataIn.read().payload() << " from "
       << channel << " to " << dataIn.read().channelID() << endl;
 
   dataOut.write(dataIn.read());
@@ -50,18 +50,17 @@ void FlowControlOut::sendData() {
 }
 
 void FlowControlOut::handleNewData() {
-  if(dataIn.read().portClaim()) {
+  if (dataIn.read().portClaim()) {
     // This message is allowed to send even if we have no credits
     // because it is not buffered -- it is immediately consumed to store
     // the return address at the destination.
 
-    if(DEBUG) cout << "Sending port claim from " << channel << " to "
-                   << dataIn.read().channelID() << endl;
+    if (DEBUG) cout << "Sending port claim from " << channel << " to "
+                    << dataIn.read().channelID() << endl;
   }
   else {
-    if(creditCount <= 0) {  // We are not able to send the new data yet.
-      if(DEBUG) cout << "Can't send from "
-          << channel << ": no credits." <<  endl;
+    if (creditCount <= 0) {  // We are not able to send the new data yet.
+      if (DEBUG) cout << "Can't send from " << channel << ": no credits." << endl;
 
       // Wait until we receive a credit.
       state = WAITING_FOR_CREDITS;
@@ -77,7 +76,7 @@ void FlowControlOut::handleNewData() {
 void FlowControlOut::receivedCredit() {
   creditCount++;
 
-  if(DEBUG) cout << "Received credit at port " << channel << endl;
+  if (DEBUG) cout << this->name() << " received credit at port " << channel << endl;
   assert(creditCount <= IN_CHANNEL_BUFFER_SIZE);
 }
 

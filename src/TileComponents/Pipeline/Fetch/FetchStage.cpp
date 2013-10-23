@@ -6,7 +6,7 @@
  */
 
 #include "FetchStage.h"
-#include "../../Cluster.h"
+#include "../../Core.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Utility/Instrumentation/IPKCache.h"
 

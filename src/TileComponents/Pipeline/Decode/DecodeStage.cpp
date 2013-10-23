@@ -6,7 +6,7 @@
  */
 
 #include "DecodeStage.h"
-#include "../../Cluster.h"
+#include "../../Core.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
 
@@ -43,9 +43,9 @@ void         DecodeStage::persistentInstruction(DecodedInst& inst) {
   // Determine if any of the registers read by this instruction are in fact
   // constants. Constants only need to be read once, not every cycle.
   bool constantReg1 = inst.hasSrcReg1() && (inst.sourceReg1() != inst.destination())
-      && !IndirectRegisterFile::isChannelEnd(inst.sourceReg1());
+      && !RegisterFile::isChannelEnd(inst.sourceReg1());
   bool constantReg2 = inst.hasSrcReg2() && (inst.sourceReg2() != inst.destination())
-      && !IndirectRegisterFile::isChannelEnd(inst.sourceReg2());
+      && !RegisterFile::isChannelEnd(inst.sourceReg2());
 
   while (true) {
     wait(clock.posedge_event());

@@ -6,7 +6,7 @@
  */
 
 #include "../Chip.h"
-#include "Cluster.h"
+#include "Core.h"
 #include "Pipeline/PipelineRegister.h"
 #include "../Datatype/ChannelID.h"
 #include "../Datatype/DecodedInst.h"
@@ -15,7 +15,7 @@
 #include "../Utility/Instrumentation/Registers.h"
 
 /* Initialise the instructions a Cluster will execute. */
-void     Cluster::storeData(const std::vector<Word>& data, MemoryAddr location) {
+void     Core::storeData(const std::vector<Word>& data, MemoryAddr location) {
   std::vector<Instruction> instructions;
 
   // Convert all of the words to instructions
@@ -26,16 +26,16 @@ void     Cluster::storeData(const std::vector<Word>& data, MemoryAddr location) 
   fetch.storeCode(instructions);
 }
 
-const MemoryAddr Cluster::getInstIndex() const   {return fetch.getInstIndex();}
-bool     Cluster::canCheckTags() const           {return fetch.canCheckTags();}
-bool     Cluster::readyToFetch() const           {return fetch.roomToFetch();}
-void     Cluster::jump(const JumpOffset offset)  {fetch.jump(offset);}
+const MemoryAddr Core::getInstIndex() const   {return fetch.getInstIndex();}
+bool     Core::canCheckTags() const           {return fetch.canCheckTags();}
+bool     Core::readyToFetch() const           {return fetch.roomToFetch();}
+void     Core::jump(const JumpOffset offset)  {fetch.jump(offset);}
 
-bool     Cluster::inCache(const MemoryAddr addr, opcode_t operation) {
+bool     Core::inCache(const MemoryAddr addr, opcode_t operation) {
   return fetch.inCache(addr, operation);
 }
 
-const int32_t Cluster::readReg(PortIndex port, RegisterIndex reg, bool indirect) {
+const int32_t Core::readReg(PortIndex port, RegisterIndex reg, bool indirect) {
 
   int32_t result;
 
@@ -68,15 +68,15 @@ const int32_t Cluster::readReg(PortIndex port, RegisterIndex reg, bool indirect)
 }
 
 /* Read a register without data forwarding and without indirection. */
-const int32_t Cluster::readRegDebug(RegisterIndex reg) const {
+const int32_t Core::readRegDebug(RegisterIndex reg) const {
   return regs.readDebug(reg);
 }
 
-void     Cluster::writeReg(RegisterIndex reg, int32_t value, bool indirect) {
+void     Core::writeReg(RegisterIndex reg, int32_t value, bool indirect) {
   regs.write(reg, value, indirect);
 }
 
-bool     Cluster::readPredReg(bool waitForExecution) {
+bool     Core::readPredReg(bool waitForExecution) {
   // The wait parameter tells us to wait for the predicate to be written if
   // the instruction in the execute stage will set it.
   if(waitForExecution && execute.currentInstruction().setsPredicate()
@@ -89,33 +89,33 @@ bool     Cluster::readPredReg(bool waitForExecution) {
   return pred.read();
 }
 
-void     Cluster::writePredReg(bool val)  {pred.write(val);}
+void     Core::writePredReg(bool val)  {pred.write(val);}
 
-const Word Cluster::readWord(MemoryAddr addr) const {
+const Word Core::readWord(MemoryAddr addr) const {
 	return Word(parent()->readWord(getSystemCallMemory(), addr));
 }
 
-const Word Cluster::readByte(MemoryAddr addr) const {
+const Word Core::readByte(MemoryAddr addr) const {
 	return Word(parent()->readByte(getSystemCallMemory(), addr));
 }
 
-void Cluster::writeWord(MemoryAddr addr, Word data) {
+void Core::writeWord(MemoryAddr addr, Word data) {
 	parent()->writeWord(getSystemCallMemory(), addr, data);
 }
 
-void Cluster::writeByte(MemoryAddr addr, Word data) {
+void Core::writeByte(MemoryAddr addr, Word data) {
 	parent()->writeByte(getSystemCallMemory(), addr, data);
 }
 
-const int32_t  Cluster::readRCET(ChannelIndex channel) {
+const int32_t  Core::readRCET(ChannelIndex channel) {
   return decode.readRCET(channel);
 }
 
-void     Cluster::updateCurrentPacket(MemoryAddr addr) {
+void     Core::updateCurrentPacket(MemoryAddr addr) {
   regs.updateCurrentIPK(addr);
 }
 
-void     Cluster::pipelineStalled(bool stalled) {
+void     Core::pipelineStalled(bool stalled) {
   // Instrumentation is done at the source of the stall, so isn't needed here.
   currentlyStalled = stalled;
   stallEvent.notify();
@@ -124,13 +124,13 @@ void     Cluster::pipelineStalled(bool stalled) {
     cout << this->name() << ": pipeline " << (stalled ? "stalled" : "unstalled") << endl;
 }
 
-bool     Cluster::discardInstruction(int stage) {
+bool     Core::discardInstruction(int stage) {
   // The first pipeline stage to have a stall register before it is the 2nd.
   // Therefore reduce the index by 2 to get the position in the array.
   return pipelineRegs[stage-2]->discard();
 }
 
-void     Cluster::nextIPK() {
+void     Core::nextIPK() {
   // If we are stalled waiting for any input, unstall.
   decode.unstall();
 
@@ -139,44 +139,44 @@ void     Cluster::nextIPK() {
     /* continue discarding */;
 }
 
-void     Cluster::idlenessChanged() {
+void     Core::idlenessChanged() {
   // Use the decoder as the arbiter of idleness - we may sometimes bypass the
   // fetch stage.
   Instrumentation::idle(id, idle.read());
 }
 
-void Cluster::requestArbitration(ChannelID destination, bool request) {
+void Core::requestArbitration(ChannelID destination, bool request) {
   // Could have extra ports and write to them from here, but for the moment,
   // access the network directly.
   localNetwork->makeRequest(id, destination, request);
 }
 
-bool Cluster::requestGranted(ChannelID destination) const {
+bool Core::requestGranted(ChannelID destination) const {
   return localNetwork->requestGranted(id, destination);
 }
 
-ComponentID Cluster::getSystemCallMemory() const {
+ComponentID Core::getSystemCallMemory() const {
   // TODO: Stop assuming that the first channel map entry after the fetch
   // channel corresponds to the memory that system calls want to access.
   return channelMapTable.read(1).getComponentID();
 }
 
 /* Returns the channel ID of this cluster's instruction packet FIFO. */
-ChannelID Cluster::IPKFIFOInput(const ComponentID& ID) {
+ChannelID Core::IPKFIFOInput(const ComponentID& ID) {
   return ChannelID(ID, 0);
 }
 
 /* Returns the channel ID of this cluster's instruction packet cache. */
-ChannelID Cluster::IPKCacheInput(const ComponentID& ID) {
+ChannelID Core::IPKCacheInput(const ComponentID& ID) {
   return ChannelID(ID, 1);
 }
 
 /* Returns the channel ID of this cluster's specified input channel. */
-ChannelID Cluster::RCETInput(const ComponentID& ID, ChannelIndex channel) {
+ChannelID Core::RCETInput(const ComponentID& ID, ChannelIndex channel) {
   return ChannelID(ID, 2 + channel);
 }
 
-Cluster::Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t* network) :
+Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* network) :
     TileComponent(name, ID, CORE_INPUT_PORTS, CORE_OUTPUT_PORTS),
     inputCrossbar("input_crossbar", ID),
     regs("regs", ID),

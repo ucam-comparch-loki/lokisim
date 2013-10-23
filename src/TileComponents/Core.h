@@ -18,7 +18,7 @@
 #include "TileComponent.h"
 #include "InputCrossbar.h"
 
-#include "Pipeline/IndirectRegisterFile.h"
+#include "Pipeline/RegisterFile.h"
 #include "Pipeline/PredicateRegister.h"
 #include "Pipeline/Fetch/FetchStage.h"
 #include "Pipeline/Decode/DecodeStage.h"
@@ -30,7 +30,7 @@ class AddressedWord;
 class DecodedInst;
 class PipelineRegister;
 
-class Cluster : public TileComponent {
+class Core : public TileComponent {
 
 //==============================//
 // Ports
@@ -62,8 +62,8 @@ public:
 
 public:
 
-  SC_HAS_PROCESS(Cluster);
-  Cluster(const sc_module_name& name, const ComponentID& ID, local_net_t* network);
+  SC_HAS_PROCESS(Core);
+  Core(const sc_module_name& name, const ComponentID& ID, local_net_t* network);
 
 //==============================//
 // Methods
@@ -172,7 +172,7 @@ private:
   // be fewer network connections, making the tile network simpler.
   InputCrossbar          inputCrossbar;
 
-  IndirectRegisterFile   regs;
+  RegisterFile   regs;
   PredicateRegister      pred;
 
   // Each of the pipeline stages.
@@ -186,7 +186,7 @@ private:
 
   ChannelMapTable        channelMapTable;
 
-  friend class IndirectRegisterFile;
+  friend class RegisterFile;
   friend class FetchStage;
   friend class DecodeStage;
   friend class ExecuteStage;

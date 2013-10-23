@@ -114,7 +114,7 @@ void FlowControlIn::sendCredit() {
   numCredits--;
 
   if (DEBUG)
-    cout << "Sent credit from " << channel << " to " << returnAddress << endl;
+    cout << this->name() << " sent credit to " << returnAddress << endl;
 }
 
 FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :

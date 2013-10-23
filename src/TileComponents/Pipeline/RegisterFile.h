@@ -21,10 +21,10 @@
 #include "../../Component.h"
 #include "../../Memory/AddressedStorage.h"
 
-class Cluster;
+class Core;
 class Word;
 
-class IndirectRegisterFile: public Component {
+class RegisterFile: public Component {
 
 //==============================//
 // Constructors and destructors
@@ -32,7 +32,7 @@ class IndirectRegisterFile: public Component {
 
 public:
 
-  IndirectRegisterFile(sc_module_name name, const ComponentID& ID);
+  RegisterFile(sc_module_name name, const ComponentID& ID);
 
 //==============================//
 // Methods
@@ -77,7 +77,7 @@ private:
 
   void logActivity();
 
-  Cluster* parent() const;
+  Core* parent() const;
 
 //==============================//
 // Local state

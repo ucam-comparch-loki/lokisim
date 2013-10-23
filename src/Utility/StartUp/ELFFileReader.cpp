@@ -14,7 +14,7 @@
 #include "../StringManipulation.h"
 #include "../../Datatype/ChannelID.h"
 #include "../../Datatype/Instruction.h"
-#include "../../TileComponents/Cluster.h"
+#include "../../TileComponents/Core.h"
 
 vector<DataBlock>& ELFFileReader::extractData(int& mainPos) const {
   vector<DataBlock>* blocks = new vector<DataBlock>();
@@ -61,7 +61,7 @@ vector<DataBlock>& ELFFileReader::extractData(int& mainPos) const {
       int offset       = StringManipulation::strToInt("0x"+words[5]);
 
       // Seek to "offset" in elfFile.
-      elfFile.seekg(offset);
+      elfFile.seekg(offset, elfFile.beg);
 
       vector<Word>* data = new vector<Word>();
 

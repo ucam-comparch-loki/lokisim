@@ -9,12 +9,12 @@
 
 #include "ReceiveChannelEndTable.h"
 #include "DecodeStage.h"
-#include "../IndirectRegisterFile.h"
+#include "../RegisterFile.h"
 #include "../../../Datatype/Word.h"
 #include "../../../Exceptions/BlockedException.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
-typedef IndirectRegisterFile Registers;
+typedef RegisterFile Registers;
 
 int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
   assert(channelEnd < NUM_RECEIVE_CHANNELS);

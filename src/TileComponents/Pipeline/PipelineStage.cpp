@@ -7,15 +7,15 @@
 
 #include "PipelineStage.h"
 #include "PipelineRegister.h"
-#include "../Cluster.h"
+#include "../Core.h"
 
 void PipelineStage::initPipeline(PipelineRegister* prev, PipelineRegister* next) {
   this->prev = prev;
   this->next = next;
 }
 
-Cluster* PipelineStage::parent() const {
-  return static_cast<Cluster*>(this->get_parent());
+Core* PipelineStage::parent() const {
+  return static_cast<Core*>(this->get_parent());
 }
 
 bool PipelineStage::isStalled() const {
