@@ -61,21 +61,8 @@ Chip* TileComponent::parent() const {
 }
 
 void TileComponent::acknowledgeCredit(PortIndex output) {
-//  if(clock.posedge()) {
-//    // The valid signal gets deasserted on this clock edge, so will still appear
-//    // to be high. Wait a delta cycle.
-//    next_trigger(sc_core::SC_ZERO_TIME);
-//  }
-//  else if(creditsIn[output].valid()) {
-//    // A credit has arrived: we can safely acknowledge any credit because they
-//    // are immediately consumed.
-    creditsIn[output].ack();
-//    next_trigger(clock.posedge_event());
-//  }
-//  else {
-//    // Wait until the next credit arrives.
-//    next_trigger(creditsIn[output].default_event());
-//  }
+  // This happens here so it can be used by both memories and cores.
+  creditsIn[output].ack();
 }
 
 /* Constructors and destructors */
@@ -93,7 +80,7 @@ TileComponent::TileComponent(sc_module_name name, const ComponentID& ID,
 
   // Generate a method to watch each credit input port, and send an
   // acknowledgement whenever a credit arrives.
-  for(int i=0; i<outputPorts; i++)
+  for (int i=0; i<outputPorts; i++)
     SPAWN_METHOD(creditsIn[i], TileComponent::acknowledgeCredit, i, false);
 
 }

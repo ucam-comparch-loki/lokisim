@@ -24,7 +24,7 @@
 #include "../../Component.h"
 #include "../../Datatype/AddressedWord.h"
 #include "../../Datatype/MemoryRequest.h"
-#include "../../Memory/BufferStorage.h"
+#include "../../Network/NetworkBuffer.h"
 #include "GeneralPurposeCacheHandler.h"
 #include "ScratchpadModeHandler.h"
 #include "SimplifiedOnChipScratchpad.h"
@@ -227,8 +227,8 @@ private:
 
 	//-- Data queue state -------------------------------------------------------------------------
 
-	BufferStorage<AddressedWord> mInputQueue;				// Input queue
-	BufferStorage<OutputWord> mOutputQueue;					// Output queue
+	NetworkBuffer<AddressedWord> mInputQueue;				// Input queue
+	NetworkBuffer<OutputWord> mOutputQueue;					// Output queue
 
 	bool mOutputWordPending;								// Indicates that an output word is waiting for acknowledgement
 	AddressedWord mActiveOutputWord;						// Currently active output word

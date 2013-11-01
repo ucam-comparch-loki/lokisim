@@ -12,7 +12,7 @@
 
 #include "../../../Component.h"
 #include "InstructionStore.h"
-#include "../../../Memory/BufferStorage.h"
+#include "../../../Network/NetworkBuffer.h"
 #include "../../../Network/NetworkTypedefs.h"
 
 class FetchStage;
@@ -33,6 +33,9 @@ public:
 
   // Signal telling the flow control unit whether there is space left in the FIFO.
   ReadyOutput flowControl;
+
+  // Signal which toggles whenever data has been consumed.
+  ReadyOutput dataConsumed;
 
 //==============================//
 // Constructors and destructors
@@ -86,6 +89,8 @@ private:
   void receivedInst();
   void updateReady();
 
+  void dataConsumedAction();
+
   FetchStage* parent() const;
 
 //==============================//
@@ -94,7 +99,7 @@ private:
 
 private:
 
-  BufferStorage<Instruction> fifo;
+  NetworkBuffer<Instruction> fifo;
 
   // The FIFO holds a single tag, so it is able to efficiently hold very
   // tight loops consisting of a single packet.

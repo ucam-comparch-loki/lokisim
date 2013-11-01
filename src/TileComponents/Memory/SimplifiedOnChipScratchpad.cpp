@@ -33,7 +33,6 @@ using namespace std;
 
 #include "../../Component.h"
 #include "../../Datatype/MemoryRequest.h"
-#include "../../Memory/BufferArray.h"
 #include "../../Utility/Instrumentation.h"
 #include "SimplifiedOnChipScratchpad.h"
 

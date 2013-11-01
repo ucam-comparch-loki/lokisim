@@ -146,7 +146,7 @@ private:
 
 public:
 
-  BufferStorage(const uint16_t size, const std::string& name) :
+  BufferStorage(const size_t size, const std::string& name) :
       Storage<T>(size, name),
       readPos(size),
       writePos(size) {
@@ -156,11 +156,13 @@ public:
     Instrumentation::FIFO::createdFIFO(size);
   }
 
+  virtual ~BufferStorage() {}
+
 //==============================//
 // Local state
 //==============================//
 
-private:
+protected:
 
   LoopCounter readPos, writePos;
   uint16_t fillCount;

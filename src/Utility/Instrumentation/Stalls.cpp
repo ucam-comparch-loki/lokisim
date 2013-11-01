@@ -264,10 +264,12 @@ cycle_count_t Stalls::executionTime() {
 void Stalls::printStats() {
   //TODO: Add information to database if required
 
+  using std::clog;
+
   if (endOfExecution == 0) return;
 
-  cout << "Core activity:" << endl;
-  cout << "  Core\tInstructions\tActive\tIdle\tStalled (insts|data|bypass|output)" << endl;
+  clog << "Core activity:" << endl;
+  clog << "  Core\tInstructions\tActive\tIdle\tStalled (insts|data|bypass|output)" << endl;
 
   // Flush any remaining stall/idle time into the CounterMaps.
   stopLogging();
@@ -283,7 +285,7 @@ void Stalls::printStats() {
 			if ((uint)idleTimes[id] < endOfExecution) {
 				cycle_count_t totalStalled = cyclesStalled(id);
 				cycle_count_t activeCycles = cyclesActive(id);
-				cout << "  " << id << "\t" <<
+				clog << "  " << id << "\t" <<
 				Operations::numOperations(id) << "\t\t" <<
 				percentage(activeCycles, endOfExecution) << "\t" <<
 				percentage(idleTimes[id], endOfExecution) << "\t" <<
@@ -299,7 +301,7 @@ void Stalls::printStats() {
   if (BATCH_MODE)
 	cout << "<@GLOBAL>total_cycles:" << endOfExecution << "</@GLOBAL>" << endl;
 
-  cout << "Total execution time: " << endOfExecution << " cycles" << endl;
+  clog << "Total execution time: " << endOfExecution << " cycles" << endl;
 
 }
 

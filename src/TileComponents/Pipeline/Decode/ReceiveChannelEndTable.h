@@ -14,7 +14,7 @@
 #define RECEIVECHANNELENDTABLE_H_
 
 #include "../../../Component.h"
-#include "../../../Memory/BufferArray.h"
+#include "../../../Network/BufferArray.h"
 #include "../../../Network/NetworkTypedefs.h"
 #include "../../../Utility/LoopCounter.h"
 
@@ -38,6 +38,10 @@ public:
   // A flow control signal for each input (NUM_RECEIVE_CHANNELS), to tell the
   // flow control unit whether there is space left in its buffer.
   LokiVector<ReadyOutput> flowControl;
+
+  // A flow control signal for each input (NUM_RECEIVE_CHANNELS), to tell the
+  // flow control unit when data has been consumed and a credit can be sent.
+  LokiVector<ReadyOutput> dataConsumed;
 
 //==============================//
 // Constructors and destructors
@@ -65,7 +69,7 @@ public:
 
   // Return the index of a channel which currently contains data, or throw
   // an exception if none do. The index returned is the channel's register-
-  // mapped index (e.g. if channel 0 contains data, 16 would be returned).
+  // mapped index (e.g. if channel 0 contains data, 2 would be returned).
   ChannelIndex selectChannelEnd();
 
   const sc_event& receivedDataEvent(ChannelIndex buffer) const;
@@ -74,6 +78,9 @@ private:
 
   // Update the flow control value for an input port.
   void updateFlowControl(ChannelIndex buffer);
+
+  // Toggle signals to indicate when data has been consumed.
+  void dataConsumedAction(ChannelIndex buffer);
 
   DecodeStage* parent() const;
 

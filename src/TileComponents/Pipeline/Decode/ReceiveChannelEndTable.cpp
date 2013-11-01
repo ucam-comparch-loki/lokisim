@@ -25,7 +25,7 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
 //  if(buffers[channelEnd].empty())
 //    wait(receivedDataEvent(channelEnd));
 
-  int32_t result = buffers.read(channelEnd).toInt();
+  int32_t result = buffers[channelEnd].read().toInt();
 
   if (DEBUG) cout << this->name() << " read " << result << " from buffer "
                   << (int)channelEnd << endl;
@@ -62,7 +62,7 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd() {
   // We should always find something in one of the buffers, because we wait
   // until at least one of them has data.
   assert(false);
-
+  return -1;
 }
 
 void ReceiveChannelEndTable::checkInput(ChannelIndex input) {
@@ -88,22 +88,29 @@ void ReceiveChannelEndTable::updateFlowControl(ChannelIndex buffer) {
     flowControl[buffer].write(canReceive);
 }
 
+void ReceiveChannelEndTable::dataConsumedAction(ChannelIndex buffer) {
+  dataConsumed[buffer].write(!dataConsumed[buffer].read());
+}
+
 DecodeStage* ReceiveChannelEndTable::parent() const {
   return static_cast<DecodeStage*>(this->get_parent());
 }
 
 ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name, const ComponentID& ID) :
     Component(name, ID),
-    buffers(NUM_RECEIVE_CHANNELS, IN_CHANNEL_BUFFER_SIZE, string(name)),
+    buffers(NUM_RECEIVE_CHANNELS, IN_CHANNEL_BUFFER_SIZE, this->name()),
     currentChannel(NUM_RECEIVE_CHANNELS) {
 
   fromNetwork.init(NUM_RECEIVE_CHANNELS);
   flowControl.init(NUM_RECEIVE_CHANNELS);
+  dataConsumed.init(NUM_RECEIVE_CHANNELS);
 
   // Generate a method to watch each input port, putting the data into the
   // appropriate buffer when it arrives.
-  for (unsigned int i=0; i<buffers.size(); i++)
+  for (unsigned int i=0; i<buffers.size(); i++) {
     SPAWN_METHOD(fromNetwork[i], ReceiveChannelEndTable::checkInput, i, false);
+    SPAWN_METHOD(buffers[i].dataConsumedEvent(), ReceiveChannelEndTable::dataConsumedAction, i, false);
+  }
 
   // Generate a method to watch each buffer, updating its flow control signal
   // whenever data is added or removed.

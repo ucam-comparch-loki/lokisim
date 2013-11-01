@@ -10,12 +10,10 @@
 #include "../../Datatype/MemoryRequest.h"
 
 void FlowControlIn::dataLoop() {
-  if(dataIn.read().portClaim())
+  if (dataIn.read().portClaim())
     handlePortClaim();
   else
     dataOut.write(dataIn.read().payload());
-
-  addCredit();
 
   dataIn.ack();
 }
@@ -30,7 +28,9 @@ void FlowControlIn::handlePortClaim() {
   returnAddress = dataIn.read().payload().toInt();
   useCredits = dataIn.read().useCredits();
 
-  if(DEBUG)
+  addCredit();
+
+  if (DEBUG)
     cout << "Channel " << channel << " was claimed by " << returnAddress << " [flow control " << (useCredits ? "enabled" : "disabled") << "]" << endl;
 
   // If this is a port claim from a memory, to a core's data input, this
@@ -54,9 +54,9 @@ void FlowControlIn::addCredit() {
 }
 
 void FlowControlIn::creditLoop() {
-  switch(creditState) {
+  switch (creditState) {
     case NO_CREDITS : {
-      if(numCredits == 0) {
+      if (numCredits == 0) {
         next_trigger(newCredit);
         return;
       }
@@ -74,7 +74,7 @@ void FlowControlIn::creditLoop() {
       assert(useCredits);
 
       // Only send the credit if there is a valid address to send to.
-      if(!returnAddress.isNullMapping()) {
+      if (!returnAddress.isNullMapping()) {
         sendCredit();
 
         // Wait for the credit to be acknowledged.
@@ -93,7 +93,7 @@ void FlowControlIn::creditLoop() {
     }
 
     case WAITING_FOR_ACK : {
-      if(numCredits > 0) {
+      if (numCredits > 0) {
         next_trigger(clock.posedge_event());
         creditState = WAITING_TO_SEND;
       }
@@ -119,8 +119,8 @@ void FlowControlIn::sendCredit() {
 
 FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :
     Component(name, ID),
-    channel(channelManaged)
-{
+    channel(channelManaged) {
+
   returnAddress = -1;
   useCredits = true;
   numCredits = 0;
@@ -132,4 +132,9 @@ FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const C
   dont_initialize();
 
   SC_METHOD(creditLoop);
+
+  SC_METHOD(addCredit);
+  sensitive << dataConsumed;
+  dont_initialize();
+
 }

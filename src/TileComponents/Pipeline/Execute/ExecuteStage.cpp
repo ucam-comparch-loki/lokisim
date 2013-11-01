@@ -80,8 +80,8 @@ void ExecuteStage::newInput(DecodedInst& operation) {
     switch (operation.opcode()) {
       case InstructionMap::OP_SETCHMAP:
       case InstructionMap::OP_SETCHMAPI:
-        // FIXME: should we wait for all credits to arrive before writing?
         setChannelMap(operation);
+        success = !blocked;
         break;
 
       case InstructionMap::OP_FETCH:
@@ -247,7 +247,7 @@ bool ExecuteStage::fetch(DecodedInst& inst) {
   }
 }
 
-void ExecuteStage::setChannelMap(DecodedInst& inst) const {
+void ExecuteStage::setChannelMap(DecodedInst& inst) {
   MapIndex entry = inst.immediate();
   uint32_t value = inst.operand1();
 
@@ -266,16 +266,26 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) const {
   ChannelID sendChannel(tile, position, channel, multicast);
 
   // Write to the channel map table.
-  parent()->channelMapTable.write(entry, sendChannel, groupBits, lineBits, returnTo);
+  // FIXME: I don't think it's necessary to block until all credits have been
+  // received, but it's useful for debug purposes to ensure that we aren't
+  // losing credits.
+  bool success = parent()->channelMapTable.write(entry, sendChannel, groupBits, lineBits, returnTo);
+  if (!success) {
+    blocked = true;
+    next_trigger(parent()->channelMapTable.haveAllCredits(entry));
+  }
+  else {
+    blocked = false;
 
-  // Generate a message to claim the port we have just stored the address of.
-  if (sendChannel.isCore()) {
-    ChannelID returnChannel(id, entry);
-    inst.result(returnChannel.toInt());
-    inst.channelMapEntry(entry);
-    inst.networkDestination(sendChannel);
-    inst.portClaim(true);
-    inst.usesCredits(parent()->channelMapTable.getEntry(entry).usesCredits());
+    // Generate a message to claim the port we have just stored the address of.
+    if (sendChannel.isCore()) {
+      ChannelID returnChannel(id, entry);
+      inst.result(returnChannel.toInt());
+      inst.channelMapEntry(entry);
+      inst.networkDestination(sendChannel);
+      inst.portClaim(true);
+      inst.usesCredits(parent()->channelMapTable[entry].usesCredits());
+    }
   }
 }
 
@@ -297,7 +307,7 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
 
   // We want to access lots of information from the channel map table, so get
   // the entire entry.
-  ChannelMapEntry& channelMapEntry = parent()->channelMapTable.getEntry(inst.channelMapEntry());
+  ChannelMapEntry& channelMapEntry = parent()->channelMapTable[inst.channelMapEntry()];
 
   if (channelMapEntry.localMemory() && channelMapEntry.memoryGroupBits() > 0) {
     if (addressFlit) {

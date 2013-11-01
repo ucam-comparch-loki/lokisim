@@ -17,6 +17,7 @@ IPKCacheBase::IPKCacheBase(const size_t size, const size_t numTags, const std::s
     name(name),
     tags(numTags, DEFAULT_TAG),
     data(size),
+    fresh(size, false),
     readPointer(size),
     writePointer(size) {
 
@@ -32,6 +33,10 @@ IPKCacheBase::IPKCacheBase(const size_t size, const size_t numTags, const std::s
 
   lastTagActivity = lastDataActivity = -1;
 
+}
+
+IPKCacheBase::~IPKCacheBase() {
+  // Do nothing
 }
 
 CacheIndex IPKCacheBase::lookup(const MemoryAddr tag) {
@@ -52,6 +57,11 @@ const Instruction IPKCacheBase::read() {
   dataActivity();
   fillCount--;
 
+  if (fresh[readPointer.value()]) {
+    dataConsumed.notify();
+    fresh[readPointer.value()] = false;
+  }
+
   finishedPacketRead = inst.endOfPacket();
   lastOpWasARead = true;
   return inst;
@@ -63,6 +73,7 @@ CacheIndex IPKCacheBase::write(const Instruction newData) {
 
   // Write the data to the cache.
   data[writePointer.value()] = newData;
+  fresh[writePointer.value()] = true;
   dataActivity();
 
   setTag(writePointer.value(), DEFAULT_TAG);
@@ -116,6 +127,10 @@ bool IPKCacheBase::empty() const {
 /* Returns whether the cache is full. */
 bool IPKCacheBase::full() const {
   return fillCount == size();
+}
+
+const sc_event& IPKCacheBase::dataConsumedEvent() const {
+  return dataConsumed;
 }
 
 /* We can issue a new fetch command if there is space in the cache for a

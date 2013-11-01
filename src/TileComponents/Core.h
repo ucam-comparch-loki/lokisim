@@ -221,6 +221,7 @@ private:
   // Connections between the input crossbar and the input buffers.
   LokiVector<sc_buffer<Word> > dataToBuffers;
   LokiVector<ReadySignal>      fcFromBuffers;
+  LokiVector<ReadySignal>      dataConsumed;
 
   // Data being sent to the output buffer.
   sc_buffer<DecodedInst>       outputData;

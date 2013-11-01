@@ -37,8 +37,8 @@ void NewCrossbar::makeSignals() {
 void NewCrossbar::makeArbiters() {
   for (int i=0; i<numArbiters; i++) {
     EndArbiter* arb;
-    arb = new EndArbiter(sc_gen_unique_name("arbiter"), i,
-                         numInputPorts(), outputsPerComponent, true, buffersPerComponent);
+    arb = new EndArbiter(sc_gen_unique_name("arbiter"), i, numInputPorts(),
+                         outputsPerComponent, true, buffersPerComponent);
 
     arb->clock(clock);
 

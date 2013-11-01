@@ -16,14 +16,14 @@ void Crossbar::initialise() {
 
 void Crossbar::makeBuses() {
   // Generate and connect up buses.
-  for(int i=0; i<numBuses; i++) {
+  for (int i=0; i<numBuses; i++) {
     Bus* bus = new Bus(sc_gen_unique_name("bus"), i, numMuxes, level);
     buses.push_back(bus);
     bus->clock(clock);
 
     bus->dataIn[0](dataIn[i]);
 
-    for(int j=0; j<numMuxes; j++) {
+    for (int j=0; j<numMuxes; j++) {
       bus->dataOut[j](busToMux[i][j]);
     }
   }
@@ -31,16 +31,16 @@ void Crossbar::makeBuses() {
 
 void Crossbar::makeArbiters() {
   // Generate and connect up arbitrated multiplexers.
-  for(int i=0; i<numMuxes; i++) {
+  for (int i=0; i<numMuxes; i++) {
     ArbiterComponent* arbiter = new ArbiterComponent(sc_gen_unique_name("arbiter"),
                                                      i, numBuses, outputsPerComponent, false);
     arbiters.push_back(arbiter);
     arbiter->clock(clock);
 
-    for(int j=0; j<numBuses; j++)
+    for (int j=0; j<numBuses; j++)
       arbiter->dataIn[j](busToMux[j][i]);
 
-    for(int j=0; j<outputsPerComponent; j++)
+    for (int j=0; j<outputsPerComponent; j++)
       arbiter->dataOut[j](dataOut[i*outputsPerComponent + j]);
   }
 }
@@ -57,6 +57,6 @@ Crossbar::Crossbar(sc_module_name name, const ComponentID& ID, int inputs, int o
 }
 
 Crossbar::~Crossbar() {
-  for(unsigned int i=0; i<buses.size(); i++) delete buses[i];
-  for(unsigned int i=0; i<arbiters.size(); i++) delete arbiters[i];
+  for (size_t i=0; i<buses.size(); i++) delete buses[i];
+  for (size_t i=0; i<arbiters.size(); i++) delete arbiters[i];
 }

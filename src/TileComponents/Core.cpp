@@ -197,6 +197,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
 
   dataToBuffers.init(CORE_INPUT_CHANNELS);
   fcFromBuffers.init(CORE_INPUT_CHANNELS);
+  dataConsumed.init(CORE_INPUT_CHANNELS);
 
   // Wire the input ports to the input buffers.
   for(unsigned int i=0; i<CORE_INPUT_PORTS; i++)
@@ -206,6 +207,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
     inputCrossbar.readyOut[i](readyOut[i]);
     inputCrossbar.dataOut[i](dataToBuffers[i]);
     inputCrossbar.bufferHasSpace[i](fcFromBuffers[i]);
+    inputCrossbar.dataConsumed[i](dataConsumed[i]);
   }
 
   inputCrossbar.clock(clock);
@@ -225,6 +227,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
   fetch.clock(clock);                     fetch.idle(stageIdle[0]);
   fetch.toIPKFIFO(dataToBuffers[0]);      fetch.flowControl[0](fcFromBuffers[0]);
   fetch.toIPKCache(dataToBuffers[1]);     fetch.flowControl[1](fcFromBuffers[1]);
+  fetch.dataConsumed[0](dataConsumed[0]); fetch.dataConsumed[1](dataConsumed[1]);
   fetch.initPipeline(NULL, pipelineRegs[0]);
 
   decode.clock(clock);                    decode.idle(/*stageIdle[1]*/idle);
@@ -232,6 +235,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     decode.dataIn[i](dataToBuffers[i+2]);
     decode.flowControlOut[i](fcFromBuffers[i+2]);
+    decode.dataConsumed[i](dataConsumed[i+2]);
   }
   decode.initPipeline(pipelineRegs[0], pipelineRegs[1]);
 

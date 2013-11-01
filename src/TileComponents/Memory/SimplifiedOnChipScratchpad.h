@@ -30,7 +30,7 @@
 
 #include "../../Component.h"
 #include "../../Datatype/MemoryRequest.h"
-#include "../../Memory/BufferArray.h"
+#include "../../Network/BufferArray.h"
 
 class SimplifiedOnChipScratchpad: public Component {
 	//---------------------------------------------------------------------------------------------

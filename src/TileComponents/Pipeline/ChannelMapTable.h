@@ -23,11 +23,12 @@ public:
   ChannelID read(MapIndex entry) const;
   ChannelMapEntry::NetworkType getNetwork(MapIndex entry) const;
 
-  // Update an entry of the channel map table. This may result in a wait if
-  // the entry is still waiting for credits from the previous destination.
-  void write(MapIndex entry, ChannelID destination, int groupBits=0, int lineBits=0, ChannelIndex returnTo=0);
+  // Update an entry of the channel map table. Returns whether the update was
+  // successful. If not, the update will need to be reattempted when all
+  // credits have arrived.
+  bool write(MapIndex entry, ChannelID destination, int groupBits=0, int lineBits=0, ChannelIndex returnTo=0);
 
-  void waitForAllCredits(MapIndex entry);
+  const sc_event& haveAllCredits(MapIndex entry) const;
 
   void addCredit(MapIndex entry);
   void removeCredit(MapIndex entry);
@@ -36,7 +37,7 @@ public:
 
   // Return an entire entry of the table. This method should be avoided if
   // necessary, as it may bypass functionality in other accessor methods.
-  ChannelMapEntry& getEntry(MapIndex entry);
+  ChannelMapEntry& operator[] (const MapIndex entry);
 
 private:
 
@@ -59,7 +60,7 @@ public:
 private:
 
   std::vector<ChannelMapEntry> table;
-  LokiVector<sc_event> creditArrivedEvent;
+  LokiVector<sc_event> allCreditsEvent;
 
   // Store a copy of the most recently read entry so we can measure the number
   // of bits which toggle.

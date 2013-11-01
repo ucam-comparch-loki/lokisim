@@ -118,8 +118,12 @@ void InstructionPacketCache::receivedInst() {
 
 /* Update the signal saying whether there is enough room to fetch another
  * packet. */
-void InstructionPacketCache::sendCredit() {
+void InstructionPacketCache::updateFlowControl() {
   flowControl.write(!cache->full());
+}
+
+void InstructionPacketCache::dataConsumedAction() {
+  dataConsumed.write(!dataConsumed.read());
 }
 
 /* Returns whether or not the cache is empty. */
@@ -151,9 +155,13 @@ InstructionPacketCache::InstructionPacketCache(sc_module_name name, const Compon
   sensitive << instructionIn;
   dont_initialize();
 
-  SC_METHOD(sendCredit);
+  SC_METHOD(updateFlowControl);
   sensitive << cacheFillChanged;
   // do initialise
+
+  SC_METHOD(dataConsumedAction);
+  sensitive << cache->dataConsumedEvent();
+  dont_initialize();
 
 }
 

@@ -30,6 +30,7 @@ public:
   DataOutput  dataOut;
   ReadyInput  readyIn;
   ReadyOutput readyOut;
+  ReadyOutput dataConsumed;
 
 //==============================//
 // Constructors and destructors

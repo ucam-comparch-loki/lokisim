@@ -14,7 +14,7 @@ const unsigned int LocalNetwork::creditInputs  = CORES_PER_TILE + 1;
 const unsigned int LocalNetwork::creditOutputs = CORES_PER_TILE + 1;
 
 void LocalNetwork::makeRequest(ComponentID source, ChannelID destination, bool request) {
-  if(destination.isMulticast())
+  if (destination.isMulticast())
     multicastRequest(source, destination, request);
   else
     pointToPointRequest(source, destination, request);
@@ -28,8 +28,8 @@ void LocalNetwork::multicastRequest(ComponentID source, ChannelID destination, b
   unsigned int bitmask = destination.getPosition();
 
   // Loop through all bits in the bitmask, and send a request for each bit set.
-  for(int i=0; i<8; i++) {
-    if((bitmask >> i) & 1) {
+  for (int i=0; i<8; i++) {
+    if ((bitmask >> i) & 1) {
       ChannelID core(destination.getTile(), i, destination.getChannel());
       pointToPointRequest(source, core, request);
     }
@@ -42,21 +42,21 @@ void LocalNetwork::pointToPointRequest(ComponentID source, ChannelID destination
   // Find out which signal to write the request to.
   RequestSignal *requestSignal;
 
-  if(!source.isCore()) {                              // Memory/global to core
+  if (!source.isCore()) {                             // Memory/global to core
     assert(destination.isCore());
     requestSignal = &coreRequests[source.getPosition()][destination.getPosition()];
   }
   else {
-    if(destination.isMemory())                        // Core to memory
+    if (destination.isMemory())                       // Core to memory
       requestSignal = &memRequests[source.getPosition()][destination.getPosition()-CORES_PER_TILE];
-    else if(destination.getTile() != id.getTile())    // Core to global
+    else if (destination.getTile() != id.getTile())   // Core to global
       requestSignal = &globalRequests[source.getPosition()][0];
     else                                              // Core to core
       requestSignal = &coreRequests[source.getPosition()][destination.getPosition()];
   }
 
   // Send the request.
-  if(request)
+  if (request)
     requestSignal->write(destination.getChannel());
   else
     requestSignal->write(NO_REQUEST);
@@ -66,19 +66,19 @@ bool LocalNetwork::requestGranted(ComponentID source, ChannelID destination) con
   // Multicast requests are treated specially: they are allowed onto the
   // network immediately, and then all arbiters select the data at their own
   // pace.
-  if(destination.isMulticast())
+  if (destination.isMulticast())
     return true;
 
   GrantSignal   *grantSignal;
 
-  if(!source.isCore()) {                              // Memory/global to core
+  if (!source.isCore()) {                             // Memory/global to core
     assert(destination.isCore());
     grantSignal   = &coreGrants[source.getPosition()][destination.getPosition()];
   }
   else {
-    if(destination.isMemory())                        // Core to memory
+    if (destination.isMemory())                       // Core to memory
       grantSignal   = &memGrants[source.getPosition()][destination.getPosition()-CORES_PER_TILE];
-    else if(destination.getTile() != id.getTile())    // Core to global
+    else if (destination.getTile() != id.getTile())   // Core to global
       grantSignal   = &globalGrants[source.getPosition()][0];
     else                                              // Core to core
       grantSignal   = &coreGrants[source.getPosition()][destination.getPosition()];
@@ -92,10 +92,10 @@ void LocalNetwork::createSignals() {
 
   // Ready signals from each component, plus one from the router.
   readyIn.init(COMPONENTS_PER_TILE + 1);
-  for(unsigned int i=0; i<readyIn.length(); i++) {
-    if(i<CORES_PER_TILE)            // cores have multiple buffers
+  for (size_t i=0; i<readyIn.length(); i++) {
+    if (i<CORES_PER_TILE)           // cores have multiple buffers
       readyIn[i].init(CORE_INPUT_CHANNELS);
-    else if(i<COMPONENTS_PER_TILE)  // memories have one buffer each
+    else if (i<COMPONENTS_PER_TILE) // memories have one buffer each
       readyIn[i].init(1);
     else                            // router has one buffer
       readyIn[i].init(1);
@@ -105,24 +105,24 @@ void LocalNetwork::createSignals() {
   int sendToCores = CORES_PER_TILE + MEMS_PER_TILE + 1;
   coreRequests.init(sendToCores, numCores);
   coreGrants.init(sendToCores, numCores);
-  for(int i=0; i<sendToCores; i++)
-    for(int j=0; j<numCores; j++)
+  for (int i=0; i<sendToCores; i++)
+    for (int j=0; j<numCores; j++)
       coreRequests[i][j].write(NO_REQUEST);
 
   int numMems = MEMS_PER_TILE;
   int sendToMems = CORES_PER_TILE;
   memRequests.init(sendToMems, numMems);
   memGrants.init(sendToMems, numMems);
-  for(int i=0; i<sendToMems; i++)
-    for(int j=0; j<numMems; j++)
+  for (int i=0; i<sendToMems; i++)
+    for (int j=0; j<numMems; j++)
       memRequests[i][j].write(NO_REQUEST);
 
   int numRouterLinks = 1;
   int sendToRouters = CORES_PER_TILE;
   globalRequests.init(sendToRouters, numRouterLinks);
   globalGrants.init(sendToRouters, numRouterLinks);
-  for(int i=0; i<sendToRouters; i++)
-    for(int j=0; j<numRouterLinks; j++)
+  for (int i=0; i<sendToRouters; i++)
+    for (int j=0; j<numRouterLinks; j++)
       globalRequests[i][j].write(NO_REQUEST);
 }
 
@@ -141,15 +141,15 @@ void LocalNetwork::wireUpSubnetworks() {
   int portsBound = 0;
 
   // Data networks
-  for(unsigned int i=0; i<coreToCore.numInputPorts(); i++, portsBound++) {
+  for (unsigned int i=0; i<coreToCore.numInputPorts(); i++, portsBound++) {
     // Data from cores can go to all three core-to-X networks.
     coreToCore.dataIn[i](dataSig[portsBound][CORE]);
     coreToMemory.dataIn[i](dataSig[portsBound][MEMORY]);
     coreToGlobal.dataIn[i](dataSig[portsBound][GLOBAL_NETWORK]);
   }
-  for(unsigned int i=0; i<memoryToCore.numInputPorts(); i++, portsBound++)
+  for (unsigned int i=0; i<memoryToCore.numInputPorts(); i++, portsBound++)
     memoryToCore.dataIn[i](dataIn[portsBound]);
-  for(unsigned int i=0; i<globalToCore.numInputPorts(); i++, portsBound++)
+  for (unsigned int i=0; i<globalToCore.numInputPorts(); i++, portsBound++)
     globalToCore.dataIn[i](dataIn[portsBound]);
 
   // Cores have the following data inputs:
@@ -157,7 +157,7 @@ void LocalNetwork::wireUpSubnetworks() {
   //   2 from memory-to-core network
   //   1 from global network
   portsBound = 0;
-  for(unsigned int i=0; i<CORES_PER_TILE; i++) {
+  for (unsigned int i=0; i<CORES_PER_TILE; i++) {
     coreToCore.dataOut[2*i](dataOut[portsBound++]);
     coreToCore.dataOut[2*i + 1](dataOut[portsBound++]);
     memoryToCore.dataOut[2*i](dataOut[portsBound++]);
@@ -165,59 +165,59 @@ void LocalNetwork::wireUpSubnetworks() {
     globalToCore.dataOut[i](dataOut[portsBound++]);
   }
 
-  for(unsigned int i=0; i<coreToMemory.numOutputPorts(); i++)
+  for (unsigned int i=0; i<coreToMemory.numOutputPorts(); i++)
     coreToMemory.dataOut[i](dataOut[portsBound++]);
-  for(unsigned int i=0; i<coreToGlobal.numOutputPorts(); i++)
+  for (unsigned int i=0; i<coreToGlobal.numOutputPorts(); i++)
     coreToGlobal.dataOut[i](dataOut[portsBound++]);
 
   // Credit networks
   portsBound = 0;
-  for(unsigned int i=0; i<c2gCredits.numInputPorts(); i++, portsBound++)
+  for (unsigned int i=0; i<c2gCredits.numInputPorts(); i++, portsBound++)
     c2gCredits.dataIn[i](creditsIn[portsBound]);
-  for(unsigned int i=0; i<g2cCredits.numInputPorts(); i++, portsBound++)
+  for (unsigned int i=0; i<g2cCredits.numInputPorts(); i++, portsBound++)
     g2cCredits.dataIn[i](creditsIn[portsBound]);
 
   portsBound = 0;
-  for(unsigned int i=0; i<g2cCredits.numOutputPorts(); i++, portsBound++)
+  for (unsigned int i=0; i<g2cCredits.numOutputPorts(); i++, portsBound++)
     g2cCredits.dataOut[i](creditsOut[portsBound]);
-  for(unsigned int i=0; i<c2gCredits.numOutputPorts(); i++, portsBound++)
+  for (unsigned int i=0; i<c2gCredits.numOutputPorts(); i++, portsBound++)
     c2gCredits.dataOut[i](creditsOut[portsBound]);
 
   // Requests/grants for arbitration.
-  for(unsigned int input=0; input<CORES_PER_TILE; input++) {
-    for(unsigned int output=0; output<CORES_PER_TILE; output++) {
+  for (unsigned int input=0; input<CORES_PER_TILE; input++) {
+    for (unsigned int output=0; output<CORES_PER_TILE; output++) {
       coreToCore.requestsIn[input][output](coreRequests[input][output]);
       coreToCore.grantsOut[input][output](coreGrants[input][output]);
     }
-    for(unsigned int output=0; output<MEMS_PER_TILE; output++) {
+    for (unsigned int output=0; output<MEMS_PER_TILE; output++) {
       coreToMemory.requestsIn[input][output](memRequests[input][output]);
       coreToMemory.grantsOut[input][output](memGrants[input][output]);
     }
     coreToGlobal.requestsIn[input][0](globalRequests[input][0]);
     coreToGlobal.grantsOut[input][0](globalGrants[input][0]);
   }
-  for(unsigned int i=0; i<MEMS_PER_TILE; i++) {
+  for (unsigned int i=0; i<MEMS_PER_TILE; i++) {
     int input = i + CORES_PER_TILE; // Memories start at offset CORES_PER_TILE
-    for(unsigned int output=0; output<CORES_PER_TILE; output++) {
+    for (unsigned int output=0; output<CORES_PER_TILE; output++) {
       memoryToCore.requestsIn[i][output](coreRequests[input][output]);
       memoryToCore.grantsOut[i][output](coreGrants[input][output]);
     }
   }
   int input = CORES_PER_TILE + MEMS_PER_TILE;
-  for(unsigned int output=0; output<CORES_PER_TILE; output++) {
+  for (unsigned int output=0; output<CORES_PER_TILE; output++) {
     globalToCore.requestsIn[0][output](coreRequests[input][output]);
     globalToCore.grantsOut[0][output](coreGrants[input][output]);
   }
 
   // Ready signals
-  for(unsigned int core=0; core<CORES_PER_TILE; core++)
-    for(unsigned int channel=0; channel<CORE_INPUT_CHANNELS; channel++) {
+  for (unsigned int core=0; core<CORES_PER_TILE; core++)
+    for (unsigned int channel=0; channel<CORE_INPUT_CHANNELS; channel++) {
       coreToCore.readyIn[core][channel](readyIn[core][channel]);
       memoryToCore.readyIn[core][channel](readyIn[core][channel]);
       globalToCore.readyIn[core][channel](readyIn[core][channel]);
     }
-  for(unsigned int mem=0; mem<MEMS_PER_TILE; mem++)
-    for(unsigned int channel=0; channel<1; channel++)
+  for (unsigned int mem=0; mem<MEMS_PER_TILE; mem++)
+    for (unsigned int channel=0; channel<1; channel++)
       coreToMemory.readyIn[mem][channel](readyIn[mem + CORES_PER_TILE][channel]);
   coreToGlobal.readyIn[0][0](readyIn[COMPONENTS_PER_TILE][0]);
 }
@@ -254,6 +254,8 @@ LocalNetwork::LocalNetwork(const sc_module_name& name, ComponentID tile) :
 
   creditsIn.init(creditInputs);
   creditsOut.init(creditOutputs);
+  c2gCredits.initialise();
+  g2cCredits.initialise();
 
   createSignals();
   wireUpSubnetworks();

@@ -33,6 +33,7 @@ void NetworkHierarchy::setupFlowControl() {
                                            offChip.readyOut(readyDataFromOffchip);
   fcin->dataIn(dataFromOffchip);
   fcin->creditsOut(creditsToOffchip);
+  fcin->dataConsumed(dataConsumedOffchip); offChip.dataConsumed(dataConsumedOffchip);
 
   fcout->dataIn(dataFromOffChip);          offChip.dataOut(dataFromOffChip);
   fcout->flowControlOut(readyToOffChip);   offChip.readyIn(readyToOffChip);
@@ -98,6 +99,7 @@ void NetworkHierarchy::makeGlobalNetwork() {
                                        0,
                                        NUM_TILE_ROWS,
                                        NUM_TILE_COLUMNS,
+                                       false,
                                        Network::TILE);  // This network connects tiles
                                
   globalDataNetwork->clock(clock);
@@ -118,6 +120,7 @@ void NetworkHierarchy::makeGlobalNetwork() {
                                          0,
                                          NUM_TILE_ROWS,
                                          NUM_TILE_COLUMNS,
+                                         true,
                                          Network::TILE);  // This network connects tiles
 
   globalCreditNetwork->clock(clock);

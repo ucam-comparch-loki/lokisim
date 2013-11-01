@@ -13,6 +13,8 @@
 #include "../Utility/LoopCounter.h"
 #include "../Utility/InstructionMap.h"
 
+using sc_core::sc_event;
+
 class IPKCacheBase {
 
 //==============================//
@@ -22,6 +24,7 @@ class IPKCacheBase {
 public:
 
   IPKCacheBase(const size_t size, const size_t numTags, const std::string& name);
+  virtual ~IPKCacheBase();
 
 //==============================//
 // Methods
@@ -60,6 +63,10 @@ public:
 
   // Returns whether the cache is full.
   virtual bool full() const;
+
+  // Event triggered whenever an instruction is read for the first time. This
+  // is the signal that a credit should be sent (if necessary).
+  const sc_event& dataConsumedEvent() const;
 
   // Return whether this core is allowed to send out a new fetch request.
   // It is not allowed to send the request if there is not room for a maximum-
@@ -128,6 +135,7 @@ protected:
   // configurations use tags differently.
   std::vector<MemoryAddr>  tags;
   std::vector<Instruction> data;
+  std::vector<bool>        fresh;
 
   // Current instruction pointer and refill pointer.
   LoopCounter readPointer, writePointer;
@@ -142,6 +150,8 @@ protected:
   size_t fillCount;
 
 private:
+
+  sc_event dataConsumed;
 
   // Keep track of which cycles the tag and data arrays were active so we can
   // estimate potential savings of clock gating.

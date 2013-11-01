@@ -14,7 +14,7 @@
 #ifndef BUFFERARRAY_H_
 #define BUFFERARRAY_H_
 
-#include "BufferStorage.h"
+#include "NetworkBuffer.h"
 
 template<class T>
 class BufferArray {
@@ -25,18 +25,8 @@ class BufferArray {
 
 public:
 
-  // Read data from a particular buffer
-  const T& read(const uint buffer) const {
-    return buffers[buffer]->read();
-  }
-
-  // Write data to a particular buffer
-  void write(const T& data, const uint buffer) {
-    buffers[buffer]->write(data);
-  }
-
   // Allows any method of the Buffer to be called
-  BufferStorage<T>& operator[] (const uint index) const {
+  NetworkBuffer<T>& operator[] (const uint index) const {
     return *(buffers[index]);
   }
 
@@ -59,9 +49,11 @@ public:
 
   BufferArray(const uint numBuffers, const uint buffSize, const std::string& name) {
     for(uint i=0; i<numBuffers; i++) {
-      std::string buffName = name + ".buffer";
-      buffName += i;
-      buffers.push_back(new BufferStorage<T>(buffSize, buffName));
+      std::stringstream ss;
+      ss << name << ".buffer" << i;
+      std::string buffName;
+      ss >> buffName;
+      buffers.push_back(new NetworkBuffer<T>(buffSize, buffName));
     }
   }
 
@@ -75,7 +67,7 @@ public:
 
 private:
 
-  std::vector<BufferStorage<T>* > buffers;
+  std::vector<NetworkBuffer<T>* > buffers;
 
 };
 

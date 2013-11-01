@@ -34,6 +34,9 @@ public:
   // Signal telling the flow control unit whether there is space left in the cache.
   ReadyOutput flowControl;
 
+  // Signal which toggles whenever an instruction is first read.
+  ReadyOutput dataConsumed;
+
 //==============================//
 // Constructors and destructors
 //==============================//
@@ -98,7 +101,8 @@ private:
   void receivedInst();
 
   // Update the output flow control signal.
-  void sendCredit();
+  void updateFlowControl();
+  void dataConsumedAction();
 
   // Tells whether an instruction was sent this cycle -- sometimes there may
   // be potential instructions both in the cache and arriving on the network

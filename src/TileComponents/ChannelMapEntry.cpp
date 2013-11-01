@@ -61,6 +61,7 @@ void ChannelMapEntry::setMemoryDestination(const ChannelID& address, uint memory
   // Only allow the destination to change when all credits from previous
   // destination have been received.
   assert(haveAllCredits());
+  assert(address.getTile() == id_.getTile());
 
   destination_ = address;
   network_ = CORE_TO_MEMORY;

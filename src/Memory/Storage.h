@@ -68,6 +68,10 @@ protected:
     }
   }
 
+  const std::string name() const {
+    return name_;
+  }
+
 //==============================//
 // Constructors and destructors
 //==============================//
@@ -75,7 +79,11 @@ protected:
 public:
 
   Storage(const uint32_t size, const std::string& name) : data_(size), name_(name) {
+    // Do nothing
+  }
 
+  virtual ~Storage() {
+    // Do nothing
   }
 
 //==============================//
@@ -85,7 +93,7 @@ public:
 protected:
 
   vector<T>   data_;
-  std::string name_;
+  const std::string name_;
 
 };
 

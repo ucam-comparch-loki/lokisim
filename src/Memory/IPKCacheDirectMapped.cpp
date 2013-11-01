@@ -12,6 +12,10 @@ IPKCacheDirectMapped::IPKCacheDirectMapped(const size_t size, const std::string&
   // Do nothing
 }
 
+IPKCacheDirectMapped::~IPKCacheDirectMapped() {
+  // Do nothing
+}
+
 CacheIndex IPKCacheDirectMapped::cacheIndex(const MemoryAddr address) const {
   // There is only one possible place the data could be stored, so check there.
   CacheIndex expected = (address/BYTES_PER_WORD) % size();
@@ -51,7 +55,7 @@ void IPKCacheDirectMapped::updateWritePointer() {
 //    memAddr = currentPacket.memAddr;
 //  else
 //    memAddr = pendingPacket.memAddr;
-
-  writePointer = (memAddr/BYTES_PER_WORD) % size();
+//
+//  writePointer = (memAddr/BYTES_PER_WORD) % size();
   updateFillCount();
 }

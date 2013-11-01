@@ -27,13 +27,14 @@ ChannelMapEntry::NetworkType ChannelMapTable::getNetwork(MapIndex entry) const {
   return table[entry].network();
 }
 
-void ChannelMapTable::write(MapIndex entry, ChannelID destination,
+bool ChannelMapTable::write(MapIndex entry, ChannelID destination,
                             int groupBits, int lineBits, ChannelIndex returnTo) {
   assert(entry < table.size());
 
   // Wait for all communication with the previous destination to complete
   // before changing the destination. (Why?)
-  waitForAllCredits(entry);
+  if (!table[entry].haveAllCredits())
+    return false; // Can't complete the write
 
   ChannelMapEntry previous = table[entry];
 
@@ -49,19 +50,19 @@ void ChannelMapTable::write(MapIndex entry, ChannelID destination,
 
   if (DEBUG)
     cout << this->name() << " updated map " << (int)entry << " to " << destination << " [" << groupBits << "]" << endl;
+
+  return true;
 }
 
-void ChannelMapTable::waitForAllCredits(MapIndex entry) {
-  while(!table[entry].haveAllCredits()) {
-    // Call an instrumentation method to say that we have stalled?
-    wait(creditArrivedEvent[entry]);
-  }
+const sc_event& ChannelMapTable::haveAllCredits(MapIndex entry) const {
+  return allCreditsEvent[entry];
 }
 
 void ChannelMapTable::addCredit(MapIndex entry) {
   assert(entry < table.size());
   table[entry].addCredit();
-  creditArrivedEvent[entry].notify();
+  if (table[entry].haveAllCredits())
+    allCreditsEvent[entry].notify();
 }
 
 void ChannelMapTable::removeCredit(MapIndex entry) {
@@ -74,7 +75,7 @@ bool ChannelMapTable::canSend(MapIndex entry) const {
   return table[entry].canSend();
 }
 
-ChannelMapEntry& ChannelMapTable::getEntry(MapIndex entry) {
+ChannelMapEntry& ChannelMapTable::operator[] (const MapIndex entry) {
   // FIXME: does this method need instrumentation too?
   assert(entry < table.size());
   return table[entry];
@@ -94,5 +95,5 @@ ChannelMapTable::ChannelMapTable(const sc_module_name& name, ComponentID ID) :
     previousRead(ID),
     lastActivity(-1) {
 
-  creditArrivedEvent.init(CHANNEL_MAP_SIZE);
+  allCreditsEvent.init(CHANNEL_MAP_SIZE);
 }

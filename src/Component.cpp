@@ -15,13 +15,3 @@ Component::Component(const sc_module_name& name, const ComponentID& ID) :
     id(ID) {
 
 }
-
-double Component::area() const {
-  std::cerr << "No area data for " << this->basename() << endl;
-  return 0.0;
-}
-
-double Component::energy() const {
-  std::cerr << "No power data for " << this->basename() << endl;
-  return 0.0;
-}

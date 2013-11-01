@@ -14,28 +14,36 @@ PortIndex Network::getDestination(const ChannelID& address) const {
   // Access a different part of the address depending on where in the network
   // we are.
   switch(level) {
-    case TILE : port = address.getTile(); break;
+    case TILE :
+      port = address.getTile() - firstOutput;
+      break;
     case COMPONENT : {
       if(externalConnection && (address.getTile() != id.getTile()))
-        return numOutputPorts()-1;
+        port = numOutputPorts()-1;
       else
-        port = address.getPosition();
+        port = address.getPosition() - firstOutput;
       break;
     }
     case CHANNEL : {
       if(externalConnection && ((address.getTile() != id.getTile()) ||
                                 (address.getPosition() != id.getPosition())))
-        return numOutputPorts()-1;
+        port = numOutputPorts()-1;
       else
-        port = address.getChannel();
+        port = address.getChannel() - firstOutput;
       break;
     }
-    case NONE : return 0;
+    case NONE :
+      port = 0;
+      break;
+    default :
+      assert(false);
+      port = 0;
+      break;
   }
 
   // Make an adjustment in case this network is not capable of sending to
   // address 0.
-  return port - firstOutput;
+  return port;
 }
 
 DataInput& Network::externalInput() const {
@@ -61,7 +69,7 @@ Network::Network(const sc_module_name& name,
                                // isn't for any local component?
     Component(name, ID),
     firstOutput(firstOutput),
-    level(level),
+    level((numOutputs > 1) ? level : NONE),
     externalConnection(externalConnection) {
 
   unsigned int totalInputs  = externalConnection ? (numInputs+1) : numInputs;

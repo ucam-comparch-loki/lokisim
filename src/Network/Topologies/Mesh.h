@@ -44,6 +44,7 @@ public:
        ComponentID ID,
        int rows,
        int columns,
+       bool carriesCredits,
        HierarchyLevel level);
 
   virtual ~Mesh();
@@ -80,6 +81,7 @@ private:
 private:
 
   const unsigned int numColumns, numRows;
+  const bool carriesCredits;
 
 };
 

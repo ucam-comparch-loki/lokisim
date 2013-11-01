@@ -22,7 +22,8 @@ void InputCrossbar::newData(PortIndex input) {
   const AddressedWord& data = dataIn[input].read();
 
   ChannelIndex destination = data.channelID().getChannel();
-  if(destination >= numOutputs) cerr << "Trying to send to " << data.channelID() << endl;
+  if (destination >= numOutputs)
+    cerr << this->name() << " trying to send to " << data.channelID() << endl;
   assert(destination < numOutputs);
 
   // Trigger a method which will write the data to the appropriate output.
@@ -30,7 +31,11 @@ void InputCrossbar::newData(PortIndex input) {
   sendData[destination].notify();
 }
 
+// TODO: create a newCredit method to replace the Crossbar? Or a SharedBus
+// which could also be used to get credits from cores to the router.
+
 void InputCrossbar::writeToBuffer(ChannelIndex output) {
+  if (!bufferHasSpace[output].read()) cout << this->name() << " " << (int)output << endl;
   assert(bufferHasSpace[output].read());
 
   // There is data to send.
@@ -57,6 +62,7 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
   readyOut.init(numOutputs);
   dataOut.init(numOutputs);
   bufferHasSpace.init(numOutputs);
+  dataConsumed.init(numOutputs);
 
   // Possibly temporary: have only one credit output port, used for sending
   // credits to other tiles. Credits aren't used for local communication.
@@ -70,14 +76,14 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
   // Method for each input port, forwarding data to the correct buffer when it
   // arrives. Each channel end has a single writer, so it is impossible to
   // receive multiple data for the same channel end in one cycle.
-  for(PortIndex i=0; i<numInputs; i++)
+  for (PortIndex i=0; i<numInputs; i++)
     SPAWN_METHOD(dataIn[i], InputCrossbar::newData, i, false);
 
   // Method for each output port, writing data into each buffer.
-  for(ChannelIndex i=0; i<numOutputs; i++)
+  for (ChannelIndex i=0; i<numOutputs; i++)
     SPAWN_METHOD(sendData[i], InputCrossbar::writeToBuffer, i, false);
 
-  for(ChannelIndex i=0; i<numOutputs; i++)
+  for (ChannelIndex i=0; i<numOutputs; i++)
     SPAWN_METHOD(bufferHasSpace[i], InputCrossbar::updateFlowControl, i, true);
 
   // Wire up the small networks.
@@ -85,7 +91,7 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
   creditNet.dataOut[0](creditsOut[0]);
 
   // Create and wire up all flow control units.
-  for(unsigned int i=0; i<numOutputs; i++) {
+  for (unsigned int i=0; i<numOutputs; i++) {
     FlowControlIn* fc = new FlowControlIn(sc_gen_unique_name("fc_in"), firstInput.getComponentID(), firstInput.addChannel(i, numOutputs));
     flowControl.push_back(fc);
 
@@ -94,12 +100,13 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
     fc->dataOut(dataOut[i]);
     fc->dataIn(dataToBuffer[i]);
     fc->creditsOut(creditsToNetwork[i]);
+    fc->dataConsumed(dataConsumed[i]);
 
     creditNet.dataIn[i](creditsToNetwork[i]);
   }
 }
 
 InputCrossbar::~InputCrossbar() {
-  for(unsigned int i=0; i<flowControl.size(); i++)
+  for (unsigned int i=0; i<flowControl.size(); i++)
     delete flowControl[i];
 }

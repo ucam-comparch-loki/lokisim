@@ -59,6 +59,7 @@ public:
 
   // A flow control signal from each of the two instruction inputs.
   LokiVector<ReadyOutput> flowControl;
+  LokiVector<ReadyOutput> dataConsumed;
 
 //==============================//
 // Constructors and destructors

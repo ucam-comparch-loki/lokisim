@@ -103,7 +103,7 @@ private:
   DataSignal    dataFromOffchip,       dataToOffchip;
   CreditSignal  creditsFromOffchip,    creditsToOffchip;
   ReadySignal   readyDataToOffchip,    readyDataFromOffchip,
-                readyCreditFromOffchip;
+                readyCreditFromOffchip, dataConsumedOffchip;
 
   // Signals between local and global networks.
   LokiVector<DataSignal>   dataToLocalNet,       dataFromLocalNet;

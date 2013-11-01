@@ -240,13 +240,13 @@ void         DecodeStage::readChannelMapTable(DecodedInst& inst) const {
 
     if (!destination.isNullMapping()) {
       inst.networkDestination(destination);
-      inst.usesCredits(parent()->channelMapTable.getEntry(channel).usesCredits());
+      inst.usesCredits(parent()->channelMapTable[channel].usesCredits());
     }
   }
 }
 
 const ChannelMapEntry& DecodeStage::channelMapTableEntry(MapIndex entry) const {
-  return parent()->channelMapTable.getEntry(entry);
+  return parent()->channelMapTable[entry];
 }
 
 int32_t      DecodeStage::readRCET(ChannelIndex index) {
@@ -297,12 +297,14 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
 
   dataIn.init(NUM_RECEIVE_CHANNELS);
   flowControlOut.init(NUM_RECEIVE_CHANNELS);
+  dataConsumed.init(NUM_RECEIVE_CHANNELS);
 
   // Connect everything up
   rcet.clock(clock);
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     rcet.fromNetwork[i](dataIn[i]);
     rcet.flowControl[i](flowControlOut[i]);
+    rcet.dataConsumed[i](dataConsumed[i]);
   }
 
   readyOut.initialize(false);

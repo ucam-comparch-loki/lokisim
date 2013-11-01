@@ -38,6 +38,9 @@ public:
   // Responses to requests from each input.
   CreditOutput  creditsOut;
 
+  // Signal that a credit can be sent, if necessary.
+  ReadyInput    dataConsumed;
+
 //==============================//
 // Constructors and destructors
 //==============================//

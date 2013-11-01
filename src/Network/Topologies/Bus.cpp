@@ -25,11 +25,11 @@ void Bus::busLoop() {
         DataType data = dataIn[0].read();
 
         outputUsed = getDestination(data.channelID());
+
+        if (outputUsed >= numOutputPorts())
+          cout << this->name() << " " << numOutputPorts() << " " << (int)outputUsed << endl;
         assert(outputUsed < numOutputPorts());
-
         dataOut[outputUsed].write(data);
-
-        cout << this->name() << " sent " << data << endl;
 
         next_trigger(dataOut[outputUsed].ack_event());
         state = WAITING_FOR_ACK;

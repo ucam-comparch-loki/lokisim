@@ -183,7 +183,7 @@ bool FetchStage::canCheckTags() const {
 
 bool FetchStage::inCache(const MemoryAddr addr, opcode_t operation) {
   if (DEBUG)
-    cout << this->name() << " looking up tag " << addr << ": ";
+    cout << this->name() << " looking up tag 0x" << std::hex << addr << std::dec << ": ";
 
   // I suppose the address could technically be 0, but this always indicates an
   // error with the current arrangement.
@@ -360,7 +360,7 @@ void FetchStage::switchToPendingPacket() {
   if (DEBUG) {
     static const string names[] = {"FIFO", "cache", "unknown"};
     cout << this->name() << " switched to pending packet: " << names[currentPacket.location.component] <<
-      ", position " << currentPacket.location.index << " (" << currentPacket.memAddr << ")" << endl;
+      ", position " << currentPacket.location.index << " (0x" << std::hex << currentPacket.memAddr << std::dec << ")" << endl;
   }
 }
 
@@ -399,6 +399,7 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
 
   stalled     = false;  // Start off idle, but not stalled.
   flowControl.init(2);
+  dataConsumed.init(2);
 
   currentPacket.reset(); pendingPacket.reset();
 
@@ -406,9 +407,11 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
   fifo.clock(clock);
   fifo.instructionIn(toIPKFIFO);
   fifo.flowControl(flowControl[0]);
+  fifo.dataConsumed(dataConsumed[0]);
   cache.clock(clock);
   cache.instructionIn(toIPKCache);
   cache.flowControl(flowControl[1]);
+  cache.dataConsumed(dataConsumed[1]);
 
   SC_METHOD(updateReady);
   sensitive << /*canSendEvent() << FIXME*/ instructionCompletedEvent;

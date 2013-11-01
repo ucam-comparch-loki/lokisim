@@ -1386,8 +1386,8 @@ void MemoryBank::mainLoop() {
 
 MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumber) :
 	Component(name, ID),
-	mInputQueue(IN_CHANNEL_BUFFER_SIZE, "MemoryBank::mInputQueue"),
-	mOutputQueue(OUT_CHANNEL_BUFFER_SIZE, "MemoryBank::mOutputQueue"),
+	mInputQueue(IN_CHANNEL_BUFFER_SIZE, string(this->name())+string(".mInputQueue")),
+	mOutputQueue(OUT_CHANNEL_BUFFER_SIZE, string(this->name())+string(".mOutputQueue")),
 	mScratchpadModeHandler(bankNumber),
 	mGeneralPurposeCacheHandler(bankNumber)
 {

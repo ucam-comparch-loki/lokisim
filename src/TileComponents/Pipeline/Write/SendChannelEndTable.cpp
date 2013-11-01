@@ -17,7 +17,7 @@
 
 void SendChannelEndTable::write(const DecodedInst& data) {
   if (DEBUG)
-    cout << this->name() << " writing " << data.result() << " to output buffer\n";
+    cout << this->name() << " writing " << data.toAddressedWord() << " to buffer\n";
 
   assert(!buffer.full());
 
@@ -95,6 +95,7 @@ void SendChannelEndTable::sendLoop() {
         break;
       }
     }
+    /* no break */
 
     case CAN_SEND: {
       assert(!buffer.empty());
@@ -132,7 +133,10 @@ void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
 
   // Wait until the channel's credit counter reaches its maximum value, if it
   // is using credits.
-  channelMapTable->waitForAllCredits(channel);
+  next_trigger(channelMapTable->haveAllCredits(channel));
+
+  // TODO: split this method into two (at this point) and perhaps integrate
+  // with the main loop.
 
   Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT);
   waiting = false;
@@ -147,20 +151,17 @@ bool SendChannelEndTable::requestGranted(ChannelID destination) const {
   return parent()->requestGranted(destination);
 }
 
-void SendChannelEndTable::receivedCredit(unsigned int buffer) {
-  assert(creditsIn[buffer].valid());
+void SendChannelEndTable::receivedCredit() {
+  assert(creditsIn[0].valid());
 
-  ChannelIndex targetCounter = creditsIn[buffer].read().channelID().getChannel();
+  ChannelIndex targetCounter = creditsIn[0].read().channelID().getChannel();
 
   if (DEBUG)
-    cout << "Received credit at " << ChannelID(id, targetCounter) << endl;
+    cout << this->name() << " received credit at " << ChannelID(id, targetCounter) << endl;
 
-  channelMapTable->addCredit(buffer);
+  channelMapTable->addCredit(targetCounter);
+  //creditsIn[0].ack(); // Happens in TileComponent instead.
 }
-
-void SendChannelEndTable::creditFromCores()    {receivedCredit(TO_CORES);}
-void SendChannelEndTable::creditFromMemories() {} // Memories don't send credits
-void SendChannelEndTable::creditFromOffTile()  {receivedCredit(OFF_TILE);}
 
 WriteStage* SendChannelEndTable::parent() const {
   return static_cast<WriteStage*>(this->get_parent());
@@ -168,7 +169,7 @@ WriteStage* SendChannelEndTable::parent() const {
 
 SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID& ID, ChannelMapTable* cmt) :
     Component(name, ID),
-    buffer(OUT_CHANNEL_BUFFER_SIZE, string(name)),
+    buffer(OUT_CHANNEL_BUFFER_SIZE, string(this->name())+string(".buffer")),
     channelMapTable(cmt) {
 
   state = IDLE;
@@ -182,6 +183,6 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID&
 
   SC_METHOD(sendLoop);
 
-  SC_METHOD(creditFromCores);  sensitive << creditsIn[0];  dont_initialize();
+  SC_METHOD(receivedCredit);  sensitive << creditsIn[0];  dont_initialize();
 
 }

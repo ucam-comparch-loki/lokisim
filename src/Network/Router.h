@@ -14,8 +14,8 @@
 #define ROUTER_H_
 
 #include "../Component.h"
+#include "BufferArray.h"
 #include "NetworkTypedefs.h"
-#include "../Memory/BufferArray.h"
 
 class Router : public Component {
 
@@ -47,7 +47,8 @@ public:
 public:
 
   SC_HAS_PROCESS(Router);
-  Router(const sc_module_name& name, const ComponentID& ID, local_net_t* network);
+  Router(const sc_module_name& name, const ComponentID& ID,
+         const bool carriesCredits,local_net_t* network);
 
 //==============================//
 // Methods
@@ -103,6 +104,9 @@ private:
   // The router currently implements round-robin scheduling: store the inputs
   // which were most recently allowed to send data to each output.
   int lastAccepted[5];
+
+  // Hacky way of telling whether this router carries data or credits.
+  bool carriesCredits;
 
   // Pointer to network, allowing new interfaces to be experimented with quickly.
   local_net_t *localNetwork;

@@ -11,7 +11,7 @@
 #define SENDCHANNELENDTABLE_H_
 
 #include "../../../Component.h"
-#include "../../../Memory/BufferArray.h"
+#include "../../../Network/NetworkBuffer.h"
 #include "../../../Network/NetworkTypedefs.h"
 
 class AddressedWord;
@@ -19,12 +19,6 @@ class ChannelMapTable;
 class DecodedInst;
 class Word;
 class WriteStage;
-
-// Into the output buffers, we store both the data to send, and its associated
-// channel map table entry. This increases the buffer width by 4 bits, but
-// allows the pipeline to continue for longer, as credits can be checked as
-// late as possible.
-typedef std::pair<AddressedWord, MapIndex> BufferedInfo;
 
 class SendChannelEndTable: public Component {
 
@@ -78,11 +72,7 @@ private:
   void          waitUntilEmpty(MapIndex channel);
 
   // A credit was received, so update the corresponding credit counter.
-  void          receivedCredit(unsigned int buffer);
-
-  void          creditFromCores();
-  void          creditFromMemories(); // For consistency only. Should be unused.
-  void          creditFromOffTile();
+  void          receivedCredit();
 
   // Send a request to reserve (or release) a connection to a particular
   // destination component. May cause re-execution of the calling method when
@@ -107,14 +97,11 @@ private:
 
   SendState state;
 
-  // Use a different buffer depending on the destination to avoid deadlock,
-  // and allow different flow control, etc.
-  enum BufferIndex {TO_CORES = 0, TO_MEMORIES = 1, OFF_TILE = 2};
-
-  BufferStorage<DecodedInst> buffer;
+  // Buffer of data to send onto the network.
+  NetworkBuffer<DecodedInst> buffer;
 
   // A pointer to this core's channel map table. The table itself is in the
-  // Cluster class. No reading or writing of destinations should occur here -
+  // Core class. No reading or writing of destinations should occur here -
   // this part of the core should only deal with credits.
   ChannelMapTable* const channelMapTable;
 

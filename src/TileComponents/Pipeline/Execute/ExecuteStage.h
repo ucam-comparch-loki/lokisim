@@ -84,7 +84,7 @@ private:
   // the request is granted.
   void requestArbitration(ChannelID destination, bool request);
 
-  void setChannelMap(DecodedInst& operation) const;
+  void setChannelMap(DecodedInst& operation);
   void adjustNetworkAddress(DecodedInst& operation) const;
 
   virtual bool isStalled() const;

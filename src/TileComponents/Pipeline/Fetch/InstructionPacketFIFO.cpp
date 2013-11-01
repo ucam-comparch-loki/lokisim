@@ -98,6 +98,10 @@ void InstructionPacketFIFO::updateReady() {
   flowControl.write(!fifo.full());
 }
 
+void InstructionPacketFIFO::dataConsumedAction() {
+  dataConsumed.write(!dataConsumed.read());
+}
+
 FetchStage* InstructionPacketFIFO::parent() const {
   return static_cast<FetchStage*>(this->get_parent());
 }
@@ -116,5 +120,9 @@ InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
   SC_METHOD(updateReady);
   sensitive << fifoFillChanged;
   // do initialise
+
+  SC_METHOD(dataConsumedAction);
+  sensitive << fifo.dataConsumedEvent();
+  dont_initialize();
 
 }

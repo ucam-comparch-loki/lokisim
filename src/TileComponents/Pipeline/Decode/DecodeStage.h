@@ -40,6 +40,7 @@ public:
 
   // A flow control signal for each input (NUM_RECEIVE_CHANNELS).
   LokiVector<ReadyOutput>  flowControlOut;
+  LokiVector<ReadyOutput>  dataConsumed;
 
 //==============================//
 // Constructors and destructors

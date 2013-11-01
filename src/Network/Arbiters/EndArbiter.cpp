@@ -12,7 +12,8 @@ const sc_event& EndArbiter::canGrantNow(int output, const ChannelIndex destinati
 
   // Determine which "ready" signal to check. Memories only have one, but cores
   // have one for each buffer.
-  if(flowControlSignals == 1)
+  //if(flowControlSignals == 1)
+  if (numOutputs() == 1)
     channel = 0;
   else
     channel = destination;
@@ -36,7 +37,8 @@ const sc_event& EndArbiter::stallGrant(int output) {
   // The channel we are aiming to reach through this output.
   ChannelIndex target;
 
-  if(flowControlSignals == 1)  // Hack
+  //if(flowControlSignals == 1)  // Hack
+  if (numOutputs() == 1)
     target = 0;
   else {
     SelectType input = selectVec[output];
@@ -72,7 +74,8 @@ PortIndex EndArbiter::outputToUse(PortIndex input) {
   // Memories only have one buffer and one ready signal which cover all channels.
   // Cores have separate buffers and separate ready signals.
 
-  if(flowControlSignals == 1)
+  //if(flowControlSignals == 1)
+  if (numOutputs() == 1)
     return 0;
   else
     return requests[input].read();
@@ -82,6 +85,10 @@ EndArbiter::EndArbiter(const sc_module_name& name, ComponentID ID,
                        int inputs, int outputs, bool wormhole, int flowControlSignals) :
     BasicArbiter(name, ID, inputs, outputs, wormhole),
     flowControlSignals(flowControlSignals) {
+
+  // TODO: why isn't flowControlSignals exactly the same as outputs?
+  // Running into trouble in router-to-core networks where they're different
+  // for some reason.
 
   readyIn.init(flowControlSignals);
 

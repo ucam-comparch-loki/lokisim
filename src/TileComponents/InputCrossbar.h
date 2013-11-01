@@ -43,6 +43,7 @@ public:
   LokiVector<sc_out<Word> > dataOut;
 
   LokiVector<ReadyInput>    bufferHasSpace;
+  LokiVector<ReadyInput>    dataConsumed;
 
   LokiVector<CreditOutput>  creditsOut;
 
