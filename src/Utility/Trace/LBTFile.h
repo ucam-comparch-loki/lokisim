@@ -30,7 +30,7 @@ public:
 		| (((uint64)('$')) << 24)
 		| (((uint64)('1')) << 32)
 		| (((uint64)('$')) << 40)
-		| (((uint64)('1')) << 48)
+		| (((uint64)('2')) << 48)
 		| (26ULL << 56);
 
 	static const uint64 kFormatBasicCoreTrace = 1;
@@ -38,7 +38,8 @@ public:
 
 	uint64 Signature;
 	uint64 Format;
-	uint64 IndexChunkNumber;
+	uint64 IndexTableChunkNumber;
+	uint64 IndexTableEntryCount;
 	uint64 TraceChunkCount;
 	uint64 RecordCount;
 
@@ -83,7 +84,7 @@ public:
 /*
  * Chunk data layout:
  *
- * 20 byte field transposition in order of fields, delta encoding for cycle numbers and instruction addresses
+ * 24 byte field transposition in order of fields, delta encoding for cycle numbers and instruction addresses
  */
 
 #pragma pack(pop)
@@ -96,8 +97,9 @@ class CLBTFileWriter {
 private:
 	static const usize kChunkRecordCount = 2 * 1024 * 1024;  // 48 MB
 
-	static const usize kChunkIndexCapacityInitial = 65536;
-	static const usize kChunkIndexCapacityIncrement = 32768;
+	static const usize kIndexTableCapacityInitial = 65536;
+	static const usize kIndexTableCapacityIncrement = 32768;
+	static const usize kIndexSegmentEntryCount = 8 * 1024 * 1024;  // 64 MB
 
 	static const usize kMemoryImageChunkSize = 64 * 1024 * 1024;  // 64 MB
 
@@ -114,13 +116,19 @@ private:
 
 	CAlignedBuffer mWorkBuffer;
 
-	CDynamicAlignedBuffer mChunkIndexWrapper;
-	uint64 *mChunkIndex;
-	usize mChunkIndexCursor;
-	usize mChunkIndexCapacity;
+	CDynamicAlignedBuffer mChunkIndexTableWrapper;
+	uint64 *mChunkIndexTable;
+	usize mChunkIndexTableCursor;
+	usize mChunkIndexTableCapacity;
+
+	CAlignedBuffer mChunkIndexSegmentWrapper;
+	uint64 *mChunkIndexSegment;
+	usize mChunkIndexSegmentCursor;
 
 	uint64 mTotalRecordCount;
+	uint64 mTotalTraceChunkCount;
 
+	void FlushIndexTableSegment();
 	void FlushChunkBuffer();
 public:
 	CLBTFileWriter(CFile &lbtFile);

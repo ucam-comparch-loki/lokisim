@@ -28,14 +28,14 @@ public:
 		| (((uint64)('F')) << 24)
 		| (((uint64)('$')) << 32)
 		| (((uint64)('1')) << 40)
-		| (((uint64)('0')) << 48)
+		| (((uint64)('1')) << 48)
 		| (26ULL << 56);
 
 	uint64 Signature;
 	uint64 FileSize;
 	uint64 DescriptorOffset;
-	uint32 DescriptorSizeUncompressed;
-	uint32 DescriptorSizeCompressed;
+	uint64 DescriptorSizeUncompressed;
+	uint64 DescriptorSizeCompressed;
 	uint32 DescriptorChecksum;
 	uint32 HeaderChecksum;
 };
@@ -48,14 +48,22 @@ public:
 		| (((uint64)('F')) << 24)
 		| (((uint64)('$')) << 32)
 		| (((uint64)('D')) << 40)
-		| (((uint64)('H')) << 48)
+		| (((uint64)('1')) << 48)
 		| (((uint64)('1')) << 56);
 
 	uint64 Signature;
-	uint32 ChunkTableOffset;
-	uint32 ChunkTableEntries;
-	uint32 UserDataOffset;
-	uint32 UserDataSize;
+	uint64 ChunkTableIndexOffset;
+	uint64 ChunkTableIndexEntryCount;
+	uint64 UserDataOffset;
+	uint64 UserDataSize;
+};
+
+struct SLBCFChunkTableIndexEntry {
+public:
+	uint64 Offset;
+	uint32 EntryCount;
+	uint32 SizeCompressed;
+	uint32 Checksum;
 };
 
 struct SLBCFChunkTableEntry {
@@ -75,7 +83,10 @@ class CLBCFFileWriter {
 public:
 	static const usize kMaximumChunkSize = 64 * 1024 * 1024;
 private:
-	static const usize kChunkTableEntriesIncrement = 1024;
+	static const usize kChunkTableIndexCapacityInitial = 65536;
+	static const usize kChunkTableIndexCapacityIncrement = 32768;
+
+	static const usize kChunkTableSegmentEntryCount = 4 * 1024 * 1024;	// 64 MB
 
 	CFile &mFile;
 	uint64 mFileSize;
@@ -83,66 +94,34 @@ private:
 	CDynamicAlignedBuffer mWorkBufferWrapper;
 	uint8 *mWorkBuffer;
 
-	CDynamicAlignedBuffer mChunkTableWrapper;
-	SLBCFChunkTableEntry *mChunkTable;
-	usize mChunkTableEntries;
+	CDynamicAlignedBuffer mChunkTableIndexWrapper;
+	SLBCFChunkTableIndexEntry *mChunkTableIndex;
+	usize mChunkTableIndexCursor;
+	usize mChunkTableIndexCapacity;
+
+	CAlignedBuffer mChunkTableSegmentWrapper;
+	SLBCFChunkTableEntry *mChunkTableSegment;
+	usize mChunkTableSegmentCursor;
+
+	uint64 mTotalChunkCount;
 
 	CDynamicAlignedBuffer mUserDataWrapper;
 	void *mUserData;
 	usize mUserDataSize;
+
+	void FlushChunkTableSegment();
 public:
 	CLBCFFileWriter(CFile &lbcfFile);
 	~CLBCFFileWriter();
 
 	void SetUserData(const void *buffer, usize length);
-	ulong AppendChunk(const void *buffer, usize length);
+	uint64 AppendChunk(const void *buffer, usize length);
 
 	void Flush();
 
-	inline const char* GetFileName() const			{ return mFile.GetFileName(); }
-};
-
-/*
- * Loki binary container file reader class
- */
-
-class CLBCFFileReader {
-private:
-	CFile &mFile;
-	uint64 mFilePosition;
-
-	CDynamicAlignedBuffer mDescriptorWrapper;
-
-	SLBCFDescriptorHeader *mDescriptorHeader;
-
-	SLBCFChunkTableEntry *mChunkTable;
-	usize mChunkTableEntries;
-
-	void *mUserData;
-	usize mUserDataSize;
-
-	CDynamicAlignedBuffer mChunkBuffer;
-public:
-	CLBCFFileReader(CFile &lbcfFile);
-	~CLBCFFileReader();
-
-	inline usize GetChunkCount() const				{ return mChunkTableEntries; }
-
-	inline usize GetChunkSize(usize index) const {
-		if (index >= mChunkTableEntries) {
-			cerr << "LBCF file chunk index out of range" << endl;
-			exit(1);
-		}
-
-		return mChunkTable[index].SizeUncompressed;
+	inline const char* GetFileName() const {
+		return mFile.GetFileName();
 	}
-
-	bool ReadChunk(usize index, void *buffer, usize &length);
-
-	inline const void* GetUserData() const			{ return mUserData; }
-	inline usize GetUserDataSize() const			{ return mUserDataSize; }
-
-	inline const char* GetFileName() const			{ return mFile.GetFileName(); }
 };
 
 #endif /*LBCFFILE_H_*/

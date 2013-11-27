@@ -17,9 +17,46 @@
  * Loki binary trace file writer class
  */
 
+void CLBTFileWriter::FlushIndexTableSegment() {
+	// Do not flush empty segments
+
+	if (mChunkIndexSegmentCursor == 0)
+		return;
+
+	// Write segment data to LBCF file
+
+	uint64 segmentChunkIndex = mWriter.AppendChunk(mChunkIndexSegment, sizeof(uint64) * mChunkIndexSegmentCursor);
+
+	// Expand index table buffer if necessary
+
+	if (mChunkIndexTableCursor == mChunkIndexTableCapacity) {
+		mChunkIndexTableCapacity += kIndexTableCapacityIncrement;
+		mChunkIndexTableWrapper.Reallocate(sizeof(uint64) * mChunkIndexTableCapacity);
+		mChunkIndexTable = (uint64*)mChunkIndexTableWrapper.GetBuffer();
+	}
+
+	// Allocate index table entry
+
+	assert(mChunkIndexTableCursor < mChunkIndexTableCapacity);
+	mChunkIndexTable[mChunkIndexTableCursor++] = segmentChunkIndex;
+
+	// Reset index segment cursor
+
+	mChunkIndexSegmentCursor = 0;
+}
+
 void CLBTFileWriter::FlushChunkBuffer() {
+	// Do not flush empty chunks
+
 	if (mRecordCursor == 0)
 		return;
+
+	// Flush index table segment if necessary
+
+	if (mChunkIndexSegmentCursor == kIndexSegmentEntryCount)
+		FlushIndexTableSegment();
+
+	// Transpose chunk data
 
 	uint64 *packedCycleNumbers = (uint64*)mWorkBuffer.GetBuffer();
 	uint32 *packedInstructionAddresses = (uint32*)(&packedCycleNumbers[mRecordCursor]);
@@ -47,17 +84,18 @@ void CLBTFileWriter::FlushChunkBuffer() {
 		prevInstructionAddress = mRecords[i].InstructionAddress;
 	}
 
-	ulong chunkNumber = mWriter.AppendChunk(mWorkBuffer.GetBuffer(), sizeof(SLBTChunkExtendedRecord) * mRecordCursor);
+	// Write chunk data to LBCF file
+
+	uint64 chunkIndex = mWriter.AppendChunk(mWorkBuffer.GetBuffer(), sizeof(SLBTChunkExtendedRecord) * mRecordCursor);
 	mTotalRecordCount += mRecordCursor;
 	mRecordCursor = 0;
 
-	if (mChunkIndexCursor == mChunkIndexCapacity) {
-		mChunkIndexCapacity += kChunkIndexCapacityIncrement;
-		mChunkIndexWrapper.Reallocate(sizeof(uint64) * mChunkIndexCapacity);
-		mChunkIndex = (uint64*)mChunkIndexWrapper.GetBuffer();
-	}
+	// Allocate chunk index entry
 
-	mChunkIndex[mChunkIndexCursor++] = chunkNumber;
+	assert(mChunkIndexSegmentCursor < kIndexSegmentEntryCount);
+	mChunkIndexSegment[mChunkIndexSegmentCursor++] = chunkIndex;
+
+	mTotalTraceChunkCount++;
 }
 
 CLBTFileWriter::CLBTFileWriter(CFile &lbtFile) :
@@ -65,18 +103,23 @@ CLBTFileWriter::CLBTFileWriter(CFile &lbtFile) :
 	mWriter(lbtFile),
 	mRecordsWrapper(sizeof(SLBTChunkExtendedRecord) * kChunkRecordCount),
 	mWorkBuffer(sizeof(SLBTChunkExtendedRecord) * kChunkRecordCount),
-	mChunkIndexWrapper(sizeof(uint64) * kChunkIndexCapacityInitial)
+	mChunkIndexTableWrapper(sizeof(uint64) * kIndexTableCapacityInitial),
+	mChunkIndexSegmentWrapper(sizeof(uint64) * kIndexSegmentEntryCount)
 {
 	mMemorySize = 0;
 
 	mRecords = (SLBTChunkExtendedRecord*)mRecordsWrapper.GetBuffer();
 	mRecordCursor = 0;
 
-	mChunkIndex = (uint64*)mChunkIndexWrapper.GetBuffer();
-	mChunkIndexCursor = 0;
-	mChunkIndexCapacity = kChunkIndexCapacityInitial;
+	mChunkIndexTable = (uint64*)mChunkIndexTableWrapper.GetBuffer();
+	mChunkIndexTableCursor = 0;
+	mChunkIndexTableCapacity = kIndexTableCapacityInitial;
+
+	mChunkIndexSegment = (uint64*)mChunkIndexSegmentWrapper.GetBuffer();
+	mChunkIndexSegmentCursor = 0;
 
 	mTotalRecordCount = 0;
+	mTotalTraceChunkCount = 0;
 }
 
 CLBTFileWriter::~CLBTFileWriter() {
@@ -154,14 +197,15 @@ void CLBTFileWriter::AddSystemCall(uint64 cycleNumber, ulong instructionAddress,
 	if (dataLength > 0)
 		memcpy(&((uint32*)buffer)[registerCount + 1], data, dataLength);
 
-	ulong sysCallChunk = mWriter.AppendChunk(buffer, bufferSize);
+	uint64 sysCallChunkIndex = mWriter.AppendChunk(buffer, bufferSize);
+	assert(sysCallChunkIndex <= 0xFFFFFFFFFFULL);
 
 	mRecords[mRecordCursor].CycleNumber = cycleNumber;
 	mRecords[mRecordCursor].InstructionAddress = instructionAddress;
-	mRecords[mRecordCursor].MemoryAddress = sysCallChunk;
+	mRecords[mRecordCursor].MemoryAddress = (uint32)(sysCallChunkIndex & 0xFFFFFFFFULL);
 	mRecords[mRecordCursor].OperationType = SLBTChunkExtendedRecord::kOperationTypeSystemCall;
 	mRecords[mRecordCursor].Parameter1 = systemCallNumber;
-	mRecords[mRecordCursor].Parameter2 = 0;
+	mRecords[mRecordCursor].Parameter2 = (uint8)((sysCallChunkIndex >> 32) & 0xFFULL);
 
 	mRecords[mRecordCursor].Flags = 0;
 	if (!executed)
@@ -198,7 +242,7 @@ void CLBTFileWriter::StoreMemoryImage(const void *image, bool initialImage) {
 		cursor += byteCount;
 	}
 
-	usize indexChunkIndex = mWriter.AppendChunk(chunkIndexes, sizeof(uint64) * chunkCount);
+	uint64 indexChunkIndex = mWriter.AppendChunk(chunkIndexes, sizeof(uint64) * chunkCount);
 	delete[] chunkIndexes;
 
 	if (initialImage)
@@ -208,15 +252,20 @@ void CLBTFileWriter::StoreMemoryImage(const void *image, bool initialImage) {
 }
 
 void CLBTFileWriter::Flush() {
-	FlushChunkBuffer();
+	if (mRecordCursor > 0)
+		FlushChunkBuffer();
 
-	ulong indexChunkNumber = mWriter.AppendChunk(mChunkIndex, sizeof(uint64) * mChunkIndexCursor);
+	if (mChunkIndexSegmentCursor > 0)
+		FlushIndexTableSegment();
+
+	ulong indexChunkNumber = mWriter.AppendChunk(mChunkIndexTable, sizeof(uint64) * mChunkIndexTableCursor);
 
 	SLBTExtendedDataHeader header;
 	header.Signature = SLBTExtendedDataHeader::kSignature;
 	header.Format = SLBTExtendedDataHeader::kFormatExtendedCoreTrace;
-	header.IndexChunkNumber = indexChunkNumber;
-	header.TraceChunkCount = mChunkIndexCursor;
+	header.IndexTableChunkNumber = indexChunkNumber;
+	header.IndexTableEntryCount = mChunkIndexTableCursor;
+	header.TraceChunkCount = mTotalTraceChunkCount;
 	header.RecordCount = mTotalRecordCount;
 	header.MemorySize = mMemorySize;
 	header.InitialImageIndexChunkNumber = mInitialImageIndexChunkNumber;
