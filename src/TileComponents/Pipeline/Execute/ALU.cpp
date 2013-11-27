@@ -276,9 +276,17 @@ void ALU::systemCall(DecodedInst& dec) const {
       break;
     }
 
+    case 0x30: { /* get current cycle */
+      cycle_count_t cycle = (cycle_count_t)sc_core::sc_time_stamp().to_default_time_units();
+      writeReg(11, cycle >> 32);
+      writeReg(12, cycle & 0xFFFFFFFF);
+      break;
+    }
+
     default:
       cerr << "Warning: unrecognised system call opcode: " << code << endl;
       assert(false);
+      break;
   }
 }
 
