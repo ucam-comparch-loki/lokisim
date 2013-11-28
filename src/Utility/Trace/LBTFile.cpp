@@ -23,6 +23,16 @@ void CLBTFileWriter::FlushIndexTableSegment() {
 	if (mChunkIndexSegmentCursor == 0)
 		return;
 
+	// Delta encode chunk indexes
+
+	uint64 prevChunkIndex = 0;
+
+	for (usize i = 0; i < mChunkIndexSegmentCursor; i++) {
+		uint64 currChunkIndex = mChunkIndexSegment[i];
+		mChunkIndexSegment[i] = currChunkIndex - prevChunkIndex;
+		prevChunkIndex = currChunkIndex;
+	}
+
 	// Write segment data to LBCF file
 
 	uint64 segmentChunkIndex = mWriter.AppendChunk(mChunkIndexSegment, sizeof(uint64) * mChunkIndexSegmentCursor);
