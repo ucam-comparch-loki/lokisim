@@ -69,6 +69,7 @@ void ALU::execute(DecodedInst& dec) const {
       cerr << "Invalid function code: " << dec.function() << endl;
       cerr << dec << endl;
       assert(false);
+      break;
   }
 
   dec.result(result);
@@ -99,6 +100,7 @@ void ALU::execute(DecodedInst& dec) const {
       // Potential alternative: newPredicate = (result != 0)
       default:
         newPredicate = result&1;
+        break;
     }
 
     setPred(newPredicate);

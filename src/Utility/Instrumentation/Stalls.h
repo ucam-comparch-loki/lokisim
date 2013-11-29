@@ -15,6 +15,17 @@
 
 namespace Instrumentation {
 
+struct StallData {
+
+  // The total number of cycles each core has spent stalled for various
+  // reasons.
+  CounterMap<ComponentID>
+    totalStalls, dataStalls, instructionStalls,
+    outputStalls, bypassStalls, idleTimes;
+
+};
+
+
 class Stalls: public InstrumentationBase {
 
 public:
@@ -61,16 +72,14 @@ private:
   // The reason for each core being stalled at the moment (if stalled).
   static std::map<ComponentID, int> stallReason;
 
+  // Maintain separate logs for normal execution, and for the parts of the
+  // program which are explicitly logged.
+  static StallData total, loggedOnly;
+
   // The times that each core started stalling.
   static std::map<ComponentID, cycle_count_t>
     startedStalling, startedDataStall, startedInstructionStall,
     startedOutputStall, startedBypassStall, startedIdle;
-
-  // The total number of cycles each core has spent stalled for various
-  // reasons.
-  static CounterMap<ComponentID>
-    totalStalls, dataStalls, instructionStalls,
-    outputStalls, bypassStalls, idleTimes;
 
   // The number of cores stalled or idle at the moment.
   static count_t numStalled;

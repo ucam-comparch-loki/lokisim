@@ -329,8 +329,15 @@ void FetchStage::packetFinishedArriving() {
 
   // If we are not due to execute this packet, clear its entry in the queue so
   // we can fetch another.
-  if (!packet->execute)
+  if (!packet->execute) {
     packet->reset();
+
+    // FIXME: not waiting for fill to complete before starting to execute
+//    if (packet == &currentPacket) {
+//      currentPacket = pendingPacket;
+//      pendingPacket.reset();
+//    }
+  }
 }
 
 void FetchStage::reachedEndOfPacket() {

@@ -29,12 +29,8 @@ std::map<ComponentID, cycle_count_t> Stalls::startedOutputStall;
 std::map<ComponentID, cycle_count_t> Stalls::startedBypassStall;
 std::map<ComponentID, cycle_count_t> Stalls::startedIdle;
 
-CounterMap<ComponentID> Stalls::totalStalls;
-CounterMap<ComponentID> Stalls::dataStalls;
-CounterMap<ComponentID> Stalls::instructionStalls;
-CounterMap<ComponentID> Stalls::outputStalls;
-CounterMap<ComponentID> Stalls::bypassStalls;
-CounterMap<ComponentID> Stalls::idleTimes;
+StallData Stalls::total;
+StallData Stalls::loggedOnly;
 
 count_t Stalls::numStalled = 0;
 cycle_count_t Stalls::endOfExecution = 0;
@@ -70,18 +66,18 @@ void Stalls::startLogging() {
     for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
       ComponentID id(i, j);
 
-      if (startedStalling[id] != UNSTALLED)
-        startedStalling[id] = loggingStarted;
-      if (startedDataStall[id] != UNSTALLED)
-        startedDataStall[id] = loggingStarted;
+      if (startedStalling[id]         != UNSTALLED)
+        startedStalling[id]         = loggingStarted;
+      if (startedDataStall[id]        != UNSTALLED)
+        startedDataStall[id]        = loggingStarted;
       if (startedInstructionStall[id] != UNSTALLED)
         startedInstructionStall[id] = loggingStarted;
-      if (startedOutputStall[id] != UNSTALLED)
-        startedOutputStall[id] = loggingStarted;
-      if (startedBypassStall[id] != UNSTALLED)
-        startedBypassStall[id] = loggingStarted;
-      if (startedIdle[id] != UNSTALLED)
-        startedIdle[id] = loggingStarted;
+      if (startedOutputStall[id]      != UNSTALLED)
+        startedOutputStall[id]      = loggingStarted;
+      if (startedBypassStall[id]      != UNSTALLED)
+        startedBypassStall[id]      = loggingStarted;
+      if (startedIdle[id]             != UNSTALLED)
+        startedIdle[id]             = loggingStarted;
     }
   }
 }
@@ -168,36 +164,45 @@ void Stalls::stall(const ComponentID& id, cycle_count_t cycle, int reason) {
 
 }
 
+cycle_count_t max(cycle_count_t time1, cycle_count_t time2) {
+  return (time1 > time2) ? time1 : time2;
+}
+
 void Stalls::unstall(const ComponentID& id, cycle_count_t cycle, int reason) {
   if (stallReason[id] & reason) {
     switch(reason) {
       case STALL_DATA:
-        //if (ENERGY_TRACE)
-          dataStalls.setCount(id, dataStalls[id] + cycle - startedDataStall[id]);
+        if (ENERGY_TRACE)
+          loggedOnly.dataStalls.increment(id, cycle - max(loggingStarted, startedDataStall[id]));
+        total.dataStalls.increment(id, cycle - startedDataStall[id]);
         startedDataStall[id] = UNSTALLED;
         break;
 
       case STALL_INSTRUCTIONS:
-        //if (ENERGY_TRACE)
-          instructionStalls.setCount(id, instructionStalls[id] + cycle - startedInstructionStall[id]);
+        if (ENERGY_TRACE)
+          loggedOnly.instructionStalls.increment(id, cycle - max(loggingStarted, startedInstructionStall[id]));
+        total.instructionStalls.increment(id, cycle - startedInstructionStall[id]);
         startedInstructionStall[id] = UNSTALLED;
         break;
 
       case STALL_OUTPUT:
-        //if (ENERGY_TRACE)
-          outputStalls.setCount(id, outputStalls[id] + cycle - startedOutputStall[id]);
+        if (ENERGY_TRACE)
+          loggedOnly.outputStalls.increment(id, cycle - max(loggingStarted, startedOutputStall[id]));
+        total.outputStalls.increment(id, cycle - startedOutputStall[id]);
         startedOutputStall[id] = UNSTALLED;
         break;
 
       case STALL_FORWARDING:
-        //if (ENERGY_TRACE)
-          bypassStalls.setCount(id, bypassStalls[id] + cycle - startedBypassStall[id]);
+        if (ENERGY_TRACE)
+          loggedOnly.bypassStalls.increment(id, cycle - max(loggingStarted, startedBypassStall[id]));
+        total.bypassStalls.increment(id, cycle - startedBypassStall[id]);
         startedBypassStall[id] = UNSTALLED;
         break;
 
       case IDLE:
-        //if (ENERGY_TRACE)
-          idleTimes.setCount(id, idleTimes[id] + cycle - startedIdle[id]);
+        if (ENERGY_TRACE)
+          loggedOnly.idleTimes.increment(id, cycle - max(loggingStarted, startedIdle[id]));
+        total.idleTimes.increment(id, cycle - startedIdle[id]);
         startedIdle[id] = UNSTALLED;
         break;
 
@@ -209,8 +214,9 @@ void Stalls::unstall(const ComponentID& id, cycle_count_t cycle, int reason) {
 
     if (stallReason[id] == NOT_STALLED) {
       numStalled--;
-      //if (ENERGY_TRACE)
-        totalStalls.setCount(id, totalStalls[id] + cycle - startedStalling[id]);
+      if (ENERGY_TRACE)
+        loggedOnly.totalStalls.increment(id, cycle - max(loggingStarted, startedStalling[id]));
+      total.totalStalls.increment(id, cycle - startedStalling[id]);
       startedStalling[id] = UNSTALLED;
     }
   }
@@ -239,18 +245,15 @@ bool Stalls::executionFinished() {
 }
 
 cycle_count_t Stalls::cyclesActive(const ComponentID& core) {
-  if (loggedCycles > 0)
-    return loggedCycles - cyclesStalled(core) - cyclesIdle(core);
-  else
-    return currentCycle() - cyclesStalled(core) - cyclesIdle(core);
+  return currentCycle() - cyclesStalled(core) - cyclesIdle(core);
 }
 
 cycle_count_t Stalls::cyclesIdle(const ComponentID& core) {
-  return idleTimes[core];
+  return total.idleTimes[core];
 }
 
 cycle_count_t Stalls::cyclesStalled(const ComponentID& core) {
-  return totalStalls[core] - cyclesIdle(core);
+  return total.totalStalls[core] - cyclesIdle(core);
 }
 
 cycle_count_t Stalls::cyclesLogged() {
@@ -282,18 +285,18 @@ void Stalls::printStats() {
 			if (id.isMemory()) continue;
 
 			// Only print statistics for cores which have seen some activity.
-			if ((uint)idleTimes[id] < endOfExecution) {
+			if ((uint)total.idleTimes[id] < endOfExecution) {
 				cycle_count_t totalStalled = cyclesStalled(id);
 				cycle_count_t activeCycles = cyclesActive(id);
 				clog << "  " << id << "\t" <<
 				Operations::numOperations(id) << "\t\t" <<
 				percentage(activeCycles, endOfExecution) << "\t" <<
-				percentage(idleTimes[id], endOfExecution) << "\t" <<
+				percentage(total.idleTimes[id], endOfExecution) << "\t" <<
 				percentage(totalStalled, endOfExecution) << "\t(" <<
-        percentage(instructionStalls[id], totalStalled) << "|" <<
-        percentage(dataStalls[id], totalStalled) << "|" <<
-				percentage(bypassStalls[id], totalStalled) << "|" <<
-				percentage(outputStalls[id], totalStalled) << ")" << endl;
+        percentage(total.instructionStalls[id], totalStalled) << "|" <<
+        percentage(total.dataStalls[id], totalStalled) << "|" <<
+				percentage(total.bypassStalls[id], totalStalled) << "|" <<
+				percentage(total.outputStalls[id], totalStalled) << ")" << endl;
 			}
 		}
 	}
@@ -323,17 +326,17 @@ void Stalls::dumpEventCounts(std::ostream& os) {
 //      if ((cycle_count_t)idleTimes[id] >= endOfExecution)
 //        continue;
 
-      cycle_count_t totalStalled = cyclesStalled(id);
-      cycle_count_t activeCycles = cyclesActive(id);
+      cycle_count_t totalStalled = loggedOnly.totalStalls[id] - loggedOnly.idleTimes[id];
+      cycle_count_t activeCycles = loggedCycles - loggedOnly.totalStalls[id];
 
       os << "<activity core=\"" << id.getGlobalCoreNumber()  << "\">\n"
          << xmlNode("active", activeCycles)                     << "\n"
-         << xmlNode("idle", idleTimes[id])                      << "\n"
+         << xmlNode("idle", loggedOnly.idleTimes[id])                      << "\n"
          << xmlNode("stalled", totalStalled)                    << "\n"
-         << xmlNode("instruction_stall", instructionStalls[id]) << "\n"
-         << xmlNode("data_stall", dataStalls[id])               << "\n"
-         << xmlNode("bypass_stall", bypassStalls[id])           << "\n"
-         << xmlNode("output_stall", outputStalls[id])           << "\n"
+         << xmlNode("instruction_stall", loggedOnly.instructionStalls[id]) << "\n"
+         << xmlNode("data_stall", loggedOnly.dataStalls[id])               << "\n"
+         << xmlNode("bypass_stall", loggedOnly.bypassStalls[id])           << "\n"
+         << xmlNode("output_stall", loggedOnly.outputStalls[id])           << "\n"
          << xmlEnd("activity")                                  << "\n";
     }
   }

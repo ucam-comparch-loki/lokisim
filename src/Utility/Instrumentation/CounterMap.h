@@ -16,31 +16,33 @@
 template<class T>
 class CounterMap {
 
+  typedef unsigned long long count_t;
+
 public:
 
-  void increment(const T& event) {
-    counters[event]++;
-    totalEvents++;
+  typedef typename std::map<T, count_t>::iterator iterator;
+
+  void increment(const T& event, const count_t val = 1) {
+    counters[event] += val;
+    totalEvents += val;
   }
 
-  const unsigned long long getCount(const T& event) {
+  const count_t getCount(const T& event) {
     return counters[event];
   }
 
-  const unsigned long long operator[](const T& event) {
+  const count_t operator[](const T& event) {
     return getCount(event);
   }
 
-  void setCount(const T& event, unsigned long long count) {
+  void setCount(const T& event, count_t count) {
     totalEvents += (count - counters[event]);
     counters[event] = count;
   }
 
-  const unsigned long long numEvents() const {
+  const count_t numEvents() const {
     return totalEvents;
   }
-
-  typedef typename std::map<T, unsigned long long>::iterator iterator;
 
   iterator begin() {
     return counters.begin();
@@ -55,8 +57,8 @@ public:
   }
 
 private:
-  std::map<T, unsigned long long> counters;
-  unsigned long long totalEvents;
+  std::map<T, count_t> counters;
+  count_t totalEvents;
 
 };
 
