@@ -50,6 +50,8 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 				cerr << this->name() << " fetch request outside valid memory space (address " << mPortData[port].Address << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
 
 			assert((mPortData[port].Address & 0x3) == 0);
+			assert(mPortData[port].Address <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+			assert((mPortData[port].WordsLeft * 4) <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 			assert(mPortData[port].WordsLeft > 0);
 
