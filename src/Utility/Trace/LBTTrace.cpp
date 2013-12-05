@@ -333,6 +333,8 @@ void setClockCycle(unsigned long long cycleNumber) {
 unsigned long long logDecodedInstruction(unsigned long instructionAddress, LBTOperationType operationType, bool endOfPacket) {
 	assert((instructionAddress & 0x3) == 0);
 
+	//cerr << "- " << instructionAddress << endl;
+
 	if (traceWriter != NULL) {
 		flushBufferedInstruction();
 
@@ -363,15 +365,51 @@ void setInstructionMemoryAddress(unsigned long long isid, unsigned long address)
 	if (traceWriter != NULL) {
 		for (unsigned long i = 0; i < kTraceInstructionBufferSize; i++) {
 			if (traceInstructionBuffer[i].ISID == isid) {
-				assert((traceInstructionBuffer[i].OperationType == LoadWord && (address & 0x3) == 0) ||
-					(traceInstructionBuffer[i].OperationType == LoadHalfWord && (address & 0x1) == 0) ||
-					(traceInstructionBuffer[i].OperationType == LoadByte) ||
-					(traceInstructionBuffer[i].OperationType == StoreWord && (address & 0x3) == 0) ||
-					(traceInstructionBuffer[i].OperationType == StoreHalfWord && (address & 0x1) == 0) ||
-					(traceInstructionBuffer[i].OperationType == StoreByte) ||
-					(traceInstructionBuffer[i].OperationType == ScratchpadRead && (address & 0x3) == 0) ||
-					(traceInstructionBuffer[i].OperationType == ScratchpadWrite && (address & 0x3) == 0) ||
-					(traceInstructionBuffer[i].OperationType == Fetch && (address & 0x3) == 0));
+				if (!((traceInstructionBuffer[i].OperationType == LoadWord && (address & 0x3) == 0 && address <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE - 4) ||
+					(traceInstructionBuffer[i].OperationType == LoadHalfWord && (address & 0x1) == 0 && address <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE - 2) ||
+					(traceInstructionBuffer[i].OperationType == LoadByte && address <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE - 1) ||
+					(traceInstructionBuffer[i].OperationType == StoreWord && (address & 0x3) == 0 && address <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE - 4) ||
+					(traceInstructionBuffer[i].OperationType == StoreHalfWord && (address & 0x1) == 0 && address <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE - 2) ||
+					(traceInstructionBuffer[i].OperationType == StoreByte && address <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE - 1) ||
+					(traceInstructionBuffer[i].OperationType == ScratchpadRead && address < CORE_SCRATCHPAD_SIZE) ||
+					(traceInstructionBuffer[i].OperationType == ScratchpadWrite && address < CORE_SCRATCHPAD_SIZE) ||
+					(traceInstructionBuffer[i].OperationType == Fetch && (address & 0x3) == 0 && address <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE - 4)))
+				{
+					cerr << endl;
+					cerr << "ERROR: Invalid memory access detected!" << endl;
+					cerr << endl;
+					cerr << "address=" << address << endl;
+					cerr << endl;
+					cerr << "ISID=" << traceInstructionBuffer[i].ISID << endl;
+					cerr << "ClockCycle=" << traceInstructionBuffer[i].ClockCycle << endl;
+					cerr << "InstructionAddress=" << traceInstructionBuffer[i].InstructionAddress << endl;
+
+					switch (traceInstructionBuffer[i].OperationType) {
+					case LoadWord:	cerr << "OperationType=LoadWord" << endl; break;
+					case LoadHalfWord:	cerr << "OperationType=LoadHalfWord" << endl; break;
+					case LoadByte:	cerr << "OperationType=LoadByte" << endl; break;
+					case StoreWord:	cerr << "OperationType=StoreWord" << endl; break;
+					case StoreHalfWord:	cerr << "OperationType=StoreHalfWord" << endl; break;
+					case StoreByte:	cerr << "OperationType=StoreByte" << endl; break;
+					case ScratchpadRead:	cerr << "OperationType=ScratchpadRead" << endl; break;
+					case ScratchpadWrite:	cerr << "OperationType=ScratchpadWrite" << endl; break;
+					case Fetch:	cerr << "OperationType=Fetch" << endl; break;
+					default:	cerr << "OperationType=Unknown (" << traceInstructionBuffer[i].OperationType << ")" << endl; break;
+					}
+
+					cerr << "Executed=" << traceInstructionBuffer[i].Executed << endl;
+					cerr << "EndOfPacket=" << traceInstructionBuffer[i].EndOfPacket << endl;
+					cerr << "MemoryAddress=" << traceInstructionBuffer[i].MemoryAddress << endl;
+					cerr << "MemoryAddressSet=" << traceInstructionBuffer[i].MemoryAddressSet << endl;
+					cerr << "MemoryData=" << traceInstructionBuffer[i].MemoryData << endl;
+					cerr << "MemoryDataSet=" << traceInstructionBuffer[i].MemoryDataSet << endl;
+					cerr << "InputChannel1=" << traceInstructionBuffer[i].InputChannel1 << endl;
+					cerr << "InputChannel2=" << traceInstructionBuffer[i].InputChannel2 << endl;
+					cerr << "UsesInputChannel1=" << traceInstructionBuffer[i].UsesInputChannel1 << endl;
+					cerr << "UsesInputChannel2=" << traceInstructionBuffer[i].UsesInputChannel2 << endl;
+
+					exit(1);
+				}
 
 				traceInstructionBuffer[i].MemoryAddress = address;
 				traceInstructionBuffer[i].MemoryAddressSet = true;

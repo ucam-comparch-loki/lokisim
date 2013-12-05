@@ -217,6 +217,7 @@ void ALU::systemCall(DecodedInst& dec) const {
       }
       /* FIXME - set errno */
       writeReg(11, fd);
+      //cerr << "+ SYS_open fname=" << fname << " mode=" << mode << " perm=" << mode << " fd=" << fd << endl;
       break;
     }
     case 0x3: { /* SYS_close */
@@ -227,6 +228,7 @@ void ALU::systemCall(DecodedInst& dec) const {
       }
       else writeReg(11, close(fd));
       /* FIXME - set errno */
+      //cerr << "+ SYS_close fd=" << fd << endl;
       break;
     }
     case 0x4: { /* SYS_read */
@@ -243,6 +245,7 @@ void ALU::systemCall(DecodedInst& dec) const {
       }
       free(buf);
       /* FIXME - set errno */
+      //cerr << "+ SYS_read fd=" << fd << " start=" << start << " len=" << len << " result=" << readReg(11) << endl;
       break;
     }
     case 0x5: { /* SYS_write */
@@ -259,6 +262,7 @@ void ALU::systemCall(DecodedInst& dec) const {
         LBTTrace::setInstructionSystemCallData(dec.isid(), str, len, false, start);
       writeReg(11, write(fd, str, len));
       free(str);
+      //cerr << "+ SYS_write fd=" << fd << " start=" << start << " len=" << len << " result=" << readReg(11) << endl;
       break;
     }
     case 0x6: { /* SYS_lseek */
@@ -268,6 +272,7 @@ void ALU::systemCall(DecodedInst& dec) const {
       writeReg(11, lseek(fd, offset, whence));
       /* implicit assumption that whence value meanings are the
        * same on host as the target OS */
+      //cerr << "+ SYS_write fd=" << fd << " offset=" << offset << " whence=" << whence << " result=" << readReg(11) << endl;
       break;
     }
 
