@@ -9,14 +9,22 @@
 #include "ExecuteStage.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
-#include "../../../Utility/InstructionMap.h"
 #include "../../../Utility/Instrumentation.h"
 #include "../../../Utility/Trace/SoftwareTrace.h"
 #include "../../../Utility/Trace/LBTTrace.h"
 
-void ALU::execute(DecodedInst& dec) const {
+void ALU::execute(DecodedInst& dec) {
 
   assert(dec.isALUOperation());
+
+  // Wait until the final cycle to compute the result.
+  if (cyclesRemaining > 0)
+    cyclesRemaining--;
+  else
+    cyclesRemaining = getFunctionLatency(dec.function());
+
+  if (cyclesRemaining > 0)
+    return;
 
   bool pred = parent()->readPredicate();
 
@@ -106,6 +114,28 @@ void ALU::execute(DecodedInst& dec) const {
     setPred(newPredicate);
   }
 
+}
+
+bool ALU::busy() const {
+  return (cyclesRemaining > 0);
+}
+
+cycle_count_t ALU::getFunctionLatency(function_t fn) {
+  cycle_count_t cycles;
+
+  switch (fn) {
+    case InstructionMap::FN_MULHW:
+    case InstructionMap::FN_MULHWU:
+    case InstructionMap::FN_MULLW:
+      cycles = 1;
+      break;
+
+    default:
+      cycles = 0;
+      break;
+  }
+
+  return cycles;
 }
 
 void ALU::setPred(bool val) const {

@@ -11,6 +11,7 @@
 #define ALU_H_
 
 #include "../../../Component.h"
+#include "../../../Utility/InstructionMap.h"
 
 class DecodedInst;
 class ExecuteStage;
@@ -34,12 +35,19 @@ public:
 
   // Calculate the result of the given operation, and store it in the
   // provided decoded instruction.
-  void execute(DecodedInst& operation) const;
+  void execute(DecodedInst& operation);
+
+  // Tell whether an operation is currently in progress. No further operations
+  // can be issued if so.
+  bool busy() const;
 
   // Carry out a system call. All system calls are currently instant.
   void systemCall(DecodedInst& dec) const;
 
 private:
+
+  // Set cyclesRemaining to the appropriate value for this operation.
+  cycle_count_t getFunctionLatency(function_t fn);
 
   void setPred(bool val) const;
 
@@ -54,6 +62,15 @@ private:
   ExecuteStage* parent() const;
 
   uint convertTargetFlags(uint tflags) const;
+
+//==============================//
+// Methods
+//==============================//
+
+private:
+
+  // Allow multi-cycle operations. Stall the pipeline until they are complete.
+  cycle_count_t cyclesRemaining;
 
 };
 

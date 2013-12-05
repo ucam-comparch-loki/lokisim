@@ -23,6 +23,13 @@ void ExecuteStage::writeWord(MemoryAddr addr, Word data) const {parent()->writeW
 void ExecuteStage::writeByte(MemoryAddr addr, Word data) const {parent()->writeByte(addr, data);}
 
 void ExecuteStage::execute() {
+//  if (alu.busy()) {
+//    if (DEBUG) cout << this->name() << ": continuing " << currentInst.name()
+//        << " on " << currentInst.operand1() << " and " << currentInst.operand2() << endl;
+//    alu.execute(currentInst);
+//    blocked = alu.busy();
+//  }
+
   if (currentInst.hasResult())
     sendOutput();             // If there is already a result, don't do anything
   else
@@ -55,26 +62,33 @@ void ExecuteStage::newInput(DecodedInst& operation) {
   if (willExecute) {
     bool success = true;
 
-    // Forward data from the previous instruction if necessary.
-    if (operation.operand1Source() == DecodedInst::BYPASS && previousInstExecuted) {
-      operation.operand1(forwardedResult);
-      operation.operand1Source(DecodedInst::IMMEDIATE); // So we don't forward again.
-      if (DEBUG) cout << this->name() << " forwarding contents of register "
-          << (int)operation.sourceReg1() << ": " << forwardedResult << endl;
-      if (ENERGY_TRACE)
-        Instrumentation::Registers::forward(1);
+    // Only collect operands on the first cycle of multi-cycle operations.
+    if (alu.busy()) {
+      if (DEBUG) cout << this->name() << ": continuing " << operation.name()
+          << " on " << operation.operand1() << " and " << operation.operand2() << endl;
     }
-    if (operation.operand2Source() == DecodedInst::BYPASS && previousInstExecuted) {
-      operation.operand2(forwardedResult);
-      operation.operand2Source(DecodedInst::IMMEDIATE); // So we don't forward again.
-      if (DEBUG) cout << this->name() << " forwarding contents of register "
-          << (int)operation.sourceReg2() << ": " << forwardedResult << endl;
-      if (ENERGY_TRACE)
-        Instrumentation::Registers::forward(2);
-    }
+    else {
+      // Forward data from the previous instruction if necessary.
+      if (operation.operand1Source() == DecodedInst::BYPASS && previousInstExecuted) {
+        operation.operand1(forwardedResult);
+        operation.operand1Source(DecodedInst::IMMEDIATE); // So we don't forward again.
+        if (DEBUG) cout << this->name() << " forwarding contents of register "
+            << (int)operation.sourceReg1() << ": " << forwardedResult << endl;
+        if (ENERGY_TRACE)
+          Instrumentation::Registers::forward(1);
+      }
+      if (operation.operand2Source() == DecodedInst::BYPASS && previousInstExecuted) {
+        operation.operand2(forwardedResult);
+        operation.operand2Source(DecodedInst::IMMEDIATE); // So we don't forward again.
+        if (DEBUG) cout << this->name() << " forwarding contents of register "
+            << (int)operation.sourceReg2() << ": " << forwardedResult << endl;
+        if (ENERGY_TRACE)
+          Instrumentation::Registers::forward(2);
+      }
 
-    if (DEBUG) cout << this->name() << ": executing " << operation.name()
-        << " on " << operation.operand1() << " and " << operation.operand2() << endl;
+      if (DEBUG) cout << this->name() << ": executing " << operation.name()
+          << " on " << operation.operand1() << " and " << operation.operand2() << endl;
+    }
 
     // Special cases for any instructions which don't use the ALU.
     switch (operation.opcode()) {
@@ -123,8 +137,14 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         break;
 
       default:
-        if (InstructionMap::isALUOperation(operation.opcode()))
+        if (InstructionMap::isALUOperation(operation.opcode())) {
           alu.execute(operation);
+          blocked = alu.busy();
+          success = !blocked;
+
+          if (blocked)
+            next_trigger(clock.posedge_event());
+        }
 
         break;
     } // end switch
