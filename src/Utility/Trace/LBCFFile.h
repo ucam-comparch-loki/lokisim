@@ -62,7 +62,7 @@ struct SLBCFChunkTableIndexEntry {
 public:
 	uint64 Offset;
 	uint32 EntryCount;
-	uint32 SizeCompressed;
+	uint32 SizeStored;
 	uint32 Checksum;
 };
 

@@ -24,6 +24,7 @@ void CLBCFFileWriter::FlushChunkTableSegment() {
 
 	usize segmentSize = sizeof(SLBCFChunkTableEntry) * mChunkTableSegmentCursor;
 
+	/*
 	// Allocate work buffer if necessary
 
 	usize minWorkBufferSize = CDeflate::GetBound(segmentSize, CDeflate::kMinimumCompressionLevel);
@@ -31,14 +32,18 @@ void CLBCFFileWriter::FlushChunkTableSegment() {
 		mWorkBufferWrapper.Allocate(minWorkBufferSize);
 		mWorkBuffer = (uint8*)mWorkBufferWrapper.GetBuffer();
 	}
+	*/
 
 	// Compress chunk table segment data
 
 	ulong checksum = CCRC32::CalculateCRC32(mChunkTableSegment, segmentSize);
+
+	/*
 	usize compressedSize;
 
 	if (!CDeflate::Compress(mChunkTableSegment, segmentSize, mWorkBuffer, minWorkBufferSize, compressedSize, CDeflate::kMinimumCompressionLevel))
 		gExceptionManager.RaiseException(CException::Generic, "Error compressing chunk table segment data");
+	*/
 
 	// Expand chunk table index buffer if necessary
 
@@ -53,7 +58,7 @@ void CLBCFFileWriter::FlushChunkTableSegment() {
 	assert(mChunkTableIndexCursor < mChunkTableIndexCapacity);
 	mChunkTableIndex[mChunkTableIndexCursor].Offset = mFileSize;
 	mChunkTableIndex[mChunkTableIndexCursor].EntryCount = mChunkTableSegmentCursor;
-	mChunkTableIndex[mChunkTableIndexCursor].SizeCompressed = compressedSize;
+	mChunkTableIndex[mChunkTableIndexCursor].SizeStored = segmentSize;
 	mChunkTableIndex[mChunkTableIndexCursor].Checksum = checksum;
 	mChunkTableIndexCursor++;
 
