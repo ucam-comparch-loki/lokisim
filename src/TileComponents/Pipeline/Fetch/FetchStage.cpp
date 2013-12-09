@@ -121,6 +121,8 @@ void FetchStage::getInstruction() {
          << names[currentPacket.location.component] << ": " << decoded << endl;
   }
 
+  //fprintf(stderr, "0x%08x\n", instAddr);
+
   // Make sure we didn't read a junk instruction. "nor r0, r0, r0 -> 0" seems
   // pretty unlikely to ever come up in a real program.
   assert(instruction.toInt() != 0);

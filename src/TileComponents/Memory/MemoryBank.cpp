@@ -1471,7 +1471,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 }
 
 MemoryBank::~MemoryBank() {
-	// Nothing
+	delete[] mChannelMapTable;
 }
 
 void MemoryBank::setAdjacentMemories(MemoryBank *prevMemoryBank, MemoryBank *nextMemoryBank, SimplifiedOnChipScratchpad *backgroundMemory) {

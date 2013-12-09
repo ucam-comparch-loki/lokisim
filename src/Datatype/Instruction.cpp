@@ -114,15 +114,25 @@ Instruction::Instruction(const string& inst) : Word() {
 
   // Remove comments - split around ';' and only keep the first part
   vector<string>& words = Strings::split(inst, ';');
+  string word;
 
   // Should words be deleted before we reassign to it?
-  if(words.size() > 0) words = Strings::split(words[0], '#');
+  if(words.size() > 0) {
+    word = words[0];
+    delete &words;
+    words = Strings::split(word, '#');
+  }
 
   // If there is no text, abandon the creation of the Instruction
-  if(words.size() == 0) throw InvalidInstructionException();
+  if(words.size() == 0) {
+    delete &words;
+    throw InvalidInstructionException();
+  }
 
   // Remote channel - split around "->"
-  words = Strings::split(words.front(), '>');
+  word = words.front();
+  delete &words;
+  words = Strings::split(word, '>');
   if(words.size() > 1) {
     remoteChannel(decodeImmediate(words[1]));
     words.front().erase(words.front().end()-1); // Remove the "-" from "->"
@@ -130,7 +140,9 @@ Instruction::Instruction(const string& inst) : Word() {
   else remoteChannel(NO_CHANNEL);
 
   // Split around ' ' to separate all remaining parts of the instruction
-  words = Strings::split(words.front(), ' ');
+  word = words.front();
+  delete &words;
+  words = Strings::split(word, ' ');
 
   // Opcode
   decodeOpcode(words.front());
@@ -280,6 +292,8 @@ void Instruction::decodeOpcode(const string& name) {
     opcodeString = opcodeParts[0];
   }
 
+  delete &opcodeParts;
+
   // See if the instruction sets the predicate register, or is the end of packet
   opcodeParts = Strings::split(opcodeString, '.');
   string opname = opcodeParts.front();
@@ -291,6 +305,8 @@ void Instruction::decodeOpcode(const string& name) {
       opcode(InstructionMap::OP_PSEL_FETCH);
       if(opcodeParts.size() > 2 && opcodeParts[2] == "eop")
         predicate(END_OF_PACKET);
+
+      delete &opcodeParts;
       return;
     }
     else if(setting == "p") {
@@ -401,6 +417,7 @@ int32_t Instruction::decodeImmediate(const string& immed) {
 	} else {
 		// Invalid format
 	  cerr << "Error: invalid tuple length: " << immed << endl;
+	  delete &parts;
 		assert(false);
 	}
 

@@ -49,7 +49,10 @@ void Config::readConfigFile() {
     // Each line in the config file should consist of a name-attribute pair,
     // separated by a single space.
     vector<string>& words = StringManipulation::split(str, ' ');
-    if(words.size() != 2) continue;
+    if(words.size() != 2) {
+      delete &words;
+      continue;
+    }
 
     attributes[words[0]] = words[1];
     delete &words;

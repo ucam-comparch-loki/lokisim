@@ -10,21 +10,20 @@
 #include "StringManipulation.h"
 
 /* Split a string around a given delimiter character. */
-vector<string>& StringManipulation::split(const string& s, char delim,
-                                          vector<string>& elems) {
+void StringManipulation::split(const string& s, char delim, vector<string>& elems) {
   std::stringstream ss(s);
   string item;
   while(std::getline(ss, item, delim)) {
     if(item.length() > 0) elems.push_back(item);
   }
-  return elems;
 }
 
 /* Split a string around a given delimiter character. The resultant vector
  * should be deleted when finished with. */
 vector<string>& StringManipulation::split(const string& s, char delim) {
   vector<string>* elems = new vector<string>();
-  return split(s, delim, *elems);
+  split(s, delim, *elems);
+  return *elems;
 }
 
 /* Return the integer represented by the given string. */

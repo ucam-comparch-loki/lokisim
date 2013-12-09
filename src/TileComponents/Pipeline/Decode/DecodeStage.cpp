@@ -190,6 +190,10 @@ void         DecodeStage::newInput(DecodedInst& inst) {
   // are produced.
   while (true) {
 
+    // Our register file isn't event-driven, so we need to ensure that data is
+    // read from it after the writes have completed.
+    wait(sc_core::SC_ZERO_TIME);
+
     // Some instructions don't produce any output, or won't be executed.
     bool usefulOutput = decoder.decodeInstruction(inst, decoded);
 

@@ -28,7 +28,7 @@ public:
   static int             strToInt(const string& s);
 
 private:
-  static vector<string>& split(const string& s, char delim, vector<string>& elems);
+  static void            split(const string& s, char delim, vector<string>& elems);
 
 };
 
