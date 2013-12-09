@@ -198,6 +198,10 @@ bool GeneralPurposeCacheHandler::readWord(uint32_t address, uint32_t &data, bool
 
 	data = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
 	promoteCacheLine(slot);
+
+	//if (mBankNumber >= 4)
+	//	fprintf(stderr, "GPCH: bank %u read word %.8X from address %.8X\n", mBankNumber, data, address);
+
 	return true;
 }
 
@@ -223,6 +227,9 @@ bool GeneralPurposeCacheHandler::readHalfWord(uint32_t address, uint32_t &data, 
 	uint32_t fullWord = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
 	data = ((address & 0x3) == 0) ? (fullWord & 0xFFFFUL) : (fullWord >> 16);	// Little endian
 	promoteCacheLine(slot);
+
+	//fprintf(stderr, "GPCH: bank %u read half-word %.4X from address %.8X\n", mBankNumber, data & 0xFFFF, address);
+
 	return true;
 }
 
@@ -254,6 +261,9 @@ bool GeneralPurposeCacheHandler::readByte(uint32_t address, uint32_t &data, bool
 	}
 
 	promoteCacheLine(slot);
+
+	//fprintf(stderr, "GPCH: bank %u read byte %.2X from address %.8X\n", mBankNumber, data & 0xFF, address);
+
 	return true;
 }
 
@@ -279,6 +289,9 @@ bool GeneralPurposeCacheHandler::writeWord(uint32_t address, uint32_t data, bool
 	mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = data;
 	mLineDirty[slot] = true;
 	promoteCacheLine(slot);
+
+	//fprintf(stderr, "GPCH: bank %u wrote word %.8X to address %.8X\n", mBankNumber, data, address);
+
 	return true;
 }
 
@@ -310,6 +323,9 @@ bool GeneralPurposeCacheHandler::writeHalfWord(uint32_t address, uint32_t data, 
 
 	mLineDirty[slot] = true;
 	promoteCacheLine(slot);
+
+	//fprintf(stderr, "GPCH: bank %u wrote half-word %.4X to address %.8X\n", mBankNumber, data & 0xFFFF, address);
+
 	return true;
 }
 
@@ -342,6 +358,9 @@ bool GeneralPurposeCacheHandler::writeByte(uint32_t address, uint32_t data, bool
 
 	mLineDirty[slot] = true;
 	promoteCacheLine(slot);
+
+	//fprintf(stderr, "GPCH: bank %u wrote byte %.2X to address %.8X\n", mBankNumber, data & 0xFF, address);
+
 	return true;
 }
 
@@ -364,7 +383,8 @@ void GeneralPurposeCacheHandler::prepareCacheLine(uint32_t address, uint32_t &wr
 		uint newValue = (oldValue >> 1) | (newBit << 15);
 		mLFSRState = newValue;
 	} else {
-		// Oldest entry always in way with highest index
+		// Oldest entry always in way with highest index	fprintf(stderr, "GPCH: bank %u wrote word %.8X to address %.8X\n", mBankNumber, data, address);
+
 
 		slot += mWayCount - 1;
 	}
@@ -376,17 +396,26 @@ void GeneralPurposeCacheHandler::prepareCacheLine(uint32_t address, uint32_t &wr
 			writeBackAddress = mAddresses[slot];
 			writeBackCount = mLineSize / 4;
 			memcpy(writeBackData, &mData[slot * mLineSize / 4], mLineSize);
+
+			//if (mBankNumber >= 4)
+			//	fprintf(stderr, "GPCH: bank %u wrote back line at %.8X (%u bytes)\n", mBankNumber, writeBackAddress, writeBackCount * 4);
 		} else {
 		  if (ENERGY_TRACE)
 		    Instrumentation::memoryReplaceCacheLine(mBankNumber, true, false);
 
 			writeBackCount = 0;
+
+			//if (mBankNumber >= 4)
+			//	fprintf(stderr, "GPCH: bank %u discarded line at %.8X (%u bytes)\n", mBankNumber, mAddresses[slot], mLineSize);
 		}
 	} else {
 	  if (ENERGY_TRACE)
 	    Instrumentation::memoryReplaceCacheLine(mBankNumber, false, false);
 
 		writeBackCount = 0;
+
+		//if (mBankNumber >= 4)
+		//	fprintf(stderr, "GPCH: bank %u prepared empty set slot (%u bytes)\n", mBankNumber, mLineSize);
 	}
 
 	fetchAddress = address & ~mLineMask;
@@ -400,8 +429,10 @@ void GeneralPurposeCacheHandler::replaceCacheLine(uint32_t fetchAddress, uint32_
 	mAddresses[mVictimSlot] = fetchAddress;
 	mLineValid[mVictimSlot] = true;
 	mLineDirty[mVictimSlot] = false;
-}
 
+	//if (mBankNumber >= 4)
+	//	fprintf(stderr, "GPCH: bank %u inserted line at %.8X (%u bytes)\n", mBankNumber, fetchAddress, mLineSize);
+}
 
 void GeneralPurposeCacheHandler::synchronizeData(SimplifiedOnChipScratchpad *backgroundMemory) {
 	assert(backgroundMemory != NULL);
