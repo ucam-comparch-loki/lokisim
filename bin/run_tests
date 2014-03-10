@@ -66,14 +66,14 @@ def simulatorFound(location):
 ################################################################################
 
 # Execution starts here.
-directory = "test_files"
+directory = "../test_files"
 startTime = time.time()
 
 print """Note: tests are out of date, and not all are expected to pass.
 The preferred testing method is to use a compiler-generated binary, but also
 bug Daniel and tell him to sort the test suite out."""
 
-simulator = "Debug/Loki2"
+simulator = "lokisim"
 if not simulatorFound(simulator):
     print "Error: no simulator found at " + simulator
     exit(1)

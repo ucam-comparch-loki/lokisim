@@ -407,6 +407,10 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
     fifo("IPKfifo") {
 
   stalled     = false;  // Start off idle, but not stalled.
+  jumpedThisCycle = false;
+  finishedPacketRead = false;
+  needRefetch = false;
+
   flowControl.init(2);
   dataConsumed.init(2);
 

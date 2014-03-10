@@ -107,8 +107,8 @@ operations = [Operation(operation) for operation in operations]
 
 # The files we are going to write into.
 directory = os.path.dirname(os.path.realpath(__file__))
-target_header = directory + "/src/Utility/InstructionMap.h"
-target_source = directory + "/src/Utility/InstructionMap.cpp"
+target_header = directory + "../src/Utility/InstructionMap.h"
+target_source = directory + "../src/Utility/InstructionMap.cpp"
 
 # Return a string representing a comma-separated list of booleans showing which 
 # operations satisfy the filter function.

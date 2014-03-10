@@ -74,7 +74,7 @@ if use_fast_sim:
         
     command += program + " -- " + programargs
 else:
-    simulator = os.path.dirname(os.path.realpath(__file__)) + "/Debug/Loki2"
+    simulator = os.path.dirname(os.path.realpath(__file__)) + "/lokisim"
     
     if not os.path.isfile(simulator):
         print "Error: simulator not found (" + simulator + ")"

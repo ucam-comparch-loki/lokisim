@@ -31,7 +31,12 @@ private:
     bool       inCache;     // Is the packet completely in the cache?
 
     void reset() {
-      memAddr = DEFAULT_TAG; location.index = NOT_IN_CACHE; inCache = false; execute = true; location.component = UNKNOWN; persistent = false;
+      memAddr = DEFAULT_TAG;
+      location.index = NOT_IN_CACHE;
+      inCache = false;
+      execute = true;
+      location.component = UNKNOWN;
+      persistent = false;
     }
     bool arriving() const {
       return active() && !inCache && (location.index != NOT_IN_CACHE);
