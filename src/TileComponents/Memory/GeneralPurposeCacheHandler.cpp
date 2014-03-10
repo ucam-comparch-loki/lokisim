@@ -437,6 +437,10 @@ void GeneralPurposeCacheHandler::replaceCacheLine(uint32_t fetchAddress, uint32_
 void GeneralPurposeCacheHandler::synchronizeData(SimplifiedOnChipScratchpad *backgroundMemory) {
 	assert(backgroundMemory != NULL);
 
+	// TODO: call this function when the memory bank is reconfigured.
+	// Reconfiguration invalidates cache contents, but doesn't flush the data.
+	// This synchronisation will be data accurate but not cycle accurate.
+
 	for (uint setIndex = 0; setIndex < mSetCount; setIndex++) {
 		for (uint setSlot = 0; setSlot < mWayCount; setSlot++) {
 			uint slot = setIndex * mWayCount + setSlot;

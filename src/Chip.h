@@ -96,7 +96,7 @@ private:
 	LokiVector<DataSignal>   dataFromComponents,    dataToComponents;
 	LokiVector<CreditSignal> creditsFromComponents, creditsToComponents;
 
-  LokiVector<ReadySignal>  readyFromComps;
+  LokiVector<ReadySignal>  readyDataFromComps,    readyCreditsFromComps;
 
   LokiVector<sc_signal<bool> > strobeToBackgroundMemory, strobeFromBackgroundMemory;
   LokiVector<sc_signal<MemoryRequest> > dataToBackgroundMemory;

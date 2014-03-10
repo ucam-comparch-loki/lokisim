@@ -14,14 +14,21 @@ ArbiterBase* ArbiterBase::makeArbiter(ArbiterType type,
                                       const GrantList* grantVec) {
   switch(type) {
     case ROUND_ROBIN: return new RoundRobinArbiter(requestVec, grantVec);
-    case MATRIX:      assert(false);
-    case PRIORITY:    assert(false);
-    default:          assert(false);
+    case MATRIX:      assert(false); break;
+    case PRIORITY:    assert(false); break;
+    default:          assert(false); break;
   }
+
+  return 0;
+
 }
 
 ArbiterBase::ArbiterBase(const RequestList* requestVec,
                          const GrantList* grantVec) {
   requests = requestVec;
   grants   = grantVec;
+}
+
+ArbiterBase::~ArbiterBase() {
+
 }

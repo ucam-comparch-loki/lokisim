@@ -157,7 +157,7 @@ void SendChannelEndTable::receivedCredit() {
   ChannelIndex targetCounter = creditsIn[0].read().channelID().getChannel();
 
   if (DEBUG)
-    cout << this->name() << " received credit at " << ChannelID(id, targetCounter) << endl;
+    cout << this->name() << " received credit at " << ChannelID(id, targetCounter) << " " << creditsIn[0].read().messageID() << endl;
 
   channelMapTable->addCredit(targetCounter);
   //creditsIn[0].ack(); // Happens in TileComponent instead.

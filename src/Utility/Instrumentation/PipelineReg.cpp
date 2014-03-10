@@ -88,6 +88,7 @@ void PipelineReg::activity(const DecodedInst& oldVal,
 
     default:
       assert(false);
+      break;
   }
 
   active.increment(width);

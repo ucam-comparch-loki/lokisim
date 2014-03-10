@@ -13,6 +13,7 @@
 void StringManipulation::split(const string& s, char delim, vector<string>& elems) {
   std::stringstream ss(s);
   string item;
+  elems.clear();
   while(std::getline(ss, item, delim)) {
     if(item.length() > 0) elems.push_back(item);
   }

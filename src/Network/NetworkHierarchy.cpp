@@ -8,7 +8,6 @@
 #include "NetworkHierarchy.h"
 #include "FlowControl/FlowControlIn.h"
 #include "FlowControl/FlowControlOut.h"
-#include "Topologies/Crossbar.h"
 #include "Topologies/LocalNetwork.h"
 #include "Topologies/Mesh.h"
 
@@ -63,7 +62,7 @@ void NetworkHierarchy::makeLocalNetwork(int tileID) {
   for (unsigned int i=0; i<COMPONENTS_PER_TILE; i++) {
     unsigned int channels = (i < CORES_PER_TILE) ? CORE_INPUT_CHANNELS : 1;
     for (unsigned int j=0; j<channels; j++, portIndex++)
-      localNetwork->readyIn[i][j](readyDataOut[portIndex]);
+      localNetwork->readyDataIn[i][j](readyDataIn[portIndex]);
   }
 
   portIndex = tileID * OUTPUT_PORTS_PER_TILE;
@@ -76,8 +75,10 @@ void NetworkHierarchy::makeLocalNetwork(int tileID) {
     localNetwork->creditsIn[i](creditsIn[portIndex]);
 
   portIndex = tileID * CORES_PER_TILE * CORE_OUTPUT_PORTS;
-  for (unsigned int i=0; i<CORES_PER_TILE*CORE_OUTPUT_PORTS; i++, portIndex++)
+  for (unsigned int i=0; i<CORES_PER_TILE*CORE_OUTPUT_PORTS; i++, portIndex++) {
     localNetwork->creditsOut[i](creditsOut[portIndex]);
+    localNetwork->readyCreditsIn[i][0](readyCreditsIn[portIndex]);
+  }
 
   // Simplify the network if there is only one tile: there is no longer any
   // need for a global network, so this local network can connect directly
@@ -85,10 +86,11 @@ void NetworkHierarchy::makeLocalNetwork(int tileID) {
   if (NUM_TILES == 1) {
     localNetwork->externalInput()(dataToOffchip);
     localNetwork->externalOutput()(dataFromOffchip);
-    localNetwork->externalReadyInput()(readyDataFromOffchip);
+    localNetwork->externalDataReady()(readyDataFromOffchip);
 
     localNetwork->externalCreditIn()(creditsToOffchip);
     localNetwork->externalCreditOut()(creditsFromOffchip);
+    localNetwork->externalCreditReady()(readyCreditFromOffchip);
   }
 }
 
@@ -108,7 +110,7 @@ void NetworkHierarchy::makeGlobalNetwork() {
     local_net_t* n = localNetworks[i];
     n->externalInput()(dataToLocalNet[i]);
     n->externalOutput()(dataFromLocalNet[i]);
-    n->externalReadyInput()(globalReadyForData[i]);
+    n->externalDataReady()(globalReadyForData[i]);
     globalDataNetwork->dataOut[i](dataToLocalNet[i]);
     globalDataNetwork->dataIn[i](dataFromLocalNet[i]);
     globalDataNetwork->readyOut[i](globalReadyForData[i]);
@@ -129,7 +131,7 @@ void NetworkHierarchy::makeGlobalNetwork() {
     local_net_t* n = localNetworks[i];
     n->externalCreditIn()(creditsToLocalNet[i]);
     n->externalCreditOut()(creditsFromLocalNet[i]);
-//    n->externalReadyInput()(globalReadyForCredits[i]);
+    n->externalCreditReady()(globalReadyForCredits[i]);
     globalCreditNetwork->dataOut[i](creditsToLocalNet[i]);
     globalCreditNetwork->dataIn[i](creditsFromLocalNet[i]);
     globalCreditNetwork->readyOut[i](globalReadyForCredits[i]);
@@ -145,11 +147,13 @@ NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
   // There are data ports for all components, but credit ports only for cores.
   dataIn.init(TOTAL_OUTPUT_PORTS);
   dataOut.init(TOTAL_INPUT_PORTS);
-  creditsIn.init(NUM_CORES);
-  creditsOut.init(CORE_OUTPUT_PORTS * NUM_CORES);
 
   int readyPorts = (CORES_PER_TILE * CORE_INPUT_CHANNELS + MEMS_PER_TILE) * NUM_TILES;
-  readyDataOut.init(readyPorts);
+  readyDataIn.init(readyPorts);
+
+  creditsIn.init(NUM_CORES);
+  creditsOut.init(CORE_OUTPUT_PORTS * NUM_CORES);
+  readyCreditsIn.init(CORE_OUTPUT_PORTS * NUM_CORES);
 
   // Make wires between local and global networks.
   dataFromLocalNet.init(NUM_TILES);

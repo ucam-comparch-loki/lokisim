@@ -39,16 +39,20 @@ public:
   // Data received from each output of each networked component.
   LokiVector<DataInput>    dataIn;
 
-  // Data sent to each networked component (after having its address removed
-  // by the flow control components).
+  // Data to each input of each component.
   LokiVector<DataOutput>   dataOut;
-  LokiVector<ReadyInput>   readyDataOut;
+
+  // Flow control from components for data.
+  LokiVector<ReadyInput>   readyDataIn;
 
   // Flow control information received from each input of each component.
   LokiVector<CreditInput>  creditsIn;
 
-  // A signal telling each input whether it is allowed to send a credit.
+  // Credits sent to the output of each component.
   LokiVector<CreditOutput> creditsOut;
+
+  // Flow control from cores for credits.
+  LokiVector<ReadyInput>   readyCreditsIn;
 
 
 //==============================//

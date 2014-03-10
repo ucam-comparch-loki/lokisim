@@ -15,11 +15,11 @@ int BasicArbiter::numInputs()  const {return requests.length();}
 int BasicArbiter::numOutputs() const {return select.length();}
 
 void BasicArbiter::arbitrate(int output) {
-  switch(state[output]) {
+  switch (state[output]) {
     // We had no requests, but now that this method has been called again, we
     // should have at least one. Wait until the clock edge to arbitrate.
     case NO_REQUESTS: {
-      if(haveRequest()) {
+      if (haveRequest()) {
         state[output] = HAVE_REQUESTS;
 
         // Fall through to HAVE_REQUESTS case.
@@ -30,6 +30,7 @@ void BasicArbiter::arbitrate(int output) {
         break;
       }
     }
+    // no break
 
     // We have requests, and it is time to perform the arbitration.
     case HAVE_REQUESTS: {
@@ -39,7 +40,7 @@ void BasicArbiter::arbitrate(int output) {
       if (ENERGY_TRACE)
         Instrumentation::Network::arbitration();
 
-      if(grant != ArbiterBase::NO_GRANT) {    // Successful grant
+      if (grant != ArbiterBase::NO_GRANT) {    // Successful grant
         assert(grant < numInputs());
 
         // Remove the granted request from consideration.
@@ -59,6 +60,7 @@ void BasicArbiter::arbitrate(int output) {
         state[output] = NO_REQUESTS;
         next_trigger(clock.negedge_event());
       }
+
       break;
     }
 
@@ -71,7 +73,7 @@ void BasicArbiter::arbitrate(int output) {
 
       bool requestStillActive = (requests[granted].read() != NO_REQUEST);
 
-      if(requestStillActive) {
+      if (requestStillActive) {
         grant(granted, output);
 
         // Wait until the request line is deasserted. This means all flits in
@@ -97,15 +99,12 @@ void BasicArbiter::arbitrate(int output) {
       assert(granted < numInputs());
       assert(granted != NO_SELECTION);
 
-      if(requests[granted].read() == NO_REQUEST) {
+      if (requests[granted].read() == NO_REQUEST) {
         // The request was removed, meaning the communication completed
         // successfully.
         deassertGrant(granted, output);
 
-        if(haveRequest())
-          state[output] = HAVE_REQUESTS;
-        else
-          state[output] = NO_REQUESTS;
+        state[output] = haveRequest() ? HAVE_REQUESTS : NO_REQUESTS;
 
         next_trigger(clock.negedge_event());
       }
@@ -149,8 +148,8 @@ void BasicArbiter::changeSelection(int output, SelectType value) {
 bool BasicArbiter::haveRequest() const {
   // A simple loop through the vector for now. If this proves to be too
   // expensive, could keep a separate count.
-  for(int i=0; i<numInputs(); i++) {
-    if(requestVec[i] && !grantVec[i]) return true;
+  for (int i=0; i<numInputs(); i++) {
+    if (requestVec[i] && !grantVec[i]) return true;
   }
 
   // No requests were found in the vector.
@@ -160,7 +159,7 @@ bool BasicArbiter::haveRequest() const {
 void BasicArbiter::requestChanged(int input) {
   requestVec[input] = (requests[input].read() != NO_REQUEST);
 
-  if(requestVec[input])
+  if (requestVec[input])
     receivedRequest.notify();
 }
 
@@ -172,7 +171,7 @@ void BasicArbiter::updateGrant(int input) {
 void BasicArbiter::updateSelect(int output) {
   // Wait until the start of the next cycle before changing the select signal.
   // Arbitration is done the cycle before data is sent.
-  if(clock.posedge()) {   // The clock edge
+  if (clock.posedge()) {  // The clock edge
     select[output].write(selectVec[output]);
     next_trigger(selectionChanged[output]);
   }
@@ -201,27 +200,27 @@ BasicArbiter::BasicArbiter(const sc_module_name& name, ComponentID ID,
 
   // Set some initial value for the select signals, so they generate an event
   // whenever they change to a valid value.
-  for(int i=0; i<outputs; i++)
+  for (int i=0; i<outputs; i++)
     select[i].initialize(NO_SELECTION);
 
   arbiter = ArbiterBase::makeArbiter(ArbiterBase::ROUND_ROBIN, &requestVec, &grantVec);
 
   // Generate a method for each output port, granting new requests whenever
   // the output becomes free.
-  for(int i=0; i<outputs; i++)
+  for (int i=0; i<outputs; i++)
     SPAWN_METHOD(receivedRequest, BasicArbiter::arbitrate, i, false);
 
   // Generate a method to watch each request port, taking appropriate action
   // whenever the signal changes.
-  for(int i=0; i<inputs; i++)
+  for (int i=0; i<inputs; i++)
     SPAWN_METHOD(requests[i], BasicArbiter::requestChanged, i, false);
 
   // Method for each grant port, updating the grant signal when appropriate.
-  for(int i=0; i<inputs; i++)
+  for (int i=0; i<inputs; i++)
     SPAWN_METHOD(grantChanged[i], BasicArbiter::updateGrant, i, false);
 
   // Method for each select port, updating the signal when appropriate.
-  for(int i=0; i<outputs; i++)
+  for (int i=0; i<outputs; i++)
     SPAWN_METHOD(selectionChanged[i], BasicArbiter::updateSelect, i, false);
 
 }

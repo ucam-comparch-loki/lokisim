@@ -39,6 +39,9 @@ protected:
     assert(outstandingAcks == 0);
     outstandingAcks = this->m_new_val.channelID().numDestinations();
 
+    assert(this->m_new_val.messageID() != lastMessageID);
+    lastMessageID = this->m_new_val.messageID();
+
     loki_signal<DataType>::update();
   }
 
@@ -51,6 +54,7 @@ public:
   loki_bus() : loki_signal<DataType>() {
     lastWriteTime = -1;
     outstandingAcks = 0;
+    lastMessageID = -1;
   }
 
 //==============================//
@@ -66,6 +70,10 @@ private:
   // If a message goes to multiple destinations, we need to wait for all
   // acknowledgements to arrive before finally sending an acknowledgement.
   unsigned int outstandingAcks;
+
+  // Each network message has a unique ID. Make sure we don't receive the same
+  // message twice.
+  unsigned int lastMessageID;
 
 };
 

@@ -119,8 +119,7 @@ Instruction::Instruction(const string& inst) : Word() {
   // Should words be deleted before we reassign to it?
   if(words.size() > 0) {
     word = words[0];
-    delete &words;
-    words = Strings::split(word, '#');
+    Strings::split(word, '#', words);
   }
 
   // If there is no text, abandon the creation of the Instruction
@@ -131,8 +130,7 @@ Instruction::Instruction(const string& inst) : Word() {
 
   // Remote channel - split around "->"
   word = words.front();
-  delete &words;
-  words = Strings::split(word, '>');
+  Strings::split(word, '>', words);
   if(words.size() > 1) {
     remoteChannel(decodeImmediate(words[1]));
     words.front().erase(words.front().end()-1); // Remove the "-" from "->"
@@ -141,8 +139,7 @@ Instruction::Instruction(const string& inst) : Word() {
 
   // Split around ' ' to separate all remaining parts of the instruction
   word = words.front();
-  delete &words;
-  words = Strings::split(word, ' ');
+  Strings::split(word, ' ', words);
 
   // Opcode
   decodeOpcode(words.front());

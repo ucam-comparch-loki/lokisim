@@ -12,7 +12,7 @@
 #define INPUTCROSSBAR_H_
 
 #include "../Component.h"
-#include "../Network/Topologies/Crossbar.h"
+#include "../Network/Topologies/InstantCrossbar.h"
 #include "../Network/NetworkTypedefs.h"
 
 class AddressedWord;
@@ -85,8 +85,10 @@ private:
   ChannelID firstInput;
 
   std::vector<FlowControlIn*> flowControl;
-  
-  Crossbar                 creditNet;
+
+  InstantCrossbar          creditNet;
+
+  ReadySignal              constantHigh;
 
   LokiVector<DataSignal>   dataToBuffer;
   LokiVector<CreditSignal> creditsToNetwork;

@@ -15,7 +15,7 @@
 
 void Router::receiveData(PortIndex input) {
   if (DEBUG)
-    cout << this->name() << " received data on input " << (int)input << endl;
+    cout << this->name() << ": input from " << (int)input << ": " << dataIn[input].read() << endl;
 
   assert(!inputBuffers[input].full());
 
@@ -100,7 +100,8 @@ void Router::sendToLocalNetwork() {
     case WAITING_FOR_ACK:
       // Wait until the beginning of the next cycle before trying to send more data.
       state = WAITING_FOR_DATA;
-      next_trigger(sc_core::SC_ZERO_TIME);
+      //next_trigger(sc_core::SC_ZERO_TIME);
+      next_trigger(clock.posedge_event());
       break;
 
   }// end switch

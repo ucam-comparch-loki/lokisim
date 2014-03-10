@@ -127,7 +127,8 @@ void Chip::makeSignals() {
   creditsFromComponents.init(NUM_CORES);
   creditsToComponents.init(numOutputs);
 
-  readyFromComps.init(NUM_CORES * CORE_INPUT_CHANNELS + NUM_MEMORIES);
+  readyDataFromComps.init(NUM_CORES * CORE_INPUT_CHANNELS + NUM_MEMORIES);
+  readyCreditsFromComps.init(NUM_CORES * CORE_OUTPUT_PORTS);
 
 	strobeToBackgroundMemory.init(NUM_MEMORIES);
 	dataToBackgroundMemory.init(NUM_MEMORIES);
@@ -208,8 +209,8 @@ void Chip::wireUp() {
 			for (uint j = 0; j < CORE_INPUT_CHANNELS; j++) {
 			  uint index = readyInputCounter++;  // Position in network's array
 
-        cores[coreIndex]->readyOut[j](readyFromComps[index]);
-        network.readyDataOut[index](readyFromComps[index]);
+        cores[coreIndex]->readyDataOut[j](readyDataFromComps[index]);
+        network.readyDataIn[index](readyDataFromComps[index]);
 			}
 
       uint index = creditOutputCounter++;
@@ -227,6 +228,9 @@ void Chip::wireUp() {
 
 				cores[coreIndex]->creditsIn[j](creditsToComponents[index]);
 				network.creditsOut[index](creditsToComponents[index]);
+
+				cores[coreIndex]->readyCreditOut(readyCreditsFromComps[index]);
+				network.readyCreditsIn[index](readyCreditsFromComps[index]);
 			}
 
 			coreIndex++;
@@ -236,8 +240,8 @@ void Chip::wireUp() {
 			network.dataOut[indexInput](dataToComponents[indexInput]);
 
 			uint indexReady = readyInputCounter++;  // Position in network's array
-			memories[memoryIndex]->oReadyForData(readyFromComps[indexReady]);
-	    network.readyDataOut[indexReady](readyFromComps[indexReady]);
+			memories[memoryIndex]->oReadyForData(readyDataFromComps[indexReady]);
+	    network.readyDataIn[indexReady](readyDataFromComps[indexReady]);
 
 			uint indexOutput = dataOutputCounter++;  // Position in network's array
 			memories[memoryIndex]->oDataOut(dataFromComponents[indexOutput]);

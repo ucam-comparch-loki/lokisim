@@ -41,8 +41,8 @@ public:
   ReadyInput    readyIn;
 
   // Signal telling the network it is safe to send credits to this port.
-  // Never actually used, but allows data and credit networks to have the same
-  // interface.
+  // Never actually used since credits are consumed immediately, but allows
+  // data and credit networks to have the same interface.
   ReadyOutput   readyOut;
 
   // A flow control signal for each output of the component, controlling when

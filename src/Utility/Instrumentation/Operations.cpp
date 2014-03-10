@@ -37,7 +37,10 @@ void Operations::init() {
 }
 
 void Operations::end() {
-  delete[] lastIn1; delete[] lastIn2; delete[] lastOut; delete[] lastFn;
+  delete[] lastIn1; lastIn1 = NULL;
+  delete[] lastIn2; lastIn2 = NULL;
+  delete[] lastOut; lastOut = NULL;
+  delete[] lastFn;  lastFn  = NULL;
 }
 
 void Operations::decoded(const ComponentID& core, const DecodedInst& dec) {

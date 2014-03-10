@@ -1,62 +1,104 @@
 /*
- * Crossbar.cpp
+ * NewCrossbar.cpp
  *
- *  Created on: 21 Mar 2011
+ *  Created on: 8 Sep 2011
  *      Author: db434
  */
 
-#include "Crossbar.h"
-#include "../Arbiters/ArbiterComponent.h"
-#include "../../Datatype/AddressedWord.h"
+#define SC_INCLUDE_DYNAMIC_PROCESSES
 
-void Crossbar::initialise() {
-  makeBuses();
-  makeArbiters();
+#include "Crossbar.h"
+#include "../Multiplexer.h"
+#include "../Arbiters/EndArbiter.h"
+#include "../../Utility/Instrumentation/Network.h"
+
+void Crossbar::inputChanged(const PortIndex port) {
+  if (ENERGY_TRACE)
+    Instrumentation::Network::crossbarInput(oldInputs[port], dataIn[port].read(), port);
+  oldInputs[port] = dataIn[port].read();
 }
 
-void Crossbar::makeBuses() {
-  // Generate and connect up buses.
-  for (int i=0; i<numBuses; i++) {
-    Bus* bus = new Bus(sc_gen_unique_name("bus"), i, numMuxes, level);
-    buses.push_back(bus);
-    bus->clock(clock);
+void Crossbar::outputChanged(const PortIndex port) {
+  if (ENERGY_TRACE)
+    Instrumentation::Network::crossbarOutput(oldOutputs[port], dataOut[port].read());
+  oldOutputs[port] = dataOut[port].read();
+}
 
-    bus->dataIn[0](dataIn[i]);
+void Crossbar::makePorts() {
+  requestsIn.init(numInputPorts(), numArbiters);
+  grantsOut.init(numInputPorts(), numArbiters);
+  readyIn.init(numArbiters, buffersPerComponent);
+}
 
-    for (int j=0; j<numMuxes; j++) {
-      bus->dataOut[j](busToMux[i][j]);
-    }
-  }
+void Crossbar::makeSignals() {
+  selectSig.init(numArbiters, outputsPerComponent);
 }
 
 void Crossbar::makeArbiters() {
-  // Generate and connect up arbitrated multiplexers.
-  for (int i=0; i<numMuxes; i++) {
-    ArbiterComponent* arbiter = new ArbiterComponent(sc_gen_unique_name("arbiter"),
-                                                     i, numBuses, outputsPerComponent, false);
-    arbiters.push_back(arbiter);
-    arbiter->clock(clock);
+  for (int i=0; i<numArbiters; i++) {
+    EndArbiter* arb;
+    arb = new EndArbiter(sc_gen_unique_name("arbiter"), i, numInputPorts(),
+                         outputsPerComponent, true, buffersPerComponent);
 
-    for (int j=0; j<numBuses; j++)
-      arbiter->dataIn[j](busToMux[j][i]);
+    arb->clock(clock);
 
+    for (int j=0; j<buffersPerComponent; j++)
+      arb->readyIn[j](readyIn[i][j]);
+    for (uint j=0; j<numInputPorts(); j++) {
+      arb->requests[j](requestsIn[j][i]);
+      arb->grants[j](grantsOut[j][i]);
+    }
     for (int j=0; j<outputsPerComponent; j++)
-      arbiter->dataOut[j](dataOut[i*outputsPerComponent + j]);
+      arb->select[j](selectSig[i][j]);
+
+    arbiters.push_back(arb);
   }
 }
 
-Crossbar::Crossbar(sc_module_name name, const ComponentID& ID, int inputs, int outputs,
-                   int outputsPerComponent, HierarchyLevel level, bool externalConnection) :
-    Network(name, ID, inputs, outputs, level, 0, externalConnection),
-    numBuses(numInputPorts()),
-    numMuxes(numOutputPorts()/outputsPerComponent),
-    outputsPerComponent(outputsPerComponent) {
+void Crossbar::makeMuxes() {
+  for (int i=0; i<numMuxes; i++) {
+    Multiplexer* mux = new Multiplexer(sc_gen_unique_name("mux"), numInputPorts());
 
-  busToMux.init(numBuses, numMuxes);
+    mux->dataOut(dataOut[i]);
 
+    for (uint j=0; j<numInputPorts(); j++)
+      mux->dataIn[j](dataIn[j]);
+
+    int arbiter = i/outputsPerComponent;
+    int arbiterSelect = i%outputsPerComponent;
+    mux->select(selectSig[arbiter][arbiterSelect]);
+
+    muxes.push_back(mux);
+  }
+}
+
+Crossbar::Crossbar(const sc_module_name& name,
+                   const ComponentID& ID,
+                   int inputs,
+                   int outputs,
+                   int outputsPerComponent,
+                   HierarchyLevel level,
+                   int buffersPerComponent) :
+    Network(name, ID, inputs, outputs, level),
+    numArbiters(outputs/outputsPerComponent),
+    numMuxes(outputs),
+    outputsPerComponent(outputsPerComponent),
+    buffersPerComponent(buffersPerComponent),
+    oldInputs(numInputPorts()),
+    oldOutputs(numOutputPorts()) {
+
+  makePorts();
+  makeSignals();
+  makeArbiters();
+  makeMuxes();
+
+  for (uint i=0; i<numInputPorts(); i++)
+    SPAWN_METHOD(dataIn[i], Crossbar::inputChanged, i, false);
+  for (uint i=0; i<numOutputPorts(); i++)
+    SPAWN_METHOD(dataOut[i], Crossbar::outputChanged, i, false);
 }
 
 Crossbar::~Crossbar() {
-  for (size_t i=0; i<buses.size(); i++) delete buses[i];
-  for (size_t i=0; i<arbiters.size(); i++) delete arbiters[i];
+  for (unsigned int i=0; i<arbiters.size(); i++) delete arbiters[i];
+  for (unsigned int i=0; i<muxes.size();    i++) delete muxes[i];
 }

@@ -57,6 +57,8 @@ protected:
     loki_signal_in_if()
   {}
 
+    virtual ~loki_signal_in_if() {}
+
 private:
 
     // disabled
@@ -75,6 +77,7 @@ class loki_signal_write_if : public sc_signal_write_if<T>
 {
 public:
   loki_signal_write_if() {}
+  virtual ~loki_signal_write_if() {}
 
     // Event which is triggered when the destination acknowledges the data.
     virtual const sc_event& ack_event() const = 0;

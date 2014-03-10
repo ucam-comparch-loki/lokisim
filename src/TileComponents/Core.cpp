@@ -188,7 +188,8 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
     channelMapTable("channel_map_table", ID),
     localNetwork(network) {
 
-  readyOut.init(CORE_INPUT_CHANNELS);
+  readyDataOut.init(CORE_INPUT_CHANNELS);
+  readyCreditOut.initialize(true);
 
   // Create signals which connect the pipeline stages together. There are 4
   // stages, so 3 links between stages.
@@ -204,7 +205,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
     inputCrossbar.dataIn[i](dataIn[i]);
 
   for(unsigned int i=0; i<CORE_INPUT_CHANNELS; i++) {
-    inputCrossbar.readyOut[i](readyOut[i]);
+    inputCrossbar.readyOut[i](readyDataOut[i]);
     inputCrossbar.dataOut[i](dataToBuffers[i]);
     inputCrossbar.bufferHasSpace[i](fcFromBuffers[i]);
     inputCrossbar.dataConsumed[i](dataConsumed[i]);

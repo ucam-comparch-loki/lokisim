@@ -90,17 +90,6 @@ bool LocalNetwork::requestGranted(ComponentID source, ChannelID destination) con
 void LocalNetwork::createSignals() {
   dataSig.init(CORES_PER_TILE, 3); // each core can send to 3 subnetworks
 
-  // Ready signals from each component, plus one from the router.
-  readyIn.init(COMPONENTS_PER_TILE + 1);
-  for (size_t i=0; i<readyIn.length(); i++) {
-    if (i<CORES_PER_TILE)           // cores have multiple buffers
-      readyIn[i].init(CORE_INPUT_CHANNELS);
-    else if (i<COMPONENTS_PER_TILE) // memories have one buffer each
-      readyIn[i].init(1);
-    else                            // router has one buffer
-      readyIn[i].init(1);
-  }
-
   int numCores = CORES_PER_TILE;
   int sendToCores = CORES_PER_TILE + MEMS_PER_TILE + 1;
   coreRequests.init(sendToCores, numCores);
@@ -212,14 +201,18 @@ void LocalNetwork::wireUpSubnetworks() {
   // Ready signals
   for (unsigned int core=0; core<CORES_PER_TILE; core++)
     for (unsigned int channel=0; channel<CORE_INPUT_CHANNELS; channel++) {
-      coreToCore.readyIn[core][channel](readyIn[core][channel]);
-      memoryToCore.readyIn[core][channel](readyIn[core][channel]);
-      globalToCore.readyIn[core][channel](readyIn[core][channel]);
+      coreToCore.readyIn[core][channel](readyDataIn[core][channel]);
+      memoryToCore.readyIn[core][channel](readyDataIn[core][channel]);
+      globalToCore.readyIn[core][channel](readyDataIn[core][channel]);
     }
   for (unsigned int mem=0; mem<MEMS_PER_TILE; mem++)
     for (unsigned int channel=0; channel<1; channel++)
-      coreToMemory.readyIn[mem][channel](readyIn[mem + CORES_PER_TILE][channel]);
-  coreToGlobal.readyIn[0][0](readyIn[COMPONENTS_PER_TILE][0]);
+      coreToMemory.readyIn[mem][channel](readyDataIn[mem + CORES_PER_TILE][channel]);
+  coreToGlobal.readyIn[0][0](readyDataIn[COMPONENTS_PER_TILE][0]);
+
+  for (unsigned int core=0; core<CORES_PER_TILE; core++)
+    g2cCredits.readyIn[core][0](readyCreditsIn[core][0]);
+  c2gCredits.readyIn[0][0](readyCreditsIn[CORES_PER_TILE][0]);
 }
 
 void LocalNetwork::newCoreData(int core) {
@@ -238,24 +231,41 @@ void LocalNetwork::coreDataAck(int core) {
   dataIn[core].ack();
 }
 
-ReadyInput&   LocalNetwork::externalReadyInput() const {return readyIn[COMPONENTS_PER_TILE][0];}
+ReadyInput&   LocalNetwork::externalDataReady() const {return readyDataIn[COMPONENTS_PER_TILE][0];}
+ReadyInput&   LocalNetwork::externalCreditReady() const {return readyCreditsIn[CORES_PER_TILE][0];}
 CreditInput&  LocalNetwork::externalCreditIn()   const {return creditsIn[creditInputs-1];}
 CreditOutput& LocalNetwork::externalCreditOut()  const {return creditsOut[creditOutputs-1];}
 
 LocalNetwork::LocalNetwork(const sc_module_name& name, ComponentID tile) :
-    NewNetwork(name, tile, OUTPUT_PORTS_PER_TILE, INPUT_PORTS_PER_TILE, NewNetwork::COMPONENT, 0, true),
+    Network(name, tile, OUTPUT_PORTS_PER_TILE, INPUT_PORTS_PER_TILE, Network::COMPONENT, 0, true),
     coreToCore("core_to_core", tile, CORES_PER_TILE, CORES_PER_TILE*2, 2, CORE_INPUT_CHANNELS),
     coreToMemory("core_to_mem", tile, CORES_PER_TILE, MEMS_PER_TILE, MEMORY_INPUT_PORTS, level, 1),
     memoryToCore("mem_to_core", tile, MEMS_PER_TILE, CORES_PER_TILE*2, 2, level, CORE_INPUT_CHANNELS),
     coreToGlobal("core_to_global", tile, CORES_PER_TILE, 1, 1, level, 1),
     globalToCore("global_to_core", tile, 1, CORES_PER_TILE, 1, level, CORE_INPUT_CHANNELS),
-    c2gCredits("c2g_credits", tile, CORES_PER_TILE, 1, 1, (Network::HierarchyLevel)level),
-    g2cCredits("g2c_credits", tile, 1, CORES_PER_TILE, 1, (Network::HierarchyLevel)level) {
+    c2gCredits("c2g_credits", tile, CORES_PER_TILE, 1, 1, level, 1),
+    g2cCredits("g2c_credits", tile, 1, CORES_PER_TILE, 1, level, 1) {
 
   creditsIn.init(creditInputs);
   creditsOut.init(creditOutputs);
-  c2gCredits.initialise();
-  g2cCredits.initialise();
+
+  // Ready signals from each component, plus one from the router.
+  readyDataIn.init(COMPONENTS_PER_TILE + 1);
+  for (size_t i=0; i<readyDataIn.length(); i++) {
+    if (i<CORES_PER_TILE)           // cores have multiple buffers
+      readyDataIn[i].init(CORE_INPUT_CHANNELS);
+    else if (i<COMPONENTS_PER_TILE) // memories have one buffer each
+      readyDataIn[i].init(1);
+    else                            // router has one buffer
+      readyDataIn[i].init(1);
+  }
+
+  readyCreditsIn.init(CORES_PER_TILE + 1);
+  for (size_t i=0; i<readyCreditsIn.length(); i++)
+    readyCreditsIn[i].init(1);      // all components have one output each
+
+//  c2gCredits.initialise();
+//  g2cCredits.initialise();
 
   createSignals();
   wireUpSubnetworks();

@@ -19,10 +19,10 @@ void Multiplexer::handleData() {
   // 3. Data arrived -> send data, wait for ack
   // 4. Ack arrived -> send ack, wait for select/data
 
-  if(selection == NO_SELECTION)
+  if (selection == NO_SELECTION)
     next_trigger(select.default_event());
-  else if(dataIn[selection].valid()) { // Data arrived on the selected input
-    if(!haveSentData) {
+  else if (dataIn[selection].valid()) { // Data arrived on the selected input
+    if (!haveSentData) {
       dataOut.write(dataIn[selection].read());
       next_trigger(dataOut.ack_event());
       haveSentData = true;
@@ -33,7 +33,7 @@ void Multiplexer::handleData() {
       haveSentData = false;
     }
   }
-  else if(select.event()) {
+  else if (select.event()) {
     next_trigger(dataIn[selection].default_event());
   }
 }

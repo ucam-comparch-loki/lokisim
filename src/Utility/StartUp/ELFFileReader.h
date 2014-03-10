@@ -26,6 +26,8 @@ public:
   ELFFileReader(const std::string& filename, const ComponentID& memory,
                 const ComponentID& core, const MemoryAddr location);
 
+  virtual ~ELFFileReader() {}
+
 private:
 
   // Get the next word from the file.

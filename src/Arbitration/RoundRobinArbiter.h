@@ -15,6 +15,7 @@ class RoundRobinArbiter: public ArbiterBase {
 public:
 
   RoundRobinArbiter(const RequestList* requestVec, const GrantList* grantVec);
+  virtual ~RoundRobinArbiter() {}
 
   virtual int getGrant();
 

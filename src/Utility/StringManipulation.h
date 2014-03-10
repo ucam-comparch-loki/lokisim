@@ -21,14 +21,15 @@ class StringManipulation {
 public:
 
   // Split the given string around the delimiter character, and return a vector
-  // of all substrings.
+  // of all substrings. The resultant vector should be deleted after use.
   static vector<string>& split(const string& s, char delim);
+
+  // Split the given string around the delimiter character, putting the result
+  // in the given vector.
+  static void            split(const string& s, char delim, vector<string>& elems);
 
   // Convert the string to an integer.
   static int             strToInt(const string& s);
-
-private:
-  static void            split(const string& s, char delim, vector<string>& elems);
 
 };
 

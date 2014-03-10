@@ -45,6 +45,7 @@ public:
   static void tidy();
 
   FileReader(const string& filename, const ComponentID& component, const MemoryAddr position=0);
+  virtual ~FileReader() {}
 
 protected:
 

@@ -46,7 +46,8 @@ public:
 //   creditsIn;
 //   idle
 
-  LokiVector<ReadyOutput> readyOut;
+  LokiVector<ReadyOutput> readyDataOut;
+  ReadyOutput readyCreditOut;
 
   // A slight hack to improve simulation speed. Each core contains a small
   // network at its input buffers, so we need to skew the times that the

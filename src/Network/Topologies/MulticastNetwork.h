@@ -13,9 +13,9 @@
 #ifndef MULTICASTNETWORK_H_
 #define MULTICASTNETWORK_H_
 
-#include "NewCrossbar.h"
+#include "Crossbar.h"
 
-class MulticastNetwork: public NewCrossbar {
+class MulticastNetwork: public Crossbar {
 
 //==============================//
 // Constructors and destructors

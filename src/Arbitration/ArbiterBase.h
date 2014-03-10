@@ -31,9 +31,10 @@ public:
                                   const RequestList* requestVec,
                                   const GrantList* grantVec);
 
-protected:
-
   ArbiterBase(const RequestList* requestVec, const GrantList* grantVec);
+  virtual ~ArbiterBase();
+
+protected:
 
   inline int numInputs() const {return requests->size();}
 

@@ -14,6 +14,11 @@
 
 class AddressedWord {
 private:
+  // Give each network message a unique ID. Don't really care about overflow
+  // because messages don't last very long.
+  static uint messageCount;
+  uint messageID_;  // Not const because we need to copy it.
+
   // The data being transmitted.
   Word payload_;
 
@@ -35,6 +40,7 @@ private:
 
   bool endOfPacket_;
 public:
+  inline uint messageID() const                 {return messageID_;}
   inline Word payload() const                   {return payload_;}
   inline ChannelID channelID() const            {return channelID_;}
   inline ChannelIndex returnAddr() const        {return returnAddr_;}
@@ -55,7 +61,8 @@ public:
   /* Necessary functions/operators to pass this datatype down a channel */
 
   inline bool operator== (const AddressedWord& other) const {
-    return (this->payload_ == other.payload_)
+    return (this->messageID_ == other.messageID_) // is this line sufficient?
+      && (this->payload_ == other.payload_)
       && (this->channelID_ == other.channelID_)
       && (this->returnAddr_ == other.returnAddr_)
       && (this->portClaim_ == other.portClaim_)
@@ -64,6 +71,7 @@ public:
   }
 
   inline AddressedWord& operator= (const AddressedWord& other) {
+    messageID_ = other.messageID_;
     payload_ = other.payload_;
     channelID_ = other.channelID_;
     returnAddr_ = other.returnAddr_;
@@ -80,6 +88,7 @@ public:
   }
 
   AddressedWord() {
+    messageID_ = messageCount++;
     payload_ = Word(0);
     channelID_ = ChannelID(0, 0);
     returnAddr_ = 0;
@@ -89,6 +98,7 @@ public:
   }
 
   AddressedWord(const Word& w, const ChannelID& id) {
+    messageID_ = messageCount++;
     payload_ = w;
     channelID_ = id;
     returnAddr_ = 0;
@@ -96,6 +106,8 @@ public:
     useCredits_ = true;
     endOfPacket_ = true;
 
+    if (DEBUG)
+      std::cout << "New AddressedWord " << messageID_ << ": " << *this << std::endl;
     /*
     // Add proper check here?
 
@@ -104,6 +116,7 @@ public:
     }
     */
   }
+
 };
 
 #endif /* ADDRESSEDWORD_H_ */

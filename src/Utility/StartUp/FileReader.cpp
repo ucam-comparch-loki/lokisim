@@ -174,6 +174,7 @@ FileReader* FileReader::linkFiles() {
       // invoke the linker. This will ensure the code is put in the correct
       // position in memory.
     }
+    // no break
     default: {
       string directory = Config::getAttribute("lokiprefix",
           "location of lokiprefix (compilation tools)") + "/loki-elf/lib";

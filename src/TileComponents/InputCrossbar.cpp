@@ -10,7 +10,6 @@
 #include "InputCrossbar.h"
 #include "../Datatype/AddressedWord.h"
 #include "../Network/FlowControl/FlowControlIn.h"
-#include "../Network/Topologies/Crossbar.h"
 #include "../TileComponents/TileComponent.h"
 
 const unsigned int InputCrossbar::numInputs = CORE_INPUT_PORTS;
@@ -53,10 +52,10 @@ void InputCrossbar::updateFlowControl(ChannelIndex input) {
 InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
     Component(name, ID),
     firstInput(ChannelID(id,0)),
-    creditNet("credit", ID, numOutputs, 1, 1, Network::NONE),
+    creditNet("credit", ID, numOutputs, 1, 1, Network::NONE, 1),
     dataSource(numOutputs) {
 
-  creditNet.initialise();
+  //creditNet.initialise();
 
   dataIn.init(numInputs);
   readyOut.init(numOutputs);
@@ -89,6 +88,8 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
   // Wire up the small networks.
   creditNet.clock(creditClock);
   creditNet.dataOut[0](creditsOut[0]);
+  creditNet.readyIn[0][0](constantHigh); // Can always send credits.
+  constantHigh.write(true);
 
   // Create and wire up all flow control units.
   for (unsigned int i=0; i<numOutputs; i++) {

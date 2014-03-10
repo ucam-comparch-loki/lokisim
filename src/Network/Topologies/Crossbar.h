@@ -1,9 +1,7 @@
 /*
  * Crossbar.h
  *
- * A crossbar without multicast functionality.
- *
- *  Created on: 21 Mar 2011
+ *  Created on: 8 Sep 2011
  *      Author: db434
  */
 
@@ -11,15 +9,17 @@
 #define CROSSBAR_H_
 
 #include "../Network.h"
-#include "Bus.h"
 
-class ArbiterComponent;
+class BasicArbiter;
+class Multiplexer;
 
 class Crossbar: public Network {
 
 //==============================//
 // Ports
 //==============================//
+
+public:
 
 // Inherited from Network:
 //
@@ -28,20 +28,14 @@ class Crossbar: public Network {
 //  DataInput    *dataIn;
 //  DataOutput   *dataOut;
 
-//==============================//
-// Methods
-//==============================//
+  // A request/grant signal for each input to reserve each output.
+  // Indexed as: requestsIn[input][output]
+  LokiVector2D<RequestInput> requestsIn;
+  LokiVector2D<GrantOutput>  grantsOut;
 
-public:
-
-  // Create the buses and arbiters. Note that this must be called from outside
-  // the constructor, as it will be calling virtual methods.
-  void initialise();
-
-protected:
-
-  virtual void makeBuses();
-  virtual void makeArbiters();
+  // A signal from each buffer of each component, telling whether it is ready
+  // to receive data. Addressed using readyIn[component][buffer].
+  LokiVector2D<ReadyInput>   readyIn;
 
 //==============================//
 // Constructors and destructors
@@ -50,13 +44,33 @@ protected:
 public:
 
   // outputsPerComponent = number of this network's outputs which lead to the
-  //                       same component
-  // externalConnection  = flag telling whether there is an extra input/output
-  //                       connected to the next level of network hierarchy
-  Crossbar(sc_module_name name, const ComponentID& ID, int inputs, int outputs,
-           int outputsPerComponent, HierarchyLevel level,
-           bool externalConnection = false);
+  //                       same component.
+  // buffersPerComponent = the number of buffers each destination component has.
+  //                       There will be one flow control signal per buffer.
+  Crossbar(const sc_module_name& name,
+           const ComponentID& ID,
+           int inputs,
+           int outputs,
+           int outputsPerComponent,
+           HierarchyLevel level,
+           int buffersPerComponent);
   virtual ~Crossbar();
+
+//==============================//
+// Methods
+//==============================//
+
+protected:
+
+  virtual void inputChanged(const PortIndex port);
+  virtual void outputChanged(const PortIndex port);
+
+private:
+
+  void makePorts();
+  void makeSignals();
+  void makeArbiters();
+  void makeMuxes();
 
 //==============================//
 // Components
@@ -64,17 +78,25 @@ public:
 
 protected:
 
-  // Parameters of this crossbar.
-  const int numBuses, numMuxes;
+  const int numArbiters, numMuxes;
+
+  // The number of output ports which lead to the same component. Each
+  // component will have one arbiter, but this many multiplexers.
   const int outputsPerComponent;
 
-  std::vector<Bus*>              buses;
-  std::vector<ArbiterComponent*> arbiters;
+  // We will need a flow control signal from each buffer of each component.
+  // This value tells how many there are.
+  const int buffersPerComponent;
 
-  // Two-dimensional arrays of signals. One of each signal goes from each bus
-  // to each mux/arbiter.
-  // Address using busToMux[bus][mux].
-  LokiVector2D<DataSignal> busToMux;
+  std::vector<BasicArbiter*> arbiters;
+  std::vector<Multiplexer*>  muxes;
+
+  LokiVector2D<SelectSignal> selectSig;
+
+  // Store the old data so we can compute switching activity.
+  // TODO: do this in the wire modules, where they already store this info.
+  //   Issue: wires don't know what sort of network they are a part of, if any.
+  std::vector<DataType> oldInputs, oldOutputs;
 
 };
 

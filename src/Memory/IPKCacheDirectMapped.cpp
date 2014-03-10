@@ -49,8 +49,8 @@ void IPKCacheDirectMapped::updateReadPointer() {
 }
 
 void IPKCacheDirectMapped::updateWritePointer() {
-  MemoryAddr memAddr;
-
+//  MemoryAddr memAddr;
+//
 //  if (!currentPacket.inCache)
 //    memAddr = currentPacket.memAddr;
 //  else

@@ -49,6 +49,8 @@ public:
 
   }
 
+  virtual ~AddressedStorage() {}
+
 };
 
 #endif /* ADDRESSEDSTORAGE_H_ */
