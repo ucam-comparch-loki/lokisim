@@ -30,8 +30,7 @@ public:
   SC_HAS_PROCESS(OrGate);
 
   OrGate(const sc_module_name& name, int inputs) :
-      Component(name),
-      inputs(inputs) {
+      Component(name) {
     dataIn.init(inputs);
 
     SC_METHOD(inputChanged);

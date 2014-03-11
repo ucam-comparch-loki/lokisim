@@ -113,6 +113,8 @@ InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
   // Ensure that the first instruction to arrive gets queued up to execute.
   finishedPacketWrite = true;
 
+  tagMatched = false;
+
   SC_METHOD(receivedInst);
   sensitive << instructionIn;
   dont_initialize();

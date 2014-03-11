@@ -67,4 +67,6 @@ PipelineRegister::PipelineRegister(const sc_module_name& name,
 //  buffer(1, std::string(name)) {  // Buffer has 2 spaces and a name for debug
   position(pos) {
 
+  valid = false;
+
 }

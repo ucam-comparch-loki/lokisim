@@ -802,5 +802,12 @@ DecodeStage* Decoder::parent() const {
 
 Decoder::Decoder(const sc_module_name& name, const ComponentID& ID) :
 	  Component(name, ID) {
+
   sendChannel = Instruction::NO_CHANNEL;
+  multiCycleOp = false;
+  blocked = false;
+  instructionCancelled = false;
+  previousInstPredicated = false;
+  previousInstSetPredicate = false;
+
 }

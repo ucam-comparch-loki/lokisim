@@ -50,7 +50,7 @@ public:
   BufferArray(const uint numBuffers, const uint buffSize, const std::string& name) {
     for(uint i=0; i<numBuffers; i++) {
       std::stringstream ss;
-      ss << name << ".buffer" << i;
+      ss << name << ".buffer_" << i;
       std::string buffName;
       ss >> buffName;
       buffers.push_back(new NetworkBuffer<T>(buffSize, buffName));

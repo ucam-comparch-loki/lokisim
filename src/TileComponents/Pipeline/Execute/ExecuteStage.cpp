@@ -383,6 +383,9 @@ ExecuteStage::ExecuteStage(sc_module_name name, const ComponentID& ID) :
     alu("alu", ID),
     scratchpad("scratchpad", ID) {
 
+  previousInstExecuted = false;
+  blocked = false;
+
   SC_METHOD(execute);
   sensitive << newInstructionEvent;
   dont_initialize();

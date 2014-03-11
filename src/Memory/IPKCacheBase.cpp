@@ -29,6 +29,7 @@ IPKCacheBase::IPKCacheBase(const size_t size, const size_t numTags, const std::s
   fillCount = 0;
 
   finishedPacketRead = true;
+  finishedPacketWrite = true;
   lastOpWasARead = true;
 
   lastTagActivity = lastDataActivity = -1;

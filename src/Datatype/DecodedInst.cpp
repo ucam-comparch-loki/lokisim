@@ -230,11 +230,13 @@ void DecodedInst::init() {
   result_           = 0;
   portClaim_        = false;
   useCredits_       = false;
-  endOfPacket_      = true;                 // non-zero
   persistent_       = false;
+  endOfPacket_      = true;                 // non-zero
   networkDest_      = ChannelID();          // non-zero
+  returnAddr_       = 0;
   location_         = 0;
   hasResult_        = false;
+  isid_             = -1;                   // Not sure about this
 }
 
 DecodedInst::DecodedInst() {

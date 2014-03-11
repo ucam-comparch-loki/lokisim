@@ -54,6 +54,7 @@ void ChannelMapEntry::setCoreDestination(const ChannelID& address) {
   localMemory_ = false;
   returnChannel_ = 0;
   memoryGroupBits_ = 0;
+  memoryLineBits_ = 0;
   addressIncrement_ = 0;
 }
 
@@ -122,5 +123,6 @@ ChannelMapEntry::ChannelMapEntry(ComponentID localID) {
   useCredits_ = false;
   localMemory_ = false;
   memoryGroupBits_ = 0;
+  memoryLineBits_ = 0;
   addressIncrement_ = 0;
 }

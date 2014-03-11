@@ -14,6 +14,7 @@ if len(sys.argv) < 2:
     sys.exit(-1)
 
 # Parts of the command which will be executed
+simulatorargs = ""
 program = ""
 programargs = ""
 command = ""
@@ -42,6 +43,8 @@ for i in range(currentArg, len(sys.argv)):
             energy = True
         elif arg == "-summary" or arg == "-s":
             summary = True
+        else:
+            simulatorargs += arg + " "
             
         currentArg += 1
     else:
@@ -67,7 +70,7 @@ if len(sys.argv) >= currentArg:
 
 # Differences in syntax for the two simulators
 if use_fast_sim:
-    command = "loki-elf-run -v "
+    command = "loki-elf-run -v " + simulatorargs
     
     if trace:
         command += "-t "
@@ -89,8 +92,9 @@ else:
         command += "-energytrace " + program + ".xml "
     if summary:
         command += "-summary "
-        
-    command += "-run " + program + " "
+    
+    # Why must simulator args go after the program to be run?
+    command += "-run " + program + " " + simulatorargs
     
     if dump:
         command += "-PDEBUG=1 "

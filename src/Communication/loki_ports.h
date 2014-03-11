@@ -889,42 +889,42 @@ public:
 
     loki_inout()
   : base_type(), m_init_val( 0 ), m_traces( 0 ),
-    m_change_finder_p(0)
+    m_change_finder_p(0), m_ack_finder_p(0)
   {}
 
     explicit loki_inout( const char* name_ )
   : base_type( name_ ), m_init_val( 0 ), m_traces( 0 ),
-    m_change_finder_p(0)
+    m_change_finder_p(0), m_ack_finder_p(0)
   {}
 
     explicit loki_inout( inout_if_type& interface_ )
   : base_type( interface_ ), m_init_val( 0 ), m_traces( 0 ),
-    m_change_finder_p(0)
+    m_change_finder_p(0), m_ack_finder_p(0)
   {}
 
     loki_inout( const char* name_, inout_if_type& interface_ )
   : base_type( name_, interface_ ), m_init_val( 0 ), m_traces( 0 ),
-    m_change_finder_p(0)
+    m_change_finder_p(0), m_ack_finder_p(0)
   {}
 
     explicit loki_inout( inout_port_type& parent_ )
   : base_type( parent_ ), m_init_val( 0 ), m_traces( 0 ),
-    m_change_finder_p(0)
+    m_change_finder_p(0), m_ack_finder_p(0)
   {}
 
     loki_inout( const char* name_, inout_port_type& parent_ )
   : base_type( name_, parent_ ), m_init_val( 0 ), m_traces( 0 ),
-    m_change_finder_p(0)
+    m_change_finder_p(0), m_ack_finder_p(0)
   {}
 
     loki_inout( this_type& parent_ )
   : base_type( parent_ ), m_init_val( 0 ), m_traces( 0 ),
-    m_change_finder_p(0)
+    m_change_finder_p(0), m_ack_finder_p(0)
   {}
 
     loki_inout( const char* name_, this_type& parent_ )
   : base_type( name_, parent_ ), m_init_val( 0 ), m_traces( 0 ),
-    m_change_finder_p(0)
+    m_change_finder_p(0), m_ack_finder_p(0)
   {}
 
 

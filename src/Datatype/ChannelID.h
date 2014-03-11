@@ -154,7 +154,10 @@ public:
 	  assert(channel < CORE_INPUT_CHANNELS || channel < MEMORY_INPUT_CHANNELS);
 
 	  // Multicast addresses use a bitmask instead of a position.
-	  if(!multicast)
+	  // FIXME: should multicasting to no one actually be an error?
+	  if (multicast)
+	    assert(position != 0 && "Multicasting to no one");
+	  else
 	    assert(position < COMPONENTS_PER_TILE);
 
 	}

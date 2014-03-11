@@ -43,6 +43,8 @@ Multiplexer::Multiplexer(const sc_module_name& name, int numInputs) :
 
   dataIn.init(numInputs);
 
+  haveSentData = false;
+
   SC_METHOD(handleData);
 
 }

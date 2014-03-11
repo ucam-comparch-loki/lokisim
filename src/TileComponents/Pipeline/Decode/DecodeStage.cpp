@@ -299,6 +299,9 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
     rcet("rcet", ID),
     decoder("decoder", ID) {
 
+  startingNewPacket = true;
+  waitingToSend = false;
+
   dataIn.init(NUM_RECEIVE_CHANNELS);
   flowControlOut.init(NUM_RECEIVE_CHANNELS);
   dataConsumed.init(NUM_RECEIVE_CHANNELS);

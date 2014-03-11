@@ -188,6 +188,8 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
     channelMapTable("channel_map_table", ID),
     localNetwork(network) {
 
+  currentlyStalled = false;
+
   readyDataOut.init(CORE_INPUT_CHANNELS);
   readyCreditOut.initialize(true);
 

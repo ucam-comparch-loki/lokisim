@@ -155,7 +155,7 @@ void ALU::writeWord(MemoryAddr addr, Word data) const {parent()->writeWord(addr,
 void ALU::writeByte(MemoryAddr addr, Word data) const {parent()->writeByte(addr, data);}
 
 ALU::ALU(const sc_module_name& name, const ComponentID& ID) : Component(name, ID) {
-  // Nothing
+  cyclesRemaining = 0;
 }
 
 //==============================//

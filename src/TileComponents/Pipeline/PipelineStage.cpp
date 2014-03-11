@@ -96,6 +96,8 @@ bool PipelineStage::discardNextInst() {
 PipelineStage::PipelineStage(const sc_module_name& name, const ComponentID& ID) :
     Component(name, ID) {
 
+  currentInstValid = false;
+
   idle.initialize(true);
 
   SC_METHOD(getNextInstruction);

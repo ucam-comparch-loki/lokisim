@@ -14,14 +14,19 @@
 #include "Topologies/LocalNetwork.h"
 
 void Router::receiveData(PortIndex input) {
-  if (DEBUG)
-    cout << this->name() << ": input from " << (int)input << ": " << dataIn[input].read() << endl;
+  if (inputBuffers[input].full()) {
+    // If the buffer is full, let the data sit on the wire until space becomes
+    // available.
+    next_trigger(inputBuffers[input].readEvent());
+  }
+  else {
+    if (DEBUG)
+      cout << this->name() << ": input from " << (int)input << ": " << dataIn[input].read() << endl;
 
-  assert(!inputBuffers[input].full());
-
-  // Put the new data into a buffer.
-  inputBuffers[input].write(dataIn[input].read());
-  dataIn[input].ack();
+    // Put the new data into a buffer.
+    inputBuffers[input].write(dataIn[input].read());
+    dataIn[input].ack();
+  }
 }
 
 void Router::routeData() {
@@ -138,8 +143,8 @@ Router::Direction Router::routeTo(ChannelID destination) const {
 
 Router::Router(const sc_module_name& name, const ComponentID& ID, const bool carriesCredits, local_net_t* network) :
     Component(name, ID),
-    inputBuffers(5, ROUTER_BUFFER_SIZE, "input_data"),
-    outputBuffers(5, ROUTER_BUFFER_SIZE, "output_data"),
+    inputBuffers(5, ROUTER_BUFFER_SIZE, string(this->name()) + ".input_data"),
+    outputBuffers(5, ROUTER_BUFFER_SIZE, string(this->name()) + ".output_data"),
     xPos(ID.getTile() % NUM_TILE_COLUMNS),
     yPos(ID.getTile() / NUM_TILE_COLUMNS),
     carriesCredits(carriesCredits),
