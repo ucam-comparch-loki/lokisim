@@ -180,6 +180,14 @@ void BasicArbiter::updateSelect(int output) {
   }
 }
 
+void BasicArbiter::reportStalls(ostream& os) {
+  for (uint i=0; i<requests.length(); i++) {
+    if (requestVec[i]) {
+      os << this->name() << " still has active request on input " << i << endl;
+    }
+  }
+}
+
 BasicArbiter::BasicArbiter(const sc_module_name& name, ComponentID ID,
                            int inputs, int outputs, bool wormhole) :
     Component(name, ID),

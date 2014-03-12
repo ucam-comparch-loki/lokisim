@@ -8,6 +8,7 @@
 #include <systemc.h>
 #include <stdio.h>
 #include "Utility/Arguments.h"
+#include "Utility/Blocking.h"
 #include "Utility/Debugger.h"
 #include "Utility/Instrumentation.h"
 #include "Utility/Instrumentation/Operations.h"
@@ -85,6 +86,7 @@ void simulate(Chip& chip) {
                             chip.readRegister(core0, 1));
 
             Instrumentation::endExecution();
+            Blocking::reportProblems(cerr);
             RETURN_CODE = EXIT_FAILURE;
 
             break;

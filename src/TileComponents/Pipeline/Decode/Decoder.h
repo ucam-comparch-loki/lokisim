@@ -14,12 +14,13 @@
 #define DECODER_H_
 
 #include "../../../Component.h"
+#include "../../../Utility/Blocking.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
 class DecodeStage;
 
-class Decoder: public Component {
+class Decoder: public Component, public Blocking {
 
 //==============================//
 // Methods
@@ -64,6 +65,10 @@ public:
   // Determine whether to read the second operand from the receive channel-end
   // table, the ALU, the register file, or the sign extender.
   void setOperand2(DecodedInst& dec);
+
+protected:
+
+  virtual void reportStalls(ostream& os);
 
 private:
 

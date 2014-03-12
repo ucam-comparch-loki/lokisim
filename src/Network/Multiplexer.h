@@ -9,10 +9,11 @@
 #define MULTIPLEXER_H_
 
 #include "../Component.h"
+#include "../Utility/Blocking.h"
 #include "NetworkTypedefs.h"
 
 
-class Multiplexer: public Component {
+class Multiplexer: public Component, public Blocking {
 
 //==============================//
 // Ports
@@ -41,6 +42,10 @@ public:
 public:
 
   int inputs() const;
+
+protected:
+
+  virtual void reportStalls(ostream& os);
 
 private:
 

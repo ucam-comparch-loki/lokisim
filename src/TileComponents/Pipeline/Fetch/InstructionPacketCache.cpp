@@ -131,6 +131,10 @@ bool InstructionPacketCache::isEmpty() const {
   return cache->empty();
 }
 
+bool InstructionPacketCache::isFull() const {
+  return cache->full();
+}
+
 bool InstructionPacketCache::roomToFetch() const {
   return cache->canFetch();
 }

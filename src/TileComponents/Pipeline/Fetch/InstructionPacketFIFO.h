@@ -79,6 +79,7 @@ public:
 
   // Return whether the FIFO is empty.
   virtual bool isEmpty() const;
+  virtual bool isFull() const;
 
   // A handle to an event which is triggered whenever an instruction is added
   // to or removed from the FIFO.

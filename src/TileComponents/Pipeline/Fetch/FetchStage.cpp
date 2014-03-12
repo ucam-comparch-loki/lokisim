@@ -401,6 +401,16 @@ void FetchStage::getNextInstruction() {
   execute();
 }
 
+void FetchStage::reportStalls(ostream& os) {
+  if (currentPacket.active() && !currentPacket.inCache) {
+    os << this->name() << " waiting for instructions from 0x" << std::hex << currentPacket.memAddr << std::dec << endl;
+    InstructionStore& source = currentInstructionSource();
+    os << "  Storing instructions in " << ((currentPacket.location.component == IPKFIFO) ? "FIFO" : "IPK cache") << endl;
+    if (source.isFull())
+      os << "  No space remaining." << endl;
+  }
+}
+
 FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
     cache("IPKcache", ID),

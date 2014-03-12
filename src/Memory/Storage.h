@@ -56,6 +56,10 @@ public:
     return data_.size();
   }
 
+  const std::string name() const {
+    return name_;
+  }
+
 protected:
 
   // Throw an exception if the address is not within the bounds of the array.
@@ -66,10 +70,6 @@ protected:
     if((addr < 0) || (addr >= size())) {
       throw OutOfBoundsException(addr, size()-1);
     }
-  }
-
-  const std::string name() const {
-    return name_;
   }
 
 //==============================//

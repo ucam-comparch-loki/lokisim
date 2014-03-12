@@ -83,6 +83,7 @@ public:
   // are no instructions in the cache, or because all instructions have been
   // executed.
   virtual bool isEmpty() const;
+  virtual bool isFull() const;
 
   // Tells whether there is enough room in the cache to fetch another
   // instruction packet. Has to assume that the packet will be of maximum

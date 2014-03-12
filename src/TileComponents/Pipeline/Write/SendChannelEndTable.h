@@ -11,6 +11,7 @@
 #define SENDCHANNELENDTABLE_H_
 
 #include "../../../Component.h"
+#include "../../../Utility/Blocking.h"
 #include "../../../Network/NetworkBuffer.h"
 #include "../../../Network/NetworkTypedefs.h"
 
@@ -20,7 +21,7 @@ class DecodedInst;
 class Word;
 class WriteStage;
 
-class SendChannelEndTable: public Component {
+class SendChannelEndTable: public Component, public Blocking {
 
 //==============================//
 // Ports
@@ -61,6 +62,10 @@ public:
   // A handle for an event which triggers whenever the send channel-end table
   // might stall or unstall.
   const sc_event& stallChangedEvent() const;
+
+protected:
+
+  virtual void  reportStalls(ostream& os);
 
 private:
 

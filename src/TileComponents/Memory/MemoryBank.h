@@ -22,6 +22,7 @@
 #define MEMORYBANK_H_
 
 #include "../../Component.h"
+#include "../../Utility/Blocking.h"
 #include "../../Datatype/AddressedWord.h"
 #include "../../Datatype/MemoryRequest.h"
 #include "../../Network/NetworkBuffer.h"
@@ -29,7 +30,7 @@
 #include "ScratchpadModeHandler.h"
 #include "SimplifiedOnChipScratchpad.h"
 
-class MemoryBank: public Component {
+class MemoryBank: public Component, public Blocking {
 	//---------------------------------------------------------------------------------------------
 	// Configuration parameters
 	//---------------------------------------------------------------------------------------------
@@ -345,6 +346,10 @@ public:
 	Word readByte(MemoryAddr addr);
 	void writeWord(MemoryAddr addr, Word data);
 	void writeByte(MemoryAddr addr, Word data);
+
+protected:
+
+	virtual void reportStalls(ostream& os);
 
 };
 

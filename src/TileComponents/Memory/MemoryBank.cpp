@@ -1774,3 +1774,19 @@ void MemoryBank::writeByte(MemoryAddr addr, Word data) {
 		return;
 	}
 }
+
+void MemoryBank::reportStalls(ostream& os) {
+  if (mInputQueue.full()) {
+    os << mInputQueue.name() << " is full." << endl;
+  }
+  if (!mOutputQueue.empty()) {
+    const OutputWord& outWord = mOutputQueue.peek();
+    ChannelID addr;
+    if (outWord.TableIndex < 8)
+      addr = ChannelID(id.getTile(), outWord.TableIndex, outWord.ReturnChannel);
+    else
+      addr = mChannelMapTable[outWord.TableIndex].ReturnChannel;
+
+    os << this->name() << " waiting to send to " << addr << endl;
+  }
+}

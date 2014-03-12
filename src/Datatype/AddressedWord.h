@@ -83,7 +83,7 @@ public:
   }
 
   friend std::ostream& operator<< (std::ostream& os, AddressedWord const& v) {
-    os << "[" << v.payload_ << " -> " << v.channelID_.getString() << " " << v.portClaim_ << "|" << v.useCredits_ << "|" << v.endOfPacket_ << "]";
+    os << "[" << v.payload_ << " -> " << v.channelID_.getString() << " " << v.portClaim_ << "|" << v.useCredits_ << "|" << v.endOfPacket_ << "] (id:" << v.messageID_ << ")";
     return os;
   }
 

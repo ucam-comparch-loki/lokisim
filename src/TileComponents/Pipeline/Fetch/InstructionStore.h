@@ -59,6 +59,7 @@ public:
   // possible to get instructions from an "empty" store by jumping or looking
   // up the appropriate tag.
   virtual bool isEmpty() const = 0;
+  virtual bool isFull() const = 0;
 
   // Returns an event which is triggered whenever an instruction is read or
   // written to the store.

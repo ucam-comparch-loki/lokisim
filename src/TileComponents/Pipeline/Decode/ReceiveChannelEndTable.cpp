@@ -96,8 +96,16 @@ DecodeStage* ReceiveChannelEndTable::parent() const {
   return static_cast<DecodeStage*>(this->get_parent());
 }
 
+void ReceiveChannelEndTable::reportStalls(ostream& os) {
+  for (uint i=0; i<buffers.size(); i++) {
+    if (buffers[i].full())
+      os << buffers[i].name() << " is full." << endl;
+  }
+}
+
 ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name, const ComponentID& ID) :
     Component(name, ID),
+    Blocking(),
     buffers(NUM_RECEIVE_CHANNELS, IN_CHANNEL_BUFFER_SIZE, this->name()),
     currentChannel(NUM_RECEIVE_CHANNELS) {
 

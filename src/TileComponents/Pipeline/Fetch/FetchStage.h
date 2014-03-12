@@ -13,11 +13,12 @@
 #define FETCHSTAGE_H_
 
 #include "../PipelineStage.h"
+#include "../../../Utility/Blocking.h"
 #include "InstructionPacketCache.h"
 #include "InstructionPacketFIFO.h"
 #include "../../../Network/NetworkTypedefs.h"
 
-class FetchStage : public PipelineStage {
+class FetchStage : public PipelineStage, public Blocking {
 
 private:
 
@@ -102,6 +103,10 @@ public:
 
   // Jump to a different instruction in the Instruction Packet Cache.
   void          jump(const JumpOffset offset);
+
+protected:
+
+  virtual void  reportStalls(ostream& os);
 
 private:
 

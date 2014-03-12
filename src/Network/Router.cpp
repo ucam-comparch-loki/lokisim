@@ -42,6 +42,7 @@ void Router::routeData() {
     // one. Select at most one input.
     for (int output=0; output<5; output++) {
       if (!outputBuffers[output].full()) {
+      //if (!dataOut[output].valid()) {
         for (int i=0; i<5; i++) {
           // Implement a wrap-around counter, starting at the last accepted input.
           int input = (lastAccepted[output] + i + 1) % 5;
@@ -50,7 +51,9 @@ void Router::routeData() {
           // output buffer, send it.
           if (!inputBuffers[input].empty() &&
               routeTo(inputBuffers[input].peek().channelID()) == output) {
-             outputBuffers[output].write(inputBuffers[input].read());
+            outputBuffers[output].write(inputBuffers[input].read());
+            //dataOut[output].write(inputBuffers[input].read());
+            lastAccepted[output] = input;
             break;
           }
         }
@@ -141,8 +144,25 @@ Router::Direction Router::routeTo(ChannelID destination) const {
   else                   return LOCAL;
 }
 
+void Router::reportStalls(ostream& os) {
+  for (uint i=0; i<dataOut.length(); i++) {
+    if (dataOut[i].valid()) {
+      os << this->name() << ".output_" << i << " is blocked." << endl;
+      os << "  Target destination is " << dataOut[i].read().channelID() << endl;
+    }
+  }
+
+  for (uint i=0; i<dataIn.length(); i++) {
+    if (inputBuffers[i].full()) {
+      os << inputBuffers[i].name() << " is full." << endl;
+      os << "  Head is trying to get to " << inputBuffers[i].peek().channelID() << endl;
+    }
+  }
+}
+
 Router::Router(const sc_module_name& name, const ComponentID& ID, const bool carriesCredits, local_net_t* network) :
     Component(name, ID),
+    Blocking(),
     inputBuffers(5, ROUTER_BUFFER_SIZE, string(this->name()) + ".input_data"),
     outputBuffers(5, ROUTER_BUFFER_SIZE, string(this->name()) + ".output_data"),
     xPos(ID.getTile() % NUM_TILE_COLUMNS),

@@ -77,6 +77,10 @@ bool InstructionPacketFIFO::isEmpty() const {
   return fifo.empty() && !tagMatched;
 }
 
+bool InstructionPacketFIFO::isFull() const{
+  return fifo.full();
+}
+
 const sc_event& InstructionPacketFIFO::fillChangedEvent() const {
   return fifoFillChanged;
 }

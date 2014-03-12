@@ -378,6 +378,12 @@ const sc_event& ExecuteStage::executedEvent() const {
   return instructionCompletedEvent;
 }
 
+void ExecuteStage::reportStalls(ostream& os) {
+  if (blocked) {
+    os << this->name() << " blocked while executing " << currentInst << endl;
+  }
+}
+
 ExecuteStage::ExecuteStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
     alu("alu", ID),

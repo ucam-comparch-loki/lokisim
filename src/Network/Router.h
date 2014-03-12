@@ -14,10 +14,11 @@
 #define ROUTER_H_
 
 #include "../Component.h"
+#include "../Utility/Blocking.h"
 #include "BufferArray.h"
 #include "NetworkTypedefs.h"
 
-class Router : public Component {
+class Router : public Component, public Blocking {
 
 //==============================//
 // Ports
@@ -73,6 +74,8 @@ private:
   void updateFlowControl();
 
   Direction routeTo(ChannelID destination) const;
+
+  virtual void reportStalls(ostream& os);
 
 
 //==============================//

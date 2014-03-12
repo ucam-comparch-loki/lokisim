@@ -800,8 +800,31 @@ DecodeStage* Decoder::parent() const {
   return static_cast<DecodeStage*>(this->get_parent());
 }
 
+void Decoder::reportStalls(ostream& os) {
+  if (!ready()) {
+    DecodedInst& inst = parent()->currentInst;
+    os << this->name() << " unable to complete " << inst << endl;
+
+    if (needOperand1 || (inst.hasOperand1() && Registers::isChannelEnd(inst.sourceReg1())))
+      os << "  Waiting for operand 1." << endl;
+    if (needOperand2 || (inst.hasOperand2() && Registers::isChannelEnd(inst.sourceReg2())))
+      os << "  Waiting for operand 2." << endl;
+    if (multiCycleOp)
+      os << "  Operation takes multiple cycles." << endl;
+  }
+}
+
 Decoder::Decoder(const sc_module_name& name, const ComponentID& ID) :
 	  Component(name, ID) {
+
+  continueToExecute = false;
+  execute = false;
+  haveAllOperands = true;
+  outputsRemaining = 0;
+  needDestination = false;
+  needOperand1 = false;
+  needOperand2 = false;
+  needChannel = false;
 
   sendChannel = Instruction::NO_CHANNEL;
   multiCycleOp = false;

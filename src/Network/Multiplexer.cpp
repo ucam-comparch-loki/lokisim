@@ -11,6 +11,12 @@ int Multiplexer::inputs() const {
   return dataIn.length();
 }
 
+void Multiplexer::reportStalls(ostream& os) {
+  if (dataOut.valid()) {
+    os << this->name() << " hasn't received ack for " << dataOut.read() << endl;
+  }
+}
+
 void Multiplexer::handleData() {
   SelectType selection = select.read();
 

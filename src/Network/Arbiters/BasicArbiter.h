@@ -19,11 +19,12 @@
 #define BASICARBITER_H_
 
 #include "../../Component.h"
+#include "../../Utility/Blocking.h"
 #include "../NetworkTypedefs.h"
 
 class ArbiterBase;
 
-class BasicArbiter: public Component {
+class BasicArbiter: public Component, public Blocking {
 
 //==============================//
 // Ports
@@ -73,6 +74,8 @@ protected:
 
   // The task to perform whenever a request input changes.
   virtual void requestChanged(int input);
+
+  virtual void reportStalls(ostream& os);
 
 private:
 

@@ -12,10 +12,11 @@
 #define EXECUTESTAGE_H_
 
 #include "../PipelineStage.h"
+#include "../../../Utility/Blocking.h"
 #include "ALU.h"
 #include "Scratchpad.h"
 
-class ExecuteStage: public PipelineStage {
+class ExecuteStage: public PipelineStage, public Blocking {
 
 //==============================//
 // Ports
@@ -104,6 +105,10 @@ private:
   // Check the predicate bits of this instruction and the predicate register to
   // see if this instruction should execute.
   bool checkPredicate(DecodedInst& inst);
+
+protected:
+
+  virtual void reportStalls(ostream& os);
 
 //==============================//
 // Components

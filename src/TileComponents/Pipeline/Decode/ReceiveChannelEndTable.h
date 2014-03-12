@@ -14,6 +14,7 @@
 #define RECEIVECHANNELENDTABLE_H_
 
 #include "../../../Component.h"
+#include "../../../Utility/Blocking.h"
 #include "../../../Network/BufferArray.h"
 #include "../../../Network/NetworkTypedefs.h"
 #include "../../../Utility/LoopCounter.h"
@@ -21,7 +22,7 @@
 class DecodeStage;
 class Word;
 
-class ReceiveChannelEndTable: public Component {
+class ReceiveChannelEndTable: public Component, public Blocking {
 
 //==============================//
 // Ports
@@ -73,6 +74,10 @@ public:
   ChannelIndex selectChannelEnd();
 
   const sc_event& receivedDataEvent(ChannelIndex buffer) const;
+
+protected:
+
+  virtual void reportStalls(ostream& os);
 
 private:
 

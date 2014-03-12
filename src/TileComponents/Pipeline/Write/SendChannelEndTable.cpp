@@ -167,8 +167,22 @@ WriteStage* SendChannelEndTable::parent() const {
   return static_cast<WriteStage*>(this->get_parent());
 }
 
+void SendChannelEndTable::reportStalls(ostream& os) {
+  if (!buffer.empty()) {
+    os << this->name() << " unable to send " << buffer.peek().toAddressedWord() << endl;
+
+    if (!channelMapTable->canSend(buffer.peek().channelMapEntry()))
+      os << "  Need credits." << endl;
+    else
+      os << "  Waiting for arbitration request to be granted." << endl;
+  }
+
+  // TODO: woche
+}
+
 SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID& ID, ChannelMapTable* cmt) :
     Component(name, ID),
+    Blocking(),
     buffer(OUT_CHANNEL_BUFFER_SIZE, string(this->name())+string(".buffer")),
     channelMapTable(cmt) {
 
