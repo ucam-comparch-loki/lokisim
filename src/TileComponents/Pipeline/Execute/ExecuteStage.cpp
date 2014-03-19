@@ -271,19 +271,12 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
   MapIndex entry = inst.immediate();
   uint32_t value = inst.operand1();
 
-  // Extract all of the relevant sections from the encoded destination, and
-  // create a ChannelID out of them.
-  // TODO: move all of this computation to within ChannelMapEntry.
+  // TODO: extract these from the ChannelID, rather than from the raw data.
   ChannelIndex returnTo = (value >> 29) & 0x7UL;
-  bool multicast = (value >> 28) & 0x1UL;
-  // Hack: tile shouldn't be necessary for multicast addresses
-  uint tile      = multicast ? id.getTile() : ((value >> 20) & 0xFFUL);
-  uint position  = (value >> 12) & 0xFFUL;
-  uint channel   = (value >> 8) & 0xFUL;
   uint groupBits = (value >> 4) & 0xFUL;
   uint lineBits  = value & 0xFUL;
 
-  ChannelID sendChannel(tile, position, channel, multicast);
+  ChannelID sendChannel(value);
 
   // Write to the channel map table.
   // FIXME: I don't think it's necessary to block until all credits have been
@@ -298,7 +291,7 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
     blocked = false;
 
     // Generate a message to claim the port we have just stored the address of.
-    if (sendChannel.isCore()) {
+    if (sendChannel.isCore() && !sendChannel.isNullMapping()) {
       ChannelID returnChannel(id, entry);
       inst.result(returnChannel.toInt());
       inst.channelMapEntry(entry);

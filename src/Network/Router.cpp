@@ -1,9 +1,6 @@
 /*
  * Router.cpp
  *
- * TODO: remove output buffers
- * TODO: more dynamic processes
- *
  *  Created on: 27 Jun 2011
  *      Author: db434
  */
@@ -23,64 +20,27 @@ void Router::receiveData(PortIndex input) {
     if (DEBUG)
       cout << this->name() << ": input from " << (int)input << ": " << dataIn[input].read() << endl;
 
+    bool wasEmpty = inputBuffers[input].empty();
+
     // Put the new data into a buffer.
     inputBuffers[input].write(dataIn[input].read());
     dataIn[input].ack();
+
+    if (wasEmpty)
+      updateDestination(input);
   }
 }
 
-void Router::routeData() {
-  if (clock.posedge()) {
-    // Wait a delta cycle to allow data to enter buffers.
-    next_trigger(sc_core::SC_ZERO_TIME);
-  }
-  else {
-    // TODO: only do this if we know there is at least some data in the input
-    // buffers.
-
-    // Loop through all output buffers, seeing which inputs want to use each
-    // one. Select at most one input.
-    for (int output=0; output<5; output++) {
-      if (!outputBuffers[output].full()) {
-      //if (!dataOut[output].valid()) {
-        for (int i=0; i<5; i++) {
-          // Implement a wrap-around counter, starting at the last accepted input.
-          int input = (lastAccepted[output] + i + 1) % 5;
-
-          // If there is data in this input buffer, and it wants to go to this
-          // output buffer, send it.
-          if (!inputBuffers[input].empty() &&
-              routeTo(inputBuffers[input].peek().channelID()) == output) {
-            outputBuffers[output].write(inputBuffers[input].read());
-            //dataOut[output].write(inputBuffers[input].read());
-            lastAccepted[output] = input;
-            break;
-          }
-        }
-      }
-    }
-
-    next_trigger(clock.posedge_event());
-  }
-}
-
-void Router::sendToLocalNetwork() {
+void Router::localNetworkArbitration() {
   switch (state) {
 
     case WAITING_FOR_DATA:
-      // Wait until there is data in the buffer.
-      if (outputBuffers[LOCAL].empty())
-        next_trigger(outputBuffers[LOCAL].writeEvent());
-      else if (carriesCredits) {
-        // Credits don't require arbitration, so skip to WAITING_FOR_ACK.
-        dataOut[LOCAL].write(outputBuffers[LOCAL].read());
-
-        state = WAITING_FOR_ACK;
-        next_trigger(dataOut[LOCAL].ack_event());
-      }
+      // Wait until there is data to be sent.
+      if (!dataOut[LOCAL].valid())
+        next_trigger(dataOut[LOCAL].default_event());
       else {
         // Issue a request for arbitration.
-        localNetwork->makeRequest(id, outputBuffers[LOCAL].peek().channelID(), true);
+        localNetwork->makeRequest(id, dataOut[LOCAL].read().channelID(), true);
         state = ARBITRATING;
         next_trigger(clock.posedge_event());
       }
@@ -88,17 +48,15 @@ void Router::sendToLocalNetwork() {
 
     case ARBITRATING:
       // Wait for the request to be granted.
-      if (!localNetwork->requestGranted(id, outputBuffers[LOCAL].peek().channelID())) {
+      if (!localNetwork->requestGranted(id, dataOut[LOCAL].read().channelID())) {
         next_trigger(clock.posedge_event());
       }
       else {
         // Send the data and remove the arbitration request.
-        const AddressedWord& dataToSend = outputBuffers[LOCAL].read();
+        const AddressedWord& dataToSend = dataOut[LOCAL].read();
 
         if (dataToSend.endOfPacket())
           localNetwork->makeRequest(id, dataToSend.channelID(), false);
-
-        dataOut[LOCAL].write(dataToSend);
 
         state = WAITING_FOR_ACK;
         next_trigger(dataOut[LOCAL].ack_event());
@@ -115,13 +73,24 @@ void Router::sendToLocalNetwork() {
   }// end switch
 }
 
-void Router::sendData() {
-  for (int i=0; i<4; i++) {
-    // We can send data if there is data to send, and there is no unacknowledged
-    // data already on the output port.
-    if (!outputBuffers[i].empty() && !dataOut[i].valid()) {
-      dataOut[i].write(outputBuffers[i].read());
+void Router::sendData(PortIndex output) {
+  if (!clock.posedge()) {
+    next_trigger(clock.posedge_event());
+  }
+  else {
+    for (int i=0; i<5; i++) {
+      PortIndex input = (i + lastAccepted[output] + 1) % 5;
+      if (destination[input] == output) {
+        dataOut[output].write(inputBuffers[input].read());
+        lastAccepted[output] = input;
+        next_trigger(dataOut[output].ack_event());
+        updateDestination(input);
+        return;
+      }
     }
+
+    // If we couldn't find any data to send, wait until data arrives.
+    next_trigger(outputAvailable[output]);
   }
 }
 
@@ -129,6 +98,17 @@ void Router::updateFlowControl() {
   bool canReceive = !inputBuffers[LOCAL].full();
   if (readyOut.read() != canReceive)
     readyOut.write(canReceive);
+}
+
+void Router::updateDestination(PortIndex input) {
+  PortIndex output = -1;
+
+  if (!inputBuffers[input].empty()) {
+    output = routeTo(inputBuffers[input].peek().channelID());
+    outputAvailable[output].notify();
+  }
+
+  destination[input] = output;
 }
 
 Router::Direction Router::routeTo(ChannelID destination) const {
@@ -164,7 +144,6 @@ Router::Router(const sc_module_name& name, const ComponentID& ID, const bool car
     Component(name, ID),
     Blocking(),
     inputBuffers(5, ROUTER_BUFFER_SIZE, string(this->name()) + ".input_data"),
-    outputBuffers(5, ROUTER_BUFFER_SIZE, string(this->name()) + ".output_data"),
     xPos(ID.getTile() % NUM_TILE_COLUMNS),
     yPos(ID.getTile() / NUM_TILE_COLUMNS),
     carriesCredits(carriesCredits),
@@ -172,27 +151,27 @@ Router::Router(const sc_module_name& name, const ComponentID& ID, const bool car
 
   state = WAITING_FOR_DATA;
 
-  for (int i=0; i<5; i++) lastAccepted[i] = -1;
+  for (int i=0; i<5; i++) {
+    lastAccepted[i] = -1;
+    destination[i] = -1;
+  }
 
   dataIn.init(5);    dataOut.init(5);
+  outputAvailable.init(5);
 
   // Generate a method to watch each input port, putting the data into the
   // appropriate buffer when it arrives.
-  for (size_t i=0; i<dataIn.length(); i++)
+  // Generate a method for each output port, sending data when there is data
+  // to send.
+  for (size_t i=0; i<dataIn.length(); i++) {
     SPAWN_METHOD(dataIn[i], Router::receiveData, i, false);
+    SPAWN_METHOD(outputAvailable[i], Router::sendData, i, false);
+  }
 
-  SC_METHOD(routeData);
-  sensitive << clock.pos(); // Plus a delta cycle or two
-  dont_initialize();
-
-  // TODO: use a dynamic process for each output port, like the ones for input
-  // ports above.
-  SC_METHOD(sendData);
-  sensitive << clock.pos();
-  dont_initialize();
-
-  SC_METHOD(sendToLocalNetwork);
-  // do initialise
+  if (!carriesCredits) {
+    SC_METHOD(localNetworkArbitration);
+    // do initialise
+  }
 
   SC_METHOD(updateFlowControl);
   sensitive << inputBuffers[LOCAL].readEvent() << inputBuffers[LOCAL].writeEvent();

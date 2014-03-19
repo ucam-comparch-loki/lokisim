@@ -60,18 +60,21 @@ private:
   // Receive input data, put it into buffers, and send acknowledgements.
   void receiveData(PortIndex input);
 
-  // For the head of each input buffer, put the data into the appropriate
-  // output buffer, if possible.
-  void routeData();
-
   // Send data from output buffers onto the network and wait for
   // acknowledgements.
-  void sendToLocalNetwork();
-  void sendData();
+  void sendData(PortIndex output);
+
+  // When sending data onto the local network, we also need to issue requests
+  // to the local arbiters.
+  void localNetworkArbitration();
 
   // Update the flow control signal for the input port connected to the local
   // network.
   void updateFlowControl();
+
+  // Determine which output (if any) the head of a particular input buffer
+  // needs to use.
+  void updateDestination(PortIndex input);
 
   Direction routeTo(ChannelID destination) const;
 
@@ -84,7 +87,7 @@ private:
 
 private:
 
-  BufferArray<DataType> inputBuffers, outputBuffers;
+  BufferArray<DataType> inputBuffers;
 
 //==============================//
 // Local state
@@ -106,7 +109,13 @@ private:
 
   // The router currently implements round-robin scheduling: store the inputs
   // which were most recently allowed to send data to each output.
-  int lastAccepted[5];
+  PortIndex lastAccepted[5];
+
+  // Record the direction the leading flit in each buffer wants to travel.
+  PortIndex destination[5];
+
+  // Event to notify each output port when data is waiting to be sent.
+  LokiVector<sc_event> outputAvailable;
 
   // Hacky way of telling whether this router carries data or credits.
   bool carriesCredits;

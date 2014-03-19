@@ -107,7 +107,7 @@ public:
     endOfPacket_ = true;
 
     if (DEBUG)
-      std::cout << "New AddressedWord " << messageID_ << ": " << *this << std::endl;
+      std::cout << "New AddressedWord: " << *this << std::endl;
     /*
     // Add proper check here?
 
