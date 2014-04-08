@@ -12,7 +12,6 @@ const sc_event& EndArbiter::canGrantNow(int output, const ChannelIndex destinati
 
   // Determine which "ready" signal to check. Memories only have one, but cores
   // have one for each buffer.
-  //if(flowControlSignals == 1)
   if (numOutputs() == 1)
     channel = 0;
   else
@@ -20,7 +19,7 @@ const sc_event& EndArbiter::canGrantNow(int output, const ChannelIndex destinati
 
   // If the destination is ready to receive data, we can send the grant
   // immediately.
-  if(readyIn[channel].read()) {
+  if (readyIn[channel].read()) {
     grantEvent.notify(sc_core::SC_ZERO_TIME);
     return grantEvent;
   }
@@ -37,7 +36,6 @@ const sc_event& EndArbiter::stallGrant(int output) {
   // The channel we are aiming to reach through this output.
   ChannelIndex target;
 
-  //if(flowControlSignals == 1)  // Hack
   if (numOutputs() == 1)
     target = 0;
   else {
@@ -52,21 +50,24 @@ const sc_event& EndArbiter::stallGrant(int output) {
 }
 
 // Override BasicArbiter's implementation so the request is only officially
-// received when the output is free to receive data.
+// available when the output is free to receive data.
 void EndArbiter::requestChanged(int input) {
-  if(requests[input].read() == NO_REQUEST) {
+
+  if (requests[input].read() == NO_REQUEST) {
     requestVec[input] = false;
   }
   else {
     PortIndex outputWanted = outputToUse(input);
 
-    if(readyIn[outputWanted].read()) {
+    if (readyIn[outputWanted].read()) {
       requestVec[input] = true;
       receivedRequest.notify();
     }
     else {
-      next_trigger(readyIn[outputWanted].posedge_event());
+      requestVec[input] = false;
     }
+
+    next_trigger(readyIn[outputWanted].default_event() | requests[input].default_event());
   }
 }
 
@@ -74,7 +75,6 @@ PortIndex EndArbiter::outputToUse(PortIndex input) {
   // Memories only have one buffer and one ready signal which cover all channels.
   // Cores have separate buffers and separate ready signals.
 
-  //if(flowControlSignals == 1)
   if (numOutputs() == 1)
     return 0;
   else
@@ -83,12 +83,7 @@ PortIndex EndArbiter::outputToUse(PortIndex input) {
 
 EndArbiter::EndArbiter(const sc_module_name& name, ComponentID ID,
                        int inputs, int outputs, bool wormhole, int flowControlSignals) :
-    BasicArbiter(name, ID, inputs, outputs, wormhole),
-    flowControlSignals(flowControlSignals) {
-
-  // TODO: why isn't flowControlSignals exactly the same as outputs?
-  // Running into trouble in router-to-core networks where they're different
-  // for some reason.
+    BasicArbiter(name, ID, inputs, outputs, wormhole) {
 
   readyIn.init(flowControlSignals);
 

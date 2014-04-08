@@ -6,6 +6,8 @@
  * There should be a single cycle between data being received, and it being
  * sent back onto the network.
  *
+ * Data is always sent on the positive clock edge.
+ *
  *  Created on: 27 Jun 2011
  *      Author: db434
  */
@@ -31,15 +33,17 @@ public:
   ClockInput   clock;
 
   // Data inputs
-  LokiVector<DataInput> dataIn;
+  LokiVector<DataInput>   dataIn;
 
-  // A single flow control signal to the local network. The connections between
-  // routers are simple enough that acknowledgements provide flow control.
-  // FIXME: is this true?
-  ReadyOutput  readyOut;
+  // A flow control signal to each neighbouring router and to the local network.
+  LokiVector<ReadyOutput> readyOut;
 
   // Data outputs
-  LokiVector<DataOutput> dataOut;
+  LokiVector<DataOutput>  dataOut;
+
+  // A flow control signal from each neighbouring router. Flow control from the
+  // local network is handled separately.
+  LokiVector<ReadyInput>  readyIn;
 
 //==============================//
 // Constructors and destructors
@@ -70,7 +74,7 @@ private:
 
   // Update the flow control signal for the input port connected to the local
   // network.
-  void updateFlowControl();
+  void updateFlowControl(PortIndex input);
 
   // Determine which output (if any) the head of a particular input buffer
   // needs to use.

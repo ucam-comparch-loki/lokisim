@@ -46,7 +46,7 @@ void NetworkHierarchy::setupFlowControl() {
 void NetworkHierarchy::makeLocalNetwork(int tileID) {
 
   // Create a local network.
-  local_net_t* localNetwork = new local_net_t(sc_gen_unique_name("tile_net"), ComponentID(tileID, 0));
+  local_net_t* localNetwork = new local_net_t(sc_gen_unique_name("local"), ComponentID(tileID, 0));
   localNetworks.push_back(localNetwork);
 
   // Connect things up.
@@ -97,7 +97,7 @@ void NetworkHierarchy::makeLocalNetwork(int tileID) {
 void NetworkHierarchy::makeGlobalNetwork() {
 
   // Make data network.
-  globalDataNetwork = new global_net_t("global_data_net",
+  globalDataNetwork = new global_net_t("global_data",
                                        0,
                                        NUM_TILE_ROWS,
                                        NUM_TILE_COLUMNS,
@@ -118,7 +118,7 @@ void NetworkHierarchy::makeGlobalNetwork() {
 
   // Make credit network.
   // TODO: integrate both networks into one GlobalNetwork.
-  globalCreditNetwork = new global_net_t("global_credit_net",
+  globalCreditNetwork = new global_net_t("global_credit",
                                          0,
                                          NUM_TILE_ROWS,
                                          NUM_TILE_COLUMNS,

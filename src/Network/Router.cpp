@@ -11,15 +11,18 @@
 #include "Topologies/LocalNetwork.h"
 
 void Router::receiveData(PortIndex input) {
-  if (inputBuffers[input].full()) {
-    // If the buffer is full, let the data sit on the wire until space becomes
-    // available.
-    next_trigger(inputBuffers[input].readEvent());
-  }
-  else {
-    if (DEBUG)
-      cout << this->name() << ": input from " << (int)input << ": " << dataIn[input].read() << endl;
+  if (DEBUG)
+    cout << this->name() << ": input from " << (int)input << ": " << dataIn[input].read() << endl;
 
+  assert(!inputBuffers[input].full());
+
+//  if (inputBuffers[input].full()) {
+//    // If the buffer is full, let the data sit on the wire until space becomes
+//    // available.
+//    // TODO: remove this, and rely on the flow control signals
+//    next_trigger(inputBuffers[input].readEvent());
+//  }
+//  else {
     bool wasEmpty = inputBuffers[input].empty();
 
     // Put the new data into a buffer.
@@ -28,7 +31,7 @@ void Router::receiveData(PortIndex input) {
 
     if (wasEmpty)
       updateDestination(input);
-  }
+//  }
 }
 
 void Router::localNetworkArbitration() {
@@ -74,13 +77,21 @@ void Router::localNetworkArbitration() {
 }
 
 void Router::sendData(PortIndex output) {
-  if (!clock.posedge()) {
+  // Wait for permission to send (connections to other routers only).
+  if ((output != LOCAL) && !readyIn[output].read()) {
+    next_trigger(readyIn[output].posedge_event());
+  }
+  // Data is always sent on the positive clock edge.
+  else if (!clock.posedge()) {
     next_trigger(clock.posedge_event());
   }
   else {
     for (int i=0; i<5; i++) {
       PortIndex input = (i + lastAccepted[output] + 1) % 5;
       if (destination[input] == output) {
+        if (DEBUG)
+          cout << this->name() << " sending to " << (int)output << ": " << inputBuffers[input].peek() << endl;
+
         dataOut[output].write(inputBuffers[input].read());
         lastAccepted[output] = input;
         next_trigger(dataOut[output].ack_event());
@@ -94,10 +105,11 @@ void Router::sendData(PortIndex output) {
   }
 }
 
-void Router::updateFlowControl() {
-  bool canReceive = !inputBuffers[LOCAL].full();
-  if (readyOut.read() != canReceive)
-    readyOut.write(canReceive);
+void Router::updateFlowControl(PortIndex input) {
+  bool canReceive = !inputBuffers[input].full();
+  if (readyOut[input].read() != canReceive) {
+    readyOut[input].write(canReceive);
+  }
 }
 
 void Router::updateDestination(PortIndex input) {
@@ -157,6 +169,7 @@ Router::Router(const sc_module_name& name, const ComponentID& ID, const bool car
   }
 
   dataIn.init(5);    dataOut.init(5);
+  readyIn.init(4);   readyOut.init(5);
   outputAvailable.init(5);
 
   // Generate a method to watch each input port, putting the data into the
@@ -166,6 +179,13 @@ Router::Router(const sc_module_name& name, const ComponentID& ID, const bool car
   for (size_t i=0; i<dataIn.length(); i++) {
     SPAWN_METHOD(dataIn[i], Router::receiveData, i, false);
     SPAWN_METHOD(outputAvailable[i], Router::sendData, i, false);
+
+    // Need to do this the long way because it's sensitive to multiple events.
+    sc_core::sc_spawn_options options;
+    options.spawn_method();     /* Want an efficient method, not a thread */
+    options.set_sensitivity(&(inputBuffers[i].readEvent()));
+    options.set_sensitivity(&(inputBuffers[i].writeEvent()));
+    sc_spawn(sc_bind(&Router::updateFlowControl, this, i), 0, &options);
   }
 
   if (!carriesCredits) {
@@ -173,8 +193,8 @@ Router::Router(const sc_module_name& name, const ComponentID& ID, const bool car
     // do initialise
   }
 
-  SC_METHOD(updateFlowControl);
-  sensitive << inputBuffers[LOCAL].readEvent() << inputBuffers[LOCAL].writeEvent();
-  // do initialise
+//  SC_METHOD(updateFlowControl);
+//  sensitive << inputBuffers[LOCAL].readEvent() << inputBuffers[LOCAL].writeEvent();
+//  // do initialise
 
 }

@@ -6,16 +6,20 @@
  */
 
 #include "RoundRobinArbiter.h"
+#include <iostream>
 
 int RoundRobinArbiter::getGrant() {
+
   for(int i=0; i<numInputs(); i++) {
     // Increment pointer, wrapping around if necessary.
     lastAccepted++;
-    if(lastAccepted >= numInputs()) lastAccepted = 0;
+    if (lastAccepted >= numInputs())
+      lastAccepted = 0;
 
     // Accept a request if there is a request, and it hasn't already been
     // granted.
-    if(requests->at(i) && !grants->at(i)) return i;
+    if (requests->at(lastAccepted) && !grants->at(lastAccepted))
+      return lastAccepted;
   }
 
   // If we escape the loop, there are no requests we can grant.

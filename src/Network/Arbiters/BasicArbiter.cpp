@@ -15,6 +15,7 @@ int BasicArbiter::numInputs()  const {return requests.length();}
 int BasicArbiter::numOutputs() const {return select.length();}
 
 void BasicArbiter::arbitrate(int output) {
+
   switch (state[output]) {
     // We had no requests, but now that this method has been called again, we
     // should have at least one. Wait until the clock edge to arbitrate.
@@ -25,6 +26,7 @@ void BasicArbiter::arbitrate(int output) {
         // Fall through to HAVE_REQUESTS case.
       }
       else {
+//        cout << this->name() << " waiting for requests" << endl;
         changeSelection(output, NO_SELECTION);
         next_trigger(receivedRequest);
         break;
@@ -34,6 +36,7 @@ void BasicArbiter::arbitrate(int output) {
 
     // We have requests, and it is time to perform the arbitration.
     case HAVE_REQUESTS: {
+//      cout << this->name() << " arbitrating" << endl;
       SelectType grant = arbiter->getGrant();
       selectVec[output] = grant;
 
@@ -42,6 +45,8 @@ void BasicArbiter::arbitrate(int output) {
 
       if (grant != ArbiterBase::NO_GRANT) {    // Successful grant
         assert(grant < numInputs());
+
+//        cout << this->name() << " selected " << (int)grant << "; waiting for flow control" << endl;
 
         // Remove the granted request from consideration.
         requestVec[grant] = false;
@@ -57,6 +62,7 @@ void BasicArbiter::arbitrate(int output) {
       }
       else {
         // If we couldn't grant anything, wait until next cycle.
+//        cout << this->name() << " unable to grant any requests" << endl;
         state[output] = NO_REQUESTS;
         next_trigger(clock.negedge_event());
       }
@@ -74,6 +80,7 @@ void BasicArbiter::arbitrate(int output) {
       bool requestStillActive = (requests[granted].read() != NO_REQUEST);
 
       if (requestStillActive) {
+//        cout << this->name() << " ready to grant input " << (int)granted << endl;
         grant(granted, output);
 
         // Wait until the request line is deasserted. This means all flits in
@@ -84,6 +91,7 @@ void BasicArbiter::arbitrate(int output) {
         next_trigger(requests[granted].default_event() | stallGrant(output));
       }
       else {
+//        cout << this->name() << " request at input " << (int)granted << " removed" << endl;
         deassertGrant(granted, output);
         state[output] = NO_REQUESTS;
         next_trigger(clock.negedge_event());
@@ -103,6 +111,7 @@ void BasicArbiter::arbitrate(int output) {
         // The request was removed, meaning the communication completed
         // successfully.
         deassertGrant(granted, output);
+//        cout << this->name() << " removing grant for input " << (int)granted << endl;
 
         state[output] = haveRequest() ? HAVE_REQUESTS : NO_REQUESTS;
 
@@ -113,6 +122,8 @@ void BasicArbiter::arbitrate(int output) {
         // until it is ready again (or until the request is removed).
         grantVec[granted] = false;
         grantChanged[granted].notify();
+
+//        cout << this->name() << " new request on input " << (int)granted << endl;
 
         state[output] = WAITING_TO_GRANT;
         next_trigger(canGrantNow(output, requests[granted].read()) |
@@ -159,8 +170,11 @@ bool BasicArbiter::haveRequest() const {
 void BasicArbiter::requestChanged(int input) {
   requestVec[input] = (requests[input].read() != NO_REQUEST);
 
-  if (requestVec[input])
+//  cout << this->name() << " request " << input << " changed to " << (int)(requestVec[input]) << endl;
+
+  if (requestVec[input]) {
     receivedRequest.notify();
+  }
 }
 
 void BasicArbiter::updateGrant(int input) {
@@ -173,6 +187,7 @@ void BasicArbiter::updateSelect(int output) {
   // Arbitration is done the cycle before data is sent.
   if (clock.posedge()) {  // The clock edge
     select[output].write(selectVec[output]);
+//    cout << this->name() << " granted input " << (int)(selectVec[output]) << endl;
     next_trigger(selectionChanged[output]);
   }
   else {                  // Select signal changed

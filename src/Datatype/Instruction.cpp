@@ -289,10 +289,8 @@ void Instruction::decodeOpcode(const string& name) {
     opcodeString = opcodeParts[0];
   }
 
-  delete &opcodeParts;
-
   // See if the instruction sets the predicate register, or is the end of packet
-  opcodeParts = Strings::split(opcodeString, '.');
+  Strings::split(opcodeString, '.', opcodeParts);
   string opname = opcodeParts.front();
 
   if(opcodeParts.size() > 1) {

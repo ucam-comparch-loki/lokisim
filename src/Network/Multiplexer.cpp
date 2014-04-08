@@ -30,11 +30,13 @@ void Multiplexer::handleData() {
   else if (dataIn[selection].valid()) { // Data arrived on the selected input
     if (!haveSentData) {
       dataOut.write(dataIn[selection].read());
+//      cout << this->name() << " sent " << dataIn[selection].read() << endl;
       next_trigger(dataOut.ack_event());
       haveSentData = true;
     }
     else {
       dataIn[selection].ack();
+//      cout << this->name() << " acknowledged " << dataIn[selection].read() << endl;
       next_trigger(select.default_event() | dataIn[selection].default_event());
       haveSentData = false;
     }

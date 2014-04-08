@@ -17,6 +17,7 @@ void InstantCrossbar::mainLoop(PortIndex port) {
   switch (state[port]) {
     // New data arrived -> issue request.
     case IDLE:
+//      cout << this->name() << " issuing request for " << data << endl;
       requests[port][output].write(0); // Access first channel through output port
       state[port] = ARBITRATING;
       next_trigger(grants[port][output].default_event());

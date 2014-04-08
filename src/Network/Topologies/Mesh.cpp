@@ -28,6 +28,10 @@ void Mesh::makeWires() {
   dataSigSN.init(numColumns+1, numRows+1);
   dataSigEW.init(numColumns+1, numRows+1);
   dataSigWE.init(numColumns+1, numRows+1);
+  readySigNS.init(numColumns+1, numRows+1);
+  readySigSN.init(numColumns+1, numRows+1);
+  readySigEW.init(numColumns+1, numRows+1);
+  readySigWE.init(numColumns+1, numRows+1);
 }
 
 void Mesh::wireUp() {
@@ -39,24 +43,32 @@ void Mesh::wireUp() {
       // Data heading north-south
       router.dataIn[Router::NORTH](dataSigNS[col][row]);
       router.dataOut[Router::SOUTH](dataSigNS[col][row+1]);
+      router.readyIn[Router::NORTH](readySigNS[col][row]);
+      router.readyOut[Router::SOUTH](readySigNS[col][row+1]);
 
       // Data heading east-west
       router.dataIn[Router::EAST](dataSigEW[col+1][row]);
       router.dataOut[Router::WEST](dataSigEW[col][row]);
+      router.readyIn[Router::EAST](readySigEW[col+1][row]);
+      router.readyOut[Router::WEST](readySigEW[col][row]);
 
       // Data heading south-north
       router.dataIn[Router::SOUTH](dataSigSN[col][row+1]);
       router.dataOut[Router::NORTH](dataSigSN[col][row]);
+      router.readyIn[Router::SOUTH](readySigSN[col][row+1]);
+      router.readyOut[Router::NORTH](readySigSN[col][row]);
 
       // Data heading west-east
       router.dataIn[Router::WEST](dataSigWE[col][row]);
       router.dataOut[Router::EAST](dataSigWE[col+1][row]);
+      router.readyIn[Router::WEST](readySigWE[col][row]);
+      router.readyOut[Router::EAST](readySigWE[col+1][row]);
 
       // Data heading to/from local tile
       int tile = router.id.getTile();
       router.dataIn[Router::LOCAL](dataIn[tile]);
       router.dataOut[Router::LOCAL](dataOut[tile]);
-      router.readyOut(readyOut[tile]);
+      router.readyOut[Router::LOCAL](readyOut[tile]);
     }
   }
 }

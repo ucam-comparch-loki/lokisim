@@ -28,7 +28,7 @@ void LocalNetwork::multicastRequest(ComponentID source, ChannelID destination, b
   unsigned int bitmask = destination.getPosition();
 
   // Loop through all bits in the bitmask, and send a request for each bit set.
-  for (int i=0; i<8; i++) {
+  for (int i=0; i<CORES_PER_TILE; i++) {
     if ((bitmask >> i) & 1) {
       ChannelID core(destination.getTile(), i, destination.getChannel());
       pointToPointRequest(source, core, request);

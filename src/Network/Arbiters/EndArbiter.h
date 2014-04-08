@@ -66,7 +66,7 @@ private:
 private:
 
   // The number of flow control signals this arbiter receives.
-  const int flowControlSignals;
+//  const int flowControlSignals;
 
   // An event which is notified whenever canGrantNow determines that it is safe
   // to grant a request.

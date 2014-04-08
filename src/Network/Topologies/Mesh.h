@@ -73,6 +73,7 @@ private:
   // array[column][row]. Each array name is tagged with the direction it
   // carries data, e.g. NS = north to south.
   LokiVector2D<DataSignal> dataSigNS, dataSigSN, dataSigEW, dataSigWE;
+  LokiVector2D<ReadySignal> readySigNS, readySigSN, readySigEW, readySigWE;
 
 //==============================//
 // Local state
