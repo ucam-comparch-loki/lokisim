@@ -27,7 +27,7 @@ int CodeLoader::mainOffset = -1;
 void CodeLoader::loadParameters(const string& settings) {
 
   // Check that this is actually a settings file.
-  if(settings.find(".txt") == settings.size()) return;
+  if (settings.find(".txt") == settings.size()) return;
 
   char line[200];   // An array of chars to load a line from the file into.
 
@@ -38,32 +38,32 @@ void CodeLoader::loadParameters(const string& settings) {
   int pos = settings.find("loader.txt");
   string directory = settings.substr(0,pos-1);
 
-  while(!file.fail()) {
+  while (!file.fail()) {
     try {
       file.getline(line, 200, '\n');
       string s(line);
 
-      if(s[0]=='%' || s[0]=='\0') continue;   // Skip past any comments
+      if (s[0]=='%' || s[0]=='\0') continue;   // Skip past any comments
 
       vector<string>& words = StringManipulation::split(s, ' ');
-      if(words.size() == 0) continue;
+      if (words.size() == 0) continue;
 
-      if(words[0]=="directory") {     // Update the current directory
+      if (words[0]=="directory") {     // Update the current directory
         directory = directory + "/" + words[1];
       }
-      else if(words[0]=="loader") {   // Use another file loader
+      else if (words[0]=="loader") {   // Use another file loader
         string loaderFile = directory + "/" + words[1];
         loadParameters(loaderFile);
       }
-      else if(words[0]=="parameter") {   // Override parameter
+      else if (words[0]=="parameter") {   // Override parameter
         Parameters::parseParameter(words[1], words[2]);
       }
 
       delete &words;
 
-      if(file.eof()) break;
+      if (file.eof()) break;
     }
-    catch(std::exception& e) {
+    catch (std::exception& e) {
       std::cerr << "Error: could not read file " << settings << " while parsing parameters" << endl;
       continue;
     }
@@ -91,7 +91,7 @@ void CodeLoader::loadCode(const string& settings, Chip& chip) {
   unsigned int pos = settings.find(".txt");
 
   // If the line doesn't specify a text file, it is probably an executable.
-  if(pos >= settings.length()) {
+  if (pos >= settings.length()) {
     // Put the string in a vector so we can use existing methods.
     vector<string> vec;
     vec.push_back(settings);
@@ -103,26 +103,26 @@ void CodeLoader::loadCode(const string& settings, Chip& chip) {
   pos = settings.rfind("/");
   string directory = ((int)pos == -1) ? "" : (settings.substr(0,pos) + "/");
 
-  while(!file.fail()) {
+  while (!file.fail()) {
     try {
       file.getline(line, 200, '\n');
       string s(line);
 
-      if(s[0]=='%' || s[0]=='\0') continue;   // Skip past any comments
+      if (s[0]=='%' || s[0]=='\0') continue;   // Skip past any comments
 
       vector<string>& words = StringManipulation::split(s, ' ');
 
-      if(words[0]=="directory") {     // Update the current directory
+      if (words[0]=="directory") {     // Update the current directory
         directory = directory + words[1];
       }
-      else if(words[0]=="loader") {   // Use another file loader
+      else if (words[0]=="loader") {   // Use another file loader
         string loaderFile = directory + words[1];
         loadCode(loaderFile, chip);
       }
-      else if(words[0]=="parameter") {
+      else if (words[0]=="parameter") {
         // Do nothing: parameters are dealt with in loadParameters()
       }
-      else if(words[0]=="apploader") {
+      else if (words[0]=="apploader") {
         // Load application loader code from the given file
 
         // Add the current directory onto the filename.
@@ -145,9 +145,9 @@ void CodeLoader::loadCode(const string& settings, Chip& chip) {
 
       delete &words;
 
-      if(file.eof()) break;
+      if (file.eof()) break;
     }
-    catch(std::exception& e) {
+    catch (std::exception& e) {
       std::cerr << "Error: could not read file " << settings << " while parsing commands" << endl;
       continue;
     }
@@ -185,12 +185,12 @@ void CodeLoader::loadFromReader(FileReader* reader, Chip& chip) {
 
   vector<DataBlock>& blocks = reader->extractData(mainOffset);
 
-  for(uint i=0; i<blocks.size(); i++) {
+  for (uint i=0; i<blocks.size(); i++) {
     if (blocks[i].component().getTile() == 0 && blocks[i].component().getPosition() == 0 && blocks[i].position() == 0)
       appLoaderInitialized = true;
 
-    chip.storeData(blocks[i].data(), blocks[i].component(), blocks[i].position());
-    delete &(blocks[i].data());
+    chip.storeData(blocks[i]);
+    delete &(blocks[i].payload());
   }
 
   delete &blocks;

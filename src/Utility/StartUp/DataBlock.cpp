@@ -9,7 +9,7 @@
 #include "../../Datatype/Word.h"
 #include "../../Datatype/ComponentID.h"
 
-vector<Word>& DataBlock::data() const {
+vector<Word>& DataBlock::payload() const {
   return *data_;
 }
 
@@ -21,14 +21,20 @@ int DataBlock::position() const {
   return position_;
 }
 
-DataBlock::DataBlock(vector<Word>* data, const ComponentID& component, int position) {
-  data_ = data;
-  component_ = component;
-  position_ = position;
+bool DataBlock::readOnly() const {
+  return readOnly_;
+}
+
+DataBlock::DataBlock(vector<Word>* data, const ComponentID& component, int position, bool readOnly) :
+  data_(data),
+  component_(component),
+  position_(position),
+  readOnly_(readOnly) {
+
 }
 
 DataBlock::~DataBlock() {
-  // For some reason, since data_ wasn't allocated in this class, it can't
-  // be deleted in this class. We must therefore use (from somewhere else):
+  // For some reason, data_ can't be deleted in this class. We must therefore
+  // use (from somewhere else):
   //   delete &(block.data());
 }

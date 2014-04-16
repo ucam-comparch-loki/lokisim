@@ -269,6 +269,10 @@ bool GeneralPurposeCacheHandler::readByte(uint32_t address, uint32_t &data, bool
 
 bool GeneralPurposeCacheHandler::writeWord(uint32_t address, uint32_t data, bool resume, bool debug) {
 	assert((address & 0x3) == 0);
+	if (mBackgroundMemory->readOnly(address)) {
+    cout << "Error: writing to read-only memory address " << address << endl;
+    assert(false);
+  }
 
 	uint slot;
 	if (!lookupCacheLine(address, slot)) {
@@ -297,6 +301,10 @@ bool GeneralPurposeCacheHandler::writeWord(uint32_t address, uint32_t data, bool
 
 bool GeneralPurposeCacheHandler::writeHalfWord(uint32_t address, uint32_t data, bool resume, bool debug) {
 	assert((address & 0x1) == 0);
+	if (mBackgroundMemory->readOnly(address)) {
+    cout << "Error: writing to read-only memory address " << address << endl;
+    assert(false);
+  }
 
 	uint slot;
 	if (!lookupCacheLine(address, slot)) {
@@ -330,6 +338,11 @@ bool GeneralPurposeCacheHandler::writeHalfWord(uint32_t address, uint32_t data, 
 }
 
 bool GeneralPurposeCacheHandler::writeByte(uint32_t address, uint32_t data, bool resume, bool debug) {
+  if (mBackgroundMemory->readOnly(address)) {
+    cout << "Error: writing to read-only memory address " << address << endl;
+    assert(false);
+  }
+
 	uint slot;
 	if (!lookupCacheLine(address, slot)) {
 		assert(!resume);
@@ -432,6 +445,10 @@ void GeneralPurposeCacheHandler::replaceCacheLine(uint32_t fetchAddress, uint32_
 
 	//if (mBankNumber >= 4)
 	//	fprintf(stderr, "GPCH: bank %u inserted line at %.8X (%u bytes)\n", mBankNumber, fetchAddress, mLineSize);
+}
+
+void GeneralPurposeCacheHandler::setBackgroundMemory(SimplifiedOnChipScratchpad *backgroundMemory) {
+  mBackgroundMemory = backgroundMemory;
 }
 
 void GeneralPurposeCacheHandler::synchronizeData(SimplifiedOnChipScratchpad *backgroundMemory) {

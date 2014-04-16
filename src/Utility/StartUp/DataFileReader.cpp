@@ -18,7 +18,7 @@ vector<DataBlock>& DataFileReader::extractData(int& mainPos) const {
 
   int wordsRead = 0;
 
-  while(!file.fail()) {
+  while (!file.fail()) {
 
     try {
       Word w = nextWord(file);
@@ -34,7 +34,7 @@ vector<DataBlock>& DataFileReader::extractData(int& mainPos) const {
 
   }
 
-  if(words->size() == 0)
+  if (words->size() == 0)
     std::cerr << "Error: read 0 words from file " << filename_ << std::endl;
   else if(DEBUG) std::cout << "Retrieved " << words->size() <<
     " words from file " << filename_ << std::endl;
@@ -42,7 +42,7 @@ vector<DataBlock>& DataFileReader::extractData(int& mainPos) const {
   file.close();
 
   vector<DataBlock>* blocks = new vector<DataBlock>();
-  blocks->push_back(DataBlock(words, componentID_, position_));
+  blocks->push_back(DataBlock(words, componentID_, position_, false));
 
   return *blocks;
 }
@@ -54,7 +54,7 @@ Word DataFileReader::nextWord(std::ifstream& file) const {
   file.getline(line, 20, '\n');
 
   // Filter out any lines which contain nothing, or are comments.
-  if(line[0] == '\0' || line[0] == ';' || line[0] == '%')
+  if (line[0] == '\0' || line[0] == ';' || line[0] == '%')
     throw std::exception();
   else {
     // If there are multiple words on a line, we're only interested in the

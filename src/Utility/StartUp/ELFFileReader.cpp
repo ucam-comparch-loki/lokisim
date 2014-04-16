@@ -40,18 +40,18 @@ vector<DataBlock>& ELFFileReader::extractData(int& mainPos) const {
   char line[100];
 
   // Step through each line of information, looking for ones of interest.
-  while(fgets(line, 100, terminalOutput) != NULL) {
+  while (fgets(line, 100, terminalOutput) != NULL) {
     string lineStr(line);
     vector<string>& words = StringManipulation::split(lineStr, ' ');
 
     // We're only interested in descriptions of each section.
-    if(words.size() == 7) {
+    if (words.size() == 7) {
       char properties[100];
-      if(fgets(properties, 100, terminalOutput) == NULL)
+      if (fgets(properties, 100, terminalOutput) == NULL)
         break;
 
       // We are only interested in sections with the "LOAD" property.
-      if(strstr(properties, "LOAD") == NULL)
+      if (strstr(properties, "LOAD") == NULL)
         continue;
 
       string name      = words[1];
@@ -65,8 +65,8 @@ vector<DataBlock>& ELFFileReader::extractData(int& mainPos) const {
 
       vector<Word>* data = new vector<Word>();
 
-      if(name == ".text") {
-        for(int i=0; i<size; i+=BYTES_PER_WORD) {
+      if (name == ".text") {
+        for (int i=0; i<size; i+=BYTES_PER_WORD) {
           Instruction inst = nextWord(elfFile);
           data->push_back(inst);
 
@@ -74,14 +74,15 @@ vector<DataBlock>& ELFFileReader::extractData(int& mainPos) const {
         }
       }
       else {
-        for(int i=0; i<size; i+=BYTES_PER_WORD) {
+        for (int i=0; i<size; i+=BYTES_PER_WORD) {
           Word w = nextWord(elfFile);
           data->push_back(w);
         }
       }
 
       // Put these instructions into a particular position in memory.
-      DataBlock block(data, componentID_, physPosition);
+      bool readOnly = (name == ".text" || name == ".rodata");
+      DataBlock block(data, componentID_, physPosition, readOnly);
       blocks->push_back(block);
     }
 
@@ -137,12 +138,12 @@ int ELFFileReader::findMain() const {
 
   // Step through each line of information, looking for the one corresponding
   // to main().
-  while(fgets(line, 100, terminalOutput) != NULL) {
+  while (fgets(line, 100, terminalOutput) != NULL) {
     string lineStr(line);
     vector<string>& words = StringManipulation::split(lineStr, ' ');
 
     // We're only interested one line of the information.
-    if(words.back()=="_start\n") {
+    if (words.back()=="_start\n") {
       mainPos = StringManipulation::strToInt("0x"+words[0]);
       foundMainPos = true;
       delete &words;
@@ -154,7 +155,7 @@ int ELFFileReader::findMain() const {
 
   fclose(terminalOutput);
 
-  if(foundMainPos) {
+  if (foundMainPos) {
     return mainPos;
   }
   else {

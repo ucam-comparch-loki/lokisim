@@ -271,7 +271,7 @@ void SimplifiedOnChipScratchpad::flushQueues() {
 }
 */
 
-void SimplifiedOnChipScratchpad::storeData(vector<Word>& data, MemoryAddr location) {
+void SimplifiedOnChipScratchpad::storeData(vector<Word>& data, MemoryAddr location, bool readOnly) {
 	size_t count = data.size();
 	uint32_t address = location / 4;
 
@@ -284,10 +284,25 @@ void SimplifiedOnChipScratchpad::storeData(vector<Word>& data, MemoryAddr locati
 
 		mData[address + i] = data[i].toUInt();
 	}
+
+	if (readOnly) {
+	  readOnlyBase.push_back(location);
+	  readOnlyLimit.push_back(location + 4*data.size());
+	}
 }
 
 const void* SimplifiedOnChipScratchpad::getData() {
 	return mData;
+}
+
+bool SimplifiedOnChipScratchpad::readOnly(MemoryAddr addr) const {
+  for (uint i=0; i<readOnlyBase.size(); i++) {
+    if ((addr >= readOnlyBase[i]) && (addr < readOnlyLimit[i])) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 void SimplifiedOnChipScratchpad::print(MemoryAddr start, MemoryAddr end) {
@@ -325,11 +340,13 @@ Word SimplifiedOnChipScratchpad::readByte(MemoryAddr addr) {
 void SimplifiedOnChipScratchpad::writeWord(MemoryAddr addr, Word data) {
 	assert(addr < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 	assert(addr % 4 == 0);
+	assert(!readOnly(addr));
 	mData[addr / 4] = data.toUInt();
 }
 
 void SimplifiedOnChipScratchpad::writeByte(MemoryAddr addr, Word data) {
 	assert(addr < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+	assert(!readOnly(addr));
 	uint32_t modData = mData[addr / 4];
 	uint shift = (addr & 0x3UL) * 8;
 	uint32_t mask = 0xFFUL << shift;

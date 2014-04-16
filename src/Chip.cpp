@@ -8,21 +8,22 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "Chip.h"
+#include "Utility/StartUp/DataBlock.h"
 
 void Chip::storeInstructions(vector<Word>& instructions, const ComponentID& component) {
 	cores[component.getGlobalCoreNumber()]->storeData(instructions);
 }
 
-void Chip::storeData(vector<Word>& data, const ComponentID& component, MemoryAddr location) {
-  if(component.isCore()) {
-    assert(component.getGlobalCoreNumber() < cores.size());
-    cores[component.getGlobalCoreNumber()]->storeData(data, location);
+void Chip::storeData(const DataBlock& data) {
+  if(data.component().isCore()) {
+    assert(data.component().getGlobalCoreNumber() < cores.size());
+    cores[data.component().getGlobalCoreNumber()]->storeData(data.payload(), data.position());
   }
-  else if(component.isMemory()) {
-    assert(component.getGlobalMemoryNumber() < memories.size());
-    memories[component.getGlobalMemoryNumber()]->storeData(data,location);
+  else if(data.component().isMemory()) {
+    assert(data.component().getGlobalMemoryNumber() < memories.size());
+    memories[data.component().getGlobalMemoryNumber()]->storeData(data.payload(),data.position());
   }
-  else backgroundMemory.storeData(data, location);
+  else backgroundMemory.storeData(data.payload(), data.position(), data.readOnly());
 }
 
 const void* Chip::getMemoryData() {

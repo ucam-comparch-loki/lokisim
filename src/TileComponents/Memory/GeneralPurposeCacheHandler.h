@@ -59,6 +59,7 @@ private:
 	uint32_t mGroupMask;					// Bit mask used to extract group bits
 
 	uint mBankNumber;						// Bank number for statistics use
+  SimplifiedOnChipScratchpad *mBackgroundMemory; // Lowest level cache for debug use
 
 	//---------------------------------------------------------------------------------------------
 	// Internal functions
@@ -87,6 +88,8 @@ public:
 
 	void prepareCacheLine(uint32_t address, uint32_t &writeBackAddress, uint &writeBackCount, uint32_t writeBackData[], uint32_t &fetchAddress, uint &fetchCount);
 	void replaceCacheLine(uint32_t fetchAddress, uint32_t fetchData[]);
+
+	void setBackgroundMemory(SimplifiedOnChipScratchpad *backgroundMemory);
 
 	void synchronizeData(SimplifiedOnChipScratchpad *backgroundMemory);
 };

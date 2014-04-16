@@ -325,7 +325,7 @@ public:
 	// Simulation utility methods inherited from Component - not part of simulated logic
 	//---------------------------------------------------------------------------------------------
 
-private:
+protected:
 	MemoryBank *mPrevMemoryBank;
 	MemoryBank *mNextMemoryBank;
 	SimplifiedOnChipScratchpad *mBackgroundMemory;

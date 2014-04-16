@@ -21,6 +21,7 @@
 
 using std::vector;
 
+class DataBlock;
 class TileComponent;
 
 class Chip : public Component {
@@ -45,7 +46,7 @@ public:
 
   // Store the given instructions or data into the component at the given index.
   void    storeInstructions(vector<Word>& instructions, const ComponentID& component);
-  void    storeData(vector<Word>& data, const ComponentID& component, MemoryAddr location=0);
+  void    storeData(const DataBlock& data);
 
   const void* getMemoryData();
 

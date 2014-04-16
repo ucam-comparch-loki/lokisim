@@ -8,6 +8,7 @@
 #include "Arguments.h"
 #include "Debugger.h"
 #include "StringManipulation.h"
+#include "StartUp/DataBlock.h"
 #include "Trace/CoreTrace.h"
 #include "Trace/MemoryTrace.h"
 #include "Trace/SoftwareTrace.h"
@@ -147,6 +148,7 @@ void Arguments::parse(int argc, char* argv[]) {
 // Store any relevant arguments in the Loki memory.
 // Borrowed from Alex, in turn borrowed from moxie backend.
 void Arguments::storeArguments(Chip& chip) {
+  vector<Word> data;
   uint i, j, tp;
 
   /* Target memory looks like this:
@@ -158,25 +160,37 @@ void Arguments::storeArguments(Chip& chip) {
      0x0000???? zero word
      0x0000???? start of data pointed to by argv  */
 
-  chip.writeWord(ComponentID(), 0, Word(0));
-  chip.writeWord(ComponentID(), 4, Word(programArgc));
+  data.push_back(Word(0));
+  data.push_back(Word(programArgc));
 
   /* tp is the offset of our first argv data.  */
   tp = 4 + 4 + programArgc*4 + 4;
 
-  for (i = 0; i < programArgc; i++)
-  {
-    /* Set the argv value.  */
-    chip.writeWord(ComponentID(), 4 + 4 + i*4, Word(tp));
-
-    /* Store the string.  */
-    for (j=0; j < (strlen(programArgv[i])+1); j++) {
-      chip.writeByte(ComponentID(), tp+j, Word(programArgv[i][j]));
-    }
+  /* Set the argv values.  */
+  for (i = 0; i < programArgc; i++) {
+    data.push_back(Word(tp));
     tp += strlen(programArgv[i]) + 1;
   }
 
-  chip.writeWord(ComponentID(), 4 + 4 + i*4, Word(0));
+  data.push_back(Word(0));
+
+  uint32_t val = 0;
+  int bytes = 0;
+  /* Store the strings.  */
+  for (i = 0; i < programArgc; i++) {
+    for (j=0; j < (strlen(programArgv[i])+1); j++) {
+      val |= programArgv[i][j] << (bytes*8);
+      bytes++;
+
+      if (bytes == 4) {
+        bytes = 0;
+        data.push_back(Word(val));
+        val = 0;
+      }
+    }
+  }
+
+  chip.storeData(DataBlock(&data, ComponentID(), 0, true));
 }
 
 bool Arguments::simulate() {

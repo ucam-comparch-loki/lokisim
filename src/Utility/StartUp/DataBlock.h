@@ -23,11 +23,20 @@ class DataBlock {
 
 public:
 
-  vector<Word>& data() const;
+  // The data to be stored.
+  vector<Word>& payload() const;
+
+  // The component (core or memory) to store the data in. A null ComponentID
+  // signifies the background memory.
   ComponentID component() const;
+
+  // The address at which the payload should be stored.
   int position() const;
 
-  DataBlock(vector<Word>* data, const ComponentID& component, int position=0);
+  // Marks whether this data may be changed by the program.
+  bool readOnly() const;
+
+  DataBlock(vector<Word>* data, const ComponentID& component, int position, bool readOnly);
   virtual ~DataBlock();
 
 private:
@@ -35,6 +44,7 @@ private:
   vector<Word>* data_;
   ComponentID component_;
   int position_;
+  bool readOnly_;
 
 };
 

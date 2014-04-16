@@ -1478,6 +1478,7 @@ void MemoryBank::setAdjacentMemories(MemoryBank *prevMemoryBank, MemoryBank *nex
 	mPrevMemoryBank = prevMemoryBank;
 	mNextMemoryBank = nextMemoryBank;
 	mBackgroundMemory = backgroundMemory;
+	mGeneralPurposeCacheHandler.setBackgroundMemory(backgroundMemory);
 }
 
 void MemoryBank::setLocalNetwork(local_net_t* network) {

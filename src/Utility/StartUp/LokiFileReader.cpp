@@ -17,13 +17,13 @@ vector<DataBlock>& LokiFileReader::extractData(int& mainPos) const {
 
   int wordsRead = 0;
 
-  while(!file.fail()) {
+  while (!file.fail()) {
 
     try {
       Word w = nextWord(file);
       words->push_back(w);
 
-      if(Debugger::mode == Debugger::DEBUGGER) {
+      if (Debugger::mode == Debugger::DEBUGGER) {
         printInstruction((Instruction)w, wordsRead*BYTES_PER_WORD);
       }
     }
@@ -33,19 +33,19 @@ vector<DataBlock>& LokiFileReader::extractData(int& mainPos) const {
 
     wordsRead++;
 
-    if(file.eof()) break;
+    if (file.eof()) break;
 
   }
 
-  if(words->size() == 0)
+  if (words->size() == 0)
     std::cerr << "Error: read 0 words from file " << filename_ << std::endl;
-  else if(DEBUG) std::cout << "Retrieved " << words->size() <<
+  else if (DEBUG) std::cout << "Retrieved " << words->size() <<
     " words from file " << filename_ << std::endl;
 
   file.close();
 
   vector<DataBlock>* blocks = new vector<DataBlock>();
-  blocks->push_back(DataBlock(words, componentID_, position_));
+  blocks->push_back(DataBlock(words, componentID_, position_, true));
 
   return *blocks;
 }

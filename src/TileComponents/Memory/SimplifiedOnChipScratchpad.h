@@ -97,6 +97,10 @@ private:
 	PortData *mPortData;								// State information about all ports
 	BufferArray<InputWord> mInputQueues;				// Input queues for all ports
 
+	// Mainly for debug, mark the read-only sections of the address space.
+	std::vector<MemoryAddr> readOnlyBase,
+	                        readOnlyLimit;
+
 	//---------------------------------------------------------------------------------------------
 	// Internal functions
 	//---------------------------------------------------------------------------------------------
@@ -125,8 +129,10 @@ public:
 
 	//void flushQueues();
 
-	void storeData(vector<Word>& data, MemoryAddr location);
+	void storeData(vector<Word>& data, MemoryAddr location, bool readOnly);
 	const void* getData();
+
+	bool readOnly(MemoryAddr addr) const;     // Check whether a memory location is read-only
 
 	void print(MemoryAddr start, MemoryAddr end);
 	Word readWord(MemoryAddr addr);
