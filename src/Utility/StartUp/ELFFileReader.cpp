@@ -80,8 +80,9 @@ vector<DataBlock>& ELFFileReader::extractData(int& mainPos) const {
         }
       }
 
+      bool readOnly = (strstr(properties, "READONLY") != NULL);
+
       // Put these instructions into a particular position in memory.
-      bool readOnly = (name == ".text" || name == ".rodata");
       DataBlock block(data, componentID_, physPosition, readOnly);
       blocks->push_back(block);
     }
