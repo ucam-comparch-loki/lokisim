@@ -18,6 +18,11 @@
 
 typedef RegisterFile Registers;
 
+// Below is a failed attempt at converting the decoder into a state machine so
+// the inefficient SC_THREAD which performs decoding can be replaced with a
+// better SC_METHOD. I would still like to get this done sometime, so haven't
+// tidied it away.
+
 /*
 void Decoder::initialise(const DecodedInst& input) {
   current = input;
@@ -414,6 +419,12 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     case InstructionMap::OP_LDW:
       output.memoryOp(MemoryRequest::LOAD_W); break;
     case InstructionMap::OP_LDHWU:
+      // FIXME: horrible hack - artificial memory latency for load-throughs.
+      /*if (input.channelMapEntry() == 2) {
+        blocked = true; blockedEvent.notify();
+        wait(MEMORY_ON_CHIP_SCRATCHPAD_DELAY, sc_core::SC_NS);
+        blocked = false; blockedEvent.notify();
+      }*/
       output.memoryOp(MemoryRequest::LOAD_HW); break;
     case InstructionMap::OP_LDBU:
       output.memoryOp(MemoryRequest::LOAD_B); break;

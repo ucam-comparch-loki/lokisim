@@ -37,15 +37,15 @@ void WriteStage::newInput(DecodedInst& inst) {
 }
 
 void WriteStage::sendData() {
-  scet.write(dataIn.read());
+  scet.write(iData.read());
 }
 
 void WriteStage::updateReady() {
   bool ready = !isStalled();
 
   // Write our current stall status.
-  if (ready != readyOut.read()) {
-    readyOut.write(ready);
+  if (ready != oReady.read()) {
+    oReady.write(ready);
 
     if (ready)
       Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT);
@@ -81,25 +81,18 @@ WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
     scet("scet", ID, &(parent()->channelMapTable)) {
 
-  static const unsigned int NUM_BUFFERS = CORE_OUTPUT_PORTS;
-
-  output.init(NUM_BUFFERS);
-  creditsIn.init(NUM_BUFFERS);
-
   // Connect the SCET to the network.
   scet.clock(clock);
-
-  for(unsigned int i=0; i<NUM_BUFFERS; i++) {
-    scet.output[i](output[i]);
-    scet.creditsIn[i](creditsIn[i]);
-  }
+  scet.oDataLocal(oDataLocal);
+  scet.oDataGlobal(oDataGlobal);
+  scet.iCredit(iCredit);
 
   SC_METHOD(execute);
   sensitive << newInstructionEvent;
   dont_initialize();
 
   SC_METHOD(sendData);
-  sensitive << dataIn;
+  sensitive << iData;
   dont_initialize();
 
   SC_METHOD(updateReady);

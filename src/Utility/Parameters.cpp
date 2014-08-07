@@ -92,7 +92,7 @@ parameter MEMORY_ON_CHIP_SCRATCHPAD_BANKS		= 4;
 // accessible through each port.
 //-------------------------------------------------------------------------------------------------
 
-parameter CORE_INPUT_PORTS         = 5;  // 2 from cores, 2 from memories, 1 from global network
+parameter CORE_INPUT_PORTS         = 4;  // 2 from cores, 2 from memories
 parameter CORE_OUTPUT_PORTS        = 1;  // To cores, to memories, off tile
 parameter NUM_RECEIVE_CHANNELS     = 6;  // Register-mapped inputs only
 

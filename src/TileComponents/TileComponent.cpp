@@ -12,8 +12,8 @@
 #include "../Datatype/AddressedWord.h"
 #include "../Datatype/ChannelID.h"
 
-int TileComponent::numInputs()  const {return dataIn.length();}
-int TileComponent::numOutputs() const {return dataOut.length();}
+int TileComponent::numInputs()  const {return iData.length();}
+int TileComponent::numOutputs() const {return oData.length();}
 
 void TileComponent::print(MemoryAddr start, MemoryAddr end) const {
   // Do nothing if print isn't defined
@@ -60,27 +60,12 @@ Chip* TileComponent::parent() const {
   return static_cast<Chip*>(this->get_parent());
 }
 
-void TileComponent::acknowledgeCredit(PortIndex output) {
-  // This happens here so it can be used by both memories and cores.
-  creditsIn[output].ack();
-}
-
 /* Constructors and destructors */
 TileComponent::TileComponent(sc_module_name name, const ComponentID& ID,
                              int inputPorts, int outputPorts) :
     Component(name, ID) {
 
-  dataIn.init(inputPorts);
-  dataOut.init(outputPorts);
-
-  // Temporary? Only have a single credit output, used to send credits to other
-  // tiles. Credits aren't used for local communication.
-  creditsOut.init(1);
-  creditsIn.init(outputPorts);
-
-  // Generate a method to watch each credit input port, and send an
-  // acknowledgement whenever a credit arrives.
-  for (int i=0; i<outputPorts; i++)
-    SPAWN_METHOD(creditsIn[i], TileComponent::acknowledgeCredit, i, false);
+  iData.init(inputPorts);
+  oData.init(outputPorts);
 
 }

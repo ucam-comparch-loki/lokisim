@@ -9,17 +9,21 @@
 
 #include "Chip.h"
 #include "Utility/StartUp/DataBlock.h"
+#include "Network/Global/DataNetwork.h"
+#include "Network/Global/CreditNetwork.h"
+#include "Network/Global/RequestNetwork.h"
+#include "Network/Global/ResponseNetwork.h"
 
 void Chip::storeInstructions(vector<Word>& instructions, const ComponentID& component) {
 	cores[component.getGlobalCoreNumber()]->storeData(instructions);
 }
 
 void Chip::storeData(const DataBlock& data) {
-  if(data.component().isCore()) {
+  if (data.component().isCore()) {
     assert(data.component().getGlobalCoreNumber() < cores.size());
     cores[data.component().getGlobalCoreNumber()]->storeData(data.payload(), data.position());
   }
-  else if(data.component().isMemory()) {
+  else if (data.component().isMemory()) {
     assert(data.component().getGlobalMemoryNumber() < memories.size());
     memories[data.component().getGlobalMemoryNumber()]->storeData(data.payload(),data.position());
   }
@@ -101,7 +105,7 @@ bool Chip::readPredicate(const ComponentID& component) const {
 }
 
 void Chip::watchIdle(int component) {
-  if(idleSig[component].read()) {
+  if (idleSig[component].read()) {
     idleComponents++;
     assert(idleComponents <= NUM_COMPONENTS);
     next_trigger(idleSig[component].negedge_event());
@@ -114,6 +118,9 @@ void Chip::watchIdle(int component) {
 }
 
 bool Chip::isIdle() const {
+  // TODO: replace with Instrumentation method - the idle signals switch very
+  // frequently and probably slow simulation down.
+  // TODO: each pipeline stage has an idle signal! Lots to remove!
   return idleComponents == NUM_COMPONENTS;
 }
 
@@ -123,13 +130,26 @@ void Chip::makeSignals() {
 
   idleSig.init(NUM_COMPONENTS + 1);
 
-  dataFromComponents.init(numOutputs);
-  dataToComponents.init(numInputs);
-  creditsFromComponents.init(NUM_CORES);
-  creditsToComponents.init(numOutputs);
+  oDataLocal.init(numOutputs);
+  iDataLocal.init(numInputs);
+  oReadyData.init(NUM_COMPONENTS);
+  for (unsigned int i=0; i<oReadyData.length(); i++) {
+    if (i % COMPONENTS_PER_TILE < CORES_PER_TILE)
+      oReadyData[i].init(CORE_INPUT_CHANNELS);
+    else
+      oReadyData[i].init(1);
+  }
 
-  readyDataFromComps.init(NUM_CORES * CORE_INPUT_CHANNELS + NUM_MEMORIES);
-  readyCreditsFromComps.init(NUM_CORES * CORE_OUTPUT_PORTS);
+  oDataGlobal.init(NUM_CORES);
+  iDataGlobal.init(NUM_CORES);
+
+  oCredit.init(NUM_CORES);
+  iCredit.init(numOutputs);
+  oReadyCredit.init(NUM_CORES * CORE_OUTPUT_PORTS);
+
+  oRequest.init(NUM_MEMORIES);
+  iRequest.init(NUM_MEMORIES);
+  oReadyRequest.init(NUM_MEMORIES);
 
 	strobeToBackgroundMemory.init(NUM_MEMORIES);
 	dataToBackgroundMemory.init(NUM_MEMORIES);
@@ -142,19 +162,19 @@ void Chip::makeSignals() {
 }
 
 void Chip::makeComponents() {
-  for(uint j=0; j<NUM_TILES; j++) {
+  for (uint j=0; j<NUM_TILES; j++) {
     std::stringstream namebuilder;
     std::string name;
 
-    // Initialise the Clusters of this Tile
-    for(uint i=0; i<CORES_PER_TILE; i++) {
-      ComponentID clusterID(j, i);
+    // Initialise the Cores of this Tile
+    for (uint i=0; i<CORES_PER_TILE; i++) {
+      ComponentID coreID(j, i);
 
-      namebuilder << "core_" << clusterID.getNameString();
+      namebuilder << "core_" << coreID.getNameString();
       namebuilder >> name;
       namebuilder.clear();
 
-      Core* c = new Core(name.c_str(), clusterID, network.getLocalNetwork(clusterID));
+      Core* c = new Core(name.c_str(), coreID, network.getLocalNetwork(coreID));
       
       cores.push_back(c);
     }
@@ -183,76 +203,116 @@ void Chip::wireUp() {
 	backgroundMemory.iClock(clock);
 	backgroundMemory.oIdle(idleSig[NUM_COMPONENTS]);
 
-// Connect clusters and memories to the local interconnect
+	// Global data network - connects cores to cores.
+  DataNetwork* dataNet = new DataNetwork("data_net");
+  dataNet->clock(clock);
+  for (unsigned int i=0; i<cores.size(); i++) {
+    cores[i]->iDataGlobal(iDataGlobal[i]);
+    dataNet->oData[i](iDataGlobal[i]);
+
+    cores[i]->oDataGlobal(oDataGlobal[i]);
+    dataNet->iData[i](oDataGlobal[i]);
+
+    for (unsigned int j=0; j<CORE_INPUT_CHANNELS; j++) {
+      unsigned int component = cores[i]->id.getGlobalComponentNumber();
+      cores[i]->oReadyData[j](oReadyData[component][j]);
+      dataNet->iReady[i][j](oReadyData[component][j]);
+    }
+  }
+  networks.push_back(dataNet);
+
+  // Global credit network - connects cores to cores.
+  CreditNetwork* creditNet = new CreditNetwork("credit_net");
+  creditNet->clock(clock);
+  for (unsigned int i=0; i<cores.size(); i++) {
+    cores[i]->iCredit(iCredit[i]);
+    creditNet->oData[i](iCredit[i]);
+
+    cores[i]->oCredit(oCredit[i]);
+    creditNet->iData[i](oCredit[i]);
+
+    cores[i]->oReadyCredit(oReadyCredit[i]);
+    creditNet->iReady[i][0](oReadyCredit[i]);
+  }
+  networks.push_back(creditNet);
+
+  // Global request network - connects memories to memories.
+  RequestNetwork* requestNet = new RequestNetwork("request_net");
+  requestNet->clock(clock);
+  for (unsigned int i=0; i<memories.size(); i++) {
+    memories[i]->iRequests(iRequest[i]);
+    requestNet->oData[i](iRequest[i]);
+
+    memories[i]->oRequests(oRequest[i]);
+    requestNet->iData[i](oRequest[i]);
+
+    memories[i]->oReadyForRequest(oReadyRequest[i]);
+    requestNet->iReady[i][0](oReadyRequest[i]);
+  }
+  networks.push_back(requestNet);
+
+  // Global response network - connects memories to memories.
+//  ResponseNetwork* responseNet = new ResponseNetwork("response_net");
+//  responseNet->clock(clock);
+//  networks.push_back(responseNet);
+
+// Connect cores and memories to the local interconnect
 
 	uint coreIndex = 0;
 	uint memoryIndex = 0;
 	uint dataInputCounter = 0;
 	uint dataOutputCounter = 0;
-  uint creditInputCounter = 0;
-  uint creditOutputCounter = 0;
   uint readyInputCounter = 0;
 
 	for (uint i = 0; i < NUM_COMPONENTS; i++) {
 		if ((i % COMPONENTS_PER_TILE) < CORES_PER_TILE) {
 			// This is a core
-      cores[coreIndex]->idle(idleSig[coreIndex+memoryIndex]);
+      cores[coreIndex]->oIdle(idleSig[coreIndex+memoryIndex]);
       cores[coreIndex]->clock(clock);
       cores[coreIndex]->fastClock(fastClock);
 
 			for (uint j = 0; j < CORE_INPUT_PORTS; j++) {
 				uint index = dataInputCounter++;  // Position in network's array
 
-				cores[coreIndex]->dataIn[j](dataToComponents[index]);
-				network.dataOut[index](dataToComponents[index]);
+				cores[coreIndex]->iData[j](iDataLocal[index]);
+				network.dataOut[index](iDataLocal[index]);
 			}
 
 			for (uint j = 0; j < CORE_INPUT_CHANNELS; j++) {
 			  uint index = readyInputCounter++;  // Position in network's array
 
-        cores[coreIndex]->readyDataOut[j](readyDataFromComps[index]);
-        network.readyDataIn[index](readyDataFromComps[index]);
+			  // The ready signals are shared between all networks, and have already
+			  // been connected to the cores.
+//        cores[coreIndex]->oReadyData[j](readyDataFromComps[i][j]);
+        network.readyDataIn[index](oReadyData[i][j]);
 			}
-
-      uint index = creditOutputCounter++;
-
-      cores[coreIndex]->creditsOut[0](creditsFromComponents[index]);
-      network.creditsIn[index](creditsFromComponents[index]);
 
 			for (uint j = 0; j < CORE_OUTPUT_PORTS; j++) {
 				uint index = dataOutputCounter++;  // Position in network's array
 
-				cores[coreIndex]->dataOut[j](dataFromComponents[index]);
-				network.dataIn[index](dataFromComponents[index]);
-
-				index = creditInputCounter++;
-
-				cores[coreIndex]->creditsIn[j](creditsToComponents[index]);
-				network.creditsOut[index](creditsToComponents[index]);
-
-				cores[coreIndex]->readyCreditOut(readyCreditsFromComps[index]);
-				network.readyCreditsIn[index](readyCreditsFromComps[index]);
+				cores[coreIndex]->oData[j](oDataLocal[index]);
+				network.dataIn[index](oDataLocal[index]);
 			}
 
 			coreIndex++;
 		} else {
 			uint indexInput = dataInputCounter++;  // Position in network's array
-			memories[memoryIndex]->iDataIn(dataToComponents[indexInput]);
-			network.dataOut[indexInput](dataToComponents[indexInput]);
+			memories[memoryIndex]->iData(iDataLocal[indexInput]);
+			network.dataOut[indexInput](iDataLocal[indexInput]);
 
 			uint indexReady = readyInputCounter++;  // Position in network's array
-			memories[memoryIndex]->oReadyForData(readyDataFromComps[indexReady]);
-	    network.readyDataIn[indexReady](readyDataFromComps[indexReady]);
+			memories[memoryIndex]->oReadyForData(oReadyData[i][0]);
+	    network.readyDataIn[indexReady](oReadyData[i][0]);
 
 			uint indexOutput = dataOutputCounter++;  // Position in network's array
-			memories[memoryIndex]->oDataOut(dataFromComponents[indexOutput]);
-			network.dataIn[indexOutput](dataFromComponents[indexOutput]);
+			memories[memoryIndex]->oData(oDataLocal[indexOutput]);
+			network.dataIn[indexOutput](oDataLocal[indexOutput]);
 
 			memoryIndex++;
 		}
 	}
   
-  for(uint j=0; j<NUM_TILES; j++) {
+  for (uint j=0; j<NUM_TILES; j++) {
  	  for (uint i = 0; i < MEMS_PER_TILE; i++) {
 			int currIndex = j * MEMS_PER_TILE + i;
 			int prevIndex = j * MEMS_PER_TILE + ((i + MEMS_PER_TILE - 1) % MEMS_PER_TILE);
@@ -307,12 +367,13 @@ Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
   // Generate a method to watch each component's idle signal, so we can
 	// determine when all components are idle. For large numbers of components,
 	// this is cheaper than checking all of them whenever one changes.
-  for(unsigned int i=0; i<NUM_COMPONENTS; i++)
+  for (unsigned int i=0; i<NUM_COMPONENTS; i++)
     SPAWN_METHOD(idleSig[i], Chip::watchIdle, i, true);
 
 }
 
 Chip::~Chip() {
-	for(uint i = 0; i < cores.size(); i++)	  delete cores[i];
-	for(uint i = 0; i < memories.size(); i++)	delete memories[i];
+	for (uint i = 0; i < cores.size(); i++)	   delete cores[i];
+	for (uint i = 0; i < memories.size(); i++) delete memories[i];
+	for (uint i = 0; i < networks.size(); i++) delete networks[i];
 }

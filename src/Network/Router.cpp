@@ -10,9 +10,11 @@
 #include "Router.h"
 #include "Topologies/LocalNetwork.h"
 
+const string DirectionNames[] = {"north", "east", "south", "west", "local"};
+
 void Router::receiveData(PortIndex input) {
   if (DEBUG)
-    cout << this->name() << ": input from " << (int)input << ": " << dataIn[input].read() << endl;
+    cout << this->name() << ": input from " << DirectionNames[input] << ": " << dataIn[input].read() << endl;
 
   assert(!inputBuffers[input].full());
 
@@ -34,48 +36,6 @@ void Router::receiveData(PortIndex input) {
 //  }
 }
 
-void Router::localNetworkArbitration() {
-  switch (state) {
-
-    case WAITING_FOR_DATA:
-      // Wait until there is data to be sent.
-      if (!dataOut[LOCAL].valid())
-        next_trigger(dataOut[LOCAL].default_event());
-      else {
-        // Issue a request for arbitration.
-        localNetwork->makeRequest(id, dataOut[LOCAL].read().channelID(), true);
-        state = ARBITRATING;
-        next_trigger(clock.posedge_event());
-      }
-      break;
-
-    case ARBITRATING:
-      // Wait for the request to be granted.
-      if (!localNetwork->requestGranted(id, dataOut[LOCAL].read().channelID())) {
-        next_trigger(clock.posedge_event());
-      }
-      else {
-        // Send the data and remove the arbitration request.
-        const AddressedWord& dataToSend = dataOut[LOCAL].read();
-
-        if (dataToSend.endOfPacket())
-          localNetwork->makeRequest(id, dataToSend.channelID(), false);
-
-        state = WAITING_FOR_ACK;
-        next_trigger(dataOut[LOCAL].ack_event());
-      }
-      break;
-
-    case WAITING_FOR_ACK:
-      // Wait until the beginning of the next cycle before trying to send more data.
-      state = WAITING_FOR_DATA;
-      //next_trigger(sc_core::SC_ZERO_TIME);
-      next_trigger(clock.posedge_event());
-      break;
-
-  }// end switch
-}
-
 void Router::sendData(PortIndex output) {
   // Wait for permission to send (connections to other routers only).
   if ((output != LOCAL) && !readyIn[output].read()) {
@@ -90,7 +50,7 @@ void Router::sendData(PortIndex output) {
       PortIndex input = (i + lastAccepted[output] + 1) % 5;
       if (destination[input] == output) {
         if (DEBUG)
-          cout << this->name() << " sending to " << (int)output << ": " << inputBuffers[input].peek() << endl;
+          cout << this->name() << " sending to " << DirectionNames[output] << ": " << inputBuffers[input].peek() << endl;
 
         dataOut[output].write(inputBuffers[input].read());
         lastAccepted[output] = input;
@@ -139,7 +99,7 @@ Router::Direction Router::routeTo(ChannelID destination) const {
 void Router::reportStalls(ostream& os) {
   for (uint i=0; i<dataOut.length(); i++) {
     if (dataOut[i].valid()) {
-      os << this->name() << ".output_" << i << " is blocked." << endl;
+      os << this->name() << ".output_" << DirectionNames[i] << " is blocked." << endl;
       os << "  Target destination is " << dataOut[i].read().channelID() << endl;
     }
   }
@@ -152,14 +112,12 @@ void Router::reportStalls(ostream& os) {
   }
 }
 
-Router::Router(const sc_module_name& name, const ComponentID& ID, const bool carriesCredits, local_net_t* network) :
+Router::Router(const sc_module_name& name, const ComponentID& ID) :
     Component(name, ID),
     Blocking(),
     inputBuffers(5, ROUTER_BUFFER_SIZE, string(this->name()) + ".input_data"),
     xPos(ID.getTile() % NUM_TILE_COLUMNS),
-    yPos(ID.getTile() / NUM_TILE_COLUMNS),
-    carriesCredits(carriesCredits),
-    localNetwork(network) {
+    yPos(ID.getTile() / NUM_TILE_COLUMNS) {
 
   state = WAITING_FOR_DATA;
 
@@ -186,11 +144,6 @@ Router::Router(const sc_module_name& name, const ComponentID& ID, const bool car
     options.set_sensitivity(&(inputBuffers[i].readEvent()));
     options.set_sensitivity(&(inputBuffers[i].writeEvent()));
     sc_spawn(sc_bind(&Router::updateFlowControl, this, i), 0, &options);
-  }
-
-  if (!carriesCredits) {
-    SC_METHOD(localNetworkArbitration);
-    // do initialise
   }
 
 //  SC_METHOD(updateFlowControl);

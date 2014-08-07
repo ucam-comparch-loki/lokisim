@@ -33,20 +33,13 @@ public:
 
   // All inputs to the component. They still have addresses in case there are
   // multiple channel ends accessible through each port.
-  LokiVector<DataInput>    dataIn;
+  LokiVector<DataInput>    iData;
 
   // All outputs of the component.
-  LokiVector<DataOutput>   dataOut;
-
-  // Credits to be sent across the network.
-  LokiVector<CreditOutput> creditsOut;
-
-  // Credits received from the network. They still have addresses in case there
-  // are multiple channel ends accessible through each port.
-  LokiVector<CreditInput>  creditsIn;
+  LokiVector<DataOutput>   oData;
 
   // Signal that this component is not currently doing any work.
-  IdleOutput     idle;
+  IdleOutput     oIdle;
 
 //==============================//
 // Constructors and destructors
@@ -97,10 +90,6 @@ protected:
   void writeMemByte(MemoryAddr addr, Word data);
 
   Chip* parent() const;
-
-private:
-
-  void acknowledgeCredit(PortIndex output);
 
 };
 

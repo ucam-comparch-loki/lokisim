@@ -379,7 +379,7 @@ bool GeneralPurposeCacheHandler::writeByte(uint32_t address, uint32_t data, bool
 
 void GeneralPurposeCacheHandler::prepareCacheLine(uint32_t address, uint32_t &writeBackAddress, uint &writeBackCount, uint32_t writeBackData[], uint32_t &fetchAddress, uint &fetchCount) {
 	uint slot;
-	assert(!lookupCacheLine(address, slot));
+	//assert(!lookupCacheLine(address, slot));
 
 	uint setIndex = (address & mSetMask) >> mSetShift;
 	slot = setIndex * mWayCount;

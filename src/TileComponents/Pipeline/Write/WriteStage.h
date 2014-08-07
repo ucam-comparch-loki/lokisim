@@ -31,17 +31,18 @@ public:
 
   // Data (with an address) to be sent over the network.
   // Data can arrive at any time.
-  sc_in<DecodedInst>      dataIn;
+  sc_in<DecodedInst>      iData;
 
   // Tell whether this stage is ready for input (ignoring effects of any other stages).
-  ReadyOutput             readyOut;
+  ReadyOutput             oReady;
 
   // Data to send onto the network.
-  LokiVector<DataOutput>  output;
+  DataOutput              oDataLocal;
+  DataOutput              oDataGlobal;
 
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.
-  LokiVector<CreditInput> creditsIn;
+  CreditInput             iCredit;
 
 //==============================//
 // Constructors and destructors

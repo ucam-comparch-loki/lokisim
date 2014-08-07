@@ -32,11 +32,12 @@ public:
   ClockInput              clock;
 
   // Data outputs to the network.
-  LokiVector<DataOutput>  output;
+  DataOutput              oDataLocal;
+  DataOutput              oDataGlobal;
 
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.
-  LokiVector<CreditInput> creditsIn;
+  CreditInput             iCredit;
 
 //==============================//
 // Constructors and destructors
@@ -71,7 +72,8 @@ private:
 
   // Send the oldest value in the output buffer, if the flow control signals
   // allow it.
-  void          sendLoop();
+  void          sendLoopLocal();
+  void          sendLoopGlobal();
 
   // Stall the pipeline until the channel specified is empty.
   void          waitUntilEmpty(MapIndex channel);
@@ -103,7 +105,7 @@ private:
   SendState state;
 
   // Buffer of data to send onto the network.
-  NetworkBuffer<DecodedInst> buffer;
+  NetworkBuffer<DecodedInst> bufferLocal, bufferGlobal;
 
   // A pointer to this core's channel map table. The table itself is in the
   // Core class. No reading or writing of destinations should occur here -

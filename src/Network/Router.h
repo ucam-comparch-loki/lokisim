@@ -52,8 +52,7 @@ public:
 public:
 
   SC_HAS_PROCESS(Router);
-  Router(const sc_module_name& name, const ComponentID& ID,
-         const bool carriesCredits,local_net_t* network);
+  Router(const sc_module_name& name, const ComponentID& ID);
 
 //==============================//
 // Methods
@@ -67,10 +66,6 @@ private:
   // Send data from output buffers onto the network and wait for
   // acknowledgements.
   void sendData(PortIndex output);
-
-  // When sending data onto the local network, we also need to issue requests
-  // to the local arbiters.
-  void localNetworkArbitration();
 
   // Update the flow control signal for the input port connected to the local
   // network.
@@ -120,12 +115,6 @@ private:
 
   // Event to notify each output port when data is waiting to be sent.
   LokiVector<sc_event> outputAvailable;
-
-  // Hacky way of telling whether this router carries data or credits.
-  bool carriesCredits;
-
-  // Pointer to network, allowing new interfaces to be experimented with quickly.
-  local_net_t *localNetwork;
 
 };
 

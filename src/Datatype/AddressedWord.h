@@ -39,6 +39,7 @@ private:
   bool useCredits_;
 
   bool endOfPacket_;
+
 public:
   inline uint messageID() const                 {return messageID_;}
   inline Word payload() const                   {return payload_;}

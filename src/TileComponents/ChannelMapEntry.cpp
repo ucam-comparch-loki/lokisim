@@ -31,6 +31,10 @@ uint ChannelMapEntry::memoryLineBits() const {
   return memoryLineBits_;
 }
 
+bool ChannelMapEntry::writeThrough() const {
+  return writeThrough_;
+}
+
 ChannelIndex ChannelMapEntry::returnChannel() const {
   return returnChannel_;
 }
@@ -58,7 +62,11 @@ void ChannelMapEntry::setCoreDestination(const ChannelID& address) {
   addressIncrement_ = 0;
 }
 
-void ChannelMapEntry::setMemoryDestination(const ChannelID& address, uint memoryGroupBits, uint memoryLineBits, ChannelIndex returnTo) {
+void ChannelMapEntry::setMemoryDestination(const ChannelID& address,
+                                           uint memoryGroupBits,
+                                           uint memoryLineBits,
+                                           ChannelIndex returnTo,
+                                           bool writeThrough) {
   // Only allow the destination to change when all credits from previous
   // destination have been received.
   assert(haveAllCredits());
@@ -71,6 +79,7 @@ void ChannelMapEntry::setMemoryDestination(const ChannelID& address, uint memory
   returnChannel_ = returnTo;
   memoryGroupBits_ = memoryGroupBits;
   memoryLineBits_ = memoryLineBits;
+  writeThrough_ = writeThrough;
   addressIncrement_ = 0;
 }
 

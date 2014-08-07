@@ -150,15 +150,23 @@ public:
 //			exit(1);
 //		}
 
+	  if (tile >= NUM_TILES)
+	    std::cerr << "Creating ChannelID with tile=" << tile << "; max is " << NUM_TILES << std::endl;
 	  assert(tile < NUM_TILES);
+
+	  if (!(channel < CORE_INPUT_CHANNELS || channel < MEMORY_INPUT_CHANNELS))
+	    std::cerr << "Creating ChannelID with channel=" << channel << "; max is " << MEMORY_INPUT_CHANNELS << std::endl;
 	  assert(channel < CORE_INPUT_CHANNELS || channel < MEMORY_INPUT_CHANNELS);
 
 	  // Multicast addresses use a bitmask instead of a position.
 	  // FIXME: should multicasting to no one actually be an error?
 	  if (multicast)
 	    assert(position != 0 && "Multicasting to no one");
-	  else
+	  else {
+	    if (position >= COMPONENTS_PER_TILE)
+	      std::cerr << "Creating ChannelID with position=" << position << "; max is " << COMPONENTS_PER_TILE << std::endl;
 	    assert(position < COMPONENTS_PER_TILE);
+	  }
 
 	}
 

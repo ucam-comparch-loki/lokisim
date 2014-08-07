@@ -14,8 +14,7 @@ void Mesh::makeRouters() {
   for(unsigned int row=0; row<numRows; row++) {
     for(unsigned int col=0; col<numColumns; col++) {
       ComponentID routerID(tile, COMPONENTS_PER_TILE);
-      local_net_t* network = ((NetworkHierarchy*)(get_parent()))->getLocalNetwork(routerID);
-      routers[col][row] = new Router(sc_gen_unique_name("router"), routerID, carriesCredits, network);
+      routers[col][row] = new Router(sc_gen_unique_name("router"), routerID);
       tile++;
     }
   }
@@ -77,13 +76,11 @@ Mesh::Mesh(const sc_module_name& name,
            ComponentID ID,
            int rows,
            int columns,
-           bool carriesCredits,
            HierarchyLevel level) :
     Network(name, ID, rows*columns, rows*columns, level),
     routers(columns, std::vector<Router*>(rows)),
     numColumns(columns),
-    numRows(rows),
-    carriesCredits(carriesCredits) {
+    numRows(rows) {
 
   // Can only handle inter-tile mesh networks at the moment.
   assert(level == Network::TILE);

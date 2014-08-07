@@ -153,10 +153,17 @@ public:
 
 	//-- Ports connected to on-chip networks ------------------------------------------------------
 
-	loki_in<AddressedWord>  iDataIn;         // Input data sent to the memory bank
-	sc_out<bool>				oReadyForData;			// Indicates that there is buffer space for new input
+	// Data - to/from cores.
+  loki_in<AddressedWord>  iData;            // Input data sent to the memory bank
+  sc_out<bool>        oReadyForData;        // Indicates that there is buffer space for new input
 
-	loki_out<AddressedWord> oDataOut;         // Output data sent to the processing elements
+  loki_out<AddressedWord> oData;            // Output data sent to the processing elements
+
+  // Requests - to/from memory banks on other tiles.
+  loki_in<AddressedWord>  iRequests;        // Input requests sent to the memory bank
+  sc_out<bool>        oReadyForRequest;     // Indicates that there is buffer space for new input
+
+  loki_out<AddressedWord> oRequests;        // Output requests sent to the remote memory banks
 
 	//-- Ports connected to background memory model -----------------------------------------------
 
@@ -226,10 +233,19 @@ private:
 
 	bool currentlyIdle;
 
+	// Keep track of which input we are currently serving a request from.
+	// Requests from memories have priority, but once a request starts, it should
+	// continue to completion.
+	enum PriorityInput {INPUT_NONE, INPUT_CORES, INPUT_MEMORIES};
+	PriorityInput mCurrentInput;
+
 	//-- Data queue state -------------------------------------------------------------------------
 
-	NetworkBuffer<AddressedWord> mInputQueue;				// Input queue
-	NetworkBuffer<OutputWord> mOutputQueue;					// Output queue
+  NetworkBuffer<AddressedWord> mInputQueue;       // Input queue
+  NetworkBuffer<OutputWord> mOutputQueue;         // Output queue
+
+  NetworkBuffer<AddressedWord> mInputReqQueue;    // Input request queue
+  NetworkBuffer<AddressedWord> mOutputReqQueue;   // Output request queue
 
 	bool mOutputWordPending;								// Indicates that an output word is waiting for acknowledgement
 	AddressedWord mActiveOutputWord;						// Currently active output word
@@ -290,6 +306,13 @@ private:
 private:
 
 	uint log2Exact(uint value);								// Calculates binary logarithm of value - asserts value to be a power of two greater than 1
+	uint homeTile(MemoryAddr address);        // Return the tile of the definitive copy of this data
+
+	// There are multiple buffers which could hold requests. Use these methods to
+	// ensure that the correct buffer is accessed.
+	const AddressedWord peekNextRequest();
+	const AddressedWord readNextRequest();
+	bool currentInputEmpty();
 
 	bool processRingEvent();
 	bool processMessageHeader();
@@ -308,6 +331,8 @@ private:
 
 	void handleNetworkInterfacesPre();
 	void handleDataOutput();
+	void handleRequestInput();
+	void handleRequestOutput();
 
 	void mainLoop();										// Main loop thread - running at every positive clock edge
 

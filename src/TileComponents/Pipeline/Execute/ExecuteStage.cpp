@@ -276,13 +276,16 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
   uint groupBits = (value >> 4) & 0xFUL;
   uint lineBits  = value & 0xFUL;
 
+  // There are no free bits to encode this, so it will have to be compiled in for now.
+  bool writeThrough = /*entry==2;//*/false;
+
   ChannelID sendChannel(value);
 
   // Write to the channel map table.
   // FIXME: I don't think it's necessary to block until all credits have been
   // received, but it's useful for debug purposes to ensure that we aren't
   // losing credits.
-  bool success = parent()->channelMapTable.write(entry, sendChannel, groupBits, lineBits, returnTo);
+  bool success = parent()->channelMapTable.write(entry, sendChannel, groupBits, lineBits, returnTo, writeThrough);
   if (!success) {
     blocked = true;
     next_trigger(parent()->channelMapTable.haveAllCredits(entry));
@@ -306,21 +309,62 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
   assert(inst.isMemoryOperation());
   MemoryRequest::MemoryOperation op = (MemoryRequest::MemoryOperation)inst.memoryOp();
 
-  Word w = MemoryRequest(op, inst.result());
-  bool addressFlit = op == MemoryRequest::LOAD_B ||
-                     op == MemoryRequest::LOAD_HW ||
-                     op == MemoryRequest::LOAD_W ||
-                     op == MemoryRequest::STORE_B ||
-                     op == MemoryRequest::STORE_HW ||
-                     op == MemoryRequest::STORE_W ||
-                     op == MemoryRequest::IPK_READ;
+  bool addressFlit;
 
-  // Adjust destination channel based on memory configuration if necessary
-  uint32_t increment = 0;
+  switch (op) {
+    case MemoryRequest::LOAD_W:
+    case MemoryRequest::LOAD_HW:
+    case MemoryRequest::LOAD_B:
+    case MemoryRequest::LOAD_THROUGH_W:
+    case MemoryRequest::LOAD_THROUGH_HW:
+    case MemoryRequest::LOAD_THROUGH_B:
+    case MemoryRequest::STORE_W:
+    case MemoryRequest::STORE_HW:
+    case MemoryRequest::STORE_B:
+    case MemoryRequest::STORE_THROUGH_W:
+    case MemoryRequest::STORE_THROUGH_HW:
+    case MemoryRequest::STORE_THROUGH_B:
+    case MemoryRequest::IPK_READ:
+      addressFlit = true;
+      break;
+    default:
+      addressFlit = false;
+      break;
+  }
 
   // We want to access lots of information from the channel map table, so get
   // the entire entry.
   ChannelMapEntry& channelMapEntry = parent()->channelMapTable[inst.channelMapEntry()];
+
+  if (channelMapEntry.writeThrough()) {
+    switch (op) {
+      case MemoryRequest::STORE_W:
+        op = MemoryRequest::STORE_THROUGH_W;
+        break;
+      case MemoryRequest::STORE_HW:
+        op = MemoryRequest::STORE_THROUGH_HW;
+        break;
+      case MemoryRequest::STORE_B:
+        op = MemoryRequest::STORE_THROUGH_B;
+        break;
+      case MemoryRequest::LOAD_W:
+        op = MemoryRequest::LOAD_THROUGH_W;
+        break;
+      case MemoryRequest::LOAD_HW:
+        op = MemoryRequest::LOAD_THROUGH_HW;
+        break;
+      case MemoryRequest::LOAD_B:
+        op = MemoryRequest::LOAD_THROUGH_B;
+        break;
+      default:
+        break;
+    }
+  }
+
+  Word w = MemoryRequest(op, inst.result());
+
+  // Adjust destination channel based on memory configuration if necessary
+  uint32_t increment = 0;
 
   if (channelMapEntry.localMemory() && channelMapEntry.memoryGroupBits() > 0) {
     if (addressFlit) {

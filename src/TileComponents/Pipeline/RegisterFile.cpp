@@ -59,8 +59,11 @@ void RegisterFile::write(const RegisterIndex reg, const int32_t value, bool indi
 
   // There are some registers that we can't write to.
   if (isReserved(index)/* || isChannelEnd(index)*/) {
-    if (index != 0) cerr << "Warning: attempting to write to reserved register "
-                         << (int)index << endl;
+    if (index != 0) {
+      cerr << "Error: attempting to write to reserved register "
+           << (int)index << endl;
+      assert(false);
+    }
     return;
   }
 

@@ -40,14 +40,22 @@ public:
 
 // Inherited from TileComponent:
 //   clock
-//   dataIn;
-//   dataOut;
-//   creditsOut;
-//   creditsIn;
-//   idle
+//   iData;
+//   oData;
+//   oIdle
 
-  LokiVector<ReadyOutput> readyDataOut;
-  ReadyOutput readyCreditOut;
+  // Connections to the global data network.
+  DataOutput oDataGlobal;
+  DataInput  iDataGlobal;
+
+  // One flow control signal for each input data/instruction buffer. To be used
+  // by all data networks.
+  LokiVector<ReadyOutput> oReadyData;
+
+  // Connections to the global credit network.
+  CreditOutput oCredit;
+  CreditInput  iCredit;
+  ReadyOutput  oReadyCredit;
 
   // A slight hack to improve simulation speed. Each core contains a small
   // network at its input buffers, so we need to skew the times that the

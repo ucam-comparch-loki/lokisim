@@ -142,7 +142,7 @@ void     Core::nextIPK() {
 void     Core::idlenessChanged() {
   // Use the decoder as the arbiter of idleness - we may sometimes bypass the
   // fetch stage.
-  Instrumentation::idle(id, idle.read());
+  Instrumentation::idle(id, oIdle.read());
 }
 
 void Core::requestArbitration(ChannelID destination, bool request) {
@@ -190,8 +190,8 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
 
   currentlyStalled = false;
 
-  readyDataOut.init(CORE_INPUT_CHANNELS);
-  readyCreditOut.initialize(true);
+  oReadyData.init(CORE_INPUT_CHANNELS);
+  oReadyCredit.initialize(true);
 
   // Create signals which connect the pipeline stages together. There are 4
   // stages, so 3 links between stages.
@@ -204,10 +204,11 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
 
   // Wire the input ports to the input buffers.
   for(unsigned int i=0; i<CORE_INPUT_PORTS; i++)
-    inputCrossbar.dataIn[i](dataIn[i]);
+    inputCrossbar.dataIn[i](iData[i]);
+  inputCrossbar.dataIn[CORE_INPUT_PORTS](iDataGlobal);
 
   for(unsigned int i=0; i<CORE_INPUT_CHANNELS; i++) {
-    inputCrossbar.readyOut[i](readyDataOut[i]);
+    inputCrossbar.readyOut[i](oReadyData[i]);
     inputCrossbar.dataOut[i](dataToBuffers[i]);
     inputCrossbar.bufferHasSpace[i](fcFromBuffers[i]);
     inputCrossbar.dataConsumed[i](dataConsumed[i]);
@@ -215,7 +216,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
 
   inputCrossbar.clock(clock);
   inputCrossbar.creditClock(fastClock);
-  inputCrossbar.creditsOut[0](creditsOut[0]);
+  inputCrossbar.creditsOut[0](oCredit);
 
   // Create pipeline registers.
   pipelineRegs.push_back(
@@ -233,7 +234,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
   fetch.dataConsumed[0](dataConsumed[0]); fetch.dataConsumed[1](dataConsumed[1]);
   fetch.initPipeline(NULL, pipelineRegs[0]);
 
-  decode.clock(clock);                    decode.idle(/*stageIdle[1]*/idle);
+  decode.clock(clock);                    decode.idle(/*stageIdle[1]*/oIdle);
   decode.readyOut(stageReady[0]);
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     decode.dataIn[i](dataToBuffers[i+2]);
@@ -248,13 +249,12 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
   execute.initPipeline(pipelineRegs[1], pipelineRegs[2]);
 
   write.clock(clock);                     write.idle(stageIdle[3]);
-  write.readyOut(stageReady[2]);
-  write.dataIn(outputData);
+  write.oReady(stageReady[2]);
+  write.iData(outputData);
+  write.oDataLocal(oData[0]);
+  write.oDataGlobal(oDataGlobal);
+  write.iCredit(iCredit);
   write.initPipeline(pipelineRegs[2], NULL);
-
-  for(unsigned int i=0; i<CORE_OUTPUT_PORTS; i++) {
-    write.output[i](dataOut[i]);            write.creditsIn[i](creditsIn[i]);
-  }
 
   // The core is considered idle if it did not decode a new instruction this
   // cycle. This is better than being controlled by the fetch stage because
@@ -262,7 +262,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
   // bypass the fetch stage and receive instructions from other cores.
   // Problem: what about instructions that take multiple cycles to execute?
   SC_METHOD(idlenessChanged);
-  sensitive << idle;
+  sensitive << oIdle;
   // do initialise
 
   // Initialise the values in some wires.

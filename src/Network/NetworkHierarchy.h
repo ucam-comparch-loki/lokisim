@@ -14,13 +14,8 @@
 #include <vector>
 #include "../Component.h"
 #include "Network.h"
-#include "OffChip.h"
-#include "../Datatype/AddressedWord.h"
 
 using std::vector;
-
-class FlowControlIn;
-class FlowControlOut;
 
 class NetworkHierarchy : public Component {
 
@@ -45,15 +40,6 @@ public:
   // Flow control from components for data.
   LokiVector<ReadyInput>   readyDataIn;
 
-  // Flow control information received from each input of each component.
-  LokiVector<CreditInput>  creditsIn;
-
-  // Credits sent to the output of each component.
-  LokiVector<CreditOutput> creditsOut;
-
-  // Flow control from cores for credits.
-  LokiVector<ReadyInput>   readyCreditsIn;
-
 
 //==============================//
 // Constructors and destructors
@@ -76,10 +62,7 @@ public:
 
 private:
 
-  void setupFlowControl();
-
   void makeLocalNetwork(int tileID);
-  void makeGlobalNetwork();
 
 //==============================//
 // Components
@@ -87,39 +70,7 @@ private:
 
 private:
 
-  // Flow control at each component's inputs.
-  vector<FlowControlIn*> flowControlIn;
-
-  // Flow control at each component's outputs.
-  vector<FlowControlOut*> flowControlOut;
-
   vector<local_net_t*> localNetworks;
-  global_net_t *globalDataNetwork, *globalCreditNetwork;
-  OffChip offChip;  // Should this be in here, or outside?
-
-//==============================//
-// Signals (wires)
-//==============================//
-
-private:
-
-  // Signals between the network and off-chip component.
-  DataSignal    dataFromOffchip,       dataToOffchip;
-  CreditSignal  creditsFromOffchip,    creditsToOffchip;
-  ReadySignal   readyDataToOffchip,    readyDataFromOffchip,
-                readyCreditFromOffchip, dataConsumedOffchip;
-
-  // Signals between local and global networks.
-  LokiVector<DataSignal>   dataToLocalNet,       dataFromLocalNet;
-  LokiVector<CreditSignal> creditsToLocalNet,    creditsFromLocalNet;
-  LokiVector<ReadySignal>  localReadyForData,    localReadyForCredits,
-                           globalReadyForData,   globalReadyForCredits;
-
-  // Signals between off-chip and its flow control component.
-  DataSignal         dataFromOffChip;
-  sc_signal<Word>    dataToOffChip;
-  ReadySignal        readyFromOffChip;
-  ReadySignal        readyToOffChip;
 
 };
 

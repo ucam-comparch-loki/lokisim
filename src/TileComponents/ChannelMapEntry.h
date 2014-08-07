@@ -24,13 +24,16 @@ public:
   bool localMemory() const;
   uint memoryGroupBits() const;
   uint memoryLineBits() const;
+  bool writeThrough() const;
   ChannelIndex returnChannel() const;
 
   bool canSend() const;
   bool haveAllCredits() const;
 
   void setCoreDestination(const ChannelID& address);
-  void setMemoryDestination(const ChannelID& address, uint memoryGroupBits, uint memoryLineBits, ChannelIndex returnTo);
+  void setMemoryDestination(const ChannelID& address, uint memoryGroupBits,
+                            uint memoryLineBits, ChannelIndex returnTo,
+                            bool writeThrough = false);
 
   void setAddressIncrement(uint increment);
   uint getAddressIncrement() const;
@@ -74,6 +77,9 @@ private:
 
   // Number of line bits describing virtual memory bank.
   unsigned int memoryLineBits_;
+
+  // Whether or not this channel accesses the memory in write-through mode.
+  bool writeThrough_;
 
   // The current address increment for this entry.
   unsigned int addressIncrement_;

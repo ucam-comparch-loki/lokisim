@@ -17,15 +17,15 @@
 
 class MemoryRequest : public Word {
 private:
-	// | Unused : 12    | Memory operation : 4 | Opcode : 8 | Way bits : 4 | Line bits : 4 | Mode : 8 | Group bits : 8 |
-	// | Line size : 12 | Memory operation : 4 | Address : 32                                                          |
-	// | Unused : 12    | Memory operation : 4 | Burst length : 32                                                     |
-	// | Unused : 12    | Memory operation : 4 | Channel ID : 32                                                       |
+	// | Unused : 12    | Memory operation : 8 | Opcode : 8 | Way bits : 4 | Line bits : 4 | Mode : 8 | Group bits : 8 |
+	// | Line size : 12 | Memory operation : 8 | Address : 32                                                          |
+	// | Unused : 12    | Memory operation : 8 | Burst length : 32                                                     |
+	// | Unused : 12    | Memory operation : 8 | Channel ID : 32                                                       |
 
-	static const uint OFFSET_LINE_SIZE = 36;
+	static const uint OFFSET_LINE_SIZE = 40;
 	static const uint WIDTH_LINE_SIZE = 12;
 	static const uint OFFSET_OPERATION = 32;
-	static const uint WIDTH_OPERATION = 4;
+	static const uint WIDTH_OPERATION = 8;
 
 	static const uint OFFSET_OPCODE = 24;
 	static const uint WIDTH_OPCODE = 8;
@@ -52,7 +52,15 @@ public:
 		BURST_WRITE = 10,
 		FETCH_LINE = 11,
 		STORE_LINE = 12,
-		NONE = 15
+
+		LOAD_THROUGH_W = 18,    // Go straight to next level of cache
+		LOAD_THROUGH_HW = 19,   // Go straight to next level of cache
+		LOAD_THROUGH_B = 20,    // Go straight to next level of cache
+		STORE_THROUGH_W = 21,   // Store to this cache and the one backing it
+		STORE_THROUGH_HW = 22,  // Store to this cache and the one backing it
+		STORE_THROUGH_B = 23,   // Store to this cache and the one backing it
+
+		NONE = 255
 	};
 
 	enum MemoryOpCode {
@@ -76,6 +84,71 @@ public:
 	inline MemoryMode getMode() const						{return (MemoryMode)getBits(OFFSET_MODE, OFFSET_MODE + WIDTH_MODE - 1);}
 	inline uint getGroupBits() const						{return getBits(OFFSET_GROUP_BITS, OFFSET_GROUP_BITS + WIDTH_GROUP_BITS - 1);}
 
+	// Returns whether the next level of cache should also be accessed.
+	inline bool isThroughAccess() const {
+	  switch (getOperation()) {
+      case LOAD_THROUGH_W:
+      case LOAD_THROUGH_HW:
+      case LOAD_THROUGH_B:
+      case STORE_THROUGH_W:
+      case STORE_THROUGH_HW:
+      case STORE_THROUGH_B:
+	      return true;
+	    default:
+	      return false;
+	  }
+	}
+
+	// Once the request has been sent to the next cache level, this becomes a
+	// normal memory operation at this level.
+	inline void clearThroughAccess() {
+	  assert(isThroughAccess());
+
+	  switch (getOperation()) {
+      case LOAD_THROUGH_W:        setOperation(LOAD_W);   break;
+      case LOAD_THROUGH_HW:       setOperation(LOAD_HW);  break;
+      case LOAD_THROUGH_B:        setOperation(LOAD_B);   break;
+      case STORE_THROUGH_W:       setOperation(STORE_W);  break;
+      case STORE_THROUGH_HW:      setOperation(STORE_HW); break;
+      case STORE_THROUGH_B:       setOperation(STORE_B);  break;
+      default:
+        assert(false);
+        break;
+	  }
+
+	}
+
+	// Returns whether a single value is being retrieved.
+	inline bool isSingleLoad() const {
+    switch (getOperation()) {
+      case LOAD_W:
+      case LOAD_HW:
+      case LOAD_B:
+      case LOAD_THROUGH_W:
+      case LOAD_THROUGH_HW:
+      case LOAD_THROUGH_B:
+        return true;
+      default:
+        return false;
+    }
+	}
+
+	// Returns whether a single value is being stored.
+	inline bool isSingleStore() const {
+    switch (getOperation()) {
+      case STORE_W:
+      case STORE_HW:
+      case STORE_B:
+      case STORE_THROUGH_W:
+      case STORE_THROUGH_HW:
+      case STORE_THROUGH_B:
+        return true;
+      default:
+        return false;
+    }
+	}
+
+
 
 	MemoryRequest() : Word() {
 		// Nothing
@@ -96,6 +169,13 @@ public:
 	MemoryRequest(const Word& other) : Word(other) {
 		// Nothing
 	}
+
+private:
+
+	void setOperation(MemoryOperation op) {
+	  setBits(OFFSET_OPERATION, OFFSET_OPERATION + WIDTH_OPERATION - 1, op);
+	}
+
 };
 
 #endif /* MEMORYREQUEST_H_ */

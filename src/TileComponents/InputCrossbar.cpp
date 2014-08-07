@@ -12,7 +12,7 @@
 #include "../Network/FlowControl/FlowControlIn.h"
 #include "../TileComponents/TileComponent.h"
 
-const unsigned int InputCrossbar::numInputs = CORE_INPUT_PORTS;
+const unsigned int InputCrossbar::numInputs = 5; // 2 from cores, 2 from memories, 1 global
 const unsigned int InputCrossbar::numOutputs = CORE_INPUT_CHANNELS;
 
 void InputCrossbar::newData(PortIndex input) {

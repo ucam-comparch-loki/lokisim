@@ -26,7 +26,12 @@ public:
   // Update an entry of the channel map table. Returns whether the update was
   // successful. If not, the update will need to be reattempted when all
   // credits have arrived.
-  bool write(MapIndex entry, ChannelID destination, int groupBits=0, int lineBits=0, ChannelIndex returnTo=0);
+  bool write(MapIndex entry,
+             ChannelID destination,
+             int groupBits=0,
+             int lineBits=0,
+             ChannelIndex returnTo=0,
+             bool writeThrough=false);
 
   const sc_event& haveAllCredits(MapIndex entry) const;
 
