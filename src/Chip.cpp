@@ -275,7 +275,7 @@ void Chip::wireUp() {
 				uint index = dataInputCounter++;  // Position in network's array
 
 				cores[coreIndex]->iData[j](iDataLocal[index]);
-				network.dataOut[index](iDataLocal[index]);
+				network.oData[index](iDataLocal[index]);
 			}
 
 			for (uint j = 0; j < CORE_INPUT_CHANNELS; j++) {
@@ -284,29 +284,29 @@ void Chip::wireUp() {
 			  // The ready signals are shared between all networks, and have already
 			  // been connected to the cores.
 //        cores[coreIndex]->oReadyData[j](readyDataFromComps[i][j]);
-        network.readyDataIn[index](oReadyData[i][j]);
+        network.iReady[index](oReadyData[i][j]);
 			}
 
 			for (uint j = 0; j < CORE_OUTPUT_PORTS; j++) {
 				uint index = dataOutputCounter++;  // Position in network's array
 
 				cores[coreIndex]->oData[j](oDataLocal[index]);
-				network.dataIn[index](oDataLocal[index]);
+				network.iData[index](oDataLocal[index]);
 			}
 
 			coreIndex++;
 		} else {
 			uint indexInput = dataInputCounter++;  // Position in network's array
 			memories[memoryIndex]->iData(iDataLocal[indexInput]);
-			network.dataOut[indexInput](iDataLocal[indexInput]);
+			network.oData[indexInput](iDataLocal[indexInput]);
 
 			uint indexReady = readyInputCounter++;  // Position in network's array
 			memories[memoryIndex]->oReadyForData(oReadyData[i][0]);
-	    network.readyDataIn[indexReady](oReadyData[i][0]);
+	    network.iReady[indexReady](oReadyData[i][0]);
 
 			uint indexOutput = dataOutputCounter++;  // Position in network's array
 			memories[memoryIndex]->oData(oDataLocal[indexOutput]);
-			network.dataIn[indexOutput](oDataLocal[indexOutput]);
+			network.iData[indexOutput](oDataLocal[indexOutput]);
 
 			memoryIndex++;
 		}

@@ -33,8 +33,8 @@ public:
 
   ClockInput   clock;
 
-  LokiVector<DataInput>  dataIn;
-  LokiVector<DataOutput> dataOut;
+  LokiVector<DataInput>  iData;
+  LokiVector<DataOutput> oData;
 
 //==============================//
 // Constructors and destructors

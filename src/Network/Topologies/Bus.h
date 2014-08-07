@@ -27,10 +27,10 @@ public:
 
 //  Inherited from Network:
 //
-//   sc_in<bool>   clock;
+//  ClockInput   clock;
 //
-//   DataInput    *dataIn;
-//   DataOutput   *dataOut;
+//  LokiVector<DataInput>  iData;
+//  LokiVector<DataOutput> oData;
 
 //==============================//
 // Constructors and destructors

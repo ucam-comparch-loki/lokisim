@@ -115,61 +115,61 @@ void LocalNetwork::wireUpSubnetworks() {
   // Data networks
   for (unsigned int i=0; i<coreToCore.numInputPorts(); i++, portsBound++) {
     // Data from cores can go to all three core-to-X networks.
-    coreToCore.dataIn[i](dataSig[portsBound][CORE]);
-    coreToMemory.dataIn[i](dataSig[portsBound][MEMORY]);
+    coreToCore.iData[i](dataSig[portsBound][CORE]);
+    coreToMemory.iData[i](dataSig[portsBound][MEMORY]);
   }
   for (unsigned int i=0; i<memoryToCore.numInputPorts(); i++, portsBound++)
-    memoryToCore.dataIn[i](dataIn[portsBound]);
+    memoryToCore.iData[i](iData[portsBound]);
 
   // Cores have the following data inputs:
   //   2 from core-to-core network
   //   2 from memory-to-core network
   portsBound = 0;
   for (unsigned int i=0; i<CORES_PER_TILE; i++) {
-    coreToCore.dataOut[2*i](dataOut[portsBound++]);
-    coreToCore.dataOut[2*i + 1](dataOut[portsBound++]);
-    memoryToCore.dataOut[2*i](dataOut[portsBound++]);
-    memoryToCore.dataOut[2*i + 1](dataOut[portsBound++]);
+    coreToCore.oData[2*i](oData[portsBound++]);
+    coreToCore.oData[2*i + 1](oData[portsBound++]);
+    memoryToCore.oData[2*i](oData[portsBound++]);
+    memoryToCore.oData[2*i + 1](oData[portsBound++]);
   }
 
   for (unsigned int i=0; i<coreToMemory.numOutputPorts(); i++)
-    coreToMemory.dataOut[i](dataOut[portsBound++]);
+    coreToMemory.oData[i](oData[portsBound++]);
 
   // Requests/grants for arbitration.
   for (unsigned int input=0; input<CORES_PER_TILE; input++) {
     for (unsigned int output=0; output<CORES_PER_TILE; output++) {
-      coreToCore.requestsIn[input][output](coreRequests[input][output]);
-      coreToCore.grantsOut[input][output](coreGrants[input][output]);
+      coreToCore.iRequest[input][output](coreRequests[input][output]);
+      coreToCore.oGrant[input][output](coreGrants[input][output]);
     }
     for (unsigned int output=0; output<MEMS_PER_TILE; output++) {
-      coreToMemory.requestsIn[input][output](memRequests[input][output]);
-      coreToMemory.grantsOut[input][output](memGrants[input][output]);
+      coreToMemory.iRequest[input][output](memRequests[input][output]);
+      coreToMemory.oGrant[input][output](memGrants[input][output]);
     }
   }
   for (unsigned int i=0; i<MEMS_PER_TILE; i++) {
     int input = i + CORES_PER_TILE; // Memories start at offset CORES_PER_TILE
     for (unsigned int output=0; output<CORES_PER_TILE; output++) {
-      memoryToCore.requestsIn[i][output](coreRequests[input][output]);
-      memoryToCore.grantsOut[i][output](coreGrants[input][output]);
+      memoryToCore.iRequest[i][output](coreRequests[input][output]);
+      memoryToCore.oGrant[i][output](coreGrants[input][output]);
     }
   }
 
   // Ready signals
   for (unsigned int core=0; core<CORES_PER_TILE; core++)
     for (unsigned int channel=0; channel<CORE_INPUT_CHANNELS; channel++) {
-      coreToCore.readyIn[core][channel](readyIn[core][channel]);
-      memoryToCore.readyIn[core][channel](readyIn[core][channel]);
+      coreToCore.iReady[core][channel](iReady[core][channel]);
+      memoryToCore.iReady[core][channel](iReady[core][channel]);
     }
   for (unsigned int mem=0; mem<MEMS_PER_TILE; mem++)
     for (unsigned int channel=0; channel<1; channel++)
-      coreToMemory.readyIn[mem][channel](readyIn[mem + CORES_PER_TILE][channel]);
+      coreToMemory.iReady[mem][channel](iReady[mem + CORES_PER_TILE][channel]);
 }
 
 // TODO: is it possible to remove this method and directly connect the
 // subnetworks to the appropriate input ports? Won't matter when the core has
 // separate ports for each network.
 void LocalNetwork::newCoreData(int core) {
-  const DataType& data = dataIn[core].read();
+  const DataType& data = iData[core].read();
   const ChannelID& destination = data.channelID();
 
   if (destination.isCore())
@@ -179,7 +179,7 @@ void LocalNetwork::newCoreData(int core) {
 }
 
 void LocalNetwork::coreDataAck(int core) {
-  dataIn[core].ack();
+  iData[core].ack();
 }
 
 LocalNetwork::LocalNetwork(const sc_module_name& name, ComponentID tile) :
@@ -189,12 +189,12 @@ LocalNetwork::LocalNetwork(const sc_module_name& name, ComponentID tile) :
     memoryToCore("mem_to_core", tile, MEMS_PER_TILE, CORES_PER_TILE*2, 2, level, CORE_INPUT_CHANNELS) {
 
   // Ready signals from each component.//, plus one from the router.
-  readyIn.init(COMPONENTS_PER_TILE);
-  for (size_t i=0; i<readyIn.length(); i++) {
+  iReady.init(COMPONENTS_PER_TILE);
+  for (size_t i=0; i<iReady.length(); i++) {
     if (i<CORES_PER_TILE)           // cores have multiple buffers
-      readyIn[i].init(CORE_INPUT_CHANNELS);
+      iReady[i].init(CORE_INPUT_CHANNELS);
     else if (i<COMPONENTS_PER_TILE) // memories have one buffer each
-      readyIn[i].init(1);
+      iReady[i].init(1);
   }
 
   createSignals();
@@ -202,7 +202,7 @@ LocalNetwork::LocalNetwork(const sc_module_name& name, ComponentID tile) :
 
   for (unsigned int i=0; i<CORES_PER_TILE; i++) {
     // Method to handle data from the core.
-    SPAWN_METHOD(dataIn[i], LocalNetwork::newCoreData, i, false);
+    SPAWN_METHOD(iData[i], LocalNetwork::newCoreData, i, false);
 
     // Method to handle acks to the core. Can't use the macro because we're
     // sensitive to multiple things.

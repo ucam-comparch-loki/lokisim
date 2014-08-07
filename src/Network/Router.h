@@ -33,17 +33,17 @@ public:
   ClockInput   clock;
 
   // Data inputs
-  LokiVector<DataInput>   dataIn;
+  LokiVector<DataInput>   iData;
 
   // A flow control signal to each neighbouring router and to the local network.
-  LokiVector<ReadyOutput> readyOut;
+  LokiVector<ReadyOutput> oReady;
 
   // Data outputs
-  LokiVector<DataOutput>  dataOut;
+  LokiVector<DataOutput>  oData;
 
   // A flow control signal from each neighbouring router. Flow control from the
   // local network is handled separately.
-  LokiVector<ReadyInput>  readyIn;
+  LokiVector<ReadyInput>  iReady;
 
 //==============================//
 // Constructors and destructors

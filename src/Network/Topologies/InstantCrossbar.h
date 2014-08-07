@@ -24,14 +24,14 @@ public:
 
 // Inherited from Network:
 //
-//  ClockInput               clock;
+//  ClockInput   clock;
 //
-//  LokiVector<DataInput>    dataIn;
-//  LokiVector<DataOutput>   dataOut;
+//  LokiVector<DataInput>  iData;
+//  LokiVector<DataOutput> oData;
 
   // A signal from each buffer of each component, telling whether it is ready
   // to receive data. Addressed using readyIn[component][buffer].
-  LokiVector2D<ReadyInput>   readyIn;
+  LokiVector2D<ReadyInput>   iReady;
 
 //==============================//
 // Constructors and destructors

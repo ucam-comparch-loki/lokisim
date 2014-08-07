@@ -26,11 +26,11 @@ class OffChip: public Component {
 
 public:
 
-  sc_in<Word> dataIn;
-  DataOutput  dataOut;
-  ReadyInput  readyIn;
-  ReadyOutput readyOut;
-  ReadyOutput dataConsumed;
+  sc_in<Word> iData;
+  DataOutput  oData;
+  ReadyInput  iReady;
+  ReadyOutput oReady;
+  ReadyOutput oDataConsumed;
 
 //==============================//
 // Constructors and destructors

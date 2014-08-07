@@ -40,34 +40,34 @@ void Mesh::wireUp() {
       router.clock(clock);
 
       // Data heading north-south
-      router.dataIn[Router::NORTH](dataSigNS[col][row]);
-      router.dataOut[Router::SOUTH](dataSigNS[col][row+1]);
-      router.readyIn[Router::NORTH](readySigNS[col][row]);
-      router.readyOut[Router::SOUTH](readySigNS[col][row+1]);
+      router.iData[Router::NORTH](dataSigNS[col][row]);
+      router.oData[Router::SOUTH](dataSigNS[col][row+1]);
+      router.iReady[Router::NORTH](readySigNS[col][row]);
+      router.oReady[Router::SOUTH](readySigNS[col][row+1]);
 
       // Data heading east-west
-      router.dataIn[Router::EAST](dataSigEW[col+1][row]);
-      router.dataOut[Router::WEST](dataSigEW[col][row]);
-      router.readyIn[Router::EAST](readySigEW[col+1][row]);
-      router.readyOut[Router::WEST](readySigEW[col][row]);
+      router.iData[Router::EAST](dataSigEW[col+1][row]);
+      router.oData[Router::WEST](dataSigEW[col][row]);
+      router.iReady[Router::EAST](readySigEW[col+1][row]);
+      router.oReady[Router::WEST](readySigEW[col][row]);
 
       // Data heading south-north
-      router.dataIn[Router::SOUTH](dataSigSN[col][row+1]);
-      router.dataOut[Router::NORTH](dataSigSN[col][row]);
-      router.readyIn[Router::SOUTH](readySigSN[col][row+1]);
-      router.readyOut[Router::NORTH](readySigSN[col][row]);
+      router.iData[Router::SOUTH](dataSigSN[col][row+1]);
+      router.oData[Router::NORTH](dataSigSN[col][row]);
+      router.iReady[Router::SOUTH](readySigSN[col][row+1]);
+      router.oReady[Router::NORTH](readySigSN[col][row]);
 
       // Data heading west-east
-      router.dataIn[Router::WEST](dataSigWE[col][row]);
-      router.dataOut[Router::EAST](dataSigWE[col+1][row]);
-      router.readyIn[Router::WEST](readySigWE[col][row]);
-      router.readyOut[Router::EAST](readySigWE[col+1][row]);
+      router.iData[Router::WEST](dataSigWE[col][row]);
+      router.oData[Router::EAST](dataSigWE[col+1][row]);
+      router.iReady[Router::WEST](readySigWE[col][row]);
+      router.oReady[Router::EAST](readySigWE[col+1][row]);
 
       // Data heading to/from local tile
       int tile = router.id.getTile();
-      router.dataIn[Router::LOCAL](dataIn[tile]);
-      router.dataOut[Router::LOCAL](dataOut[tile]);
-      router.readyOut[Router::LOCAL](readyOut[tile]);
+      router.iData[Router::LOCAL](iData[tile]);
+      router.oData[Router::LOCAL](oData[tile]);
+      router.oReady[Router::LOCAL](oReady[tile]);
     }
   }
 }
@@ -85,7 +85,7 @@ Mesh::Mesh(const sc_module_name& name,
   // Can only handle inter-tile mesh networks at the moment.
   assert(level == Network::TILE);
 
-  readyOut.init(rows*columns);
+  oReady.init(rows*columns);
 
   makeRouters();
   makeWires();

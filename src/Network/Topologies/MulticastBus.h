@@ -20,15 +20,10 @@ public:
 
 // Inherited from Bus:
 //
-//   sc_in<bool>   clock;
+//  ClockInput   clock;
 //
-//   DataInput    *dataIn;
-//   DataOutput   *dataOut;
-
-//  CreditInput  *creditsIn;
-//
-//  // Make these into arrays of length 1, for consistency?
-//  CreditOutput *creditsOut;
+//  LokiVector<DataInput>  iData;
+//  LokiVector<DataOutput> oData;
 
 //==============================//
 // Constructors and destructors

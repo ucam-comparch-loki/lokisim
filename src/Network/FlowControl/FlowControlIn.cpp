@@ -10,23 +10,23 @@
 #include "../../Datatype/MemoryRequest.h"
 
 void FlowControlIn::dataLoop() {
-  if (dataIn.read().portClaim())
+  if (iData.read().portClaim())
     handlePortClaim();
   else
-    dataOut.write(dataIn.read().payload());
+    oData.write(iData.read().payload());
 
-  dataIn.ack();
+  iData.ack();
 }
 
 void FlowControlIn::handlePortClaim() {
-  assert(dataIn.valid());
-  assert(dataIn.read().portClaim());
+  assert(iData.valid());
+  assert(iData.read().portClaim());
 
   // TODO: only accept the port claim when we have no credits left to send.
 
   // Set the return address so we can send flow control.
-  returnAddress = dataIn.read().payload().toInt();
-  useCredits = dataIn.read().useCredits();
+  returnAddress = iData.read().payload().toInt();
+  useCredits = iData.read().useCredits();
 
   addCredit();
 
@@ -38,9 +38,9 @@ void FlowControlIn::handlePortClaim() {
   // now set up. We want to forward it to the buffer when possible.
   if (!useCredits &&
       (returnAddress.getPosition() >= CORES_PER_TILE) &&
-      (dataIn.read().channelID().getChannel() >= 2)) {
+      (iData.read().channelID().getChannel() >= 2)) {
 
-    dataOut.write(dataIn.read().payload());
+    oData.write(iData.read().payload());
   }
 
 }
@@ -78,7 +78,7 @@ void FlowControlIn::creditLoop() {
         sendCredit();
 
         // Wait for the credit to be acknowledged.
-        next_trigger(creditsOut.ack_event());
+        next_trigger(oCredit.ack_event());
         creditState = WAITING_FOR_ACK;
       }
       else {
@@ -109,7 +109,7 @@ void FlowControlIn::creditLoop() {
 
 void FlowControlIn::sendCredit() {
   AddressedWord aw(Word(1), returnAddress);
-  creditsOut.write(aw);
+  oCredit.write(aw);
 
   numCredits--;
 
@@ -128,13 +128,13 @@ FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const C
   creditState = NO_CREDITS;
 
   SC_METHOD(dataLoop);
-  sensitive << dataIn;
+  sensitive << iData;
   dont_initialize();
 
   SC_METHOD(creditLoop);
 
   SC_METHOD(addCredit);
-  sensitive << dataConsumed;
+  sensitive << iDataConsumed;
   dont_initialize();
 
 }

@@ -14,7 +14,7 @@ const string DirectionNames[] = {"north", "east", "south", "west", "local"};
 
 void Router::receiveData(PortIndex input) {
   if (DEBUG)
-    cout << this->name() << ": input from " << DirectionNames[input] << ": " << dataIn[input].read() << endl;
+    cout << this->name() << ": input from " << DirectionNames[input] << ": " << iData[input].read() << endl;
 
   assert(!inputBuffers[input].full());
 
@@ -28,8 +28,8 @@ void Router::receiveData(PortIndex input) {
     bool wasEmpty = inputBuffers[input].empty();
 
     // Put the new data into a buffer.
-    inputBuffers[input].write(dataIn[input].read());
-    dataIn[input].ack();
+    inputBuffers[input].write(iData[input].read());
+    iData[input].ack();
 
     if (wasEmpty)
       updateDestination(input);
@@ -38,8 +38,8 @@ void Router::receiveData(PortIndex input) {
 
 void Router::sendData(PortIndex output) {
   // Wait for permission to send (connections to other routers only).
-  if ((output != LOCAL) && !readyIn[output].read()) {
-    next_trigger(readyIn[output].posedge_event());
+  if ((output != LOCAL) && !iReady[output].read()) {
+    next_trigger(iReady[output].posedge_event());
   }
   // Data is always sent on the positive clock edge.
   else if (!clock.posedge()) {
@@ -52,9 +52,9 @@ void Router::sendData(PortIndex output) {
         if (DEBUG)
           cout << this->name() << " sending to " << DirectionNames[output] << ": " << inputBuffers[input].peek() << endl;
 
-        dataOut[output].write(inputBuffers[input].read());
+        oData[output].write(inputBuffers[input].read());
         lastAccepted[output] = input;
-        next_trigger(dataOut[output].ack_event());
+        next_trigger(oData[output].ack_event());
         updateDestination(input);
         return;
       }
@@ -67,8 +67,8 @@ void Router::sendData(PortIndex output) {
 
 void Router::updateFlowControl(PortIndex input) {
   bool canReceive = !inputBuffers[input].full();
-  if (readyOut[input].read() != canReceive) {
-    readyOut[input].write(canReceive);
+  if (oReady[input].read() != canReceive) {
+    oReady[input].write(canReceive);
   }
 }
 
@@ -97,14 +97,14 @@ Router::Direction Router::routeTo(ChannelID destination) const {
 }
 
 void Router::reportStalls(ostream& os) {
-  for (uint i=0; i<dataOut.length(); i++) {
-    if (dataOut[i].valid()) {
+  for (uint i=0; i<oData.length(); i++) {
+    if (oData[i].valid()) {
       os << this->name() << ".output_" << DirectionNames[i] << " is blocked." << endl;
-      os << "  Target destination is " << dataOut[i].read().channelID() << endl;
+      os << "  Target destination is " << oData[i].read().channelID() << endl;
     }
   }
 
-  for (uint i=0; i<dataIn.length(); i++) {
+  for (uint i=0; i<iData.length(); i++) {
     if (inputBuffers[i].full()) {
       os << inputBuffers[i].name() << " is full." << endl;
       os << "  Head is trying to get to " << inputBuffers[i].peek().channelID() << endl;
@@ -126,16 +126,16 @@ Router::Router(const sc_module_name& name, const ComponentID& ID) :
     destination[i] = -1;
   }
 
-  dataIn.init(5);    dataOut.init(5);
-  readyIn.init(4);   readyOut.init(5);
+  iData.init(5);    oData.init(5);
+  iReady.init(4);   oReady.init(5);
   outputAvailable.init(5);
 
   // Generate a method to watch each input port, putting the data into the
   // appropriate buffer when it arrives.
   // Generate a method for each output port, sending data when there is data
   // to send.
-  for (size_t i=0; i<dataIn.length(); i++) {
-    SPAWN_METHOD(dataIn[i], Router::receiveData, i, false);
+  for (size_t i=0; i<iData.length(); i++) {
+    SPAWN_METHOD(iData[i], Router::receiveData, i, false);
     SPAWN_METHOD(outputAvailable[i], Router::sendData, i, false);
 
     // Need to do this the long way because it's sensitive to multiple events.

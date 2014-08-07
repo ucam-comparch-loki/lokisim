@@ -34,15 +34,15 @@ public:
 
   // Data values received over the network. There should be NUM_RECEIVE_CHANNELS
   // inputs in the array.
-  LokiVector<sc_in<Word> > fromNetwork;
+  LokiVector<sc_in<Word> > iData;
 
   // A flow control signal for each input (NUM_RECEIVE_CHANNELS), to tell the
   // flow control unit whether there is space left in its buffer.
-  LokiVector<ReadyOutput> flowControl;
+  LokiVector<ReadyOutput> oFlowControl;
 
   // A flow control signal for each input (NUM_RECEIVE_CHANNELS), to tell the
   // flow control unit when data has been consumed and a credit can be sent.
-  LokiVector<ReadyOutput> dataConsumed;
+  LokiVector<ReadyOutput> oDataConsumed;
 
 //==============================//
 // Constructors and destructors

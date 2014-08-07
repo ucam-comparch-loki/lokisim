@@ -29,18 +29,16 @@ public:
 
 // Inherited from PipelineStage:
 //   sc_in<bool>          clock
-//   sc_out<bool>         idle
-//   sc_out<bool>         stallOut
 
   // Tell whether this stage is ready for input (ignoring effects of any other stages).
-  ReadyOutput              readyOut;
+  ReadyOutput              oReady;
 
   // The NUM_RECEIVE_CHANNELS inputs to the receive channel-end table.
-  LokiVector<sc_in<Word> > dataIn;
+  LokiVector<sc_in<Word> > iData;
 
   // A flow control signal for each input (NUM_RECEIVE_CHANNELS).
-  LokiVector<ReadyOutput>  flowControlOut;
-  LokiVector<ReadyOutput>  dataConsumed;
+  LokiVector<ReadyOutput>  oFlowControl;
+  LokiVector<ReadyOutput>  oDataConsumed;
 
 //==============================//
 // Constructors and destructors

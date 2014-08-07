@@ -11,10 +11,10 @@
 void Bus::busLoop() {
   switch(state) {
     case WAITING_FOR_DATA : {
-      if(!dataIn[0].valid()) {
+      if(!iData[0].valid()) {
         // It turns out that there wasn't actually more data: wait until some
         // arrives.
-        next_trigger(dataIn[0].default_event());
+        next_trigger(iData[0].default_event());
       }
       else {
         unsigned long cycle = Instrumentation::currentCycle();
@@ -22,16 +22,16 @@ void Bus::busLoop() {
         lastWriteTime = cycle;
 
         // There definitely is data: send it.
-        DataType data = dataIn[0].read();
+        DataType data = iData[0].read();
 
         outputUsed = getDestination(data.channelID());
 
         if (outputUsed >= numOutputPorts())
           cout << this->name() << " " << numOutputPorts() << " " << (int)outputUsed << endl;
         assert(outputUsed < numOutputPorts());
-        dataOut[outputUsed].write(data);
+        oData[outputUsed].write(data);
 
-        next_trigger(dataOut[outputUsed].ack_event());
+        next_trigger(oData[outputUsed].ack_event());
         state = WAITING_FOR_ACK;
       }
 
@@ -40,10 +40,10 @@ void Bus::busLoop() {
 
     case WAITING_FOR_ACK : {
       // Acknowledge the input data.
-      dataIn[0].ack();
+      iData[0].ack();
 
       // Wait until the next clock edge to deassert the acknowledgement.
-      next_trigger(dataIn[0].default_event());
+      next_trigger(iData[0].default_event());
       state = WAITING_FOR_DATA;
 
       break;

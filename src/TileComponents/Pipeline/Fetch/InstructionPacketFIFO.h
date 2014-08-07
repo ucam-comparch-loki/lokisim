@@ -29,13 +29,13 @@ public:
 
   ClockInput  clock;
 
-  sc_in<Word> instructionIn;
+  sc_in<Word> iInstruction;
 
   // Signal telling the flow control unit whether there is space left in the FIFO.
-  ReadyOutput flowControl;
+  ReadyOutput oFlowControl;
 
   // Signal which toggles whenever data has been consumed.
-  ReadyOutput dataConsumed;
+  ReadyOutput oDataConsumed;
 
 //==============================//
 // Constructors and destructors

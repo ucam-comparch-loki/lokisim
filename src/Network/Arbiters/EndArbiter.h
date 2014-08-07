@@ -30,7 +30,7 @@ public:
 //  SelectOutput *select;
 
   // Signals from the component telling if it is able to receive more data.
-  LokiVector<ReadyInput> readyIn;
+  LokiVector<ReadyInput> iReady;
 
 //==============================//
 // Constructors and destructors

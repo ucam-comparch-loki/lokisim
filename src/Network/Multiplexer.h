@@ -21,10 +21,10 @@ class Multiplexer: public Component, public Blocking {
 
 public:
 
-  SelectInput  select;
+  SelectInput           iSelect;
 
-  LokiVector<DataInput> dataIn;
-  DataOutput            dataOut;
+  LokiVector<DataInput> iData;
+  DataOutput            oData;
 
 //==============================//
 // Constructors and destructors

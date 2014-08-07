@@ -26,13 +26,13 @@ public:
 
 // Inherited from Network:
 //
-//  sc_in<bool>   clock;
+//  ClockInput   clock;
 //
-//  DataInput    *dataIn;
-//  DataOutput   *dataOut;
+//  LokiVector<DataInput>  iData;
+//  LokiVector<DataOutput> oData;
 
   // A signal from each router saying whether it is ready to receive data.
-  LokiVector<ReadyOutput> readyOut;
+  LokiVector<ReadyOutput> oReady;
 
 //==============================//
 // Constructors and destructors

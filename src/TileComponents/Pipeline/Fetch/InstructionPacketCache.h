@@ -29,13 +29,13 @@ public:
 
   ClockInput  clock;
 
-  sc_in<Word> instructionIn;
+  sc_in<Word> iInstruction;
 
   // Signal telling the flow control unit whether there is space left in the cache.
-  ReadyOutput flowControl;
+  ReadyOutput oFlowControl;
 
   // Signal which toggles whenever an instruction is first read.
-  ReadyOutput dataConsumed;
+  ReadyOutput oDataConsumed;
 
 //==============================//
 // Constructors and destructors

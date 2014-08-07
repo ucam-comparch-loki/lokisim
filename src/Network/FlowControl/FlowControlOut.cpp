@@ -15,11 +15,11 @@ void FlowControlOut::mainLoop() {
       // Data has now arrived.
 
       // Don't allow any more data until this send is complete.
-      flowControlOut.write(false);
+      oFlowControl.write(false);
 
       // If the network is not ready for the data, wait until it is.
-      if (!readyIn.read())
-        next_trigger(readyIn.posedge_event());
+      if (!iReady.read())
+        next_trigger(iReady.posedge_event());
       else
         handleNewData();
 
@@ -31,7 +31,7 @@ void FlowControlOut::mainLoop() {
       sendData();
 
       state = WAITING_FOR_DATA;
-      next_trigger(dataIn.default_event());
+      next_trigger(iData.default_event());
 
       break;
     }
@@ -41,22 +41,22 @@ void FlowControlOut::mainLoop() {
 void FlowControlOut::sendData() {
   assert(creditCount > 0);
 
-  if (DEBUG) cout << "Network sending " << dataIn.read().payload() << " from "
-      << channel << " to " << dataIn.read().channelID() << endl;
+  if (DEBUG) cout << "Network sending " << iData.read().payload() << " from "
+      << channel << " to " << iData.read().channelID() << endl;
 
-  dataOut.write(dataIn.read());
+  oData.write(iData.read());
   creditCount--;
-  flowControlOut.write(true);
+  oFlowControl.write(true);
 }
 
 void FlowControlOut::handleNewData() {
-  if (dataIn.read().portClaim()) {
+  if (iData.read().portClaim()) {
     // This message is allowed to send even if we have no credits
     // because it is not buffered -- it is immediately consumed to store
     // the return address at the destination.
 
     if (DEBUG) cout << "Sending port claim from " << channel << " to "
-                    << dataIn.read().channelID() << endl;
+                    << iData.read().channelID() << endl;
   }
   else {
     if (creditCount <= 0) {  // We are not able to send the new data yet.
@@ -64,11 +64,11 @@ void FlowControlOut::handleNewData() {
 
       // Wait until we receive a credit.
       state = WAITING_FOR_CREDITS;
-      next_trigger(creditsIn.default_event());
+      next_trigger(iCredit.default_event());
     }
     else {
       sendData();
-      next_trigger(dataIn.default_event());
+      next_trigger(iData.default_event());
     }
   }
 }
@@ -88,16 +88,16 @@ FlowControlOut::FlowControlOut(sc_module_name name, const ComponentID& ID, const
   state = WAITING_FOR_DATA;
 
   SC_METHOD(mainLoop);
-  sensitive << dataIn;
+  sensitive << iData;
   dont_initialize();
 
   SC_METHOD(receivedCredit);
-  sensitive << creditsIn;
+  sensitive << iCredit;
   dont_initialize();
 
   // Start execution allowing all inputs.
-  flowControlOut.initialize(true);
-  readyOut.initialize(true);
+  oFlowControl.initialize(true);
+  oReady.initialize(true);
 
   end_module(); // Needed because we're using a different Component constructor
 

@@ -37,15 +37,15 @@ public:
   // network.
   ClockInput   creditClock;
 
-  LokiVector<DataInput>     dataIn;
-  LokiVector<ReadyOutput>   readyOut;
+  LokiVector<DataInput>     iData;
+  LokiVector<ReadyOutput>   oReady;
 
-  LokiVector<sc_out<Word> > dataOut;
+  LokiVector<sc_out<Word> > oData;
 
-  LokiVector<ReadyInput>    bufferHasSpace;
-  LokiVector<ReadyInput>    dataConsumed;
+  LokiVector<ReadyInput>    iFlowControl;
+  LokiVector<ReadyInput>    iDataConsumed;
 
-  LokiVector<CreditOutput>  creditsOut;
+  LokiVector<CreditOutput>  oCredit;
 
 //==============================//
 // Constructors and destructors

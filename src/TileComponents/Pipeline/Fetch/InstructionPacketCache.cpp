@@ -112,18 +112,18 @@ const sc_event& InstructionPacketCache::fillChangedEvent() const {
 
 void InstructionPacketCache::receivedInst() {
   // Need to cast from Word to Instruction.
-  Instruction inst = static_cast<Instruction>(instructionIn.read());
+  Instruction inst = static_cast<Instruction>(iInstruction.read());
   write(inst);
 }
 
 /* Update the signal saying whether there is enough room to fetch another
  * packet. */
 void InstructionPacketCache::updateFlowControl() {
-  flowControl.write(!cache->full());
+  oFlowControl.write(!cache->full());
 }
 
 void InstructionPacketCache::dataConsumedAction() {
-  dataConsumed.write(!dataConsumed.read());
+  oDataConsumed.write(!oDataConsumed.read());
 }
 
 /* Returns whether or not the cache is empty. */
@@ -156,7 +156,7 @@ InstructionPacketCache::InstructionPacketCache(sc_module_name name, const Compon
   finishedPacketWrite = true;
 
   SC_METHOD(receivedInst);
-  sensitive << instructionIn;
+  sensitive << iInstruction;
   dont_initialize();
 
   SC_METHOD(updateFlowControl);

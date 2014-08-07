@@ -32,13 +32,13 @@ public:
   ClockInput   fastClock, slowClock;
 
   // Data received from each output of each networked component.
-  LokiVector<DataInput>    dataIn;
+  LokiVector<DataInput>    iData;
 
   // Data to each input of each component.
-  LokiVector<DataOutput>   dataOut;
+  LokiVector<DataOutput>   oData;
 
   // Flow control from components for data.
-  LokiVector<ReadyInput>   readyDataIn;
+  LokiVector<ReadyInput>   iReady;
 
 
 //==============================//

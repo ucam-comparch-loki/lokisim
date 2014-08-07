@@ -19,13 +19,13 @@ const sc_event& EndArbiter::canGrantNow(int output, const ChannelIndex destinati
 
   // If the destination is ready to receive data, we can send the grant
   // immediately.
-  if (readyIn[channel].read()) {
+  if (iReady[channel].read()) {
     grantEvent.notify(sc_core::SC_ZERO_TIME);
     return grantEvent;
   }
   // Otherwise, we must wait until the destination is ready.
   else {
-    return readyIn[channel].posedge_event();
+    return iReady[channel].posedge_event();
   }
 }
 
@@ -42,24 +42,24 @@ const sc_event& EndArbiter::stallGrant(int output) {
     SelectType input = selectVec[output];
     assert(input != NO_SELECTION);
 
-    target = requests[input].read();
+    target = iRequest[input].read();
     assert(target != NO_REQUEST);
   }
 
-  return readyIn[target].negedge_event();
+  return iReady[target].negedge_event();
 }
 
 // Override BasicArbiter's implementation so the request is only officially
 // available when the output is free to receive data.
 void EndArbiter::requestChanged(int input) {
 
-  if (requests[input].read() == NO_REQUEST) {
+  if (iRequest[input].read() == NO_REQUEST) {
     requestVec[input] = false;
   }
   else {
     PortIndex outputWanted = outputToUse(input);
 
-    if (readyIn[outputWanted].read()) {
+    if (iReady[outputWanted].read()) {
       requestVec[input] = true;
       receivedRequest.notify();
     }
@@ -67,7 +67,7 @@ void EndArbiter::requestChanged(int input) {
       requestVec[input] = false;
     }
 
-    next_trigger(readyIn[outputWanted].default_event() | requests[input].default_event());
+    next_trigger(iReady[outputWanted].default_event() | iRequest[input].default_event());
   }
 }
 
@@ -78,13 +78,13 @@ PortIndex EndArbiter::outputToUse(PortIndex input) {
   if (numOutputs() == 1)
     return 0;
   else
-    return requests[input].read();
+    return iRequest[input].read();
 }
 
 EndArbiter::EndArbiter(const sc_module_name& name, ComponentID ID,
                        int inputs, int outputs, bool wormhole, int flowControlSignals) :
     BasicArbiter(name, ID, inputs, outputs, wormhole) {
 
-  readyIn.init(flowControlSignals);
+  iReady.init(flowControlSignals);
 
 }

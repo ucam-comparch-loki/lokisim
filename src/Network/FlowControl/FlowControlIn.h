@@ -30,16 +30,17 @@ public:
   ClockInput    clock;
 
   // Data received over the network, to be sent to a component's input.
-  DataInput     dataIn;
+  DataInput     iData;
 
   // Data to be sent to the component's input.
-  sc_out<Word>  dataOut;
+  sc_out<Word>  oData;
 
   // Responses to requests from each input.
-  CreditOutput  creditsOut;
+  CreditOutput  oCredit;
 
-  // Signal that a credit can be sent, if necessary.
-  ReadyInput    dataConsumed;
+  // Signal that a credit can be sent, if necessary. The signal switches each
+  // time data is consumed from the buffer.
+  ReadyInput    iDataConsumed;
 
 //==============================//
 // Constructors and destructors

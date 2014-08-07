@@ -30,10 +30,10 @@ public:
 
 // Inherited from Network:
 //
-//  sc_in<bool>   clock;
+//  ClockInput   clock;
 //
-//  DataInput    *dataIn;
-//  DataOutput   *dataOut;
+//  LokiVector<DataInput>  iData;
+//  LokiVector<DataOutput> oData;
 
   // Additional clocks which are skewed, allowing multiple clocked events
   // to happen in series in one cycle.
@@ -42,7 +42,7 @@ public:
   // An array of signals from each component, telling whether each of the
   // component's input buffers are ready to receive data.
   // Address using readyIn[component][buffer]
-  LokiVector2D<ReadyInput>  readyIn;
+  LokiVector2D<ReadyInput>  iReady;
 
 //==============================//
 // Constructors and destructors

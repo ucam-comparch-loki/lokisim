@@ -204,19 +204,19 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
 
   // Wire the input ports to the input buffers.
   for(unsigned int i=0; i<CORE_INPUT_PORTS; i++)
-    inputCrossbar.dataIn[i](iData[i]);
-  inputCrossbar.dataIn[CORE_INPUT_PORTS](iDataGlobal);
+    inputCrossbar.iData[i](iData[i]);
+  inputCrossbar.iData[CORE_INPUT_PORTS](iDataGlobal);
 
   for(unsigned int i=0; i<CORE_INPUT_CHANNELS; i++) {
-    inputCrossbar.readyOut[i](oReadyData[i]);
-    inputCrossbar.dataOut[i](dataToBuffers[i]);
-    inputCrossbar.bufferHasSpace[i](fcFromBuffers[i]);
-    inputCrossbar.dataConsumed[i](dataConsumed[i]);
+    inputCrossbar.oReady[i](oReadyData[i]);
+    inputCrossbar.oData[i](dataToBuffers[i]);
+    inputCrossbar.iFlowControl[i](fcFromBuffers[i]);
+    inputCrossbar.iDataConsumed[i](dataConsumed[i]);
   }
 
   inputCrossbar.clock(clock);
   inputCrossbar.creditClock(fastClock);
-  inputCrossbar.creditsOut[0](oCredit);
+  inputCrossbar.oCredit[0](oCredit);
 
   // Create pipeline registers.
   pipelineRegs.push_back(
@@ -229,23 +229,23 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
   // Wire the pipeline stages up.
 
   fetch.clock(clock);                     fetch.idle(stageIdle[0]);
-  fetch.toIPKFIFO(dataToBuffers[0]);      fetch.flowControl[0](fcFromBuffers[0]);
-  fetch.toIPKCache(dataToBuffers[1]);     fetch.flowControl[1](fcFromBuffers[1]);
-  fetch.dataConsumed[0](dataConsumed[0]); fetch.dataConsumed[1](dataConsumed[1]);
+  fetch.iToFIFO(dataToBuffers[0]);      fetch.oFlowControl[0](fcFromBuffers[0]);
+  fetch.iToCache(dataToBuffers[1]);     fetch.oFlowControl[1](fcFromBuffers[1]);
+  fetch.oDataConsumed[0](dataConsumed[0]); fetch.oDataConsumed[1](dataConsumed[1]);
   fetch.initPipeline(NULL, pipelineRegs[0]);
 
   decode.clock(clock);                    decode.idle(/*stageIdle[1]*/oIdle);
-  decode.readyOut(stageReady[0]);
+  decode.oReady(stageReady[0]);
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
-    decode.dataIn[i](dataToBuffers[i+2]);
-    decode.flowControlOut[i](fcFromBuffers[i+2]);
-    decode.dataConsumed[i](dataConsumed[i+2]);
+    decode.iData[i](dataToBuffers[i+2]);
+    decode.oFlowControl[i](fcFromBuffers[i+2]);
+    decode.oDataConsumed[i](dataConsumed[i+2]);
   }
   decode.initPipeline(pipelineRegs[0], pipelineRegs[1]);
 
   execute.clock(clock);                   execute.idle(stageIdle[2]);
-  execute.readyOut(stageReady[1]);
-  execute.dataOut(outputData);            execute.readyIn(stageReady[2]);
+  execute.oReady(stageReady[1]);
+  execute.oData(outputData);            execute.iReady(stageReady[2]);
   execute.initPipeline(pipelineRegs[1], pipelineRegs[2]);
 
   write.clock(clock);                     write.idle(stageIdle[3]);

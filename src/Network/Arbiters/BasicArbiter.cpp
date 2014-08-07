@@ -11,8 +11,8 @@
 #include "../../Arbitration/ArbiterBase.h"
 #include "../../Utility/Instrumentation/Network.h"
 
-int BasicArbiter::numInputs()  const {return requests.length();}
-int BasicArbiter::numOutputs() const {return select.length();}
+int BasicArbiter::numInputs()  const {return iRequest.length();}
+int BasicArbiter::numOutputs() const {return oSelect.length();}
 
 void BasicArbiter::arbitrate(int output) {
 
@@ -58,7 +58,7 @@ void BasicArbiter::arbitrate(int output) {
 
         state[output] = WAITING_TO_GRANT;
 
-        next_trigger(canGrantNow(output, requests[grant].read()));
+        next_trigger(canGrantNow(output, iRequest[grant].read()));
       }
       else {
         // If we couldn't grant anything, wait until next cycle.
@@ -77,7 +77,7 @@ void BasicArbiter::arbitrate(int output) {
       assert(granted < numInputs());
       assert(granted >= 0);
 
-      bool requestStillActive = (requests[granted].read() != NO_REQUEST);
+      bool requestStillActive = (iRequest[granted].read() != NO_REQUEST);
 
       if (requestStillActive) {
 //        cout << this->name() << " ready to grant input " << (int)granted << endl;
@@ -88,7 +88,7 @@ void BasicArbiter::arbitrate(int output) {
         // Alternatively, a flow control signal may force us to stall the
         // sending of data.
         state[output] = GRANTED;
-        next_trigger(requests[granted].default_event() | stallGrant(output));
+        next_trigger(iRequest[granted].default_event() | stallGrant(output));
       }
       else {
 //        cout << this->name() << " request at input " << (int)granted << " removed" << endl;
@@ -107,7 +107,7 @@ void BasicArbiter::arbitrate(int output) {
       assert(granted < numInputs());
       assert(granted != NO_SELECTION);
 
-      if (requests[granted].read() == NO_REQUEST) {
+      if (iRequest[granted].read() == NO_REQUEST) {
         // The request was removed, meaning the communication completed
         // successfully.
         deassertGrant(granted, output);
@@ -126,8 +126,8 @@ void BasicArbiter::arbitrate(int output) {
 //        cout << this->name() << " new request on input " << (int)granted << endl;
 
         state[output] = WAITING_TO_GRANT;
-        next_trigger(canGrantNow(output, requests[granted].read()) |
-                     requests[granted].default_event());
+        next_trigger(canGrantNow(output, iRequest[granted].read()) |
+                     iRequest[granted].default_event());
       }
 
       break;
@@ -168,7 +168,7 @@ bool BasicArbiter::haveRequest() const {
 }
 
 void BasicArbiter::requestChanged(int input) {
-  requestVec[input] = (requests[input].read() != NO_REQUEST);
+  requestVec[input] = (iRequest[input].read() != NO_REQUEST);
 
 //  cout << this->name() << " request " << input << " changed to " << (int)(requestVec[input]) << endl;
 
@@ -179,14 +179,14 @@ void BasicArbiter::requestChanged(int input) {
 
 void BasicArbiter::updateGrant(int input) {
   // Update the output signal to the value held in the internal vector.
-  grants[input].write(grantVec[input]);
+  oGrant[input].write(grantVec[input]);
 }
 
 void BasicArbiter::updateSelect(int output) {
   // Wait until the start of the next cycle before changing the select signal.
   // Arbitration is done the cycle before data is sent.
   if (clock.posedge()) {  // The clock edge
-    select[output].write(selectVec[output]);
+    oSelect[output].write(selectVec[output]);
 //    cout << this->name() << " granted input " << (int)(selectVec[output]) << endl;
     next_trigger(selectionChanged[output]);
   }
@@ -196,7 +196,7 @@ void BasicArbiter::updateSelect(int output) {
 }
 
 void BasicArbiter::reportStalls(ostream& os) {
-  for (uint i=0; i<requests.length(); i++) {
+  for (uint i=0; i<iRequest.length(); i++) {
     if (requestVec[i]) {
       os << this->name() << " still has active request on input " << i << endl;
     }
@@ -214,9 +214,9 @@ BasicArbiter::BasicArbiter(const sc_module_name& name, ComponentID ID,
 
   Instrumentation::Network::arbiterCreated();
 
-  requests.init(inputs);
-  grants.init(inputs);
-  select.init(outputs);
+  iRequest.init(inputs);
+  oGrant.init(inputs);
+  oSelect.init(outputs);
 
   grantChanged.init(inputs);
   selectionChanged.init(outputs);
@@ -224,7 +224,7 @@ BasicArbiter::BasicArbiter(const sc_module_name& name, ComponentID ID,
   // Set some initial value for the select signals, so they generate an event
   // whenever they change to a valid value.
   for (int i=0; i<outputs; i++)
-    select[i].initialize(NO_SELECTION);
+    oSelect[i].initialize(NO_SELECTION);
 
   arbiter = ArbiterBase::makeArbiter(ArbiterBase::ROUND_ROBIN, &requestVec, &grantVec);
 
@@ -236,7 +236,7 @@ BasicArbiter::BasicArbiter(const sc_module_name& name, ComponentID ID,
   // Generate a method to watch each request port, taking appropriate action
   // whenever the signal changes.
   for (int i=0; i<inputs; i++)
-    SPAWN_METHOD(requests[i], BasicArbiter::requestChanged, i, false);
+    SPAWN_METHOD(iRequest[i], BasicArbiter::requestChanged, i, false);
 
   // Method for each grant port, updating the grant signal when appropriate.
   for (int i=0; i<inputs; i++)

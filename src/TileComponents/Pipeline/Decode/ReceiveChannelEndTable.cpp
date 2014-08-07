@@ -69,11 +69,11 @@ void ReceiveChannelEndTable::checkInput(ChannelIndex input) {
   // This method is called because data has arrived on a particular input channel.
 
   if (DEBUG) cout << this->name() << " channel " << (int)input << " received " <<
-                     fromNetwork[input].read() << endl;
+                     iData[input].read() << endl;
 
   assert(!buffers[input].full());
 
-  buffers[input].write(fromNetwork[input].read());
+  buffers[input].write(iData[input].read());
 
   newData.notify();
 }
@@ -84,12 +84,12 @@ const sc_event& ReceiveChannelEndTable::receivedDataEvent(ChannelIndex buffer) c
 
 void ReceiveChannelEndTable::updateFlowControl(ChannelIndex buffer) {
   bool canReceive = !buffers[buffer].full();
-  if (flowControl[buffer].read() != canReceive)
-    flowControl[buffer].write(canReceive);
+  if (oFlowControl[buffer].read() != canReceive)
+    oFlowControl[buffer].write(canReceive);
 }
 
 void ReceiveChannelEndTable::dataConsumedAction(ChannelIndex buffer) {
-  dataConsumed[buffer].write(!dataConsumed[buffer].read());
+  oDataConsumed[buffer].write(!oDataConsumed[buffer].read());
 }
 
 DecodeStage* ReceiveChannelEndTable::parent() const {
@@ -109,14 +109,14 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name, const
     buffers(NUM_RECEIVE_CHANNELS, IN_CHANNEL_BUFFER_SIZE, this->name()),
     currentChannel(NUM_RECEIVE_CHANNELS) {
 
-  fromNetwork.init(NUM_RECEIVE_CHANNELS);
-  flowControl.init(NUM_RECEIVE_CHANNELS);
-  dataConsumed.init(NUM_RECEIVE_CHANNELS);
+  iData.init(NUM_RECEIVE_CHANNELS);
+  oFlowControl.init(NUM_RECEIVE_CHANNELS);
+  oDataConsumed.init(NUM_RECEIVE_CHANNELS);
 
   // Generate a method to watch each input port, putting the data into the
   // appropriate buffer when it arrives.
   for (unsigned int i=0; i<buffers.size(); i++) {
-    SPAWN_METHOD(fromNetwork[i], ReceiveChannelEndTable::checkInput, i, false);
+    SPAWN_METHOD(iData[i], ReceiveChannelEndTable::checkInput, i, false);
     SPAWN_METHOD(buffers[i].dataConsumedEvent(), ReceiveChannelEndTable::dataConsumedAction, i, false);
   }
 

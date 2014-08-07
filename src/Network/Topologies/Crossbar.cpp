@@ -14,22 +14,22 @@
 
 void Crossbar::inputChanged(const PortIndex port) {
   if (ENERGY_TRACE)
-    Instrumentation::Network::crossbarInput(oldInputs[port], dataIn[port].read(), port);
-  oldInputs[port] = dataIn[port].read();
+    Instrumentation::Network::crossbarInput(oldInputs[port], iData[port].read(), port);
+  oldInputs[port] = iData[port].read();
 //  cout << this->name() << " received " << dataIn[port].read() << endl;
 }
 
 void Crossbar::outputChanged(const PortIndex port) {
   if (ENERGY_TRACE)
-    Instrumentation::Network::crossbarOutput(oldOutputs[port], dataOut[port].read());
-  oldOutputs[port] = dataOut[port].read();
+    Instrumentation::Network::crossbarOutput(oldOutputs[port], oData[port].read());
+  oldOutputs[port] = oData[port].read();
 //  cout << this->name() << " sent " << dataOut[port].read() << endl;
 }
 
 void Crossbar::makePorts() {
-  requestsIn.init(numInputPorts(), numArbiters);
-  grantsOut.init(numInputPorts(), numArbiters);
-  readyIn.init(numArbiters, buffersPerComponent);
+  iRequest.init(numInputPorts(), numArbiters);
+  oGrant.init(numInputPorts(), numArbiters);
+  iReady.init(numArbiters, buffersPerComponent);
 }
 
 void Crossbar::makeSignals() {
@@ -45,13 +45,13 @@ void Crossbar::makeArbiters() {
     arb->clock(clock);
 
     for (int j=0; j<buffersPerComponent; j++)
-      arb->readyIn[j](readyIn[i][j]);
+      arb->iReady[j](iReady[i][j]);
     for (uint j=0; j<numInputPorts(); j++) {
-      arb->requests[j](requestsIn[j][i]);
-      arb->grants[j](grantsOut[j][i]);
+      arb->iRequest[j](iRequest[j][i]);
+      arb->oGrant[j](oGrant[j][i]);
     }
     for (int j=0; j<outputsPerComponent; j++)
-      arb->select[j](selectSig[i][j]);
+      arb->oSelect[j](selectSig[i][j]);
 
     arbiters.push_back(arb);
   }
@@ -61,14 +61,14 @@ void Crossbar::makeMuxes() {
   for (int i=0; i<numMuxes; i++) {
     Multiplexer* mux = new Multiplexer(sc_gen_unique_name("mux"), numInputPorts());
 
-    mux->dataOut(dataOut[i]);
+    mux->oData(oData[i]);
 
     for (uint j=0; j<numInputPorts(); j++)
-      mux->dataIn[j](dataIn[j]);
+      mux->iData[j](iData[j]);
 
     int arbiter = i/outputsPerComponent;
     int arbiterSelect = i%outputsPerComponent;
-    mux->select(selectSig[arbiter][arbiterSelect]);
+    mux->iSelect(selectSig[arbiter][arbiterSelect]);
 
     muxes.push_back(mux);
   }
@@ -95,9 +95,9 @@ Crossbar::Crossbar(const sc_module_name& name,
   makeMuxes();
 
   for (uint i=0; i<numInputPorts(); i++)
-    SPAWN_METHOD(dataIn[i], Crossbar::inputChanged, i, false);
+    SPAWN_METHOD(iData[i], Crossbar::inputChanged, i, false);
   for (uint i=0; i<numOutputPorts(); i++)
-    SPAWN_METHOD(dataOut[i], Crossbar::outputChanged, i, false);
+    SPAWN_METHOD(oData[i], Crossbar::outputChanged, i, false);
 }
 
 Crossbar::~Crossbar() {

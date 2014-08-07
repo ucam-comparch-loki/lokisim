@@ -28,8 +28,8 @@ void         DecodeStage::updateReady() {
   bool ready = !isStalled();
 
   // Write our current stall status (only if it changed).
-  if (ready != readyOut.read()) {
-    readyOut.write(ready);
+  if (ready != oReady.read()) {
+    oReady.write(ready);
 
     if (DEBUG && !ready)
       cout << this->name() << " stalled." << endl;
@@ -302,19 +302,19 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
   startingNewPacket = true;
   waitingToSend = false;
 
-  dataIn.init(NUM_RECEIVE_CHANNELS);
-  flowControlOut.init(NUM_RECEIVE_CHANNELS);
-  dataConsumed.init(NUM_RECEIVE_CHANNELS);
+  iData.init(NUM_RECEIVE_CHANNELS);
+  oFlowControl.init(NUM_RECEIVE_CHANNELS);
+  oDataConsumed.init(NUM_RECEIVE_CHANNELS);
 
   // Connect everything up
   rcet.clock(clock);
   for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
-    rcet.fromNetwork[i](dataIn[i]);
-    rcet.flowControl[i](flowControlOut[i]);
-    rcet.dataConsumed[i](dataConsumed[i]);
+    rcet.iData[i](iData[i]);
+    rcet.oFlowControl[i](oFlowControl[i]);
+    rcet.oDataConsumed[i](oDataConsumed[i]);
   }
 
-  readyOut.initialize(false);
+  oReady.initialize(false);
 
   SC_THREAD(execute);
   // TODO - eliminate SC_THREADs

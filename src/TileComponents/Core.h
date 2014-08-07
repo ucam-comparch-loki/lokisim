@@ -40,9 +40,8 @@ public:
 
 // Inherited from TileComponent:
 //   clock
-//   iData;
-//   oData;
-//   oIdle
+//   iData
+//   oData
 
   // Connections to the global data network.
   DataOutput oDataGlobal;
@@ -181,7 +180,7 @@ private:
   // be fewer network connections, making the tile network simpler.
   InputCrossbar          inputCrossbar;
 
-  RegisterFile   regs;
+  RegisterFile           regs;
   PredicateRegister      pred;
 
   // Each of the pipeline stages.

@@ -34,10 +34,10 @@ public:
 
   ClockInput   clock;
 
-  LokiVector<RequestInput> requests;
-  LokiVector<GrantOutput>  grants;
+  LokiVector<RequestInput> iRequest;
+  LokiVector<GrantOutput>  oGrant;
 
-  LokiVector<SelectOutput> select;
+  LokiVector<SelectOutput> oSelect;
 
 //==============================//
 // Constructors and destructors

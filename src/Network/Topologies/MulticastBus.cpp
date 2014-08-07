@@ -13,21 +13,21 @@
 void MulticastBus::busLoop() {
   switch(state) {
     case WAITING_FOR_DATA : {
-      if(!dataIn[0].valid()) {
+      if(!iData[0].valid()) {
         // It turns out that there wasn't actually more data: wait until some
         // arrives.
-        next_trigger(dataIn[0].default_event());
+        next_trigger(iData[0].default_event());
       }
       else {
         // There definitely is data: send it.
-        DataType data = dataIn[0].read();
+        DataType data = iData[0].read();
 
         outputUsed = getDestinations(data.channelID());
         assert(outputUsed != 0);
 
         for(int i=0; i<8; i++) {  // 8 = number of bits in PortIndex... increase this?
           if((outputUsed >> i) & 1)
-            dataOut[i].write(data);
+            oData[i].write(data);
         }
 
         next_trigger(receivedAllAcks);
@@ -40,9 +40,9 @@ void MulticastBus::busLoop() {
     case WAITING_FOR_ACK : {
       // All acknowledgements have been received, so now it is time to
       // acknowledge the input data.
-      dataIn[0].ack();
+      iData[0].ack();
 
-      next_trigger(dataIn[0].default_event());
+      next_trigger(iData[0].default_event());
       state = WAITING_FOR_DATA;
 
       break;
@@ -88,7 +88,7 @@ MulticastBus::MulticastBus(const sc_module_name& name, const ComponentID& ID, in
   // Generate a method for each output port, to wait for acknowledgements and
   // notify the main process when all have been received.
   for(int i=0; i<numOutputs; i++)
-    SPAWN_METHOD(dataOut[i].ack_event(), MulticastBus::ackArrived, i, false);
+    SPAWN_METHOD(oData[i].ack_event(), MulticastBus::ackArrived, i, false);
 }
 
 MulticastBus::~MulticastBus() {

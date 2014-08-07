@@ -32,8 +32,8 @@ public:
 //  SelectOutput *select;
 
   // Connections to the next arbiter in the chain.
-  LokiVector<RequestOutput> requestOut;
-  LokiVector<GrantInput>    grantIn;
+  LokiVector<RequestOutput> oRequest;
+  LokiVector<GrantInput>    iGrant;
 
 //==============================//
 // Constructors and destructors

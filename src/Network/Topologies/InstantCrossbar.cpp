@@ -10,7 +10,7 @@
 #include "InstantCrossbar.h"
 
 void InstantCrossbar::mainLoop(PortIndex port) {
-  DataType data = dataIn[port].read();
+  DataType data = iData[port].read();
   PortIndex output = getDestination(data.channelID());
 
   if (output >= numOutputPorts())
@@ -29,14 +29,14 @@ void InstantCrossbar::mainLoop(PortIndex port) {
     // Request granted -> wait until data has made it through.
     case ARBITRATING:
       state[port] = FINISHED;
-      next_trigger(dataOut[output].ack_event());
+      next_trigger(oData[output].ack_event());
       break;
 
     // Finished with data -> wait for next data.
     case FINISHED:
       requests[port][output].write(NO_REQUEST);
       state[port] = IDLE;
-      next_trigger(dataIn[port].default_event()); // TODO: remove?
+      next_trigger(iData[port].default_event()); // TODO: remove?
       break;
 
     default:
@@ -59,32 +59,32 @@ InstantCrossbar::InstantCrossbar(const sc_module_name& name,
   uint arbiters = outputs/outputsPerComponent;
 
   // Create ports and signals.
-  readyIn.init(arbiters, buffersPerComponent);
+  iReady.init(arbiters, buffersPerComponent);
   requests.init(numInputPorts(), arbiters);
   grants.init(numInputPorts(), arbiters);
 
   // Connect up the inner crossbar.
   crossbar.clock(clock);
-  for (uint i=0; i<dataIn.length(); i++)
-    crossbar.dataIn[i](dataIn[i]);
-  for (uint i=0; i<dataOut.length(); i++)
-    crossbar.dataOut[i](dataOut[i]);
+  for (uint i=0; i<iData.length(); i++)
+    crossbar.iData[i](iData[i]);
+  for (uint i=0; i<oData.length(); i++)
+    crossbar.oData[i](oData[i]);
 
   for (uint i=0; i<numInputPorts(); i++) {
     for (uint j=0; j<arbiters; j++) {
-      crossbar.requestsIn[i][j](requests[i][j]);
-      crossbar.grantsOut[i][j](grants[i][j]);
+      crossbar.iRequest[i][j](requests[i][j]);
+      crossbar.oGrant[i][j](grants[i][j]);
       requests[i][j].write(NO_REQUEST);
     }
   }
 
   for (uint i=0; i<arbiters; i++)
     for (int j=0; j<buffersPerComponent; j++)
-      crossbar.readyIn[i][j](readyIn[i][j]);
+      crossbar.iReady[i][j](iReady[i][j]);
 
   // Create a method for each data input port.
   for (uint i=0; i<numInputPorts(); i++)
-    SPAWN_METHOD(dataIn[i], InstantCrossbar::mainLoop, i, false);
+    SPAWN_METHOD(iData[i], InstantCrossbar::mainLoop, i, false);
 
 }
 

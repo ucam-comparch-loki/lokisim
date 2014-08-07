@@ -45,10 +45,10 @@ void ExecuteStage::updateReady() {
   bool ready = !isStalled();
 
   // Write our current stall status.
-  if (ready != readyOut.read())
-    readyOut.write(ready);
+  if (ready != oReady.read())
+    oReady.write(ready);
 
-  if (DEBUG && isStalled() && readyOut.read())
+  if (DEBUG && isStalled() && oReady.read())
     cout << this->name() << " stalled." << endl;
 }
 
@@ -203,7 +203,7 @@ void ExecuteStage::sendOutput() {
 
     // Send the data to the output buffer - it will arrive immediately so that
     // network resources can be requested the cycle before they are used.
-    dataOut.write(currentInst);
+    oData.write(currentInst);
   }
 
   // Send the data to the register file - it will arrive at the beginning
@@ -392,7 +392,7 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
 bool ExecuteStage::isStalled() const {
   // When we have multi-cycle operations (e.g. multiplies), we will need to use
   // this.
-  return !readyIn.read();
+  return !iReady.read();
 }
 
 bool ExecuteStage::checkPredicate(DecodedInst& inst) {

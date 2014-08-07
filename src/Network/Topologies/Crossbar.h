@@ -23,19 +23,19 @@ public:
 
 // Inherited from Network:
 //
-//  sc_in<bool>   clock;
+//  ClockInput   clock;
 //
-//  DataInput    *dataIn;
-//  DataOutput   *dataOut;
+//  LokiVector<DataInput>  iData;
+//  LokiVector<DataOutput> oData;
 
   // A request/grant signal for each input to reserve each output.
-  // Indexed as: requestsIn[input][output]
-  LokiVector2D<RequestInput> requestsIn;
-  LokiVector2D<GrantOutput>  grantsOut;
+  // Indexed as: iRequest[input][output]
+  LokiVector2D<RequestInput> iRequest;
+  LokiVector2D<GrantOutput>  oGrant;
 
   // A signal from each buffer of each component, telling whether it is ready
-  // to receive data. Addressed using readyIn[component][buffer].
-  LokiVector2D<ReadyInput>   readyIn;
+  // to receive data. Addressed using iReady[component][buffer].
+  LokiVector2D<ReadyInput>   iReady;
 
 //==============================//
 // Constructors and destructors

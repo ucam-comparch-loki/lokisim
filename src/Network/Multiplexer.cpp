@@ -8,17 +8,17 @@
 #include "Multiplexer.h"
 
 int Multiplexer::inputs() const {
-  return dataIn.length();
+  return iData.length();
 }
 
 void Multiplexer::reportStalls(ostream& os) {
-  if (dataOut.valid()) {
-    os << this->name() << " hasn't received ack for " << dataOut.read() << endl;
+  if (oData.valid()) {
+    os << this->name() << " hasn't received ack for " << oData.read() << endl;
   }
 }
 
 void Multiplexer::handleData() {
-  SelectType selection = select.read();
+  SelectType selection = iSelect.read();
 
   // 1. Invalid selection -> wait for valid selection
   // 2. Valid selection -> wait for data (if it isn't already here)
@@ -26,30 +26,30 @@ void Multiplexer::handleData() {
   // 4. Ack arrived -> send ack, wait for select/data
 
   if (selection == NO_SELECTION)
-    next_trigger(select.default_event());
-  else if (dataIn[selection].valid()) { // Data arrived on the selected input
+    next_trigger(iSelect.default_event());
+  else if (iData[selection].valid()) { // Data arrived on the selected input
     if (!haveSentData) {
-      dataOut.write(dataIn[selection].read());
+      oData.write(iData[selection].read());
 //      cout << this->name() << " sent " << dataIn[selection].read() << endl;
-      next_trigger(dataOut.ack_event());
+      next_trigger(oData.ack_event());
       haveSentData = true;
     }
     else {
-      dataIn[selection].ack();
+      iData[selection].ack();
 //      cout << this->name() << " acknowledged " << dataIn[selection].read() << endl;
-      next_trigger(select.default_event() | dataIn[selection].default_event());
+      next_trigger(iSelect.default_event() | iData[selection].default_event());
       haveSentData = false;
     }
   }
-  else if (select.event()) {
-    next_trigger(dataIn[selection].default_event());
+  else if (iSelect.event()) {
+    next_trigger(iData[selection].default_event());
   }
 }
 
 Multiplexer::Multiplexer(const sc_module_name& name, int numInputs) :
     Component(name) {
 
-  dataIn.init(numInputs);
+  iData.init(numInputs);
 
   haveSentData = false;
 

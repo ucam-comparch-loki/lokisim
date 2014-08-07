@@ -29,25 +29,25 @@ class FlowControlOut: public Component {
 public:
 
   // Data received from the component to be sent out onto the network.
-  DataInput     dataIn;
+  DataInput     iData;
 
   // Flow control credits received over the network.
-  CreditInput   creditsIn;
+  CreditInput   iCredit;
 
   // Data sent out onto the network.
-  DataOutput    dataOut;
+  DataOutput    oData;
 
   // Signal from the network telling us that it is safe to send data.
-  ReadyInput    readyIn;
+  ReadyInput    iReady;
 
   // Signal telling the network it is safe to send credits to this port.
   // Never actually used since credits are consumed immediately, but allows
   // data and credit networks to have the same interface.
-  ReadyOutput   readyOut;
+  ReadyOutput   oReady;
 
   // A flow control signal for each output of the component, controlling when
   // new data is allowed to arrive.
-  ReadyOutput   flowControlOut;
+  ReadyOutput   oFlowControl;
 
 //==============================//
 // Constructors and destructors

@@ -10,8 +10,8 @@
 
 void MulticastNetwork::inputChanged(const PortIndex port) {
   if (ENERGY_TRACE)
-    Instrumentation::Network::multicastTraffic(oldInputs[port], dataIn[port].read(), port);
-  oldInputs[port] = dataIn[port].read();
+    Instrumentation::Network::multicastTraffic(oldInputs[port], iData[port].read(), port);
+  oldInputs[port] = iData[port].read();
 }
 
 void MulticastNetwork::outputChanged(const PortIndex port) {

@@ -10,16 +10,16 @@
 
 void OffChip::newData() {
   // Ignore the data and send a credit, so the sender doesn't block.
-  cerr << "Warning: Offchip component received data: " << dataIn.read() << endl;
-  dataConsumed.write(!dataConsumed.read());
+  cerr << "Warning: Offchip component received data: " << iData.read() << endl;
+  oDataConsumed.write(!oDataConsumed.read());
 }
 
 OffChip::OffChip(sc_module_name name) : Component(name) {
   SC_METHOD(newData);
-  sensitive << dataIn;
+  sensitive << iData;
   dont_initialize();
 
-  readyOut.initialize(true);
+  oReady.initialize(true);
 }
 
 OffChip::~OffChip() {

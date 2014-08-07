@@ -16,9 +16,9 @@ const unsigned int InputCrossbar::numInputs = 5; // 2 from cores, 2 from memorie
 const unsigned int InputCrossbar::numOutputs = CORE_INPUT_CHANNELS;
 
 void InputCrossbar::newData(PortIndex input) {
-  assert(dataIn[input].valid());
+  assert(iData[input].valid());
 
-  const AddressedWord& data = dataIn[input].read();
+  const AddressedWord& data = iData[input].read();
 
   ChannelIndex destination = data.channelID().getChannel();
   if (destination >= numOutputs)
@@ -34,19 +34,19 @@ void InputCrossbar::newData(PortIndex input) {
 // which could also be used to get credits from cores to the router.
 
 void InputCrossbar::writeToBuffer(ChannelIndex output) {
-  if (!bufferHasSpace[output].read()) cout << this->name() << " " << (int)output << endl;
-  assert(bufferHasSpace[output].read());
+  if (!iFlowControl[output].read()) cout << this->name() << " " << (int)output << endl;
+  assert(iFlowControl[output].read());
 
   // There is data to send.
   PortIndex source = dataSource[output];
-  dataToBuffer[output].write(dataIn[source].read());
-  dataIn[source].ack();
+  dataToBuffer[output].write(iData[source].read());
+  iData[source].ack();
 }
 
 void InputCrossbar::updateFlowControl(ChannelIndex input) {
   // I would prefer to connect the bufferHasSpace inputs directly to the
   // readyOut outputs, but SystemC does not allow this.
-  readyOut[input].write(bufferHasSpace[input].read());
+  oReady[input].write(iFlowControl[input].read());
 }
 
 InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
@@ -57,15 +57,15 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
 
   //creditNet.initialise();
 
-  dataIn.init(numInputs);
-  readyOut.init(numOutputs);
-  dataOut.init(numOutputs);
-  bufferHasSpace.init(numOutputs);
-  dataConsumed.init(numOutputs);
+  iData.init(numInputs);
+  oReady.init(numOutputs);
+  oData.init(numOutputs);
+  iFlowControl.init(numOutputs);
+  iDataConsumed.init(numOutputs);
 
   // Possibly temporary: have only one credit output port, used for sending
   // credits to other tiles. Credits aren't used for local communication.
-  creditsOut.init(1);
+  oCredit.init(1);
 
   dataToBuffer.init(numOutputs);
   creditsToNetwork.init(numOutputs);
@@ -76,19 +76,19 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
   // arrives. Each channel end has a single writer, so it is impossible to
   // receive multiple data for the same channel end in one cycle.
   for (PortIndex i=0; i<numInputs; i++)
-    SPAWN_METHOD(dataIn[i], InputCrossbar::newData, i, false);
+    SPAWN_METHOD(iData[i], InputCrossbar::newData, i, false);
 
   // Method for each output port, writing data into each buffer.
   for (ChannelIndex i=0; i<numOutputs; i++)
     SPAWN_METHOD(sendData[i], InputCrossbar::writeToBuffer, i, false);
 
   for (ChannelIndex i=0; i<numOutputs; i++)
-    SPAWN_METHOD(bufferHasSpace[i], InputCrossbar::updateFlowControl, i, true);
+    SPAWN_METHOD(iFlowControl[i], InputCrossbar::updateFlowControl, i, true);
 
   // Wire up the small networks.
   creditNet.clock(creditClock);
-  creditNet.dataOut[0](creditsOut[0]);
-  creditNet.readyIn[0][0](constantHigh); // Can always send credits.
+  creditNet.oData[0](oCredit[0]);
+  creditNet.iReady[0][0](constantHigh); // Can always send credits.
   constantHigh.write(true);
 
   // Create and wire up all flow control units.
@@ -98,12 +98,12 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
 
     fc->clock(clock);
 
-    fc->dataOut(dataOut[i]);
-    fc->dataIn(dataToBuffer[i]);
-    fc->creditsOut(creditsToNetwork[i]);
-    fc->dataConsumed(dataConsumed[i]);
+    fc->oData(oData[i]);
+    fc->iData(dataToBuffer[i]);
+    fc->oCredit(creditsToNetwork[i]);
+    fc->iDataConsumed(iDataConsumed[i]);
 
-    creditNet.dataIn[i](creditsToNetwork[i]);
+    creditNet.iData[i](creditsToNetwork[i]);
   }
 }
 

@@ -29,14 +29,14 @@ UnclockedNetwork::UnclockedNetwork(sc_module_name name, Network* network) :
   int inputs   = network->numInputPorts();
   int outputs  = network->numOutputPorts();
 
-  dataIn.init(inputs);
-  dataOut.init(outputs);
+  iData.init(inputs);
+  oData.init(outputs);
 
   for(int i=0; i<inputs; i++)
-    network->dataIn[i](dataIn[i]);
+    network->iData[i](iData[i]);
 
   for(int i=0; i<outputs; i++)
-    network->dataOut[i](dataOut[i]);
+    network->oData[i](oData[i]);
 
   network->clock(clockSig);
 
@@ -45,7 +45,7 @@ UnclockedNetwork::UnclockedNetwork(sc_module_name name, Network* network) :
   dont_initialize();
 
   SC_METHOD(dataArrived);
-  for(int i=0; i<inputs; i++) sensitive << dataIn[i];
+  for(int i=0; i<inputs; i++) sensitive << iData[i];
   dont_initialize();
 
 }

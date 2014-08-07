@@ -87,7 +87,7 @@ const sc_event& InstructionPacketFIFO::fillChangedEvent() const {
 
 void InstructionPacketFIFO::receivedInst() {
   // Need to cast input Word to Instruction.
-  Instruction inst = static_cast<Instruction>(instructionIn.read());
+  Instruction inst = static_cast<Instruction>(iInstruction.read());
   if(DEBUG) cout << this->name() << " received Instruction:  " << inst << endl;
 
   // If this is a "next instruction packet" command, don't write it to the FIFO,
@@ -99,11 +99,11 @@ void InstructionPacketFIFO::receivedInst() {
 }
 
 void InstructionPacketFIFO::updateReady() {
-  flowControl.write(!fifo.full());
+  oFlowControl.write(!fifo.full());
 }
 
 void InstructionPacketFIFO::dataConsumedAction() {
-  dataConsumed.write(!dataConsumed.read());
+  oDataConsumed.write(!oDataConsumed.read());
 }
 
 FetchStage* InstructionPacketFIFO::parent() const {
@@ -120,7 +120,7 @@ InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
   tagMatched = false;
 
   SC_METHOD(receivedInst);
-  sensitive << instructionIn;
+  sensitive << iInstruction;
   dont_initialize();
 
   SC_METHOD(updateReady);

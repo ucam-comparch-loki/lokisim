@@ -26,15 +26,13 @@ public:
 
 // Inherited from PipelineStage:
 //   sc_in<bool>          clock
-//   sc_out<bool>         idle
-//   sc_out<bool>         stallOut
 
   // Tell whether this stage is ready for input (ignoring effects of any other stages).
-  sc_out<bool>        readyOut;
+  sc_out<bool>        oReady;
 
   // Data to be sent over the network.
-  sc_out<DecodedInst> dataOut;
-  sc_in<bool>         readyIn;
+  sc_out<DecodedInst> oData;
+  sc_in<bool>         iReady;
 
 //==============================//
 // Constructors and destructors

@@ -421,20 +421,20 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
   finishedPacketRead = false;
   needRefetch = false;
 
-  flowControl.init(2);
-  dataConsumed.init(2);
+  oFlowControl.init(2);
+  oDataConsumed.init(2);
 
   currentPacket.reset(); pendingPacket.reset();
 
   // Connect FIFO and cache to network
   fifo.clock(clock);
-  fifo.instructionIn(toIPKFIFO);
-  fifo.flowControl(flowControl[0]);
-  fifo.dataConsumed(dataConsumed[0]);
+  fifo.iInstruction(iToFIFO);
+  fifo.oFlowControl(oFlowControl[0]);
+  fifo.oDataConsumed(oDataConsumed[0]);
   cache.clock(clock);
-  cache.instructionIn(toIPKCache);
-  cache.flowControl(flowControl[1]);
-  cache.dataConsumed(dataConsumed[1]);
+  cache.iInstruction(iToCache);
+  cache.oFlowControl(oFlowControl[1]);
+  cache.oDataConsumed(oDataConsumed[1]);
 
   SC_METHOD(updateReady);
   sensitive << /*canSendEvent() << FIXME*/ instructionCompletedEvent;

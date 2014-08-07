@@ -55,17 +55,16 @@ public:
 
 // Inherited from PipelineStage:
 //   sc_in<bool>         clock
-//   sc_out<bool>        idle
 
   // The input instruction to be sent to the instruction packet cache.
-  sc_in<Word>         toIPKCache;
+  sc_in<Word>         iToCache;
 
   // The input instruction to be sent to the instruction packet FIFO.
-  sc_in<Word>         toIPKFIFO;
+  sc_in<Word>         iToFIFO;
 
   // A flow control signal from each of the two instruction inputs.
-  LokiVector<ReadyOutput> flowControl;
-  LokiVector<ReadyOutput> dataConsumed;
+  LokiVector<ReadyOutput> oFlowControl;
+  LokiVector<ReadyOutput> oDataConsumed;
 
 //==============================//
 // Constructors and destructors

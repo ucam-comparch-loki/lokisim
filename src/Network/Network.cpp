@@ -48,16 +48,16 @@ PortIndex Network::getDestination(const ChannelID& address) const {
 
 DataInput& Network::externalInput() const {
   assert(externalConnection);
-  return dataIn[numInputPorts()-1];
+  return iData[numInputPorts()-1];
 }
 
 DataOutput& Network::externalOutput() const {
   assert(externalConnection);
-  return dataOut[numOutputPorts()-1];
+  return oData[numOutputPorts()-1];
 }
 
-unsigned int Network::numInputPorts()  const {return dataIn.length();}
-unsigned int Network::numOutputPorts() const {return dataOut.length();}
+unsigned int Network::numInputPorts()  const {return iData.length();}
+unsigned int Network::numOutputPorts() const {return oData.length();}
 
 Network::Network(const sc_module_name& name,
     const ComponentID& ID,
@@ -74,7 +74,7 @@ Network::Network(const sc_module_name& name,
 
   unsigned int totalInputs  = externalConnection ? (numInputs+1) : numInputs;
   unsigned int totalOutputs = externalConnection ? (numOutputs+1) : numOutputs;
-  dataIn.init(totalInputs);
-  dataOut.init(totalOutputs);
+  iData.init(totalInputs);
+  oData.init(totalOutputs);
 
 }

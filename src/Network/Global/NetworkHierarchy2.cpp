@@ -53,13 +53,13 @@ void NetworkHierarchy2::initialise(const unsigned int components,
                                   1);                  // buffers behind each output
 
     xbar->clock(clock);
-    xbar->dataOut[0](localToGlobalData[tile]);
-    xbar->readyIn[0][0](globalToLocalReady[tile]);
+    xbar->oData[0](localToGlobalData[tile]);
+    xbar->iReady[0][0](globalToLocalReady[tile]);
     for (uint component=0; component<components/NUM_TILES; component++)
-      xbar->dataIn[component](iData[sourceComponentCounter++]);
+      xbar->iData[component](iData[sourceComponentCounter++]);
 
-    globalNetwork.dataIn[tile](localToGlobalData[tile]);
-    globalNetwork.readyOut[tile](globalToLocalReady[tile]);
+    globalNetwork.iData[tile](localToGlobalData[tile]);
+    globalNetwork.oReady[tile](globalToLocalReady[tile]);
 
     toRouter.push_back(xbar);
 
@@ -72,13 +72,13 @@ void NetworkHierarchy2::initialise(const unsigned int components,
                                    buffersPerComponent);// buffers behind each output
 
     xbar2->clock(clock);
-    xbar2->dataIn[0](globalToLocalData[tile]);
-    globalNetwork.dataOut[tile](globalToLocalData[tile]);
+    xbar2->iData[0](globalToLocalData[tile]);
+    globalNetwork.oData[tile](globalToLocalData[tile]);
 
     for (uint component=0; component<components/NUM_TILES; component++) {
-      xbar2->dataOut[component](oData[destComponentCounter]);
+      xbar2->oData[component](oData[destComponentCounter]);
       for (uint buffer=0; buffer<buffersPerComponent; buffer++)
-        xbar2->readyIn[component][buffer](iReady[destComponentCounter][buffer]);
+        xbar2->iReady[component][buffer](iReady[destComponentCounter][buffer]);
       destComponentCounter++;
     }
 
