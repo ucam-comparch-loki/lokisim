@@ -149,8 +149,6 @@ public:
 
 	sc_in<bool>					iClock;						// Clock
 
-	sc_out<bool>				oIdle;						// Signal that this component is not currently doing any work
-
 	//-- Ports connected to on-chip networks ------------------------------------------------------
 
 	// Data - to/from cores.

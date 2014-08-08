@@ -8,11 +8,15 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "Chip.h"
-#include "Utility/StartUp/DataBlock.h"
 #include "Network/Global/DataNetwork.h"
 #include "Network/Global/CreditNetwork.h"
 #include "Network/Global/RequestNetwork.h"
 #include "Network/Global/ResponseNetwork.h"
+#include "Utility/Instrumentation/Stalls.h"
+#include "Utility/StartUp/DataBlock.h"
+
+using Instrumentation::Stalls;
+
 
 void Chip::storeInstructions(vector<Word>& instructions, const ComponentID& component) {
 	cores[component.getGlobalCoreNumber()]->storeData(instructions);
@@ -104,36 +108,24 @@ bool Chip::readPredicate(const ComponentID& component) const {
 	return cores[component.getGlobalCoreNumber()]->readPredReg();
 }
 
-void Chip::watchIdle(int component) {
-  if (idleSig[component].read()) {
-    idleComponents++;
-    assert(idleComponents <= NUM_COMPONENTS);
-    next_trigger(idleSig[component].negedge_event());
-  }
-  else {
-    idleComponents--;
-    assert(idleComponents >= 0);
-    next_trigger(idleSig[component].posedge_event());
-  }
-}
-
 bool Chip::isIdle() const {
   // TODO: replace with Instrumentation method - the idle signals switch very
   // frequently and probably slow simulation down.
   // TODO: each pipeline stage has an idle signal! Lots to remove!
-  return idleComponents == NUM_COMPONENTS;
+  //return idleComponents == NUM_COMPONENTS;
+  return Stalls::stalledComponents() == NUM_COMPONENTS;
 }
 
 void Chip::makeSignals() {
   int numOutputs = TOTAL_OUTPUT_PORTS;
   int numInputs  = TOTAL_INPUT_PORTS;
 
-  idleSig.init(NUM_COMPONENTS + 1);
-
   oDataLocal.init(numOutputs);
   iDataLocal.init(numInputs);
   oReadyData.init(NUM_COMPONENTS);
   for (unsigned int i=0; i<oReadyData.length(); i++) {
+    // Cores have a different number of input buffers/flow control signals
+    // than memory banks.
     if (i % COMPONENTS_PER_TILE < CORES_PER_TILE)
       oReadyData[i].init(CORE_INPUT_CHANNELS);
     else
@@ -201,7 +193,6 @@ void Chip::wireUp() {
   network.slowClock(slowClock);
 
 	backgroundMemory.iClock(clock);
-	backgroundMemory.oIdle(idleSig[NUM_COMPONENTS]);
 
 	// Global data network - connects cores to cores.
   DataNetwork* dataNet = new DataNetwork("data_net");
@@ -267,7 +258,6 @@ void Chip::wireUp() {
 	for (uint i = 0; i < NUM_COMPONENTS; i++) {
 		if ((i % COMPONENTS_PER_TILE) < CORES_PER_TILE) {
 			// This is a core
-      cores[coreIndex]->oIdle(idleSig[coreIndex+memoryIndex]);
       cores[coreIndex]->clock(clock);
       cores[coreIndex]->fastClock(fastClock);
 
@@ -321,7 +311,6 @@ void Chip::wireUp() {
 			MemoryBank* m = memories[currIndex];
 
 			m->iClock(clock);
-			m->oIdle(idleSig[m->id.getGlobalComponentNumber()]);
 
 			int portIndex = j * MEMS_PER_TILE + i;
 
@@ -357,18 +346,10 @@ Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
     clock("clock", 1, SC_NS, 0.5),
     fastClock("fast_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.25),
     slowClock("slow_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.75) {
-  
-  idleComponents = 0;
 
   makeSignals();
   makeComponents();
   wireUp();
-
-  // Generate a method to watch each component's idle signal, so we can
-	// determine when all components are idle. For large numbers of components,
-	// this is cheaper than checking all of them whenever one changes.
-  for (unsigned int i=0; i<NUM_COMPONENTS; i++)
-    SPAWN_METHOD(idleSig[i], Chip::watchIdle, i, true);
 
 }
 

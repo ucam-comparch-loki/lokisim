@@ -58,6 +58,9 @@ public:
 
   static bool executionFinished();
 
+  static count_t stalledComponents();
+  static cycle_count_t cyclesIdle();
+
   static cycle_count_t cyclesActive(const ComponentID& core);
   static cycle_count_t cyclesIdle(const ComponentID& core);
   static cycle_count_t cyclesStalled(const ComponentID& core);

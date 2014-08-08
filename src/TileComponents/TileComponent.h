@@ -38,9 +38,6 @@ public:
   // All outputs of the component.
   LokiVector<DataOutput>   oData;
 
-  // Signal that this component is not currently doing any work.
-  IdleOutput     oIdle;
-
 //==============================//
 // Constructors and destructors
 //==============================//

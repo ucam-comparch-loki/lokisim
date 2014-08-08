@@ -29,20 +29,15 @@ void PipelineStage::getNextInstruction() {
   bool prevReady = (prev == NULL) || canReceiveInstruction();
   bool nextReady = (next == NULL) || canSendInstruction();
 
-  // We consider ourselves idle if there is no work for us to be doing.
-  bool nowIdle = !prevReady;
-  if(idle.read() != nowIdle)
-    idle.write(nowIdle);
-
   currentInstValid = false;
 
   // Wait for both pipeline registers to be ready, and for the beginning of
   // a new clock cycle.
-  if(!prevReady)
+  if (!prevReady)
     next_trigger(prev->dataAdded());
-  else if(!nextReady)
+  else if (!nextReady)
     next_trigger(next->dataRemoved());
-  else if(!clock.posedge() || isStalled())
+  else if (!clock.posedge() || isStalled())
     next_trigger(clock.posedge_event());
   else {
     currentInst = prev->read();
@@ -81,13 +76,14 @@ const sc_event& PipelineStage::canReceiveEvent() const {
 }
 
 const sc_event& PipelineStage::canSendEvent() const {
-  if(next == NULL) cout << this->name() << endl;
+  if (next == NULL)
+    cout << this->name() << endl;
   assert(next != NULL);
   return next->dataRemoved();
 }
 
 bool PipelineStage::discardNextInst() {
-  if(prev == NULL)
+  if (prev == NULL)
     return false;
   else
     return prev->discard();
@@ -97,8 +93,6 @@ PipelineStage::PipelineStage(const sc_module_name& name, const ComponentID& ID) 
     Component(name, ID) {
 
   currentInstValid = false;
-
-  idle.initialize(true);
 
   SC_METHOD(getNextInstruction);
   sensitive << clock.pos();

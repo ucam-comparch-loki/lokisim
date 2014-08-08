@@ -1556,7 +1556,6 @@ void MemoryBank::mainLoop() {
                   !mRingRequestInputPending && !mRingRequestOutputPending;
 
   if (wasIdle != currentlyIdle) {
-    oIdle.write(currentlyIdle);
     Instrumentation::idle(id, currentlyIdle);
   }
 
@@ -1632,7 +1631,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 
 	//-- Port initialization ----------------------------------------------------------------------
 
-	oIdle.initialize(true);
 	oReadyForData.initialize(false);
 	oReadyForRequest.initialize(false);
 	oBMDataStrobe.initialize(false);
@@ -1641,8 +1639,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 
 	//-- Register module with SystemC simulation kernel -------------------------------------------
 
-	currentlyIdle = false;
-	oIdle.initialize(true);
+	currentlyIdle = true;
 	Instrumentation::idle(id, true);
 
 	SC_METHOD(mainLoop);

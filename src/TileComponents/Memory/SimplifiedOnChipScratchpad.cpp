@@ -150,23 +150,6 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 			}
 		}
 
-		// Generate new idle signal
-
-		bool idle = true;
-
-		for (uint port = 0; port < mPortCount; port++) {
-			if (mPortData[port].State != STATE_IDLE || !mInputQueues[port].empty()) {
-				idle = false;
-				break;
-			}
-		}
-
-		// Only update status if status changed.
-		if(oIdle.read() != idle) {
-		  Instrumentation::idle(id, !idle);
-		  oIdle.write(idle);
-		}
-
 		// Advance cycle counter
 
 		mCycleCounter++;
@@ -181,8 +164,6 @@ SimplifiedOnChipScratchpad::SimplifiedOnChipScratchpad(sc_module_name name, cons
 
 	cDelayCycles = MEMORY_ON_CHIP_SCRATCHPAD_DELAY;
 	cBanks = MEMORY_ON_CHIP_SCRATCHPAD_BANKS;
-
-	oIdle.initialize(true);
 
 	iDataStrobe = new sc_in<bool>[portCount];
 	iData = new sc_in<MemoryRequest>[portCount];
@@ -206,8 +187,6 @@ SimplifiedOnChipScratchpad::SimplifiedOnChipScratchpad(sc_module_name name, cons
 	// In most cases, we are now trying to replace threads with methods, but this
 	// one seems to perform better as a thread.
 	SC_THREAD(mainLoop);
-
-	Instrumentation::idle(id, true);
 }
 
 SimplifiedOnChipScratchpad::~SimplifiedOnChipScratchpad() {

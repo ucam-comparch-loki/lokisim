@@ -50,8 +50,6 @@ public:
 
 	sc_in<bool>					iClock;					// Clock
 
-	sc_out<bool>				oIdle;					// Signal that this component is not currently doing any work
-
 	sc_in<bool>					*iDataStrobe;			// Indicate that corresponding input data word is valid
 	sc_in<MemoryRequest>		*iData;					// Memory request words input from cache controllers
 

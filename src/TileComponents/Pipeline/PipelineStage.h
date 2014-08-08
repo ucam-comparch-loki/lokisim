@@ -27,9 +27,6 @@ public:
   // Clock.
   ClockInput clock;
 
-  // Signal that this pipeline stage is currently idle.
-  IdleOutput idle;
-
 //==============================//
 // Constructors and destructors
 //==============================//

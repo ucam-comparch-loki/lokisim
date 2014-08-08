@@ -12,6 +12,7 @@
 #include "Utility/Debugger.h"
 #include "Utility/Instrumentation.h"
 #include "Utility/Instrumentation/Operations.h"
+#include "Utility/Instrumentation/Stalls.h"
 #include "Utility/Trace/CoreTrace.h"
 #include "Utility/Trace/MemoryTrace.h"
 #include "Utility/Trace/SoftwareTrace.h"
@@ -21,8 +22,11 @@
 
 using std::vector;
 using std::string;
+using Instrumentation::Stalls;
 
-// Advance the simulation one clock cycle.
+// Advance the simulation cyclesPerStep clock cycles. A higher number means
+// less stop-start simulation, which is quicker, but means it takes longer to
+// identify any problems.
 static cycle_count_t cycleNumber = 0;
 static cycle_count_t cyclesPerStep = 1;
 
@@ -63,7 +67,6 @@ void simulate(Chip& chip) {
       Debugger::waitForInput();
     }
     else {
-      cycle_count_t cyclesIdle = 0;
       cycle_count_t cycleCounter = 0;
       count_t operationCount = 0;
 
@@ -95,17 +98,18 @@ void simulate(Chip& chip) {
           operationCount = newOperationCount;
         }
 
-        if (chip.isIdle()) {
-          cyclesIdle++;
-          if (cyclesIdle >= 100) {
-            cerr << "\nSystem has been idle for " << cyclesIdle << " cycles. Aborting." << endl;
-            sc_stop();
-            Instrumentation::endExecution();
-            RETURN_CODE = EXIT_FAILURE;
-            break;
-          }
+//        if (cycleNumber >= 1450000) {
+//          cyclesPerStep = 1;
+//          DEBUG = 1;
+//        }
+
+        if (Stalls::cyclesIdle() >= 100) {
+          cerr << "Current cycle number: " << cycleNumber << " [" << Instrumentation::Operations::numOperations() << " operation(s) executed]" << endl;
+          cerr << "System has been idle for " << Stalls::cyclesIdle() << " cycles. Aborting." << endl;
+          Instrumentation::endExecution();
+          RETURN_CODE = EXIT_FAILURE;
+          break;
         }
-        else cyclesIdle = 0;
       }
 
       if (i >= TIMEOUT) {
@@ -140,7 +144,7 @@ int simulate() {
   Arguments::storeArguments(chip);
 
   // Load code to execute, and link it all into one program.
-  for(unsigned int i=0; i<Arguments::code().size(); i++)
+  for (unsigned int i=0; i<Arguments::code().size(); i++)
     CodeLoader::loadCode(Arguments::code()[i], chip);
 
   CodeLoader::makeExecutable(chip);

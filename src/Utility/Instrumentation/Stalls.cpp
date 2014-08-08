@@ -44,6 +44,7 @@ void Stalls::init() {
       ComponentID id(i, j);
 
       stallReason[id]             = IDLE;//NOT_STALLED;
+      numStalled++;
 
       startedStalling[id]         = 0;//UNSTALLED;
       startedDataStall[id]        = UNSTALLED;
@@ -144,6 +145,8 @@ void Stalls::stall(const ComponentID& id, cycle_count_t cycle, int reason) {
 
   if (stallReason[id] == NOT_STALLED) {
     numStalled++;
+    assert(numStalled <= NUM_COMPONENTS);
+
     startedStalling[id] = cycle;
 
     if (numStalled >= NUM_COMPONENTS)
@@ -152,7 +155,7 @@ void Stalls::stall(const ComponentID& id, cycle_count_t cycle, int reason) {
 
   stallReason[id] |= reason;
 
-  switch(reason) {
+  switch (reason) {
     case STALL_DATA:         startedDataStall[id] = cycle;        break;
     case STALL_INSTRUCTIONS: startedInstructionStall[id] = cycle; break;
     case STALL_OUTPUT:       startedOutputStall[id] = cycle;      break;
@@ -170,7 +173,7 @@ cycle_count_t max(cycle_count_t time1, cycle_count_t time2) {
 
 void Stalls::unstall(const ComponentID& id, cycle_count_t cycle, int reason) {
   if (stallReason[id] & reason) {
-    switch(reason) {
+    switch (reason) {
       case STALL_DATA:
         if (ENERGY_TRACE)
           loggedOnly.dataStalls.increment(id, cycle - max(loggingStarted, startedDataStall[id]));
@@ -214,6 +217,8 @@ void Stalls::unstall(const ComponentID& id, cycle_count_t cycle, int reason) {
 
     if (stallReason[id] == NOT_STALLED) {
       numStalled--;
+      assert(numStalled <= NUM_COMPONENTS);
+
       if (ENERGY_TRACE)
         loggedOnly.totalStalls.increment(id, cycle - max(loggingStarted, startedStalling[id]));
       total.totalStalls.increment(id, cycle - startedStalling[id]);
@@ -234,7 +239,7 @@ void Stalls::active(const ComponentID& id, cycle_count_t cycle) {
 }
 
 void Stalls::endExecution() {
-  if(numStalled < NUM_COMPONENTS)
+  if (numStalled < NUM_COMPONENTS)
     endOfExecution = sc_core::sc_time_stamp().to_default_time_units();
 
   endExecutionCalled = true;
@@ -242,6 +247,17 @@ void Stalls::endExecution() {
 
 bool Stalls::executionFinished() {
   return endExecutionCalled;
+}
+
+count_t Stalls::stalledComponents() {
+  return numStalled;
+}
+
+cycle_count_t Stalls::cyclesIdle() {
+  if (stalledComponents() == NUM_COMPONENTS)
+    return currentCycle() - endOfExecution;
+  else
+    return 0;
 }
 
 cycle_count_t Stalls::cyclesActive(const ComponentID& core) {

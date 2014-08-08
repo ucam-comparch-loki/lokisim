@@ -19,7 +19,7 @@ void     Core::storeData(const std::vector<Word>& data, MemoryAddr location) {
   std::vector<Instruction> instructions;
 
   // Convert all of the words to instructions
-  for(unsigned int i=0; i<data.size(); i++) {
+  for (unsigned int i=0; i<data.size(); i++) {
     instructions.push_back(static_cast<Instruction>(data[i]));
   }
 
@@ -40,7 +40,7 @@ const int32_t Core::readReg(PortIndex port, RegisterIndex reg, bool indirect) {
   int32_t result;
 
   // Register 0 is hard-wired to 0.
-  if(reg == 0)
+  if (reg == 0)
     return 0;
 
   // Perform data bypass if a register is being read and written in the same
@@ -48,19 +48,19 @@ const int32_t Core::readReg(PortIndex port, RegisterIndex reg, bool indirect) {
   // do it that way in SystemC.
   // Slightly complicated by the possibility of indirect register access - the
   // stated register may not actually be the one providing/receiving the data.
-  if(reg == write.currentInstruction().destination() &&
-     write.currentInstruction().opcode() != InstructionMap::OP_IWTR) {
+  if (reg == write.currentInstruction().destination() &&
+      write.currentInstruction().opcode() != InstructionMap::OP_IWTR) {
     result = write.currentInstruction().result();
 
     // In a real system, we wouldn't know we were bypassing until too late, so
     // we have to perform the read anyway.
     regs.read(port, reg, false);
 
-    if(DEBUG) cout << this->name() << " bypassed read of register "
-                   << (int)reg << " (" << result << ")" << endl;
+    if (DEBUG) cout << this->name() << " bypassed read of register "
+                    << (int)reg << " (" << result << ")" << endl;
     Instrumentation::Registers::bypass(port);
 
-    if(indirect) result = regs.read(port, result, false);
+    if (indirect) result = regs.read(port, result, false);
   }
   else result = regs.read(port, reg, indirect);
 
@@ -79,8 +79,8 @@ void     Core::writeReg(RegisterIndex reg, int32_t value, bool indirect) {
 bool     Core::readPredReg(bool waitForExecution) {
   // The wait parameter tells us to wait for the predicate to be written if
   // the instruction in the execute stage will set it.
-  if(waitForExecution && execute.currentInstruction().setsPredicate()
-                      && !execute.currentInstruction().hasResult()) {
+  if (waitForExecution && execute.currentInstruction().setsPredicate()
+                       && !execute.currentInstruction().hasResult()) {
     Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_FORWARDING);
     wait(execute.executedEvent());
     Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_FORWARDING);
@@ -120,7 +120,7 @@ void     Core::pipelineStalled(bool stalled) {
   currentlyStalled = stalled;
   stallEvent.notify();
 
-  if(DEBUG)
+  if (DEBUG)
     cout << this->name() << ": pipeline " << (stalled ? "stalled" : "unstalled") << endl;
 }
 
@@ -139,10 +139,10 @@ void     Core::nextIPK() {
     /* continue discarding */;
 }
 
-void     Core::idlenessChanged() {
+void     Core::idle(bool state) {
   // Use the decoder as the arbiter of idleness - we may sometimes bypass the
   // fetch stage.
-  Instrumentation::idle(id, oIdle.read());
+  Instrumentation::idle(id, state);
 }
 
 void Core::requestArbitration(ChannelID destination, bool request) {
@@ -195,7 +195,6 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
 
   // Create signals which connect the pipeline stages together. There are 4
   // stages, so 3 links between stages.
-  stageIdle.init(4);
   stageReady.init(3);
 
   dataToBuffers.init(CORE_INPUT_CHANNELS);
@@ -203,11 +202,11 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
   dataConsumed.init(CORE_INPUT_CHANNELS);
 
   // Wire the input ports to the input buffers.
-  for(unsigned int i=0; i<CORE_INPUT_PORTS; i++)
+  for (unsigned int i=0; i<CORE_INPUT_PORTS; i++)
     inputCrossbar.iData[i](iData[i]);
   inputCrossbar.iData[CORE_INPUT_PORTS](iDataGlobal);
 
-  for(unsigned int i=0; i<CORE_INPUT_CHANNELS; i++) {
+  for (unsigned int i=0; i<CORE_INPUT_CHANNELS; i++) {
     inputCrossbar.oReady[i](oReadyData[i]);
     inputCrossbar.oData[i](dataToBuffers[i]);
     inputCrossbar.iFlowControl[i](fcFromBuffers[i]);
@@ -228,42 +227,33 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
 
   // Wire the pipeline stages up.
 
-  fetch.clock(clock);                     fetch.idle(stageIdle[0]);
+  fetch.clock(clock);
   fetch.iToFIFO(dataToBuffers[0]);      fetch.oFlowControl[0](fcFromBuffers[0]);
   fetch.iToCache(dataToBuffers[1]);     fetch.oFlowControl[1](fcFromBuffers[1]);
   fetch.oDataConsumed[0](dataConsumed[0]); fetch.oDataConsumed[1](dataConsumed[1]);
   fetch.initPipeline(NULL, pipelineRegs[0]);
 
-  decode.clock(clock);                    decode.idle(/*stageIdle[1]*/oIdle);
+  decode.clock(clock);
   decode.oReady(stageReady[0]);
-  for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
+  for (uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     decode.iData[i](dataToBuffers[i+2]);
     decode.oFlowControl[i](fcFromBuffers[i+2]);
     decode.oDataConsumed[i](dataConsumed[i+2]);
   }
   decode.initPipeline(pipelineRegs[0], pipelineRegs[1]);
 
-  execute.clock(clock);                   execute.idle(stageIdle[2]);
+  execute.clock(clock);
   execute.oReady(stageReady[1]);
   execute.oData(outputData);            execute.iReady(stageReady[2]);
   execute.initPipeline(pipelineRegs[1], pipelineRegs[2]);
 
-  write.clock(clock);                     write.idle(stageIdle[3]);
+  write.clock(clock);
   write.oReady(stageReady[2]);
   write.iData(outputData);
   write.oDataLocal(oData[0]);
   write.oDataGlobal(oDataGlobal);
   write.iCredit(iCredit);
   write.initPipeline(pipelineRegs[2], NULL);
-
-  // The core is considered idle if it did not decode a new instruction this
-  // cycle. This is better than being controlled by the fetch stage because
-  // some instructions take multiple cycles to decode, and because we may
-  // bypass the fetch stage and receive instructions from other cores.
-  // Problem: what about instructions that take multiple cycles to execute?
-  SC_METHOD(idlenessChanged);
-  sensitive << oIdle;
-  // do initialise
 
   // Initialise the values in some wires.
   constantHigh.write(true);

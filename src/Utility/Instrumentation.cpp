@@ -99,7 +99,7 @@ void Instrumentation::stopLogging() {
 void Instrumentation::decoded(const ComponentID& core, const DecodedInst& dec) {
   Operations::decoded(core, dec);
 
-  if(TRACE) {
+  if (TRACE) {
 
     MemoryAddr location = dec.location();
     std::cout << "0x";
@@ -142,7 +142,7 @@ void Instrumentation::backgroundMemoryWrite(MemoryAddr address, uint32_t count)	
 
 
 void Instrumentation::idle(const ComponentID& id, bool idle) {
-  if(idle) Stalls::idle(id, currentCycle());
+  if (idle) Stalls::idle(id, currentCycle());
   else Stalls::active(id, currentCycle());
 }
 
@@ -151,7 +151,7 @@ void Instrumentation::endExecution() {
 
   // Only end simulation if we aren't using the debugger: we may still want to
   // probe memory contents.
-  if(!Debugger::usingDebugger) sc_stop();
+  if (!Debugger::usingDebugger) sc_stop();
 }
 
 bool Instrumentation::executionFinished() {

@@ -71,9 +71,6 @@ private:
   // Wire everything together.
   void    wireUp();
 
-  // Update whether any part of the chip is doing useful work.
-  void    watchIdle(int component);
-
 //==============================//
 // Components
 //==============================//
@@ -93,8 +90,6 @@ private:
 private:
 
 	sc_clock clock;
-
-	LokiVector<IdleSignal>   idleSig;
 
 	// Naming of signals is relative to the components: iData is a data signal
 	// which is an input to a core or memory bank.
@@ -123,14 +118,6 @@ private:
 	// credits get to the local tile network in time to be sent, and to allow
 	// time for data to arrive from the tile network.
 	sc_clock fastClock, slowClock;
-
-//==============================//
-// Local state
-//==============================//
-
-private:
-
-  unsigned int idleComponents;
 
 };
 

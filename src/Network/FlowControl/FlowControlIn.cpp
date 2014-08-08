@@ -10,10 +10,14 @@
 #include "../../Datatype/MemoryRequest.h"
 
 void FlowControlIn::dataLoop() {
-  if (iData.read().portClaim())
+  AddressedWord data = iData.read();
+
+  assert(data.channelID() == channel);
+
+  if (data.portClaim())
     handlePortClaim();
   else
-    oData.write(iData.read().payload());
+    oData.write(data.payload());
 
   iData.ack();
 }

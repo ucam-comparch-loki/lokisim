@@ -11,7 +11,6 @@
 #include "../../../Utility/Instrumentation/IPKCache.h"
 
 void FetchStage::execute() {
-  bool isIdle = false;
   bool waiting = waitingForInstructions();
 
   // Instrumentation stuff
@@ -21,12 +20,6 @@ void FetchStage::execute() {
       Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS);
     else
       Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS);
-  else
-    isIdle = true;
-
-  // Update the idle signal if there was a change.
-  if (idle.read() != isIdle)
-    idle.write(isIdle);
 
   // Find an instruction to pass to the pipeline.
   if (waiting) {                           // Wait for an instruction
@@ -169,8 +162,6 @@ void FetchStage::storeCode(const std::vector<Instruction>& instructions) {
     packet->memAddr = 0;
 
   cache.storeCode(instructions);
-
-  idle.write(false);
 }
 
 MemoryAddr FetchStage::getInstIndex() const {
@@ -226,8 +217,7 @@ bool FetchStage::inCache(const MemoryAddr addr, opcode_t operation) {
 
   previousFetch = addr;
 
-  if (idle.read() && !packet.inCache) {
-//    idle.write(false);
+  if (!packet.inCache) {
     Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS);
   }
 

@@ -148,7 +148,7 @@ private:
   // can fetch more packets from relative locations.
   void             updateCurrentPacket(MemoryAddr addr);
 
-  // Tell the cluster whether it is currently stalled or not.
+  // Tell the core whether it is currently stalled or not.
   void             pipelineStalled(bool stalled);
 
   // Discard the instruction waiting to enter the given pipeline stage (if any).
@@ -160,7 +160,7 @@ private:
   void             nextIPK();
 
   // Update whether this core is idle or not.
-  void             idlenessChanged();
+  void             idle(bool state);
 
   // Request to reserve a path through the network to the given destination.
   void             requestArbitration(ChannelID destination, bool request);
@@ -222,8 +222,7 @@ private:
   // A signal set to constantly hold "true".
   ReadySignal                  constantHigh;
 
-  // Signals telling us which stages are idle, able to send data, or stalled.
-  LokiVector<IdleSignal>       stageIdle;
+  // Signals telling us which stages are able to send data or stalled.
   LokiVector<ReadySignal>      stageReady;
 
   // Connections between the input crossbar and the input buffers.
