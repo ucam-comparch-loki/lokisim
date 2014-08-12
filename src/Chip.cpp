@@ -109,10 +109,6 @@ bool Chip::readPredicate(const ComponentID& component) const {
 }
 
 bool Chip::isIdle() const {
-  // TODO: replace with Instrumentation method - the idle signals switch very
-  // frequently and probably slow simulation down.
-  // TODO: each pipeline stage has an idle signal! Lots to remove!
-  //return idleComponents == NUM_COMPONENTS;
   return Stalls::stalledComponents() == NUM_COMPONENTS;
 }
 
@@ -142,6 +138,10 @@ void Chip::makeSignals() {
   oRequest.init(NUM_MEMORIES);
   iRequest.init(NUM_MEMORIES);
   oReadyRequest.init(NUM_MEMORIES);
+
+  oResponse.init(NUM_MEMORIES);
+  iResponse.init(NUM_MEMORIES);
+  oReadyResponse.init(NUM_MEMORIES);
 
 	strobeToBackgroundMemory.init(NUM_MEMORIES);
 	dataToBackgroundMemory.init(NUM_MEMORIES);
@@ -231,10 +231,10 @@ void Chip::wireUp() {
   RequestNetwork* requestNet = new RequestNetwork("request_net");
   requestNet->clock(clock);
   for (unsigned int i=0; i<memories.size(); i++) {
-    memories[i]->iRequests(iRequest[i]);
+    memories[i]->iRequest(iRequest[i]);
     requestNet->oData[i](iRequest[i]);
 
-    memories[i]->oRequests(oRequest[i]);
+    memories[i]->oRequest(oRequest[i]);
     requestNet->iData[i](oRequest[i]);
 
     memories[i]->oReadyForRequest(oReadyRequest[i]);
@@ -243,9 +243,19 @@ void Chip::wireUp() {
   networks.push_back(requestNet);
 
   // Global response network - connects memories to memories.
-//  ResponseNetwork* responseNet = new ResponseNetwork("response_net");
-//  responseNet->clock(clock);
-//  networks.push_back(responseNet);
+  ResponseNetwork* responseNet = new ResponseNetwork("response_net");
+  responseNet->clock(clock);
+  for (unsigned int i=0; i<memories.size(); i++) {
+    memories[i]->iResponse(iResponse[i]);
+    responseNet->oData[i](iResponse[i]);
+
+    memories[i]->oResponse(oResponse[i]);
+    responseNet->iData[i](oResponse[i]);
+
+    memories[i]->oReadyForResponse(oReadyResponse[i]);
+    responseNet->iReady[i][0](oReadyResponse[i]);
+  }
+  networks.push_back(responseNet);
 
 // Connect cores and memories to the local interconnect
 

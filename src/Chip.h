@@ -97,10 +97,11 @@ private:
   LokiVector<DataSignal>   oDataGlobal,   iDataGlobal;
 	LokiVector<CreditSignal> oCredit,       iCredit;
   LokiVector<DataSignal>   oRequest,      iRequest;
+  LokiVector<DataSignal>   oResponse,     iResponse;
 
   // Index ready signals using oReadyData[component][buffer].
   LokiVector2D<ReadySignal> oReadyData;
-  LokiVector<ReadySignal>   oReadyCredit, oReadyRequest;
+  LokiVector<ReadySignal>   oReadyCredit, oReadyRequest, oReadyResponse;
 
   LokiVector<sc_signal<bool> > strobeToBackgroundMemory, strobeFromBackgroundMemory;
   LokiVector<sc_signal<MemoryRequest> > dataToBackgroundMemory;

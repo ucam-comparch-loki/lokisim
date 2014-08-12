@@ -1413,15 +1413,15 @@ void MemoryBank::handleDataOutput() {
   }
 }
 
-// Method called every time we see an event on the iRequestIn port.
+// Method called every time we see an event on the iRequest port.
 void MemoryBank::handleRequestInput() {
   if (DEBUG)
-    cout << this->name() << " received request " << iRequests.read() << endl;
+    cout << this->name() << " received request " << iRequest.read() << endl;
 
-  assert(iRequests.valid());
+  assert(iRequest.valid());
   assert(!mInputReqQueue.full());
-  mInputReqQueue.write(iRequests.read());
-  iRequests.ack();
+  mInputReqQueue.write(iRequest.read());
+  iRequest.ack();
 }
 
 // Method which sends data from the mOutputReqQueue whenever possible.
@@ -1431,12 +1431,39 @@ void MemoryBank::handleRequestOutput() {
   else if (mOutputReqQueue.empty())
     next_trigger(mOutputReqQueue.writeEvent());
   else {
-    assert(!oRequests.valid());
-    oRequests.write(mOutputReqQueue.read());
-    next_trigger(oRequests.ack_event());
+    assert(!oRequest.valid());
+    oRequest.write(mOutputReqQueue.read());
+    next_trigger(oRequest.ack_event());
 
     if (DEBUG)
-      cout << this->name() << " sent request " << oRequests.read() << endl;
+      cout << this->name() << " sent request " << oRequest.read() << endl;
+  }
+}
+
+// Method called every time we see an event on the iResponse port.
+void MemoryBank::handleResponseInput() {
+  if (DEBUG)
+    cout << this->name() << " received response " << iResponse.read() << endl;
+
+  assert(iResponse.valid());
+  assert(!mInputRespQueue.full());
+  mInputRespQueue.write(iResponse.read());
+  iResponse.ack();
+}
+
+// Method which sends data from the mOutputReqQueue whenever possible.
+void MemoryBank::handleResponseOutput() {
+  if (!iClock.posedge())
+    next_trigger(iClock.posedge_event());
+  else if (mOutputRespQueue.empty())
+    next_trigger(mOutputRespQueue.writeEvent());
+  else {
+    assert(!oResponse.valid());
+    oResponse.write(mOutputRespQueue.read());
+    next_trigger(oResponse.ack_event());
+
+    if (DEBUG)
+      cout << this->name() << " sent response " << oResponse.read() << endl;
   }
 }
 
@@ -1576,7 +1603,9 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
   mInputQueue(IN_CHANNEL_BUFFER_SIZE, string(this->name())+string(".mInputQueue")),
   mOutputQueue(OUT_CHANNEL_BUFFER_SIZE, string(this->name())+string(".mOutputQueue")),
   mInputReqQueue(IN_CHANNEL_BUFFER_SIZE, string(this->name())+string(".mInputReqQueue")),
-  mOutputReqQueue(128, string(this->name())+string(".mOutputReqQueue")),
+  mOutputReqQueue(OUT_CHANNEL_BUFFER_SIZE, string(this->name())+string(".mOutputReqQueue")),
+  mInputRespQueue(IN_CHANNEL_BUFFER_SIZE, string(this->name())+string(".mInputRespQueue")),
+  mOutputRespQueue(OUT_CHANNEL_BUFFER_SIZE, string(this->name())+string(".mOutputRespQueue")),
 	mScratchpadModeHandler(bankNumber),
 	mGeneralPurposeCacheHandler(bankNumber)
 {
@@ -1656,11 +1685,17 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 
 	SC_METHOD(handleDataOutput);
 
-	SC_METHOD(handleRequestInput);
-	sensitive << iRequests;
-	dont_initialize();
+  SC_METHOD(handleRequestInput);
+  sensitive << iRequest;
+  dont_initialize();
 
-	SC_METHOD(handleRequestOutput);
+  SC_METHOD(handleRequestOutput);
+
+  SC_METHOD(handleResponseInput);
+  sensitive << iResponse;
+  dont_initialize();
+
+  SC_METHOD(handleResponseOutput);
 
 	end_module(); // Needed because we're using a different Component constructor
 }

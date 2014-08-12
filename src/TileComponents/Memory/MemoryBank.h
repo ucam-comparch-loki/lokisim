@@ -153,15 +153,21 @@ public:
 
 	// Data - to/from cores.
   loki_in<AddressedWord>  iData;            // Input data sent to the memory bank
-  sc_out<bool>        oReadyForData;        // Indicates that there is buffer space for new input
+  sc_out<bool>            oReadyForData;    // Indicates that there is buffer space for new input
 
   loki_out<AddressedWord> oData;            // Output data sent to the processing elements
 
   // Requests - to/from memory banks on other tiles.
-  loki_in<AddressedWord>  iRequests;        // Input requests sent to the memory bank
-  sc_out<bool>        oReadyForRequest;     // Indicates that there is buffer space for new input
+  loki_in<AddressedWord>  iRequest;         // Input requests sent to the memory bank
+  sc_out<bool>            oReadyForRequest; // Indicates that there is buffer space for new input
 
-  loki_out<AddressedWord> oRequests;        // Output requests sent to the remote memory banks
+  loki_out<AddressedWord> oRequest;         // Output requests sent to the remote memory banks
+
+  // Responses - to/from memory banks on other tiles.
+  loki_in<AddressedWord>  iResponse;        // Input responses sent to the memory bank
+  sc_out<bool>            oReadyForResponse;// Indicates that there is buffer space for new input
+
+  loki_out<AddressedWord> oResponse;        // Output responses sent to the remote memory banks
 
 	//-- Ports connected to background memory model -----------------------------------------------
 
@@ -244,6 +250,9 @@ private:
 
   NetworkBuffer<AddressedWord> mInputReqQueue;    // Input request queue
   NetworkBuffer<AddressedWord> mOutputReqQueue;   // Output request queue
+
+  NetworkBuffer<AddressedWord> mInputRespQueue;   // Input response queue
+  NetworkBuffer<AddressedWord> mOutputRespQueue;  // Output response queue
 
 	bool mOutputWordPending;								// Indicates that an output word is waiting for acknowledgement
 	AddressedWord mActiveOutputWord;						// Currently active output word
@@ -329,8 +338,10 @@ private:
 
 	void handleNetworkInterfacesPre();
 	void handleDataOutput();
-	void handleRequestInput();
-	void handleRequestOutput();
+  void handleRequestInput();
+  void handleRequestOutput();
+  void handleResponseInput();
+  void handleResponseOutput();
 
 	void mainLoop();										// Main loop thread - running at every positive clock edge
 

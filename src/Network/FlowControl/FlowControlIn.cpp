@@ -12,7 +12,10 @@
 void FlowControlIn::dataLoop() {
   AddressedWord data = iData.read();
 
-  assert(data.channelID() == channel);
+  if (!data.channelID().isMulticast() && !(data.channelID() == channel)) {
+    cerr << "Error: " << data << " arrived at channel " << channel << endl;
+    assert(false);
+  }
 
   if (data.portClaim())
     handlePortClaim();
