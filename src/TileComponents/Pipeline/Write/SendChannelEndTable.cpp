@@ -16,7 +16,7 @@
 
 void SendChannelEndTable::write(const DecodedInst& data) {
   if (DEBUG)
-    cout << this->name() << " writing " << data.toAddressedWord() << " to buffer\n";
+    cout << this->name() << " writing " << data.toNetworkData() << " to buffer\n";
 
   if (data.networkDestination().getTile() == id.getTile()) {
     assert(!bufferLocal.full());
@@ -46,7 +46,7 @@ void SendChannelEndTable::sendLoopLocal() {
 
       // Remove the request for network resources if the previous data sent was
       // the end of a data packet.
-      const AddressedWord& data = oDataLocal.read();
+      const NetworkData& data = oDataLocal.read();
       if (data.endOfPacket())
         requestArbitration(data.channelID(), false);
 
@@ -108,7 +108,7 @@ void SendChannelEndTable::sendLoopLocal() {
       bufferFillChanged.notify();
 
       // Send data
-      const AddressedWord data = inst.toAddressedWord();
+      const NetworkData data = inst.toNetworkData();
 
       if (DEBUG)
         cout << this->name() << " sending " << data << endl;
@@ -148,7 +148,7 @@ void SendChannelEndTable::sendLoopGlobal() {
   }
   else {
     const DecodedInst& inst = bufferGlobal.read();
-    const AddressedWord data = inst.toAddressedWord();
+    const NetworkData data = inst.toNetworkData();
 
     if (DEBUG)
       cout << this->name() << " sending " << data << endl;
@@ -206,7 +206,7 @@ WriteStage* SendChannelEndTable::parent() const {
 
 void SendChannelEndTable::reportStalls(ostream& os) {
   if (!bufferLocal.empty()) {
-    os << this->name() << " unable to send " << bufferLocal.peek().toAddressedWord() << endl;
+    os << this->name() << " unable to send " << bufferLocal.peek().toNetworkData() << endl;
 
     if (!channelMapTable->canSend(bufferLocal.peek().channelMapEntry()))
       os << "  Need credits." << endl;
@@ -215,7 +215,7 @@ void SendChannelEndTable::reportStalls(ostream& os) {
   }
 
   if (!bufferGlobal.empty()) {
-    os << this->name() << " unable to send " << bufferGlobal.peek().toAddressedWord() << endl;
+    os << this->name() << " unable to send " << bufferGlobal.peek().toNetworkData() << endl;
 
     if (!channelMapTable->canSend(bufferGlobal.peek().channelMapEntry()))
       os << "  Need credits." << endl;

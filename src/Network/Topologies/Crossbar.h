@@ -96,7 +96,7 @@ protected:
   // Store the old data so we can compute switching activity.
   // TODO: do this in the wire modules, where they already store this info.
   //   Issue: wires don't know what sort of network they are a part of, if any.
-  std::vector<DataType> oldInputs, oldOutputs;
+  std::vector<NetworkData> oldInputs, oldOutputs;
 
 };
 

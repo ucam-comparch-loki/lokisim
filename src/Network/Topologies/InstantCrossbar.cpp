@@ -10,7 +10,7 @@
 #include "InstantCrossbar.h"
 
 void InstantCrossbar::mainLoop(PortIndex port) {
-  DataType data = iData[port].read();
+  NetworkData data = iData[port].read();
   PortIndex output = getDestination(data.channelID());
 
   if (output >= numOutputPorts())

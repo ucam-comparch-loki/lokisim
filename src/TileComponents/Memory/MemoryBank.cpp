@@ -69,7 +69,7 @@ uint MemoryBank::homeTile(MemoryAddr address) {
   return (address >> 16) % NUM_TILES;
 }
 
-const AddressedWord MemoryBank::peekNextRequest() {
+const NetworkData MemoryBank::peekNextRequest() {
   assert(!mInputReqQueue.empty() || !mInputQueue.empty());
 
   switch (mCurrentInput) {
@@ -88,13 +88,13 @@ const AddressedWord MemoryBank::peekNextRequest() {
       return mInputQueue.peek();
     default:
       assert(false);
-      return AddressedWord();
+      return NetworkData();
   }
 }
 
-const AddressedWord MemoryBank::readNextRequest() {
+const NetworkData MemoryBank::readNextRequest() {
   // Use the peek method to handle the NONE state and perform any assertions.
-  AddressedWord result = peekNextRequest();
+  NetworkData result = peekNextRequest();
 
   // Dequeue the item from its queue.
   if (mCurrentInput == INPUT_MEMORIES)
@@ -342,7 +342,7 @@ bool MemoryBank::processMessageHeader() {
   if (currentInputEmpty())
 		return false;
 
-  AddressedWord request = peekNextRequest();
+  NetworkData request = peekNextRequest();
 	mActiveTableIndex = request.channelID().getChannel();
 	mActiveReturnChannel = request.returnAddr();
 	mActiveRequest = MemoryRequest(request.payload());
@@ -1371,7 +1371,7 @@ void MemoryBank::handleDataOutput() {
       else {
         returnAddr = mChannelMapTable[outWord.TableIndex].ReturnChannel;
       }
-      AddressedWord word(outWord.Data, returnAddr);
+      NetworkData word(outWord.Data, returnAddr);
       word.setPortClaim(outWord.PortClaim, false);
       word.setEndOfPacket(outWord.LastWord);
       mOutputWordPending = true;

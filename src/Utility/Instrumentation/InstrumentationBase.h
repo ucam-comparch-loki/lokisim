@@ -37,9 +37,9 @@ public:
 protected:
 
   static int popcount(uint value);
-  static int popcount(const AddressedWord& value);
+  static int popcount(const NetworkData& value);
   static int hammingDistance(uint val1, uint val2);
-  static int hammingDistance(const AddressedWord& val1, const AddressedWord& val2);
+  static int hammingDistance(const NetworkData& val1, const NetworkData& val2);
 
   static string percentage(count_t value, count_t total);
 

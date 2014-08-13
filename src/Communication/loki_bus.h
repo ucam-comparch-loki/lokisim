@@ -12,7 +12,7 @@
 #include "../Network/NetworkTypedefs.h"
 #include "../Utility/Instrumentation.h"
 
-class loki_bus : public loki_signal<DataType> {
+class loki_bus : public loki_signal<NetworkData> {
 
 //==============================//
 // Methods
@@ -25,7 +25,7 @@ public:
 
     // We have only finished with this data when all acks have arrived.
     if(outstandingAcks == 0)
-      loki_signal<DataType>::ack();
+      loki_signal<NetworkData>::ack();
   }
 
 protected:
@@ -42,7 +42,7 @@ protected:
     assert(this->m_new_val.messageID() != lastMessageID);
     lastMessageID = this->m_new_val.messageID();
 
-    loki_signal<DataType>::update();
+    loki_signal<NetworkData>::update();
   }
 
 //==============================//
@@ -51,7 +51,7 @@ protected:
 
 public:
 
-  loki_bus() : loki_signal<DataType>() {
+  loki_bus() : loki_signal<NetworkData>() {
     lastWriteTime = -1;
     outstandingAcks = 0;
     lastMessageID = -1;

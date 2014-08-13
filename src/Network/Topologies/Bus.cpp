@@ -22,7 +22,7 @@ void Bus::busLoop() {
         lastWriteTime = cycle;
 
         // There definitely is data: send it.
-        DataType data = iData[0].read();
+        NetworkData data = iData[0].read();
 
         outputUsed = getDestination(data.channelID());
 

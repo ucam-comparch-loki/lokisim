@@ -128,8 +128,8 @@ const bool DecodedInst::storesToRegister() const {
   return destReg_ != 0;
 }
 
-const AddressedWord DecodedInst::toAddressedWord() const {
-  AddressedWord aw(result(), networkDestination());
+const NetworkData DecodedInst::toNetworkData() const {
+  NetworkData aw(result(), networkDestination());
   aw.setPortClaim(portClaim_, useCredits_);
   aw.setEndOfPacket(endOfPacket_);
   aw.setReturnAddr(returnAddr_);

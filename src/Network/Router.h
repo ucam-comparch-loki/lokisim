@@ -86,7 +86,7 @@ private:
 
 private:
 
-  BufferArray<DataType> inputBuffers;
+  BufferArray<NetworkData> inputBuffers;
 
 //==============================//
 // Local state

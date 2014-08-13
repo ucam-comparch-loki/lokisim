@@ -106,7 +106,7 @@ public:
 
   const bool sendsOnNetwork() const;
   const bool storesToRegister() const;
-  const AddressedWord toAddressedWord() const;
+  const NetworkData toNetworkData() const;
 
   void isid(const unsigned long long isid) const;
   const unsigned long long isid() const;

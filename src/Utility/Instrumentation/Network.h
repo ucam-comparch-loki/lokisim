@@ -24,12 +24,12 @@ public:
   static void traffic(const ComponentID& startID, const ComponentID& endID);
 
   // Record switching activity for different types of network.
-  static void crossbarInput(const DataType& oldData, const DataType& newData,
+  static void crossbarInput(const NetworkData& oldData, const NetworkData& newData,
                             const PortIndex input);
-  static void crossbarOutput(const DataType& oldData, const DataType& newData);
-  static void multicastTraffic(const DataType& oldData, const DataType& newData,
+  static void crossbarOutput(const NetworkData& oldData, const NetworkData& newData);
+  static void multicastTraffic(const NetworkData& oldData, const NetworkData& newData,
                                const PortIndex input);
-  static void globalTraffic(const DataType& oldData, const DataType& newData);
+  static void globalTraffic(const NetworkData& oldData, const NetworkData& newData);
 
   // An arbiter performed a computation.
   static void arbitration();

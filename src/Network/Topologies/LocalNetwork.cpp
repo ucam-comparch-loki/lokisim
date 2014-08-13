@@ -169,7 +169,7 @@ void LocalNetwork::wireUpSubnetworks() {
 // subnetworks to the appropriate input ports? Won't matter when the core has
 // separate ports for each network.
 void LocalNetwork::newCoreData(int core) {
-  const DataType& data = iData[core].read();
+  const NetworkData& data = iData[core].read();
   const ChannelID& destination = data.channelID();
 
   if (destination.isCore())

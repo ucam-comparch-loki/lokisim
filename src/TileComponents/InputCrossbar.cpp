@@ -17,7 +17,7 @@ const unsigned int InputCrossbar::numOutputs = CORE_INPUT_CHANNELS;
 void InputCrossbar::newData(PortIndex input) {
   assert(iData[input].valid());
 
-  const AddressedWord& data = iData[input].read();
+  const NetworkData& data = iData[input].read();
 
   ChannelIndex destination = data.channelID().getChannel();
   if (destination >= numOutputs)

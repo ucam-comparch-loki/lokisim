@@ -28,7 +28,7 @@ void Network::traffic(const ComponentID& startID, const ComponentID& endID) {
   consumers.increment(endID);
 }
 
-void Network::crossbarInput(const DataType& oldData, const DataType& newData,
+void Network::crossbarInput(const NetworkData& oldData, const NetworkData& newData,
                             const PortIndex input) {
   uint hamming = hammingDistance(oldData, newData);
   uint destinationPort = newData.channelID().getPosition();
@@ -44,16 +44,16 @@ void Network::crossbarInput(const DataType& oldData, const DataType& newData,
   xbarDistHD += hamming*distance;
 }
 
-void Network::crossbarOutput(const DataType& oldData, const DataType& newData) {
+void Network::crossbarOutput(const NetworkData& oldData, const NetworkData& newData) {
   xbarOutHD += hammingDistance(oldData, newData);
 }
 
-void Network::multicastTraffic(const DataType& oldData, const DataType& newData,
+void Network::multicastTraffic(const NetworkData& oldData, const NetworkData& newData,
                                const PortIndex input) {
   mcastHD += hammingDistance(oldData, newData);
 }
 
-void Network::globalTraffic(const DataType& oldData, const DataType& newData) {
+void Network::globalTraffic(const NetworkData& oldData, const NetworkData& newData) {
   globalHD += hammingDistance(oldData, newData);
 }
 

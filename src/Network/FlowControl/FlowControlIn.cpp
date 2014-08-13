@@ -9,7 +9,7 @@
 #include "../../Datatype/MemoryRequest.h"
 
 void FlowControlIn::dataLoop() {
-  AddressedWord data = iData.read();
+  NetworkData data = iData.read();
 
   if (!data.channelID().isMulticast() && !(data.channelID() == channel)) {
     cerr << "Error: " << data << " arrived at channel " << channel << endl;
@@ -114,7 +114,7 @@ void FlowControlIn::creditLoop() {
 }
 
 void FlowControlIn::sendCredit() {
-  AddressedWord aw(Word(1), returnAddress);
+  NetworkData aw(Word(1), returnAddress);
   oCredit.write(aw);
 
   numCredits--;

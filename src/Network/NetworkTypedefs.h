@@ -18,21 +18,21 @@ using sc_core::sc_out;
 using sc_core::sc_signal;
 using sc_core::sc_buffer;
 
-typedef Flit<Word>              AddressedWord;
-
 // Information sent across the network.
-typedef AddressedWord           DataType;
-typedef AddressedWord           CreditType;
+typedef Flit<Word>              NetworkData;
+typedef Flit<Word>              NetworkCredit;
+typedef Flit<Word>              NetworkRequest;
+typedef Flit<Word>              NetworkResponse;
 typedef bool                    ReadyType;
 
-typedef loki_signal<DataType>   DataSignal;
-typedef loki_signal<CreditType> CreditSignal;
+typedef loki_signal<NetworkData>   DataSignal;
+typedef loki_signal<NetworkCredit> CreditSignal;
 typedef sc_signal<ReadyType>    ReadySignal;
 
-typedef loki_in<DataType>       DataInput;
-typedef loki_out<DataType>      DataOutput;
-typedef loki_in<CreditType>     CreditInput;
-typedef loki_out<CreditType>    CreditOutput;
+typedef loki_in<NetworkData>    DataInput;
+typedef loki_out<NetworkData>   DataOutput;
+typedef loki_in<NetworkCredit>  CreditInput;
+typedef loki_out<NetworkCredit> CreditOutput;
 typedef sc_in<ReadyType>        ReadyInput;
 typedef sc_out<ReadyType>       ReadyOutput;
 

@@ -15,7 +15,7 @@ int InstrumentationBase::popcount(uint value) {
   return __builtin_popcount(value);
 }
 
-int InstrumentationBase::popcount(const AddressedWord& value) {
+int InstrumentationBase::popcount(const NetworkData& value) {
   return popcount(value.payload().toInt()) + popcount(value.channelID().toInt());
 }
 
@@ -23,8 +23,8 @@ int InstrumentationBase::hammingDistance(uint val1, uint val2) {
   return __builtin_popcount(val1 ^ val2);
 }
 
-int InstrumentationBase::hammingDistance(const AddressedWord& val1,
-                                         const AddressedWord& val2) {
+int InstrumentationBase::hammingDistance(const NetworkData& val1,
+                                         const NetworkData& val2) {
   return hammingDistance(val1.payload().toInt(), val2.payload().toInt()) +
          hammingDistance(val1.channelID().toInt(), val2.channelID().toInt());
 }

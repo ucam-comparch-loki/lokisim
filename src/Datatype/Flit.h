@@ -16,7 +16,6 @@
 
 #include "../Typedefs.h"
 #include "ChannelID.h"
-#include "Word.h"
 
 template <typename T>
 class Flit {
