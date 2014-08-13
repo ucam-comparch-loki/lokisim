@@ -15,7 +15,6 @@
 #include "../Network/Topologies/InstantCrossbar.h"
 #include "../Network/NetworkTypedefs.h"
 
-class AddressedWord;
 class FlowControlIn;
 class UnclockedNetwork;
 class Word;

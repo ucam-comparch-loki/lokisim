@@ -12,7 +12,6 @@
 #include "CounterMap.h"
 #include "../../Network/NetworkTypedefs.h"
 
-class AddressedWord;
 class ComponentID;
 
 namespace Instrumentation {

@@ -14,7 +14,6 @@
 #define BUS_H_
 
 #include "../Network.h"
-#include "../../Datatype/AddressedWord.h"
 #include "../NetworkTypedefs.h"
 
 class Bus: public Network {

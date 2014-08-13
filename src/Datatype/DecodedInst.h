@@ -13,9 +13,9 @@
 
 #include <inttypes.h>
 #include "systemc.h"
-#include "AddressedWord.h"
 #include "ChannelID.h"
 #include "Instruction.h"
+#include "../Network/NetworkTypedefs.h"
 
 class DecodedInst {
 

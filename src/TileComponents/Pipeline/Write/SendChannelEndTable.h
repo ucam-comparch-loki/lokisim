@@ -15,7 +15,6 @@
 #include "../../../Network/NetworkBuffer.h"
 #include "../../../Network/NetworkTypedefs.h"
 
-class AddressedWord;
 class ChannelMapTable;
 class DecodedInst;
 class Word;

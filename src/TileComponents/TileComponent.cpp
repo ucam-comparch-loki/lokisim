@@ -9,7 +9,6 @@
 
 #include "TileComponent.h"
 #include "../Chip.h"
-#include "../Datatype/AddressedWord.h"
 #include "../Datatype/ChannelID.h"
 
 int TileComponent::numInputs()  const {return iData.length();}

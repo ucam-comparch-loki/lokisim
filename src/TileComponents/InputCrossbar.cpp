@@ -8,7 +8,6 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "InputCrossbar.h"
-#include "../Datatype/AddressedWord.h"
 #include "../Network/FlowControl/FlowControlIn.h"
 #include "../TileComponents/TileComponent.h"
 

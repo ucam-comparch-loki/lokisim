@@ -7,7 +7,7 @@
 
 #include "Network.h"
 #include "../Parameters.h"
-#include "../../Datatype/AddressedWord.h"
+#include "../../Datatype/Flit.h"
 #include "../../Datatype/ComponentID.h"
 
 using namespace Instrumentation;

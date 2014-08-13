@@ -9,7 +9,6 @@
 #include "WriteStage.h"
 #include "../ChannelMapTable.h"
 #include "../../TileComponent.h"
-#include "../../../Datatype/AddressedWord.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/MemoryRequest.h"
 #include "../../../Utility/Instrumentation/Network.h"

@@ -15,7 +15,6 @@
 #include "../Component.h"
 #include "NetworkTypedefs.h"
 
-class AddressedWord;
 class Word;
 
 class OffChip: public Component {

@@ -15,7 +15,6 @@
 
 #include "../Typedefs.h"
 
-class AddressedWord;
 class ChannelID;
 class ComponentID;
 class DecodedInst;

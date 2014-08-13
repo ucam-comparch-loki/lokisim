@@ -14,12 +14,11 @@
 
 #include <iostream>
 #include "../../Typedefs.h"
+#include "../../Network/NetworkTypedefs.h"
 
 using std::string;
 using std::cout;
 using std::endl;
-
-class AddressedWord;
 
 namespace Instrumentation {
 

@@ -11,8 +11,6 @@
 #include "../Component.h"
 #include "NetworkTypedefs.h"
 
-class AddressedWord;
-
 class Network : public Component {
 
 public:

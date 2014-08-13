@@ -24,7 +24,6 @@
 using namespace std;
 
 #include "../../Component.h"
-#include "../../Datatype/AddressedWord.h"
 #include "../../Datatype/Instruction.h"
 #include "../../Datatype/MemoryRequest.h"
 #include "../../Memory/BufferStorage.h"
@@ -1451,7 +1450,7 @@ void MemoryBank::handleResponseInput() {
   iResponse.ack();
 }
 
-// Method which sends data from the mOutputReqQueue whenever possible.
+// Method which sends data from the mOutputRespQueue whenever possible.
 void MemoryBank::handleResponseOutput() {
   if (!iClock.posedge())
     next_trigger(iClock.posedge_event());

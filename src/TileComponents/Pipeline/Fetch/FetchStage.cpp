@@ -15,11 +15,12 @@ void FetchStage::execute() {
 
   // Instrumentation stuff
   // Idle = have no work to do; stalled = waiting for work to arrive
-  if (currentPacket.active() && !finishedPacketRead)
+  if (currentPacket.active() && !finishedPacketRead) {
     if (waiting)
       Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS);
     else
       Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS);
+  }
 
   // Find an instruction to pass to the pipeline.
   if (waiting) {                           // Wait for an instruction

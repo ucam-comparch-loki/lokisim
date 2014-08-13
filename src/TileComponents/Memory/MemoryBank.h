@@ -23,7 +23,6 @@
 
 #include "../../Component.h"
 #include "../../Utility/Blocking.h"
-#include "../../Datatype/AddressedWord.h"
 #include "../../Datatype/MemoryRequest.h"
 #include "../../Network/NetworkBuffer.h"
 #include "GeneralPurposeCacheHandler.h"
@@ -246,7 +245,7 @@ private:
 	//-- Data queue state -------------------------------------------------------------------------
 
   NetworkBuffer<AddressedWord> mInputQueue;       // Input queue
-  NetworkBuffer<OutputWord> mOutputQueue;         // Output queue
+  NetworkBuffer<OutputWord>    mOutputQueue;      // Output queue
 
   NetworkBuffer<AddressedWord> mInputReqQueue;    // Input request queue
   NetworkBuffer<AddressedWord> mOutputReqQueue;   // Output request queue

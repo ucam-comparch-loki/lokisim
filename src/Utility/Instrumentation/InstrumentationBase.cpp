@@ -7,7 +7,7 @@
 
 #include <sstream>
 #include "InstrumentationBase.h"
-#include "../../Datatype/AddressedWord.h"
+#include "../../Datatype/Flit.h"
 
 using namespace Instrumentation;
 

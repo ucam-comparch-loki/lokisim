@@ -16,7 +16,6 @@
 #include "../Component.h"
 #include "../Network/NetworkTypedefs.h"
 
-class AddressedWord;
 class Chip;
 class Word;
 

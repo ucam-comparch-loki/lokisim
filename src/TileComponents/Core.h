@@ -26,7 +26,6 @@
 #include "Pipeline/Write/WriteStage.h"
 #include "Pipeline/ChannelMapTable.h"
 
-class AddressedWord;
 class DecodedInst;
 class PipelineRegister;
 

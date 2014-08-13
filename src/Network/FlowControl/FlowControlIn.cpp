@@ -6,7 +6,6 @@
  */
 
 #include "FlowControlIn.h"
-#include "../../Datatype/AddressedWord.h"
 #include "../../Datatype/MemoryRequest.h"
 
 void FlowControlIn::dataLoop() {

@@ -6,7 +6,6 @@
  */
 
 #include "OffChip.h"
-#include "../Datatype/AddressedWord.h"
 
 void OffChip::newData() {
   // Ignore the data and send a credit, so the sender doesn't block.

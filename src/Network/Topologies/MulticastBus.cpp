@@ -8,7 +8,6 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "MulticastBus.h"
-#include "../../Datatype/AddressedWord.h"
 
 void MulticastBus::busLoop() {
   switch(state) {

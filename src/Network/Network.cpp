@@ -6,7 +6,6 @@
  */
 
 #include "Network.h"
-#include "../Datatype/AddressedWord.h"
 
 PortIndex Network::getDestination(const ChannelID& address) const {
   PortIndex port;

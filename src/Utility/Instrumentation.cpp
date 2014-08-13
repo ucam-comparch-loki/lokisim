@@ -21,7 +21,6 @@
 #include "Instrumentation/Registers.h"
 #include "Instrumentation/Scratchpad.h"
 #include "Instrumentation/Stalls.h"
-#include "../Datatype/AddressedWord.h"
 #include "../Datatype/DecodedInst.h"
 
 void Instrumentation::initialise() {

@@ -9,7 +9,7 @@
 #define NETWORKTYPEDEFS_H_
 
 #include "systemc"
-#include "../Datatype/AddressedWord.h"
+#include "../Datatype/Flit.h"
 #include "../Communication/loki_ports.h"
 #include "../Communication/loki_signal.h"
 
@@ -17,6 +17,8 @@ using sc_core::sc_in;
 using sc_core::sc_out;
 using sc_core::sc_signal;
 using sc_core::sc_buffer;
+
+typedef Flit<Word>              AddressedWord;
 
 // Information sent across the network.
 typedef AddressedWord           DataType;
