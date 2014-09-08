@@ -35,6 +35,9 @@ using namespace std;
 #include "ScratchpadModeHandler.h"
 #include "SimplifiedOnChipScratchpad.h"
 #include "MemoryBank.h"
+#include "../../Datatype/Packets/CacheLineFlush.h"
+#include "../../Datatype/Packets/CacheLineReadRequest.h"
+#include "../../Datatype/Packets/CacheLineRefill.h"
 
 // A "fast" memory is capable of receiving a request, decoding it, performing
 // the operation, and sending the result, all in one clock cycle.
@@ -1263,64 +1266,146 @@ void MemoryBank::processGeneralPurposeCacheMiss() {
 	// 3. Send words in case of write command
 
 	switch (mCacheFSMState) {
-	case GP_CACHE_STATE_PREPARE:
+	case GP_CACHE_STATE_PREPARE: {
 		mGeneralPurposeCacheHandler.prepareCacheLine(mActiveAddress, mWriteBackAddress, mWriteBackCount, mCacheLineBuffer, mFetchAddress, mFetchCount);
 		mCacheLineCursor = 0;
+		assert(mCurrentPacket == NULL);
 
 		if (mWriteBackCount > 0) {
 			assert(mWriteBackCount == mLineSize / 4);
 
-			oBMDataStrobe.write(true);
-			oBMData.write(MemoryRequest(MemoryRequest::STORE_LINE, mWriteBackAddress, mLineSize));
+//			MemoryRequest header(MemoryRequest::STORE_LINE, mWriteBackAddress, mLineSize);
+////			oBMDataStrobe.write(true);
+////			oBMData.write(header);
+//			NetworkResponse flit(header, mBackgroundMemory->networkAddress());
+//			flit.setEndOfPacket(false);
+//			mOutputRespQueue.write(flit);
 
 			mCacheFSMState = GP_CACHE_STATE_SEND_DATA;
 		} else {
 			assert(mFetchCount == mLineSize / 4);
 
-			oBMDataStrobe.write(true);
-			oBMData.write(MemoryRequest(MemoryRequest::FETCH_LINE, mFetchAddress, mLineSize));
-			mCacheLineCursor = 0;
+//			MemoryRequest header(MemoryRequest::FETCH_LINE, mFetchAddress, mLineSize);
+////			oBMDataStrobe.write(true);
+////			oBMData.write(header);
+//			NetworkRequest flit(header, mBackgroundMemory->networkAddress());
+//			mOutputReqQueue.write(flit);
+//			mCacheLineCursor = 0;
 
 			mCacheFSMState = GP_CACHE_STATE_READ_DATA;
 		}
 
+//		break;
+	}
+	// no break - fall through to whichever state we just changed to
+
+	case GP_CACHE_STATE_SEND_DATA: {
+
+    if (mCurrentPacket == NULL) {
+      assert(mWriteBackCount == mLineSize / 4);
+			mCurrentPacket = new CacheLineFlush(mWriteBackAddress,
+			                                    mLineSize,
+			                                    mCacheLineBuffer,
+			                                    mBackgroundMemory->networkAddress());
+    }
+
+//	  MemoryRequest payload(MemoryRequest::PAYLOAD_ONLY, mCacheLineBuffer[mCacheLineCursor++]);
+////		oBMDataStrobe.write(true);
+////		oBMData.write(payload);
+//		bool endOfPacket = (mCacheLineCursor == mWriteBackCount);
+//		NetworkResponse flit(payload, mBackgroundMemory->networkAddress());
+//		flit.setEndOfPacket(endOfPacket);
+//		mOutputRespQueue.write(flit);
+
+    if (!mOutputRespQueue.full()) {
+      mOutputRespQueue.write(mCurrentPacket->getNextFlit());
+      mCurrentPacket->sentFlit();
+
+      if (mCurrentPacket->sentAllFlits()) {
+        delete mCurrentPacket;
+        mCurrentPacket = NULL;
+        mCacheFSMState = GP_CACHE_STATE_SEND_READ_COMMAND;
+      }
+    }
+
 		break;
+	}
 
-	case GP_CACHE_STATE_SEND_DATA:
-		oBMDataStrobe.write(true);
-		oBMData.write(MemoryRequest(MemoryRequest::PAYLOAD_ONLY, mCacheLineBuffer[mCacheLineCursor++]));
+	case GP_CACHE_STATE_SEND_READ_COMMAND: {
 
-		mCacheFSMState = (mCacheLineCursor == mWriteBackCount) ? GP_CACHE_STATE_SEND_READ_COMMAND : GP_CACHE_STATE_SEND_DATA;
+		if (mCurrentPacket == NULL) {
+		  assert(mFetchCount == mLineSize / 4);
+		  mCurrentPacket = new CacheLineReadRequest(mFetchAddress,
+		                                            mLineSize,
+		                                            mBackgroundMemory->networkAddress(),
+		                                            ChannelID(id, 15));
+		}
+
+//		MemoryRequest request(MemoryRequest::FETCH_LINE, mFetchAddress, mLineSize);
+////		oBMDataStrobe.write(true);
+////		oBMData.write(request);
+//		NetworkRequest flit(request, mBackgroundMemory->networkAddress());
+//		mOutputReqQueue.write(flit);
+//		mCacheLineCursor = 0;
+//
+//		mCacheFSMState = GP_CACHE_STATE_READ_DATA;
+
+		if (!mOutputReqQueue.full()) {
+      mOutputReqQueue.write(mCurrentPacket->getNextFlit());
+      mCurrentPacket->sentFlit();
+
+      if (mCurrentPacket->sentAllFlits()) {
+        delete mCurrentPacket;
+        mCurrentPacket = NULL;
+        mCacheFSMState = GP_CACHE_STATE_READ_DATA;
+      }
+		}
+
 		break;
+	}
 
-	case GP_CACHE_STATE_SEND_READ_COMMAND:
-		assert(mFetchCount == mLineSize / 4);
+	case GP_CACHE_STATE_READ_DATA: {
+////		if (iBMDataStrobe.read())
+////			mCacheLineBuffer[mCacheLineCursor++] = iBMData.read().toUInt();
+//		if (!mInputRespQueue.empty())
+//		  mCacheLineBuffer[mCacheLineCursor++] = mInputRespQueue.read().payload().toUInt();
+//
+//		mCacheFSMState = (mCacheLineCursor == mFetchCount) ? GP_CACHE_STATE_REPLACE : GP_CACHE_STATE_READ_DATA;
 
-		oBMDataStrobe.write(true);
-		oBMData.write(MemoryRequest(MemoryRequest::FETCH_LINE, mFetchAddress, mLineSize));
-		mCacheLineCursor = 0;
+	  if (mCurrentPacket == NULL) {
+	    mCurrentPacket = new CacheLineRefill();
+      mCacheLineCursor = 0;
+	  }
 
-		mCacheFSMState = GP_CACHE_STATE_READ_DATA;
+	  if (!mInputRespQueue.empty()) {
+	    mCurrentPacket->addFlit(mInputRespQueue.read());
+	    mCacheLineBuffer[mCacheLineCursor] =
+	      static_cast<CacheLineRefill*>(mCurrentPacket)->data(mCacheLineCursor).toUInt();
+	    mCacheLineCursor++;
+
+      if (mCurrentPacket->receivedAllFlits()) {
+        delete mCurrentPacket;
+        mCurrentPacket = NULL;
+        mCacheFSMState = GP_CACHE_STATE_REPLACE;
+      }
+	  }
+
 		break;
+	}
 
-	case GP_CACHE_STATE_READ_DATA:
-		if (iBMDataStrobe.read())
-			mCacheLineBuffer[mCacheLineCursor++] = iBMData.read().toUInt();
-
-		mCacheFSMState = (mCacheLineCursor == mFetchCount) ? GP_CACHE_STATE_REPLACE : GP_CACHE_STATE_READ_DATA;
-		break;
-
-	case GP_CACHE_STATE_REPLACE:
+	case GP_CACHE_STATE_REPLACE: {
 		mGeneralPurposeCacheHandler.replaceCacheLine(mFetchAddress, mCacheLineBuffer);
 
 		mCacheResumeRequest = true;
 		mFSMState = mFSMCallbackState;
 		break;
+	}
 
-	default:
+	default: {
 		assert(false);
 		break;
 	}
+	} // end switch
 }
 
 void MemoryBank::processWaitRingOutput() {
@@ -1470,7 +1555,7 @@ void MemoryBank::handleNetworkInterfacesPre() {
 
   // Set output port defaults - only final write will be effective
   if(oRingStrobe.read())   oRingStrobe.write(false);
-  if(oBMDataStrobe.read()) oBMDataStrobe.write(false);
+//  if(oBMDataStrobe.read()) oBMDataStrobe.write(false);
 
   // Check whether old ring output got acknowledged
 
@@ -1591,6 +1676,9 @@ void MemoryBank::mainLoop() {
   bool ready2 = !mInputReqQueue.full();
   if (ready2 != oReadyForRequest.read())
     oReadyForRequest.write(ready2);
+  bool ready3 = !mInputRespQueue.full();
+  if (ready3 != oReadyForResponse.read())
+    oReadyForResponse.write(ready3);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1625,6 +1713,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 
 	mOutputWordPending = false;
 	mCurrentInput = INPUT_NONE;
+	mCurrentPacket = NULL;
 
 	//-- Mode independent state -------------------------------------------------------------------
 
@@ -1661,7 +1750,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 
 	oReadyForData.initialize(false);
 	oReadyForRequest.initialize(false);
-	oBMDataStrobe.initialize(false);
+//	oBMDataStrobe.initialize(false);
 	oRingAcknowledge.initialize(false);
 	oRingStrobe.initialize(false);
 

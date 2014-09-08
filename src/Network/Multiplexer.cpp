@@ -18,7 +18,7 @@ void Multiplexer::reportStalls(ostream& os) {
 }
 
 void Multiplexer::handleData() {
-  SelectType selection = iSelect.read();
+  MuxSelect selection = iSelect.read();
 
   // 1. Invalid selection -> wait for valid selection
   // 2. Valid selection -> wait for data (if it isn't already here)

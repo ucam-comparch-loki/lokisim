@@ -30,8 +30,8 @@ public:
 
   // A request/grant signal for each input to reserve each output.
   // Indexed as: iRequest[input][output]
-  LokiVector2D<RequestInput> iRequest;
-  LokiVector2D<GrantOutput>  oGrant;
+  LokiVector2D<ArbiterRequestInput> iRequest;
+  LokiVector2D<ArbiterGrantOutput>  oGrant;
 
   // A signal from each buffer of each component, telling whether it is ready
   // to receive data. Addressed using iReady[component][buffer].
@@ -91,7 +91,7 @@ protected:
   std::vector<BasicArbiter*> arbiters;
   std::vector<Multiplexer*>  muxes;
 
-  LokiVector2D<SelectSignal> selectSig;
+  LokiVector2D<MuxSelectSignal> selectSig;
 
   // Store the old data so we can compute switching activity.
   // TODO: do this in the wire modules, where they already store this info.

@@ -143,10 +143,10 @@ void Chip::makeSignals() {
   iResponse.init(NUM_MEMORIES);
   oReadyResponse.init(NUM_MEMORIES);
 
-	strobeToBackgroundMemory.init(NUM_MEMORIES);
-	dataToBackgroundMemory.init(NUM_MEMORIES);
-	strobeFromBackgroundMemory.init(NUM_MEMORIES);
-	dataFromBackgroundMemory.init(NUM_MEMORIES);
+//	strobeToBackgroundMemory.init(NUM_MEMORIES);
+//	dataToBackgroundMemory.init(NUM_MEMORIES);
+//	strobeFromBackgroundMemory.init(NUM_MEMORIES);
+//	dataFromBackgroundMemory.init(NUM_MEMORIES);
 
 	ringStrobe.init(NUM_MEMORIES);
 	ringRequest.init(NUM_MEMORIES);
@@ -230,6 +230,12 @@ void Chip::wireUp() {
   // Global request network - connects memories to memories.
   RequestNetwork* requestNet = new RequestNetwork("request_net");
   requestNet->clock(clock);
+  requestNet->oMainMemoryRequest(requestToMainMemory);
+  backgroundMemory.iRequest(requestToMainMemory);
+  requestNet->iMainMemoryReady(mainMemoryReadyRequest);
+  backgroundMemory.oReadyRequest(mainMemoryReadyRequest);
+  requestNet->iMainMemoryRequest(requestFromMainMemory);
+  backgroundMemory.oRequest(requestFromMainMemory);
   for (unsigned int i=0; i<memories.size(); i++) {
     memories[i]->iRequest(iRequest[i]);
     requestNet->oData[i](iRequest[i]);
@@ -245,6 +251,12 @@ void Chip::wireUp() {
   // Global response network - connects memories to memories.
   ResponseNetwork* responseNet = new ResponseNetwork("response_net");
   responseNet->clock(clock);
+  responseNet->oMainMemoryResponse(responseToMainMemory);
+  backgroundMemory.iResponse(responseToMainMemory);
+  responseNet->iMainMemoryReady(mainMemoryReadyResponse);
+  backgroundMemory.oReadyResponse(mainMemoryReadyResponse);
+  responseNet->iMainMemoryResponse(responseFromMainMemory);
+  backgroundMemory.oResponse(responseFromMainMemory);
   for (unsigned int i=0; i<memories.size(); i++) {
     memories[i]->iResponse(iResponse[i]);
     responseNet->oData[i](iResponse[i]);
@@ -322,17 +334,17 @@ void Chip::wireUp() {
 
 			m->iClock(clock);
 
-			int portIndex = j * MEMS_PER_TILE + i;
-
-			m->oBMDataStrobe(strobeToBackgroundMemory[portIndex]);
-			backgroundMemory.iDataStrobe[portIndex](strobeToBackgroundMemory[portIndex]);
-			m->oBMData(dataToBackgroundMemory[portIndex]);
-			backgroundMemory.iData[portIndex](dataToBackgroundMemory[portIndex]);
-
-			m->iBMDataStrobe((strobeFromBackgroundMemory[portIndex]));
-			backgroundMemory.oDataStrobe[portIndex](strobeFromBackgroundMemory[portIndex]);
-			m->iBMData((dataFromBackgroundMemory[portIndex]));
-			backgroundMemory.oData[portIndex](dataFromBackgroundMemory[portIndex]);
+//			int portIndex = j * MEMS_PER_TILE + i;
+//
+//			m->oBMDataStrobe(strobeToBackgroundMemory[portIndex]);
+//			backgroundMemory.iDataStrobe[portIndex](strobeToBackgroundMemory[portIndex]);
+//			m->oBMData(dataToBackgroundMemory[portIndex]);
+//			backgroundMemory.iData[portIndex](dataToBackgroundMemory[portIndex]);
+//
+//			m->iBMDataStrobe((strobeFromBackgroundMemory[portIndex]));
+//			backgroundMemory.oDataStrobe[portIndex](strobeFromBackgroundMemory[portIndex]);
+//			m->iBMData((dataFromBackgroundMemory[portIndex]));
+//			backgroundMemory.oData[portIndex](dataFromBackgroundMemory[portIndex]);
 				
 			// Connect the memory ring network of this tile
 	

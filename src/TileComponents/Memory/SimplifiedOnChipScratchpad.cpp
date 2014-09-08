@@ -33,45 +33,58 @@ using namespace std;
 
 #include "../../Component.h"
 #include "../../Datatype/MemoryRequest.h"
+#include "../../Datatype/Packets/CacheLineFlush.h"
+#include "../../Datatype/Packets/CacheLineReadRequest.h"
+#include "../../Datatype/Packets/CacheLineRefill.h"
 #include "../../Utility/Instrumentation.h"
 #include "SimplifiedOnChipScratchpad.h"
 
 void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 	mPortData[port].State = STATE_IDLE;
 
+	assert(mInputPacket == NULL);
+	assert(mOutputPacket == NULL);
+
 	if (!mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
-		MemoryRequest request = mInputQueues[port].read().Request;
+		const NetworkRequest& flit = mInputQueues[port].read().Request;
+	  MemoryRequest request = flit.payload();
 
 		if (request.getOperation() == MemoryRequest::FETCH_LINE) {
-			mPortData[port].Address = request.getPayload();
+		  mInputPacket = new CacheLineReadRequest();
+		  mInputPacket->addFlit(flit);
+
+			mPortData[port].MemoryAddress = request.getPayload();
 			mPortData[port].WordsLeft = request.getLineSize() / 4;
 
-			if (mPortData[port].Address + mPortData[port].WordsLeft * 4 > MEMORY_ON_CHIP_SCRATCHPAD_SIZE)
-				cerr << this->name() << " fetch request outside valid memory space (address " << mPortData[port].Address << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
+			if (mPortData[port].MemoryAddress + mPortData[port].WordsLeft * 4 > MEMORY_ON_CHIP_SCRATCHPAD_SIZE)
+				cerr << this->name() << " fetch request outside valid memory space (address " << mPortData[port].MemoryAddress << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
 
-			assert((mPortData[port].Address & 0x3) == 0);
-			assert(mPortData[port].Address <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+			assert((mPortData[port].MemoryAddress & 0x3) == 0);
+			assert(mPortData[port].MemoryAddress <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 			assert((mPortData[port].WordsLeft * 4) <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
-			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+			assert(mPortData[port].MemoryAddress + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 			assert(mPortData[port].WordsLeft > 0);
 
-			Instrumentation::backgroundMemoryRead(mPortData[port].Address, mPortData[port].WordsLeft);
+			Instrumentation::backgroundMemoryRead(mPortData[port].MemoryAddress, mPortData[port].WordsLeft);
 
 			// Do not output first word directly - assume one clock cycle access delay
 
 			mPortData[port].State = STATE_READING;
 		} else if (request.getOperation() == MemoryRequest::STORE_LINE) {
-			mPortData[port].Address = request.getPayload();
+		  mInputPacket = new CacheLineFlush();
+		  mInputPacket->addFlit(flit);
+
+			mPortData[port].MemoryAddress = request.getPayload();
 			mPortData[port].WordsLeft = request.getLineSize() / 4;
 
-			if (mPortData[port].Address + mPortData[port].WordsLeft * 4 > MEMORY_ON_CHIP_SCRATCHPAD_SIZE)
-				cerr << this->name() << " store request outside valid memory space (address " << mPortData[port].Address << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
+			if (mPortData[port].MemoryAddress + mPortData[port].WordsLeft * 4 > MEMORY_ON_CHIP_SCRATCHPAD_SIZE)
+				cerr << this->name() << " store request outside valid memory space (address " << mPortData[port].MemoryAddress << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
 
-			assert((mPortData[port].Address & 0x3) == 0);
-			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+			assert((mPortData[port].MemoryAddress & 0x3) == 0);
+			assert(mPortData[port].MemoryAddress + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 			assert(mPortData[port].WordsLeft > 0);
 
-			Instrumentation::backgroundMemoryWrite(mPortData[port].Address, mPortData[port].WordsLeft);
+			Instrumentation::backgroundMemoryWrite(mPortData[port].MemoryAddress, mPortData[port].WordsLeft);
 
 			mPortData[port].State = STATE_WRITING;
 		} else {
@@ -89,66 +102,93 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 
 		wait(iClock.posedge_event());
 
-		// Handle input data
+		// Handle input data, arbitrating fairly between requests and responses.
+		// Once we start receiving a packet from one input, continue until the
+		// packet is finished, and then give the other input priority.
 
-		for (uint port = 0; port < mPortCount; port++) {
-			if (iDataStrobe[port].read()) {
-				InputWord newWord;
-				newWord.EarliestExecutionCycle = mCycleCounter + (uint64_t)cDelayCycles;
-				newWord.Request = iData[port].read();
-				mInputQueues[port].write(newWord);
-			}
+		if (!mInputQueues[0].full()) {
+      if (iRequest.valid() && ((priorityInput == INPUT_REQUEST) ||
+                               (finishedPacket && !iResponse.valid()))) {
+        InputWord newWord;
+        newWord.EarliestExecutionCycle = mCycleCounter + cDelayCycles;
+        newWord.Request = iRequest.read();
+        iRequest.ack();
+        mInputQueues[0].write(newWord);
+
+        finishedPacket = newWord.Request.endOfPacket();
+        if (finishedPacket)
+          priorityInput = INPUT_RESPONSE;
+      }
+      else if (iResponse.valid() && ((priorityInput == INPUT_RESPONSE) ||
+                                     (finishedPacket && !iRequest.valid()))) {
+        InputWord newWord;
+        newWord.EarliestExecutionCycle = mCycleCounter + cDelayCycles;
+        newWord.Request = iResponse.read();
+        iResponse.ack();
+        mInputQueues[0].write(newWord);
+
+        finishedPacket = newWord.Request.endOfPacket();
+        if (finishedPacket)
+          priorityInput = INPUT_REQUEST;
+      }
 		}
 
 		// Process port events
 
-		bool bankAccessed[16];	// Simulate banked memory
-		memset(bankAccessed, 0x00, sizeof(bankAccessed));
+    switch (mPortData[0].State) {
+    case STATE_IDLE:
+      tryStartRequest(0);
+      break;
 
-		for (uint port = 0; port < mPortCount; port++) {
-			// Default to non-valid - only last change will become effective
+    case STATE_READING:
+      assert(mInputPacket != NULL);
 
-			if(oDataStrobe[port].read()) oDataStrobe[port].write(false);
-			uint32_t bankSelected = (mPortData[port].Address / 4) % cBanks;
+      if (!mInputPacket->receivedAllFlits() && !mInputQueues[0].empty())
+        mInputPacket->addFlit(mInputQueues[0].read().Request);
+      if (mInputPacket->receivedAllFlits() && mOutputPacket == NULL) {
+        CacheLineReadRequest* request = static_cast<CacheLineReadRequest*>(mInputPacket);
+        mOutputPacket = new CacheLineRefill(&(mData[request->memoryAddress() / 4]),
+                                            request->lineSize(),
+                                            request->returnAddress());
+      }
+      if (mOutputPacket != NULL && !oResponse.valid()) {
+        oResponse.write(mOutputPacket->getNextFlit());
+        mOutputPacket->sentFlit();
 
-			switch (mPortData[port].State) {
-			case STATE_IDLE:
-				tryStartRequest(port);
-				break;
+        if (mOutputPacket->sentAllFlits()) {
+          delete mInputPacket;
+          mInputPacket = NULL;
+          delete mOutputPacket;
+          mOutputPacket = NULL;
 
-			case STATE_READING:
-				if (!bankAccessed[bankSelected]) {
-					oDataStrobe[port].write(true);
-					oData[port].write(Word(mData[mPortData[port].Address / 4]));
+          tryStartRequest(0);
+        }
+      }
 
-					mPortData[port].Address += 4;
-					mPortData[port].WordsLeft--;
+      break;
 
-					if (mPortData[port].WordsLeft == 0)
-						tryStartRequest(port);
+    case STATE_WRITING:
+      assert(mInputPacket != NULL);
 
-					bankAccessed[bankSelected] = true;
-				}
+      if (!mInputPacket->receivedAllFlits() && !mInputQueues[0].empty()) {
+        CacheLineFlush* request = static_cast<CacheLineFlush*>(mInputPacket);
+        request->addFlit(mInputQueues[0].read().Request);
+        // Extract data and write it
+        uint words = request->numFlits() - 1;        // -1 because of the header
+        uint data = request->data(words-1).toUInt(); // -1 because counting from 0
+        MemoryAddr address = (request->memoryAddress() / 4) + (words-1);
+        mData[address] = data;
 
-				break;
+        if (mInputPacket->receivedAllFlits()) {
+          delete mInputPacket;
+          mInputPacket = NULL;
 
-			case STATE_WRITING:
-				if (!bankAccessed[bankSelected] && !mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
-					assert(mInputQueues[port].peek().Request.getOperation() == MemoryRequest::PAYLOAD_ONLY);
+          tryStartRequest(0);
+        }
+      }
 
-					mData[mPortData[port].Address / 4] = mInputQueues[port].read().Request.getPayload();
-					mPortData[port].Address += 4;
-					mPortData[port].WordsLeft--;
-
-					if (mPortData[port].WordsLeft == 0)
-						tryStartRequest(port);
-
-					bankAccessed[bankSelected] = true;
-				}
-
-				break;
-			}
-		}
+      break;
+    } // end switch
 
 		// Advance cycle counter
 
@@ -165,18 +205,19 @@ SimplifiedOnChipScratchpad::SimplifiedOnChipScratchpad(sc_module_name name, cons
 	cDelayCycles = MEMORY_ON_CHIP_SCRATCHPAD_DELAY;
 	cBanks = MEMORY_ON_CHIP_SCRATCHPAD_BANKS;
 
-	iDataStrobe = new sc_in<bool>[portCount];
-	iData = new sc_in<MemoryRequest>[portCount];
-	oDataStrobe = new sc_out<bool>[portCount];
-	oData = new sc_out<Word>[portCount];
+	oReadyRequest.initialize(true);
+	oReadyResponse.initialize(true);
 
-	for (uint i = 0; i < portCount; i++)
-		oDataStrobe[i].initialize(false);
+	priorityInput = INPUT_REQUEST;
 
 	mCycleCounter = 0;
 
 	mData = new uint32_t[MEMORY_ON_CHIP_SCRATCHPAD_SIZE / 4];
 	memset(mData, 0x00, MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+
+	mInputPacket = NULL;
+	mOutputPacket = NULL;
+	finishedPacket = true;
 
 	mPortCount = portCount;
 	mPortData = new PortData[portCount];
@@ -190,10 +231,6 @@ SimplifiedOnChipScratchpad::SimplifiedOnChipScratchpad(sc_module_name name, cons
 }
 
 SimplifiedOnChipScratchpad::~SimplifiedOnChipScratchpad() {
-	delete[] iDataStrobe;
-	delete[] iData;
-	delete[] oDataStrobe;
-	delete[] oData;
 	delete[] mData;
 	delete[] mPortData;
 }
@@ -216,17 +253,17 @@ void SimplifiedOnChipScratchpad::flushQueues() {
 
 					assert(request.getOperation() == MemoryRequest::STORE_LINE);
 
-					mPortData[port].Address = request.getPayload();
+					mPortData[port].MemoryAddress = request.getPayload();
 					mPortData[port].WordsLeft = request.getLineSize() / 4;
 
-					if (mPortData[port].Address + mPortData[port].WordsLeft * 4 > MEMORY_ON_CHIP_SCRATCHPAD_SIZE)
-						cerr << this->name() << " store request outside valid memory space (address " << mPortData[port].Address << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
+					if (mPortData[port].MemoryAddress + mPortData[port].WordsLeft * 4 > MEMORY_ON_CHIP_SCRATCHPAD_SIZE)
+						cerr << this->name() << " store request outside valid memory space (address " << mPortData[port].MemoryAddress << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
 
-					assert((mPortData[port].Address & 0x3) == 0);
-					assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+					assert((mPortData[port].MemoryAddress & 0x3) == 0);
+					assert(mPortData[port].MemoryAddress + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 					assert(mPortData[port].WordsLeft > 0);
 
-					Instrumentation::backgroundMemoryWrite(mPortData[port].Address, mPortData[port].WordsLeft);
+					Instrumentation::backgroundMemoryWrite(mPortData[port].MemoryAddress, mPortData[port].WordsLeft);
 
 					mPortData[port].State = STATE_WRITING;
 
@@ -236,8 +273,8 @@ void SimplifiedOnChipScratchpad::flushQueues() {
 				assert(!mInputQueues[port].empty());
 				assert(mInputQueues[port].peek().Request.getOperation() == MemoryRequest::PAYLOAD_ONLY);
 
-				mData[mPortData[port].Address / 4] = mInputQueues[port].read().Request.getPayload();
-				mPortData[port].Address += 4;
+				mData[mPortData[port].MemoryAddress / 4] = mInputQueues[port].read().Request.getPayload();
+				mPortData[port].MemoryAddress += 4;
 				mPortData[port].WordsLeft--;
 
 				if (mPortData[port].WordsLeft == 0)
@@ -249,6 +286,12 @@ void SimplifiedOnChipScratchpad::flushQueues() {
 	} while (dataProcessed);
 }
 */
+
+ChannelID SimplifiedOnChipScratchpad::networkAddress() const {
+  // Give the memory an address beyond that of any of the compute tiles.
+  // It will be positioned in the first column, at the bottom of the chip.
+  return ChannelID(NUM_TILES, 0, 0);
+}
 
 void SimplifiedOnChipScratchpad::storeData(vector<Word>& data, MemoryAddr location, bool readOnly) {
 	size_t count = data.size();
@@ -332,14 +375,4 @@ void SimplifiedOnChipScratchpad::writeByte(MemoryAddr addr, Word data) {
 	modData &= ~mask;
 	modData |= (data.toUInt() & 0xFFUL) << shift;
 	mData[addr / 4] = modData;
-}
-
-double SimplifiedOnChipScratchpad::area() const {
-	assert(false);
-	return 0.0;
-}
-
-double SimplifiedOnChipScratchpad::energy() const {
-	assert(false);
-	return 0.0;
 }

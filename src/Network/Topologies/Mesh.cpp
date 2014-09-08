@@ -9,6 +9,10 @@
 #include "../NetworkHierarchy.h"
 #include "../Router.h"
 
+const vector<vector<DataSignal*> > Mesh::edgeDataInputs() const {return edgeDataInputs_;}
+const vector<vector<DataSignal*> > Mesh::edgeDataOutputs() const {return edgeDataOutputs_;}
+const vector<vector<ReadySignal*> > Mesh::edgeReadyOutputs() const {return edgeReadyOutputs_;}
+
 void Mesh::makeRouters() {
   int tile = 0;
   for(unsigned int row=0; row<numRows; row++) {
@@ -31,6 +35,30 @@ void Mesh::makeWires() {
   readySigSN.init(numColumns+1, numRows+1);
   readySigEW.init(numColumns+1, numRows+1);
   readySigWE.init(numColumns+1, numRows+1);
+
+  // Take pointers to the signals around the edge of the chip and add them to
+  // separate collections.
+  for (uint row=0; row<numRows; row++) {
+    edgeDataInputs_[Router::WEST].push_back(&dataSigWE[0][row]);
+    edgeDataInputs_[Router::EAST].push_back(&dataSigEW[numColumns][row]);
+
+    edgeDataOutputs_[Router::WEST].push_back(&dataSigEW[0][row]);
+    edgeDataOutputs_[Router::EAST].push_back(&dataSigWE[numColumns][row]);
+
+    edgeReadyOutputs_[Router::WEST].push_back(&readySigEW[0][row]);
+    edgeReadyOutputs_[Router::EAST].push_back(&readySigWE[numColumns][row]);
+  }
+
+  for (uint col=0; col<numColumns; col++) {
+    edgeDataInputs_[Router::NORTH].push_back(&dataSigNS[col][0]);
+    edgeDataInputs_[Router::SOUTH].push_back(&dataSigSN[col][numRows]);
+
+    edgeDataOutputs_[Router::NORTH].push_back(&dataSigSN[col][0]);
+    edgeDataOutputs_[Router::SOUTH].push_back(&dataSigNS[col][numRows]);
+
+    edgeReadyOutputs_[Router::NORTH].push_back(&readySigSN[col][0]);
+    edgeReadyOutputs_[Router::SOUTH].push_back(&readySigNS[col][numRows]);
+  }
 }
 
 void Mesh::wireUp() {
@@ -86,6 +114,11 @@ Mesh::Mesh(const sc_module_name& name,
   assert(level == Network::TILE);
 
   oReady.init(rows*columns);
+
+  // Each set contains a vector for each of NORTH, EAST, SOUTH, WEST.
+  edgeDataInputs_.assign(4, vector<DataSignal*>());
+  edgeDataOutputs_.assign(4, vector<DataSignal*>());
+  edgeReadyOutputs_.assign(4, vector<ReadySignal*>());
 
   makeRouters();
   makeWires();

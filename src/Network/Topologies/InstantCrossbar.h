@@ -71,9 +71,9 @@ private:
   Crossbar crossbar;
 
   // Address using requests[input][output].
-  LokiVector2D<RequestSignal> requests;
+  LokiVector2D<ArbiterRequestSignal> requests;
   // Address using grants[input][output].
-  LokiVector2D<GrantSignal>   grants;
+  LokiVector2D<ArbiterGrantSignal>   grants;
 
   enum CrossbarState {
     IDLE,

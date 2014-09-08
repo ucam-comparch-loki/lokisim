@@ -103,9 +103,12 @@ private:
   LokiVector2D<ReadySignal> oReadyData;
   LokiVector<ReadySignal>   oReadyCredit, oReadyRequest, oReadyResponse;
 
-  LokiVector<sc_signal<bool> > strobeToBackgroundMemory, strobeFromBackgroundMemory;
-  LokiVector<sc_signal<MemoryRequest> > dataToBackgroundMemory;
-  LokiVector<sc_signal<Word> > dataFromBackgroundMemory;
+//  LokiVector<sc_signal<bool> > strobeToBackgroundMemory, strobeFromBackgroundMemory;
+//  LokiVector<sc_signal<MemoryRequest> > dataToBackgroundMemory;
+//  LokiVector<sc_signal<Word> > dataFromBackgroundMemory;
+  RequestSignal             requestToMainMemory,    requestFromMainMemory;
+  ResponseSignal            responseToMainMemory,   responseFromMainMemory;
+  ReadySignal               mainMemoryReadyRequest, mainMemoryReadyResponse;
 
   LokiVector<sc_signal<bool> > ringStrobe;
 	LokiVector<sc_signal<MemoryBank::RingNetworkRequest> > ringRequest;

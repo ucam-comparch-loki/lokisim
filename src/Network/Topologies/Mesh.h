@@ -16,6 +16,8 @@
 
 class Router;
 
+using std::vector;
+
 class Mesh : public Network {
 
 //==============================//
@@ -52,6 +54,14 @@ public:
 // Methods
 //==============================//
 
+public:
+
+  // Collections of signals which run off the edges of the Mesh.
+  // Address using vector[Router::Direction][index].
+  const vector<vector<DataSignal*> >  edgeDataInputs()   const;
+  const vector<vector<DataSignal*> >  edgeDataOutputs()  const;
+  const vector<vector<ReadySignal*> > edgeReadyOutputs() const;
+
 private:
 
   void makeRouters();
@@ -66,7 +76,7 @@ private:
 
   // 2D vector of routers. Indexed using routers[column][row]. (0,0) is in the
   // top left corner.
-  std::vector<std::vector<Router*> > routers;
+  vector<vector<Router*> > routers;
 
   // Lots of 2D arrays of signals. Each 2D array is indexed using
   // array[column][row]. Each array name is tagged with the direction it
@@ -81,6 +91,13 @@ private:
 private:
 
   const unsigned int numColumns, numRows;
+
+  // Collections of signals which run off the edges of the Mesh. These are
+  // pointers to a subset of the signals above.
+  // Address using vector[Router::Direction][index].
+  vector<vector<DataSignal*> >  edgeDataInputs_;
+  vector<vector<DataSignal*> >  edgeDataOutputs_;
+  vector<vector<ReadySignal*> > edgeReadyOutputs_;
 
 };
 

@@ -36,7 +36,7 @@ void LocalNetwork::pointToPointRequest(ComponentID source, ChannelID destination
   assert(!destination.isMulticast());
 
   // Find out which signal to write the request to.
-  RequestSignal *requestSignal;
+  ArbiterRequestSignal *requestSignal;
 
   if (!source.isCore()) {                             // Memory/global to core
     assert(destination.isCore());
@@ -63,7 +63,7 @@ bool LocalNetwork::requestGranted(ComponentID source, ChannelID destination) con
   if (destination.isMulticast())
     return true;
 
-  GrantSignal   *grantSignal;
+  ArbiterGrantSignal   *grantSignal;
 
   if (!source.isCore()) {                             // Memory/global to core
     assert(destination.isCore());

@@ -28,6 +28,7 @@
 #include "GeneralPurposeCacheHandler.h"
 #include "ScratchpadModeHandler.h"
 #include "SimplifiedOnChipScratchpad.h"
+#include "../../Datatype/Packets/Packet.h"
 
 class MemoryBank: public Component, public Blocking {
 	//---------------------------------------------------------------------------------------------
@@ -75,53 +76,53 @@ public:
 			RingNetworkRequestType RequestType;
 			struct SetMode_ {
 			public:
-				BankMode NewMode;
-				uint WayCount;
-				uint LineSize;
-				uint GroupBaseBank;
-				uint GroupIndex;
-				uint GroupSize;
+				BankMode        NewMode;
+				uint            WayCount;
+				uint            LineSize;
+				uint            GroupBaseBank;
+				uint            GroupIndex;
+				uint            GroupSize;
 			} SetMode;
 			struct SetTableEntry_ {
 			public:
-				uint TableIndex;
-				ChannelID TableEntry;
+				uint            TableIndex;
+				ChannelID       TableEntry;
 			} SetTableEntry;
 			struct BurstReadHandOff_ {
 			public:
-				uint32_t Address;
-				uint Count;
-				uint TableIndex;
-				ChannelIndex ReturnChannel;
+				uint32_t        Address;
+				uint            Count;
+				uint            TableIndex;
+				ChannelIndex    ReturnChannel;
 			} BurstReadHandOff;
 			struct BurstWriteForward_ {
 			public:
-				uint32_t Address;
-				uint Count;
+				uint32_t        Address;
+				uint            Count;
 			} BurstWriteForward;
 			struct IPKReadHandOff_ {
 			public:
-				uint32_t Address;
-				uint TableIndex;
-				ChannelIndex ReturnChannel;
-				bool PartialInstructionPending;
-				uint32_t PartialInstructionData;
+				uint32_t        Address;
+				uint            TableIndex;
+				ChannelIndex    ReturnChannel;
+				bool            PartialInstructionPending;
+				uint32_t        PartialInstructionData;
 			} IPKReadHandOff;
 			struct PassThrough_ {
 			public:
-				uint DestinationBankNumber;
+				uint            DestinationBankNumber;
 				RingNetworkRequestType EnvelopedRequestType;
-				uint32_t Address;
-				uint Count;
-				uint TableIndex;
-				ChannelIndex ReturnChannel;
-				bool PartialInstructionPending;
-				uint32_t PartialInstructionData;
+				uint32_t        Address;
+				uint            Count;
+				uint            TableIndex;
+				ChannelIndex    ReturnChannel;
+				bool            PartialInstructionPending;
+				uint32_t        PartialInstructionData;
 			} PassThrough;
 		} Header;
 		struct Payload_ {
 		public:
-			uint32_t Data;
+			uint32_t          Data;
 		} Payload;
 
 		friend void sc_trace(sc_core::sc_trace_file*& tf, const RingNetworkRequest& w, const std::string& txt) {
@@ -146,45 +147,42 @@ public:
 
 public:
 
-	sc_in<bool>					iClock;						// Clock
+	ClockInput					  iClock;						// Clock
 
 	//-- Ports connected to on-chip networks ------------------------------------------------------
 
-	// Data - to/from cores.
-  loki_in<NetworkData>  iData;            // Input data sent to the memory bank
-  sc_out<bool>            oReadyForData;    // Indicates that there is buffer space for new input
-
-  loki_out<NetworkData> oData;            // Output data sent to the processing elements
+	// Data - to/from cores on the same tile.
+  DataInput             iData;            // Input data sent to the memory bank
+  ReadyOutput           oReadyForData;    // Indicates that there is buffer space for new input
+  DataOutput            oData;            // Output data sent to the processing elements
 
   // Requests - to/from memory banks on other tiles.
-  loki_in<NetworkData>  iRequest;         // Input requests sent to the memory bank
-  sc_out<bool>            oReadyForRequest; // Indicates that there is buffer space for new input
-
-  loki_out<NetworkData> oRequest;         // Output requests sent to the remote memory banks
+  RequestInput          iRequest;         // Input requests sent to the memory bank
+  ReadyOutput           oReadyForRequest; // Indicates that there is buffer space for new input
+  RequestOutput         oRequest;         // Output requests sent to the remote memory banks
 
   // Responses - to/from memory banks on other tiles.
-  loki_in<NetworkData>  iResponse;        // Input responses sent to the memory bank
-  sc_out<bool>            oReadyForResponse;// Indicates that there is buffer space for new input
-
-  loki_out<NetworkData> oResponse;        // Output responses sent to the remote memory banks
+  ResponseInput         iResponse;        // Input responses sent to the memory bank
+  ReadyOutput           oReadyForResponse;// Indicates that there is buffer space for new input
+  ResponseOutput        oResponse;        // Output responses sent to the remote memory banks
 
 	//-- Ports connected to background memory model -----------------------------------------------
 
-	sc_out<bool>				oBMDataStrobe;				// Indicate that corresponding input data word is valid
-	sc_out<MemoryRequest>		oBMData;					// Data words input from cache controllers
-
-	sc_in<bool>					iBMDataStrobe;				// Indicate that corresponding output data word is valid
-	sc_in<Word>					iBMData;					// Data words output to cache controllers
+//	sc_out<bool>				  oBMDataStrobe;		// Indicate that corresponding input data word is valid
+//	sc_out<MemoryRequest>	oBMData;					// Data words input from cache controllers
+//
+//	sc_in<bool>					  iBMDataStrobe;		// Indicate that corresponding output data word is valid
+//	sc_in<Word>					  iBMData;					// Data words output to cache controllers
 
 	//-- Ports connected to memory bank ring network ----------------------------------------------
 
-	sc_in<bool>					iRingStrobe;				// Indicates that a ring network request is pending
-	sc_in<RingNetworkRequest>	iRingRequest;				// Incoming ring network request data
-	sc_out<bool>				oRingAcknowledge;			// Indicates that the ring network request got consumed
+	sc_in<bool>					  iRingStrobe;			// Indicates that a ring network request is pending
+	sc_in<RingNetworkRequest>	iRingRequest;	// Incoming ring network request data
+	sc_out<bool>				  oRingAcknowledge;	// Indicates that the ring network request got consumed
 
-	sc_out<bool>				oRingStrobe;				// Indicates that a ring network request is ready
-	sc_out<RingNetworkRequest>	oRingRequest;				// Outgoing ring network request data
-	sc_in<bool>					iRingAcknowledge;			// Indicates that the ring network request got consumed
+	sc_out<bool>				  oRingStrobe;			// Indicates that a ring network request is ready
+	sc_out<RingNetworkRequest> oRingRequest;// Outgoing ring network request data
+	sc_in<bool>					  iRingAcknowledge;	// Indicates that the ring network request got consumed
 
 	//---------------------------------------------------------------------------------------------
 	// Utility definitions
@@ -193,14 +191,14 @@ public:
 private:
 
 	enum FSMState {
-		STATE_IDLE,											// Ready to service incoming message
+		STATE_IDLE,											      // Ready to service incoming message
 		STATE_FETCH_BURST_LENGTH,							// Fetch burst length from separate word
-		STATE_LOCAL_MEMORY_ACCESS,							// Access local memory (simulate single cycle access latency)
-		STATE_LOCAL_IPK_READ,								// Read instruction packet from local memory (simulate single cycle access latency)
+		STATE_LOCAL_MEMORY_ACCESS,						// Access local memory (simulate single cycle access latency)
+		STATE_LOCAL_IPK_READ,								  // Read instruction packet from local memory (simulate single cycle access latency)
 		STATE_LOCAL_BURST_READ,								// Read data burst from local memory (simulate single cycle access latency)
 		STATE_BURST_WRITE_MASTER,							// Write data burst as master bank (simulate single cycle access latency)
 		STATE_BURST_WRITE_SLAVE,							// Write data burst as slave bank (simulate single cycle access latency)
-		STATE_GP_CACHE_MISS,								// Access to general purpose cache caused cache miss - wait for cache FSM
+		STATE_GP_CACHE_MISS,								  // Access to general purpose cache caused cache miss - wait for cache FSM
 		STATE_WAIT_RING_OUTPUT								// Wait for ring network output buffer to become available
 	};
 
@@ -214,18 +212,18 @@ private:
 
 	struct ChannelMapTableEntry {
 	public:
-		bool Valid;											// Flag indicating whether a connection is set up
-		bool FetchPending;									// Flag indicating whether a Channel ID fetch for this entry is pending
-		ChannelID ReturnChannel;							// Number of destination tile
+		bool                Valid;						// Flag indicating whether a connection is set up
+		bool                FetchPending;			// Flag indicating whether a Channel ID fetch for this entry is pending
+		ChannelID           ReturnChannel;		// Number of destination tile
 	};
 
 	struct OutputWord {
 	public:
-		Word Data;											// Data word to send
-		uint TableIndex;									// Index of channel map table entry describing the destination
-		ChannelIndex ReturnChannel;       // Channel to send to when rest of return address is implicit
-		bool PortClaim;										// Indicates whether this is a port claim message
-		bool LastWord;										// Indicates whether this is the last word of the message
+		Word                Data;							// Data word to send
+		uint                TableIndex;				// Index of channel map table entry describing the destination
+		ChannelIndex        ReturnChannel;    // Channel to send to when rest of return address is implicit
+		bool                PortClaim;				// Indicates whether this is a port claim message
+		bool                LastWord;					// Indicates whether this is the last word of the message
 	};
 
 	//---------------------------------------------------------------------------------------------
@@ -234,48 +232,50 @@ private:
 
 private:
 
-	bool currentlyIdle;
+	bool                  currentlyIdle;
 
 	// Keep track of which input we are currently serving a request from.
 	// Requests from memories have priority, but once a request starts, it should
 	// continue to completion.
 	enum PriorityInput {INPUT_NONE, INPUT_CORES, INPUT_MEMORIES};
-	PriorityInput mCurrentInput;
+	PriorityInput         mCurrentInput;
 
 	//-- Data queue state -------------------------------------------------------------------------
 
-  NetworkBuffer<NetworkData> mInputQueue;       // Input queue
-  NetworkBuffer<OutputWord>    mOutputQueue;      // Output queue
+  NetworkBuffer<NetworkData>     mInputQueue;       // Input queue
+  NetworkBuffer<OutputWord>      mOutputQueue;      // Output queue
 
-  NetworkBuffer<NetworkData> mInputReqQueue;    // Input request queue
-  NetworkBuffer<NetworkData> mOutputReqQueue;   // Output request queue
+	bool                  mOutputWordPending;					// Indicates that an output word is waiting for acknowledgement
+	NetworkData           mActiveOutputWord;					// Currently active output word
 
-  NetworkBuffer<NetworkData> mInputRespQueue;   // Input response queue
-  NetworkBuffer<NetworkData> mOutputRespQueue;  // Output response queue
+  NetworkBuffer<NetworkRequest>  mInputReqQueue;    // Input request queue
+  NetworkBuffer<NetworkRequest>  mOutputReqQueue;   // Output request queue
 
-	bool mOutputWordPending;								// Indicates that an output word is waiting for acknowledgement
-	NetworkData mActiveOutputWord;						// Currently active output word
+  NetworkBuffer<NetworkResponse> mInputRespQueue;   // Input response queue
+  NetworkBuffer<NetworkResponse> mOutputRespQueue;  // Output response queue
+
+  Packet<Word>         *mCurrentPacket;   // The packet we are currently sending or receiving
 
 	//-- Mode independent state -------------------------------------------------------------------
 
-	uint mGroupBaseBank;									// Absolute index of first bank belonging to the virtual memory group
-	uint mGroupIndex;										// Relative index of this bank within the virtual memory group
-	uint mGroupSize;										// Total size of the virtual memory group
+	uint                  mGroupBaseBank;	  // Absolute index of first bank belonging to the virtual memory group
+	uint                  mGroupIndex;	    // Relative index of this bank within the virtual memory group
+	uint                  mGroupSize;		    // Total size of the virtual memory group
 
-	ChannelMapTableEntry *mChannelMapTable;					// Channel map table containing return addresses
+	ChannelMapTableEntry *mChannelMapTable;	// Channel map table containing return addresses
 
-	BankMode mBankMode;										// Current mode of operation
-	FSMState mFSMState;										// Current FSM state
-	FSMState mFSMCallbackState;								// Next FSM state to enter after sub operation is complete
+	BankMode              mBankMode;			  // Current mode of operation
+	FSMState              mFSMState;			  // Current FSM state
+	FSMState              mFSMCallbackState;// Next FSM state to enter after sub operation is complete
 
-	uint mActiveTableIndex;									// Currently selected index in channel map table
-	ChannelIndex mActiveReturnChannel;      // Current specified return channel (if supplied)
-	MemoryRequest mActiveRequest;							// Currently active memory request
-	uint32_t mActiveAddress;								// Current address for memory access in progress
-	uint32_t mActiveBurstLength;							// Current burst length for memory access in progress
+	uint                  mActiveTableIndex;// Currently selected index in channel map table
+	ChannelIndex          mActiveReturnChannel; // Current specified return channel (if supplied)
+	MemoryRequest         mActiveRequest;		// Currently active memory request
+	uint32_t              mActiveAddress;		// Current address for memory access in progress
+	uint32_t              mActiveBurstLength; 	// Current burst length for memory access in progress
 
-	bool mPartialInstructionPending;						// Indicates that half of the current instruction was already read
-	uint32_t mPartialInstructionData;						// First half of instruction already read
+	bool                  mPartialInstructionPending;	// Indicates that half of the current instruction was already read
+	uint32_t              mPartialInstructionData;		// First half of instruction already read
 
 	//-- Scratchpad mode state --------------------------------------------------------------------
 
@@ -285,25 +285,25 @@ private:
 
 	GeneralPurposeCacheHandler mGeneralPurposeCacheHandler;	// General purpose cache mode handler
 
-	bool mCacheResumeRequest;								// Indicates that a memory request is being resumed after a cache update
+	bool                  mCacheResumeRequest;	// Indicates that a memory request is being resumed after a cache update
 
-	GeneralPurposeCacheFSMState mCacheFSMState;				// Current cache FSM state
-	uint32_t mCacheLineBuffer[256];							// Cache line buffer for background memory I/O
-	uint mCacheLineCursor;									// Index of next word in cache line buffer to process
-	uint32_t mWriteBackAddress;								// Current address of write back operation in progress
-	uint mWriteBackCount;									// Number of words to write back to background memory
-	uint32_t mFetchAddress;									// Current address of fetch operation in progress
-	uint mFetchCount;										// Number of words to fetch from background memory
+	GeneralPurposeCacheFSMState mCacheFSMState;	// Current cache FSM state
+	uint32_t              mCacheLineBuffer[256];// Cache line buffer for background memory I/O
+	uint                  mCacheLineCursor;	// Index of next word in cache line buffer to process
+	uint32_t              mWriteBackAddress;// Current address of write back operation in progress
+	uint                  mWriteBackCount;  // Number of words to write back to background memory
+	uint32_t              mFetchAddress;		// Current address of fetch operation in progress
+	uint                  mFetchCount;	    // Number of words to fetch from background memory
 
 	//-- Ring network state -----------------------------------------------------------------------
 
-	bool mRingRequestInputPending;							// Indicates that an incoming ring request is waiting to be processed
-	RingNetworkRequest mActiveRingRequestInput;				// Currently active incoming ring request
+	bool                  mRingRequestInputPending;   // Indicates that an incoming ring request is waiting to be processed
+	RingNetworkRequest    mActiveRingRequestInput;		// Currently active incoming ring request
 
-	bool mRingRequestOutputPending;							// Indicates that an outgoing ring request is waiting for acknowledgement
-	RingNetworkRequest mActiveRingRequestOutput;			// Currently active outgoing ring request
+	bool                  mRingRequestOutputPending;  // Indicates that an outgoing ring request is waiting for acknowledgement
+	RingNetworkRequest    mActiveRingRequestOutput;   // Currently active outgoing ring request
 
-	RingNetworkRequest mDelayedRingRequestOutput;			// Delayed outgoing ring request waiting for ring output buffer
+	RingNetworkRequest    mDelayedRingRequestOutput;	// Delayed outgoing ring request waiting for ring output buffer
 
 	//---------------------------------------------------------------------------------------------
 	// Internal functions
@@ -311,8 +311,8 @@ private:
 
 private:
 
-	uint log2Exact(uint value);								// Calculates binary logarithm of value - asserts value to be a power of two greater than 1
-	uint homeTile(MemoryAddr address);        // Return the tile of the definitive copy of this data
+	uint log2Exact(uint value);							// Calculates binary logarithm of value - asserts value to be a power of two greater than 1
+	uint homeTile(MemoryAddr address);      // Return the tile of the definitive copy of this data
 
 	// There are multiple buffers which could hold requests. Use these methods to
 	// ensure that the correct buffer is accessed.

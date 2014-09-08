@@ -21,7 +21,7 @@ class Multiplexer: public Component, public Blocking {
 
 public:
 
-  SelectInput           iSelect;
+  MuxSelectInput           iSelect;
 
   LokiVector<DataInput> iData;
   DataOutput            oData;

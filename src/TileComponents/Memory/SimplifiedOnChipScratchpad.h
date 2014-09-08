@@ -30,7 +30,9 @@
 
 #include "../../Component.h"
 #include "../../Datatype/MemoryRequest.h"
+#include "../../Datatype/Packets/Packet.h"
 #include "../../Network/BufferArray.h"
+
 
 class SimplifiedOnChipScratchpad: public Component {
 	//---------------------------------------------------------------------------------------------
@@ -39,7 +41,7 @@ class SimplifiedOnChipScratchpad: public Component {
 
 private:
 
-	uint						cDelayCycles;			// Number of clock cycles requests are delayed
+	cycle_count_t		cDelayCycles;		// Number of clock cycles requests are delayed
 	uint						cBanks;					// Number of memory banks
 
 	//---------------------------------------------------------------------------------------------
@@ -48,13 +50,17 @@ private:
 
 public:
 
-	sc_in<bool>					iClock;					// Clock
+	ClockInput					iClock;					// Clock
 
-	sc_in<bool>					*iDataStrobe;			// Indicate that corresponding input data word is valid
-	sc_in<MemoryRequest>		*iData;					// Memory request words input from cache controllers
+	RequestInput        iRequest;       // Requests from MemoryBanks for data.
+	ReadyOutput         oReadyRequest;
 
-	sc_out<bool>				*oDataStrobe;			// Indicate that corresponding output data word is valid
-	sc_out<Word>				*oData;					// Data words output to cache controllers
+	ResponseInput       iResponse;      // Flushed cache lines from MemoryBanks.
+	ReadyOutput         oReadyResponse;
+
+	RequestOutput       oRequest;       // Requests to MemoryBanks.
+
+	ResponseOutput      oResponse;      // Cache lines to MemoryBanks.
 
 	//---------------------------------------------------------------------------------------------
 	// Utility definitions
@@ -72,13 +78,14 @@ private:
 	public:
 		PortState State;
 		uint32_t WordsLeft;
-		uint32_t Address;
+		uint32_t MemoryAddress;
+		ChannelID NetworkAddress;
 	};
 
 	struct InputWord {
 	public:
-		uint64_t EarliestExecutionCycle;
-		MemoryRequest Request;
+		cycle_count_t  EarliestExecutionCycle;
+		NetworkRequest Request;
 	};
 
 	//---------------------------------------------------------------------------------------------
@@ -87,13 +94,23 @@ private:
 
 private:
 
-	uint64_t mCycleCounter;								// Cycle counter used for delay control
+	enum Input {
+	  INPUT_REQUEST,
+	  INPUT_RESPONSE
+	};
+	Input                   priorityInput;      // Arbitrate fairly between input ports
 
-	uint32_t *mData;									// Data words stored in the scratchpad
+	cycle_count_t           mCycleCounter;			// Cycle counter used for delay control
 
-	uint mPortCount;									// Number of ports
-	PortData *mPortData;								// State information about all ports
-	BufferArray<InputWord> mInputQueues;				// Input queues for all ports
+	uint32_t               *mData;							// Data words stored in the scratchpad
+
+	Packet<Word>           *mInputPacket;       // Data being received.
+	Packet<Word>           *mOutputPacket;      // Data being sent.
+	bool                    finishedPacket;     // Finished receiving a packet.
+
+	uint                    mPortCount;					// Number of ports
+	PortData               *mPortData;					// State information about all ports
+	BufferArray<InputWord>  mInputQueues;				// Input queues for all ports
 
 	// Mainly for debug, mark the read-only sections of the address space.
 	std::vector<MemoryAddr> readOnlyBase,
@@ -127,6 +144,8 @@ public:
 
 	//void flushQueues();
 
+	ChannelID networkAddress() const;
+
 	void storeData(vector<Word>& data, MemoryAddr location, bool readOnly);
 	const void* getData();
 
@@ -137,9 +156,6 @@ public:
 	Word readByte(MemoryAddr addr);
 	void writeWord(MemoryAddr addr, Word data);
 	void writeByte(MemoryAddr addr, Word data);
-
-	virtual double area() const;						// The area of this component in square micrometres
-	virtual double energy() const;						// The energy consumed by this component in picojoules
 };
 
 #endif /* SIMPLIFIEDONCHIPSCRATCHPAD_H */
