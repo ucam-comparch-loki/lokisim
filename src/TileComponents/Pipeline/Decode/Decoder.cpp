@@ -362,7 +362,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
 	default:
 		if (InstructionMap::isALUOperation(input.opcode())) {
-			if (input.function() == InstructionMap::FN_MULHW || input.function() == InstructionMap::FN_MULLW || input.function() == InstructionMap::FN_MULHWU)
+			if (input.function() == InstructionMap::FN_MULHW || input.function() == InstructionMap::FN_MULLW)
 				opType = LBTTrace::ALU2;
 			else
 				opType = LBTTrace::ALU1;
@@ -456,9 +456,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
     case InstructionMap::OP_WOCHE: output.result(output.immediate()); break;
 
-    case InstructionMap::OP_TSTCH:
     case InstructionMap::OP_TSTCHI:
-    case InstructionMap::OP_TSTCH_P:
     case InstructionMap::OP_TSTCHI_P:
       output.result(parent()->testChannel(output.immediate())); break;
 
@@ -499,7 +497,8 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
     case InstructionMap::OP_FETCHR:
     case InstructionMap::OP_FETCHPSTR:
-    case InstructionMap::OP_FILLR: {
+    case InstructionMap::OP_FILLR:
+    case InstructionMap::OP_PSEL_FETCHR: {
       // Fetches implicitly access channel map table entry 0. This may change.
       output.channelMapEntry(0);
       output.memoryOp(MemoryRequest::IPK_READ);

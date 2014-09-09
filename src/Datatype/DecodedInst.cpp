@@ -269,6 +269,7 @@ DecodedInst::DecodedInst(const Instruction inst) : original_(inst) {
   // Different instruction formats have immediate fields of different sizes.
   switch(format_) {
     case InstructionMap::FMT_FF:
+    case InstructionMap::FMT_PFF:
       if(signedImmed) immediate_ = signextend<int32_t,  23>(inst.immediate());
       else            immediate_ = signextend<uint32_t, 23>(inst.immediate());
       break;

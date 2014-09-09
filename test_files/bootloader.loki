@@ -17,4 +17,4 @@
  lui                r22, 0x0005
  addu               r0,  r22, r0        -> 0
 
- fetchr.eop         0x1000                    # Fetch first instruction packet of program
+ fetchr.eop         0x0400                    # Fetch first instruction packet of program

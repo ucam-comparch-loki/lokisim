@@ -98,6 +98,11 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         success = !blocked;
         break;
 
+      case InstructionMap::OP_GETCHMAP:
+      case InstructionMap::OP_GETCHMAPI:
+        // TODO
+        break;
+
       case InstructionMap::OP_FETCH:
       case InstructionMap::OP_FETCHR:
       case InstructionMap::OP_FETCHPST:
@@ -105,15 +110,18 @@ void ExecuteStage::newInput(DecodedInst& operation) {
       case InstructionMap::OP_FILL:
       case InstructionMap::OP_FILLR:
       case InstructionMap::OP_PSEL_FETCH:
+      case InstructionMap::OP_PSEL_FETCHR:
         success = fetch(operation);
         break;
 
-      case InstructionMap::OP_IWTR:
+      case InstructionMap::OP_SCRATCHRD:
+      case InstructionMap::OP_SCRATCHRDI:
         // Send only lowest 8 bits of address - don't need mask in hardware.
         scratchpad.write(operation.operand1() & 0xFF, operation.operand2());
         break;
 
-      case InstructionMap::OP_IRDR:
+      case InstructionMap::OP_SCRATCHWR:
+      case InstructionMap::OP_SCRATCHWRI:
         // Send only lowest 8 bits of address - don't need mask in hardware.
         operation.result(scratchpad.read(operation.operand1() & 0xFF));
         break;
@@ -232,17 +240,29 @@ bool ExecuteStage::fetch(DecodedInst& inst) {
   // Compute the address to fetch from, depending on which operation this is.
   switch (inst.opcode()) {
     case InstructionMap::OP_FETCH:
-    case InstructionMap::OP_FETCHR:
     case InstructionMap::OP_FETCHPST:
-    case InstructionMap::OP_FETCHPSTR:
     case InstructionMap::OP_FILL:
-    case InstructionMap::OP_FILLR:
       fetchAddress = inst.operand1() + inst.operand2();
+      break;
+
+    case InstructionMap::OP_FETCHR:
+    case InstructionMap::OP_FETCHPSTR:
+    case InstructionMap::OP_FILLR:
+      fetchAddress = inst.operand1() + inst.operand2()*BYTES_PER_WORD;
       break;
 
     case InstructionMap::OP_PSEL_FETCH:
       fetchAddress = readPredicate() ? inst.operand1() : inst.operand2();
       break;
+
+    case InstructionMap::OP_PSEL_FETCHR: {
+      // There are two immediates encoded as one. 16 and 7 bits respectively,
+      // both signed integers.
+      int immed1 = (inst.operand2() << 9) >> 16;
+      int immed2 = (inst.operand2() << 25) >> 25;
+      fetchAddress = inst.operand1() + BYTES_PER_WORD*(readPredicate() ? immed1 : immed2);
+      break;
+    }
 
     default:
       cerr << "Error: called ExecuteStage::fetch with non-fetch instruction." << endl;
