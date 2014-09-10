@@ -100,7 +100,16 @@ void ExecuteStage::newInput(DecodedInst& operation) {
 
       case InstructionMap::OP_GETCHMAP:
       case InstructionMap::OP_GETCHMAPI:
-        // TODO
+        // TODO: reading the CMT just returns a network address. We may want
+        // more information (e.g. write-through bit).
+        operation.result(parent()->channelMapTable.read(operation.operand1()).toUInt());
+        break;
+
+      case InstructionMap::OP_CREGRDI:
+      case InstructionMap::OP_CREGWRI:
+        cout << "Error: control registers not yet supported." << endl;
+        cout << operation << endl;
+        assert(false);
         break;
 
       case InstructionMap::OP_FETCH:

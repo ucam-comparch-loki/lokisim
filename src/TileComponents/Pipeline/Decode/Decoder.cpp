@@ -461,6 +461,9 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       output.result(parent()->testChannel(output.immediate())); break;
 
     case InstructionMap::OP_SELCH:
+      // TODO: selch now has an immediate argument which defines which
+      // channels we are interested in. We haven't yet specified how this
+      // information is represented.
       output.result(parent()->selectChannel()); break;
 
     case InstructionMap::OP_IBJMP: {
