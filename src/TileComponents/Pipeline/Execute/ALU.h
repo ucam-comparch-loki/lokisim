@@ -49,7 +49,7 @@ private:
   // Set cyclesRemaining to the appropriate value for this operation.
   cycle_count_t getFunctionLatency(function_t fn);
 
-  void setPred(bool val) const;
+  void setPredicate(bool val) const;
 
   int32_t readReg(RegisterIndex reg) const;
   int32_t readWord(MemoryAddr addr) const;

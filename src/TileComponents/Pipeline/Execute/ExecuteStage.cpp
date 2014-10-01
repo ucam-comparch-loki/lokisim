@@ -124,23 +124,27 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         break;
 
       case InstructionMap::OP_SCRATCHRD:
+        // Send only lowest 8 bits of address - don't need mask in hardware.
+        operation.result(scratchpad.read(operation.operand1() & 0xFF));
+        break;
+
       case InstructionMap::OP_SCRATCHRDI:
         // Send only lowest 8 bits of address - don't need mask in hardware.
-        scratchpad.write(operation.operand1() & 0xFF, operation.operand2());
+        operation.result(scratchpad.read(operation.operand2() & 0xFF));
         break;
 
       case InstructionMap::OP_SCRATCHWR:
       case InstructionMap::OP_SCRATCHWRI:
         // Send only lowest 8 bits of address - don't need mask in hardware.
-        operation.result(scratchpad.read(operation.operand1() & 0xFF));
+        scratchpad.write(operation.operand2() & 0xFF, operation.operand1());
         break;
 
       case InstructionMap::OP_LLI:
-        // FIXME: should LLI happen in execute stage or during register write?
         operation.result(operation.operand2());
         break;
 
       case InstructionMap::OP_LUI:
+        // FIXME: should LUI happen in execute stage or during register write?
         operation.result((operation.operand1() & 0xFFFF) | (operation.operand2() << 16));
         break;
 

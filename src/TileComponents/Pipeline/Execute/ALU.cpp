@@ -34,7 +34,7 @@ void ALU::execute(DecodedInst& dec) {
   int32_t val2 = dec.operand2();
   int32_t result;
 
-  switch(dec.function()) {
+  switch (dec.function()) {
     case InstructionMap::FN_NOR:     result = ~(val1 | val2); break;
     case InstructionMap::FN_AND:     result = val1 & val2; break;
     case InstructionMap::FN_OR:      result = val1 | val2; break;
@@ -82,16 +82,16 @@ void ALU::execute(DecodedInst& dec) {
 
   dec.result(result);
 
-  if(dec.setsPredicate()) {
+  if (dec.setsPredicate()) {
 
     bool newPredicate;
 
-    switch(dec.function()) {
-      // For additions and subtractions, the predicate signals overflow or
-      // underflow.
+    switch (dec.function()) {
+      // For additions and subtractions, the predicate represents the carry
+      // and borrow bits, respectively.
       case InstructionMap::FN_ADDU: {
-        int64_t result64 = (int64_t)val1 + (int64_t)val2;
-        newPredicate = (result64 > INT_MAX) || (result64 < INT_MIN);
+        uint64_t result64 = (uint64_t)((uint32_t)val1) + (uint64_t)((uint32_t)val2);
+        newPredicate = (result64 >> 32) != 0;
         break;
       }
 
@@ -99,19 +99,18 @@ void ALU::execute(DecodedInst& dec) {
       // The 6502 and PowerPC treat it as a carry bit.
       // http://en.wikipedia.org/wiki/Carry_flag#Carry_flag_vs._Borrow_flag
       case InstructionMap::FN_SUBU: {
-        int64_t result64 = (int64_t)val1 - (int64_t)val2;
-        newPredicate = (result64 > INT_MAX) || (result64 < INT_MIN);
+        newPredicate = (uint64_t)((uint32_t)val1) < (uint64_t)((uint32_t)val2);
         break;
       }
 
       // Otherwise, it holds the least significant bit of the result.
       // Potential alternative: newPredicate = (result != 0)
       default:
-        newPredicate = result&1;
+        newPredicate = result & 1;
         break;
     }
 
-    setPred(newPredicate);
+    setPredicate(newPredicate);
   }
 
 }
@@ -138,7 +137,7 @@ cycle_count_t ALU::getFunctionLatency(function_t fn) {
   return cycles;
 }
 
-void ALU::setPred(bool val) const {
+void ALU::setPredicate(bool val) const {
   parent()->writePredicate(val);
 }
 
