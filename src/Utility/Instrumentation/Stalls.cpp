@@ -135,6 +135,10 @@ void Stalls::activity(const ComponentID& id, bool idle) {
 }
 
 void Stalls::stall(const ComponentID& id, cycle_count_t cycle, int reason) {
+  // We're already stalled for this reason.
+  if (stallReason[id] & reason)
+    return;
+
   // We can't become idle if we're already stalled.
   if ((reason == IDLE) && (stallReason[id] != NOT_STALLED))
     return;

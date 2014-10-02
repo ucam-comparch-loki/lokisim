@@ -26,6 +26,8 @@ void         DecodeStage::execute() {
     // TODO: make sure currentInst is set correctly
     if (currentInst.persistent())
       persistentInstruction(currentInst);
+
+    wait(clock.posedge_event());
   }
 }
 
