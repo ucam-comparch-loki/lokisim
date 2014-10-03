@@ -66,7 +66,7 @@ parameter IPK_FIFO_SIZE              = 24;  // Make smaller once SIMD is sorted
 parameter IPK_CACHE_SIZE             = 0;   // Set in params.txt
 parameter IPK_CACHE_TAGS             = 0;   // Set in params.txt
 
-parameter CHANNEL_MAP_SIZE           = 16;
+parameter CHANNEL_MAP_SIZE           = 16 - 1; // Final entry is reserved as NULL
 
 parameter MAX_IPK_SIZE               = 8; // Must be <= buffer size (wormhole)
 
