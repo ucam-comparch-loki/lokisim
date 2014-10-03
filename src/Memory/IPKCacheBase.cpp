@@ -172,9 +172,9 @@ void IPKCacheBase::setWritePointer(CacheIndex pos)      {writePointer = pos; upd
 
 void IPKCacheBase::incrementWritePos() {
   ++writePointer;
-  fillCount++;
 
-  assert(fillCount <= size());
+  if (fillCount < size())
+    fillCount++;
 }
 
 void IPKCacheBase::incrementReadPos() {

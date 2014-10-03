@@ -144,7 +144,6 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         break;
 
       case InstructionMap::OP_LUI:
-        // FIXME: should LUI happen in execute stage or during register write?
         operation.result(operation.operand1() | (operation.operand2() << 16));
         break;
 

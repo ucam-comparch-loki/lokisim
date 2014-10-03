@@ -91,6 +91,9 @@ void FetchStage::getInstruction() {
 
   InstructionStore& source = currentInstructionSource();
   if (needRefetch) {
+    // FIXME: this is very hacky. An actual implementation would probably
+    // handle fetch requests in parallel with the main pipeline, so this
+    // instruction wouldn't be needed.
     instruction = Instruction("fetchr.eop 0");
     needRefetch = false;
 
