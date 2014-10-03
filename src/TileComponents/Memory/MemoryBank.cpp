@@ -35,6 +35,8 @@ using namespace std;
 #include "ScratchpadModeHandler.h"
 #include "SimplifiedOnChipScratchpad.h"
 #include "MemoryBank.h"
+#include "../../Exceptions/UnsupportedFeatureException.h"
+#include "../../Exceptions/InvalidOptionException.h"
 
 // A "fast" memory is capable of receiving a request, decoding it, performing
 // the operation, and sending the result, all in one clock cycle.
@@ -87,7 +89,7 @@ const NetworkData MemoryBank::peekNextRequest() {
     case INPUT_CORES:
       return mInputQueue.peek();
     default:
-      assert(false);
+      throw InvalidOptionException("MemoryBank input queue", mCurrentInput);
       return NetworkData();
   }
 }
@@ -117,7 +119,7 @@ bool MemoryBank::currentInputEmpty() {
     case INPUT_CORES:
       return mInputQueue.empty();
     default:
-      assert(false);
+      throw InvalidOptionException("MemoryBank input queue", mCurrentInput);
       return true;
   }
 }
@@ -302,7 +304,8 @@ ReevaluateRequest:
 				break;
 
 			default:
-				assert(false);
+			  throw InvalidOptionException("ring network request type",
+			      mActiveRingRequestInput.Header.PassThrough.EnvelopedRequestType);
 				break;
 			}
 
@@ -328,7 +331,8 @@ ReevaluateRequest:
 		break;
 
 	default:
-		assert(false);
+	  throw InvalidOptionException("ring network request type",
+	      mActiveRingRequestInput.Header.RequestType);
 		break;
 	}
 
@@ -517,8 +521,7 @@ bool MemoryBank::processMessageHeader() {
 		break;
 
 	default:
-		cout << this->name() << " received invalid memory request type (" << mActiveRequest.getOperation() << ")" << endl;
-		assert(false);
+	  throw InvalidOptionException("memory operation", mActiveRequest.getOperation());
 		break;
 	}
 
@@ -560,7 +563,7 @@ void MemoryBank::processLocalMemoryAccess() {
 			case MemoryRequest::LOAD_W:		data = mScratchpadModeHandler.readWord(mActiveAddress, false);	break;
 			case MemoryRequest::LOAD_HW:	data = mScratchpadModeHandler.readHalfWord(mActiveAddress);		break;
 			case MemoryRequest::LOAD_B:		data = mScratchpadModeHandler.readByte(mActiveAddress);			break;
-			default:						assert(false);													break;
+			default: throw InvalidOptionException("memory load operation", mActiveRequest.getOperation()); break;
 			}
 
 			if (DEBUG) {
@@ -575,7 +578,7 @@ void MemoryBank::processLocalMemoryAccess() {
 					cout << this->name() << " read byte " << data << " from 0x" << std::hex << mActiveAddress << std::dec << endl;
 					break;
 				default:
-					assert(false);
+				  throw InvalidOptionException("memory load operation", mActiveRequest.getOperation());
 					break;
 				}
 			}
@@ -601,7 +604,7 @@ void MemoryBank::processLocalMemoryAccess() {
 			case MemoryRequest::STORE_W:	mScratchpadModeHandler.writeWord(mActiveAddress, payload.getPayload());		break;
 			case MemoryRequest::STORE_HW:	mScratchpadModeHandler.writeHalfWord(mActiveAddress, payload.getPayload());	break;
 			case MemoryRequest::STORE_B:	mScratchpadModeHandler.writeByte(mActiveAddress, payload.getPayload());		break;
-			default:						assert(false);																break;
+			default: throw InvalidOptionException("memory store operation", mActiveRequest.getOperation()); break;
 			}
 
 			if (DEBUG) {
@@ -616,7 +619,7 @@ void MemoryBank::processLocalMemoryAccess() {
 					cout << this->name() << " wrote byte " << payload.getPayload() << " to 0x" << std::hex << mActiveAddress << std::dec << endl;
 					break;
 				default:
-					assert(false);
+				  throw InvalidOptionException("memory store operation", mActiveRequest.getOperation());
 					break;
 				}
 			}
@@ -668,7 +671,7 @@ void MemoryBank::processLocalMemoryAccess() {
 			  mActiveRequest.clearThroughAccess();  // Perform a normal load when the data arrives
 			  break;
 */
-			default:						assert(false);																								break;
+			default: throw InvalidOptionException("memory load operation", mActiveRequest.getOperation()); break;
 			}
 
 			assert(!(mCacheResumeRequest && !cacheHit));
@@ -687,7 +690,7 @@ void MemoryBank::processLocalMemoryAccess() {
 						cout << this->name() << " read byte " << data << " from 0x" << std::hex << mActiveAddress << std::dec << endl;
 						break;
 					default:
-						assert(false);
+					  throw InvalidOptionException("memory load operation", mActiveRequest.getOperation());
 						break;
 					}
 				}
@@ -782,7 +785,7 @@ void MemoryBank::processLocalMemoryAccess() {
         mBackgroundMemory->writeByte(mActiveAddress, payload.getPayload());
         break;
 
-			default:						assert(false);																											break;
+			default: throw InvalidOptionException("memory store operation", mActiveRequest.getOperation()); break;
 			}
 
 			assert(!(mCacheResumeRequest && !cacheHit));
@@ -808,7 +811,7 @@ void MemoryBank::processLocalMemoryAccess() {
 						cout << this->name() << " wrote byte " << payload.getPayload() << " to 0x" << std::hex << mActiveAddress << std::dec << endl;
 						break;
 					default:
-						assert(false);
+					  throw InvalidOptionException("memory store operation", mActiveRequest.getOperation());
 						break;
 					}
 				}
@@ -1059,7 +1062,7 @@ void MemoryBank::processLocalIPKRead() {
 
 void MemoryBank::processLocalBurstRead() {
 	//TODO: Implement burst handling completely
-	assert(false);
+	throw UnsupportedFeatureException("memory burst read");
 
 	assert(mBankMode != MODE_INACTIVE);
 	assert(mActiveTableIndex < 8 || mChannelMapTable[mActiveTableIndex].Valid);
@@ -1249,12 +1252,12 @@ void MemoryBank::processLocalBurstRead() {
 
 void MemoryBank::processBurstWriteMaster() {
 	//TODO: Implement handler
-	assert(false);
+	throw UnsupportedFeatureException("memory burst write");
 }
 
 void MemoryBank::processBurstWriteSlave() {
 	//TODO: Implement handler
-	assert(false);
+  throw UnsupportedFeatureException("memory burst write");
 }
 
 void MemoryBank::processGeneralPurposeCacheMiss() {
@@ -1318,7 +1321,7 @@ void MemoryBank::processGeneralPurposeCacheMiss() {
 		break;
 
 	default:
-		assert(false);
+		throw InvalidOptionException("cache state", mCacheFSMState);
 		break;
 	}
 }
@@ -1567,7 +1570,7 @@ void MemoryBank::mainLoop() {
       break;
 
     default:
-      assert(false);
+      throw InvalidOptionException("memory bank state", mFSMState);
       break;
     }
   }

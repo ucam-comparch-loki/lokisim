@@ -9,6 +9,7 @@
 #include "../../Core.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Utility/Instrumentation/IPKCache.h"
+#include "../../../Exceptions/InvalidOptionException.h"
 
 void FetchStage::execute() {
   bool waiting = waitingForInstructions();
@@ -383,10 +384,9 @@ InstructionStore& FetchStage::currentInstructionSource() {
     return fifo;
   else if (currentPacket.location.component == IPKCACHE)
     return cache;
-  else {
-    assert(false && "Invalid instruction source.");
-    throw -1;
-  }
+  else
+    throw InvalidOptionException("instruction source component",
+                                 currentPacket.location.component);
 }
 
 void FetchStage::getNextInstruction() {

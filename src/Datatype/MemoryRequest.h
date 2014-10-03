@@ -14,6 +14,7 @@
 #include "Word.h"
 #include "ChannelID.h"
 #include "../Typedefs.h"
+#include "../Exceptions/InvalidOptionException.h"
 
 class MemoryRequest : public Word {
 private:
@@ -112,7 +113,7 @@ public:
       case STORE_THROUGH_HW:      setOperation(STORE_HW); break;
       case STORE_THROUGH_B:       setOperation(STORE_B);  break;
       default:
-        assert(false);
+        throw InvalidOptionException("memory operation", getOperation());
         break;
 	  }
 

@@ -6,6 +6,7 @@
  */
 
 #include "Network.h"
+#include "../Exceptions/InvalidOptionException.h"
 
 PortIndex Network::getDestination(const ChannelID& address) const {
   PortIndex port;
@@ -35,8 +36,8 @@ PortIndex Network::getDestination(const ChannelID& address) const {
       port = 0;
       break;
     default :
-      assert(false);
       port = 0;
+      throw InvalidOptionException("network scope", level);
       break;
   }
 

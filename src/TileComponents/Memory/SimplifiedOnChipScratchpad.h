@@ -137,9 +137,6 @@ public:
 	Word readByte(MemoryAddr addr);
 	void writeWord(MemoryAddr addr, Word data);
 	void writeByte(MemoryAddr addr, Word data);
-
-	virtual double area() const;						// The area of this component in square micrometres
-	virtual double energy() const;						// The energy consumed by this component in picojoules
 };
 
 #endif /* SIMPLIFIEDONCHIPSCRATCHPAD_H */

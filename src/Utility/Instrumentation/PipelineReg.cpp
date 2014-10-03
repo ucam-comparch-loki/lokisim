@@ -6,6 +6,7 @@
  */
 
 #include "PipelineReg.h"
+#include "../../Exceptions/InvalidOptionException.h"
 
 // Toggle whether pipeline registers are heavily clock gated.
 // 0 = either whole register is read/written, or none of it is.
@@ -87,7 +88,7 @@ void PipelineReg::activity(const DecodedInst& oldVal,
       break;
 
     default:
-      assert(false);
+      throw InvalidOptionException("pipeline register index", stage);
       break;
   }
 

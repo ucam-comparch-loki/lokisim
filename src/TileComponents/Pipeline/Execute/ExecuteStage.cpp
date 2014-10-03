@@ -11,6 +11,7 @@
 #include "../../../Utility/Instrumentation.h"
 #include "../../../Utility/Instrumentation/Registers.h"
 #include "../../../Utility/Trace/LBTTrace.h"
+#include "../../../Exceptions/UnsupportedFeatureException.h"
 
 bool ExecuteStage::readPredicate() const {return parent()->readPredReg();}
 int32_t ExecuteStage::readReg(RegisterIndex reg) const {return parent()->readReg(1, reg);}
@@ -107,9 +108,8 @@ void ExecuteStage::newInput(DecodedInst& operation) {
 
       case InstructionMap::OP_CREGRDI:
       case InstructionMap::OP_CREGWRI:
-        cout << "Error: control registers not yet supported." << endl;
         cout << operation << endl;
-        assert(false);
+        throw UnsupportedFeatureException("control registers");
         break;
 
       case InstructionMap::OP_FETCH:
@@ -152,8 +152,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         break;
 
       case InstructionMap::OP_WOCHE:
-        cerr << "woche not yet implemented" << endl;
-        assert(false);
+        throw UnsupportedFeatureException("woche instruction");
         break;
 
       default:
@@ -277,8 +276,7 @@ bool ExecuteStage::fetch(DecodedInst& inst) {
     }
 
     default:
-      cerr << "Error: called ExecuteStage::fetch with non-fetch instruction." << endl;
-      assert(false);
+      throw InvalidOptionException("fetch instruction opcode", inst.opcode());
       break;
   }
 

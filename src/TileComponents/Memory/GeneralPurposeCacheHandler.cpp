@@ -22,6 +22,7 @@
 #include "GeneralPurposeCacheHandler.h"
 
 #include <cassert>
+#include "../../Exceptions/ReadOnlyException.h"
 
 uint GeneralPurposeCacheHandler::log2Exact(uint value) {
 	assert(value > 1);
@@ -269,10 +270,8 @@ bool GeneralPurposeCacheHandler::readByte(uint32_t address, uint32_t &data, bool
 
 bool GeneralPurposeCacheHandler::writeWord(uint32_t address, uint32_t data, bool resume, bool debug) {
 	assert((address & 0x3) == 0);
-	if (mBackgroundMemory->readOnly(address)) {
-    cerr << "Error: writing to read-only memory address 0x" << std::hex << address << std::dec << endl;
-    assert(false);
-  }
+	if (mBackgroundMemory->readOnly(address))
+	  throw ReadOnlyException(address);
 
 	uint slot;
 	if (!lookupCacheLine(address, slot)) {
@@ -301,10 +300,8 @@ bool GeneralPurposeCacheHandler::writeWord(uint32_t address, uint32_t data, bool
 
 bool GeneralPurposeCacheHandler::writeHalfWord(uint32_t address, uint32_t data, bool resume, bool debug) {
 	assert((address & 0x1) == 0);
-  if (mBackgroundMemory->readOnly(address)) {
-    cerr << "Error: writing to read-only memory address 0x" << std::hex << address << std::dec << endl;
-    assert(false);
-  }
+  if (mBackgroundMemory->readOnly(address))
+    throw ReadOnlyException(address);
 
 	uint slot;
 	if (!lookupCacheLine(address, slot)) {
@@ -338,10 +335,8 @@ bool GeneralPurposeCacheHandler::writeHalfWord(uint32_t address, uint32_t data, 
 }
 
 bool GeneralPurposeCacheHandler::writeByte(uint32_t address, uint32_t data, bool resume, bool debug) {
-  if (mBackgroundMemory->readOnly(address)) {
-    cerr << "Error: writing to read-only memory address 0x" << std::hex << address << std::dec << endl;
-    assert(false);
-  }
+  if (mBackgroundMemory->readOnly(address))
+    throw ReadOnlyException(address);
 
 	uint slot;
 	if (!lookupCacheLine(address, slot)) {

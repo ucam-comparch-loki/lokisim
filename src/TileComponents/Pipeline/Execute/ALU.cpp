@@ -12,6 +12,7 @@
 #include "../../../Utility/Instrumentation.h"
 #include "../../../Utility/Trace/SoftwareTrace.h"
 #include "../../../Utility/Trace/LBTTrace.h"
+#include "../../../Exceptions/InvalidOptionException.h"
 
 void ALU::execute(DecodedInst& dec) {
 
@@ -74,9 +75,8 @@ void ALU::execute(DecodedInst& dec) {
       break;
 
     default:
-      cerr << "Invalid function code: " << dec.function() << endl;
       cerr << dec << endl;
-      assert(false);
+      throw InvalidOptionException("ALU function code", dec.function());
       break;
   }
 
@@ -320,8 +320,7 @@ void ALU::systemCall(DecodedInst& dec) const {
     }
 
     default:
-      cerr << "Warning: unrecognised system call opcode: " << code << endl;
-      assert(false);
+      throw InvalidOptionException("system call opcode", code);
       break;
   }
 }

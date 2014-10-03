@@ -75,8 +75,7 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 
 			mPortData[port].State = STATE_WRITING;
 		} else {
-			cout << this->name() << " encountered invalid memory operation (" << request.getOperation() << ")" << endl;
-			assert(false);
+		  throw InvalidOptionException("memory operation", request.getOperation());
 		}
 	}
 }
@@ -332,14 +331,4 @@ void SimplifiedOnChipScratchpad::writeByte(MemoryAddr addr, Word data) {
 	modData &= ~mask;
 	modData |= (data.toUInt() & 0xFFUL) << shift;
 	mData[addr / 4] = modData;
-}
-
-double SimplifiedOnChipScratchpad::area() const {
-	assert(false);
-	return 0.0;
-}
-
-double SimplifiedOnChipScratchpad::energy() const {
-	assert(false);
-	return 0.0;
 }

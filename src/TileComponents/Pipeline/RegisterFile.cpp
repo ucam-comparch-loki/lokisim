@@ -10,6 +10,7 @@
 #include "../../Datatype/Word.h"
 #include "../../Utility/Instrumentation.h"
 #include "../../Utility/Instrumentation/Registers.h"
+#include "../../Exceptions/InvalidOptionException.h"
 
 const int32_t RegisterFile::read(PortIndex port, RegisterIndex reg, bool indirect) const {
   RegisterIndex index;
@@ -58,14 +59,8 @@ void RegisterFile::write(const RegisterIndex reg, const int32_t value, bool indi
   RegisterIndex index = indirect ? regs.read(reg).toInt() : reg;
 
   // There are some registers that we can't write to.
-  if (isReserved(index)/* || isChannelEnd(index)*/) {
-    if (index != 0) {
-      cerr << "Error: attempting to write to reserved register "
-           << (int)index << endl;
-      assert(false);
-    }
-    return;
-  }
+  if (isReserved(index)/* || isChannelEnd(index)*/ && index != 0)
+    throw InvalidOptionException("destination register", index);
 
   int oldData = regs.read(index).toInt();
 
