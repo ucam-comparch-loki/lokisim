@@ -34,6 +34,7 @@ int MEMORY_TRACE = 0;
 int ENERGY_TRACE = 0;
 int SOFTWARE_TRACE = 0;
 int LBT_TRACE = 0;
+int CSIM_TRACE = 0;
 
 unsigned long long TIMEOUT = 1000000000000ULL;
 

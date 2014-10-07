@@ -30,9 +30,10 @@ extern int      TRACE;    // Print out only the addresses of executed instructio
 extern int      BATCH_MODE;    // Print out machine readable tagged information
 extern int      CORE_TRACE;	// Enable creation of core trace file
 extern int      MEMORY_TRACE;	// Enable creation of memory trace file
-extern int      ENERGY_TRACE; // Enable creation of energy trace file
+extern int      ENERGY_TRACE; // Count events which are significant for energy consumption
 extern int      SOFTWARE_TRACE;  // Enable creation of software triggered trace file
 extern int      LBT_TRACE;  // Enable creation of LBT format trace file
+extern int      CSIM_TRACE; // Print each instruction executed and its context (in csim format)
 
 extern unsigned long long			TIMEOUT;  // Number of cycles before we assume something's gone wrong.
 

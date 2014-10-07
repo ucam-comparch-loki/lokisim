@@ -14,7 +14,20 @@ const format_t      DecodedInst::format()          const {return format_;}
 const RegisterIndex DecodedInst::sourceReg1()      const {return sourceReg1_;}
 const RegisterIndex DecodedInst::sourceReg2()      const {return sourceReg2_;}
 const RegisterIndex DecodedInst::destination()     const {return destReg_;}
-const int32_t       DecodedInst::immediate()       const {return immediate_;}
+
+const int32_t       DecodedInst::immediate()       const {
+  if (opcode_ == InstructionMap::OP_PSEL_FETCHR)
+    return immediate_ >> 7;
+  else
+    return immediate_;
+}
+const int32_t       DecodedInst::immediate2()      const {
+  if (opcode_ == InstructionMap::OP_PSEL_FETCHR)
+    return (immediate_ << 25) >> 25;
+  else
+    return 0;
+}
+
 const ChannelIndex  DecodedInst::channelMapEntry() const {return channelMapEntry_;}
 const predicate_t   DecodedInst::predicate()       const {return predicate_;}
 const bool          DecodedInst::setsPredicate()   const {return setsPred_;}
@@ -37,7 +50,8 @@ const MemoryAddr    DecodedInst::location()        const {return location_;}
 
 const bool    DecodedInst::usesPredicate() const {
   return (predicate_ == Instruction::NOT_P) || (predicate_ == Instruction::P) ||
-         (opcode_ == InstructionMap::OP_PSEL) || (opcode_ == InstructionMap::OP_PSEL_FETCH);
+         (opcode_ == InstructionMap::OP_PSEL) || (opcode_ == InstructionMap::OP_PSEL_FETCH ||
+         (opcode_ == InstructionMap::OP_PSEL_FETCHR));
 }
 
 const bool    DecodedInst::hasResult()             const {return hasResult_;}

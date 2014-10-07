@@ -33,6 +33,15 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
   return result;
 }
 
+int32_t ReceiveChannelEndTable::readDebug(ChannelIndex channelEnd) const {
+  assert(channelEnd < NUM_RECEIVE_CHANNELS);
+
+  if (buffers[channelEnd].empty())
+    return 0;
+  else
+    return buffers[channelEnd].peek().toInt();
+}
+
 /* Return whether or not the specified channel contains data. */
 bool ReceiveChannelEndTable::testChannelEnd(ChannelIndex channelEnd) const {
   assert(channelEnd < NUM_RECEIVE_CHANNELS);

@@ -86,8 +86,8 @@ else:
     command = simulator + " "
     
     if trace:
-        command += "-coretrace " + program + ".trace "  # required for hot_code.py
-        #command += "trace "
+        #command += "-coretrace " + program + ".trace "  # required for hot_code.py
+        command += "-trace "
     if energy:
         command += "-energytrace " + program + ".xml "
     if summary:

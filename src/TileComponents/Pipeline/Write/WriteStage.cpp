@@ -18,6 +18,9 @@ void WriteStage::execute() {
   newInput(currentInst);
 //  bool packetInProgress = !currentInst.endOfNetworkPacket();
 
+  if (CSIM_TRACE)
+    parent()->trace(currentInst);
+
   instructionCompleted();
 }
 

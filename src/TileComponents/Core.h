@@ -1,19 +1,19 @@
 /*
- * Cluster.h
+ * Core.h
  *
  * A class representing an individual processing core. All work is done in the
  * subcomponents, and this class just serves to hold them all in one place and
  * connect them together correctly.
  *
  * There is currently an odd mix of SystemC signals and function calls within
- * a Cluster. This should be tidied up at some point to make things consistent.
+ * a Core. This should be tidied up at some point to make things consistent.
  *
  *  Created on: 5 Jan 2010
  *      Author: db434
  */
 
-#ifndef CLUSTER_H_
-#define CLUSTER_H_
+#ifndef CORE_H_
+#define CORE_H_
 
 #include "TileComponent.h"
 #include "InputCrossbar.h"
@@ -167,6 +167,9 @@ private:
   // Determine if a request to a particular destination has been granted.
   bool             requestGranted(ChannelID destination) const;
 
+  // Print out information about the environment this instruction executed in.
+  void             trace(const DecodedInst& instruction) const;
+
   ComponentID      getSystemCallMemory() const;
 
 //==============================//
@@ -234,4 +237,4 @@ private:
 
 };
 
-#endif /* CLUSTER_H_ */
+#endif /* CORE_H_ */

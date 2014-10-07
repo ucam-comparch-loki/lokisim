@@ -269,8 +269,8 @@ bool ExecuteStage::fetch(DecodedInst& inst) {
     case InstructionMap::OP_PSEL_FETCHR: {
       // There are two immediates encoded as one. 16 and 7 bits respectively,
       // both signed integers.
-      int immed1 = (inst.operand2() << 9) >> 16;
-      int immed2 = (inst.operand2() << 25) >> 25;
+      int immed1 = inst.immediate();
+      int immed2 = inst.immediate2();
       fetchAddress = inst.operand1() + BYTES_PER_WORD*(readPredicate() ? immed1 : immed2);
       break;
     }

@@ -45,22 +45,22 @@ void Arguments::parse(int argc, char* argv[]) {
 
   for (int i=1; i<argc; i++) {
     string argument(argv[i]);
-    if (argument == "debug") {
+    if (argument == "-debug") {
       // Print out lots of information about execution.
       Debugger::usingDebugger = true;
       Debugger::mode = Debugger::DEBUGGER;
     }
-    else if (argument == "test") {
+    else if (argument == "-test") {
       // Switch off all status reporting, so we only get the information we
       // want. This allows much faster testing.
       DEBUG = 0;
       Debugger::usingDebugger = true;
       Debugger::mode = Debugger::TEST;
     }
-    else if (argument == "trace") {
-      // Print out only the addresses of each instruction executed.
+    else if (argument == "-trace") {
+      // Print each instruction executed and its context.
       DEBUG = 0;
-      TRACE = 1;
+      CSIM_TRACE = 1;
     }
     else if (argument == "-run" || argument == "-settings") {
       // Command line way of choosing which program to run.
@@ -76,6 +76,11 @@ void Arguments::parse(int argc, char* argv[]) {
       // Enable batch mode.
       DEBUG = 0;
       BATCH_MODE = 1;
+    }
+    else if (argument == "-instructiontrace") {
+      // Print out only the addresses of each instruction executed.
+      DEBUG = 0;
+      TRACE = 1;
     }
     else if (argument == "-coretrace") {
       // Enable core trace.
@@ -221,14 +226,15 @@ void Arguments::printHelp() {
     "Loki2: a cycle-accurate simulator for the Loki many-core architecture.\n"
     "Usage: Loki2 [simulator arguments]\n\n"
     "Options:\n"
-    "  debug\n\tEnter debug mode, where simulator contents can be inspected and changed\n\tat runtime\n"
-    "  trace\n\tPrint the address of each instruction executed to stdout\n"
+    "  -debug\n\tEnter debug mode, where simulator contents can be inspected and changed\n\tat runtime\n"
+    "  -trace\n\tPrint each instruction executed and its context to stdout\n"
     "  -run <program>\n\tExecute the supplied program\n"
     "  -summary\n\tPrint a summary of execution behaviour when execution finishes\n"
     "  -coretrace <file>\n"
     "  -memtrace <file>\n"
     "  -swtrace <file>\n"
     "  -lbttrace <file>\n\tDump particular types of information to a named file\n"
+    "  -instructiontrace\n\tPrint the address of each instruction executed to stdout\n"
     "  -Pparameter=value\n\tSet a named parameter to a particular value\n"
     "  --args [...]\n\tPass all remaining arguments to the simulated program\n"
     "  --help\n\tDisplay this information and exit\n"

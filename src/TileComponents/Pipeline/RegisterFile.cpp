@@ -51,7 +51,10 @@ const int32_t RegisterFile::read(PortIndex port, RegisterIndex reg, bool indirec
 }
 
 const int32_t RegisterFile::readDebug(const RegisterIndex reg) const {
-  return regs.read(reg).toInt();
+  if (reg == 0)
+    return 0;
+  else
+    return regs.read(reg).toInt();
 }
 
 void RegisterFile::write(const RegisterIndex reg, const int32_t value, bool indirect) {

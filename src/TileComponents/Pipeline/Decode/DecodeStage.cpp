@@ -264,6 +264,10 @@ int32_t      DecodeStage::readRCET(ChannelIndex index) {
   return rcet.read(index);
 }
 
+int32_t      DecodeStage::readRCETDebug(ChannelIndex index) const {
+  return rcet.readDebug(index);
+}
+
 bool         DecodeStage::testChannel(ChannelIndex index) const {
   return rcet.testChannelEnd(index);
 }

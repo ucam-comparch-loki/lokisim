@@ -1,5 +1,5 @@
 /*
- * Cluster.cpp
+ * Core.cpp
  *
  *  Created on: 5 Jan 2010
  *      Author: db434
@@ -69,7 +69,10 @@ const int32_t Core::readReg(PortIndex port, RegisterIndex reg, bool indirect) {
 
 /* Read a register without data forwarding and without indirection. */
 const int32_t Core::readRegDebug(RegisterIndex reg) const {
-  return regs.readDebug(reg);
+  if (RegisterFile::isChannelEnd(reg))
+    return decode.readRCETDebug(RegisterFile::toChannelID(reg));
+  else
+    return regs.readDebug(reg);
 }
 
 void     Core::writeReg(RegisterIndex reg, int32_t value, bool indirect) {
@@ -153,6 +156,29 @@ void Core::requestArbitration(ChannelID destination, bool request) {
 
 bool Core::requestGranted(ChannelID destination) const {
   return localNetwork->requestGranted(id, destination);
+}
+
+void Core::trace(const DecodedInst& inst) const {
+  // For every instruction executed, print:
+  //  * The core it executed on
+  //  * The instruction and all of its operands
+  //  * Any core state (register contents, predicate register, etc.)
+  // Code is borrowed from CSIM to ensure that the format is the same.
+
+  char regbuf[512];
+  int i;
+  char *bufpos = regbuf;
+  for (i=0; i<32; i++) {
+    if (i > 0)
+      *bufpos++ = ',';
+    bufpos += snprintf(bufpos, 512-(bufpos-regbuf), "%d", readRegDebug(i));
+  }
+
+  printf("CPU%d 0x%08x: %s %d %d %d %d %d %d p=%d, regs={%s}\n",
+      id.getGlobalCoreNumber(), inst.location(), inst.name().c_str(),
+      inst.destination(), inst.sourceReg1(), inst.sourceReg2(),
+      inst.immediate(), inst.immediate2(), inst.channelMapEntry(),
+      pred.read(), regbuf);
 }
 
 ComponentID Core::getSystemCallMemory() const {

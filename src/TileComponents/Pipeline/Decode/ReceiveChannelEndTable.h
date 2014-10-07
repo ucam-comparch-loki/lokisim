@@ -65,6 +65,9 @@ public:
   // Read from the specified channel end.
   int32_t read(ChannelIndex channelEnd);
 
+  // Non-blocking read operation which doesn't consume any data in the buffer.
+  int32_t readDebug(ChannelIndex channelEnd) const;
+
   // Return whether or not the channel contains data.
   bool testChannelEnd(ChannelIndex channelEnd) const;
 

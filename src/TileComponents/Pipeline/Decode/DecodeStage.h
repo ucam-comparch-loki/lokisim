@@ -59,6 +59,9 @@ public:
   // this value from the buffer.
   int32_t        readRCET(ChannelIndex index);
 
+  // Non-blocking read from the input buffers. Does not consume data.
+  int32_t        readRCETDebug(ChannelIndex index) const;
+
   // If we are currently stalled waiting for input, stop waiting. Cancel the
   // current operation.
   void           unstall();
