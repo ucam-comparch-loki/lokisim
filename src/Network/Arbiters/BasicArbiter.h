@@ -34,10 +34,10 @@ public:
 
   ClockInput   clock;
 
-  LokiVector<RequestInput> iRequest;
-  LokiVector<GrantOutput>  oGrant;
+  LokiVector<ArbiterRequestInput> iRequest;
+  LokiVector<ArbiterGrantOutput>  oGrant;
 
-  LokiVector<SelectOutput> oSelect;
+  LokiVector<MuxSelectOutput> oSelect;
 
 //==============================//
 // Constructors and destructors
@@ -80,7 +80,7 @@ protected:
 private:
 
   // Change a particular select output to a particular value.
-  void changeSelection(int output, SelectType value);
+  void changeSelection(int output, MuxSelect value);
 
   void arbitrate(int output);
 
@@ -100,7 +100,7 @@ protected:
   // Store values of all inputs/outputs in vectors. This makes the information
   // cheaper to access, and makes it easier to share with the behavioural model.
   std::vector<bool> requestVec, grantVec;
-  std::vector<SelectType> selectVec;
+  std::vector<MuxSelect> selectVec;
   sc_event receivedRequest;
 
 private:

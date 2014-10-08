@@ -37,7 +37,7 @@ void BasicArbiter::arbitrate(int output) {
     // We have requests, and it is time to perform the arbitration.
     case HAVE_REQUESTS: {
 //      cout << this->name() << " arbitrating" << endl;
-      SelectType grant = arbiter->getGrant();
+      MuxSelect grant = arbiter->getGrant();
       selectVec[output] = grant;
 
       if (ENERGY_TRACE)
@@ -73,7 +73,7 @@ void BasicArbiter::arbitrate(int output) {
     // We have determined which request to grant, but haven't yet been able
     // to send the grant. Send it now.
     case WAITING_TO_GRANT: {
-      SelectType granted = selectVec[output];
+      MuxSelect granted = selectVec[output];
       assert(granted < numInputs());
       assert(granted >= 0);
 
@@ -103,7 +103,7 @@ void BasicArbiter::arbitrate(int output) {
     // We have sent the grant and the request has been removed. Remove the
     // grant now.
     case GRANTED: {
-      SelectType granted = selectVec[output];
+      MuxSelect granted = selectVec[output];
       assert(granted < numInputs());
       assert(granted != NO_SELECTION);
 
@@ -149,7 +149,7 @@ void BasicArbiter::deassertGrant(int input, int output) {
   changeSelection(output, NO_SELECTION);
 }
 
-void BasicArbiter::changeSelection(int output, SelectType value) {
+void BasicArbiter::changeSelection(int output, MuxSelect value) {
 //  if(value != selectVec[output]) {
     selectVec[output] = value;
     selectionChanged[output].notify();

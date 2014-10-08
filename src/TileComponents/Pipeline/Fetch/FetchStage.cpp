@@ -261,7 +261,7 @@ void FetchStage::jump(const JumpOffset offset) {
 
   finishedPacketRead = false;
   jumpedThisCycle = true;
-  currentAddr += offset;// * BYTES_PER_WORD;
+  currentAddr += offset;
   currentInstructionSource().jump(offset);
 }
 

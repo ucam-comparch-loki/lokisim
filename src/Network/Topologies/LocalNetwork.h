@@ -101,8 +101,8 @@ private:
   // Currently the signals are written using a function call, but they can
   // be removed if we set up a proper SystemC channel connection.
   // Addressed using coreRequests[requester][destination]
-  LokiVector2D<RequestSignal> coreRequests, memRequests;
-  LokiVector2D<GrantSignal>   coreGrants,   memGrants;
+  LokiVector2D<ArbiterRequestSignal> coreRequests, memRequests;
+  LokiVector2D<ArbiterGrantSignal>   coreGrants,   memGrants;
 
 };
 

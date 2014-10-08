@@ -474,7 +474,8 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       // change the amount we need to jump by.
       if (execute) {
         bool discarded = discardNextInst();
-        if (discarded) jump -= BYTES_PER_WORD;
+        if (discarded)
+          jump--;
         parent()->jump(jump);
       }
 

@@ -39,7 +39,7 @@ const sc_event& EndArbiter::stallGrant(int output) {
   if (numOutputs() == 1)
     target = 0;
   else {
-    SelectType input = selectVec[output];
+    MuxSelect input = selectVec[output];
     assert(input != NO_SELECTION);
 
     target = iRequest[input].read();
