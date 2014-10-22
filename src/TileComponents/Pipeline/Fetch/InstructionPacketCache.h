@@ -66,6 +66,10 @@ public:
   // tag is, or NOT_IN_CACHE if it is not there.
   virtual CacheIndex lookup(MemoryAddr tag);
 
+  // Return the memory address of the most recently read instruction. Used for
+  // debug purposes only.
+  virtual MemoryAddr memoryAddress() const;
+
   // Returns whether there is still an instruction packet at the given position.
   // In rare circumstances, the packet may be overwritten between first checking
   // for it and beginning to execute it.
@@ -120,6 +124,12 @@ private:
 
   // The behavioural model of the cache.
   IPKCacheBase* cache;
+
+  // Memory addresses of each instruction in the cache. For debug purposes only.
+  vector<MemoryAddr> addresses;
+
+  // Information used to keep track of the memory addresses of instructions.
+  MemoryAddr lastReadAddr, lastWriteAddr;
 
   // Flag telling whether the cache missed this cycle.
   cycle_count_t timeLastChecked;

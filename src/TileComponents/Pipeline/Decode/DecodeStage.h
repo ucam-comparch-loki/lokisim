@@ -109,16 +109,6 @@ private:
 
   const sc_event& receivedDataEvent(ChannelIndex buffer) const;
 
-  // Find out if the instruction packet from the given location is currently
-  // in the instruction packet cache.
-  // There are many different ways of fetching instructions, so provide the
-  // operation too.
-  bool           inCache(const MemoryAddr addr, opcode_t operation) const;
-
-  // Find out if there is room in the cache to fetch another packet, and if
-  // there is not another fetch already in progress.
-  bool           readyToFetch() const;
-
   // Tell the instruction packet cache to jump to a new instruction.
   void           jump(JumpOffset offset) const;
 

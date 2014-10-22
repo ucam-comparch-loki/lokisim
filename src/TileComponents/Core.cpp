@@ -26,13 +26,12 @@ void     Core::storeData(const std::vector<Word>& data, MemoryAddr location) {
   fetch.storeCode(instructions);
 }
 
-const MemoryAddr Core::getInstIndex() const   {return fetch.getInstIndex();}
+const MemoryAddr Core::getInstIndex() const   {return fetch.getInstAddress();}
 bool     Core::canCheckTags() const           {return fetch.canCheckTags();}
-bool     Core::readyToFetch() const           {return fetch.roomToFetch();}
 void     Core::jump(const JumpOffset offset)  {fetch.jump(offset);}
 
-bool     Core::inCache(const MemoryAddr addr, opcode_t operation) {
-  return fetch.inCache(addr, operation);
+void     Core::checkTags(MemoryAddr addr, opcode_t op, ChannelID channel, ChannelIndex returnChannel) {
+  fetch.checkTags(addr, op, channel, returnChannel);
 }
 
 const int32_t Core::readReg(PortIndex port, RegisterIndex reg, bool indirect) {
@@ -257,6 +256,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
   fetch.iToFIFO(dataToBuffers[0]);      fetch.oFlowControl[0](fcFromBuffers[0]);
   fetch.iToCache(dataToBuffers[1]);     fetch.oFlowControl[1](fcFromBuffers[1]);
   fetch.oDataConsumed[0](dataConsumed[0]); fetch.oDataConsumed[1](dataConsumed[1]);
+  fetch.oFetchRequest(fetchFlitSignal);
   fetch.initPipeline(NULL, pipelineRegs[0]);
 
   decode.clock(clock);
@@ -270,12 +270,13 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
 
   execute.clock(clock);
   execute.oReady(stageReady[1]);
-  execute.oData(outputData);            execute.iReady(stageReady[2]);
+  execute.oData(dataFlitSignal);            execute.iReady(stageReady[2]);
   execute.initPipeline(pipelineRegs[1], pipelineRegs[2]);
 
   write.clock(clock);
   write.oReady(stageReady[2]);
-  write.iData(outputData);
+  write.iFetch(fetchFlitSignal);
+  write.iData(dataFlitSignal);
   write.oDataLocal(oData[0]);
   write.oDataGlobal(oDataGlobal);
   write.iCredit(iCredit);

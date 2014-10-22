@@ -35,7 +35,16 @@ public:
                             uint memoryLineBits, ChannelIndex returnTo,
                             bool writeThrough = false);
 
+  // Compute the increment which must be added to the ChannelID of the first
+  // memory of a group in order to access the given memory address.
+  uint computeAddressIncrement(MemoryAddr address) const;
+
+  // Set the address increment, ready to be used by subsequent flits in the
+  // packet.
   void setAddressIncrement(uint increment);
+
+  // Retrieve a precomputed address increment, to ensure that the correct
+  // memory bank is accessed.
   uint getAddressIncrement() const;
 
   void removeCredit();

@@ -8,35 +8,207 @@
 #include "FetchStage.h"
 #include "../../Core.h"
 #include "../../../Datatype/DecodedInst.h"
+#include "../../../Datatype/MemoryRequest.h"
 #include "../../../Utility/Instrumentation/IPKCache.h"
 #include "../../../Exceptions/InvalidOptionException.h"
 
 void FetchStage::execute() {
-  bool waiting = waitingForInstructions();
+  // Do nothing - everything is handled in readLoop and writeLoop.
+}
+
+// Continually read instructions from the current instruction packet and pass
+// them to the rest of the pipeline. When the packet completes, switch to the
+// pending packet, when available.
+void FetchStage::readLoop() {
 
   // Instrumentation stuff
   // Idle = have no work to do; stalled = waiting for work to arrive
   if (currentPacket.active() && !finishedPacketRead) {
-    if (waiting)
+    if (waitingForInstructions())
       Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS);
     else
       Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS);
   }
 
-  // Find an instruction to pass to the pipeline.
-  if (waiting) {                           // Wait for an instruction
-    next_trigger(fifo.fillChangedEvent() | cache.fillChangedEvent());
+  switch (readState) {
+    case RS_READY: {
+      // Have a packet fetched and ready to go.
+      if (pendingPacket.active()) {
+        currentPacket = pendingPacket;
+
+        if (currentPacket.location.index == NOT_IN_CACHE) {
+          next_trigger(currentInstructionSource().fillChangedEvent());
+//          cout << this->name() << " waiting for instruction to arrive" << endl;
+          break;
+        }
+        else {
+          currentInstructionSource().startNewPacket(currentPacket.location.index);
+
+          if (DEBUG) {
+            static const string names[] = {"FIFO", "cache", "unknown"};
+            cout << this->name() << " switched to pending packet: " << names[currentPacket.location.component] <<
+              ", position " << currentPacket.location.index << " (0x" << std::hex << currentPacket.memAddr << std::dec << ")" << endl;
+          }
+
+          pendingPacket.reset();
+          readState = RS_READ;
+          // Fall through to next state.
+        }
+
+      }
+      // There are unexecuted instructions in the FIFO.
+      else if (!fifo.isEmpty()) {
+//        cout << this->name() << " found unexecuted instructions in FIFO" << endl;
+        break;
+      }
+      // Nothing to do - wait until a new instruction packet arrives.
+      else {
+        next_trigger(newPacketAvailable);
+//        cout << this->name() << " waiting for pending packet to update" << endl;
+        break;
+      }
+    }
+    // no break
+
+    // TODO: nextIPK needs to break us out of this state
+    case RS_READ: {
+      if (currentInstructionSource().isEmpty()) {
+        next_trigger(currentInstructionSource().fillChangedEvent());
+//        cout << this->name() << " waiting for instruction to arrive" << endl;
+      }
+      else if (!canSendInstruction()) {
+        next_trigger(canSendEvent());
+//        cout << this->name() << " waiting to be able to send instruction" << endl;
+      }
+      else if (!clock.negedge())
+        next_trigger(clock.negedge_event());
+      else {
+        // The Instruction becomes a DecodedInst here to simplify various interfaces
+        // throughout the pipeline. The decoding actually happens in the decode stage.
+        Instruction instruction = currentInstructionSource().read();
+        DecodedInst decoded(instruction);
+        decoded.location(currentInstructionSource().memoryAddress());
+
+        if (DEBUG) {
+          static const string names[] = {"FIFO", "cache", "unknown"};
+          cout << this->name() << " selected instruction from "
+               << names[currentPacket.location.component] << ": " << decoded << endl;
+        }
+
+        // Make sure we didn't read a junk instruction. "nor r0, r0, r0 -> 0" seems
+        // pretty unlikely to ever come up in a real program.
+        assert((instruction.toInt() != 0) && "Probable junk instruction");
+
+        if (decoded.endOfIPK()) {
+          reachedEndOfPacket();
+          readState = RS_READY;
+
+          // Check for the special case of single-instruction persistent packets.
+          // These do not need to be read repeatedly, so remove the persistent flag.
+          if (currentPacket.persistent &&
+              currentPacket.memAddr == currentInstructionSource().memoryAddress()) {
+            decoded.persistent(true);
+            currentPacket.persistent = false;
+          }
+
+          if (!currentPacket.persistent)
+            currentPacket.reset();
+        }
+
+        jumpedThisCycle = false;
+
+        outputInstruction(decoded);
+        instructionCompleted();
+
+        next_trigger(clock.negedge_event());
+      }
+      break;
+    }
+
+    default:
+      throw InvalidOptionException("FetchStage::readState", readState);
   }
-  else if (!canSendInstruction()) {        // Wait until decoder is ready
-    next_trigger(canSendEvent());
+
+}
+
+// Continually ensure that any fetched instruction packets are available. Read
+// requests from the fetchBuffer, and update the pending packet with the
+// location to access locally. Only ever have a single fetch in progress.
+void FetchStage::writeLoop() {
+
+  switch (writeState) {
+    case WS_READY: {
+      if (fetchBuffer.empty()) {
+        // Wait for a fetch request to arrive.
+        next_trigger(fetchBuffer.writeEvent());
+//        cout << "waiting for fetch request" << endl;
+        break;
+      }
+      else if (!roomToFetch()) {
+        // Wait for there to be space in the cache to fetch a new packet.
+        next_trigger(cache.fillChangedEvent());
+//        cout << "waiting for space in cache" << endl;
+      }
+      else if (pendingPacket.active()) {
+        // The pending packet is where we store all the information about the
+        // packet we're fetching. Wait for it to become available.
+        next_trigger(clock.posedge_event());
+        break;
+      }
+      else {
+        writeState = WS_CHECK_TAGS;
+        // Fall through to next state.
+      }
+    }
+    /* no break */
+
+    case WS_CHECK_TAGS: {
+      FetchInfo fetch = fetchBuffer.peek();
+      bool cached = inCache(fetch.address, fetch.operation);
+
+      if (cached) {
+        // If the packet is already cached, we need to do nothing and can serve
+        // the next fetch request.
+        fetchBuffer.read();
+//        cout << "read from fetch buffer " << fetch.address << endl;
+        writeState = WS_READY;
+        next_trigger(clock.posedge_event());
+      }
+      else {
+        // Send fetch request.
+        MemoryRequest request(MemoryRequest::IPK_READ, fetch.address);
+
+        // Select the bank to access based on the memory address.
+        uint increment = core()->channelMapTable[0].computeAddressIncrement(fetch.address);
+        ChannelID destination = fetch.destination.addPosition(increment);
+
+        NetworkData flit(request, destination);
+        flit.setReturnAddr(fetch.returnAddress);
+        assert(!oFetchRequest.valid());
+        oFetchRequest.write(flit);
+
+        if (fetch.returnAddress == 0) {
+          pendingPacket.location.component = IPKFIFO;
+//          cout << "waiting for instruction to reach FIFO" << endl;
+        }
+        else {
+          pendingPacket.location.component = IPKCACHE;
+//          cout << "waiting for instruction to reach cache " << fetch.address << endl;
+        }
+
+        // Instructions are received automatically by the subcomponents. Wait
+        // for them to signal that the packet has finished arriving.
+        writeState = WS_READY;
+        next_trigger(packetArrivedEvent);
+      }
+
+      break;
+    }
+
+    default:
+      throw InvalidOptionException("FetchStage::writeState", writeState);
   }
-  else if (!clock.negedge()) {             // Do fetch at negedge (why?)
-    next_trigger(clock.negedge_event());
-  }
-  else {                                   // Pass an instruction to pipeline
-    getInstruction();
-    next_trigger(clock.negedge_event());
-  }
+
 }
 
 bool FetchStage::waitingForInstructions() {
@@ -75,81 +247,13 @@ bool FetchStage::waitingForInstructions() {
     return currentInstructionSource().isEmpty();
 }
 
-void FetchStage::getInstruction() {
-  // Select a new instruction if the decode stage is ready for one, unless
-  // the FIFO and cache are both empty.
-
-  assert(canSendInstruction());
-
-
-  if (finishedPacketRead) {
-    switchToPendingPacket();
-    currentAddr = currentPacket.memAddr;
-  }
-
-  MemoryAddr instAddr = currentAddr;
-  Instruction instruction;
-
-  InstructionStore& source = currentInstructionSource();
-  if (needRefetch) {
-    // FIXME: this is very hacky. An actual implementation would probably
-    // handle fetch requests in parallel with the main pipeline, so this
-    // instruction wouldn't be needed.
-    instruction = Instruction("fetchr.eop 0");
-    needRefetch = false;
-
-    if (DEBUG)
-      cout << this->name() << ": packet overwritten; need to refetch" << endl;
-  }
-  else if (source.isEmpty()) {
-    next_trigger(source.fillChangedEvent());
-    return;
-  }
-  else
-    instruction = source.read();
-
-  // The Instruction becomes a DecodedInst here to simplify various interfaces
-  // throughout the pipeline. The decoding actually happens in the decode stage.
-  DecodedInst decoded(instruction);
-  decoded.location(instAddr);
-
-  if (DEBUG) {
-    static const string names[] = {"FIFO", "cache", "unknown"};
-    cout << this->name() << " selected instruction from "
-         << names[currentPacket.location.component] << ": " << decoded << endl;
-  }
-
-  //fprintf(stderr, "0x%08x\n", instAddr);
-
-  // Make sure we didn't read a junk instruction. "nor r0, r0, r0 -> 0" seems
-  // pretty unlikely to ever come up in a real program.
-  assert(instruction.toInt() != 0);
-
-  if (decoded.endOfIPK()) {
-    reachedEndOfPacket();
-
-    // Check for the special case of single-instruction persistent packets.
-    // These do not need to be read repeatedly, so remove the persistent flag.
-    if (currentPacket.persistent && currentPacket.memAddr == currentAddr) {
-      decoded.persistent(true);
-      currentPacket.persistent = false;
-    }
-  }
-
-  jumpedThisCycle = false;
-  currentAddr += BYTES_PER_WORD;
-
-  outputInstruction(decoded);
-  instructionCompleted();
-}
-
 void FetchStage::updateReady() {
   // Consider the pipeline to be stalled if the first pipeline stage is not
   // allowed to do any work. Only report the stall status when it changes.
 
   if (canSendInstruction() == stalled) {
     stalled = !canSendInstruction();
-    parent()->pipelineStalled(stalled);
+    core()->pipelineStalled(stalled);
   }
 }
 
@@ -169,14 +273,34 @@ void FetchStage::storeCode(const std::vector<Instruction>& instructions) {
   cache.storeCode(instructions);
 }
 
-MemoryAddr FetchStage::getInstIndex() const {
-  return currentAddr;
+MemoryAddr FetchStage::getInstAddress() const {
+  // Hack - I know that accessing the memory address doesn't change anything.
+  const InstructionStore& source =
+      const_cast<FetchStage*>(this)->currentInstructionSource();
+  return source.memoryAddress();
 }
 
 bool FetchStage::canCheckTags() const {
   // Can only prepare for another packet if there is a space to store its
   // information.
-  return !pendingPacket.active();
+  return !fetchBuffer.full();
+}
+
+void FetchStage::checkTags(MemoryAddr addr,
+                           opcode_t operation,
+                           ChannelID channel,
+                           ChannelIndex returnChannel) {
+  // Note: we don't actually check the tags here. We just queue up the request
+  // and check the tags at the next opportunity.
+
+  FetchInfo fetch;
+  fetch.address = addr;
+  fetch.operation = operation;
+  fetch.destination = channel;
+  fetch.returnAddress = returnChannel;
+  fetchBuffer.write(fetch);
+
+//  cout << "wrote to fetch buffer " << addr << endl;
 }
 
 bool FetchStage::inCache(const MemoryAddr addr, opcode_t operation) {
@@ -189,7 +313,7 @@ bool FetchStage::inCache(const MemoryAddr addr, opcode_t operation) {
 
   // If we are looking for a packet, we are going to want to execute it at some
   // point. Find out where in the execution queue the packet should go.
-  PacketInfo& packet = nextAvailablePacket();
+  PacketInfo& packet = pendingPacket;
 
   // Find out where, if anywhere, the packet is located.
   packet.location   = lookup(addr);
@@ -200,6 +324,7 @@ bool FetchStage::inCache(const MemoryAddr addr, opcode_t operation) {
                       operation != InstructionMap::OP_FILLR;
   packet.persistent = operation == InstructionMap::OP_FETCHPST ||
                       operation == InstructionMap::OP_FETCHPSTR;
+  newPacketAvailable.notify();
 
   bool found = packet.inCache;
 
@@ -257,11 +382,10 @@ bool FetchStage::roomToFetch() const {
 /* Perform any status updates required when we receive a position to jump to. */
 void FetchStage::jump(const JumpOffset offset) {
   if (DEBUG)
-    cout << this->name() << " jumped by " << offset << endl;
+    cout << this->name() << " jumped by " << offset << " instructions" << endl;
 
   finishedPacketRead = false;
   jumpedThisCycle = true;
-  currentAddr += offset;
   currentInstructionSource().jump(offset);
 }
 
@@ -276,42 +400,49 @@ void FetchStage::nextIPK() {
   if (currentPacket.location.component != UNKNOWN)
     currentInstructionSource().cancelPacket();
 
-  parent()->nextIPK();
+  core()->nextIPK();
 }
 
 MemoryAddr FetchStage::newPacketArriving(const InstLocation& location) {
-  // Check for special case of one core sending instructions to another. All
-  // instructions will look like separate packets, so we want to merge them.
-  if (location.component == IPKFIFO) {
-    if (pendingPacket.location.component == IPKFIFO && pendingPacket.memAddr == 0)
-      return 0;
-    else if (!pendingPacket.active() &&
-             currentPacket.location.component == IPKFIFO && currentPacket.memAddr == 0)
-      return 0;
-  }
-
   Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS);
 
-  // Look for the first packet in the queue which we don't know the location of.
-  PacketInfo* packet;
-  if (currentPacket.location.index == NOT_IN_CACHE)
-    packet = &currentPacket;
-  else {
-    assert(pendingPacket.location.index == NOT_IN_CACHE);
-    packet = &pendingPacket;
+  // Check whether we fetched this packet, or whether it's being sent to us
+  // from another core.
+  // FIXME: it's not possible to be sure - should we add in extra restrictions?
+  // My simple approximation is to check whether a fetch has been issued.
+  bool fetched = !fetchBuffer.empty();
+
+  // If we fetched it, and we know that it is due to execute, set it as the
+  // pending packet.
+  if (fetched) {
+    FetchInfo lastFetch = fetchBuffer.read(); // Pop from queue.
+//    cout << "read from fetch buffer " << lastFetch.address << endl;
+    bool willExecute = (lastFetch.operation != InstructionMap::OP_FILL)
+                    || (lastFetch.operation != InstructionMap::OP_FILLR);
+
+    if (willExecute) {
+      pendingPacket.location = location;
+      pendingPacket.memAddr = lastFetch.address;
+      pendingPacket.persistent = (lastFetch.operation == InstructionMap::OP_FETCHPST)
+                              || (lastFetch.operation == InstructionMap::OP_FETCHPSTR);
+      newPacketAvailable.notify();
+    }
+
+    return lastFetch.address;
   }
+  // Otherwise, only set it as the pending packet if nothing else is waiting.
+  else {
+    if (!pendingPacket.active()) {
+      pendingPacket.location = location;
+      pendingPacket.memAddr = 0;
+      pendingPacket.persistent = false;
+      newPacketAvailable.notify();
 
-  // Associate that packet with the location we just received.
-  packet->location = location;
-
-  // If we weren't expecting this packet (it was requested by another core,
-  // or by the debugger), we won't have a tag, so provide one.
-  if (packet->memAddr == DEFAULT_TAG)
-    packet->memAddr = 0;
-
-  // Return the memory address, so the instruction store can give the packet a
-  // tag.
-  return packet->memAddr;
+      return pendingPacket.memAddr;
+    }
+    else
+      return 0;
+  }
 }
 
 void FetchStage::packetFinishedArriving() {
@@ -326,15 +457,10 @@ void FetchStage::packetFinishedArriving() {
 
   // If we are not due to execute this packet, clear its entry in the queue so
   // we can fetch another.
-  if (!packet->execute) {
+  if (!packet->execute)
     packet->reset();
 
-    // FIXME: not waiting for fill to complete before starting to execute
-//    if (packet == &currentPacket) {
-//      currentPacket = pendingPacket;
-//      pendingPacket.reset();
-//    }
-  }
+  packetArrivedEvent.notify();
 }
 
 void FetchStage::reachedEndOfPacket() {
@@ -343,38 +469,6 @@ void FetchStage::reachedEndOfPacket() {
   // we can switch when we are sure that there are no jumps.
   if (!jumpedThisCycle)
     finishedPacketRead = true;
-}
-
-void FetchStage::switchToPendingPacket() {
-  if (!currentPacket.persistent) {
-    currentPacket = pendingPacket;
-    pendingPacket.reset();
-  }
-
-  if (currentPacket.location.component != UNKNOWN)
-    currentInstructionSource().startNewPacket(currentPacket.location.index);
-
-  // Check to make sure the packet is still there - between the tag check and
-  // now, more instructions may have arrived and overwritten the packet.
-  if (!currentInstructionSource().packetExists(currentPacket.location.index))
-    needRefetch = true;
-
-  finishedPacketRead = false;
-
-  if (DEBUG) {
-    static const string names[] = {"FIFO", "cache", "unknown"};
-    cout << this->name() << " switched to pending packet: " << names[currentPacket.location.component] <<
-      ", position " << currentPacket.location.index << " (0x" << std::hex << currentPacket.memAddr << std::dec << ")" << endl;
-  }
-}
-
-FetchStage::PacketInfo& FetchStage::nextAvailablePacket() {
-  if (currentPacket.active()) {
-    assert(!pendingPacket.active());
-    return pendingPacket;
-  }
-  else
-    return currentPacket;
 }
 
 InstructionStore& FetchStage::currentInstructionSource() {
@@ -392,7 +486,7 @@ InstructionStore& FetchStage::currentInstructionSource() {
 void FetchStage::getNextInstruction() {
   // This pipeline stage is dedicated to getting instructions, so call the main
   // method from here.
-  execute();
+  readLoop();
 }
 
 void FetchStage::reportStalls(ostream& os) {
@@ -408,15 +502,19 @@ void FetchStage::reportStalls(ostream& os) {
 FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
     cache("IPKcache", ID),
-    fifo("IPKfifo") {
-
-  stalled     = false;  // Start off idle, but not stalled.
-  jumpedThisCycle = false;
-  finishedPacketRead = false;
-  needRefetch = false;
+    fifo("IPKfifo"),
+    fetchBuffer(1, "fetchBuffer") {
 
   oFlowControl.init(2);
   oDataConsumed.init(2);
+
+  readState = RS_READY;
+  writeState = WS_READY;
+
+  stalled             = false;  // Start off idle, but not stalled.
+  jumpedThisCycle     = false;
+  finishedPacketRead  = false;
+  needRefetch         = false;
 
   currentPacket.reset(); pendingPacket.reset();
 
@@ -429,6 +527,9 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
   cache.iInstruction(iToCache);
   cache.oFlowControl(oFlowControl[1]);
   cache.oDataConsumed(oDataConsumed[1]);
+
+  // readLoop is called from another method.
+  SC_METHOD(writeLoop);
 
   SC_METHOD(updateReady);
   sensitive << /*canSendEvent() << FIXME*/ instructionCompletedEvent;

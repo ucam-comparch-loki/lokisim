@@ -14,9 +14,9 @@ void         DecodeStage::execute() {
   while (true) {
     // The decode stage is the arbiter of whether the pipeline is idle. This
     // is the only stage through which all instructions pass.
-    parent()->idle(true);
+    core()->idle(true);
     wait(newInstructionEvent);
-    parent()->idle(false);
+    core()->idle(false);
 
     newInput(currentInst);
     instructionCompleted();
@@ -185,7 +185,7 @@ void         DecodeStage::newInput(DecodedInst& inst) {
 
   // If this is the first instruction of a new packet, update the current
   // packet pointer.
-  if (startingNewPacket) parent()->updateCurrentPacket(inst.location());
+  if (startingNewPacket) core()->updateCurrentPacket(inst.location());
 
   // The next instruction will be the start of a new packet if this is the
   // end of the current one.
@@ -235,29 +235,29 @@ bool         DecodeStage::isStalled() const {
 }
 
 int32_t      DecodeStage::readReg(PortIndex port, RegisterIndex index, bool indirect) const {
-  return parent()->readReg(port, index, indirect);
+  return core()->readReg(port, index, indirect);
 }
 
 bool         DecodeStage::predicate() const {
   // true = wait for the execute stage to write the predicate first, if
   // necessary
-  return parent()->readPredReg(true);
+  return core()->readPredReg(true);
 }
 
 void         DecodeStage::readChannelMapTable(DecodedInst& inst) const {
   MapIndex channel = inst.channelMapEntry();
   if (channel != Instruction::NO_CHANNEL) {
-    ChannelID destination = parent()->channelMapTable.read(channel);
+    ChannelID destination = core()->channelMapTable.read(channel);
 
     if (!destination.isNullMapping()) {
       inst.networkDestination(destination);
-      inst.usesCredits(parent()->channelMapTable[channel].usesCredits());
+      inst.usesCredits(core()->channelMapTable[channel].usesCredits());
     }
   }
 }
 
 const ChannelMapEntry& DecodeStage::channelMapTableEntry(MapIndex entry) const {
-  return parent()->channelMapTable[entry];
+  return core()->channelMapTable[entry];
 }
 
 int32_t      DecodeStage::readRCET(ChannelIndex index) {
@@ -280,16 +280,8 @@ const sc_event& DecodeStage::receivedDataEvent(ChannelIndex buffer) const {
   return rcet.receivedDataEvent(buffer);
 }
 
-bool         DecodeStage::inCache(const MemoryAddr addr, opcode_t operation) const {
-  return parent()->inCache(addr, operation);
-}
-
-bool         DecodeStage::readyToFetch() const {
-  return parent()->readyToFetch();
-}
-
 void         DecodeStage::jump(JumpOffset offset) const {
-  parent()->jump(offset);
+  core()->jump(offset);
 }
 
 void         DecodeStage::unstall() {

@@ -12,6 +12,10 @@
 const Instruction InstructionPacketFIFO::read() {
   Instruction inst = fifo.read();
   fifoFillChanged.notify();
+
+  CacheIndex readPointer = fifo.getReadPointer();
+  lastReadAddr = addresses[readPointer];
+
   return inst;
 }
 
@@ -27,14 +31,20 @@ void InstructionPacketFIFO::write(const Instruction inst) {
     location.index = writePos;
     tag = parent()->newPacketArriving(location);
     startOfPacket = writePos;
+    lastWriteAddr = tag;
   }
-  else if (writePos == startOfPacket) { // Overwriting previous start of packet
-    startOfPacket = NOT_IN_CACHE;
-    tag = DEFAULT_TAG;
+  else {
+    lastWriteAddr += BYTES_PER_WORD;
+
+    if (writePos == startOfPacket) { // Overwriting previous start of packet
+      startOfPacket = NOT_IN_CACHE;
+      tag = DEFAULT_TAG;
+    }
   }
+
+  addresses[writePos] = lastWriteAddr;
 
   finishedPacketWrite = inst.endOfPacket();
-
   if (finishedPacketWrite)
     parent()->packetFinishedArriving();
 }
@@ -49,6 +59,10 @@ CacheIndex InstructionPacketFIFO::lookup(MemoryAddr tag) {
   }
   else
     return NOT_IN_CACHE;
+}
+
+MemoryAddr InstructionPacketFIFO::memoryAddress() const {
+  return lastReadAddr;
 }
 
 bool InstructionPacketFIFO::packetExists(CacheIndex position) const {
@@ -67,7 +81,7 @@ void InstructionPacketFIFO::cancelPacket() {
 
 void InstructionPacketFIFO::jump(JumpOffset amount) {
   // Do we need to do something with tagMatched here too?
-  fifo.setReadPointer(fifo.getReadPointer() + amount/BYTES_PER_WORD - 1);
+  fifo.setReadPointer(fifo.getReadPointer() + amount - 1);
   // Is the -1 a hack?
 }
 
@@ -112,7 +126,11 @@ FetchStage* InstructionPacketFIFO::parent() const {
 
 InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
     Component(name),
-    fifo(IPK_FIFO_SIZE, std::string(name)) {
+    fifo(IPK_FIFO_SIZE, std::string(name)),
+    addresses(IPK_FIFO_SIZE, DEFAULT_TAG) {
+
+  lastReadAddr = 0;
+  lastWriteAddr = 0;
 
   // Ensure that the first instruction to arrive gets queued up to execute.
   finishedPacketWrite = true;

@@ -15,6 +15,7 @@
 #include "../../../Utility/Blocking.h"
 #include "ALU.h"
 #include "Scratchpad.h"
+#include "../../../Network/NetworkTypedefs.h"
 
 class ExecuteStage: public PipelineStage, public Blocking {
 
@@ -31,8 +32,8 @@ public:
   sc_out<bool>        oReady;
 
   // Data to be sent over the network.
-  sc_out<DecodedInst> oData;
-  sc_in<bool>         iReady;
+  DataOutput          oData;
+  sc_in<bool>         iReady; // TODO: remove, now that oData has valid/ack
 
 //==============================//
 // Constructors and destructors
@@ -74,8 +75,8 @@ private:
   // not be possible if there is already the maximum number of fetches queued up.
   bool canCheckTags() const;
 
-  // Returns whether a fetch request should be sent (and stores the request in
-  // operation's "result" field, if appropriate).
+  // Returns whether the fetch successfully completed. false means it needs to
+  // be tried again.
   bool fetch(DecodedInst& operation);
 
   // Send a request to reserve (or release) a connection to a particular

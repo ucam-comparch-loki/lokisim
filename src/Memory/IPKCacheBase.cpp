@@ -179,9 +179,9 @@ void IPKCacheBase::incrementWritePos() {
 
 void IPKCacheBase::incrementReadPos() {
   ++readPointer;
-//  fillCount--;
 
-  assert(fillCount <= size());
+  if (fillCount > 0)
+    fillCount--;
 }
 
 void IPKCacheBase::updateFillCount() {

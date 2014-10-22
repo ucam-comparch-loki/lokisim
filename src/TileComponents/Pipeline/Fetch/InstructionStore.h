@@ -52,6 +52,10 @@ public:
   // (or otherwise if there has been a jump or a new packet).
   virtual const Instruction read() = 0;
 
+  // Return the memory address of the previously-read instruction. For debug
+  // purposes only.
+  virtual MemoryAddr memoryAddress() const = 0;
+
   // Immediately jump to a relative position in the instruction store.
   virtual void jump(JumpOffset amount) = 0;
 

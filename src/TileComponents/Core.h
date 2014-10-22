@@ -25,6 +25,7 @@
 #include "Pipeline/Execute/ExecuteStage.h"
 #include "Pipeline/Write/WriteStage.h"
 #include "Pipeline/ChannelMapTable.h"
+#include "../Network/NetworkTypedefs.h"
 
 class DecodedInst;
 class PipelineRegister;
@@ -109,20 +110,13 @@ public:
 
 private:
 
-  // Determine if the instruction packet from the given location is currently
-  // in the instruction packet cache.
-  // There are many different ways of fetching instructions, so provide the
-  // operation too.
-  bool             inCache(const MemoryAddr addr, opcode_t operation);
-
   // Return whether it is possible to check the cache tags at this time. It may
   // not be possible if there is already the maximum number of packets queued up.
   bool             canCheckTags() const;
 
-  // Determine if there is room in the cache to fetch another instruction
-  // packet, assuming that it is of maximum size. Also make sure there is not
-  // another fetch already in progress.
-  bool             readyToFetch() const;
+  // Queue up an instruction packet to be fetched. Include all necessary
+  // information to send a fetch request to memory, if needed.
+  void             checkTags(MemoryAddr addr, opcode_t op, ChannelID channel, ChannelIndex returnChannel);
 
   // Perform an IBJMP and jump to a new instruction in the cache.
   void             jump(const JumpOffset offset);
@@ -233,7 +227,7 @@ private:
   LokiVector<ReadySignal>      dataConsumed;
 
   // Data being sent to the output buffer.
-  sc_buffer<DecodedInst>       outputData;
+  DataSignal                   fetchFlitSignal, dataFlitSignal;
 
 };
 

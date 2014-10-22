@@ -13,10 +13,11 @@
 #define FETCHSTAGE_H_
 
 #include "../PipelineStage.h"
-#include "../../../Utility/Blocking.h"
 #include "InstructionPacketCache.h"
 #include "InstructionPacketFIFO.h"
+#include "../../../Memory/BufferStorage.h"
 #include "../../../Network/NetworkTypedefs.h"
+#include "../../../Utility/Blocking.h"
 
 class FetchStage : public PipelineStage, public Blocking {
 
@@ -47,6 +48,14 @@ private:
     }
   } PacketInfo;
 
+  // Information about each instruction packet we want to bring into the cache.
+  typedef struct {
+    MemoryAddr address;     // Memory address of the desired packet.
+    opcode_t   operation;   // Fetch operation used to request the packet.
+    ChannelID  destination; // Network address through which the packet can be reached.
+    ChannelIndex returnAddress; // Return instructions to {0 = FIFO, 1 = cache}.
+  } FetchInfo;
+
 //==============================//
 // Ports
 //==============================//
@@ -65,6 +74,8 @@ public:
   // A flow control signal from each of the two instruction inputs.
   LokiVector<ReadyOutput> oFlowControl;
   LokiVector<ReadyOutput> oDataConsumed;
+
+  DataOutput          oFetchRequest;
 
 //==============================//
 // Constructors and destructors
@@ -85,20 +96,18 @@ public:
   void          storeCode(const std::vector<Instruction>& instructions);
 
   // Return the memory address of the last instruction sent.
-  MemoryAddr    getInstIndex() const;
+  MemoryAddr    getInstAddress() const;
 
   // Tell whether it is possible to check cache tags at this time. It may not
   // be possible if there is already the maximum number of packets queued up.
   bool          canCheckTags() const;
 
-  // Tells whether the packet from location a is currently in the cache.
-  // There are many different ways of fetching instructions, so provide the
-  // operation too.
-  bool          inCache(const MemoryAddr a, opcode_t operation);
-
-  // Tells whether there is room in the cache to fetch another instruction
-  // packet, assuming the packet is of maximum size.
-  bool          roomToFetch() const;
+  // Queue up an address to be looked up in the cache. Provide some extra
+  // information to allow the fetch request to be sent, if necessary.
+  void          checkTags(MemoryAddr addr,              // Address of packet
+                          opcode_t operation,           // Type of fetch request
+                          ChannelID channel,            // Memory channel
+                          ChannelIndex returnChannel);  // Core's instruction input
 
   // Jump to a different instruction in the Instruction Packet Cache.
   void          jump(const JumpOffset offset);
@@ -111,9 +120,21 @@ private:
 
   virtual void  execute();
 
-  // The fetch stage needs to be sure that other tasks have completed before
-  // reading from the cache, so waits until later in the cycle to do it.
-  void          getInstruction();
+  // Continuously read instructions and pass them to the next pipeline stage.
+  void          readLoop();
+
+  // Continuously check whether new instructions are needed, fetch them, and
+  // put them into the instruction stores.
+  void          writeLoop();
+
+  // Tells whether the packet from location a is currently in the cache.
+  // There are many different ways of fetching instructions, so provide the
+  // operation too.
+  bool          inCache(const MemoryAddr a, opcode_t operation);
+
+  // Tells whether there is room in the cache to fetch another instruction
+  // packet, assuming the packet is of maximum size.
+  bool          roomToFetch() const;
 
   // Recompute whether this pipeline stage is stalled.
   virtual void  updateReady();
@@ -131,10 +152,6 @@ private:
   void          packetFinishedArriving();
 
   void          reachedEndOfPacket();
-  void          switchToPendingPacket();
-
-  // Return the first empty slot in the packet queue.
-  PacketInfo&   nextAvailablePacket();
 
   // Returns whether all instruction stores are empty.
   bool          waitingForInstructions();
@@ -166,6 +183,20 @@ private:
 
 private:
 
+  enum ReadState {
+    RS_READY,       // Have no instruction packets to read
+    RS_READ         // Read instructions and pass them to the pipeline
+  };
+
+  enum WriteState {
+    WS_READY,       // Have no instructions to fetch
+    WS_CHECK_TAGS,  // Check whether instructions need to be fetched
+    WS_WRITE        // Write instructions into the appropriate place
+  };
+
+  ReadState  readState;
+  WriteState writeState;
+
   // Information on the packet currently being executed, and optionally, the
   // packet which is due to execute next.
   // Do we want a single pending packet, or a queue of them?
@@ -181,10 +212,22 @@ private:
   // If this pipeline stage is stalled, we assume the whole pipeline is stalled.
   bool stalled;
 
-  // Keep track of the current packet and instruction addresses so we can execute
-  // programs through the FIFO (where there are no tags). In practice, this
-  // would be handled in the compiler, but we don't have this functionality yet.
-  MemoryAddr previousFetch, currentAddr;
+  // Keep track of the current packet address so we can execute programs through
+  // the FIFO (where there are no tags). In practice, this would be handled in
+  // the compiler, but we don't have this functionality yet.
+  MemoryAddr previousFetch;
+
+
+  // Buffer to store fetches as we wait for any outstanding operations to
+  // complete.
+  BufferStorage<FetchInfo> fetchBuffer;
+
+  // Event which is triggered whenever a packet finishes arriving.
+  sc_event packetArrivedEvent;
+
+  // Event which is triggered whenever the pending packet changes. This means
+  // that there is a new tag look-up to be done.
+  sc_event newPacketAvailable;
 
 };
 

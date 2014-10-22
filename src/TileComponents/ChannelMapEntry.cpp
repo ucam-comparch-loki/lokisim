@@ -83,6 +83,13 @@ void ChannelMapEntry::setMemoryDestination(const ChannelID& address,
   addressIncrement_ = 0;
 }
 
+uint ChannelMapEntry::computeAddressIncrement(MemoryAddr address) const {
+  uint increment = address;
+  increment &= (1UL << (memoryGroupBits() + memoryLineBits())) - 1UL;
+  increment >>= memoryLineBits();
+  return increment;
+}
+
 void ChannelMapEntry::setAddressIncrement(uint increment) {
   addressIncrement_ = increment;
 }

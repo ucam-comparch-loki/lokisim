@@ -13,15 +13,15 @@
 #include "../../../Utility/Trace/LBTTrace.h"
 #include "../../../Exceptions/UnsupportedFeatureException.h"
 
-bool ExecuteStage::readPredicate() const {return parent()->readPredReg();}
-int32_t ExecuteStage::readReg(RegisterIndex reg) const {return parent()->readReg(1, reg);}
-int32_t ExecuteStage::readWord(MemoryAddr addr) const {return parent()->readWord(addr).toInt();}
-int32_t ExecuteStage::readByte(MemoryAddr addr) const {return parent()->readByte(addr).toInt();}
+bool ExecuteStage::readPredicate() const {return core()->readPredReg();}
+int32_t ExecuteStage::readReg(RegisterIndex reg) const {return core()->readReg(1, reg);}
+int32_t ExecuteStage::readWord(MemoryAddr addr) const {return core()->readWord(addr).toInt();}
+int32_t ExecuteStage::readByte(MemoryAddr addr) const {return core()->readByte(addr).toInt();}
 
-void ExecuteStage::writePredicate(bool val) const {parent()->writePredReg(val);}
-void ExecuteStage::writeReg(RegisterIndex reg, Word data) const {parent()->writeReg(reg, data.toInt());}
-void ExecuteStage::writeWord(MemoryAddr addr, Word data) const {parent()->writeWord(addr, data);}
-void ExecuteStage::writeByte(MemoryAddr addr, Word data) const {parent()->writeByte(addr, data);}
+void ExecuteStage::writePredicate(bool val) const {core()->writePredReg(val);}
+void ExecuteStage::writeReg(RegisterIndex reg, Word data) const {core()->writeReg(reg, data.toInt());}
+void ExecuteStage::writeWord(MemoryAddr addr, Word data) const {core()->writeWord(addr, data);}
+void ExecuteStage::writeByte(MemoryAddr addr, Word data) const {core()->writeByte(addr, data);}
 
 void ExecuteStage::execute() {
 //  if (alu.busy()) {
@@ -101,14 +101,14 @@ void ExecuteStage::newInput(DecodedInst& operation) {
 
       case InstructionMap::OP_GETCHMAP:
       case InstructionMap::OP_GETCHMAPI:
-        // TODO: reading the CMT just returns a network address. We may want
-        // more information (e.g. write-through bit).
-        operation.result(parent()->channelMapTable.read(operation.operand1()).toUInt());
+        // TODO: reading the CMT just returns a network address. We want
+        // the entire contents.
+        operation.result(core()->channelMapTable.read(operation.operand1()).toUInt());
         break;
 
       case InstructionMap::OP_CREGRDI:
       case InstructionMap::OP_CREGWRI:
-        cout << operation << endl;
+        cerr << operation << endl;
         throw UnsupportedFeatureException("control registers");
         break;
 
@@ -121,6 +121,9 @@ void ExecuteStage::newInput(DecodedInst& operation) {
       case InstructionMap::OP_PSEL_FETCH:
       case InstructionMap::OP_PSEL_FETCHR:
         success = fetch(operation);
+        // Prevent the operation from continuing down the pipeline. The
+        // fetch stage handles everything now.
+        success = false;
         break;
 
       case InstructionMap::OP_SCRATCHRD:
@@ -222,7 +225,7 @@ void ExecuteStage::sendOutput() {
 
     // Send the data to the output buffer - it will arrive immediately so that
     // network resources can be requested the cycle before they are used.
-    oData.write(currentInst);
+    oData.write(currentInst.toNetworkData());
   }
 
   // Send the data to the register file - it will arrive at the beginning
@@ -231,7 +234,7 @@ void ExecuteStage::sendOutput() {
 }
 
 bool ExecuteStage::canCheckTags() const {
-  return parent()->canCheckTags();
+  return core()->canCheckTags();
 }
 
 bool ExecuteStage::fetch(DecodedInst& inst) {
@@ -259,7 +262,7 @@ bool ExecuteStage::fetch(DecodedInst& inst) {
     case InstructionMap::OP_FETCHR:
     case InstructionMap::OP_FETCHPSTR:
     case InstructionMap::OP_FILLR:
-      fetchAddress = inst.operand1() + inst.operand2()*BYTES_PER_WORD;
+      fetchAddress = inst.operand1() + BYTES_PER_WORD*inst.operand2();
       break;
 
     case InstructionMap::OP_PSEL_FETCH:
@@ -267,8 +270,6 @@ bool ExecuteStage::fetch(DecodedInst& inst) {
       break;
 
     case InstructionMap::OP_PSEL_FETCHR: {
-      // There are two immediates encoded as one. 16 and 7 bits respectively,
-      // both signed integers.
       int immed1 = inst.immediate();
       int immed2 = inst.immediate2();
       fetchAddress = inst.operand1() + BYTES_PER_WORD*(readPredicate() ? immed1 : immed2);
@@ -283,18 +284,15 @@ bool ExecuteStage::fetch(DecodedInst& inst) {
   if (LBT_TRACE)
 	LBTTrace::setInstructionMemoryAddress(inst.isid(), fetchAddress);
 
-  // Return whether the fetch request should be sent (it should be sent if the
-  // tag is not in the cache).
-  if (parent()->inCache(fetchAddress, inst.opcode())) {
-    // Packet is already in the cache: don't fetch.
-    return false;
-  }
-  else {
-    // Packet is not in the cache: fetch.
-    MemoryRequest request(MemoryRequest::IPK_READ, fetchAddress);
-    inst.result(request.toULong());
-    return true;
-  }
+  // Tweak the network address based on the memory address to ensure that the
+  // correct bank is accessed if the fetch request is sent.
+  uint increment = core()->channelMapTable[0].computeAddressIncrement(fetchAddress);
+  ChannelID destination = inst.networkDestination();
+  destination.addPosition(increment);
+  ChannelIndex returnTo = core()->channelMapTable[0].returnChannel();
+
+  core()->checkTags(fetchAddress, inst.opcode(), destination, returnTo);
+  return true;
 }
 
 void ExecuteStage::setChannelMap(DecodedInst& inst) {
@@ -315,10 +313,10 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
   // FIXME: I don't think it's necessary to block until all credits have been
   // received, but it's useful for debug purposes to ensure that we aren't
   // losing credits.
-  bool success = parent()->channelMapTable.write(entry, sendChannel, groupBits, lineBits, returnTo, writeThrough);
+  bool success = core()->channelMapTable.write(entry, sendChannel, groupBits, lineBits, returnTo, writeThrough);
   if (!success) {
     blocked = true;
-    next_trigger(parent()->channelMapTable.haveAllCredits(entry));
+    next_trigger(core()->channelMapTable.haveAllCredits(entry));
   }
   else {
     blocked = false;
@@ -330,7 +328,7 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
       inst.channelMapEntry(entry);
       inst.networkDestination(sendChannel);
       inst.portClaim(true);
-      inst.usesCredits(parent()->channelMapTable[entry].usesCredits());
+      inst.usesCredits(core()->channelMapTable[entry].usesCredits());
     }
   }
 }
@@ -364,7 +362,7 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
 
   // We want to access lots of information from the channel map table, so get
   // the entire entry.
-  ChannelMapEntry& channelMapEntry = parent()->channelMapTable[inst.channelMapEntry()];
+  ChannelMapEntry& channelMapEntry = core()->channelMapTable[inst.channelMapEntry()];
 
   if (channelMapEntry.writeThrough()) {
     switch (op) {
@@ -398,12 +396,10 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
 
   if (channelMapEntry.localMemory() && channelMapEntry.memoryGroupBits() > 0) {
     if (addressFlit) {
-      increment = (uint32_t)inst.result();
-      increment &= (1UL << (channelMapEntry.memoryGroupBits() + channelMapEntry.memoryLineBits())) - 1UL;
-      increment >>= channelMapEntry.memoryLineBits();
+      increment = channelMapEntry.computeAddressIncrement((uint32_t)inst.result());
 
       // Store the adjustment which must be made, so that any subsequent flits
-      // can also access the same memory.
+      // can also access the same memory bank.
       channelMapEntry.setAddressIncrement(increment);
     } else {
       increment = channelMapEntry.getAddressIncrement();
@@ -422,6 +418,7 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
 bool ExecuteStage::isStalled() const {
   // When we have multi-cycle operations (e.g. multiplies), we will need to use
   // this.
+  // TODO: replace with oData.valid();
   return !iReady.read();
 }
 
