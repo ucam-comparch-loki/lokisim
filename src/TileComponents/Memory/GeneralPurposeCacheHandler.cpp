@@ -50,9 +50,16 @@ bool GeneralPurposeCacheHandler::lookupCacheLine(uint32_t address, uint &slot) {
 	for (uint i = 0; i < mWayCount; i++) {
 		if (mLineValid[startSlot + i] && mAddresses[startSlot + i] == lineAddress) {
 			slot = startSlot + i;
+
+			if (CSIM_TRACE)
+			  printf("MEM%d 0x%08x: hit\n", this->mBankNumber, address);
+
 			return true;
 		}
 	}
+
+	if (CSIM_TRACE)
+    printf("MEM%d 0x%08x: miss\n", this->mBankNumber, address);
 
 	return false;
 }
