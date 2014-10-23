@@ -46,14 +46,16 @@ public:
   static void startLogging();
   static void stopLogging();
 
-  static void stall(const ComponentID& id, StallReason reason);
-  static void unstall(const ComponentID& id, StallReason reason);
-  static void activity(const ComponentID& id, bool idle);
+  static void startDetailedLog(const string& filename);
 
-  static void stall(const ComponentID& id, cycle_count_t cycle, int reason);
-  static void unstall(const ComponentID& id, cycle_count_t cycle, int reason);
-  static void idle(const ComponentID& id, cycle_count_t cycle);
-  static void active(const ComponentID& id, cycle_count_t cycle);
+  static void stall(const ComponentID id, StallReason reason);
+  static void unstall(const ComponentID id, StallReason reason);
+  static void activity(const ComponentID id, bool idle);
+
+  static void stall(const ComponentID id, cycle_count_t cycle, StallReason reason);
+  static void unstall(const ComponentID id, cycle_count_t cycle, StallReason reason);
+  static void idle(const ComponentID id, cycle_count_t cycle);
+  static void active(const ComponentID id, cycle_count_t cycle);
   static void endExecution();
 
   static bool executionFinished();
@@ -61,16 +63,26 @@ public:
   static count_t stalledComponents();
   static cycle_count_t cyclesIdle();
 
-  static cycle_count_t cyclesActive(const ComponentID& core);
-  static cycle_count_t cyclesIdle(const ComponentID& core);
-  static cycle_count_t cyclesStalled(const ComponentID& core);
+  static cycle_count_t cyclesActive(const ComponentID core);
+  static cycle_count_t cyclesIdle(const ComponentID core);
+  static cycle_count_t cyclesStalled(const ComponentID core);
   static cycle_count_t cyclesLogged();
   static cycle_count_t executionTime();
 
   static void printStats();
   static void dumpEventCounts(std::ostream& os);
 
+  // A text version of each stall reason.
+  static const string name(StallReason reason);
+
 private:
+
+  // Dump detailed information about a particular stall. Information is dumped
+  // to the file specified by startDetailedLog.
+  static void recordEvent(cycle_count_t currentCycle,
+                          ComponentID   component,
+                          StallReason   reason,
+                          cycle_count_t duration);
 
   // The reason for each core being stalled at the moment (if stalled).
   static std::map<ComponentID, int> stallReason;
@@ -95,6 +107,11 @@ private:
   static cycle_count_t loggedCycles, loggingStarted;
 
   static bool endExecutionCalled;
+
+  // If the simulator is passed the -stalltrace argument, produce a detailed
+  // log of every time a core stalls.
+  static bool detailedLog;
+  static std::ofstream* logStream;
 
 };
 

@@ -251,7 +251,7 @@ void SendChannelEndTable::receivedCredit() {
 }
 
 WriteStage* SendChannelEndTable::parent() const {
-  return static_cast<WriteStage*>(this->get_parent());
+  return static_cast<WriteStage*>(this->get_parent_object());
 }
 
 void SendChannelEndTable::reportStalls(ostream& os) {

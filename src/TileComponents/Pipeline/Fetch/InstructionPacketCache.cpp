@@ -159,7 +159,7 @@ bool InstructionPacketCache::roomToFetch() const {
 }
 
 FetchStage* InstructionPacketCache::parent() const {
-  return static_cast<FetchStage*>(this->get_parent());
+  return static_cast<FetchStage*>(this->get_parent_object());
 }
 
 /* Constructors and destructors */

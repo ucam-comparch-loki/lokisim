@@ -136,7 +136,7 @@ void RegisterFile::logActivity() {
 }
 
 Core* RegisterFile::parent() const {
-  return static_cast<Core*>(this->get_parent());
+  return static_cast<Core*>(this->get_parent_object());
 }
 
 RegisterFile::RegisterFile(sc_module_name name, const ComponentID& ID) :

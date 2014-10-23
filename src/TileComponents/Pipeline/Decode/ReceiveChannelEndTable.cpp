@@ -102,7 +102,7 @@ void ReceiveChannelEndTable::dataConsumedAction(ChannelIndex buffer) {
 }
 
 DecodeStage* ReceiveChannelEndTable::parent() const {
-  return static_cast<DecodeStage*>(this->get_parent());
+  return static_cast<DecodeStage*>(this->get_parent_object());
 }
 
 void ReceiveChannelEndTable::reportStalls(ostream& os) {

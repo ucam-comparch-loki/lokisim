@@ -142,7 +142,7 @@ void ALU::setPredicate(bool val) const {
 }
 
 ExecuteStage* ALU::parent() const {
-  return static_cast<ExecuteStage*>(this->get_parent());
+  return static_cast<ExecuteStage*>(this->get_parent_object());
 }
 
 int32_t ALU::readReg(RegisterIndex reg) const {return parent()->readReg(reg);}

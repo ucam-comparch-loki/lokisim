@@ -15,7 +15,7 @@ void PipelineStage::initPipeline(PipelineRegister* prev, PipelineRegister* next)
 }
 
 Core* PipelineStage::core() const {
-  return static_cast<Core*>(this->get_parent());
+  return static_cast<Core*>(this->get_parent_object());
 }
 
 bool PipelineStage::isStalled() const {
@@ -91,6 +91,10 @@ bool PipelineStage::discardNextInst() {
 
 PipelineStage::PipelineStage(const sc_module_name& name, const ComponentID& ID) :
     Component(name, ID) {
+
+  // These are initialised by a separate call to initPipeline.
+  next = NULL;
+  prev = NULL;
 
   currentInstValid = false;
 

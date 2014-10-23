@@ -27,6 +27,8 @@ string Arguments::memTraceFile_ = "";
 string Arguments::energyTraceFile_ = "";
 string Arguments::softwareTraceFile_ = "";
 string Arguments::lbtTraceFile_ = "";
+string Arguments::stallsTraceFile_ = "";
+string Arguments::callgrindTraceFile_ = "";
 std::stringstream Arguments::invocation_;
 
 bool Arguments::summarise_ = false;
@@ -113,6 +115,16 @@ void Arguments::parse(int argc, char* argv[]) {
       LBTTrace::start(lbtTraceFile_);
       i++;  // Have used two arguments in this iteration.
       LBT_TRACE = 1;
+    }
+    else if (argument == "-stalltrace") {
+      stallsTraceFile_ = string(argv[i+1]);
+      i++;  // Have used two arguments in this iteration.
+      Instrumentation::Stalls::startDetailedLog(stallsTraceFile_);
+    }
+    else if (argument == "-cgtrace") {
+      callgrindTraceFile_ = string(argv[i+1]);
+      i++;  // Have used two arguments in this iteration.
+      // TODO: pass the filename somewhere and start tracing
     }
     else if (argument == "-summary") {
       summarise_ = true;
@@ -223,8 +235,8 @@ const bool Arguments::summarise() {
 
 void Arguments::printHelp() {
   cout <<
-    "Loki2: a cycle-accurate simulator for the Loki many-core architecture.\n"
-    "Usage: Loki2 [simulator arguments]\n\n"
+    "lokisim: a cycle-accurate simulator for the Loki many-core architecture.\n"
+    "Usage: lokisim [simulator arguments]\n\n"
     "Options:\n"
     "  -debug\n\tEnter debug mode, where simulator contents can be inspected and changed\n\tat runtime\n"
     "  -trace\n\tPrint each instruction executed and its context to stdout\n"
@@ -234,6 +246,8 @@ void Arguments::printHelp() {
     "  -memtrace <file>\n"
     "  -swtrace <file>\n"
     "  -lbttrace <file>\n\tDump particular types of information to a named file\n"
+    "  -stalltrace <file>\n\tDump information about each processor stall to a file\n"
+    "  -cgtrace <file>\n\tDump output in the Callgrind format\n"
     "  -instructiontrace\n\tPrint the address of each instruction executed to stdout\n"
     "  -Pparameter=value\n\tSet a named parameter to a particular value\n"
     "  --args [...]\n\tPass all remaining arguments to the simulated program\n"

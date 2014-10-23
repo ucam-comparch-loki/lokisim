@@ -140,7 +140,7 @@ void Instrumentation::backgroundMemoryRead(MemoryAddr address, uint32_t count) {
 void Instrumentation::backgroundMemoryWrite(MemoryAddr address, uint32_t count)								{BackgroundMemory::write(address, count);}
 
 
-void Instrumentation::idle(const ComponentID& id, bool idle) {
+void Instrumentation::idle(const ComponentID id, bool idle) {
   if (idle) Stalls::idle(id, currentCycle());
   else Stalls::active(id, currentCycle());
 }

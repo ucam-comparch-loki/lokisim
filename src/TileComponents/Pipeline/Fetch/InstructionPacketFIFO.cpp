@@ -121,7 +121,7 @@ void InstructionPacketFIFO::dataConsumedAction() {
 }
 
 FetchStage* InstructionPacketFIFO::parent() const {
-  return static_cast<FetchStage*>(this->get_parent());
+  return static_cast<FetchStage*>(this->get_parent_object());
 }
 
 InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :

@@ -811,7 +811,7 @@ const sc_event& Decoder::stalledEvent() const {
 }
 
 DecodeStage* Decoder::parent() const {
-  return static_cast<DecodeStage*>(this->get_parent());
+  return static_cast<DecodeStage*>(this->get_parent_object());
 }
 
 void Decoder::reportStalls(ostream& os) {
