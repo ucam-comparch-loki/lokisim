@@ -7,6 +7,8 @@
 
 #include "Operations.h"
 #include "../InstructionMap.h"
+#include "../Instrumentation.h"
+#include "../Trace/Callgrind.h"
 #include "../../Datatype/ComponentID.h"
 #include "../../Datatype/DecodedInst.h"
 
@@ -52,6 +54,9 @@ void Operations::decoded(const ComponentID& core, const DecodedInst& dec) {
 void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool executed) {
   // Always increase numOps - this is used to determine if we're making progress.
   numOps_.increment(core);
+
+  if (Callgrind::acceptingData())
+    Callgrind::instructionExecuted(core, dec.location(), Instrumentation::currentCycle());
 
   // Want to keep track of the number of operations so we can tell if we're
   // making progress, but only want the rest of the data when we ask for it.

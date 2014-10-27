@@ -9,6 +9,7 @@
 #include "Debugger.h"
 #include "StringManipulation.h"
 #include "StartUp/DataBlock.h"
+#include "Trace/Callgrind.h"
 #include "Trace/CoreTrace.h"
 #include "Trace/MemoryTrace.h"
 #include "Trace/SoftwareTrace.h"
@@ -121,10 +122,11 @@ void Arguments::parse(int argc, char* argv[]) {
       i++;  // Have used two arguments in this iteration.
       Instrumentation::Stalls::startDetailedLog(stallsTraceFile_);
     }
-    else if (argument == "-cgtrace") {
+    else if (argument == "-callgrind") {
       callgrindTraceFile_ = string(argv[i+1]);
       i++;  // Have used two arguments in this iteration.
-      // TODO: pass the filename somewhere and start tracing
+      // Wait until all arguments have been parsed before starting the trace.
+      // We need to be sure that we know the location of the binary too.
     }
     else if (argument == "-summary") {
       summarise_ = true;
@@ -159,6 +161,10 @@ void Arguments::parse(int argc, char* argv[]) {
     string settingsFile = simDir + "/../test_files/loader.txt";
     programFiles.push_back(settingsFile);
   }
+
+  // Perform any setup which must wait until all arguments have been parsed.
+  if (!callgrindTraceFile_.empty())
+    Callgrind::startTrace(callgrindTraceFile_, programFiles[0]);
 
 }
 

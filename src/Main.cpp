@@ -13,6 +13,7 @@
 #include "Utility/Instrumentation.h"
 #include "Utility/Instrumentation/Operations.h"
 #include "Utility/Instrumentation/Stalls.h"
+#include "Utility/Trace/Callgrind.h"
 #include "Utility/Trace/CoreTrace.h"
 #include "Utility/Trace/MemoryTrace.h"
 #include "Utility/Trace/SoftwareTrace.h"
@@ -191,9 +192,10 @@ int simulate() {
   if (MEMORY_TRACE)
     MemoryTrace::stop();
   if (SOFTWARE_TRACE)
-	SoftwareTrace::stop();
+    SoftwareTrace::stop();
   if (LBT_TRACE)
-	LBTTrace::stop();
+    LBTTrace::stop();
+  Callgrind::endTrace();
 
   return RETURN_CODE;
 }
