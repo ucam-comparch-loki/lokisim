@@ -31,15 +31,20 @@ void ExecuteStage::execute() {
 //    blocked = alu.busy();
 //  }
 
-  if (currentInst.hasResult())
-    sendOutput();             // If there is already a result, don't do anything
+  // If there is already a result, don't do anything
+  if (currentInst.hasResult()) {
+    if (currentInst.setsPredicate())
+      updatePredicate(currentInst);
+    sendOutput();
+  }
   else
     newInput(currentInst);
 
   forwardedResult = currentInst.result();
 
-  if (!blocked)
+  if (!blocked) {
     instructionCompleted();
+  }
 }
 
 void ExecuteStage::updateReady() {
@@ -170,6 +175,9 @@ void ExecuteStage::newInput(DecodedInst& operation) {
 
         break;
     } // end switch
+
+    if (operation.setsPredicate())
+      updatePredicate(operation);
 
     if (success)
       sendOutput();
@@ -432,6 +440,42 @@ bool ExecuteStage::checkPredicate(DecodedInst& inst) {
                 (predBits == Instruction::NOT_P && !pred);
 
   return result;
+}
+
+void ExecuteStage::updatePredicate(const DecodedInst& inst) {
+  assert(inst.setsPredicate());
+
+  bool newPredicate;
+
+  switch (inst.function()) {
+    // For additions and subtractions, the predicate represents the carry
+    // and borrow bits, respectively.
+    case InstructionMap::FN_ADDU: {
+      uint64_t val1 = (uint64_t)((uint32_t)inst.operand1());
+      uint64_t val2 = (uint64_t)((uint32_t)inst.operand2());
+      uint64_t result64 = val1 + val2;
+      newPredicate = (result64 >> 32) != 0;
+      break;
+    }
+
+    // The 68k and x86 set the borrow bit if a - b < 0 for subtractions.
+    // The 6502 and PowerPC treat it as a carry bit.
+    // http://en.wikipedia.org/wiki/Carry_flag#Carry_flag_vs._Borrow_flag
+    case InstructionMap::FN_SUBU: {
+      uint64_t val1 = (uint64_t)((uint32_t)inst.operand1());
+      uint64_t val2 = (uint64_t)((uint32_t)inst.operand2());
+      newPredicate = val1 < val2;
+      break;
+    }
+
+    // Otherwise, it holds the least significant bit of the result.
+    // Potential alternative: newPredicate = (result != 0)
+    default:
+      newPredicate = inst.result() & 1;
+      break;
+  }
+
+  writePredicate(newPredicate);
 }
 
 const DecodedInst& ExecuteStage::currentInstruction() const {

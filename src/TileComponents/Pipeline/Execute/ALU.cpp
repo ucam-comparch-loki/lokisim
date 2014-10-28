@@ -82,37 +82,6 @@ void ALU::execute(DecodedInst& dec) {
 
   dec.result(result);
 
-  if (dec.setsPredicate()) {
-
-    bool newPredicate;
-
-    switch (dec.function()) {
-      // For additions and subtractions, the predicate represents the carry
-      // and borrow bits, respectively.
-      case InstructionMap::FN_ADDU: {
-        uint64_t result64 = (uint64_t)((uint32_t)val1) + (uint64_t)((uint32_t)val2);
-        newPredicate = (result64 >> 32) != 0;
-        break;
-      }
-
-      // The 68k and x86 set the borrow bit if a - b < 0 for subtractions.
-      // The 6502 and PowerPC treat it as a carry bit.
-      // http://en.wikipedia.org/wiki/Carry_flag#Carry_flag_vs._Borrow_flag
-      case InstructionMap::FN_SUBU: {
-        newPredicate = (uint64_t)((uint32_t)val1) < (uint64_t)((uint32_t)val2);
-        break;
-      }
-
-      // Otherwise, it holds the least significant bit of the result.
-      // Potential alternative: newPredicate = (result != 0)
-      default:
-        newPredicate = result & 1;
-        break;
-    }
-
-    setPredicate(newPredicate);
-  }
-
 }
 
 bool ALU::busy() const {

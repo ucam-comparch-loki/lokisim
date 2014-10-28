@@ -105,6 +105,9 @@ private:
   // see if this instruction should execute.
   bool checkPredicate(DecodedInst& inst);
 
+  // Compute the new value of the predicate and update it accordingly.
+  void updatePredicate(const DecodedInst& inst);
+
 protected:
 
   virtual void reportStalls(ostream& os);
