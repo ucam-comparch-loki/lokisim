@@ -389,7 +389,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   // and we know it won't execute, stop it here.
   if(!execute && (Registers::isChannelEnd(input.sourceReg1()) ||
                   Registers::isChannelEnd(input.sourceReg2()))) {
-	return true;
+    return true;
   }
 
   // Wait for any unavailable operands to arrive (either over the network, or
@@ -768,18 +768,23 @@ bool Decoder::continueOp(const DecodedInst& input, DecodedInst& output) {
 // change the predicate.
 bool Decoder::shouldExecute(const DecodedInst& inst) {
 
-  if (!inst.usesPredicate() || inst.opcode() == InstructionMap::OP_PSEL_FETCH)
+  // Instructions which will always execute.
+  if (!inst.usesPredicate() || inst.opcode() == InstructionMap::OP_PSEL_FETCH
+                            || inst.opcode() == InstructionMap::OP_PSEL_FETCHR
+                            || inst.opcode() == InstructionMap::OP_PSEL)
     return true;
 
+  // Predicated instructions which complete in this pipeline stage and
+  // which access channel data.
   if ((!inst.isALUOperation() && !inst.isMemoryOperation()) ||
       Registers::isChannelEnd(inst.sourceReg1()) ||
       Registers::isChannelEnd(inst.sourceReg2())) {
-
     short predBits = inst.predicate();
 
     return (predBits == Instruction::P     &&  parent()->predicate()) ||
            (predBits == Instruction::NOT_P && !parent()->predicate());
   }
+  // All other predicated instructions.
   else
     return true;
 }
