@@ -130,6 +130,9 @@ private:
   // the input buffer.
   const int32_t    readRCET(ChannelIndex channel);
 
+  // Return the result of the instruction in the execute stage.
+  const int32_t    getForwardedData() const;
+
   // Write a value to a register.
   void             writeReg(RegisterIndex reg, int32_t value,
                             bool indirect = false);

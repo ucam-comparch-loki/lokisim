@@ -93,6 +93,9 @@ private:
   // Read a register value (for Decoder).
   int32_t        readReg(PortIndex port, RegisterIndex index, bool indirect = false) const;
 
+  // Get the result from the instruction in the execute stage.
+  int32_t        getForwardedData() const;
+
   // Get the value of the predicate register.
   bool           predicate() const;
 

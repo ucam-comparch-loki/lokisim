@@ -113,6 +113,11 @@ const int32_t  Core::readRCET(ChannelIndex channel) {
   return decode.readRCET(channel);
 }
 
+const int32_t  Core::getForwardedData() const {
+  assert(execute.currentInstruction().hasResult());
+  return execute.currentInstruction().result();
+}
+
 void     Core::updateCurrentPacket(MemoryAddr addr) {
   regs.updateCurrentIPK(addr);
 }

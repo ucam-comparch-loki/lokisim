@@ -113,6 +113,7 @@ private:
 
   // None of the following are needed in hardware - they are just required here
   // because of the way decoding has been split up into multiple blocks.
+  // Could instead use a collection of possible states.
   DecodedInst current, output, previous;
   bool continueToExecute, execute, haveAllOperands;
   int outputsRemaining;

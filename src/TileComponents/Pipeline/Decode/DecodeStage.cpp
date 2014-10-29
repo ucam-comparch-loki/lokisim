@@ -238,6 +238,10 @@ int32_t      DecodeStage::readReg(PortIndex port, RegisterIndex index, bool indi
   return core()->readReg(port, index, indirect);
 }
 
+int32_t      DecodeStage::getForwardedData() const {
+  return core()->getForwardedData();
+}
+
 bool         DecodeStage::predicate() const {
   // true = wait for the execute stage to write the predicate first, if
   // necessary
@@ -311,7 +315,7 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
 
   // Connect everything up
   rcet.clock(clock);
-  for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
+  for (uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     rcet.iData[i](iData[i]);
     rcet.oFlowControl[i](oFlowControl[i]);
     rcet.oDataConsumed[i](oDataConsumed[i]);
@@ -321,7 +325,7 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
 
   SC_THREAD(execute);
   // TODO - eliminate SC_THREADs
-//  state = INIT;
+  state = INIT;
 //  SC_METHOD(execute2);
 
   SC_METHOD(updateReady);

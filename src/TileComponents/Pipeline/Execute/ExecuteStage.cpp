@@ -152,6 +152,14 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         scratchpad.write(operation.operand2() & 0xFF, operation.operand1());
         break;
 
+      case InstructionMap::OP_IRDR:
+        operation.result(operation.operand1());
+        break;
+
+      case InstructionMap::OP_IWTR:
+        operation.result(operation.operand1());
+        break;
+
       case InstructionMap::OP_LLI:
         operation.result(operation.operand2());
         break;

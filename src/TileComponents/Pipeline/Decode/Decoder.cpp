@@ -449,6 +449,30 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       break;
     }
 
+    case InstructionMap::OP_IRDR:
+      multiCycleOp = true;
+      blockedEvent.notify();
+
+      // Read register
+      setOperand1(output);
+
+      // Wait for result from execute stage, if necessary.
+      if (output.operand1Source() == DecodedInst::BYPASS) {
+        Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_FORWARDING);
+        wait(1.1, sc_core::SC_NS);
+        Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_FORWARDING);
+        output.operand1(parent()->getForwardedData());
+      }
+      output.sourceReg1(output.operand1());
+
+      // Wait a cycle before reading again (+0.1 to ensure other things happen first).
+      wait(1.1, sc_core::SC_NS);
+      multiCycleOp = false;
+      blockedEvent.notify();
+      waitForOperands(output);
+      // The second register read happens as usual in setOperand1, below.
+      break;
+
     // lui only overwrites part of the word, so we need to read the word first.
     // Alternative: have an "lui mode" for register-writing (note that this
     // wouldn't allow data forwarding).
@@ -461,9 +485,6 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       output.result(parent()->testChannel(output.immediate())); break;
 
     case InstructionMap::OP_SELCH:
-      // TODO: selch now has an immediate argument which defines which
-      // channels we are interested in. We haven't yet specified how this
-      // information is represented.
       output.result(parent()->selectChannel(output.immediate())); break;
 
     case InstructionMap::OP_IBJMP: {
@@ -532,26 +553,6 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   setOperand1(output);
   setOperand2(output);
 
-  // Some instructions which complete in the decode stage need to do a little
-  // work now that they have their operands.
-  switch (operation) {
-
-    // A bit of a hack: if we are indirecting through a channel end, we need to
-    // consume the value now so that channel reads are in program order. This
-    // means the write is no longer indirect, so change the operation to "or".
-    // FIXME: this seems like an awkward thing to do. Temporarily disabled.
-//    case InstructionMap::OP_IWTR: {
-//      if(Registers::isChannelEnd(input.sourceReg1())) {
-//        output.sourceReg1(readRegs(input.sourceReg1()));
-//        output.opcode(InstructionMap::OP_OR);
-//      }
-//
-//      output.destination(output.sourceReg1());
-//    }
-
-    default: break;
-  } // end switch
-
   // Store the instruction we just decoded so we can see if it needs to forward
   // data to the next instruction. In practice, we wouldn't need the whole
   // instruction.
@@ -596,16 +597,14 @@ void Decoder::waitForOperands(const DecodedInst& dec) {
 
 void Decoder::setOperand1(DecodedInst& dec) {
   RegisterIndex reg = dec.sourceReg1();
-//  bool indirect = dec.opcode() == InstructionMap::OP_IRDR;
-  bool indirect = false;
 
-  if ((reg == previous.destination()) && !indirect) {
+  if ((reg == previous.destination())) {
     dec.operand1Source(DecodedInst::BYPASS);
     if (previous.usesPredicate())
       dec.operand1(readRegs(1, reg));
   }
   else {
-    dec.operand1(readRegs(1, reg, indirect));
+    dec.operand1(readRegs(1, reg));
     dec.operand1Source(DecodedInst::REGISTER);
   }
 }
@@ -624,7 +623,7 @@ void Decoder::setOperand2(DecodedInst& dec) {
         dec.operand2(readRegs(2, reg));
     }
     else {
-      dec.operand2(readRegs(2, dec.sourceReg2()));
+      dec.operand2(readRegs(2, reg));
       dec.operand2Source(DecodedInst::REGISTER);
     }
   }
