@@ -74,7 +74,9 @@ public:
   // Return the index of a channel which currently contains data, or throw
   // an exception if none do. The index returned is the channel's register-
   // mapped index (e.g. if channel 0 contains data, 2 would be returned).
-  ChannelIndex selectChannelEnd();
+  // The bitmask selects a subset of channels that we are interested in.
+  // The least significant bit represents channel 0 (r2).
+  ChannelIndex selectChannelEnd(unsigned int bitmask);
 
   const sc_event& receivedDataEvent(ChannelIndex buffer) const;
 
@@ -83,6 +85,10 @@ protected:
   virtual void reportStalls(ostream& os);
 
 private:
+
+  // Wait for data to arrive on one of the channels specified in the bitmask.
+  // The least significant bit represents channel 0 (r2).
+  void waitForData(unsigned int bitmask);
 
   // Update the flow control value for an input port.
   void updateFlowControl(ChannelIndex buffer);

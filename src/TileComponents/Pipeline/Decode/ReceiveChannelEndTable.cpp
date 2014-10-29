@@ -48,23 +48,19 @@ bool ReceiveChannelEndTable::testChannelEnd(ChannelIndex channelEnd) const {
   return !buffers[channelEnd].empty();
 }
 
-ChannelIndex ReceiveChannelEndTable::selectChannelEnd() {
-  int startPoint = currentChannel.value();
+ChannelIndex ReceiveChannelEndTable::selectChannelEnd(unsigned int bitmask) {
+  // Wait for data to arrive on one of the channels we're interested in.
+  waitForData(bitmask);
 
-  if (buffers.empty()) {
-    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_DATA);
-    wait(newData);
-    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_DATA);
-  }
+  int startPoint = currentChannel.value();
 
   // Check all of the channels in a round-robin style, using a LoopCounter.
   // Return the register-mapping of the first channel which has data.
   for (int i = ++currentChannel; i != startPoint; ++currentChannel) {
     i = currentChannel.value();
-
-    if (!buffers[i].empty()) {
-      // Adjust address so it can be accessed like a register
-      return Registers::fromChannelID(i);
+    if (((bitmask >> i) & 1) && !buffers[i].empty()) {
+        // Adjust address so it can be accessed like a register
+        return Registers::fromChannelID(i);
     }
   }
 
@@ -72,6 +68,19 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd() {
   // until at least one of them has data.
   assert(false);
   return -1;
+}
+
+void ReceiveChannelEndTable::waitForData(unsigned int bitmask) {
+  // Wait for data to arrive on one of the channels we're interested in.
+  while (true) {
+    for (ChannelIndex i=0; i<NUM_RECEIVE_CHANNELS; i++) {
+      if (((bitmask >> i) & 1) && !buffers[i].empty())
+        return;
+    }
+    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_DATA);
+    wait(newData);
+    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_DATA);
+  }
 }
 
 void ReceiveChannelEndTable::checkInput(ChannelIndex input) {

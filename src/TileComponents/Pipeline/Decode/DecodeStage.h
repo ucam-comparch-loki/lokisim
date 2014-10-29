@@ -105,7 +105,7 @@ private:
   bool           testChannel(ChannelIndex index) const;
 
   // Perform a SELCH operation.
-  ChannelIndex   selectChannel();
+  ChannelIndex   selectChannel(unsigned int bitmask);
 
   const sc_event& receivedDataEvent(ChannelIndex buffer) const;
 

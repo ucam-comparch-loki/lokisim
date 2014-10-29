@@ -272,8 +272,8 @@ bool         DecodeStage::testChannel(ChannelIndex index) const {
   return rcet.testChannelEnd(index);
 }
 
-ChannelIndex DecodeStage::selectChannel() {
-  return rcet.selectChannelEnd();
+ChannelIndex DecodeStage::selectChannel(unsigned int bitmask) {
+  return rcet.selectChannelEnd(bitmask);
 }
 
 const sc_event& DecodeStage::receivedDataEvent(ChannelIndex buffer) const {
