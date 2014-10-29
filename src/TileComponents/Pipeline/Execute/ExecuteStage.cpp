@@ -105,10 +105,15 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         break;
 
       case InstructionMap::OP_GETCHMAP:
-      case InstructionMap::OP_GETCHMAPI:
         // TODO: reading the CMT just returns a network address. We want
         // the entire contents.
         operation.result(core()->channelMapTable.read(operation.operand1()).toUInt());
+        break;
+
+      case InstructionMap::OP_GETCHMAPI:
+        // TODO: reading the CMT just returns a network address. We want
+        // the entire contents.
+        operation.result(core()->channelMapTable.read(operation.immediate()).toUInt());
         break;
 
       case InstructionMap::OP_CREGRDI:
@@ -304,7 +309,7 @@ bool ExecuteStage::fetch(DecodedInst& inst) {
 }
 
 void ExecuteStage::setChannelMap(DecodedInst& inst) {
-  MapIndex entry = inst.immediate();
+  MapIndex entry = inst.operand2();
   uint32_t value = inst.operand1();
 
   // TODO: extract these from the ChannelID, rather than from the raw data.
