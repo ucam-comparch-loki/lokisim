@@ -24,10 +24,15 @@ public:
 // Methods
 //==============================//
 
+public:
+
+  // Writes new data to the cache. The position to write to, and the tag for
+  // the data, are already known. Returns the position written to.
+  virtual CacheIndex write(const Instruction inst);
+
 protected:
 
   virtual CacheIndex cacheIndex(const MemoryAddr address) const;
-  virtual MemoryAddr getTag(const CacheIndex position) const;
   virtual void setTag(const CacheIndex position, const MemoryAddr tag);
   virtual void updateReadPointer();
   virtual void updateWritePointer();
@@ -38,10 +43,12 @@ protected:
 
 private:
 
-  // If there are fewer tags than cache entries, each packet must be aligned
-  // to the next tag. Tags are "alignment" entries apart.
-  typedef uint16_t Alignment;
-  const Alignment alignment;
+  // For a fully-associative cache, if we have a tag match, we need to follow
+  // a pointer to see where in the cache the packet is.
+  std::vector<CacheIndex> packetPointers;
+
+  // Write to tags in a round-robin fashion.
+  LoopCounter nextTag;
 
 };
 

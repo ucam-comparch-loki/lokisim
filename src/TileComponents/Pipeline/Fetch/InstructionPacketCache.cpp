@@ -107,10 +107,6 @@ MemoryAddr InstructionPacketCache::memoryAddress() const {
   return lastReadAddr;
 }
 
-bool InstructionPacketCache::packetExists(CacheIndex position) const {
-  return cache->packetExists(position);
-}
-
 void InstructionPacketCache::startNewPacket(CacheIndex position) {
   cache->setReadPointer(position);
 }

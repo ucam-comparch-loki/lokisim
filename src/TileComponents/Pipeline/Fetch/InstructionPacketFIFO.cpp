@@ -65,10 +65,6 @@ MemoryAddr InstructionPacketFIFO::memoryAddress() const {
   return lastReadAddr;
 }
 
-bool InstructionPacketFIFO::packetExists(CacheIndex position) const {
-  return position == startOfPacket;
-}
-
 void InstructionPacketFIFO::startNewPacket(CacheIndex position) {
   fifo.setReadPointer(position);
   tagMatched = false;

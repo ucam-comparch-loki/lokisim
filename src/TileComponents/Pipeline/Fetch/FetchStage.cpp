@@ -33,7 +33,7 @@ void FetchStage::readLoop() {
   switch (readState) {
     case RS_READY: {
       // Have a packet fetched and ready to go.
-      if (pendingPacket.active()) {
+      if (pendingPacket.active() && pendingPacket.execute) {
         currentPacket = pendingPacket;
 
         if (currentPacket.location.index == NOT_IN_CACHE) {
@@ -172,7 +172,7 @@ void FetchStage::writeLoop() {
         next_trigger(cache.fillChangedEvent());
 //        cout << "waiting for space in cache" << endl;
       }
-      else if (pendingPacket.active()) {
+      else if (pendingPacket.active() && pendingPacket.execute) {
         // The pending packet is where we store all the information about the
         // packet we're fetching. Wait for it to become available.
         next_trigger(clock.posedge_event());
@@ -187,6 +187,7 @@ void FetchStage::writeLoop() {
 
     case WS_CHECK_TAGS: {
       FetchInfo fetch = fetchBuffer.peek();
+      pendingPacket.reset();
       bool cached = inCache(fetch.address, fetch.operation);
 
       if (cached) {
