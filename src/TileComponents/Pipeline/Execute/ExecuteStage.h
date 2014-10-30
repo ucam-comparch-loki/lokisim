@@ -71,14 +71,6 @@ private:
   virtual void newInput(DecodedInst& operation);
   void sendOutput();
 
-  // Returns whether is is possible to do a cache lookup at this time. It may
-  // not be possible if there is already the maximum number of fetches queued up.
-  bool canCheckTags() const;
-
-  // Returns whether the fetch successfully completed. false means it needs to
-  // be tried again.
-  bool fetch(DecodedInst& operation);
-
   // Send a request to reserve (or release) a connection to a particular
   // destination component. May cause re-execution of the calling method when
   // the request is granted.

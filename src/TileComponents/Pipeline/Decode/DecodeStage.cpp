@@ -9,6 +9,8 @@
 #include "../../Core.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
+#include "../../../Exceptions/InvalidOptionException.h"
+#include "../../../Utility/Trace/LBTTrace.h"
 
 void         DecodeStage::execute() {
   while (true) {
@@ -185,7 +187,8 @@ void         DecodeStage::newInput(DecodedInst& inst) {
 
   // If this is the first instruction of a new packet, update the current
   // packet pointer.
-  if (startingNewPacket) core()->updateCurrentPacket(inst.location());
+  if (startingNewPacket)
+    core()->updateCurrentPacket(inst.location());
 
   // The next instruction will be the start of a new packet if this is the
   // end of the current one.
@@ -270,6 +273,59 @@ int32_t      DecodeStage::readRCET(ChannelIndex index) {
 
 int32_t      DecodeStage::readRCETDebug(ChannelIndex index) const {
   return rcet.readDebug(index);
+}
+
+void DecodeStage::fetch(const DecodedInst& inst) {
+  MemoryAddr fetchAddress;
+
+  // Compute the address to fetch from, depending on which operation this is.
+  switch (inst.opcode()) {
+    case InstructionMap::OP_FETCH:
+    case InstructionMap::OP_FETCHPST:
+    case InstructionMap::OP_FILL:
+      fetchAddress = inst.operand1() + inst.operand2();
+      break;
+
+    case InstructionMap::OP_FETCHR:
+    case InstructionMap::OP_FETCHPSTR:
+    case InstructionMap::OP_FILLR:
+      fetchAddress = readReg(1, 1) + BYTES_PER_WORD*inst.operand2();
+      break;
+
+    case InstructionMap::OP_PSEL_FETCH:
+      fetchAddress = core()->readPredReg(true) ? inst.operand1() : inst.operand2();
+      break;
+
+    case InstructionMap::OP_PSEL_FETCHR: {
+      int immed1 = inst.immediate();
+      int immed2 = inst.immediate2();
+      fetchAddress = readReg(1, 1) + BYTES_PER_WORD*(core()->readPredReg(true) ? immed1 : immed2);
+      break;
+    }
+
+    default:
+      throw InvalidOptionException("fetch instruction opcode", inst.opcode());
+      break;
+  }
+
+  if (LBT_TRACE)
+    LBTTrace::setInstructionMemoryAddress(inst.isid(), fetchAddress);
+
+  if (DEBUG)
+    cout << this->name() << " fetching from address " << fetchAddress << endl;
+
+  // Tweak the network address based on the memory address to ensure that the
+  // correct bank is accessed if the fetch request is sent.
+  uint increment = channelMapTableEntry(0).computeAddressIncrement(fetchAddress);
+  ChannelID destination = channelMapTableEntry(0).destination();
+  destination.addPosition(increment);
+  ChannelIndex returnTo = channelMapTableEntry(0).returnChannel();
+
+  core()->checkTags(fetchAddress, inst.opcode(), destination, returnTo);
+}
+
+bool         DecodeStage::canFetch() const {
+  return core()->canCheckTags();
 }
 
 bool         DecodeStage::testChannel(ChannelIndex index) const {

@@ -298,6 +298,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   // the previous instruction to set the predicate bit if this instruction
   // is completed in the decode stage, or if the instruction may perform an
   // irreversible channel read.
+  // TODO: avoid any stalls or other changes if execute is false.
   bool execute = shouldExecute(input);
 
   if (ENERGY_TRACE)
@@ -340,6 +341,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 	case InstructionMap::OP_FILL:
 	case InstructionMap::OP_FILLR:
 	case InstructionMap::OP_PSEL_FETCH:
+	case InstructionMap::OP_PSEL_FETCHR:
 		opType = LBTTrace::Fetch;
 		break;
 
@@ -387,8 +389,8 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
   // If the instruction may perform irreversible reads from a channel-end,
   // and we know it won't execute, stop it here.
-  if(!execute && (Registers::isChannelEnd(input.sourceReg1()) ||
-                  Registers::isChannelEnd(input.sourceReg2()))) {
+  if (!execute && (Registers::isChannelEnd(input.sourceReg1()) ||
+                   Registers::isChannelEnd(input.sourceReg2()))) {
     return true;
   }
 
@@ -507,7 +509,8 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     case InstructionMap::OP_RMTEXECUTE: {
       sendChannel = output.channelMapEntry();
 
-      if (DEBUG) cout << this->name() << " beginning remote execution" << endl;
+      if (DEBUG)
+        cout << this->name() << " beginning remote execution" << endl;
 
       continueToExecute = false;
       break;
@@ -523,27 +526,13 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     case InstructionMap::OP_FETCHR:
     case InstructionMap::OP_FETCHPSTR:
     case InstructionMap::OP_FILLR:
-    case InstructionMap::OP_PSEL_FETCHR: {
-      // Fetches implicitly access channel map table entry 0. This may change.
-      output.channelMapEntry(0);
-      output.memoryOp(MemoryRequest::IPK_READ);
-
-      // The "relative" versions of these instructions have r1 (current IPK
-      // address) as an implicit argument.
-      output.sourceReg1(1);
-
-      break;
-    }
-
+    case InstructionMap::OP_PSEL_FETCHR:
     case InstructionMap::OP_FETCH:
     case InstructionMap::OP_FETCHPST:
     case InstructionMap::OP_FILL:
-    case InstructionMap::OP_PSEL_FETCH: {
-      // Fetches implicitly access channel map table entry 0. This may change.
-      output.channelMapEntry(0);
-      output.memoryOp(MemoryRequest::IPK_READ);
+    case InstructionMap::OP_PSEL_FETCH:
+      continueToExecute = false;
       break;
-    }
 
     default: break;
 
@@ -552,6 +541,9 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   // Gather the operands this instruction needs.
   setOperand1(output);
   setOperand2(output);
+
+  if (execute && isFetch(output.opcode()))
+    fetch(output);
 
   // Store the instruction we just decoded so we can see if it needs to forward
   // data to the next instruction. In practice, we wouldn't need the whole
@@ -776,12 +768,14 @@ bool Decoder::shouldExecute(const DecodedInst& inst) {
   // Predicated instructions which complete in this pipeline stage and
   // which access channel data.
   if ((!inst.isALUOperation() && !inst.isMemoryOperation()) ||
+      isFetch(inst.opcode()) ||
       Registers::isChannelEnd(inst.sourceReg1()) ||
       Registers::isChannelEnd(inst.sourceReg2())) {
     short predBits = inst.predicate();
+    bool predicate = parent()->predicate();
 
-    return (predBits == Instruction::P     &&  parent()->predicate()) ||
-           (predBits == Instruction::NOT_P && !parent()->predicate());
+    return (predBits == Instruction::P     &&  predicate) ||
+           (predBits == Instruction::NOT_P && !predicate);
   }
   // All other predicated instructions.
   else
@@ -796,9 +790,61 @@ bool Decoder::needPredicateNow(const DecodedInst& inst) const {
   bool predicated = inst.predicate() == Instruction::P ||
                     inst.predicate() == Instruction::NOT_P;
   bool irreversible = (!inst.isALUOperation() && !inst.isMemoryOperation()) ||
+                      isFetch(inst.opcode()) ||
                       Registers::isChannelEnd(inst.sourceReg1()) ||
                       Registers::isChannelEnd(inst.sourceReg2());
   return predicated && irreversible;
+}
+
+bool Decoder::isFetch(opcode_t opcode) const {
+  bool fetch;
+
+  switch (opcode) {
+    case InstructionMap::OP_FETCHR:
+    case InstructionMap::OP_FETCHPSTR:
+    case InstructionMap::OP_FILLR:
+    case InstructionMap::OP_PSEL_FETCHR:
+    case InstructionMap::OP_FETCH:
+    case InstructionMap::OP_FETCHPST:
+    case InstructionMap::OP_FILL:
+    case InstructionMap::OP_PSEL_FETCH:
+      fetch = true;
+      break;
+    default:
+      fetch = false;
+      break;
+  }
+
+  return fetch;
+}
+
+void Decoder::fetch(DecodedInst& inst) {
+  // Wait until we are allowed to check the cache tags.
+  if (!parent()->canFetch()) {
+    // TODO: would prefer a better stall reason.
+    stall(true, Instrumentation::Stalls::STALL_INSTRUCTIONS);
+    while (!parent()->canFetch()) {
+      if (DEBUG)
+        cout << this->name() << " waiting to issue " << inst << endl;
+      wait(1, sc_core::SC_NS);
+    }
+    stall(false, Instrumentation::Stalls::STALL_INSTRUCTIONS);
+  }
+
+  // Extra forwarding path.
+  if (inst.operand1Source() == DecodedInst::BYPASS ||
+      inst.operand2Source() == DecodedInst::BYPASS) {
+    stall(true, Instrumentation::Stalls::STALL_FORWARDING);
+    wait(1.1, sc_core::SC_NS);
+    stall(false, Instrumentation::Stalls::STALL_FORWARDING);
+
+    if (inst.operand1Source() == DecodedInst::BYPASS)
+      inst.operand1(readRegs(1, inst.sourceReg1()));
+    if (inst.operand2Source() == DecodedInst::BYPASS)
+      inst.operand2(readRegs(2, inst.sourceReg2()));
+  }
+
+  parent()->fetch(inst);
 }
 
 void Decoder::stall(bool stall, Instrumentation::Stalls::StallReason reason) {

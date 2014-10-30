@@ -122,20 +122,6 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         throw UnsupportedFeatureException("control registers");
         break;
 
-      case InstructionMap::OP_FETCH:
-      case InstructionMap::OP_FETCHR:
-      case InstructionMap::OP_FETCHPST:
-      case InstructionMap::OP_FETCHPSTR:
-      case InstructionMap::OP_FILL:
-      case InstructionMap::OP_FILLR:
-      case InstructionMap::OP_PSEL_FETCH:
-      case InstructionMap::OP_PSEL_FETCHR:
-        success = fetch(operation);
-        // Prevent the operation from continuing down the pipeline. The
-        // fetch stage handles everything now.
-        success = false;
-        break;
-
       case InstructionMap::OP_SCRATCHRD:
         // Send only lowest 8 bits of address - don't need mask in hardware.
         operation.result(scratchpad.read(operation.operand1() & 0xFF));
@@ -252,68 +238,6 @@ void ExecuteStage::sendOutput() {
   // Send the data to the register file - it will arrive at the beginning
   // of the next clock cycle.
   outputInstruction(currentInst);
-}
-
-bool ExecuteStage::canCheckTags() const {
-  return core()->canCheckTags();
-}
-
-bool ExecuteStage::fetch(DecodedInst& inst) {
-  MemoryAddr fetchAddress;
-
-  // If we already have the maximum number of packets queued up, wait until
-  // one of them finishes arriving.
-  if (!canCheckTags()) {
-    blocked = true;
-    currentInst = inst;
-    next_trigger(clock.posedge_event());
-    return false;
-  }
-  else
-    blocked = false;
-
-  // Compute the address to fetch from, depending on which operation this is.
-  switch (inst.opcode()) {
-    case InstructionMap::OP_FETCH:
-    case InstructionMap::OP_FETCHPST:
-    case InstructionMap::OP_FILL:
-      fetchAddress = inst.operand1() + inst.operand2();
-      break;
-
-    case InstructionMap::OP_FETCHR:
-    case InstructionMap::OP_FETCHPSTR:
-    case InstructionMap::OP_FILLR:
-      fetchAddress = inst.operand1() + BYTES_PER_WORD*inst.operand2();
-      break;
-
-    case InstructionMap::OP_PSEL_FETCH:
-      fetchAddress = readPredicate() ? inst.operand1() : inst.operand2();
-      break;
-
-    case InstructionMap::OP_PSEL_FETCHR: {
-      int immed1 = inst.immediate();
-      int immed2 = inst.immediate2();
-      fetchAddress = inst.operand1() + BYTES_PER_WORD*(readPredicate() ? immed1 : immed2);
-      break;
-    }
-
-    default:
-      throw InvalidOptionException("fetch instruction opcode", inst.opcode());
-      break;
-  }
-
-  if (LBT_TRACE)
-	LBTTrace::setInstructionMemoryAddress(inst.isid(), fetchAddress);
-
-  // Tweak the network address based on the memory address to ensure that the
-  // correct bank is accessed if the fetch request is sent.
-  uint increment = core()->channelMapTable[0].computeAddressIncrement(fetchAddress);
-  ChannelID destination = inst.networkDestination();
-  destination.addPosition(increment);
-  ChannelIndex returnTo = core()->channelMapTable[0].returnChannel();
-
-  core()->checkTags(fetchAddress, inst.opcode(), destination, returnTo);
-  return true;
 }
 
 void ExecuteStage::setChannelMap(DecodedInst& inst) {
@@ -512,6 +436,7 @@ ExecuteStage::ExecuteStage(sc_module_name name, const ComponentID& ID) :
 
   previousInstExecuted = false;
   blocked = false;
+  forwardedResult = 0;
 
   SC_METHOD(execute);
   sensitive << newInstructionEvent;

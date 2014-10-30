@@ -93,6 +93,12 @@ private:
   // predicate bits, and the contents of the predicate register.
   bool shouldExecute(const DecodedInst& inst);
 
+  // Determine whether the given opcode may result in a fetch request being sent.
+  bool isFetch(opcode_t opcode) const;
+
+  // Perform a fetch.
+  void fetch(DecodedInst& inst);
+
   void stall(bool stall, Instrumentation::Stalls::StallReason reason);
 
   DecodeStage* parent() const;

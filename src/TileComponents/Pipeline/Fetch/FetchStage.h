@@ -191,7 +191,6 @@ private:
   enum WriteState {
     WS_READY,       // Have no instructions to fetch
     WS_CHECK_TAGS,  // Check whether instructions need to be fetched
-    WS_WRITE        // Write instructions into the appropriate place
   };
 
   ReadState  readState;
@@ -204,10 +203,6 @@ private:
 
   // Various flags which may mean we aren't executing instructions sequentially.
   bool jumpedThisCycle, finishedPacketRead;
-
-  // Flag telling if the pending packet has been overwritten, and needs to be
-  // fetched again.
-  bool needRefetch;
 
   // If this pipeline stage is stalled, we assume the whole pipeline is stalled.
   bool stalled;

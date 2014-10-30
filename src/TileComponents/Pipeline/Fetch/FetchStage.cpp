@@ -101,7 +101,6 @@ void FetchStage::readLoop() {
 
         if (decoded.endOfIPK()) {
           reachedEndOfPacket();
-          readState = RS_READY;
 
           // Check for the special case of single-instruction persistent packets.
           // These do not need to be read repeatedly, so remove the persistent flag.
@@ -111,8 +110,35 @@ void FetchStage::readLoop() {
             currentPacket.persistent = false;
           }
 
-          if (!currentPacket.persistent)
+          // If a fetch in a persistent packet is sure to execute, the packet
+          // should no longer be persistent.
+          // FIXME: this is a temporary stop-gap measure until fetches have
+          // moved to their proper location in the DecodeStage. This pipeline
+          // stage will then receive notification of a new fetch before reading
+          // a new instruction, so this block won't be needed.
+          if (currentPacket.persistent) {
+            switch (decoded.opcode()) {
+              case InstructionMap::OP_FETCH:
+              case InstructionMap::OP_FETCHR:
+              case InstructionMap::OP_FETCHPST:
+              case InstructionMap::OP_FETCHPSTR:
+              case InstructionMap::OP_FILL:
+              case InstructionMap::OP_FILLR:
+              case InstructionMap::OP_PSEL_FETCH:
+              case InstructionMap::OP_PSEL_FETCHR:
+                currentPacket.persistent = false;
+                break;
+              default:
+                break;
+            }
+          }
+
+          if (currentPacket.persistent)
+            currentInstructionSource().startNewPacket(currentPacket.location.index);
+          else {
             currentPacket.reset();
+            readState = RS_READY;
+          }
         }
 
         jumpedThisCycle = false;
@@ -124,10 +150,7 @@ void FetchStage::readLoop() {
       }
       break;
     }
-
-    default:
-      throw InvalidOptionException("FetchStage::readState", readState);
-  }
+  } // end switch
 
 }
 
@@ -204,10 +227,7 @@ void FetchStage::writeLoop() {
 
       break;
     }
-
-    default:
-      throw InvalidOptionException("FetchStage::writeState", writeState);
-  }
+  } // end switch
 
 }
 
@@ -301,6 +321,9 @@ void FetchStage::checkTags(MemoryAddr addr,
   fetchBuffer.write(fetch);
 
 //  cout << "wrote to fetch buffer " << addr << endl;
+
+  // Break out of persistent mode if we have another packet to execute.
+  currentPacket.persistent = false;
 }
 
 bool FetchStage::inCache(const MemoryAddr addr, opcode_t operation) {
@@ -311,8 +334,6 @@ bool FetchStage::inCache(const MemoryAddr addr, opcode_t operation) {
   // error with the current arrangement.
   assert(addr > 0);
 
-  // If we are looking for a packet, we are going to want to execute it at some
-  // point. Find out where in the execution queue the packet should go.
   PacketInfo& packet = pendingPacket;
 
   // Find out where, if anywhere, the packet is located.
@@ -336,20 +357,10 @@ bool FetchStage::inCache(const MemoryAddr addr, opcode_t operation) {
   if (packet.inCache && !packet.execute)
     packet.reset();
 
-  // If we're in persistent execution mode, but just fetched a new packet, stop
-  // executing this packet.
-  // Note that the fetch must currently be the last instruction of the packet.
-  if (packet.execute && currentPacket.persistent)
-    nextIPK();
-
   if (ENERGY_TRACE)
     Instrumentation::IPKCache::tagCheck(id, packet.inCache, addr, previousFetch);
 
   previousFetch = addr;
-
-  if (!packet.inCache) {
-    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS);
-  }
 
   return found;
 }
@@ -404,8 +415,6 @@ void FetchStage::nextIPK() {
 }
 
 MemoryAddr FetchStage::newPacketArriving(const InstLocation& location) {
-  Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS);
-
   // Check whether we fetched this packet, or whether it's being sent to us
   // from another core.
   // FIXME: it's not possible to be sure - should we add in extra restrictions?
@@ -514,7 +523,7 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
   stalled             = false;  // Start off idle, but not stalled.
   jumpedThisCycle     = false;
   finishedPacketRead  = false;
-  needRefetch         = false;
+  previousFetch       = DEFAULT_TAG;
 
   currentPacket.reset(); pendingPacket.reset();
 

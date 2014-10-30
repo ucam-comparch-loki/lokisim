@@ -104,6 +104,12 @@ private:
   void           readChannelMapTable(DecodedInst& inst) const;
   const ChannelMapEntry& channelMapTableEntry(MapIndex entry) const;
 
+  // Fetch the address requested by the instruction.
+  void           fetch(const DecodedInst& inst);
+
+  // Returns whether we are currently allowed to carry out a fetch request.
+  bool           canFetch() const;
+
   // Perform a TESTCH operation.
   bool           testChannel(ChannelIndex index) const;
 
