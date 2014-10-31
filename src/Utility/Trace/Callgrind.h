@@ -122,6 +122,10 @@ private:
   // function a given instruction is within.
   static vector<FunctionInfo> functions;
 
+  // A special case which allows us to continue tracing even if we see
+  // unexpected instructions.
+  static FunctionInfo unknownFunction;
+
   // Record the execution statistics for each function.
   static std::map<MemoryAddr, TopLevelFunction> functionStats;
 

@@ -18,6 +18,7 @@ using std::map;
 bool                                              Callgrind::tracing = false;
 ofstream*                                         Callgrind::log;
 vector<Callgrind::FunctionInfo>                   Callgrind::functions;
+Callgrind::FunctionInfo                           Callgrind::unknownFunction;
 map<MemoryAddr, Callgrind::TopLevelFunction>      Callgrind::functionStats;
 vector<vector<MemoryAddr> >                       Callgrind::callStack;
 vector<Callgrind::Stats>                          Callgrind::currentFunction;
@@ -30,6 +31,10 @@ void Callgrind::startTrace(const string& logfile, const string& binaryFile) {
 
   // Collect all relevant information from the binary.
   buildFunctionList(binaryFile);
+
+  unknownFunction.start = 0;
+  unknownFunction.end = -1;
+  unknownFunction.name = "unknown";
 
   for (unsigned int i=0; i<NUM_CORES; i++) {
     callStack.push_back(vector<MemoryAddr>());
@@ -113,7 +118,8 @@ const Callgrind::FunctionInfo& Callgrind::functionOf(MemoryAddr instAddress) {
 
   cerr << "Callgrind tracer unable to find function containing address 0x"
        << std::hex << instAddress << std::dec << endl;
-  throw 1;
+
+  return unknownFunction;
 }
 
 void Callgrind::buildFunctionList(const string& binaryFile) {
@@ -121,28 +127,37 @@ void Callgrind::buildFunctionList(const string& binaryFile) {
   string command("loki-elf-objdump -t " + binaryFile);
   FILE* terminalOutput = popen(command.c_str(), "r");
 
-  // We're only interested in the functions.
-  char line[100];
-  vector<string> words;
-  while (fgets(line, 100, terminalOutput) != NULL) {
-    const string lineStr(line);
-    if (lineStr.length() > 15 && lineStr[15] == 'F') {           // Function flag
-      StringManipulation::split(lineStr, ' ', words);
-
+  // Format of a line:
+  //   00002588 g     F .text  00000bec decode
+  // line[0:7]    = start address
+  // line[9:15]   = flags
+  // line[17:22]  = segment (text, data, read-only, etc)
+  // line[23:30]  = length (bytes)
+  // line[32:]    = name
+  char lineBuf[100];
+  while (fgets(lineBuf, 100, terminalOutput) != NULL) {
+    const string line(lineBuf);
+    // We're only interested in the functions: in the text segment.
+    if (line.length() > 34 && line.substr(17,5) == ".text") {
       std::stringstream ss, ss2;
       FunctionInfo info;
 
       // Trim the trailing newline from the name.
-      info.name = words.back().substr(0, words.back().size()-1);
+      info.name = line.substr(32, line.size()-32-1);
 
       // Start address
-      ss << std::hex << words[0];
+      ss << std::hex << line.substr(0,8);
       ss >> info.start;
 
-      // The size field is combined with some other text, so need a substring.
-      ss2 << std::hex << words[3].substr(words[3].size()-8);
-      ss2 >> info.end;
-      info.end += info.start;
+      // Length.
+      unsigned int length;
+      ss2 << std::hex << line.substr(24,8);
+      ss2 >> length;
+      if (length == 0)
+        continue;
+
+      // Add length to start to get end of function.
+      info.end = info.start + length;
 
       functions.push_back(info);
     }
