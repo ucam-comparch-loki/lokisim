@@ -40,28 +40,33 @@ uint GeneralPurposeCacheHandler::log2Exact(uint value) {
 	return result;
 }
 
-bool GeneralPurposeCacheHandler::lookupCacheLine(uint32_t address, uint &slot) {
+bool GeneralPurposeCacheHandler::lookupCacheLine(uint32_t address, uint &slot, bool read, bool instruction) {
 	assert((address & mGroupMask) == (mGroupIndex << mLineBits));
 
 	uint32_t lineAddress = address & ~mLineMask;
 	uint setIndex = (address & mSetMask) >> mSetShift;
 	uint startSlot = setIndex * mWayCount;
+	bool hit;
 
 	for (uint i = 0; i < mWayCount; i++) {
 		if (mLineValid[startSlot + i] && mAddresses[startSlot + i] == lineAddress) {
 			slot = startSlot + i;
 
-			if (CSIM_TRACE)
-			  printf("MEM%d 0x%08x: hit\n", this->mBankNumber, address);
-
-			return true;
+			hit = true;
+			break;
 		}
 	}
 
-	if (CSIM_TRACE)
-    printf("MEM%d 0x%08x: miss\n", this->mBankNumber, address);
+	hit = false;
 
-	return false;
+	if (CSIM_TRACE)
+    printf("MEM%d 0x%08x: %s %s %s\n", this->mBankNumber,
+                                       address,
+                                       instruction ? "instruction" : "data",
+                                       read ? "read" : "write",
+                                       hit ? "hit" : "miss");
+
+	return hit;
 }
 
 void GeneralPurposeCacheHandler::promoteCacheLine(uint slot) {
@@ -170,7 +175,7 @@ bool GeneralPurposeCacheHandler::readWord(uint32_t address, uint32_t &data, bool
 	assert((address & 0x3) == 0);
 
 	uint slot;
-	if (!lookupCacheLine(address, slot)) {
+	if (!lookupCacheLine(address, slot, true, instruction)) {
 		assert(!resume);
 
 		if (ENERGY_TRACE && !debug) {
@@ -217,7 +222,7 @@ bool GeneralPurposeCacheHandler::readHalfWord(uint32_t address, uint32_t &data, 
 	assert((address & 0x1) == 0);
 
 	uint slot;
-	if (!lookupCacheLine(address, slot)) {
+	if (!lookupCacheLine(address, slot, true, false)) {
 		assert(!resume);
 		if (ENERGY_TRACE && !debug)
 			Instrumentation::memoryReadHalfWord(mBankNumber, address, true);
@@ -243,7 +248,7 @@ bool GeneralPurposeCacheHandler::readHalfWord(uint32_t address, uint32_t &data, 
 
 bool GeneralPurposeCacheHandler::readByte(uint32_t address, uint32_t &data, bool resume, bool debug) {
 	uint slot;
-	if (!lookupCacheLine(address, slot)) {
+	if (!lookupCacheLine(address, slot, true, false)) {
 		assert(!resume);
 		if (ENERGY_TRACE && !debug)
 			Instrumentation::memoryReadByte(mBankNumber, address, true);
@@ -281,7 +286,7 @@ bool GeneralPurposeCacheHandler::writeWord(uint32_t address, uint32_t data, bool
 	  throw ReadOnlyException(address);
 
 	uint slot;
-	if (!lookupCacheLine(address, slot)) {
+	if (!lookupCacheLine(address, slot, false, false)) {
 		assert(!resume);
 		if (ENERGY_TRACE && !debug)
 			Instrumentation::memoryWriteWord(mBankNumber, address, true);
@@ -311,7 +316,7 @@ bool GeneralPurposeCacheHandler::writeHalfWord(uint32_t address, uint32_t data, 
     throw ReadOnlyException(address);
 
 	uint slot;
-	if (!lookupCacheLine(address, slot)) {
+	if (!lookupCacheLine(address, slot, false, false)) {
 		assert(!resume);
 		if (ENERGY_TRACE && !debug)
 			Instrumentation::memoryWriteHalfWord(mBankNumber, address, true);
@@ -346,7 +351,7 @@ bool GeneralPurposeCacheHandler::writeByte(uint32_t address, uint32_t data, bool
     throw ReadOnlyException(address);
 
 	uint slot;
-	if (!lookupCacheLine(address, slot)) {
+	if (!lookupCacheLine(address, slot, false, false)) {
 		assert(!resume);
 		if (ENERGY_TRACE && !debug)
 			Instrumentation::memoryWriteByte(mBankNumber, address, true);
