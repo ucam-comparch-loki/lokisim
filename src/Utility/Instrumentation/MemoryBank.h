@@ -43,6 +43,7 @@ namespace Instrumentation {
 		static void ringPassThrough(int bank);
 
 		static void printStats();
+		static void printSummary();
 	  static void dumpEventCounts(std::ostream& os);
 
 		// Some very crude access methods to give energy estimation some concept

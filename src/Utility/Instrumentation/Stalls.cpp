@@ -326,6 +326,8 @@ void Stalls::printStats() {
 
   if (endOfExecution == 0) return;
 
+  clog << "Total execution time: " << endOfExecution << " cycles" << endl;
+
   clog << "Core activity:" << endl;
   clog << "  Core\tInstructions\tActive\tIdle\tStalled (insts|data|bypass|output)" << endl;
 
@@ -358,8 +360,6 @@ void Stalls::printStats() {
 
   if (BATCH_MODE)
 	cout << "<@GLOBAL>total_cycles:" << endOfExecution << "</@GLOBAL>" << endl;
-
-  clog << "Total execution time: " << endOfExecution << " cycles" << endl;
 
 }
 

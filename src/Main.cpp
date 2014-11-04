@@ -10,6 +10,7 @@
 #include "Utility/Arguments.h"
 #include "Utility/Blocking.h"
 #include "Utility/Debugger.h"
+#include "Utility/Instrumentation/MemoryBank.h"
 #include "Utility/Instrumentation.h"
 #include "Utility/Instrumentation/Operations.h"
 #include "Utility/Instrumentation/Stalls.h"
@@ -168,6 +169,7 @@ int simulate() {
   }
   else if (Arguments::summarise()) {
     Instrumentation::Stalls::printStats();
+    Instrumentation::MemoryBank::printSummary();
   }
 
   Instrumentation::stopLogging();
