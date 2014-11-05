@@ -328,6 +328,10 @@ bool         DecodeStage::canFetch() const {
   return core()->canCheckTags();
 }
 
+bool         DecodeStage::connectionFromMemory(ChannelIndex channel) const {
+  return core()->channelMapTable.connectionFromMemory(channel);
+}
+
 bool         DecodeStage::testChannel(ChannelIndex index) const {
   return rcet.testChannelEnd(index);
 }

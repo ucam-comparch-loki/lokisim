@@ -89,6 +89,10 @@ private:
   // method sends the second part.
   bool continueOp(const DecodedInst& input, DecodedInst& output);
 
+  // Returns whether we expect data arriving at a particular buffer to be coming
+  // from memory. ChannelIndex 0 is mapped to r2.
+  bool connectionFromMemory(ChannelIndex buffer) const;
+
   // Determine whether the current instruction should be executed, based on its
   // predicate bits, and the contents of the predicate register.
   bool shouldExecute(const DecodedInst& inst);

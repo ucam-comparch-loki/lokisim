@@ -44,6 +44,11 @@ public:
   // necessary, as it may bypass functionality in other accessor methods.
   ChannelMapEntry& operator[] (const MapIndex entry);
 
+  // For instrumentation purposes only, keep track of which of our input
+  // channels we expect to receive data from memory, and which will receive
+  // data from cores. ChannelIndex 0 is mapped to the IPK FIFO.
+  bool connectionFromMemory(ChannelIndex channel) const;
+
 private:
 
   // Keep track of the number of cycles this component is active so we can
@@ -66,6 +71,10 @@ private:
 
   std::vector<ChannelMapEntry> table;
   LokiVector<sc_event> allCreditsEvent;
+
+  // One entry per input channel. true = we've set up a memory connection to
+  // return data to this input. false = anything else.
+  std::vector<bool> memoryConnection;
 
   // Store a copy of the most recently read entry so we can measure the number
   // of bits which toggle.

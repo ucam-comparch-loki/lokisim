@@ -110,6 +110,10 @@ private:
   // Returns whether we are currently allowed to carry out a fetch request.
   bool           canFetch() const;
 
+  // Returns whether we expect data arriving on a given channel to be from
+  // memory. ChannelIndex 0 is mapped to the IPK FIFO.
+  bool           connectionFromMemory(ChannelIndex channel) const;
+
   // Perform a TESTCH operation.
   bool           testChannel(ChannelIndex index) const;
 

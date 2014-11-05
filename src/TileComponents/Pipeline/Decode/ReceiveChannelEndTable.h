@@ -62,13 +62,15 @@ public:
   // When data arrives over the network, put it into the appropriate buffer.
   void checkInput(ChannelIndex input);
 
-  // Read from the specified channel end.
+  // Read from the specified channel end. ChannelIndex 0 is mapped to r2.
   int32_t read(ChannelIndex channelEnd);
 
   // Non-blocking read operation which doesn't consume any data in the buffer.
+  // ChannelIndex 0 is mapped to r2.
   int32_t readDebug(ChannelIndex channelEnd) const;
 
-  // Return whether or not the channel contains data.
+  // Return whether or not the channel contains data. ChannelIndex 0 is mapped
+  // to r2.
   bool testChannelEnd(ChannelIndex channelEnd) const;
 
   // Return the index of a channel which currently contains data, or throw
@@ -78,6 +80,8 @@ public:
   // The least significant bit represents channel 0 (r2).
   ChannelIndex selectChannelEnd(unsigned int bitmask);
 
+  // Event which is triggered whenever data arrives on a particular channel.
+  // ChannelIndex 0 is mapped to r2.
   const sc_event& receivedDataEvent(ChannelIndex buffer) const;
 
 protected:

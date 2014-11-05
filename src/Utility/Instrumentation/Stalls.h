@@ -13,33 +13,29 @@
 #include "CounterMap.h"
 #include <map>
 
+using std::map;
+using std::vector;
+
 namespace Instrumentation {
-
-struct StallData {
-
-  // The total number of cycles each core has spent stalled for various
-  // reasons.
-  CounterMap<ComponentID>
-    totalStalls, dataStalls, instructionStalls,
-    outputStalls, bypassStalls, idleTimes;
-
-};
-
 
 class Stalls: public InstrumentationBase {
 
 public:
 
-  // All possible reasons for a core being unable to work. Use a bitmask in
-  // case the core stalls for multiple reasons simultaneously.
+  // All possible reasons for a core being unable to work.
   enum StallReason {
     NOT_STALLED         = 0,      // Not currently stalled.
-    STALL_DATA          = 1 << 0, // Waiting for input data to arrive.
-    STALL_INSTRUCTIONS  = 1 << 1, // Waiting for instructions to arrive.
-    STALL_OUTPUT        = 1 << 2, // Waiting for output channel to clear.
-    STALL_FORWARDING    = 1 << 3, // Waiting for a result to be forwarded.
-    IDLE                = 1 << 4  // Have no work to be doing
+    STALL_MEMORY_DATA   = 1,      // Waiting for data to arrive from memory.
+    STALL_CORE_DATA     = 2,      // Waiting for data to arrive from a core.
+    STALL_INSTRUCTIONS  = 3,      // Waiting for instructions to arrive.
+    STALL_OUTPUT        = 4,      // Waiting for output channel to clear.
+    STALL_FORWARDING    = 5,      // Waiting for a result to be forwarded.
+    STALL_FETCH         = 6,      // Waiting to issue a fetch.
+    IDLE                = 7,      // Have no work to be doing.
+    STALL_ANY           = 8       // Unspecified/sum of all others.
   };
+
+  static const uint NUM_STALL_REASONS = STALL_ANY + 1;
 
   static void init();
 
@@ -84,17 +80,18 @@ private:
                           StallReason   reason,
                           cycle_count_t duration);
 
-  // The reason for each core being stalled at the moment (if stalled).
-  static std::map<ComponentID, int> stallReason;
+  // The reason for each core being stalled at the moment (if stalled). Use a
+  // bitmask in case the core stalls for multiple reasons simultaneously.
+  static map<ComponentID, uint> stallReason;
 
   // Maintain separate logs for normal execution, and for the parts of the
   // program which are explicitly logged.
-  static StallData total, loggedOnly;
+  // There is one CounterMap for each possible reason to stall, and each
+  // CounterMap holds data for each core.
+  static vector<CounterMap<ComponentID> > total, loggedOnly;
 
-  // The times that each core started stalling.
-  static std::map<ComponentID, cycle_count_t>
-    startedStalling, startedDataStall, startedInstructionStall,
-    startedOutputStall, startedBypassStall, startedIdle;
+  // The times that each core started stalling for each reason.
+  static vector<map<ComponentID, cycle_count_t> > startStall;
 
   // The number of cores stalled or idle at the moment.
   static count_t numStalled;

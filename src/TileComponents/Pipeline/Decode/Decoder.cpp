@@ -631,7 +631,12 @@ void Decoder::waitUntilArrival(ChannelIndex channel) {
 
   // Test the channel to see if the data is already there.
   if (!parent()->testChannel(channel)) {
-    stall(true, Instrumentation::Stalls::STALL_DATA);
+    bool fromMemory = connectionFromMemory(channel);
+    Instrumentation::Stalls::StallReason reason =
+        fromMemory ? Instrumentation::Stalls::STALL_MEMORY_DATA
+                   : Instrumentation::Stalls::STALL_CORE_DATA;
+
+    stall(true, reason);
 
     if (DEBUG)
       cout << this->name() << " waiting for channel " << (int)channel << endl;
@@ -639,7 +644,7 @@ void Decoder::waitUntilArrival(ChannelIndex channel) {
     // Wait until something arrives.
     wait(parent()->receivedDataEvent(channel) | cancelEvent);
 
-    stall(false, Instrumentation::Stalls::STALL_DATA);
+    stall(false, reason);
   }
 }
 
@@ -681,8 +686,10 @@ void Decoder::waitForOperands2(const DecodedInst& inst) {
 
   // If the decoder blocked waiting for any input, unblock it now that all data
   // have arrived.
-  if (blocked)
-    stall(false, Instrumentation::Stalls::STALL_DATA);
+  if (blocked) {
+    stall(false, Instrumentation::Stalls::STALL_MEMORY_DATA);
+    stall(false, Instrumentation::Stalls::STALL_CORE_DATA);
+  }
 
   // FIXME: there is currently a problem if we are indirectly reading from a
   // channel end, and the instruction is aborted. This method doesn't wait for
@@ -693,7 +700,11 @@ bool Decoder::checkChannelInput(ChannelIndex channel) {
   bool haveData = parent()->testChannel(channel);
 
   if (!haveData) {
-    stall(true, Instrumentation::Stalls::STALL_DATA);  // Remember to unstall again afterwards.
+    bool fromMemory = connectionFromMemory(channel);
+    Instrumentation::Stalls::StallReason reason =
+        fromMemory ? Instrumentation::Stalls::STALL_MEMORY_DATA
+                   : Instrumentation::Stalls::STALL_CORE_DATA;
+    stall(true, reason);  // Remember to unstall again afterwards.
 
     if (DEBUG)
       cout << this->name() << " waiting for channel " << (int)channel << endl;
@@ -702,6 +713,12 @@ bool Decoder::checkChannelInput(ChannelIndex channel) {
   }
 
   return haveData;
+}
+
+bool Decoder::connectionFromMemory(ChannelIndex buffer) const {
+  // Convert from input buffer index to input channel index.
+  ChannelIndex channel = Registers::fromChannelID(buffer);
+  return parent()->connectionFromMemory(channel);
 }
 
 void Decoder::remoteExecution(DecodedInst& instruction) const {
@@ -821,14 +838,13 @@ bool Decoder::isFetch(opcode_t opcode) const {
 void Decoder::fetch(DecodedInst& inst) {
   // Wait until we are allowed to check the cache tags.
   if (!parent()->canFetch()) {
-    // TODO: would prefer a better stall reason.
-    stall(true, Instrumentation::Stalls::STALL_INSTRUCTIONS);
+    stall(true, Instrumentation::Stalls::STALL_FETCH);
     while (!parent()->canFetch()) {
       if (DEBUG)
         cout << this->name() << " waiting to issue " << inst << endl;
       wait(1, sc_core::SC_NS);
     }
-    stall(false, Instrumentation::Stalls::STALL_INSTRUCTIONS);
+    stall(false, Instrumentation::Stalls::STALL_FETCH);
   }
 
   // Extra forwarding path.

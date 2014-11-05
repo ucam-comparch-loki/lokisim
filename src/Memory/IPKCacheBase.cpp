@@ -69,6 +69,10 @@ CacheIndex IPKCacheBase::write(const Instruction newData) {
   updateWritePointer();
   assert(!writePointer.isNull());
 
+  if (fresh[writePointer.value()])
+    cerr << "Warning: " << this->name << " overwriting unread instruction\n"
+         << "  " << data[writePointer.value()] << " <= " << newData << endl;
+
   // Write the data to the cache.
   data[writePointer.value()] = newData;
   fresh[writePointer.value()] = true;

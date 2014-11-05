@@ -77,9 +77,13 @@ void ReceiveChannelEndTable::waitForData(unsigned int bitmask) {
       if (((bitmask >> i) & 1) && !buffers[i].empty())
         return;
     }
-    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_DATA);
+
+    // Since multiple channels are involved, assume data can come from anywhere.
+    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_MEMORY_DATA);
+    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_CORE_DATA);
     wait(newData);
-    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_DATA);
+    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_MEMORY_DATA);
+    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_CORE_DATA);
   }
 }
 
