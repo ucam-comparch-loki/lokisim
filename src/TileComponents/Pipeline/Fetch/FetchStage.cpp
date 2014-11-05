@@ -25,11 +25,17 @@ void FetchStage::readLoop() {
   // Idle = have no work to do; stalled = waiting for work to arrive
   if (currentPacket.active() && !finishedPacketRead) {
     Instruction lastReceived;
-    if (currentPacket.location.component == IPKFIFO)
+    MemoryAddr location;
+    if (currentPacket.location.component == IPKFIFO) {
       lastReceived = iToFIFO.read();
-    else
+      location = fifo.memoryAddress() + BYTES_PER_WORD;
+    }
+    else {
       lastReceived = iToCache.read();
-    const DecodedInst inst(lastReceived);
+      location = cache.memoryAddress() + BYTES_PER_WORD;
+    }
+    DecodedInst inst(lastReceived);
+    inst.location(location);
 
     if (waitingForInstructions())
       Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS, inst);
@@ -42,6 +48,7 @@ void FetchStage::readLoop() {
       // Have a packet fetched and ready to go.
       if (pendingPacket.active() && pendingPacket.execute) {
         currentPacket = pendingPacket;
+        finishedPacketRead = false;
 
         if (currentPacket.location.index == NOT_IN_CACHE) {
           next_trigger(currentInstructionSource().fillChangedEvent());

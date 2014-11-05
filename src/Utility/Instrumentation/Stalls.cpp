@@ -383,7 +383,7 @@ const string Stalls::name(StallReason reason) {
     case NOT_STALLED:         return "not stalled";
     case STALL_MEMORY_DATA:   return "memory data";
     case STALL_CORE_DATA:     return "core data";
-    case STALL_INSTRUCTIONS:  return "inst";
+    case STALL_INSTRUCTIONS:  return "insts";
     case STALL_OUTPUT:        return "output";
     case STALL_FORWARDING:    return "forwarding";
     case STALL_FETCH:         return "fetch";
@@ -409,7 +409,7 @@ void Stalls::recordEvent(cycle_count_t currentCycle,
     logStream->width(12);
     *logStream << duration;
     if (reason != IDLE)
-      *logStream << " (0x" << inst.location() << ": " << inst << ")";
+      *logStream << " (0x" << std::hex << inst.location() << std::dec << ": " << inst << ")";
     *logStream << endl;
   }
 }
