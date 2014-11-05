@@ -213,8 +213,8 @@ void SendChannelEndTable::sendLoopGlobal() {
 }
 
 /* Stall the pipeline until the specified channel is empty. */
-void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
-  Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT);
+void SendChannelEndTable::waitUntilEmpty(MapIndex channel, const DecodedInst& inst) {
+  Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
   waiting = true;
   bufferFillChanged.notify(); // No it didn't - use separate events?
 
@@ -225,7 +225,7 @@ void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
   // TODO: split this method into two (at this point) and perhaps integrate
   // with the main loop.
 
-  Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT);
+  Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
   waiting = false;
   bufferFillChanged.notify(); // No it didn't - use separate events?
 }

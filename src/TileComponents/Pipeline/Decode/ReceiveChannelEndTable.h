@@ -78,7 +78,7 @@ public:
   // mapped index (e.g. if channel 0 contains data, 2 would be returned).
   // The bitmask selects a subset of channels that we are interested in.
   // The least significant bit represents channel 0 (r2).
-  ChannelIndex selectChannelEnd(unsigned int bitmask);
+  ChannelIndex selectChannelEnd(unsigned int bitmask, const DecodedInst& inst);
 
   // Event which is triggered whenever data arrives on a particular channel.
   // ChannelIndex 0 is mapped to r2.
@@ -92,7 +92,7 @@ private:
 
   // Wait for data to arrive on one of the channels specified in the bitmask.
   // The least significant bit represents channel 0 (r2).
-  void waitForData(unsigned int bitmask);
+  void waitForData(unsigned int bitmask, const DecodedInst& inst);
 
   // Update the flow control value for an input port.
   void updateFlowControl(ChannelIndex buffer);

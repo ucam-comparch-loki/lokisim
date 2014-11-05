@@ -97,7 +97,7 @@ private:
   int32_t        getForwardedData() const;
 
   // Get the value of the predicate register.
-  bool           predicate() const;
+  bool           predicate(const DecodedInst& inst) const;
 
   // Retrieve the instruction's network destination from the channel map table,
   // if appropriate.
@@ -118,7 +118,7 @@ private:
   bool           testChannel(ChannelIndex index) const;
 
   // Perform a SELCH operation.
-  ChannelIndex   selectChannel(unsigned int bitmask);
+  ChannelIndex   selectChannel(unsigned int bitmask, const DecodedInst& inst);
 
   const sc_event& receivedDataEvent(ChannelIndex buffer) const;
 

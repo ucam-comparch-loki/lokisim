@@ -101,7 +101,7 @@ public:
   // Read the value of the predicate register.
   // The optional wait parameter makes it possible to wait until the latest
   // predicate has been computed, if it will be written this cycle.
-  virtual bool     readPredReg(bool wait=false);
+  virtual bool     readPredReg(bool wait=false, const DecodedInst& inst = DecodedInst());
 
   const Word readWord(MemoryAddr addr) const;
   const Word readByte(MemoryAddr addr) const;

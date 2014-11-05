@@ -40,9 +40,9 @@ void WriteStage::updateReady() {
     oReady.write(ready);
 
     if (ready)
-      Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT);
+      Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT, currentInst);
     else
-      Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT);
+      Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT, currentInst);
 
     if (DEBUG && !ready)
       cout << this->name() << " stalled." << endl;

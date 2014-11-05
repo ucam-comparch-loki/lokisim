@@ -48,9 +48,9 @@ bool ReceiveChannelEndTable::testChannelEnd(ChannelIndex channelEnd) const {
   return !buffers[channelEnd].empty();
 }
 
-ChannelIndex ReceiveChannelEndTable::selectChannelEnd(unsigned int bitmask) {
+ChannelIndex ReceiveChannelEndTable::selectChannelEnd(unsigned int bitmask, const DecodedInst& inst) {
   // Wait for data to arrive on one of the channels we're interested in.
-  waitForData(bitmask);
+  waitForData(bitmask, inst);
 
   int startPoint = currentChannel.value();
 
@@ -70,7 +70,7 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd(unsigned int bitmask) {
   return -1;
 }
 
-void ReceiveChannelEndTable::waitForData(unsigned int bitmask) {
+void ReceiveChannelEndTable::waitForData(unsigned int bitmask, const DecodedInst& inst) {
   // Wait for data to arrive on one of the channels we're interested in.
   while (true) {
     for (ChannelIndex i=0; i<NUM_RECEIVE_CHANNELS; i++) {
@@ -79,11 +79,11 @@ void ReceiveChannelEndTable::waitForData(unsigned int bitmask) {
     }
 
     // Since multiple channels are involved, assume data can come from anywhere.
-    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_MEMORY_DATA);
-    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_CORE_DATA);
+    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_MEMORY_DATA, inst);
+    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_CORE_DATA, inst);
     wait(newData);
-    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_MEMORY_DATA);
-    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_CORE_DATA);
+    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_MEMORY_DATA, inst);
+    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_CORE_DATA, inst);
   }
 }
 

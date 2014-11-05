@@ -78,14 +78,14 @@ void     Core::writeReg(RegisterIndex reg, int32_t value, bool indirect) {
   regs.write(reg, value, indirect);
 }
 
-bool     Core::readPredReg(bool waitForExecution) {
+bool     Core::readPredReg(bool waitForExecution, const DecodedInst& inst) {
   // The wait parameter tells us to wait for the predicate to be written if
   // the instruction in the execute stage will set it.
   if (waitForExecution && execute.currentInstruction().setsPredicate()
                        && !execute.currentInstruction().hasResult()) {
-    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_FORWARDING);
+    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_FORWARDING, inst);
     wait(execute.executedEvent());
-    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_FORWARDING);
+    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_FORWARDING, inst);
   }
 
   return pred.read();

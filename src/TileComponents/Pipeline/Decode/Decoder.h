@@ -36,7 +36,7 @@ public:
   bool allOperandsReady() const;
   bool hasOutput() const;
   const DecodedInst& getOutput() const;
-  bool checkChannelInput(ChannelIndex channel);
+  bool checkChannelInput(ChannelIndex channel, const DecodedInst& inst);
   void waitForOperands2(const DecodedInst& inst);
 
   // Extract information from the input instruction and determine what the
@@ -76,7 +76,7 @@ private:
   int32_t readRegs(PortIndex port, RegisterIndex index, bool indirect = false);
 
   // Wait until there is data in a particular input buffer.
-  void    waitUntilArrival(ChannelIndex channel);
+  void    waitUntilArrival(ChannelIndex channel, const DecodedInst& inst);
 
   // Prepare this instruction to be sent to a remote core.
   void    remoteExecution(DecodedInst& instruction) const;
@@ -103,7 +103,7 @@ private:
   // Perform a fetch.
   void fetch(DecodedInst& inst);
 
-  void stall(bool stall, Instrumentation::Stalls::StallReason reason);
+  void stall(bool stall, Instrumentation::Stalls::StallReason reason, const DecodedInst& cause);
 
   DecodeStage* parent() const;
 

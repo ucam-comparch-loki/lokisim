@@ -85,7 +85,7 @@ private:
   void          sendLoopGlobal();
 
   // Stall the pipeline until the channel specified is empty.
-  void          waitUntilEmpty(MapIndex channel);
+  void          waitUntilEmpty(MapIndex channel, const DecodedInst& inst);
 
   // A credit was received, so update the corresponding credit counter.
   void          receivedCredit();

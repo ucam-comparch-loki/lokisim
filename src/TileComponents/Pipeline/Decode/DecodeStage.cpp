@@ -245,10 +245,10 @@ int32_t      DecodeStage::getForwardedData() const {
   return core()->getForwardedData();
 }
 
-bool         DecodeStage::predicate() const {
+bool         DecodeStage::predicate(const DecodedInst& inst) const {
   // true = wait for the execute stage to write the predicate first, if
   // necessary
-  return core()->readPredReg(true);
+  return core()->readPredReg(true, inst);
 }
 
 void         DecodeStage::readChannelMapTable(DecodedInst& inst) const {
@@ -293,13 +293,13 @@ void DecodeStage::fetch(const DecodedInst& inst) {
       break;
 
     case InstructionMap::OP_PSEL_FETCH:
-      fetchAddress = core()->readPredReg(true) ? inst.operand1() : inst.operand2();
+      fetchAddress = core()->readPredReg(true, inst) ? inst.operand1() : inst.operand2();
       break;
 
     case InstructionMap::OP_PSEL_FETCHR: {
       int immed1 = inst.immediate();
       int immed2 = inst.immediate2();
-      fetchAddress = readReg(1, 1) + BYTES_PER_WORD*(core()->readPredReg(true) ? immed1 : immed2);
+      fetchAddress = readReg(1, 1) + BYTES_PER_WORD*(core()->readPredReg(true, inst) ? immed1 : immed2);
       break;
     }
 
@@ -336,8 +336,8 @@ bool         DecodeStage::testChannel(ChannelIndex index) const {
   return rcet.testChannelEnd(index);
 }
 
-ChannelIndex DecodeStage::selectChannel(unsigned int bitmask) {
-  return rcet.selectChannelEnd(bitmask);
+ChannelIndex DecodeStage::selectChannel(unsigned int bitmask, const DecodedInst& inst) {
+  return rcet.selectChannelEnd(bitmask, inst);
 }
 
 const sc_event& DecodeStage::receivedDataEvent(ChannelIndex buffer) const {

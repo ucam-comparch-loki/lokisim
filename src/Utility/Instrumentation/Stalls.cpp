@@ -89,38 +89,43 @@ void Stalls::stopLogging() {
   if (loggingStarted != NOT_LOGGING)
     loggedCycles += currentCycle() - loggingStarted;
 
+
   // Unstall all cores so their stall durations are added to the totals.
+  // No particular instruction caused this, so use a dummy one.
+  static Instruction nullInst(0);
+  static const DecodedInst decoded(nullInst);
+
   for (uint i=0; i<NUM_TILES; i++) {
     for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
       ComponentID id(i, j);
 
       if (startStall[STALL_MEMORY_DATA][id] != UNSTALLED) {
-        unstall(id, STALL_MEMORY_DATA);
-        stall(id, STALL_MEMORY_DATA);
+        unstall(id, STALL_MEMORY_DATA, decoded);
+        stall(id, STALL_MEMORY_DATA, decoded);
       }
       if (startStall[STALL_CORE_DATA][id] != UNSTALLED) {
-        unstall(id, STALL_CORE_DATA);
-        stall(id, STALL_CORE_DATA);
+        unstall(id, STALL_CORE_DATA, decoded);
+        stall(id, STALL_CORE_DATA, decoded);
       }
       if (startStall[STALL_INSTRUCTIONS][id] != UNSTALLED) {
-        unstall(id, STALL_INSTRUCTIONS);
-        stall(id, STALL_INSTRUCTIONS);
+        unstall(id, STALL_INSTRUCTIONS, decoded);
+        stall(id, STALL_INSTRUCTIONS, decoded);
       }
       if (startStall[STALL_OUTPUT][id] != UNSTALLED) {
-        unstall(id, STALL_OUTPUT);
-        stall(id, STALL_OUTPUT);
+        unstall(id, STALL_OUTPUT, decoded);
+        stall(id, STALL_OUTPUT, decoded);
       }
       if (startStall[STALL_FORWARDING][id] != UNSTALLED) {
-        unstall(id, STALL_FORWARDING);
-        stall(id, STALL_FORWARDING);
+        unstall(id, STALL_FORWARDING, decoded);
+        stall(id, STALL_FORWARDING, decoded);
       }
       if (startStall[STALL_FETCH][id] != UNSTALLED) {
-        unstall(id, STALL_FETCH);
-        stall(id, STALL_FETCH);
+        unstall(id, STALL_FETCH, decoded);
+        stall(id, STALL_FETCH, decoded);
       }
       if (startStall[IDLE][id] != UNSTALLED) {
-        unstall(id, IDLE);
-        stall(id, IDLE);
+        unstall(id, IDLE, decoded);
+        stall(id, IDLE, decoded);
       }
     }
   }
@@ -145,15 +150,16 @@ void Stalls::startDetailedLog(const string& filename) {
   logStream->width(12);
   *logStream << "reason";
   logStream->width(12);
-  *logStream << "duration" << endl;
+  *logStream << "duration";
+  *logStream << " (instruction causing stall)" << endl;
 }
 
-void Stalls::stall(const ComponentID id, StallReason reason) {
-  Stalls::stall(id, currentCycle(), reason);
+void Stalls::stall(const ComponentID id, StallReason reason, const DecodedInst& inst) {
+  Stalls::stall(id, currentCycle(), reason, inst);
 }
 
-void Stalls::unstall(const ComponentID id, StallReason reason) {
-  Stalls::unstall(id, currentCycle(), reason);
+void Stalls::unstall(const ComponentID id, StallReason reason, const DecodedInst& inst) {
+  Stalls::unstall(id, currentCycle(), reason, inst);
 }
 
 void Stalls::activity(const ComponentID id, bool idle) {
@@ -161,7 +167,7 @@ void Stalls::activity(const ComponentID id, bool idle) {
   else Stalls::active(id, currentCycle());
 }
 
-void Stalls::stall(const ComponentID id, cycle_count_t cycle, StallReason reason) {
+void Stalls::stall(const ComponentID id, cycle_count_t cycle, StallReason reason, const DecodedInst& inst) {
   uint bitmask = 1 << reason;
 
   // We're already stalled for this reason.
@@ -174,7 +180,7 @@ void Stalls::stall(const ComponentID id, cycle_count_t cycle, StallReason reason
 
   // If we are stalled, we have work to do, so can't be idle.
   if (stallReason[id] & IDLE)
-    unstall(id, cycle, IDLE);
+    unstall(id, cycle, IDLE, inst);
 
   if (stallReason[id] == NOT_STALLED) {
     numStalled++;
@@ -195,7 +201,7 @@ cycle_count_t max(cycle_count_t time1, cycle_count_t time2) {
   return (time1 > time2) ? time1 : time2;
 }
 
-void Stalls::unstall(const ComponentID id, cycle_count_t cycle, StallReason reason) {
+void Stalls::unstall(const ComponentID id, cycle_count_t cycle, StallReason reason, const DecodedInst& inst) {
   uint bitmask = 1 << reason;
 
   if (stallReason[id] & bitmask) {
@@ -220,7 +226,7 @@ void Stalls::unstall(const ComponentID id, cycle_count_t cycle, StallReason reas
     stallReason[id] &= ~bitmask;
 
     if (detailedLog)
-      recordEvent(cycle, id, reason, timeStalled);
+      recordEvent(cycle, id, reason, timeStalled, inst);
 
     if (stallReason[id] == NOT_STALLED) {
       numStalled--;
@@ -235,14 +241,17 @@ void Stalls::unstall(const ComponentID id, cycle_count_t cycle, StallReason reas
 }
 
 void Stalls::idle(const ComponentID id, cycle_count_t cycle) {
-  stall(id, cycle, IDLE);
+  // Idleness isn't caused by any particular instruction, so provide a dummy.
+  static Instruction nullInst(0);
+  static const DecodedInst decoded(nullInst);
+  stall(id, cycle, IDLE, decoded);
 }
 
 void Stalls::active(const ComponentID id, cycle_count_t cycle) {
-  // Only become active if we were idle. If we were properly stalled, waiting
-  // for information, then we are still stalled.
-//  if (stallReason[id] & IDLE)
-    unstall(id, cycle, IDLE);
+  // Idleness isn't caused by any particular instruction, so provide a dummy.
+  static Instruction nullInst(0);
+  static const DecodedInst decoded(nullInst);
+  unstall(id, cycle, IDLE, decoded);
 }
 
 void Stalls::endExecution() {
@@ -386,7 +395,8 @@ const string Stalls::name(StallReason reason) {
 void Stalls::recordEvent(cycle_count_t currentCycle,
                          ComponentID   component,
                          StallReason   reason,
-                         cycle_count_t duration) {
+                         cycle_count_t duration,
+                         const DecodedInst& inst) {
   assert(detailedLog);
 
   if (duration > 0 && component.isCore()) {
@@ -397,6 +407,9 @@ void Stalls::recordEvent(cycle_count_t currentCycle,
     logStream->width(12);
     *logStream << name(reason);
     logStream->width(12);
-    *logStream << duration << endl;
+    *logStream << duration;
+    if (reason != IDLE)
+      *logStream << " (0x" << inst.location() << ": " << inst << ")";
+    *logStream << endl;
   }
 }

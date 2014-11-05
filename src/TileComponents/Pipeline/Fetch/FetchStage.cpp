@@ -24,10 +24,17 @@ void FetchStage::readLoop() {
   // Instrumentation stuff
   // Idle = have no work to do; stalled = waiting for work to arrive
   if (currentPacket.active() && !finishedPacketRead) {
-    if (waitingForInstructions())
-      Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS);
+    Instruction lastReceived;
+    if (currentPacket.location.component == IPKFIFO)
+      lastReceived = iToFIFO.read();
     else
-      Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS);
+      lastReceived = iToCache.read();
+    const DecodedInst inst(lastReceived);
+
+    if (waitingForInstructions())
+      Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS, inst);
+    else
+      Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS, inst);
   }
 
   switch (readState) {

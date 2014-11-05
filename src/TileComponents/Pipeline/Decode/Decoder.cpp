@@ -460,9 +460,9 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
       // Wait for result from execute stage, if necessary.
       if (output.operand1Source() == DecodedInst::BYPASS) {
-        Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_FORWARDING);
+        stall(true, Instrumentation::Stalls::STALL_FORWARDING, output);
         wait(1.1, sc_core::SC_NS);
-        Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_FORWARDING);
+        stall(false, Instrumentation::Stalls::STALL_FORWARDING, output);
         output.operand1(parent()->getForwardedData());
       }
       output.sourceReg1(output.operand1());
@@ -487,7 +487,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       output.result(parent()->testChannel(output.immediate())); break;
 
     case InstructionMap::OP_SELCH:
-      output.result(parent()->selectChannel(output.immediate())); break;
+      output.result(parent()->selectChannel(output.immediate(), output)); break;
 
     case InstructionMap::OP_IBJMP: {
       JumpOffset jump = (JumpOffset)output.immediate();
@@ -565,22 +565,22 @@ bool Decoder::ready() const {
 void Decoder::waitForOperands(const DecodedInst& dec) {
   // Wait until all data has arrived from the network.
   if (InstructionMap::hasDestReg(dec.opcode()) && Registers::isChannelEnd(dec.destination()))
-    waitUntilArrival(Registers::toChannelID(dec.destination()));
+    waitUntilArrival(Registers::toChannelID(dec.destination()), dec);
   if (InstructionMap::hasSrcReg1(dec.opcode())) {
     if (Registers::isChannelEnd(dec.sourceReg1()))
-      waitUntilArrival(Registers::toChannelID(dec.sourceReg1()));
+      waitUntilArrival(Registers::toChannelID(dec.sourceReg1()), dec);
     if (!dec.isALUOperation() && !dec.isMemoryOperation() && (dec.sourceReg1() == previous.destination())) {
-      Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_FORWARDING);
+      stall(true, Instrumentation::Stalls::STALL_FORWARDING, dec);
       // HACK! May take multiple cycles. FIXME
       // Add an extra 0.1 cycles to ensure that the result is ready for forwarding.
       // Would ideally like to use execute.executedEvent(), but then also need
       // to check for whether the instruction has already executed.
       wait(1.1, sc_core::SC_NS);
-      Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_FORWARDING);
+      stall(false, Instrumentation::Stalls::STALL_FORWARDING, dec);
     }
   }
   if (InstructionMap::hasSrcReg2(dec.opcode()) && Registers::isChannelEnd(dec.sourceReg2()))
-    waitUntilArrival(Registers::toChannelID(dec.sourceReg2()));
+    waitUntilArrival(Registers::toChannelID(dec.sourceReg2()), dec);
 
   // FIXME: there is currently a problem if we are indirectly reading from a
   // channel end, and the instruction is aborted. This method doesn't wait for
@@ -625,7 +625,7 @@ int32_t Decoder::readRegs(PortIndex port, RegisterIndex index, bool indirect) {
   return parent()->readReg(port, index, indirect);
 }
 
-void Decoder::waitUntilArrival(ChannelIndex channel) {
+void Decoder::waitUntilArrival(ChannelIndex channel, const DecodedInst& inst) {
   if (instructionCancelled)
     return;
 
@@ -636,7 +636,7 @@ void Decoder::waitUntilArrival(ChannelIndex channel) {
         fromMemory ? Instrumentation::Stalls::STALL_MEMORY_DATA
                    : Instrumentation::Stalls::STALL_CORE_DATA;
 
-    stall(true, reason);
+    stall(true, reason, inst);
 
     if (DEBUG)
       cout << this->name() << " waiting for channel " << (int)channel << endl;
@@ -644,7 +644,7 @@ void Decoder::waitUntilArrival(ChannelIndex channel) {
     // Wait until something arrives.
     wait(parent()->receivedDataEvent(channel) | cancelEvent);
 
-    stall(false, reason);
+    stall(false, reason, inst);
   }
 }
 
@@ -668,17 +668,17 @@ void Decoder::waitForOperands2(const DecodedInst& inst) {
   //  2. If the channel is empty, wait for data to arrive.
   if (needDestination && InstructionMap::hasDestReg(inst.opcode()) && Registers::isChannelEnd(inst.destination())) {
     needDestination = false;
-    if (!checkChannelInput(Registers::toChannelID(inst.destination())))
+    if (!checkChannelInput(Registers::toChannelID(inst.destination()), inst))
       return;
   }
   if (needOperand1 && InstructionMap::hasSrcReg1(inst.opcode()) && Registers::isChannelEnd(inst.sourceReg1())) {
     needOperand1 = false;
-    if (!checkChannelInput(Registers::toChannelID(inst.sourceReg1())))
+    if (!checkChannelInput(Registers::toChannelID(inst.sourceReg1()), inst))
       return;
   }
   if (needOperand2 && InstructionMap::hasSrcReg2(inst.opcode()) && Registers::isChannelEnd(inst.sourceReg2())) {
     needOperand2 = false;
-    if (!checkChannelInput(Registers::toChannelID(inst.sourceReg2())))
+    if (!checkChannelInput(Registers::toChannelID(inst.sourceReg2()), inst))
       return;
   }
 
@@ -687,8 +687,8 @@ void Decoder::waitForOperands2(const DecodedInst& inst) {
   // If the decoder blocked waiting for any input, unblock it now that all data
   // have arrived.
   if (blocked) {
-    stall(false, Instrumentation::Stalls::STALL_MEMORY_DATA);
-    stall(false, Instrumentation::Stalls::STALL_CORE_DATA);
+    stall(false, Instrumentation::Stalls::STALL_MEMORY_DATA, inst);
+    stall(false, Instrumentation::Stalls::STALL_CORE_DATA, inst);
   }
 
   // FIXME: there is currently a problem if we are indirectly reading from a
@@ -696,7 +696,7 @@ void Decoder::waitForOperands2(const DecodedInst& inst) {
   // registers specified by indirect reads.
 }
 
-bool Decoder::checkChannelInput(ChannelIndex channel) {
+bool Decoder::checkChannelInput(ChannelIndex channel, const DecodedInst& inst) {
   bool haveData = parent()->testChannel(channel);
 
   if (!haveData) {
@@ -704,7 +704,7 @@ bool Decoder::checkChannelInput(ChannelIndex channel) {
     Instrumentation::Stalls::StallReason reason =
         fromMemory ? Instrumentation::Stalls::STALL_MEMORY_DATA
                    : Instrumentation::Stalls::STALL_CORE_DATA;
-    stall(true, reason);  // Remember to unstall again afterwards.
+    stall(true, reason, inst);  // Remember to unstall again afterwards.
 
     if (DEBUG)
       cout << this->name() << " waiting for channel " << (int)channel << endl;
@@ -789,7 +789,7 @@ bool Decoder::shouldExecute(const DecodedInst& inst) {
       Registers::isChannelEnd(inst.sourceReg1()) ||
       Registers::isChannelEnd(inst.sourceReg2())) {
     short predBits = inst.predicate();
-    bool predicate = parent()->predicate();
+    bool predicate = parent()->predicate(inst);
 
     return (predBits == Instruction::P     &&  predicate) ||
            (predBits == Instruction::NOT_P && !predicate);
@@ -838,21 +838,21 @@ bool Decoder::isFetch(opcode_t opcode) const {
 void Decoder::fetch(DecodedInst& inst) {
   // Wait until we are allowed to check the cache tags.
   if (!parent()->canFetch()) {
-    stall(true, Instrumentation::Stalls::STALL_FETCH);
+    stall(true, Instrumentation::Stalls::STALL_FETCH, inst);
     while (!parent()->canFetch()) {
       if (DEBUG)
         cout << this->name() << " waiting to issue " << inst << endl;
       wait(1, sc_core::SC_NS);
     }
-    stall(false, Instrumentation::Stalls::STALL_FETCH);
+    stall(false, Instrumentation::Stalls::STALL_FETCH, inst);
   }
 
   // Extra forwarding path.
   if (inst.operand1Source() == DecodedInst::BYPASS ||
       inst.operand2Source() == DecodedInst::BYPASS) {
-    stall(true, Instrumentation::Stalls::STALL_FORWARDING);
+    stall(true, Instrumentation::Stalls::STALL_FORWARDING, inst);
     wait(1.1, sc_core::SC_NS);
-    stall(false, Instrumentation::Stalls::STALL_FORWARDING);
+    stall(false, Instrumentation::Stalls::STALL_FORWARDING, inst);
 
     if (inst.operand1Source() == DecodedInst::BYPASS)
       inst.operand1(readRegs(1, inst.sourceReg1()));
@@ -863,12 +863,12 @@ void Decoder::fetch(DecodedInst& inst) {
   parent()->fetch(inst);
 }
 
-void Decoder::stall(bool stall, Instrumentation::Stalls::StallReason reason) {
+void Decoder::stall(bool stall, Instrumentation::Stalls::StallReason reason, const DecodedInst& cause) {
   blocked = stall;
   if (stall)
-    Instrumentation::Stalls::stall(id, reason);
+    Instrumentation::Stalls::stall(id, reason, cause);
   else
-    Instrumentation::Stalls::unstall(id, reason);
+    Instrumentation::Stalls::unstall(id, reason, cause);
   blockedEvent.notify();
 }
 

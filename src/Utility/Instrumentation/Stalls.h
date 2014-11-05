@@ -9,9 +9,11 @@
 #define STALLS_H_
 
 #include "../../Datatype/ComponentID.h"
+#include "../../Datatype/DecodedInst.h"
 #include "InstrumentationBase.h"
 #include "CounterMap.h"
 #include <map>
+
 
 using std::map;
 using std::vector;
@@ -44,12 +46,12 @@ public:
 
   static void startDetailedLog(const string& filename);
 
-  static void stall(const ComponentID id, StallReason reason);
-  static void unstall(const ComponentID id, StallReason reason);
+  static void stall(const ComponentID id, StallReason reason, const DecodedInst& inst);
+  static void unstall(const ComponentID id, StallReason reason, const DecodedInst& inst);
   static void activity(const ComponentID id, bool idle);
 
-  static void stall(const ComponentID id, cycle_count_t cycle, StallReason reason);
-  static void unstall(const ComponentID id, cycle_count_t cycle, StallReason reason);
+  static void stall(const ComponentID id, cycle_count_t cycle, StallReason reason, const DecodedInst& inst);
+  static void unstall(const ComponentID id, cycle_count_t cycle, StallReason reason, const DecodedInst& inst);
   static void idle(const ComponentID id, cycle_count_t cycle);
   static void active(const ComponentID id, cycle_count_t cycle);
   static void endExecution();
@@ -78,7 +80,8 @@ private:
   static void recordEvent(cycle_count_t currentCycle,
                           ComponentID   component,
                           StallReason   reason,
-                          cycle_count_t duration);
+                          cycle_count_t duration,
+                          const DecodedInst& instruction);
 
   // The reason for each core being stalled at the moment (if stalled). Use a
   // bitmask in case the core stalls for multiple reasons simultaneously.
