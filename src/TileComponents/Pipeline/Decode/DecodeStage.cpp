@@ -348,6 +348,10 @@ void         DecodeStage::jump(JumpOffset offset) const {
   core()->jump(offset);
 }
 
+void         DecodeStage::instructionExecuted() {
+  core()->cregs.instructionExecuted();
+}
+
 void         DecodeStage::unstall() {
   decoder.cancelInstruction();
   currentInst.persistent(false);

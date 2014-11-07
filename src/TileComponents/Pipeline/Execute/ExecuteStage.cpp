@@ -117,9 +117,11 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         break;
 
       case InstructionMap::OP_CREGRDI:
+        operation.result(core()->cregs.read(operation.immediate()));
+        break;
+
       case InstructionMap::OP_CREGWRI:
-        cerr << operation << endl;
-        throw UnsupportedFeatureException("control registers");
+        core()->cregs.write(operation.immediate(), operation.operand1());
         break;
 
       case InstructionMap::OP_SCRATCHRD:
@@ -155,6 +157,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         break;
 
       case InstructionMap::OP_SYSCALL:
+        // TODO: remove from ALU.
         alu.systemCall(operation);
         break;
 
@@ -194,8 +197,13 @@ void ExecuteStage::newInput(DecodedInst& operation) {
   if (//ENERGY_TRACE &&  <-- do this check elsewhere
       operation.isALUOperation() &&
       operation.memoryOp() != MemoryRequest::PAYLOAD_ONLY &&
-      !blocked)
+      !blocked) {
     Instrumentation::executed(id, operation, willExecute);
+
+    // Note: there is a similar call from the decode stage for instructions
+    // which complete their execution there.
+    core()->cregs.instructionExecuted();
+  }
 
   previousInstExecuted = willExecute;
 }
@@ -364,7 +372,9 @@ bool ExecuteStage::isStalled() const {
   // When we have multi-cycle operations (e.g. multiplies), we will need to use
   // this.
   // TODO: replace with oData.valid();
+  // Currently results in occasional buffer over-filling.
   return !iReady.read();
+//  return oData.valid();
 }
 
 bool ExecuteStage::checkPredicate(DecodedInst& inst) {
@@ -429,7 +439,7 @@ void ExecuteStage::reportStalls(ostream& os) {
   }
 }
 
-ExecuteStage::ExecuteStage(sc_module_name name, const ComponentID& ID) :
+ExecuteStage::ExecuteStage(const sc_module_name& name, const ComponentID& ID) :
     PipelineStage(name, ID),
     alu("alu", ID),
     scratchpad("scratchpad", ID) {

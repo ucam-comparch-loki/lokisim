@@ -384,8 +384,10 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 	output.isid(isid);
   }
 
-  if (/*ENERGY_TRACE &&*/ !input.isALUOperation())
+  if (/*ENERGY_TRACE &&*/ !input.isALUOperation()) {
     Instrumentation::executed(id, input, execute);
+    parent()->instructionExecuted();
+  }
 
   // If the instruction may perform irreversible reads from a channel-end,
   // and we know it won't execute, stop it here.

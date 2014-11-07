@@ -12,10 +12,10 @@
 #define EXECUTESTAGE_H_
 
 #include "../PipelineStage.h"
+#include "../../../Network/NetworkTypedefs.h"
 #include "../../../Utility/Blocking.h"
 #include "ALU.h"
 #include "Scratchpad.h"
-#include "../../../Network/NetworkTypedefs.h"
 
 class ExecuteStage: public PipelineStage, public Blocking {
 
@@ -42,7 +42,7 @@ public:
 public:
 
   SC_HAS_PROCESS(ExecuteStage);
-  ExecuteStage(sc_module_name name, const ComponentID& ID);
+  ExecuteStage(const sc_module_name& name, const ComponentID& ID);
 
 //==============================//
 // Methods

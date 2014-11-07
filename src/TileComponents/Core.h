@@ -26,6 +26,7 @@
 #include "Pipeline/Write/WriteStage.h"
 #include "Pipeline/ChannelMapTable.h"
 #include "../Network/NetworkTypedefs.h"
+#include "Pipeline/ControlRegisters.h"
 
 class DecodedInst;
 class PipelineRegister;
@@ -192,12 +193,14 @@ private:
   vector<PipelineRegister*> pipelineRegs;
 
   ChannelMapTable        channelMapTable;
+  ControlRegisters       cregs;
 
   friend class RegisterFile;
   friend class FetchStage;
   friend class DecodeStage;
   friend class ExecuteStage;
   friend class WriteStage;
+  friend class ControlRegisters;
 
 //==============================//
 // Local state

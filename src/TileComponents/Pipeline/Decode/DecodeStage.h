@@ -125,6 +125,10 @@ private:
   // Tell the instruction packet cache to jump to a new instruction.
   void           jump(JumpOffset offset) const;
 
+  // Signal from the Decoder telling that an instruction has been executed, and
+  // will not continue further down the pipeline. Used to update control regs.
+  void           instructionExecuted();
+
 //==============================//
 // Components
 //==============================//

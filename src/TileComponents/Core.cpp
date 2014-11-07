@@ -216,6 +216,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
     execute("execute", ID),
     write("write", ID),
     channelMapTable("channel_map_table", ID),
+    cregs("cregs", ID),
     localNetwork(network) {
 
   currentlyStalled = false;
@@ -246,6 +247,8 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
   inputCrossbar.clock(clock);
   inputCrossbar.creditClock(fastClock);
   inputCrossbar.oCredit[0](oCredit);
+
+  cregs.clock(clock);
 
   // Create pipeline registers.
   pipelineRegs.push_back(
