@@ -383,6 +383,11 @@ void FetchStage::jump(const JumpOffset offset) {
   finishedPacketRead = false;
   jumpedThisCycle = true;
   currentInstructionSource().jump(offset);
+
+  // In case the packet has ended since reading the jump instruction. There
+  // will be no effect otherwise.
+  readState = RS_READ;
+  newPacketAvailable.notify();
 }
 
 void FetchStage::nextIPK() {
