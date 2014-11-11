@@ -184,7 +184,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
     if (success)
       sendOutput();
 
-  } // end if will execute
+  } // end if (will execute)
   else {
     // If the instruction will not be executed, invalidate it so we don't
     // try to forward data from it.
@@ -211,8 +211,6 @@ void ExecuteStage::newInput(DecodedInst& operation) {
 void ExecuteStage::sendOutput() {
   if (currentInst.sendsOnNetwork()) {
 	if (LBT_TRACE) {
-	  // FIXME: I am not sure whether I understood the calculation of memory addresses completely - set them here to get final result
-
 	  if ((currentInst.opcode() == InstructionMap::OP_LDW ||
 		currentInst.opcode() == InstructionMap::OP_LDHWU ||
 		currentInst.opcode() == InstructionMap::OP_LDBU ||
