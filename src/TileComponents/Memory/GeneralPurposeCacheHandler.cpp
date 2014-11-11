@@ -40,7 +40,7 @@ uint GeneralPurposeCacheHandler::log2Exact(uint value) {
 	return result;
 }
 
-bool GeneralPurposeCacheHandler::lookupCacheLine(uint32_t address, uint &slot, bool read, bool instruction) {
+bool GeneralPurposeCacheHandler::lookupCacheLine(uint32_t address, uint &slot, bool resume, bool read, bool instruction) {
 	assert((address & mGroupMask) == (mGroupIndex << mLineBits));
 
 	uint32_t lineAddress = address & ~mLineMask;
@@ -57,7 +57,7 @@ bool GeneralPurposeCacheHandler::lookupCacheLine(uint32_t address, uint &slot, b
 		}
 	}
 
-	if (CSIM_TRACE)
+	if (CSIM_TRACE && !resume)
     printf("MEM%d 0x%08x: %s %s %s\n", this->mBankNumber,
                                        address,
                                        instruction ? "instruction" : "data",
@@ -178,7 +178,7 @@ bool GeneralPurposeCacheHandler::readWord(uint32_t address, uint32_t &data, bool
 	assert((address & 0x3) == 0);
 
 	uint slot;
-	if (!lookupCacheLine(address, slot, true, instruction)) {
+	if (!lookupCacheLine(address, slot, resume, true, instruction)) {
 		assert(!resume);
 
 		if (!debug) {
@@ -225,7 +225,7 @@ bool GeneralPurposeCacheHandler::readHalfWord(uint32_t address, uint32_t &data, 
 	assert((address & 0x1) == 0);
 
 	uint slot;
-	if (!lookupCacheLine(address, slot, true, false)) {
+	if (!lookupCacheLine(address, slot, resume, true, false)) {
 		assert(!resume);
 		if (!debug)
 			Instrumentation::memoryReadHalfWord(mBankNumber, address, true);
@@ -251,7 +251,7 @@ bool GeneralPurposeCacheHandler::readHalfWord(uint32_t address, uint32_t &data, 
 
 bool GeneralPurposeCacheHandler::readByte(uint32_t address, uint32_t &data, bool resume, bool debug) {
 	uint slot;
-	if (!lookupCacheLine(address, slot, true, false)) {
+	if (!lookupCacheLine(address, slot, resume, true, false)) {
 		assert(!resume);
 		if (!debug)
 			Instrumentation::memoryReadByte(mBankNumber, address, true);
@@ -289,7 +289,7 @@ bool GeneralPurposeCacheHandler::writeWord(uint32_t address, uint32_t data, bool
 	  throw ReadOnlyException(address);
 
 	uint slot;
-	if (!lookupCacheLine(address, slot, false, false)) {
+	if (!lookupCacheLine(address, slot, resume, false, false)) {
 		assert(!resume);
 		if (!debug)
 			Instrumentation::memoryWriteWord(mBankNumber, address, true);
@@ -319,7 +319,7 @@ bool GeneralPurposeCacheHandler::writeHalfWord(uint32_t address, uint32_t data, 
     throw ReadOnlyException(address);
 
 	uint slot;
-	if (!lookupCacheLine(address, slot, false, false)) {
+	if (!lookupCacheLine(address, slot, resume, false, false)) {
 		assert(!resume);
 		if (!debug)
 			Instrumentation::memoryWriteHalfWord(mBankNumber, address, true);
@@ -354,7 +354,7 @@ bool GeneralPurposeCacheHandler::writeByte(uint32_t address, uint32_t data, bool
     throw ReadOnlyException(address);
 
 	uint slot;
-	if (!lookupCacheLine(address, slot, false, false)) {
+	if (!lookupCacheLine(address, slot, resume, false, false)) {
 		assert(!resume);
 		if (!debug)
 			Instrumentation::memoryWriteByte(mBankNumber, address, true);
