@@ -132,10 +132,8 @@ void Stalls::stopLogging() {
 
   loggingStarted = NOT_LOGGING;
 
-  if (detailedLog) {
+  if (detailedLog)
     logStream->close();
-    delete logStream;
-  }
 }
 
 void Stalls::startDetailedLog(const string& filename) {
