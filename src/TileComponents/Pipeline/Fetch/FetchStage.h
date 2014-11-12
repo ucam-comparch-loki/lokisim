@@ -151,11 +151,6 @@ private:
   // This may allow a new fetch command to be sent.
   void          packetFinishedArriving();
 
-  void          reachedEndOfPacket();
-
-  // Returns whether all instruction stores are empty.
-  bool          waitingForInstructions();
-
   // Find where in the FIFO or cache the given tag is. If it isn't anywhere,
   // returns InstLocation(UNKNOWN, NOT_IN_CACHE).
   const InstLocation lookup(const MemoryAddr addr);
@@ -200,9 +195,6 @@ private:
   // packet which is due to execute next.
   // Do we want a single pending packet, or a queue of them?
   PacketInfo currentPacket, pendingPacket;
-
-  // Various flags which may mean we aren't executing instructions sequentially.
-  bool jumpedThisCycle, finishedPacketRead;
 
   // If this pipeline stage is stalled, we assume the whole pipeline is stalled.
   bool stalled;

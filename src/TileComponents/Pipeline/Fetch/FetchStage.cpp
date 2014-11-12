@@ -26,9 +26,9 @@ void FetchStage::readLoop() {
       // Have a packet fetched and ready to go.
       if (pendingPacket.active() && pendingPacket.execute) {
         currentPacket = pendingPacket;
-        finishedPacketRead = false;
 
         if (currentPacket.location.index == NOT_IN_CACHE) {
+          Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS, DecodedInst());
           next_trigger(currentInstructionSource().fillChangedEvent());
           break;
         }
@@ -90,8 +90,6 @@ void FetchStage::readLoop() {
         assert((instruction.toInt() != 0) && "Probable junk instruction");
 
         if (decoded.endOfIPK()) {
-          reachedEndOfPacket();
-
           // Check for the special case of single-instruction persistent packets.
           // These do not need to be read repeatedly, so remove the persistent flag.
           if (currentPacket.persistent &&
@@ -130,8 +128,6 @@ void FetchStage::readLoop() {
             readState = RS_READY;
           }
         }
-
-        jumpedThisCycle = false;
 
         outputInstruction(decoded);
         instructionCompleted();
@@ -216,42 +212,6 @@ void FetchStage::writeLoop() {
     }
   } // end switch
 
-}
-
-bool FetchStage::waitingForInstructions() {
-  // An empty component can appear non-empty if it has jumped back to a previous
-  // packet - only want to rely on isEmpty if in the middle of a packet.
-
-  if (jumpedThisCycle)
-    return false;
-
-  // TODO: if the current packet isn't going to be executed, wait until it
-  // finishes arriving or switch to the pending packet.
-
-  if (finishedPacketRead) {
-    // See if we're due to execute the same packet again.
-    if (currentPacket.persistent)
-      return false;
-
-    // See if the next packet has already arrived.
-    if (pendingPacket.location.index != NOT_IN_CACHE)
-      return false;
-
-    // Hack: special case for receiving instructions from another core - they
-    // all appear as separate packets, so we haven't really finishedPacketRead.
-    if (currentPacket.location.component == IPKFIFO &&
-        currentPacket.memAddr == 0 && !fifo.isEmpty()) {
-      finishedPacketRead = false;
-      return false;
-    }
-
-    return true;
-  }
-
-  if (currentPacket.location.component == UNKNOWN)
-    return true;
-  else
-    return currentInstructionSource().isEmpty();
 }
 
 void FetchStage::updateReady() {
@@ -380,8 +340,6 @@ void FetchStage::jump(const JumpOffset offset) {
   if (DEBUG)
     cout << this->name() << " jumped by " << offset << " instructions" << endl;
 
-  finishedPacketRead = false;
-  jumpedThisCycle = true;
   currentInstructionSource().jump(offset);
 
   // In case the packet has ended since reading the jump instruction. There
@@ -392,7 +350,6 @@ void FetchStage::jump(const JumpOffset offset) {
 
 void FetchStage::nextIPK() {
   currentPacket.persistent = false;
-  finishedPacketRead = true;
 
   // Stop the current packet executing if it hasn't finished arriving yet.
   if (currentPacket.arriving())
@@ -462,14 +419,6 @@ void FetchStage::packetFinishedArriving() {
   packetArrivedEvent.notify();
 }
 
-void FetchStage::reachedEndOfPacket() {
-  // Note: we can't actually switch to the next packet yet in case there is a
-  // jump in this packet which we haven't executed yet. Instead, set a flag so
-  // we can switch when we are sure that there are no jumps.
-  if (!jumpedThisCycle)
-    finishedPacketRead = true;
-}
-
 InstructionStore& FetchStage::currentInstructionSource() {
   assert(currentPacket.location.component != UNKNOWN);
 
@@ -511,8 +460,6 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
   writeState = WS_READY;
 
   stalled             = false;  // Start off idle, but not stalled.
-  jumpedThisCycle     = false;
-  finishedPacketRead  = false;
   previousFetch       = DEFAULT_TAG;
 
   currentPacket.reset(); pendingPacket.reset();
