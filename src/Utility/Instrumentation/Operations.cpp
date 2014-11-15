@@ -150,6 +150,15 @@ void Operations::printStats() {
   }
 }
 
+void Operations::printSummary() {
+  using std::clog;
+
+  clog << "Average IPC: ";
+  clog << std::fixed;
+  clog.precision(2);
+  clog << ((double)numOperations() / (double)Instrumentation::currentCycle()) << endl;
+}
+
 void Operations::dumpEventCounts(std::ostream& os) {
   // Stores take two cycles to decode, so the decoder is active for longer.
   count_t decodeCycles = numDecodes_ + executedOps[InstructionMap::OP_STB]

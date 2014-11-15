@@ -44,8 +44,7 @@ void InstructionPacketCache::storeCode(const std::vector<Instruction>& instructi
 }
 
 const Instruction InstructionPacketCache::read() {
-  if (ENERGY_TRACE)
-    Instrumentation::IPKCache::read(id);
+  Instrumentation::IPKCache::read(id);
 
   Instruction inst = cache->read();
   cacheFillChanged.notify();

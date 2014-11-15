@@ -302,8 +302,7 @@ bool FetchStage::inCache(const MemoryAddr addr, opcode_t operation) {
   if (packet.inCache && !packet.execute)
     packet.reset();
 
-  if (ENERGY_TRACE)
-    Instrumentation::IPKCache::tagCheck(id, packet.inCache, addr, previousFetch);
+  Instrumentation::IPKCache::tagCheck(id, packet.inCache, addr, previousFetch);
 
   previousFetch = addr;
 

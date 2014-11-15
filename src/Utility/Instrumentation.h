@@ -24,6 +24,7 @@ namespace Instrumentation {
   void initialise();
   void end();
   void dumpEventCounts(std::ostream& os);
+  void printSummary();
   bool haveEnergyData();
 
   void startLogging();

@@ -10,10 +10,8 @@
 #include "Utility/Arguments.h"
 #include "Utility/Blocking.h"
 #include "Utility/Debugger.h"
-#include "Utility/Instrumentation/MemoryBank.h"
 #include "Utility/Instrumentation.h"
 #include "Utility/Instrumentation/Operations.h"
-#include "Utility/Instrumentation/Stalls.h"
 #include "Utility/Trace/Callgrind.h"
 #include "Utility/Trace/CoreTrace.h"
 #include "Utility/Trace/MemoryTrace.h"
@@ -167,10 +165,8 @@ int simulate() {
     Parameters::printParameters();
     Statistics::printStats();
   }
-  else if (Arguments::summarise()) {
-    Instrumentation::Stalls::printStats();
-    Instrumentation::MemoryBank::printSummary();
-  }
+  else if (Arguments::summarise())
+    Instrumentation::printSummary();
 
   Instrumentation::stopLogging();
 

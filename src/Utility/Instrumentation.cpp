@@ -75,6 +75,13 @@ void Instrumentation::dumpEventCounts(std::ostream& os) {
   os << "</lokitrace>\n";
 }
 
+void Instrumentation::printSummary() {
+  Stalls::printStats();
+  IPKCache::printSummary();
+  MemoryBank::printSummary();
+  Operations::printSummary();
+}
+
 bool Instrumentation::haveEnergyData() {
   // Assume that if we have collected energy data, at least one instruction
   // has been executed.

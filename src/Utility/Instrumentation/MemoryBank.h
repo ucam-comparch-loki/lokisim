@@ -51,6 +51,8 @@ namespace Instrumentation {
 		static long long numReads();
 		static long long numWrites();
 
+		static long long numIPKReadMisses();
+
 	private:
 
 		static std::map<int, bool> modes_;
