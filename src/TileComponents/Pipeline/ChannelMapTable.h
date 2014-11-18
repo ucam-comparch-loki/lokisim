@@ -33,7 +33,12 @@ public:
              ChannelIndex returnTo=0,
              bool writeThrough=false);
 
-  const sc_event& haveAllCredits(MapIndex entry) const;
+  // Event which is triggered when a channel's credit counter reaches its
+  // maximum value.
+  const sc_event& allCreditsEvent(MapIndex entry) const;
+
+  // Event triggered when a credit arrives for a particular channel.
+  const sc_event& creditArrivedEvent(MapIndex entry) const;
 
   void addCredit(MapIndex entry);
   void removeCredit(MapIndex entry);
@@ -70,7 +75,6 @@ public:
 private:
 
   std::vector<ChannelMapEntry> table;
-  LokiVector<sc_event> allCreditsEvent;
 
   // One entry per input channel. true = we've set up a memory connection to
   // return data to this input. false = anything else.

@@ -9,9 +9,12 @@
 #define CHANNELMAPENTRY_H_
 
 #include <assert.h>
+#include "systemc"
 #include "../Typedefs.h"
 #include "../Datatype/ChannelID.h"
 #include "../Utility/Parameters.h"
+
+using sc_core::sc_event;
 
 class ChannelMapEntry {
 
@@ -55,7 +58,16 @@ public:
   uint popCount() const;
   uint hammingDistance(const ChannelMapEntry& other) const;
 
+  // Event which is triggered when a channel's credit counter reaches its
+  // maximum value.
+  const sc_event& allCreditsEvent() const;
+
+  // Event triggered when a credit arrives for a particular channel.
+  const sc_event& creditArrivedEvent() const;
+
   ChannelMapEntry(ComponentID localID);
+  ChannelMapEntry(const ChannelMapEntry& other);
+  ChannelMapEntry& operator=(const ChannelMapEntry& other);
 
 private:
 
@@ -92,6 +104,12 @@ private:
 
   // The current address increment for this entry.
   unsigned int addressIncrement_;
+
+  // Event triggered whenever a credit arrives.
+  sc_event creditArrived_;
+
+  // Event triggered whenever the credit counter reaches its maximum.
+  sc_event haveAllCredits_;
 };
 
 #endif /* CHANNELMAPENTRY_H_ */

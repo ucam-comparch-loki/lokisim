@@ -101,8 +101,8 @@ private:
 
   // Retrieve the instruction's network destination from the channel map table,
   // if appropriate.
-  void           readChannelMapTable(DecodedInst& inst) const;
-  const ChannelMapEntry& channelMapTableEntry(MapIndex entry) const;
+  void           readChannelMapTable(DecodedInst& inst);
+  ChannelMapEntry& channelMapTableEntry(MapIndex entry) const;
 
   // Fetch the address requested by the instruction.
   void           fetch(const DecodedInst& inst);

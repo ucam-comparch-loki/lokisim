@@ -267,7 +267,7 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
   bool success = core()->channelMapTable.write(entry, sendChannel, groupBits, lineBits, returnTo, writeThrough);
   if (!success) {
     blocked = true;
-    next_trigger(core()->channelMapTable.haveAllCredits(entry));
+    next_trigger(core()->channelMapTable.allCreditsEvent(entry));
   }
   else {
     blocked = false;
@@ -280,6 +280,8 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
       inst.networkDestination(sendChannel);
       inst.portClaim(true);
       inst.usesCredits(core()->channelMapTable[entry].usesCredits());
+
+      core()->channelMapTable[entry].removeCredit();
     }
   }
 }

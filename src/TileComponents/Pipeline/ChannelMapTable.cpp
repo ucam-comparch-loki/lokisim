@@ -60,16 +60,19 @@ bool ChannelMapTable::write(MapIndex entry,
   return true;
 }
 
-const sc_event& ChannelMapTable::haveAllCredits(MapIndex entry) const {
-  assert(entry < allCreditsEvent.length());
-  return allCreditsEvent[entry];
+const sc_event& ChannelMapTable::allCreditsEvent(MapIndex entry) const {
+  assert(entry < table.size());
+  return table[entry].allCreditsEvent();
+}
+
+const sc_event& ChannelMapTable::creditArrivedEvent(MapIndex entry) const {
+  assert(entry < table.size());
+  return table[entry].creditArrivedEvent();
 }
 
 void ChannelMapTable::addCredit(MapIndex entry) {
   assert(entry < table.size());
   table[entry].addCredit();
-  if (table[entry].haveAllCredits())
-    allCreditsEvent[entry].notify();
 }
 
 void ChannelMapTable::removeCredit(MapIndex entry) {
@@ -107,6 +110,5 @@ ChannelMapTable::ChannelMapTable(const sc_module_name& name, ComponentID ID) :
     memoryConnection(CORE_INPUT_CHANNELS, false),
     previousRead(ID),
     lastActivity(-1) {
-
-  allCreditsEvent.init(CHANNEL_MAP_SIZE);
+  // Do nothing.
 }

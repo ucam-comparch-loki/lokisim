@@ -161,11 +161,11 @@ int simulate() {
 	LBTTrace::storeFinalMemoryImage(chip.getMemoryData());
 
   // Print debug information
-  if (DEBUG || BATCH_MODE) {
+  if (BATCH_MODE) {
     Parameters::printParameters();
     Statistics::printStats();
   }
-  else if (Arguments::summarise())
+  else if (Arguments::summarise() || DEBUG)
     Instrumentation::printSummary();
 
   Instrumentation::stopLogging();

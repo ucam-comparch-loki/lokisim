@@ -251,19 +251,28 @@ bool         DecodeStage::predicate(const DecodedInst& inst) const {
   return core()->readPredReg(true, inst);
 }
 
-void         DecodeStage::readChannelMapTable(DecodedInst& inst) const {
+// Not const because of the wait().
+void         DecodeStage::readChannelMapTable(DecodedInst& inst) {
   MapIndex channel = inst.channelMapEntry();
-  if (channel != Instruction::NO_CHANNEL) {
-    ChannelID destination = core()->channelMapTable.read(channel);
 
-    if (!destination.isNullMapping()) {
-      inst.networkDestination(destination);
-      inst.usesCredits(core()->channelMapTable[channel].usesCredits());
-    }
-  }
+  if (channel == Instruction::NO_CHANNEL)
+    return;
+
+  ChannelMapEntry& cmtEntry = channelMapTableEntry(channel);
+  ChannelID destination = cmtEntry.destination();
+
+  if (destination.isNullMapping())
+    return;
+
+  if (!cmtEntry.canSend())
+    wait(cmtEntry.creditArrivedEvent());
+  cmtEntry.removeCredit();
+
+  inst.networkDestination(destination);
+  inst.usesCredits(cmtEntry.usesCredits());
 }
 
-const ChannelMapEntry& DecodeStage::channelMapTableEntry(MapIndex entry) const {
+ChannelMapEntry& DecodeStage::channelMapTableEntry(MapIndex entry) const {
   return core()->channelMapTable[entry];
 }
 

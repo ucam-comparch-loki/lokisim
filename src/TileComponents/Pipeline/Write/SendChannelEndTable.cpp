@@ -171,9 +171,6 @@ void SendChannelEndTable::sendLoopLocal() {
 
       oDataLocal.write(data);
 
-      // The local network doesn't use credits.
-//      channelMapTable->removeCredit(inst.channelMapEntry());
-
       // Return to IDLE state and see if there is more data to send.
       sendState = SS_IDLE;
       next_trigger(oDataLocal.ack_event());
@@ -193,8 +190,6 @@ void SendChannelEndTable::sendLoopGlobal() {
   // send on a positive clock edge.
   if (bufferGlobal.empty())
     next_trigger(bufferGlobal.writeEvent());
-//  else if (!channelMapTable->canSend(bufferGlobal.peek().channelMapEntry()))
-//    next_trigger(iCredit.default_event());
   else if (!clock.posedge())
     next_trigger(clock.posedge_event());
   else {
@@ -206,7 +201,6 @@ void SendChannelEndTable::sendLoopGlobal() {
       Instrumentation::Network::traffic(id, data.channelID().getComponentID());
 
     oDataGlobal.write(data);
-//    channelMapTable->removeCredit(inst.channelMapEntry());
 
     next_trigger(oDataGlobal.ack_event());
   }
@@ -220,7 +214,7 @@ void SendChannelEndTable::waitUntilEmpty(MapIndex channel, const DecodedInst& in
 
   // Wait until the channel's credit counter reaches its maximum value, if it
   // is using credits.
-  next_trigger(channelMapTable->haveAllCredits(channel));
+  next_trigger(channelMapTable->allCreditsEvent(channel));
 
   // TODO: split this method into two (at this point) and perhaps integrate
   // with the main loop.

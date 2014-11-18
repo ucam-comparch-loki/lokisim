@@ -284,7 +284,6 @@ void ALU::systemCall(DecodedInst& dec) const {
     }
 
     case 0x30: { /* get current cycle */
-      cerr << "Warning: syscall 0x30 (cycle) is deprecated. Use control registers instead." << endl;
       cycle_count_t cycle = (cycle_count_t)sc_core::sc_time_stamp().to_default_time_units();
       writeReg(11, cycle >> 32);
       writeReg(12, cycle & 0xFFFFFFFF);

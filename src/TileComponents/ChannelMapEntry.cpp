@@ -9,6 +9,8 @@
 #include "../Datatype/ChannelID.h"
 #include <iostream>
 
+using sc_core::sc_event;
+
 #define MAX_CREDITS IN_CHANNEL_BUFFER_SIZE
 
 ChannelID ChannelMapEntry::destination() const {
@@ -114,6 +116,11 @@ void ChannelMapEntry::addCredit() {
   credits_++;
   assert(credits_ >= 0);
   assert(credits_ <= MAX_CREDITS);
+
+  creditArrived_.notify();
+
+  if (credits_ == MAX_CREDITS)
+    haveAllCredits_.notify();
 }
 
 bool ChannelMapEntry::usesCredits() const {
@@ -132,6 +139,14 @@ uint ChannelMapEntry::hammingDistance(const ChannelMapEntry& other) const {
          __builtin_popcount(memoryLineBits_ ^ other.memoryLineBits_);
 }
 
+const sc_event& ChannelMapEntry::allCreditsEvent() const {
+  return haveAllCredits_;
+}
+
+const sc_event& ChannelMapEntry::creditArrivedEvent() const {
+  return creditArrived_;
+}
+
 ChannelMapEntry::ChannelMapEntry(ComponentID localID) {
   id_ = localID;
   destination_ = ChannelID();
@@ -141,4 +156,40 @@ ChannelMapEntry::ChannelMapEntry(ComponentID localID) {
   memoryGroupBits_ = 0;
   memoryLineBits_ = 0;
   addressIncrement_ = 0;
+
+  network_ = CORE_TO_CORE;
+  writeThrough_ = false;
+  returnChannel_ = -1;
+}
+
+ChannelMapEntry::ChannelMapEntry(const ChannelMapEntry& other) {
+  id_ = other.id_;
+  destination_ = other.destination_;
+  credits_ = other.credits_;
+  useCredits_ = other.useCredits_;
+  localMemory_ = other.localMemory_;
+  memoryGroupBits_ = other.memoryGroupBits_;
+  memoryLineBits_ = other.memoryLineBits_;
+  addressIncrement_ = other.addressIncrement_;
+
+  network_ = other.network_;
+  writeThrough_ = other.writeThrough_;
+  returnChannel_ = other.returnChannel_;
+}
+
+ChannelMapEntry& ChannelMapEntry::operator=(const ChannelMapEntry& other) {
+  id_ = other.id_;
+  destination_ = other.destination_;
+  credits_ = other.credits_;
+  useCredits_ = other.useCredits_;
+  localMemory_ = other.localMemory_;
+  memoryGroupBits_ = other.memoryGroupBits_;
+  memoryLineBits_ = other.memoryLineBits_;
+  addressIncrement_ = other.addressIncrement_;
+
+  network_ = other.network_;
+  writeThrough_ = other.writeThrough_;
+  returnChannel_ = other.returnChannel_;
+
+  return *this;
 }
