@@ -265,10 +265,12 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
   fetch.iToCache(dataToBuffers[1]);     fetch.oFlowControl[1](fcFromBuffers[1]);
   fetch.oDataConsumed[0](dataConsumed[0]); fetch.oDataConsumed[1](dataConsumed[1]);
   fetch.oFetchRequest(fetchFlitSignal);
+  fetch.iOutputBufferReady(stageReady[2]);
   fetch.initPipeline(NULL, pipelineRegs[0]);
 
   decode.clock(clock);
   decode.oReady(stageReady[0]);
+  decode.iOutputBufferReady(stageReady[2]);
   for (uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     decode.iData[i](dataToBuffers[i+2]);
     decode.oFlowControl[i](fcFromBuffers[i+2]);

@@ -52,6 +52,10 @@ void SendChannelEndTable::receiveLoop() {
       // Wait for right point in clock cycle
 //      else if (!clock.negedge())
 //        next_trigger(clock.negedge_event());
+      else if (bufferLocal.full())
+        next_trigger(bufferLocal.readEvent());
+      else if (bufferGlobal.full())
+        next_trigger(bufferGlobal.readEvent());
       else {
         assert(!bufferLocal.full());
         assert(!bufferGlobal.full());

@@ -75,7 +75,11 @@ public:
   LokiVector<ReadyOutput> oFlowControl;
   LokiVector<ReadyOutput> oDataConsumed;
 
+  // Fetch request to be sent to output buffer.
   DataOutput          oFetchRequest;
+
+  // Ready signal from output buffer.
+  ReadyInput          iOutputBufferReady;
 
 //==============================//
 // Constructors and destructors

@@ -5,6 +5,11 @@
  * from instructions and preparing it for use by the ALU, collecting data
  * inputs from the network, and sending memory requests to the network.
  *
+ * This is also the point at which an instruction stalls until we can be sure
+ * that it will be able to execute. For example, we wait until there is space
+ * in the output buffer before allowing an instruction which writes to the
+ * network to continue.
+ *
  *  Created on: 6 Jan 2010
  *      Author: db434
  */
@@ -28,7 +33,7 @@ class DecodeStage: public PipelineStage {
 public:
 
 // Inherited from PipelineStage:
-//   sc_in<bool>          clock
+//   ClockInput              clock
 
   // Tell whether this stage is ready for input (ignoring effects of any other stages).
   ReadyOutput              oReady;
@@ -39,6 +44,11 @@ public:
   // A flow control signal for each input (NUM_RECEIVE_CHANNELS).
   LokiVector<ReadyOutput>  oFlowControl;
   LokiVector<ReadyOutput>  oDataConsumed;
+
+  // Ready signal from output buffer. If an instruction might send its data
+  // onto the network, don't let it proceed down the pipeline until this signal
+  // is high.
+  ReadyInput               iOutputBufferReady;
 
 //==============================//
 // Constructors and destructors

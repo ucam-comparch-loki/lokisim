@@ -26,14 +26,14 @@ class ExecuteStage: public PipelineStage, public Blocking {
 public:
 
 // Inherited from PipelineStage:
-//   sc_in<bool>          clock
+//   ClockInput          clock
 
   // Tell whether this stage is ready for input (ignoring effects of any other stages).
-  sc_out<bool>        oReady;
+  ReadyOutput         oReady;
 
   // Data to be sent over the network.
   DataOutput          oData;
-  sc_in<bool>         iReady; // TODO: remove, now that oData has valid/ack
+  ReadyInput          iReady;
 
 //==============================//
 // Constructors and destructors

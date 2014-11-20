@@ -268,6 +268,9 @@ void         DecodeStage::readChannelMapTable(DecodedInst& inst) {
     wait(cmtEntry.creditArrivedEvent());
   cmtEntry.removeCredit();
 
+  if (!iOutputBufferReady.read())
+    wait(iOutputBufferReady.posedge_event());
+
   inst.networkDestination(destination);
   inst.usesCredits(cmtEntry.usesCredits());
 }

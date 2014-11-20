@@ -31,6 +31,11 @@ void ExecuteStage::execute() {
 //    blocked = alu.busy();
 //  }
 
+  if (currentInst.sendsOnNetwork() && !iReady.read()) {
+    next_trigger(iReady.posedge_event());
+    return;
+  }
+
   // If there is already a result, don't do anything
   if (currentInst.hasResult()) {
     if (currentInst.setsPredicate())

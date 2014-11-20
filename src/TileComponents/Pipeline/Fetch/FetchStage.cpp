@@ -155,11 +155,16 @@ void FetchStage::writeLoop() {
       else if (!roomToFetch()) {
         // Wait for there to be space in the cache to fetch a new packet.
         next_trigger(cache.fillChangedEvent());
+        break;
       }
       else if (pendingPacket.active() && pendingPacket.execute) {
         // The pending packet is where we store all the information about the
         // packet we're fetching. Wait for it to become available.
         next_trigger(clock.posedge_event());
+        break;
+      }
+      else if (!iOutputBufferReady.read()) {
+        next_trigger(iOutputBufferReady.posedge_event());
         break;
       }
       else {
