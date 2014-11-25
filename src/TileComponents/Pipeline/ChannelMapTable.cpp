@@ -44,8 +44,10 @@ bool ChannelMapTable::write(MapIndex entry,
 
   if(destination.isCore())
     table[entry].setCoreDestination(destination);
-  else
+  else {
     table[entry].setMemoryDestination(destination, groupBits, lineBits, returnTo, writeThrough);
+    memoryConnection[returnTo] = true;
+  }
 
   if (ENERGY_TRACE) {
     Instrumentation::ChannelMap::write(previous, table[entry]);
@@ -58,15 +60,19 @@ bool ChannelMapTable::write(MapIndex entry,
   return true;
 }
 
-const sc_event& ChannelMapTable::haveAllCredits(MapIndex entry) const {
-  return allCreditsEvent[entry];
+const sc_event& ChannelMapTable::allCreditsEvent(MapIndex entry) const {
+  assert(entry < table.size());
+  return table[entry].allCreditsEvent();
+}
+
+const sc_event& ChannelMapTable::creditArrivedEvent(MapIndex entry) const {
+  assert(entry < table.size());
+  return table[entry].creditArrivedEvent();
 }
 
 void ChannelMapTable::addCredit(MapIndex entry) {
   assert(entry < table.size());
   table[entry].addCredit();
-  if (table[entry].haveAllCredits())
-    allCreditsEvent[entry].notify();
 }
 
 void ChannelMapTable::removeCredit(MapIndex entry) {
@@ -77,6 +83,11 @@ void ChannelMapTable::removeCredit(MapIndex entry) {
 bool ChannelMapTable::canSend(MapIndex entry) const {
   assert(entry < table.size());
   return table[entry].canSend();
+}
+
+bool ChannelMapTable::connectionFromMemory(ChannelIndex channel) const {
+  assert(channel < memoryConnection.size());
+  return memoryConnection[channel];
 }
 
 ChannelMapEntry& ChannelMapTable::operator[] (const MapIndex entry) {
@@ -96,8 +107,8 @@ void ChannelMapTable::activeCycle() {
 ChannelMapTable::ChannelMapTable(const sc_module_name& name, ComponentID ID) :
     Component(name, ID),
     table(CHANNEL_MAP_SIZE, ChannelMapEntry(ID)),
+    memoryConnection(CORE_INPUT_CHANNELS, false),
     previousRead(ID),
     lastActivity(-1) {
-
-  allCreditsEvent.init(CHANNEL_MAP_SIZE);
+  // Do nothing.
 }

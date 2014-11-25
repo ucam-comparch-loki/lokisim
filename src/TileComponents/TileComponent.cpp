@@ -56,7 +56,7 @@ void TileComponent::writeMemByte(MemoryAddr addr, Word data) {
 }
 
 Chip* TileComponent::parent() const {
-  return static_cast<Chip*>(this->get_parent());
+  return static_cast<Chip*>(this->get_parent_object());
 }
 
 /* Constructors and destructors */

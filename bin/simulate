@@ -6,11 +6,13 @@ if len(sys.argv) < 2:
     print "simulate: a simplified interface to the Loki simulator"
     print "Usage: simulate [simulator args] <ELF/loader file> [program args]"
     print "Options:"
-    print "  -dump, -d      Print lots of debug information (slow sim only)"
-    print "  -energy, -e    Generate a log of all main energy-consuming operations"
-    print "  -fast, -f      Use a much faster, but less accurate, simulator"
-    print "  -summary, -s   Print a summary of execution behaviour at the end"
-    print "  -trace, -t     Generate an instruction trace"
+    print "  -callgrind <file>  Dump Callgrind information about function calls"
+    print "  -dump, -d          Print lots of debug information (slow sim only)"
+    print "  -energy, -e        Generate a log of all main energy-consuming operations"
+    print "  -fast, -f          Use a much faster, but less accurate, simulator"
+    print "  -stalltrace <file> Dump information on all stalls to the named file"
+    print "  -summary, -s       Print a summary of execution behaviour at the end"
+    print "  -trace, -t         Generate an instruction trace"
     sys.exit(-1)
 
 # Parts of the command which will be executed
@@ -22,8 +24,12 @@ command = ""
 # Simulator parameters
 use_fast_sim = False
 trace = False
+callgrind = False
+cgFile = None
 dump = False
 energy = False
+stalls = False
+stallFile = None
 summary = False
     
 currentArg = 1
@@ -37,10 +43,20 @@ for i in range(currentArg, len(sys.argv)):
             trace = True
         elif arg == "-fast" or arg == "-f":
             use_fast_sim = True
+        elif arg == "-callgrind":
+            callgrind = True
+            cgFile = sys.argv[i+1]
+            i += 1
+            currentArg += 1
         elif arg == "-dump" or arg == "-d":
             dump = True
         elif arg == "-energy" or arg == "-e":
             energy = True
+        elif arg == "-stalltrace":
+            stalls = True
+            stallFile = sys.argv[i+1]
+            i += 1
+            currentArg += 1
         elif arg == "-summary" or arg == "-s":
             summary = True
         else:
@@ -86,10 +102,14 @@ else:
     command = simulator + " "
     
     if trace:
-        command += "-coretrace " + program + ".trace "  # required for hot_code.py
-        #command += "trace "
+        #command += "-coretrace " + program + ".trace "  # required for hot_code.py
+        command += "-trace "
+    if callgrind:
+        command += "-callgrind " + cgFile + " "
     if energy:
         command += "-energytrace " + program + ".xml "
+    if stalls:
+        command += "-stalltrace " + stallFile + " "
     if summary:
         command += "-summary "
     

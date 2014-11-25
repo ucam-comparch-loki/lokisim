@@ -26,10 +26,6 @@ CacheIndex IPKCacheDirectMapped::cacheIndex(const MemoryAddr address) const {
     return NOT_IN_CACHE;
 }
 
-MemoryAddr IPKCacheDirectMapped::getTag(const CacheIndex position) const {
-  return tags[position];
-}
-
 void IPKCacheDirectMapped::setTag(const CacheIndex position, const MemoryAddr tag) {
   tags[position] = tag;
 }

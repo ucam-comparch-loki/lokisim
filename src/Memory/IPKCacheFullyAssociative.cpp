@@ -7,38 +7,53 @@
 
 #include "IPKCacheFullyAssociative.h"
 
+#include "../Utility/Instrumentation/IPKCache.h"
+
 IPKCacheFullyAssociative::IPKCacheFullyAssociative(const size_t size,
                                                    const size_t numTags,
                                                    const std::string& name) :
     IPKCacheBase(size, numTags, name),
-    alignment(size/numTags) {
+    packetPointers(numTags, NOT_IN_CACHE),
+    nextTag(numTags) {
 
-  assert(alignment != 0);
+}
 
+CacheIndex IPKCacheFullyAssociative::write(const Instruction inst) {
+  CacheIndex returnVal = IPKCacheBase::write(inst);
+
+  // As well as writing the instruction, we also need to invalidate any tags
+  // which point to the cache entry we're writing to.
+
+  CacheIndex entry = writePointer.value();
+  for (unsigned int i=0; i<packetPointers.size(); i++) {
+    if (packetPointers[i] == entry)
+      tags[i] = NOT_IN_CACHE;
+  }
+
+  return returnVal;
 }
 
 CacheIndex IPKCacheFullyAssociative::cacheIndex(const MemoryAddr address) const {
   // Check all tags for a match.
   for (CacheIndex i=0; i<tags.size(); i++) {
     if (tags[i] == address)
-      return i*alignment;
+      return packetPointers[i];
   }
 
   // If we got this far, the tag wasn't found.
   return NOT_IN_CACHE;
 }
 
-MemoryAddr IPKCacheFullyAssociative::getTag(const CacheIndex position) const {
-  assert((position % alignment) == 0);
-  return tags[position/alignment];
-}
-
 void IPKCacheFullyAssociative::setTag(const CacheIndex position, const MemoryAddr tag) {
-  // Only do anything if the cache entry actually has a tag.
-  if ((position % alignment) == 0) {
-    TagIndex tagIndex = position/alignment;
-    tags[tagIndex] = tag;
-  }
+  TagIndex tagIndex = ++nextTag;
+
+  // FIXME: currently setting whole tags to 0xFFFFFFFF instead of using a
+  // single invalidation bit. This messes with the recorded Hamming distances.
+  if (ENERGY_TRACE)
+    Instrumentation::IPKCache::tagWrite(tags[tagIndex], tag);
+
+  tags[tagIndex] = tag;
+  packetPointers[tagIndex] = position;
 }
 
 // Move the read pointer to the next instruction. In the common case, this
@@ -56,11 +71,4 @@ void IPKCacheFullyAssociative::updateReadPointer() {
 
 void IPKCacheFullyAssociative::updateWritePointer() {
   incrementWritePos();
-
-  // If we are about to start a new instruction packet, make sure it is aligned
-  // with the next tag.
-  if (finishedPacketWrite && (writePointer.value() % alignment) != 0) {
-    writePointer += alignment - (writePointer.value() % alignment);
-    updateFillCount();
-  }
 }

@@ -36,7 +36,7 @@ public:
   bool allOperandsReady() const;
   bool hasOutput() const;
   const DecodedInst& getOutput() const;
-  bool checkChannelInput(ChannelIndex channel);
+  bool checkChannelInput(ChannelIndex channel, const DecodedInst& inst);
   void waitForOperands2(const DecodedInst& inst);
 
   // Extract information from the input instruction and determine what the
@@ -76,7 +76,7 @@ private:
   int32_t readRegs(PortIndex port, RegisterIndex index, bool indirect = false);
 
   // Wait until there is data in a particular input buffer.
-  void    waitUntilArrival(ChannelIndex channel);
+  void    waitUntilArrival(ChannelIndex channel, const DecodedInst& inst);
 
   // Prepare this instruction to be sent to a remote core.
   void    remoteExecution(DecodedInst& instruction) const;
@@ -89,11 +89,21 @@ private:
   // method sends the second part.
   bool continueOp(const DecodedInst& input, DecodedInst& output);
 
+  // Returns whether we expect data arriving at a particular buffer to be coming
+  // from memory. ChannelIndex 0 is mapped to r2.
+  bool connectionFromMemory(ChannelIndex buffer) const;
+
   // Determine whether the current instruction should be executed, based on its
   // predicate bits, and the contents of the predicate register.
   bool shouldExecute(const DecodedInst& inst);
 
-  void stall(bool stall, Instrumentation::Stalls::StallReason reason);
+  // Determine whether the given opcode may result in a fetch request being sent.
+  bool isFetch(opcode_t opcode) const;
+
+  // Perform a fetch.
+  void fetch(DecodedInst& inst);
+
+  void stall(bool stall, Instrumentation::Stalls::StallReason reason, const DecodedInst& cause);
 
   DecodeStage* parent() const;
 
@@ -113,6 +123,7 @@ private:
 
   // None of the following are needed in hardware - they are just required here
   // because of the way decoding has been split up into multiple blocks.
+  // Could instead use a collection of possible states.
   DecodedInst current, output, previous;
   bool continueToExecute, execute, haveAllOperands;
   int outputsRemaining;

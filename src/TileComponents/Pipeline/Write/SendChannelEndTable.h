@@ -30,6 +30,12 @@ public:
 
   ClockInput              clock;
 
+  // Data inputs from the pipeline. Fetch comes from the Fetch stage, and Data
+  // comes from the Execute stage. The Fetch has priority, unless we are part
+  // way through a two-stage store operation.
+  DataInput               iFetch;
+  DataInput               iData;
+
   // Data outputs to the network.
   DataOutput              oDataLocal;
   DataOutput              oDataGlobal;
@@ -53,9 +59,6 @@ public:
 
 public:
 
-  // Write some data to the output buffer.
-  void          write(const DecodedInst& data);
-
   // Returns true if the table is incapable of accepting new data at the moment.
   bool          full() const;
 
@@ -69,13 +72,20 @@ protected:
 
 private:
 
+  // Move data from the two input ports to the output buffer(s), giving
+  // priority where appropriate.
+  void          receiveLoop();
+
+  // Write some data to the output buffer.
+  void          write(const NetworkData data);
+
   // Send the oldest value in the output buffer, if the flow control signals
   // allow it.
   void          sendLoopLocal();
   void          sendLoopGlobal();
 
   // Stall the pipeline until the channel specified is empty.
-  void          waitUntilEmpty(MapIndex channel);
+  void          waitUntilEmpty(MapIndex channel, const DecodedInst& inst);
 
   // A credit was received, so update the corresponding credit counter.
   void          receivedCredit();
@@ -94,17 +104,24 @@ private:
 
 private:
 
-  enum SendState {
-    IDLE,
-    DATA_READY,
-    ARBITRATING,
-    CAN_SEND
+  enum ReceiveState {
+    RS_READY,     // Ready to accept new data
+    RS_PACKET     // Avoid separating multiple flits from a single packet
   };
 
-  SendState state;
+  ReceiveState receiveState;
+
+  enum SendState {
+    SS_IDLE,
+    SS_DATA_READY,
+    SS_ARBITRATING,
+    SS_CAN_SEND
+  };
+
+  SendState sendState;
 
   // Buffer of data to send onto the network.
-  NetworkBuffer<DecodedInst> bufferLocal, bufferGlobal;
+  NetworkBuffer<NetworkData> bufferLocal, bufferGlobal;
 
   // A pointer to this core's channel map table. The table itself is in the
   // Core class. No reading or writing of destinations should occur here -

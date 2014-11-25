@@ -10,6 +10,8 @@
 
 #include <map>
 
+#include "IPKCache.h"
+
 using namespace Instrumentation;
 
 std::map<int, bool> MemoryBank::modes_;
@@ -303,6 +305,30 @@ void MemoryBank::printStats() {
 	}
 }
 
+void MemoryBank::printSummary() {
+  count_t instructionReadHits = numIPKReadHits_.numEvents();
+  count_t instructionReads = instructionReadHits + numIPKReadMisses_.numEvents();
+  count_t l0l1InstReads = IPKCache::numReads();
+  count_t l0l1InstReadHits = l0l1InstReads - numIPKReadMisses_.numEvents();
+  count_t dataReadHits = numReadByteHits_.numEvents() + numReadHalfWordHits_.numEvents() + numReadWordHits_.numEvents();
+  count_t dataReads = dataReadHits + numReadByteMisses_.numEvents() + numReadHalfWordMisses_.numEvents() + numReadWordMisses_.numEvents();
+  count_t dataWriteHits = numWriteByteHits_.numEvents() + numWriteHalfWordHits_.numEvents() + numWriteWordHits_.numEvents();
+  count_t dataWrites = dataWriteHits + numWriteByteMisses_.numEvents() + numWriteHalfWordMisses_.numEvents() + numWriteWordMisses_.numEvents();
+  count_t totalHits = instructionReadHits + dataReadHits + dataWriteHits;
+  count_t totalAccesses = instructionReads + dataReads + dataWrites;
+
+  using std::clog;
+
+  // Note that for every miss event, there will be a corresponding hit event
+  // when the data arrives. We may prefer to filter out these "duplicates".
+  clog << "L1 cache activity:" << endl;
+  clog << "  Instruction hits: " << instructionReadHits << "/" << instructionReads << " (" << percentage(instructionReadHits, instructionReads) << ")\n";
+  clog << "  L0+L1 inst hits:  " << l0l1InstReadHits << "/" << l0l1InstReads << "(" << percentage(l0l1InstReadHits,l0l1InstReads) << ")" << endl;
+  clog << "  Data read hits:   " << dataReadHits << "/" << dataReads << " (" << percentage(dataReadHits, dataReads) << ")\n";
+  clog << "  Data write hits:  " << dataWriteHits << "/" << dataWrites << " (" << percentage(dataWriteHits, dataWrites) << ")\n";
+  clog << "  Total hits:       " << totalHits << "/" << totalAccesses << " (" << percentage(totalHits, totalAccesses) << ")\n";
+}
+
 void MemoryBank::dumpEventCounts(std::ostream& os) {
   os << "<memory size=\"" << MEMORY_BANK_SIZE << "\">\n"
      << xmlNode("instances", NUM_MEMORIES)                                << "\n"
@@ -337,4 +363,8 @@ long long MemoryBank::numWrites() {
        + numWriteHalfWordHits_.numEvents()
        + numWriteByteHits_.numEvents()
        + numBurstWriteHits_.numEvents();
+}
+
+long long MemoryBank::numIPKReadMisses() {
+  return numIPKReadMisses_.numEvents();
 }

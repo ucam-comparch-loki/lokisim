@@ -88,8 +88,7 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 
 			mPortData[port].State = STATE_WRITING;
 		} else {
-			cout << this->name() << " encountered invalid memory operation (" << request.getOperation() << ")" << endl;
-			assert(false);
+		  throw InvalidOptionException("memory operation", request.getOperation());
 		}
 	}
 }

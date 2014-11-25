@@ -66,7 +66,7 @@ private:
 	//---------------------------------------------------------------------------------------------
 
 	uint log2Exact(uint value);
-	bool lookupCacheLine(uint32_t address, uint &slot);
+	bool lookupCacheLine(uint32_t address, uint &slot, bool resume, bool read, bool instruction);
 	void promoteCacheLine(uint slot);
 
 public:

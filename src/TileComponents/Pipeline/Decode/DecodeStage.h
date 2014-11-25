@@ -5,6 +5,11 @@
  * from instructions and preparing it for use by the ALU, collecting data
  * inputs from the network, and sending memory requests to the network.
  *
+ * This is also the point at which an instruction stalls until we can be sure
+ * that it will be able to execute. For example, we wait until there is space
+ * in the output buffer before allowing an instruction which writes to the
+ * network to continue.
+ *
  *  Created on: 6 Jan 2010
  *      Author: db434
  */
@@ -28,7 +33,7 @@ class DecodeStage: public PipelineStage {
 public:
 
 // Inherited from PipelineStage:
-//   sc_in<bool>          clock
+//   ClockInput              clock
 
   // Tell whether this stage is ready for input (ignoring effects of any other stages).
   ReadyOutput              oReady;
@@ -39,6 +44,11 @@ public:
   // A flow control signal for each input (NUM_RECEIVE_CHANNELS).
   LokiVector<ReadyOutput>  oFlowControl;
   LokiVector<ReadyOutput>  oDataConsumed;
+
+  // Ready signal from output buffer. If an instruction might send its data
+  // onto the network, don't let it proceed down the pipeline until this signal
+  // is high.
+  ReadyInput               iOutputBufferReady;
 
 //==============================//
 // Constructors and destructors
@@ -58,6 +68,9 @@ public:
   // Read a buffer in the receive channel end table. Warning: also removes
   // this value from the buffer.
   int32_t        readRCET(ChannelIndex index);
+
+  // Non-blocking read from the input buffers. Does not consume data.
+  int32_t        readRCETDebug(ChannelIndex index) const;
 
   // If we are currently stalled waiting for input, stop waiting. Cancel the
   // current operation.
@@ -90,34 +103,41 @@ private:
   // Read a register value (for Decoder).
   int32_t        readReg(PortIndex port, RegisterIndex index, bool indirect = false) const;
 
+  // Get the result from the instruction in the execute stage.
+  int32_t        getForwardedData() const;
+
   // Get the value of the predicate register.
-  bool           predicate() const;
+  bool           predicate(const DecodedInst& inst) const;
 
   // Retrieve the instruction's network destination from the channel map table,
   // if appropriate.
-  void           readChannelMapTable(DecodedInst& inst) const;
-  const ChannelMapEntry& channelMapTableEntry(MapIndex entry) const;
+  void           readChannelMapTable(DecodedInst& inst);
+  ChannelMapEntry& channelMapTableEntry(MapIndex entry) const;
+
+  // Fetch the address requested by the instruction.
+  void           fetch(const DecodedInst& inst);
+
+  // Returns whether we are currently allowed to carry out a fetch request.
+  bool           canFetch() const;
+
+  // Returns whether we expect data arriving on a given channel to be from
+  // memory. ChannelIndex 0 is mapped to the IPK FIFO.
+  bool           connectionFromMemory(ChannelIndex channel) const;
 
   // Perform a TESTCH operation.
   bool           testChannel(ChannelIndex index) const;
 
   // Perform a SELCH operation.
-  ChannelIndex   selectChannel();
+  ChannelIndex   selectChannel(unsigned int bitmask, const DecodedInst& inst);
 
   const sc_event& receivedDataEvent(ChannelIndex buffer) const;
 
-  // Find out if the instruction packet from the given location is currently
-  // in the instruction packet cache.
-  // There are many different ways of fetching instructions, so provide the
-  // operation too.
-  bool           inCache(const MemoryAddr addr, opcode_t operation) const;
-
-  // Find out if there is room in the cache to fetch another packet, and if
-  // there is not another fetch already in progress.
-  bool           readyToFetch() const;
-
   // Tell the instruction packet cache to jump to a new instruction.
   void           jump(JumpOffset offset) const;
+
+  // Signal from the Decoder telling that an instruction has been executed, and
+  // will not continue further down the pipeline. Used to update control regs.
+  void           instructionExecuted();
 
 //==============================//
 // Components

@@ -75,6 +75,13 @@ void Instrumentation::dumpEventCounts(std::ostream& os) {
   os << "</lokitrace>\n";
 }
 
+void Instrumentation::printSummary() {
+  Stalls::printStats();
+  IPKCache::printSummary();
+  MemoryBank::printSummary();
+  Operations::printSummary();
+}
+
 bool Instrumentation::haveEnergyData() {
   // Assume that if we have collected energy data, at least one instruction
   // has been executed.
@@ -140,7 +147,7 @@ void Instrumentation::backgroundMemoryRead(MemoryAddr address, uint32_t count) {
 void Instrumentation::backgroundMemoryWrite(MemoryAddr address, uint32_t count)								{BackgroundMemory::write(address, count);}
 
 
-void Instrumentation::idle(const ComponentID& id, bool idle) {
+void Instrumentation::idle(const ComponentID id, bool idle) {
   if (idle) Stalls::idle(id, currentCycle());
   else Stalls::active(id, currentCycle());
 }

@@ -31,7 +31,8 @@ public:
 
   // Data (with an address) to be sent over the network.
   // Data can arrive at any time.
-  sc_in<DecodedInst>      iData;
+  DataInput               iFetch;
+  DataInput               iData;
 
   // Tell whether this stage is ready for input (ignoring effects of any other stages).
   ReadyOutput             oReady;
@@ -68,8 +69,6 @@ private:
   virtual void   execute();
   virtual void   newInput(DecodedInst& inst);
 
-  void           sendData();
-
   // Determine whether this stage is stalled or not, and write the appropriate
   // output.
   virtual void   updateReady();
@@ -81,10 +80,6 @@ private:
 
   void           requestArbitration(ChannelID destination, bool request);
   bool           requestGranted(ChannelID destination) const;
-
-  // Returns whether this core is ready to issue an instruction packet fetch
-  // request to memory.
-  bool           readyToFetch() const;
 
 //==============================//
 // Components

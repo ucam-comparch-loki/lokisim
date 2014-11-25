@@ -33,29 +33,34 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
   return result;
 }
 
+int32_t ReceiveChannelEndTable::readDebug(ChannelIndex channelEnd) const {
+  assert(channelEnd < NUM_RECEIVE_CHANNELS);
+
+  if (buffers[channelEnd].empty())
+    return 0;
+  else
+    return buffers[channelEnd].peek().toInt();
+}
+
 /* Return whether or not the specified channel contains data. */
 bool ReceiveChannelEndTable::testChannelEnd(ChannelIndex channelEnd) const {
   assert(channelEnd < NUM_RECEIVE_CHANNELS);
   return !buffers[channelEnd].empty();
 }
 
-ChannelIndex ReceiveChannelEndTable::selectChannelEnd() {
-  int startPoint = currentChannel.value();
+ChannelIndex ReceiveChannelEndTable::selectChannelEnd(unsigned int bitmask, const DecodedInst& inst) {
+  // Wait for data to arrive on one of the channels we're interested in.
+  waitForData(bitmask, inst);
 
-  if (buffers.empty()) {
-    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_DATA);
-    wait(newData);
-    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_DATA);
-  }
+  int startPoint = currentChannel.value();
 
   // Check all of the channels in a round-robin style, using a LoopCounter.
   // Return the register-mapping of the first channel which has data.
   for (int i = ++currentChannel; i != startPoint; ++currentChannel) {
     i = currentChannel.value();
-
-    if (!buffers[i].empty()) {
-      // Adjust address so it can be accessed like a register
-      return Registers::fromChannelID(i);
+    if (((bitmask >> i) & 1) && !buffers[i].empty()) {
+        // Adjust address so it can be accessed like a register
+        return Registers::fromChannelID(i);
     }
   }
 
@@ -63,6 +68,23 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd() {
   // until at least one of them has data.
   assert(false);
   return -1;
+}
+
+void ReceiveChannelEndTable::waitForData(unsigned int bitmask, const DecodedInst& inst) {
+  // Wait for data to arrive on one of the channels we're interested in.
+  while (true) {
+    for (ChannelIndex i=0; i<NUM_RECEIVE_CHANNELS; i++) {
+      if (((bitmask >> i) & 1) && !buffers[i].empty())
+        return;
+    }
+
+    // Since multiple channels are involved, assume data can come from anywhere.
+    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_MEMORY_DATA, inst);
+    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_CORE_DATA, inst);
+    wait(newData);
+    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_MEMORY_DATA, inst);
+    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_CORE_DATA, inst);
+  }
 }
 
 void ReceiveChannelEndTable::checkInput(ChannelIndex input) {
@@ -93,7 +115,7 @@ void ReceiveChannelEndTable::dataConsumedAction(ChannelIndex buffer) {
 }
 
 DecodeStage* ReceiveChannelEndTable::parent() const {
-  return static_cast<DecodeStage*>(this->get_parent());
+  return static_cast<DecodeStage*>(this->get_parent_object());
 }
 
 void ReceiveChannelEndTable::reportStalls(ostream& os) {

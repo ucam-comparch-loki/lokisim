@@ -12,7 +12,7 @@
 #include "Utility/Debugger.h"
 #include "Utility/Instrumentation.h"
 #include "Utility/Instrumentation/Operations.h"
-#include "Utility/Instrumentation/Stalls.h"
+#include "Utility/Trace/Callgrind.h"
 #include "Utility/Trace/CoreTrace.h"
 #include "Utility/Trace/MemoryTrace.h"
 #include "Utility/Trace/SoftwareTrace.h"
@@ -161,13 +161,12 @@ int simulate() {
 	LBTTrace::storeFinalMemoryImage(chip.getMemoryData());
 
   // Print debug information
-  if (DEBUG || BATCH_MODE) {
+  if (BATCH_MODE) {
     Parameters::printParameters();
     Statistics::printStats();
   }
-  else if (Arguments::summarise()) {
-    Instrumentation::Stalls::printStats();
-  }
+  else if (Arguments::summarise() || DEBUG)
+    Instrumentation::printSummary();
 
   Instrumentation::stopLogging();
 
@@ -191,9 +190,10 @@ int simulate() {
   if (MEMORY_TRACE)
     MemoryTrace::stop();
   if (SOFTWARE_TRACE)
-	SoftwareTrace::stop();
+    SoftwareTrace::stop();
   if (LBT_TRACE)
-	LBTTrace::stop();
+    LBTTrace::stop();
+  Callgrind::endTrace();
 
   return RETURN_CODE;
 }

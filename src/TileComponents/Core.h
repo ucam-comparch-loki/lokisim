@@ -1,19 +1,19 @@
 /*
- * Cluster.h
+ * Core.h
  *
  * A class representing an individual processing core. All work is done in the
  * subcomponents, and this class just serves to hold them all in one place and
  * connect them together correctly.
  *
  * There is currently an odd mix of SystemC signals and function calls within
- * a Cluster. This should be tidied up at some point to make things consistent.
+ * a Core. This should be tidied up at some point to make things consistent.
  *
  *  Created on: 5 Jan 2010
  *      Author: db434
  */
 
-#ifndef CLUSTER_H_
-#define CLUSTER_H_
+#ifndef CORE_H_
+#define CORE_H_
 
 #include "TileComponent.h"
 #include "InputCrossbar.h"
@@ -25,6 +25,8 @@
 #include "Pipeline/Execute/ExecuteStage.h"
 #include "Pipeline/Write/WriteStage.h"
 #include "Pipeline/ChannelMapTable.h"
+#include "../Network/NetworkTypedefs.h"
+#include "Pipeline/ControlRegisters.h"
 
 class DecodedInst;
 class PipelineRegister;
@@ -100,7 +102,7 @@ public:
   // Read the value of the predicate register.
   // The optional wait parameter makes it possible to wait until the latest
   // predicate has been computed, if it will be written this cycle.
-  virtual bool     readPredReg(bool wait=false);
+  virtual bool     readPredReg(bool wait=false, const DecodedInst& inst = DecodedInst());
 
   const Word readWord(MemoryAddr addr) const;
   const Word readByte(MemoryAddr addr) const;
@@ -109,20 +111,13 @@ public:
 
 private:
 
-  // Determine if the instruction packet from the given location is currently
-  // in the instruction packet cache.
-  // There are many different ways of fetching instructions, so provide the
-  // operation too.
-  bool             inCache(const MemoryAddr addr, opcode_t operation);
-
   // Return whether it is possible to check the cache tags at this time. It may
   // not be possible if there is already the maximum number of packets queued up.
   bool             canCheckTags() const;
 
-  // Determine if there is room in the cache to fetch another instruction
-  // packet, assuming that it is of maximum size. Also make sure there is not
-  // another fetch already in progress.
-  bool             readyToFetch() const;
+  // Queue up an instruction packet to be fetched. Include all necessary
+  // information to send a fetch request to memory, if needed.
+  void             checkTags(MemoryAddr addr, opcode_t op, ChannelID channel, ChannelIndex returnChannel);
 
   // Perform an IBJMP and jump to a new instruction in the cache.
   void             jump(const JumpOffset offset);
@@ -135,6 +130,9 @@ private:
   // Read a value from a channel end. Warning: this removes the value from
   // the input buffer.
   const int32_t    readRCET(ChannelIndex channel);
+
+  // Return the result of the instruction in the execute stage.
+  const int32_t    getForwardedData() const;
 
   // Write a value to a register.
   void             writeReg(RegisterIndex reg, int32_t value,
@@ -167,6 +165,9 @@ private:
   // Determine if a request to a particular destination has been granted.
   bool             requestGranted(ChannelID destination) const;
 
+  // Print out information about the environment this instruction executed in.
+  void             trace(const DecodedInst& instruction) const;
+
   ComponentID      getSystemCallMemory() const;
 
 //==============================//
@@ -192,12 +193,14 @@ private:
   vector<PipelineRegister*> pipelineRegs;
 
   ChannelMapTable        channelMapTable;
+  ControlRegisters       cregs;
 
   friend class RegisterFile;
   friend class FetchStage;
   friend class DecodeStage;
   friend class ExecuteStage;
   friend class WriteStage;
+  friend class ControlRegisters;
 
 //==============================//
 // Local state
@@ -230,8 +233,8 @@ private:
   LokiVector<ReadySignal>      dataConsumed;
 
   // Data being sent to the output buffer.
-  sc_buffer<DecodedInst>       outputData;
+  DataSignal                   fetchFlitSignal, dataFlitSignal;
 
 };
 
-#endif /* CLUSTER_H_ */
+#endif /* CORE_H_ */

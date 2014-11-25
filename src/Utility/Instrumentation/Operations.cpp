@@ -7,6 +7,8 @@
 
 #include "Operations.h"
 #include "../InstructionMap.h"
+#include "../Instrumentation.h"
+#include "../Trace/Callgrind.h"
 #include "../../Datatype/ComponentID.h"
 #include "../../Datatype/DecodedInst.h"
 
@@ -52,6 +54,9 @@ void Operations::decoded(const ComponentID& core, const DecodedInst& dec) {
 void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool executed) {
   // Always increase numOps - this is used to determine if we're making progress.
   numOps_.increment(core);
+
+  if (Callgrind::acceptingData())
+    Callgrind::instructionExecuted(core, dec.location(), Instrumentation::currentCycle());
 
   // Want to keep track of the number of operations so we can tell if we're
   // making progress, but only want the rest of the data when we ask for it.
@@ -145,6 +150,15 @@ void Operations::printStats() {
   }
 }
 
+void Operations::printSummary() {
+  using std::clog;
+
+  clog << "Average IPC: ";
+  clog << std::fixed;
+  clog.precision(2);
+  clog << ((double)numOperations() / (double)Instrumentation::currentCycle()) << endl;
+}
+
 void Operations::dumpEventCounts(std::ostream& os) {
   // Stores take two cycles to decode, so the decoder is active for longer.
   count_t decodeCycles = numDecodes_ + executedOps[InstructionMap::OP_STB]
@@ -191,9 +205,7 @@ void Operations::dumpEventCounts(std::ostream& os) {
                      - executedOps[InstructionMap::OP_MULHW]
                      - executedOps[InstructionMap::OP_MULHWU]
                      - executedOps[InstructionMap::OP_MULLW]
-                     - executedOps[InstructionMap::OP_TSTCH]
                      - executedOps[InstructionMap::OP_TSTCHI]
-                     - executedOps[InstructionMap::OP_TSTCH_P]
                      - executedOps[InstructionMap::OP_TSTCHI_P]
                      - executedOps[InstructionMap::OP_SELCH]
                      - executedOps[InstructionMap::OP_IBJMP]

@@ -44,6 +44,7 @@ public:
   const RegisterIndex sourceReg2() const;
   const RegisterIndex destination() const;
   const int32_t       immediate() const;
+  const int32_t       immediate2() const;       // Just for psel.fetchr
   const ChannelIndex  channelMapEntry() const;
   const predicate_t   predicate() const;
   const bool          setsPredicate() const;

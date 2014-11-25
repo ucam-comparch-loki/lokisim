@@ -32,6 +32,7 @@ public:
                                function_t function = (function_t)0);
 
   static void printStats();
+  static void printSummary();
   static void dumpEventCounts(std::ostream& os);
 
 private:

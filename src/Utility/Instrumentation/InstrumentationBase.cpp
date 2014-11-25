@@ -32,7 +32,8 @@ int InstrumentationBase::hammingDistance(const NetworkData& val1,
 string InstrumentationBase::percentage(count_t value, count_t total) {
   double percentage = (total==0) ? 0.0 : (double)value/total * 100;
   std::stringstream ss;
-  ss.precision(3);
+  ss << std::fixed;
+  ss.precision(1);
   ss << percentage << "%";
   return ss.str();
 }

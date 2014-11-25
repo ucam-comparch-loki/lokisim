@@ -16,10 +16,18 @@ Scratchpad::Scratchpad(const sc_module_name& name, const ComponentID& ID) :
 
 const int32_t Scratchpad::read(const MemoryAddr addr) const {
   Instrumentation::Scratchpad::read();
-  return data.read(addr).toInt();
+  int32_t result = data.read(addr).toInt();
+
+  if (DEBUG)
+    cout << this->name() << " read " << result << " from position " << addr << endl;
+
+  return result;
 }
 
 void Scratchpad::write(const MemoryAddr addr, const int32_t value) {
   Instrumentation::Scratchpad::write();
   data.write(value, addr);
+
+  if (DEBUG)
+    cout << this->name() << " wrote " << value << " to position " << addr << endl;
 }

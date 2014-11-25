@@ -62,10 +62,9 @@ public:
   // tag is, or NOT_IN_CACHE if it is not there.
   virtual CacheIndex lookup(MemoryAddr tag);
 
-  // Returns whether there is still an instruction packet at the given position.
-  // In rare circumstances, the packet may be overwritten between first checking
-  // for it and beginning to execute it.
-  virtual bool packetExists(CacheIndex position) const;
+  // Return the memory address of the most recently read instruction. Used for
+  // debug purposes only.
+  virtual MemoryAddr memoryAddress() const;
 
   // Prepare to read a packet with the first instruction at the given location
   // within the FIFO.
@@ -105,6 +104,12 @@ private:
   // The FIFO holds a single tag, so it is able to efficiently hold very
   // tight loops consisting of a single packet.
   MemoryAddr tag;
+
+  // Memory addresses of each instruction in the cache. For debug purposes only.
+  vector<MemoryAddr> addresses;
+
+  // Information used to keep track of the memory addresses of instructions.
+  MemoryAddr lastReadAddr, lastWriteAddr;
 
   // Record whether there has been a tag check which matched our tag - this
   // can affect wither the FIFO appears empty or not.

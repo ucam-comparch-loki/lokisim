@@ -12,6 +12,7 @@
 #define EXECUTESTAGE_H_
 
 #include "../PipelineStage.h"
+#include "../../../Network/NetworkTypedefs.h"
 #include "../../../Utility/Blocking.h"
 #include "ALU.h"
 #include "Scratchpad.h"
@@ -25,14 +26,14 @@ class ExecuteStage: public PipelineStage, public Blocking {
 public:
 
 // Inherited from PipelineStage:
-//   sc_in<bool>          clock
+//   ClockInput          clock
 
   // Tell whether this stage is ready for input (ignoring effects of any other stages).
-  sc_out<bool>        oReady;
+  ReadyOutput         oReady;
 
   // Data to be sent over the network.
-  sc_out<DecodedInst> oData;
-  sc_in<bool>         iReady;
+  DataOutput          oData;
+  ReadyInput          iReady;
 
 //==============================//
 // Constructors and destructors
@@ -41,7 +42,7 @@ public:
 public:
 
   SC_HAS_PROCESS(ExecuteStage);
-  ExecuteStage(sc_module_name name, const ComponentID& ID);
+  ExecuteStage(const sc_module_name& name, const ComponentID& ID);
 
 //==============================//
 // Methods
@@ -70,14 +71,6 @@ private:
   virtual void newInput(DecodedInst& operation);
   void sendOutput();
 
-  // Returns whether is is possible to do a cache lookup at this time. It may
-  // not be possible if there is already the maximum number of fetches queued up.
-  bool canCheckTags() const;
-
-  // Returns whether a fetch request should be sent (and stores the request in
-  // operation's "result" field, if appropriate).
-  bool fetch(DecodedInst& operation);
-
   // Send a request to reserve (or release) a connection to a particular
   // destination component. May cause re-execution of the calling method when
   // the request is granted.
@@ -103,6 +96,9 @@ private:
   // Check the predicate bits of this instruction and the predicate register to
   // see if this instruction should execute.
   bool checkPredicate(DecodedInst& inst);
+
+  // Compute the new value of the predicate and update it accordingly.
+  void updatePredicate(const DecodedInst& inst);
 
 protected:
 

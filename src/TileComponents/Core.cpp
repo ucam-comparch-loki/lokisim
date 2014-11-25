@@ -1,5 +1,5 @@
 /*
- * Cluster.cpp
+ * Core.cpp
  *
  *  Created on: 5 Jan 2010
  *      Author: db434
@@ -26,13 +26,12 @@ void     Core::storeData(const std::vector<Word>& data, MemoryAddr location) {
   fetch.storeCode(instructions);
 }
 
-const MemoryAddr Core::getInstIndex() const   {return fetch.getInstIndex();}
+const MemoryAddr Core::getInstIndex() const   {return fetch.getInstAddress();}
 bool     Core::canCheckTags() const           {return fetch.canCheckTags();}
-bool     Core::readyToFetch() const           {return fetch.roomToFetch();}
 void     Core::jump(const JumpOffset offset)  {fetch.jump(offset);}
 
-bool     Core::inCache(const MemoryAddr addr, opcode_t operation) {
-  return fetch.inCache(addr, operation);
+void     Core::checkTags(MemoryAddr addr, opcode_t op, ChannelID channel, ChannelIndex returnChannel) {
+  fetch.checkTags(addr, op, channel, returnChannel);
 }
 
 const int32_t Core::readReg(PortIndex port, RegisterIndex reg, bool indirect) {
@@ -69,21 +68,24 @@ const int32_t Core::readReg(PortIndex port, RegisterIndex reg, bool indirect) {
 
 /* Read a register without data forwarding and without indirection. */
 const int32_t Core::readRegDebug(RegisterIndex reg) const {
-  return regs.readDebug(reg);
+  if (RegisterFile::isChannelEnd(reg))
+    return decode.readRCETDebug(RegisterFile::toChannelID(reg));
+  else
+    return regs.readDebug(reg);
 }
 
 void     Core::writeReg(RegisterIndex reg, int32_t value, bool indirect) {
   regs.write(reg, value, indirect);
 }
 
-bool     Core::readPredReg(bool waitForExecution) {
+bool     Core::readPredReg(bool waitForExecution, const DecodedInst& inst) {
   // The wait parameter tells us to wait for the predicate to be written if
   // the instruction in the execute stage will set it.
   if (waitForExecution && execute.currentInstruction().setsPredicate()
                        && !execute.currentInstruction().hasResult()) {
-    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_FORWARDING);
+    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_FORWARDING, inst);
     wait(execute.executedEvent());
-    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_FORWARDING);
+    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_FORWARDING, inst);
   }
 
   return pred.read();
@@ -109,6 +111,11 @@ void Core::writeByte(MemoryAddr addr, Word data) {
 
 const int32_t  Core::readRCET(ChannelIndex channel) {
   return decode.readRCET(channel);
+}
+
+const int32_t  Core::getForwardedData() const {
+  assert(execute.currentInstruction().hasResult());
+  return execute.currentInstruction().result();
 }
 
 void     Core::updateCurrentPacket(MemoryAddr addr) {
@@ -155,6 +162,29 @@ bool Core::requestGranted(ChannelID destination) const {
   return localNetwork->requestGranted(id, destination);
 }
 
+void Core::trace(const DecodedInst& inst) const {
+  // For every instruction executed, print:
+  //  * The core it executed on
+  //  * The instruction and all of its operands
+  //  * Any core state (register contents, predicate register, etc.)
+  // Code is borrowed from CSIM to ensure that the format is the same.
+
+  char regbuf[512];
+  int i;
+  char *bufpos = regbuf;
+  for (i=0; i<32; i++) {
+    if (i > 0)
+      *bufpos++ = ',';
+    bufpos += snprintf(bufpos, 512-(bufpos-regbuf), "%d", readRegDebug(i));
+  }
+
+  printf("CPU%d 0x%08x: %s %d %d %d %d %d %d p=%d, regs={%s}\n",
+      id.getGlobalCoreNumber(), inst.location(), inst.name().c_str(),
+      inst.destination(), inst.sourceReg1(), inst.sourceReg2(),
+      inst.immediate(), inst.immediate2(), inst.channelMapEntry(),
+      pred.read(), regbuf);
+}
+
 ComponentID Core::getSystemCallMemory() const {
   // TODO: Stop assuming that the first channel map entry after the fetch
   // channel corresponds to the memory that system calls want to access.
@@ -186,6 +216,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
     execute("execute", ID),
     write("write", ID),
     channelMapTable("channel_map_table", ID),
+    cregs("cregs", ID),
     localNetwork(network) {
 
   currentlyStalled = false;
@@ -217,6 +248,8 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
   inputCrossbar.creditClock(fastClock);
   inputCrossbar.oCredit[0](oCredit);
 
+  cregs.clock(clock);
+
   // Create pipeline registers.
   pipelineRegs.push_back(
       new PipelineRegister(sc_gen_unique_name("pipe_reg"), id, PipelineRegister::FETCH_DECODE));
@@ -231,10 +264,13 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
   fetch.iToFIFO(dataToBuffers[0]);      fetch.oFlowControl[0](fcFromBuffers[0]);
   fetch.iToCache(dataToBuffers[1]);     fetch.oFlowControl[1](fcFromBuffers[1]);
   fetch.oDataConsumed[0](dataConsumed[0]); fetch.oDataConsumed[1](dataConsumed[1]);
+  fetch.oFetchRequest(fetchFlitSignal);
+  fetch.iOutputBufferReady(stageReady[2]);
   fetch.initPipeline(NULL, pipelineRegs[0]);
 
   decode.clock(clock);
   decode.oReady(stageReady[0]);
+  decode.iOutputBufferReady(stageReady[2]);
   for (uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     decode.iData[i](dataToBuffers[i+2]);
     decode.oFlowControl[i](fcFromBuffers[i+2]);
@@ -244,12 +280,13 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
 
   execute.clock(clock);
   execute.oReady(stageReady[1]);
-  execute.oData(outputData);            execute.iReady(stageReady[2]);
+  execute.oData(dataFlitSignal);            execute.iReady(stageReady[2]);
   execute.initPipeline(pipelineRegs[1], pipelineRegs[2]);
 
   write.clock(clock);
   write.oReady(stageReady[2]);
-  write.iData(outputData);
+  write.iFetch(fetchFlitSignal);
+  write.iData(dataFlitSignal);
   write.oDataLocal(oData[0]);
   write.oDataGlobal(oDataGlobal);
   write.iCredit(iCredit);

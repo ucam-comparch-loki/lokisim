@@ -9,6 +9,7 @@
 #include "Stalls.h"
 #include "Operations.h"
 #include "../../Datatype/ComponentID.h"
+#include "../../Exceptions/InvalidOptionException.h"
 #include "../Instrumentation.h"
 #include "../Parameters.h"
 
@@ -20,17 +21,12 @@ const cycle_count_t UNSTALLED = -1;
 
 const cycle_count_t NOT_LOGGING = -1;
 
-std::map<ComponentID, int> Stalls::stallReason;
+std::map<ComponentID, uint> Stalls::stallReason;
 
-std::map<ComponentID, cycle_count_t> Stalls::startedStalling;
-std::map<ComponentID, cycle_count_t> Stalls::startedDataStall;
-std::map<ComponentID, cycle_count_t> Stalls::startedInstructionStall;
-std::map<ComponentID, cycle_count_t> Stalls::startedOutputStall;
-std::map<ComponentID, cycle_count_t> Stalls::startedBypassStall;
-std::map<ComponentID, cycle_count_t> Stalls::startedIdle;
+std::vector<std::map<ComponentID, cycle_count_t> > Stalls::startStall;
 
-StallData Stalls::total;
-StallData Stalls::loggedOnly;
+std::vector<CounterMap<ComponentID> > Stalls::total;
+std::vector<CounterMap<ComponentID> > Stalls::loggedOnly;
 
 count_t Stalls::numStalled = 0;
 cycle_count_t Stalls::endOfExecution = 0;
@@ -38,20 +34,31 @@ cycle_count_t Stalls::loggedCycles = 0;
 cycle_count_t Stalls::loggingStarted = NOT_LOGGING;
 bool Stalls::endExecutionCalled = false;
 
+bool Stalls::detailedLog = false;
+std::ofstream* Stalls::logStream;
+
 void Stalls::init() {
+  for (uint i=0; i<NUM_STALL_REASONS; i++) {
+    total.push_back(CounterMap<ComponentID>());
+    loggedOnly.push_back(CounterMap<ComponentID>());
+    startStall.push_back(map<ComponentID, cycle_count_t>());
+  }
+
   for (uint i=0; i<NUM_TILES; i++) {
     for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
       ComponentID id(i, j);
 
-      stallReason[id]             = IDLE;//NOT_STALLED;
+      stallReason[id]             = 1 << IDLE;
       numStalled++;
 
-      startedStalling[id]         = 0;//UNSTALLED;
-      startedDataStall[id]        = UNSTALLED;
-      startedInstructionStall[id] = UNSTALLED;
-      startedOutputStall[id]      = UNSTALLED;
-      startedBypassStall[id]      = UNSTALLED;
-      startedIdle[id]             = 0;//UNSTALLED;
+      startStall[STALL_ANY][id]           = 0;
+      startStall[STALL_MEMORY_DATA][id]   = UNSTALLED;
+      startStall[STALL_CORE_DATA][id]     = UNSTALLED;
+      startStall[STALL_INSTRUCTIONS][id]  = UNSTALLED;
+      startStall[STALL_OUTPUT][id]        = UNSTALLED;
+      startStall[STALL_FORWARDING][id]    = UNSTALLED;
+      startStall[STALL_FETCH][id]         = UNSTALLED;
+      startStall[IDLE][id]                = 0;
     }
   }
 }
@@ -67,18 +74,10 @@ void Stalls::startLogging() {
     for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
       ComponentID id(i, j);
 
-      if (startedStalling[id]         != UNSTALLED)
-        startedStalling[id]         = loggingStarted;
-      if (startedDataStall[id]        != UNSTALLED)
-        startedDataStall[id]        = loggingStarted;
-      if (startedInstructionStall[id] != UNSTALLED)
-        startedInstructionStall[id] = loggingStarted;
-      if (startedOutputStall[id]      != UNSTALLED)
-        startedOutputStall[id]      = loggingStarted;
-      if (startedBypassStall[id]      != UNSTALLED)
-        startedBypassStall[id]      = loggingStarted;
-      if (startedIdle[id]             != UNSTALLED)
-        startedIdle[id]             = loggingStarted;
+      for (uint k=0; k<NUM_STALL_REASONS; k++) {
+        if (startStall[k][id] != UNSTALLED)
+          startStall[k][id] = loggingStarted;
+      }
     }
   }
 }
@@ -90,80 +89,109 @@ void Stalls::stopLogging() {
   if (loggingStarted != NOT_LOGGING)
     loggedCycles += currentCycle() - loggingStarted;
 
+
   // Unstall all cores so their stall durations are added to the totals.
+  // No particular instruction caused this, so use a dummy one.
+  static Instruction nullInst(0);
+  static const DecodedInst decoded(nullInst);
+
   for (uint i=0; i<NUM_TILES; i++) {
     for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
       ComponentID id(i, j);
 
-      if (startedDataStall[id] != UNSTALLED) {
-        unstall(id, STALL_DATA);
-        stall(id, STALL_DATA);
+      if (startStall[STALL_MEMORY_DATA][id] != UNSTALLED) {
+        unstall(id, STALL_MEMORY_DATA, decoded);
+        stall(id, STALL_MEMORY_DATA, decoded);
       }
-      if (startedInstructionStall[id] != UNSTALLED) {
-        unstall(id, STALL_INSTRUCTIONS);
-        stall(id, STALL_INSTRUCTIONS);
+      if (startStall[STALL_CORE_DATA][id] != UNSTALLED) {
+        unstall(id, STALL_CORE_DATA, decoded);
+        stall(id, STALL_CORE_DATA, decoded);
       }
-      if (startedOutputStall[id] != UNSTALLED) {
-        unstall(id, STALL_OUTPUT);
-        stall(id, STALL_OUTPUT);
+      if (startStall[STALL_INSTRUCTIONS][id] != UNSTALLED) {
+        unstall(id, STALL_INSTRUCTIONS, decoded);
+        stall(id, STALL_INSTRUCTIONS, decoded);
       }
-      if (startedBypassStall[id] != UNSTALLED) {
-        unstall(id, STALL_FORWARDING);
-        stall(id, STALL_FORWARDING);
+      if (startStall[STALL_OUTPUT][id] != UNSTALLED) {
+        unstall(id, STALL_OUTPUT, decoded);
+        stall(id, STALL_OUTPUT, decoded);
       }
-      if (startedIdle[id] != UNSTALLED) {
-        unstall(id, IDLE);
-        stall(id, IDLE);
+      if (startStall[STALL_FORWARDING][id] != UNSTALLED) {
+        unstall(id, STALL_FORWARDING, decoded);
+        stall(id, STALL_FORWARDING, decoded);
+      }
+      if (startStall[STALL_FETCH][id] != UNSTALLED) {
+        unstall(id, STALL_FETCH, decoded);
+        stall(id, STALL_FETCH, decoded);
+      }
+      if (startStall[IDLE][id] != UNSTALLED) {
+        unstall(id, IDLE, decoded);
+        stall(id, IDLE, decoded);
       }
     }
   }
 
   loggingStarted = NOT_LOGGING;
+
+  if (detailedLog)
+    logStream->close();
 }
 
-void Stalls::stall(const ComponentID& id, StallReason reason) {
-  Stalls::stall(id, currentCycle(), reason);
+void Stalls::startDetailedLog(const string& filename) {
+  detailedLog = true;
+  logStream = new std::ofstream(filename.c_str());
+
+  // Print header line.
+  logStream->width(12);
+  *logStream << "cycle";
+  logStream->width(12);
+  *logStream << "core";
+  logStream->width(12);
+  *logStream << "reason";
+  logStream->width(12);
+  *logStream << "duration";
+  *logStream << " (instruction causing stall)" << endl;
 }
 
-void Stalls::unstall(const ComponentID& id, StallReason reason) {
-  Stalls::unstall(id, currentCycle(), reason);
+void Stalls::stall(const ComponentID id, StallReason reason, const DecodedInst& inst) {
+  Stalls::stall(id, currentCycle(), reason, inst);
 }
 
-void Stalls::activity(const ComponentID& id, bool idle) {
+void Stalls::unstall(const ComponentID id, StallReason reason, const DecodedInst& inst) {
+  Stalls::unstall(id, currentCycle(), reason, inst);
+}
+
+void Stalls::activity(const ComponentID id, bool idle) {
   if (idle) Stalls::idle(id, currentCycle());
   else Stalls::active(id, currentCycle());
 }
 
-void Stalls::stall(const ComponentID& id, cycle_count_t cycle, int reason) {
+void Stalls::stall(const ComponentID id, cycle_count_t cycle, StallReason reason, const DecodedInst& inst) {
+  uint bitmask = 1 << reason;
+
+  // We're already stalled for this reason.
+  if (stallReason[id] & bitmask)
+    return;
+
   // We can't become idle if we're already stalled.
   if ((reason == IDLE) && (stallReason[id] != NOT_STALLED))
     return;
 
   // If we are stalled, we have work to do, so can't be idle.
   if (stallReason[id] & IDLE)
-    unstall(id, cycle, IDLE);
+    unstall(id, cycle, IDLE, inst);
 
   if (stallReason[id] == NOT_STALLED) {
     numStalled++;
     assert(numStalled <= NUM_COMPONENTS);
 
-    startedStalling[id] = cycle;
+    startStall[STALL_ANY][id] = cycle;
 
     if (numStalled >= NUM_COMPONENTS)
       endOfExecution = cycle;
   }
 
-  stallReason[id] |= reason;
-
-  switch (reason) {
-    case STALL_DATA:         startedDataStall[id] = cycle;        break;
-    case STALL_INSTRUCTIONS: startedInstructionStall[id] = cycle; break;
-    case STALL_OUTPUT:       startedOutputStall[id] = cycle;      break;
-    case STALL_FORWARDING:   startedBypassStall[id] = cycle;      break;
-    case IDLE:               startedIdle[id] = cycle;             break;
-
-    default: std::cerr << "Warning: Unknown stall reason." << endl; break;
-  }
+  stallReason[id] |= bitmask;
+  startStall[reason][id] = cycle;
 
 }
 
@@ -171,71 +199,57 @@ cycle_count_t max(cycle_count_t time1, cycle_count_t time2) {
   return (time1 > time2) ? time1 : time2;
 }
 
-void Stalls::unstall(const ComponentID& id, cycle_count_t cycle, int reason) {
-  if (stallReason[id] & reason) {
+void Stalls::unstall(const ComponentID id, cycle_count_t cycle, StallReason reason, const DecodedInst& inst) {
+  uint bitmask = 1 << reason;
+
+  if (stallReason[id] & bitmask) {
+    cycle_count_t timeStalled = 0;
+
     switch (reason) {
-      case STALL_DATA:
-        if (ENERGY_TRACE)
-          loggedOnly.dataStalls.increment(id, cycle - max(loggingStarted, startedDataStall[id]));
-        total.dataStalls.increment(id, cycle - startedDataStall[id]);
-        startedDataStall[id] = UNSTALLED;
+      case NOT_STALLED:
+      case STALL_ANY:
+        // Special cases - do nothing.
         break;
 
-      case STALL_INSTRUCTIONS:
+      default:
         if (ENERGY_TRACE)
-          loggedOnly.instructionStalls.increment(id, cycle - max(loggingStarted, startedInstructionStall[id]));
-        total.instructionStalls.increment(id, cycle - startedInstructionStall[id]);
-        startedInstructionStall[id] = UNSTALLED;
+          loggedOnly[reason].increment(id, cycle - max(loggingStarted, startStall[reason][id]));
+        timeStalled = cycle - startStall[reason][id];
+        total[reason].increment(id, timeStalled);
+        startStall[reason][id] = UNSTALLED;
         break;
-
-      case STALL_OUTPUT:
-        if (ENERGY_TRACE)
-          loggedOnly.outputStalls.increment(id, cycle - max(loggingStarted, startedOutputStall[id]));
-        total.outputStalls.increment(id, cycle - startedOutputStall[id]);
-        startedOutputStall[id] = UNSTALLED;
-        break;
-
-      case STALL_FORWARDING:
-        if (ENERGY_TRACE)
-          loggedOnly.bypassStalls.increment(id, cycle - max(loggingStarted, startedBypassStall[id]));
-        total.bypassStalls.increment(id, cycle - startedBypassStall[id]);
-        startedBypassStall[id] = UNSTALLED;
-        break;
-
-      case IDLE:
-        if (ENERGY_TRACE)
-          loggedOnly.idleTimes.increment(id, cycle - max(loggingStarted, startedIdle[id]));
-        total.idleTimes.increment(id, cycle - startedIdle[id]);
-        startedIdle[id] = UNSTALLED;
-        break;
-
-      default: std::cerr << "Warning: Unknown stall reason." << endl; break;
     }
 
     // Clear this stall reason from the bitmask.
-    stallReason[id] &= ~reason;
+    stallReason[id] &= ~bitmask;
+
+    if (detailedLog)
+      recordEvent(cycle, id, reason, timeStalled, inst);
 
     if (stallReason[id] == NOT_STALLED) {
       numStalled--;
       assert(numStalled <= NUM_COMPONENTS);
 
       if (ENERGY_TRACE)
-        loggedOnly.totalStalls.increment(id, cycle - max(loggingStarted, startedStalling[id]));
-      total.totalStalls.increment(id, cycle - startedStalling[id]);
-      startedStalling[id] = UNSTALLED;
+        loggedOnly[STALL_ANY].increment(id, cycle - max(loggingStarted, startStall[STALL_ANY][id]));
+      total[STALL_ANY].increment(id, cycle - startStall[STALL_ANY][id]);
+      startStall[STALL_ANY][id] = UNSTALLED;
     }
   }
 }
 
-void Stalls::idle(const ComponentID& id, cycle_count_t cycle) {
-  stall(id, cycle, IDLE);
+void Stalls::idle(const ComponentID id, cycle_count_t cycle) {
+  // Idleness isn't caused by any particular instruction, so provide a dummy.
+  static Instruction nullInst(0);
+  static const DecodedInst decoded(nullInst);
+  stall(id, cycle, IDLE, decoded);
 }
 
-void Stalls::active(const ComponentID& id, cycle_count_t cycle) {
-  // Only become active if we were idle. If we were properly stalled, waiting
-  // for information, then we are still stalled.
-//  if (stallReason[id] & IDLE)
-    unstall(id, cycle, IDLE);
+void Stalls::active(const ComponentID id, cycle_count_t cycle) {
+  // Idleness isn't caused by any particular instruction, so provide a dummy.
+  static Instruction nullInst(0);
+  static const DecodedInst decoded(nullInst);
+  unstall(id, cycle, IDLE, decoded);
 }
 
 void Stalls::endExecution() {
@@ -260,16 +274,16 @@ cycle_count_t Stalls::cyclesIdle() {
     return 0;
 }
 
-cycle_count_t Stalls::cyclesActive(const ComponentID& core) {
+cycle_count_t Stalls::cyclesActive(const ComponentID core) {
   return currentCycle() - cyclesStalled(core) - cyclesIdle(core);
 }
 
-cycle_count_t Stalls::cyclesIdle(const ComponentID& core) {
-  return total.idleTimes[core];
+cycle_count_t Stalls::cyclesIdle(const ComponentID core) {
+  return total[IDLE][core];
 }
 
-cycle_count_t Stalls::cyclesStalled(const ComponentID& core) {
-  return total.totalStalls[core] - cyclesIdle(core);
+cycle_count_t Stalls::cyclesStalled(const ComponentID core) {
+  return total[STALL_ANY][core] - cyclesIdle(core);
 }
 
 cycle_count_t Stalls::cyclesLogged() {
@@ -287,8 +301,10 @@ void Stalls::printStats() {
 
   if (endOfExecution == 0) return;
 
+  clog << "Total execution time: " << endOfExecution << " cycles" << endl;
+
   clog << "Core activity:" << endl;
-  clog << "  Core\tInstructions\tActive\tIdle\tStalled (insts|data|bypass|output)" << endl;
+  clog << "  Core\tInsts\tActive\tIdle\tStalled (inst|mem|core|fwd|fetch|out)" << endl;
 
   // Flush any remaining stall/idle time into the CounterMaps.
   stopLogging();
@@ -301,26 +317,26 @@ void Stalls::printStats() {
 			if (id.isMemory()) continue;
 
 			// Only print statistics for cores which have seen some activity.
-			if ((uint)total.idleTimes[id] < endOfExecution) {
+			if ((uint)total[IDLE][id] < endOfExecution) {
 				cycle_count_t totalStalled = cyclesStalled(id);
 				cycle_count_t activeCycles = cyclesActive(id);
 				clog << "  " << id << "\t" <<
-				Operations::numOperations(id) << "\t\t" <<
+				Operations::numOperations(id) << "\t" <<
 				percentage(activeCycles, endOfExecution) << "\t" <<
-				percentage(total.idleTimes[id], endOfExecution) << "\t" <<
+				percentage(total[IDLE][id], endOfExecution) << "\t" <<
 				percentage(totalStalled, endOfExecution) << "\t(" <<
-        percentage(total.instructionStalls[id], totalStalled) << "|" <<
-        percentage(total.dataStalls[id], totalStalled) << "|" <<
-				percentage(total.bypassStalls[id], totalStalled) << "|" <<
-				percentage(total.outputStalls[id], totalStalled) << ")" << endl;
+        percentage(total[STALL_INSTRUCTIONS][id], totalStalled) << "|" <<
+        percentage(total[STALL_MEMORY_DATA][id], totalStalled) << "|" <<
+        percentage(total[STALL_CORE_DATA][id], totalStalled) << "|" <<
+        percentage(total[STALL_FORWARDING][id], totalStalled) << "|" <<
+        percentage(total[STALL_FETCH][id], totalStalled) << "|" <<
+				percentage(total[STALL_OUTPUT][id], totalStalled) << ")" << endl;
 			}
 		}
 	}
 
   if (BATCH_MODE)
 	cout << "<@GLOBAL>total_cycles:" << endOfExecution << "</@GLOBAL>" << endl;
-
-  clog << "Total execution time: " << endOfExecution << " cycles" << endl;
 
 }
 
@@ -342,18 +358,56 @@ void Stalls::dumpEventCounts(std::ostream& os) {
 //      if ((cycle_count_t)idleTimes[id] >= endOfExecution)
 //        continue;
 
-      cycle_count_t totalStalled = loggedOnly.totalStalls[id] - loggedOnly.idleTimes[id];
-      cycle_count_t activeCycles = loggedCycles - loggedOnly.totalStalls[id];
+      cycle_count_t totalStalled = loggedOnly[STALL_ANY][id] - loggedOnly[IDLE][id];
+      cycle_count_t activeCycles = loggedCycles - loggedOnly[STALL_ANY][id];
 
       os << "<activity core=\"" << id.getGlobalCoreNumber()  << "\">\n"
          << xmlNode("active", activeCycles)                     << "\n"
-         << xmlNode("idle", loggedOnly.idleTimes[id])                      << "\n"
+         << xmlNode("idle", loggedOnly[IDLE][id])               << "\n"
          << xmlNode("stalled", totalStalled)                    << "\n"
-         << xmlNode("instruction_stall", loggedOnly.instructionStalls[id]) << "\n"
-         << xmlNode("data_stall", loggedOnly.dataStalls[id])               << "\n"
-         << xmlNode("bypass_stall", loggedOnly.bypassStalls[id])           << "\n"
-         << xmlNode("output_stall", loggedOnly.outputStalls[id])           << "\n"
+         << xmlNode("instruction_stall", loggedOnly[STALL_INSTRUCTIONS][id]) << "\n"
+         << xmlNode("memory_data_stall", loggedOnly[STALL_MEMORY_DATA][id])  << "\n"
+         << xmlNode("core_data_stall", loggedOnly[STALL_CORE_DATA][id])      << "\n"
+         << xmlNode("bypass_stall", loggedOnly[STALL_FORWARDING][id])        << "\n"
+         << xmlNode("fetch_stall", loggedOnly[STALL_FETCH][id])              << "\n"
+         << xmlNode("output_stall", loggedOnly[STALL_OUTPUT][id])            << "\n"
          << xmlEnd("activity")                                  << "\n";
     }
+  }
+}
+
+const string Stalls::name(StallReason reason) {
+  switch (reason) {
+    case NOT_STALLED:         return "not stalled";
+    case STALL_MEMORY_DATA:   return "memory data";
+    case STALL_CORE_DATA:     return "core data";
+    case STALL_INSTRUCTIONS:  return "insts";
+    case STALL_OUTPUT:        return "output";
+    case STALL_FORWARDING:    return "forwarding";
+    case STALL_FETCH:         return "fetch";
+    case IDLE:                return "idle";
+    default: throw InvalidOptionException("stall reason", reason);
+  }
+}
+
+void Stalls::recordEvent(cycle_count_t currentCycle,
+                         ComponentID   component,
+                         StallReason   reason,
+                         cycle_count_t duration,
+                         const DecodedInst& inst) {
+  assert(detailedLog);
+
+  if (duration > 0 && component.isCore()) {
+    logStream->width(12);
+    *logStream << currentCycle;
+    logStream->width(12);
+    *logStream << component.getGlobalCoreNumber();
+    logStream->width(12);
+    *logStream << name(reason);
+    logStream->width(12);
+    *logStream << duration;
+    if (reason != IDLE)
+      *logStream << " (0x" << std::hex << inst.location() << std::dec << ": " << inst << ")";
+    *logStream << endl;
   }
 }

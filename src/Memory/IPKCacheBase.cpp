@@ -45,10 +45,6 @@ CacheIndex IPKCacheBase::lookup(const MemoryAddr tag) {
   return cacheIndex(tag);
 }
 
-bool IPKCacheBase::packetExists(CacheIndex position) const {
-  return getTag(position) != DEFAULT_TAG;
-}
-
 const Instruction IPKCacheBase::read() {
   if (!finishedPacketRead)
     updateReadPointer();
@@ -65,6 +61,7 @@ const Instruction IPKCacheBase::read() {
 
   finishedPacketRead = inst.endOfPacket();
   lastOpWasARead = true;
+
   return inst;
 }
 
@@ -72,12 +69,14 @@ CacheIndex IPKCacheBase::write(const Instruction newData) {
   updateWritePointer();
   assert(!writePointer.isNull());
 
+  if (fresh[writePointer.value()])
+    cerr << "Warning: " << this->name << " overwriting unread instruction\n"
+         << "  " << data[writePointer.value()] << " <= " << newData << endl;
+
   // Write the data to the cache.
   data[writePointer.value()] = newData;
   fresh[writePointer.value()] = true;
   dataActivity();
-
-  setTag(writePointer.value(), DEFAULT_TAG);
 
   lastOpWasARead = false;
 
@@ -87,14 +86,6 @@ CacheIndex IPKCacheBase::write(const Instruction newData) {
 }
 
 void IPKCacheBase::setTag(MemoryAddr tag) {
-  if (ENERGY_TRACE) {
-    // FIXME: currently setting whole tags to 0xFFFFFFFF instead of using a
-    // single invalidation bit. This messes with the recorded Hamming distances.
-
-    const MemoryAddr oldTag = getTag(writePointer.value());
-    Instrumentation::IPKCache::tagWrite(oldTag, tag);
-  }
-
   setTag(writePointer.value(), tag);
   tagActivity();
 }
@@ -172,16 +163,16 @@ void IPKCacheBase::setWritePointer(CacheIndex pos)      {writePointer = pos; upd
 
 void IPKCacheBase::incrementWritePos() {
   ++writePointer;
-  fillCount++;
 
-  assert(fillCount <= size());
+  if (fillCount < size())
+    fillCount++;
 }
 
 void IPKCacheBase::incrementReadPos() {
   ++readPointer;
-//  fillCount--;
 
-  assert(fillCount <= size());
+  if (fillCount > 0)
+    fillCount--;
 }
 
 void IPKCacheBase::updateFillCount() {

@@ -24,6 +24,7 @@ namespace Instrumentation {
   void initialise();
   void end();
   void dumpEventCounts(std::ostream& os);
+  void printSummary();
   bool haveEnergyData();
 
   void startLogging();
@@ -63,7 +64,7 @@ namespace Instrumentation {
   void backgroundMemoryWrite(MemoryAddr address, uint32_t count);
 
   // Record that a particular core became idle or active.
-  void idle(const ComponentID& id, bool idle);
+  void idle(const ComponentID id, bool idle);
 
   // End execution immediately.
   void endExecution();

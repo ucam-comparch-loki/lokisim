@@ -11,16 +11,17 @@
 #include "../../../Utility/Instrumentation.h"
 #include "../../../Utility/Instrumentation/Registers.h"
 #include "../../../Utility/Trace/LBTTrace.h"
+#include "../../../Exceptions/UnsupportedFeatureException.h"
 
-bool ExecuteStage::readPredicate() const {return parent()->readPredReg();}
-int32_t ExecuteStage::readReg(RegisterIndex reg) const {return parent()->readReg(1, reg);}
-int32_t ExecuteStage::readWord(MemoryAddr addr) const {return parent()->readWord(addr).toInt();}
-int32_t ExecuteStage::readByte(MemoryAddr addr) const {return parent()->readByte(addr).toInt();}
+bool ExecuteStage::readPredicate() const {return core()->readPredReg();}
+int32_t ExecuteStage::readReg(RegisterIndex reg) const {return core()->readReg(1, reg);}
+int32_t ExecuteStage::readWord(MemoryAddr addr) const {return core()->readWord(addr).toInt();}
+int32_t ExecuteStage::readByte(MemoryAddr addr) const {return core()->readByte(addr).toInt();}
 
-void ExecuteStage::writePredicate(bool val) const {parent()->writePredReg(val);}
-void ExecuteStage::writeReg(RegisterIndex reg, Word data) const {parent()->writeReg(reg, data.toInt());}
-void ExecuteStage::writeWord(MemoryAddr addr, Word data) const {parent()->writeWord(addr, data);}
-void ExecuteStage::writeByte(MemoryAddr addr, Word data) const {parent()->writeByte(addr, data);}
+void ExecuteStage::writePredicate(bool val) const {core()->writePredReg(val);}
+void ExecuteStage::writeReg(RegisterIndex reg, Word data) const {core()->writeReg(reg, data.toInt());}
+void ExecuteStage::writeWord(MemoryAddr addr, Word data) const {core()->writeWord(addr, data);}
+void ExecuteStage::writeByte(MemoryAddr addr, Word data) const {core()->writeByte(addr, data);}
 
 void ExecuteStage::execute() {
 //  if (alu.busy()) {
@@ -30,15 +31,25 @@ void ExecuteStage::execute() {
 //    blocked = alu.busy();
 //  }
 
-  if (currentInst.hasResult())
-    sendOutput();             // If there is already a result, don't do anything
+  if (currentInst.sendsOnNetwork() && !iReady.read()) {
+    next_trigger(iReady.posedge_event());
+    return;
+  }
+
+  // If there is already a result, don't do anything
+  if (currentInst.hasResult()) {
+    if (currentInst.setsPredicate())
+      updatePredicate(currentInst);
+    sendOutput();
+  }
   else
     newInput(currentInst);
 
   forwardedResult = currentInst.result();
 
-  if (!blocked)
+  if (!blocked) {
     instructionCompleted();
+  }
 }
 
 void ExecuteStage::updateReady() {
@@ -98,42 +109,65 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         success = !blocked;
         break;
 
-      case InstructionMap::OP_FETCH:
-      case InstructionMap::OP_FETCHR:
-      case InstructionMap::OP_FETCHPST:
-      case InstructionMap::OP_FETCHPSTR:
-      case InstructionMap::OP_FILL:
-      case InstructionMap::OP_FILLR:
-      case InstructionMap::OP_PSEL_FETCH:
-        success = fetch(operation);
+      case InstructionMap::OP_GETCHMAP:
+        // TODO: reading the CMT just returns a network address. We want
+        // the entire contents.
+        operation.result(core()->channelMapTable.read(operation.operand1()).toUInt());
         break;
 
-      case InstructionMap::OP_IWTR:
-        // Send only lowest 8 bits of address - don't need mask in hardware.
-        scratchpad.write(operation.operand1() & 0xFF, operation.operand2());
+      case InstructionMap::OP_GETCHMAPI:
+        // TODO: reading the CMT just returns a network address. We want
+        // the entire contents.
+        operation.result(core()->channelMapTable.read(operation.immediate()).toUInt());
         break;
 
-      case InstructionMap::OP_IRDR:
+      case InstructionMap::OP_CREGRDI:
+        operation.result(core()->cregs.read(operation.immediate()));
+        break;
+
+      case InstructionMap::OP_CREGWRI:
+        core()->cregs.write(operation.immediate(), operation.operand1());
+        break;
+
+      case InstructionMap::OP_SCRATCHRD:
         // Send only lowest 8 bits of address - don't need mask in hardware.
         operation.result(scratchpad.read(operation.operand1() & 0xFF));
         break;
 
+      case InstructionMap::OP_SCRATCHRDI:
+        // Send only lowest 8 bits of address - don't need mask in hardware.
+        operation.result(scratchpad.read(operation.operand2() & 0xFF));
+        break;
+
+      case InstructionMap::OP_SCRATCHWR:
+      case InstructionMap::OP_SCRATCHWRI:
+        // Send only lowest 8 bits of address - don't need mask in hardware.
+        scratchpad.write(operation.operand2() & 0xFF, operation.operand1());
+        break;
+
+      case InstructionMap::OP_IRDR:
+        operation.result(operation.operand1());
+        break;
+
+      case InstructionMap::OP_IWTR:
+        operation.result(operation.operand1());
+        break;
+
       case InstructionMap::OP_LLI:
-        // FIXME: should LLI happen in execute stage or during register write?
         operation.result(operation.operand2());
         break;
 
       case InstructionMap::OP_LUI:
-        operation.result((operation.operand1() & 0xFFFF) | (operation.operand2() << 16));
+        operation.result(operation.operand1() | (operation.operand2() << 16));
         break;
 
       case InstructionMap::OP_SYSCALL:
+        // TODO: remove from ALU.
         alu.systemCall(operation);
         break;
 
       case InstructionMap::OP_WOCHE:
-        cerr << "woche not yet implemented" << endl;
-        assert(false);
+        throw UnsupportedFeatureException("woche instruction");
         break;
 
       default:
@@ -149,10 +183,13 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         break;
     } // end switch
 
+    if (operation.setsPredicate())
+      updatePredicate(operation);
+
     if (success)
       sendOutput();
 
-  } // end if will execute
+  } // end if (will execute)
   else {
     // If the instruction will not be executed, invalidate it so we don't
     // try to forward data from it.
@@ -165,8 +202,13 @@ void ExecuteStage::newInput(DecodedInst& operation) {
   if (//ENERGY_TRACE &&  <-- do this check elsewhere
       operation.isALUOperation() &&
       operation.memoryOp() != MemoryRequest::PAYLOAD_ONLY &&
-      !blocked)
+      !blocked) {
     Instrumentation::executed(id, operation, willExecute);
+
+    // Note: there is a similar call from the decode stage for instructions
+    // which complete their execution there.
+    core()->cregs.instructionExecuted();
+  }
 
   previousInstExecuted = willExecute;
 }
@@ -174,8 +216,6 @@ void ExecuteStage::newInput(DecodedInst& operation) {
 void ExecuteStage::sendOutput() {
   if (currentInst.sendsOnNetwork()) {
 	if (LBT_TRACE) {
-	  // FIXME: I am not sure whether I understood the calculation of memory addresses completely - set them here to get final result
-
 	  if ((currentInst.opcode() == InstructionMap::OP_LDW ||
 		currentInst.opcode() == InstructionMap::OP_LDHWU ||
 		currentInst.opcode() == InstructionMap::OP_LDBU ||
@@ -203,7 +243,7 @@ void ExecuteStage::sendOutput() {
 
     // Send the data to the output buffer - it will arrive immediately so that
     // network resources can be requested the cycle before they are used.
-    oData.write(currentInst);
+    oData.write(currentInst.toNetworkData());
   }
 
   // Send the data to the register file - it will arrive at the beginning
@@ -211,64 +251,8 @@ void ExecuteStage::sendOutput() {
   outputInstruction(currentInst);
 }
 
-bool ExecuteStage::canCheckTags() const {
-  return parent()->canCheckTags();
-}
-
-bool ExecuteStage::fetch(DecodedInst& inst) {
-  MemoryAddr fetchAddress;
-
-  // If we already have the maximum number of packets queued up, wait until
-  // one of them finishes arriving.
-  if (!canCheckTags()) {
-    blocked = true;
-    currentInst = inst;
-    next_trigger(clock.posedge_event());
-    return false;
-  }
-  else
-    blocked = false;
-
-  // Compute the address to fetch from, depending on which operation this is.
-  switch (inst.opcode()) {
-    case InstructionMap::OP_FETCH:
-    case InstructionMap::OP_FETCHR:
-    case InstructionMap::OP_FETCHPST:
-    case InstructionMap::OP_FETCHPSTR:
-    case InstructionMap::OP_FILL:
-    case InstructionMap::OP_FILLR:
-      fetchAddress = inst.operand1() + inst.operand2();
-      break;
-
-    case InstructionMap::OP_PSEL_FETCH:
-      fetchAddress = readPredicate() ? inst.operand1() : inst.operand2();
-      break;
-
-    default:
-      cerr << "Error: called ExecuteStage::fetch with non-fetch instruction." << endl;
-      assert(false);
-      break;
-  }
-
-  if (LBT_TRACE)
-	LBTTrace::setInstructionMemoryAddress(inst.isid(), fetchAddress);
-
-  // Return whether the fetch request should be sent (it should be sent if the
-  // tag is not in the cache).
-  if (parent()->inCache(fetchAddress, inst.opcode())) {
-    // Packet is already in the cache: don't fetch.
-    return false;
-  }
-  else {
-    // Packet is not in the cache: fetch.
-    MemoryRequest request(MemoryRequest::IPK_READ, fetchAddress);
-    inst.result(request.toULong());
-    return true;
-  }
-}
-
 void ExecuteStage::setChannelMap(DecodedInst& inst) {
-  MapIndex entry = inst.immediate();
+  MapIndex entry = inst.operand2();
   uint32_t value = inst.operand1();
 
   // TODO: extract these from the ChannelID, rather than from the raw data.
@@ -285,10 +269,10 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
   // FIXME: I don't think it's necessary to block until all credits have been
   // received, but it's useful for debug purposes to ensure that we aren't
   // losing credits.
-  bool success = parent()->channelMapTable.write(entry, sendChannel, groupBits, lineBits, returnTo, writeThrough);
+  bool success = core()->channelMapTable.write(entry, sendChannel, groupBits, lineBits, returnTo, writeThrough);
   if (!success) {
     blocked = true;
-    next_trigger(parent()->channelMapTable.haveAllCredits(entry));
+    next_trigger(core()->channelMapTable.allCreditsEvent(entry));
   }
   else {
     blocked = false;
@@ -300,7 +284,9 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
       inst.channelMapEntry(entry);
       inst.networkDestination(sendChannel);
       inst.portClaim(true);
-      inst.usesCredits(parent()->channelMapTable[entry].usesCredits());
+      inst.usesCredits(core()->channelMapTable[entry].usesCredits());
+
+      core()->channelMapTable[entry].removeCredit();
     }
   }
 }
@@ -334,7 +320,7 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
 
   // We want to access lots of information from the channel map table, so get
   // the entire entry.
-  ChannelMapEntry& channelMapEntry = parent()->channelMapTable[inst.channelMapEntry()];
+  ChannelMapEntry& channelMapEntry = core()->channelMapTable[inst.channelMapEntry()];
 
   if (channelMapEntry.writeThrough()) {
     switch (op) {
@@ -368,12 +354,10 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
 
   if (channelMapEntry.localMemory() && channelMapEntry.memoryGroupBits() > 0) {
     if (addressFlit) {
-      increment = (uint32_t)inst.result();
-      increment &= (1UL << (channelMapEntry.memoryGroupBits() + channelMapEntry.memoryLineBits())) - 1UL;
-      increment >>= channelMapEntry.memoryLineBits();
+      increment = channelMapEntry.computeAddressIncrement((uint32_t)inst.result());
 
       // Store the adjustment which must be made, so that any subsequent flits
-      // can also access the same memory.
+      // can also access the same memory bank.
       channelMapEntry.setAddressIncrement(increment);
     } else {
       increment = channelMapEntry.getAddressIncrement();
@@ -392,7 +376,10 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
 bool ExecuteStage::isStalled() const {
   // When we have multi-cycle operations (e.g. multiplies), we will need to use
   // this.
+  // TODO: replace with oData.valid();
+  // Currently results in occasional buffer over-filling.
   return !iReady.read();
+//  return oData.valid();
 }
 
 bool ExecuteStage::checkPredicate(DecodedInst& inst) {
@@ -405,6 +392,42 @@ bool ExecuteStage::checkPredicate(DecodedInst& inst) {
                 (predBits == Instruction::NOT_P && !pred);
 
   return result;
+}
+
+void ExecuteStage::updatePredicate(const DecodedInst& inst) {
+  assert(inst.setsPredicate());
+
+  bool newPredicate;
+
+  switch (inst.function()) {
+    // For additions and subtractions, the predicate represents the carry
+    // and borrow bits, respectively.
+    case InstructionMap::FN_ADDU: {
+      uint64_t val1 = (uint64_t)((uint32_t)inst.operand1());
+      uint64_t val2 = (uint64_t)((uint32_t)inst.operand2());
+      uint64_t result64 = val1 + val2;
+      newPredicate = (result64 >> 32) != 0;
+      break;
+    }
+
+    // The 68k and x86 set the borrow bit if a - b < 0 for subtractions.
+    // The 6502 and PowerPC treat it as a carry bit.
+    // http://en.wikipedia.org/wiki/Carry_flag#Carry_flag_vs._Borrow_flag
+    case InstructionMap::FN_SUBU: {
+      uint64_t val1 = (uint64_t)((uint32_t)inst.operand1());
+      uint64_t val2 = (uint64_t)((uint32_t)inst.operand2());
+      newPredicate = val1 < val2;
+      break;
+    }
+
+    // Otherwise, it holds the least significant bit of the result.
+    // Potential alternative: newPredicate = (result != 0)
+    default:
+      newPredicate = inst.result() & 1;
+      break;
+  }
+
+  writePredicate(newPredicate);
 }
 
 const DecodedInst& ExecuteStage::currentInstruction() const {
@@ -421,13 +444,14 @@ void ExecuteStage::reportStalls(ostream& os) {
   }
 }
 
-ExecuteStage::ExecuteStage(sc_module_name name, const ComponentID& ID) :
+ExecuteStage::ExecuteStage(const sc_module_name& name, const ComponentID& ID) :
     PipelineStage(name, ID),
     alu("alu", ID),
     scratchpad("scratchpad", ID) {
 
   previousInstExecuted = false;
   blocked = false;
+  forwardedResult = 0;
 
   SC_METHOD(execute);
   sensitive << newInstructionEvent;

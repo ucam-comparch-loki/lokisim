@@ -9,6 +9,7 @@
 #include "Debugger.h"
 #include "StringManipulation.h"
 #include "StartUp/DataBlock.h"
+#include "Trace/Callgrind.h"
 #include "Trace/CoreTrace.h"
 #include "Trace/MemoryTrace.h"
 #include "Trace/SoftwareTrace.h"
@@ -27,6 +28,8 @@ string Arguments::memTraceFile_ = "";
 string Arguments::energyTraceFile_ = "";
 string Arguments::softwareTraceFile_ = "";
 string Arguments::lbtTraceFile_ = "";
+string Arguments::stallsTraceFile_ = "";
+string Arguments::callgrindTraceFile_ = "";
 std::stringstream Arguments::invocation_;
 
 bool Arguments::summarise_ = false;
@@ -45,22 +48,22 @@ void Arguments::parse(int argc, char* argv[]) {
 
   for (int i=1; i<argc; i++) {
     string argument(argv[i]);
-    if (argument == "debug") {
+    if (argument == "-debug") {
       // Print out lots of information about execution.
       Debugger::usingDebugger = true;
       Debugger::mode = Debugger::DEBUGGER;
     }
-    else if (argument == "test") {
+    else if (argument == "-test") {
       // Switch off all status reporting, so we only get the information we
       // want. This allows much faster testing.
       DEBUG = 0;
       Debugger::usingDebugger = true;
       Debugger::mode = Debugger::TEST;
     }
-    else if (argument == "trace") {
-      // Print out only the addresses of each instruction executed.
+    else if (argument == "-trace") {
+      // Print each instruction executed and its context.
       DEBUG = 0;
-      TRACE = 1;
+      CSIM_TRACE = 1;
     }
     else if (argument == "-run" || argument == "-settings") {
       // Command line way of choosing which program to run.
@@ -76,6 +79,11 @@ void Arguments::parse(int argc, char* argv[]) {
       // Enable batch mode.
       DEBUG = 0;
       BATCH_MODE = 1;
+    }
+    else if (argument == "-instructiontrace") {
+      // Print out only the addresses of each instruction executed.
+      DEBUG = 0;
+      TRACE = 1;
     }
     else if (argument == "-coretrace") {
       // Enable core trace.
@@ -108,6 +116,17 @@ void Arguments::parse(int argc, char* argv[]) {
       LBTTrace::start(lbtTraceFile_);
       i++;  // Have used two arguments in this iteration.
       LBT_TRACE = 1;
+    }
+    else if (argument == "-stalltrace") {
+      stallsTraceFile_ = string(argv[i+1]);
+      i++;  // Have used two arguments in this iteration.
+      Instrumentation::Stalls::startDetailedLog(stallsTraceFile_);
+    }
+    else if (argument == "-callgrind") {
+      callgrindTraceFile_ = string(argv[i+1]);
+      i++;  // Have used two arguments in this iteration.
+      // Wait until all arguments have been parsed before starting the trace.
+      // We need to be sure that we know the location of the binary too.
     }
     else if (argument == "-summary") {
       summarise_ = true;
@@ -142,6 +161,10 @@ void Arguments::parse(int argc, char* argv[]) {
     string settingsFile = simDir + "/../test_files/loader.txt";
     programFiles.push_back(settingsFile);
   }
+
+  // Perform any setup which must wait until all arguments have been parsed.
+  if (!callgrindTraceFile_.empty())
+    Callgrind::startTrace(callgrindTraceFile_, programFiles[0]);
 
 }
 
@@ -218,17 +241,20 @@ const bool Arguments::summarise() {
 
 void Arguments::printHelp() {
   cout <<
-    "Loki2: a cycle-accurate simulator for the Loki many-core architecture.\n"
-    "Usage: Loki2 [simulator arguments]\n\n"
+    "lokisim: a cycle-accurate simulator for the Loki many-core architecture.\n"
+    "Usage: lokisim [simulator arguments]\n\n"
     "Options:\n"
-    "  debug\n\tEnter debug mode, where simulator contents can be inspected and changed\n\tat runtime\n"
-    "  trace\n\tPrint the address of each instruction executed to stdout\n"
+    "  -debug\n\tEnter debug mode, where simulator contents can be inspected and changed\n\tat runtime\n"
+    "  -trace\n\tPrint each instruction executed and its context to stdout\n"
     "  -run <program>\n\tExecute the supplied program\n"
     "  -summary\n\tPrint a summary of execution behaviour when execution finishes\n"
     "  -coretrace <file>\n"
     "  -memtrace <file>\n"
     "  -swtrace <file>\n"
     "  -lbttrace <file>\n\tDump particular types of information to a named file\n"
+    "  -stalltrace <file>\n\tDump information about each processor stall to a file\n"
+    "  -cgtrace <file>\n\tDump output in the Callgrind format\n"
+    "  -instructiontrace\n\tPrint the address of each instruction executed to stdout\n"
     "  -Pparameter=value\n\tSet a named parameter to a particular value\n"
     "  --args [...]\n\tPass all remaining arguments to the simulated program\n"
     "  --help\n\tDisplay this information and exit\n"

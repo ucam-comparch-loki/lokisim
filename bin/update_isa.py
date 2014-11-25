@@ -195,19 +195,15 @@ header_text += """
   
   enum Function {"""
 
-function = 0
+functions = []
 
 # Go through all operations, checking for their ALU function codes. Assumes that
 # the first operation found will have the most useful name, and that function
 # codes appear in order.
 for operation in operations:
-    if operation.alu_function >= function:
-        if(function > 0):
-            header_text += ",\n"
-        else:
-            header_text += "\n"
-        header_text += "    FN_" + operation.mnemonic.replace(".", "_").upper() + " = " + str(operation.alu_function)
-        function = operation.alu_function + 1
+    if operation.alu_function not in functions:
+        header_text += "\n    FN_" + operation.mnemonic.replace(".", "_").upper() + " = " + str(operation.alu_function) + ","
+        functions.append(operation.alu_function)
 
 header_text += """
   };

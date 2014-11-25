@@ -24,7 +24,8 @@ void IPKCache::tagCheck(const ComponentID& core, bool hit, const MemoryAddr tag,
   if (hit) numHits_++;
   else     numMisses_++;
 
-  tagReadHD_ += hammingDistance(tag, prevCheck);
+  if (ENERGY_TRACE)
+    tagReadHD_ += hammingDistance(tag, prevCheck);
 }
 
 void IPKCache::tagWrite(const MemoryAddr oldTag, const MemoryAddr newTag) {
@@ -75,6 +76,14 @@ void IPKCache::printStats() {
 	  "    Hits:   " << numHits_ << "\t(" << percentage(numHits_,tagChecks) << ")\n" <<
 	  "    Misses: " << numMisses_ << "\t(" << percentage(numMisses_,tagChecks) << ")\n";
   }
+}
+
+void IPKCache::printSummary() {
+  using std::clog;
+
+  clog << "L0 cache activity:" << endl;
+  clog << "  Total instruction reads: " << numReads() << endl;
+  clog << "  Packet hit rate:         " << numHits() << "/" << numTagChecks() << " (" << percentage(numHits(),numTagChecks()) << ")" << endl;
 }
 
 void IPKCache::dumpEventCounts(std::ostream& os) {

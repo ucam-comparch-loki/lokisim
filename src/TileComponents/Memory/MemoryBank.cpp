@@ -38,6 +38,8 @@ using namespace std;
 #include "../../Datatype/Packets/CacheLineFlush.h"
 #include "../../Datatype/Packets/CacheLineReadRequest.h"
 #include "../../Datatype/Packets/CacheLineRefill.h"
+#include "../../Exceptions/UnsupportedFeatureException.h"
+#include "../../Exceptions/InvalidOptionException.h"
 
 // A "fast" memory is capable of receiving a request, decoding it, performing
 // the operation, and sending the result, all in one clock cycle.

@@ -12,6 +12,7 @@
 #include "../../../Utility/Instrumentation.h"
 #include "../../../Utility/Trace/SoftwareTrace.h"
 #include "../../../Utility/Trace/LBTTrace.h"
+#include "../../../Exceptions/InvalidOptionException.h"
 
 void ALU::execute(DecodedInst& dec) {
 
@@ -34,7 +35,7 @@ void ALU::execute(DecodedInst& dec) {
   int32_t val2 = dec.operand2();
   int32_t result;
 
-  switch(dec.function()) {
+  switch (dec.function()) {
     case InstructionMap::FN_NOR:     result = ~(val1 | val2); break;
     case InstructionMap::FN_AND:     result = val1 & val2; break;
     case InstructionMap::FN_OR:      result = val1 | val2; break;
@@ -74,45 +75,12 @@ void ALU::execute(DecodedInst& dec) {
       break;
 
     default:
-      cerr << "Invalid function code: " << dec.function() << endl;
       cerr << dec << endl;
-      assert(false);
+      throw InvalidOptionException("ALU function code", dec.function());
       break;
   }
 
   dec.result(result);
-
-  if(dec.setsPredicate()) {
-
-    bool newPredicate;
-
-    switch(dec.function()) {
-      // For additions and subtractions, the predicate signals overflow or
-      // underflow.
-      case InstructionMap::FN_ADDU: {
-        int64_t result64 = (int64_t)val1 + (int64_t)val2;
-        newPredicate = (result64 > INT_MAX) || (result64 < INT_MIN);
-        break;
-      }
-
-      // The 68k and x86 set the borrow bit if a - b < 0 for subtractions.
-      // The 6502 and PowerPC treat it as a carry bit.
-      // http://en.wikipedia.org/wiki/Carry_flag#Carry_flag_vs._Borrow_flag
-      case InstructionMap::FN_SUBU: {
-        int64_t result64 = (int64_t)val1 - (int64_t)val2;
-        newPredicate = (result64 > INT_MAX) || (result64 < INT_MIN);
-        break;
-      }
-
-      // Otherwise, it holds the least significant bit of the result.
-      // Potential alternative: newPredicate = (result != 0)
-      default:
-        newPredicate = result&1;
-        break;
-    }
-
-    setPred(newPredicate);
-  }
 
 }
 
@@ -138,12 +106,12 @@ cycle_count_t ALU::getFunctionLatency(function_t fn) {
   return cycles;
 }
 
-void ALU::setPred(bool val) const {
+void ALU::setPredicate(bool val) const {
   parent()->writePredicate(val);
 }
 
 ExecuteStage* ALU::parent() const {
-  return static_cast<ExecuteStage*>(this->get_parent());
+  return static_cast<ExecuteStage*>(this->get_parent_object());
 }
 
 int32_t ALU::readReg(RegisterIndex reg) const {return parent()->readReg(reg);}
@@ -277,11 +245,13 @@ void ALU::systemCall(DecodedInst& dec) const {
     }
 
     case 0x10: { /* tile ID */
+      cerr << "Warning: syscall 0x10 (tile ID) is deprecated. Use control register 1 instead." << endl;
       int tile = this->id.getTile();
       writeReg(11, tile);
       break;
     }
     case 0x11: { /* position within tile */
+      cerr << "Warning: syscall 0x11 (core ID) is deprecated. Use control register 1 instead." << endl;
       int position = this->id.getPosition();
       writeReg(11, position);
       break;
@@ -321,8 +291,7 @@ void ALU::systemCall(DecodedInst& dec) const {
     }
 
     default:
-      cerr << "Warning: unrecognised system call opcode: " << code << endl;
-      assert(false);
+      throw InvalidOptionException("system call opcode", code);
       break;
   }
 }

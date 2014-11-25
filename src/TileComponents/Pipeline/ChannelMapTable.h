@@ -33,7 +33,12 @@ public:
              ChannelIndex returnTo=0,
              bool writeThrough=false);
 
-  const sc_event& haveAllCredits(MapIndex entry) const;
+  // Event which is triggered when a channel's credit counter reaches its
+  // maximum value.
+  const sc_event& allCreditsEvent(MapIndex entry) const;
+
+  // Event triggered when a credit arrives for a particular channel.
+  const sc_event& creditArrivedEvent(MapIndex entry) const;
 
   void addCredit(MapIndex entry);
   void removeCredit(MapIndex entry);
@@ -43,6 +48,11 @@ public:
   // Return an entire entry of the table. This method should be avoided if
   // necessary, as it may bypass functionality in other accessor methods.
   ChannelMapEntry& operator[] (const MapIndex entry);
+
+  // For instrumentation purposes only, keep track of which of our input
+  // channels we expect to receive data from memory, and which will receive
+  // data from cores. ChannelIndex 0 is mapped to the IPK FIFO.
+  bool connectionFromMemory(ChannelIndex channel) const;
 
 private:
 
@@ -65,7 +75,10 @@ public:
 private:
 
   std::vector<ChannelMapEntry> table;
-  LokiVector<sc_event> allCreditsEvent;
+
+  // One entry per input channel. true = we've set up a memory connection to
+  // return data to this input. false = anything else.
+  std::vector<bool> memoryConnection;
 
   // Store a copy of the most recently read entry so we can measure the number
   // of bits which toggle.

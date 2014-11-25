@@ -14,11 +14,11 @@
 #include "../../../Utility/Instrumentation/Network.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
-void SendChannelEndTable::write(const DecodedInst& data) {
+void SendChannelEndTable::write(const NetworkData data) {
   if (DEBUG)
-    cout << this->name() << " writing " << data.toNetworkData() << " to buffer\n";
+    cout << this->name() << " writing " << data << " to buffer\n";
 
-  if (data.networkDestination().getTile() == id.getTile()) {
+  if (data.channelID().getTile() == id.getTile()) {
     assert(!bufferLocal.full());
     bufferLocal.write(data);
     bufferFillChanged.notify();
@@ -39,10 +39,81 @@ const sc_event& SendChannelEndTable::stallChangedEvent() const {
   return bufferFillChanged;
 }
 
+void SendChannelEndTable::receiveLoop() {
+  // All data is read on the negative clock edge. This gives enough time for
+  // tag checks and memory bank computation to have taken place, and leaves
+  // enough time to get to the arbiters and back.
+
+  switch (receiveState) {
+    case RS_READY: {
+      // Wait for data to arrive
+      if (!iFetch.valid() && !iData.valid())
+        next_trigger(iFetch.default_event() | iData.default_event());
+      // Wait for right point in clock cycle
+//      else if (!clock.negedge())
+//        next_trigger(clock.negedge_event());
+      else if (bufferLocal.full())
+        next_trigger(bufferLocal.readEvent());
+      else if (bufferGlobal.full())
+        next_trigger(bufferGlobal.readEvent());
+      else {
+        assert(!bufferLocal.full());
+        assert(!bufferGlobal.full());
+
+        // Choose appropriate input port - fetch has priority.
+        NetworkData flit;
+        if (iFetch.valid()) {
+          flit = iFetch.read();
+          iFetch.ack();
+        }
+        else {
+          flit = iData.read();
+          iData.ack();
+        }
+
+        write(flit);
+
+        // If the flit is part of a larger packet, wait for the whole packet to
+        // come through.
+        if (!flit.endOfPacket())
+          receiveState = RS_PACKET;
+
+        next_trigger(clock.posedge_event());
+      }
+
+      break;
+    }
+
+    case RS_PACKET: {
+      // Port = iData
+      // Wait for data to arrive
+      if (!iData.valid())
+        next_trigger(iData.default_event());
+      // Wait for right point in clock cycle
+//      else if (!clock.negedge())
+//        next_trigger(clock.negedge_event());
+      else {
+        assert(!bufferLocal.full());
+        NetworkData flit = iData.read();
+        iData.ack();
+        write(flit);
+
+        // Ready to start a new packet if this one has now finished.
+        if (flit.endOfPacket())
+          receiveState = RS_READY;
+
+        next_trigger(clock.posedge_event());
+      }
+
+      break;
+    }
+  }
+}
+
 void SendChannelEndTable::sendLoopLocal() {
 
-  switch (state) {
-    case IDLE: {
+  switch (sendState) {
+    case SS_IDLE: {
 
       // Remove the request for network resources if the previous data sent was
       // the end of a data packet.
@@ -56,7 +127,7 @@ void SendChannelEndTable::sendLoopLocal() {
         next_trigger(bufferLocal.writeEvent());
       }
       else {
-        state = DATA_READY;
+        sendState = SS_DATA_READY;
 
         // Wait until slightly after the negative clock edge to request arbitration
         // because the memory updates its flow control signals on the negedge.
@@ -66,33 +137,23 @@ void SendChannelEndTable::sendLoopLocal() {
       break;
     }
 
-    case DATA_READY: {
+    case SS_DATA_READY: {
       assert(!bufferLocal.empty());
 
-      // Before requesting network resources, we must first make sure that if
-      // we are issuing an instruction packet fetch, there is space in the
-      // local cache.
-
-      if ((bufferLocal.peek().memoryOp() == MemoryRequest::IPK_READ) &&
-               !parent()->readyToFetch()) {
-        next_trigger(1.0, sc_core::SC_NS);
-      }
-      else {
-        // Request arbitration.
-        requestArbitration(bufferLocal.peek().networkDestination(), true);
-        next_trigger(clock.posedge_event());
-        state = ARBITRATING;
-      }
+      // Request arbitration.
+      requestArbitration(bufferLocal.peek().channelID(), true);
+      next_trigger(clock.posedge_event());
+      sendState = SS_ARBITRATING;
 
       break;
     }
 
-    case ARBITRATING: {
+    case SS_ARBITRATING: {
       // If the network has granted our request to send data, send it.
       // Otherwise, wait another cycle.
-      if (requestGranted(bufferLocal.peek().networkDestination())) {
-        state = CAN_SEND;
-        // fall through to CAN_SEND state
+      if (requestGranted(bufferLocal.peek().channelID())) {
+        sendState = SS_CAN_SEND;
+        // fall through to SS_CAN_SEND state
       }
       else {
         next_trigger(clock.posedge_event());
@@ -101,14 +162,11 @@ void SendChannelEndTable::sendLoopLocal() {
     }
     /* no break */
 
-    case CAN_SEND: {
+    case SS_CAN_SEND: {
       assert(!bufferLocal.empty());
 
-      const DecodedInst& inst = bufferLocal.read();
+      const NetworkData data = bufferLocal.read();
       bufferFillChanged.notify();
-
-      // Send data
-      const NetworkData data = inst.toNetworkData();
 
       if (DEBUG)
         cout << this->name() << " sending " << data << endl;
@@ -117,11 +175,8 @@ void SendChannelEndTable::sendLoopLocal() {
 
       oDataLocal.write(data);
 
-      // The local network doesn't use credits.
-//      channelMapTable->removeCredit(inst.channelMapEntry());
-
       // Return to IDLE state and see if there is more data to send.
-      state = IDLE;
+      sendState = SS_IDLE;
       next_trigger(oDataLocal.ack_event());
 
       break;
@@ -137,18 +192,12 @@ void SendChannelEndTable::sendLoopGlobal() {
 
   // Wait until we have data, we have the credits to send that data, and only
   // send on a positive clock edge.
-  if (bufferGlobal.empty()) {
+  if (bufferGlobal.empty())
     next_trigger(bufferGlobal.writeEvent());
-  }
-  else if (!channelMapTable->canSend(bufferGlobal.peek().channelMapEntry())) {
-    next_trigger(iCredit.default_event());
-  }
-  else if (!clock.posedge()) {
+  else if (!clock.posedge())
     next_trigger(clock.posedge_event());
-  }
   else {
-    const DecodedInst& inst = bufferGlobal.read();
-    const NetworkData data = inst.toNetworkData();
+    const NetworkData data = bufferGlobal.read();
 
     if (DEBUG)
       cout << this->name() << " sending " << data << endl;
@@ -156,26 +205,25 @@ void SendChannelEndTable::sendLoopGlobal() {
       Instrumentation::Network::traffic(id, data.channelID().getComponentID());
 
     oDataGlobal.write(data);
-    channelMapTable->removeCredit(inst.channelMapEntry());
 
     next_trigger(oDataGlobal.ack_event());
   }
 }
 
 /* Stall the pipeline until the specified channel is empty. */
-void SendChannelEndTable::waitUntilEmpty(MapIndex channel) {
-  Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT);
+void SendChannelEndTable::waitUntilEmpty(MapIndex channel, const DecodedInst& inst) {
+  Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
   waiting = true;
   bufferFillChanged.notify(); // No it didn't - use separate events?
 
   // Wait until the channel's credit counter reaches its maximum value, if it
   // is using credits.
-  next_trigger(channelMapTable->haveAllCredits(channel));
+  next_trigger(channelMapTable->allCreditsEvent(channel));
 
   // TODO: split this method into two (at this point) and perhaps integrate
   // with the main loop.
 
-  Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT);
+  Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
   waiting = false;
   bufferFillChanged.notify(); // No it didn't - use separate events?
 }
@@ -201,25 +249,25 @@ void SendChannelEndTable::receivedCredit() {
 }
 
 WriteStage* SendChannelEndTable::parent() const {
-  return static_cast<WriteStage*>(this->get_parent());
+  return static_cast<WriteStage*>(this->get_parent_object());
 }
 
 void SendChannelEndTable::reportStalls(ostream& os) {
   if (!bufferLocal.empty()) {
-    os << this->name() << " unable to send " << bufferLocal.peek().toNetworkData() << endl;
+    os << this->name() << " unable to send " << bufferLocal.peek() << endl;
 
-    if (!channelMapTable->canSend(bufferLocal.peek().channelMapEntry()))
-      os << "  Need credits." << endl;
-    else
+//    if (!channelMapTable->canSend(bufferLocal.peek().channelMapEntry()))
+//      os << "  Need credits." << endl;
+//    else
       os << "  Waiting for arbitration request to be granted." << endl;
   }
 
   if (!bufferGlobal.empty()) {
-    os << this->name() << " unable to send " << bufferGlobal.peek().toNetworkData() << endl;
+    os << this->name() << " unable to send " << bufferGlobal.peek() << endl;
 
-    if (!channelMapTable->canSend(bufferGlobal.peek().channelMapEntry()))
-      os << "  Need credits." << endl;
-    else
+//    if (!channelMapTable->canSend(bufferGlobal.peek().channelMapEntry()))
+//      os << "  Need credits." << endl;
+//    else
       os << "  Waiting for arbitration request to be granted." << endl;
   }
 
@@ -233,10 +281,12 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID&
     bufferGlobal(OUT_CHANNEL_BUFFER_SIZE, string(this->name())+string(".bufferGlobal")),
     channelMapTable(cmt) {
 
-  state = IDLE;
+  receiveState = RS_READY;
+  sendState = SS_IDLE;
 
   waiting = false;
 
+  SC_METHOD(receiveLoop);
   SC_METHOD(sendLoopLocal);
   SC_METHOD(sendLoopGlobal);
 

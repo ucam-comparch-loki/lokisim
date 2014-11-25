@@ -10,6 +10,7 @@
 #include "../../Datatype/Word.h"
 #include "../../Utility/Instrumentation.h"
 #include "../../Utility/Instrumentation/Registers.h"
+#include "../../Exceptions/InvalidOptionException.h"
 
 const int32_t RegisterFile::read(PortIndex port, RegisterIndex reg, bool indirect) const {
   RegisterIndex index;
@@ -50,7 +51,10 @@ const int32_t RegisterFile::read(PortIndex port, RegisterIndex reg, bool indirec
 }
 
 const int32_t RegisterFile::readDebug(const RegisterIndex reg) const {
-  return regs.read(reg).toInt();
+  if (reg == 0)
+    return 0;
+  else
+    return regs.read(reg).toInt();
 }
 
 void RegisterFile::write(const RegisterIndex reg, const int32_t value, bool indirect) {
@@ -58,14 +62,8 @@ void RegisterFile::write(const RegisterIndex reg, const int32_t value, bool indi
   RegisterIndex index = indirect ? regs.read(reg).toInt() : reg;
 
   // There are some registers that we can't write to.
-  if (isReserved(index)/* || isChannelEnd(index)*/) {
-    if (index != 0) {
-      cerr << "Error: attempting to write to reserved register "
-           << (int)index << endl;
-      assert(false);
-    }
-    return;
-  }
+  if (isReserved(index)/* || isChannelEnd(index)*/ && index != 0)
+    throw InvalidOptionException("destination register", index);
 
   int oldData = regs.read(index).toInt();
 
@@ -138,7 +136,7 @@ void RegisterFile::logActivity() {
 }
 
 Core* RegisterFile::parent() const {
-  return static_cast<Core*>(this->get_parent());
+  return static_cast<Core*>(this->get_parent_object());
 }
 
 RegisterFile::RegisterFile(sc_module_name name, const ComponentID& ID) :

@@ -33,6 +33,7 @@ public:
   static count_t numWrites();
 
   static void printStats();
+  static void printSummary();
   static void dumpEventCounts(std::ostream& os);
 
 private:

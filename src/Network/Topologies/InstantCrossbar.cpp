@@ -8,6 +8,7 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "InstantCrossbar.h"
+#include "../../Exceptions/InvalidOptionException.h"
 
 void InstantCrossbar::mainLoop(PortIndex port) {
   NetworkData data = iData[port].read();
@@ -40,7 +41,7 @@ void InstantCrossbar::mainLoop(PortIndex port) {
       break;
 
     default:
-      assert(false);
+      throw InvalidOptionException("crossbar state", state[port]);
       break;
   }
 }

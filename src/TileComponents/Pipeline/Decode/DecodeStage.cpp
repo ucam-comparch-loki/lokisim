@@ -9,14 +9,16 @@
 #include "../../Core.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
+#include "../../../Exceptions/InvalidOptionException.h"
+#include "../../../Utility/Trace/LBTTrace.h"
 
 void         DecodeStage::execute() {
   while (true) {
     // The decode stage is the arbiter of whether the pipeline is idle. This
     // is the only stage through which all instructions pass.
-    parent()->idle(true);
+    core()->idle(true);
     wait(newInstructionEvent);
-    parent()->idle(false);
+    core()->idle(false);
 
     newInput(currentInst);
     instructionCompleted();
@@ -26,6 +28,8 @@ void         DecodeStage::execute() {
     // TODO: make sure currentInst is set correctly
     if (currentInst.persistent())
       persistentInstruction(currentInst);
+
+    wait(clock.posedge_event());
   }
 }
 
@@ -183,7 +187,8 @@ void         DecodeStage::newInput(DecodedInst& inst) {
 
   // If this is the first instruction of a new packet, update the current
   // packet pointer.
-  if (startingNewPacket) parent()->updateCurrentPacket(inst.location());
+  if (startingNewPacket)
+    core()->updateCurrentPacket(inst.location());
 
   // The next instruction will be the start of a new packet if this is the
   // end of the current one.
@@ -233,57 +238,130 @@ bool         DecodeStage::isStalled() const {
 }
 
 int32_t      DecodeStage::readReg(PortIndex port, RegisterIndex index, bool indirect) const {
-  return parent()->readReg(port, index, indirect);
+  return core()->readReg(port, index, indirect);
 }
 
-bool         DecodeStage::predicate() const {
+int32_t      DecodeStage::getForwardedData() const {
+  return core()->getForwardedData();
+}
+
+bool         DecodeStage::predicate(const DecodedInst& inst) const {
   // true = wait for the execute stage to write the predicate first, if
   // necessary
-  return parent()->readPredReg(true);
+  return core()->readPredReg(true, inst);
 }
 
-void         DecodeStage::readChannelMapTable(DecodedInst& inst) const {
+// Not const because of the wait().
+void         DecodeStage::readChannelMapTable(DecodedInst& inst) {
   MapIndex channel = inst.channelMapEntry();
-  if (channel != Instruction::NO_CHANNEL) {
-    ChannelID destination = parent()->channelMapTable.read(channel);
 
-    if (!destination.isNullMapping()) {
-      inst.networkDestination(destination);
-      inst.usesCredits(parent()->channelMapTable[channel].usesCredits());
-    }
-  }
+  if (channel == Instruction::NO_CHANNEL)
+    return;
+
+  ChannelMapEntry& cmtEntry = channelMapTableEntry(channel);
+  ChannelID destination = cmtEntry.destination();
+
+  if (destination.isNullMapping())
+    return;
+
+  if (!cmtEntry.canSend())
+    wait(cmtEntry.creditArrivedEvent());
+  cmtEntry.removeCredit();
+
+  if (!iOutputBufferReady.read())
+    wait(iOutputBufferReady.posedge_event());
+
+  inst.networkDestination(destination);
+  inst.usesCredits(cmtEntry.usesCredits());
 }
 
-const ChannelMapEntry& DecodeStage::channelMapTableEntry(MapIndex entry) const {
-  return parent()->channelMapTable[entry];
+ChannelMapEntry& DecodeStage::channelMapTableEntry(MapIndex entry) const {
+  return core()->channelMapTable[entry];
 }
 
 int32_t      DecodeStage::readRCET(ChannelIndex index) {
   return rcet.read(index);
 }
 
+int32_t      DecodeStage::readRCETDebug(ChannelIndex index) const {
+  return rcet.readDebug(index);
+}
+
+void DecodeStage::fetch(const DecodedInst& inst) {
+  MemoryAddr fetchAddress;
+
+  // Compute the address to fetch from, depending on which operation this is.
+  switch (inst.opcode()) {
+    case InstructionMap::OP_FETCH:
+    case InstructionMap::OP_FETCHPST:
+    case InstructionMap::OP_FILL:
+      fetchAddress = inst.operand1() + inst.operand2();
+      break;
+
+    case InstructionMap::OP_FETCHR:
+    case InstructionMap::OP_FETCHPSTR:
+    case InstructionMap::OP_FILLR:
+      fetchAddress = readReg(1, 1) + BYTES_PER_WORD*inst.operand2();
+      break;
+
+    case InstructionMap::OP_PSEL_FETCH:
+      fetchAddress = core()->readPredReg(true, inst) ? inst.operand1() : inst.operand2();
+      break;
+
+    case InstructionMap::OP_PSEL_FETCHR: {
+      int immed1 = inst.immediate();
+      int immed2 = inst.immediate2();
+      fetchAddress = readReg(1, 1) + BYTES_PER_WORD*(core()->readPredReg(true, inst) ? immed1 : immed2);
+      break;
+    }
+
+    default:
+      throw InvalidOptionException("fetch instruction opcode", inst.opcode());
+      break;
+  }
+
+  if (LBT_TRACE)
+    LBTTrace::setInstructionMemoryAddress(inst.isid(), fetchAddress);
+
+  if (DEBUG)
+    cout << this->name() << " fetching from address " << fetchAddress << endl;
+
+  // Tweak the network address based on the memory address to ensure that the
+  // correct bank is accessed if the fetch request is sent.
+  uint increment = channelMapTableEntry(0).computeAddressIncrement(fetchAddress);
+  ChannelID destination = channelMapTableEntry(0).destination();
+  destination.addPosition(increment);
+  ChannelIndex returnTo = channelMapTableEntry(0).returnChannel();
+
+  core()->checkTags(fetchAddress, inst.opcode(), destination, returnTo);
+}
+
+bool         DecodeStage::canFetch() const {
+  return core()->canCheckTags();
+}
+
+bool         DecodeStage::connectionFromMemory(ChannelIndex channel) const {
+  return core()->channelMapTable.connectionFromMemory(channel);
+}
+
 bool         DecodeStage::testChannel(ChannelIndex index) const {
   return rcet.testChannelEnd(index);
 }
 
-ChannelIndex DecodeStage::selectChannel() {
-  return rcet.selectChannelEnd();
+ChannelIndex DecodeStage::selectChannel(unsigned int bitmask, const DecodedInst& inst) {
+  return rcet.selectChannelEnd(bitmask, inst);
 }
 
 const sc_event& DecodeStage::receivedDataEvent(ChannelIndex buffer) const {
   return rcet.receivedDataEvent(buffer);
 }
 
-bool         DecodeStage::inCache(const MemoryAddr addr, opcode_t operation) const {
-  return parent()->inCache(addr, operation);
-}
-
-bool         DecodeStage::readyToFetch() const {
-  return parent()->readyToFetch();
-}
-
 void         DecodeStage::jump(JumpOffset offset) const {
-  parent()->jump(offset);
+  core()->jump(offset);
+}
+
+void         DecodeStage::instructionExecuted() {
+  core()->cregs.instructionExecuted();
 }
 
 void         DecodeStage::unstall() {
@@ -313,7 +391,7 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
 
   // Connect everything up
   rcet.clock(clock);
-  for(uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
+  for (uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
     rcet.iData[i](iData[i]);
     rcet.oFlowControl[i](oFlowControl[i]);
     rcet.oDataConsumed[i](oDataConsumed[i]);
@@ -323,7 +401,7 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
 
   SC_THREAD(execute);
   // TODO - eliminate SC_THREADs
-//  state = INIT;
+  state = INIT;
 //  SC_METHOD(execute2);
 
   SC_METHOD(updateReady);

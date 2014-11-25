@@ -28,7 +28,6 @@ public:
 protected:
 
   virtual CacheIndex cacheIndex(const MemoryAddr address) const;
-  virtual MemoryAddr getTag(const CacheIndex position) const;
   virtual void setTag(const CacheIndex position, const MemoryAddr tag);
   virtual void updateReadPointer();
   virtual void updateWritePointer();

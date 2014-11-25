@@ -20,6 +20,13 @@ void InstructionPacketCache::storeCode(const std::vector<Instruction>& instructi
 
   CacheIndex writePos = cache->storeCode(instructions);
 
+  for (CacheIndex j=0, i=writePos; j<instructions.size(); j++) {
+    addresses[i] = 0;
+    i++;
+    if (i >= cache->size())
+      i = 0;
+  }
+
   if (finishedPacketWrite) {
     InstLocation location;
     location.component = IPKCACHE;
@@ -37,11 +44,13 @@ void InstructionPacketCache::storeCode(const std::vector<Instruction>& instructi
 }
 
 const Instruction InstructionPacketCache::read() {
-  if (ENERGY_TRACE)
-    Instrumentation::IPKCache::read(id);
+  Instrumentation::IPKCache::read(id);
 
   Instruction inst = cache->read();
   cacheFillChanged.notify();
+
+  CacheIndex readPointer = cache->getReadPointer();
+  lastReadAddr = addresses[readPointer];
 
   return inst;
 }
@@ -63,7 +72,12 @@ void InstructionPacketCache::write(const Instruction inst) {
     location.index = writePos;
     MemoryAddr tag = parent()->newPacketArriving(location);
     cache->setTag(tag);
+    lastWriteAddr = tag;
   }
+  else
+    lastWriteAddr += BYTES_PER_WORD;
+
+  addresses[writePos] = lastWriteAddr;
 
   finishedPacketWrite = inst.endOfPacket();
   if (finishedPacketWrite)
@@ -88,8 +102,8 @@ CacheIndex InstructionPacketCache::lookup(MemoryAddr tag) {
   return position;
 }
 
-bool InstructionPacketCache::packetExists(CacheIndex position) const {
-  return cache->packetExists(position);
+MemoryAddr InstructionPacketCache::memoryAddress() const {
+  return lastReadAddr;
 }
 
 void InstructionPacketCache::startNewPacket(CacheIndex position) {
@@ -98,7 +112,7 @@ void InstructionPacketCache::startNewPacket(CacheIndex position) {
 
 /* Jump to a new instruction specified by the offset amount. */
 void InstructionPacketCache::jump(JumpOffset offset) {
-  cache->jump(offset/BYTES_PER_WORD);
+  cache->jump(offset);
   cacheFillChanged.notify();
 }
 
@@ -140,15 +154,19 @@ bool InstructionPacketCache::roomToFetch() const {
 }
 
 FetchStage* InstructionPacketCache::parent() const {
-  return static_cast<FetchStage*>(this->get_parent());
+  return static_cast<FetchStage*>(this->get_parent_object());
 }
 
 /* Constructors and destructors */
 InstructionPacketCache::InstructionPacketCache(sc_module_name name, const ComponentID& ID) :
-    Component(name, ID) {
+    Component(name, ID),
+    addresses(IPK_CACHE_SIZE, DEFAULT_TAG) {
 
   cache = new IPKCacheFullyAssociative(IPK_CACHE_SIZE, IPK_CACHE_TAGS, string(this->name()));
 //  cache = new IPKCacheDirectMapped(IPK_CACHE_SIZE, string(this->name()));
+
+  lastReadAddr = 0;
+  lastWriteAddr = 0;
 
   timeLastChecked = -1;
 
