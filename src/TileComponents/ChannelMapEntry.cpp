@@ -7,6 +7,7 @@
 
 #include "ChannelMapEntry.h"
 #include "../Datatype/ChannelID.h"
+#include "../Utility/Arguments.h"
 #include <iostream>
 
 using sc_core::sc_event;
@@ -83,6 +84,18 @@ void ChannelMapEntry::setMemoryDestination(const ChannelID& address,
   memoryLineBits_ = memoryLineBits;
   writeThrough_ = writeThrough;
   addressIncrement_ = 0;
+
+  // Print a description of the configuration so we can more-easily check that
+  // memory is being accessed correctly.
+  if (DEBUG || Arguments::summarise()) {
+    string type = (returnChannel_ < 2) ? "insts" : "data";
+    uint startBank = destination_.getPosition() - CORES_PER_TILE;
+    uint endBank = startBank + (1 << memoryGroupBits_) - 1;
+    uint lineSize = (1 << memoryLineBits_);
+
+    std::cout << "SETCHMAP: core " << id_.getString() << " " << type << ", banks "
+        << startBank << "-" << endBank << ", line size " << lineSize << std::endl;
+  }
 }
 
 uint ChannelMapEntry::computeAddressIncrement(MemoryAddr address) const {

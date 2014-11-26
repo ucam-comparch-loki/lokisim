@@ -28,6 +28,7 @@ using namespace std;
 #include "../../Datatype/MemoryRequest.h"
 #include "../../Memory/BufferStorage.h"
 #include "../../Network/Topologies/LocalNetwork.h"
+#include "../../Utility/Arguments.h"
 #include "../../Utility/Instrumentation/Network.h"
 #include "../../Utility/Trace/MemoryTrace.h"
 #include "../../Utility/Parameters.h"
@@ -427,6 +428,23 @@ bool MemoryBank::processMessageHeader() {
 			} else {
 				mBankMode = MODE_GP_CACHE;
 				mGeneralPurposeCacheHandler.activate(mGroupIndex, mGroupSize, mWayCount, mLineSize);
+			}
+
+			// Print a description of the configuration, so we can more-easily tell
+			// whether cores are acting consistently.
+			if (DEBUG || Arguments::summarise()) {
+			  uint tile = id.getTile();
+			  uint startBank = mGroupBaseBank;
+			  uint endBank = startBank + mGroupSize - 1;
+			  stringstream mode;
+			  if (mBankMode == MODE_SCRATCHPAD)
+			    mode << "scratchpad";
+			  else
+			    mode << "cache (associativity " << mWayCount << ")";
+			  uint lineSize = mLineSize;
+
+			  cout << "MEMORY CONFIG: tile " << tile << ", banks " << startBank << "-"
+			      << endBank << ", line size " << lineSize << ", " << mode.str() << endl;
 			}
 
 			if (mGroupIndex < mGroupSize - 1) {

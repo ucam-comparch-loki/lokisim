@@ -5,4 +5,4 @@ parameter MEMORY_ON_CHIP_SCRATCHPAD_DELAY 1
 parameter MEMORY_ON_CHIP_SCRATCHPAD_SIZE 268435456 33554432
 parameter MEMORY_ON_CHIP_SCRATCHPAD_BANKS 4
 
-apploader bootloader.loki
+apploader bootloader_unified_cache.loki
