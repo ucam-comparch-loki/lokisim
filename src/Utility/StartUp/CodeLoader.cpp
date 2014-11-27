@@ -108,7 +108,7 @@ void CodeLoader::loadCode(const string& settings, Chip& chip) {
       file.getline(line, 200, '\n');
       string s(line);
 
-      if (s[0]=='%' || s[0]=='\0') continue;   // Skip past any comments
+      if (s[0]=='#' || s[0]=='\0') continue;   // Skip past any comments
 
       vector<string>& words = StringManipulation::split(s, ' ');
 

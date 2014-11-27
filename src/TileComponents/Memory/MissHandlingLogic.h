@@ -13,7 +13,8 @@
 #ifndef MISSHANDLINGLOGIC_H_
 #define MISSHANDLINGLOGIC_H_
 
-#include "Component.h"
+#include "../../Component.h"
+#include "../../Network/NetworkTypedefs.h"
 
 class MissHandlingLogic: public Component {
 

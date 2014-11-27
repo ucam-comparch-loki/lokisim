@@ -1,1 +1,0 @@
-syscall.eop 1       # core 1 can only execute this after receiving nxipk

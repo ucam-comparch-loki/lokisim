@@ -1,6 +1,0 @@
-% All instructions will be provided by the test script.
-% Need to put an end-of-packet marker in memory so the initialisation program
-% doesn't run forever.
-
-empty.s
-data.data   -1  0x2000

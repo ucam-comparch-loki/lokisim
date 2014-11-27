@@ -1,3 +1,0 @@
-lli r11, (0,1,0)
-setchmapi 2, r11
-rmtnxipk.eop -> 2

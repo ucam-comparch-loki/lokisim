@@ -1,7 +1,0 @@
-% Initialise the mapping table and fetch the particular implementation being used.
-
-lli             r15, (0,1,2)
-setchmapi       2,   r15                ; core 1 = map 2
-
-or              r0,  r20, r0    -> 2    ; send cache configuration to core 1
-fetchr.eop      0x0100                  ; fetch main program

@@ -1,7 +1,0 @@
-parameter TIMEOUT 500000
-
-fir_irf_lat.s
-
-../params.data -1 0x00000
-../taps.data   -1 0x11000
-../input.data  -1 0x12000
