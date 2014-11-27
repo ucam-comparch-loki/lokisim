@@ -34,6 +34,10 @@ public:
   // Data output.
   OutPort oData;
 
+  // Only provide data from the currently-selected input until this signal is
+  // deasserted.
+  sc_in<bool> iHold;
+
 //==============================//
 // Constructors and destructors
 //==============================//
@@ -50,6 +54,7 @@ public:
     SC_METHOD(mainLoop);
     for (uint i=0; i<inputs; i++)
       sensitive << iData[i];
+    sensitive << iHold.negedge_event(); // Look at other inputs when hold is released
     dont_initialize();
   }
 
@@ -63,9 +68,11 @@ private:
 
     switch (state) {
       case MUX_READY:
-        selectInput();
-        state = MUX_SELECTED;
-        next_trigger(oData.ack_event());
+        if (haveValidInput()) {
+          selectInput();
+          state = MUX_SELECTED;
+          next_trigger(oData.ack_event());
+        }
         break;
 
       case MUX_SELECTED:
@@ -86,31 +93,42 @@ private:
   }
 
   bool haveValidInput() const {
-    for (uint i=0; i<iData.length(); i++) {
-      if (iData[i].valid())
-        return true;
-    }
+    // If the input is being held, only check the input we selected last.
+    if (iHold.read())
+      return iData[lastSelected].valid();
+    else {
+      for (uint i=0; i<iData.length(); i++) {
+        if (iData[i].valid())
+          return true;
+      }
 
-    return false;
+      return false;
+    }
   }
 
   void selectInput() {
     assert(!oData.valid());
 
-    PortIndex currentPort = lastSelected + 1;
-
-    for (uint i=0; i<iData.length(); i++) {
-      if (currentPort >= iData.length())
-        currentPort = 0;
-
-      if (iData[i].valid()) {
-        oData.write(iData[i].read());
-        lastSelected = currentPort;
-        return;
-      }
+    if (iHold.read()) {
+      oData.write(iData[lastSelected].read());
+      return;
     }
+    else {
+      PortIndex currentPort = lastSelected + 1;
 
-    assert(false && "Couldn't find valid input");
+      for (uint i=0; i<iData.length(); i++) {
+        if (currentPort >= iData.length())
+          currentPort = 0;
+
+        if (iData[i].valid()) {
+          oData.write(iData[i].read());
+          lastSelected = currentPort;
+          return;
+        }
+      }
+
+      assert(false && "Couldn't find valid input");
+    }
   }
 
 //==============================//
