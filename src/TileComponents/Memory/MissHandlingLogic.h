@@ -14,6 +14,8 @@
 #define MISSHANDLINGLOGIC_H_
 
 #include "../../Component.h"
+#include "../../Datatype/MemoryRequest.h"
+#include "../../Network/ArbitratedMultiplexer.h"
 #include "../../Network/NetworkTypedefs.h"
 
 class MissHandlingLogic: public Component {
@@ -22,15 +24,23 @@ class MissHandlingLogic: public Component {
 // Ports
 //==============================//
 
+  typedef loki_in<MemoryRequest> InRequestPort;
+
 public:
 
   ClockInput                  clock;
 
-  LokiVector<RequestInput>    iRequestFromBanks;
+  // One request per bank.
+  LokiVector<InRequestPort>   iRequestFromBanks;
+
+  // Forward the chosen request on to the next level of memory hierarchy.
   RequestOutput               oRequestToRouter;
 
+  // Responses from the next level of memory hierarchy.
   ResponseInput               iResponseFromRouter;
-  LokiVector<ResponseOutput>  oResponseToBanks;
+
+  // Responses are broadcast to all banks.
+  ResponseOutput              oResponseToBanks;
 
 //==============================//
 // Constructors and destructors
@@ -38,6 +48,7 @@ public:
 
 public:
 
+  SC_HAS_PROCESS(MissHandlingLogic);
   MissHandlingLogic(const sc_module_name& name, ComponentID id);
 
 //==============================//
@@ -56,6 +67,9 @@ private:
   };
 
   MHLState state;
+
+  ArbitratedMultiplexer<MemoryRequest> inputMux;
+  loki_signal<MemoryRequest> muxOutput;
 
 
 };
