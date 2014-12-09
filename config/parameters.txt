@@ -1,0 +1,25 @@
+# System configuration parameters set at start-up.
+#
+# See src/Utility/Parameters for the selection of available parameters and
+# their defaults.
+#
+# The values in this file override any in the source code, and are not compiled
+# into the program, so can be experimented with quickly. 
+
+parameter CORES_PER_TILE 8
+parameter MEMS_PER_TILE 8
+parameter IPK_CACHE_SIZE 64
+parameter IPK_CACHE_TAGS 16
+parameter IPK_FIFO_SIZE 64
+parameter IN_CHANNEL_BUFFER_SIZE 4
+parameter OUT_CHANNEL_BUFFER_SIZE 4
+parameter CORE_SCRATCHPAD_SIZE 256
+parameter NUM_TILE_ROWS 1
+parameter NUM_TILE_COLUMNS 1
+
+parameter MEMORY_CHANNEL_MAP_TABLE_ENTRIES 16
+parameter MEMORY_BANK_SIZE 8192
+parameter MEMORY_CACHE_RANDOM_REPLACEMENT 1
+parameter MEMORY_ON_CHIP_SCRATCHPAD_DELAY 1
+parameter MEMORY_ON_CHIP_SCRATCHPAD_SIZE 268435456 33554432
+parameter MEMORY_ON_CHIP_SCRATCHPAD_BANKS 4

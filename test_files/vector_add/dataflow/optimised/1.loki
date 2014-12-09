@@ -1,3 +1,0 @@
-addui r0 r0 81 > 51     ; connect to the instruction memory
-setfetchch 49
-fetch.eop r0 6

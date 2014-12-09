@@ -28,6 +28,7 @@ using namespace std;
 #include "../../Datatype/MemoryRequest.h"
 #include "../../Memory/BufferStorage.h"
 #include "../../Network/Topologies/LocalNetwork.h"
+#include "../../Utility/Arguments.h"
 #include "../../Utility/Instrumentation/Network.h"
 #include "../../Utility/Trace/MemoryTrace.h"
 #include "../../Utility/Parameters.h"
@@ -428,6 +429,23 @@ bool MemoryBank::processMessageHeader() {
 			} else {
 				mBankMode = MODE_GP_CACHE;
 				mGeneralPurposeCacheHandler.activate(mGroupIndex, mGroupSize, mWayCount, mLineSize);
+			}
+
+			// Print a description of the configuration, so we can more-easily tell
+			// whether cores are acting consistently.
+			if (DEBUG || Arguments::summarise()) {
+			  uint tile = id.getTile();
+			  uint startBank = mGroupBaseBank;
+			  uint endBank = startBank + mGroupSize - 1;
+			  stringstream mode;
+			  if (mBankMode == MODE_SCRATCHPAD)
+			    mode << "scratchpad";
+			  else
+			    mode << "cache (associativity " << mWayCount << ")";
+			  uint lineSize = mLineSize;
+
+			  cout << "MEMORY CONFIG: tile " << tile << ", banks " << startBank << "-"
+			      << endBank << ", line size " << lineSize << ", " << mode.str() << endl;
 			}
 
 			if (mGroupIndex < mGroupSize - 1) {
@@ -1506,7 +1524,6 @@ void MemoryBank::handleNetworkInterfacesPre() {
 
   // Set output port defaults - only final write will be effective
   if(oRingStrobe.read())   oRingStrobe.write(false);
-//  if(oBMDataStrobe.read()) oBMDataStrobe.write(false);
 
   // Check whether old ring output got acknowledged
 
@@ -1530,12 +1547,12 @@ void MemoryBank::handleNetworkInterfacesPre() {
 
 void MemoryBank::mainLoop() {
 
-  if(iClock.posedge()) {
+  if (iClock.posedge()) {
 
     handleNetworkInterfacesPre();
 
   }
-  else if(iClock.negedge()) {
+  else if (iClock.negedge()) {
 
     // Check ring input ports and update request registers
 
@@ -1548,11 +1565,14 @@ void MemoryBank::mainLoop() {
 
     // Proceed according to FSM state
 
+    // Only allow an operation to begin if we are sure that there is space in
+    // the output request queue to hold any potential messages.
+
     // If we have a "fast" memory, decode the request and get into the correct
     // state before performing the operation.
     // Also, don't allow a new operation to start until any ring requests have
     // been passed on - ensures that data is sent in correct order.
-    if(FAST_MEMORY && mFSMState == STATE_IDLE && !mRingRequestOutputPending) {
+    if (FAST_MEMORY && mFSMState == STATE_IDLE && !mRingRequestOutputPending && mOutputReqQueue.empty()) {
       if (!processRingEvent())
         processMessageHeader();
     }
@@ -1563,7 +1583,7 @@ void MemoryBank::mainLoop() {
       // cycle, and performed in the next.
       // Also, don't allow a new operation to start until any ring requests have
       // been passed on - ensures that data is sent in correct order.
-      if(!FAST_MEMORY && !mRingRequestOutputPending) {
+      if (!FAST_MEMORY && !mRingRequestOutputPending && mOutputReqQueue.empty()) {
         if (!processRingEvent())
           processMessageHeader();
       }
@@ -1709,7 +1729,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 
 	oReadyForData.initialize(false);
 	oReadyForRequest.initialize(false);
-//	oBMDataStrobe.initialize(false);
 	oRingAcknowledge.initialize(false);
 	oRingStrobe.initialize(false);
 

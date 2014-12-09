@@ -158,7 +158,7 @@ void Arguments::parse(int argc, char* argv[]) {
   if (useDefaultSettings) {
     const string simPath = string(argv[0]);
     const string simDir = simPath.substr(0, simPath.rfind('/'));
-    string settingsFile = simDir + "/../test_files/loader.txt";
+    string settingsFile = simDir + "/../config/loader.txt";
     programFiles.push_back(settingsFile);
   }
 

@@ -1,8 +1,0 @@
-parameter TIMEOUT 500000
-
-rgb2yuv_lat.s
-
-../params.data  -1  0x00000
-../red.data     -1  0x10000
-../green.data   -1  0x11000
-../blue.data    -1  0x12000

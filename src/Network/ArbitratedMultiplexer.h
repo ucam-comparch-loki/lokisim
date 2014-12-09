@@ -78,13 +78,8 @@ private:
       case MUX_SELECTED:
         assert(!oData.valid());
 
-        if (iData[lastSelected].valid()) {
-          cout << this->name() << " acking input " << (int)lastSelected << endl;
+        if (iData[lastSelected].valid())
           iData[lastSelected].ack();
-        }
-        else {
-          cout << this->name() << " didn't need to ack input " << (int)lastSelected << endl;
-        }
 
         if (haveValidInput()) {
           selectInput();
@@ -128,7 +123,6 @@ private:
           currentPort = 0;
 
         if (iData[currentPort].valid()) {
-          cout << this->name() << " selecting input " << (int)currentPort << ": " << iData[currentPort].read() << endl;
           oData.write(iData[currentPort].read());
           lastSelected = currentPort;
           return;

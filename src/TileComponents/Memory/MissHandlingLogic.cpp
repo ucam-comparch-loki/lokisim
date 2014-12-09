@@ -55,7 +55,6 @@ void MissHandlingLogic::handleNewRequest() {
   holdMux.write(true);
 
   MemoryRequest request = muxOutput.read();
-//  muxOutput.ack();
 
   switch (request.getOperation()) {
     case MemoryRequest::FETCH_LINE:
@@ -66,7 +65,10 @@ void MissHandlingLogic::handleNewRequest() {
       break;
     case MemoryRequest::STORE_LINE:
       state = MHL_STORE;
-      flitsRemaining = request.getLineSize() / BYTES_PER_WORD;
+
+      // Send the address plus the cache line.
+      flitsRemaining = 1 + request.getLineSize() / BYTES_PER_WORD;
+
       if (DEBUG)
         cout << this->name() << " flushing " << flitsRemaining << " words to 0x" << std::hex << request.getPayload() << std::dec << endl;
       break;

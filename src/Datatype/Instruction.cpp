@@ -196,7 +196,8 @@ void Instruction::immediate(const int32_t val) {
   // Immediates have different lengths, depending on the instruction type.
   int length = 0;
   switch(InstructionMap::format(opcode())) {
-    case InstructionMap::FMT_FF:   length = 23; break;
+    case InstructionMap::FMT_FF:
+    case InstructionMap::FMT_PFF:  length = 23; break;
 
     case InstructionMap::FMT_0R:
     case InstructionMap::FMT_0Rnc:

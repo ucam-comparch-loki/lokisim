@@ -169,18 +169,8 @@ public:
   OutRequestPort        oRequest;         // Output requests sent to the remote memory banks
 
   // Responses - to/from memory banks on other tiles.
-//  ResponseInput         iResponse;        // Input responses sent to the memory bank
   InResponsePort        iResponse;
-//  ReadyOutput           oReadyForResponse;// Indicates that there is buffer space for new input
   ResponseOutput        oResponse;        // Output responses sent to the remote memory banks
-
-	//-- Ports connected to background memory model -----------------------------------------------
-
-//	sc_out<bool>				  oBMDataStrobe;		// Indicate that corresponding input data word is valid
-//	sc_out<MemoryRequest>	oBMData;					// Data words input from cache controllers
-//
-//	sc_in<bool>					  iBMDataStrobe;		// Indicate that corresponding output data word is valid
-//	sc_in<Word>					  iBMData;					// Data words output to cache controllers
 
 	//-- Ports connected to memory bank ring network ----------------------------------------------
 

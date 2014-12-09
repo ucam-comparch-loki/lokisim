@@ -1,6 +1,0 @@
-% Quick hacky loader to test new memory system.
-
-0 0.loki
-1 1.loki
-8 0 code.loki
-8 2048 ../matrix.data

@@ -1,5 +1,0 @@
-parameter TIMEOUT 1000
-
-core_0.loki -1 0x1000
-core_1.loki  1
-memory.loki -1 0x1100

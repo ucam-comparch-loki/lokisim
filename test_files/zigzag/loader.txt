@@ -1,6 +1,0 @@
-parameter TIMEOUT 10000
-
-0.loki      -1  0x1000
-1.loki       1
-code.loki   -1  0x1100
-matrix.data -1  0x2000

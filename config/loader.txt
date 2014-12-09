@@ -1,0 +1,8 @@
+# Load any additional parameters.
+loader parameters.txt
+
+
+# The "bootloader" program to be executed by core 0.
+# This loader configures the memories to behave as a simple cache by default
+# and then fetches the main program.
+apploader bootloader_unified_cache.loki

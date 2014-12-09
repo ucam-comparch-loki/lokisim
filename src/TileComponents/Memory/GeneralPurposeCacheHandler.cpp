@@ -177,7 +177,7 @@ bool GeneralPurposeCacheHandler::sameLine(uint32_t address1, uint32_t address2) 
 bool GeneralPurposeCacheHandler::readWord(uint32_t address, uint32_t &data, bool instruction, bool resume, bool debug) {
 	assert((address & 0x3) == 0);
 
-	uint slot;
+	uint slot = 0;
 	if (!lookupCacheLine(address, slot, resume, true, instruction)) {
 		assert(!resume);
 

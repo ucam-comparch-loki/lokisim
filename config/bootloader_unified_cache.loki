@@ -1,0 +1,33 @@
+# Treat all 8 L1 banks as a single unified cache for both instructions and data.
+
+# Channel map table contents: 0x20008035
+# 2  = return channel << 1 (memory should send instructions back to IPK cache)
+# 00 = tile
+# 08 = position within tile (memory banks are 8-15)
+# 0  = channel (each core has its own channel - this is core 0 so use channel 0)
+# 3  = log2(banks in group)
+# 5  = log2(line size)
+
+# Instruction cache connection
+ lli                r20, (0,8,0,3,5)
+ lui                r20, 0x2000               # Return addr = channel 1
+
+# Data cache connection - only change return address
+ lli                r21, (0,8,0,3,5)
+ lui                r21, 0x4000               # Return addr = channel 2
+
+ setchmapi          0,   r20                  # Set instruction fetch channel to memory bank
+ setchmapi          1,   r21                  # Set data fetch channel to memory bank
+
+# Memory configuration command 0x00050103: general purpose cache, eight banks 
+# 00 = this is a configuration command
+# 0  = log2(associativity)
+# 5  = log2(line size)
+# 01 = cache mode (00 = scratchpad mode)
+# 03 = log2(banks in group)
+
+ lli                r22, 0x0103
+ lui                r22, 0x0005
+ addu               r0,  r22, r0        -> 0
+
+ fetchr.eop         0x0400                    # Fetch first instruction packet of program

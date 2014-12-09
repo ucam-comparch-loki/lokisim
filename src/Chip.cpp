@@ -148,11 +148,6 @@ void Chip::makeSignals() {
   responseToBanks.init(NUM_TILES);
   responseFromBM.init(NUM_TILES);
 
-//	strobeToBackgroundMemory.init(NUM_MEMORIES);
-//	dataToBackgroundMemory.init(NUM_MEMORIES);
-//	strobeFromBackgroundMemory.init(NUM_MEMORIES);
-//	dataFromBackgroundMemory.init(NUM_MEMORIES);
-
 	ringStrobe.init(NUM_MEMORIES);
 	ringRequest.init(NUM_MEMORIES);
 	ringAcknowledge.init(NUM_MEMORIES);
@@ -360,18 +355,6 @@ void Chip::wireUp() {
 			MemoryBank* m = memories[currIndex];
 
 			m->iClock(clock);
-
-//			int portIndex = j * MEMS_PER_TILE + i;
-//
-//			m->oBMDataStrobe(strobeToBackgroundMemory[portIndex]);
-//			backgroundMemory.iDataStrobe[portIndex](strobeToBackgroundMemory[portIndex]);
-//			m->oBMData(dataToBackgroundMemory[portIndex]);
-//			backgroundMemory.iData[portIndex](dataToBackgroundMemory[portIndex]);
-//
-//			m->iBMDataStrobe((strobeFromBackgroundMemory[portIndex]));
-//			backgroundMemory.oDataStrobe[portIndex](strobeFromBackgroundMemory[portIndex]);
-//			m->iBMData((dataFromBackgroundMemory[portIndex]));
-//			backgroundMemory.oData[portIndex](dataFromBackgroundMemory[portIndex]);
 				
 			// Connect the memory ring network of this tile
 	

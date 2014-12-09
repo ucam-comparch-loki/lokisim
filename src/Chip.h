@@ -107,9 +107,6 @@ private:
   LokiVector2D<ReadySignal>  oReadyData;
   LokiVector<ReadySignal>    oReadyCredit, readyRequestToBanks, readyResponseToMHL;
 
-//  LokiVector<sc_signal<bool> > strobeToBackgroundMemory, strobeFromBackgroundMemory;
-//  LokiVector<sc_signal<MemoryRequest> > dataToBackgroundMemory;
-//  LokiVector<sc_signal<Word> > dataFromBackgroundMemory;
   RequestSignal              requestToMainMemory,    requestFromMainMemory;
   ResponseSignal             responseToMainMemory,   responseFromMainMemory;
   ReadySignal                mainMemoryReadyRequest, mainMemoryReadyResponse;
