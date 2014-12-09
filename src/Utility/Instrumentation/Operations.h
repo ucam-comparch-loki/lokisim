@@ -35,6 +35,16 @@ public:
   static void printSummary();
   static void dumpEventCounts(std::ostream& os);
 
+  static CounterMap<ComponentID> numMemLoads;
+  static CounterMap<ComponentID> numMergedMemLoads;
+  static CounterMap<ComponentID> numMemStores;
+  static CounterMap<ComponentID> numChanReads;
+  static CounterMap<ComponentID> numMergedChanReads; // i.e. packed with a useful instruction
+  static CounterMap<ComponentID> numChanWrites;
+  static CounterMap<ComponentID> numMergedChanWrites;
+  static CounterMap<ComponentID> numArithOps;
+  static CounterMap<ComponentID> numCondOps;
+
 private:
 
   static CounterMap<opcode_t> executedOps;

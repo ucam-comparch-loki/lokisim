@@ -30,6 +30,16 @@ count_t Operations::sameOp = 0;
 
 CounterMap<ComponentID> Operations::numOps_;
 count_t Operations::numDecodes_ = 0;
+CounterMap<ComponentID> Operations::numMemLoads;
+CounterMap<ComponentID> Operations::numMergedMemLoads;
+CounterMap<ComponentID> Operations::numMemStores;
+CounterMap<ComponentID> Operations::numChanReads;
+CounterMap<ComponentID> Operations::numMergedChanReads; // i.e. packed with a useful instruction
+CounterMap<ComponentID> Operations::numChanWrites;
+CounterMap<ComponentID> Operations::numMergedChanWrites;
+CounterMap<ComponentID> Operations::numArithOps;
+CounterMap<ComponentID> Operations::numCondOps;
+
 
 void Operations::init() {
   lastIn1 = new int32_t[NUM_CORES];
@@ -58,11 +68,6 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
   if (Callgrind::acceptingData())
     Callgrind::instructionExecuted(core, dec.location(), Instrumentation::currentCycle());
 
-  // Want to keep track of the number of operations so we can tell if we're
-  // making progress, but only want the rest of the data when we ask for it.
-  if (!ENERGY_TRACE)
-    return;
-
   if (!executed) {
     unexecuted++;
     return;
@@ -90,6 +95,94 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
     lastFn[coreID]  = dec.function();
   }
 
+  switch(dec.opcode()) {
+    case InstructionMap::OP_LDW:
+    case InstructionMap::OP_LDHWU:
+    case InstructionMap::OP_LDBU:
+      numMemLoads.increment(core);
+      break;
+ 
+    case InstructionMap::OP_STW:
+    case InstructionMap::OP_STHW:
+    case InstructionMap::OP_STB:
+      numMemStores.increment(core);
+      break;
+
+    default:
+      break;
+  }
+ 
+  if (dec.sourceReg1() == 2 || dec.sourceReg2() == 2) {
+    numMemLoads.increment(core);
+    if (dec.function() != InstructionMap::FN_OR || dec.sourceReg2() != 0) {
+      numMergedMemLoads.increment(core);
+    }
+  }
+
+  if (dec.sourceReg1() == 3 || dec.sourceReg1() == 3 || dec.sourceReg1() == 4 || dec.sourceReg2() == 4) {
+    numChanReads.increment(core);
+    if (dec.function() != InstructionMap::FN_OR || dec.sourceReg2() != 0) {
+      numMergedChanReads.increment(core);
+    }
+  }
+
+  if (dec.channelMapEntry() == 2 || dec.channelMapEntry() == 3) {
+    numChanWrites.increment(core);
+    if (dec.function() != InstructionMap::FN_OR || dec.sourceReg1() == 2 || dec.sourceReg2() == 2) {
+      numMergedChanWrites.increment(core);
+    }
+  }
+ 
+  switch (dec.opcode()) {
+    case 0:
+    case 1:
+      if ((dec.function() < InstructionMap::FN_SETEQ) || (dec.function() > InstructionMap::FN_SETGTEU)) {
+        numArithOps.increment(core);
+      } else {
+        numCondOps.increment(core);
+      }
+      break;
+    case InstructionMap::OP_NORI:
+    case InstructionMap::OP_NORI_P:
+    case InstructionMap::OP_ANDI:
+    case InstructionMap::OP_ANDI_P:
+    case InstructionMap::OP_ORI:
+    case InstructionMap::OP_ORI_P:
+    case InstructionMap::OP_XORI:
+    case InstructionMap::OP_XORI_P:
+    case InstructionMap::OP_SLLI:
+    case InstructionMap::OP_SRLI:
+    case InstructionMap::OP_SRLI_P:
+    case InstructionMap::OP_SRAI:
+    case InstructionMap::OP_ADDUI:
+    case InstructionMap::OP_ADDUI_P:
+    case InstructionMap::OP_MULHW:
+    case InstructionMap::OP_MULLW:
+    case InstructionMap::OP_MULHWU:
+      numArithOps.increment(core);
+      break;
+
+    case InstructionMap::OP_SETEQI:
+    case InstructionMap::OP_SETEQI_P:
+    case InstructionMap::OP_SETNEI:
+    case InstructionMap::OP_SETNEI_P:
+    case InstructionMap::OP_SETLTI:
+    case InstructionMap::OP_SETLTI_P:
+    case InstructionMap::OP_SETLTUI:
+    case InstructionMap::OP_SETLTUI_P:
+    case InstructionMap::OP_SETGTEI:
+    case InstructionMap::OP_SETGTEI_P:
+    case InstructionMap::OP_SETGTEUI:
+    case InstructionMap::OP_SETGTEUI_P:
+    case InstructionMap::OP_PSEL:
+    case InstructionMap::OP_PSEL_FETCH:
+    case InstructionMap::OP_PSEL_FETCHR:
+      numCondOps.increment(core);
+      break;
+
+    default:
+      break;
+  }
 }
 
 count_t Operations::numDecodes()               {return numDecodes_;}

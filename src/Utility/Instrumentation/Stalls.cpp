@@ -294,6 +294,11 @@ cycle_count_t Stalls::executionTime() {
   return endOfExecution;
 }
 
+void Stalls::printInstrStat(const char *name, ComponentID id, CounterMap<ComponentID> &cMap) {
+  std::clog << name << ": " << cMap[id] << " (" << percentage(cMap[id], Operations::numOperations(id)) << ")\n";
+}
+
+
 void Stalls::printStats() {
   //TODO: Add information to database if required
 
@@ -334,6 +339,34 @@ void Stalls::printStats() {
 			}
 		}
 	}
+
+  // Print instruction distribution summary
+  clog << "\nDistribution of instructions:\n";
+  for (uint i=0; i<NUM_TILES; i++) {
+    for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
+      ComponentID id(i, j);
+
+      // Skip over memories
+      if (id.isMemory()) continue;
+
+      // Only print statistics for cores which have seen some activity.
+      if ((uint)total[IDLE][id] < endOfExecution) {
+        clog << "  " << id << "\n" <<
+          "Total: " << Operations::numOperations(id) << " (100%)\n";
+        printInstrStat("numMemLoads", id, Operations::numMemLoads);
+        printInstrStat("numMergedMemLoads", id, Operations::numMergedMemLoads);
+        printInstrStat("numMemStores", id, Operations::numMemStores);
+        printInstrStat("numChanReads", id, Operations::numChanReads);
+        printInstrStat("numMergedChanReads", id, Operations::numMergedChanReads);
+        printInstrStat("numChanWrites", id, Operations::numChanWrites);
+        printInstrStat("numMergedChanWrites", id, Operations::numMergedChanWrites);
+        printInstrStat("numArithOps", id, Operations::numArithOps);
+        printInstrStat("numCondOps", id, Operations::numCondOps);
+        clog << "\n";
+      }
+    }
+  }
+
 
   if (BATCH_MODE)
 	cout << "<@GLOBAL>total_cycles:" << endOfExecution << "</@GLOBAL>" << endl;

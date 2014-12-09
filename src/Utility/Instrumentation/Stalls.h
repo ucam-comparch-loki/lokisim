@@ -68,6 +68,7 @@ public:
   static cycle_count_t executionTime();
 
   static void printStats();
+  static void printInstrStat(const char *name, ComponentID id, CounterMap<ComponentID> &cMap);
   static void dumpEventCounts(std::ostream& os);
 
   // A text version of each stall reason.
