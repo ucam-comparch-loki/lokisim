@@ -12,6 +12,7 @@
 #include "Network/Global/CreditNetwork.h"
 #include "Network/Global/RequestNetwork.h"
 #include "Network/Global/ResponseNetwork.h"
+#include "TileComponents/Memory/MissHandlingLogic.h"
 #include "Utility/Instrumentation/Stalls.h"
 #include "Utility/StartUp/DataBlock.h"
 
@@ -135,13 +136,17 @@ void Chip::makeSignals() {
   iCredit.init(numOutputs);
   oReadyCredit.init(NUM_CORES * CORE_OUTPUT_PORTS);
 
-  oRequest.init(NUM_MEMORIES);
-  iRequest.init(NUM_MEMORIES);
-  oReadyRequest.init(NUM_MEMORIES);
+  requestFromBanks.init(NUM_MEMORIES);
+  requestToBanks.init(NUM_MEMORIES);
+  readyRequestToBanks.init(NUM_MEMORIES);
+  requestFromMHL.init(NUM_TILES);
+  requestToBM.init(NUM_TILES);
 
-  oResponse.init(NUM_MEMORIES);
-  iResponse.init(NUM_MEMORIES);
-  oReadyResponse.init(NUM_MEMORIES);
+  responseFromBanks.init(NUM_MEMORIES);
+  responseToMHL.init(NUM_TILES);
+  readyResponseToMHL.init(NUM_TILES);
+  responseToBanks.init(NUM_TILES);
+  responseFromBM.init(NUM_TILES);
 
 //	strobeToBackgroundMemory.init(NUM_MEMORIES);
 //	dataToBackgroundMemory.init(NUM_MEMORIES);
@@ -154,13 +159,13 @@ void Chip::makeSignals() {
 }
 
 void Chip::makeComponents() {
-  for (uint j=0; j<NUM_TILES; j++) {
+  for (uint tile=0; tile<NUM_TILES; tile++) {
     std::stringstream namebuilder;
     std::string name;
 
     // Initialise the Cores of this Tile
-    for (uint i=0; i<CORES_PER_TILE; i++) {
-      ComponentID coreID(j, i);
+    for (uint core=0; core<CORES_PER_TILE; core++) {
+      ComponentID coreID(tile, core);
 
       namebuilder << "core_" << coreID.getNameString();
       namebuilder >> name;
@@ -172,18 +177,25 @@ void Chip::makeComponents() {
     }
 
     // Initialise the memories of this Tile
-    for (uint i = 0; i < MEMS_PER_TILE; i++) {
-			ComponentID memoryID(j, CORES_PER_TILE + i);
+    for (uint bank = 0; bank < MEMS_PER_TILE; bank++) {
+			ComponentID memoryID(tile, CORES_PER_TILE + bank);
 
 			namebuilder << "memory_" << memoryID.getNameString();
 			namebuilder >> name;
 			namebuilder.clear();
 
-			MemoryBank* m = new MemoryBank(name.c_str(), memoryID, i);
+			MemoryBank* m = new MemoryBank(name.c_str(), memoryID, bank);
 			m->setLocalNetwork(network.getLocalNetwork(memoryID));
 
 			memories.push_back(m);
 		}
+
+    namebuilder << "mhl_" << tile;
+    namebuilder >> name;
+    namebuilder.clear();
+
+    MissHandlingLogic* m = new MissHandlingLogic(name.c_str(), ComponentID(tile,0));
+    mhl.push_back(m);
   }
 }
 
@@ -231,20 +243,24 @@ void Chip::wireUp() {
   RequestNetwork* requestNet = new RequestNetwork("request_net");
   requestNet->clock(clock);
   requestNet->oMainMemoryRequest(requestToMainMemory);
-  backgroundMemory.iRequest(requestToMainMemory);
+//  backgroundMemory.iRequest(requestToMainMemory);
   requestNet->iMainMemoryReady(mainMemoryReadyRequest);
-  backgroundMemory.oReadyRequest(mainMemoryReadyRequest);
+//  backgroundMemory.oReadyRequest(mainMemoryReadyRequest);
   requestNet->iMainMemoryRequest(requestFromMainMemory);
-  backgroundMemory.oRequest(requestFromMainMemory);
+//  backgroundMemory.oRequest(requestFromMainMemory);
   for (unsigned int i=0; i<memories.size(); i++) {
-    memories[i]->iRequest(iRequest[i]);
-    requestNet->oData[i](iRequest[i]);
+    memories[i]->oRequest(requestFromBanks[i]);
+    mhl[i/MEMS_PER_TILE]->iRequestFromBanks[i%MEMS_PER_TILE](requestFromBanks[i]);
 
-    memories[i]->oRequest(oRequest[i]);
-    requestNet->iData[i](oRequest[i]);
+    memories[i]->iRequest(requestToBanks[i]);
+    requestNet->oData[i](requestToBanks[i]);
 
-    memories[i]->oReadyForRequest(oReadyRequest[i]);
-    requestNet->iReady[i][0](oReadyRequest[i]);
+    memories[i]->oReadyForRequest(readyRequestToBanks[i]);
+    requestNet->iReady[i][0](readyRequestToBanks[i]);
+  }
+  for (unsigned int i=0; i<mhl.size(); i++) {
+    mhl[i]->oRequestToNetwork(requestFromMHL[i]);
+    requestNet->iData[i](requestFromMHL[i]);
   }
   networks.push_back(requestNet);
 
@@ -252,20 +268,25 @@ void Chip::wireUp() {
   ResponseNetwork* responseNet = new ResponseNetwork("response_net");
   responseNet->clock(clock);
   responseNet->oMainMemoryResponse(responseToMainMemory);
-  backgroundMemory.iResponse(responseToMainMemory);
+//  backgroundMemory.iResponse(responseToMainMemory);
   responseNet->iMainMemoryReady(mainMemoryReadyResponse);
-  backgroundMemory.oReadyResponse(mainMemoryReadyResponse);
+//  backgroundMemory.oReadyResponse(mainMemoryReadyResponse);
   responseNet->iMainMemoryResponse(responseFromMainMemory);
-  backgroundMemory.oResponse(responseFromMainMemory);
+//  backgroundMemory.oResponse(responseFromMainMemory);
   for (unsigned int i=0; i<memories.size(); i++) {
-    memories[i]->iResponse(iResponse[i]);
-    responseNet->oData[i](iResponse[i]);
+    memories[i]->oResponse(responseFromBanks[i]);
+    responseNet->iData[i](responseFromBanks[i]);
+  }
+  for (unsigned int i=0; i<mhl.size(); i++) {
+    mhl[i]->iResponseFromNetwork(responseToMHL[i]);
+    responseNet->oData[i](responseToMHL[i]);
 
-    memories[i]->oResponse(oResponse[i]);
-    responseNet->iData[i](oResponse[i]);
+    mhl[i]->oReadyForResponse(readyResponseToMHL[i]);
+    responseNet->iReady[i][0](readyResponseToMHL[i]);
 
-    memories[i]->oReadyForResponse(oReadyResponse[i]);
-    responseNet->iReady[i][0](oReadyResponse[i]);
+    mhl[i]->oDataToBanks(responseToBanks[i]);
+    for (unsigned int j=i*MEMS_PER_TILE; j<(i+1)*MEMS_PER_TILE; j++)
+      memories[j]->iResponse(responseToBanks[i]);
   }
   networks.push_back(responseNet);
 
@@ -325,6 +346,12 @@ void Chip::wireUp() {
 	}
   
   for (uint j=0; j<NUM_TILES; j++) {
+    mhl[j]->clock(clock);
+    mhl[j]->iDataFromBM(responseFromBM[j]);
+    backgroundMemory.oData[j](responseFromBM[j]);
+    mhl[j]->oRequestToBM(requestToBM[j]);
+    backgroundMemory.iData[j](requestToBM[j]);
+
  	  for (uint i = 0; i < MEMS_PER_TILE; i++) {
 			int currIndex = j * MEMS_PER_TILE + i;
 			int prevIndex = j * MEMS_PER_TILE + ((i + MEMS_PER_TILE - 1) % MEMS_PER_TILE);
@@ -363,7 +390,7 @@ void Chip::wireUp() {
 
 Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
     Component(name),
-    backgroundMemory("background_memory", NUM_COMPONENTS, NUM_MEMORIES),
+    backgroundMemory("background_memory", NUM_COMPONENTS, NUM_TILES),
     network("network"),
     clock("clock", 1, SC_NS, 0.5),
     fastClock("fast_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.25),
@@ -376,7 +403,8 @@ Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
 }
 
 Chip::~Chip() {
-	for (uint i = 0; i < cores.size(); i++)	   delete cores[i];
+	for (uint i = 0; i < cores.size();    i++) delete cores[i];
 	for (uint i = 0; i < memories.size(); i++) delete memories[i];
+	for (uint i = 0; i < mhl.size();      i++) delete mhl[i];
 	for (uint i = 0; i < networks.size(); i++) delete networks[i];
 }

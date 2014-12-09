@@ -3,8 +3,8 @@
 import os, subprocess, sys
 
 if len(sys.argv) < 2:
-    print "simulate: a simplified interface to the Loki simulator"
-    print "Usage: simulate [simulator args] <ELF/loader file> [program args]"
+    print "simulate: a simplified interface to the Loki simulators"
+    print "Usage: simulate [simulator args] <program binary> [program args]"
     print "Options:"
     print "  -callgrind <file>  Dump Callgrind information about function calls"
     print "  -dump, -d          Print lots of debug information (slow sim only)"
@@ -86,12 +86,12 @@ if len(sys.argv) >= currentArg:
 
 # Differences in syntax for the two simulators
 if use_fast_sim:
-    command = "loki-elf-run -v " + simulatorargs
+    command = "exlj $CSIMROOT/sim_run.lua " + simulatorargs
     
     if trace:
-        command += "-t "
+        command = "DEBUG=true " + command
         
-    command += program + " -- " + programargs
+    command += program + " " + programargs
 else:
     simulator = os.path.dirname(os.path.realpath(__file__)) + "/lokisim"
     

@@ -48,11 +48,10 @@ public:
 
 public:
 
-  // components          = number of components to connect
-  // buffersPerComponent = input buffers (and flow control signals) at each component
   NetworkHierarchy2(const sc_module_name &name,
-                    const unsigned int    components,
-                    const unsigned int    buffersPerComponent);
+                    const unsigned int    sourcesPerTile,
+                    const unsigned int    destinationsPerTile,
+                    const unsigned int    buffersPerDestination);
   virtual ~NetworkHierarchy2();
 
 //==============================//
@@ -62,8 +61,9 @@ public:
 protected:
 
   // Create all signals and sub-networks, and connect up as much as possible.
-  void initialise(const unsigned int components,
-                  const unsigned int buffersPerComponent);
+  void initialise(const unsigned int sourcesPerTile,
+                  const unsigned int destinationsPerTile,
+                  const unsigned int buffersPerDestination);
 
 //==============================//
 // Components

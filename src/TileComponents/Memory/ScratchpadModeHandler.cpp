@@ -38,9 +38,22 @@ uint ScratchpadModeHandler::log2Exact(uint value) {
 }
 
 ScratchpadModeHandler::ScratchpadModeHandler(uint bankNumber) {
-	//-- State ------------------------------------------------------------------------------------
+  //-- Configuration parameters -----------------------------------------------------------------
+
+  mSetCount = -1;
+  mWayCount = -1;
+  mLineSize = -1;
+
+  //-- State ------------------------------------------------------------------------------------
 
 	mData = new uint32_t[MEMORY_BANK_SIZE / 4];
+
+	mLineBits = -1;
+	mLineMask = 0;
+
+	mGroupIndex = -1;
+	mGroupBits = -1;
+	mGroupMask = 0;
 
 	mBankNumber = bankNumber;
 }

@@ -1271,125 +1271,78 @@ void MemoryBank::processGeneralPurposeCacheMiss() {
 	case GP_CACHE_STATE_PREPARE: {
 		mGeneralPurposeCacheHandler.prepareCacheLine(mActiveAddress, mWriteBackAddress, mWriteBackCount, mCacheLineBuffer, mFetchAddress, mFetchCount);
 		mCacheLineCursor = 0;
-		assert(mCurrentPacket == NULL);
+
+    // We only start a memory operation if we know there is buffer space to
+    // complete it.
+    assert(!mOutputReqQueue.full());
 
 		if (mWriteBackCount > 0) {
 			assert(mWriteBackCount == mLineSize / 4);
 
-//			MemoryRequest header(MemoryRequest::STORE_LINE, mWriteBackAddress, mLineSize);
-////			oBMDataStrobe.write(true);
-////			oBMData.write(header);
-//			NetworkResponse flit(header, mBackgroundMemory->networkAddress());
-//			flit.setEndOfPacket(false);
-//			mOutputRespQueue.write(flit);
+			MemoryRequest header(MemoryRequest::STORE_LINE, mWriteBackAddress, mLineSize);
+			mOutputReqQueue.write(header);
 
 			mCacheFSMState = GP_CACHE_STATE_SEND_DATA;
 		} else {
 			assert(mFetchCount == mLineSize / 4);
 
-//			MemoryRequest header(MemoryRequest::FETCH_LINE, mFetchAddress, mLineSize);
-////			oBMDataStrobe.write(true);
-////			oBMData.write(header);
-//			NetworkRequest flit(header, mBackgroundMemory->networkAddress());
-//			mOutputReqQueue.write(flit);
-//			mCacheLineCursor = 0;
+			if (DEBUG)
+			  cout << this->name() << " buffering request for " << mLineSize << " bytes from 0x" << std::hex << mFetchAddress << std::dec << endl;
+
+			MemoryRequest header(MemoryRequest::FETCH_LINE, mFetchAddress, mLineSize);
+			mOutputReqQueue.write(header);
+			mCacheLineCursor = 0;
 
 			mCacheFSMState = GP_CACHE_STATE_READ_DATA;
 		}
 
-//		break;
+		break;
 	}
-	// no break - fall through to whichever state we just changed to
 
 	case GP_CACHE_STATE_SEND_DATA: {
+    // We only start a memory operation if we know there is buffer space to
+    // complete it.
+    assert(!mOutputReqQueue.full());
 
-    if (mCurrentPacket == NULL) {
-      assert(mWriteBackCount == mLineSize / 4);
-			mCurrentPacket = new CacheLineFlush(mWriteBackAddress,
-			                                    mLineSize,
-			                                    mCacheLineBuffer,
-			                                    mBackgroundMemory->networkAddress());
-    }
+	  MemoryRequest payload(MemoryRequest::PAYLOAD_ONLY, mCacheLineBuffer[mCacheLineCursor++]);
+	  mOutputReqQueue.write(payload);
 
-//	  MemoryRequest payload(MemoryRequest::PAYLOAD_ONLY, mCacheLineBuffer[mCacheLineCursor++]);
-////		oBMDataStrobe.write(true);
-////		oBMData.write(payload);
-//		bool endOfPacket = (mCacheLineCursor == mWriteBackCount);
-//		NetworkResponse flit(payload, mBackgroundMemory->networkAddress());
-//		flit.setEndOfPacket(endOfPacket);
-//		mOutputRespQueue.write(flit);
-
-    if (!mOutputRespQueue.full()) {
-      mOutputRespQueue.write(mCurrentPacket->getNextFlit());
-      mCurrentPacket->sentFlit();
-
-      if (mCurrentPacket->sentAllFlits()) {
-        delete mCurrentPacket;
-        mCurrentPacket = NULL;
-        mCacheFSMState = GP_CACHE_STATE_SEND_READ_COMMAND;
-      }
-    }
+	  if (mCacheLineCursor == mWriteBackCount)
+	    mCacheFSMState = GP_CACHE_STATE_SEND_READ_COMMAND;
 
 		break;
 	}
 
 	case GP_CACHE_STATE_SEND_READ_COMMAND: {
+	  // We only start a memory operation if we know there is buffer space to
+	  // complete it.
+	  assert(!mOutputReqQueue.full());
 
-		if (mCurrentPacket == NULL) {
-		  assert(mFetchCount == mLineSize / 4);
-		  mCurrentPacket = new CacheLineReadRequest(mFetchAddress,
-		                                            mLineSize,
-		                                            mBackgroundMemory->networkAddress(),
-		                                            ChannelID(id, 15));
-		}
+    if (DEBUG)
+      cout << this->name() << " buffering request for " << mLineSize << " bytes from 0x" << std::hex << mFetchAddress << std::dec << endl;
 
-//		MemoryRequest request(MemoryRequest::FETCH_LINE, mFetchAddress, mLineSize);
-////		oBMDataStrobe.write(true);
-////		oBMData.write(request);
-//		NetworkRequest flit(request, mBackgroundMemory->networkAddress());
-//		mOutputReqQueue.write(flit);
-//		mCacheLineCursor = 0;
-//
-//		mCacheFSMState = GP_CACHE_STATE_READ_DATA;
+		MemoryRequest request(MemoryRequest::FETCH_LINE, mFetchAddress, mLineSize);
+		mOutputReqQueue.write(request);
+		mCacheLineCursor = 0;
 
-		if (!mOutputReqQueue.full()) {
-      mOutputReqQueue.write(mCurrentPacket->getNextFlit());
-      mCurrentPacket->sentFlit();
-
-      if (mCurrentPacket->sentAllFlits()) {
-        delete mCurrentPacket;
-        mCurrentPacket = NULL;
-        mCacheFSMState = GP_CACHE_STATE_READ_DATA;
-      }
-		}
+		mCacheFSMState = GP_CACHE_STATE_READ_DATA;
 
 		break;
 	}
 
 	case GP_CACHE_STATE_READ_DATA: {
-////		if (iBMDataStrobe.read())
-////			mCacheLineBuffer[mCacheLineCursor++] = iBMData.read().toUInt();
-//		if (!mInputRespQueue.empty())
-//		  mCacheLineBuffer[mCacheLineCursor++] = mInputRespQueue.read().payload().toUInt();
-//
-//		mCacheFSMState = (mCacheLineCursor == mFetchCount) ? GP_CACHE_STATE_REPLACE : GP_CACHE_STATE_READ_DATA;
 
-	  if (mCurrentPacket == NULL) {
-	    mCurrentPacket = new CacheLineRefill();
-      mCacheLineCursor = 0;
-	  }
+	  if (!oRequest.valid() && iResponse.valid()) {
+	    Word response = iResponse.read();
 
-	  if (!mInputRespQueue.empty()) {
-	    mCurrentPacket->addFlit(mInputRespQueue.read());
-	    mCacheLineBuffer[mCacheLineCursor] =
-	      static_cast<CacheLineRefill*>(mCurrentPacket)->data(mCacheLineCursor).toUInt();
+	    if (DEBUG)
+	      cout << this->name() << " received response " << response << endl;
+
+	    mCacheLineBuffer[mCacheLineCursor] = response.toUInt();
+	    iResponse.ack();
 	    mCacheLineCursor++;
 
-      if (mCurrentPacket->receivedAllFlits()) {
-        delete mCurrentPacket;
-        mCurrentPacket = NULL;
-        mCacheFSMState = GP_CACHE_STATE_REPLACE;
-      }
+	    mCacheFSMState = (mCacheLineCursor == mFetchCount) ? GP_CACHE_STATE_REPLACE : GP_CACHE_STATE_READ_DATA;
 	  }
 
 		break;
@@ -1517,24 +1470,20 @@ void MemoryBank::handleRequestOutput() {
   else if (mOutputReqQueue.empty())
     next_trigger(mOutputReqQueue.writeEvent());
   else {
-    assert(!oRequest.valid());
-    oRequest.write(mOutputReqQueue.read());
-    next_trigger(oRequest.ack_event());
-
+    MemoryRequest request = mOutputReqQueue.read();
     if (DEBUG)
-      cout << this->name() << " sent request " << oRequest.read() << endl;
+      cout << this->name() << " sending request " << request << endl;
+
+    assert(!oRequest.valid());
+    oRequest.write(request);
+    next_trigger(oRequest.ack_event());
   }
 }
 
 // Method called every time we see an event on the iResponse port.
 void MemoryBank::handleResponseInput() {
-  if (DEBUG)
-    cout << this->name() << " received response " << iResponse.read() << endl;
-
-  assert(iResponse.valid());
-  assert(!mInputRespQueue.full());
-  mInputRespQueue.write(iResponse.read());
-  iResponse.ack();
+//  if (DEBUG)
+//    cout << this->name() << " received response " << iResponse.read() << endl;
 }
 
 // Method which sends data from the mOutputRespQueue whenever possible.
@@ -1678,9 +1627,6 @@ void MemoryBank::mainLoop() {
   bool ready2 = !mInputReqQueue.full();
   if (ready2 != oReadyForRequest.read())
     oReadyForRequest.write(ready2);
-  bool ready3 = !mInputRespQueue.full();
-  if (ready3 != oReadyForResponse.read())
-    oReadyForResponse.write(ready3);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1692,8 +1638,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
   mInputQueue(IN_CHANNEL_BUFFER_SIZE, string(this->name())+string(".mInputQueue")),
   mOutputQueue(OUT_CHANNEL_BUFFER_SIZE, string(this->name())+string(".mOutputQueue")),
   mInputReqQueue(IN_CHANNEL_BUFFER_SIZE, string(this->name())+string(".mInputReqQueue")),
-  mOutputReqQueue(OUT_CHANNEL_BUFFER_SIZE, string(this->name())+string(".mOutputReqQueue")),
-  mInputRespQueue(IN_CHANNEL_BUFFER_SIZE, string(this->name())+string(".mInputRespQueue")),
+  mOutputReqQueue(10 /*read addr + write addr + cache line*/, string(this->name())+string(".mOutputReqQueue")),
   mOutputRespQueue(OUT_CHANNEL_BUFFER_SIZE, string(this->name())+string(".mOutputRespQueue")),
 	mScratchpadModeHandler(bankNumber),
 	mGeneralPurposeCacheHandler(bankNumber)
@@ -1730,12 +1675,23 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	mFSMState = STATE_IDLE;
 	mFSMCallbackState = STATE_IDLE;
 
+	mActiveTableIndex = -1;
+	mActiveReturnChannel = -1;
+	mActiveAddress = -1;
+	mActiveBurstLength = 0;
+
 	mPartialInstructionPending = false;
 	mPartialInstructionData = 0;
 
 	//-- Cache mode state -------------------------------------------------------------------------
 
 	mCacheResumeRequest = false;
+	mCacheFSMState = GP_CACHE_STATE_PREPARE;
+	mCacheLineCursor = 0;
+	mWriteBackAddress = 0;
+	mWriteBackCount = 0;
+	mFetchAddress = 0;
+	mFetchCount = 0;
 
 	//-- Ring network state -----------------------------------------------------------------------
 
@@ -1747,6 +1703,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	mPrevMemoryBank = 0;
 	mNextMemoryBank = 0;
 	mBackgroundMemory = 0;
+	localNetwork = 0;
 
 	//-- Port initialization ----------------------------------------------------------------------
 

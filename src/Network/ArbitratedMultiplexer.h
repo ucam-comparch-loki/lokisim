@@ -54,7 +54,7 @@ public:
     SC_METHOD(mainLoop);
     for (uint i=0; i<inputs; i++)
       sensitive << iData[i];
-    sensitive << iHold.negedge_event(); // Look at other inputs when hold is released
+    sensitive << iHold.neg(); // Look at other inputs when hold is released
     dont_initialize();
   }
 
@@ -77,7 +77,14 @@ private:
 
       case MUX_SELECTED:
         assert(!oData.valid());
-        iData[lastSelected].ack();
+
+        if (iData[lastSelected].valid()) {
+          cout << this->name() << " acking input " << (int)lastSelected << endl;
+          iData[lastSelected].ack();
+        }
+        else {
+          cout << this->name() << " didn't need to ack input " << (int)lastSelected << endl;
+        }
 
         if (haveValidInput()) {
           selectInput();
@@ -120,11 +127,14 @@ private:
         if (currentPort >= iData.length())
           currentPort = 0;
 
-        if (iData[i].valid()) {
-          oData.write(iData[i].read());
+        if (iData[currentPort].valid()) {
+          cout << this->name() << " selecting input " << (int)currentPort << ": " << iData[currentPort].read() << endl;
+          oData.write(iData[currentPort].read());
           lastSelected = currentPort;
           return;
         }
+
+        currentPort++;
       }
 
       assert(false && "Couldn't find valid input");

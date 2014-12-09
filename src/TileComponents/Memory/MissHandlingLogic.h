@@ -24,6 +24,9 @@ class MissHandlingLogic: public Component {
 // Ports
 //==============================//
 
+  typedef loki_in<MemoryRequest> InRequestPort;
+  typedef loki_out<MemoryRequest> OutRequestPort;
+  typedef loki_in<Word> InDataPort;
   typedef loki_out<Word> OutDataPort;
 
 public:
@@ -31,7 +34,7 @@ public:
   ClockInput                  clock;
 
   // One request per bank.
-  LokiVector<RequestInput>    iRequestFromBanks;
+  LokiVector<InRequestPort>   iRequestFromBanks;
 
   // Forward the chosen request on to the next level of memory hierarchy.
   RequestOutput               oRequestToNetwork;
@@ -39,8 +42,22 @@ public:
   // Responses from the next level of memory hierarchy.
   ResponseInput               iResponseFromNetwork;
 
+  // Signal to the network that a response can be received.
+  // This isn't actually required, since we ensure there is buffer space before
+  // sending a request.
+  ReadyOutput                 oReadyForResponse;
+
   // Responses are broadcast to all banks.
   OutDataPort                 oDataToBanks;
+
+
+  // Magic connections to background memory.
+
+  // Requests to background memory.
+  OutRequestPort              oRequestToBM;
+
+  // Data from background memory.
+  InDataPort                  iDataFromBM;
 
 //==============================//
 // Constructors and destructors
@@ -61,9 +78,7 @@ private:
 
   void handleNewRequest();
   void handleFetch();
-  void handleWriteBack();
-  void handleAllocate();
-  void handleAllocateHit();
+  void handleStore();
 
   void handleEndOfRequest();
 
@@ -74,11 +89,11 @@ private:
 
   void sendOnNetwork(MemoryRequest request);
   bool canSendOnNetwork() const;
-  sc_event canSendEvent() const;
+  const sc_event& canSendEvent() const;
 
-  NetworkResponse receiveFromNetwork();
+  Word receiveFromNetwork();
   bool networkDataAvailable() const;
-  sc_event newNetworkDataEvent() const;
+  const sc_event& newNetworkDataEvent() const;
 
   // The network address the request should be sent to.
   ChannelID getDestination(MemoryRequest request);
@@ -89,25 +104,26 @@ private:
 
 private:
 
-  // Are these states for the memory banks instead?
   enum MHLState {
     MHL_READY,      // Nothing to do
-    MHL_FETCH,      // Fetching instructions from remote location
-    MHL_WB,         // Flushing data to remote location
-    MHL_ALLOC,      // Retrieving data from remote location
-    MHL_ALLOCHIT    // Finished retrieving data - serve request
+    MHL_FETCH,      // Fetching data from remote location
+    MHL_STORE,      // Flushing data to remote location
   };
 
   MHLState state;
 
   // Multiplexer which selects an input from one of the connected banks.
-  ArbitratedMultiplexer<NetworkRequest> inputMux;
+  ArbitratedMultiplexer<MemoryRequest> inputMux;
 
   // Selected request from connected memory banks.
-  loki_signal<NetworkRequest> muxOutput;
+  loki_signal<MemoryRequest> muxOutput;
 
   // Keep the same multiplexer input if multiple flits are being sent.
   sc_signal<bool> holdMux;
+
+  // Keep track of how many flits we expect to receive before we can move on
+  // to the next task. This will typically be the length of a cache line.
+  uint flitsRemaining;
 
 
 };

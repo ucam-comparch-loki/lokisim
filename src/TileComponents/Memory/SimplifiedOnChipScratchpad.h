@@ -30,9 +30,7 @@
 
 #include "../../Component.h"
 #include "../../Datatype/MemoryRequest.h"
-#include "../../Datatype/Packets/Packet.h"
 #include "../../Network/BufferArray.h"
-
 
 class SimplifiedOnChipScratchpad: public Component {
 	//---------------------------------------------------------------------------------------------
@@ -41,26 +39,25 @@ class SimplifiedOnChipScratchpad: public Component {
 
 private:
 
-	cycle_count_t		cDelayCycles;		// Number of clock cycles requests are delayed
+	uint						cDelayCycles;			// Number of clock cycles requests are delayed
 	uint						cBanks;					// Number of memory banks
 
 	//---------------------------------------------------------------------------------------------
 	// Ports
 	//---------------------------------------------------------------------------------------------
 
+private:
+
+	typedef loki_in<MemoryRequest> InRequestPort;
+	typedef loki_out<Word> OutDataPort;
+
 public:
 
-	ClockInput					iClock;					// Clock
+	ClockInput					      iClock;   // Clock
 
-	RequestInput        iRequest;       // Requests from MemoryBanks for data.
-	ReadyOutput         oReadyRequest;
+	LokiVector<InRequestPort> iData;    // Memory request words input from cache controllers
 
-	ResponseInput       iResponse;      // Flushed cache lines from MemoryBanks.
-	ReadyOutput         oReadyResponse;
-
-	RequestOutput       oRequest;       // Requests to MemoryBanks.
-
-	ResponseOutput      oResponse;      // Cache lines to MemoryBanks.
+	LokiVector<OutDataPort>   oData;    // Data words output to cache controllers
 
 	//---------------------------------------------------------------------------------------------
 	// Utility definitions
@@ -78,14 +75,13 @@ private:
 	public:
 		PortState State;
 		uint32_t WordsLeft;
-		uint32_t MemoryAddress;
-		ChannelID NetworkAddress;
+		uint32_t Address;
 	};
 
 	struct InputWord {
 	public:
-		cycle_count_t  EarliestExecutionCycle;
-		NetworkRequest Request;
+		uint64_t EarliestExecutionCycle;
+		MemoryRequest Request;
 	};
 
 	//---------------------------------------------------------------------------------------------
@@ -94,23 +90,13 @@ private:
 
 private:
 
-	enum Input {
-	  INPUT_REQUEST,
-	  INPUT_RESPONSE
-	};
-	Input                   priorityInput;      // Arbitrate fairly between input ports
+	uint64_t                mCycleCounter;   // Cycle counter used for delay control
 
-	cycle_count_t           mCycleCounter;			// Cycle counter used for delay control
+	uint32_t               *mData;           // Data words stored in the scratchpad
 
-	uint32_t               *mData;							// Data words stored in the scratchpad
-
-	Packet<Word>           *mInputPacket;       // Data being received.
-	Packet<Word>           *mOutputPacket;      // Data being sent.
-	bool                    finishedPacket;     // Finished receiving a packet.
-
-	uint                    mPortCount;					// Number of ports
-	PortData               *mPortData;					// State information about all ports
-	BufferArray<InputWord>  mInputQueues;				// Input queues for all ports
+	const uint              cPortCount;      // Number of ports
+	PortData               *mPortData;       // State information about all ports
+	BufferArray<InputWord>  mInputQueues;    // Input queues for all ports
 
 	// Mainly for debug, mark the read-only sections of the address space.
 	std::vector<MemoryAddr> readOnlyBase,
@@ -143,8 +129,6 @@ public:
 public:
 
 	//void flushQueues();
-
-	ChannelID networkAddress() const;
 
 	void storeData(vector<Word>& data, MemoryAddr location, bool readOnly);
 	const void* getData();

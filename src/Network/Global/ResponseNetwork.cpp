@@ -52,7 +52,7 @@ void ResponseNetwork::responsesToNetwork() {
 }
 
 ResponseNetwork::ResponseNetwork(const sc_module_name &name) :
-    NetworkHierarchy2(name, NUM_MEMORIES, 1),
+    NetworkHierarchy2(name, MEMS_PER_TILE, 1, 1),
     toMainMemory(16, string(this->name()) + ".buffer") {
 
   SC_METHOD(responsesToNetwork);

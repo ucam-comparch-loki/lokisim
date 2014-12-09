@@ -145,6 +145,13 @@ public:
 	// Ports
 	//---------------------------------------------------------------------------------------------
 
+private:
+
+	// For communications with the Miss Handling Logic, no additional network
+	// information is required, so we send just words rather than flits.
+	typedef loki_out<MemoryRequest> OutRequestPort;
+	typedef loki_in<Word> InResponsePort;
+
 public:
 
 	ClockInput					  iClock;						// Clock
@@ -159,11 +166,12 @@ public:
   // Requests - to/from memory banks on other tiles.
   RequestInput          iRequest;         // Input requests sent to the memory bank
   ReadyOutput           oReadyForRequest; // Indicates that there is buffer space for new input
-  RequestOutput         oRequest;         // Output requests sent to the remote memory banks
+  OutRequestPort        oRequest;         // Output requests sent to the remote memory banks
 
   // Responses - to/from memory banks on other tiles.
-  ResponseInput         iResponse;        // Input responses sent to the memory bank
-  ReadyOutput           oReadyForResponse;// Indicates that there is buffer space for new input
+//  ResponseInput         iResponse;        // Input responses sent to the memory bank
+  InResponsePort        iResponse;
+//  ReadyOutput           oReadyForResponse;// Indicates that there is buffer space for new input
   ResponseOutput        oResponse;        // Output responses sent to the remote memory banks
 
 	//-- Ports connected to background memory model -----------------------------------------------
@@ -249,9 +257,8 @@ private:
 	NetworkData           mActiveOutputWord;					// Currently active output word
 
   NetworkBuffer<NetworkRequest>  mInputReqQueue;    // Input request queue
-  NetworkBuffer<NetworkRequest>  mOutputReqQueue;   // Output request queue
+  NetworkBuffer<MemoryRequest>   mOutputReqQueue;   // Output request queue
 
-  NetworkBuffer<NetworkResponse> mInputRespQueue;   // Input response queue
   NetworkBuffer<NetworkResponse> mOutputRespQueue;  // Output response queue
 
   Packet<Word>         *mCurrentPacket;   // The packet we are currently sending or receiving

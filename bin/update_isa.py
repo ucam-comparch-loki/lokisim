@@ -94,7 +94,7 @@ class Operation:
 ################################################################################        
 
 # The file containing all of the information.
-definition_file = "/homes/rdm34/ltmp/opcodes.isa"
+definition_file = "/usr/groups/comparch-loki/isa/opcodes.isa"
 
 with open(definition_file) as openfile:
     operations = openfile.readlines()
@@ -107,8 +107,8 @@ operations = [Operation(operation) for operation in operations]
 
 # The files we are going to write into.
 directory = os.path.dirname(os.path.realpath(__file__))
-target_header = directory + "../src/Utility/InstructionMap.h"
-target_source = directory + "../src/Utility/InstructionMap.cpp"
+target_header = directory + "/../src/Utility/InstructionMap.h"
+target_source = directory + "/../src/Utility/InstructionMap.cpp"
 
 # Return a string representing a comma-separated list of booleans showing which 
 # operations satisfy the filter function.
@@ -210,6 +210,7 @@ header_text += """
   
   enum Format {
     FMT_FF,     // Fetch format                  (rs,immed)
+    FMT_PFF,    // Predicated fetch format       (immed:16s, immed:7s)
     FMT_0R,     // Zero registers                (unused)        (immed)
     FMT_0Rnc,   // Zero registers, no channel    (immed)
     FMT_1R,     // One register                  (rd,immed)      (rs,immed)
