@@ -119,7 +119,7 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
     }
   }
 
-  if (dec.sourceReg1() == 3 || dec.sourceReg1() == 3 || dec.sourceReg1() == 4 || dec.sourceReg2() == 4) {
+  if (dec.sourceReg1() == 3 || dec.sourceReg2() == 3 || dec.sourceReg1() == 4 || dec.sourceReg2() == 4) {
     numChanReads.increment(core);
     if (dec.function() != InstructionMap::FN_OR || dec.sourceReg2() != 0) {
       numMergedChanReads.increment(core);
