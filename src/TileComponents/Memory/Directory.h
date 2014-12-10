@@ -2,7 +2,7 @@
  * Directory.h
  *
  * L1 cache directory. Used to redirect cache accesses to other L1s on a cache
- * miss. this can be used to group multiple tiles' caches together.
+ * miss. This can be used to group multiple tiles' caches together.
  *
  * On a cache miss, a few bits are taken from the address and used to index
  * into the directory. The directory then returns the "home tile" for that data
@@ -41,16 +41,16 @@ public:
   void setBitmaskLSB(unsigned int lsb);
 
   // Set directory[entry] = tile.
-  void setEntry(unsigned int entry, unsigned int tile);
+  void setEntry(unsigned int entry, TileIndex tile);
 
   // Set all entries to point to a particular tile. This is useful if the L1
   // sharing isn't going to be used as it allows all requests to be forwarded
   // to the next cache level without requiring that the directory is set up
   // first.
-  void initialise(unsigned int tile);
+  void initialise(TileIndex tile);
 
   // Return the tile responsible for caching this memory address.
-  unsigned int getTile(MemoryAddr address) const;
+  TileIndex getTile(MemoryAddr address) const;
 
 //==============================//
 // Local state
@@ -61,7 +61,7 @@ private:
   const unsigned int bitmask;
   unsigned int shiftAmount;
 
-  std::vector<unsigned int> directory;
+  std::vector<TileIndex> directory;
 
 };
 

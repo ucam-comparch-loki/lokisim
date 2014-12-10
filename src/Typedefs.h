@@ -20,6 +20,14 @@
 typedef uint64_t count_t;
 typedef count_t  cycle_count_t;
 
+// Identifier used for a tile. May want to switch to (x,y) coordinates later.
+typedef uint32_t TileIndex;
+
+// Positions of components within a tile.
+typedef uint32_t ComponentIndex;
+typedef uint32_t CoreIndex;
+typedef uint32_t MemoryIndex;
+
 // An index within a component's own input/output channels.
 typedef uint8_t  ChannelIndex;
 

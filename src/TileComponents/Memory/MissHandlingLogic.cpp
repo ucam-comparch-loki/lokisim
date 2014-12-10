@@ -14,7 +14,13 @@
 
 MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id) :
     Component(name, id),
+    directory(DIRECTORY_SIZE),
     inputMux("mux", MEMS_PER_TILE) {
+
+  // Start off assuming this is the home tile for all data. This means that if
+  // we experience a cache miss, we will go straight to main memory to
+  // retrieve it.
+  directory.initialise(id.getTile());
 
   iRequestFromBanks.init(MEMS_PER_TILE);
 

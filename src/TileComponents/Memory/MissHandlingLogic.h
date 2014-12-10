@@ -17,6 +17,7 @@
 #include "../../Datatype/MemoryRequest.h"
 #include "../../Network/ArbitratedMultiplexer.h"
 #include "../../Network/NetworkTypedefs.h"
+#include "Directory.h"
 
 class MissHandlingLogic: public Component {
 
@@ -111,6 +112,9 @@ private:
   };
 
   MHLState state;
+
+  // Mapping between memory addresses and home tiles.
+  Directory directory;
 
   // Multiplexer which selects an input from one of the connected banks.
   ArbitratedMultiplexer<MemoryRequest> inputMux;
