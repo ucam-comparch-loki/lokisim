@@ -25,6 +25,7 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
   iRequestFromBanks.init(MEMS_PER_TILE);
 
   state = MHL_READY;
+  destination = ChannelID();
   flitsRemaining = 0;
 
   for (uint i=0; i<iRequestFromBanks.length(); i++)
@@ -63,25 +64,44 @@ void MissHandlingLogic::handleNewRequest() {
   MemoryRequest request = muxOutput.read();
 
   switch (request.getOperation()) {
-    case MemoryRequest::FETCH_LINE:
+
+    case MemoryRequest::FETCH_LINE: {
       state = MHL_FETCH;
       flitsRemaining = request.getLineSize() / BYTES_PER_WORD;
+      MemoryAddr address = request.getPayload();
+      destination = getDestination(address);
+
       if (DEBUG)
-        cout << this->name() << " requesting " << flitsRemaining << " words from 0x" << std::hex << request.getPayload() << std::dec << endl;
+        cout << this->name() << " requesting " << flitsRemaining << " words from 0x" << std::hex << address << std::dec << endl;
       break;
-    case MemoryRequest::STORE_LINE:
+    }
+
+    case MemoryRequest::STORE_LINE: {
       state = MHL_STORE;
 
       // Send the address plus the cache line.
       flitsRemaining = 1 + request.getLineSize() / BYTES_PER_WORD;
+      MemoryAddr address = request.getPayload();
+      destination = getDestination(address);
 
       if (DEBUG)
-        cout << this->name() << " flushing " << flitsRemaining << " words to 0x" << std::hex << request.getPayload() << std::dec << endl;
+        cout << this->name() << " flushing " << flitsRemaining << " words to 0x" << std::hex << address << std::dec << endl;
       break;
+    }
+
+    case MemoryRequest::DIRECTORY_UPDATE:
+      handleDirectoryUpdate();
+      break;
+
+    case MemoryRequest::DIRECTORY_MASK_UPDATE:
+      handleDirectoryMaskUpdate();
+      break;
+
     default:
       throw InvalidOptionException("miss handling logic new request", request.getOperation());
       break;
-  }
+
+  } // end switch
 
   next_trigger(sc_core::SC_ZERO_TIME);
 }
@@ -129,6 +149,29 @@ void MissHandlingLogic::handleStore() {
   }
 }
 
+void MissHandlingLogic::handleDirectoryUpdate() {
+  MemoryRequest request = muxOutput.read();
+  muxOutput.ack();
+
+  unsigned int entry = request.getDirectoryEntry();
+  TileIndex tile = request.getTile();
+
+  directory.setEntry(entry, tile);
+
+  handleEndOfRequest();
+}
+
+void MissHandlingLogic::handleDirectoryMaskUpdate() {
+  MemoryRequest request = muxOutput.read();
+  muxOutput.ack();
+
+  unsigned int maskLSB = request.getPayload();
+
+  directory.setBitmaskLSB(maskLSB);
+
+  handleEndOfRequest();
+}
+
 void MissHandlingLogic::handleEndOfRequest() {
   state = MHL_READY;
   holdMux.write(false);
@@ -143,8 +186,7 @@ void MissHandlingLogic::handleEndOfRequest() {
 void MissHandlingLogic::sendOnNetwork(MemoryRequest request) {
   assert(canSendOnNetwork());
 
-  if (MAIN_MEMORY_ON_NETWORK) {
-    ChannelID destination = getDestination(request);
+  if ((destination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
     NetworkRequest flit(request, destination);
     oRequestToNetwork.write(flit);
   }
@@ -154,7 +196,7 @@ void MissHandlingLogic::sendOnNetwork(MemoryRequest request) {
 }
 
 bool MissHandlingLogic::canSendOnNetwork() const {
-  if (MAIN_MEMORY_ON_NETWORK)
+  if ((destination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
     return !oRequestToNetwork.valid();
   else {
     return !oRequestToBM.valid();
@@ -162,7 +204,7 @@ bool MissHandlingLogic::canSendOnNetwork() const {
 }
 
 const sc_event& MissHandlingLogic::canSendEvent() const {
-  if (MAIN_MEMORY_ON_NETWORK)
+  if ((destination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
     return oRequestToNetwork.ack_event();
   else {
     return oRequestToBM.ack_event();
@@ -170,7 +212,7 @@ const sc_event& MissHandlingLogic::canSendEvent() const {
 }
 
 Word MissHandlingLogic::receiveFromNetwork() {
-  if (MAIN_MEMORY_ON_NETWORK) {
+  if ((destination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
     assert(iResponseFromNetwork.valid());
     iResponseFromNetwork.ack();
     return iResponseFromNetwork.read().payload();
@@ -183,7 +225,7 @@ Word MissHandlingLogic::receiveFromNetwork() {
 }
 
 bool MissHandlingLogic::networkDataAvailable() const {
-  if (MAIN_MEMORY_ON_NETWORK)
+  if ((destination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
     return iResponseFromNetwork.valid();
   else {
     return iDataFromBM.valid();
@@ -191,16 +233,24 @@ bool MissHandlingLogic::networkDataAvailable() const {
 }
 
 const sc_event& MissHandlingLogic::newNetworkDataEvent() const {
-  if (MAIN_MEMORY_ON_NETWORK)
+  if ((destination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
     return iResponseFromNetwork.default_event();
   else {
     return iDataFromBM.default_event();
   }
 }
 
-ChannelID MissHandlingLogic::getDestination(MemoryRequest request) {
-  // For now, return the fixed address of the memory controller.
-  // In the future, this is where we will look in the directory to determine
-  // which L2 tile to access.
-  return ChannelID(NUM_TILES,0,0);
+ChannelID MissHandlingLogic::getDestination(MemoryAddr address) const {
+  TileIndex tile = directory.getTile(address);
+
+  // The data should be on this tile, but isn't - go to main memory.
+  if (tile == id.getTile())
+    return memoryControllerAddress();
+  // The data should be on the tile indicated by the directory.
+  else
+    return ChannelID(tile,0,0);
+}
+
+ChannelID MissHandlingLogic::memoryControllerAddress() const {
+  return ChannelID(NUM_TILES, 0, 0);
 }

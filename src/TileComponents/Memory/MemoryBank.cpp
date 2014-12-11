@@ -539,6 +539,24 @@ bool MemoryBank::processMessageHeader() {
 
 		break;
 
+	case MemoryRequest::DIRECTORY_UPDATE:
+    if (DEBUG)
+      cout << this->name() << " received DIRECTORY_UPDATE request on channel " << mActiveTableIndex << endl;
+
+    assert(!mOutputReqQueue.full());
+    mOutputReqQueue.write(mActiveRequest);
+    mFSMState = STATE_IDLE;
+    break;
+
+	case MemoryRequest::DIRECTORY_MASK_UPDATE:
+    if (DEBUG)
+      cout << this->name() << " received DIRECTORY_MASK_UPDATE request on channel " << mActiveTableIndex << endl;
+
+    assert(!mOutputReqQueue.full());
+    mOutputReqQueue.write(mActiveRequest);
+    mFSMState = STATE_IDLE;
+	  break;
+
 	default:
 		cout << this->name() << " received invalid memory request type (" << mActiveRequest.getOperation() << ")" << endl;
 		assert(false);

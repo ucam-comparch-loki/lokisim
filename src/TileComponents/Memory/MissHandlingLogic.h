@@ -80,6 +80,8 @@ private:
   void handleNewRequest();
   void handleFetch();
   void handleStore();
+  void handleDirectoryUpdate();
+  void handleDirectoryMaskUpdate();
 
   void handleEndOfRequest();
 
@@ -97,7 +99,10 @@ private:
   const sc_event& newNetworkDataEvent() const;
 
   // The network address the request should be sent to.
-  ChannelID getDestination(MemoryRequest request);
+  ChannelID getDestination(MemoryAddr address) const;
+
+  // The network address of the memory controller.
+  ChannelID memoryControllerAddress() const;
 
 //==============================//
 // Local state
@@ -124,6 +129,9 @@ private:
 
   // Keep the same multiplexer input if multiple flits are being sent.
   sc_signal<bool> holdMux;
+
+  // The network address to which the current packet should be sent.
+  ChannelID destination;
 
   // Keep track of how many flits we expect to receive before we can move on
   // to the next task. This will typically be the length of a cache line.
