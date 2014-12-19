@@ -34,6 +34,9 @@ public:
 
   ClockInput                  clock;
 
+
+  // Ports to handle requests from memory banks on this tile.
+
   // One request per bank.
   LokiVector<InRequestPort>   iRequestFromBanks;
 
@@ -44,12 +47,28 @@ public:
   ResponseInput               iResponseFromNetwork;
 
   // Signal to the network that a response can be received.
-  // This isn't actually required, since we ensure there is buffer space before
-  // sending a request.
   ReadyOutput                 oReadyForResponse;
 
   // Responses are broadcast to all banks.
   OutDataPort                 oDataToBanks;
+
+
+  // Ports to handle requests from memory banks on other tiles.
+
+  // Receive responses from memory banks.
+  LokiVector<InDataPort>      iDataFromBanks;
+
+  // Send responses back to the requesting tile.
+  ResponseOutput              oResponseToNetwork;
+
+  // Requests from memory banks on other tiles.
+  RequestInput                iRequestFromNetwork;
+
+  // Signal whether we're able to receive another request at this time.
+  ReadyOutput                 oReadyForRequest;
+
+  // Broadcast requests to all banks on the tile.
+  OutRequestPort              oRequestToBanks;
 
 
   // Magic connections to background memory.
@@ -75,16 +94,23 @@ public:
 
 private:
 
-  void mainLoop();
+  // Process requests from the local memory banks.
+  void localRequestLoop();
 
-  void handleNewRequest();
-  void handleFetch();
-  void handleStore();
+  void handleNewLocalRequest();
+  void handleLocalFetch();
+  void handleLocalStore();
   void handleDirectoryUpdate();
   void handleDirectoryMaskUpdate();
+  void endLocalRequest();
 
-  void handleEndOfRequest();
+  // Process requests from remote memory banks.
+  void remoteRequestLoop();
 
+  void handleNewRemoteRequest();
+  void handleRemoteFetch();
+  void handleRemoteStore();
+  void endRemoteRequest();
 
   // The following several methods allow the implementation of the next level
   // of memory hierarchy to be hidden. It could be a magic background memory,
@@ -112,30 +138,34 @@ private:
 
   enum MHLState {
     MHL_READY,      // Nothing to do
-    MHL_FETCH,      // Fetching data from remote location
-    MHL_STORE,      // Flushing data to remote location
+    MHL_FETCH,      // Fetching cache line
+    MHL_STORE,      // Flushing cache line
   };
 
-  MHLState state;
+  // Have a loop each for requests from local memory banks for data elsewhere,
+  // and from remote memory banks for data stored on this tile.
+  MHLState localState, remoteState;
 
   // Mapping between memory addresses and home tiles.
   Directory directory;
 
   // Multiplexer which selects an input from one of the connected banks.
-  ArbitratedMultiplexer<MemoryRequest> inputMux;
+  ArbitratedMultiplexer<MemoryRequest> requestMux;
+  ArbitratedMultiplexer<Word>          responseMux;
 
   // Selected request from connected memory banks.
-  loki_signal<MemoryRequest> muxOutput;
+  loki_signal<MemoryRequest> muxedRequest;
+  loki_signal<Word>          muxedResponse;
 
   // Keep the same multiplexer input if multiple flits are being sent.
-  sc_signal<bool> holdMux;
+  sc_signal<bool> holdRequestMux, holdResponseMux;
 
   // The network address to which the current packet should be sent.
-  ChannelID destination;
+  ChannelID requestDestination, responseDestination;
 
   // Keep track of how many flits we expect to receive before we can move on
   // to the next task. This will typically be the length of a cache line.
-  uint flitsRemaining;
+  uint requestFlitsRemaining, responseFlitsRemaining;
 
 
 };

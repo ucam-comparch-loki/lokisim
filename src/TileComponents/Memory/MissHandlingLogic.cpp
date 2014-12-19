@@ -15,7 +15,8 @@
 MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id) :
     Component(name, id),
     directory(DIRECTORY_SIZE),
-    inputMux("mux", MEMS_PER_TILE) {
+    requestMux("request_mux", MEMS_PER_TILE),
+    responseMux("response_mux", MEMS_PER_TILE) {
 
   // Start off assuming this is the home tile for all data. This means that if
   // we experience a cache miss, we will go straight to main memory to
@@ -23,69 +24,81 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
   directory.initialise(id.getTile());
 
   iRequestFromBanks.init(MEMS_PER_TILE);
+  iDataFromBanks.init(MEMS_PER_TILE);
 
-  state = MHL_READY;
-  destination = ChannelID();
-  flitsRemaining = 0;
+  localState = MHL_READY;
+  remoteState = MHL_READY;
+  requestDestination = ChannelID();
+  responseDestination = ChannelID();
+  requestFlitsRemaining = 0;
+  responseFlitsRemaining = 0;
 
   for (uint i=0; i<iRequestFromBanks.length(); i++)
-    inputMux.iData[i](iRequestFromBanks[i]);
-  inputMux.oData(muxOutput);
-  inputMux.iHold(holdMux);
+    requestMux.iData[i](iRequestFromBanks[i]);
+  requestMux.oData(muxedRequest);
+  requestMux.iHold(holdRequestMux);
+
+  for (uint i=0; i<iDataFromBanks.length(); i++)
+    responseMux.iData[i](iDataFromBanks[i]);
+  responseMux.oData(muxedResponse);
+  responseMux.iHold(holdResponseMux);
 
   // Ready signal for compatibility with network. It isn't required since we
   // only ever issue a request if there's space to receive a response.
   oReadyForResponse.initialize(true);
-  holdMux.write(false);
+  oReadyForRequest.initialize(true);
+  holdRequestMux.write(false);
+  holdResponseMux.write(false);
 
-  SC_METHOD(mainLoop);
+  SC_METHOD(localRequestLoop);
+  SC_METHOD(remoteRequestLoop);
 }
 
-void MissHandlingLogic::mainLoop() {
-  switch (state) {
+void MissHandlingLogic::localRequestLoop() {
+  switch (localState) {
     case MHL_READY:
-      if (!muxOutput.valid())
-        next_trigger(muxOutput.default_event());
+      if (!muxedRequest.valid())
+        next_trigger(muxedRequest.default_event());
       else
-        handleNewRequest();
+        handleNewLocalRequest();
       break;
     case MHL_FETCH:
-      handleFetch();
+      handleLocalFetch();
       break;
     case MHL_STORE:
-      handleStore();
+      handleLocalStore();
       break;
   }
 }
 
-void MissHandlingLogic::handleNewRequest() {
-  holdMux.write(true);
+void MissHandlingLogic::handleNewLocalRequest() {
+  holdRequestMux.write(true);
 
-  MemoryRequest request = muxOutput.read();
+  MemoryRequest request = muxedRequest.read();
 
   switch (request.getOperation()) {
 
     case MemoryRequest::FETCH_LINE: {
-      state = MHL_FETCH;
-      flitsRemaining = request.getLineSize() / BYTES_PER_WORD;
+      localState = MHL_FETCH;
+      requestFlitsRemaining = request.getLineSize() / BYTES_PER_WORD;
       MemoryAddr address = request.getPayload();
-      destination = getDestination(address);
+      requestDestination = getDestination(address);
 
       if (DEBUG)
-        cout << this->name() << " requesting " << flitsRemaining << " words from 0x" << std::hex << address << std::dec << endl;
+        cout << this->name() << " requesting " << requestFlitsRemaining << " words from 0x" << std::hex << address << std::dec << endl;
       break;
     }
 
     case MemoryRequest::STORE_LINE: {
-      state = MHL_STORE;
+      localState = MHL_STORE;
 
       // Send the address plus the cache line.
-      flitsRemaining = 1 + request.getLineSize() / BYTES_PER_WORD;
+      requestFlitsRemaining = 1 + request.getLineSize() / BYTES_PER_WORD;
       MemoryAddr address = request.getPayload();
-      destination = getDestination(address);
+      requestDestination = getDestination(address);
 
       if (DEBUG)
-        cout << this->name() << " flushing " << flitsRemaining << " words to 0x" << std::hex << address << std::dec << endl;
+        cout << this->name() << " flushing " << requestFlitsRemaining << " words to 0x" << std::hex << address << std::dec << endl;
       break;
     }
 
@@ -98,7 +111,7 @@ void MissHandlingLogic::handleNewRequest() {
       break;
 
     default:
-      throw InvalidOptionException("miss handling logic new request", request.getOperation());
+      throw InvalidOptionException("miss handling logic new local request", request.getOperation());
       break;
 
   } // end switch
@@ -106,7 +119,7 @@ void MissHandlingLogic::handleNewRequest() {
   next_trigger(sc_core::SC_ZERO_TIME);
 }
 
-void MissHandlingLogic::handleFetch() {
+void MissHandlingLogic::handleLocalFetch() {
   if (networkDataAvailable()) {
     // The memory bank should be able to consume all data immediately.
     assert(!oDataToBanks.valid());
@@ -116,10 +129,10 @@ void MissHandlingLogic::handleFetch() {
     if (DEBUG)
       cout << this->name() << " received " << data << endl;
 
-    flitsRemaining--;
+    requestFlitsRemaining--;
     oDataToBanks.write(data);
-    if (flitsRemaining == 0)
-      handleEndOfRequest();
+    if (requestFlitsRemaining == 0)
+      endLocalRequest();
     else
       next_trigger(newNetworkDataEvent());
   }
@@ -127,22 +140,22 @@ void MissHandlingLogic::handleFetch() {
     next_trigger(canSendEvent());
   }
   else {
-    sendOnNetwork(muxOutput.read());
-    muxOutput.ack();
+    sendOnNetwork(muxedRequest.read());
+    muxedRequest.ack();
     next_trigger(newNetworkDataEvent());
   }
 }
 
-void MissHandlingLogic::handleStore() {
+void MissHandlingLogic::handleLocalStore() {
   if (canSendOnNetwork()) {
-    sendOnNetwork(muxOutput.read());
-    muxOutput.ack();
-    flitsRemaining--;
+    sendOnNetwork(muxedRequest.read());
+    muxedRequest.ack();
+    requestFlitsRemaining--;
 
-    if (flitsRemaining == 0)
-      handleEndOfRequest();
+    if (requestFlitsRemaining == 0)
+      endLocalRequest();
     else
-      next_trigger(muxOutput.default_event());
+      next_trigger(muxedRequest.default_event());
   }
   else {
     next_trigger(canSendEvent());
@@ -150,31 +163,144 @@ void MissHandlingLogic::handleStore() {
 }
 
 void MissHandlingLogic::handleDirectoryUpdate() {
-  MemoryRequest request = muxOutput.read();
-  muxOutput.ack();
+  MemoryRequest request = muxedRequest.read();
+  muxedRequest.ack();
 
   unsigned int entry = request.getDirectoryEntry();
   TileIndex tile = request.getTile();
 
   directory.setEntry(entry, tile);
 
-  handleEndOfRequest();
+  endLocalRequest();
 }
 
 void MissHandlingLogic::handleDirectoryMaskUpdate() {
-  MemoryRequest request = muxOutput.read();
-  muxOutput.ack();
+  MemoryRequest request = muxedRequest.read();
+  muxedRequest.ack();
 
   unsigned int maskLSB = request.getPayload();
 
   directory.setBitmaskLSB(maskLSB);
 
-  handleEndOfRequest();
+  endLocalRequest();
 }
 
-void MissHandlingLogic::handleEndOfRequest() {
-  state = MHL_READY;
-  holdMux.write(false);
+void MissHandlingLogic::endLocalRequest() {
+  localState = MHL_READY;
+  holdRequestMux.write(false);
+  next_trigger(clock.posedge_event());
+}
+
+
+void MissHandlingLogic::remoteRequestLoop() {
+  switch (remoteState) {
+    case MHL_READY:
+      if (iRequestFromNetwork.valid())
+        handleNewRemoteRequest();
+      else
+        next_trigger(iRequestFromNetwork.default_event());
+      break;
+    case MHL_FETCH:
+      handleRemoteFetch();
+      break;
+    case MHL_STORE:
+      handleRemoteStore();
+      break;
+  }
+}
+
+void MissHandlingLogic::handleNewRemoteRequest() {
+  MemoryRequest request = iRequestFromNetwork.read().payload();
+
+  switch (request.getOperation()) {
+
+    case MemoryRequest::FETCH_LINE: {
+      remoteState = MHL_FETCH;
+
+      responseFlitsRemaining = request.getLineSize() / BYTES_PER_WORD;
+      MemoryAddr address = request.getPayload();
+
+      // TODO: need destination from somewhere
+      // Find some spare bits in MemoryRequest? Currently using 12 bits for
+      // cache line length, which seems unnecessary.
+//      responseDestination = ChannelID(request.getSourceTile(), 0, 0);
+
+      if (DEBUG)
+        cout << this->name() << " requesting " << responseFlitsRemaining << " words from 0x" << std::hex << address << std::dec << endl;
+      break;
+    }
+
+    case MemoryRequest::STORE_LINE: {
+      remoteState = MHL_STORE;
+
+      // Send the address plus the cache line.
+      responseFlitsRemaining = request.getLineSize() / BYTES_PER_WORD;
+      MemoryAddr address = request.getPayload();
+
+      if (DEBUG)
+        cout << this->name() << " flushing " << responseFlitsRemaining << " words to 0x" << std::hex << address << std::dec << endl;
+      break;
+    }
+
+    default:
+      throw InvalidOptionException("miss handling logic new remote request", request.getOperation());
+      break;
+
+  } // end switch
+
+  next_trigger(sc_core::SC_ZERO_TIME);
+}
+
+void MissHandlingLogic::handleRemoteFetch() {
+  // Receiving data from memory banks.
+  if (muxedResponse.valid()) {
+    // No buffering - wait until the output port is available.
+    if (oResponseToNetwork.valid())
+      next_trigger(oResponseToNetwork.ack_event());
+    // Output port is available - send flit.
+    else {
+      holdResponseMux.write(true);
+
+      NetworkResponse response(muxedResponse.read(), responseDestination);
+      muxedResponse.ack();
+
+      responseFlitsRemaining--;
+      if (responseFlitsRemaining == 0) {
+        response.setEndOfPacket(true);
+        endRemoteRequest();
+      }
+      else {
+        response.setEndOfPacket(false);
+        next_trigger(muxedResponse.default_event());
+      }
+
+      oResponseToNetwork.write(response);
+    }
+  }
+  // No data from memory banks => need to issue the fetch to them.
+  else {
+    oRequestToBanks.write(iRequestFromNetwork.read().payload());
+    iRequestFromNetwork.ack();
+    next_trigger(muxedResponse.default_event());
+  }
+}
+
+void MissHandlingLogic::handleRemoteStore() {
+  assert(!oRequestToBanks.valid());
+
+  oRequestToBanks.write(iRequestFromNetwork.read().payload());
+  iRequestFromNetwork.ack();
+  responseFlitsRemaining--;
+
+  if (responseFlitsRemaining == 0)
+    endRemoteRequest();
+  else
+    next_trigger(iRequestFromNetwork.default_event());
+}
+
+void MissHandlingLogic::endRemoteRequest() {
+  remoteState = MHL_READY;
+  holdResponseMux.write(false);
   next_trigger(clock.posedge_event());
 }
 
@@ -186,8 +312,10 @@ void MissHandlingLogic::handleEndOfRequest() {
 void MissHandlingLogic::sendOnNetwork(MemoryRequest request) {
   assert(canSendOnNetwork());
 
-  if ((destination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
-    NetworkRequest flit(request, destination);
+  // TODO: add id.getTile() to request if request.getOperation() != MemoryRequest::PAYLOAD_ONLY
+
+  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
+    NetworkRequest flit(request, requestDestination);
     oRequestToNetwork.write(flit);
   }
   else {
@@ -196,7 +324,7 @@ void MissHandlingLogic::sendOnNetwork(MemoryRequest request) {
 }
 
 bool MissHandlingLogic::canSendOnNetwork() const {
-  if ((destination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
+  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
     return !oRequestToNetwork.valid();
   else {
     return !oRequestToBM.valid();
@@ -204,7 +332,7 @@ bool MissHandlingLogic::canSendOnNetwork() const {
 }
 
 const sc_event& MissHandlingLogic::canSendEvent() const {
-  if ((destination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
+  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
     return oRequestToNetwork.ack_event();
   else {
     return oRequestToBM.ack_event();
@@ -212,7 +340,7 @@ const sc_event& MissHandlingLogic::canSendEvent() const {
 }
 
 Word MissHandlingLogic::receiveFromNetwork() {
-  if ((destination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
+  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
     assert(iResponseFromNetwork.valid());
     iResponseFromNetwork.ack();
     return iResponseFromNetwork.read().payload();
@@ -225,7 +353,7 @@ Word MissHandlingLogic::receiveFromNetwork() {
 }
 
 bool MissHandlingLogic::networkDataAvailable() const {
-  if ((destination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
+  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
     return iResponseFromNetwork.valid();
   else {
     return iDataFromBM.valid();
@@ -233,7 +361,7 @@ bool MissHandlingLogic::networkDataAvailable() const {
 }
 
 const sc_event& MissHandlingLogic::newNetworkDataEvent() const {
-  if ((destination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
+  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
     return iResponseFromNetwork.default_event();
   else {
     return iDataFromBM.default_event();

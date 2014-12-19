@@ -22,80 +22,80 @@ private:
 	// | Line size : 12 | Memory operation : 8 | Address : 32                                                          |
 	// | Unused : 12    | Memory operation : 8 | Burst length : 32                                                     |
 	// | Unused : 12    | Memory operation : 8 | Channel ID : 32                                                       |
-  // | Unused : 24    | Memory operation : 8 | Directory entry : 16 | Tile : 16                                      |
+  // | Unused : 12    | Memory operation : 8 | Directory entry : 16 | Tile : 16                                      |
 
-	static const uint OFFSET_LINE_SIZE = 40;
-	static const uint WIDTH_LINE_SIZE = 12;
-	static const uint OFFSET_OPERATION = 32;
-	static const uint WIDTH_OPERATION = 8;
+	static const uint OFFSET_LINE_SIZE        = 40;
+	static const uint  WIDTH_LINE_SIZE        = 12;
+	static const uint OFFSET_OPERATION        = 32;
+	static const uint  WIDTH_OPERATION        = 8;
 
-	static const uint OFFSET_OPCODE = 24;
-	static const uint WIDTH_OPCODE = 8;
-	static const uint OFFSET_WAY_BITS = 20;
-	static const uint WIDTH_WAY_BITS = 4;
-	static const uint OFFSET_LINE_BITS = 16;
-	static const uint WIDTH_LINE_BITS = 4;
-	static const uint OFFSET_MODE = 8;
-	static const uint WIDTH_MODE = 8;
-	static const uint OFFSET_GROUP_BITS = 0;
-	static const uint WIDTH_GROUP_BITS = 8;
+	static const uint OFFSET_OPCODE           = 24;
+	static const uint  WIDTH_OPCODE           = 8;
+	static const uint OFFSET_WAY_BITS         = 20;
+	static const uint  WIDTH_WAY_BITS         = 4;
+	static const uint OFFSET_LINE_BITS        = 16;
+	static const uint  WIDTH_LINE_BITS        = 4;
+	static const uint OFFSET_MODE             = 8;
+	static const uint  WIDTH_MODE             = 8;
+	static const uint OFFSET_GROUP_BITS       = 0;
+	static const uint  WIDTH_GROUP_BITS       = 8;
 
-	static const uint OFFSET_TILE = 0;
-	static const uint WIDTH_TILE = 16;
-	static const uint OFFSET_DIRECTORY_ENTRY = 16;
-	static const uint WIDTH_DIRECTORY_ENTRY = 16;
+	static const uint OFFSET_TILE             = 0;
+	static const uint  WIDTH_TILE             = 16;
+	static const uint OFFSET_DIRECTORY_ENTRY  = 16;
+	static const uint  WIDTH_DIRECTORY_ENTRY  = 16;
 
 public:
 	enum MemoryOperation {
-		CONTROL = 0,
-		PAYLOAD_ONLY = 1,
-		LOAD_W = 2,
-		LOAD_HW = 3,
-		LOAD_B = 4,
-		STORE_W = 5,
-		STORE_HW = 6,
-		STORE_B = 7,
-		IPK_READ = 8,
-		BURST_READ = 9,
-		BURST_WRITE = 10,
-		FETCH_LINE = 11,
-		STORE_LINE = 12,
-		DIRECTORY_UPDATE = 13,
-		DIRECTORY_MASK_UPDATE = 14,
+		CONTROL               = 0,  // Configuration
+		PAYLOAD_ONLY          = 1,  // Data to be stored
+		LOAD_W                = 2,  // Load word
+		LOAD_HW               = 3,  // Load half-word
+		LOAD_B                = 4,  // Load byte
+		STORE_W               = 5,  // Store word
+		STORE_HW              = 6,  // Store half-word
+		STORE_B               = 7,  // Store byte
+		IPK_READ              = 8,  // Instruction packet read
+		BURST_READ            = 9,  // Read multiple consecutive words
+		BURST_WRITE           = 10, // Write multiple consecutive words
+		FETCH_LINE            = 11, // Fetch cache line
+		STORE_LINE            = 12, // Flush cache line
+		DIRECTORY_UPDATE      = 13, // Map part of the address space to a tile
+		DIRECTORY_MASK_UPDATE = 14, // Choose part of address to index directory
 
-		LOAD_THROUGH_W = 18,    // Go straight to next level of cache
-		LOAD_THROUGH_HW = 19,   // Go straight to next level of cache
-		LOAD_THROUGH_B = 20,    // Go straight to next level of cache
-		STORE_THROUGH_W = 21,   // Store to this cache and the one backing it
-		STORE_THROUGH_HW = 22,  // Store to this cache and the one backing it
-		STORE_THROUGH_B = 23,   // Store to this cache and the one backing it
+		LOAD_THROUGH_W        = 18, // Load word from next level of cache
+		LOAD_THROUGH_HW       = 19, // Load half-word from next level of cache
+		LOAD_THROUGH_B        = 20, // Load byte from next level of cache
+		STORE_THROUGH_W       = 21, // Store word to next level of cache
+		STORE_THROUGH_HW      = 22, // Store half-word to next level of cache
+		STORE_THROUGH_B       = 23, // Store byte to next level of cache
 
-		NONE = 255
+		NONE                  = 255
 	};
 
 	enum MemoryOpCode {
-		SET_MODE = 0,
-		SET_CHMAP = 1
+		SET_MODE              = 0,  // Update mode (cache/scratchpad - see below)
+		SET_CHMAP             = 1   // Update channel map table
 	};
 
 	enum MemoryMode {
-		SCRATCHPAD = 0,
-		GP_CACHE = 1
+		SCRATCHPAD            = 0,  // Scratchpad mode
+		GP_CACHE              = 1   // General-purpose cache mode
 	};
 
-	inline uint32_t getPayload() const          {return data_ & 0xFFFFFFFFULL;}
-	inline ChannelID getChannelID() const       {return ChannelID(data_ & 0xFFFFFFFFULL);}
+	inline uint32_t        getPayload()   const {return data_ & 0xFFFFFFFFULL;}
+	inline ChannelID       getChannelID() const {return ChannelID(data_ & 0xFFFFFFFFULL);}
 
-	inline uint getLineSize() const             {return (uint)getBits(OFFSET_LINE_SIZE, OFFSET_LINE_SIZE + WIDTH_LINE_SIZE - 1);}
+	inline uint            getLineSize()  const {return (uint)getBits(OFFSET_LINE_SIZE, OFFSET_LINE_SIZE + WIDTH_LINE_SIZE - 1);}
 	inline MemoryOperation getOperation() const {return (MemoryOperation)getBits(OFFSET_OPERATION, OFFSET_OPERATION + WIDTH_OPERATION - 1);}
-	inline MemoryOpCode getOpCode() const       {return (MemoryOpCode)getBits(OFFSET_OPCODE, OFFSET_OPCODE + WIDTH_OPCODE - 1);}
-	inline uint getWayBits() const              {return (uint)getBits(OFFSET_WAY_BITS, OFFSET_WAY_BITS + WIDTH_WAY_BITS - 1);}
-	inline uint getLineBits() const             {return (uint)getBits(OFFSET_LINE_BITS, OFFSET_LINE_BITS + WIDTH_LINE_BITS - 1);}
-	inline MemoryMode getMode() const           {return (MemoryMode)getBits(OFFSET_MODE, OFFSET_MODE + WIDTH_MODE - 1);}
-	inline uint getGroupBits() const            {return getBits(OFFSET_GROUP_BITS, OFFSET_GROUP_BITS + WIDTH_GROUP_BITS - 1);}
+	inline MemoryOpCode    getOpCode()    const {return (MemoryOpCode)getBits(OFFSET_OPCODE, OFFSET_OPCODE + WIDTH_OPCODE - 1);}
+	inline uint            getWayBits()   const {return (uint)getBits(OFFSET_WAY_BITS, OFFSET_WAY_BITS + WIDTH_WAY_BITS - 1);}
+	inline uint            getLineBits()  const {return (uint)getBits(OFFSET_LINE_BITS, OFFSET_LINE_BITS + WIDTH_LINE_BITS - 1);}
+	inline MemoryMode      getMode()      const {return (MemoryMode)getBits(OFFSET_MODE, OFFSET_MODE + WIDTH_MODE - 1);}
+	inline uint            getGroupBits() const {return getBits(OFFSET_GROUP_BITS, OFFSET_GROUP_BITS + WIDTH_GROUP_BITS - 1);}
 
-	inline uint getDirectoryEntry() const       {return getBits(OFFSET_DIRECTORY_ENTRY, OFFSET_DIRECTORY_ENTRY + WIDTH_DIRECTORY_ENTRY - 1);}
-	inline TileIndex getTile() const            {return getBits(OFFSET_TILE, OFFSET_TILE + WIDTH_TILE - 1);}
+	inline uint            getDirectoryEntry() const {return getBits(OFFSET_DIRECTORY_ENTRY, OFFSET_DIRECTORY_ENTRY + WIDTH_DIRECTORY_ENTRY - 1);}
+	inline TileIndex       getTile()      const {return getBits(OFFSET_TILE, OFFSET_TILE + WIDTH_TILE - 1);}
 
 	// Returns whether the next level of cache should also be accessed.
 	inline bool isThroughAccess() const {
