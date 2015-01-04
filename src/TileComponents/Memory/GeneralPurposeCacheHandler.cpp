@@ -119,6 +119,8 @@ GeneralPurposeCacheHandler::GeneralPurposeCacheHandler(uint bankNumber) {
 
 	mBankNumber = bankNumber;
 	mBackgroundMemory = NULL;
+
+	mL2Mode = false;
 }
 
 GeneralPurposeCacheHandler::~GeneralPurposeCacheHandler() {
@@ -160,12 +162,32 @@ void GeneralPurposeCacheHandler::activate(uint groupIndex, uint groupSize, uint 
 	mSetShift = mGroupBits + mLineBits;
 	mSetMask = ((1UL << mSetBits) - 1UL) << mSetShift;
 
+	mL2Mode = false;
+
 	if (ENERGY_TRACE)
 	  Instrumentation::memorySetMode(mBankNumber, true, mSetCount, mWayCount, mLineSize);
 }
 
+void GeneralPurposeCacheHandler::activateL2(uint lineSize) {
+  // Only need to reconfigure if we weren't already in L2 cache mode, or the
+  // L2 configuration has changed.
+  if (!mL2Mode || (lineSize != mLineSize)) {
+    activate(mBankNumber % MEMS_PER_TILE, MEMS_PER_TILE, 1, lineSize);
+    mL2Mode = true;
+  }
+
+}
+
 bool GeneralPurposeCacheHandler::containsAddress(uint32_t address) {
 	return (address & mGroupMask) == (mGroupIndex << mLineBits);
+}
+
+bool GeneralPurposeCacheHandler::containsL2Address(uint32_t address) {
+  // FIXME: may prefer a different mapping. Currently striping cache lines
+  // across banks.
+  // Should it be mLineBits + 2?
+  assert(mL2Mode);
+  return ((address >> mLineBits) & 7) == mBankNumber;
 }
 
 bool GeneralPurposeCacheHandler::sameLine(uint32_t address1, uint32_t address2) {

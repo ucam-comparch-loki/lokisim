@@ -68,13 +68,6 @@ uint MemoryBank::log2Exact(uint value) {
 	return result;
 }
 
-uint MemoryBank::homeTile(MemoryAddr address) {
-  // TODO: access directory
-
-  // Total cache on tile = 64kB = 2^16B
-  return (address >> 16) % NUM_TILES;
-}
-
 const NetworkData MemoryBank::peekNextRequest() {
   assert(!mInputReqQueue.empty() || !mInputQueue.empty());
 
@@ -1490,13 +1483,163 @@ void MemoryBank::handleDataOutput() {
 
 // Method called every time we see an event on the iRequest port.
 void MemoryBank::handleRequestInput() {
-  if (DEBUG)
-    cout << this->name() << " received request " << iRequest.read() << endl;
 
-  assert(iRequest.valid());
-  assert(!mInputReqQueue.full());
-  mInputReqQueue.write(iRequest.read());
+//  switch (requestState) {
+//    case REQ_READY:
+//      if (DEBUG)
+//        cout << this->name() << " received request " << iRequest.read() << endl;
+//
+//      assert(iRequest.valid());
+////      assert(!mInputReqQueue.full());
+////      mInputReqQueue.write(iRequest.read());
+//      iRequest.ack();
+//      break;
+//    case REQ_FETCH_LINE:
+//      break;
+//    case REQ_STORE_LINE:
+//      break;
+//  }
+}
+
+
+void MemoryBank::requestLoop() {
+  switch (requestState) {
+    case REQ_READY:
+      if (iRequest.valid())
+        handleNewRequest();
+      else
+        next_trigger(iRequest.default_event());
+
+//      assert(iRequest.valid());
+//      iRequest.ack();
+      break;
+    case REQ_FETCH_LINE:
+      handleRequestFetch();
+      break;
+    case REQ_STORE_LINE:
+      handleRequestStore();
+      break;
+  }
+}
+
+void MemoryBank::handleNewRequest() {
+  // If we've received a request, we're in L2 cache mode, so shouldn't have
+  // any L1 operations in the queue.
+  assert(mInputQueue.empty());
+
+  MemoryRequest request = iRequest.read();
+  MemoryAddr address = request.getPayload();
+  uint lineSize = request.getLineSize();
   iRequest.ack();
+
+  // Ensure this memory bank is configured as an L2 cache bank.
+  mGeneralPurposeCacheHandler.activateL2(lineSize);
+
+  // Screen out addresses not cached by this bank.
+  // TODO: should containsL2Address be used?
+  if (!mGeneralPurposeCacheHandler.containsAddress(address)) {
+    next_trigger(iRequest.default_event());
+    return;
+  }
+
+  // Perform a dummy read to check if the data is currently cached.
+  uint32_t data;
+  bool cached = mGeneralPurposeCacheHandler.readWord(address, data, false, false, true);
+
+  // If we don't already have the cache line, request it from the next level
+  // of cache.
+  if (!cached && mFSMState == STATE_IDLE) {
+    mFSMState = STATE_GP_CACHE_MISS;
+    mFSMCallbackState = STATE_IDLE;
+    mCacheFSMState = GP_CACHE_STATE_PREPARE;
+    mActiveAddress = address;
+    next_trigger(iClock.negedge_event());
+  }
+
+  // If we don't have the cache line, but we have requested it, continue
+  // waiting for it to arrive.
+  else if (!cached && mFSMState != STATE_IDLE) {
+    next_trigger(iClock.negedge_event());
+  }
+
+  // We have the cache line and can start the operation.
+  else {
+    assert(cached);
+
+    switch (request.getOperation()) {
+
+      case MemoryRequest::FETCH_LINE: {
+        requestState = REQ_FETCH_LINE;
+
+        mFetchAddress = address;
+        mFetchCount = lineSize / BYTES_PER_WORD;
+
+        if (DEBUG)
+          cout << this->name() << " reading " << mFetchCount << " words from 0x" << std::hex << address << std::dec << endl;
+        break;
+      }
+
+      case MemoryRequest::STORE_LINE: {
+        requestState = REQ_STORE_LINE;
+
+        mWriteBackAddress = address;
+        mWriteBackCount = lineSize / BYTES_PER_WORD;
+
+        if (DEBUG)
+          cout << this->name() << " flushing " << mWriteBackCount << " words to 0x" << std::hex << address << std::dec << endl;
+        break;
+      }
+
+      default:
+        throw InvalidOptionException("memory bank new request", request.getOperation());
+        break;
+
+    } // end switch
+
+    next_trigger(sc_core::SC_ZERO_TIME);
+  }
+}
+
+void MemoryBank::handleRequestFetch() {
+  // No buffering - wait until the output port is available.
+  if (oResponse.valid())
+    next_trigger(oResponse.ack_event());
+  // Output port is available - send flit.
+  else {
+
+    uint32_t data;
+    mGeneralPurposeCacheHandler.readWord(mFetchAddress, data, false, false, false);
+    Word response(data);
+
+    mFetchCount--;
+    mFetchAddress += 4;
+    if (mFetchCount == 0)
+      endRequest();
+    else
+      next_trigger(iClock.negedge_event());
+
+    oResponse.write(response);
+  }
+}
+
+void MemoryBank::handleRequestStore() {
+  assert(iRequest.read().getOperation() == MemoryRequest::PAYLOAD_ONLY);
+
+  mGeneralPurposeCacheHandler.writeWord(mWriteBackAddress, iRequest.read().getPayload(), false, false);
+  iRequest.ack();
+
+  mWriteBackCount--;
+  mWriteBackAddress += 4;
+
+  if (mWriteBackCount == 0)
+    endRequest();
+  else
+    next_trigger(iRequest.default_event());
+}
+
+void MemoryBank::endRequest() {
+  requestState = REQ_READY;
+  next_trigger(iClock.negedge_event());
 }
 
 // Method which sends data from the mOutputReqQueue whenever possible.
@@ -1524,18 +1667,18 @@ void MemoryBank::handleResponseInput() {
 
 // Method which sends data from the mOutputRespQueue whenever possible.
 void MemoryBank::handleResponseOutput() {
-  if (!iClock.posedge())
-    next_trigger(iClock.posedge_event());
-  else if (mOutputRespQueue.empty())
-    next_trigger(mOutputRespQueue.writeEvent());
-  else {
-    assert(!oResponse.valid());
-    oResponse.write(mOutputRespQueue.read());
-    next_trigger(oResponse.ack_event());
-
-    if (DEBUG)
-      cout << this->name() << " sent response " << oResponse.read() << endl;
-  }
+//  if (!iClock.posedge())
+//    next_trigger(iClock.posedge_event());
+//  else if (mOutputRespQueue.empty())
+//    next_trigger(mOutputRespQueue.writeEvent());
+//  else {
+//    assert(!oResponse.valid());
+//    oResponse.write(mOutputRespQueue.read());
+//    next_trigger(oResponse.ack_event());
+//
+//    if (DEBUG)
+//      cout << this->name() << " sent response " << oResponse.read() << endl;
+//  }
 }
 
 void MemoryBank::handleNetworkInterfacesPre() {
@@ -1731,6 +1874,10 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	mFetchAddress = 0;
 	mFetchCount = 0;
 
+	//-- L2 cache mode state ----------------------------------------------------------------------
+
+	requestState = REQ_READY;
+
 	//-- Ring network state -----------------------------------------------------------------------
 
 	mRingRequestInputPending = false;
@@ -1769,9 +1916,10 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 
 	SC_METHOD(handleDataOutput);
 
-  SC_METHOD(handleRequestInput);
-  sensitive << iRequest;
-  dont_initialize();
+//  SC_METHOD(handleRequestInput);
+//  sensitive << iRequest;
+//  dont_initialize();
+	SC_METHOD(requestLoop);
 
   SC_METHOD(handleRequestOutput);
 

@@ -149,8 +149,10 @@ private:
 
 	// For communications with the Miss Handling Logic, no additional network
 	// information is required, so we send just words rather than flits.
-	typedef loki_out<MemoryRequest> OutRequestPort;
+  typedef loki_in<MemoryRequest> InRequestPort;
+  typedef loki_out<MemoryRequest> OutRequestPort;
 	typedef loki_in<Word> InResponsePort;
+  typedef loki_out<Word> OutResponsePort;
 
 public:
 
@@ -164,13 +166,13 @@ public:
   DataOutput            oData;            // Output data sent to the processing elements
 
   // Requests - to/from memory banks on other tiles.
-  RequestInput          iRequest;         // Input requests sent to the memory bank
+  InRequestPort         iRequest;         // Input requests sent to the memory bank
   ReadyOutput           oReadyForRequest; // Indicates that there is buffer space for new input
   OutRequestPort        oRequest;         // Output requests sent to the remote memory banks
 
   // Responses - to/from memory banks on other tiles.
   InResponsePort        iResponse;
-  ResponseOutput        oResponse;        // Output responses sent to the remote memory banks
+  OutResponsePort       oResponse;        // Output responses sent to the remote memory banks
 
 	//-- Ports connected to memory bank ring network ----------------------------------------------
 
@@ -292,6 +294,15 @@ private:
 	uint32_t              mFetchAddress;		// Current address of fetch operation in progress
 	uint                  mFetchCount;	    // Number of words to fetch from background memory
 
+	//-- L2 cache mode state ----------------------------------------------------------------------
+
+	enum RequestState {
+	  REQ_READY,        // Waiting for a new request
+	  REQ_FETCH_LINE,   // Reading a cache line and sending to another memory
+	  REQ_STORE_LINE    // Storing a cache line from another memory
+	};
+	RequestState requestState;
+
 	//-- Ring network state -----------------------------------------------------------------------
 
 	bool                  mRingRequestInputPending;   // Indicates that an incoming ring request is waiting to be processed
@@ -309,7 +320,6 @@ private:
 private:
 
 	uint log2Exact(uint value);							// Calculates binary logarithm of value - asserts value to be a power of two greater than 1
-	uint homeTile(MemoryAddr address);      // Return the tile of the definitive copy of this data
 
 	// There are multiple buffers which could hold requests. Use these methods to
 	// ensure that the correct buffer is accessed.
@@ -338,6 +348,13 @@ private:
   void handleRequestOutput();
   void handleResponseInput();
   void handleResponseOutput();
+
+  void requestLoop();
+
+  void handleNewRequest();
+  void handleRequestFetch();
+  void handleRequestStore();
+  void endRequest();
 
 	void mainLoop();										// Main loop thread - running at every positive clock edge
 

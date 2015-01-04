@@ -219,11 +219,7 @@ void MissHandlingLogic::handleNewRemoteRequest() {
 
       responseFlitsRemaining = request.getLineSize() / BYTES_PER_WORD;
       MemoryAddr address = request.getPayload();
-
-      // TODO: need destination from somewhere
-      // Find some spare bits in MemoryRequest? Currently using 12 bits for
-      // cache line length, which seems unnecessary.
-//      responseDestination = ChannelID(request.getSourceTile(), 0, 0);
+      responseDestination = ChannelID(request.getSourceTile(), 0, 0);
 
       if (DEBUG)
         cout << this->name() << " requesting " << responseFlitsRemaining << " words from 0x" << std::hex << address << std::dec << endl;
@@ -312,10 +308,20 @@ void MissHandlingLogic::endRemoteRequest() {
 void MissHandlingLogic::sendOnNetwork(MemoryRequest request) {
   assert(canSendOnNetwork());
 
-  // TODO: add id.getTile() to request if request.getOperation() != MemoryRequest::PAYLOAD_ONLY
-
   if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
-    NetworkRequest flit(request, requestDestination);
+
+    // If this is the header flit, also include our tile ID so the remote memory
+    // knows where to send data back to.
+    // The tile ID could be added to all flits, but it's unnecessary simulation
+    // overhead.
+    MemoryRequest newRequest;
+    if (request.getOperation() != MemoryRequest::PAYLOAD_ONLY)
+      newRequest = MemoryRequest(request.getOperation(), request.getPayload(),
+                                 request.getLineSize(),  id.getTile());
+    else
+      newRequest = request;
+
+    NetworkRequest flit(newRequest, requestDestination);
     oRequestToNetwork.write(flit);
   }
   else {
