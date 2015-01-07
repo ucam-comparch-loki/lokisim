@@ -33,7 +33,7 @@ public:
   }
 
   virtual ~LokiVector() {
-    if(data_ != NULL)
+    if (data_ != NULL)
       delete[] data_;
   }
 
@@ -55,7 +55,7 @@ public:
   }
 
   inline T& operator[](unsigned int position) const {
-    assert(position >= 0);
+    assert(length() > 0);
     assert(position < length());
 
     return data_[position];

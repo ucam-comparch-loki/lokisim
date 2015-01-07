@@ -138,7 +138,9 @@ void Chip::makeSignals() {
 
   requestFromBanks.init(NUM_MEMORIES);
   requestToBanks.init(NUM_TILES);       // Broadcast within each tile
-  readyRequestToBanks.init(NUM_MEMORIES);
+  targetBank.init(NUM_TILES);           // Broadcast within each tile
+  readyRequestToMHL.init(NUM_MEMORIES);
+  requestToMHL.init(NUM_TILES);
   requestFromMHL.init(NUM_TILES);
   requestToBM.init(NUM_TILES);
 
@@ -146,6 +148,7 @@ void Chip::makeSignals() {
   responseToMHL.init(NUM_TILES);
   readyResponseToMHL.init(NUM_TILES);
   responseToBanks.init(NUM_TILES);      // Broadcast within each tile
+  responseFromMHL.init(NUM_TILES);
   responseFromBM.init(NUM_TILES);
 
 	ringStrobe.init(NUM_MEMORIES);
@@ -205,9 +208,6 @@ void Chip::wireUp() {
   DataNetwork* dataNet = new DataNetwork("data_net");
   dataNet->clock(clock);
   for (unsigned int i=0; i<cores.size(); i++) {
-    cout << i << endl;
-    cout << cores[i]->name() << endl;
-    cout << iDataGlobal[i].name() << endl;
     cores[i]->iDataGlobal(iDataGlobal[i]);
     dataNet->oData[i](iDataGlobal[i]);
 
@@ -250,10 +250,8 @@ void Chip::wireUp() {
     memories[i]->oRequest(requestFromBanks[i]);
     mhl[i/MEMS_PER_TILE]->iRequestFromBanks[i%MEMS_PER_TILE](requestFromBanks[i]);
 
-    memories[i]->oReadyForRequest(readyRequestToBanks[i]);
-    requestNet->iReady[i][0](readyRequestToBanks[i]);
-
     memories[i]->iRequest(requestToBanks[i/MEMS_PER_TILE]);
+    memories[i]->iTargetBank(targetBank[i/MEMS_PER_TILE]);
   }
   for (unsigned int i=0; i<mhl.size(); i++) {
     mhl[i]->oRequestToNetwork(requestFromMHL[i]);
@@ -262,7 +260,11 @@ void Chip::wireUp() {
     mhl[i]->iRequestFromNetwork(requestToMHL[i]);
     requestNet->oData[i](requestToMHL[i]);
 
+    mhl[i]->oReadyForRequest(readyRequestToMHL[i]);
+    requestNet->iReady[i][0](readyRequestToMHL[i]);
+
     mhl[i]->oRequestToBanks(requestToBanks[i]);
+    mhl[i]->oTargetBank(targetBank[i]);
   }
   networks.push_back(requestNet);
 

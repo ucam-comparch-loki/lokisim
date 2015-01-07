@@ -98,14 +98,15 @@ private:
   LokiVector<DataSignal>     oDataLocal,          iDataLocal;
   LokiVector<DataSignal>     oDataGlobal,         iDataGlobal;
 	LokiVector<CreditSignal>   oCredit,             iCredit;
-  LokiVector<RequestSignal>  requestToMHL,      requestFromMHL;
-  LokiVector<ResponseSignal> responseFromMHL,   responseToMHL;
+  LokiVector<RequestSignal>  requestToMHL,        requestFromMHL;
+  LokiVector<ResponseSignal> responseFromMHL,     responseToMHL;
   LokiVector<loki_signal<Word> > responseFromBM,  responseToBanks, responseFromBanks;
   LokiVector<loki_signal<MemoryRequest> > requestToBM, requestToBanks, requestFromBanks;
+  LokiVector<sc_signal<MemoryIndex> > targetBank;
 
   // Index ready signals using oReadyData[component][buffer].
   LokiVector2D<ReadySignal>  oReadyData;
-  LokiVector<ReadySignal>    oReadyCredit, readyRequestToBanks, readyResponseToMHL;
+  LokiVector<ReadySignal>    oReadyCredit, readyRequestToMHL, readyResponseToMHL;
 
   RequestSignal              requestToMainMemory,    requestFromMainMemory;
   ResponseSignal             responseToMainMemory,   responseFromMainMemory;

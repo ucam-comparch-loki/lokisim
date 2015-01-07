@@ -47,6 +47,7 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
   // only ever issue a request if there's space to receive a response.
   oReadyForResponse.initialize(true);
   oReadyForRequest.initialize(true);
+  oTargetBank.initialize(0);
   holdRequestMux.write(false);
   holdResponseMux.write(false);
 
@@ -244,6 +245,15 @@ void MissHandlingLogic::handleNewRemoteRequest() {
 
   } // end switch
 
+  // Update the target bank - the one to service the request in the event that
+  // no bank currently holds the required data.
+  // Currently use a simple round-robin scheme, but could use pseudo-LRU.
+  MemoryIndex targetBank = oTargetBank.read() + 1;
+  if (targetBank >= MEMS_PER_TILE)
+    targetBank = 0;
+  oTargetBank.write(targetBank);
+
+  // Move to the appropriate state ASAP.
   next_trigger(sc_core::SC_ZERO_TIME);
 }
 

@@ -167,7 +167,7 @@ public:
 
   // Requests - to/from memory banks on other tiles.
   InRequestPort         iRequest;         // Input requests sent to the memory bank
-  ReadyOutput           oReadyForRequest; // Indicates that there is buffer space for new input
+  sc_in<MemoryIndex>    iTargetBank;      // The responsible bank if all banks miss
   OutRequestPort        oRequest;         // Output requests sent to the remote memory banks
 
   // Responses - to/from memory banks on other tiles.
@@ -234,12 +234,6 @@ private:
 
 	bool                  currentlyIdle;
 
-	// Keep track of which input we are currently serving a request from.
-	// Requests from memories have priority, but once a request starts, it should
-	// continue to completion.
-	enum PriorityInput {INPUT_NONE, INPUT_CORES, INPUT_MEMORIES};
-	PriorityInput         mCurrentInput;
-
 	//-- Data queue state -------------------------------------------------------------------------
 
   NetworkBuffer<NetworkData>     mInputQueue;       // Input queue
@@ -248,12 +242,7 @@ private:
 	bool                  mOutputWordPending;					// Indicates that an output word is waiting for acknowledgement
 	NetworkData           mActiveOutputWord;					// Currently active output word
 
-  NetworkBuffer<NetworkRequest>  mInputReqQueue;    // Input request queue
   NetworkBuffer<MemoryRequest>   mOutputReqQueue;   // Output request queue
-
-  NetworkBuffer<NetworkResponse> mOutputRespQueue;  // Output response queue
-
-  Packet<Word>         *mCurrentPacket;   // The packet we are currently sending or receiving
 
 	//-- Mode independent state -------------------------------------------------------------------
 
@@ -298,10 +287,12 @@ private:
 
 	enum RequestState {
 	  REQ_READY,        // Waiting for a new request
+	  REQ_WAITING_FOR_BANKS, // Waiting to see if any other bank holds the data
+	  REQ_WAITING_FOR_DATA,    // Waiting for data to return from main memory
 	  REQ_FETCH_LINE,   // Reading a cache line and sending to another memory
 	  REQ_STORE_LINE    // Storing a cache line from another memory
 	};
-	RequestState requestState;
+	RequestState mRequestState;
 
 	//-- Ring network state -----------------------------------------------------------------------
 
@@ -321,11 +312,8 @@ private:
 
 	uint log2Exact(uint value);							// Calculates binary logarithm of value - asserts value to be a power of two greater than 1
 
-	// There are multiple buffers which could hold requests. Use these methods to
-	// ensure that the correct buffer is accessed.
-	const NetworkData peekNextRequest();
-	const NetworkData readNextRequest();
-	bool currentInputEmpty();
+	struct RingNetworkRequest& getAvailableRingRequest();
+	void updatedRingRequest();              // Update state depending on which request was updated.
 
 	bool processRingEvent();
 	bool processMessageHeader();
@@ -344,14 +332,14 @@ private:
 
 	void handleNetworkInterfacesPre();
 	void handleDataOutput();
-  void handleRequestInput();
   void handleRequestOutput();
-  void handleResponseInput();
-  void handleResponseOutput();
 
   void requestLoop();
 
   void handleNewRequest();
+  void handleRequestWaitForBanks();
+  void handleRequestWaitForData();
+  void beginServingRequest(MemoryRequest request);
   void handleRequestFetch();
   void handleRequestStore();
   void endRequest();
@@ -397,6 +385,11 @@ public:
 protected:
 
 	virtual void reportStalls(ostream& os);
+
+private:
+
+	void printOperation(MemoryRequest::MemoryOperation operation, MemoryAddr address, uint32_t data) const;
+	void printConfiguration() const;
 
 };
 

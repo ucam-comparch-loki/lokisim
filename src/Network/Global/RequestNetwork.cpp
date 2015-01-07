@@ -52,7 +52,7 @@ void RequestNetwork::requestsToNetwork() {
 }
 
 RequestNetwork::RequestNetwork(const sc_module_name &name) :
-    NetworkHierarchy2(name, 1, MEMS_PER_TILE, 1),
+    NetworkHierarchy2(name, 1, 1, 1),
     toMainMemory(16, string(this->name()) + ".buffer") {
 
   SC_METHOD(requestsToMemory);

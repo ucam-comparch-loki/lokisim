@@ -29,7 +29,7 @@ public:
   }
 
   virtual ~LokiVector2D() {
-    if(data_ != NULL)
+    if (data_ != NULL)
       delete[] data_;
   }
 
@@ -56,7 +56,7 @@ public:
   }
 
   inline const size_t width() const {
-    if(data_ != NULL)
+    if (data_ != NULL)
       return data_[0].length();
     else
       return 0;
@@ -67,7 +67,7 @@ public:
   }
 
   inline LokiVector<T>& operator[](unsigned int position) const {
-    assert(position >= 0);
+    assert(length() > 0);
     assert(position < length());
 
     return data_[position];

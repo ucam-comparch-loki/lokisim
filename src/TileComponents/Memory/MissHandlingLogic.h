@@ -70,6 +70,10 @@ public:
   // Broadcast requests to all banks on the tile.
   OutRequestPort              oRequestToBanks;
 
+  // If no bank is able to respond to the request, the target bank is the one
+  // which should assume responsibility.
+  sc_out<MemoryIndex>        oTargetBank;
+
 
   // Magic connections to background memory.
 
