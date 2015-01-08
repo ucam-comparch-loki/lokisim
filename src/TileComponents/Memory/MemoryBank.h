@@ -28,6 +28,7 @@
 #include "GeneralPurposeCacheHandler.h"
 #include "ScratchpadModeHandler.h"
 #include "SimplifiedOnChipScratchpad.h"
+#include "MemoryTypedefs.h"
 #include "../../Datatype/Packets/Packet.h"
 
 class MemoryBank: public Component, public Blocking {
@@ -43,9 +44,6 @@ private:
 
 	uint						cBankNumber;				// Number of this memory bank (off by one)
 
-	uint						mWayCount;					// Number of ways in general purpose cache mode
-	uint						mLineSize;					// Size of lines (for cache management and data interleaving)
-
 	bool						cRandomReplacement;			// Replace random cache lines (instead of using LRU scheme)
 
 	//---------------------------------------------------------------------------------------------
@@ -53,12 +51,6 @@ private:
 	//---------------------------------------------------------------------------------------------
 
 public:
-
-	enum BankMode {
-		MODE_INACTIVE,
-		MODE_SCRATCHPAD,
-		MODE_GP_CACHE
-	};
 
 	enum RingNetworkRequestType {
 		RING_SET_MODE,
@@ -69,55 +61,35 @@ public:
 		RING_PASS_THROUGH
 	};
 
+	// All data required to perform any data-access operation.
+	struct RequestData_ {
+	  uint32_t      Address;                    // Memory address to access
+	  uint          Count;                      // Number of consecutive words to access
+	  uint          TableIndex;                 // Channel map table entry used
+	  ChannelIndex  ReturnChannel;              // Network address to send data to
+	  bool          PartialInstructionPending;
+	  uint32_t      PartialInstructionData;
+	};
+	typedef struct RequestData_ RequestData;
+
 	struct RingNetworkRequest {
 	public:
 		struct Header_ {
 		public:
 			RingNetworkRequestType RequestType;
-			struct SetMode_ {
-			public:
-				BankMode        NewMode;
-				uint            WayCount;
-				uint            LineSize;
-				uint            GroupBaseBank;
-				uint            GroupIndex;
-				uint            GroupSize;
-			} SetMode;
+			MemoryConfig           SetMode;
+			RequestData            Request;
+
 			struct SetTableEntry_ {
 			public:
 				uint            TableIndex;
 				ChannelID       TableEntry;
 			} SetTableEntry;
-			struct BurstReadHandOff_ {
-			public:
-				uint32_t        Address;
-				uint            Count;
-				uint            TableIndex;
-				ChannelIndex    ReturnChannel;
-			} BurstReadHandOff;
-			struct BurstWriteForward_ {
-			public:
-				uint32_t        Address;
-				uint            Count;
-			} BurstWriteForward;
-			struct IPKReadHandOff_ {
-			public:
-				uint32_t        Address;
-				uint            TableIndex;
-				ChannelIndex    ReturnChannel;
-				bool            PartialInstructionPending;
-				uint32_t        PartialInstructionData;
-			} IPKReadHandOff;
 			struct PassThrough_ {
 			public:
 				uint            DestinationBankNumber;
 				RingNetworkRequestType EnvelopedRequestType;
-				uint32_t        Address;
-				uint            Count;
-				uint            TableIndex;
-				ChannelIndex    ReturnChannel;
-				bool            PartialInstructionPending;
-				uint32_t        PartialInstructionData;
+				RequestData     Request;
 			} PassThrough;
 		} Header;
 		struct Payload_ {
@@ -246,24 +218,15 @@ private:
 
 	//-- Mode independent state -------------------------------------------------------------------
 
-	uint                  mGroupBaseBank;	  // Absolute index of first bank belonging to the virtual memory group
-	uint                  mGroupIndex;	    // Relative index of this bank within the virtual memory group
-	uint                  mGroupSize;		    // Total size of the virtual memory group
+	MemoryConfig          mConfig;          // Data including associativity, line size, etc.
 
 	ChannelMapTableEntry *mChannelMapTable;	// Channel map table containing return addresses
 
-	BankMode              mBankMode;			  // Current mode of operation
 	FSMState              mFSMState;			  // Current FSM state
 	FSMState              mFSMCallbackState;// Next FSM state to enter after sub operation is complete
 
-	uint                  mActiveTableIndex;// Currently selected index in channel map table
-	ChannelIndex          mActiveReturnChannel; // Current specified return channel (if supplied)
 	MemoryRequest         mActiveRequest;		// Currently active memory request
-	uint32_t              mActiveAddress;		// Current address for memory access in progress
-	uint32_t              mActiveBurstLength; 	// Current burst length for memory access in progress
-
-	bool                  mPartialInstructionPending;	// Indicates that half of the current instruction was already read
-	uint32_t              mPartialInstructionData;		// First half of instruction already read
+	RequestData           mActiveData;      // Data used to fulfil the request
 
 	//-- Scratchpad mode state --------------------------------------------------------------------
 

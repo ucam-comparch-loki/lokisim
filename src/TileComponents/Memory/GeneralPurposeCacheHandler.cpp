@@ -130,10 +130,10 @@ GeneralPurposeCacheHandler::~GeneralPurposeCacheHandler() {
 	delete[] mLineDirty;
 }
 
-void GeneralPurposeCacheHandler::activate(uint groupIndex, uint groupSize, uint wayCount, uint lineSize) {
-	mSetCount = MEMORY_BANK_SIZE / (wayCount * lineSize);
-	mWayCount = wayCount;
-	mLineSize = lineSize;
+void GeneralPurposeCacheHandler::activate(const MemoryConfig& config) {
+	mSetCount = MEMORY_BANK_SIZE / (config.WayCount * config.LineSize);
+	mWayCount = config.WayCount;
+	mLineSize = config.LineSize;
 
 	assert(log2Exact(mSetCount) >= 2);
 	assert(mWayCount == 1 || log2Exact(mWayCount) >= 1);
@@ -154,9 +154,9 @@ void GeneralPurposeCacheHandler::activate(uint groupIndex, uint groupSize, uint 
 	mLineBits = log2Exact(mLineSize);
 	mLineMask = (1UL << mLineBits) - 1UL;
 
-	mGroupIndex = groupIndex;
-	mGroupBits = (groupSize == 1) ? 0 : log2Exact(groupSize);
-	mGroupMask = (groupSize == 1) ? 0 : (((1UL << mGroupBits) - 1UL) << mLineBits);
+	mGroupIndex = config.GroupIndex;
+	mGroupBits = (config.GroupSize == 1) ? 0 : log2Exact(config.GroupSize);
+	mGroupMask = (config.GroupSize == 1) ? 0 : (((1UL << mGroupBits) - 1UL) << mLineBits);
 
 	mSetBits = log2Exact(mSetCount);
 	mSetShift = mGroupBits + mLineBits;
@@ -168,12 +168,12 @@ void GeneralPurposeCacheHandler::activate(uint groupIndex, uint groupSize, uint 
 	  Instrumentation::memorySetMode(mBankNumber, true, mSetCount, mWayCount, mLineSize);
 }
 
-void GeneralPurposeCacheHandler::activateL2(uint lineSize) {
+void GeneralPurposeCacheHandler::activateL2(const MemoryConfig& config) {
   // Only need to reconfigure if we weren't already in L2 cache mode, or the
   // L2 configuration has changed.
-  if (!mL2Mode || (lineSize != mLineSize)) {
+  if (!mL2Mode || (config.LineSize != mLineSize)) {
 //    activate(mBankNumber % MEMS_PER_TILE, MEMS_PER_TILE, 1, lineSize);
-    activate(1, 1, 1, lineSize);  // Each bank holds a single way of the cache.
+    activate(config);  // Each bank holds a single way of the cache.
     mL2Mode = true;
   }
 

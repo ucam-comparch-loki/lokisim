@@ -18,6 +18,7 @@
 #define SCRATCHPADMODEHANDLER_H_
 
 #include "../../Typedefs.h"
+#include "MemoryTypedefs.h"
 
 class ScratchpadModeHandler {
 private:
@@ -54,7 +55,7 @@ public:
 	ScratchpadModeHandler(uint bankNumber);
 	~ScratchpadModeHandler();
 
-	void activate(uint groupIndex, uint groupSize, uint wayCount, uint lineSize);
+	void activate(const MemoryConfig& config);
 
 	bool containsAddress(uint32_t address);
 	bool sameLine(uint32_t address1, uint32_t address2);

@@ -19,7 +19,7 @@
 #define GENERALPURPOSECACHEHANDLER_H_
 
 #include "../../Typedefs.h"
-
+#include "MemoryTypedefs.h"
 #include "SimplifiedOnChipScratchpad.h"
 
 class GeneralPurposeCacheHandler {
@@ -75,8 +75,8 @@ public:
 	GeneralPurposeCacheHandler(uint bankNumber);
 	~GeneralPurposeCacheHandler();
 
-	void activate(uint groupIndex, uint groupSize, uint wayCount, uint lineSize);
-	void activateL2(uint lineSize);
+	void activate(const MemoryConfig& config);
+	void activateL2(const MemoryConfig& config);
 
 	bool containsAddress(uint32_t address);
 	bool sameLine(uint32_t address1, uint32_t address2);

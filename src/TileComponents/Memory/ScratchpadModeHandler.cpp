@@ -62,10 +62,10 @@ ScratchpadModeHandler::~ScratchpadModeHandler() {
 	delete[] mData;
 }
 
-void ScratchpadModeHandler::activate(uint groupIndex, uint groupSize, uint wayCount, uint lineSize) {
-	mSetCount = MEMORY_BANK_SIZE / (wayCount * lineSize);
-	mWayCount = wayCount;
-	mLineSize = lineSize;
+void ScratchpadModeHandler::activate(const MemoryConfig& config) {
+	mSetCount = MEMORY_BANK_SIZE / (config.WayCount * config.LineSize);
+	mWayCount = config.WayCount;
+	mLineSize = config.LineSize;
 
 	assert(log2Exact(mSetCount) >= 2);
 	assert(mWayCount == 1 || log2Exact(mWayCount) >= 1);
@@ -76,9 +76,9 @@ void ScratchpadModeHandler::activate(uint groupIndex, uint groupSize, uint wayCo
 	mLineBits = log2Exact(mLineSize);
 	mLineMask = (1UL << mLineBits) - 1UL;
 
-	mGroupIndex = groupIndex;
-	mGroupBits = (groupSize == 1) ? 0 : log2Exact(groupSize);
-	mGroupMask = (groupSize == 1) ? 0 : (((1UL << mGroupBits) - 1UL) << mLineBits);
+	mGroupIndex = config.GroupIndex;
+	mGroupBits = (config.GroupSize == 1) ? 0 : log2Exact(config.GroupSize);
+	mGroupMask = (config.GroupSize == 1) ? 0 : (((1UL << mGroupBits) - 1UL) << mLineBits);
 
 	if (ENERGY_TRACE)
 	  Instrumentation::memorySetMode(mBankNumber, false, mSetCount, mWayCount, mLineSize);
