@@ -15,7 +15,6 @@
 // Created on: 11/04/2011
 //-------------------------------------------------------------------------------------------------
 
-#include "../../Typedefs.h"
 #include "../../Utility/Instrumentation.h"
 #include "../../Utility/Trace/MemoryTrace.h"
 #include "SimplifiedOnChipScratchpad.h"
@@ -23,22 +22,6 @@
 
 #include <cassert>
 #include "../../Exceptions/ReadOnlyException.h"
-
-uint GeneralPurposeCacheHandler::log2Exact(uint value) {
-	assert(value > 1);
-
-	uint result = 0;
-	uint temp = value >> 1;
-
-	while (temp != 0) {
-		result++;
-		temp >>= 1;
-	}
-
-	assert(1UL << result == value);
-
-	return result;
-}
 
 bool GeneralPurposeCacheHandler::lookupCacheLine(uint32_t address, uint &slot, bool resume, bool read, bool instruction) {
 	assert((address & mGroupMask) == (mGroupIndex << mLineBits));
@@ -99,15 +82,14 @@ void GeneralPurposeCacheHandler::promoteCacheLine(uint slot) {
 	}
 }
 
-GeneralPurposeCacheHandler::GeneralPurposeCacheHandler(uint bankNumber) {
+GeneralPurposeCacheHandler::GeneralPurposeCacheHandler(uint bankNumber) :
+    AbstractMemoryHandler(bankNumber) {
 	//-- Configuration parameters -----------------------------------------------------------------
 
-	mSetCount = mWayCount = mLineSize = 0;
 	cRandomReplacement = MEMORY_CACHE_RANDOM_REPLACEMENT != 0;
 
 	//-- State ------------------------------------------------------------------------------------
 
-	mData = new uint32_t[MEMORY_BANK_SIZE / 4];
 	mAddresses = new uint32_t[1];
 	mLineValid = new bool[1];
 	mLineDirty = new bool[1];
@@ -115,16 +97,13 @@ GeneralPurposeCacheHandler::GeneralPurposeCacheHandler(uint bankNumber) {
 	mLFSRState = 0xFFFFU;
 
 	mVictimSlot = mSetBits = mSetMask = mSetShift = 0;
-	mLineBits = mLineMask = mGroupIndex = mGroupBits = mGroupMask = 0;
 
-	mBankNumber = bankNumber;
 	mBackgroundMemory = NULL;
 
 	mL2Mode = false;
 }
 
 GeneralPurposeCacheHandler::~GeneralPurposeCacheHandler() {
-	delete[] mData;
 	delete[] mAddresses;
 	delete[] mLineValid;
 	delete[] mLineDirty;
@@ -172,7 +151,6 @@ void GeneralPurposeCacheHandler::activateL2(const MemoryConfig& config) {
   // Only need to reconfigure if we weren't already in L2 cache mode, or the
   // L2 configuration has changed.
   if (!mL2Mode || (config.LineSize != mLineSize)) {
-//    activate(mBankNumber % MEMS_PER_TILE, MEMS_PER_TILE, 1, lineSize);
     activate(config);  // Each bank holds a single way of the cache.
     mL2Mode = true;
   }

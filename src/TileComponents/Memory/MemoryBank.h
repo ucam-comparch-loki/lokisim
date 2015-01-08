@@ -29,7 +29,6 @@
 #include "ScratchpadModeHandler.h"
 #include "SimplifiedOnChipScratchpad.h"
 #include "MemoryTypedefs.h"
-#include "../../Datatype/Packets/Packet.h"
 
 class MemoryBank: public Component, public Blocking {
 	//---------------------------------------------------------------------------------------------
@@ -38,13 +37,10 @@ class MemoryBank: public Component, public Blocking {
 
 private:
 
-	uint						cChannelMapTableEntries;	// Number of available entries in the channel map table
-
-	uint						cMemoryBanks;				// Number of memory banks
-
-	uint						cBankNumber;				// Number of this memory bank (off by one)
-
-	bool						cRandomReplacement;			// Replace random cache lines (instead of using LRU scheme)
+	const uint  cChannelMapTableEntries;  // Number of available entries in the channel map table
+	const uint  cMemoryBanks;             // Number of memory banks
+	const uint  cBankNumber;              // Number of this memory bank (off by one)
+	const bool  cRandomReplacement;       // Replace random cache lines (instead of using LRU scheme)
 
 	//---------------------------------------------------------------------------------------------
 	// Interface definitions
@@ -273,8 +269,6 @@ private:
 
 private:
 
-	uint log2Exact(uint value);							// Calculates binary logarithm of value - asserts value to be a power of two greater than 1
-
 	struct RingNetworkRequest& getAvailableRingRequest();
 	void updatedRingRequest();              // Update state depending on which request was updated.
 
@@ -284,7 +278,9 @@ private:
 	void processFetchBurstLength();
 	void processLocalMemoryAccess();
 	void processLocalIPKRead();
+	void prepareIPKReadOutput(AbstractMemoryHandler& handler, uint32_t data);
 	void processLocalBurstRead();
+	void prepareBurstReadOutput(AbstractMemoryHandler& handler, uint32_t data);
 	void processBurstWriteMaster();
 	void processBurstWriteSlave();
 	void processGeneralPurposeCacheMiss();

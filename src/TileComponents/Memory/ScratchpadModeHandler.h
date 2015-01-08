@@ -17,48 +17,22 @@
 #ifndef SCRATCHPADMODEHANDLER_H_
 #define SCRATCHPADMODEHANDLER_H_
 
-#include "../../Typedefs.h"
-#include "MemoryTypedefs.h"
+#include "AbstractMemoryHandler.h"
 
-class ScratchpadModeHandler {
-private:
-	//---------------------------------------------------------------------------------------------
-	// Configuration parameters
-	//---------------------------------------------------------------------------------------------
-
-	uint mSetCount;							// Number of sets in general purpose cache mode
-	uint mWayCount;							// Number of ways in general purpose cache mode
-	uint mLineSize;							// Size of lines (for cache management and data interleaving)
-
-	//---------------------------------------------------------------------------------------------
-	// State
-	//---------------------------------------------------------------------------------------------
-
-	uint32_t *mData;						// Data words stored in the scratchpad
-
-	uint mLineBits;							// Number of line bits - log2(line size)
-	uint32_t mLineMask;						// Bit mask used to extract line bits
-
-	uint mGroupIndex;						// Relative index of bank within group (off by one)
-	uint mGroupBits;						// Number of group bits - log2(group size)
-	uint32_t mGroupMask;					// Bit mask used to extract group bits
-
-	uint mBankNumber;						// Bank number for statistics use
+class ScratchpadModeHandler : public AbstractMemoryHandler {
 
 	//---------------------------------------------------------------------------------------------
 	// Internal functions
 	//---------------------------------------------------------------------------------------------
 
-	uint log2Exact(uint value);
-
 public:
 	ScratchpadModeHandler(uint bankNumber);
 	~ScratchpadModeHandler();
 
-	void activate(const MemoryConfig& config);
+	virtual void activate(const MemoryConfig& config);
 
-	bool containsAddress(uint32_t address);
-	bool sameLine(uint32_t address1, uint32_t address2);
+	virtual bool containsAddress(uint32_t address);
+	virtual bool sameLine(uint32_t address1, uint32_t address2);
 
 	uint32_t readWord(uint32_t address, bool instruction);
 	uint32_t readHalfWord(uint32_t address);
