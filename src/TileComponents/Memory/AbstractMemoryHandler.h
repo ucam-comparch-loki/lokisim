@@ -56,13 +56,24 @@ public:
   // Check whether this memory bank is responsible for storing data at the
   // given address, according to the current mapping of addresses to banks.
   // Note that "true" does not mean that the data is present.
-  virtual bool containsAddress(uint32_t address) = 0;
+  virtual bool containsAddress(MemoryAddr address) = 0;
 
   // Check whether two memory addresses map to the same cache line.
-  virtual bool sameLine(uint32_t address1, uint32_t address2) = 0;
+  virtual bool sameLine(MemoryAddr address1, MemoryAddr address2) = 0;
 
-  // Would also like to get the read/write methods in here.
-  // Currently, the cache also returns whether there was a hit or not.
+  // Data access operations. Return value is whether the access was a hit.
+  // Any data to be returned is passed through the reference &data.
+  //   instruction = is this an instruction access? (For statistics only.)
+  //   resume      = is this a resumed operation after a cache miss? (Cache mode only.)
+  //   debug       = should this operation be logged in the execution statistics?
+
+  virtual bool readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug) = 0;
+  virtual bool readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug) = 0;
+  virtual bool readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug) = 0;
+
+  virtual bool writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug) = 0;
+  virtual bool writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug) = 0;
+  virtual bool writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug) = 0;
 };
 
 #endif /* ABSTRACTMEMORYHANDLER_H_ */

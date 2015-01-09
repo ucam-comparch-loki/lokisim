@@ -272,6 +272,10 @@ private:
 	struct RingNetworkRequest& getAvailableRingRequest();
 	void updatedRingRequest();              // Update state depending on which request was updated.
 
+	// Returns either the ScratchpadModeHandler or GeneralPurposeCacheHandler,
+	// depending on the current configuration.
+	AbstractMemoryHandler& currentMemoryHandler();
+
 	bool processRingEvent();
 	bool processMessageHeader();
 
@@ -332,10 +336,12 @@ public:
 	void setAdjacentMemories(MemoryBank *prevMemoryBank, MemoryBank *nextMemoryBank, SimplifiedOnChipScratchpad *backgroundMemory);
 	void setLocalNetwork(local_net_t* network);
 
+	MemoryBank& bankContainingAddress(MemoryAddr addr);
 	void storeData(vector<Word>& data, MemoryAddr location);
 	void synchronizeData();
 
 	void print(MemoryAddr start, MemoryAddr end);
+
 	Word readWord(MemoryAddr addr);
 	Word readByte(MemoryAddr addr);
 	void writeWord(MemoryAddr addr, Word data);

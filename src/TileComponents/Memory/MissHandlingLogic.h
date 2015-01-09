@@ -72,7 +72,7 @@ public:
 
   // If no bank is able to respond to the request, the target bank is the one
   // which should assume responsibility.
-  sc_out<MemoryIndex>        oTargetBank;
+  sc_out<MemoryIndex>         oTargetBank;
 
 
   // Magic connections to background memory.

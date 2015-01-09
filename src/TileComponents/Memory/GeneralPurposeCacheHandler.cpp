@@ -23,7 +23,7 @@
 #include <cassert>
 #include "../../Exceptions/ReadOnlyException.h"
 
-bool GeneralPurposeCacheHandler::lookupCacheLine(uint32_t address, uint &slot, bool resume, bool read, bool instruction) {
+bool GeneralPurposeCacheHandler::lookupCacheLine(MemoryAddr address, uint &slot, bool resume, bool read, bool instruction) {
 	assert((address & mGroupMask) == (mGroupIndex << mLineBits));
 
 	uint32_t lineAddress = address & ~mLineMask;
@@ -157,17 +157,17 @@ void GeneralPurposeCacheHandler::activateL2(const MemoryConfig& config) {
 
 }
 
-bool GeneralPurposeCacheHandler::containsAddress(uint32_t address) {
+bool GeneralPurposeCacheHandler::containsAddress(MemoryAddr address) {
 	return (address & mGroupMask) == (mGroupIndex << mLineBits);
 }
 
-bool GeneralPurposeCacheHandler::sameLine(uint32_t address1, uint32_t address2) {
+bool GeneralPurposeCacheHandler::sameLine(MemoryAddr address1, MemoryAddr address2) {
 	assert((address1 & mGroupMask) == (mGroupIndex << mLineBits));
 	assert((address2 & mGroupMask) == (mGroupIndex << mLineBits));
 	return (address1 & mSetMask) == (address2 & mSetMask);
 }
 
-bool GeneralPurposeCacheHandler::readWord(uint32_t address, uint32_t &data, bool instruction, bool resume, bool debug) {
+bool GeneralPurposeCacheHandler::readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug) {
 	assert((address & 0x3) == 0);
 
 	uint slot = 0;
@@ -214,7 +214,7 @@ bool GeneralPurposeCacheHandler::readWord(uint32_t address, uint32_t &data, bool
 	return true;
 }
 
-bool GeneralPurposeCacheHandler::readHalfWord(uint32_t address, uint32_t &data, bool resume, bool debug) {
+bool GeneralPurposeCacheHandler::readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug) {
 	assert((address & 0x1) == 0);
 
 	uint slot;
@@ -242,7 +242,7 @@ bool GeneralPurposeCacheHandler::readHalfWord(uint32_t address, uint32_t &data, 
 	return true;
 }
 
-bool GeneralPurposeCacheHandler::readByte(uint32_t address, uint32_t &data, bool resume, bool debug) {
+bool GeneralPurposeCacheHandler::readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug) {
 	uint slot;
 	if (!lookupCacheLine(address, slot, resume, true, false)) {
 		assert(!resume);
@@ -276,7 +276,7 @@ bool GeneralPurposeCacheHandler::readByte(uint32_t address, uint32_t &data, bool
 	return true;
 }
 
-bool GeneralPurposeCacheHandler::writeWord(uint32_t address, uint32_t data, bool resume, bool debug) {
+bool GeneralPurposeCacheHandler::writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug) {
 	assert((address & 0x3) == 0);
 	if (mBackgroundMemory->readOnly(address))
 	  throw ReadOnlyException(address);
@@ -306,7 +306,7 @@ bool GeneralPurposeCacheHandler::writeWord(uint32_t address, uint32_t data, bool
 	return true;
 }
 
-bool GeneralPurposeCacheHandler::writeHalfWord(uint32_t address, uint32_t data, bool resume, bool debug) {
+bool GeneralPurposeCacheHandler::writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug) {
 	assert((address & 0x1) == 0);
   if (mBackgroundMemory->readOnly(address))
     throw ReadOnlyException(address);
@@ -342,7 +342,7 @@ bool GeneralPurposeCacheHandler::writeHalfWord(uint32_t address, uint32_t data, 
 	return true;
 }
 
-bool GeneralPurposeCacheHandler::writeByte(uint32_t address, uint32_t data, bool resume, bool debug) {
+bool GeneralPurposeCacheHandler::writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug) {
   if (mBackgroundMemory->readOnly(address))
     throw ReadOnlyException(address);
 
@@ -380,7 +380,7 @@ bool GeneralPurposeCacheHandler::writeByte(uint32_t address, uint32_t data, bool
 	return true;
 }
 
-void GeneralPurposeCacheHandler::prepareCacheLine(uint32_t address, uint32_t &writeBackAddress, uint &writeBackCount, uint32_t writeBackData[], uint32_t &fetchAddress, uint &fetchCount) {
+void GeneralPurposeCacheHandler::prepareCacheLine(MemoryAddr address, MemoryAddr &writeBackAddress, uint &writeBackCount, uint32_t writeBackData[], uint32_t &fetchAddress, uint &fetchCount) {
 	uint slot;
 	//assert(!lookupCacheLine(address, slot));
 
@@ -438,7 +438,7 @@ void GeneralPurposeCacheHandler::prepareCacheLine(uint32_t address, uint32_t &wr
 	mVictimSlot = slot;
 }
 
-void GeneralPurposeCacheHandler::replaceCacheLine(uint32_t fetchAddress, uint32_t fetchData[]) {
+void GeneralPurposeCacheHandler::replaceCacheLine(MemoryAddr fetchAddress, uint32_t fetchData[]) {
 	memcpy(&mData[mVictimSlot * mLineSize / 4], fetchData, mLineSize);
 	mAddresses[mVictimSlot] = fetchAddress;
 	mLineValid[mVictimSlot] = true;

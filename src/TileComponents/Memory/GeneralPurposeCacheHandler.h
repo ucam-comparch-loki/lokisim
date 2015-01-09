@@ -54,7 +54,7 @@ private:
 	// Internal functions
 	//---------------------------------------------------------------------------------------------
 
-	bool lookupCacheLine(uint32_t address, uint &slot, bool resume, bool read, bool instruction);
+	bool lookupCacheLine(MemoryAddr address, uint &slot, bool resume, bool read, bool instruction);
 	void promoteCacheLine(uint slot);
 
 public:
@@ -64,19 +64,19 @@ public:
 	virtual void activate(const MemoryConfig& config);
 	void activateL2(const MemoryConfig& config);
 
-	virtual bool containsAddress(uint32_t address);
-	virtual bool sameLine(uint32_t address1, uint32_t address2);
+	virtual bool containsAddress(MemoryAddr address);
+	virtual bool sameLine(MemoryAddr address1, MemoryAddr address2);
 
-	bool readWord(uint32_t address, uint32_t &data, bool instruction, bool resume, bool debug);
-	bool readHalfWord(uint32_t address, uint32_t &data, bool resume, bool debug);
-	bool readByte(uint32_t address, uint32_t &data, bool resume, bool debug);
+	virtual bool readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug);
+	virtual bool readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug);
+	virtual bool readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug);
 
-	bool writeWord(uint32_t address, uint32_t data, bool resume, bool debug);
-	bool writeHalfWord(uint32_t address, uint32_t data, bool resume, bool debug);
-	bool writeByte(uint32_t address, uint32_t data, bool resume, bool debug);
+	virtual bool writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug);
+	virtual bool writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug);
+	virtual bool writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug);
 
-	void prepareCacheLine(uint32_t address, uint32_t &writeBackAddress, uint &writeBackCount, uint32_t writeBackData[], uint32_t &fetchAddress, uint &fetchCount);
-	void replaceCacheLine(uint32_t fetchAddress, uint32_t fetchData[]);
+	void prepareCacheLine(MemoryAddr address, MemoryAddr &writeBackAddress, uint &writeBackCount, uint32_t writeBackData[], uint32_t &fetchAddress, uint &fetchCount);
+	void replaceCacheLine(MemoryAddr fetchAddress, uint32_t fetchData[]);
 
 	void setBackgroundMemory(SimplifiedOnChipScratchpad *backgroundMemory);
 

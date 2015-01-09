@@ -31,16 +31,16 @@ public:
 
 	virtual void activate(const MemoryConfig& config);
 
-	virtual bool containsAddress(uint32_t address);
-	virtual bool sameLine(uint32_t address1, uint32_t address2);
+	virtual bool containsAddress(MemoryAddr address);
+	virtual bool sameLine(MemoryAddr address1, MemoryAddr address2);
 
-	uint32_t readWord(uint32_t address, bool instruction);
-	uint32_t readHalfWord(uint32_t address);
-	uint32_t readByte(uint32_t address);
+  virtual bool readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug);
+  virtual bool readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug);
+  virtual bool readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug);
 
-	void writeWord(uint32_t address, uint32_t data);
-	void writeHalfWord(uint32_t address, uint32_t data);
-	void writeByte(uint32_t address, uint32_t data);
+  virtual bool writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug);
+  virtual bool writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug);
+  virtual bool writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug);
 };
 
 #endif /* SCRATCHPADMODEHANDLER_H_ */
