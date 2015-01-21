@@ -13,7 +13,7 @@
 
 #include <inttypes.h>
 #include "systemc.h"
-#include "ChannelID.h"
+#include "Identifier.h"
 #include "Instruction.h"
 #include "../Network/NetworkTypedefs.h"
 

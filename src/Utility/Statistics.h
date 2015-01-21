@@ -16,7 +16,7 @@
 
 #include <string>
 #include "InstructionMap.h"
-#include "../Datatype/ComponentID.h"
+#include "../Datatype/Identifier.h"
 #include "../Typedefs.h"
 
 class Statistics {

@@ -40,8 +40,8 @@ public:
 
 private:
 
-  static CounterMap<ComponentID> producers;
-  static CounterMap<ComponentID> consumers;
+  static CounterMap<ComponentIndex> producers;
+  static CounterMap<ComponentIndex> consumers;
 
   static count_t arbitrations;
   static count_t arbiters;

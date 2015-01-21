@@ -12,7 +12,7 @@
 #define MEMORYREQUEST_H_
 
 #include "Word.h"
-#include "ChannelID.h"
+#include "Identifier.h"
 #include "../Typedefs.h"
 #include "../Exceptions/InvalidOptionException.h"
 
@@ -195,10 +195,6 @@ public:
 
 	MemoryRequest(MemoryOperation operation, uint32_t payload) : Word() {
 		data_ = (((int64_t)operation) << OFFSET_OPERATION) | payload;
-	}
-
-	MemoryRequest(MemoryOperation operation, const ChannelID& channel) : Word() {
-		data_ = (((int64_t)operation) << OFFSET_OPERATION) | channel.toUInt();
 	}
 
 	MemoryRequest(const Word& other) : Word(other) {

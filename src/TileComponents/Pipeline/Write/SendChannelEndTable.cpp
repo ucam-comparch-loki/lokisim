@@ -18,7 +18,7 @@ void SendChannelEndTable::write(const NetworkData data) {
   if (DEBUG)
     cout << this->name() << " writing " << data << " to buffer\n";
 
-  if (data.channelID().isMulticast() || (data.channelID().getComputeTile() == id.getComputeTile())) {
+  if (data.channelID().multicast || (data.channelID().component.tile == id.tile)) {
     assert(!bufferLocal.full());
     bufferLocal.write(data);
     bufferFillChanged.notify();
@@ -171,7 +171,7 @@ void SendChannelEndTable::sendLoopLocal() {
       if (DEBUG)
         cout << this->name() << " sending (local) " << data << endl;
       if (ENERGY_TRACE)
-        Instrumentation::Network::traffic(id, data.channelID().getComponentID());
+        Instrumentation::Network::traffic(id, data.channelID().component);
 
       oDataLocal.write(data);
 
@@ -202,7 +202,7 @@ void SendChannelEndTable::sendLoopGlobal() {
     if (DEBUG)
       cout << this->name() << " sending (global) " << data << endl;
     if (ENERGY_TRACE)
-      Instrumentation::Network::traffic(id, data.channelID().getComponentID());
+      Instrumentation::Network::traffic(id, data.channelID().component);
 
     oDataGlobal.write(data);
 
@@ -239,7 +239,7 @@ bool SendChannelEndTable::requestGranted(ChannelID destination) const {
 void SendChannelEndTable::receivedCredit() {
   assert(iCredit.valid());
 
-  ChannelIndex targetCounter = iCredit.read().channelID().getChannel();
+  ChannelIndex targetCounter = iCredit.read().channelID().channel;
 
   if (DEBUG)
     cout << this->name() << " received credit at " << ChannelID(id, targetCounter) << " " << iCredit.read().messageID() << endl;

@@ -8,7 +8,7 @@
 #ifndef REGISTERS_H_
 #define REGISTERS_H_
 
-#include "../../Datatype/ComponentID.h"
+#include "../../Datatype/Identifier.h"
 #include "InstrumentationBase.h"
 
 namespace Instrumentation {

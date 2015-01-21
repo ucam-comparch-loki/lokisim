@@ -246,13 +246,13 @@ void ALU::systemCall(DecodedInst& dec) const {
 
     case 0x10: { /* tile ID */
       cerr << "Warning: syscall 0x10 (tile ID) is deprecated. Use control register 1 instead." << endl;
-      int tile = this->id.getComputeTile();
+      int tile = this->id.tile.computeTileIndex();
       writeReg(11, tile);
       break;
     }
     case 0x11: { /* position within tile */
       cerr << "Warning: syscall 0x11 (core ID) is deprecated. Use control register 1 instead." << endl;
-      int position = this->id.getPosition();
+      int position = this->id.position;
       writeReg(11, position);
       break;
     }
@@ -279,7 +279,7 @@ void ALU::systemCall(DecodedInst& dec) const {
       break;
     case 0x26: { /* software triggered register file snapshot */
       if (SOFTWARE_TRACE)
-        SoftwareTrace::logRegisterFileSnapshot(parent()->id.getGlobalCoreNumber(), regValues, 64);
+        SoftwareTrace::logRegisterFileSnapshot(parent()->id.globalCoreNumber(), regValues, 64);
       break;
     }
 

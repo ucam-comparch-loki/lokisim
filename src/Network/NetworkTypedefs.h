@@ -10,6 +10,7 @@
 
 #include "systemc"
 #include "../Datatype/Flit.h"
+#include "../Datatype/Word.h"
 #include "../Communication/loki_ports.h"
 #include "../Communication/loki_signal.h"
 

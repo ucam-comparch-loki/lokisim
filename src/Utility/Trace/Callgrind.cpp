@@ -91,7 +91,7 @@ void Callgrind::endTrace() {
 void Callgrind::instructionExecuted(ComponentID core, MemoryAddr address, cycle_count_t cycle) {
   assert(tracing);
 
-  unsigned int id = core.getGlobalCoreNumber();
+  unsigned int id = core.globalCoreNumber();
 
   // Determine whether this is a continuation of the same function, or whether
   // we are in a new one.

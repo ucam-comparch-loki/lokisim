@@ -186,7 +186,7 @@ void CodeLoader::loadFromReader(FileReader* reader, Chip& chip) {
   vector<DataBlock>& blocks = reader->extractData(mainOffset);
 
   for (uint i=0; i<blocks.size(); i++) {
-    if (blocks[i].component().getComputeTile() == 0 && blocks[i].component().getPosition() == 0 && blocks[i].position() == 0)
+    if (blocks[i].component().tile.computeTileIndex() == 0 && blocks[i].component().position == 0 && blocks[i].position() == 0)
       appLoaderInitialized = true;
 
     chip.storeData(blocks[i]);

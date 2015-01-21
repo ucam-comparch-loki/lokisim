@@ -19,7 +19,7 @@ void InputCrossbar::newData(PortIndex input) {
 
   const NetworkData& data = iData[input].read();
 
-  ChannelIndex destination = data.channelID().getChannel();
+  ChannelIndex destination = data.channelID().channel;
   if (destination >= numOutputs)
     cerr << this->name() << " trying to send to " << data.channelID() << endl;
   assert(destination < numOutputs);
@@ -92,7 +92,7 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
 
   // Create and wire up all flow control units.
   for (unsigned int i=0; i<numOutputs; i++) {
-    FlowControlIn* fc = new FlowControlIn(sc_gen_unique_name("fc_in"), firstInput.getComponentID(), firstInput.addChannel(i, numOutputs));
+    FlowControlIn* fc = new FlowControlIn(sc_gen_unique_name("fc_in"), id, ChannelID(id, i));
     flowControl.push_back(fc);
 
     fc->clock(clock);

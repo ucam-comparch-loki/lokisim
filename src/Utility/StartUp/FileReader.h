@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 #include "../../Typedefs.h"
-#include "../../Datatype/ComponentID.h"
+#include "../../Datatype/Identifier.h"
 
 using std::string;
 using std::vector;

@@ -9,7 +9,6 @@
 
 #include "TileComponent.h"
 #include "../Chip.h"
-#include "../Datatype/ChannelID.h"
 
 int TileComponent::numInputs()  const {return iData.length();}
 int TileComponent::numOutputs() const {return oData.length();}

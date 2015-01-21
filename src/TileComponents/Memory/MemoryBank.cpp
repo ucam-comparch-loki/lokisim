@@ -134,7 +134,7 @@ ReevaluateRequest:
 
 			OutputWord outWord;
 			outWord.TableIndex = mActiveData.TableIndex;
-			outWord.Data = ChannelID(id, mActiveData.TableIndex);
+			outWord.Data = ChannelID(id, mActiveData.TableIndex).flatten();
 			outWord.PortClaim = true;
 			outWord.LastWord = true;
 
@@ -242,7 +242,7 @@ bool MemoryBank::processMessageHeader() {
 		return false;
 
   NetworkData request = mInputQueue.peek();
-	mActiveData.TableIndex = request.channelID().getChannel();
+	mActiveData.TableIndex = request.channelID().channel;
 	mActiveData.ReturnChannel = request.returnAddr();
 	mActiveRequest = MemoryRequest(request.payload());
 	bool inputWordProcessed = true;
@@ -293,7 +293,7 @@ bool MemoryBank::processMessageHeader() {
 
 					OutputWord outWord;
 					outWord.TableIndex = mActiveData.TableIndex;
-					outWord.Data = ChannelID(id, mActiveData.TableIndex);
+					outWord.Data = ChannelID(id, mActiveData.TableIndex).flatten();
 					outWord.PortClaim = true;
 					outWord.LastWord = true;
 
@@ -967,13 +967,10 @@ void MemoryBank::handleDataOutput() {
       // For 0-7, tile=tile, core=channel, channel=part of request
       // For 8-15, return address is held in channel map table
       ChannelID returnAddr;
-      if (outWord.TableIndex < 8) {
-        returnAddr = ChannelID(id.getTileColumn(), id.getTileRow(),
-                               outWord.TableIndex, outWord.ReturnChannel);
-      }
-      else {
+      if (outWord.TableIndex < 8)
+        returnAddr = ChannelID(id.tile.x, id.tile.y, outWord.TableIndex, outWord.ReturnChannel);
+      else
         returnAddr = mChannelMapTable[outWord.TableIndex].ReturnChannel;
-      }
       NetworkData word(outWord.Data, returnAddr);
       word.setPortClaim(outWord.PortClaim, false);
       word.setEndOfPacket(outWord.LastWord);
@@ -981,7 +978,7 @@ void MemoryBank::handleDataOutput() {
 
       // Remove the previous request if we are sending to a new destination.
       // Is this a hack, or is this reasonable?
-      if(mActiveOutputWord.channelID().getComponentID() != word.channelID().getComponentID())
+      if (!(mActiveOutputWord.channelID().component == word.channelID().component))
         localNetwork->makeRequest(id, mActiveOutputWord.channelID(), false);
 
       mActiveOutputWord = word;
@@ -1001,7 +998,7 @@ void MemoryBank::handleDataOutput() {
     if (DEBUG)
       cout << this->name() << " sent " << mActiveOutputWord << endl;
     if (ENERGY_TRACE)
-      Instrumentation::Network::traffic(id, mActiveOutputWord.channelID().getComponentID());
+      Instrumentation::Network::traffic(id, mActiveOutputWord.channelID().component);
 
     oData.write(mActiveOutputWord);
 
@@ -1047,7 +1044,7 @@ void MemoryBank::handleNewRequest() {
   MemoryRequest request = iRequest.read();
   MemoryAddr address = request.getPayload();
   mConfig.LineSize = request.getLineSize();
-  bool targetBank = iTargetBank.read() == (id.getPosition() - CORES_PER_TILE);
+  bool targetBank = iTargetBank.read() == (id.position - CORES_PER_TILE);
 
   // Ensure this memory bank is configured as an L2 cache bank.
   mGeneralPurposeCacheHandler.activateL2(mConfig);
@@ -1605,8 +1602,7 @@ void MemoryBank::reportStalls(ostream& os) {
     const OutputWord& outWord = mOutputQueue.peek();
     ChannelID addr;
     if (outWord.TableIndex < 8)
-      addr = ChannelID(id.getTileColumn(), id.getTileRow(),
-                       outWord.TableIndex, outWord.ReturnChannel);
+      addr = ChannelID(id.tile.x, id.tile.y, outWord.TableIndex, outWord.ReturnChannel);
     else
       addr = mChannelMapTable[outWord.TableIndex].ReturnChannel;
 
@@ -1648,7 +1644,7 @@ void MemoryBank::printOperation(MemoryRequest::MemoryOperation operation,
 }
 
 void MemoryBank::printConfiguration() const {
-  uint tile = id.getComputeTile();
+  uint tile = id.tile.computeTileIndex();
   uint startBank = mConfig.GroupBaseBank;
   uint endBank = startBank + mConfig.GroupSize - 1;
   stringstream mode;

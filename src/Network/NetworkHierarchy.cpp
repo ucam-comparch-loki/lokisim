@@ -9,8 +9,8 @@
 #include "Topologies/LocalNetwork.h"
 
 local_net_t* NetworkHierarchy::getLocalNetwork(ComponentID component) const {
-  unsigned int tileColumn = component.getTileColumn();
-  unsigned int tileRow = component.getTileRow();
+  unsigned int tileColumn = component.tile.x;
+  unsigned int tileRow = component.tile.y;
   unsigned int tile = ((tileRow-1) * COMPUTE_TILE_COLUMNS) + (tileColumn-1);
   assert(tileColumn <= COMPUTE_TILE_COLUMNS);
   assert(tileRow <= COMPUTE_TILE_ROWS);
@@ -30,7 +30,7 @@ void NetworkHierarchy::makeLocalNetwork(uint tileColumn, uint tileRow) {
   localNetwork->fastClock(fastClock);
   localNetwork->slowClock(slowClock);
 
-  uint tile = tileID.getComputeTile();
+  uint tile = tileID.tile.computeTileIndex();
 
   int portIndex = tile * INPUT_PORTS_PER_TILE;
   for (unsigned int i=0; i<INPUT_PORTS_PER_TILE; i++, portIndex++)

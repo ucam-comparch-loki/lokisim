@@ -9,7 +9,7 @@
 #include "DataBlock.h"
 #include "../Parameters.h"
 #include "../StringManipulation.h"
-#include "../../Datatype/ComponentID.h"
+#include "../../Datatype/Identifier.h"
 #include "../../Datatype/Word.h"
 
 vector<DataBlock>& DataFileReader::extractData(int& mainPos) const {

@@ -21,7 +21,7 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
   // Start off assuming this is the home tile for all data. This means that if
   // we experience a cache miss, we will go straight to main memory to
   // retrieve it.
-  TileIndex tile = (id.getTileColumn() << 3) | id.getTileRow();
+  TileIndex tile = id.tile.flatten();;
   directory.initialise(tile);
 
   iRequestFromBanks.init(MEMS_PER_TILE);
@@ -320,14 +320,14 @@ void MissHandlingLogic::endRemoteRequest() {
 void MissHandlingLogic::sendOnNetwork(MemoryRequest request) {
   assert(canSendOnNetwork());
 
-  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
+  if (!(requestDestination == memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
 
     // If this is the header flit, also include our tile ID so the remote memory
     // knows where to send data back to.
     // The tile ID could be added to all flits, but it's unnecessary simulation
     // overhead.
     MemoryRequest newRequest;
-    TileIndex tile = (id.getTileColumn() << 3) | id.getTileRow();
+    TileIndex tile = id.tile.flatten();
     if (request.getOperation() != MemoryRequest::PAYLOAD_ONLY)
       newRequest = MemoryRequest(request.getOperation(), request.getPayload(),
                                  request.getLineSize(),  tile);
@@ -343,7 +343,7 @@ void MissHandlingLogic::sendOnNetwork(MemoryRequest request) {
 }
 
 bool MissHandlingLogic::canSendOnNetwork() const {
-  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
+  if (!(requestDestination == memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
     return !oRequestToNetwork.valid();
   else {
     return !oRequestToBM.valid();
@@ -351,7 +351,7 @@ bool MissHandlingLogic::canSendOnNetwork() const {
 }
 
 const sc_event& MissHandlingLogic::canSendEvent() const {
-  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
+  if (!(requestDestination == memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
     return oRequestToNetwork.ack_event();
   else {
     return oRequestToBM.ack_event();
@@ -359,7 +359,7 @@ const sc_event& MissHandlingLogic::canSendEvent() const {
 }
 
 Word MissHandlingLogic::receiveFromNetwork() {
-  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
+  if (!(requestDestination == memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
     assert(iResponseFromNetwork.valid());
     iResponseFromNetwork.ack();
     return iResponseFromNetwork.read().payload();
@@ -372,7 +372,7 @@ Word MissHandlingLogic::receiveFromNetwork() {
 }
 
 bool MissHandlingLogic::networkDataAvailable() const {
-  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
+  if (!(requestDestination == memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
     return iResponseFromNetwork.valid();
   else {
     return iDataFromBM.valid();
@@ -380,7 +380,7 @@ bool MissHandlingLogic::networkDataAvailable() const {
 }
 
 const sc_event& MissHandlingLogic::newNetworkDataEvent() const {
-  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
+  if (!(requestDestination == memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
     return iResponseFromNetwork.default_event();
   else {
     return iDataFromBM.default_event();
@@ -388,16 +388,14 @@ const sc_event& MissHandlingLogic::newNetworkDataEvent() const {
 }
 
 ChannelID MissHandlingLogic::getDestination(MemoryAddr address) const {
-  TileIndex tile = directory.getTile(address);
-  uint column = (tile >> 3) & 7;
-  uint row = tile & 7;
+  TileID tile(directory.getTile(address));
 
   // The data should be on this tile, but isn't - go to main memory.
-  if ((column == id.getTileColumn()) && (row == id.getTileRow()))
+  if (tile == id.tile)
     return memoryControllerAddress();
   // The data should be on the tile indicated by the directory.
   else
-    return ChannelID(column, row, 0, 0);
+    return ChannelID(tile.x, tile.y, 0, 0);
 }
 
 ChannelID MissHandlingLogic::memoryControllerAddress() const {

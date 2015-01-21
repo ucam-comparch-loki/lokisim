@@ -10,7 +10,7 @@
 
 #include "InstrumentationBase.h"
 
-#include "../../Datatype/ComponentID.h"
+#include "../../Datatype/Identifier.h"
 
 namespace Instrumentation {
 

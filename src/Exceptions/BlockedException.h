@@ -14,9 +14,10 @@ class BlockedException : public std::exception {
 
 public:
 
-  BlockedException(std::string location, const ComponentID& clusterID) {
-    location_ = location;
-    id_       = clusterID;
+  BlockedException(std::string location, const ComponentID& clusterID) :
+      location_(location),
+      id_(clusterID) {
+
   }
 
   virtual ~BlockedException() throw() {

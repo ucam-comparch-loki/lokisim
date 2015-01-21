@@ -15,21 +15,20 @@ PortIndex Network::getDestination(const ChannelID& address) const {
   // we are.
   switch (level) {
     case TILE :
-      port = address.getComputeTile() - firstOutput;
+      port = address.component.tile.computeTileIndex() - firstOutput;
       break;
     case COMPONENT : {
-      if (externalConnection && (address.getComputeTile() != id.getComputeTile()))
+      if (externalConnection && !(address.component.tile == id.tile))
         port = numOutputPorts()-1;
       else
-        port = address.getPosition() - firstOutput;
+        port = address.component.position - firstOutput;
       break;
     }
     case CHANNEL : {
-      if (externalConnection && ((address.getComputeTile() != id.getComputeTile()) ||
-                                 (address.getPosition() != id.getPosition())))
+      if (externalConnection && !(address.component == id))
         port = numOutputPorts()-1;
       else
-        port = address.getChannel() - firstOutput;
+        port = address.channel - firstOutput;
       break;
     }
     case NONE :

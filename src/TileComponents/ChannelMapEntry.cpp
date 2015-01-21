@@ -6,7 +6,7 @@
  */
 
 #include "ChannelMapEntry.h"
-#include "../Datatype/ChannelID.h"
+#include "../Datatype/Identifier.h"
 #include "../Exceptions/InvalidOptionException.h"
 #include "../Utility/Arguments.h"
 #include <iostream>
@@ -57,7 +57,7 @@ void ChannelMapEntry::write(EncodedCMTEntry data) {
     useCredits_ = false;
     network_ = CORE_TO_CORE;
   }
-  else if ((getTileColumn() != id_.getTileColumn()) || (getTileRow() != id_.getTileRow())) {
+  else if ((getTileColumn() != id_.tile.x) || (getTileRow() != id_.tile.y)) {
     useCredits_ = true;
     network_ = GLOBAL;
   }
@@ -73,7 +73,7 @@ void ChannelMapEntry::write(EncodedCMTEntry data) {
       uint endBank = startBank + getMemoryGroupSize() - 1;
       uint lineSize = getLineSize();
 
-      std::cout << "SETCHMAP: core " << id_.getString() << " " << type << ", banks "
+      std::cout << "SETCHMAP: core " << id_ << " " << type << ", banks "
           << startBank << "-" << endBank << ", line size " << lineSize << std::endl;
     }
   }
@@ -212,26 +212,24 @@ const sc_event& ChannelMapEntry::creditArrivedEvent() const {
   return creditArrived_;
 }
 
-ChannelMapEntry::ChannelMapEntry(ComponentID localID) {
-  id_ = localID;
-  data_ = 0;
-  credits_ = MAX_CREDITS;
-  useCredits_ = false;
-  addressIncrement_ = 0;
-
-  network_ = CORE_TO_CORE;
-  writeThrough_ = false;
+ChannelMapEntry::ChannelMapEntry(ComponentID localID) :
+  id_(localID),
+  data_(0),
+  network_(CORE_TO_CORE),
+  useCredits_(false),
+  credits_(MAX_CREDITS),
+  writeThrough_(false),
+  addressIncrement_(0) {
 }
 
-ChannelMapEntry::ChannelMapEntry(const ChannelMapEntry& other) {
-  id_ = other.id_;
-  data_ = other.data_;
-  credits_ = other.credits_;
-  useCredits_ = other.useCredits_;
-  addressIncrement_ = other.addressIncrement_;
-
-  network_ = other.network_;
-  writeThrough_ = other.writeThrough_;
+ChannelMapEntry::ChannelMapEntry(const ChannelMapEntry& other) :
+  id_(other.id_),
+  data_(other.data_),
+  network_(other.network_),
+  useCredits_(other.useCredits_),
+  credits_(other.credits_),
+  writeThrough_(other.writeThrough_),
+  addressIncrement_(other.addressIncrement_) {
 }
 
 ChannelMapEntry& ChannelMapEntry::operator=(const ChannelMapEntry& other) {

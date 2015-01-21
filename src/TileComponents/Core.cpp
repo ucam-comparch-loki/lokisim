@@ -8,7 +8,6 @@
 #include "../Chip.h"
 #include "Core.h"
 #include "Pipeline/PipelineRegister.h"
-#include "../Datatype/ChannelID.h"
 #include "../Datatype/DecodedInst.h"
 #include "../Network/Topologies/LocalNetwork.h"
 #include "../Utility/InstructionMap.h"
@@ -179,7 +178,7 @@ void Core::trace(const DecodedInst& inst) const {
   }
 
   printf("CPU%d 0x%08x: %s %d %d %d %d %d %d p=%d, regs={%s}\n",
-      id.getGlobalCoreNumber(), inst.location(), inst.name().c_str(),
+      id.globalCoreNumber(), inst.location(), inst.name().c_str(),
       inst.destination(), inst.sourceReg1(), inst.sourceReg2(),
       inst.immediate(), inst.immediate2(), inst.channelMapEntry(),
       pred.read(), regbuf);
@@ -188,7 +187,7 @@ void Core::trace(const DecodedInst& inst) const {
 ComponentID Core::getSystemCallMemory() const {
   // TODO: Stop assuming that the first channel map entry after the fetch
   // channel corresponds to the memory that system calls want to access.
-  return channelMapTable.getDestination(1).getComponentID();
+  return channelMapTable.getDestination(1).component;
 }
 
 /* Returns the channel ID of this cluster's instruction packet FIFO. */

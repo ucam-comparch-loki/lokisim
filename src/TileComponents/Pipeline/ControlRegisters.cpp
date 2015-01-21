@@ -12,7 +12,7 @@ ControlRegisters::ControlRegisters(const sc_module_name& name, ComponentID id) :
     registers(16, 0) {
 
   // Initialise CPU location.
-  registers[CR_CPU_LOCATION] = id.getPosition() + (id.getComputeTile() << 4);
+  registers[CR_CPU_LOCATION] = id.flatten();
 
   SC_METHOD(cycleCounter);
 

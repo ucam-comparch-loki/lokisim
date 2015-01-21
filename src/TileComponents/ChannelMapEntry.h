@@ -11,7 +11,7 @@
 #include <assert.h>
 #include "systemc"
 #include "../Typedefs.h"
-#include "../Datatype/ChannelID.h"
+#include "../Datatype/Identifier.h"
 #include "../Utility/Parameters.h"
 
 using sc_core::sc_event;

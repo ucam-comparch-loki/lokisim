@@ -7,7 +7,7 @@
 
 #include "Component.h"
 
-Component::Component(const sc_module_name& name) {
+Component::Component(const sc_module_name& name) : id(0,0,0) {
 
 }
 

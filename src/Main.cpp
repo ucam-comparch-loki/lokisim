@@ -7,6 +7,7 @@
 
 #include <systemc.h>
 #include <stdio.h>
+
 #include "Utility/Arguments.h"
 #include "Utility/Blocking.h"
 #include "Utility/Debugger.h"
@@ -19,6 +20,7 @@
 #include "Utility/Trace/LBTTrace.h"
 #include "Utility/StartUp/CodeLoader.h"
 #include "Utility/Statistics.h"
+
 
 using std::vector;
 using std::string;
@@ -138,7 +140,7 @@ int simulate() {
 
   // Instantiate chip model - changing a parameter after this point has
   // undefined behaviour.
-  Chip chip("chip", 0);
+  Chip chip("chip", ComponentID(0,0,0));
 
   // Put arguments for the simulated program into simulated memory.
   Arguments::storeArguments(chip);

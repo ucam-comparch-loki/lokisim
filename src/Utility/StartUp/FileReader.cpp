@@ -98,7 +98,7 @@ FileReader* FileReader::makeFileReader(const vector<string>& words,
     extension = filename.substr(dotPos + 1);
   }
 
-  ComponentID id;
+  ComponentID id(0,0,0);
   if (component != BACKGROUND_MEMORY) {
     uint tile = component / COMPONENTS_PER_TILE;
     uint tileX = (tile % COMPUTE_TILE_COLUMNS) + 1;
@@ -168,7 +168,7 @@ FileReader* FileReader::linkFiles() {
     case 1: {
       // Don't need to link a single ELF file.
       if (!foundAsmFile)
-        return new ELFFileReader(filesToLink[0], ComponentID(),
+        return new ELFFileReader(filesToLink[0], ComponentID(1,1,CORES_PER_TILE),
             ComponentID(1, 1, 0), 0x1000);
       // Else, if an assembly file was found, drop through to the "default" and
       // invoke the linker. This will ensure the code is put in the correct
@@ -214,7 +214,7 @@ FileReader* FileReader::linkFiles() {
       }
 
       // Generate a FileReader for the output ELF file.
-      return new ELFFileReader(linkedFile, ComponentID(), ComponentID(1, 1, 0),
+      return new ELFFileReader(linkedFile, ComponentID(1,1,CORES_PER_TILE), ComponentID(1, 1, 0),
           0x1000);
     }
   }

@@ -11,7 +11,7 @@
 void FlowControlIn::dataLoop() {
   NetworkData data = iData.read();
 
-  if (!data.channelID().isMulticast() && !(data.channelID() == channel)) {
+  if (!data.channelID().multicast && !(data.channelID() == channel)) {
     cerr << "Error: " << data << " arrived at channel " << channel << endl;
     assert(false);
   }
@@ -43,8 +43,8 @@ void FlowControlIn::handlePortClaim() {
   // message doubles as a synchronisation message to show that all memories are
   // now set up. We want to forward it to the buffer when possible.
   if (!useCredits &&
-      (returnAddress.getPosition() >= CORES_PER_TILE) &&
-      (iData.read().channelID().getChannel() >= 2)) {
+      (returnAddress.component.position >= CORES_PER_TILE) &&
+      (iData.read().channelID().channel >= 2)) {
 
     oData.write(iData.read().payload());
   }

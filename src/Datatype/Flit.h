@@ -15,7 +15,7 @@
 #define FLIT_H_
 
 #include "../Typedefs.h"
-#include "ChannelID.h"
+#include "Identifier.h"
 
 template <typename T>
 class Flit {
@@ -94,24 +94,24 @@ public:
     return os;
   }
 
-  Flit<T>() {
-    messageID_    = messageCount++;
-    payload_      = static_cast<T>(0);
-    channelID_    = ChannelID(0, 0, 0, 0);
-    returnAddr_   = 0;
-    portClaim_    = false;
-    useCredits_   = true;
-    endOfPacket_  = true;
+  Flit<T>() :
+    messageID_(messageCount++),
+    payload_(static_cast<T>(0)),
+    channelID_(ChannelID(0, 0, 0, 0)),
+    returnAddr_(0),
+    portClaim_(false),
+    useCredits_(true),
+    endOfPacket_(true) {
   }
 
-  Flit<T>(const T& w, const ChannelID& id) {
-    messageID_    = messageCount++;
-    payload_      = w;
-    channelID_    = id;
-    returnAddr_   = 0;
-    portClaim_    = false;
-    useCredits_   = true;
-    endOfPacket_  = true;
+  Flit<T>(const T& w, const ChannelID& id) :
+    messageID_(messageCount++),
+    payload_(w),
+    channelID_(id),
+    returnAddr_(0),
+    portClaim_(false),
+    useCredits_(true),
+    endOfPacket_(true) {
 
     if (DEBUG)
       std::cout << "New Flit: " << *this << std::endl;

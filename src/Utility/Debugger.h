@@ -10,7 +10,7 @@
 
 #include <vector>
 #include <string>
-#include "../Datatype/ComponentID.h"
+#include "../Datatype/Identifier.h"
 #include "../Typedefs.h"
 
 using std::string;

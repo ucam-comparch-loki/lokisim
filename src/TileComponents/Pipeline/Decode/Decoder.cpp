@@ -304,7 +304,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   if (ENERGY_TRACE)
     Instrumentation::decoded(id, input);
 
-  CoreTrace::decodeInstruction(id.getPosition(), input.location(), input.endOfIPK());
+  CoreTrace::decodeInstruction(id.position, input.location(), input.endOfIPK());
 
   if (LBT_TRACE) {
 	LBTTrace::LBTOperationType opType;
@@ -655,7 +655,7 @@ void Decoder::waitForOperands2(const DecodedInst& inst) {
 
   // Hack: simulate a bypass path in the channel map table here. Bypassing is
   // awkward to implement efficiently in SystemC.
-  if (needChannel && inst.networkDestination() != Instruction::NO_CHANNEL) {
+  if (needChannel && inst.channelMapEntry() != Instruction::NO_CHANNEL) {
     needChannel = false;
     if ((previous.opcode() == InstructionMap::OP_SETCHMAP ||
          previous.opcode() == InstructionMap::OP_SETCHMAPI)  &&

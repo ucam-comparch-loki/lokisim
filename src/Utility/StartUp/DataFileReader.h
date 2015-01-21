@@ -9,7 +9,7 @@
 #define DATAFILEREADER_H_
 
 #include "FileReader.h"
-#include "../../Datatype/ComponentID.h"
+#include "../../Datatype/Identifier.h"
 
 class Word;
 

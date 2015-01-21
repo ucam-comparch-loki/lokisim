@@ -216,7 +216,7 @@ void Arguments::storeArguments(Chip& chip) {
   if (bytes > 0)
     data.push_back(Word(val));
 
-  chip.storeData(DataBlock(&data, ComponentID(), 0, true));
+  chip.storeData(DataBlock(&data, ComponentID(2,0,0), 0, true));
 }
 
 bool Arguments::simulate() {

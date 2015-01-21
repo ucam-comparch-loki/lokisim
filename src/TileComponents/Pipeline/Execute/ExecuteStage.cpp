@@ -268,7 +268,7 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
     // Generate a message to claim the port we have just stored the address of.
     if (sendChannel.isCore() && !sendChannel.isNullMapping()) {
       ChannelID returnChannel(id, entry);
-      inst.result(returnChannel.toInt());
+      inst.result(returnChannel.flatten());
       inst.channelMapEntry(entry);
       inst.networkDestination(sendChannel);
       inst.portClaim(true);

@@ -6,7 +6,7 @@
  */
 
 #include "IPKCache.h"
-#include "../../Datatype/ComponentID.h"
+#include "../../Datatype/Identifier.h"
 
 using namespace Instrumentation;
 
