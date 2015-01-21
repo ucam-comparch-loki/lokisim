@@ -26,14 +26,20 @@ void Directory::setBitmaskLSB(unsigned int lsb) {
 }
 
 void Directory::setEntry(unsigned int entry, TileIndex tile) {
-  assert(tile < NUM_TILES);
+  uint column = (tile >> 3) & 7;
+  uint row = tile & 7;
+  assert(column < TOTAL_TILE_COLUMNS);
+  assert(row < TOTAL_TILE_ROWS);
   assert(entry < directory.size());
 
   directory[entry] = tile;
 }
 
 void Directory::initialise(TileIndex tile) {
-  assert(tile < NUM_TILES);
+  uint column = (tile >> 3) & 7;
+  uint row = tile & 7;
+  assert(column < TOTAL_TILE_COLUMNS);
+  assert(row < TOTAL_TILE_ROWS);
 
   directory.assign(directory.size(), tile);
 }

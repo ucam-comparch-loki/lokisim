@@ -21,12 +21,12 @@ void LocalNetwork::multicastRequest(ComponentID source, ChannelID destination, b
 
   // For multicast addresses, instead of a component ID, we have a bitmask of
   // cores in this tile which should receive the data.
-  unsigned int bitmask = destination.getPosition();
+  unsigned int bitmask = destination.getCoreMask();
 
   // Loop through all bits in the bitmask, and send a request for each bit set.
   for (uint i=0; i<CORES_PER_TILE; i++) {
     if ((bitmask >> i) & 1) {
-      ChannelID core(destination.getTile(), i, destination.getChannel());
+      ChannelID core(id.getTileColumn(), id.getTileRow(), i, destination.getChannel());
       pointToPointRequest(source, core, request);
     }
   }

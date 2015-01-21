@@ -71,18 +71,20 @@ void Network::printStats() {
 	cout << "<@GLOBAL>network_words:" << producers.numEvents() << "</@GLOBAL>" << endl;
   }
 
-  if(producers.numEvents() > 0) {
+  if (producers.numEvents() > 0) {
     cout <<
       "Network:" << endl <<
       "  Total words sent: " << producers.numEvents() << "\n" <<
       "  Traffic distribution:\n" <<
       "    Component\tProduced\tConsumed\n";
 
-    for(uint i=0; i<NUM_TILES; i++) {
-      for(uint j=0; i<COMPONENTS_PER_TILE; i++) {
-        ComponentID id(i, j);
-        if(producers[id]>0 || consumers[id]>0)
-          cout <<"    "<< i <<"\t\t"<< producers[i] <<"\t\t"<< consumers[i] <<"\n";
+    for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
+      for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
+        for (uint component=0; component<COMPONENTS_PER_TILE; component++) {
+          ComponentID id(col, row, component);
+          if (producers[id]>0 || consumers[id]>0)
+            cout <<"    "<< id <<"\t\t"<< producers[id] <<"\t\t"<< consumers[id] <<"\n";
+        }
       }
     }
   }
@@ -90,14 +92,14 @@ void Network::printStats() {
 
 void Network::dumpEventCounts(std::ostream& os) {
   os << xmlBegin("crossbar")              << "\n"
-     << xmlNode("instances", NUM_TILES)   << "\n"
+     << xmlNode("instances", NUM_COMPUTE_TILES)   << "\n"
      << xmlNode("hd_in", xbarInHD)        << "\n"
      << xmlNode("hd_out", xbarOutHD)      << "\n"
      << xmlNode("total_dist", xbarDistHD) << "\n"
      << xmlEnd("crossbar")                << "\n"
 
      << xmlBegin("multicast_network")     << "\n"
-     << xmlNode("instances", NUM_TILES)   << "\n"
+     << xmlNode("instances", NUM_COMPUTE_TILES)   << "\n"
      << xmlNode("hd", mcastHD)            << "\n"
      << xmlEnd("multicast_network")       << "\n"
 
@@ -112,7 +114,7 @@ void Network::dumpEventCounts(std::ostream& os) {
      << xmlEnd("arbiter")                 << "\n"
 
      << xmlBegin("router")                << "\n"
-     << xmlNode("instances", NUM_TILES)   << "\n"
+     << xmlNode("instances", NUM_COMPUTE_TILES)   << "\n"
      // TODO
      << xmlEnd("router")                  << "\n";
 }

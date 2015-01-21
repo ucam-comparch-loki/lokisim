@@ -16,102 +16,114 @@
 #include "Word.h"
 
 class ChannelID : public Word {
+
 private:
 
   // Layout:
   //
-  // 31      27              19              11       7               0
-  //  | | | |m|     tile      |    position   |channel|  group + line |
+  // Point-to-point
+  // 31    14           8       4 3     0
+  //  | ... |    tile   |  pos  |0| ch  |
   //
-  //  m = multicast flag (for position only - would tile multicast be useful?)
+  // Multicast
+  // 31        12               4 3     0
+  //  |   ...   |    bitmask    |1| ch  |
 
-	static const uint OFFSET_CHANNEL = 8;			// Reserve lower 8 bits for group and line bits
-	static const uint WIDTH_CHANNEL = 4;
-	static const uint OFFSET_POSITION = OFFSET_CHANNEL + WIDTH_CHANNEL;
-	static const uint WIDTH_POSITION = 8;
-	static const uint OFFSET_TILE = OFFSET_POSITION + WIDTH_POSITION;
-	static const uint WIDTH_TILE = 8;
-	static const uint OFFSET_MULTICAST = OFFSET_TILE + WIDTH_TILE;
-	static const uint WIDTH_MULTICAST = 1;
+	static const uint WIDTH_CHANNEL     = 3;
+	static const uint WIDTH_MULTICAST   = 1;
+	static const uint WIDTH_POSITION    = 4;
+  static const uint WIDTH_TILE_X      = 3;
+  static const uint WIDTH_TILE_Y      = 3;
+  static const uint WIDTH_TILE        = WIDTH_TILE_X      + WIDTH_TILE_Y;
+	static const uint WIDTH_COREMASK    = 8;
+
+	static const uint OFFSET_CHANNEL    = 0;
+	static const uint OFFSET_MULTICAST  = OFFSET_CHANNEL    + WIDTH_CHANNEL;
+	static const uint OFFSET_POSITION   = OFFSET_MULTICAST  + WIDTH_MULTICAST;
+	static const uint OFFSET_TILE       = OFFSET_POSITION   + WIDTH_POSITION;
+	static const uint OFFSET_TILE_Y     = OFFSET_TILE;
+	static const uint OFFSET_TILE_X     = OFFSET_TILE_Y     + WIDTH_TILE_Y;
+	static const uint OFFSET_COREMASK   = OFFSET_POSITION;
 
 public:
-	inline uint32_t getData() const					{return data_ & 0xFFFFFFFFULL;}
 
-	inline uint getTile() const						{return getBits(OFFSET_TILE, OFFSET_TILE + WIDTH_TILE - 1);}
-	inline uint getPosition() const					{return getBits(OFFSET_POSITION, OFFSET_POSITION + WIDTH_POSITION - 1);}
-	inline uint getChannel() const					{return getBits(OFFSET_CHANNEL, OFFSET_CHANNEL + WIDTH_CHANNEL - 1);}
-	inline bool isMulticast() const         {return getBits(OFFSET_MULTICAST, OFFSET_MULTICAST + WIDTH_MULTICAST - 1);}
+	inline uint getTileColumn() const {return getBits(OFFSET_TILE_X, OFFSET_TILE_X + WIDTH_TILE_X - 1);}
+	inline uint getTileRow()    const {return getBits(OFFSET_TILE_Y, OFFSET_TILE_Y + WIDTH_TILE_Y - 1);}
+	inline uint getPosition()   const {return getBits(OFFSET_POSITION, OFFSET_POSITION + WIDTH_POSITION - 1);}
+	inline uint getChannel()    const {return getBits(OFFSET_CHANNEL, OFFSET_CHANNEL + WIDTH_CHANNEL - 1);}
+	inline bool isMulticast()   const {return getBits(OFFSET_MULTICAST, OFFSET_MULTICAST + WIDTH_MULTICAST - 1);}
+	inline uint getCoreMask()   const {return getBits(OFFSET_COREMASK, OFFSET_COREMASK + WIDTH_COREMASK - 1);}
 
-	inline bool isCore() const						{return getBits(OFFSET_POSITION, OFFSET_POSITION + WIDTH_POSITION - 1) < CORES_PER_TILE || isMulticast();}
-	inline bool isMemory() const					{return getBits(OFFSET_POSITION, OFFSET_POSITION + WIDTH_POSITION - 1) >= CORES_PER_TILE && !isMulticast();}
+	inline bool isCore()        const {return getBits(OFFSET_POSITION, OFFSET_POSITION + WIDTH_POSITION - 1) < CORES_PER_TILE || isMulticast();}
+	inline bool isMemory()      const {return getBits(OFFSET_POSITION, OFFSET_POSITION + WIDTH_POSITION - 1) >= CORES_PER_TILE && !isMulticast();}
+	inline bool isNullMapping() const {return data_ == 0xFFFFFFFFULL;}
 
-	inline bool isNullMapping() const				{return data_ == 0xFFFFFFFFULL;}
-
-	inline void setData(uint32_t data)				{data_ = data;}
+	// The tile number in a one-dimensional space (rather than 2D grid layout).
+	// Includes only compute tiles (no I/O tiles) - useful for vectors of ports
+	// and signals.
+	// Value increases from left-to-right, top-to-bottom.
+  inline uint getComputeTile() const {return ((getTileRow() - 1) * COMPUTE_TILE_COLUMNS) + (getTileColumn() - 1);}
 
 	inline uint getGlobalChannelNumber(uint channelsPerTile, uint channelsPerComponent) const {
-		return getTile() * channelsPerTile + getPosition() * channelsPerComponent + getChannel();
+		return getComputeTile() * channelsPerTile + getPosition() * channelsPerComponent + getChannel();
 	}
 
 	inline ChannelID addPosition(uint position) {
-		bool multi = isMulticast();
-		uint tile = getTile();
-		uint pos = getPosition() + position;
-		uint ch = getChannel();
+	  if (isMulticast()) {
+	    assert(false && "Can't increment a multicast address");
+	    return ChannelID();
+	  }
+	  else {
+      uint pos = getPosition() + position;
 
-		if(!multi) {
-      tile += pos / COMPONENTS_PER_TILE;
-      pos %= COMPONENTS_PER_TILE;
-		}
+      assert(pos < COMPONENTS_PER_TILE);
 
-		return ChannelID(tile, pos, ch, multi);
+      return ChannelID(getTileColumn(), getTileRow(), pos, getChannel());
+	  }
 	}
 
 	inline ChannelID addChannel(uint channel, uint maxChannels) {
-    bool multi = isMulticast();
-		uint tile = getTile();
-		uint pos = getPosition();
-		uint ch = getChannel() + channel;
+    if (isMulticast()) {
+      assert(false && "Can't increment a multicast address");
+      return ChannelID();
+    }
+    else {
+      uint ch = getChannel() + channel;
 
-		pos += ch / maxChannels;
-		ch %= maxChannels;
+      assert(ch < maxChannels);
 
-		if(!multi) {
-      tile += pos / COMPONENTS_PER_TILE;
-      pos %= COMPONENTS_PER_TILE;
-		}
-
-		return ChannelID(tile, pos, ch, multi);
+      return ChannelID(getTileColumn(), getTileRow(), getPosition(), ch);
+    }
 	}
 
 	inline int numDestinations() const {
 	  // Determine how many destination components this message is to be sent to.
-	  if(isMulticast())
-	    return __builtin_popcount(getPosition());
+	  if (isMulticast())
+	    return __builtin_popcount(getCoreMask());
 	  else
 	    return 1;
 	}
 
-	inline ComponentID getComponentID() const		{return ComponentID(getTile(), getPosition());}
+	inline ComponentID getComponentID() const		{return ComponentID(getTileColumn(), getTileRow(), getPosition());}
 
 	inline const std::string getString() const {
 		// Convert a unique port address into the form "(tile, position, channel)"
 
 		std::stringstream ss;
 
-		if(isMulticast()) {
+		if (isMulticast()) {
 		  ss << "(m";
-		  unsigned int bitmask = getPosition();
+		  unsigned int bitmask = getCoreMask();
 
-		  for(unsigned int i=CORES_PER_TILE-1; (int)i>=0; i--) {
-		    if((bitmask >> i) & 1) ss << "1";
-		    else                   ss << "0";
+		  for (unsigned int i=CORES_PER_TILE-1; (int)i>=0; i--) {
+		    if ((bitmask >> i) & 1) ss << "1";
+		    else                    ss << "0";
 		  }
 
 		  ss << "," << getChannel() << ")";
 		}
 		else {
-		  ss << "(" << getTile() << "," << getPosition() << "," << getChannel() << ")";
+		  ss << "(" << getComputeTile() << "," << getPosition() << "," << getChannel() << ")";
 		}
 
 		std::string result;
@@ -125,7 +137,7 @@ public:
   }
 
 	friend void sc_trace(sc_core::sc_trace_file*& tf, const ChannelID& w, const std::string& txt) {
-		sc_trace(tf, w.getTile(), txt + ".tile");
+		sc_trace(tf, w.getComputeTile(), txt + ".tile");
 		sc_trace(tf, w.getPosition(), txt + ".position");
 		sc_trace(tf, w.getChannel(), txt + ".channel");
 	}
@@ -138,41 +150,40 @@ public:
 		// Nothing
 	}
 
-	ChannelID(const Word& other) : Word(other) {
-		// Nothing
+  // For point-to-point communication.
+  ChannelID(uint tileCol, uint tileRow, uint position, uint channel) :
+    Word((tileCol << OFFSET_TILE_X) | (tileRow << OFFSET_TILE_Y) | (position << OFFSET_POSITION) | (channel << OFFSET_CHANNEL)) {
+
+    if ((tileCol >= TOTAL_TILE_COLUMNS) || (tileRow >= TOTAL_TILE_ROWS)) {
+      std::cerr << "Creating ChannelID with tile=" << tileCol << "," << tileRow << "; max is " << (TOTAL_TILE_COLUMNS-1) << "," << (TOTAL_TILE_ROWS-1) << std::endl;
+      assert(false);
+    }
+
+    if (position >= COMPONENTS_PER_TILE)
+      std::cerr << "Creating ChannelID with position=" << position << "; max is " << COMPONENTS_PER_TILE << std::endl;
+    assert(position < COMPONENTS_PER_TILE);
+
+    if (!(channel < CORE_INPUT_CHANNELS || channel < MEMORY_INPUT_CHANNELS))
+      std::cerr << "Creating ChannelID with channel=" << channel << "; max is " << MEMORY_INPUT_CHANNELS << std::endl;
+    assert(channel < CORE_INPUT_CHANNELS || channel < MEMORY_INPUT_CHANNELS);
+
+  }
+
+	// For multicast communication.
+	ChannelID(uint coremask, uint channel) :
+	  Word((coremask << OFFSET_COREMASK) | (channel << OFFSET_CHANNEL) | (1 << OFFSET_MULTICAST)) {
+
+    // FIXME: should multicasting to no one actually be an error?
+	  assert(coremask != 0 && "Multicasting to no one");
+
+    if (!(channel < CORE_INPUT_CHANNELS || channel < MEMORY_INPUT_CHANNELS))
+      std::cerr << "Creating ChannelID with channel=" << channel << "; max is " << MEMORY_INPUT_CHANNELS << std::endl;
+    assert(channel < CORE_INPUT_CHANNELS || channel < MEMORY_INPUT_CHANNELS);
+
 	}
 
-	ChannelID(uint tile, uint position, uint channel, bool multicast=false) :
-	  Word((tile << OFFSET_TILE) | (position << OFFSET_POSITION) | (channel << OFFSET_CHANNEL) | ((multicast?1:0) << OFFSET_MULTICAST)) {
-
-//		if (!(channel < CORE_INPUT_CHANNELS || channel < MEMORY_INPUT_CHANNELS)) {
-//			std::cout << "!!!! " << tile << " " << position << " " << channel << std::endl;
-//			exit(1);
-//		}
-
-	  // Currently reserve channel ID (NUM_TILES, 0, 0) for the memory controller.
-	  if (tile > NUM_TILES)
-	    std::cerr << "Creating ChannelID with tile=" << tile << "; max is " << NUM_TILES << std::endl;
-	  assert(tile <= NUM_TILES);
-
-	  if (!(channel < CORE_INPUT_CHANNELS || channel < MEMORY_INPUT_CHANNELS))
-	    std::cerr << "Creating ChannelID with channel=" << channel << "; max is " << MEMORY_INPUT_CHANNELS << std::endl;
-	  assert(channel < CORE_INPUT_CHANNELS || channel < MEMORY_INPUT_CHANNELS);
-
-	  // Multicast addresses use a bitmask instead of a position.
-	  // FIXME: should multicasting to no one actually be an error?
-	  if (multicast)
-	    assert(position != 0 && "Multicasting to no one");
-	  else {
-	    if (position >= COMPONENTS_PER_TILE)
-	      std::cerr << "Creating ChannelID with position=" << position << "; max is " << COMPONENTS_PER_TILE << std::endl;
-	    assert(position < COMPONENTS_PER_TILE);
-	  }
-
-	}
-
-	ChannelID(const ComponentID& component, uint channel) : Word() {
-		data_ = (component.getTile() << OFFSET_TILE) | (component.getPosition() << OFFSET_POSITION) | (channel << OFFSET_CHANNEL);
+	ChannelID(const ComponentID component, uint channel) : Word() {
+		data_ = (component.getTileColumn() << OFFSET_TILE_X) | (component.getTileRow() << OFFSET_TILE_Y) | (component.getPosition() << OFFSET_POSITION) | (channel << OFFSET_CHANNEL);
 	}
 };
 

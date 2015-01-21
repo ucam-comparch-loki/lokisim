@@ -85,8 +85,8 @@ void Router::updateDestination(PortIndex input) {
 
 Router::Direction Router::routeTo(ChannelID destination) const {
   // Figure out where in the grid of tiles the destination channel end is.
-  unsigned int xDest = destination.getTile() % NUM_TILE_COLUMNS;
-  unsigned int yDest = destination.getTile() / NUM_TILE_COLUMNS;
+  unsigned int xDest = destination.getTileColumn();
+  unsigned int yDest = destination.getTileRow();
 
   // XY routing: change x until we are in the right column, then change y.
   if (xDest > xPos)      return EAST;
@@ -116,8 +116,8 @@ Router::Router(const sc_module_name& name, const ComponentID& ID) :
     Component(name, ID),
     Blocking(),
     inputBuffers(5, ROUTER_BUFFER_SIZE, string(this->name()) + ".input_data"),
-    xPos(ID.getTile() % NUM_TILE_COLUMNS),
-    yPos(ID.getTile() / NUM_TILE_COLUMNS) {
+    xPos(ID.getTileColumn()),
+    yPos(ID.getTileRow()) {
 
   state = WAITING_FOR_DATA;
 

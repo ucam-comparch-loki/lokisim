@@ -78,10 +78,14 @@ extern parameter	CORES_PER_TILE;
 extern parameter	MEMS_PER_TILE;
 
 // Number of rows of compute tiles.
-extern parameter	NUM_TILE_ROWS;
+extern parameter	COMPUTE_TILE_ROWS;
 
 // Number of columns of compute tiles.
-extern parameter	NUM_TILE_COLUMNS;
+extern parameter	COMPUTE_TILE_COLUMNS;
+
+// Including halo I/O tiles.
+#define TOTAL_TILE_ROWS (COMPUTE_TILE_ROWS + 2)
+#define TOTAL_TILE_COLUMNS (COMPUTE_TILE_COLUMNS + 2)
 
 //-------------------------------------------------------------------------------------------------
 // Memory
@@ -188,28 +192,29 @@ extern parameter	ROUTER_BUFFER_SIZE;
 #define				COMPONENTS_PER_TILE       (CORES_PER_TILE + MEMS_PER_TILE)
 
 // Total number of tiles on the chip.
-#define				NUM_TILES                 (NUM_TILE_ROWS * NUM_TILE_COLUMNS)
+#define       NUM_TILES                 (TOTAL_TILE_ROWS * TOTAL_TILE_COLUMNS)
+#define				NUM_COMPUTE_TILES         (COMPUTE_TILE_ROWS * COMPUTE_TILE_COLUMNS)
 
 // Total number of cores on the chip.
-#define				NUM_CORES                 (CORES_PER_TILE * NUM_TILES)
+#define				NUM_CORES                 (CORES_PER_TILE * NUM_COMPUTE_TILES)
 
 // Total number of L1 memory banks on the chip.
-#define				NUM_MEMORIES              (MEMS_PER_TILE * NUM_TILES)
+#define				NUM_MEMORIES              (MEMS_PER_TILE * NUM_COMPUTE_TILES)
 
 // Total number of addressable components (cores and memory banks) on the chip.
-#define				NUM_COMPONENTS            (NUM_TILES * COMPONENTS_PER_TILE)
+#define				NUM_COMPONENTS            (NUM_COMPUTE_TILES * COMPONENTS_PER_TILE)
 
 // Useful numbers for generating networks.
 #define				INPUT_PORTS_PER_TILE      (CORES_PER_TILE * CORE_INPUT_PORTS + MEMS_PER_TILE)
 #define				OUTPUT_PORTS_PER_TILE     (CORES_PER_TILE * CORE_OUTPUT_PORTS + MEMS_PER_TILE)
-#define				TOTAL_INPUT_PORTS         (INPUT_PORTS_PER_TILE * NUM_TILES)
-#define				TOTAL_OUTPUT_PORTS        (OUTPUT_PORTS_PER_TILE * NUM_TILES)
+#define				TOTAL_INPUT_PORTS         (INPUT_PORTS_PER_TILE * NUM_COMPUTE_TILES)
+#define				TOTAL_OUTPUT_PORTS        (OUTPUT_PORTS_PER_TILE * NUM_COMPUTE_TILES)
 
 // Useful numbers for generating networks.
 #define       INPUT_CHANNELS_PER_TILE   (CORES_PER_TILE * CORE_INPUT_CHANNELS + MEMS_PER_TILE)
 #define       OUTPUT_CHANNELS_PER_TILE  (CORES_PER_TILE * CORE_OUTPUT_CHANNELS + MEMS_PER_TILE)
-#define       TOTAL_INPUT_CHANNELS      (INPUT_CHANNELS_PER_TILE * NUM_TILES)
-#define       TOTAL_OUTPUT_CHANNELS     (OUTPUT_CHANNELS_PER_TILE * NUM_TILES)
+#define       TOTAL_INPUT_CHANNELS      (INPUT_CHANNELS_PER_TILE * NUM_COMPUTE_TILES)
+#define       TOTAL_OUTPUT_CHANNELS     (OUTPUT_CHANNELS_PER_TILE * NUM_COMPUTE_TILES)
 
 //-------------------------------------------------------------------------------------------------
 // Run-time parameter management

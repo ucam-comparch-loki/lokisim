@@ -18,7 +18,7 @@ void SendChannelEndTable::write(const NetworkData data) {
   if (DEBUG)
     cout << this->name() << " writing " << data << " to buffer\n";
 
-  if (data.channelID().getTile() == id.getTile()) {
+  if (data.channelID().isMulticast() || (data.channelID().getComputeTile() == id.getComputeTile())) {
     assert(!bufferLocal.full());
     bufferLocal.write(data);
     bufferFillChanged.notify();
@@ -169,7 +169,7 @@ void SendChannelEndTable::sendLoopLocal() {
       bufferFillChanged.notify();
 
       if (DEBUG)
-        cout << this->name() << " sending " << data << endl;
+        cout << this->name() << " sending (local) " << data << endl;
       if (ENERGY_TRACE)
         Instrumentation::Network::traffic(id, data.channelID().getComponentID());
 
@@ -200,7 +200,7 @@ void SendChannelEndTable::sendLoopGlobal() {
     const NetworkData data = bufferGlobal.read();
 
     if (DEBUG)
-      cout << this->name() << " sending " << data << endl;
+      cout << this->name() << " sending (global) " << data << endl;
     if (ENERGY_TRACE)
       Instrumentation::Network::traffic(id, data.channelID().getComponentID());
 

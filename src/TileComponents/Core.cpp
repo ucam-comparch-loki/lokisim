@@ -188,7 +188,7 @@ void Core::trace(const DecodedInst& inst) const {
 ComponentID Core::getSystemCallMemory() const {
   // TODO: Stop assuming that the first channel map entry after the fetch
   // channel corresponds to the memory that system calls want to access.
-  return channelMapTable.read(1).getComponentID();
+  return channelMapTable.getDestination(1).getComponentID();
 }
 
 /* Returns the channel ID of this cluster's instruction packet FIFO. */

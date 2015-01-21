@@ -21,9 +21,9 @@ Chip* Debugger::chip = 0;
 vector<MemoryAddr> Debugger::breakpoints;
 
 unsigned int Debugger::cycleNumber = 0;
-ComponentID Debugger::defaultCore(0, 0);
-ComponentID Debugger::defaultInstMemory(0, CORES_PER_TILE);
-ComponentID Debugger::defaultDataMemory(0, CORES_PER_TILE + 1);
+ComponentID Debugger::defaultCore(1, 1, 0);
+ComponentID Debugger::defaultInstMemory(1, 1, CORES_PER_TILE);
+ComponentID Debugger::defaultDataMemory(1, 1, CORES_PER_TILE);
 
 unsigned int Debugger::cyclesIdle = 0;
 unsigned int Debugger::maxIdleTime = 10;
@@ -107,15 +107,15 @@ void Debugger::waitForInput() {
     }
     else if(words[0] == CHANGECORE || words[0] == CHANGECORE_S) {
       if(words.size() > 1) {
-        // Warning: assuming tile 0.
-        ComponentID id(0, StringManipulation::strToInt(words[1]));
+        // Warning: assuming first tile.
+        ComponentID id(1,1, StringManipulation::strToInt(words[1]));
         changeCore(id);
       }
     }
     else if(words[0] == CHANGEMEM  || words[0] == CHANGEMEM_S) {
       if(words.size() > 1) {
-        // Warning: assuming tile 0.
-        ComponentID id(0, StringManipulation::strToInt(words[1]));
+        // Warning: assuming first tile.
+        ComponentID id(1,1, StringManipulation::strToInt(words[1]));
         changeMemory(id);
       }
     }

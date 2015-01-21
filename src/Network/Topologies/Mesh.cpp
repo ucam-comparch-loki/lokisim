@@ -14,12 +14,10 @@ const vector<vector<DataSignal*> > Mesh::edgeDataOutputs() const {return edgeDat
 const vector<vector<ReadySignal*> > Mesh::edgeReadyOutputs() const {return edgeReadyOutputs_;}
 
 void Mesh::makeRouters() {
-  int tile = 0;
   for(unsigned int row=0; row<numRows; row++) {
     for(unsigned int col=0; col<numColumns; col++) {
-      ComponentID routerID(tile, COMPONENTS_PER_TILE);
+      ComponentID routerID(row, col, COMPONENTS_PER_TILE);
       routers[col][row] = new Router(sc_gen_unique_name("router"), routerID);
-      tile++;
     }
   }
 }
@@ -92,7 +90,7 @@ void Mesh::wireUp() {
       router.oReady[Router::EAST](readySigWE[col+1][row]);
 
       // Data heading to/from local tile
-      int tile = router.id.getTile();
+      int tile = row*numColumns + col;
       router.iData[Router::LOCAL](iData[tile]);
       router.oData[Router::LOCAL](oData[tile]);
       router.oReady[Router::LOCAL](oReady[tile]);

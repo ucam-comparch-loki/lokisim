@@ -36,7 +36,7 @@ string TraceFile::parameterSummary() {
   using std::endl;
 
   s << "PARAMETERS:" << "\n";
-  s << "Number of tiles:                 " << (NUM_TILE_ROWS * NUM_TILE_COLUMNS) << "\n";
+  s << "Number of tiles:                 " << (COMPUTE_TILE_ROWS * COMPUTE_TILE_COLUMNS) << "\n";
   s << "  Clusters per tile:             " << CORES_PER_TILE << "\n";
   s << "  Memories per tile:             " << MEMS_PER_TILE << "\n";
   s << "Storage:\n";

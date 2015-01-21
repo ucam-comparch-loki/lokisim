@@ -259,7 +259,7 @@ void         DecodeStage::readChannelMapTable(DecodedInst& inst) {
     return;
 
   ChannelMapEntry& cmtEntry = channelMapTableEntry(channel);
-  ChannelID destination = cmtEntry.destination();
+  ChannelID destination = cmtEntry.getDestination();
 
   if (destination.isNullMapping())
     return;
@@ -329,9 +329,9 @@ void DecodeStage::fetch(const DecodedInst& inst) {
   // Tweak the network address based on the memory address to ensure that the
   // correct bank is accessed if the fetch request is sent.
   uint increment = channelMapTableEntry(0).computeAddressIncrement(fetchAddress);
-  ChannelID destination = channelMapTableEntry(0).destination();
+  ChannelID destination = channelMapTableEntry(0).getDestination();
   destination.addPosition(increment);
-  ChannelIndex returnTo = channelMapTableEntry(0).returnChannel();
+  ChannelIndex returnTo = channelMapTableEntry(0).getReturnChannel();
 
   core()->checkTags(fetchAddress, inst.opcode(), destination, returnTo);
 }

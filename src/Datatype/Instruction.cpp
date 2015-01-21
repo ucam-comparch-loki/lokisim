@@ -372,44 +372,7 @@ int32_t Instruction::decodeImmediate(const string& immed) {
       if(parts[0][i] == '1') mcastAddress |= (1 << shiftAmount);
     }
 
-    value = ChannelID(0, mcastAddress, channel, true).getData();
-	} else if (parts.size() == 3) {
-
-		// We should now have strings of the form "(x", "y" and "z)"
-
-		parts[0].erase(parts[0].begin());           // Remove the bracket
-		parts[2].erase(parts[2].end()-1);           // Remove the bracket
-
-		int tile = Strings::strToInt(parts[0]);
-		int position = Strings::strToInt(parts[1]);
-		int channelIndex = Strings::strToInt(parts[2]);
-
-		ComponentID checkID(tile, position);
-		assert(checkID.isCore() && channelIndex < (int)CORE_INPUT_CHANNELS);
-
-		value = ChannelID(tile, position, channelIndex).getData();
-	} else if (parts.size() == 5) {
-		// We should now have strings of the form "(x", "y", "z", "s" and "t)"
-
-		parts[0].erase(parts[0].begin());           // Remove the bracket
-		parts[4].erase(parts[4].end()-1);           // Remove the bracket
-
-		int tile = Strings::strToInt(parts[0]);
-		int position = Strings::strToInt(parts[1]);
-		int channelIndex = Strings::strToInt(parts[2]);
-		int groupBits = Strings::strToInt(parts[3]);
-		int lineBits = Strings::strToInt(parts[4]);
-
-		// I find it useful to add together incomplete tuples, which this assertion
-		// doesn't allow.
-		// e.g. (0,8,0,3,6) + (0,0,id,0,0)
-//		ComponentID checkID(tile, position);
-//		assert(checkID.isMemory() && channelIndex < (int)MEMORY_CHANNEL_MAP_TABLE_ENTRIES);
-
-		// Encoded entry format:
-		// | Tile : 12 | Position : 8 | Channel : 4 | Memory group bits : 4 | Memory line bits : 4 |
-
-		value = ChannelID(tile, position, channelIndex).getData() | (groupBits << 4) | lineBits;
+    value = ChannelID(mcastAddress, channel).toInt();
 	} else {
 		// Invalid format
 	  cerr << "Error: invalid tuple length: " << immed << endl;

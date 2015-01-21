@@ -44,21 +44,23 @@ void Stalls::init() {
     startStall.push_back(map<ComponentID, cycle_count_t>());
   }
 
-  for (uint i=0; i<NUM_TILES; i++) {
-    for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
-      ComponentID id(i, j);
+  for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
+    for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
+      for (uint component=0; component<COMPONENTS_PER_TILE; component++) {
+        ComponentID id(col, row, component);
 
-      stallReason[id]             = 1 << IDLE;
-      numStalled++;
+        stallReason[id]                     = 1 << IDLE;
+        numStalled++;
 
-      startStall[STALL_ANY][id]           = 0;
-      startStall[STALL_MEMORY_DATA][id]   = UNSTALLED;
-      startStall[STALL_CORE_DATA][id]     = UNSTALLED;
-      startStall[STALL_INSTRUCTIONS][id]  = UNSTALLED;
-      startStall[STALL_OUTPUT][id]        = UNSTALLED;
-      startStall[STALL_FORWARDING][id]    = UNSTALLED;
-      startStall[STALL_FETCH][id]         = UNSTALLED;
-      startStall[IDLE][id]                = 0;
+        startStall[STALL_ANY][id]           = 0;
+        startStall[STALL_MEMORY_DATA][id]   = UNSTALLED;
+        startStall[STALL_CORE_DATA][id]     = UNSTALLED;
+        startStall[STALL_INSTRUCTIONS][id]  = UNSTALLED;
+        startStall[STALL_OUTPUT][id]        = UNSTALLED;
+        startStall[STALL_FORWARDING][id]    = UNSTALLED;
+        startStall[STALL_FETCH][id]         = UNSTALLED;
+        startStall[IDLE][id]                = 0;
+      }
     }
   }
 }
@@ -70,13 +72,15 @@ void Stalls::startLogging() {
 
   // If any cores are stalled, pretend that they only just started, so cycles
   // before logging started aren't counted.
-  for (uint i=0; i<NUM_TILES; i++) {
-    for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
-      ComponentID id(i, j);
+  for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
+    for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
+      for (uint component=0; component<COMPONENTS_PER_TILE; component++) {
+        ComponentID id(col, row, component);
 
-      for (uint k=0; k<NUM_STALL_REASONS; k++) {
-        if (startStall[k][id] != UNSTALLED)
-          startStall[k][id] = loggingStarted;
+        for (uint reason=0; reason<NUM_STALL_REASONS; reason++) {
+          if (startStall[reason][id] != UNSTALLED)
+            startStall[reason][id] = loggingStarted;
+        }
       }
     }
   }
@@ -95,37 +99,39 @@ void Stalls::stopLogging() {
   static Instruction nullInst(0);
   static const DecodedInst decoded(nullInst);
 
-  for (uint i=0; i<NUM_TILES; i++) {
-    for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
-      ComponentID id(i, j);
+  for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
+    for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
+      for (uint component=0; component<COMPONENTS_PER_TILE; component++) {
+        ComponentID id(col, row, component);
 
-      if (startStall[STALL_MEMORY_DATA][id] != UNSTALLED) {
-        unstall(id, STALL_MEMORY_DATA, decoded);
-        stall(id, STALL_MEMORY_DATA, decoded);
-      }
-      if (startStall[STALL_CORE_DATA][id] != UNSTALLED) {
-        unstall(id, STALL_CORE_DATA, decoded);
-        stall(id, STALL_CORE_DATA, decoded);
-      }
-      if (startStall[STALL_INSTRUCTIONS][id] != UNSTALLED) {
-        unstall(id, STALL_INSTRUCTIONS, decoded);
-        stall(id, STALL_INSTRUCTIONS, decoded);
-      }
-      if (startStall[STALL_OUTPUT][id] != UNSTALLED) {
-        unstall(id, STALL_OUTPUT, decoded);
-        stall(id, STALL_OUTPUT, decoded);
-      }
-      if (startStall[STALL_FORWARDING][id] != UNSTALLED) {
-        unstall(id, STALL_FORWARDING, decoded);
-        stall(id, STALL_FORWARDING, decoded);
-      }
-      if (startStall[STALL_FETCH][id] != UNSTALLED) {
-        unstall(id, STALL_FETCH, decoded);
-        stall(id, STALL_FETCH, decoded);
-      }
-      if (startStall[IDLE][id] != UNSTALLED) {
-        unstall(id, IDLE, decoded);
-        stall(id, IDLE, decoded);
+        if (startStall[STALL_MEMORY_DATA][id] != UNSTALLED) {
+          unstall(id, STALL_MEMORY_DATA, decoded);
+          stall(id, STALL_MEMORY_DATA, decoded);
+        }
+        if (startStall[STALL_CORE_DATA][id] != UNSTALLED) {
+          unstall(id, STALL_CORE_DATA, decoded);
+          stall(id, STALL_CORE_DATA, decoded);
+        }
+        if (startStall[STALL_INSTRUCTIONS][id] != UNSTALLED) {
+          unstall(id, STALL_INSTRUCTIONS, decoded);
+          stall(id, STALL_INSTRUCTIONS, decoded);
+        }
+        if (startStall[STALL_OUTPUT][id] != UNSTALLED) {
+          unstall(id, STALL_OUTPUT, decoded);
+          stall(id, STALL_OUTPUT, decoded);
+        }
+        if (startStall[STALL_FORWARDING][id] != UNSTALLED) {
+          unstall(id, STALL_FORWARDING, decoded);
+          stall(id, STALL_FORWARDING, decoded);
+        }
+        if (startStall[STALL_FETCH][id] != UNSTALLED) {
+          unstall(id, STALL_FETCH, decoded);
+          stall(id, STALL_FETCH, decoded);
+        }
+        if (startStall[IDLE][id] != UNSTALLED) {
+          unstall(id, IDLE, decoded);
+          stall(id, IDLE, decoded);
+        }
       }
     }
   }
@@ -294,6 +300,11 @@ cycle_count_t Stalls::executionTime() {
   return endOfExecution;
 }
 
+void Stalls::printInstrStat(const char *name, ComponentID id, CounterMap<ComponentID> &cMap) {
+  std::clog << name << ": " << cMap[id] << " (" << percentage(cMap[id], Operations::numOperations(id)) << ")\n";
+}
+
+
 void Stalls::printStats() {
   //TODO: Add information to database if required
 
@@ -309,31 +320,63 @@ void Stalls::printStats() {
   // Flush any remaining stall/idle time into the CounterMaps.
   stopLogging();
 
-	for (uint i=0; i<NUM_TILES; i++) {
-		for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
-			ComponentID id(i, j);
+  for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
+    for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
+      for (uint component=0; component<COMPONENTS_PER_TILE; component++) {
+        ComponentID id(col, row, component);
 
-			// Skip over memories for now -- they are not instrumented properly.
-			if (id.isMemory()) continue;
+        // Skip over memories for now -- they are not instrumented properly.
+        if (id.isMemory()) continue;
 
-			// Only print statistics for cores which have seen some activity.
-			if ((uint)total[IDLE][id] < endOfExecution) {
-				cycle_count_t totalStalled = cyclesStalled(id);
-				cycle_count_t activeCycles = cyclesActive(id);
-				clog << "  " << id << "\t" <<
-				Operations::numOperations(id) << "\t" <<
-				percentage(activeCycles, endOfExecution) << "\t" <<
-				percentage(total[IDLE][id], endOfExecution) << "\t" <<
-				percentage(totalStalled, endOfExecution) << "\t(" <<
-        percentage(total[STALL_INSTRUCTIONS][id], totalStalled) << "|" <<
-        percentage(total[STALL_MEMORY_DATA][id], totalStalled) << "|" <<
-        percentage(total[STALL_CORE_DATA][id], totalStalled) << "|" <<
-        percentage(total[STALL_FORWARDING][id], totalStalled) << "|" <<
-        percentage(total[STALL_FETCH][id], totalStalled) << "|" <<
-				percentage(total[STALL_OUTPUT][id], totalStalled) << ")" << endl;
-			}
+        // Only print statistics for cores which have seen some activity.
+        if ((uint)total[IDLE][id] < endOfExecution) {
+          cycle_count_t totalStalled = cyclesStalled(id);
+          cycle_count_t activeCycles = cyclesActive(id);
+          clog << "  " << id << "\t" <<
+          Operations::numOperations(id) << "\t" <<
+          percentage(activeCycles, endOfExecution) << "\t" <<
+          percentage(total[IDLE][id], endOfExecution) << "\t" <<
+          percentage(totalStalled, endOfExecution) << "\t(" <<
+          percentage(total[STALL_INSTRUCTIONS][id], totalStalled) << "|" <<
+          percentage(total[STALL_MEMORY_DATA][id], totalStalled) << "|" <<
+          percentage(total[STALL_CORE_DATA][id], totalStalled) << "|" <<
+          percentage(total[STALL_FORWARDING][id], totalStalled) << "|" <<
+          percentage(total[STALL_FETCH][id], totalStalled) << "|" <<
+          percentage(total[STALL_OUTPUT][id], totalStalled) << ")" << endl;
+        }
+      }
 		}
 	}
+
+  // Print instruction distribution summary
+  clog << "\nDistribution of instructions:\n";
+
+  for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
+    for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
+      for (uint component=0; component<COMPONENTS_PER_TILE; component++) {
+        ComponentID id(col, row, component);
+  
+        // Skip over memories
+        if (id.isMemory()) continue;
+  
+        // Only print statistics for cores which have seen some activity.
+        if ((uint)total[IDLE][id] < endOfExecution) {
+          clog << "  " << id << "\n" <<
+            "Total: " << Operations::numOperations(id) << " (100%)\n";
+          printInstrStat("numMemLoads", id, Operations::numMemLoads);
+          printInstrStat("numMergedMemLoads", id, Operations::numMergedMemLoads);
+          printInstrStat("numMemStores", id, Operations::numMemStores);
+          printInstrStat("numChanReads", id, Operations::numChanReads);
+          printInstrStat("numMergedChanReads", id, Operations::numMergedChanReads);
+          printInstrStat("numChanWrites", id, Operations::numChanWrites);
+          printInstrStat("numMergedChanWrites", id, Operations::numMergedChanWrites);
+          printInstrStat("numArithOps", id, Operations::numArithOps);
+          printInstrStat("numCondOps", id, Operations::numCondOps);
+          clog << "\n";
+        }
+      }
+    }
+  }
 
   if (BATCH_MODE)
 	cout << "<@GLOBAL>total_cycles:" << endOfExecution << "</@GLOBAL>" << endl;
@@ -341,37 +384,39 @@ void Stalls::printStats() {
 }
 
 void Stalls::dumpEventCounts(std::ostream& os) {
-  for (uint i=0; i<NUM_TILES; i++) {
-    for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
-      ComponentID id(i, j);
+  for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
+    for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
+      for (uint component=0; component<COMPONENTS_PER_TILE; component++) {
+        ComponentID id(col, row, component);
 
-      // Only interested in cores.
-      if (id.isMemory())
-        continue;
+        // Only interested in cores.
+        if (id.isMemory())
+          continue;
 
-      // Flush any remaining stall/idle time into the CounterMaps.
-//      unstall(id, endOfExecution, IDLE);
-//      active(id, endOfExecution);
-      stopLogging();
+        // Flush any remaining stall/idle time into the CounterMaps.
+  //      unstall(id, endOfExecution, IDLE);
+  //      active(id, endOfExecution);
+        stopLogging();
 
-      // Skip over any cores which were idle the whole time.
-//      if ((cycle_count_t)idleTimes[id] >= endOfExecution)
-//        continue;
+        // Skip over any cores which were idle the whole time.
+  //      if ((cycle_count_t)idleTimes[id] >= endOfExecution)
+  //        continue;
 
-      cycle_count_t totalStalled = loggedOnly[STALL_ANY][id] - loggedOnly[IDLE][id];
-      cycle_count_t activeCycles = loggedCycles - loggedOnly[STALL_ANY][id];
+        cycle_count_t totalStalled = loggedOnly[STALL_ANY][id] - loggedOnly[IDLE][id];
+        cycle_count_t activeCycles = loggedCycles - loggedOnly[STALL_ANY][id];
 
-      os << "<activity core=\"" << id.getGlobalCoreNumber()  << "\">\n"
-         << xmlNode("active", activeCycles)                     << "\n"
-         << xmlNode("idle", loggedOnly[IDLE][id])               << "\n"
-         << xmlNode("stalled", totalStalled)                    << "\n"
-         << xmlNode("instruction_stall", loggedOnly[STALL_INSTRUCTIONS][id]) << "\n"
-         << xmlNode("memory_data_stall", loggedOnly[STALL_MEMORY_DATA][id])  << "\n"
-         << xmlNode("core_data_stall", loggedOnly[STALL_CORE_DATA][id])      << "\n"
-         << xmlNode("bypass_stall", loggedOnly[STALL_FORWARDING][id])        << "\n"
-         << xmlNode("fetch_stall", loggedOnly[STALL_FETCH][id])              << "\n"
-         << xmlNode("output_stall", loggedOnly[STALL_OUTPUT][id])            << "\n"
-         << xmlEnd("activity")                                  << "\n";
+        os << "<activity core=\"" << id.getGlobalCoreNumber()  << "\">\n"
+           << xmlNode("active", activeCycles)                     << "\n"
+           << xmlNode("idle", loggedOnly[IDLE][id])               << "\n"
+           << xmlNode("stalled", totalStalled)                    << "\n"
+           << xmlNode("instruction_stall", loggedOnly[STALL_INSTRUCTIONS][id]) << "\n"
+           << xmlNode("memory_data_stall", loggedOnly[STALL_MEMORY_DATA][id])  << "\n"
+           << xmlNode("core_data_stall", loggedOnly[STALL_CORE_DATA][id])      << "\n"
+           << xmlNode("bypass_stall", loggedOnly[STALL_FORWARDING][id])        << "\n"
+           << xmlNode("fetch_stall", loggedOnly[STALL_FETCH][id])              << "\n"
+           << xmlNode("output_stall", loggedOnly[STALL_OUTPUT][id])            << "\n"
+           << xmlEnd("activity")                                  << "\n";
+      }
     }
   }
 }

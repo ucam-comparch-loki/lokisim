@@ -13,20 +13,20 @@ PortIndex Network::getDestination(const ChannelID& address) const {
 
   // Access a different part of the address depending on where in the network
   // we are.
-  switch(level) {
+  switch (level) {
     case TILE :
-      port = address.getTile() - firstOutput;
+      port = address.getComputeTile() - firstOutput;
       break;
     case COMPONENT : {
-      if(externalConnection && (address.getTile() != id.getTile()))
+      if (externalConnection && (address.getComputeTile() != id.getComputeTile()))
         port = numOutputPorts()-1;
       else
         port = address.getPosition() - firstOutput;
       break;
     }
     case CHANNEL : {
-      if(externalConnection && ((address.getTile() != id.getTile()) ||
-                                (address.getPosition() != id.getPosition())))
+      if (externalConnection && ((address.getComputeTile() != id.getComputeTile()) ||
+                                 (address.getPosition() != id.getPosition())))
         port = numOutputPorts()-1;
       else
         port = address.getChannel() - firstOutput;
@@ -41,8 +41,6 @@ PortIndex Network::getDestination(const ChannelID& address) const {
       break;
   }
 
-  // Make an adjustment in case this network is not capable of sending to
-  // address 0.
   return port;
 }
 

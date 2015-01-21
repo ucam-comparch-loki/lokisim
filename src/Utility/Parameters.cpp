@@ -79,10 +79,10 @@ parameter CORES_PER_TILE             = 8;
 parameter MEMS_PER_TILE              = 8;
 
 // Number of rows of compute tiles.
-parameter NUM_TILE_ROWS              = 1;
+parameter COMPUTE_TILE_ROWS          = 1;
 
 // Number of columns of compute tiles.
-parameter NUM_TILE_COLUMNS           = 1;
+parameter COMPUTE_TILE_COLUMNS       = 1;
 
 //-------------------------------------------------------------------------------------------------
 // Memory
@@ -180,8 +180,8 @@ void Parameters::parseParameter(const string &name, const string &value) {
   SET_IF_MATCH(cName, nValue, TIMEOUT);
   else SET_IF_MATCH(cName, nValue, CORES_PER_TILE);
 	else SET_IF_MATCH(cName, nValue, MEMS_PER_TILE);
-	else SET_IF_MATCH(cName, nValue, NUM_TILE_ROWS);
-	else SET_IF_MATCH(cName, nValue, NUM_TILE_COLUMNS);
+	else SET_IF_MATCH(cName, nValue, COMPUTE_TILE_ROWS);
+	else SET_IF_MATCH(cName, nValue, COMPUTE_TILE_COLUMNS);
 	else SET_IF_MATCH(cName, nValue, NUM_ADDRESSABLE_REGISTERS);
 	else SET_IF_MATCH(cName, nValue, NUM_PHYSICAL_REGISTERS);
   else SET_IF_MATCH(cName, nValue, CORE_SCRATCHPAD_SIZE);
@@ -232,8 +232,8 @@ void Parameters::printParametersXML(std::ostream& os) {
   os << "<parameters>\n"
      << XML_LINE("cores_per_tile", CORES_PER_TILE)
      << XML_LINE("memories_per_tile", MEMS_PER_TILE)
-     << XML_LINE("tile_rows", NUM_TILE_ROWS)
-     << XML_LINE("tile_columns", NUM_TILE_COLUMNS)
+     << XML_LINE("tile_rows", COMPUTE_TILE_ROWS)
+     << XML_LINE("tile_columns", COMPUTE_TILE_COLUMNS)
      << XML_LINE("addressable_regs", NUM_ADDRESSABLE_REGISTERS)
      << XML_LINE("physical_regs", NUM_PHYSICAL_REGISTERS)
      << XML_LINE("ipk_cache_size", IPK_CACHE_SIZE)

@@ -198,7 +198,7 @@ public:
 	}
 
 	MemoryRequest(MemoryOperation operation, const ChannelID& channel) : Word() {
-		data_ = (((int64_t)operation) << OFFSET_OPERATION) | channel.getData();
+		data_ = (((int64_t)operation) << OFFSET_OPERATION) | channel.toUInt();
 	}
 
 	MemoryRequest(const Word& other) : Word(other) {

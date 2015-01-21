@@ -97,7 +97,7 @@ public:
   Flit<T>() {
     messageID_    = messageCount++;
     payload_      = static_cast<T>(0);
-    channelID_    = ChannelID(0, 0);
+    channelID_    = ChannelID(0, 0, 0, 0);
     returnAddr_   = 0;
     portClaim_    = false;
     useCredits_   = true;

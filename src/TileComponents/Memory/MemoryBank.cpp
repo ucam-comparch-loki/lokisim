@@ -957,8 +957,8 @@ void MemoryBank::processValidInput() {
 
 void MemoryBank::handleDataOutput() {
   // If we have new data to send:
-  if(!mOutputWordPending) {
-    if(mOutputQueue.empty()) {
+  if (!mOutputWordPending) {
+    if (mOutputQueue.empty()) {
       next_trigger(mOutputQueue.writeEvent());
     }
     else {
@@ -968,7 +968,8 @@ void MemoryBank::handleDataOutput() {
       // For 8-15, return address is held in channel map table
       ChannelID returnAddr;
       if (outWord.TableIndex < 8) {
-        returnAddr = ChannelID(id.getTile(), outWord.TableIndex, outWord.ReturnChannel);
+        returnAddr = ChannelID(id.getTileColumn(), id.getTileRow(),
+                               outWord.TableIndex, outWord.ReturnChannel);
       }
       else {
         returnAddr = mChannelMapTable[outWord.TableIndex].ReturnChannel;
@@ -1604,7 +1605,8 @@ void MemoryBank::reportStalls(ostream& os) {
     const OutputWord& outWord = mOutputQueue.peek();
     ChannelID addr;
     if (outWord.TableIndex < 8)
-      addr = ChannelID(id.getTile(), outWord.TableIndex, outWord.ReturnChannel);
+      addr = ChannelID(id.getTileColumn(), id.getTileRow(),
+                       outWord.TableIndex, outWord.ReturnChannel);
     else
       addr = mChannelMapTable[outWord.TableIndex].ReturnChannel;
 
@@ -1646,7 +1648,7 @@ void MemoryBank::printOperation(MemoryRequest::MemoryOperation operation,
 }
 
 void MemoryBank::printConfiguration() const {
-  uint tile = id.getTile();
+  uint tile = id.getComputeTile();
   uint startBank = mConfig.GroupBaseBank;
   uint endBank = startBank + mConfig.GroupSize - 1;
   stringstream mode;

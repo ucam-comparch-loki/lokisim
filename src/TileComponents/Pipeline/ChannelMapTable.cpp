@@ -9,7 +9,7 @@
 #include "../../Utility/Instrumentation.h"
 #include "../../Utility/Instrumentation/ChannelMap.h"
 
-ChannelID ChannelMapTable::read(MapIndex entry) const {
+ChannelID ChannelMapTable::getDestination(MapIndex entry) const {
   assert(entry < table.size());
 
   if (ENERGY_TRACE) {
@@ -19,20 +19,15 @@ ChannelID ChannelMapTable::read(MapIndex entry) const {
 
   const_cast<ChannelMapTable*>(this)->previousRead = table[entry];
 
-  return table[entry].destination();
+  return table[entry].getDestination();
 }
 
 ChannelMapEntry::NetworkType ChannelMapTable::getNetwork(MapIndex entry) const {
   assert(entry < table.size());
-  return table[entry].network();
+  return table[entry].getNetwork();
 }
 
-bool ChannelMapTable::write(MapIndex entry,
-                            ChannelID destination,
-                            int groupBits,
-                            int lineBits,
-                            ChannelIndex returnTo,
-                            bool writeThrough) {
+bool ChannelMapTable::write(MapIndex entry, EncodedCMTEntry data) {
   assert(entry < table.size());
 
   // Wait for all communication with the previous destination to complete
@@ -41,13 +36,10 @@ bool ChannelMapTable::write(MapIndex entry,
     return false; // Can't complete the write
 
   ChannelMapEntry previous = table[entry];
+  table[entry].write(data);
 
-  if(destination.isCore())
-    table[entry].setCoreDestination(destination);
-  else {
-    table[entry].setMemoryDestination(destination, groupBits, lineBits, returnTo, writeThrough);
-    memoryConnection[returnTo] = true;
-  }
+  if (table[entry].getDestination().isMemory())
+    memoryConnection[table[entry].getReturnChannel()] = true;
 
   if (ENERGY_TRACE) {
     Instrumentation::ChannelMap::write(previous, table[entry]);
@@ -55,9 +47,22 @@ bool ChannelMapTable::write(MapIndex entry,
   }
 
   if (DEBUG)
-    cout << this->name() << " updated map " << (int)entry << " to " << destination << " [" << groupBits << "]" << endl;
+    cout << this->name() << " updated map " << (int)entry << " to " << table[entry].getDestination() << endl;
 
   return true;
+}
+
+EncodedCMTEntry ChannelMapTable::read(MapIndex entry) {
+  assert(entry < table.size());
+
+  if (ENERGY_TRACE) {
+    Instrumentation::ChannelMap::read(previousRead, table[entry]);
+    const_cast<ChannelMapTable*>(this)->activeCycle();
+  }
+
+  const_cast<ChannelMapTable*>(this)->previousRead = table[entry];
+
+  return table[entry].read();
 }
 
 const sc_event& ChannelMapTable::allCreditsEvent(MapIndex entry) const {

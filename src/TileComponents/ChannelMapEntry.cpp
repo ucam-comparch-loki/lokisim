@@ -7,6 +7,7 @@
 
 #include "ChannelMapEntry.h"
 #include "../Datatype/ChannelID.h"
+#include "../Exceptions/InvalidOptionException.h"
 #include "../Utility/Arguments.h"
 #include <iostream>
 
@@ -14,32 +15,26 @@ using sc_core::sc_event;
 
 #define MAX_CREDITS IN_CHANNEL_BUFFER_SIZE
 
-ChannelID ChannelMapEntry::destination() const {
-  return destination_;
+ChannelID ChannelMapEntry::getDestination() const {
+  switch (network_) {
+    case CORE_TO_CORE:
+      return ChannelID(getCoreMask(), getChannel());
+    case CORE_TO_MEMORY:
+      return ChannelID(getTileColumn(), getTileRow(), getComponent()+CORES_PER_TILE, getChannel());
+    case GLOBAL:
+      return ChannelID(getTileColumn(), getTileRow(), getComponent(), getChannel());
+    default:
+      throw InvalidOptionException("channel map entry network", network_);
+      break;
+  }
 }
 
-ChannelMapEntry::NetworkType ChannelMapEntry::network() const {
+ChannelMapEntry::NetworkType ChannelMapEntry::getNetwork() const {
   return network_;
-}
-
-bool ChannelMapEntry::localMemory() const {
-  return localMemory_;
-}
-
-uint ChannelMapEntry::memoryGroupBits() const {
-  return memoryGroupBits_;
-}
-
-uint ChannelMapEntry::memoryLineBits() const {
-  return memoryLineBits_;
 }
 
 bool ChannelMapEntry::writeThrough() const {
   return writeThrough_;
-}
-
-ChannelIndex ChannelMapEntry::returnChannel() const {
-  return returnChannel_;
 }
 
 bool ChannelMapEntry::canSend() const {
@@ -50,58 +45,119 @@ bool ChannelMapEntry::haveAllCredits() const {
   return !useCredits_ || (credits_ == MAX_CREDITS);
 }
 
-void ChannelMapEntry::setCoreDestination(const ChannelID& address) {
+// Write to the channel map entry.
+void ChannelMapEntry::write(EncodedCMTEntry data) {
   // Only allow the destination to change when all credits from previous
   // destination have been received.
   assert(haveAllCredits());
 
-  destination_ = address;
-  network_ = (address.getTile() == id_.getTile()) ? CORE_TO_CORE : GLOBAL;
-  useCredits_ = network_ == GLOBAL;
-  localMemory_ = false;
-  returnChannel_ = 0;
-  memoryGroupBits_ = 0;
-  memoryLineBits_ = 0;
-  addressIncrement_ = 0;
+  data_ = data;
+
+  if (isMulticast()) {
+    useCredits_ = false;
+    network_ = CORE_TO_CORE;
+  }
+  else if ((getTileColumn() != id_.getTileColumn()) || (getTileRow() != id_.getTileRow())) {
+    useCredits_ = true;
+    network_ = GLOBAL;
+  }
+  else {
+    useCredits_ = false;
+    network_ = CORE_TO_MEMORY;
+
+    // Print a description of the configuration so we can more-easily check that
+    // memory is being accessed correctly.
+    if (DEBUG || Arguments::summarise()) {
+      string type = (getReturnChannel() < 2) ? "insts" : "data";
+      uint startBank = getComponent();
+      uint endBank = startBank + getMemoryGroupSize() - 1;
+      uint lineSize = getLineSize();
+
+      std::cout << "SETCHMAP: core " << id_.getString() << " " << type << ", banks "
+          << startBank << "-" << endBank << ", line size " << lineSize << std::endl;
+    }
+  }
 }
 
-void ChannelMapEntry::setMemoryDestination(const ChannelID& address,
-                                           uint memoryGroupBits,
-                                           uint memoryLineBits,
-                                           ChannelIndex returnTo,
-                                           bool writeThrough) {
-  // Only allow the destination to change when all credits from previous
-  // destination have been received.
-  assert(haveAllCredits());
-  assert(address.getTile() == id_.getTile());
+// Get the entire contents of the channel map entry (used for the getchmap
+// instruction).
+EncodedCMTEntry ChannelMapEntry::read() const {
+  return data_;
+}
 
-  destination_ = address;
-  network_ = CORE_TO_MEMORY;
-  useCredits_ = false;
-  localMemory_ = true;
-  returnChannel_ = returnTo;
-  memoryGroupBits_ = memoryGroupBits;
-  memoryLineBits_ = memoryLineBits;
-  writeThrough_ = writeThrough;
-  addressIncrement_ = 0;
+unsigned int ChannelMapEntry::getTileColumn() const {
+  assert(!isMulticast());
+  uint mask = (1 << TILE_X_WIDTH) - 1;
+  return (data_ >> TILE_X_START) & mask;
+}
 
-  // Print a description of the configuration so we can more-easily check that
-  // memory is being accessed correctly.
-  if (DEBUG || Arguments::summarise()) {
-    string type = (returnChannel_ < 2) ? "insts" : "data";
-    uint startBank = destination_.getPosition() - CORES_PER_TILE;
-    uint endBank = startBank + (1 << memoryGroupBits_) - 1;
-    uint lineSize = (1 << memoryLineBits_);
+unsigned int ChannelMapEntry::getTileRow() const {
+  assert(!isMulticast());
+  uint mask = (1 << TILE_Y_WIDTH) - 1;
+  return (data_ >> TILE_Y_START) & mask;
+}
 
-    std::cout << "SETCHMAP: core " << id_.getString() << " " << type << ", banks "
-        << startBank << "-" << endBank << ", line size " << lineSize << std::endl;
+// The position of the target component within its tile.
+ComponentIndex ChannelMapEntry::getComponent() const {
+  assert(!isMulticast());
+  uint mask = (1 << POSITION_WIDTH) - 1;
+  return (data_ >> POSITION_START) & mask;
+}
+
+// The channel of the target component to access.
+ChannelIndex ChannelMapEntry::getChannel() const {
+  uint mask = (1 << CHANNEL_WIDTH) - 1;
+  return (data_ >> CHANNEL_START) & mask;
+}
+
+// Whether this is a multicast communication.
+bool ChannelMapEntry::isMulticast() const {
+  uint mask = (1 << MULTICAST_WIDTH) - 1;
+  return (data_ >> MULTICAST_START) & mask;
+}
+
+// A bitmask of cores in the local tile to communicate with. The same channel
+// on all cores is used.
+unsigned int ChannelMapEntry::getCoreMask() const {
+  assert(isMulticast());
+  uint mask = (1 << COREMASK_WIDTH) - 1;
+  return (data_ >> COREMASK_START) & mask;
+}
+
+// The number of memory banks in the virtual memory group.
+unsigned int ChannelMapEntry::getMemoryGroupSize() const {
+  uint mask = (1 << GROUP_SIZE_WIDTH) - 1;
+  uint bits = (data_ >> GROUP_SIZE_START) & mask;
+  return 1 << bits;
+}
+
+// The number of words in each cache line.
+unsigned int ChannelMapEntry::getLineSize() const {
+  uint mask = (1 << LINE_SIZE_WIDTH) - 1;
+  uint bits = (data_ >> LINE_SIZE_START) & mask;
+
+  switch ((LineSizeWords)bits) {
+    case LS_4: return 4;
+    case LS_8: return 8;
+    case LS_16: return 16;
+    case LS_32: return 32;
+    default:
+      assert(false);
+      return -1;
   }
+}
+
+// The input channel on this core to which any requested data should be sent
+// from memory.
+ChannelIndex ChannelMapEntry::getReturnChannel() const {
+  uint mask = (1 << RETURN_CHANNEL_WIDTH) - 1;
+  return (data_ >> RETURN_CHANNEL_START) & mask;
 }
 
 uint ChannelMapEntry::computeAddressIncrement(MemoryAddr address) const {
   uint increment = address;
-  increment &= (1UL << (memoryGroupBits() + memoryLineBits())) - 1UL;
-  increment >>= memoryLineBits();
+  increment &= (getMemoryGroupSize() * getLineSize() * BYTES_PER_WORD) - 1;
+  increment /= getLineSize() * BYTES_PER_WORD;
   return increment;
 }
 
@@ -141,15 +197,11 @@ bool ChannelMapEntry::usesCredits() const {
 }
 
 uint ChannelMapEntry::popCount() const {
-  return __builtin_popcount(destination_.toInt()) +
-         __builtin_popcount(memoryGroupBits_) +
-         __builtin_popcount(memoryLineBits_);
+  return __builtin_popcount(data_);
 }
 
 uint ChannelMapEntry::hammingDistance(const ChannelMapEntry& other) const {
-  return __builtin_popcount(destination_.toInt() ^ other.destination_.toInt()) +
-         __builtin_popcount(memoryGroupBits_ ^ other.memoryGroupBits_) +
-         __builtin_popcount(memoryLineBits_ ^ other.memoryLineBits_);
+  return __builtin_popcount(data_ ^ other.data_);
 }
 
 const sc_event& ChannelMapEntry::allCreditsEvent() const {
@@ -162,47 +214,35 @@ const sc_event& ChannelMapEntry::creditArrivedEvent() const {
 
 ChannelMapEntry::ChannelMapEntry(ComponentID localID) {
   id_ = localID;
-  destination_ = ChannelID();
+  data_ = 0;
   credits_ = MAX_CREDITS;
   useCredits_ = false;
-  localMemory_ = false;
-  memoryGroupBits_ = 0;
-  memoryLineBits_ = 0;
   addressIncrement_ = 0;
 
   network_ = CORE_TO_CORE;
   writeThrough_ = false;
-  returnChannel_ = -1;
 }
 
 ChannelMapEntry::ChannelMapEntry(const ChannelMapEntry& other) {
   id_ = other.id_;
-  destination_ = other.destination_;
+  data_ = other.data_;
   credits_ = other.credits_;
   useCredits_ = other.useCredits_;
-  localMemory_ = other.localMemory_;
-  memoryGroupBits_ = other.memoryGroupBits_;
-  memoryLineBits_ = other.memoryLineBits_;
   addressIncrement_ = other.addressIncrement_;
 
   network_ = other.network_;
   writeThrough_ = other.writeThrough_;
-  returnChannel_ = other.returnChannel_;
 }
 
 ChannelMapEntry& ChannelMapEntry::operator=(const ChannelMapEntry& other) {
   id_ = other.id_;
-  destination_ = other.destination_;
+  data_ = other.data_;
   credits_ = other.credits_;
   useCredits_ = other.useCredits_;
-  localMemory_ = other.localMemory_;
-  memoryGroupBits_ = other.memoryGroupBits_;
-  memoryLineBits_ = other.memoryLineBits_;
   addressIncrement_ = other.addressIncrement_;
 
   network_ = other.network_;
   writeThrough_ = other.writeThrough_;
-  returnChannel_ = other.returnChannel_;
 
   return *this;
 }

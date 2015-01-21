@@ -16,27 +16,97 @@
 
 using sc_core::sc_event;
 
+// https://svr-rdm34-issue.cl.cam.ac.uk/w/loki/architecture/core/channel_map_table/
+//
+// Format:
+//  line size:        2 bits encoded - see options below
+//  log2(group size): 2 bits
+//  return channel:   3 bits
+//  tile:             6 bits (x:3, y:3)
+//  core/bank:        3 bits
+//  multicast?:       1 bit
+//  channel:          3 bits
+typedef unsigned int EncodedCMTEntry;
+
 class ChannelMapEntry {
+
+private:
+
+  static const uint CHANNEL_WIDTH         = 3;
+  static const uint MULTICAST_WIDTH       = 1;
+  static const uint POSITION_WIDTH        = 3;
+  static const uint TILE_WIDTH            = 6;
+  static const uint TILE_X_WIDTH          = 3;
+  static const uint TILE_Y_WIDTH          = 3;
+  static const uint COREMASK_WIDTH        = 8;
+  static const uint RETURN_CHANNEL_WIDTH  = 3;
+  static const uint GROUP_SIZE_WIDTH      = 2;
+  static const uint LINE_SIZE_WIDTH       = 2;
+
+  static const uint CHANNEL_START         = 0;
+  static const uint MULTICAST_START       = CHANNEL_START        + CHANNEL_WIDTH;
+  static const uint POSITION_START        = MULTICAST_START      + MULTICAST_WIDTH;
+  static const uint TILE_START            = POSITION_START       + POSITION_WIDTH;
+  static const uint TILE_Y_START          = TILE_START;
+  static const uint TILE_X_START          = TILE_Y_START         + TILE_Y_WIDTH;
+  static const uint COREMASK_START        = POSITION_START;
+  static const uint RETURN_CHANNEL_START  = TILE_START           + TILE_WIDTH;
+  static const uint GROUP_SIZE_START      = RETURN_CHANNEL_START + RETURN_CHANNEL_WIDTH;
+  static const uint LINE_SIZE_START       = GROUP_SIZE_START     + GROUP_SIZE_WIDTH;
 
 public:
 
+  // Encode line size options efficiently - we're never going to want
+  // single-word cache lines.
+  enum LineSizeWords {
+    LS_4 = 0,
+    LS_8 = 1,
+    LS_16 = 2,
+    LS_32 = 3,
+  };
+
   enum NetworkType {CORE_TO_CORE, CORE_TO_MEMORY, GLOBAL};
 
-  ChannelID destination() const;
-  NetworkType network() const;
-  bool localMemory() const;
-  uint memoryGroupBits() const;
-  uint memoryLineBits() const;
+  ChannelID getDestination() const;
+  NetworkType getNetwork() const;
   bool writeThrough() const;
-  ChannelIndex returnChannel() const;
 
   bool canSend() const;
   bool haveAllCredits() const;
 
-  void setCoreDestination(const ChannelID& address);
-  void setMemoryDestination(const ChannelID& address, uint memoryGroupBits,
-                            uint memoryLineBits, ChannelIndex returnTo,
-                            bool writeThrough = false);
+  // Write to the channel map entry.
+  void write(EncodedCMTEntry data);
+
+  // Get the entire contents of the channel map entry (used for the getchmap
+  // instruction).
+  EncodedCMTEntry read() const;
+
+  // The tile of the target component.
+  unsigned int getTileColumn() const;
+  unsigned int getTileRow() const;
+
+  // The position of the target component within its tile.
+  ComponentIndex getComponent() const;
+
+  // The channel of the target component to access.
+  ChannelIndex getChannel() const;
+
+  // Whether this is a multicast communication.
+  bool isMulticast() const;
+
+  // A bitmask of cores in the local tile to communicate with. The same channel
+  // on all cores is used.
+  unsigned int getCoreMask() const;
+
+  // The number of memory banks in the virtual memory group.
+  unsigned int getMemoryGroupSize() const;
+
+  // The number of words in each cache line.
+  unsigned int getLineSize() const;
+
+  // The input channel on this core to which any requested data should be sent
+  // from memory.
+  ChannelIndex getReturnChannel() const;
 
   // Compute the increment which must be added to the ChannelID of the first
   // memory of a group in order to access the given memory address.
@@ -75,8 +145,8 @@ private:
   // whether communications are local or global.
   ComponentID id_;
 
-  // The network address to send data to.
-  ChannelID destination_;
+  // Encoded data representing a connection to another component.
+  EncodedCMTEntry data_;
 
   // The network to send data on (e.g. core-to-core or core-to-memory).
   NetworkType network_;
@@ -86,18 +156,6 @@ private:
 
   // The number of credits this output has.
   unsigned int credits_;
-
-  // Whether or not this is a local memory bank.
-  bool localMemory_;
-
-  // The input channel of this core that memory banks should send data back to.
-  ChannelIndex returnChannel_;
-
-  // Number of group bits describing virtual memory bank.
-  unsigned int memoryGroupBits_;
-
-  // Number of line bits describing virtual memory bank.
-  unsigned int memoryLineBits_;
 
   // Whether or not this channel accesses the memory in write-through mode.
   bool writeThrough_;

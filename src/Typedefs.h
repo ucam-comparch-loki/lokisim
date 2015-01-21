@@ -20,7 +20,8 @@
 typedef uint64_t count_t;
 typedef count_t  cycle_count_t;
 
-// Identifier used for a tile. May want to switch to (x,y) coordinates later.
+// Identifier used for a tile. Compute tiles start at 1,1.
+// (column << 3) | row
 typedef uint32_t TileIndex;
 
 // Positions of components within a tile.

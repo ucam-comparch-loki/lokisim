@@ -110,15 +110,11 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         break;
 
       case InstructionMap::OP_GETCHMAP:
-        // TODO: reading the CMT just returns a network address. We want
-        // the entire contents.
-        operation.result(core()->channelMapTable.read(operation.operand1()).toUInt());
+        operation.result(core()->channelMapTable.read(operation.operand1()));
         break;
 
       case InstructionMap::OP_GETCHMAPI:
-        // TODO: reading the CMT just returns a network address. We want
-        // the entire contents.
-        operation.result(core()->channelMapTable.read(operation.immediate()).toUInt());
+        operation.result(core()->channelMapTable.read(operation.immediate()));
         break;
 
       case InstructionMap::OP_CREGRDI:
@@ -255,27 +251,19 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
   MapIndex entry = inst.operand2();
   uint32_t value = inst.operand1();
 
-  // TODO: extract these from the ChannelID, rather than from the raw data.
-  ChannelIndex returnTo = (value >> 29) & 0x7UL;
-  uint groupBits = (value >> 4) & 0xFUL;
-  uint lineBits  = value & 0xFUL;
-
-  // There are no free bits to encode this, so it will have to be compiled in for now.
-  bool writeThrough = /*entry==2;//*/false;
-
-  ChannelID sendChannel(value);
-
   // Write to the channel map table.
   // FIXME: I don't think it's necessary to block until all credits have been
   // received, but it's useful for debug purposes to ensure that we aren't
   // losing credits.
-  bool success = core()->channelMapTable.write(entry, sendChannel, groupBits, lineBits, returnTo, writeThrough);
+  bool success = core()->channelMapTable.write(entry, value);
   if (!success) {
     blocked = true;
     next_trigger(core()->channelMapTable.allCreditsEvent(entry));
   }
   else {
     blocked = false;
+
+    ChannelID sendChannel = core()->channelMapTable.getDestination(entry);
 
     // Generate a message to claim the port we have just stored the address of.
     if (sendChannel.isCore() && !sendChannel.isNullMapping()) {
@@ -352,7 +340,8 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
   // Adjust destination channel based on memory configuration if necessary
   uint32_t increment = 0;
 
-  if (channelMapEntry.localMemory() && channelMapEntry.memoryGroupBits() > 0) {
+  if (channelMapEntry.getDestination().isMemory() &&
+      channelMapEntry.getMemoryGroupSize() > 1) {
     if (addressFlit) {
       increment = channelMapEntry.computeAddressIncrement((uint32_t)inst.result());
 
@@ -370,7 +359,7 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
   ChannelID adjusted = inst.networkDestination();
   adjusted = adjusted.addPosition(increment);
   inst.networkDestination(adjusted);
-  inst.returnAddr(channelMapEntry.returnChannel());
+  inst.returnAddr(channelMapEntry.getReturnChannel());
 }
 
 bool ExecuteStage::isStalled() const {
