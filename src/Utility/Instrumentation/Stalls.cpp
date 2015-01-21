@@ -103,33 +103,34 @@ void Stalls::stopLogging() {
   for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
     for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
       for (uint component=0; component<COMPONENTS_PER_TILE; component++) {
-        ComponentIndex id = ComponentID(col, row, component).globalComponentNumber();
+        ComponentID id(col, row, component);
+        ComponentIndex index = id.globalComponentNumber();
 
-        if (startStall[STALL_MEMORY_DATA][id] != UNSTALLED) {
+        if (startStall[STALL_MEMORY_DATA][index] != UNSTALLED) {
           unstall(id, STALL_MEMORY_DATA, decoded);
           stall(id, STALL_MEMORY_DATA, decoded);
         }
-        if (startStall[STALL_CORE_DATA][id] != UNSTALLED) {
+        if (startStall[STALL_CORE_DATA][index] != UNSTALLED) {
           unstall(id, STALL_CORE_DATA, decoded);
           stall(id, STALL_CORE_DATA, decoded);
         }
-        if (startStall[STALL_INSTRUCTIONS][id] != UNSTALLED) {
+        if (startStall[STALL_INSTRUCTIONS][index] != UNSTALLED) {
           unstall(id, STALL_INSTRUCTIONS, decoded);
           stall(id, STALL_INSTRUCTIONS, decoded);
         }
-        if (startStall[STALL_OUTPUT][id] != UNSTALLED) {
+        if (startStall[STALL_OUTPUT][index] != UNSTALLED) {
           unstall(id, STALL_OUTPUT, decoded);
           stall(id, STALL_OUTPUT, decoded);
         }
-        if (startStall[STALL_FORWARDING][id] != UNSTALLED) {
+        if (startStall[STALL_FORWARDING][index] != UNSTALLED) {
           unstall(id, STALL_FORWARDING, decoded);
           stall(id, STALL_FORWARDING, decoded);
         }
-        if (startStall[STALL_FETCH][id] != UNSTALLED) {
+        if (startStall[STALL_FETCH][index] != UNSTALLED) {
           unstall(id, STALL_FETCH, decoded);
           stall(id, STALL_FETCH, decoded);
         }
-        if (startStall[IDLE][id] != UNSTALLED) {
+        if (startStall[IDLE][index] != UNSTALLED) {
           unstall(id, IDLE, decoded);
           stall(id, IDLE, decoded);
         }

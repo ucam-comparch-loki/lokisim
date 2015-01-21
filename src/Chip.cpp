@@ -24,7 +24,9 @@ void Chip::storeInstructions(vector<Word>& instructions, const ComponentID& comp
 }
 
 void Chip::storeData(const DataBlock& data) {
-  if (data.component().isCore()) {
+  if (data.component() == ComponentID(2,0,0))
+    backgroundMemory.storeData(data.payload(), data.position(), data.readOnly());
+  else if (data.component().isCore()) {
     assert(data.component().globalCoreNumber() < cores.size());
     cores[data.component().globalCoreNumber()]->storeData(data.payload(), data.position());
   }
@@ -32,7 +34,6 @@ void Chip::storeData(const DataBlock& data) {
     assert(data.component().globalMemoryNumber() < memories.size());
     memories[data.component().globalMemoryNumber()]->storeData(data.payload(),data.position());
   }
-  else backgroundMemory.storeData(data.payload(), data.position(), data.readOnly());
 }
 
 const void* Chip::getMemoryData() {
@@ -391,7 +392,7 @@ void Chip::wireUp() {
 
 Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
     Component(name),
-    backgroundMemory("background_memory", ComponentID(2,0,0), NUM_MEMORIES),
+    backgroundMemory("background_memory", ComponentID(2,0,0), NUM_COMPUTE_TILES),
     network("network"),
     clock("clock", 1, SC_NS, 0.5),
     fastClock("fast_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.25),

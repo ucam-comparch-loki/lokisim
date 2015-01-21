@@ -127,7 +127,7 @@ FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const C
     Component(name, ID),
     channel(channelManaged) {
 
-  returnAddress = -1;
+  returnAddress = ChannelID();
   useCredits = true;
   numCredits = 0;
 
