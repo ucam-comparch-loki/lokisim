@@ -53,7 +53,7 @@ public:
   }
 
   CounterMap() {
-
+    totalEvents = 0;
   }
 
 private:

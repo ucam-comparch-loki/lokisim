@@ -14,6 +14,9 @@
 #ifndef LOKIVECTOR_H_
 #define LOKIVECTOR_H_
 
+#include <assert.h>
+#include <cstdlib>
+
 template<class T>
 class LokiVector {
 

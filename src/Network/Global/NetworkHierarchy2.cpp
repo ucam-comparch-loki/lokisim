@@ -6,6 +6,8 @@
  */
 
 #include "NetworkHierarchy2.h"
+
+#include "../../Utility/Parameters.h"
 #include "../Network.h"
 #include "../Topologies/InstantCrossbar.h"
 
@@ -14,7 +16,7 @@ NetworkHierarchy2::NetworkHierarchy2(const sc_module_name &name,
                                      const unsigned int    destinationsPerTile,
                                      const unsigned int    buffersPerDestination) :
     Component(name),
-    globalNetwork("global", 0, COMPUTE_TILE_ROWS, COMPUTE_TILE_COLUMNS, Network::TILE) {
+    globalNetwork("global", 0, TOTAL_TILE_ROWS, TOTAL_TILE_COLUMNS, Network::TILE) {
 
   initialise(sourcesPerTile, destinationsPerTile, buffersPerDestination);
 
@@ -32,68 +34,96 @@ void NetworkHierarchy2::initialise(const unsigned int sourcesPerTile,
                                    const unsigned int destinationsPerTile,
                                    const unsigned int buffersPerDestination) {
 
-  iData.init(sourcesPerTile * NUM_COMPUTE_TILES);
-  oData.init(destinationsPerTile * NUM_COMPUTE_TILES);
-  iReady.init(destinationsPerTile * NUM_COMPUTE_TILES, buffersPerDestination);
+  iData.init(NUM_TILES);
+  oData.init(NUM_TILES);
+  iReady.init(NUM_TILES);
 
-  localToGlobalData.init(NUM_COMPUTE_TILES);
-  globalToLocalData.init(NUM_COMPUTE_TILES);
-  localToGlobalReady.init(NUM_COMPUTE_TILES);
-  globalToLocalReady.init(NUM_COMPUTE_TILES);
+  // For compute tiles, create the required number of ports. For halo tiles,
+  // only have one of each.
+  for (uint col = 0; col < TOTAL_TILE_COLUMNS; col++) {
+    for (uint row = 0; row < TOTAL_TILE_ROWS; row++) {
+      TileID tile(col, row);
+      TileIndex tileIndex = tile.overallTileIndex();
 
-  // Create local networks and wire them up.
-  int sourceComponentCounter = 0;
-  int destComponentCounter = 0;
-
-  uint tile = 0;
-  for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
-    for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
-    	// TODO: don't bother creating a crossbar if sourcesPerTile == 1.
-    	// Just connect iData directly to localToGlobalData.
-    	InstantCrossbar* xbar = new InstantCrossbar(sc_gen_unique_name("to_router"), // name
-                                  ComponentID(col,row,0), // ID
-                                  sourcesPerTile,      // inputs from components
-                                  1,                   // outputs to router
-                                  1,                   // outputs leading to each router
-                                  Network::NONE,       // hierarchy level not needed
-                                  1);                  // buffers behind each output
-
-    	xbar->clock(clock);
-    	xbar->oData[0](localToGlobalData[tile]);
-    	xbar->iReady[0][0](globalToLocalReady[tile]);
-    	for (uint component=0; component<sourcesPerTile; component++)
-      	xbar->iData[component](iData[sourceComponentCounter++]);
-
-    	globalNetwork.iData[tile](localToGlobalData[tile]);
-    	globalNetwork.oReady[tile](globalToLocalReady[tile]);
-
-    	toRouter.push_back(xbar);
-
-    	InstantCrossbar* xbar2 = new InstantCrossbar(sc_gen_unique_name("from_router"), // name
-                                   ComponentID(col,row,0), // ID
-                                   1,                   // inputs from router
-                                   destinationsPerTile, // outputs to components
-                                   1,                   // outputs leading to each component
-                                   Network::COMPONENT,  // route by component number
-                                   buffersPerDestination);// buffers behind each output
-
-    	xbar2->clock(clock);
-    	xbar2->iData[0](globalToLocalData[tile]);
-    	globalNetwork.oData[tile](globalToLocalData[tile]);
-
-    	for (uint component=0; component<destinationsPerTile; component++) {
-      	xbar2->oData[component](oData[destComponentCounter]);
-      	for (uint buffer=0; buffer<buffersPerDestination; buffer++)
-        	xbar2->iReady[component][buffer](iReady[destComponentCounter][buffer]);
-      	destComponentCounter++;
-    	}
-
-    	fromRouter.push_back(xbar2);
-    	
-    	tile++;
-   	}
+      if (tile.isComputeTile()) {
+        iData[tileIndex].init(sourcesPerTile);
+        oData[tileIndex].init(destinationsPerTile);
+        iReady[tileIndex].init(destinationsPerTile, buffersPerDestination);
+      }
+      else {
+        iData[tileIndex].init(1);
+        oData[tileIndex].init(1);
+        iReady[tileIndex].init(1,1);
+      }
+    }
   }
+
+  localToGlobalData.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
+  globalToLocalData.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
+  localToGlobalReady.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
+  globalToLocalReady.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
 
   globalNetwork.clock(clock);
 
+  for (uint col = 0; col < TOTAL_TILE_COLUMNS; col++) {
+    for (uint row = 0; row < TOTAL_TILE_ROWS; row++) {
+      TileID tile(col, row);
+
+      createNetworkToRouter(tile);
+      createNetworkFromRouter(tile);
+
+      globalNetwork.iData2D(col,row)(localToGlobalData[col][row]);
+      globalNetwork.oReady2D(col,row)(globalToLocalReady[col][row]);
+      globalNetwork.oData2D(col,row)(globalToLocalData[col][row]);
+    }
+  }
+
+}
+
+void NetworkHierarchy2::createNetworkToRouter(TileID tile) {
+  TileIndex index = tile.overallTileIndex();
+  uint sourcesPerTile = iData[index].length();
+
+  // TODO: don't bother creating a crossbar if sourcesPerTile == 1.
+  // Just connect iData directly to localToGlobalData (or the router).
+  InstantCrossbar* xbar = new InstantCrossbar(sc_gen_unique_name("to_router"), // name
+                              ComponentID(tile,0), // ID
+                              sourcesPerTile,      // inputs from components
+                              1,                   // outputs to router
+                              1,                   // outputs leading to each router
+                              Network::NONE,       // hierarchy level not needed
+                              1);                  // buffers behind each output
+
+  xbar->clock(clock);
+  xbar->oData[0](localToGlobalData[tile.x][tile.y]);
+  xbar->iReady[0][0](globalToLocalReady[tile.x][tile.y]);
+  for (uint component=0; component<sourcesPerTile; component++)
+    xbar->iData[component](iData[index][component]);
+
+  toRouter.push_back(xbar);
+}
+
+void NetworkHierarchy2::createNetworkFromRouter(TileID tile) {
+  TileIndex index = tile.overallTileIndex();
+  uint destinationsPerTile = oData[index].length();
+  uint buffersPerDestination = iReady[index][0].length();
+
+  InstantCrossbar* xbar2 = new InstantCrossbar(sc_gen_unique_name("from_router"), // name
+                               ComponentID(tile,0), // ID
+                               1,                   // inputs from router
+                               destinationsPerTile, // outputs to components
+                               1,                   // outputs leading to each component
+                               Network::COMPONENT,  // route by component number
+                               buffersPerDestination);// buffers behind each output
+
+  xbar2->clock(clock);
+  xbar2->iData[0](globalToLocalData[tile.x][tile.y]);
+
+  for (uint component=0; component<destinationsPerTile; component++) {
+    xbar2->oData[component](oData[index][component]);
+    for (uint buffer=0; buffer<buffersPerDestination; buffer++)
+      xbar2->iReady[component][buffer](iReady[index][component][buffer]);
+  }
+
+  fromRouter.push_back(xbar2);
 }

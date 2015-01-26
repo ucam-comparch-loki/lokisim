@@ -11,7 +11,7 @@
 void FlowControlIn::dataLoop() {
   NetworkData data = iData.read();
 
-  if (!data.channelID().multicast && !(data.channelID() == channel)) {
+  if (!data.channelID().multicast && (data.channelID() != channel)) {
     cerr << "Error: " << data << " arrived at channel " << channel << endl;
     assert(false);
   }

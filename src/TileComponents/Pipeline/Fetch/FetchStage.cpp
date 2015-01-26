@@ -265,11 +265,7 @@ void FetchStage::checkTags(MemoryAddr addr,
   // Note: we don't actually check the tags here. We just queue up the request
   // and check the tags at the next opportunity.
 
-  FetchInfo fetch;
-  fetch.address = addr;
-  fetch.operation = operation;
-  fetch.destination = channel;
-  fetch.returnAddress = returnChannel;
+  FetchInfo fetch(addr, operation, channel, returnChannel);
   fetchBuffer.write(fetch);
 
   // Break out of persistent mode if we have another packet to execute.

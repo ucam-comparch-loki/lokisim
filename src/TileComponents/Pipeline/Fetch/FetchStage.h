@@ -49,12 +49,19 @@ private:
   } PacketInfo;
 
   // Information about each instruction packet we want to bring into the cache.
-  typedef struct {
+  struct FetchInfo {
     MemoryAddr address;     // Memory address of the desired packet.
     opcode_t   operation;   // Fetch operation used to request the packet.
     ChannelID  destination; // Network address through which the packet can be reached.
     ChannelIndex returnAddress; // Return instructions to {0 = FIFO, 1 = cache}.
-  } FetchInfo;
+
+    FetchInfo() : address(0), operation((opcode_t)0), destination(0), returnAddress(0) {}
+    FetchInfo(MemoryAddr addr, opcode_t op, ChannelID dest, ChannelIndex ret) :
+      address(addr),
+      operation(op),
+      destination(dest),
+      returnAddress(ret) {}
+  };
 
 //==============================//
 // Ports

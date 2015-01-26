@@ -192,6 +192,10 @@ private:
 		ChannelIndex        ReturnChannel;    // Channel to send to when rest of return address is implicit
 		bool                PortClaim;				// Indicates whether this is a port claim message
 		bool                LastWord;					// Indicates whether this is the last word of the message
+
+		OutputWord() : Data(0), TableIndex(0), ReturnChannel(0), PortClaim(false), LastWord(false) {}
+		OutputWord(Word d, uint index, ChannelIndex channel, bool claim, bool last) :
+		  Data(d), TableIndex(index), ReturnChannel(channel), PortClaim(claim), LastWord(last) {}
 	};
 
 	//---------------------------------------------------------------------------------------------

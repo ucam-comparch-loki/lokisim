@@ -9,6 +9,10 @@
 #include "../NetworkHierarchy.h"
 #include "../Router.h"
 
+DataInput&   Mesh::iData2D(uint x,  uint y) const {return iData[flatten(x,y)];}
+DataOutput&  Mesh::oData2D(uint x,  uint y) const {return oData[flatten(x,y)];}
+ReadyOutput& Mesh::oReady2D(uint x, uint y) const {return oReady[flatten(x,y)];}
+
 const vector<vector<DataSignal*> > Mesh::edgeDataInputs() const {return edgeDataInputs_;}
 const vector<vector<DataSignal*> > Mesh::edgeDataOutputs() const {return edgeDataOutputs_;}
 const vector<vector<ReadySignal*> > Mesh::edgeReadyOutputs() const {return edgeReadyOutputs_;}
@@ -16,8 +20,10 @@ const vector<vector<ReadySignal*> > Mesh::edgeReadyOutputs() const {return edgeR
 void Mesh::makeRouters() {
   for(unsigned int row=0; row<numRows; row++) {
     for(unsigned int col=0; col<numColumns; col++) {
-      ComponentID routerID(row, col, COMPONENTS_PER_TILE);
-      routers[col][row] = new Router(sc_gen_unique_name("router"), routerID);
+      ComponentID routerID(col, row, COMPONENTS_PER_TILE);
+      std::stringstream name;
+      name << "router_" << routerID.tile.getNameString();
+      routers[col][row] = new Router(name.str().c_str(), routerID);
     }
   }
 }
@@ -96,6 +102,10 @@ void Mesh::wireUp() {
       router.oReady[Router::LOCAL](oReady[tile]);
     }
   }
+}
+
+uint Mesh::flatten(uint x, uint y) const {
+  return (y*numColumns) + x;
 }
 
 Mesh::Mesh(const sc_module_name& name,

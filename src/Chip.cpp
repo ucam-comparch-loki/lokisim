@@ -118,39 +118,57 @@ void Chip::makeSignals() {
   int numOutputs = TOTAL_OUTPUT_PORTS;
   int numInputs  = TOTAL_INPUT_PORTS;
 
+  // Each of the global networks (data, credit, request, response) need to
+  // connect to every tile with at least one input, output and ready signal.
+  // Networks within a tile only need to exist on the compute tiles.
+
   oDataLocal.init(numOutputs);
   iDataLocal.init(numInputs);
-  oReadyData.init(NUM_COMPONENTS);
-  for (unsigned int i=0; i<oReadyData.length(); i++) {
-    // Cores have a different number of input buffers/flow control signals
-    // than memory banks.
-    if (i % COMPONENTS_PER_TILE < CORES_PER_TILE)
-      oReadyData[i].init(CORE_INPUT_CHANNELS);
-    else
-      oReadyData[i].init(1);
+  oReadyData.init(NUM_TILES);
+  for (uint col=0; col<TOTAL_TILE_COLUMNS; col++) {
+    for (uint row=0; row<TOTAL_TILE_ROWS; row++) {
+      TileID tile(col,row);
+      TileIndex index = tile.overallTileIndex();
+
+      if (tile.isComputeTile()) {
+        oReadyData[index].init(COMPONENTS_PER_TILE);
+
+        for (uint comp=0; comp<COMPONENTS_PER_TILE; comp++) {
+          // Cores have a different number of input buffers/flow control signals
+          // than memory banks.
+          if (comp < CORES_PER_TILE)
+            oReadyData[index][comp].init(CORE_INPUT_CHANNELS);
+          else
+            oReadyData[index][comp].init(1);
+        }
+      }
+      else {
+        oReadyData[index].init(1,1);
+      }
+    }
   }
 
-  oDataGlobal.init(NUM_CORES);
-  iDataGlobal.init(NUM_CORES);
+  oDataGlobal.init(NUM_TILES, CORES_PER_TILE);
+  iDataGlobal.init(NUM_TILES, CORES_PER_TILE);
 
-  oCredit.init(NUM_CORES);
-  iCredit.init(numOutputs);
-  oReadyCredit.init(NUM_CORES * CORE_OUTPUT_PORTS);
+  oCredit.init(NUM_TILES, CORES_PER_TILE);
+  iCredit.init(NUM_TILES, CORES_PER_TILE);
+  oReadyCredit.init(NUM_TILES, CORES_PER_TILE);
 
-  requestFromBanks.init(NUM_MEMORIES);
+  requestFromBanks.init(NUM_COMPUTE_TILES, MEMS_PER_TILE);
   requestToBanks.init(NUM_COMPUTE_TILES);       // Broadcast within each tile
   targetBank.init(NUM_COMPUTE_TILES);           // Broadcast within each tile
-  readyRequestToMHL.init(NUM_MEMORIES);
-  requestToMHL.init(NUM_COMPUTE_TILES);
-  requestFromMHL.init(NUM_COMPUTE_TILES);
+  readyRequestToMHL.init(NUM_TILES);
+  requestToMHL.init(NUM_TILES);
+  requestFromMHL.init(NUM_TILES);
   requestToBM.init(NUM_COMPUTE_TILES);
 
-  responseFromBanks.init(NUM_MEMORIES);
-  responseToMHL.init(NUM_COMPUTE_TILES);
-  readyResponseToMHL.init(NUM_COMPUTE_TILES);
+  responseFromBanks.init(NUM_COMPUTE_TILES, MEMS_PER_TILE);
   responseToBanks.init(NUM_COMPUTE_TILES);      // Broadcast within each tile
-  responseFromMHL.init(NUM_COMPUTE_TILES);
-  responseFromBM.init(NUM_COMPUTE_TILES);
+  responseToMHL.init(NUM_TILES);
+  readyResponseToMHL.init(NUM_TILES);
+  responseFromMHL.init(NUM_TILES);
+  responseFromBM.init(NUM_TILES);
 
 	ringStrobe.init(NUM_MEMORIES);
 	ringRequest.init(NUM_MEMORIES);
@@ -163,12 +181,13 @@ void Chip::makeComponents() {
   // tiles around the edge.
   for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
     for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
+      TileID tile(col, row);
       std::stringstream namebuilder;
       std::string name;
 
       // Initialise the cores of this tile
       for (uint core = 0; core < CORES_PER_TILE; core++) {
-        ComponentID coreID(col, row, core);
+        ComponentID coreID(tile, core);
 
         namebuilder << "core_" << coreID.getNameString();
         namebuilder >> name;
@@ -181,7 +200,7 @@ void Chip::makeComponents() {
       
       // Initialise the memories of this tile
       for (uint mem = 0; mem < MEMS_PER_TILE; mem++) {
-        ComponentID memoryID(col, row, CORES_PER_TILE + mem);
+        ComponentID memoryID(tile, CORES_PER_TILE + mem);
 
         namebuilder << "memory_" << memoryID.getNameString();
         namebuilder >> name;
@@ -193,11 +212,11 @@ void Chip::makeComponents() {
         memories.push_back(m);
       }
       
-   	  namebuilder << "mhl_" << col << "," << row;
+   	  namebuilder << "mhl_" << tile.getNameString();
     	namebuilder >> name;
     	namebuilder.clear();
 
-    	MissHandlingLogic* m = new MissHandlingLogic(name.c_str(), ComponentID(col,row,0));
+    	MissHandlingLogic* m = new MissHandlingLogic(name.c_str(), ComponentID(tile,0));
     	mhl.push_back(m);
       
     }
@@ -212,152 +231,216 @@ void Chip::wireUp() {
 	backgroundMemory.iClock(clock);
 
 	// Global data network - connects cores to cores.
-  DataNetwork* dataNet = new DataNetwork("data_net");
-  dataNet->clock(clock);
-  for (unsigned int i=0; i<cores.size(); i++) {
-    cores[i]->iDataGlobal(iDataGlobal[i]);
-    dataNet->oData[i](iDataGlobal[i]);
+  dataNet.clock(clock);
+  for (uint col=0; col<TOTAL_TILE_COLUMNS; col++) {
+    for (uint row=0; row<TOTAL_TILE_ROWS; row++) {
+      const TileID tile(col,row);
+      const TileIndex tileIndex = tile.overallTileIndex();
 
-    cores[i]->oDataGlobal(oDataGlobal[i]);
-    dataNet->iData[i](oDataGlobal[i]);
+      if (tile.isComputeTile()) {
+        for (uint core=0; core<CORES_PER_TILE; core++) {
+          CoreIndex coreIndex = ComponentID(tile,core).globalCoreNumber();
 
-    for (unsigned int j=0; j<CORE_INPUT_CHANNELS; j++) {
-      unsigned int component = cores[i]->id.globalComponentNumber();
-      cores[i]->oReadyData[j](oReadyData[component][j]);
-      dataNet->iReady[i][j](oReadyData[component][j]);
+          cores[coreIndex]->iDataGlobal(iDataGlobal[tileIndex][core]);
+          dataNet.oData[tileIndex][core](iDataGlobal[tileIndex][core]);
+
+          cores[coreIndex]->oDataGlobal(oDataGlobal[tileIndex][core]);
+          dataNet.iData[tileIndex][core](oDataGlobal[tileIndex][core]);
+
+          for (uint ch=0; ch<CORE_INPUT_CHANNELS; ch++) {
+            cores[coreIndex]->oReadyData[ch](oReadyData[tileIndex][core][ch]);
+            dataNet.iReady[tileIndex][core][ch](oReadyData[tileIndex][core][ch]);
+          }
+        }
+      }
+      else {
+        dataNet.oData[tileIndex][0](iDataGlobal[tileIndex][0]);
+        dataNet.iData[tileIndex][0](oDataGlobal[tileIndex][0]);
+        dataNet.iReady[tileIndex][0][0](oReadyData[tileIndex][0][0]);
+      }
     }
   }
-  networks.push_back(dataNet);
 
   // Global credit network - connects cores to cores.
-  CreditNetwork* creditNet = new CreditNetwork("credit_net");
-  creditNet->clock(clock);
-  for (unsigned int i=0; i<cores.size(); i++) {
-    cores[i]->iCredit(iCredit[i]);
-    creditNet->oData[i](iCredit[i]);
+  creditNet.clock(clock);
+  for (uint col=0; col<TOTAL_TILE_COLUMNS; col++) {
+    for (uint row=0; row<TOTAL_TILE_ROWS; row++) {
+      const TileID tile(col,row);
+      const TileIndex tileIndex = tile.overallTileIndex();
 
-    cores[i]->oCredit(oCredit[i]);
-    creditNet->iData[i](oCredit[i]);
+      if (tile.isComputeTile()) {
+        for (uint core=0; core<CORES_PER_TILE; core++) {
+          CoreIndex coreIndex = ComponentID(tile,core).globalCoreNumber();
 
-    cores[i]->oReadyCredit(oReadyCredit[i]);
-    creditNet->iReady[i][0](oReadyCredit[i]);
+          cores[coreIndex]->iCredit(iCredit[tileIndex][core]);
+          creditNet.oData[tileIndex][core](iCredit[tileIndex][core]);
+
+          cores[coreIndex]->oCredit(oCredit[tileIndex][core]);
+          creditNet.iData[tileIndex][core](oCredit[tileIndex][core]);
+
+          cores[coreIndex]->oReadyCredit(oReadyCredit[tileIndex][core]);
+          creditNet.iReady[tileIndex][core][0](oReadyCredit[tileIndex][core]);
+        }
+      }
+      else {
+        creditNet.oData[tileIndex][0](iCredit[tileIndex][0]);
+        creditNet.iData[tileIndex][0](oCredit[tileIndex][0]);
+        creditNet.iReady[tileIndex][0][0](oReadyCredit[tileIndex][0]);
+      }
+    }
   }
-  networks.push_back(creditNet);
 
   // Global request network - connects memories to memories.
-  RequestNetwork* requestNet = new RequestNetwork("request_net");
-  requestNet->clock(clock);
-  requestNet->oMainMemoryRequest(requestToMainMemory);
+  requestNet.clock(clock);
+  requestNet.oMainMemoryRequest(requestToMainMemory);
 //  backgroundMemory.iRequest(requestToMainMemory);
-  requestNet->iMainMemoryReady(mainMemoryReadyRequest);
+  requestNet.iMainMemoryReady(mainMemoryReadyRequest);
 //  backgroundMemory.oReadyRequest(mainMemoryReadyRequest);
-  requestNet->iMainMemoryRequest(requestFromMainMemory);
+  requestNet.iMainMemoryRequest(requestFromMainMemory);
 //  backgroundMemory.oRequest(requestFromMainMemory);
-  for (unsigned int i=0; i<memories.size(); i++) {
-    memories[i]->oRequest(requestFromBanks[i]);
-    mhl[i/MEMS_PER_TILE]->iRequestFromBanks[i%MEMS_PER_TILE](requestFromBanks[i]);
+  for (uint col=0; col<TOTAL_TILE_COLUMNS; col++) {
+    for (uint row=0; row<TOTAL_TILE_ROWS; row++) {
+      const TileID tile(col,row);
+      const TileIndex tileIndex = tile.overallTileIndex();
 
-    memories[i]->iRequest(requestToBanks[i/MEMS_PER_TILE]);
-    memories[i]->iTargetBank(targetBank[i/MEMS_PER_TILE]);
+      if (tile.isComputeTile()) {
+        const TileIndex computeTileIndex = tile.computeTileIndex();
+
+        for (uint bank=0; bank<MEMS_PER_TILE; bank++) {
+          MemoryIndex memIndex = ComponentID(tile,bank+CORES_PER_TILE).globalMemoryNumber();
+
+          memories[memIndex]->oRequest(requestFromBanks[computeTileIndex][bank]);
+          mhl[computeTileIndex]->iRequestFromBanks[bank](requestFromBanks[computeTileIndex][bank]);
+
+          memories[memIndex]->iRequest(requestToBanks[computeTileIndex]);
+          memories[memIndex]->iTargetBank(targetBank[computeTileIndex]);
+        }
+
+        mhl[computeTileIndex]->oRequestToBanks(requestToBanks[computeTileIndex]);
+        mhl[computeTileIndex]->oTargetBank(targetBank[computeTileIndex]);
+
+        mhl[computeTileIndex]->oRequestToNetwork(requestFromMHL[tileIndex]);
+        requestNet.iData[tileIndex][0](requestFromMHL[tileIndex]);
+
+        mhl[computeTileIndex]->iRequestFromNetwork(requestToMHL[tileIndex]);
+        requestNet.oData[tileIndex][0](requestToMHL[tileIndex]);
+
+        mhl[computeTileIndex]->oReadyForRequest(readyRequestToMHL[tileIndex]);
+        requestNet.iReady[tileIndex][0][0](readyRequestToMHL[tileIndex]);
+      }
+      else {
+        requestNet.oData[tileIndex][0](requestToMHL[tileIndex]);
+        requestNet.iData[tileIndex][0](requestFromMHL[tileIndex]);
+        requestNet.iReady[tileIndex][0][0](readyRequestToMHL[tileIndex]);
+      }
+    }
   }
-  for (unsigned int i=0; i<mhl.size(); i++) {
-    mhl[i]->oRequestToNetwork(requestFromMHL[i]);
-    requestNet->iData[i](requestFromMHL[i]);
-
-    mhl[i]->iRequestFromNetwork(requestToMHL[i]);
-    requestNet->oData[i](requestToMHL[i]);
-
-    mhl[i]->oReadyForRequest(readyRequestToMHL[i]);
-    requestNet->iReady[i][0](readyRequestToMHL[i]);
-
-    mhl[i]->oRequestToBanks(requestToBanks[i]);
-    mhl[i]->oTargetBank(targetBank[i]);
-  }
-  networks.push_back(requestNet);
 
   // Global response network - connects memories to memories.
-  ResponseNetwork* responseNet = new ResponseNetwork("response_net");
-  responseNet->clock(clock);
-  responseNet->oMainMemoryResponse(responseToMainMemory);
+  responseNet.clock(clock);
+  responseNet.oMainMemoryResponse(responseToMainMemory);
 //  backgroundMemory.iResponse(responseToMainMemory);
-  responseNet->iMainMemoryReady(mainMemoryReadyResponse);
+  responseNet.iMainMemoryReady(mainMemoryReadyResponse);
 //  backgroundMemory.oReadyResponse(mainMemoryReadyResponse);
-  responseNet->iMainMemoryResponse(responseFromMainMemory);
+  responseNet.iMainMemoryResponse(responseFromMainMemory);
 //  backgroundMemory.oResponse(responseFromMainMemory);
-  for (unsigned int i=0; i<memories.size(); i++) {
-    memories[i]->oResponse(responseFromBanks[i]);
-    mhl[i/MEMS_PER_TILE]->iDataFromBanks[i%MEMS_PER_TILE](responseFromBanks[i]);
+  for (uint col=0; col<TOTAL_TILE_COLUMNS; col++) {
+    for (uint row=0; row<TOTAL_TILE_ROWS; row++) {
+      const TileID tile(col,row);
+      const TileIndex tileIndex = tile.overallTileIndex();
+
+      if (tile.isComputeTile()) {
+        const TileIndex computeTileIndex = tile.computeTileIndex();
+
+        for (uint bank=0; bank<MEMS_PER_TILE; bank++) {
+          MemoryIndex memIndex = ComponentID(tile,bank+CORES_PER_TILE).globalMemoryNumber();
+
+          memories[memIndex]->oResponse(responseFromBanks[computeTileIndex][bank]);
+          mhl[computeTileIndex]->iDataFromBanks[bank](responseFromBanks[computeTileIndex][bank]);
+
+          memories[memIndex]->iResponse(responseToBanks[computeTileIndex]);
+        }
+
+        mhl[computeTileIndex]->oDataToBanks(responseToBanks[computeTileIndex]);
+
+        mhl[computeTileIndex]->oResponseToNetwork(responseFromMHL[tileIndex]);
+        responseNet.iData[tileIndex][0](responseFromMHL[tileIndex]);
+
+        mhl[computeTileIndex]->iResponseFromNetwork(responseToMHL[tileIndex]);
+        responseNet.oData[tileIndex][0](responseToMHL[tileIndex]);
+
+        mhl[computeTileIndex]->oReadyForResponse(readyResponseToMHL[tileIndex]);
+        responseNet.iReady[tileIndex][0][0](readyResponseToMHL[tileIndex]);
+      }
+      else {
+        responseNet.oData[tileIndex][0](responseToMHL[tileIndex]);
+        responseNet.iData[tileIndex][0](responseFromMHL[tileIndex]);
+        responseNet.iReady[tileIndex][0][0](readyResponseToMHL[tileIndex]);
+      }
+    }
   }
-  for (unsigned int i=0; i<mhl.size(); i++) {
-    mhl[i]->iResponseFromNetwork(responseToMHL[i]);
-    responseNet->oData[i](responseToMHL[i]);
-
-    mhl[i]->oReadyForResponse(readyResponseToMHL[i]);
-    responseNet->iReady[i][0](readyResponseToMHL[i]);
-
-    mhl[i]->oResponseToNetwork(responseFromMHL[i]);
-    responseNet->iData[i](responseFromMHL[i]);
-
-    mhl[i]->oDataToBanks(responseToBanks[i]);
-    for (unsigned int j=i*MEMS_PER_TILE; j<(i+1)*MEMS_PER_TILE; j++)
-      memories[j]->iResponse(responseToBanks[i]);
-  }
-  networks.push_back(responseNet);
 
 // Connect cores and memories to the local interconnect
 
-	uint coreIndex = 0;
-	uint memoryIndex = 0;
 	uint dataInputCounter = 0;
 	uint dataOutputCounter = 0;
   uint readyInputCounter = 0;
 
-	for (uint i = 0; i < NUM_COMPONENTS; i++) {
-		if ((i % COMPONENTS_PER_TILE) < CORES_PER_TILE) {
-			// This is a core
-      cores[coreIndex]->clock(clock);
-      cores[coreIndex]->fastClock(fastClock);
+  for (uint col = 0; col < TOTAL_TILE_COLUMNS; col++) {
+    for (uint row = 0; row < TOTAL_TILE_ROWS; row++) {
+      TileID tile(col,row);
+      TileIndex tileIndex = tile.overallTileIndex();
 
-			for (uint j = 0; j < CORE_INPUT_PORTS; j++) {
-				uint index = dataInputCounter++;  // Position in network's array
+      if (tile.isComputeTile()) {
+        for (uint pos = 0; pos < COMPONENTS_PER_TILE; pos++) {
+          ComponentID component(tile, pos);
+          if (component.isCore()) {
+            uint coreIndex = component.globalCoreNumber();
+            cores[coreIndex]->clock(clock);
+            cores[coreIndex]->fastClock(fastClock);
 
-				cores[coreIndex]->iData[j](iDataLocal[index]);
-				network.oData[index](iDataLocal[index]);
-			}
+            for (uint j = 0; j < CORE_INPUT_PORTS; j++) {
+              uint index = dataInputCounter++;  // Position in network's array
 
-			for (uint j = 0; j < CORE_INPUT_CHANNELS; j++) {
-			  uint index = readyInputCounter++;  // Position in network's array
+              cores[coreIndex]->iData[j](iDataLocal[index]);
+              network.oData[index](iDataLocal[index]);
+            }
 
-			  // The ready signals are shared between all networks, and have already
-			  // been connected to the cores.
-//        cores[coreIndex]->oReadyData[j](readyDataFromComps[i][j]);
-        network.iReady[index](oReadyData[i][j]);
-			}
+            for (uint j = 0; j < CORE_INPUT_CHANNELS; j++) {
+              uint index = readyInputCounter++;  // Position in network's array
 
-			for (uint j = 0; j < CORE_OUTPUT_PORTS; j++) {
-				uint index = dataOutputCounter++;  // Position in network's array
+              // The ready signals are shared between all networks, and have already
+              // been connected to the cores.
+      //        cores[coreIndex]->oReadyData[j](oReadyData[tileIndex][pos][j]);
+              network.iReady[index](oReadyData[tileIndex][pos][j]);
+            }
 
-				cores[coreIndex]->oData[j](oDataLocal[index]);
-				network.iData[index](oDataLocal[index]);
-			}
+            for (uint j = 0; j < CORE_OUTPUT_PORTS; j++) {
+              uint index = dataOutputCounter++;  // Position in network's array
 
-			coreIndex++;
-		} else {
-			uint indexInput = dataInputCounter++;  // Position in network's array
-			memories[memoryIndex]->iData(iDataLocal[indexInput]);
-			network.oData[indexInput](iDataLocal[indexInput]);
+              cores[coreIndex]->oData[j](oDataLocal[index]);
+              network.iData[index](oDataLocal[index]);
+            }
+          } // end isCore
+          else {
+            uint memoryIndex = component.globalMemoryNumber();
 
-			uint indexReady = readyInputCounter++;  // Position in network's array
-			memories[memoryIndex]->oReadyForData(oReadyData[i][0]);
-	    network.iReady[indexReady](oReadyData[i][0]);
+            uint indexInput = dataInputCounter++;  // Position in network's array
+            memories[memoryIndex]->iData(iDataLocal[indexInput]);
+            network.oData[indexInput](iDataLocal[indexInput]);
 
-			uint indexOutput = dataOutputCounter++;  // Position in network's array
-			memories[memoryIndex]->oData(oDataLocal[indexOutput]);
-			network.iData[indexOutput](oDataLocal[indexOutput]);
+            uint indexReady = readyInputCounter++;  // Position in network's array
+            memories[memoryIndex]->oReadyForData(oReadyData[tileIndex][pos][0]);
+            network.iReady[indexReady](oReadyData[tileIndex][pos][0]);
 
-			memoryIndex++;
-		}
-	}
+            uint indexOutput = dataOutputCounter++;  // Position in network's array
+            memories[memoryIndex]->oData(oDataLocal[indexOutput]);
+            network.iData[indexOutput](oDataLocal[indexOutput]);
+          } // end isMemory
+        } // end loop through components in tile
+      } // end isComputeTile
+    } // end tile row loop
+  } // end tile column loop
   
   for (uint j=0; j<NUM_COMPUTE_TILES; j++) {
     mhl[j]->clock(clock);
@@ -393,6 +476,10 @@ void Chip::wireUp() {
 Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
     Component(name),
     backgroundMemory("background_memory", ComponentID(2,0,0), NUM_COMPUTE_TILES),
+    dataNet("data_net"),
+    creditNet("credit_net"),
+    requestNet("request_net"),
+    responseNet("response_net"),
     network("network"),
     clock("clock", 1, SC_NS, 0.5),
     fastClock("fast_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.25),
@@ -408,5 +495,4 @@ Chip::~Chip() {
 	for (uint i = 0; i < cores.size();    i++) delete cores[i];
 	for (uint i = 0; i < memories.size(); i++) delete memories[i];
 	for (uint i = 0; i < mhl.size();      i++) delete mhl[i];
-	for (uint i = 0; i < networks.size(); i++) delete networks[i];
 }

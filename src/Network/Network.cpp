@@ -25,7 +25,7 @@ PortIndex Network::getDestination(const ChannelID& address) const {
       break;
     }
     case CHANNEL : {
-      if (externalConnection && !(address.component == id))
+      if (externalConnection && (address.component != id))
         port = numOutputPorts()-1;
       else
         port = address.channel - firstOutput;

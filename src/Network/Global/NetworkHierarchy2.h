@@ -33,14 +33,16 @@ public:
   ClockInput   clock;
 
   // One input port from each component.
-  LokiVector<DataInput>    iData;
+  // Address using array[tile][component]
+  LokiVector2D<DataInput>  iData;
 
   // One output port to each component.
-  LokiVector<DataOutput>   oData;
+  // Address using array[tile][component].
+  LokiVector2D<DataOutput> oData;
 
   // One flow control signal from each input buffer of each component.
-  // Address using array[component][buffer].
-  LokiVector2D<ReadyInput> iReady;
+  // Address using array[tile][component][buffer].
+  LokiVector3D<ReadyInput> iReady;
 
 //==============================//
 // Constructors and destructors
@@ -65,6 +67,11 @@ protected:
                   const unsigned int destinationsPerTile,
                   const unsigned int buffersPerDestination);
 
+private:
+
+  void createNetworkToRouter(TileID tile);
+  void createNetworkFromRouter(TileID tile);
+
 //==============================//
 // Components
 //==============================//
@@ -80,8 +87,9 @@ protected:
   Mesh globalNetwork;
 
   // Signals between local and global networks.
-  LokiVector<DataSignal>    localToGlobalData,   globalToLocalData;
-  LokiVector<ReadySignal>   localToGlobalReady,  globalToLocalReady;
+  // Address using array[column][row]
+  LokiVector2D<DataSignal>    localToGlobalData,   globalToLocalData;
+  LokiVector2D<ReadySignal>   localToGlobalReady,  globalToLocalReady;
 
 };
 

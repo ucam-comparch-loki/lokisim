@@ -21,7 +21,7 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
   // Start off assuming this is the home tile for all data. This means that if
   // we experience a cache miss, we will go straight to main memory to
   // retrieve it.
-  TileIndex tile = id.tile.flatten();;
+  TileIndex tile = id.tile.flatten();//TileID(2,1).flatten();
   directory.initialise(tile);
 
   iRequestFromBanks.init(MEMS_PER_TILE);
@@ -87,7 +87,7 @@ void MissHandlingLogic::handleNewLocalRequest() {
       requestDestination = getDestination(address);
 
       if (DEBUG)
-        cout << this->name() << " requesting " << requestFlitsRemaining << " words from 0x" << std::hex << address << std::dec << endl;
+        cout << this->name() << " requesting " << requestFlitsRemaining << " words from 0x" << std::hex << address << std::dec << " on tile " << requestDestination.component.tile << endl;
       break;
     }
 
@@ -100,7 +100,7 @@ void MissHandlingLogic::handleNewLocalRequest() {
       requestDestination = getDestination(address);
 
       if (DEBUG)
-        cout << this->name() << " flushing " << requestFlitsRemaining << " words to 0x" << std::hex << address << std::dec << endl;
+        cout << this->name() << " flushing " << requestFlitsRemaining << " words to 0x" << std::hex << address << std::dec << " on tile " << requestDestination.component.tile << endl;
       break;
     }
 
@@ -320,7 +320,7 @@ void MissHandlingLogic::endRemoteRequest() {
 void MissHandlingLogic::sendOnNetwork(MemoryRequest request) {
   assert(canSendOnNetwork());
 
-  if (!(requestDestination == memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
+  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
 
     // If this is the header flit, also include our tile ID so the remote memory
     // knows where to send data back to.
@@ -343,7 +343,7 @@ void MissHandlingLogic::sendOnNetwork(MemoryRequest request) {
 }
 
 bool MissHandlingLogic::canSendOnNetwork() const {
-  if (!(requestDestination == memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
+  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
     return !oRequestToNetwork.valid();
   else {
     return !oRequestToBM.valid();
@@ -351,7 +351,7 @@ bool MissHandlingLogic::canSendOnNetwork() const {
 }
 
 const sc_event& MissHandlingLogic::canSendEvent() const {
-  if (!(requestDestination == memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
+  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
     return oRequestToNetwork.ack_event();
   else {
     return oRequestToBM.ack_event();
@@ -359,7 +359,7 @@ const sc_event& MissHandlingLogic::canSendEvent() const {
 }
 
 Word MissHandlingLogic::receiveFromNetwork() {
-  if (!(requestDestination == memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
+  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
     assert(iResponseFromNetwork.valid());
     iResponseFromNetwork.ack();
     return iResponseFromNetwork.read().payload();
@@ -372,7 +372,7 @@ Word MissHandlingLogic::receiveFromNetwork() {
 }
 
 bool MissHandlingLogic::networkDataAvailable() const {
-  if (!(requestDestination == memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
+  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
     return iResponseFromNetwork.valid();
   else {
     return iDataFromBM.valid();
@@ -380,7 +380,7 @@ bool MissHandlingLogic::networkDataAvailable() const {
 }
 
 const sc_event& MissHandlingLogic::newNetworkDataEvent() const {
-  if (!(requestDestination == memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
+  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
     return iResponseFromNetwork.default_event();
   else {
     return iDataFromBM.default_event();

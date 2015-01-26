@@ -131,13 +131,8 @@ ReevaluateRequest:
       updatedRingRequest();
 		} else {
 			// Send port claim message to return channel
-
-			OutputWord outWord;
-			outWord.TableIndex = mActiveData.TableIndex;
-			outWord.Data = ChannelID(id, mActiveData.TableIndex).flatten();
-			outWord.PortClaim = true;
-			outWord.LastWord = true;
-
+			OutputWord outWord(ChannelID(id, mActiveData.TableIndex).flatten(),
+			    mActiveData.TableIndex, 0, true, true);
 			mOutputQueue.write(outWord);
 
 			mFSMState = STATE_IDLE;
@@ -290,13 +285,8 @@ bool MemoryBank::processMessageHeader() {
 
 				} else {
 					// Send port claim message to return channel
-
-					OutputWord outWord;
-					outWord.TableIndex = mActiveData.TableIndex;
-					outWord.Data = ChannelID(id, mActiveData.TableIndex).flatten();
-					outWord.PortClaim = true;
-					outWord.LastWord = true;
-
+					OutputWord outWord(ChannelID(id, mActiveData.TableIndex).flatten(),
+					    mActiveData.TableIndex, 0, true, true);
 					mOutputQueue.write(outWord);
 
 					mFSMState = STATE_IDLE;
@@ -514,14 +504,7 @@ void MemoryBank::processLocalMemoryAccess() {
 				  printOperation(mActiveRequest.getOperation(), mActiveData.Address, data);
 
 				// Enqueue output request
-
-				OutputWord outWord;
-				outWord.TableIndex = mActiveData.TableIndex;
-	      outWord.ReturnChannel = mActiveData.ReturnChannel;
-				outWord.Data = Word(data);
-				outWord.PortClaim = false;
-				outWord.LastWord = true;
-
+				OutputWord outWord(Word(data), mActiveData.TableIndex, mActiveData.ReturnChannel, false, true);
 				mOutputQueue.write(outWord);
 
 				// Chain next request
@@ -678,15 +661,8 @@ void MemoryBank::prepareIPKReadOutput(AbstractMemoryHandler& handler, uint32_t d
     cout << this->name() << " cache hit " << (endOfPacket ? "(end of packet reached)" : "(end of packet not reached)") << ": " << inst << endl;
 
   // Enqueue output request
-
-  OutputWord outWord;
-  outWord.TableIndex = mActiveData.TableIndex;
-  outWord.ReturnChannel = mActiveData.ReturnChannel;
-  outWord.Data = inst;
-  outWord.PortClaim = false;
-  outWord.LastWord = endOfPacket ||
-                     !handler.containsAddress(mActiveData.Address+4);
-
+  OutputWord outWord(inst, mActiveData.TableIndex, mActiveData.ReturnChannel, false,
+                     endOfPacket || !handler.containsAddress(mActiveData.Address+4));
   mOutputQueue.write(outWord);
 
   // Handle IPK streaming
@@ -770,14 +746,7 @@ void MemoryBank::prepareBurstReadOutput(AbstractMemoryHandler& handler, uint32_t
   bool endOfPacket = mActiveData.Count == 1;
 
   // Enqueue output request
-
-  OutputWord outWord;
-  outWord.TableIndex = mActiveData.TableIndex;
-  outWord.ReturnChannel = mActiveData.ReturnChannel;
-  outWord.Data = data;
-  outWord.PortClaim = false;
-  outWord.LastWord = endOfPacket;
-
+  OutputWord outWord(data, mActiveData.TableIndex, mActiveData.ReturnChannel, false, endOfPacket);
   mOutputQueue.write(outWord);
 
   // Handle data streaming
@@ -978,7 +947,7 @@ void MemoryBank::handleDataOutput() {
 
       // Remove the previous request if we are sending to a new destination.
       // Is this a hack, or is this reasonable?
-      if (!(mActiveOutputWord.channelID().component == word.channelID().component))
+      if (mActiveOutputWord.channelID().component != word.channelID().component)
         localNetwork->makeRequest(id, mActiveOutputWord.channelID(), false);
 
       mActiveOutputWord = word;
@@ -1043,7 +1012,12 @@ void MemoryBank::handleNewRequest() {
 
   MemoryRequest request = iRequest.read();
   MemoryAddr address = request.getPayload();
+  mConfig.Mode = MODE_GP_CACHE;
   mConfig.LineSize = request.getLineSize();
+  mConfig.WayCount = 1;
+  mConfig.GroupBaseBank = 0;
+  mConfig.GroupIndex = 0;
+  mConfig.GroupSize = 1;
   bool targetBank = iTargetBank.read() == (id.position - CORES_PER_TILE);
 
   // Ensure this memory bank is configured as an L2 cache bank.
@@ -1644,7 +1618,6 @@ void MemoryBank::printOperation(MemoryRequest::MemoryOperation operation,
 }
 
 void MemoryBank::printConfiguration() const {
-  uint tile = id.tile.computeTileIndex();
   uint startBank = mConfig.GroupBaseBank;
   uint endBank = startBank + mConfig.GroupSize - 1;
   stringstream mode;
@@ -1654,6 +1627,6 @@ void MemoryBank::printConfiguration() const {
     mode << "cache (associativity " << mConfig.WayCount << ")";
   uint lineSize = mConfig.LineSize;
 
-  cout << "MEMORY CONFIG: tile " << tile << ", banks " << startBank << "-"
+  cout << "MEMORY CONFIG: tile " << id.tile << ", banks " << startBank << "-"
       << endBank << ", line size " << lineSize << ", " << mode.str() << endl;
 }

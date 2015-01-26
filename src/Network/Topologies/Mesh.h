@@ -56,6 +56,12 @@ public:
 
 public:
 
+  // Access methods to convert between the 2D arrangement of the mesh, and the
+  // 1D arrangement of the standard network.
+  DataInput& iData2D(uint x, uint y) const;
+  DataOutput& oData2D(uint x, uint y) const;
+  ReadyOutput& oReady2D(uint x, uint y) const;
+
   // Collections of signals which run off the edges of the Mesh.
   // Address using vector[Router::Direction][index].
   const vector<vector<DataSignal*> >  edgeDataInputs()   const;
@@ -67,6 +73,9 @@ private:
   void makeRouters();
   void makeWires();
   void wireUp();
+
+  // Convert between 2D and 1D port addressing.
+  uint flatten(uint x, uint y) const;
 
 //==============================//
 // Components

@@ -14,6 +14,10 @@
 #define CHIP_H_
 
 #include "Component.h"
+#include "Network/Global/CreditNetwork.h"
+#include "Network/Global/ResponseNetwork.h"
+#include "Network/Global/RequestNetwork.h"
+#include "Network/Global/DataNetwork.h"
 #include "Network/NetworkHierarchy.h"
 #include "TileComponents/Core.h"
 #include "TileComponents/Memory/MemoryBank.h"
@@ -23,7 +27,6 @@ using std::vector;
 
 class DataBlock;
 class MissHandlingLogic;
-class NetworkHierarchy2;
 class TileComponent;
 
 class Chip : public Component {
@@ -82,7 +85,15 @@ private:
 	vector<MemoryBank*>        memories;          // All memories of the chip
 	vector<MissHandlingLogic*> mhl;               // One per tile
 	SimplifiedOnChipScratchpad backgroundMemory;
-	vector<NetworkHierarchy2*> networks;          // Global networks
+
+	// Global networks - connect all tiles together.
+	DataNetwork                dataNet;
+	CreditNetwork              creditNet;
+	RequestNetwork             requestNet;
+	ResponseNetwork            responseNet;
+
+	// All networks internal to each tile. To be folded in to another network
+	// at some point.
 	NetworkHierarchy           network;
 
 //==============================//
@@ -96,17 +107,20 @@ private:
 	// Naming of signals is relative to the components: iData is a data signal
 	// which is an input to a core or memory bank.
   LokiVector<DataSignal>     oDataLocal,          iDataLocal;
-  LokiVector<DataSignal>     oDataGlobal,         iDataGlobal;
-	LokiVector<CreditSignal>   oCredit,             iCredit;
+  LokiVector2D<DataSignal>   oDataGlobal,         iDataGlobal;
+	LokiVector2D<CreditSignal> oCredit,             iCredit;
   LokiVector<RequestSignal>  requestToMHL,        requestFromMHL;
   LokiVector<ResponseSignal> responseFromMHL,     responseToMHL;
-  LokiVector<loki_signal<Word> > responseFromBM,  responseToBanks, responseFromBanks;
-  LokiVector<loki_signal<MemoryRequest> > requestToBM, requestToBanks, requestFromBanks;
+  LokiVector<loki_signal<Word> > responseFromBM,  responseToBanks;
+  LokiVector2D<loki_signal<Word> > responseFromBanks;
+  LokiVector<loki_signal<MemoryRequest> > requestToBM, requestToBanks;
+  LokiVector2D<loki_signal<MemoryRequest> > requestFromBanks;
   LokiVector<sc_signal<MemoryIndex> > targetBank;
 
-  // Index ready signals using oReadyData[component][buffer].
-  LokiVector2D<ReadySignal>  oReadyData;
-  LokiVector<ReadySignal>    oReadyCredit, readyRequestToMHL, readyResponseToMHL;
+  // Index ready signals using oReadyData[tile][component][buffer].
+  LokiVector3D<ReadySignal>  oReadyData;
+  LokiVector2D<ReadySignal>  oReadyCredit;
+  LokiVector<ReadySignal>    readyRequestToMHL, readyResponseToMHL;
 
   RequestSignal              requestToMainMemory,    requestFromMainMemory;
   ResponseSignal             responseToMainMemory,   responseFromMainMemory;

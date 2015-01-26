@@ -24,11 +24,33 @@ struct TileID {
   TileID(uint xPos, uint yPos) : x(xPos), y(yPos) {checkValid();}
   TileID(const TileID& other)  : x(other.x), y(other.y) {}
 
+  // Convert from grid address to linear address.
+  uint overallTileIndex() const {return (y * TOTAL_TILE_COLUMNS) + x;}
+
   // Convert from grid address to linear address, within compute tiles only.
   uint computeTileIndex() const {return ((y-1)*COMPUTE_TILE_COLUMNS) + (x-1);}
+
   uint flatten()          const {return (x << 3) | y;}
 
+  bool isComputeTile()    const {
+    return (x > 0) && (x <= COMPUTE_TILE_COLUMNS) && (y > 0) && (y <= COMPUTE_TILE_ROWS);
+  }
+
   bool operator==(const TileID other) const {return (x==other.x) && (y==other.y);}
+  bool operator!=(const TileID other) const {return !(*this == other);}
+
+  friend std::ostream& operator<< (std::ostream& os, const TileID& t) {
+    // Convert a tile address into the form "(column, row)"
+    os << "(" << t.x << "," << t.y << ")";
+    return os;
+  }
+
+  const std::string getNameString() const {
+    // Convert a tile address into the form "x_y"
+    std::stringstream ss;
+    ss << x << "_" << y;
+    return ss.str();
+  }
 
   friend void sc_trace(sc_core::sc_trace_file*& tf, const TileID& w, const std::string& txt) {
     sc_trace(tf, w.x, txt + ".x");
@@ -61,6 +83,7 @@ struct ComponentID {
   uint globalMemoryNumber()    const {return tile.computeTileIndex() * MEMS_PER_TILE + position - CORES_PER_TILE;}
 
   bool operator==(const ComponentID other) const {return (tile==other.tile) && (position==other.position);}
+  bool operator!=(const ComponentID other) const {return !(*this == other);}
 
   friend std::ostream& operator<< (std::ostream& os, const ComponentID& c) {
     // Convert a unique component address into the form "(column, row, position)"
@@ -72,9 +95,7 @@ struct ComponentID {
     // Convert a unique port address into the form "tileX_tileY_position"
     std::stringstream ss;
     ss << tile.x << "_" << tile.y << "_" << position;
-    std::string result;
-    ss >> result;
-    return result;
+    return ss.str();
   }
 
   friend void sc_trace(sc_core::sc_trace_file*& tf, const ComponentID& w, const std::string& txt) {
@@ -178,9 +199,7 @@ struct ChannelID {
       ss << "(" << component.tile.x << "," << component.tile.y << "," << component.position << "," << channel << ")";
     }
 
-    std::string result;
-    ss >> result;
-    return result;
+    return ss.str();
   }
 
   bool operator==(const ChannelID other) const {
@@ -188,6 +207,10 @@ struct ChannelID {
       return (coremask == other.coremask) && (multicast == other.multicast) && (channel == other.channel);
     else
       return (component == other.component) && (multicast == other.multicast) && (channel == other.channel);
+  }
+
+  bool operator!=(const ChannelID other) const {
+    return !(*this == other);
   }
 
   friend std::ostream& operator<< (std::ostream& os, const ChannelID& c) {
