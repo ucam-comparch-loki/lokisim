@@ -7,6 +7,7 @@
 
 #include "NetworkHierarchy.h"
 #include "Topologies/LocalNetwork.h"
+#include "../Utility/Parameters.h"
 
 local_net_t* NetworkHierarchy::getLocalNetwork(ComponentID component) const {
   unsigned int tileColumn = component.tile.x;

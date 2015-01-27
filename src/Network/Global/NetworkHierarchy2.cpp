@@ -97,8 +97,7 @@ void NetworkHierarchy2::createNetworkToRouter(TileID tile) {
   xbar->clock(clock);
   xbar->oData[0](localToGlobalData[tile.x][tile.y]);
   xbar->iReady[0][0](globalToLocalReady[tile.x][tile.y]);
-  for (uint component=0; component<sourcesPerTile; component++)
-    xbar->iData[component](iData[index][component]);
+  xbar->iData(iData[index]);
 
   toRouter.push_back(xbar);
 }
@@ -108,22 +107,18 @@ void NetworkHierarchy2::createNetworkFromRouter(TileID tile) {
   uint destinationsPerTile = oData[index].length();
   uint buffersPerDestination = iReady[index][0].length();
 
-  InstantCrossbar* xbar2 = new InstantCrossbar(sc_gen_unique_name("from_router"), // name
-                               ComponentID(tile,0), // ID
-                               1,                   // inputs from router
-                               destinationsPerTile, // outputs to components
-                               1,                   // outputs leading to each component
-                               Network::COMPONENT,  // route by component number
-                               buffersPerDestination);// buffers behind each output
+  InstantCrossbar* xbar = new InstantCrossbar(sc_gen_unique_name("from_router"), // name
+                              ComponentID(tile,0), // ID
+                              1,                   // inputs from router
+                              destinationsPerTile, // outputs to components
+                              1,                   // outputs leading to each component
+                              Network::COMPONENT,  // route by component number
+                              buffersPerDestination);// buffers behind each output
 
-  xbar2->clock(clock);
-  xbar2->iData[0](globalToLocalData[tile.x][tile.y]);
+  xbar->clock(clock);
+  xbar->iData[0](globalToLocalData[tile.x][tile.y]);
+  xbar->oData(oData[index]);
+  xbar->iReady(iReady[index]);
 
-  for (uint component=0; component<destinationsPerTile; component++) {
-    xbar2->oData[component](oData[index][component]);
-    for (uint buffer=0; buffer<buffersPerDestination; buffer++)
-      xbar2->iReady[component][buffer](iReady[index][component][buffer]);
-  }
-
-  fromRouter.push_back(xbar2);
+  fromRouter.push_back(xbar);
 }

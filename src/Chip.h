@@ -106,11 +106,11 @@ private:
 
 	// Naming of signals is relative to the components: iData is a data signal
 	// which is an input to a core or memory bank.
-  LokiVector<DataSignal>     oDataLocal,          iDataLocal;
-  LokiVector2D<DataSignal>   oDataGlobal,         iDataGlobal;
-	LokiVector2D<CreditSignal> oCredit,             iCredit;
-  LokiVector<RequestSignal>  requestToMHL,        requestFromMHL;
-  LokiVector<ResponseSignal> responseFromMHL,     responseToMHL;
+  LokiVector<DataSignal>       oDataLocal,          iDataLocal;
+  LokiVector2D<DataSignal>     oDataGlobal,         iDataGlobal;
+	LokiVector2D<CreditSignal>   oCredit,             iCredit;
+  LokiVector2D<RequestSignal>  requestToMHL,        requestFromMHL;
+  LokiVector2D<ResponseSignal> responseFromMHL,     responseToMHL;
   LokiVector<loki_signal<Word> > responseFromBM,  responseToBanks;
   LokiVector2D<loki_signal<Word> > responseFromBanks;
   LokiVector<loki_signal<MemoryRequest> > requestToBM, requestToBanks;
@@ -118,9 +118,8 @@ private:
   LokiVector<sc_signal<MemoryIndex> > targetBank;
 
   // Index ready signals using oReadyData[tile][component][buffer].
-  LokiVector3D<ReadySignal>  oReadyData;
-  LokiVector2D<ReadySignal>  oReadyCredit;
-  LokiVector<ReadySignal>    readyRequestToMHL, readyResponseToMHL;
+  LokiVector3D<ReadySignal>  oReadyData, oReadyCredit;
+  LokiVector3D<ReadySignal>  readyRequestToMHL, readyResponseToMHL;
 
   RequestSignal              requestToMainMemory,    requestFromMainMemory;
   ResponseSignal             responseToMainMemory,   responseFromMainMemory;

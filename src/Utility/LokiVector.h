@@ -53,6 +53,12 @@ public:
     data_ = new T[size];
   }
 
+  // Initialise the vector to the same dimensions as another given vector.
+  template<typename T2>
+  inline void init(const LokiVector<T2>& other) {
+    init(other.length());
+  }
+
   inline const size_t length() const {
     return size_;
   }
@@ -62,6 +68,15 @@ public:
     assert(position < length());
 
     return data_[position];
+  }
+
+  // Call the () operator on each element of the vector. (Useful for binding
+  // SystemC ports and signals.)
+  template<typename T2>
+  inline void operator()(const LokiVector<T2>& other) {
+    assert(length() == other.length());
+    for (uint i=0; i<length(); i++)
+      data_[i](other[i]);
   }
 
 //==============================//

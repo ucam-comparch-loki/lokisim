@@ -236,13 +236,10 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
     inputCrossbar.iData[i](iData[i]);
   inputCrossbar.iData[CORE_INPUT_PORTS](iDataGlobal);
 
-  for (unsigned int i=0; i<CORE_INPUT_CHANNELS; i++) {
-    inputCrossbar.oReady[i](oReadyData[i]);
-    inputCrossbar.oData[i](dataToBuffers[i]);
-    inputCrossbar.iFlowControl[i](fcFromBuffers[i]);
-    inputCrossbar.iDataConsumed[i](dataConsumed[i]);
-  }
-
+  inputCrossbar.oReady(oReadyData);
+  inputCrossbar.oData(dataToBuffers);
+  inputCrossbar.iFlowControl(fcFromBuffers);
+  inputCrossbar.iDataConsumed(dataConsumed);
   inputCrossbar.clock(clock);
   inputCrossbar.creditClock(fastClock);
   inputCrossbar.oCredit[0](oCredit);

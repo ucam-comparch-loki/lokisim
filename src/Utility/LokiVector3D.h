@@ -48,6 +48,15 @@ public:
       data_[i].init(width, depth);
   }
 
+  // Initialise the vector to the same dimensions as another given vector.
+  template<typename T2>
+  inline void init(const LokiVector3D<T2>& other) {
+    init(other.length());
+
+    for (unsigned int i=0; i<length(); i++)
+      data_[i].init(other[i]);
+  }
+
   // Initialise with only one parameter - allows different subvectors to be
   // different lengths, if necessary.
   inline void init(size_t length) {
@@ -64,6 +73,15 @@ public:
     assert(position < length());
 
     return data_[position];
+  }
+
+  // Call the () operator on each element of the vector. (Useful for binding
+  // SystemC ports and signals.)
+  template<typename T2>
+  inline void operator()(const LokiVector3D<T2>& other) {
+    assert(length() == other.length());
+    for (uint i=0; i<length(); i++)
+      data_[i](other[i]);
   }
 
 //==============================//

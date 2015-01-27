@@ -24,9 +24,6 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
   TileIndex tile = id.tile.flatten();//TileID(2,1).flatten();
   directory.initialise(tile);
 
-  iRequestFromBanks.init(MEMS_PER_TILE);
-  iDataFromBanks.init(MEMS_PER_TILE);
-
   localState = MHL_READY;
   remoteState = MHL_READY;
   requestDestination = ChannelID();
@@ -34,13 +31,14 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
   requestFlitsRemaining = 0;
   responseFlitsRemaining = 0;
 
-  for (uint i=0; i<iRequestFromBanks.length(); i++)
-    requestMux.iData[i](iRequestFromBanks[i]);
+  iRequestFromBanks.init(requestMux.iData);
+  iDataFromBanks.init(responseMux.iData);
+
+  requestMux.iData(iRequestFromBanks);
   requestMux.oData(muxedRequest);
   requestMux.iHold(holdRequestMux);
 
-  for (uint i=0; i<iDataFromBanks.length(); i++)
-    responseMux.iData[i](iDataFromBanks[i]);
+  responseMux.iData(iDataFromBanks);
   responseMux.oData(muxedResponse);
   responseMux.iHold(holdResponseMux);
 
