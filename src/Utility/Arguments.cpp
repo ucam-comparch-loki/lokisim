@@ -17,6 +17,7 @@
 #include "../Chip.h"
 
 bool Arguments::simulate_ = true;
+string Arguments::simulator_ = "";
 
 unsigned int Arguments::programArgc = 0;
 char** Arguments::programArgv = NULL;
@@ -40,6 +41,16 @@ void Arguments::parse(int argc, char* argv[]) {
 
   for (int i=0; i<argc; i++)
     invocation_ << argv[i] << " ";
+
+  // Get the full simulator path, not just the name used on the command line.
+  // This is Linux-specific.
+  char buff[512];
+  if (readlink("/proc/self/exe", buff, sizeof(buff)))
+    simulator_ = string(buff);
+  else
+    assert(false && "Unable to determine simulator location.");
+  cout << simulator_ << endl;
+
 
   if (argc == 1) {
     printHelp();
@@ -156,8 +167,7 @@ void Arguments::parse(int argc, char* argv[]) {
   }
 
   if (useDefaultSettings) {
-    const string simPath = string(argv[0]);
-    const string simDir = simPath.substr(0, simPath.rfind('/'));
+    const string simDir = simulator_.substr(0, simulator_.rfind('/'));
     string settingsFile = simDir + "/../config/loader.txt";
     programFiles.push_back(settingsFile);
   }

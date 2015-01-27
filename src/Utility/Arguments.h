@@ -53,6 +53,9 @@ private:
   // programs?
   static bool simulate_;
 
+  // The full path to this simulator.
+  static string simulator_;
+
   // The subset of the simulator's command line arguments which are to be
   // passed to the simulated program.
   static unsigned int programArgc;
