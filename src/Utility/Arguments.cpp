@@ -45,11 +45,11 @@ void Arguments::parse(int argc, char* argv[]) {
   // Get the full simulator path, not just the name used on the command line.
   // This is Linux-specific.
   char buff[512];
-  if (readlink("/proc/self/exe", buff, sizeof(buff)))
-    simulator_ = string(buff);
+  uint chars = readlink("/proc/self/exe", buff, sizeof(buff));
+  if (chars > 0)
+    simulator_ = string(buff).substr(0, chars);
   else
     assert(false && "Unable to determine simulator location.");
-  cout << simulator_ << endl;
 
 
   if (argc == 1) {
