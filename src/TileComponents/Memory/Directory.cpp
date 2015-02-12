@@ -44,7 +44,7 @@ void Directory::initialise(TileIndex tile) {
   directory.assign(directory.size(), tile);
 }
 
-TileIndex Directory::getTile(MemoryAddr address) const {
+TileID Directory::getTile(MemoryAddr address) const {
   unsigned int entry = (address >> shiftAmount) & bitmask;
-  return directory[entry];
+  return TileID(directory[entry]);
 }

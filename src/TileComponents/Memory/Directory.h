@@ -17,6 +17,8 @@
 #define DIRECTORY_H_
 
 #include <vector>
+
+#include "../../Datatype/Identifier.h"
 #include "../../Typedefs.h"
 
 class Directory {
@@ -50,7 +52,7 @@ public:
   void initialise(TileIndex tile);
 
   // Return the tile responsible for caching this memory address.
-  TileIndex getTile(MemoryAddr address) const;
+  TileID getTile(MemoryAddr address) const;
 
 //==============================//
 // Local state

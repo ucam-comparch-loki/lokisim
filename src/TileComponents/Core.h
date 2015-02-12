@@ -80,16 +80,16 @@ public:
 
 public:
 
-  // Initialise the instructions a Cluster will execute.
+  // Initialise the instructions a Core will execute.
   virtual void     storeData(const std::vector<Word>& data, MemoryAddr location=0);
 
-  // Returns the channel ID of the specified cluster's instruction packet FIFO.
+  // Returns the channel ID of the specified core's instruction packet FIFO.
   static ChannelID IPKFIFOInput(const ComponentID& ID);
 
-  // Returns the channel ID of the specified cluster's instruction packet cache.
+  // Returns the channel ID of the specified core's instruction packet cache.
   static ChannelID IPKCacheInput(const ComponentID& ID);
 
-  // Returns the channel ID of the specified cluster's input channel.
+  // Returns the channel ID of the specified core's input channel.
   static ChannelID RCETInput(const ComponentID& ID, ChannelIndex channel);
 
   // Get the memory location of the current instruction being decoded, so
@@ -183,13 +183,13 @@ private:
   RegisterFile           regs;
   PredicateRegister      pred;
 
-  // Each of the pipeline stages.
+  // Pipeline stages.
   FetchStage             fetch;
   DecodeStage            decode;
   ExecuteStage           execute;
   WriteStage             write;
 
-  // A stall register to go between each pair of adjacent pipeline stages.
+  // A pipeline register to go between each pair of adjacent stages.
   vector<PipelineRegister*> pipelineRegs;
 
   ChannelMapTable        channelMapTable;
@@ -220,9 +220,6 @@ private:
 //==============================//
 
 private:
-
-  // A signal set to constantly hold "true".
-  ReadySignal                  constantHigh;
 
   // Signals telling us which stages are able to send data or stalled.
   LokiVector<ReadySignal>      stageReady;

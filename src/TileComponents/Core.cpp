@@ -13,7 +13,7 @@
 #include "../Utility/InstructionMap.h"
 #include "../Utility/Instrumentation/Registers.h"
 
-/* Initialise the instructions a Cluster will execute. */
+/* Initialise the instructions a Core will execute. */
 void     Core::storeData(const std::vector<Word>& data, MemoryAddr location) {
   std::vector<Instruction> instructions;
 
@@ -190,17 +190,17 @@ ComponentID Core::getSystemCallMemory() const {
   return channelMapTable.getDestination(1).component;
 }
 
-/* Returns the channel ID of this cluster's instruction packet FIFO. */
+/* Returns the channel ID of this core's instruction packet FIFO. */
 ChannelID Core::IPKFIFOInput(const ComponentID& ID) {
   return ChannelID(ID, 0);
 }
 
-/* Returns the channel ID of this cluster's instruction packet cache. */
+/* Returns the channel ID of this core's instruction packet cache. */
 ChannelID Core::IPKCacheInput(const ComponentID& ID) {
   return ChannelID(ID, 1);
 }
 
-/* Returns the channel ID of this cluster's specified input channel. */
+/* Returns the channel ID of this core's specified input channel. */
 ChannelID Core::RCETInput(const ComponentID& ID, ChannelIndex channel) {
   return ChannelID(ID, 2 + channel);
 }
@@ -257,9 +257,9 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
   // Wire the pipeline stages up.
 
   fetch.clock(clock);
-  fetch.iToFIFO(dataToBuffers[0]);      fetch.oFlowControl[0](fcFromBuffers[0]);
-  fetch.iToCache(dataToBuffers[1]);     fetch.oFlowControl[1](fcFromBuffers[1]);
-  fetch.oDataConsumed[0](dataConsumed[0]); fetch.oDataConsumed[1](dataConsumed[1]);
+  fetch.iToFIFO(dataToBuffers[0]);          fetch.oFlowControl[0](fcFromBuffers[0]);
+  fetch.iToCache(dataToBuffers[1]);         fetch.oFlowControl[1](fcFromBuffers[1]);
+  fetch.oDataConsumed[0](dataConsumed[0]);  fetch.oDataConsumed[1](dataConsumed[1]);
   fetch.oFetchRequest(fetchFlitSignal);
   fetch.iOutputBufferReady(stageReady[2]);
   fetch.initPipeline(NULL, pipelineRegs[0]);
@@ -287,7 +287,4 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
   write.oDataGlobal(oDataGlobal);
   write.iCredit(iCredit);
   write.initPipeline(pipelineRegs[2], NULL);
-
-  // Initialise the values in some wires.
-  constantHigh.write(true);
 }

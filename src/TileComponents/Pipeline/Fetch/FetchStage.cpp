@@ -43,7 +43,8 @@ void FetchStage::readLoop() {
 
           pendingPacket.reset();
           readState = RS_READ;
-          // Fall through to next state.
+          next_trigger(sc_core::SC_ZERO_TIME);
+          break;
         }
 
       }
@@ -58,7 +59,6 @@ void FetchStage::readLoop() {
         break;
       }
     }
-    // no break
 
     // TODO: nextIPK needs to break us out of this state
     case RS_READ: {

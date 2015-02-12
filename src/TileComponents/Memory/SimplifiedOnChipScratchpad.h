@@ -49,15 +49,14 @@ private:
 private:
 
 	typedef loki_in<MemoryRequest> InRequestPort;
-	typedef loki_out<Word> OutDataPort;
 
 public:
 
-	ClockInput					      iClock;   // Clock
+	ClockInput					       iClock;   // Clock
 
-	LokiVector<InRequestPort> iData;    // Memory request words input from cache controllers
+	LokiVector<InRequestPort>  iData;    // Memory request words input from cache controllers
 
-	LokiVector<OutDataPort>   oData;    // Data words output to cache controllers
+	LokiVector<ResponseOutput> oData;    // Data words output to cache controllers
 
 	//---------------------------------------------------------------------------------------------
 	// Utility definitions
@@ -74,8 +73,9 @@ private:
 	struct PortData {
 	public:
 		PortState State;
-		uint32_t WordsLeft;
-		uint32_t Address;
+		uint32_t  WordsLeft;
+		uint32_t  Address;
+		ChannelID ReturnAddress;
 	};
 
 	struct InputWord {

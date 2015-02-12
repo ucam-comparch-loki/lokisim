@@ -10,6 +10,7 @@
 
 #include <assert.h>
 #include "systemc"
+#include "Memory/MemoryTypedefs.h"
 #include "../Typedefs.h"
 #include "../Datatype/Identifier.h"
 #include "../Utility/Parameters.h"
@@ -19,7 +20,7 @@ using sc_core::sc_event;
 // https://svr-rdm34-issue.cl.cam.ac.uk/w/loki/architecture/core/channel_map_table/
 //
 // Format:
-//  line size:        2 bits encoded - see options below
+//  line size:        2 bits encoded - options in MemoryTypedefs.h
 //  log2(group size): 2 bits
 //  return channel:   3 bits
 //  tile:             6 bits (x:3, y:3)
@@ -55,15 +56,6 @@ private:
   static const uint LINE_SIZE_START       = GROUP_SIZE_START     + GROUP_SIZE_WIDTH;
 
 public:
-
-  // Encode line size options efficiently - we're never going to want
-  // single-word cache lines.
-  enum LineSizeWords {
-    LS_4 = 0,
-    LS_8 = 1,
-    LS_16 = 2,
-    LS_32 = 3,
-  };
 
   enum NetworkType {CORE_TO_CORE, CORE_TO_MEMORY, GLOBAL};
 

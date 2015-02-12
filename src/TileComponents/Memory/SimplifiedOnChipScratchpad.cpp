@@ -44,7 +44,8 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 
 		if (request.getOperation() == MemoryRequest::FETCH_LINE) {
 			mPortData[port].Address = request.getPayload();
-			mPortData[port].WordsLeft = request.getLineSize() / 4;
+			mPortData[port].WordsLeft = request.getLineSize();
+			mPortData[port].ReturnAddress = ChannelID(request.getSourceTile().x, request.getSourceTile().y, request.getSourceBank(), 0);
 
       if (DEBUG)
         cout << this->name() << " reading " << mPortData[port].WordsLeft << " words from 0x" << std::hex << mPortData[port].Address << std::dec << endl;
@@ -65,7 +66,7 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 			mPortData[port].State = STATE_READING;
 		} else if (request.getOperation() == MemoryRequest::STORE_LINE) {
 			mPortData[port].Address = request.getPayload();
-			mPortData[port].WordsLeft = request.getLineSize() / 4;
+			mPortData[port].WordsLeft = request.getLineSize();
 
       if (DEBUG)
         cout << this->name() << " writing " << mPortData[port].WordsLeft << " words to 0x" << std::hex << mPortData[port].Address << std::dec << endl;
@@ -123,10 +124,14 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 
 			case STATE_READING:
 				if (!bankAccessed[bankSelected]) {
-					oData[port].write(Word(mData[mPortData[port].Address / 4]));
+				  NetworkResponse response(Word(mData[mPortData[port].Address / 4]),
+				                           mPortData[port].ReturnAddress);
 
 					mPortData[port].Address += 4;
 					mPortData[port].WordsLeft--;
+
+					response.setEndOfPacket(mPortData[port].WordsLeft == 0);
+					oData[port].write(response);
 
 					if (mPortData[port].WordsLeft == 0)
 						tryStartRequest(port);

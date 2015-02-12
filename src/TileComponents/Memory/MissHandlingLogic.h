@@ -52,6 +52,9 @@ public:
   // Responses are broadcast to all banks.
   OutDataPort                 oDataToBanks;
 
+  // The memory bank for which this response is meant.
+  sc_out<MemoryIndex>         oResponseTarget;
+
 
   // Ports to handle requests from memory banks on other tiles.
 
@@ -72,7 +75,7 @@ public:
 
   // If no bank is able to respond to the request, the target bank is the one
   // which should assume responsibility.
-  sc_out<MemoryIndex>         oTargetBank;
+  sc_out<MemoryIndex>         oRequestTarget;
 
 
   // Magic connections to background memory.
@@ -81,7 +84,7 @@ public:
   OutRequestPort              oRequestToBM;
 
   // Data from background memory.
-  InDataPort                  iDataFromBM;
+  ResponseInput               iResponseFromBM;
 
 //==============================//
 // Constructors and destructors
@@ -108,6 +111,8 @@ private:
   void handleDirectoryMaskUpdate();
   void endLocalRequest();
 
+  void receiveResponseLoop();
+
   // Process requests from remote memory banks.
   void remoteRequestLoop();
 
@@ -120,11 +125,11 @@ private:
   // of memory hierarchy to be hidden. It could be a magic background memory,
   // or in a constant position on the chip, or spread over a number of L2 tiles.
 
-  void sendOnNetwork(MemoryRequest request);
+  void sendOnNetwork(MemoryRequest request, bool endOfPacket);
   bool canSendOnNetwork() const;
   const sc_event& canSendEvent() const;
 
-  Word receiveFromNetwork();
+  NetworkResponse receiveFromNetwork();
   bool networkDataAvailable() const;
   const sc_event& newNetworkDataEvent() const;
 

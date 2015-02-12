@@ -14,11 +14,11 @@
 // Created on: 11/04/2011
 //-------------------------------------------------------------------------------------------------
 
+#include <cassert>
+#include "ScratchpadModeHandler.h"
+#include "../../Exceptions/UnalignedAccessException.h"
 #include "../../Utility/Instrumentation.h"
 #include "../../Utility/Trace/MemoryTrace.h"
-#include "ScratchpadModeHandler.h"
-
-#include <cassert>
 
 ScratchpadModeHandler::ScratchpadModeHandler(uint bankNumber) :
     AbstractMemoryHandler(bankNumber) {
@@ -66,8 +66,9 @@ bool ScratchpadModeHandler::sameLine(MemoryAddr address1, MemoryAddr address2) {
 
 bool ScratchpadModeHandler::readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug) {
 	assert(address < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
-	assert((address & 0x3) == 0);
 	assert((address & mGroupMask) == (mGroupIndex << mLineBits));
+	if ((address & 0x3) != 0)
+	  throw UnalignedAccessException(address, 4);
 
 	if (!debug && ENERGY_TRACE) {
 	  if (instruction)
@@ -92,8 +93,9 @@ bool ScratchpadModeHandler::readWord(MemoryAddr address, uint32_t &data, bool in
 
 bool ScratchpadModeHandler::readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug) {
 	assert(address < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
-	assert((address & 0x1) == 0);
 	assert((address & mGroupMask) == (mGroupIndex << mLineBits));
+  if ((address & 0x1) != 0)
+    throw UnalignedAccessException(address, 2);
 
 	if (!debug && ENERGY_TRACE)
 	  Instrumentation::memoryReadHalfWord(mBankNumber, address, false);
@@ -136,8 +138,9 @@ bool ScratchpadModeHandler::readByte(MemoryAddr address, uint32_t &data, bool re
 
 bool ScratchpadModeHandler::writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug) {
 	assert(address < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
-	assert((address & 0x3) == 0);
 	assert((address & mGroupMask) == (mGroupIndex << mLineBits));
+  if ((address & 0x3) != 0)
+    throw UnalignedAccessException(address, 4);
 
 	if (!debug && ENERGY_TRACE)
 	  Instrumentation::memoryWriteWord(mBankNumber, address, false);
@@ -154,8 +157,9 @@ bool ScratchpadModeHandler::writeWord(MemoryAddr address, uint32_t data, bool re
 
 bool ScratchpadModeHandler::writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug) {
 	assert(address < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
-	assert((address & 0x1) == 0);
 	assert((address & mGroupMask) == (mGroupIndex << mLineBits));
+  if ((address & 0x1) != 0)
+    throw UnalignedAccessException(address, 2);
 
 	if (!debug && ENERGY_TRACE)
 	  Instrumentation::memoryWriteHalfWord(mBankNumber, address, false);

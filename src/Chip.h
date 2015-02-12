@@ -111,19 +111,16 @@ private:
 	LokiVector2D<CreditSignal>   oCredit,             iCredit;
   LokiVector2D<RequestSignal>  requestToMHL,        requestFromMHL;
   LokiVector2D<ResponseSignal> responseFromMHL,     responseToMHL;
-  LokiVector<loki_signal<Word> > responseFromBM,  responseToBanks;
+  LokiVector<ResponseSignal>   responseFromBM;
+  LokiVector<loki_signal<Word> > responseToBanks;
   LokiVector2D<loki_signal<Word> > responseFromBanks;
   LokiVector<loki_signal<MemoryRequest> > requestToBM, requestToBanks;
   LokiVector2D<loki_signal<MemoryRequest> > requestFromBanks;
-  LokiVector<sc_signal<MemoryIndex> > targetBank;
+  LokiVector<sc_signal<MemoryIndex> > requestTarget, responseTarget;
 
   // Index ready signals using oReadyData[tile][component][buffer].
   LokiVector3D<ReadySignal>  oReadyData, oReadyCredit;
   LokiVector3D<ReadySignal>  readyRequestToMHL, readyResponseToMHL;
-
-  RequestSignal              requestToMainMemory,    requestFromMainMemory;
-  ResponseSignal             responseToMainMemory,   responseFromMainMemory;
-  ReadySignal                mainMemoryReadyRequest, mainMemoryReadyResponse;
 
   LokiVector<sc_signal<bool> > ringStrobe;
 	LokiVector<sc_signal<MemoryBank::RingNetworkRequest> > ringRequest;

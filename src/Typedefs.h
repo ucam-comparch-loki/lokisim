@@ -50,22 +50,9 @@ typedef int16_t  JumpOffset;
 typedef uint CacheIndex;
 typedef uint TagIndex;
 
-// The topology of the network in each tile.
-class LocalNetwork;
-typedef LocalNetwork local_net_t;
-
-// The topology of the network between tiles.
-class Mesh;
-typedef Mesh global_net_t;
-
 using sc_core::sc_in;
 using sc_core::sc_out;
 using sc_core::sc_signal;
-
-typedef bool IdleType;
-typedef sc_signal<IdleType> IdleSignal;
-typedef sc_in<IdleType>     IdleInput;
-typedef sc_out<IdleType>    IdleOutput;
 
 typedef sc_in<bool>         ClockInput;
 

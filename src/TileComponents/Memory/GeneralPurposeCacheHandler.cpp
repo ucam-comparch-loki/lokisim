@@ -15,13 +15,14 @@
 // Created on: 11/04/2011
 //-------------------------------------------------------------------------------------------------
 
+#include <cassert>
+#include "../../Exceptions/ReadOnlyException.h"
+#include "../../Exceptions/UnalignedAccessException.h"
 #include "../../Utility/Instrumentation.h"
 #include "../../Utility/Trace/MemoryTrace.h"
 #include "SimplifiedOnChipScratchpad.h"
 #include "GeneralPurposeCacheHandler.h"
 
-#include <cassert>
-#include "../../Exceptions/ReadOnlyException.h"
 
 bool GeneralPurposeCacheHandler::lookupCacheLine(MemoryAddr address, uint &slot, bool resume, bool read, bool instruction) {
 	assert((address & mGroupMask) == (mGroupIndex << mLineBits));
@@ -168,7 +169,8 @@ bool GeneralPurposeCacheHandler::sameLine(MemoryAddr address1, MemoryAddr addres
 }
 
 bool GeneralPurposeCacheHandler::readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug) {
-	assert((address & 0x3) == 0);
+  if ((address & 0x3) != 0)
+	  throw UnalignedAccessException(address, 4);
 
 	uint slot = 0;
 	if (!lookupCacheLine(address, slot, resume, true, instruction)) {
@@ -215,7 +217,8 @@ bool GeneralPurposeCacheHandler::readWord(MemoryAddr address, uint32_t &data, bo
 }
 
 bool GeneralPurposeCacheHandler::readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug) {
-	assert((address & 0x1) == 0);
+  if ((address & 0x1) != 0)
+    throw UnalignedAccessException(address, 2);
 
 	uint slot;
 	if (!lookupCacheLine(address, slot, resume, true, false)) {
@@ -277,7 +280,8 @@ bool GeneralPurposeCacheHandler::readByte(MemoryAddr address, uint32_t &data, bo
 }
 
 bool GeneralPurposeCacheHandler::writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug) {
-	assert((address & 0x3) == 0);
+  if ((address & 0x3) != 0)
+    throw UnalignedAccessException(address, 4);
 	if (mBackgroundMemory->readOnly(address))
 	  throw ReadOnlyException(address);
 
@@ -307,7 +311,8 @@ bool GeneralPurposeCacheHandler::writeWord(MemoryAddr address, uint32_t data, bo
 }
 
 bool GeneralPurposeCacheHandler::writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug) {
-	assert((address & 0x1) == 0);
+  if ((address & 0x1) != 0)
+    throw UnalignedAccessException(address, 2);
   if (mBackgroundMemory->readOnly(address))
     throw ReadOnlyException(address);
 

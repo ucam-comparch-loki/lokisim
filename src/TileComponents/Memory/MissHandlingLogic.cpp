@@ -21,7 +21,7 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
   // Start off assuming this is the home tile for all data. This means that if
   // we experience a cache miss, we will go straight to main memory to
   // retrieve it.
-  TileIndex tile = id.tile.flatten();//TileID(2,1).flatten();
+  TileIndex tile = id.tile.flatten();//*/TileID(2,1).flatten();
   directory.initialise(tile);
 
   localState = MHL_READY;
@@ -46,19 +46,24 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
   // only ever issue a request if there's space to receive a response.
   oReadyForResponse.initialize(true);
   oReadyForRequest.initialize(true);
-  oTargetBank.initialize(0);
+  oRequestTarget.initialize(0);
+  oResponseTarget.initialize(0);
   holdRequestMux.write(false);
   holdResponseMux.write(false);
 
   SC_METHOD(localRequestLoop);
   SC_METHOD(remoteRequestLoop);
+
+  SC_METHOD(receiveResponseLoop);
+  sensitive << iResponseFromNetwork << iResponseFromBM;
+  dont_initialize();
 }
 
 void MissHandlingLogic::localRequestLoop() {
   switch (localState) {
     case MHL_READY:
       if (!muxedRequest.valid())
-        next_trigger(muxedRequest.default_event());
+        next_trigger(muxedRequest.default_event() & clock.posedge_event());
       else
         handleNewLocalRequest();
       break;
@@ -80,7 +85,7 @@ void MissHandlingLogic::handleNewLocalRequest() {
 
     case MemoryRequest::FETCH_LINE: {
       localState = MHL_FETCH;
-      requestFlitsRemaining = request.getLineSize() / BYTES_PER_WORD;
+      requestFlitsRemaining = request.getLineSize();
       MemoryAddr address = request.getPayload();
       requestDestination = getDestination(address);
 
@@ -93,7 +98,7 @@ void MissHandlingLogic::handleNewLocalRequest() {
       localState = MHL_STORE;
 
       // Send the address plus the cache line.
-      requestFlitsRemaining = 1 + request.getLineSize() / BYTES_PER_WORD;
+      requestFlitsRemaining = 1 + request.getLineSize();
       MemoryAddr address = request.getPayload();
       requestDestination = getDestination(address);
 
@@ -111,7 +116,7 @@ void MissHandlingLogic::handleNewLocalRequest() {
       break;
 
     default:
-      throw InvalidOptionException("miss handling logic new local request", request.getOperation());
+      throw InvalidOptionException("miss handling logic local request operation", request.getOperation());
       break;
 
   } // end switch
@@ -120,45 +125,36 @@ void MissHandlingLogic::handleNewLocalRequest() {
 }
 
 void MissHandlingLogic::handleLocalFetch() {
-  if (networkDataAvailable()) {
-    // The memory bank should be able to consume all data immediately.
-    assert(!oDataToBanks.valid());
-
-    Word data = receiveFromNetwork();
-
-    if (DEBUG)
-      cout << this->name() << " received " << data << endl;
-
-    requestFlitsRemaining--;
-    oDataToBanks.write(data);
-    if (requestFlitsRemaining == 0)
-      endLocalRequest();
-    else
-      next_trigger(newNetworkDataEvent());
-  }
-  else if (!canSendOnNetwork()) {
-    next_trigger(canSendEvent());
+  if (!canSendOnNetwork()) {
+    next_trigger(canSendEvent() & clock.posedge_event());
   }
   else {
-    sendOnNetwork(muxedRequest.read());
+    sendOnNetwork(muxedRequest.read(), true);
     muxedRequest.ack();
-    next_trigger(newNetworkDataEvent());
+    next_trigger(newNetworkDataEvent() & clock.posedge_event());
+
+    // Move on to next request while we wait for data to come back.
+    endLocalRequest();
   }
 }
 
 void MissHandlingLogic::handleLocalStore() {
   if (canSendOnNetwork()) {
-    sendOnNetwork(muxedRequest.read());
-    muxedRequest.ack();
     requestFlitsRemaining--;
 
-    if (requestFlitsRemaining == 0)
+    if (requestFlitsRemaining == 0) {
+      sendOnNetwork(muxedRequest.read(), true);
       endLocalRequest();
-    else
-      next_trigger(muxedRequest.default_event());
+    }
+    else {
+      sendOnNetwork(muxedRequest.read(), false);
+      next_trigger(muxedRequest.default_event() & clock.posedge_event());
+    }
+
+    muxedRequest.ack();
   }
   else {
-    next_trigger(canSendEvent());
+    next_trigger(canSendEvent() & clock.posedge_event());
   }
 }
 
@@ -191,6 +187,27 @@ void MissHandlingLogic::endLocalRequest() {
   next_trigger(clock.posedge_event());
 }
 
+void MissHandlingLogic::receiveResponseLoop() {
+  assert(!oDataToBanks.valid());
+
+  NetworkResponse response;
+  if (iResponseFromBM.valid()) {
+    response = iResponseFromBM.read();
+    iResponseFromBM.ack();
+  }
+  else {
+    assert(iResponseFromNetwork.valid());
+    response = iResponseFromNetwork.read();
+    iResponseFromNetwork.ack();
+  }
+
+  if (DEBUG)
+    cout << this->name() << " received " << response << endl;
+
+  oDataToBanks.write(response.payload());
+  oResponseTarget.write(response.channelID().component.position);
+}
+
 
 void MissHandlingLogic::remoteRequestLoop() {
   switch (remoteState) {
@@ -210,20 +227,28 @@ void MissHandlingLogic::remoteRequestLoop() {
 }
 
 void MissHandlingLogic::handleNewRemoteRequest() {
-  MemoryRequest request = iRequestFromNetwork.read().payload();
+  NetworkRequest flit = iRequestFromNetwork.read();
+  MemoryRequest request = flit.payload();
+
+  // Update the target bank - the one to service the request in the event that
+  // no bank currently holds the required data.
+  // TODO: use a more realistic random number generator.
+  MemoryIndex targetBank = rand() % MEMS_PER_TILE;
+  oRequestTarget.write(targetBank);
 
   switch (request.getOperation()) {
 
     case MemoryRequest::FETCH_LINE: {
       remoteState = MHL_FETCH;
 
-      responseFlitsRemaining = request.getLineSize() / BYTES_PER_WORD;
+      responseFlitsRemaining = request.getLineSize();
       MemoryAddr address = request.getPayload();
-      TileIndex sourceTile = request.getSourceTile();
-      responseDestination = ChannelID((sourceTile >> 3) & 7, sourceTile & 7, 0, 0);
+      TileID sourceTile(request.getSourceTile());
+      MemoryIndex sourceBank = request.getSourceBank();
+      responseDestination = ChannelID(sourceTile.x, sourceTile.y, sourceBank, 0);
 
       if (DEBUG)
-        cout << this->name() << " requesting " << responseFlitsRemaining << " words from 0x" << std::hex << address << std::dec << endl;
+        cout << this->name() << " requesting " << responseFlitsRemaining << " words from 0x" << std::hex << address << std::dec << " (proposed bank " << targetBank << ")" << endl;
       break;
     }
 
@@ -231,29 +256,21 @@ void MissHandlingLogic::handleNewRemoteRequest() {
       remoteState = MHL_STORE;
 
       // Send the address plus the cache line.
-      responseFlitsRemaining = request.getLineSize() / BYTES_PER_WORD;
+      responseFlitsRemaining = request.getLineSize() + 1; // +1 for this header flit
       MemoryAddr address = request.getPayload();
 
       if (DEBUG)
-        cout << this->name() << " flushing " << responseFlitsRemaining << " words to 0x" << std::hex << address << std::dec << endl;
+        cout << this->name() << " flushing " << responseFlitsRemaining << " words to 0x" << std::hex << address << std::dec << " (proposed bank " << targetBank << ")" << endl;
       break;
     }
 
     default:
-      throw InvalidOptionException("miss handling logic new remote request", request.getOperation());
+      throw InvalidOptionException("miss handling logic remote request operation", request.getOperation());
       break;
 
   } // end switch
 
-  // Update the target bank - the one to service the request in the event that
-  // no bank currently holds the required data.
-  // Currently use a simple round-robin scheme, but could use pseudo-LRU.
-  MemoryIndex targetBank = oTargetBank.read() + 1;
-  if (targetBank >= MEMS_PER_TILE)
-    targetBank = 0;
-  oTargetBank.write(targetBank);
-
-  // Move to the appropriate state ASAP.
+  // Move to the next state ASAP.
   next_trigger(sc_core::SC_ZERO_TIME);
 }
 
@@ -262,7 +279,7 @@ void MissHandlingLogic::handleRemoteFetch() {
   if (muxedResponse.valid()) {
     // No buffering - wait until the output port is available.
     if (oResponseToNetwork.valid())
-      next_trigger(oResponseToNetwork.ack_event());
+      next_trigger(oResponseToNetwork.ack_event() & clock.posedge_event());
     // Output port is available - send flit.
     else {
       holdResponseMux.write(true);
@@ -277,7 +294,7 @@ void MissHandlingLogic::handleRemoteFetch() {
       }
       else {
         response.setEndOfPacket(false);
-        next_trigger(muxedResponse.default_event());
+        next_trigger(muxedResponse.default_event() & clock.posedge_event());
       }
 
       oResponseToNetwork.write(response);
@@ -287,21 +304,25 @@ void MissHandlingLogic::handleRemoteFetch() {
   else {
     oRequestToBanks.write(iRequestFromNetwork.read().payload());
     iRequestFromNetwork.ack();
-    next_trigger(muxedResponse.default_event());
+    next_trigger(muxedResponse.default_event() & clock.posedge_event());
   }
 }
 
 void MissHandlingLogic::handleRemoteStore() {
-  assert(!oRequestToBanks.valid());
+  // The banks may still be waiting to serve the previous request if there was
+  // a cache miss.
+  MemoryRequest request = iRequestFromNetwork.read().payload();
 
-  oRequestToBanks.write(iRequestFromNetwork.read().payload());
+  oRequestToBanks.write(request);
   iRequestFromNetwork.ack();
   responseFlitsRemaining--;
 
-  if (responseFlitsRemaining == 0)
+  if (responseFlitsRemaining == 0) {
+    assert(iRequestFromNetwork.read().endOfPacket());
     endRemoteRequest();
+  }
   else
-    next_trigger(iRequestFromNetwork.default_event());
+    next_trigger(iRequestFromNetwork.default_event() & oRequestToBanks.ack_event());
 }
 
 void MissHandlingLogic::endRemoteRequest() {
@@ -315,24 +336,12 @@ void MissHandlingLogic::endRemoteRequest() {
 // is accessed.
 
 
-void MissHandlingLogic::sendOnNetwork(MemoryRequest request) {
+void MissHandlingLogic::sendOnNetwork(MemoryRequest request, bool endOfPacket) {
   assert(canSendOnNetwork());
 
   if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
-
-    // If this is the header flit, also include our tile ID so the remote memory
-    // knows where to send data back to.
-    // The tile ID could be added to all flits, but it's unnecessary simulation
-    // overhead.
-    MemoryRequest newRequest;
-    TileIndex tile = id.tile.flatten();
-    if (request.getOperation() != MemoryRequest::PAYLOAD_ONLY)
-      newRequest = MemoryRequest(request.getOperation(), request.getPayload(),
-                                 request.getLineSize(),  tile);
-    else
-      newRequest = request;
-
-    NetworkRequest flit(newRequest, requestDestination);
+    NetworkRequest flit(request, requestDestination);
+    flit.setEndOfPacket(endOfPacket);
     oRequestToNetwork.write(flit);
   }
   else {
@@ -356,16 +365,16 @@ const sc_event& MissHandlingLogic::canSendEvent() const {
   }
 }
 
-Word MissHandlingLogic::receiveFromNetwork() {
+NetworkResponse MissHandlingLogic::receiveFromNetwork() {
   if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
     assert(iResponseFromNetwork.valid());
     iResponseFromNetwork.ack();
-    return iResponseFromNetwork.read().payload();
+    return iResponseFromNetwork.read();
   }
   else {
-    assert(iDataFromBM.valid());
-    iDataFromBM.ack();
-    return iDataFromBM.read();
+    assert(iResponseFromBM.valid());
+    iResponseFromBM.ack();
+    return iResponseFromBM.read();
   }
 }
 
@@ -373,7 +382,7 @@ bool MissHandlingLogic::networkDataAvailable() const {
   if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
     return iResponseFromNetwork.valid();
   else {
-    return iDataFromBM.valid();
+    return iResponseFromBM.valid();
   }
 }
 
@@ -381,12 +390,12 @@ const sc_event& MissHandlingLogic::newNetworkDataEvent() const {
   if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
     return iResponseFromNetwork.default_event();
   else {
-    return iDataFromBM.default_event();
+    return iResponseFromBM.default_event();
   }
 }
 
 ChannelID MissHandlingLogic::getDestination(MemoryAddr address) const {
-  TileID tile(directory.getTile(address));
+  TileID tile = directory.getTile(address);
 
   // The data should be on this tile, but isn't - go to main memory.
   if (tile == id.tile)

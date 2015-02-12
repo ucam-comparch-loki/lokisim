@@ -13,21 +13,24 @@
 
 #include "Word.h"
 #include "Identifier.h"
+#include "../TileComponents/Memory/MemoryTypedefs.h"
 #include "../Typedefs.h"
 #include "../Exceptions/InvalidOptionException.h"
 
 class MemoryRequest : public Word {
 private:
 	// | Unused : 12    | Memory operation : 8 | Opcode : 8 | Way bits : 4 | Line bits : 4 | Mode : 8 | Group bits : 8 |
-	// | Src tile:8 | Line size:4 | Memory operation : 8 | Address : 32                                                          |
+	// | Src tile:6 | Src bank:4 | Line size:2 | Memory operation : 8 | Address : 32                                                          |
 	// | Unused : 12    | Memory operation : 8 | Burst length : 32                                                     |
 	// | Unused : 12    | Memory operation : 8 | Channel ID : 32                                                       |
   // | Unused : 12    | Memory operation : 8 | Directory entry : 16 | Tile : 16                                      |
 
-  static const uint OFFSET_SOURCE_TILE      = 44;
-  static const uint  WIDTH_SOURCE_TILE      = 8;
+  static const uint OFFSET_SOURCE_TILE      = 46;
+  static const uint  WIDTH_SOURCE_TILE      = 6;
+  static const uint OFFSET_SOURCE_BANK      = 42;
+  static const uint  WIDTH_SOURCE_BANK      = 4;
 	static const uint OFFSET_LINE_SIZE        = 40;
-	static const uint  WIDTH_LINE_SIZE        = 4;
+	static const uint  WIDTH_LINE_SIZE        = 2;
 	static const uint OFFSET_OPERATION        = 32;
 	static const uint  WIDTH_OPERATION        = 8;
 
@@ -88,12 +91,22 @@ public:
 	inline uint32_t        getPayload()    const {return data_ & 0xFFFFFFFFULL;}
 	inline ChannelID       getChannelID()  const {return ChannelID(data_ & 0xFFFFFFFFULL);}
 
+	// Line size in words.
 	inline uint            getLineSize()   const {
-	  uint log2LineSize = getBits(OFFSET_LINE_SIZE, OFFSET_LINE_SIZE + WIDTH_LINE_SIZE - 1);
-	  return 1 << log2LineSize;
+	  uint encodedLineSize = getBits(OFFSET_LINE_SIZE, OFFSET_LINE_SIZE + WIDTH_LINE_SIZE - 1);
+	  switch (encodedLineSize) {
+	    case LS_4:  return 4;
+	    case LS_8:  return 8;
+	    case LS_16: return 16;
+	    case LS_32: return 32;
+	    default:
+	      throw InvalidOptionException("encoded line size", encodedLineSize);
+	      break;
+	  }
 	}
 
-	inline TileIndex       getSourceTile() const {return getBits(OFFSET_SOURCE_TILE, OFFSET_SOURCE_TILE + WIDTH_SOURCE_TILE - 1);}
+	inline TileID          getSourceTile() const {return TileID(getBits(OFFSET_SOURCE_TILE, OFFSET_SOURCE_TILE + WIDTH_SOURCE_TILE - 1));}
+	inline MemoryIndex     getSourceBank() const {return getBits(OFFSET_SOURCE_BANK, OFFSET_SOURCE_BANK + WIDTH_SOURCE_BANK - 1);}
 	inline MemoryOperation getOperation()  const {return (MemoryOperation)getBits(OFFSET_OPERATION, OFFSET_OPERATION + WIDTH_OPERATION - 1);}
 	inline MemoryOpCode    getOpCode()     const {return (MemoryOpCode)getBits(OFFSET_OPCODE, OFFSET_OPCODE + WIDTH_OPCODE - 1);}
 	inline uint            getWayBits()    const {return (uint)getBits(OFFSET_WAY_BITS, OFFSET_WAY_BITS + WIDTH_WAY_BITS - 1);}
@@ -174,23 +187,19 @@ public:
 		// Nothing
 	}
 
-	MemoryRequest(MemoryOperation operation, uint32_t payload, uint lineSize, TileIndex sourceTile = 0) : Word() {
-		// Use log of lineSize to reduce bits required.
-	  // Can reduce further by restricting to e.g. 8, 16, 32, 64.
-	  uint log2LineSize;
+	// Line size should be in words.
+	MemoryRequest(MemoryOperation operation, uint32_t payload, uint lineSize, TileID sourceTile, MemoryIndex sourceBank) : Word() {
+		// Encode lineSize to reduce bits required.
+	  LineSizeWords encodedLineSize;
 	  switch (lineSize) {
-	    case 1:   log2LineSize = 0; break;
-	    case 2:   log2LineSize = 1; break;
-	    case 4:   log2LineSize = 2; break;
-	    case 8:   log2LineSize = 3; break;
-	    case 16:  log2LineSize = 4; break;
-	    case 32:  log2LineSize = 5; break;
-	    case 64:  log2LineSize = 6; break;
-	    case 128: log2LineSize = 7; break;
+	    case 4:   encodedLineSize = LS_4; break;
+	    case 8:   encodedLineSize = LS_8; break;
+	    case 16:  encodedLineSize = LS_16; break;
+	    case 32:  encodedLineSize = LS_32; break;
 	    default: throw InvalidOptionException("line size", lineSize);
 	  }
 
-	  data_ = (((int64_t)operation) << OFFSET_OPERATION) | (((int64_t)log2LineSize) << OFFSET_LINE_SIZE) | (((int64_t)sourceTile) << OFFSET_SOURCE_TILE)| payload;
+	  data_ = (((int64_t)operation) << OFFSET_OPERATION) | (((int64_t)encodedLineSize) << OFFSET_LINE_SIZE) | (((int64_t)sourceTile.flatten()) << OFFSET_SOURCE_TILE) | (((int64_t)sourceBank) << OFFSET_SOURCE_BANK) | payload;
 	}
 
 	MemoryRequest(MemoryOperation operation, uint32_t payload) : Word() {

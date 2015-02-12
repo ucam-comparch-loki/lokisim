@@ -27,6 +27,13 @@ struct MemoryConfig_ {
 };
 typedef struct MemoryConfig_ MemoryConfig;
 
-
+// Encode line size options efficiently - we're never going to want
+// single-word cache lines.
+enum LineSizeWords {
+  LS_4 = 0,
+  LS_8 = 1,
+  LS_16 = 2,
+  LS_32 = 3,
+};
 
 #endif /* MEMORYTYPEDEFS_H_ */

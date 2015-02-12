@@ -43,15 +43,13 @@ void Crossbar::makeArbiters() {
                          outputsPerComponent, true, buffersPerComponent);
 
     arb->clock(clock);
+    arb->iReady(iReady[i]);
 
-    for (int j=0; j<buffersPerComponent; j++)
-      arb->iReady[j](iReady[i][j]);
     for (uint j=0; j<numInputPorts(); j++) {
       arb->iRequest[j](iRequest[j][i]);
       arb->oGrant[j](oGrant[j][i]);
     }
-    for (int j=0; j<outputsPerComponent; j++)
-      arb->oSelect[j](selectSig[i][j]);
+    arb->oSelect(selectSig[i]);
 
     arbiters.push_back(arb);
   }
@@ -62,9 +60,7 @@ void Crossbar::makeMuxes() {
     Multiplexer* mux = new Multiplexer(sc_gen_unique_name("mux"), numInputPorts());
 
     mux->oData(oData[i]);
-
-    for (uint j=0; j<numInputPorts(); j++)
-      mux->iData[j](iData[j]);
+    mux->iData(iData);
 
     int arbiter = i/outputsPerComponent;
     int arbiterSelect = i%outputsPerComponent;

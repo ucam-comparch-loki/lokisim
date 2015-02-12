@@ -42,7 +42,7 @@ public:
                  ChannelID    destination)  // The component to write the data to
       : Packet<Word>() {
 
-    MemoryRequest request(MemoryRequest::STORE_LINE, memAddr, lineSize);
+    MemoryRequest request(MemoryRequest::STORE_LINE, memAddr, lineSize, destination.component.tile, destination.component.position);
     Flit<Word> requestFlit(request, destination);
     requestFlit.setEndOfPacket(false);
     addFlit(requestFlit);

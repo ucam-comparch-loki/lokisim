@@ -65,7 +65,12 @@ const ArbiterRequest NO_REQUEST = 255;
 const MuxSelect NO_SELECTION = -1;
 
 
-// (width, height) of the network, used to determine switching activity.
-typedef std::pair<double,double> Dimension;
+// The topology of the network in each tile.
+class LocalNetwork;
+typedef LocalNetwork local_net_t;
+
+// The topology of the network between tiles.
+class Mesh;
+typedef Mesh global_net_t;
 
 #endif /* NETWORKTYPEDEFS_H_ */

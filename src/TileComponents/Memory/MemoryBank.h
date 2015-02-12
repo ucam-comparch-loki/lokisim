@@ -135,11 +135,12 @@ public:
 
   // Requests - to/from memory banks on other tiles.
   InRequestPort         iRequest;         // Input requests sent to the memory bank
-  sc_in<MemoryIndex>    iTargetBank;      // The responsible bank if all banks miss
+  sc_in<MemoryIndex>    iRequestTarget;   // The responsible bank if all banks miss
   OutRequestPort        oRequest;         // Output requests sent to the remote memory banks
 
   // Responses - to/from memory banks on other tiles.
   InResponsePort        iResponse;
+  sc_in<MemoryIndex>    iResponseTarget;
   OutResponsePort       oResponse;        // Output responses sent to the remote memory banks
 
 	//-- Ports connected to memory bank ring network ----------------------------------------------

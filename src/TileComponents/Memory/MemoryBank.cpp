@@ -810,7 +810,7 @@ void MemoryBank::processGeneralPurposeCacheMiss() {
 		if (mWriteBackCount > 0) {
 			assert(mWriteBackCount == mConfig.LineSize / 4);
 
-			MemoryRequest header(MemoryRequest::STORE_LINE, mWriteBackAddress, mConfig.LineSize);
+			MemoryRequest header(MemoryRequest::STORE_LINE, mWriteBackAddress, mConfig.LineSize/4, id.tile, id.position);
 			mOutputReqQueue.write(header);
 
 			mCacheFSMState = GP_CACHE_STATE_SEND_DATA;
@@ -820,7 +820,7 @@ void MemoryBank::processGeneralPurposeCacheMiss() {
 			if (DEBUG)
 			  cout << this->name() << " buffering request for " << mConfig.LineSize << " bytes from 0x" << std::hex << mFetchAddress << std::dec << endl;
 
-			MemoryRequest header(MemoryRequest::FETCH_LINE, mFetchAddress, mConfig.LineSize);
+			MemoryRequest header(MemoryRequest::FETCH_LINE, mFetchAddress, mConfig.LineSize/4, id.tile, id.position);
 			mOutputReqQueue.write(header);
 			mCacheLineCursor = 0;
 
@@ -852,7 +852,7 @@ void MemoryBank::processGeneralPurposeCacheMiss() {
     if (DEBUG)
       cout << this->name() << " buffering request for " << mConfig.LineSize << " bytes from 0x" << std::hex << mFetchAddress << std::dec << endl;
 
-		MemoryRequest request(MemoryRequest::FETCH_LINE, mFetchAddress, mConfig.LineSize);
+		MemoryRequest request(MemoryRequest::FETCH_LINE, mFetchAddress, mConfig.LineSize/4, id.tile, id.position);
 		mOutputReqQueue.write(request);
 		mCacheLineCursor = 0;
 
@@ -863,7 +863,7 @@ void MemoryBank::processGeneralPurposeCacheMiss() {
 
 	case GP_CACHE_STATE_READ_DATA: {
 
-	  if (!oRequest.valid() && iResponse.valid()) {
+	  if (!oRequest.valid() && iResponse.valid() && (iResponseTarget.read() == id.position)) {
 	    Word response = iResponse.read();
 
 	    if (DEBUG)
@@ -985,7 +985,7 @@ void MemoryBank::handleDataOutput() {
 void MemoryBank::requestLoop() {
   switch (mRequestState) {
     case REQ_READY:
-      if (iRequest.valid())
+      if (iRequest.valid() && (iRequest.read().getOperation() != MemoryRequest::PAYLOAD_ONLY))
         handleNewRequest();
       else
         next_trigger(iRequest.default_event());
@@ -1011,14 +1011,16 @@ void MemoryBank::handleNewRequest() {
   assert(mInputQueue.empty());
 
   MemoryRequest request = iRequest.read();
+  assert(request.getOperation() != MemoryRequest::PAYLOAD_ONLY);
+
   MemoryAddr address = request.getPayload();
   mConfig.Mode = MODE_GP_CACHE;
-  mConfig.LineSize = request.getLineSize();
+  mConfig.LineSize = request.getLineSize() * 4;
   mConfig.WayCount = 1;
   mConfig.GroupBaseBank = 0;
   mConfig.GroupIndex = 0;
   mConfig.GroupSize = 1;
-  bool targetBank = iTargetBank.read() == (id.position - CORES_PER_TILE);
+  bool targetBank = iRequestTarget.read() == (id.position - CORES_PER_TILE);
 
   // Ensure this memory bank is configured as an L2 cache bank.
   mGeneralPurposeCacheHandler.activateL2(mConfig);
@@ -1047,8 +1049,6 @@ void MemoryBank::handleNewRequest() {
     // Claim responsibility for handling the request by acknowledging.
     iRequest.ack();
     beginServingRequest(request);
-
-    next_trigger(sc_core::SC_ZERO_TIME);
   }
 }
 
@@ -1063,9 +1063,6 @@ void MemoryBank::handleRequestWaitForBanks() {
     mFSMCallbackState = STATE_IDLE;
     mCacheFSMState = GP_CACHE_STATE_PREPARE;
     mActiveData.Address = iRequest.read().getPayload();
-
-    // Claim responsibility for handling the request by acknowledging.
-    iRequest.ack();
 
     mRequestState = REQ_WAITING_FOR_DATA;
     next_trigger(iClock.negedge_event());
@@ -1085,8 +1082,9 @@ void MemoryBank::handleRequestWaitForData() {
     next_trigger(iClock.negedge_event());
   }
   else {
+    // Claim responsibility for handling the request by acknowledging.
+    iRequest.ack();
     beginServingRequest(iRequest.read());
-    next_trigger(sc_core::SC_ZERO_TIME);
   }
 }
 
@@ -1095,9 +1093,10 @@ void MemoryBank::beginServingRequest(MemoryRequest request) {
 
     case MemoryRequest::FETCH_LINE: {
       mRequestState = REQ_FETCH_LINE;
+      next_trigger(sc_core::SC_ZERO_TIME);
 
       mFetchAddress = request.getPayload();
-      mFetchCount = request.getLineSize() / BYTES_PER_WORD;
+      mFetchCount = request.getLineSize();
 
       if (DEBUG)
         cout << this->name() << " reading " << mFetchCount << " words from 0x" << std::hex << mFetchAddress << std::dec << endl;
@@ -1106,9 +1105,10 @@ void MemoryBank::beginServingRequest(MemoryRequest request) {
 
     case MemoryRequest::STORE_LINE: {
       mRequestState = REQ_STORE_LINE;
+      next_trigger(iRequest.default_event());
 
       mWriteBackAddress = request.getPayload();
-      mWriteBackCount = request.getLineSize() / BYTES_PER_WORD;
+      mWriteBackCount = request.getLineSize();
 
       if (DEBUG)
         cout << this->name() << " flushing " << mWriteBackCount << " words to 0x" << std::hex << mWriteBackAddress << std::dec << endl;
@@ -1116,20 +1116,23 @@ void MemoryBank::beginServingRequest(MemoryRequest request) {
     }
 
     default:
-      throw InvalidOptionException("memory bank serve request", request.getOperation());
+      throw InvalidOptionException("memory bank remote request operation", request.getOperation());
       break;
 
   } // end switch
 }
 
 void MemoryBank::handleRequestFetch() {
-  // No buffering - wait until the output port is available.
+  // No buffering - need to wait until the output port is available.
   if (oResponse.valid())
     next_trigger(oResponse.ack_event());
   // Output port is available - send flit.
   else {
-
     uint32_t data;
+
+    if (DEBUG)
+      cout << this->name() << " reading from address 0x" << std::hex << mFetchAddress << std::dec << endl;
+
     bool hit = mGeneralPurposeCacheHandler.readWord(mFetchAddress, data, false, false, false);
     assert(hit);
     Word response(data);
@@ -1147,6 +1150,9 @@ void MemoryBank::handleRequestFetch() {
 
 void MemoryBank::handleRequestStore() {
   assert(iRequest.read().getOperation() == MemoryRequest::PAYLOAD_ONLY);
+
+  if (DEBUG)
+    cout << this->name() << " writing " << iRequest.read().getPayload() << " to address 0x" << std::hex << mWriteBackAddress << std::dec << endl;
 
   bool hit = mGeneralPurposeCacheHandler.writeWord(mWriteBackAddress, iRequest.read().getPayload(), false, false);
   assert(hit);
@@ -1334,6 +1340,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	//-- Data queue state -------------------------------------------------------------------------
 
 	mOutputWordPending = false;
+	mActiveOutputWord = NetworkData();
 
 	//-- Mode independent state -------------------------------------------------------------------
 
@@ -1350,6 +1357,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	mFSMState = STATE_IDLE;
 	mFSMCallbackState = STATE_IDLE;
 
+	mActiveRequest = MemoryRequest();
 	mActiveData.TableIndex = -1;
 	mActiveData.ReturnChannel = -1;
 	mActiveData.Address = -1;
@@ -1628,5 +1636,5 @@ void MemoryBank::printConfiguration() const {
   uint lineSize = mConfig.LineSize;
 
   cout << "MEMORY CONFIG: tile " << id.tile << ", banks " << startBank << "-"
-      << endBank << ", line size " << lineSize << ", " << mode.str() << endl;
+      << endBank << ", line size " << lineSize << " bytes, " << mode.str() << endl;
 }

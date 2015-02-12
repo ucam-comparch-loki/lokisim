@@ -155,7 +155,7 @@ void Chip::makeSignals() {
 
   requestFromBanks.init(NUM_COMPUTE_TILES, MEMS_PER_TILE);
   requestToBanks.init(NUM_COMPUTE_TILES);       // Broadcast within each tile
-  targetBank.init(NUM_COMPUTE_TILES);           // Broadcast within each tile
+  requestTarget.init(NUM_COMPUTE_TILES);        // Broadcast within each tile
   requestToBM.init(NUM_COMPUTE_TILES);
   requestToMHL.init(requestNet.iData);
   readyRequestToMHL.init(requestNet.iReady);
@@ -163,6 +163,7 @@ void Chip::makeSignals() {
 
   responseFromBanks.init(NUM_COMPUTE_TILES, MEMS_PER_TILE);
   responseToBanks.init(NUM_COMPUTE_TILES);      // Broadcast within each tile
+  responseTarget.init(NUM_COMPUTE_TILES);        // Broadcast within each tile
   responseFromBM.init(NUM_COMPUTE_TILES);
   responseToMHL.init(responseNet.iData);
   readyResponseToMHL.init(responseNet.iReady);
@@ -298,11 +299,11 @@ void Chip::wireUp() {
           mhl[computeTileIndex]->iRequestFromBanks[bank](requestFromBanks[computeTileIndex][bank]);
 
           memories[memIndex]->iRequest(requestToBanks[computeTileIndex]);
-          memories[memIndex]->iTargetBank(targetBank[computeTileIndex]);
+          memories[memIndex]->iRequestTarget(requestTarget[computeTileIndex]);
         }
 
         mhl[computeTileIndex]->oRequestToBanks(requestToBanks[computeTileIndex]);
-        mhl[computeTileIndex]->oTargetBank(targetBank[computeTileIndex]);
+        mhl[computeTileIndex]->oRequestTarget(requestTarget[computeTileIndex]);
 
         mhl[computeTileIndex]->oRequestToNetwork(requestFromMHL[tileIndex][0]);
         mhl[computeTileIndex]->iRequestFromNetwork(requestToMHL[tileIndex][0]);
@@ -331,9 +332,11 @@ void Chip::wireUp() {
           mhl[computeTileIndex]->iDataFromBanks[bank](responseFromBanks[computeTileIndex][bank]);
 
           memories[memIndex]->iResponse(responseToBanks[computeTileIndex]);
+          memories[memIndex]->iResponseTarget(responseTarget[computeTileIndex]);
         }
 
         mhl[computeTileIndex]->oDataToBanks(responseToBanks[computeTileIndex]);
+        mhl[computeTileIndex]->oResponseTarget(responseTarget[computeTileIndex]);
 
         mhl[computeTileIndex]->oResponseToNetwork(responseFromMHL[tileIndex][0]);
         mhl[computeTileIndex]->iResponseFromNetwork(responseToMHL[tileIndex][0]);
@@ -404,9 +407,10 @@ void Chip::wireUp() {
     } // end tile row loop
   } // end tile column loop
   
+  // Memory ring network.
   for (uint j=0; j<NUM_COMPUTE_TILES; j++) {
     mhl[j]->clock(clock);
-    mhl[j]->iDataFromBM(responseFromBM[j]);
+    mhl[j]->iResponseFromBM(responseFromBM[j]);
     backgroundMemory.oData[j](responseFromBM[j]);
     mhl[j]->oRequestToBM(requestToBM[j]);
     backgroundMemory.iData[j](requestToBM[j]);
@@ -419,8 +423,6 @@ void Chip::wireUp() {
 			MemoryBank* m = memories[currIndex];
 
 			m->iClock(clock);
-				
-			// Connect the memory ring network of this tile
 	
 			memories[nextIndex]->oRingAcknowledge(ringAcknowledge[currIndex]);
 			memories[nextIndex]->iRingStrobe(ringStrobe[currIndex]);
