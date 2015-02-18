@@ -281,17 +281,18 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   // done this way.
   output = input;
 
-  // If we are in remote execution mode, and this instruction is marked, send it.
+  // If we are in remote execution mode, send this instruction without
+  // executing it.
   if (sendChannel != Instruction::NO_CHANNEL) {
-    if (input.predicate() == Instruction::P) {
-      remoteExecution(output);
-      return true;
-    }
-    // Drop out of remote execution mode when we find an unmarked instruction.
-    else {
+    remoteExecution(output);
+
+    // Drop out of remote execution mode at the end of the packet.
+    if (input.endOfIPK()) {
       sendChannel = Instruction::NO_CHANNEL;
       if (DEBUG) cout << this->name() << " ending remote execution" << endl;
     }
+
+    return true;
   }
 
   // Determine if this instruction should execute. This may require waiting for
@@ -727,9 +728,6 @@ void Decoder::remoteExecution(DecodedInst& instruction) const {
   // "Re-encode" the instruction so it can be sent. In practice, it wouldn't
   // have been decoded yet, so there would be no extra work here.
   Instruction encoded = instruction.toInstruction();
-
-  // Set the instruction to always execute
-  encoded.predicate(Instruction::END_OF_PACKET);
 
   // The data to be sent is the instruction itself.
   instruction.result(encoded.toLong());

@@ -246,7 +246,7 @@ void ALU::systemCall(DecodedInst& dec) const {
 
     case 0x10: { /* tile ID */
       cerr << "Warning: syscall 0x10 (tile ID) is deprecated. Use control register 1 instead." << endl;
-      int tile = this->id.tile.computeTileIndex();
+      int tile = this->id.tile.flatten();
       writeReg(11, tile);
       break;
     }
