@@ -260,6 +260,7 @@ void Arguments::printHelp() {
     "  -summary\n\tPrint a summary of execution behaviour when execution finishes\n"
     "  -coretrace <file>\n\tDump a trace of instructions executed in a binary format to a file\n"
     "  -memtrace <file>\n\tDump a trace of all memory accesses to a file\n"
+    "  -energytrace <file>\n\tDump counts of all significant energy-consuming events to a file\n"
     "  -swtrace <file>\n\tDump snapshots of RF contents, allowing transfer to other simulators\n"
     "  -lbttrace <file>\n\tDump particular types of information to a named file\n"
     "  -stalltrace <file>\n\tDump information about each processor stall to a file\n"

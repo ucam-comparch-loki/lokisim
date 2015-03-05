@@ -702,8 +702,8 @@ void MemoryBank::prepareIPKReadOutput(AbstractMemoryHandler& handler, uint32_t d
         request.Header.Request.PartialInstructionData = 0;
       }
 
-      bool chainRequest = !mRingRequestOutputPending && !processRingEvent();
       updatedRingRequest();
+      bool chainRequest = !mRingRequestOutputPending && !processRingEvent();
       if (chainRequest)
         processMessageHeader();
     }
@@ -775,8 +775,8 @@ void MemoryBank::prepareBurstReadOutput(AbstractMemoryHandler& handler, uint32_t
         request.Header.Request = mActiveData;
       }
 
-      bool chainRequest = !mRingRequestOutputPending && !processRingEvent();
       updatedRingRequest();
+      bool chainRequest = !mRingRequestOutputPending && !processRingEvent();
       if (chainRequest)
         processMessageHeader();
     }
