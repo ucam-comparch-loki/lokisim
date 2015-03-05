@@ -61,11 +61,15 @@ public:
   static count_t stalledComponents();
   static cycle_count_t cyclesIdle();
 
+  static cycle_count_t executionTime();
   static cycle_count_t cyclesActive(const ComponentID core);
   static cycle_count_t cyclesIdle(const ComponentID core);
   static cycle_count_t cyclesStalled(const ComponentID core);
+
   static cycle_count_t cyclesLogged();
-  static cycle_count_t executionTime();
+  static cycle_count_t loggedCyclesActive(const ComponentID core);
+  static cycle_count_t loggedCyclesIdle(const ComponentID core);
+  static cycle_count_t loggedCyclesStalled(const ComponentID core);
 
   static void printStats();
   static void printInstrStat(const char *name, ComponentID id, CounterMap<ComponentID> &cMap);

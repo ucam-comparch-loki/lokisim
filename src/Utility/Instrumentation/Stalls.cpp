@@ -64,8 +64,6 @@ void Stalls::init() {
 }
 
 void Stalls::startLogging() {
-  // FIXME: what if execution hasn't started yet, and the current cycle is
-  // undefined?
   loggingStarted = currentCycle();
 
   // If any cores are stalled, pretend that they only just started, so cycles
@@ -83,8 +81,8 @@ void Stalls::startLogging() {
 }
 
 void Stalls::stopLogging() {
-  //if (loggingStarted == NOT_LOGGING)
-  //  return;
+  if (loggingStarted == NOT_LOGGING)
+    return;
 
   if (loggingStarted != NOT_LOGGING)
     loggedCycles += currentCycle() - loggingStarted;
@@ -203,6 +201,9 @@ void Stalls::unstall(const ComponentID id, cycle_count_t cycle, StallReason reas
   uint bitmask = 1 << reason;
 
   if (stallReason[id] & bitmask) {
+    assert(startStall[reason][id] != UNSTALLED);
+    assert(startStall[STALL_ANY][id] != UNSTALLED);
+
     cycle_count_t timeStalled = 0;
 
     switch (reason) {
@@ -290,6 +291,18 @@ cycle_count_t Stalls::cyclesLogged() {
   return loggedCycles;
 }
 
+cycle_count_t Stalls::loggedCyclesActive(const ComponentID core) {
+  return cyclesLogged() - loggedCyclesStalled(core) - loggedCyclesIdle(core);
+}
+
+cycle_count_t Stalls::loggedCyclesIdle(const ComponentID core) {
+  return loggedOnly[IDLE][core];
+}
+
+cycle_count_t Stalls::loggedCyclesStalled(const ComponentID core) {
+  return loggedOnly[STALL_ANY][core] - loggedCyclesIdle(core);
+}
+
 cycle_count_t Stalls::executionTime() {
   return endOfExecution;
 }
@@ -300,7 +313,6 @@ void Stalls::printInstrStat(const char *name, ComponentID id, CounterMap<Compone
 
 
 void Stalls::printStats() {
-  //TODO: Add information to database if required
 
   using std::clog;
 
@@ -374,6 +386,8 @@ void Stalls::printStats() {
 }
 
 void Stalls::dumpEventCounts(std::ostream& os) {
+  stopLogging();
+
   for (uint i=0; i<NUM_TILES; i++) {
     for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
       ComponentID id(i, j);
@@ -382,17 +396,15 @@ void Stalls::dumpEventCounts(std::ostream& os) {
       if (id.isMemory())
         continue;
 
-      // Flush any remaining stall/idle time into the CounterMaps.
-//      unstall(id, endOfExecution, IDLE);
-//      active(id, endOfExecution);
-      stopLogging();
-
       // Skip over any cores which were idle the whole time.
 //      if ((cycle_count_t)idleTimes[id] >= endOfExecution)
 //        continue;
 
-      cycle_count_t totalStalled = loggedOnly[STALL_ANY][id] - loggedOnly[IDLE][id];
-      cycle_count_t activeCycles = loggedCycles - loggedOnly[STALL_ANY][id];
+      cycle_count_t totalStalled = loggedCyclesStalled(id);
+      cycle_count_t activeCycles = loggedCyclesActive(id);
+
+      assert(totalStalled <= loggedCycles);
+      assert(activeCycles <= loggedCycles);
 
       os << "<activity core=\"" << id.getGlobalCoreNumber()  << "\">\n"
          << xmlNode("active", activeCycles)                     << "\n"

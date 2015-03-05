@@ -259,10 +259,10 @@ void ALU::systemCall(DecodedInst& dec) const {
 
     case 0x20: /* start energy log */
       ENERGY_TRACE = 1;
-      Instrumentation::startLogging();
+      Instrumentation::startEventLog();
       break;
     case 0x21: /* end energy log */
-      Instrumentation::stopLogging();
+      Instrumentation::stopEventLog();
       ENERGY_TRACE = 0;
       break;
     case 0x22: /* start verbose debugging */
