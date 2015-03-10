@@ -38,6 +38,8 @@ public:
     Component(name, ID),
     buffer(size, this->name()) {
 
+    assert(size > 0);
+
     SC_METHOD(read);
     sensitive << doRead;
     dont_initialize();

@@ -49,6 +49,8 @@ void Multiplexer::handleData() {
 Multiplexer::Multiplexer(const sc_module_name& name, int numInputs) :
     Component(name) {
 
+  assert(numInputs > 0);
+
   iData.init(numInputs);
 
   haveSentData = false;

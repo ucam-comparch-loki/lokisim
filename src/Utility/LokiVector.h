@@ -33,7 +33,7 @@ public:
   }
 
   virtual ~LokiVector() {
-    if(data_ != NULL)
+    if (data_ != NULL)
       delete[] data_;
   }
 

@@ -15,6 +15,9 @@ NetworkHierarchy2::NetworkHierarchy2(const sc_module_name &name,
     Component(name),
     globalNetwork("global", 0, NUM_TILE_ROWS, NUM_TILE_COLUMNS, Network::TILE) {
 
+  assert(components > 0);
+  assert(buffersPerComponent > 0);
+
   initialise(components, buffersPerComponent);
 
 }

@@ -79,7 +79,7 @@ protected:
 public:
 
   Storage(const uint32_t size, const std::string& name) : data_(size), name_(name) {
-    // Do nothing
+    assert(size > 0);
   }
 
   virtual ~Storage() {
