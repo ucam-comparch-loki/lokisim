@@ -66,8 +66,6 @@ void Stalls::init() {
 }
 
 void Stalls::startLogging() {
-  // FIXME: what if execution hasn't started yet, and the current cycle is
-  // undefined?
   loggingStarted = currentCycle();
 
   // If any cores are stalled, pretend that they only just started, so cycles
@@ -88,8 +86,8 @@ void Stalls::startLogging() {
 }
 
 void Stalls::stopLogging() {
-  //if (loggingStarted == NOT_LOGGING)
-  //  return;
+  if (loggingStarted == NOT_LOGGING)
+    return;
 
   if (loggingStarted != NOT_LOGGING)
     loggedCycles += currentCycle() - loggingStarted;
@@ -213,6 +211,9 @@ void Stalls::unstall(const ComponentID id, cycle_count_t cycle, StallReason reas
   ComponentIndex index = id.globalComponentNumber();
 
   if (stallReason[index] & bitmask) {
+    assert(startStall[reason][index] != UNSTALLED);
+    assert(startStall[STALL_ANY][index] != UNSTALLED);
+
     cycle_count_t timeStalled = 0;
 
     switch (reason) {
@@ -300,6 +301,18 @@ cycle_count_t Stalls::cyclesLogged() {
   return loggedCycles;
 }
 
+cycle_count_t Stalls::loggedCyclesActive(const ComponentID core) {
+  return cyclesLogged() - loggedCyclesStalled(core) - loggedCyclesIdle(core);
+}
+
+cycle_count_t Stalls::loggedCyclesIdle(const ComponentID core) {
+  return loggedOnly[IDLE][core.globalComponentNumber()];
+}
+
+cycle_count_t Stalls::loggedCyclesStalled(const ComponentID core) {
+  return loggedOnly[STALL_ANY][core.globalComponentNumber()] - loggedCyclesIdle(core);
+}
+
 cycle_count_t Stalls::executionTime() {
   return endOfExecution;
 }
@@ -310,7 +323,6 @@ void Stalls::printInstrStat(const char *name, ComponentID id, CounterMap<CoreInd
 
 
 void Stalls::printStats() {
-  //TODO: Add information to database if required
 
   using std::clog;
 
@@ -389,15 +401,12 @@ void Stalls::printStats() {
 }
 
 void Stalls::dumpEventCounts(std::ostream& os) {
+  stopLogging();
+
   for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
     for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
       for (uint component=0; component<COMPONENTS_PER_TILE; component++) {
         ComponentIndex id = ComponentID(col, row, component).globalCoreNumber();
-
-        // Flush any remaining stall/idle time into the CounterMaps.
-  //      unstall(id, endOfExecution, IDLE);
-  //      active(id, endOfExecution);
-        stopLogging();
 
         // Skip over any cores which were idle the whole time.
   //      if ((cycle_count_t)idleTimes[id] >= endOfExecution)

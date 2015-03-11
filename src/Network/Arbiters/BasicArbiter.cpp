@@ -212,6 +212,9 @@ BasicArbiter::BasicArbiter(const sc_module_name& name, ComponentID ID,
     selectVec(outputs, -1),
     state(outputs, NO_REQUESTS) {
 
+  assert(inputs > 0);
+  assert(outputs > 0);
+
   Instrumentation::Network::arbiterCreated();
 
   iRequest.init(inputs);

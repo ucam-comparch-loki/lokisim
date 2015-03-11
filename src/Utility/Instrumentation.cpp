@@ -88,14 +88,14 @@ bool Instrumentation::haveEnergyData() {
   return Stalls::cyclesLogged() > 0;
 }
 
-void Instrumentation::startLogging() {
+void Instrumentation::startEventLog() {
   // Stalls is currently the only component which needs notification: all
   // event collection is predicated on the ENERGY_TRACE value. Stalls, however,
   // counts cycles, so needs to be told when to suspend its counting.
   Stalls::startLogging();
 }
 
-void Instrumentation::stopLogging() {
+void Instrumentation::stopEventLog() {
   // Stalls is currently the only component which needs notification: all
   // event collection is predicated on the ENERGY_TRACE value. Stalls, however,
   // counts cycles, so needs to be told when to suspend its counting.
@@ -172,5 +172,8 @@ void Instrumentation::executed(const ComponentID& id, const DecodedInst& inst, b
 }
 
 cycle_count_t Instrumentation::currentCycle() {
-  return sc_core::sc_time_stamp().to_default_time_units();
+  if (sc_core::sc_start_of_simulation_invoked())
+    return sc_core::sc_time_stamp().to_default_time_units();
+  else
+    return 0;
 }

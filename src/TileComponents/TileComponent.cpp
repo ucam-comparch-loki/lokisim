@@ -63,6 +63,9 @@ TileComponent::TileComponent(sc_module_name name, const ComponentID& ID,
                              int inputPorts, int outputPorts) :
     Component(name, ID) {
 
+  assert(inputPorts > 0);
+  assert(outputPorts > 0);
+
   iData.init(inputPorts);
   oData.init(outputPorts);
 

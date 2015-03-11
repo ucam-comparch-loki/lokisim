@@ -16,7 +16,12 @@ void         DecodeStage::execute() {
   while (true) {
     // The decode stage is the arbiter of whether the pipeline is idle. This
     // is the only stage through which all instructions pass.
-    core()->idle(true);
+
+    // Only consider the core idle if the next pipeline stage is ready to
+    // receive an instruction, but we don't have one to pass to it.
+    if (canSendInstruction())
+      core()->idle(true);
+
     wait(newInstructionEvent);
     core()->idle(false);
 

@@ -18,6 +18,10 @@ NetworkHierarchy2::NetworkHierarchy2(const sc_module_name &name,
     Component(name),
     globalNetwork("global", 0, TOTAL_TILE_ROWS, TOTAL_TILE_COLUMNS, Network::TILE) {
 
+  assert(sourcesPerTile > 0);
+  assert(destinationsPerTile > 0);
+  assert(buffersPerDestination > 0);
+
   initialise(sourcesPerTile, destinationsPerTile, buffersPerDestination);
 
 }

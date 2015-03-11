@@ -323,7 +323,7 @@ void MemoryBank::printSummary() {
   // when the data arrives. We may prefer to filter out these "duplicates".
   clog << "L1 cache activity:" << endl;
   clog << "  Instruction hits: " << instructionReadHits << "/" << instructionReads << " (" << percentage(instructionReadHits, instructionReads) << ")\n";
-  clog << "  L0+L1 inst hits:  " << l0l1InstReadHits << "/" << l0l1InstReads << "(" << percentage(l0l1InstReadHits,l0l1InstReads) << ")" << endl;
+  clog << "  L0+L1 inst hits:  " << l0l1InstReadHits << "/" << l0l1InstReads << " (" << percentage(l0l1InstReadHits,l0l1InstReads) << ")" << endl;
   clog << "  Data read hits:   " << dataReadHits << "/" << dataReads << " (" << percentage(dataReadHits, dataReads) << ")\n";
   clog << "  Data write hits:  " << dataWriteHits << "/" << dataWrites << " (" << percentage(dataWriteHits, dataWrites) << ")\n";
   clog << "  Total hits:       " << totalHits << "/" << totalAccesses << " (" << percentage(totalHits, totalAccesses) << ")\n";

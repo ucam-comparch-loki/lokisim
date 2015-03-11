@@ -69,6 +69,9 @@ Network::Network(const sc_module_name& name,
     level((numOutputs > 1) ? level : NONE),
     externalConnection(externalConnection) {
 
+  assert(numInputs > 0);
+  assert(numOutputs > 0);
+
   unsigned int totalInputs  = externalConnection ? (numInputs+1) : numInputs;
   unsigned int totalOutputs = externalConnection ? (numOutputs+1) : numOutputs;
   iData.init(totalInputs);

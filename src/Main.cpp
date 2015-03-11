@@ -132,11 +132,14 @@ void simulate(Chip& chip) {
 
 // Wrapper for the chip simulation function above.
 int simulate() {
-  Instrumentation::initialise();
 
   // Override parameters before instantiating chip model
   for (unsigned int i=0; i<Arguments::code().size(); i++)
     CodeLoader::loadParameters(Arguments::code()[i]);
+
+  // Now that we know how many cores, etc, there are, initialise any
+  // instrumentation structures.
+  Instrumentation::initialise();
 
   // Instantiate chip model - changing a parameter after this point has
   // undefined behaviour.
@@ -150,6 +153,9 @@ int simulate() {
     CodeLoader::loadCode(Arguments::code()[i], chip);
 
   CodeLoader::makeExecutable(chip);
+
+  if (ENERGY_TRACE)
+    Instrumentation::startEventLog();
 
   // Store initial memory image
   if (LBT_TRACE)
@@ -170,7 +176,7 @@ int simulate() {
   else if (Arguments::summarise() || DEBUG)
     Instrumentation::printSummary();
 
-  Instrumentation::stopLogging();
+  Instrumentation::stopEventLog();
 
   if (!Arguments::energyTraceFile().empty()) {
     std::ofstream output(Arguments::energyTraceFile().c_str());

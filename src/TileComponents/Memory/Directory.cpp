@@ -13,6 +13,7 @@ Directory::Directory(unsigned int size) :
     bitmask(size-1),
     directory(size) {
 
+  assert(size > 0);
   assert((size & (size-1)) == 0); // Need power of 2.
 
   shiftAmount = 0;

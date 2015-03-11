@@ -394,6 +394,9 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   // and we know it won't execute, stop it here.
   if (!execute && (Registers::isChannelEnd(input.sourceReg1()) ||
                    Registers::isChannelEnd(input.sourceReg2()))) {
+    // Disallow forwarding from instructions which didn't execute.
+    previous = input;
+    previous.destination(-1);
     return true;
   }
 

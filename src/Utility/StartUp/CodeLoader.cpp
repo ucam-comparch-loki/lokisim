@@ -34,6 +34,9 @@ void CodeLoader::loadParameters(const string& settings) {
   // Open the settings file.
   std::ifstream file(settings.c_str());
 
+  if (file.fail())
+    std::cerr << "Warning: unable to open file " << settings << " while parsing parameters" << endl;
+
   // Strip away "/loader.txt" to get the directory path.
   int pos = settings.find("loader.txt");
   string directory = settings.substr(0,pos-1);
@@ -86,6 +89,9 @@ void CodeLoader::loadCode(const string& settings, Chip& chip) {
 
   // Open the settings file.
   std::ifstream file(settings.c_str());
+
+  if (file.fail())
+    std::cerr << "Warning: could not read file " << settings << " while parsing commands" << endl;
 
   // Strip away "/loader.txt" to get the directory path.
   unsigned int pos = settings.find(".txt");

@@ -6,12 +6,16 @@
  */
 
 #include "IPKCacheBase.h"
+
+#include <systemc>
+
 #include "../Utility/Instrumentation.h"
 #include "../Utility/Instrumentation/IPKCache.h"
 
 using std::cerr;
 using std::cout;
 using std::endl;
+using sc_core::sc_event;
 
 IPKCacheBase::IPKCacheBase(const size_t size, const size_t numTags, const std::string& name) :
     name(name),
@@ -20,6 +24,9 @@ IPKCacheBase::IPKCacheBase(const size_t size, const size_t numTags, const std::s
     fresh(size, false),
     readPointer(size),
     writePointer(size) {
+
+  assert(size > 0);
+  assert(numTags > 0);
 
   writePointer.setNull();
   readPointer = 0;

@@ -27,8 +27,8 @@ namespace Instrumentation {
   void printSummary();
   bool haveEnergyData();
 
-  void startLogging();
-  void stopLogging();
+  void startEventLog();
+  void stopEventLog();
 
   // The decoder consumes a significant amount of energy, and there are a few
   // techniques to reduce its activity, so record how active it is.
