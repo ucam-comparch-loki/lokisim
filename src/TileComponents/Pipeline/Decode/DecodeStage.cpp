@@ -269,12 +269,22 @@ void         DecodeStage::readChannelMapTable(DecodedInst& inst) {
   if (destination.isNullMapping())
     return;
 
-  if (!cmtEntry.canSend())
+  if (!cmtEntry.canSend()) {
+    if (DEBUG)
+      cout << this->name() << " stalled waiting for credits from " << destination << endl;
+    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
     wait(cmtEntry.creditArrivedEvent());
+    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
+  }
   cmtEntry.removeCredit();
 
-  if (!iOutputBufferReady.read())
+  if (!iOutputBufferReady.read()) {
+    if (DEBUG)
+      cout << this->name() << " stalled waiting for output buffer space" << endl;
+    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
     wait(iOutputBufferReady.posedge_event());
+    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
+  }
 
   inst.networkDestination(destination);
   inst.usesCredits(cmtEntry.usesCredits());

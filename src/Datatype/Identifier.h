@@ -115,14 +115,14 @@ struct ChannelID {
   uint          coremask  : 8;
 
   uint          multicast : 1;
-  uint          channel   : 3;
+  uint          channel   : 4;
 
   ChannelID() : component(0,0,0), coremask(0), multicast(0), channel(0) {}
   ChannelID(uint flat) :
     component(flat >> 12),
-    coremask((flat >> 4) & 0xff),
-    multicast((flat >> 3) & 1),
-    channel(flat & 7) {}
+    coremask((flat >> 5) & 0xff),
+    multicast((flat >> 4) & 1),
+    channel(flat & 0xf) {}
   ChannelID(uint x, uint y, uint pos, uint ch) :
     component(x,y,pos),
     coremask(0),
@@ -147,7 +147,7 @@ struct ChannelID {
   bool isCore()   const {return multicast || component.isCore();}
   bool isMemory() const {return !isCore();}
 
-  uint flatten()  const {return (component.flatten() << 12) | (coremask << 4) | (multicast << 1) | channel;}
+  uint flatten()  const {return (component.flatten() << 12) | (coremask << 5) | (multicast << 4) | channel;}
   bool isNullMapping() const {return flatten() == 0;}
 
   uint globalChannelNumber(uint channelsPerTile, uint channelsPerComponent) const {

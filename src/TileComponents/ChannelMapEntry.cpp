@@ -56,10 +56,16 @@ void ChannelMapEntry::write(EncodedCMTEntry data) {
   if (isMulticast()) {
     useCredits_ = false;
     network_ = CORE_TO_CORE;
+
+    if (DEBUG || Arguments::summarise())
+      std::cout << "SETCHMAP: " << id_ << " -> " << getDestination() << std::endl;
   }
-  else if ((getTileColumn() != id_.tile.x) || (getTileRow() != id_.tile.y)) {
+  else if ((getTileColumn() != id_.component.tile.x) || (getTileRow() != id_.component.tile.y)) {
     useCredits_ = true;
     network_ = GLOBAL;
+
+    if (DEBUG || Arguments::summarise())
+      std::cout << "SETCHMAP: " << id_ << " -> " << getDestination() << std::endl;
   }
   else {
     useCredits_ = false;
@@ -73,7 +79,7 @@ void ChannelMapEntry::write(EncodedCMTEntry data) {
       uint endBank = startBank + getMemoryGroupSize() - 1;
       uint lineSize = getLineSize();
 
-      std::cout << "SETCHMAP: core " << id_ << " " << type << ", banks "
+      std::cout << "SETCHMAP: core " << id_.component << " " << type << ", banks "
           << startBank << "-" << endBank << ", line size " << lineSize << std::endl;
     }
   }
@@ -212,7 +218,7 @@ const sc_event& ChannelMapEntry::creditArrivedEvent() const {
   return creditArrived_;
 }
 
-ChannelMapEntry::ChannelMapEntry(ComponentID localID) :
+ChannelMapEntry::ChannelMapEntry(ChannelID localID) :
   id_(localID),
   data_(0),
   network_(CORE_TO_CORE),

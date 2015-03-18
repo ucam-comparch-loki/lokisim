@@ -111,9 +111,13 @@ void ChannelMapTable::activeCycle() {
 
 ChannelMapTable::ChannelMapTable(const sc_module_name& name, ComponentID ID) :
     Component(name, ID),
-    table(CHANNEL_MAP_SIZE, ChannelMapEntry(ID)),
     memoryConnection(CORE_INPUT_CHANNELS, false),
-    previousRead(ID),
+    previousRead(ChannelID(ID, 0)),
     lastActivity(-1) {
-  // Do nothing.
+
+  assert(CHANNEL_MAP_SIZE > 0);
+
+  for (uint i=0; i<CHANNEL_MAP_SIZE; i++)
+    table.push_back(ChannelID(ID, i));
+
 }

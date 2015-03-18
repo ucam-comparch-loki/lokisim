@@ -258,10 +258,14 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
   bool success = core()->channelMapTable.write(entry, value);
   if (!success) {
     blocked = true;
+    if (DEBUG)
+      cout << this->name() << " stalled waiting for credits before setchmap" << endl;
+    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
     next_trigger(core()->channelMapTable.allCreditsEvent(entry));
   }
   else {
     blocked = false;
+    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
 
     ChannelID sendChannel = core()->channelMapTable.getDestination(entry);
 

@@ -127,15 +127,15 @@ public:
   // Event triggered when a credit arrives for a particular channel.
   const sc_event& creditArrivedEvent() const;
 
-  ChannelMapEntry(ComponentID localID);
+  ChannelMapEntry(ChannelID localID);
   ChannelMapEntry(const ChannelMapEntry& other);
   ChannelMapEntry& operator=(const ChannelMapEntry& other);
 
 private:
 
-  // The ID of the component holding this channel map entry. Used to determine
-  // whether communications are local or global.
-  ComponentID id_;
+  // The global address of this channel map entry. Used to determine whether
+  // communications are local or global.
+  ChannelID id_;
 
   // Encoded data representing a connection to another component.
   EncodedCMTEntry data_;
