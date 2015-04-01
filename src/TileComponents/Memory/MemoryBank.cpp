@@ -69,7 +69,7 @@ uint MemoryBank::homeTile(MemoryAddr address) {
   // TODO: access directory
 
   // Total cache on tile = 64kB = 2^16B
-  return (address >> 16) % NUM_TILES;
+  return (address >> 16) % NUM_COMPUTE_TILES;
 }
 
 const NetworkData MemoryBank::peekNextRequest() {
@@ -102,8 +102,11 @@ const NetworkData MemoryBank::readNextRequest() {
   // Dequeue the item from its queue.
   if (mCurrentInput == INPUT_MEMORIES)
     mInputReqQueue.read();
-  else if (mCurrentInput == INPUT_CORES)
+  else if (mCurrentInput == INPUT_CORES) {
     mInputQueue.read();
+    if (DEBUG)
+      cout << this->name() << " dequeued " << result << endl;
+  }
 
   if (result.endOfPacket())
     mCurrentInput = INPUT_NONE;
@@ -348,6 +351,7 @@ bool MemoryBank::processMessageHeader() {
 		return false;
 
   NetworkData request = peekNextRequest();
+    
 	mActiveTableIndex = request.channelID().getChannel();
 	mActiveReturnChannel = request.returnAddr();
 	mActiveRequest = MemoryRequest(request.payload());
@@ -356,14 +360,14 @@ bool MemoryBank::processMessageHeader() {
 	switch (mActiveRequest.getOperation()) {
 	case MemoryRequest::CONTROL:
 		if (DEBUG)
-			cout << this->name() << " received CONTROL request on channel " << mActiveTableIndex << endl;
+			cout << this->name() << " starting CONTROL request on channel " << mActiveTableIndex << endl;
 
 		if (mChannelMapTable[mActiveTableIndex].FetchPending) {
 			if (DEBUG)
-				cout << this->name() << " received channel address" << endl;
+				cout << this->name() << " parsed channel address" << endl;
 
 			if (!mOutputQueue.empty()) {
-			  if(DEBUG)
+			  if (DEBUG)
 			    cout << this->name() << " output queue not empty" << endl;
 
 				// Drain output queue before changing table
@@ -408,7 +412,7 @@ bool MemoryBank::processMessageHeader() {
 			}
 		} else if (mActiveRequest.getOpCode() == MemoryRequest::SET_MODE) {
 			if (DEBUG)
-				cout << this->name() << " received SET_MODE opcode on channel " << mActiveTableIndex << endl;
+				cout << this->name() << " starting SET_MODE opcode on channel " << mActiveTableIndex << endl;
 
 			uint wayBits = mActiveRequest.getWayBits();
 			uint lineBits = mActiveRequest.getLineBits();
@@ -477,7 +481,7 @@ bool MemoryBank::processMessageHeader() {
 			assert(mActiveRequest.getOpCode() == MemoryRequest::SET_CHMAP);
 
 			if (DEBUG)
-				cout << this->name() << " received SET_CHMAP opcode on channel " << mActiveTableIndex << endl;
+				cout << this->name() << " starting SET_CHMAP opcode on channel " << mActiveTableIndex << endl;
 
 			mChannelMapTable[mActiveTableIndex].FetchPending = true;
 
@@ -499,7 +503,7 @@ bool MemoryBank::processMessageHeader() {
   case MemoryRequest::STORE_THROUGH_HW:
   case MemoryRequest::STORE_THROUGH_B:
 		if (DEBUG)
-			cout << this->name() << " received scalar request on channel " << mActiveTableIndex << endl;
+			cout << this->name() << " starting scalar request on channel " << mActiveTableIndex << endl;
 
 		mActiveAddress = mActiveRequest.getPayload();
 		mFSMState = STATE_LOCAL_MEMORY_ACCESS;
@@ -508,7 +512,7 @@ bool MemoryBank::processMessageHeader() {
 
 	case MemoryRequest::IPK_READ:
 		if (DEBUG)
-			cout << this->name() << " received IPK_READ request on channel " << mActiveTableIndex << endl;
+			cout << this->name() << " starting IPK_READ request on channel " << mActiveTableIndex << endl;
 
 		if (ENERGY_TRACE)
 		  Instrumentation::memoryInitiateIPKRead(cBankNumber, false);
@@ -520,7 +524,7 @@ bool MemoryBank::processMessageHeader() {
 
 	case MemoryRequest::BURST_READ:
 		if (DEBUG)
-			cout << this->name() << " received BURST_READ request on channel " << mActiveTableIndex << endl;
+			cout << this->name() << " starting BURST_READ request on channel " << mActiveTableIndex << endl;
 
 		mActiveAddress = mActiveRequest.getPayload();
 		mFSMCallbackState = STATE_LOCAL_BURST_READ;
@@ -530,7 +534,7 @@ bool MemoryBank::processMessageHeader() {
 
 	case MemoryRequest::BURST_WRITE:
 		if (DEBUG)
-			cout << this->name() << " received BURST_WRITE request on channel " << mActiveTableIndex << endl;
+			cout << this->name() << " starting BURST_WRITE request on channel " << mActiveTableIndex << endl;
 
 		mActiveAddress = mActiveRequest.getPayload();
 		mFSMCallbackState = STATE_BURST_WRITE_MASTER;
@@ -590,7 +594,7 @@ void MemoryBank::processLocalMemoryAccess() {
 					cout << this->name() << " read word " << data << " from 0x" << std::hex << mActiveAddress << std::dec << endl;
 					break;
 				case MemoryRequest::LOAD_HW:
-					cout << this->name() << " read half-word " << data << " from 0x" << std::hex << mActiveAddress << std::dec << endl;
+					cout << this->name() << " read halfword " << data << " from 0x" << std::hex << mActiveAddress << std::dec << endl;
 					break;
 				case MemoryRequest::LOAD_B:
 					cout << this->name() << " read byte " << data << " from 0x" << std::hex << mActiveAddress << std::dec << endl;
@@ -631,7 +635,7 @@ void MemoryBank::processLocalMemoryAccess() {
 					cout << this->name() << " wrote word " << payload.getPayload() << " to 0x" << std::hex << mActiveAddress << std::dec << endl;
 					break;
 				case MemoryRequest::STORE_HW:
-					cout << this->name() << " wrote half-word " << payload.getPayload() << " to 0x" << std::hex << mActiveAddress << std::dec << endl;
+					cout << this->name() << " wrote halfword " << payload.getPayload() << " to 0x" << std::hex << mActiveAddress << std::dec << endl;
 					break;
 				case MemoryRequest::STORE_B:
 					cout << this->name() << " wrote byte " << payload.getPayload() << " to 0x" << std::hex << mActiveAddress << std::dec << endl;
@@ -702,7 +706,7 @@ void MemoryBank::processLocalMemoryAccess() {
 						cout << this->name() << " read word " << data << " from 0x" << std::hex << mActiveAddress << std::dec << endl;
 						break;
 					case MemoryRequest::LOAD_HW:
-						cout << this->name() << " read half-word " << data << " from 0x" << std::hex << mActiveAddress << std::dec << endl;
+						cout << this->name() << " read halfword " << data << " from 0x" << std::hex << mActiveAddress << std::dec << endl;
 						break;
 					case MemoryRequest::LOAD_B:
 						cout << this->name() << " read byte " << data << " from 0x" << std::hex << mActiveAddress << std::dec << endl;
@@ -822,7 +826,7 @@ void MemoryBank::processLocalMemoryAccess() {
 						break;
 					case MemoryRequest::STORE_HW:
 					case MemoryRequest::STORE_THROUGH_HW:
-						cout << this->name() << " wrote half-word " << payload.getPayload() << " to 0x" << std::hex << mActiveAddress << std::dec << endl;
+						cout << this->name() << " wrote halfword " << payload.getPayload() << " to 0x" << std::hex << mActiveAddress << std::dec << endl;
 						break;
 					case MemoryRequest::STORE_B:
 					case MemoryRequest::STORE_THROUGH_B:

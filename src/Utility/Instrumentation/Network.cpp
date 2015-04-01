@@ -78,7 +78,7 @@ void Network::printStats() {
       "  Traffic distribution:\n" <<
       "    Component\tProduced\tConsumed\n";
 
-    for(uint i=0; i<NUM_TILES; i++) {
+    for(uint i=0; i<NUM_COMPUTE_TILES; i++) {
       for(uint j=0; i<COMPONENTS_PER_TILE; i++) {
         ComponentID id(i, j);
         if(producers[id]>0 || consumers[id]>0)
@@ -90,14 +90,14 @@ void Network::printStats() {
 
 void Network::dumpEventCounts(std::ostream& os) {
   os << xmlBegin("crossbar")              << "\n"
-     << xmlNode("instances", NUM_TILES)   << "\n"
+     << xmlNode("instances", NUM_COMPUTE_TILES)   << "\n"
      << xmlNode("hd_in", xbarInHD)        << "\n"
      << xmlNode("hd_out", xbarOutHD)      << "\n"
      << xmlNode("total_dist", xbarDistHD) << "\n"
      << xmlEnd("crossbar")                << "\n"
 
      << xmlBegin("multicast_network")     << "\n"
-     << xmlNode("instances", NUM_TILES)   << "\n"
+     << xmlNode("instances", NUM_COMPUTE_TILES)   << "\n"
      << xmlNode("hd", mcastHD)            << "\n"
      << xmlEnd("multicast_network")       << "\n"
 
@@ -112,7 +112,7 @@ void Network::dumpEventCounts(std::ostream& os) {
      << xmlEnd("arbiter")                 << "\n"
 
      << xmlBegin("router")                << "\n"
-     << xmlNode("instances", NUM_TILES)   << "\n"
+     << xmlNode("instances", NUM_COMPUTE_TILES)   << "\n"
      // TODO
      << xmlEnd("router")                  << "\n";
 }

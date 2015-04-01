@@ -7,6 +7,7 @@
 
 #include <systemc.h>
 #include <stdio.h>
+
 #include "Utility/Arguments.h"
 #include "Utility/Blocking.h"
 #include "Utility/Debugger.h"
@@ -134,6 +135,8 @@ int simulate() {
   // Override parameters before instantiating chip model
   for (unsigned int i=0; i<Arguments::code().size(); i++)
     CodeLoader::loadParameters(Arguments::code()[i]);
+  if (DEBUG)
+    Parameters::printParameters();
 
   // Now that we know how many cores, etc, there are, initialise any
   // instrumentation structures.
@@ -168,7 +171,7 @@ int simulate() {
 
   // Print debug information
   if (BATCH_MODE) {
-    Parameters::printParameters();
+    Parameters::printParametersDbase();
     Statistics::printStats();
   }
   else if (Arguments::summarise() || DEBUG)

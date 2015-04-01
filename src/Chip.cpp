@@ -154,7 +154,7 @@ void Chip::makeSignals() {
 }
 
 void Chip::makeComponents() {
-  for (uint j=0; j<NUM_TILES; j++) {
+  for (uint j=0; j<NUM_COMPUTE_TILES; j++) {
     std::stringstream namebuilder;
     std::string name;
 
@@ -312,7 +312,7 @@ void Chip::wireUp() {
 		}
 	}
   
-  for (uint j=0; j<NUM_TILES; j++) {
+  for (uint j=0; j<NUM_COMPUTE_TILES; j++) {
  	  for (uint i = 0; i < MEMS_PER_TILE; i++) {
 			int currIndex = j * MEMS_PER_TILE + i;
 			int prevIndex = j * MEMS_PER_TILE + ((i + MEMS_PER_TILE - 1) % MEMS_PER_TILE);

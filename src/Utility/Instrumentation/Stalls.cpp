@@ -44,7 +44,7 @@ void Stalls::init() {
     startStall.push_back(map<ComponentID, cycle_count_t>());
   }
 
-  for (uint i=0; i<NUM_TILES; i++) {
+  for (uint i=0; i<NUM_COMPUTE_TILES; i++) {
     for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
       ComponentID id(i, j);
 
@@ -68,7 +68,7 @@ void Stalls::startLogging() {
 
   // If any cores are stalled, pretend that they only just started, so cycles
   // before logging started aren't counted.
-  for (uint i=0; i<NUM_TILES; i++) {
+  for (uint i=0; i<NUM_COMPUTE_TILES; i++) {
     for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
       ComponentID id(i, j);
 
@@ -93,7 +93,7 @@ void Stalls::stopLogging() {
   static Instruction nullInst(0);
   static const DecodedInst decoded(nullInst);
 
-  for (uint i=0; i<NUM_TILES; i++) {
+  for (uint i=0; i<NUM_COMPUTE_TILES; i++) {
     for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
       ComponentID id(i, j);
 
@@ -326,7 +326,7 @@ void Stalls::printStats() {
   // Flush any remaining stall/idle time into the CounterMaps.
   stopLogging();
 
-	for (uint i=0; i<NUM_TILES; i++) {
+	for (uint i=0; i<NUM_COMPUTE_TILES; i++) {
 		for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
 			ComponentID id(i, j);
 
@@ -354,7 +354,7 @@ void Stalls::printStats() {
 
   // Print instruction distribution summary
   clog << "\nDistribution of instructions:\n";
-  for (uint i=0; i<NUM_TILES; i++) {
+  for (uint i=0; i<NUM_COMPUTE_TILES; i++) {
     for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
       ComponentID id(i, j);
 
@@ -388,7 +388,7 @@ void Stalls::printStats() {
 void Stalls::dumpEventCounts(std::ostream& os) {
   stopLogging();
 
-  for (uint i=0; i<NUM_TILES; i++) {
+  for (uint i=0; i<NUM_COMPUTE_TILES; i++) {
     for (uint j=0; j<COMPONENTS_PER_TILE; j++) {
       ComponentID id(i, j);
 

@@ -150,9 +150,9 @@ public:
 //			exit(1);
 //		}
 
-	  if (tile >= NUM_TILES)
-	    std::cerr << "Creating ChannelID with tile=" << tile << "; max is " << NUM_TILES << std::endl;
-	  assert(tile < NUM_TILES);
+	  if (tile >= NUM_COMPUTE_TILES)
+	    std::cerr << "Creating ChannelID with tile=" << tile << "; max is " << NUM_COMPUTE_TILES << std::endl;
+	  assert(tile < NUM_COMPUTE_TILES);
 
 	  if (!(channel < CORE_INPUT_CHANNELS || channel < MEMORY_INPUT_CHANNELS))
 	    std::cerr << "Creating ChannelID with channel=" << channel << "; max is " << MEMORY_INPUT_CHANNELS << std::endl;

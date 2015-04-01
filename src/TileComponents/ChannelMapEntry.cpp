@@ -7,6 +7,7 @@
 
 #include "ChannelMapEntry.h"
 #include "../Datatype/ChannelID.h"
+#include "../Exceptions/InvalidOptionException.h"
 #include "../Utility/Arguments.h"
 #include <iostream>
 
@@ -63,6 +64,9 @@ void ChannelMapEntry::setCoreDestination(const ChannelID& address) {
   memoryGroupBits_ = 0;
   memoryLineBits_ = 0;
   addressIncrement_ = 0;
+
+  if (DEBUG || Arguments::summarise())
+    std::cout << "SETCHMAP: " << id_ << " -> " << destination_ << std::endl;
 }
 
 void ChannelMapEntry::setMemoryDestination(const ChannelID& address,
@@ -160,7 +164,7 @@ const sc_event& ChannelMapEntry::creditArrivedEvent() const {
   return creditArrived_;
 }
 
-ChannelMapEntry::ChannelMapEntry(ComponentID localID) {
+ChannelMapEntry::ChannelMapEntry(ChannelID localID) {
   id_ = localID;
   destination_ = ChannelID();
   credits_ = MAX_CREDITS;

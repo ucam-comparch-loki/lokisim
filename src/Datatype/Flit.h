@@ -112,9 +112,6 @@ public:
     portClaim_    = false;
     useCredits_   = true;
     endOfPacket_  = true;
-
-    if (DEBUG)
-      std::cout << "New Flit: " << *this << std::endl;
     /*
     // Add proper check here?
 

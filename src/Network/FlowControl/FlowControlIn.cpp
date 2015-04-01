@@ -37,7 +37,7 @@ void FlowControlIn::handlePortClaim() {
   addCredit();
 
   if (DEBUG)
-    cout << "Channel " << channel << " was claimed by " << returnAddress << " [flow control " << (useCredits ? "enabled" : "disabled") << "]" << endl;
+    cout << this->name() << " claimed by " << returnAddress << " [flow control " << (useCredits ? "enabled" : "disabled") << "]" << endl;
 
   // If this is a port claim from a memory, to a core's data input, this
   // message doubles as a synchronisation message to show that all memories are

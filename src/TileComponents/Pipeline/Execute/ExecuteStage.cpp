@@ -272,10 +272,14 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
   bool success = core()->channelMapTable.write(entry, sendChannel, groupBits, lineBits, returnTo, writeThrough);
   if (!success) {
     blocked = true;
+    if (DEBUG)
+      cout << this->name() << " stalled waiting for credits before setchmap" << endl;
+    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
     next_trigger(core()->channelMapTable.allCreditsEvent(entry));
   }
   else {
     blocked = false;
+    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
 
     // Generate a message to claim the port we have just stored the address of.
     if (sendChannel.isCore() && !sendChannel.isNullMapping()) {

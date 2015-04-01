@@ -49,12 +49,12 @@ NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
   iData.init(TOTAL_OUTPUT_PORTS);
   oData.init(TOTAL_INPUT_PORTS);
 
-  int readyPorts = (CORES_PER_TILE * CORE_INPUT_CHANNELS + MEMS_PER_TILE) * NUM_TILES;
+  int readyPorts = (CORES_PER_TILE * CORE_INPUT_CHANNELS + MEMS_PER_TILE) * NUM_COMPUTE_TILES;
   iReady.init(readyPorts);
 
   // Make a local network for each tile. This includes all wiring up and
   // creation of a router.
-  for (unsigned int tile=0; tile<NUM_TILES; tile++) {
+  for (unsigned int tile=0; tile<NUM_COMPUTE_TILES; tile++) {
     makeLocalNetwork(tile);
   }
 
