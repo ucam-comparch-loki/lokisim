@@ -208,8 +208,31 @@ void Parameters::parseParameter(const string &name, const string &value) {
 	}
 }
 
-// Print parameters in a database-compatible format.
 void Parameters::printParameters() {
+  cout << "Parameter CORES_PER_TILE is " << CORES_PER_TILE << endl;
+  cout << "Parameter MEMS_PER_TILE is " << MEMS_PER_TILE << endl;
+  cout << "Parameter COMPUTE_TILE_ROWS is " << COMPUTE_TILE_ROWS << endl;
+  cout << "Parameter COMPUTE_TILE_COLUMNS is " << COMPUTE_TILE_COLUMNS << endl;
+  cout << "Parameter NUM_ADDRESSABLE_REGISTERS is " << NUM_ADDRESSABLE_REGISTERS << endl;
+  cout << "Parameter CORE_SCRATCHPAD_SIZE is " << CORE_SCRATCHPAD_SIZE << endl;
+  cout << "Parameter IPK_FIFO_SIZE is " << IPK_FIFO_SIZE << endl;
+  cout << "Parameter IPK_CACHE_SIZE is " << IPK_CACHE_SIZE << endl;
+  cout << "Parameter IPK_CACHE_TAGS is " << IPK_CACHE_TAGS << endl;
+  cout << "Parameter CHANNEL_MAP_SIZE is " << CHANNEL_MAP_SIZE << endl;
+  cout << "Parameter MAX_IPK_SIZE is " << MAX_IPK_SIZE << endl;
+  cout << "Parameter DIRECTORY_SIZE is " << DIRECTORY_SIZE << endl;
+  cout << "Parameter MEMORY_BANK_SIZE is " << MEMORY_BANK_SIZE << endl;
+  cout << "Parameter MEMORY_ON_CHIP_SCRATCHPAD_DELAY is " << MEMORY_ON_CHIP_SCRATCHPAD_DELAY << endl;
+  cout << "Parameter MEMORY_ON_CHIP_SCRATCHPAD_SIZE is " << MEMORY_ON_CHIP_SCRATCHPAD_SIZE << endl;
+  cout << "Parameter MEMORY_ON_CHIP_SCRATCHPAD_BANKS is " << MEMORY_ON_CHIP_SCRATCHPAD_BANKS << endl;
+  cout << "Parameter NUM_RECEIVE_CHANNELS is " << NUM_RECEIVE_CHANNELS << endl;
+  cout << "Parameter IN_CHANNEL_BUFFER_SIZE is " << IN_CHANNEL_BUFFER_SIZE << endl;
+  cout << "Parameter OUT_CHANNEL_BUFFER_SIZE is " << OUT_CHANNEL_BUFFER_SIZE << endl;
+  cout << "Parameter ROUTER_BUFFER_SIZE is " << ROUTER_BUFFER_SIZE << endl;
+}
+
+// Print parameters in a database-compatible format.
+void Parameters::printParametersDbase() {
 	// TODO: Add remaining parameters if required
 
 	if (BATCH_MODE) {

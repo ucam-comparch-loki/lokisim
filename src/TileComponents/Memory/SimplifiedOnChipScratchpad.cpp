@@ -48,7 +48,7 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 			mPortData[port].ReturnAddress = ChannelID(request.getSourceTile().x, request.getSourceTile().y, request.getSourceBank(), 0);
 
       if (DEBUG)
-        cout << this->name() << " reading " << mPortData[port].WordsLeft << " words from 0x" << std::hex << mPortData[port].Address << std::dec << endl;
+        cout << this->name() << " preparing to read " << mPortData[port].WordsLeft << " words from 0x" << std::hex << mPortData[port].Address << std::dec << endl;
 
 			if (mPortData[port].Address + mPortData[port].WordsLeft * 4 > MEMORY_ON_CHIP_SCRATCHPAD_SIZE)
 				cerr << this->name() << " fetch request outside valid memory space (address " << mPortData[port].Address << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
@@ -69,7 +69,7 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 			mPortData[port].WordsLeft = request.getLineSize();
 
       if (DEBUG)
-        cout << this->name() << " writing " << mPortData[port].WordsLeft << " words to 0x" << std::hex << mPortData[port].Address << std::dec << endl;
+        cout << this->name() << " preparing to write " << mPortData[port].WordsLeft << " words to 0x" << std::hex << mPortData[port].Address << std::dec << endl;
 
 			if (mPortData[port].Address + mPortData[port].WordsLeft * 4 > MEMORY_ON_CHIP_SCRATCHPAD_SIZE)
 				cerr << this->name() << " store request outside valid memory space (address " << mPortData[port].Address << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
@@ -124,8 +124,12 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 
 			case STATE_READING:
 				if (!bankAccessed[bankSelected]) {
-				  NetworkResponse response(Word(mData[mPortData[port].Address / 4]),
-				                           mPortData[port].ReturnAddress);
+				  uint32_t result = mData[mPortData[port].Address / 4];
+
+          if (DEBUG)
+            cout << this->name() << " read from 0x" << std::hex << mPortData[port].Address << std::dec << ": " << result << endl;
+
+				  NetworkResponse response(Word(result), mPortData[port].ReturnAddress);
 
 					mPortData[port].Address += 4;
 					mPortData[port].WordsLeft--;
@@ -145,7 +149,12 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 				if (!bankAccessed[bankSelected] && !mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
 					assert(mInputQueues[port].peek().Request.getOperation() == MemoryRequest::PAYLOAD_ONLY);
 
-					mData[mPortData[port].Address / 4] = mInputQueues[port].read().Request.getPayload();
+					uint32_t data = mInputQueues[port].read().Request.getPayload();
+
+			    if (DEBUG)
+			      cout << this->name() << " wrote to 0x" << std::hex << mPortData[port].Address << std::dec << ": " << data << endl;
+
+					mData[mPortData[port].Address / 4] = data;
 					mPortData[port].Address += 4;
 					mPortData[port].WordsLeft--;
 
@@ -258,8 +267,8 @@ void SimplifiedOnChipScratchpad::storeData(vector<Word>& data, MemoryAddr locati
 	assert(location + count * 4 < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 
 	for (size_t i = 0; i < count; i++) {
-		if (DEBUG)
-			cout << this->name() << " store 0x" << setprecision(8) << setfill('0') << hex << ((address + i) * 4) << ":  " << "0x" << setprecision(8) << setfill('0') << hex << data[i].toUInt() << endl << dec;
+    if (DEBUG)
+      cout << this->name() << " wrote to 0x" << std::hex << ((address+i)*4) << std::dec << ": " << data[i].toUInt() << endl;
 
 		mData[address + i] = data[i].toUInt();
 	}

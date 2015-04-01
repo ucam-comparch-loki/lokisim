@@ -90,7 +90,7 @@ void MissHandlingLogic::handleNewLocalRequest() {
       requestDestination = getDestination(address);
 
       if (DEBUG)
-        cout << this->name() << " requesting " << requestFlitsRemaining << " words from 0x" << std::hex << address << std::dec << " on tile " << requestDestination.component.tile << endl;
+        cout << this->name() << " requesting " << request.getLineSize() << " words from 0x" << std::hex << address << std::dec << " on tile " << requestDestination.component.tile << endl;
       break;
     }
 
@@ -103,7 +103,7 @@ void MissHandlingLogic::handleNewLocalRequest() {
       requestDestination = getDestination(address);
 
       if (DEBUG)
-        cout << this->name() << " flushing " << requestFlitsRemaining << " words to 0x" << std::hex << address << std::dec << " on tile " << requestDestination.component.tile << endl;
+        cout << this->name() << " flushing " << request.getLineSize() << " words to 0x" << std::hex << address << std::dec << " on tile " << requestDestination.component.tile << endl;
       break;
     }
 
@@ -248,7 +248,7 @@ void MissHandlingLogic::handleNewRemoteRequest() {
       responseDestination = ChannelID(sourceTile.x, sourceTile.y, sourceBank, 0);
 
       if (DEBUG)
-        cout << this->name() << " requesting " << responseFlitsRemaining << " words from 0x" << std::hex << address << std::dec << " (proposed bank " << targetBank << ")" << endl;
+        cout << this->name() << " requesting " << request.getLineSize() << " words from 0x" << std::hex << address << std::dec << " (proposed bank " << targetBank << ")" << endl;
       break;
     }
 
@@ -260,7 +260,7 @@ void MissHandlingLogic::handleNewRemoteRequest() {
       MemoryAddr address = request.getPayload();
 
       if (DEBUG)
-        cout << this->name() << " flushing " << responseFlitsRemaining << " words to 0x" << std::hex << address << std::dec << " (proposed bank " << targetBank << ")" << endl;
+        cout << this->name() << " flushing " << request.getLineSize() << " words to 0x" << std::hex << address << std::dec << " (proposed bank " << targetBank << ")" << endl;
       break;
     }
 

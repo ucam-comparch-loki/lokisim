@@ -237,6 +237,10 @@ bool MemoryBank::processMessageHeader() {
 		return false;
 
   NetworkData request = mInputQueue.peek();
+
+  if (DEBUG)
+    cout << this->name() << " dequeued " << request << endl;
+
 	mActiveData.TableIndex = request.channelID().channel;
 	mActiveData.ReturnChannel = request.returnAddr();
 	mActiveRequest = MemoryRequest(request.payload());
@@ -245,11 +249,11 @@ bool MemoryBank::processMessageHeader() {
 	switch (mActiveRequest.getOperation()) {
 	case MemoryRequest::CONTROL:
 		if (DEBUG)
-			cout << this->name() << " received CONTROL request on channel " << mActiveData.TableIndex << endl;
+			cout << this->name() << " starting CONTROL request on channel " << mActiveData.TableIndex << endl;
 
 		if (mChannelMapTable[mActiveData.TableIndex].FetchPending) {
 			if (DEBUG)
-				cout << this->name() << " received channel address" << endl;
+				cout << this->name() << " parsed channel address" << endl;
 
 			if (!mOutputQueue.empty()) {
 			  if (DEBUG)
@@ -294,7 +298,7 @@ bool MemoryBank::processMessageHeader() {
 			}
 		} else if (mActiveRequest.getOpCode() == MemoryRequest::SET_MODE) {
 			if (DEBUG)
-				cout << this->name() << " received SET_MODE opcode on channel " << mActiveData.TableIndex << endl;
+				cout << this->name() << " starting SET_MODE opcode on channel " << mActiveData.TableIndex << endl;
 
 			uint wayBits = mActiveRequest.getWayBits();
 			uint lineBits = mActiveRequest.getLineBits();
@@ -339,7 +343,7 @@ bool MemoryBank::processMessageHeader() {
 			assert(mActiveRequest.getOpCode() == MemoryRequest::SET_CHMAP);
 
 			if (DEBUG)
-				cout << this->name() << " received SET_CHMAP opcode on channel " << mActiveData.TableIndex << endl;
+				cout << this->name() << " starting SET_CHMAP opcode on channel " << mActiveData.TableIndex << endl;
 
 			mChannelMapTable[mActiveData.TableIndex].FetchPending = true;
 
@@ -361,7 +365,7 @@ bool MemoryBank::processMessageHeader() {
   case MemoryRequest::STORE_THROUGH_HW:
   case MemoryRequest::STORE_THROUGH_B:
 		if (DEBUG)
-			cout << this->name() << " received scalar request on channel " << mActiveData.TableIndex << endl;
+			cout << this->name() << " starting scalar request on channel " << mActiveData.TableIndex << endl;
 
 		mActiveData.Address = mActiveRequest.getPayload();
 		mFSMState = STATE_LOCAL_MEMORY_ACCESS;
@@ -370,7 +374,7 @@ bool MemoryBank::processMessageHeader() {
 
 	case MemoryRequest::IPK_READ:
 		if (DEBUG)
-			cout << this->name() << " received IPK_READ request on channel " << mActiveData.TableIndex << endl;
+			cout << this->name() << " starting IPK_READ request on channel " << mActiveData.TableIndex << endl;
 
 		if (ENERGY_TRACE)
 		  Instrumentation::memoryInitiateIPKRead(cBankNumber, false);
@@ -382,7 +386,7 @@ bool MemoryBank::processMessageHeader() {
 
 	case MemoryRequest::BURST_READ:
 		if (DEBUG)
-			cout << this->name() << " received BURST_READ request on channel " << mActiveData.TableIndex << endl;
+			cout << this->name() << " starting BURST_READ request on channel " << mActiveData.TableIndex << endl;
 
 		mActiveData.Address = mActiveRequest.getPayload();
 		mFSMCallbackState = STATE_LOCAL_BURST_READ;
@@ -392,7 +396,7 @@ bool MemoryBank::processMessageHeader() {
 
 	case MemoryRequest::BURST_WRITE:
 		if (DEBUG)
-			cout << this->name() << " received BURST_WRITE request on channel " << mActiveData.TableIndex << endl;
+			cout << this->name() << " starting BURST_WRITE request on channel " << mActiveData.TableIndex << endl;
 
 		mActiveData.Address = mActiveRequest.getPayload();
 		mFSMCallbackState = STATE_BURST_WRITE_MASTER;
@@ -401,8 +405,10 @@ bool MemoryBank::processMessageHeader() {
 		break;
 
 	case MemoryRequest::DIRECTORY_UPDATE:
-    if (DEBUG)
-      cout << this->name() << " received DIRECTORY_UPDATE request on channel " << mActiveData.TableIndex << endl;
+    if (DEBUG) {
+      cout << this->name() << " starting DIRECTORY_UPDATE request on channel " << mActiveData.TableIndex << endl;
+      cout << this->name() << " buffering request to update directory: " << mActiveRequest.getPayload() << endl;
+    }
 
     assert(!mOutputReqQueue.full());
     mOutputReqQueue.write(mActiveRequest);
@@ -410,8 +416,10 @@ bool MemoryBank::processMessageHeader() {
     break;
 
 	case MemoryRequest::DIRECTORY_MASK_UPDATE:
-    if (DEBUG)
-      cout << this->name() << " received DIRECTORY_MASK_UPDATE request on channel " << mActiveData.TableIndex << endl;
+    if (DEBUG) {
+      cout << this->name() << " starting DIRECTORY_MASK_UPDATE request on channel " << mActiveData.TableIndex << endl;
+      cout << this->name() << " buffering request to update directory mask: " << mActiveRequest.getPayload() << endl;
+    }
 
     assert(!mOutputReqQueue.full());
     mOutputReqQueue.write(mActiveRequest);
@@ -419,7 +427,7 @@ bool MemoryBank::processMessageHeader() {
 	  break;
 
 	default:
-		cout << this->name() << " received invalid memory request type (" << mActiveRequest.getOperation() << ")" << endl;
+		cout << this->name() << " starting invalid memory request type (" << mActiveRequest.getOperation() << ")" << endl;
 		assert(false);
 		break;
 	}
@@ -597,11 +605,13 @@ void MemoryBank::processLocalMemoryAccess() {
 			//cacheHit = cacheHit && !throughAccess;
 
 			if (cacheHit) {
-				if (DEBUG)
-				  printOperation(mActiveRequest.getOperation(), mActiveData.Address, payload.getPayload());
-
 				// Remove the request from the queue after completing it.
 				mInputQueue.read();
+
+				if (DEBUG) {
+				  cout << this->name() << " dequeued " << payload << endl;
+				  printOperation(mActiveRequest.getOperation(), mActiveData.Address, payload.getPayload());
+				}
 
 				// Chain next request
 				if (!processRingEvent())
@@ -810,6 +820,9 @@ void MemoryBank::processGeneralPurposeCacheMiss() {
 		if (mWriteBackCount > 0) {
 			assert(mWriteBackCount == mConfig.LineSize / 4);
 
+			if (DEBUG)
+			  cout << this->name() << " buffering request for " << mConfig.LineSize << " bytes to 0x" << std::hex << mFetchAddress << std::dec << endl;
+
 			MemoryRequest header(MemoryRequest::STORE_LINE, mWriteBackAddress, mConfig.LineSize/4, id.tile, id.position);
 			mOutputReqQueue.write(header);
 
@@ -834,6 +847,9 @@ void MemoryBank::processGeneralPurposeCacheMiss() {
     // We only start a memory operation if we know there is buffer space to
     // complete it.
     assert(!mOutputReqQueue.full());
+
+	  if (DEBUG)
+	    cout << this->name() << " buffering request data " << mCacheLineBuffer[mCacheLineCursor] << endl;
 
 	  MemoryRequest payload(MemoryRequest::PAYLOAD_ONLY, mCacheLineBuffer[mCacheLineCursor++]);
 	  mOutputReqQueue.write(payload);
@@ -1181,7 +1197,7 @@ void MemoryBank::handleRequestOutput() {
   else {
     MemoryRequest request = mOutputReqQueue.read();
     if (DEBUG)
-      cout << this->name() << " sending request " << request << endl;
+      cout << this->name() << " sending request " << request.getPayload() << endl;
 
     assert(!oRequest.valid());
     oRequest.write(request);

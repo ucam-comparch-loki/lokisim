@@ -226,8 +226,11 @@ public:
   // been instantiated.
 	static void parseParameter(const string &name, const string &value);
 
+	// Print parameters to stdout.
+  static void printParameters();
+
 	// Print parameters in a database-compatible format.
-	static void printParameters();
+	static void printParametersDbase();
 
 	// Print parameters in an XML format.
 	static void printParametersXML(std::ostream& os);
