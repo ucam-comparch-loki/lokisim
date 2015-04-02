@@ -15,6 +15,9 @@ const DecodedInst& WriteStage::currentInstruction() const {
 }
 
 void WriteStage::execute() {
+  if (DEBUG)
+    cout << this->name() << " received Instruction: " << currentInst << endl;
+
   newInput(currentInst);
 //  bool packetInProgress = !currentInst.endOfNetworkPacket();
 

@@ -34,29 +34,6 @@ namespace Instrumentation {
   // techniques to reduce its activity, so record how active it is.
   void decoded(const ComponentID& core, const DecodedInst& dec);
 
-  void memorySetMode(int bank, bool isCache, uint setCount, uint wayCount, uint lineSize);
-
-  void memoryReadWord(int bank, MemoryAddr address, bool isMiss);
-  void memoryReadHalfWord(int bank, MemoryAddr address, bool isMiss);
-  void memoryReadByte(int bank, MemoryAddr address, bool isMiss);
-
-  void memoryWriteWord(int bank, MemoryAddr address, bool isMiss);
-  void memoryWriteHalfWord(int bank, MemoryAddr address, bool isMiss);
-  void memoryWriteByte(int bank, MemoryAddr address, bool isMiss);
-
-  void memoryInitiateIPKRead(int bank, bool isHandOff);
-  void memoryInitiateBurstRead(int bank, bool isHandOff);
-  void memoryInitiateBurstWrite(int bank, bool isHandOff);
-
-  void memoryReadIPKWord(int bank, MemoryAddr address, bool isMiss);
-  void memoryReadBurstWord(int bank, MemoryAddr address, bool isMiss);
-  void memoryWriteBurstWord(int bank, MemoryAddr address, bool isMiss);
-
-  void memoryReplaceCacheLine(int bank, bool isValid, bool isDirty);
-
-  void memoryRingHandOff(int bank);
-  void memoryRingPassThrough(int bank);
-
   // Record that background memory was read from.
   void backgroundMemoryRead(MemoryAddr address, uint32_t count);
 

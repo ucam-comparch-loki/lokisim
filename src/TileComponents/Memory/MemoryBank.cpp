@@ -29,6 +29,7 @@ using namespace std;
 #include "../../Memory/BufferStorage.h"
 #include "../../Network/Topologies/LocalNetwork.h"
 #include "../../Utility/Arguments.h"
+#include "../../Utility/Instrumentation/MemoryBank.h"
 #include "../../Utility/Instrumentation/Network.h"
 #include "../../Utility/Trace/MemoryTrace.h"
 #include "../../Utility/Parameters.h"
@@ -276,7 +277,7 @@ ReevaluateRequest:
 		mPartialInstructionData = mActiveRingRequestInput.Header.IPKReadHandOff.PartialInstructionData;
 
 		if (ENERGY_TRACE)
-		  Instrumentation::memoryInitiateIPKRead(cBankNumber, true);
+		  Instrumentation::MemoryBank::initiateIPKRead(cBankNumber, true);
 
 		mFSMState = STATE_LOCAL_IPK_READ;
 		break;
@@ -515,7 +516,7 @@ bool MemoryBank::processMessageHeader() {
 			cout << this->name() << " starting IPK_READ request on channel " << mActiveTableIndex << endl;
 
 		if (ENERGY_TRACE)
-		  Instrumentation::memoryInitiateIPKRead(cBankNumber, false);
+		  Instrumentation::MemoryBank::initiateIPKRead(cBankNumber, false);
 
 		mActiveAddress = mActiveRequest.getPayload();
 		mFSMState = STATE_LOCAL_IPK_READ;
@@ -568,6 +569,9 @@ void MemoryBank::processLocalMemoryAccess() {
 	assert(mBankMode != MODE_INACTIVE);
 	assert(mActiveTableIndex < 8 || mChannelMapTable[mActiveTableIndex].Valid);
 
+	uint core = mActiveTableIndex + id.getTile()*CORES_PER_TILE;
+	uint channel = mActiveReturnChannel;
+
 	if (mOutputQueue.full() && (mActiveRequest.isSingleLoad())) {
 		// Delay load request until there is room in the output queue available
 
@@ -582,9 +586,9 @@ void MemoryBank::processLocalMemoryAccess() {
 			uint32_t data;
 
 			switch (mActiveRequest.getOperation()) {
-			case MemoryRequest::LOAD_W:		data = mScratchpadModeHandler.readWord(mActiveAddress, false);	break;
-			case MemoryRequest::LOAD_HW:	data = mScratchpadModeHandler.readHalfWord(mActiveAddress);		break;
-			case MemoryRequest::LOAD_B:		data = mScratchpadModeHandler.readByte(mActiveAddress);			break;
+			case MemoryRequest::LOAD_W:		data = mScratchpadModeHandler.readWord(mActiveAddress, false, core, channel);	break;
+			case MemoryRequest::LOAD_HW:	data = mScratchpadModeHandler.readHalfWord(mActiveAddress, core, channel);		break;
+			case MemoryRequest::LOAD_B:		data = mScratchpadModeHandler.readByte(mActiveAddress, core, channel);			break;
 			default: throw InvalidOptionException("memory load operation", mActiveRequest.getOperation()); break;
 			}
 
@@ -623,9 +627,9 @@ void MemoryBank::processLocalMemoryAccess() {
 			assert(payload.getOperation() == MemoryRequest::PAYLOAD_ONLY);
 
 			switch (mActiveRequest.getOperation()) {
-			case MemoryRequest::STORE_W:	mScratchpadModeHandler.writeWord(mActiveAddress, payload.getPayload());		break;
-			case MemoryRequest::STORE_HW:	mScratchpadModeHandler.writeHalfWord(mActiveAddress, payload.getPayload());	break;
-			case MemoryRequest::STORE_B:	mScratchpadModeHandler.writeByte(mActiveAddress, payload.getPayload());		break;
+			case MemoryRequest::STORE_W:	mScratchpadModeHandler.writeWord(mActiveAddress, payload.getPayload(), core, channel);		break;
+			case MemoryRequest::STORE_HW:	mScratchpadModeHandler.writeHalfWord(mActiveAddress, payload.getPayload(), core, channel);	break;
+			case MemoryRequest::STORE_B:	mScratchpadModeHandler.writeByte(mActiveAddress, payload.getPayload(), core, channel);		break;
 			default: throw InvalidOptionException("memory store operation", mActiveRequest.getOperation()); break;
 			}
 
@@ -661,9 +665,9 @@ void MemoryBank::processLocalMemoryAccess() {
 			uint32_t data;
 
 			switch (mActiveRequest.getOperation()) {
-			case MemoryRequest::LOAD_W:		cacheHit = mGeneralPurposeCacheHandler.readWord(mActiveAddress, data, false, mCacheResumeRequest, false);	break;
-			case MemoryRequest::LOAD_HW:	cacheHit = mGeneralPurposeCacheHandler.readHalfWord(mActiveAddress, data, mCacheResumeRequest, false);		break;
-			case MemoryRequest::LOAD_B:		cacheHit = mGeneralPurposeCacheHandler.readByte(mActiveAddress, data, mCacheResumeRequest, false);			break;
+			case MemoryRequest::LOAD_W:		cacheHit = mGeneralPurposeCacheHandler.readWord(mActiveAddress, data, false, mCacheResumeRequest, false, core, channel);	break;
+			case MemoryRequest::LOAD_HW:	cacheHit = mGeneralPurposeCacheHandler.readHalfWord(mActiveAddress, data, mCacheResumeRequest, false, core, channel);		break;
+			case MemoryRequest::LOAD_B:		cacheHit = mGeneralPurposeCacheHandler.readByte(mActiveAddress, data, mCacheResumeRequest, false, core, channel);			break;
 
 			// FIXME: temporary hack. Desired code is commented out below.
 			case MemoryRequest::LOAD_THROUGH_W:
@@ -778,11 +782,11 @@ void MemoryBank::processLocalMemoryAccess() {
 
 			switch (mActiveRequest.getOperation()) {
 //			case MemoryRequest::STORE_THROUGH_W:
-			case MemoryRequest::STORE_W:	cacheHit = mGeneralPurposeCacheHandler.writeWord(mActiveAddress, payload.getPayload(), mCacheResumeRequest, false);		break;
+			case MemoryRequest::STORE_W:	cacheHit = mGeneralPurposeCacheHandler.writeWord(mActiveAddress, payload.getPayload(), mCacheResumeRequest, false, core, channel);		break;
 //			case MemoryRequest::STORE_THROUGH_HW:
-			case MemoryRequest::STORE_HW:	cacheHit = mGeneralPurposeCacheHandler.writeHalfWord(mActiveAddress, payload.getPayload(), mCacheResumeRequest, false);	break;
+			case MemoryRequest::STORE_HW:	cacheHit = mGeneralPurposeCacheHandler.writeHalfWord(mActiveAddress, payload.getPayload(), mCacheResumeRequest, false, core, channel);	break;
 //			case MemoryRequest::STORE_THROUGH_B:
-			case MemoryRequest::STORE_B:	cacheHit = mGeneralPurposeCacheHandler.writeByte(mActiveAddress, payload.getPayload(), mCacheResumeRequest, false);		break;
+			case MemoryRequest::STORE_B:	cacheHit = mGeneralPurposeCacheHandler.writeByte(mActiveAddress, payload.getPayload(), mCacheResumeRequest, false, core, channel);		break;
 
 			// FIXME: temporary hack. Would prefer to use commented out code both
 			// above and below.
@@ -862,6 +866,9 @@ void MemoryBank::processLocalIPKRead() {
 	assert(mActiveTableIndex < 8 || mChannelMapTable[mActiveTableIndex].Valid);
 	assert(mActiveRequest.getOperation() == MemoryRequest::IPK_READ);
 
+	uint core = mActiveTableIndex + id.getTile()*CORES_PER_TILE;
+	uint channel = mActiveReturnChannel;
+
 	if (mOutputQueue.full()) {
 		// Delay load request until there is room in the output queue available
 
@@ -869,7 +876,7 @@ void MemoryBank::processLocalIPKRead() {
 	} else if (mBankMode == MODE_SCRATCHPAD) {
 		assert(mScratchpadModeHandler.containsAddress(mActiveAddress));
 
-		uint32_t data = mScratchpadModeHandler.readWord(mActiveAddress, true);
+		uint32_t data = mScratchpadModeHandler.readWord(mActiveAddress, true, core, channel);
     Instruction inst(data);
     bool endOfPacket = inst.endOfPacket();
 
@@ -969,7 +976,7 @@ void MemoryBank::processLocalIPKRead() {
 		assert(mGeneralPurposeCacheHandler.containsAddress(mActiveAddress));
 
 		uint32_t data;
-		bool cacheHit = mGeneralPurposeCacheHandler.readWord(mActiveAddress, data, true, mCacheResumeRequest, false);
+		bool cacheHit = mGeneralPurposeCacheHandler.readWord(mActiveAddress, data, true, mCacheResumeRequest, false, core, channel);
 
 		assert(!(mCacheResumeRequest && !cacheHit));
 		mCacheResumeRequest = false;
@@ -1090,6 +1097,9 @@ void MemoryBank::processLocalBurstRead() {
 	assert(mActiveTableIndex < 8 || mChannelMapTable[mActiveTableIndex].Valid);
 	assert(mActiveRequest.getOperation() == MemoryRequest::BURST_READ);
 
+	uint core = mActiveTableIndex + id.getTile()*CORES_PER_TILE;
+	uint channel = mActiveReturnChannel;
+
 	if (mOutputQueue.full()) {
 		// Delay load request until there is room in the output queue available
 
@@ -1097,7 +1107,7 @@ void MemoryBank::processLocalBurstRead() {
 	} else if (mBankMode == MODE_SCRATCHPAD) {
 		assert(mScratchpadModeHandler.containsAddress(mActiveAddress));
 
-		uint32_t data = mScratchpadModeHandler.readWord(mActiveAddress, false);
+		uint32_t data = mScratchpadModeHandler.readWord(mActiveAddress, false, core, channel);
 		bool endOfPacket = mActiveBurstLength == 1;
 
 		// Enqueue output request
@@ -1180,7 +1190,7 @@ void MemoryBank::processLocalBurstRead() {
 		assert(mGeneralPurposeCacheHandler.containsAddress(mActiveAddress));
 
 		uint32_t data;
-		bool cacheHit = mGeneralPurposeCacheHandler.readWord(mActiveAddress, data, false, mCacheResumeRequest, false);
+		bool cacheHit = mGeneralPurposeCacheHandler.readWord(mActiveAddress, data, false, mCacheResumeRequest, false, core, channel);
 
 		assert(!(mCacheResumeRequest && !cacheHit));
 		mCacheResumeRequest = false;
@@ -1745,6 +1755,10 @@ void MemoryBank::storeData(vector<Word>& data, MemoryAddr location) {
 	size_t count = data.size();
 	uint32_t address = location;
 
+	// Don't want to record stats for this access
+	uint core = -1;
+	uint channel = -1;
+
 	assert(address % 4 == 0);
 	assert(mBankMode != MODE_INACTIVE);
 
@@ -1758,7 +1772,7 @@ void MemoryBank::storeData(vector<Word>& data, MemoryAddr location) {
 
 			for (uint groupIndex = 0; groupIndex < mGroupSize; groupIndex++) {
 				if (bank->mScratchpadModeHandler.containsAddress(address + i * 4)) {
-					bank->mScratchpadModeHandler.writeWord(address + i * 4, data[i].toUInt());
+					bank->mScratchpadModeHandler.writeWord(address + i * 4, data[i].toUInt(), core, channel);
 					break;
 				}
 
@@ -1771,7 +1785,7 @@ void MemoryBank::storeData(vector<Word>& data, MemoryAddr location) {
 
 			for (uint groupIndex = 0; groupIndex < mGroupSize; groupIndex++) {
 				if (bank->mGeneralPurposeCacheHandler.containsAddress(address + i * 4)) {
-					if (!bank->mGeneralPurposeCacheHandler.writeWord(address + i * 4, data[i].toUInt(), false, true))
+					if (!bank->mGeneralPurposeCacheHandler.writeWord(address + i * 4, data[i].toUInt(), false, true, core, channel))
 						mBackgroundMemory->writeWord(address + i * 4, data[i]);
 
 					break;
@@ -1801,6 +1815,10 @@ void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
 	size_t address = (start / 4) * 4;
 	size_t limit = (end / 4) * 4 + 4;
 
+  // Don't want to record stats for this access
+  uint core = -1;
+  uint channel = -1;
+
 	assert(mBankMode != MODE_INACTIVE);
 
 	MemoryBank *firstBank = this;
@@ -1815,7 +1833,7 @@ void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
 
 			for (uint groupIndex = 0; groupIndex < mGroupSize; groupIndex++) {
 				if (bank->mScratchpadModeHandler.containsAddress(address)) {
-					uint32_t data = bank->mScratchpadModeHandler.readWord(address, false);
+					uint32_t data = bank->mScratchpadModeHandler.readWord(address, false, core, channel);
 					cout << "0x" << setprecision(8) << setfill('0') << hex << address << ":  " << "0x" << setprecision(8) << setfill('0') << hex << data << endl << dec;
 					break;
 				}
@@ -1834,7 +1852,7 @@ void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
 			for (uint groupIndex = 0; groupIndex < mGroupSize; groupIndex++) {
 				if (bank->mGeneralPurposeCacheHandler.containsAddress(address)) {
 					uint32_t data;
-					bool cached = bank->mGeneralPurposeCacheHandler.readWord(address, data, false, false, true);
+					bool cached = bank->mGeneralPurposeCacheHandler.readWord(address, data, false, false, true, core, channel);
 
 					if (!cached)
 						data = mBackgroundMemory->readWord(address).toUInt();
@@ -1861,6 +1879,10 @@ Word MemoryBank::readWord(MemoryAddr addr) {
 	assert(addr % 4 == 0);
 	assert(mBankMode != MODE_INACTIVE);
 
+  // Don't want to record stats for this access
+  uint core = -1;
+  uint channel = -1;
+
 	MemoryBank *firstBank = this;
 	while (firstBank->mGroupIndex != 0)
 		firstBank = firstBank->mPrevMemoryBank;
@@ -1870,7 +1892,7 @@ Word MemoryBank::readWord(MemoryAddr addr) {
 
 		for (uint groupIndex = 0; groupIndex < mGroupSize; groupIndex++) {
 			if (bank->mScratchpadModeHandler.containsAddress(addr))
-				return Word(bank->mScratchpadModeHandler.readWord(addr, false));
+				return Word(bank->mScratchpadModeHandler.readWord(addr, false, core, channel));
 
 			bank = bank->mNextMemoryBank;
 		}
@@ -1883,7 +1905,7 @@ Word MemoryBank::readWord(MemoryAddr addr) {
 		for (uint groupIndex = 0; groupIndex < mGroupSize; groupIndex++) {
 			if (bank->mGeneralPurposeCacheHandler.containsAddress(addr)) {
 				uint32_t data;
-				bool cached = bank->mGeneralPurposeCacheHandler.readWord(addr, data, false, false, true);
+				bool cached = bank->mGeneralPurposeCacheHandler.readWord(addr, data, false, false, true, core, channel);
 
 				if (!cached)
 					data = mBackgroundMemory->readWord(addr).toUInt();
@@ -1903,6 +1925,10 @@ Word MemoryBank::readByte(MemoryAddr addr) {
 
 	assert(mBankMode != MODE_INACTIVE);
 
+  // Don't want to record stats for this access
+  uint core = -1;
+  uint channel = -1;
+
 	MemoryBank *firstBank = this;
 	while (firstBank->mGroupIndex != 0)
 		firstBank = firstBank->mPrevMemoryBank;
@@ -1912,7 +1938,7 @@ Word MemoryBank::readByte(MemoryAddr addr) {
 
 		for (uint groupIndex = 0; groupIndex < mGroupSize; groupIndex++) {
 			if (bank->mScratchpadModeHandler.containsAddress(addr))
-				return Word(bank->mScratchpadModeHandler.readByte(addr));
+				return Word(bank->mScratchpadModeHandler.readByte(addr, core, channel));
 
 			bank = bank->mNextMemoryBank;
 		}
@@ -1925,7 +1951,7 @@ Word MemoryBank::readByte(MemoryAddr addr) {
 		for (uint groupIndex = 0; groupIndex < mGroupSize; groupIndex++) {
 			if (bank->mGeneralPurposeCacheHandler.containsAddress(addr)) {
 				uint32_t data;
-				bool cached = bank->mGeneralPurposeCacheHandler.readByte(addr, data, false, true);
+				bool cached = bank->mGeneralPurposeCacheHandler.readByte(addr, data, false, true, core, channel);
 
 				if (!cached)
 					data = mBackgroundMemory->readByte(addr).toUInt();
@@ -1947,6 +1973,10 @@ void MemoryBank::writeWord(MemoryAddr addr, Word data) {
 	assert(addr % 4 == 0);
 	assert(mBankMode != MODE_INACTIVE);
 
+  // Don't want to record stats for this access
+  uint core = -1;
+  uint channel = -1;
+
 	MemoryBank *firstBank = this;
 	while (firstBank->mGroupIndex != 0)
 		firstBank = firstBank->mPrevMemoryBank;
@@ -1956,7 +1986,7 @@ void MemoryBank::writeWord(MemoryAddr addr, Word data) {
 
 		for (uint groupIndex = 0; groupIndex < mGroupSize; groupIndex++) {
 			if (bank->mScratchpadModeHandler.containsAddress(addr)) {
-				bank->mScratchpadModeHandler.writeWord(addr, data.toUInt());
+				bank->mScratchpadModeHandler.writeWord(addr, data.toUInt(), core, channel);
 				return;
 			}
 
@@ -1970,7 +2000,7 @@ void MemoryBank::writeWord(MemoryAddr addr, Word data) {
 
 		for (uint groupIndex = 0; groupIndex < mGroupSize; groupIndex++) {
 			if (bank->mGeneralPurposeCacheHandler.containsAddress(addr)) {
-				bool cached = bank->mGeneralPurposeCacheHandler.writeWord(addr, data.toUInt(), false, true);
+				bool cached = bank->mGeneralPurposeCacheHandler.writeWord(addr, data.toUInt(), false, true, core, channel);
 
 				if (!cached)
 					mBackgroundMemory->writeWord(addr, data.toUInt());
@@ -1991,6 +2021,10 @@ void MemoryBank::writeByte(MemoryAddr addr, Word data) {
 
 	assert(mBankMode != MODE_INACTIVE);
 
+  // Don't want to record stats for this access
+  uint core = -1;
+  uint channel = -1;
+
 	MemoryBank *firstBank = this;
 	while (firstBank->mGroupIndex != 0)
 		firstBank = firstBank->mPrevMemoryBank;
@@ -2000,7 +2034,7 @@ void MemoryBank::writeByte(MemoryAddr addr, Word data) {
 
 		for (uint groupIndex = 0; groupIndex < mGroupSize; groupIndex++) {
 			if (bank->mScratchpadModeHandler.containsAddress(addr)) {
-				bank->mScratchpadModeHandler.writeByte(addr, data.toUInt());
+				bank->mScratchpadModeHandler.writeByte(addr, data.toUInt(), core, channel);
 				return;
 			}
 
@@ -2014,7 +2048,7 @@ void MemoryBank::writeByte(MemoryAddr addr, Word data) {
 
 		for (uint groupIndex = 0; groupIndex < mGroupSize; groupIndex++) {
 			if (bank->mGeneralPurposeCacheHandler.containsAddress(addr)) {
-				bool cached = bank->mGeneralPurposeCacheHandler.writeByte(addr, data.toUInt(), false, true);
+				bool cached = bank->mGeneralPurposeCacheHandler.writeByte(addr, data.toUInt(), false, true, core, channel);
 
 				if (!cached)
 					mBackgroundMemory->writeByte(addr, data.toUInt());

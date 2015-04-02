@@ -13,6 +13,7 @@
 #include "IPKCache.h"
 
 using namespace Instrumentation;
+using std::vector;
 
 std::map<int, bool> MemoryBank::modes_;
 std::map<int, uint> MemoryBank::setCounts_;
@@ -58,6 +59,25 @@ CounterMap<int> MemoryBank::numReplaceDirty_;
 CounterMap<int> MemoryBank::numHandOffRequests_;
 CounterMap<int> MemoryBank::numPassThroughRequests_;
 
+vector<vector<struct MemoryBank::ChannelStats> > MemoryBank::coreStats_;
+
+void MemoryBank::init() {
+  // Initial stats for one channel of one core.
+  struct ChannelStats nullData;
+  nullData.readHits = 0;
+  nullData.readMisses = 0;
+  nullData.writeHits = 0;
+  nullData.writeMisses = 0;
+  nullData.receivingInstructions = false;
+
+  // Initial stats for all channels of one core.
+  vector<struct ChannelStats> oneCore;
+  oneCore.assign(CORE_INPUT_CHANNELS, nullData);
+
+  // Initial stats for all channels of all cores.
+  coreStats_.assign(NUM_CORES, oneCore);
+}
+
 void MemoryBank::setMode(int bank, bool isCache, uint setCount, uint wayCount, uint lineSize) {
 	modes_[bank] = isCache;
 	setCounts_[bank] = setCount;
@@ -65,46 +85,58 @@ void MemoryBank::setMode(int bank, bool isCache, uint setCount, uint wayCount, u
 	lineSizes_[bank] = lineSize;
 }
 
-void MemoryBank::readWord(int bank, MemoryAddr address, bool isMiss) {
+void MemoryBank::readWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh) {
 	if (isMiss)
 		numReadWordMisses_.increment(bank);
 	else
 		numReadWordHits_.increment(bank);
+
+	updateCoreStats(core, retCh, true, false, isMiss);
 }
 
-void MemoryBank::readHalfWord(int bank, MemoryAddr address, bool isMiss) {
+void MemoryBank::readHalfWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh) {
 	if (isMiss)
 		numReadHalfWordMisses_.increment(bank);
 	else
 		numReadHalfWordHits_.increment(bank);
+
+  updateCoreStats(core, retCh, true, false, isMiss);
 }
 
-void MemoryBank::readByte(int bank, MemoryAddr address, bool isMiss) {
+void MemoryBank::readByte(int bank, MemoryAddr address, bool isMiss, int core, int retCh) {
 	if (isMiss)
 		numReadByteMisses_.increment(bank);
 	else
 		numReadByteHits_.increment(bank);
+
+  updateCoreStats(core, retCh, true, false, isMiss);
 }
 
-void MemoryBank::writeWord(int bank, MemoryAddr address, bool isMiss) {
+void MemoryBank::writeWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh) {
 	if (isMiss)
 		numWriteWordMisses_.increment(bank);
 	else
 		numWriteWordHits_.increment(bank);
+
+  updateCoreStats(core, retCh, false, false, isMiss);
 }
 
-void MemoryBank::writeHalfWord(int bank, MemoryAddr address, bool isMiss) {
+void MemoryBank::writeHalfWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh) {
 	if (isMiss)
 		numWriteHalfWordMisses_.increment(bank);
 	else
 		numWriteHalfWordHits_.increment(bank);
+
+  updateCoreStats(core, retCh, false, false, isMiss);
 }
 
-void MemoryBank::writeByte(int bank, MemoryAddr address, bool isMiss) {
+void MemoryBank::writeByte(int bank, MemoryAddr address, bool isMiss, int core, int retCh) {
 	if (isMiss)
 		numWriteByteMisses_.increment(bank);
 	else
 		numWriteByteHits_.increment(bank);
+
+  updateCoreStats(core, retCh, false, false, isMiss);
 }
 
 void MemoryBank::initiateIPKRead(int bank, bool isHandOff) {
@@ -128,25 +160,31 @@ void MemoryBank::initiateBurstWrite(int bank, bool isHandOff) {
 		numStartBurstWrite_.increment(bank);
 }
 
-void MemoryBank::readIPKWord(int bank, MemoryAddr address, bool isMiss) {
+void MemoryBank::readIPKWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh) {
 	if (isMiss)
 		numIPKReadMisses_.increment(bank);
 	else
 		numIPKReadHits_.increment(bank);
+
+  updateCoreStats(core, retCh, true, true, isMiss);
 }
 
-void MemoryBank::readBurstWord(int bank, MemoryAddr address, bool isMiss) {
+void MemoryBank::readBurstWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh) {
 	if (isMiss)
 		numBurstReadMisses_.increment(bank);
 	else
 		numBurstReadHits_.increment(bank);
+
+  updateCoreStats(core, retCh, true, false, isMiss);
 }
 
-void MemoryBank::writeBurstWord(int bank, MemoryAddr address, bool isMiss) {
+void MemoryBank::writeBurstWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh) {
 	if (isMiss)
 		numBurstWriteMisses_.increment(bank);
 	else
 		numBurstWriteHits_.increment(bank);
+
+  updateCoreStats(core, retCh, false, false, isMiss);
 }
 
 void MemoryBank::replaceCacheLine(int bank, bool isValid, bool isDirty) {
@@ -164,6 +202,21 @@ void MemoryBank::ringHandOff(int bank) {
 
 void MemoryBank::ringPassThrough(int bank) {
 	numPassThroughRequests_.increment(bank);
+}
+
+void MemoryBank::updateCoreStats(int core, int channel, bool isRead, bool isInst, bool isMiss) {
+  if (core == -1)
+    return;
+
+  if (isRead && isMiss)
+    coreStats_[core][channel].readMisses++;
+  else if (isRead && !isMiss)
+    coreStats_[core][channel].readHits++;
+  else if (!isRead && isMiss)
+    coreStats_[core][channel].writeMisses++;
+  else if (!isRead && !isMiss)
+    coreStats_[core][channel].writeHits++;
+  coreStats_[core][channel].receivingInstructions = isInst;
 }
 
 void MemoryBank::printStats() {
@@ -321,9 +374,23 @@ void MemoryBank::printSummary() {
 
   // Note that for every miss event, there will be a corresponding hit event
   // when the data arrives. We may prefer to filter out these "duplicates".
-  clog << "L1 cache activity:" << endl;
+  clog << "L1 cache activity:\n";
+  clog << "  By channel:\n";
+
+  for (uint core=0; core<coreStats_.size(); core++) {
+    for (uint channel=0; channel<coreStats_[core].size(); channel++) {
+      ChannelStats stats = coreStats_[core][channel];
+      if (stats.readHits > 0 || stats.readMisses > 0 || stats.writeHits > 0 || stats.writeMisses > 0) {
+        clog << "    Core " << core << ", input channel " << channel << (stats.receivingInstructions ? " (instructions)" : " (data)") << ":\n";
+        clog << "      Read hits:  " << stats.readHits << "/" << (stats.readHits+stats.readMisses) << " (" << percentage(stats.readHits, stats.readHits+stats.readMisses) << ")\n";
+        clog << "      Write hits: " << stats.writeHits << "/" << (stats.writeHits+stats.writeMisses) << " (" << percentage(stats.writeHits, stats.writeHits+stats.writeMisses) << ")\n";
+        clog << "      Total hits: " << stats.readHits+stats.writeHits << "/" << (stats.readHits+stats.readMisses+stats.writeHits+stats.writeMisses) << " (" << percentage(stats.readHits+stats.writeHits, stats.readHits+stats.readMisses+stats.writeHits+stats.writeMisses) << ")\n";
+      }
+    }
+  }
+
   clog << "  Instruction hits: " << instructionReadHits << "/" << instructionReads << " (" << percentage(instructionReadHits, instructionReads) << ")\n";
-  clog << "  L0+L1 inst hits:  " << l0l1InstReadHits << "/" << l0l1InstReads << " (" << percentage(l0l1InstReadHits,l0l1InstReads) << ")" << endl;
+  clog << "  L0+L1 inst hits:  " << l0l1InstReadHits << "/" << l0l1InstReads << " (" << percentage(l0l1InstReadHits,l0l1InstReads) << ")\n";
   clog << "  Data read hits:   " << dataReadHits << "/" << dataReads << " (" << percentage(dataReadHits, dataReads) << ")\n";
   clog << "  Data write hits:  " << dataWriteHits << "/" << dataWrites << " (" << percentage(dataWriteHits, dataWrites) << ")\n";
   clog << "  Total hits:       " << totalHits << "/" << totalAccesses << " (" << percentage(totalHits, totalAccesses) << ")\n";

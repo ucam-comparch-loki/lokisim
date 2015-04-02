@@ -78,13 +78,13 @@ public:
 	bool containsAddress(uint32_t address);
 	bool sameLine(uint32_t address1, uint32_t address2);
 
-	bool readWord(uint32_t address, uint32_t &data, bool instruction, bool resume, bool debug);
-	bool readHalfWord(uint32_t address, uint32_t &data, bool resume, bool debug);
-	bool readByte(uint32_t address, uint32_t &data, bool resume, bool debug);
+	bool readWord(uint32_t address, uint32_t &data, bool instruction, bool resume, bool debug, int core, int retCh);
+	bool readHalfWord(uint32_t address, uint32_t &data, bool resume, bool debug, int core, int retCh);
+	bool readByte(uint32_t address, uint32_t &data, bool resume, bool debug, int core, int retCh);
 
-	bool writeWord(uint32_t address, uint32_t data, bool resume, bool debug);
-	bool writeHalfWord(uint32_t address, uint32_t data, bool resume, bool debug);
-	bool writeByte(uint32_t address, uint32_t data, bool resume, bool debug);
+	bool writeWord(uint32_t address, uint32_t data, bool resume, bool debug, int core, int retCh);
+	bool writeHalfWord(uint32_t address, uint32_t data, bool resume, bool debug, int core, int retCh);
+	bool writeByte(uint32_t address, uint32_t data, bool resume, bool debug, int core, int retCh);
 
 	void prepareCacheLine(uint32_t address, uint32_t &writeBackAddress, uint &writeBackCount, uint32_t writeBackData[], uint32_t &fetchAddress, uint &fetchCount);
 	void replaceCacheLine(uint32_t fetchAddress, uint32_t fetchData[]);

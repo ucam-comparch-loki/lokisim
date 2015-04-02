@@ -13,34 +13,40 @@
 
 #include <map>
 
+using std::vector;
+
 namespace Instrumentation {
 
 	class MemoryBank : public InstrumentationBase {
 
 	public:
 
+	  static void init();
+
 		static void setMode(int bank, bool isCache, uint setCount, uint wayCount, uint lineSize);
 
-		static void readWord(int bank, MemoryAddr address, bool isMiss);
-		static void readHalfWord(int bank, MemoryAddr address, bool isMiss);
-		static void readByte(int bank, MemoryAddr address, bool isMiss);
+		static void readWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh);
+		static void readHalfWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh);
+		static void readByte(int bank, MemoryAddr address, bool isMiss, int core, int retCh);
 
-		static void writeWord(int bank, MemoryAddr address, bool isMiss);
-		static void writeHalfWord(int bank, MemoryAddr address, bool isMiss);
-		static void writeByte(int bank, MemoryAddr address, bool isMiss);
+		static void writeWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh);
+		static void writeHalfWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh);
+		static void writeByte(int bank, MemoryAddr address, bool isMiss, int core, int retCh);
 
 		static void initiateIPKRead(int bank, bool isHandOff);
 		static void initiateBurstRead(int bank, bool isHandOff);
 		static void initiateBurstWrite(int bank, bool isHandOff);
 
-		static void readIPKWord(int bank, MemoryAddr address, bool isMiss);
-		static void readBurstWord(int bank, MemoryAddr address, bool isMiss);
-		static void writeBurstWord(int bank, MemoryAddr address, bool isMiss);
+		static void readIPKWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh);
+		static void readBurstWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh);
+		static void writeBurstWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh);
 
 		static void replaceCacheLine(int bank, bool isValid, bool isDirty);
 
 		static void ringHandOff(int bank);
 		static void ringPassThrough(int bank);
+
+		static void updateCoreStats(int core, int channel, bool isRead, bool isInst, bool isMiss);
 
 		static void printStats();
 		static void printSummary();
@@ -55,6 +61,7 @@ namespace Instrumentation {
 
 	private:
 
+		// Stats stored from the perspective of each memory bank.
 		static std::map<int, bool> modes_;
 		static std::map<int, uint> setCounts_;
 		static std::map<int, uint> wayCounts_;
@@ -98,6 +105,19 @@ namespace Instrumentation {
 
 		static CounterMap<int> numHandOffRequests_;
 		static CounterMap<int> numPassThroughRequests_;
+
+		// Stats stored from the perspective of each input channel of each core.
+		// It would make more sense to use output channels (input channels don't
+		// write any data), but we do not have this information at the memory bank.
+		struct ChannelStats {
+		  count_t readHits;
+		  count_t readMisses;
+		  count_t writeHits;
+		  count_t writeMisses;
+		  bool receivingInstructions;
+		};
+		// Address using coreStats_[core][channel].
+		static vector<vector<struct ChannelStats> > coreStats_;
 
 	};
 

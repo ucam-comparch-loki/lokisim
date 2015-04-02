@@ -36,6 +36,9 @@ void ExecuteStage::execute() {
     return;
   }
 
+  if (DEBUG)
+    cout << this->name() << " received Instruction: " << currentInst << endl;
+
   // If there is already a result, don't do anything
   if (currentInst.hasResult()) {
     if (currentInst.setsPredicate())

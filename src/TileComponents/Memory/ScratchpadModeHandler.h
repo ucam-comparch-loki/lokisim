@@ -59,13 +59,13 @@ public:
 	bool containsAddress(uint32_t address);
 	bool sameLine(uint32_t address1, uint32_t address2);
 
-	uint32_t readWord(uint32_t address, bool instruction);
-	uint32_t readHalfWord(uint32_t address);
-	uint32_t readByte(uint32_t address);
+	uint32_t readWord(uint32_t address, bool instruction, int core, int retCh);
+	uint32_t readHalfWord(uint32_t address, int core, int retCh);
+	uint32_t readByte(uint32_t address, int core, int retCh);
 
-	void writeWord(uint32_t address, uint32_t data);
-	void writeHalfWord(uint32_t address, uint32_t data);
-	void writeByte(uint32_t address, uint32_t data);
+	void writeWord(uint32_t address, uint32_t data, int core, int retCh);
+	void writeHalfWord(uint32_t address, uint32_t data, int core, int retCh);
+	void writeByte(uint32_t address, uint32_t data, int core, int retCh);
 };
 
 #endif /* SCRATCHPADMODEHANDLER_H_ */
