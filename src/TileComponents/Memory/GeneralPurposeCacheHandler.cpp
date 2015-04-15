@@ -57,7 +57,7 @@ bool GeneralPurposeCacheHandler::lookupCacheLine(uint32_t address, uint &slot, b
 		}
 	}
 
-	if (CSIM_TRACE && !resume)
+	if (Arguments::csimTrace() && !resume)
     printf("MEM%d 0x%08x: %s %s %s\n", this->mBankNumber,
                                        address,
                                        instruction ? "instruction" : "data",
@@ -188,7 +188,7 @@ bool GeneralPurposeCacheHandler::readWord(uint32_t address, uint32_t &data, bool
 				Instrumentation::MemoryBank::readWord(mBankNumber, address, true, core, retCh);
 		}
 
-		if (MEMORY_TRACE && !debug) {
+		if (Arguments::memoryTrace() && !debug) {
 			if (instruction)
 				MemoryTrace::readIPKWord(mBankNumber, address);
 			else
@@ -205,7 +205,7 @@ bool GeneralPurposeCacheHandler::readWord(uint32_t address, uint32_t &data, bool
 			Instrumentation::MemoryBank::readWord(mBankNumber, address, false, core, retCh);
 	}
 
-	if (MEMORY_TRACE && !resume && !debug) {
+	if (Arguments::memoryTrace() && !resume && !debug) {
 		if (instruction)
 			MemoryTrace::readIPKWord(mBankNumber, address);
 		else
@@ -229,7 +229,7 @@ bool GeneralPurposeCacheHandler::readHalfWord(uint32_t address, uint32_t &data, 
 		assert(!resume);
 		if (!debug)
 			Instrumentation::MemoryBank::readHalfWord(mBankNumber, address, true, core, retCh);
-		if (MEMORY_TRACE && !debug)
+		if (Arguments::memoryTrace() && !debug)
 			MemoryTrace::readHalfWord(mBankNumber, address);
 		return false;
 	}
@@ -237,7 +237,7 @@ bool GeneralPurposeCacheHandler::readHalfWord(uint32_t address, uint32_t &data, 
 	if (!resume && !debug)
 		Instrumentation::MemoryBank::readHalfWord(mBankNumber, address, false, core, retCh);
 
-	if (MEMORY_TRACE && !resume && !debug)
+	if (Arguments::memoryTrace() && !resume && !debug)
 		MemoryTrace::readHalfWord(mBankNumber, address);
 
 	uint32_t fullWord = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
@@ -255,7 +255,7 @@ bool GeneralPurposeCacheHandler::readByte(uint32_t address, uint32_t &data, bool
 		assert(!resume);
 		if (!debug)
 			Instrumentation::MemoryBank::readByte(mBankNumber, address, true, core, retCh);
-		if (MEMORY_TRACE && !debug)
+		if (Arguments::memoryTrace() && !debug)
 			MemoryTrace::readByte(mBankNumber, address);
 		return false;
 	}
@@ -263,7 +263,7 @@ bool GeneralPurposeCacheHandler::readByte(uint32_t address, uint32_t &data, bool
 	if (!resume && !debug)
 		Instrumentation::MemoryBank::readByte(mBankNumber, address, false, core, retCh);
 
-	if (MEMORY_TRACE && !resume && !debug)
+	if (Arguments::memoryTrace() && !resume && !debug)
 		MemoryTrace::readByte(mBankNumber, address);
 
 	uint32_t fullWord = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
@@ -293,7 +293,7 @@ bool GeneralPurposeCacheHandler::writeWord(uint32_t address, uint32_t data, bool
 		assert(!resume);
 		if (!debug)
 			Instrumentation::MemoryBank::writeWord(mBankNumber, address, true, core, retCh);
-		if (MEMORY_TRACE && !debug)
+		if (Arguments::memoryTrace() && !debug)
 			MemoryTrace::writeWord(mBankNumber, address);
 		return false;
 	}
@@ -301,7 +301,7 @@ bool GeneralPurposeCacheHandler::writeWord(uint32_t address, uint32_t data, bool
 	if (!resume && !debug)
 		Instrumentation::MemoryBank::writeWord(mBankNumber, address, false, core, retCh);
 
-	if (MEMORY_TRACE && !resume && !debug)
+	if (Arguments::memoryTrace() && !resume && !debug)
 		MemoryTrace::writeWord(mBankNumber, address);
 
 	mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = data;
@@ -323,7 +323,7 @@ bool GeneralPurposeCacheHandler::writeHalfWord(uint32_t address, uint32_t data, 
 		assert(!resume);
 		if (!debug)
 			Instrumentation::MemoryBank::writeHalfWord(mBankNumber, address, true, core, retCh);
-		if (MEMORY_TRACE && !debug)
+		if (Arguments::memoryTrace() && !debug)
 			MemoryTrace::writeHalfWord(mBankNumber, address);
 		return false;
 	}
@@ -331,7 +331,7 @@ bool GeneralPurposeCacheHandler::writeHalfWord(uint32_t address, uint32_t data, 
 	if (!resume && !debug)
 		Instrumentation::MemoryBank::writeHalfWord(mBankNumber, address, false, core, retCh);
 
-	if (MEMORY_TRACE && !resume && !debug)
+	if (Arguments::memoryTrace() && !resume && !debug)
 		MemoryTrace::writeHalfWord(mBankNumber, address);
 
 	uint32_t oldData = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
@@ -358,7 +358,7 @@ bool GeneralPurposeCacheHandler::writeByte(uint32_t address, uint32_t data, bool
 		assert(!resume);
 		if (!debug)
 			Instrumentation::MemoryBank::writeByte(mBankNumber, address, true, core, retCh);
-		if (MEMORY_TRACE && !debug)
+		if (Arguments::memoryTrace() && !debug)
 			MemoryTrace::writeByte(mBankNumber, address);
 		return false;
 	}
@@ -366,7 +366,7 @@ bool GeneralPurposeCacheHandler::writeByte(uint32_t address, uint32_t data, bool
 	if (!resume && !debug)
 		Instrumentation::MemoryBank::writeByte(mBankNumber, address, false, core, retCh);
 
-	if (MEMORY_TRACE && !resume && !debug)
+	if (Arguments::memoryTrace() && !resume && !debug)
 		MemoryTrace::writeByte(mBankNumber, address);
 
 	uint32_t oldData = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];

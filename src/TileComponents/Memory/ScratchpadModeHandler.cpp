@@ -96,7 +96,7 @@ uint32_t ScratchpadModeHandler::readWord(uint32_t address, bool instruction, int
       Instrumentation::MemoryBank::readWord(mBankNumber, address, false, core, retCh);
 	}
 
-	if (MEMORY_TRACE) {
+	if (Arguments::memoryTrace()) {
 		if (instruction)
 			MemoryTrace::readIPKWord(mBankNumber, address);
 		else
@@ -116,7 +116,7 @@ uint32_t ScratchpadModeHandler::readHalfWord(uint32_t address, int core, int ret
 	if (ENERGY_TRACE)
 	  Instrumentation::MemoryBank::readHalfWord(mBankNumber, address, false, core, retCh);
 
-	if (MEMORY_TRACE)
+	if (Arguments::memoryTrace())
 		MemoryTrace::readHalfWord(mBankNumber, address);
 
 	uint32_t slot = (address & mLineMask) | ((address >> mGroupBits) & ~mLineMask);
@@ -132,7 +132,7 @@ uint32_t ScratchpadModeHandler::readByte(uint32_t address, int core, int retCh) 
 	if (ENERGY_TRACE)
 	  Instrumentation::MemoryBank::readByte(mBankNumber, address, false, core, retCh);
 
-	if (MEMORY_TRACE)
+	if (Arguments::memoryTrace())
 		MemoryTrace::readByte(mBankNumber, address);
 
 	uint32_t slot = (address & mLineMask) | ((address >> mGroupBits) & ~mLineMask);
@@ -158,7 +158,7 @@ void ScratchpadModeHandler::writeWord(uint32_t address, uint32_t data, int core,
 	if (ENERGY_TRACE)
 	  Instrumentation::MemoryBank::writeWord(mBankNumber, address, false, core, retCh);
 
-	if (MEMORY_TRACE)
+	if (Arguments::memoryTrace())
 		MemoryTrace::writeWord(mBankNumber, address);
 
 	uint32_t slot = (address & mLineMask) | ((address >> mGroupBits) & ~mLineMask);
@@ -174,7 +174,7 @@ void ScratchpadModeHandler::writeHalfWord(uint32_t address, uint32_t data, int c
 	if (ENERGY_TRACE)
 	  Instrumentation::MemoryBank::writeHalfWord(mBankNumber, address, false, core, retCh);
 
-	if (MEMORY_TRACE)
+	if (Arguments::memoryTrace())
 		MemoryTrace::writeHalfWord(mBankNumber, address);
 
 	uint32_t slot = (address & mLineMask) | ((address >> mGroupBits) & ~mLineMask);
@@ -194,7 +194,7 @@ void ScratchpadModeHandler::writeByte(uint32_t address, uint32_t data, int core,
 	if (ENERGY_TRACE)
 	  Instrumentation::MemoryBank::writeByte(mBankNumber, address, false, core, retCh);
 
-	if (MEMORY_TRACE)
+	if (Arguments::memoryTrace())
 		MemoryTrace::writeByte(mBankNumber, address);
 
 	uint32_t slot = (address & mLineMask) | ((address >> mGroupBits) & ~mLineMask);

@@ -70,7 +70,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
   // See if the instruction should execute.
   bool willExecute = checkPredicate(operation);
 
-  if (LBT_TRACE)
+  if (Arguments::lbtTrace())
 	LBTTrace::setInstructionExecuteFlag(operation.isid(), willExecute);
 
   if (willExecute) {
@@ -218,7 +218,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
 
 void ExecuteStage::sendOutput() {
   if (currentInst.sendsOnNetwork()) {
-	if (LBT_TRACE) {
+	if (Arguments::lbtTrace()) {
 	  if ((currentInst.opcode() == InstructionMap::OP_LDW ||
 		currentInst.opcode() == InstructionMap::OP_LDHWU ||
 		currentInst.opcode() == InstructionMap::OP_LDBU ||

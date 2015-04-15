@@ -895,7 +895,7 @@ void MemoryBank::processLocalIPKRead() {
     // Handle IPK streaming
 
     if (endOfPacket) {
-      if(MEMORY_TRACE == 1) MemoryTrace::stopIPK(cBankNumber, mActiveAddress);
+      if (Arguments::memoryTrace()) MemoryTrace::stopIPK(cBankNumber, mActiveAddress);
 
       // Chain next request
 
@@ -906,11 +906,11 @@ void MemoryBank::processLocalIPKRead() {
 
       if (mScratchpadModeHandler.containsAddress(mActiveAddress)) {
         if (!mScratchpadModeHandler.sameLine(mActiveAddress - 4, mActiveAddress))
-          if(MEMORY_TRACE == 1) MemoryTrace::splitLineIPK(cBankNumber, mActiveAddress);
+          if (Arguments::memoryTrace()) MemoryTrace::splitLineIPK(cBankNumber, mActiveAddress);
 
         mFSMState = STATE_LOCAL_IPK_READ;
       } else {
-        if(MEMORY_TRACE == 1) MemoryTrace::splitBankIPK(cBankNumber, mActiveAddress);
+        if (Arguments::memoryTrace()) MemoryTrace::splitBankIPK(cBankNumber, mActiveAddress);
 
         if (mGroupIndex == mGroupSize - 1) {
           if (mRingRequestOutputPending) {
@@ -1004,7 +1004,7 @@ void MemoryBank::processLocalIPKRead() {
       // Handle IPK streaming
 
       if (endOfPacket) {
-        if(MEMORY_TRACE == 1) MemoryTrace::stopIPK(cBankNumber, mActiveAddress);
+        if (Arguments::memoryTrace()) MemoryTrace::stopIPK(cBankNumber, mActiveAddress);
 
         // Chain next request
 
@@ -1015,11 +1015,11 @@ void MemoryBank::processLocalIPKRead() {
 
         if (mGeneralPurposeCacheHandler.containsAddress(mActiveAddress)) {
           if (!mGeneralPurposeCacheHandler.sameLine(mActiveAddress - 4, mActiveAddress))
-            if(MEMORY_TRACE == 1) MemoryTrace::splitLineIPK(cBankNumber, mActiveAddress);
+            if (Arguments::memoryTrace()) MemoryTrace::splitLineIPK(cBankNumber, mActiveAddress);
 
           mFSMState = STATE_LOCAL_IPK_READ;
         } else {
-          if(MEMORY_TRACE == 1) MemoryTrace::splitBankIPK(cBankNumber, mActiveAddress);
+          if (Arguments::memoryTrace()) MemoryTrace::splitBankIPK(cBankNumber, mActiveAddress);
 
           if (mGroupIndex == mGroupSize - 1) {
             if (mRingRequestOutputPending) {

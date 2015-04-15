@@ -221,7 +221,7 @@ void MemoryBank::updateCoreStats(int core, int channel, bool isRead, bool isInst
 
 void MemoryBank::printStats() {
 	if (!modes_.empty()) {
-        if (BATCH_MODE) {
+        if (Arguments::batchMode()) {
     		std::map<int, bool>::iterator it;
 
     		for (it = modes_.begin(); it != modes_.end(); it++) {

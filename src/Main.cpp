@@ -36,28 +36,17 @@ static cycle_count_t cyclesPerStep = 1;
   cycleNumber += cyclesPerStep;\
   if (DEBUG) cout << "\n======= Cycle " << cycleNumber << " =======" << endl;\
   if (CORE_TRACE) CoreTrace::setClockCycle(cycleNumber);\
-  if (MEMORY_TRACE) MemoryTrace::setClockCycle(cycleNumber);\
-  if (SOFTWARE_TRACE) SoftwareTrace::setClockCycle(cycleNumber);\
-  if (LBT_TRACE) LBTTrace::setClockCycle(cycleNumber);\
+  if (Arguments::memoryTrace()) MemoryTrace::setClockCycle(cycleNumber);\
+  if (Arguments::softwareTrace()) SoftwareTrace::setClockCycle(cycleNumber);\
+  if (Arguments::lbtTrace()) LBTTrace::setClockCycle(cycleNumber);\
   sc_start((int)cyclesPerStep, SC_NS);\
-}
-
-int simulate();
-
-int sc_main(int argc, char* argv[]) {
-  Arguments::parse(argc, argv);
-
-  if (Arguments::simulate())
-    return simulate();
-  else
-    return 0;
 }
 
 void simulate(Chip& chip) {
 
   // Simulate multiple cycles in a row when possible to reduce the overheads of
   // stopping and starting simulation.
-  if (DEBUG || CORE_TRACE || MEMORY_TRACE || SOFTWARE_TRACE || LBT_TRACE)
+  if (DEBUG || CORE_TRACE || Arguments::memoryTrace() || Arguments::softwareTrace() || Arguments::lbtTrace())
     cyclesPerStep = 1;
   else
     cyclesPerStep = (100 < TIMEOUT/50) ? 100 : TIMEOUT/50;
@@ -78,7 +67,7 @@ void simulate(Chip& chip) {
         cycleCounter += cyclesPerStep;
         if (cycleCounter >= 1000000) {
           count_t newOperationCount = Instrumentation::Operations::numOperations();
-          if (!DEBUG)
+          if (!DEBUG && !Arguments::silent())
             cerr << "Current cycle number: " << cycleNumber << " [" << newOperationCount << " operation(s) executed]" << endl;
           cycleCounter -= 1000000;
 
@@ -129,9 +118,8 @@ void simulate(Chip& chip) {
 
 }
 
-// Wrapper for the chip simulation function above.
-int simulate() {
-
+// Tasks which happen before the model has been generated.
+void initialise() {
   // Override parameters before instantiating chip model
   for (unsigned int i=0; i<Arguments::code().size(); i++)
     CodeLoader::loadParameters(Arguments::code()[i]);
@@ -142,10 +130,20 @@ int simulate() {
   // instrumentation structures.
   Instrumentation::initialise();
 
-  // Instantiate chip model - changing a parameter after this point has
-  // undefined behaviour.
-  Chip chip("chip", 0);
+  // Switch off some unhelpful SystemC reports.
+  sc_report_handler::set_actions("/OSCI/SystemC", SC_DO_NOTHING);
+}
 
+// Instantiate chip model - changing a parameter after this point has
+// undefined behaviour.
+Chip& createChipModel() {
+  Chip* chip = new Chip("chip", 0);
+  return *chip;
+}
+
+// Tasks which happen after the chip model has been created, but before
+// simulation begins.
+void presimulation(Chip& chip) {
   // Put arguments for the simulated program into simulated memory.
   Arguments::storeArguments(chip);
 
@@ -159,18 +157,18 @@ int simulate() {
     Instrumentation::startEventLog();
 
   // Store initial memory image
-  if (LBT_TRACE)
-	LBTTrace::storeInitialMemoryImage(chip.getMemoryData());
+  if (Arguments::lbtTrace())
+  LBTTrace::storeInitialMemoryImage(chip.getMemoryData());
+}
 
-  // Run simulation
-  simulate(chip);
-
+// Tasks which happen after simulation finishes.
+void postsimulation(Chip& chip) {
   // Store final memory image
-  if (LBT_TRACE)
-	LBTTrace::storeFinalMemoryImage(chip.getMemoryData());
+  if (Arguments::lbtTrace())
+  LBTTrace::storeFinalMemoryImage(chip.getMemoryData());
 
   // Print debug information
-  if (BATCH_MODE) {
+  if (Arguments::batchMode()) {
     Parameters::printParametersDbase();
     Statistics::printStats();
   }
@@ -196,13 +194,28 @@ int simulate() {
   // Stop traces
   if (CORE_TRACE)
     CoreTrace::stop();
-  if (MEMORY_TRACE)
+  if (Arguments::memoryTrace())
     MemoryTrace::stop();
-  if (SOFTWARE_TRACE)
+  if (Arguments::softwareTrace())
     SoftwareTrace::stop();
-  if (LBT_TRACE)
+  if (Arguments::lbtTrace())
     LBTTrace::stop();
   Callgrind::endTrace();
+}
 
-  return RETURN_CODE;
+// Entry point of my part of the program.
+int sc_main(int argc, char* argv[]) {
+  Arguments::parse(argc, argv);
+
+  if (Arguments::simulate()) {
+    initialise();
+    Chip& chip = createChipModel();
+    presimulation(chip);
+    simulate(chip);
+    postsimulation(chip);
+    delete &chip;
+    return RETURN_CODE;
+  }
+  else
+    return 0;
 }

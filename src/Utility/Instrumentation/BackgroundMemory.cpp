@@ -31,7 +31,7 @@ unsigned long long BackgroundMemory::numWordsRead()		{return numWordsRead_;}
 unsigned long long BackgroundMemory::numWordsWritten()		{return numWordsWritten_;}
 
 void BackgroundMemory::printStats() {
-	if (BATCH_MODE) {
+	if (Arguments::batchMode()) {
 		cout << "<@GLOBAL>bgmem_read_reqs:" << numReads_ << "</@GLOBAL>" << endl;
 		cout << "<@GLOBAL>bgmem_read_words:" << numWordsRead_ << "</@GLOBAL>" << endl;
 		cout << "<@GLOBAL>bgmem_write_reqs:" << numWrites_ << "</@GLOBAL>" << endl;

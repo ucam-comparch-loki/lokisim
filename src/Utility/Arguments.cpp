@@ -31,9 +31,16 @@ string Arguments::softwareTraceFile_ = "";
 string Arguments::lbtTraceFile_ = "";
 string Arguments::stallsTraceFile_ = "";
 string Arguments::callgrindTraceFile_ = "";
+bool Arguments::csimTrace_ = false;
+bool Arguments::instructionTrace_ = false;
+bool Arguments::instructionAddressTrace_ = false;
+
+bool Arguments::batchMode_ = false;
+
 std::stringstream Arguments::invocation_;
 
 bool Arguments::summarise_ = false;
+bool Arguments::silent_ = false;
 
 void Arguments::parse(int argc, char* argv[]) {
 
@@ -74,7 +81,7 @@ void Arguments::parse(int argc, char* argv[]) {
     else if (argument == "-trace") {
       // Print each instruction executed and its context.
       DEBUG = 0;
-      CSIM_TRACE = 1;
+      csimTrace_ = true;
     }
     else if (argument == "-run" || argument == "-settings") {
       // Command line way of choosing which program to run.
@@ -89,12 +96,17 @@ void Arguments::parse(int argc, char* argv[]) {
     else if (argument == "-batch") {
       // Enable batch mode.
       DEBUG = 0;
-      BATCH_MODE = 1;
+      batchMode_ = true;
     }
-    else if (argument == "-instructiontrace") {
+    else if (argument == "-instaddrtrace") {
       // Print out only the addresses of each instruction executed.
       DEBUG = 0;
-      TRACE = 1;
+      instructionAddressTrace_ = true;
+    }
+    else if (argument == "-insttrace") {
+      // Print out the textual form of each instruction executed.
+      DEBUG = 0;
+      instructionTrace_ = true;
     }
     else if (argument == "-coretrace") {
       // Enable core trace.
@@ -108,7 +120,6 @@ void Arguments::parse(int argc, char* argv[]) {
       memTraceFile_ = string(argv[i+1]);
       MemoryTrace::start(memTraceFile_);
       i++;  // Have used two arguments in this iteration.
-      MEMORY_TRACE = 1;
     }
     else if (argument == "-energytrace") {
       energyTraceFile_ = string(argv[i+1]);
@@ -119,13 +130,11 @@ void Arguments::parse(int argc, char* argv[]) {
       softwareTraceFile_ = string(argv[i+1]);
       SoftwareTrace::start(softwareTraceFile_);
       i++;  // Have used two arguments in this iteration.
-      SOFTWARE_TRACE = 1;
     }
     else if (argument == "-lbttrace") {
       lbtTraceFile_ = string(argv[i+1]);
       LBTTrace::start(lbtTraceFile_);
       i++;  // Have used two arguments in this iteration.
-      LBT_TRACE = 1;
     }
     else if (argument == "-stalltrace") {
       stallsTraceFile_ = string(argv[i+1]);
@@ -140,6 +149,10 @@ void Arguments::parse(int argc, char* argv[]) {
     }
     else if (argument == "-summary") {
       summarise_ = true;
+    }
+    else if (argument == "-silent") {
+      DEBUG = 0;
+      silent_ = true;
     }
     else if (argument == "--args") {
       // Pass command line options to the simulated program.
@@ -240,13 +253,23 @@ const string& Arguments::energyTraceFile() {
   return energyTraceFile_;
 }
 
-const string Arguments::invocation() {
-  return invocation_.str();
-}
+bool Arguments::csimTrace()               {return csimTrace_;}
+bool Arguments::instructionTrace()        {return instructionTrace_;}
+bool Arguments::instructionAddressTrace() {return instructionAddressTrace_;}
+bool Arguments::coreTrace()               {return coreTraceFile_.length() > 0;}
+bool Arguments::memoryTrace()             {return memTraceFile_.length() > 0;}
+bool Arguments::energyTrace()             {return energyTraceFile_.length() > 0;}
+bool Arguments::softwareTrace()           {return softwareTraceFile_.length() > 0;}
+bool Arguments::lbtTrace()                {return lbtTraceFile_.length() > 0;}
+bool Arguments::stallTrace()              {return stallsTraceFile_.length() > 0;}
+bool Arguments::callgrindTrace()          {return callgrindTraceFile_.length() > 0;}
 
-const bool Arguments::summarise() {
-  return summarise_;
-}
+bool Arguments::batchMode()               {return batchMode_;}
+
+const string Arguments::invocation()      {return invocation_.str();}
+
+const bool Arguments::summarise()         {return summarise_;}
+const bool Arguments::silent()            {return silent_;}
 
 void Arguments::printHelp() {
   cout <<
@@ -257,14 +280,16 @@ void Arguments::printHelp() {
     "  -trace\n\tPrint each instruction executed and its context to stdout\n"
     "  -run <program>\n\tExecute the supplied program\n"
     "  -summary\n\tPrint a summary of execution behaviour when execution finishes\n"
+    "  -silent\n\tPrint nothing except the simulated program's output (and error messages)\n"
     "  -coretrace <file>\n\tDump a trace of instructions executed in a binary format to a file\n"
     "  -memtrace <file>\n\tDump a trace of all memory accesses to a file\n"
     "  -energytrace <file>\n\tDump counts of all significant energy-consuming events to a file\n"
     "  -swtrace <file>\n\tDump snapshots of RF contents, allowing transfer to other simulators\n"
     "  -lbttrace <file>\n\tDump particular types of information to a named file\n"
     "  -stalltrace <file>\n\tDump information about each processor stall to a file\n"
-    "  -cgtrace <file>\n\tDump output in the Callgrind format\n"
-    "  -instructiontrace\n\tPrint the address of each instruction executed to stdout\n"
+    "  -callgrind <file>\n\tDump output in the Callgrind format\n"
+    "  -insttrace\n\tPrint the text form of each instruction executed to stdout\n"
+    "  -instaddrtrace\n\tPrint the address of each instruction executed to stdout\n"
     "  -Pparameter=value\n\tSet a named parameter to a particular value\n"
     "  --args [...]\n\tPass all remaining arguments to the simulated program\n"
     "  --help\n\tDisplay this information and exit\n"

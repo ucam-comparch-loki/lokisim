@@ -335,7 +335,7 @@ void DecodeStage::fetch(const DecodedInst& inst) {
       break;
   }
 
-  if (LBT_TRACE)
+  if (Arguments::lbtTrace())
     LBTTrace::setInstructionMemoryAddress(inst.isid(), fetchAddress);
 
   if (DEBUG)

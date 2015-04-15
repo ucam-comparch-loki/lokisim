@@ -105,15 +105,15 @@ void Instrumentation::stopEventLog() {
 void Instrumentation::decoded(const ComponentID& core, const DecodedInst& dec) {
   Operations::decoded(core, dec);
 
-  if (TRACE) {
-
+  if (Arguments::instructionAddressTrace()) {
     MemoryAddr location = dec.location();
     std::cout << "0x";
     std::cout.width(8);
     std::cout << std::hex << std::setfill('0') << location << endl;
+  }
 
-
-//    std::cout << dec << endl;
+  if (Arguments::instructionTrace()) {
+    std::cout << dec << endl;
   }
 }
 

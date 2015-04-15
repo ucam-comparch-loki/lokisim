@@ -7,6 +7,7 @@
 
 #include "WriteStage.h"
 #include "../../Core.h"
+#include "../../../Utility/Arguments.h"
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
@@ -21,7 +22,7 @@ void WriteStage::execute() {
   newInput(currentInst);
 //  bool packetInProgress = !currentInst.endOfNetworkPacket();
 
-  if (CSIM_TRACE)
+  if (Arguments::csimTrace())
     core()->trace(currentInst);
 
   instructionCompleted();

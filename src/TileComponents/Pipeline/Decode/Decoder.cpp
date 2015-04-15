@@ -301,12 +301,11 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   // TODO: avoid any stalls or other changes if execute is false.
   bool execute = shouldExecute(input);
 
-  if (ENERGY_TRACE)
-    Instrumentation::decoded(id, input);
+  Instrumentation::decoded(id, input);
 
   CoreTrace::decodeInstruction(id.getPosition(), input.location(), input.endOfIPK());
 
-  if (LBT_TRACE) {
+  if (Arguments::lbtTrace()) {
 	LBTTrace::LBTOperationType opType;
 
     switch (input.opcode()) {
@@ -409,7 +408,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       cout << this->name() << " aborting " << input << endl;
     instructionCancelled = false;
 
-    if (LBT_TRACE)
+    if (Arguments::lbtTrace())
    	  LBTTrace::setInstructionExecuteFlag(input.isid(), false);
 
     return false;

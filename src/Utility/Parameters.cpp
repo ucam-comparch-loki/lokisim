@@ -10,8 +10,9 @@
  *      Author: db434
  */
 
-#include "StringManipulation.h"
 #include "Parameters.h"
+#include "Arguments.h"
+#include "StringManipulation.h"
 
 #include <iostream>
 #include <stdlib.h>
@@ -235,7 +236,7 @@ void Parameters::printParameters() {
 void Parameters::printParametersDbase() {
 	// TODO: Add remaining parameters if required
 
-	if (BATCH_MODE) {
+	if (Arguments::batchMode()) {
 		cout << "<@PARAM>MEMORY_CHANNEL_MAP_TABLE_ENTRIES:" << MEMORY_CHANNEL_MAP_TABLE_ENTRIES << "</@PARAM>" << endl;
 		cout << "<@PARAM>MEMORY_BANK_SIZE:" << MEMORY_BANK_SIZE << "</@PARAM>" << endl;
 		cout << "<@PARAM>MEMORY_CACHE_RANDOM_REPLACEMENT:" << MEMORY_CACHE_RANDOM_REPLACEMENT << "</@PARAM>" << endl;

@@ -74,7 +74,7 @@ count_t IPKCache::numWrites()    {return total.writes;}
 
 void IPKCache::printStats() {
 
-  if (BATCH_MODE) {
+  if (Arguments::batchMode()) {
 	cout << "<@GLOBAL>ipkcache_reads:" << numReads() << "</@GLOBAL>" << endl;
 	cout << "<@GLOBAL>ipkcache_writes:" << numWrites() << "</@GLOBAL>" << endl;
 	cout << "<@GLOBAL>ipkcache_tag_checks:" << numTagChecks() << "</@GLOBAL>" << endl;

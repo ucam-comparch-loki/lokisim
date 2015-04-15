@@ -28,31 +28,11 @@ typedef unsigned int parameter;
 // Print information about any interesting activity during execution.
 extern int			DEBUG;
 
-// Print a trace of addresses of instructions executed.
-extern int      TRACE;
-
-// Print out information in a machine-readable form.
-extern int      BATCH_MODE;
-
 // Create a trace of instructions executed in a binary format.
 extern int      CORE_TRACE;
 
-// Create a trace of all memory accesses (L1 and lower).
-extern int      MEMORY_TRACE;
-
 // Count all events which are significant for energy consumption.
 extern int      ENERGY_TRACE;
-
-// Take snapshots of register file contents, allowing simulation to continue on
-// a different simulator.
-extern int      SOFTWARE_TRACE;
-
-// Log all kinds of execution information in the LBT format. (???)
-extern int      LBT_TRACE;
-
-// Print each instruction executed and its context (register file contents).
-// The format should be the same as csim's trace.
-extern int      CSIM_TRACE;
 
 // Number of cycles before we assume something's gone wrong.
 extern unsigned long long			TIMEOUT;
