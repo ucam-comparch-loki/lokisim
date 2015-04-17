@@ -17,7 +17,7 @@
 
 void ALU::execute(DecodedInst& dec) {
 
-  assert(dec.isALUOperation());
+  assert(dec.isExecuteStageOperation());
 
   // Wait until the final cycle to compute the result.
   if (cyclesRemaining > 0)

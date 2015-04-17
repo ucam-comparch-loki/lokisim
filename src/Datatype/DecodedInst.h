@@ -70,7 +70,7 @@ public:
   const bool          hasSrcReg1() const;
   const bool          hasSrcReg2() const;
   const bool          hasImmediate() const;
-  const bool          isALUOperation() const;
+  const bool          isExecuteStageOperation() const;
   const bool          isMemoryOperation() const;
   const bool          endOfIPK() const;
   const bool          persistent() const;

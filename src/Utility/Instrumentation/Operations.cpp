@@ -79,7 +79,7 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
   else
     executedFns.increment(dec.function());
 
-  if (ENERGY_TRACE && dec.isALUOperation()) {
+  if (ENERGY_TRACE && dec.isExecuteStageOperation()) {
     int coreID = core.getGlobalCoreNumber();
 
     hdIn1 += hammingDistance(dec.operand1(), lastIn1[coreID]);

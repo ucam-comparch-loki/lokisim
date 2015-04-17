@@ -233,7 +233,7 @@ void Decoder::decode() {
 
 void Decoder::instructionFinished() {
   // If the instruction will not reach the ALU, record that it executed here.
-  if (/*ENERGY_TRACE &&*/ !current.isALUOperation())
+  if (/*ENERGY_TRACE &&*/ !current.isExecuteStageOperation())
     Instrumentation::executed(id, current, execute);
 
   // Do ibjmps here, once we know whether or not this instruction will execute.
@@ -382,7 +382,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 	output.isid(isid);
   }
 
-  if (/*ENERGY_TRACE &&*/ !input.isALUOperation()) {
+  if (/*ENERGY_TRACE &&*/ !input.isExecuteStageOperation()) {
     Instrumentation::executed(id, input, execute);
     parent()->instructionExecuted();
   }
@@ -570,7 +570,7 @@ void Decoder::waitForOperands(const DecodedInst& dec) {
   if (InstructionMap::hasSrcReg1(dec.opcode())) {
     if (Registers::isChannelEnd(dec.sourceReg1()))
       waitUntilArrival(Registers::toChannelID(dec.sourceReg1()), dec);
-    if (!dec.isALUOperation() && !dec.isMemoryOperation() && (dec.sourceReg1() == previous.destination())) {
+    if (!dec.isExecuteStageOperation() && !dec.isMemoryOperation() && (dec.sourceReg1() == previous.destination())) {
       stall(true, Instrumentation::Stalls::STALL_FORWARDING, dec);
       // HACK! May take multiple cycles. FIXME
       // Add an extra 0.1 cycles to ensure that the result is ready for forwarding.
@@ -785,7 +785,7 @@ bool Decoder::shouldExecute(const DecodedInst& inst) {
 
   // Predicated instructions which complete in this pipeline stage and
   // which may access channel data.
-  if ((!inst.isALUOperation() && !inst.isMemoryOperation()) ||
+  if ((!inst.isExecuteStageOperation() && !inst.isMemoryOperation()) ||
       isFetch(inst.opcode()) ||
       Registers::isChannelEnd(inst.sourceReg1()) ||
       Registers::isChannelEnd(inst.sourceReg2())) {
@@ -807,7 +807,7 @@ bool Decoder::shouldExecute(const DecodedInst& inst) {
 bool Decoder::needPredicateNow(const DecodedInst& inst) const {
   bool predicated = inst.predicate() == Instruction::P ||
                     inst.predicate() == Instruction::NOT_P;
-  bool irreversible = (!inst.isALUOperation() && !inst.isMemoryOperation()) ||
+  bool irreversible = (!inst.isExecuteStageOperation() && !inst.isMemoryOperation()) ||
                       isFetch(inst.opcode()) ||
                       Registers::isChannelEnd(inst.sourceReg1()) ||
                       Registers::isChannelEnd(inst.sourceReg2());

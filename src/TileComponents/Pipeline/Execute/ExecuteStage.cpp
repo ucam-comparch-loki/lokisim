@@ -203,7 +203,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
   // PAYLOAD_ONLY means this is the second half of a store operation - we don't
   // want to instrument it twice.
   if (//ENERGY_TRACE &&  <-- do this check elsewhere
-      operation.isALUOperation() &&
+      operation.isExecuteStageOperation() &&
       operation.memoryOp() != MemoryRequest::PAYLOAD_ONLY &&
       !blocked) {
     Instrumentation::executed(id, operation, willExecute);
