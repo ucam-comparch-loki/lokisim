@@ -298,7 +298,6 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   // the previous instruction to set the predicate bit if this instruction
   // is completed in the decode stage, or if the instruction may perform an
   // irreversible channel read.
-  // TODO: avoid any stalls or other changes if execute is false.
   bool execute = shouldExecute(input);
 
   Instrumentation::decoded(id, input);
@@ -388,10 +387,8 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     parent()->instructionExecuted();
   }
 
-  // If the instruction may perform irreversible reads from a channel-end,
-  // and we know it won't execute, stop it here.
-  if (!execute && (Registers::isChannelEnd(input.sourceReg1()) ||
-                   Registers::isChannelEnd(input.sourceReg2()))) {
+  // If we know the instruction won't execute, stop it here.
+  if (!execute) {
     // Disallow forwarding from instructions which didn't execute.
     previous = input;
     previous.destination(-1);
@@ -787,7 +784,7 @@ bool Decoder::shouldExecute(const DecodedInst& inst) {
     return true;
 
   // Predicated instructions which complete in this pipeline stage and
-  // which access channel data.
+  // which may access channel data.
   if ((!inst.isALUOperation() && !inst.isMemoryOperation()) ||
       isFetch(inst.opcode()) ||
       Registers::isChannelEnd(inst.sourceReg1()) ||
