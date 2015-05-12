@@ -427,12 +427,6 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     case InstructionMap::OP_LDW:
       output.memoryOp(MemoryRequest::LOAD_W); break;
     case InstructionMap::OP_LDHWU:
-      // FIXME: horrible hack - artificial memory latency for load-throughs.
-      /*if (input.channelMapEntry() == 2) {
-        blocked = true; blockedEvent.notify();
-        wait(MEMORY_ON_CHIP_SCRATCHPAD_DELAY, sc_core::SC_NS);
-        blocked = false; blockedEvent.notify();
-      }*/
       output.memoryOp(MemoryRequest::LOAD_HW); break;
     case InstructionMap::OP_LDBU:
       output.memoryOp(MemoryRequest::LOAD_B); break;
@@ -456,6 +450,28 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
         output.memoryOp(MemoryRequest::STORE_B);
       break;
     }
+
+    case InstructionMap::OP_LDL:
+      multiCycleOp = true;
+      output.memoryOp(MemoryRequest::LOAD_LINKED); break;
+    case InstructionMap::OP_STC:
+      multiCycleOp = true;
+      output.memoryOp(MemoryRequest::STORE_CONDITIONAL); break;
+    case InstructionMap::OP_LDADD:
+      multiCycleOp = true;
+      output.memoryOp(MemoryRequest::LOAD_AND_ADD); break;
+    case InstructionMap::OP_LDOR:
+      multiCycleOp = true;
+      output.memoryOp(MemoryRequest::LOAD_AND_OR); break;
+    case InstructionMap::OP_LDAND:
+      multiCycleOp = true;
+      output.memoryOp(MemoryRequest::LOAD_AND_AND); break;
+    case InstructionMap::OP_LDXOR:
+      multiCycleOp = true;
+      output.memoryOp(MemoryRequest::LOAD_AND_XOR); break;
+    case InstructionMap::OP_EXCHANGE:
+      multiCycleOp = true;
+      output.memoryOp(MemoryRequest::EXCHANGE); break;
 
     case InstructionMap::OP_IRDR:
       multiCycleOp = true;

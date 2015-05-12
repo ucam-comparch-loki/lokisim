@@ -68,6 +68,7 @@ struct ComponentID {
   TileID        tile;
   uint          position : 4;
 
+  ComponentID()                         : tile(0), position(0) {}
   ComponentID(uint flattened)           : tile(flattened >> 4), position(flattened & 0xf) {checkValid();}
   ComponentID(TileID t, uint pos)       : tile(t), position(pos)   {checkValid();}
   ComponentID(uint x, uint y, uint pos) : tile(x,y), position(pos) {checkValid();}

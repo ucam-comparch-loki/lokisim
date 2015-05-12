@@ -26,6 +26,7 @@
 #include "../../Datatype/MemoryRequest.h"
 #include "../../Network/NetworkBuffer.h"
 #include "GeneralPurposeCacheHandler.h"
+#include "ReservationHandler.h"
 #include "ScratchpadModeHandler.h"
 #include "SimplifiedOnChipScratchpad.h"
 #include "MemoryTypedefs.h"
@@ -51,8 +52,6 @@ public:
 	enum RingNetworkRequestType {
 		RING_SET_MODE,
 		RING_SET_TABLE_ENTRY,
-		RING_BURST_READ_HAND_OFF,
-		RING_BURST_WRITE_FORWARD,
 		RING_IPK_READ_HAND_OFF,
 		RING_PASS_THROUGH
 	};
@@ -164,9 +163,6 @@ private:
 		STATE_FETCH_BURST_LENGTH,							// Fetch burst length from separate word
 		STATE_LOCAL_MEMORY_ACCESS,						// Access local memory (simulate single cycle access latency)
 		STATE_LOCAL_IPK_READ,								  // Read instruction packet from local memory (simulate single cycle access latency)
-		STATE_LOCAL_BURST_READ,								// Read data burst from local memory (simulate single cycle access latency)
-		STATE_BURST_WRITE_MASTER,							// Write data burst as master bank (simulate single cycle access latency)
-		STATE_BURST_WRITE_SLAVE,							// Write data burst as slave bank (simulate single cycle access latency)
 		STATE_GP_CACHE_MISS,								  // Access to general purpose cache caused cache miss - wait for cache FSM
 		STATE_WAIT_RING_OUTPUT								// Wait for ring network output buffer to become available
 	};
@@ -229,6 +225,10 @@ private:
 	MemoryRequest         mActiveRequest;		// Currently active memory request
 	RequestData           mActiveData;      // Data used to fulfil the request
 
+	uint32_t              mRMWData;         // Temporary data for read-modify-write operations.
+	bool                  mRMWDataValid;    // Does mRMWData hold valid data?
+	ReservationHandler    mReservations;    // Data keeping track of current atomic transactions.
+
 	//-- Scratchpad mode state --------------------------------------------------------------------
 
 	ScratchpadModeHandler mScratchpadModeHandler;			// Scratchpad mode handler
@@ -288,10 +288,6 @@ private:
 	void processLocalMemoryAccess();
 	void processLocalIPKRead();
 	void prepareIPKReadOutput(AbstractMemoryHandler& handler, uint32_t data);
-	void processLocalBurstRead();
-	void prepareBurstReadOutput(AbstractMemoryHandler& handler, uint32_t data);
-	void processBurstWriteMaster();
-	void processBurstWriteSlave();
 	void processGeneralPurposeCacheMiss();
 	void processWaitRingOutput();
 
@@ -340,6 +336,8 @@ public:
 
 	void setAdjacentMemories(MemoryBank *prevMemoryBank, MemoryBank *nextMemoryBank, SimplifiedOnChipScratchpad *backgroundMemory);
 	void setLocalNetwork(local_net_t* network);
+
+	ComponentID requestingCore() const; // The ID of the core making the current request.
 
 	MemoryBank& bankContainingAddress(MemoryAddr addr);
 	void storeData(vector<Word>& data, MemoryAddr location);

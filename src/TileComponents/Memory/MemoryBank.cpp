@@ -140,30 +140,6 @@ ReevaluateRequest:
 
 		break;
 
-	case RING_BURST_READ_HAND_OFF:
-		if (DEBUG)
-			cout << this->name() << " received RING_BURST_READ_HAND_OFF request through ring network" << endl;
-
-		// A bit of a hack but simplifies the code considerably
-
-		mActiveRequest = MemoryRequest(MemoryRequest::BURST_READ, 0);
-		mActiveData    = mActiveRingRequestInput.Header.Request;
-
-		mFSMState = STATE_LOCAL_BURST_READ;
-		break;
-
-	case RING_BURST_WRITE_FORWARD:
-		if (DEBUG)
-			cout << this->name() << " received RING_BURST_WRITE_FORWARD request through ring network" << endl;
-
-		// A bit of a hack but simplifies the code considerably
-
-		mActiveRequest = MemoryRequest(MemoryRequest::BURST_WRITE, 0);
-    mActiveData    = mActiveRingRequestInput.Header.Request;
-
-		mFSMState = STATE_BURST_WRITE_SLAVE;
-		break;
-
 	case RING_IPK_READ_HAND_OFF:
 		if (DEBUG)
 			cout << this->name() << " received RING_IPK_READ_HAND_OFF request through ring network" << endl;
@@ -190,7 +166,6 @@ ReevaluateRequest:
 			mActiveRingRequestInput.Header.RequestType = mActiveRingRequestInput.Header.PassThrough.EnvelopedRequestType;
 
 			switch (mActiveRingRequestInput.Header.PassThrough.EnvelopedRequestType) {
-			case RING_BURST_READ_HAND_OFF:
 			case RING_IPK_READ_HAND_OFF:
 			  mActiveRingRequestInput.Header.Request = request.Header.PassThrough.Request;
 				break;
@@ -320,6 +295,9 @@ bool MemoryBank::processMessageHeader() {
 				mGeneralPurposeCacheHandler.activate(mConfig);
 			}
 
+      // Invalidate all atomic transactions.
+      mReservations.clearReservationRange(0, 0xFFFFFFFF);
+
 			// Print a description of the configuration, so we can more-easily tell
 			// whether cores are acting consistently.
 			if (DEBUG || Arguments::summarise())
@@ -358,12 +336,13 @@ bool MemoryBank::processMessageHeader() {
 	case MemoryRequest::STORE_W:
 	case MemoryRequest::STORE_HW:
 	case MemoryRequest::STORE_B:
-  case MemoryRequest::LOAD_THROUGH_W:
-  case MemoryRequest::LOAD_THROUGH_HW:
-  case MemoryRequest::LOAD_THROUGH_B:
-  case MemoryRequest::STORE_THROUGH_W:
-  case MemoryRequest::STORE_THROUGH_HW:
-  case MemoryRequest::STORE_THROUGH_B:
+	case MemoryRequest::LOAD_LINKED:
+	case MemoryRequest::STORE_CONDITIONAL:
+	case MemoryRequest::LOAD_AND_ADD:
+	case MemoryRequest::LOAD_AND_OR:
+	case MemoryRequest::LOAD_AND_AND:
+	case MemoryRequest::LOAD_AND_XOR:
+	case MemoryRequest::EXCHANGE:
 		if (DEBUG)
 			cout << this->name() << " starting scalar request on channel " << mActiveData.TableIndex << endl;
 
@@ -384,27 +363,7 @@ bool MemoryBank::processMessageHeader() {
 
 		break;
 
-	case MemoryRequest::BURST_READ:
-		if (DEBUG)
-			cout << this->name() << " starting BURST_READ request on channel " << mActiveData.TableIndex << endl;
-
-		mActiveData.Address = mActiveRequest.getPayload();
-		mFSMCallbackState = STATE_LOCAL_BURST_READ;
-		mFSMState = STATE_FETCH_BURST_LENGTH;
-
-		break;
-
-	case MemoryRequest::BURST_WRITE:
-		if (DEBUG)
-			cout << this->name() << " starting BURST_WRITE request on channel " << mActiveData.TableIndex << endl;
-
-		mActiveData.Address = mActiveRequest.getPayload();
-		mFSMCallbackState = STATE_BURST_WRITE_MASTER;
-		mFSMState = STATE_FETCH_BURST_LENGTH;
-
-		break;
-
-	case MemoryRequest::DIRECTORY_UPDATE:
+	case MemoryRequest::UPDATE_DIRECTORY_ENTRY:
     if (DEBUG) {
       cout << this->name() << " starting DIRECTORY_UPDATE request on channel " << mActiveData.TableIndex << endl;
       cout << this->name() << " buffering request to update directory: " << mActiveRequest.getPayload() << endl;
@@ -415,7 +374,7 @@ bool MemoryBank::processMessageHeader() {
     mFSMState = STATE_IDLE;
     break;
 
-	case MemoryRequest::DIRECTORY_MASK_UPDATE:
+	case MemoryRequest::UPDATE_DIRECTORY_MASK:
     if (DEBUG) {
       cout << this->name() << " starting DIRECTORY_MASK_UPDATE request on channel " << mActiveData.TableIndex << endl;
       cout << this->name() << " buffering request to update directory mask: " << mActiveRequest.getPayload() << endl;
@@ -453,8 +412,8 @@ void MemoryBank::processLocalMemoryAccess() {
 	assert(mConfig.Mode != MODE_INACTIVE);
 	assert(mActiveData.TableIndex < 8 || mChannelMapTable[mActiveData.TableIndex].Valid);
 
-	if (mOutputQueue.full() && (mActiveRequest.isSingleLoad())) {
-		// Delay load request until there is room in the output queue available
+	if (mOutputQueue.full()/* && (mActiveRequest.isSingleLoad())*/) {
+		// Delay /*load*/ request until there is room in the output queue available
 
 		if (DEBUG)
 			cout << this->name() << " delayed scalar request due to full output queue" << endl;
@@ -464,6 +423,7 @@ void MemoryBank::processLocalMemoryAccess() {
 	  AbstractMemoryHandler& handler = currentMemoryHandler();
 		assert(handler.containsAddress(mActiveData.Address));
 
+		// Loads
 		if (mActiveRequest.isSingleLoad()) {
 			bool cacheHit;
 			uint32_t data;
@@ -472,35 +432,11 @@ void MemoryBank::processLocalMemoryAccess() {
 			case MemoryRequest::LOAD_W:		cacheHit = handler.readWord(mActiveData.Address, data, false, mCacheResumeRequest, false);	break;
 			case MemoryRequest::LOAD_HW:	cacheHit = handler.readHalfWord(mActiveData.Address, data, mCacheResumeRequest, false);		break;
 			case MemoryRequest::LOAD_B:		cacheHit = handler.readByte(mActiveData.Address, data, mCacheResumeRequest, false);			break;
-
-			// FIXME: temporary hack. Desired code is commented out below.
-			case MemoryRequest::LOAD_THROUGH_W:
-        cacheHit = true;
-        data = mBackgroundMemory->readWord(mActiveData.Address).toUInt();
-        mActiveRequest.clearThroughAccess();
-        break;
-      case MemoryRequest::LOAD_THROUGH_HW:
-        cacheHit = true;
-        data = mBackgroundMemory->readWord(mActiveData.Address & ~3).toUInt();
-        if (mActiveData.Address & 2)
-          data = (data >> 16) & 0xFFFF;
-        else
-          data = data & 0xFFFF;
-        mActiveRequest.clearThroughAccess();
-        break;
-      case MemoryRequest::LOAD_THROUGH_B:
-        cacheHit = true;
-        data = mBackgroundMemory->readByte(mActiveData.Address).toUInt();
-        mActiveRequest.clearThroughAccess();
-        break;
-/*
-			case MemoryRequest::LOAD_THROUGH_W:
-			case MemoryRequest::LOAD_THROUGH_HW:
-			case MemoryRequest::LOAD_THROUGH_B:
-			  cacheHit = false;
-			  mActiveRequest.clearThroughAccess();  // Perform a normal load when the data arrives
+			case MemoryRequest::LOAD_LINKED:
+			  cacheHit = handler.readWord(mActiveData.Address, data, false, mCacheResumeRequest, false);
+			  if (cacheHit)
+			    mReservations.makeReservation(requestingCore(), mActiveData.Address);
 			  break;
-*/
 			default:						assert(false);																								break;
 			}
 
@@ -524,89 +460,54 @@ void MemoryBank::processLocalMemoryAccess() {
 				mFSMState = STATE_GP_CACHE_MISS;
 				mCacheFSMState = GP_CACHE_STATE_PREPARE;
 			}
+
+		// Stores
 		} else if (mActiveRequest.isSingleStore()) {
+
 			if (mInputQueue.empty())
 				return;
 
 			bool cacheHit;
 			MemoryRequest payload(mInputQueue.peek().payload());
 
-/*
-			// We will need to also access the data's home tile if we are in store-
-			// through mode, and this isn't already the data's home tile.
-			bool throughAccess = mActiveRequest.isThroughAccess()
-			                   && !(homeTile(mActiveAddress) == id.getTile()); // temp-removal
-
-			// TODO: write-through mode stuff. This works, but is incomplete.
-      // Make the request to the next cache in the chain, if necessary.
-      // It doesn't matter that we're writing to the buffer twice in one cycle
-      // because the buffer is still limited to draining one item per cycle.
-      if (throughAccess) {
-        // Access the same bank on the data's home tile.
-        ChannelID netAddress(homeTile(mActiveAddress), id.getPosition()-CORES_PER_TILE, 0);
-
-        AddressedWord flit1(mActiveRequest, netAddress);
-        flit1.setEndOfPacket(false);
-        AddressedWord flit2(payload, netAddress);
-        flit2.setEndOfPacket(true);
-        mOutputReqQueue.write(flit1);
-        mOutputReqQueue.write(flit2);
-      }
-*/
-
 			if (payload.getOperation() != MemoryRequest::PAYLOAD_ONLY) {
 				cout << "!!!! " << mActiveRequest.getOperation() << " | " << mActiveData.Address << " | " << payload.getOperation() << " | " << payload.getPayload() << endl;
 			}
 
-			// The received word should be the continuation of the previous operation
-			// (and should come from the same source core?).
-//			assert(mActiveRequest.getChannelID().getComponentID().getPosition() == payload.getChannelID().getComponentID().getPosition());
+			// The received word should be the continuation of the previous operation.
 			assert(payload.getOperation() == MemoryRequest::PAYLOAD_ONLY);
 
 			switch (mActiveRequest.getOperation()) {
-//			case MemoryRequest::STORE_THROUGH_W:
 			case MemoryRequest::STORE_W:	cacheHit = handler.writeWord(mActiveData.Address, payload.getPayload(), mCacheResumeRequest, false);		break;
-//			case MemoryRequest::STORE_THROUGH_HW:
 			case MemoryRequest::STORE_HW:	cacheHit = handler.writeHalfWord(mActiveData.Address, payload.getPayload(), mCacheResumeRequest, false);	break;
-//			case MemoryRequest::STORE_THROUGH_B:
 			case MemoryRequest::STORE_B:	cacheHit = handler.writeByte(mActiveData.Address, payload.getPayload(), mCacheResumeRequest, false);		break;
+			case MemoryRequest::STORE_CONDITIONAL: {
+			  bool reservationValid = mReservations.checkReservation(requestingCore(), mActiveData.Address);
+			  if (reservationValid)
+			    cacheHit = handler.writeWord(mActiveData.Address, payload.getPayload(), mCacheResumeRequest, false);
+			  else
+			    cacheHit = true;  // The operation has finished; continue with the next one.
 
-			// FIXME: temporary hack. Would prefer to use commented out code both
-			// above and below.
-      case MemoryRequest::STORE_THROUGH_W:
-        cacheHit = true;
-        mBackgroundMemory->writeWord(mActiveData.Address, payload.getPayload());
-        break;
-      case MemoryRequest::STORE_THROUGH_HW: {
-        cacheHit = true;
-        uint32_t olddata = mBackgroundMemory->readWord(mActiveData.Address & ~3).toUInt();
-        uint32_t newdata;
-        if (mActiveData.Address & 2)
-          newdata = ((payload.getPayload() & 0xFFFF) << 16) | (olddata & 0xFFFF);
-        else
-          newdata = ((olddata & 0xFFFF0000)) | (payload.getPayload() & 0xFFFF);
+			  // Return whether the store was successful.
+			  if (cacheHit) {
+			    OutputWord outWord(Word(reservationValid), mActiveData.TableIndex, mActiveData.ReturnChannel, false, true);
+			    mOutputQueue.write(outWord);
+			  }
 
-        mBackgroundMemory->writeWord(mActiveData.Address & ~3, newdata);
-        break;
-      }
-      case MemoryRequest::STORE_THROUGH_B:
-        cacheHit = true;
-        mBackgroundMemory->writeByte(mActiveData.Address, payload.getPayload());
-        break;
-
+			  break;
+			}
 			default:						assert(false);																											break;
 			}
 
 			assert(!(mCacheResumeRequest && !cacheHit));
 			mCacheResumeRequest = false;
 
-			// If this is a through access, we have to write the word back to the
-			// next level of cache.
-			//cacheHit = cacheHit && !throughAccess;
-
 			if (cacheHit) {
 				// Remove the request from the queue after completing it.
 				mInputQueue.read();
+
+				// Invalidate any atomic transactions relying on the overwritten data.
+				mReservations.clearReservation(mActiveData.Address);
 
 				if (DEBUG) {
 				  cout << this->name() << " dequeued " << payload << endl;
@@ -616,13 +517,103 @@ void MemoryBank::processLocalMemoryAccess() {
 				// Chain next request
 				if (!processRingEvent())
 					processMessageHeader();
-			} else {//if (!throughAccess) {                            // temp-removal
+			} else {
 				mFSMCallbackState = STATE_LOCAL_MEMORY_ACCESS;
 				mFSMState = STATE_GP_CACHE_MISS;
 				mCacheFSMState = GP_CACHE_STATE_PREPARE;
 			}
 
-		} else {
+		// Read-modify-writes
+		} else if (mActiveRequest.isReadModifyWrite()) {
+
+		  // First half: read data.
+		  if (!mRMWDataValid) {
+        bool cacheHit;
+        uint32_t data;
+        switch (mActiveRequest.getOperation()) {
+          case MemoryRequest::LOAD_AND_ADD:
+          case MemoryRequest::LOAD_AND_OR:
+          case MemoryRequest::LOAD_AND_AND:
+          case MemoryRequest::LOAD_AND_XOR:
+          case MemoryRequest::EXCHANGE:
+            cacheHit = handler.readWord(mActiveData.Address, data, false, mCacheResumeRequest, false);
+            break;
+          default:
+            assert(false); break;
+        }
+
+        assert(!(mCacheResumeRequest && !cacheHit));
+        mCacheResumeRequest = false;
+
+        if (cacheHit) {
+          mRMWData = data;
+          mRMWDataValid = true;
+
+          if (DEBUG)
+            printOperation(MemoryRequest::LOAD_W, mActiveData.Address, data);
+
+          // Enqueue output request
+          OutputWord outWord(Word(data), mActiveData.TableIndex, mActiveData.ReturnChannel, false, true);
+          mOutputQueue.write(outWord);
+        } else {
+          mFSMCallbackState = STATE_LOCAL_MEMORY_ACCESS;
+          mFSMState = STATE_GP_CACHE_MISS;
+          mCacheFSMState = GP_CACHE_STATE_PREPARE;
+        }
+		  }
+
+      // Second half: modify and write data.
+		  else {
+        if (mInputQueue.empty())
+          return;
+
+        MemoryRequest payload(mInputQueue.read().payload());
+
+        if (payload.getOperation() != MemoryRequest::PAYLOAD_ONLY) {
+          cout << "!!!! " << mActiveRequest.getOperation() << " | " << mActiveData.Address << " | " << payload.getOperation() << " | " << payload.getPayload() << endl;
+        }
+
+        // The received word should be the continuation of the previous operation.
+        assert(payload.getOperation() == MemoryRequest::PAYLOAD_ONLY);
+
+        uint32_t data;
+        switch (mActiveRequest.getOperation()) {
+          case MemoryRequest::LOAD_AND_ADD:
+            data = mRMWData + payload.getPayload(); break;
+          case MemoryRequest::LOAD_AND_OR:
+            data = mRMWData | payload.getPayload(); break;
+          case MemoryRequest::LOAD_AND_AND:
+            data = mRMWData & payload.getPayload(); break;
+          case MemoryRequest::LOAD_AND_XOR:
+            data = mRMWData ^ payload.getPayload(); break;
+          case MemoryRequest::EXCHANGE:
+            data = payload.getPayload(); break;
+          default:
+            assert(false); break;
+        }
+
+        bool cacheHit = handler.writeWord(mActiveData.Address, data, mCacheResumeRequest, false);
+
+        // There cannot have been any operations between the load from this
+        // address and this store.
+        assert(cacheHit);
+        mCacheResumeRequest = false;
+        mRMWDataValid = false;
+
+        // Invalidate any atomic transactions relying on the overwritten data.
+        mReservations.clearReservation(mActiveData.Address);
+
+        if (DEBUG) {
+          cout << this->name() << " dequeued " << payload << endl;
+          printOperation(MemoryRequest::STORE_W, mActiveData.Address, payload.getPayload());
+        }
+
+        // Chain next request
+        if (!processRingEvent())
+          processMessageHeader();
+		  }
+		}
+		else {
 			assert(false);
 		}
 	}
@@ -720,89 +711,6 @@ void MemoryBank::prepareIPKReadOutput(AbstractMemoryHandler& handler, uint32_t d
   }
 }
 
-void MemoryBank::processLocalBurstRead() {
-	//TODO: Implement burst handling completely
-	assert(false);
-
-	assert(mConfig.Mode != MODE_INACTIVE);
-	assert(mActiveData.TableIndex < 8 || mChannelMapTable[mActiveData.TableIndex].Valid);
-	assert(mActiveRequest.getOperation() == MemoryRequest::BURST_READ);
-
-	if (mOutputQueue.full()) {
-		// Delay load request until there is room in the output queue available
-
-		return;
-	} else {
-	  AbstractMemoryHandler& handler = currentMemoryHandler();
-		assert(handler.containsAddress(mActiveData.Address));
-
-		uint32_t data;
-		bool cacheHit = handler.readWord(mActiveData.Address, data, false, mCacheResumeRequest, false);
-
-		assert(!(mCacheResumeRequest && !cacheHit));
-		mCacheResumeRequest = false;
-
-		if (cacheHit) {
-		  prepareBurstReadOutput(handler, data);
-		} else {
-			mFSMCallbackState = STATE_LOCAL_BURST_READ;
-			mFSMState = STATE_GP_CACHE_MISS;
-			mCacheFSMState = GP_CACHE_STATE_PREPARE;
-		}
-	}
-}
-
-void MemoryBank::prepareBurstReadOutput(AbstractMemoryHandler& handler, uint32_t data) {
-  bool endOfPacket = mActiveData.Count == 1;
-
-  // Enqueue output request
-  OutputWord outWord(data, mActiveData.TableIndex, mActiveData.ReturnChannel, false, endOfPacket);
-  mOutputQueue.write(outWord);
-
-  // Handle data streaming
-
-  if (endOfPacket) {
-    // Chain next request
-
-    if (!processRingEvent())
-      processMessageHeader();
-  } else {
-    mActiveData.Address += 4;
-    mActiveData.Count--;
-
-    if (handler.containsAddress(mActiveData.Address)) {
-      mFSMState = STATE_LOCAL_BURST_READ;
-    } else {
-      RingNetworkRequest& request = getAvailableRingRequest();
-
-      if (mConfig.GroupIndex == mConfig.GroupSize - 1) {
-        request.Header.RequestType = RING_PASS_THROUGH;
-        request.Header.PassThrough.DestinationBankNumber = mConfig.GroupBaseBank;
-        request.Header.PassThrough.EnvelopedRequestType = RING_BURST_READ_HAND_OFF;
-        request.Header.PassThrough.Request = mActiveData;
-      } else {
-        request.Header.RequestType = RING_BURST_READ_HAND_OFF;
-        request.Header.Request = mActiveData;
-      }
-
-      updatedRingRequest();
-      bool chainRequest = !mRingRequestOutputPending && !processRingEvent();
-      if (chainRequest)
-        processMessageHeader();
-    }
-  }
-}
-
-void MemoryBank::processBurstWriteMaster() {
-	//TODO: Implement handler
-	assert(false);
-}
-
-void MemoryBank::processBurstWriteSlave() {
-	//TODO: Implement handler
-	assert(false);
-}
-
 void MemoryBank::processGeneralPurposeCacheMiss() {
 	// 1. Send command word - highest bit: 0 = read, 1 = write, lower bits word count
 	// 2. Send start address
@@ -897,6 +805,9 @@ void MemoryBank::processGeneralPurposeCacheMiss() {
 
 	case GP_CACHE_STATE_REPLACE: {
 		mGeneralPurposeCacheHandler.replaceCacheLine(mFetchAddress, mCacheLineBuffer);
+
+    // Invalidate any atomic transactions relying on the overwritten data.
+    mReservations.clearReservationRange(mFetchAddress, mFetchAddress+mConfig.LineSize);
 
 		mCacheResumeRequest = true;
 		mFSMState = mFSMCallbackState;
@@ -1287,18 +1198,6 @@ void MemoryBank::mainLoop() {
       processLocalIPKRead();
       break;
 
-    case STATE_LOCAL_BURST_READ:
-      processLocalBurstRead();
-      break;
-
-    case STATE_BURST_WRITE_MASTER:
-      processBurstWriteMaster();
-      break;
-
-    case STATE_BURST_WRITE_SLAVE:
-      processBurstWriteSlave();
-      break;
-
     case STATE_GP_CACHE_MISS:
       processGeneralPurposeCacheMiss();
       break;
@@ -1344,6 +1243,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
   mInputQueue(IN_CHANNEL_BUFFER_SIZE, string(this->name())+string(".mInputQueue")),
   mOutputQueue(OUT_CHANNEL_BUFFER_SIZE, string(this->name())+string(".mOutputQueue")),
   mOutputReqQueue(10 /*read addr + write addr + cache line*/, string(this->name())+string(".mOutputReqQueue")),
+  mReservations(1),
 	mScratchpadModeHandler(bankNumber),
 	mGeneralPurposeCacheHandler(bankNumber)
 {
@@ -1380,6 +1280,9 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	mActiveData.Count = 0;
 	mActiveData.PartialInstructionPending = false;
 	mActiveData.PartialInstructionData = 0;
+
+	mRMWData = 0;
+	mRMWDataValid = false;
 
 	//-- Cache mode state -------------------------------------------------------------------------
 
@@ -1452,6 +1355,15 @@ void MemoryBank::setAdjacentMemories(MemoryBank *prevMemoryBank, MemoryBank *nex
 
 void MemoryBank::setLocalNetwork(local_net_t* network) {
   localNetwork = network;
+}
+
+ComponentID MemoryBank::requestingCore() const {
+  // In L1 mode, the core is on the same tile and can be determined by the
+  // input channel accessed.
+  return ComponentID(id.tile, mActiveData.TableIndex);
+
+  // FIXME: different mechanism if in L2 mode. The L1 bank will have sent its
+  // address. Currently the MissHandlingLogic handles this for us.
 }
 
 // Find the memory bank responsible for storing a given address.
@@ -1615,21 +1527,23 @@ void MemoryBank::printOperation(MemoryRequest::MemoryOperation operation,
   bool isLoad;
   string datatype;
 
+  // Note: read-modify-write operations are printed in two phases: as a read,
+  // then a write.
+
   switch (operation) {
   case MemoryRequest::LOAD_W:
+  case MemoryRequest::LOAD_LINKED:
     isLoad = true;  datatype = "word";      break;
   case MemoryRequest::LOAD_HW:
     isLoad = true;  datatype = "half-word"; break;
   case MemoryRequest::LOAD_B:
     isLoad = true;  datatype = "byte";      break;
   case MemoryRequest::STORE_W:
-  case MemoryRequest::STORE_THROUGH_W:
+  case MemoryRequest::STORE_CONDITIONAL:
     isLoad = false; datatype = "word";      break;
   case MemoryRequest::STORE_HW:
-  case MemoryRequest::STORE_THROUGH_HW:
     isLoad = false; datatype = "half-word"; break;
   case MemoryRequest::STORE_B:
-  case MemoryRequest::STORE_THROUGH_B:
     isLoad = false; datatype = "byte";      break;
   default:
     assert(false);

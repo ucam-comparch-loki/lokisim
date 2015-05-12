@@ -13,9 +13,9 @@
 
 #include "Word.h"
 #include "Identifier.h"
-#include "../TileComponents/Memory/MemoryTypedefs.h"
-#include "../Typedefs.h"
 #include "../Exceptions/InvalidOptionException.h"
+#include "../Typedefs.h"
+#include "../TileComponents/Memory/MemoryTypedefs.h"
 
 class MemoryRequest : public Word {
 private:
@@ -52,28 +52,37 @@ private:
 
 public:
 	enum MemoryOperation {
-		CONTROL               = 0,  // Configuration
-		PAYLOAD_ONLY          = 1,  // Data to be stored
-		LOAD_W                = 2,  // Load word
-		LOAD_HW               = 3,  // Load half-word
-		LOAD_B                = 4,  // Load byte
-		STORE_W               = 5,  // Store word
-		STORE_HW              = 6,  // Store half-word
-		STORE_B               = 7,  // Store byte
-		IPK_READ              = 8,  // Instruction packet read
-		BURST_READ            = 9,  // Read multiple consecutive words
-		BURST_WRITE           = 10, // Write multiple consecutive words
-		FETCH_LINE            = 11, // Fetch cache line
-		STORE_LINE            = 12, // Flush cache line
-		DIRECTORY_UPDATE      = 13, // Map part of the address space to a tile
-		DIRECTORY_MASK_UPDATE = 14, // Choose part of address to index directory
+	  // Data access
+		LOAD_W,
+		LOAD_HW,
+		LOAD_B,
+		STORE_W,
+		STORE_HW,
+		STORE_B,
+		PAYLOAD_ONLY,
+		IPK_READ,
 
-		LOAD_THROUGH_W        = 18, // Load word from next level of cache
-		LOAD_THROUGH_HW       = 19, // Load half-word from next level of cache
-		LOAD_THROUGH_B        = 20, // Load byte from next level of cache
-		STORE_THROUGH_W       = 21, // Store word to next level of cache
-		STORE_THROUGH_HW      = 22, // Store half-word to next level of cache
-		STORE_THROUGH_B       = 23, // Store byte to next level of cache
+		// Cache control
+		FETCH_LINE,
+		STORE_LINE,
+		FLUSH_LINE,
+		MEMSET_LINE,
+		INVALIDATE_LINE,
+		VALIDATE_LINE,
+		UPDATE_DIRECTORY_ENTRY,
+		UPDATE_DIRECTORY_MASK,
+
+		// Atomics
+		LOAD_LINKED,
+		STORE_CONDITIONAL,
+		LOAD_AND_ADD,
+		LOAD_AND_OR,
+		LOAD_AND_AND,
+		LOAD_AND_XOR,
+		EXCHANGE,
+
+		// Other
+		CONTROL               = 31, // Configuration - may not be needed
 
 		NONE                  = 255
 	};
@@ -119,17 +128,7 @@ public:
 
 	// Returns whether the next level of cache should also be accessed.
 	inline bool isThroughAccess() const {
-	  switch (getOperation()) {
-      case LOAD_THROUGH_W:
-      case LOAD_THROUGH_HW:
-      case LOAD_THROUGH_B:
-      case STORE_THROUGH_W:
-      case STORE_THROUGH_HW:
-      case STORE_THROUGH_B:
-	      return true;
-	    default:
-	      return false;
-	  }
+	  return false;
 	}
 
 	// Once the request has been sent to the next cache level, this becomes a
@@ -137,18 +136,7 @@ public:
 	inline void clearThroughAccess() {
 	  assert(isThroughAccess());
 
-	  switch (getOperation()) {
-      case LOAD_THROUGH_W:        setOperation(LOAD_W);   break;
-      case LOAD_THROUGH_HW:       setOperation(LOAD_HW);  break;
-      case LOAD_THROUGH_B:        setOperation(LOAD_B);   break;
-      case STORE_THROUGH_W:       setOperation(STORE_W);  break;
-      case STORE_THROUGH_HW:      setOperation(STORE_HW); break;
-      case STORE_THROUGH_B:       setOperation(STORE_B);  break;
-      default:
-        throw InvalidOptionException("memory operation", getOperation());
-        break;
-	  }
-
+	  // TODO: is this method unnecessary?
 	}
 
 	// Returns whether a single value is being retrieved.
@@ -157,9 +145,7 @@ public:
       case LOAD_W:
       case LOAD_HW:
       case LOAD_B:
-      case LOAD_THROUGH_W:
-      case LOAD_THROUGH_HW:
-      case LOAD_THROUGH_B:
+      case LOAD_LINKED:
         return true;
       default:
         return false;
@@ -172,16 +158,26 @@ public:
       case STORE_W:
       case STORE_HW:
       case STORE_B:
-      case STORE_THROUGH_W:
-      case STORE_THROUGH_HW:
-      case STORE_THROUGH_B:
+      case STORE_CONDITIONAL:
         return true;
       default:
         return false;
     }
 	}
 
-
+	// Returns whether this operation both reads and writes a value.
+	inline bool isReadModifyWrite() const {
+	  switch (getOperation()) {
+      case LOAD_AND_ADD:
+      case LOAD_AND_OR:
+      case LOAD_AND_AND:
+      case LOAD_AND_XOR:
+      case EXCHANGE:
+        return true;
+      default:
+        return false;
+	  }
+	}
 
 	MemoryRequest() : Word() {
 		// Nothing

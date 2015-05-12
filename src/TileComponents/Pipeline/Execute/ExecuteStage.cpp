@@ -293,16 +293,17 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
     case MemoryRequest::LOAD_W:
     case MemoryRequest::LOAD_HW:
     case MemoryRequest::LOAD_B:
-    case MemoryRequest::LOAD_THROUGH_W:
-    case MemoryRequest::LOAD_THROUGH_HW:
-    case MemoryRequest::LOAD_THROUGH_B:
     case MemoryRequest::STORE_W:
     case MemoryRequest::STORE_HW:
     case MemoryRequest::STORE_B:
-    case MemoryRequest::STORE_THROUGH_W:
-    case MemoryRequest::STORE_THROUGH_HW:
-    case MemoryRequest::STORE_THROUGH_B:
     case MemoryRequest::IPK_READ:
+    case MemoryRequest::LOAD_LINKED:
+    case MemoryRequest::STORE_CONDITIONAL:
+    case MemoryRequest::LOAD_AND_ADD:
+    case MemoryRequest::LOAD_AND_OR:
+    case MemoryRequest::LOAD_AND_AND:
+    case MemoryRequest::LOAD_AND_XOR:
+    case MemoryRequest::EXCHANGE:
       addressFlit = true;
       break;
     default:
@@ -315,28 +316,7 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
   ChannelMapEntry& channelMapEntry = core()->channelMapTable[inst.channelMapEntry()];
 
   if (channelMapEntry.writeThrough()) {
-    switch (op) {
-      case MemoryRequest::STORE_W:
-        op = MemoryRequest::STORE_THROUGH_W;
-        break;
-      case MemoryRequest::STORE_HW:
-        op = MemoryRequest::STORE_THROUGH_HW;
-        break;
-      case MemoryRequest::STORE_B:
-        op = MemoryRequest::STORE_THROUGH_B;
-        break;
-      case MemoryRequest::LOAD_W:
-        op = MemoryRequest::LOAD_THROUGH_W;
-        break;
-      case MemoryRequest::LOAD_HW:
-        op = MemoryRequest::LOAD_THROUGH_HW;
-        break;
-      case MemoryRequest::LOAD_B:
-        op = MemoryRequest::LOAD_THROUGH_B;
-        break;
-      default:
-        break;
-    }
+    // TODO
   }
 
   Word w = MemoryRequest(op, inst.result());

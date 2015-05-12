@@ -107,11 +107,11 @@ void MissHandlingLogic::handleNewLocalRequest() {
       break;
     }
 
-    case MemoryRequest::DIRECTORY_UPDATE:
+    case MemoryRequest::UPDATE_DIRECTORY_ENTRY:
       handleDirectoryUpdate();
       break;
 
-    case MemoryRequest::DIRECTORY_MASK_UPDATE:
+    case MemoryRequest::UPDATE_DIRECTORY_MASK:
       handleDirectoryMaskUpdate();
       break;
 
