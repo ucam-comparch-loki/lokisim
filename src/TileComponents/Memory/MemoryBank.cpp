@@ -27,6 +27,7 @@ using namespace std;
 #include "../../Datatype/Instruction.h"
 #include "../../Network/Topologies/LocalNetwork.h"
 #include "../../Utility/Arguments.h"
+#include "../../Utility/Instrumentation/MemoryBank.h"
 #include "../../Utility/Instrumentation/Network.h"
 #include "../../Utility/Trace/MemoryTrace.h"
 #include "../../Utility/Parameters.h"
@@ -172,7 +173,7 @@ ReevaluateRequest:
     mActiveData    = mActiveRingRequestInput.Header.Request;
 
 		if (ENERGY_TRACE)
-		  Instrumentation::memoryInitiateIPKRead(cBankNumber, true);
+		  Instrumentation::MemoryBank::initiateIPKRead(cBankNumber, true);
 
 		mFSMState = STATE_LOCAL_IPK_READ;
 		break;
@@ -370,7 +371,7 @@ bool MemoryBank::processMessageHeader() {
 			cout << this->name() << " starting IPK_READ request on channel " << mActiveData.TableIndex << endl;
 
 		if (ENERGY_TRACE)
-		  Instrumentation::memoryInitiateIPKRead(cBankNumber, false);
+		  Instrumentation::MemoryBank::initiateIPKRead(cBankNumber, false);
 
 		mActiveData.Address = mActiveRequest.payload().toUInt();
 		mFSMState = STATE_LOCAL_IPK_READ;
@@ -434,11 +435,11 @@ void MemoryBank::processLocalMemoryAccess() {
 			uint32_t data;
 
 			switch (mActiveRequest.getMemoryMetadata().opcode) {
-			case MemoryRequest::LOAD_W:		cacheHit = handler.readWord(mActiveData.Address, data, false, mCacheResumeRequest, false);	break;
-			case MemoryRequest::LOAD_HW:	cacheHit = handler.readHalfWord(mActiveData.Address, data, mCacheResumeRequest, false);		break;
-			case MemoryRequest::LOAD_B:		cacheHit = handler.readByte(mActiveData.Address, data, mCacheResumeRequest, false);			break;
+			case MemoryRequest::LOAD_W:		cacheHit = handler.readWord(mActiveData.Address, data, false, mCacheResumeRequest, false, mActiveData.TableIndex, mActiveData.ReturnChannel);	break;
+			case MemoryRequest::LOAD_HW:	cacheHit = handler.readHalfWord(mActiveData.Address, data, mCacheResumeRequest, false, mActiveData.TableIndex, mActiveData.ReturnChannel);		break;
+			case MemoryRequest::LOAD_B:		cacheHit = handler.readByte(mActiveData.Address, data, mCacheResumeRequest, false, mActiveData.TableIndex, mActiveData.ReturnChannel);			break;
 			case MemoryRequest::LOAD_LINKED:
-			  cacheHit = handler.readWord(mActiveData.Address, data, false, mCacheResumeRequest, false);
+			  cacheHit = handler.readWord(mActiveData.Address, data, false, mCacheResumeRequest, false, mActiveData.TableIndex, mActiveData.ReturnChannel);
 			  if (cacheHit)
 			    mReservations.makeReservation(requestingComponent(), mActiveData.Address);
 			  break;
@@ -484,13 +485,13 @@ void MemoryBank::processLocalMemoryAccess() {
 			assert(flit.getMemoryMetadata().opcode == MemoryRequest::PAYLOAD_ONLY);
 
 			switch (mActiveRequest.getMemoryMetadata().opcode) {
-			case MemoryRequest::STORE_W:	cacheHit = handler.writeWord(mActiveData.Address, flit.payload().toUInt(), mCacheResumeRequest, false);		break;
-			case MemoryRequest::STORE_HW:	cacheHit = handler.writeHalfWord(mActiveData.Address, flit.payload().toUInt(), mCacheResumeRequest, false);	break;
-			case MemoryRequest::STORE_B:	cacheHit = handler.writeByte(mActiveData.Address, flit.payload().toUInt(), mCacheResumeRequest, false);		break;
+			case MemoryRequest::STORE_W:	cacheHit = handler.writeWord(mActiveData.Address, flit.payload().toUInt(), mCacheResumeRequest, false, mActiveData.TableIndex, mActiveData.ReturnChannel);		break;
+			case MemoryRequest::STORE_HW:	cacheHit = handler.writeHalfWord(mActiveData.Address, flit.payload().toUInt(), mCacheResumeRequest, false, mActiveData.TableIndex, mActiveData.ReturnChannel);	break;
+			case MemoryRequest::STORE_B:	cacheHit = handler.writeByte(mActiveData.Address, flit.payload().toUInt(), mCacheResumeRequest, false, mActiveData.TableIndex, mActiveData.ReturnChannel);		break;
 			case MemoryRequest::STORE_CONDITIONAL: {
 			  bool reservationValid = mReservations.checkReservation(requestingComponent(), mActiveData.Address);
 			  if (reservationValid)
-			    cacheHit = handler.writeWord(mActiveData.Address, flit.payload().toUInt(), mCacheResumeRequest, false);
+			    cacheHit = handler.writeWord(mActiveData.Address, flit.payload().toUInt(), mCacheResumeRequest, false, mActiveData.TableIndex, mActiveData.ReturnChannel);
 			  else
 			    cacheHit = true;  // The operation has finished; continue with the next one.
 
@@ -542,7 +543,7 @@ void MemoryBank::processLocalMemoryAccess() {
           case MemoryRequest::LOAD_AND_AND:
           case MemoryRequest::LOAD_AND_XOR:
           case MemoryRequest::EXCHANGE:
-            cacheHit = handler.readWord(mActiveData.Address, data, false, mCacheResumeRequest, false);
+            cacheHit = handler.readWord(mActiveData.Address, data, false, mCacheResumeRequest, false, mActiveData.TableIndex, mActiveData.ReturnChannel);
             break;
           default:
             assert(false); break;
@@ -598,7 +599,7 @@ void MemoryBank::processLocalMemoryAccess() {
             assert(false); break;
         }
 
-        bool cacheHit = handler.writeWord(mActiveData.Address, data, mCacheResumeRequest, false);
+        bool cacheHit = handler.writeWord(mActiveData.Address, data, mCacheResumeRequest, false, mActiveData.TableIndex, mActiveData.ReturnChannel);
 
         // There cannot have been any operations between the load from this
         // address and this store.
@@ -642,7 +643,7 @@ void MemoryBank::processLocalIPKRead() {
 		assert(handler.containsAddress(mActiveData.Address));
 
 		uint32_t data;
-		bool cacheHit = handler.readWord(mActiveData.Address, data, true, mCacheResumeRequest, false);
+		bool cacheHit = handler.readWord(mActiveData.Address, data, true, mCacheResumeRequest, false, mActiveData.TableIndex, mActiveData.ReturnChannel);
 
 		assert(!(mCacheResumeRequest && !cacheHit));
 		mCacheResumeRequest = false;
@@ -675,7 +676,7 @@ void MemoryBank::prepareIPKReadOutput(AbstractMemoryHandler& handler, uint32_t d
   // Handle IPK streaming
 
   if (endOfPacket) {
-    if (MEMORY_TRACE == 1) MemoryTrace::stopIPK(cBankNumber, mActiveData.Address);
+    if (Arguments::memoryTrace()) MemoryTrace::stopIPK(cBankNumber, mActiveData.Address);
 
     // Chain next request
     if (!processRingEvent())
@@ -685,11 +686,11 @@ void MemoryBank::prepareIPKReadOutput(AbstractMemoryHandler& handler, uint32_t d
 
     if (handler.containsAddress(mActiveData.Address)) {
       if (!handler.sameLine(mActiveData.Address - 4, mActiveData.Address))
-        if (MEMORY_TRACE == 1) MemoryTrace::splitLineIPK(cBankNumber, mActiveData.Address);
+        if (Arguments::memoryTrace()) MemoryTrace::splitLineIPK(cBankNumber, mActiveData.Address);
 
       mFSMState = STATE_LOCAL_IPK_READ;
     } else {
-      if (MEMORY_TRACE == 1)
+      if (Arguments::memoryTrace())
         MemoryTrace::splitBankIPK(cBankNumber, mActiveData.Address);
 
       RingNetworkRequest& request = getAvailableRingRequest();
@@ -960,7 +961,7 @@ void MemoryBank::handleNewRequest() {
   // Perform a read to check if the data is currently cached.
   // FIXME: the read is repeated as soon as we enter handleRequestFetch().
   uint32_t data;
-  bool cached = mGeneralPurposeCacheHandler.readWord(address, data, false, false, false);
+  bool cached = mGeneralPurposeCacheHandler.readWord(address, data, false, false, false, 0, 0);
 
   // We don't hold the data and aren't responsible for fetching it - wait for
   // the next request.
@@ -1067,7 +1068,7 @@ void MemoryBank::handleRequestFetch() {
     if (DEBUG)
       cout << this->name() << " reading from address 0x" << std::hex << mFetchAddress << std::dec << endl;
 
-    bool hit = mGeneralPurposeCacheHandler.readWord(mFetchAddress, data, false, false, false);
+    bool hit = mGeneralPurposeCacheHandler.readWord(mFetchAddress, data, false, false, false, 0, 0);
     assert(hit);
 
     mFetchCount--;
@@ -1093,7 +1094,7 @@ void MemoryBank::handleRequestStore() {
   if (DEBUG)
     cout << this->name() << " writing " << request.payload() << " to address 0x" << std::hex << mWriteBackAddress << std::dec << endl;
 
-  bool hit = mGeneralPurposeCacheHandler.writeWord(mWriteBackAddress, request.payload().toUInt(), false, false);
+  bool hit = mGeneralPurposeCacheHandler.writeWord(mWriteBackAddress, request.payload().toUInt(), false, false, 0, 0);
   assert(hit);
   iRequest.ack();
 
@@ -1395,7 +1396,7 @@ void MemoryBank::storeData(vector<Word>& data, MemoryAddr location) {
 
   for (size_t i = 0; i < count; i++) {
     MemoryBank& bank = bankContainingAddress(address + i*4);
-    if (!bank.currentMemoryHandler().writeWord(address + i * 4, data[i].toUInt(), false, true))
+    if (!bank.currentMemoryHandler().writeWord(address + i * 4, data[i].toUInt(), false, true, 0, 0))
       mBackgroundMemory->writeWord(address + i * 4, data[i]);
   }
 }
@@ -1433,7 +1434,7 @@ void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
     MemoryBank& bank = bankContainingAddress(address);
 
     uint32_t data;
-    bool cached = bank.currentMemoryHandler().readWord(address, data, false, false, true);
+    bool cached = bank.currentMemoryHandler().readWord(address, data, false, false, true, 0, 0);
 
     if (!cached)
       data = mBackgroundMemory->readWord(address).toUInt();
@@ -1455,7 +1456,7 @@ Word MemoryBank::readWord(MemoryAddr addr) {
 
 	MemoryBank& bank = bankContainingAddress(addr);
   uint32_t data;
-  bool cached = bank.currentMemoryHandler().readWord(addr, data, false, false, true);
+  bool cached = bank.currentMemoryHandler().readWord(addr, data, false, false, true, 0, 0);
 
   if (!cached)
     data = mBackgroundMemory->readWord(addr).toUInt();
@@ -1470,7 +1471,7 @@ Word MemoryBank::readByte(MemoryAddr addr) {
 
   MemoryBank& bank = bankContainingAddress(addr);
   uint32_t data;
-  bool cached = bank.currentMemoryHandler().readByte(addr, data, false, true);
+  bool cached = bank.currentMemoryHandler().readByte(addr, data, false, true, 0, 0);
 
   if (!cached)
     data = mBackgroundMemory->readByte(addr).toUInt();
@@ -1485,7 +1486,7 @@ void MemoryBank::writeWord(MemoryAddr addr, Word data) {
 	assert(mConfig.Mode != MODE_INACTIVE);
 
   MemoryBank& bank = bankContainingAddress(addr);
-  bool cached = bank.currentMemoryHandler().writeWord(addr, data.toUInt(), false, true);
+  bool cached = bank.currentMemoryHandler().writeWord(addr, data.toUInt(), false, true, 0, 0);
 
   if (!cached)
     mBackgroundMemory->writeWord(addr, data.toUInt());
@@ -1497,7 +1498,7 @@ void MemoryBank::writeByte(MemoryAddr addr, Word data) {
 	assert(mConfig.Mode != MODE_INACTIVE);
 
   MemoryBank& bank = bankContainingAddress(addr);
-  bool cached = bank.currentMemoryHandler().writeByte(addr, data.toUInt(), false, true);
+  bool cached = bank.currentMemoryHandler().writeByte(addr, data.toUInt(), false, true, 0, 0);
 
   if (!cached)
     mBackgroundMemory->writeByte(addr, data.toUInt());

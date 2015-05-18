@@ -36,6 +36,9 @@ void ExecuteStage::execute() {
     return;
   }
 
+  if (DEBUG)
+    cout << this->name() << " received Instruction: " << currentInst << endl;
+
   // If there is already a result, don't do anything
   if (currentInst.hasResult()) {
     if (currentInst.setsPredicate())
@@ -67,7 +70,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
   // See if the instruction should execute.
   bool willExecute = checkPredicate(operation);
 
-  if (LBT_TRACE)
+  if (Arguments::lbtTrace())
 	LBTTrace::setInstructionExecuteFlag(operation.isid(), willExecute);
 
   if (willExecute) {
@@ -200,7 +203,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
   // PAYLOAD_ONLY means this is the second half of a store operation - we don't
   // want to instrument it twice.
   if (//ENERGY_TRACE &&  <-- do this check elsewhere
-      operation.isALUOperation() &&
+      operation.isExecuteStageOperation() &&
       operation.memoryOp() != MemoryRequest::PAYLOAD_ONLY &&
       !blocked) {
     Instrumentation::executed(id, operation, willExecute);
@@ -215,7 +218,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
 
 void ExecuteStage::sendOutput() {
   if (currentInst.sendsOnNetwork()) {
-	if (LBT_TRACE) {
+	if (Arguments::lbtTrace()) {
 	  if ((currentInst.opcode() == InstructionMap::OP_LDW ||
 		currentInst.opcode() == InstructionMap::OP_LDHWU ||
 		currentInst.opcode() == InstructionMap::OP_LDBU ||

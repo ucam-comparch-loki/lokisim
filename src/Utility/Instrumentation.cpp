@@ -105,41 +105,17 @@ void Instrumentation::stopEventLog() {
 void Instrumentation::decoded(const ComponentID& core, const DecodedInst& dec) {
   Operations::decoded(core, dec);
 
-  if (TRACE) {
-
+  if (Arguments::instructionAddressTrace()) {
     MemoryAddr location = dec.location();
     std::cout << "0x";
     std::cout.width(8);
     std::cout << std::hex << std::setfill('0') << location << endl;
+  }
 
-
-//    std::cout << dec << endl;
+  if (Arguments::instructionTrace()) {
+    std::cout << dec << endl;
   }
 }
-
-void Instrumentation::memorySetMode(int bank, bool isCache, uint setCount, uint wayCount, uint lineSize)	{MemoryBank::setMode(bank, isCache, setCount, wayCount, lineSize);}
-
-void Instrumentation::memoryReadWord(int bank, MemoryAddr address, bool isMiss)	{MemoryBank::readWord(bank, address, isMiss);}
-void Instrumentation::memoryReadHalfWord(int bank, MemoryAddr address, bool isMiss)	{MemoryBank::readHalfWord(bank, address, isMiss);}
-void Instrumentation::memoryReadByte(int bank, MemoryAddr address, bool isMiss) {MemoryBank::readByte(bank, address, isMiss);}
-
-void Instrumentation::memoryWriteWord(int bank, MemoryAddr address, bool isMiss) {MemoryBank::writeWord(bank, address, isMiss);}
-void Instrumentation::memoryWriteHalfWord(int bank, MemoryAddr address, bool isMiss) {MemoryBank::writeHalfWord(bank, address, isMiss);}
-void Instrumentation::memoryWriteByte(int bank, MemoryAddr address, bool isMiss) {MemoryBank::writeByte(bank, address, isMiss);}
-
-void Instrumentation::memoryInitiateIPKRead(int bank, bool isHandOff)										{MemoryBank::initiateIPKRead(bank, isHandOff);}
-void Instrumentation::memoryInitiateBurstRead(int bank, bool isHandOff)										{MemoryBank::initiateBurstRead(bank, isHandOff);}
-void Instrumentation::memoryInitiateBurstWrite(int bank, bool isHandOff)									{MemoryBank::initiateBurstWrite(bank, isHandOff);}
-
-void Instrumentation::memoryReadIPKWord(int bank, MemoryAddr address, bool isMiss) {MemoryBank::readIPKWord(bank, address, isMiss);}
-
-void Instrumentation::memoryReadBurstWord(int bank, MemoryAddr address, bool isMiss)						{MemoryBank::readBurstWord(bank, address, isMiss);}
-void Instrumentation::memoryWriteBurstWord(int bank, MemoryAddr address, bool isMiss)						{MemoryBank::writeBurstWord(bank, address, isMiss);}
-
-void Instrumentation::memoryReplaceCacheLine(int bank, bool isValid, bool isDirty)							{MemoryBank::replaceCacheLine(bank, isValid, isDirty);}
-
-void Instrumentation::memoryRingHandOff(int bank)															{MemoryBank::ringHandOff(bank);}
-void Instrumentation::memoryRingPassThrough(int bank)														{MemoryBank::ringPassThrough(bank);}
 
 // Record that background memory was read from.
 void Instrumentation::backgroundMemoryRead(MemoryAddr address, uint32_t count) {BackgroundMemory::read(address, count);}

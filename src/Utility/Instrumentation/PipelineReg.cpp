@@ -53,7 +53,7 @@ void PipelineReg::activity(const DecodedInst& oldVal,
         hamming += __builtin_popcount(oldVal.operand2()  ^ newVal.operand2() );
         width += 32;
       }
-      if (!CLOCK_GATE || newVal.isALUOperation()) {
+      if (!CLOCK_GATE || newVal.isExecuteStageOperation()) {
         hamming += __builtin_popcount(oldVal.function()  ^ newVal.function() );
         width += 4;
       }

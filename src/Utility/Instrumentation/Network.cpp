@@ -66,7 +66,7 @@ void Network::arbiterCreated() {
 
 void Network::printStats() {
 
-  if (BATCH_MODE) {
+  if (Arguments::batchMode()) {
 	cout << "<@GLOBAL>network_words:" << producers.numEvents() << "</@GLOBAL>" << endl;
   }
 

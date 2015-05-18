@@ -7,6 +7,7 @@
 
 #include "WriteStage.h"
 #include "../../Core.h"
+#include "../../../Utility/Arguments.h"
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
@@ -15,10 +16,13 @@ const DecodedInst& WriteStage::currentInstruction() const {
 }
 
 void WriteStage::execute() {
+  if (DEBUG)
+    cout << this->name() << " received Instruction: " << currentInst << endl;
+
   newInput(currentInst);
 //  bool packetInProgress = !currentInst.endOfNetworkPacket();
 
-  if (CSIM_TRACE)
+  if (Arguments::csimTrace())
     core()->trace(currentInst);
 
   instructionCompleted();

@@ -56,7 +56,9 @@ class Operation:
         return self.asm_name().find(".p") >= 0
         
     def is_alu_operation(self):
-        return self.alu_function >= 0
+        # Function code 31 represents operations which have results, but not
+        # from the ALU.
+        return 0 <= self.alu_function < 31
     
     def signed_immediate(self):
         return self.immediate == 's'

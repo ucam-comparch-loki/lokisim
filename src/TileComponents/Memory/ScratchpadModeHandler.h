@@ -34,13 +34,13 @@ public:
 	virtual bool containsAddress(MemoryAddr address);
 	virtual bool sameLine(MemoryAddr address1, MemoryAddr address2);
 
-  virtual bool readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug);
-  virtual bool readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug);
-  virtual bool readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug);
+  virtual bool readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug, int core, int retCh);
+  virtual bool readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug, int core, int retCh);
+  virtual bool readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug, int core, int retCh);
 
-  virtual bool writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug);
-  virtual bool writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug);
-  virtual bool writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug);
+  virtual bool writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh);
+  virtual bool writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh);
+  virtual bool writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh);
 };
 
 #endif /* SCRATCHPADMODEHANDLER_H_ */

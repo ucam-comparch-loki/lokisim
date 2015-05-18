@@ -175,7 +175,6 @@ void Chip::makeSignals() {
 }
 
 void Chip::makeComponents() {
-
   // Iterate from 1 to MAX, rather than 0 to MAX-1, to allow a halo of I/O
   // tiles around the edge.
   for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
@@ -414,7 +413,9 @@ void Chip::wireUp() {
     backgroundMemory.oData[j](responseFromBM[j]);
     mhl[j]->oRequestToBM(requestToBM[j]);
     backgroundMemory.iData[j](requestToBM[j]);
+  }
 
+  for (uint j=0; j<NUM_COMPUTE_TILES; j++) {
  	  for (uint i = 0; i < MEMS_PER_TILE; i++) {
 			int currIndex = j * MEMS_PER_TILE + i;
 			int prevIndex = j * MEMS_PER_TILE + ((i + MEMS_PER_TILE - 1) % MEMS_PER_TILE);
@@ -445,7 +446,7 @@ Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
     requestNet("request_net"),
     responseNet("response_net"),
     network("network"),
-    clock("clock", 1, SC_NS, 0.5),
+    clock("clock", 1, sc_core::SC_NS, 0.5),
     fastClock("fast_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.25),
     slowClock("slow_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.75) {
 

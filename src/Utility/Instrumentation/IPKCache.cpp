@@ -9,20 +9,35 @@
 #include "../../Datatype/Identifier.h"
 
 using namespace Instrumentation;
+using std::vector;
 
-count_t IPKCache::numHits_ = 0;
-count_t IPKCache::numMisses_ = 0;
-count_t IPKCache::numReads_ = 0;
-count_t IPKCache::numWrites_ = 0;
+vector<struct IPKCache::CoreStats> IPKCache::perCore;
+struct IPKCache::CoreStats IPKCache::total;
+
 count_t IPKCache::tagWriteHD_ = 0;   // Total Hamming distance in written cache tags
 count_t IPKCache::tagWrites_ = 0;
 count_t IPKCache::tagReadHD_ = 0;    // Total Hamming distance in read cache tags
 count_t IPKCache::tagsActive_ = 0;
 count_t IPKCache::dataActive_ = 0;
 
+void IPKCache::init() {
+  total.hits = 0;
+  total.misses = 0;
+  total.reads = 0;
+  total.writes = 0;
+
+  perCore.assign(NUM_CORES, total);
+}
+
 void IPKCache::tagCheck(const ComponentID& core, bool hit, const MemoryAddr tag, const MemoryAddr prevCheck) {
-  if (hit) numHits_++;
-  else     numMisses_++;
+  if (hit) {
+    total.hits++;
+    perCore[core.globalCoreNumber()].hits++;
+  }
+  else {
+    total.misses++;
+    perCore[core.globalCoreNumber()].misses++;
+  }
 
   if (ENERGY_TRACE)
     tagReadHD_ += hammingDistance(tag, prevCheck);
@@ -38,43 +53,43 @@ void IPKCache::tagActivity() {
 }
 
 void IPKCache::read(const ComponentID& core) {
-  numReads_++;
+  total.reads++;
+  perCore[core.globalCoreNumber()].reads++;
 }
 
 void IPKCache::write(const ComponentID& core) {
-  numWrites_++;
+  total.writes++;
+  perCore[core.globalCoreNumber()].writes++;
 }
 
 void IPKCache::dataActivity() {
   dataActive_++;
 }
 
-count_t IPKCache::numTagChecks() {return numHits_ + numMisses_;}
-count_t IPKCache::numHits()      {return numHits_;}
-count_t IPKCache::numMisses()    {return numMisses_;}
-count_t IPKCache::numReads()     {return numReads_;}
-count_t IPKCache::numWrites()    {return numWrites_;}
+count_t IPKCache::numTagChecks() {return total.hits + total.misses;}
+count_t IPKCache::numHits()      {return total.hits;}
+count_t IPKCache::numMisses()    {return total.misses;}
+count_t IPKCache::numReads()     {return total.reads;}
+count_t IPKCache::numWrites()    {return total.writes;}
 
 void IPKCache::printStats() {
 
-  count_t tagChecks = numTagChecks();
-
-  if (BATCH_MODE) {
-	cout << "<@GLOBAL>ipkcache_reads:" << numReads_ << "</@GLOBAL>" << endl;
-	cout << "<@GLOBAL>ipkcache_writes:" << numWrites_ << "</@GLOBAL>" << endl;
-	cout << "<@GLOBAL>ipkcache_tag_checks:" << tagChecks << "</@GLOBAL>" << endl;
-	cout << "<@GLOBAL>ipkcache_hits:" << numHits_ << "</@GLOBAL>" << endl;
-	cout << "<@GLOBAL>ipkcache_misses:" << numMisses_ << "</@GLOBAL>" << endl;
+  if (Arguments::batchMode()) {
+	cout << "<@GLOBAL>ipkcache_reads:" << numReads() << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>ipkcache_writes:" << numWrites() << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>ipkcache_tag_checks:" << numTagChecks() << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>ipkcache_hits:" << numHits() << "</@GLOBAL>" << endl;
+	cout << "<@GLOBAL>ipkcache_misses:" << numMisses() << "</@GLOBAL>" << endl;
   }
 
-  if (tagChecks > 0) {
+  if (numTagChecks() > 0) {
 	cout <<
 	  "Instruction packet cache:" << "\n" <<
-	  "  Reads:    " << numReads_ << "\n" <<
-	  "  Writes:   " << numWrites_ << "\n" <<
-	  "  Tag checks: " << tagChecks << "\n" <<
-	  "    Hits:   " << numHits_ << "\t(" << percentage(numHits_,tagChecks) << ")\n" <<
-	  "    Misses: " << numMisses_ << "\t(" << percentage(numMisses_,tagChecks) << ")\n";
+	  "  Reads:    " << numReads() << "\n" <<
+	  "  Writes:   " << numWrites() << "\n" <<
+	  "  Tag checks: " << numTagChecks() << "\n" <<
+	  "    Hits:   " << numHits() << "\t(" << percentage(numHits(),numTagChecks()) << ")\n" <<
+	  "    Misses: " << numMisses() << "\t(" << percentage(numMisses(),numTagChecks()) << ")\n";
   }
 }
 
@@ -84,6 +99,13 @@ void IPKCache::printSummary() {
   clog << "L0 cache activity:" << endl;
   clog << "  Total instruction reads: " << numReads() << endl;
   clog << "  Packet hit rate:         " << numHits() << "/" << numTagChecks() << " (" << percentage(numHits(),numTagChecks()) << ")" << endl;
+
+  for (uint core = 0; core < NUM_CORES; core++) {
+    struct CoreStats stats = perCore[core];
+    if (stats.hits>0 || stats.misses>0 || stats.reads>0 || stats.writes>0) {
+      clog << "    Core " << core << ": " << stats.hits << "/" << (stats.hits+stats.misses) << " (" << percentage(stats.hits, stats.hits+stats.misses) << ")" << endl;
+    }
+  }
 }
 
 void IPKCache::dumpEventCounts(std::ostream& os) {
@@ -91,8 +113,8 @@ void IPKCache::dumpEventCounts(std::ostream& os) {
   os << "<ipkcache entries=\"" << IPK_CACHE_SIZE << "\">\n"
      << xmlNode("instances", NUM_CORES) << "\n"
      << xmlNode("active", dataActive_) << "\n"
-     << xmlNode("read", numReads_) << "\n"
-     << xmlNode("write", numWrites_) << "\n"
+     << xmlNode("read", numReads()) << "\n"
+     << xmlNode("write", numWrites()) << "\n"
      << xmlEnd("ipkcache") << "\n";
 
   os << "<ipkcachetags entries=\"" << IPK_CACHE_TAGS << "\">\n"

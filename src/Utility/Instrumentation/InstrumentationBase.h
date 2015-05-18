@@ -15,6 +15,7 @@
 #include <iostream>
 #include "../../Typedefs.h"
 #include "../../Network/NetworkTypedefs.h"
+#include "../../Utility/Arguments.h"
 
 using std::string;
 using std::cout;

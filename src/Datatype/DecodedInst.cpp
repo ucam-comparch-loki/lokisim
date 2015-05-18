@@ -73,8 +73,23 @@ const bool    DecodedInst::hasImmediate() const {
   return InstructionMap::hasImmediate(opcode_);
 }
 
-const bool    DecodedInst::isALUOperation() const {
-  return InstructionMap::isALUOperation(opcode_);
+const bool    DecodedInst::isExecuteStageOperation() const {
+  switch (opcode_) {
+    case InstructionMap::OP_SCRATCHRD:
+    case InstructionMap::OP_SCRATCHRDI:
+    case InstructionMap::OP_SCRATCHWR:
+    case InstructionMap::OP_SCRATCHWRI:
+    case InstructionMap::OP_CREGRDI:
+    case InstructionMap::OP_CREGWRI:
+    case InstructionMap::OP_GETCHMAP:
+    case InstructionMap::OP_GETCHMAPI:
+    case InstructionMap::OP_SETCHMAP:
+    case InstructionMap::OP_SETCHMAPI:
+    case InstructionMap::OP_SYSCALL:
+      return true;
+    default:
+      return InstructionMap::isALUOperation(opcode_);
+  }
 }
 
 const bool    DecodedInst::isMemoryOperation() const {

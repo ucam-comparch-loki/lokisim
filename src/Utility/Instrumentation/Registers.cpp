@@ -116,7 +116,7 @@ count_t Registers::numReads(RegisterIndex reg)  {return readsPerReg[reg];}
 count_t Registers::numWrites(RegisterIndex reg) {return writesPerReg[reg];}
 
 void Registers::printStats() {
-  if (BATCH_MODE) {
+  if (Arguments::batchMode()) {
 	cout << "<@GLOBAL>regs_reads:" << numReads() << "</@GLOBAL>" << endl;
 	cout << "<@GLOBAL>regs_writes:" << numWrites() << "</@GLOBAL>" << endl;
 	cout << "<@GLOBAL>regs_forwards:" << numForwards() << "</@GLOBAL>" << endl;

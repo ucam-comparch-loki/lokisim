@@ -39,10 +39,26 @@ public:
   static const vector<string>& code();
   static const string& energyTraceFile();
 
+  static bool instructionTrace();
+  static bool instructionAddressTrace();
+  static bool csimTrace();
+  static bool coreTrace();
+  static bool memoryTrace();
+  static bool energyTrace();
+  static bool softwareTrace();
+  static bool lbtTrace();
+  static bool stallTrace();
+  static bool callgrindTrace();
+
+  static bool batchMode();
+
   // The command used to run the simulator.
   static const string invocation();
 
   static const bool summarise();
+
+  // Should any simulator status messages be printed during execution?
+  static const bool silent();
 
   static void printHelp();
 
@@ -72,12 +88,20 @@ private:
                 lbtTraceFile_,
                 stallsTraceFile_,
                 callgrindTraceFile_;
+  static bool csimTrace_;
+  static bool instructionTrace_;
+  static bool instructionAddressTrace_;
+
+  static bool batchMode_;
 
   // The command used to run the simulator.
   static std::stringstream invocation_;
 
   // Tells whether a summary should be printed when execution finishes.
   static bool summarise_;
+
+  // Tells whether we should print any simulator status messages during execution.
+  static bool silent_;
 
 };
 

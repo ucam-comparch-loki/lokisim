@@ -395,7 +395,7 @@ void Stalls::printStats() {
     }
   }
 
-  if (BATCH_MODE)
+  if (Arguments::batchMode())
 	cout << "<@GLOBAL>total_cycles:" << endOfExecution << "</@GLOBAL>" << endl;
 
 }

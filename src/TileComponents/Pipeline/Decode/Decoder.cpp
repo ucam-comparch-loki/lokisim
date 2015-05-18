@@ -233,7 +233,7 @@ void Decoder::decode() {
 
 void Decoder::instructionFinished() {
   // If the instruction will not reach the ALU, record that it executed here.
-  if (/*ENERGY_TRACE &&*/ !current.isALUOperation())
+  if (/*ENERGY_TRACE &&*/ !current.isExecuteStageOperation())
     Instrumentation::executed(id, current, execute);
 
   // Do ibjmps here, once we know whether or not this instruction will execute.
@@ -299,15 +299,13 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   // the previous instruction to set the predicate bit if this instruction
   // is completed in the decode stage, or if the instruction may perform an
   // irreversible channel read.
-  // TODO: avoid any stalls or other changes if execute is false.
   bool execute = shouldExecute(input);
 
-  if (ENERGY_TRACE)
-    Instrumentation::decoded(id, input);
+  Instrumentation::decoded(id, input);
 
   CoreTrace::decodeInstruction(id.position, input.location(), input.endOfIPK());
 
-  if (LBT_TRACE) {
+  if (Arguments::lbtTrace()) {
 	LBTTrace::LBTOperationType opType;
 
     switch (input.opcode()) {
@@ -385,15 +383,13 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 	output.isid(isid);
   }
 
-  if (/*ENERGY_TRACE &&*/ !input.isALUOperation()) {
+  if (/*ENERGY_TRACE &&*/ !input.isExecuteStageOperation()) {
     Instrumentation::executed(id, input, execute);
     parent()->instructionExecuted();
   }
 
-  // If the instruction may perform irreversible reads from a channel-end,
-  // and we know it won't execute, stop it here.
-  if (!execute && (Registers::isChannelEnd(input.sourceReg1()) ||
-                   Registers::isChannelEnd(input.sourceReg2()))) {
+  // If we know the instruction won't execute, stop it here.
+  if (!execute) {
     // Disallow forwarding from instructions which didn't execute.
     previous = input;
     previous.destination(-1);
@@ -410,7 +406,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       cout << this->name() << " aborting " << input << endl;
     instructionCancelled = false;
 
-    if (LBT_TRACE)
+    if (Arguments::lbtTrace())
    	  LBTTrace::setInstructionExecuteFlag(input.isid(), false);
 
     return false;
@@ -591,7 +587,7 @@ void Decoder::waitForOperands(const DecodedInst& dec) {
   if (InstructionMap::hasSrcReg1(dec.opcode())) {
     if (Registers::isChannelEnd(dec.sourceReg1()))
       waitUntilArrival(Registers::toChannelID(dec.sourceReg1()), dec);
-    if (!dec.isALUOperation() && !dec.isMemoryOperation() && (dec.sourceReg1() == previous.destination())) {
+    if (!dec.isExecuteStageOperation() && !dec.isMemoryOperation() && (dec.sourceReg1() == previous.destination())) {
       stall(true, Instrumentation::Stalls::STALL_FORWARDING, dec);
       // HACK! May take multiple cycles. FIXME
       // Add an extra 0.1 cycles to ensure that the result is ready for forwarding.
@@ -802,8 +798,8 @@ bool Decoder::shouldExecute(const DecodedInst& inst) {
     return true;
 
   // Predicated instructions which complete in this pipeline stage and
-  // which access channel data.
-  if ((!inst.isALUOperation() && !inst.isMemoryOperation()) ||
+  // which may access channel data.
+  if ((!inst.isExecuteStageOperation() && !inst.isMemoryOperation()) ||
       isFetch(inst.opcode()) ||
       Registers::isChannelEnd(inst.sourceReg1()) ||
       Registers::isChannelEnd(inst.sourceReg2())) {
@@ -825,7 +821,7 @@ bool Decoder::shouldExecute(const DecodedInst& inst) {
 bool Decoder::needPredicateNow(const DecodedInst& inst) const {
   bool predicated = inst.predicate() == Instruction::P ||
                     inst.predicate() == Instruction::NOT_P;
-  bool irreversible = (!inst.isALUOperation() && !inst.isMemoryOperation()) ||
+  bool irreversible = (!inst.isExecuteStageOperation() && !inst.isMemoryOperation()) ||
                       isFetch(inst.opcode()) ||
                       Registers::isChannelEnd(inst.sourceReg1()) ||
                       Registers::isChannelEnd(inst.sourceReg2());

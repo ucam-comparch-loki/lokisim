@@ -9,6 +9,7 @@
 #include "ExecuteStage.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
+#include "../../../Utility/Arguments.h"
 #include "../../../Utility/Instrumentation.h"
 #include "../../../Utility/Trace/SoftwareTrace.h"
 #include "../../../Utility/Trace/LBTTrace.h"
@@ -16,7 +17,7 @@
 
 void ALU::execute(DecodedInst& dec) {
 
-  assert(dec.isALUOperation());
+  assert(dec.isExecuteStageOperation());
 
   // Wait until the final cycle to compute the result.
   if (cyclesRemaining > 0)
@@ -145,7 +146,7 @@ void ALU::systemCall(DecodedInst& dec) const {
 
   unsigned long regValues[64];
 
-  if (SOFTWARE_TRACE || LBT_TRACE) {
+  if (Arguments::softwareTrace() || Arguments::lbtTrace()) {
     memset(regValues, 0x00, sizeof(regValues));
 
     unsigned long count = NUM_PHYSICAL_REGISTERS <= 64 ? NUM_PHYSICAL_REGISTERS : 64;
@@ -154,7 +155,7 @@ void ALU::systemCall(DecodedInst& dec) const {
       if (i < 2 || i >= 2 + NUM_RECEIVE_CHANNELS)
         regValues[i] = readReg(i);
 
-    if (LBT_TRACE)
+    if (Arguments::lbtTrace())
       LBTTrace::setInstructionSystemCallInfo(dec.isid(), code, regValues, 64);
   }
 
@@ -206,7 +207,7 @@ void ALU::systemCall(DecodedInst& dec) const {
       uint i;
       writeReg(11, read(fd, buf, len));
       int start = readReg(14);
-      if (LBT_TRACE)
+      if (Arguments::lbtTrace())
         LBTTrace::setInstructionSystemCallData(dec.isid(), buf, len, true, start);
       for (i=0; i < len; i++) {
         writeByte(start+i, buf[i]);
@@ -226,7 +227,7 @@ void ALU::systemCall(DecodedInst& dec) const {
       for (i=0; i < len; i++) {
         str[i] = readByte(start + i);
       }
-      if (LBT_TRACE)
+      if (Arguments::lbtTrace())
         LBTTrace::setInstructionSystemCallData(dec.isid(), str, len, false, start);
       writeReg(11, write(fd, str, len));
       free(str);
@@ -278,7 +279,7 @@ void ALU::systemCall(DecodedInst& dec) const {
       CORE_TRACE = 0;
       break;
     case 0x26: { /* software triggered register file snapshot */
-      if (SOFTWARE_TRACE)
+      if (Arguments::softwareTrace())
         SoftwareTrace::logRegisterFileSnapshot(parent()->id.globalCoreNumber(), regValues, 64);
       break;
     }
@@ -306,12 +307,20 @@ uint ALU::convertTargetFlags(uint tflags) const {
   CHECK_FLAG(0x0001, O_WRONLY);
   CHECK_FLAG(0x0002, O_RDWR);
   CHECK_FLAG(0x0008, O_APPEND);
+  // 0x0010 = internal "mark" flag
+  // 0x0020 = internal "defer" flag
+  CHECK_FLAG(0x0040, O_ASYNC);
+  // 0x0080 = BSD "shared lock"
+  // 0x0100 = BSD "exclusive lock"
   CHECK_FLAG(0x0200, O_CREAT);
   CHECK_FLAG(0x0400, O_TRUNC);
   CHECK_FLAG(0x0800, O_EXCL);
+  // 0x1000 = sys5 "non-blocking I/O" - there's a more general version below
   CHECK_FLAG(0x2000, O_SYNC);
+  CHECK_FLAG(0x4000, O_NONBLOCK);
+  CHECK_FLAG(0x8000, O_NOCTTY);
 
-  if(tflags != 0x0)
+  if (tflags != 0x0)
     fprintf (stderr,
        "Simulator Error: problem converting target open flags for host.  0x%x\n",
        tflags);

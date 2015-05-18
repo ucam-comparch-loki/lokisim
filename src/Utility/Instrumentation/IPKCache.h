@@ -14,9 +14,13 @@
 
 namespace Instrumentation {
 
+using std::vector;
+
 class IPKCache: public InstrumentationBase {
 
 public:
+
+  static void init();
 
   static void tagCheck(const ComponentID& core, bool hit, const MemoryAddr tag, const MemoryAddr prevCheck);
   static void tagWrite(const MemoryAddr oldTag, const MemoryAddr newTag);
@@ -38,7 +42,18 @@ public:
 
 private:
 
-  static count_t numHits_, numMisses_, numReads_, numWrites_, tagWriteHD_, tagWrites_, tagReadHD_;
+  struct CoreStats {
+    count_t hits;
+    count_t misses;
+    count_t reads;
+    count_t writes;
+  };
+  static vector<struct CoreStats> perCore;
+  static struct CoreStats total;
+
+  // Data for energy modelling - currently only interested in aggregate across
+  // all cores.
+  static count_t tagWriteHD_, tagWrites_, tagReadHD_;
   static count_t tagsActive_, dataActive_;
 
 };
