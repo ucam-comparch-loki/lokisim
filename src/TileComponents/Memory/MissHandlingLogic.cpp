@@ -24,21 +24,18 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
   TileIndex tile = id.tile.flatten();//*/TileID(2,1).flatten();
   directory.initialise(tile);
 
-  localState = MHL_READY;
-  remoteState = MHL_READY;
   requestDestination = ChannelID();
-  responseDestination = ChannelID();
-  requestFlitsRemaining = 0;
-  responseFlitsRemaining = 0;
+  newLocalRequest = true;
+  newRemoteRequest = true;
 
   iRequestFromBanks.init(requestMux.iData);
-  iDataFromBanks.init(responseMux.iData);
+  iResponseFromBanks.init(responseMux.iData);
 
   requestMux.iData(iRequestFromBanks);
   requestMux.oData(muxedRequest);
   requestMux.iHold(holdRequestMux);
 
-  responseMux.iData(iDataFromBanks);
+  responseMux.iData(iResponseFromBanks);
   responseMux.oData(muxedResponse);
   responseMux.iHold(holdResponseMux);
 
@@ -52,143 +49,87 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
   holdResponseMux.write(false);
 
   SC_METHOD(localRequestLoop);
-  SC_METHOD(remoteRequestLoop);
+  sensitive << muxedRequest;
+  dont_initialize();
 
   SC_METHOD(receiveResponseLoop);
   sensitive << iResponseFromNetwork << iResponseFromBM;
   dont_initialize();
+
+  SC_METHOD(remoteRequestLoop);
+  sensitive << iRequestFromNetwork;
+  dont_initialize();
+
+  SC_METHOD(sendResponseLoop);
+  sensitive << muxedResponse;
+  dont_initialize();
 }
 
 void MissHandlingLogic::localRequestLoop() {
-  switch (localState) {
-    case MHL_READY:
-      if (!muxedRequest.valid())
-        next_trigger(muxedRequest.default_event() & clock.posedge_event());
-      else
-        handleNewLocalRequest();
-      break;
-    case MHL_FETCH:
-      handleLocalFetch();
-      break;
-    case MHL_STORE:
-      handleLocalStore();
-      break;
-  }
-}
-
-void MissHandlingLogic::handleNewLocalRequest() {
-  holdRequestMux.write(true);
-
-  MemoryRequest request = muxedRequest.read();
-
-  switch (request.getOperation()) {
-
-    case MemoryRequest::FETCH_LINE: {
-      localState = MHL_FETCH;
-      requestFlitsRemaining = request.getLineSize();
-      MemoryAddr address = request.getPayload();
-      requestDestination = getDestination(address);
-
-      if (DEBUG)
-        cout << this->name() << " requesting " << request.getLineSize() << " words from 0x" << std::hex << address << std::dec << " on tile " << requestDestination.component.tile << endl;
-      break;
-    }
-
-    case MemoryRequest::STORE_LINE: {
-      localState = MHL_STORE;
-
-      // Send the address plus the cache line.
-      requestFlitsRemaining = 1 + request.getLineSize();
-      MemoryAddr address = request.getPayload();
-      requestDestination = getDestination(address);
-
-      if (DEBUG)
-        cout << this->name() << " flushing " << request.getLineSize() << " words to 0x" << std::hex << address << std::dec << " on tile " << requestDestination.component.tile << endl;
-      break;
-    }
-
-    case MemoryRequest::UPDATE_DIRECTORY_ENTRY:
-      handleDirectoryUpdate();
-      break;
-
-    case MemoryRequest::UPDATE_DIRECTORY_MASK:
-      handleDirectoryMaskUpdate();
-      break;
-
-    default:
-      throw InvalidOptionException("miss handling logic local request operation", request.getOperation());
-      break;
-
-  } // end switch
-
-  next_trigger(sc_core::SC_ZERO_TIME);
-}
-
-void MissHandlingLogic::handleLocalFetch() {
-  if (!canSendOnNetwork()) {
-    next_trigger(canSendEvent() & clock.posedge_event());
-  }
+  // Stall until it is possible to send on the network.
+  if (!canSendOnNetwork())
+    next_trigger(canSendEvent());
   else {
-    sendOnNetwork(muxedRequest.read(), true);
-    muxedRequest.ack();
-    next_trigger(newNetworkDataEvent() & clock.posedge_event());
 
-    // Move on to next request while we wait for data to come back.
-    endLocalRequest();
-  }
-}
+    assert(muxedRequest.valid());
+    NetworkRequest flit = muxedRequest.read();
+    bool endOfPacket = flit.getMetadata().endOfPacket;
 
-void MissHandlingLogic::handleLocalStore() {
-  if (canSendOnNetwork()) {
-    requestFlitsRemaining--;
+    switch (flit.getMemoryMetadata().opcode) {
+      case MemoryRequest::UPDATE_DIRECTORY_ENTRY:
+        handleDirectoryUpdate();
+        break;
 
-    if (requestFlitsRemaining == 0) {
-      sendOnNetwork(muxedRequest.read(), true);
-      endLocalRequest();
-    }
-    else {
-      sendOnNetwork(muxedRequest.read(), false);
-      next_trigger(muxedRequest.default_event() & clock.posedge_event());
+      case MemoryRequest::UPDATE_DIRECTORY_MASK:
+        handleDirectoryMaskUpdate();
+        break;
+
+      default: {
+        // Use the memory address in the first flit of each packet to determine
+        // which network address the packet should be forwarded to.
+        if (newLocalRequest) {
+          MemoryAddr address = flit.payload().toUInt();
+          requestDestination = getDestination(address);
+        }
+
+        flit.setChannelID(requestDestination);
+        sendOnNetwork(flit);
+
+        break;
+      }
     }
 
     muxedRequest.ack();
-  }
-  else {
-    next_trigger(canSendEvent() & clock.posedge_event());
+    newLocalRequest = endOfPacket;
+
+    // The mux may have other data ready to provide, so also wait until a
+    // clock edge.
+    next_trigger(muxedRequest.default_event() & clock.posedge_event());
+
   }
 }
 
 void MissHandlingLogic::handleDirectoryUpdate() {
-  MemoryRequest request = muxedRequest.read();
+  MemoryRequest request = static_cast<MemoryRequest>(muxedRequest.read().payload());
   muxedRequest.ack();
 
   unsigned int entry = request.getDirectoryEntry();
   TileIndex tile = request.getTile();
 
   directory.setEntry(entry, tile);
-
-  endLocalRequest();
 }
 
 void MissHandlingLogic::handleDirectoryMaskUpdate() {
-  MemoryRequest request = muxedRequest.read();
+  MemoryRequest request = static_cast<MemoryRequest>(muxedRequest.read().payload());
   muxedRequest.ack();
 
   unsigned int maskLSB = request.getPayload();
 
   directory.setBitmaskLSB(maskLSB);
-
-  endLocalRequest();
-}
-
-void MissHandlingLogic::endLocalRequest() {
-  localState = MHL_READY;
-  holdRequestMux.write(false);
-  next_trigger(clock.posedge_event());
 }
 
 void MissHandlingLogic::receiveResponseLoop() {
-  assert(!oDataToBanks.valid());
+  assert(!oResponseToBanks.valid());
 
   NetworkResponse response;
   if (iResponseFromBM.valid()) {
@@ -204,131 +145,49 @@ void MissHandlingLogic::receiveResponseLoop() {
   if (DEBUG)
     cout << this->name() << " received " << response << endl;
 
-  oDataToBanks.write(response.payload());
+  oResponseToBanks.write(response);
   oResponseTarget.write(response.channelID().component.position);
 }
 
 
 void MissHandlingLogic::remoteRequestLoop() {
-  switch (remoteState) {
-    case MHL_READY:
-      if (iRequestFromNetwork.valid())
-        handleNewRemoteRequest();
-      else
-        next_trigger(iRequestFromNetwork.default_event());
-      break;
-    case MHL_FETCH:
-      handleRemoteFetch();
-      break;
-    case MHL_STORE:
-      handleRemoteStore();
-      break;
-  }
-}
-
-void MissHandlingLogic::handleNewRemoteRequest() {
-  NetworkRequest flit = iRequestFromNetwork.read();
-  MemoryRequest request = flit.payload();
-
-  // Update the target bank - the one to service the request in the event that
-  // no bank currently holds the required data.
-  // TODO: use a more realistic random number generator.
-  MemoryIndex targetBank = rand() % MEMS_PER_TILE;
-  oRequestTarget.write(targetBank);
-
-  switch (request.getOperation()) {
-
-    case MemoryRequest::FETCH_LINE: {
-      remoteState = MHL_FETCH;
-
-      responseFlitsRemaining = request.getLineSize();
-      MemoryAddr address = request.getPayload();
-      TileID sourceTile(request.getSourceTile());
-      MemoryIndex sourceBank = request.getSourceBank();
-      responseDestination = ChannelID(sourceTile.x, sourceTile.y, sourceBank, 0);
-
-      if (DEBUG)
-        cout << this->name() << " requesting " << request.getLineSize() << " words from 0x" << std::hex << address << std::dec << " (proposed bank " << targetBank << ")" << endl;
-      break;
-    }
-
-    case MemoryRequest::STORE_LINE: {
-      remoteState = MHL_STORE;
-
-      // Send the address plus the cache line.
-      responseFlitsRemaining = request.getLineSize() + 1; // +1 for this header flit
-      MemoryAddr address = request.getPayload();
-
-      if (DEBUG)
-        cout << this->name() << " flushing " << request.getLineSize() << " words to 0x" << std::hex << address << std::dec << " (proposed bank " << targetBank << ")" << endl;
-      break;
-    }
-
-    default:
-      throw InvalidOptionException("miss handling logic remote request operation", request.getOperation());
-      break;
-
-  } // end switch
-
-  // Move to the next state ASAP.
-  next_trigger(sc_core::SC_ZERO_TIME);
-}
-
-void MissHandlingLogic::handleRemoteFetch() {
-  // Receiving data from memory banks.
-  if (muxedResponse.valid()) {
-    // No buffering - wait until the output port is available.
-    if (oResponseToNetwork.valid())
-      next_trigger(oResponseToNetwork.ack_event() & clock.posedge_event());
-    // Output port is available - send flit.
-    else {
-      holdResponseMux.write(true);
-
-      NetworkResponse response(muxedResponse.read(), responseDestination);
-      muxedResponse.ack();
-
-      responseFlitsRemaining--;
-      if (responseFlitsRemaining == 0) {
-        response.setEndOfPacket(true);
-        endRemoteRequest();
-      }
-      else {
-        response.setEndOfPacket(false);
-        next_trigger(muxedResponse.default_event() & clock.posedge_event());
-      }
-
-      oResponseToNetwork.write(response);
-    }
-  }
-  // No data from memory banks => need to issue the fetch to them.
+  // Stall until the memory banks are capable of receiving a new flit.
+  if (oRequestToBanks.valid())
+    next_trigger(oRequestToBanks.ack_event());
   else {
-    oRequestToBanks.write(iRequestFromNetwork.read().payload());
+    assert(iRequestFromNetwork.valid());
+
+    NetworkRequest flit = iRequestFromNetwork.read();
+
+    // For each new request, update the target bank. This bank services the
+    // request in the event that no bank currently holds the required data.
+    if (newRemoteRequest) {
+      // TODO: use a more realistic random number generator.
+      MemoryIndex targetBank = rand() % MEMS_PER_TILE;
+      oRequestTarget.write(targetBank);
+    }
+
+    oRequestToBanks.write(flit);
     iRequestFromNetwork.ack();
-    next_trigger(muxedResponse.default_event() & clock.posedge_event());
+
+    newRemoteRequest = flit.getMetadata().endOfPacket;
   }
 }
 
-void MissHandlingLogic::handleRemoteStore() {
-  // The banks may still be waiting to serve the previous request if there was
-  // a cache miss.
-  MemoryRequest request = iRequestFromNetwork.read().payload();
+void MissHandlingLogic::sendResponseLoop() {
+  if (muxedResponse.valid()) {
+    oResponseToNetwork.write(muxedResponse.read());
 
-  oRequestToBanks.write(request);
-  iRequestFromNetwork.ack();
-  responseFlitsRemaining--;
+    // Optional: if there is more data to come in this packet, wait until it
+    // has all been sent before switching to another packet.
+    holdResponseMux.write(!muxedResponse.read().getMetadata().endOfPacket);
 
-  if (responseFlitsRemaining == 0) {
-    assert(iRequestFromNetwork.read().endOfPacket());
-    endRemoteRequest();
+    muxedResponse.ack();
+
+    // Wait for the clock edge rather than the next data arrival because the
+    // mux may have other data lined up and ready to go immediately.
+    next_trigger(clock.posedge_event());
   }
-  else
-    next_trigger(iRequestFromNetwork.default_event() & oRequestToBanks.ack_event());
-}
-
-void MissHandlingLogic::endRemoteRequest() {
-  remoteState = MHL_READY;
-  holdResponseMux.write(false);
-  next_trigger(clock.posedge_event());
 }
 
 
@@ -336,17 +195,13 @@ void MissHandlingLogic::endRemoteRequest() {
 // is accessed.
 
 
-void MissHandlingLogic::sendOnNetwork(MemoryRequest request, bool endOfPacket) {
+void MissHandlingLogic::sendOnNetwork(NetworkRequest request) {
   assert(canSendOnNetwork());
 
-  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
-    NetworkRequest flit(request, requestDestination);
-    flit.setEndOfPacket(endOfPacket);
-    oRequestToNetwork.write(flit);
-  }
-  else {
+  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
+    oRequestToNetwork.write(request);
+  else
     oRequestToBM.write(request);
-  }
 }
 
 bool MissHandlingLogic::canSendOnNetwork() const {

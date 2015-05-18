@@ -112,15 +112,6 @@ public:
 	// Ports
 	//---------------------------------------------------------------------------------------------
 
-private:
-
-	// For communications with the Miss Handling Logic, no additional network
-	// information is required, so we send just words rather than flits.
-  typedef loki_in<MemoryRequest> InRequestPort;
-  typedef loki_out<MemoryRequest> OutRequestPort;
-	typedef loki_in<Word> InResponsePort;
-  typedef loki_out<Word> OutResponsePort;
-
 public:
 
 	ClockInput					  iClock;						// Clock
@@ -133,14 +124,14 @@ public:
   DataOutput            oData;            // Output data sent to the processing elements
 
   // Requests - to/from memory banks on other tiles.
-  InRequestPort         iRequest;         // Input requests sent to the memory bank
+  RequestInput          iRequest;         // Input requests sent to the memory bank
   sc_in<MemoryIndex>    iRequestTarget;   // The responsible bank if all banks miss
-  OutRequestPort        oRequest;         // Output requests sent to the remote memory banks
+  RequestOutput         oRequest;         // Output requests sent to the remote memory banks
 
   // Responses - to/from memory banks on other tiles.
-  InResponsePort        iResponse;
+  ResponseInput         iResponse;
   sc_in<MemoryIndex>    iResponseTarget;
-  OutResponsePort       oResponse;        // Output responses sent to the remote memory banks
+  ResponseOutput        oResponse;        // Output responses sent to the remote memory banks
 
 	//-- Ports connected to memory bank ring network ----------------------------------------------
 
@@ -205,13 +196,13 @@ private:
 
 	//-- Data queue state -------------------------------------------------------------------------
 
-  NetworkBuffer<NetworkData>     mInputQueue;       // Input queue
+  NetworkBuffer<NetworkRequest>  mInputQueue;       // Input queue
   NetworkBuffer<OutputWord>      mOutputQueue;      // Output queue
 
 	bool                  mOutputWordPending;					// Indicates that an output word is waiting for acknowledgement
 	NetworkData           mActiveOutputWord;					// Currently active output word
 
-  NetworkBuffer<MemoryRequest>   mOutputReqQueue;   // Output request queue
+  NetworkBuffer<NetworkRequest>  mOutputReqQueue;   // Output request queue
 
 	//-- Mode independent state -------------------------------------------------------------------
 
@@ -222,7 +213,7 @@ private:
 	FSMState              mFSMState;			  // Current FSM state
 	FSMState              mFSMCallbackState;// Next FSM state to enter after sub operation is complete
 
-	MemoryRequest         mActiveRequest;		// Currently active memory request
+	NetworkRequest        mActiveRequest;		// Currently active memory request
 	RequestData           mActiveData;      // Data used to fulfil the request
 
 	uint32_t              mRMWData;         // Temporary data for read-modify-write operations.
@@ -281,10 +272,12 @@ private:
 	// depending on the current configuration.
 	AbstractMemoryHandler& currentMemoryHandler();
 
+  ComponentID requestingComponent() const; // The ID of the core making the current request.
+  bool isL1Request() const; // Whether we are currently acting as an L1 cache.
+
 	bool processRingEvent();
 	bool processMessageHeader();
 
-	void processFetchBurstLength();
 	void processLocalMemoryAccess();
 	void processLocalIPKRead();
 	void prepareIPKReadOutput(AbstractMemoryHandler& handler, uint32_t data);
@@ -303,7 +296,7 @@ private:
   void handleNewRequest();
   void handleRequestWaitForBanks();
   void handleRequestWaitForData();
-  void beginServingRequest(MemoryRequest request);
+  void beginServingRequest(NetworkRequest request);
   void handleRequestFetch();
   void handleRequestStore();
   void endRequest();
@@ -336,8 +329,6 @@ public:
 
 	void setAdjacentMemories(MemoryBank *prevMemoryBank, MemoryBank *nextMemoryBank, SimplifiedOnChipScratchpad *backgroundMemory);
 	void setLocalNetwork(local_net_t* network);
-
-	ComponentID requestingCore() const; // The ID of the core making the current request.
 
 	MemoryBank& bankContainingAddress(MemoryAddr addr);
 	void storeData(vector<Word>& data, MemoryAddr location);

@@ -111,11 +111,10 @@ private:
 	LokiVector2D<CreditSignal>   oCredit,             iCredit;
   LokiVector2D<RequestSignal>  requestToMHL,        requestFromMHL;
   LokiVector2D<ResponseSignal> responseFromMHL,     responseToMHL;
-  LokiVector<ResponseSignal>   responseFromBM;
-  LokiVector<loki_signal<Word> > responseToBanks;
-  LokiVector2D<loki_signal<Word> > responseFromBanks;
-  LokiVector<loki_signal<MemoryRequest> > requestToBM, requestToBanks;
-  LokiVector2D<loki_signal<MemoryRequest> > requestFromBanks;
+  LokiVector<ResponseSignal>   responseFromBM,      responseToBanks;
+  LokiVector2D<ResponseSignal> responseFromBanks;
+  LokiVector<RequestSignal>    requestToBM,         requestToBanks;
+  LokiVector2D<RequestSignal>  requestFromBanks;
   LokiVector<sc_signal<MemoryIndex> > requestTarget, responseTarget;
 
   // Index ready signals using oReadyData[tile][component][buffer].

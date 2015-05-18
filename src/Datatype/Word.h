@@ -19,21 +19,21 @@
 
 class Word {
 protected:
-	uint64_t data_;
+	uint32_t data_;
 
 	/* Return the integer value of the bits between the start and end positions,
 	* inclusive. */
-	inline uint64_t getBits(int start, int end) const {
-		uint64_t result = (end>=63) ? data_ : data_ % (1L << (end+1));
+	inline uint32_t getBits(int start, int end) const {
+		uint32_t result = (end>=31) ? data_ : data_ % (1L << (end+1));
 		result = result >> start;
 		return result;
 	}
 
 	/* Replace the specified bit range by the specified value */
-	inline void setBits(int start, int end, uint64_t value) {
+	inline void setBits(int start, int end, uint32_t value) {
 	  // Is this any better?
-	  // uint64_t newval = value << start;
-	  // uint64_t mask   = ((1L << (end - start + 1)) - 1) << start;
+	  // uint32_t newval = value << start;
+	  // uint32_t mask   = ((1L << (end - start + 1)) - 1) << start;
 	  // data_           = (data_ & ~mask) | (newval & mask);
 
 		// Ensure that value only sets bits in the specified range
@@ -55,8 +55,6 @@ protected:
 public:
 	inline int32_t toInt() const		{return (int32_t)data_;}
 	inline uint32_t toUInt() const		{return (uint32_t)data_;}
-	inline int64_t toLong() const		{return (int64_t)data_;}
-	inline uint64_t toULong() const		{return (uint64_t)data_;}
 
 	inline Word getByte(int byte) const {
 		assert(byte < BYTES_PER_WORD && byte >= 0);
@@ -119,7 +117,7 @@ public:
 			os << v.toLong();
 		*/
 
-		os << v.toLong();
+		os << v.toInt();
 		return os;
 	}
 
@@ -131,7 +129,7 @@ public:
 		data_ = other.data_;
 	}
 
-	Word(uint64_t data_) : data_(data_) {
+	Word(uint32_t data_) : data_(data_) {
 		// Do nothing
 	}
 };

@@ -25,11 +25,6 @@ class MissHandlingLogic: public Component {
 // Ports
 //==============================//
 
-  typedef loki_in<MemoryRequest> InRequestPort;
-  typedef loki_out<MemoryRequest> OutRequestPort;
-  typedef loki_in<Word> InDataPort;
-  typedef loki_out<Word> OutDataPort;
-
 public:
 
   ClockInput                  clock;
@@ -38,7 +33,7 @@ public:
   // Ports to handle requests from memory banks on this tile.
 
   // One request per bank.
-  LokiVector<InRequestPort>   iRequestFromBanks;
+  LokiVector<RequestInput>    iRequestFromBanks;
 
   // Forward the chosen request on to the next level of memory hierarchy.
   RequestOutput               oRequestToNetwork;
@@ -50,7 +45,7 @@ public:
   ReadyOutput                 oReadyForResponse;
 
   // Responses are broadcast to all banks.
-  OutDataPort                 oDataToBanks;
+  ResponseOutput              oResponseToBanks;
 
   // The memory bank for which this response is meant.
   sc_out<MemoryIndex>         oResponseTarget;
@@ -59,7 +54,7 @@ public:
   // Ports to handle requests from memory banks on other tiles.
 
   // Receive responses from memory banks.
-  LokiVector<InDataPort>      iDataFromBanks;
+  LokiVector<ResponseInput>   iResponseFromBanks;
 
   // Send responses back to the requesting tile.
   ResponseOutput              oResponseToNetwork;
@@ -71,7 +66,7 @@ public:
   ReadyOutput                 oReadyForRequest;
 
   // Broadcast requests to all banks on the tile.
-  OutRequestPort              oRequestToBanks;
+  RequestOutput               oRequestToBanks;
 
   // If no bank is able to respond to the request, the target bank is the one
   // which should assume responsibility.
@@ -81,7 +76,7 @@ public:
   // Magic connections to background memory.
 
   // Requests to background memory.
-  OutRequestPort              oRequestToBM;
+  RequestOutput               oRequestToBM;
 
   // Data from background memory.
   ResponseInput               iResponseFromBM;
@@ -103,29 +98,23 @@ private:
 
   // Process requests from the local memory banks.
   void localRequestLoop();
-
-  void handleNewLocalRequest();
-  void handleLocalFetch();
-  void handleLocalStore();
   void handleDirectoryUpdate();
   void handleDirectoryMaskUpdate();
-  void endLocalRequest();
 
+  // Receive responses from remote memory banks.
   void receiveResponseLoop();
 
   // Process requests from remote memory banks.
   void remoteRequestLoop();
 
-  void handleNewRemoteRequest();
-  void handleRemoteFetch();
-  void handleRemoteStore();
-  void endRemoteRequest();
+  // Send responses to remote memory banks.
+  void sendResponseLoop();
 
   // The following several methods allow the implementation of the next level
   // of memory hierarchy to be hidden. It could be a magic background memory,
   // or in a constant position on the chip, or spread over a number of L2 tiles.
 
-  void sendOnNetwork(MemoryRequest request, bool endOfPacket);
+  void sendOnNetwork(NetworkRequest request);
   bool canSendOnNetwork() const;
   const sc_event& canSendEvent() const;
 
@@ -145,36 +134,26 @@ private:
 
 private:
 
-  enum MHLState {
-    MHL_READY,      // Nothing to do
-    MHL_FETCH,      // Fetching cache line
-    MHL_STORE,      // Flushing cache line
-  };
-
-  // Have a loop each for requests from local memory banks for data elsewhere,
-  // and from remote memory banks for data stored on this tile.
-  MHLState localState, remoteState;
-
   // Mapping between memory addresses and home tiles.
   Directory directory;
 
   // Multiplexer which selects an input from one of the connected banks.
-  ArbitratedMultiplexer<MemoryRequest> requestMux;
-  ArbitratedMultiplexer<Word>          responseMux;
+  ArbitratedMultiplexer<NetworkRequest>  requestMux;
+  ArbitratedMultiplexer<NetworkResponse> responseMux;
 
   // Selected request from connected memory banks.
-  loki_signal<MemoryRequest> muxedRequest;
-  loki_signal<Word>          muxedResponse;
+  loki_signal<NetworkRequest>  muxedRequest;
+  loki_signal<NetworkResponse> muxedResponse;
 
   // Keep the same multiplexer input if multiple flits are being sent.
   sc_signal<bool> holdRequestMux, holdResponseMux;
 
-  // The network address to which the current packet should be sent.
-  ChannelID requestDestination, responseDestination;
+  // Flag telling whether the next flit to arrive will be the start of a new
+  // packet.
+  bool newLocalRequest, newRemoteRequest;
 
-  // Keep track of how many flits we expect to receive before we can move on
-  // to the next task. This will typically be the length of a cache line.
-  uint requestFlitsRemaining, responseFlitsRemaining;
+  // The network address to which the current packet should be sent.
+  ChannelID requestDestination;
 
 
 };

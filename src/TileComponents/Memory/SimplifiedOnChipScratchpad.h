@@ -46,15 +46,11 @@ private:
 	// Ports
 	//---------------------------------------------------------------------------------------------
 
-private:
-
-	typedef loki_in<MemoryRequest> InRequestPort;
-
 public:
 
 	ClockInput					       iClock;   // Clock
 
-	LokiVector<InRequestPort>  iData;    // Memory request words input from cache controllers
+	LokiVector<RequestInput>   iData;    // Memory request words input from cache controllers
 
 	LokiVector<ResponseOutput> oData;    // Data words output to cache controllers
 
@@ -81,7 +77,7 @@ private:
 	struct InputWord {
 	public:
 		uint64_t EarliestExecutionCycle;
-		MemoryRequest Request;
+		NetworkRequest Request;
 	};
 
 	//---------------------------------------------------------------------------------------------

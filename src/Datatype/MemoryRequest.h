@@ -19,20 +19,9 @@
 
 class MemoryRequest : public Word {
 private:
-	// | Unused : 12    | Memory operation : 8 | Opcode : 8 | Way bits : 4 | Line bits : 4 | Mode : 8 | Group bits : 8 |
-	// | Src tile:6 | Src bank:4 | Line size:2 | Memory operation : 8 | Address : 32                                                          |
-	// | Unused : 12    | Memory operation : 8 | Burst length : 32                                                     |
-	// | Unused : 12    | Memory operation : 8 | Channel ID : 32                                                       |
-  // | Unused : 12    | Memory operation : 8 | Directory entry : 16 | Tile : 16                                      |
-
-  static const uint OFFSET_SOURCE_TILE      = 46;
-  static const uint  WIDTH_SOURCE_TILE      = 6;
-  static const uint OFFSET_SOURCE_BANK      = 42;
-  static const uint  WIDTH_SOURCE_BANK      = 4;
-	static const uint OFFSET_LINE_SIZE        = 40;
-	static const uint  WIDTH_LINE_SIZE        = 2;
-	static const uint OFFSET_OPERATION        = 32;
-	static const uint  WIDTH_OPERATION        = 8;
+	// | Opcode : 8 | Way bits : 4 | Line bits : 4 | Mode : 8 | Group bits : 8 |
+	// | Address : 32                                                          |
+  // | Unused : 22                       | TileX : 3 | TileY : 3 | Entry : 4 |
 
 	static const uint OFFSET_OPCODE           = 24;
 	static const uint  WIDTH_OPCODE           = 8;
@@ -45,10 +34,10 @@ private:
 	static const uint OFFSET_GROUP_BITS       = 0;
 	static const uint  WIDTH_GROUP_BITS       = 8;
 
-	static const uint OFFSET_TILE             = 0;
-	static const uint  WIDTH_TILE             = 16;
-	static const uint OFFSET_DIRECTORY_ENTRY  = 16;
-	static const uint  WIDTH_DIRECTORY_ENTRY  = 16;
+	static const uint OFFSET_TILE             = 4;
+	static const uint  WIDTH_TILE             = 6;
+	static const uint OFFSET_DIRECTORY_ENTRY  = 0;
+	static const uint  WIDTH_DIRECTORY_ENTRY  = 4;
 
 public:
 	enum MemoryOperation {
@@ -82,9 +71,9 @@ public:
 		EXCHANGE,
 
 		// Other
-		CONTROL               = 31, // Configuration - may not be needed
+		CONTROL               = 30, // Configuration - may not be needed
 
-		NONE                  = 255
+		NONE                  = 31
 	};
 
 	enum MemoryOpCode {
@@ -100,23 +89,6 @@ public:
 	inline uint32_t        getPayload()    const {return data_ & 0xFFFFFFFFULL;}
 	inline ChannelID       getChannelID()  const {return ChannelID(data_ & 0xFFFFFFFFULL);}
 
-	// Line size in words.
-	inline uint            getLineSize()   const {
-	  uint encodedLineSize = getBits(OFFSET_LINE_SIZE, OFFSET_LINE_SIZE + WIDTH_LINE_SIZE - 1);
-	  switch (encodedLineSize) {
-	    case LS_4:  return 4;
-	    case LS_8:  return 8;
-	    case LS_16: return 16;
-	    case LS_32: return 32;
-	    default:
-	      throw InvalidOptionException("encoded line size", encodedLineSize);
-	      break;
-	  }
-	}
-
-	inline TileID          getSourceTile() const {return TileID(getBits(OFFSET_SOURCE_TILE, OFFSET_SOURCE_TILE + WIDTH_SOURCE_TILE - 1));}
-	inline MemoryIndex     getSourceBank() const {return getBits(OFFSET_SOURCE_BANK, OFFSET_SOURCE_BANK + WIDTH_SOURCE_BANK - 1);}
-	inline MemoryOperation getOperation()  const {return (MemoryOperation)getBits(OFFSET_OPERATION, OFFSET_OPERATION + WIDTH_OPERATION - 1);}
 	inline MemoryOpCode    getOpCode()     const {return (MemoryOpCode)getBits(OFFSET_OPCODE, OFFSET_OPCODE + WIDTH_OPCODE - 1);}
 	inline uint            getWayBits()    const {return (uint)getBits(OFFSET_WAY_BITS, OFFSET_WAY_BITS + WIDTH_WAY_BITS - 1);}
 	inline uint            getLineBits()   const {return (uint)getBits(OFFSET_LINE_BITS, OFFSET_LINE_BITS + WIDTH_LINE_BITS - 1);}
@@ -126,22 +98,9 @@ public:
 	inline uint            getDirectoryEntry() const {return getBits(OFFSET_DIRECTORY_ENTRY, OFFSET_DIRECTORY_ENTRY + WIDTH_DIRECTORY_ENTRY - 1);}
 	inline TileIndex       getTile()       const {return getBits(OFFSET_TILE, OFFSET_TILE + WIDTH_TILE - 1);}
 
-	// Returns whether the next level of cache should also be accessed.
-	inline bool isThroughAccess() const {
-	  return false;
-	}
-
-	// Once the request has been sent to the next cache level, this becomes a
-	// normal memory operation at this level.
-	inline void clearThroughAccess() {
-	  assert(isThroughAccess());
-
-	  // TODO: is this method unnecessary?
-	}
-
 	// Returns whether a single value is being retrieved.
-	inline bool isSingleLoad() const {
-    switch (getOperation()) {
+	static inline bool isSingleLoad(MemoryOperation op) {
+    switch (op) {
       case LOAD_W:
       case LOAD_HW:
       case LOAD_B:
@@ -153,8 +112,8 @@ public:
 	}
 
 	// Returns whether a single value is being stored.
-	inline bool isSingleStore() const {
-    switch (getOperation()) {
+	static inline bool isSingleStore(MemoryOperation op) {
+    switch (op) {
       case STORE_W:
       case STORE_HW:
       case STORE_B:
@@ -166,8 +125,8 @@ public:
 	}
 
 	// Returns whether this operation both reads and writes a value.
-	inline bool isReadModifyWrite() const {
-	  switch (getOperation()) {
+	static inline bool isReadModifyWrite(MemoryOperation op) {
+	  switch (op) {
       case LOAD_AND_ADD:
       case LOAD_AND_OR:
       case LOAD_AND_AND:
@@ -183,34 +142,10 @@ public:
 		// Nothing
 	}
 
-	// Line size should be in words.
-	MemoryRequest(MemoryOperation operation, uint32_t payload, uint lineSize, TileID sourceTile, MemoryIndex sourceBank) : Word() {
-		// Encode lineSize to reduce bits required.
-	  LineSizeWords encodedLineSize;
-	  switch (lineSize) {
-	    case 4:   encodedLineSize = LS_4; break;
-	    case 8:   encodedLineSize = LS_8; break;
-	    case 16:  encodedLineSize = LS_16; break;
-	    case 32:  encodedLineSize = LS_32; break;
-	    default: throw InvalidOptionException("line size", lineSize);
-	  }
-
-	  data_ = (((int64_t)operation) << OFFSET_OPERATION) | (((int64_t)encodedLineSize) << OFFSET_LINE_SIZE) | (((int64_t)sourceTile.flatten()) << OFFSET_SOURCE_TILE) | (((int64_t)sourceBank) << OFFSET_SOURCE_BANK) | payload;
-	}
-
-	MemoryRequest(MemoryOperation operation, uint32_t payload) : Word() {
-		data_ = (((int64_t)operation) << OFFSET_OPERATION) | payload;
-	}
-
 	MemoryRequest(const Word& other) : Word(other) {
 		// Nothing
 	}
 
-private:
-
-	void setOperation(MemoryOperation op) {
-	  setBits(OFFSET_OPERATION, OFFSET_OPERATION + WIDTH_OPERATION - 1, op);
-	}
 
 };
 

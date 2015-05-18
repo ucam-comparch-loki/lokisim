@@ -75,7 +75,7 @@ void SendChannelEndTable::receiveLoop() {
 
         // If the flit is part of a larger packet, wait for the whole packet to
         // come through.
-        if (!flit.endOfPacket())
+        if (!flit.getMetadata().endOfPacket)
           receiveState = RS_PACKET;
 
         next_trigger(clock.posedge_event());
@@ -99,7 +99,7 @@ void SendChannelEndTable::receiveLoop() {
         write(flit);
 
         // Ready to start a new packet if this one has now finished.
-        if (flit.endOfPacket())
+        if (flit.getMetadata().endOfPacket)
           receiveState = RS_READY;
 
         next_trigger(clock.posedge_event());
@@ -118,7 +118,7 @@ void SendChannelEndTable::sendLoopLocal() {
       // Remove the request for network resources if the previous data sent was
       // the end of a data packet.
       const NetworkData& data = oDataLocal.read();
-      if (data.endOfPacket())
+      if (data.getMetadata().endOfPacket)
         requestArbitration(data.channelID(), false);
 
       if (bufferLocal.empty()) {

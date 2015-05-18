@@ -9,6 +9,7 @@
 #define MEMORYTYPEDEFS_H_
 
 
+#define CACHE_LINE_WORDS 8
 
 enum BankMode {
   MODE_INACTIVE,

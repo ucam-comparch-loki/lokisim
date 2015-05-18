@@ -31,7 +31,7 @@ const int32_t       DecodedInst::immediate2()      const {
 const ChannelIndex  DecodedInst::channelMapEntry() const {return channelMapEntry_;}
 const predicate_t   DecodedInst::predicate()       const {return predicate_;}
 const bool          DecodedInst::setsPredicate()   const {return setsPred_;}
-const uint8_t       DecodedInst::memoryOp()        const {return memoryOp_;}
+const MemoryRequest::MemoryOperation DecodedInst::memoryOp() const {return memoryOp_;}
 
 typedef DecodedInst::OperandSource OperandSource;
 const OperandSource DecodedInst::operand1Source()  const {return op1Source_;}
@@ -107,7 +107,7 @@ void DecodedInst::immediate(const int32_t val)            {immediate_ = val;}
 void DecodedInst::channelMapEntry(const ChannelIndex val) {channelMapEntry_ = val;}
 void DecodedInst::predicate(const predicate_t val)        {predicate_ = val;}
 void DecodedInst::setsPredicate(const bool val)           {setsPred_ = val;}
-void DecodedInst::memoryOp(const uint8_t val)             {memoryOp_ = val;}
+void DecodedInst::memoryOp(const MemoryRequest::MemoryOperation val) {memoryOp_ = val;}
 
 void DecodedInst::operand1Source(const OperandSource src) {op1Source_ = src;}
 void DecodedInst::operand2Source(const OperandSource src) {op2Source_ = src;}
@@ -143,11 +143,18 @@ const bool DecodedInst::storesToRegister() const {
 }
 
 const NetworkData DecodedInst::toNetworkData() const {
-  NetworkData aw(result(), networkDestination());
-  aw.setPortClaim(portClaim_, useCredits_);
-  aw.setEndOfPacket(endOfPacket_);
-  aw.setReturnAddr(returnAddr_);
-  return aw;
+  if (opcode() == InstructionMap::OP_SENDCONFIG)
+    return NetworkData(result(), networkDestination(), uint32_t(immediate()));
+  else if (networkDestination().isCore())
+    // TODO: replace false with "acquired" bit from CMT entry.
+    // Could also get destination, portClaim and endOfPacket from CMT.
+    // This is not urgent - it should work as-is until dynamic channel
+    // allocation is implemented.
+    return NetworkData(result(), networkDestination(), false, portClaim_, endOfNetworkPacket());
+  else
+    // TODO: get destination, returnAddr and endOfPacket direct from CMT.
+    return NetworkData(MemoryRequest(result()), networkDestination(), returnAddr(),
+                       memoryOp(), endOfNetworkPacket());
 }
 
 void DecodedInst::isid(const unsigned long long isid) const {

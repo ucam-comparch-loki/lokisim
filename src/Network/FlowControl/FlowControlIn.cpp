@@ -16,7 +16,7 @@ void FlowControlIn::dataLoop() {
     assert(false);
   }
 
-  if (data.portClaim())
+  if (data.getCoreMetadata().allocate)
     handlePortClaim();
   else
     oData.write(data.payload());
@@ -26,13 +26,17 @@ void FlowControlIn::dataLoop() {
 
 void FlowControlIn::handlePortClaim() {
   assert(iData.valid());
-  assert(iData.read().portClaim());
+
+  NetworkData data = iData.read();
+  assert(data.getCoreMetadata().allocate);
 
   // TODO: only accept the port claim when we have no credits left to send.
 
   // Set the return address so we can send flow control.
-  returnAddress = iData.read().payload().toInt();
-  useCredits = iData.read().useCredits();
+  returnAddress = data.payload().toInt();
+
+  // Only use credits if the sender is on a different tile.
+  useCredits = id.tile != returnAddress.component.tile;
 
   addCredit();
 
@@ -44,9 +48,9 @@ void FlowControlIn::handlePortClaim() {
   // now set up. We want to forward it to the buffer when possible.
   if (!useCredits &&
       (returnAddress.component.position >= CORES_PER_TILE) &&
-      (iData.read().channelID().channel >= 2)) {
+      (data.channelID().channel >= 2)) {
 
-    oData.write(iData.read().payload());
+    oData.write(data.payload());
   }
 
 }
@@ -114,7 +118,7 @@ void FlowControlIn::creditLoop() {
 }
 
 void FlowControlIn::sendCredit() {
-  NetworkData aw(Word(1), returnAddress);
+  NetworkCredit aw(Word(1), returnAddress);
   oCredit.write(aw);
 
   numCredits--;

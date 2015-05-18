@@ -40,12 +40,15 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 	mPortData[port].State = STATE_IDLE;
 
 	if (!mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
-		MemoryRequest request = mInputQueues[port].read().Request;
+		NetworkRequest request = mInputQueues[port].read().Request;
 
-		if (request.getOperation() == MemoryRequest::FETCH_LINE) {
-			mPortData[port].Address = request.getPayload();
-			mPortData[port].WordsLeft = request.getLineSize();
-			mPortData[port].ReturnAddress = ChannelID(request.getSourceTile().x, request.getSourceTile().y, request.getSourceBank(), 0);
+		if (request.getMemoryMetadata().opcode == MemoryRequest::FETCH_LINE) {
+			mPortData[port].Address = request.payload().toUInt();
+			mPortData[port].WordsLeft = CACHE_LINE_WORDS;
+			mPortData[port].ReturnAddress = ChannelID(request.getMemoryMetadata().returnTileX,
+			                                          request.getMemoryMetadata().returnTileY,
+			                                          request.getMemoryMetadata().returnChannel,
+			                                          0);
 
       if (DEBUG)
         cout << this->name() << " preparing to read " << mPortData[port].WordsLeft << " words from 0x" << std::hex << mPortData[port].Address << std::dec << endl;
@@ -64,9 +67,9 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 			// Do not output first word directly - assume one clock cycle access delay
 
 			mPortData[port].State = STATE_READING;
-		} else if (request.getOperation() == MemoryRequest::STORE_LINE) {
-			mPortData[port].Address = request.getPayload();
-			mPortData[port].WordsLeft = request.getLineSize();
+		} else if (request.getMemoryMetadata().opcode == MemoryRequest::STORE_LINE) {
+			mPortData[port].Address = request.payload().toUInt();
+			mPortData[port].WordsLeft = CACHE_LINE_WORDS;
 
       if (DEBUG)
         cout << this->name() << " preparing to write " << mPortData[port].WordsLeft << " words to 0x" << std::hex << mPortData[port].Address << std::dec << endl;
@@ -82,7 +85,7 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 
 			mPortData[port].State = STATE_WRITING;
 		} else {
-		  throw InvalidOptionException("memory operation", request.getOperation());
+		  throw InvalidOptionException("memory operation", request.getMemoryMetadata().opcode);
 		}
 	}
 }
@@ -129,15 +132,15 @@ void SimplifiedOnChipScratchpad::mainLoop() {
           if (DEBUG)
             cout << this->name() << " read from 0x" << std::hex << mPortData[port].Address << std::dec << ": " << result << endl;
 
-				  NetworkResponse response(Word(result), mPortData[port].ReturnAddress);
-
 					mPortData[port].Address += 4;
 					mPortData[port].WordsLeft--;
 
-					response.setEndOfPacket(mPortData[port].WordsLeft == 0);
+					bool endOfPacket = mPortData[port].WordsLeft == 0;
+
+				  NetworkResponse response(result, mPortData[port].ReturnAddress, endOfPacket);
 					oData[port].write(response);
 
-					if (mPortData[port].WordsLeft == 0)
+					if (endOfPacket)
 						tryStartRequest(port);
 
 					bankAccessed[bankSelected] = true;
@@ -147,9 +150,9 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 
 			case STATE_WRITING:
 				if (!bankAccessed[bankSelected] && !mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
-					assert(mInputQueues[port].peek().Request.getOperation() == MemoryRequest::PAYLOAD_ONLY);
+					assert(mInputQueues[port].peek().Request.getMemoryMetadata().opcode == MemoryRequest::PAYLOAD_ONLY);
 
-					uint32_t data = mInputQueues[port].read().Request.getPayload();
+					uint32_t data = mInputQueues[port].read().Request.payload().toUInt();
 
 			    if (DEBUG)
 			      cout << this->name() << " wrote to 0x" << std::hex << mPortData[port].Address << std::dec << ": " << data << endl;

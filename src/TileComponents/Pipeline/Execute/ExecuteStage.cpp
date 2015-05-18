@@ -157,6 +157,10 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         operation.result(operation.operand1() | (operation.operand2() << 16));
         break;
 
+      case InstructionMap::OP_SENDCONFIG:
+        operation.result(operation.operand1());
+        break;
+
       case InstructionMap::OP_SYSCALL:
         // TODO: remove from ALU.
         alu.systemCall(operation);
@@ -319,8 +323,6 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
     // TODO
   }
 
-  Word w = MemoryRequest(op, inst.result());
-
   // Adjust destination channel based on memory configuration if necessary
   uint32_t increment = 0;
 
@@ -336,9 +338,6 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
       increment = channelMapEntry.getAddressIncrement();
     }
   }
-
-  // Set the instruction's result to the data + memory operation
-  inst.result(w.toULong());
 
   ChannelID adjusted = inst.networkDestination();
   adjusted = adjusted.addPosition(increment);

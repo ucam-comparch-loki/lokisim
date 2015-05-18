@@ -1,23 +1,8 @@
 /*
  * Instruction.cpp
  *
- * Current layout: 64 bit value containing:
- *    1 bit saying whether the predicate register should be set
- *    2 predicate bits
- *    7 bit opcode
- *    6 bit destination register location
- *    6 bit source 1 register location
- *    6 bit source 2 register location
- *    4 bit remote channel ID
- *    32 bit immediate
- *
- *  | setpred | pred | opcode | dest | source1 | source2 | channel ID | immed |
- *   63        62     60       53     47        41        35           31    0
- *
- *  Although instructions are currently encoded using 64 bits, they are treated
- *  as though they are only 32 bits long. We eventually intend to have a 32 bit
- *  encoding, but in the meantime, a sparser structure makes modifications and
- *  access easier.
+ * Encoded instruction format. Full details can be found in
+ *  /usr/groups/comparch-loki/isa/formats.isa
  *
  *  Created on: 5 Jan 2010
  *      Author: db434

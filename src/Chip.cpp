@@ -329,13 +329,13 @@ void Chip::wireUp() {
           MemoryIndex memIndex = ComponentID(tile,bank+CORES_PER_TILE).globalMemoryNumber();
 
           memories[memIndex]->oResponse(responseFromBanks[computeTileIndex][bank]);
-          mhl[computeTileIndex]->iDataFromBanks[bank](responseFromBanks[computeTileIndex][bank]);
+          mhl[computeTileIndex]->iResponseFromBanks[bank](responseFromBanks[computeTileIndex][bank]);
 
           memories[memIndex]->iResponse(responseToBanks[computeTileIndex]);
           memories[memIndex]->iResponseTarget(responseTarget[computeTileIndex]);
         }
 
-        mhl[computeTileIndex]->oDataToBanks(responseToBanks[computeTileIndex]);
+        mhl[computeTileIndex]->oResponseToBanks(responseToBanks[computeTileIndex]);
         mhl[computeTileIndex]->oResponseTarget(responseTarget[computeTileIndex]);
 
         mhl[computeTileIndex]->oResponseToNetwork(responseFromMHL[tileIndex][0]);

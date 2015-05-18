@@ -48,7 +48,7 @@ public:
   const ChannelIndex  channelMapEntry() const;
   const predicate_t   predicate() const;
   const bool          setsPredicate() const;
-  const uint8_t       memoryOp() const;
+  const MemoryRequest::MemoryOperation memoryOp() const;
 
   const OperandSource operand1Source() const;
   const OperandSource operand2Source() const;
@@ -86,7 +86,7 @@ public:
   void    channelMapEntry(const ChannelIndex val);
   void    predicate(const predicate_t val);
   void    setsPredicate(const bool val);
-  void    memoryOp(const uint8_t val);
+  void    memoryOp(const MemoryRequest::MemoryOperation val);
 
   void    operand1Source(const OperandSource src);
   void    operand2Source(const OperandSource src);
@@ -107,6 +107,7 @@ public:
 
   const bool sendsOnNetwork() const;
   const bool storesToRegister() const;
+
   const NetworkData toNetworkData() const;
 
   void isid(const unsigned long long isid) const;
@@ -114,7 +115,7 @@ public:
 
   // Invalidate this instruction in such a way that it will never be able to
   // forward its result to another instruction. This may be useful if the
-  // instruction will not be executed, or is more than a cycle old.
+  // instruction will not be executed, or is more than one cycle old.
   void    preventForwarding();
 
   friend void sc_trace(sc_core::sc_trace_file*& tf, const DecodedInst& i, const std::string& txt) {
@@ -184,7 +185,7 @@ private:
   ChannelIndex channelMapEntry_;
   predicate_t predicate_;
   bool    setsPred_;
-  uint8_t memoryOp_;
+  MemoryRequest::MemoryOperation memoryOp_;
 
   OperandSource op1Source_;
   OperandSource op2Source_;

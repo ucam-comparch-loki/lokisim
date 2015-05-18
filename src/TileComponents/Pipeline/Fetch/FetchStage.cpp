@@ -187,15 +187,12 @@ void FetchStage::writeLoop() {
         next_trigger(clock.posedge_event());
       }
       else {
-        // Send fetch request.
-        MemoryRequest request(MemoryRequest::IPK_READ, fetch.address);
-
         // Select the bank to access based on the memory address.
         uint increment = core()->channelMapTable[0].computeAddressIncrement(fetch.address);
         ChannelID destination = fetch.destination.addPosition(increment);
 
-        NetworkData flit(request, destination);
-        flit.setReturnAddr(fetch.returnAddress);
+        NetworkData flit(fetch.address, destination, fetch.returnAddress,
+                         MemoryRequest::IPK_READ, true);
         assert(!oFetchRequest.valid());
         oFetchRequest.write(flit);
 

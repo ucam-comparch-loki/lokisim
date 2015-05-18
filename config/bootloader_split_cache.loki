@@ -32,8 +32,9 @@
  lli                r22, 0x0102
  lui                r22, 0x0005
 
+# Send the configuration, plus a "configure" opcode and an end-of-packet bit.
 # Send same configuration to both groups.
- addu               r0,  r22, r0        -> 0
- addu               r0,  r22, r0        -> 1
+ sendconfig         r22, 61             -> 0
+ sendconfig         r22, 61             -> 1
 
  fetchr.eop         0x0400                    # Fetch first instruction packet of program
