@@ -31,10 +31,6 @@ public:
   // Read the full contents of the channel map table entry.
   EncodedCMTEntry read(MapIndex entry);
 
-  // Event which is triggered when a channel's credit counter reaches its
-  // maximum value.
-  const sc_event& allCreditsEvent(MapIndex entry) const;
-
   // Event triggered when a credit arrives for a particular channel.
   const sc_event& creditArrivedEvent(MapIndex entry) const;
 
@@ -44,7 +40,7 @@ public:
   bool canSend(MapIndex entry) const;
 
   // Return an entire entry of the table. This method should be avoided if
-  // necessary, as it may bypass functionality in other accessor methods.
+  // possible, as it may bypass functionality in other accessor methods.
   ChannelMapEntry& operator[] (const MapIndex entry);
 
   // For instrumentation purposes only, keep track of which of our input

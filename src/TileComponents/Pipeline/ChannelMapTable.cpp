@@ -30,11 +30,6 @@ ChannelMapEntry::NetworkType ChannelMapTable::getNetwork(MapIndex entry) const {
 bool ChannelMapTable::write(MapIndex entry, EncodedCMTEntry data) {
   assert(entry < table.size());
 
-  // Wait for all communication with the previous destination to complete
-  // before changing the destination. (Why?)
-  if (!table[entry].haveAllCredits())
-    return false; // Can't complete the write
-
   ChannelMapEntry previous = table[entry];
   table[entry].write(data);
 
@@ -63,11 +58,6 @@ EncodedCMTEntry ChannelMapTable::read(MapIndex entry) {
   const_cast<ChannelMapTable*>(this)->previousRead = table[entry];
 
   return table[entry].read();
-}
-
-const sc_event& ChannelMapTable::allCreditsEvent(MapIndex entry) const {
-  assert(entry < table.size());
-  return table[entry].allCreditsEvent();
 }
 
 const sc_event& ChannelMapTable::creditArrivedEvent(MapIndex entry) const {

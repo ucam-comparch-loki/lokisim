@@ -287,7 +287,7 @@ void         DecodeStage::readChannelMapTable(DecodedInst& inst) {
   }
 
   inst.networkDestination(destination);
-  inst.usesCredits(cmtEntry.usesCredits());
+  inst.usesCredits(cmtEntry.useCredits());
 }
 
 ChannelMapEntry& DecodeStage::channelMapTableEntry(MapIndex entry) const {

@@ -498,7 +498,19 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     // wouldn't allow data forwarding).
     case InstructionMap::OP_LUI: output.sourceReg1(output.destination()); break;
 
-    case InstructionMap::OP_WOCHE: output.result(output.immediate()); break;
+    // Pause execution until the specified channel has at least the given
+    // number of credits.
+    case InstructionMap::OP_WOCHE: {
+      uint targetCredits = output.immediate();
+      ChannelMapEntry& cme = parent()->channelMapTableEntry(output.channelMapEntry());
+      while (!cme.haveNCredits(targetCredits)) {
+        stall(true, Instrumentation::Stalls::STALL_OUTPUT, output);
+        wait(cme.creditArrivedEvent());
+      }
+      stall(false, Instrumentation::Stalls::STALL_OUTPUT, output);
+      continueToExecute = false;
+      break;
+    }
 
     case InstructionMap::OP_TSTCHI:
     case InstructionMap::OP_TSTCHI_P:

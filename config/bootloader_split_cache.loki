@@ -1,23 +1,25 @@
 # Split the 8 L1 banks into two groups of four - one dedicated to instructions,
 # and the other to data.
 
-# Channel map table contents: 0x00062480
-# encoded line size     << 18 (0 = 4 words, 1 = 8, 2 = 16, 3 = 32)
-# log2(banks in group)  << 16
-# return channel        << 13 (0 = IPK FIFO, 1 = IPK cache, 2-7 = r2-r7)
-# tile column           << 10
-# tile row              <<  7
-# core/bank             <<  4
-# is multicast?         <<  3
-# channel               <<  0 (core n accesses memory channel n)
+# Channel map table contents: 0x0001F902
+# check L2 tags?        << 16
+# check L1 tags?        << 15
+# bypass L2 cache?      << 14
+# bypass L1 cache?      << 13
+# log2(banks in group)  << 11
+# return channel        <<  8 (0 = IPK FIFO, 1 = IPK cache, 2-7 = r2-r7)
+# bank                  <<  5 (access the first bank in the group)
+# channel               <<  2 (core n accesses memory channel n)
+# isMemory (1)          <<  1
+# isGlobal (0)          <<  0
 
 # Instruction cache connection
- lli                r20, 0x2480
- lui                r20, 0x0006               # Return addr = channel 1
+ lli                r20, 0xF102
+ lui                r20, 0x0001
 
 # Data cache connection - change first bank in group and return channel
- lli                r21, 0x44c0
- lui                r21, 0x0006               # Return addr = channel 2
+ lli                r21, 0xF282
+ lui                r21, 0x0001
 
  setchmapi          0,   r20                  # Set instruction fetch channel to memory bank
  setchmapi          1,   r21                  # Set data fetch channel to memory bank

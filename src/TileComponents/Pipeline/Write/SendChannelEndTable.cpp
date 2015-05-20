@@ -210,24 +210,6 @@ void SendChannelEndTable::sendLoopGlobal() {
   }
 }
 
-/* Stall the pipeline until the specified channel is empty. */
-void SendChannelEndTable::waitUntilEmpty(MapIndex channel, const DecodedInst& inst) {
-  Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
-  waiting = true;
-  bufferFillChanged.notify(); // No it didn't - use separate events?
-
-  // Wait until the channel's credit counter reaches its maximum value, if it
-  // is using credits.
-  next_trigger(channelMapTable->allCreditsEvent(channel));
-
-  // TODO: split this method into two (at this point) and perhaps integrate
-  // with the main loop.
-
-  Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
-  waiting = false;
-  bufferFillChanged.notify(); // No it didn't - use separate events?
-}
-
 void SendChannelEndTable::requestArbitration(ChannelID destination, bool request) {
   parent()->requestArbitration(destination, request);
 }

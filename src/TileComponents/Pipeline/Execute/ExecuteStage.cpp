@@ -169,10 +169,6 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         alu.systemCall(operation);
         break;
 
-      case InstructionMap::OP_WOCHE:
-        throw UnsupportedFeatureException("woche instruction");
-        break;
-
       default:
         if (InstructionMap::isALUOperation(operation.opcode())) {
           alu.execute(operation);
@@ -259,34 +255,20 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
   uint32_t value = inst.operand1();
 
   // Write to the channel map table.
-  // FIXME: I don't think it's necessary to block until all credits have been
-  // received, but it's useful for debug purposes to ensure that we aren't
-  // losing credits.
-  bool success = core()->channelMapTable.write(entry, value);
-  if (!success) {
-    blocked = true;
-    if (DEBUG)
-      cout << this->name() << " stalled waiting for credits before setchmap" << endl;
-    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
-    next_trigger(core()->channelMapTable.allCreditsEvent(entry));
-  }
-  else {
-    blocked = false;
-    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
+  core()->channelMapTable.write(entry, value);
 
-    ChannelID sendChannel = core()->channelMapTable.getDestination(entry);
 
-    // Generate a message to claim the port we have just stored the address of.
-    if (sendChannel.isCore() && !sendChannel.isNullMapping()) {
-      ChannelID returnChannel(id, entry);
-      inst.result(returnChannel.flatten());
-      inst.channelMapEntry(entry);
-      inst.networkDestination(sendChannel);
-      inst.portClaim(true);
-      inst.usesCredits(core()->channelMapTable[entry].usesCredits());
+  // Generate a message to claim the port we have just stored the address of.
+  ChannelID sendChannel = core()->channelMapTable.getDestination(entry);
+  if (sendChannel.isCore() && !sendChannel.isNullMapping()) {
+    ChannelID returnChannel(id, entry);
+    inst.result(returnChannel.flatten());
+    inst.channelMapEntry(entry);
+    inst.networkDestination(sendChannel);
+    inst.portClaim(true);
+    inst.usesCredits(core()->channelMapTable[entry].useCredits());
 
-      core()->channelMapTable[entry].removeCredit();
-    }
+    core()->channelMapTable[entry].removeCredit();
   }
 }
 
@@ -321,10 +303,6 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
   // We want to access lots of information from the channel map table, so get
   // the entire entry.
   ChannelMapEntry& channelMapEntry = core()->channelMapTable[inst.channelMapEntry()];
-
-  if (channelMapEntry.writeThrough()) {
-    // TODO
-  }
 
   // Adjust destination channel based on memory configuration if necessary
   uint32_t increment = 0;
