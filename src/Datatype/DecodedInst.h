@@ -60,8 +60,8 @@ public:
   const int64_t       result() const;
   const MemoryAddr    location() const;
 
+  const EncodedCMTEntry cmtEntry() const;
   const ChannelID     networkDestination() const;
-  const ChannelIndex  returnAddr() const;
 
   const bool          usesPredicate() const;
   const bool          hasResult() const;
@@ -98,17 +98,18 @@ public:
 
   void    persistent(const bool val);
   void    endOfNetworkPacket(const bool val);
+
+  void    cmtEntry(const EncodedCMTEntry val);
   void    portClaim(const bool val);
-  void    usesCredits(const bool val);
-  void    networkDestination(const ChannelID val);
-  void    returnAddr(const ChannelIndex val);
 
   Instruction toInstruction() const;
 
   const bool sendsOnNetwork() const;
   const bool storesToRegister() const;
 
-  const NetworkData toNetworkData() const;
+  // Provide this tile's ID so local communications can fill in their
+  // destination addresses fully.
+  const NetworkData toNetworkData(TileID tile) const;
 
   void isid(const unsigned long long isid) const;
   const unsigned long long isid() const;
@@ -192,16 +193,17 @@ private:
 
   int32_t operand1_;
   int32_t operand2_;
-  int64_t result_;    // May be an instruction so need 64 bits (for now)
+  int64_t result_;    // TODO: reduce to 32 bits if safe to do so
 
+  // A snapshot of the channel map table entry when the instruction passes
+  // through the Decode stage.
+  EncodedCMTEntry networkInfo;
   bool    portClaim_;
-  bool    useCredits_;
-  bool    persistent_;
   bool    endOfPacket_;
-  ChannelID networkDest_;
-  ChannelIndex returnAddr_;
 
   MemoryAddr location_;  // The position in memory that this instruction comes from.
+
+  bool    persistent_;
 
   // Use to determine whether the result has already been set.
   // Can't just use != 0 because it may have been set to 0.

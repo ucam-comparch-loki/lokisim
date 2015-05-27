@@ -26,11 +26,11 @@ private:
   // A collection of information about an instruction packet and how it should
   // be executed.
   typedef struct {
-    MemoryAddr memAddr;     // Memory address of this packet (mainly for debug)
+    MemoryAddr   memAddr;   // Memory address of this packet (mainly for debug)
     InstLocation location;  // Location of first instruction of the packet
-    bool       persistent;  // Persistent packets repeat until NXIPK is received
-    bool       execute;     // Should these instructions be executed immediately?
-    bool       inCache;     // Is the packet completely in the cache?
+    bool         persistent;// Persistent packets repeat until NXIPK is received
+    bool         execute;   // Should these instructions be executed immediately?
+    bool         inCache;   // Is the packet completely in the cache?
 
     void reset() {
       memAddr = DEFAULT_TAG;
@@ -52,15 +52,13 @@ private:
   struct FetchInfo {
     MemoryAddr address;     // Memory address of the desired packet.
     opcode_t   operation;   // Fetch operation used to request the packet.
-    ChannelID  destination; // Network address through which the packet can be reached.
-    ChannelIndex returnAddress; // Return instructions to {0 = FIFO, 1 = cache}.
+    ChannelMapEntry::MemoryChannel networkInfo; // All required network information.
 
-    FetchInfo() : address(0), operation((opcode_t)0), destination(0), returnAddress(0) {}
-    FetchInfo(MemoryAddr addr, opcode_t op, ChannelID dest, ChannelIndex ret) :
+    FetchInfo() : address(0), operation((opcode_t)0), networkInfo(0) {}
+    FetchInfo(MemoryAddr addr, opcode_t op, ChannelMapEntry::MemoryChannel networkInfo) :
       address(addr),
       operation(op),
-      destination(dest),
-      returnAddress(ret) {}
+      networkInfo(networkInfo) {}
   };
 
 //==============================//
@@ -115,10 +113,9 @@ public:
 
   // Queue up an address to be looked up in the cache. Provide some extra
   // information to allow the fetch request to be sent, if necessary.
-  void          checkTags(MemoryAddr addr,              // Address of packet
-                          opcode_t operation,           // Type of fetch request
-                          ChannelID channel,            // Memory channel
-                          ChannelIndex returnChannel);  // Core's instruction input
+  void          checkTags(MemoryAddr addr,           // Address of packet
+                          opcode_t operation,        // Type of fetch request
+                          EncodedCMTEntry netInfo);  // Network information
 
   // Jump to a different instruction in the Instruction Packet Cache.
   void          jump(const JumpOffset offset);
@@ -133,6 +130,7 @@ private:
 
   // Continuously read instructions and pass them to the next pipeline stage.
   void          readLoop();
+  void          switchToPacket(PacketInfo& packet);
 
   // Continuously check whether new instructions are needed, fetch them, and
   // put them into the instruction stores.
@@ -141,7 +139,7 @@ private:
   // Tells whether the packet from location a is currently in the cache.
   // There are many different ways of fetching instructions, so provide the
   // operation too.
-  bool          inCache(const MemoryAddr a, opcode_t operation);
+  bool          inCache(const FetchInfo& info);
 
   // Tells whether there is room in the cache to fetch another instruction
   // packet, assuming the packet is of maximum size.
@@ -160,7 +158,7 @@ private:
 
   // Signal that a complete instruction packet has now arrived over the network.
   // This may allow a new fetch command to be sent.
-  void          packetFinishedArriving();
+  void          packetFinishedArriving(InstructionSource source);
 
   // Find where in the FIFO or cache the given tag is. If it isn't anywhere,
   // returns InstLocation(UNKNOWN, NOT_IN_CACHE).
@@ -203,9 +201,9 @@ private:
   WriteState writeState;
 
   // Information on the packet currently being executed, and optionally, the
-  // packet which is due to execute next.
-  // Do we want a single pending packet, or a queue of them?
-  PacketInfo currentPacket, pendingPacket;
+  // packet which is due to execute next. Each of the two instruction sources
+  // can have a packet ready to execute, with the FIFO having priority.
+  PacketInfo currentPacket, fifoPendingPacket, cachePendingPacket;
 
   // If this pipeline stage is stalled, we assume the whole pipeline is stalled.
   bool stalled;

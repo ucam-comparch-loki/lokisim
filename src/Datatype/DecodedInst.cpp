@@ -43,8 +43,29 @@ const int32_t       DecodedInst::operand1()        const {return operand1_;}
 const int32_t       DecodedInst::operand2()        const {return operand2_;}
 const int64_t       DecodedInst::result()          const {return result_;}
 
-const ChannelID     DecodedInst::networkDestination() const {return networkDest_;}
-const ChannelIndex  DecodedInst::returnAddr()      const {return returnAddr_;}
+const EncodedCMTEntry DecodedInst::cmtEntry()      const {return networkInfo;}
+
+const ChannelID     DecodedInst::networkDestination() const {
+  // FIXME: this code is very similar to some in ChannelMapEntry. It would be
+  // nice to merge them.
+
+  if (cmtEntry() == 0) {
+    return ChannelID();
+  }
+  else if (ChannelMapEntry::globalView(cmtEntry()).isGlobal) {
+    ChannelMapEntry::GlobalChannel channel(cmtEntry());
+    return ChannelID(channel.tileX, channel.tileY, channel.core, channel.channel);
+  }
+  else if (ChannelMapEntry::memoryView(cmtEntry()).isMemory) {
+    ChannelMapEntry::MemoryChannel channel(cmtEntry());
+    return ChannelID(0, 0, channel.bank+CORES_PER_TILE, channel.channel);
+  }
+  else {
+    ChannelMapEntry::MulticastChannel channel(cmtEntry());
+    return ChannelID(channel.coreMask, channel.channel);
+  }
+}
+
 const MemoryAddr    DecodedInst::location()        const {return location_;}
 
 
@@ -137,10 +158,10 @@ void DecodedInst::result(const int64_t val) {
 
 void DecodedInst::persistent(const bool val)              {persistent_ = val;}
 void DecodedInst::endOfNetworkPacket(const bool val)      {endOfPacket_ = val;}
+
+void DecodedInst::cmtEntry(const EncodedCMTEntry val)     {networkInfo = val;}
 void DecodedInst::portClaim(const bool val)               {portClaim_ = val;}
-void DecodedInst::usesCredits(const bool val)             {useCredits_ = val;}
-void DecodedInst::networkDestination(const ChannelID val) {networkDest_ = val;}
-void DecodedInst::returnAddr(const ChannelIndex val)      {returnAddr_ = val;}
+
 void DecodedInst::location(const MemoryAddr val)          {location_ = val;}
 
 
@@ -149,27 +170,37 @@ Instruction DecodedInst::toInstruction() const {
 }
 
 const bool DecodedInst::sendsOnNetwork() const {
-  return channelMapEntry() != Instruction::NO_CHANNEL &&
-      !networkDestination().isNullMapping();
+  return (channelMapEntry() != Instruction::NO_CHANNEL) &&
+         !networkDestination().isNullMapping();
 }
 
 const bool DecodedInst::storesToRegister() const {
   return destReg_ != 0;
 }
 
-const NetworkData DecodedInst::toNetworkData() const {
+const NetworkData DecodedInst::toNetworkData(TileID tile) const {
+  ChannelID destination = networkDestination();
+  if (destination.isMemory())
+    destination.component.tile = tile;
+
   if (opcode() == InstructionMap::OP_SENDCONFIG)
-    return NetworkData(result(), networkDestination(), uint32_t(immediate()));
-  else if (networkDestination().isCore())
-    // TODO: replace false with "acquired" bit from CMT entry.
-    // Could also get destination, portClaim and endOfPacket from CMT.
-    // This is not urgent - it should work as-is until dynamic channel
-    // allocation is implemented.
-    return NetworkData(result(), networkDestination(), false, portClaim_, endOfNetworkPacket());
-  else
-    // TODO: get destination, returnAddr and endOfPacket direct from CMT.
-    return NetworkData(MemoryRequest(result()), networkDestination(), returnAddr(),
-                       memoryOp(), endOfNetworkPacket());
+    return NetworkData(result(), destination, uint32_t(immediate()));
+  else if (destination.multicast) {
+    // We never acquire channels on the local networks, so just provide "false".
+    return NetworkData(result(), destination, false, portClaim_, endOfNetworkPacket());
+  }
+  else if (destination.isCore()) {
+    ChannelMapEntry::GlobalChannel channel(networkInfo);
+    return NetworkData(result(), destination, channel.acquired, portClaim_, endOfNetworkPacket());
+  }
+  else {
+    assert(destination.isMemory());
+    return NetworkData(result(),
+                       destination,
+                       ChannelMapEntry::memoryView(networkInfo),
+                       memoryOp(),
+                       endOfNetworkPacket());
+  }
 }
 
 void DecodedInst::isid(const unsigned long long isid) const {
@@ -204,27 +235,27 @@ DecodedInst& DecodedInst::operator= (const DecodedInst& other) {
 }
 
 std::ostream& DecodedInst::print(std::ostream& os) const {
-  if(predicate() == Instruction::P) os << "ifp?";
-  else if(predicate() == Instruction::NOT_P) os << "if!p?";
+  if (predicate() == Instruction::P) os << "ifp?";
+  else if (predicate() == Instruction::NOT_P) os << "if!p?";
 
   os << name() << (predicate()==Instruction::END_OF_PACKET ? ".eop" : "");
 
   // Special case for cfgmem and setchmap: immediate is printed before register.
-  if(opcode_ == InstructionMap::OP_SETCHMAP || opcode_ == InstructionMap::OP_SETCHMAPI) {
+  if (opcode_ == InstructionMap::OP_SETCHMAP || opcode_ == InstructionMap::OP_SETCHMAPI) {
     os << " " << immediate() << ", r" << (int)sourceReg1();
     return os;
   }
 
   // Special case for loads: print the form 8(r2).
-  if(opcode_ == InstructionMap::OP_LDW ||
-     opcode_ == InstructionMap::OP_LDHWU ||
-     opcode_ == InstructionMap::OP_LDBU) {
+  if (opcode_ == InstructionMap::OP_LDW ||
+      opcode_ == InstructionMap::OP_LDHWU ||
+      opcode_ == InstructionMap::OP_LDBU) {
     os << " " << immediate() << "(r" << (int)sourceReg1() << ")";
   }
   // Special case for stores: print the form r3 8(r2).
-  else if(opcode_ == InstructionMap::OP_STW ||
-          opcode_ == InstructionMap::OP_STHW ||
-          opcode_ == InstructionMap::OP_STB) {
+  else if (opcode_ == InstructionMap::OP_STW ||
+           opcode_ == InstructionMap::OP_STHW ||
+           opcode_ == InstructionMap::OP_STB) {
     os << " r" << (int)sourceReg1() << ", " << immediate() << "(r"
        << (int)sourceReg2() << ")";
   }
@@ -235,13 +266,13 @@ std::ostream& DecodedInst::print(std::ostream& os) const {
     bool fieldAfterSrc1 = fieldAfterSrc2 || hasSrcReg2();
     bool fieldAfterDest = fieldAfterSrc1 || hasSrcReg1();
 
-    if(hasDestReg()) os << " r" << (int)destination() << (fieldAfterDest?",":"");
-    if(hasSrcReg1()) os << " r" << (int)sourceReg1() << (fieldAfterSrc1?",":"");
-    if(hasSrcReg2()) os << " r" << (int)sourceReg2() << (fieldAfterSrc2?",":"");
-    if(hasImmediate()) os << " "  << immediate();
+    if (hasDestReg()) os << " r" << (int)destination() << (fieldAfterDest?",":"");
+    if (hasSrcReg1()) os << " r" << (int)sourceReg1() << (fieldAfterSrc1?",":"");
+    if (hasSrcReg2()) os << " r" << (int)sourceReg2() << (fieldAfterSrc2?",":"");
+    if (hasImmediate()) os << " "  << immediate();
   }
 
-  if(channelMapEntry() != Instruction::NO_CHANNEL)
+  if (channelMapEntry() != Instruction::NO_CHANNEL)
     os << " -> " << (int)channelMapEntry();
 
   return os;
@@ -265,11 +296,9 @@ void DecodedInst::init() {
   operand2_         = 0;
   result_           = 0;
   portClaim_        = false;
-  useCredits_       = false;
   persistent_       = false;
   endOfPacket_      = true;                 // non-zero
-  networkDest_      = ChannelID();          // non-zero
-  returnAddr_       = 0;
+  networkInfo       = 0;
   location_         = 0;
   hasResult_        = false;
   isid_             = -1;                   // Not sure about this
@@ -287,15 +316,32 @@ DecodedInst::DecodedInst(const Instruction inst) : original_(inst) {
 
   // The first two opcodes have the ALU function encoded as well. For all
   // others, we must look it up.
-  if(opcode_ == 0 || opcode_ == 1)
+  if (opcode_ == 0 || opcode_ == 1)
     function_      = inst.function();
   else
     function_      = InstructionMap::function(opcode_);
 
-  if(InstructionMap::hasRemoteChannel(opcode_))
-    channelMapEntry_ = inst.remoteChannel();
-  else
-    channelMapEntry_ = Instruction::NO_CHANNEL;
+  // Determine which channel (if any) this instruction sends its result to.
+  // Most instructions encode this explicitly, but fetches implicitly send to
+  // channel 0.
+  switch (opcode_) {
+    case InstructionMap::OP_FETCHR:
+    case InstructionMap::OP_FETCHPSTR:
+    case InstructionMap::OP_FILLR:
+    case InstructionMap::OP_PSEL_FETCHR:
+    case InstructionMap::OP_FETCH:
+    case InstructionMap::OP_FETCHPST:
+    case InstructionMap::OP_FILL:
+    case InstructionMap::OP_PSEL_FETCH:
+      channelMapEntry_ = 0;
+      break;
+    default:
+      if (InstructionMap::hasRemoteChannel(opcode_))
+        channelMapEntry_ = inst.remoteChannel();
+      else
+        channelMapEntry_ = Instruction::NO_CHANNEL;
+      break;
+  }
 
   setsPred_        = InstructionMap::setsPredicate(opcode_);
   format_          = InstructionMap::format(opcode_);
@@ -303,29 +349,29 @@ DecodedInst::DecodedInst(const Instruction inst) : original_(inst) {
   bool signedImmed = InstructionMap::hasSignedImmediate(opcode_);
 
   // Different instruction formats have immediate fields of different sizes.
-  switch(format_) {
+  switch (format_) {
     case InstructionMap::FMT_FF:
     case InstructionMap::FMT_PFF:
-      if(signedImmed) immediate_ = signextend<int32_t,  23>(inst.immediate());
-      else            immediate_ = signextend<uint32_t, 23>(inst.immediate());
+      if (signedImmed) immediate_ = signextend<int32_t,  23>(inst.immediate());
+      else             immediate_ = signextend<uint32_t, 23>(inst.immediate());
       break;
 
     case InstructionMap::FMT_0R:
     case InstructionMap::FMT_0Rnc:
     case InstructionMap::FMT_1R:
-      if(signedImmed) immediate_ = signextend<int32_t,  14>(inst.immediate());
-      else            immediate_ = signextend<uint32_t, 14>(inst.immediate());
+      if (signedImmed) immediate_ = signextend<int32_t,  14>(inst.immediate());
+      else             immediate_ = signextend<uint32_t, 14>(inst.immediate());
       break;
 
     case InstructionMap::FMT_1Rnc:
-      if(signedImmed) immediate_ = signextend<int32_t,  16>(inst.immediate());
-      else            immediate_ = signextend<uint32_t, 16>(inst.immediate());
+      if (signedImmed) immediate_ = signextend<int32_t,  16>(inst.immediate());
+      else             immediate_ = signextend<uint32_t, 16>(inst.immediate());
       break;
 
     case InstructionMap::FMT_2R:
     case InstructionMap::FMT_2Rnc:
-      if(signedImmed) immediate_ = signextend<int32_t,   9>(inst.immediate());
-      else            immediate_ = signextend<uint32_t,  9>(inst.immediate());
+      if (signedImmed) immediate_ = signextend<int32_t,   9>(inst.immediate());
+      else             immediate_ = signextend<uint32_t,  9>(inst.immediate());
       break;
 
     case InstructionMap::FMT_2Rs:
@@ -341,29 +387,29 @@ DecodedInst::DecodedInst(const Instruction inst) : original_(inst) {
   // first register could be a destination or a source, or may not be defined
   // at all.
   int registersRetrieved = 0;
-  for(int registersAssigned=0; registersAssigned<3; registersAssigned++) {
+  for (int registersAssigned=0; registersAssigned<3; registersAssigned++) {
     RegisterIndex reg;
 
-    if(registersRetrieved == 0)      reg = inst.reg1();
-    else if(registersRetrieved == 1) reg = inst.reg2();
-    else                             reg = inst.reg3();
+    if (registersRetrieved == 0)      reg = inst.reg1();
+    else if (registersRetrieved == 1) reg = inst.reg2();
+    else                              reg = inst.reg3();
 
-    if(registersAssigned == 0) {
-      if(InstructionMap::hasDestReg(opcode_)) {
+    if (registersAssigned == 0) {
+      if (InstructionMap::hasDestReg(opcode_)) {
         destReg_ = reg;
         registersRetrieved++;
       }
       else destReg_ = 0;
     }
-    else if(registersAssigned == 1) {
-      if(InstructionMap::hasSrcReg1(opcode_)) {
+    else if (registersAssigned == 1) {
+      if (InstructionMap::hasSrcReg1(opcode_)) {
         sourceReg1_ = reg;
         registersRetrieved++;
       }
       else sourceReg1_ = 0;
     }
     else {
-      if(InstructionMap::hasSrcReg2(opcode_)) {
+      if (InstructionMap::hasSrcReg2(opcode_)) {
         sourceReg2_ = reg;
         registersRetrieved++;
       }

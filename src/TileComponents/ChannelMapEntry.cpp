@@ -13,6 +13,18 @@
 
 using sc_core::sc_event;
 
+const ChannelMapEntry::MulticastChannel ChannelMapEntry::multicastView(EncodedCMTEntry data) {
+  return MulticastChannel(data);
+}
+
+const ChannelMapEntry::MemoryChannel ChannelMapEntry::memoryView(EncodedCMTEntry data) {
+  return MemoryChannel(data);
+}
+
+const ChannelMapEntry::GlobalChannel ChannelMapEntry::globalView(EncodedCMTEntry data) {
+  return GlobalChannel(data);
+}
+
 const ChannelMapEntry::MulticastChannel ChannelMapEntry::multicastView() const {
   return MulticastChannel(data_);
 }

@@ -117,7 +117,7 @@ private:
 
   // Queue up an instruction packet to be fetched. Include all necessary
   // information to send a fetch request to memory, if needed.
-  void             checkTags(MemoryAddr addr, opcode_t op, ChannelID channel, ChannelIndex returnChannel);
+  void             checkTags(MemoryAddr addr, opcode_t op, EncodedCMTEntry netInfo);
 
   // Perform an IBJMP and jump to a new instruction in the cache.
   void             jump(const JumpOffset offset);

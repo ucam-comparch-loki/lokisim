@@ -32,7 +32,7 @@ typedef unsigned int EncodedCMTEntry;
 
 class ChannelMapEntry {
 
-private:
+public:
 
   struct MulticastChannel {
     uint padding           : 18;
@@ -122,11 +122,12 @@ private:
     }
   };
 
-public:
-
   enum NetworkType {MULTICAST, CORE_TO_MEMORY, GLOBAL};
 
   // Access different views of the underlying data.
+  static const MulticastChannel multicastView(EncodedCMTEntry data);
+  static const MemoryChannel    memoryView(EncodedCMTEntry data);
+  static const GlobalChannel    globalView(EncodedCMTEntry data);
   const MulticastChannel multicastView() const;
   const MemoryChannel    memoryView()    const;
   const GlobalChannel    globalView()    const;

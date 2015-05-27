@@ -169,7 +169,7 @@ ReevaluateRequest:
 
 		// A bit of a hack but simplifies the code considerably
 
-		mActiveRequest = NetworkRequest(0, ChannelID(), 0, MemoryRequest::IPK_READ, true);
+		mActiveRequest = NetworkRequest(0, ChannelID(id,0), ChannelMapEntry::MemoryChannel(0), MemoryRequest::IPK_READ, true);
     mActiveData    = mActiveRingRequestInput.Header.Request;
 
 		if (ENERGY_TRACE)

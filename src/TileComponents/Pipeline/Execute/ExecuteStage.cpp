@@ -242,7 +242,7 @@ void ExecuteStage::sendOutput() {
 
     // Send the data to the output buffer - it will arrive immediately so that
     // network resources can be requested the cycle before they are used.
-    oData.write(currentInst.toNetworkData());
+    oData.write(currentInst.toNetworkData(id.tile));
   }
 
   // Send the data to the register file - it will arrive at the beginning
@@ -257,16 +257,14 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
   // Write to the channel map table.
   core()->channelMapTable.write(entry, value);
 
-
   // Generate a message to claim the port we have just stored the address of.
   ChannelID sendChannel = core()->channelMapTable.getDestination(entry);
   if (sendChannel.isCore() && !sendChannel.isNullMapping()) {
     ChannelID returnChannel(id, entry);
     inst.result(returnChannel.flatten());
     inst.channelMapEntry(entry);
-    inst.networkDestination(sendChannel);
+    inst.cmtEntry(value);
     inst.portClaim(true);
-    inst.usesCredits(core()->channelMapTable[entry].useCredits());
 
     core()->channelMapTable[entry].removeCredit();
   }
@@ -320,10 +318,9 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
     }
   }
 
-  ChannelID adjusted = inst.networkDestination();
-  adjusted = adjusted.addPosition(increment);
-  inst.networkDestination(adjusted);
-  inst.returnAddr(channelMapEntry.getReturnChannel());
+  ChannelMapEntry::MemoryChannel channel(inst.cmtEntry());
+  channel.bank += increment;
+  inst.cmtEntry(channel.flatten());
 }
 
 bool ExecuteStage::isStalled() const {

@@ -46,7 +46,7 @@ void InstructionPacketFIFO::write(const Instruction inst) {
 
   finishedPacketWrite = inst.endOfPacket();
   if (finishedPacketWrite)
-    parent()->packetFinishedArriving();
+    parent()->packetFinishedArriving(IPKFIFO);
 }
 
 CacheIndex InstructionPacketFIFO::lookup(MemoryAddr tag) {

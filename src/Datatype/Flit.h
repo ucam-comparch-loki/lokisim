@@ -193,6 +193,7 @@ public:
       messageID_(messageCount++),
       payload_(payload),
       channelID_(destination) {
+    assert(destination.isCore());
     CoreMetadata data;
     data.acquired = acquired;
     data.allocate = allocate;
@@ -201,18 +202,18 @@ public:
   }
 
   // Constructor for messages between cores and memory.
-  // TODO: get information from channel map table.
-  Flit<T>(T payload, ChannelID destination, ChannelIndex returnChannel,
+  Flit<T>(T payload, ChannelID destination, ChannelMapEntry::MemoryChannel networkInfo,
           MemoryRequest::MemoryOperation op, bool eop) :
       messageID_(messageCount++),
       payload_(payload),
       channelID_(destination) {
+    assert(destination.isMemory());
     MemoryMetadata info;
-    info.returnChannel = returnChannel;//cmt.getReturnChannel();
-    info.checkL2Tags = 1;//cmt.checkL2Tags();
-    info.checkL1Tags = 1;//cmt.checkL1Tags();
-    info.skipL2 = 0;//cmt.skipL2();
-    info.skipL1 = 0;//cmt.skipL1();
+    info.returnChannel = networkInfo.returnChannel;
+    info.checkL2Tags = networkInfo.l2TagCheck;
+    info.checkL1Tags = networkInfo.l1TagCheck;
+    info.skipL2 = networkInfo.l2Skip;
+    info.skipL1 = networkInfo.l1Skip;
     info.opcode = op;
     info.endOfPacket = eop;
     setMetadata(info.flatten());

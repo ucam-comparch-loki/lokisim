@@ -283,12 +283,12 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
   // If we are in remote execution mode, send this instruction without
   // executing it.
-  if (sendChannel != Instruction::NO_CHANNEL) {
+  if (rmtexecuteChannel != Instruction::NO_CHANNEL) {
     remoteExecution(output);
 
     // Drop out of remote execution mode at the end of the packet.
     if (input.endOfIPK()) {
-      sendChannel = Instruction::NO_CHANNEL;
+      rmtexecuteChannel = Instruction::NO_CHANNEL;
       if (DEBUG) cout << this->name() << " ending remote execution" << endl;
     }
 
@@ -448,7 +448,6 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     }
 
     case InstructionMap::OP_LDL:
-      multiCycleOp = true;
       output.memoryOp(MemoryRequest::LOAD_LINKED); break;
     case InstructionMap::OP_STC:
       multiCycleOp = true;
@@ -537,7 +536,8 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     }
 
     case InstructionMap::OP_RMTEXECUTE: {
-      sendChannel = output.channelMapEntry();
+      rmtexecuteChannel = output.channelMapEntry();
+      rmtexecuteCMT = output.cmtEntry();
 
       if (DEBUG)
         cout << this->name() << " beginning remote execution" << endl;
@@ -758,7 +758,8 @@ void Decoder::remoteExecution(DecodedInst& instruction) const {
 
   // The data to be sent is the instruction itself.
   instruction.result(encoded.toLong());
-  instruction.channelMapEntry(sendChannel);
+  instruction.channelMapEntry(rmtexecuteChannel);
+  instruction.cmtEntry(rmtexecuteCMT);
 
   // Prevent other stages from trying to execute this instruction.
   instruction.predicate(Instruction::ALWAYS);
@@ -933,7 +934,8 @@ Decoder::Decoder(const sc_module_name& name, const ComponentID& ID) :
   needOperand2 = false;
   needChannel = false;
 
-  sendChannel = Instruction::NO_CHANNEL;
+  rmtexecuteChannel = Instruction::NO_CHANNEL;
+  rmtexecuteCMT = 0;
   multiCycleOp = false;
   blocked = false;
   instructionCancelled = false;

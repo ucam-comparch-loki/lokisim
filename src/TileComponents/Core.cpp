@@ -29,8 +29,8 @@ const MemoryAddr Core::getInstIndex() const   {return fetch.getInstAddress();}
 bool     Core::canCheckTags() const           {return fetch.canCheckTags();}
 void     Core::jump(const JumpOffset offset)  {fetch.jump(offset);}
 
-void     Core::checkTags(MemoryAddr addr, opcode_t op, ChannelID channel, ChannelIndex returnChannel) {
-  fetch.checkTags(addr, op, channel, returnChannel);
+void     Core::checkTags(MemoryAddr addr, opcode_t op, EncodedCMTEntry netInfo) {
+  fetch.checkTags(addr, op, netInfo);
 }
 
 const int32_t Core::readReg(PortIndex port, RegisterIndex reg, bool indirect) {

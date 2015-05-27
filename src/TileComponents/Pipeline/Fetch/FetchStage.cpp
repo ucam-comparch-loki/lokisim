@@ -23,41 +23,18 @@ void FetchStage::readLoop() {
 
   switch (readState) {
     case RS_READY: {
-      // Have a packet fetched and ready to go.
-      if (pendingPacket.active() && pendingPacket.execute) {
-        currentPacket = pendingPacket;
-
-        if (currentPacket.location.index == NOT_IN_CACHE) {
-          Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS, DecodedInst());
-          next_trigger(currentInstructionSource().fillChangedEvent());
-          break;
-        }
-        else {
-          currentInstructionSource().startNewPacket(currentPacket.location.index);
-
-          if (DEBUG) {
-            static const string names[] = {"FIFO", "cache", "unknown"};
-            cout << this->name() << " switched to pending packet: " << names[currentPacket.location.component] <<
-              ", position " << currentPacket.location.index << " (0x" << std::hex << currentPacket.memAddr << std::dec << ")" << endl;
-          }
-
-          pendingPacket.reset();
-          readState = RS_READ;
-          next_trigger(sc_core::SC_ZERO_TIME);
-          break;
-        }
-
-      }
-      // There are unexecuted instructions in the FIFO.
-      else if (!fifo.isEmpty())
-        break;
+      // Any instructions waiting in the FIFO have priority over the cache.
+      if (fifoPendingPacket.active() && fifoPendingPacket.execute)
+        switchToPacket(fifoPendingPacket);
+      else if (currentPacket.persistent)
+        currentInstructionSource().startNewPacket(currentPacket.location.index);
+      else if (cachePendingPacket.active() && cachePendingPacket.execute)
+        switchToPacket(cachePendingPacket);
       // Nothing to do - wait until a new instruction packet arrives.
-      else {
-        // Don't stall just because we don't have a packet to execute. Only
-        // stall once we've executed a fetch and are expecting more instructions.
+      else
         next_trigger(newPacketAvailable);
-        break;
-      }
+
+      break;
     }
 
     // TODO: nextIPK needs to break us out of this state
@@ -140,6 +117,28 @@ void FetchStage::readLoop() {
 
 }
 
+void FetchStage::switchToPacket(PacketInfo& packet) {
+  currentPacket = packet;
+
+  if (currentPacket.location.index == NOT_IN_CACHE) {
+    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS, DecodedInst());
+    next_trigger(currentInstructionSource().fillChangedEvent());
+  }
+  else {
+    currentInstructionSource().startNewPacket(currentPacket.location.index);
+
+    if (DEBUG) {
+      static const string names[] = {"FIFO", "cache", "unknown"};
+      cout << this->name() << " switched to pending packet: " << names[currentPacket.location.component] <<
+        ", position " << currentPacket.location.index << " (0x" << std::hex << currentPacket.memAddr << std::dec << ")" << endl;
+    }
+
+    packet.reset();
+    readState = RS_READ;
+    next_trigger(sc_core::SC_ZERO_TIME);
+  }
+}
+
 // Continually ensure that any fetched instruction packets are available. Read
 // requests from the fetchBuffer, and update the pending packet with the
 // location to access locally. Only ever have a single fetch in progress.
@@ -157,7 +156,8 @@ void FetchStage::writeLoop() {
         next_trigger(cache.fillChangedEvent());
         break;
       }
-      else if (pendingPacket.active() && pendingPacket.execute) {
+      else if ((fifoPendingPacket.active() && fifoPendingPacket.execute) ||
+               (cachePendingPacket.active() && cachePendingPacket.execute)) {
         // The pending packet is where we store all the information about the
         // packet we're fetching. Wait for it to become available.
         next_trigger(clock.posedge_event());
@@ -176,8 +176,13 @@ void FetchStage::writeLoop() {
 
     case WS_CHECK_TAGS: {
       FetchInfo fetch = fetchBuffer.peek();
-      pendingPacket.reset();
-      bool cached = inCache(fetch.address, fetch.operation);
+
+      if (fetch.networkInfo.returnChannel == 0)
+        fifoPendingPacket.reset();
+      else
+        cachePendingPacket.reset();
+
+      bool cached = inCache(fetch);
 
       if (cached) {
         // If the packet is already cached, we need to do nothing and can serve
@@ -189,17 +194,12 @@ void FetchStage::writeLoop() {
       else {
         // Select the bank to access based on the memory address.
         uint increment = core()->channelMapTable[0].computeAddressIncrement(fetch.address);
-        ChannelID destination = fetch.destination.addPosition(increment);
+        ChannelID destination(id.tile.x, id.tile.y, fetch.networkInfo.bank + increment + CORES_PER_TILE, fetch.networkInfo.channel);
 
-        NetworkData flit(fetch.address, destination, fetch.returnAddress,
+        NetworkData flit(fetch.address, destination, fetch.networkInfo,
                          MemoryRequest::IPK_READ, true);
         assert(!oFetchRequest.valid());
         oFetchRequest.write(flit);
-
-        if (fetch.returnAddress == 0)
-          pendingPacket.location.component = IPKFIFO;
-        else
-          pendingPacket.location.component = IPKCACHE;
 
         if (!currentPacket.active())
           Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS, DecodedInst());
@@ -232,8 +232,8 @@ void FetchStage::storeCode(const std::vector<Instruction>& instructions) {
   if (!currentPacket.inCache)
     packet = &currentPacket;
   else {
-    assert(!pendingPacket.inCache);
-    packet = &pendingPacket;
+    assert(!cachePendingPacket.inCache);
+    packet = &cachePendingPacket;
   }
 
   if (packet->memAddr == DEFAULT_TAG)
@@ -257,32 +257,41 @@ bool FetchStage::canCheckTags() const {
 
 void FetchStage::checkTags(MemoryAddr addr,
                            opcode_t operation,
-                           ChannelID channel,
-                           ChannelIndex returnChannel) {
+                           EncodedCMTEntry netInfo) {
   // Note: we don't actually check the tags here. We just queue up the request
   // and check the tags at the next opportunity.
 
-  FetchInfo fetch(addr, operation, channel, returnChannel);
+  FetchInfo fetch(addr, operation, ChannelMapEntry::memoryView(netInfo));
   fetchBuffer.write(fetch);
 
   // Break out of persistent mode if we have another packet to execute.
   currentPacket.persistent = false;
 }
 
-bool FetchStage::inCache(const MemoryAddr addr, opcode_t operation) {
+bool FetchStage::inCache(const FetchInfo& fetch) {
   if (DEBUG)
-    cout << this->name() << " looking up tag 0x" << std::hex << addr << std::dec << ": ";
+    cout << this->name() << " looking up tag 0x" << std::hex << fetch.address << std::dec << ": ";
 
   // I suppose the address could technically be 0, but this always indicates an
   // error with the current arrangement.
-  assert(addr > 0);
+  assert(fetch.address > 0);
 
-  PacketInfo& packet = pendingPacket;
+  opcode_t operation = fetch.operation;
+  InstLocation location = lookup(fetch.address);
 
-  // Find out where, if anywhere, the packet is located.
-  packet.location   = lookup(addr);
+  // If we do not currently have the packet, we know which input it will arrive
+  // on.
+  if (location.component == UNKNOWN) {
+    ChannelIndex returnChannel = fetch.networkInfo.returnChannel;
+    location.component = (returnChannel == 0) ? IPKFIFO : IPKCACHE;
+  }
 
-  packet.memAddr    = addr;
+  PacketInfo& packet = (location.component == IPKFIFO)
+                     ? fifoPendingPacket
+                     : cachePendingPacket;
+
+  packet.location   = location;
+  packet.memAddr    = fetch.address;
   packet.inCache    = packet.location.index != NOT_IN_CACHE;
   packet.execute    = operation != InstructionMap::OP_FILL &&
                       operation != InstructionMap::OP_FILLR;
@@ -300,9 +309,9 @@ bool FetchStage::inCache(const MemoryAddr addr, opcode_t operation) {
   if (packet.inCache && !packet.execute)
     packet.reset();
 
-  Instrumentation::IPKCache::tagCheck(id, packet.inCache, addr, previousFetch);
+  Instrumentation::IPKCache::tagCheck(id, packet.inCache, fetch.address, previousFetch);
 
-  previousFetch = addr;
+  previousFetch = fetch.address;
 
   return found;
 }
@@ -365,13 +374,17 @@ MemoryAddr FetchStage::newPacketArriving(const InstLocation& location) {
   // My simple approximation is to check whether a fetch has been issued.
   bool fetched = !fetchBuffer.empty();
 
+  PacketInfo& pendingPacket = (location.component == IPKFIFO)
+                            ? fifoPendingPacket
+                            : cachePendingPacket;
+
   // If we fetched it, and we know that it is due to execute, set it as the
   // pending packet.
   if (fetched) {
     FetchInfo lastFetch = fetchBuffer.read(); // Pop from queue.
 
     bool willExecute = (lastFetch.operation != InstructionMap::OP_FILL)
-                    || (lastFetch.operation != InstructionMap::OP_FILLR);
+                    && (lastFetch.operation != InstructionMap::OP_FILLR);
 
     if (willExecute) {
       pendingPacket.location = location;
@@ -398,13 +411,15 @@ MemoryAddr FetchStage::newPacketArriving(const InstLocation& location) {
   }
 }
 
-void FetchStage::packetFinishedArriving() {
+void FetchStage::packetFinishedArriving(InstructionSource source) {
   // Look for the first packet in the queue which we don't have.
   PacketInfo* packet;
-  if (currentPacket.inCache)
-    packet = &pendingPacket;
-  else
+  if (!currentPacket.inCache)
     packet = &currentPacket;
+  else if (source == IPKFIFO)
+    packet = &fifoPendingPacket;
+  else
+    packet = &cachePendingPacket;
 
   packet->inCache = true;
 
@@ -459,7 +474,7 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
   stalled             = false;  // Start off idle, but not stalled.
   previousFetch       = DEFAULT_TAG;
 
-  currentPacket.reset(); pendingPacket.reset();
+  currentPacket.reset(); fifoPendingPacket.reset(); cachePendingPacket.reset();
 
   // Connect FIFO and cache to network
   fifo.clock(clock);
