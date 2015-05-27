@@ -8,13 +8,12 @@
 #include "../Chip.h"
 #include "Core.h"
 #include "Pipeline/PipelineRegister.h"
-#include "../Datatype/ChannelID.h"
 #include "../Datatype/DecodedInst.h"
 #include "../Network/Topologies/LocalNetwork.h"
 #include "../Utility/InstructionMap.h"
 #include "../Utility/Instrumentation/Registers.h"
 
-/* Initialise the instructions a Cluster will execute. */
+/* Initialise the instructions a Core will execute. */
 void     Core::storeData(const std::vector<Word>& data, MemoryAddr location) {
   std::vector<Instruction> instructions;
 
@@ -30,8 +29,8 @@ const MemoryAddr Core::getInstIndex() const   {return fetch.getInstAddress();}
 bool     Core::canCheckTags() const           {return fetch.canCheckTags();}
 void     Core::jump(const JumpOffset offset)  {fetch.jump(offset);}
 
-void     Core::checkTags(MemoryAddr addr, opcode_t op, ChannelID channel, ChannelIndex returnChannel) {
-  fetch.checkTags(addr, op, channel, returnChannel);
+void     Core::checkTags(MemoryAddr addr, opcode_t op, EncodedCMTEntry netInfo) {
+  fetch.checkTags(addr, op, netInfo);
 }
 
 const int32_t Core::readReg(PortIndex port, RegisterIndex reg, bool indirect) {
@@ -179,7 +178,7 @@ void Core::trace(const DecodedInst& inst) const {
   }
 
   printf("CPU%d 0x%08x: %s %d %d %d %d %d %d p=%d, regs={%s}\n",
-      id.getGlobalCoreNumber(), inst.location(), inst.name().c_str(),
+      id.globalCoreNumber(), inst.location(), inst.name().c_str(),
       inst.destination(), inst.sourceReg1(), inst.sourceReg2(),
       inst.immediate(), inst.immediate2(), inst.channelMapEntry(),
       pred.read(), regbuf);
@@ -188,20 +187,20 @@ void Core::trace(const DecodedInst& inst) const {
 ComponentID Core::getSystemCallMemory() const {
   // TODO: Stop assuming that the first channel map entry after the fetch
   // channel corresponds to the memory that system calls want to access.
-  return channelMapTable.read(1).getComponentID();
+  return channelMapTable.getDestination(1).component;
 }
 
-/* Returns the channel ID of this cluster's instruction packet FIFO. */
+/* Returns the channel ID of this core's instruction packet FIFO. */
 ChannelID Core::IPKFIFOInput(const ComponentID& ID) {
   return ChannelID(ID, 0);
 }
 
-/* Returns the channel ID of this cluster's instruction packet cache. */
+/* Returns the channel ID of this core's instruction packet cache. */
 ChannelID Core::IPKCacheInput(const ComponentID& ID) {
   return ChannelID(ID, 1);
 }
 
-/* Returns the channel ID of this cluster's specified input channel. */
+/* Returns the channel ID of this core's specified input channel. */
 ChannelID Core::RCETInput(const ComponentID& ID, ChannelIndex channel) {
   return ChannelID(ID, 2 + channel);
 }
@@ -237,13 +236,10 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
     inputCrossbar.iData[i](iData[i]);
   inputCrossbar.iData[CORE_INPUT_PORTS](iDataGlobal);
 
-  for (unsigned int i=0; i<CORE_INPUT_CHANNELS; i++) {
-    inputCrossbar.oReady[i](oReadyData[i]);
-    inputCrossbar.oData[i](dataToBuffers[i]);
-    inputCrossbar.iFlowControl[i](fcFromBuffers[i]);
-    inputCrossbar.iDataConsumed[i](dataConsumed[i]);
-  }
-
+  inputCrossbar.oReady(oReadyData);
+  inputCrossbar.oData(dataToBuffers);
+  inputCrossbar.iFlowControl(fcFromBuffers);
+  inputCrossbar.iDataConsumed(dataConsumed);
   inputCrossbar.clock(clock);
   inputCrossbar.creditClock(fastClock);
   inputCrossbar.oCredit[0](oCredit);
@@ -261,9 +257,9 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
   // Wire the pipeline stages up.
 
   fetch.clock(clock);
-  fetch.iToFIFO(dataToBuffers[0]);      fetch.oFlowControl[0](fcFromBuffers[0]);
-  fetch.iToCache(dataToBuffers[1]);     fetch.oFlowControl[1](fcFromBuffers[1]);
-  fetch.oDataConsumed[0](dataConsumed[0]); fetch.oDataConsumed[1](dataConsumed[1]);
+  fetch.iToFIFO(dataToBuffers[0]);          fetch.oFlowControl[0](fcFromBuffers[0]);
+  fetch.iToCache(dataToBuffers[1]);         fetch.oFlowControl[1](fcFromBuffers[1]);
+  fetch.oDataConsumed[0](dataConsumed[0]);  fetch.oDataConsumed[1](dataConsumed[1]);
   fetch.oFetchRequest(fetchFlitSignal);
   fetch.iOutputBufferReady(stageReady[2]);
   fetch.initPipeline(NULL, pipelineRegs[0]);
@@ -291,7 +287,4 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
   write.oDataGlobal(oDataGlobal);
   write.iCredit(iCredit);
   write.initPipeline(pipelineRegs[2], NULL);
-
-  // Initialise the values in some wires.
-  constantHigh.write(true);
 }

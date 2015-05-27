@@ -9,13 +9,21 @@
 #include "../NetworkHierarchy.h"
 #include "../Router.h"
 
+DataInput&   Mesh::iData2D(uint x,  uint y) const {return iData[flatten(x,y)];}
+DataOutput&  Mesh::oData2D(uint x,  uint y) const {return oData[flatten(x,y)];}
+ReadyOutput& Mesh::oReady2D(uint x, uint y) const {return oReady[flatten(x,y)];}
+
+const vector<vector<DataSignal*> > Mesh::edgeDataInputs() const {return edgeDataInputs_;}
+const vector<vector<DataSignal*> > Mesh::edgeDataOutputs() const {return edgeDataOutputs_;}
+const vector<vector<ReadySignal*> > Mesh::edgeReadyOutputs() const {return edgeReadyOutputs_;}
+
 void Mesh::makeRouters() {
-  int tile = 0;
   for(unsigned int row=0; row<numRows; row++) {
     for(unsigned int col=0; col<numColumns; col++) {
-      ComponentID routerID(tile, COMPONENTS_PER_TILE);
-      routers[col][row] = new Router(sc_gen_unique_name("router"), routerID);
-      tile++;
+      ComponentID routerID(col, row, COMPONENTS_PER_TILE);
+      std::stringstream name;
+      name << "router_" << routerID.tile.getNameString();
+      routers[col][row] = new Router(name.str().c_str(), routerID);
     }
   }
 }
@@ -31,6 +39,30 @@ void Mesh::makeWires() {
   readySigSN.init(numColumns+1, numRows+1);
   readySigEW.init(numColumns+1, numRows+1);
   readySigWE.init(numColumns+1, numRows+1);
+
+  // Take pointers to the signals around the edge of the chip and add them to
+  // separate collections.
+  for (uint row=0; row<numRows; row++) {
+    edgeDataInputs_[Router::WEST].push_back(&dataSigWE[0][row]);
+    edgeDataInputs_[Router::EAST].push_back(&dataSigEW[numColumns][row]);
+
+    edgeDataOutputs_[Router::WEST].push_back(&dataSigEW[0][row]);
+    edgeDataOutputs_[Router::EAST].push_back(&dataSigWE[numColumns][row]);
+
+    edgeReadyOutputs_[Router::WEST].push_back(&readySigEW[0][row]);
+    edgeReadyOutputs_[Router::EAST].push_back(&readySigWE[numColumns][row]);
+  }
+
+  for (uint col=0; col<numColumns; col++) {
+    edgeDataInputs_[Router::NORTH].push_back(&dataSigNS[col][0]);
+    edgeDataInputs_[Router::SOUTH].push_back(&dataSigSN[col][numRows]);
+
+    edgeDataOutputs_[Router::NORTH].push_back(&dataSigSN[col][0]);
+    edgeDataOutputs_[Router::SOUTH].push_back(&dataSigNS[col][numRows]);
+
+    edgeReadyOutputs_[Router::NORTH].push_back(&readySigSN[col][0]);
+    edgeReadyOutputs_[Router::SOUTH].push_back(&readySigNS[col][numRows]);
+  }
 }
 
 void Mesh::wireUp() {
@@ -64,12 +96,16 @@ void Mesh::wireUp() {
       router.oReady[Router::EAST](readySigWE[col+1][row]);
 
       // Data heading to/from local tile
-      int tile = router.id.getTile();
+      int tile = row*numColumns + col;
       router.iData[Router::LOCAL](iData[tile]);
       router.oData[Router::LOCAL](oData[tile]);
       router.oReady[Router::LOCAL](oReady[tile]);
     }
   }
+}
+
+uint Mesh::flatten(uint x, uint y) const {
+  return (y*numColumns) + x;
 }
 
 Mesh::Mesh(const sc_module_name& name,
@@ -86,6 +122,11 @@ Mesh::Mesh(const sc_module_name& name,
   assert(level == Network::TILE);
 
   oReady.init(rows*columns);
+
+  // Each set contains a vector for each of NORTH, EAST, SOUTH, WEST.
+  edgeDataInputs_.assign(4, vector<DataSignal*>());
+  edgeDataOutputs_.assign(4, vector<DataSignal*>());
+  edgeReadyOutputs_.assign(4, vector<ReadySignal*>());
 
   makeRouters();
   makeWires();

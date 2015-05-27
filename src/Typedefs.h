@@ -20,6 +20,15 @@
 typedef uint64_t count_t;
 typedef count_t  cycle_count_t;
 
+// Identifier used for a tile. Compute tiles start at 1,1.
+// (column << 3) | row
+typedef uint32_t TileIndex;
+
+// Positions of components within a tile.
+typedef uint32_t ComponentIndex;
+typedef uint32_t CoreIndex;
+typedef uint32_t MemoryIndex;
+
 // An index within a component's own input/output channels.
 typedef uint8_t  ChannelIndex;
 
@@ -41,22 +50,9 @@ typedef int16_t  JumpOffset;
 typedef uint CacheIndex;
 typedef uint TagIndex;
 
-// The topology of the network in each tile.
-class LocalNetwork;
-typedef LocalNetwork local_net_t;
-
-// The topology of the network between tiles.
-class Mesh;
-typedef Mesh global_net_t;
-
 using sc_core::sc_in;
 using sc_core::sc_out;
 using sc_core::sc_signal;
-
-typedef bool IdleType;
-typedef sc_signal<IdleType> IdleSignal;
-typedef sc_in<IdleType>     IdleInput;
-typedef sc_out<IdleType>    IdleOutput;
 
 typedef sc_in<bool>         ClockInput;
 

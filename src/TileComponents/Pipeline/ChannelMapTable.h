@@ -20,22 +20,16 @@ class ChannelMapTable : public Component {
 public:
 
   // Determine where to send data to if it specifies this channel entry.
-  ChannelID read(MapIndex entry) const;
+  ChannelID getDestination(MapIndex entry) const;
   ChannelMapEntry::NetworkType getNetwork(MapIndex entry) const;
 
   // Update an entry of the channel map table. Returns whether the update was
   // successful. If not, the update will need to be reattempted when all
   // credits have arrived.
-  bool write(MapIndex entry,
-             ChannelID destination,
-             int groupBits=0,
-             int lineBits=0,
-             ChannelIndex returnTo=0,
-             bool writeThrough=false);
+  bool write(MapIndex entry, EncodedCMTEntry data);
 
-  // Event which is triggered when a channel's credit counter reaches its
-  // maximum value.
-  const sc_event& allCreditsEvent(MapIndex entry) const;
+  // Read the full contents of the channel map table entry.
+  EncodedCMTEntry read(MapIndex entry);
 
   // Event triggered when a credit arrives for a particular channel.
   const sc_event& creditArrivedEvent(MapIndex entry) const;
@@ -46,7 +40,7 @@ public:
   bool canSend(MapIndex entry) const;
 
   // Return an entire entry of the table. This method should be avoided if
-  // necessary, as it may bypass functionality in other accessor methods.
+  // possible, as it may bypass functionality in other accessor methods.
   ChannelMapEntry& operator[] (const MapIndex entry);
 
   // For instrumentation purposes only, keep track of which of our input

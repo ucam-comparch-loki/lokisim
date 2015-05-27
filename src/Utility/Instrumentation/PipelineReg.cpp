@@ -81,7 +81,7 @@ void PipelineReg::activity(const DecodedInst& oldVal,
         width += 5;
       }
       if (!CLOCK_GATE || newVal.sendsOnNetwork()) {
-        hamming += __builtin_popcount(oldVal.networkDestination().toInt() ^ newVal.networkDestination().toInt());
+        hamming += __builtin_popcount(oldVal.networkDestination().flatten() ^ newVal.networkDestination().flatten());
         width += 20;
       }
 

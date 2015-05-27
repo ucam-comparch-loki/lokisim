@@ -80,6 +80,26 @@ int Statistics::l0Writes()              {return IPKCache::numWrites();}
 int Statistics::l1Reads()               {return MemoryBank::numReads();}
 int Statistics::l1Writes()              {return MemoryBank::numWrites();}
 
-int Statistics::cyclesActive(const ComponentID& core)  {return Stalls::cyclesActive(core);}
-int Statistics::cyclesIdle(const ComponentID& core)    {return Stalls::cyclesIdle(core);}
-int Statistics::cyclesStalled(const ComponentID& core) {return Stalls::cyclesStalled(core);}
+int Statistics::cyclesActive(int core)  {
+  uint tile = core / NUM_COMPUTE_TILES;
+  uint tileX = tile % COMPUTE_TILE_COLUMNS;
+  uint tileY = tile / COMPUTE_TILE_COLUMNS;
+  uint position = core % NUM_COMPUTE_TILES;
+  return Stalls::cyclesActive(ComponentID(tileX, tileY, position));
+}
+
+int Statistics::cyclesIdle(int core)    {
+  uint tile = core / NUM_COMPUTE_TILES;
+  uint tileX = tile % COMPUTE_TILE_COLUMNS;
+  uint tileY = tile / COMPUTE_TILE_COLUMNS;
+  uint position = core % NUM_COMPUTE_TILES;
+  return Stalls::cyclesIdle(ComponentID(tileX, tileY, position));
+}
+
+int Statistics::cyclesStalled(int core) {
+  uint tile = core / NUM_COMPUTE_TILES;
+  uint tileX = tile % COMPUTE_TILE_COLUMNS;
+  uint tileY = tile / COMPUTE_TILE_COLUMNS;
+  uint position = core % NUM_COMPUTE_TILES;
+  return Stalls::cyclesStalled(ComponentID(tileX, tileY, position));
+}

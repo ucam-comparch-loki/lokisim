@@ -13,7 +13,7 @@
 
 #include <vector>
 
-#include "../../Datatype/ComponentID.h"
+#include "../../Datatype/Identifier.h"
 
 using std::vector;
 

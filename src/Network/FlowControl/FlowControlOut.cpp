@@ -50,27 +50,27 @@ void FlowControlOut::sendData() {
 }
 
 void FlowControlOut::handleNewData() {
-  if (iData.read().portClaim()) {
-    // This message is allowed to send even if we have no credits
-    // because it is not buffered -- it is immediately consumed to store
-    // the return address at the destination.
-
-    if (DEBUG) cout << "Sending port claim from " << channel << " to "
-                    << iData.read().channelID() << endl;
-  }
-  else {
-    if (creditCount <= 0) {  // We are not able to send the new data yet.
-      if (DEBUG) cout << "Can't send from " << channel << ": no credits." << endl;
-
-      // Wait until we receive a credit.
-      state = WAITING_FOR_CREDITS;
-      next_trigger(iCredit.default_event());
-    }
-    else {
-      sendData();
-      next_trigger(iData.default_event());
-    }
-  }
+//  if (iData.read().portClaim()) {
+//    // This message is allowed to send even if we have no credits
+//    // because it is not buffered -- it is immediately consumed to store
+//    // the return address at the destination.
+//
+//    if (DEBUG) cout << "Sending port claim from " << channel << " to "
+//                    << iData.read().channelID() << endl;
+//  }
+//  else {
+//    if (creditCount <= 0) {  // We are not able to send the new data yet.
+//      if (DEBUG) cout << "Can't send from " << channel << ": no credits." << endl;
+//
+//      // Wait until we receive a credit.
+//      state = WAITING_FOR_CREDITS;
+//      next_trigger(iCredit.default_event());
+//    }
+//    else {
+//      sendData();
+//      next_trigger(iData.default_event());
+//    }
+//  }
 }
 
 void FlowControlOut::receivedCredit() {

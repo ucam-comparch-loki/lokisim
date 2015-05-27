@@ -26,20 +26,26 @@ void Directory::setBitmaskLSB(unsigned int lsb) {
   shiftAmount = lsb;
 }
 
-void Directory::setEntry(unsigned int entry, unsigned int tile) {
-  assert(tile < NUM_TILES);
+void Directory::setEntry(unsigned int entry, TileIndex tile) {
+  uint column = (tile >> 3) & 7;
+  uint row = tile & 7;
+  assert(column < TOTAL_TILE_COLUMNS);
+  assert(row < TOTAL_TILE_ROWS);
   assert(entry < directory.size());
 
   directory[entry] = tile;
 }
 
-void Directory::initialise(unsigned int tile) {
-  assert(tile < NUM_TILES);
+void Directory::initialise(TileIndex tile) {
+  uint column = (tile >> 3) & 7;
+  uint row = tile & 7;
+  assert(column < TOTAL_TILE_COLUMNS);
+  assert(row < TOTAL_TILE_ROWS);
 
   directory.assign(directory.size(), tile);
 }
 
-unsigned int Directory::getTile(MemoryAddr address) const {
+TileID Directory::getTile(MemoryAddr address) const {
   unsigned int entry = (address >> shiftAmount) & bitmask;
-  return directory[entry];
+  return TileID(directory[entry]);
 }

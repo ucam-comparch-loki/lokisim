@@ -15,10 +15,11 @@
 #include <vector>
 #include "Typedefs.h"
 
-#include "Datatype/ComponentID.h"
+#include "Datatype/Identifier.h"
 
 #include "Utility/LokiVector.h"
 #include "Utility/LokiVector2D.h"
+#include "Utility/LokiVector3D.h"
 #include "Utility/Parameters.h"
 
 using sc_core::sc_in;

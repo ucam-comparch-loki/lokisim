@@ -10,48 +10,48 @@
 #include "LocalNetwork.h"
 
 void LocalNetwork::makeRequest(ComponentID source, ChannelID destination, bool request) {
-  if (destination.isMulticast())
+  if (destination.multicast)
     multicastRequest(source, destination, request);
   else
     pointToPointRequest(source, destination, request);
 }
 
 void LocalNetwork::multicastRequest(ComponentID source, ChannelID destination, bool request) {
-  assert(destination.isMulticast());
+  assert(destination.multicast);
 
   // For multicast addresses, instead of a component ID, we have a bitmask of
   // cores in this tile which should receive the data.
-  unsigned int bitmask = destination.getPosition();
+  unsigned int bitmask = destination.coremask;
 
   // Loop through all bits in the bitmask, and send a request for each bit set.
   for (uint i=0; i<CORES_PER_TILE; i++) {
     if ((bitmask >> i) & 1) {
-      ChannelID core(destination.getTile(), i, destination.getChannel());
+      ChannelID core(id.tile.x, id.tile.y, i, destination.channel);
       pointToPointRequest(source, core, request);
     }
   }
 }
 
 void LocalNetwork::pointToPointRequest(ComponentID source, ChannelID destination, bool request) {
-  assert(!destination.isMulticast());
+  assert(!destination.multicast);
 
   // Find out which signal to write the request to.
   ArbiterRequestSignal *requestSignal;
 
   if (!source.isCore()) {                             // Memory/global to core
     assert(destination.isCore());
-    requestSignal = &coreRequests[source.getPosition()][destination.getPosition()];
+    requestSignal = &coreRequests[source.position][destination.component.position];
   }
   else {
     if (destination.isMemory())                       // Core to memory
-      requestSignal = &memRequests[source.getPosition()][destination.getPosition()-CORES_PER_TILE];
+      requestSignal = &memRequests[source.position][destination.component.position-CORES_PER_TILE];
     else                                              // Core to core
-      requestSignal = &coreRequests[source.getPosition()][destination.getPosition()];
+      requestSignal = &coreRequests[source.position][destination.component.position];
   }
 
   // Send the request.
   if (request)
-    requestSignal->write(destination.getChannel());
+    requestSignal->write(destination.channel);
   else
     requestSignal->write(NO_REQUEST);
 }
@@ -60,20 +60,20 @@ bool LocalNetwork::requestGranted(ComponentID source, ChannelID destination) con
   // Multicast requests are treated specially: they are allowed onto the
   // network immediately, and then all arbiters select the data at their own
   // pace.
-  if (destination.isMulticast())
+  if (destination.multicast)
     return true;
 
   ArbiterGrantSignal   *grantSignal;
 
   if (!source.isCore()) {                             // Memory/global to core
     assert(destination.isCore());
-    grantSignal   = &coreGrants[source.getPosition()][destination.getPosition()];
+    grantSignal   = &coreGrants[source.position][destination.component.position];
   }
   else {
     if (destination.isMemory())                       // Core to memory
-      grantSignal   = &memGrants[source.getPosition()][destination.getPosition()-CORES_PER_TILE];
+      grantSignal   = &memGrants[source.position][destination.component.position-CORES_PER_TILE];
     else                                              // Core to core
-      grantSignal   = &coreGrants[source.getPosition()][destination.getPosition()];
+      grantSignal   = &coreGrants[source.position][destination.component.position];
   }
 
   return grantSignal->read();

@@ -9,7 +9,7 @@
 #include "../InstructionMap.h"
 #include "../Instrumentation.h"
 #include "../Trace/Callgrind.h"
-#include "../../Datatype/ComponentID.h"
+#include "../../Datatype/Identifier.h"
 #include "../../Datatype/DecodedInst.h"
 
 using namespace Instrumentation;
@@ -28,17 +28,17 @@ count_t Operations::hdIn2 = 0;
 count_t Operations::hdOut = 0;
 count_t Operations::sameOp = 0;
 
-CounterMap<ComponentID> Operations::numOps_;
+CounterMap<CoreIndex> Operations::numOps_;
 count_t Operations::numDecodes_ = 0;
-CounterMap<ComponentID> Operations::numMemLoads;
-CounterMap<ComponentID> Operations::numMergedMemLoads;
-CounterMap<ComponentID> Operations::numMemStores;
-CounterMap<ComponentID> Operations::numChanReads;
-CounterMap<ComponentID> Operations::numMergedChanReads; // i.e. packed with a useful instruction
-CounterMap<ComponentID> Operations::numChanWrites;
-CounterMap<ComponentID> Operations::numMergedChanWrites;
-CounterMap<ComponentID> Operations::numArithOps;
-CounterMap<ComponentID> Operations::numCondOps;
+CounterMap<CoreIndex> Operations::numMemLoads;
+CounterMap<CoreIndex> Operations::numMergedMemLoads;
+CounterMap<CoreIndex> Operations::numMemStores;
+CounterMap<CoreIndex> Operations::numChanReads;
+CounterMap<CoreIndex> Operations::numMergedChanReads; // i.e. packed with a useful instruction
+CounterMap<CoreIndex> Operations::numChanWrites;
+CounterMap<CoreIndex> Operations::numMergedChanWrites;
+CounterMap<CoreIndex> Operations::numArithOps;
+CounterMap<CoreIndex> Operations::numCondOps;
 
 
 void Operations::init() {
@@ -62,11 +62,18 @@ void Operations::decoded(const ComponentID& core, const DecodedInst& dec) {
 }
 
 void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool executed) {
+  CoreIndex coreID = core.globalCoreNumber();
+
   // Always increase numOps - this is used to determine if we're making progress.
-  numOps_.increment(core);
+  numOps_.increment(coreID);
 
   if (Callgrind::acceptingData())
     Callgrind::instructionExecuted(core, dec.location(), Instrumentation::currentCycle());
+
+  // Want to keep track of the number of operations so we can tell if we're
+  // making progress, but only want the rest of the data when we ask for it.
+  if (!ENERGY_TRACE)
+    return;
 
   if (!executed) {
     unexecuted++;
@@ -80,8 +87,6 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
     executedFns.increment(dec.function());
 
   if (ENERGY_TRACE && dec.isExecuteStageOperation()) {
-    int coreID = core.getGlobalCoreNumber();
-
     hdIn1 += hammingDistance(dec.operand1(), lastIn1[coreID]);
     hdIn2 += hammingDistance(dec.operand2(), lastIn2[coreID]);
     hdOut += hammingDistance(dec.result(),   lastOut[coreID]);
@@ -99,13 +104,13 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
     case InstructionMap::OP_LDW:
     case InstructionMap::OP_LDHWU:
     case InstructionMap::OP_LDBU:
-      numMemLoads.increment(core);
+      numMemLoads.increment(coreID);
       break;
  
     case InstructionMap::OP_STW:
     case InstructionMap::OP_STHW:
     case InstructionMap::OP_STB:
-      numMemStores.increment(core);
+      numMemStores.increment(coreID);
       break;
 
     default:
@@ -113,23 +118,23 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
   }
  
   if (dec.sourceReg1() == 2 || dec.sourceReg2() == 2) {
-    numMemLoads.increment(core);
+    numMemLoads.increment(coreID);
     if (dec.function() != InstructionMap::FN_OR || dec.sourceReg2() != 0) {
-      numMergedMemLoads.increment(core);
+      numMergedMemLoads.increment(coreID);
     }
   }
 
   if (dec.sourceReg1() == 3 || dec.sourceReg2() == 3 || dec.sourceReg1() == 4 || dec.sourceReg2() == 4) {
-    numChanReads.increment(core);
+    numChanReads.increment(coreID);
     if (dec.function() != InstructionMap::FN_OR || dec.sourceReg2() != 0) {
-      numMergedChanReads.increment(core);
+      numMergedChanReads.increment(coreID);
     }
   }
 
   if (dec.channelMapEntry() == 2 || dec.channelMapEntry() == 3) {
-    numChanWrites.increment(core);
+    numChanWrites.increment(coreID);
     if (dec.function() != InstructionMap::FN_OR || dec.sourceReg1() == 2 || dec.sourceReg2() == 2) {
-      numMergedChanWrites.increment(core);
+      numMergedChanWrites.increment(coreID);
     }
   }
  
@@ -137,9 +142,9 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
     case 0:
     case 1:
       if ((dec.function() < InstructionMap::FN_SETEQ) || (dec.function() > InstructionMap::FN_SETGTEU)) {
-        numArithOps.increment(core);
+        numArithOps.increment(coreID);
       } else {
-        numCondOps.increment(core);
+        numCondOps.increment(coreID);
       }
       break;
     case InstructionMap::OP_NORI:
@@ -159,7 +164,7 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
     case InstructionMap::OP_MULHW:
     case InstructionMap::OP_MULLW:
     case InstructionMap::OP_MULHWU:
-      numArithOps.increment(core);
+      numArithOps.increment(coreID);
       break;
 
     case InstructionMap::OP_SETEQI:
@@ -177,7 +182,7 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
     case InstructionMap::OP_PSEL:
     case InstructionMap::OP_PSEL_FETCH:
     case InstructionMap::OP_PSEL_FETCHR:
-      numCondOps.increment(core);
+      numCondOps.increment(coreID);
       break;
 
     default:
@@ -189,7 +194,7 @@ count_t Operations::numDecodes()               {return numDecodes_;}
 count_t Operations::numOperations()            {return numOps_.numEvents();}
 
 count_t Operations::numOperations(const ComponentID& core) {
-  return numOps_[core];
+  return numOps_[core.globalCoreNumber()];
 }
 
 count_t Operations::numOperations(opcode_t op, function_t function) {

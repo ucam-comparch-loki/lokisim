@@ -281,17 +281,18 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   // done this way.
   output = input;
 
-  // If we are in remote execution mode, and this instruction is marked, send it.
-  if (sendChannel != Instruction::NO_CHANNEL) {
-    if (input.predicate() == Instruction::P) {
-      remoteExecution(output);
-      return true;
-    }
-    // Drop out of remote execution mode when we find an unmarked instruction.
-    else {
-      sendChannel = Instruction::NO_CHANNEL;
+  // If we are in remote execution mode, send this instruction without
+  // executing it.
+  if (rmtexecuteChannel != Instruction::NO_CHANNEL) {
+    remoteExecution(output);
+
+    // Drop out of remote execution mode at the end of the packet.
+    if (input.endOfIPK()) {
+      rmtexecuteChannel = Instruction::NO_CHANNEL;
       if (DEBUG) cout << this->name() << " ending remote execution" << endl;
     }
+
+    return true;
   }
 
   // Determine if this instruction should execute. This may require waiting for
@@ -302,7 +303,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
   Instrumentation::decoded(id, input);
 
-  CoreTrace::decodeInstruction(id.getPosition(), input.location(), input.endOfIPK());
+  CoreTrace::decodeInstruction(id.position, input.location(), input.endOfIPK());
 
   if (Arguments::lbtTrace()) {
 	LBTTrace::LBTOperationType opType;
@@ -422,12 +423,6 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     case InstructionMap::OP_LDW:
       output.memoryOp(MemoryRequest::LOAD_W); break;
     case InstructionMap::OP_LDHWU:
-      // FIXME: horrible hack - artificial memory latency for load-throughs.
-      /*if (input.channelMapEntry() == 2) {
-        blocked = true; blockedEvent.notify();
-        wait(MEMORY_ON_CHIP_SCRATCHPAD_DELAY, sc_core::SC_NS);
-        blocked = false; blockedEvent.notify();
-      }*/
       output.memoryOp(MemoryRequest::LOAD_HW); break;
     case InstructionMap::OP_LDBU:
       output.memoryOp(MemoryRequest::LOAD_B); break;
@@ -451,6 +446,27 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
         output.memoryOp(MemoryRequest::STORE_B);
       break;
     }
+
+    case InstructionMap::OP_LDL:
+      output.memoryOp(MemoryRequest::LOAD_LINKED); break;
+    case InstructionMap::OP_STC:
+      multiCycleOp = true;
+      output.memoryOp(MemoryRequest::STORE_CONDITIONAL); break;
+    case InstructionMap::OP_LDADD:
+      multiCycleOp = true;
+      output.memoryOp(MemoryRequest::LOAD_AND_ADD); break;
+    case InstructionMap::OP_LDOR:
+      multiCycleOp = true;
+      output.memoryOp(MemoryRequest::LOAD_AND_OR); break;
+    case InstructionMap::OP_LDAND:
+      multiCycleOp = true;
+      output.memoryOp(MemoryRequest::LOAD_AND_AND); break;
+    case InstructionMap::OP_LDXOR:
+      multiCycleOp = true;
+      output.memoryOp(MemoryRequest::LOAD_AND_XOR); break;
+    case InstructionMap::OP_EXCHANGE:
+      multiCycleOp = true;
+      output.memoryOp(MemoryRequest::EXCHANGE); break;
 
     case InstructionMap::OP_IRDR:
       multiCycleOp = true;
@@ -481,7 +497,19 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     // wouldn't allow data forwarding).
     case InstructionMap::OP_LUI: output.sourceReg1(output.destination()); break;
 
-    case InstructionMap::OP_WOCHE: output.result(output.immediate()); break;
+    // Pause execution until the specified channel has at least the given
+    // number of credits.
+    case InstructionMap::OP_WOCHE: {
+      uint targetCredits = output.immediate();
+      ChannelMapEntry& cme = parent()->channelMapTableEntry(output.channelMapEntry());
+      while (!cme.haveNCredits(targetCredits)) {
+        stall(true, Instrumentation::Stalls::STALL_OUTPUT, output);
+        wait(cme.creditArrivedEvent());
+      }
+      stall(false, Instrumentation::Stalls::STALL_OUTPUT, output);
+      continueToExecute = false;
+      break;
+    }
 
     case InstructionMap::OP_TSTCHI:
     case InstructionMap::OP_TSTCHI_P:
@@ -508,7 +536,8 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     }
 
     case InstructionMap::OP_RMTEXECUTE: {
-      sendChannel = output.channelMapEntry();
+      rmtexecuteChannel = output.channelMapEntry();
+      rmtexecuteCMT = output.cmtEntry();
 
       if (DEBUG)
         cout << this->name() << " beginning remote execution" << endl;
@@ -654,7 +683,7 @@ void Decoder::waitForOperands2(const DecodedInst& inst) {
 
   // Hack: simulate a bypass path in the channel map table here. Bypassing is
   // awkward to implement efficiently in SystemC.
-  if (needChannel && inst.networkDestination() != Instruction::NO_CHANNEL) {
+  if (needChannel && inst.channelMapEntry() != Instruction::NO_CHANNEL) {
     needChannel = false;
     if ((previous.opcode() == InstructionMap::OP_SETCHMAP ||
          previous.opcode() == InstructionMap::OP_SETCHMAPI)  &&
@@ -727,12 +756,10 @@ void Decoder::remoteExecution(DecodedInst& instruction) const {
   // have been decoded yet, so there would be no extra work here.
   Instruction encoded = instruction.toInstruction();
 
-  // Set the instruction to always execute
-  encoded.predicate(Instruction::END_OF_PACKET);
-
   // The data to be sent is the instruction itself.
   instruction.result(encoded.toLong());
-  instruction.channelMapEntry(sendChannel);
+  instruction.channelMapEntry(rmtexecuteChannel);
+  instruction.cmtEntry(rmtexecuteCMT);
 
   // Prevent other stages from trying to execute this instruction.
   instruction.predicate(Instruction::ALWAYS);
@@ -907,7 +934,8 @@ Decoder::Decoder(const sc_module_name& name, const ComponentID& ID) :
   needOperand2 = false;
   needChannel = false;
 
-  sendChannel = Instruction::NO_CHANNEL;
+  rmtexecuteChannel = Instruction::NO_CHANNEL;
+  rmtexecuteCMT = 0;
   multiCycleOp = false;
   blocked = false;
   instructionCancelled = false;

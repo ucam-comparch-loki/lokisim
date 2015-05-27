@@ -8,12 +8,11 @@
 #include "Network.h"
 #include "../Parameters.h"
 #include "../../Datatype/Flit.h"
-#include "../../Datatype/ComponentID.h"
 
 using namespace Instrumentation;
 
-CounterMap<ComponentID> Network::producers;
-CounterMap<ComponentID> Network::consumers;
+CounterMap<ComponentIndex> Network::producers;
+CounterMap<ComponentIndex> Network::consumers;
 count_t Network::arbitrations = 0;
 count_t Network::arbiters = 0;
 count_t Network::xbarInHD = 0;
@@ -24,14 +23,14 @@ count_t Network::mcastRepeatHD = 0;
 count_t Network::globalHD = 0;
 
 void Network::traffic(const ComponentID& startID, const ComponentID& endID) {
-  producers.increment(startID);
-  consumers.increment(endID);
+  producers.increment(startID.globalComponentNumber());
+  consumers.increment(endID.globalComponentNumber());
 }
 
 void Network::crossbarInput(const NetworkData& oldData, const NetworkData& newData,
                             const PortIndex input) {
   uint hamming = hammingDistance(oldData, newData);
-  uint destinationPort = newData.channelID().getPosition();
+  uint destinationPort = newData.channelID().component.position;
 
   // Cores and memories are on different networks, so adjust the position of
   // memories to account for this.
@@ -71,18 +70,21 @@ void Network::printStats() {
 	cout << "<@GLOBAL>network_words:" << producers.numEvents() << "</@GLOBAL>" << endl;
   }
 
-  if(producers.numEvents() > 0) {
+  if (producers.numEvents() > 0) {
     cout <<
       "Network:" << endl <<
       "  Total words sent: " << producers.numEvents() << "\n" <<
       "  Traffic distribution:\n" <<
       "    Component\tProduced\tConsumed\n";
 
-    for(uint i=0; i<NUM_COMPUTE_TILES; i++) {
-      for(uint j=0; i<COMPONENTS_PER_TILE; i++) {
-        ComponentID id(i, j);
-        if(producers[id]>0 || consumers[id]>0)
-          cout <<"    "<< i <<"\t\t"<< producers[i] <<"\t\t"<< consumers[i] <<"\n";
+    for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
+      for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
+        for (uint component=0; component<COMPONENTS_PER_TILE; component++) {
+          ComponentID id(col, row, component);
+          ComponentIndex index = id.globalComponentNumber();
+          if (producers[index]>0 || consumers[index]>0)
+            cout <<"    "<< id <<"\t\t"<< producers[index] <<"\t\t"<< consumers[index] <<"\n";
+        }
       }
     }
   }

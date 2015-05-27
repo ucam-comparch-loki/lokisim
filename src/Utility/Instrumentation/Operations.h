@@ -10,7 +10,7 @@
 
 #include "InstrumentationBase.h"
 #include "CounterMap.h"
-#include "../../Datatype/ComponentID.h"
+#include "../../Datatype/Identifier.h"
 #include "../../Datatype/DecodedInst.h"
 
 namespace Instrumentation {
@@ -35,15 +35,15 @@ public:
   static void printSummary();
   static void dumpEventCounts(std::ostream& os);
 
-  static CounterMap<ComponentID> numMemLoads;
-  static CounterMap<ComponentID> numMergedMemLoads;
-  static CounterMap<ComponentID> numMemStores;
-  static CounterMap<ComponentID> numChanReads;
-  static CounterMap<ComponentID> numMergedChanReads; // i.e. packed with a useful instruction
-  static CounterMap<ComponentID> numChanWrites;
-  static CounterMap<ComponentID> numMergedChanWrites;
-  static CounterMap<ComponentID> numArithOps;
-  static CounterMap<ComponentID> numCondOps;
+  static CounterMap<CoreIndex> numMemLoads;
+  static CounterMap<CoreIndex> numMergedMemLoads;
+  static CounterMap<CoreIndex> numMemStores;
+  static CounterMap<CoreIndex> numChanReads;
+  static CounterMap<CoreIndex> numMergedChanReads; // i.e. packed with a useful instruction
+  static CounterMap<CoreIndex> numChanWrites;
+  static CounterMap<CoreIndex> numMergedChanWrites;
+  static CounterMap<CoreIndex> numArithOps;
+  static CounterMap<CoreIndex> numCondOps;
 
 private:
 
@@ -60,7 +60,7 @@ private:
   static count_t hdIn1, hdIn2, hdOut, sameOp;
 
   // Is there a difference between numOps and numDecodes?
-  static CounterMap<ComponentID> numOps_;
+  static CounterMap<CoreIndex> numOps_;
   static count_t numDecodes_;
 
 };

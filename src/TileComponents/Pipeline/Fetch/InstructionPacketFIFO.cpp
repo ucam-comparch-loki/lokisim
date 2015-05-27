@@ -46,7 +46,7 @@ void InstructionPacketFIFO::write(const Instruction inst) {
 
   finishedPacketWrite = inst.endOfPacket();
   if (finishedPacketWrite)
-    parent()->packetFinishedArriving();
+    parent()->packetFinishedArriving(IPKFIFO);
 }
 
 CacheIndex InstructionPacketFIFO::lookup(MemoryAddr tag) {
@@ -125,6 +125,8 @@ InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
     fifo(IPK_FIFO_SIZE, std::string(name)),
     addresses(IPK_FIFO_SIZE, DEFAULT_TAG) {
 
+  tag = DEFAULT_TAG;
+
   lastReadAddr = 0;
   lastWriteAddr = 0;
 
@@ -132,6 +134,7 @@ InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
   finishedPacketWrite = true;
 
   tagMatched = false;
+  startOfPacket = NOT_IN_CACHE;
 
   SC_METHOD(receivedInst);
   sensitive << iInstruction;

@@ -66,7 +66,7 @@ PortIndex MulticastBus::getDestinations(const ChannelID& address) const {
   // In practice, we would probably only allow multicast addresses, but
   // allowing both options for the moment makes testing easier.
 
-  if(level == COMPONENT && address.isMulticast()) {
+  if(level == COMPONENT && address.multicast) {
     // The address is already correctly encoded.
     return getDestination(address);
   }

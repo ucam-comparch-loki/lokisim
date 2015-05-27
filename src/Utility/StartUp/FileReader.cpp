@@ -23,8 +23,8 @@ using std::endl;
 
 vector<string> FileReader::filesToLink;
 vector<string> FileReader::tempFiles;
-string         FileReader::linkedFile;
-bool           FileReader::foundAsmFile = false;
+string FileReader::linkedFile;
+bool FileReader::foundAsmFile = false;
 
 const int BACKGROUND_MEMORY = -1;
 
@@ -43,35 +43,33 @@ void FileReader::printInstruction(Instruction i, MemoryAddr address) {
   cout.fill(' ');
 }
 
-FileReader* FileReader::makeFileReader(const vector<string>& words, bool customAppLoader) {
+FileReader* FileReader::makeFileReader(const vector<string>& words,
+    bool customAppLoader) {
   FileReader* reader;
 
   // Some sensible defaults.
   string filename = words[0];
-  int component   = BACKGROUND_MEMORY;
-  int position    = 0x1000;
+  int component = BACKGROUND_MEMORY;
+  int position = 0x1000;
 
-  if(words.size() == 1) {
+  if (words.size() == 1) {
     // Assume that we want the code to go into the background memory and that
     // the first core should execute it.
 
     // Defaults are fine.
-  }
-  else if(words.size() == 2 && words[0] == "apploader") {
+  } else if (words.size() == 2 && words[0] == "apploader") {
     component = 0;
-    position  = 0;
-    filename  = words[1];
-  }
-  else if(words.size() == 2) {
+    position = 0;
+    filename = words[1];
+  } else if (words.size() == 2) {
     component = StringManipulation::strToInt(words[1]);
-  }
-  else if(words.size() == 3) {
+  } else if (words.size() == 3) {
     component = StringManipulation::strToInt(words[1]);
-    position  = StringManipulation::strToInt(words[2]);
-  }
-  else {
+    position = StringManipulation::strToInt(words[2]);
+  } else {
     cerr << "Error: invalid loader file line:\n  ";
-    for(unsigned int i=0; i<words.size(); i++) cerr << words[i] << " ";
+    for (unsigned int i = 0; i < words.size(); i++)
+      cerr << words[i] << " ";
     cerr << endl;
 
     tidy();
@@ -79,7 +77,7 @@ FileReader* FileReader::makeFileReader(const vector<string>& words, bool customA
   }
 
   // Make sure file exists.
-  if(!exists(filename)) {
+  if (!exists(filename)) {
     cerr << "Error: could not find input file " << filename << endl;
     tidy();
     throw std::exception();
@@ -92,30 +90,31 @@ FileReader* FileReader::makeFileReader(const vector<string>& words, bool customA
 
   // If we found two dots in a row, we didn't find the file extension.
   // Similarly if we've found "./filename"
-  if(filename[dotPos-1] == '.' || filename[dotPos+1] == '/') {
+  if (filename[dotPos - 1] == '.' || filename[dotPos + 1] == '/') {
     name = filename;
     extension = "";
-  }
-  else {
+  } else {
     name = filename.substr(0, dotPos);
-    extension = filename.substr(dotPos+1);
+    extension = filename.substr(dotPos + 1);
   }
 
-  ComponentID id;
-  if(component != BACKGROUND_MEMORY) id = ComponentID(component/COMPONENTS_PER_TILE,
-                                                      component%COMPONENTS_PER_TILE);
+  ComponentID id(0,0,0);
+  if (component != BACKGROUND_MEMORY) {
+    uint tile = component / COMPONENTS_PER_TILE;
+    uint tileX = (tile % COMPUTE_TILE_COLUMNS) + 1;
+    uint tileY = (tile / COMPUTE_TILE_COLUMNS) + 1;
+    uint position = component % COMPONENTS_PER_TILE;
+    id = ComponentID(tileX, tileY, position);
+  }
 
-  if(extension == "" || extension == name) {
+  if (extension == "" || extension == name) {
     filesToLink.push_back(name);
     reader = NULL;
-  }
-  else if(extension == "loki") {
+  } else if (extension == "loki") {
     reader = new LokiFileReader(filename, id, position);
-  }
-  else if(extension == "data") {
+  } else if (extension == "data") {
     reader = new DataFileReader(filename, id, position);
-  }
-  else if(extension == "s") {
+  } else if (extension == "s") {
     string asmFile, elfFile;
 
     // Add a salt to temporary filenames so there aren't conflicts if multiple
@@ -133,25 +132,24 @@ FileReader* FileReader::makeFileReader(const vector<string>& words, bool customA
     string makeELF = "loki-elf-as " + asmFile + " -o " + elfFile;
 
     int returnCode = system(makeELF.c_str());
-    if(returnCode != 0) {
-      cerr << "Error: unable to assemble file using command:\n  " << makeELF << endl;
+    if (returnCode != 0) {
+      cerr << "Error: unable to assemble file using command:\n  " << makeELF
+          << endl;
       tidy();
       throw std::exception();
     }
 
     deleteFile(asmFile);
 
-    if(component == BACKGROUND_MEMORY) {
+    if (component == BACKGROUND_MEMORY) {
       filesToLink.push_back(elfFile);
       tempFiles.push_back(elfFile);
       foundAsmFile = true;
       reader = NULL;
-    }
-    else {
+    } else {
       reader = new ELFFileReader(elfFile, component, component, 0);
     }
-  }
-  else {
+  } else {
     // Assume the dot was just part of the filename/path
     filesToLink.push_back(filename);
     reader = NULL;
@@ -164,17 +162,19 @@ FileReader* FileReader::makeFileReader(const vector<string>& words, bool customA
 }
 
 FileReader* FileReader::linkFiles() {
-  switch(filesToLink.size()) {
-    case 0: return NULL;
+  switch (filesToLink.size()) {
+    case 0:
+      return NULL;
     case 1: {
       // Don't need to link a single ELF file.
-      if(!foundAsmFile) return new ELFFileReader(filesToLink[0], ComponentID(),
-                                                 ComponentID(0, 0), 0x1000);
+      if (!foundAsmFile)
+        return new ELFFileReader(filesToLink[0], ComponentID(2,0,0),
+            ComponentID(1, 1, 0), 0x1000);
       // Else, if an assembly file was found, drop through to the "default" and
       // invoke the linker. This will ensure the code is put in the correct
       // position in memory.
     }
-    // no break
+      // no break
     default: {
       string directory = Config::getAttribute("lokiprefix",
           "location of lokiprefix (compilation tools)") + "/loki-elf/lib";
@@ -182,9 +182,10 @@ FileReader* FileReader::linkFiles() {
       string fullpath = directory + "/" + library;
 
       // Make sure the linking library exists.
-      if(!exists(fullpath)) {
+      if (!exists(fullpath)) {
         // The location could be wrong: ask the user to try again?
-        cerr << "Error: FileReader unable to access linker:\n  " << fullpath << endl;
+        cerr << "Error: FileReader unable to access linker:\n  " << fullpath
+            << endl;
         tidy();
         throw std::exception();
       }
@@ -195,7 +196,7 @@ FileReader* FileReader::linkFiles() {
       linkedFile = filesToLink.back() + "_linked";  // Output file
       command += linkedFile + " ";
 
-      for(unsigned int i=0; i<filesToLink.size(); i++) {
+      for (unsigned int i = 0; i < filesToLink.size(); i++) {
         command += filesToLink[i] + " ";
       }
 
@@ -204,15 +205,17 @@ FileReader* FileReader::linkFiles() {
 
       // Execute the command.
       int returnCode = system(command.c_str());
-      if(returnCode != 0) {
-        cerr << "Error: unable to link files using command:\n  " << command << endl;
+      if (returnCode != 0) {
+        cerr << "Error: unable to link files using command:\n  " << command
+            << endl;
         linkedFile = "";
         tidy();
         throw std::exception();
       }
 
       // Generate a FileReader for the output ELF file.
-      return new ELFFileReader(linkedFile, ComponentID(), ComponentID(0, 0), 0x1000);
+      return new ELFFileReader(linkedFile, ComponentID(2,0,0), ComponentID(1,1,0),
+          0x1000);
     }
   }
 }
@@ -225,12 +228,13 @@ bool FileReader::exists(const string& filename) {
  * kept tidy. There is no point in keeping them because they will be re-made
  * next time the simulator is run. */
 void FileReader::tidy() {
-  for(unsigned int i=0; i<tempFiles.size(); i++) {
+  for (unsigned int i = 0; i < tempFiles.size(); i++) {
     deleteFile(tempFiles[i]);
   }
 
   // Might like to keep this one so the linker isn't needed?
-  if(linkedFile != string()) deleteFile(linkedFile);
+  if (linkedFile != string())
+    deleteFile(linkedFile);
 }
 
 /* Perform some small parameter-dependent transformations on the assembly
@@ -241,7 +245,7 @@ void FileReader::translateAssembly(string& infile, string& outfile) {
 
   char line[200];   // An array of chars to load a line from the file into.
 
-  while(!in.fail()) {
+  while (!in.fail()) {
     in.getline(line, 200);
 
     try {
@@ -251,8 +255,7 @@ void FileReader::translateAssembly(string& infile, string& outfile) {
       std::stringstream ss;
       ss << i;
       out << "\t" << ss.rdbuf()->str() << "\n";
-    }
-    catch(std::exception& e) {
+    } catch (std::exception& e) {
       // If we couldn't make an instruction, just copy the line across.
       // It may be a label or some other important line.
       out << line << "\n";
@@ -265,14 +268,13 @@ void FileReader::translateAssembly(string& infile, string& outfile) {
 
 void FileReader::deleteFile(string& filename) {
   int failure = remove(filename.c_str());
-  if(failure) cerr << "Warning: unable to delete temporary file "
-                   << filename << endl;
+  if (failure)
+    cerr << "Warning: unable to delete temporary file " << filename << endl;
 }
 
-FileReader::FileReader(const string& filename, const ComponentID& component, const MemoryAddr position) :
-    filename_(filename),
-    componentID_(component),
-    position_(position) {
+FileReader::FileReader(const string& filename, const ComponentID& component,
+    const MemoryAddr position) :
+    filename_(filename), componentID_(component), position_(position) {
 
   // Do nothing
 

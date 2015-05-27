@@ -18,19 +18,14 @@
 #ifndef GENERALPURPOSECACHEHANDLER_H_
 #define GENERALPURPOSECACHEHANDLER_H_
 
-#include "../../Typedefs.h"
-
+#include "AbstractMemoryHandler.h"
 #include "SimplifiedOnChipScratchpad.h"
 
-class GeneralPurposeCacheHandler {
+class GeneralPurposeCacheHandler : public AbstractMemoryHandler {
 private:
 	//---------------------------------------------------------------------------------------------
 	// Configuration parameters
 	//---------------------------------------------------------------------------------------------
-
-	uint mSetCount;							// Number of sets in general purpose cache mode
-	uint mWayCount;							// Number of ways in general purpose cache mode
-	uint mLineSize;							// Size of lines (for cache management and data interleaving)
 
 	bool cRandomReplacement;				// Replace random cache lines (instead of using ideal LRU scheme)
 
@@ -38,7 +33,7 @@ private:
 	// State
 	//---------------------------------------------------------------------------------------------
 
-	uint32_t *mData;						// Data words stored in the cache
+//	uint32_t *mData;						// Data words stored in the cache
 	uint32_t *mAddresses;					// Cache tags associated with cache lines (full addresses in the model for simplicity reasons)
 	bool *mLineValid;						// Flags indicating whether a particular cache line holds valid data
 	bool *mLineDirty;						// Flags indicating whether a particular cache line is modified
@@ -51,43 +46,37 @@ private:
 	uint mSetMask;							// Bit mask to extract set index from address
 	uint mSetShift;							// Shift count to align extracted set index
 
-	uint mLineBits;							// Number of line bits - log2(line size)
-	uint32_t mLineMask;						// Bit mask used to extract line bits
-
-	uint mGroupIndex;						// Relative index of bank within group (off by one)
-	uint mGroupBits;						// Number of group bits - log2(group size)
-	uint32_t mGroupMask;					// Bit mask used to extract group bits
-
-	uint mBankNumber;						// Bank number for statistics use
   SimplifiedOnChipScratchpad *mBackgroundMemory; // Lowest level cache for debug use
+
+  bool mL2Mode;               // Whether this bank is acting as an L1 or L2 cache.
 
 	//---------------------------------------------------------------------------------------------
 	// Internal functions
 	//---------------------------------------------------------------------------------------------
 
-	uint log2Exact(uint value);
-	bool lookupCacheLine(uint32_t address, uint &slot, bool resume, bool read, bool instruction);
+	bool lookupCacheLine(MemoryAddr address, uint &slot, bool resume, bool read, bool instruction);
 	void promoteCacheLine(uint slot);
 
 public:
 	GeneralPurposeCacheHandler(uint bankNumber);
 	~GeneralPurposeCacheHandler();
 
-	void activate(uint groupIndex, uint groupSize, uint wayCount, uint lineSize);
+	virtual void activate(const MemoryConfig& config);
+	void activateL2(const MemoryConfig& config);
 
-	bool containsAddress(uint32_t address);
-	bool sameLine(uint32_t address1, uint32_t address2);
+	virtual bool containsAddress(MemoryAddr address);
+	virtual bool sameLine(MemoryAddr address1, MemoryAddr address2);
 
-	bool readWord(uint32_t address, uint32_t &data, bool instruction, bool resume, bool debug, int core, int retCh);
-	bool readHalfWord(uint32_t address, uint32_t &data, bool resume, bool debug, int core, int retCh);
-	bool readByte(uint32_t address, uint32_t &data, bool resume, bool debug, int core, int retCh);
+	virtual bool readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug, int core, int retCh);
+	virtual bool readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug, int core, int retCh);
+	virtual bool readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug, int core, int retCh);
 
-	bool writeWord(uint32_t address, uint32_t data, bool resume, bool debug, int core, int retCh);
-	bool writeHalfWord(uint32_t address, uint32_t data, bool resume, bool debug, int core, int retCh);
-	bool writeByte(uint32_t address, uint32_t data, bool resume, bool debug, int core, int retCh);
+	virtual bool writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh);
+	virtual bool writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh);
+	virtual bool writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh);
 
-	void prepareCacheLine(uint32_t address, uint32_t &writeBackAddress, uint &writeBackCount, uint32_t writeBackData[], uint32_t &fetchAddress, uint &fetchCount);
-	void replaceCacheLine(uint32_t fetchAddress, uint32_t fetchData[]);
+	void prepareCacheLine(MemoryAddr address, MemoryAddr &writeBackAddress, uint &writeBackCount, uint32_t writeBackData[], uint32_t &fetchAddress, uint &fetchCount);
+	void replaceCacheLine(MemoryAddr fetchAddress, uint32_t fetchData[]);
 
 	void setBackgroundMemory(SimplifiedOnChipScratchpad *backgroundMemory);
 

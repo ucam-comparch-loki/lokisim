@@ -33,14 +33,16 @@ public:
   ClockInput   clock;
 
   // One input port from each component.
-  LokiVector<DataInput>    iData;
+  // Address using array[tile][component]
+  LokiVector2D<DataInput>  iData;
 
   // One output port to each component.
-  LokiVector<DataOutput>   oData;
+  // Address using array[tile][component].
+  LokiVector2D<DataOutput> oData;
 
   // One flow control signal from each input buffer of each component.
-  // Address using array[component][buffer].
-  LokiVector2D<ReadyInput> iReady;
+  // Address using array[tile][component][buffer].
+  LokiVector3D<ReadyInput> iReady;
 
 //==============================//
 // Constructors and destructors
@@ -48,11 +50,10 @@ public:
 
 public:
 
-  // components          = number of components to connect
-  // buffersPerComponent = input buffers (and flow control signals) at each component
   NetworkHierarchy2(const sc_module_name &name,
-                    const unsigned int    components,
-                    const unsigned int    buffersPerComponent);
+                    const unsigned int    sourcesPerTile,
+                    const unsigned int    destinationsPerTile,
+                    const unsigned int    buffersPerDestination);
   virtual ~NetworkHierarchy2();
 
 //==============================//
@@ -62,8 +63,14 @@ public:
 protected:
 
   // Create all signals and sub-networks, and connect up as much as possible.
-  void initialise(const unsigned int components,
-                  const unsigned int buffersPerComponent);
+  void initialise(const unsigned int sourcesPerTile,
+                  const unsigned int destinationsPerTile,
+                  const unsigned int buffersPerDestination);
+
+private:
+
+  void createNetworkToRouter(TileID tile);
+  void createNetworkFromRouter(TileID tile);
 
 //==============================//
 // Components
@@ -80,8 +87,9 @@ protected:
   Mesh globalNetwork;
 
   // Signals between local and global networks.
-  LokiVector<DataSignal>    localToGlobalData,   globalToLocalData;
-  LokiVector<ReadySignal>   localToGlobalReady,  globalToLocalReady;
+  // Address using array[column][row]
+  LokiVector2D<DataSignal>    localToGlobalData,   globalToLocalData;
+  LokiVector2D<ReadySignal>   localToGlobalReady,  globalToLocalReady;
 
 };
 

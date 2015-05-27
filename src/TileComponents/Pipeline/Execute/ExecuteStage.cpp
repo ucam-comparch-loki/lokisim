@@ -113,15 +113,11 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         break;
 
       case InstructionMap::OP_GETCHMAP:
-        // TODO: reading the CMT just returns a network address. We want
-        // the entire contents.
-        operation.result(core()->channelMapTable.read(operation.operand1()).toUInt());
+        operation.result(core()->channelMapTable.read(operation.operand1()));
         break;
 
       case InstructionMap::OP_GETCHMAPI:
-        // TODO: reading the CMT just returns a network address. We want
-        // the entire contents.
-        operation.result(core()->channelMapTable.read(operation.immediate()).toUInt());
+        operation.result(core()->channelMapTable.read(operation.immediate()));
         break;
 
       case InstructionMap::OP_CREGRDI:
@@ -164,13 +160,13 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         operation.result(operation.operand1() | (operation.operand2() << 16));
         break;
 
+      case InstructionMap::OP_SENDCONFIG:
+        operation.result(operation.operand1());
+        break;
+
       case InstructionMap::OP_SYSCALL:
         // TODO: remove from ALU.
         alu.systemCall(operation);
-        break;
-
-      case InstructionMap::OP_WOCHE:
-        throw UnsupportedFeatureException("woche instruction");
         break;
 
       default:
@@ -246,7 +242,7 @@ void ExecuteStage::sendOutput() {
 
     // Send the data to the output buffer - it will arrive immediately so that
     // network resources can be requested the cycle before they are used.
-    oData.write(currentInst.toNetworkData());
+    oData.write(currentInst.toNetworkData(id.tile));
   }
 
   // Send the data to the register file - it will arrive at the beginning
@@ -258,43 +254,19 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
   MapIndex entry = inst.operand2();
   uint32_t value = inst.operand1();
 
-  // TODO: extract these from the ChannelID, rather than from the raw data.
-  ChannelIndex returnTo = (value >> 29) & 0x7UL;
-  uint groupBits = (value >> 4) & 0xFUL;
-  uint lineBits  = value & 0xFUL;
-
-  // There are no free bits to encode this, so it will have to be compiled in for now.
-  bool writeThrough = /*entry==2;//*/false;
-
-  ChannelID sendChannel(value);
-
   // Write to the channel map table.
-  // FIXME: I don't think it's necessary to block until all credits have been
-  // received, but it's useful for debug purposes to ensure that we aren't
-  // losing credits.
-  bool success = core()->channelMapTable.write(entry, sendChannel, groupBits, lineBits, returnTo, writeThrough);
-  if (!success) {
-    blocked = true;
-    if (DEBUG)
-      cout << this->name() << " stalled waiting for credits before setchmap" << endl;
-    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
-    next_trigger(core()->channelMapTable.allCreditsEvent(entry));
-  }
-  else {
-    blocked = false;
-    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
+  core()->channelMapTable.write(entry, value);
 
-    // Generate a message to claim the port we have just stored the address of.
-    if (sendChannel.isCore() && !sendChannel.isNullMapping()) {
-      ChannelID returnChannel(id, entry);
-      inst.result(returnChannel.toInt());
-      inst.channelMapEntry(entry);
-      inst.networkDestination(sendChannel);
-      inst.portClaim(true);
-      inst.usesCredits(core()->channelMapTable[entry].usesCredits());
+  // Generate a message to claim the port we have just stored the address of.
+  ChannelID sendChannel = core()->channelMapTable.getDestination(entry);
+  if (sendChannel.isCore() && !sendChannel.isNullMapping()) {
+    ChannelID returnChannel(id, entry);
+    inst.result(returnChannel.flatten());
+    inst.channelMapEntry(entry);
+    inst.cmtEntry(value);
+    inst.portClaim(true);
 
-      core()->channelMapTable[entry].removeCredit();
-    }
+    core()->channelMapTable[entry].removeCredit();
   }
 }
 
@@ -308,16 +280,17 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
     case MemoryRequest::LOAD_W:
     case MemoryRequest::LOAD_HW:
     case MemoryRequest::LOAD_B:
-    case MemoryRequest::LOAD_THROUGH_W:
-    case MemoryRequest::LOAD_THROUGH_HW:
-    case MemoryRequest::LOAD_THROUGH_B:
     case MemoryRequest::STORE_W:
     case MemoryRequest::STORE_HW:
     case MemoryRequest::STORE_B:
-    case MemoryRequest::STORE_THROUGH_W:
-    case MemoryRequest::STORE_THROUGH_HW:
-    case MemoryRequest::STORE_THROUGH_B:
     case MemoryRequest::IPK_READ:
+    case MemoryRequest::LOAD_LINKED:
+    case MemoryRequest::STORE_CONDITIONAL:
+    case MemoryRequest::LOAD_AND_ADD:
+    case MemoryRequest::LOAD_AND_OR:
+    case MemoryRequest::LOAD_AND_AND:
+    case MemoryRequest::LOAD_AND_XOR:
+    case MemoryRequest::EXCHANGE:
       addressFlit = true;
       break;
     default:
@@ -329,37 +302,11 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
   // the entire entry.
   ChannelMapEntry& channelMapEntry = core()->channelMapTable[inst.channelMapEntry()];
 
-  if (channelMapEntry.writeThrough()) {
-    switch (op) {
-      case MemoryRequest::STORE_W:
-        op = MemoryRequest::STORE_THROUGH_W;
-        break;
-      case MemoryRequest::STORE_HW:
-        op = MemoryRequest::STORE_THROUGH_HW;
-        break;
-      case MemoryRequest::STORE_B:
-        op = MemoryRequest::STORE_THROUGH_B;
-        break;
-      case MemoryRequest::LOAD_W:
-        op = MemoryRequest::LOAD_THROUGH_W;
-        break;
-      case MemoryRequest::LOAD_HW:
-        op = MemoryRequest::LOAD_THROUGH_HW;
-        break;
-      case MemoryRequest::LOAD_B:
-        op = MemoryRequest::LOAD_THROUGH_B;
-        break;
-      default:
-        break;
-    }
-  }
-
-  Word w = MemoryRequest(op, inst.result());
-
   // Adjust destination channel based on memory configuration if necessary
   uint32_t increment = 0;
 
-  if (channelMapEntry.localMemory() && channelMapEntry.memoryGroupBits() > 0) {
+  if (channelMapEntry.getDestination().isMemory() &&
+      channelMapEntry.getMemoryGroupSize() > 1) {
     if (addressFlit) {
       increment = channelMapEntry.computeAddressIncrement((uint32_t)inst.result());
 
@@ -371,13 +318,9 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
     }
   }
 
-  // Set the instruction's result to the data + memory operation
-  inst.result(w.toULong());
-
-  ChannelID adjusted = inst.networkDestination();
-  adjusted = adjusted.addPosition(increment);
-  inst.networkDestination(adjusted);
-  inst.returnAddr(channelMapEntry.returnChannel());
+  ChannelMapEntry::MemoryChannel channel(inst.cmtEntry());
+  channel.bank += increment;
+  inst.cmtEntry(channel.flatten());
 }
 
 bool ExecuteStage::isStalled() const {

@@ -36,7 +36,7 @@ void InstructionPacketCache::storeCode(const std::vector<Instruction>& instructi
   finishedPacketWrite = instructions.back().endOfPacket();
 
   if (finishedPacketWrite)
-    parent()->packetFinishedArriving();
+    parent()->packetFinishedArriving(IPKCACHE);
 
   // SystemC segfaults if we notify an event before simulation has started.
   if (sc_core::sc_start_of_simulation_invoked())
@@ -81,7 +81,7 @@ void InstructionPacketCache::write(const Instruction inst) {
 
   finishedPacketWrite = inst.endOfPacket();
   if (finishedPacketWrite)
-    parent()->packetFinishedArriving();
+    parent()->packetFinishedArriving(IPKCACHE);
 }
 
 CacheIndex InstructionPacketCache::lookup(MemoryAddr tag) {

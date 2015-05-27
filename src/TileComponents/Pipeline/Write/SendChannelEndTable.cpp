@@ -18,7 +18,7 @@ void SendChannelEndTable::write(const NetworkData data) {
   if (DEBUG)
     cout << this->name() << " writing " << data << " to buffer\n";
 
-  if (data.channelID().getTile() == id.getTile()) {
+  if (data.channelID().multicast || (data.channelID().component.tile == id.tile)) {
     assert(!bufferLocal.full());
     bufferLocal.write(data);
     bufferFillChanged.notify();
@@ -75,7 +75,7 @@ void SendChannelEndTable::receiveLoop() {
 
         // If the flit is part of a larger packet, wait for the whole packet to
         // come through.
-        if (!flit.endOfPacket())
+        if (!flit.getMetadata().endOfPacket)
           receiveState = RS_PACKET;
 
         next_trigger(clock.posedge_event());
@@ -99,7 +99,7 @@ void SendChannelEndTable::receiveLoop() {
         write(flit);
 
         // Ready to start a new packet if this one has now finished.
-        if (flit.endOfPacket())
+        if (flit.getMetadata().endOfPacket)
           receiveState = RS_READY;
 
         next_trigger(clock.posedge_event());
@@ -118,7 +118,7 @@ void SendChannelEndTable::sendLoopLocal() {
       // Remove the request for network resources if the previous data sent was
       // the end of a data packet.
       const NetworkData& data = oDataLocal.read();
-      if (data.endOfPacket())
+      if (data.getMetadata().endOfPacket)
         requestArbitration(data.channelID(), false);
 
       if (bufferLocal.empty()) {
@@ -169,9 +169,9 @@ void SendChannelEndTable::sendLoopLocal() {
       bufferFillChanged.notify();
 
       if (DEBUG)
-        cout << this->name() << " sending " << data << endl;
+        cout << this->name() << " sending (local) " << data << endl;
       if (ENERGY_TRACE)
-        Instrumentation::Network::traffic(id, data.channelID().getComponentID());
+        Instrumentation::Network::traffic(id, data.channelID().component);
 
       oDataLocal.write(data);
 
@@ -200,32 +200,14 @@ void SendChannelEndTable::sendLoopGlobal() {
     const NetworkData data = bufferGlobal.read();
 
     if (DEBUG)
-      cout << this->name() << " sending " << data << endl;
+      cout << this->name() << " sending (global) " << data << endl;
     if (ENERGY_TRACE)
-      Instrumentation::Network::traffic(id, data.channelID().getComponentID());
+      Instrumentation::Network::traffic(id, data.channelID().component);
 
     oDataGlobal.write(data);
 
     next_trigger(oDataGlobal.ack_event());
   }
-}
-
-/* Stall the pipeline until the specified channel is empty. */
-void SendChannelEndTable::waitUntilEmpty(MapIndex channel, const DecodedInst& inst) {
-  Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
-  waiting = true;
-  bufferFillChanged.notify(); // No it didn't - use separate events?
-
-  // Wait until the channel's credit counter reaches its maximum value, if it
-  // is using credits.
-  next_trigger(channelMapTable->allCreditsEvent(channel));
-
-  // TODO: split this method into two (at this point) and perhaps integrate
-  // with the main loop.
-
-  Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
-  waiting = false;
-  bufferFillChanged.notify(); // No it didn't - use separate events?
 }
 
 void SendChannelEndTable::requestArbitration(ChannelID destination, bool request) {
@@ -239,7 +221,7 @@ bool SendChannelEndTable::requestGranted(ChannelID destination) const {
 void SendChannelEndTable::receivedCredit() {
   assert(iCredit.valid());
 
-  ChannelIndex targetCounter = iCredit.read().channelID().getChannel();
+  ChannelIndex targetCounter = iCredit.read().channelID().channel;
 
   if (DEBUG)
     cout << this->name() << " received credit at " << ChannelID(id, targetCounter) << " " << iCredit.read().messageID() << endl;

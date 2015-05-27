@@ -112,6 +112,7 @@ private:
   // Retrieve the instruction's network destination from the channel map table,
   // if appropriate.
   void           readChannelMapTable(DecodedInst& inst);
+  void           waitOnCredits(DecodedInst& inst);
   ChannelMapEntry& channelMapTableEntry(MapIndex entry) const;
 
   // Fetch the address requested by the instruction.

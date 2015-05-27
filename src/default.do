@@ -12,7 +12,7 @@ case $1 in
       redo-ifchange $dep
     done
     ;;
-  Loki2)
+  lokisim)
     DEPS=$(find -name "*.cpp" | sed -e s/\.cpp/\.o/)
     redo-ifchange $DEPS
     g++ -L/usr/local/lib-linux64 -o $3 $DEPS -lsystemc

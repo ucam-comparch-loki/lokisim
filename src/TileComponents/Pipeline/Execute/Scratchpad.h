@@ -14,6 +14,7 @@
 #define SCRATCHPAD_H_
 
 #include "../../../Component.h"
+#include "../../../Datatype/Word.h"
 #include "../../../Memory/AddressedStorage.h"
 
 class Scratchpad: public Component {

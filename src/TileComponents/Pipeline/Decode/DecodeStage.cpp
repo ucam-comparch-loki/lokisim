@@ -209,14 +209,16 @@ void         DecodeStage::newInput(DecodedInst& inst) {
     // read from it after the writes have completed.
     wait(sc_core::SC_ZERO_TIME);
 
+    readChannelMapTable(inst);
+
     // Some instructions don't produce any output, or won't be executed.
     bool usefulOutput = decoder.decodeInstruction(inst, decoded);
 
     // Send the output, if there is any.
     if (usefulOutput) {
-      // Need to access the channel map table inside the loop because decoding
-      // the instruction may change its destination.
-      readChannelMapTable(decoded);
+      // Stall until we are allowed to send network data.
+      if (decoded.sendsOnNetwork())
+        waitOnCredits(decoded);
 
       // Need to double check whether we are able to send, because we may be
       // sending multiple outputs.
@@ -256,7 +258,6 @@ bool         DecodeStage::predicate(const DecodedInst& inst) const {
   return core()->readPredReg(true, inst);
 }
 
-// Not const because of the wait().
 void         DecodeStage::readChannelMapTable(DecodedInst& inst) {
   MapIndex channel = inst.channelMapEntry();
 
@@ -264,7 +265,18 @@ void         DecodeStage::readChannelMapTable(DecodedInst& inst) {
     return;
 
   ChannelMapEntry& cmtEntry = channelMapTableEntry(channel);
-  ChannelID destination = cmtEntry.destination();
+  ChannelID destination = cmtEntry.getDestination();
+
+  if (destination.isNullMapping())
+    return;
+
+  inst.cmtEntry(cmtEntry.read());
+}
+
+// Not const because of the wait().
+void DecodeStage::waitOnCredits(DecodedInst& inst) {
+  ChannelMapEntry& cmtEntry = channelMapTableEntry(inst.channelMapEntry());
+  ChannelID destination = cmtEntry.getDestination();
 
   if (destination.isNullMapping())
     return;
@@ -285,9 +297,6 @@ void         DecodeStage::readChannelMapTable(DecodedInst& inst) {
     wait(iOutputBufferReady.posedge_event());
     Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
   }
-
-  inst.networkDestination(destination);
-  inst.usesCredits(cmtEntry.usesCredits());
 }
 
 ChannelMapEntry& DecodeStage::channelMapTableEntry(MapIndex entry) const {
@@ -341,14 +350,7 @@ void DecodeStage::fetch(const DecodedInst& inst) {
   if (DEBUG)
     cout << this->name() << " fetching from address " << fetchAddress << endl;
 
-  // Tweak the network address based on the memory address to ensure that the
-  // correct bank is accessed if the fetch request is sent.
-  uint increment = channelMapTableEntry(0).computeAddressIncrement(fetchAddress);
-  ChannelID destination = channelMapTableEntry(0).destination();
-  destination.addPosition(increment);
-  ChannelIndex returnTo = channelMapTableEntry(0).returnChannel();
-
-  core()->checkTags(fetchAddress, inst.opcode(), destination, returnTo);
+  core()->checkTags(fetchAddress, inst.opcode(), inst.cmtEntry());
 }
 
 bool         DecodeStage::canFetch() const {

@@ -1,23 +1,8 @@
 /*
  * Instruction.cpp
  *
- * Current layout: 64 bit value containing:
- *    1 bit saying whether the predicate register should be set
- *    2 predicate bits
- *    7 bit opcode
- *    6 bit destination register location
- *    6 bit source 1 register location
- *    6 bit source 2 register location
- *    4 bit remote channel ID
- *    32 bit immediate
- *
- *  | setpred | pred | opcode | dest | source1 | source2 | channel ID | immed |
- *   63        62     60       53     47        41        35           31    0
- *
- *  Although instructions are currently encoded using 64 bits, they are treated
- *  as though they are only 32 bits long. We eventually intend to have a 32 bit
- *  encoding, but in the meantime, a sparser structure makes modifications and
- *  access easier.
+ * Encoded instruction format. Full details can be found in
+ *  /usr/groups/comparch-loki/isa/formats.isa
  *
  *  Created on: 5 Jan 2010
  *      Author: db434
@@ -197,7 +182,7 @@ void Instruction::immediate(const int32_t val) {
   int length = 0;
   switch(InstructionMap::format(opcode())) {
     case InstructionMap::FMT_FF:
-    case InstructionMap::FMT_PFF:  length = 23; break;  // PFF needs to split the immediate
+    case InstructionMap::FMT_PFF:  length = 23; break;
 
     case InstructionMap::FMT_0R:
     case InstructionMap::FMT_0Rnc:
@@ -372,44 +357,7 @@ int32_t Instruction::decodeImmediate(const string& immed) {
       if(parts[0][i] == '1') mcastAddress |= (1 << shiftAmount);
     }
 
-    value = ChannelID(0, mcastAddress, channel, true).getData();
-	} else if (parts.size() == 3) {
-
-		// We should now have strings of the form "(x", "y" and "z)"
-
-		parts[0].erase(parts[0].begin());           // Remove the bracket
-		parts[2].erase(parts[2].end()-1);           // Remove the bracket
-
-		int tile = Strings::strToInt(parts[0]);
-		int position = Strings::strToInt(parts[1]);
-		int channelIndex = Strings::strToInt(parts[2]);
-
-		ComponentID checkID(tile, position);
-		assert(checkID.isCore() && channelIndex < (int)CORE_INPUT_CHANNELS);
-
-		value = ChannelID(tile, position, channelIndex).getData();
-	} else if (parts.size() == 5) {
-		// We should now have strings of the form "(x", "y", "z", "s" and "t)"
-
-		parts[0].erase(parts[0].begin());           // Remove the bracket
-		parts[4].erase(parts[4].end()-1);           // Remove the bracket
-
-		int tile = Strings::strToInt(parts[0]);
-		int position = Strings::strToInt(parts[1]);
-		int channelIndex = Strings::strToInt(parts[2]);
-		int groupBits = Strings::strToInt(parts[3]);
-		int lineBits = Strings::strToInt(parts[4]);
-
-		// I find it useful to add together incomplete tuples, which this assertion
-		// doesn't allow.
-		// e.g. (0,8,0,3,6) + (0,0,id,0,0)
-//		ComponentID checkID(tile, position);
-//		assert(checkID.isMemory() && channelIndex < (int)MEMORY_CHANNEL_MAP_TABLE_ENTRIES);
-
-		// Encoded entry format:
-		// | Tile : 12 | Position : 8 | Channel : 4 | Memory group bits : 4 | Memory line bits : 4 |
-
-		value = ChannelID(tile, position, channelIndex).getData() | (groupBits << 4) | lineBits;
+    value = ChannelID(mcastAddress, channel).flatten();
 	} else {
 		// Invalid format
 	  cerr << "Error: invalid tuple length: " << immed << endl;

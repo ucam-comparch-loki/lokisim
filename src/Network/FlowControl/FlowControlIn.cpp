@@ -11,12 +11,12 @@
 void FlowControlIn::dataLoop() {
   NetworkData data = iData.read();
 
-  if (!data.channelID().isMulticast() && !(data.channelID() == channel)) {
+  if (!data.channelID().multicast && (data.channelID() != channel)) {
     cerr << "Error: " << data << " arrived at channel " << channel << endl;
     assert(false);
   }
 
-  if (data.portClaim())
+  if (data.getCoreMetadata().allocate)
     handlePortClaim();
   else
     oData.write(data.payload());
@@ -26,13 +26,17 @@ void FlowControlIn::dataLoop() {
 
 void FlowControlIn::handlePortClaim() {
   assert(iData.valid());
-  assert(iData.read().portClaim());
+
+  NetworkData data = iData.read();
+  assert(data.getCoreMetadata().allocate);
 
   // TODO: only accept the port claim when we have no credits left to send.
 
   // Set the return address so we can send flow control.
-  returnAddress = iData.read().payload().toInt();
-  useCredits = iData.read().useCredits();
+  returnAddress = data.payload().toInt();
+
+  // Only use credits if the sender is on a different tile.
+  useCredits = id.tile != returnAddress.component.tile;
 
   addCredit();
 
@@ -43,10 +47,10 @@ void FlowControlIn::handlePortClaim() {
   // message doubles as a synchronisation message to show that all memories are
   // now set up. We want to forward it to the buffer when possible.
   if (!useCredits &&
-      (returnAddress.getPosition() >= CORES_PER_TILE) &&
-      (iData.read().channelID().getChannel() >= 2)) {
+      (returnAddress.component.position >= CORES_PER_TILE) &&
+      (data.channelID().channel >= 2)) {
 
-    oData.write(iData.read().payload());
+    oData.write(data.payload());
   }
 
 }
@@ -114,7 +118,7 @@ void FlowControlIn::creditLoop() {
 }
 
 void FlowControlIn::sendCredit() {
-  NetworkData aw(Word(1), returnAddress);
+  NetworkCredit aw(Word(1), returnAddress);
   oCredit.write(aw);
 
   numCredits--;
@@ -127,7 +131,7 @@ FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const C
     Component(name, ID),
     channel(channelManaged) {
 
-  returnAddress = -1;
+  returnAddress = ChannelID();
   useCredits = true;
   numCredits = 0;
 

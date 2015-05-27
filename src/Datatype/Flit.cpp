@@ -6,8 +6,7 @@
  */
 
 #include "Flit.h"
-
-class Word;
+#include "Word.h"
 
 // There must be a better way than specialising for every type of Flit I expect
 // to use, but for now it's manageable.

@@ -12,7 +12,7 @@
 #include "../Debugger.h"
 #include "../Parameters.h"
 #include "../StringManipulation.h"
-#include "../../Datatype/ChannelID.h"
+#include "../../Datatype/Identifier.h"
 #include "../../Datatype/Instruction.h"
 #include "../../TileComponents/Core.h"
 

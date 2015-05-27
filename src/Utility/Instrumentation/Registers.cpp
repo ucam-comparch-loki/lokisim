@@ -9,7 +9,6 @@
 #define __STDC_LIMIT_MACROS
 
 #include "Registers.h"
-#include "../../Datatype/ComponentID.h"
 
 using namespace Instrumentation;
 

@@ -6,7 +6,7 @@
  */
 
 #include "IPKCache.h"
-#include "../../Datatype/ComponentID.h"
+#include "../../Datatype/Identifier.h"
 
 using namespace Instrumentation;
 using std::vector;
@@ -32,11 +32,11 @@ void IPKCache::init() {
 void IPKCache::tagCheck(const ComponentID& core, bool hit, const MemoryAddr tag, const MemoryAddr prevCheck) {
   if (hit) {
     total.hits++;
-    perCore[core.getGlobalCoreNumber()].hits++;
+    perCore[core.globalCoreNumber()].hits++;
   }
   else {
     total.misses++;
-    perCore[core.getGlobalCoreNumber()].misses++;
+    perCore[core.globalCoreNumber()].misses++;
   }
 
   if (ENERGY_TRACE)
@@ -54,12 +54,12 @@ void IPKCache::tagActivity() {
 
 void IPKCache::read(const ComponentID& core) {
   total.reads++;
-  perCore[core.getGlobalCoreNumber()].reads++;
+  perCore[core.globalCoreNumber()].reads++;
 }
 
 void IPKCache::write(const ComponentID& core) {
   total.writes++;
-  perCore[core.getGlobalCoreNumber()].writes++;
+  perCore[core.globalCoreNumber()].writes++;
 }
 
 void IPKCache::dataActivity() {

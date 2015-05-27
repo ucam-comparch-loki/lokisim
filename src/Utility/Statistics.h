@@ -16,7 +16,7 @@
 
 #include <string>
 #include "InstructionMap.h"
-#include "../Datatype/ComponentID.h"
+#include "../Datatype/Identifier.h"
 #include "../Typedefs.h"
 
 class Statistics {
@@ -55,9 +55,9 @@ public:
 
   static double networkDistance();
 
-  static int cyclesActive(const ComponentID& core);
-  static int cyclesIdle(const ComponentID& core);
-  static int cyclesStalled(const ComponentID& core);
+  static int cyclesActive(int core);
+  static int cyclesIdle(int core);
+  static int cyclesStalled(int core);
 
 };
 

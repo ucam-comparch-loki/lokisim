@@ -7,7 +7,7 @@
 
 #include "DataBlock.h"
 #include "../../Datatype/Word.h"
-#include "../../Datatype/ComponentID.h"
+#include "../../Datatype/Identifier.h"
 
 vector<Word>& DataBlock::payload() const {
   return *data_;

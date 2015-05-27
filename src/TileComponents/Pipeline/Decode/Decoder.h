@@ -132,7 +132,8 @@ private:
 
   // The remote channel we are sending instructions to.
   // Set to Instruction::NO_CHANNEL if we are not sending instructions.
-  ChannelIndex sendChannel;
+  ChannelIndex rmtexecuteChannel;
+  EncodedCMTEntry rmtexecuteCMT;
 
   // Tells whether we have started a two-cycle store operation.
   bool multiCycleOp;

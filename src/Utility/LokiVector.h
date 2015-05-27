@@ -14,6 +14,9 @@
 #ifndef LOKIVECTOR_H_
 #define LOKIVECTOR_H_
 
+#include <assert.h>
+#include <cstdlib>
+
 template<class T>
 class LokiVector {
 
@@ -50,15 +53,30 @@ public:
     data_ = new T[size];
   }
 
+  // Initialise the vector to the same dimensions as another given vector.
+  template<typename T2>
+  inline void init(const LokiVector<T2>& other) {
+    init(other.length());
+  }
+
   inline const size_t length() const {
     return size_;
   }
 
   inline T& operator[](unsigned int position) const {
-    assert(position >= 0);
+    assert(length() > 0);
     assert(position < length());
 
     return data_[position];
+  }
+
+  // Call the () operator on each element of the vector. (Useful for binding
+  // SystemC ports and signals.)
+  template<typename T2>
+  inline void operator()(const LokiVector<T2>& other) {
+    assert(length() == other.length());
+    for (uint i=0; i<length(); i++)
+      data_[i](other[i]);
   }
 
 //==============================//

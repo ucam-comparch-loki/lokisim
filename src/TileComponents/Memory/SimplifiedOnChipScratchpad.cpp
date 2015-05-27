@@ -40,15 +40,19 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 	mPortData[port].State = STATE_IDLE;
 
 	if (!mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
-		MemoryRequest request = mInputQueues[port].read().Request;
+		NetworkRequest request = mInputQueues[port].read().Request;
 
-		if (request.getOperation() == MemoryRequest::FETCH_LINE) {
-			mPortData[port].Address = request.getPayload();
-			mPortData[port].WordsLeft = request.getLineSize() / 4;
+		if (request.getMemoryMetadata().opcode == MemoryRequest::FETCH_LINE) {
+			mPortData[port].Address = request.payload().toUInt();
+			mPortData[port].WordsLeft = CACHE_LINE_WORDS;
+			mPortData[port].ReturnAddress = ChannelID(request.getMemoryMetadata().returnTileX,
+			                                          request.getMemoryMetadata().returnTileY,
+			                                          request.getMemoryMetadata().returnChannel,
+			                                          0);
 
       if (DEBUG)
         cout << this->name() << " preparing to read " << mPortData[port].WordsLeft << " words from 0x" << std::hex << mPortData[port].Address << std::dec << endl;
-        
+
 			if (mPortData[port].Address + mPortData[port].WordsLeft * 4 > MEMORY_ON_CHIP_SCRATCHPAD_SIZE)
 				cerr << this->name() << " fetch request outside valid memory space (address " << mPortData[port].Address << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
 
@@ -63,9 +67,9 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 			// Do not output first word directly - assume one clock cycle access delay
 
 			mPortData[port].State = STATE_READING;
-		} else if (request.getOperation() == MemoryRequest::STORE_LINE) {
-			mPortData[port].Address = request.getPayload();
-			mPortData[port].WordsLeft = request.getLineSize() / 4;
+		} else if (request.getMemoryMetadata().opcode == MemoryRequest::STORE_LINE) {
+			mPortData[port].Address = request.payload().toUInt();
+			mPortData[port].WordsLeft = CACHE_LINE_WORDS;
 
       if (DEBUG)
         cout << this->name() << " preparing to write " << mPortData[port].WordsLeft << " words to 0x" << std::hex << mPortData[port].Address << std::dec << endl;
@@ -81,7 +85,7 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 
 			mPortData[port].State = STATE_WRITING;
 		} else {
-		  throw InvalidOptionException("memory operation", request.getOperation());
+		  throw InvalidOptionException("memory operation", request.getMemoryMetadata().opcode);
 		}
 	}
 }
@@ -96,11 +100,12 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 
 		// Handle input data
 
-		for (uint port = 0; port < mPortCount; port++) {
-			if (iDataStrobe[port].read()) {
+		for (uint port = 0; port < cPortCount; port++) {
+			if (iData[port].valid()) {
 				InputWord newWord;
 				newWord.EarliestExecutionCycle = mCycleCounter + (uint64_t)cDelayCycles;
 				newWord.Request = iData[port].read();
+				iData[port].ack();
 				mInputQueues[port].write(newWord);
 			}
 		}
@@ -110,10 +115,9 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 		bool bankAccessed[16];	// Simulate banked memory
 		memset(bankAccessed, 0x00, sizeof(bankAccessed));
 
-		for (uint port = 0; port < mPortCount; port++) {
+		for (uint port = 0; port < cPortCount; port++) {
 			// Default to non-valid - only last change will become effective
 
-			if(oDataStrobe[port].read()) oDataStrobe[port].write(false);
 			uint32_t bankSelected = (mPortData[port].Address / 4) % cBanks;
 
 			switch (mPortData[port].State) {
@@ -127,14 +131,16 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 
           if (DEBUG)
             cout << this->name() << " read from 0x" << std::hex << mPortData[port].Address << std::dec << ": " << result << endl;
-            
-					oDataStrobe[port].write(true);
-					oData[port].write(Word(result));
 
 					mPortData[port].Address += 4;
 					mPortData[port].WordsLeft--;
 
-					if (mPortData[port].WordsLeft == 0)
+					bool endOfPacket = mPortData[port].WordsLeft == 0;
+
+				  NetworkResponse response(result, mPortData[port].ReturnAddress, endOfPacket);
+					oData[port].write(response);
+
+					if (endOfPacket)
 						tryStartRequest(port);
 
 					bankAccessed[bankSelected] = true;
@@ -144,13 +150,13 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 
 			case STATE_WRITING:
 				if (!bankAccessed[bankSelected] && !mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
-					assert(mInputQueues[port].peek().Request.getOperation() == MemoryRequest::PAYLOAD_ONLY);
+					assert(mInputQueues[port].peek().Request.getMemoryMetadata().opcode == MemoryRequest::PAYLOAD_ONLY);
 
-					uint32_t data = mInputQueues[port].read().Request.getPayload();
+					uint32_t data = mInputQueues[port].read().Request.payload().toUInt();
 
 			    if (DEBUG)
 			      cout << this->name() << " wrote to 0x" << std::hex << mPortData[port].Address << std::dec << ": " << data << endl;
-			      
+
 					mData[mPortData[port].Address / 4] = data;
 					mPortData[port].Address += 4;
 					mPortData[port].WordsLeft--;
@@ -173,6 +179,7 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 
 SimplifiedOnChipScratchpad::SimplifiedOnChipScratchpad(sc_module_name name, const ComponentID& ID, uint portCount) :
 	Component(name, ID),
+	cPortCount(portCount),
 	mInputQueues(portCount, 1024, "SimplifiedOnChipScratchpad::mInputQueues")	// Virtually infinite queue length
 {
 	assert(portCount >= 1);
@@ -180,20 +187,14 @@ SimplifiedOnChipScratchpad::SimplifiedOnChipScratchpad(sc_module_name name, cons
 	cDelayCycles = MEMORY_ON_CHIP_SCRATCHPAD_DELAY;
 	cBanks = MEMORY_ON_CHIP_SCRATCHPAD_BANKS;
 
-	iDataStrobe = new sc_in<bool>[portCount];
-	iData = new sc_in<MemoryRequest>[portCount];
-	oDataStrobe = new sc_out<bool>[portCount];
-	oData = new sc_out<Word>[portCount];
-
-	for (uint i = 0; i < portCount; i++)
-		oDataStrobe[i].initialize(false);
+	iData.init(portCount);
+	oData.init(portCount);
 
 	mCycleCounter = 0;
 
 	mData = new uint32_t[MEMORY_ON_CHIP_SCRATCHPAD_SIZE / 4];
 	memset(mData, 0x00, MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 
-	mPortCount = portCount;
 	mPortData = new PortData[portCount];
 
 	for (uint i = 0; i < portCount; i++)
@@ -205,10 +206,6 @@ SimplifiedOnChipScratchpad::SimplifiedOnChipScratchpad(sc_module_name name, cons
 }
 
 SimplifiedOnChipScratchpad::~SimplifiedOnChipScratchpad() {
-	delete[] iDataStrobe;
-	delete[] iData;
-	delete[] oDataStrobe;
-	delete[] oData;
 	delete[] mData;
 	delete[] mPortData;
 }

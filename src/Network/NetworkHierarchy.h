@@ -62,7 +62,7 @@ public:
 
 private:
 
-  void makeLocalNetwork(int tileID);
+  void makeLocalNetwork(uint tileColumn, uint tileRow);
 
 //==============================//
 // Components

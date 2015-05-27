@@ -5,12 +5,13 @@
  *      Author: db434
  */
 
+#define SC_INCLUDE_DYNAMIC_PROCESSES
+
 #include "ResponseNetwork.h"
-#include "../../TileComponents/Memory/MemoryBank.h"
 
 ResponseNetwork::ResponseNetwork(const sc_module_name &name) :
-    NetworkHierarchy2(name, NUM_MEMORIES, 1) {
-
+    NetworkHierarchy2(name, 1, 1, 1) {
+  // Nothing
 }
 
 ResponseNetwork::~ResponseNetwork() {

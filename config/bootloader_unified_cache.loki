@@ -1,20 +1,24 @@
 # Treat all 8 L1 banks as a single unified cache for both instructions and data.
 
-# Channel map table contents: 0x20008035
-# 2  = return channel << 1 (memory should send instructions back to IPK cache)
-# 00 = tile
-# 08 = position within tile (memory banks are 8-15)
-# 0  = channel (each core has its own channel - this is core 0 so use channel 0)
-# 3  = log2(banks in group)
-# 5  = log2(line size)
+# Channel map table contents: 0x0001F902
+# check L2 tags?        << 16
+# check L1 tags?        << 15
+# bypass L2 cache?      << 14
+# bypass L1 cache?      << 13
+# log2(banks in group)  << 11
+# return channel        <<  8 (0 = IPK FIFO, 1 = IPK cache, 2-7 = r2-r7)
+# bank                  <<  5 (access the first bank in the group)
+# channel               <<  2 (core n accesses memory channel n)
+# isMemory (1)          <<  1
+# isGlobal (0)          <<  0
 
-# Instruction cache connection
- lli                r20, (0,8,0,3,5)
- lui                r20, 0x2000               # Return addr = channel 1
+# Instruction cache connection: bank 0, channel 0, return to IPK cache
+ lli                r20, 0xF902
+ lui                r20, 0x0001
 
 # Data cache connection - only change return address
- lli                r21, (0,8,0,3,5)
- lui                r21, 0x4000               # Return addr = channel 2
+ lli                r21, 0xFA02
+ lui                r21, 0x0001
 
  setchmapi          0,   r20                  # Set instruction fetch channel to memory bank
  setchmapi          1,   r21                  # Set data fetch channel to memory bank
@@ -22,12 +26,14 @@
 # Memory configuration command 0x00050103: general purpose cache, eight banks 
 # 00 = this is a configuration command
 # 0  = log2(associativity)
-# 5  = log2(line size)
+# 5  = log2(line size bytes)
 # 01 = cache mode (00 = scratchpad mode)
 # 03 = log2(banks in group)
 
  lli                r22, 0x0103
  lui                r22, 0x0005
- addu               r0,  r22, r0        -> 0
+
+# Send the configuration, plus a "configure" opcode and an end-of-packet bit.
+ sendconfig         r22, 61             -> 0
 
  fetchr.eop         0x0400                    # Fetch first instruction packet of program

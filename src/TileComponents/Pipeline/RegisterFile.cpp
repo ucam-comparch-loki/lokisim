@@ -121,8 +121,8 @@ void RegisterFile::updateCurrentIPK(const MemoryAddr addr) {
 }
 
 void RegisterFile::writeReg(const RegisterIndex reg, const Word data) {
-  if (DEBUG) cout << this->name() << ": Stored " << data << " to register " <<
-      (int)reg << endl;
+  if (DEBUG && (reg > 0))
+    cout << this->name() << ": Stored " << data << " to register " << (int)reg << endl;
 
   regs.write(data, reg);
 }

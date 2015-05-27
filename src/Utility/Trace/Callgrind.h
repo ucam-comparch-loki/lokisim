@@ -26,7 +26,7 @@
 #define CALLGRIND_H_
 
 #include <map>
-#include "../../Datatype/ComponentID.h"
+#include "../../Datatype/Identifier.h"
 #include "../../Typedefs.h"
 
 using std::ofstream;

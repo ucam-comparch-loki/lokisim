@@ -57,34 +57,25 @@ InstantCrossbar::InstantCrossbar(const sc_module_name& name,
     crossbar("internal", ID, inputs, outputs, outputsPerComponent, level, buffersPerComponent),
     state(inputs, IDLE) {
 
-  uint arbiters = outputs/outputsPerComponent;
-
   // Create ports and signals.
-  iReady.init(arbiters, buffersPerComponent);
-  requests.init(numInputPorts(), arbiters);
-  grants.init(numInputPorts(), arbiters);
+  requests.init(crossbar.iRequest);
+  grants.init(crossbar.oGrant);
+  iReady.init(crossbar.iReady);
 
   // Connect up the inner crossbar.
   crossbar.clock(clock);
-  for (uint i=0; i<iData.length(); i++)
-    crossbar.iData[i](iData[i]);
-  for (uint i=0; i<oData.length(); i++)
-    crossbar.oData[i](oData[i]);
+  crossbar.iData(iData);
+  crossbar.oData(oData);
+  crossbar.iRequest(requests);
+  crossbar.oGrant(grants);
+  crossbar.iReady(iReady);
 
-  for (uint i=0; i<numInputPorts(); i++) {
-    for (uint j=0; j<arbiters; j++) {
-      crossbar.iRequest[i][j](requests[i][j]);
-      crossbar.oGrant[i][j](grants[i][j]);
+  for (uint i=0; i<requests.length(); i++)
+    for (uint j=0; j<requests[i].length(); j++)
       requests[i][j].write(NO_REQUEST);
-    }
-  }
-
-  for (uint i=0; i<arbiters; i++)
-    for (int j=0; j<buffersPerComponent; j++)
-      crossbar.iReady[i][j](iReady[i][j]);
 
   // Create a method for each data input port.
-  for (uint i=0; i<numInputPorts(); i++)
+  for (uint i=0; i<iData.length(); i++)
     SPAWN_METHOD(iData[i], InstantCrossbar::mainLoop, i, false);
 
 }

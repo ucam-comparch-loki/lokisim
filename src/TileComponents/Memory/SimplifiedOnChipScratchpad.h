@@ -48,13 +48,11 @@ private:
 
 public:
 
-	sc_in<bool>					iClock;					// Clock
+	ClockInput					       iClock;   // Clock
 
-	sc_in<bool>					*iDataStrobe;			// Indicate that corresponding input data word is valid
-	sc_in<MemoryRequest>		*iData;					// Memory request words input from cache controllers
+	LokiVector<RequestInput>   iData;    // Memory request words input from cache controllers
 
-	sc_out<bool>				*oDataStrobe;			// Indicate that corresponding output data word is valid
-	sc_out<Word>				*oData;					// Data words output to cache controllers
+	LokiVector<ResponseOutput> oData;    // Data words output to cache controllers
 
 	//---------------------------------------------------------------------------------------------
 	// Utility definitions
@@ -71,14 +69,15 @@ private:
 	struct PortData {
 	public:
 		PortState State;
-		uint32_t WordsLeft;
-		uint32_t Address;
+		uint32_t  WordsLeft;
+		uint32_t  Address;
+		ChannelID ReturnAddress;
 	};
 
 	struct InputWord {
 	public:
 		uint64_t EarliestExecutionCycle;
-		MemoryRequest Request;
+		NetworkRequest Request;
 	};
 
 	//---------------------------------------------------------------------------------------------
@@ -87,13 +86,13 @@ private:
 
 private:
 
-	uint64_t mCycleCounter;								// Cycle counter used for delay control
+	uint64_t                mCycleCounter;   // Cycle counter used for delay control
 
-	uint32_t *mData;									// Data words stored in the scratchpad
+	uint32_t               *mData;           // Data words stored in the scratchpad
 
-	uint mPortCount;									// Number of ports
-	PortData *mPortData;								// State information about all ports
-	BufferArray<InputWord> mInputQueues;				// Input queues for all ports
+	const uint              cPortCount;      // Number of ports
+	PortData               *mPortData;       // State information about all ports
+	BufferArray<InputWord>  mInputQueues;    // Input queues for all ports
 
 	// Mainly for debug, mark the read-only sections of the address space.
 	std::vector<MemoryAddr> readOnlyBase,

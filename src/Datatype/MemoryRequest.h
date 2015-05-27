@@ -12,122 +12,99 @@
 #define MEMORYREQUEST_H_
 
 #include "Word.h"
-#include "ChannelID.h"
-#include "../Typedefs.h"
+#include "Identifier.h"
 #include "../Exceptions/InvalidOptionException.h"
+#include "../Typedefs.h"
+#include "../TileComponents/Memory/MemoryTypedefs.h"
 
 class MemoryRequest : public Word {
 private:
-	// | Unused : 12    | Memory operation : 8 | Opcode : 8 | Way bits : 4 | Line bits : 4 | Mode : 8 | Group bits : 8 |
-	// | Line size : 12 | Memory operation : 8 | Address : 32                                                          |
-	// | Unused : 12    | Memory operation : 8 | Burst length : 32                                                     |
-	// | Unused : 12    | Memory operation : 8 | Channel ID : 32                                                       |
+	// | Opcode : 8 | Way bits : 4 | Line bits : 4 | Mode : 8 | Group bits : 8 |
+	// | Address : 32                                                          |
+  // | Unused : 22                       | TileX : 3 | TileY : 3 | Entry : 4 |
 
-	static const uint OFFSET_LINE_SIZE = 40;
-	static const uint WIDTH_LINE_SIZE = 12;
-	static const uint OFFSET_OPERATION = 32;
-	static const uint WIDTH_OPERATION = 8;
+	static const uint OFFSET_OPCODE           = 24;
+	static const uint  WIDTH_OPCODE           = 8;
+	static const uint OFFSET_WAY_BITS         = 20;
+	static const uint  WIDTH_WAY_BITS         = 4;
+	static const uint OFFSET_LINE_BITS        = 16;
+	static const uint  WIDTH_LINE_BITS        = 4;
+	static const uint OFFSET_MODE             = 8;
+	static const uint  WIDTH_MODE             = 8;
+	static const uint OFFSET_GROUP_BITS       = 0;
+	static const uint  WIDTH_GROUP_BITS       = 8;
 
-	static const uint OFFSET_OPCODE = 24;
-	static const uint WIDTH_OPCODE = 8;
-	static const uint OFFSET_WAY_BITS = 20;
-	static const uint WIDTH_WAY_BITS = 4;
-	static const uint OFFSET_LINE_BITS = 16;
-	static const uint WIDTH_LINE_BITS = 4;
-	static const uint OFFSET_MODE = 8;
-	static const uint WIDTH_MODE = 8;
-	static const uint OFFSET_GROUP_BITS = 0;
-	static const uint WIDTH_GROUP_BITS = 8;
+	static const uint OFFSET_TILE             = 4;
+	static const uint  WIDTH_TILE             = 6;
+	static const uint OFFSET_DIRECTORY_ENTRY  = 0;
+	static const uint  WIDTH_DIRECTORY_ENTRY  = 4;
+
 public:
 	enum MemoryOperation {
-		CONTROL = 0,
-		PAYLOAD_ONLY = 1,
-		LOAD_W = 2,
-		LOAD_HW = 3,
-		LOAD_B = 4,
-		STORE_W = 5,
-		STORE_HW = 6,
-		STORE_B = 7,
-		IPK_READ = 8,
-		BURST_READ = 9,
-		BURST_WRITE = 10,
-		FETCH_LINE = 11,
-		STORE_LINE = 12,
+	  // Data access
+		LOAD_W,
+		LOAD_HW,
+		LOAD_B,
+		STORE_W,
+		STORE_HW,
+		STORE_B,
+		PAYLOAD_ONLY,
+		IPK_READ,
 
-		LOAD_THROUGH_W = 18,    // Go straight to next level of cache
-		LOAD_THROUGH_HW = 19,   // Go straight to next level of cache
-		LOAD_THROUGH_B = 20,    // Go straight to next level of cache
-		STORE_THROUGH_W = 21,   // Store to this cache and the one backing it
-		STORE_THROUGH_HW = 22,  // Store to this cache and the one backing it
-		STORE_THROUGH_B = 23,   // Store to this cache and the one backing it
+		// Cache control
+		FETCH_LINE,
+		STORE_LINE,
+		FLUSH_LINE,
+		MEMSET_LINE,
+		INVALIDATE_LINE,
+		VALIDATE_LINE,
+		UPDATE_DIRECTORY_ENTRY,
+		UPDATE_DIRECTORY_MASK,
 
-		NONE = 255
+		// Atomics
+		LOAD_LINKED,
+		STORE_CONDITIONAL,
+		LOAD_AND_ADD,
+		LOAD_AND_OR,
+		LOAD_AND_AND,
+		LOAD_AND_XOR,
+		EXCHANGE,
+
+		// Other
+		CONTROL               = 30, // Configuration - may not be needed
+
+		NONE                  = 31
 	};
 
 	enum MemoryOpCode {
-		SET_MODE = 0,
-		SET_CHMAP = 1
+		SET_MODE              = 0,  // Update mode (cache/scratchpad - see below)
+		SET_CHMAP             = 1   // Update channel map table
 	};
 
 	enum MemoryMode {
-		SCRATCHPAD = 0,
-		GP_CACHE = 1
+		SCRATCHPAD            = 0,  // Scratchpad mode
+		GP_CACHE              = 1   // General-purpose cache mode
 	};
 
-	inline uint32_t getPayload() const						{return data_ & 0xFFFFFFFFULL;}
-	inline ChannelID getChannelID() const					{return ChannelID(data_ & 0xFFFFFFFFULL);}
+	inline uint32_t        getPayload()    const {return data_ & 0xFFFFFFFFULL;}
+	inline ChannelID       getChannelID()  const {return ChannelID(data_ & 0xFFFFFFFFULL);}
 
-	inline uint getLineSize() const							{return (uint)getBits(OFFSET_LINE_SIZE, OFFSET_LINE_SIZE + WIDTH_LINE_SIZE - 1);}
-	inline MemoryOperation getOperation() const				{return (MemoryOperation)getBits(OFFSET_OPERATION, OFFSET_OPERATION + WIDTH_OPERATION - 1);}
-	inline MemoryOpCode getOpCode() const					{return (MemoryOpCode)getBits(OFFSET_OPCODE, OFFSET_OPCODE + WIDTH_OPCODE - 1);}
-	inline uint getWayBits() const							{return (uint)getBits(OFFSET_WAY_BITS, OFFSET_WAY_BITS + WIDTH_WAY_BITS - 1);}
-	inline uint getLineBits() const							{return (uint)getBits(OFFSET_LINE_BITS, OFFSET_LINE_BITS + WIDTH_LINE_BITS - 1);}
-	inline MemoryMode getMode() const						{return (MemoryMode)getBits(OFFSET_MODE, OFFSET_MODE + WIDTH_MODE - 1);}
-	inline uint getGroupBits() const						{return getBits(OFFSET_GROUP_BITS, OFFSET_GROUP_BITS + WIDTH_GROUP_BITS - 1);}
+	inline MemoryOpCode    getOpCode()     const {return (MemoryOpCode)getBits(OFFSET_OPCODE, OFFSET_OPCODE + WIDTH_OPCODE - 1);}
+	inline uint            getWayBits()    const {return (uint)getBits(OFFSET_WAY_BITS, OFFSET_WAY_BITS + WIDTH_WAY_BITS - 1);}
+	inline uint            getLineBits()   const {return (uint)getBits(OFFSET_LINE_BITS, OFFSET_LINE_BITS + WIDTH_LINE_BITS - 1);}
+	inline MemoryMode      getMode()       const {return (MemoryMode)getBits(OFFSET_MODE, OFFSET_MODE + WIDTH_MODE - 1);}
+	inline uint            getGroupBits()  const {return getBits(OFFSET_GROUP_BITS, OFFSET_GROUP_BITS + WIDTH_GROUP_BITS - 1);}
 
-	// Returns whether the next level of cache should also be accessed.
-	inline bool isThroughAccess() const {
-	  switch (getOperation()) {
-      case LOAD_THROUGH_W:
-      case LOAD_THROUGH_HW:
-      case LOAD_THROUGH_B:
-      case STORE_THROUGH_W:
-      case STORE_THROUGH_HW:
-      case STORE_THROUGH_B:
-	      return true;
-	    default:
-	      return false;
-	  }
-	}
-
-	// Once the request has been sent to the next cache level, this becomes a
-	// normal memory operation at this level.
-	inline void clearThroughAccess() {
-	  assert(isThroughAccess());
-
-	  switch (getOperation()) {
-      case LOAD_THROUGH_W:        setOperation(LOAD_W);   break;
-      case LOAD_THROUGH_HW:       setOperation(LOAD_HW);  break;
-      case LOAD_THROUGH_B:        setOperation(LOAD_B);   break;
-      case STORE_THROUGH_W:       setOperation(STORE_W);  break;
-      case STORE_THROUGH_HW:      setOperation(STORE_HW); break;
-      case STORE_THROUGH_B:       setOperation(STORE_B);  break;
-      default:
-        throw InvalidOptionException("memory operation", getOperation());
-        break;
-	  }
-
-	}
+	inline uint            getDirectoryEntry() const {return getBits(OFFSET_DIRECTORY_ENTRY, OFFSET_DIRECTORY_ENTRY + WIDTH_DIRECTORY_ENTRY - 1);}
+	inline TileIndex       getTile()       const {return getBits(OFFSET_TILE, OFFSET_TILE + WIDTH_TILE - 1);}
 
 	// Returns whether a single value is being retrieved.
-	inline bool isSingleLoad() const {
-    switch (getOperation()) {
+	static inline bool isSingleLoad(MemoryOperation op) {
+    switch (op) {
       case LOAD_W:
       case LOAD_HW:
       case LOAD_B:
-      case LOAD_THROUGH_W:
-      case LOAD_THROUGH_HW:
-      case LOAD_THROUGH_B:
+      case LOAD_LINKED:
         return true;
       default:
         return false;
@@ -135,47 +112,40 @@ public:
 	}
 
 	// Returns whether a single value is being stored.
-	inline bool isSingleStore() const {
-    switch (getOperation()) {
+	static inline bool isSingleStore(MemoryOperation op) {
+    switch (op) {
       case STORE_W:
       case STORE_HW:
       case STORE_B:
-      case STORE_THROUGH_W:
-      case STORE_THROUGH_HW:
-      case STORE_THROUGH_B:
+      case STORE_CONDITIONAL:
         return true;
       default:
         return false;
     }
 	}
 
-
+	// Returns whether this operation both reads and writes a value.
+	static inline bool isReadModifyWrite(MemoryOperation op) {
+	  switch (op) {
+      case LOAD_AND_ADD:
+      case LOAD_AND_OR:
+      case LOAD_AND_AND:
+      case LOAD_AND_XOR:
+      case EXCHANGE:
+        return true;
+      default:
+        return false;
+	  }
+	}
 
 	MemoryRequest() : Word() {
 		// Nothing
-	}
-
-	MemoryRequest(MemoryOperation operation, uint32_t payload, uint lineSize) : Word() {
-		data_ = (((int64_t)operation) << OFFSET_OPERATION) | (((int64_t)lineSize) << OFFSET_LINE_SIZE) | payload;
-	}
-
-	MemoryRequest(MemoryOperation operation, uint32_t payload) : Word() {
-		data_ = (((int64_t)operation) << OFFSET_OPERATION) | payload;
-	}
-
-	MemoryRequest(MemoryOperation operation, const ChannelID& channel) : Word() {
-		data_ = (((int64_t)operation) << OFFSET_OPERATION) | channel.getData();
 	}
 
 	MemoryRequest(const Word& other) : Word(other) {
 		// Nothing
 	}
 
-private:
-
-	void setOperation(MemoryOperation op) {
-	  setBits(OFFSET_OPERATION, OFFSET_OPERATION + WIDTH_OPERATION - 1, op);
-	}
 
 };
 
