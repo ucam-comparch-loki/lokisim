@@ -122,7 +122,7 @@ public:
     }
   };
 
-  enum NetworkType {MULTICAST, CORE_TO_MEMORY, GLOBAL};
+  enum NetworkType {MULTICAST, CORE_TO_MEMORY, GLOBAL, NONE};
 
   // Access different views of the underlying data.
   static const MulticastChannel multicastView(EncodedCMTEntry data);
@@ -142,6 +142,7 @@ public:
   void removeCredit();
   void addCredit();
   void setCredits(uint count);
+  void clearWriteEnable();
 
   // Write to the channel map entry.
   void write(EncodedCMTEntry data);

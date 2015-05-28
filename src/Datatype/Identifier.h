@@ -59,8 +59,10 @@ struct TileID {
 
 private:
   void checkValid() const {
-    assert(x < TOTAL_TILE_COLUMNS);
-    assert(y < TOTAL_TILE_ROWS);
+    if (x >= TOTAL_TILE_COLUMNS || y >= TOTAL_TILE_ROWS) {
+      std::cerr << "Warning: creating TileID outside bounds of simulated chip." << std::endl;
+      std::cerr << "  Seeing " << *this << ", max is (" << TOTAL_TILE_COLUMNS-1 << "," << TOTAL_TILE_ROWS-1 << ")" << std::endl;
+    }
   }
 } __attribute__((packed));
 

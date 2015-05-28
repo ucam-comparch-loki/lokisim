@@ -45,6 +45,8 @@ ChannelID ChannelMapEntry::getDestination() const {
       return ChannelID(id_.component.tile.x, id_.component.tile.y, getComponent(), getChannel());
     case GLOBAL:
       return ChannelID(getTileColumn(), getTileRow(), getComponent(), getChannel());
+    case NONE:
+      return ChannelID();
     default:
       throw InvalidOptionException("channel map entry network", network_);
       break;
@@ -84,10 +86,15 @@ void ChannelMapEntry::addCredit() {
 }
 
 void ChannelMapEntry::setCredits(uint count) {
-  assert(getNetwork() == GLOBAL);
-
   GlobalChannel entry = globalView();
   entry.credits = count;
+
+  data_ = entry.flatten();
+}
+
+void ChannelMapEntry::clearWriteEnable() {
+  GlobalChannel entry = globalView();
+  entry.creditWriteEnable = 0;
 
   data_ = entry.flatten();
 }
@@ -99,12 +106,17 @@ void ChannelMapEntry::write(EncodedCMTEntry data) {
   data_ = data;
 
   if (globalView().isGlobal) {
-    network_ = GLOBAL;
+    if (globalView().tileX >= TOTAL_TILE_COLUMNS || globalView().tileY >= TOTAL_TILE_ROWS)
+      network_ = NONE;
+    else
+      network_ = GLOBAL;
 
     // If the write-enable bit was not set, replace the credit counter with
     // the previous value.
     if (!globalView().creditWriteEnable)
       setCredits(oldCredits);
+
+    clearWriteEnable();
 
     if (DEBUG || Arguments::summarise())
       std::cout << "SETCHMAP: " << id_ << " -> " << getDestination() << std::endl;

@@ -63,7 +63,7 @@ public:
   const EncodedCMTEntry cmtEntry() const;
   const ChannelID     networkDestination() const;
 
-  const bool          usesPredicate() const;
+  const bool          predicated() const;
   const bool          hasResult() const;
 
   const bool          hasDestReg() const;

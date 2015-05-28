@@ -622,7 +622,7 @@ void Decoder::setOperand1(DecodedInst& dec) {
 
   if ((reg == previous.destination())) {
     dec.operand1Source(DecodedInst::BYPASS);
-    if (previous.usesPredicate())
+    if (previous.predicated())
       dec.operand1(readRegs(1, reg));
   }
   else {
@@ -641,7 +641,7 @@ void Decoder::setOperand2(DecodedInst& dec) {
 
     if (reg == previous.destination()) {
       dec.operand2Source(DecodedInst::BYPASS);
-      if (previous.usesPredicate())
+      if (previous.predicated())
         dec.operand2(readRegs(2, reg));
     }
     else {
@@ -805,9 +805,7 @@ bool Decoder::continueOp(const DecodedInst& input, DecodedInst& output) {
 bool Decoder::shouldExecute(const DecodedInst& inst) {
 
   // Instructions which will always execute.
-  if (!inst.usesPredicate() || inst.opcode() == InstructionMap::OP_PSEL_FETCH
-                            || inst.opcode() == InstructionMap::OP_PSEL_FETCHR
-                            || inst.opcode() == InstructionMap::OP_PSEL)
+  if (!inst.predicated())
     return true;
 
   // Predicated instructions which complete in this pipeline stage and

@@ -69,10 +69,8 @@ const ChannelID     DecodedInst::networkDestination() const {
 const MemoryAddr    DecodedInst::location()        const {return location_;}
 
 
-const bool    DecodedInst::usesPredicate() const {
-  return (predicate_ == Instruction::NOT_P) || (predicate_ == Instruction::P) ||
-         (opcode_ == InstructionMap::OP_PSEL) || (opcode_ == InstructionMap::OP_PSEL_FETCH ||
-         (opcode_ == InstructionMap::OP_PSEL_FETCHR));
+const bool    DecodedInst::predicated() const {
+  return (predicate_ == Instruction::NOT_P) || (predicate_ == Instruction::P);
 }
 
 const bool    DecodedInst::hasResult()             const {return hasResult_;}

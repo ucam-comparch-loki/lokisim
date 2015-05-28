@@ -256,18 +256,6 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
 
   // Write to the channel map table.
   core()->channelMapTable.write(entry, value);
-
-  // Generate a message to claim the port we have just stored the address of.
-  ChannelID sendChannel = core()->channelMapTable.getDestination(entry);
-  if (sendChannel.isCore() && !sendChannel.isNullMapping()) {
-    ChannelID returnChannel(id, entry);
-    inst.result(returnChannel.flatten());
-    inst.channelMapEntry(entry);
-    inst.cmtEntry(value);
-    inst.portClaim(true);
-
-    core()->channelMapTable[entry].removeCredit();
-  }
 }
 
 void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
