@@ -162,7 +162,7 @@ void ALU::systemCall(DecodedInst& dec) const {
   switch (code) {
     case 0x1: { /* SYS_exit */
       RETURN_CODE = readReg(13);
-      std::cerr << "Simulation ended with sys_exit after "
+      std::cerr << "Simulation ended with sys_exit (arg " << (uint)RETURN_CODE << ") after "
                 << (int)sc_core::sc_time_stamp().to_default_time_units() << " cycles." << endl;
       Instrumentation::endExecution();
       break;
