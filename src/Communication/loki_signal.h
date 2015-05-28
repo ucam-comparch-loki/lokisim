@@ -75,7 +75,9 @@ public:
     assert(validData);
 
     validData = false;
-    acknowledgement.notify();
+
+    // As with data changes, wait a finite amount of time to propagate the ack.
+    acknowledgement.notify(sc_core::SC_ZERO_TIME);
   }
 
   virtual const sc_event& ack_event() const {

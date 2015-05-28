@@ -66,14 +66,16 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
 }
 
 void MissHandlingLogic::localRequestLoop() {
+
+  assert(muxedRequest.valid());
+  NetworkRequest flit = muxedRequest.read();
+  bool endOfPacket = flit.getMetadata().endOfPacket;
+  holdRequestMux.write(!endOfPacket);
+
   // Stall until it is possible to send on the network.
   if (!canSendOnNetwork())
     next_trigger(canSendEvent());
   else {
-
-    assert(muxedRequest.valid());
-    NetworkRequest flit = muxedRequest.read();
-    bool endOfPacket = flit.getMetadata().endOfPacket;
 
     switch (flit.getMemoryMetadata().opcode) {
       case MemoryRequest::UPDATE_DIRECTORY_ENTRY:
@@ -93,6 +95,10 @@ void MissHandlingLogic::localRequestLoop() {
         }
 
         flit.setChannelID(requestDestination);
+
+        if (DEBUG)
+          cout << this->name() << " sending request " << flit << endl;
+
         sendOnNetwork(flit);
 
         break;
@@ -111,7 +117,6 @@ void MissHandlingLogic::localRequestLoop() {
 
 void MissHandlingLogic::handleDirectoryUpdate() {
   MemoryRequest request = static_cast<MemoryRequest>(muxedRequest.read().payload());
-  muxedRequest.ack();
 
   unsigned int entry = request.getDirectoryEntry();
   TileIndex tile = request.getTile();
@@ -121,7 +126,6 @@ void MissHandlingLogic::handleDirectoryUpdate() {
 
 void MissHandlingLogic::handleDirectoryMaskUpdate() {
   MemoryRequest request = static_cast<MemoryRequest>(muxedRequest.read().payload());
-  muxedRequest.ack();
 
   unsigned int maskLSB = request.getPayload();
 

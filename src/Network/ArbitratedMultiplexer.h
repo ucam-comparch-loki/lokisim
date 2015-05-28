@@ -54,7 +54,7 @@ public:
     SC_METHOD(mainLoop);
     for (uint i=0; i<inputs; i++)
       sensitive << iData[i];
-    sensitive << iHold.neg(); // Look at other inputs when hold is released
+    //sensitive << iHold.neg(); // Look at other inputs when hold is released
     dont_initialize();
   }
 

@@ -105,6 +105,10 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 				InputWord newWord;
 				newWord.EarliestExecutionCycle = mCycleCounter + (uint64_t)cDelayCycles;
 				newWord.Request = iData[port].read();
+
+				if (DEBUG)
+				  cout << this->name() << " received " << newWord.Request.payload() << " (opcode " << newWord.Request.getMemoryMetadata().opcode << ")" << endl;
+
 				iData[port].ack();
 				mInputQueues[port].write(newWord);
 			}
@@ -150,7 +154,7 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 
 			case STATE_WRITING:
 				if (!bankAccessed[bankSelected] && !mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
-					assert(mInputQueues[port].peek().Request.getMemoryMetadata().opcode == MemoryRequest::PAYLOAD_ONLY);
+				  assert(mInputQueues[port].peek().Request.getMemoryMetadata().opcode == MemoryRequest::PAYLOAD_ONLY);
 
 					uint32_t data = mInputQueues[port].read().Request.payload().toUInt();
 
