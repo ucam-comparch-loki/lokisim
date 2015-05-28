@@ -41,6 +41,7 @@ void ExecuteStage::execute() {
 
   // If there is already a result, don't do anything
   if (currentInst.hasResult()) {
+    previousInstExecuted = true;
     if (currentInst.setsPredicate())
       updatePredicate(currentInst);
     sendOutput();
