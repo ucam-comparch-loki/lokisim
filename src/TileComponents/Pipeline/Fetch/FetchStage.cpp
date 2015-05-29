@@ -26,8 +26,11 @@ void FetchStage::readLoop() {
       // Any instructions waiting in the FIFO have priority over the cache.
       if (fifoPendingPacket.active() && fifoPendingPacket.execute)
         switchToPacket(fifoPendingPacket);
-      else if (currentPacket.persistent)
+      else if (currentPacket.persistent) {
         currentInstructionSource().startNewPacket(currentPacket.location.index);
+        readState = RS_READ;
+        next_trigger(sc_core::SC_ZERO_TIME);
+      }
       else if (cachePendingPacket.active() && cachePendingPacket.execute)
         switchToPacket(cachePendingPacket);
       // Nothing to do - wait until a new instruction packet arrives.
@@ -118,13 +121,16 @@ void FetchStage::readLoop() {
 }
 
 void FetchStage::switchToPacket(PacketInfo& packet) {
-  currentPacket = packet;
-
-  if (currentPacket.location.index == NOT_IN_CACHE) {
+  if (packet.location.index == NOT_IN_CACHE) {
     Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS, DecodedInst());
-    next_trigger(currentInstructionSource().fillChangedEvent());
+    if (packet.location.component == IPKFIFO)
+      next_trigger(fifo.fillChangedEvent());
+    else
+      next_trigger(cache.fillChangedEvent());
   }
   else {
+    currentPacket = packet;
+
     currentInstructionSource().startNewPacket(currentPacket.location.index);
 
     if (DEBUG) {
@@ -156,8 +162,7 @@ void FetchStage::writeLoop() {
         next_trigger(cache.fillChangedEvent());
         break;
       }
-      else if ((fifoPendingPacket.active() && fifoPendingPacket.execute) ||
-               (cachePendingPacket.active() && cachePendingPacket.execute)) {
+      else if (fifoPendingPacket.active() || cachePendingPacket.active()) {
         // The pending packet is where we store all the information about the
         // packet we're fetching. Wait for it to become available.
         next_trigger(clock.posedge_event());
@@ -175,7 +180,7 @@ void FetchStage::writeLoop() {
     /* no break */
 
     case WS_CHECK_TAGS: {
-      FetchInfo fetch = fetchBuffer.peek();
+      FetchInfo fetch = fetchBuffer.read();
 
       if (fetch.networkInfo.returnChannel == 0)
         fifoPendingPacket.reset();
@@ -187,7 +192,6 @@ void FetchStage::writeLoop() {
       if (cached) {
         // If the packet is already cached, we need to do nothing and can serve
         // the next fetch request.
-        fetchBuffer.read();
         writeState = WS_READY;
         next_trigger(clock.posedge_event());
       }
@@ -205,7 +209,8 @@ void FetchStage::writeLoop() {
           Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS, DecodedInst());
 
         // Instructions are received automatically by the subcomponents. Wait
-        // for them to signal that the packet has finished arriving.
+        // for them to signal that the packet has finished arriving before we
+        // start fetching a new packet.
         writeState = WS_READY;
         next_trigger(packetArrivedEvent);
       }
@@ -227,17 +232,10 @@ void FetchStage::updateReady() {
 }
 
 void FetchStage::storeCode(const std::vector<Instruction>& instructions) {
-  // Find the first packet which hasn't finished arriving, so we can add to it.
-  PacketInfo* packet;
-  if (!currentPacket.inCache)
-    packet = &currentPacket;
-  else {
-    assert(!cachePendingPacket.inCache);
-    packet = &cachePendingPacket;
-  }
+  assert(!cachePendingPacket.inCache);
 
-  if (packet->memAddr == DEFAULT_TAG)
-    packet->memAddr = 0;
+  cachePendingPacket.memAddr = 0;
+  cachePendingPacket.location.component = IPKCACHE;
 
   cache.storeCode(instructions);
 }
@@ -368,53 +366,20 @@ void FetchStage::nextIPK() {
 }
 
 MemoryAddr FetchStage::newPacketArriving(const InstLocation& location) {
-  // Check whether we fetched this packet, or whether it's being sent to us
-  // from another core.
-  // FIXME: it's not possible to be sure - should we add in extra restrictions?
-  // My simple approximation is to check whether a fetch has been issued.
-  bool fetched = !fetchBuffer.empty();
-
   PacketInfo& pendingPacket = (location.component == IPKFIFO)
                             ? fifoPendingPacket
                             : cachePendingPacket;
 
-  // If we fetched it, and we know that it is due to execute, set it as the
-  // pending packet.
-  if (fetched) {
-    FetchInfo lastFetch = fetchBuffer.read(); // Pop from queue.
+  pendingPacket.location = location;
 
-    bool willExecute = (lastFetch.operation != InstructionMap::OP_FILL)
-                    && (lastFetch.operation != InstructionMap::OP_FILLR);
-
-    if (willExecute) {
-      pendingPacket.location = location;
-      pendingPacket.memAddr = lastFetch.address;
-      pendingPacket.persistent = (lastFetch.operation == InstructionMap::OP_FETCHPST)
-                              || (lastFetch.operation == InstructionMap::OP_FETCHPSTR);
-      newPacketAvailable.notify();
-    }
-
-    return lastFetch.address;
-  }
-  // Otherwise, only set it as the pending packet if nothing else is waiting.
-  else {
-    if (!pendingPacket.active()) {
-      pendingPacket.location = location;
-      pendingPacket.memAddr = 0;
-      pendingPacket.persistent = false;
-      newPacketAvailable.notify();
-
-      return pendingPacket.memAddr;
-    }
-    else
-      return 0;
-  }
+  newPacketAvailable.notify();
+  return pendingPacket.memAddr;
 }
 
 void FetchStage::packetFinishedArriving(InstructionSource source) {
   // Look for the first packet in the queue which we don't have.
   PacketInfo* packet;
-  if (!currentPacket.inCache)
+  if (currentPacket.active() && !currentPacket.inCache)
     packet = &currentPacket;
   else if (source == IPKFIFO)
     packet = &fifoPendingPacket;
