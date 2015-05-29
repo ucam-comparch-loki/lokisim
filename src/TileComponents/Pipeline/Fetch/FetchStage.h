@@ -37,7 +37,6 @@ private:
       location.index = NOT_IN_CACHE;
       inCache = false;
       execute = true;
-//      location.component = UNKNOWN;
       persistent = false;
     }
     bool arriving() const {

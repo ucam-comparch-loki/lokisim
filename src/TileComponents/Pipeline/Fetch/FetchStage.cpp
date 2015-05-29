@@ -101,12 +101,7 @@ void FetchStage::readLoop() {
             }
           }
 
-          if (currentPacket.persistent)
-            currentInstructionSource().startNewPacket(currentPacket.location.index);
-          else {
-            currentPacket.reset();
-            readState = RS_READY;
-          }
+          readState = RS_READY;
         }
 
         outputInstruction(decoded);
@@ -370,7 +365,13 @@ MemoryAddr FetchStage::newPacketArriving(const InstLocation& location) {
                             ? fifoPendingPacket
                             : cachePendingPacket;
 
+  // We now know where to read the packet from.
   pendingPacket.location = location;
+
+  // If the packet didn't already have a tag, it is probably arriving from
+  // another core.
+  if (pendingPacket.memAddr == DEFAULT_TAG)
+    pendingPacket.memAddr = 0;
 
   newPacketAvailable.notify();
   return pendingPacket.memAddr;
