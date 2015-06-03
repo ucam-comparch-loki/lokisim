@@ -426,10 +426,18 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       output.memoryOp(MemoryRequest::LOAD_HW); break;
     case InstructionMap::OP_LDBU:
       output.memoryOp(MemoryRequest::LOAD_B); break;
+    case InstructionMap::OP_LDL:
+      output.memoryOp(MemoryRequest::LOAD_LINKED); break;
 
     case InstructionMap::OP_STW:
     case InstructionMap::OP_STHW:
-    case InstructionMap::OP_STB: {
+    case InstructionMap::OP_STB:
+    case InstructionMap::OP_STC:
+    case InstructionMap::OP_LDADD:
+    case InstructionMap::OP_LDOR:
+    case InstructionMap::OP_LDAND:
+    case InstructionMap::OP_LDXOR:
+    case InstructionMap::OP_EXCHANGE: {
       multiCycleOp = true;
       output.endOfNetworkPacket(false);
       blockedEvent.notify();
@@ -438,35 +446,31 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       // second source register and the immediate.
       output.sourceReg1(output.sourceReg2()); output.sourceReg2(0);
 
-      if (operation == InstructionMap::OP_STW)
-        output.memoryOp(MemoryRequest::STORE_W);
-      else if (operation == InstructionMap::OP_STHW)
-        output.memoryOp(MemoryRequest::STORE_HW);
-      else
-        output.memoryOp(MemoryRequest::STORE_B);
+      switch (operation) {
+        case InstructionMap::OP_STW:
+          output.memoryOp(MemoryRequest::STORE_W); break;
+        case InstructionMap::OP_STHW:
+          output.memoryOp(MemoryRequest::STORE_HW); break;
+        case InstructionMap::OP_STB:
+          output.memoryOp(MemoryRequest::STORE_B); break;
+        case InstructionMap::OP_STC:
+          output.memoryOp(MemoryRequest::STORE_CONDITIONAL); break;
+        case InstructionMap::OP_LDADD:
+          output.memoryOp(MemoryRequest::LOAD_AND_ADD); break;
+        case InstructionMap::OP_LDOR:
+          output.memoryOp(MemoryRequest::LOAD_AND_OR); break;
+        case InstructionMap::OP_LDAND:
+          output.memoryOp(MemoryRequest::LOAD_AND_AND); break;
+        case InstructionMap::OP_LDXOR:
+          output.memoryOp(MemoryRequest::LOAD_AND_XOR); break;
+        case InstructionMap::OP_EXCHANGE:
+          output.memoryOp(MemoryRequest::EXCHANGE); break;
+        default:
+          break;
+      }
+
       break;
     }
-
-    case InstructionMap::OP_LDL:
-      output.memoryOp(MemoryRequest::LOAD_LINKED); break;
-    case InstructionMap::OP_STC:
-      multiCycleOp = true;
-      output.memoryOp(MemoryRequest::STORE_CONDITIONAL); break;
-    case InstructionMap::OP_LDADD:
-      multiCycleOp = true;
-      output.memoryOp(MemoryRequest::LOAD_AND_ADD); break;
-    case InstructionMap::OP_LDOR:
-      multiCycleOp = true;
-      output.memoryOp(MemoryRequest::LOAD_AND_OR); break;
-    case InstructionMap::OP_LDAND:
-      multiCycleOp = true;
-      output.memoryOp(MemoryRequest::LOAD_AND_AND); break;
-    case InstructionMap::OP_LDXOR:
-      multiCycleOp = true;
-      output.memoryOp(MemoryRequest::LOAD_AND_XOR); break;
-    case InstructionMap::OP_EXCHANGE:
-      multiCycleOp = true;
-      output.memoryOp(MemoryRequest::EXCHANGE); break;
 
     case InstructionMap::OP_IRDR:
       multiCycleOp = true;
