@@ -65,9 +65,9 @@ const sc_event& ChannelMapTable::creditArrivedEvent(MapIndex entry) const {
   return table[entry].creditArrivedEvent();
 }
 
-void ChannelMapTable::addCredit(MapIndex entry) {
+void ChannelMapTable::addCredit(MapIndex entry, uint numCredits) {
   assert(entry < table.size());
-  table[entry].addCredit();
+  table[entry].addCredit(numCredits);
 }
 
 void ChannelMapTable::removeCredit(MapIndex entry) {

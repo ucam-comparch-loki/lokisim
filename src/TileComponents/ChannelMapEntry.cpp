@@ -58,7 +58,8 @@ ChannelMapEntry::NetworkType ChannelMapEntry::getNetwork() const {
 }
 
 bool ChannelMapEntry::useCredits() const {
-  return getNetwork() == GLOBAL; // and acquired?
+  // Only start counting credits once the connection has been established.
+  return getNetwork() == GLOBAL && globalView().acquired;
 }
 
 bool ChannelMapEntry::canSend() const {
@@ -76,11 +77,18 @@ void ChannelMapEntry::removeCredit() {
   }
 }
 
-void ChannelMapEntry::addCredit() {
+void ChannelMapEntry::addCredit(uint numCredits) {
+  // If we're using credits, increment the credit counter, as normal.
   if (useCredits()) {
-    setCredits(globalView().credits + 1);
+    setCredits(globalView().credits + numCredits);
     assert(globalView().credits > 0);
 
+    creditArrived_.notify();
+  }
+  // If we're not using credits, this may be an ack/nack from a connection
+  // we're trying to set up.
+  else if (getNetwork() == GLOBAL) {
+    setAcquired(numCredits == 1);
     creditArrived_.notify();
   }
 }
@@ -95,6 +103,13 @@ void ChannelMapEntry::setCredits(uint count) {
 void ChannelMapEntry::clearWriteEnable() {
   GlobalChannel entry = globalView();
   entry.creditWriteEnable = 0;
+
+  data_ = entry.flatten();
+}
+
+void ChannelMapEntry::setAcquired(bool acq) {
+  GlobalChannel entry = globalView();
+  entry.acquired = acq;
 
   data_ = entry.flatten();
 }

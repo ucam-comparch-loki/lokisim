@@ -140,9 +140,10 @@ public:
   bool canSend() const;
   bool haveNCredits(uint n) const;
   void removeCredit();
-  void addCredit();
+  void addCredit(uint numCredits);
   void setCredits(uint count);
   void clearWriteEnable();
+  void setAcquired(bool acq);
 
   // Write to the channel map entry.
   void write(EncodedCMTEntry data);

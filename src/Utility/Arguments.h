@@ -32,6 +32,9 @@ public:
   // These arguments are separated from the simulator arguments by "--args".
   static void storeArguments(Chip& chip);
 
+  // Set any parameters which were received as command line arguments.
+  static void setCommandLineParameters();
+
   // Tells whether simulation should actually take place.
   static bool simulate();
 
@@ -102,6 +105,9 @@ private:
 
   // Tells whether we should print any simulator status messages during execution.
   static bool silent_;
+
+  // Store up any parameters set on the command line.
+  static vector<string> parameterNames, parameterValues;
 
 };
 

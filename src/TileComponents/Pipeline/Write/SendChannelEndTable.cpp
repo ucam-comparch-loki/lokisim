@@ -226,7 +226,7 @@ void SendChannelEndTable::receivedCredit() {
   if (DEBUG)
     cout << this->name() << " received credit at " << ChannelID(id, targetCounter) << " " << iCredit.read().messageID() << endl;
 
-  channelMapTable->addCredit(targetCounter);
+  channelMapTable->addCredit(targetCounter, iCredit.read().payload().toUInt());
   iCredit.ack();
 }
 

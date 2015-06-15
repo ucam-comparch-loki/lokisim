@@ -124,6 +124,7 @@ void initialise() {
   // Override parameters before instantiating chip model
   for (unsigned int i=0; i<Arguments::code().size(); i++)
     CodeLoader::loadParameters(Arguments::code()[i]);
+  Arguments::setCommandLineParameters();
   if (DEBUG)
     Parameters::printParameters();
 

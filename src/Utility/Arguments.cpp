@@ -42,6 +42,9 @@ std::stringstream Arguments::invocation_;
 bool Arguments::summarise_ = false;
 bool Arguments::silent_ = false;
 
+vector<string> Arguments::parameterNames;
+vector<string> Arguments::parameterValues;
+
 void Arguments::parse(int argc, char* argv[]) {
 
   bool useDefaultSettings = true;
@@ -170,7 +173,8 @@ void Arguments::parse(int argc, char* argv[]) {
       string parameter = argument.substr(2);
       vector<string>& parts = StringManipulation::split(parameter, '=');
       assert(parts.size() == 2);
-      Parameters::parseParameter(parts[0], parts[1]);
+      parameterNames.push_back(parts[0]);
+      parameterValues.push_back(parts[1]);
       delete &parts;
     }
     else {
@@ -178,6 +182,7 @@ void Arguments::parse(int argc, char* argv[]) {
     }
   }
 
+  // There is a default settings file in the config directory.
   if (useDefaultSettings) {
     const string simDir = simulator_.substr(0, simulator_.rfind('/'));
     string settingsFile = simDir + "/../config/loader.txt";
@@ -239,6 +244,12 @@ void Arguments::storeArguments(Chip& chip) {
     data.push_back(Word(val));
 
   chip.storeData(DataBlock(&data, ComponentID(2,0,0), 0, true));
+}
+
+void Arguments::setCommandLineParameters() {
+  assert(parameterNames.size() == parameterValues.size());
+  for (uint i=0; i<parameterNames.size(); i++)
+    Parameters::parseParameter(parameterNames[i], parameterValues[i]);
 }
 
 bool Arguments::simulate() {
