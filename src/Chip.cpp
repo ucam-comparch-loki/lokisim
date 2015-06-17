@@ -175,6 +175,10 @@ void Chip::makeSignals() {
 }
 
 void Chip::makeComponents() {
+  cores.assign(NUM_CORES, NULL);
+  memories.assign(NUM_MEMORIES, NULL);
+  mhl.assign(NUM_COMPUTE_TILES, NULL);
+
   // Iterate from 1 to MAX, rather than 0 to MAX-1, to allow a halo of I/O
   // tiles around the edge.
   for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
@@ -193,7 +197,7 @@ void Chip::makeComponents() {
 
         Core* c = new Core(name.c_str(), coreID, network.getLocalNetwork(coreID));
 
-        cores.push_back(c);
+        cores[coreID.globalCoreNumber()] = c;
       }
       
       // Initialise the memories of this tile
@@ -207,7 +211,7 @@ void Chip::makeComponents() {
         MemoryBank* m = new MemoryBank(name.c_str(), memoryID, mem);
         m->setLocalNetwork(network.getLocalNetwork(memoryID));
 
-        memories.push_back(m);
+        memories[memoryID.globalMemoryNumber()] = m;
       }
       
    	  namebuilder << "mhl_" << tile.getNameString();
@@ -215,7 +219,7 @@ void Chip::makeComponents() {
     	namebuilder.clear();
 
     	MissHandlingLogic* m = new MissHandlingLogic(name.c_str(), ComponentID(tile,0));
-    	mhl.push_back(m);
+    	mhl[tile.computeTileIndex()] = m;
       
     }
   }

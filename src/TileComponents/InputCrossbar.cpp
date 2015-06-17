@@ -33,9 +33,10 @@ void InputCrossbar::newData(PortIndex input) {
 // which could also be used to get credits from cores to the router.
 
 void InputCrossbar::writeToBuffer(ChannelIndex output) {
-  if (!iFlowControl[output].read())
-    cout << this->name() << " can't write to channel " << (int)output << endl;
-  assert(iFlowControl[output].read());
+  if (!iFlowControl[output].read()) {
+    next_trigger(iFlowControl[output].default_event());
+    return;
+  }
 
   // There is data to send.
   PortIndex source = dataSource[output];

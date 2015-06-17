@@ -1535,14 +1535,14 @@ void MemoryBank::printOperation(MemoryRequest::MemoryOperation operation,
   case MemoryRequest::LOAD_LINKED:
     isLoad = true;  datatype = "word";      break;
   case MemoryRequest::LOAD_HW:
-    isLoad = true;  datatype = "half-word"; break;
+    isLoad = true;  datatype = "halfword";  break;
   case MemoryRequest::LOAD_B:
     isLoad = true;  datatype = "byte";      break;
   case MemoryRequest::STORE_W:
   case MemoryRequest::STORE_CONDITIONAL:
     isLoad = false; datatype = "word";      break;
   case MemoryRequest::STORE_HW:
-    isLoad = false; datatype = "half-word"; break;
+    isLoad = false; datatype = "halfword";  break;
   case MemoryRequest::STORE_B:
     isLoad = false; datatype = "byte";      break;
   default:
