@@ -838,13 +838,18 @@ bool Decoder::shouldExecute(const DecodedInst& inst) {
 // but some will perform irreversible operations here, so need to be
 // stopped if necessary.
 bool Decoder::needPredicateNow(const DecodedInst& inst) const {
-  bool predicated = inst.predicate() == Instruction::P ||
-                    inst.predicate() == Instruction::NOT_P;
-  bool irreversible = (!inst.isExecuteStageOperation() && !inst.isMemoryOperation()) ||
-                      isFetch(inst.opcode()) ||
-                      Registers::isChannelEnd(inst.sourceReg1()) ||
-                      Registers::isChannelEnd(inst.sourceReg2());
-  return predicated && irreversible;
+  switch (inst.opcode()) {
+    case InstructionMap::OP_PSEL_FETCH:
+    case InstructionMap::OP_PSEL_FETCHR:
+      return true;
+    default: {
+      bool irreversible = (!inst.isExecuteStageOperation() && !inst.isMemoryOperation()) ||
+                          isFetch(inst.opcode()) ||
+                          Registers::isChannelEnd(inst.sourceReg1()) ||
+                          Registers::isChannelEnd(inst.sourceReg2());
+      return inst.predicated() && irreversible;
+    }
+  }
 }
 
 bool Decoder::isFetch(opcode_t opcode) const {

@@ -80,10 +80,14 @@ void     Core::writeReg(RegisterIndex reg, int32_t value, bool indirect) {
 bool     Core::readPredReg(bool waitForExecution, const DecodedInst& inst) {
   // The wait parameter tells us to wait for the predicate to be written if
   // the instruction in the execute stage will set it.
-  if (waitForExecution && execute.currentInstruction().setsPredicate()
-                       && !execute.currentInstruction().hasResult()) {
+  if (waitForExecution && execute.currentInstruction().setsPredicate()) {
     Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_FORWARDING, inst);
-    wait(execute.executedEvent());
+    // Wait for at least one clock cycle.
+    // FIXME: what if the execute stage's instruction finished on a previous cycle?
+    // Then we don't want to wait at all.
+    do
+      wait(clock.posedge_event());
+    while (!execute.currentInstruction().hasResult());
     Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_FORWARDING, inst);
   }
 
