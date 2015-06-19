@@ -38,7 +38,6 @@ class MemoryBank: public Component, public Blocking {
 
 private:
 
-	const uint  cChannelMapTableEntries;  // Number of available entries in the channel map table
 	const uint  cMemoryBanks;             // Number of memory banks
 	const uint  cBankNumber;              // Number of this memory bank (off by one)
 	const bool  cRandomReplacement;       // Replace random cache lines (instead of using LRU scheme)
@@ -49,64 +48,14 @@ private:
 
 public:
 
-	enum RingNetworkRequestType {
-		RING_SET_MODE,
-		RING_SET_TABLE_ENTRY,
-		RING_IPK_READ_HAND_OFF,
-		RING_PASS_THROUGH
-	};
-
 	// All data required to perform any data-access operation.
 	struct RequestData_ {
 	  uint32_t      Address;                    // Memory address to access
 	  uint          Count;                      // Number of consecutive words to access
 	  uint          TableIndex;                 // Channel map table entry used
 	  ChannelIndex  ReturnChannel;              // Network address to send data to
-	  bool          PartialInstructionPending;
-	  uint32_t      PartialInstructionData;
 	};
 	typedef struct RequestData_ RequestData;
-
-	struct RingNetworkRequest {
-	public:
-		struct Header_ {
-		public:
-			RingNetworkRequestType RequestType;
-			MemoryConfig           SetMode;
-			RequestData            Request;
-
-			struct SetTableEntry_ {
-			public:
-				uint            TableIndex;
-				ChannelID       TableEntry;
-			} SetTableEntry;
-			struct PassThrough_ {
-			public:
-				uint            DestinationBankNumber;
-				RingNetworkRequestType EnvelopedRequestType;
-				RequestData     Request;
-			} PassThrough;
-		} Header;
-		struct Payload_ {
-		public:
-			uint32_t          Data;
-		} Payload;
-
-		friend void sc_trace(sc_core::sc_trace_file*& tf, const RingNetworkRequest& w, const std::string& txt) {
-			// Nothing
-		}
-
-		bool operator== (const RingNetworkRequest& other) const {
-			return false;
-		}
-
-		//RingNetworkRequest& operator= (const RingNetworkRequest& other);
-
-		friend std::ostream& operator<< (std::ostream& os, RingNetworkRequest const& v) {
-			os << "Ring request";
-			return os;
-		}
-	};
 
 	//---------------------------------------------------------------------------------------------
 	// Ports
@@ -133,16 +82,6 @@ public:
   sc_in<MemoryIndex>    iResponseTarget;
   ResponseOutput        oResponse;        // Output responses sent to the remote memory banks
 
-	//-- Ports connected to memory bank ring network ----------------------------------------------
-
-	sc_in<bool>					  iRingStrobe;			// Indicates that a ring network request is pending
-	sc_in<RingNetworkRequest>	iRingRequest;	// Incoming ring network request data
-	sc_out<bool>				  oRingAcknowledge;	// Indicates that the ring network request got consumed
-
-	sc_out<bool>				  oRingStrobe;			// Indicates that a ring network request is ready
-	sc_out<RingNetworkRequest> oRingRequest;// Outgoing ring network request data
-	sc_in<bool>					  iRingAcknowledge;	// Indicates that the ring network request got consumed
-
 	//---------------------------------------------------------------------------------------------
 	// Utility definitions
 	//---------------------------------------------------------------------------------------------
@@ -155,7 +94,6 @@ private:
 		STATE_LOCAL_MEMORY_ACCESS,						// Access local memory (simulate single cycle access latency)
 		STATE_LOCAL_IPK_READ,								  // Read instruction packet from local memory (simulate single cycle access latency)
 		STATE_GP_CACHE_MISS,								  // Access to general purpose cache caused cache miss - wait for cache FSM
-		STATE_WAIT_RING_OUTPUT								// Wait for ring network output buffer to become available
 	};
 
 	enum GeneralPurposeCacheFSMState {
@@ -173,19 +111,6 @@ private:
 		ChannelID           ReturnChannel;		// Number of destination tile
 	};
 
-	struct OutputWord {
-	public:
-		Word                Data;							// Data word to send
-		uint                TableIndex;				// Index of channel map table entry describing the destination
-		ChannelIndex        ReturnChannel;    // Channel to send to when rest of return address is implicit
-		bool                PortClaim;				// Indicates whether this is a port claim message
-		bool                LastWord;					// Indicates whether this is the last word of the message
-
-		OutputWord() : Data(0), TableIndex(0), ReturnChannel(0), PortClaim(false), LastWord(false) {}
-		OutputWord(Word d, uint index, ChannelIndex channel, bool claim, bool last) :
-		  Data(d), TableIndex(index), ReturnChannel(channel), PortClaim(claim), LastWord(last) {}
-	};
-
 	//---------------------------------------------------------------------------------------------
 	// Local state
 	//---------------------------------------------------------------------------------------------
@@ -197,7 +122,7 @@ private:
 	//-- Data queue state -------------------------------------------------------------------------
 
   NetworkBuffer<NetworkRequest>  mInputQueue;       // Input queue
-  NetworkBuffer<OutputWord>      mOutputQueue;      // Output queue
+  NetworkBuffer<NetworkResponse> mOutputQueue;      // Output queue
 
 	bool                  mOutputWordPending;					// Indicates that an output word is waiting for acknowledgement
 	NetworkData           mActiveOutputWord;					// Currently active output word
@@ -207,8 +132,6 @@ private:
 	//-- Mode independent state -------------------------------------------------------------------
 
 	MemoryConfig          mConfig;          // Data including associativity, line size, etc.
-
-	ChannelMapTableEntry *mChannelMapTable;	// Channel map table containing return addresses
 
 	FSMState              mFSMState;			  // Current FSM state
 	FSMState              mFSMCallbackState;// Next FSM state to enter after sub operation is complete
@@ -249,33 +172,22 @@ private:
 	};
 	RequestState mRequestState;
 
-	//-- Ring network state -----------------------------------------------------------------------
-
-	bool                  mRingRequestInputPending;   // Indicates that an incoming ring request is waiting to be processed
-	RingNetworkRequest    mActiveRingRequestInput;		// Currently active incoming ring request
-
-	bool                  mRingRequestOutputPending;  // Indicates that an outgoing ring request is waiting for acknowledgement
-	RingNetworkRequest    mActiveRingRequestOutput;   // Currently active outgoing ring request
-
-	RingNetworkRequest    mDelayedRingRequestOutput;	// Delayed outgoing ring request waiting for ring output buffer
-
 	//---------------------------------------------------------------------------------------------
 	// Internal functions
 	//---------------------------------------------------------------------------------------------
 
 private:
 
-	struct RingNetworkRequest& getAvailableRingRequest();
-	void updatedRingRequest();              // Update state depending on which request was updated.
-
 	// Returns either the ScratchpadModeHandler or GeneralPurposeCacheHandler,
 	// depending on the current configuration.
 	AbstractMemoryHandler& currentMemoryHandler();
 
-  ComponentID requestingComponent() const; // The ID of the core making the current request.
-  bool isL1Request() const; // Whether we are currently acting as an L1 cache.
+  ComponentID requestingComponent(const NetworkRequest& request) const; // The ID of the core making the current request.
+  ChannelID returnChannel(const NetworkRequest& request) const; // The channel to send any response back to.
+  bool isL1Request(const NetworkRequest& request) const; // Whether we are currently acting as an L1 cache.
 
-	bool processRingEvent();
+  bool endOfCacheLine(MemoryAddr address) const;
+
 	bool processMessageHeader();
 
 	void processLocalMemoryAccess();
@@ -284,10 +196,9 @@ private:
 	void processGeneralPurposeCacheMiss();
 	void processWaitRingOutput();
 
-	void processValidRing();
 	void processValidInput();
 
-	void handleNetworkInterfacesPre();
+	NetworkResponse assembleResponse(uint32_t data, bool endOfPacket);
 	void handleDataOutput();
   void handleRequestOutput();
 
@@ -318,8 +229,6 @@ public:
 	//---------------------------------------------------------------------------------------------
 
 protected:
-	MemoryBank *mPrevMemoryBank;
-	MemoryBank *mNextMemoryBank;
 	SimplifiedOnChipScratchpad *mBackgroundMemory;
 
 	// Pointer to network, allowing new interfaces to be experimented with quickly.
@@ -327,8 +236,8 @@ protected:
 
 public:
 
-	void setAdjacentMemories(MemoryBank *prevMemoryBank, MemoryBank *nextMemoryBank, SimplifiedOnChipScratchpad *backgroundMemory);
 	void setLocalNetwork(local_net_t* network);
+	void setBackgroundMemory(SimplifiedOnChipScratchpad* memory);
 
 	MemoryBank& bankContainingAddress(MemoryAddr addr);
 	void storeData(vector<Word>& data, MemoryAddr location);
@@ -348,7 +257,6 @@ protected:
 private:
 
 	void printOperation(MemoryRequest::MemoryOperation operation, MemoryAddr address, uint32_t data) const;
-	void printConfiguration() const;
 
 };
 

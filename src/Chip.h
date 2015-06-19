@@ -121,10 +121,6 @@ private:
   LokiVector3D<ReadySignal>  oReadyData, oReadyCredit;
   LokiVector3D<ReadySignal>  readyRequestToMHL, readyResponseToMHL;
 
-  LokiVector<sc_signal<bool> > ringStrobe;
-	LokiVector<sc_signal<MemoryBank::RingNetworkRequest> > ringRequest;
-	LokiVector<sc_signal<bool> > ringAcknowledge;
-
 	// Delays in SystemC slow simulation right down, so instead, make separate
 	// clocks. The fast clock has its negative edge 1/4 of a cycle early, and the
 	// slow clock has its negative edge 1/4 of a cycle late. The positive edges

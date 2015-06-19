@@ -104,8 +104,8 @@ public:
   // predicate has been computed, if it will be written this cycle.
   virtual bool     readPredReg(bool wait=false, const DecodedInst& inst = DecodedInst());
 
-  const Word readWord(MemoryAddr addr) const;
-  const Word readByte(MemoryAddr addr) const;
+  const Word readWord(MemoryAddr addr);
+  const Word readByte(MemoryAddr addr);
   void writeWord(MemoryAddr addr, Word data);
   void writeByte(MemoryAddr addr, Word data);
 
@@ -168,7 +168,9 @@ private:
   // Print out information about the environment this instruction executed in.
   void             trace(const DecodedInst& instruction) const;
 
-  ComponentID      getSystemCallMemory() const;
+  // The memory bank which is responsible for holding the given address.
+  // Assumes a data cache connection is on channel 1.
+  ComponentID      getSystemCallMemory(MemoryAddr address);
 
 //==============================//
 // Components

@@ -42,7 +42,6 @@ AbstractMemoryHandler::AbstractMemoryHandler(uint bankNumber) :
   mLineBits = -1;
   mLineMask = 0;
 
-  mGroupIndex = -1;
   mGroupBits = -1;
   mGroupMask = 0;
 

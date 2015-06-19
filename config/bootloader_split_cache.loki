@@ -1,7 +1,7 @@
 # Split the 8 L1 banks into two groups of four - one dedicated to instructions,
 # and the other to data.
 
-# Channel map table contents: 0x0001F902
+# Channel map table contents: 0x00019902
 # check L2 tags?        << 16
 # check L1 tags?        << 15
 # bypass L2 cache?      << 14
@@ -14,11 +14,11 @@
 # isGlobal (0)          <<  0
 
 # Instruction cache connection
- lli                r20, 0xF102
+ lli                r20, 0x9102
  lui                r20, 0x0001
 
 # Data cache connection - change first bank in group and return channel
- lli                r21, 0xF282
+ lli                r21, 0x9282
  lui                r21, 0x0001
 
  setchmapi          0,   r20                  # Set instruction fetch channel to memory bank

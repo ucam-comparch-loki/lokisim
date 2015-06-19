@@ -22,8 +22,6 @@ struct MemoryConfig_ {
   BankMode Mode;          // Scratchpad, cache, etc.
   uint     WayCount;      // Associativity if in cache mode
   uint     LineSize;      // Cache line length (in bytes)
-  uint     GroupBaseBank; // Index of first memory bank in this group
-  uint     GroupIndex;    // Index of this memory bank within group
   uint     GroupSize;     // Number of memory banks in group
 };
 typedef struct MemoryConfig_ MemoryConfig;

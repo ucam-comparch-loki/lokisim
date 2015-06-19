@@ -27,8 +27,10 @@ void Chip::storeData(const DataBlock& data) {
     cores[data.component().globalCoreNumber()]->storeData(data.payload(), data.position());
   }
   else if (data.component().isMemory()) {
-    assert(data.component().globalMemoryNumber() < memories.size());
-    memories[data.component().globalMemoryNumber()]->storeData(data.payload(),data.position());
+    cerr << "Error: storing directly to memory banks is disabled since it cannot be known "
+        "which bank the core will access." << endl;
+//    assert(data.component().globalMemoryNumber() < memories.size());
+//    memories[data.component().globalMemoryNumber()]->storeData(data.payload(),data.position());
   }
 }
 
@@ -168,10 +170,6 @@ void Chip::makeSignals() {
   responseToMHL.init(responseNet.iData);
   readyResponseToMHL.init(responseNet.iReady);
   responseFromMHL.init(responseNet.oData);
-
-	ringStrobe.init(NUM_MEMORIES);
-	ringRequest.init(NUM_MEMORIES);
-	ringAcknowledge.init(NUM_MEMORIES);
 }
 
 void Chip::makeComponents() {
@@ -210,6 +208,7 @@ void Chip::makeComponents() {
 
         MemoryBank* m = new MemoryBank(name.c_str(), memoryID, mem);
         m->setLocalNetwork(network.getLocalNetwork(memoryID));
+        m->setBackgroundMemory(&backgroundMemory);
 
         memories[memoryID.globalMemoryNumber()] = m;
       }
@@ -393,6 +392,8 @@ void Chip::wireUp() {
           else {
             uint memoryIndex = component.globalMemoryNumber();
 
+            memories[memoryIndex]->iClock(clock);
+
             uint indexInput = dataInputCounter++;  // Position in network's array
             memories[memoryIndex]->iData(iDataLocal[indexInput]);
             network.oData[indexInput](iDataLocal[indexInput]);
@@ -410,7 +411,7 @@ void Chip::wireUp() {
     } // end tile row loop
   } // end tile column loop
   
-  // Memory ring network.
+  // Miss handling logic.
   for (uint j=0; j<NUM_COMPUTE_TILES; j++) {
     mhl[j]->clock(clock);
     mhl[j]->iResponseFromBM(responseFromBM[j]);
@@ -418,28 +419,6 @@ void Chip::wireUp() {
     mhl[j]->oRequestToBM(requestToBM[j]);
     backgroundMemory.iData[j](requestToBM[j]);
   }
-
-  for (uint j=0; j<NUM_COMPUTE_TILES; j++) {
- 	  for (uint i = 0; i < MEMS_PER_TILE; i++) {
-			int currIndex = j * MEMS_PER_TILE + i;
-			int prevIndex = j * MEMS_PER_TILE + ((i + MEMS_PER_TILE - 1) % MEMS_PER_TILE);
-			int nextIndex = j * MEMS_PER_TILE + ((i + 1) % MEMS_PER_TILE);
-		
-			MemoryBank* m = memories[currIndex];
-
-			m->iClock(clock);
-	
-			memories[nextIndex]->oRingAcknowledge(ringAcknowledge[currIndex]);
-			memories[nextIndex]->iRingStrobe(ringStrobe[currIndex]);
-			memories[nextIndex]->iRingRequest(ringRequest[currIndex]);
-
-			memories[currIndex]->iRingAcknowledge(ringAcknowledge[currIndex]);
-			memories[currIndex]->oRingStrobe(ringStrobe[currIndex]);
-			memories[currIndex]->oRingRequest(ringRequest[currIndex]);
-
-			memories[currIndex]->setAdjacentMemories(memories[prevIndex], memories[nextIndex], &backgroundMemory);
-		}
-	}
 }
 
 Chip::Chip(const sc_module_name& name, const ComponentID& ID) :

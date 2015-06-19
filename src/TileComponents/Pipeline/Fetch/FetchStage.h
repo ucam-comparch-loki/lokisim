@@ -135,6 +135,9 @@ private:
   // put them into the instruction stores.
   void          writeLoop();
 
+  // Send a memory request for (part of) an instruction packet.
+  void          sendRequest(const FetchInfo& fetch);
+
   // Tells whether the packet from location a is currently in the cache.
   // There are many different ways of fetching instructions, so provide the
   // operation too.
@@ -194,6 +197,7 @@ private:
   enum WriteState {
     WS_READY,       // Have no instructions to fetch
     WS_CHECK_TAGS,  // Check whether instructions need to be fetched
+    WS_FETCH,       // Continue fetching cache lines until the end of packet is reached
   };
 
   ReadState  readState;
@@ -216,6 +220,7 @@ private:
   // Buffer to store fetches as we wait for any outstanding operations to
   // complete.
   BufferStorage<FetchInfo> fetchBuffer;
+  FetchInfo activeFetch;
 
   // Event which is triggered whenever a packet finishes arriving.
   sc_event packetArrivedEvent;

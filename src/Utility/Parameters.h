@@ -102,9 +102,6 @@ extern parameter  DIRECTORY_SIZE;
 // Configurable memory system
 //-------------------------------------------------------------------------------------------------
 
-// Number of entries in memory bank's channel map table.
-extern parameter		MEMORY_CHANNEL_MAP_TABLE_ENTRIES;
-
 // Size of memory bank in bytes.
 extern parameter		MEMORY_BANK_SIZE;
 

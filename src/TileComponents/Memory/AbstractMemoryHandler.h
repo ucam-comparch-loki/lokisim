@@ -33,7 +33,6 @@ protected:
   uint       mLineBits;       // Number of line bits - log2(line size)
   uint32_t   mLineMask;       // Bit mask used to extract line bits
 
-  uint       mGroupIndex;     // Relative index of bank within group (off by one)
   uint       mGroupBits;      // Number of group bits - log2(group size)
   uint32_t   mGroupMask;      // Bit mask used to extract group bits
 
@@ -52,14 +51,6 @@ public:
   // Set up the memory bank with a new configuration. This invalidates any data
   // currently stored.
   virtual void activate(const MemoryConfig& config) = 0;
-
-  // Check whether this memory bank is responsible for storing data at the
-  // given address, according to the current mapping of addresses to banks.
-  // Note that "true" does not mean that the data is present.
-  virtual bool containsAddress(MemoryAddr address) = 0;
-
-  // Check whether two memory addresses map to the same cache line.
-  virtual bool sameLine(MemoryAddr address1, MemoryAddr address2) = 0;
 
   // Data access operations. Return value is whether the access was a hit.
   // Any data to be returned is passed through the reference &data.

@@ -765,6 +765,10 @@ void Decoder::remoteExecution(DecodedInst& instruction) const {
   instruction.channelMapEntry(rmtexecuteChannel);
   instruction.cmtEntry(rmtexecuteCMT);
 
+  // Would ideally like network packet to mirror instruction packet, but this
+  // can block us from sending a request for the next cache line of the packet.
+  instruction.endOfNetworkPacket(true);
+
   // Prevent other stages from trying to execute this instruction.
   instruction.predicate(Instruction::ALWAYS);
   instruction.opcode(InstructionMap::OP_OR);

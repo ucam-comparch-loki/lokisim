@@ -125,10 +125,6 @@ private:
   // this part of the core should only deal with credits.
   ChannelMapTable* const channelMapTable;
 
-  // Currently waiting for some event to occur. (e.g. Credits to arrive or
-  // buffer to empty.)
-  bool waiting;
-
   // An event which is triggered whenever data is inserted into the buffer.
   sc_event  bufferFillChanged;
 

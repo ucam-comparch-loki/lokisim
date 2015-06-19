@@ -92,20 +92,20 @@ bool     Core::readPredReg(bool waitForExecution, const DecodedInst& inst) {
 
 void     Core::writePredReg(bool val)  {pred.write(val);}
 
-const Word Core::readWord(MemoryAddr addr) const {
-	return Word(parent()->readWord(getSystemCallMemory(), addr));
+const Word Core::readWord(MemoryAddr addr) {
+	return Word(parent()->readWord(getSystemCallMemory(addr), addr));
 }
 
-const Word Core::readByte(MemoryAddr addr) const {
-	return Word(parent()->readByte(getSystemCallMemory(), addr));
+const Word Core::readByte(MemoryAddr addr) {
+	return Word(parent()->readByte(getSystemCallMemory(addr), addr));
 }
 
 void Core::writeWord(MemoryAddr addr, Word data) {
-	parent()->writeWord(getSystemCallMemory(), addr, data);
+	parent()->writeWord(getSystemCallMemory(addr), addr, data);
 }
 
 void Core::writeByte(MemoryAddr addr, Word data) {
-	parent()->writeByte(getSystemCallMemory(), addr, data);
+	parent()->writeByte(getSystemCallMemory(addr), addr, data);
 }
 
 const int32_t  Core::readRCET(ChannelIndex channel) {
@@ -184,10 +184,11 @@ void Core::trace(const DecodedInst& inst) const {
       pred.read(), regbuf);
 }
 
-ComponentID Core::getSystemCallMemory() const {
-  // TODO: Stop assuming that the first channel map entry after the fetch
-  // channel corresponds to the memory that system calls want to access.
-  return channelMapTable.getDestination(1).component;
+ComponentID Core::getSystemCallMemory(MemoryAddr address) {
+  // If accessing a group of memories, determine which bank to access.
+  uint increment = channelMapTable[1].computeAddressIncrement(address);
+  return ComponentID(id.tile,
+      channelMapTable[1].memoryView().bank + increment + CORES_PER_TILE);
 }
 
 /* Returns the channel ID of this core's instruction packet FIFO. */

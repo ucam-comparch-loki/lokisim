@@ -111,7 +111,7 @@ parameter IPK_CACHE_TAGS             = 0;
 parameter CHANNEL_MAP_SIZE           = 16 - 1; // Final entry is reserved as NULL
 
 // Maximum safe instruction packet size.
-parameter MAX_IPK_SIZE               = 8;
+parameter MAX_IPK_SIZE               = 8; // Fetch one cache line at a time.
 
 // Number of entries in the L1 directory, mapping memory addresses to tiles.
 parameter DIRECTORY_SIZE             = 16;
@@ -119,9 +119,6 @@ parameter DIRECTORY_SIZE             = 16;
 //-------------------------------------------------------------------------------------------------
 // Configurable memory system
 //-------------------------------------------------------------------------------------------------
-
-// Number of entries in memory bank's channel map table.
-parameter MEMORY_CHANNEL_MAP_TABLE_ENTRIES  = 16;
 
 // Size of memory bank in bytes.
 parameter MEMORY_BANK_SIZE                  = 8192;		// 8 KB per bank
@@ -192,7 +189,6 @@ void Parameters::parseParameter(const string &name, const string &value) {
 	else SET_IF_MATCH(cName, nValue, CHANNEL_MAP_SIZE);
   else SET_IF_MATCH(cName, nValue, MAX_IPK_SIZE);
   else SET_IF_MATCH(cName, nValue, DIRECTORY_SIZE);
-	else SET_IF_MATCH(cName, nValue, MEMORY_CHANNEL_MAP_TABLE_ENTRIES);
 	else SET_IF_MATCH(cName, nValue, MEMORY_BANK_SIZE);
 	else SET_IF_MATCH(cName, nValue, MEMORY_CACHE_RANDOM_REPLACEMENT);
 	else SET_IF_MATCH(cName, nValue, MEMORY_ON_CHIP_SCRATCHPAD_DELAY);
@@ -237,7 +233,6 @@ void Parameters::printParametersDbase() {
 	// TODO: Add remaining parameters if required
 
 	if (Arguments::batchMode()) {
-		cout << "<@PARAM>MEMORY_CHANNEL_MAP_TABLE_ENTRIES:" << MEMORY_CHANNEL_MAP_TABLE_ENTRIES << "</@PARAM>" << endl;
 		cout << "<@PARAM>MEMORY_BANK_SIZE:" << MEMORY_BANK_SIZE << "</@PARAM>" << endl;
 		cout << "<@PARAM>MEMORY_CACHE_RANDOM_REPLACEMENT:" << MEMORY_CACHE_RANDOM_REPLACEMENT << "</@PARAM>" << endl;
 		cout << "<@PARAM>MEMORY_ON_CHIP_SCRATCHPAD_DELAY:" << MEMORY_ON_CHIP_SCRATCHPAD_DELAY << "</@PARAM>" << endl;

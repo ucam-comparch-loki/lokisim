@@ -24,20 +24,22 @@ void ExecuteStage::writeWord(MemoryAddr addr, Word data) const {core()->writeWor
 void ExecuteStage::writeByte(MemoryAddr addr, Word data) const {core()->writeByte(addr, data);}
 
 void ExecuteStage::execute() {
-//  if (alu.busy()) {
-//    if (DEBUG) cout << this->name() << ": continuing " << currentInst.name()
-//        << " on " << currentInst.operand1() << " and " << currentInst.operand2() << endl;
-//    alu.execute(currentInst);
-//    blocked = alu.busy();
-//  }
-
-  if (currentInst.sendsOnNetwork() && !iReady.read()) {
-    next_trigger(iReady.posedge_event());
-    return;
-  }
 
   if (DEBUG)
     cout << this->name() << " received Instruction: " << currentInst << endl;
+
+  // Wait until it is clear to produce network data.
+  if (currentInst.sendsOnNetwork() && !iReady.read()) {
+    blocked = true;
+    next_trigger(iReady.posedge_event());
+    return;
+  }
+  else if (currentInst.sendsOnNetwork() && oData.valid()) {
+    blocked = true;
+    next_trigger(oData.ack_event());
+    return;
+  }
+  blocked = false;
 
   // If there is already a result, don't do anything
   if (currentInst.hasResult()) {
@@ -54,6 +56,7 @@ void ExecuteStage::execute() {
   if (!blocked) {
     instructionCompleted();
   }
+
 }
 
 void ExecuteStage::updateReady() {
@@ -199,8 +202,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
   // Only instrument operations which executed in this pipeline stage.
   // PAYLOAD_ONLY means this is the second half of a store operation - we don't
   // want to instrument it twice.
-  if (//ENERGY_TRACE &&  <-- do this check elsewhere
-      operation.isExecuteStageOperation() &&
+  if (operation.isExecuteStageOperation() &&
       operation.memoryOp() != MemoryRequest::PAYLOAD_ONLY &&
       !blocked) {
     Instrumentation::executed(id, operation, willExecute);
@@ -243,6 +245,7 @@ void ExecuteStage::sendOutput() {
 
     // Send the data to the output buffer - it will arrive immediately so that
     // network resources can be requested the cycle before they are used.
+    assert(!oData.valid());
     oData.write(currentInst.toNetworkData(id.tile));
   }
 
@@ -266,24 +269,14 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
   bool addressFlit;
 
   switch (op) {
-    case MemoryRequest::LOAD_W:
-    case MemoryRequest::LOAD_HW:
-    case MemoryRequest::LOAD_B:
-    case MemoryRequest::STORE_W:
-    case MemoryRequest::STORE_HW:
-    case MemoryRequest::STORE_B:
-    case MemoryRequest::IPK_READ:
-    case MemoryRequest::LOAD_LINKED:
-    case MemoryRequest::STORE_CONDITIONAL:
-    case MemoryRequest::LOAD_AND_ADD:
-    case MemoryRequest::LOAD_AND_OR:
-    case MemoryRequest::LOAD_AND_AND:
-    case MemoryRequest::LOAD_AND_XOR:
-    case MemoryRequest::EXCHANGE:
-      addressFlit = true;
+    case MemoryRequest::PAYLOAD_ONLY:
+    case MemoryRequest::UPDATE_DIRECTORY_ENTRY:
+    case MemoryRequest::UPDATE_DIRECTORY_MASK:
+    case MemoryRequest::CONTROL:
+      addressFlit = false;
       break;
     default:
-      addressFlit = false;
+      addressFlit = true;
       break;
   }
 
@@ -315,10 +308,7 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
 bool ExecuteStage::isStalled() const {
   // When we have multi-cycle operations (e.g. multiplies), we will need to use
   // this.
-  // TODO: replace with oData.valid();
-  // Currently results in occasional buffer over-filling.
-  return !iReady.read();
-//  return oData.valid();
+  return !iReady.read() || blocked;
 }
 
 bool ExecuteStage::checkPredicate(DecodedInst& inst) {

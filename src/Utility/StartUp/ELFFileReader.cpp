@@ -16,6 +16,8 @@
 #include "../../Datatype/Instruction.h"
 #include "../../TileComponents/Core.h"
 
+// TODO: ELF files are designed to be easy to parse, without converting to text
+// first. This would remove the dependency on external tools.
 vector<DataBlock>& ELFFileReader::extractData(int& mainPos) const {
   vector<DataBlock>* blocks = new vector<DataBlock>();
 

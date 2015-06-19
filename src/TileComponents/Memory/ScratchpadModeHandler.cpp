@@ -43,7 +43,6 @@ void ScratchpadModeHandler::activate(const MemoryConfig& config) {
 	mLineBits = log2Exact(mLineSize);
 	mLineMask = (1UL << mLineBits) - 1UL;
 
-	mGroupIndex = config.GroupIndex;
 	mGroupBits = (config.GroupSize == 1) ? 0 : log2Exact(config.GroupSize);
 	mGroupMask = (config.GroupSize == 1) ? 0 : (((1UL << mGroupBits) - 1UL) << mLineBits);
 
@@ -51,22 +50,8 @@ void ScratchpadModeHandler::activate(const MemoryConfig& config) {
 	  Instrumentation::MemoryBank::setMode(mBankNumber, false, mSetCount, mWayCount, mLineSize);
 }
 
-bool ScratchpadModeHandler::containsAddress(MemoryAddr address) {
-	assert(address < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
-	return (address & mGroupMask) == (mGroupIndex << mLineBits);
-}
-
-bool ScratchpadModeHandler::sameLine(MemoryAddr address1, MemoryAddr address2) {
-	assert(address1 < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
-	assert(address2 < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
-	assert((address1 & mGroupMask) == (mGroupIndex << mLineBits));
-	assert((address2 & mGroupMask) == (mGroupIndex << mLineBits));
-	return (address1 >> (mGroupBits + mLineBits)) == (address2 >> (mGroupBits + mLineBits));
-}
-
 bool ScratchpadModeHandler::readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug, int core, int retCh) {
 	assert(address < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
-	assert((address & mGroupMask) == (mGroupIndex << mLineBits));
 	if ((address & 0x3) != 0)
 	  throw UnalignedAccessException(address, 4);
 
@@ -93,7 +78,6 @@ bool ScratchpadModeHandler::readWord(MemoryAddr address, uint32_t &data, bool in
 
 bool ScratchpadModeHandler::readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug, int core, int retCh) {
 	assert(address < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
-	assert((address & mGroupMask) == (mGroupIndex << mLineBits));
   if ((address & 0x1) != 0)
     throw UnalignedAccessException(address, 2);
 
@@ -113,7 +97,6 @@ bool ScratchpadModeHandler::readHalfWord(MemoryAddr address, uint32_t &data, boo
 
 bool ScratchpadModeHandler::readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug, int core, int retCh) {
 	assert(address < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
-	assert((address & mGroupMask) == (mGroupIndex << mLineBits));
 
 	if (!debug && ENERGY_TRACE)
 	  Instrumentation::MemoryBank::readByte(mBankNumber, address, false, core, retCh);
@@ -138,7 +121,6 @@ bool ScratchpadModeHandler::readByte(MemoryAddr address, uint32_t &data, bool re
 
 bool ScratchpadModeHandler::writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh) {
 	assert(address < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
-	assert((address & mGroupMask) == (mGroupIndex << mLineBits));
   if ((address & 0x3) != 0)
     throw UnalignedAccessException(address, 4);
 
@@ -157,7 +139,6 @@ bool ScratchpadModeHandler::writeWord(MemoryAddr address, uint32_t data, bool re
 
 bool ScratchpadModeHandler::writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh) {
 	assert(address < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
-	assert((address & mGroupMask) == (mGroupIndex << mLineBits));
   if ((address & 0x1) != 0)
     throw UnalignedAccessException(address, 2);
 
@@ -181,7 +162,6 @@ bool ScratchpadModeHandler::writeHalfWord(MemoryAddr address, uint32_t data, boo
 
 bool ScratchpadModeHandler::writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh) {
 	assert(address < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
-	assert((address & mGroupMask) == (mGroupIndex << mLineBits));
 
 	if (!debug && ENERGY_TRACE)
 	  Instrumentation::MemoryBank::writeByte(mBankNumber, address, false, core, retCh);

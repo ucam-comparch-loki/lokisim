@@ -44,188 +44,63 @@ using namespace std;
 // Internal functions
 //-------------------------------------------------------------------------------------------------
 
-struct MemoryBank::RingNetworkRequest& MemoryBank::getAvailableRingRequest() {
-  return mRingRequestOutputPending ? mDelayedRingRequestOutput : mActiveRingRequestOutput;
-}
-
-void MemoryBank::updatedRingRequest() {
-  if (mRingRequestOutputPending)
-    mFSMState = STATE_WAIT_RING_OUTPUT;
-  else {
-    mRingRequestOutputPending = true;
-    mFSMState = STATE_IDLE;
-  }
-}
 
 AbstractMemoryHandler& MemoryBank::currentMemoryHandler() {
-  switch (mConfig.Mode) {
-    case MODE_SCRATCHPAD:
-      return mScratchpadModeHandler;
-    case MODE_GP_CACHE:
-      return mGeneralPurposeCacheHandler;
-    default:
-      throw InvalidOptionException("current memory handler", mConfig.Mode);
-  }
+  bool checkTags = isL1Request(mActiveRequest)
+                 ? mActiveRequest.getMemoryMetadata().checkL1Tags
+                 : mActiveRequest.getMemoryMetadata().checkL2Tags;
+
+  if (checkTags)
+    return mGeneralPurposeCacheHandler;
+  else
+    return mScratchpadModeHandler;
 }
 
-ComponentID MemoryBank::requestingComponent() const {
-  if (isL1Request()) {
+ComponentID MemoryBank::requestingComponent(const NetworkRequest& request) const {
+  if (isL1Request(request)) {
     // In L1 mode, the core is on the same tile and can be determined by the
     // input channel accessed.
     return ComponentID(id.tile, mActiveData.TableIndex);
   }
   else {
     // In L2 mode, the requesting bank is supplied as part of the request.
-    return ComponentID(mActiveRequest.getMemoryMetadata().returnTileX,
-                       mActiveRequest.getMemoryMetadata().returnTileY,
-                       mActiveRequest.getMemoryMetadata().returnChannel);
+    return ComponentID(request.getMemoryMetadata().returnTileX,
+                       request.getMemoryMetadata().returnTileY,
+                       request.getMemoryMetadata().returnChannel);
   }
 }
 
-bool MemoryBank::isL1Request() const {
+ChannelID MemoryBank::returnChannel(const NetworkRequest& request) const {
+  if (isL1Request(request)) {
+    // In L1 mode, the core is on the same tile and can be determined by the
+    // input channel accessed.
+    return ChannelID(id.tile.x,
+                     id.tile.y,
+                     mActiveData.TableIndex,
+                     request.getMemoryMetadata().returnChannel);
+  }
+  else {
+    // In L2 mode, the requesting bank is supplied as part of the request.
+    return ChannelID(request.getMemoryMetadata().returnTileX,
+                     request.getMemoryMetadata().returnTileY,
+                     request.getMemoryMetadata().returnChannel,
+                     0);
+  }
+}
+
+bool MemoryBank::isL1Request(const NetworkRequest& request) const {
   // Perform a naive test on the active request. The returnTile fields are
   // not set by requests from cores.
   // Alternatively, may prefer to choose based on which queue the request was
   // taken from.
-  return (mActiveRequest.getMemoryMetadata().returnTileX == 0);
+  return (request.getMemoryMetadata().returnTileX == 0);
 }
 
-bool MemoryBank::processRingEvent() {
-	if (!mRingRequestInputPending)
-		return false;
+bool MemoryBank::endOfCacheLine(MemoryAddr address) const {
+  // Cache line = 32 bytes = 2^5 bytes.
+  uint mask = 0xFFFFFFE0;
 
-ReevaluateRequest:
-
-	bool ringRequestConsumed = true;
-
-	switch (mActiveRingRequestInput.Header.RequestType) {
-	case RING_SET_MODE:
-		if (DEBUG)
-			cout << this->name() << " received RING_SET_MODE request through ring network" << endl;
-
-		mConfig = mActiveRingRequestInput.Header.SetMode;
-
-		assert(mConfig.GroupIndex <= mConfig.GroupSize);
-
-		currentMemoryHandler().activate(mConfig);
-
-		if (mConfig.GroupIndex < mConfig.GroupSize - 1) {
-			// Forward request through ring network
-
-      RingNetworkRequest& request = getAvailableRingRequest();
-
-      request.Header.RequestType = RING_SET_MODE;
-      request.Header.SetMode = mConfig;
-      request.Header.SetMode.GroupIndex++;
-
-      updatedRingRequest();
-
-		} else {
-			mFSMState = STATE_IDLE;
-		}
-
-		break;
-
-	case RING_SET_TABLE_ENTRY:
-		if (DEBUG)
-			cout << this->name() << " received RING_SET_TABLE_ENTRY request through ring network" << (mOutputQueue.empty() ? "" : " (draining output queue)") << endl;
-
-		// Drain output queue before changing table
-
-		if (!mOutputQueue.empty()) {
-			ringRequestConsumed = false;
-			mFSMState = STATE_IDLE;
-			break;
-		}
-
-		mActiveData.TableIndex = mActiveRingRequestInput.Header.SetTableEntry.TableIndex;
-		mChannelMapTable[mActiveData.TableIndex].Valid = true;
-		mChannelMapTable[mActiveData.TableIndex].ReturnChannel = mActiveRingRequestInput.Header.SetTableEntry.TableEntry;
-
-		if (mConfig.GroupIndex < mConfig.GroupSize - 1) {
-			// Forward request through ring network
-
-      RingNetworkRequest& request = getAvailableRingRequest();
-
-      request.Header.RequestType = RING_SET_TABLE_ENTRY;
-      request.Header.SetTableEntry.TableIndex = mActiveData.TableIndex;
-      request.Header.SetTableEntry.TableEntry = mActiveRingRequestInput.Header.SetTableEntry.TableEntry;
-
-      updatedRingRequest();
-		} else {
-			// Send port claim message to return channel
-			OutputWord outWord(ChannelID(id, mActiveData.TableIndex).flatten(),
-			    mActiveData.TableIndex, 0, true, true);
-			mOutputQueue.write(outWord);
-
-			mFSMState = STATE_IDLE;
-		}
-
-		break;
-
-	case RING_IPK_READ_HAND_OFF:
-		if (DEBUG)
-			cout << this->name() << " received RING_IPK_READ_HAND_OFF request through ring network" << endl;
-
-		// A bit of a hack but simplifies the code considerably
-
-		mActiveRequest = NetworkRequest(0, ChannelID(id,0), ChannelMapEntry::MemoryChannel(0), MemoryRequest::IPK_READ, true);
-    mActiveData    = mActiveRingRequestInput.Header.Request;
-
-		if (ENERGY_TRACE)
-		  Instrumentation::MemoryBank::initiateIPKRead(cBankNumber, true);
-
-		mFSMState = STATE_LOCAL_IPK_READ;
-		break;
-
-	case RING_PASS_THROUGH:
-		if (DEBUG)
-			cout << this->name() << " received RING_PASS_THROUGH request through ring network" << endl;
-
-		if (mActiveRingRequestInput.Header.PassThrough.DestinationBankNumber == cBankNumber) {
-			// A bit of a hack but simplifies the code considerably
-
-			RingNetworkRequest request = mActiveRingRequestInput;
-			mActiveRingRequestInput.Header.RequestType = mActiveRingRequestInput.Header.PassThrough.EnvelopedRequestType;
-
-			switch (mActiveRingRequestInput.Header.PassThrough.EnvelopedRequestType) {
-			case RING_IPK_READ_HAND_OFF:
-			  mActiveRingRequestInput.Header.Request = request.Header.PassThrough.Request;
-				break;
-
-			default:
-				assert(false);
-				break;
-			}
-
-			goto ReevaluateRequest;
-		} else {
-			// Forward request through ring network
-
-			if (mRingRequestOutputPending) {
-				mDelayedRingRequestOutput = mActiveRingRequestInput;
-				mFSMState = STATE_WAIT_RING_OUTPUT;
-			} else {
-				mRingRequestOutputPending = true;
-				mActiveRingRequestOutput = mActiveRingRequestInput;
-				mFSMState = STATE_IDLE;
-
-				// Allow ring network pass-through in parallel to core-to-memory network operation
-
-				mRingRequestInputPending = false;
-				return false;
-			}
-		}
-
-		break;
-
-	default:
-		assert(false);
-		break;
-	}
-
-	mRingRequestInputPending = !ringRequestConsumed;
-	return true;
+  return (address & mask) != ((address+4) & mask);
 }
 
 bool MemoryBank::processMessageHeader() {
@@ -245,105 +120,34 @@ bool MemoryBank::processMessageHeader() {
 	bool inputWordProcessed = true;
 
 	switch (mActiveRequest.getMemoryMetadata().opcode) {
-	case MemoryRequest::CONTROL:
+	case MemoryRequest::CONTROL: {
 		if (DEBUG)
 			cout << this->name() << " starting CONTROL request on channel " << mActiveData.TableIndex << endl;
 
-		if (mChannelMapTable[mActiveData.TableIndex].FetchPending) {
-			if (DEBUG)
-				cout << this->name() << " parsed channel address" << endl;
+    MemoryRequest configuration = mActiveRequest.payload();
 
-			if (!mOutputQueue.empty()) {
-			  if (DEBUG)
-			    cout << this->name() << " output queue not empty" << endl;
+    mConfig.WayCount = 1UL << configuration.getWayBits();
+    mConfig.LineSize = CACHE_LINE_WORDS * BYTES_PER_WORD;
 
-				// Drain output queue before changing table
+    mConfig.GroupSize = 1UL << configuration.getGroupBits();
 
-				inputWordProcessed = false;
-				mFSMState = STATE_IDLE;
-			} else {
-				// Update channel map table
-
-				mChannelMapTable[mActiveData.TableIndex].Valid = true;
-				mChannelMapTable[mActiveData.TableIndex].FetchPending = false;
-				mChannelMapTable[mActiveData.TableIndex].ReturnChannel = mActiveRequest.getMemoryMetadata().returnChannel;
-
-				if (mConfig.GroupIndex < mConfig.GroupSize - 1) {
-					// Forward request through ring network
-
-          RingNetworkRequest& request =
-              mRingRequestOutputPending ? mDelayedRingRequestOutput : mActiveRingRequestOutput;
-
-          if (mRingRequestOutputPending) {
-						mFSMState = STATE_WAIT_RING_OUTPUT;
-					} else {
-						mRingRequestOutputPending = true;
-						mFSMState = STATE_IDLE;
-					}
-
-					request.Header.RequestType = RING_SET_TABLE_ENTRY;
-          request.Header.SetTableEntry.TableIndex = mActiveData.TableIndex;
-          request.Header.SetTableEntry.TableEntry = mActiveRequest.getMemoryMetadata().returnChannel;
-
-				} else {
-					// Send port claim message to return channel
-					OutputWord outWord(ChannelID(id, mActiveData.TableIndex).flatten(),
-					    mActiveData.TableIndex, 0, true, true);
-					mOutputQueue.write(outWord);
-
-					mFSMState = STATE_IDLE;
-				}
-			}
-		} else {
-			if (DEBUG)
-				cout << this->name() << " starting SET_MODE opcode on channel " << mActiveData.TableIndex << endl;
-
-			MemoryRequest configuration = mActiveRequest.payload();
-
-			mConfig.WayCount = 1UL << configuration.getWayBits();
-			mConfig.LineSize = CACHE_LINE_WORDS * BYTES_PER_WORD;
-
-			mConfig.GroupBaseBank = cBankNumber;
-			mConfig.GroupIndex = 0;
-			mConfig.GroupSize = 1UL << configuration.getGroupBits();
-
-			assert(mConfig.GroupIndex <= mConfig.GroupSize);
-
-      // TODO: have something similar to this code before any data access.
-			// Remember to check whether we are in L1 or L2 mode.
+    // TODO: have something similar to this code before any data access.
+    // Remember to check whether we are in L1 or L2 mode.
 //			if (mActiveRequest.getMemoryMetadata().checkL1Tags) {
-				mConfig.Mode = MODE_GP_CACHE;
-				mGeneralPurposeCacheHandler.activate(mConfig);
+      mConfig.Mode = MODE_GP_CACHE;
+      mGeneralPurposeCacheHandler.activate(mConfig);
 //			} else {
 //				mConfig.Mode = MODE_SCRATCHPAD;
 //				mScratchpadModeHandler.activate(mConfig);
 //			}
 
-      // Invalidate all atomic transactions.
-      mReservations.clearReservationRange(0, 0xFFFFFFFF);
+    // Invalidate all atomic transactions.
+    mReservations.clearReservationRange(0, 0xFFFFFFFF);
 
-			// Print a description of the configuration, so we can more-easily tell
-			// whether cores are acting consistently.
-			if (DEBUG || Arguments::summarise())
-			  printConfiguration();
-
-			if (mConfig.GroupIndex < mConfig.GroupSize - 1) {
-				// Forward request through ring network
-
-        RingNetworkRequest& request = getAvailableRingRequest();
-
-        request.Header.RequestType = RING_SET_MODE;
-        request.Header.SetMode = mConfig;
-        request.Header.SetMode.GroupIndex++;
-
-        updatedRingRequest();
-
-			} else {
-				mFSMState = STATE_IDLE;
-			}
-		}
+    mFSMState = STATE_IDLE;
 
 		break;
+	}
 
 	case MemoryRequest::LOAD_W:
 	case MemoryRequest::LOAD_HW:
@@ -415,8 +219,7 @@ bool MemoryBank::processMessageHeader() {
 }
 
 void MemoryBank::processLocalMemoryAccess() {
-	assert(mConfig.Mode != MODE_INACTIVE);
-	assert(mActiveData.TableIndex < 8 || mChannelMapTable[mActiveData.TableIndex].Valid);
+	assert(mActiveData.TableIndex < 8);
 
 	if (mOutputQueue.full()/* && (mActiveRequest.isSingleLoad())*/) {
 		// Delay /*load*/ request until there is room in the output queue available
@@ -427,7 +230,6 @@ void MemoryBank::processLocalMemoryAccess() {
 		return;
 	} else {
 	  AbstractMemoryHandler& handler = currentMemoryHandler();
-		assert(handler.containsAddress(mActiveData.Address));
 
 		// Loads
 		if (MemoryRequest::isSingleLoad(mActiveRequest.getMemoryMetadata().opcode)) {
@@ -441,7 +243,7 @@ void MemoryBank::processLocalMemoryAccess() {
 			case MemoryRequest::LOAD_LINKED:
 			  cacheHit = handler.readWord(mActiveData.Address, data, false, mCacheResumeRequest, false, mActiveData.TableIndex, mActiveData.ReturnChannel);
 			  if (cacheHit)
-			    mReservations.makeReservation(requestingComponent(), mActiveData.Address);
+			    mReservations.makeReservation(requestingComponent(mActiveRequest), mActiveData.Address);
 			  break;
 			default:						assert(false);																								break;
 			}
@@ -455,13 +257,11 @@ void MemoryBank::processLocalMemoryAccess() {
 				                 mActiveData.Address, data);
 
 				// Enqueue output request
-				OutputWord outWord(Word(data), mActiveData.TableIndex, mActiveData.ReturnChannel, false, true);
-				mOutputQueue.write(outWord);
+			  NetworkResponse output = assembleResponse(data, true);
+				mOutputQueue.write(output);
 
 				// Chain next request
-
-				if (!processRingEvent())
-					processMessageHeader();
+				processMessageHeader();
 			} else {
 				mFSMCallbackState = STATE_LOCAL_MEMORY_ACCESS;
 				mFSMState = STATE_GP_CACHE_MISS;
@@ -489,7 +289,7 @@ void MemoryBank::processLocalMemoryAccess() {
 			case MemoryRequest::STORE_HW:	cacheHit = handler.writeHalfWord(mActiveData.Address, flit.payload().toUInt(), mCacheResumeRequest, false, mActiveData.TableIndex, mActiveData.ReturnChannel);	break;
 			case MemoryRequest::STORE_B:	cacheHit = handler.writeByte(mActiveData.Address, flit.payload().toUInt(), mCacheResumeRequest, false, mActiveData.TableIndex, mActiveData.ReturnChannel);		break;
 			case MemoryRequest::STORE_CONDITIONAL: {
-			  bool reservationValid = mReservations.checkReservation(requestingComponent(), mActiveData.Address);
+			  bool reservationValid = mReservations.checkReservation(requestingComponent(mActiveRequest), mActiveData.Address);
 			  if (reservationValid)
 			    cacheHit = handler.writeWord(mActiveData.Address, flit.payload().toUInt(), mCacheResumeRequest, false, mActiveData.TableIndex, mActiveData.ReturnChannel);
 			  else
@@ -497,8 +297,8 @@ void MemoryBank::processLocalMemoryAccess() {
 
 			  // Return whether the store was successful.
 			  if (cacheHit) {
-			    OutputWord outWord(Word(reservationValid), mActiveData.TableIndex, mActiveData.ReturnChannel, false, true);
-			    mOutputQueue.write(outWord);
+			    NetworkResponse output = assembleResponse(reservationValid, true);
+			    mOutputQueue.write(output);
 			  }
 
 			  break;
@@ -522,8 +322,7 @@ void MemoryBank::processLocalMemoryAccess() {
 				}
 
 				// Chain next request
-				if (!processRingEvent())
-					processMessageHeader();
+				processMessageHeader();
 			} else {
 				mFSMCallbackState = STATE_LOCAL_MEMORY_ACCESS;
 				mFSMState = STATE_GP_CACHE_MISS;
@@ -560,8 +359,8 @@ void MemoryBank::processLocalMemoryAccess() {
             printOperation(MemoryRequest::LOAD_W, mActiveData.Address, data);
 
           // Enqueue output request
-          OutputWord outWord(Word(data), mActiveData.TableIndex, mActiveData.ReturnChannel, false, true);
-          mOutputQueue.write(outWord);
+          NetworkResponse output = assembleResponse(data, true);
+          mOutputQueue.write(output);
         } else {
           mFSMCallbackState = STATE_LOCAL_MEMORY_ACCESS;
           mFSMState = STATE_GP_CACHE_MISS;
@@ -616,8 +415,7 @@ void MemoryBank::processLocalMemoryAccess() {
         }
 
         // Chain next request
-        if (!processRingEvent())
-          processMessageHeader();
+        processMessageHeader();
 		  }
 		}
 		else {
@@ -627,8 +425,7 @@ void MemoryBank::processLocalMemoryAccess() {
 }
 
 void MemoryBank::processLocalIPKRead() {
-	assert(mConfig.Mode != MODE_INACTIVE);
-	assert(mActiveData.TableIndex < 8 || mChannelMapTable[mActiveData.TableIndex].Valid);
+	assert(mActiveData.TableIndex < 8);
 	assert(mActiveRequest.getMemoryMetadata().opcode == MemoryRequest::IPK_READ);
 
 	if (mOutputQueue.full()) {
@@ -639,8 +436,6 @@ void MemoryBank::processLocalIPKRead() {
 			cout << this->name() << " reading instruction at address 0x" << std::hex << mActiveData.Address << std::dec << " from local cache" << endl;
 
 		AbstractMemoryHandler& handler = currentMemoryHandler();
-
-		assert(handler.containsAddress(mActiveData.Address));
 
 		uint32_t data;
 		bool cacheHit = handler.readWord(mActiveData.Address, data, true, mCacheResumeRequest, false, mActiveData.TableIndex, mActiveData.ReturnChannel);
@@ -668,53 +463,24 @@ void MemoryBank::prepareIPKReadOutput(AbstractMemoryHandler& handler, uint32_t d
   if (DEBUG)
     cout << this->name() << " cache hit " << (endOfPacket ? "(end of packet reached)" : "(end of packet not reached)") << ": " << inst << endl;
 
-  // Enqueue output request
-  OutputWord outWord(inst, mActiveData.TableIndex, mActiveData.ReturnChannel, false,
-                     endOfPacket || !handler.containsAddress(mActiveData.Address+4));
-  mOutputQueue.write(outWord);
+  // Enqueue output response
+  NetworkResponse output = assembleResponse(data, endOfPacket || endOfCacheLine(mActiveData.Address));
+  mOutputQueue.write(output);
 
   // Handle IPK streaming
 
-  if (endOfPacket) {
-    if (Arguments::memoryTrace()) MemoryTrace::stopIPK(cBankNumber, mActiveData.Address);
+  if (endOfPacket || endOfCacheLine(mActiveData.Address)) {
+    if (endOfPacket && Arguments::memoryTrace())
+      MemoryTrace::stopIPK(cBankNumber, mActiveData.Address);
+
+    if (endOfCacheLine(mActiveData.Address) && Arguments::memoryTrace())
+      MemoryTrace::splitLineIPK(cBankNumber, mActiveData.Address);
 
     // Chain next request
-    if (!processRingEvent())
-      processMessageHeader();
+    processMessageHeader();
   } else {
     mActiveData.Address += 4;
-
-    if (handler.containsAddress(mActiveData.Address)) {
-      if (!handler.sameLine(mActiveData.Address - 4, mActiveData.Address))
-        if (Arguments::memoryTrace()) MemoryTrace::splitLineIPK(cBankNumber, mActiveData.Address);
-
-      mFSMState = STATE_LOCAL_IPK_READ;
-    } else {
-      if (Arguments::memoryTrace())
-        MemoryTrace::splitBankIPK(cBankNumber, mActiveData.Address);
-
-      RingNetworkRequest& request = getAvailableRingRequest();
-
-      if (mConfig.GroupIndex == mConfig.GroupSize - 1) {
-        request.Header.RequestType = RING_PASS_THROUGH;
-        request.Header.PassThrough.DestinationBankNumber = mConfig.GroupBaseBank;
-        request.Header.PassThrough.EnvelopedRequestType = RING_IPK_READ_HAND_OFF;
-        request.Header.PassThrough.Request = mActiveData;
-        request.Header.PassThrough.Request.Count = 0;
-        request.Header.PassThrough.Request.PartialInstructionPending = false;
-        request.Header.PassThrough.Request.PartialInstructionData = 0;
-      } else {
-        request.Header.RequestType = RING_IPK_READ_HAND_OFF;
-        request.Header.Request = mActiveData;
-        request.Header.Request.PartialInstructionPending = false;
-        request.Header.Request.PartialInstructionData = 0;
-      }
-
-      updatedRingRequest();
-      bool chainRequest = !mRingRequestOutputPending && !processRingEvent();
-      if (chainRequest)
-        processMessageHeader();
-    }
+    mFSMState = STATE_LOCAL_IPK_READ;
   }
 }
 
@@ -831,27 +597,6 @@ void MemoryBank::processGeneralPurposeCacheMiss() {
 	} // end switch
 }
 
-void MemoryBank::processWaitRingOutput() {
-	if (!mRingRequestOutputPending) {
-		// Write delayed ring output request into ring output buffer
-
-		mRingRequestOutputPending = true;
-		mActiveRingRequestOutput = mDelayedRingRequestOutput;
-
-		// Chain next request
-
-		if (!processRingEvent())
-			processMessageHeader();
-	}
-}
-
-void MemoryBank::processValidRing() {
-	// Acknowledge new data as soon as it arrives if we know it will be consumed
-	// in this clock cycle.
-  bool ack = iRingStrobe.read() && !mRingRequestInputPending;
-	if(ack != oRingAcknowledge.read()) oRingAcknowledge.write(ack);
-}
-
 void MemoryBank::processValidInput() {
   if (DEBUG) cout << this->name() << " received " << iData.read() << endl;
   assert(iData.valid());
@@ -861,6 +606,10 @@ void MemoryBank::processValidInput() {
   iData.ack();
 }
 
+NetworkResponse MemoryBank::assembleResponse(uint32_t data, bool endOfPacket) {
+  return NetworkResponse(data, returnChannel(mActiveRequest), endOfPacket);
+}
+
 void MemoryBank::handleDataOutput() {
   // If we have new data to send:
   if (!mOutputWordPending) {
@@ -868,13 +617,7 @@ void MemoryBank::handleDataOutput() {
       next_trigger(mOutputQueue.writeEvent());
     }
     else {
-      OutputWord outWord = mOutputQueue.read();
-
-      // The channel the request arrived on determines which core to send data
-      // back to. The channel of that core is provided as part of the request.
-      ChannelID returnAddr(id.tile.x, id.tile.y, outWord.TableIndex, outWord.ReturnChannel);
-
-      NetworkData flit(outWord.Data, returnAddr, false, outWord.PortClaim, outWord.LastWord);
+      NetworkResponse flit = mOutputQueue.read();
       mOutputWordPending = true;
 
       // Remove the previous request if we are sending to a new destination.
@@ -950,8 +693,6 @@ void MemoryBank::handleNewRequest() {
   mConfig.Mode = MODE_GP_CACHE;
   mConfig.LineSize = CACHE_LINE_WORDS * 4;
   mConfig.WayCount = 1;
-  mConfig.GroupBaseBank = 0;
-  mConfig.GroupIndex = 0;
   mConfig.GroupSize = 1;
   bool targetBank = iRequestTarget.read() == (id.position - CORES_PER_TILE);
 
@@ -1075,8 +816,7 @@ void MemoryBank::handleRequestFetch() {
     mFetchAddress += 4;
     bool endOfPacket = (mFetchCount == 0);
 
-    ChannelID returnAddress(requestingComponent(), 0);
-    NetworkResponse response(data, returnAddress, endOfPacket);
+    NetworkResponse response = assembleResponse(data, endOfPacket);
 
     if (endOfPacket)
       endRequest();
@@ -1129,48 +869,9 @@ void MemoryBank::handleRequestOutput() {
   }
 }
 
-void MemoryBank::handleNetworkInterfacesPre() {
-
-  // Set output port defaults - only final write will be effective
-  if(oRingStrobe.read())   oRingStrobe.write(false);
-
-  // Check whether old ring output got acknowledged
-
-  if (mRingRequestOutputPending && iRingAcknowledge.read()) {
-    if (DEBUG)
-      cout << this->name() << " ring request got acknowledged" << endl;
-
-    mRingRequestOutputPending = false;
-  }
-
-  // Pass the memory operation on to the next bank, if possible.
-  // To ensure that everything arrives in the correct order, all data must have
-  // been sent before the request can be passed on.
-
-  if (mRingRequestOutputPending && !mOutputWordPending && mOutputQueue.empty()) {
-    oRingStrobe.write(true);
-    oRingRequest.write(mActiveRingRequestOutput);
-  }
-
-}
-
 void MemoryBank::mainLoop() {
 
-  if (iClock.posedge()) {
-
-    handleNetworkInterfacesPre();
-
-  }
-  else if (iClock.negedge()) {
-
-    // Check ring input ports and update request registers
-
-    if (iRingStrobe.read() && !mRingRequestInputPending) {
-      // Acknowledgement handled by separate methods
-
-      mRingRequestInputPending = true;
-      mActiveRingRequestInput = iRingRequest.read();
-    }
+  if (iClock.negedge()) {
 
     // Proceed according to FSM state
 
@@ -1181,9 +882,8 @@ void MemoryBank::mainLoop() {
     // state before performing the operation.
     // Also, don't allow a new operation to start until any ring requests have
     // been passed on - ensures that data is sent in correct order.
-    if (FAST_MEMORY && mFSMState == STATE_IDLE && !mRingRequestOutputPending && mOutputReqQueue.empty()) {
-      if (!processRingEvent())
-        processMessageHeader();
+    if (FAST_MEMORY && mFSMState == STATE_IDLE && mOutputReqQueue.empty()) {
+      processMessageHeader();
     }
 
     switch (mFSMState) {
@@ -1192,9 +892,8 @@ void MemoryBank::mainLoop() {
       // cycle, and performed in the next.
       // Also, don't allow a new operation to start until any ring requests have
       // been passed on - ensures that data is sent in correct order.
-      if (!FAST_MEMORY && !mRingRequestOutputPending && mOutputReqQueue.empty()) {
-        if (!processRingEvent())
-          processMessageHeader();
+      if (!FAST_MEMORY  && mOutputReqQueue.empty()) {
+        processMessageHeader();
       }
 
       break;
@@ -1211,10 +910,6 @@ void MemoryBank::mainLoop() {
       processGeneralPurposeCacheMiss();
       break;
 
-    case STATE_WAIT_RING_OUTPUT:
-      processWaitRingOutput();
-      break;
-
     default:
       assert(false);
       break;
@@ -1227,8 +922,7 @@ void MemoryBank::mainLoop() {
   currentlyIdle = mFSMState == STATE_IDLE &&
                   mInputQueue.empty() && mOutputQueue.empty() &&
                   mOutputReqQueue.empty() &&
-                  !mOutputWordPending &&
-                  !mRingRequestInputPending && !mRingRequestOutputPending;
+                  !mOutputWordPending;
 
   if (wasIdle != currentlyIdle) {
     Instrumentation::idle(id, currentlyIdle);
@@ -1245,7 +939,6 @@ void MemoryBank::mainLoop() {
 
 MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumber) :
 	Component(name, ID),
-	cChannelMapTableEntries(MEMORY_CHANNEL_MAP_TABLE_ENTRIES),
 	cMemoryBanks(MEMS_PER_TILE),
 	cBankNumber(bankNumber),
 	cRandomReplacement(MEMORY_CACHE_RANDOM_REPLACEMENT != 0),
@@ -1258,7 +951,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 {
 	//-- Configuration parameters -----------------------------------------------------------------
 
-	assert(cChannelMapTableEntries > 0);
 	assert(cMemoryBanks > 0);
 	assert(cBankNumber < cMemoryBanks);
 
@@ -1269,15 +961,12 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 
 	//-- Mode independent state -------------------------------------------------------------------
 
-	mConfig.Mode = MODE_INACTIVE;
-	mConfig.WayCount = 0;
-	mConfig.LineSize = 0;
-	mConfig.GroupBaseBank = 0;
-	mConfig.GroupIndex = 0;
-	mConfig.GroupSize = 0;
-
-	mChannelMapTable = new ChannelMapTableEntry[cChannelMapTableEntries];
-	memset(mChannelMapTable, 0x00, sizeof(ChannelMapTableEntry) * cChannelMapTableEntries);
+	mConfig.Mode = MODE_GP_CACHE;
+	mConfig.WayCount = 1;
+	mConfig.LineSize = CACHE_LINE_WORDS * BYTES_PER_WORD;
+	mConfig.GroupSize = MEMS_PER_TILE;
+	mGeneralPurposeCacheHandler.activate(mConfig);
+	mScratchpadModeHandler.activate(mConfig);
 
 	mFSMState = STATE_IDLE;
 	mFSMCallbackState = STATE_IDLE;
@@ -1287,8 +976,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	mActiveData.ReturnChannel = -1;
 	mActiveData.Address = -1;
 	mActiveData.Count = 0;
-	mActiveData.PartialInstructionPending = false;
-	mActiveData.PartialInstructionData = 0;
 
 	mRMWData = 0;
 	mRMWDataValid = false;
@@ -1307,23 +994,14 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 
 	mRequestState = REQ_READY;
 
-	//-- Ring network state -----------------------------------------------------------------------
-
-	mRingRequestInputPending = false;
-	mRingRequestOutputPending = false;
-
 	//-- Debug utilities --------------------------------------------------------------------------
 
-	mPrevMemoryBank = 0;
-	mNextMemoryBank = 0;
 	mBackgroundMemory = 0;
 	localNetwork = 0;
 
 	//-- Port initialization ----------------------------------------------------------------------
 
 	oReadyForData.initialize(false);
-	oRingAcknowledge.initialize(false);
-	oRingStrobe.initialize(false);
 
 	//-- Register module with SystemC simulation kernel -------------------------------------------
 
@@ -1333,10 +1011,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	SC_METHOD(mainLoop);
 	sensitive << iClock;
 	dont_initialize();
-
-	SC_METHOD(processValidRing);
-	sensitive << iRingStrobe << iClock.neg();
-	// do initialise
 
 	SC_METHOD(processValidInput);
 	sensitive << iData;
@@ -1352,41 +1026,24 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 }
 
 MemoryBank::~MemoryBank() {
-	delete[] mChannelMapTable;
-}
-
-void MemoryBank::setAdjacentMemories(MemoryBank *prevMemoryBank, MemoryBank *nextMemoryBank, SimplifiedOnChipScratchpad *backgroundMemory) {
-	mPrevMemoryBank = prevMemoryBank;
-	mNextMemoryBank = nextMemoryBank;
-	mBackgroundMemory = backgroundMemory;
-	mGeneralPurposeCacheHandler.setBackgroundMemory(backgroundMemory);
 }
 
 void MemoryBank::setLocalNetwork(local_net_t* network) {
   localNetwork = network;
 }
 
+void MemoryBank::setBackgroundMemory(SimplifiedOnChipScratchpad* memory) {
+  mBackgroundMemory = memory;
+  mGeneralPurposeCacheHandler.setBackgroundMemory(memory);
+}
+
 // Find the memory bank responsible for storing a given address.
 MemoryBank& MemoryBank::bankContainingAddress(MemoryAddr addr) {
-  MemoryBank *firstBank = this;
-  while (firstBank->mConfig.GroupIndex != 0)
-    firstBank = firstBank->mPrevMemoryBank;
-
-  MemoryBank *bank = firstBank;
-
-  for (uint groupIndex = 0; groupIndex < mConfig.GroupSize; groupIndex++) {
-    if (bank->currentMemoryHandler().containsAddress(addr))
-      return *bank;
-
-    bank = bank->mNextMemoryBank;
-  }
-
-  assert(false);
   return *this;
 }
 
 void MemoryBank::storeData(vector<Word>& data, MemoryAddr location) {
-	assert(mPrevMemoryBank != 0 && mNextMemoryBank != 0 && mBackgroundMemory != 0);
+	assert(mBackgroundMemory != NULL);
 
 	size_t count = data.size();
 	uint32_t address = location;
@@ -1402,13 +1059,13 @@ void MemoryBank::storeData(vector<Word>& data, MemoryAddr location) {
 }
 
 void MemoryBank::synchronizeData() {
-	assert(mBackgroundMemory != 0);
+	assert(mBackgroundMemory != NULL);
 	if (mConfig.Mode == MODE_GP_CACHE)
 		mGeneralPurposeCacheHandler.synchronizeData(mBackgroundMemory);
 }
 
 void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
-	assert(mPrevMemoryBank != 0 && mNextMemoryBank != 0 && mBackgroundMemory != 0);
+	assert(mBackgroundMemory != NULL);
 
 	if (start > end) {
 		MemoryAddr temp = start;
@@ -1420,15 +1077,6 @@ void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
 	size_t limit = (end / 4) * 4 + 4;
 
 	assert(mConfig.Mode != MODE_INACTIVE);
-
-	MemoryBank *firstBank = this;
-	while (firstBank->mConfig.GroupIndex != 0)
-		firstBank = firstBank->mPrevMemoryBank;
-
-	if (mConfig.Mode == MODE_SCRATCHPAD)
-		cout << "Virtual memory group scratchpad data (banks " << (cBankNumber - mConfig.GroupIndex) << " to " << (cBankNumber - mConfig.GroupIndex + mConfig.GroupSize - 1) << "):\n" << endl;
-	else
-		cout << "Virtual memory group general purpose cache data (banks " << (cBankNumber - mConfig.GroupIndex) << " to " << (cBankNumber - mConfig.GroupIndex + mConfig.GroupSize - 1) << "):\n" << endl;
 
   while (address < limit) {
     MemoryBank& bank = bankContainingAddress(address);
@@ -1449,7 +1097,7 @@ void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
 }
 
 Word MemoryBank::readWord(MemoryAddr addr) {
-	assert(mPrevMemoryBank != 0 && mNextMemoryBank != 0 && mBackgroundMemory != 0);
+	assert(mBackgroundMemory != NULL);
 
 	assert(addr % 4 == 0);
 	assert(mConfig.Mode != MODE_INACTIVE);
@@ -1465,7 +1113,7 @@ Word MemoryBank::readWord(MemoryAddr addr) {
 }
 
 Word MemoryBank::readByte(MemoryAddr addr) {
-	assert(mPrevMemoryBank != 0 && mNextMemoryBank != 0 && mBackgroundMemory != 0);
+	assert(mBackgroundMemory != NULL);
 
 	assert(mConfig.Mode != MODE_INACTIVE);
 
@@ -1480,7 +1128,7 @@ Word MemoryBank::readByte(MemoryAddr addr) {
 }
 
 void MemoryBank::writeWord(MemoryAddr addr, Word data) {
-	assert(mPrevMemoryBank != 0 && mNextMemoryBank != 0 && mBackgroundMemory != 0);
+	assert(mBackgroundMemory != NULL);
 
 	assert(addr % 4 == 0);
 	assert(mConfig.Mode != MODE_INACTIVE);
@@ -1493,7 +1141,7 @@ void MemoryBank::writeWord(MemoryAddr addr, Word data) {
 }
 
 void MemoryBank::writeByte(MemoryAddr addr, Word data) {
-	assert(mPrevMemoryBank != 0 && mNextMemoryBank != 0 && mBackgroundMemory != 0);
+	assert(mBackgroundMemory != NULL);
 
 	assert(mConfig.Mode != MODE_INACTIVE);
 
@@ -1509,14 +1157,9 @@ void MemoryBank::reportStalls(ostream& os) {
     os << mInputQueue.name() << " is full." << endl;
   }
   if (!mOutputQueue.empty()) {
-    const OutputWord& outWord = mOutputQueue.peek();
-    ChannelID addr;
-    if (outWord.TableIndex < 8)
-      addr = ChannelID(id.tile.x, id.tile.y, outWord.TableIndex, outWord.ReturnChannel);
-    else
-      addr = mChannelMapTable[outWord.TableIndex].ReturnChannel;
+    const NetworkResponse& outWord = mOutputQueue.peek();
 
-    os << this->name() << " waiting to send to " << addr << endl;
+    os << this->name() << " waiting to send to " << outWord.channelID() << endl;
   }
 }
 
@@ -1553,18 +1196,4 @@ void MemoryBank::printOperation(MemoryRequest::MemoryOperation operation,
   cout << this->name() << (isLoad ? " read " : " wrote ") << datatype << " "
        << data << (isLoad ? " from" : " to") << " 0x" << std::hex << address << std::dec << endl;
 
-}
-
-void MemoryBank::printConfiguration() const {
-  uint startBank = mConfig.GroupBaseBank;
-  uint endBank = startBank + mConfig.GroupSize - 1;
-  stringstream mode;
-  if (mConfig.Mode == MODE_SCRATCHPAD)
-    mode << "scratchpad";
-  else
-    mode << "cache (associativity " << mConfig.WayCount << ")";
-  uint lineSize = mConfig.LineSize;
-
-  cout << "MEMORY CONFIG: tile " << id.tile << ", banks " << startBank << "-"
-      << endBank << ", line size " << lineSize << " bytes, " << mode.str() << endl;
 }

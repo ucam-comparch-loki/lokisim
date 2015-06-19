@@ -21,18 +21,19 @@ void SendChannelEndTable::write(const NetworkData data) {
   if (data.channelID().multicast || (data.channelID().component.tile == id.tile)) {
     assert(!bufferLocal.full());
     bufferLocal.write(data);
-    bufferFillChanged.notify();
   }
   else {
     assert(!bufferGlobal.full());
     bufferGlobal.write(data);
   }
+
+  bufferFillChanged.notify();
 }
 
 bool SendChannelEndTable::full() const {
   // TODO: we would prefer to allow data to keep arriving, as long as it isn't
   // going to be put in a full buffer.
-  return bufferLocal.full() || bufferGlobal.full() || waiting;
+  return bufferLocal.full() || bufferGlobal.full();
 }
 
 const sc_event& SendChannelEndTable::stallChangedEvent() const {
@@ -85,8 +86,8 @@ void SendChannelEndTable::receiveLoop() {
     }
 
     case RS_PACKET: {
-      // Port = iData
-      // Wait for data to arrive
+      // Wait for data to arrive - we can only receive packets on the data
+      // input.
       if (!iData.valid())
         next_trigger(iData.default_event());
       // Wait for right point in clock cycle
@@ -205,6 +206,7 @@ void SendChannelEndTable::sendLoopGlobal() {
       Instrumentation::Network::traffic(id, data.channelID().component);
 
     oDataGlobal.write(data);
+    bufferFillChanged.notify();
 
     next_trigger(oDataGlobal.ack_event());
   }
@@ -265,8 +267,6 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID&
 
   receiveState = RS_READY;
   sendState = SS_IDLE;
-
-  waiting = false;
 
   SC_METHOD(receiveLoop);
   SC_METHOD(sendLoopLocal);
