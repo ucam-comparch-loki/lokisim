@@ -34,11 +34,14 @@ using namespace std;
 #include "../../Exceptions/UnsupportedFeatureException.h"
 #include "../../Exceptions/InvalidOptionException.h"
 
-// A "fast" memory is capable of receiving a request, decoding it, performing
-// the operation, and sending the result, all in one clock cycle.
-// A "slow" memory receives and decodes the request in one cycle, and performs
-// it on the next.
-#define FAST_MEMORY (true)
+// The latency of accessing a memory bank, aside from the cost of accessing the
+// SRAM. This typically includes the network to/from the bank.
+#define EXTERNAL_LATENCY 1
+
+// Additional latency to apply to get the total memory latency to match the
+// L1_LATENCY parameter. Includes one extra cycle of unavoidable latency within
+// the bank.
+#define INTERNAL_LATENCY (L1_LATENCY - EXTERNAL_LATENCY - 1)
 
 //-------------------------------------------------------------------------------------------------
 // Internal functions
@@ -638,7 +641,6 @@ void MemoryBank::handleDataOutput() {
   }
   // If it is time to send data:
   else {
-
     if (DEBUG)
       cout << this->name() << " sent " << mActiveOutputWord << endl;
     if (ENERGY_TRACE)
@@ -878,41 +880,30 @@ void MemoryBank::mainLoop() {
     // Only allow an operation to begin if we are sure that there is space in
     // the output request queue to hold any potential messages.
 
-    // If we have a "fast" memory, decode the request and get into the correct
-    // state before performing the operation.
-    // Also, don't allow a new operation to start until any ring requests have
-    // been passed on - ensures that data is sent in correct order.
-    if (FAST_MEMORY && mFSMState == STATE_IDLE && mOutputReqQueue.empty()) {
+    // Decode the request and get into the correct state before performing the
+    // operation.
+    if (mFSMState == STATE_IDLE && mOutputReqQueue.empty())
       processMessageHeader();
-    }
 
     switch (mFSMState) {
-    case STATE_IDLE:
-      // If the memory is not "fast", the operation has to be decoded in one
-      // cycle, and performed in the next.
-      // Also, don't allow a new operation to start until any ring requests have
-      // been passed on - ensures that data is sent in correct order.
-      if (!FAST_MEMORY  && mOutputReqQueue.empty()) {
-        processMessageHeader();
-      }
+      case STATE_IDLE:
+        break;
 
-      break;
+      case STATE_LOCAL_MEMORY_ACCESS:
+        processLocalMemoryAccess();
+        break;
 
-    case STATE_LOCAL_MEMORY_ACCESS:
-      processLocalMemoryAccess();
-      break;
+      case STATE_LOCAL_IPK_READ:
+        processLocalIPKRead();
+        break;
 
-    case STATE_LOCAL_IPK_READ:
-      processLocalIPKRead();
-      break;
+      case STATE_GP_CACHE_MISS:
+        processGeneralPurposeCacheMiss();
+        break;
 
-    case STATE_GP_CACHE_MISS:
-      processGeneralPurposeCacheMiss();
-      break;
-
-    default:
-      assert(false);
-      break;
+      default:
+        assert(false);
+        break;
     }
   }
 
@@ -942,9 +933,9 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	cMemoryBanks(MEMS_PER_TILE),
 	cBankNumber(bankNumber),
 	cRandomReplacement(MEMORY_CACHE_RANDOM_REPLACEMENT != 0),
-  mInputQueue(IN_CHANNEL_BUFFER_SIZE, string(this->name())+string(".mInputQueue")),
-  mOutputQueue(OUT_CHANNEL_BUFFER_SIZE, string(this->name())+string(".mOutputQueue")),
-  mOutputReqQueue(10 /*read addr + write addr + cache line*/, string(this->name())+string(".mOutputReqQueue")),
+  mInputQueue("mInputQueue", IN_CHANNEL_BUFFER_SIZE, 0),
+  mOutputQueue("mOutputQueue", OUT_CHANNEL_BUFFER_SIZE, INTERNAL_LATENCY),
+  mOutputReqQueue("mOutputReqQueue", 10 /*read addr + write addr + cache line*/, 0),
   mReservations(1),
 	mScratchpadModeHandler(bankNumber),
 	mGeneralPurposeCacheHandler(bankNumber)

@@ -56,7 +56,7 @@ public:
       ss << name << ".buffer_" << i;
       std::string buffName;
       ss >> buffName;
-      buffers.push_back(new NetworkBuffer<T>(buffSize, buffName));
+      buffers.push_back(new NetworkBuffer<T>(buffName, buffSize));
     }
   }
 

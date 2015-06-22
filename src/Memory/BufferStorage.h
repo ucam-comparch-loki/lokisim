@@ -127,7 +127,6 @@ private:
   void updateFillCount() {
     fillCount = writePos - readPos;
 
-    // TODO: make use of lastOpWasARead
     if (fillCount >= this->size())
       fillCount -= this->size();
   }

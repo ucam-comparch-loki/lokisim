@@ -19,6 +19,13 @@ parameter COMPUTE_TILE_COLUMNS 1
 
 parameter MEMORY_BANK_SIZE 8192
 parameter MEMORY_CACHE_RANDOM_REPLACEMENT 1
-parameter MEMORY_ON_CHIP_SCRATCHPAD_DELAY 1
 parameter MEMORY_ON_CHIP_SCRATCHPAD_SIZE 268435456 33554432
 parameter MEMORY_ON_CHIP_SCRATCHPAD_BANKS 4
+
+# L1 latency, including network
+parameter L1_LATENCY 3
+
+# Main memory latency, excluding network. Network latency will vary depending
+# on where the requesting core is on the chip.
+# 6 is the default to match the total latency seen in Veriloki.
+parameter MEMORY_ON_CHIP_SCRATCHPAD_DELAY 6

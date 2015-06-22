@@ -98,6 +98,9 @@ extern parameter	MAX_IPK_SIZE;
 // Number of entries in the L1 directory, mapping memory addresses to tiles.
 extern parameter  DIRECTORY_SIZE;
 
+// Total core-memory-core latency (assuming a cache hit).
+extern parameter  L1_LATENCY;
+
 //-------------------------------------------------------------------------------------------------
 // Configurable memory system
 //-------------------------------------------------------------------------------------------------

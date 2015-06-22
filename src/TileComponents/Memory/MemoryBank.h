@@ -24,7 +24,7 @@
 #include "../../Component.h"
 #include "../../Utility/Blocking.h"
 #include "../../Datatype/MemoryRequest.h"
-#include "../../Network/NetworkBuffer.h"
+#include "../../Network/DelayBuffer.h"
 #include "GeneralPurposeCacheHandler.h"
 #include "ReservationHandler.h"
 #include "ScratchpadModeHandler.h"
@@ -121,13 +121,13 @@ private:
 
 	//-- Data queue state -------------------------------------------------------------------------
 
-  NetworkBuffer<NetworkRequest>  mInputQueue;       // Input queue
-  NetworkBuffer<NetworkResponse> mOutputQueue;      // Output queue
+  DelayBuffer<NetworkRequest>  mInputQueue;       // Input queue
+  DelayBuffer<NetworkResponse> mOutputQueue;      // Output queue
 
 	bool                  mOutputWordPending;					// Indicates that an output word is waiting for acknowledgement
 	NetworkData           mActiveOutputWord;					// Currently active output word
 
-  NetworkBuffer<NetworkRequest>  mOutputReqQueue;   // Output request queue
+  DelayBuffer<NetworkRequest>  mOutputReqQueue;   // Output request queue
 
 	//-- Mode independent state -------------------------------------------------------------------
 

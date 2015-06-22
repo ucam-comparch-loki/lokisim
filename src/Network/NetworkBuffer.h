@@ -51,7 +51,7 @@ public:
 
 public:
 
-  NetworkBuffer(const size_t size, const std::string& name) :
+  NetworkBuffer(const std::string& name, const size_t size) :
       BufferStorage<T>(size, name),
       fresh(size, false) {
 

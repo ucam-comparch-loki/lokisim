@@ -122,7 +122,7 @@ FetchStage* InstructionPacketFIFO::parent() const {
 
 InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
     Component(name),
-    fifo(IPK_FIFO_SIZE, std::string(name)),
+    fifo(std::string(name), IPK_FIFO_SIZE),
     addresses(IPK_FIFO_SIZE, DEFAULT_TAG) {
 
   tag = DEFAULT_TAG;
