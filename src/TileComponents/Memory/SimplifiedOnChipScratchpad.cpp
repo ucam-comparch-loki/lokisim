@@ -40,9 +40,12 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 	mPortData[port].State = STATE_IDLE;
 
 	if (!mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
-		NetworkRequest request = mInputQueues[port].read().Request;
+		NetworkRequest request = mInputQueues[port].peek().Request;
 
 		if (request.getMemoryMetadata().opcode == MemoryRequest::FETCH_LINE) {
+		  if (oData[port].valid())
+		    return;
+
 			mPortData[port].Address = request.payload().toUInt();
 			mPortData[port].WordsLeft = CACHE_LINE_WORDS;
 			mPortData[port].ReturnAddress = ChannelID(request.getMemoryMetadata().returnTileX,
@@ -62,9 +65,18 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 			assert(mPortData[port].WordsLeft > 0);
 
+			// Send a header flit so the target memory bank knows which data is arriving.
+			MemoryMetadata metadata;
+			metadata.endOfPacket = false;
+			metadata.opcode = MemoryRequest::STORE_LINE;
+			metadata.returnTileX = 2;
+			metadata.returnTileY = 0;
+			NetworkResponse header(mPortData[port].Address, mPortData[port].ReturnAddress, metadata.flatten());
+			oData[port].write(header);
+
 			Instrumentation::backgroundMemoryRead(mPortData[port].Address, mPortData[port].WordsLeft);
 
-			// Do not output first word directly - assume one clock cycle access delay
+			// One clock cycle access delay until reading starts
 
 			mPortData[port].State = STATE_READING;
 		} else if (request.getMemoryMetadata().opcode == MemoryRequest::STORE_LINE) {
@@ -87,6 +99,8 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 		} else {
 		  throw InvalidOptionException("memory operation", request.getMemoryMetadata().opcode);
 		}
+
+		mInputQueues[port].read();
 	}
 }
 
@@ -107,7 +121,7 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 				newWord.Request = iData[port].read();
 
 				if (DEBUG)
-				  cout << this->name() << " received " << newWord.Request.payload() << " (opcode " << newWord.Request.getMemoryMetadata().opcode << ")" << endl;
+				  cout << this->name() << " received " << newWord.Request.payload() << " (" << MemoryRequest::name(newWord.Request.getMemoryMetadata().opcode) << ")" << endl;
 
 				iData[port].ack();
 				mInputQueues[port].write(newWord);
@@ -145,7 +159,8 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 					oData[port].write(response);
 
 					if (endOfPacket)
-						tryStartRequest(port);
+					  mPortData[port].State = STATE_IDLE;
+//						tryStartRequest(port);
 
 					bankAccessed[bankSelected] = true;
 				}

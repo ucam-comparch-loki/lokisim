@@ -64,8 +64,8 @@ struct MemoryMetadata {
   unsigned int returnTileX : 3;   // L2 mode only: tile of requesting L1 bank.
   unsigned int returnTileY : 3;   // L2 mode only: tile of requesting L1 bank.
   unsigned int returnChannel : 3; // L1 mode: channel of core. L2 mode: bank of L1 tile.
-  unsigned int checkL2Tags : 1;   // Treat L2 as cache (1) or scratchpad (0).
-  unsigned int checkL1Tags : 1;   // Treat L1 as cache (1) or scratchpad (0).
+  unsigned int scratchpadL2 : 1;  // Treat L2 as cache (0) or scratchpad (1).
+  unsigned int scratchpadL1 : 1;  // Treat L1 as cache (0) or scratchpad (1).
   unsigned int skipL2 : 1;        // Bypass L2 and go straight to main memory.
   unsigned int skipL1 : 1;        // Bypass L1 and go straight to L2.
   MemoryRequest::MemoryOperation opcode : 5; // Operation to perform at memory.
@@ -73,7 +73,7 @@ struct MemoryMetadata {
 
   uint32_t flatten() {
     return (padding << 19) | (returnTileX << 16) | (returnTileY << 13) |
-      (returnChannel << 10) | (checkL2Tags << 9) | (checkL1Tags << 8) |
+      (returnChannel << 10) | (scratchpadL2 << 9) | (scratchpadL1 << 8) |
       (skipL2 << 7) | (skipL1 << 6) | (opcode << 1) | (endOfPacket << 0);
   }
 
@@ -84,8 +84,8 @@ struct MemoryMetadata {
     returnTileX = (flattened >> 16) & 0x7;
     returnTileY = (flattened >> 13) & 0x7;
     returnChannel = (flattened >> 10) & 0x7;
-    checkL2Tags = (flattened >> 9) & 0x1;
-    checkL1Tags = (flattened >> 8) & 0x1;
+    scratchpadL2 = (flattened >> 9) & 0x1;
+    scratchpadL1 = (flattened >> 8) & 0x1;
     skipL2 = (flattened >> 7) & 0x1;
     skipL1 = (flattened >> 6) & 0x1;
     opcode = MemoryRequest::MemoryOperation((flattened >> 1) & 0x1F);
@@ -210,8 +210,8 @@ public:
     assert(destination.isMemory());
     MemoryMetadata info;
     info.returnChannel = networkInfo.returnChannel;
-    info.checkL2Tags = networkInfo.l2TagCheck;
-    info.checkL1Tags = networkInfo.l1TagCheck;
+    info.scratchpadL2 = networkInfo.scratchpadL2;
+    info.scratchpadL1 = networkInfo.scratchpadL1;
     info.skipL2 = networkInfo.l2Skip;
     info.skipL1 = networkInfo.l1Skip;
     info.opcode = op;
@@ -231,7 +231,23 @@ public:
     info.returnTileX = source.tile.x;
     info.returnTileY = source.tile.y;
     info.returnChannel = source.position - CORES_PER_TILE;
-    info.checkL2Tags = 1;
+    info.scratchpadL2 = 0;
+    info.skipL2 = 0;
+    info.opcode = op;
+    info.endOfPacket = eop;
+    setMetadata(info.flatten());
+  }
+
+  // Constructor for messages between L2 and L1 caches.
+  // The operation is not sent in practice, but is useful in simulation.
+  Flit<T>(T payload, ChannelID destination, MemoryRequest::MemoryOperation op, bool eop) :
+      messageID_(messageCount++),
+      payload_(payload),
+      channelID_(destination) {
+    MemoryMetadata info;
+    info.scratchpadL1 = 0;
+    info.scratchpadL2 = 0;
+    info.skipL1 = 0;
     info.skipL2 = 0;
     info.opcode = op;
     info.endOfPacket = eop;

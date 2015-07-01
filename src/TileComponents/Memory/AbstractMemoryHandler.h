@@ -13,6 +13,7 @@
 
 #include "../../Typedefs.h"
 #include "MemoryTypedefs.h"
+#include "../../Datatype/Identifier.h"
 
 class AbstractMemoryHandler {
 protected:
@@ -58,13 +59,13 @@ public:
   //   resume      = is this a resumed operation after a cache miss? (Cache mode only.)
   //   debug       = should this operation be logged in the execution statistics?
 
-  virtual bool readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug, int core, int retCh) = 0;
-  virtual bool readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug, int core, int retCh) = 0;
-  virtual bool readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug, int core, int retCh) = 0;
+  virtual bool readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug, ChannelID returnChannel) = 0;
+  virtual bool readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug, ChannelID returnChannel) = 0;
+  virtual bool readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug, ChannelID returnChannel) = 0;
 
-  virtual bool writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh) = 0;
-  virtual bool writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh) = 0;
-  virtual bool writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh) = 0;
+  virtual bool writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel) = 0;
+  virtual bool writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel) = 0;
+  virtual bool writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel) = 0;
 };
 
 #endif /* ABSTRACTMEMORYHANDLER_H_ */

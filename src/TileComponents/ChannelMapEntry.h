@@ -59,8 +59,8 @@ public:
 
   struct MemoryChannel {
     uint padding           : 15;
-    uint l2TagCheck        : 1;
-    uint l1TagCheck        : 1;
+    uint scratchpadL2      : 1;
+    uint scratchpadL1      : 1;
     uint l2Skip            : 1;
     uint l1Skip            : 1;
     uint groupSize         : 2;
@@ -71,7 +71,7 @@ public:
     uint isGlobal          : 1;
 
     uint flatten() {
-      return (padding << 17) | (l2TagCheck << 16) | (l1TagCheck << 15) |
+      return (padding << 17) | (scratchpadL2 << 16) | (scratchpadL1 << 15) |
              (l2Skip << 14) | (l1Skip << 13) | (groupSize << 11) |
              (returnChannel << 8) | (bank << 5) | (channel << 2) |
              (isMemory << 1) | (isGlobal << 0);
@@ -79,8 +79,8 @@ public:
 
     MemoryChannel(uint flat) {
       padding       = (flat >> 17) & 0x7FFF;
-      l2TagCheck    = (flat >> 16) & 0x1;
-      l1TagCheck    = (flat >> 15) & 0x1;
+      scratchpadL2  = (flat >> 16) & 0x1;
+      scratchpadL1  = (flat >> 15) & 0x1;
       l2Skip        = (flat >> 14) & 0x1;
       l1Skip        = (flat >> 13) & 0x1;
       groupSize     = (flat >> 11) & 0x3;

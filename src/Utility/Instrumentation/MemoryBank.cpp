@@ -56,9 +56,6 @@ CounterMap<int> MemoryBank::numReplaceInvalid_;
 CounterMap<int> MemoryBank::numReplaceClean_;
 CounterMap<int> MemoryBank::numReplaceDirty_;
 
-CounterMap<int> MemoryBank::numHandOffRequests_;
-CounterMap<int> MemoryBank::numPassThroughRequests_;
-
 vector<vector<struct MemoryBank::ChannelStats> > MemoryBank::coreStats_;
 
 void MemoryBank::init() {
@@ -85,106 +82,97 @@ void MemoryBank::setMode(int bank, bool isCache, uint setCount, uint wayCount, u
 	lineSizes_[bank] = lineSize;
 }
 
-void MemoryBank::readWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh) {
+void MemoryBank::readWord(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel) {
 	if (isMiss)
 		numReadWordMisses_.increment(bank);
 	else
 		numReadWordHits_.increment(bank);
 
-	updateCoreStats(core, retCh, true, false, isMiss);
+	updateCoreStats(returnChannel, true, false, isMiss);
 }
 
-void MemoryBank::readHalfWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh) {
+void MemoryBank::readHalfWord(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel) {
 	if (isMiss)
 		numReadHalfWordMisses_.increment(bank);
 	else
 		numReadHalfWordHits_.increment(bank);
 
-  updateCoreStats(core, retCh, true, false, isMiss);
+  updateCoreStats(returnChannel, true, false, isMiss);
 }
 
-void MemoryBank::readByte(int bank, MemoryAddr address, bool isMiss, int core, int retCh) {
+void MemoryBank::readByte(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel) {
 	if (isMiss)
 		numReadByteMisses_.increment(bank);
 	else
 		numReadByteHits_.increment(bank);
 
-  updateCoreStats(core, retCh, true, false, isMiss);
+  updateCoreStats(returnChannel, true, false, isMiss);
 }
 
-void MemoryBank::writeWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh) {
+void MemoryBank::writeWord(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel) {
 	if (isMiss)
 		numWriteWordMisses_.increment(bank);
 	else
 		numWriteWordHits_.increment(bank);
 
-  updateCoreStats(core, retCh, false, false, isMiss);
+  updateCoreStats(returnChannel, false, false, isMiss);
 }
 
-void MemoryBank::writeHalfWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh) {
+void MemoryBank::writeHalfWord(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel) {
 	if (isMiss)
 		numWriteHalfWordMisses_.increment(bank);
 	else
 		numWriteHalfWordHits_.increment(bank);
 
-  updateCoreStats(core, retCh, false, false, isMiss);
+  updateCoreStats(returnChannel, false, false, isMiss);
 }
 
-void MemoryBank::writeByte(int bank, MemoryAddr address, bool isMiss, int core, int retCh) {
+void MemoryBank::writeByte(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel) {
 	if (isMiss)
 		numWriteByteMisses_.increment(bank);
 	else
 		numWriteByteHits_.increment(bank);
 
-  updateCoreStats(core, retCh, false, false, isMiss);
+  updateCoreStats(returnChannel, false, false, isMiss);
 }
 
-void MemoryBank::initiateIPKRead(int bank, bool isHandOff) {
-	if (isHandOff)
-		numContinueIPKRead_.increment(bank);
-	else
-		numStartIPKRead_.increment(bank);
+void MemoryBank::initiateIPKRead(int bank) {
+	numStartIPKRead_.increment(bank);
 }
 
-void MemoryBank::initiateBurstRead(int bank, bool isHandOff) {
-	if (isHandOff)
-		numContinueBurstRead_.increment(bank);
-	else
-		numStartBurstRead_.increment(bank);
+void MemoryBank::initiateBurstRead(int bank) {
+	numStartBurstRead_.increment(bank);
 }
 
-void MemoryBank::initiateBurstWrite(int bank, bool isHandOff) {
-	if (isHandOff)
-		numContinueBurstWrite_.increment(bank);
-	else
-		numStartBurstWrite_.increment(bank);
+void MemoryBank::initiateBurstWrite(int bank) {
+	numStartBurstWrite_.increment(bank);
 }
 
-void MemoryBank::readIPKWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh) {
+void MemoryBank::readIPKWord(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel) {
 	if (isMiss)
 		numIPKReadMisses_.increment(bank);
 	else
 		numIPKReadHits_.increment(bank);
 
-  updateCoreStats(core, retCh, true, true, isMiss);
+  updateCoreStats(returnChannel, true, true, isMiss);
 }
 
-void MemoryBank::readBurstWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh) {
+void MemoryBank::readBurstWord(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel) {
 	if (isMiss)
 		numBurstReadMisses_.increment(bank);
 	else
 		numBurstReadHits_.increment(bank);
 
-  updateCoreStats(core, retCh, true, false, isMiss);
+  updateCoreStats(returnChannel, true, false, isMiss);
 }
 
-void MemoryBank::writeBurstWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh) {
+void MemoryBank::writeBurstWord(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel) {
 	if (isMiss)
 		numBurstWriteMisses_.increment(bank);
 	else
 		numBurstWriteHits_.increment(bank);
 
-  updateCoreStats(core, retCh, false, false, isMiss);
+  updateCoreStats(returnChannel, false, false, isMiss);
 }
 
 void MemoryBank::replaceCacheLine(int bank, bool isValid, bool isDirty) {
@@ -196,17 +184,12 @@ void MemoryBank::replaceCacheLine(int bank, bool isValid, bool isDirty) {
 		numReplaceClean_.increment(bank);
 }
 
-void MemoryBank::ringHandOff(int bank) {
-	numHandOffRequests_.increment(bank);
-}
-
-void MemoryBank::ringPassThrough(int bank) {
-	numPassThroughRequests_.increment(bank);
-}
-
-void MemoryBank::updateCoreStats(int core, int channel, bool isRead, bool isInst, bool isMiss) {
-  if (core == -1)
+void MemoryBank::updateCoreStats(ChannelID returnChannel, bool isRead, bool isInst, bool isMiss) {
+  if (!returnChannel.component.isCore())
     return;
+
+  uint core = returnChannel.component.globalCoreNumber();
+  uint channel = returnChannel.channel;
 
   if (isRead && isMiss)
     coreStats_[core][channel].readMisses++;
@@ -267,9 +250,6 @@ void MemoryBank::printStats() {
     			cout << "!replace_invalid:" << numReplaceInvalid_[bank];
     			cout << "!replace_clean:" << numReplaceClean_[bank];
     			cout << "!replace_dirty:" << numReplaceDirty_[bank];
-
-    			cout << "!ring_hand_offs:" << numHandOffRequests_[bank];
-    			cout << "!ring_pass_through:" << numPassThroughRequests_[bank];
 
             	cout << "</@SUBTABLE>" << endl;
     		}
@@ -348,12 +328,6 @@ void MemoryBank::printStats() {
 			cout << "      Replaced invalid lines: " << cacheInvalid << " (" << percentage(cacheInvalid, cacheTotal) << ")" << endl;
 			cout << "        Replaced clean lines: " << cacheClean << " (" << percentage(cacheClean, cacheTotal) << ")" << endl;
 			cout << "        Replaced dirty lines: " << cacheDirty << " (" << percentage(cacheDirty, cacheTotal) << ")" << endl;
-
-			unsigned long long ringHandOffs = numHandOffRequests_[bank];
-			unsigned long long ringPassThroughs = numPassThroughRequests_[bank];
-
-			cout << "      Ring hand-off messages: " << ringHandOffs << " (" << percentage(ringHandOffs, ringHandOffs + ringPassThroughs) << ")" << endl;
-			cout << "  Ring pass-through messages: " << ringPassThroughs << " (" << percentage(ringPassThroughs, ringHandOffs + ringPassThroughs) << ")" << endl;
 		}
 	}
 }
@@ -412,8 +386,6 @@ void MemoryBank::dumpEventCounts(std::ostream& os) {
      << xmlNode("byte_write", numWriteByteHits_.numEvents())              << "\n"
      << xmlNode("burst_write", numBurstWriteHits_.numEvents())            << "\n"
      << xmlNode("replace_line", numReplaceClean_.numEvents() + numReplaceDirty_.numEvents() + numReplaceInvalid_.numEvents()) << "\n"
-     << xmlNode("ring_hand_off", numHandOffRequests_.numEvents())         << "\n"
-     << xmlNode("ring_pass_through", numPassThroughRequests_.numEvents()) << "\n"
      << xmlEnd("memory")                                                  << "\n";
 }
 

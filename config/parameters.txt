@@ -28,4 +28,4 @@ parameter L1_LATENCY 3
 # Main memory latency, excluding network. Network latency will vary depending
 # on where the requesting core is on the chip.
 # 6 is the default to match the total latency seen in Veriloki.
-parameter MEMORY_ON_CHIP_SCRATCHPAD_DELAY 6
+parameter MEMORY_ON_CHIP_SCRATCHPAD_DELAY 7

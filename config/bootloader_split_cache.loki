@@ -1,9 +1,9 @@
 # Split the 8 L1 banks into two groups of four - one dedicated to instructions,
 # and the other to data.
 
-# Channel map table contents: 0x00019902
-# check L2 tags?        << 16
-# check L1 tags?        << 15
+# Channel map table contents: 0x00001102
+# L2 is scratchpad?     << 16
+# L1 is scratchpad?     << 15
 # bypass L2 cache?      << 14
 # bypass L1 cache?      << 13
 # log2(banks in group)  << 11
@@ -14,12 +14,10 @@
 # isGlobal (0)          <<  0
 
 # Instruction cache connection
- lli                r20, 0x9102
- lui                r20, 0x0001
+ lli                r20, 0x1102
 
 # Data cache connection - change first bank in group and return channel
- lli                r21, 0x9282
- lui                r21, 0x0001
+ lli                r21, 0x1282
 
  setchmapi          0,   r20                  # Set instruction fetch channel to memory bank
  setchmapi          1,   r21                  # Set data fetch channel to memory bank

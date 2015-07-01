@@ -1,8 +1,8 @@
 # Treat all 8 L1 banks as a single unified cache for both instructions and data.
 
-# Channel map table contents: 0x00019902
-# check L2 tags?        << 16
-# check L1 tags?        << 15
+# Channel map table contents: 0x00001902
+# L2 is scratchpad?     << 16
+# L1 is scratchpad?     << 15
 # bypass L2 cache?      << 14
 # bypass L1 cache?      << 13
 # log2(banks in group)  << 11
@@ -13,12 +13,10 @@
 # isGlobal (0)          <<  0
 
 # Instruction cache connection: bank 0, channel 0, return to IPK cache
- lli                r20, 0x9902
- lui                r20, 0x0001
+ lli                r20, 0x1902
 
 # Data cache connection - only change return address
- lli                r21, 0x9A02
- lui                r21, 0x0001
+ lli                r21, 0x1A02
 
  setchmapi          0,   r20                  # Set instruction fetch channel to memory bank
  setchmapi          1,   r21                  # Set data fetch channel to memory bank

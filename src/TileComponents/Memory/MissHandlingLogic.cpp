@@ -133,7 +133,10 @@ void MissHandlingLogic::handleDirectoryMaskUpdate() {
 }
 
 void MissHandlingLogic::receiveResponseLoop() {
-  assert(!oResponseToBanks.valid());
+  if (oResponseToBanks.valid()) {
+    next_trigger(oResponseToBanks.ack_event());
+    return;
+  }
 
   NetworkResponse response;
   if (iResponseFromBM.valid()) {
@@ -179,7 +182,9 @@ void MissHandlingLogic::remoteRequestLoop() {
 }
 
 void MissHandlingLogic::sendResponseLoop() {
-  if (muxedResponse.valid()) {
+  if (oResponseToNetwork.valid())
+    next_trigger(oResponseToNetwork.ack_event() & clock.posedge_event());
+  else if (muxedResponse.valid()) {
     oResponseToNetwork.write(muxedResponse.read());
 
     // Optional: if there is more data to come in this packet, wait until it

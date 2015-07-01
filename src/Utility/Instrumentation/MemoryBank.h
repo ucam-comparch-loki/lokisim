@@ -25,28 +25,25 @@ namespace Instrumentation {
 
 		static void setMode(int bank, bool isCache, uint setCount, uint wayCount, uint lineSize);
 
-		static void readWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh);
-		static void readHalfWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh);
-		static void readByte(int bank, MemoryAddr address, bool isMiss, int core, int retCh);
+		static void readWord(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel);
+		static void readHalfWord(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel);
+		static void readByte(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel);
 
-		static void writeWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh);
-		static void writeHalfWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh);
-		static void writeByte(int bank, MemoryAddr address, bool isMiss, int core, int retCh);
+		static void writeWord(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel);
+		static void writeHalfWord(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel);
+		static void writeByte(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel);
 
-		static void initiateIPKRead(int bank, bool isHandOff);
-		static void initiateBurstRead(int bank, bool isHandOff);
-		static void initiateBurstWrite(int bank, bool isHandOff);
+		static void initiateIPKRead(int bank);
+		static void initiateBurstRead(int bank);
+		static void initiateBurstWrite(int bank);
 
-		static void readIPKWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh);
-		static void readBurstWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh);
-		static void writeBurstWord(int bank, MemoryAddr address, bool isMiss, int core, int retCh);
+		static void readIPKWord(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel);
+		static void readBurstWord(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel);
+		static void writeBurstWord(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel);
 
 		static void replaceCacheLine(int bank, bool isValid, bool isDirty);
 
-		static void ringHandOff(int bank);
-		static void ringPassThrough(int bank);
-
-		static void updateCoreStats(int core, int channel, bool isRead, bool isInst, bool isMiss);
+		static void updateCoreStats(ChannelID returnChannel, bool isRead, bool isInst, bool isMiss);
 
 		static void printStats();
 		static void printSummary();
@@ -102,9 +99,6 @@ namespace Instrumentation {
 		static CounterMap<int> numReplaceInvalid_;
 		static CounterMap<int> numReplaceClean_;
 		static CounterMap<int> numReplaceDirty_;
-
-		static CounterMap<int> numHandOffRequests_;
-		static CounterMap<int> numPassThroughRequests_;
 
 		// Stats stored from the perspective of each input channel of each core.
 		// It would make more sense to use output channels (input channels don't

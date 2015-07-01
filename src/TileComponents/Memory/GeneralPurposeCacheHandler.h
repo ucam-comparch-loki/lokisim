@@ -48,8 +48,6 @@ private:
 
   SimplifiedOnChipScratchpad *mBackgroundMemory; // Lowest level cache for debug use
 
-  bool mL2Mode;               // Whether this bank is acting as an L1 or L2 cache.
-
 	//---------------------------------------------------------------------------------------------
 	// Internal functions
 	//---------------------------------------------------------------------------------------------
@@ -62,18 +60,21 @@ public:
 	~GeneralPurposeCacheHandler();
 
 	virtual void activate(const MemoryConfig& config);
-	void activateL2(const MemoryConfig& config);
 
-	virtual bool readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug, int core, int retCh);
-	virtual bool readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug, int core, int retCh);
-	virtual bool readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug, int core, int retCh);
+  bool lookupCacheLine(MemoryAddr address) const;
 
-	virtual bool writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh);
-	virtual bool writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh);
-	virtual bool writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh);
+	virtual bool readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug, ChannelID returnChannel);
+	virtual bool readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug, ChannelID returnChannel);
+	virtual bool readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug, ChannelID returnChannel);
 
+	virtual bool writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel);
+	virtual bool writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel);
+	virtual bool writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel);
+
+	void findCacheLine(MemoryAddr address); // Find SRAM address of line already in cache.
 	void prepareCacheLine(MemoryAddr address, MemoryAddr &writeBackAddress, uint &writeBackCount, uint32_t writeBackData[], uint32_t &fetchAddress, uint &fetchCount);
 	void replaceCacheLine(MemoryAddr fetchAddress, uint32_t fetchData[]);
+	void fillCacheLineBuffer(MemoryAddr address, uint32_t buffer[]);
 
 	void setBackgroundMemory(SimplifiedOnChipScratchpad *backgroundMemory);
 

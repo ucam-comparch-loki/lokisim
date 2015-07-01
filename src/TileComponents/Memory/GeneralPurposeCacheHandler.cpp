@@ -24,29 +24,45 @@
 #include "GeneralPurposeCacheHandler.h"
 
 
+bool GeneralPurposeCacheHandler::lookupCacheLine(MemoryAddr address) const {
+  uint32_t lineAddress = address & ~mLineMask;
+  uint setIndex = (address & mSetMask) >> mSetShift;
+  uint startSlot = setIndex * mWayCount;
+
+  // Instrumentation for tag check?
+  // Careful - this is used for assertions, so a debug parameter would be needed.
+
+  for (uint i = 0; i < mWayCount; i++) {
+    if (mLineValid[startSlot + i] && mAddresses[startSlot + i] == lineAddress)
+      return true;
+  }
+
+  return false;
+}
+
 bool GeneralPurposeCacheHandler::lookupCacheLine(MemoryAddr address, uint &slot, bool resume, bool read, bool instruction) {
-	uint32_t lineAddress = address & ~mLineMask;
-	uint setIndex = (address & mSetMask) >> mSetShift;
-	uint startSlot = setIndex * mWayCount;
-	bool hit = false;
+  uint32_t lineAddress = address & ~mLineMask;
+  uint setIndex = (address & mSetMask) >> mSetShift;
+  uint startSlot = setIndex * mWayCount;
+  bool hit = false;
 
-	for (uint i = 0; i < mWayCount; i++) {
-		if (mLineValid[startSlot + i] && mAddresses[startSlot + i] == lineAddress) {
-			slot = startSlot + i;
+  for (uint i = 0; i < mWayCount; i++) {
+    if (mLineValid[startSlot + i] && mAddresses[startSlot + i] == lineAddress) {
+      slot = startSlot + i;
 
-			hit = true;
-			break;
-		}
-	}
+      hit = true;
+      break;
+    }
+  }
 
-	if (Arguments::csimTrace() && !resume)
+  if (Arguments::csimTrace() && !resume)
     printf("MEM%d 0x%08x: %s %s %s\n", this->mBankNumber,
                                        address,
                                        instruction ? "instruction" : "data",
                                        read ? "read" : "write",
                                        hit ? "hit" : "miss");
 
-	return hit;
+  return hit;
 }
 
 void GeneralPurposeCacheHandler::promoteCacheLine(uint slot) {
@@ -98,8 +114,6 @@ GeneralPurposeCacheHandler::GeneralPurposeCacheHandler(uint bankNumber) :
 	mVictimSlot = mSetBits = mSetMask = mSetShift = 0;
 
 	mBackgroundMemory = NULL;
-
-	mL2Mode = false;
 }
 
 GeneralPurposeCacheHandler::~GeneralPurposeCacheHandler() {
@@ -139,23 +153,11 @@ void GeneralPurposeCacheHandler::activate(const MemoryConfig& config) {
 	mSetShift = mGroupBits + mLineBits;
 	mSetMask = ((1UL << mSetBits) - 1UL) << mSetShift;
 
-	mL2Mode = false;
-
 	if (ENERGY_TRACE)
 	  Instrumentation::MemoryBank::setMode(mBankNumber, true, mSetCount, mWayCount, mLineSize);
 }
 
-void GeneralPurposeCacheHandler::activateL2(const MemoryConfig& config) {
-  // Only need to reconfigure if we weren't already in L2 cache mode, or the
-  // L2 configuration has changed.
-  if (!mL2Mode || (config.LineSize != mLineSize)) {
-    activate(config);  // Each bank holds a single way of the cache.
-    mL2Mode = true;
-  }
-
-}
-
-bool GeneralPurposeCacheHandler::readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug, int core, int retCh) {
+bool GeneralPurposeCacheHandler::readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug, ChannelID returnChannel) {
   if ((address & 0x3) != 0)
 	  throw UnalignedAccessException(address, 4);
 
@@ -165,9 +167,9 @@ bool GeneralPurposeCacheHandler::readWord(MemoryAddr address, uint32_t &data, bo
 
 		if (!debug) {
 			if (instruction)
-				Instrumentation::MemoryBank::readIPKWord(mBankNumber, address, true, core, retCh);
+				Instrumentation::MemoryBank::readIPKWord(mBankNumber, address, true, returnChannel);
 			else
-				Instrumentation::MemoryBank::readWord(mBankNumber, address, true, core, retCh);
+				Instrumentation::MemoryBank::readWord(mBankNumber, address, true, returnChannel);
 		}
 
 		if (Arguments::memoryTrace() && !debug) {
@@ -182,9 +184,9 @@ bool GeneralPurposeCacheHandler::readWord(MemoryAddr address, uint32_t &data, bo
 
 	if (!resume && !debug) {
 		if (instruction)
-			Instrumentation::MemoryBank::readIPKWord(mBankNumber, address, false, core, retCh);
+			Instrumentation::MemoryBank::readIPKWord(mBankNumber, address, false, returnChannel);
 		else
-			Instrumentation::MemoryBank::readWord(mBankNumber, address, false, core, retCh);
+			Instrumentation::MemoryBank::readWord(mBankNumber, address, false, returnChannel);
 	}
 
 	if (Arguments::memoryTrace() && !resume && !debug) {
@@ -203,7 +205,7 @@ bool GeneralPurposeCacheHandler::readWord(MemoryAddr address, uint32_t &data, bo
 	return true;
 }
 
-bool GeneralPurposeCacheHandler::readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug, int core, int retCh) {
+bool GeneralPurposeCacheHandler::readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug, ChannelID returnChannel) {
   if ((address & 0x1) != 0)
     throw UnalignedAccessException(address, 2);
 
@@ -211,14 +213,14 @@ bool GeneralPurposeCacheHandler::readHalfWord(MemoryAddr address, uint32_t &data
 	if (!lookupCacheLine(address, slot, resume, true, false)) {
 		assert(!resume);
 		if (!debug)
-			Instrumentation::MemoryBank::readHalfWord(mBankNumber, address, true, core, retCh);
+			Instrumentation::MemoryBank::readHalfWord(mBankNumber, address, true, returnChannel);
 		if (Arguments::memoryTrace() && !debug)
 			MemoryTrace::readHalfWord(mBankNumber, address);
 		return false;
 	}
 
 	if (!resume && !debug)
-		Instrumentation::MemoryBank::readHalfWord(mBankNumber, address, false, core, retCh);
+		Instrumentation::MemoryBank::readHalfWord(mBankNumber, address, false, returnChannel);
 
 	if (Arguments::memoryTrace() && !resume && !debug)
 		MemoryTrace::readHalfWord(mBankNumber, address);
@@ -232,19 +234,19 @@ bool GeneralPurposeCacheHandler::readHalfWord(MemoryAddr address, uint32_t &data
 	return true;
 }
 
-bool GeneralPurposeCacheHandler::readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug, int core, int retCh) {
+bool GeneralPurposeCacheHandler::readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug, ChannelID returnChannel) {
 	uint slot;
 	if (!lookupCacheLine(address, slot, resume, true, false)) {
 		assert(!resume);
 		if (!debug)
-			Instrumentation::MemoryBank::readByte(mBankNumber, address, true, core, retCh);
+			Instrumentation::MemoryBank::readByte(mBankNumber, address, true, returnChannel);
 		if (Arguments::memoryTrace() && !debug)
 			MemoryTrace::readByte(mBankNumber, address);
 		return false;
 	}
 
 	if (!resume && !debug)
-		Instrumentation::MemoryBank::readByte(mBankNumber, address, false, core, retCh);
+		Instrumentation::MemoryBank::readByte(mBankNumber, address, false, returnChannel);
 
 	if (Arguments::memoryTrace() && !resume && !debug)
 		MemoryTrace::readByte(mBankNumber, address);
@@ -266,7 +268,7 @@ bool GeneralPurposeCacheHandler::readByte(MemoryAddr address, uint32_t &data, bo
 	return true;
 }
 
-bool GeneralPurposeCacheHandler::writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh) {
+bool GeneralPurposeCacheHandler::writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel) {
   assert(mBackgroundMemory != NULL);
   if ((address & 0x3) != 0)
     throw UnalignedAccessException(address, 4);
@@ -277,14 +279,14 @@ bool GeneralPurposeCacheHandler::writeWord(MemoryAddr address, uint32_t data, bo
 	if (!lookupCacheLine(address, slot, resume, false, false)) {
 		assert(!resume);
 		if (!debug)
-			Instrumentation::MemoryBank::writeWord(mBankNumber, address, true, core, retCh);
+			Instrumentation::MemoryBank::writeWord(mBankNumber, address, true, returnChannel);
 		if (Arguments::memoryTrace() && !debug)
 			MemoryTrace::writeWord(mBankNumber, address);
 		return false;
 	}
 
 	if (!resume && !debug)
-		Instrumentation::MemoryBank::writeWord(mBankNumber, address, false, core, retCh);
+		Instrumentation::MemoryBank::writeWord(mBankNumber, address, false, returnChannel);
 
 	if (Arguments::memoryTrace() && !resume && !debug)
 		MemoryTrace::writeWord(mBankNumber, address);
@@ -298,7 +300,7 @@ bool GeneralPurposeCacheHandler::writeWord(MemoryAddr address, uint32_t data, bo
 	return true;
 }
 
-bool GeneralPurposeCacheHandler::writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh) {
+bool GeneralPurposeCacheHandler::writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel) {
   assert(mBackgroundMemory != NULL);
   if ((address & 0x1) != 0)
     throw UnalignedAccessException(address, 2);
@@ -309,14 +311,14 @@ bool GeneralPurposeCacheHandler::writeHalfWord(MemoryAddr address, uint32_t data
 	if (!lookupCacheLine(address, slot, resume, false, false)) {
 		assert(!resume);
 		if (!debug)
-			Instrumentation::MemoryBank::writeHalfWord(mBankNumber, address, true, core, retCh);
+			Instrumentation::MemoryBank::writeHalfWord(mBankNumber, address, true, returnChannel);
 		if (Arguments::memoryTrace() && !debug)
 			MemoryTrace::writeHalfWord(mBankNumber, address);
 		return false;
 	}
 
 	if (!resume && !debug)
-		Instrumentation::MemoryBank::writeHalfWord(mBankNumber, address, false, core, retCh);
+		Instrumentation::MemoryBank::writeHalfWord(mBankNumber, address, false, returnChannel);
 
 	if (Arguments::memoryTrace() && !resume && !debug)
 		MemoryTrace::writeHalfWord(mBankNumber, address);
@@ -336,7 +338,7 @@ bool GeneralPurposeCacheHandler::writeHalfWord(MemoryAddr address, uint32_t data
 	return true;
 }
 
-bool GeneralPurposeCacheHandler::writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh) {
+bool GeneralPurposeCacheHandler::writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel) {
   assert(mBackgroundMemory != NULL);
   if (mBackgroundMemory->readOnly(address))
     throw ReadOnlyException(address);
@@ -345,14 +347,14 @@ bool GeneralPurposeCacheHandler::writeByte(MemoryAddr address, uint32_t data, bo
 	if (!lookupCacheLine(address, slot, resume, false, false)) {
 		assert(!resume);
 		if (!debug)
-			Instrumentation::MemoryBank::writeByte(mBankNumber, address, true, core, retCh);
+			Instrumentation::MemoryBank::writeByte(mBankNumber, address, true, returnChannel);
 		if (Arguments::memoryTrace() && !debug)
 			MemoryTrace::writeByte(mBankNumber, address);
 		return false;
 	}
 
 	if (!resume && !debug)
-		Instrumentation::MemoryBank::writeByte(mBankNumber, address, false, core, retCh);
+		Instrumentation::MemoryBank::writeByte(mBankNumber, address, false, returnChannel);
 
 	if (Arguments::memoryTrace() && !resume && !debug)
 		MemoryTrace::writeByte(mBankNumber, address);
@@ -373,6 +375,15 @@ bool GeneralPurposeCacheHandler::writeByte(MemoryAddr address, uint32_t data, bo
 	//fprintf(stderr, "GPCH: bank %u wrote byte %.2X to address %.8X\n", mBankNumber, data & 0xFF, address);
 
 	return true;
+}
+
+void GeneralPurposeCacheHandler::findCacheLine(MemoryAddr address) {
+  // Temporary hack until we start computing SRAM addresses at the start of an
+  // operation and storing them with the request.
+  // prepareCacheLine (below) deals with cache misses and prepares a victim slot
+  // for the new line to go in. We can also write lines when we know it is safe
+  // to do so, so this function prepares mVictimSlot in that situation.
+  lookupCacheLine(address, mVictimSlot, false, false, false);
 }
 
 void GeneralPurposeCacheHandler::prepareCacheLine(MemoryAddr address, MemoryAddr &writeBackAddress, uint &writeBackCount, uint32_t writeBackData[], uint32_t &fetchAddress, uint &fetchCount) {
@@ -441,6 +452,14 @@ void GeneralPurposeCacheHandler::replaceCacheLine(MemoryAddr fetchAddress, uint3
 
 	//if (mBankNumber >= 4)
 	//	fprintf(stderr, "GPCH: bank %u inserted line at %.8X (%u bytes)\n", mBankNumber, fetchAddress, mLineSize);
+}
+
+void GeneralPurposeCacheHandler::fillCacheLineBuffer(MemoryAddr address, uint32_t buffer[]) {
+  uint slot;
+  // FIXME: tag check causes instrumentation, but this is just for debug.
+  bool cacheHit = lookupCacheLine(address, slot, false, true, false);
+  assert(cacheHit);
+  memcpy(buffer, &mData[slot * mLineSize / 4], mLineSize);
 }
 
 void GeneralPurposeCacheHandler::setBackgroundMemory(SimplifiedOnChipScratchpad *backgroundMemory) {

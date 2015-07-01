@@ -31,13 +31,13 @@ public:
 
 	virtual void activate(const MemoryConfig& config);
 
-  virtual bool readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug, int core, int retCh);
-  virtual bool readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug, int core, int retCh);
-  virtual bool readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug, int core, int retCh);
+  virtual bool readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug, ChannelID returnChannel);
+  virtual bool readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug, ChannelID returnChannel);
+  virtual bool readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug, ChannelID returnChannel);
 
-  virtual bool writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh);
-  virtual bool writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh);
-  virtual bool writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh);
+  virtual bool writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel);
+  virtual bool writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel);
+  virtual bool writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel);
 };
 
 #endif /* SCRATCHPADMODEHANDLER_H_ */

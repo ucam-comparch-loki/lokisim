@@ -23,13 +23,13 @@
 
 #include "../../Component.h"
 #include "../../Utility/Blocking.h"
-#include "../../Datatype/MemoryRequest.h"
 #include "../../Network/DelayBuffer.h"
 #include "GeneralPurposeCacheHandler.h"
 #include "ReservationHandler.h"
 #include "ScratchpadModeHandler.h"
-#include "SimplifiedOnChipScratchpad.h"
 #include "MemoryTypedefs.h"
+
+class SimplifiedOnChipScratchpad;
 
 class MemoryBank: public Component, public Blocking {
 	//---------------------------------------------------------------------------------------------
@@ -42,20 +42,6 @@ private:
 	const uint  cBankNumber;              // Number of this memory bank (off by one)
 	const bool  cRandomReplacement;       // Replace random cache lines (instead of using LRU scheme)
 
-	//---------------------------------------------------------------------------------------------
-	// Interface definitions
-	//---------------------------------------------------------------------------------------------
-
-public:
-
-	// All data required to perform any data-access operation.
-	struct RequestData_ {
-	  uint32_t      Address;                    // Memory address to access
-	  uint          Count;                      // Number of consecutive words to access
-	  uint          TableIndex;                 // Channel map table entry used
-	  ChannelIndex  ReturnChannel;              // Network address to send data to
-	};
-	typedef struct RequestData_ RequestData;
 
 	//---------------------------------------------------------------------------------------------
 	// Ports
@@ -90,18 +76,16 @@ private:
 
 	enum FSMState {
 		STATE_IDLE,											      // Ready to service incoming message
-		STATE_FETCH_BURST_LENGTH,							// Fetch burst length from separate word
 		STATE_LOCAL_MEMORY_ACCESS,						// Access local memory (simulate single cycle access latency)
-		STATE_LOCAL_IPK_READ,								  // Read instruction packet from local memory (simulate single cycle access latency)
-		STATE_GP_CACHE_MISS,								  // Access to general purpose cache caused cache miss - wait for cache FSM
+		STATE_CACHE_FLUSH                     // Start flushing a cache line next clock cycle
 	};
 
-	enum GeneralPurposeCacheFSMState {
-		GP_CACHE_STATE_PREPARE,
-		GP_CACHE_STATE_SEND_DATA,
-		GP_CACHE_STATE_SEND_READ_COMMAND,
-		GP_CACHE_STATE_READ_DATA,
-		GP_CACHE_STATE_REPLACE
+	// Inputs/outputs to receive/send request data on.
+	enum RequestSource {
+	  REQUEST_CORES,
+	  REQUEST_MEMORIES,
+	  REQUEST_REFILL,
+	  REQUEST_NONE
 	};
 
 	struct ChannelMapTableEntry {
@@ -110,6 +94,14 @@ private:
 		bool                FetchPending;			// Flag indicating whether a Channel ID fetch for this entry is pending
 		ChannelID           ReturnChannel;		// Number of destination tile
 	};
+
+  // All data required to perform any data-access operation.
+  struct RequestData {
+    uint32_t            Address;          // Memory address to access
+    RequestSource       Source;           // Where the request came from
+    ChannelID           ReturnChannel;    // Address to send responses to
+    uint                FlitsSent;        // Number of response flits sent so far
+  };
 
 	//---------------------------------------------------------------------------------------------
 	// Local state
@@ -121,23 +113,30 @@ private:
 
 	//-- Data queue state -------------------------------------------------------------------------
 
-  DelayBuffer<NetworkRequest>  mInputQueue;       // Input queue
-  DelayBuffer<NetworkResponse> mOutputQueue;      // Output queue
+  NetworkBuffer<NetworkRequest>  mInputQueue;       // Input queue
+  DelayBuffer<NetworkResponse>   mOutputQueue;      // Output queue
 
 	bool                  mOutputWordPending;					// Indicates that an output word is waiting for acknowledgement
 	NetworkData           mActiveOutputWord;					// Currently active output word
 
-  DelayBuffer<NetworkRequest>  mOutputReqQueue;   // Output request queue
+  DelayBuffer<NetworkRequest>    mOutputReqQueue;   // Output request queue
 
 	//-- Mode independent state -------------------------------------------------------------------
 
 	MemoryConfig          mConfig;          // Data including associativity, line size, etc.
 
-	FSMState              mFSMState;			  // Current FSM state
-	FSMState              mFSMCallbackState;// Next FSM state to enter after sub operation is complete
 
+	FSMState              mFSMState;			  // Current FSM state
 	NetworkRequest        mActiveRequest;		// Currently active memory request
+	bool                  mActiveRequestComplete;
 	RequestData           mActiveData;      // Data used to fulfil the request
+
+	// Callback request - put on hold while performing sub-operations such as
+	// cache line fetches.
+	FSMState              mFSMCallbackState;
+	NetworkRequest        mCallbackRequest;
+	RequestData           mCallbackData;
+
 
 	uint32_t              mRMWData;         // Temporary data for read-modify-write operations.
 	bool                  mRMWDataValid;    // Does mRMWData hold valid data?
@@ -153,9 +152,9 @@ private:
 
 	bool                  mCacheResumeRequest;	// Indicates that a memory request is being resumed after a cache update
 
-	GeneralPurposeCacheFSMState mCacheFSMState;	// Current cache FSM state
-	uint32_t              mCacheLineBuffer[256];// Cache line buffer for background memory I/O
+	uint32_t              mCacheLineBuffer[CACHE_LINE_WORDS];// Cache line buffer for background memory I/O
 	uint                  mCacheLineCursor;	// Index of next word in cache line buffer to process
+	MemoryAddr            mCacheLineBufferTag; // Address of cache line in the buffer
 	uint32_t              mWriteBackAddress;// Current address of write back operation in progress
 	uint                  mWriteBackCount;  // Number of words to write back to background memory
 	uint32_t              mFetchAddress;		// Current address of fetch operation in progress
@@ -172,6 +171,10 @@ private:
 	};
 	RequestState mRequestState;
 
+	// When acting as part of an L2 cache, the target bank waits for a clock cycle
+	// in case any other bank responds first.
+	bool mWaitingForL2Consensus;
+
 	//---------------------------------------------------------------------------------------------
 	// Internal functions
 	//---------------------------------------------------------------------------------------------
@@ -181,20 +184,84 @@ private:
 	// Returns either the ScratchpadModeHandler or GeneralPurposeCacheHandler,
 	// depending on the current configuration.
 	AbstractMemoryHandler& currentMemoryHandler();
+	bool checkTags() const;
 
-  ComponentID requestingComponent(const NetworkRequest& request) const; // The ID of the core making the current request.
   ChannelID returnChannel(const NetworkRequest& request) const; // The channel to send any response back to.
-  bool isL1Request(const NetworkRequest& request) const; // Whether we are currently acting as an L1 cache.
+  bool inL1Mode() const; // Whether we are currently acting as an L1 cache.
+  bool onlyAcceptingRefills() const;  // If we don't support hit-under-miss, we must wait for data to return
 
+  MemoryAddr getTag(MemoryAddr address) const;
+  bool sameCacheLine(MemoryAddr address1, MemoryAddr address2) const;
   bool endOfCacheLine(MemoryAddr address) const;
+  bool storedLocally(MemoryAddr address) const;
 
-	bool processMessageHeader();
+	bool startNewRequest();
+	bool processMessageHeader(const NetworkRequest& request);
 
+	// Main function, farms work out to handlers below.
 	void processLocalMemoryAccess();
-	void processLocalIPKRead();
-	void prepareIPKReadOutput(AbstractMemoryHandler& handler, uint32_t data);
-	void processGeneralPurposeCacheMiss();
-	void processWaitRingOutput();
+
+	// A handler for each possible operation.
+	void processLoadWord();
+	void processLoadHalfWord();
+	void processLoadByte();
+	void processStoreWord();
+	void processStoreHalfWord();
+	void processStoreByte();
+	void processIPKRead();
+	void processFetchLine();
+	void processStoreLine();
+	void processFlushLine();
+	void processMemsetLine();
+	void processInvalidateLine();
+	void processValidateLine();
+	void processLoadLinked();
+	void processStoreConditional();
+	void processLoadAndAdd();
+	void processLoadAndOr();
+	void processLoadAndAnd();
+	void processLoadAndXor();
+	void processExchange();
+
+	// Helper functions for the operation handlers.
+
+	// Send the result, or fetch the required cache line, depending on whether
+	// the access hit.
+	void processLoadResult(bool cacheHit, uint32_t data, bool endOfPacket);
+	void processStoreResult(bool cacheHit, uint32_t data);
+	void processRMWPhase1();
+	void processRMWPhase2(uint32_t data);
+
+	// Trigger a cache miss. Make space in the cache by flushing a victim line
+	// (if necessary), and request a new line.
+	// Set flushOnly if we are about to overwrite the whole line, so the fetch
+	// is unnecessary.
+	void processCacheMiss(bool flushOnly = false);
+
+	// If address already in the cache, prepare to overwrite it.
+	// If not cached, trigger a cache miss.
+	void makeSpaceForLine();
+
+	uint32_t getDataToStore();
+	bool inputAvailable() const;
+	const NetworkRequest peekInput();
+	const NetworkRequest consumeInput();
+	bool canSend() const;
+	void send(const NetworkData& data);
+
+	// Move data from cache to cache line buffer.
+	void prepareCacheLineBuffer(MemoryAddr address);
+
+	// Read next word from cache line buffer.
+	uint32_t readFromCacheLineBuffer();
+
+	// Write next word to cache line buffer.
+	void writeToCacheLineBuffer(uint32_t data);
+
+	// Move data from cache line buffer to cache.
+	void replaceCacheLine();
+
+	void processDelayedCacheFlush();
 
 	void processValidInput();
 
@@ -202,17 +269,10 @@ private:
 	void handleDataOutput();
   void handleRequestOutput();
 
-  void requestLoop();
+	void mainLoop();										// Main loop thread
 
-  void handleNewRequest();
-  void handleRequestWaitForBanks();
-  void handleRequestWaitForData();
-  void beginServingRequest(NetworkRequest request);
-  void handleRequestFetch();
-  void handleRequestStore();
-  void endRequest();
-
-	void mainLoop();										// Main loop thread - running at every positive clock edge
+	void updateIdle();                  // Update idleness
+	void updateReady();                 // Update flow control signals
 
 	//---------------------------------------------------------------------------------------------
 	// Constructors and destructors
@@ -239,7 +299,6 @@ public:
 	void setLocalNetwork(local_net_t* network);
 	void setBackgroundMemory(SimplifiedOnChipScratchpad* memory);
 
-	MemoryBank& bankContainingAddress(MemoryAddr addr);
 	void storeData(vector<Word>& data, MemoryAddr location);
 	void synchronizeData();
 

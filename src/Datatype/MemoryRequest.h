@@ -138,6 +138,20 @@ public:
 	  }
 	}
 
+  static const string& name(MemoryOperation op) {
+    static const string operationNames[] = {
+      "LOAD_W",          "LOAD_HW",           "LOAD_B",                 "STORE_W",
+      "STORE_HW",        "STORE_B",           "PAYLOAD",                "IPK_READ",
+      "FETCH_LINE",      "STORE_LINE",        "FLUSH_LINE",             "MEMSET_LINE",
+      "INVALIDATE_LINE", "VALIDATE_LINE",     "UPDATE_DIRECTORY_ENTRY", "UPDATE_DIRECTORY_MASK",
+      "LOAD_LINKED",     "STORE_CONDITIONAL", "LOAD_AND_ADD",           "LOAD_AND_OR",
+      "LOAD_AND_AND",    "LOAD_AND_XOR",      "EXCHANGE",               "INVALID1",
+      "INVALID2",        "INVALID3",          "INVALID4",               "INVALID5",
+      "INVALID6",        "INVALID7",          "CONTROL",                "NONE"
+    };
+	  return operationNames[(int)op];
+	}
+
 	MemoryRequest() : Word() {
 		// Nothing
 	}
@@ -145,7 +159,6 @@ public:
 	MemoryRequest(const Word& other) : Word(other) {
 		// Nothing
 	}
-
 
 };
 

@@ -50,16 +50,16 @@ void ScratchpadModeHandler::activate(const MemoryConfig& config) {
 	  Instrumentation::MemoryBank::setMode(mBankNumber, false, mSetCount, mWayCount, mLineSize);
 }
 
-bool ScratchpadModeHandler::readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug, int core, int retCh) {
+bool ScratchpadModeHandler::readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug, ChannelID returnChannel) {
 	assert(address < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
 	if ((address & 0x3) != 0)
 	  throw UnalignedAccessException(address, 4);
 
 	if (!debug && ENERGY_TRACE) {
 	  if (instruction)
-      Instrumentation::MemoryBank::readIPKWord(mBankNumber, address, false, core, retCh);
+      Instrumentation::MemoryBank::readIPKWord(mBankNumber, address, false, returnChannel);
     else
-      Instrumentation::MemoryBank::readWord(mBankNumber, address, false, core, retCh);
+      Instrumentation::MemoryBank::readWord(mBankNumber, address, false, returnChannel);
 	}
 
 	if (!debug && Arguments::memoryTrace()) {
@@ -76,13 +76,13 @@ bool ScratchpadModeHandler::readWord(MemoryAddr address, uint32_t &data, bool in
 	return true;
 }
 
-bool ScratchpadModeHandler::readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug, int core, int retCh) {
+bool ScratchpadModeHandler::readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug, ChannelID returnChannel) {
 	assert(address < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
   if ((address & 0x1) != 0)
     throw UnalignedAccessException(address, 2);
 
 	if (!debug && ENERGY_TRACE)
-	  Instrumentation::MemoryBank::readHalfWord(mBankNumber, address, false, core, retCh);
+	  Instrumentation::MemoryBank::readHalfWord(mBankNumber, address, false, returnChannel);
 
 	if (!debug && Arguments::memoryTrace())
 		MemoryTrace::readHalfWord(mBankNumber, address);
@@ -95,11 +95,11 @@ bool ScratchpadModeHandler::readHalfWord(MemoryAddr address, uint32_t &data, boo
 	return true;
 }
 
-bool ScratchpadModeHandler::readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug, int core, int retCh) {
+bool ScratchpadModeHandler::readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug, ChannelID returnChannel) {
 	assert(address < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
 
 	if (!debug && ENERGY_TRACE)
-	  Instrumentation::MemoryBank::readByte(mBankNumber, address, false, core, retCh);
+	  Instrumentation::MemoryBank::readByte(mBankNumber, address, false, returnChannel);
 
 	if (!debug && Arguments::memoryTrace())
 		MemoryTrace::readByte(mBankNumber, address);
@@ -119,13 +119,13 @@ bool ScratchpadModeHandler::readByte(MemoryAddr address, uint32_t &data, bool re
 	return true;
 }
 
-bool ScratchpadModeHandler::writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh) {
+bool ScratchpadModeHandler::writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel) {
 	assert(address < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
   if ((address & 0x3) != 0)
     throw UnalignedAccessException(address, 4);
 
 	if (!debug && ENERGY_TRACE)
-	  Instrumentation::MemoryBank::writeWord(mBankNumber, address, false, core, retCh);
+	  Instrumentation::MemoryBank::writeWord(mBankNumber, address, false, returnChannel);
 
 	if (!debug && Arguments::memoryTrace())
 		MemoryTrace::writeWord(mBankNumber, address);
@@ -137,13 +137,13 @@ bool ScratchpadModeHandler::writeWord(MemoryAddr address, uint32_t data, bool re
 	return true;
 }
 
-bool ScratchpadModeHandler::writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh) {
+bool ScratchpadModeHandler::writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel) {
 	assert(address < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
   if ((address & 0x1) != 0)
     throw UnalignedAccessException(address, 2);
 
 	if (!debug && ENERGY_TRACE)
-	  Instrumentation::MemoryBank::writeHalfWord(mBankNumber, address, false, core, retCh);
+	  Instrumentation::MemoryBank::writeHalfWord(mBankNumber, address, false, returnChannel);
 
 	if (!debug && Arguments::memoryTrace())
 		MemoryTrace::writeHalfWord(mBankNumber, address);
@@ -160,11 +160,11 @@ bool ScratchpadModeHandler::writeHalfWord(MemoryAddr address, uint32_t data, boo
 	return true;
 }
 
-bool ScratchpadModeHandler::writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug, int core, int retCh) {
+bool ScratchpadModeHandler::writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel) {
 	assert(address < mSetCount * mWayCount * mLineSize * (1UL << mGroupBits));
 
 	if (!debug && ENERGY_TRACE)
-	  Instrumentation::MemoryBank::writeByte(mBankNumber, address, false, core, retCh);
+	  Instrumentation::MemoryBank::writeByte(mBankNumber, address, false, returnChannel);
 
 	if (!debug && Arguments::memoryTrace())
 		MemoryTrace::writeByte(mBankNumber, address);

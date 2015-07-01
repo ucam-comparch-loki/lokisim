@@ -66,9 +66,7 @@ public:
     item.data = data;
     item.finishTime = currentTime() + delay;
 
-    // Only trigger the event if this is now the head of the queue.
-    if (trulyEmpty())
-      delayedWrite.notify(sc_time(delay, sc_core::SC_NS));
+    delayedWrite.notify(sc_time(delay, sc_core::SC_NS));
 
     buffer.write(item);
   }
