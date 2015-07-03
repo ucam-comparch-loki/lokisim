@@ -19,7 +19,8 @@
 #define GENERALPURPOSECACHEHANDLER_H_
 
 #include "AbstractMemoryHandler.h"
-#include "SimplifiedOnChipScratchpad.h"
+
+class CacheLineBuffer;
 
 class GeneralPurposeCacheHandler : public AbstractMemoryHandler {
 private:
@@ -33,10 +34,9 @@ private:
 	// State
 	//---------------------------------------------------------------------------------------------
 
-//	uint32_t *mData;						// Data words stored in the cache
-	uint32_t *mAddresses;					// Cache tags associated with cache lines (full addresses in the model for simplicity reasons)
-	bool *mLineValid;						// Flags indicating whether a particular cache line holds valid data
-	bool *mLineDirty;						// Flags indicating whether a particular cache line is modified
+	vector<MemoryTag> mAddresses;	// Cache tags associated with cache lines (full addresses in the model for simplicity reasons)
+	vector<bool>      mLineValid;	// Flags indicating whether a particular cache line holds valid data
+	vector<bool>      mLineDirty;	// Flags indicating whether a particular cache line is modified
 
 	uint16_t mLFSRState;					// State of LFSR used for random replacement strategy
 
@@ -46,8 +46,6 @@ private:
 	uint mSetMask;							// Bit mask to extract set index from address
 	uint mSetShift;							// Shift count to align extracted set index
 
-  SimplifiedOnChipScratchpad *mBackgroundMemory; // Lowest level cache for debug use
-
 	//---------------------------------------------------------------------------------------------
 	// Internal functions
 	//---------------------------------------------------------------------------------------------
@@ -55,30 +53,28 @@ private:
 	bool lookupCacheLine(MemoryAddr address, uint &slot, bool resume, bool read, bool instruction);
 	void promoteCacheLine(uint slot);
 
+	SRAMAddress getLine(SRAMAddress address) const;
+	SRAMAddress getOffset(SRAMAddress address) const;
+
 public:
-	GeneralPurposeCacheHandler(uint bankNumber);
+	GeneralPurposeCacheHandler(uint bankNumber, vector<uint32_t>& data);
 	~GeneralPurposeCacheHandler();
 
 	virtual void activate(const MemoryConfig& config);
 
-  bool lookupCacheLine(MemoryAddr address) const;
+  CacheLookup lookupCacheLine(MemoryAddr address) const;
 
-	virtual bool readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug, ChannelID returnChannel);
-	virtual bool readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug, ChannelID returnChannel);
-	virtual bool readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug, ChannelID returnChannel);
+  virtual uint32_t readWord(SRAMAddress address);
+  virtual uint32_t readHalfWord(SRAMAddress address);
+  virtual uint32_t readByte(SRAMAddress address);
 
-	virtual bool writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel);
-	virtual bool writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel);
-	virtual bool writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel);
+  virtual void writeWord(SRAMAddress address, uint32_t data);
+  virtual void writeHalfWord(SRAMAddress address, uint32_t data);
+  virtual void writeByte(SRAMAddress address, uint32_t data);
 
-	void findCacheLine(MemoryAddr address); // Find SRAM address of line already in cache.
-	void prepareCacheLine(MemoryAddr address, MemoryAddr &writeBackAddress, uint &writeBackCount, uint32_t writeBackData[], uint32_t &fetchAddress, uint &fetchCount);
-	void replaceCacheLine(MemoryAddr fetchAddress, uint32_t fetchData[]);
-	void fillCacheLineBuffer(MemoryAddr address, uint32_t buffer[]);
-
-	void setBackgroundMemory(SimplifiedOnChipScratchpad *backgroundMemory);
-
-	void synchronizeData(SimplifiedOnChipScratchpad *backgroundMemory);
+	CacheLookup prepareCacheLine(MemoryAddr address, CacheLineBuffer& lineBuffer, bool isRead, bool isInstruction);
+	void replaceCacheLine(CacheLineBuffer& buffer, SRAMAddress position);
+	void fillCacheLineBuffer(MemoryAddr address, CacheLineBuffer& buffer);
 };
 
 #endif /* GENERALPURPOSECACHEHANDLER_H_ */

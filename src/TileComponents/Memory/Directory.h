@@ -20,6 +20,7 @@
 
 #include "../../Datatype/Identifier.h"
 #include "../../Typedefs.h"
+#include "MemoryTypedefs.h"
 
 class Directory {
 

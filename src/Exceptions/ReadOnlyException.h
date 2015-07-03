@@ -1,3 +1,6 @@
+#include <ios>
+#include <iosfwd>
+
 /*
  * ReadOnlyException.h
  *
@@ -11,7 +14,9 @@
 #ifndef READONLYEXCEPTION_H_
 #define READONLYEXCEPTION_H_
 
-#include "../Typedefs.h"
+#include <ios>
+#include <sstream>
+#include "../TileComponents/Memory/MemoryTypedefs.h"
 
 class ReadOnlyException : public std::exception {
 

@@ -8,8 +8,19 @@
 #ifndef MEMORYTYPEDEFS_H_
 #define MEMORYTYPEDEFS_H_
 
+#include <inttypes.h>
+
 
 #define CACHE_LINE_WORDS 8
+
+// A location in the global address space. (Byte granularity.)
+typedef uint32_t MemoryAddr;
+
+// In practice, the tag is slightly shorter than the full address.
+typedef MemoryAddr MemoryTag;
+
+// The physical location of an item in SRAM. (Byte granularity.)
+typedef uint32_t SRAMAddress;
 
 enum BankMode {
   MODE_INACTIVE,
@@ -18,13 +29,19 @@ enum BankMode {
 };
 
 // All information used to describe a memory bank's run-time configuration.
-struct MemoryConfig_ {
-  BankMode Mode;          // Scratchpad, cache, etc.
-  uint     WayCount;      // Associativity if in cache mode
-  uint     LineSize;      // Cache line length (in bytes)
-  uint     GroupSize;     // Number of memory banks in group
+struct MemoryConfig {
+  BankMode    Mode;          // Scratchpad, cache, etc.
+  uint32_t    WayCount;      // Associativity if in cache mode
+  uint32_t    LineSize;      // Cache line length (in bytes)
+  uint32_t    GroupSize;     // Number of memory banks in group
 };
-typedef struct MemoryConfig_ MemoryConfig;
+
+struct CacheLookup {
+  uint32_t    SRAMLine;      // The physical location of the data in SRAM
+  MemoryAddr  FlushAddress;  // Memory address of line to be flushed
+  bool        Hit;           // Whether the data is currently in the cache
+  bool        FlushRequired; // Whether a cache line flush is required
+};
 
 // Encode line size options efficiently - we're never going to want
 // single-word cache lines.

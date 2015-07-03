@@ -82,6 +82,49 @@ void MemoryBank::setMode(int bank, bool isCache, uint setCount, uint wayCount, u
 	lineSizes_[bank] = lineSize;
 }
 
+void MemoryBank::startOperation(int bank, MemoryRequest::MemoryOperation op,
+        MemoryAddr address, bool miss, ChannelID returnChannel) {
+  switch (op) {
+    case MemoryRequest::LOAD_W:
+    case MemoryRequest::LOAD_LINKED:
+    case MemoryRequest::LOAD_AND_ADD:
+    case MemoryRequest::LOAD_AND_OR:
+    case MemoryRequest::LOAD_AND_AND:
+    case MemoryRequest::LOAD_AND_XOR:
+    case MemoryRequest::EXCHANGE:
+      readWord(bank, address, miss, returnChannel);
+      break;
+
+    case MemoryRequest::LOAD_HW:
+      readHalfWord(bank, address, miss, returnChannel);
+      break;
+
+    case MemoryRequest::LOAD_B:
+      readByte(bank, address, miss, returnChannel);
+      break;
+
+    case MemoryRequest::STORE_W:
+    case MemoryRequest::STORE_CONDITIONAL:
+      writeWord(bank, address, miss, returnChannel);
+      break;
+
+    case MemoryRequest::STORE_HW:
+      writeHalfWord(bank, address, miss, returnChannel);
+      break;
+
+    case MemoryRequest::STORE_B:
+      writeByte(bank, address, miss, returnChannel);
+      break;
+
+    case MemoryRequest::IPK_READ:
+      readIPKWord(bank, address, miss, returnChannel);
+      break;
+
+    default:
+      break;
+  }
+}
+
 void MemoryBank::readWord(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel) {
 	if (isMiss)
 		numReadWordMisses_.increment(bank);

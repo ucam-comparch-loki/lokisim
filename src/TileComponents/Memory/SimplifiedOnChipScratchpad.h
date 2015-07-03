@@ -92,7 +92,8 @@ private:
 
 	const uint              cPortCount;      // Number of ports
 	PortData               *mPortData;       // State information about all ports
-	BufferArray<InputWord>  mInputQueues;    // Input queues for all ports
+  BufferArray<InputWord>  mInputQueues;    // Input queues for all ports
+  BufferArray<NetworkResponse> mOutputQueues;   // Output queues for all ports
 
 	// Mainly for debug, mark the read-only sections of the address space.
 	std::vector<MemoryAddr> readOnlyBase,
@@ -104,9 +105,12 @@ private:
 
 private:
 
-	void tryStartRequest(uint port);					// Helper function starting / chaining new request
+	void tryStartRequest(uint port);  // Helper function starting / chaining new request
 
-	void mainLoop();									// Main loop thread - running at every positive clock edge
+	void receiveData(uint port);      // Continuously try to receive data.
+	void sendData(uint port);         // Continuously try to send data.
+
+	void mainLoop();                  // Main loop thread - running at every positive clock edge
 
 	//---------------------------------------------------------------------------------------------
 	// Constructors and destructors

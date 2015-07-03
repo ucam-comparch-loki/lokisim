@@ -11,9 +11,12 @@
 #ifndef ABSTRACTMEMORYHANDLER_H_
 #define ABSTRACTMEMORYHANDLER_H_
 
+#include <vector>
 #include "../../Typedefs.h"
 #include "MemoryTypedefs.h"
 #include "../../Datatype/Identifier.h"
+
+using std::vector;
 
 class AbstractMemoryHandler {
 protected:
@@ -46,7 +49,7 @@ protected:
   uint log2Exact(uint value);
 
 public:
-  AbstractMemoryHandler(uint bankNumber);
+  AbstractMemoryHandler(uint bankNumber, vector<uint32_t>& data);
   virtual ~AbstractMemoryHandler();
 
   // Set up the memory bank with a new configuration. This invalidates any data
@@ -59,13 +62,13 @@ public:
   //   resume      = is this a resumed operation after a cache miss? (Cache mode only.)
   //   debug       = should this operation be logged in the execution statistics?
 
-  virtual bool readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug, ChannelID returnChannel) = 0;
-  virtual bool readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug, ChannelID returnChannel) = 0;
-  virtual bool readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug, ChannelID returnChannel) = 0;
+  virtual uint32_t readWord(SRAMAddress address);
+  virtual uint32_t readHalfWord(SRAMAddress address);
+  virtual uint32_t readByte(SRAMAddress address);
 
-  virtual bool writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel) = 0;
-  virtual bool writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel) = 0;
-  virtual bool writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel) = 0;
+  virtual void writeWord(SRAMAddress address, uint32_t data);
+  virtual void writeHalfWord(SRAMAddress address, uint32_t data);
+  virtual void writeByte(SRAMAddress address, uint32_t data);
 };
 
 #endif /* ABSTRACTMEMORYHANDLER_H_ */

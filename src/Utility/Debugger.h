@@ -12,6 +12,7 @@
 #include <string>
 #include "../Datatype/Identifier.h"
 #include "../Typedefs.h"
+#include "../TileComponents/Memory/MemoryTypedefs.h"
 
 using std::string;
 using std::vector;

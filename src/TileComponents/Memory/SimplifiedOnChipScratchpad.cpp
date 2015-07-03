@@ -26,6 +26,8 @@
 // Created on: 08/04/2011
 //-------------------------------------------------------------------------------------------------
 
+#define SC_INCLUDE_DYNAMIC_PROCESSES
+
 #include <iostream>
 #include <iomanip>
 
@@ -43,9 +45,6 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 		NetworkRequest request = mInputQueues[port].peek().Request;
 
 		if (request.getMemoryMetadata().opcode == MemoryRequest::FETCH_LINE) {
-		  if (oData[port].valid())
-		    return;
-
 			mPortData[port].Address = request.payload().toUInt();
 			mPortData[port].WordsLeft = CACHE_LINE_WORDS;
 			mPortData[port].ReturnAddress = ChannelID(request.getMemoryMetadata().returnTileX,
@@ -72,7 +71,7 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 			metadata.returnTileX = 2;
 			metadata.returnTileY = 0;
 			NetworkResponse header(mPortData[port].Address, mPortData[port].ReturnAddress, metadata.flatten());
-			oData[port].write(header);
+			mOutputQueues[port].write(header);
 
 			Instrumentation::backgroundMemoryRead(mPortData[port].Address, mPortData[port].WordsLeft);
 
@@ -104,102 +103,115 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 	}
 }
 
+void SimplifiedOnChipScratchpad::receiveData(uint port) {
+  assert(!mInputQueues[port].full());
+  assert(iData[port].valid());
+
+  InputWord newWord;
+  newWord.EarliestExecutionCycle = mCycleCounter + (uint64_t)cDelayCycles;
+  newWord.Request = iData[port].read();
+
+  if (DEBUG)
+    cout << this->name() << " received " << newWord.Request.payload() << " (" << MemoryRequest::name(newWord.Request.getMemoryMetadata().opcode) << ")" << endl;
+
+  iData[port].ack();
+  mInputQueues[port].write(newWord);
+}
+
+void SimplifiedOnChipScratchpad::sendData(uint port) {
+  if (mOutputQueues[port].empty())
+    next_trigger(mOutputQueues[port].writeEvent());
+  else if (oData[port].valid()) {
+    if (DEBUG)
+      cout << this->name() << " is blocked waiting for output to become free" << endl;
+    next_trigger(oData[port].ack_event());
+  }
+  else if (!iClock.posedge())
+    next_trigger(iClock.posedge_event());
+  else {
+    NetworkResponse response = mOutputQueues[port].read();
+    if (DEBUG)
+      cout << this->name() << " sending " << response << endl;
+    oData[port].write(response);
+    next_trigger(oData[port].ack_event());
+  }
+}
+
 void SimplifiedOnChipScratchpad::mainLoop() {
 	assert(cBanks <= 16);
 
-	for (;;) {
-		// Wait for start of clock cycle
+  // Process port events
 
-		wait(iClock.posedge_event());
+  bool bankAccessed[16];	// Simulate banked memory
+  memset(bankAccessed, 0x00, sizeof(bankAccessed));
 
-		// Handle input data
+  for (uint port = 0; port < cPortCount; port++) {
+    // Default to non-valid - only last change will become effective
 
-		for (uint port = 0; port < cPortCount; port++) {
-			if (iData[port].valid()) {
-				InputWord newWord;
-				newWord.EarliestExecutionCycle = mCycleCounter + (uint64_t)cDelayCycles;
-				newWord.Request = iData[port].read();
+    uint32_t bankSelected = (mPortData[port].Address / 4) % cBanks;
 
-				if (DEBUG)
-				  cout << this->name() << " received " << newWord.Request.payload() << " (" << MemoryRequest::name(newWord.Request.getMemoryMetadata().opcode) << ")" << endl;
+    switch (mPortData[port].State) {
+    case STATE_IDLE:
+      tryStartRequest(port);
+      break;
 
-				iData[port].ack();
-				mInputQueues[port].write(newWord);
-			}
-		}
+    case STATE_READING:
+      if (!bankAccessed[bankSelected]) {
+        uint32_t result = mData[mPortData[port].Address / 4];
 
-		// Process port events
+        if (DEBUG)
+          cout << this->name() << " read from 0x" << std::hex << mPortData[port].Address << std::dec << ": " << result << endl;
 
-		bool bankAccessed[16];	// Simulate banked memory
-		memset(bankAccessed, 0x00, sizeof(bankAccessed));
+        mPortData[port].Address += 4;
+        mPortData[port].WordsLeft--;
 
-		for (uint port = 0; port < cPortCount; port++) {
-			// Default to non-valid - only last change will become effective
+        bool endOfPacket = mPortData[port].WordsLeft == 0;
 
-			uint32_t bankSelected = (mPortData[port].Address / 4) % cBanks;
+        NetworkResponse response(result, mPortData[port].ReturnAddress, endOfPacket);
+        mOutputQueues[port].write(response);
 
-			switch (mPortData[port].State) {
-			case STATE_IDLE:
-				tryStartRequest(port);
-				break;
-
-			case STATE_READING:
-				if (!bankAccessed[bankSelected]) {
-				  uint32_t result = mData[mPortData[port].Address / 4];
-
-          if (DEBUG)
-            cout << this->name() << " read from 0x" << std::hex << mPortData[port].Address << std::dec << ": " << result << endl;
-
-					mPortData[port].Address += 4;
-					mPortData[port].WordsLeft--;
-
-					bool endOfPacket = mPortData[port].WordsLeft == 0;
-
-				  NetworkResponse response(result, mPortData[port].ReturnAddress, endOfPacket);
-					oData[port].write(response);
-
-					if (endOfPacket)
-					  mPortData[port].State = STATE_IDLE;
+        if (endOfPacket)
+          mPortData[port].State = STATE_IDLE;
 //						tryStartRequest(port);
 
-					bankAccessed[bankSelected] = true;
-				}
+        bankAccessed[bankSelected] = true;
+      }
 
-				break;
+      break;
 
-			case STATE_WRITING:
-				if (!bankAccessed[bankSelected] && !mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
-				  assert(mInputQueues[port].peek().Request.getMemoryMetadata().opcode == MemoryRequest::PAYLOAD_ONLY);
+    case STATE_WRITING:
+      if (!bankAccessed[bankSelected] && !mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
+        assert(mInputQueues[port].peek().Request.getMemoryMetadata().opcode == MemoryRequest::PAYLOAD_ONLY);
 
-					uint32_t data = mInputQueues[port].read().Request.payload().toUInt();
+        uint32_t data = mInputQueues[port].read().Request.payload().toUInt();
 
-			    if (DEBUG)
-			      cout << this->name() << " wrote to 0x" << std::hex << mPortData[port].Address << std::dec << ": " << data << endl;
+        if (DEBUG)
+          cout << this->name() << " wrote to 0x" << std::hex << mPortData[port].Address << std::dec << ": " << data << endl;
 
-					mData[mPortData[port].Address / 4] = data;
-					mPortData[port].Address += 4;
-					mPortData[port].WordsLeft--;
+        mData[mPortData[port].Address / 4] = data;
+        mPortData[port].Address += 4;
+        mPortData[port].WordsLeft--;
 
-					if (mPortData[port].WordsLeft == 0)
-						tryStartRequest(port);
+        if (mPortData[port].WordsLeft == 0)
+          tryStartRequest(port);
 
-					bankAccessed[bankSelected] = true;
-				}
+        bankAccessed[bankSelected] = true;
+      }
 
-				break;
-			}
-		}
+      break;
+    }
+  }
 
-		// Advance cycle counter
+  // Advance cycle counter
 
-		mCycleCounter++;
-	}
+  mCycleCounter++;
 }
 
 SimplifiedOnChipScratchpad::SimplifiedOnChipScratchpad(sc_module_name name, const ComponentID& ID, uint portCount) :
 	Component(name, ID),
 	cPortCount(portCount),
-	mInputQueues(portCount, 1024, "SimplifiedOnChipScratchpad::mInputQueues")	// Virtually infinite queue length
+  mInputQueues(portCount, 1024, "SimplifiedOnChipScratchpad::mInputQueues"), // Virtually infinite queue length
+  mOutputQueues(portCount, 1024, "SimplifiedOnChipScratchpad::mOutputQueues")  // Virtually infinite queue length
 {
 	assert(portCount >= 1);
 
@@ -219,9 +231,17 @@ SimplifiedOnChipScratchpad::SimplifiedOnChipScratchpad(sc_module_name name, cons
 	for (uint i = 0; i < portCount; i++)
 		mPortData[i].State = STATE_IDLE;
 
-	// In most cases, we are now trying to replace threads with methods, but this
-	// one seems to perform better as a thread.
-	SC_THREAD(mainLoop);
+	SC_METHOD(mainLoop);
+	sensitive << iClock.pos();
+	dont_initialize();
+
+  // Handlers for each of the input queues.
+  for (uint i=0; i<portCount; i++)
+    SPAWN_METHOD(iData[i], SimplifiedOnChipScratchpad::receiveData, i, false);
+
+  // Handlers for each of the output queues.
+  for (uint i=0; i<portCount; i++)
+    SPAWN_METHOD(mOutputQueues[i].writeEvent(), SimplifiedOnChipScratchpad::sendData, i, true);
 }
 
 SimplifiedOnChipScratchpad::~SimplifiedOnChipScratchpad() {

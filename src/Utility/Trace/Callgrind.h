@@ -28,6 +28,7 @@
 #include <map>
 #include "../../Datatype/Identifier.h"
 #include "../../Typedefs.h"
+#include "../../TileComponents/Memory/MemoryTypedefs.h"
 
 using std::ofstream;
 using std::ostream;

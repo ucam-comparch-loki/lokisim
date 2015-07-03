@@ -14,6 +14,7 @@
 #define INSTRUMENTATION_H_
 
 #include "../Typedefs.h"
+#include "../TileComponents/Memory/MemoryTypedefs.h"
 
 class ChannelID;
 class ComponentID;

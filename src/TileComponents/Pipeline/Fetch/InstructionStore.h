@@ -11,6 +11,7 @@
 #define INSTRUCTIONSTORE_H_
 
 #include "../../../Typedefs.h"
+#include "../../../TileComponents/Memory/MemoryTypedefs.h"
 
 class Instruction;
 

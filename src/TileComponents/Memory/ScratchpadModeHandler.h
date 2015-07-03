@@ -17,7 +17,10 @@
 #ifndef SCRATCHPADMODEHANDLER_H_
 #define SCRATCHPADMODEHANDLER_H_
 
+#include <vector>
 #include "AbstractMemoryHandler.h"
+
+using std::vector;
 
 class ScratchpadModeHandler : public AbstractMemoryHandler {
 
@@ -26,18 +29,10 @@ class ScratchpadModeHandler : public AbstractMemoryHandler {
 	//---------------------------------------------------------------------------------------------
 
 public:
-	ScratchpadModeHandler(uint bankNumber);
+	ScratchpadModeHandler(uint bankNumber, vector<uint32_t>& data);
 	~ScratchpadModeHandler();
 
 	virtual void activate(const MemoryConfig& config);
-
-  virtual bool readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug, ChannelID returnChannel);
-  virtual bool readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug, ChannelID returnChannel);
-  virtual bool readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug, ChannelID returnChannel);
-
-  virtual bool writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel);
-  virtual bool writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel);
-  virtual bool writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel);
 };
 
 #endif /* SCRATCHPADMODEHANDLER_H_ */

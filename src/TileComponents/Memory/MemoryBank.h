@@ -24,6 +24,7 @@
 #include "../../Component.h"
 #include "../../Utility/Blocking.h"
 #include "../../Network/DelayBuffer.h"
+#include "CacheLineBuffer.h"
 #include "GeneralPurposeCacheHandler.h"
 #include "ReservationHandler.h"
 #include "ScratchpadModeHandler.h"
@@ -97,10 +98,14 @@ private:
 
   // All data required to perform any data-access operation.
   struct RequestData {
-    uint32_t            Address;          // Memory address to access
+	  NetworkRequest      Request;          // The original request
+    MemoryAddr          Address;          // Memory address to access
+    SRAMAddress         Position;         // Position of the data in SRAM
+    FSMState            State;            // Position in state machine
     RequestSource       Source;           // Where the request came from
     ChannelID           ReturnChannel;    // Address to send responses to
     uint                FlitsSent;        // Number of response flits sent so far
+    bool                Complete;         // Whether the request has been served
   };
 
 	//---------------------------------------------------------------------------------------------
@@ -123,18 +128,14 @@ private:
 
 	//-- Mode independent state -------------------------------------------------------------------
 
+  vector<uint32_t>      mData;            // The contents of this bank.
+
 	MemoryConfig          mConfig;          // Data including associativity, line size, etc.
 
-
-	FSMState              mFSMState;			  // Current FSM state
-	NetworkRequest        mActiveRequest;		// Currently active memory request
-	bool                  mActiveRequestComplete;
 	RequestData           mActiveData;      // Data used to fulfil the request
 
 	// Callback request - put on hold while performing sub-operations such as
 	// cache line fetches.
-	FSMState              mFSMCallbackState;
-	NetworkRequest        mCallbackRequest;
 	RequestData           mCallbackData;
 
 
@@ -150,30 +151,13 @@ private:
 
 	GeneralPurposeCacheHandler mGeneralPurposeCacheHandler;	// General purpose cache mode handler
 
-	bool                  mCacheResumeRequest;	// Indicates that a memory request is being resumed after a cache update
-
-	uint32_t              mCacheLineBuffer[CACHE_LINE_WORDS];// Cache line buffer for background memory I/O
-	uint                  mCacheLineCursor;	// Index of next word in cache line buffer to process
-	MemoryAddr            mCacheLineBufferTag; // Address of cache line in the buffer
-	uint32_t              mWriteBackAddress;// Current address of write back operation in progress
-	uint                  mWriteBackCount;  // Number of words to write back to background memory
-	uint32_t              mFetchAddress;		// Current address of fetch operation in progress
-	uint                  mFetchCount;	    // Number of words to fetch from background memory
+	CacheLineBuffer       mCacheLineBuffer; // Used to make cache line operations more efficient
 
 	//-- L2 cache mode state ----------------------------------------------------------------------
 
-	enum RequestState {
-	  REQ_READY,        // Waiting for a new request
-	  REQ_WAITING_FOR_BANKS, // Waiting to see if any other bank holds the data
-	  REQ_WAITING_FOR_DATA,    // Waiting for data to return from main memory
-	  REQ_FETCH_LINE,   // Reading a cache line and sending to another memory
-	  REQ_STORE_LINE    // Storing a cache line from another memory
-	};
-	RequestState mRequestState;
-
 	// When acting as part of an L2 cache, the target bank waits for a clock cycle
 	// in case any other bank responds first.
-	bool mWaitingForL2Consensus;
+	bool                  mWaitingForL2Consensus;
 
 	//---------------------------------------------------------------------------------------------
 	// Internal functions
@@ -191,12 +175,19 @@ private:
   bool onlyAcceptingRefills() const;  // If we don't support hit-under-miss, we must wait for data to return
 
   MemoryAddr getTag(MemoryAddr address) const;
+  MemoryAddr getOffset(MemoryAddr address) const;
   bool sameCacheLine(MemoryAddr address1, MemoryAddr address2) const;
   bool endOfCacheLine(MemoryAddr address) const;
   bool storedLocally(MemoryAddr address) const;
 
 	bool startNewRequest();
 	bool processMessageHeader(const NetworkRequest& request);
+
+	// Ensure that the cache line containing the given address is stored locally.
+	//   validate = don't fetch the line - it will be received by other means
+	//   required = if the cache line is not already in the cache, do nothing
+	//   isRead, isInstruction = the type of memory access, used for debug
+	void getCacheLine(MemoryAddr address, bool validate, bool required, bool isRead, bool isInstruction);
 
 	// Main function, farms work out to handlers below.
 	void processLocalMemoryAccess();
@@ -225,22 +216,10 @@ private:
 
 	// Helper functions for the operation handlers.
 
-	// Send the result, or fetch the required cache line, depending on whether
-	// the access hit.
-	void processLoadResult(bool cacheHit, uint32_t data, bool endOfPacket);
-	void processStoreResult(bool cacheHit, uint32_t data);
+	void processLoadResult(uint32_t data, bool endOfPacket);
+	void processStoreResult(uint32_t data);
 	void processRMWPhase1();
 	void processRMWPhase2(uint32_t data);
-
-	// Trigger a cache miss. Make space in the cache by flushing a victim line
-	// (if necessary), and request a new line.
-	// Set flushOnly if we are about to overwrite the whole line, so the fetch
-	// is unnecessary.
-	void processCacheMiss(bool flushOnly = false);
-
-	// If address already in the cache, prepare to overwrite it.
-	// If not cached, trigger a cache miss.
-	void makeSpaceForLine();
 
 	uint32_t getDataToStore();
 	bool inputAvailable() const;

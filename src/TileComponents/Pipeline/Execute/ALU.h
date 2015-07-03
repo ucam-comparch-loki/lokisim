@@ -11,6 +11,7 @@
 #define ALU_H_
 
 #include "../../../Component.h"
+#include "../../../TileComponents/Memory/MemoryTypedefs.h"
 #include "../../../Utility/InstructionMap.h"
 
 class DecodedInst;

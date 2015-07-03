@@ -8,6 +8,9 @@
 #ifndef SRC_EXCEPTIONS_UNALIGNEDACCESSEXCEPTION_H_
 #define SRC_EXCEPTIONS_UNALIGNEDACCESSEXCEPTION_H_
 
+#include <ios>
+#include <sstream>
+
 class UnalignedAccessException : public std::exception {
 
 public:

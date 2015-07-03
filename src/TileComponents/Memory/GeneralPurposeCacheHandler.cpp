@@ -20,24 +20,30 @@
 #include "../../Exceptions/UnalignedAccessException.h"
 #include "../../Utility/Instrumentation/MemoryBank.h"
 #include "../../Utility/Trace/MemoryTrace.h"
-#include "SimplifiedOnChipScratchpad.h"
+#include "CacheLineBuffer.h"
 #include "GeneralPurposeCacheHandler.h"
+#include "SimplifiedOnChipScratchpad.h"
 
 
-bool GeneralPurposeCacheHandler::lookupCacheLine(MemoryAddr address) const {
+CacheLookup GeneralPurposeCacheHandler::lookupCacheLine(MemoryAddr address) const {
   uint32_t lineAddress = address & ~mLineMask;
   uint setIndex = (address & mSetMask) >> mSetShift;
   uint startSlot = setIndex * mWayCount;
+
+  CacheLookup info;
+  info.Hit = false;
 
   // Instrumentation for tag check?
   // Careful - this is used for assertions, so a debug parameter would be needed.
 
   for (uint i = 0; i < mWayCount; i++) {
-    if (mLineValid[startSlot + i] && mAddresses[startSlot + i] == lineAddress)
-      return true;
+    if (mLineValid[startSlot + i] && mAddresses[startSlot + i] == lineAddress) {
+      info.Hit = true;
+      info.SRAMLine = startSlot + i;
+    }
   }
 
-  return false;
+  return info;
 }
 
 bool GeneralPurposeCacheHandler::lookupCacheLine(MemoryAddr address, uint &slot, bool resume, bool read, bool instruction) {
@@ -45,6 +51,7 @@ bool GeneralPurposeCacheHandler::lookupCacheLine(MemoryAddr address, uint &slot,
   uint setIndex = (address & mSetMask) >> mSetShift;
   uint startSlot = setIndex * mWayCount;
   bool hit = false;
+  slot = startSlot;
 
   for (uint i = 0; i < mWayCount; i++) {
     if (mLineValid[startSlot + i] && mAddresses[startSlot + i] == lineAddress) {
@@ -97,29 +104,35 @@ void GeneralPurposeCacheHandler::promoteCacheLine(uint slot) {
 	}
 }
 
-GeneralPurposeCacheHandler::GeneralPurposeCacheHandler(uint bankNumber) :
-    AbstractMemoryHandler(bankNumber) {
+SRAMAddress GeneralPurposeCacheHandler::getLine(SRAMAddress address) const {
+  // Cache line = 32 bytes = 2^5 bytes.
+  return address >> 5;
+}
+
+SRAMAddress GeneralPurposeCacheHandler::getOffset(SRAMAddress address) const {
+  // Cache line = 32 bytes = 2^5 bytes.
+  return (address & 0x1F);
+}
+
+GeneralPurposeCacheHandler::GeneralPurposeCacheHandler(uint bankNumber, vector<uint32_t>& data) :
+    AbstractMemoryHandler(bankNumber, data) {
 	//-- Configuration parameters -----------------------------------------------------------------
 
 	cRandomReplacement = MEMORY_CACHE_RANDOM_REPLACEMENT != 0;
 
 	//-- State ------------------------------------------------------------------------------------
 
-	mAddresses = new uint32_t[1];
-	mLineValid = new bool[1];
-	mLineDirty = new bool[1];
+	uint cacheLines = MEMORY_BANK_SIZE / (CACHE_LINE_WORDS * BYTES_PER_WORD);
+	mAddresses.assign(cacheLines, 0);
+	mLineValid.assign(cacheLines, false);
+	mLineDirty.assign(cacheLines, false);
 
 	mLFSRState = 0xFFFFU;
 
 	mVictimSlot = mSetBits = mSetMask = mSetShift = 0;
-
-	mBackgroundMemory = NULL;
 }
 
 GeneralPurposeCacheHandler::~GeneralPurposeCacheHandler() {
-	delete[] mAddresses;
-	delete[] mLineValid;
-	delete[] mLineDirty;
 }
 
 void GeneralPurposeCacheHandler::activate(const MemoryConfig& config) {
@@ -131,15 +144,10 @@ void GeneralPurposeCacheHandler::activate(const MemoryConfig& config) {
 	assert(mWayCount == 1 || log2Exact(mWayCount) >= 1);
 	assert(log2Exact(mLineSize) >= 2);
 
-	delete[] mAddresses;
-	delete[] mLineValid;
-	delete[] mLineDirty;
-
-	mAddresses = new uint32_t[mSetCount * mWayCount];
-	mLineValid = new bool[mSetCount * mWayCount];
-	mLineDirty = new bool[mSetCount * mWayCount];
-
-	memset(mLineValid, 0x00, mSetCount * mWayCount * sizeof(bool));
+  uint cacheLines = MEMORY_BANK_SIZE / (CACHE_LINE_WORDS * BYTES_PER_WORD);
+  mAddresses.assign(cacheLines, 0);
+  mLineValid.assign(cacheLines, false);
+  mLineDirty.assign(cacheLines, false);
 
 	mVictimSlot = 0;
 
@@ -157,331 +165,137 @@ void GeneralPurposeCacheHandler::activate(const MemoryConfig& config) {
 	  Instrumentation::MemoryBank::setMode(mBankNumber, true, mSetCount, mWayCount, mLineSize);
 }
 
-bool GeneralPurposeCacheHandler::readWord(MemoryAddr address, uint32_t &data, bool instruction, bool resume, bool debug, ChannelID returnChannel) {
-  if ((address & 0x3) != 0)
-	  throw UnalignedAccessException(address, 4);
 
-	uint slot = 0;
-	if (!lookupCacheLine(address, slot, resume, true, instruction)) {
-		assert(!resume);
+uint32_t GeneralPurposeCacheHandler::readWord(SRAMAddress address) {
+  uint cacheLine = getLine(address);
+  assert(mLineValid[cacheLine]);
 
-		if (!debug) {
-			if (instruction)
-				Instrumentation::MemoryBank::readIPKWord(mBankNumber, address, true, returnChannel);
-			else
-				Instrumentation::MemoryBank::readWord(mBankNumber, address, true, returnChannel);
-		}
+  uint32_t data = AbstractMemoryHandler::readWord(address);
 
-		if (Arguments::memoryTrace() && !debug) {
-			if (instruction)
-				MemoryTrace::readIPKWord(mBankNumber, address);
-			else
-				MemoryTrace::readWord(mBankNumber, address);
-		}
-
-		return false;
-	}
-
-	if (!resume && !debug) {
-		if (instruction)
-			Instrumentation::MemoryBank::readIPKWord(mBankNumber, address, false, returnChannel);
-		else
-			Instrumentation::MemoryBank::readWord(mBankNumber, address, false, returnChannel);
-	}
-
-	if (Arguments::memoryTrace() && !resume && !debug) {
-		if (instruction)
-			MemoryTrace::readIPKWord(mBankNumber, address);
-		else
-			MemoryTrace::readWord(mBankNumber, address);
-	}
-
-	data = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
-	promoteCacheLine(slot);
-
-	//if (mBankNumber >= 4)
-	//	fprintf(stderr, "GPCH: bank %u read word %.8X from address %.8X\n", mBankNumber, data, address);
-
-	return true;
+  // Warning: if this moves data around in the array, our SRAMAddress may be
+  // invalid.
+  promoteCacheLine(cacheLine);
+  return data;
 }
 
-bool GeneralPurposeCacheHandler::readHalfWord(MemoryAddr address, uint32_t &data, bool resume, bool debug, ChannelID returnChannel) {
-  if ((address & 0x1) != 0)
-    throw UnalignedAccessException(address, 2);
+uint32_t GeneralPurposeCacheHandler::readHalfWord(SRAMAddress address) {
+  uint cacheLine = getLine(address);
+  assert(mLineValid[cacheLine]);
 
-	uint slot;
-	if (!lookupCacheLine(address, slot, resume, true, false)) {
-		assert(!resume);
-		if (!debug)
-			Instrumentation::MemoryBank::readHalfWord(mBankNumber, address, true, returnChannel);
-		if (Arguments::memoryTrace() && !debug)
-			MemoryTrace::readHalfWord(mBankNumber, address);
-		return false;
-	}
+  uint32_t data = AbstractMemoryHandler::readHalfWord(address);
 
-	if (!resume && !debug)
-		Instrumentation::MemoryBank::readHalfWord(mBankNumber, address, false, returnChannel);
-
-	if (Arguments::memoryTrace() && !resume && !debug)
-		MemoryTrace::readHalfWord(mBankNumber, address);
-
-	uint32_t fullWord = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
-	data = ((address & 0x3) == 0) ? (fullWord & 0xFFFFUL) : (fullWord >> 16);	// Little endian
-	promoteCacheLine(slot);
-
-	//fprintf(stderr, "GPCH: bank %u read half-word %.4X from address %.8X\n", mBankNumber, data & 0xFFFF, address);
-
-	return true;
+  // Warning: if this moves data around in the array, our SRAMAddress may be
+  // invalid.
+  promoteCacheLine(cacheLine);
+  return data;
 }
 
-bool GeneralPurposeCacheHandler::readByte(MemoryAddr address, uint32_t &data, bool resume, bool debug, ChannelID returnChannel) {
-	uint slot;
-	if (!lookupCacheLine(address, slot, resume, true, false)) {
-		assert(!resume);
-		if (!debug)
-			Instrumentation::MemoryBank::readByte(mBankNumber, address, true, returnChannel);
-		if (Arguments::memoryTrace() && !debug)
-			MemoryTrace::readByte(mBankNumber, address);
-		return false;
-	}
+uint32_t GeneralPurposeCacheHandler::readByte(SRAMAddress address) {
+  uint cacheLine = getLine(address);
+  assert(mLineValid[cacheLine]);
 
-	if (!resume && !debug)
-		Instrumentation::MemoryBank::readByte(mBankNumber, address, false, returnChannel);
+  uint32_t data = AbstractMemoryHandler::readByte(address);
 
-	if (Arguments::memoryTrace() && !resume && !debug)
-		MemoryTrace::readByte(mBankNumber, address);
-
-	uint32_t fullWord = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
-	uint32_t selector = address & 0x3UL;
-
-	switch (selector) {	// Little endian
-	case 0:	data = fullWord & 0xFFUL;			break;
-	case 1:	data = (fullWord >> 8) & 0xFFUL;	break;
-	case 2:	data = (fullWord >> 16) & 0xFFUL;	break;
-	case 3:	data = (fullWord >> 24) & 0xFFUL;	break;
-	}
-
-	promoteCacheLine(slot);
-
-	//fprintf(stderr, "GPCH: bank %u read byte %.2X from address %.8X\n", mBankNumber, data & 0xFF, address);
-
-	return true;
+  // Warning: if this moves data around in the array, our SRAMAddress may be
+  // invalid.
+  promoteCacheLine(cacheLine);
+  return data;
 }
 
-bool GeneralPurposeCacheHandler::writeWord(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel) {
-  assert(mBackgroundMemory != NULL);
-  if ((address & 0x3) != 0)
-    throw UnalignedAccessException(address, 4);
-	if (mBackgroundMemory->readOnly(address))
-	  throw ReadOnlyException(address);
 
-	uint slot;
-	if (!lookupCacheLine(address, slot, resume, false, false)) {
-		assert(!resume);
-		if (!debug)
-			Instrumentation::MemoryBank::writeWord(mBankNumber, address, true, returnChannel);
-		if (Arguments::memoryTrace() && !debug)
-			MemoryTrace::writeWord(mBankNumber, address);
-		return false;
-	}
+void GeneralPurposeCacheHandler::writeWord(SRAMAddress address, uint32_t data) {
+  uint cacheLine = getLine(address);
+  assert(mLineValid[cacheLine]);
 
-	if (!resume && !debug)
-		Instrumentation::MemoryBank::writeWord(mBankNumber, address, false, returnChannel);
+  AbstractMemoryHandler::writeWord(address, data);
 
-	if (Arguments::memoryTrace() && !resume && !debug)
-		MemoryTrace::writeWord(mBankNumber, address);
-
-	mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = data;
-	mLineDirty[slot] = true;
-	promoteCacheLine(slot);
-
-	//fprintf(stderr, "GPCH: bank %u wrote word %.8X to address %.8X\n", mBankNumber, data, address);
-
-	return true;
+  mLineDirty[cacheLine] = true;
+  // Warning: if this moves data around in the array, our SRAMAddress may be
+  // invalid.
+  promoteCacheLine(cacheLine);
 }
 
-bool GeneralPurposeCacheHandler::writeHalfWord(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel) {
-  assert(mBackgroundMemory != NULL);
-  if ((address & 0x1) != 0)
-    throw UnalignedAccessException(address, 2);
-  if (mBackgroundMemory->readOnly(address))
-    throw ReadOnlyException(address);
+void GeneralPurposeCacheHandler::writeHalfWord(SRAMAddress address, uint32_t data) {
+  uint cacheLine = getLine(address);
+  assert(mLineValid[cacheLine]);
 
-	uint slot;
-	if (!lookupCacheLine(address, slot, resume, false, false)) {
-		assert(!resume);
-		if (!debug)
-			Instrumentation::MemoryBank::writeHalfWord(mBankNumber, address, true, returnChannel);
-		if (Arguments::memoryTrace() && !debug)
-			MemoryTrace::writeHalfWord(mBankNumber, address);
-		return false;
-	}
+  AbstractMemoryHandler::writeHalfWord(address, data);
 
-	if (!resume && !debug)
-		Instrumentation::MemoryBank::writeHalfWord(mBankNumber, address, false, returnChannel);
-
-	if (Arguments::memoryTrace() && !resume && !debug)
-		MemoryTrace::writeHalfWord(mBankNumber, address);
-
-	uint32_t oldData = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
-
-	if ((address & 0x3) == 0)	// Little endian
-		mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0xFFFF0000UL) | (data & 0x0000FFFFUL);
-	else
-		mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0x0000FFFFUL) | (data << 16);
-
-	mLineDirty[slot] = true;
-	promoteCacheLine(slot);
-
-	//fprintf(stderr, "GPCH: bank %u wrote half-word %.4X to address %.8X\n", mBankNumber, data & 0xFFFF, address);
-
-	return true;
+  mLineDirty[cacheLine] = true;
+  // Warning: if this moves data around in the array, our SRAMAddress may be
+  // invalid.
+  promoteCacheLine(cacheLine);
 }
 
-bool GeneralPurposeCacheHandler::writeByte(MemoryAddr address, uint32_t data, bool resume, bool debug, ChannelID returnChannel) {
-  assert(mBackgroundMemory != NULL);
-  if (mBackgroundMemory->readOnly(address))
-    throw ReadOnlyException(address);
+void GeneralPurposeCacheHandler::writeByte(SRAMAddress address, uint32_t data) {
+  uint cacheLine = getLine(address);
+  assert(mLineValid[cacheLine]);
 
-	uint slot;
-	if (!lookupCacheLine(address, slot, resume, false, false)) {
-		assert(!resume);
-		if (!debug)
-			Instrumentation::MemoryBank::writeByte(mBankNumber, address, true, returnChannel);
-		if (Arguments::memoryTrace() && !debug)
-			MemoryTrace::writeByte(mBankNumber, address);
-		return false;
-	}
+  AbstractMemoryHandler::writeByte(address, data);
 
-	if (!resume && !debug)
-		Instrumentation::MemoryBank::writeByte(mBankNumber, address, false, returnChannel);
-
-	if (Arguments::memoryTrace() && !resume && !debug)
-		MemoryTrace::writeByte(mBankNumber, address);
-
-	uint32_t oldData = mData[slot * mLineSize / 4 + (address & mLineMask) / 4];
-	uint32_t selector = address & 0x3UL;
-
-	switch (selector) {	// Little endian
-	case 0:	mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0xFFFFFF00UL) | (data & 0x000000FFUL);				break;
-	case 1:	mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0xFFFF00FFUL) | ((data & 0x000000FFUL) << 8);		break;
-	case 2:	mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0xFF00FFFFUL) | ((data & 0x000000FFUL) << 16);		break;
-	case 3:	mData[slot * mLineSize / 4 + (address & mLineMask) / 4] = (oldData & 0x00FFFFFFUL) | ((data & 0x000000FFUL) << 24);		break;
-	}
-
-	mLineDirty[slot] = true;
-	promoteCacheLine(slot);
-
-	//fprintf(stderr, "GPCH: bank %u wrote byte %.2X to address %.8X\n", mBankNumber, data & 0xFF, address);
-
-	return true;
+  mLineDirty[cacheLine] = true;
+  // Warning: if this moves data around in the array, our SRAMAddress may be
+  // invalid.
+  promoteCacheLine(cacheLine);
 }
 
-void GeneralPurposeCacheHandler::findCacheLine(MemoryAddr address) {
-  // Temporary hack until we start computing SRAM addresses at the start of an
-  // operation and storing them with the request.
-  // prepareCacheLine (below) deals with cache misses and prepares a victim slot
-  // for the new line to go in. We can also write lines when we know it is safe
-  // to do so, so this function prepares mVictimSlot in that situation.
-  lookupCacheLine(address, mVictimSlot, false, false, false);
+CacheLookup GeneralPurposeCacheHandler::prepareCacheLine(MemoryAddr address, CacheLineBuffer& lineBuffer, bool read, bool instruction) {
+  uint slot;
+  CacheLookup info;
+
+  info.Hit = lookupCacheLine(address, slot, false, read, instruction);
+
+  if (!info.Hit) {
+
+    uint setIndex = (address & mSetMask) >> mSetShift;
+    slot = setIndex * mWayCount;
+
+    if (cRandomReplacement) {
+      // Select way pseudo-randomly
+      slot += mLFSRState % mWayCount;
+
+      // 16-bit Fibonacci LFSR
+      uint oldValue = mLFSRState;
+      uint newBit = ((oldValue >> 5) & 0x1) ^ ((oldValue >> 3) & 0x1) ^ ((oldValue >> 2) & 0x1) ^ (oldValue & 0x1);
+      uint newValue = (oldValue >> 1) | (newBit << 15);
+      mLFSRState = newValue;
+    }
+    else {
+      // Oldest entry always in way with highest index
+      slot += mWayCount - 1;
+    }
+
+    // Line only needs to be flushed if it is both valid and dirty.
+    if (mLineValid[slot] && mLineDirty[slot]) {
+      info.FlushAddress = mAddresses[slot];
+      info.FlushRequired = true;
+      lineBuffer.fill(info.FlushAddress, &mData[slot * mLineSize / 4]);
+    }
+    else
+      info.FlushRequired = false;
+
+    Instrumentation::MemoryBank::replaceCacheLine(mBankNumber, mLineValid[slot], mLineDirty[slot]);
+
+  }
+
+  info.SRAMLine = slot;
+
+  return info;
 }
 
-void GeneralPurposeCacheHandler::prepareCacheLine(MemoryAddr address, MemoryAddr &writeBackAddress, uint &writeBackCount, uint32_t writeBackData[], uint32_t &fetchAddress, uint &fetchCount) {
-	uint slot;
-	//assert(!lookupCacheLine(address, slot));
-
-	uint setIndex = (address & mSetMask) >> mSetShift;
-	slot = setIndex * mWayCount;
-
-	if (cRandomReplacement) {
-		// Select way pseudo-randomly
-
-		slot += mLFSRState % mWayCount;
-
-		// 16-bit Fibonacci LFSR
-
-		uint oldValue = mLFSRState;
-		uint newBit = ((oldValue >> 5) & 0x1) ^ ((oldValue >> 3) & 0x1) ^ ((oldValue >> 2) & 0x1) ^ (oldValue & 0x1);
-		uint newValue = (oldValue >> 1) | (newBit << 15);
-		mLFSRState = newValue;
-	} else {
-		// Oldest entry always in way with highest index	fprintf(stderr, "GPCH: bank %u wrote word %.8X to address %.8X\n", mBankNumber, data, address);
-
-
-		slot += mWayCount - 1;
-	}
-
-	if (mLineValid[slot]) {
-		if (mLineDirty[slot]) {
-			Instrumentation::MemoryBank::replaceCacheLine(mBankNumber, true, true);
-
-			writeBackAddress = mAddresses[slot];
-			writeBackCount = mLineSize / 4;
-			memcpy(writeBackData, &mData[slot * mLineSize / 4], mLineSize);
-
-			//if (mBankNumber >= 4)
-			//	fprintf(stderr, "GPCH: bank %u wrote back line at %.8X (%u bytes)\n", mBankNumber, writeBackAddress, writeBackCount * 4);
-		} else {
-		  Instrumentation::MemoryBank::replaceCacheLine(mBankNumber, true, false);
-
-			writeBackCount = 0;
-
-			//if (mBankNumber >= 4)
-			//	fprintf(stderr, "GPCH: bank %u discarded line at %.8X (%u bytes)\n", mBankNumber, mAddresses[slot], mLineSize);
-		}
-	} else {
-	  Instrumentation::MemoryBank::replaceCacheLine(mBankNumber, false, false);
-
-		writeBackCount = 0;
-
-		//if (mBankNumber >= 4)
-		//	fprintf(stderr, "GPCH: bank %u prepared empty set slot (%u bytes)\n", mBankNumber, mLineSize);
-	}
-
-	fetchAddress = address & ~mLineMask;
-	fetchCount = mLineSize / 4;
-
-	mVictimSlot = slot;
+void GeneralPurposeCacheHandler::replaceCacheLine(CacheLineBuffer& buffer, SRAMAddress position) {
+  uint cacheLine = getLine(position);
+  buffer.flush(&mData[position / 4]);
+  mAddresses[cacheLine] = buffer.getTag();
+  mLineValid[cacheLine] = true;
+  mLineDirty[cacheLine] = false;
 }
 
-void GeneralPurposeCacheHandler::replaceCacheLine(MemoryAddr fetchAddress, uint32_t fetchData[]) {
-	memcpy(&mData[mVictimSlot * mLineSize / 4], fetchData, mLineSize);
-	mAddresses[mVictimSlot] = fetchAddress;
-	mLineValid[mVictimSlot] = true;
-	mLineDirty[mVictimSlot] = false;
-
-	//if (mBankNumber >= 4)
-	//	fprintf(stderr, "GPCH: bank %u inserted line at %.8X (%u bytes)\n", mBankNumber, fetchAddress, mLineSize);
-}
-
-void GeneralPurposeCacheHandler::fillCacheLineBuffer(MemoryAddr address, uint32_t buffer[]) {
+void GeneralPurposeCacheHandler::fillCacheLineBuffer(MemoryAddr address, CacheLineBuffer& buffer) {
   uint slot;
   // FIXME: tag check causes instrumentation, but this is just for debug.
   bool cacheHit = lookupCacheLine(address, slot, false, true, false);
   assert(cacheHit);
-  memcpy(buffer, &mData[slot * mLineSize / 4], mLineSize);
-}
 
-void GeneralPurposeCacheHandler::setBackgroundMemory(SimplifiedOnChipScratchpad *backgroundMemory) {
-  mBackgroundMemory = backgroundMemory;
-}
-
-void GeneralPurposeCacheHandler::synchronizeData(SimplifiedOnChipScratchpad *backgroundMemory) {
-	assert(backgroundMemory != NULL);
-
-	// TODO: call this function when the memory bank is reconfigured.
-	// Reconfiguration invalidates cache contents, but doesn't flush the data.
-	// This synchronisation will be data accurate but not cycle accurate.
-
-	for (uint setIndex = 0; setIndex < mSetCount; setIndex++) {
-		for (uint setSlot = 0; setSlot < mWayCount; setSlot++) {
-			uint slot = setIndex * mWayCount + setSlot;
-			if (mLineValid[slot] && mLineDirty[slot]) {
-				uint address = mAddresses[slot];
-
-				for (uint wordIndex = 0; wordIndex < mLineSize / 4; wordIndex++)
-					backgroundMemory->writeWord(address + wordIndex * 4, mData[slot * mLineSize / 4 + wordIndex]);
-			}
-		}
-	}
+  buffer.fill(address, &mData[slot * mLineSize / 4]);
 }

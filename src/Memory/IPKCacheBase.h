@@ -10,6 +10,7 @@
 
 #include "../Datatype/Instruction.h"
 #include "../Typedefs.h"
+#include "../TileComponents/Memory/MemoryTypedefs.h"
 #include "../Utility/LoopCounter.h"
 #include "../Utility/InstructionMap.h"
 
