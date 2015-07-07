@@ -13,11 +13,11 @@
 #include "../../Typedefs.h"
 #include "../../TileComponents/Memory/MemoryTypedefs.h"
 #include "../../Datatype/Identifier.h"
+#include "DataBlock.h"
 
 using std::string;
 using std::vector;
 
-class DataBlock;
 class Instruction;
 
 class FileReader {
@@ -26,7 +26,7 @@ public:
 
   // Finds all useful data within the file, and returns all information needed
   // to put the data in the required components.
-  virtual vector<DataBlock>& extractData(int& mainPos) const = 0;
+  virtual vector<DataBlock>& extractData(int& mainPos) = 0;
 
   // Parse the command (e.g. "12 code.loki") and generate a FileReader capable
   // of reading the specified filetype.
@@ -57,6 +57,9 @@ protected:
   // Perform some small parameter-dependent transformations on the assembly
   // code. For example, change "ch1" to "r17".
   static void translateAssembly(string& infile, string& outfile);
+
+  // Instructions/data extracted from the file.
+  vector<DataBlock> dataToLoad;
 
   const string      filename_;
   const ComponentID componentID_;

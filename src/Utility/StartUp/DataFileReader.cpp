@@ -12,7 +12,7 @@
 #include "../../Datatype/Identifier.h"
 #include "../../Datatype/Word.h"
 
-vector<DataBlock>& DataFileReader::extractData(int& mainPos) const {
+vector<DataBlock>& DataFileReader::extractData(int& mainPos) {
   std::ifstream file(filename_.c_str());
   vector<Word>* words = new vector<Word>();
 
@@ -41,10 +41,9 @@ vector<DataBlock>& DataFileReader::extractData(int& mainPos) const {
 
   file.close();
 
-  vector<DataBlock>* blocks = new vector<DataBlock>();
-  blocks->push_back(DataBlock(words, componentID_, position_, false));
+  dataToLoad.push_back(DataBlock(words, componentID_, position_, false));
 
-  return *blocks;
+  return dataToLoad;
 }
 
 Word DataFileReader::nextWord(std::ifstream& file) const {

@@ -1,6 +1,10 @@
 /*
  * ELFFileReader.cpp
  *
+ * Parsing of ELF binaries:
+ *   http://wiki.osdev.org/ELF_Tutorial
+ *   https://code.google.com/p/elfinfo/source/browse/trunk/elfinfo.c
+ *
  *  Created on: 25 Oct 2010
  *      Author: db434
  */
@@ -8,7 +12,6 @@
 #include <stdio.h>
 
 #include "ELFFileReader.h"
-#include "DataBlock.h"
 #include "../Debugger.h"
 #include "../Parameters.h"
 #include "../StringManipulation.h"
@@ -16,156 +19,85 @@
 #include "../../Datatype/Instruction.h"
 #include "../../TileComponents/Core.h"
 
-// TODO: ELF files are designed to be easy to parse, without converting to text
-// first. This would remove the dependency on external tools.
-vector<DataBlock>& ELFFileReader::extractData(int& mainPos) const {
-  vector<DataBlock>* blocks = new vector<DataBlock>();
+vector<DataBlock>& ELFFileReader::extractData(int& mainPos) {
+  std::ifstream file(filename_.c_str());
 
-  // Open the input file.
-  std::ifstream elfFile(filename_.c_str());
+  Elf32_Ehdr fileHeader;
+  Elf32_Shdr sectionHeader;
 
-  // For machines which can't run the Loki toolchain, we provide the section
-  // headers in a separate file.
-  string extFileName = filename_ + ".objdump-h";
-  bool useExternalMetadata = exists(extFileName);
+  file.seekg(0, file.beg);
+  readFileHeader(file, fileHeader);
 
-  // Execute a command which returns information on all of the ELF sections.
-  FILE* terminalOutput;
-
-  if (useExternalMetadata) {
-	  terminalOutput = fopen(extFileName.c_str(), "r");
-  } else {
-	  string command("loki-elf-objdump -h " + filename_);
-	  terminalOutput = popen(command.c_str(), "r");
+  int numHeaders = fileHeader.e_shnum;
+  for (int i=0; i<numHeaders; i++) {
+    readSectionHeader(file, i, sectionHeader);
+    processSection(file, sectionHeader);
   }
 
-  char line[100];
+  file.close();
 
-  // Step through each line of information, looking for ones of interest.
-  while (fgets(line, 100, terminalOutput) != NULL) {
-    string lineStr(line);
-    vector<string>& words = StringManipulation::split(lineStr, ' ');
+  return dataToLoad;
+}
 
-    // We're only interested in descriptions of each section.
-    if (words.size() == 7) {
-      char properties[100];
-      if (fgets(properties, 100, terminalOutput) == NULL)
-        break;
+void ELFFileReader::readFileHeader(std::ifstream& file, Elf32_Ehdr& fileHeader) const {
+  file.seekg(0, file.beg);
+  file.read((char*)&fileHeader, sizeof(Elf32_Ehdr));
+}
 
-      // We are only interested in sections with the "LOAD" property.
-      if (strstr(properties, "LOAD") == NULL)
-        continue;
+void ELFFileReader::readSectionHeader(std::ifstream& file, int sectionNumber, Elf32_Shdr& sectionHeader) const {
+  Elf32_Ehdr fileHeader;
+  readFileHeader(file, fileHeader);
+  int numSections = fileHeader.e_shnum;
 
-      string name      = words[1];
-      int size         = StringManipulation::strToInt("0x"+words[2]);
-//      int virtPosition = StringManipulation::strToInt("0x"+words[3]);
-      int physPosition = StringManipulation::strToInt("0x"+words[4]);
-      int offset       = StringManipulation::strToInt("0x"+words[5]);
+  assert(sectionNumber <= numSections);
+  assert(sectionNumber >= 0);
 
-      // Seek to "offset" in elfFile.
-      elfFile.seekg(offset, elfFile.beg);
+  uint offset = fileHeader.e_shoff + fileHeader.e_shentsize*sectionNumber;
+  file.seekg(offset, file.beg);
+  file.read((char*)&sectionHeader, sizeof(Elf32_Shdr));
+}
 
-      vector<Word>* data = new vector<Word>();
+void ELFFileReader::processSection(std::ifstream& file, Elf32_Shdr& sectionHeader) {
+  // We are only interested in sections to be loaded into memory.
+  if ((sectionHeader.sh_flags & SHF_ALLOC) &&   // Alloc = put in memory
+      (sectionHeader.sh_type != SHT_NOBITS)) {  // No bits = data not in ELF
 
-      if (name == ".text") {
-        for (int i=0; i<size; i+=BYTES_PER_WORD) {
-          Instruction inst = nextWord(elfFile);
-          data->push_back(inst);
+    int size = sectionHeader.sh_size;
+    int position = sectionHeader.sh_addr;
+    int offset = sectionHeader.sh_offset;
 
-          if(Debugger::mode == Debugger::DEBUGGER) printInstruction(inst, physPosition+i);
-        }
+    // Seek to the start of the segment.
+    file.seekg(offset, file.beg);
+
+    vector<Word>* data = new vector<Word>();
+
+    if (sectionHeader.sh_flags & SHF_EXECINSTR) { // Executable section
+      for (int i=0; i<size; i+=BYTES_PER_WORD) {
+        Instruction inst = nextWord(file);
+        data->push_back(inst);
+
+        if (Debugger::mode == Debugger::DEBUGGER)
+          printInstruction(inst, position+i);
       }
-      else {
-        for (int i=0; i<size; i+=BYTES_PER_WORD) {
-          Word w = nextWord(elfFile);
-          data->push_back(w);
-        }
+    }
+    else {
+      for (int i=0; i<size; i+=BYTES_PER_WORD) {
+        Word w = nextWord(file);
+        data->push_back(w);
       }
-
-      bool readOnly = (strstr(properties, "READONLY") != NULL);
-
-      // Put these instructions into a particular position in memory.
-      DataBlock block(data, componentID_, physPosition, readOnly);
-      blocks->push_back(block);
     }
 
-    delete &words;
+    bool readOnly = !(sectionHeader.sh_flags & SHF_WRITE);
+
+    // Put these instructions into a particular position in memory.
+    dataToLoad.push_back(DataBlock(data, componentID_, position, readOnly));
   }
-
-  fclose(terminalOutput);
-  elfFile.close();
-
-  // Find the position of main(), so we can get a core to fetch it.
-  mainPos = findMain();
-
-  return *blocks;
 }
 
 Word ELFFileReader::nextWord(std::ifstream& file) const {
-  uint64_t result=0, byte=0;
-
-  // Find a neater way to reverse endianness? ntohs?
-  byte = file.get();
-  result |= byte << 0;
-  byte = file.get();
-  result |= byte << 8;
-  byte = file.get();
-  result |= byte << 16;
-  byte = file.get();
-  result |= byte << 24;
-
+  uint32_t result;
+  file.read((char*)&result, 4);
   return Word(result);
-}
-
-int ELFFileReader::findMain() const {
-
-  // Now looking for _start, not main, and it is always at 0x1000.
-//  return 0x1000;
-
-  string extFileName = filename_ + ".objdump-t";
-  bool useExternalMetadata = exists(extFileName);
-
-  // Execute a command which returns information on all of the ELF sections.
-  FILE* terminalOutput;
-
-  if (useExternalMetadata) {
-	  terminalOutput = fopen(extFileName.c_str(), "r");
-  } else {
-	  string command("loki-elf-objdump -t " + filename_);
-	  terminalOutput = popen(command.c_str(), "r");
-  }
-
-  char line[100];
-  int mainPos = 0;
-  bool foundMainPos = false;
-
-  // Step through each line of information, looking for the one corresponding
-  // to main().
-  while (fgets(line, 100, terminalOutput) != NULL) {
-    string lineStr(line);
-    vector<string>& words = StringManipulation::split(lineStr, ' ');
-
-    // We're only interested one line of the information.
-    if (words.back()=="_start\n") {
-      mainPos = StringManipulation::strToInt("0x"+words[0]);
-      foundMainPos = true;
-      delete &words;
-      break;
-    }
-
-    delete &words;
-  }
-
-  fclose(terminalOutput);
-
-  if (foundMainPos) {
-    return mainPos;
-  }
-  else {
-    std::cerr << "Error: unable to find main() in " << filename_ << std::endl;
-    throw std::exception();
-  }
-
 }
 
 ELFFileReader::ELFFileReader(const std::string& filename, const ComponentID& memory,

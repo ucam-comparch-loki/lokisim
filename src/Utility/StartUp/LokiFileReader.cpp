@@ -11,7 +11,7 @@
 #include "../Parameters.h"
 #include "../../Datatype/Instruction.h"
 
-vector<DataBlock>& LokiFileReader::extractData(int& mainPos) const {
+vector<DataBlock>& LokiFileReader::extractData(int& mainPos) {
   std::ifstream file(filename_.c_str());
   vector<Word>* words = new vector<Word>();
 
@@ -44,10 +44,8 @@ vector<DataBlock>& LokiFileReader::extractData(int& mainPos) const {
 
   file.close();
 
-  vector<DataBlock>* blocks = new vector<DataBlock>();
-  blocks->push_back(DataBlock(words, componentID_, position_, true));
-
-  return *blocks;
+  dataToLoad.push_back(DataBlock(words, componentID_, position_, true));
+  return dataToLoad;
 }
 
 Word LokiFileReader::nextWord(std::ifstream& file) const {

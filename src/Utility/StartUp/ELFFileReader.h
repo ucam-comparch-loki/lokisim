@@ -9,6 +9,7 @@
 #define ELFFILEREADER_H_
 
 #include "FileReader.h"
+#include <elf.h>
 
 class Word;
 
@@ -18,7 +19,7 @@ public:
 
   // Finds all useful data within the file, and returns all information needed
   // to put the data in the required components.
-  virtual vector<DataBlock>& extractData(int& mainPos) const;
+  virtual vector<DataBlock>& extractData(int& mainPos);
 
   // The ELF reader is different to the others, as it stores the contents of
   // the file in a memory, and then generates a small loader program for a
@@ -33,8 +34,9 @@ private:
   // Get the next word from the file.
   Word nextWord(std::ifstream& file) const;
 
-  // Find the position in memory where the start of the main() function will be.
-  int findMain() const;
+  void readFileHeader(std::ifstream& file, Elf32_Ehdr& fileHeader) const;
+  void readSectionHeader(std::ifstream& file, int sectionNumber, Elf32_Shdr& sectionHeader) const;
+  void processSection(std::ifstream& file, Elf32_Shdr& sectionHeader);
 
   // The core which will execute this program needs to be given a small loader
   // program.

@@ -199,6 +199,5 @@ void CodeLoader::loadFromReader(FileReader* reader, Chip& chip) {
     delete &(blocks[i].payload());
   }
 
-  delete &blocks;
   delete reader;
 }
