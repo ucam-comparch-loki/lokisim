@@ -170,6 +170,9 @@ void Chip::makeSignals() {
   responseToMHL.init(responseNet.iData);
   readyResponseToMHL.init(responseNet.iReady);
   responseFromMHL.init(responseNet.oData);
+
+  l2RequestClaim.init(NUM_COMPUTE_TILES, MEMS_PER_TILE);
+  l2RequestClaimed.init(NUM_COMPUTE_TILES);
 }
 
 void Chip::makeComponents() {
@@ -302,10 +305,15 @@ void Chip::wireUp() {
 
           memories[memIndex]->iRequest(requestToBanks[computeTileIndex]);
           memories[memIndex]->iRequestTarget(requestTarget[computeTileIndex]);
+
+          memories[memIndex]->iRequestClaimed(l2RequestClaimed[computeTileIndex]);
+          memories[memIndex]->oClaimRequest(l2RequestClaim[computeTileIndex][bank]);
+          mhl[computeTileIndex]->iClaimRequest[bank](l2RequestClaim[computeTileIndex][bank]);
         }
 
         mhl[computeTileIndex]->oRequestToBanks(requestToBanks[computeTileIndex]);
         mhl[computeTileIndex]->oRequestTarget(requestTarget[computeTileIndex]);
+        mhl[computeTileIndex]->oRequestClaimed(l2RequestClaimed[computeTileIndex]);
 
         mhl[computeTileIndex]->oRequestToNetwork(requestFromMHL[tileIndex][0]);
         mhl[computeTileIndex]->iRequestFromNetwork(requestToMHL[tileIndex][0]);

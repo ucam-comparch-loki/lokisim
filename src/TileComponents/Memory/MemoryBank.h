@@ -26,6 +26,7 @@
 #include "../../Network/DelayBuffer.h"
 #include "CacheLineBuffer.h"
 #include "GeneralPurposeCacheHandler.h"
+#include "L2RequestFilter.h"
 #include "ReservationHandler.h"
 #include "ScratchpadModeHandler.h"
 #include "MemoryTypedefs.h"
@@ -63,6 +64,9 @@ public:
   RequestInput          iRequest;         // Input requests sent to the memory bank
   sc_in<MemoryIndex>    iRequestTarget;   // The responsible bank if all banks miss
   RequestOutput         oRequest;         // Output requests sent to the remote memory banks
+
+  sc_in<bool>           iRequestClaimed;  // One of the banks has claimed the request.
+  sc_out<bool>          oClaimRequest;    // Tell whether this bank has claimed the request.
 
   // Responses - to/from memory banks on other tiles.
   ResponseInput         iResponse;
@@ -155,9 +159,9 @@ private:
 
 	//-- L2 cache mode state ----------------------------------------------------------------------
 
-	// When acting as part of an L2 cache, the target bank waits for a clock cycle
-	// in case any other bank responds first.
-	bool                  mWaitingForL2Consensus;
+	// L2 requests are broadcast to all banks to allow high associativity. This
+	// module filters out requests which are for this bank.
+	L2RequestFilter       mL2RequestFilter;
 
 	//---------------------------------------------------------------------------------------------
 	// Internal functions
@@ -178,7 +182,6 @@ private:
   MemoryAddr getOffset(MemoryAddr address) const;
   bool sameCacheLine(MemoryAddr address1, MemoryAddr address2) const;
   bool endOfCacheLine(MemoryAddr address) const;
-  bool storedLocally(MemoryAddr address) const;
 
 	bool startNewRequest();
 	bool processMessageHeader(const NetworkRequest& request);
@@ -273,6 +276,9 @@ protected:
 	// Pointer to network, allowing new interfaces to be experimented with quickly.
 	local_net_t *localNetwork;
 
+	// Data received through the L2 request filter.
+	RequestSignal requestSig;
+
 public:
 
 	void setLocalNetwork(local_net_t* network);
@@ -282,6 +288,8 @@ public:
 	void synchronizeData();
 
 	void print(MemoryAddr start, MemoryAddr end);
+
+  bool storedLocally(MemoryAddr address) const;
 
 	Word readWord(MemoryAddr addr);
 	Word readByte(MemoryAddr addr);

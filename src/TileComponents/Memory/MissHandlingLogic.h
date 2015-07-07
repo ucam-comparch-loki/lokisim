@@ -72,6 +72,12 @@ public:
   // which should assume responsibility.
   sc_out<MemoryIndex>         oRequestTarget;
 
+  // Signal from each bank telling whether it has claimed the latest request.
+  LokiVector<sc_in<bool> >    iClaimRequest;
+
+  // Signal broadcast to all banks, telling whether the request has been claimed.
+  sc_out<bool>                oRequestClaimed;
+
 
   // Magic connections to background memory.
 
@@ -106,6 +112,9 @@ private:
 
   // Process requests from remote memory banks.
   void remoteRequestLoop();
+
+  // Update whether the remote request has been claimed by any local bank.
+  void requestClaimLoop();
 
   // Send responses to remote memory banks.
   void sendResponseLoop();

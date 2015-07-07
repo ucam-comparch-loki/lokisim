@@ -56,14 +56,15 @@ uint32_t CacheLineBuffer::read() {
 
 // Write next word to cache line buffer.
 void CacheLineBuffer::write(uint32_t data) {
+  assert(mCursor < CACHE_LINE_WORDS);
   mData[mCursor] = data;
   mCursor++;
-  assert(mCursor <= CACHE_LINE_WORDS);
 }
 
 // Move data from cache line buffer to cache.
 void CacheLineBuffer::flush(uint32_t data[]) {
   memcpy(data, mData, CACHE_LINE_WORDS*BYTES_PER_WORD);
+  mCursor = 0;
 }
 
 // The effective address of the next word to be read/written.
@@ -72,6 +73,7 @@ MemoryAddr CacheLineBuffer::getCurrentAddress() const {
 }
 
 // Returns whether the address is held in this buffer.
-bool CacheLineBuffer::inBuffer(MemoryAddr address) const {
+bool CacheLineBuffer::inBuffer(MemoryAddr address) {
+  mCursor = 0;
   return (address & 0xFFFFFFE0) == mTag;
 }

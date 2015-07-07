@@ -116,6 +116,8 @@ private:
   LokiVector<RequestSignal>    requestToBM,         requestToBanks;
   LokiVector2D<RequestSignal>  requestFromBanks;
   LokiVector<sc_signal<MemoryIndex> > requestTarget, responseTarget;
+  LokiVector2D<sc_signal<bool> > l2RequestClaim;
+  LokiVector<sc_signal<bool> > l2RequestClaimed;
 
   // Index ready signals using oReadyData[tile][component][buffer].
   LokiVector3D<ReadySignal>  oReadyData, oReadyCredit;

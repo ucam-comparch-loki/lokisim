@@ -30,6 +30,7 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
 
   iRequestFromBanks.init(requestMux.iData);
   iResponseFromBanks.init(responseMux.iData);
+  iClaimRequest.init(MEMS_PER_TILE);
 
   requestMux.iData(iRequestFromBanks);
   requestMux.oData(muxedRequest);
@@ -63,6 +64,11 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
   SC_METHOD(sendResponseLoop);
   sensitive << muxedResponse;
   dont_initialize();
+
+  SC_METHOD(requestClaimLoop);
+  for (uint i=0; i<iClaimRequest.length(); i++)
+    sensitive << iClaimRequest[i];
+  // do initialise
 }
 
 void MissHandlingLogic::localRequestLoop() {
@@ -179,6 +185,17 @@ void MissHandlingLogic::remoteRequestLoop() {
 
     newRemoteRequest = flit.getMetadata().endOfPacket;
   }
+}
+
+void MissHandlingLogic::requestClaimLoop() {
+  bool claimed = false;
+  for (uint i=0; i<iClaimRequest.length(); i++) {
+    if (iClaimRequest[i].read()) {
+      claimed = true;
+      break;
+    }
+  }
+  oRequestClaimed.write(claimed);
 }
 
 void MissHandlingLogic::sendResponseLoop() {

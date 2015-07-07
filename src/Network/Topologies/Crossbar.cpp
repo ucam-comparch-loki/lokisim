@@ -16,14 +16,14 @@ void Crossbar::inputChanged(const PortIndex port) {
   if (ENERGY_TRACE)
     Instrumentation::Network::crossbarInput(oldInputs[port], iData[port].read(), port);
   oldInputs[port] = iData[port].read();
-//  cout << this->name() << " received " << dataIn[port].read() << endl;
+//  cout << this->name() << " received " << iData[port].read() << endl;
 }
 
 void Crossbar::outputChanged(const PortIndex port) {
   if (ENERGY_TRACE)
     Instrumentation::Network::crossbarOutput(oldOutputs[port], oData[port].read());
   oldOutputs[port] = oData[port].read();
-//  cout << this->name() << " sent " << dataOut[port].read() << endl;
+//  cout << this->name() << " sent " << oData[port].read() << endl;
 }
 
 void Crossbar::makePorts() {

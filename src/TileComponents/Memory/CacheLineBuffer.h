@@ -47,7 +47,7 @@ public:
   MemoryAddr getCurrentAddress() const;
 
   // Returns whether the address is held in this buffer.
-  bool inBuffer(MemoryAddr address) const;
+  bool inBuffer(MemoryAddr address);
 
 private:
   // Data buffer.

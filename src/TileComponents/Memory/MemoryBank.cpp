@@ -122,39 +122,12 @@ bool MemoryBank::startNewRequest() {
   mActiveData.State = STATE_IDLE;
   mActiveData.Source = REQUEST_NONE;
 
-  // If we were waiting to see if we should serve an L2 request, but the
-  // request has now gone, stop waiting.
-  if (mWaitingForL2Consensus && !iRequest.valid())
-    mWaitingForL2Consensus = false;
-
   if (!inputAvailable())
 		return false;
 
   // TODO: if allowing hit-under-miss, do a tag look-up to determine if hit or not.
 
-  mActiveData.Request = peekInput();
-
-  // In an L2 cache, all banks check their tags. If one of the banks holds
-  // the data, it acknowledges the request and takes control. The target bank
-  // waits for one cycle to see if any other bank takes control, and if not,
-  // takes control itself.
-  if (mActiveData.Source == REQUEST_MEMORIES &&
-      mActiveData.Request.getMemoryMetadata().opcode != MemoryRequest::PAYLOAD_ONLY) {
-    if (!mWaitingForL2Consensus) {
-      bool cacheHit = storedLocally(mActiveData.Request.payload().toUInt());
-
-      if (!cacheHit) {
-        bool targetBank = iRequestTarget.read() == (id.position - CORES_PER_TILE);
-        if (targetBank) {
-          mWaitingForL2Consensus = true;
-          next_trigger(iClock.negedge_event());
-        }
-        return false;
-      }
-    }
-  }
-
-  consumeInput();
+  mActiveData.Request = consumeInput();
   return processMessageHeader(mActiveData.Request);
 }
 
@@ -492,6 +465,9 @@ void MemoryBank::processFlushLine() {
     uint32_t data = readFromCacheLineBuffer();
     bool endOfPacket = mCacheLineBuffer.finishedOperation();
 
+    if (DEBUG)
+      cout << this->name() << " buffering request data: " << data << endl;
+
     flit = NetworkRequest(data, id, MemoryRequest::PAYLOAD_ONLY, endOfPacket);
   }
 
@@ -518,9 +494,7 @@ void MemoryBank::processValidateLine() {assert(false);}
 
 void MemoryBank::processLoadLinked() {
   uint32_t data = currentMemoryHandler().readWord(mActiveData.Position);
-//  bool cacheHit = currentMemoryHandler().readWord(mActiveData.Address, data, false, mCacheResumeRequest, false, mActiveData.ReturnChannel);
-//  if (cacheHit)
-    mReservations.makeReservation(mActiveData.ReturnChannel.component, mActiveData.Address);
+  mReservations.makeReservation(mActiveData.ReturnChannel.component, mActiveData.Address);
   processLoadResult(data, true);
 }
 
@@ -719,12 +693,12 @@ bool MemoryBank::inputAvailable() const {
     case REQUEST_CORES:
       return !mInputQueue.empty() && !onlyAcceptingRefills();
     case REQUEST_MEMORIES:
-      return iRequest.valid() && !onlyAcceptingRefills();
+      return requestSig.valid() && !onlyAcceptingRefills();
     case REQUEST_REFILL:
       return iResponse.valid() && iResponseTarget.read() == id.position-CORES_PER_TILE;
     case REQUEST_NONE:
       bool newCoreRequest = !mInputQueue.empty();
-      bool newMemoryRequest = iRequest.valid() && iRequest.read().getMemoryMetadata().opcode != MemoryRequest::PAYLOAD_ONLY;
+      bool newMemoryRequest = requestSig.valid();
       bool newRefillRequest = iResponse.valid() && iResponseTarget.read() == id.position-CORES_PER_TILE;
       return (!onlyAcceptingRefills() && (newCoreRequest || newMemoryRequest)) ||
           newRefillRequest;
@@ -740,8 +714,8 @@ const NetworkRequest MemoryBank::peekInput() {
       assert(!mInputQueue.empty());
       return mInputQueue.peek();
     case REQUEST_MEMORIES:
-      assert(iRequest.valid());
-      return iRequest.read();
+      assert(requestSig.valid());
+      return requestSig.read();
     case REQUEST_REFILL:
       assert(iResponse.valid());
       return iResponse.read();
@@ -756,9 +730,9 @@ const NetworkRequest MemoryBank::peekInput() {
         return mInputQueue.peek();
       }
       else {
-        assert(iRequest.valid());
         mActiveData.Source = REQUEST_MEMORIES;
-        return iRequest.read();
+        assert(requestSig.valid());
+        return requestSig.read();
       }
   }
 
@@ -777,9 +751,9 @@ const NetworkRequest MemoryBank::consumeInput() {
         cout << this->name() << " dequeued " << request << endl;
       break;
     case REQUEST_MEMORIES:
-      assert(iRequest.valid());
-      request = iRequest.read();
-      iRequest.ack();
+      assert(requestSig.valid());
+      request = requestSig.read();
+      requestSig.ack();
       break;
     case REQUEST_REFILL:
       assert(iResponse.valid());
@@ -800,10 +774,10 @@ const NetworkRequest MemoryBank::consumeInput() {
           cout << this->name() << " dequeued " << request << endl;
       }
       else {
-        assert(iRequest.valid());
         mActiveData.Source = REQUEST_MEMORIES;
-        request = iRequest.read();
-        iRequest.ack();
+        assert(requestSig.valid());
+        request = requestSig.read();
+        requestSig.ack();
       }
       break;
   }
@@ -858,10 +832,6 @@ void MemoryBank::processRMWPhase1() {
 }
 
 void MemoryBank::processRMWPhase2(uint32_t data) {
-  // A cache hit is guaranteed because there cannot have been any intervening
-  // memory operations since the data was loaded.
-//  bool cacheHit = currentMemoryHandler().writeWord(mActiveData.Address, data, mCacheResumeRequest, false, mActiveData.ReturnChannel);
-//  assert(cacheHit);
   currentMemoryHandler().writeWord(mActiveData.Position, data);
 
   // Finished phase 2.
@@ -999,13 +969,14 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	cMemoryBanks(MEMS_PER_TILE),
 	cBankNumber(bankNumber),
 	cRandomReplacement(MEMORY_CACHE_RANDOM_REPLACEMENT != 0),
-  mInputQueue("mInputQueue", IN_CHANNEL_BUFFER_SIZE),
+  mInputQueue(string(this->name()) + string(".mInputQueue"), IN_CHANNEL_BUFFER_SIZE),
   mOutputQueue("mOutputQueue", OUT_CHANNEL_BUFFER_SIZE, INTERNAL_LATENCY),
   mOutputReqQueue("mOutputReqQueue", 10 /*read addr + write addr + cache line*/, 0),
   mData(MEMORY_BANK_SIZE),
   mReservations(1),
 	mScratchpadModeHandler(bankNumber, mData),
-	mGeneralPurposeCacheHandler(bankNumber, mData)
+	mGeneralPurposeCacheHandler(bankNumber, mData),
+	mL2RequestFilter("request_filter", ID, this)
 {
 	//-- Configuration parameters -----------------------------------------------------------------
 
@@ -1038,10 +1009,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	mRMWData = 0;
 	mRMWDataValid = false;
 
-	//-- L2 cache mode state ----------------------------------------------------------------------
-
-	mWaitingForL2Consensus = false;
-
 	//-- Debug utilities --------------------------------------------------------------------------
 
 	mBackgroundMemory = 0;
@@ -1051,13 +1018,20 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 
 	oReadyForData.initialize(false);
 
+	mL2RequestFilter.iClock(iClock);
+	mL2RequestFilter.iRequest(iRequest);
+	mL2RequestFilter.iRequestTarget(iRequestTarget);
+	mL2RequestFilter.oRequest(requestSig);
+	mL2RequestFilter.iRequestClaimed(iRequestClaimed);
+	mL2RequestFilter.oClaimRequest(oClaimRequest);
+
 	//-- Register module with SystemC simulation kernel -------------------------------------------
 
 	currentlyIdle = true;
 	Instrumentation::idle(id, true);
 
 	SC_METHOD(mainLoop);
-	sensitive << iRequest << iResponse << mInputQueue.writeEvent();
+	sensitive << requestSig << iResponse << mInputQueue.writeEvent();
 	dont_initialize();
 
 	SC_METHOD(updateReady);
