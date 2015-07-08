@@ -33,8 +33,9 @@ bool ReservationHandler::checkReservation(ComponentID requester, MemoryAddr addr
 }
 
 void ReservationHandler::clearReservation(MemoryAddr address) {
+  MemoryAddr word = address & ~0x3; // Mask to invalidate the whole word
   for (uint i=0; i<reservations.size(); i++) {
-    if (reservations[i].address == address)
+    if (reservations[i].address == word)
       reservations[i].valid = false;
   }
 }
