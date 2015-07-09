@@ -34,11 +34,8 @@ protected:
 
   uint32_t  *mData;           // Data words stored in the bank
 
-  uint       mLineBits;       // Number of line bits - log2(line size)
+  uint       mLineBits;       // Number of line bits: log2(line size)
   uint32_t   mLineMask;       // Bit mask used to extract line bits
-
-  uint       mGroupBits;      // Number of group bits - log2(group size)
-  uint32_t   mGroupMask;      // Bit mask used to extract group bits
 
   const uint mBankNumber;     // Bank number for statistics use
 
@@ -51,10 +48,6 @@ protected:
 public:
   AbstractMemoryHandler(uint bankNumber, vector<uint32_t>& data);
   virtual ~AbstractMemoryHandler();
-
-  // Set up the memory bank with a new configuration. This invalidates any data
-  // currently stored.
-  virtual void activate(const MemoryConfig& config) = 0;
 
   // Data access operations. Return value is whether the access was a hit.
   // Any data to be returned is passed through the reference &data.

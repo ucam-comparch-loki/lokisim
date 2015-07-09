@@ -127,12 +127,12 @@ bool MemoryBank::startNewRequest() {
 
   // TODO: if allowing hit-under-miss, do a tag look-up to determine if hit or not.
 
-  mActiveData.Request = consumeInput();
-  return processMessageHeader(mActiveData.Request);
+  NetworkRequest request = consumeInput();
+  return processMessageHeader(request);
 }
 
 bool MemoryBank::processMessageHeader(const NetworkRequest& request) {
-  MemoryRequest::MemoryOperation opcode = request.getMemoryMetadata().opcode;
+  MemoryOperation opcode = request.getMemoryMetadata().opcode;
 
   mActiveData.State = STATE_LOCAL_MEMORY_ACCESS;
   mActiveData.Address = request.payload().toUInt();
@@ -142,31 +142,13 @@ bool MemoryBank::processMessageHeader(const NetworkRequest& request) {
 	mActiveData.Complete = false;
 
   if (DEBUG)
-    cout << this->name() << " starting " << MemoryRequest::name(opcode) << " request from component " << mActiveData.ReturnChannel.component << endl;
+    cout << this->name() << " starting " << memoryOpName(opcode) << " request from component " << mActiveData.ReturnChannel.component << endl;
 
   // If the operation is going to access memory, make sure the necessary cache
   // line is stored locally, or there is a space for it to be fetched into.
 	switch (opcode) {
-	case MemoryRequest::CONTROL: {
-		MemoryRequest configuration = mActiveData.Request.payload();
-
-    mConfig.WayCount = 1UL << configuration.getWayBits();
-    mConfig.LineSize = CACHE_LINE_WORDS * BYTES_PER_WORD;
-    mConfig.GroupSize = 1UL << configuration.getGroupBits();
-    mConfig.Mode = MODE_GP_CACHE;
-    mGeneralPurposeCacheHandler.activate(mConfig);
-
-    // Invalidate all atomic transactions.
-    mReservations.clearReservationRange(0, 0xFFFFFFFF);
-
-    mActiveData.State = STATE_IDLE;
-    mActiveData.Complete = true;
-
-		break;
-	}
-
-	case MemoryRequest::UPDATE_DIRECTORY_ENTRY:
-	case MemoryRequest::UPDATE_DIRECTORY_MASK:
+	case UPDATE_DIRECTORY_ENTRY:
+	case UPDATE_DIRECTORY_MASK:
 	  // Forward the request on to the tile's directory.
     if (DEBUG)
       cout << this->name() << " buffering directory update request: " << mActiveData.Request.payload() << endl;
@@ -177,59 +159,59 @@ bool MemoryBank::processMessageHeader(const NetworkRequest& request) {
     mActiveData.Complete = true;
     break;
 
-	case MemoryRequest::IPK_READ:
+	case IPK_READ:
 		if (ENERGY_TRACE)
 		  Instrumentation::MemoryBank::initiateIPKRead(cBankNumber);
     getCacheLine(mActiveData.Address, false, true, true, true);
 		break;
 
-	case MemoryRequest::FETCH_LINE:
+	case FETCH_LINE:
     if (ENERGY_TRACE)
       Instrumentation::MemoryBank::initiateBurstRead(cBankNumber);
     getCacheLine(mActiveData.Address, false, true, true, false);
     break;
 
-	case MemoryRequest::FLUSH_LINE:
+	case FLUSH_LINE:
     if (ENERGY_TRACE)
       Instrumentation::MemoryBank::initiateBurstRead(cBankNumber);
     getCacheLine(mActiveData.Address, false, false, true, false);
     break;
 
-	case MemoryRequest::STORE_LINE:
-	case MemoryRequest::MEMSET_LINE:
+	case STORE_LINE:
+	case MEMSET_LINE:
 	  if (ENERGY_TRACE)
 	    Instrumentation::MemoryBank::initiateBurstWrite(cBankNumber);
     getCacheLine(mActiveData.Address, true, true, false, false);
     break;
 
-	case MemoryRequest::LOAD_W:
-	case MemoryRequest::LOAD_HW:
-	case MemoryRequest::LOAD_B:
-	case MemoryRequest::LOAD_LINKED:
+	case LOAD_W:
+	case LOAD_HW:
+	case LOAD_B:
+	case LOAD_LINKED:
     getCacheLine(mActiveData.Address, false, true, true, false);
     break;
 
-	case MemoryRequest::LOAD_AND_ADD:
-	case MemoryRequest::LOAD_AND_AND:
-	case MemoryRequest::LOAD_AND_OR:
-	case MemoryRequest::LOAD_AND_XOR:
-	case MemoryRequest::EXCHANGE:
+	case LOAD_AND_ADD:
+	case LOAD_AND_AND:
+	case LOAD_AND_OR:
+	case LOAD_AND_XOR:
+	case EXCHANGE:
 	  if (mBackgroundMemory->readOnly(mActiveData.Address))
 	    throw ReadOnlyException(mActiveData.Address);
 	  getCacheLine(mActiveData.Address, false, true, true, false);
 	  break;
 
-	case MemoryRequest::STORE_W:
-	case MemoryRequest::STORE_HW:
-	case MemoryRequest::STORE_B:
-	case MemoryRequest::STORE_CONDITIONAL:
+	case STORE_W:
+	case STORE_HW:
+	case STORE_B:
+	case STORE_CONDITIONAL:
 	  if (mBackgroundMemory->readOnly(mActiveData.Address))
 	    throw ReadOnlyException(mActiveData.Address);
     getCacheLine(mActiveData.Address, false, true, false, false);
 		break;
 
   default:
-    assert(false);
+    throw InvalidOptionException("memory bank message header opcode", opcode);
     break;
 	}
 
@@ -283,9 +265,9 @@ void MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool required, 
     // Fetch the line, if necessary.
     if (!validate) {
       if (DEBUG)
-        cout << this->name() << " buffering request for " << mConfig.LineSize << " bytes from 0x" << std::hex << tag << std::dec << endl;
+        cout << this->name() << " buffering request for cache line from 0x" << std::hex << tag << std::dec << endl;
 
-      NetworkRequest readRequest(tag, id, MemoryRequest::FETCH_LINE, true);
+      NetworkRequest readRequest(tag, id, FETCH_LINE, true);
       assert(!mOutputReqQueue.full());
       mOutputReqQueue.write(readRequest);
     }
@@ -311,31 +293,31 @@ void MemoryBank::processLocalMemoryAccess() {
 	// allocated, and that we are able to send any result.
 
   switch (mActiveData.Request.getMemoryMetadata().opcode) {
-    case MemoryRequest::LOAD_W:             processLoadWord();          break;
-    case MemoryRequest::LOAD_HW:            processLoadHalfWord();      break;
-    case MemoryRequest::LOAD_B:             processLoadByte();          break;
-    case MemoryRequest::STORE_W:            processStoreWord();         break;
-    case MemoryRequest::STORE_HW:           processStoreHalfWord();     break;
-    case MemoryRequest::STORE_B:            processStoreByte();         break;
-    case MemoryRequest::IPK_READ:           processIPKRead();           break;
+    case LOAD_W:             processLoadWord();          break;
+    case LOAD_HW:            processLoadHalfWord();      break;
+    case LOAD_B:             processLoadByte();          break;
+    case STORE_W:            processStoreWord();         break;
+    case STORE_HW:           processStoreHalfWord();     break;
+    case STORE_B:            processStoreByte();         break;
+    case IPK_READ:           processIPKRead();           break;
 
-    case MemoryRequest::FETCH_LINE:         processFetchLine();         break;
-    case MemoryRequest::STORE_LINE:         processStoreLine();         break;
-    case MemoryRequest::FLUSH_LINE:         processFlushLine();         break;
-    case MemoryRequest::MEMSET_LINE:        processMemsetLine();        break;
-    case MemoryRequest::INVALIDATE_LINE:    processInvalidateLine();    break;
-    case MemoryRequest::VALIDATE_LINE:      processValidateLine();      break;
+    case FETCH_LINE:         processFetchLine();         break;
+    case STORE_LINE:         processStoreLine();         break;
+    case FLUSH_LINE:         processFlushLine();         break;
+    case MEMSET_LINE:        processMemsetLine();        break;
+    case INVALIDATE_LINE:    processInvalidateLine();    break;
+    case VALIDATE_LINE:      processValidateLine();      break;
 
-    case MemoryRequest::LOAD_LINKED:        processLoadLinked();        break;
-    case MemoryRequest::STORE_CONDITIONAL:  processStoreConditional();  break;
-    case MemoryRequest::LOAD_AND_ADD:       processLoadAndAdd();        break;
-    case MemoryRequest::LOAD_AND_OR:        processLoadAndOr();         break;
-    case MemoryRequest::LOAD_AND_AND:       processLoadAndAnd();        break;
-    case MemoryRequest::LOAD_AND_XOR:       processLoadAndXor();        break;
-    case MemoryRequest::EXCHANGE:           processExchange();          break;
+    case LOAD_LINKED:        processLoadLinked();        break;
+    case STORE_CONDITIONAL:  processStoreConditional();  break;
+    case LOAD_AND_ADD:       processLoadAndAdd();        break;
+    case LOAD_AND_OR:        processLoadAndOr();         break;
+    case LOAD_AND_AND:       processLoadAndAnd();        break;
+    case LOAD_AND_XOR:       processLoadAndXor();        break;
+    case EXCHANGE:           processExchange();          break;
 
     default:
-      cout << this->name() << " processing invalid memory request type (" << MemoryRequest::name(mActiveData.Request.getMemoryMetadata().opcode) << ")" << endl;
+      cout << this->name() << " processing invalid memory request type (" << memoryOpName(mActiveData.Request.getMemoryMetadata().opcode) << ")" << endl;
       assert(false);
       break;
   }
@@ -427,7 +409,7 @@ void MemoryBank::processFetchLine() {
     // If the line is going to a memory, send a header flit telling it the
     // address to which the following data should be stored.
     if (mActiveData.Source != REQUEST_CORES)
-      flit = NetworkResponse(mActiveData.Address, mActiveData.ReturnChannel, MemoryRequest::STORE_LINE, false);
+      flit = NetworkResponse(mActiveData.Address, mActiveData.ReturnChannel, STORE_LINE, false);
     else
       return; // No flit to send this cycle.
   }
@@ -456,9 +438,9 @@ void MemoryBank::processFlushLine() {
   // First iteration - send header flit.
   if (mActiveData.FlitsSent == 0) {
     if (DEBUG)
-      cout << this->name() << " buffering request for " << mConfig.LineSize << " bytes to 0x" << std::hex << mActiveData.Address << std::dec << endl;
+      cout << this->name() << " buffering request for cache line to 0x" << std::hex << mActiveData.Address << std::dec << endl;
 
-    flit = NetworkRequest(mActiveData.Address, id, MemoryRequest::STORE_LINE, false);
+    flit = NetworkRequest(mActiveData.Address, id, STORE_LINE, false);
   }
   // Every other iteration - send data.
   else {
@@ -468,7 +450,7 @@ void MemoryBank::processFlushLine() {
     if (DEBUG)
       cout << this->name() << " buffering request data: " << data << endl;
 
-    flit = NetworkRequest(data, id, MemoryRequest::PAYLOAD_ONLY, endOfPacket);
+    flit = NetworkRequest(data, id, PAYLOAD, endOfPacket);
   }
 
   assert(!mOutputReqQueue.full());
@@ -624,7 +606,7 @@ uint32_t MemoryBank::getDataToStore() {
   NetworkRequest flit = peekInput();
 
   // The received word should be the continuation of the previous operation.
-  if (flit.getMemoryMetadata().opcode != MemoryRequest::PAYLOAD_ONLY) {
+  if (flit.getMemoryMetadata().opcode != PAYLOAD && flit.getMemoryMetadata().opcode != PAYLOAD_EOP) {
     cout << "!!!! " << mActiveData.Request.getMemoryMetadata().opcode << " | " << mActiveData.Address << " | " << flit.getMemoryMetadata().opcode << " | " << flit.payload() << endl;
     assert(false);
   }
@@ -673,7 +655,7 @@ void MemoryBank::replaceCacheLine() {
   mGeneralPurposeCacheHandler.replaceCacheLine(mCacheLineBuffer, mActiveData.Position);
 
   // Invalidate any atomic transactions relying on the overwritten data.
-  mReservations.clearReservationRange(mCacheLineBuffer.getTag(), mCacheLineBuffer.getTag()+mConfig.LineSize);
+  mReservations.clearReservationRange(mCacheLineBuffer.getTag(), mCacheLineBuffer.getTag()+CACHE_LINE_BYTES);
 
   // If this cache line contains data required by the callback request,
   // switch to the callback request.
@@ -682,7 +664,7 @@ void MemoryBank::replaceCacheLine() {
     mCallbackData.State = STATE_IDLE;
 
     if (DEBUG)
-      cout << this->name() << " resuming " << MemoryRequest::name(mActiveData.Request.getMemoryMetadata().opcode) << " request" << endl;
+      cout << this->name() << " resuming " << memoryOpName(mActiveData.Request.getMemoryMetadata().opcode) << " request" << endl;
   }
   else
     mActiveData.Complete = true;
@@ -843,7 +825,7 @@ void MemoryBank::processRMWPhase2(uint32_t data) {
 
 void MemoryBank::processDelayedCacheFlush() {
   // Start a new flush request.
-  NetworkRequest header(mActiveData.Address, id, MemoryRequest::FLUSH_LINE, true);
+  NetworkRequest header(mActiveData.Address, id, FLUSH_LINE, true);
   processMessageHeader(header);
 }
 
@@ -857,7 +839,10 @@ void MemoryBank::processValidInput() {
 }
 
 NetworkResponse MemoryBank::assembleResponse(uint32_t data, bool endOfPacket) {
-  return NetworkResponse(data, mActiveData.ReturnChannel, MemoryRequest::PAYLOAD_ONLY, endOfPacket);
+  if (mActiveData.ReturnChannel.isCore())
+    return NetworkResponse(data, mActiveData.ReturnChannel, endOfPacket);
+  else
+    return NetworkResponse(data, mActiveData.ReturnChannel, PAYLOAD, endOfPacket);
 }
 
 void MemoryBank::handleDataOutput() {
@@ -989,13 +974,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	mActiveOutputWord = NetworkData();
 
 	//-- Mode independent state -------------------------------------------------------------------
-
-	mConfig.Mode = MODE_GP_CACHE;
-	mConfig.WayCount = 1;
-	mConfig.LineSize = CACHE_LINE_WORDS * BYTES_PER_WORD;
-	mConfig.GroupSize = MEMS_PER_TILE;
-	mGeneralPurposeCacheHandler.activate(mConfig);
-	mScratchpadModeHandler.activate(mConfig);
 
 	mActiveData.State = STATE_IDLE;
 	mCallbackData.State = STATE_IDLE;
@@ -1147,13 +1125,13 @@ void MemoryBank::reportStalls(ostream& os) {
   }
 }
 
-void MemoryBank::printOperation(MemoryRequest::MemoryOperation operation,
+void MemoryBank::printOperation(MemoryOperation operation,
                                 MemoryAddr                     address,
                                 uint32_t                       data) const {
-  cout << this->name() << ": " << MemoryRequest::name(operation) <<
+  cout << this->name() << ": " << memoryOpName(operation) <<
       ", address = 0x" << std::hex << address << ", data = 0x" << data << std::dec;
 
-  if (operation == MemoryRequest::IPK_READ) {
+  if (operation == IPK_READ) {
     Instruction inst(data);
     cout << " (" << inst << ")";
   }

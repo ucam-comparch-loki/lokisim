@@ -22,17 +22,10 @@
 
 ScratchpadModeHandler::ScratchpadModeHandler(uint bankNumber, vector<uint32_t>& data) :
     AbstractMemoryHandler(bankNumber, data) {
-  // Do nothing
-}
 
-ScratchpadModeHandler::~ScratchpadModeHandler() {
-  // Do nothing
-}
-
-void ScratchpadModeHandler::activate(const MemoryConfig& config) {
-	mSetCount = MEMORY_BANK_SIZE / (config.WayCount * config.LineSize);
-	mWayCount = config.WayCount;
-	mLineSize = config.LineSize;
+	mWayCount = 1;
+	mLineSize = CACHE_LINE_BYTES;
+	mSetCount = MEMORY_BANK_SIZE / (mWayCount * mLineSize);
 
 	assert(log2Exact(mSetCount) >= 2);
 	assert(mWayCount == 1 || log2Exact(mWayCount) >= 1);
@@ -43,9 +36,8 @@ void ScratchpadModeHandler::activate(const MemoryConfig& config) {
 	mLineBits = log2Exact(mLineSize);
 	mLineMask = (1UL << mLineBits) - 1UL;
 
-	mGroupBits = (config.GroupSize == 1) ? 0 : log2Exact(config.GroupSize);
-	mGroupMask = (config.GroupSize == 1) ? 0 : (((1UL << mGroupBits) - 1UL) << mLineBits);
+}
 
-	if (ENERGY_TRACE)
-	  Instrumentation::MemoryBank::setMode(mBankNumber, false, mSetCount, mWayCount, mLineSize);
+ScratchpadModeHandler::~ScratchpadModeHandler() {
+  // Do nothing
 }

@@ -82,41 +82,41 @@ void MemoryBank::setMode(int bank, bool isCache, uint setCount, uint wayCount, u
 	lineSizes_[bank] = lineSize;
 }
 
-void MemoryBank::startOperation(int bank, MemoryRequest::MemoryOperation op,
+void MemoryBank::startOperation(int bank, MemoryOperation op,
         MemoryAddr address, bool miss, ChannelID returnChannel) {
   switch (op) {
-    case MemoryRequest::LOAD_W:
-    case MemoryRequest::LOAD_LINKED:
-    case MemoryRequest::LOAD_AND_ADD:
-    case MemoryRequest::LOAD_AND_OR:
-    case MemoryRequest::LOAD_AND_AND:
-    case MemoryRequest::LOAD_AND_XOR:
-    case MemoryRequest::EXCHANGE:
+    case LOAD_W:
+    case LOAD_LINKED:
+    case LOAD_AND_ADD:
+    case LOAD_AND_OR:
+    case LOAD_AND_AND:
+    case LOAD_AND_XOR:
+    case EXCHANGE:
       readWord(bank, address, miss, returnChannel);
       break;
 
-    case MemoryRequest::LOAD_HW:
+    case LOAD_HW:
       readHalfWord(bank, address, miss, returnChannel);
       break;
 
-    case MemoryRequest::LOAD_B:
+    case LOAD_B:
       readByte(bank, address, miss, returnChannel);
       break;
 
-    case MemoryRequest::STORE_W:
-    case MemoryRequest::STORE_CONDITIONAL:
+    case STORE_W:
+    case STORE_CONDITIONAL:
       writeWord(bank, address, miss, returnChannel);
       break;
 
-    case MemoryRequest::STORE_HW:
+    case STORE_HW:
       writeHalfWord(bank, address, miss, returnChannel);
       break;
 
-    case MemoryRequest::STORE_B:
+    case STORE_B:
       writeByte(bank, address, miss, returnChannel);
       break;
 
-    case MemoryRequest::IPK_READ:
+    case IPK_READ:
       readIPKWord(bank, address, miss, returnChannel);
       break;
 

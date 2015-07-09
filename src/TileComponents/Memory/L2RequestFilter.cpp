@@ -33,7 +33,7 @@ void L2RequestFilter::mainLoop() {
       case STATE_IDLE: {
         NetworkRequest request = iRequest.read();
 
-        assert(request.getMemoryMetadata().opcode != MemoryRequest::PAYLOAD_ONLY);
+        assert(request.getMemoryMetadata().opcode != PAYLOAD && request.getMemoryMetadata().opcode != PAYLOAD_EOP);
 
         MemoryAddr address = request.payload().toUInt();
         bool cacheHit = localBank->storedLocally(address);

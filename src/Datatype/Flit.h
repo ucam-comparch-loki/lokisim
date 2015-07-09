@@ -15,7 +15,6 @@
 
 #include "../Typedefs.h"
 #include "Identifier.h"
-#include "MemoryRequest.h"
 #include "Word.h"
 #include "../TileComponents/ChannelMapEntry.h"
 
@@ -68,28 +67,26 @@ struct MemoryMetadata {
   unsigned int scratchpadL1 : 1;  // Treat L1 as cache (0) or scratchpad (1).
   unsigned int skipL2 : 1;        // Bypass L2 and go straight to main memory.
   unsigned int skipL1 : 1;        // Bypass L1 and go straight to L2.
-  MemoryRequest::MemoryOperation opcode : 5; // Operation to perform at memory.
-  unsigned int endOfPacket : 1;
+  MemoryOperation opcode : 5;     // Operation to perform at memory.
 
   uint32_t flatten() {
-    return (padding << 19) | (returnTileX << 16) | (returnTileY << 13) |
-      (returnChannel << 10) | (scratchpadL2 << 9) | (scratchpadL1 << 8) |
-      (skipL2 << 7) | (skipL1 << 6) | (opcode << 1) | (endOfPacket << 0);
+    return (padding << 18) | (returnTileX << 15) | (returnTileY << 12) |
+      (returnChannel << 9) | (scratchpadL2 << 8) | (scratchpadL1 << 7) |
+      (skipL2 << 6) | (skipL1 << 5) | (opcode << 0);
   }
 
   MemoryMetadata() : MemoryMetadata(0) {}
 
   MemoryMetadata(uint32_t flattened) {
-    padding = (flattened >> 19) & 0x1FFF;
-    returnTileX = (flattened >> 16) & 0x7;
-    returnTileY = (flattened >> 13) & 0x7;
-    returnChannel = (flattened >> 10) & 0x7;
-    scratchpadL2 = (flattened >> 9) & 0x1;
-    scratchpadL1 = (flattened >> 8) & 0x1;
-    skipL2 = (flattened >> 7) & 0x1;
-    skipL1 = (flattened >> 6) & 0x1;
-    opcode = MemoryRequest::MemoryOperation((flattened >> 1) & 0x1F);
-    endOfPacket = (flattened >> 0) & 0x1;
+    padding = (flattened >> 18) & 0x1FFF;
+    returnTileX = (flattened >> 15) & 0x7;
+    returnTileY = (flattened >> 12) & 0x7;
+    returnChannel = (flattened >> 9) & 0x7;
+    scratchpadL2 = (flattened >> 8) & 0x1;
+    scratchpadL1 = (flattened >> 7) & 0x1;
+    skipL2 = (flattened >> 6) & 0x1;
+    skipL1 = (flattened >> 5) & 0x1;
+    opcode = MemoryOperation((flattened >> 0) & 0x1F);
   }
 };
 
@@ -203,7 +200,7 @@ public:
 
   // Constructor for messages between cores and memory.
   Flit<T>(T payload, ChannelID destination, ChannelMapEntry::MemoryChannel networkInfo,
-          MemoryRequest::MemoryOperation op, bool eop) :
+          MemoryOperation op, bool eop) :
       messageID_(messageCount++),
       payload_(payload),
       channelID_(destination) {
@@ -214,8 +211,7 @@ public:
     info.scratchpadL1 = networkInfo.scratchpadL1;
     info.skipL2 = networkInfo.l2Skip;
     info.skipL1 = networkInfo.l1Skip;
-    info.opcode = op;
-    info.endOfPacket = eop;
+    info.opcode = (MemoryOperation)(op | eop);
     setMetadata(info.flatten());
   }
 
@@ -223,7 +219,7 @@ public:
   // We do not have the destination address at the time of construction -
   // it is provided later after the directory lookup in the miss handling
   // logic. Provide a placeholder here.
-  Flit<T>(T payload, ComponentID source, MemoryRequest::MemoryOperation op, bool eop) :
+  Flit<T>(T payload, ComponentID source, MemoryOperation op, bool eop) :
       messageID_(messageCount++),
       payload_(payload),
       channelID_(ChannelID()) {
@@ -233,14 +229,13 @@ public:
     info.returnChannel = source.position - CORES_PER_TILE;
     info.scratchpadL2 = 0;
     info.skipL2 = 0;
-    info.opcode = op;
-    info.endOfPacket = eop;
+    info.opcode = (MemoryOperation)(op | eop);
     setMetadata(info.flatten());
   }
 
   // Constructor for messages between L2 and L1 caches.
   // The operation is not sent in practice, but is useful in simulation.
-  Flit<T>(T payload, ChannelID destination, MemoryRequest::MemoryOperation op, bool eop) :
+  Flit<T>(T payload, ChannelID destination, MemoryOperation op, bool eop) :
       messageID_(messageCount++),
       payload_(payload),
       channelID_(destination) {
@@ -249,8 +244,7 @@ public:
     info.scratchpadL2 = 0;
     info.skipL1 = 0;
     info.skipL2 = 0;
-    info.opcode = op;
-    info.endOfPacket = eop;
+    info.opcode = (MemoryOperation)(op | eop);
     setMetadata(info.flatten());
   }
 

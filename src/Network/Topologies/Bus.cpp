@@ -56,6 +56,7 @@ Bus::Bus(const sc_module_name& name, const ComponentID& ID, int numOutputPorts, 
     Network(name, ID, 1, numOutputPorts, level, firstOutput)
 {
   lastWriteTime = -1;
+  outputUsed = -1;
 
   state = WAITING_FOR_DATA;
 

@@ -84,11 +84,11 @@ void MissHandlingLogic::localRequestLoop() {
   else {
 
     switch (flit.getMemoryMetadata().opcode) {
-      case MemoryRequest::UPDATE_DIRECTORY_ENTRY:
+      case UPDATE_DIRECTORY_ENTRY:
         handleDirectoryUpdate();
         break;
 
-      case MemoryRequest::UPDATE_DIRECTORY_MASK:
+      case UPDATE_DIRECTORY_MASK:
         handleDirectoryMaskUpdate();
         break;
 

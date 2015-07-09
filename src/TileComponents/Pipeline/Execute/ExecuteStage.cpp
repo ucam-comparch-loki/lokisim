@@ -7,7 +7,6 @@
 
 #include "ExecuteStage.h"
 #include "../../Core.h"
-#include "../../../Datatype/MemoryRequest.h"
 #include "../../../Utility/Instrumentation.h"
 #include "../../../Utility/Instrumentation/Registers.h"
 #include "../../../Utility/Trace/LBTTrace.h"
@@ -200,10 +199,11 @@ void ExecuteStage::newInput(DecodedInst& operation) {
   }
 
   // Only instrument operations which executed in this pipeline stage.
-  // PAYLOAD_ONLY means this is the second half of a store operation - we don't
+  // PAYLOAD means this is the second half of a store operation - we don't
   // want to instrument it twice.
   if (operation.isExecuteStageOperation() &&
-      operation.memoryOp() != MemoryRequest::PAYLOAD_ONLY &&
+      operation.memoryOp() != PAYLOAD &&
+      operation.memoryOp() != PAYLOAD_EOP &&
       !blocked) {
     Instrumentation::executed(id, operation, willExecute);
 
@@ -223,15 +223,15 @@ void ExecuteStage::sendOutput() {
 		currentInst.opcode() == InstructionMap::OP_LDBU ||
 		currentInst.opcode() == InstructionMap::OP_STW ||
 		currentInst.opcode() == InstructionMap::OP_STHW ||
-		currentInst.opcode() == InstructionMap::OP_STB) && currentInst.memoryOp() != MemoryRequest::PAYLOAD_ONLY)
+		currentInst.opcode() == InstructionMap::OP_STB) && currentInst.memoryOp() != PAYLOAD && currentInst.memoryOp() != PAYLOAD_EOP)
 	  {
 		LBTTrace::setInstructionMemoryAddress(currentInst.isid(), currentInst.result());
 	  }
 	  else if ((currentInst.opcode() == InstructionMap::OP_STW ||
 		currentInst.opcode() == InstructionMap::OP_STHW ||
-		currentInst.opcode() == InstructionMap::OP_STB) && currentInst.memoryOp() == MemoryRequest::PAYLOAD_ONLY)
+		currentInst.opcode() == InstructionMap::OP_STB) && currentInst.memoryOp() == PAYLOAD)
 	  {
-		LBTTrace::setInstructionMemoryData(currentInst.isid(), currentInst.result());
+		LBTTrace::setInstructionMemoryData(currentInst.isid(), currentInst.result() && currentInst.memoryOp() != PAYLOAD_EOP);
 	  }
 	}
 
@@ -264,15 +264,14 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
 
 void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
   assert(inst.isMemoryOperation());
-  MemoryRequest::MemoryOperation op = (MemoryRequest::MemoryOperation)inst.memoryOp();
 
   bool addressFlit;
 
-  switch (op) {
-    case MemoryRequest::PAYLOAD_ONLY:
-    case MemoryRequest::UPDATE_DIRECTORY_ENTRY:
-    case MemoryRequest::UPDATE_DIRECTORY_MASK:
-    case MemoryRequest::CONTROL:
+  switch (inst.memoryOp()) {
+    case PAYLOAD:
+    case PAYLOAD_EOP:
+    case UPDATE_DIRECTORY_ENTRY:
+    case UPDATE_DIRECTORY_MASK:
       addressFlit = false;
       break;
     default:

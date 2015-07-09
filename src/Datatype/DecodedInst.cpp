@@ -6,7 +6,6 @@
  */
 
 #include "DecodedInst.h"
-#include "MemoryRequest.h"
 
 const opcode_t      DecodedInst::opcode()          const {return opcode_;}
 const function_t    DecodedInst::function()        const {return function_;}
@@ -31,7 +30,7 @@ const int32_t       DecodedInst::immediate2()      const {
 const ChannelIndex  DecodedInst::channelMapEntry() const {return channelMapEntry_;}
 const predicate_t   DecodedInst::predicate()       const {return predicate_;}
 const bool          DecodedInst::setsPredicate()   const {return setsPred_;}
-const MemoryRequest::MemoryOperation DecodedInst::memoryOp() const {return memoryOp_;}
+const MemoryOperation DecodedInst::memoryOp() const {return memoryOp_;}
 
 typedef DecodedInst::OperandSource OperandSource;
 const OperandSource DecodedInst::operand1Source()  const {return op1Source_;}
@@ -112,7 +111,7 @@ const bool    DecodedInst::isExecuteStageOperation() const {
 }
 
 const bool    DecodedInst::isMemoryOperation() const {
-  return memoryOp_ != MemoryRequest::NONE;
+  return memoryOp_ != MemoryOperation::NONE;
 }
 
 const bool    DecodedInst::endOfIPK() const {
@@ -141,7 +140,7 @@ void DecodedInst::immediate(const int32_t val)            {immediate_ = val;}
 void DecodedInst::channelMapEntry(const ChannelIndex val) {channelMapEntry_ = val;}
 void DecodedInst::predicate(const predicate_t val)        {predicate_ = val;}
 void DecodedInst::setsPredicate(const bool val)           {setsPred_ = val;}
-void DecodedInst::memoryOp(const MemoryRequest::MemoryOperation val) {memoryOp_ = val;}
+void DecodedInst::memoryOp(const MemoryOperation val)     {memoryOp_ = val;}
 
 void DecodedInst::operand1Source(const OperandSource src) {op1Source_ = src;}
 void DecodedInst::operand2Source(const OperandSource src) {op2Source_ = src;}
@@ -287,9 +286,9 @@ void DecodedInst::init() {
   channelMapEntry_  = 0;
   predicate_        = static_cast<predicate_t>(0);
   setsPred_         = false;
-  memoryOp_         = MemoryRequest::NONE;  // non-zero
-  op1Source_        = NONE;
-  op2Source_        = NONE;
+  memoryOp_         = MemoryOperation::NONE;  // non-zero
+  op1Source_        = OperandSource::NONE;
+  op2Source_        = OperandSource::NONE;
   operand1_         = 0;
   operand2_         = 0;
   result_           = 0;

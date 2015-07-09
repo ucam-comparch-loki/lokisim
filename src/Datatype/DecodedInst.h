@@ -48,7 +48,7 @@ public:
   const ChannelIndex  channelMapEntry() const;
   const predicate_t   predicate() const;
   const bool          setsPredicate() const;
-  const MemoryRequest::MemoryOperation memoryOp() const;
+  const MemoryOperation memoryOp() const;
 
   const OperandSource operand1Source() const;
   const OperandSource operand2Source() const;
@@ -86,7 +86,7 @@ public:
   void    channelMapEntry(const ChannelIndex val);
   void    predicate(const predicate_t val);
   void    setsPredicate(const bool val);
-  void    memoryOp(const MemoryRequest::MemoryOperation val);
+  void    memoryOp(const MemoryOperation val);
 
   void    operand1Source(const OperandSource src);
   void    operand2Source(const OperandSource src);
@@ -174,40 +174,40 @@ private:
 
 private:
   // The original, encoded instruction.
-  const Instruction original_;
+  const Instruction   original_;
 
-  opcode_t opcode_;
-  function_t function_;
-  format_t format_;
-  RegisterIndex destReg_;
-  RegisterIndex sourceReg1_;
-  RegisterIndex sourceReg2_;
-  int32_t immediate_;
-  ChannelIndex channelMapEntry_;
-  predicate_t predicate_;
-  bool    setsPred_;
-  MemoryRequest::MemoryOperation memoryOp_;
+  opcode_t            opcode_;
+  function_t          function_;
+  format_t            format_;
+  RegisterIndex       destReg_;
+  RegisterIndex       sourceReg1_;
+  RegisterIndex       sourceReg2_;
+  int32_t             immediate_;
+  ChannelIndex        channelMapEntry_;
+  predicate_t         predicate_;
+  bool                setsPred_;
+  MemoryOperation     memoryOp_;
 
-  OperandSource op1Source_;
-  OperandSource op2Source_;
+  OperandSource       op1Source_;
+  OperandSource       op2Source_;
 
-  int32_t operand1_;
-  int32_t operand2_;
-  int64_t result_;    // TODO: reduce to 32 bits if safe to do so
+  int32_t             operand1_;
+  int32_t             operand2_;
+  int64_t             result_;    // TODO: reduce to 32 bits if safe to do so
 
   // A snapshot of the channel map table entry when the instruction passes
   // through the Decode stage.
-  EncodedCMTEntry networkInfo;
-  bool    portClaim_;
-  bool    endOfPacket_;
+  EncodedCMTEntry     networkInfo;
+  bool                portClaim_;
+  bool                endOfPacket_;
 
-  MemoryAddr location_;  // The position in memory that this instruction comes from.
+  MemoryAddr          location_;  // The position in memory that this instruction comes from.
 
-  bool    persistent_;
+  bool                persistent_;
 
   // Use to determine whether the result has already been set.
   // Can't just use != 0 because it may have been set to 0.
-  bool    hasResult_;
+  bool                hasResult_;
 
   mutable unsigned long long isid_;
 };

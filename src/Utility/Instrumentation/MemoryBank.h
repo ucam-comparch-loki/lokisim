@@ -25,7 +25,7 @@ namespace Instrumentation {
 
 		static void setMode(int bank, bool isCache, uint setCount, uint wayCount, uint lineSize);
 
-		static void startOperation(int bank, MemoryRequest::MemoryOperation op,
+		static void startOperation(int bank, MemoryOperation op,
 		    MemoryAddr address, bool miss, ChannelID returnChannel);
 
 		static void readWord(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel);

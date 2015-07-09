@@ -238,8 +238,7 @@ void FetchStage::sendRequest(const FetchInfo& fetch) {
   uint increment = core()->channelMapTable[0].computeAddressIncrement(fetch.address);
   ChannelID destination(id.tile.x, id.tile.y, fetch.networkInfo.bank + increment + CORES_PER_TILE, fetch.networkInfo.channel);
 
-  NetworkData flit(fetch.address, destination, fetch.networkInfo,
-                   MemoryRequest::IPK_READ, true);
+  NetworkData flit(fetch.address, destination, fetch.networkInfo, IPK_READ, true);
   assert(!oFetchRequest.valid());
   oFetchRequest.write(flit);
 

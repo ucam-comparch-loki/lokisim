@@ -93,13 +93,6 @@ private:
 	  REQUEST_NONE
 	};
 
-	struct ChannelMapTableEntry {
-	public:
-		bool                Valid;						// Flag indicating whether a connection is set up
-		bool                FetchPending;			// Flag indicating whether a Channel ID fetch for this entry is pending
-		ChannelID           ReturnChannel;		// Number of destination tile
-	};
-
   // All data required to perform any data-access operation.
   struct RequestData {
 	  NetworkRequest      Request;          // The original request
@@ -133,8 +126,6 @@ private:
 	//-- Mode independent state -------------------------------------------------------------------
 
   vector<uint32_t>      mData;            // The contents of this bank.
-
-	MemoryConfig          mConfig;          // Data including associativity, line size, etc.
 
 	RequestData           mActiveData;      // Data used to fulfil the request
 
@@ -302,7 +293,7 @@ protected:
 
 private:
 
-	void printOperation(MemoryRequest::MemoryOperation operation, MemoryAddr address, uint32_t data) const;
+	void printOperation(MemoryOperation operation, MemoryAddr address, uint32_t data) const;
 
 };
 

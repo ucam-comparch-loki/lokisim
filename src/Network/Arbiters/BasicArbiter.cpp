@@ -22,8 +22,8 @@ void BasicArbiter::arbitrate(int output) {
     case NO_REQUESTS: {
       if (haveRequest()) {
         state[output] = HAVE_REQUESTS;
-
-        // Fall through to HAVE_REQUESTS case.
+        next_trigger(sc_core::SC_ZERO_TIME);
+        break;
       }
       else {
 //        cout << this->name() << " waiting for requests" << endl;
@@ -32,7 +32,6 @@ void BasicArbiter::arbitrate(int output) {
         break;
       }
     }
-    // no break
 
     // We have requests, and it is time to perform the arbitration.
     case HAVE_REQUESTS: {

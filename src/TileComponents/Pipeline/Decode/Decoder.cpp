@@ -123,11 +123,11 @@ void Decoder::decode() {
   switch (operation) {
 
     case InstructionMap::OP_LDW:
-      output.memoryOp(MemoryRequest::LOAD_W); break;
+      output.memoryOp(LOAD_W); break;
     case InstructionMap::OP_LDHWU:
-      output.memoryOp(MemoryRequest::LOAD_HW); break;
+      output.memoryOp(LOAD_HW); break;
     case InstructionMap::OP_LDBU:
-      output.memoryOp(MemoryRequest::LOAD_B); break;
+      output.memoryOp(LOAD_B); break;
 
     case InstructionMap::OP_STW:
     case InstructionMap::OP_STHW:
@@ -143,11 +143,11 @@ void Decoder::decode() {
         output.sourceReg1(output.sourceReg2()); output.sourceReg2(0);
 
         if (operation == InstructionMap::OP_STW)
-          output.memoryOp(MemoryRequest::STORE_W);
+          output.memoryOp(STORE_W);
         else if (operation == InstructionMap::OP_STHW)
-          output.memoryOp(MemoryRequest::STORE_HW);
+          output.memoryOp(STORE_HW);
         else
-          output.memoryOp(MemoryRequest::STORE_B);
+          output.memoryOp(STORE_B);
       }
       else {
         outputsRemaining = 0;
@@ -158,7 +158,7 @@ void Decoder::decode() {
         // The second part of a store sends the data. This uses only the first
         // source register.
         output.sourceReg2(0); output.immediate(0);
-        output.memoryOp(MemoryRequest::PAYLOAD_ONLY);
+        output.memoryOp(PAYLOAD_ONLY);
       }
       break;
     }
@@ -206,7 +206,7 @@ void Decoder::decode() {
     case InstructionMap::OP_FILLR: {
       // Fetches implicitly access channel map table entry 0. This may change.
       output.channelMapEntry(0);
-      output.memoryOp(MemoryRequest::IPK_READ);
+      output.memoryOp(IPK_READ);
 
       // The "relative" versions of these instructions have r1 (current IPK
       // address) as an implicit argument.
@@ -221,7 +221,7 @@ void Decoder::decode() {
     case InstructionMap::OP_PSEL_FETCH: {
       // Fetches implicitly access channel map table entry 0. This may change.
       output.channelMapEntry(0);
-      output.memoryOp(MemoryRequest::IPK_READ);
+      output.memoryOp(IPK_READ);
       break;
     }
 
@@ -421,13 +421,13 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   switch (operation) {
 
     case InstructionMap::OP_LDW:
-      output.memoryOp(MemoryRequest::LOAD_W); break;
+      output.memoryOp(LOAD_W); break;
     case InstructionMap::OP_LDHWU:
-      output.memoryOp(MemoryRequest::LOAD_HW); break;
+      output.memoryOp(LOAD_HW); break;
     case InstructionMap::OP_LDBU:
-      output.memoryOp(MemoryRequest::LOAD_B); break;
+      output.memoryOp(LOAD_B); break;
     case InstructionMap::OP_LDL:
-      output.memoryOp(MemoryRequest::LOAD_LINKED); break;
+      output.memoryOp(LOAD_LINKED); break;
 
     case InstructionMap::OP_STW:
     case InstructionMap::OP_STHW:
@@ -448,23 +448,23 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
       switch (operation) {
         case InstructionMap::OP_STW:
-          output.memoryOp(MemoryRequest::STORE_W); break;
+          output.memoryOp(STORE_W); break;
         case InstructionMap::OP_STHW:
-          output.memoryOp(MemoryRequest::STORE_HW); break;
+          output.memoryOp(STORE_HW); break;
         case InstructionMap::OP_STB:
-          output.memoryOp(MemoryRequest::STORE_B); break;
+          output.memoryOp(STORE_B); break;
         case InstructionMap::OP_STC:
-          output.memoryOp(MemoryRequest::STORE_CONDITIONAL); break;
+          output.memoryOp(STORE_CONDITIONAL); break;
         case InstructionMap::OP_LDADD:
-          output.memoryOp(MemoryRequest::LOAD_AND_ADD); break;
+          output.memoryOp(LOAD_AND_ADD); break;
         case InstructionMap::OP_LDOR:
-          output.memoryOp(MemoryRequest::LOAD_AND_OR); break;
+          output.memoryOp(LOAD_AND_OR); break;
         case InstructionMap::OP_LDAND:
-          output.memoryOp(MemoryRequest::LOAD_AND_AND); break;
+          output.memoryOp(LOAD_AND_AND); break;
         case InstructionMap::OP_LDXOR:
-          output.memoryOp(MemoryRequest::LOAD_AND_XOR); break;
+          output.memoryOp(LOAD_AND_XOR); break;
         case InstructionMap::OP_EXCHANGE:
-          output.memoryOp(MemoryRequest::EXCHANGE); break;
+          output.memoryOp(EXCHANGE); break;
         default:
           break;
       }
@@ -793,7 +793,7 @@ bool Decoder::continueOp(const DecodedInst& input, DecodedInst& output) {
   // Store operations send the address in the first cycle, and the data in
   // the second.
   setOperand1(output);
-  output.memoryOp(MemoryRequest::PAYLOAD_ONLY);
+  output.memoryOp(PAYLOAD);
 
   multiCycleOp = false;
   blockedEvent.notify();

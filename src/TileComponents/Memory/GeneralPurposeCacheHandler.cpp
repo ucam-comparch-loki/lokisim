@@ -25,10 +25,30 @@
 #include "SimplifiedOnChipScratchpad.h"
 
 
+uint GeneralPurposeCacheHandler::getSlot(MemoryAddr address) const {
+  // Memory address contains:
+  // | tag | index | bank | offset |
+  //  * offset = 5 bits (32 byte cache line)
+  //  * index + offset = log2(bytes in bank) bits
+  //  * bank = up to 3 bits used to choose which bank to access
+  //  * tag = any bits remaining
+  //
+  // Since the number of bank bits is variable, but we don't want to move the
+  // index bits around or change the size of the tag field, we hash the maximum
+  // number of bank bits in with a fixed-position index field. Note that these
+  // overlapping bits must now also be included in the tag.
+
+//  uint setIndex = (address & mSetMask) >> mSetShift;
+//  return setIndex * mWayCount;
+  uint bank = (address >> 5) & 0x7;
+  uint index = (address >> 8) & ((1 << cIndexBits) - 1);
+  uint slot = index ^ (bank << (cIndexBits - 3)); // Hash bank into the upper bits
+  return slot;
+}
+
 CacheLookup GeneralPurposeCacheHandler::lookupCacheLine(MemoryAddr address) const {
-  uint32_t lineAddress = address & ~mLineMask;
-  uint setIndex = (address & mSetMask) >> mSetShift;
-  uint startSlot = setIndex * mWayCount;
+  MemoryTag tag = address & ~mLineMask;
+  uint startSlot = getSlot(address);
 
   CacheLookup info;
   info.Hit = false;
@@ -37,7 +57,7 @@ CacheLookup GeneralPurposeCacheHandler::lookupCacheLine(MemoryAddr address) cons
   // Careful - this is used for assertions, so a debug parameter would be needed.
 
   for (uint i = 0; i < mWayCount; i++) {
-    if (mLineValid[startSlot + i] && mAddresses[startSlot + i] == lineAddress) {
+    if (mLineValid[startSlot + i] && mAddresses[startSlot + i] == tag) {
       info.Hit = true;
       info.SRAMLine = startSlot + i;
     }
@@ -47,15 +67,13 @@ CacheLookup GeneralPurposeCacheHandler::lookupCacheLine(MemoryAddr address) cons
 }
 
 bool GeneralPurposeCacheHandler::lookupCacheLine(MemoryAddr address, uint &slot, bool resume, bool read, bool instruction) {
-  uint32_t lineAddress = address & ~mLineMask;
-  uint setIndex = (address & mSetMask) >> mSetShift;
-  uint startSlot = setIndex * mWayCount;
+  MemoryTag tag = address & ~mLineMask;
   bool hit = false;
-  slot = startSlot;
+  slot = getSlot(address);
 
   for (uint i = 0; i < mWayCount; i++) {
-    if (mLineValid[startSlot + i] && mAddresses[startSlot + i] == lineAddress) {
-      slot = startSlot + i;
+    if (mLineValid[slot + i] && mAddresses[slot + i] == tag) {
+      slot = slot + i;
 
       hit = true;
       break;
@@ -115,54 +133,34 @@ SRAMAddress GeneralPurposeCacheHandler::getOffset(SRAMAddress address) const {
 }
 
 GeneralPurposeCacheHandler::GeneralPurposeCacheHandler(uint bankNumber, vector<uint32_t>& data) :
-    AbstractMemoryHandler(bankNumber, data) {
-	//-- Configuration parameters -----------------------------------------------------------------
-
-	cRandomReplacement = MEMORY_CACHE_RANDOM_REPLACEMENT != 0;
+    AbstractMemoryHandler(bankNumber, data),
+    cRandomReplacement(MEMORY_CACHE_RANDOM_REPLACEMENT != 0),
+    cCacheLines(MEMORY_BANK_SIZE / (CACHE_LINE_WORDS * BYTES_PER_WORD)),
+    cIndexBits(log2Exact(cCacheLines)) {
 
 	//-- State ------------------------------------------------------------------------------------
 
-	uint cacheLines = MEMORY_BANK_SIZE / (CACHE_LINE_WORDS * BYTES_PER_WORD);
-	mAddresses.assign(cacheLines, 0);
-	mLineValid.assign(cacheLines, false);
-	mLineDirty.assign(cacheLines, false);
+	mWayCount = 1;
+	mLineSize = CACHE_LINE_WORDS * BYTES_PER_WORD;
+	mSetCount = MEMORY_BANK_SIZE / (mWayCount * mLineSize);
+
+	mAddresses.assign(cCacheLines, 0);
+	mLineValid.assign(cCacheLines, false);
+	mLineDirty.assign(cCacheLines, false);
 
 	mLFSRState = 0xFFFFU;
 
-	mVictimSlot = mSetBits = mSetMask = mSetShift = 0;
+  mLineBits = log2Exact(mLineSize);
+  mLineMask = (1UL << mLineBits) - 1UL;
+
+  uint groupBits = log2Exact(MEMS_PER_TILE);
+
+  mSetBits = log2Exact(mSetCount);
+  mSetShift = groupBits + mLineBits;
+  mSetMask = ((1UL << mSetBits) - 1UL) << mSetShift;
 }
 
 GeneralPurposeCacheHandler::~GeneralPurposeCacheHandler() {
-}
-
-void GeneralPurposeCacheHandler::activate(const MemoryConfig& config) {
-	mSetCount = MEMORY_BANK_SIZE / (config.WayCount * config.LineSize);
-	mWayCount = config.WayCount;
-	mLineSize = config.LineSize;
-
-	assert(log2Exact(mSetCount) >= 2);
-	assert(mWayCount == 1 || log2Exact(mWayCount) >= 1);
-	assert(log2Exact(mLineSize) >= 2);
-
-  uint cacheLines = MEMORY_BANK_SIZE / (CACHE_LINE_WORDS * BYTES_PER_WORD);
-  mAddresses.assign(cacheLines, 0);
-  mLineValid.assign(cacheLines, false);
-  mLineDirty.assign(cacheLines, false);
-
-	mVictimSlot = 0;
-
-	mLineBits = log2Exact(mLineSize);
-	mLineMask = (1UL << mLineBits) - 1UL;
-
-	mGroupBits = (config.GroupSize == 1) ? 0 : log2Exact(config.GroupSize);
-	mGroupMask = (config.GroupSize == 1) ? 0 : (((1UL << mGroupBits) - 1UL) << mLineBits);
-
-	mSetBits = log2Exact(mSetCount);
-	mSetShift = mGroupBits + mLineBits;
-	mSetMask = ((1UL << mSetBits) - 1UL) << mSetShift;
-
-	if (ENERGY_TRACE)
-	  Instrumentation::MemoryBank::setMode(mBankNumber, true, mSetCount, mWayCount, mLineSize);
 }
 
 
@@ -247,8 +245,7 @@ CacheLookup GeneralPurposeCacheHandler::prepareCacheLine(MemoryAddr address, Cac
 
   if (!info.Hit) {
 
-    uint setIndex = (address & mSetMask) >> mSetShift;
-    slot = setIndex * mWayCount;
+    slot = getSlot(address);
 
     if (cRandomReplacement) {
       // Select way pseudo-randomly

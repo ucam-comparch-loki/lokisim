@@ -31,8 +31,6 @@ class ScratchpadModeHandler : public AbstractMemoryHandler {
 public:
 	ScratchpadModeHandler(uint bankNumber, vector<uint32_t>& data);
 	~ScratchpadModeHandler();
-
-	virtual void activate(const MemoryConfig& config);
 };
 
 #endif /* SCRATCHPADMODEHANDLER_H_ */
