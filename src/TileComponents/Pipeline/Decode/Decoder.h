@@ -28,9 +28,6 @@ class Decoder: public Component, public Blocking {
 
 public:
 
-//  void initialise(const DecodedInst& input);
-//  void decode();
-//  void collectOperands();
   void instructionFinished();
   bool needPredicateNow(const DecodedInst& inst) const;
   bool allOperandsReady() const;
@@ -77,9 +74,6 @@ private:
 
   // Wait until there is data in a particular input buffer.
   void    waitUntilArrival(ChannelIndex channel, const DecodedInst& inst);
-
-  // Prepare this instruction to be sent to a remote core.
-  void    remoteExecution(DecodedInst& instruction) const;
 
   // If an instruction is waiting to be decoded, discard it. Returns whether
   // anything was discarded.
@@ -128,12 +122,6 @@ private:
   bool continueToExecute, execute, haveAllOperands;
   int outputsRemaining;
   bool needDestination, needOperand1, needOperand2, needChannel;
-
-
-  // The remote channel we are sending instructions to.
-  // Set to Instruction::NO_CHANNEL if we are not sending instructions.
-  ChannelIndex rmtexecuteChannel;
-  EncodedCMTEntry rmtexecuteCMT;
 
   // Tells whether we have started a two-cycle store operation.
   bool multiCycleOp;

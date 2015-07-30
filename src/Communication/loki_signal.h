@@ -49,8 +49,7 @@ public:
   virtual void write(const T& val) {
     // Copied from sc_buffer (and updated for SystemC 2.3)
 
-// FIXME: this will break at e.g. version 3.0.
-#if (SC_VERSION_MAJOR >= 2) && (SC_VERSION_MINOR >= 3)
+#if (SC_VERSION_MAJOR >= 2) || ((SC_VERSION_MAJOR == 2) && (SC_VERSION_MINOR >= 3))
     if( !sc_signal<T>::policy_type::check_write(this,true) )
       return;
 #else

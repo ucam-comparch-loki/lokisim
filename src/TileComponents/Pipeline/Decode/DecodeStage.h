@@ -82,10 +82,6 @@ private:
   // doing work on it, and sending it to the next stage.
   virtual void   execute();
 
-  // A second attempt at implementing execute(), but this time, avoiding the
-  // use of expensive SC_THREADs by using a state machine.
-//  virtual void   execute2();
-
   // Determine whether this stage is stalled or not, and write the appropriate
   // output.
   virtual void   updateReady();
@@ -114,6 +110,12 @@ private:
   void           readChannelMapTable(DecodedInst& inst);
   void           waitOnCredits(DecodedInst& inst);
   ChannelMapEntry& channelMapTableEntry(MapIndex entry) const;
+
+  void           startRemoteExecution(const DecodedInst& inst);
+  void           endRemoteExecution();
+
+  // Prepare this instruction to be sent to a remote core.
+  void           remoteExecute(DecodedInst& instruction) const;
 
   // Fetch the address requested by the instruction.
   void           fetch(const DecodedInst& inst);
@@ -158,19 +160,19 @@ private:
 
 private:
 
-  enum DecodeState {
-    INIT,
-    NEW_INSTRUCTION,
-    DECODE,
-    WAIT_FOR_OPERANDS,
-    SEND_RESULT
-  };
-
-  DecodeState state;
-
   bool startingNewPacket;
 
   bool waitingToSend;
+
+  // The remote channel we are sending instructions to.
+  // Set to Instruction::NO_CHANNEL if we are not sending instructions.
+  ChannelIndex rmtexecuteChannel;
+  EncodedCMTEntry rmtexecuteCMT;
+
+  // Store the channel information used previously in case we need to send a
+  // whole packet of information.
+  EncodedCMTEntry previousChannel;
+  bool previousChannelValid;
 
 };
 

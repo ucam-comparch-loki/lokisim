@@ -30,7 +30,13 @@ const int32_t       DecodedInst::immediate2()      const {
 const ChannelIndex  DecodedInst::channelMapEntry() const {return channelMapEntry_;}
 const predicate_t   DecodedInst::predicate()       const {return predicate_;}
 const bool          DecodedInst::setsPredicate()   const {return setsPred_;}
-const MemoryOperation DecodedInst::memoryOp() const {return memoryOp_;}
+
+const MemoryOperation DecodedInst::memoryOp() const {
+  if (opcode() == InstructionMap::OP_SENDCONFIG)
+    return MemoryMetadata(immediate()).opcode;
+  else
+    return memoryOp_;
+}
 
 typedef DecodedInst::OperandSource OperandSource;
 const OperandSource DecodedInst::operand1Source()  const {return op1Source_;}
@@ -111,7 +117,7 @@ const bool    DecodedInst::isExecuteStageOperation() const {
 }
 
 const bool    DecodedInst::isMemoryOperation() const {
-  return memoryOp_ != MemoryOperation::NONE;
+  return networkDestination().isMemory();
 }
 
 const bool    DecodedInst::endOfIPK() const {
@@ -123,7 +129,10 @@ const bool    DecodedInst::persistent() const {
 }
 
 const bool    DecodedInst::endOfNetworkPacket() const {
-  return endOfPacket_;
+  if (opcode() == InstructionMap::OP_SENDCONFIG)
+    return FlitMetadata(immediate()).endOfPacket;
+  else
+    return endOfPacket_;
 }
 
 const inst_name_t& DecodedInst::name() const {

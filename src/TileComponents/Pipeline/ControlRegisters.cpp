@@ -39,8 +39,6 @@ void ControlRegisters::write(RegisterIndex reg, int32_t value) {
 
   registers[reg] = value;
 
-  // TODO: reset counters if we're changing count configuration?
-
   if ((reg == CR_COUNT0_CONFIG || reg == CR_COUNT1_CONFIG) &&
       (value == CFG_COUNT_CYCLES))
     startCycleCount.notify();

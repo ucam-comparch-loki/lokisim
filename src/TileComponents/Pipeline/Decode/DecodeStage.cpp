@@ -91,101 +91,6 @@ void         DecodeStage::persistentInstruction(DecodedInst& inst) {
 
 }
 
-/*
-void DecodeStage::execute2() {
-  // No matter which state we are in, we must stall if there is no room in the
-  // output pipeline register.
-  if (!canSendInstruction()) {
-    waitingToSend = true;
-    next_trigger(canSendEvent());
-    return;
-  }
-  else
-    waitingToSend = false;
-
-  // In an attempt to speed up simulation, we split decoding into several
-  // sections, each of which could require the pipeline to stall.
-  // This avoids the need for expensive SC_THREADs, and reduces the amount of
-  // work which must be repeated after stalling.
-  switch (state) {
-
-    case INIT:
-      state = NEW_INSTRUCTION;
-      next_trigger(newInstructionEvent);
-      break;
-
-    // All the one-off computation required when a new instruction arrives.
-    case NEW_INSTRUCTION:
-      if (DEBUG) cout << decoder.name() << " received Instruction: "
-                      << currentInst << endl;
-
-      if (startingNewPacket)
-        parent()->updateCurrentPacket(currentInst.location());
-      startingNewPacket = currentInst.endOfIPK();
-
-      decoder.initialise(currentInst);
-      state = DECODE;
-      // fall through to next case
-
-    // Some operations (e.g. stores) produce more than one output. Loop until
-    // all output has been sent to the next pipeline stage.
-    case DECODE:
-      decoder.decode();
-      state = WAIT_FOR_OPERANDS;
-      // fall through to next case
-
-    // Loop while we wait for all operands to arrive. (Some may be coming from
-    // the network.) This could also be used if there are not enough ports on
-    // the register file, and we need to wait to read another value.
-    case WAIT_FOR_OPERANDS:
-      decoder.collectOperands();
-
-      // If we do not have all operands, next_trigger will have been set so
-      // that this method is called again when an operand arrives.
-      if (!decoder.allOperandsReady())
-        break;
-      else
-        state = SEND_RESULT;
-        // fall through to next case
-
-    case SEND_RESULT:
-      if (decoder.hasOutput()) {
-        DecodedInst output = decoder.getOutput();
-        readChannelMapTable(output);
-        outputInstruction(output);
-
-        // If the decoder is ready, it has produced all output, and is
-        // waiting for the next instruction. Otherwise, there is more output,
-        // so wait until the next cycle.
-        if (decoder.ready()) {
-          instructionCompleted();
-          decoder.instructionFinished();
-          state = NEW_INSTRUCTION;
-          next_trigger(newInstructionEvent);
-        }
-        else {
-          state = DECODE;
-          next_trigger(clock.posedge_event());
-        }
-      }
-      else {
-        instructionCompleted();
-        decoder.instructionFinished();
-        state = NEW_INSTRUCTION;
-        next_trigger(newInstructionEvent);
-      }
-
-      break;
-
-    // There are no other states.
-    default:
-      assert(false);
-      break;
-
-  } // end switch
-}
-*/
-
 void         DecodeStage::newInput(DecodedInst& inst) {
   if (DEBUG) cout << decoder.name() << " received Instruction: "
                   << inst << endl;
@@ -209,10 +114,25 @@ void         DecodeStage::newInput(DecodedInst& inst) {
     // read from it after the writes have completed.
     wait(sc_core::SC_ZERO_TIME);
 
-    readChannelMapTable(inst);
+    bool usefulOutput;
 
-    // Some instructions don't produce any output, or won't be executed.
-    bool usefulOutput = decoder.decodeInstruction(inst, decoded);
+    // If we are in remote execution mode, send this instruction without
+    // executing it.
+    if (rmtexecuteChannel != Instruction::NO_CHANNEL) {
+      decoded = inst;
+      remoteExecute(decoded);
+
+      // Drop out of remote execution mode at the end of the packet.
+      if (inst.endOfIPK())
+        endRemoteExecution();
+
+      usefulOutput = true;
+    }
+    // Otherwise, pass the instruction through the decoder.
+    else {
+      readChannelMapTable(inst);
+      usefulOutput = decoder.decodeInstruction(inst, decoded);
+    }
 
     // Send the output, if there is any.
     if (usefulOutput) {
@@ -259,18 +179,28 @@ bool         DecodeStage::predicate(const DecodedInst& inst) const {
 }
 
 void         DecodeStage::readChannelMapTable(DecodedInst& inst) {
-  MapIndex channel = inst.channelMapEntry();
+  if (previousChannelValid) {
+    inst.cmtEntry(previousChannel);
+  }
+  else {
+    MapIndex channel = inst.channelMapEntry();
 
-  if (channel == Instruction::NO_CHANNEL)
-    return;
+    if (channel == Instruction::NO_CHANNEL)
+      return;
 
-  ChannelMapEntry& cmtEntry = channelMapTableEntry(channel);
-  ChannelID destination = cmtEntry.getDestination();
+    ChannelMapEntry& cmtEntry = channelMapTableEntry(channel);
+    ChannelID destination = cmtEntry.getDestination();
 
-  if (destination.isNullMapping())
-    return;
+    if (destination.isNullMapping())
+      return;
 
-  inst.cmtEntry(cmtEntry.read());
+    inst.cmtEntry(cmtEntry.read());
+    previousChannel = cmtEntry.read();
+  }
+
+  // We will want to reuse the value we read if this is not the last flit in
+  // the packet.
+  previousChannelValid = !inst.endOfNetworkPacket();
 }
 
 // Not const because of the wait().
@@ -301,6 +231,40 @@ void DecodeStage::waitOnCredits(DecodedInst& inst) {
 
 ChannelMapEntry& DecodeStage::channelMapTableEntry(MapIndex entry) const {
   return core()->channelMapTable[entry];
+}
+
+void         DecodeStage::startRemoteExecution(const DecodedInst& inst) {
+  // TODO: use the same previousChannel as multi-flit operations
+  rmtexecuteChannel = inst.channelMapEntry();
+  rmtexecuteCMT = inst.cmtEntry();
+
+  if (DEBUG)
+    cout << this->name() << " beginning remote execution" << endl;
+}
+
+void         DecodeStage::endRemoteExecution() {
+  rmtexecuteChannel = Instruction::NO_CHANNEL;
+  if (DEBUG) cout << this->name() << " ending remote execution" << endl;
+}
+
+void         DecodeStage::remoteExecute(DecodedInst& instruction) const {
+  // "Re-encode" the instruction so it can be sent. In practice, it wouldn't
+  // have been decoded yet, so there would be no extra work here.
+  Instruction encoded = instruction.toInstruction();
+
+  // The data to be sent is the instruction itself.
+  instruction.result(encoded.toLong());
+  instruction.channelMapEntry(rmtexecuteChannel);
+  instruction.cmtEntry(rmtexecuteCMT);
+
+  // Would ideally like network packet to mirror instruction packet, but this
+  // can block us from sending a request for the next cache line of the packet.
+  instruction.endOfNetworkPacket(true);
+
+  // Prevent other stages from trying to execute this instruction.
+  instruction.predicate(Instruction::ALWAYS);
+  instruction.opcode(InstructionMap::OP_OR);
+  instruction.destination(0);
 }
 
 int32_t      DecodeStage::readRCET(ChannelIndex index) {
@@ -401,6 +365,11 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
 
   startingNewPacket = true;
   waitingToSend = false;
+  rmtexecuteChannel = Instruction::NO_CHANNEL;
+  rmtexecuteCMT = 0;
+
+  previousChannel = 0;
+  previousChannelValid = false;
 
   iData.init(NUM_RECEIVE_CHANNELS);
   oFlowControl.init(NUM_RECEIVE_CHANNELS);
@@ -418,8 +387,6 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
 
   SC_THREAD(execute);
   // TODO - eliminate SC_THREADs
-  state = INIT;
-//  SC_METHOD(execute2);
 
   SC_METHOD(updateReady);
   sensitive << decoder.stalledEvent();
