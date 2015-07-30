@@ -371,7 +371,7 @@ void Decoder::waitForOperands(const DecodedInst& dec) {
   if (InstructionMap::hasSrcReg1(dec.opcode())) {
     if (Registers::isChannelEnd(dec.sourceReg1()))
       waitUntilArrival(Registers::toChannelID(dec.sourceReg1()), dec);
-    if (!dec.isExecuteStageOperation() && !dec.isMemoryOperation() && (dec.sourceReg1() == previous.destination())) {
+    if (dec.isDecodeStageOperation() && (dec.sourceReg1() == previous.destination())) {
       stall(true, Instrumentation::Stalls::STALL_FORWARDING, dec);
       // HACK! May take multiple cycles. FIXME
       // Add an extra 0.1 cycles to ensure that the result is ready for forwarding.
@@ -554,8 +554,7 @@ bool Decoder::shouldExecute(const DecodedInst& inst) {
 
   // Predicated instructions which complete in this pipeline stage and
   // which may access channel data.
-  if ((!inst.isExecuteStageOperation() && !inst.isMemoryOperation()) ||
-      isFetch(inst.opcode()) ||
+  if (inst.isDecodeStageOperation() ||
       Registers::isChannelEnd(inst.sourceReg1()) ||
       Registers::isChannelEnd(inst.sourceReg2())) {
     short predBits = inst.predicate();
@@ -579,8 +578,7 @@ bool Decoder::needPredicateNow(const DecodedInst& inst) const {
     case InstructionMap::OP_PSEL_FETCHR:
       return true;
     default: {
-      bool irreversible = (!inst.isExecuteStageOperation() && !inst.isMemoryOperation()) ||
-                          isFetch(inst.opcode()) ||
+      bool irreversible = inst.isDecodeStageOperation() ||
                           Registers::isChannelEnd(inst.sourceReg1()) ||
                           Registers::isChannelEnd(inst.sourceReg2());
       return inst.predicated() && irreversible;

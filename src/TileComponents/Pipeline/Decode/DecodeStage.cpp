@@ -244,7 +244,9 @@ void         DecodeStage::startRemoteExecution(const DecodedInst& inst) {
 
 void         DecodeStage::endRemoteExecution() {
   rmtexecuteChannel = Instruction::NO_CHANNEL;
-  if (DEBUG) cout << this->name() << " ending remote execution" << endl;
+
+  if (DEBUG)
+    cout << this->name() << " ending remote execution" << endl;
 }
 
 void         DecodeStage::remoteExecute(DecodedInst& instruction) const {

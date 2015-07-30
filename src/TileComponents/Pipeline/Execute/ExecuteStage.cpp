@@ -240,7 +240,7 @@ void ExecuteStage::sendOutput() {
     // In practice, this would be performed by a separate, small functional
     // unit in parallel with the main ALU, so that there is time left to request
     // a path to memory.
-    if (currentInst.isMemoryOperation())
+    if (currentInst.networkDestination().isMemory())
       adjustNetworkAddress(currentInst);
 
     // Send the data to the output buffer - it will arrive immediately so that
@@ -263,7 +263,7 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
 }
 
 void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
-  assert(inst.isMemoryOperation());
+  assert(inst.networkDestination().isMemory());
 
   bool addressFlit;
 

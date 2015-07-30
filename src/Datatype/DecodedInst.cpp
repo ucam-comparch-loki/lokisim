@@ -97,6 +97,30 @@ const bool    DecodedInst::hasImmediate() const {
   return InstructionMap::hasImmediate(opcode_);
 }
 
+const bool    DecodedInst::isDecodeStageOperation() const {
+  switch (opcode_) {
+    case InstructionMap::OP_RMTNXIPK:
+    case InstructionMap::OP_RMTEXECUTE:
+    case InstructionMap::OP_PSEL_FETCH:
+    case InstructionMap::OP_PSEL_FETCHR:
+    case InstructionMap::OP_FETCH:
+    case InstructionMap::OP_FETCHR:
+    case InstructionMap::OP_FETCHPST:
+    case InstructionMap::OP_FETCHPSTR:
+    case InstructionMap::OP_FILL:
+    case InstructionMap::OP_FILLR:
+    case InstructionMap::OP_IBJMP:
+    case InstructionMap::OP_IRDR:
+    case InstructionMap::OP_WOCHE:
+    case InstructionMap::OP_SELCH:
+    case InstructionMap::OP_TSTCHI:
+    case InstructionMap::OP_TSTCHI_P:
+      return true;
+    default:
+      return false;
+  }
+}
+
 const bool    DecodedInst::isExecuteStageOperation() const {
   switch (opcode_) {
     case InstructionMap::OP_SCRATCHRD:
@@ -114,10 +138,6 @@ const bool    DecodedInst::isExecuteStageOperation() const {
     default:
       return InstructionMap::isALUOperation(opcode_);
   }
-}
-
-const bool    DecodedInst::isMemoryOperation() const {
-  return networkDestination().isMemory();
 }
 
 const bool    DecodedInst::endOfIPK() const {
