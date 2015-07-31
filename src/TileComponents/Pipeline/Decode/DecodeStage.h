@@ -108,6 +108,11 @@ private:
   // Retrieve the instruction's network destination from the channel map table,
   // if appropriate.
   void           readChannelMapTable(DecodedInst& inst);
+
+  // Determine whether the given instruction's network communication is the
+  // first flit of a packet.
+  bool           firstFlitOfPacket(DecodedInst& inst);
+
   void           waitOnCredits(DecodedInst& inst);
   ChannelMapEntry& channelMapTableEntry(MapIndex entry) const;
 
@@ -164,15 +169,10 @@ private:
 
   bool waitingToSend;
 
-  // The remote channel we are sending instructions to.
-  // Set to Instruction::NO_CHANNEL if we are not sending instructions.
-  ChannelIndex rmtexecuteChannel;
-  EncodedCMTEntry rmtexecuteCMT;
-
   // Store the channel information used previously in case we need to send a
   // whole packet of information.
-  EncodedCMTEntry previousChannel;
-  bool previousChannelValid;
+  EncodedCMTEntry previousCMTData;
+  ChannelIndex rmtexecuteChannel;
 
 };
 

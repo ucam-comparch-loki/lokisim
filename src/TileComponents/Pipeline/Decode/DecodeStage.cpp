@@ -179,28 +179,34 @@ bool         DecodeStage::predicate(const DecodedInst& inst) const {
 }
 
 void         DecodeStage::readChannelMapTable(DecodedInst& inst) {
-  if (previousChannelValid) {
-    inst.cmtEntry(previousChannel);
-  }
-  else {
-    MapIndex channel = inst.channelMapEntry();
+  MapIndex channel = inst.channelMapEntry();
+  if (channel == Instruction::NO_CHANNEL)
+    return;
 
-    if (channel == Instruction::NO_CHANNEL)
-      return;
+  ChannelMapEntry& cmtEntry = channelMapTableEntry(channel);
+  ChannelID destination = cmtEntry.getDestination();
+  if (destination.isNullMapping())
+    return;
 
-    ChannelMapEntry& cmtEntry = channelMapTableEntry(channel);
-    ChannelID destination = cmtEntry.getDestination();
-
-    if (destination.isNullMapping())
-      return;
-
+  // If this is the first flit of a packet, we must read the channel map table.
+  if (firstFlitOfPacket(inst)) {
+    if (DEBUG)
+      cout << this->name() << " reading CMT data 0x" << std::hex << cmtEntry.read() << std::dec << endl;
     inst.cmtEntry(cmtEntry.read());
-    previousChannel = cmtEntry.read();
+    previousCMTData = cmtEntry.read();
   }
+  // Otherwise, we can reuse the data we read last time.
+  else {
+    if (DEBUG)
+      cout << this->name() << " reusing CMT data 0x" << std::hex << previousCMTData << std::dec << endl;
+    inst.cmtEntry(previousCMTData);
+  }
+}
 
-  // We will want to reuse the value we read if this is not the last flit in
-  // the packet.
-  previousChannelValid = !inst.endOfNetworkPacket();
+bool         DecodeStage::firstFlitOfPacket(DecodedInst& inst) {
+  bool memoryHeader = (inst.memoryOp() != PAYLOAD) && (inst.memoryOp() != PAYLOAD_EOP);
+  bool coreHeader = inst.opcode() == InstructionMap::OP_RMTEXECUTE;
+  return memoryHeader || coreHeader;
 }
 
 // Not const because of the wait().
@@ -234,9 +240,7 @@ ChannelMapEntry& DecodeStage::channelMapTableEntry(MapIndex entry) const {
 }
 
 void         DecodeStage::startRemoteExecution(const DecodedInst& inst) {
-  // TODO: use the same previousChannel as multi-flit operations
   rmtexecuteChannel = inst.channelMapEntry();
-  rmtexecuteCMT = inst.cmtEntry();
 
   if (DEBUG)
     cout << this->name() << " beginning remote execution" << endl;
@@ -257,7 +261,7 @@ void         DecodeStage::remoteExecute(DecodedInst& instruction) const {
   // The data to be sent is the instruction itself.
   instruction.result(encoded.toLong());
   instruction.channelMapEntry(rmtexecuteChannel);
-  instruction.cmtEntry(rmtexecuteCMT);
+  instruction.cmtEntry(previousCMTData);
 
   // Would ideally like network packet to mirror instruction packet, but this
   // can block us from sending a request for the next cache line of the packet.
@@ -367,11 +371,9 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
 
   startingNewPacket = true;
   waitingToSend = false;
-  rmtexecuteChannel = Instruction::NO_CHANNEL;
-  rmtexecuteCMT = 0;
 
-  previousChannel = 0;
-  previousChannelValid = false;
+  previousCMTData = 0;
+  rmtexecuteChannel = Instruction::NO_CHANNEL;
 
   iData.init(NUM_RECEIVE_CHANNELS);
   oFlowControl.init(NUM_RECEIVE_CHANNELS);

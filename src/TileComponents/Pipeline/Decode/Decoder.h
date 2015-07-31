@@ -63,6 +63,10 @@ public:
   // table, the ALU, the register file, or the sign extender.
   void setOperand2(DecodedInst& dec);
 
+  // Determine whether the current instruction should be executed, based on its
+  // predicate bits, and the contents of the predicate register.
+  bool shouldExecute(const DecodedInst& inst);
+
 protected:
 
   virtual void reportStalls(ostream& os);
@@ -86,10 +90,6 @@ private:
   // Returns whether we expect data arriving at a particular buffer to be coming
   // from memory. ChannelIndex 0 is mapped to r2.
   bool connectionFromMemory(ChannelIndex buffer) const;
-
-  // Determine whether the current instruction should be executed, based on its
-  // predicate bits, and the contents of the predicate register.
-  bool shouldExecute(const DecodedInst& inst);
 
   // Determine whether the given opcode may result in a fetch request being sent.
   bool isFetch(opcode_t opcode) const;
