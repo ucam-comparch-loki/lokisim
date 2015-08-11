@@ -196,7 +196,7 @@ bool MemoryBank::processMessageHeader(const NetworkRequest& request) {
 	case LOAD_AND_OR:
 	case LOAD_AND_XOR:
 	case EXCHANGE:
-	  if (mBackgroundMemory->readOnly(mActiveData.Address))
+	  if (checkTags() && mBackgroundMemory->readOnly(mActiveData.Address))
 	    throw ReadOnlyException(mActiveData.Address);
 	  getCacheLine(mActiveData.Address, false, true, true, false);
 	  break;
@@ -205,7 +205,7 @@ bool MemoryBank::processMessageHeader(const NetworkRequest& request) {
 	case STORE_HW:
 	case STORE_B:
 	case STORE_CONDITIONAL:
-	  if (mBackgroundMemory->readOnly(mActiveData.Address))
+	  if (checkTags() && mBackgroundMemory->readOnly(mActiveData.Address))
 	    throw ReadOnlyException(mActiveData.Address);
     getCacheLine(mActiveData.Address, false, true, false, false);
 		break;

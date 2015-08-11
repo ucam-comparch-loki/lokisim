@@ -15,6 +15,7 @@
 #include "Trace/SoftwareTrace.h"
 #include "Trace/LBTTrace.h"
 #include "../Chip.h"
+#include "Warnings.h"
 
 bool Arguments::simulate_ = true;
 string Arguments::simulator_ = "";
@@ -61,12 +62,7 @@ void Arguments::parse(int argc, char* argv[]) {
   else
     assert(false && "Unable to determine simulator location.");
 
-
-  if (argc == 1) {
-    printHelp();
-    simulate_ = false;
-  }
-
+  // Parse arguments.
   for (int i=1; i<argc; i++) {
     string argument(argv[i]);
     if (argument == "-debug") {
@@ -157,6 +153,9 @@ void Arguments::parse(int argc, char* argv[]) {
       DEBUG = 0;
       silent_ = true;
     }
+    else if (argument.substr(0, 2) == "-W") {
+      setWarning(argument.substr(2));
+    }
     else if (argument == "--args") {
       // Pass command line options to the simulated program.
       programArgc = argc - i;
@@ -168,7 +167,7 @@ void Arguments::parse(int argc, char* argv[]) {
       simulate_ = false;
       break;
     }
-    else if (argument[0] == '-' && argument[1] == 'P') {
+    else if (argument.substr(0, 2) == "-P") {
       // Use "-Pparam=value" to set a parameter on the command line.
       string parameter = argument.substr(2);
       vector<string>& parts = StringManipulation::split(parameter, '=');
@@ -177,9 +176,24 @@ void Arguments::parse(int argc, char* argv[]) {
       parameterValues.push_back(parts[1]);
       delete &parts;
     }
+    else if (argument[0] != '-') {
+      // This isn't a simulator flag - this argument is the executable, and
+      // all the following are its arguments.
+      DEBUG = 0;
+      programFiles.push_back(argument);
+      programArgc = argc - i;
+      programArgv = argv + i;
+      break;
+    }
     else {
       cerr << "Warning: unrecognised argument: " << argument << endl;
     }
+  }
+
+  // Bail out if we have nothing to simulate.
+  if (simulate_ && programFiles.empty() && !Debugger::usingDebugger) {
+    printHelp();
+    simulate_ = false;
   }
 
   // There is a default settings file in the config directory.
@@ -302,6 +316,7 @@ void Arguments::printHelp() {
     "  -insttrace\n\tPrint the text form of each instruction executed to stdout\n"
     "  -instaddrtrace\n\tPrint the address of each instruction executed to stdout\n"
     "  -Pparameter=value\n\tSet a named parameter to a particular value\n"
+    "  -Wwarning=value\n\tSwitch on/off a named warning\n"
     "  --args [...]\n\tPass all remaining arguments to the simulated program\n"
     "  --help\n\tDisplay this information and exit\n"
     << endl;

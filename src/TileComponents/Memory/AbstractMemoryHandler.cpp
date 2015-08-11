@@ -7,6 +7,7 @@
 
 #include "AbstractMemoryHandler.h"
 #include "../../Utility/Parameters.h"
+#include "../../Utility/Warnings.h"
 
 #include <cassert>
 #include <vector>
@@ -52,15 +53,17 @@ AbstractMemoryHandler::~AbstractMemoryHandler() {
 }
 
 uint32_t AbstractMemoryHandler::readWord(SRAMAddress address) {
-  if ((address & 0x3) != 0)
-    throw UnalignedAccessException(address, 4);
+  if (WARN_UNALIGNED && (address & 0x3) != 0)
+    std::cerr << "Warning: Attempting to access address 0x" << std::hex << address
+        << std::dec << " with alignment 4." << std::endl;
 
   return mData[address/4];
 }
 
 uint32_t AbstractMemoryHandler::readHalfWord(SRAMAddress address) {
-  if ((address & 0x1) != 0)
-    throw UnalignedAccessException(address, 2);
+  if (WARN_UNALIGNED && (address & 0x1) != 0)
+    std::cerr << "Warning: Attempting to access address 0x" << std::hex << address
+        << std::dec << " with alignment 2." << std::endl;
 
   uint32_t fullWord = readWord(address & ~0x3);
   return ((address & 0x3) == 0) ? (fullWord & 0xFFFFUL) : (fullWord >> 16); // Little endian
@@ -81,15 +84,17 @@ uint32_t AbstractMemoryHandler::readByte(SRAMAddress address) {
 
 
 void AbstractMemoryHandler::writeWord(SRAMAddress address, uint32_t data) {
-  if ((address & 0x3) != 0)
-    throw UnalignedAccessException(address, 4);
+  if (WARN_UNALIGNED && (address & 0x3) != 0)
+    std::cerr << "Warning: Attempting to access address 0x" << std::hex << address
+        << std::dec << " with alignment 4." << std::endl;
 
   mData[address/4] = data;
 }
 
 void AbstractMemoryHandler::writeHalfWord(SRAMAddress address, uint32_t data) {
-  if ((address & 0x1) != 0)
-    throw UnalignedAccessException(address, 2);
+  if (WARN_UNALIGNED && (address & 0x1) != 0)
+    std::cerr << "Warning: Attempting to access address 0x" << std::hex << address
+        << std::dec << " with alignment 2." << std::endl;
 
   uint32_t oldData = readWord(address & ~0x3);
   uint32_t newData;
