@@ -315,7 +315,7 @@ void DecodedInst::init() {
   channelMapEntry_  = 0;
   predicate_        = static_cast<predicate_t>(0);
   setsPred_         = false;
-  memoryOp_         = MemoryOperation::NONE;  // non-zero
+  memoryOp_         = MemoryOperation::LOAD_W;  // non-zero
   op1Source_        = OperandSource::NONE;
   op2Source_        = OperandSource::NONE;
   operand1_         = 0;
