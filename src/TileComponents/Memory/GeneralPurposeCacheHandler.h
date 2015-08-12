@@ -29,8 +29,6 @@ private:
 	//---------------------------------------------------------------------------------------------
 
 	const bool cRandomReplacement;// Replace random cache lines (instead of using ideal LRU scheme)
-	const uint cCacheLines;       // Number of cache lines in this memory bank
-	const uint cIndexBits;        // Bits required to index a cache line slot (log2(lines in bank))
 
 
 	//---------------------------------------------------------------------------------------------
@@ -51,21 +49,12 @@ private:
 	// Internal functions
 	//---------------------------------------------------------------------------------------------
 
-	// The cache line slot in which this address will be, if stored locally.
-	// If modelling an associative cache, returns the first of a set of adjacent lines.
-	uint getSlot(MemoryAddr address) const;
-
 	bool lookupCacheLine(MemoryAddr address, uint &slot, bool resume, bool read, bool instruction);
 	void promoteCacheLine(uint slot);
-
-	SRAMAddress getLine(SRAMAddress address) const;
-	SRAMAddress getOffset(SRAMAddress address) const;
 
 public:
 	GeneralPurposeCacheHandler(uint bankNumber, vector<uint32_t>& data);
 	~GeneralPurposeCacheHandler();
-
-  CacheLookup lookupCacheLine(MemoryAddr address) const;
 
   virtual uint32_t readWord(SRAMAddress address);
   virtual uint32_t readHalfWord(SRAMAddress address);
@@ -75,9 +64,10 @@ public:
   virtual void writeHalfWord(SRAMAddress address, uint32_t data);
   virtual void writeByte(SRAMAddress address, uint32_t data);
 
-	CacheLookup prepareCacheLine(MemoryAddr address, CacheLineBuffer& lineBuffer, bool isRead, bool isInstruction);
-	void replaceCacheLine(CacheLineBuffer& buffer, SRAMAddress position);
-	void fillCacheLineBuffer(MemoryAddr address, CacheLineBuffer& buffer);
+  virtual CacheLookup lookupCacheLine(MemoryAddr address) const;
+	virtual CacheLookup prepareCacheLine(MemoryAddr address, CacheLineBuffer& lineBuffer, bool isRead, bool isInstruction);
+	virtual void replaceCacheLine(CacheLineBuffer& buffer, SRAMAddress position);
+	virtual void fillCacheLineBuffer(MemoryAddr address, CacheLineBuffer& buffer);
 };
 
 #endif /* GENERALPURPOSECACHEHANDLER_H_ */

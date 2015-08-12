@@ -12,9 +12,10 @@
 #define ABSTRACTMEMORYHANDLER_H_
 
 #include <vector>
+#include "../../Datatype/Identifier.h"
 #include "../../Typedefs.h"
 #include "MemoryTypedefs.h"
-#include "../../Datatype/Identifier.h"
+#include "CacheLineBuffer.h"
 
 using std::vector;
 
@@ -27,6 +28,9 @@ protected:
   uint mSetCount;             // Number of sets in general purpose cache mode
   uint mWayCount;             // Number of ways in general purpose cache mode
   uint mLineSize;             // Size of lines (for cache management and data interleaving)
+
+  const uint cCacheLines;     // Number of cache lines in this memory bank
+  const uint cIndexBits;      // Bits required to index a cache line slot (log2(lines in bank))
 
   //---------------------------------------------------------------------------------------------
   // State
@@ -49,11 +53,16 @@ public:
   AbstractMemoryHandler(uint bankNumber, vector<uint32_t>& data);
   virtual ~AbstractMemoryHandler();
 
-  // Data access operations. Return value is whether the access was a hit.
-  // Any data to be returned is passed through the reference &data.
-  //   instruction = is this an instruction access? (For statistics only.)
-  //   resume      = is this a resumed operation after a cache miss? (Cache mode only.)
-  //   debug       = should this operation be logged in the execution statistics?
+  // Mappings between memory addresses and SRAM locations.
+
+  // The cache line slot in which this address will be, if stored locally.
+  // If modelling an associative cache, returns the first of a set of adjacent lines.
+  uint getSlot(MemoryAddr address) const;
+
+  SRAMAddress getLine(SRAMAddress address) const;
+  SRAMAddress getOffset(SRAMAddress address) const;
+
+  // Data access operations.
 
   virtual uint32_t readWord(SRAMAddress address);
   virtual uint32_t readHalfWord(SRAMAddress address);
@@ -62,6 +71,13 @@ public:
   virtual void writeWord(SRAMAddress address, uint32_t data);
   virtual void writeHalfWord(SRAMAddress address, uint32_t data);
   virtual void writeByte(SRAMAddress address, uint32_t data);
+
+  // Cache line operations.
+
+  virtual CacheLookup lookupCacheLine(MemoryAddr address) const = 0;
+  virtual CacheLookup prepareCacheLine(MemoryAddr address, CacheLineBuffer& lineBuffer, bool isRead, bool isInstruction) = 0;
+  virtual void replaceCacheLine(CacheLineBuffer& buffer, SRAMAddress position) = 0;
+  virtual void fillCacheLineBuffer(MemoryAddr address, CacheLineBuffer& buffer) = 0;
 };
 
 #endif /* ABSTRACTMEMORYHANDLER_H_ */

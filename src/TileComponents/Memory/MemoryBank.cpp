@@ -220,7 +220,7 @@ bool MemoryBank::processMessageHeader(const NetworkRequest& request) {
 
 void MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool required, bool isRead, bool isInstruction) {
   MemoryAddr tag = getTag(address);
-  CacheLookup info = mGeneralPurposeCacheHandler.prepareCacheLine(address, mCacheLineBuffer, isRead, isInstruction);
+  CacheLookup info = currentMemoryHandler().prepareCacheLine(address, mCacheLineBuffer, isRead, isInstruction);
 
   Instrumentation::MemoryBank::startOperation(cBankNumber,
                                               mActiveData.Request.getMemoryMetadata().opcode,
@@ -615,7 +615,7 @@ uint32_t MemoryBank::getDataToStore() {
 }
 
 void MemoryBank::prepareCacheLineBuffer(MemoryAddr address) {
-  mGeneralPurposeCacheHandler.fillCacheLineBuffer(getTag(address), mCacheLineBuffer);
+  currentMemoryHandler().fillCacheLineBuffer(getTag(address), mCacheLineBuffer);
 }
 
 uint32_t MemoryBank::readFromCacheLineBuffer() {
@@ -652,7 +652,7 @@ void MemoryBank::writeToCacheLineBuffer(uint32_t data) {
 }
 
 void MemoryBank::replaceCacheLine() {
-  mGeneralPurposeCacheHandler.replaceCacheLine(mCacheLineBuffer, mActiveData.Position);
+  currentMemoryHandler().replaceCacheLine(mCacheLineBuffer, mActiveData.Position);
 
   // Invalidate any atomic transactions relying on the overwritten data.
   mReservations.clearReservationRange(mCacheLineBuffer.getTag(), mCacheLineBuffer.getTag()+CACHE_LINE_BYTES);

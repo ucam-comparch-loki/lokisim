@@ -25,26 +25,6 @@
 #include "SimplifiedOnChipScratchpad.h"
 
 
-uint GeneralPurposeCacheHandler::getSlot(MemoryAddr address) const {
-  // Memory address contains:
-  // | tag | index | bank | offset |
-  //  * offset = 5 bits (32 byte cache line)
-  //  * index + offset = log2(bytes in bank) bits
-  //  * bank = up to 3 bits used to choose which bank to access
-  //  * tag = any bits remaining
-  //
-  // Since the number of bank bits is variable, but we don't want to move the
-  // index bits around or change the size of the tag field, we hash the maximum
-  // number of bank bits in with a fixed-position index field. Note that these
-  // overlapping bits must now also be included in the tag.
-
-//  uint setIndex = (address & mSetMask) >> mSetShift;
-//  return setIndex * mWayCount;
-  uint bank = (address >> 5) & 0x7;
-  uint index = (address >> 8) & ((1 << cIndexBits) - 1);
-  uint slot = index ^ (bank << (cIndexBits - 3)); // Hash bank into the upper bits
-  return slot;
-}
 
 CacheLookup GeneralPurposeCacheHandler::lookupCacheLine(MemoryAddr address) const {
   MemoryTag tag = address & ~mLineMask;
@@ -122,21 +102,9 @@ void GeneralPurposeCacheHandler::promoteCacheLine(uint slot) {
 	}
 }
 
-SRAMAddress GeneralPurposeCacheHandler::getLine(SRAMAddress address) const {
-  // Cache line = 32 bytes = 2^5 bytes.
-  return address >> 5;
-}
-
-SRAMAddress GeneralPurposeCacheHandler::getOffset(SRAMAddress address) const {
-  // Cache line = 32 bytes = 2^5 bytes.
-  return (address & 0x1F);
-}
-
 GeneralPurposeCacheHandler::GeneralPurposeCacheHandler(uint bankNumber, vector<uint32_t>& data) :
     AbstractMemoryHandler(bankNumber, data),
-    cRandomReplacement(MEMORY_CACHE_RANDOM_REPLACEMENT != 0),
-    cCacheLines(MEMORY_BANK_SIZE / (CACHE_LINE_WORDS * BYTES_PER_WORD)),
-    cIndexBits(log2Exact(cCacheLines)) {
+    cRandomReplacement(MEMORY_CACHE_RANDOM_REPLACEMENT != 0) {
 
 	//-- State ------------------------------------------------------------------------------------
 

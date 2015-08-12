@@ -31,6 +31,11 @@ class ScratchpadModeHandler : public AbstractMemoryHandler {
 public:
 	ScratchpadModeHandler(uint bankNumber, vector<uint32_t>& data);
 	~ScratchpadModeHandler();
+
+	virtual CacheLookup lookupCacheLine(MemoryAddr address) const;
+  virtual CacheLookup prepareCacheLine(MemoryAddr address, CacheLineBuffer& lineBuffer, bool isRead, bool isInstruction);
+  virtual void replaceCacheLine(CacheLineBuffer& buffer, SRAMAddress position);
+  virtual void fillCacheLineBuffer(MemoryAddr address, CacheLineBuffer& buffer);
 };
 
 #endif /* SCRATCHPADMODEHANDLER_H_ */

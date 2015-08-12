@@ -41,3 +41,27 @@ ScratchpadModeHandler::ScratchpadModeHandler(uint bankNumber, vector<uint32_t>& 
 ScratchpadModeHandler::~ScratchpadModeHandler() {
   // Do nothing
 }
+
+
+CacheLookup ScratchpadModeHandler::lookupCacheLine(MemoryAddr address) const {
+  CacheLookup info;
+  info.Hit = true;
+  info.SRAMLine = getSlot(address);
+  info.FlushRequired = false;
+
+  return info;
+}
+
+CacheLookup ScratchpadModeHandler::prepareCacheLine(MemoryAddr address, CacheLineBuffer& lineBuffer, bool read, bool instruction) {
+  // There are no cache misses, so the line is already in the cache.
+  return lookupCacheLine(address);
+}
+
+void ScratchpadModeHandler::replaceCacheLine(CacheLineBuffer& buffer, SRAMAddress position) {
+  buffer.flush(&mData[position / 4]);
+}
+
+void ScratchpadModeHandler::fillCacheLineBuffer(MemoryAddr address, CacheLineBuffer& buffer) {
+  CacheLookup location = lookupCacheLine(address);
+  buffer.fill(address, &mData[location.SRAMLine * mLineSize / 4]);
+}
