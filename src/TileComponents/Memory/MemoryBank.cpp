@@ -171,11 +171,14 @@ bool MemoryBank::processMessageHeader(const NetworkRequest& request) {
     getCacheLine(mActiveData.Address, false, true, true, false);
     break;
 
-	case FLUSH_LINE:
+	case FLUSH_LINE: {
     if (ENERGY_TRACE)
       Instrumentation::MemoryBank::initiateBurstRead(cBankNumber);
-    getCacheLine(mActiveData.Address, false, false, true, false);
+    bool cached = getCacheLine(mActiveData.Address, false, false, true, false);
+    if (cached)
+      currentMemoryHandler().fillCacheLineBuffer(mActiveData.Address, mCacheLineBuffer);
     break;
+	}
 
 	case STORE_LINE:
 	case MEMSET_LINE:
@@ -218,7 +221,7 @@ bool MemoryBank::processMessageHeader(const NetworkRequest& request) {
 	return true;
 }
 
-void MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool required, bool isRead, bool isInstruction) {
+bool MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool required, bool isRead, bool isInstruction) {
   MemoryAddr tag = getTag(address);
   CacheLookup info = currentMemoryHandler().prepareCacheLine(address, mCacheLineBuffer, isRead, isInstruction);
 
@@ -237,7 +240,7 @@ void MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool required, 
   if (mCallbackData.State != STATE_IDLE &&
       sameCacheLine(mCallbackData.Address, mActiveData.Address)) {
     mActiveData.Position = getTag(mCallbackData.Position) + getOffset(address);
-    return;
+    return info.Hit;
   }
   else
     mActiveData.Position = info.SRAMLine*CACHE_LINE_WORDS*BYTES_PER_WORD + getOffset(address);
@@ -248,7 +251,7 @@ void MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool required, 
     // present (e.g. FLUSH_LINE).
     if (!required) {
       mActiveData.Complete = true;
-      return;
+      return info.Hit;
     }
 
     // If we need to flush or fetch a line, put aside the current operation.
@@ -280,6 +283,8 @@ void MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool required, 
 
     mActiveData.Complete = !validate || info.FlushRequired;
   }
+
+  return info.Hit;
 }
 
 void MemoryBank::processLocalMemoryAccess() {

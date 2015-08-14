@@ -181,7 +181,8 @@ private:
 	//   validate = don't fetch the line - it will be received by other means
 	//   required = if the cache line is not already in the cache, do nothing
 	//   isRead, isInstruction = the type of memory access, used for debug
-	void getCacheLine(MemoryAddr address, bool validate, bool required, bool isRead, bool isInstruction);
+	// Returns whether the line was already stored locally.
+	bool getCacheLine(MemoryAddr address, bool validate, bool required, bool isRead, bool isInstruction);
 
 	// Main function, farms work out to handlers below.
 	void processLocalMemoryAccess();
