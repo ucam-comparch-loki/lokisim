@@ -177,8 +177,18 @@ bool MemoryBank::processMessageHeader(const NetworkRequest& request) {
     bool cached = getCacheLine(mActiveData.Address, false, false, true, false);
     if (cached)
       currentMemoryHandler().fillCacheLineBuffer(mActiveData.Address, mCacheLineBuffer);
+    else
+      mActiveData.Complete = true;
     break;
 	}
+
+	case VALIDATE_LINE:
+	  getCacheLine(mActiveData.Address, true, true, false, false);
+	  break;
+
+	case INVALIDATE_LINE:
+	  getCacheLine(mActiveData.Address, false, false, false, false);
+	  break;
 
 	case STORE_LINE:
 	case MEMSET_LINE:
@@ -221,6 +231,11 @@ bool MemoryBank::processMessageHeader(const NetworkRequest& request) {
 	return true;
 }
 
+// Ensure that the cache line containing the given address is stored locally.
+//   validate = don't fetch the line - it will be received by other means
+//   required = if the cache line is not already in the cache, do nothing
+//   isRead, isInstruction = the type of memory access, used for debug
+// Returns whether the line was already stored locally.
 bool MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool required, bool isRead, bool isInstruction) {
   MemoryAddr tag = getTag(address);
   CacheLookup info = currentMemoryHandler().prepareCacheLine(address, mCacheLineBuffer, isRead, isInstruction);
@@ -249,10 +264,8 @@ bool MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool required, 
   if (!info.Hit) {
     // Bail out if the operation doesn't need to happen when the data isn't
     // present (e.g. FLUSH_LINE).
-    if (!required) {
-      mActiveData.Complete = true;
+    if (!required)
       return info.Hit;
-    }
 
     // If we need to flush or fetch a line, put aside the current operation.
     if (!validate || info.FlushRequired) {
@@ -298,28 +311,33 @@ void MemoryBank::processLocalMemoryAccess() {
 	// allocated, and that we are able to send any result.
 
   switch (mActiveData.Request.getMemoryMetadata().opcode) {
-    case LOAD_W:             processLoadWord();          break;
-    case LOAD_HW:            processLoadHalfWord();      break;
-    case LOAD_B:             processLoadByte();          break;
-    case STORE_W:            processStoreWord();         break;
-    case STORE_HW:           processStoreHalfWord();     break;
-    case STORE_B:            processStoreByte();         break;
-    case IPK_READ:           processIPKRead();           break;
+    case LOAD_W:               processLoadWord();           break;
+    case LOAD_HW:              processLoadHalfWord();       break;
+    case LOAD_B:               processLoadByte();           break;
+    case STORE_W:              processStoreWord();          break;
+    case STORE_HW:             processStoreHalfWord();      break;
+    case STORE_B:              processStoreByte();          break;
+    case IPK_READ:             processIPKRead();            break;
 
-    case FETCH_LINE:         processFetchLine();         break;
-    case STORE_LINE:         processStoreLine();         break;
-    case FLUSH_LINE:         processFlushLine();         break;
-    case MEMSET_LINE:        processMemsetLine();        break;
-    case INVALIDATE_LINE:    processInvalidateLine();    break;
-    case VALIDATE_LINE:      processValidateLine();      break;
+    case FETCH_LINE:           processFetchLine();          break;
+    case STORE_LINE:           processStoreLine();          break;
+    case FLUSH_LINE:           processFlushLine();          break;
+    case MEMSET_LINE:          processMemsetLine();         break;
+    case INVALIDATE_LINE:      processInvalidateLine();     break;
+    case VALIDATE_LINE:        processValidateLine();       break;
+    case PREFETCH_LINE:        processPrefetchLine();       break;
+    case PUSH_LINE:            processPushLine();           break;
 
-    case LOAD_LINKED:        processLoadLinked();        break;
-    case STORE_CONDITIONAL:  processStoreConditional();  break;
-    case LOAD_AND_ADD:       processLoadAndAdd();        break;
-    case LOAD_AND_OR:        processLoadAndOr();         break;
-    case LOAD_AND_AND:       processLoadAndAnd();        break;
-    case LOAD_AND_XOR:       processLoadAndXor();        break;
-    case EXCHANGE:           processExchange();          break;
+    case FLUSH_ALL_LINES:      processFlushAllLines();      break;
+    case INVALIDATE_ALL_LINES: processInvalidateAllLines(); break;
+
+    case LOAD_LINKED:          processLoadLinked();         break;
+    case STORE_CONDITIONAL:    processStoreConditional();   break;
+    case LOAD_AND_ADD:         processLoadAndAdd();         break;
+    case LOAD_AND_OR:          processLoadAndOr();          break;
+    case LOAD_AND_AND:         processLoadAndAnd();         break;
+    case LOAD_AND_XOR:         processLoadAndXor();         break;
+    case EXCHANGE:             processExchange();           break;
 
     default:
       cout << this->name() << " processing invalid memory request type (" << memoryOpName(mActiveData.Request.getMemoryMetadata().opcode) << ")" << endl;
@@ -476,8 +494,19 @@ void MemoryBank::processMemsetLine() {
   replaceCacheLine();
 }
 
-void MemoryBank::processInvalidateLine() {assert(false);}
-void MemoryBank::processValidateLine() {assert(false);}
+void MemoryBank::processInvalidateLine() {
+  mGeneralPurposeCacheHandler.invalidate(mActiveData.Position);
+  mActiveData.Complete = true;
+}
+
+void MemoryBank::processValidateLine() {
+  replaceCacheLine();
+}
+
+void MemoryBank::processPrefetchLine() {assert(false);}
+void MemoryBank::processPushLine() {assert(false);}
+void MemoryBank::processFlushAllLines() {assert(false);}
+void MemoryBank::processInvalidateAllLines() {assert(false);}
 
 void MemoryBank::processLoadLinked() {
   uint32_t data = currentMemoryHandler().readWord(mActiveData.Position);

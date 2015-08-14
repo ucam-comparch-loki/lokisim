@@ -299,11 +299,10 @@ const bool Arguments::silent()            {return silent_;}
 void Arguments::printHelp() {
   cout <<
     "lokisim: a cycle-accurate simulator for the Loki many-core architecture.\n"
-    "Usage: lokisim [simulator arguments]\n\n"
+    "Usage: lokisim [simulator arguments] program [program arguments]\n\n"
     "Options:\n"
     "  -debug\n\tEnter debug mode, where simulator contents can be inspected and changed\n\tat runtime\n"
     "  -trace\n\tPrint each instruction executed and its context to stdout\n"
-    "  -run <program>\n\tExecute the supplied program\n"
     "  -summary\n\tPrint a summary of execution behaviour when execution finishes\n"
     "  -silent\n\tPrint nothing except the simulated program's output (and error messages)\n"
     "  -coretrace <file>\n\tDump a trace of instructions executed in a binary format to a file\n"
@@ -317,7 +316,6 @@ void Arguments::printHelp() {
     "  -instaddrtrace\n\tPrint the address of each instruction executed to stdout\n"
     "  -Pparameter=value\n\tSet a named parameter to a particular value\n"
     "  -Wwarning=value\n\tSwitch on/off a named warning\n"
-    "  --args [...]\n\tPass all remaining arguments to the simulated program\n"
     "  --help\n\tDisplay this information and exit\n"
     << endl;
 }

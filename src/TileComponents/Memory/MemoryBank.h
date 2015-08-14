@@ -201,6 +201,10 @@ private:
 	void processMemsetLine();
 	void processInvalidateLine();
 	void processValidateLine();
+	void processPrefetchLine();
+	void processPushLine();
+	void processFlushAllLines();
+	void processInvalidateAllLines();
 	void processLoadLinked();
 	void processStoreConditional();
 	void processLoadAndAdd();

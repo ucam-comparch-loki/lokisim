@@ -264,3 +264,8 @@ void GeneralPurposeCacheHandler::fillCacheLineBuffer(MemoryAddr address, CacheLi
 
   buffer.fill(address, &mData[slot * mLineSize / 4]);
 }
+
+void GeneralPurposeCacheHandler::invalidate(SRAMAddress address) {
+  uint cacheLine = getLine(address);
+  mLineValid[cacheLine] = false;
+}

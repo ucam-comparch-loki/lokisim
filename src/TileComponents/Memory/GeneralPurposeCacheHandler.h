@@ -41,9 +41,9 @@ private:
 
 	uint16_t mLFSRState;					// State of LFSR used for random replacement strategy
 
-	uint mSetBits;							// Number of bits used as set index
-	uint mSetMask;							// Bit mask to extract set index from address
-	uint mSetShift;							// Shift count to align extracted set index
+	uint mSetBits;							  // Number of bits used as set index
+	uint mSetMask;							  // Bit mask to extract set index from address
+	uint mSetShift;							  // Shift count to align extracted set index
 
 	//---------------------------------------------------------------------------------------------
 	// Internal functions
@@ -68,6 +68,8 @@ public:
 	virtual CacheLookup prepareCacheLine(MemoryAddr address, CacheLineBuffer& lineBuffer, bool isRead, bool isInstruction);
 	virtual void replaceCacheLine(CacheLineBuffer& buffer, SRAMAddress position);
 	virtual void fillCacheLineBuffer(MemoryAddr address, CacheLineBuffer& buffer);
+
+	void invalidate(SRAMAddress address);
 };
 
 #endif /* GENERALPURPOSECACHEHANDLER_H_ */

@@ -28,6 +28,13 @@ void FetchStage::readLoop() {
         switchToPacket(fifoPendingPacket);
       else if (currentPacket.persistent) {
         currentInstructionSource().startNewPacket(currentPacket.location.index);
+
+        if (DEBUG) {
+          static const string names[] = {"FIFO", "cache", "unknown"};
+          cout << this->name() << " restarted persistent packet: " << names[currentPacket.location.component] <<
+            ", position " << currentPacket.location.index << " (0x" << std::hex << currentPacket.memAddr << std::dec << ")" << endl;
+        }
+
         readState = RS_READ;
         next_trigger(sc_core::SC_ZERO_TIME);
       }
@@ -46,68 +53,48 @@ void FetchStage::readLoop() {
         Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS, DecodedInst());
         next_trigger(currentInstructionSource().fillChangedEvent());
       }
-      else if (!canSendInstruction())
+      else if (!canSendInstruction()) {
         next_trigger(canSendEvent());
-      else if (!clock.negedge())
+      }
+      else if (!clock.negedge()) {
         next_trigger(clock.negedge_event());
+      }
       else {
         // The Instruction becomes a DecodedInst here to simplify various interfaces
         // throughout the pipeline. The decoding actually happens in the decode stage.
         Instruction instruction = currentInstructionSource().read();
-        DecodedInst decoded(instruction);
-        decoded.location(currentInstructionSource().memoryAddress());
+        currentInst = DecodedInst(instruction);
+        currentInst.location(currentInstructionSource().memoryAddress());
 
-        Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS, decoded);
+        Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS, currentInst);
 
         if (DEBUG) {
           static const string names[] = {"FIFO", "cache", "unknown"};
           cout << this->name() << " selected instruction from "
-               << names[currentPacket.location.component] << ": " << decoded << endl;
+               << names[currentPacket.location.component] << ": " << currentInst << endl;
         }
 
         // Make sure we didn't read a junk instruction. "nor r0, r0, r0 -> 0" seems
         // pretty unlikely to ever come up in a real program.
         assert((instruction.toInt() != 0) && "Probable junk instruction");
 
-        if (decoded.endOfIPK()) {
+        if (currentInst.endOfIPK()) {
           // Check for the special case of single-instruction persistent packets.
           // These do not need to be read repeatedly, so remove the persistent flag.
           if (currentPacket.persistent &&
               currentPacket.memAddr == currentInstructionSource().memoryAddress()) {
-            decoded.persistent(true);
+            currentInst.persistent(true);
             currentPacket.persistent = false;
           }
 
-          // If a fetch in a persistent packet is sure to execute, the packet
-          // should no longer be persistent.
-          // FIXME: this is a temporary stop-gap measure until fetches have
-          // moved to their proper location in the DecodeStage. This pipeline
-          // stage will then receive notification of a new fetch before reading
-          // a new instruction, so this block won't be needed.
-          if (currentPacket.persistent) {
-            switch (decoded.opcode()) {
-              case InstructionMap::OP_FETCH:
-              case InstructionMap::OP_FETCHR:
-              case InstructionMap::OP_FETCHPST:
-              case InstructionMap::OP_FETCHPSTR:
-              case InstructionMap::OP_FILL:
-              case InstructionMap::OP_FILLR:
-              case InstructionMap::OP_PSEL_FETCH:
-              case InstructionMap::OP_PSEL_FETCHR:
-                currentPacket.persistent = false;
-                break;
-              default:
-                break;
-            }
-          }
-
           readState = RS_READY;
+          next_trigger(sc_core::SC_ZERO_TIME);
         }
+        else
+          next_trigger(clock.negedge_event());
 
-        outputInstruction(decoded);
+        outputInstruction(currentInst);
         instructionCompleted();
-
-        next_trigger(clock.negedge_event());
       }
       break;
     }
@@ -285,12 +272,18 @@ void FetchStage::checkTags(MemoryAddr addr,
                            EncodedCMTEntry netInfo) {
   // Note: we don't actually check the tags here. We just queue up the request
   // and check the tags at the next opportunity.
-
   FetchInfo fetch(addr, operation, ChannelMapEntry::memoryView(netInfo));
   fetchBuffer.write(fetch);
 
   // Break out of persistent mode if we have another packet to execute.
-  currentPacket.persistent = false;
+  if (currentPacket.persistent) {
+    currentPacket.persistent = false;
+
+    // If the previous instruction was also the end of the packet, abort the
+    // next iteration.
+    if (currentInst.endOfIPK())
+      readState = RS_READY;
+  }
 }
 
 bool FetchStage::inCache(const FetchInfo& fetch) {
