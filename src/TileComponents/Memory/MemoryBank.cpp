@@ -182,6 +182,12 @@ bool MemoryBank::processMessageHeader(const NetworkRequest& request) {
     break;
 	}
 
+	case FLUSH_ALL_LINES:
+	case INVALIDATE_ALL_LINES:
+	  // Iterate through cache lines using the position variable.
+	  mActiveData.Position = 0;
+	  break;
+
 	case VALIDATE_LINE:
 	  getCacheLine(mActiveData.Address, true, true, false, false);
 	  break;
@@ -505,8 +511,68 @@ void MemoryBank::processValidateLine() {
 
 void MemoryBank::processPrefetchLine() {assert(false);}
 void MemoryBank::processPushLine() {assert(false);}
-void MemoryBank::processFlushAllLines() {assert(false);}
-void MemoryBank::processInvalidateAllLines() {assert(false);}
+
+void MemoryBank::processFlushAllLines() {
+  if (!checkTags()) {
+    mActiveData.Complete = true;
+    return;
+  }
+
+  // Assume the current cache line number is held in mActiveData.Position.
+
+  // First flit of packet is the header.
+  if (mActiveData.FlitsSent == 0) {
+    // Start a new line flush if the line is both valid and dirty.
+    if (mGeneralPurposeCacheHandler.mLineValid[mActiveData.Position] &&
+        mGeneralPurposeCacheHandler.mLineDirty[mActiveData.Position]) {
+      MemoryAddr address = mGeneralPurposeCacheHandler.mAddresses[mActiveData.Position];
+      mActiveData.Address = address;
+
+      if (ENERGY_TRACE)
+        Instrumentation::MemoryBank::initiateBurstRead(cBankNumber);
+      if (DEBUG)
+        cout << this->name() << " buffering request for cache line to 0x" << std::hex << address << std::dec << endl;
+
+      NetworkRequest flit = NetworkRequest(address, id, STORE_LINE, false);
+      assert(!mOutputReqQueue.full());
+      mOutputReqQueue.write(flit);
+      mActiveData.FlitsSent++;
+
+      currentMemoryHandler().fillCacheLineBuffer(address, mCacheLineBuffer);
+    }
+    // Otherwise, move on to the next line.
+    else {
+      mActiveData.Position++;
+    }
+  }
+  // Every other flit sends data from the cache line.
+  else {
+    uint32_t data = readFromCacheLineBuffer();
+    bool endOfPacket = mCacheLineBuffer.finishedOperation();
+
+    if (DEBUG)
+      cout << this->name() << " buffering request data: " << data << endl;
+
+    NetworkRequest flit = NetworkRequest(data, id, PAYLOAD, endOfPacket);
+    assert(!mOutputReqQueue.full());
+    mOutputReqQueue.write(flit);
+    mActiveData.FlitsSent++;
+
+    // Reset for the next iteration.
+    if (endOfPacket) {
+      mActiveData.FlitsSent = 0;
+      mActiveData.Position++;
+    }
+  }
+
+  mActiveData.Complete = (mActiveData.Position >= CACHE_LINES_PER_BANK);
+}
+
+void MemoryBank::processInvalidateAllLines() {
+  mGeneralPurposeCacheHandler.invalidate(mActiveData.Position);
+  mActiveData.Position += CACHE_LINE_BYTES;
+  mActiveData.Complete = (mActiveData.Position >= MEMORY_BANK_SIZE);
+}
 
 void MemoryBank::processLoadLinked() {
   uint32_t data = currentMemoryHandler().readWord(mActiveData.Position);

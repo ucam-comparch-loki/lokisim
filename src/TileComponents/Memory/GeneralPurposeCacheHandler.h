@@ -30,25 +30,25 @@ private:
 
 	const bool cRandomReplacement;// Replace random cache lines (instead of using ideal LRU scheme)
 
-
 	//---------------------------------------------------------------------------------------------
 	// State
 	//---------------------------------------------------------------------------------------------
+public:
 
 	vector<MemoryTag> mAddresses;	// Cache tags associated with cache lines (full addresses in the model for simplicity reasons)
 	vector<bool>      mLineValid;	// Flags indicating whether a particular cache line holds valid data
 	vector<bool>      mLineDirty;	// Flags indicating whether a particular cache line is modified
 
-	uint16_t mLFSRState;					// State of LFSR used for random replacement strategy
+	uint16_t          mLFSRState;	// State of LFSR used for random replacement strategy
 
-	uint mSetBits;							  // Number of bits used as set index
-	uint mSetMask;							  // Bit mask to extract set index from address
-	uint mSetShift;							  // Shift count to align extracted set index
+	uint              mSetBits;		// Number of bits used as set index
+	uint              mSetMask;		// Bit mask to extract set index from address
+	uint              mSetShift;	// Shift count to align extracted set index
 
 	//---------------------------------------------------------------------------------------------
 	// Internal functions
 	//---------------------------------------------------------------------------------------------
-
+private:
 	bool lookupCacheLine(MemoryAddr address, uint &slot, bool resume, bool read, bool instruction);
 	void promoteCacheLine(uint slot);
 

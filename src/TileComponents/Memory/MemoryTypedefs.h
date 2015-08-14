@@ -13,6 +13,7 @@
 
 #define CACHE_LINE_WORDS 8
 #define CACHE_LINE_BYTES (CACHE_LINE_WORDS * BYTES_PER_WORD)
+#define CACHE_LINES_PER_BANK (MEMORY_BANK_SIZE / CACHE_LINE_BYTES)
 
 // A location in the global address space. (Byte granularity.)
 typedef uint32_t MemoryAddr;

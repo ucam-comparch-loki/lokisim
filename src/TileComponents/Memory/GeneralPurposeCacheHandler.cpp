@@ -109,12 +109,12 @@ GeneralPurposeCacheHandler::GeneralPurposeCacheHandler(uint bankNumber, vector<u
 	//-- State ------------------------------------------------------------------------------------
 
 	mWayCount = 1;
-	mLineSize = CACHE_LINE_WORDS * BYTES_PER_WORD;
+	mLineSize = CACHE_LINE_BYTES;
 	mSetCount = MEMORY_BANK_SIZE / (mWayCount * mLineSize);
 
-	mAddresses.assign(cCacheLines, 0);
-	mLineValid.assign(cCacheLines, false);
-	mLineDirty.assign(cCacheLines, false);
+	mAddresses.assign(CACHE_LINES_PER_BANK, 0);
+	mLineValid.assign(CACHE_LINES_PER_BANK, false);
+	mLineDirty.assign(CACHE_LINES_PER_BANK, false);
 
 	mLFSRState = 0xFFFFU;
 

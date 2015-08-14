@@ -29,7 +29,6 @@ protected:
   uint mWayCount;             // Number of ways in general purpose cache mode
   uint mLineSize;             // Size of lines (for cache management and data interleaving)
 
-  const uint cCacheLines;     // Number of cache lines in this memory bank
   const uint cIndexBits;      // Bits required to index a cache line slot (log2(lines in bank))
 
   //---------------------------------------------------------------------------------------------

@@ -32,8 +32,7 @@ uint AbstractMemoryHandler::log2Exact(uint value) {
 }
 
 AbstractMemoryHandler::AbstractMemoryHandler(uint bankNumber, vector<uint32_t>& data) :
-    cCacheLines(MEMORY_BANK_SIZE / (CACHE_LINE_WORDS * BYTES_PER_WORD)),
-    cIndexBits(log2Exact(cCacheLines)),
+    cIndexBits(log2Exact(CACHE_LINES_PER_BANK)),
     mBankNumber(bankNumber) {
 
   //-- Configuration parameters -----------------------------------------------------------------
