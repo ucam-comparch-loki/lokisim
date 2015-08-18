@@ -24,8 +24,7 @@ void ExecuteStage::writeByte(MemoryAddr addr, Word data) const {core()->writeByt
 
 void ExecuteStage::execute() {
 
-  if (DEBUG)
-    cout << this->name() << " received Instruction: " << currentInst << endl;
+  LOKI_LOG << this->name() << " received Instruction: " << currentInst << endl;
 
   // Wait until it is clear to produce network data.
   if (currentInst.sendsOnNetwork() && !iReady.read()) {
@@ -65,8 +64,8 @@ void ExecuteStage::updateReady() {
   if (ready != oReady.read())
     oReady.write(ready);
 
-  if (DEBUG && isStalled() && oReady.read())
-    cout << this->name() << " stalled." << endl;
+  if (isStalled() && oReady.read())
+    LOKI_LOG << this->name() << " stalled." << endl;
 }
 
 void ExecuteStage::newInput(DecodedInst& operation) {
@@ -81,7 +80,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
 
     // Only collect operands on the first cycle of multi-cycle operations.
     if (alu.busy()) {
-      if (DEBUG) cout << this->name() << ": continuing " << operation.name()
+      LOKI_LOG << this->name() << ": continuing " << operation.name()
           << " on " << operation.operand1() << " and " << operation.operand2() << endl;
     }
     else {
@@ -89,7 +88,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
       if (operation.operand1Source() == DecodedInst::BYPASS && previousInstExecuted) {
         operation.operand1(forwardedResult);
         operation.operand1Source(DecodedInst::IMMEDIATE); // So we don't forward again.
-        if (DEBUG) cout << this->name() << " forwarding contents of register "
+        LOKI_LOG << this->name() << " forwarding contents of register "
             << (int)operation.sourceReg1() << ": " << forwardedResult << endl;
         if (ENERGY_TRACE)
           Instrumentation::Registers::forward(1);
@@ -97,13 +96,13 @@ void ExecuteStage::newInput(DecodedInst& operation) {
       if (operation.operand2Source() == DecodedInst::BYPASS && previousInstExecuted) {
         operation.operand2(forwardedResult);
         operation.operand2Source(DecodedInst::IMMEDIATE); // So we don't forward again.
-        if (DEBUG) cout << this->name() << " forwarding contents of register "
+        LOKI_LOG << this->name() << " forwarding contents of register "
             << (int)operation.sourceReg2() << ": " << forwardedResult << endl;
         if (ENERGY_TRACE)
           Instrumentation::Registers::forward(2);
       }
 
-      if (DEBUG) cout << this->name() << ": executing " << operation.name()
+      LOKI_LOG << this->name() << ": executing " << operation.name()
           << " on " << operation.operand1() << " and " << operation.operand2() << endl;
     }
 

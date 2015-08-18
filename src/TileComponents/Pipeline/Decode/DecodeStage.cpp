@@ -45,8 +45,8 @@ void         DecodeStage::updateReady() {
   if (ready != oReady.read()) {
     oReady.write(ready);
 
-    if (DEBUG && !ready)
-      cout << this->name() << " stalled." << endl;
+    if (!ready)
+      LOKI_LOG << this->name() << " stalled." << endl;
   }
 }
 
@@ -92,8 +92,7 @@ void         DecodeStage::persistentInstruction(DecodedInst& inst) {
 }
 
 void         DecodeStage::newInput(DecodedInst& inst) {
-  if (DEBUG) cout << decoder.name() << " received Instruction: "
-                  << inst << endl;
+  LOKI_LOG << decoder.name() << " received Instruction: " << inst << endl;
 
   // If this is the first instruction of a new packet, update the current
   // packet pointer.
@@ -190,15 +189,13 @@ void         DecodeStage::readChannelMapTable(DecodedInst& inst) {
 
   // If this is the first flit of a packet, we must read the channel map table.
   if (firstFlitOfPacket(inst)) {
-    if (DEBUG)
-      cout << this->name() << " reading CMT data 0x" << std::hex << cmtEntry.read() << std::dec << endl;
+    LOKI_LOG << this->name() << " reading CMT data " << LOKI_HEX(cmtEntry.read()) << endl;
     inst.cmtEntry(cmtEntry.read());
     previousCMTData = cmtEntry.read();
   }
   // Otherwise, we can reuse the data we read last time.
   else {
-    if (DEBUG)
-      cout << this->name() << " reusing CMT data 0x" << std::hex << previousCMTData << std::dec << endl;
+    LOKI_LOG << this->name() << " reusing CMT data " << LOKI_HEX(previousCMTData) << endl;
     inst.cmtEntry(previousCMTData);
   }
 }
@@ -218,8 +215,7 @@ void DecodeStage::waitOnCredits(DecodedInst& inst) {
     return;
 
   if (!cmtEntry.canSend()) {
-    if (DEBUG)
-      cout << this->name() << " stalled waiting for credits from " << destination << endl;
+    LOKI_LOG << this->name() << " stalled waiting for credits from " << destination << endl;
     Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
     wait(cmtEntry.creditArrivedEvent());
     Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
@@ -227,8 +223,7 @@ void DecodeStage::waitOnCredits(DecodedInst& inst) {
   cmtEntry.removeCredit();
 
   if (!iOutputBufferReady.read()) {
-    if (DEBUG)
-      cout << this->name() << " stalled waiting for output buffer space" << endl;
+    LOKI_LOG << this->name() << " stalled waiting for output buffer space" << endl;
     Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
     wait(iOutputBufferReady.posedge_event());
     Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
@@ -242,15 +237,13 @@ ChannelMapEntry& DecodeStage::channelMapTableEntry(MapIndex entry) const {
 void         DecodeStage::startRemoteExecution(const DecodedInst& inst) {
   rmtexecuteChannel = inst.channelMapEntry();
 
-  if (DEBUG)
-    cout << this->name() << " beginning remote execution" << endl;
+  LOKI_LOG << this->name() << " beginning remote execution" << endl;
 }
 
 void         DecodeStage::endRemoteExecution() {
   rmtexecuteChannel = Instruction::NO_CHANNEL;
 
-  if (DEBUG)
-    cout << this->name() << " ending remote execution" << endl;
+  LOKI_LOG << this->name() << " ending remote execution" << endl;
 }
 
 void         DecodeStage::remoteExecute(DecodedInst& instruction) const {
@@ -317,8 +310,7 @@ void DecodeStage::fetch(const DecodedInst& inst) {
   if (Arguments::lbtTrace())
     LBTTrace::setInstructionMemoryAddress(inst.isid(), fetchAddress);
 
-  if (DEBUG)
-    cout << this->name() << " fetching from address " << fetchAddress << endl;
+  LOKI_LOG << this->name() << " fetching from address " << LOKI_HEX(fetchAddress) << endl;
 
   core()->checkTags(fetchAddress, inst.opcode(), inst.cmtEntry());
 }

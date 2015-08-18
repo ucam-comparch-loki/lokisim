@@ -27,8 +27,8 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
 
   int32_t result = buffers[channelEnd].read().toInt();
 
-  if (DEBUG) cout << this->name() << " read " << result << " from buffer "
-                  << (int)channelEnd << endl;
+  LOKI_LOG << this->name() << " read " << result << " from buffer "
+           << (int)channelEnd << endl;
 
   return result;
 }
@@ -90,8 +90,8 @@ void ReceiveChannelEndTable::waitForData(unsigned int bitmask, const DecodedInst
 void ReceiveChannelEndTable::checkInput(ChannelIndex input) {
   // This method is called because data has arrived on a particular input channel.
 
-  if (DEBUG) cout << this->name() << " channel " << (int)input << " received " <<
-                     iData[input].read() << endl;
+  LOKI_LOG << this->name() << " channel " << (int)input << " received " <<
+              iData[input].read() << endl;
 
   assert(!buffers[input].full());
 

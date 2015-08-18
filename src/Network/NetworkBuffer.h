@@ -23,8 +23,8 @@ class NetworkBuffer: public BufferStorage<T> {
 public:
 
   virtual const T& read() {
-    if (DEBUG && this->full())
-      cout << this->name() << " is no longer full" << endl;
+    if (this->full())
+      LOKI_LOG << this->name() << " is no longer full" << endl;
 
     if (fresh[this->readPos.value()]) {
       dataConsumed.notify();
@@ -37,8 +37,8 @@ public:
     fresh[this->writePos.value()] = true;
     BufferStorage<T>::write(newData);
 
-    if (DEBUG && this->full())
-      cout << this->name() << " is full" << endl;
+    if (this->full())
+      LOKI_LOG << this->name() << " is full" << endl;
   }
 
   const sc_event& dataConsumedEvent() const {

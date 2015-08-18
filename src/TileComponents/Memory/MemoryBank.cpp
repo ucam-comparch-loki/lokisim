@@ -154,8 +154,7 @@ bool MemoryBank::startNewRequest() {
       return false;
     }
 
-    if (DEBUG)
-      cout << this->name() << " starting hit-under-miss" << endl;
+    LOKI_LOG << this->name() << " starting hit-under-miss" << endl;
   }
 
   consumeInput();
@@ -173,8 +172,7 @@ bool MemoryBank::processMessageHeader(const NetworkRequest& request) {
 	mActiveData.Complete = false;
 	mActiveData.Missed = false;
 
-  if (DEBUG)
-    cout << this->name() << " starting " << memoryOpName(opcode) << " request from component " << mActiveData.ReturnChannel.component << endl;
+  LOKI_LOG << this->name() << " starting " << memoryOpName(opcode) << " request from component " << mActiveData.ReturnChannel.component << endl;
 
   // If the operation is going to access memory, make sure the necessary cache
   // line is stored locally, or there is a space for it to be fetched into.
@@ -182,8 +180,7 @@ bool MemoryBank::processMessageHeader(const NetworkRequest& request) {
 	case UPDATE_DIRECTORY_ENTRY:
 	case UPDATE_DIRECTORY_MASK:
 	  // Forward the request on to the tile's directory.
-    if (DEBUG)
-      cout << this->name() << " buffering directory update request: " << mActiveData.Request.payload() << endl;
+    LOKI_LOG << this->name() << " buffering directory update request: " << mActiveData.Request.payload() << endl;
 
     assert(!mOutputReqQueue.full());
     mOutputReqQueue.write(mActiveData.Request);
@@ -313,8 +310,7 @@ bool MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool allocate, 
 
     // If we need to flush or fetch a line, put aside the current operation.
     if (!validate || info.FlushRequired) {
-      if (DEBUG)
-        cout << this->name() << " cache miss at address 0x" << std::hex << mActiveData.Address << std::dec << endl;
+      LOKI_LOG << this->name() << " cache miss at address " << LOKI_HEX(mActiveData.Address) << endl;
 
       // Put the current request aside until its data arrives.
       assert(mCallbackData.State == STATE_IDLE);
@@ -325,8 +321,7 @@ bool MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool allocate, 
 
     // Fetch the line, if necessary.
     if (!validate) {
-      if (DEBUG)
-        cout << this->name() << " buffering request for cache line from 0x" << std::hex << tag << std::dec << endl;
+      LOKI_LOG << this->name() << " buffering request for cache line from " << LOKI_HEX(tag) << endl;
 
       NetworkRequest readRequest(tag, id, FETCH_LINE, true);
       assert(!mOutputReqQueue.full());
@@ -347,8 +342,7 @@ bool MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool allocate, 
 
 void MemoryBank::processLocalMemoryAccess() {
 	if (!canSend()) {
-		if (DEBUG)
-			cout << this->name() << " delayed request due to full output queue" << endl;
+	  LOKI_LOG << this->name() << " delayed request due to full output queue" << endl;
 		return;
 	}
 
@@ -385,7 +379,7 @@ void MemoryBank::processLocalMemoryAccess() {
     case EXCHANGE:             processExchange();           break;
 
     default:
-      cout << this->name() << " processing invalid memory request type (" << memoryOpName(mActiveData.Request.getMemoryMetadata().opcode) << ")" << endl;
+      LOKI_ERROR << this->name() << " processing invalid memory request type (" << memoryOpName(mActiveData.Request.getMemoryMetadata().opcode) << ")" << endl;
       assert(false);
       break;
   }
@@ -505,8 +499,7 @@ void MemoryBank::processFlushLine() {
 
   // First iteration - send header flit.
   if (mActiveData.FlitsSent == 0) {
-    if (DEBUG)
-      cout << this->name() << " buffering request for cache line to 0x" << std::hex << mActiveData.Address << std::dec << endl;
+    LOKI_LOG << this->name() << " buffering request for cache line to " << LOKI_HEX(mActiveData.Address) << endl;
 
     flit = NetworkRequest(mActiveData.Address, id, STORE_LINE, false);
   }
@@ -515,8 +508,7 @@ void MemoryBank::processFlushLine() {
     uint32_t data = readFromCacheLineBuffer();
     bool endOfPacket = mCacheLineBuffer.finishedOperation();
 
-    if (DEBUG)
-      cout << this->name() << " buffering request data: " << data << endl;
+    LOKI_LOG << this->name() << " buffering request data: " << data << endl;
 
     flit = NetworkRequest(data, id, PAYLOAD, endOfPacket);
   }
@@ -574,8 +566,7 @@ void MemoryBank::processFlushAllLines() {
 
       if (ENERGY_TRACE)
         Instrumentation::MemoryBank::initiateBurstRead(cBankNumber);
-      if (DEBUG)
-        cout << this->name() << " buffering request for cache line to 0x" << std::hex << address << std::dec << endl;
+      LOKI_LOG << this->name() << " buffering request for cache line to " << LOKI_HEX(address) << endl;
 
       NetworkRequest flit = NetworkRequest(address, id, STORE_LINE, false);
       assert(!mOutputReqQueue.full());
@@ -594,8 +585,7 @@ void MemoryBank::processFlushAllLines() {
     uint32_t data = readFromCacheLineBuffer();
     bool endOfPacket = mCacheLineBuffer.finishedOperation();
 
-    if (DEBUG)
-      cout << this->name() << " buffering request data: " << data << endl;
+    LOKI_LOG << this->name() << " buffering request data: " << data << endl;
 
     NetworkRequest flit = NetworkRequest(data, id, PAYLOAD, endOfPacket);
     assert(!mOutputReqQueue.full());
@@ -717,9 +707,8 @@ void MemoryBank::processExchange() {
 void MemoryBank::processLoadResult(uint32_t data, bool endOfPacket) {
   mActiveData.Complete = endOfPacket;
 
-  if (DEBUG)
-    printOperation(mActiveData.Request.getMemoryMetadata().opcode,
-                   mActiveData.Address, data);
+  printOperation(mActiveData.Request.getMemoryMetadata().opcode,
+                 mActiveData.Address, data);
 
   // Enqueue output request
   NetworkResponse output = assembleResponse(data, endOfPacket);
@@ -739,9 +728,8 @@ void MemoryBank::processStoreResult(uint32_t data) {
   // Dequeue the payload now that we are finished with it.
   consumeInput();
 
-  if (DEBUG)
-    printOperation(mActiveData.Request.getMemoryMetadata().opcode,
-                   mActiveData.Address, data);
+  printOperation(mActiveData.Request.getMemoryMetadata().opcode,
+                 mActiveData.Address, data);
 }
 
 uint32_t MemoryBank::getDataToStore() {
@@ -751,7 +739,7 @@ uint32_t MemoryBank::getDataToStore() {
 
   // The received word should be the continuation of the previous operation.
   if (flit.getMemoryMetadata().opcode != PAYLOAD && flit.getMemoryMetadata().opcode != PAYLOAD_EOP) {
-    cout << "!!!! " << mActiveData.Request.getMemoryMetadata().opcode << " | " << mActiveData.Address << " | " << flit.getMemoryMetadata().opcode << " | " << flit.payload() << endl;
+    LOKI_ERROR << "!!!! " << mActiveData.Request.getMemoryMetadata().opcode << " | " << mActiveData.Address << " | " << flit.getMemoryMetadata().opcode << " | " << flit.payload() << endl;
     assert(false);
   }
 
@@ -771,8 +759,7 @@ uint32_t MemoryBank::readFromCacheLineBuffer() {
   if (ENERGY_TRACE)
     Instrumentation::MemoryBank::readBurstWord(cBankNumber, address, false, mActiveData.ReturnChannel);
 
-  if (DEBUG)
-    printOperation(mActiveData.Request.getMemoryMetadata().opcode, address, data);
+  printOperation(mActiveData.Request.getMemoryMetadata().opcode, address, data);
 
   mActiveData.Complete = mCacheLineBuffer.finishedOperation();
 
@@ -791,8 +778,7 @@ void MemoryBank::writeToCacheLineBuffer(uint32_t data) {
   // Don't check whether this is the end of the operation - we need to call
   // replaceCacheLine first to copy this data to the cache.
 
-  if (DEBUG)
-    printOperation(mActiveData.Request.getMemoryMetadata().opcode, address, data);
+  printOperation(mActiveData.Request.getMemoryMetadata().opcode, address, data);
 }
 
 void MemoryBank::replaceCacheLine() {
@@ -807,8 +793,7 @@ void MemoryBank::replaceCacheLine() {
     mActiveData = mCallbackData;
     mCallbackData.State = STATE_IDLE;
 
-    if (DEBUG)
-      cout << this->name() << " resuming " << memoryOpName(mActiveData.Request.getMemoryMetadata().opcode) << " request" << endl;
+    LOKI_LOG << this->name() << " resuming " << memoryOpName(mActiveData.Request.getMemoryMetadata().opcode) << " request" << endl;
   }
   else
     mActiveData.Complete = true;
@@ -884,8 +869,7 @@ const NetworkRequest MemoryBank::consumeInput() {
       case REQUEST_CORES:
         assert(!mInputQueue.empty());
         request = mInputQueue.read();
-        if (DEBUG)
-          cout << this->name() << " dequeued " << request << endl;
+        LOKI_LOG << this->name() << " dequeued " << request << endl;
         break;
       case REQUEST_MEMORIES:
         assert(requestSig.valid());
@@ -907,8 +891,7 @@ const NetworkRequest MemoryBank::consumeInput() {
         else if (!mInputQueue.empty()) {
           mActiveData.Source = REQUEST_CORES;
           request = mInputQueue.read();
-          if (DEBUG)
-            cout << this->name() << " dequeued " << request << endl;
+          LOKI_LOG << this->name() << " dequeued " << request << endl;
         }
         else {
           mActiveData.Source = REQUEST_MEMORIES;
@@ -986,7 +969,7 @@ void MemoryBank::processDelayedCacheFlush() {
 }
 
 void MemoryBank::processValidInput() {
-  if (DEBUG) cout << this->name() << " received " << iData.read() << endl;
+  LOKI_LOG << this->name() << " received " << iData.read() << endl;
   assert(iData.valid());
   assert(!mInputQueue.full());
 
@@ -1022,8 +1005,7 @@ void MemoryBank::handleDataOutput() {
   }
   // If it is time to send data:
   else {
-    if (DEBUG)
-      cout << this->name() << " sent " << mActiveOutputWord << endl;
+    LOKI_LOG << this->name() << " sent " << mActiveOutputWord << endl;
     if (ENERGY_TRACE)
       Instrumentation::Network::traffic(id, mActiveOutputWord.channelID().component);
 
@@ -1047,8 +1029,7 @@ void MemoryBank::handleRequestOutput() {
     next_trigger(mOutputReqQueue.writeEvent());
   else {
     NetworkRequest request = mOutputReqQueue.read();
-    if (DEBUG)
-      cout << this->name() << " sending request " << request.payload() << endl;
+    LOKI_LOG << this->name() << " sending request " << request.payload() << endl;
 
     assert(!oRequest.valid());
     oRequest.write(request);
@@ -1285,13 +1266,13 @@ void MemoryBank::reportStalls(ostream& os) {
 void MemoryBank::printOperation(MemoryOperation operation,
                                 MemoryAddr                     address,
                                 uint32_t                       data) const {
-  cout << this->name() << ": " << memoryOpName(operation) <<
-      ", address = 0x" << std::hex << address << ", data = 0x" << data << std::dec;
+  LOKI_LOG << this->name() << ": " << memoryOpName(operation) <<
+      ", address = " << LOKI_HEX(address) << ", data = " << LOKI_HEX(data);
 
   if (operation == IPK_READ) {
     Instruction inst(data);
-    cout << " (" << inst << ")";
+    LOKI_LOG << " (" << inst << ")";
   }
 
-  cout << endl;
+  LOKI_LOG << endl;
 }

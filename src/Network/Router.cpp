@@ -13,8 +13,7 @@
 const string DirectionNames[] = {"north", "east", "south", "west", "local"};
 
 void Router::receiveData(PortIndex input) {
-  if (DEBUG)
-    cout << this->name() << ": input from " << DirectionNames[input] << ": " << iData[input].read() << endl;
+  LOKI_LOG << this->name() << ": input from " << DirectionNames[input] << ": " << iData[input].read() << endl;
 
   assert(!inputBuffers[input].full());
 
@@ -49,8 +48,7 @@ void Router::sendData(PortIndex output) {
     for (int i=0; i<5; i++) {
       PortIndex input = (i + lastAccepted[output] + 1) % 5;
       if (destination[input] == output) {
-        if (DEBUG)
-          cout << this->name() << " sending to " << DirectionNames[output] << ": " << inputBuffers[input].peek() << endl;
+        LOKI_LOG << this->name() << " sending to " << DirectionNames[output] << ": " << inputBuffers[input].peek() << endl;
 
         oData[output].write(inputBuffers[input].read());
         lastAccepted[output] = input;

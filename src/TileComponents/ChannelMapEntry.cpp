@@ -9,6 +9,7 @@
 #include "../Datatype/Identifier.h"
 #include "../Exceptions/InvalidOptionException.h"
 #include "../Utility/Arguments.h"
+#include "../Utility/Logging.h"
 #include <iostream>
 
 using sc_core::sc_event;
@@ -133,27 +134,27 @@ void ChannelMapEntry::write(EncodedCMTEntry data) {
 
     clearWriteEnable();
 
-    if (DEBUG || Arguments::summarise())
-      std::cout << "SETCHMAP: " << id_ << " -> " << getDestination() << std::endl;
+    if (Arguments::summarise())
+      LOKI_LOG << "SETCHMAP: " << id_ << " -> " << getDestination() << std::endl;
   }
   else if (memoryView().isMemory) {
     network_ = CORE_TO_MEMORY;
 
-    if (DEBUG || Arguments::summarise()) {
+    if (Arguments::summarise()) {
       string type = (getReturnChannel() < 2) ? "insts" : "data";
       uint startBank = getComponent();
       uint endBank = startBank + getMemoryGroupSize() - 1;
       uint lineSize = getLineSize();
 
-      std::cout << "SETCHMAP: core " << id_.component << " " << type << ", banks "
+      LOKI_LOG << "SETCHMAP: core " << id_.component << " " << type << ", banks "
           << startBank << "-" << endBank << ", line size " << lineSize << std::endl;
     }
   }
   else {
     network_ = MULTICAST;
 
-    if (DEBUG || Arguments::summarise())
-      std::cout << "SETCHMAP: " << id_ << " -> " << getDestination() << std::endl;
+    if (Arguments::summarise())
+      LOKI_LOG << "SETCHMAP: " << id_ << " -> " << getDestination() << std::endl;
   }
 }
 

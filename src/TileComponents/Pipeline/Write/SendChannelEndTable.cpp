@@ -15,8 +15,7 @@
 #include "../../../Utility/Instrumentation/Stalls.h"
 
 void SendChannelEndTable::write(const NetworkData data) {
-  if (DEBUG)
-    cout << this->name() << " writing " << data << " to buffer\n";
+  LOKI_LOG << this->name() << " writing " << data << " to buffer\n";
 
   if (data.channelID().multicast || (data.channelID().component.tile == id.tile)) {
     assert(!bufferLocal.full());
@@ -169,8 +168,7 @@ void SendChannelEndTable::sendLoopLocal() {
       const NetworkData data = bufferLocal.read();
       bufferFillChanged.notify();
 
-      if (DEBUG)
-        cout << this->name() << " sending (local) " << data << endl;
+      LOKI_LOG << this->name() << " sending (local) " << data << endl;
       if (ENERGY_TRACE)
         Instrumentation::Network::traffic(id, data.channelID().component);
 
@@ -200,8 +198,7 @@ void SendChannelEndTable::sendLoopGlobal() {
   else {
     const NetworkData data = bufferGlobal.read();
 
-    if (DEBUG)
-      cout << this->name() << " sending (global) " << data << endl;
+    LOKI_LOG << this->name() << " sending (global) " << data << endl;
     if (ENERGY_TRACE)
       Instrumentation::Network::traffic(id, data.channelID().component);
 
@@ -225,8 +222,7 @@ void SendChannelEndTable::receivedCredit() {
 
   ChannelIndex targetCounter = iCredit.read().channelID().channel;
 
-  if (DEBUG)
-    cout << this->name() << " received credit at " << ChannelID(id, targetCounter) << " " << iCredit.read().messageID() << endl;
+  LOKI_LOG << this->name() << " received credit at " << ChannelID(id, targetCounter) << " " << iCredit.read().messageID() << endl;
 
   channelMapTable->addCredit(targetCounter, iCredit.read().payload().toUInt());
   iCredit.ack();

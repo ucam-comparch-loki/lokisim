@@ -8,6 +8,7 @@
 #include "LokiFileReader.h"
 #include "DataBlock.h"
 #include "../Debugger.h"
+#include "../Logging.h"
 #include "../Parameters.h"
 #include "../../Datatype/Instruction.h"
 
@@ -38,9 +39,9 @@ vector<DataBlock>& LokiFileReader::extractData(int& mainPos) {
   }
 
   if (words->size() == 0)
-    std::cerr << "Error: read 0 words from file " << filename_ << std::endl;
-  else if (DEBUG) std::cout << "Retrieved " << words->size() <<
-    " words from file " << filename_ << std::endl;
+    LOKI_ERROR << "read 0 words from file " << filename_ << std::endl;
+  else
+    LOKI_LOG << "Retrieved " << words->size() << " words from file " << filename_ << std::endl;
 
   file.close();
 

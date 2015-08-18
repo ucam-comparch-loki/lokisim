@@ -17,6 +17,7 @@
 
 #include "Datatype/Identifier.h"
 
+#include "Utility/Logging.h"
 #include "Utility/LokiVector.h"
 #include "Utility/LokiVector2D.h"
 #include "Utility/LokiVector3D.h"

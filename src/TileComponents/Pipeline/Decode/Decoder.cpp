@@ -175,8 +175,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
   // Terminate the instruction here if it has been cancelled.
   if (instructionCancelled) {
-    if (DEBUG)
-      cout << this->name() << " aborting " << input << endl;
+    LOKI_LOG << this->name() << " aborting " << input << endl;
     instructionCancelled = false;
 
     if (Arguments::lbtTrace())
@@ -440,8 +439,7 @@ void Decoder::waitUntilArrival(ChannelIndex channel, const DecodedInst& inst) {
 
     stall(true, reason, inst);
 
-    if (DEBUG)
-      cout << this->name() << " waiting for channel " << (int)channel << endl;
+    LOKI_LOG << this->name() << " waiting for channel " << (int)channel << endl;
 
     // Wait until something arrives.
     wait(parent()->receivedDataEvent(channel) | cancelEvent);
@@ -496,8 +494,7 @@ bool Decoder::checkChannelInput(ChannelIndex channel, const DecodedInst& inst) {
                    : Instrumentation::Stalls::STALL_CORE_DATA;
     stall(true, reason, inst);  // Remember to unstall again afterwards.
 
-    if (DEBUG)
-      cout << this->name() << " waiting for channel " << (int)channel << endl;
+    LOKI_LOG << this->name() << " waiting for channel " << (int)channel << endl;
 
     next_trigger(parent()->receivedDataEvent(channel) | cancelEvent);
   }
@@ -613,8 +610,7 @@ void Decoder::fetch(DecodedInst& inst) {
   if (!parent()->canFetch()) {
     stall(true, Instrumentation::Stalls::STALL_FETCH, inst);
     while (!parent()->canFetch()) {
-      if (DEBUG)
-        cout << this->name() << " waiting to issue " << inst << endl;
+      LOKI_LOG << this->name() << " waiting to issue " << inst << endl;
       wait(1, sc_core::SC_NS);
     }
     stall(false, Instrumentation::Stalls::STALL_FETCH, inst);

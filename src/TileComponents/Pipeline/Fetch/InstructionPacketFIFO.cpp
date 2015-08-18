@@ -98,7 +98,7 @@ const sc_event& InstructionPacketFIFO::fillChangedEvent() const {
 void InstructionPacketFIFO::receivedInst() {
   // Need to cast input Word to Instruction.
   Instruction inst = static_cast<Instruction>(iInstruction.read());
-  if(DEBUG) cout << this->name() << " received Instruction:  " << inst << endl;
+  LOKI_LOG << this->name() << " received Instruction:  " << inst << endl;
 
   // If this is a "next instruction packet" command, don't write it to the FIFO,
   // but instead immediately move to the next packet, if there is one.

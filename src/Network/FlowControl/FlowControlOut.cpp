@@ -41,7 +41,7 @@ void FlowControlOut::mainLoop() {
 void FlowControlOut::sendData() {
   assert(creditCount > 0);
 
-  if (DEBUG) cout << "Network sending " << iData.read().payload() << " from "
+  LOKI_LOG << "Network sending " << iData.read().payload() << " from "
       << channel << " to " << iData.read().channelID() << endl;
 
   oData.write(iData.read());
@@ -76,7 +76,7 @@ void FlowControlOut::handleNewData() {
 void FlowControlOut::receivedCredit() {
   creditCount++;
 
-  if (DEBUG) cout << this->name() << " received credit at port " << channel << endl;
+  LOKI_LOG << this->name() << " received credit at port " << channel << endl;
   assert(creditCount <= IN_CHANNEL_BUFFER_SIZE);
 }
 

@@ -40,8 +40,8 @@ const int32_t RegisterFile::read(PortIndex port, RegisterIndex reg, bool indirec
       const_cast<RegisterFile*>(this)->logActivity(); // Hack
     }
 
-    if (DEBUG) cout << this->name() << ": Read " << data
-                    << " from register " << (int)index << endl;
+    LOKI_LOG << this->name() << ": Read " << data
+             << " from register " << (int)index << endl;
 
     // A bit of a hack to allow us to store debug information from inside a
     // const method.
@@ -121,8 +121,8 @@ void RegisterFile::updateCurrentIPK(const MemoryAddr addr) {
 }
 
 void RegisterFile::writeReg(const RegisterIndex reg, const Word data) {
-  if (DEBUG && (reg > 0))
-    cout << this->name() << ": Stored " << data << " to register " << (int)reg << endl;
+  if (reg > 0)
+    LOKI_LOG << this->name() << ": Stored " << data << " to register " << (int)reg << endl;
 
   regs.write(data, reg);
 }

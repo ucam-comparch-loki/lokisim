@@ -29,11 +29,9 @@ void FetchStage::readLoop() {
       else if (currentPacket.persistent) {
         currentInstructionSource().startNewPacket(currentPacket.location.index);
 
-        if (DEBUG) {
-          static const string names[] = {"FIFO", "cache", "unknown"};
-          cout << this->name() << " restarted persistent packet: " << names[currentPacket.location.component] <<
-            ", position " << currentPacket.location.index << " (0x" << std::hex << currentPacket.memAddr << std::dec << ")" << endl;
-        }
+        static const string names[] = {"FIFO", "cache", "unknown"};
+        LOKI_LOG << this->name() << " restarted persistent packet: " << names[currentPacket.location.component] <<
+          ", position " << currentPacket.location.index << " (" << LOKI_HEX(currentPacket.memAddr) << ")" << endl;
 
         readState = RS_READ;
         next_trigger(sc_core::SC_ZERO_TIME);
@@ -68,11 +66,9 @@ void FetchStage::readLoop() {
 
         Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS, currentInst);
 
-        if (DEBUG) {
-          static const string names[] = {"FIFO", "cache", "unknown"};
-          cout << this->name() << " selected instruction from "
-               << names[currentPacket.location.component] << ": " << currentInst << endl;
-        }
+        static const string names[] = {"FIFO", "cache", "unknown"};
+        LOKI_LOG << this->name() << " selected instruction from "
+             << names[currentPacket.location.component] << ": " << currentInst << endl;
 
         // Make sure we didn't read a junk instruction. "nor r0, r0, r0 -> 0" seems
         // pretty unlikely to ever come up in a real program.
@@ -115,11 +111,9 @@ void FetchStage::switchToPacket(PacketInfo& packet) {
 
     currentInstructionSource().startNewPacket(currentPacket.location.index);
 
-    if (DEBUG) {
-      static const string names[] = {"FIFO", "cache", "unknown"};
-      cout << this->name() << " switched to pending packet: " << names[currentPacket.location.component] <<
-        ", position " << currentPacket.location.index << " (0x" << std::hex << currentPacket.memAddr << std::dec << ")" << endl;
-    }
+    static const string names[] = {"FIFO", "cache", "unknown"};
+    LOKI_LOG << this->name() << " switched to pending packet: " << names[currentPacket.location.component] <<
+      ", position " << currentPacket.location.index << " (0x" << std::hex << currentPacket.memAddr << std::dec << ")" << endl;
 
     packet.reset();
     readState = RS_READ;
@@ -203,8 +197,7 @@ void FetchStage::writeLoop() {
         if ((activeFetch.address & 0x1F) == 0) {
           sendRequest(activeFetch);
 
-          if (DEBUG)
-            cout << this->name() << " requesting IPK continuation from 0x" << std::hex << activeFetch.address << std::dec << endl;
+          LOKI_LOG << this->name() << " requesting IPK continuation from " << LOKI_HEX(activeFetch.address) << endl;
         }
 
         // Wait for the instruction to arrive.
@@ -287,8 +280,7 @@ void FetchStage::checkTags(MemoryAddr addr,
 }
 
 bool FetchStage::inCache(const FetchInfo& fetch) {
-  if (DEBUG)
-    cout << this->name() << " looking up tag 0x" << std::hex << fetch.address << std::dec << ": ";
+  LOKI_LOG << this->name() << " looking up tag " << LOKI_HEX(fetch.address) << ": ";
 
   // I suppose the address could technically be 0, but this always indicates an
   // error with the current arrangement.
@@ -319,8 +311,7 @@ bool FetchStage::inCache(const FetchInfo& fetch) {
 
   bool found = packet.inCache;
 
-  if (DEBUG)
-    cout << (found ? "" : "not ") << "cached" << endl;
+  LOKI_LOG << (found ? "" : "not ") << "cached" << endl;
 
   // Clear the packet information if we aren't going to do anything with it.
   // This may be the case if we are prefilling the cache with instructions.
@@ -361,8 +352,7 @@ bool FetchStage::roomToFetch() const {
 
 /* Perform any status updates required when we receive a position to jump to. */
 void FetchStage::jump(const JumpOffset offset) {
-  if (DEBUG)
-    cout << this->name() << " jumped by " << offset << " instructions" << endl;
+  LOKI_LOG << this->name() << " jumped by " << offset << " instructions" << endl;
 
   currentInstructionSource().jump(offset);
 

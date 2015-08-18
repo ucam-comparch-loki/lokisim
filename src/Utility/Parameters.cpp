@@ -12,6 +12,7 @@
 
 #include "Parameters.h"
 #include "Arguments.h"
+#include "Logging.h"
 #include "StringManipulation.h"
 
 #include <iostream>
@@ -209,7 +210,7 @@ void Parameters::parseParameter(const string &name, const string &value) {
   else SET_IF_MATCH(cName, nValue, ROUTER_BUFFER_SIZE);
   else SET_IF_MATCH(cName, nValue, DEBUG);
 	else {
-		cerr << "Encountered unhandled parameter in settings file: " << name << endl;
+		LOKI_ERROR << "Encountered unhandled parameter in settings file: " << name << endl;
 		throw std::exception();
 	}
 }

@@ -41,8 +41,7 @@ bool ChannelMapTable::write(MapIndex entry, EncodedCMTEntry data) {
     activeCycle();
   }
 
-  if (DEBUG)
-    cout << this->name() << " updated map " << (int)entry << " to " << table[entry].getDestination() << endl;
+  LOKI_LOG << this->name() << " updated map " << (int)entry << " to " << table[entry].getDestination() << endl;
 
   return true;
 }

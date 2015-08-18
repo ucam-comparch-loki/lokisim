@@ -51,11 +51,10 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 			                                          request.getMemoryMetadata().returnChannel,
 			                                          0);
 
-      if (DEBUG)
-        cout << this->name() << " preparing to read " << mPortData[port].WordsLeft << " words from 0x" << std::hex << mPortData[port].Address << std::dec << endl;
+			LOKI_LOG << this->name() << " preparing to read " << mPortData[port].WordsLeft << " words from " << LOKI_HEX(mPortData[port].Address) << endl;
 
 			if (mPortData[port].Address + mPortData[port].WordsLeft * 4 > MEMORY_ON_CHIP_SCRATCHPAD_SIZE)
-				cerr << this->name() << " fetch request outside valid memory space (address " << mPortData[port].Address << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
+				LOKI_ERROR << this->name() << " fetch request outside valid memory space (address " << mPortData[port].Address << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
 
 			assert((mPortData[port].Address & 0x3) == 0);
 			assert(mPortData[port].Address <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
@@ -80,11 +79,10 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 			mPortData[port].Address = request.payload().toUInt();
 			mPortData[port].WordsLeft = CACHE_LINE_WORDS;
 
-      if (DEBUG)
-        cout << this->name() << " preparing to write " << mPortData[port].WordsLeft << " words to 0x" << std::hex << mPortData[port].Address << std::dec << endl;
+			LOKI_LOG << this->name() << " preparing to write " << mPortData[port].WordsLeft << " words to " << LOKI_HEX(mPortData[port].Address) << endl;
 
 			if (mPortData[port].Address + mPortData[port].WordsLeft * 4 > MEMORY_ON_CHIP_SCRATCHPAD_SIZE)
-				cerr << this->name() << " store request outside valid memory space (address " << mPortData[port].Address << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
+				LOKI_ERROR << this->name() << " store request outside valid memory space (address " << mPortData[port].Address << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
 
 			assert((mPortData[port].Address & 0x3) == 0);
 			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
@@ -109,8 +107,7 @@ void SimplifiedOnChipScratchpad::receiveData(uint port) {
   newWord.EarliestExecutionCycle = mCycleCounter + (uint64_t)cDelayCycles;
   newWord.Request = iData[port].read();
 
-  if (DEBUG)
-    cout << this->name() << " received " << newWord.Request.payload() << " (" << memoryOpName(newWord.Request.getMemoryMetadata().opcode) << ")" << endl;
+  LOKI_LOG << this->name() << " received " << newWord.Request.payload() << " (" << memoryOpName(newWord.Request.getMemoryMetadata().opcode) << ")" << endl;
 
   iData[port].ack();
   mInputQueues[port].write(newWord);
@@ -120,16 +117,14 @@ void SimplifiedOnChipScratchpad::sendData(uint port) {
   if (mOutputQueues[port].empty())
     next_trigger(mOutputQueues[port].writeEvent());
   else if (oData[port].valid()) {
-    if (DEBUG)
-      cout << this->name() << " is blocked waiting for output to become free" << endl;
+    LOKI_LOG << this->name() << " is blocked waiting for output to become free" << endl;
     next_trigger(oData[port].ack_event());
   }
   else if (!iClock.posedge())
     next_trigger(iClock.posedge_event());
   else {
     NetworkResponse response = mOutputQueues[port].read();
-    if (DEBUG)
-      cout << this->name() << " sending " << response << endl;
+    LOKI_LOG << this->name() << " sending " << response << endl;
     oData[port].write(response);
     next_trigger(oData[port].ack_event());
   }
@@ -157,8 +152,7 @@ void SimplifiedOnChipScratchpad::mainLoop() {
       if (!bankAccessed[bankSelected]) {
         uint32_t result = mData[mPortData[port].Address / 4];
 
-        if (DEBUG)
-          cout << this->name() << " read from 0x" << std::hex << mPortData[port].Address << std::dec << ": " << result << endl;
+        LOKI_LOG << this->name() << " read from " << LOKI_HEX(mPortData[port].Address) << ": " << result << endl;
 
         mPortData[port].Address += 4;
         mPortData[port].WordsLeft--;
@@ -184,8 +178,7 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 
         uint32_t data = mInputQueues[port].read().Request.payload().toUInt();
 
-        if (DEBUG)
-          cout << this->name() << " wrote to 0x" << std::hex << mPortData[port].Address << std::dec << ": " << data << endl;
+        LOKI_LOG << this->name() << " wrote to " << LOKI_HEX(mPortData[port].Address) << ": " << data << endl;
 
         mData[mPortData[port].Address / 4] = data;
         mPortData[port].Address += 4;
@@ -308,8 +301,7 @@ void SimplifiedOnChipScratchpad::storeData(vector<Word>& data, MemoryAddr locati
 	assert(location + count * 4 < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 
 	for (size_t i = 0; i < count; i++) {
-    if (DEBUG)
-      cout << this->name() << " wrote to 0x" << std::hex << ((address+i)*4) << std::dec << ": " << data[i].toUInt() << endl;
+	  LOKI_LOG << this->name() << " wrote to " << LOKI_HEX((address+i)*4) << ": " << data[i].toUInt() << endl;
 
 		mData[address + i] = data[i].toUInt();
 	}

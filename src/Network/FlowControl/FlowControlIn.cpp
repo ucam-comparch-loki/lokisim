@@ -12,7 +12,7 @@ void FlowControlIn::dataLoop() {
   NetworkData data = iData.read();
 
   if (!data.channelID().multicast && (data.channelID() != channel)) {
-    cerr << "Error: " << data << " arrived at channel " << channel << endl;
+    LOKI_ERROR << data << " arrived at channel " << channel << endl;
     assert(false);
   }
 
@@ -40,8 +40,7 @@ void FlowControlIn::handlePortClaim() {
 
   addCredit();
 
-  if (DEBUG)
-    cout << this->name() << " claimed by " << returnAddress << " [flow control " << (useCredits ? "enabled" : "disabled") << "]" << endl;
+  LOKI_LOG << this->name() << " claimed by " << returnAddress << " [flow control " << (useCredits ? "enabled" : "disabled") << "]" << endl;
 
   // If this is a port claim from a memory, to a core's data input, this
   // message doubles as a synchronisation message to show that all memories are
@@ -123,8 +122,7 @@ void FlowControlIn::sendCredit() {
 
   numCredits--;
 
-  if (DEBUG)
-    cout << this->name() << " sent credit to " << returnAddress << " (id:" << aw.messageID() << ")" << endl;
+  LOKI_LOG << this->name() << " sent credit to " << returnAddress << " (id:" << aw.messageID() << ")" << endl;
 }
 
 FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :

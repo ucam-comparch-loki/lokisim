@@ -58,8 +58,7 @@ const Instruction InstructionPacketCache::read() {
 void InstructionPacketCache::write(const Instruction inst) {
   if (ENERGY_TRACE)
     Instrumentation::IPKCache::write(id);
-  if (DEBUG)
-    cout << this->name() << " received Instruction: " << inst << endl;
+  LOKI_LOG << this->name() << " received Instruction: " << inst << endl;
 
   CacheIndex writePos = cache->write(inst);
   cacheFillChanged.notify();

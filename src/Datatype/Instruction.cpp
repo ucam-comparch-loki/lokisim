@@ -314,7 +314,7 @@ void Instruction::decodeOpcode(const string& name) {
   }
   catch(std::exception& e) {
     // Not a valid operation name (and not a label).
-    if(DEBUG) cerr << "Error: invalid operation name: " << opname << endl;
+    LOKI_ERROR << "invalid operation name: " << opname << endl;
     delete &opcodeParts;
     throw InvalidInstructionException();
   }
@@ -360,7 +360,7 @@ int32_t Instruction::decodeImmediate(const string& immed) {
     value = ChannelID(mcastAddress, channel).flatten();
 	} else {
 		// Invalid format
-	  cerr << "Error: invalid tuple length: " << immed << endl;
+	  LOKI_ERROR << "invalid tuple length: " << immed << endl;
 	  delete &parts;
 		assert(false);
 	}

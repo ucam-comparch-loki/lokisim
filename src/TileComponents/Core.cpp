@@ -54,8 +54,8 @@ const int32_t Core::readReg(PortIndex port, RegisterIndex reg, bool indirect) {
     // we have to perform the read anyway.
     regs.read(port, reg, false);
 
-    if (DEBUG) cout << this->name() << " bypassed read of register "
-                    << (int)reg << " (" << result << ")" << endl;
+    LOKI_LOG << this->name() << " bypassed read of register "
+             << (int)reg << " (" << result << ")" << endl;
     Instrumentation::Registers::bypass(port);
 
     if (indirect) result = regs.read(port, result, false);
@@ -130,8 +130,7 @@ void     Core::pipelineStalled(bool stalled) {
   currentlyStalled = stalled;
   stallEvent.notify();
 
-  if (DEBUG)
-    cout << this->name() << ": pipeline " << (stalled ? "stalled" : "unstalled") << endl;
+  LOKI_LOG << this->name() << ": pipeline " << (stalled ? "stalled" : "unstalled") << endl;
 }
 
 bool     Core::discardInstruction(int stage) {

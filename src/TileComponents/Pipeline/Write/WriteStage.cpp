@@ -16,8 +16,7 @@ const DecodedInst& WriteStage::currentInstruction() const {
 }
 
 void WriteStage::execute() {
-  if (DEBUG)
-    cout << this->name() << " received Instruction: " << currentInst << endl;
+  LOKI_LOG << this->name() << " received Instruction: " << currentInst << endl;
 
   newInput(currentInst);
 //  bool packetInProgress = !currentInst.endOfNetworkPacket();
@@ -48,8 +47,8 @@ void WriteStage::updateReady() {
     else
       Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT, currentInst);
 
-    if (DEBUG && !ready)
-      cout << this->name() << " stalled." << endl;
+    if (!ready)
+      LOKI_LOG << this->name() << " stalled." << endl;
   }
 }
 

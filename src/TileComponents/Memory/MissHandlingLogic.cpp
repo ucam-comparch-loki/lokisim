@@ -102,8 +102,7 @@ void MissHandlingLogic::localRequestLoop() {
 
         flit.setChannelID(requestDestination);
 
-        if (DEBUG)
-          cout << this->name() << " sending request " << flit << endl;
+        LOKI_LOG << this->name() << " sending request " << flit << endl;
 
         sendOnNetwork(flit);
 
@@ -155,8 +154,7 @@ void MissHandlingLogic::receiveResponseLoop() {
     iResponseFromNetwork.ack();
   }
 
-  if (DEBUG)
-    cout << this->name() << " received " << response << endl;
+  LOKI_LOG << this->name() << " received " << response << endl;
 
   oResponseToBanks.write(response);
   oResponseTarget.write(response.channelID().component.position);
