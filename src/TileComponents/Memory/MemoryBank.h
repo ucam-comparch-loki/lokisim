@@ -103,6 +103,7 @@ private:
     ChannelID           ReturnChannel;    // Address to send responses to
     uint                FlitsSent;        // Number of response flits sent so far
     bool                Complete;         // Whether the request has been served
+    bool                Missed;           // The request experienced a cache miss
   };
 
 	//---------------------------------------------------------------------------------------------
@@ -148,6 +149,8 @@ private:
 
 	CacheLineBuffer       mCacheLineBuffer; // Used to make cache line operations more efficient
 
+	BufferStorage<NetworkRequest> mMissBuffer; // Payloads for a request which is currently missing.
+
 	//-- L2 cache mode state ----------------------------------------------------------------------
 
 	// L2 requests are broadcast to all banks to allow high associativity. This
@@ -179,10 +182,10 @@ private:
 
 	// Ensure that the cache line containing the given address is stored locally.
 	//   validate = don't fetch the line - it will be received by other means
-	//   required = if the cache line is not already in the cache, do nothing
+	//   allocate = make sure the line is in the cache before doing anything
 	//   isRead, isInstruction = the type of memory access, used for debug
 	// Returns whether the line was already stored locally.
-	bool getCacheLine(MemoryAddr address, bool validate, bool required, bool isRead, bool isInstruction);
+	bool getCacheLine(MemoryAddr address, bool validate, bool allocate, bool isRead, bool isInstruction);
 
 	// Main function, farms work out to handlers below.
 	void processLocalMemoryAccess();

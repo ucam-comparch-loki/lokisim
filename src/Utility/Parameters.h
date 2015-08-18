@@ -120,6 +120,10 @@ extern parameter		MEMORY_ON_CHIP_SCRATCHPAD_SIZE;
 // Maximum number of concurrent accesses to "main memory".
 extern parameter		MEMORY_ON_CHIP_SCRATCHPAD_BANKS;
 
+// Whether a memory bank can serve "hit" requests while waiting for data from
+// a miss.
+extern parameter    MEMORY_HIT_UNDER_MISS;
+
 //-------------------------------------------------------------------------------------------------
 // Network
 //

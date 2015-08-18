@@ -138,6 +138,10 @@ parameter MEMORY_ON_CHIP_SCRATCHPAD_SIZE		= 32 * 1024 * 1024;
 // Maximum number of concurrent accesses to "main memory".
 parameter MEMORY_ON_CHIP_SCRATCHPAD_BANKS		= 4;
 
+// Whether a memory bank can serve "hit" requests while waiting for data from
+// a miss.
+parameter MEMORY_HIT_UNDER_MISS             = 1;
+
 //-------------------------------------------------------------------------------------------------
 // Network
 //
@@ -197,7 +201,8 @@ void Parameters::parseParameter(const string &name, const string &value) {
 	else SET_IF_MATCH(cName, nValue, MEMORY_CACHE_RANDOM_REPLACEMENT);
 	else SET_IF_MATCH(cName, nValue, MEMORY_ON_CHIP_SCRATCHPAD_DELAY);
 	else SET_IF_MATCH(cName, nValue, MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
-	else SET_IF_MATCH(cName, nValue, MEMORY_ON_CHIP_SCRATCHPAD_BANKS);
+  else SET_IF_MATCH(cName, nValue, MEMORY_ON_CHIP_SCRATCHPAD_BANKS);
+  else SET_IF_MATCH(cName, nValue, MEMORY_HIT_UNDER_MISS);
 	else SET_IF_MATCH(cName, nValue, NUM_RECEIVE_CHANNELS);
 	else SET_IF_MATCH(cName, nValue, IN_CHANNEL_BUFFER_SIZE);
   else SET_IF_MATCH(cName, nValue, OUT_CHANNEL_BUFFER_SIZE);
@@ -227,6 +232,7 @@ void Parameters::printParameters() {
   cout << "Parameter MEMORY_ON_CHIP_SCRATCHPAD_DELAY is " << MEMORY_ON_CHIP_SCRATCHPAD_DELAY << endl;
   cout << "Parameter MEMORY_ON_CHIP_SCRATCHPAD_SIZE is " << MEMORY_ON_CHIP_SCRATCHPAD_SIZE << endl;
   cout << "Parameter MEMORY_ON_CHIP_SCRATCHPAD_BANKS is " << MEMORY_ON_CHIP_SCRATCHPAD_BANKS << endl;
+  cout << "Parameter MEMORY_HIT_UNDER_MISS is " << MEMORY_HIT_UNDER_MISS << endl;
   cout << "Parameter NUM_RECEIVE_CHANNELS is " << NUM_RECEIVE_CHANNELS << endl;
   cout << "Parameter IN_CHANNEL_BUFFER_SIZE is " << IN_CHANNEL_BUFFER_SIZE << endl;
   cout << "Parameter OUT_CHANNEL_BUFFER_SIZE is " << OUT_CHANNEL_BUFFER_SIZE << endl;

@@ -49,6 +49,10 @@ public:
   // Returns whether the address is held in this buffer.
   bool inBuffer(MemoryAddr address);
 
+  // Returns an event which is triggered whenever a cache line is swapped to
+  // or from the buffer.
+  const sc_core::sc_event& lineSwapEvent() const;
+
 private:
   // Data buffer.
   uint32_t              mData[CACHE_LINE_WORDS];
@@ -58,6 +62,9 @@ private:
 
   // Address of cache line in the buffer.
   MemoryAddr            mTag;
+
+  // Event which is triggered whenever a cache line is swapped to/from the buffer.
+  sc_core::sc_event     mLineSwapEvent;
 };
 
 #endif /* SRC_TILECOMPONENTS_MEMORY_CACHELINEBUFFER_H_ */

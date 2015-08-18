@@ -32,6 +32,7 @@ bool CacheLineBuffer::finishedOperation() const {
 void CacheLineBuffer::fill(MemoryAddr address, uint32_t data[]) {
   memcpy(mData, data, CACHE_LINE_WORDS*BYTES_PER_WORD);
   setTag(address);
+  mLineSwapEvent.notify(sc_core::SC_ZERO_TIME);
 }
 
 void CacheLineBuffer::setTag(MemoryAddr address) {
@@ -65,6 +66,7 @@ void CacheLineBuffer::write(uint32_t data) {
 void CacheLineBuffer::flush(uint32_t data[]) {
   memcpy(data, mData, CACHE_LINE_WORDS*BYTES_PER_WORD);
   mCursor = 0;
+  mLineSwapEvent.notify(sc_core::SC_ZERO_TIME);
 }
 
 // The effective address of the next word to be read/written.
@@ -76,4 +78,10 @@ MemoryAddr CacheLineBuffer::getCurrentAddress() const {
 bool CacheLineBuffer::inBuffer(MemoryAddr address) {
   mCursor = 0;
   return (address & 0xFFFFFFE0) == mTag;
+}
+
+// Returns an event which is triggered whenever a cache line is swapped to
+// or from the buffer.
+const sc_core::sc_event& CacheLineBuffer::lineSwapEvent() const {
+  return mLineSwapEvent;
 }

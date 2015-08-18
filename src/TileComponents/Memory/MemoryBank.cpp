@@ -89,7 +89,7 @@ bool MemoryBank::inL1Mode() const {
 }
 
 bool MemoryBank::onlyAcceptingRefills() const {
-  return /*!HIT_UNDER_MISS &&*/ (mCallbackData.State != STATE_IDLE);
+  return !MEMORY_HIT_UNDER_MISS && (mCallbackData.State != STATE_IDLE);
 }
 
 MemoryAddr MemoryBank::getTag(MemoryAddr address) const {
@@ -121,13 +121,44 @@ bool MemoryBank::startNewRequest() {
   assert(mActiveData.Complete);
   mActiveData.State = STATE_IDLE;
   mActiveData.Source = REQUEST_NONE;
+  mActiveData.Missed = false;
 
   if (!inputAvailable())
 		return false;
 
-  // TODO: if allowing hit-under-miss, do a tag look-up to determine if hit or not.
+  NetworkRequest request = peekInput();
 
-  NetworkRequest request = consumeInput();
+  // If the flit is a payload, it is for a request which has missed and been
+  // put aside. Buffer the payload so we can move on to another request.
+  if (request.getMemoryMetadata().opcode == PAYLOAD ||
+      request.getMemoryMetadata().opcode == PAYLOAD_EOP) {
+    assert(mCallbackData.State != STATE_IDLE);
+    mMissBuffer.write(request);
+    consumeInput();
+    next_trigger(iClock.negedge_event());
+    return false;
+  }
+
+  // If the hit-under-miss option is enabled and we are currently serving a
+  // miss, peek the next request in the queue to see if it is a hit.
+
+  if ((mCallbackData.State != STATE_IDLE) &&
+      (mActiveData.Source != REQUEST_REFILL) &&
+      MEMORY_HIT_UNDER_MISS) {
+    MemoryAddr address = request.payload().toUInt();
+    bool hit = storedLocally(address);
+
+    if (!hit) {
+      // Wait for the miss to finish being served.
+      next_trigger(mCacheLineBuffer.lineSwapEvent());
+      return false;
+    }
+
+    if (DEBUG)
+      cout << this->name() << " starting hit-under-miss" << endl;
+  }
+
+  consumeInput();
   return processMessageHeader(request);
 }
 
@@ -140,6 +171,7 @@ bool MemoryBank::processMessageHeader(const NetworkRequest& request) {
 	mActiveData.FlitsSent = 0;
 	mActiveData.Request = request;
 	mActiveData.Complete = false;
+	mActiveData.Missed = false;
 
   if (DEBUG)
     cout << this->name() << " starting " << memoryOpName(opcode) << " request from component " << mActiveData.ReturnChannel.component << endl;
@@ -166,6 +198,7 @@ bool MemoryBank::processMessageHeader(const NetworkRequest& request) {
 		break;
 
 	case FETCH_LINE:
+	case PREFETCH_LINE:
     if (ENERGY_TRACE)
       Instrumentation::MemoryBank::initiateBurstRead(cBankNumber);
     getCacheLine(mActiveData.Address, false, true, true, false);
@@ -239,10 +272,10 @@ bool MemoryBank::processMessageHeader(const NetworkRequest& request) {
 
 // Ensure that the cache line containing the given address is stored locally.
 //   validate = don't fetch the line - it will be received by other means
-//   required = if the cache line is not already in the cache, do nothing
+//   allocate = make sure the line is in the cache before doing anything
 //   isRead, isInstruction = the type of memory access, used for debug
 // Returns whether the line was already stored locally.
-bool MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool required, bool isRead, bool isInstruction) {
+bool MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool allocate, bool isRead, bool isInstruction) {
   MemoryAddr tag = getTag(address);
   CacheLookup info = currentMemoryHandler().prepareCacheLine(address, mCacheLineBuffer, isRead, isInstruction);
 
@@ -252,6 +285,7 @@ bool MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool required, 
                                               !info.Hit,
                                               mActiveData.ReturnChannel);
 
+
   // If we don't need to fetch, just set the tag and wait for data.
   if (validate)
     mCacheLineBuffer.setTag(tag);
@@ -260,17 +294,21 @@ bool MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool required, 
   // where it will go in the cache.
   if (mCallbackData.State != STATE_IDLE &&
       sameCacheLine(mCallbackData.Address, mActiveData.Address)) {
+    mActiveData.Missed = false;
     mActiveData.Position = getTag(mCallbackData.Position) + getOffset(address);
     return info.Hit;
   }
-  else
-    mActiveData.Position = info.SRAMLine*CACHE_LINE_WORDS*BYTES_PER_WORD + getOffset(address);
+  else {
+    mActiveData.Missed = !info.Hit;
+    mActiveData.Position = info.SRAMLine*CACHE_LINE_WORDS*BYTES_PER_WORD
+                         + getOffset(address);
+  }
 
   // We only have to do something if we don't already have the data.
   if (!info.Hit) {
     // Bail out if the operation doesn't need to happen when the data isn't
     // present (e.g. FLUSH_LINE).
-    if (!required)
+    if (!allocate)
       return info.Hit;
 
     // If we need to flush or fetch a line, put aside the current operation.
@@ -282,6 +320,7 @@ bool MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool required, 
       assert(mCallbackData.State == STATE_IDLE);
       mCallbackData = mActiveData;
       mActiveData.State = STATE_IDLE;
+      mActiveData.Missed = false;
     }
 
     // Fetch the line, if necessary.
@@ -506,10 +545,15 @@ void MemoryBank::processInvalidateLine() {
 }
 
 void MemoryBank::processValidateLine() {
+  // The address (and arbitrary data) is in the cache line buffer.
   replaceCacheLine();
 }
 
-void MemoryBank::processPrefetchLine() {assert(false);}
+void MemoryBank::processPrefetchLine() {
+  // Getting to this point means the line is in the cache - job done.
+  mActiveData.Complete = true;
+}
+
 void MemoryBank::processPushLine() {assert(false);}
 
 void MemoryBank::processFlushAllLines() {
@@ -771,19 +815,23 @@ void MemoryBank::replaceCacheLine() {
 }
 
 bool MemoryBank::inputAvailable() const {
-  switch (mActiveData.Source) {
-    case REQUEST_CORES:
-      return !mInputQueue.empty() && !onlyAcceptingRefills();
-    case REQUEST_MEMORIES:
-      return requestSig.valid() && !onlyAcceptingRefills();
-    case REQUEST_REFILL:
-      return iResponse.valid() && iResponseTarget.read() == id.position-CORES_PER_TILE;
-    case REQUEST_NONE:
-      bool newCoreRequest = !mInputQueue.empty();
-      bool newMemoryRequest = requestSig.valid();
-      bool newRefillRequest = iResponse.valid() && iResponseTarget.read() == id.position-CORES_PER_TILE;
-      return (!onlyAcceptingRefills() && (newCoreRequest || newMemoryRequest)) ||
-          newRefillRequest;
+  if (MEMORY_HIT_UNDER_MISS && mActiveData.Missed && !mMissBuffer.empty()) // temp hack
+    return !mMissBuffer.empty();
+  else {
+    switch (mActiveData.Source) {
+      case REQUEST_CORES:
+        return !mInputQueue.empty() && !onlyAcceptingRefills();
+      case REQUEST_MEMORIES:
+        return requestSig.valid() && !onlyAcceptingRefills();
+      case REQUEST_REFILL:
+        return iResponse.valid() && iResponseTarget.read() == id.position-CORES_PER_TILE;
+      case REQUEST_NONE:
+        bool newCoreRequest = !mInputQueue.empty();
+        bool newMemoryRequest = requestSig.valid();
+        bool newRefillRequest = iResponse.valid() && iResponseTarget.read() == id.position-CORES_PER_TILE;
+        return (!onlyAcceptingRefills() && (newCoreRequest || newMemoryRequest)) ||
+            newRefillRequest;
+    }
   }
 
   assert(false);
@@ -791,31 +839,35 @@ bool MemoryBank::inputAvailable() const {
 }
 
 const NetworkRequest MemoryBank::peekInput() {
-  switch (mActiveData.Source) {
-    case REQUEST_CORES:
-      assert(!mInputQueue.empty());
-      return mInputQueue.peek();
-    case REQUEST_MEMORIES:
-      assert(requestSig.valid());
-      return requestSig.read();
-    case REQUEST_REFILL:
-      assert(iResponse.valid());
-      return iResponse.read();
-    case REQUEST_NONE:
-      // Prioritise refills since they may be holding up other requests.
-      if (iResponse.valid() && iResponseTarget.read() == id.position-CORES_PER_TILE) {
-        mActiveData.Source = REQUEST_REFILL;
-        return iResponse.read();
-      }
-      else if (!mInputQueue.empty()) {
-        mActiveData.Source = REQUEST_CORES;
+  if (MEMORY_HIT_UNDER_MISS && mActiveData.Missed && !mMissBuffer.empty()) // temp hack
+    return mMissBuffer.peek();
+  else {
+    switch (mActiveData.Source) {
+      case REQUEST_CORES:
+        assert(!mInputQueue.empty());
         return mInputQueue.peek();
-      }
-      else {
-        mActiveData.Source = REQUEST_MEMORIES;
+      case REQUEST_MEMORIES:
         assert(requestSig.valid());
         return requestSig.read();
-      }
+      case REQUEST_REFILL:
+        assert(iResponse.valid());
+        return iResponse.read();
+      case REQUEST_NONE:
+        // Prioritise refills since they may be holding up other requests.
+        if (iResponse.valid() && iResponseTarget.read() == id.position-CORES_PER_TILE) {
+          mActiveData.Source = REQUEST_REFILL;
+          return iResponse.read();
+        }
+        else if (!mInputQueue.empty()) {
+          mActiveData.Source = REQUEST_CORES;
+          return mInputQueue.peek();
+        }
+        else {
+          mActiveData.Source = REQUEST_MEMORIES;
+          assert(requestSig.valid());
+          return requestSig.read();
+        }
+    }
   }
 
   assert(false);
@@ -825,43 +877,47 @@ const NetworkRequest MemoryBank::peekInput() {
 const NetworkRequest MemoryBank::consumeInput() {
   NetworkRequest request;
 
-  switch (mActiveData.Source) {
-    case REQUEST_CORES:
-      assert(!mInputQueue.empty());
-      request = mInputQueue.read();
-      if (DEBUG)
-        cout << this->name() << " dequeued " << request << endl;
-      break;
-    case REQUEST_MEMORIES:
-      assert(requestSig.valid());
-      request = requestSig.read();
-      requestSig.ack();
-      break;
-    case REQUEST_REFILL:
-      assert(iResponse.valid());
-      request = iResponse.read();
-      iResponse.ack();
-      break;
-    case REQUEST_NONE:
-      // Prioritise refills since they may be holding up other requests.
-      if (iResponse.valid() && iResponseTarget.read() == id.position-CORES_PER_TILE) {
-        mActiveData.Source = REQUEST_REFILL;
-        request = iResponse.read();
-        iResponse.ack();
-      }
-      else if (!mInputQueue.empty()) {
-        mActiveData.Source = REQUEST_CORES;
+  if (MEMORY_HIT_UNDER_MISS && mActiveData.Missed && !mMissBuffer.empty()) // temp hack
+    request = mMissBuffer.read();
+  else {
+    switch (mActiveData.Source) {
+      case REQUEST_CORES:
+        assert(!mInputQueue.empty());
         request = mInputQueue.read();
         if (DEBUG)
           cout << this->name() << " dequeued " << request << endl;
-      }
-      else {
-        mActiveData.Source = REQUEST_MEMORIES;
+        break;
+      case REQUEST_MEMORIES:
         assert(requestSig.valid());
         request = requestSig.read();
         requestSig.ack();
-      }
-      break;
+        break;
+      case REQUEST_REFILL:
+        assert(iResponse.valid());
+        request = iResponse.read();
+        iResponse.ack();
+        break;
+      case REQUEST_NONE:
+        // Prioritise refills since they may be holding up other requests.
+        if (iResponse.valid() && iResponseTarget.read() == id.position-CORES_PER_TILE) {
+          mActiveData.Source = REQUEST_REFILL;
+          request = iResponse.read();
+          iResponse.ack();
+        }
+        else if (!mInputQueue.empty()) {
+          mActiveData.Source = REQUEST_CORES;
+          request = mInputQueue.read();
+          if (DEBUG)
+            cout << this->name() << " dequeued " << request << endl;
+        }
+        else {
+          mActiveData.Source = REQUEST_MEMORIES;
+          assert(requestSig.valid());
+          request = requestSig.read();
+          requestSig.ack();
+        }
+        break;
+    }
   }
 
   return request;
@@ -1061,6 +1117,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
   mReservations(1),
 	mScratchpadModeHandler(bankNumber, mData),
 	mGeneralPurposeCacheHandler(bankNumber, mData),
+	mMissBuffer(CACHE_LINE_WORDS, "mMissBuffer"),
 	mL2RequestFilter("request_filter", ID, this)
 {
 	//-- Configuration parameters -----------------------------------------------------------------
