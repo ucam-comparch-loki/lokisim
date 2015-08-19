@@ -915,15 +915,15 @@ const NetworkRequest MemoryBank::consumeInput() {
 bool MemoryBank::canSend() const {
   switch (mActiveData.Source) {
     case REQUEST_CORES:
-      return !mOutputQueue.full();
+      return !mOutputQueue.full() && !mOutputReqQueue.full();
     case REQUEST_MEMORIES:
-      return !oResponse.valid();
+      return !oResponse.valid() && !mOutputReqQueue.full();
     case REQUEST_REFILL:
       return true;  // Refills never need to send any data.
     default:
       // If we don't know where the request came from, we can't know where to
       // send the response.
-      cerr << "Error: mActiveData.Source " << mActiveData.Source << " is trying to send data"<< endl;
+      LOKI_ERROR << "mActiveData.Source " << mActiveData.Source << " is trying to send data" << endl;
       assert(false);
       return false;
   }
