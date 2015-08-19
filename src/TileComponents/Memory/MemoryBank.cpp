@@ -145,6 +145,12 @@ bool MemoryBank::startNewRequest() {
   if ((mCallbackData.State != STATE_IDLE) &&
       (mActiveData.Source != REQUEST_REFILL) &&
       MEMORY_HIT_UNDER_MISS) {
+    // Don't reorder data being sent to the same channel.
+    if (mCallbackData.ReturnChannel == returnChannel(request)) {
+      next_trigger(mCacheLineBuffer.lineSwapEvent());
+      return false;
+    }
+
     MemoryAddr address = request.payload().toUInt();
     bool hit = storedLocally(address);
 
