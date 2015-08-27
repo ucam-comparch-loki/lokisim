@@ -17,15 +17,13 @@
 //
 // Communication protocol:
 //
-// 1. Send command word - highest bit: 0 = read, 1 = write, lower bits word count
-// 2. Send start address
-// 3. Send words in case of write command
+// 1. Send start address
+// 2. Send words in case of write command
 //-------------------------------------------------------------------------------------------------
 // File:       SimplifiedOnChipScratchpad.cpp
 // Author:     Andreas Koltes (andreas.koltes@cl.cam.ac.uk)
 // Created on: 08/04/2011
 //-------------------------------------------------------------------------------------------------
-#include "../../Exceptions/ReadOnlyException.h"
 
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
@@ -35,6 +33,7 @@
 using namespace std;
 
 #include "../../Component.h"
+#include "../../Exceptions/ReadOnlyException.h"
 #include "../../Utility/Instrumentation.h"
 #include "../../Utility/Warnings.h"
 #include "SimplifiedOnChipScratchpad.h"

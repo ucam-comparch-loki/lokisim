@@ -32,6 +32,7 @@ using namespace std;
 #include "../../Utility/Instrumentation/Network.h"
 #include "../../Utility/Trace/MemoryTrace.h"
 #include "../../Utility/Parameters.h"
+#include "../../Utility/Warnings.h"
 #include "../../Exceptions/ReadOnlyException.h"
 #include "../../Exceptions/UnsupportedFeatureException.h"
 
