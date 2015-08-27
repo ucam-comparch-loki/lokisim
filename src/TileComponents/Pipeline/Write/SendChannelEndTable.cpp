@@ -15,14 +15,15 @@
 #include "../../../Utility/Instrumentation/Stalls.h"
 
 void SendChannelEndTable::write(const NetworkData data) {
-  LOKI_LOG << this->name() << " writing " << data << " to buffer\n";
 
   if (data.channelID().multicast || (data.channelID().component.tile == id.tile)) {
     assert(!bufferLocal.full());
+    LOKI_LOG << this->name() << " writing " << data << " to buffer (local)\n";
     bufferLocal.write(data);
   }
   else {
     assert(!bufferGlobal.full());
+    LOKI_LOG << this->name() << " writing " << data << " to buffer (global)\n";
     bufferGlobal.write(data);
   }
 

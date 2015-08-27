@@ -152,7 +152,7 @@ void SimplifiedOnChipScratchpad::mainLoop() {
       if (!bankAccessed[bankSelected]) {
         uint32_t result = mData[mPortData[port].Address / 4];
 
-        LOKI_LOG << this->name() << " read from " << LOKI_HEX(mPortData[port].Address) << ": " << result << endl;
+        LOKI_LOG << this->name() << " read from " << LOKI_HEX(mPortData[port].Address) << ": " << LOKI_HEX(result) << endl;
 
         mPortData[port].Address += 4;
         mPortData[port].WordsLeft--;
@@ -178,7 +178,7 @@ void SimplifiedOnChipScratchpad::mainLoop() {
 
         uint32_t data = mInputQueues[port].read().Request.payload().toUInt();
 
-        LOKI_LOG << this->name() << " wrote to " << LOKI_HEX(mPortData[port].Address) << ": " << data << endl;
+        LOKI_LOG << this->name() << " wrote to " << LOKI_HEX(mPortData[port].Address) << ": " << LOKI_HEX(data) << endl;
 
         mData[mPortData[port].Address / 4] = data;
         mPortData[port].Address += 4;

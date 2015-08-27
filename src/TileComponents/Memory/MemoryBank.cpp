@@ -309,9 +309,12 @@ bool MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool allocate, 
 
   // We only have to do something if we don't already have the data.
   if (!info.Hit) {
+    // Invalidate the current cache line if allocating space for a new line.
+    if (allocate)
+      mGeneralPurposeCacheHandler.invalidate(mActiveData.Position);
     // Bail out if the operation doesn't need to happen when the data isn't
     // present (e.g. FLUSH_LINE).
-    if (!allocate)
+    else
       return info.Hit;
 
     // If we need to flush or fetch a line, put aside the current operation.
@@ -969,9 +972,10 @@ void MemoryBank::processRMWPhase2(uint32_t data) {
 }
 
 void MemoryBank::processDelayedCacheFlush() {
-  // Start a new flush request.
-  NetworkRequest header(mActiveData.Address, id, FLUSH_LINE, true);
-  processMessageHeader(header);
+  // Start a cache flush next cycle.
+  mActiveData.State = STATE_LOCAL_MEMORY_ACCESS;
+  mActiveData.Request = NetworkRequest(mActiveData.Address, id, FLUSH_LINE, true);
+  mActiveData.Complete = false;
 }
 
 void MemoryBank::processValidInput() {

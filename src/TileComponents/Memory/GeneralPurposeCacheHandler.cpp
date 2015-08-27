@@ -240,7 +240,6 @@ CacheLookup GeneralPurposeCacheHandler::prepareCacheLine(MemoryAddr address, Cac
       info.FlushRequired = false;
 
     Instrumentation::MemoryBank::replaceCacheLine(mBankNumber, mLineValid[slot], mLineDirty[slot]);
-
   }
 
   info.SRAMLine = slot;
@@ -250,6 +249,9 @@ CacheLookup GeneralPurposeCacheHandler::prepareCacheLine(MemoryAddr address, Cac
 
 void GeneralPurposeCacheHandler::replaceCacheLine(CacheLineBuffer& buffer, SRAMAddress position) {
   uint cacheLine = getLine(position);
+  assert(!(mLineValid[cacheLine] && mLineDirty[cacheLine]) &&
+         "Overwriting dirty cache line");
+
   buffer.flush(&mData[position / 4]);
   mAddresses[cacheLine] = buffer.getTag();
   mLineValid[cacheLine] = true;
