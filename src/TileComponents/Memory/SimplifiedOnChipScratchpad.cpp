@@ -25,6 +25,7 @@
 // Author:     Andreas Koltes (andreas.koltes@cl.cam.ac.uk)
 // Created on: 08/04/2011
 //-------------------------------------------------------------------------------------------------
+#include "../../Exceptions/ReadOnlyException.h"
 
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
@@ -35,6 +36,7 @@ using namespace std;
 
 #include "../../Component.h"
 #include "../../Utility/Instrumentation.h"
+#include "../../Utility/Warnings.h"
 #include "SimplifiedOnChipScratchpad.h"
 
 void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
@@ -361,14 +363,24 @@ Word SimplifiedOnChipScratchpad::readByte(MemoryAddr addr) {
 void SimplifiedOnChipScratchpad::writeWord(MemoryAddr addr, Word data) {
 	assert(addr < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 	assert(addr % 4 == 0);
-	assert(!readOnly(addr));
-	mData[addr / 4] = data.toUInt();
+
+  if (WARN_READ_ONLY)
+    LOKI_WARN << this->name() << " attempting to modify read-only address " << LOKI_HEX(addr) << endl;
+  else
+    throw ReadOnlyException(addr);
+
+  mData[addr / 4] = data.toUInt();
 }
 
 void SimplifiedOnChipScratchpad::writeByte(MemoryAddr addr, Word data) {
 	assert(addr < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
-	assert(!readOnly(addr));
-	uint32_t modData = mData[addr / 4];
+
+  if (WARN_READ_ONLY)
+    LOKI_WARN << this->name() << " attempting to modify read-only address " << LOKI_HEX(addr) << endl;
+  else
+    throw ReadOnlyException(addr);
+
+  uint32_t modData = mData[addr / 4];
 	uint shift = (addr & 0x3UL) * 8;
 	uint32_t mask = 0xFFUL << shift;
 	modData &= ~mask;

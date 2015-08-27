@@ -12,6 +12,10 @@
 
 using std::string;
 
+// Warn (rather than terminate) when attempting to modify a read-only memory
+// address.
+extern bool WARN_READ_ONLY;
+
 // Memory addresses which aren't aligned to a word/half-word boundary are
 // automatically rounded down by the memory bank.
 extern bool WARN_UNALIGNED;
@@ -31,7 +35,13 @@ inline void setWarning(const string& option) {
     setting = (settingStr == "true") || (settingStr == "1");
   }
 
-  if (name == "all" || name == "unaligned-memory")
+  if (name == "all") {
+    WARN_READ_ONLY = setting;
+    WARN_UNALIGNED = setting;
+  }
+  else if (name == "read-only")
+    WARN_READ_ONLY = setting;
+  else if (name == "unaligned-memory")
     WARN_UNALIGNED = setting;
   else
     std::cout << "Unrecognised warning setting: " << name << " set to " << setting << std::endl;
