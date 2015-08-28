@@ -129,17 +129,21 @@ void FetchStage::writeLoop() {
   switch (writeState) {
     case WS_READY: {
       // Wait for a fetch request to arrive.
-      if (fetchBuffer.empty())
+      if (fetchBuffer.empty()) {
         next_trigger(fetchBuffer.writeEvent());
+      }
       // Wait for there to be space in the cache to fetch a new packet.
-      else if (!roomToFetch())
-        next_trigger(cache.fillChangedEvent());
+      else if (!roomToFetch()) {
+        next_trigger(cache.fillChangedEvent() | fifo.fillChangedEvent());
+      }
       // The pending packet is where we store all the information about the
       // packet we're fetching. Wait for it to become available.
-      else if (fifoPendingPacket.active() || cachePendingPacket.active())
+      else if (fifoPendingPacket.active() || cachePendingPacket.active()) {
         next_trigger(clock.posedge_event());
-      else if (!iOutputBufferReady.read())
+      }
+      else if (!iOutputBufferReady.read()) {
         next_trigger(iOutputBufferReady.posedge_event());
+      }
       else {
         writeState = WS_CHECK_TAGS;
         next_trigger(sc_core::SC_ZERO_TIME);

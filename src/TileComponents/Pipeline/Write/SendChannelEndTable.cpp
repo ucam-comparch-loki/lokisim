@@ -154,14 +154,13 @@ void SendChannelEndTable::sendLoopLocal() {
       // Otherwise, wait another cycle.
       if (requestGranted(bufferLocal.peek().channelID())) {
         sendState = SS_CAN_SEND;
-        // fall through to SS_CAN_SEND state
+        next_trigger(sc_core::SC_ZERO_TIME);
       }
       else {
         next_trigger(clock.posedge_event());
-        break;
       }
+      break;
     }
-    /* no break */
 
     case SS_CAN_SEND: {
       assert(!bufferLocal.empty());
