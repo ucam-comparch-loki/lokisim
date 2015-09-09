@@ -58,12 +58,6 @@ public:
 // Methods
 //==============================//
 
-public:
-
-  // The instruction whose result is currently being written to registers or
-  // the network. Used to determine whether forwarding is required.
-  const DecodedInst& currentInstruction() const;
-
 private:
 
   virtual void   execute();

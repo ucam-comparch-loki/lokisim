@@ -9,6 +9,10 @@
 #include "PipelineRegister.h"
 #include "../Core.h"
 
+const DecodedInst& PipelineStage::currentInstruction() const {
+  return currentInst;
+}
+
 void PipelineStage::initPipeline(PipelineRegister* prev, PipelineRegister* next) {
   this->prev = prev;
   this->next = next;

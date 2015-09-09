@@ -8,6 +8,7 @@
 #include "Decoder.h"
 #include "DecodeStage.h"
 #include "../RegisterFile.h"
+#include "../../Core.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
 #include "../../../Datatype/MemoryRequest.h"
@@ -36,15 +37,6 @@ void Decoder::instructionFinished() {
       parent()->jump(jump);
     }
   }
-
-  // Store the previous instruction so we can determine whether forwarding will
-  // be required, etc. In practice, we'd only need a subset of the information.
-  previous = current;
-
-  // Avoid forwarding data from instructions which don't execute or don't store
-  // their results.
-  if (!execute || previous.destination() == 0)
-    previous.destination(-1);
 }
 
 bool Decoder::allOperandsReady() const {
@@ -162,12 +154,8 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   }
 
   // If we know the instruction won't execute, stop it here.
-  if (!execute) {
-    // Disallow forwarding from instructions which didn't execute.
-    previous = input;
-    previous.destination(-1);
+  if (!execute)
     return true;
-  }
 
   // Wait for any unavailable operands to arrive (either over the network, or
   // by being forwarded from the execute stage).
@@ -346,16 +334,6 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   if (execute && isFetch(output.opcode()))
     fetch(output);
 
-  // Store the instruction we just decoded so we can see if it needs to forward
-  // data to the next instruction. In practice, we wouldn't need the whole
-  // instruction.
-  previous = output;
-
-  // Don't want to forward from instructions which didn't execute, or which
-  // don't store their results.
-  if (!execute || input.destination() == 0)
-    previous.destination(-1);
-
   return continueToExecute;
 }
 
@@ -370,7 +348,7 @@ void Decoder::waitForOperands(const DecodedInst& dec) {
   if (InstructionMap::hasSrcReg1(dec.opcode())) {
     if (Registers::isChannelEnd(dec.sourceReg1()))
       waitUntilArrival(Registers::toChannelID(dec.sourceReg1()), dec);
-    if (dec.isDecodeStageOperation() && (dec.sourceReg1() == previous.destination())) {
+    if (dec.isDecodeStageOperation() && needsForwarding(dec.sourceReg1())) {
       stall(true, Instrumentation::Stalls::STALL_FORWARDING, dec);
       // HACK! May take multiple cycles. FIXME
       // Add an extra 0.1 cycles to ensure that the result is ready for forwarding.
@@ -388,18 +366,25 @@ void Decoder::waitForOperands(const DecodedInst& dec) {
   // registers specified by indirect reads.
 }
 
+bool Decoder::needsForwarding(RegisterIndex reg) const {
+  // Forwarding will be required if there is any instruction between the decode
+  // stage and the write back stage which will modify the contents of reg.
+  return !Registers::isReserved(reg)
+      && (reg == parent()->core()->execute.currentInstruction().destination());
+}
+
 void Decoder::setOperand1(DecodedInst& dec) {
   RegisterIndex reg = dec.sourceReg1();
 
-  if ((reg == previous.destination())) {
+  // Read the register in all situations because even if we decide that
+  // forwarding is required, we don't yet know whether the instruction will
+  // be executed.
+  dec.operand1(readRegs(1, reg));
+
+  if (needsForwarding(reg))
     dec.operand1Source(DecodedInst::BYPASS);
-    if (previous.predicated())
-      dec.operand1(readRegs(1, reg));
-  }
-  else {
-    dec.operand1(readRegs(1, reg));
+  else
     dec.operand1Source(DecodedInst::REGISTER);
-  }
 }
 
 void Decoder::setOperand2(DecodedInst& dec) {
@@ -409,16 +394,12 @@ void Decoder::setOperand2(DecodedInst& dec) {
   }
   else if (dec.hasSrcReg2()) {
     RegisterIndex reg = dec.sourceReg2();
+    dec.operand2(readRegs(2, reg));
 
-    if (reg == previous.destination()) {
+    if (needsForwarding(reg))
       dec.operand2Source(DecodedInst::BYPASS);
-      if (previous.predicated())
-        dec.operand2(readRegs(2, reg));
-    }
-    else {
-      dec.operand2(readRegs(2, reg));
+    else
       dec.operand2Source(DecodedInst::REGISTER);
-    }
   }
 }
 
@@ -673,12 +654,9 @@ Decoder::Decoder(const sc_module_name& name, const ComponentID& ID) :
   needDestination = false;
   needOperand1 = false;
   needOperand2 = false;
-  needChannel = false;
 
   multiCycleOp = false;
   blocked = false;
   instructionCancelled = false;
-  previousInstPredicated = false;
-  previousInstSetPredicate = false;
 
 }

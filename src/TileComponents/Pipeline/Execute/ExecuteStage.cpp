@@ -357,10 +357,6 @@ void ExecuteStage::updatePredicate(const DecodedInst& inst) {
   writePredicate(newPredicate);
 }
 
-const DecodedInst& ExecuteStage::currentInstruction() const {
-  return currentInst;
-}
-
 const sc_event& ExecuteStage::executedEvent() const {
   return instructionCompletedEvent;
 }

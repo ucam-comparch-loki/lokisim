@@ -185,12 +185,14 @@ private:
   RegisterFile           regs;
   PredicateRegister      pred;
 
+public:
   // Pipeline stages.
   FetchStage             fetch;
   DecodeStage            decode;
   ExecuteStage           execute;
   WriteStage             write;
 
+private:
   // A pipeline register to go between each pair of adjacent stages.
   vector<PipelineRegister*> pipelineRegs;
 

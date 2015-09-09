@@ -50,10 +50,6 @@ public:
 
 public:
 
-  // The instruction currently being executed. It may be useful to access this
-  // to see if its result will need to be forwarded.
-  const DecodedInst& currentInstruction() const;
-
   // An event which is triggered whenever execution of an instruction completes.
   const sc_event& executedEvent() const;
 

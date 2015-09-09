@@ -42,6 +42,9 @@ protected:
 
 public:
 
+  // Inspect the instruction currently in this pipeline stage.
+  const DecodedInst& currentInstruction() const;
+
   // Provide access to the surrounding pipeline registers. Either of these can
   // be NULL - used at the ends of the pipeline.
   void initPipeline(PipelineRegister* prev, PipelineRegister* next);

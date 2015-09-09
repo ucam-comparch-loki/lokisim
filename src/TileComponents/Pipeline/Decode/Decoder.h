@@ -55,6 +55,10 @@ public:
   // not be ready when this instruction first reaches the decoder.
   void waitForOperands(const DecodedInst& dec);
 
+  // Returns whether the contents of the given register will need to be
+  // forwarded from an instruction which hasn't written its result yet.
+  bool needsForwarding(RegisterIndex reg) const;
+
   // Determine whether to read the first operand from the receive channel-end
   // table, the ALU or the register file.
   void setOperand1(DecodedInst& dec);
@@ -118,10 +122,10 @@ private:
   // None of the following are needed in hardware - they are just required here
   // because of the way decoding has been split up into multiple blocks.
   // Could instead use a collection of possible states.
-  DecodedInst current, output, previous;
+  DecodedInst current, output;
   bool continueToExecute, execute, haveAllOperands;
   int outputsRemaining;
-  bool needDestination, needOperand1, needOperand2, needChannel;
+  bool needDestination, needOperand1, needOperand2;
 
   // Tells whether we have started a two-cycle store operation.
   bool multiCycleOp;
@@ -135,11 +139,6 @@ public:
   bool instructionCancelled;
 private:
   sc_event cancelEvent;
-
-  // If the previous instruction was predicated, we may not know whether
-  // forwarding will be possible, so must be pessimistic and read registers too.
-  bool previousInstPredicated;
-  bool previousInstSetPredicate;
 
 };
 

@@ -11,10 +11,6 @@
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
-const DecodedInst& WriteStage::currentInstruction() const {
-  return currentInst;
-}
-
 void WriteStage::execute() {
   LOKI_LOG << this->name() << " received Instruction: " << currentInst << endl;
 
