@@ -52,9 +52,6 @@ const DecodedInst& Decoder::getOutput() const {
 }
 
 bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
-  // If this operation produces multiple outputs, produce the next one.
-  if (multiCycleOp) return continueOp(input, output);
-
   // In practice, we wouldn't be receiving a decoded instruction, and the
   // decode would be done here, but it simplifies various interfaces if it is
   // done this way.
@@ -188,49 +185,24 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
       output.memoryOp(LOAD_B); break;
     case InstructionMap::OP_LDL:
       output.memoryOp(LOAD_LINKED); break;
-
     case InstructionMap::OP_STW:
+      output.memoryOp(STORE_W); break;
     case InstructionMap::OP_STHW:
+      output.memoryOp(STORE_HW); break;
     case InstructionMap::OP_STB:
+      output.memoryOp(STORE_B); break;
     case InstructionMap::OP_STC:
+      output.memoryOp(STORE_CONDITIONAL); break;
     case InstructionMap::OP_LDADD:
+      output.memoryOp(LOAD_AND_ADD); break;
     case InstructionMap::OP_LDOR:
+      output.memoryOp(LOAD_AND_OR); break;
     case InstructionMap::OP_LDAND:
+      output.memoryOp(LOAD_AND_AND); break;
     case InstructionMap::OP_LDXOR:
-    case InstructionMap::OP_EXCHANGE: {
-      multiCycleOp = true;
-      output.endOfNetworkPacket(false);
-      blockedEvent.notify();
-
-      // The first part of a store is computing the address. This uses the
-      // second source register and the immediate.
-      output.sourceReg1(output.sourceReg2()); output.sourceReg2(0);
-
-      switch (operation) {
-        case InstructionMap::OP_STW:
-          output.memoryOp(STORE_W); break;
-        case InstructionMap::OP_STHW:
-          output.memoryOp(STORE_HW); break;
-        case InstructionMap::OP_STB:
-          output.memoryOp(STORE_B); break;
-        case InstructionMap::OP_STC:
-          output.memoryOp(STORE_CONDITIONAL); break;
-        case InstructionMap::OP_LDADD:
-          output.memoryOp(LOAD_AND_ADD); break;
-        case InstructionMap::OP_LDOR:
-          output.memoryOp(LOAD_AND_OR); break;
-        case InstructionMap::OP_LDAND:
-          output.memoryOp(LOAD_AND_AND); break;
-        case InstructionMap::OP_LDXOR:
-          output.memoryOp(LOAD_AND_XOR); break;
-        case InstructionMap::OP_EXCHANGE:
-          output.memoryOp(EXCHANGE); break;
-        default:
-          break;
-      }
-
-      break;
-    }
+      output.memoryOp(LOAD_AND_XOR); break;
+    case InstructionMap::OP_EXCHANGE:
+      output.memoryOp(EXCHANGE); break;
 
     case InstructionMap::OP_IRDR:
       multiCycleOp = true;
@@ -388,11 +360,7 @@ void Decoder::setOperand1(DecodedInst& dec) {
 }
 
 void Decoder::setOperand2(DecodedInst& dec) {
-  if (dec.hasImmediate()) {
-    dec.operand2(dec.immediate());
-    dec.operand2Source(DecodedInst::IMMEDIATE);
-  }
-  else if (dec.hasSrcReg2()) {
+  if (dec.hasSrcReg2()) {
     RegisterIndex reg = dec.sourceReg2();
     dec.operand2(readRegs(2, reg));
 
@@ -400,6 +368,10 @@ void Decoder::setOperand2(DecodedInst& dec) {
       dec.operand2Source(DecodedInst::BYPASS);
     else
       dec.operand2Source(DecodedInst::REGISTER);
+  }
+  else if (dec.hasImmediate()) {
+    dec.operand2(dec.immediate());
+    dec.operand2Source(DecodedInst::IMMEDIATE);
   }
 }
 
@@ -498,21 +470,6 @@ void Decoder::cancelInstruction() {
     instructionCancelled = true;
     cancelEvent.notify();
   }
-}
-
-/* Sends the second part of a two-flit store operation (the data to send). */
-bool Decoder::continueOp(const DecodedInst& input, DecodedInst& output) {
-  output = input;
-
-  // Store operations send the address in the first cycle, and the data in
-  // the second.
-  setOperand1(output);
-  output.memoryOp(PAYLOAD);
-
-  multiCycleOp = false;
-  blockedEvent.notify();
-  
-  return true;
 }
 
 // Use the predicate to determine if the instruction should execute or not.

@@ -40,7 +40,7 @@ void ExecuteStage::execute() {
   blocked = false;
 
   // If there is already a result, don't do anything
-  if (currentInst.hasResult()) {
+  if (currentInst.hasResult() && !continuingStore) {
     previousInstExecuted = true;
     if (currentInst.setsPredicate())
       updatePredicate(currentInst);
@@ -51,7 +51,7 @@ void ExecuteStage::execute() {
 
   forwardedResult = currentInst.result();
 
-  if (!blocked) {
+  if (!blocked && !continuingStore) {
     instructionCompleted();
   }
 
@@ -162,6 +162,21 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         operation.result(operation.operand1() | (operation.operand2() << 16));
         break;
 
+      case InstructionMap::OP_STW:
+      case InstructionMap::OP_STHW:
+      case InstructionMap::OP_STB:
+      case InstructionMap::OP_STC:
+      case InstructionMap::OP_LDADD:
+      case InstructionMap::OP_LDAND:
+      case InstructionMap::OP_LDOR:
+      case InstructionMap::OP_LDXOR:
+      case InstructionMap::OP_EXCHANGE:
+        if (!continuingStore)
+          memoryStorePhase1(operation);
+        else
+          memoryStorePhase2(operation);
+        break;
+
       case InstructionMap::OP_SENDCONFIG:
         operation.result(operation.operand1());
         break;
@@ -261,6 +276,22 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
   core()->channelMapTable.write(entry, value);
 }
 
+void ExecuteStage::memoryStorePhase1(DecodedInst& operation) {
+  // Result = memory address to access.
+  operation.result(operation.operand2() + operation.immediate());
+  operation.endOfNetworkPacket(false);
+  continuingStore = true;
+  next_trigger(clock.posedge_event() & canSendEvent());
+}
+
+void ExecuteStage::memoryStorePhase2(DecodedInst& operation) {
+  // Result = data to store.
+  operation.result(operation.operand1());
+  operation.endOfNetworkPacket(true);
+  operation.memoryOp(PAYLOAD_EOP);
+  continuingStore = false;
+}
+
 void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
   assert(inst.networkDestination().isMemory());
 
@@ -293,12 +324,13 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
       // Store the adjustment which must be made, so that any subsequent flits
       // can also access the same memory bank.
       channelMapEntry.setAddressIncrement(increment);
-    } else {
+    }
+    else {
       increment = channelMapEntry.getAddressIncrement();
     }
   }
 
-  ChannelMapEntry::MemoryChannel channel(inst.cmtEntry());
+  ChannelMapEntry::MemoryChannel channel = channelMapEntry.memoryView();
   channel.bank += increment;
   inst.cmtEntry(channel.flatten());
 }
@@ -306,7 +338,7 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
 bool ExecuteStage::isStalled() const {
   // When we have multi-cycle operations (e.g. multiplies), we will need to use
   // this.
-  return !iReady.read() || blocked;
+  return !iReady.read() || blocked || continuingStore;
 }
 
 bool ExecuteStage::checkPredicate(DecodedInst& inst) {
@@ -372,9 +404,10 @@ ExecuteStage::ExecuteStage(const sc_module_name& name, const ComponentID& ID) :
     alu("alu", ID),
     scratchpad("scratchpad", ID) {
 
+  forwardedResult = 0;
   previousInstExecuted = false;
   blocked = false;
-  forwardedResult = 0;
+  continuingStore = false;
 
   SC_METHOD(execute);
   sensitive << newInstructionEvent;

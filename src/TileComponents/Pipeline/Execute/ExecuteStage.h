@@ -73,6 +73,13 @@ private:
   void requestArbitration(ChannelID destination, bool request);
 
   void setChannelMap(DecodedInst& operation);
+
+  // Compute memory address + determine which bank to access.
+  void memoryStorePhase1(DecodedInst& operation);
+  // Send data to store.
+  void memoryStorePhase2(DecodedInst& operation);
+
+  // Determine which memory bank from a group should be accessed.
   void adjustNetworkAddress(DecodedInst& operation) const;
 
   virtual bool isStalled() const;
@@ -118,6 +125,7 @@ private:
 
 private:
 
+  // The result of the previous instruction to be forwarded, if necessary.
   int32_t forwardedResult;
 
   // Don't use data forwarding if the previous instruction didn't execute.
@@ -126,6 +134,10 @@ private:
   // Don't read a new instruction from the pipeline register if we are blocked;
   // just continue executing the same instruction.
   bool blocked;
+
+  // Store operations take two cycles. This flag is true when working on the
+  // second half.
+  bool continuingStore;
 
 };
 
