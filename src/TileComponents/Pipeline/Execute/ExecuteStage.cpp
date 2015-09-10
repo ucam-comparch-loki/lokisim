@@ -281,7 +281,7 @@ void ExecuteStage::memoryStorePhase1(DecodedInst& operation) {
   operation.result(operation.operand2() + operation.immediate());
   operation.endOfNetworkPacket(false);
   continuingStore = true;
-  next_trigger(clock.posedge_event() & canSendEvent());
+  next_trigger(clock.posedge_event() & canSendEvent() & oData.ack_event());
 }
 
 void ExecuteStage::memoryStorePhase2(DecodedInst& operation) {
