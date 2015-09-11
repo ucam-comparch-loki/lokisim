@@ -208,6 +208,7 @@ private:
 	void processPushLine();
 	void processFlushAllLines();
 	void processInvalidateAllLines();
+	void processUpdateDirectory();
 	void processLoadLinked();
 	void processStoreConditional();
 	void processLoadAndAdd();

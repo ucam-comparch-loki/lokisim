@@ -164,6 +164,10 @@ private:
   // The network address to which the current packet should be sent.
   ChannelID requestDestination;
 
+  // The first flit of a request which is to take place at the directory.
+  NetworkRequest requestHeader;
+  bool requestHeaderValid;
+
 
 };
 

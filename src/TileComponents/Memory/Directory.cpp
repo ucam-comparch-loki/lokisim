@@ -26,26 +26,31 @@ void Directory::setBitmaskLSB(unsigned int lsb) {
   shiftAmount = lsb;
 }
 
-void Directory::setEntry(unsigned int entry, TileIndex tile) {
-  uint column = (tile >> 3) & 7;
-  uint row = tile & 7;
-  assert(column < TOTAL_TILE_COLUMNS);
-  assert(row < TOTAL_TILE_ROWS);
+void Directory::setEntry(unsigned int entry, unsigned int data) {
   assert(entry < directory.size());
-
-  directory[entry] = tile;
+  directory[entry] = DirectoryEntry(data);
 }
 
-void Directory::initialise(TileIndex tile) {
-  uint column = (tile >> 3) & 7;
-  uint row = tile & 7;
-  assert(column < TOTAL_TILE_COLUMNS);
-  assert(row < TOTAL_TILE_ROWS);
+void Directory::initialise(TileID tile) {
+  for (unsigned int i=0; i<directory.size(); i++) {
+    DirectoryEntry entry;
+    entry.tile = tile;
+    entry.replaceBits = i; // Replacement index bits = input index bits
+    directory[i] = entry;
+  }
+}
 
-  directory.assign(directory.size(), tile);
+unsigned int Directory::getEntry(MemoryAddr address) const {
+  return (address >> shiftAmount) & bitmask;
 }
 
 TileID Directory::getTile(MemoryAddr address) const {
-  unsigned int entry = (address >> shiftAmount) & bitmask;
-  return TileID(directory[entry]);
+  unsigned int entry = getEntry(address);
+  return directory[entry].tile;
+}
+
+MemoryAddr Directory::updateAddress(MemoryAddr address) const {
+  unsigned int entry = getEntry(address);
+  return (address & ~(bitmask << shiftAmount))
+       | (directory[entry].replaceBits << shiftAmount);
 }

@@ -21,12 +21,13 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
   // Start off assuming this is the home tile for all data. This means that if
   // we experience a cache miss, we will go straight to main memory to
   // retrieve it.
-  TileIndex tile = id.tile.flatten();//*/TileID(2,1).flatten();
+  TileID tile = id.tile;//*/TileID(2,1);
   directory.initialise(tile);
 
   requestDestination = ChannelID();
   newLocalRequest = true;
   newRemoteRequest = true;
+  requestHeaderValid = false;
 
   iRequestFromBanks.init(requestMux.iData);
   iResponseFromBanks.init(responseMux.iData);
@@ -83,30 +84,52 @@ void MissHandlingLogic::localRequestLoop() {
     next_trigger(canSendEvent());
   else {
 
-    switch (flit.getMemoryMetadata().opcode) {
-      case UPDATE_DIRECTORY_ENTRY:
-        handleDirectoryUpdate();
-        break;
+    // Continuation of an operation which takes place at the directory.
+    if (requestHeaderValid) {
+      switch (requestHeader.getMemoryMetadata().opcode) {
+        case UPDATE_DIRECTORY_ENTRY:
+          handleDirectoryUpdate();
+          break;
 
-      case UPDATE_DIRECTORY_MASK:
-        handleDirectoryMaskUpdate();
-        break;
+        case UPDATE_DIRECTORY_MASK:
+          handleDirectoryMaskUpdate();
+          break;
 
-      default: {
-        // Use the memory address in the first flit of each packet to determine
-        // which network address the packet should be forwarded to.
-        if (newLocalRequest) {
-          MemoryAddr address = flit.payload().toUInt();
-          requestDestination = getDestination(address);
+        default:
+          assert(false);
+          break;
+      }
+
+      requestHeaderValid = false;
+    }
+    // All header flits, and flits which are being forwarded to another tile.
+    else {
+      switch (flit.getMemoryMetadata().opcode) {
+        // If the operation will take place at the directory, store the header
+        // until the rest of the information arrives.
+        case UPDATE_DIRECTORY_ENTRY:
+        case UPDATE_DIRECTORY_MASK:
+          requestHeader = flit;
+          requestHeaderValid = true;
+          break;
+
+        default: {
+          // Use the memory address in the first flit of each packet to determine
+          // which network address the whole packet should be forwarded to.
+          if (newLocalRequest) {
+            MemoryAddr address = flit.payload().toUInt();
+            requestDestination = getDestination(address);
+            flit.setPayload(directory.updateAddress(address));
+          }
+
+          flit.setChannelID(requestDestination);
+
+          LOKI_LOG << this->name() << " sending request " << flit << endl;
+
+          sendOnNetwork(flit);
+
+          break;
         }
-
-        flit.setChannelID(requestDestination);
-
-        LOKI_LOG << this->name() << " sending request " << flit << endl;
-
-        sendOnNetwork(flit);
-
-        break;
       }
     }
 
@@ -123,10 +146,11 @@ void MissHandlingLogic::localRequestLoop() {
 void MissHandlingLogic::handleDirectoryUpdate() {
   MemoryRequest request = static_cast<MemoryRequest>(muxedRequest.read().payload());
 
-  unsigned int entry = request.getDirectoryEntry();
-  TileIndex tile = request.getTile();
+  MemoryAddr address = requestHeader.payload().toUInt();
+  unsigned int entry = directory.getEntry(address);
+  uint data = request.getPayload();
 
-  directory.setEntry(entry, tile);
+  directory.setEntry(entry, data);
 }
 
 void MissHandlingLogic::handleDirectoryMaskUpdate() {

@@ -122,6 +122,7 @@ public:
 
   inline void setMetadata(const uint32_t info)         {metadata_ = info;}
   inline void setChannelID(const ChannelID id)         {channelID_ = id;}
+  inline void setPayload(const T payload)              {payload_ = payload;}
 
   friend void sc_trace(sc_core::sc_trace_file*& tf, const Flit<T>& w, const std::string& txt) {
     sc_trace(tf, w.payload_, txt + ".payload");

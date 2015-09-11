@@ -42,9 +42,7 @@ enum MemoryOperation {
   FLUSH_ALL_LINES         = (10 << 1) | 1,
   INVALIDATE_ALL_LINES    = (11 << 1) | 1,
 
-  UPDATE_DIRECTORY_ENTRY  = (12 << 1) | 1,
-  UPDATE_DIRECTORY_MASK   = (13 << 1) | 1,
-
+  NONE                    = (14 << 1) | 1,
   PAYLOAD_EOP             = (15 << 1) | 1, // End-of-packet payload
 
   // Start/mid-packet flits
@@ -62,20 +60,22 @@ enum MemoryOperation {
   LOAD_AND_XOR            = (11 << 1) | 0,
   EXCHANGE                = (12 << 1) | 0,
 
-  NONE                    = (14 << 1) | 0,
+  UPDATE_DIRECTORY_ENTRY  = (13 << 1) | 0,
+  UPDATE_DIRECTORY_MASK   = (14 << 1) | 0,
+
   PAYLOAD                 = (15 << 1) | 0, // Mid-packet payload
 };
 
 inline const std::string& memoryOpName(MemoryOperation op) {
   static const std::string operationNames[] = {
-    "STORE_W",      "LOAD_W",                 "STORE_CONDITIONAL", "LOAD_LINKED",
-    "STORE_HW",     "LOAD_HW",                "STORE_B",           "LOAD_B",
-    "STORE_LINE",   "FETCH_LINE",             "MEMSET_LINE",       "IPK_READ",
-    "PUSH_LINE",    "VALIDATE_LINE",          "INVALID14",         "PREFETCH_LINE",
-    "LOAD_AND_ADD", "FLUSH_LINE",             "LOAD_AND_OR",       "INVALIDATE_LINE",
-    "LOAD_AND_AND", "FLUSH_ALL_LINES",        "LOAD_AND_XOR",      "INVALIDATE_ALL_LINES",
-    "EXCHANGE",     "UPDATE_DIRECTORY_ENTRY", "INVALID26",         "UPDATE_DIRECTORY_MASK",
-    "NONE",         "INVALID29",              "PAYLOAD",           "PAYLOAD"
+    "STORE_W",               "LOAD_W",          "STORE_CONDITIONAL",      "LOAD_LINKED",
+    "STORE_HW",              "LOAD_HW",         "STORE_B",                "LOAD_B",
+    "STORE_LINE",            "FETCH_LINE",      "MEMSET_LINE",            "IPK_READ",
+    "PUSH_LINE",             "VALIDATE_LINE",   "INVALID14",              "PREFETCH_LINE",
+    "LOAD_AND_ADD",          "FLUSH_LINE",      "LOAD_AND_OR",            "INVALIDATE_LINE",
+    "LOAD_AND_AND",          "FLUSH_ALL_LINES", "LOAD_AND_XOR",           "INVALIDATE_ALL_LINES",
+    "EXCHANGE",              "INVALID25",       "UPDATE_DIRECTORY_ENTRY", "INVALID27",
+    "UPDATE_DIRECTORY_MASK", "NONE",            "PAYLOAD",                "PAYLOAD"
   };
   return operationNames[(int)op];
 }

@@ -186,13 +186,7 @@ bool MemoryBank::processMessageHeader(const NetworkRequest& request) {
 	switch (opcode) {
 	case UPDATE_DIRECTORY_ENTRY:
 	case UPDATE_DIRECTORY_MASK:
-	  // Forward the request on to the tile's directory.
-    LOKI_LOG << this->name() << " buffering directory update request: " << mActiveData.Request.payload() << endl;
-
-    assert(!mOutputReqQueue.full());
-    mOutputReqQueue.write(mActiveData.Request);
-    mActiveData.State = STATE_IDLE;
-    mActiveData.Complete = true;
+	  // Everything is handled in the processUpdateDirectory methods.
     break;
 
 	case IPK_READ:
@@ -368,33 +362,36 @@ void MemoryBank::processLocalMemoryAccess() {
 	// allocated, and that we are able to send any result.
 
   switch (mActiveData.Request.getMemoryMetadata().opcode) {
-    case LOAD_W:               processLoadWord();           break;
-    case LOAD_HW:              processLoadHalfWord();       break;
-    case LOAD_B:               processLoadByte();           break;
-    case STORE_W:              processStoreWord();          break;
-    case STORE_HW:             processStoreHalfWord();      break;
-    case STORE_B:              processStoreByte();          break;
-    case IPK_READ:             processIPKRead();            break;
+    case LOAD_W:                 processLoadWord();             break;
+    case LOAD_HW:                processLoadHalfWord();         break;
+    case LOAD_B:                 processLoadByte();             break;
+    case STORE_W:                processStoreWord();            break;
+    case STORE_HW:               processStoreHalfWord();        break;
+    case STORE_B:                processStoreByte();            break;
+    case IPK_READ:               processIPKRead();              break;
 
-    case FETCH_LINE:           processFetchLine();          break;
-    case STORE_LINE:           processStoreLine();          break;
-    case FLUSH_LINE:           processFlushLine();          break;
-    case MEMSET_LINE:          processMemsetLine();         break;
-    case INVALIDATE_LINE:      processInvalidateLine();     break;
-    case VALIDATE_LINE:        processValidateLine();       break;
-    case PREFETCH_LINE:        processPrefetchLine();       break;
-    case PUSH_LINE:            processPushLine();           break;
+    case FETCH_LINE:             processFetchLine();            break;
+    case STORE_LINE:             processStoreLine();            break;
+    case FLUSH_LINE:             processFlushLine();            break;
+    case MEMSET_LINE:            processMemsetLine();           break;
+    case INVALIDATE_LINE:        processInvalidateLine();       break;
+    case VALIDATE_LINE:          processValidateLine();         break;
+    case PREFETCH_LINE:          processPrefetchLine();         break;
+    case PUSH_LINE:              processPushLine();             break;
 
-    case FLUSH_ALL_LINES:      processFlushAllLines();      break;
-    case INVALIDATE_ALL_LINES: processInvalidateAllLines(); break;
+    case FLUSH_ALL_LINES:        processFlushAllLines();        break;
+    case INVALIDATE_ALL_LINES:   processInvalidateAllLines();   break;
 
-    case LOAD_LINKED:          processLoadLinked();         break;
-    case STORE_CONDITIONAL:    processStoreConditional();   break;
-    case LOAD_AND_ADD:         processLoadAndAdd();         break;
-    case LOAD_AND_OR:          processLoadAndOr();          break;
-    case LOAD_AND_AND:         processLoadAndAnd();         break;
-    case LOAD_AND_XOR:         processLoadAndXor();         break;
-    case EXCHANGE:             processExchange();           break;
+    case UPDATE_DIRECTORY_ENTRY: processUpdateDirectory();      break;
+    case UPDATE_DIRECTORY_MASK:  processUpdateDirectory();      break;
+
+    case LOAD_LINKED:            processLoadLinked();           break;
+    case STORE_CONDITIONAL:      processStoreConditional();     break;
+    case LOAD_AND_ADD:           processLoadAndAdd();           break;
+    case LOAD_AND_OR:            processLoadAndOr();            break;
+    case LOAD_AND_AND:           processLoadAndAnd();           break;
+    case LOAD_AND_XOR:           processLoadAndXor();           break;
+    case EXCHANGE:               processExchange();             break;
 
     default:
       LOKI_ERROR << this->name() << " processing invalid memory request type (" << memoryOpName(mActiveData.Request.getMemoryMetadata().opcode) << ")" << endl;
@@ -624,6 +621,26 @@ void MemoryBank::processInvalidateAllLines() {
   mGeneralPurposeCacheHandler.invalidate(mActiveData.Position);
   mActiveData.Position += CACHE_LINE_BYTES;
   mActiveData.Complete = (mActiveData.Position >= MEMORY_BANK_SIZE);
+}
+
+void MemoryBank::processUpdateDirectory() {
+  NetworkRequest flit;
+
+  if (mActiveData.FlitsSent == 0)
+    flit = mActiveData.Request;
+  else if (!inputAvailable())
+    return;
+  else
+    flit = consumeInput();
+
+  // Simply forward the request on to the directory.
+  LOKI_LOG << this->name() << " buffering directory update request: " << flit.payload() << endl;
+
+  mOutputReqQueue.write(flit);
+  mActiveData.FlitsSent++;
+
+  // The request is finished when the final flit has been forwarded.
+  mActiveData.Complete = flit.getMetadata().endOfPacket;
 }
 
 void MemoryBank::processLoadLinked() {
