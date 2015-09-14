@@ -148,7 +148,6 @@ bool MemoryBank::startNewRequest() {
       MEMORY_HIT_UNDER_MISS) {
     // Don't reorder data being sent to the same channel.
     if (mCallbackData.ReturnChannel == returnChannel(request)) {
-      next_trigger(mCacheLineBuffer.lineSwapEvent());
       return false;
     }
 
@@ -157,7 +156,6 @@ bool MemoryBank::startNewRequest() {
 
     if (!hit) {
       // Wait for the miss to finish being served.
-      next_trigger(mCacheLineBuffer.lineSwapEvent());
       return false;
     }
 
@@ -835,8 +833,9 @@ void MemoryBank::replaceCacheLine() {
 }
 
 bool MemoryBank::inputAvailable() const {
-  if (MEMORY_HIT_UNDER_MISS && mActiveData.Missed && !mMissBuffer.empty()) // temp hack
+  if (MEMORY_HIT_UNDER_MISS && mActiveData.Missed && !mMissBuffer.empty()) {// temp hack
     return !mMissBuffer.empty();
+  }
   else {
     switch (mActiveData.Source) {
       case REQUEST_CORES:
@@ -849,6 +848,7 @@ bool MemoryBank::inputAvailable() const {
         bool newCoreRequest = !mInputQueue.empty();
         bool newMemoryRequest = requestSig.valid();
         bool newRefillRequest = iResponse.valid() && iResponseTarget.read() == id.position-CORES_PER_TILE;
+
         return (!onlyAcceptingRefills() && (newCoreRequest || newMemoryRequest)) ||
             newRefillRequest;
     }
