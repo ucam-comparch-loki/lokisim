@@ -41,6 +41,7 @@ public:
   // A list of files containing code to be simulated.
   static const vector<string>& code();
   static const string& energyTraceFile();
+  static const string& ipkStatsFile();
 
   static bool instructionTrace();
   static bool instructionAddressTrace();
@@ -52,6 +53,7 @@ public:
   static bool lbtTrace();
   static bool stallTrace();
   static bool callgrindTrace();
+  static bool ipkStats();
 
   static bool batchMode();
 
@@ -90,7 +92,8 @@ private:
                 softwareTraceFile_,
                 lbtTraceFile_,
                 stallsTraceFile_,
-                callgrindTraceFile_;
+                callgrindTraceFile_,
+                ipkStatsFile_;
   static bool csimTrace_;
   static bool instructionTrace_;
   static bool instructionAddressTrace_;

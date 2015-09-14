@@ -11,6 +11,7 @@
 #include "InstrumentationBase.h"
 
 #include "../../Datatype/Identifier.h"
+#include "CounterMap.h"
 
 namespace Instrumentation {
 
@@ -38,6 +39,7 @@ public:
 
   static void printStats();
   static void printSummary();
+  static void instructionPacketStats(std::ostream& os);
   static void dumpEventCounts(std::ostream& os);
 
 private:
@@ -56,6 +58,8 @@ private:
   static count_t tagWriteHD_, tagWrites_, tagReadHD_;
   static count_t tagsActive_, dataActive_;
 
+  // Count how many times each instruction packet was executed.
+  static CounterMap<MemoryAddr> packetsExecuted;
 };
 
 }

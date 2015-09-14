@@ -11,6 +11,7 @@
 #include "Utility/Arguments.h"
 #include "Utility/Blocking.h"
 #include "Utility/Debugger.h"
+#include "Utility/Instrumentation/IPKCache.h"
 #include "Utility/Instrumentation.h"
 #include "Utility/Instrumentation/Operations.h"
 #include "Utility/Trace/Callgrind.h"
@@ -189,6 +190,12 @@ void postsimulation(Chip& chip) {
     // If we have collected some data but haven't been told where to put it,
     // dump it all to stdout.
     Instrumentation::dumpEventCounts(std::cout);
+  }
+
+  if (Arguments::ipkStats()) {
+    std::ofstream output(Arguments::ipkStatsFile().c_str());
+    Instrumentation::IPKCache::instructionPacketStats(output);
+    output.close();
   }
 
   Instrumentation::end();

@@ -6,9 +6,13 @@
  */
 
 #include "IPKCache.h"
+
+#include <iomanip>
+
 #include "../../Datatype/Identifier.h"
 
 using namespace Instrumentation;
+using std::setw;
 using std::vector;
 
 vector<struct IPKCache::CoreStats> IPKCache::perCore;
@@ -19,6 +23,8 @@ count_t IPKCache::tagWrites_ = 0;
 count_t IPKCache::tagReadHD_ = 0;    // Total Hamming distance in read cache tags
 count_t IPKCache::tagsActive_ = 0;
 count_t IPKCache::dataActive_ = 0;
+
+CounterMap<MemoryAddr> IPKCache::packetsExecuted;
 
 void IPKCache::init() {
   total.hits = 0;
@@ -38,6 +44,10 @@ void IPKCache::tagCheck(const ComponentID& core, bool hit, const MemoryAddr tag,
     total.misses++;
     perCore[core.globalCoreNumber()].misses++;
   }
+
+  // Assume that all tag checks result in a packet being executed.
+  // This isn't quite true, but the exceptions are expected to be rare.
+  packetsExecuted.increment(tag);
 
   if (ENERGY_TRACE)
     tagReadHD_ += hammingDistance(tag, prevCheck);
@@ -105,6 +115,13 @@ void IPKCache::printSummary() {
     if (stats.hits>0 || stats.misses>0 || stats.reads>0 || stats.writes>0) {
       clog << "    Core " << core << ": " << stats.hits << "/" << (stats.hits+stats.misses) << " (" << percentage(stats.hits, stats.hits+stats.misses) << ")" << endl;
     }
+  }
+}
+
+void IPKCache::instructionPacketStats(std::ostream& os) {
+  CounterMap<MemoryAddr>::iterator it;
+  for (it = packetsExecuted.begin(); it != packetsExecuted.end(); it++) {
+    os << std::setfill('0') << setw(8) << std::hex << it->first << std::dec << "\t" << it->second << endl;
   }
 }
 

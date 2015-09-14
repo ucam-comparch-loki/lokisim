@@ -32,6 +32,7 @@ string Arguments::softwareTraceFile_ = "";
 string Arguments::lbtTraceFile_ = "";
 string Arguments::stallsTraceFile_ = "";
 string Arguments::callgrindTraceFile_ = "";
+string Arguments::ipkStatsFile_ = "";
 bool Arguments::csimTrace_ = false;
 bool Arguments::instructionTrace_ = false;
 bool Arguments::instructionAddressTrace_ = false;
@@ -145,6 +146,10 @@ void Arguments::parse(int argc, char* argv[]) {
       i++;  // Have used two arguments in this iteration.
       // Wait until all arguments have been parsed before starting the trace.
       // We need to be sure that we know the location of the binary too.
+    }
+    else if (argument == "-ipkstats") {
+      ipkStatsFile_ = string(argv[i+1]);
+      i++;  // Have used two arguments in this iteration.
     }
     else if (argument == "-summary") {
       summarise_ = true;
@@ -278,6 +283,10 @@ const string& Arguments::energyTraceFile() {
   return energyTraceFile_;
 }
 
+const string& Arguments::ipkStatsFile() {
+  return ipkStatsFile_;
+}
+
 bool Arguments::csimTrace()               {return csimTrace_;}
 bool Arguments::instructionTrace()        {return instructionTrace_;}
 bool Arguments::instructionAddressTrace() {return instructionAddressTrace_;}
@@ -288,6 +297,7 @@ bool Arguments::softwareTrace()           {return softwareTraceFile_.length() > 
 bool Arguments::lbtTrace()                {return lbtTraceFile_.length() > 0;}
 bool Arguments::stallTrace()              {return stallsTraceFile_.length() > 0;}
 bool Arguments::callgrindTrace()          {return callgrindTraceFile_.length() > 0;}
+bool Arguments::ipkStats()                {return ipkStatsFile_.length() > 0;}
 
 bool Arguments::batchMode()               {return batchMode_;}
 
@@ -312,6 +322,7 @@ void Arguments::printHelp() {
     "  -lbttrace <file>\n\tDump particular types of information to a named file\n"
     "  -stalltrace <file>\n\tDump information about each processor stall to a file\n"
     "  -callgrind <file>\n\tDump output in the Callgrind format\n"
+    "  -ipkstats <file>\n\tDump the number of times each instruction packet was executed\n"
     "  -insttrace\n\tPrint the text form of each instruction executed to stdout\n"
     "  -instaddrtrace\n\tPrint the address of each instruction executed to stdout\n"
     "  -Pparameter=value\n\tSet a named parameter to a particular value\n"
