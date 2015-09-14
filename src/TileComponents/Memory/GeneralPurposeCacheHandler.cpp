@@ -247,15 +247,13 @@ CacheLookup GeneralPurposeCacheHandler::prepareCacheLine(MemoryAddr address, Cac
   return info;
 }
 
-void GeneralPurposeCacheHandler::replaceCacheLine(CacheLineBuffer& buffer, SRAMAddress position) {
+void GeneralPurposeCacheHandler::replaceCacheLine(CacheLineBuffer& buffer, SRAMAddress position, bool dirtyLine) {
   uint cacheLine = getLine(position);
-  assert(!(mLineValid[cacheLine] && mLineDirty[cacheLine]) &&
-         "Overwriting dirty cache line");
 
   buffer.flush(&mData[position / 4]);
   mAddresses[cacheLine] = buffer.getTag();
   mLineValid[cacheLine] = true;
-  mLineDirty[cacheLine] = false;
+  mLineDirty[cacheLine] = dirtyLine;
 }
 
 void GeneralPurposeCacheHandler::fillCacheLineBuffer(MemoryAddr address, CacheLineBuffer& buffer) {

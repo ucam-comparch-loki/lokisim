@@ -66,7 +66,7 @@ public:
 
   virtual CacheLookup lookupCacheLine(MemoryAddr address) const;
 	virtual CacheLookup prepareCacheLine(MemoryAddr address, CacheLineBuffer& lineBuffer, bool isRead, bool isInstruction);
-	virtual void replaceCacheLine(CacheLineBuffer& buffer, SRAMAddress position);
+	virtual void replaceCacheLine(CacheLineBuffer& buffer, SRAMAddress position, bool dirtyLine);
 	virtual void fillCacheLineBuffer(MemoryAddr address, CacheLineBuffer& buffer);
 
 	void invalidate(SRAMAddress address);

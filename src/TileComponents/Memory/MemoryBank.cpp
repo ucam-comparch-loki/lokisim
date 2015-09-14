@@ -815,7 +815,8 @@ void MemoryBank::writeToCacheLineBuffer(uint32_t data) {
 }
 
 void MemoryBank::replaceCacheLine() {
-  currentMemoryHandler().replaceCacheLine(mCacheLineBuffer, mActiveData.Position);
+  bool dirtyLine = (mActiveData.Source != REQUEST_REFILL);
+  currentMemoryHandler().replaceCacheLine(mCacheLineBuffer, mActiveData.Position, dirtyLine);
 
   // Invalidate any atomic transactions relying on the overwritten data.
   mReservations.clearReservationRange(mCacheLineBuffer.getTag(), mCacheLineBuffer.getTag()+CACHE_LINE_BYTES);

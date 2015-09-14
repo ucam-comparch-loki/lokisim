@@ -57,7 +57,7 @@ CacheLookup ScratchpadModeHandler::prepareCacheLine(MemoryAddr address, CacheLin
   return lookupCacheLine(address);
 }
 
-void ScratchpadModeHandler::replaceCacheLine(CacheLineBuffer& buffer, SRAMAddress position) {
+void ScratchpadModeHandler::replaceCacheLine(CacheLineBuffer& buffer, SRAMAddress position, bool dirtyLine) {
   buffer.flush(&mData[position / 4]);
 }
 
