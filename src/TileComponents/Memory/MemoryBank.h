@@ -243,6 +243,10 @@ private:
 	// Move data from cache line buffer to cache.
 	void replaceCacheLine();
 
+	// Switch to the callback request if its preconditions are now satisfied.
+	bool callbackRequestReady();
+	void switchToCallbackRequest();
+
 	void processDelayedCacheFlush();
 
 	void processValidInput();

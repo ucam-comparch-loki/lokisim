@@ -13,8 +13,6 @@
 const string DirectionNames[] = {"north", "east", "south", "west", "local"};
 
 void Router::receiveData(PortIndex input) {
-  LOKI_LOG << this->name() << ": input from " << DirectionNames[input] << ": " << iData[input].read() << endl;
-
   if (inputBuffers[input].full()) {
     // If the buffer is full, let the data sit on the wire until space becomes
     // available.
@@ -22,6 +20,7 @@ void Router::receiveData(PortIndex input) {
     next_trigger(inputBuffers[input].readEvent());
   }
   else {
+    LOKI_LOG << this->name() << ": input from " << DirectionNames[input] << ": " << iData[input].read() << endl;
     bool wasEmpty = inputBuffers[input].empty();
 
     // Put the new data into a buffer.

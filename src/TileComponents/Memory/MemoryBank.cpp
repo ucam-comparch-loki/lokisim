@@ -290,9 +290,11 @@ bool MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool allocate, 
                                               mActiveData.ReturnChannel);
 
 
-  // If we don't need to fetch, just set the tag and wait for data.
-  if (validate)
+  // If we don't need the cache line buffer for anything else, just set the tag
+  // and wait for data.
+  if (validate && !info.FlushRequired) {
     mCacheLineBuffer.setTag(tag);
+  }
 
   // Check whether we have already requested data from this line, and know
   // where it will go in the cache.
@@ -399,7 +401,11 @@ void MemoryBank::processLocalMemoryAccess() {
 
   // Prepare for the next request if this one has finished.
   if (mActiveData.Complete) {
-    mActiveData.State = STATE_IDLE;
+    if (callbackRequestReady())
+      switchToCallbackRequest();
+    else
+      mActiveData.State = STATE_IDLE;
+
     next_trigger(iClock.negedge_event());
   }
 
@@ -821,16 +827,25 @@ void MemoryBank::replaceCacheLine() {
   // Invalidate any atomic transactions relying on the overwritten data.
   mReservations.clearReservationRange(mCacheLineBuffer.getTag(), mCacheLineBuffer.getTag()+CACHE_LINE_BYTES);
 
-  // If this cache line contains data required by the callback request,
-  // switch to the callback request.
-  if (mCallbackData.State != STATE_IDLE && mCacheLineBuffer.inBuffer(mCallbackData.Address)) {
-    mActiveData = mCallbackData;
-    mCallbackData.State = STATE_IDLE;
+  mActiveData.Complete = true;
+}
 
-    LOKI_LOG << this->name() << " resuming " << memoryOpName(mActiveData.Request.getMemoryMetadata().opcode) << " request" << endl;
-  }
-  else
-    mActiveData.Complete = true;
+bool MemoryBank::callbackRequestReady() {
+  // Switch to the callback request if the data it was waiting for has now
+  // arrived, or if it was waiting for the line buffer to become available.
+  bool dataArrived = mCacheLineBuffer.inBuffer(mCallbackData.Address);
+  MemoryOperation opcode = mCallbackData.Request.getMemoryMetadata().opcode;
+  bool waitingForBuffer = (opcode == STORE_LINE) || (opcode == MEMSET_LINE)
+                       || (opcode == VALIDATE_LINE);
+  return (mCallbackData.State != STATE_IDLE) && (dataArrived || waitingForBuffer);
+}
+
+void MemoryBank::switchToCallbackRequest() {
+  mActiveData = mCallbackData;
+  mCallbackData.State = STATE_IDLE;
+  mCacheLineBuffer.setTag(getTag(mActiveData.Address));
+
+  LOKI_LOG << this->name() << " resuming " << memoryOpName(mActiveData.Request.getMemoryMetadata().opcode) << " request" << endl;
 }
 
 bool MemoryBank::inputAvailable() const {
