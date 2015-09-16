@@ -505,6 +505,9 @@ void MemoryBank::processFetchLine() {
 }
 
 void MemoryBank::processStoreLine() {
+  if (!mCacheLineBuffer.startedOperation())
+    mCacheLineBuffer.setTag(mActiveData.Address);
+
   if (mCacheLineBuffer.finishedOperation())
     replaceCacheLine();
   else if (inputAvailable()) {
@@ -519,6 +522,10 @@ void MemoryBank::processFlushLine() {
   // First iteration - send header flit.
   if (mActiveData.FlitsSent == 0) {
     LOKI_LOG << this->name() << " buffering request for cache line to " << LOKI_HEX(mActiveData.Address) << endl;
+
+    // Make sure the line is in the cache line buffer.
+    if (!mCacheLineBuffer.inBuffer(mActiveData.Address))
+      prepareCacheLineBuffer(mActiveData.Address);
 
     flit = NetworkRequest(mActiveData.Address, id, STORE_LINE, false);
   }
@@ -540,6 +547,9 @@ void MemoryBank::processFlushLine() {
 void MemoryBank::processMemsetLine() {
   if (!inputAvailable())
     return;
+
+  if (!mCacheLineBuffer.startedOperation())
+    mCacheLineBuffer.setTag(mActiveData.Address);
 
   uint32_t data = consumeInput().payload().toUInt();
 
@@ -859,11 +869,11 @@ bool MemoryBank::inputAvailable() const {
       case REQUEST_MEMORIES:
         return requestSig.valid() && !onlyAcceptingRefills();
       case REQUEST_REFILL:
-        return iResponse.valid() && iResponseTarget.read() == id.position-CORES_PER_TILE;
+        return responseAvailable();
       case REQUEST_NONE:
         bool newCoreRequest = !mInputQueue.empty();
         bool newMemoryRequest = requestSig.valid();
-        bool newRefillRequest = iResponse.valid() && iResponseTarget.read() == id.position-CORES_PER_TILE;
+        bool newRefillRequest = responseAvailable();
 
         return (!onlyAcceptingRefills() && (newCoreRequest || newMemoryRequest)) ||
             newRefillRequest;
@@ -872,6 +882,10 @@ bool MemoryBank::inputAvailable() const {
 
   assert(false);
   return false;
+}
+
+bool MemoryBank::responseAvailable() const {
+  return iResponse.valid() && (iResponseTarget.read() == id.position-CORES_PER_TILE);
 }
 
 const NetworkRequest MemoryBank::peekInput() {
@@ -890,7 +904,7 @@ const NetworkRequest MemoryBank::peekInput() {
         return iResponse.read();
       case REQUEST_NONE:
         // Prioritise refills since they may be holding up other requests.
-        if (iResponse.valid() && iResponseTarget.read() == id.position-CORES_PER_TILE) {
+        if (responseAvailable()) {
           mActiveData.Source = REQUEST_REFILL;
           return iResponse.read();
         }
@@ -934,7 +948,7 @@ const NetworkRequest MemoryBank::consumeInput() {
         break;
       case REQUEST_NONE:
         // Prioritise refills since they may be holding up other requests.
-        if (iResponse.valid() && iResponseTarget.read() == id.position-CORES_PER_TILE) {
+        if (responseAvailable()) {
           mActiveData.Source = REQUEST_REFILL;
           request = iResponse.read();
           iResponse.ack();
@@ -1100,7 +1114,8 @@ void MemoryBank::mainLoop() {
   // the output request queue to hold any potential messages.
   // Decode the request and get into the correct state before performing the
   // operation.
-  if (mActiveData.State == STATE_IDLE && mOutputReqQueue.empty())
+  if (mActiveData.State == STATE_IDLE &&
+      (mOutputReqQueue.empty() || responseAvailable()))
     startNewRequest();
 
   // Act on current state.

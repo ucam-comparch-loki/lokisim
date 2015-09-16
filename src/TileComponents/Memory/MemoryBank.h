@@ -226,6 +226,7 @@ private:
 
 	uint32_t getDataToStore();
 	bool inputAvailable() const;
+	bool responseAvailable() const;
 	const NetworkRequest peekInput();
 	const NetworkRequest consumeInput();
 	bool canSend() const;
