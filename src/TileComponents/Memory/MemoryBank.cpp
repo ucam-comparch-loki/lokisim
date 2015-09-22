@@ -353,6 +353,10 @@ void MemoryBank::processIdle() {
       if (mMissingRequest->getDestination() == mActiveRequest->getDestination())
         return;
 
+      // Don't start a request for the same location as the missing request.
+      if (getTag(mMissingRequest->getAddress()) == getTag(mActiveRequest->getAddress()))
+        return;
+
       // Don't start another request if it will miss.
       if (!mActiveRequest->inCache())
         return;
