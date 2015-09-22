@@ -20,6 +20,9 @@ public:
   virtual void prepare();
   virtual bool preconditionsMet() const;
   virtual void execute();
+
+private:
+  unsigned int lineCursor;
 };
 
 class IPKRead : public MemoryOperation {
@@ -86,6 +89,9 @@ public:
   virtual bool preconditionsMet() const;
   virtual void execute();
   virtual bool complete() const;
+
+private:
+  uint line;          // The line currently being flushed.
 };
 
 class InvalidateAllLines : public MemoryOperation {
@@ -96,6 +102,9 @@ public:
   virtual bool preconditionsMet() const;
   virtual void execute();
   virtual bool complete() const;
+
+private:
+  uint line;          // The line currently being invalidated.
 };
 
 class StoreLine : public MemoryOperation {
@@ -105,6 +114,9 @@ public:
   virtual void prepare();
   virtual bool preconditionsMet() const;
   virtual void execute();
+
+private:
+  unsigned int lineCursor;
 };
 
 class MemsetLine : public MemoryOperation {
@@ -117,8 +129,8 @@ public:
   virtual bool complete() const;
 
 private:
+  unsigned int lineCursor;
   unsigned int data;  // The word to store to each position in the cache line.
-  bool finished;      // Whether the operation has completed.
 };
 
 class PushLine : public MemoryOperation {
@@ -128,6 +140,9 @@ public:
   virtual void prepare();
   virtual bool preconditionsMet() const;
   virtual void execute();
+
+private:
+  unsigned int lineCursor;
 };
 
 #endif /* SRC_TILECOMPONENTS_MEMORY_OPERATIONS_CACHELINEOPERATIONS_H_ */

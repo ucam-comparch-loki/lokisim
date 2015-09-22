@@ -16,6 +16,7 @@
 
 FetchLine::FetchLine(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(startOfLine(address), metadata, memory, level, destination, 0, 8) {
+  lineCursor = 0;
   if (ENERGY_TRACE)
     Instrumentation::MemoryBank::initiateBurstRead(memory.id.globalMemoryNumber());
 }
@@ -30,12 +31,11 @@ bool FetchLine::preconditionsMet() const {
 
 void FetchLine::execute() {
   assert(preconditionsMet());
-  unsigned int result = memory.readWord(sramAddress);
-  memory.printOperation(metadata.opcode, address, result);
+  unsigned int result = memory.readWord(sramAddress + lineCursor);
+  memory.printOperation(metadata.opcode, address + lineCursor, result);
   sendResult(result);
 
-  address += 4;
-  sramAddress += 4;
+  lineCursor += 4;
 }
 
 
@@ -158,7 +158,7 @@ bool InvalidateLine::complete() const {
 
 FlushAllLines::FlushAllLines(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 0, 0) {
-  sramAddress = 0;
+  line = 0;
 }
 
 void FlushAllLines::prepare() {
@@ -172,18 +172,19 @@ bool FlushAllLines::preconditionsMet() const {
 void FlushAllLines::execute() {
   if (ENERGY_TRACE)
     Instrumentation::MemoryBank::initiateBurstRead(memory.id.globalMemoryNumber());
+  sramAddress = line * CACHE_LINE_BYTES;
   flushLine();
-  sramAddress += CACHE_LINE_BYTES;
+  line++;
 }
 
 bool FlushAllLines::complete() const {
-  return (sramAddress >= MEMORY_BANK_SIZE);
+  return (line >= CACHE_LINES_PER_BANK);
 }
 
 
 InvalidateAllLines::InvalidateAllLines(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 0, 0) {
-  sramAddress = 0;
+  line = 0;
 }
 
 void InvalidateAllLines::prepare() {
@@ -195,18 +196,19 @@ bool InvalidateAllLines::preconditionsMet() const {
 }
 
 void InvalidateAllLines::execute() {
+  sramAddress = line * CACHE_LINE_BYTES;
   invalidateLine();
-  sramAddress += CACHE_LINE_BYTES;
+  line++;
 }
 
 bool InvalidateAllLines::complete() const {
-  return (sramAddress >= MEMORY_BANK_SIZE);
+  return (line >= CACHE_LINES_PER_BANK);
 }
 
 
 StoreLine::StoreLine(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(startOfLine(address), metadata, memory, level, destination, 8, 0) {
-
+  lineCursor = 0;
   preWriteCheck();
   if (ENERGY_TRACE)
     Instrumentation::MemoryBank::initiateBurstWrite(memory.id.globalMemoryNumber());
@@ -226,11 +228,10 @@ void StoreLine::execute() {
 
   if (payloadAvailable()) {
     unsigned int data = getPayload();
-    memory.writeWord(sramAddress, data);
-    memory.printOperation(metadata.opcode, address, data);
+    memory.writeWord(sramAddress + lineCursor, data);
+    memory.printOperation(metadata.opcode, address + lineCursor, data);
 
-    address += 4;
-    sramAddress += 4;
+    lineCursor += 4;
   }
 }
 
@@ -238,7 +239,7 @@ void StoreLine::execute() {
 MemsetLine::MemsetLine(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(startOfLine(address), metadata, memory, level, destination, 1, 0) {
   data = 0;
-  finished = false;
+  lineCursor = 0;
 
   preWriteCheck();
 
@@ -261,24 +262,21 @@ void MemsetLine::execute() {
     data = getPayload();
 
   if (!awaitingPayload()) {
-    memory.writeWord(sramAddress, data);
-    memory.printOperation(metadata.opcode, address, data);
+    memory.writeWord(sramAddress + lineCursor, data);
+    memory.printOperation(metadata.opcode, address + lineCursor, data);
 
-    address += 4;
-    sramAddress += 4;
-
-    finished = (address == startOfLine(address));
+    lineCursor += 4;
   }
 }
 
 bool MemsetLine::complete() const {
-  return finished;
+  return (lineCursor >= CACHE_LINE_BYTES);
 }
 
 
 PushLine::PushLine(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(startOfLine(address), metadata, memory, level, destination, 8, 0) {
-  // Nothing
+  lineCursor = 0;
 }
 
 void PushLine::prepare() {
@@ -294,10 +292,9 @@ void PushLine::execute() {
 
   if (payloadAvailable()) {
     unsigned int data = getPayload();
-    memory.writeWord(sramAddress, data);
-    memory.printOperation(metadata.opcode, address, data);
+    memory.writeWord(sramAddress + lineCursor, data);
+    memory.printOperation(metadata.opcode, address + lineCursor, data);
 
-    address += 4;
-    sramAddress += 4;
+    lineCursor += 4;
   }
 }

@@ -49,8 +49,9 @@ void L2RequestFilter::mainLoop() {
           next_trigger(iClock.negedge_event());
           state = STATE_WAIT;
         }
-        else
+        else {
           next_trigger(iRequestClaimed.negedge_event());
+        }
         break;
       }
 
