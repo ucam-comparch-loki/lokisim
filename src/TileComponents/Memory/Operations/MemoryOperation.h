@@ -12,6 +12,7 @@
 
 #include "../../../Datatype/Flit.h"
 #include "../../../Datatype/Identifier.h"
+#include "../../../Network/NetworkTypedefs.h"
 #include "../MemoryTypedefs.h"
 
 class MemoryBank;
@@ -72,6 +73,9 @@ public:
 
   // Return whether the data to be accessed is currently in the memory.
   bool inCache() const;
+
+  // Return the NetworkRequest which generated this MemoryOperation.
+  NetworkRequest getOriginal() const;
 
   // Return the memory address accessed by this operation.
   MemoryAddr getAddress() const;

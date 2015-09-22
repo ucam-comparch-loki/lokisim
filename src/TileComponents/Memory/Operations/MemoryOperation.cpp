@@ -129,6 +129,10 @@ bool MemoryOperation::inCache() const {
   return memory.contains(address, sramAddress, getAccessMode());
 }
 
+NetworkRequest MemoryOperation::getOriginal() const {
+  return NetworkRequest(address, ChannelID(), metadata.flatten());
+}
+
 MemoryAddr      MemoryOperation::getAddress()     const {return address;}
 SRAMAddress     MemoryOperation::getSRAMAddress() const {return sramAddress;}
 MemoryMetadata  MemoryOperation::getMetadata()    const {return metadata;}

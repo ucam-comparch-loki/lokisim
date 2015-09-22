@@ -388,6 +388,13 @@ void MemoryBank::processRequest() {
     LOKI_LOG << this->name() << " delayed request due to full output request queue" << endl;
     next_trigger(canSendRequestEvent());
   }
+  else if (mActiveRequest->needsForwarding()) {
+    sendRequest(mActiveRequest->getOriginal());
+    if (mActiveRequest->awaitingPayload())
+      mState = STATE_FORWARD;
+    else
+      finishedRequest();
+  }
   else if (mActiveRequest->resultsToSend() && !canSendResponse(mActiveRequest->getMemoryLevel())) {
     LOKI_LOG << this->name() << " delayed request due to full output queue" << endl;
     next_trigger(canSendResponseEvent(mActiveRequest->getMemoryLevel()));
@@ -399,10 +406,8 @@ void MemoryBank::processRequest() {
   else if (!mActiveRequest->complete())
     mActiveRequest->execute();
   else {
-    mState = STATE_IDLE;
+    finishedRequest();
     mReadFromMissBuffer = false;
-    delete mActiveRequest;
-    mActiveRequest = NULL;
   }
 }
 
@@ -495,6 +500,49 @@ void MemoryBank::processRefill() {
   }
   else
     next_trigger(responseAvailableEvent());
+}
+
+void MemoryBank::processForward() {
+  assert(mState == STATE_FORWARD);
+  assert(mActiveRequest != NULL);
+
+  // Before we even consider serving a request, we must make sure that there
+  // is space to buffer any potential results.
+
+  if (!canSendRequest()) {
+    LOKI_LOG << this->name() << " delayed request due to full output request queue" << endl;
+    next_trigger(canSendRequestEvent());
+  }
+  else if (!payloadAvailable(mActiveRequest->getMemoryLevel())) {
+    next_trigger(requestAvailableEvent());
+  }
+  else {
+    NetworkRequest payload;
+    switch (mActiveRequest->getMemoryLevel()) {
+      case MEMORY_L1:
+        payload = mInputQueue.read();
+        LOKI_LOG << this->name() << " dequeued " << payload << endl;
+        break;
+      case MEMORY_L2:
+        payload = requestSig.read();
+        requestSig.ack();
+        break;
+      default:
+        assert(false && "Memory bank can't handle off-chip requests");
+        break;
+    }
+
+    sendRequest(payload);
+
+    if (payload.getMetadata().endOfPacket)
+      finishedRequest();
+  }
+}
+
+void MemoryBank::finishedRequest() {
+  mState = STATE_IDLE;
+  delete mActiveRequest;
+  mActiveRequest = NULL;
 }
 
 bool MemoryBank::requestAvailable() const {
@@ -763,6 +811,7 @@ void MemoryBank::mainLoop() {
     case STATE_ALLOCATE:  processAllocate();  break;
     case STATE_FLUSH:     processFlush();     break;
     case STATE_REFILL:    processRefill();    break;
+    case STATE_FORWARD:   processForward();   break;
   }
 
   updateIdle();

@@ -128,6 +128,7 @@ private:
     STATE_ALLOCATE,                       // Allocating cache line
     STATE_FLUSH,                          // Flushing cache line
     STATE_REFILL,                         // Filling cache line
+    STATE_FORWARD,                        // Forward request to directory or L2
   };
 
 	//---------------------------------------------------------------------------------------------
@@ -194,6 +195,10 @@ private:
 	void processAllocate();
 	void processFlush();
 	void processRefill();
+	void processForward();
+
+	// Perform any tidying necessary when a request finishes.
+	void finishedRequest();
 
 	bool requestAvailable() const;
 	const sc_event_or_list& requestAvailableEvent() const;

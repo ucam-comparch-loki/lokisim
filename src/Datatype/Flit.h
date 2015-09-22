@@ -25,7 +25,7 @@ struct FlitMetadata {
   unsigned int padding : 31;
   unsigned int endOfPacket : 1;
 
-  uint32_t flatten() {
+  uint32_t flatten() const {
     return (padding << 1) | (endOfPacket << 0);
   }
 
@@ -69,7 +69,7 @@ struct MemoryMetadata {
   unsigned int skipL1 : 1;        // Bypass L1 and go straight to L2.
   MemoryOpcode opcode : 5;        // Operation to perform at memory.
 
-  uint32_t flatten() {
+  uint32_t flatten() const {
     return (padding << 18) | (returnTileX << 15) | (returnTileY << 12) |
       (returnChannel << 9) | (scratchpadL2 << 8) | (scratchpadL1 << 7) |
       (skipL2 << 6) | (skipL1 << 5) | (opcode << 0);
