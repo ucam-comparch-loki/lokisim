@@ -20,6 +20,8 @@ std::map<int, uint> MemoryBank::setCounts_;
 std::map<int, uint> MemoryBank::wayCounts_;
 std::map<int, uint> MemoryBank::lineSizes_;
 
+CounterMap<int> MemoryBank::numTagChecks_;
+
 CounterMap<int> MemoryBank::numReadWordHits_;
 CounterMap<int> MemoryBank::numReadHalfWordHits_;
 CounterMap<int> MemoryBank::numReadByteHits_;
@@ -82,7 +84,7 @@ void MemoryBank::setMode(int bank, bool isCache, uint setCount, uint wayCount, u
 	lineSizes_[bank] = lineSize;
 }
 
-void MemoryBank::startOperation(int bank, MemoryOperation op,
+void MemoryBank::startOperation(int bank, MemoryOpcode op,
         MemoryAddr address, bool miss, ChannelID returnChannel) {
   switch (op) {
     case LOAD_W:
@@ -123,6 +125,12 @@ void MemoryBank::startOperation(int bank, MemoryOperation op,
     default:
       break;
   }
+}
+
+void MemoryBank::checkTags(int bank, MemoryAddr address) {
+  numTagChecks_.increment(bank);
+
+  // Do something with Hamming distance of address?
 }
 
 void MemoryBank::readWord(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel) {
@@ -419,6 +427,7 @@ void MemoryBank::dumpEventCounts(std::ostream& os) {
      << xmlNode("active", numReads() + numWrites())  /* is this right? */ << "\n"
      << xmlNode("read", numReads())                                       << "\n"
      << xmlNode("write", numWrites())                                     << "\n"
+     << xmlNode("tag_check", numTagChecks_.numEvents())                   << "\n"
      << xmlNode("word_read", numReadWordHits_.numEvents())                << "\n"
      << xmlNode("halfword_read", numReadHalfWordHits_.numEvents())        << "\n"
      << xmlNode("byte_read", numReadByteHits_.numEvents())                << "\n"

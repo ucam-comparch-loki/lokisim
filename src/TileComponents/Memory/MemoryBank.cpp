@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------
 // Configurable Memory Bank Implementation
 //-------------------------------------------------------------------------------------------------
-// Second version of configurable memory bank model. Each memory bank is
+// Third version of configurable memory bank model. Each memory bank is
 // directly connected to the network. There are multiple memory banks per tile.
 //
 // Memory requests are connection-less. Instead, the new channel map table
@@ -14,7 +14,7 @@
 // queues for incoming and outgoing data.
 //-------------------------------------------------------------------------------------------------
 // File:       MemoryBank.cpp
-// Author:     Andreas Koltes (andreas.koltes@cl.cam.ac.uk)
+// Author:     Daniel Bates (Daniel.Bates@cl.cam.ac.uk)
 // Created on: 08/04/2011
 //-------------------------------------------------------------------------------------------------
 
@@ -25,6 +25,7 @@ using namespace std;
 
 #include "MemoryBank.h"
 #include "SimplifiedOnChipScratchpad.h"
+#include "Operations/MemoryOperationDecode.h"
 #include "../../Datatype/Instruction.h"
 #include "../../Network/Topologies/LocalNetwork.h"
 #include "../../Utility/Arguments.h"
@@ -45,994 +46,648 @@ using namespace std;
 // the bank.
 #define INTERNAL_LATENCY (L1_LATENCY - EXTERNAL_LATENCY - 1)
 
+
+uint log2(uint value) {
+  assert(value > 1);
+
+  uint result = 0;
+  uint temp = value >> 1;
+
+  while (temp != 0) {
+    result++;
+    temp >>= 1;
+  }
+
+  assert(1UL << result == value);
+
+  return result;
+}
+
+MemoryAddr MemoryBank::getTag(MemoryAddr address) const {
+  return address & ~0x1F;
+}
+
+SRAMAddress MemoryBank::getLine(SRAMAddress position) const {
+  return position >> 5;
+}
+
+SRAMAddress MemoryBank::getOffset(SRAMAddress position) const {
+  return position & 0x1F;
+}
+
+// Compute the position in SRAM that the given memory address is to be found.
+SRAMAddress MemoryBank::getPosition(MemoryAddr address, MemoryAccessMode mode) const {
+  // Memory address contains:
+  // | tag | index | bank | offset |
+  //  * offset = 5 bits (32 byte cache line)
+  //  * index + offset = log2(bytes in bank) bits
+  //  * bank = up to 3 bits used to choose which bank to access
+  //  * tag = any bits remaining
+  //
+  // Since the number of bank bits is variable, but we don't want to move the
+  // index bits around or change the size of the tag field, we hash the maximum
+  // number of bank bits in with a fixed-position index field. Note that these
+  // overlapping bits must now also be included in the tag.
+  //
+  // Note that this can result in a deterministic but counter-intuitive mapping
+  // of addresses in scratchpad mode.
+
+  // Slight hack: I use the contains() method frequently to help with assertions
+  // so I instrument tag checks here. This method will be executed once per
+  // operation.
+  if (mode == MEMORY_CACHE)
+    Instrumentation::MemoryBank::checkTags(id.globalMemoryNumber(), address);
+
+  static const uint indexBits = log2(CACHE_LINES_PER_BANK);
+  uint offset = getOffset(address);
+  uint bank = (address >> 5) & 0x7;
+  uint index = (address >> 8) & ((1 << indexBits) - 1);
+  uint slot = index ^ (bank << (indexBits - 3)); // Hash bank into the upper bits
+  return (slot << 5) | offset;
+}
+
+// Return whether data from `address` can be found at `position` in the SRAM.
+bool MemoryBank::contains(MemoryAddr address, SRAMAddress position, MemoryAccessMode mode) const {
+  switch (mode) {
+    case MEMORY_CACHE: {
+      uint cacheLine = getLine(position);
+      return (mTags[cacheLine] == getTag(address)) && mValid[cacheLine];
+    }
+    case MEMORY_SCRATCHPAD:
+      return true;
+    default:
+      assert(false);
+      return false;
+  }
+}
+
+// Ensure that a valid copy of data from `address` can be found at `position`.
+void MemoryBank::allocate(MemoryAddr address, SRAMAddress position, MemoryAccessMode mode) {
+  switch (mode) {
+    case MEMORY_CACHE:
+      if (!contains(address, position, mode)) {
+        LOKI_LOG << this->name() << " cache miss at address " << LOKI_HEX(address) << endl;
+        Instrumentation::MemoryBank::replaceCacheLine(id.globalMemoryNumber(), mValid[getLine(position)], mDirty[getLine(position)]);
+
+        // Send a request for the missing cache line.
+        NetworkRequest readRequest(getTag(address), id, FETCH_LINE, true);
+        sendRequest(readRequest);
+
+        // Stop serving the request until allocation is complete.
+        mState = STATE_ALLOCATE;
+      }
+      break;
+    case MEMORY_SCRATCHPAD:
+      break;
+  }
+}
+
+// Ensure that there is a space to write data to `address` at `position`.
+void MemoryBank::validate(MemoryAddr address, SRAMAddress position, MemoryAccessMode mode) {
+  switch (mode) {
+    case MEMORY_CACHE:
+      if (mTags[getLine(position)] != getTag(address))
+        flush(position, mode);
+      mTags[getLine(position)] = getTag(address);
+      mValid[getLine(position)] = true;
+      break;
+    case MEMORY_SCRATCHPAD:
+      break;
+  }
+}
+
+// Invalidate the cache line which contains `position`.
+void MemoryBank::invalidate(SRAMAddress position, MemoryAccessMode mode) {
+  switch (mode) {
+    case MEMORY_CACHE:
+      mValid[getLine(position)] = false;
+      break;
+    case MEMORY_SCRATCHPAD:
+      break;
+  }
+}
+
+// Flush the cache line containing `position` down the memory hierarchy, if
+// necessary. The line is not invalidated, but is no longer dirty.
+void MemoryBank::flush(SRAMAddress position, MemoryAccessMode mode) {
+  switch (mode) {
+    case MEMORY_CACHE:
+      if (mValid[getLine(position)] && mDirty[getLine(position)]) {
+        // Send a header flit telling where this line should be stored.
+        NetworkRequest header(mTags[getLine(position)], id, STORE_LINE, false);
+        sendRequest(header);
+
+        if (ENERGY_TRACE)
+          Instrumentation::MemoryBank::initiateBurstRead(id.globalMemoryNumber());
+
+        // The flush state handles sending the line itself.
+        mPreviousState = mState;
+        mState = STATE_FLUSH;
+        mCacheLineCursor = 0;
+      }
+      else
+        mState = STATE_REQUEST;
+
+      mDirty[getLine(position)] = false;
+      break;
+    case MEMORY_SCRATCHPAD:
+      break;
+  }
+}
+
+// Return whether a payload flit is available. `level` tells whether this bank
+// is being treated as an L1 or L2 cache.
+bool MemoryBank::payloadAvailable(MemoryLevel level) const {
+  if (mReadFromMissBuffer) {
+    return !mMissBuffer.empty();
+  }
+  else {
+    switch (level) {
+      case MEMORY_L1:
+        return !mInputQueue.empty() && isPayload(mInputQueue.peek());
+      case MEMORY_L2:
+        return requestSig.valid() && isPayload(requestSig.read());
+      default:
+        assert(false && "Memory bank can't handle off-chip requests");
+        return false;
+    }
+  }
+}
+
+// Retrieve a payload flit. `level` tells whether this bank is being treated
+// as an L1 or L2 cache.
+uint32_t MemoryBank::getPayload(MemoryLevel level) {
+  assert(payloadAvailable(level));
+
+  NetworkRequest request;
+
+  if (mReadFromMissBuffer) {
+    request = mMissBuffer.read();
+  }
+  else {
+    switch (level) {
+      case MEMORY_L1:
+        request = mInputQueue.read();
+        LOKI_LOG << this->name() << " dequeued " << request << endl;
+        break;
+      case MEMORY_L2: {
+        request = requestSig.read();
+        requestSig.ack();
+        break;
+      }
+      default:
+        assert(false && "Memory bank can't handle off-chip requests");
+        break;
+    }
+  }
+
+  assert(isPayload(request));
+  return request.payload().toUInt();
+}
+
+// Make a load-linked reservation.
+void MemoryBank::makeReservation(ComponentID requester, MemoryAddr address) {
+  mReservations.makeReservation(requester, address);
+}
+
+// Return whether a load-linked reservation is still valid.
+bool MemoryBank::checkReservation(ComponentID requester, MemoryAddr address) const {
+  return mReservations.checkReservation(requester, address);
+}
+
+uint32_t MemoryBank::readWord(SRAMAddress position) const {
+  if (WARN_UNALIGNED && (position & 0x3) != 0)
+    std::cerr << "Warning: Attempting to access address 0x" << std::hex << position
+        << std::dec << " with alignment 4." << std::endl;
+
+  return mData[position/4];
+}
+
+uint32_t MemoryBank::readHalfword(SRAMAddress position) const {
+  if (WARN_UNALIGNED && (position & 0x1) != 0)
+    std::cerr << "Warning: Attempting to access address 0x" << std::hex << position
+        << std::dec << " with alignment 2." << std::endl;
+
+  uint32_t fullWord = readWord(position & ~0x3);
+  return ((position & 0x3) == 0) ? (fullWord & 0xFFFFUL) : (fullWord >> 16); // Little endian
+}
+
+uint32_t MemoryBank::readByte(SRAMAddress position) const {
+  uint32_t fullWord = readWord(position & ~0x3);
+  uint32_t selector = position & 0x3UL;
+
+  switch (selector) { // Little endian
+    case 0: return  fullWord        & 0xFFUL; break;
+    case 1: return (fullWord >> 8)  & 0xFFUL; break;
+    case 2: return (fullWord >> 16) & 0xFFUL; break;
+    case 3: return (fullWord >> 24) & 0xFFUL; break;
+    default: assert(false); return 0; break;
+  }
+}
+
+void MemoryBank::writeWord(SRAMAddress position, uint32_t data) {
+  MemoryAddr address = mTags[getLine(position)] + getOffset(position);
+  if (WARN_UNALIGNED && (position & 0x3) != 0)
+    LOKI_WARN << " attempting to access address " << LOKI_HEX(address)
+        << " with alignment 4." << std::endl;
+
+  mData[position/4] = data;
+  mDirty[getLine(position)] = true;
+
+  mReservations.clearReservation(address);
+}
+
+void MemoryBank::writeHalfword(SRAMAddress position, uint32_t data) {
+  if (WARN_UNALIGNED && (position & 0x1) != 0)
+    std::cerr << "Warning: Attempting to access address 0x" << std::hex << position
+        << std::dec << " with alignment 2." << std::endl;
+
+  uint32_t oldData = readWord(position & ~0x3);
+  uint32_t newData;
+
+  if ((position & 0x3) == 0) // Little endian
+    newData = (oldData & 0xFFFF0000UL) | (data & 0x0000FFFFUL);
+  else
+    newData = (oldData & 0x0000FFFFUL) | (data << 16);
+
+  writeWord(position & ~0x3, newData);
+}
+
+void MemoryBank::writeByte(SRAMAddress position, uint32_t data) {
+  uint32_t oldData = readWord(position & ~0x3);
+  uint32_t selector = position & 0x3UL;
+  uint32_t newData;
+
+  switch (selector) { // Little endian
+  case 0: newData = (oldData & 0xFFFFFF00UL) | (data & 0x000000FFUL);        break;
+  case 1: newData = (oldData & 0xFFFF00FFUL) | ((data & 0x000000FFUL) << 8);   break;
+  case 2: newData = (oldData & 0xFF00FFFFUL) | ((data & 0x000000FFUL) << 16);    break;
+  case 3: newData = (oldData & 0x00FFFFFFUL) | ((data & 0x000000FFUL) << 24);    break;
+  }
+
+  writeWord(position & ~0x3, newData);
+}
+
 //-------------------------------------------------------------------------------------------------
 // Internal functions
 //-------------------------------------------------------------------------------------------------
 
+void MemoryBank::processIdle() {
+  assert(mState == STATE_IDLE);
 
-AbstractMemoryHandler& MemoryBank::currentMemoryHandler() {
-  if (checkTags())
-    return mGeneralPurposeCacheHandler;
-  else
-    return mScratchpadModeHandler;
-}
+  // Refills have priority because other requests may depend on them.
+  if (responseAvailable()) {
+    mState = STATE_REFILL;
+    mCacheLineCursor = 0;
+    next_trigger(sc_core::SC_ZERO_TIME);
+  }
+  // Check for any other requests.
+  else if (requestAvailable()) {
+    // If the hit-under-miss option is enabled and we are currently serving a
+    // miss, peek the next request in the queue to see if it is a hit.
 
-bool MemoryBank::checkTags() const {
-  if (inL1Mode())
-    return !mActiveData.Request.getMemoryMetadata().scratchpadL1;
-  else
-    return !mActiveData.Request.getMemoryMetadata().scratchpadL2;
-}
+    mActiveRequest = peekRequest();
 
-ChannelID MemoryBank::returnChannel(const NetworkRequest& request) const {
-  switch (mActiveData.Source) {
-    // In L1 mode, the core is on the same tile and can be determined by the
-    // input channel accessed.
-    case REQUEST_CORES:
-      return ChannelID(id.tile.x,
-                       id.tile.y,
-                       request.channelID().channel,
-                       request.getMemoryMetadata().returnChannel);
-    // In L2 mode, the requesting bank is supplied as part of the request.
-    case REQUEST_MEMORIES:
-      return ChannelID(request.getMemoryMetadata().returnTileX,
-                       request.getMemoryMetadata().returnTileY,
-                       request.getMemoryMetadata().returnChannel,
-                       0);
-    // Refills don't produce results, so we don't need a valid channel.
-    default:
-      return ChannelID(2,0,0,0);
+    if (MEMORY_HIT_UNDER_MISS && mServingMiss) {
+      // Don't reorder data being sent to the same channel.
+      if (mMissingRequest->getDestination() == mActiveRequest->getDestination())
+        return;
+
+      // Don't start another request if it will miss.
+      if (!mActiveRequest->inCache())
+        return;
+
+      LOKI_LOG << this->name() << " starting hit-under-miss" << endl;
+    }
+
+    consumeRequest(mActiveRequest->getMemoryLevel());
+    mState = STATE_REQUEST;
+    next_trigger(sc_core::SC_ZERO_TIME);
+
+    LOKI_LOG << this->name() << " starting " << memoryOpName(mActiveRequest->getMetadata().opcode)
+        << " request from component " << mActiveRequest->getDestination().component << endl;
+  }
+  // Nothing to do - wait for input to arrive.
+  else {
+    next_trigger(responseAvailableEvent() | requestAvailableEvent());
   }
 }
 
-bool MemoryBank::inL1Mode() const {
-  return (mActiveData.Source == REQUEST_CORES);
-}
+void MemoryBank::processRequest() {
+  assert(mState == STATE_REQUEST);
+  assert(mActiveRequest != NULL);
 
-bool MemoryBank::onlyAcceptingRefills() const {
-  return !MEMORY_HIT_UNDER_MISS && (mCallbackData.State != STATE_IDLE);
-}
+  // Before we even consider serving a request, we must make sure that there
+  // is space to buffer any potential results.
 
-MemoryAddr MemoryBank::getTag(MemoryAddr address) const {
-  // Cache line = 32 bytes = 2^5 bytes.
-  return (address & ~0x1F);
-}
-
-MemoryAddr MemoryBank::getOffset(MemoryAddr address) const {
-  // Cache line = 32 bytes = 2^5 bytes.
-  return (address & 0x1F);
-}
-
-bool MemoryBank::sameCacheLine(MemoryAddr address1, MemoryAddr address2) const {
-  return getTag(address1) == getTag(address2);
-}
-
-bool MemoryBank::endOfCacheLine(MemoryAddr address) const {
-  return !sameCacheLine(address, address+4);
-}
-
-bool MemoryBank::storedLocally(MemoryAddr address) const {
-  if (checkTags())
-    return mGeneralPurposeCacheHandler.lookupCacheLine(address).Hit;
-  else
-    return true;
-}
-
-bool MemoryBank::startNewRequest() {
-  assert(mActiveData.Complete);
-  mActiveData.State = STATE_IDLE;
-  mActiveData.Source = REQUEST_NONE;
-  mActiveData.Missed = false;
-
-  if (!inputAvailable())
-		return false;
-
-  NetworkRequest request = peekInput();
-
-  // If the flit is a payload, it is for a request which has missed and been
-  // put aside. Buffer the payload so we can move on to another request.
-  if (request.getMemoryMetadata().opcode == PAYLOAD ||
-      request.getMemoryMetadata().opcode == PAYLOAD_EOP) {
-    assert(mCallbackData.State != STATE_IDLE);
-    mMissBuffer.write(request);
-    consumeInput();
+  if (!canSendRequest()) {
+    LOKI_LOG << this->name() << " delayed request due to full output request queue" << endl;
+    next_trigger(canSendRequestEvent());
+  }
+  else if (mActiveRequest->resultsToSend() && !canSendResponse(mActiveRequest->getMemoryLevel())) {
+    LOKI_LOG << this->name() << " delayed request due to full output queue" << endl;
+    next_trigger(canSendResponseEvent(mActiveRequest->getMemoryLevel()));
+  }
+  else if (!iClock.negedge())
     next_trigger(iClock.negedge_event());
-    return false;
+  else if (!mActiveRequest->preconditionsMet())
+    mActiveRequest->prepare();
+  else if (!mActiveRequest->complete())
+    mActiveRequest->execute();
+  else {
+    mState = STATE_IDLE;
+    mReadFromMissBuffer = false;
+    delete mActiveRequest;
+    mActiveRequest = NULL;
   }
-
-  // If the hit-under-miss option is enabled and we are currently serving a
-  // miss, peek the next request in the queue to see if it is a hit.
-
-  if ((mCallbackData.State != STATE_IDLE) &&
-      (mActiveData.Source != REQUEST_REFILL) &&
-      MEMORY_HIT_UNDER_MISS) {
-    // Don't reorder data being sent to the same channel.
-    if (mCallbackData.ReturnChannel == returnChannel(request)) {
-      return false;
-    }
-
-    MemoryAddr address = request.payload().toUInt();
-    bool hit = storedLocally(address);
-
-    if (!hit) {
-      // Wait for the miss to finish being served.
-      return false;
-    }
-
-    LOKI_LOG << this->name() << " starting hit-under-miss" << endl;
-  }
-
-  consumeInput();
-  return processMessageHeader(request);
 }
 
-bool MemoryBank::processMessageHeader(const NetworkRequest& request) {
-  MemoryOperation opcode = request.getMemoryMetadata().opcode;
+void MemoryBank::processAllocate() {
+  assert(mState == STATE_ALLOCATE);
+  assert(mActiveRequest != NULL);
 
-  mActiveData.State = STATE_LOCAL_MEMORY_ACCESS;
-  mActiveData.Address = request.payload().toUInt();
-	mActiveData.ReturnChannel = returnChannel(request);
-	mActiveData.FlitsSent = 0;
-	mActiveData.Request = request;
-	mActiveData.Complete = false;
-	mActiveData.Missed = false;
+  // Use inCache to check whether the line has already been allocated. The data
+  // won't have arrived yet.
+  if (!mActiveRequest->inCache()) {
+    // The request has already called allocate() above, so data for the new line
+    // is on its way. Now we must prepare the line for the data's arrival.
+    mActiveRequest->validateLine();
 
-  LOKI_LOG << this->name() << " starting " << memoryOpName(opcode) << " request from component " << mActiveData.ReturnChannel.component << endl;
+    // Put the request to one side until its data comes back.
+    mMissingRequest = mActiveRequest;
+    mCacheMissEvent.notify(sc_core::SC_ZERO_TIME);
+    mServingMiss = true;
 
-  // If the operation is going to access memory, make sure the necessary cache
-  // line is stored locally, or there is a space for it to be fetched into.
-	switch (opcode) {
-	case UPDATE_DIRECTORY_ENTRY:
-	case UPDATE_DIRECTORY_MASK:
-	  // Everything is handled in the processUpdateDirectory methods.
-    break;
+    if (mMissingRequest->awaitingPayload())
+      mCopyToMissBuffer = true;
 
-	case IPK_READ:
-		if (ENERGY_TRACE)
-		  Instrumentation::MemoryBank::initiateIPKRead(cBankNumber);
-    getCacheLine(mActiveData.Address, false, true, true, true);
-		break;
-
-	case FETCH_LINE:
-	case PREFETCH_LINE:
-    if (ENERGY_TRACE)
-      Instrumentation::MemoryBank::initiateBurstRead(cBankNumber);
-    getCacheLine(mActiveData.Address, false, true, true, false);
-    break;
-
-	case FLUSH_LINE: {
-    if (ENERGY_TRACE)
-      Instrumentation::MemoryBank::initiateBurstRead(cBankNumber);
-    bool cached = getCacheLine(mActiveData.Address, false, false, true, false);
-    if (cached)
-      currentMemoryHandler().fillCacheLineBuffer(mActiveData.Address, mCacheLineBuffer);
-    else
-      mActiveData.Complete = true;
-    break;
-	}
-
-	case FLUSH_ALL_LINES:
-	case INVALIDATE_ALL_LINES:
-	  // Iterate through cache lines using the position variable.
-	  mActiveData.Position = 0;
-	  break;
-
-	case VALIDATE_LINE:
-	  getCacheLine(mActiveData.Address, true, true, false, false);
-	  break;
-
-	case INVALIDATE_LINE:
-	  getCacheLine(mActiveData.Address, false, false, false, false);
-	  break;
-
-	case STORE_LINE:
-	case MEMSET_LINE:
-	  if (ENERGY_TRACE)
-	    Instrumentation::MemoryBank::initiateBurstWrite(cBankNumber);
-    getCacheLine(mActiveData.Address, true, true, false, false);
-    break;
-
-	case LOAD_W:
-	case LOAD_HW:
-	case LOAD_B:
-	case LOAD_LINKED:
-    getCacheLine(mActiveData.Address, false, true, true, false);
-    break;
-
-	case LOAD_AND_ADD:
-	case LOAD_AND_AND:
-	case LOAD_AND_OR:
-	case LOAD_AND_XOR:
-	case EXCHANGE:
-	  if (checkTags() && mBackgroundMemory->readOnly(mActiveData.Address)) {
-	    if (WARN_READ_ONLY)
-	      LOKI_WARN << this->name() << " attempting to modify read-only address " << LOKI_HEX(mActiveData.Address) << endl;
-	    else
-	      throw ReadOnlyException(mActiveData.Address);
-	  }
-	  getCacheLine(mActiveData.Address, false, true, true, false);
-	  break;
-
-	case STORE_W:
-	case STORE_HW:
-	case STORE_B:
-	case STORE_CONDITIONAL:
-	  if (checkTags() && mBackgroundMemory->readOnly(mActiveData.Address)) {
-      if (WARN_READ_ONLY)
-        LOKI_WARN << this->name() << " attempting to modify read-only address " << LOKI_HEX(mActiveData.Address) << endl;
-      else
-        throw ReadOnlyException(mActiveData.Address);
-	  }
-    getCacheLine(mActiveData.Address, false, true, false, false);
-		break;
-
-  default:
-    throw InvalidOptionException("memory bank message header opcode", opcode);
-    break;
-	}
-
-	return true;
-}
-
-// Ensure that the cache line containing the given address is stored locally.
-//   validate = don't fetch the line - it will be received by other means
-//   allocate = make sure the line is in the cache before doing anything
-//   isRead, isInstruction = the type of memory access, used for debug
-// Returns whether the line was already stored locally.
-bool MemoryBank::getCacheLine(MemoryAddr address, bool validate, bool allocate, bool isRead, bool isInstruction) {
-  MemoryAddr tag = getTag(address);
-  CacheLookup info = currentMemoryHandler().prepareCacheLine(address, mCacheLineBuffer, isRead, isInstruction);
-
-  Instrumentation::MemoryBank::startOperation(cBankNumber,
-                                              mActiveData.Request.getMemoryMetadata().opcode,
-                                              address,
-                                              !info.Hit,
-                                              mActiveData.ReturnChannel);
-
-
-  // If we don't need the cache line buffer for anything else, just set the tag
-  // and wait for data.
-  if (validate && !info.FlushRequired) {
-    mCacheLineBuffer.setTag(tag);
-  }
-
-  // Check whether we have already requested data from this line, and know
-  // where it will go in the cache.
-  if (mCallbackData.State != STATE_IDLE &&
-      sameCacheLine(mCallbackData.Address, mActiveData.Address)) {
-    mActiveData.Missed = false;
-    mActiveData.Position = getTag(mCallbackData.Position) + getOffset(address);
-    return info.Hit;
+    if (mState != STATE_FLUSH) {
+      mState = STATE_IDLE;
+      mActiveRequest = NULL;
+    }
   }
   else {
-    mActiveData.Missed = !info.Hit;
-    mActiveData.Position = info.SRAMLine*CACHE_LINE_WORDS*BYTES_PER_WORD
-                         + getOffset(address);
+    mState = STATE_IDLE;
+    mActiveRequest = NULL;
   }
-
-  // We only have to do something if we don't already have the data.
-  if (!info.Hit) {
-    // Invalidate the current cache line if allocating space for a new line.
-    if (allocate)
-      mGeneralPurposeCacheHandler.invalidate(mActiveData.Position);
-    // Bail out if the operation doesn't need to happen when the data isn't
-    // present (e.g. FLUSH_LINE).
-    else
-      return info.Hit;
-
-    // If we need to flush or fetch a line, put aside the current operation.
-    if (!validate || info.FlushRequired) {
-      LOKI_LOG << this->name() << " cache miss at address " << LOKI_HEX(mActiveData.Address) << endl;
-
-      // Put the current request aside until its data arrives.
-      assert(mCallbackData.State == STATE_IDLE);
-      mCallbackData = mActiveData;
-      mActiveData.State = STATE_IDLE;
-      mActiveData.Missed = false;
-    }
-
-    // Fetch the line, if necessary.
-    if (!validate) {
-      LOKI_LOG << this->name() << " buffering request for cache line from " << LOKI_HEX(tag) << endl;
-
-      NetworkRequest readRequest(tag, id, FETCH_LINE, true);
-      assert(!mOutputReqQueue.full());
-      mOutputReqQueue.write(readRequest);
-    }
-
-    // Flush the victim line, if necessary.
-    if (info.FlushRequired) {
-      mActiveData.State = STATE_CACHE_FLUSH;
-      mActiveData.Address = info.FlushAddress;
-    }
-
-    mActiveData.Complete = !validate || info.FlushRequired;
-  }
-
-  return info.Hit;
 }
 
-void MemoryBank::processLocalMemoryAccess() {
-	if (!canSend()) {
-	  LOKI_LOG << this->name() << " delayed request due to full output queue" << endl;
-		return;
-	}
+void MemoryBank::processFlush() {
+  assert(mState == STATE_FLUSH);
+  assert(mActiveRequest != NULL);
+  // It is assumed that the header flit has already been sent. All that is left
+  // is to send the cache line.
 
-	// If we have got this far, we are sure that the required cache line has been
-	// allocated, and that we are able to send any result.
+  if (!iClock.negedge())
+    next_trigger(iClock.negedge_event());
+  if (canSendRequest()) {
+    SRAMAddress position = getTag(mActiveRequest->getSRAMAddress()) + mCacheLineCursor;
+    uint32_t data = readWord(position);
 
-  switch (mActiveData.Request.getMemoryMetadata().opcode) {
-    case LOAD_W:                 processLoadWord();             break;
-    case LOAD_HW:                processLoadHalfWord();         break;
-    case LOAD_B:                 processLoadByte();             break;
-    case STORE_W:                processStoreWord();            break;
-    case STORE_HW:               processStoreHalfWord();        break;
-    case STORE_B:                processStoreByte();            break;
-    case IPK_READ:               processIPKRead();              break;
+    mCacheLineCursor += BYTES_PER_WORD;
 
-    case FETCH_LINE:             processFetchLine();            break;
-    case STORE_LINE:             processStoreLine();            break;
-    case FLUSH_LINE:             processFlushLine();            break;
-    case MEMSET_LINE:            processMemsetLine();           break;
-    case INVALIDATE_LINE:        processInvalidateLine();       break;
-    case VALIDATE_LINE:          processValidateLine();         break;
-    case PREFETCH_LINE:          processPrefetchLine();         break;
-    case PUSH_LINE:              processPushLine();             break;
+    // Flush has finished if the cursor has covered a whole cache line.
+    bool endOfPacket = mCacheLineCursor >= CACHE_LINE_BYTES;
+    if (endOfPacket)
+      mState = mPreviousState;
 
-    case FLUSH_ALL_LINES:        processFlushAllLines();        break;
-    case INVALIDATE_ALL_LINES:   processInvalidateAllLines();   break;
+    NetworkRequest flit(data, id, PAYLOAD, endOfPacket);
+    sendRequest(flit);
+  }
+  else
+    next_trigger(canSendRequestEvent());
+}
 
-    case UPDATE_DIRECTORY_ENTRY: processUpdateDirectory();      break;
-    case UPDATE_DIRECTORY_MASK:  processUpdateDirectory();      break;
+void MemoryBank::processRefill() {
+  assert(mState == STATE_REFILL);
+  assert(mMissingRequest != NULL);
 
-    case LOAD_LINKED:            processLoadLinked();           break;
-    case STORE_CONDITIONAL:      processStoreConditional();     break;
-    case LOAD_AND_ADD:           processLoadAndAdd();           break;
-    case LOAD_AND_OR:            processLoadAndOr();            break;
-    case LOAD_AND_AND:           processLoadAndAnd();           break;
-    case LOAD_AND_XOR:           processLoadAndXor();           break;
-    case EXCHANGE:               processExchange();             break;
+  if (!iClock.negedge())
+    next_trigger(iClock.negedge_event());
+  if (responseAvailable()) {
+    SRAMAddress position = getTag(mMissingRequest->getSRAMAddress()) + mCacheLineCursor;
+    uint32_t data = getResponse();
+    writeWord(position, data);
 
+    mCacheLineCursor += BYTES_PER_WORD;
+
+    // Refill has finished if the cursor has covered a whole cache line.
+    if (mCacheLineCursor >= CACHE_LINE_BYTES) {
+      mState = STATE_REQUEST;
+      mActiveRequest = mMissingRequest;
+      mMissingRequest = NULL;
+      mServingMiss = false;
+      mReadFromMissBuffer = true;
+      mRefillCompleteEvent.notify(sc_core::SC_ZERO_TIME);
+
+      // Storing the requested words will have dirtied the cache line, but it
+      // is actually clean.
+      mDirty[getLine(position)] = false;
+
+      LOKI_LOG << this->name() << " resuming " << memoryOpName(mActiveRequest->getMetadata().opcode) << " request" << endl;
+    }
+    else
+      next_trigger(responseAvailableEvent());
+  }
+  else
+    next_trigger(responseAvailableEvent());
+}
+
+bool MemoryBank::requestAvailable() const {
+  return (!mInputQueue.empty() && !isPayload(mInputQueue.peek()))
+      || (requestSig.valid() && !isPayload(requestSig.read()));
+}
+
+const sc_event_or_list& MemoryBank::requestAvailableEvent() const {
+  return mInputQueue.writeEvent() | requestSig.default_event();
+}
+
+MemoryOperation* MemoryBank::peekRequest() {
+  assert(requestAvailable());
+
+  NetworkRequest request;
+  MemoryLevel level;
+  ChannelID destination;
+
+  if (!mInputQueue.empty() && !isPayload(mInputQueue.peek())) {
+    request = mInputQueue.peek();
+    level = MEMORY_L1;
+    destination = ChannelID(id.tile.x,
+                            id.tile.y,
+                            request.channelID().channel,
+                            request.getMemoryMetadata().returnChannel);
+  }
+  else {
+    assert(requestSig.valid() && !isPayload(requestSig.read()));
+    request = requestSig.read();
+    level = MEMORY_L2;
+    destination = ChannelID(request.getMemoryMetadata().returnTileX,
+                            request.getMemoryMetadata().returnTileY,
+                            request.getMemoryMetadata().returnChannel,
+                            0);
+  }
+
+  return decodeMemoryRequest(request, *this, level, destination);
+}
+
+void MemoryBank::consumeRequest(MemoryLevel level) {
+  assert(requestAvailable());
+
+  switch (level) {
+    case MEMORY_L1: {
+      NetworkRequest request = mInputQueue.read();
+      LOKI_LOG << this->name() << " dequeued " << request << endl;
+      break;
+    }
+    case MEMORY_L2:
+      requestSig.ack();
+      break;
     default:
-      LOKI_ERROR << this->name() << " processing invalid memory request type (" << memoryOpName(mActiveData.Request.getMemoryMetadata().opcode) << ")" << endl;
-      assert(false);
+      assert(false && "Memory bank can't handle off-chip requests");
       break;
   }
-
-  // Prepare for the next request if this one has finished.
-  if (mActiveData.Complete) {
-    if (callbackRequestReady())
-      switchToCallbackRequest();
-    else
-      mActiveData.State = STATE_IDLE;
-
-    next_trigger(iClock.negedge_event());
-  }
-
 }
 
-// A handler for each possible operation.
-
-void MemoryBank::processLoadWord() {
-  uint32_t data = currentMemoryHandler().readWord(mActiveData.Position);
-  processLoadResult(data, true);
+bool MemoryBank::canSendRequest() const {
+  return !mOutputReqQueue.full();
 }
 
-void MemoryBank::processLoadHalfWord() {
-  uint32_t data = currentMemoryHandler().readHalfWord(mActiveData.Position);
-  processLoadResult(data, true);
+const sc_event& MemoryBank::canSendRequestEvent() const {
+  return mOutputReqQueue.readEvent();
 }
 
-void MemoryBank::processLoadByte() {
-  uint32_t data = currentMemoryHandler().readByte(mActiveData.Position);
-  processLoadResult(data, true);
-}
-
-void MemoryBank::processStoreWord() {
-  if (!inputAvailable())
-    return;
-
-  uint32_t data = getDataToStore();
-  currentMemoryHandler().writeWord(mActiveData.Position, data);
-  processStoreResult(data);
-}
-
-void MemoryBank::processStoreHalfWord() {
-  if (!inputAvailable())
-    return;
-
-  uint32_t data = getDataToStore();
-  currentMemoryHandler().writeHalfWord(mActiveData.Position, data);
-  processStoreResult(data);
-}
-
-void MemoryBank::processStoreByte() {
-  if (!inputAvailable())
-    return;
-
-  uint32_t data = getDataToStore();
-  currentMemoryHandler().writeByte(mActiveData.Position, data);
-  processStoreResult(data);
-}
-
-void MemoryBank::processIPKRead() {
-  uint32_t data = currentMemoryHandler().readWord(mActiveData.Position);
-
-  // The first word will have been dealt with when we started the operation.
-  if (mActiveData.FlitsSent > 0)
-    Instrumentation::MemoryBank::readIPKWord(cBankNumber, mActiveData.Address, false, mActiveData.ReturnChannel);
-
-  Instruction inst(data);
-  bool endOfIPK = inst.endOfPacket();
-  bool endOfNetworkPacket = endOfIPK || endOfCacheLine(mActiveData.Address);
-
-  processLoadResult(data, endOfNetworkPacket);
-
-  if (endOfNetworkPacket) {
-    if (endOfIPK && Arguments::memoryTrace())
-      MemoryTrace::stopIPK(cBankNumber, mActiveData.Address);
-    else if (endOfCacheLine(mActiveData.Address) && Arguments::memoryTrace())
-      MemoryTrace::splitLineIPK(cBankNumber, mActiveData.Address);
-  } else {
-    mActiveData.Address += 4;
-    mActiveData.Position += 4;
-  }
-}
-
-void MemoryBank::processFetchLine() {
-  NetworkResponse flit;
-
-  if (mActiveData.FlitsSent == 0) {
-    // Make sure the line is in the cache line buffer.
-    if (!mCacheLineBuffer.inBuffer(mActiveData.Address))
-      prepareCacheLineBuffer(mActiveData.Address);
-
-    // If the line is going to a memory, send a header flit telling it the
-    // address to which the following data should be stored.
-    if (mActiveData.Source != REQUEST_CORES)
-      flit = NetworkResponse(mActiveData.Address, mActiveData.ReturnChannel, STORE_LINE, false);
-    else
-      return; // No flit to send this cycle.
-  }
-  else {
-    uint32_t data = readFromCacheLineBuffer();
-    bool endOfPacket = mCacheLineBuffer.finishedOperation();
-    flit = assembleResponse(data, endOfPacket);
-  }
-
-  assert(canSend());
-  send(flit);
-}
-
-void MemoryBank::processStoreLine() {
-  if (!mCacheLineBuffer.startedOperation())
-    mCacheLineBuffer.setTag(mActiveData.Address);
-
-  if (mCacheLineBuffer.finishedOperation())
-    replaceCacheLine();
-  else if (inputAvailable()) {
-    uint32_t data = consumeInput().payload().toUInt();
-    writeToCacheLineBuffer(data);
-  }
-}
-
-void MemoryBank::processFlushLine() {
-  NetworkRequest flit;
-
-  // First iteration - send header flit.
-  if (mActiveData.FlitsSent == 0) {
-    LOKI_LOG << this->name() << " buffering request for cache line to " << LOKI_HEX(mActiveData.Address) << endl;
-
-    // Make sure the line is in the cache line buffer.
-    if (!mCacheLineBuffer.inBuffer(mActiveData.Address))
-      prepareCacheLineBuffer(mActiveData.Address);
-
-    flit = NetworkRequest(mActiveData.Address, id, STORE_LINE, false);
-  }
-  // Every other iteration - send data.
-  else {
-    uint32_t data = readFromCacheLineBuffer();
-    bool endOfPacket = mCacheLineBuffer.finishedOperation();
-
-    LOKI_LOG << this->name() << " buffering request data: " << data << endl;
-
-    flit = NetworkRequest(data, id, PAYLOAD, endOfPacket);
-  }
-
-  assert(!mOutputReqQueue.full());
-  mOutputReqQueue.write(flit);
-  mActiveData.FlitsSent++;
-}
-
-void MemoryBank::processMemsetLine() {
-  if (!inputAvailable())
-    return;
-
-  if (!mCacheLineBuffer.startedOperation())
-    mCacheLineBuffer.setTag(mActiveData.Address);
-
-  uint32_t data = consumeInput().payload().toUInt();
-
-  // Set the whole cache line in one go.
-  for (int i=0; i<CACHE_LINE_WORDS; i++)
-    writeToCacheLineBuffer(data);
-
-  replaceCacheLine();
-}
-
-void MemoryBank::processInvalidateLine() {
-  mGeneralPurposeCacheHandler.invalidate(mActiveData.Position);
-  mActiveData.Complete = true;
-}
-
-void MemoryBank::processValidateLine() {
-  // The address (and arbitrary data) is in the cache line buffer.
-  replaceCacheLine();
-}
-
-void MemoryBank::processPrefetchLine() {
-  // Getting to this point means the line is in the cache - job done.
-  mActiveData.Complete = true;
-}
-
-void MemoryBank::processPushLine() {assert(false);}
-
-void MemoryBank::processFlushAllLines() {
-  if (!checkTags()) {
-    mActiveData.Complete = true;
-    return;
-  }
-
-  // Assume the current cache line number is held in mActiveData.Position.
-
-  // First flit of packet is the header.
-  if (mActiveData.FlitsSent == 0) {
-    // Start a new line flush if the line is both valid and dirty.
-    if (mGeneralPurposeCacheHandler.mLineValid[mActiveData.Position] &&
-        mGeneralPurposeCacheHandler.mLineDirty[mActiveData.Position]) {
-      MemoryAddr address = mGeneralPurposeCacheHandler.mAddresses[mActiveData.Position];
-      mActiveData.Address = address;
-
-      if (ENERGY_TRACE)
-        Instrumentation::MemoryBank::initiateBurstRead(cBankNumber);
-      LOKI_LOG << this->name() << " buffering request for cache line to " << LOKI_HEX(address) << endl;
-
-      NetworkRequest flit = NetworkRequest(address, id, STORE_LINE, false);
-      assert(!mOutputReqQueue.full());
-      mOutputReqQueue.write(flit);
-      mActiveData.FlitsSent++;
-
-      currentMemoryHandler().fillCacheLineBuffer(address, mCacheLineBuffer);
-    }
-    // Otherwise, move on to the next line.
-    else {
-      mActiveData.Position++;
-    }
-  }
-  // Every other flit sends data from the cache line.
-  else {
-    uint32_t data = readFromCacheLineBuffer();
-    bool endOfPacket = mCacheLineBuffer.finishedOperation();
-
-    LOKI_LOG << this->name() << " buffering request data: " << data << endl;
-
-    NetworkRequest flit = NetworkRequest(data, id, PAYLOAD, endOfPacket);
-    assert(!mOutputReqQueue.full());
-    mOutputReqQueue.write(flit);
-    mActiveData.FlitsSent++;
-
-    // Reset for the next iteration.
-    if (endOfPacket) {
-      mActiveData.FlitsSent = 0;
-      mActiveData.Position++;
-    }
-  }
-
-  mActiveData.Complete = (mActiveData.Position >= CACHE_LINES_PER_BANK);
-}
-
-void MemoryBank::processInvalidateAllLines() {
-  mGeneralPurposeCacheHandler.invalidate(mActiveData.Position);
-  mActiveData.Position += CACHE_LINE_BYTES;
-  mActiveData.Complete = (mActiveData.Position >= MEMORY_BANK_SIZE);
-}
-
-void MemoryBank::processUpdateDirectory() {
-  NetworkRequest flit;
-
-  if (mActiveData.FlitsSent == 0)
-    flit = mActiveData.Request;
-  else if (!inputAvailable())
-    return;
-  else
-    flit = consumeInput();
-
-  // Simply forward the request on to the directory.
-  LOKI_LOG << this->name() << " buffering directory update request: " << flit.payload() << endl;
-
-  mOutputReqQueue.write(flit);
-  mActiveData.FlitsSent++;
-
-  // The request is finished when the final flit has been forwarded.
-  mActiveData.Complete = flit.getMetadata().endOfPacket;
-}
-
-void MemoryBank::processLoadLinked() {
-  uint32_t data = currentMemoryHandler().readWord(mActiveData.Position);
-  mReservations.makeReservation(mActiveData.ReturnChannel.component, mActiveData.Address);
-  processLoadResult(data, true);
-}
-
-void MemoryBank::processStoreConditional() {
-  if (!inputAvailable())
-    return;
-
-  uint32_t data = getDataToStore();
-
-  bool reservationValid = mReservations.checkReservation(mActiveData.ReturnChannel.component, mActiveData.Address);
-  if (reservationValid)
-    currentMemoryHandler().writeWord(mActiveData.Position, data);
-
-  NetworkResponse output = assembleResponse(reservationValid, true);
-  mOutputQueue.write(output);
-
-  processStoreResult(data);
-}
-
-void MemoryBank::processLoadAndAdd() {
-  // First half: read data.
-  if (!mRMWDataValid)
-    processRMWPhase1();
-  // Second half: modify and write data.
-  else {
-    if (!inputAvailable())
-      return;
-
-    uint32_t data = getDataToStore();
-    data += mRMWData;
-    processRMWPhase2(data);
-  }
-}
-
-void MemoryBank::processLoadAndOr() {
-  // First half: read data.
-  if (!mRMWDataValid)
-    processRMWPhase1();
-  // Second half: modify and write data.
-  else {
-    if (!inputAvailable())
-      return;
-
-    uint32_t data = getDataToStore();
-    data |= mRMWData;
-    processRMWPhase2(data);
-  }
-}
-
-void MemoryBank::processLoadAndAnd() {
-  // First half: read data.
-  if (!mRMWDataValid)
-    processRMWPhase1();
-  // Second half: modify and write data.
-  else {
-    if (!inputAvailable())
-      return;
-
-    uint32_t data = getDataToStore();
-    data &= mRMWData;
-    processRMWPhase2(data);
-  }
-}
-
-void MemoryBank::processLoadAndXor() {
-  // First half: read data.
-  if (!mRMWDataValid)
-    processRMWPhase1();
-  // Second half: modify and write data.
-  else {
-    if (!inputAvailable())
-      return;
-
-    uint32_t data = getDataToStore();
-    data ^= mRMWData;
-    processRMWPhase2(data);
-  }
-}
-
-void MemoryBank::processExchange() {
-  // First half: read data.
-  if (!mRMWDataValid)
-    processRMWPhase1();
-  // Second half: write data.
-  else {
-    if (!inputAvailable())
-      return;
-
-    uint32_t data = getDataToStore();
-    processRMWPhase2(data);
-  }
-}
-
-void MemoryBank::processLoadResult(uint32_t data, bool endOfPacket) {
-  mActiveData.Complete = endOfPacket;
-
-  printOperation(mActiveData.Request.getMemoryMetadata().opcode,
-                 mActiveData.Address, data);
-
-  // Enqueue output request
-  NetworkResponse output = assembleResponse(data, endOfPacket);
-  assert(canSend());
-  send(output);
-
-  // Keep data registered in case it is needed by a read-modify-write op.
-  mRMWData = data;
-}
-
-void MemoryBank::processStoreResult(uint32_t data) {
-  mActiveData.Complete = true;
-
-  // Invalidate any atomic transactions relying on the overwritten data.
-  mReservations.clearReservation(mActiveData.Address);
-
-  // Dequeue the payload now that we are finished with it.
-  consumeInput();
-
-  printOperation(mActiveData.Request.getMemoryMetadata().opcode,
-                 mActiveData.Address, data);
-}
-
-uint32_t MemoryBank::getDataToStore() {
-  // Only peek, in case we have a cache miss and need to try again.
-  assert(inputAvailable());
-  NetworkRequest flit = peekInput();
-
-  // The received word should be the continuation of the previous operation.
-  if (flit.getMemoryMetadata().opcode != PAYLOAD && flit.getMemoryMetadata().opcode != PAYLOAD_EOP) {
-    LOKI_ERROR << "!!!! " << mActiveData.Request.getMemoryMetadata().opcode << " | " << mActiveData.Address << " | " << flit.getMemoryMetadata().opcode << " | " << flit.payload() << endl;
-    assert(false);
-  }
-
-  return flit.payload().toUInt();
-}
-
-void MemoryBank::prepareCacheLineBuffer(MemoryAddr address) {
-  currentMemoryHandler().fillCacheLineBuffer(getTag(address), mCacheLineBuffer);
-}
-
-uint32_t MemoryBank::readFromCacheLineBuffer() {
-  MemoryAddr address = mCacheLineBuffer.getCurrentAddress();
-  assert(sameCacheLine(address, mActiveData.Address));
-
-  uint32_t data = mCacheLineBuffer.read();
-
-  if (ENERGY_TRACE)
-    Instrumentation::MemoryBank::readBurstWord(cBankNumber, address, false, mActiveData.ReturnChannel);
-
-  printOperation(mActiveData.Request.getMemoryMetadata().opcode, address, data);
-
-  mActiveData.Complete = mCacheLineBuffer.finishedOperation();
-
-  return data;
-}
-
-void MemoryBank::writeToCacheLineBuffer(uint32_t data) {
-  MemoryAddr address = mCacheLineBuffer.getCurrentAddress();
-  assert(sameCacheLine(address, mActiveData.Address));
-
-  if (ENERGY_TRACE)
-    Instrumentation::MemoryBank::writeBurstWord(cBankNumber, address, false, mActiveData.ReturnChannel);
-
-  mCacheLineBuffer.write(data);
-
-  // Don't check whether this is the end of the operation - we need to call
-  // replaceCacheLine first to copy this data to the cache.
-
-  printOperation(mActiveData.Request.getMemoryMetadata().opcode, address, data);
-}
-
-void MemoryBank::replaceCacheLine() {
-  bool dirtyLine = (mActiveData.Source != REQUEST_REFILL);
-  currentMemoryHandler().replaceCacheLine(mCacheLineBuffer, mActiveData.Position, dirtyLine);
-
-  // Invalidate any atomic transactions relying on the overwritten data.
-  mReservations.clearReservationRange(mCacheLineBuffer.getTag(), mCacheLineBuffer.getTag()+CACHE_LINE_BYTES);
-
-  mActiveData.Complete = true;
-}
-
-bool MemoryBank::callbackRequestReady() {
-  // Switch to the callback request if the data it was waiting for has now
-  // arrived, or if it was waiting for the line buffer to become available.
-  bool dataArrived = mCacheLineBuffer.inBuffer(mCallbackData.Address);
-  MemoryOperation opcode = mCallbackData.Request.getMemoryMetadata().opcode;
-  bool waitingForBuffer = (opcode == STORE_LINE) || (opcode == MEMSET_LINE)
-                       || (opcode == VALIDATE_LINE);
-  return (mCallbackData.State != STATE_IDLE) && (dataArrived || waitingForBuffer);
-}
-
-void MemoryBank::switchToCallbackRequest() {
-  mActiveData = mCallbackData;
-  mCallbackData.State = STATE_IDLE;
-  mCacheLineBuffer.setTag(getTag(mActiveData.Address));
-
-  LOKI_LOG << this->name() << " resuming " << memoryOpName(mActiveData.Request.getMemoryMetadata().opcode) << " request" << endl;
-}
-
-bool MemoryBank::inputAvailable() const {
-  if (MEMORY_HIT_UNDER_MISS && mActiveData.Missed && !mMissBuffer.empty()) {// temp hack
-    return !mMissBuffer.empty();
-  }
-  else {
-    switch (mActiveData.Source) {
-      case REQUEST_CORES:
-        return !mInputQueue.empty() && !onlyAcceptingRefills();
-      case REQUEST_MEMORIES:
-        return requestSig.valid() && !onlyAcceptingRefills();
-      case REQUEST_REFILL:
-        return responseAvailable();
-      case REQUEST_NONE:
-        bool newCoreRequest = !mInputQueue.empty();
-        bool newMemoryRequest = requestSig.valid();
-        bool newRefillRequest = responseAvailable();
-
-        return (!onlyAcceptingRefills() && (newCoreRequest || newMemoryRequest)) ||
-            newRefillRequest;
-    }
-  }
-
-  assert(false);
-  return false;
+void MemoryBank::sendRequest(NetworkRequest request) {
+  assert(canSendRequest());
+
+  LOKI_LOG << this->name() << " buffering request " <<
+      memoryOpName(request.getMemoryMetadata().opcode) << " " << request << endl;
+  mOutputReqQueue.write(request);
 }
 
 bool MemoryBank::responseAvailable() const {
   return iResponse.valid() && (iResponseTarget.read() == id.position-CORES_PER_TILE);
 }
 
-const NetworkRequest MemoryBank::peekInput() {
-  if (MEMORY_HIT_UNDER_MISS && mActiveData.Missed && !mMissBuffer.empty()) // temp hack
-    return mMissBuffer.peek();
-  else {
-    switch (mActiveData.Source) {
-      case REQUEST_CORES:
-        assert(!mInputQueue.empty());
-        return mInputQueue.peek();
-      case REQUEST_MEMORIES:
-        assert(requestSig.valid());
-        return requestSig.read();
-      case REQUEST_REFILL:
-        assert(iResponse.valid());
-        return iResponse.read();
-      case REQUEST_NONE:
-        // Prioritise refills since they may be holding up other requests.
-        if (responseAvailable()) {
-          mActiveData.Source = REQUEST_REFILL;
-          return iResponse.read();
-        }
-        else if (!mInputQueue.empty()) {
-          mActiveData.Source = REQUEST_CORES;
-          return mInputQueue.peek();
-        }
-        else {
-          mActiveData.Source = REQUEST_MEMORIES;
-          assert(requestSig.valid());
-          return requestSig.read();
-        }
-    }
-  }
-
-  assert(false);
-  return NetworkRequest();
+const sc_event& MemoryBank::responseAvailableEvent() const {
+  return iResponse.default_event();
 }
 
-const NetworkRequest MemoryBank::consumeInput() {
-  NetworkRequest request;
+uint32_t MemoryBank::getResponse() {
+  assert(responseAvailable());
+  uint32_t data = iResponse.read().payload().toUInt();
+  iResponse.ack();
 
-  if (MEMORY_HIT_UNDER_MISS && mActiveData.Missed && !mMissBuffer.empty()) // temp hack
-    request = mMissBuffer.read();
-  else {
-    switch (mActiveData.Source) {
-      case REQUEST_CORES:
-        assert(!mInputQueue.empty());
-        request = mInputQueue.read();
-        LOKI_LOG << this->name() << " dequeued " << request << endl;
-        break;
-      case REQUEST_MEMORIES:
-        assert(requestSig.valid());
-        request = requestSig.read();
-        requestSig.ack();
-        break;
-      case REQUEST_REFILL:
-        assert(iResponse.valid());
-        request = iResponse.read();
-        iResponse.ack();
-        break;
-      case REQUEST_NONE:
-        // Prioritise refills since they may be holding up other requests.
-        if (responseAvailable()) {
-          mActiveData.Source = REQUEST_REFILL;
-          request = iResponse.read();
-          iResponse.ack();
-        }
-        else if (!mInputQueue.empty()) {
-          mActiveData.Source = REQUEST_CORES;
-          request = mInputQueue.read();
-          LOKI_LOG << this->name() << " dequeued " << request << endl;
-        }
-        else {
-          mActiveData.Source = REQUEST_MEMORIES;
-          assert(requestSig.valid());
-          request = requestSig.read();
-          requestSig.ack();
-        }
-        break;
-    }
-  }
+  LOKI_LOG << this->name() << " received response " << LOKI_HEX(data) << endl;
 
-  return request;
+  return data;
 }
 
-bool MemoryBank::canSend() const {
-  switch (mActiveData.Source) {
-    case REQUEST_CORES:
-      return !mOutputQueue.full() && !mOutputReqQueue.full();
-    case REQUEST_MEMORIES:
-      return !oResponse.valid() && !mOutputReqQueue.full();
-    case REQUEST_REFILL:
-      return true;  // Refills never need to send any data.
+bool MemoryBank::canSendResponse(MemoryLevel level) const {
+  switch (level) {
+    case MEMORY_L1:
+      return !mOutputQueue.full();
+    case MEMORY_L2:
+      return !oResponse.valid();
     default:
-      // If we don't know where the request came from, we can't know where to
-      // send the response.
-      LOKI_ERROR << "mActiveData.Source " << mActiveData.Source << " is trying to send data" << endl;
-      assert(false);
+      assert(false && "Memory bank can't handle off-chip requests");
       return false;
   }
 }
 
-void MemoryBank::send(const NetworkData& data) {
-  switch (mActiveData.Source) {
-    case REQUEST_CORES:
-      mOutputQueue.write(data);
+const sc_event& MemoryBank::canSendResponseEvent(MemoryLevel level) const {
+  switch (level) {
+    case MEMORY_L1:
+      return mOutputQueue.readEvent();
+    case MEMORY_L2:
+      return oResponse.ack_event();
+    default:
+      assert(false && "Memory bank can't handle off-chip requests");
+      return mOutputQueue.readEvent();
+  }
+}
+
+void MemoryBank::sendResponse(NetworkResponse response, MemoryLevel level) {
+  assert(canSendResponse(level));
+
+  switch (level) {
+    case MEMORY_L1:
+      mOutputQueue.write(response);
       break;
-    case REQUEST_MEMORIES:
-      oResponse.write(data);
+    case MEMORY_L2:
+      oResponse.write(response);
       break;
     default:
-      // If we don't know where the request came from, we can't know where to
-      // send the response.
-      assert(false);
+      assert(false && "Memory bank can't handle off-chip requests");
       break;
   }
-  mActiveData.FlitsSent++;
 }
 
-void MemoryBank::processRMWPhase1() {
-  // Load data as usual...
-  processLoadWord();
-
-  // ... except the operation hasn't finished yet.
-  mActiveData.Complete = false;
-
-  // If data is in the cache, signal that we are ready for phase 2.
-  if (mActiveData.State == STATE_LOCAL_MEMORY_ACCESS)
-    mRMWDataValid = true;
+bool MemoryBank::isPayload(NetworkRequest request) const {
+  MemoryOpcode opcode = request.getMemoryMetadata().opcode;
+  return (opcode == PAYLOAD) || (opcode == PAYLOAD_EOP);
 }
 
-void MemoryBank::processRMWPhase2(uint32_t data) {
-  currentMemoryHandler().writeWord(mActiveData.Position, data);
+void MemoryBank::copyToMissBuffer() {
+  if (mCopyToMissBuffer) {
+    // Check which input the missing request was reading from, and while
+    // payloads arrive there, copy them into the miss buffer.
+    NetworkRequest payload;
+    bool dataAvailable;
 
-  // Finished phase 2.
-  mRMWDataValid = false;
+    switch (mMissingRequest->getMemoryLevel()) {
+      case MEMORY_L1:
+        dataAvailable = !mInputQueue.empty();
+        if (dataAvailable)
+          payload = mInputQueue.peek();
+        break;
+      case MEMORY_L2:
+        dataAvailable = requestSig.valid();
+        if (dataAvailable)
+          payload = requestSig.read();
+        break;
+      default:
+        assert(false && "Memory bank can't handle off-chip requests");
+        dataAvailable = false;
+        break;
+    }
 
-  processStoreResult(data);
-  mActiveData.Complete = true;
+    if (!dataAvailable) {
+      next_trigger(requestAvailableEvent());
+      return;
+    }
+
+    assert(isPayload(payload));
+    assert(!mMissBuffer.full());
+    mMissBuffer.write(payload);
+
+    switch (mMissingRequest->getMemoryLevel()) {
+      case MEMORY_L1:
+        mInputQueue.read();
+        break;
+      case MEMORY_L2:
+        requestSig.ack();
+        break;
+      default:
+        assert(false && "Memory bank can't handle off-chip requests");
+        break;
+    }
+
+    if (payload.getMetadata().endOfPacket)
+      mCopyToMissBuffer = false;
+    else
+      next_trigger(iClock.negedge_event());
+  }
 }
 
-void MemoryBank::processDelayedCacheFlush() {
-  // Start a cache flush next cycle.
-  mActiveData.State = STATE_LOCAL_MEMORY_ACCESS;
-  mActiveData.Request = NetworkRequest(mActiveData.Address, id, FLUSH_LINE, true);
-  mActiveData.Complete = false;
+void MemoryBank::preWriteCheck(MemoryAddr address) const {
+  if (mBackgroundMemory->readOnly(address)) {
+    if (WARN_READ_ONLY)
+      LOKI_WARN << this->name() << " attempting to modify read-only address " << LOKI_HEX(address) << endl;
+    else
+      throw ReadOnlyException(address);
+  }
 }
+
 
 void MemoryBank::processValidInput() {
   LOKI_LOG << this->name() << " received " << iData.read() << endl;
@@ -1041,13 +696,6 @@ void MemoryBank::processValidInput() {
 
   mInputQueue.write(iData.read());
   iData.ack();
-}
-
-NetworkResponse MemoryBank::assembleResponse(uint32_t data, bool endOfPacket) {
-  if (mActiveData.ReturnChannel.isCore())
-    return NetworkResponse(data, mActiveData.ReturnChannel, endOfPacket);
-  else
-    return NetworkResponse(data, mActiveData.ReturnChannel, PAYLOAD, endOfPacket);
 }
 
 void MemoryBank::handleDataOutput() {
@@ -1095,7 +743,8 @@ void MemoryBank::handleRequestOutput() {
     next_trigger(mOutputReqQueue.writeEvent());
   else {
     NetworkRequest request = mOutputReqQueue.read();
-    LOKI_LOG << this->name() << " sending request " << request.payload() << endl;
+    LOKI_LOG << this->name() << " sending request " <<
+        memoryOpName(request.getMemoryMetadata().opcode) << " " << LOKI_HEX(request.payload()) << endl;
 
     assert(!oRequest.valid());
     oRequest.write(request);
@@ -1104,37 +753,20 @@ void MemoryBank::handleRequestOutput() {
 }
 
 void MemoryBank::mainLoop() {
-  // Memory banks are clocked on the negative edge.
-  if (!iClock.negedge()) {
-    next_trigger(iClock.negedge_event());
-    return;
-  }
-
-  // Only allow an operation to begin if we are sure that there is space in
-  // the output request queue to hold any potential messages.
-  // Decode the request and get into the correct state before performing the
-  // operation.
-  if (mActiveData.State == STATE_IDLE &&
-      (mOutputReqQueue.empty() || responseAvailable()))
-    startNewRequest();
-
-  // Act on current state.
-  switch (mActiveData.State) {
-    case STATE_IDLE:                                                   break;
-    case STATE_LOCAL_MEMORY_ACCESS:  processLocalMemoryAccess();       break;
-    case STATE_CACHE_FLUSH:          processDelayedCacheFlush();       break;
+  switch (mState) {
+    case STATE_IDLE:      processIdle();      break;
+    case STATE_REQUEST:   processRequest();   break;
+    case STATE_ALLOCATE:  processAllocate();  break;
+    case STATE_FLUSH:     processFlush();     break;
+    case STATE_REFILL:    processRefill();    break;
   }
 
   updateIdle();
-
-  if (!currentlyIdle)
-    next_trigger(iClock.negedge_event());
-  // Else wait for any input to arrive (default sensitivity).
 }
 
 void MemoryBank::updateIdle() {
   bool wasIdle = currentlyIdle;
-  currentlyIdle = mActiveData.State == STATE_IDLE &&
+  currentlyIdle = mState == STATE_IDLE &&
                   mInputQueue.empty() && mOutputQueue.empty() &&
                   mOutputReqQueue.empty() &&
                   !mOutputWordPending;
@@ -1155,42 +787,38 @@ void MemoryBank::updateReady() {
 
 MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumber) :
 	Component(name, ID),
-	cMemoryBanks(MEMS_PER_TILE),
-	cBankNumber(bankNumber),
-	cRandomReplacement(MEMORY_CACHE_RANDOM_REPLACEMENT != 0),
   mInputQueue(string(this->name()) + string(".mInputQueue"), IN_CHANNEL_BUFFER_SIZE),
   mOutputQueue("mOutputQueue", OUT_CHANNEL_BUFFER_SIZE, INTERNAL_LATENCY),
   mOutputReqQueue("mOutputReqQueue", 10 /*read addr + write addr + cache line*/, 0),
   mData(MEMORY_BANK_SIZE),
+  mTags(CACHE_LINES_PER_BANK),
+  mValid(CACHE_LINES_PER_BANK),
+  mDirty(CACHE_LINES_PER_BANK),
   mReservations(1),
-	mScratchpadModeHandler(bankNumber, mData),
-	mGeneralPurposeCacheHandler(bankNumber, mData),
 	mMissBuffer(CACHE_LINE_WORDS, "mMissBuffer"),
+	mCacheMissEvent(sc_core::sc_gen_unique_name("mCacheMissEvent")),
+	mRefillCompleteEvent(sc_core::sc_gen_unique_name("mRefillCompleteEvent")),
 	mL2RequestFilter("request_filter", ID, this)
 {
-	//-- Configuration parameters -----------------------------------------------------------------
-
-	assert(cMemoryBanks > 0);
-	assert(cBankNumber < cMemoryBanks);
-
 	//-- Data queue state -------------------------------------------------------------------------
 
 	mOutputWordPending = false;
 	mActiveOutputWord = NetworkData();
 
 	//-- Mode independent state -------------------------------------------------------------------
+	mActiveRequest = NULL;
+	mMissingRequest = NULL;
 
-	mActiveData.State = STATE_IDLE;
-	mCallbackData.State = STATE_IDLE;
+	mState = STATE_IDLE;
+	mPreviousState = STATE_IDLE;
 
-	mActiveData.Request = NetworkRequest();
-	mActiveData.Complete = true;
-	mActiveData.Address = -1;
-	mActiveData.Source = REQUEST_NONE;
-	mActiveData.ReturnChannel = ChannelID();
+  mValid.assign(CACHE_LINES_PER_BANK, false);
 
-	mRMWData = 0;
-	mRMWDataValid = false;
+	mCacheLineCursor = 0;
+
+	mServingMiss = false;
+	mCopyToMissBuffer = false;
+	mReadFromMissBuffer = false;
 
 	//-- Debug utilities --------------------------------------------------------------------------
 
@@ -1214,7 +842,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	Instrumentation::idle(id, true);
 
 	SC_METHOD(mainLoop);
-	sensitive << requestSig << iResponse << mInputQueue.writeEvent();
+	sensitive << iClock.neg();
 	dont_initialize();
 
 	SC_METHOD(updateReady);
@@ -1228,6 +856,10 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	SC_METHOD(handleDataOutput);
 
   SC_METHOD(handleRequestOutput);
+
+  SC_METHOD(copyToMissBuffer);
+  sensitive << mCacheMissEvent;
+  dont_initialize();
 
 	end_module(); // Needed because we're using a different Component constructor
 }
@@ -1247,13 +879,6 @@ void MemoryBank::storeData(vector<Word>& data, MemoryAddr location) {
 	assert(false);
 }
 
-void MemoryBank::synchronizeData() {
-	assert(mBackgroundMemory != NULL);
-//	if (mConfig.Mode == MODE_GP_CACHE)
-//		mGeneralPurposeCacheHandler.synchronizeData(mBackgroundMemory);
-	throw UnsupportedFeatureException("memory data synchronisation");
-}
-
 void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
 	assert(mBackgroundMemory != NULL);
 
@@ -1267,54 +892,54 @@ void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
 	size_t limit = (end / 4) * 4 + 4;
 
   while (address < limit) {
-    uint32_t data = readWord(address).toUInt();
+    uint32_t data = readWordDebug(address).toUInt();
     cout << "0x" << setprecision(8) << setfill('0') << hex << address << ":  " << "0x" << setprecision(8) << setfill('0') << hex << data << dec << endl;
     address += 4;
   }
 }
 
-Word MemoryBank::readWord(MemoryAddr addr) {
+Word MemoryBank::readWordDebug(MemoryAddr addr) {
 	assert(mBackgroundMemory != NULL);
 	assert(addr % 4 == 0);
 
-	CacheLookup info = mGeneralPurposeCacheHandler.lookupCacheLine(addr);
+	SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
-  if (info.Hit)
-    return mGeneralPurposeCacheHandler.readWord(info.SRAMLine*CACHE_LINE_WORDS*BYTES_PER_WORD + getOffset(addr));
+  if (contains(addr, position, MEMORY_CACHE))
+    return readWord(position);
   else
     return mBackgroundMemory->readWord(addr);
 }
 
-Word MemoryBank::readByte(MemoryAddr addr) {
+Word MemoryBank::readByteDebug(MemoryAddr addr) {
 	assert(mBackgroundMemory != NULL);
 
-  CacheLookup info = mGeneralPurposeCacheHandler.lookupCacheLine(addr);
+  SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
-  if (info.Hit)
-    return mGeneralPurposeCacheHandler.readByte(info.SRAMLine*CACHE_LINE_WORDS*BYTES_PER_WORD + getOffset(addr));
+  if (contains(addr, position, MEMORY_CACHE))
+    return readByte(position);
   else
     return mBackgroundMemory->readByte(addr);
 }
 
-void MemoryBank::writeWord(MemoryAddr addr, Word data) {
+void MemoryBank::writeWordDebug(MemoryAddr addr, Word data) {
 	assert(mBackgroundMemory != NULL);
 	assert(addr % 4 == 0);
 
-  CacheLookup info = mGeneralPurposeCacheHandler.lookupCacheLine(addr);
+  SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
-  if (info.Hit)
-    mGeneralPurposeCacheHandler.writeWord(info.SRAMLine*CACHE_LINE_WORDS*BYTES_PER_WORD + getOffset(addr), data.toUInt());
+  if (contains(addr, position, MEMORY_CACHE))
+    writeWord(position, data.toUInt());
   else
     mBackgroundMemory->writeWord(addr, data.toUInt());
 }
 
-void MemoryBank::writeByte(MemoryAddr addr, Word data) {
+void MemoryBank::writeByteDebug(MemoryAddr addr, Word data) {
 	assert(mBackgroundMemory != NULL);
 
-  CacheLookup info = mGeneralPurposeCacheHandler.lookupCacheLine(addr);
+  SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
-  if (info.Hit)
-    mGeneralPurposeCacheHandler.writeByte(info.SRAMLine*CACHE_LINE_WORDS*BYTES_PER_WORD + getOffset(addr), data.toUInt());
+  if (contains(addr, position, MEMORY_CACHE))
+    writeByte(position, data.toUInt());
   else
     mBackgroundMemory->writeByte(addr, data.toUInt());
 }
@@ -1330,7 +955,7 @@ void MemoryBank::reportStalls(ostream& os) {
   }
 }
 
-void MemoryBank::printOperation(MemoryOperation operation,
+void MemoryBank::printOperation(MemoryOpcode operation,
                                 MemoryAddr                     address,
                                 uint32_t                       data) const {
   LOKI_LOG << this->name() << ": " << memoryOpName(operation) <<

@@ -27,7 +27,7 @@ void Chip::storeData(const DataBlock& data) {
     cores[data.component().globalCoreNumber()]->storeData(data.payload(), data.position());
   }
   else if (data.component().isMemory()) {
-    cerr << "Error: storing directly to memory banks is disabled since it cannot be known "
+    LOKI_ERROR << "storing directly to memory banks is disabled since it cannot be known "
         "which bank the core will access." << endl;
 //    assert(data.component().globalMemoryNumber() < memories.size());
 //    memories[data.component().globalMemoryNumber()]->storeData(data.payload(),data.position());
@@ -35,14 +35,7 @@ void Chip::storeData(const DataBlock& data) {
 }
 
 const void* Chip::getMemoryData() {
-	// Synchronize data first
-
 	//backgroundMemory.flushQueues();
-
-	for (uint i = 0; i < memories.size(); i++)
-		memories[i]->synchronizeData();
-
-	// Return synchronized background memory data array
 
 	return backgroundMemory.getData();
 }
@@ -57,7 +50,7 @@ void Chip::print(const ComponentID& component, MemoryAddr start, MemoryAddr end)
 Word Chip::readWord(const ComponentID& component, MemoryAddr addr) {
 	if (component.isMemory()) {
 	  assert(component.globalMemoryNumber() < memories.size());
-	  return memories[component.globalMemoryNumber()]->readWord(addr);
+	  return memories[component.globalMemoryNumber()]->readWordDebug(addr);
 	}
 	else
 		return backgroundMemory.readWord(addr);
@@ -66,7 +59,7 @@ Word Chip::readWord(const ComponentID& component, MemoryAddr addr) {
 Word Chip::readByte(const ComponentID& component, MemoryAddr addr) {
 	if (component.isMemory()) {
     assert(component.globalMemoryNumber() < memories.size());
-	  return memories[component.globalMemoryNumber()]->readByte(addr);
+	  return memories[component.globalMemoryNumber()]->readByteDebug(addr);
 	}
 	else
 		return backgroundMemory.readByte(addr);
@@ -75,7 +68,7 @@ Word Chip::readByte(const ComponentID& component, MemoryAddr addr) {
 void Chip::writeWord(const ComponentID& component, MemoryAddr addr, Word data) {
 	if (component.isMemory()) {
     assert(component.globalMemoryNumber() < memories.size());
-	  return memories[component.globalMemoryNumber()]->writeWord(addr, data);
+	  return memories[component.globalMemoryNumber()]->writeWordDebug(addr, data);
 	}
 	else
 		return backgroundMemory.writeWord(addr, data);
@@ -84,7 +77,7 @@ void Chip::writeWord(const ComponentID& component, MemoryAddr addr, Word data) {
 void Chip::writeByte(const ComponentID& component, MemoryAddr addr, Word data) {
 	if (component.isMemory()) {
     assert(component.globalMemoryNumber() < memories.size());
-	  return memories[component.globalMemoryNumber()]->writeByte(addr, data);
+	  return memories[component.globalMemoryNumber()]->writeByteDebug(addr, data);
 	}
 	else
 		return backgroundMemory.writeByte(addr, data);

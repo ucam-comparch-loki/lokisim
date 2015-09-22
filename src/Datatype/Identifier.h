@@ -85,6 +85,10 @@ struct ComponentID {
   uint globalCoreNumber()      const {return tile.computeTileIndex() * CORES_PER_TILE + position;}
   uint globalMemoryNumber()    const {return tile.computeTileIndex() * MEMS_PER_TILE + position - CORES_PER_TILE;}
 
+  uint localComponentNumber()  const {return position;}
+  uint localCoreNumber()       const {return position;}
+  uint localMemoryNumber()     const {return position - CORES_PER_TILE;}
+
   bool operator==(const ComponentID other) const {return (tile==other.tile) && (position==other.position);}
   bool operator!=(const ComponentID other) const {return !(*this == other);}
 

@@ -25,8 +25,10 @@ namespace Instrumentation {
 
 		static void setMode(int bank, bool isCache, uint setCount, uint wayCount, uint lineSize);
 
-		static void startOperation(int bank, MemoryOperation op,
+		static void startOperation(int bank, MemoryOpcode op,
 		    MemoryAddr address, bool miss, ChannelID returnChannel);
+
+		static void checkTags(int bank, MemoryAddr address);
 
 		static void readWord(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel);
 		static void readHalfWord(int bank, MemoryAddr address, bool isMiss, ChannelID returnChannel);
@@ -67,7 +69,9 @@ namespace Instrumentation {
 		static std::map<int, uint> wayCounts_;
 		static std::map<int, uint> lineSizes_;
 
-		static CounterMap<int> numReadWordHits_;
+    static CounterMap<int> numTagChecks_;
+
+    static CounterMap<int> numReadWordHits_;
 		static CounterMap<int> numReadHalfWordHits_;
 		static CounterMap<int> numReadByteHits_;
 

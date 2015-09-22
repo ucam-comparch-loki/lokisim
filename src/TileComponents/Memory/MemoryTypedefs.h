@@ -9,9 +9,10 @@
 #define MEMORYTYPEDEFS_H_
 
 #include <inttypes.h>
+#include "../../Utility/Parameters.h"
 
 
-#define CACHE_LINE_WORDS 8
+#define CACHE_LINE_WORDS 8UL
 #define CACHE_LINE_BYTES (CACHE_LINE_WORDS * BYTES_PER_WORD)
 #define CACHE_LINES_PER_BANK (MEMORY_BANK_SIZE / CACHE_LINE_BYTES)
 
@@ -26,7 +27,7 @@ typedef uint32_t SRAMAddress;
 
 
 // The bottom bit of the value aliases with the end-of-packet bit.
-enum MemoryOperation {
+enum MemoryOpcode {
   // End-of-packet flits
   LOAD_W                  = ( 0 << 1) | 1,
   LOAD_LINKED             = ( 1 << 1) | 1,
@@ -66,7 +67,7 @@ enum MemoryOperation {
   PAYLOAD                 = (15 << 1) | 0, // Mid-packet payload
 };
 
-inline const std::string& memoryOpName(MemoryOperation op) {
+inline const std::string& memoryOpName(MemoryOpcode op) {
   static const std::string operationNames[] = {
     "STORE_W",               "LOAD_W",          "STORE_CONDITIONAL",      "LOAD_LINKED",
     "STORE_HW",              "LOAD_HW",         "STORE_B",                "LOAD_B",
@@ -80,11 +81,17 @@ inline const std::string& memoryOpName(MemoryOperation op) {
   return operationNames[(int)op];
 }
 
-struct CacheLookup {
-  uint32_t    SRAMLine;      // The physical location of the data in SRAM
-  MemoryAddr  FlushAddress;  // Memory address of line to be flushed
-  bool        Hit;           // Whether the data is currently in the cache
-  bool        FlushRequired; // Whether a cache line flush is required
+// The different levels of memory hierarchy.
+enum MemoryLevel {
+  MEMORY_L1,
+  MEMORY_L2,
+  MEMORY_OFF_CHIP,
+};
+
+// Different ways of addressing the same SRAM.
+enum MemoryAccessMode {
+  MEMORY_CACHE,
+  MEMORY_SCRATCHPAD,
 };
 
 #endif /* MEMORYTYPEDEFS_H_ */

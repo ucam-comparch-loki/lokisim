@@ -20,7 +20,7 @@
 #define LOKI_ERROR          std::cerr << "Error: "
 
 // Useful wrapper for printing hex values.
-#define LOKI_HEX(val)       "0x" << std::hex << val << std::dec
+#define LOKI_HEX(val)       "0x" << std::hex << (val) << std::dec
 
 
 #endif /* SRC_UTILITY_LOGGING_H_ */

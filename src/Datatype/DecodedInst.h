@@ -48,7 +48,7 @@ public:
   const ChannelIndex  channelMapEntry() const;
   const predicate_t   predicate() const;
   const bool          setsPredicate() const;
-  const MemoryOperation memoryOp() const;
+  const MemoryOpcode  memoryOp() const;
 
   const OperandSource operand1Source() const;
   const OperandSource operand2Source() const;
@@ -86,7 +86,7 @@ public:
   void    channelMapEntry(const ChannelIndex val);
   void    predicate(const predicate_t val);
   void    setsPredicate(const bool val);
-  void    memoryOp(const MemoryOperation val);
+  void    memoryOp(const MemoryOpcode val);
 
   void    operand1Source(const OperandSource src);
   void    operand2Source(const OperandSource src);
@@ -186,7 +186,7 @@ private:
   ChannelIndex        channelMapEntry_;
   predicate_t         predicate_;
   bool                setsPred_;
-  MemoryOperation     memoryOp_;
+  MemoryOpcode        memoryOp_;
 
   OperandSource       op1Source_;
   OperandSource       op2Source_;

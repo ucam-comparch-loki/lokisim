@@ -67,7 +67,7 @@ struct MemoryMetadata {
   unsigned int scratchpadL1 : 1;  // Treat L1 as cache (0) or scratchpad (1).
   unsigned int skipL2 : 1;        // Bypass L2 and go straight to main memory.
   unsigned int skipL1 : 1;        // Bypass L1 and go straight to L2.
-  MemoryOperation opcode : 5;     // Operation to perform at memory.
+  MemoryOpcode opcode : 5;        // Operation to perform at memory.
 
   uint32_t flatten() {
     return (padding << 18) | (returnTileX << 15) | (returnTileY << 12) |
@@ -86,7 +86,7 @@ struct MemoryMetadata {
     scratchpadL1 = (flattened >> 7) & 0x1;
     skipL2 = (flattened >> 6) & 0x1;
     skipL1 = (flattened >> 5) & 0x1;
-    opcode = MemoryOperation((flattened >> 0) & 0x1F);
+    opcode = MemoryOpcode((flattened >> 0) & 0x1F);
   }
 };
 
@@ -201,7 +201,7 @@ public:
 
   // Constructor for messages between cores and memory.
   Flit<T>(T payload, ChannelID destination, ChannelMapEntry::MemoryChannel networkInfo,
-          MemoryOperation op, bool eop) :
+          MemoryOpcode op, bool eop) :
       messageID_(messageCount++),
       payload_(payload),
       channelID_(destination) {
@@ -212,7 +212,7 @@ public:
     info.scratchpadL1 = networkInfo.scratchpadL1;
     info.skipL2 = networkInfo.l2Skip;
     info.skipL1 = networkInfo.l1Skip;
-    info.opcode = (MemoryOperation)(op | eop);
+    info.opcode = (MemoryOpcode)(op | eop);
     setMetadata(info.flatten());
   }
 
@@ -220,7 +220,7 @@ public:
   // We do not have the destination address at the time of construction -
   // it is provided later after the directory lookup in the miss handling
   // logic. Provide a placeholder here.
-  Flit<T>(T payload, ComponentID source, MemoryOperation op, bool eop) :
+  Flit<T>(T payload, ComponentID source, MemoryOpcode op, bool eop) :
       messageID_(messageCount++),
       payload_(payload),
       channelID_(ChannelID()) {
@@ -230,13 +230,13 @@ public:
     info.returnChannel = source.position - CORES_PER_TILE;
     info.scratchpadL2 = 0;
     info.skipL2 = 0;
-    info.opcode = (MemoryOperation)(op | eop);
+    info.opcode = (MemoryOpcode)(op | eop);
     setMetadata(info.flatten());
   }
 
   // Constructor for messages between L2 and L1 caches.
   // The operation is not sent in practice, but is useful in simulation.
-  Flit<T>(T payload, ChannelID destination, MemoryOperation op, bool eop) :
+  Flit<T>(T payload, ChannelID destination, MemoryOpcode op, bool eop) :
       messageID_(messageCount++),
       payload_(payload),
       channelID_(destination) {
@@ -245,7 +245,7 @@ public:
     info.scratchpadL2 = 0;
     info.skipL1 = 0;
     info.skipL2 = 0;
-    info.opcode = (MemoryOperation)(op | eop);
+    info.opcode = (MemoryOpcode)(op | eop);
     setMetadata(info.flatten());
   }
 

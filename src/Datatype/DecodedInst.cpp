@@ -31,7 +31,7 @@ const ChannelIndex  DecodedInst::channelMapEntry() const {return channelMapEntry
 const predicate_t   DecodedInst::predicate()       const {return predicate_;}
 const bool          DecodedInst::setsPredicate()   const {return setsPred_;}
 
-const MemoryOperation DecodedInst::memoryOp() const {
+const MemoryOpcode DecodedInst::memoryOp() const {
   if (opcode() == InstructionMap::OP_SENDCONFIG)
     return MemoryMetadata(immediate()).opcode;
   else
@@ -169,7 +169,7 @@ void DecodedInst::immediate(const int32_t val)            {immediate_ = val;}
 void DecodedInst::channelMapEntry(const ChannelIndex val) {channelMapEntry_ = val;}
 void DecodedInst::predicate(const predicate_t val)        {predicate_ = val;}
 void DecodedInst::setsPredicate(const bool val)           {setsPred_ = val;}
-void DecodedInst::memoryOp(const MemoryOperation val)     {memoryOp_ = val;}
+void DecodedInst::memoryOp(const MemoryOpcode val)     {memoryOp_ = val;}
 
 void DecodedInst::operand1Source(const OperandSource src) {op1Source_ = src;}
 void DecodedInst::operand2Source(const OperandSource src) {op2Source_ = src;}
@@ -315,7 +315,7 @@ void DecodedInst::init() {
   channelMapEntry_  = 0;
   predicate_        = static_cast<predicate_t>(0);
   setsPred_         = false;
-  memoryOp_         = MemoryOperation::LOAD_W;  // non-zero
+  memoryOp_         = MemoryOpcode::LOAD_W;  // non-zero
   op1Source_        = OperandSource::NONE;
   op2Source_        = OperandSource::NONE;
   operand1_         = 0;

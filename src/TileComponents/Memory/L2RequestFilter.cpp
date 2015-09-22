@@ -36,13 +36,15 @@ void L2RequestFilter::mainLoop() {
         assert(request.getMemoryMetadata().opcode != PAYLOAD && request.getMemoryMetadata().opcode != PAYLOAD_EOP);
 
         MemoryAddr address = request.payload().toUInt();
-        bool cacheHit = localBank->storedLocally(address);
+        MemoryAccessMode mode = (request.getMemoryMetadata().scratchpadL2 ? MEMORY_SCRATCHPAD : MEMORY_CACHE);
+        SRAMAddress position = localBank->getPosition(address, mode);
+        bool cacheHit = localBank->contains(address, position, mode);
         if (cacheHit) {
           oClaimRequest.write(true);
           oRequest.write(iRequest.read());
           state = STATE_ACKNOWLEDGE;
         }
-        else if (iRequestTarget.read() == (id.position - CORES_PER_TILE)) {
+        else if (iRequestTarget.read() == id.localMemoryNumber()) {
           // Wait a clock cycle in case anyone else claims.
           next_trigger(iClock.negedge_event());
           state = STATE_WAIT;

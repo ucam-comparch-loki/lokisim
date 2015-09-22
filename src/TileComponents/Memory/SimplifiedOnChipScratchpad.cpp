@@ -63,14 +63,6 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 			assert(mPortData[port].WordsLeft > 0);
 
-			// Send a header flit so the target memory bank knows which data is arriving.
-			MemoryMetadata metadata;
-			metadata.opcode = STORE_LINE;
-			metadata.returnTileX = 2;
-			metadata.returnTileY = 0;
-			NetworkResponse header(mPortData[port].Address, mPortData[port].ReturnAddress, metadata.flatten());
-			mOutputQueues[port].write(header);
-
 			Instrumentation::backgroundMemoryRead(mPortData[port].Address, mPortData[port].WordsLeft);
 
 			// One clock cycle access delay until reading starts

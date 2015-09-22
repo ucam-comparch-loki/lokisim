@@ -126,7 +126,9 @@ protected:
 
 public:
 
-  loki_signal() : sc_buffer<T>(sc_core::sc_gen_unique_name("loki_signal")) {
+  loki_signal() :
+      sc_buffer<T>(sc_core::sc_gen_unique_name("loki_signal")),
+      acknowledgement(sc_core::sc_gen_unique_name("acknowledgement")) {
     validData = false;
   }
 
