@@ -32,19 +32,31 @@ void L2RequestFilter::mainLoop() {
       // otherwise check whether we are responsible on a miss.
       case STATE_IDLE: {
         NetworkRequest request = iRequest.read();
+        MemoryOpcode opcode = request.getMemoryMetadata().opcode;
 
-        assert(request.getMemoryMetadata().opcode != PAYLOAD && request.getMemoryMetadata().opcode != PAYLOAD_EOP);
+        assert((opcode != PAYLOAD) && (opcode != PAYLOAD_EOP));
 
         MemoryAddr address = request.payload().toUInt();
         MemoryAccessMode mode = (request.getMemoryMetadata().scratchpadL2 ? MEMORY_SCRATCHPAD : MEMORY_CACHE);
         SRAMAddress position = localBank->getPosition(address, mode);
+
+        // Perform a few checks to see whether this bank should claim the
+        // request now, wait until next cycle, or ignore the request entirely.
+        // This bank is responsible if the operation is one which specifies
+        // that this bank should be used, or if the bank was chosen randomly
+        // but this bank contains the data already.
         bool cacheHit = localBank->contains(address, position, mode);
-        if (cacheHit) {
+        bool targetingThisBank = iRequestTarget.read() == id.localMemoryNumber();
+        bool mustAccessTarget = (mode == MEMORY_SCRATCHPAD) || (opcode == PUSH_LINE);
+        bool ignore = mustAccessTarget && !targetingThisBank;
+        bool serveRequest = (targetingThisBank && mustAccessTarget) || (cacheHit && !ignore);
+
+        if (serveRequest) {
           oClaimRequest.write(true);
           oRequest.write(iRequest.read());
           state = STATE_ACKNOWLEDGE;
         }
-        else if (iRequestTarget.read() == id.localMemoryNumber()) {
+        else if (targetingThisBank) {
           // Wait a clock cycle in case anyone else claims.
           next_trigger(iClock.negedge_event());
           state = STATE_WAIT;

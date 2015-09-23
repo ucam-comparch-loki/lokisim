@@ -158,12 +158,11 @@ private:
   vector<bool>          mValid;           // Valid data flag for each line.
   vector<bool>          mDirty;           // Modified data flag for each line.
 
-	MemoryOperation*      mActiveRequest;
+	MemoryOperation*      mActiveRequest;   // The request being served.
 
 	// Callback request - put on hold while performing sub-operations such as
 	// cache line fetches.
 	MemoryOperation*      mMissingRequest;
-	bool                  mServingMiss;
 
 	ReservationHandler    mReservations;    // Data keeping track of current atomic transactions.
 
@@ -175,7 +174,6 @@ private:
 	bool                  mReadFromMissBuffer; // Tell whether the miss buffer needs emptying.
 
 	sc_event              mCacheMissEvent;  // Event triggered on each cache miss.
-	sc_event              mRefillCompleteEvent;
 
 	//-- L2 cache mode state ----------------------------------------------------------------------
 

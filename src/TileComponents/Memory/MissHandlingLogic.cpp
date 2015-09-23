@@ -29,6 +29,8 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
   newRemoteRequest = true;
   requestHeaderValid = false;
 
+  rngState = 0x3F;  // Same seed as Verilog uses (see nextTargetBank()).
+
   iRequestFromBanks.init(requestMux.iData);
   iResponseFromBanks.init(responseMux.iData);
   iClaimRequest.init(MEMS_PER_TILE);
@@ -197,8 +199,21 @@ void MissHandlingLogic::remoteRequestLoop() {
     // For each new request, update the target bank. This bank services the
     // request in the event that no bank currently holds the required data.
     if (newRemoteRequest) {
-      // TODO: use a more realistic random number generator.
-      MemoryIndex targetBank = rand() % MEMS_PER_TILE;
+      MemoryIndex targetBank;
+
+      // Choose which bank should be responsible for the request.
+
+      // In scratchpad mode, the bank is specified by the bits immediately
+      // above the offset.
+      if (flit.getMemoryMetadata().scratchpadL2)
+        targetBank = (flit.payload().toUInt() >> 5) & (MEMS_PER_TILE - 1);
+      // Push line operations specify the target bank with the lowest bits.
+      else if (flit.getMemoryMetadata().opcode == PUSH_LINE)
+        targetBank = flit.payload().toUInt() & (MEMS_PER_TILE - 1);
+      // Otherwise, the target bank is random.
+      else
+        targetBank = nextTargetBank();
+
       oRequestTarget.write(targetBank);
     }
 
@@ -236,6 +251,39 @@ void MissHandlingLogic::sendResponseLoop() {
     // mux may have other data lined up and ready to go immediately.
     next_trigger(clock.posedge_event());
   }
+}
+
+MemoryIndex MissHandlingLogic::nextTargetBank() {
+  // Based on the Verilog: cache/l2_prng.sv.
+
+  MemoryIndex targetBank = oRequestTarget.read();
+
+  // Just using the state on its own to generate the target leads to
+  // uneven bank choice (note the period is not a multiple of 8!). The
+  // following technique has been confirmed experimentally to lead to a
+  // period of num_banks * 63 for 1 <= num_banks <= 32.
+  //
+  // Admittedly this verilog breaks for num_banks <= 2, but you get the
+  // idea.
+  //
+  // Rotate right 1.
+  targetBank = (targetBank - 1) % MEMS_PER_TILE;
+  if (rngState & 0x1) {
+    // Rotate right 1.
+    targetBank = (targetBank - 1) % MEMS_PER_TILE;
+  }
+  if (rngState & 0x4) {
+    // Rotate right 4.
+    targetBank = (targetBank - 4) % MEMS_PER_TILE;
+  }
+
+  // Linear feedback shift register RNG. The generator polynomial used
+  // here is x^6 + x^5 + 1. Has a period of 63. Do not change this
+  // without evaluating the impact on the code above! PRNGs are hard and
+  // this one has been experimentally tuned to yield a good period.
+  rngState = (rngState >> 1) ^ ((rngState & 0x1) ? 0x30 : 0x0);
+
+  return targetBank;
 }
 
 

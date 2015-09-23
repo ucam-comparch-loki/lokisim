@@ -92,9 +92,10 @@ SRAMAddress MemoryBank::getPosition(MemoryAddr address, MemoryAccessMode mode) c
   // Note that this can result in a deterministic but counter-intuitive mapping
   // of addresses in scratchpad mode.
 
-  // Slight hack: I use the contains() method frequently to help with assertions
-  // so I instrument tag checks here. This method will be executed once per
-  // operation.
+  // Slight hack: the contains() method is where one might expect a tag check
+  // to happen, but I use that method frequently to help with assertions. I
+  // instead perform the instrumentation here, as this method will be executed
+  // exactly once per operation.
   if (mode == MEMORY_CACHE)
     Instrumentation::MemoryBank::checkTags(id.globalMemoryNumber(), address);
 
@@ -257,15 +258,15 @@ bool MemoryBank::checkReservation(ComponentID requester, MemoryAddr address) con
 
 uint32_t MemoryBank::readWord(SRAMAddress position) const {
   if (WARN_UNALIGNED && (position & 0x3) != 0)
-    std::cerr << "Warning: Attempting to access address 0x" << std::hex << position
+    LOKI_WARN << " attempting to access address 0x" << std::hex << position
         << std::dec << " with alignment 4." << std::endl;
 
-  return mData[position/4];
+  return mData[position/BYTES_PER_WORD];
 }
 
 uint32_t MemoryBank::readHalfword(SRAMAddress position) const {
   if (WARN_UNALIGNED && (position & 0x1) != 0)
-    std::cerr << "Warning: Attempting to access address 0x" << std::hex << position
+    LOKI_WARN << " attempting to access address 0x" << std::hex << position
         << std::dec << " with alignment 2." << std::endl;
 
   uint32_t fullWord = readWord(position & ~0x3);
@@ -291,7 +292,7 @@ void MemoryBank::writeWord(SRAMAddress position, uint32_t data) {
     LOKI_WARN << " attempting to access address " << LOKI_HEX(address)
         << " with alignment 4." << std::endl;
 
-  mData[position/4] = data;
+  mData[position/BYTES_PER_WORD] = data;
   mDirty[getLine(position)] = true;
 
   mReservations.clearReservation(address);
@@ -299,7 +300,7 @@ void MemoryBank::writeWord(SRAMAddress position, uint32_t data) {
 
 void MemoryBank::writeHalfword(SRAMAddress position, uint32_t data) {
   if (WARN_UNALIGNED && (position & 0x1) != 0)
-    std::cerr << "Warning: Attempting to access address 0x" << std::hex << position
+    LOKI_WARN << " attempting to access address 0x" << std::hex << position
         << std::dec << " with alignment 2." << std::endl;
 
   uint32_t oldData = readWord(position & ~0x3);
@@ -348,7 +349,7 @@ void MemoryBank::processIdle() {
 
     mActiveRequest = peekRequest();
 
-    if (MEMORY_HIT_UNDER_MISS && mServingMiss) {
+    if (MEMORY_HIT_UNDER_MISS && (mMissingRequest != NULL)) {
       // Don't reorder data being sent to the same channel.
       if (mMissingRequest->getDestination() == mActiveRequest->getDestination())
         return;
@@ -425,7 +426,6 @@ void MemoryBank::processAllocate() {
     // Put the request to one side until its data comes back.
     mMissingRequest = mActiveRequest;
     mCacheMissEvent.notify(sc_core::SC_ZERO_TIME);
-    mServingMiss = true;
 
     if (mMissingRequest->awaitingPayload())
       mCopyToMissBuffer = true;
@@ -449,7 +449,7 @@ void MemoryBank::processFlush() {
 
   if (!iClock.negedge())
     next_trigger(iClock.negedge_event());
-  if (canSendRequest()) {
+  else if (canSendRequest()) {
     SRAMAddress position = getTag(mActiveRequest->getSRAMAddress()) + mCacheLineCursor;
     uint32_t data = readWord(position);
 
@@ -473,7 +473,7 @@ void MemoryBank::processRefill() {
 
   if (!iClock.negedge())
     next_trigger(iClock.negedge_event());
-  if (responseAvailable()) {
+  else if (responseAvailable()) {
     SRAMAddress position = getTag(mMissingRequest->getSRAMAddress()) + mCacheLineCursor;
     uint32_t data = getResponse();
     writeWord(position, data);
@@ -485,9 +485,7 @@ void MemoryBank::processRefill() {
       mState = STATE_REQUEST;
       mActiveRequest = mMissingRequest;
       mMissingRequest = NULL;
-      mServingMiss = false;
       mReadFromMissBuffer = true;
-      mRefillCompleteEvent.notify(sc_core::SC_ZERO_TIME);
 
       // Storing the requested words will have dirtied the cache line, but it
       // is actually clean.
@@ -850,7 +848,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
   mReservations(1),
 	mMissBuffer(CACHE_LINE_WORDS, "mMissBuffer"),
 	mCacheMissEvent(sc_core::sc_gen_unique_name("mCacheMissEvent")),
-	mRefillCompleteEvent(sc_core::sc_gen_unique_name("mRefillCompleteEvent")),
 	mL2RequestFilter("request_filter", ID, this)
 {
 	//-- Data queue state -------------------------------------------------------------------------
@@ -869,7 +866,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 
 	mCacheLineCursor = 0;
 
-	mServingMiss = false;
 	mCopyToMissBuffer = false;
 	mReadFromMissBuffer = false;
 

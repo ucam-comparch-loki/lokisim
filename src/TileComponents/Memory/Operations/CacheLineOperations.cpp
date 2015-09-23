@@ -15,7 +15,7 @@
 #include "../MemoryBank.h"
 
 FetchLine::FetchLine(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(startOfLine(address), metadata, memory, level, destination, 0, 8) {
+    MemoryOperation(startOfLine(address), metadata, memory, level, destination, 0, CACHE_LINE_WORDS) {
   lineCursor = 0;
   if (ENERGY_TRACE)
     Instrumentation::MemoryBank::initiateBurstRead(memory.id.globalMemoryNumber());
@@ -35,12 +35,12 @@ void FetchLine::execute() {
   memory.printOperation(metadata.opcode, address + lineCursor, result);
   sendResult(result);
 
-  lineCursor += 4;
+  lineCursor += BYTES_PER_WORD;
 }
 
 
 IPKRead::IPKRead(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(address, metadata, memory, level, destination, 0, 8) {
+    MemoryOperation(address, metadata, memory, level, destination, 0, CACHE_LINE_WORDS) {
   lineCursor = 0;
   if (ENERGY_TRACE)
     Instrumentation::MemoryBank::initiateIPKRead(memory.id.globalMemoryNumber());
@@ -60,7 +60,7 @@ void IPKRead::execute() {
   memory.printOperation(metadata.opcode, address + lineCursor, result);
   sendResult(result);
 
-  lineCursor += 4;
+  lineCursor += BYTES_PER_WORD;
 
   // Terminate the request if we hit the end of the instruction packet or
   // the end of the cache line.
@@ -207,7 +207,7 @@ bool InvalidateAllLines::complete() const {
 
 
 StoreLine::StoreLine(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(startOfLine(address), metadata, memory, level, destination, 8, 0) {
+    MemoryOperation(startOfLine(address), metadata, memory, level, destination, CACHE_LINE_WORDS, 0) {
   lineCursor = 0;
   preWriteCheck();
   if (ENERGY_TRACE)
@@ -231,7 +231,7 @@ void StoreLine::execute() {
     memory.writeWord(sramAddress + lineCursor, data);
     memory.printOperation(metadata.opcode, address + lineCursor, data);
 
-    lineCursor += 4;
+    lineCursor += BYTES_PER_WORD;
   }
 }
 
@@ -265,7 +265,7 @@ void MemsetLine::execute() {
     memory.writeWord(sramAddress + lineCursor, data);
     memory.printOperation(metadata.opcode, address + lineCursor, data);
 
-    lineCursor += 4;
+    lineCursor += BYTES_PER_WORD;
   }
 }
 
@@ -275,7 +275,7 @@ bool MemsetLine::complete() const {
 
 
 PushLine::PushLine(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(startOfLine(address), metadata, memory, level, destination, 8, 0) {
+    MemoryOperation(startOfLine(address), metadata, memory, level, destination, CACHE_LINE_WORDS, 0) {
   lineCursor = 0;
 }
 
@@ -295,6 +295,6 @@ void PushLine::execute() {
     memory.writeWord(sramAddress + lineCursor, data);
     memory.printOperation(metadata.opcode, address + lineCursor, data);
 
-    lineCursor += 4;
+    lineCursor += BYTES_PER_WORD;
   }
 }

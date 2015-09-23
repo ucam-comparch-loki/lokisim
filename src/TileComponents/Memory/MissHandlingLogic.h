@@ -119,6 +119,9 @@ private:
   // Send responses to remote memory banks.
   void sendResponseLoop();
 
+  // Pseudo-randomly select a target bank.
+  MemoryIndex nextTargetBank();
+
   // The following several methods allow the implementation of the next level
   // of memory hierarchy to be hidden. It could be a magic background memory,
   // or in a constant position on the chip, or spread over a number of L2 tiles.
@@ -167,6 +170,9 @@ private:
   // The first flit of a request which is to take place at the directory.
   NetworkRequest requestHeader;
   bool requestHeaderValid;
+
+  // Used for random number generation.
+  unsigned int rngState;
 
 
 };
