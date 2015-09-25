@@ -115,15 +115,15 @@ protected:
 
 protected:
 
-  MemoryAddr      address;        // Position in address space
-  MemoryMetadata  metadata;       // Various information modifying the operation
-  MemoryBank&     memory;         // The memory processing this operation
-  MemoryLevel     level;          // Whether this is the L1, L2, etc.
-  ChannelID       destination;    // Channel to send results to
-  unsigned int    payloadFlits;   // Number of payload flits remaining
-  unsigned int    resultFlits;    // Number of result flits remaining
+  const MemoryAddr      address;        // Position in address space
+  const MemoryMetadata  metadata;       // Various information modifying the operation
+  MemoryBank&           memory;         // The memory processing this operation
+  const MemoryLevel     level;          // Whether this is the L1, L2, etc.
+  const ChannelID       destination;    // Channel to send results to
+  unsigned int          payloadFlits;   // Number of payload flits remaining
+  unsigned int          resultFlits;    // Number of result flits remaining
 
-  SRAMAddress     sramAddress;    // Position in SRAM
+  SRAMAddress           sramAddress;    // Position in SRAM
 };
 
 #endif /* SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYOPERATION_H_ */

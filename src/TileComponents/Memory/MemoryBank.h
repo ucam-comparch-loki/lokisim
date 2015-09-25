@@ -145,10 +145,6 @@ private:
 
   NetworkBuffer<NetworkRequest>  mInputQueue;       // Input queue
   DelayBuffer<NetworkResponse>   mOutputQueue;      // Output queue
-
-	bool                  mOutputWordPending;					// Indicates that an output word is waiting for acknowledgement
-	NetworkData           mActiveOutputWord;					// Currently active output word
-
   DelayBuffer<NetworkRequest>    mOutputReqQueue;   // Output request queue
 
 	//-- Mode independent state -------------------------------------------------------------------

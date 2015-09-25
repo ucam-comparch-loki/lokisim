@@ -749,37 +749,24 @@ void MemoryBank::processValidInput() {
 }
 
 void MemoryBank::handleDataOutput() {
-  // If we have new data to send:
-  if (!mOutputWordPending) {
-    if (mOutputQueue.empty()) {
-      next_trigger(mOutputQueue.writeEvent());
-    }
-    else {
-      mActiveOutputWord = mOutputQueue.read();
-      mOutputWordPending = true;
-
-      localNetwork->makeRequest(id, mActiveOutputWord.channelID(), true);
-      next_trigger(iClock.negedge_event());
-    }
+  if (mOutputQueue.empty()) {
+    next_trigger(mOutputQueue.writeEvent());
   }
-  // Check to see whether we are allowed to send data yet.
-  else if (!localNetwork->requestGranted(id, mActiveOutputWord.channelID())) {
-    // If not, wait another cycle.
+  else if (!localNetwork->requestGranted(id, mOutputQueue.peek().channelID())) {
+    localNetwork->makeRequest(id, mOutputQueue.peek().channelID(), true);
     next_trigger(iClock.negedge_event());
   }
-  // If it is time to send data:
   else {
-    LOKI_LOG << this->name() << " sent " << mActiveOutputWord << endl;
+    NetworkResponse flit = mOutputQueue.read();
+    LOKI_LOG << this->name() << " sent " << flit << endl;
     if (ENERGY_TRACE)
-      Instrumentation::Network::traffic(id, mActiveOutputWord.channelID().component);
+      Instrumentation::Network::traffic(id, flit.channelID().component);
 
-    oData.write(mActiveOutputWord);
+    oData.write(flit);
 
     // Remove the request for network resources.
-    if (mActiveOutputWord.getMetadata().endOfPacket)
-      localNetwork->makeRequest(id, mActiveOutputWord.channelID(), false);
-
-    mOutputWordPending = false;
+    if (flit.getMetadata().endOfPacket)
+      localNetwork->makeRequest(id, flit.channelID(), false);
 
     next_trigger(oData.ack_event());
   }
@@ -819,8 +806,7 @@ void MemoryBank::updateIdle() {
   bool wasIdle = currentlyIdle;
   currentlyIdle = mState == STATE_IDLE &&
                   mInputQueue.empty() && mOutputQueue.empty() &&
-                  mOutputReqQueue.empty() &&
-                  !mOutputWordPending;
+                  mOutputReqQueue.empty();
 
   if (wasIdle != currentlyIdle)
     Instrumentation::idle(id, currentlyIdle);
@@ -841,28 +827,21 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
   mInputQueue(string(this->name()) + string(".mInputQueue"), IN_CHANNEL_BUFFER_SIZE),
   mOutputQueue("mOutputQueue", OUT_CHANNEL_BUFFER_SIZE, INTERNAL_LATENCY),
   mOutputReqQueue("mOutputReqQueue", 10 /*read addr + write addr + cache line*/, 0),
-  mData(MEMORY_BANK_SIZE),
-  mTags(CACHE_LINES_PER_BANK),
-  mValid(CACHE_LINES_PER_BANK),
-  mDirty(CACHE_LINES_PER_BANK),
+  mData(MEMORY_BANK_SIZE, 0),
+  mTags(CACHE_LINES_PER_BANK, 0),
+  mValid(CACHE_LINES_PER_BANK, false),
+  mDirty(CACHE_LINES_PER_BANK, false),
   mReservations(1),
 	mMissBuffer(CACHE_LINE_WORDS, "mMissBuffer"),
 	mCacheMissEvent(sc_core::sc_gen_unique_name("mCacheMissEvent")),
 	mL2RequestFilter("request_filter", ID, this)
 {
-	//-- Data queue state -------------------------------------------------------------------------
-
-	mOutputWordPending = false;
-	mActiveOutputWord = NetworkData();
-
 	//-- Mode independent state -------------------------------------------------------------------
 	mActiveRequest = NULL;
 	mMissingRequest = NULL;
 
 	mState = STATE_IDLE;
 	mPreviousState = STATE_IDLE;
-
-  mValid.assign(CACHE_LINES_PER_BANK, false);
 
 	mCacheLineCursor = 0;
 

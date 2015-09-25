@@ -189,12 +189,14 @@ void MissHandlingLogic::receiveResponseLoop() {
 
 void MissHandlingLogic::remoteRequestLoop() {
   // Stall until the memory banks are capable of receiving a new flit.
-  if (oRequestToBanks.valid())
+  if (oRequestToBanks.valid()) {
     next_trigger(oRequestToBanks.ack_event());
+  }
   else {
     assert(iRequestFromNetwork.valid());
 
     NetworkRequest flit = iRequestFromNetwork.read();
+    LOKI_LOG << this->name() << " sending request to banks " << flit << endl;
 
     // For each new request, update the target bank. This bank services the
     // request in the event that no bank currently holds the required data.
@@ -236,8 +238,9 @@ void MissHandlingLogic::requestClaimLoop() {
 }
 
 void MissHandlingLogic::sendResponseLoop() {
-  if (oResponseToNetwork.valid())
+  if (oResponseToNetwork.valid()) {
     next_trigger(oResponseToNetwork.ack_event() & clock.posedge_event());
+  }
   else if (muxedResponse.valid()) {
     oResponseToNetwork.write(muxedResponse.read());
 

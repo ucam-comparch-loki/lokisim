@@ -29,9 +29,8 @@ MemoryOperation::MemoryOperation(MemoryAddr address,
     level(level),
     destination(destination),
     payloadFlits(payloadFlits),
-    resultFlits(maxResultFlits) {
-
-  sramAddress = memory.getPosition(address, getAccessMode());
+    resultFlits(maxResultFlits),
+    sramAddress(memory.getPosition(address, getAccessMode())) {
 
   Instrumentation::MemoryBank::startOperation(memory.id.globalMemoryNumber(),
                                               metadata.opcode,

@@ -67,18 +67,15 @@ void simulate(Chip& chip) {
         TIMESTEP;
 
         cycleCounter += cyclesPerStep;
-        if (cycleCounter >= 1000000) {
+        if (cycleCounter >= 100) {
           count_t newOperationCount = Instrumentation::Operations::numOperations();
-          if (!DEBUG && !Arguments::silent())
-            cerr << "Current cycle number: " << cycleNumber << " [" << newOperationCount << " operation(s) executed]" << endl;
-          cycleCounter -= 1000000;
+          cycleCounter -= 100;
 
           if (newOperationCount == operationCount) {
-            cerr << "\nNo progress has been made for 1000000 cycles. Aborting." << endl;
+            cerr << "\nNo progress has been made for 100 cycles. Aborting." << endl;
 
             ComponentID core0(1,1,0); // Assume core 0 is stalled
-            fprintf(stderr, "Stuck at instruction packet at 0x%x\n",
-                            chip.readRegister(core0, 1));
+            cerr << "Stuck at instruction packet at " << LOKI_HEX(chip.readRegister(core0, 1)) << endl;
 
             Instrumentation::endExecution();
             Blocking::reportProblems(cerr);
@@ -89,6 +86,9 @@ void simulate(Chip& chip) {
 
           operationCount = newOperationCount;
         }
+
+        if ((cycleNumber % 1000000 < cyclesPerStep) && !DEBUG && !Arguments::silent())
+          cerr << "Current cycle number: " << cycleNumber << " [" << operationCount << " operation(s) executed]" << endl;
 
 //        if (cycleNumber >= 1450000) {
 //          cyclesPerStep = 1;

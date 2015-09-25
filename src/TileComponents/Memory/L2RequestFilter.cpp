@@ -16,7 +16,6 @@ L2RequestFilter::L2RequestFilter(const sc_module_name& name, ComponentID id, Mem
 
   SC_METHOD(mainLoop);
   sensitive << iRequest << oRequest.ack_finder();
-  dont_initialize();
 
 }
 
@@ -24,6 +23,10 @@ L2RequestFilter::~L2RequestFilter() {
 }
 
 void L2RequestFilter::mainLoop() {
+  if (!iClock.negedge()) {
+    next_trigger(iClock.negedge_event());
+    return;
+  }
 
   if (iRequest.valid()) {
     switch (state) {
@@ -107,5 +110,7 @@ void L2RequestFilter::mainLoop() {
       }
     } // end switch
   }
+  else
+    next_trigger(iRequest.default_event());
 }
 
