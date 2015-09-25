@@ -23,10 +23,6 @@ L2RequestFilter::~L2RequestFilter() {
 }
 
 void L2RequestFilter::mainLoop() {
-  if (!iClock.negedge()) {
-    next_trigger(iClock.negedge_event());
-    return;
-  }
 
   if (iRequest.valid()) {
     switch (state) {
@@ -34,6 +30,11 @@ void L2RequestFilter::mainLoop() {
       // Our first time seeing the request - check tags to see if we have the data,
       // otherwise check whether we are responsible on a miss.
       case STATE_IDLE: {
+        if (!iClock.negedge()) {
+          next_trigger(iClock.negedge_event());
+          return;
+        }
+
         NetworkRequest request = iRequest.read();
         MemoryOpcode opcode = request.getMemoryMetadata().opcode;
 
@@ -54,6 +55,11 @@ void L2RequestFilter::mainLoop() {
         bool ignore = mustAccessTarget && !targetingThisBank;
         bool serveRequest = (targetingThisBank && mustAccessTarget) || (cacheHit && !ignore);
 
+//        cout << this->name() << (cacheHit ? " cache hit," : "")
+//                             << (targetingThisBank ? " is target," : "")
+//                             << (ignore ? " ignoring request," : "")
+//                             << (serveRequest ? " serving request" : "") << endl;
+
         if (serveRequest) {
           oClaimRequest.write(true);
           oRequest.write(iRequest.read());
@@ -61,7 +67,7 @@ void L2RequestFilter::mainLoop() {
         }
         else if (targetingThisBank) {
           // Wait a clock cycle in case anyone else claims.
-          next_trigger(iClock.negedge_event());
+          next_trigger(iClock.negedge_event() | iRequestClaimed.posedge_event());
           state = STATE_WAIT;
         }
         else {

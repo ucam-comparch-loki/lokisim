@@ -798,8 +798,6 @@ void MemoryBank::mainLoop() {
     case STATE_REFILL:    processRefill();    break;
     case STATE_FORWARD:   processForward();   break;
   }
-
-  updateIdle();
 }
 
 void MemoryBank::updateIdle() {
@@ -873,9 +871,16 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 	sensitive << iClock.neg();
 	dont_initialize();
 
-	SC_METHOD(updateReady);
-	sensitive << mInputQueue.readEvent() << mInputQueue.writeEvent();
-	// do initialise
+  SC_METHOD(updateReady);
+  sensitive << mInputQueue.readEvent() << mInputQueue.writeEvent();
+  // do initialise
+
+  SC_METHOD(updateIdle);
+  sensitive << mInputQueue.readEvent() << mInputQueue.writeEvent()
+            << mOutputQueue.readEvent() << mOutputQueue.writeEvent()
+            << mOutputReqQueue.readEvent() << mOutputReqQueue.writeEvent()
+            << iResponse << oResponse;
+  // do initialise
 
 	SC_METHOD(processValidInput);
 	sensitive << iData;

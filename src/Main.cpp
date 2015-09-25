@@ -67,12 +67,12 @@ void simulate(Chip& chip) {
         TIMESTEP;
 
         cycleCounter += cyclesPerStep;
-        if (cycleCounter >= 100) {
+        if (cycleCounter >= 10000) {
           count_t newOperationCount = Instrumentation::Operations::numOperations();
-          cycleCounter -= 100;
+          cycleCounter -= 10000;
 
           if (newOperationCount == operationCount) {
-            cerr << "\nNo progress has been made for 100 cycles. Aborting." << endl;
+            cerr << "\nNo progress has been made for 10000 cycles. Aborting." << endl;
 
             ComponentID core0(1,1,0); // Assume core 0 is stalled
             cerr << "Stuck at instruction packet at " << LOKI_HEX(chip.readRegister(core0, 1)) << endl;
