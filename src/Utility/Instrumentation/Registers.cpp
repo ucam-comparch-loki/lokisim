@@ -38,6 +38,21 @@ void Registers::forward(PortIndex port)               {numForwards_++;}
 void Registers::init() {
   writesPerReg = new count_t[NUM_PHYSICAL_REGISTERS];
   readsPerReg  = new count_t[NUM_PHYSICAL_REGISTERS];
+
+  numForwards_ = cyclesActive = 0;
+  memset(operations,  0, 3 * sizeof(count_t));
+  memset(popCount,    0, 3 * sizeof(count_t));
+  memset(hammingDist, 0, 3 * sizeof(count_t));
+  memset(bypasses,    0, 3 * sizeof(count_t));
+  memset(zero,        0, 3 * sizeof(count_t));
+  memset(uint8,       0, 3 * sizeof(count_t));
+  memset(uint16,      0, 3 * sizeof(count_t));
+  memset(uint24,      0, 3 * sizeof(count_t));
+  memset(uint32,      0, 3 * sizeof(count_t));
+  memset(int8,        0, 3 * sizeof(count_t));
+  memset(int16,       0, 3 * sizeof(count_t));
+  memset(int24,       0, 3 * sizeof(count_t));
+  memset(int32,       0, 3 * sizeof(count_t));
 }
 
 void Registers::end() {

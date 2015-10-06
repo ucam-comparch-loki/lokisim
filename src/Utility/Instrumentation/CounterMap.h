@@ -52,6 +52,11 @@ public:
     return counters.end();
   }
 
+  void clear() {
+    counters.clear();
+    totalEvents = 0;
+  }
+
   CounterMap() {
     totalEvents = 0;
   }

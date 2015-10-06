@@ -46,6 +46,21 @@ void Operations::init() {
   lastIn2 = new int32_t[NUM_CORES];
   lastOut = new int32_t[NUM_CORES];
   lastFn  = new function_t[NUM_CORES];
+
+  unexecuted = hdIn1 = hdIn2 = hdOut = sameOp = numDecodes_ = 0;
+
+  executedOps.clear();
+  executedFns.clear();
+  numOps_.clear();
+  numMemLoads.clear();
+  numMergedMemLoads.clear();
+  numMemStores.clear();
+  numChanReads.clear();
+  numMergedChanReads.clear();
+  numChanWrites.clear();
+  numMergedChanWrites.clear();
+  numArithOps.clear();
+  numCondOps.clear();
 }
 
 void Operations::end() {

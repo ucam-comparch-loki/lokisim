@@ -31,6 +31,10 @@ namespace Instrumentation {
   void startEventLog();
   void stopEventLog();
 
+  // Reset all event counts to zero. Useful for ignoring a setup phase of an
+  // application. Currently activated by syscall 0x27.
+  void clearStats();
+
   // The decoder consumes a significant amount of energy, and there are a few
   // techniques to reduce its activity, so record how active it is.
   void decoded(const ComponentID& core, const DecodedInst& dec);

@@ -37,6 +37,14 @@ bool Stalls::detailedLog = false;
 std::ofstream* Stalls::logStream;
 
 void Stalls::init() {
+  total.clear();
+  loggedOnly.clear();
+  startStall.clear();
+
+  numStalled = 0;
+  endOfExecution = 0;
+  loggedCycles = 0;
+
   for (uint i=0; i<NUM_STALL_REASONS; i++) {
     total.push_back(CounterMap<ComponentIndex>());
     loggedOnly.push_back(CounterMap<ComponentIndex>());

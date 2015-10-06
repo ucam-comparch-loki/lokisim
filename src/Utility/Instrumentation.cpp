@@ -23,7 +23,12 @@
 #include "Instrumentation/Stalls.h"
 #include "../Datatype/DecodedInst.h"
 
+// The time at which the statistics were last reset.
+cycle_count_t statsWiped = 0;
+
 void Instrumentation::initialise() {
+  statsWiped += currentCycle();
+
   ChannelMap::init();
   FIFO::init();
   IPKCache::init();
@@ -47,6 +52,11 @@ void Instrumentation::end() {
   Registers::end();
   Scratchpad::end();
   Stalls::end();
+}
+
+void Instrumentation::clearStats() {
+  end();
+  initialise();
 }
 
 void Instrumentation::dumpEventCounts(std::ostream& os) {
@@ -149,7 +159,7 @@ void Instrumentation::executed(const ComponentID& id, const DecodedInst& inst, b
 
 cycle_count_t Instrumentation::currentCycle() {
   if (sc_core::sc_start_of_simulation_invoked())
-    return sc_core::sc_time_stamp().to_default_time_units();
+    return sc_core::sc_time_stamp().to_default_time_units() - statsWiped;
   else
     return 0;
 }

@@ -163,7 +163,7 @@ void ALU::systemCall(DecodedInst& dec) const {
     case 0x1: { /* SYS_exit */
       RETURN_CODE = readReg(13);
       std::cerr << "Simulation ended with sys_exit (arg " << (uint)RETURN_CODE << ") after "
-                << (int)sc_core::sc_time_stamp().to_default_time_units() << " cycles." << endl;
+                << Instrumentation::currentCycle() << " cycles." << endl;
       Instrumentation::endExecution();
       break;
     }
@@ -246,13 +246,13 @@ void ALU::systemCall(DecodedInst& dec) const {
     }
 
     case 0x10: { /* tile ID */
-      cerr << "Warning: syscall 0x10 (tile ID) is deprecated. Use control register 1 instead." << endl;
+      LOKI_WARN << "syscall 0x10 (tile ID) is deprecated. Use control register 1 instead." << endl;
       int tile = this->id.tile.flatten();
       writeReg(11, tile);
       break;
     }
     case 0x11: { /* position within tile */
-      cerr << "Warning: syscall 0x11 (core ID) is deprecated. Use control register 1 instead." << endl;
+      LOKI_WARN << "syscall 0x11 (core ID) is deprecated. Use control register 1 instead." << endl;
       int position = this->id.position;
       writeReg(11, position);
       break;
@@ -283,9 +283,13 @@ void ALU::systemCall(DecodedInst& dec) const {
         SoftwareTrace::logRegisterFileSnapshot(parent()->id.globalCoreNumber(), regValues, 64);
       break;
     }
+    case 0x27: /* Clear execution stats */
+      LOKI_WARN << "wiping statistics after " << Instrumentation::currentCycle() << " cycles." << endl;
+      Instrumentation::clearStats();
+      break;
 
     case 0x30: { /* get current cycle */
-      cycle_count_t cycle = (cycle_count_t)sc_core::sc_time_stamp().to_default_time_units();
+      cycle_count_t cycle = Instrumentation::currentCycle();
       writeReg(11, cycle >> 32);
       writeReg(12, cycle & 0xFFFFFFFF);
       break;

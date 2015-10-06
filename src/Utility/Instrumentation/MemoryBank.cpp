@@ -75,6 +75,36 @@ void MemoryBank::init() {
 
   // Initial stats for all channels of all cores.
   coreStats_.assign(NUM_CORES, oneCore);
+
+  // Clean all the CounterMaps.
+  numTagChecks_.clear();
+  numReadWordHits_.clear();
+  numReadHalfWordHits_.clear();
+  numReadByteHits_.clear();
+  numWriteWordHits_.clear();
+  numWriteHalfWordHits_.clear();
+  numWriteByteHits_.clear();
+  numReadWordMisses_.clear();
+  numReadHalfWordMisses_.clear();
+  numReadByteMisses_.clear();
+  numWriteWordMisses_.clear();
+  numWriteHalfWordMisses_.clear();
+  numWriteByteMisses_.clear();
+  numStartIPKRead_.clear();
+  numStartBurstRead_.clear();
+  numStartBurstWrite_.clear();
+  numContinueIPKRead_.clear();
+  numContinueBurstRead_.clear();
+  numContinueBurstWrite_.clear();
+  numIPKReadHits_.clear();
+  numBurstReadHits_.clear();
+  numBurstWriteHits_.clear();
+  numIPKReadMisses_.clear();
+  numBurstReadMisses_.clear();
+  numBurstWriteMisses_.clear();
+  numReplaceInvalid_.clear();
+  numReplaceClean_.clear();
+  numReplaceDirty_.clear();
 }
 
 void MemoryBank::setMode(int bank, bool isCache, uint setCount, uint wayCount, uint lineSize) {

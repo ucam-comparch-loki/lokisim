@@ -33,6 +33,10 @@ void IPKCache::init() {
   total.writes = 0;
 
   perCore.assign(NUM_CORES, total);
+
+  tagWriteHD_ = tagWrites_ = tagReadHD_ = tagsActive_ = dataActive_ = 0;
+
+  packetsExecuted.clear();
 }
 
 void IPKCache::tagCheck(const ComponentID& core, bool hit, const MemoryAddr tag, const MemoryAddr prevCheck) {
