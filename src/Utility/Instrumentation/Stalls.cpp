@@ -273,7 +273,7 @@ void Stalls::active(const ComponentID id, cycle_count_t cycle) {
 
 void Stalls::endExecution() {
   if (numStalled < NUM_COMPONENTS)
-    endOfExecution = sc_core::sc_time_stamp().to_default_time_units();
+    endOfExecution = Instrumentation::currentCycle();
 
   endExecutionCalled = true;
 }
