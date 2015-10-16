@@ -11,6 +11,10 @@
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
+void WriteStage::deliverCreditInternal(const NetworkCredit& credit) {
+  scet.receiveCreditInternal(credit);
+}
+
 void WriteStage::execute() {
   LOKI_LOG << this->name() << " received Instruction: " << currentInst << endl;
 

@@ -17,7 +17,7 @@ const int32_t RegisterFile::read(PortIndex port, RegisterIndex reg, bool indirec
 
   if (indirect) {
     if (isChannelEnd(reg)) index = parent()->readRCET(toChannelID(reg));
-    else                   index = regs.read(reg).toInt();
+    else                   index = readInternal(reg);
   }
   else index = reg;
 
@@ -33,7 +33,7 @@ const int32_t RegisterFile::read(PortIndex port, RegisterIndex reg, bool indirec
     return parent()->readRCET(toChannelID(index));
   }
   else {
-    int data = regs.read(index).toInt();
+    int data = readInternal(reg);
 
     if (ENERGY_TRACE) {
       Instrumentation::Registers::read(port, reg, prevRead[port], data);
@@ -50,7 +50,7 @@ const int32_t RegisterFile::read(PortIndex port, RegisterIndex reg, bool indirec
   }
 }
 
-const int32_t RegisterFile::readDebug(const RegisterIndex reg) const {
+const int32_t RegisterFile::readInternal(const RegisterIndex reg) const {
   if (reg == 0)
     return 0;
   else
@@ -68,7 +68,7 @@ void RegisterFile::write(const RegisterIndex reg, const int32_t value, bool indi
   int oldData = regs.read(index).toInt();
 
   Word w(value);
-  writeReg(index, w);
+  writeInternal(index, w);
 
   if (ENERGY_TRACE) {
     Instrumentation::Registers::write(index, oldData, value);
@@ -117,10 +117,10 @@ RegisterIndex RegisterFile::fromChannelID(RegisterIndex position) {
 
 void RegisterFile::updateCurrentIPK(const MemoryAddr addr) {
   Word w(addr);
-  writeReg(1, w);
+  writeInternal(1, w);
 }
 
-void RegisterFile::writeReg(const RegisterIndex reg, const Word data) {
+void RegisterFile::writeInternal(const RegisterIndex reg, const Word data) {
   if (reg > 0)
     LOKI_LOG << this->name() << ": Stored " << data << " to register " << (int)reg << endl;
 

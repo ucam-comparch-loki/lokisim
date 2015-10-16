@@ -344,37 +344,54 @@ Word SimplifiedOnChipScratchpad::readWord(MemoryAddr addr) {
 	return Word(mData[addr / 4]);
 }
 
+Word SimplifiedOnChipScratchpad::readHalfword(MemoryAddr addr) {
+  assert(addr < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+  uint32_t data = mData[addr / 4];
+  uint shift = (addr & 0x3UL) * 8;
+  return Word((data >> shift) & 0xFFFFUL);
+}
+
 Word SimplifiedOnChipScratchpad::readByte(MemoryAddr addr) {
-	assert(addr < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
-	uint32_t data = mData[addr / 4];
-	uint shift = (addr & 0x3UL) * 8;
-	return Word((data >> shift) & 0xFFUL);
+  assert(addr < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+  uint32_t data = mData[addr / 4];
+  uint shift = (addr & 0x3UL) * 8;
+  return Word((data >> shift) & 0xFFUL);
 }
 
 void SimplifiedOnChipScratchpad::writeWord(MemoryAddr addr, Word data) {
 	assert(addr < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 	assert(addr % 4 == 0);
 
-  if (WARN_READ_ONLY)
-    LOKI_WARN << this->name() << " attempting to modify read-only address " << LOKI_HEX(addr) << endl;
-  else
-    throw ReadOnlyException(addr);
+  if (WARN_READ_ONLY && readOnly(addr))
+    LOKI_WARN << this->name() << " modifying read-only address " << LOKI_HEX(addr) << endl;
 
   mData[addr / 4] = data.toUInt();
 }
 
-void SimplifiedOnChipScratchpad::writeByte(MemoryAddr addr, Word data) {
-	assert(addr < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+void SimplifiedOnChipScratchpad::writeHalfword(MemoryAddr addr, Word data) {
+  assert(addr < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 
-  if (WARN_READ_ONLY)
-    LOKI_WARN << this->name() << " attempting to modify read-only address " << LOKI_HEX(addr) << endl;
-  else
-    throw ReadOnlyException(addr);
+  if (WARN_READ_ONLY && readOnly(addr))
+    LOKI_WARN << this->name() << " modifying read-only address " << LOKI_HEX(addr) << endl;
 
   uint32_t modData = mData[addr / 4];
-	uint shift = (addr & 0x3UL) * 8;
-	uint32_t mask = 0xFFUL << shift;
-	modData &= ~mask;
-	modData |= (data.toUInt() & 0xFFUL) << shift;
-	mData[addr / 4] = modData;
+  uint shift = (addr & 0x3UL) * 8;
+  uint32_t mask = 0xFFFFUL << shift;
+  modData &= ~mask;
+  modData |= (data.toUInt() & 0xFFFFUL) << shift;
+  mData[addr / 4] = modData;
+}
+
+void SimplifiedOnChipScratchpad::writeByte(MemoryAddr addr, Word data) {
+  assert(addr < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+
+  if (WARN_READ_ONLY && readOnly(addr))
+    LOKI_WARN << this->name() << " modifying read-only address " << LOKI_HEX(addr) << endl;
+
+  uint32_t modData = mData[addr / 4];
+  uint shift = (addr & 0x3UL) * 8;
+  uint32_t mask = 0xFFUL << shift;
+  modData &= ~mask;
+  modData |= (data.toUInt() & 0xFFUL) << shift;
+  mData[addr / 4] = modData;
 }

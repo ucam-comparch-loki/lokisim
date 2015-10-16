@@ -20,11 +20,6 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
   assert(channelEnd < NUM_RECEIVE_CHANNELS);
   assert(!buffers[channelEnd].empty());
 
-  // This path can only be followed from SC_THREADs. SC_METHODs must check
-  // whether there is data in the buffer before reading from it.
-//  if(buffers[channelEnd].empty())
-//    wait(receivedDataEvent(channelEnd));
-
   int32_t result = buffers[channelEnd].read().toInt();
 
   LOKI_LOG << this->name() << " read " << result << " from buffer "
@@ -33,13 +28,24 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
   return result;
 }
 
-int32_t ReceiveChannelEndTable::readDebug(ChannelIndex channelEnd) const {
+int32_t ReceiveChannelEndTable::readInternal(ChannelIndex channelEnd) const {
   assert(channelEnd < NUM_RECEIVE_CHANNELS);
 
   if (buffers[channelEnd].empty())
     return 0;
   else
     return buffers[channelEnd].peek().toInt();
+}
+
+void ReceiveChannelEndTable::writeInternal(ChannelIndex channel, int32_t data) {
+  LOKI_LOG << this->name() << " channel " << (int)channel << " received " <<
+              data << endl;
+
+  assert(channel < NUM_RECEIVE_CHANNELS);
+  assert(!buffers[channel].full());
+  buffers[channel].write(data);
+
+  newData.notify();
 }
 
 /* Return whether or not the specified channel contains data. */
@@ -89,15 +95,7 @@ void ReceiveChannelEndTable::waitForData(unsigned int bitmask, const DecodedInst
 
 void ReceiveChannelEndTable::checkInput(ChannelIndex input) {
   // This method is called because data has arrived on a particular input channel.
-
-  LOKI_LOG << this->name() << " channel " << (int)input << " received " <<
-              iData[input].read() << endl;
-
-  assert(!buffers[input].full());
-
-  buffers[input].write(iData[input].read());
-
-  newData.notify();
+  writeInternal(input, iData[input].read().toInt());
 }
 
 const sc_event& ReceiveChannelEndTable::receivedDataEvent(ChannelIndex buffer) const {

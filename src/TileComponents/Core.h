@@ -108,6 +108,11 @@ public:
   const Word readByte(MemoryAddr addr);
   void writeWord(MemoryAddr addr, Word data);
   void writeByte(MemoryAddr addr, Word data);
+  void magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address, ChannelID returnChannel, Word payload = 0);
+
+  // Receive data over the magic, zero-latency network.
+  void deliverDataInternal(const NetworkData& flit);
+  void deliverCreditInternal(const NetworkCredit& flit);
 
 private:
 

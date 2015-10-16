@@ -10,6 +10,7 @@
 #include "../../../Utility/Instrumentation.h"
 #include "../../../Utility/Instrumentation/Registers.h"
 #include "../../../Utility/Trace/LBTTrace.h"
+#include "../../../Exceptions/InvalidOptionException.h"
 #include "../../../Exceptions/UnsupportedFeatureException.h"
 
 bool ExecuteStage::readPredicate() const {return core()->readPredReg();}
@@ -231,23 +232,23 @@ void ExecuteStage::newInput(DecodedInst& operation) {
 
 void ExecuteStage::sendOutput() {
   if (currentInst.sendsOnNetwork()) {
-	if (Arguments::lbtTrace()) {
-	  if ((currentInst.opcode() == InstructionMap::OP_LDW ||
-		currentInst.opcode() == InstructionMap::OP_LDHWU ||
-		currentInst.opcode() == InstructionMap::OP_LDBU ||
-		currentInst.opcode() == InstructionMap::OP_STW ||
-		currentInst.opcode() == InstructionMap::OP_STHW ||
-		currentInst.opcode() == InstructionMap::OP_STB) && currentInst.memoryOp() != PAYLOAD && currentInst.memoryOp() != PAYLOAD_EOP)
-	  {
-		LBTTrace::setInstructionMemoryAddress(currentInst.isid(), currentInst.result());
-	  }
-	  else if ((currentInst.opcode() == InstructionMap::OP_STW ||
-		currentInst.opcode() == InstructionMap::OP_STHW ||
-		currentInst.opcode() == InstructionMap::OP_STB) && currentInst.memoryOp() == PAYLOAD)
-	  {
-		LBTTrace::setInstructionMemoryData(currentInst.isid(), currentInst.result() && currentInst.memoryOp() != PAYLOAD_EOP);
-	  }
-	}
+    if (Arguments::lbtTrace()) {
+      if ((currentInst.opcode() == InstructionMap::OP_LDW ||
+      currentInst.opcode() == InstructionMap::OP_LDHWU ||
+      currentInst.opcode() == InstructionMap::OP_LDBU ||
+      currentInst.opcode() == InstructionMap::OP_STW ||
+      currentInst.opcode() == InstructionMap::OP_STHW ||
+      currentInst.opcode() == InstructionMap::OP_STB) && currentInst.memoryOp() != PAYLOAD && currentInst.memoryOp() != PAYLOAD_EOP)
+      {
+      LBTTrace::setInstructionMemoryAddress(currentInst.isid(), currentInst.result());
+      }
+      else if ((currentInst.opcode() == InstructionMap::OP_STW ||
+      currentInst.opcode() == InstructionMap::OP_STHW ||
+      currentInst.opcode() == InstructionMap::OP_STB) && currentInst.memoryOp() == PAYLOAD)
+      {
+      LBTTrace::setInstructionMemoryData(currentInst.isid(), currentInst.result() && currentInst.memoryOp() != PAYLOAD_EOP);
+      }
+    }
 
     // Memory operations may be sent to different memory banks depending on the
     // address accessed.
@@ -257,10 +258,42 @@ void ExecuteStage::sendOutput() {
     if (currentInst.networkDestination().isMemory())
       adjustNetworkAddress(currentInst);
 
-    // Send the data to the output buffer - it will arrive immediately so that
-    // network resources can be requested the cycle before they are used.
-    assert(!oData.valid());
-    oData.write(currentInst.toNetworkData(id.tile));
+    if (MAGIC_MEMORY && currentInst.networkDestination().isMemory()) {
+      ChannelMapEntry& channelMapEntry = core()->channelMapTable[currentInst.channelMapEntry()];
+      ChannelID returnChannel(id.tile.x, id.tile.y, channelMapEntry.getChannel(), channelMapEntry.getReturnChannel());
+
+      switch (currentInst.memoryOp()) {
+        case LOAD_W:
+        case LOAD_HW:
+        case LOAD_B:
+          core()->magicMemoryAccess(currentInst.memoryOp(), currentInst.result(),
+                                    returnChannel);
+          break;
+
+        case STORE_W:
+        case STORE_HW:
+        case STORE_B:
+          core()->magicMemoryAccess(currentInst.memoryOp(), currentInst.result(),
+                                    returnChannel, currentInst.operand1());
+          break;
+
+        case PAYLOAD:
+        case PAYLOAD_EOP:
+          // Don't send payloads as separate flits - they're sent with the
+          // header when accessing magic memory.
+          break;
+
+        default:
+          throw InvalidOptionException("magic memory operation", currentInst.memoryOp());
+          break;
+      }
+    }
+    else {
+      // Send the data to the output buffer - it will arrive immediately so that
+      // network resources can be requested the cycle before they are used.
+      assert(!oData.valid());
+      oData.write(currentInst.toNetworkData(id.tile));
+    }
   }
 
   // Send the data to the register file - it will arrive at the beginning
@@ -281,7 +314,11 @@ void ExecuteStage::memoryStorePhase1(DecodedInst& operation) {
   operation.result(operation.operand2() + operation.immediate());
   operation.endOfNetworkPacket(false);
   continuingStore = true;
-  next_trigger(clock.posedge_event() & canSendEvent() & oData.ack_event());
+
+  if (MAGIC_MEMORY)
+    next_trigger(clock.posedge_event() & canSendEvent());
+  else
+    next_trigger(clock.posedge_event() & canSendEvent() & oData.ack_event());
 }
 
 void ExecuteStage::memoryStorePhase2(DecodedInst& operation) {

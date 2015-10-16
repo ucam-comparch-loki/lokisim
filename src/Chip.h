@@ -13,15 +13,30 @@
 #ifndef CHIP_H_
 #define CHIP_H_
 
-#include "Component.h"
+#include <sysc/communication/sc_clock.h>
+#include <sysc/communication/sc_signal.h>
+#include <sysc/kernel/sc_module.h>
+#include <sysc/kernel/sc_module_name.h>
+#include <vector>
+
+#include "Datatype/Identifier.h"
+#include "Datatype/Word.h"
 #include "Network/Global/CreditNetwork.h"
-#include "Network/Global/ResponseNetwork.h"
-#include "Network/Global/RequestNetwork.h"
 #include "Network/Global/DataNetwork.h"
+#include "Network/Global/RequestNetwork.h"
+#include "Network/Global/ResponseNetwork.h"
 #include "Network/NetworkHierarchy.h"
+#include "Network/NetworkTypedefs.h"
 #include "TileComponents/Core.h"
+#include "TileComponents/Memory/MagicMemory.h"
 #include "TileComponents/Memory/MemoryBank.h"
+#include "TileComponents/Memory/MemoryTypedefs.h"
+#include "TileComponents/Memory/MissHandlingLogic.h"
 #include "TileComponents/Memory/SimplifiedOnChipScratchpad.h"
+#include "Typedefs.h"
+#include "Utility/LokiVector.h"
+#include "Utility/LokiVector2D.h"
+#include "Utility/LokiVector3D.h"
 
 using std::vector;
 
@@ -56,13 +71,16 @@ public:
   const void* getMemoryData();
 
   void    print(const ComponentID& component, MemoryAddr start, MemoryAddr end);
-  Word    readWord(const ComponentID& component, MemoryAddr addr);
-  Word    readByte(const ComponentID& component, MemoryAddr addr);
-  void    writeWord(const ComponentID& component, MemoryAddr addr, Word data);
-  void    writeByte(const ComponentID& component, MemoryAddr addr, Word data);
-  int     readRegister(const ComponentID& component, RegisterIndex reg) const;
-  MemoryAddr getInstIndex(const ComponentID& component) const;
-  bool    readPredicate(const ComponentID& component) const;
+  Word    readWordInternal(const ComponentID& component, MemoryAddr addr);
+  Word    readByteInternal(const ComponentID& component, MemoryAddr addr);
+  void    writeWordInternal(const ComponentID& component, MemoryAddr addr, Word data);
+  void    writeByteInternal(const ComponentID& component, MemoryAddr addr, Word data);
+  int     readRegisterInternal(const ComponentID& component, RegisterIndex reg) const;
+  bool    readPredicateInternal(const ComponentID& component) const;
+  void    networkSendDataInternal(const NetworkData& flit);
+  void    networkSendCreditInternal(const NetworkData& flit);
+
+  void    magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address, ChannelID returnChannel, Word payload = 0);
 
 private:
 
@@ -85,6 +103,8 @@ private:
 	vector<MemoryBank*>        memories;          // All memories of the chip
 	vector<MissHandlingLogic*> mhl;               // One per tile
 	SimplifiedOnChipScratchpad backgroundMemory;
+
+	MagicMemory                magicMemory;       // Wrapper for backgroundMemory
 
 	// Global networks - connect all tiles together.
 	DataNetwork                dataNet;

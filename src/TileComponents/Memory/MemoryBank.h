@@ -256,6 +256,7 @@ public:
 	void synchronizeData();
 
 	void print(MemoryAddr start, MemoryAddr end);
+	void printOperation(MemoryOpcode operation, MemoryAddr address, uint32_t data) const;
 
   bool storedLocally(MemoryAddr address) const;
 
@@ -267,10 +268,6 @@ public:
 protected:
 
 	virtual void reportStalls(ostream& os);
-
-public:
-
-	void printOperation(MemoryOpcode operation, MemoryAddr address, uint32_t data) const;
 
 };
 

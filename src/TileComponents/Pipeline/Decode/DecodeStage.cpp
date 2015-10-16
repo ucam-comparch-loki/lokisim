@@ -266,12 +266,17 @@ void         DecodeStage::remoteExecute(DecodedInst& instruction) const {
   instruction.destination(0);
 }
 
-int32_t      DecodeStage::readRCET(ChannelIndex index) {
+int32_t      DecodeStage::readChannel(ChannelIndex index) {
   return rcet.read(index);
 }
 
-int32_t      DecodeStage::readRCETDebug(ChannelIndex index) const {
-  return rcet.readDebug(index);
+int32_t      DecodeStage::readChannelInternal(ChannelIndex index) const {
+  return rcet.readInternal(index);
+}
+
+void         DecodeStage::deliverDataInternal(const NetworkData& flit) {
+  ChannelIndex buffer = RegisterFile::toChannelID(flit.channelID().channel);
+  rcet.writeInternal(buffer, flit.payload().toInt());
 }
 
 void DecodeStage::fetch(const DecodedInst& inst) {

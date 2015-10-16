@@ -63,7 +63,8 @@ public:
 
   // Returns an event which is triggered whenever an instruction is read or
   // written to the store.
-  virtual const sc_event& fillChangedEvent() const = 0;
+  virtual const sc_event& readEvent() const = 0;
+  virtual const sc_event& writeEvent() const = 0;
 
   virtual ~InstructionStore() {};
 

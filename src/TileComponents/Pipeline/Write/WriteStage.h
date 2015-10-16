@@ -58,6 +58,11 @@ public:
 // Methods
 //==============================//
 
+public:
+
+  // Deliver a credit while bypassing the network.
+  void           deliverCreditInternal(const NetworkCredit& credit);
+
 private:
 
   virtual void   execute();

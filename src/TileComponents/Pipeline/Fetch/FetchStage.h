@@ -52,12 +52,14 @@ private:
     MemoryAddr address;     // Memory address of the desired packet.
     opcode_t   operation;   // Fetch operation used to request the packet.
     ChannelMapEntry::MemoryChannel networkInfo; // All required network information.
+    bool       complete;    // All instructions in the packet have arrived.
 
-    FetchInfo() : address(0), operation((opcode_t)0), networkInfo(0) {}
+    FetchInfo() : address(0), operation((opcode_t)0), networkInfo(0), complete(false) {}
     FetchInfo(MemoryAddr addr, opcode_t op, ChannelMapEntry::MemoryChannel networkInfo) :
       address(addr),
       operation(op),
-      networkInfo(networkInfo) {}
+      networkInfo(networkInfo),
+      complete(false) {}
   };
 
 //==============================//
@@ -102,6 +104,9 @@ public:
 
   // Store some instructions in the Instruction Packet Cache.
   void          storeCode(const std::vector<Instruction>& instructions);
+
+  // Store an instruction without touching the network.
+  void          deliverInstructionInternal(const NetworkData& flit);
 
   // Return the memory address of the last instruction sent.
   MemoryAddr    getInstAddress() const;
@@ -153,6 +158,11 @@ private:
   // Move to the next instruction packet on demand, rather than when reaching
   // a ".eop" marker.
   void          nextIPK();
+
+  // Methods triggered whenever a new instruction arrives. The methods then
+  // store the new instruction in the appropriate place.
+  void          fifoInstructionArrived();
+  void          cacheInstructionArrived();
 
   // Signal to this pipeline stage that a new packet has started to arrive, and
   // tell where it is. Returns the memory address (tag) of the packet.

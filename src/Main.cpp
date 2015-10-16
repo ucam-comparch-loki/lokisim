@@ -75,7 +75,7 @@ void simulate(Chip& chip) {
             cerr << "\nNo progress has been made for 10000 cycles. Aborting." << endl;
 
             ComponentID core0(1,1,0); // Assume core 0 is stalled
-            cerr << "Stuck at instruction packet at " << LOKI_HEX(chip.readRegister(core0, 1)) << endl;
+            cerr << "Stuck at instruction packet at " << LOKI_HEX(chip.readRegisterInternal(core0, 1)) << endl;
 
             Instrumentation::endExecution();
             Blocking::reportProblems(cerr);

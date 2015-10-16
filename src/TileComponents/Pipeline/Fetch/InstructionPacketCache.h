@@ -27,10 +27,6 @@ class InstructionPacketCache : public Component, public InstructionStore {
 
 public:
 
-  ClockInput  clock;
-
-  sc_in<Word> iInstruction;
-
   // Signal telling the flow control unit whether there is space left in the cache.
   ReadyOutput oFlowControl;
 
@@ -94,11 +90,10 @@ public:
 
   // A handle to an event which is triggered whenever something is added to or
   // removed from the cache.
-  virtual const sc_event& fillChangedEvent() const;
+  virtual const sc_event& readEvent() const;
+  virtual const sc_event& writeEvent() const;
 
 private:
-
-  void receivedInst();
 
   // Update the output flow control signal.
   void updateFlowControl();
@@ -132,7 +127,7 @@ private:
 
   // Event which is triggered whenever an instruction is added to or removed
   // from the cache.
-  sc_event cacheFillChanged;
+  sc_event cacheRead, cacheWrite;
 
   // Flag used to detect when we are beginning to receive a new instruction packet.
   bool finishedPacketWrite;

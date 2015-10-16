@@ -67,10 +67,13 @@ public:
 
   // Read a buffer in the receive channel end table. Warning: also removes
   // this value from the buffer.
-  int32_t        readRCET(ChannelIndex index);
+  int32_t        readChannel(ChannelIndex index);
 
   // Non-blocking read from the input buffers. Does not consume data.
-  int32_t        readRCETDebug(ChannelIndex index) const;
+  int32_t        readChannelInternal(ChannelIndex index) const;
+
+  // Write to a channel end while bypassing the network.
+  void           deliverDataInternal(const NetworkData& flit);
 
   // If we are currently stalled waiting for input, stop waiting. Cancel the
   // current operation.

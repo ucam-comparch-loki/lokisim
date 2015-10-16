@@ -219,13 +219,17 @@ bool SendChannelEndTable::requestGranted(ChannelID destination) const {
 
 void SendChannelEndTable::receivedCredit() {
   assert(iCredit.valid());
-
-  ChannelIndex targetCounter = iCredit.read().channelID().channel;
-
-  LOKI_LOG << this->name() << " received credit at " << ChannelID(id, targetCounter) << " " << iCredit.read().messageID() << endl;
-
-  channelMapTable->addCredit(targetCounter, iCredit.read().payload().toUInt());
+  receiveCreditInternal(iCredit.read());
   iCredit.ack();
+}
+
+void SendChannelEndTable::receiveCreditInternal(const NetworkCredit& credit) {
+  ChannelIndex targetCounter = credit.channelID().channel;
+
+  LOKI_LOG << this->name() << " received credit at "
+      << ChannelID(id, targetCounter) << " " << credit.messageID() << endl;
+
+  channelMapTable->addCredit(targetCounter, credit.payload().toUInt());
 }
 
 WriteStage* SendChannelEndTable::parent() const {

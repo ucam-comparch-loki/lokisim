@@ -137,8 +137,10 @@ public:
 
 	void print(MemoryAddr start, MemoryAddr end);
 	Word readWord(MemoryAddr addr);
+	Word readHalfword(MemoryAddr addr);
 	Word readByte(MemoryAddr addr);
 	void writeWord(MemoryAddr addr, Word data);
+	void writeHalfword(MemoryAddr addr, Word data);
 	void writeByte(MemoryAddr addr, Word data);
 };
 

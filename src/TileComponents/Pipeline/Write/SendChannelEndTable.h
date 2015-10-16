@@ -66,6 +66,9 @@ public:
   // might stall or unstall.
   const sc_event& stallChangedEvent() const;
 
+  // Process a new credit.
+  void          receiveCreditInternal(const NetworkCredit& credit);
+
 protected:
 
   virtual void  reportStalls(ostream& os);

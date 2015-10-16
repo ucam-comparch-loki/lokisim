@@ -68,9 +68,9 @@ const int32_t Core::readReg(PortIndex port, RegisterIndex reg, bool indirect) {
 /* Read a register without data forwarding and without indirection. */
 const int32_t Core::readRegDebug(RegisterIndex reg) const {
   if (RegisterFile::isChannelEnd(reg))
-    return decode.readRCETDebug(RegisterFile::toChannelID(reg));
+    return decode.readChannelInternal(RegisterFile::toChannelID(reg));
   else
-    return regs.readDebug(reg);
+    return regs.readInternal(reg);
 }
 
 void     Core::writeReg(RegisterIndex reg, int32_t value, bool indirect) {
@@ -97,23 +97,44 @@ bool     Core::readPredReg(bool waitForExecution, const DecodedInst& inst) {
 void     Core::writePredReg(bool val)  {pred.write(val);}
 
 const Word Core::readWord(MemoryAddr addr) {
-	return Word(parent()->readWord(getSystemCallMemory(addr), addr));
+	return Word(parent()->readWordInternal(getSystemCallMemory(addr), addr));
 }
 
 const Word Core::readByte(MemoryAddr addr) {
-	return Word(parent()->readByte(getSystemCallMemory(addr), addr));
+	return Word(parent()->readByteInternal(getSystemCallMemory(addr), addr));
 }
 
 void Core::writeWord(MemoryAddr addr, Word data) {
-	parent()->writeWord(getSystemCallMemory(addr), addr, data);
+	parent()->writeWordInternal(getSystemCallMemory(addr), addr, data);
 }
 
 void Core::writeByte(MemoryAddr addr, Word data) {
-	parent()->writeByte(getSystemCallMemory(addr), addr, data);
+	parent()->writeByteInternal(getSystemCallMemory(addr), addr, data);
+}
+
+void Core::magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address, ChannelID returnChannel, Word payload) {
+  parent()->magicMemoryAccess(opcode, address, returnChannel, payload);
+}
+
+void Core::deliverDataInternal(const NetworkData& flit) {
+  switch (flit.channelID().channel) {
+    case 0:
+    case 1:
+      fetch.deliverInstructionInternal(flit);
+      break;
+
+    default:
+      decode.deliverDataInternal(flit);
+      break;
+  }
+}
+
+void Core::deliverCreditInternal(const NetworkCredit& flit) {
+  write.deliverCreditInternal(flit);
 }
 
 const int32_t  Core::readRCET(ChannelIndex channel) {
-  return decode.readRCET(channel);
+  return decode.readChannel(channel);
 }
 
 const int32_t  Core::getForwardedData() const {

@@ -120,6 +120,9 @@ parameter DIRECTORY_SIZE             = 16;
 // Total core-memory-core latency (assuming a cache hit).
 parameter L1_LATENCY                 = 3;
 
+// If set to 1, all memory operations complete instantaneously.
+parameter MAGIC_MEMORY               = 0;
+
 //-------------------------------------------------------------------------------------------------
 // Configurable memory system
 //-------------------------------------------------------------------------------------------------
@@ -198,6 +201,7 @@ void Parameters::parseParameter(const string &name, const string &value) {
   else SET_IF_MATCH(cName, nValue, MAX_IPK_SIZE);
   else SET_IF_MATCH(cName, nValue, DIRECTORY_SIZE);
   else SET_IF_MATCH(cName, nValue, L1_LATENCY);
+  else SET_IF_MATCH(cName, nValue, MAGIC_MEMORY);
 	else SET_IF_MATCH(cName, nValue, MEMORY_BANK_SIZE);
 	else SET_IF_MATCH(cName, nValue, MEMORY_CACHE_RANDOM_REPLACEMENT);
 	else SET_IF_MATCH(cName, nValue, MEMORY_ON_CHIP_SCRATCHPAD_DELAY);
@@ -229,6 +233,7 @@ void Parameters::printParameters() {
   cout << "Parameter MAX_IPK_SIZE is " << MAX_IPK_SIZE << endl;
   cout << "Parameter DIRECTORY_SIZE is " << DIRECTORY_SIZE << endl;
   cout << "Parameter L1_LATENCY is " << L1_LATENCY << endl;
+  cout << "Parameter MAGIC_MEMORY is " << MAGIC_MEMORY << endl;
   cout << "Parameter MEMORY_BANK_SIZE is " << MEMORY_BANK_SIZE << endl;
   cout << "Parameter MEMORY_ON_CHIP_SCRATCHPAD_DELAY is " << MEMORY_ON_CHIP_SCRATCHPAD_DELAY << endl;
   cout << "Parameter MEMORY_ON_CHIP_SCRATCHPAD_SIZE is " << MEMORY_ON_CHIP_SCRATCHPAD_SIZE << endl;

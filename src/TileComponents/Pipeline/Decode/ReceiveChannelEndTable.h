@@ -67,7 +67,10 @@ public:
 
   // Non-blocking read operation which doesn't consume any data in the buffer.
   // ChannelIndex 0 is mapped to r2.
-  int32_t readDebug(ChannelIndex channelEnd) const;
+  int32_t readInternal(ChannelIndex channelEnd) const;
+
+  // Put data in a buffer without touching the network.
+  void writeInternal(ChannelIndex channel, int32_t data);
 
   // Return whether or not the channel contains data. ChannelIndex 0 is mapped
   // to r2.

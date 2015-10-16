@@ -41,14 +41,14 @@ const void* Chip::getMemoryData() {
 }
 
 void Chip::print(const ComponentID& component, MemoryAddr start, MemoryAddr end) {
-	if (component.isMemory())
+	if (component.isMemory() && !MAGIC_MEMORY)
 		memories[component.globalMemoryNumber()]->print(start, end);
 	else
 		backgroundMemory.print(start, end);
 }
 
-Word Chip::readWord(const ComponentID& component, MemoryAddr addr) {
-	if (component.isMemory()) {
+Word Chip::readWordInternal(const ComponentID& component, MemoryAddr addr) {
+	if (component.isMemory() && !MAGIC_MEMORY) {
 	  assert(component.globalMemoryNumber() < memories.size());
 	  return memories[component.globalMemoryNumber()]->readWordDebug(addr);
 	}
@@ -56,8 +56,8 @@ Word Chip::readWord(const ComponentID& component, MemoryAddr addr) {
 		return backgroundMemory.readWord(addr);
 }
 
-Word Chip::readByte(const ComponentID& component, MemoryAddr addr) {
-	if (component.isMemory()) {
+Word Chip::readByteInternal(const ComponentID& component, MemoryAddr addr) {
+	if (component.isMemory() && !MAGIC_MEMORY) {
     assert(component.globalMemoryNumber() < memories.size());
 	  return memories[component.globalMemoryNumber()]->readByteDebug(addr);
 	}
@@ -65,8 +65,8 @@ Word Chip::readByte(const ComponentID& component, MemoryAddr addr) {
 		return backgroundMemory.readByte(addr);
 }
 
-void Chip::writeWord(const ComponentID& component, MemoryAddr addr, Word data) {
-	if (component.isMemory()) {
+void Chip::writeWordInternal(const ComponentID& component, MemoryAddr addr, Word data) {
+	if (component.isMemory() && !MAGIC_MEMORY) {
     assert(component.globalMemoryNumber() < memories.size());
 	  return memories[component.globalMemoryNumber()]->writeWordDebug(addr, data);
 	}
@@ -74,8 +74,8 @@ void Chip::writeWord(const ComponentID& component, MemoryAddr addr, Word data) {
 		return backgroundMemory.writeWord(addr, data);
 }
 
-void Chip::writeByte(const ComponentID& component, MemoryAddr addr, Word data) {
-	if (component.isMemory()) {
+void Chip::writeByteInternal(const ComponentID& component, MemoryAddr addr, Word data) {
+	if (component.isMemory() && !MAGIC_MEMORY) {
     assert(component.globalMemoryNumber() < memories.size());
 	  return memories[component.globalMemoryNumber()]->writeByteDebug(addr, data);
 	}
@@ -83,22 +83,31 @@ void Chip::writeByte(const ComponentID& component, MemoryAddr addr, Word data) {
 		return backgroundMemory.writeByte(addr, data);
 }
 
-int Chip::readRegister(const ComponentID& component, RegisterIndex reg) const {
+int Chip::readRegisterInternal(const ComponentID& component, RegisterIndex reg) const {
   assert(component.globalCoreNumber() < cores.size());
 
 	return cores[component.globalCoreNumber()]->readRegDebug(reg);
 }
 
-MemoryAddr Chip::getInstIndex(const ComponentID& component) const {
-  assert(component.globalCoreNumber() < cores.size());
-
-	return cores[component.globalCoreNumber()]->getInstIndex();
-}
-
-bool Chip::readPredicate(const ComponentID& component) const {
+bool Chip::readPredicateInternal(const ComponentID& component) const {
   assert(component.globalCoreNumber() < cores.size());
 
 	return cores[component.globalCoreNumber()]->readPredReg();
+}
+
+void Chip::networkSendDataInternal(const NetworkData& flit) {
+  assert(flit.channelID().isCore());
+  cores[flit.channelID().component.globalCoreNumber()]->deliverDataInternal(flit);
+}
+
+void Chip::networkSendCreditInternal(const NetworkCredit& flit) {
+  assert(flit.channelID().isCore());
+  cores[flit.channelID().component.globalCoreNumber()]->deliverCreditInternal(flit);
+}
+
+
+void Chip::magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address, ChannelID returnChannel, Word payload) {
+  magicMemory.operate(opcode, address, returnChannel, payload);
 }
 
 bool Chip::isIdle() const {
@@ -425,6 +434,7 @@ void Chip::wireUp() {
 Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
     Component(name),
     backgroundMemory("background_memory", ComponentID(2,0,0), NUM_COMPUTE_TILES),
+    magicMemory("magic_memory", backgroundMemory),
     dataNet("data_net"),
     creditNet("credit_net"),
     requestNet("request_net"),

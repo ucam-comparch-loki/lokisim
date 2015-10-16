@@ -11,7 +11,7 @@
 
 const Instruction InstructionPacketFIFO::read() {
   Instruction inst = fifo.read();
-  fifoFillChanged.notify();
+  fifoRead.notify(sc_core::SC_ZERO_TIME);
 
   CacheIndex readPointer = fifo.getReadPointer();
   lastReadAddr = addresses[readPointer];
@@ -20,10 +20,19 @@ const Instruction InstructionPacketFIFO::read() {
 }
 
 void InstructionPacketFIFO::write(const Instruction inst) {
+  LOKI_LOG << this->name() << " received Instruction:  " << inst << endl;
+
+  // If this is a "next instruction packet" command, don't write it to the FIFO,
+  // but instead immediately move to the next packet, if there is one.
+  if (inst.opcode() == InstructionMap::OP_NXIPK) {
+    parent()->nextIPK();
+    return;
+  }
+
   CacheIndex writePos = fifo.getWritePointer();
 
   fifo.write(inst);
-  fifoFillChanged.notify();
+  fifoWrite.notify(sc_core::SC_ZERO_TIME);
 
   if (finishedPacketWrite) {  // Start of new packet
     InstLocation location;
@@ -53,7 +62,7 @@ CacheIndex InstructionPacketFIFO::lookup(MemoryAddr tag) {
   // Temporarily commented out because the FIFO is much bigger than it should
   // be, and would skew the results if it worked as a cache.
   if (this->tag == tag) {
-    fifoFillChanged.notify();
+    fifoWrite.notify(sc_core::SC_ZERO_TIME); // A successful lookup means the FIFO isn't empty
     tagMatched = true;
     return startOfPacket;
   }
@@ -91,21 +100,12 @@ bool InstructionPacketFIFO::isFull() const{
   return fifo.full();
 }
 
-const sc_event& InstructionPacketFIFO::fillChangedEvent() const {
-  return fifoFillChanged;
+const sc_event& InstructionPacketFIFO::readEvent() const {
+  return fifoRead;
 }
 
-void InstructionPacketFIFO::receivedInst() {
-  // Need to cast input Word to Instruction.
-  Instruction inst = static_cast<Instruction>(iInstruction.read());
-  LOKI_LOG << this->name() << " received Instruction:  " << inst << endl;
-
-  // If this is a "next instruction packet" command, don't write it to the FIFO,
-  // but instead immediately move to the next packet, if there is one.
-  if(inst.opcode() == InstructionMap::OP_NXIPK)
-    parent()->nextIPK();
-  else
-    write(inst);
+const sc_event& InstructionPacketFIFO::writeEvent() const {
+  return fifoWrite;
 }
 
 void InstructionPacketFIFO::updateReady() {
@@ -136,12 +136,8 @@ InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
   tagMatched = false;
   startOfPacket = NOT_IN_CACHE;
 
-  SC_METHOD(receivedInst);
-  sensitive << iInstruction;
-  dont_initialize();
-
   SC_METHOD(updateReady);
-  sensitive << fifoFillChanged;
+  sensitive << fifoRead << fifoWrite;
   // do initialise
 
   SC_METHOD(dataConsumedAction);

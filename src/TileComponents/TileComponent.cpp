@@ -36,22 +36,22 @@ bool TileComponent::readPredReg() const {
 
 int32_t TileComponent::readMemWord(MemoryAddr addr) {
 	// For now, this always reads from the background memory
-	return parent()->readWord(id, addr).toInt();
+	return parent()->readWordInternal(id, addr).toInt();
 }
 
 int32_t TileComponent::readMemByte(MemoryAddr addr) {
 	// For now, this always reads from the background memory
-	return parent()->readByte(id, addr).toInt();
+	return parent()->readByteInternal(id, addr).toInt();
 }
 
 void TileComponent::writeMemWord(MemoryAddr addr, Word data) {
 	// For now, this always writes to the background memory
-	parent()->writeWord(id, addr, data);
+	parent()->writeWordInternal(id, addr, data);
 }
 
 void TileComponent::writeMemByte(MemoryAddr addr, Word data) {
 	// For now, this always writes to the background memory
-	parent()->writeByte(id, addr, data);
+	parent()->writeByteInternal(id, addr, data);
 }
 
 Chip* TileComponent::parent() const {

@@ -101,6 +101,9 @@ extern parameter  DIRECTORY_SIZE;
 // Total core-memory-core latency (assuming a cache hit).
 extern parameter  L1_LATENCY;
 
+// If set to 1, all memory operations complete instantaneously.
+extern parameter  MAGIC_MEMORY;
+
 //-------------------------------------------------------------------------------------------------
 // Configurable memory system
 //-------------------------------------------------------------------------------------------------

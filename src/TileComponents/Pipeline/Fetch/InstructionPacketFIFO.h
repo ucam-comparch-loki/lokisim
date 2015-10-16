@@ -27,10 +27,6 @@ class InstructionPacketFIFO : public Component, public InstructionStore {
 
 public:
 
-  ClockInput  clock;
-
-  sc_in<Word> iInstruction;
-
   // Signal telling the flow control unit whether there is space left in the FIFO.
   ReadyOutput oFlowControl;
 
@@ -82,11 +78,11 @@ public:
 
   // A handle to an event which is triggered whenever an instruction is added
   // to or removed from the FIFO.
-  virtual const sc_event& fillChangedEvent() const;
+  virtual const sc_event& readEvent() const;
+  virtual const sc_event& writeEvent() const;
 
 private:
 
-  void receivedInst();
   void updateReady();
 
   void dataConsumedAction();
@@ -120,7 +116,7 @@ private:
 
   // An event which is triggered whenever an instruction is read from or
   // written to the FIFO.
-  sc_event fifoFillChanged;
+  sc_event fifoRead, fifoWrite;
 
   // Flag used to determine when a new instruction packet starts arriving.
   bool finishedPacketWrite;

@@ -49,7 +49,7 @@ void FetchStage::readLoop() {
     case RS_READ: {
       if (currentInstructionSource().isEmpty()) {
         Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS, DecodedInst());
-        next_trigger(currentInstructionSource().fillChangedEvent());
+        next_trigger(currentInstructionSource().writeEvent());
       }
       else if (!canSendInstruction()) {
         next_trigger(canSendEvent());
@@ -102,9 +102,9 @@ void FetchStage::switchToPacket(PacketInfo& packet) {
   if (packet.location.index == NOT_IN_CACHE) {
     Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS, DecodedInst());
     if (packet.location.component == IPKFIFO)
-      next_trigger(fifo.fillChangedEvent());
+      next_trigger(fifo.writeEvent());
     else
-      next_trigger(cache.fillChangedEvent());
+      next_trigger(cache.writeEvent());
   }
   else {
     currentPacket = packet;
@@ -134,7 +134,7 @@ void FetchStage::writeLoop() {
       }
       // Wait for there to be space in the cache to fetch a new packet.
       else if (!roomToFetch()) {
-        next_trigger(cache.fillChangedEvent() | fifo.fillChangedEvent());
+        next_trigger(cache.readEvent() | fifo.readEvent());
       }
       // The pending packet is where we store all the information about the
       // packet we're fetching. Wait for it to become available.
@@ -172,25 +172,16 @@ void FetchStage::writeLoop() {
         sendRequest(activeFetch);
 
         if (activeFetch.networkInfo.returnChannel == 0)
-          next_trigger(iToFIFO.default_event());
+          next_trigger(fifo.writeEvent());
         else
-          next_trigger(iToCache.default_event());
+          next_trigger(cache.writeEvent());
       }
 
       break;
     }
 
     case WS_FETCH: {
-      Instruction received;
-
-      if (activeFetch.networkInfo.returnChannel == 0)
-        received = iToFIFO.read();
-      else
-        received = iToCache.read();
-
-      activeFetch.address += 4;
-
-      if (received.endOfPacket()) {
+      if (activeFetch.complete) {
         writeState = WS_READY;
         next_trigger(clock.posedge_event());
       }
@@ -199,16 +190,15 @@ void FetchStage::writeLoop() {
         // new request, possibly to a different memory bank.
         // Cache line = 32 bytes = 2^5 bytes
         if ((activeFetch.address & 0x1F) == 0) {
-          sendRequest(activeFetch);
-
           LOKI_LOG << this->name() << " requesting IPK continuation from " << LOKI_HEX(activeFetch.address) << endl;
+          sendRequest(activeFetch);
         }
 
-        // Wait for the instruction to arrive.
+        // Wait for the next instruction to arrive.
         if (activeFetch.networkInfo.returnChannel == 0)
-          next_trigger(iToFIFO.default_event());
+          next_trigger(fifo.writeEvent());
         else
-          next_trigger(iToCache.default_event());
+          next_trigger(cache.writeEvent());
       }
 
       break;
@@ -218,13 +208,19 @@ void FetchStage::writeLoop() {
 }
 
 void FetchStage::sendRequest(const FetchInfo& fetch) {
-  // Select the bank to access based on the memory address.
-  uint increment = core()->channelMapTable[0].computeAddressIncrement(fetch.address);
-  ChannelID destination(id.tile.x, id.tile.y, fetch.networkInfo.bank + increment + CORES_PER_TILE, fetch.networkInfo.channel);
+  if (MAGIC_MEMORY) {
+    ChannelID returnAddress(id, fetch.networkInfo.returnChannel);
+    core()->magicMemoryAccess(IPK_READ, fetch.address, returnAddress);
+  }
+  else {
+    // Select the bank to access based on the memory address.
+    uint increment = core()->channelMapTable[0].computeAddressIncrement(fetch.address);
+    ChannelID destination(id.tile.x, id.tile.y, fetch.networkInfo.bank + increment + CORES_PER_TILE, fetch.networkInfo.channel);
 
-  NetworkData flit(fetch.address, destination, fetch.networkInfo, IPK_READ, true);
-  assert(!oFetchRequest.valid());
-  oFetchRequest.write(flit);
+    NetworkData flit(fetch.address, destination, fetch.networkInfo, IPK_READ, true);
+    assert(!oFetchRequest.valid());
+    oFetchRequest.write(flit);
+  }
 
   // If we don't already have a packet to execute, we are now stalled
   // waiting for this one to arrive.
@@ -249,6 +245,28 @@ void FetchStage::storeCode(const std::vector<Instruction>& instructions) {
   cachePendingPacket.location.component = IPKCACHE;
 
   cache.storeCode(instructions);
+}
+
+void FetchStage::deliverInstructionInternal(const NetworkData& flit) {
+  Instruction inst = static_cast<Instruction>(flit.payload());
+
+  switch (flit.channelID().channel) {
+    case 0:
+      fifo.write(inst);
+      break;
+    case 1:
+      cache.write(inst);
+      break;
+    default:
+      throw InvalidOptionException("instruction channel", flit.channelID().channel);
+      break;
+  }
+
+  // Increment the fetch address so we can fetch a new line when necessary.
+  if (flit.channelID().channel == activeFetch.networkInfo.returnChannel) {
+    activeFetch.address += BYTES_PER_WORD;
+    activeFetch.complete = inst.endOfPacket();
+  }
 }
 
 MemoryAddr FetchStage::getInstAddress() const {
@@ -379,6 +397,18 @@ void FetchStage::nextIPK() {
   core()->nextIPK();
 }
 
+void FetchStage::fifoInstructionArrived() {
+  // Slight hack to convert the instruction back into a flit.
+  NetworkData flit(iToFIFO.read(), ChannelID(id, 0));
+  deliverInstructionInternal(flit);
+}
+
+void FetchStage::cacheInstructionArrived() {
+  // Slight hack to convert the instruction back into a flit.
+  NetworkData flit(iToCache.read(), ChannelID(id, 1));
+  deliverInstructionInternal(flit);
+}
+
 MemoryAddr FetchStage::newPacketArriving(const InstLocation& location) {
   PacketInfo& pendingPacket = (location.component == IPKFIFO)
                             ? fifoPendingPacket
@@ -463,12 +493,8 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
   currentPacket.reset(); fifoPendingPacket.reset(); cachePendingPacket.reset();
 
   // Connect FIFO and cache to network
-  fifo.clock(clock);
-  fifo.iInstruction(iToFIFO);
   fifo.oFlowControl(oFlowControl[0]);
   fifo.oDataConsumed(oDataConsumed[0]);
-  cache.clock(clock);
-  cache.iInstruction(iToCache);
   cache.oFlowControl(oFlowControl[1]);
   cache.oDataConsumed(oDataConsumed[1]);
 
@@ -478,5 +504,13 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
   SC_METHOD(updateReady);
   sensitive << instructionCompletedEvent;
   // do initialise
+
+  SC_METHOD(fifoInstructionArrived);
+  sensitive << iToFIFO;
+  dont_initialize();
+
+  SC_METHOD(cacheInstructionArrived);
+  sensitive << iToCache;
+  dont_initialize();
 
 }

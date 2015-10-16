@@ -40,14 +40,14 @@ void InstructionPacketCache::storeCode(const std::vector<Instruction>& instructi
 
   // SystemC segfaults if we notify an event before simulation has started.
   if (sc_core::sc_start_of_simulation_invoked())
-    cacheFillChanged.notify();
+    cacheWrite.notify(sc_core::SC_ZERO_TIME);
 }
 
 const Instruction InstructionPacketCache::read() {
   Instrumentation::IPKCache::read(id);
 
   Instruction inst = cache->read();
-  cacheFillChanged.notify();
+  cacheRead.notify(sc_core::SC_ZERO_TIME);
 
   CacheIndex readPointer = cache->getReadPointer();
   lastReadAddr = addresses[readPointer];
@@ -61,7 +61,7 @@ void InstructionPacketCache::write(const Instruction inst) {
   LOKI_LOG << this->name() << " received Instruction: " << inst << endl;
 
   CacheIndex writePos = cache->write(inst);
-  cacheFillChanged.notify();
+  cacheWrite.notify(sc_core::SC_ZERO_TIME);
 
   // Do some bookkeeping if we have finished an instruction packet or are
   // starting a new one.
@@ -94,9 +94,9 @@ CacheIndex InstructionPacketCache::lookup(MemoryAddr tag) {
   // It is possible that looking up a tag will result in us immediately jumping
   // to a new instruction, which would change how full the cache is.
   if (inCache)
-    cacheFillChanged.notify();
+    cacheWrite.notify(sc_core::SC_ZERO_TIME);
   else
-    cacheMissEvent.notify();
+    cacheMissEvent.notify(sc_core::SC_ZERO_TIME);
 
   return position;
 }
@@ -112,21 +112,19 @@ void InstructionPacketCache::startNewPacket(CacheIndex position) {
 /* Jump to a new instruction specified by the offset amount. */
 void InstructionPacketCache::jump(JumpOffset offset) {
   cache->jump(offset);
-  cacheFillChanged.notify();
+  cacheWrite.notify(sc_core::SC_ZERO_TIME);  // Ensures that cache doesn't appear empty now.
 }
 
 void InstructionPacketCache::cancelPacket() {
   cache->cancelPacket();
 }
 
-const sc_event& InstructionPacketCache::fillChangedEvent() const {
-  return cacheFillChanged;
+const sc_event& InstructionPacketCache::readEvent() const {
+  return cacheRead;
 }
 
-void InstructionPacketCache::receivedInst() {
-  // Need to cast from Word to Instruction.
-  Instruction inst = static_cast<Instruction>(iInstruction.read());
-  write(inst);
+const sc_event& InstructionPacketCache::writeEvent() const {
+  return cacheWrite;
 }
 
 /* Update the signal saying whether there is enough room to fetch another
@@ -172,12 +170,8 @@ InstructionPacketCache::InstructionPacketCache(sc_module_name name, const Compon
   // As soon as the first instruction arrives, queue it up to execute.
   finishedPacketWrite = true;
 
-  SC_METHOD(receivedInst);
-  sensitive << iInstruction;
-  dont_initialize();
-
   SC_METHOD(updateFlowControl);
-  sensitive << cacheFillChanged;
+  sensitive << cacheRead << cacheWrite;
   // do initialise
 
   SC_METHOD(dataConsumedAction);

@@ -44,7 +44,7 @@ public:
   const int32_t read(PortIndex port, RegisterIndex reg, bool indirect) const;
 
   // Read from a register without redirecting to RCET.
-  const int32_t readDebug(const RegisterIndex reg) const;
+  const int32_t readInternal(const RegisterIndex reg) const;
 
   // Write to a register, including all safety checks.
   void    write(const RegisterIndex reg, const int32_t value, bool indirect);
@@ -73,7 +73,7 @@ public:
 private:
 
   // Perform the register write (no safety checks, etc.).
-  void writeReg(const RegisterIndex reg, const Word value);
+  void writeInternal(const RegisterIndex reg, const Word value);
 
   void logActivity();
 

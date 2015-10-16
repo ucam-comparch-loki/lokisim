@@ -76,22 +76,21 @@ SRAMAddress MemoryBank::getOffset(SRAMAddress position) const {
 }
 
 // Compute the position in SRAM that the given memory address is to be found.
+// Memory address contains:
+// | tag | index | bank | offset |
+//  * offset = 5 bits (32 byte cache line)
+//  * index + offset = log2(bytes in bank) bits
+//  * bank = up to 3 bits used to choose which bank to access
+//  * tag = any bits remaining
+//
+// Since the number of bank bits is variable, but we don't want to move the
+// index bits around or change the size of the tag field, we hash the maximum
+// number of bank bits in with a fixed-position index field. Note that these
+// overlapping bits must now also be included in the tag.
+//
+// Note that this can result in a deterministic but counter-intuitive mapping
+// of addresses in scratchpad mode.
 SRAMAddress MemoryBank::getPosition(MemoryAddr address, MemoryAccessMode mode) const {
-  // Memory address contains:
-  // | tag | index | bank | offset |
-  //  * offset = 5 bits (32 byte cache line)
-  //  * index + offset = log2(bytes in bank) bits
-  //  * bank = up to 3 bits used to choose which bank to access
-  //  * tag = any bits remaining
-  //
-  // Since the number of bank bits is variable, but we don't want to move the
-  // index bits around or change the size of the tag field, we hash the maximum
-  // number of bank bits in with a fixed-position index field. Note that these
-  // overlapping bits must now also be included in the tag.
-  //
-  // Note that this can result in a deterministic but counter-intuitive mapping
-  // of addresses in scratchpad mode.
-
   // Slight hack: the contains() method is where one might expect a tag check
   // to happen, but I use that method frequently to help with assertions. I
   // instead perform the instrumentation here, as this method will be executed
@@ -730,20 +729,15 @@ void MemoryBank::copyToMissBuffer() {
 }
 
 void MemoryBank::preWriteCheck(MemoryAddr address) const {
-  if (mBackgroundMemory->readOnly(address)) {
-    if (WARN_READ_ONLY)
-      LOKI_WARN << this->name() << " attempting to modify read-only address " << LOKI_HEX(address) << endl;
-    else
-      throw ReadOnlyException(address);
-  }
+  if (mBackgroundMemory->readOnly(address) && WARN_READ_ONLY)
+    LOKI_WARN << this->name() << " attempting to modify read-only address " << LOKI_HEX(address) << endl;
 }
 
 
 void MemoryBank::processValidInput() {
-  LOKI_LOG << this->name() << " received " << iData.read() << endl;
   assert(iData.valid());
+  LOKI_LOG << this->name() << " received " << iData.read() << endl;
   assert(!mInputQueue.full());
-
   mInputQueue.write(iData.read());
   iData.ack();
 }
@@ -761,14 +755,15 @@ void MemoryBank::handleDataOutput() {
     LOKI_LOG << this->name() << " sent " << flit << endl;
     if (ENERGY_TRACE)
       Instrumentation::Network::traffic(id, flit.channelID().component);
+    else {
+      oData.write(flit);
 
-    oData.write(flit);
+      // Remove the request for network resources.
+      if (flit.getMetadata().endOfPacket)
+        localNetwork->makeRequest(id, flit.channelID(), false);
 
-    // Remove the request for network resources.
-    if (flit.getMetadata().endOfPacket)
-      localNetwork->makeRequest(id, flit.channelID(), false);
-
-    next_trigger(oData.ack_event());
+      next_trigger(oData.ack_event());
+    }
   }
 }
 
@@ -915,11 +910,8 @@ void MemoryBank::storeData(vector<Word>& data, MemoryAddr location) {
 void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
 	assert(mBackgroundMemory != NULL);
 
-	if (start > end) {
-		MemoryAddr temp = start;
-		start = end;
-		end = temp;
-	}
+	if (start > end)
+	  std::swap(start, end);
 
 	size_t address = (start / 4) * 4;
 	size_t limit = (end / 4) * 4 + 4;
