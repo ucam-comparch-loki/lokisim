@@ -245,6 +245,10 @@ void DecodedInst::preventForwarding() {
   // Also need to show that the predicate will not change, so no instructions
   // wait for it.
   setsPred_ = false;
+
+  // If any instruction was waiting for this one to finish, signal that it
+  // has finished.
+  hasResult_ = true;
 }
 
 
