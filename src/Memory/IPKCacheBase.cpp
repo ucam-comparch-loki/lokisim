@@ -33,8 +33,6 @@ IPKCacheBase::IPKCacheBase(const size_t size, const size_t numTags, const std::s
 
   jumpAmount = 0;
 
-  fillCount = 0;
-
   finishedPacketRead = true;
   finishedPacketWrite = true;
   lastOpWasARead = true;
@@ -59,7 +57,6 @@ const Instruction IPKCacheBase::read() {
 
   const Instruction inst = data[readPointer.value()];
   dataActivity();
-  fillCount--;
 
   if (fresh[readPointer.value()]) {
     dataConsumed.notify();
@@ -111,7 +108,7 @@ const size_t IPKCacheBase::remainingSpace() const {
   if (finishedPacketRead)
     return size();
   else
-    return size() - fillCount;
+    return size() - getFillCount();
 }
 
 /* Returns whether the cache is empty. Note that even if a cache is empty,
@@ -125,7 +122,7 @@ bool IPKCacheBase::empty() const {
 
 /* Returns whether the cache is full. */
 bool IPKCacheBase::full() const {
-  return fillCount == size();
+  return getFillCount() == size();
 }
 
 const sc_event& IPKCacheBase::dataConsumedEvent() const {
@@ -165,24 +162,20 @@ size_t IPKCacheBase::size()                       const {return data.size();}
 
 CacheIndex IPKCacheBase::getReadPointer()         const {return readPointer.value();}
 CacheIndex IPKCacheBase::getWritePointer()        const {return writePointer.value();}
-void IPKCacheBase::setReadPointer(CacheIndex pos)       {readPointer = pos; lastOpWasARead = false; updateFillCount();}
-void IPKCacheBase::setWritePointer(CacheIndex pos)      {writePointer = pos; updateFillCount();}
+void IPKCacheBase::setReadPointer(CacheIndex pos)       {readPointer = pos; lastOpWasARead = false;}
+void IPKCacheBase::setWritePointer(CacheIndex pos)      {writePointer = pos;}
 
 void IPKCacheBase::incrementWritePos() {
   ++writePointer;
-
-  if (fillCount < size())
-    fillCount++;
 }
 
 void IPKCacheBase::incrementReadPos() {
   ++readPointer;
-
-  if (fillCount > 0)
-    fillCount--;
 }
 
-void IPKCacheBase::updateFillCount() {
+size_t IPKCacheBase::getFillCount() const {
+  size_t fillCount;
+
   // Read and write pointers being in the same place could mean that the cache
   // is full or empty. Determine which case it is using the most recent operation.
   if (writePointer == readPointer)
@@ -201,6 +194,8 @@ void IPKCacheBase::updateFillCount() {
     if (fillCount > size())
       fillCount -= size();
   }
+
+  return fillCount;
 }
 
 void IPKCacheBase::tagActivity() {

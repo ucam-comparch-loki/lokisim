@@ -33,12 +33,10 @@ void IPKCacheDirectMapped::setTag(const CacheIndex position, const MemoryAddr ta
 void IPKCacheDirectMapped::updateReadPointer() {
   if (readPointer.isNull()) {
 //    readPointer = currentPacket.cacheIndex;
-    updateFillCount();
   }
   else if (jumpAmount != 0) {
     readPointer += jumpAmount;
     jumpAmount = 0;
-    updateFillCount();
   }
   else
     incrementReadPos();
@@ -53,5 +51,4 @@ void IPKCacheDirectMapped::updateWritePointer() {
 //    memAddr = pendingPacket.memAddr;
 //
 //  writePointer = (memAddr/BYTES_PER_WORD) % size();
-  updateFillCount();
 }

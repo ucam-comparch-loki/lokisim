@@ -107,7 +107,7 @@ protected:
   virtual void incrementWritePos();
   virtual void incrementReadPos();
 
-  virtual void updateFillCount();
+  virtual size_t getFillCount() const;
 
 private:
 
@@ -141,8 +141,6 @@ protected:
   // When the read and write pointers are in the same place, we use this to
   // tell whether the cache is full or empty.
   bool lastOpWasARead;
-
-  size_t fillCount;
 
 private:
 

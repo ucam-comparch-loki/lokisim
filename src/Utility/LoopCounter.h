@@ -69,13 +69,13 @@ public:
     return val;
   }
 
-  bool operator== (int num) const            {return val == num;}
-  bool operator== (LoopCounter& other) const {return val == other.val;}
-  bool operator!= (int num) const            {return val != num;}
-  bool operator>  (int num) const            {return val >  num;}
-  bool operator>= (int num) const            {return val >= num;}
-  bool operator<  (int num) const            {return val <  num;}
-  bool operator<= (int num) const            {return val <= num;}
+  bool operator== (int num) const                  {return val == num;}
+  bool operator== (const LoopCounter& other) const {return val == other.val;}
+  bool operator!= (int num) const                  {return val != num;}
+  bool operator>  (int num) const                  {return val >  num;}
+  bool operator>= (int num) const                  {return val >= num;}
+  bool operator<  (int num) const                  {return val <  num;}
+  bool operator<= (int num) const                  {return val <= num;}
 
 private:
 

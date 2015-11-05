@@ -145,13 +145,13 @@ void FetchStage::writeLoop() {
         next_trigger(iOutputBufferReady.posedge_event());
       }
       else {
-        writeState = WS_CHECK_TAGS;
+        writeState = WS_FETCH;
         next_trigger(sc_core::SC_ZERO_TIME);
       }
       break;
     }
 
-    case WS_CHECK_TAGS: {
+    case WS_FETCH: {
       activeFetch = fetchBuffer.read();
 
       if (activeFetch.networkInfo.returnChannel == 0)
@@ -168,7 +168,7 @@ void FetchStage::writeLoop() {
         next_trigger(clock.posedge_event());
       }
       else {
-        writeState = WS_FETCH;
+        writeState = WS_RECEIVE;
         sendRequest(activeFetch);
 
         if (activeFetch.networkInfo.returnChannel == 0)
@@ -180,7 +180,7 @@ void FetchStage::writeLoop() {
       break;
     }
 
-    case WS_FETCH: {
+    case WS_RECEIVE: {
       if (activeFetch.complete) {
         writeState = WS_READY;
         next_trigger(clock.posedge_event());
@@ -190,17 +190,42 @@ void FetchStage::writeLoop() {
         // new request, possibly to a different memory bank.
         // Cache line = 32 bytes = 2^5 bytes
         if ((activeFetch.address & 0x1F) == 0) {
-          LOKI_LOG << this->name() << " requesting IPK continuation from " << LOKI_HEX(activeFetch.address) << endl;
-          sendRequest(activeFetch);
+          writeState = WS_CONTINUE;
+          next_trigger(sc_core::SC_ZERO_TIME);
         }
+        else {
+          // Wait for the next instruction to arrive.
+          if (activeFetch.networkInfo.returnChannel == 0)
+            next_trigger(fifo.writeEvent());
+          else
+            next_trigger(cache.writeEvent());
+        }
+      }
 
-        // Wait for the next instruction to arrive.
+      break;
+    }
+
+    // Very similar to WS_READY, but since we are continuing a packet, we can
+    // leave out some of the checks.
+    case WS_CONTINUE: {
+      // Wait for there to be space in the cache to fetch a new line.
+      if (!cache.roomToFetch()) {
+        next_trigger(cache.readEvent());
+      }
+      else if (!iOutputBufferReady.read()) {
+        next_trigger(iOutputBufferReady.posedge_event());
+      }
+      else {
+        LOKI_LOG << this->name() << " requesting IPK continuation from "
+                 << LOKI_HEX(activeFetch.address) << endl;
+        sendRequest(activeFetch);
+        writeState = WS_RECEIVE;
+
         if (activeFetch.networkInfo.returnChannel == 0)
           next_trigger(fifo.writeEvent());
         else
           next_trigger(cache.writeEvent());
       }
-
       break;
     }
   } // end switch

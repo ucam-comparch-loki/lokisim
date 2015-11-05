@@ -63,7 +63,6 @@ void IPKCacheFullyAssociative::updateReadPointer() {
   if (jumpAmount != 0) {
     readPointer += jumpAmount;
     jumpAmount = 0;
-    updateFillCount();
   }
   else
     incrementReadPos();

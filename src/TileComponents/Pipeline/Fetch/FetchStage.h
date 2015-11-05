@@ -206,8 +206,9 @@ private:
 
   enum WriteState {
     WS_READY,       // Have no instructions to fetch
-    WS_CHECK_TAGS,  // Check whether instructions need to be fetched
-    WS_FETCH,       // Continue fetching cache lines until the end of packet is reached
+    WS_FETCH,       // Fetch the instruction packet, if necessary
+    WS_RECEIVE,     // Receive instructions until the end of packet is reached
+    WS_CONTINUE,    // Request the next cache line of the packet
   };
 
   ReadState  readState;
