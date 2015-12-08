@@ -6,8 +6,13 @@
  */
 
 #include "Directory.h"
+
 #include <assert.h>
-#include "../../Utility/Parameters.h"
+#include <ostream>
+#include "../../Utility/Logging.h"
+
+using std::endl;
+
 
 Directory::Directory(unsigned int size) :
     bitmask(size-1),
@@ -24,11 +29,15 @@ void Directory::setBitmaskLSB(unsigned int lsb) {
   assert(lsb < 32);
 
   shiftAmount = lsb;
+
+  LOKI_LOG << "Directory updated bitmask to start at bit " << lsb << endl;
 }
 
 void Directory::setEntry(unsigned int entry, unsigned int data) {
   assert(entry < directory.size());
   directory[entry] = DirectoryEntry(data);
+
+  LOKI_LOG << "Directory updated entry " << entry << " to point to tile " << TileID(data) << endl;
 }
 
 void Directory::initialise(TileID tile) {

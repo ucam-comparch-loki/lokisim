@@ -33,7 +33,10 @@ void FlowControlIn::handlePortClaim() {
   // TODO: only accept the port claim when we have no credits left to send.
 
   // Set the return address so we can send flow control.
-  returnAddress = data.payload().toInt();
+  int payload = data.payload().toInt();
+  ComponentID component(payload & 0xFFFF);
+  ChannelIndex channel = (payload >> 16) & 0xFFFF;
+  returnAddress = ChannelID(component, channel);
 
   // Only use credits if the sender is on a different tile.
   useCredits = id.tile != returnAddress.component.tile;
@@ -58,7 +61,6 @@ void FlowControlIn::addCredit() {
   if (useCredits) {
     numCredits++;
     newCredit.notify();
-    assert(numCredits <= IN_CHANNEL_BUFFER_SIZE);
   }
 }
 
