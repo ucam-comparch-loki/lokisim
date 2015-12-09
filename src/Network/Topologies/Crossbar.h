@@ -10,7 +10,7 @@
 
 #include "../Network.h"
 
-class BasicArbiter;
+class ClockedArbiter;
 class Multiplexer;
 
 class Crossbar: public Network {
@@ -88,7 +88,7 @@ protected:
   // This value tells how many there are.
   const int buffersPerComponent;
 
-  std::vector<BasicArbiter*> arbiters;
+  std::vector<ClockedArbiter*> arbiters;
   std::vector<Multiplexer*>  muxes;
 
   LokiVector2D<MuxSelectSignal> selectSig;

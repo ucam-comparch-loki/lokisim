@@ -30,13 +30,13 @@ void Multiplexer::handleData() {
   else if (iData[selection].valid()) { // Data arrived on the selected input
     if (!haveSentData) {
       oData.write(iData[selection].read());
-//      cout << this->name() << " sent " << dataIn[selection].read() << endl;
+//      cout << this->name() << " sent " << iData[selection].read() << endl;
       next_trigger(oData.ack_event());
       haveSentData = true;
     }
     else {
       iData[selection].ack();
-//      cout << this->name() << " acknowledged " << dataIn[selection].read() << endl;
+//      cout << this->name() << " acknowledged " << iData[selection].read() << endl;
       next_trigger(iSelect.default_event() | iData[selection].default_event());
       haveSentData = false;
     }

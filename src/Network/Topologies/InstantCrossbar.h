@@ -4,6 +4,10 @@
  * Crossbar which does not expose its arbitration signals. Arbitration happens
  * automatically whenever data arrives.
  *
+ * FIXME: while quicker than a regular crossbar, arbiters still only update
+ * their state on clock edges. Consider a combination of demultiplexers and
+ * WormholeMultiplexers.
+ *
  *  Created on: 27 Feb 2014
  *      Author: db434
  */

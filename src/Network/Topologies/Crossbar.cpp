@@ -9,7 +9,7 @@
 
 #include "Crossbar.h"
 #include "../Multiplexer.h"
-#include "../Arbiters/EndArbiter.h"
+#include "../Arbiters/ClockedArbiter.h"
 #include "../../Utility/Instrumentation/Network.h"
 
 void Crossbar::inputChanged(const PortIndex port) {
@@ -38,8 +38,8 @@ void Crossbar::makeSignals() {
 
 void Crossbar::makeArbiters() {
   for (int i=0; i<numArbiters; i++) {
-    EndArbiter* arb;
-    arb = new EndArbiter(sc_gen_unique_name("arbiter"), i, numInputPorts(),
+    ClockedArbiter* arb;
+    arb = new ClockedArbiter(sc_gen_unique_name("arbiter"), i, numInputPorts(),
                          outputsPerComponent, true, buffersPerComponent);
 
     arb->clock(clock);

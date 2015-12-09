@@ -17,8 +17,17 @@
 #ifndef NETWORKHIERARCHY2_H_
 #define NETWORKHIERARCHY2_H_
 
-#include "../../Component.h"
+#include <vector>
+
+#include "../../Datatype/Identifier.h"
+#include "../../Typedefs.h"
+#include "../../Utility/LokiVector2D.h"
+#include "../../Utility/LokiVector3D.h"
+#include "../NetworkTypedefs.h"
+#include "../Topologies/InstantCrossbar.h"
 #include "../Topologies/Mesh.h"
+#include "../WormholeMultiplexer.h"
+#include "RouterDemultiplexer.h"
 
 class InstantCrossbar;
 
@@ -81,7 +90,8 @@ protected:
   // N-to-1 and 1-to-N networks which connect all of the components to their
   // local routers.
   // Use InstantCrossbars because the router already deals with correct timing.
-  vector<InstantCrossbar*> toRouter, fromRouter;
+  vector<WormholeMultiplexer<Word>*> toRouter;
+  vector<RouterDemultiplexer<Word>*> fromRouter;
 
   // Network containing all routers.
   Mesh globalNetwork;

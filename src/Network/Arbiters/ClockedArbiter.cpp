@@ -7,14 +7,56 @@
 
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
-#include "BasicArbiter.h"
+#include "ClockedArbiter.h"
 #include "../../Arbitration/ArbiterBase.h"
 #include "../../Utility/Instrumentation/Network.h"
 
-int BasicArbiter::numInputs()  const {return iRequest.length();}
-int BasicArbiter::numOutputs() const {return oSelect.length();}
+int ClockedArbiter::numInputs()  const {return iRequest.length();}
+int ClockedArbiter::numOutputs() const {return oSelect.length();}
 
-void BasicArbiter::arbitrate(int output) {
+const sc_event& ClockedArbiter::canGrantNow(int output, const ChannelIndex destination) {
+  ChannelIndex channel;
+
+  // Determine which "ready" signal to check. Memories only have one, but cores
+  // have one for each buffer.
+  if (numOutputs() == 1)
+    channel = 0;
+  else
+    channel = destination;
+
+  // If the destination is ready to receive data, we can send the grant
+  // immediately.
+  if (iReady[channel].read()) {
+    grantEvent.notify(sc_core::SC_ZERO_TIME);
+    return grantEvent;
+  }
+  // Otherwise, we must wait until the destination is ready.
+  else {
+    return iReady[channel].posedge_event();
+  }
+}
+
+const sc_event& ClockedArbiter::stallGrant(int output) {
+  // We must stop granting requests if the destination component stops being
+  // ready to receive more data.
+
+  // The channel we are aiming to reach through this output.
+  ChannelIndex target;
+
+  if (numOutputs() == 1)
+    target = 0;
+  else {
+    MuxSelect input = selectVec[output];
+    assert(input != NO_SELECTION);
+
+    target = iRequest[input].read();
+    assert(target != NO_REQUEST);
+  }
+
+  return iReady[target].negedge_event();
+}
+
+void ClockedArbiter::arbitrate(int output) {
 
   switch (state[output]) {
     // We had no requests, but now that this method has been called again, we
@@ -134,28 +176,28 @@ void BasicArbiter::arbitrate(int output) {
   } // end switch
 }
 
-void BasicArbiter::grant(int input, int output) {
+void ClockedArbiter::grant(int input, int output) {
   grantVec[input] = true;
   grantChanged[input].notify();
 
   changeSelection(output, input);
 }
 
-void BasicArbiter::deassertGrant(int input, int output) {
+void ClockedArbiter::deassertGrant(int input, int output) {
   grantVec[input] = false;
   grantChanged[input].notify();
 
   changeSelection(output, NO_SELECTION);
 }
 
-void BasicArbiter::changeSelection(int output, MuxSelect value) {
+void ClockedArbiter::changeSelection(int output, MuxSelect value) {
 //  if(value != selectVec[output]) {
     selectVec[output] = value;
     selectionChanged[output].notify();
 //  }
 }
 
-bool BasicArbiter::haveRequest() const {
+bool ClockedArbiter::haveRequest() const {
   // A simple loop through the vector for now. If this proves to be too
   // expensive, could keep a separate count.
   for (int i=0; i<numInputs(); i++) {
@@ -166,22 +208,41 @@ bool BasicArbiter::haveRequest() const {
   return false;
 }
 
-void BasicArbiter::requestChanged(int input) {
-  requestVec[input] = (iRequest[input].read() != NO_REQUEST);
+void ClockedArbiter::requestChanged(int input) {
+  if (iRequest[input].read() == NO_REQUEST) {
+    requestVec[input] = false;
+  }
+  else {
+    PortIndex outputWanted = outputToUse(input);
 
-//  cout << this->name() << " request " << input << " changed to " << (int)(requestVec[input]) << endl;
+    if (iReady[outputWanted].read()) {
+      requestVec[input] = true;
+      receivedRequest.notify();
+    }
+    else {
+      requestVec[input] = false;
+    }
 
-  if (requestVec[input]) {
-    receivedRequest.notify();
+    next_trigger(iReady[outputWanted].default_event() | iRequest[input].default_event());
   }
 }
 
-void BasicArbiter::updateGrant(int input) {
+PortIndex ClockedArbiter::outputToUse(PortIndex input) {
+  // Memories only have one buffer and one ready signal which cover all channels.
+  // Cores have separate buffers and separate ready signals.
+
+  if (numOutputs() == 1)
+    return 0;
+  else
+    return iRequest[input].read();
+}
+
+void ClockedArbiter::updateGrant(int input) {
   // Update the output signal to the value held in the internal vector.
   oGrant[input].write(grantVec[input]);
 }
 
-void BasicArbiter::updateSelect(int output) {
+void ClockedArbiter::updateSelect(int output) {
   // Wait until the start of the next cycle before changing the select signal.
   // Arbitration is done the cycle before data is sent.
   if (clock.posedge()) {  // The clock edge
@@ -194,7 +255,7 @@ void BasicArbiter::updateSelect(int output) {
   }
 }
 
-void BasicArbiter::reportStalls(ostream& os) {
+void ClockedArbiter::reportStalls(ostream& os) {
   for (uint i=0; i<iRequest.length(); i++) {
     if (requestVec[i]) {
       os << this->name() << " still has active request on input " << i << endl;
@@ -202,8 +263,8 @@ void BasicArbiter::reportStalls(ostream& os) {
   }
 }
 
-BasicArbiter::BasicArbiter(const sc_module_name& name, ComponentID ID,
-                           int inputs, int outputs, bool wormhole) :
+ClockedArbiter::ClockedArbiter(const sc_module_name& name, ComponentID ID,
+                           int inputs, int outputs, bool wormhole, int flowControlSignals) :
     Component(name, ID),
     wormhole(wormhole),
     requestVec(inputs, false),
@@ -219,6 +280,7 @@ BasicArbiter::BasicArbiter(const sc_module_name& name, ComponentID ID,
   iRequest.init(inputs);
   oGrant.init(inputs);
   oSelect.init(outputs);
+  iReady.init(flowControlSignals);
 
   grantChanged.init(inputs);
   selectionChanged.init(outputs);
@@ -233,24 +295,24 @@ BasicArbiter::BasicArbiter(const sc_module_name& name, ComponentID ID,
   // Generate a method for each output port, granting new requests whenever
   // the output becomes free.
   for (int i=0; i<outputs; i++)
-    SPAWN_METHOD(receivedRequest, BasicArbiter::arbitrate, i, false);
+    SPAWN_METHOD(receivedRequest, ClockedArbiter::arbitrate, i, false);
 
   // Generate a method to watch each request port, taking appropriate action
   // whenever the signal changes.
   for (int i=0; i<inputs; i++)
-    SPAWN_METHOD(iRequest[i], BasicArbiter::requestChanged, i, false);
+    SPAWN_METHOD(iRequest[i], ClockedArbiter::requestChanged, i, false);
 
   // Method for each grant port, updating the grant signal when appropriate.
   for (int i=0; i<inputs; i++)
-    SPAWN_METHOD(grantChanged[i], BasicArbiter::updateGrant, i, false);
+    SPAWN_METHOD(grantChanged[i], ClockedArbiter::updateGrant, i, false);
 
   // Method for each select port, updating the signal when appropriate.
   for (int i=0; i<outputs; i++)
-    SPAWN_METHOD(selectionChanged[i], BasicArbiter::updateSelect, i, false);
+    SPAWN_METHOD(selectionChanged[i], ClockedArbiter::updateSelect, i, false);
 
 }
 
-BasicArbiter::~BasicArbiter() {
+ClockedArbiter::~ClockedArbiter() {
   delete arbiter;
   arbiter = NULL;
 }

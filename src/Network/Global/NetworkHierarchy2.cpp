@@ -7,9 +7,16 @@
 
 #include "NetworkHierarchy2.h"
 
+#include "../../Datatype/Identifier.h"
+#include "../../Datatype/Word.h"
+#include "../../Typedefs.h"
+#include "../../Utility/LokiVector.h"
+#include "../../Utility/LokiVector2D.h"
+#include "../../Utility/LokiVector3D.h"
 #include "../../Utility/Parameters.h"
 #include "../Network.h"
 #include "../Topologies/InstantCrossbar.h"
+#include "../WormholeMultiplexer.h"
 
 NetworkHierarchy2::NetworkHierarchy2(const sc_module_name &name,
                                      const unsigned int    sourcesPerTile,
@@ -88,22 +95,11 @@ void NetworkHierarchy2::createNetworkToRouter(TileID tile) {
   TileIndex index = tile.overallTileIndex();
   uint sourcesPerTile = iData[index].length();
 
-  // TODO: don't bother creating a crossbar if sourcesPerTile == 1.
-  // Just connect iData directly to localToGlobalData (or the router).
-  InstantCrossbar* xbar = new InstantCrossbar(sc_gen_unique_name("to_router"), // name
-                              ComponentID(tile,0), // ID
-                              sourcesPerTile,      // inputs from components
-                              1,                   // outputs to router
-                              1,                   // outputs leading to each router
-                              Network::NONE,       // hierarchy level not needed
-                              1);                  // buffers behind each output
-
-  xbar->clock(clock);
-  xbar->oData[0](localToGlobalData[tile.x][tile.y]);
-  xbar->iReady[0][0](globalToLocalReady[tile.x][tile.y]);
-  xbar->iData(iData[index]);
-
-  toRouter.push_back(xbar);
+  WormholeMultiplexer<Word>* mux = new WormholeMultiplexer<Word>(
+      sc_gen_unique_name("to_router"), sourcesPerTile);
+  mux->iData(iData[index]);
+  mux->oData(localToGlobalData[tile.x][tile.y]);
+  toRouter.push_back(mux);
 }
 
 void NetworkHierarchy2::createNetworkFromRouter(TileID tile) {
@@ -111,18 +107,27 @@ void NetworkHierarchy2::createNetworkFromRouter(TileID tile) {
   uint destinationsPerTile = oData[index].length();
   uint buffersPerDestination = iReady[index][0].length();
 
-  InstantCrossbar* xbar = new InstantCrossbar(sc_gen_unique_name("from_router"), // name
-                              ComponentID(tile,0), // ID
-                              1,                   // inputs from router
-                              destinationsPerTile, // outputs to components
-                              1,                   // outputs leading to each component
-                              Network::COMPONENT,  // route by component number
-                              buffersPerDestination);// buffers behind each output
+  RouterDemultiplexer<Word>* demux = new RouterDemultiplexer<Word>(
+      sc_gen_unique_name("from_router"), destinationsPerTile, buffersPerDestination);
+  demux->iData(globalToLocalData[tile.x][tile.y]);
+  demux->oData(oData[index]);
+  demux->iReady(iReady[index]);
+  fromRouter.push_back(demux);
 
-  xbar->clock(clock);
-  xbar->iData[0](globalToLocalData[tile.x][tile.y]);
-  xbar->oData(oData[index]);
-  xbar->iReady(iReady[index]);
-
-  fromRouter.push_back(xbar);
+//  // TODO: this isn't the job of a crossbar (and the InstantCrossbar isn't
+//  // very instant), so replace with a simpler demultiplexer.
+//  InstantCrossbar* xbar = new InstantCrossbar(sc_gen_unique_name("from_router"), // name
+//                              ComponentID(tile,0), // ID
+//                              1,                   // inputs from router
+//                              destinationsPerTile, // outputs to components
+//                              1,                   // outputs leading to each component
+//                              Network::COMPONENT,  // route by component number
+//                              buffersPerDestination);// buffers behind each output
+//
+//  xbar->clock(clock);
+//  xbar->iData[0](globalToLocalData[tile.x][tile.y]);
+//  xbar->oData(oData[index]);
+//  xbar->iReady(iReady[index]);
+//
+//  fromRouter.push_back(xbar);
 }

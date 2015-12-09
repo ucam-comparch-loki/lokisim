@@ -1,5 +1,5 @@
 /*
- * BasicArbiter.h
+ * ClockedArbiter.h
  *
  * A SystemC wrapper for an arbiter from the Arbitration directory.
  *
@@ -7,9 +7,6 @@
  * must be received by then.
  * The select signals, telling the multiplexers which inputs to use, are
  * written on the positive edge.
- *
- * This is the base component: it should be subclassed to allow different
- * methods of flow control.
  *
  *  Created on: 6 Sep 2011
  *      Author: db434
@@ -24,7 +21,7 @@
 
 class ArbiterBase;
 
-class BasicArbiter: public Component, public Blocking {
+class ClockedArbiter: public Component, public Blocking {
 
 //==============================//
 // Ports
@@ -39,16 +36,19 @@ public:
 
   LokiVector<MuxSelectOutput> oSelect;
 
+  // Signals from the component telling if it is able to receive more data.
+  LokiVector<ReadyInput> iReady;
+
 //==============================//
 // Constructors and destructors
 //==============================//
 
 public:
 
-  SC_HAS_PROCESS(BasicArbiter);
-  BasicArbiter(const sc_module_name& name, ComponentID ID,
-               int inputs, int outputs, bool wormhole);
-  virtual ~BasicArbiter();
+  SC_HAS_PROCESS(ClockedArbiter);
+  ClockedArbiter(const sc_module_name& name, ComponentID ID,
+               int inputs, int outputs, bool wormhole, int flowControlSignals);
+  virtual ~ClockedArbiter();
 
 //==============================//
 // Methods
@@ -63,11 +63,11 @@ protected:
 
   // Returns a reference to an event which will be triggered when it is
   // possible to send data to the given output.
-  virtual const sc_event& canGrantNow(int output, const ChannelIndex destination) = 0;
+  virtual const sc_event& canGrantNow(int output, const ChannelIndex destination);
 
   // An event which is triggered if the grant must be temporarily removed,
   // because the destination is not capable of receiving more data yet.
-  virtual const sc_event& stallGrant(int output) = 0;
+  virtual const sc_event& stallGrant(int output);
 
   virtual void grant(int input, int output);
   virtual void deassertGrant(int input, int output);
@@ -78,6 +78,10 @@ protected:
   virtual void reportStalls(ostream& os);
 
 private:
+
+  // Return which ready signal dictates when the input data will be allowed
+  // to send.
+  PortIndex outputToUse(PortIndex input);
 
   // Change a particular select output to a particular value.
   void changeSelection(int output, MuxSelect value);
@@ -122,6 +126,10 @@ private:
 
   // Array of events which tell when to change each grant signal.
   LokiVector<sc_event> grantChanged, selectionChanged;
+
+  // An event which is notified whenever canGrantNow determines that it is safe
+  // to grant a request.
+  sc_event grantEvent;
 
 };
 

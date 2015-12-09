@@ -15,7 +15,7 @@ void InstantCrossbar::mainLoop(PortIndex port) {
   PortIndex output = getDestination(data.channelID());
 
   if (output >= numOutputPorts())
-    cerr << this->name() << " outputs: " << numOutputPorts() << ", requested port: " << (int)output << endl;
+    LOKI_ERROR << this->name() << " outputs: " << numOutputPorts() << ", requested port: " << (int)output << endl;
   assert(output < numOutputPorts());
 
   switch (state[port]) {

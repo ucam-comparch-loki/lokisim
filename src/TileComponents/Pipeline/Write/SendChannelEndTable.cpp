@@ -189,12 +189,13 @@ void SendChannelEndTable::sendLoopGlobal() {
   // This loop can be much simpler than the local one, above, because each
   // core has a single dedicated link, and so no arbitration is needed.
 
-  // Wait until we have data, we have the credits to send that data, and only
-  // send on a positive clock edge.
-  if (bufferGlobal.empty())
+  // Wait until we have data, and only send on a positive clock edge.
+  if (bufferGlobal.empty()) {
     next_trigger(bufferGlobal.writeEvent());
-  else if (!clock.posedge())
+  }
+  else if (!clock.posedge()) {
     next_trigger(clock.posedge_event());
+  }
   else {
     const NetworkData data = bufferGlobal.read();
 
