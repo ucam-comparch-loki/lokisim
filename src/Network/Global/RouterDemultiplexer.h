@@ -73,9 +73,9 @@ private:
     switch (state) {
       case DEMUX_READY:
         if (flowControlSignal(destination).read()) {
-          oData[destination.component.position].write(iData.read());
+          outputSignal(destination).write(iData.read());
           state = DEMUX_SENT;
-          next_trigger(oData[destination.component.position].ack_event());
+          next_trigger(outputSignal(destination).ack_event());
         }
         else {
           next_trigger(flowControlSignal(destination).posedge_event());
@@ -83,7 +83,7 @@ private:
         break;
 
       case DEMUX_SENT:
-        assert(!oData[destination.component.position].valid());
+        assert(!outputSignal(destination).valid());
         iData.ack();
         state = DEMUX_READY;
         // default trigger = new data arriving
@@ -93,14 +93,17 @@ private:
   }
 
   const ReadyInput& flowControlSignal(ChannelID destination) const {
-    uint component = destination.component.position;
+    // Cope with situations where there are multiple components/channels behind
+    // a single port.
+    uint component = std::min<int>(destination.component.position, iReady.length()-1);
+    uint channel = std::min<int>(destination.channel, iReady[component].length()-1);
 
-    // If there is only one flow control signal, read that.
-    if (iReady[component].length() == 1)
-      return iReady[component][0];
-    // If there are many, read the one corresponding to the channel being accessed.
-    else
-      return iReady[component][destination.channel];
+    return iReady[component][channel];
+  }
+
+  OutPort& outputSignal(ChannelID destination) const {
+    uint port = std::min<int>(destination.component.position, iReady.length()-1);
+    return oData[port];
   }
 
 //==============================//
