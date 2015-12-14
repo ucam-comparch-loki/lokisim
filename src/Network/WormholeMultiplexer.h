@@ -45,12 +45,8 @@ public:
   WormholeMultiplexer(const sc_module_name& name, uint inputs) : Component(name) {
     iData.init(inputs);
 
-    state = MUX_READY;
+    state = MUX_INIT;
     lastSelected = 0;
-
-    // Initialise such that a packet has just finished so we are free to select
-    // any input.
-    oData.initialize(Flit<T>(T(), ChannelID(), true));
 
     SC_METHOD(mainLoop);
     for (uint i=0; i<inputs; i++)
@@ -67,6 +63,12 @@ private:
   void mainLoop() {
 
     switch (state) {
+      case MUX_INIT:
+        selectNewInput();
+        state = MUX_SELECTED;
+        next_trigger(oData.ack_event());
+        break;
+
       case MUX_READY:
         if (haveValidInput()) {
           selectInput();
@@ -99,41 +101,45 @@ private:
     // If we're in the middle of a packet, only check the input we selected last.
     if (!oData.read().getMetadata().endOfPacket)
       return iData[lastSelected].valid();
-    else {
-      for (uint i=0; i<iData.length(); i++) {
-        if (iData[i].valid())
-          return true;
-      }
+    else
+      return haveNewInput();
+  }
 
-      return false;
+  bool haveNewInput() const {
+    for (uint i=0; i<iData.length(); i++) {
+      if (iData[i].valid())
+        return true;
     }
+
+    return false;
   }
 
   void selectInput() {
     assert(!oData.valid());
 
-    if (!oData.read().getMetadata().endOfPacket) {
+    if (!oData.read().getMetadata().endOfPacket)
       oData.write(iData[lastSelected].read());
-      return;
-    }
-    else {
-      PortIndex currentPort = lastSelected + 1;
+    else
+      selectNewInput();
+  }
 
-      for (uint i=0; i<iData.length(); i++) {
-        if (currentPort >= iData.length())
-          currentPort = 0;
+  void selectNewInput() {
+    PortIndex currentPort = lastSelected + 1;
 
-        if (iData[currentPort].valid()) {
-          oData.write(iData[currentPort].read());
-          lastSelected = currentPort;
-          return;
-        }
+    for (uint i=0; i<iData.length(); i++) {
+      if (currentPort >= iData.length())
+        currentPort = 0;
 
-        currentPort++;
+      if (iData[currentPort].valid()) {
+        oData.write(iData[currentPort].read());
+        lastSelected = currentPort;
+        return;
       }
 
-      assert(false && "Couldn't find valid input");
+      currentPort++;
     }
+
+    assert(false && "Couldn't find valid input");
   }
 
 //==============================//
@@ -143,6 +149,7 @@ private:
 private:
 
   enum MuxState {
+    MUX_INIT,     // Initialisation
     MUX_READY,    // No valid inputs
     MUX_SELECTED, // Sent output data, waiting for acknowledgement
   };

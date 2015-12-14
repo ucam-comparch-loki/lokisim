@@ -155,7 +155,7 @@ public:
   Flit<T>() :
       messageID_(messageCount++),
       payload_(static_cast<T>(0)),
-      metadata_(0),
+      metadata_(1), // end of packet
       channelID_(ChannelID(0, 0, 0, 0)) {
   }
 
