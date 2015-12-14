@@ -134,6 +134,7 @@ void FetchStage::writeLoop() {
       }
       // Wait for there to be space in the cache to fetch a new packet.
       else if (!roomToFetch()) {
+        cout << this->name() << " waiting for roomToFetch (cache/fifo read)" << endl;
         next_trigger(cache.readEvent() | fifo.readEvent());
       }
       // The pending packet is where we store all the information about the
@@ -454,7 +455,7 @@ MemoryAddr FetchStage::newPacketArriving(const InstLocation& location) {
 void FetchStage::packetFinishedArriving(InstructionSource source) {
   // Look for the first packet in the queue which we don't have.
   PacketInfo* packet;
-  if (currentPacket.active() && !currentPacket.inCache)
+  if (currentPacket.active() && !currentPacket.inCache && currentPacket.location.component == source)
     packet = &currentPacket;
   else if (source == IPKFIFO)
     packet = &fifoPendingPacket;
