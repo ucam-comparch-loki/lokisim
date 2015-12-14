@@ -134,7 +134,6 @@ void FetchStage::writeLoop() {
       }
       // Wait for there to be space in the cache to fetch a new packet.
       else if (!roomToFetch()) {
-        cout << this->name() << " waiting for roomToFetch (cache/fifo read)" << endl;
         next_trigger(cache.readEvent() | fifo.readEvent());
       }
       // The pending packet is where we store all the information about the

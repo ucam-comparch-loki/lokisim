@@ -409,7 +409,9 @@ void MemoryBank::processRequest() {
     mActiveRequest->execute();
   }
 
-  if (mActiveRequest->complete()) {
+  // If the operation has finished, and we haven't moved to some other state
+  // for further processing, end the request and prepare for a new one.
+  if (mActiveRequest->complete() && mState == STATE_REQUEST) {
     finishedRequest();
     mReadFromMissBuffer = false;
   }
