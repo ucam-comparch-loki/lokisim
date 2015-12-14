@@ -399,13 +399,17 @@ void MemoryBank::processRequest() {
     LOKI_LOG << this->name() << " delayed request due to full output queue" << endl;
     next_trigger(canSendResponseEvent(mActiveRequest->getMemoryLevel()));
   }
-  else if (!iClock.negedge())
+  else if (!iClock.negedge()) {
     next_trigger(iClock.negedge_event());
-  else if (!mActiveRequest->preconditionsMet())
+  }
+  else if (!mActiveRequest->preconditionsMet()) {
     mActiveRequest->prepare();
-  else if (!mActiveRequest->complete())
+  }
+  else if (!mActiveRequest->complete()) {
     mActiveRequest->execute();
-  else {
+  }
+
+  if (mActiveRequest->complete()) {
     finishedRequest();
     mReadFromMissBuffer = false;
   }
@@ -540,6 +544,9 @@ void MemoryBank::finishedRequest() {
   mState = STATE_IDLE;
   delete mActiveRequest;
   mActiveRequest = NULL;
+
+  // Decode the next request immediately so it is ready to start next cycle.
+  next_trigger(sc_core::SC_ZERO_TIME);
 }
 
 bool MemoryBank::requestAvailable() const {
