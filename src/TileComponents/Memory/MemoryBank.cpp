@@ -764,15 +764,14 @@ void MemoryBank::handleDataOutput() {
     LOKI_LOG << this->name() << " sent " << flit << endl;
     if (ENERGY_TRACE)
       Instrumentation::Network::traffic(id, flit.channelID().component);
-    else {
-      oData.write(flit);
 
-      // Remove the request for network resources.
-      if (flit.getMetadata().endOfPacket)
-        localNetwork->makeRequest(id, flit.channelID(), false);
+    oData.write(flit);
 
-      next_trigger(oData.ack_event());
-    }
+    // Remove the request for network resources.
+    if (flit.getMetadata().endOfPacket)
+      localNetwork->makeRequest(id, flit.channelID(), false);
+
+    next_trigger(oData.ack_event());
   }
 }
 
