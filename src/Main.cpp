@@ -15,10 +15,6 @@
 #include "Utility/Instrumentation.h"
 #include "Utility/Instrumentation/Operations.h"
 #include "Utility/Trace/Callgrind.h"
-#include "Utility/Trace/CoreTrace.h"
-#include "Utility/Trace/MemoryTrace.h"
-#include "Utility/Trace/SoftwareTrace.h"
-#include "Utility/Trace/LBTTrace.h"
 #include "Utility/StartUp/CodeLoader.h"
 #include "Utility/Statistics.h"
 
@@ -27,28 +23,56 @@ using std::vector;
 using std::string;
 using Instrumentation::Stalls;
 
-// Advance the simulation cyclesPerStep clock cycles. A higher number means
-// less stop-start simulation, which is quicker, but means it takes longer to
-// identify any problems.
-static cycle_count_t cycleNumber = 0;
-static cycle_count_t cyclesPerStep = 1;
 
-// For simplicity, 1 cycle = 1 ns
-#define TIMESTEP {\
-  cycleNumber += cyclesPerStep;\
-  if (DEBUG) cout << "\n======= Cycle " << cycleNumber << " =======" << endl;\
-  if (CORE_TRACE) CoreTrace::setClockCycle(cycleNumber);\
-  if (Arguments::memoryTrace()) MemoryTrace::setClockCycle(cycleNumber);\
-  if (Arguments::softwareTrace()) SoftwareTrace::setClockCycle(cycleNumber);\
-  if (Arguments::lbtTrace()) LBTTrace::setClockCycle(cycleNumber);\
-  sc_start((int)cyclesPerStep, SC_NS);\
+void timestep(cycle_count_t cyclesPerStep) {
+  cycle_count_t cycle = Instrumentation::currentCycle();
+  if (DEBUG) cout << "\n======= Cycle " << cycle << " =======" << endl;
+
+  sc_start((int)cyclesPerStep, SC_NS);
+}
+
+void statusUpdate(std::ostream& os) {
+  os << "Current cycle number: " << Instrumentation::currentCycle()
+     << " [" << Instrumentation::Operations::numOperations() << " operation(s) executed]" << endl;
+}
+
+bool checkProgress() {
+  static count_t operationCount = 0;
+  count_t newOperationCount = Instrumentation::Operations::numOperations();
+
+  if (newOperationCount == operationCount) {
+    cerr << "\nNo progress has been made for 10000 cycles. Aborting." << endl;
+
+    Instrumentation::endExecution();
+    Blocking::reportProblems(cerr);
+    RETURN_CODE = EXIT_FAILURE;
+
+    return false;
+  }
+
+  operationCount = newOperationCount;
+  return true;
+}
+
+bool checkIdle() {
+  if (Stalls::cyclesIdle() >= 100) {
+    statusUpdate(cerr);
+    cerr << "System has been idle for " << Stalls::cyclesIdle() << " cycles. Aborting." << endl;
+    Instrumentation::endExecution();
+    Blocking::reportProblems(cerr);
+    RETURN_CODE = EXIT_FAILURE;
+    return true;
+  }
+  return false;
 }
 
 void simulate(Chip& chip) {
 
+  cycle_count_t cyclesPerStep;
+
   // Simulate multiple cycles in a row when possible to reduce the overheads of
   // stopping and starting simulation.
-  if (DEBUG || CORE_TRACE || Arguments::memoryTrace() || Arguments::softwareTrace() || Arguments::lbtTrace())
+  if (DEBUG)
     cyclesPerStep = 1;
   else
     cyclesPerStep = (100 < TIMEOUT/50) ? 100 : TIMEOUT/50;
@@ -59,54 +83,35 @@ void simulate(Chip& chip) {
       Debugger::waitForInput();
     }
     else {
-      cycle_count_t cycleCounter = 0;
-      count_t operationCount = 0;
 
-      cycle_count_t i;
-      for (i=0; i<TIMEOUT && !sc_core::sc_end_of_simulation_invoked(); i+=cyclesPerStep) {
-        TIMESTEP;
+      cycle_count_t cycle = 0;
+      while (!sc_core::sc_end_of_simulation_invoked()) {
 
-        cycleCounter += cyclesPerStep;
-        if (cycleCounter >= 10000) {
-          count_t newOperationCount = Instrumentation::Operations::numOperations();
-          cycleCounter -= 10000;
-
-          if (newOperationCount == operationCount) {
-            cerr << "\nNo progress has been made for 10000 cycles. Aborting." << endl;
-
-            ComponentID core0(1,1,0); // Assume core 0 is stalled
-            cerr << "Stuck at instruction packet at " << LOKI_HEX(chip.readRegisterInternal(core0, 1)) << endl;
-
-            Instrumentation::endExecution();
-            Blocking::reportProblems(cerr);
-            RETURN_CODE = EXIT_FAILURE;
-
-            break;
-          }
-
-          operationCount = newOperationCount;
-        }
-
-        if ((cycleNumber % 1000000 < cyclesPerStep) && !DEBUG && !Arguments::silent())
-          cerr << "Current cycle number: " << cycleNumber << " [" << operationCount << " operation(s) executed]" << endl;
-
-//        if (cycleNumber >= 1450000) {
+//        if (cycle >= 7000000) {
 //          cyclesPerStep = 1;
 //          DEBUG = 1;
 //        }
 
-        if (Stalls::cyclesIdle() >= 100) {
-          cerr << "Current cycle number: " << cycleNumber << " [" << Instrumentation::Operations::numOperations() << " operation(s) executed]" << endl;
-          cerr << "System has been idle for " << Stalls::cyclesIdle() << " cycles. Aborting." << endl;
-          Instrumentation::endExecution();
+        if ((cycle > 0) && (cycle % 1000000 < cyclesPerStep) && !DEBUG && !Arguments::silent())
+          statusUpdate(cerr);
+
+        timestep(cyclesPerStep);
+        cycle += cyclesPerStep;
+
+        if (cycle % 10000 < cyclesPerStep) {
+          bool progress = checkProgress();
+          if (!progress) break;
+        }
+
+        bool idle = checkIdle();
+        if (idle) break;
+
+        if (cycle >= TIMEOUT) {
+          cerr << "Simulation timed out after " << TIMEOUT << " cycles." << endl;
           RETURN_CODE = EXIT_FAILURE;
           break;
         }
-      }
 
-      if (i >= TIMEOUT) {
-        cerr << "Simulation timed out after " << TIMEOUT << " cycles." << endl;
-        RETURN_CODE = EXIT_FAILURE;
       }
     }
   }
@@ -158,24 +163,12 @@ void presimulation(Chip& chip) {
 
   if (ENERGY_TRACE)
     Instrumentation::startEventLog();
-
-  // Store initial memory image
-  if (Arguments::lbtTrace())
-  LBTTrace::storeInitialMemoryImage(chip.getMemoryData());
 }
 
 // Tasks which happen after simulation finishes.
 void postsimulation(Chip& chip) {
-  // Store final memory image
-  if (Arguments::lbtTrace())
-  LBTTrace::storeFinalMemoryImage(chip.getMemoryData());
-
   // Print debug information
-  if (Arguments::batchMode()) {
-    Parameters::printParametersDbase();
-    Statistics::printStats();
-  }
-  else if (Arguments::summarise() || DEBUG)
+  if (Arguments::summarise() || DEBUG)
     Instrumentation::printSummary();
 
   Instrumentation::stopEventLog();
@@ -201,14 +194,6 @@ void postsimulation(Chip& chip) {
   Instrumentation::end();
 
   // Stop traces
-  if (CORE_TRACE)
-    CoreTrace::stop();
-  if (Arguments::memoryTrace())
-    MemoryTrace::stop();
-  if (Arguments::softwareTrace())
-    SoftwareTrace::stop();
-  if (Arguments::lbtTrace())
-    LBTTrace::stop();
   Callgrind::endTrace();
 }
 

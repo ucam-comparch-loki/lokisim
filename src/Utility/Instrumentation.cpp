@@ -10,7 +10,6 @@
 #include "StartUp/CodeLoader.h"
 #include "Arguments.h"
 #include "Debugger.h"
-#include "Instrumentation/BackgroundMemory.h"
 #include "Instrumentation/ChannelMap.h"
 #include "Instrumentation/FIFO.h"
 #include "Instrumentation/IPKCache.h"
@@ -22,6 +21,7 @@
 #include "Instrumentation/Scratchpad.h"
 #include "Instrumentation/Stalls.h"
 #include "../Datatype/DecodedInst.h"
+#include "Instrumentation/MainMemory.h"
 
 // The time at which the statistics were last reset.
 cycle_count_t statsWiped = 0;
@@ -126,11 +126,6 @@ void Instrumentation::decoded(const ComponentID& core, const DecodedInst& dec) {
     std::cout << dec << endl;
   }
 }
-
-// Record that background memory was read from.
-void Instrumentation::backgroundMemoryRead(MemoryAddr address, uint32_t count) {BackgroundMemory::read(address, count);}
-// Record that background memory was written to.
-void Instrumentation::backgroundMemoryWrite(MemoryAddr address, uint32_t count)								{BackgroundMemory::write(address, count);}
 
 
 void Instrumentation::idle(const ComponentID id, bool idle) {

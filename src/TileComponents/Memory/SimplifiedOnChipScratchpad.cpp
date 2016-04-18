@@ -34,7 +34,7 @@ using namespace std;
 
 #include "../../Component.h"
 #include "../../Exceptions/ReadOnlyException.h"
-#include "../../Utility/Instrumentation.h"
+#include "../../Utility/Instrumentation/MainMemory.h"
 #include "../../Utility/Warnings.h"
 #include "SimplifiedOnChipScratchpad.h"
 
@@ -63,7 +63,7 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 			assert(mPortData[port].WordsLeft > 0);
 
-			Instrumentation::backgroundMemoryRead(mPortData[port].Address, mPortData[port].WordsLeft);
+			Instrumentation::MainMemory::read(mPortData[port].Address, mPortData[port].WordsLeft);
 
 			// One clock cycle access delay until reading starts
 
@@ -81,7 +81,7 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
 			assert(mPortData[port].WordsLeft > 0);
 
-			Instrumentation::backgroundMemoryWrite(mPortData[port].Address, mPortData[port].WordsLeft);
+			Instrumentation::MainMemory::write(mPortData[port].Address, mPortData[port].WordsLeft);
 
 			mPortData[port].State = STATE_WRITING;
 		} else {

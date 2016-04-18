@@ -1,22 +1,13 @@
-//-------------------------------------------------------------------------------------------------
-// Loki Project
-// Software Simulator for Design Space Exploration
-//-------------------------------------------------------------------------------------------------
-// Configurable Memory Bank Implementation
-//-------------------------------------------------------------------------------------------------
-// Third version of configurable memory bank model. Each memory bank is
-// directly connected to the network. There are multiple memory banks per tile.
-//
-// Memory requests are connection-less. Instead, the new channel map table
-// mechanism in the memory bank is used.
-//
-// The number of input and output ports is fixed to 1. The ports possess
-// queues for incoming and outgoing data.
-//-------------------------------------------------------------------------------------------------
-// File:       MemoryBank.cpp
-// Author:     Daniel Bates (Daniel.Bates@cl.cam.ac.uk)
-// Created on: 08/04/2011
-//-------------------------------------------------------------------------------------------------
+/*
+ * MemoryBank.cpp
+ *
+ * One bank of the banked L1/L2 cache system. Most of the logic has been
+ * farmed out to the files in Operations/ so this class mostly ensures that the
+ * required data is available.
+ *
+ *  Created on: 1 Jul 2015
+ *      Author: db434
+ */
 
 #include <iostream>
 #include <iomanip>
@@ -31,7 +22,6 @@ using namespace std;
 #include "../../Utility/Arguments.h"
 #include "../../Utility/Instrumentation/MemoryBank.h"
 #include "../../Utility/Instrumentation/Network.h"
-#include "../../Utility/Trace/MemoryTrace.h"
 #include "../../Utility/Parameters.h"
 #include "../../Utility/Warnings.h"
 #include "../../Exceptions/ReadOnlyException.h"
@@ -824,7 +814,7 @@ void MemoryBank::updateReady() {
 //-------------------------------------------------------------------------------------------------
 
 MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumber) :
-	Component(name, ID),
+  Component(name, ID),
   mInputQueue(string(this->name()) + string(".mInputQueue"), IN_CHANNEL_BUFFER_SIZE),
   mOutputQueue("mOutputQueue", OUT_CHANNEL_BUFFER_SIZE, INTERNAL_LATENCY),
   mOutputReqQueue("mOutputReqQueue", 10 /*read addr + write addr + cache line*/, 0),
@@ -833,46 +823,42 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
   mValid(CACHE_LINES_PER_BANK, false),
   mDirty(CACHE_LINES_PER_BANK, false),
   mReservations(1),
-	mMissBuffer(CACHE_LINE_WORDS, "mMissBuffer"),
-	mCacheMissEvent(sc_core::sc_gen_unique_name("mCacheMissEvent")),
-	mL2RequestFilter("request_filter", ID, this)
+  mMissBuffer(CACHE_LINE_WORDS, "mMissBuffer"),
+  mCacheMissEvent(sc_core::sc_gen_unique_name("mCacheMissEvent")),
+  mL2RequestFilter("request_filter", ID, this)
 {
-	//-- Mode independent state -------------------------------------------------------------------
-	mActiveRequest = NULL;
-	mMissingRequest = NULL;
+  //-- Mode independent state -------------------------------------------------------------------
+  mActiveRequest = NULL;
+  mMissingRequest = NULL;
 
-	mState = STATE_IDLE;
-	mPreviousState = STATE_IDLE;
+  mState = STATE_IDLE;
+  mPreviousState = STATE_IDLE;
 
-	mCacheLineCursor = 0;
+  mCacheLineCursor = 0;
 
-	mCopyToMissBuffer = false;
-	mReadFromMissBuffer = false;
+  mCopyToMissBuffer = false;
+  mReadFromMissBuffer = false;
 
-	//-- Debug utilities --------------------------------------------------------------------------
+  // Magic interfaces.
+  mBackgroundMemory = 0;
+  localNetwork = 0;
 
-	mBackgroundMemory = 0;
-	localNetwork = 0;
+  // Connect to local components.
+  oReadyForData.initialize(false);
 
-	//-- Port initialization ----------------------------------------------------------------------
+  mL2RequestFilter.iClock(iClock);
+  mL2RequestFilter.iRequest(iRequest);
+  mL2RequestFilter.iRequestTarget(iRequestTarget);
+  mL2RequestFilter.oRequest(requestSig);
+  mL2RequestFilter.iRequestClaimed(iRequestClaimed);
+  mL2RequestFilter.oClaimRequest(oClaimRequest);
 
-	oReadyForData.initialize(false);
+  currentlyIdle = true;
+  Instrumentation::idle(id, true);
 
-	mL2RequestFilter.iClock(iClock);
-	mL2RequestFilter.iRequest(iRequest);
-	mL2RequestFilter.iRequestTarget(iRequestTarget);
-	mL2RequestFilter.oRequest(requestSig);
-	mL2RequestFilter.iRequestClaimed(iRequestClaimed);
-	mL2RequestFilter.oClaimRequest(oClaimRequest);
-
-	//-- Register module with SystemC simulation kernel -------------------------------------------
-
-	currentlyIdle = true;
-	Instrumentation::idle(id, true);
-
-	SC_METHOD(mainLoop);
-	sensitive << iClock.neg();
-	dont_initialize();
+  SC_METHOD(mainLoop);
+  sensitive << iClock.neg();
+  dont_initialize();
 
   SC_METHOD(updateReady);
   sensitive << mInputQueue.readEvent() << mInputQueue.writeEvent();
@@ -885,11 +871,11 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
             << iResponse << oResponse;
   // do initialise
 
-	SC_METHOD(processValidInput);
-	sensitive << iData;
-	dont_initialize();
+  SC_METHOD(processValidInput);
+  sensitive << iData;
+  dont_initialize();
 
-	SC_METHOD(handleDataOutput);
+  SC_METHOD(handleDataOutput);
 
   SC_METHOD(handleRequestOutput);
 
@@ -897,7 +883,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
   sensitive << mCacheMissEvent;
   dont_initialize();
 
-	end_module(); // Needed because we're using a different Component constructor
+  end_module(); // Needed because we're using a different Component constructor
 }
 
 MemoryBank::~MemoryBank() {
@@ -912,17 +898,17 @@ void MemoryBank::setBackgroundMemory(SimplifiedOnChipScratchpad* memory) {
 }
 
 void MemoryBank::storeData(vector<Word>& data, MemoryAddr location) {
-	assert(false);
+  assert(false);
 }
 
 void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
-	assert(mBackgroundMemory != NULL);
+  assert(mBackgroundMemory != NULL);
 
-	if (start > end)
-	  std::swap(start, end);
+  if (start > end)
+    std::swap(start, end);
 
-	size_t address = (start / 4) * 4;
-	size_t limit = (end / 4) * 4 + 4;
+  size_t address = (start / 4) * 4;
+  size_t limit = (end / 4) * 4 + 4;
 
   while (address < limit) {
     uint32_t data = readWordDebug(address).toUInt();
@@ -932,10 +918,10 @@ void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
 }
 
 Word MemoryBank::readWordDebug(MemoryAddr addr) {
-	assert(mBackgroundMemory != NULL);
-	assert(addr % 4 == 0);
+  assert(mBackgroundMemory != NULL);
+  assert(addr % 4 == 0);
 
-	SRAMAddress position = getPosition(addr, MEMORY_CACHE);
+  SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
   if (contains(addr, position, MEMORY_CACHE))
     return readWord(position);
@@ -944,7 +930,7 @@ Word MemoryBank::readWordDebug(MemoryAddr addr) {
 }
 
 Word MemoryBank::readByteDebug(MemoryAddr addr) {
-	assert(mBackgroundMemory != NULL);
+  assert(mBackgroundMemory != NULL);
 
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
@@ -955,8 +941,8 @@ Word MemoryBank::readByteDebug(MemoryAddr addr) {
 }
 
 void MemoryBank::writeWordDebug(MemoryAddr addr, Word data) {
-	assert(mBackgroundMemory != NULL);
-	assert(addr % 4 == 0);
+  assert(mBackgroundMemory != NULL);
+  assert(addr % 4 == 0);
 
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
@@ -967,7 +953,7 @@ void MemoryBank::writeWordDebug(MemoryAddr addr, Word data) {
 }
 
 void MemoryBank::writeByteDebug(MemoryAddr addr, Word data) {
-	assert(mBackgroundMemory != NULL);
+  assert(mBackgroundMemory != NULL);
 
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 

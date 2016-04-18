@@ -25,6 +25,15 @@ void SendChannelEndTable::write(const NetworkData data) {
     assert(!bufferGlobal.full());
     LOKI_LOG << this->name() << " writing " << data << " to buffer (global)\n";
     bufferGlobal.write(data);
+
+    // Check whether we're sending to a valid address.
+    TileID tile = data.channelID().component.tile;
+    if ((tile.x<1) || (tile.y<1) || (tile.x>COMPUTE_TILE_COLUMNS) || (tile.y>COMPUTE_TILE_ROWS)) {
+      LOKI_WARN << "Preparing to send data outside bounds of simulated chip." << endl;
+      LOKI_WARN << "  Source: " << id << ", destination: " << data.channelID() << endl;
+      LOKI_WARN << "  Simulating up to tile (" << COMPUTE_TILE_COLUMNS << "," << COMPUTE_TILE_ROWS << ")" << endl;
+      LOKI_WARN << "  Consider increasing the COMPUTE_TILE_ROWS or COMPUTE_TILE_COLUMNS parameters." << endl;
+    }
   }
 
   bufferFillChanged.notify();

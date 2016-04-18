@@ -87,15 +87,6 @@ count_t IPKCache::numReads()     {return total.reads;}
 count_t IPKCache::numWrites()    {return total.writes;}
 
 void IPKCache::printStats() {
-
-  if (Arguments::batchMode()) {
-	cout << "<@GLOBAL>ipkcache_reads:" << numReads() << "</@GLOBAL>" << endl;
-	cout << "<@GLOBAL>ipkcache_writes:" << numWrites() << "</@GLOBAL>" << endl;
-	cout << "<@GLOBAL>ipkcache_tag_checks:" << numTagChecks() << "</@GLOBAL>" << endl;
-	cout << "<@GLOBAL>ipkcache_hits:" << numHits() << "</@GLOBAL>" << endl;
-	cout << "<@GLOBAL>ipkcache_misses:" << numMisses() << "</@GLOBAL>" << endl;
-  }
-
   if (numTagChecks() > 0) {
 	cout <<
 	  "Instruction packet cache:" << "\n" <<

@@ -1,22 +1,18 @@
-//-------------------------------------------------------------------------------------------------
-// Loki Project
-// Software Simulator for Design Space Exploration
-//-------------------------------------------------------------------------------------------------
-// Configurable Memory Bank Definition
-//-------------------------------------------------------------------------------------------------
-// Second version of configurable memory bank model. Each memory bank is
-// directly connected to the network. There are multiple memory banks per tile.
-//
-// Memory requests are connection-less. Instead, the new channel map table
-// mechanism in the memory bank is used.
-//
-// The number of input and output ports is fixed to 1. The ports possess
-// queues for incoming and outgoing data.
-//-------------------------------------------------------------------------------------------------
-// File:       MemoryBank.h
-// Author:     Andreas Koltes (andreas.koltes@cl.cam.ac.uk)
-// Created on: 08/04/2011
-//-------------------------------------------------------------------------------------------------
+/*
+ * MemoryBank.h
+ *
+ * Implementation #3.
+ *
+ * One bank of the banked L1/L2 cache system. A bank can be a member of an L1
+ * cache or an L2 cache, but not both.
+ *
+ * Connections to cores are via the Data network.
+ * Connections to the rest of the memory hierarchy are via Request and Response
+ * networks.
+ *
+ *  Created on: 1 Jul 2015
+ *      Author: db434
+ */
 
 #ifndef MEMORYBANK_H_
 #define MEMORYBANK_H_
@@ -32,17 +28,16 @@ class MemoryOperation;
 class SimplifiedOnChipScratchpad;
 
 class MemoryBank: public Component, public Blocking {
-	//---------------------------------------------------------------------------------------------
-	// Ports
-	//---------------------------------------------------------------------------------------------
+
+//==============================//
+// Ports
+//==============================//
 
 public:
 
-	ClockInput					  iClock;						// Clock
+  ClockInput            iClock;            // Clock
 
-	//-- Ports connected to on-chip networks ------------------------------------------------------
-
-	// Data - to/from cores on the same tile.
+  // Data - to/from cores on the same tile.
   DataInput             iData;            // Input data sent to the memory bank
   ReadyOutput           oReadyForData;    // Indicates that there is buffer space for new input
   DataOutput            oData;            // Output data sent to the processing elements
@@ -60,9 +55,19 @@ public:
   sc_in<MemoryIndex>    iResponseTarget;
   ResponseOutput        oResponse;        // Output responses sent to the remote memory banks
 
-  //---------------------------------------------------------------------------------------------
-  // Software interface
-  //---------------------------------------------------------------------------------------------
+//==============================//
+// Constructors and destructors
+//==============================//
+
+public:
+
+  SC_HAS_PROCESS(MemoryBank);
+  MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumber);
+  ~MemoryBank();
+
+//==============================//
+// Methods
+//==============================//
 
 public:
 
@@ -105,6 +110,7 @@ public:
   // Check whether it is safe to write to the given address.
   void preWriteCheck(MemoryAddr address) const;
 
+  // Data access.
   uint32_t readWord(SRAMAddress position) const;
   uint32_t readHalfword(SRAMAddress position) const;
   uint32_t readByte(SRAMAddress position) const;
@@ -112,96 +118,50 @@ public:
   void writeHalfword(SRAMAddress position, uint32_t data);
   void writeByte(SRAMAddress position, uint32_t data);
 
+  // Access data based on its position in the address space, and bypass the
+  // usual tag checks.
+  Word readWordDebug(MemoryAddr addr);
+  Word readByteDebug(MemoryAddr addr);
+  void writeWordDebug(MemoryAddr addr, Word data);
+  void writeByteDebug(MemoryAddr addr, Word data);
+
+  // Memory address manipulation.
   MemoryAddr getTag(MemoryAddr address) const;
   MemoryAddr getLine(MemoryAddr address) const;
   MemoryAddr getOffset(MemoryAddr address) const;
 
-  //---------------------------------------------------------------------------------------------
-  // Utility definitions
-  //---------------------------------------------------------------------------------------------
+  void setLocalNetwork(local_net_t* network);
+  void setBackgroundMemory(SimplifiedOnChipScratchpad* memory);
+
+  void storeData(vector<Word>& data, MemoryAddr location);
+  void synchronizeData();
+
+  void print(MemoryAddr start, MemoryAddr end);
+  void printOperation(MemoryOpcode operation, MemoryAddr address, uint32_t data) const;
+
+  bool storedLocally(MemoryAddr address) const;
 
 private:
 
-  enum MemoryState {
-    STATE_IDLE,                           // No active request
-    STATE_REQUEST,                        // Serving active request
-    STATE_ALLOCATE,                       // Allocating cache line
-    STATE_FLUSH,                          // Flushing cache line
-    STATE_REFILL,                         // Filling cache line
-    STATE_FORWARD,                        // Forward request to directory or L2
-  };
+  // Tasks to carry out for each of the possible states.
+  void processIdle();
+  void processRequest();
+  void processAllocate();
+  void processFlush();
+  void processRefill();
+  void processForward();
 
-	//---------------------------------------------------------------------------------------------
-	// Local state
-	//---------------------------------------------------------------------------------------------
+  // Perform any tidying necessary when a request finishes.
+  void finishedRequest();
 
-private:
+  bool requestAvailable() const;
+  const sc_event_or_list& requestAvailableEvent() const;
+  MemoryOperation* peekRequest();
+  void consumeRequest(MemoryLevel level);
 
-	bool                  currentlyIdle;
-
-	MemoryState           mState, mPreviousState;
-
-	//-- Data queue state -------------------------------------------------------------------------
-
-  NetworkBuffer<NetworkRequest>  mInputQueue;       // Input queue
-  DelayBuffer<NetworkResponse>   mOutputQueue;      // Output queue
-  DelayBuffer<NetworkRequest>    mOutputReqQueue;   // Output request queue
-
-	//-- Mode independent state -------------------------------------------------------------------
-
-  vector<uint32_t>      mData;            // The contents of this bank.
-  vector<MemoryTag>     mTags;            // Cache tags for each line.
-  vector<bool>          mValid;           // Valid data flag for each line.
-  vector<bool>          mDirty;           // Modified data flag for each line.
-
-	MemoryOperation*      mActiveRequest;   // The request being served.
-
-	// Callback request - put on hold while performing sub-operations such as
-	// cache line fetches.
-	MemoryOperation*      mMissingRequest;
-
-	ReservationHandler    mReservations;    // Data keeping track of current atomic transactions.
-
-	unsigned int          mCacheLineCursor; // Used to step through cache lines.
-
-	BufferStorage<NetworkRequest> mMissBuffer; // Payloads for a request which is currently missing.
-
-	bool                  mCopyToMissBuffer;   // Tell whether the miss buffer needs filling.
-	bool                  mReadFromMissBuffer; // Tell whether the miss buffer needs emptying.
-
-	sc_event              mCacheMissEvent;  // Event triggered on each cache miss.
-
-	//-- L2 cache mode state ----------------------------------------------------------------------
-
-	// L2 requests are broadcast to all banks to allow high associativity. This
-	// module filters out requests which are for this bank.
-	L2RequestFilter       mL2RequestFilter;
-
-	//---------------------------------------------------------------------------------------------
-	// Internal functions
-	//---------------------------------------------------------------------------------------------
-
-private:
-
-	// Tasks to carry out for each of the possible states.
-	void processIdle();
-	void processRequest();
-	void processAllocate();
-	void processFlush();
-	void processRefill();
-	void processForward();
-
-	// Perform any tidying necessary when a request finishes.
-	void finishedRequest();
-
-	bool requestAvailable() const;
-	const sc_event_or_list& requestAvailableEvent() const;
-	MemoryOperation* peekRequest();
-	void consumeRequest(MemoryLevel level);
-
-	bool canSendRequest() const;
-	const sc_event& canSendRequestEvent() const;
-	void sendRequest(NetworkRequest request);
+  bool canSendRequest() const;
+  const sc_event& canSendRequestEvent() const;
+  void sendRequest(NetworkRequest request);
 
   bool responseAvailable() const;
   const sc_event& responseAvailableEvent() const;
@@ -215,59 +175,79 @@ private:
 
   void copyToMissBuffer();
 
-	void processValidInput();
-	void handleDataOutput();
+  void processValidInput();
+  void handleDataOutput();
   void handleRequestOutput();
 
-	void mainLoop();										// Main loop thread
+  void mainLoop();                    // Main loop thread
 
-	void updateIdle();                  // Update idleness
-	void updateReady();                 // Update flow control signals
-
-	//---------------------------------------------------------------------------------------------
-	// Constructors and destructors
-	//---------------------------------------------------------------------------------------------
-
-public:
-
-	SC_HAS_PROCESS(MemoryBank);
-	MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumber);
-	~MemoryBank();
-
-	//---------------------------------------------------------------------------------------------
-	// Simulation utility methods inherited from Component - not part of simulated logic
-	//---------------------------------------------------------------------------------------------
-
-protected:
-	SimplifiedOnChipScratchpad *mBackgroundMemory;
-
-	// Pointer to network, allowing new interfaces to be experimented with quickly.
-	local_net_t *localNetwork;
-
-	// Data received through the L2 request filter.
-	RequestSignal requestSig;
-
-public:
-
-	void setLocalNetwork(local_net_t* network);
-	void setBackgroundMemory(SimplifiedOnChipScratchpad* memory);
-
-	void storeData(vector<Word>& data, MemoryAddr location);
-	void synchronizeData();
-
-	void print(MemoryAddr start, MemoryAddr end);
-	void printOperation(MemoryOpcode operation, MemoryAddr address, uint32_t data) const;
-
-  bool storedLocally(MemoryAddr address) const;
-
-	Word readWordDebug(MemoryAddr addr);
-	Word readByteDebug(MemoryAddr addr);
-	void writeWordDebug(MemoryAddr addr, Word data);
-	void writeByteDebug(MemoryAddr addr, Word data);
+  void updateIdle();                  // Update idleness
+  void updateReady();                 // Update flow control signals
 
 protected:
 
-	virtual void reportStalls(ostream& os);
+  virtual void reportStalls(ostream& os);
+
+//==============================//
+// Local state
+//==============================//
+
+private:
+
+  enum MemoryState {
+    STATE_IDLE,                           // No active request
+    STATE_REQUEST,                        // Serving active request
+    STATE_ALLOCATE,                       // Allocating cache line
+    STATE_FLUSH,                          // Flushing cache line
+    STATE_REFILL,                         // Filling cache line
+    STATE_FORWARD,                        // Forward request to directory or L2
+  };
+
+  MemoryState           mState, mPreviousState;
+
+  bool                  currentlyIdle;
+
+  NetworkBuffer<NetworkRequest>  mInputQueue;       // Input queue
+  DelayBuffer<NetworkResponse>   mOutputQueue;      // Output queue
+  DelayBuffer<NetworkRequest>    mOutputReqQueue;   // Output request queue
+
+  vector<uint32_t>      mData;            // The contents of this bank.
+  vector<MemoryTag>     mTags;            // Cache tags for each line.
+  vector<bool>          mValid;           // Valid data flag for each line.
+  vector<bool>          mDirty;           // Modified data flag for each line.
+
+  MemoryOperation*      mActiveRequest;   // The request being served.
+
+  // Callback request - put on hold while performing sub-operations such as
+  // cache line fetches.
+  MemoryOperation*      mMissingRequest;
+
+  ReservationHandler    mReservations;    // Data keeping track of current atomic transactions.
+
+  unsigned int          mCacheLineCursor; // Used to step through cache lines.
+
+  BufferStorage<NetworkRequest> mMissBuffer; // Payloads for a request which is currently missing.
+
+  bool                  mCopyToMissBuffer;   // Tell whether the miss buffer needs filling.
+  bool                  mReadFromMissBuffer; // Tell whether the miss buffer needs emptying.
+
+  sc_event              mCacheMissEvent;  // Event triggered on each cache miss.
+
+  // L2 requests are broadcast to all banks to allow high associativity. This
+  // module filters out requests which are for this bank.
+  L2RequestFilter       mL2RequestFilter;
+
+protected:
+
+  // Magic connection to main memory.
+  SimplifiedOnChipScratchpad *mBackgroundMemory;
+
+  // Pointer to network, allowing new interfaces to be experimented with quickly.
+  local_net_t *localNetwork;
+
+  // Data received through the L2 request filter.
+  RequestSignal requestSig;
+
 
 };
 

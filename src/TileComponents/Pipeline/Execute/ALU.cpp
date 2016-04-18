@@ -11,8 +11,6 @@
 #include "../../../Datatype/Instruction.h"
 #include "../../../Utility/Arguments.h"
 #include "../../../Utility/Instrumentation.h"
-#include "../../../Utility/Trace/SoftwareTrace.h"
-#include "../../../Utility/Trace/LBTTrace.h"
 #include "../../../Exceptions/InvalidOptionException.h"
 
 void ALU::execute(DecodedInst& dec) {
@@ -144,21 +142,6 @@ void ALU::systemCall(DecodedInst& dec) const {
 
   int code = dec.immediate();
 
-  unsigned long regValues[64];
-
-  if (Arguments::softwareTrace() || Arguments::lbtTrace()) {
-    memset(regValues, 0x00, sizeof(regValues));
-
-    unsigned long count = NUM_PHYSICAL_REGISTERS <= 64 ? NUM_PHYSICAL_REGISTERS : 64;
-
-    for (unsigned long i = 0; i < count; i++)
-      if (i < 2 || i >= 2 + NUM_RECEIVE_CHANNELS)
-        regValues[i] = readReg(i);
-
-    if (Arguments::lbtTrace())
-      LBTTrace::setInstructionSystemCallInfo(dec.isid(), code, regValues, 64);
-  }
-
   switch (code) {
     case 0x1: { /* SYS_exit */
       RETURN_CODE = readReg(13);
@@ -207,8 +190,6 @@ void ALU::systemCall(DecodedInst& dec) const {
       uint i;
       writeReg(11, read(fd, buf, len));
       int start = readReg(14);
-      if (Arguments::lbtTrace())
-        LBTTrace::setInstructionSystemCallData(dec.isid(), buf, len, true, start);
       for (i=0; i < len; i++) {
         writeByte(start+i, buf[i]);
       }
@@ -227,8 +208,6 @@ void ALU::systemCall(DecodedInst& dec) const {
       for (i=0; i < len; i++) {
         str[i] = readByte(start + i);
       }
-      if (Arguments::lbtTrace())
-        LBTTrace::setInstructionSystemCallData(dec.isid(), str, len, false, start);
       writeReg(11, write(fd, str, len));
       free(str);
       //cerr << "+ SYS_write fd=" << fd << " start=" << start << " len=" << len << " result=" << readReg(11) << endl;
@@ -279,8 +258,7 @@ void ALU::systemCall(DecodedInst& dec) const {
       CORE_TRACE = 0;
       break;
     case 0x26: { /* software triggered register file snapshot */
-      if (Arguments::softwareTrace())
-        SoftwareTrace::logRegisterFileSnapshot(parent()->id.globalCoreNumber(), regValues, 64);
+      // TODO
       break;
     }
     case 0x27: /* Clear execution stats */

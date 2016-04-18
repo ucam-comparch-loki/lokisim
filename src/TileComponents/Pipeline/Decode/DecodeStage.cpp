@@ -10,7 +10,6 @@
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
 #include "../../../Exceptions/InvalidOptionException.h"
-#include "../../../Utility/Trace/LBTTrace.h"
 
 void         DecodeStage::execute() {
   while (true) {
@@ -311,9 +310,6 @@ void DecodeStage::fetch(const DecodedInst& inst) {
       throw InvalidOptionException("fetch instruction opcode", inst.opcode());
       break;
   }
-
-  if (Arguments::lbtTrace())
-    LBTTrace::setInstructionMemoryAddress(inst.isid(), fetchAddress);
 
   LOKI_LOG << this->name() << " fetching from address " << LOKI_HEX(fetchAddress) << endl;
 

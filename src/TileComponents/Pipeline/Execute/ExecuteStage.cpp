@@ -9,7 +9,6 @@
 #include "../../Core.h"
 #include "../../../Utility/Instrumentation.h"
 #include "../../../Utility/Instrumentation/Registers.h"
-#include "../../../Utility/Trace/LBTTrace.h"
 #include "../../../Exceptions/InvalidOptionException.h"
 #include "../../../Exceptions/UnsupportedFeatureException.h"
 
@@ -72,9 +71,6 @@ void ExecuteStage::updateReady() {
 void ExecuteStage::newInput(DecodedInst& operation) {
   // See if the instruction should execute.
   bool willExecute = checkPredicate(operation);
-
-  if (Arguments::lbtTrace())
-	LBTTrace::setInstructionExecuteFlag(operation.isid(), willExecute);
 
   if (willExecute) {
     bool success = true;
@@ -232,24 +228,6 @@ void ExecuteStage::newInput(DecodedInst& operation) {
 
 void ExecuteStage::sendOutput() {
   if (currentInst.sendsOnNetwork()) {
-    if (Arguments::lbtTrace()) {
-      if ((currentInst.opcode() == InstructionMap::OP_LDW ||
-      currentInst.opcode() == InstructionMap::OP_LDHWU ||
-      currentInst.opcode() == InstructionMap::OP_LDBU ||
-      currentInst.opcode() == InstructionMap::OP_STW ||
-      currentInst.opcode() == InstructionMap::OP_STHW ||
-      currentInst.opcode() == InstructionMap::OP_STB) && currentInst.memoryOp() != PAYLOAD && currentInst.memoryOp() != PAYLOAD_EOP)
-      {
-      LBTTrace::setInstructionMemoryAddress(currentInst.isid(), currentInst.result());
-      }
-      else if ((currentInst.opcode() == InstructionMap::OP_STW ||
-      currentInst.opcode() == InstructionMap::OP_STHW ||
-      currentInst.opcode() == InstructionMap::OP_STB) && currentInst.memoryOp() == PAYLOAD)
-      {
-      LBTTrace::setInstructionMemoryData(currentInst.isid(), currentInst.result() && currentInst.memoryOp() != PAYLOAD_EOP);
-      }
-    }
-
     // Memory operations may be sent to different memory banks depending on the
     // address accessed.
     // In practice, this would be performed by a separate, small functional

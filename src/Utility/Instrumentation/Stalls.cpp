@@ -403,9 +403,6 @@ void Stalls::printStats() {
     }
   }
 
-  if (Arguments::batchMode())
-	cout << "<@GLOBAL>total_cycles:" << endOfExecution << "</@GLOBAL>" << endl;
-
 }
 
 void Stalls::dumpEventCounts(std::ostream& os) {

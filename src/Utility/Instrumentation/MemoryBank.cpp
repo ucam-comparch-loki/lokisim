@@ -15,11 +15,6 @@
 using namespace Instrumentation;
 using std::vector;
 
-std::map<int, bool> MemoryBank::modes_;
-std::map<int, uint> MemoryBank::setCounts_;
-std::map<int, uint> MemoryBank::wayCounts_;
-std::map<int, uint> MemoryBank::lineSizes_;
-
 CounterMap<int> MemoryBank::numTagChecks_;
 
 CounterMap<int> MemoryBank::numReadWordHits_;
@@ -107,13 +102,6 @@ void MemoryBank::init() {
   numReplaceDirty_.clear();
 }
 
-void MemoryBank::setMode(int bank, bool isCache, uint setCount, uint wayCount, uint lineSize) {
-	modes_[bank] = isCache;
-	setCounts_[bank] = setCount;
-	wayCounts_[bank] = wayCount;
-	lineSizes_[bank] = lineSize;
-}
-
 void MemoryBank::startOperation(int bank, MemoryOpcode op,
         MemoryAddr address, bool miss, ChannelID returnChannel) {
   switch (op) {
@@ -149,7 +137,17 @@ void MemoryBank::startOperation(int bank, MemoryOpcode op,
       break;
 
     case IPK_READ:
-      readIPKWord(bank, address, miss, returnChannel);
+      initiateIPKRead(bank);
+      break;
+
+    case FETCH_LINE:
+      initiateBurstRead(bank);
+      break;
+
+    case STORE_LINE:
+    case MEMSET_LINE:
+    case PUSH_LINE:
+      initiateBurstWrite(bank);
       break;
 
     default:
@@ -281,136 +279,6 @@ void MemoryBank::updateCoreStats(ChannelID returnChannel, bool isRead, bool isIn
   else if (!isRead && !isMiss)
     coreStats_[core][channel].writeHits++;
   coreStats_[core][channel].receivingInstructions = isInst;
-}
-
-void MemoryBank::printStats() {
-	if (!modes_.empty()) {
-        if (Arguments::batchMode()) {
-    		std::map<int, bool>::iterator it;
-
-    		for (it = modes_.begin(); it != modes_.end(); it++) {
-    			int bank = it->first;
-    			bool isCache = it->second;
-
-            	cout << "<@SUBTABLE>memory_banks";
-
-    			cout << "!bank_number:" << bank;
-    			cout << "!bank_mode:" << (isCache ? "General purpose cache" : "Scratchpad");
-    			cout << "!set_count:" << setCounts_[bank];
-    			cout << "!way_count:" << wayCounts_[bank];
-    			cout << "!line_size:" << lineSizes_[bank];
-
-    			cout << "!load_w_hits:" << numReadWordHits_[bank];
-    			cout << "!load_w_misses:" << numReadWordMisses_[bank];
-    			cout << "!load_hw_hits:" << numReadHalfWordHits_[bank];
-    			cout << "!load_hw_misses:" << numReadHalfWordMisses_[bank];
-    			cout << "!load_b_hits:" << numReadByteHits_[bank];
-    			cout << "!load_b_misses:" << numReadByteMisses_[bank];
-
-    			cout << "!store_w_hits:" << numWriteWordHits_[bank];
-    			cout << "!store_w_misses:" << numWriteWordMisses_[bank];
-    			cout << "!store_hw_hits:" << numWriteHalfWordHits_[bank];
-    			cout << "!store_hw_misses:" << numWriteHalfWordMisses_[bank];
-    			cout << "!store_b_hits:" << numWriteByteHits_[bank];
-    			cout << "!store_b_misses:" << numWriteByteMisses_[bank];
-
-    			cout << "!ipkread_l_starts:" << numStartIPKRead_[bank];
-    			cout << "!ipkread_l_conts:" << numContinueIPKRead_[bank];
-    			cout << "!burstread_l_starts:" << numStartBurstRead_[bank];
-    			cout << "!burstread_l_conts:" << numContinueBurstRead_[bank];
-    			cout << "!burstwrite_l_starts:" << numStartBurstWrite_[bank];
-    			cout << "!burstwrite_l_conts:" << numContinueBurstWrite_[bank];
-
-    			cout << "!ipkread_w_hits:" << numIPKReadHits_[bank];
-    			cout << "!ipkread_w_misses:" << numIPKReadMisses_[bank];
-    			cout << "!burstread_w_hits:" << numBurstReadHits_[bank];
-    			cout << "!burstread_w_misses:" << numBurstReadMisses_[bank];
-    			cout << "!burstwrite_w_hits:" << numBurstWriteHits_[bank];
-    			cout << "!burstwrite_w_misses:" << numBurstWriteMisses_[bank];
-
-    			cout << "!replace_invalid:" << numReplaceInvalid_[bank];
-    			cout << "!replace_clean:" << numReplaceClean_[bank];
-    			cout << "!replace_dirty:" << numReplaceDirty_[bank];
-
-            	cout << "</@SUBTABLE>" << endl;
-    		}
-        }
-
-		cout << "Memory banks:" << endl;
-
-		std::map<int, bool>::iterator it;
-		bool bankOutput = false;
-
-		for (it = modes_.begin(); it != modes_.end(); it++) {
-			int bank = it->first;
-			bool isCache = it->second;
-
-			if (bankOutput)
-				cout << "  --------------------------------------------------" << endl;
-
-			bankOutput = true;
-
-			cout << "                        Bank: " << bank << endl;
-			cout << "                        Mode: " << (isCache ? "General purpose cache" : "Scratchpad") << endl;
-			cout << "                   Set count: " << setCounts_[bank] << endl;
-			cout << "                   Way count: " << wayCounts_[bank] << endl;
-			cout << "                   Line size: " << lineSizes_[bank] << endl;
-
-			unsigned long long scalarReadCount = 0;
-			unsigned long long scalarWriteCount = 0;
-			unsigned long long hits;
-			unsigned long long misses;
-
-			hits = numReadWordHits_[bank];	misses = numReadWordMisses_[bank];	scalarReadCount += hits + misses;
-			cout << "           Scalar word reads: " << hits << " / " << misses << " (" << percentage(hits, hits + misses) << ")" << endl;
-			hits = numReadHalfWordHits_[bank];	misses = numReadHalfWordMisses_[bank];	scalarReadCount += hits + misses;
-			cout << "      Scalar half-word reads: " << hits << " / " << misses << " (" << percentage(hits, hits + misses) << ")" << endl;
-			hits = numReadByteHits_[bank];	misses = numReadByteMisses_[bank];	scalarReadCount += hits + misses;
-			cout << "           Scalar byte reads: " << hits << " / " << misses << " (" << percentage(hits, hits + misses) << ")" << endl;
-
-			hits = numWriteWordHits_[bank];	misses = numWriteWordMisses_[bank];	scalarWriteCount += hits + misses;
-			cout << "          Scalar word writes: " << hits << " / " << misses << " (" << percentage(hits, hits + misses) << ")" << endl;
-			hits = numWriteHalfWordHits_[bank];	misses = numWriteHalfWordMisses_[bank];	scalarWriteCount += hits + misses;
-			cout << "     Scalar half-word writes: " << hits << " / " << misses << " (" << percentage(hits, hits + misses) << ")" << endl;
-			hits = numWriteByteHits_[bank];	misses = numWriteByteMisses_[bank];	scalarWriteCount += hits + misses;
-			cout << "          Scalar byte writes: " << hits << " / " << misses << " (" << percentage(hits, hits + misses) << ")" << endl;
-
-			cout << "        Scalar read requests: " << scalarReadCount << " (" << percentage(scalarReadCount, scalarReadCount + scalarWriteCount) << ")" << endl;
-			cout << "       Scalar write requests: " << scalarWriteCount << " (" << percentage(scalarWriteCount, scalarReadCount + scalarWriteCount) << ")" << endl;
-
-			unsigned long long starts;
-			unsigned long long conts;
-
-			starts = numStartIPKRead_[bank];	conts = numContinueIPKRead_[bank];
-			cout << "              IPK line reads: " << starts << " / " << conts << " (" << (starts + conts) << ")" << endl;
-			starts = numStartBurstRead_[bank];	conts = numContinueBurstRead_[bank];
-			cout << "            Burst line reads: " << starts << " / " << conts << " (" << (starts + conts) << ")" << endl;
-			starts = numStartBurstWrite_[bank];	conts = numContinueBurstWrite_[bank];
-			cout << "           Burst line writes: " << starts << " / " << conts << " (" << (starts + conts) << ")" << endl;
-
-			unsigned long long burstReadCount = 0;
-			unsigned long long burstWriteCount = 0;
-
-			hits = numIPKReadHits_[bank];	misses = numIPKReadMisses_[bank];	burstReadCount += hits + misses;
-			cout << "              IPK word reads: " << hits << " / " << misses << " (" << percentage(hits, hits + misses) << ")" << endl;
-			hits = numBurstReadHits_[bank];	misses = numBurstReadMisses_[bank];	burstReadCount += hits + misses;
-			cout << "            Burst word reads: " << hits << " / " << misses << " (" << percentage(hits, hits + misses) << ")" << endl;
-			hits = numBurstWriteHits_[bank];	misses = numBurstWriteMisses_[bank];	burstWriteCount += hits + misses;
-			cout << "           Burst word writes: " << hits << " / " << misses << " (" << percentage(hits, hits + misses) << ")" << endl;
-
-			cout << "        Streaming word reads: " << burstReadCount << " (" << percentage(burstReadCount, burstReadCount + burstWriteCount) << ")" << endl;
-			cout << "       Streaming word writes: " << burstWriteCount << " (" << percentage(burstWriteCount, burstReadCount + burstWriteCount) << ")" << endl;
-
-			unsigned long long cacheInvalid = numReplaceInvalid_[bank];
-			unsigned long long cacheClean = numReplaceClean_[bank];
-			unsigned long long cacheDirty = numReplaceDirty_[bank];
-			unsigned long long cacheTotal = cacheInvalid + cacheClean + cacheDirty;
-
-			cout << "      Replaced invalid lines: " << cacheInvalid << " (" << percentage(cacheInvalid, cacheTotal) << ")" << endl;
-			cout << "        Replaced clean lines: " << cacheClean << " (" << percentage(cacheClean, cacheTotal) << ")" << endl;
-			cout << "        Replaced dirty lines: " << cacheDirty << " (" << percentage(cacheDirty, cacheTotal) << ")" << endl;
-		}
-	}
 }
 
 void MemoryBank::printSummary() {

@@ -17,8 +17,6 @@
 FetchLine::FetchLine(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(startOfLine(address), metadata, memory, level, destination, 0, CACHE_LINE_WORDS) {
   lineCursor = 0;
-  if (ENERGY_TRACE)
-    Instrumentation::MemoryBank::initiateBurstRead(memory.id.globalMemoryNumber());
 }
 
 void FetchLine::prepare() {
@@ -35,6 +33,9 @@ void FetchLine::execute() {
   memory.printOperation(metadata.opcode, address + lineCursor, result);
   sendResult(result);
 
+  if (ENERGY_TRACE)
+    Instrumentation::MemoryBank::readBurstWord(memory.id.globalMemoryNumber(), address + lineCursor, false, destination);
+
   lineCursor += BYTES_PER_WORD;
 }
 
@@ -42,8 +43,6 @@ void FetchLine::execute() {
 IPKRead::IPKRead(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 0, CACHE_LINE_WORDS) {
   lineCursor = 0;
-  if (ENERGY_TRACE)
-    Instrumentation::MemoryBank::initiateIPKRead(memory.id.globalMemoryNumber());
 }
 
 void IPKRead::prepare() {
@@ -59,6 +58,9 @@ void IPKRead::execute() {
   unsigned int result = memory.readWord(sramAddress + lineCursor);
   memory.printOperation(metadata.opcode, address + lineCursor, result);
   sendResult(result);
+
+  if (ENERGY_TRACE)
+    Instrumentation::MemoryBank::readIPKWord(memory.id.globalMemoryNumber(), address + lineCursor, false, destination);
 
   lineCursor += BYTES_PER_WORD;
 
@@ -89,8 +91,6 @@ void ValidateLine::execute() {
 
 PrefetchLine::PrefetchLine(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(startOfLine(address), metadata, memory, level, destination, 0, 0) {
-  if (ENERGY_TRACE)
-    Instrumentation::MemoryBank::initiateBurstRead(memory.id.globalMemoryNumber());
 }
 
 void PrefetchLine::prepare() {
@@ -109,6 +109,10 @@ void PrefetchLine::execute() {
 FlushLine::FlushLine(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(startOfLine(address), metadata, memory, level, destination, 0, 0) {
   finished = false;
+
+  // Instrumentation happens in the memory bank. At this point, we don't know
+  // if the data is dirty and needs flushing. There are also other mechanisms
+  // which can trigger a flush.
 }
 
 void FlushLine::prepare() {
@@ -170,8 +174,6 @@ bool FlushAllLines::preconditionsMet() const {
 }
 
 void FlushAllLines::execute() {
-  if (ENERGY_TRACE)
-    Instrumentation::MemoryBank::initiateBurstRead(memory.id.globalMemoryNumber());
   sramAddress = line * CACHE_LINE_BYTES;
   flushLine();
   line++;
@@ -210,8 +212,6 @@ StoreLine::StoreLine(MemoryAddr address, MemoryMetadata metadata, MemoryBank& me
     MemoryOperation(startOfLine(address), metadata, memory, level, destination, CACHE_LINE_WORDS, 0) {
   lineCursor = 0;
   preWriteCheck();
-  if (ENERGY_TRACE)
-    Instrumentation::MemoryBank::initiateBurstWrite(memory.id.globalMemoryNumber());
 
 }
 
@@ -231,6 +231,9 @@ void StoreLine::execute() {
     memory.writeWord(sramAddress + lineCursor, data);
     memory.printOperation(metadata.opcode, address + lineCursor, data);
 
+    if (ENERGY_TRACE)
+      Instrumentation::MemoryBank::writeBurstWord(memory.id.globalMemoryNumber(), address + lineCursor, false, destination);
+
     lineCursor += BYTES_PER_WORD;
   }
 }
@@ -242,9 +245,6 @@ MemsetLine::MemsetLine(MemoryAddr address, MemoryMetadata metadata, MemoryBank& 
   lineCursor = 0;
 
   preWriteCheck();
-
-  if (ENERGY_TRACE)
-    Instrumentation::MemoryBank::initiateBurstWrite(memory.id.globalMemoryNumber());
 }
 
 void MemsetLine::prepare() {
@@ -264,6 +264,9 @@ void MemsetLine::execute() {
   if (!awaitingPayload()) {
     memory.writeWord(sramAddress + lineCursor, data);
     memory.printOperation(metadata.opcode, address + lineCursor, data);
+
+    if (ENERGY_TRACE)
+      Instrumentation::MemoryBank::writeBurstWord(memory.id.globalMemoryNumber(), address + lineCursor, false, destination);
 
     lineCursor += BYTES_PER_WORD;
   }
@@ -294,6 +297,9 @@ void PushLine::execute() {
     unsigned int data = getPayload();
     memory.writeWord(sramAddress + lineCursor, data);
     memory.printOperation(metadata.opcode, address + lineCursor, data);
+
+    if (ENERGY_TRACE)
+      Instrumentation::MemoryBank::writeBurstWord(memory.id.globalMemoryNumber(), address + lineCursor, false, destination);
 
     lineCursor += BYTES_PER_WORD;
   }

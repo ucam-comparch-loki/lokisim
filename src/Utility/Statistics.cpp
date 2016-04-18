@@ -7,8 +7,8 @@
 
 #include "Statistics.h"
 #include "Instrumentation.h"
-#include "Instrumentation/BackgroundMemory.h"
 #include "Instrumentation/IPKCache.h"
+#include "Instrumentation/MainMemory.h"
 #include "Instrumentation/MemoryBank.h"
 #include "Instrumentation/Network.h"
 #include "Instrumentation/Operations.h"
@@ -16,18 +16,6 @@
 #include "Instrumentation/Stalls.h"
 
 using namespace Instrumentation;
-
-void Statistics::printStats() {
-  std::cout.precision(3);
-  std::cout.fill(' ');
-  IPKCache::printStats();
-  MemoryBank::printStats();
-  BackgroundMemory::printStats();
-  Network::printStats();
-  Operations::printStats();
-  Registers::printStats();
-  Stalls::printStats();
-}
 
 int Statistics::getStat(const std::string& statName, int parameter) {
   if(statName == "execution_time")        return executionTime();

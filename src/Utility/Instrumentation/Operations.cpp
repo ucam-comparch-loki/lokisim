@@ -221,8 +221,6 @@ count_t Operations::numOperations(opcode_t op, function_t function) {
 }
 
 void Operations::printStats() {
-  if (Arguments::batchMode())
-	cout << "<@GLOBAL>operation_count:" << numOps_.numEvents() << "</@GLOBAL>" << endl;
 
   if(numOps_.numEvents() > 0) {
     cout << "Operations:\n" <<
@@ -236,9 +234,6 @@ void Operations::printStats() {
       function_t fn = it->first;
       const inst_name_t& name = InstructionMap::name((opcode_t)0, fn);
 
-      if (Arguments::batchMode())
-        cout << "<@SUBTABLE>operations!op_name:" << name << "!exec_count:" << executedFns[fn] << "</@SUBTABLE>" << endl;
-
       cout << "    ";
       cout.width(14);
 
@@ -250,9 +245,6 @@ void Operations::printStats() {
     for(it2 = executedOps.begin(); it2 != executedOps.end(); it2++) {
       opcode_t op = it2->first;
       const inst_name_t& name = InstructionMap::name(op);
-
-      if (Arguments::batchMode())
-        cout << "<@SUBTABLE>operations!op_name:" << name << "!exec_count:" << executedOps[op] << "</@SUBTABLE>" << endl;
 
       cout << "    ";
       cout.width(14);

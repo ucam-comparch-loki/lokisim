@@ -245,22 +245,6 @@ void Parameters::printParameters() {
   cout << "Parameter ROUTER_BUFFER_SIZE is " << ROUTER_BUFFER_SIZE << endl;
 }
 
-// Print parameters in a database-compatible format.
-void Parameters::printParametersDbase() {
-	// TODO: Add remaining parameters if required
-
-	if (Arguments::batchMode()) {
-		cout << "<@PARAM>MEMORY_BANK_SIZE:" << MEMORY_BANK_SIZE << "</@PARAM>" << endl;
-		cout << "<@PARAM>MEMORY_CACHE_RANDOM_REPLACEMENT:" << MEMORY_CACHE_RANDOM_REPLACEMENT << "</@PARAM>" << endl;
-		cout << "<@PARAM>MEMORY_ON_CHIP_SCRATCHPAD_DELAY:" << MEMORY_ON_CHIP_SCRATCHPAD_DELAY << "</@PARAM>" << endl;
-		cout << "<@PARAM>MEMORY_ON_CHIP_SCRATCHPAD_SIZE:" << MEMORY_ON_CHIP_SCRATCHPAD_SIZE << "</@PARAM>" << endl;
-		cout << "<@PARAM>MEMORY_ON_CHIP_SCRATCHPAD_BANKS:" << MEMORY_ON_CHIP_SCRATCHPAD_BANKS << "</@PARAM>" << endl;
-
-		cout << "<@PARAM>IPK_CACHE_SIZE:" << IPK_CACHE_SIZE << "</@PARAM>" << endl;
-		cout << "<@PARAM>IPK_CACHE_TAGS:" << IPK_CACHE_TAGS << "</@PARAM>" << endl;
-	}
-}
-
 #define XML_LINE(name, value) "\t<" << name << ">" << value << "</" << name << ">\n"
 
 // Print parameters in an XML format.

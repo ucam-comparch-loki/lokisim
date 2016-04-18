@@ -12,8 +12,6 @@
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
 #include "../../../Datatype/MemoryRequest.h"
-#include "../../../Utility/Trace/CoreTrace.h"
-#include "../../../Utility/Trace/LBTTrace.h"
 #include "../../../Utility/InstructionMap.h"
 #include "../../../Utility/Instrumentation.h"
 
@@ -65,86 +63,6 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
   Instrumentation::decoded(id, input);
 
-  CoreTrace::decodeInstruction(id.position, input.location(), input.endOfIPK());
-
-  if (Arguments::lbtTrace()) {
-	LBTTrace::LBTOperationType opType;
-
-    switch (input.opcode()) {
-	case InstructionMap::OP_LDW:
-		opType = LBTTrace::LoadWord;
-		break;
-
-	case InstructionMap::OP_LDHWU:
-		opType = LBTTrace::LoadHalfWord;
-		break;
-
-	case InstructionMap::OP_LDBU:
-		opType = LBTTrace::LoadByte;
-		break;
-
-	case InstructionMap::OP_STW:
-		opType = LBTTrace::StoreWord;
-		break;
-
-	case InstructionMap::OP_STHW:
-		opType = LBTTrace::StoreHalfWord;
-		break;
-
-	case InstructionMap::OP_STB:
-		opType = LBTTrace::StoreByte;
-		break;
-
-	case InstructionMap::OP_FETCH:
-	case InstructionMap::OP_FETCHR:
-	case InstructionMap::OP_FETCHPST:
-	case InstructionMap::OP_FETCHPSTR:
-	case InstructionMap::OP_FILL:
-	case InstructionMap::OP_FILLR:
-	case InstructionMap::OP_PSEL_FETCH:
-	case InstructionMap::OP_PSEL_FETCHR:
-		opType = LBTTrace::Fetch;
-		break;
-
-	case InstructionMap::OP_IWTR:
-		opType = LBTTrace::ScratchpadWrite;
-		break;
-
-	case InstructionMap::OP_IRDR:
-		opType = LBTTrace::ScratchpadRead;
-		break;
-
-	case InstructionMap::OP_LLI:
-	case InstructionMap::OP_LUI:
-		opType = LBTTrace::LoadImmediate;
-		break;
-
-	case InstructionMap::OP_SYSCALL:
-		opType = LBTTrace::SystemCall;
-		break;
-
-	default:
-		if (InstructionMap::isALUOperation(input.opcode())) {
-			if (input.function() == InstructionMap::FN_MULHW || input.function() == InstructionMap::FN_MULLW)
-				opType = LBTTrace::ALU2;
-			else
-				opType = LBTTrace::ALU1;
-		} else {
-			opType = LBTTrace::Control;
-		}
-
-		break;
-    }
-
-	unsigned long long isid = LBTTrace::logDecodedInstruction(input.location(), opType, input.endOfIPK());
-
-	LBTTrace::setInstructionExecuteFlag(isid, execute);
-	LBTTrace::setInstructionInputChannels(isid, input.sourceReg1() - 2, Registers::isChannelEnd(input.sourceReg1()), input.sourceReg2() - 2, Registers::isChannelEnd(input.sourceReg2()));
-
-	input.isid(isid);
-	output.isid(isid);
-  }
-
   if (/*ENERGY_TRACE &&*/ !input.isExecuteStageOperation()) {
     Instrumentation::executed(id, input, execute);
     parent()->instructionExecuted();
@@ -162,9 +80,6 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   if (instructionCancelled) {
     LOKI_LOG << this->name() << " aborting " << input << endl;
     instructionCancelled = false;
-
-    if (Arguments::lbtTrace())
-   	  LBTTrace::setInstructionExecuteFlag(input.isid(), false);
 
     return false;
   }
@@ -332,10 +247,6 @@ void Decoder::waitForOperands(const DecodedInst& dec) {
   }
   if (InstructionMap::hasSrcReg2(dec.opcode()) && Registers::isChannelEnd(dec.sourceReg2()))
     waitUntilArrival(Registers::toChannelID(dec.sourceReg2()), dec);
-
-  // FIXME: there is currently a problem if we are indirectly reading from a
-  // channel end, and the instruction is aborted. This method doesn't wait for
-  // registers specified by indirect reads.
 }
 
 bool Decoder::needsForwarding(RegisterIndex reg) const {
@@ -431,10 +342,6 @@ void Decoder::waitForOperands2(const DecodedInst& inst) {
     stall(false, Instrumentation::Stalls::STALL_MEMORY_DATA, inst);
     stall(false, Instrumentation::Stalls::STALL_CORE_DATA, inst);
   }
-
-  // FIXME: there is currently a problem if we are indirectly reading from a
-  // channel end, and the instruction is aborted. This method doesn't wait for
-  // registers specified by indirect reads.
 }
 
 bool Decoder::checkChannelInput(ChannelIndex channel, const DecodedInst& inst) {
@@ -590,7 +497,7 @@ DecodeStage* Decoder::parent() const {
 void Decoder::reportStalls(ostream& os) {
   if (!ready()) {
     DecodedInst& inst = parent()->currentInst;
-    os << this->name() << " unable to complete " << inst << endl;
+    os << this->name() << " unable to complete " << LOKI_HEX(inst.location()) << " " << inst << endl;
 
     if (needOperand1 || (inst.hasOperand1() && Registers::isChannelEnd(inst.sourceReg1())))
       os << "  Waiting for operand 1." << endl;
