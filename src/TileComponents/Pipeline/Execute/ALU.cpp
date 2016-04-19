@@ -125,9 +125,9 @@ ALU::ALU(const sc_module_name& name, const ComponentID& ID) : Component(name, ID
   cyclesRemaining = 0;
 }
 
-//==============================//
+//============================================================================//
 // System call stuff
-//==============================//
+//============================================================================//
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -252,10 +252,10 @@ void ALU::systemCall(DecodedInst& dec) const {
       DEBUG = 0;
       break;
     case 0x24: /* start instruction trace */
-      CORE_TRACE = 1;
+      LOKI_WARN << "syscall 0x24 (start instruction trace) is deprecated." << endl;
       break;
     case 0x25: /* end instruction trace */
-      CORE_TRACE = 0;
+      LOKI_WARN << "syscall 0x25 (end instruction trace) is deprecated." << endl;
       break;
     case 0x26: { /* software triggered register file snapshot */
       // TODO

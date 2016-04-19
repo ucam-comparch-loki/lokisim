@@ -21,21 +21,21 @@
 #include "MemoryTypedefs.h"
 
 class Chip;
-class SimplifiedOnChipScratchpad;
+class MainMemory;
 
 class MagicMemory: public Component {
 
-//==============================//
+//============================================================================//
 // Constructors and destructors
-//==============================//
+//============================================================================//
 
 public:
 
-  MagicMemory(const sc_module_name& name, SimplifiedOnChipScratchpad& mainMemory);
+  MagicMemory(const sc_module_name& name, MainMemory& mainMemory);
 
-//==============================//
+//============================================================================//
 // Methods
-//==============================//
+//============================================================================//
 
 public:
 
@@ -52,13 +52,13 @@ private:
   Chip& chip() const;
 
 
-//==============================//
+//============================================================================//
 // Local state
-//==============================//
+//============================================================================//
 
 private:
 
-  SimplifiedOnChipScratchpad& mainMemory;
+  MainMemory& mainMemory;
 
 };
 

@@ -4,10 +4,10 @@
  * A signal which combines the three common pieces of information often
  * communicated between Loki's modules:
  *  1. Data
- *  2. Validity of the data
+ *  2. Acknowledgements
+ *  3. Validity of the data
  *    - Set to "true" when data is written
- *    - Set to "false" when data is read (is this correct? perhaps when ack is sent?)
- *  3. Acknowledgements
+ *    - Set to "false" when acknowledgement is received
  *
  * By having all of the information in one place, it is possible to greatly
  * reduce the number of events produced during simulation.
@@ -34,9 +34,9 @@ using sc_core::sc_signal;
 template<class T>
 class loki_signal : public sc_buffer<T>, public loki_signal_inout_if<T> {
 
-//==============================//
+//============================================================================//
 // Methods
-//==============================//
+//============================================================================//
 
 public:
 
@@ -50,13 +50,13 @@ public:
     // Copied from sc_buffer (and updated for SystemC 2.3)
 
 #if (SC_VERSION_MAJOR >= 2) || ((SC_VERSION_MAJOR == 2) && (SC_VERSION_MINOR >= 3))
-    if( !sc_signal<T>::policy_type::check_write(this,true) )
+    if ( !sc_signal<T>::policy_type::check_write(this,true) )
       return;
 #else
     sc_object* writer = sc_core::sc_get_curr_simcontext()->get_current_writer();
-    if(sc_signal<T>::m_writer == 0) {
+    if (sc_signal<T>::m_writer == 0) {
       sc_signal<T>::m_writer = writer;
-    } else if(sc_signal<T>::m_writer != writer) {
+    } else if (sc_signal<T>::m_writer != writer) {
       sc_signal_invalid_writer(this, sc_signal<T>::m_writer, writer);
     }
 #endif
@@ -120,9 +120,9 @@ protected:
 #endif
   }
 
-//==============================//
+//============================================================================//
 // Constructors and destructors
-//==============================//
+//============================================================================//
 
 public:
 
@@ -134,9 +134,9 @@ public:
 
   virtual ~loki_signal() {}
 
-//==============================//
+//============================================================================//
 // Local state
-//==============================//
+//============================================================================//
 
 private:
 

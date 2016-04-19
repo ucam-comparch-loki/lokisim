@@ -224,7 +224,7 @@ RegisterIndex Instruction::decodeField(const string& str) {
     reg.erase(0,2);                   // Remove the "ch"
 
     ChannelIndex channel = Strings::strToInt(reg);
-    assert(channel < NUM_RECEIVE_CHANNELS);
+    assert(channel < CORE_RECEIVE_CHANNELS);
 
     // Convert from the channel index to the register index.
     RegisterIndex value = Registers::fromChannelID(channel);

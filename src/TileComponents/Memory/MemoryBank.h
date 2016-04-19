@@ -25,13 +25,13 @@
 #include "MemoryTypedefs.h"
 
 class MemoryOperation;
-class SimplifiedOnChipScratchpad;
+class MainMemory;
 
 class MemoryBank: public Component, public Blocking {
 
-//==============================//
+//============================================================================//
 // Ports
-//==============================//
+//============================================================================//
 
 public:
 
@@ -55,9 +55,9 @@ public:
   sc_in<MemoryIndex>    iResponseTarget;
   ResponseOutput        oResponse;        // Output responses sent to the remote memory banks
 
-//==============================//
+//============================================================================//
 // Constructors and destructors
-//==============================//
+//============================================================================//
 
 public:
 
@@ -65,9 +65,9 @@ public:
   MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumber);
   ~MemoryBank();
 
-//==============================//
+//============================================================================//
 // Methods
-//==============================//
+//============================================================================//
 
 public:
 
@@ -131,7 +131,7 @@ public:
   MemoryAddr getOffset(MemoryAddr address) const;
 
   void setLocalNetwork(local_net_t* network);
-  void setBackgroundMemory(SimplifiedOnChipScratchpad* memory);
+  void setBackgroundMemory(MainMemory* memory);
 
   void storeData(vector<Word>& data, MemoryAddr location);
   void synchronizeData();
@@ -188,9 +188,9 @@ protected:
 
   virtual void reportStalls(ostream& os);
 
-//==============================//
+//============================================================================//
 // Local state
-//==============================//
+//============================================================================//
 
 private:
 
@@ -240,7 +240,7 @@ private:
 protected:
 
   // Magic connection to main memory.
-  SimplifiedOnChipScratchpad *mBackgroundMemory;
+  MainMemory *mBackgroundMemory;
 
   // Pointer to network, allowing new interfaces to be experimented with quickly.
   local_net_t *localNetwork;

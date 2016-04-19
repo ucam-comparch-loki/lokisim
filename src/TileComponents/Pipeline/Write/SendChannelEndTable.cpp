@@ -271,8 +271,8 @@ void SendChannelEndTable::reportStalls(ostream& os) {
 SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID& ID, ChannelMapTable* cmt) :
     Component(name, ID),
     Blocking(),
-    bufferLocal(string(this->name())+string(".bufferLocal"), OUT_CHANNEL_BUFFER_SIZE),
-    bufferGlobal(string(this->name())+string(".bufferGlobal"), OUT_CHANNEL_BUFFER_SIZE),
+    bufferLocal(string(this->name())+string(".bufferLocal"), CORE_BUFFER_SIZE),
+    bufferGlobal(string(this->name())+string(".bufferGlobal"), CORE_BUFFER_SIZE),
     channelMapTable(cmt) {
 
   receiveState = RS_READY;

@@ -29,10 +29,10 @@
 #include "Network/NetworkTypedefs.h"
 #include "TileComponents/Core.h"
 #include "TileComponents/Memory/MagicMemory.h"
+#include "TileComponents/Memory/MainMemory.h"
 #include "TileComponents/Memory/MemoryBank.h"
 #include "TileComponents/Memory/MemoryTypedefs.h"
 #include "TileComponents/Memory/MissHandlingLogic.h"
-#include "TileComponents/Memory/SimplifiedOnChipScratchpad.h"
 #include "Typedefs.h"
 #include "Utility/LokiVector.h"
 #include "Utility/LokiVector2D.h"
@@ -46,9 +46,9 @@ class TileComponent;
 
 class Chip : public Component {
 
-//==============================//
+//============================================================================//
 // Constructors and destructors
-//==============================//
+//============================================================================//
 
 public:
 
@@ -56,9 +56,9 @@ public:
   Chip(const sc_module_name& name, const ComponentID& ID);
   virtual ~Chip();
 
-//==============================//
+//============================================================================//
 // Methods
-//==============================//
+//============================================================================//
 
 public:
 
@@ -93,18 +93,18 @@ private:
   // Wire everything together.
   void    wireUp();
 
-//==============================//
+//============================================================================//
 // Components
-//==============================//
+//============================================================================//
 
 private:
 
 	vector<Core*>              cores;             // All cores of the chip
 	vector<MemoryBank*>        memories;          // All memories of the chip
 	vector<MissHandlingLogic*> mhl;               // One per tile
-	SimplifiedOnChipScratchpad backgroundMemory;
+	MainMemory                 mainMemory;
 
-	MagicMemory                magicMemory;       // Wrapper for backgroundMemory
+	MagicMemory                magicMemory;       // Wrapper for mainMemory
 
 	// Global networks - connect all tiles together.
 	DataNetwork                dataNet;
@@ -116,9 +116,9 @@ private:
 	// at some point.
 	NetworkHierarchy           network;
 
-//==============================//
+//============================================================================//
 // Signals (wires)
-//==============================//
+//============================================================================//
 
 private:
 

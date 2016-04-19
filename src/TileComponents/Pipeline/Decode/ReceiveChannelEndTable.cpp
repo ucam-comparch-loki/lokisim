@@ -17,7 +17,7 @@
 typedef RegisterFile Registers;
 
 int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
-  assert(channelEnd < NUM_RECEIVE_CHANNELS);
+  assert(channelEnd < CORE_RECEIVE_CHANNELS);
   assert(!buffers[channelEnd].empty());
 
   int32_t result = buffers[channelEnd].read().toInt();
@@ -29,7 +29,7 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
 }
 
 int32_t ReceiveChannelEndTable::readInternal(ChannelIndex channelEnd) const {
-  assert(channelEnd < NUM_RECEIVE_CHANNELS);
+  assert(channelEnd < CORE_RECEIVE_CHANNELS);
 
   if (buffers[channelEnd].empty())
     return 0;
@@ -41,7 +41,7 @@ void ReceiveChannelEndTable::writeInternal(ChannelIndex channel, int32_t data) {
   LOKI_LOG << this->name() << " channel " << (int)channel << " received " <<
               data << endl;
 
-  assert(channel < NUM_RECEIVE_CHANNELS);
+  assert(channel < CORE_RECEIVE_CHANNELS);
   assert(!buffers[channel].full());
   buffers[channel].write(data);
 
@@ -50,7 +50,7 @@ void ReceiveChannelEndTable::writeInternal(ChannelIndex channel, int32_t data) {
 
 /* Return whether or not the specified channel contains data. */
 bool ReceiveChannelEndTable::testChannelEnd(ChannelIndex channelEnd) const {
-  assert(channelEnd < NUM_RECEIVE_CHANNELS);
+  assert(channelEnd < CORE_RECEIVE_CHANNELS);
   return !buffers[channelEnd].empty();
 }
 
@@ -79,7 +79,7 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd(unsigned int bitmask, cons
 void ReceiveChannelEndTable::waitForData(unsigned int bitmask, const DecodedInst& inst) {
   // Wait for data to arrive on one of the channels we're interested in.
   while (true) {
-    for (ChannelIndex i=0; i<NUM_RECEIVE_CHANNELS; i++) {
+    for (ChannelIndex i=0; i<CORE_RECEIVE_CHANNELS; i++) {
       if (((bitmask >> i) & 1) && !buffers[i].empty())
         return;
     }
@@ -126,12 +126,12 @@ void ReceiveChannelEndTable::reportStalls(ostream& os) {
 ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name, const ComponentID& ID) :
     Component(name, ID),
     Blocking(),
-    buffers(NUM_RECEIVE_CHANNELS, IN_CHANNEL_BUFFER_SIZE, this->name()),
-    currentChannel(NUM_RECEIVE_CHANNELS) {
+    buffers(CORE_RECEIVE_CHANNELS, CORE_BUFFER_SIZE, this->name()),
+    currentChannel(CORE_RECEIVE_CHANNELS) {
 
-  iData.init(NUM_RECEIVE_CHANNELS);
-  oFlowControl.init(NUM_RECEIVE_CHANNELS);
-  oDataConsumed.init(NUM_RECEIVE_CHANNELS);
+  iData.init(CORE_RECEIVE_CHANNELS);
+  oFlowControl.init(CORE_RECEIVE_CHANNELS);
+  oDataConsumed.init(CORE_RECEIVE_CHANNELS);
 
   // Generate a method to watch each input port, putting the data into the
   // appropriate buffer when it arrives.

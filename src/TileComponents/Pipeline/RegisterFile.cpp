@@ -87,7 +87,7 @@ bool RegisterFile::isReserved(RegisterIndex position) {
 
 bool RegisterFile::isChannelEnd(RegisterIndex position) {
   return position >= START_OF_INPUT_CHANNELS
-      && position <  START_OF_INPUT_CHANNELS + NUM_RECEIVE_CHANNELS;
+      && position <  START_OF_INPUT_CHANNELS + CORE_RECEIVE_CHANNELS;
 }
 
 bool RegisterFile::isAddressableReg(RegisterIndex position) {
@@ -111,7 +111,7 @@ RegisterIndex RegisterFile::toChannelID(RegisterIndex position) {
 }
 
 RegisterIndex RegisterFile::fromChannelID(RegisterIndex position) {
-  assert(position < NUM_RECEIVE_CHANNELS);
+  assert(position < CORE_RECEIVE_CHANNELS);
   return position + START_OF_INPUT_CHANNELS;
 }
 

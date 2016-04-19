@@ -36,9 +36,9 @@ using namespace std;
 #include "../../Exceptions/ReadOnlyException.h"
 #include "../../Utility/Instrumentation/MainMemory.h"
 #include "../../Utility/Warnings.h"
-#include "SimplifiedOnChipScratchpad.h"
+#include "MainMemory.h"
 
-void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
+void MainMemory::tryStartRequest(uint port) {
 	mPortData[port].State = STATE_IDLE;
 
 	if (!mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
@@ -54,13 +54,13 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 
 			LOKI_LOG << this->name() << " preparing to read " << mPortData[port].WordsLeft << " words from " << LOKI_HEX(mPortData[port].Address) << endl;
 
-			if (mPortData[port].Address + mPortData[port].WordsLeft * 4 > MEMORY_ON_CHIP_SCRATCHPAD_SIZE)
+			if (mPortData[port].Address + mPortData[port].WordsLeft * 4 > MAIN_MEMORY_SIZE)
 				LOKI_ERROR << this->name() << " fetch request outside valid memory space (address " << mPortData[port].Address << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
 
 			assert((mPortData[port].Address & 0x3) == 0);
-			assert(mPortData[port].Address <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
-			assert((mPortData[port].WordsLeft * 4) <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
-			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+			assert(mPortData[port].Address <= MAIN_MEMORY_SIZE);
+			assert((mPortData[port].WordsLeft * 4) <= MAIN_MEMORY_SIZE);
+			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MAIN_MEMORY_SIZE);
 			assert(mPortData[port].WordsLeft > 0);
 
 			Instrumentation::MainMemory::read(mPortData[port].Address, mPortData[port].WordsLeft);
@@ -74,11 +74,11 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 
 			LOKI_LOG << this->name() << " preparing to write " << mPortData[port].WordsLeft << " words to " << LOKI_HEX(mPortData[port].Address) << endl;
 
-			if (mPortData[port].Address + mPortData[port].WordsLeft * 4 > MEMORY_ON_CHIP_SCRATCHPAD_SIZE)
+			if (mPortData[port].Address + mPortData[port].WordsLeft * 4 > MAIN_MEMORY_SIZE)
 				LOKI_ERROR << this->name() << " store request outside valid memory space (address " << mPortData[port].Address << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
 
 			assert((mPortData[port].Address & 0x3) == 0);
-			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MAIN_MEMORY_SIZE);
 			assert(mPortData[port].WordsLeft > 0);
 
 			Instrumentation::MainMemory::write(mPortData[port].Address, mPortData[port].WordsLeft);
@@ -92,12 +92,12 @@ void SimplifiedOnChipScratchpad::tryStartRequest(uint port) {
 	}
 }
 
-void SimplifiedOnChipScratchpad::receiveData(uint port) {
+void MainMemory::receiveData(uint port) {
   assert(!mInputQueues[port].full());
   assert(iData[port].valid());
 
   InputWord newWord;
-  newWord.EarliestExecutionCycle = mCycleCounter + (uint64_t)cDelayCycles;
+  newWord.EarliestExecutionCycle = mCycleCounter + (uint64_t)MAIN_MEMORY_LATENCY;
   newWord.Request = iData[port].read();
 
   LOKI_LOG << this->name() << " received " << newWord.Request.payload() << " (" << memoryOpName(newWord.Request.getMemoryMetadata().opcode) << ")" << endl;
@@ -106,7 +106,7 @@ void SimplifiedOnChipScratchpad::receiveData(uint port) {
   mInputQueues[port].write(newWord);
 }
 
-void SimplifiedOnChipScratchpad::sendData(uint port) {
+void MainMemory::sendData(uint port) {
   if (mOutputQueues[port].empty())
     next_trigger(mOutputQueues[port].writeEvent());
   else if (oData[port].valid()) {
@@ -123,9 +123,7 @@ void SimplifiedOnChipScratchpad::sendData(uint port) {
   }
 }
 
-void SimplifiedOnChipScratchpad::mainLoop() {
-	assert(cBanks <= 16);
-
+void MainMemory::mainLoop() {
   // Process port events
 
   bool bankAccessed[16];	// Simulate banked memory
@@ -134,7 +132,7 @@ void SimplifiedOnChipScratchpad::mainLoop() {
   for (uint port = 0; port < cPortCount; port++) {
     // Default to non-valid - only last change will become effective
 
-    uint32_t bankSelected = (mPortData[port].Address / 4) % cBanks;
+    uint32_t bankSelected = (mPortData[port].Address / 4) % cPortCount;
 
     switch (mPortData[port].State) {
     case STATE_IDLE:
@@ -188,11 +186,10 @@ void SimplifiedOnChipScratchpad::mainLoop() {
   }
 
   // Advance cycle counter
-
   mCycleCounter++;
 }
 
-SimplifiedOnChipScratchpad::SimplifiedOnChipScratchpad(sc_module_name name, const ComponentID& ID, uint portCount) :
+MainMemory::MainMemory(sc_module_name name, const ComponentID& ID, uint portCount) :
 	Component(name, ID),
 	cPortCount(portCount),
   mInputQueues(portCount, 1024, "SimplifiedOnChipScratchpad::mInputQueues"), // Virtually infinite queue length
@@ -200,16 +197,13 @@ SimplifiedOnChipScratchpad::SimplifiedOnChipScratchpad(sc_module_name name, cons
 {
 	assert(portCount >= 1);
 
-	cDelayCycles = MEMORY_ON_CHIP_SCRATCHPAD_DELAY;
-	cBanks = MEMORY_ON_CHIP_SCRATCHPAD_BANKS;
-
 	iData.init(portCount);
 	oData.init(portCount);
 
 	mCycleCounter = 0;
 
-	mData = new uint32_t[MEMORY_ON_CHIP_SCRATCHPAD_SIZE / 4];
-	memset(mData, 0x00, MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+	mData = new uint32_t[MAIN_MEMORY_SIZE / 4];
+	memset(mData, 0x00, MAIN_MEMORY_SIZE);
 
 	mPortData = new PortData[portCount];
 
@@ -222,14 +216,14 @@ SimplifiedOnChipScratchpad::SimplifiedOnChipScratchpad(sc_module_name name, cons
 
   // Handlers for each of the input queues.
   for (uint i=0; i<portCount; i++)
-    SPAWN_METHOD(iData[i], SimplifiedOnChipScratchpad::receiveData, i, false);
+    SPAWN_METHOD(iData[i], MainMemory::receiveData, i, false);
 
   // Handlers for each of the output queues.
   for (uint i=0; i<portCount; i++)
-    SPAWN_METHOD(mOutputQueues[i].writeEvent(), SimplifiedOnChipScratchpad::sendData, i, true);
+    SPAWN_METHOD(mOutputQueues[i].writeEvent(), MainMemory::sendData, i, true);
 }
 
-SimplifiedOnChipScratchpad::~SimplifiedOnChipScratchpad() {
+MainMemory::~MainMemory() {
 	delete[] mData;
 	delete[] mPortData;
 }
@@ -286,12 +280,12 @@ void SimplifiedOnChipScratchpad::flushQueues() {
 }
 */
 
-void SimplifiedOnChipScratchpad::storeData(vector<Word>& data, MemoryAddr location, bool readOnly) {
+void MainMemory::storeData(vector<Word>& data, MemoryAddr location, bool readOnly) {
 	size_t count = data.size();
 	uint32_t address = location / 4;
 
 	assert(location % 4 == 0);
-	assert(location + count * 4 < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+	assert(location + count * 4 < MAIN_MEMORY_SIZE);
 
 	for (size_t i = 0; i < count; i++) {
 	  LOKI_LOG << this->name() << " wrote to " << LOKI_HEX((address+i)*4) << ": " << data[i].toUInt() << endl;
@@ -305,11 +299,11 @@ void SimplifiedOnChipScratchpad::storeData(vector<Word>& data, MemoryAddr locati
 	}
 }
 
-const void* SimplifiedOnChipScratchpad::getData() {
+const void* MainMemory::getData() {
 	return mData;
 }
 
-bool SimplifiedOnChipScratchpad::readOnly(MemoryAddr addr) const {
+bool MainMemory::readOnly(MemoryAddr addr) const {
   for (uint i=0; i<readOnlyBase.size(); i++) {
     if ((addr >= readOnlyBase[i]) && (addr < readOnlyLimit[i])) {
       return true;
@@ -319,7 +313,7 @@ bool SimplifiedOnChipScratchpad::readOnly(MemoryAddr addr) const {
   return false;
 }
 
-void SimplifiedOnChipScratchpad::print(MemoryAddr start, MemoryAddr end) {
+void MainMemory::print(MemoryAddr start, MemoryAddr end) {
 	if (start > end) {
 		MemoryAddr temp = start;
 		start = end;
@@ -332,34 +326,34 @@ void SimplifiedOnChipScratchpad::print(MemoryAddr start, MemoryAddr end) {
 	cout << "On-chip scratchpad data:\n" << endl;
 
 	while (address < limit) {
-		assert(address * 4 < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+		assert(address * 4 < MAIN_MEMORY_SIZE);
 		cout << "0x" << setprecision(8) << setfill('0') << hex << (address * 4) << ":  " << "0x" << setprecision(8) << setfill('0') << hex << mData[address] << endl << dec;
 		address++;
 	}
 }
 
-Word SimplifiedOnChipScratchpad::readWord(MemoryAddr addr) {
-	assert(addr < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+Word MainMemory::readWord(MemoryAddr addr) {
+	assert(addr < MAIN_MEMORY_SIZE);
 	assert(addr % 4 == 0);
 	return Word(mData[addr / 4]);
 }
 
-Word SimplifiedOnChipScratchpad::readHalfword(MemoryAddr addr) {
-  assert(addr < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+Word MainMemory::readHalfword(MemoryAddr addr) {
+  assert(addr < MAIN_MEMORY_SIZE);
   uint32_t data = mData[addr / 4];
   uint shift = (addr & 0x3UL) * 8;
   return Word((data >> shift) & 0xFFFFUL);
 }
 
-Word SimplifiedOnChipScratchpad::readByte(MemoryAddr addr) {
-  assert(addr < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+Word MainMemory::readByte(MemoryAddr addr) {
+  assert(addr < MAIN_MEMORY_SIZE);
   uint32_t data = mData[addr / 4];
   uint shift = (addr & 0x3UL) * 8;
   return Word((data >> shift) & 0xFFUL);
 }
 
-void SimplifiedOnChipScratchpad::writeWord(MemoryAddr addr, Word data) {
-	assert(addr < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+void MainMemory::writeWord(MemoryAddr addr, Word data) {
+	assert(addr < MAIN_MEMORY_SIZE);
 	assert(addr % 4 == 0);
 
   if (WARN_READ_ONLY && readOnly(addr))
@@ -368,8 +362,8 @@ void SimplifiedOnChipScratchpad::writeWord(MemoryAddr addr, Word data) {
   mData[addr / 4] = data.toUInt();
 }
 
-void SimplifiedOnChipScratchpad::writeHalfword(MemoryAddr addr, Word data) {
-  assert(addr < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+void MainMemory::writeHalfword(MemoryAddr addr, Word data) {
+  assert(addr < MAIN_MEMORY_SIZE);
 
   if (WARN_READ_ONLY && readOnly(addr))
     LOKI_WARN << this->name() << " modifying read-only address " << LOKI_HEX(addr) << endl;
@@ -382,8 +376,8 @@ void SimplifiedOnChipScratchpad::writeHalfword(MemoryAddr addr, Word data) {
   mData[addr / 4] = modData;
 }
 
-void SimplifiedOnChipScratchpad::writeByte(MemoryAddr addr, Word data) {
-  assert(addr < MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
+void MainMemory::writeByte(MemoryAddr addr, Word data) {
+  assert(addr < MAIN_MEMORY_SIZE);
 
   if (WARN_READ_ONLY && readOnly(addr))
     LOKI_WARN << this->name() << " modifying read-only address " << LOKI_HEX(addr) << endl;

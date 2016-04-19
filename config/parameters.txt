@@ -11,21 +11,18 @@ parameter MEMS_PER_TILE 8
 parameter IPK_CACHE_SIZE 64
 parameter IPK_CACHE_TAGS 16
 parameter IPK_FIFO_SIZE 64
-parameter IN_CHANNEL_BUFFER_SIZE 4
-parameter OUT_CHANNEL_BUFFER_SIZE 4
+parameter CORE_BUFFER_SIZE 4
 parameter CORE_SCRATCHPAD_SIZE 256
 parameter COMPUTE_TILE_ROWS 1
 parameter COMPUTE_TILE_COLUMNS 1
 
 parameter MEMORY_BANK_SIZE 8192
-parameter MEMORY_CACHE_RANDOM_REPLACEMENT 1
-parameter MEMORY_ON_CHIP_SCRATCHPAD_SIZE 268435456
-parameter MEMORY_ON_CHIP_SCRATCHPAD_BANKS 4
+parameter MAIN_MEMORY_SIZE 268435456
 
 # L1 latency, including network
-parameter L1_LATENCY 3
+parameter MEMORY_BANK_LATENCY 3
 
 # Main memory latency, excluding network. Network latency will vary depending
 # on where the requesting core is on the chip.
-# 6 is the default to match the total latency seen in Veriloki.
-parameter MEMORY_ON_CHIP_SCRATCHPAD_DELAY 7
+# 7 is the default to match the total latency seen in Veriloki.
+parameter MAIN_MEMORY_LATENCY 7

@@ -368,13 +368,13 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
   previousCMTData = 0;
   rmtexecuteChannel = Instruction::NO_CHANNEL;
 
-  iData.init(NUM_RECEIVE_CHANNELS);
-  oFlowControl.init(NUM_RECEIVE_CHANNELS);
-  oDataConsumed.init(NUM_RECEIVE_CHANNELS);
+  iData.init(CORE_RECEIVE_CHANNELS);
+  oFlowControl.init(CORE_RECEIVE_CHANNELS);
+  oDataConsumed.init(CORE_RECEIVE_CHANNELS);
 
   // Connect everything up
   rcet.clock(clock);
-  for (uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
+  for (uint i=0; i<CORE_RECEIVE_CHANNELS; i++) {
     rcet.iData[i](iData[i]);
     rcet.oFlowControl[i](oFlowControl[i]);
     rcet.oDataConsumed[i](oDataConsumed[i]);

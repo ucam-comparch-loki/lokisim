@@ -75,7 +75,7 @@ void simulate(Chip& chip) {
   if (DEBUG)
     cyclesPerStep = 1;
   else
-    cyclesPerStep = (100 < TIMEOUT/50) ? 100 : TIMEOUT/50;
+    cyclesPerStep = 100;
 
   try {
     if (Debugger::usingDebugger) {
@@ -100,17 +100,13 @@ void simulate(Chip& chip) {
 
         if (cycle % 10000 < cyclesPerStep) {
           bool progress = checkProgress();
-          if (!progress) break;
+          if (!progress)
+            break;
         }
 
         bool idle = checkIdle();
-        if (idle) break;
-
-        if (cycle >= TIMEOUT) {
-          cerr << "Simulation timed out after " << TIMEOUT << " cycles." << endl;
-          RETURN_CODE = EXIT_FAILURE;
+        if (idle)
           break;
-        }
 
       }
     }

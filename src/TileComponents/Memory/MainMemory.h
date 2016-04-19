@@ -25,22 +25,14 @@
 // Created on: 08/04/2011
 //-------------------------------------------------------------------------------------------------
 
-#ifndef SIMPLIFIEDONCHIPSCRATCHPAD_H
-#define SIMPLIFIEDONCHIPSCRATCHPAD_H
+#ifndef MAINMEMORY_H
+#define MAINMEMORY_H
 
 #include "../../Component.h"
 #include "../../Datatype/MemoryRequest.h"
 #include "../../Network/BufferArray.h"
 
-class SimplifiedOnChipScratchpad: public Component {
-	//---------------------------------------------------------------------------------------------
-	// Configuration parameters
-	//---------------------------------------------------------------------------------------------
-
-private:
-
-	uint						cDelayCycles;			// Number of clock cycles requests are delayed
-	uint						cBanks;					// Number of memory banks
+class MainMemory: public Component {
 
 	//---------------------------------------------------------------------------------------------
 	// Ports
@@ -118,9 +110,9 @@ private:
 
 public:
 
-	SC_HAS_PROCESS(SimplifiedOnChipScratchpad);
-	SimplifiedOnChipScratchpad(sc_module_name name, const ComponentID& ID, uint portCount);
-	~SimplifiedOnChipScratchpad();
+	SC_HAS_PROCESS(MainMemory);
+	MainMemory(sc_module_name name, const ComponentID& ID, uint portCount);
+	~MainMemory();
 
 	//---------------------------------------------------------------------------------------------
 	// Simulation utility methods inherited from Component - not part of simulated logic
@@ -144,4 +136,4 @@ public:
 	void writeByte(MemoryAddr addr, Word data);
 };
 
-#endif /* SIMPLIFIEDONCHIPSCRATCHPAD_H */
+#endif /* MAINMEMORY_H */

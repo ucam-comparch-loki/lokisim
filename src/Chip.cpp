@@ -21,7 +21,7 @@ void Chip::storeInstructions(vector<Word>& instructions, const ComponentID& comp
 
 void Chip::storeData(const DataBlock& data) {
   if (data.component() == ComponentID(2,0,0))
-    backgroundMemory.storeData(data.payload(), data.position(), data.readOnly());
+    mainMemory.storeData(data.payload(), data.position(), data.readOnly());
   else if (data.component().isCore()) {
     assert(data.component().globalCoreNumber() < cores.size());
     cores[data.component().globalCoreNumber()]->storeData(data.payload(), data.position());
@@ -35,16 +35,14 @@ void Chip::storeData(const DataBlock& data) {
 }
 
 const void* Chip::getMemoryData() {
-	//backgroundMemory.flushQueues();
-
-	return backgroundMemory.getData();
+	return mainMemory.getData();
 }
 
 void Chip::print(const ComponentID& component, MemoryAddr start, MemoryAddr end) {
 	if (component.isMemory() && !MAGIC_MEMORY)
 		memories[component.globalMemoryNumber()]->print(start, end);
 	else
-		backgroundMemory.print(start, end);
+		mainMemory.print(start, end);
 }
 
 Word Chip::readWordInternal(const ComponentID& component, MemoryAddr addr) {
@@ -53,7 +51,7 @@ Word Chip::readWordInternal(const ComponentID& component, MemoryAddr addr) {
 	  return memories[component.globalMemoryNumber()]->readWordDebug(addr);
 	}
 	else
-		return backgroundMemory.readWord(addr);
+		return mainMemory.readWord(addr);
 }
 
 Word Chip::readByteInternal(const ComponentID& component, MemoryAddr addr) {
@@ -62,7 +60,7 @@ Word Chip::readByteInternal(const ComponentID& component, MemoryAddr addr) {
 	  return memories[component.globalMemoryNumber()]->readByteDebug(addr);
 	}
 	else
-		return backgroundMemory.readByte(addr);
+		return mainMemory.readByte(addr);
 }
 
 void Chip::writeWordInternal(const ComponentID& component, MemoryAddr addr, Word data) {
@@ -71,7 +69,7 @@ void Chip::writeWordInternal(const ComponentID& component, MemoryAddr addr, Word
 	  return memories[component.globalMemoryNumber()]->writeWordDebug(addr, data);
 	}
 	else
-		return backgroundMemory.writeWord(addr, data);
+		return mainMemory.writeWord(addr, data);
 }
 
 void Chip::writeByteInternal(const ComponentID& component, MemoryAddr addr, Word data) {
@@ -80,7 +78,7 @@ void Chip::writeByteInternal(const ComponentID& component, MemoryAddr addr, Word
 	  return memories[component.globalMemoryNumber()]->writeByteDebug(addr, data);
 	}
 	else
-		return backgroundMemory.writeByte(addr, data);
+		return mainMemory.writeByte(addr, data);
 }
 
 int Chip::readRegisterInternal(const ComponentID& component, RegisterIndex reg) const {
@@ -167,7 +165,7 @@ void Chip::makeSignals() {
 
   responseFromBanks.init(NUM_COMPUTE_TILES, MEMS_PER_TILE);
   responseToBanks.init(NUM_COMPUTE_TILES);      // Broadcast within each tile
-  responseTarget.init(NUM_COMPUTE_TILES);        // Broadcast within each tile
+  responseTarget.init(NUM_COMPUTE_TILES);       // Broadcast within each tile
   responseFromBM.init(NUM_COMPUTE_TILES);
   responseToMHL.init(responseNet.iData);
   readyResponseToMHL.init(responseNet.iReady);
@@ -213,7 +211,7 @@ void Chip::makeComponents() {
 
         MemoryBank* m = new MemoryBank(name.c_str(), memoryID, mem);
         m->setLocalNetwork(network.getLocalNetwork(memoryID));
-        m->setBackgroundMemory(&backgroundMemory);
+        m->setBackgroundMemory(&mainMemory);
 
         memories[memoryID.globalMemoryNumber()] = m;
       }
@@ -234,7 +232,7 @@ void Chip::wireUp() {
   network.fastClock(fastClock);
   network.slowClock(slowClock);
 
-	backgroundMemory.iClock(clock);
+	mainMemory.iClock(clock);
 
 	// Global data network - connects cores to cores.
   dataNet.clock(clock);
@@ -425,16 +423,16 @@ void Chip::wireUp() {
   for (uint j=0; j<NUM_COMPUTE_TILES; j++) {
     mhl[j]->clock(clock);
     mhl[j]->iResponseFromBM(responseFromBM[j]);
-    backgroundMemory.oData[j](responseFromBM[j]);
+    mainMemory.oData[j](responseFromBM[j]);
     mhl[j]->oRequestToBM(requestToBM[j]);
-    backgroundMemory.iData[j](requestToBM[j]);
+    mainMemory.iData[j](requestToBM[j]);
   }
 }
 
 Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
     Component(name),
-    backgroundMemory("background_memory", ComponentID(2,0,0), NUM_COMPUTE_TILES),
-    magicMemory("magic_memory", backgroundMemory),
+    mainMemory("background_memory", ComponentID(2,0,0), NUM_COMPUTE_TILES),
+    magicMemory("magic_memory", mainMemory),
     dataNet("data_net"),
     creditNet("credit_net"),
     requestNet("request_net"),

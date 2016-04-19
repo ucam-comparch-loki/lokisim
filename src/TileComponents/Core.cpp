@@ -292,7 +292,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
   decode.clock(clock);
   decode.oReady(stageReady[0]);
   decode.iOutputBufferReady(stageReady[2]);
-  for (uint i=0; i<NUM_RECEIVE_CHANNELS; i++) {
+  for (uint i=0; i<CORE_RECEIVE_CHANNELS; i++) {
     decode.iData[i](dataToBuffers[i+2]);
     decode.oFlowControl[i](fcFromBuffers[i+2]);
     decode.oDataConsumed[i](dataConsumed[i+2]);

@@ -11,9 +11,9 @@
 #include "../../Exceptions/InvalidOptionException.h"
 #include "../../Network/NetworkTypedefs.h"
 #include "../../Utility/Parameters.h"
-#include "SimplifiedOnChipScratchpad.h"
+#include "MainMemory.h"
 
-MagicMemory::MagicMemory(const sc_module_name& name, SimplifiedOnChipScratchpad& mainMemory) :
+MagicMemory::MagicMemory(const sc_module_name& name, MainMemory& mainMemory) :
     Component(name),
     mainMemory(mainMemory) {
   // Nothing

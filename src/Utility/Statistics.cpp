@@ -65,8 +65,8 @@ int Statistics::l0Misses()              {return IPKCache::numMisses();}
 int Statistics::l0Reads()               {return IPKCache::numReads();}
 int Statistics::l0Writes()              {return IPKCache::numWrites();}
 
-int Statistics::l1Reads()               {return MemoryBank::numReads();}
-int Statistics::l1Writes()              {return MemoryBank::numWrites();}
+int Statistics::l1Reads()               {return MemoryBank::totalReads();}
+int Statistics::l1Writes()              {return MemoryBank::totalWrites();}
 
 int Statistics::cyclesActive(int core)  {
   uint tile = core / NUM_COMPUTE_TILES;

@@ -34,7 +34,7 @@ void FetchLine::execute() {
   sendResult(result);
 
   if (ENERGY_TRACE)
-    Instrumentation::MemoryBank::readBurstWord(memory.id.globalMemoryNumber(), address + lineCursor, false, destination);
+    Instrumentation::MemoryBank::continueOperation(memory.id.globalMemoryNumber(), metadata.opcode, address + lineCursor, false, destination);
 
   lineCursor += BYTES_PER_WORD;
 }
@@ -60,7 +60,7 @@ void IPKRead::execute() {
   sendResult(result);
 
   if (ENERGY_TRACE)
-    Instrumentation::MemoryBank::readIPKWord(memory.id.globalMemoryNumber(), address + lineCursor, false, destination);
+    Instrumentation::MemoryBank::continueOperation(memory.id.globalMemoryNumber(), metadata.opcode, address + lineCursor, false, destination);
 
   lineCursor += BYTES_PER_WORD;
 
@@ -232,7 +232,7 @@ void StoreLine::execute() {
     memory.printOperation(metadata.opcode, address + lineCursor, data);
 
     if (ENERGY_TRACE)
-      Instrumentation::MemoryBank::writeBurstWord(memory.id.globalMemoryNumber(), address + lineCursor, false, destination);
+      Instrumentation::MemoryBank::continueOperation(memory.id.globalMemoryNumber(), metadata.opcode, address + lineCursor, false, destination);
 
     lineCursor += BYTES_PER_WORD;
   }
@@ -266,7 +266,7 @@ void MemsetLine::execute() {
     memory.printOperation(metadata.opcode, address + lineCursor, data);
 
     if (ENERGY_TRACE)
-      Instrumentation::MemoryBank::writeBurstWord(memory.id.globalMemoryNumber(), address + lineCursor, false, destination);
+      Instrumentation::MemoryBank::continueOperation(memory.id.globalMemoryNumber(), metadata.opcode, address + lineCursor, false, destination);
 
     lineCursor += BYTES_PER_WORD;
   }
@@ -299,7 +299,7 @@ void PushLine::execute() {
     memory.printOperation(metadata.opcode, address + lineCursor, data);
 
     if (ENERGY_TRACE)
-      Instrumentation::MemoryBank::writeBurstWord(memory.id.globalMemoryNumber(), address + lineCursor, false, destination);
+      Instrumentation::MemoryBank::continueOperation(memory.id.globalMemoryNumber(), metadata.opcode, address + lineCursor, false, destination);
 
     lineCursor += BYTES_PER_WORD;
   }

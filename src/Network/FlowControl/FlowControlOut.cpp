@@ -77,14 +77,14 @@ void FlowControlOut::receivedCredit() {
   creditCount++;
 
   LOKI_LOG << this->name() << " received credit at port " << channel << endl;
-  assert(creditCount <= IN_CHANNEL_BUFFER_SIZE);
+  assert(creditCount <= CORE_BUFFER_SIZE);
 }
 
 FlowControlOut::FlowControlOut(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :
     Component(name, ID) {
 
   channel = channelManaged;
-  creditCount = IN_CHANNEL_BUFFER_SIZE;
+  creditCount = CORE_BUFFER_SIZE;
   state = WAITING_FOR_DATA;
 
   SC_METHOD(mainLoop);

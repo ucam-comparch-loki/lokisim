@@ -15,7 +15,7 @@
 using namespace std;
 
 #include "MemoryBank.h"
-#include "SimplifiedOnChipScratchpad.h"
+#include "MainMemory.h"
 #include "Operations/MemoryOperationDecode.h"
 #include "../../Datatype/Instruction.h"
 #include "../../Network/Topologies/LocalNetwork.h"
@@ -32,9 +32,9 @@ using namespace std;
 #define EXTERNAL_LATENCY 1
 
 // Additional latency to apply to get the total memory latency to match the
-// L1_LATENCY parameter. Includes one extra cycle of unavoidable latency within
-// the bank.
-#define INTERNAL_LATENCY (L1_LATENCY - EXTERNAL_LATENCY - 1)
+// MEMORY_BANK_LATENCY parameter. Includes one extra cycle of unavoidable
+// latency within the bank.
+#define INTERNAL_LATENCY (MEMORY_BANK_LATENCY - EXTERNAL_LATENCY - 1)
 
 
 uint log2(uint value) {
@@ -168,7 +168,8 @@ void MemoryBank::flush(SRAMAddress position, MemoryAccessMode mode) {
         sendRequest(header);
 
         if (ENERGY_TRACE)
-          Instrumentation::MemoryBank::initiateBurstRead(id.globalMemoryNumber());
+          Instrumentation::MemoryBank::startOperation(id.globalMemoryNumber(),
+              FLUSH_LINE, mTags[getLine(position)], false, ChannelID(id,0));
 
         // The flush state handles sending the line itself.
         mPreviousState = mState;
@@ -447,6 +448,9 @@ void MemoryBank::processFlush() {
   else if (canSendRequest()) {
     SRAMAddress position = getTag(mActiveRequest->getSRAMAddress()) + mCacheLineCursor;
     uint32_t data = readWord(position);
+
+    Instrumentation::MemoryBank::continueOperation(id.globalMemoryNumber(),
+        FLUSH_LINE, mTags[getLine(position)] + mCacheLineCursor, false, ChannelID(id,0));
 
     mCacheLineCursor += BYTES_PER_WORD;
 
@@ -815,8 +819,8 @@ void MemoryBank::updateReady() {
 
 MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumber) :
   Component(name, ID),
-  mInputQueue(string(this->name()) + string(".mInputQueue"), IN_CHANNEL_BUFFER_SIZE),
-  mOutputQueue("mOutputQueue", OUT_CHANNEL_BUFFER_SIZE, INTERNAL_LATENCY),
+  mInputQueue(string(this->name()) + string(".mInputQueue"), MEMORY_BUFFER_SIZE),
+  mOutputQueue("mOutputQueue", MEMORY_BUFFER_SIZE, INTERNAL_LATENCY),
   mOutputReqQueue("mOutputReqQueue", 10 /*read addr + write addr + cache line*/, 0),
   mData(MEMORY_BANK_SIZE, 0),
   mTags(CACHE_LINES_PER_BANK, 0),
@@ -893,7 +897,7 @@ void MemoryBank::setLocalNetwork(local_net_t* network) {
   localNetwork = network;
 }
 
-void MemoryBank::setBackgroundMemory(SimplifiedOnChipScratchpad* memory) {
+void MemoryBank::setBackgroundMemory(MainMemory* memory) {
   mBackgroundMemory = memory;
 }
 
