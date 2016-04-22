@@ -11,7 +11,7 @@
 
 #include "../MemoryBank.h"
 
-LoadLinked::LoadLinked(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
+LoadLinked::LoadLinked(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 0, 1) {
   // Nothing
 }
@@ -33,7 +33,7 @@ void LoadLinked::execute() {
 }
 
 
-StoreConditional::StoreConditional(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
+StoreConditional::StoreConditional(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 1, 1) {
   success = false;
   preWriteCheck();
@@ -69,7 +69,7 @@ void StoreConditional::execute() {
 }
 
 
-LoadAndAdd::LoadAndAdd(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
+LoadAndAdd::LoadAndAdd(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 1, 1) {
   intermediateData = 0;
   preWriteCheck();
@@ -100,7 +100,7 @@ void LoadAndAdd::execute() {
 }
 
 
-LoadAndOr::LoadAndOr(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
+LoadAndOr::LoadAndOr(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 1, 1) {
   intermediateData = 0;
   preWriteCheck();
@@ -131,7 +131,7 @@ void LoadAndOr::execute() {
 }
 
 
-LoadAndAnd::LoadAndAnd(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
+LoadAndAnd::LoadAndAnd(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 1, 1) {
   intermediateData = 0;
   preWriteCheck();
@@ -162,7 +162,7 @@ void LoadAndAnd::execute() {
 }
 
 
-LoadAndXor::LoadAndXor(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
+LoadAndXor::LoadAndXor(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 1, 1) {
   intermediateData = 0;
   preWriteCheck();
@@ -193,7 +193,7 @@ void LoadAndXor::execute() {
 }
 
 
-Exchange::Exchange(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
+Exchange::Exchange(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 1, 1) {
   preWriteCheck();
 }

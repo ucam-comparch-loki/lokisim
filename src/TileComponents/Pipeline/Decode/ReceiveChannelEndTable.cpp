@@ -125,7 +125,7 @@ void ReceiveChannelEndTable::reportStalls(ostream& os) {
 
 ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name, const ComponentID& ID) :
     Component(name, ID),
-    Blocking(),
+    BlockingInterface(),
     buffers(CORE_RECEIVE_CHANNELS, CORE_BUFFER_SIZE, this->name()),
     currentChannel(CORE_RECEIVE_CHANNELS) {
 

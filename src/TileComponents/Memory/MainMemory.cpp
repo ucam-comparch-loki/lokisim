@@ -1,306 +1,193 @@
-//-------------------------------------------------------------------------------------------------
-// Loki Project
-// Software Simulator for Design Space Exploration
-//-------------------------------------------------------------------------------------------------
-// Simplified On-Chip Scratchpad Implementation
-//-------------------------------------------------------------------------------------------------
-// Second version of simplified background memory model.
-//
-// Models a simplified on-chip scratchpad with an unlimited number of ports.
-// The scratchpad is connected through an abstract on-chip network and
-// serves as the background memory for the cache mode(s) of the memory banks.
-//
-// The number of input and output ports is configurable. The ports possess
-// queues for incoming and outgoing data.
-//
-// Colliding write requests are executed in ascending port order.
-//
-// Communication protocol:
-//
-// 1. Send start address
-// 2. Send words in case of write command
-//-------------------------------------------------------------------------------------------------
-// File:       SimplifiedOnChipScratchpad.cpp
-// Author:     Andreas Koltes (andreas.koltes@cl.cam.ac.uk)
-// Created on: 08/04/2011
-//-------------------------------------------------------------------------------------------------
+/*
+ * MainMemory.cpp
+ *
+ *  Created on: 21 Apr 2016
+ *      Author: db434
+ */
 
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
-#include <iostream>
-#include <iomanip>
-
-using namespace std;
-
-#include "../../Component.h"
-#include "../../Exceptions/ReadOnlyException.h"
-#include "../../Utility/Instrumentation/MainMemory.h"
-#include "../../Utility/Warnings.h"
 #include "MainMemory.h"
+#include "../../Utility/Instrumentation/MainMemory.h"
+#include "Operations/MemoryOperationDecode.h"
+#include <iomanip>
+#include <ios>
 
-void MainMemory::tryStartRequest(uint port) {
-	mPortData[port].State = STATE_IDLE;
+using std::dec;
+using std::hex;
+using std::setfill;
+using std::setprecision;
 
-	if (!mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
-		NetworkRequest request = mInputQueues[port].peek().Request;
+MainMemory::MainMemory(sc_module_name name, ComponentID ID, uint controllers) :
+    MemoryInterface(name, ID),
+    mux("mux", controllers),
+    mData(MAIN_MEMORY_SIZE, 0) {
 
-		if (request.getMemoryMetadata().opcode == FETCH_LINE) {
-			mPortData[port].Address = request.payload().toUInt();
-			mPortData[port].WordsLeft = CACHE_LINE_WORDS;
-			mPortData[port].ReturnAddress = ChannelID(request.getMemoryMetadata().returnTileX,
-			                                          request.getMemoryMetadata().returnTileY,
-			                                          request.getMemoryMetadata().returnChannel,
-			                                          0);
+  assert(controllers >= 1);
 
-			LOKI_LOG << this->name() << " preparing to read " << mPortData[port].WordsLeft << " words from " << LOKI_HEX(mPortData[port].Address) << endl;
+  iData.init(controllers);
+  oData.init(controllers);
 
-			if (mPortData[port].Address + mPortData[port].WordsLeft * 4 > MAIN_MEMORY_SIZE)
-				LOKI_ERROR << this->name() << " fetch request outside valid memory space (address " << mPortData[port].Address << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
+  mux.iData(iData);
+  mux.oData(muxOutput);
+  mux.iHold(holdMux);
+  holdMux.write(false);
 
-			assert((mPortData[port].Address & 0x3) == 0);
-			assert(mPortData[port].Address <= MAIN_MEMORY_SIZE);
-			assert((mPortData[port].WordsLeft * 4) <= MAIN_MEMORY_SIZE);
-			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MAIN_MEMORY_SIZE);
-			assert(mPortData[port].WordsLeft > 0);
-
-			Instrumentation::MainMemory::read(mPortData[port].Address, mPortData[port].WordsLeft);
-
-			// One clock cycle access delay until reading starts
-
-			mPortData[port].State = STATE_READING;
-		} else if (request.getMemoryMetadata().opcode == STORE_LINE) {
-			mPortData[port].Address = request.payload().toUInt();
-			mPortData[port].WordsLeft = CACHE_LINE_WORDS;
-
-			LOKI_LOG << this->name() << " preparing to write " << mPortData[port].WordsLeft << " words to " << LOKI_HEX(mPortData[port].Address) << endl;
-
-			if (mPortData[port].Address + mPortData[port].WordsLeft * 4 > MAIN_MEMORY_SIZE)
-				LOKI_ERROR << this->name() << " store request outside valid memory space (address " << mPortData[port].Address << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
-
-			assert((mPortData[port].Address & 0x3) == 0);
-			assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MAIN_MEMORY_SIZE);
-			assert(mPortData[port].WordsLeft > 0);
-
-			Instrumentation::MainMemory::write(mPortData[port].Address, mPortData[port].WordsLeft);
-
-			mPortData[port].State = STATE_WRITING;
-		} else {
-		  throw InvalidOptionException("memory operation", request.getMemoryMetadata().opcode);
-		}
-
-		mInputQueues[port].read();
-	}
-}
-
-void MainMemory::receiveData(uint port) {
-  assert(!mInputQueues[port].full());
-  assert(iData[port].valid());
-
-  InputWord newWord;
-  newWord.EarliestExecutionCycle = mCycleCounter + (uint64_t)MAIN_MEMORY_LATENCY;
-  newWord.Request = iData[port].read();
-
-  LOKI_LOG << this->name() << " received " << newWord.Request.payload() << " (" << memoryOpName(newWord.Request.getMemoryMetadata().opcode) << ")" << endl;
-
-  iData[port].ack();
-  mInputQueues[port].write(newWord);
-}
-
-void MainMemory::sendData(uint port) {
-  if (mOutputQueues[port].empty())
-    next_trigger(mOutputQueues[port].writeEvent());
-  else if (oData[port].valid()) {
-    LOKI_LOG << this->name() << " is blocked waiting for output to become free" << endl;
-    next_trigger(oData[port].ack_event());
-  }
-  else if (!iClock.posedge())
-    next_trigger(iClock.posedge_event());
-  else {
-    NetworkResponse response = mOutputQueues[port].read();
-    LOKI_LOG << this->name() << " sending " << response << endl;
-    oData[port].write(response);
-    next_trigger(oData[port].ack_event());
-  }
-}
-
-void MainMemory::mainLoop() {
-  // Process port events
-
-  bool bankAccessed[16];	// Simulate banked memory
-  memset(bankAccessed, 0x00, sizeof(bankAccessed));
-
-  for (uint port = 0; port < cPortCount; port++) {
-    // Default to non-valid - only last change will become effective
-
-    uint32_t bankSelected = (mPortData[port].Address / 4) % cPortCount;
-
-    switch (mPortData[port].State) {
-    case STATE_IDLE:
-      tryStartRequest(port);
-      break;
-
-    case STATE_READING:
-      if (!bankAccessed[bankSelected]) {
-        uint32_t result = mData[mPortData[port].Address / 4];
-
-        LOKI_LOG << this->name() << " read from " << LOKI_HEX(mPortData[port].Address) << ": " << LOKI_HEX(result) << endl;
-
-        mPortData[port].Address += 4;
-        mPortData[port].WordsLeft--;
-
-        bool endOfPacket = mPortData[port].WordsLeft == 0;
-
-        NetworkResponse response(result, mPortData[port].ReturnAddress, endOfPacket);
-        mOutputQueues[port].write(response);
-
-        if (endOfPacket)
-          mPortData[port].State = STATE_IDLE;
-//						tryStartRequest(port);
-
-        bankAccessed[bankSelected] = true;
-      }
-
-      break;
-
-    case STATE_WRITING:
-      if (!bankAccessed[bankSelected] && !mInputQueues[port].empty() && mCycleCounter >= mInputQueues[port].peek().EarliestExecutionCycle) {
-        assert(mInputQueues[port].peek().Request.getMemoryMetadata().opcode == PAYLOAD
-            || mInputQueues[port].peek().Request.getMemoryMetadata().opcode == PAYLOAD_EOP);
-
-        uint32_t data = mInputQueues[port].read().Request.payload().toUInt();
-
-        LOKI_LOG << this->name() << " wrote to " << LOKI_HEX(mPortData[port].Address) << ": " << LOKI_HEX(data) << endl;
-
-        mData[mPortData[port].Address / 4] = data;
-        mPortData[port].Address += 4;
-        mPortData[port].WordsLeft--;
-
-        if (mPortData[port].WordsLeft == 0)
-          tryStartRequest(port);
-
-        bankAccessed[bankSelected] = true;
-      }
-
-      break;
-    }
+  for(uint i=0; i<controllers; i++) {
+    mOutputQueues.push_back(
+        new DelayBuffer<NetworkResponse>(sc_gen_unique_name("outQueue"),
+                                         1024, // "Infinite" size.
+                                         (double)MAIN_MEMORY_LATENCY)
+    );
   }
 
-  // Advance cycle counter
-  mCycleCounter++;
-}
+  currentChannel = 0;
 
-MainMemory::MainMemory(sc_module_name name, const ComponentID& ID, uint portCount) :
-	Component(name, ID),
-	cPortCount(portCount),
-  mInputQueues(portCount, 1024, "SimplifiedOnChipScratchpad::mInputQueues"), // Virtually infinite queue length
-  mOutputQueues(portCount, 1024, "SimplifiedOnChipScratchpad::mOutputQueues")  // Virtually infinite queue length
-{
-	assert(portCount >= 1);
+  SC_METHOD(mainLoop);
+  sensitive << iClock.pos();
+  dont_initialize();
 
-	iData.init(portCount);
-	oData.init(portCount);
+  // Methods for returning data to each controller.
+  for (uint i=0; i<controllers; i++)
+    SPAWN_METHOD(mOutputQueues[i]->writeEvent(), MainMemory::sendData, i, true);
 
-	mCycleCounter = 0;
-
-	mData = new uint32_t[MAIN_MEMORY_SIZE / 4];
-	memset(mData, 0x00, MAIN_MEMORY_SIZE);
-
-	mPortData = new PortData[portCount];
-
-	for (uint i = 0; i < portCount; i++)
-		mPortData[i].State = STATE_IDLE;
-
-	SC_METHOD(mainLoop);
-	sensitive << iClock.pos();
-	dont_initialize();
-
-  // Handlers for each of the input queues.
-  for (uint i=0; i<portCount; i++)
-    SPAWN_METHOD(iData[i], MainMemory::receiveData, i, false);
-
-  // Handlers for each of the output queues.
-  for (uint i=0; i<portCount; i++)
-    SPAWN_METHOD(mOutputQueues[i].writeEvent(), MainMemory::sendData, i, true);
 }
 
 MainMemory::~MainMemory() {
-	delete[] mData;
-	delete[] mPortData;
 }
 
-/*
-void SimplifiedOnChipScratchpad::flushQueues() {
-	// Process port events
-
-	bool dataProcessed;
-
-	do {
-		dataProcessed = false;
-
-		for (uint port = 0; port < mPortCount; port++) {
-			assert(mPortData[port].State == STATE_IDLE || mPortData[port].State == STATE_WRITING);
-
-			if (mPortData[port].State == STATE_IDLE) {
-				if (!mInputQueues[port].empty()) {
-					MemoryRequest request = mInputQueues[port].read().Request;
-
-					assert(request.getOperation() == STORE_LINE);
-
-					mPortData[port].Address = request.getPayload();
-					mPortData[port].WordsLeft = request.getLineSize() / 4;
-
-					if (mPortData[port].Address + mPortData[port].WordsLeft * 4 > MEMORY_ON_CHIP_SCRATCHPAD_SIZE)
-						cerr << this->name() << " store request outside valid memory space (address " << mPortData[port].Address << ", length " << (mPortData[port].WordsLeft * 4) << ")" << endl;
-
-					assert((mPortData[port].Address & 0x3) == 0);
-					assert(mPortData[port].Address + mPortData[port].WordsLeft * 4 <= MEMORY_ON_CHIP_SCRATCHPAD_SIZE);
-					assert(mPortData[port].WordsLeft > 0);
-
-					Instrumentation::backgroundMemoryWrite(mPortData[port].Address, mPortData[port].WordsLeft);
-
-					mPortData[port].State = STATE_WRITING;
-
-					dataProcessed = true;
-				}
-			} else {
-				assert(!mInputQueues[port].empty());
-				assert(mInputQueues[port].peek().Request.getOperation() == PAYLOAD_ONLY);
-
-				mData[mPortData[port].Address / 4] = mInputQueues[port].read().Request.getPayload();
-				mPortData[port].Address += 4;
-				mPortData[port].WordsLeft--;
-
-				if (mPortData[port].WordsLeft == 0)
-					mPortData[port].State = STATE_IDLE;
-
-				dataProcessed = true;
-			}
-		}
-	} while (dataProcessed);
-}
-*/
-
-void MainMemory::storeData(vector<Word>& data, MemoryAddr location, bool readOnly) {
-	size_t count = data.size();
-	uint32_t address = location / 4;
-
-	assert(location % 4 == 0);
-	assert(location + count * 4 < MAIN_MEMORY_SIZE);
-
-	for (size_t i = 0; i < count; i++) {
-	  LOKI_LOG << this->name() << " wrote to " << LOKI_HEX((address+i)*4) << ": " << data[i].toUInt() << endl;
-
-		mData[address + i] = data[i].toUInt();
-	}
-
-	if (readOnly) {
-	  readOnlyBase.push_back(location);
-	  readOnlyLimit.push_back(location + 4*data.size());
-	}
+// Compute the position in SRAM that the given memory address is to be found.
+SRAMAddress MainMemory::getPosition(MemoryAddr address, MemoryAccessMode mode) const {
+  // Main memory acts like a giant scratchpad - there is no address
+  // transformation.
+  return (SRAMAddress)address;
 }
 
-const void* MainMemory::getData() {
-	return mData;
+// Return the position in the memory address space of the data stored at the
+// given position.
+MemoryAddr MainMemory::getAddress(SRAMAddress position) const {
+  // Main memory acts like a giant scratchpad - there is no address
+  // transformation.
+  return (MemoryAddr)position;
+}
+
+// Return whether data from `address` can be found at `position` in the SRAM.
+bool MainMemory::contains(MemoryAddr address, SRAMAddress position, MemoryAccessMode mode) const {
+  return (address < mData.size()*BYTES_PER_WORD) && (address == position);
+}
+
+// Ensure that a valid copy of data from `address` can be found at `position`.
+void MainMemory::allocate(MemoryAddr address, SRAMAddress position, MemoryAccessMode mode) {
+  // Do nothing.
+}
+
+// Ensure that there is a space to write data to `address` at `position`.
+void MainMemory::validate(MemoryAddr address, SRAMAddress position, MemoryAccessMode mode) {
+  // Do nothing.
+}
+
+// Invalidate the cache line which contains `position`.
+void MainMemory::invalidate(SRAMAddress position, MemoryAccessMode mode) {
+  // Do nothing.
+}
+
+// Flush the cache line containing `position` down the memory hierarchy, if
+// necessary. The line is not invalidated, but is no longer dirty.
+void MainMemory::flush(SRAMAddress position, MemoryAccessMode mode) {
+  // Do nothing.
+}
+
+// Return whether a payload flit is available. `level` tells whether this bank
+// is being treated as an L1 or L2 cache.
+bool MainMemory::payloadAvailable(MemoryLevel level) const {
+  assert(level == MEMORY_OFF_CHIP);
+  return muxOutput.valid() && isPayload(muxOutput.read());
+}
+
+// Retrieve a payload flit. `level` tells whether this bank is being treated
+// as an L1 or L2 cache.
+uint32_t MainMemory::getPayload(MemoryLevel level) {
+  assert(level == MEMORY_OFF_CHIP);
+  NetworkRequest request = muxOutput.read();
+  uint32_t payload = request.payload().toUInt();
+  currentChannel = mux.getSelection();
+
+  // Continue serving the same input if we haven't reached the end of packet.
+  holdMux.write(!request.getMetadata().endOfPacket);
+  muxOutput.ack();
+
+  return payload;
+}
+
+// Send a result to the requested destination.
+void MainMemory::sendResponse(NetworkResponse response, MemoryLevel level) {
+  assert(level == MEMORY_OFF_CHIP);
+  assert(!mOutputQueues[currentChannel]->full());
+
+  mOutputQueues[currentChannel]->write(response);
+}
+
+// Make a load-linked reservation.
+void MainMemory::makeReservation(ComponentID requester, MemoryAddr address) {
+  // Do nothing.
+}
+
+// Return whether a load-linked reservation is still valid.
+bool MainMemory::checkReservation(ComponentID requester, MemoryAddr address) const {
+  // Do nothing.
+  return false;
+}
+
+// Check whether it is safe to write to the given address.
+void MainMemory::preWriteCheck(MemoryAddr address) const {
+  if (WARN_READ_ONLY && readOnly(address))
+    LOKI_WARN << this->name() << " attempting to modify read-only address " << LOKI_HEX(address) << endl;
+}
+
+uint32_t MainMemory::readWord(SRAMAddress position) const {
+  checkAlignment(position, 4);
+
+  return mData[position/BYTES_PER_WORD];
+}
+
+uint32_t MainMemory::readHalfword(SRAMAddress position) const {
+  checkAlignment(position, 2);
+
+  uint32_t fullWord = readWord(position & ~0x3);
+  uint32_t offset = (position & 0x3) >> 1;
+  return (fullWord >> (offset * 16)) & 0xFFFF;
+}
+
+uint32_t MainMemory::readByte(SRAMAddress position) const {
+  uint32_t fullWord = readWord(position & ~0x3);
+  uint32_t offset = position & 0x3UL;
+  return (fullWord >> (offset * 8)) & 0xFF;
+}
+
+void MainMemory::writeWord(SRAMAddress position, uint32_t data) {
+  checkAlignment(position, 4);
+
+  mData[position/BYTES_PER_WORD] = data;
+}
+
+void MainMemory::writeHalfword(SRAMAddress position, uint32_t data) {
+  checkAlignment(position, 2);
+
+  uint32_t oldData = readWord(position & ~0x3);
+  uint32_t offset = (position >> 1) & 0x1;
+  uint32_t mask = 0xFFFF << (offset * 16);
+  uint32_t newData = (~mask & oldData) | (mask & (data << (16*offset)));
+
+  writeWord(position & ~0x3, newData);
+}
+
+void MainMemory::writeByte(SRAMAddress position, uint32_t data) {
+  uint32_t oldData = readWord(position & ~0x3);
+  uint32_t offset = position & 0x3;
+  uint32_t mask = 0xFF << (offset * 8);
+  uint32_t newData = (~mask & oldData) | (mask & (data << (8*offset)));
+
+  writeWord(position & ~0x3, newData);
 }
 
 bool MainMemory::readOnly(MemoryAddr addr) const {
@@ -313,79 +200,133 @@ bool MainMemory::readOnly(MemoryAddr addr) const {
   return false;
 }
 
-void MainMemory::print(MemoryAddr start, MemoryAddr end) {
-	if (start > end) {
-		MemoryAddr temp = start;
-		start = end;
-		end = temp;
-	}
+void MainMemory::storeData(vector<Word>& data, MemoryAddr location, bool readOnly) {
+  size_t count = data.size();
+  uint32_t address = location / 4;
 
-	size_t address = start / 4;
-	size_t limit = end / 4 + 1;
+  checkAlignment(location, 4);
+  assert(location + count*4 < mData.size());
 
-	cout << "On-chip scratchpad data:\n" << endl;
+  for (size_t i = 0; i < count; i++) {
+    LOKI_LOG << this->name() << " wrote to " << LOKI_HEX((address+i)*4) << ": " << data[i].toUInt() << endl;
 
-	while (address < limit) {
-		assert(address * 4 < MAIN_MEMORY_SIZE);
-		cout << "0x" << setprecision(8) << setfill('0') << hex << (address * 4) << ":  " << "0x" << setprecision(8) << setfill('0') << hex << mData[address] << endl << dec;
-		address++;
-	}
+    mData[address + i] = data[i].toUInt();
+  }
+
+  if (readOnly) {
+    readOnlyBase.push_back(location);
+    readOnlyLimit.push_back(location + 4*data.size());
+  }
 }
 
-Word MainMemory::readWord(MemoryAddr addr) {
-	assert(addr < MAIN_MEMORY_SIZE);
-	assert(addr % 4 == 0);
-	return Word(mData[addr / 4]);
+void MainMemory::print(MemoryAddr start, MemoryAddr end) const {
+  if (start > end) {
+    MemoryAddr temp = start;
+    start = end;
+    end = temp;
+  }
+
+  size_t address = start / 4;
+  size_t limit = end / 4 + 1;
+
+  cout << "Main memory data:\n" << endl;
+
+  while (address < limit) {
+    assert(address < mData.size());
+    cout << "0x" << setprecision(8) << setfill('0') << hex << (address * 4)
+         << ":  " << "0x" << setprecision(8) << setfill('0') << hex << mData[address] << dec << endl;
+    address++;
+  }
 }
 
-Word MainMemory::readHalfword(MemoryAddr addr) {
-  assert(addr < MAIN_MEMORY_SIZE);
-  uint32_t data = mData[addr / 4];
-  uint shift = (addr & 0x3UL) * 8;
-  return Word((data >> shift) & 0xFFFFUL);
+void MainMemory::mainLoop() {
+  switch (mState) {
+    case STATE_IDLE:      processIdle();      break;
+    case STATE_REQUEST:   processRequest();   break;
+  }
 }
 
-Word MainMemory::readByte(MemoryAddr addr) {
-  assert(addr < MAIN_MEMORY_SIZE);
-  uint32_t data = mData[addr / 4];
-  uint shift = (addr & 0x3UL) * 8;
-  return Word((data >> shift) & 0xFFUL);
+void MainMemory::processIdle() {
+  assert(mState == STATE_IDLE);
+
+  // Check for new requests.
+  if (muxOutput.valid()) {
+    NetworkRequest request = muxOutput.read();
+
+    // Continue serving the same input if we haven't reached the end of packet.
+    holdMux.write(!request.getMetadata().endOfPacket);
+    muxOutput.ack();
+
+    ChannelID returnAddress(request.getMemoryMetadata().returnTileX,
+                            request.getMemoryMetadata().returnTileY,
+                            request.getMemoryMetadata().returnChannel,
+                            0);
+
+    mActiveRequest = decodeMemoryRequest(request, *this, MEMORY_OFF_CHIP, returnAddress);
+
+    // Main memory only supports a subset of operations.
+    switch (mActiveRequest->getMetadata().opcode) {
+      case FETCH_LINE:
+        Instrumentation::MainMemory::read(mActiveRequest->getAddress(), CACHE_LINE_WORDS);
+        break;
+      case STORE_LINE:
+        Instrumentation::MainMemory::write(mActiveRequest->getAddress(), CACHE_LINE_WORDS);
+        break;
+      default:
+        throw InvalidOptionException("main memory operation", mActiveRequest->getMetadata().opcode);
+        break;
+    }
+
+    mState = STATE_REQUEST;
+    next_trigger(sc_core::SC_ZERO_TIME);
+
+    LOKI_LOG << this->name() << " starting " << memoryOpName(mActiveRequest->getMetadata().opcode)
+        << " request from component " << mActiveRequest->getDestination().component << endl;
+  }
+  // Nothing to do - wait for input to arrive.
+  else {
+    next_trigger(muxOutput.default_event());
+  }
 }
 
-void MainMemory::writeWord(MemoryAddr addr, Word data) {
-	assert(addr < MAIN_MEMORY_SIZE);
-	assert(addr % 4 == 0);
+void MainMemory::processRequest() {
+  assert(mState == STATE_REQUEST);
+  assert(mActiveRequest != NULL);
 
-  if (WARN_READ_ONLY && readOnly(addr))
-    LOKI_WARN << this->name() << " modifying read-only address " << LOKI_HEX(addr) << endl;
+  if (!iClock.negedge()) {
+    next_trigger(iClock.negedge_event());
+  }
+  else if (!mActiveRequest->preconditionsMet()) {
+    mActiveRequest->prepare();
+  }
+  else if (!mActiveRequest->complete()) {
+    mActiveRequest->execute();
+  }
 
-  mData[addr / 4] = data.toUInt();
+  // If the operation has finished, end the request and prepare for a new one.
+  if (mActiveRequest->complete() && mState == STATE_REQUEST) {
+    mState = STATE_IDLE;
+    delete mActiveRequest;
+    mActiveRequest = NULL;
+
+    // Decode the next request immediately so it is ready to start next cycle.
+    next_trigger(sc_core::SC_ZERO_TIME);
+  }
 }
 
-void MainMemory::writeHalfword(MemoryAddr addr, Word data) {
-  assert(addr < MAIN_MEMORY_SIZE);
-
-  if (WARN_READ_ONLY && readOnly(addr))
-    LOKI_WARN << this->name() << " modifying read-only address " << LOKI_HEX(addr) << endl;
-
-  uint32_t modData = mData[addr / 4];
-  uint shift = (addr & 0x3UL) * 8;
-  uint32_t mask = 0xFFFFUL << shift;
-  modData &= ~mask;
-  modData |= (data.toUInt() & 0xFFFFUL) << shift;
-  mData[addr / 4] = modData;
-}
-
-void MainMemory::writeByte(MemoryAddr addr, Word data) {
-  assert(addr < MAIN_MEMORY_SIZE);
-
-  if (WARN_READ_ONLY && readOnly(addr))
-    LOKI_WARN << this->name() << " modifying read-only address " << LOKI_HEX(addr) << endl;
-
-  uint32_t modData = mData[addr / 4];
-  uint shift = (addr & 0x3UL) * 8;
-  uint32_t mask = 0xFFUL << shift;
-  modData &= ~mask;
-  modData |= (data.toUInt() & 0xFFUL) << shift;
-  mData[addr / 4] = modData;
+void MainMemory::sendData(uint port) {
+  if (mOutputQueues[port]->empty())
+    next_trigger(mOutputQueues[port]->writeEvent());
+  else if (oData[port].valid()) {
+    LOKI_LOG << this->name() << " is blocked waiting for output to become free" << endl;
+    next_trigger(oData[port].ack_event());
+  }
+  else if (!iClock.posedge())
+    next_trigger(iClock.posedge_event());
+  else {
+    NetworkResponse response = mOutputQueues[port]->read();
+    LOKI_LOG << this->name() << " sending " << response << endl;
+    oData[port].write(response);
+    next_trigger(oData[port].ack_event());
+  }
 }

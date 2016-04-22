@@ -14,7 +14,7 @@
 #define ARBITRATEDMULTIPLEXER_H_
 
 #include "../Component.h"
-#include "../Network/NetworkTypedefs.h"
+#include "NetworkTypedefs.h"
 
 template<class T>
 class ArbitratedMultiplexer: public Component {
@@ -61,6 +61,13 @@ public:
 //============================================================================//
 // Methods
 //============================================================================//
+
+public:
+
+  // Return which of the inputs is currently being output.
+  PortIndex getSelection() const {
+    return lastSelected;
+  }
 
 private:
 

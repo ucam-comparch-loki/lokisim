@@ -8,8 +8,8 @@
  *      Author: db434
  */
 
-#ifndef COMPONENT_H_
-#define COMPONENT_H_
+#ifndef SRC_COMPONENT_H_
+#define SRC_COMPONENT_H_
 
 #include "systemc"
 #include <vector>
@@ -82,4 +82,4 @@ public:
     sc_spawn(sc_bind(&function, this, argument), 0, &options);\
 }
 
-#endif /* COMPONENT_H_ */
+#endif /* SRC_COMPONENT_H_ */

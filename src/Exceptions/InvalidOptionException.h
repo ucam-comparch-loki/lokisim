@@ -10,6 +10,9 @@
 #ifndef INVALIDOPTIONEXCEPTION_H_
 #define INVALIDOPTIONEXCEPTION_H_
 
+#include <sstream>
+#include <string>
+
 class InvalidOptionException : public std::exception {
 
 public:

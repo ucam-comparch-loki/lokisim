@@ -11,16 +11,16 @@
 #define SENDCHANNELENDTABLE_H_
 
 #include "../../../Component.h"
-#include "../../../Utility/Blocking.h"
 #include "../../../Network/NetworkBuffer.h"
 #include "../../../Network/NetworkTypedefs.h"
+#include "../../../Utility/BlockingInterface.h"
 
 class ChannelMapTable;
 class DecodedInst;
 class Word;
 class WriteStage;
 
-class SendChannelEndTable: public Component, public Blocking {
+class SendChannelEndTable: public Component, public BlockingInterface {
 
 //============================================================================//
 // Ports

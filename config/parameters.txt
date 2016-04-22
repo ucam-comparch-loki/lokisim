@@ -24,5 +24,5 @@ parameter MEMORY_BANK_LATENCY 3
 
 # Main memory latency, excluding network. Network latency will vary depending
 # on where the requesting core is on the chip.
-# 7 is the default to match the total latency seen in Veriloki.
-parameter MAIN_MEMORY_LATENCY 7
+# 8 is the default to match the total latency seen in Veriloki.
+parameter MAIN_MEMORY_LATENCY 8

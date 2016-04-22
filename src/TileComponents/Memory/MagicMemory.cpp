@@ -49,15 +49,15 @@ void MagicMemory::operate(MemoryOpcode opcode,
     }
 
     case STORE_W:
-      mainMemory.writeWord(address, data);
+      mainMemory.writeWord(address, data.toUInt());
       break;
 
     case STORE_HW:
-      mainMemory.writeHalfword(address, data);
+      mainMemory.writeHalfword(address, data.toUInt());
       break;
 
     case STORE_B:
-      mainMemory.writeByte(address, data);
+      mainMemory.writeByte(address, data.toUInt());
       break;
 
     case IPK_READ: {

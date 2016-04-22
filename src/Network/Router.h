@@ -16,11 +16,11 @@
 #define ROUTER_H_
 
 #include "../Component.h"
-#include "../Utility/Blocking.h"
+#include "../Utility/BlockingInterface.h"
 #include "BufferArray.h"
 #include "NetworkTypedefs.h"
 
-class Router : public Component, public Blocking {
+class Router : public Component, public BlockingInterface {
 
 //============================================================================//
 // Ports

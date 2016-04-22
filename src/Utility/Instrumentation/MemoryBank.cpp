@@ -1,8 +1,8 @@
 /*
  * MemoryBank.cpp
  *
- *  Created on: 5 May 2011
- *      Author: afjk2
+ *  Created on: 19 Apr 2016
+ *      Author: db434
  */
 
 #include "../Parameters.h"

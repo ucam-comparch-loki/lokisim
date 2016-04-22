@@ -270,7 +270,7 @@ void SendChannelEndTable::reportStalls(ostream& os) {
 
 SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID& ID, ChannelMapTable* cmt) :
     Component(name, ID),
-    Blocking(),
+    BlockingInterface(),
     bufferLocal(string(this->name())+string(".bufferLocal"), CORE_BUFFER_SIZE),
     bufferGlobal(string(this->name())+string(".bufferGlobal"), CORE_BUFFER_SIZE),
     channelMapTable(cmt) {

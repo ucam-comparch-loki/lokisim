@@ -16,7 +16,7 @@
 #include "MemoryOperation.h"
 
 inline MemoryOperation* decodeMemoryRequest(const NetworkRequest& request,
-                                            MemoryBank& memory,
+                                            MemoryInterface& memory,
                                             const MemoryLevel level,
                                             const ChannelID destination) {
 
@@ -79,7 +79,8 @@ inline MemoryOperation* decodeMemoryRequest(const NetworkRequest& request,
       return new UpdateDirectoryMask(address, metadata, memory, level, destination);
 
     default:
-      throw InvalidOptionException("memory request opcode", metadata.opcode);
+      throw InvalidOptionException("memory request opcode", (int)metadata.opcode);
+      return NULL;
 
   }
 

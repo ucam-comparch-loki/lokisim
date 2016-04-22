@@ -13,11 +13,11 @@
 
 #include "../PipelineStage.h"
 #include "../../../Network/NetworkTypedefs.h"
-#include "../../../Utility/Blocking.h"
+#include "../../../Utility/BlockingInterface.h"
 #include "ALU.h"
 #include "Scratchpad.h"
 
-class ExecuteStage: public PipelineStage, public Blocking {
+class ExecuteStage: public PipelineStage, public BlockingInterface {
 
 //============================================================================//
 // Ports

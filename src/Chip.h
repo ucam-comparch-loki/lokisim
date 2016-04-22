@@ -68,8 +68,6 @@ public:
   void    storeInstructions(vector<Word>& instructions, const ComponentID& component);
   void    storeData(const DataBlock& data);
 
-  const void* getMemoryData();
-
   void    print(const ComponentID& component, MemoryAddr start, MemoryAddr end);
   Word    readWordInternal(const ComponentID& component, MemoryAddr addr);
   Word    readByteInternal(const ComponentID& component, MemoryAddr addr);
@@ -102,7 +100,7 @@ private:
 	vector<Core*>              cores;             // All cores of the chip
 	vector<MemoryBank*>        memories;          // All memories of the chip
 	vector<MissHandlingLogic*> mhl;               // One per tile
-	MainMemory                 mainMemory;
+	MainMemory                mainMemory;
 
 	MagicMemory                magicMemory;       // Wrapper for mainMemory
 

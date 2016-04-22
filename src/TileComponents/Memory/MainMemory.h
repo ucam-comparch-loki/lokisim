@@ -1,139 +1,157 @@
-//-------------------------------------------------------------------------------------------------
-// Loki Project
-// Software Simulator for Design Space Exploration
-//-------------------------------------------------------------------------------------------------
-// Simplified On-Chip Scratchpad Definition
-//-------------------------------------------------------------------------------------------------
-// Second version of simplified background memory model.
-//
-// Models a simplified on-chip scratchpad with an unlimited number of ports.
-// The scratchpad is connected through an abstract on-chip network and
-// serves as the background memory for the cache mode(s) of the memory banks.
-//
-// The number of input and output ports is configurable. The ports possess
-// queues for incoming and outgoing data.
-//
-// Colliding write requests are executed in ascending port order.
-//
-// Communication protocol:
-//
-// 1. Send start address and operation
-// 2. Send words in case of write command
-//-------------------------------------------------------------------------------------------------
-// File:       SimplifiedOnChipScratchpad.h
-// Author:     Andreas Koltes (andreas.koltes@cl.cam.ac.uk)
-// Created on: 08/04/2011
-//-------------------------------------------------------------------------------------------------
+/*
+ * MainMemory.h
+ *
+ * Main memory model.
+ *
+ * Accepts one request at a time, and only supports FETCH_LINE and STORE_LINE
+ * operations.
+ *
+ *  Created on: 21 Apr 2016
+ *      Author: db434
+ */
 
-#ifndef MAINMEMORY_H
-#define MAINMEMORY_H
+#ifndef SRC_TILECOMPONENTS_MEMORY_MAINMEMORY_H_
+#define SRC_TILECOMPONENTS_MEMORY_MAINMEMORY_H_
 
 #include "../../Component.h"
-#include "../../Datatype/MemoryRequest.h"
-#include "../../Network/BufferArray.h"
+#include "MemoryInterface.h"
+#include "../../Network/ArbitratedMultiplexer.h"
+#include "../../Network/DelayBuffer.h"
 
-class MainMemory: public Component {
+class MemoryOperation;
 
-	//---------------------------------------------------------------------------------------------
-	// Ports
-	//---------------------------------------------------------------------------------------------
+class MainMemory: public MemoryInterface {
 
-public:
-
-	ClockInput					       iClock;   // Clock
-
-	LokiVector<RequestInput>   iData;    // Memory request words input from cache controllers
-
-	LokiVector<ResponseOutput> oData;    // Data words output to cache controllers
-
-	//---------------------------------------------------------------------------------------------
-	// Utility definitions
-	//---------------------------------------------------------------------------------------------
-
-private:
-
-	enum PortState {
-		STATE_IDLE,
-		STATE_READING,
-		STATE_WRITING
-	};
-
-	struct PortData {
-	public:
-		PortState State;
-		uint32_t  WordsLeft;
-		uint32_t  Address;
-		ChannelID ReturnAddress;
-	};
-
-	struct InputWord {
-	public:
-		uint64_t EarliestExecutionCycle;
-		NetworkRequest Request;
-	};
-
-	//---------------------------------------------------------------------------------------------
-	// Local state
-	//---------------------------------------------------------------------------------------------
-
-private:
-
-	uint64_t                mCycleCounter;   // Cycle counter used for delay control
-
-	uint32_t               *mData;           // Data words stored in the scratchpad
-
-	const uint              cPortCount;      // Number of ports
-	PortData               *mPortData;       // State information about all ports
-  BufferArray<InputWord>  mInputQueues;    // Input queues for all ports
-  BufferArray<NetworkResponse> mOutputQueues;   // Output queues for all ports
-
-	// Mainly for debug, mark the read-only sections of the address space.
-	std::vector<MemoryAddr> readOnlyBase,
-	                        readOnlyLimit;
-
-	//---------------------------------------------------------------------------------------------
-	// Internal functions
-	//---------------------------------------------------------------------------------------------
-
-private:
-
-	void tryStartRequest(uint port);  // Helper function starting / chaining new request
-
-	void receiveData(uint port);      // Continuously try to receive data.
-	void sendData(uint port);         // Continuously try to send data.
-
-	void mainLoop();                  // Main loop thread - running at every positive clock edge
-
-	//---------------------------------------------------------------------------------------------
-	// Constructors and destructors
-	//---------------------------------------------------------------------------------------------
+//============================================================================//
+// Ports
+//============================================================================//
 
 public:
 
-	SC_HAS_PROCESS(MainMemory);
-	MainMemory(sc_module_name name, const ComponentID& ID, uint portCount);
-	~MainMemory();
+  ClockInput                 iClock;
 
-	//---------------------------------------------------------------------------------------------
-	// Simulation utility methods inherited from Component - not part of simulated logic
-	//---------------------------------------------------------------------------------------------
+  // One input/output from each memory controller.
+  LokiVector<RequestInput>   iData;
+  LokiVector<ResponseOutput> oData;
+
+//============================================================================//
+// Constructors and destructors
+//============================================================================//
 
 public:
 
-	//void flushQueues();
+  SC_HAS_PROCESS(MainMemory);
+  MainMemory(sc_module_name name, ComponentID ID, uint controllers);
+  virtual ~MainMemory();
 
-	void storeData(vector<Word>& data, MemoryAddr location, bool readOnly);
-	const void* getData();
+//============================================================================//
+// Methods
+//============================================================================//
 
-	bool readOnly(MemoryAddr addr) const;     // Check whether a memory location is read-only
+public:
 
-	void print(MemoryAddr start, MemoryAddr end);
-	Word readWord(MemoryAddr addr);
-	Word readHalfword(MemoryAddr addr);
-	Word readByte(MemoryAddr addr);
-	void writeWord(MemoryAddr addr, Word data);
-	void writeHalfword(MemoryAddr addr, Word data);
-	void writeByte(MemoryAddr addr, Word data);
+  // Compute the position in SRAM that the given memory address is to be found.
+  virtual SRAMAddress getPosition(MemoryAddr address, MemoryAccessMode mode) const;
+
+  // Return the position in the memory address space of the data stored at the
+  // given position.
+  virtual MemoryAddr getAddress(SRAMAddress position) const;
+
+  // Return whether data from `address` can be found at `position` in the SRAM.
+  virtual bool contains(MemoryAddr address, SRAMAddress position, MemoryAccessMode mode) const;
+
+  // Ensure that a valid copy of data from `address` can be found at `position`.
+  virtual void allocate(MemoryAddr address, SRAMAddress position, MemoryAccessMode mode);
+
+  // Ensure that there is a space to write data to `address` at `position`.
+  virtual void validate(MemoryAddr address, SRAMAddress position, MemoryAccessMode mode);
+
+  // Invalidate the cache line which contains `position`.
+  virtual void invalidate(SRAMAddress position, MemoryAccessMode mode);
+
+  // Flush the cache line containing `position` down the memory hierarchy, if
+  // necessary. The line is not invalidated, but is no longer dirty.
+  virtual void flush(SRAMAddress position, MemoryAccessMode mode);
+
+  // Return whether a payload flit is available. `level` tells whether this bank
+  // is being treated as an L1 or L2 cache.
+  virtual bool payloadAvailable(MemoryLevel level) const;
+
+  // Retrieve a payload flit. `level` tells whether this bank is being treated
+  // as an L1 or L2 cache.
+  virtual uint32_t getPayload(MemoryLevel level);
+
+  // Send a result to the requested destination.
+  virtual void sendResponse(NetworkResponse response, MemoryLevel level);
+
+  // Make a load-linked reservation.
+  virtual void makeReservation(ComponentID requester, MemoryAddr address);
+
+  // Return whether a load-linked reservation is still valid.
+  virtual bool checkReservation(ComponentID requester, MemoryAddr address) const;
+
+  // Check whether it is safe to write to the given address.
+  virtual void preWriteCheck(MemoryAddr address) const;
+
+  // Data access.
+  virtual uint32_t readWord(SRAMAddress position) const;
+  virtual uint32_t readHalfword(SRAMAddress position) const;
+  virtual uint32_t readByte(SRAMAddress position) const;
+  virtual void writeWord(SRAMAddress position, uint32_t data);
+  virtual void writeHalfword(SRAMAddress position, uint32_t data);
+  virtual void writeByte(SRAMAddress position, uint32_t data);
+
+  // Check whether a memory location is read-only.
+  bool readOnly(MemoryAddr addr) const;
+
+  // Store initial program data.
+  void storeData(vector<Word>& data, MemoryAddr location, bool readOnly);
+
+  void print(MemoryAddr start, MemoryAddr end) const;
+
+private:
+
+  void mainLoop();
+  void processIdle();
+  void processRequest();
+
+  // Method triggered whenever data needs to be sent.
+  void sendData(uint port);
+
+//============================================================================//
+// Subcomponents
+//============================================================================//
+
+private:
+
+  // Choose which input to serve next.
+  ArbitratedMultiplexer<NetworkRequest> mux;
+  loki_signal<NetworkRequest>           muxOutput;
+  sc_signal<bool>                       holdMux;    // Continue reading from same input
+
+//============================================================================//
+// Local state
+//============================================================================//
+
+private:
+
+  enum MainMemoryState {
+    STATE_IDLE,                        // No active request
+    STATE_REQUEST,                     // Serving active request
+  };
+
+  MainMemoryState    mState;
+  MemoryOperation*   mActiveRequest;   // The request being served.
+
+  vector<uint32_t>   mData;
+
+  vector<DelayBuffer<NetworkResponse>*> mOutputQueues; // Model memory latency
+  PortIndex          currentChannel;   // The input currently being served.
+
+
+  // Mainly for debug, mark the read-only sections of the address space.
+  vector<MemoryAddr> readOnlyBase, readOnlyLimit;
+
 };
 
-#endif /* MAINMEMORY_H */
+#endif /* SRC_TILECOMPONENTS_MEMORY_MAINMEMORY_H_ */

@@ -17,9 +17,9 @@
 #include "InstructionPacketFIFO.h"
 #include "../../../Memory/BufferStorage.h"
 #include "../../../Network/NetworkTypedefs.h"
-#include "../../../Utility/Blocking.h"
+#include "../../../Utility/BlockingInterface.h"
 
-class FetchStage : public PipelineStage, public Blocking {
+class FetchStage : public PipelineStage, public BlockingInterface {
 
 private:
 

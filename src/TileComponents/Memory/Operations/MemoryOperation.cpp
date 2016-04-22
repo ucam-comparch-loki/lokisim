@@ -18,7 +18,7 @@
 
 MemoryOperation::MemoryOperation(MemoryAddr address,
                                  MemoryMetadata metadata,
-                                 MemoryBank& memory,
+                                 MemoryInterface& memory,
                                  MemoryLevel level,
                                  ChannelID destination,
                                  unsigned int payloadFlits,
@@ -32,17 +32,19 @@ MemoryOperation::MemoryOperation(MemoryAddr address,
     resultFlits(maxResultFlits),
     sramAddress(memory.getPosition(address, getAccessMode())) {
 
-  Instrumentation::MemoryBank::startOperation(memory.id.globalMemoryNumber(),
-                                              metadata.opcode,
-                                              address,
-                                              !inCache(),
-                                              destination);
+  if (level != MEMORY_OFF_CHIP) {
+    Instrumentation::MemoryBank::startOperation(memory.id.globalMemoryNumber(),
+                                                metadata.opcode,
+                                                address,
+                                                !inCache(),
+                                                destination);
 
-  if (Arguments::csimTrace())
-    cout << "MEM" << memory.id.globalMemoryNumber() << " "
-         << "0x" << std::setfill('0') << std::setw(8) << std::hex << address << std::dec << " "
-         << memoryOpName(metadata.opcode) << " "
-         << (inCache() ? "hit" : "miss") << endl;
+    if (Arguments::csimTrace())
+      cout << "MEM" << memory.id.globalMemoryNumber() << " "
+           << "0x" << std::setfill('0') << std::setw(8) << std::hex << address << std::dec << " "
+           << memoryOpName(metadata.opcode) << " "
+           << (inCache() ? "hit" : "miss") << endl;
+  }
 
 }
 

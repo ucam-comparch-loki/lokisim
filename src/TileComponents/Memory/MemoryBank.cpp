@@ -17,7 +17,6 @@ using namespace std;
 #include "MemoryBank.h"
 #include "MainMemory.h"
 #include "Operations/MemoryOperationDecode.h"
-#include "../../Datatype/Instruction.h"
 #include "../../Network/Topologies/LocalNetwork.h"
 #include "../../Utility/Arguments.h"
 #include "../../Utility/Instrumentation/MemoryBank.h"
@@ -53,18 +52,6 @@ uint log2(uint value) {
   return result;
 }
 
-MemoryAddr MemoryBank::getTag(MemoryAddr address) const {
-  return address & ~0x1F;
-}
-
-SRAMAddress MemoryBank::getLine(SRAMAddress position) const {
-  return position >> 5;
-}
-
-SRAMAddress MemoryBank::getOffset(SRAMAddress position) const {
-  return position & 0x1F;
-}
-
 // Compute the position in SRAM that the given memory address is to be found.
 // Memory address contains:
 // | tag | index | bank | offset |
@@ -94,6 +81,12 @@ SRAMAddress MemoryBank::getPosition(MemoryAddr address, MemoryAccessMode mode) c
   uint index = (address >> 8) & ((1 << indexBits) - 1);
   uint slot = index ^ (bank << (indexBits - 3)); // Hash bank into the upper bits
   return (slot << 5) | offset;
+}
+
+// Return the position in the memory address space of the data stored at the
+// given position.
+MemoryAddr MemoryBank::getAddress(SRAMAddress position) const {
+  return mTags[getLine(position)] + getOffset(position);
 }
 
 // Return whether data from `address` can be found at `position` in the SRAM.
@@ -247,40 +240,28 @@ bool MemoryBank::checkReservation(ComponentID requester, MemoryAddr address) con
 }
 
 uint32_t MemoryBank::readWord(SRAMAddress position) const {
-  if (WARN_UNALIGNED && (position & 0x3) != 0)
-    LOKI_WARN << " attempting to access address 0x" << std::hex << position
-        << std::dec << " with alignment 4." << std::endl;
+  checkAlignment(position, 4);
 
   return mData[position/BYTES_PER_WORD];
 }
 
 uint32_t MemoryBank::readHalfword(SRAMAddress position) const {
-  if (WARN_UNALIGNED && (position & 0x1) != 0)
-    LOKI_WARN << " attempting to access address 0x" << std::hex << position
-        << std::dec << " with alignment 2." << std::endl;
+  checkAlignment(position, 2);
 
   uint32_t fullWord = readWord(position & ~0x3);
-  return ((position & 0x3) == 0) ? (fullWord & 0xFFFFUL) : (fullWord >> 16); // Little endian
+  uint32_t offset = (position & 0x3) >> 1;
+  return (fullWord >> (offset * 16)) & 0xFFFF;
 }
 
 uint32_t MemoryBank::readByte(SRAMAddress position) const {
   uint32_t fullWord = readWord(position & ~0x3);
-  uint32_t selector = position & 0x3UL;
-
-  switch (selector) { // Little endian
-    case 0: return  fullWord        & 0xFFUL; break;
-    case 1: return (fullWord >> 8)  & 0xFFUL; break;
-    case 2: return (fullWord >> 16) & 0xFFUL; break;
-    case 3: return (fullWord >> 24) & 0xFFUL; break;
-    default: assert(false); return 0; break;
-  }
+  uint32_t offset = position & 0x3UL;
+  return (fullWord >> (offset * 8)) & 0xFF;
 }
 
 void MemoryBank::writeWord(SRAMAddress position, uint32_t data) {
-  MemoryAddr address = mTags[getLine(position)] + getOffset(position);
-  if (WARN_UNALIGNED && (position & 0x3) != 0)
-    LOKI_WARN << " attempting to access address " << LOKI_HEX(address)
-        << " with alignment 4." << std::endl;
+  checkAlignment(position, 4);
+  MemoryAddr address = getAddress(position);
 
   mData[position/BYTES_PER_WORD] = data;
   mDirty[getLine(position)] = true;
@@ -289,32 +270,21 @@ void MemoryBank::writeWord(SRAMAddress position, uint32_t data) {
 }
 
 void MemoryBank::writeHalfword(SRAMAddress position, uint32_t data) {
-  if (WARN_UNALIGNED && (position & 0x1) != 0)
-    LOKI_WARN << " attempting to access address 0x" << std::hex << position
-        << std::dec << " with alignment 2." << std::endl;
+  checkAlignment(position, 2);
 
   uint32_t oldData = readWord(position & ~0x3);
-  uint32_t newData;
-
-  if ((position & 0x3) == 0) // Little endian
-    newData = (oldData & 0xFFFF0000UL) | (data & 0x0000FFFFUL);
-  else
-    newData = (oldData & 0x0000FFFFUL) | (data << 16);
+  uint32_t offset = (position >> 1) & 0x1;
+  uint32_t mask = 0xFFFF << (offset * 16);
+  uint32_t newData = (~mask & oldData) | (mask & (data << (16*offset)));
 
   writeWord(position & ~0x3, newData);
 }
 
 void MemoryBank::writeByte(SRAMAddress position, uint32_t data) {
   uint32_t oldData = readWord(position & ~0x3);
-  uint32_t selector = position & 0x3UL;
-  uint32_t newData;
-
-  switch (selector) { // Little endian
-  case 0: newData = (oldData & 0xFFFFFF00UL) | (data & 0x000000FFUL);        break;
-  case 1: newData = (oldData & 0xFFFF00FFUL) | ((data & 0x000000FFUL) << 8);   break;
-  case 2: newData = (oldData & 0xFF00FFFFUL) | ((data & 0x000000FFUL) << 16);    break;
-  case 3: newData = (oldData & 0x00FFFFFFUL) | ((data & 0x000000FFUL) << 24);    break;
-  }
+  uint32_t offset = position & 0x3;
+  uint32_t mask = 0xFF << (offset * 8);
+  uint32_t newData = (~mask & oldData) | (mask & (data << (8*offset)));
 
   writeWord(position & ~0x3, newData);
 }
@@ -674,11 +644,6 @@ void MemoryBank::sendResponse(NetworkResponse response, MemoryLevel level) {
   }
 }
 
-bool MemoryBank::isPayload(NetworkRequest request) const {
-  MemoryOpcode opcode = request.getMemoryMetadata().opcode;
-  return (opcode == PAYLOAD) || (opcode == PAYLOAD_EOP);
-}
-
 void MemoryBank::copyToMissBuffer() {
   if (mCopyToMissBuffer) {
     // Check which input the missing request was reading from, and while
@@ -818,7 +783,7 @@ void MemoryBank::updateReady() {
 //-------------------------------------------------------------------------------------------------
 
 MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumber) :
-  Component(name, ID),
+  MemoryInterface(name, ID),
   mInputQueue(string(this->name()) + string(".mInputQueue"), MEMORY_BUFFER_SIZE),
   mOutputQueue("mOutputQueue", MEMORY_BUFFER_SIZE, INTERNAL_LATENCY),
   mOutputReqQueue("mOutputReqQueue", 10 /*read addr + write addr + cache line*/, 0),
@@ -976,18 +941,4 @@ void MemoryBank::reportStalls(ostream& os) {
 
     os << this->name() << " waiting to send to " << outWord.channelID() << endl;
   }
-}
-
-void MemoryBank::printOperation(MemoryOpcode operation,
-                                MemoryAddr                     address,
-                                uint32_t                       data) const {
-  LOKI_LOG << this->name() << ": " << memoryOpName(operation) <<
-      ", address = " << LOKI_HEX(address) << ", data = " << LOKI_HEX(data);
-
-  if (operation == IPK_READ) {
-    Instruction inst(data);
-    LOKI_LOG << " (" << inst << ")";
-  }
-
-  LOKI_LOG << endl;
 }

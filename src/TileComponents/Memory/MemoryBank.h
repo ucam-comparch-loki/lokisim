@@ -14,20 +14,19 @@
  *      Author: db434
  */
 
-#ifndef MEMORYBANK_H_
-#define MEMORYBANK_H_
+#ifndef SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBANK_H_
+#define SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBANK_H_
 
-#include "../../Component.h"
-#include "../../Utility/Blocking.h"
+#include "MemoryInterface.h"
 #include "../../Network/DelayBuffer.h"
+#include "../../Utility/BlockingInterface.h"
 #include "L2RequestFilter.h"
 #include "ReservationHandler.h"
-#include "MemoryTypedefs.h"
 
 class MemoryOperation;
 class MainMemory;
 
-class MemoryBank: public Component, public Blocking {
+class MemoryBank: public MemoryInterface, public BlockingInterface {
 
 //============================================================================//
 // Ports
@@ -72,51 +71,55 @@ public:
 public:
 
   // Compute the position in SRAM that the given memory address is to be found.
-  SRAMAddress getPosition(MemoryAddr address, MemoryAccessMode mode) const;
+  virtual SRAMAddress getPosition(MemoryAddr address, MemoryAccessMode mode) const;
+
+  // Return the position in the memory address space of the data stored at the
+  // given position.
+  virtual MemoryAddr getAddress(SRAMAddress position) const;
 
   // Return whether data from `address` can be found at `position` in the SRAM.
-  bool contains(MemoryAddr address, SRAMAddress position, MemoryAccessMode mode) const;
+  virtual bool contains(MemoryAddr address, SRAMAddress position, MemoryAccessMode mode) const;
 
   // Ensure that a valid copy of data from `address` can be found at `position`.
-  void allocate(MemoryAddr address, SRAMAddress position, MemoryAccessMode mode);
+  virtual void allocate(MemoryAddr address, SRAMAddress position, MemoryAccessMode mode);
 
   // Ensure that there is a space to write data to `address` at `position`.
-  void validate(MemoryAddr address, SRAMAddress position, MemoryAccessMode mode);
+  virtual void validate(MemoryAddr address, SRAMAddress position, MemoryAccessMode mode);
 
   // Invalidate the cache line which contains `position`.
-  void invalidate(SRAMAddress position, MemoryAccessMode mode);
+  virtual void invalidate(SRAMAddress position, MemoryAccessMode mode);
 
   // Flush the cache line containing `position` down the memory hierarchy, if
   // necessary. The line is not invalidated, but is no longer dirty.
-  void flush(SRAMAddress position, MemoryAccessMode mode);
+  virtual void flush(SRAMAddress position, MemoryAccessMode mode);
 
   // Return whether a payload flit is available. `level` tells whether this bank
   // is being treated as an L1 or L2 cache.
-  bool payloadAvailable(MemoryLevel level) const;
+  virtual bool payloadAvailable(MemoryLevel level) const;
 
   // Retrieve a payload flit. `level` tells whether this bank is being treated
   // as an L1 or L2 cache.
-  uint32_t getPayload(MemoryLevel level);
+  virtual uint32_t getPayload(MemoryLevel level);
 
   // Send a result to the requested destination.
-  void sendResponse(NetworkResponse response, MemoryLevel level);
+  virtual void sendResponse(NetworkResponse response, MemoryLevel level);
 
   // Make a load-linked reservation.
-  void makeReservation(ComponentID requester, MemoryAddr address);
+  virtual void makeReservation(ComponentID requester, MemoryAddr address);
 
   // Return whether a load-linked reservation is still valid.
-  bool checkReservation(ComponentID requester, MemoryAddr address) const;
+  virtual bool checkReservation(ComponentID requester, MemoryAddr address) const;
 
   // Check whether it is safe to write to the given address.
-  void preWriteCheck(MemoryAddr address) const;
+  virtual void preWriteCheck(MemoryAddr address) const;
 
   // Data access.
-  uint32_t readWord(SRAMAddress position) const;
-  uint32_t readHalfword(SRAMAddress position) const;
-  uint32_t readByte(SRAMAddress position) const;
-  void writeWord(SRAMAddress position, uint32_t data);
-  void writeHalfword(SRAMAddress position, uint32_t data);
-  void writeByte(SRAMAddress position, uint32_t data);
+  virtual uint32_t readWord(SRAMAddress position) const;
+  virtual uint32_t readHalfword(SRAMAddress position) const;
+  virtual uint32_t readByte(SRAMAddress position) const;
+  virtual void writeWord(SRAMAddress position, uint32_t data);
+  virtual void writeHalfword(SRAMAddress position, uint32_t data);
+  virtual void writeByte(SRAMAddress position, uint32_t data);
 
   // Access data based on its position in the address space, and bypass the
   // usual tag checks.
@@ -125,11 +128,6 @@ public:
   void writeWordDebug(MemoryAddr addr, Word data);
   void writeByteDebug(MemoryAddr addr, Word data);
 
-  // Memory address manipulation.
-  MemoryAddr getTag(MemoryAddr address) const;
-  MemoryAddr getLine(MemoryAddr address) const;
-  MemoryAddr getOffset(MemoryAddr address) const;
-
   void setLocalNetwork(local_net_t* network);
   void setBackgroundMemory(MainMemory* memory);
 
@@ -137,7 +135,6 @@ public:
   void synchronizeData();
 
   void print(MemoryAddr start, MemoryAddr end);
-  void printOperation(MemoryOpcode operation, MemoryAddr address, uint32_t data) const;
 
   bool storedLocally(MemoryAddr address) const;
 
@@ -170,8 +167,6 @@ private:
   bool canSendResponse(MemoryLevel level) const;
   const sc_event& canSendResponseEvent(MemoryLevel level) const;
   // sendResponse is part of the public interface, above
-
-  bool isPayload(NetworkRequest request) const;
 
   void copyToMissBuffer();
 
@@ -251,4 +246,4 @@ protected:
 
 };
 
-#endif /* MEMORYBANK_H_ */
+#endif /* SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBANK_H_ */

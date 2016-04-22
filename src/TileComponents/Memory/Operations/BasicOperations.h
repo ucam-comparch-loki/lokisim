@@ -15,7 +15,7 @@
 
 class LoadWord : public MemoryOperation {
 public:
-  LoadWord(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination);
+  LoadWord(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -24,7 +24,7 @@ public:
 
 class LoadHalfword : public MemoryOperation {
 public:
-  LoadHalfword(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination);
+  LoadHalfword(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -33,7 +33,7 @@ public:
 
 class LoadByte : public MemoryOperation {
 public:
-  LoadByte(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination);
+  LoadByte(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -42,7 +42,7 @@ public:
 
 class StoreWord : public MemoryOperation {
 public:
-  StoreWord(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination);
+  StoreWord(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -51,7 +51,7 @@ public:
 
 class StoreHalfword : public MemoryOperation {
 public:
-  StoreHalfword(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination);
+  StoreHalfword(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -60,7 +60,7 @@ public:
 
 class StoreByte : public MemoryOperation {
 public:
-  StoreByte(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination);
+  StoreByte(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;

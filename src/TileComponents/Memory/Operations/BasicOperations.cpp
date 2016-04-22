@@ -11,7 +11,7 @@
 
 #include "../MemoryBank.h"
 
-LoadWord::LoadWord(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
+LoadWord::LoadWord(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 0, 1) {
   // Nothing
 }
@@ -32,7 +32,7 @@ void LoadWord::execute() {
 }
 
 
-LoadHalfword::LoadHalfword(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
+LoadHalfword::LoadHalfword(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 0, 1) {
   // Nothing
 }
@@ -53,7 +53,7 @@ void LoadHalfword::execute() {
 }
 
 
-LoadByte::LoadByte(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
+LoadByte::LoadByte(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 0, 1) {
   // Nothing
 }
@@ -74,7 +74,7 @@ void LoadByte::execute() {
 }
 
 
-StoreWord::StoreWord(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
+StoreWord::StoreWord(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 1, 0) {
   preWriteCheck();
 }
@@ -97,7 +97,7 @@ void StoreWord::execute() {
 }
 
 
-StoreHalfword::StoreHalfword(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
+StoreHalfword::StoreHalfword(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 1, 0) {
   preWriteCheck();
 }
@@ -120,7 +120,7 @@ void StoreHalfword::execute() {
 }
 
 
-StoreByte::StoreByte(MemoryAddr address, MemoryMetadata metadata, MemoryBank& memory, MemoryLevel level, ChannelID destination) :
+StoreByte::StoreByte(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 1, 0) {
   preWriteCheck();
 }

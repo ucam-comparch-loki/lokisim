@@ -34,10 +34,6 @@ void Chip::storeData(const DataBlock& data) {
   }
 }
 
-const void* Chip::getMemoryData() {
-	return mainMemory.getData();
-}
-
 void Chip::print(const ComponentID& component, MemoryAddr start, MemoryAddr end) {
 	if (component.isMemory() && !MAGIC_MEMORY)
 		memories[component.globalMemoryNumber()]->print(start, end);
@@ -66,19 +62,19 @@ Word Chip::readByteInternal(const ComponentID& component, MemoryAddr addr) {
 void Chip::writeWordInternal(const ComponentID& component, MemoryAddr addr, Word data) {
 	if (component.isMemory() && !MAGIC_MEMORY) {
     assert(component.globalMemoryNumber() < memories.size());
-	  return memories[component.globalMemoryNumber()]->writeWordDebug(addr, data);
+	  memories[component.globalMemoryNumber()]->writeWordDebug(addr, data);
 	}
 	else
-		return mainMemory.writeWord(addr, data);
+		mainMemory.writeWord(addr, data.toUInt());
 }
 
 void Chip::writeByteInternal(const ComponentID& component, MemoryAddr addr, Word data) {
 	if (component.isMemory() && !MAGIC_MEMORY) {
     assert(component.globalMemoryNumber() < memories.size());
-	  return memories[component.globalMemoryNumber()]->writeByteDebug(addr, data);
+	  memories[component.globalMemoryNumber()]->writeByteDebug(addr, data);
 	}
 	else
-		return mainMemory.writeByte(addr, data);
+		mainMemory.writeByte(addr, data.toUInt());
 }
 
 int Chip::readRegisterInternal(const ComponentID& component, RegisterIndex reg) const {
@@ -431,7 +427,7 @@ void Chip::wireUp() {
 
 Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
     Component(name),
-    mainMemory("background_memory", ComponentID(2,0,0), NUM_COMPUTE_TILES),
+    mainMemory("main_memory", ComponentID(2,0,0), NUM_COMPUTE_TILES),
     magicMemory("magic_memory", mainMemory),
     dataNet("data_net"),
     creditNet("credit_net"),

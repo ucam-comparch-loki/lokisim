@@ -14,15 +14,15 @@
 #define RECEIVECHANNELENDTABLE_H_
 
 #include "../../../Component.h"
-#include "../../../Utility/Blocking.h"
 #include "../../../Network/BufferArray.h"
 #include "../../../Network/NetworkTypedefs.h"
+#include "../../../Utility/BlockingInterface.h"
 #include "../../../Utility/LoopCounter.h"
 
 class DecodeStage;
 class Word;
 
-class ReceiveChannelEndTable: public Component, public Blocking {
+class ReceiveChannelEndTable: public Component, public BlockingInterface {
 
 //============================================================================//
 // Ports

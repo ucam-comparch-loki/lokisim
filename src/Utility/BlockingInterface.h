@@ -1,5 +1,5 @@
 /*
- * Blocking.h
+ * BlockingInterface.h
  *
  * Class which is capable of blocking (stalling).
  *
@@ -15,8 +15,8 @@
  *      Author: db434
  */
 
-#ifndef BLOCKING_H_
-#define BLOCKING_H_
+#ifndef BLOCKING_INTERFACE_H_
+#define BLOCKING_INTERFACE_H_
 
 #include <ostream>
 #include <vector>
@@ -24,13 +24,13 @@
 using std::ostream;
 using std::vector;
 
-class Blocking {
+class BlockingInterface {
 
 public:
 
   // Constructor
-  Blocking();
-  virtual ~Blocking();
+  BlockingInterface();
+  virtual ~BlockingInterface();
 
   // Print all observed issues in the system.
   static void reportProblems(ostream& os);
@@ -44,8 +44,8 @@ protected:
 private:
 
   // A list of all components which may have problems to report.
-  static vector<Blocking*> components;
+  static vector<BlockingInterface*> components;
 
 };
 
-#endif /* BLOCKING_H_ */
+#endif /* BLOCKING_INTERFACE_H_ */

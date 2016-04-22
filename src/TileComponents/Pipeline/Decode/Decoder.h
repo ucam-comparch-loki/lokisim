@@ -14,13 +14,13 @@
 #define DECODER_H_
 
 #include "../../../Component.h"
-#include "../../../Utility/Blocking.h"
 #include "../../../Datatype/DecodedInst.h"
+#include "../../../Utility/BlockingInterface.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
 class DecodeStage;
 
-class Decoder: public Component, public Blocking {
+class Decoder: public Component, public BlockingInterface {
 
 //============================================================================//
 // Methods

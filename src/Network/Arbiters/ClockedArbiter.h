@@ -16,12 +16,12 @@
 #define BASICARBITER_H_
 
 #include "../../Component.h"
-#include "../../Utility/Blocking.h"
+#include "../../Utility/BlockingInterface.h"
 #include "../NetworkTypedefs.h"
 
 class ArbiterBase;
 
-class ClockedArbiter: public Component, public Blocking {
+class ClockedArbiter: public Component, public BlockingInterface {
 
 //============================================================================//
 // Ports

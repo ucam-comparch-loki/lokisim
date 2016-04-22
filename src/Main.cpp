@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 #include "Utility/Arguments.h"
-#include "Utility/Blocking.h"
+#include "Utility/BlockingInterface.h"
 #include "Utility/Debugger.h"
 #include "Utility/Instrumentation/IPKCache.h"
 #include "Utility/Instrumentation.h"
@@ -44,7 +44,7 @@ bool checkProgress() {
     cerr << "\nNo progress has been made for 10000 cycles. Aborting." << endl;
 
     Instrumentation::endExecution();
-    Blocking::reportProblems(cerr);
+    BlockingInterface::reportProblems(cerr);
     RETURN_CODE = EXIT_FAILURE;
 
     return false;
@@ -59,7 +59,7 @@ bool checkIdle() {
     statusUpdate(cerr);
     cerr << "System has been idle for " << Stalls::cyclesIdle() << " cycles. Aborting." << endl;
     Instrumentation::endExecution();
-    Blocking::reportProblems(cerr);
+    BlockingInterface::reportProblems(cerr);
     RETURN_CODE = EXIT_FAILURE;
     return true;
   }

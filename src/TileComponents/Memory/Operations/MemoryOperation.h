@@ -15,7 +15,7 @@
 #include "../../../Network/NetworkTypedefs.h"
 #include "../MemoryTypedefs.h"
 
-class MemoryBank;
+class MemoryInterface;
 
 class MemoryOperation {
 
@@ -23,7 +23,7 @@ protected:
 
   MemoryOperation(MemoryAddr address,
                   MemoryMetadata metadata,
-                  MemoryBank& memory,
+                  MemoryInterface& memory,
                   MemoryLevel level,
                   ChannelID destination,
                   unsigned int payloadFlits,
@@ -117,7 +117,7 @@ protected:
 
   const MemoryAddr      address;        // Position in address space
   const MemoryMetadata  metadata;       // Various information modifying the operation
-  MemoryBank&           memory;         // The memory processing this operation
+  MemoryInterface&      memory;         // The memory processing this operation
   const MemoryLevel     level;          // Whether this is the L1, L2, etc.
   const ChannelID       destination;    // Channel to send results to
   unsigned int          payloadFlits;   // Number of payload flits remaining
