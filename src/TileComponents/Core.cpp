@@ -97,19 +97,19 @@ bool     Core::readPredReg(bool waitForExecution, const DecodedInst& inst) {
 void     Core::writePredReg(bool val)  {pred.write(val);}
 
 const Word Core::readWord(MemoryAddr addr) {
-	return Word(parent()->readWordInternal(getSystemCallMemory(addr), addr));
+  return Word(parent()->readWordInternal(getSystemCallMemory(addr), addr));
 }
 
 const Word Core::readByte(MemoryAddr addr) {
-	return Word(parent()->readByteInternal(getSystemCallMemory(addr), addr));
+  return Word(parent()->readByteInternal(getSystemCallMemory(addr), addr));
 }
 
 void Core::writeWord(MemoryAddr addr, Word data) {
-	parent()->writeWordInternal(getSystemCallMemory(addr), addr, data);
+  parent()->writeWordInternal(getSystemCallMemory(addr), addr, data);
 }
 
 void Core::writeByte(MemoryAddr addr, Word data) {
-	parent()->writeByteInternal(getSystemCallMemory(addr), addr, data);
+  parent()->writeByteInternal(getSystemCallMemory(addr), addr, data);
 }
 
 void Core::magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address, ChannelID returnChannel, Word payload) {

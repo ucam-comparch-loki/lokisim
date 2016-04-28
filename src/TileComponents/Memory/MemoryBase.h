@@ -1,5 +1,5 @@
 /*
- * MemoryInterface.h
+ * MemoryBase.h
  *
  * The software interface between MemoryOperations and simulated memory
  * structures. This allows MemoryBanks, MainMemory and any other memory-like
@@ -9,8 +9,8 @@
  *      Author: db434
  */
 
-#ifndef SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYINTERFACE_H_
-#define SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYINTERFACE_H_
+#ifndef SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBASE_H_
+#define SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBASE_H_
 
 #include "../../Component.h"
 #include "MemoryTypedefs.h"
@@ -18,16 +18,17 @@
 #include "../../Network/NetworkTypedefs.h"
 #include "../../Utility/Warnings.h"
 
-class MemoryInterface : public Component {
+class MemoryBase : public Component {
 
 public:
 
-  MemoryInterface(sc_module_name name, ComponentID ID) :
-    Component(name, ID) {
+  MemoryBase(sc_module_name name, ComponentID ID, size_t sizeInBytes) :
+    Component(name, ID),
+    mData(sizeInBytes/4, 0) {
 
   }
 
-  virtual ~MemoryInterface() {}
+  virtual ~MemoryBase() {}
 
   // Return the position in SRAM that the given memory address is to be found.
   virtual SRAMAddress getPosition(
@@ -98,12 +99,51 @@ public:
   virtual void preWriteCheck(MemoryAddr address) const = 0;
 
   // Data access.
-  virtual uint32_t readWord(SRAMAddress position) const = 0;
-  virtual uint32_t readHalfword(SRAMAddress position) const = 0;
-  virtual uint32_t readByte(SRAMAddress position) const = 0;
-  virtual void writeWord(SRAMAddress position, uint32_t data) = 0;
-  virtual void writeHalfword(SRAMAddress position, uint32_t data) = 0;
-  virtual void writeByte(SRAMAddress position, uint32_t data) = 0;
+  virtual uint32_t readWord(SRAMAddress position) const {
+    checkAlignment(position, 4);
+
+    return mData[position/BYTES_PER_WORD];
+  }
+
+  virtual uint32_t readHalfword(SRAMAddress position) const {
+    checkAlignment(position, 2);
+
+    uint32_t fullWord = readWord(position & ~0x3);
+    uint32_t offset = (position & 0x3) >> 1;
+    return (fullWord >> (offset * 16)) & 0xFFFF;
+  }
+
+  virtual uint32_t readByte(SRAMAddress position) const {
+    uint32_t fullWord = readWord(position & ~0x3);
+    uint32_t offset = position & 0x3UL;
+    return (fullWord >> (offset * 8)) & 0xFF;
+  }
+
+  virtual void writeWord(SRAMAddress position, uint32_t data) {
+    checkAlignment(position, 4);
+
+    mData[position/BYTES_PER_WORD] = data;
+  }
+
+  virtual void writeHalfword(SRAMAddress position, uint32_t data) {
+    checkAlignment(position, 2);
+
+    uint32_t oldData = readWord(position & ~0x3);
+    uint32_t offset = (position >> 1) & 0x1;
+    uint32_t mask = 0xFFFF << (offset * 16);
+    uint32_t newData = (~mask & oldData) | (mask & (data << (16*offset)));
+
+    writeWord(position & ~0x3, newData);
+  }
+
+  virtual void writeByte(SRAMAddress position, uint32_t data) {
+    uint32_t oldData = readWord(position & ~0x3);
+    uint32_t offset = position & 0x3;
+    uint32_t mask = 0xFF << (offset * 8);
+    uint32_t newData = (~mask & oldData) | (mask & (data << (8*offset)));
+
+    writeWord(position & ~0x3, newData);
+  }
 
   // Memory address manipulation. Assumes fixed cache line size of 32 bytes.
   MemoryAddr getTag(MemoryAddr address)      const {return address & ~0x1F;}
@@ -141,6 +181,11 @@ protected:
     return (opcode == PAYLOAD) || (opcode == PAYLOAD_EOP);
   }
 
+protected:
+
+  // The stored data.
+  vector<uint32_t>   mData;
+
 };
 
-#endif /* SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYINTERFACE_H_ */
+#endif /* SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBASE_H_ */

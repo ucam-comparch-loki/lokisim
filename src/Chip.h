@@ -97,22 +97,22 @@ private:
 
 private:
 
-	vector<Core*>              cores;             // All cores of the chip
-	vector<MemoryBank*>        memories;          // All memories of the chip
-	vector<MissHandlingLogic*> mhl;               // One per tile
-	MainMemory                mainMemory;
+  vector<Core*>              cores;             // All cores of the chip
+  vector<MemoryBank*>        memories;          // All memories of the chip
+  vector<MissHandlingLogic*> mhl;               // One per tile
+  MainMemory                 mainMemory;
 
-	MagicMemory                magicMemory;       // Wrapper for mainMemory
+  MagicMemory                magicMemory;       // Wrapper for mainMemory
 
-	// Global networks - connect all tiles together.
-	DataNetwork                dataNet;
-	CreditNetwork              creditNet;
-	RequestNetwork             requestNet;
-	ResponseNetwork            responseNet;
+  // Global networks - connect all tiles together.
+  DataNetwork                dataNet;
+  CreditNetwork              creditNet;
+  RequestNetwork             requestNet;
+  ResponseNetwork            responseNet;
 
-	// All networks internal to each tile. To be folded in to another network
-	// at some point.
-	NetworkHierarchy           network;
+  // All networks internal to each tile. To be folded in to another network
+  // at some point.
+  NetworkHierarchy           network;
 
 //============================================================================//
 // Signals (wires)
@@ -120,13 +120,13 @@ private:
 
 private:
 
-	sc_clock clock;
+  sc_clock clock;
 
-	// Naming of signals is relative to the components: iData is a data signal
-	// which is an input to a core or memory bank.
+  // Naming of signals is relative to the components: iData is a data signal
+  // which is an input to a core or memory bank.
   LokiVector<DataSignal>       oDataLocal,          iDataLocal;
   LokiVector2D<DataSignal>     oDataGlobal,         iDataGlobal;
-	LokiVector2D<CreditSignal>   oCredit,             iCredit;
+  LokiVector2D<CreditSignal>   oCredit,             iCredit;
   LokiVector2D<RequestSignal>  requestToMHL,        requestFromMHL;
   LokiVector2D<ResponseSignal> responseFromMHL,     responseToMHL;
   LokiVector<ResponseSignal>   responseFromBM,      responseToBanks;
@@ -141,14 +141,14 @@ private:
   LokiVector3D<ReadySignal>  oReadyData, oReadyCredit;
   LokiVector3D<ReadySignal>  readyRequestToMHL, readyResponseToMHL;
 
-	// Delays in SystemC slow simulation right down, so instead, make separate
-	// clocks. The fast clock has its negative edge 1/4 of a cycle early, and the
-	// slow clock has its negative edge 1/4 of a cycle late. The positive edges
-	// are at the same time as the normal clock.
-	// These are used for the small input crossbar in each core, to ensure that
-	// credits get to the local tile network in time to be sent, and to allow
-	// time for data to arrive from the tile network.
-	sc_clock fastClock, slowClock;
+  // Delays in SystemC slow simulation right down, so instead, make separate
+  // clocks. The fast clock has its negative edge 1/4 of a cycle early, and the
+  // slow clock has its negative edge 1/4 of a cycle late. The positive edges
+  // are at the same time as the normal clock.
+  // These are used for the small input crossbar in each core, to ensure that
+  // credits get to the local tile network in time to be sent, and to allow
+  // time for data to arrive from the tile network.
+  sc_clock fastClock, slowClock;
 
 };
 

@@ -12,6 +12,9 @@
 
 using std::string;
 
+// Give a warning if memory is accessed in an incoherent way.
+extern bool WARN_INCOHERENCE;
+
 // Warn (rather than terminate) when attempting to modify a read-only memory
 // address.
 extern bool WARN_READ_ONLY;
@@ -36,9 +39,12 @@ inline void setWarning(const string& option) {
   }
 
   if (name == "all") {
+    WARN_INCOHERENCE = setting;
     WARN_READ_ONLY = setting;
     WARN_UNALIGNED = setting;
   }
+  else if (name == "incoherence")
+    WARN_INCOHERENCE = setting;
   else if (name == "read-only")
     WARN_READ_ONLY = setting;
   else if (name == "unaligned-memory")

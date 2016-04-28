@@ -18,14 +18,14 @@ string Config::fileLocation;
 
 string& Config::getAttribute(string name, string description) {
   // First, check to see if the attribute is already in the map.
-  if(attributes.find(name) != attributes.end()) {
+  if (attributes.find(name) != attributes.end()) {
     return attributes[name];
   }
 
   // If not, read all attributes in from the configuration file and try again.
   else {
     readConfigFile();
-    if(attributes.find(name) != attributes.end()) {
+    if (attributes.find(name) != attributes.end()) {
       return attributes[name];
     }
 
@@ -42,14 +42,14 @@ void Config::readConfigFile() {
   std::ifstream file(fileLocation.c_str());
 
   char line[200];
-  while(!file.fail()) {
+  while (!file.fail()) {
     file.getline(line, 200);
     string str(line);
 
     // Each line in the config file should consist of a name-attribute pair,
     // separated by a single space.
     vector<string>& words = StringManipulation::split(str, ' ');
-    if(words.size() != 2) {
+    if (words.size() != 2) {
       delete &words;
       continue;
     }
@@ -64,10 +64,10 @@ void Config::readConfigFile() {
 void Config::askUser(string& name, string& description) {
   std::cout << "Unable to find " << name << "\nPlease enter ";
 
-  if(description == string()) std::cout << "value";
-  else                        std::cout << description;
+  if (description == string()) std::cout << "value";
+  else                         std::cout << description;
 
-  std::cout << ":\n";
+  std::cout << ":" << std::endl;
 
   string value;
   std::cin >> value;
@@ -76,13 +76,14 @@ void Config::askUser(string& name, string& description) {
 
   // Append the new attribute to the configuration file.
   std::ofstream file(fileLocation.c_str(), std::ios_base::app);
-  file << name << " " << value << "\n";
+  file << name << " " << value << std::endl;
   file.close();
 }
 
 void Config::initialise() {
   static bool initialised = false;
-  if(initialised) return;
+  if (initialised)
+    return;
 
   // Generate the full path to the configuration file.
   std::stringstream ss;
@@ -92,10 +93,11 @@ void Config::initialise() {
   // If the directory .config/lokisim doesn't exist yet, create it.
   struct stat status;
   stat(fileLocation.c_str(), &status);
-  if(!(status.st_mode & S_IFDIR)) {
+  if (!(status.st_mode & S_IFDIR)) {
     string command = "mkdir " + fileLocation;
     int failure = system(command.c_str());
-    if(failure) std::cerr << "Warning: unable to create configuration file\n";
+    if (failure)
+      std::cerr << "Warning: unable to create configuration file" << std::endl;
   }
 
   // Now that the directory definitely exists, update fileLocation to point to

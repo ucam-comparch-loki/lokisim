@@ -5,8 +5,8 @@
  *      Author: db434
  */
 
-#ifndef MEMORYBANK_H_2_
-#define MEMORYBANK_H_2_
+#ifndef SRC_UTILITY_INSTRUMENTATION_MEMORYBANK_H_
+#define SRC_UTILITY_INSTRUMENTATION_MEMORYBANK_H_
 
 #include "InstrumentationBase.h"
 #include "CounterMap.h"
@@ -90,4 +90,4 @@ namespace Instrumentation {
 
 }
 
-#endif /* MEMORYBANK_H_2_ */
+#endif /* SRC_UTILITY_INSTRUMENTATION_MEMORYBANK_H_ */

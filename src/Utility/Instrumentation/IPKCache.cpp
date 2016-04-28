@@ -88,13 +88,13 @@ count_t IPKCache::numWrites()    {return total.writes;}
 
 void IPKCache::printStats() {
   if (numTagChecks() > 0) {
-	cout <<
-	  "Instruction packet cache:" << "\n" <<
-	  "  Reads:    " << numReads() << "\n" <<
-	  "  Writes:   " << numWrites() << "\n" <<
-	  "  Tag checks: " << numTagChecks() << "\n" <<
-	  "    Hits:   " << numHits() << "\t(" << percentage(numHits(),numTagChecks()) << ")\n" <<
-	  "    Misses: " << numMisses() << "\t(" << percentage(numMisses(),numTagChecks()) << ")\n";
+  cout <<
+    "Instruction packet cache:" << "\n" <<
+    "  Reads:    " << numReads() << "\n" <<
+    "  Writes:   " << numWrites() << "\n" <<
+    "  Tag checks: " << numTagChecks() << "\n" <<
+    "    Hits:   " << numHits() << "\t(" << percentage(numHits(),numTagChecks()) << ")\n" <<
+    "    Misses: " << numMisses() << "\t(" << percentage(numMisses(),numTagChecks()) << ")\n";
   }
 }
 

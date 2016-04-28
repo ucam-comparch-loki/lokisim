@@ -332,17 +332,17 @@ void Instruction::decodeOpcode(const string& name) {
  *    one of its input channels,
  *  - a 5-tuple (x,y,z,s,t) referencing a virtual memory group. */
 int32_t Instruction::decodeImmediate(const string& immed) {
-	vector<string>& parts = Strings::split(immed, ',');
-	int32_t value;
+  vector<string>& parts = Strings::split(immed, ',');
+  int32_t value;
 
-	if (parts.size() == 1) {
-	  // Plain integer - just parse it.
-		value = Strings::strToInt(parts[0]);
-	} else if (parts.size() == 2) {
-	  // This should be a multicast address - no tile ID is needed.
-	  // Strings should be of the form "(m01010110", and "channel)"
+  if (parts.size() == 1) {
+    // Plain integer - just parse it.
+    value = Strings::strToInt(parts[0]);
+  } else if (parts.size() == 2) {
+    // This should be a multicast address - no tile ID is needed.
+    // Strings should be of the form "(m01010110", and "channel)"
 
-	  assert(parts[0][1] == 'm');
+    assert(parts[0][1] == 'm');
 
     parts[0].erase(0,2);                        // Remove the bracket and the m
     parts[1].erase(parts[1].end()-1);           // Remove the bracket
@@ -358,15 +358,15 @@ int32_t Instruction::decodeImmediate(const string& immed) {
     }
 
     value = ChannelID(mcastAddress, channel).flatten();
-	} else {
-		// Invalid format
-	  LOKI_ERROR << "invalid tuple length: " << immed << endl;
-	  delete &parts;
-		assert(false);
-	}
+  } else {
+    // Invalid format
+    LOKI_ERROR << "invalid tuple length: " << immed << endl;
+    delete &parts;
+    assert(false);
+  }
 
-	delete &parts;
-	return value;
+  delete &parts;
+  return value;
 }
 
 void Instruction::setFields(const RegisterIndex val1, const RegisterIndex val2,

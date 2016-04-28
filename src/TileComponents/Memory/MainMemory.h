@@ -14,13 +14,13 @@
 #define SRC_TILECOMPONENTS_MEMORY_MAINMEMORY_H_
 
 #include "../../Component.h"
-#include "MemoryInterface.h"
 #include "../../Network/ArbitratedMultiplexer.h"
 #include "../../Network/DelayBuffer.h"
+#include "MemoryBase.h"
 
 class MemoryOperation;
 
-class MainMemory: public MemoryInterface {
+class MainMemory: public MemoryBase {
 
 //============================================================================//
 // Ports
@@ -93,14 +93,6 @@ public:
   // Check whether it is safe to write to the given address.
   virtual void preWriteCheck(MemoryAddr address) const;
 
-  // Data access.
-  virtual uint32_t readWord(SRAMAddress position) const;
-  virtual uint32_t readHalfword(SRAMAddress position) const;
-  virtual uint32_t readByte(SRAMAddress position) const;
-  virtual void writeWord(SRAMAddress position, uint32_t data);
-  virtual void writeHalfword(SRAMAddress position, uint32_t data);
-  virtual void writeByte(SRAMAddress position, uint32_t data);
-
   // Check whether a memory location is read-only.
   bool readOnly(MemoryAddr addr) const;
 
@@ -117,6 +109,10 @@ private:
 
   // Method triggered whenever data needs to be sent.
   void sendData(uint port);
+
+  // Keep track of which tiles have valid copies of which data for debugging.
+  void checkSafeRead(MemoryAddr address, TileID requester);
+  void checkSafeWrite(MemoryAddr address, TileID requester);
 
 //============================================================================//
 // Subcomponents
@@ -143,14 +139,17 @@ private:
   MainMemoryState    mState;
   MemoryOperation*   mActiveRequest;   // The request being served.
 
-  vector<uint32_t>   mData;
-
   vector<DelayBuffer<NetworkResponse>*> mOutputQueues; // Model memory latency
   PortIndex          currentChannel;   // The input currently being served.
 
 
   // Mainly for debug, mark the read-only sections of the address space.
   vector<MemoryAddr> readOnlyBase, readOnlyLimit;
+
+  // For debug: record which tiles have an up-to-date copy of each cache line
+  // so we can detect incoherent memory use.
+  // Each entry in the vector represents a bitmask of all tiles on chip (< 32).
+  vector<uint>       cacheLineValid;
 
 };
 

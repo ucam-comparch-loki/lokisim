@@ -509,7 +509,7 @@ void Decoder::reportStalls(ostream& os) {
 }
 
 Decoder::Decoder(const sc_module_name& name, const ComponentID& ID) :
-	  Component(name, ID) {
+    Component(name, ID) {
 
   continueToExecute = false;
   execute = false;

@@ -18,33 +18,33 @@
 using namespace Instrumentation;
 
 int Statistics::getStat(const std::string& statName, int parameter) {
-  if(statName == "execution_time")        return executionTime();
-  else if(statName == "current_cycle")    return currentCycle();
-  else if(statName == "l0_tag_checks")    return l0TagChecks();
-  else if(statName == "l0_hits")          return l0Hits();
-  else if(statName == "l0_misses")        return l0Misses();
-  else if(statName == "l0_reads")         return l0Reads();
-  else if(statName == "l0_writes")        return l0Writes();
-  else if(statName == "l1_reads")         return l1Reads();
-  else if(statName == "l1 writes")        return l1Writes();
-  else if(statName == "decodes")          return decodes();
-  else if(statName == "reg_reads")        return registerReads();
-  else if(statName == "reg_writes")       return registerWrites();
-  else if(statName == "data_forwards")    return dataForwards();
-  else if(statName == "operations") {
-    if(parameter != -1)                   return operations((opcode_t)parameter);
-    else                                  return operations();
+  if (statName == "execution_time")        return executionTime();
+  else if (statName == "current_cycle")    return currentCycle();
+  else if (statName == "l0_tag_checks")    return l0TagChecks();
+  else if (statName == "l0_hits")          return l0Hits();
+  else if (statName == "l0_misses")        return l0Misses();
+  else if (statName == "l0_reads")         return l0Reads();
+  else if (statName == "l0_writes")        return l0Writes();
+  else if (statName == "l1_reads")         return l1Reads();
+  else if (statName == "l1 writes")        return l1Writes();
+  else if (statName == "decodes")          return decodes();
+  else if (statName == "reg_reads")        return registerReads();
+  else if (statName == "reg_writes")       return registerWrites();
+  else if (statName == "data_forwards")    return dataForwards();
+  else if (statName == "operations") {
+    if (parameter != -1)                   return operations((opcode_t)parameter);
+    else                                   return operations();
   }
-  else if(statName == "cycles_active")    return cyclesActive(parameter);
-  else if(statName == "cycles_idle")      return cyclesIdle(parameter);
-  else if(statName == "cycles_stalled")   return cyclesStalled(parameter);
+  else if (statName == "cycles_active")    return cyclesActive(parameter);
+  else if (statName == "cycles_idle")      return cyclesIdle(parameter);
+  else if (statName == "cycles_stalled")   return cyclesStalled(parameter);
   else std::cerr << "Unknown statistic requested: " << statName << "\n";
 
   return 0;
 }
 
 int Statistics::currentCycle() {
-  if(sc_core::sc_end_of_simulation_invoked()) return executionTime();
+  if (sc_core::sc_end_of_simulation_invoked()) return executionTime();
   else return Instrumentation::currentCycle();
 }
 

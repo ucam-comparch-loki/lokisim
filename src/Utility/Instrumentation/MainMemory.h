@@ -5,8 +5,8 @@
  *      Author: db434
  */
 
-#ifndef MAINMEMORY_H_
-#define MAINMEMORY_H_
+#ifndef SRC_UTILITY_INSTRUMENTATION_MAINMEMORY_H_
+#define SRC_UTILITY_INSTRUMENTATION_MAINMEMORY_H_
 
 #include "InstrumentationBase.h"
 #include "CounterMap.h"
@@ -17,8 +17,8 @@ namespace Instrumentation {
 
   public:
 
-    static void read(MemoryAddr address, uint32_t count);
-    static void write(MemoryAddr address, uint32_t count);
+    static void read(MemoryAddr address, count_t words);
+    static void write(MemoryAddr address, count_t words);
 
     static count_t numReads();
     static count_t numWrites();
@@ -35,4 +35,4 @@ namespace Instrumentation {
 
 }
 
-#endif /* MAINMEMORY_H_ */
+#endif /* SRC_UTILITY_INSTRUMENTATION_MAINMEMORY_H_ */

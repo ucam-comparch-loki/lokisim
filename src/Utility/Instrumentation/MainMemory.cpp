@@ -16,14 +16,14 @@ count_t MainMemory::numWrites_ = 0;
 count_t MainMemory::numWordsRead_ = 0;
 count_t MainMemory::numWordsWritten_ = 0;
 
-void MainMemory::read(MemoryAddr address, uint32_t count) {
+void MainMemory::read(MemoryAddr address, count_t words) {
   numReads_++;
-  numWordsRead_ += count;
+  numWordsRead_ += words;
 }
 
-void MainMemory::write(MemoryAddr address, uint32_t count) {
+void MainMemory::write(MemoryAddr address, count_t words) {
   numWrites_++;
-  numWordsWritten_ += count;
+  numWordsWritten_ += words;
 }
 
 count_t MainMemory::numReads()          {return numReads_;}

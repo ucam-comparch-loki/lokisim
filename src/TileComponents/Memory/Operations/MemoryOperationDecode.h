@@ -16,7 +16,7 @@
 #include "MemoryOperation.h"
 
 inline MemoryOperation* decodeMemoryRequest(const NetworkRequest& request,
-                                            MemoryInterface& memory,
+                                            MemoryBase& memory,
                                             const MemoryLevel level,
                                             const ChannelID destination) {
 

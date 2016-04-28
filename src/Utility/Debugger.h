@@ -48,7 +48,7 @@ private:
 
   // Print the current stack.
   static void printStack(const ComponentID& core=defaultCore,
-		                 const ComponentID& memory=defaultDataMemory);
+                         const ComponentID& memory=defaultDataMemory);
 
   static void printMemLocations(vector<int>& locs, const ComponentID& memory=defaultDataMemory);
 

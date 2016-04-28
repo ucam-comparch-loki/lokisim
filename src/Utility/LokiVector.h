@@ -1,7 +1,7 @@
 /*
  * LokiVector.h
  *
- * An vector used to contain SystemC modules. An ordinary vector can't be used
+ * A vector used to contain SystemC modules. An ordinary vector can't be used
  * because it requires that the objects it contains can be copied.
  *
  * This class may end up being very similar to sc_vector, due to be released in

@@ -14,8 +14,9 @@ void StringManipulation::split(const string& s, char delim, vector<string>& elem
   std::stringstream ss(s);
   string item;
   elems.clear();
-  while(std::getline(ss, item, delim)) {
-    if(item.length() > 0) elems.push_back(item);
+  while (std::getline(ss, item, delim)) {
+    if (item.length() > 0)
+      elems.push_back(item);
   }
 }
 
@@ -32,14 +33,14 @@ int StringManipulation::strToInt(const string& str) {
   std::stringstream ss;
   string copy = str;
 
-  if(str[1] == 'x') {
+  if (str[1] == 'x') {
     ss << std::hex;  // Working with hex
     copy.erase(0,2);
   }
 
   // See if the string actually represents a number.
-  for(unsigned int i=0; i<copy.length(); i++) {
-    if(!std::isxdigit(copy[i]) && !std::isspace(copy[i]) && copy[i] != '-' && copy[i] != ',') {
+  for (unsigned int i=0; i<copy.length(); i++) {
+    if (!std::isxdigit(copy[i]) && !std::isspace(copy[i]) && copy[i] != '-' && copy[i] != ',') {
 //      std::cerr << "Not a number: " << copy << std::endl;
       throw std::exception();
     }

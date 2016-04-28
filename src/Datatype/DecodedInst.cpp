@@ -160,7 +160,7 @@ const inst_name_t& DecodedInst::name() const {
 }
 
 
-void DecodedInst::opcode(const opcode_t val) 				      {opcode_ = val;}
+void DecodedInst::opcode(const opcode_t val)              {opcode_ = val;}
 void DecodedInst::function(const function_t val)          {function_ = val;}
 void DecodedInst::sourceReg1(const RegisterIndex val)     {sourceReg1_ = val;}
 void DecodedInst::sourceReg2(const RegisterIndex val)     {sourceReg2_ = val;}
@@ -169,7 +169,7 @@ void DecodedInst::immediate(const int32_t val)            {immediate_ = val;}
 void DecodedInst::channelMapEntry(const ChannelIndex val) {channelMapEntry_ = val;}
 void DecodedInst::predicate(const predicate_t val)        {predicate_ = val;}
 void DecodedInst::setsPredicate(const bool val)           {setsPred_ = val;}
-void DecodedInst::memoryOp(const MemoryOpcode val)     {memoryOp_ = val;}
+void DecodedInst::memoryOp(const MemoryOpcode val)        {memoryOp_ = val;}
 
 void DecodedInst::operand1Source(const OperandSource src) {op1Source_ = src;}
 void DecodedInst::operand2Source(const OperandSource src) {op2Source_ = src;}

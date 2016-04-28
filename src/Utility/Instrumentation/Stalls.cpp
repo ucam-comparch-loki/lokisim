@@ -370,8 +370,8 @@ void Stalls::printStats() {
           percentage(total[STALL_OUTPUT][index], totalStalled) << ")" << endl;
         }
       }
-		}
-	}
+    }
+  }
 
   // Print instruction distribution summary
   clog << "\nDistribution of instructions:\n";

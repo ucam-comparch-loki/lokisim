@@ -8,7 +8,7 @@
 #include "DirectoryOperations.h"
 #include <assert.h>
 
-UpdateDirectoryEntry::UpdateDirectoryEntry(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
+UpdateDirectoryEntry::UpdateDirectoryEntry(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 1, 0) {
   // Nothing
 }
@@ -32,7 +32,7 @@ void UpdateDirectoryEntry::execute() {
 }
 
 
-UpdateDirectoryMask::UpdateDirectoryMask(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
+UpdateDirectoryMask::UpdateDirectoryMask(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 1, 0) {
   // Nothing
 }

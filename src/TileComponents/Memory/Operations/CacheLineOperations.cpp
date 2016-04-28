@@ -14,7 +14,7 @@
 #include "../../../Utility/Parameters.h"
 #include "../MemoryBank.h"
 
-FetchLine::FetchLine(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
+FetchLine::FetchLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(startOfLine(address), metadata, memory, level, destination, 0, CACHE_LINE_WORDS) {
   lineCursor = 0;
 }
@@ -40,7 +40,7 @@ void FetchLine::execute() {
 }
 
 
-IPKRead::IPKRead(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
+IPKRead::IPKRead(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 0, CACHE_LINE_WORDS) {
   lineCursor = 0;
 }
@@ -71,7 +71,7 @@ void IPKRead::execute() {
 }
 
 
-ValidateLine::ValidateLine(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
+ValidateLine::ValidateLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(startOfLine(address), metadata, memory, level, destination, 0, 0) {
   // Nothing
 }
@@ -89,7 +89,7 @@ void ValidateLine::execute() {
 }
 
 
-PrefetchLine::PrefetchLine(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
+PrefetchLine::PrefetchLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(startOfLine(address), metadata, memory, level, destination, 0, 0) {
 }
 
@@ -106,7 +106,7 @@ void PrefetchLine::execute() {
 }
 
 
-FlushLine::FlushLine(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
+FlushLine::FlushLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(startOfLine(address), metadata, memory, level, destination, 0, 0) {
   finished = false;
 
@@ -135,7 +135,7 @@ bool FlushLine::complete() const {
 }
 
 
-InvalidateLine::InvalidateLine(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
+InvalidateLine::InvalidateLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(startOfLine(address), metadata, memory, level, destination, 0, 0) {
   finished = false;
 }
@@ -160,7 +160,7 @@ bool InvalidateLine::complete() const {
 }
 
 
-FlushAllLines::FlushAllLines(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
+FlushAllLines::FlushAllLines(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 0, 0) {
   line = 0;
 }
@@ -184,7 +184,7 @@ bool FlushAllLines::complete() const {
 }
 
 
-InvalidateAllLines::InvalidateAllLines(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
+InvalidateAllLines::InvalidateAllLines(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 0, 0) {
   line = 0;
 }
@@ -208,7 +208,7 @@ bool InvalidateAllLines::complete() const {
 }
 
 
-StoreLine::StoreLine(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
+StoreLine::StoreLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(startOfLine(address), metadata, memory, level, destination, CACHE_LINE_WORDS, 0) {
   lineCursor = 0;
   preWriteCheck();
@@ -239,7 +239,7 @@ void StoreLine::execute() {
 }
 
 
-MemsetLine::MemsetLine(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
+MemsetLine::MemsetLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(startOfLine(address), metadata, memory, level, destination, 1, 0) {
   data = 0;
   lineCursor = 0;
@@ -277,7 +277,7 @@ bool MemsetLine::complete() const {
 }
 
 
-PushLine::PushLine(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination) :
+PushLine::PushLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(startOfLine(address), metadata, memory, level, destination, CACHE_LINE_WORDS, 0) {
   lineCursor = 0;
 }

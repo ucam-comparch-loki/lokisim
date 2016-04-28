@@ -15,7 +15,7 @@
 
 class LoadLinked : public MemoryOperation {
 public:
-  LoadLinked(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination);
+  LoadLinked(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -24,7 +24,7 @@ public:
 
 class StoreConditional: public MemoryOperation {
 public:
-  StoreConditional(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination);
+  StoreConditional(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -36,7 +36,7 @@ private:
 
 class LoadAndAdd : public MemoryOperation {
 public:
-  LoadAndAdd(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination);
+  LoadAndAdd(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -48,7 +48,7 @@ private:
 
 class LoadAndOr : public MemoryOperation {
 public:
-  LoadAndOr(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination);
+  LoadAndOr(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -60,7 +60,7 @@ private:
 
 class LoadAndAnd : public MemoryOperation {
 public:
-  LoadAndAnd(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination);
+  LoadAndAnd(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -72,7 +72,7 @@ private:
 
 class LoadAndXor : public MemoryOperation {
 public:
-  LoadAndXor(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination);
+  LoadAndXor(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -84,7 +84,7 @@ private:
 
 class Exchange : public MemoryOperation {
 public:
-  Exchange(MemoryAddr address, MemoryMetadata metadata, MemoryInterface& memory, MemoryLevel level, ChannelID destination);
+  Exchange(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;

@@ -18,7 +18,7 @@
 
 MemoryOperation::MemoryOperation(MemoryAddr address,
                                  MemoryMetadata metadata,
-                                 MemoryInterface& memory,
+                                 MemoryBase& memory,
                                  MemoryLevel level,
                                  ChannelID destination,
                                  unsigned int payloadFlits,

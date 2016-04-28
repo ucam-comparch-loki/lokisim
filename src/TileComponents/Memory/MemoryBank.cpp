@@ -239,26 +239,6 @@ bool MemoryBank::checkReservation(ComponentID requester, MemoryAddr address) con
   return mReservations.checkReservation(requester, address);
 }
 
-uint32_t MemoryBank::readWord(SRAMAddress position) const {
-  checkAlignment(position, 4);
-
-  return mData[position/BYTES_PER_WORD];
-}
-
-uint32_t MemoryBank::readHalfword(SRAMAddress position) const {
-  checkAlignment(position, 2);
-
-  uint32_t fullWord = readWord(position & ~0x3);
-  uint32_t offset = (position & 0x3) >> 1;
-  return (fullWord >> (offset * 16)) & 0xFFFF;
-}
-
-uint32_t MemoryBank::readByte(SRAMAddress position) const {
-  uint32_t fullWord = readWord(position & ~0x3);
-  uint32_t offset = position & 0x3UL;
-  return (fullWord >> (offset * 8)) & 0xFF;
-}
-
 void MemoryBank::writeWord(SRAMAddress position, uint32_t data) {
   checkAlignment(position, 4);
   MemoryAddr address = getAddress(position);
@@ -268,30 +248,6 @@ void MemoryBank::writeWord(SRAMAddress position, uint32_t data) {
 
   mReservations.clearReservation(address);
 }
-
-void MemoryBank::writeHalfword(SRAMAddress position, uint32_t data) {
-  checkAlignment(position, 2);
-
-  uint32_t oldData = readWord(position & ~0x3);
-  uint32_t offset = (position >> 1) & 0x1;
-  uint32_t mask = 0xFFFF << (offset * 16);
-  uint32_t newData = (~mask & oldData) | (mask & (data << (16*offset)));
-
-  writeWord(position & ~0x3, newData);
-}
-
-void MemoryBank::writeByte(SRAMAddress position, uint32_t data) {
-  uint32_t oldData = readWord(position & ~0x3);
-  uint32_t offset = position & 0x3;
-  uint32_t mask = 0xFF << (offset * 8);
-  uint32_t newData = (~mask & oldData) | (mask & (data << (8*offset)));
-
-  writeWord(position & ~0x3, newData);
-}
-
-//-------------------------------------------------------------------------------------------------
-// Internal functions
-//-------------------------------------------------------------------------------------------------
 
 void MemoryBank::processIdle() {
   assert(mState == STATE_IDLE);
@@ -697,10 +653,9 @@ void MemoryBank::copyToMissBuffer() {
 }
 
 void MemoryBank::preWriteCheck(MemoryAddr address) const {
-  if (mBackgroundMemory->readOnly(address) && WARN_READ_ONLY)
+  if (mMainMemory->readOnly(address) && WARN_READ_ONLY)
     LOKI_WARN << this->name() << " attempting to modify read-only address " << LOKI_HEX(address) << endl;
 }
-
 
 void MemoryBank::processValidInput() {
   assert(iData.valid());
@@ -778,16 +733,11 @@ void MemoryBank::updateReady() {
     oReadyForData.write(ready);
 }
 
-//-------------------------------------------------------------------------------------------------
-// Constructors and destructors
-//-------------------------------------------------------------------------------------------------
-
 MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumber) :
-  MemoryInterface(name, ID),
+  MemoryBase(name, ID, MEMORY_BANK_SIZE),
   mInputQueue(string(this->name()) + string(".mInputQueue"), MEMORY_BUFFER_SIZE),
   mOutputQueue("mOutputQueue", MEMORY_BUFFER_SIZE, INTERNAL_LATENCY),
   mOutputReqQueue("mOutputReqQueue", 10 /*read addr + write addr + cache line*/, 0),
-  mData(MEMORY_BANK_SIZE, 0),
   mTags(CACHE_LINES_PER_BANK, 0),
   mValid(CACHE_LINES_PER_BANK, false),
   mDirty(CACHE_LINES_PER_BANK, false),
@@ -796,7 +746,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
   mCacheMissEvent(sc_core::sc_gen_unique_name("mCacheMissEvent")),
   mL2RequestFilter("request_filter", ID, this)
 {
-  //-- Mode independent state -------------------------------------------------------------------
   mActiveRequest = NULL;
   mMissingRequest = NULL;
 
@@ -809,7 +758,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
   mReadFromMissBuffer = false;
 
   // Magic interfaces.
-  mBackgroundMemory = 0;
+  mMainMemory = 0;
   localNetwork = 0;
 
   // Connect to local components.
@@ -851,8 +800,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
   SC_METHOD(copyToMissBuffer);
   sensitive << mCacheMissEvent;
   dont_initialize();
-
-  end_module(); // Needed because we're using a different Component constructor
 }
 
 MemoryBank::~MemoryBank() {
@@ -863,7 +810,7 @@ void MemoryBank::setLocalNetwork(local_net_t* network) {
 }
 
 void MemoryBank::setBackgroundMemory(MainMemory* memory) {
-  mBackgroundMemory = memory;
+  mMainMemory = memory;
 }
 
 void MemoryBank::storeData(vector<Word>& data, MemoryAddr location) {
@@ -871,13 +818,13 @@ void MemoryBank::storeData(vector<Word>& data, MemoryAddr location) {
 }
 
 void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
-  assert(mBackgroundMemory != NULL);
+  assert(mMainMemory != NULL);
 
   if (start > end)
     std::swap(start, end);
 
-  size_t address = (start / 4) * 4;
-  size_t limit = (end / 4) * 4 + 4;
+  MemoryAddr address = (start / 4) * 4;
+  MemoryAddr limit = (end / 4) * 4 + 4;
 
   while (address < limit) {
     uint32_t data = readWordDebug(address).toUInt();
@@ -887,7 +834,7 @@ void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
 }
 
 Word MemoryBank::readWordDebug(MemoryAddr addr) {
-  assert(mBackgroundMemory != NULL);
+  assert(mMainMemory != NULL);
   assert(addr % 4 == 0);
 
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
@@ -895,22 +842,22 @@ Word MemoryBank::readWordDebug(MemoryAddr addr) {
   if (contains(addr, position, MEMORY_CACHE))
     return readWord(position);
   else
-    return mBackgroundMemory->readWord(addr);
+    return mMainMemory->readWord(addr);
 }
 
 Word MemoryBank::readByteDebug(MemoryAddr addr) {
-  assert(mBackgroundMemory != NULL);
+  assert(mMainMemory != NULL);
 
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
   if (contains(addr, position, MEMORY_CACHE))
     return readByte(position);
   else
-    return mBackgroundMemory->readByte(addr);
+    return mMainMemory->readByte(addr);
 }
 
 void MemoryBank::writeWordDebug(MemoryAddr addr, Word data) {
-  assert(mBackgroundMemory != NULL);
+  assert(mMainMemory != NULL);
   assert(addr % 4 == 0);
 
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
@@ -918,18 +865,18 @@ void MemoryBank::writeWordDebug(MemoryAddr addr, Word data) {
   if (contains(addr, position, MEMORY_CACHE))
     writeWord(position, data.toUInt());
   else
-    mBackgroundMemory->writeWord(addr, data.toUInt());
+    mMainMemory->writeWord(addr, data.toUInt());
 }
 
 void MemoryBank::writeByteDebug(MemoryAddr addr, Word data) {
-  assert(mBackgroundMemory != NULL);
+  assert(mMainMemory != NULL);
 
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
   if (contains(addr, position, MEMORY_CACHE))
     writeByte(position, data.toUInt());
   else
-    mBackgroundMemory->writeByte(addr, data.toUInt());
+    mMainMemory->writeByte(addr, data.toUInt());
 }
 
 void MemoryBank::reportStalls(ostream& os) {

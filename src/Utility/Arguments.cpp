@@ -177,27 +177,26 @@ void Arguments::parse(int argc, char* argv[]) {
 }
 
 // Store any relevant arguments in the Loki memory.
-// Borrowed from Alex, in turn borrowed from moxie backend.
 void Arguments::storeArguments(Chip& chip) {
   vector<Word> data;
   uint i, j, tp;
 
-  /* Target memory looks like this:
-     0x00000000 zero word
-     0x00000004 argc word
-     0x00000008 start of argv
-     .
-     0x0000???? end of argv
-     0x0000???? zero word
-     0x0000???? start of data pointed to by argv  */
+  // Target memory looks like this:
+  // 0x00000000 zero word
+  // 0x00000004 argc word
+  // 0x00000008 start of argv
+  // ...
+  // 0x0000???? end of argv
+  // 0x0000???? zero word
+  // 0x0000???? start of data pointed to by argv
 
   data.push_back(Word(0));
   data.push_back(Word(programArgc));
 
-  /* tp is the offset of our first argv data.  */
+  // tp is the offset of our first argv data.
   tp = 4 + 4 + programArgc*4 + 4;
 
-  /* Set the argv values.  */
+  // Set the argv values.
   for (i = 0; i < programArgc; i++) {
     data.push_back(Word(tp));
     tp += strlen(programArgv[i]) + 1;
@@ -207,7 +206,7 @@ void Arguments::storeArguments(Chip& chip) {
 
   uint32_t val = 0;
   int bytes = 0;
-  /* Store the strings.  */
+  // Store the strings.
   for (i = 0; i < programArgc; i++) {
     for (j=0; j < (strlen(programArgv[i])+1); j++) {
       val |= programArgv[i][j] << (bytes*8);

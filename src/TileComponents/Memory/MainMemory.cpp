@@ -19,9 +19,9 @@ using std::setfill;
 using std::setprecision;
 
 MainMemory::MainMemory(sc_module_name name, ComponentID ID, uint controllers) :
-    MemoryInterface(name, ID),
+    MemoryBase(name, ID, MAIN_MEMORY_SIZE),
     mux("mux", controllers),
-    mData(MAIN_MEMORY_SIZE, 0) {
+    cacheLineValid(MAIN_MEMORY_SIZE / CACHE_LINE_BYTES, 0) {
 
   assert(controllers >= 1);
 
@@ -48,12 +48,14 @@ MainMemory::MainMemory(sc_module_name name, ComponentID ID, uint controllers) :
   dont_initialize();
 
   // Methods for returning data to each controller.
-  for (uint i=0; i<controllers; i++)
+  for (uint i=0; i<mOutputQueues.size(); i++)
     SPAWN_METHOD(mOutputQueues[i]->writeEvent(), MainMemory::sendData, i, true);
 
 }
 
 MainMemory::~MainMemory() {
+  for (uint i=0; i<mOutputQueues.size(); i++)
+    delete mOutputQueues[i];
 }
 
 // Compute the position in SRAM that the given memory address is to be found.
@@ -110,7 +112,6 @@ uint32_t MainMemory::getPayload(MemoryLevel level) {
   assert(level == MEMORY_OFF_CHIP);
   NetworkRequest request = muxOutput.read();
   uint32_t payload = request.payload().toUInt();
-  currentChannel = mux.getSelection();
 
   // Continue serving the same input if we haven't reached the end of packet.
   holdMux.write(!request.getMetadata().endOfPacket);
@@ -142,52 +143,6 @@ bool MainMemory::checkReservation(ComponentID requester, MemoryAddr address) con
 void MainMemory::preWriteCheck(MemoryAddr address) const {
   if (WARN_READ_ONLY && readOnly(address))
     LOKI_WARN << this->name() << " attempting to modify read-only address " << LOKI_HEX(address) << endl;
-}
-
-uint32_t MainMemory::readWord(SRAMAddress position) const {
-  checkAlignment(position, 4);
-
-  return mData[position/BYTES_PER_WORD];
-}
-
-uint32_t MainMemory::readHalfword(SRAMAddress position) const {
-  checkAlignment(position, 2);
-
-  uint32_t fullWord = readWord(position & ~0x3);
-  uint32_t offset = (position & 0x3) >> 1;
-  return (fullWord >> (offset * 16)) & 0xFFFF;
-}
-
-uint32_t MainMemory::readByte(SRAMAddress position) const {
-  uint32_t fullWord = readWord(position & ~0x3);
-  uint32_t offset = position & 0x3UL;
-  return (fullWord >> (offset * 8)) & 0xFF;
-}
-
-void MainMemory::writeWord(SRAMAddress position, uint32_t data) {
-  checkAlignment(position, 4);
-
-  mData[position/BYTES_PER_WORD] = data;
-}
-
-void MainMemory::writeHalfword(SRAMAddress position, uint32_t data) {
-  checkAlignment(position, 2);
-
-  uint32_t oldData = readWord(position & ~0x3);
-  uint32_t offset = (position >> 1) & 0x1;
-  uint32_t mask = 0xFFFF << (offset * 16);
-  uint32_t newData = (~mask & oldData) | (mask & (data << (16*offset)));
-
-  writeWord(position & ~0x3, newData);
-}
-
-void MainMemory::writeByte(SRAMAddress position, uint32_t data) {
-  uint32_t oldData = readWord(position & ~0x3);
-  uint32_t offset = position & 0x3;
-  uint32_t mask = 0xFF << (offset * 8);
-  uint32_t newData = (~mask & oldData) | (mask & (data << (8*offset)));
-
-  writeWord(position & ~0x3, newData);
 }
 
 bool MainMemory::readOnly(MemoryAddr addr) const {
@@ -254,6 +209,7 @@ void MainMemory::processIdle() {
     NetworkRequest request = muxOutput.read();
 
     // Continue serving the same input if we haven't reached the end of packet.
+    currentChannel = mux.getSelection();
     holdMux.write(!request.getMetadata().endOfPacket);
     muxOutput.ack();
 
@@ -268,9 +224,11 @@ void MainMemory::processIdle() {
     switch (mActiveRequest->getMetadata().opcode) {
       case FETCH_LINE:
         Instrumentation::MainMemory::read(mActiveRequest->getAddress(), CACHE_LINE_WORDS);
+        checkSafeRead(mActiveRequest->getAddress(), returnAddress.component.tile);
         break;
       case STORE_LINE:
         Instrumentation::MainMemory::write(mActiveRequest->getAddress(), CACHE_LINE_WORDS);
+        checkSafeWrite(mActiveRequest->getAddress(), returnAddress.component.tile);
         break;
       default:
         throw InvalidOptionException("main memory operation", mActiveRequest->getMetadata().opcode);
@@ -329,4 +287,24 @@ void MainMemory::sendData(uint port) {
     oData[port].write(response);
     next_trigger(oData[port].ack_event());
   }
+}
+
+void MainMemory::checkSafeRead(MemoryAddr address, TileID requester) {
+  int tile = requester.computeTileIndex();
+  int cacheLine = getLine(address);
+
+  // After reading, this tile has an up-to-date copy of the data.
+  cacheLineValid[cacheLine] |= (1 << tile);
+}
+
+void MainMemory::checkSafeWrite(MemoryAddr address, TileID requester) {
+  int tile = requester.computeTileIndex();
+  int cacheLine = getLine(address);
+
+  if (WARN_INCOHERENCE && !(cacheLineValid[cacheLine] & (1 << tile)))
+    LOKI_WARN << "Tile " << requester << " updated cache line "
+    << LOKI_HEX(address) << " without first having an up-to-date copy." << endl;
+
+  // After writing, this is the only tile with an up-to-date copy of the data.
+  cacheLineValid[cacheLine] = (1 << tile);
 }

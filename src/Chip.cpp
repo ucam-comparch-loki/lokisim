@@ -16,7 +16,7 @@ using Instrumentation::Stalls;
 
 
 void Chip::storeInstructions(vector<Word>& instructions, const ComponentID& component) {
-	cores[component.globalCoreNumber()]->storeData(instructions);
+  cores[component.globalCoreNumber()]->storeData(instructions);
 }
 
 void Chip::storeData(const DataBlock& data) {
@@ -35,58 +35,58 @@ void Chip::storeData(const DataBlock& data) {
 }
 
 void Chip::print(const ComponentID& component, MemoryAddr start, MemoryAddr end) {
-	if (component.isMemory() && !MAGIC_MEMORY)
-		memories[component.globalMemoryNumber()]->print(start, end);
-	else
-		mainMemory.print(start, end);
+  if (component.isMemory() && !MAGIC_MEMORY)
+    memories[component.globalMemoryNumber()]->print(start, end);
+  else
+    mainMemory.print(start, end);
 }
 
 Word Chip::readWordInternal(const ComponentID& component, MemoryAddr addr) {
-	if (component.isMemory() && !MAGIC_MEMORY) {
-	  assert(component.globalMemoryNumber() < memories.size());
-	  return memories[component.globalMemoryNumber()]->readWordDebug(addr);
-	}
-	else
-		return mainMemory.readWord(addr);
+  if (component.isMemory() && !MAGIC_MEMORY) {
+    assert(component.globalMemoryNumber() < memories.size());
+    return memories[component.globalMemoryNumber()]->readWordDebug(addr);
+  }
+  else
+    return mainMemory.readWord(addr);
 }
 
 Word Chip::readByteInternal(const ComponentID& component, MemoryAddr addr) {
-	if (component.isMemory() && !MAGIC_MEMORY) {
+  if (component.isMemory() && !MAGIC_MEMORY) {
     assert(component.globalMemoryNumber() < memories.size());
-	  return memories[component.globalMemoryNumber()]->readByteDebug(addr);
-	}
-	else
-		return mainMemory.readByte(addr);
+    return memories[component.globalMemoryNumber()]->readByteDebug(addr);
+  }
+  else
+    return mainMemory.readByte(addr);
 }
 
 void Chip::writeWordInternal(const ComponentID& component, MemoryAddr addr, Word data) {
-	if (component.isMemory() && !MAGIC_MEMORY) {
+  if (component.isMemory() && !MAGIC_MEMORY) {
     assert(component.globalMemoryNumber() < memories.size());
-	  memories[component.globalMemoryNumber()]->writeWordDebug(addr, data);
-	}
-	else
-		mainMemory.writeWord(addr, data.toUInt());
+    memories[component.globalMemoryNumber()]->writeWordDebug(addr, data);
+  }
+  else
+    mainMemory.writeWord(addr, data.toUInt());
 }
 
 void Chip::writeByteInternal(const ComponentID& component, MemoryAddr addr, Word data) {
-	if (component.isMemory() && !MAGIC_MEMORY) {
+  if (component.isMemory() && !MAGIC_MEMORY) {
     assert(component.globalMemoryNumber() < memories.size());
-	  memories[component.globalMemoryNumber()]->writeByteDebug(addr, data);
-	}
-	else
-		mainMemory.writeByte(addr, data.toUInt());
+    memories[component.globalMemoryNumber()]->writeByteDebug(addr, data);
+  }
+  else
+    mainMemory.writeByte(addr, data.toUInt());
 }
 
 int Chip::readRegisterInternal(const ComponentID& component, RegisterIndex reg) const {
   assert(component.globalCoreNumber() < cores.size());
 
-	return cores[component.globalCoreNumber()]->readRegDebug(reg);
+  return cores[component.globalCoreNumber()]->readRegDebug(reg);
 }
 
 bool Chip::readPredicateInternal(const ComponentID& component) const {
   assert(component.globalCoreNumber() < cores.size());
 
-	return cores[component.globalCoreNumber()]->readPredReg();
+  return cores[component.globalCoreNumber()]->readPredReg();
 }
 
 void Chip::networkSendDataInternal(const NetworkData& flit) {
@@ -212,12 +212,12 @@ void Chip::makeComponents() {
         memories[memoryID.globalMemoryNumber()] = m;
       }
       
-   	  namebuilder << "mhl_" << tile.getNameString();
-    	namebuilder >> name;
-    	namebuilder.clear();
+       namebuilder << "mhl_" << tile.getNameString();
+      namebuilder >> name;
+      namebuilder.clear();
 
-    	MissHandlingLogic* m = new MissHandlingLogic(name.c_str(), ComponentID(tile,0));
-    	mhl[tile.computeTileIndex()] = m;
+      MissHandlingLogic* m = new MissHandlingLogic(name.c_str(), ComponentID(tile,0));
+      mhl[tile.computeTileIndex()] = m;
       
     }
   }
@@ -228,9 +228,9 @@ void Chip::wireUp() {
   network.fastClock(fastClock);
   network.slowClock(slowClock);
 
-	mainMemory.iClock(clock);
+  mainMemory.iClock(clock);
 
-	// Global data network - connects cores to cores.
+  // Global data network - connects cores to cores.
   dataNet.clock(clock);
   dataNet.oData(iDataGlobal);
   dataNet.iData(oDataGlobal);
@@ -353,8 +353,8 @@ void Chip::wireUp() {
 
 // Connect cores and memories to the local interconnect
 
-	uint dataInputCounter = 0;
-	uint dataOutputCounter = 0;
+  uint dataInputCounter = 0;
+  uint dataOutputCounter = 0;
   uint readyInputCounter = 0;
 
   for (uint col = 0; col < TOTAL_TILE_COLUMNS; col++) {
@@ -445,7 +445,7 @@ Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
 }
 
 Chip::~Chip() {
-	for (uint i = 0; i < cores.size();    i++) delete cores[i];
-	for (uint i = 0; i < memories.size(); i++) delete memories[i];
-	for (uint i = 0; i < mhl.size();      i++) delete mhl[i];
+  for (uint i = 0; i < cores.size();    i++) delete cores[i];
+  for (uint i = 0; i < memories.size(); i++) delete memories[i];
+  for (uint i = 0; i < mhl.size();      i++) delete mhl[i];
 }

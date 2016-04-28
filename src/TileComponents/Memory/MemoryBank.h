@@ -17,16 +17,16 @@
 #ifndef SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBANK_H_
 #define SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBANK_H_
 
-#include "MemoryInterface.h"
 #include "../../Network/DelayBuffer.h"
 #include "../../Utility/BlockingInterface.h"
 #include "L2RequestFilter.h"
+#include "MemoryBase.h"
 #include "ReservationHandler.h"
 
 class MemoryOperation;
 class MainMemory;
 
-class MemoryBank: public MemoryInterface, public BlockingInterface {
+class MemoryBank: public MemoryBase, public BlockingInterface {
 
 //============================================================================//
 // Ports
@@ -113,13 +113,8 @@ public:
   // Check whether it is safe to write to the given address.
   virtual void preWriteCheck(MemoryAddr address) const;
 
-  // Data access.
-  virtual uint32_t readWord(SRAMAddress position) const;
-  virtual uint32_t readHalfword(SRAMAddress position) const;
-  virtual uint32_t readByte(SRAMAddress position) const;
+  // Override writeWord so we can update metadata (valid, dirty, etc.).
   virtual void writeWord(SRAMAddress position, uint32_t data);
-  virtual void writeHalfword(SRAMAddress position, uint32_t data);
-  virtual void writeByte(SRAMAddress position, uint32_t data);
 
   // Access data based on its position in the address space, and bypass the
   // usual tag checks.
@@ -206,7 +201,6 @@ private:
   DelayBuffer<NetworkResponse>   mOutputQueue;      // Output queue
   DelayBuffer<NetworkRequest>    mOutputReqQueue;   // Output request queue
 
-  vector<uint32_t>      mData;            // The contents of this bank.
   vector<MemoryTag>     mTags;            // Cache tags for each line.
   vector<bool>          mValid;           // Valid data flag for each line.
   vector<bool>          mDirty;           // Modified data flag for each line.
@@ -232,10 +226,8 @@ private:
   // module filters out requests which are for this bank.
   L2RequestFilter       mL2RequestFilter;
 
-protected:
-
   // Magic connection to main memory.
-  MainMemory *mBackgroundMemory;
+  MainMemory *mMainMemory;
 
   // Pointer to network, allowing new interfaces to be experimented with quickly.
   local_net_t *localNetwork;
