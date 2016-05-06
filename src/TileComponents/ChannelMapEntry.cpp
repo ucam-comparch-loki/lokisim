@@ -135,7 +135,7 @@ void ChannelMapEntry::write(EncodedCMTEntry data) {
     clearWriteEnable();
 
     if (Arguments::summarise())
-      LOKI_LOG << "SETCHMAP: " << id_ << " -> " << getDestination() << std::endl;
+      std::cout << "SETCHMAP: " << id_ << " -> " << getDestination() << std::endl;
   }
   else if (memoryView().isMemory) {
     network_ = CORE_TO_MEMORY;
@@ -146,7 +146,7 @@ void ChannelMapEntry::write(EncodedCMTEntry data) {
       uint endBank = startBank + getMemoryGroupSize() - 1;
       uint lineSize = getLineSize();
 
-      LOKI_LOG << "SETCHMAP: core " << id_.component << " " << type << ", banks "
+      std::cout << "SETCHMAP: core " << id_.component << " " << type << ", banks "
           << startBank << "-" << endBank << ", line size " << lineSize << std::endl;
     }
   }
@@ -154,7 +154,7 @@ void ChannelMapEntry::write(EncodedCMTEntry data) {
     network_ = MULTICAST;
 
     if (Arguments::summarise())
-      LOKI_LOG << "SETCHMAP: " << id_ << " -> " << getDestination() << std::endl;
+      std::cout << "SETCHMAP: " << id_ << " -> " << getDestination() << std::endl;
   }
 }
 

@@ -262,7 +262,9 @@ void         DecodeStage::remoteExecute(DecodedInst& instruction) const {
   // Prevent other stages from trying to execute this instruction.
   instruction.predicate(Instruction::ALWAYS);
   instruction.opcode(InstructionMap::OP_OR);
+  instruction.function(InstructionMap::FN_OR);
   instruction.destination(0);
+  instruction.setsPredicate(false);
 }
 
 int32_t      DecodeStage::readChannel(ChannelIndex index) {
