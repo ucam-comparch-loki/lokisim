@@ -7,6 +7,7 @@
 
 #include "L2RequestFilter.h"
 #include "MemoryBank.h"
+#include "../../Utility/Assert.h"
 
 L2RequestFilter::L2RequestFilter(const sc_module_name& name, ComponentID id, MemoryBank* localBank) :
     Component(name, id),
@@ -38,7 +39,7 @@ void L2RequestFilter::mainLoop() {
         NetworkRequest request = iRequest.read();
         MemoryOpcode opcode = request.getMemoryMetadata().opcode;
 
-        assert((opcode != PAYLOAD) && (opcode != PAYLOAD_EOP));
+        loki_assert((opcode != PAYLOAD) && (opcode != PAYLOAD_EOP));
 
         MemoryAddr address = request.payload().toUInt();
         MemoryAccessMode mode = (request.getMemoryMetadata().scratchpadL2 ? MEMORY_SCRATCHPAD : MEMORY_CACHE);

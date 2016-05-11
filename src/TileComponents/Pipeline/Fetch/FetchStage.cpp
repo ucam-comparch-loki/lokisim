@@ -9,6 +9,7 @@
 #include "../../Core.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/MemoryRequest.h"
+#include "../../../Utility/Assert.h"
 #include "../../../Utility/Instrumentation/IPKCache.h"
 #include "../../../Exceptions/InvalidOptionException.h"
 
@@ -72,7 +73,7 @@ void FetchStage::readLoop() {
 
         // Make sure we didn't read a junk instruction. "nor r0, r0, r0 -> 0" seems
         // pretty unlikely to ever come up in a real program.
-        assert((instruction.toInt() != 0) && "Probable junk instruction");
+        loki_assert_with_message(instruction.toInt() != 0, "Probable junk instruction", 0);
 
         if (currentInst.endOfIPK()) {
           // Check for the special case of single-instruction persistent packets.
@@ -243,7 +244,7 @@ void FetchStage::sendRequest(const FetchInfo& fetch) {
     ChannelID destination(id.tile.x, id.tile.y, fetch.networkInfo.bank + increment + CORES_PER_TILE, fetch.networkInfo.channel);
 
     NetworkData flit(fetch.address, destination, fetch.networkInfo, IPK_READ, true);
-    assert(!oFetchRequest.valid());
+    loki_assert(!oFetchRequest.valid());
     oFetchRequest.write(flit);
   }
 
@@ -264,7 +265,7 @@ void FetchStage::updateReady() {
 }
 
 void FetchStage::storeCode(const std::vector<Instruction>& instructions) {
-  assert(!cachePendingPacket.inCache);
+  loki_assert(!cachePendingPacket.inCache);
 
   cachePendingPacket.memAddr = 0;
   cachePendingPacket.location.component = IPKCACHE;
@@ -331,7 +332,7 @@ bool FetchStage::inCache(const FetchInfo& fetch) {
 
   // I suppose the address could technically be 0, but this always indicates an
   // error with the current arrangement.
-  assert(fetch.address > 0);
+  loki_assert_with_message(fetch.address > 0, "Address = 0x%x", fetch.address);
 
   opcode_t operation = fetch.operation;
   InstLocation location = lookup(fetch.address);
@@ -472,7 +473,7 @@ void FetchStage::packetFinishedArriving(InstructionSource source) {
 }
 
 InstructionStore& FetchStage::currentInstructionSource() {
-  assert(currentPacket.location.component != UNKNOWN);
+  loki_assert(currentPacket.location.component != UNKNOWN);
 
   if (currentPacket.location.component == IPKFIFO)
     return fifo;

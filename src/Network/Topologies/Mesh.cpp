@@ -8,6 +8,7 @@
 #include "Mesh.h"
 #include "../NetworkHierarchy.h"
 #include "../Router.h"
+#include "../../Utility/Assert.h"
 
 DataInput&   Mesh::iData2D(uint x,  uint y) const {return iData[flatten(x,y)];}
 DataOutput&  Mesh::oData2D(uint x,  uint y) const {return oData[flatten(x,y)];}
@@ -18,8 +19,8 @@ const vector<vector<DataSignal*> > Mesh::edgeDataOutputs() const {return edgeDat
 const vector<vector<ReadySignal*> > Mesh::edgeReadyOutputs() const {return edgeReadyOutputs_;}
 
 void Mesh::makeRouters() {
-  for(unsigned int row=0; row<numRows; row++) {
-    for(unsigned int col=0; col<numColumns; col++) {
+  for (unsigned int row=0; row<numRows; row++) {
+    for (unsigned int col=0; col<numColumns; col++) {
       ComponentID routerID(col, row, COMPONENTS_PER_TILE);
       std::stringstream name;
       name << "router_" << routerID.tile.getNameString();
@@ -66,8 +67,8 @@ void Mesh::makeWires() {
 }
 
 void Mesh::wireUp() {
-  for(unsigned int col=0; col<numColumns; col++) {
-    for(unsigned int row=0; row<numRows; row++) {
+  for (unsigned int col=0; col<numColumns; col++) {
+    for (unsigned int row=0; row<numRows; row++) {
       Router& router = *routers[col][row];
       router.clock(clock);
 
@@ -119,7 +120,7 @@ Mesh::Mesh(const sc_module_name& name,
     numRows(rows) {
 
   // Can only handle inter-tile mesh networks at the moment.
-  assert(level == Network::TILE);
+  loki_assert(level == Network::TILE);
 
   oReady.init(rows*columns);
 

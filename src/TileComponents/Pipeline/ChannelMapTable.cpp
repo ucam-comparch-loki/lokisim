@@ -6,11 +6,12 @@
  */
 
 #include "ChannelMapTable.h"
+#include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation.h"
 #include "../../Utility/Instrumentation/ChannelMap.h"
 
 ChannelID ChannelMapTable::getDestination(MapIndex entry) const {
-  assert(entry < table.size());
+  loki_assert_with_message(entry < table.size(), "Entry %d", entry);
 
   if (ENERGY_TRACE) {
     Instrumentation::ChannelMap::read(previousRead, table[entry]);
@@ -23,12 +24,12 @@ ChannelID ChannelMapTable::getDestination(MapIndex entry) const {
 }
 
 ChannelMapEntry::NetworkType ChannelMapTable::getNetwork(MapIndex entry) const {
-  assert(entry < table.size());
+  loki_assert_with_message(entry < table.size(), "Entry %d", entry);
   return table[entry].getNetwork();
 }
 
 bool ChannelMapTable::write(MapIndex entry, EncodedCMTEntry data) {
-  assert(entry < table.size());
+  loki_assert_with_message(entry < table.size(), "Entry %d", entry);
 
   ChannelMapEntry previous = table[entry];
   table[entry].write(data);
@@ -47,7 +48,7 @@ bool ChannelMapTable::write(MapIndex entry, EncodedCMTEntry data) {
 }
 
 EncodedCMTEntry ChannelMapTable::read(MapIndex entry) {
-  assert(entry < table.size());
+  loki_assert_with_message(entry < table.size(), "Entry %d", entry);
 
   if (ENERGY_TRACE) {
     Instrumentation::ChannelMap::read(previousRead, table[entry]);
@@ -60,33 +61,33 @@ EncodedCMTEntry ChannelMapTable::read(MapIndex entry) {
 }
 
 const sc_event& ChannelMapTable::creditArrivedEvent(MapIndex entry) const {
-  assert(entry < table.size());
+  loki_assert_with_message(entry < table.size(), "Entry %d", entry);
   return table[entry].creditArrivedEvent();
 }
 
 void ChannelMapTable::addCredit(MapIndex entry, uint numCredits) {
-  assert(entry < table.size());
+  loki_assert_with_message(entry < table.size(), "Entry %d", entry);
   table[entry].addCredit(numCredits);
 }
 
 void ChannelMapTable::removeCredit(MapIndex entry) {
-  assert(entry < table.size());
+  loki_assert_with_message(entry < table.size(), "Entry %d", entry);
   table[entry].removeCredit();
 }
 
 bool ChannelMapTable::canSend(MapIndex entry) const {
-  assert(entry < table.size());
+  loki_assert_with_message(entry < table.size(), "Entry %d", entry);
   return table[entry].canSend();
 }
 
 bool ChannelMapTable::connectionFromMemory(ChannelIndex channel) const {
-  assert(channel < memoryConnection.size());
+  loki_assert_with_message(channel < memoryConnection.size(), "Channel %d", channel);
   return memoryConnection[channel];
 }
 
 ChannelMapEntry& ChannelMapTable::operator[] (const MapIndex entry) {
   // FIXME: does this method need instrumentation too?
-  assert(entry < table.size());
+  loki_assert_with_message(entry < table.size(), "Entry %d", entry);
   return table[entry];
 }
 
@@ -104,7 +105,7 @@ ChannelMapTable::ChannelMapTable(const sc_module_name& name, ComponentID ID) :
     previousRead(ChannelID(ID, 0)),
     lastActivity(-1) {
 
-  assert(CHANNEL_MAP_SIZE > 0);
+  loki_assert(CHANNEL_MAP_SIZE > 0);
 
   for (uint i=0; i<CHANNEL_MAP_SIZE; i++)
     table.push_back(ChannelID(ID, i));

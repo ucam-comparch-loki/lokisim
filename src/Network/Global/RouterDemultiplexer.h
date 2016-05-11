@@ -16,6 +16,7 @@
 
 #include "../../Component.h"
 #include "../NetworkTypedefs.h"
+#include "../../Utility/Assert.h"
 
 template<class T>
 class RouterDemultiplexer: public Component {
@@ -67,7 +68,7 @@ private:
 
   void mainLoop() {
 
-    assert(iData.valid());
+    loki_assert(iData.valid());
     ChannelID destination = iData.read().channelID();
 
     switch (state) {
@@ -83,7 +84,7 @@ private:
         break;
 
       case DEMUX_SENT:
-        assert(!outputSignal(destination).valid());
+        loki_assert(!outputSignal(destination).valid());
         iData.ack();
         state = DEMUX_READY;
         // default trigger = new data arriving

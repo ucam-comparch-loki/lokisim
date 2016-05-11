@@ -9,14 +9,16 @@
 #include "FetchStage.h"
 #include "../../../Memory/IPKCacheDirectMapped.h"
 #include "../../../Memory/IPKCacheFullyAssociative.h"
+#include "../../../Utility/Assert.h"
 #include "../../../Utility/Instrumentation.h"
 #include "../../../Utility/Instrumentation/IPKCache.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
 /* Initialise the contents of the cache with a list of Instructions. */
 void InstructionPacketCache::storeCode(const std::vector<Instruction>& instructions) {
-  assert(instructions.size() > 0);
-  assert(instructions.size() <= cache->size());
+  loki_assert(instructions.size() > 0);
+  loki_assert_with_message(instructions.size() <= cache->size(),
+      "Trying to store %d instructions", instructions.size());
 
   CacheIndex writePos = cache->storeCode(instructions);
 
@@ -85,7 +87,7 @@ void InstructionPacketCache::write(const Instruction inst) {
 
 CacheIndex InstructionPacketCache::lookup(MemoryAddr tag) {
   // Shouldn't check tags more than once in a clock cycle.
-  assert(timeLastChecked != Instrumentation::currentCycle());
+  loki_assert(timeLastChecked != Instrumentation::currentCycle());
   timeLastChecked = Instrumentation::currentCycle();
 
   CacheIndex position = cache->lookup(tag);

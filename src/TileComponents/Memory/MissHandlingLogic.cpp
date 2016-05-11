@@ -6,6 +6,7 @@
  */
 
 #include "MissHandlingLogic.h"
+#include "../../Utility/Assert.h"
 
 // Parameter to choose how main memory should be accessed.
 //   true:  send all requests out over the on-chip network
@@ -76,7 +77,7 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
 
 void MissHandlingLogic::localRequestLoop() {
 
-  assert(muxedRequest.valid());
+  loki_assert(muxedRequest.valid());
   NetworkRequest flit = muxedRequest.read();
   bool endOfPacket = flit.getMetadata().endOfPacket;
   holdRequestMux.write(!endOfPacket);
@@ -98,7 +99,8 @@ void MissHandlingLogic::localRequestLoop() {
           break;
 
         default:
-          assert(false);
+          loki_assert_with_message(false,
+              "Request type = %s", memoryOpName(requestHeader.getMemoryMetadata().opcode).c_str());
           break;
       }
 
@@ -175,7 +177,7 @@ void MissHandlingLogic::receiveResponseLoop() {
     iResponseFromBM.ack();
   }
   else {
-    assert(iResponseFromNetwork.valid());
+    loki_assert(iResponseFromNetwork.valid());
     response = iResponseFromNetwork.read();
     iResponseFromNetwork.ack();
   }
@@ -193,7 +195,7 @@ void MissHandlingLogic::remoteRequestLoop() {
     next_trigger(oRequestToBanks.ack_event());
   }
   else {
-    assert(iRequestFromNetwork.valid());
+    loki_assert(iRequestFromNetwork.valid());
 
     NetworkRequest flit = iRequestFromNetwork.read();
     LOKI_LOG << this->name() << " sending request to banks " << flit << endl;
@@ -295,7 +297,7 @@ MemoryIndex MissHandlingLogic::nextTargetBank() {
 
 
 void MissHandlingLogic::sendOnNetwork(NetworkRequest request) {
-  assert(canSendOnNetwork());
+  loki_assert(canSendOnNetwork());
 
   if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
     oRequestToNetwork.write(request);
@@ -321,12 +323,12 @@ const sc_event& MissHandlingLogic::canSendEvent() const {
 
 NetworkResponse MissHandlingLogic::receiveFromNetwork() {
   if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
-    assert(iResponseFromNetwork.valid());
+    loki_assert(iResponseFromNetwork.valid());
     iResponseFromNetwork.ack();
     return iResponseFromNetwork.read();
   }
   else {
-    assert(iResponseFromBM.valid());
+    loki_assert(iResponseFromBM.valid());
     iResponseFromBM.ack();
     return iResponseFromBM.read();
   }

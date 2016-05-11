@@ -10,12 +10,13 @@
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
 #include "../../../Utility/Arguments.h"
+#include "../../../Utility/Assert.h"
 #include "../../../Utility/Instrumentation.h"
 #include "../../../Exceptions/InvalidOptionException.h"
 
 void ALU::execute(DecodedInst& dec) {
 
-  assert(dec.isExecuteStageOperation());
+  loki_assert(dec.isExecuteStageOperation());
 
   // Wait until the final cycle to compute the result.
   if (cyclesRemaining > 0)

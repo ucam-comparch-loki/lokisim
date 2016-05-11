@@ -12,13 +12,14 @@
 #include "../RegisterFile.h"
 #include "../../../Datatype/Word.h"
 #include "../../../Exceptions/BlockedException.h"
+#include "../../../Utility/Assert.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
 typedef RegisterFile Registers;
 
 int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
-  assert(channelEnd < CORE_RECEIVE_CHANNELS);
-  assert(!buffers[channelEnd].empty());
+  loki_assert_with_message(channelEnd < CORE_RECEIVE_CHANNELS, "Channel %d", channelEnd);
+  loki_assert(!buffers[channelEnd].empty());
 
   int32_t result = buffers[channelEnd].read().toInt();
 
@@ -29,7 +30,7 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
 }
 
 int32_t ReceiveChannelEndTable::readInternal(ChannelIndex channelEnd) const {
-  assert(channelEnd < CORE_RECEIVE_CHANNELS);
+  loki_assert_with_message(channelEnd < CORE_RECEIVE_CHANNELS, "Channel %d", channelEnd);
 
   if (buffers[channelEnd].empty())
     return 0;
@@ -41,8 +42,8 @@ void ReceiveChannelEndTable::writeInternal(ChannelIndex channel, int32_t data) {
   LOKI_LOG << this->name() << " channel " << (int)channel << " received " <<
               data << endl;
 
-  assert(channel < CORE_RECEIVE_CHANNELS);
-  assert(!buffers[channel].full());
+  loki_assert_with_message(channel < CORE_RECEIVE_CHANNELS, "Channel %d", channel);
+  loki_assert(!buffers[channel].full());
   buffers[channel].write(data);
 
   newData.notify();
@@ -50,7 +51,7 @@ void ReceiveChannelEndTable::writeInternal(ChannelIndex channel, int32_t data) {
 
 /* Return whether or not the specified channel contains data. */
 bool ReceiveChannelEndTable::testChannelEnd(ChannelIndex channelEnd) const {
-  assert(channelEnd < CORE_RECEIVE_CHANNELS);
+  loki_assert_with_message(channelEnd < CORE_RECEIVE_CHANNELS, "Channel %d", channelEnd);
   return !buffers[channelEnd].empty();
 }
 
@@ -72,7 +73,7 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd(unsigned int bitmask, cons
 
   // We should always find something in one of the buffers, because we wait
   // until at least one of them has data.
-  assert(false);
+  loki_assert(false);
   return -1;
 }
 

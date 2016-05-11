@@ -4,10 +4,15 @@
  *  Created on: 9 Sep 2011
  *      Author: db434
  */
+#include <systemc>
+
 
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "LocalNetwork.h"
+#include "../../Utility/Assert.h"
+
+using sc_core::sc_module_name;
 
 void LocalNetwork::makeRequest(ComponentID source, ChannelID destination, bool request) {
   if (destination.multicast)
@@ -33,13 +38,13 @@ void LocalNetwork::multicastRequest(ComponentID source, ChannelID destination, b
 }
 
 void LocalNetwork::pointToPointRequest(ComponentID source, ChannelID destination, bool request) {
-  assert(!destination.multicast);
+  loki_assert(!destination.multicast);
 
   // Find out which signal to write the request to.
   ArbiterRequestSignal *requestSignal;
 
   if (!source.isCore()) {                             // Memory/global to core
-    assert(destination.isCore());
+    loki_assert(destination.isCore());
     requestSignal = &coreRequests[source.position][destination.component.position];
   }
   else {
@@ -66,7 +71,7 @@ bool LocalNetwork::requestGranted(ComponentID source, ChannelID destination) con
   ArbiterGrantSignal   *grantSignal;
 
   if (!source.isCore()) {                             // Memory/global to core
-    assert(destination.isCore());
+    loki_assert(destination.isCore());
     grantSignal   = &coreGrants[source.position][destination.component.position];
   }
   else {

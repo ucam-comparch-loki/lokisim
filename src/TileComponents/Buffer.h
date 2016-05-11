@@ -12,6 +12,7 @@
 
 #include "../Component.h"
 #include "../Memory/BufferStorage.h"
+#include "../Utility/Assert.h"
 
 template<class T>
 class Buffer : public Component {
@@ -38,7 +39,7 @@ public:
     Component(name, ID),
     buffer(size, this->name()) {
 
-    assert(size > 0);
+    loki_assert(size > 0);
 
     SC_METHOD(read);
     sensitive << doRead;
@@ -65,7 +66,7 @@ public:
   }
 
   const T& peek() const {
-    assert(!empty());
+    loki_assert(!empty());
     return buffer.peek();
   }
 
@@ -75,12 +76,12 @@ protected:
     // What should happen if the buffer is empty?
     //  1. Disallow reads (have an "empty" output signal).
     //  2. Wait until new data arrives.
-    assert(!empty());
+    loki_assert(!empty());
     dataOut.write(buffer.read());
   }
 
   virtual void write() {
-    assert(!full());
+    loki_assert(!full());
     buffer.write(dataIn.read());
   }
 

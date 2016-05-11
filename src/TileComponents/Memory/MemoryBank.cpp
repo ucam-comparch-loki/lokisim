@@ -19,6 +19,7 @@ using namespace std;
 #include "Operations/MemoryOperationDecode.h"
 #include "../../Network/Topologies/LocalNetwork.h"
 #include "../../Utility/Arguments.h"
+#include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/MemoryBank.h"
 #include "../../Utility/Instrumentation/Network.h"
 #include "../../Utility/Parameters.h"
@@ -99,7 +100,7 @@ bool MemoryBank::contains(MemoryAddr address, SRAMAddress position, MemoryAccess
     case MEMORY_SCRATCHPAD:
       return true;
     default:
-      assert(false);
+      loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
       return false;
   }
 }
@@ -192,7 +193,7 @@ bool MemoryBank::payloadAvailable(MemoryLevel level) const {
       case MEMORY_L2:
         return requestSig.valid() && isPayload(requestSig.read());
       default:
-        assert(false && "Memory bank can't handle off-chip requests");
+        loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
         return false;
     }
   }
@@ -220,12 +221,12 @@ uint32_t MemoryBank::getPayload(MemoryLevel level) {
         break;
       }
       default:
-        assert(false && "Memory bank can't handle off-chip requests");
+        loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
         break;
     }
   }
 
-  assert(isPayload(request));
+  loki_assert(isPayload(request));
   return request.payload().toUInt();
 }
 
@@ -250,7 +251,7 @@ void MemoryBank::writeWord(SRAMAddress position, uint32_t data) {
 }
 
 void MemoryBank::processIdle() {
-  assert(mState == STATE_IDLE);
+  loki_assert_with_message(mState == STATE_IDLE, "State = %d", mState);
 
   // Refills have priority because other requests may depend on them.
   if (responseAvailable()) {
@@ -295,8 +296,8 @@ void MemoryBank::processIdle() {
 }
 
 void MemoryBank::processRequest() {
-  assert(mState == STATE_REQUEST);
-  assert(mActiveRequest != NULL);
+  loki_assert_with_message(mState == STATE_REQUEST, "State = %d", mState);
+  loki_assert(mActiveRequest != NULL);
 
   // Before we even consider serving a request, we must make sure that there
   // is space to buffer any potential results.
@@ -335,8 +336,8 @@ void MemoryBank::processRequest() {
 }
 
 void MemoryBank::processAllocate() {
-  assert(mState == STATE_ALLOCATE);
-  assert(mActiveRequest != NULL);
+  loki_assert_with_message(mState == STATE_ALLOCATE, "State = %d", mState);
+  loki_assert(mActiveRequest != NULL);
 
   // Use inCache to check whether the line has already been allocated. The data
   // won't have arrived yet.
@@ -364,8 +365,8 @@ void MemoryBank::processAllocate() {
 }
 
 void MemoryBank::processFlush() {
-  assert(mState == STATE_FLUSH);
-  assert(mActiveRequest != NULL);
+  loki_assert_with_message(mState == STATE_FLUSH, "State = %d", mState);
+  loki_assert(mActiveRequest != NULL);
   // It is assumed that the header flit has already been sent. All that is left
   // is to send the cache line.
 
@@ -393,8 +394,8 @@ void MemoryBank::processFlush() {
 }
 
 void MemoryBank::processRefill() {
-  assert(mState == STATE_REFILL);
-  assert(mMissingRequest != NULL);
+  loki_assert_with_message(mState == STATE_REFILL, "State = %d", mState);
+  loki_assert(mMissingRequest != NULL);
 
   if (!iClock.negedge())
     next_trigger(iClock.negedge_event());
@@ -426,8 +427,8 @@ void MemoryBank::processRefill() {
 }
 
 void MemoryBank::processForward() {
-  assert(mState == STATE_FORWARD);
-  assert(mActiveRequest != NULL);
+  loki_assert_with_message(mState == STATE_FORWARD, "State = %d", mState);
+  loki_assert(mActiveRequest != NULL);
 
   // Before we even consider serving a request, we must make sure that there
   // is space to buffer any potential results.
@@ -451,7 +452,7 @@ void MemoryBank::processForward() {
         requestSig.ack();
         break;
       default:
-        assert(false && "Memory bank can't handle off-chip requests");
+        loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
         break;
     }
 
@@ -481,7 +482,7 @@ const sc_event_or_list& MemoryBank::requestAvailableEvent() const {
 }
 
 MemoryOperation* MemoryBank::peekRequest() {
-  assert(requestAvailable());
+  loki_assert(requestAvailable());
 
   NetworkRequest request;
   MemoryLevel level;
@@ -496,7 +497,7 @@ MemoryOperation* MemoryBank::peekRequest() {
                             request.getMemoryMetadata().returnChannel);
   }
   else {
-    assert(requestSig.valid() && !isPayload(requestSig.read()));
+    loki_assert(requestSig.valid() && !isPayload(requestSig.read()));
     request = requestSig.read();
     level = MEMORY_L2;
     destination = ChannelID(request.getMemoryMetadata().returnTileX,
@@ -509,7 +510,7 @@ MemoryOperation* MemoryBank::peekRequest() {
 }
 
 void MemoryBank::consumeRequest(MemoryLevel level) {
-  assert(requestAvailable());
+  loki_assert(requestAvailable());
 
   switch (level) {
     case MEMORY_L1: {
@@ -521,7 +522,7 @@ void MemoryBank::consumeRequest(MemoryLevel level) {
       requestSig.ack();
       break;
     default:
-      assert(false && "Memory bank can't handle off-chip requests");
+      loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
       break;
   }
 }
@@ -535,7 +536,7 @@ const sc_event& MemoryBank::canSendRequestEvent() const {
 }
 
 void MemoryBank::sendRequest(NetworkRequest request) {
-  assert(canSendRequest());
+  loki_assert(canSendRequest());
 
   LOKI_LOG << this->name() << " buffering request " <<
       memoryOpName(request.getMemoryMetadata().opcode) << " " << request << endl;
@@ -551,7 +552,7 @@ const sc_event& MemoryBank::responseAvailableEvent() const {
 }
 
 uint32_t MemoryBank::getResponse() {
-  assert(responseAvailable());
+  loki_assert(responseAvailable());
   uint32_t data = iResponse.read().payload().toUInt();
   iResponse.ack();
 
@@ -567,7 +568,7 @@ bool MemoryBank::canSendResponse(MemoryLevel level) const {
     case MEMORY_L2:
       return !oResponse.valid();
     default:
-      assert(false && "Memory bank can't handle off-chip requests");
+      loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
       return false;
   }
 }
@@ -579,13 +580,13 @@ const sc_event& MemoryBank::canSendResponseEvent(MemoryLevel level) const {
     case MEMORY_L2:
       return oResponse.ack_event();
     default:
-      assert(false && "Memory bank can't handle off-chip requests");
+      loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
       return mOutputQueue.readEvent();
   }
 }
 
 void MemoryBank::sendResponse(NetworkResponse response, MemoryLevel level) {
-  assert(canSendResponse(level));
+  loki_assert(canSendResponse(level));
 
   switch (level) {
     case MEMORY_L1:
@@ -595,7 +596,7 @@ void MemoryBank::sendResponse(NetworkResponse response, MemoryLevel level) {
       oResponse.write(response);
       break;
     default:
-      assert(false && "Memory bank can't handle off-chip requests");
+      loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
       break;
   }
 }
@@ -619,7 +620,7 @@ void MemoryBank::copyToMissBuffer() {
           payload = requestSig.read();
         break;
       default:
-        assert(false && "Memory bank can't handle off-chip requests");
+        loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
         dataAvailable = false;
         break;
     }
@@ -629,8 +630,8 @@ void MemoryBank::copyToMissBuffer() {
       return;
     }
 
-    assert(isPayload(payload));
-    assert(!mMissBuffer.full());
+    loki_assert(isPayload(payload));
+    loki_assert(!mMissBuffer.full());
     mMissBuffer.write(payload);
 
     switch (mMissingRequest->getMemoryLevel()) {
@@ -641,7 +642,7 @@ void MemoryBank::copyToMissBuffer() {
         requestSig.ack();
         break;
       default:
-        assert(false && "Memory bank can't handle off-chip requests");
+        loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
         break;
     }
 
@@ -658,9 +659,9 @@ void MemoryBank::preWriteCheck(MemoryAddr address) const {
 }
 
 void MemoryBank::processValidInput() {
-  assert(iData.valid());
+  loki_assert(iData.valid());
   LOKI_LOG << this->name() << " received " << iData.read() << endl;
-  assert(!mInputQueue.full());
+  loki_assert(!mInputQueue.full());
   mInputQueue.write(iData.read());
   iData.ack();
 }
@@ -700,7 +701,7 @@ void MemoryBank::handleRequestOutput() {
     LOKI_LOG << this->name() << " sending request " <<
         memoryOpName(request.getMemoryMetadata().opcode) << " " << LOKI_HEX(request.payload()) << endl;
 
-    assert(!oRequest.valid());
+    loki_assert(!oRequest.valid());
     oRequest.write(request);
     next_trigger(oRequest.ack_event());
   }
@@ -814,11 +815,11 @@ void MemoryBank::setBackgroundMemory(MainMemory* memory) {
 }
 
 void MemoryBank::storeData(vector<Word>& data, MemoryAddr location) {
-  assert(false);
+  loki_assert(false);
 }
 
 void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
-  assert(mMainMemory != NULL);
+  loki_assert(mMainMemory != NULL);
 
   if (start > end)
     std::swap(start, end);
@@ -834,8 +835,8 @@ void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
 }
 
 Word MemoryBank::readWordDebug(MemoryAddr addr) {
-  assert(mMainMemory != NULL);
-  assert(addr % 4 == 0);
+  loki_assert(mMainMemory != NULL);
+  loki_assert_with_message(addr % 4 == 0, "Address = 0x%x", addr);
 
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
@@ -846,7 +847,7 @@ Word MemoryBank::readWordDebug(MemoryAddr addr) {
 }
 
 Word MemoryBank::readByteDebug(MemoryAddr addr) {
-  assert(mMainMemory != NULL);
+  loki_assert(mMainMemory != NULL);
 
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
@@ -857,8 +858,8 @@ Word MemoryBank::readByteDebug(MemoryAddr addr) {
 }
 
 void MemoryBank::writeWordDebug(MemoryAddr addr, Word data) {
-  assert(mMainMemory != NULL);
-  assert(addr % 4 == 0);
+  loki_assert(mMainMemory != NULL);
+  loki_assert_with_message(addr % 4 == 0, "Address = 0x%x", addr);
 
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
@@ -869,7 +870,7 @@ void MemoryBank::writeWordDebug(MemoryAddr addr, Word data) {
 }
 
 void MemoryBank::writeByteDebug(MemoryAddr addr, Word data) {
-  assert(mMainMemory != NULL);
+  loki_assert(mMainMemory != NULL);
 
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 

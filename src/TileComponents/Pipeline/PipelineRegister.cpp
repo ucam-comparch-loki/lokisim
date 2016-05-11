@@ -6,6 +6,7 @@
  */
 
 #include "PipelineRegister.h"
+#include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/PipelineReg.h"
 
 bool PipelineRegister::ready() const {
@@ -18,7 +19,7 @@ void PipelineRegister::write(const DecodedInst& inst) {
     Instrumentation::PipelineReg::activity(data, inst, position);
 
 //  buffer.write(inst);
-  assert(!valid);
+  loki_assert(!valid);
   data = inst;
   valid = true;
   writeEvent.notify();
@@ -31,7 +32,7 @@ bool PipelineRegister::hasData() const {
 
 const DecodedInst& PipelineRegister::read() {
 //  return buffer.read();
-  assert(valid);
+  loki_assert(valid);
   readEvent.notify();
   valid = false;
   return data;

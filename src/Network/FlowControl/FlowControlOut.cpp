@@ -8,6 +8,7 @@
 #include "FlowControlOut.h"
 #include "../NetworkHierarchy.h"
 #include "../../TileComponents/TileComponent.h"
+#include "../../Utility/Assert.h"
 
 void FlowControlOut::mainLoop() {
   switch (state) {
@@ -39,7 +40,7 @@ void FlowControlOut::mainLoop() {
 }
 
 void FlowControlOut::sendData() {
-  assert(creditCount > 0);
+  loki_assert(creditCount > 0);
 
   LOKI_LOG << "Network sending " << iData.read().payload() << " from "
       << channel << " to " << iData.read().channelID() << endl;
@@ -77,7 +78,7 @@ void FlowControlOut::receivedCredit() {
   creditCount++;
 
   LOKI_LOG << this->name() << " received credit at port " << channel << endl;
-  assert(creditCount <= CORE_BUFFER_SIZE);
+  loki_assert_with_message(creditCount <= CORE_BUFFER_SIZE, "Credits = %d", creditCount);
 }
 
 FlowControlOut::FlowControlOut(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :

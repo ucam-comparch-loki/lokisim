@@ -15,6 +15,7 @@
 
 #include "../Component.h"
 #include "NetworkTypedefs.h"
+#include "../Utility/Assert.h"
 
 template<class T>
 class ArbitratedMultiplexer: public Component {
@@ -83,7 +84,7 @@ private:
         break;
 
       case MUX_SELECTED:
-        assert(!oData.valid());
+        loki_assert(!oData.valid());
 
         if (iData[lastSelected].valid())
           iData[lastSelected].ack();
@@ -116,7 +117,7 @@ private:
   }
 
   void selectInput() {
-    assert(!oData.valid());
+    loki_assert(!oData.valid());
 
     if (iHold.read()) {
       oData.write(iData[lastSelected].read());
@@ -138,7 +139,7 @@ private:
         currentPort++;
       }
 
-      assert(false && "Couldn't find valid input");
+      loki_assert_with_message(false, "Couldn't find valid input", 0);
     }
   }
 

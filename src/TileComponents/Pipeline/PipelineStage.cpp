@@ -8,6 +8,7 @@
 #include "PipelineStage.h"
 #include "PipelineRegister.h"
 #include "../Core.h"
+#include "../../Utility/Assert.h"
 
 const DecodedInst& PipelineStage::currentInstruction() const {
   return currentInst;
@@ -55,7 +56,7 @@ void PipelineStage::getNextInstruction() {
 }
 
 void PipelineStage::outputInstruction(const DecodedInst& inst) {
-  assert(next != NULL);
+  loki_assert(next != NULL);
   next->write(inst);
 }
 
@@ -75,14 +76,12 @@ bool PipelineStage::canSendInstruction() const {
 }
 
 const sc_event& PipelineStage::canReceiveEvent() const {
-  assert(prev != NULL);
+  loki_assert(prev != NULL);
   return prev->dataAdded();
 }
 
 const sc_event& PipelineStage::canSendEvent() const {
-  if (next == NULL)
-    cout << this->name() << endl;
-  assert(next != NULL);
+  loki_assert(next != NULL);
   return next->dataRemoved();
 }
 

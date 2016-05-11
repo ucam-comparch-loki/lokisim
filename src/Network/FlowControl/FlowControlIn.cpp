@@ -7,13 +7,14 @@
 
 #include "FlowControlIn.h"
 #include "../../Datatype/MemoryRequest.h"
+#include "../../Utility/Assert.h"
 
 void FlowControlIn::dataLoop() {
   NetworkData data = iData.read();
 
   if (!data.channelID().multicast && (data.channelID() != channel)) {
     LOKI_ERROR << data << " arrived at channel " << channel << endl;
-    assert(false);
+    loki_assert(false);
   }
 
   if (data.getCoreMetadata().allocate)
@@ -25,10 +26,10 @@ void FlowControlIn::dataLoop() {
 }
 
 void FlowControlIn::handlePortClaim() {
-  assert(iData.valid());
+  loki_assert(iData.valid());
 
   NetworkData data = iData.read();
-  assert(data.getCoreMetadata().allocate);
+  loki_assert(data.getCoreMetadata().allocate);
 
   // TODO: only accept the port claim when we have no credits left to send.
 
@@ -72,7 +73,7 @@ void FlowControlIn::creditLoop() {
         return;
       }
       
-      assert(useCredits);
+      loki_assert(useCredits);
 
       // Information can only be sent onto the network at a positive clock edge.
       next_trigger(clock.posedge_event());
@@ -81,8 +82,8 @@ void FlowControlIn::creditLoop() {
     }
 
     case WAITING_TO_SEND : {
-      assert(numCredits > 0);
-      assert(useCredits);
+      loki_assert(numCredits > 0);
+      loki_assert(useCredits);
 
       // Only send the credit if there is a valid address to send to.
       if (!returnAddress.isNullMapping()) {

@@ -7,15 +7,16 @@
 
 #include "NetworkHierarchy.h"
 #include "Topologies/LocalNetwork.h"
+#include "../Utility/Assert.h"
 #include "../Utility/Parameters.h"
 
 local_net_t* NetworkHierarchy::getLocalNetwork(ComponentID component) const {
   unsigned int tileColumn = component.tile.x;
   unsigned int tileRow = component.tile.y;
   unsigned int tile = ((tileRow-1) * COMPUTE_TILE_COLUMNS) + (tileColumn-1);
-  assert(tileColumn <= COMPUTE_TILE_COLUMNS);
-  assert(tileRow <= COMPUTE_TILE_ROWS);
-  assert(tile < localNetworks.size());
+  loki_assert(tileColumn <= COMPUTE_TILE_COLUMNS);
+  loki_assert(tileRow <= COMPUTE_TILE_ROWS);
+  loki_assert(tile < localNetworks.size());
   return localNetworks[tile];
 }
 

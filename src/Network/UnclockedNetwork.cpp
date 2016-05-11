@@ -7,6 +7,7 @@
 
 #include "UnclockedNetwork.h"
 #include "Network.h"
+#include "../Utility/Assert.h"
 
 void UnclockedNetwork::dataArrived() {
   newData.notify();
@@ -14,8 +15,8 @@ void UnclockedNetwork::dataArrived() {
 
 void UnclockedNetwork::generateClock() {
   // The clock goes high whenever data arrives, and low immediately afterwards.
-  if(clockSig.read()) next_trigger(newData);
-  else                next_trigger(clockSig.default_event());
+  if (clockSig.read()) next_trigger(newData);
+  else                 next_trigger(clockSig.default_event());
 
   clockSig.write(!clockSig.read());
 }
@@ -24,7 +25,7 @@ UnclockedNetwork::UnclockedNetwork(sc_module_name name, Network* network) :
     Component(name),
     network_(network) {
 
-  assert(network != NULL);
+  loki_assert(network != NULL);
 
   int inputs   = network->numInputPorts();
   int outputs  = network->numOutputPorts();

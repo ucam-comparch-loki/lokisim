@@ -10,19 +10,20 @@
 #include "InputCrossbar.h"
 #include "../Network/FlowControl/FlowControlIn.h"
 #include "../TileComponents/TileComponent.h"
+#include "../Utility/Assert.h"
 
 const unsigned int InputCrossbar::numInputs = 5; // 2 from cores, 2 from memories, 1 global
 const unsigned int InputCrossbar::numOutputs = CORE_INPUT_CHANNELS;
 
 void InputCrossbar::newData(PortIndex input) {
-  assert(iData[input].valid());
+  loki_assert(iData[input].valid());
 
   const NetworkData& data = iData[input].read();
 
   ChannelIndex destination = data.channelID().channel;
   if (destination >= numOutputs)
-    cerr << this->name() << " trying to send to " << data.channelID() << endl;
-  assert(destination < numOutputs);
+    LOKI_WARN << this->name() << " trying to receive data for " << data.channelID() << endl;
+  loki_assert(destination < numOutputs);
 
   // Trigger a method which will write the data to the appropriate output.
   dataSource[destination] = input;

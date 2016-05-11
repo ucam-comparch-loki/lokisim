@@ -6,6 +6,7 @@
  */
 
 #include "Multiplexer.h"
+#include "../Utility/Assert.h"
 
 int Multiplexer::inputs() const {
   return iData.length();
@@ -49,7 +50,7 @@ void Multiplexer::handleData() {
 Multiplexer::Multiplexer(const sc_module_name& name, int numInputs) :
     Component(name) {
 
-  assert(numInputs > 0);
+  loki_assert(numInputs > 0);
 
   iData.init(numInputs);
 

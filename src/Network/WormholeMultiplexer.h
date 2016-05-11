@@ -16,6 +16,9 @@
 
 #include "../Component.h"
 #include "../Network/NetworkTypedefs.h"
+#include "../Utility/Assert.h"
+
+using sc_core::sc_module_name;
 
 template<class T>
 class WormholeMultiplexer: public Component {
@@ -78,7 +81,7 @@ private:
         break;
 
       case MUX_SELECTED:
-        assert(!oData.valid());
+        loki_assert(!oData.valid());
 
         if (iData[lastSelected].valid())
           iData[lastSelected].ack();
@@ -115,7 +118,7 @@ private:
   }
 
   void selectInput() {
-    assert(!oData.valid());
+    loki_assert(!oData.valid());
 
     if (!oData.read().getMetadata().endOfPacket)
       oData.write(iData[lastSelected].read());
@@ -139,7 +142,7 @@ private:
       currentPort++;
     }
 
-    assert(false && "Couldn't find valid input");
+    loki_assert_with_message(false, "Couldn't find valid input", 0);
   }
 
 //============================================================================//

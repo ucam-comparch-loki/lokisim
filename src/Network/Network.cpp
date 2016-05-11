@@ -7,6 +7,7 @@
 
 #include "Network.h"
 #include "../Exceptions/InvalidOptionException.h"
+#include "../Utility/Assert.h"
 
 PortIndex Network::getDestination(const ChannelID& address) const {
   PortIndex port;
@@ -44,12 +45,12 @@ PortIndex Network::getDestination(const ChannelID& address) const {
 }
 
 DataInput& Network::externalInput() const {
-  assert(externalConnection);
+  loki_assert(externalConnection);
   return iData[numInputPorts()-1];
 }
 
 DataOutput& Network::externalOutput() const {
-  assert(externalConnection);
+  loki_assert(externalConnection);
   return oData[numOutputPorts()-1];
 }
 
@@ -69,8 +70,8 @@ Network::Network(const sc_module_name& name,
     level((numOutputs > 1) ? level : NONE),
     externalConnection(externalConnection) {
 
-  assert(numInputs > 0);
-  assert(numOutputs > 0);
+  loki_assert(numInputs > 0);
+  loki_assert(numOutputs > 0);
 
   unsigned int totalInputs  = externalConnection ? (numInputs+1) : numInputs;
   unsigned int totalOutputs = externalConnection ? (numOutputs+1) : numOutputs;

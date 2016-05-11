@@ -10,6 +10,7 @@
 #include "Pipeline/PipelineRegister.h"
 #include "../Datatype/DecodedInst.h"
 #include "../Network/Topologies/LocalNetwork.h"
+#include "../Utility/Assert.h"
 #include "../Utility/InstructionMap.h"
 #include "../Utility/Instrumentation/Registers.h"
 
@@ -138,7 +139,7 @@ const int32_t  Core::readRCET(ChannelIndex channel) {
 }
 
 const int32_t  Core::getForwardedData() const {
-  assert(execute.currentInstruction().hasResult());
+  loki_assert(execute.currentInstruction().hasResult());
   return execute.currentInstruction().result();
 }
 

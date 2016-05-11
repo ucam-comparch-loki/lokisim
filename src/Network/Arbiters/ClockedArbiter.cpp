@@ -9,7 +9,10 @@
 
 #include "ClockedArbiter.h"
 #include "../../Arbitration/ArbiterBase.h"
+#include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/Network.h"
+
+using sc_core::sc_module_name;
 
 int ClockedArbiter::numInputs()  const {return iRequest.length();}
 int ClockedArbiter::numOutputs() const {return oSelect.length();}
@@ -46,11 +49,11 @@ const sc_event& ClockedArbiter::stallGrant(int output) {
   if (numOutputs() == 1)
     target = 0;
   else {
-    MuxSelect input = selectVec[output];
-    assert(input != NO_SELECTION);
+    MuxSelect input = selections[output];
+    loki_assert(input != NO_SELECTION);
 
     target = iRequest[input].read();
-    assert(target != NO_REQUEST);
+    loki_assert(target != NO_REQUEST);
   }
 
   return iReady[target].negedge_event();
@@ -79,13 +82,33 @@ void ClockedArbiter::arbitrate(int output) {
     case HAVE_REQUESTS: {
 //      cout << this->name() << " arbitrating" << endl;
       MuxSelect grant = arbiter->getGrant();
-      selectVec[output] = grant;
+      ChannelIndex destination = (grant == NO_SELECTION) ? -1 : iRequest[grant].read();
+
+      // Check whether any other outputs are already sending to this channel.
+      // TODO: have more restrictions so we can't get into this situation.
+      // e.g. separate instruction and data crossbars.
+      bool inUse = false;
+      for (int i=0; i<numOutputs(); i++) {
+        if (i != output && destinations[i] == destination) {
+          inUse = true;
+          break;
+        }
+      }
+
+      // Reject the grant if the destination is already in use.
+      if (inUse) {
+        grant = NO_SELECTION;
+        destination = -1;
+      }
+
+      selections[output] = grant;
+      destinations[output] = destination;
 
       if (ENERGY_TRACE)
         Instrumentation::Network::arbitration();
 
       if (grant != ArbiterBase::NO_GRANT) {    // Successful grant
-        assert(grant < numInputs());
+        loki_assert_with_message(grant < numInputs(), "Grant = %d", grant);
 
 //        cout << this->name() << " selected " << (int)grant << "; waiting for flow control" << endl;
 
@@ -99,7 +122,7 @@ void ClockedArbiter::arbitrate(int output) {
 
         state[output] = WAITING_TO_GRANT;
 
-        next_trigger(canGrantNow(output, iRequest[grant].read()));
+        next_trigger(canGrantNow(output, destination));
       }
       else {
         // If we couldn't grant anything, wait until next cycle.
@@ -114,9 +137,9 @@ void ClockedArbiter::arbitrate(int output) {
     // We have determined which request to grant, but haven't yet been able
     // to send the grant. Send it now.
     case WAITING_TO_GRANT: {
-      MuxSelect granted = selectVec[output];
-      assert(granted < numInputs());
-      assert(granted >= 0);
+      MuxSelect granted = selections[output];
+      loki_assert_with_message(granted < numInputs(), "Granted = %d", granted);
+      loki_assert(granted >= 0);
 
       bool requestStillActive = (iRequest[granted].read() != NO_REQUEST);
 
@@ -144,9 +167,9 @@ void ClockedArbiter::arbitrate(int output) {
     // We have sent the grant and the request has been removed. Remove the
     // grant now.
     case GRANTED: {
-      MuxSelect granted = selectVec[output];
-      assert(granted < numInputs());
-      assert(granted != NO_SELECTION);
+      MuxSelect granted = selections[output];
+      loki_assert_with_message(granted < numInputs(), "Granted = %d", granted);
+      loki_assert(granted != NO_SELECTION);
 
       if (iRequest[granted].read() == NO_REQUEST) {
         // The request was removed, meaning the communication completed
@@ -191,10 +214,14 @@ void ClockedArbiter::deassertGrant(int input, int output) {
 }
 
 void ClockedArbiter::changeSelection(int output, MuxSelect value) {
-//  if(value != selectVec[output]) {
-    selectVec[output] = value;
-    selectionChanged[output].notify();
-//  }
+  selections[output] = value;
+
+  if (value == NO_SELECTION)
+    destinations[output] = -1;
+  else
+    destinations[output] = iRequest[value].read();
+
+  selectionChanged[output].notify();
 }
 
 bool ClockedArbiter::haveRequest() const {
@@ -246,7 +273,7 @@ void ClockedArbiter::updateSelect(int output) {
   // Wait until the start of the next cycle before changing the select signal.
   // Arbitration is done the cycle before data is sent.
   if (clock.posedge()) {  // The clock edge
-    oSelect[output].write(selectVec[output]);
+    oSelect[output].write(selections[output]);
 //    cout << this->name() << " granted input " << (int)(selectVec[output]) << endl;
     next_trigger(selectionChanged[output]);
   }
@@ -269,11 +296,12 @@ ClockedArbiter::ClockedArbiter(const sc_module_name& name, ComponentID ID,
     wormhole(wormhole),
     requestVec(inputs, false),
     grantVec(inputs, false),
-    selectVec(outputs, -1),
+    selections(outputs, -1),
+    destinations(outputs, -1),
     state(outputs, NO_REQUESTS) {
 
-  assert(inputs > 0);
-  assert(outputs > 0);
+  loki_assert(inputs > 0);
+  loki_assert(outputs > 0);
 
   Instrumentation::Network::arbiterCreated();
 

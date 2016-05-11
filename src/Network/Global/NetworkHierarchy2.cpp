@@ -10,6 +10,7 @@
 #include "../../Datatype/Identifier.h"
 #include "../../Datatype/Word.h"
 #include "../../Typedefs.h"
+#include "../../Utility/Assert.h"
 #include "../../Utility/LokiVector.h"
 #include "../../Utility/LokiVector2D.h"
 #include "../../Utility/LokiVector3D.h"
@@ -25,9 +26,9 @@ NetworkHierarchy2::NetworkHierarchy2(const sc_module_name &name,
     Component(name),
     globalNetwork("global", 0, TOTAL_TILE_ROWS, TOTAL_TILE_COLUMNS, Network::TILE) {
 
-  assert(sourcesPerTile > 0);
-  assert(destinationsPerTile > 0);
-  assert(buffersPerDestination > 0);
+  loki_assert(sourcesPerTile > 0);
+  loki_assert(destinationsPerTile > 0);
+  loki_assert(buffersPerDestination > 0);
 
   initialise(sourcesPerTile, destinationsPerTile, buffersPerDestination);
 
@@ -113,21 +114,4 @@ void NetworkHierarchy2::createNetworkFromRouter(TileID tile) {
   demux->oData(oData[index]);
   demux->iReady(iReady[index]);
   fromRouter.push_back(demux);
-
-//  // TODO: this isn't the job of a crossbar (and the InstantCrossbar isn't
-//  // very instant), so replace with a simpler demultiplexer.
-//  InstantCrossbar* xbar = new InstantCrossbar(sc_gen_unique_name("from_router"), // name
-//                              ComponentID(tile,0), // ID
-//                              1,                   // inputs from router
-//                              destinationsPerTile, // outputs to components
-//                              1,                   // outputs leading to each component
-//                              Network::COMPONENT,  // route by component number
-//                              buffersPerDestination);// buffers behind each output
-//
-//  xbar->clock(clock);
-//  xbar->iData[0](globalToLocalData[tile.x][tile.y]);
-//  xbar->oData(oData[index]);
-//  xbar->iReady(iReady[index]);
-//
-//  fromRouter.push_back(xbar);
 }

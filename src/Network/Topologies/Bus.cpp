@@ -6,6 +6,7 @@
  */
 
 #include "Bus.h"
+#include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation.h"
 
 void Bus::busLoop() {
@@ -18,7 +19,7 @@ void Bus::busLoop() {
       }
       else {
         unsigned long cycle = Instrumentation::currentCycle();
-        assert(lastWriteTime != cycle);
+        loki_assert(lastWriteTime != cycle);
         lastWriteTime = cycle;
 
         // There definitely is data: send it.
@@ -26,9 +27,8 @@ void Bus::busLoop() {
 
         outputUsed = getDestination(data.channelID());
 
-        if (outputUsed >= numOutputPorts())
-          cout << this->name() << " " << numOutputPorts() << " " << (int)outputUsed << endl;
-        assert(outputUsed < numOutputPorts());
+        loki_assert_with_message(outputUsed < numOutputPorts(),
+            "Outputs = %d, output used = %d", numOutputPorts(), outputUsed);
         oData[outputUsed].write(data);
 
         next_trigger(oData[outputUsed].ack_event());

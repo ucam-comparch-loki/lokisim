@@ -9,14 +9,16 @@
 
 #include "InstantCrossbar.h"
 #include "../../Exceptions/InvalidOptionException.h"
+#include "../../Utility/Assert.h"
+
+using sc_core::sc_module_name;
 
 void InstantCrossbar::mainLoop(PortIndex port) {
   NetworkData data = iData[port].read();
   PortIndex output = getDestination(data.channelID());
 
-  if (output >= numOutputPorts())
-    LOKI_ERROR << this->name() << " outputs: " << numOutputPorts() << ", requested port: " << (int)output << endl;
-  assert(output < numOutputPorts());
+  loki_assert_with_message(output < numOutputPorts(),
+      "Outputs = %d, requested port = %d", numOutputPorts(), output);
 
   switch (state[port]) {
     // New data arrived -> issue request.

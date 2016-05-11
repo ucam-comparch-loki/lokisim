@@ -7,6 +7,7 @@
 
 #include "ExecuteStage.h"
 #include "../../Core.h"
+#include "../../../Utility/Assert.h"
 #include "../../../Utility/Instrumentation.h"
 #include "../../../Utility/Instrumentation/Registers.h"
 #include "../../../Exceptions/InvalidOptionException.h"
@@ -269,7 +270,7 @@ void ExecuteStage::sendOutput() {
     else {
       // Send the data to the output buffer - it will arrive immediately so that
       // network resources can be requested the cycle before they are used.
-      assert(!oData.valid());
+      loki_assert(!oData.valid());
       oData.write(currentInst.toNetworkData(id.tile));
     }
   }
@@ -308,7 +309,8 @@ void ExecuteStage::memoryStorePhase2(DecodedInst& operation) {
 }
 
 void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
-  assert(inst.networkDestination().isMemory());
+  loki_assert_with_message(inst.networkDestination().isMemory(),
+      "Destination = %s", inst.networkDestination().getString().c_str());
 
   bool addressFlit;
 
@@ -369,7 +371,7 @@ bool ExecuteStage::checkPredicate(DecodedInst& inst) {
 }
 
 void ExecuteStage::updatePredicate(const DecodedInst& inst) {
-  assert(inst.setsPredicate());
+  loki_assert(inst.setsPredicate());
 
   bool newPredicate;
 

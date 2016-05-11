@@ -8,6 +8,7 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "MainMemory.h"
+#include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/MainMemory.h"
 #include "Operations/MemoryOperationDecode.h"
 #include <iomanip>
@@ -23,7 +24,7 @@ MainMemory::MainMemory(sc_module_name name, ComponentID ID, uint controllers) :
     mux("mux", controllers),
     cacheLineValid(MAIN_MEMORY_SIZE / CACHE_LINE_BYTES, 0) {
 
-  assert(controllers >= 1);
+  loki_assert(controllers >= 1);
 
   iData.init(controllers);
   oData.init(controllers);
@@ -75,7 +76,9 @@ MemoryAddr MainMemory::getAddress(SRAMAddress position) const {
 
 // Return whether data from `address` can be found at `position` in the SRAM.
 bool MainMemory::contains(MemoryAddr address, SRAMAddress position, MemoryAccessMode mode) const {
-  return (address < mData.size()*BYTES_PER_WORD) && (address == position);
+  loki_assert_with_message(address < mData.size()*BYTES_PER_WORD, "Address 0x%x", address);
+  loki_assert(address == position);
+  return true;
 }
 
 // Ensure that a valid copy of data from `address` can be found at `position`.
@@ -102,14 +105,14 @@ void MainMemory::flush(SRAMAddress position, MemoryAccessMode mode) {
 // Return whether a payload flit is available. `level` tells whether this bank
 // is being treated as an L1 or L2 cache.
 bool MainMemory::payloadAvailable(MemoryLevel level) const {
-  assert(level == MEMORY_OFF_CHIP);
+  loki_assert_with_message(level == MEMORY_OFF_CHIP, "Level = %d", level);
   return muxOutput.valid() && isPayload(muxOutput.read());
 }
 
 // Retrieve a payload flit. `level` tells whether this bank is being treated
 // as an L1 or L2 cache.
 uint32_t MainMemory::getPayload(MemoryLevel level) {
-  assert(level == MEMORY_OFF_CHIP);
+  loki_assert_with_message(level == MEMORY_OFF_CHIP, "Level = %d", level);
   NetworkRequest request = muxOutput.read();
   uint32_t payload = request.payload().toUInt();
 
@@ -122,8 +125,8 @@ uint32_t MainMemory::getPayload(MemoryLevel level) {
 
 // Send a result to the requested destination.
 void MainMemory::sendResponse(NetworkResponse response, MemoryLevel level) {
-  assert(level == MEMORY_OFF_CHIP);
-  assert(!mOutputQueues[currentChannel]->full());
+  loki_assert_with_message(level == MEMORY_OFF_CHIP, "Level = %d", level);
+  loki_assert(!mOutputQueues[currentChannel]->full());
 
   mOutputQueues[currentChannel]->write(response);
 }
@@ -160,7 +163,7 @@ void MainMemory::storeData(vector<Word>& data, MemoryAddr location, bool readOnl
   uint32_t address = location / 4;
 
   checkAlignment(location, 4);
-  assert(location + count*4 < mData.size());
+  loki_assert_with_message(location + count*4 < mData.size(), "Upper limit = 0x%x", location + count*4);
 
   for (size_t i = 0; i < count; i++) {
     LOKI_LOG << this->name() << " wrote to " << LOKI_HEX((address+i)*4) << ": " << data[i].toUInt() << endl;
@@ -202,7 +205,7 @@ void MainMemory::mainLoop() {
 }
 
 void MainMemory::processIdle() {
-  assert(mState == STATE_IDLE);
+  loki_assert_with_message(mState == STATE_IDLE, "State = %d", mState);
 
   // Check for new requests.
   if (muxOutput.valid()) {
@@ -248,8 +251,8 @@ void MainMemory::processIdle() {
 }
 
 void MainMemory::processRequest() {
-  assert(mState == STATE_REQUEST);
-  assert(mActiveRequest != NULL);
+  loki_assert_with_message(mState == STATE_REQUEST, "State = %d", mState);
+  loki_assert(mActiveRequest != NULL);
 
   if (!iClock.negedge()) {
     next_trigger(iClock.negedge_event());

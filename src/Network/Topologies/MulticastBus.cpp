@@ -8,11 +8,14 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "MulticastBus.h"
+#include "../../Utility/Assert.h"
+
+using sc_core::sc_module_name;
 
 void MulticastBus::busLoop() {
   switch(state) {
     case WAITING_FOR_DATA : {
-      if(!iData[0].valid()) {
+      if (!iData[0].valid()) {
         // It turns out that there wasn't actually more data: wait until some
         // arrives.
         next_trigger(iData[0].default_event());
@@ -22,7 +25,7 @@ void MulticastBus::busLoop() {
         NetworkData data = iData[0].read();
 
         outputUsed = getDestinations(data.channelID());
-        assert(outputUsed != 0);
+        loki_assert(outputUsed != 0);
 
         for(int i=0; i<8; i++) {  // 8 = number of bits in PortIndex... increase this?
           if((outputUsed >> i) & 1)
@@ -52,12 +55,12 @@ void MulticastBus::busLoop() {
 
 void MulticastBus::ackArrived(PortIndex port) {
     // If we're receiving an ack, we should have sent data on that port.
-    assert((outputUsed >> port) & 1);
+    loki_assert((outputUsed >> port) & 1);
     outputUsed &= ~(1 << port);  // Clear the bit
 
     // If outputUsed is 0, it means there are no more outstanding
     // acknowledgements.
-    if(outputUsed == 0) {
+    if (outputUsed == 0) {
       receivedAllAcks.notify();
     }
 }
@@ -66,7 +69,7 @@ PortIndex MulticastBus::getDestinations(const ChannelID& address) const {
   // In practice, we would probably only allow multicast addresses, but
   // allowing both options for the moment makes testing easier.
 
-  if(level == COMPONENT && address.multicast) {
+  if (level == COMPONENT && address.multicast) {
     // The address is already correctly encoded.
     return getDestination(address);
   }

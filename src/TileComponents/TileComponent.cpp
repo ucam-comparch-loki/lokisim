@@ -9,6 +9,7 @@
 
 #include "TileComponent.h"
 #include "../Chip.h"
+#include "../Utility/Assert.h"
 
 int TileComponent::numInputs()  const {return iData.length();}
 int TileComponent::numOutputs() const {return oData.length();}
@@ -63,8 +64,8 @@ TileComponent::TileComponent(sc_module_name name, const ComponentID& ID,
                              int inputPorts, int outputPorts) :
     Component(name, ID) {
 
-  assert(inputPorts > 0);
-  assert(outputPorts > 0);
+  loki_assert(inputPorts > 0);
+  loki_assert(outputPorts > 0);
 
   iData.init(inputPorts);
   oData.init(outputPorts);

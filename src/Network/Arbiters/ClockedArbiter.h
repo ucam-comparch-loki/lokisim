@@ -104,8 +104,14 @@ protected:
   // Store values of all inputs/outputs in vectors. This makes the information
   // cheaper to access, and makes it easier to share with the behavioural model.
   std::vector<bool> requestVec, grantVec;
-  std::vector<MuxSelect> selectVec;
+  std::vector<MuxSelect> selections;
   sc_event receivedRequest;
+
+  // Record which destination each output is sending to, so we can avoid sending
+  // multiple data to the same channel simultaneously.
+  // TODO: instead make networks more restrictive so this isn't possible.
+  // e.g. separate instruction and data networks.
+  std::vector<ChannelIndex> destinations;
 
 private:
 

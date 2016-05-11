@@ -11,18 +11,19 @@
 #include "../../TileComponent.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/MemoryRequest.h"
+#include "../../../Utility/Assert.h"
 #include "../../../Utility/Instrumentation/Network.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
 void SendChannelEndTable::write(const NetworkData data) {
 
   if (data.channelID().multicast || (data.channelID().component.tile == id.tile)) {
-    assert(!bufferLocal.full());
+    loki_assert(!bufferLocal.full());
     LOKI_LOG << this->name() << " writing " << data << " to buffer (local)\n";
     bufferLocal.write(data);
   }
   else {
-    assert(!bufferGlobal.full());
+    loki_assert(!bufferGlobal.full());
     LOKI_LOG << this->name() << " writing " << data << " to buffer (global)\n";
     bufferGlobal.write(data);
 
@@ -67,8 +68,8 @@ void SendChannelEndTable::receiveLoop() {
       else if (bufferGlobal.full())
         next_trigger(bufferGlobal.readEvent());
       else {
-        assert(!bufferLocal.full());
-        assert(!bufferGlobal.full());
+        loki_assert(!bufferLocal.full());
+        loki_assert(!bufferGlobal.full());
 
         // Choose appropriate input port - fetch has priority.
         NetworkData flit;
@@ -103,7 +104,7 @@ void SendChannelEndTable::receiveLoop() {
 //      else if (!clock.negedge())
 //        next_trigger(clock.negedge_event());
       else {
-        assert(!bufferLocal.full());
+        loki_assert(!bufferLocal.full());
         NetworkData flit = iData.read();
         iData.ack();
         write(flit);
@@ -148,7 +149,7 @@ void SendChannelEndTable::sendLoopLocal() {
     }
 
     case SS_DATA_READY: {
-      assert(!bufferLocal.empty());
+      loki_assert(!bufferLocal.empty());
 
       // Request arbitration.
       requestArbitration(bufferLocal.peek().channelID(), true);
@@ -172,7 +173,7 @@ void SendChannelEndTable::sendLoopLocal() {
     }
 
     case SS_CAN_SEND: {
-      assert(!bufferLocal.empty());
+      loki_assert(!bufferLocal.empty());
 
       const NetworkData data = bufferLocal.read();
       bufferFillChanged.notify();
@@ -228,7 +229,7 @@ bool SendChannelEndTable::requestGranted(ChannelID destination) const {
 }
 
 void SendChannelEndTable::receivedCredit() {
-  assert(iCredit.valid());
+  loki_assert(iCredit.valid());
   receiveCreditInternal(iCredit.read());
   iCredit.ack();
 }

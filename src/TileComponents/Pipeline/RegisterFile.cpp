@@ -8,6 +8,7 @@
 #include "RegisterFile.h"
 #include "../Core.h"
 #include "../../Datatype/Word.h"
+#include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation.h"
 #include "../../Utility/Instrumentation/Registers.h"
 #include "../../Exceptions/InvalidOptionException.h"

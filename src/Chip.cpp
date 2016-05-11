@@ -9,6 +9,7 @@
 
 #include "Chip.h"
 #include "TileComponents/Memory/MissHandlingLogic.h"
+#include "Utility/Assert.h"
 #include "Utility/Instrumentation/Stalls.h"
 #include "Utility/StartUp/DataBlock.h"
 
@@ -23,7 +24,8 @@ void Chip::storeData(const DataBlock& data) {
   if (data.component() == ComponentID(2,0,0))
     mainMemory.storeData(data.payload(), data.position(), data.readOnly());
   else if (data.component().isCore()) {
-    assert(data.component().globalCoreNumber() < cores.size());
+    loki_assert_with_message(data.component().globalCoreNumber() < cores.size(),
+        "Core %d", data.component().globalCoreNumber());
     cores[data.component().globalCoreNumber()]->storeData(data.payload(), data.position());
   }
   else if (data.component().isMemory()) {
@@ -43,7 +45,8 @@ void Chip::print(const ComponentID& component, MemoryAddr start, MemoryAddr end)
 
 Word Chip::readWordInternal(const ComponentID& component, MemoryAddr addr) {
   if (component.isMemory() && !MAGIC_MEMORY) {
-    assert(component.globalMemoryNumber() < memories.size());
+    loki_assert_with_message(component.globalMemoryNumber() < memories.size(),
+        "Memory bank %d", component.globalMemoryNumber());
     return memories[component.globalMemoryNumber()]->readWordDebug(addr);
   }
   else
@@ -52,7 +55,8 @@ Word Chip::readWordInternal(const ComponentID& component, MemoryAddr addr) {
 
 Word Chip::readByteInternal(const ComponentID& component, MemoryAddr addr) {
   if (component.isMemory() && !MAGIC_MEMORY) {
-    assert(component.globalMemoryNumber() < memories.size());
+    loki_assert_with_message(component.globalMemoryNumber() < memories.size(),
+        "Memory bank %d", component.globalMemoryNumber());
     return memories[component.globalMemoryNumber()]->readByteDebug(addr);
   }
   else
@@ -61,7 +65,8 @@ Word Chip::readByteInternal(const ComponentID& component, MemoryAddr addr) {
 
 void Chip::writeWordInternal(const ComponentID& component, MemoryAddr addr, Word data) {
   if (component.isMemory() && !MAGIC_MEMORY) {
-    assert(component.globalMemoryNumber() < memories.size());
+    loki_assert_with_message(component.globalMemoryNumber() < memories.size(),
+        "Memory bank %d", component.globalMemoryNumber());
     memories[component.globalMemoryNumber()]->writeWordDebug(addr, data);
   }
   else
@@ -70,7 +75,8 @@ void Chip::writeWordInternal(const ComponentID& component, MemoryAddr addr, Word
 
 void Chip::writeByteInternal(const ComponentID& component, MemoryAddr addr, Word data) {
   if (component.isMemory() && !MAGIC_MEMORY) {
-    assert(component.globalMemoryNumber() < memories.size());
+    loki_assert_with_message(component.globalMemoryNumber() < memories.size(),
+        "Memory bank %d", component.globalMemoryNumber());
     memories[component.globalMemoryNumber()]->writeByteDebug(addr, data);
   }
   else
@@ -78,24 +84,26 @@ void Chip::writeByteInternal(const ComponentID& component, MemoryAddr addr, Word
 }
 
 int Chip::readRegisterInternal(const ComponentID& component, RegisterIndex reg) const {
-  assert(component.globalCoreNumber() < cores.size());
+  loki_assert_with_message(component.globalCoreNumber() < cores.size(),
+      "Core %d", component.globalCoreNumber());
 
   return cores[component.globalCoreNumber()]->readRegDebug(reg);
 }
 
 bool Chip::readPredicateInternal(const ComponentID& component) const {
-  assert(component.globalCoreNumber() < cores.size());
+  loki_assert_with_message(component.globalCoreNumber() < cores.size(),
+      "Core %d", component.globalCoreNumber());
 
   return cores[component.globalCoreNumber()]->readPredReg();
 }
 
 void Chip::networkSendDataInternal(const NetworkData& flit) {
-  assert(flit.channelID().isCore());
+  loki_assert(flit.channelID().isCore());
   cores[flit.channelID().component.globalCoreNumber()]->deliverDataInternal(flit);
 }
 
 void Chip::networkSendCreditInternal(const NetworkCredit& flit) {
-  assert(flit.channelID().isCore());
+  loki_assert(flit.channelID().isCore());
   cores[flit.channelID().component.globalCoreNumber()]->deliverCreditInternal(flit);
 }
 
@@ -212,7 +220,7 @@ void Chip::makeComponents() {
         memories[memoryID.globalMemoryNumber()] = m;
       }
       
-       namebuilder << "mhl_" << tile.getNameString();
+      namebuilder << "mhl_" << tile.getNameString();
       namebuilder >> name;
       namebuilder.clear();
 
