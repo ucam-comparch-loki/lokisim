@@ -36,12 +36,12 @@ void statusUpdate(std::ostream& os) {
      << " [" << Instrumentation::Operations::numOperations() << " operation(s) executed]" << endl;
 }
 
-bool checkProgress() {
+bool checkProgress(cycle_count_t interval) {
   static count_t operationCount = 0;
   count_t newOperationCount = Instrumentation::Operations::numOperations();
 
   if (newOperationCount == operationCount) {
-    cerr << "\nNo progress has been made for 10000 cycles. Aborting." << endl;
+    cerr << "\nNo progress has been made for " << interval << " cycles. Aborting." << endl;
 
     Instrumentation::endExecution();
     BlockingInterface::reportProblems(cerr);
@@ -98,8 +98,8 @@ void simulate(Chip& chip) {
         timestep(cyclesPerStep);
         cycle += cyclesPerStep;
 
-        if (cycle % 10000 < cyclesPerStep) {
-          bool progress = checkProgress();
+        if (cycle % 100000 < cyclesPerStep) {
+          bool progress = checkProgress(100000);
           if (!progress)
             break;
         }
