@@ -31,9 +31,14 @@ public:
 // Inherited from Network:
 //
 //  ClockInput   clock;
-//
-//  LokiVector<DataInput>  iData;
-//  LokiVector<DataOutput> oData;
+
+  // Data input to network (output from components).
+  // Addressed using iData[component][port]
+  LokiVector2D<DataInput>  iData;
+
+  // Data output from network (input to components).
+  // Addressed using oData[component][port]
+  LokiVector2D<DataOutput> oData;
 
   // Additional clocks which are skewed, allowing multiple clocked events
   // to happen in series in one cycle.
@@ -94,7 +99,7 @@ private:
   Crossbar coreToMemory, memoryToCore;
 
   // Data from each core to each of the subnetworks.
-  // Addressed using dataSig[core][Destination]
+  // Addressed using dataSig[Destination][core]
   LokiVector2D<loki_bus> dataSig;
 
   // Signals allowing arbitration requests to be made for cores/memories/routers.

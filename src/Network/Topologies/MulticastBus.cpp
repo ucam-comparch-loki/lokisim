@@ -15,14 +15,14 @@ using sc_core::sc_module_name;
 void MulticastBus::busLoop() {
   switch(state) {
     case WAITING_FOR_DATA : {
-      if (!iData[0].valid()) {
+      if (!iData.valid()) {
         // It turns out that there wasn't actually more data: wait until some
         // arrives.
-        next_trigger(iData[0].default_event());
+        next_trigger(iData.default_event());
       }
       else {
         // There definitely is data: send it.
-        NetworkData data = iData[0].read();
+        NetworkData data = iData.read();
 
         outputUsed = getDestinations(data.channelID());
         loki_assert(outputUsed != 0);
@@ -42,9 +42,9 @@ void MulticastBus::busLoop() {
     case WAITING_FOR_ACK : {
       // All acknowledgements have been received, so now it is time to
       // acknowledge the input data.
-      iData[0].ack();
+      iData.ack();
 
-      next_trigger(iData[0].default_event());
+      next_trigger(iData.default_event());
       state = WAITING_FOR_DATA;
 
       break;
@@ -71,12 +71,12 @@ PortIndex MulticastBus::getDestinations(const ChannelID& address) const {
 
   if (level == COMPONENT && address.multicast) {
     // The address is already correctly encoded.
-    return getDestination(address);
+    return getDestination(address, oData.length());
   }
   else {
     // If it is not a multicast address, there is only one destination.
     // Shift a single bit to the correct position.
-    return 1 << getDestination(address);
+    return 1 << getDestination(address, oData.length());
   }
 }
 

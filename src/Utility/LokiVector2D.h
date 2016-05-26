@@ -60,6 +60,7 @@ public:
   // Initialise with only one parameter - allows different subvectors to be
   // different lengths, if necessary.
   inline void init(size_t length) {
+    assert(length > 0);
     size_ = length;
     data_ = new LokiVector<T>[length];
   }

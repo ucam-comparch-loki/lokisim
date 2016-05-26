@@ -26,9 +26,11 @@ void Crossbar::outputChanged(const PortIndex port) {
 //  cout << this->name() << " sent " << oData[port].read() << endl;
 }
 
-void Crossbar::makePorts() {
-  iRequest.init(numInputPorts(), numArbiters);
-  oGrant.init(numInputPorts(), numArbiters);
+void Crossbar::makePorts(uint inputs, uint outputs) {
+  iData.init(inputs);
+  oData.init(outputs);
+  iRequest.init(inputs, numArbiters);
+  oGrant.init(inputs, numArbiters);
   iReady.init(numArbiters, buffersPerComponent);
 }
 
@@ -39,13 +41,13 @@ void Crossbar::makeSignals() {
 void Crossbar::makeArbiters() {
   for (int i=0; i<numArbiters; i++) {
     ClockedArbiter* arb;
-    arb = new ClockedArbiter(sc_gen_unique_name("arbiter"), i, numInputPorts(),
+    arb = new ClockedArbiter(sc_gen_unique_name("arbiter"), i, iData.length(),
                          outputsPerComponent, true, buffersPerComponent);
 
     arb->clock(clock);
     arb->iReady(iReady[i]);
 
-    for (uint j=0; j<numInputPorts(); j++) {
+    for (uint j=0; j<iData.length(); j++) {
       arb->iRequest[j](iRequest[j][i]);
       arb->oGrant[j](oGrant[j][i]);
     }
@@ -57,7 +59,7 @@ void Crossbar::makeArbiters() {
 
 void Crossbar::makeMuxes() {
   for (int i=0; i<numMuxes; i++) {
-    Multiplexer* mux = new Multiplexer(sc_gen_unique_name("mux"), numInputPorts());
+    Multiplexer* mux = new Multiplexer(sc_gen_unique_name("mux"), iData.length());
 
     mux->oData(oData[i]);
     mux->iData(iData);
@@ -82,17 +84,17 @@ Crossbar::Crossbar(const sc_module_name& name,
     numMuxes(outputs),
     outputsPerComponent(outputsPerComponent),
     buffersPerComponent(buffersPerComponent),
-    oldInputs(numInputPorts()),
-    oldOutputs(numOutputPorts()) {
+    oldInputs(inputs),
+    oldOutputs(outputs) {
 
-  makePorts();
+  makePorts(inputs, outputs);
   makeSignals();
   makeArbiters();
   makeMuxes();
 
-  for (uint i=0; i<numInputPorts(); i++)
+  for (uint i=0; i<iData.length(); i++)
     SPAWN_METHOD(iData[i], Crossbar::inputChanged, i, false);
-  for (uint i=0; i<numOutputPorts(); i++)
+  for (uint i=0; i<oData.length(); i++)
     SPAWN_METHOD(oData[i], Crossbar::outputChanged, i, false);
 }
 

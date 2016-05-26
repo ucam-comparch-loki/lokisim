@@ -27,9 +27,9 @@ public:
 //  Inherited from Network:
 //
 //  ClockInput   clock;
-//
-//  LokiVector<DataInput>  iData;
-//  LokiVector<DataOutput> oData;
+
+  DataInput              iData;
+  LokiVector<DataOutput> oData;
 
 //============================================================================//
 // Constructors and destructors

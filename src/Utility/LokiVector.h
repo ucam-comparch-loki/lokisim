@@ -49,6 +49,7 @@ public:
   // Initialise the vector to the given size. The default constructor will be
   // used to create all contents, so such a constructor must exist.
   inline void init(size_t size) {
+    assert(size > 0);
     size_ = size;
     data_ = new T[size];
   }

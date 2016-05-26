@@ -24,9 +24,9 @@ public:
 // Inherited from Network:
 //
 //  ClockInput   clock;
-//
-//  LokiVector<DataInput>  iData;
-//  LokiVector<DataOutput> oData;
+
+  LokiVector<DataInput>  iData;
+  LokiVector<DataOutput> oData;
 
   // A request/grant signal for each input to reserve each output.
   // Indexed as: iRequest[input][output]
@@ -67,7 +67,7 @@ protected:
 
 private:
 
-  void makePorts();
+  void makePorts(uint inputs, uint outputs);
   void makeSignals();
   void makeArbiters();
   void makeMuxes();

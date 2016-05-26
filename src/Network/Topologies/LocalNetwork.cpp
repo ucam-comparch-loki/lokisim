@@ -85,7 +85,7 @@ bool LocalNetwork::requestGranted(ComponentID source, ChannelID destination) con
 }
 
 void LocalNetwork::createSignals() {
-  dataSig.init(CORES_PER_TILE, 2); // each core can send to 2 subnetworks
+  dataSig.init(2, CORES_PER_TILE); // each core can send to 2 subnetworks
 
   int numCores = CORES_PER_TILE;
   int sendToCores = CORES_PER_TILE + MEMS_PER_TILE;// + 1;
@@ -112,79 +112,63 @@ void LocalNetwork::wireUpSubnetworks() {
   coreToCore.clock(slowClock);
   memoryToCore.clock(slowClock); coreToMemory.clock(slowClock);
 
-  // Keep track of how many ports in each array have been bound, so that if
-  // multiple networks connect to the same array, they can start where the
-  // previous network finished.
-  int portsBound = 0;
-
   // Data networks
-  for (unsigned int i=0; i<coreToCore.numInputPorts(); i++, portsBound++) {
-    // Data from cores can go to all three core-to-X networks.
-    coreToCore.iData[i](dataSig[portsBound][CORE]);
-    coreToMemory.iData[i](dataSig[portsBound][MEMORY]);
-  }
-  for (unsigned int i=0; i<memoryToCore.numInputPorts(); i++, portsBound++)
-    memoryToCore.iData[i](iData[portsBound]);
+  coreToCore.iData(dataSig[CORE]);
+  coreToMemory.iData(dataSig[MEMORY]);
 
   // Cores have the following data inputs:
   //   2 from core-to-core network
   //   2 from memory-to-core network
-  portsBound = 0;
-  for (unsigned int i=0; i<CORES_PER_TILE; i++) {
-    coreToCore.oData[2*i](oData[portsBound++]);
-    coreToCore.oData[2*i + 1](oData[portsBound++]);
-    memoryToCore.oData[2*i](oData[portsBound++]);
-    memoryToCore.oData[2*i + 1](oData[portsBound++]);
+  for (uint core=0; core<CORES_PER_TILE; core++) {
+    coreToCore.oData[2*core](oData[core][0]);
+    coreToCore.oData[2*core+1](oData[core][1]);
+    memoryToCore.oData[2*core](oData[core][2]);
+    memoryToCore.oData[2*core+1](oData[core][3]);
   }
 
-  for (unsigned int i=0; i<coreToMemory.numOutputPorts(); i++)
-    coreToMemory.oData[i](oData[portsBound++]);
+  for (uint mem=0; mem<MEMS_PER_TILE; mem++) {
+    uint position = mem + CORES_PER_TILE;
+    memoryToCore.iData[mem](iData[position][0]);
+    coreToMemory.oData[mem](oData[position][0]);
+  }
 
   // Requests/grants for arbitration.
-  for (unsigned int input=0; input<CORES_PER_TILE; input++) {
-    for (unsigned int output=0; output<CORES_PER_TILE; output++) {
-      coreToCore.iRequest[input][output](coreRequests[input][output]);
-      coreToCore.oGrant[input][output](coreGrants[input][output]);
-    }
-    for (unsigned int output=0; output<MEMS_PER_TILE; output++) {
-      coreToMemory.iRequest[input][output](memRequests[input][output]);
-      coreToMemory.oGrant[input][output](memGrants[input][output]);
-    }
+  coreToMemory.iRequest(memRequests);
+  coreToMemory.oGrant(memGrants);
+  for (uint input=0; input<CORES_PER_TILE; input++) {
+    coreToCore.iRequest[input](coreRequests[input]);
+    coreToCore.oGrant[input](coreGrants[input]);
   }
-  for (unsigned int i=0; i<MEMS_PER_TILE; i++) {
-    int input = i + CORES_PER_TILE; // Memories start at offset CORES_PER_TILE
-    for (unsigned int output=0; output<CORES_PER_TILE; output++) {
-      memoryToCore.iRequest[i][output](coreRequests[input][output]);
-      memoryToCore.oGrant[i][output](coreGrants[input][output]);
-    }
+  for (uint i=0; i<MEMS_PER_TILE; i++) {
+    uint input = i + CORES_PER_TILE; // Memories start at offset CORES_PER_TILE
+    memoryToCore.iRequest[i](coreRequests[input]);
+    memoryToCore.oGrant[i](coreGrants[input]);
   }
 
-  // Ready signals
-  for (unsigned int core=0; core<CORES_PER_TILE; core++)
-    for (unsigned int channel=0; channel<CORE_INPUT_CHANNELS; channel++) {
-      coreToCore.iReady[core][channel](iReady[core][channel]);
-      memoryToCore.iReady[core][channel](iReady[core][channel]);
-    }
-  for (unsigned int mem=0; mem<MEMS_PER_TILE; mem++)
-    for (unsigned int channel=0; channel<1; channel++)
-      coreToMemory.iReady[mem][channel](iReady[mem + CORES_PER_TILE][channel]);
+  // Ready signals.
+  for (uint core=0; core<CORES_PER_TILE; core++) {
+    coreToCore.iReady[core](iReady[core]);
+    memoryToCore.iReady[core](iReady[core]);
+  }
+  for (uint mem=0; mem<MEMS_PER_TILE; mem++)
+    coreToMemory.iReady[mem](iReady[mem + CORES_PER_TILE]);
 }
 
 // TODO: is it possible to remove this method and directly connect the
 // subnetworks to the appropriate input ports? Won't matter when the core has
 // separate ports for each network.
 void LocalNetwork::newCoreData(int core) {
-  const NetworkData& data = iData[core].read();
+  const NetworkData& data = iData[core][0].read();
   const ChannelID& destination = data.channelID();
 
   if (destination.isCore())
-    dataSig[core][CORE].write(data);
+    dataSig[CORE][core].write(data);
   else if (destination.isMemory())
-    dataSig[core][MEMORY].write(data);
+    dataSig[MEMORY][core].write(data);
 }
 
 void LocalNetwork::coreDataAck(int core) {
-  iData[core].ack();
+  iData[core][0].ack();
 }
 
 LocalNetwork::LocalNetwork(const sc_module_name& name, ComponentID tile) :
@@ -193,32 +177,41 @@ LocalNetwork::LocalNetwork(const sc_module_name& name, ComponentID tile) :
     coreToMemory("core_to_mem", tile, CORES_PER_TILE, MEMS_PER_TILE, MEMORY_INPUT_PORTS, level, 1),
     memoryToCore("mem_to_core", tile, MEMS_PER_TILE, CORES_PER_TILE*2, 2, level, CORE_INPUT_CHANNELS) {
 
-  // Ready signals from each component.//, plus one from the router.
+  // Signals to/from each component.
+  iData.init(COMPONENTS_PER_TILE);
+  oData.init(COMPONENTS_PER_TILE);
   iReady.init(COMPONENTS_PER_TILE);
-  for (size_t i=0; i<iReady.length(); i++) {
-    if (i<CORES_PER_TILE)           // cores have multiple buffers
+
+  for (size_t i=0; i<COMPONENTS_PER_TILE; i++) {
+    if (i<CORES_PER_TILE) {
+      iData[i].init(CORE_OUTPUT_PORTS);
+      oData[i].init(CORE_INPUT_PORTS);
       iReady[i].init(CORE_INPUT_CHANNELS);
-    else if (i<COMPONENTS_PER_TILE) // memories have one buffer each
+    }
+    else {
+      iData[i].init(1);
+      oData[i].init(1);
       iReady[i].init(1);
+    }
   }
 
   createSignals();
   wireUpSubnetworks();
 
-  for (unsigned int i=0; i<CORES_PER_TILE; i++) {
+  for (uint core=0; core<CORES_PER_TILE; core++) {
     // Method to handle data from the core.
-    SPAWN_METHOD(iData[i], LocalNetwork::newCoreData, i, false);
+    SPAWN_METHOD(iData[core][0], LocalNetwork::newCoreData, core, false);
 
     // Method to handle acks to the core. Can't use the macro because we're
     // sensitive to multiple things.
     sc_core::sc_spawn_options options;
     options.spawn_method();
-    options.set_sensitivity(&(dataSig[i][CORE].ack_event()));
-    options.set_sensitivity(&(dataSig[i][MEMORY].ack_event()));
+    options.set_sensitivity(&(dataSig[CORE][core].ack_event()));
+    options.set_sensitivity(&(dataSig[MEMORY][core].ack_event()));
     options.dont_initialize();
 
     /* Create the method. */
-    sc_spawn(sc_bind(&LocalNetwork::coreDataAck, this, i), 0, &options);
+    sc_spawn(sc_bind(&LocalNetwork::coreDataAck, this, core), 0, &options);
   }
 
 }

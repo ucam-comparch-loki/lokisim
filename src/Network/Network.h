@@ -31,8 +31,8 @@ public:
 
   ClockInput   clock;
 
-  LokiVector<DataInput>  iData;
-  LokiVector<DataOutput> oData;
+  //LokiVector<DataInput>  iData;
+  //LokiVector<DataOutput> oData;
 
 //============================================================================//
 // Constructors and destructors
@@ -56,23 +56,10 @@ public:
 // Methods
 //============================================================================//
 
-public:
-
-  // The input port to this network which comes from the next level of network
-  // hierarchy (or off-chip).
-  DataInput&   externalInput() const;
-
-  // The output port of this network which goes to the next level of network
-  // hierarchy (or off-chip).
-  DataOutput&  externalOutput() const;
-
-  unsigned int numInputPorts() const;
-  unsigned int numOutputPorts() const;
-
 protected:
 
   // Compute which output of this network will be used by the given address.
-  PortIndex getDestination(const ChannelID& address) const;
+  PortIndex getDestination(ChannelID address, uint totalOutputs) const;
 
 //============================================================================//
 // Local state

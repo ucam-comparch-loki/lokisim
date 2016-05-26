@@ -15,10 +15,10 @@ using sc_core::sc_module_name;
 
 void InstantCrossbar::mainLoop(PortIndex port) {
   NetworkData data = iData[port].read();
-  PortIndex output = getDestination(data.channelID());
+  PortIndex output = getDestination(data.channelID(), oData.length());
 
-  loki_assert_with_message(output < numOutputPorts(),
-      "Outputs = %d, requested port = %d", numOutputPorts(), output);
+  loki_assert_with_message(output < oData.length(),
+      "Outputs = %d, requested port = %d", oData.length(), output);
 
   switch (state[port]) {
     // New data arrived -> issue request.
@@ -60,6 +60,8 @@ InstantCrossbar::InstantCrossbar(const sc_module_name& name,
     state(inputs, IDLE) {
 
   // Create ports and signals.
+  iData.init(inputs);
+  oData.init(outputs);
   requests.init(crossbar.iRequest);
   grants.init(crossbar.oGrant);
   iReady.init(crossbar.iReady);

@@ -144,10 +144,9 @@ void ChannelMapEntry::write(EncodedCMTEntry data) {
       string type = (getReturnChannel() < 2) ? "insts" : "data";
       uint startBank = getComponent();
       uint endBank = startBank + getMemoryGroupSize() - 1;
-      uint lineSize = getLineSize();
 
       std::cout << "SETCHMAP: core " << id_.component << " " << type << ", banks "
-          << startBank << "-" << endBank << ", line size " << lineSize << std::endl;
+          << startBank << "-" << endBank << std::endl;
     }
   }
   else {

@@ -120,29 +120,39 @@ void Chip::makeSignals() {
   // Each of the global networks (data, credit, request, response) need to
   // connect to every tile with at least one input, output and ready signal.
   // Networks within a tile only need to exist on the compute tiles.
-
-  oDataLocal.init(TOTAL_OUTPUT_PORTS);
-  iDataLocal.init(TOTAL_INPUT_PORTS);
-
+  iDataLocal.init(NUM_COMPUTE_TILES);
+  oDataLocal.init(NUM_COMPUTE_TILES);
   oReadyData.init(NUM_TILES);
+
   for (uint col=0; col<TOTAL_TILE_COLUMNS; col++) {
     for (uint row=0; row<TOTAL_TILE_ROWS; row++) {
       TileID tile(col,row);
       TileIndex index = tile.overallTileIndex();
+      TileIndex computeIndex = tile.computeTileIndex();
 
       if (tile.isComputeTile()) {
+        iDataLocal[computeIndex].init(COMPONENTS_PER_TILE);
+        oDataLocal[computeIndex].init(COMPONENTS_PER_TILE);
         oReadyData[index].init(COMPONENTS_PER_TILE);
 
         for (uint comp=0; comp<COMPONENTS_PER_TILE; comp++) {
           // Cores have a different number of input buffers/flow control signals
           // than memory banks.
-          if (comp < CORES_PER_TILE)
+          if (comp < CORES_PER_TILE) {
+            iDataLocal[computeIndex][comp].init(CORE_INPUT_PORTS);
+            oDataLocal[computeIndex][comp].init(CORE_OUTPUT_PORTS);
             oReadyData[index][comp].init(CORE_INPUT_CHANNELS);
-          else
+          }
+          else {
+            iDataLocal[computeIndex][comp].init(1);
+            oDataLocal[computeIndex][comp].init(1);
             oReadyData[index][comp].init(1);
+          }
         }
       }
       else {
+        //iDataLocal[index].init(1,1);
+        //oDataLocal[index].init(1,1);
         oReadyData[index].init(1,1);
       }
     }
@@ -254,14 +264,12 @@ void Chip::wireUp() {
           cores[coreIndex]->iDataGlobal(iDataGlobal[tileIndex][core]);
           cores[coreIndex]->oDataGlobal(oDataGlobal[tileIndex][core]);
 
-          for (uint ch=0; ch<CORE_INPUT_CHANNELS; ch++) {
-            cores[coreIndex]->oReadyData[ch](oReadyData[tileIndex][core][ch]);
-            dataNet.iReady[tileIndex][core][ch](oReadyData[tileIndex][core][ch]);
-          }
+          cores[coreIndex]->oReadyData(oReadyData[tileIndex][core]);
+          dataNet.iReady[tileIndex][core](oReadyData[tileIndex][core]);
         }
       }
       else {
-        dataNet.iReady[tileIndex][0][0](oReadyData[tileIndex][0][0]);
+        dataNet.iReady[tileIndex][0](oReadyData[tileIndex][0]);
       }
     }
   }
@@ -361,67 +369,39 @@ void Chip::wireUp() {
 
 // Connect cores and memories to the local interconnect
 
-  uint dataInputCounter = 0;
-  uint dataOutputCounter = 0;
-  uint readyInputCounter = 0;
+  network.oData(iDataLocal);
+  network.iData(oDataLocal);
 
   for (uint col = 0; col < TOTAL_TILE_COLUMNS; col++) {
     for (uint row = 0; row < TOTAL_TILE_ROWS; row++) {
       TileID tile(col,row);
       TileIndex tileIndex = tile.overallTileIndex();
+      TileIndex computeTile = tile.computeTileIndex();
 
       if (tile.isComputeTile()) {
+        network.iReady[computeTile](oReadyData[tileIndex]);
+
         for (uint pos = 0; pos < COMPONENTS_PER_TILE; pos++) {
           ComponentID component(tile, pos);
           if (component.isCore()) {
             uint coreIndex = component.globalCoreNumber();
             cores[coreIndex]->clock(clock);
             cores[coreIndex]->fastClock(fastClock);
-
-            for (uint j = 0; j < CORE_INPUT_PORTS; j++) {
-              uint index = dataInputCounter++;  // Position in network's array
-
-              cores[coreIndex]->iData[j](iDataLocal[index]);
-              network.oData[index](iDataLocal[index]);
-            }
-
-            for (uint j = 0; j < CORE_INPUT_CHANNELS; j++) {
-              uint index = readyInputCounter++;  // Position in network's array
-
-              // The ready signals are shared between all networks, and have already
-              // been connected to the cores.
-      //        cores[coreIndex]->oReadyData[j](oReadyData[tileIndex][pos][j]);
-              network.iReady[index](oReadyData[tileIndex][pos][j]);
-            }
-
-            for (uint j = 0; j < CORE_OUTPUT_PORTS; j++) {
-              uint index = dataOutputCounter++;  // Position in network's array
-
-              cores[coreIndex]->oData[j](oDataLocal[index]);
-              network.iData[index](oDataLocal[index]);
-            }
+            cores[coreIndex]->iData(iDataLocal[computeTile][pos]);
+            cores[coreIndex]->oData(oDataLocal[computeTile][pos]);
           } // end isCore
           else {
             uint memoryIndex = component.globalMemoryNumber();
-
             memories[memoryIndex]->iClock(clock);
-
-            uint indexInput = dataInputCounter++;  // Position in network's array
-            memories[memoryIndex]->iData(iDataLocal[indexInput]);
-            network.oData[indexInput](iDataLocal[indexInput]);
-
-            uint indexReady = readyInputCounter++;  // Position in network's array
+            memories[memoryIndex]->iData(iDataLocal[computeTile][pos][0]);
             memories[memoryIndex]->oReadyForData(oReadyData[tileIndex][pos][0]);
-            network.iReady[indexReady](oReadyData[tileIndex][pos][0]);
+            memories[memoryIndex]->oData(oDataLocal[computeTile][pos][0]);
+          }
+        }
+      }
 
-            uint indexOutput = dataOutputCounter++;  // Position in network's array
-            memories[memoryIndex]->oData(oDataLocal[indexOutput]);
-            network.iData[indexOutput](oDataLocal[indexOutput]);
-          } // end isMemory
-        } // end loop through components in tile
-      } // end isComputeTile
-    } // end tile row loop
-  } // end tile column loop
+    }
+  }
   
   // Miss handling logic.
   for (uint j=0; j<NUM_COMPUTE_TILES; j++) {

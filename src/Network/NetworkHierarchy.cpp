@@ -11,17 +11,14 @@
 #include "../Utility/Parameters.h"
 
 local_net_t* NetworkHierarchy::getLocalNetwork(ComponentID component) const {
-  unsigned int tileColumn = component.tile.x;
-  unsigned int tileRow = component.tile.y;
-  unsigned int tile = ((tileRow-1) * COMPUTE_TILE_COLUMNS) + (tileColumn-1);
-  loki_assert(tileColumn <= COMPUTE_TILE_COLUMNS);
-  loki_assert(tileRow <= COMPUTE_TILE_ROWS);
+  unsigned int tile = component.tile.computeTileIndex();
+  loki_assert(component.tile.x <= COMPUTE_TILE_COLUMNS);
+  loki_assert(component.tile.y <= COMPUTE_TILE_ROWS);
   loki_assert(tile < localNetworks.size());
   return localNetworks[tile];
 }
 
 void NetworkHierarchy::makeLocalNetwork(uint tileColumn, uint tileRow) {
-
   // Create a local network.
   ComponentID tileID(tileColumn, tileRow, 0);
   local_net_t* localNetwork = new local_net_t(sc_gen_unique_name("local"), tileID);
@@ -34,37 +31,41 @@ void NetworkHierarchy::makeLocalNetwork(uint tileColumn, uint tileRow) {
 
   uint tile = tileID.tile.computeTileIndex();
 
-  int portIndex = tile * INPUT_PORTS_PER_TILE;
-  for (unsigned int i=0; i<INPUT_PORTS_PER_TILE; i++, portIndex++)
-    localNetwork->oData[i](oData[portIndex]);
-
-  portIndex = tile * INPUT_CHANNELS_PER_TILE;
-  for (unsigned int i=0; i<COMPONENTS_PER_TILE; i++) {
-    unsigned int channels = (i < CORES_PER_TILE) ? CORE_INPUT_CHANNELS : 1;
-    for (unsigned int j=0; j<channels; j++, portIndex++)
-      localNetwork->iReady[i][j](iReady[portIndex]);
-  }
-
-  portIndex = tile * OUTPUT_PORTS_PER_TILE;
-  for (unsigned int i=0; i<OUTPUT_PORTS_PER_TILE; i++, portIndex++)
-    localNetwork->iData[i](iData[portIndex]);
+  localNetwork->iData(iData[tile]);
+  localNetwork->oData(oData[tile]);
+  localNetwork->iReady(iReady[tile]);
 }
 
 NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
     Component(name) {
 
-  // Make ports.
-  // There are data ports for all components, but credit ports only for cores.
-  iData.init(TOTAL_OUTPUT_PORTS);
-  oData.init(TOTAL_INPUT_PORTS);
+  // Make ports. Note that the network's inputs are connected to the cores'
+  // outputs, and vice versa.
+  iData.init(NUM_COMPUTE_TILES);
+  oData.init(NUM_COMPUTE_TILES);
+  iReady.init(NUM_COMPUTE_TILES);
 
-  int readyPorts = (CORES_PER_TILE * CORE_INPUT_CHANNELS + MEMS_PER_TILE) * NUM_COMPUTE_TILES;
-  iReady.init(readyPorts);
+  for (uint tile=0; tile<iReady.length(); tile++) {
+    iData[tile].init(COMPONENTS_PER_TILE);
+    oData[tile].init(COMPONENTS_PER_TILE);
+    iReady[tile].init(COMPONENTS_PER_TILE);
+
+    for (uint component=0; component<CORES_PER_TILE; component++) {
+      iData[tile][component].init(CORE_OUTPUT_PORTS);
+      oData[tile][component].init(CORE_INPUT_PORTS);
+      iReady[tile][component].init(CORE_INPUT_CHANNELS);
+    }
+    for (uint component=CORES_PER_TILE; component<COMPONENTS_PER_TILE; component++) {
+      iData[tile][component].init(1);
+      oData[tile][component].init(1);
+      iReady[tile][component].init(1);
+    }
+  }
 
   // Make a local network for each tile. This includes all wiring up and
   // creation of a router.
-  for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
-    for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
+  for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
+    for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
       makeLocalNetwork(col, row);
     }
   }

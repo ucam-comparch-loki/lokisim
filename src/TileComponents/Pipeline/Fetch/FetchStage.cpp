@@ -73,7 +73,7 @@ void FetchStage::readLoop() {
 
         // Make sure we didn't read a junk instruction. "nor r0, r0, r0 -> 0" seems
         // pretty unlikely to ever come up in a real program.
-        loki_assert_with_message(instruction.toInt() != 0, "Probable junk instruction", 0);
+        loki_assert_with_message(instruction.toInt() != 0, "Probable junk instruction from address 0x%x", currentInst.location());
 
         if (currentInst.endOfIPK()) {
           // Check for the special case of single-instruction persistent packets.

@@ -29,9 +29,9 @@ public:
 // Inherited from Network:
 //
 //  ClockInput   clock;
-//
-//  LokiVector<DataInput>  iData;
-//  LokiVector<DataOutput> oData;
+
+  LokiVector<DataInput>  iData;
+  LokiVector<DataOutput> oData;
 
   // A signal from each buffer of each component, telling whether it is ready
   // to receive data. Addressed using readyIn[component][buffer].

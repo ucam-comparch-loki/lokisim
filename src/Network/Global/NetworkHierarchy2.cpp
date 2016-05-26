@@ -80,15 +80,14 @@ void NetworkHierarchy2::initialise(const unsigned int sourcesPerTile,
   for (uint col = 0; col < TOTAL_TILE_COLUMNS; col++) {
     for (uint row = 0; row < TOTAL_TILE_ROWS; row++) {
       TileID tile(col, row);
-
       createNetworkToRouter(tile);
       createNetworkFromRouter(tile);
-
-      globalNetwork.iData2D(col,row)(localToGlobalData[col][row]);
-      globalNetwork.oReady2D(col,row)(globalToLocalReady[col][row]);
-      globalNetwork.oData2D(col,row)(globalToLocalData[col][row]);
     }
   }
+
+  globalNetwork.iData(localToGlobalData);
+  globalNetwork.oReady(globalToLocalReady);
+  globalNetwork.oData(globalToLocalData);
 
 }
 

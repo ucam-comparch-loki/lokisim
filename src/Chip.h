@@ -124,7 +124,9 @@ private:
 
   // Naming of signals is relative to the components: iData is a data signal
   // which is an input to a core or memory bank.
-  LokiVector<DataSignal>       oDataLocal,          iDataLocal;
+
+  // Addressed using oDataLocal[tile][component][port]
+  LokiVector3D<DataSignal>     oDataLocal,          iDataLocal;
   LokiVector2D<DataSignal>     oDataGlobal,         iDataGlobal;
   LokiVector2D<CreditSignal>   oCredit,             iCredit;
   LokiVector2D<RequestSignal>  requestToMHL,        requestFromMHL;

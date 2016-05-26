@@ -10,10 +10,6 @@
 #include "../Router.h"
 #include "../../Utility/Assert.h"
 
-DataInput&   Mesh::iData2D(uint x,  uint y) const {return iData[flatten(x,y)];}
-DataOutput&  Mesh::oData2D(uint x,  uint y) const {return oData[flatten(x,y)];}
-ReadyOutput& Mesh::oReady2D(uint x, uint y) const {return oReady[flatten(x,y)];}
-
 const vector<vector<DataSignal*> > Mesh::edgeDataInputs() const {return edgeDataInputs_;}
 const vector<vector<DataSignal*> > Mesh::edgeDataOutputs() const {return edgeDataOutputs_;}
 const vector<vector<ReadySignal*> > Mesh::edgeReadyOutputs() const {return edgeReadyOutputs_;}
@@ -97,16 +93,11 @@ void Mesh::wireUp() {
       router.oReady[Router::EAST](readySigWE[col+1][row]);
 
       // Data heading to/from local tile
-      int tile = row*numColumns + col;
-      router.iData[Router::LOCAL](iData[tile]);
-      router.oData[Router::LOCAL](oData[tile]);
-      router.oReady[Router::LOCAL](oReady[tile]);
+      router.iData[Router::LOCAL](iData[col][row]);
+      router.oData[Router::LOCAL](oData[col][row]);
+      router.oReady[Router::LOCAL](oReady[col][row]);
     }
   }
-}
-
-uint Mesh::flatten(uint x, uint y) const {
-  return (y*numColumns) + x;
 }
 
 Mesh::Mesh(const sc_module_name& name,
@@ -122,7 +113,9 @@ Mesh::Mesh(const sc_module_name& name,
   // Can only handle inter-tile mesh networks at the moment.
   loki_assert(level == Network::TILE);
 
-  oReady.init(rows*columns);
+  iData.init(columns, rows);
+  oData.init(columns, rows);
+  oReady.init(columns, rows);
 
   // Each set contains a vector for each of NORTH, EAST, SOUTH, WEST.
   edgeDataInputs_.assign(4, vector<DataSignal*>());
