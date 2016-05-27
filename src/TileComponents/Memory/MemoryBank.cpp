@@ -134,6 +134,7 @@ void MemoryBank::validate(MemoryAddr address, SRAMAddress position, MemoryAccess
         flush(position, mode);
       mTags[getLine(position)] = getTag(address);
       mValid[getLine(position)] = true;
+      mMainMemory->claimCacheLine(id, address);
       break;
     case MEMORY_SCRATCHPAD:
       break;

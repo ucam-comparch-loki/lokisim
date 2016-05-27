@@ -158,6 +158,14 @@ bool MainMemory::readOnly(MemoryAddr addr) const {
   return false;
 }
 
+void MainMemory::claimCacheLine(ComponentID bank, MemoryAddr address) {
+  int tile = bank.tile.computeTileIndex();
+  int cacheLine = getLine(address);
+
+  // This is now the only tile with an up-to-date copy of the data.
+  cacheLineValid[cacheLine] = (1 << tile);
+}
+
 void MainMemory::storeData(vector<Word>& data, MemoryAddr location, bool readOnly) {
   size_t count = data.size();
   uint32_t address = location / 4;

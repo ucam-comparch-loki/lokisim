@@ -96,6 +96,10 @@ public:
   // Check whether a memory location is read-only.
   bool readOnly(MemoryAddr addr) const;
 
+  // Update coherence information in cases where data doesn't need to be loaded
+  // from main memory (e.g. memset).
+  void claimCacheLine(ComponentID bank, MemoryAddr address);
+
   // Store initial program data.
   void storeData(vector<Word>& data, MemoryAddr location, bool readOnly);
 
