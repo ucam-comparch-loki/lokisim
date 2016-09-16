@@ -99,8 +99,6 @@ void ChannelMapEntry::setCredits(uint count) {
   GlobalChannel entry = globalView();
   entry.credits = count;
 
-  std::cout << id_ << " has " << count << " credits" << std::endl;
-
   data_ = entry.flatten();
 }
 
