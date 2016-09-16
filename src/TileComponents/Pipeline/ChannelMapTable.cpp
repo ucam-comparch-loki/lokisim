@@ -67,7 +67,7 @@ const sc_event& ChannelMapTable::creditArrivedEvent(MapIndex entry) const {
 
 void ChannelMapTable::addCredit(MapIndex entry, uint numCredits) {
   loki_assert_with_message(entry < table.size(), "Entry %d", entry);
-  table[entry].addCredit(numCredits);
+  table[entry].addCredits(numCredits);
 }
 
 void ChannelMapTable::removeCredit(MapIndex entry) {

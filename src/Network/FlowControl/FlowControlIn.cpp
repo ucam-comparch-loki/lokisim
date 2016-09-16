@@ -79,6 +79,8 @@ void FlowControlIn::rejectPortClaim(ChannelID source) {
   loki_assert(nackChannel.isNullMapping());
   nackChannel = source;
 
+  assert(nackChannel != sourceChannel);
+
   newCredit.notify();
 
   LOKI_LOG << this->name() << " rejected claim from " << nackChannel << endl;

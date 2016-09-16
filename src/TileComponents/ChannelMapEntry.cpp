@@ -60,7 +60,7 @@ ChannelMapEntry::NetworkType ChannelMapEntry::getNetwork() const {
 
 bool ChannelMapEntry::useCredits() const {
   // Only start counting credits once the connection has been established.
-  return getNetwork() == GLOBAL && globalView().acquired;
+  return getNetwork() == GLOBAL;// && globalView().acquired;
 }
 
 bool ChannelMapEntry::canSend() const {
@@ -74,14 +74,14 @@ bool ChannelMapEntry::haveNCredits(uint n) const {
 void ChannelMapEntry::removeCredit() {
   if (useCredits()) {
     assert(globalView().credits > 0);
-    setCredits(globalView().credits - 1);
+    incrementCredits(-1);
   }
 }
 
-void ChannelMapEntry::addCredit(uint numCredits) {
+void ChannelMapEntry::addCredits(uint numCredits) {
   // If we're using credits, increment the credit counter, as normal.
-  if (useCredits()) {
-    setCredits(globalView().credits + numCredits);
+  if (useCredits() && globalView().acquired) {
+    incrementCredits(numCredits);
     assert(globalView().credits > 0);
 
     creditArrived_.notify();
@@ -89,6 +89,7 @@ void ChannelMapEntry::addCredit(uint numCredits) {
   // If we're not using credits, this may be an ack/nack from a connection
   // we're trying to set up.
   else if (getNetwork() == GLOBAL) {
+    incrementCredits(1);
     setAcquired(numCredits == 1);
     creditArrived_.notify();
   }
@@ -98,7 +99,16 @@ void ChannelMapEntry::setCredits(uint count) {
   GlobalChannel entry = globalView();
   entry.credits = count;
 
+  std::cout << id_ << " has " << count << " credits" << std::endl;
+
   data_ = entry.flatten();
+}
+
+void ChannelMapEntry::incrementCredits(int count) {
+  // Never increment/decrement the counter if there are infinite credits.
+  if (globalView().credits != INFINITE_CREDIT_COUNT) {
+    setCredits(globalView().credits + count);
+  }
 }
 
 void ChannelMapEntry::clearWriteEnable() {
