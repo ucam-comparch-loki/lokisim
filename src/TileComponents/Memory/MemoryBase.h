@@ -18,6 +18,8 @@
 #include "../../Network/NetworkTypedefs.h"
 #include "../../Utility/Warnings.h"
 
+class MemoryOperation;
+
 class MemoryBase : public Component {
 
 public:
@@ -95,8 +97,8 @@ public:
   // Return whether a load-linked reservation is still valid.
   virtual bool checkReservation(ComponentID requester, MemoryAddr address) const = 0;
 
-  // Check whether it is safe to write to the given address.
-  virtual void preWriteCheck(MemoryAddr address) const = 0;
+  // Check whether it is safe for the given operation to modify memory.
+  virtual void preWriteCheck(const MemoryOperation& operation) const = 0;
 
   // Data access.
   virtual uint32_t readWord(SRAMAddress position) const {

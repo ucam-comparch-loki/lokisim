@@ -17,8 +17,13 @@ namespace Instrumentation {
 
   public:
 
+    static void init();
+
     static void read(MemoryAddr address, count_t words);
     static void write(MemoryAddr address, count_t words);
+
+    static void sendData(NetworkResponse& data);
+    static void receiveData(NetworkRequest& data);
 
     static count_t numReads();
     static count_t numWrites();
@@ -30,6 +35,7 @@ namespace Instrumentation {
   private:
 
     static count_t numReads_, numWrites_, numWordsRead_, numWordsWritten_;
+    static count_t numSends_, numReceives_;
 
   };
 

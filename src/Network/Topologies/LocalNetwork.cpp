@@ -116,14 +116,13 @@ void LocalNetwork::wireUpSubnetworks() {
   coreToCore.iData(dataSig[CORE]);
   coreToMemory.iData(dataSig[MEMORY]);
 
-  // Cores have the following data inputs:
-  //   2 from core-to-core network
-  //   2 from memory-to-core network
+  // For each of the core's input buffers, there is a separate port from other
+  // cores and from memory banks.
   for (uint core=0; core<CORES_PER_TILE; core++) {
-    coreToCore.oData[2*core](oData[core][0]);
-    coreToCore.oData[2*core+1](oData[core][1]);
-    memoryToCore.oData[2*core](oData[core][2]);
-    memoryToCore.oData[2*core+1](oData[core][3]);
+    for (uint buffer=0; buffer<CORE_INPUT_CHANNELS; buffer++) {
+      coreToCore.oData[CORE_INPUT_CHANNELS*core + buffer](oData[core][2*buffer]);
+      memoryToCore.oData[CORE_INPUT_CHANNELS*core + buffer](oData[core][2*buffer + 1]);
+    }
   }
 
   for (uint mem=0; mem<MEMS_PER_TILE; mem++) {
@@ -173,9 +172,9 @@ void LocalNetwork::coreDataAck(int core) {
 
 LocalNetwork::LocalNetwork(const sc_module_name& name, ComponentID tile) :
     Network(name, tile, OUTPUT_PORTS_PER_TILE, INPUT_PORTS_PER_TILE, Network::COMPONENT, 0),
-    coreToCore("core_to_core", tile, CORES_PER_TILE, CORES_PER_TILE*2, 2, CORE_INPUT_CHANNELS),
+    coreToCore("core_to_core", tile, CORES_PER_TILE, CORES_PER_TILE*CORE_INPUT_CHANNELS, CORE_INPUT_CHANNELS, CORE_INPUT_CHANNELS),
     coreToMemory("core_to_mem", tile, CORES_PER_TILE, MEMS_PER_TILE, MEMORY_INPUT_PORTS, level, 1),
-    memoryToCore("mem_to_core", tile, MEMS_PER_TILE, CORES_PER_TILE*2, 2, level, CORE_INPUT_CHANNELS) {
+    memoryToCore("mem_to_core", tile, MEMS_PER_TILE, CORES_PER_TILE*CORE_INPUT_CHANNELS, CORE_INPUT_CHANNELS, level, CORE_INPUT_CHANNELS) {
 
   // Signals to/from each component.
   iData.init(COMPONENTS_PER_TILE);

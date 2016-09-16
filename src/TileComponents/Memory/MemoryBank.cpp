@@ -654,9 +654,11 @@ void MemoryBank::copyToMissBuffer() {
   }
 }
 
-void MemoryBank::preWriteCheck(MemoryAddr address) const {
-  if (mMainMemory->readOnly(address) && WARN_READ_ONLY)
-    LOKI_WARN << this->name() << " attempting to modify read-only address " << LOKI_HEX(address) << endl;
+void MemoryBank::preWriteCheck(const MemoryOperation& operation) const {
+  if (mMainMemory->readOnly(operation.getAddress()) && WARN_READ_ONLY) {
+    LOKI_WARN << this->name() << " attempting to modify read-only address" << endl;
+    LOKI_WARN << "  " << operation.toString() << endl;
+  }
 }
 
 void MemoryBank::processValidInput() {

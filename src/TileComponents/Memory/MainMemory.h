@@ -90,8 +90,8 @@ public:
   // Return whether a load-linked reservation is still valid.
   virtual bool checkReservation(ComponentID requester, MemoryAddr address) const;
 
-  // Check whether it is safe to write to the given address.
-  virtual void preWriteCheck(MemoryAddr address) const;
+  // Check whether it is safe for the given operation to modify memory.
+  virtual void preWriteCheck(const MemoryOperation& operation) const;
 
   // Check whether a memory location is read-only.
   bool readOnly(MemoryAddr addr) const;

@@ -130,7 +130,8 @@ parameter MAGIC_MEMORY               = 0;
 // accessible through each port.
 
 // Number of connections from the various networks to the core.
-parameter CORE_INPUT_PORTS         = 4;  // 2 from cores, 2 from memories
+// Each channel has a port from cores and from memory.
+parameter CORE_INPUT_PORTS         = 2 * (CORE_INPUT_CHANNELS);
 
 // Number of connections from the core to the various networks.
 parameter CORE_OUTPUT_PORTS        = 1;

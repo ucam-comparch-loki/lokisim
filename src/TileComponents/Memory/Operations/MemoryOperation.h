@@ -92,6 +92,9 @@ public:
   // Return the network address to which all results are sent.
   ChannelID getDestination() const;
 
+  // A textual representation of the operation.
+  string toString() const;
+
 protected:
 
   // Perform safety checks before writing any data.

@@ -70,13 +70,6 @@ void simulate(Chip& chip) {
 
   cycle_count_t cyclesPerStep;
 
-  // Simulate multiple cycles in a row when possible to reduce the overheads of
-  // stopping and starting simulation.
-  if (DEBUG)
-    cyclesPerStep = 1;
-  else
-    cyclesPerStep = 100;
-
   try {
     if (Debugger::usingDebugger) {
       Debugger::setChip(&chip);
@@ -91,6 +84,13 @@ void simulate(Chip& chip) {
 //          cyclesPerStep = 1;
 //          DEBUG = 1;
 //        }
+
+        // Simulate multiple cycles in a row when possible to reduce the overheads of
+        // stopping and starting simulation.
+        if (DEBUG)
+          cyclesPerStep = 1;
+        else
+          cyclesPerStep = 100;
 
         if ((cycle > 0) && (cycle % 1000000 < cyclesPerStep) && !DEBUG && !Arguments::silent())
           statusUpdate(cerr);

@@ -32,6 +32,7 @@ void Instrumentation::initialise() {
   ChannelMap::init();
   FIFO::init();
   IPKCache::init();
+  MainMemory::init();
   MemoryBank::init();
   Network::init();
   Operations::init();
@@ -45,6 +46,7 @@ void Instrumentation::end() {
   ChannelMap::end();
   FIFO::end();
   IPKCache::end();
+  MainMemory::end();
   MemoryBank::end();
   Network::end();
   Operations::end();
@@ -89,6 +91,7 @@ void Instrumentation::printSummary() {
   Stalls::printStats();
   IPKCache::printSummary();
   MemoryBank::printSummary();
+  MainMemory::printStats();
   Operations::printSummary();
 }
 

@@ -5,6 +5,10 @@
  * Jobs include receiving data and sending credits when buffer space becomes
  * available.
  *
+ * Also handles dynamic channel allocation. Components may request an
+ * exclusive connection with this channel, and will receive a 1 (accept) or
+ * 0 (reject) as a response over the credit network.
+ *
  *  Created on: 8 Nov 2010
  *      Author: db434
  */
@@ -62,14 +66,18 @@ private:
 
   // Helper functions for dataLoop.
   void handlePortClaim();
+  void acceptPortClaim(ChannelID source);
+  void rejectPortClaim(ChannelID source);
+
   void addCredit();
 
   // The main loop used to handle credits: wait until there are credits to send,
   // send them, and wait for acknowledgements.
   void creditLoop();
 
-  // Helper function for creditLoop.
+  // Helper functions for creditLoop.
   void sendCredit();
+  void sendNack();
 
 //============================================================================//
 // Local state
@@ -78,21 +86,29 @@ private:
 private:
 
   // State machine for sending credits.
-  enum CreditState {NO_CREDITS, WAITING_TO_SEND, WAITING_FOR_ACK};
+  enum CreditState {IDLE, CREDIT_SEND, NACK_SEND, ACKNOWLEDGE};
 
   CreditState creditState;
 
   // Address of channel managed by this flow control unit.
-  const ChannelID channel;
+  const ChannelID sinkChannel;
 
-  // Address of port connected to each of our input port. We need the
-  // address so we can send flow control information back to the source.
-  ChannelID returnAddress;
+  // Address of port connected to our input port.
+  ChannelID sourceChannel;
+
+  // Address to send negative acknowledgement to.
+  ChannelID nackChannel;
 
   bool useCredits;
   unsigned int numCredits;
 
+  bool disconnectPending;
+
   sc_event newCredit;
+
+  // There are a couple of events which mean we can't accept any new input until
+  // they have been processed fully. Trigger this event when those events end.
+  sc_event unblockInput;
 
 };
 

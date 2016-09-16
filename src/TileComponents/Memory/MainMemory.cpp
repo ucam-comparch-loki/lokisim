@@ -115,6 +115,7 @@ uint32_t MainMemory::getPayload(MemoryLevel level) {
   loki_assert_with_message(level == MEMORY_OFF_CHIP, "Level = %d", level);
   NetworkRequest request = muxOutput.read();
   uint32_t payload = request.payload().toUInt();
+  Instrumentation::MainMemory::receiveData(request);
 
   // Continue serving the same input if we haven't reached the end of packet.
   holdMux.write(!request.getMetadata().endOfPacket);
@@ -142,10 +143,12 @@ bool MainMemory::checkReservation(ComponentID requester, MemoryAddr address) con
   return false;
 }
 
-// Check whether it is safe to write to the given address.
-void MainMemory::preWriteCheck(MemoryAddr address) const {
-  if (WARN_READ_ONLY && readOnly(address))
-    LOKI_WARN << this->name() << " attempting to modify read-only address " << LOKI_HEX(address) << endl;
+// Check whether it is safe for the given operation to modify memory.
+void MainMemory::preWriteCheck(const MemoryOperation& operation) const {
+  if (WARN_READ_ONLY && readOnly(operation.getAddress())) {
+     LOKI_WARN << this->name() << " attempting to modify read-only address" << endl;
+     LOKI_WARN << "  " << operation.toString() << endl;
+  }
 }
 
 bool MainMemory::readOnly(MemoryAddr addr) const {
@@ -218,6 +221,7 @@ void MainMemory::processIdle() {
   // Check for new requests.
   if (muxOutput.valid()) {
     NetworkRequest request = muxOutput.read();
+    Instrumentation::MainMemory::receiveData(request);
 
     // Continue serving the same input if we haven't reached the end of packet.
     currentChannel = mux.getSelection();
@@ -295,22 +299,27 @@ void MainMemory::sendData(uint port) {
   else {
     NetworkResponse response = mOutputQueues[port]->read();
     LOKI_LOG << this->name() << " sending " << response << endl;
+    Instrumentation::MainMemory::sendData(response);
     oData[port].write(response);
     next_trigger(oData[port].ack_event());
   }
 }
 
 void MainMemory::checkSafeRead(MemoryAddr address, TileID requester) {
-  int tile = requester.computeTileIndex();
-  int cacheLine = getLine(address);
+  uint tile = requester.computeTileIndex();
+  uint cacheLine = getLine(address);
+
+  loki_assert_with_message(cacheLine < cacheLineValid.size(), "Address = 0x%x", address);
 
   // After reading, this tile has an up-to-date copy of the data.
   cacheLineValid[cacheLine] |= (1 << tile);
 }
 
 void MainMemory::checkSafeWrite(MemoryAddr address, TileID requester) {
-  int tile = requester.computeTileIndex();
-  int cacheLine = getLine(address);
+  uint tile = requester.computeTileIndex();
+  uint cacheLine = getLine(address);
+
+  loki_assert_with_message(cacheLine < cacheLineValid.size(), "Address = 0x%x", address);
 
   if (WARN_INCOHERENCE && !(cacheLineValid[cacheLine] & (1 << tile)))
     LOKI_WARN << "Tile " << requester << " updated cache line "

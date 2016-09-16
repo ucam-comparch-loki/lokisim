@@ -17,7 +17,7 @@
 
 void SendChannelEndTable::write(const NetworkData data) {
 
-  if (data.channelID().multicast || (data.channelID().component.tile == id.tile)) {
+  if (data.channelID().multicast || (data.channelID().isMemory())) {
     loki_assert(!bufferLocal.full());
     LOKI_LOG << this->name() << " writing " << data << " to buffer (local)\n";
     bufferLocal.write(data);

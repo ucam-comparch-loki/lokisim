@@ -10,52 +10,78 @@
 #include "../../Utility/Assert.h"
 
 void FlowControlIn::dataLoop() {
-  NetworkData data = iData.read();
+  // Don't accept any new data if we are waiting to reject a claim for this
+  // port. We can't handle simultaneous rejections.
+  if (iData.valid() && nackChannel.isNullMapping() && !disconnectPending) {
 
-  if (!data.channelID().multicast && (data.channelID() != channel)) {
-    LOKI_ERROR << data << " arrived at channel " << channel << endl;
-    loki_assert(false);
+    NetworkData data = iData.read();
+
+    if (!data.channelID().multicast && (data.channelID() != sinkChannel)) {
+      LOKI_ERROR << data << " arrived at channel " << sinkChannel << endl;
+      loki_assert(false);
+    }
+
+    if (data.getCoreMetadata().allocate)
+      handlePortClaim();
+    else
+      oData.write(data.payload());
+
+    iData.ack();
+
   }
-
-  if (data.getCoreMetadata().allocate)
-    handlePortClaim();
-  else
-    oData.write(data.payload());
-
-  iData.ack();
 }
 
 void FlowControlIn::handlePortClaim() {
   loki_assert(iData.valid());
+  loki_assert(!disconnectPending);
 
   NetworkData data = iData.read();
   loki_assert(data.getCoreMetadata().allocate);
 
-  // TODO: only accept the port claim when we have no credits left to send.
+  // If the connection is already set up, this is a disconnect request.
+  if (data.getCoreMetadata().acquired) {
+    // State needs to be preserved until the final credit has been sent, so
+    // just set a flag for now.
+    disconnectPending = true;
+    addCredit();
+  }
+  // If the connection isn't already set up, try to set it up.
+  else {
+    int payload = data.payload().toInt();
+    ComponentID component(payload & 0xFFFF);
+    ChannelIndex channel = (payload >> 16) & 0xFFFF;
+    ChannelID source = ChannelID(component, channel);
 
-  // Set the return address so we can send flow control.
-  int payload = data.payload().toInt();
-  ComponentID component(payload & 0xFFFF);
-  ChannelIndex channel = (payload >> 16) & 0xFFFF;
-  returnAddress = ChannelID(component, channel);
+    // Only accept if there is not already a connection to this channel.
+    if (sourceChannel.isNullMapping()) {
+      assert(numCredits == 0);
+      acceptPortClaim(source);
+    }
+    else {
+      rejectPortClaim(source);
+    }
 
-  // Only use credits if the sender is on a different tile.
-  useCredits = id.tile != returnAddress.component.tile;
+  }
+
+}
+
+void FlowControlIn::acceptPortClaim(ChannelID source) {
+  useCredits = true;
+  sourceChannel = source;
 
   addCredit();
 
-  LOKI_LOG << this->name() << " claimed by " << returnAddress << " [flow control " << (useCredits ? "enabled" : "disabled") << "]" << endl;
+  LOKI_LOG << this->name() << " claimed by " << sourceChannel << endl;
+}
 
-  // If this is a port claim from a memory, to a core's data input, this
-  // message doubles as a synchronisation message to show that all memories are
-  // now set up. We want to forward it to the buffer when possible.
-  if (!useCredits &&
-      (returnAddress.component.position >= CORES_PER_TILE) &&
-      (data.channelID().channel >= 2)) {
+void FlowControlIn::rejectPortClaim(ChannelID source) {
+  // Can't have multiple pending nacks.
+  loki_assert(nackChannel.isNullMapping());
+  nackChannel = source;
 
-    oData.write(data.payload());
-  }
+  newCredit.notify();
 
+  LOKI_LOG << this->name() << " rejected claim from " << nackChannel << endl;
 }
 
 void FlowControlIn::addCredit() {
@@ -67,52 +93,63 @@ void FlowControlIn::addCredit() {
 
 void FlowControlIn::creditLoop() {
   switch (creditState) {
-    case NO_CREDITS : {
-      if (numCredits == 0) {
+    case IDLE : {
+      // Top priority: send nack for connection setup requests.
+      // These can't be queued up.
+      if (!nackChannel.isNullMapping()) {
+        next_trigger(clock.posedge_event());
+        creditState = NACK_SEND;
+      }
+      // Send credits if there are any.
+      else if (numCredits > 0) {
+        loki_assert(useCredits);
+
+        // Information can only be sent onto the network at a positive clock edge.
+        next_trigger(clock.posedge_event());
+        creditState = CREDIT_SEND;
+      }
+      // Wait until something happens.
+      else {
         next_trigger(newCredit);
-        return;
       }
       
-      loki_assert(useCredits);
-
-      // Information can only be sent onto the network at a positive clock edge.
-      next_trigger(clock.posedge_event());
-      creditState = WAITING_TO_SEND;
       break;
     }
 
-    case WAITING_TO_SEND : {
+    case CREDIT_SEND : {
       loki_assert(numCredits > 0);
       loki_assert(useCredits);
 
       // Only send the credit if there is a valid address to send to.
-      if (!returnAddress.isNullMapping()) {
+      if (!sourceChannel.isNullMapping()) {
         sendCredit();
 
         // Wait for the credit to be acknowledged.
         next_trigger(oCredit.ack_event());
-        creditState = WAITING_FOR_ACK;
+        creditState = ACKNOWLEDGE;
       }
       else {
-//        cerr << "Warning: trying to send credit from " << channel.getString()
-//             << " when there is no connection" << endl;
-        numCredits--;
+        numCredits = 0;
         next_trigger(newCredit);
-        creditState = NO_CREDITS;
+        creditState = IDLE;
       }
 
       break;
     }
 
-    case WAITING_FOR_ACK : {
-      if (numCredits > 0) {
-        next_trigger(clock.posedge_event());
-        creditState = WAITING_TO_SEND;
-      }
-      else {
-        next_trigger(newCredit);
-        creditState = NO_CREDITS;
-      }
+    case NACK_SEND : {
+      sendNack();
+
+      // Wait for the nack to be acknowledged.
+      next_trigger(oCredit.ack_event());
+      creditState = ACKNOWLEDGE;
+
+      break;
+    }
+
+    case ACKNOWLEDGE : {
+      next_trigger(sc_core::SC_ZERO_TIME);
+      creditState = IDLE;
 
       break;
     }
@@ -120,26 +157,54 @@ void FlowControlIn::creditLoop() {
 }
 
 void FlowControlIn::sendCredit() {
-  NetworkCredit aw(Word(1), returnAddress);
+  assert(!sourceChannel.isNullMapping());
+
+  NetworkCredit aw(Word(numCredits), sourceChannel);
   oCredit.write(aw);
 
-  numCredits--;
+  numCredits = 0;
 
-  LOKI_LOG << this->name() << " sent credit to " << returnAddress << " (id:" << aw.messageID() << ")" << endl;
+  LOKI_LOG << this->name() << " sent credit to " << sourceChannel << " (id:" << aw.messageID() << ")" << endl;
+
+  // Tear down the connection, if necessary.
+  if (disconnectPending) {
+    LOKI_LOG << this->name() << " ending connection with " << sourceChannel << endl;
+
+    sourceChannel = ChannelID();
+    useCredits = false;
+    disconnectPending = false;
+
+    unblockInput.notify();
+  }
+}
+
+void FlowControlIn::sendNack() {
+  assert(!nackChannel.isNullMapping());
+
+  NetworkCredit aw(Word(0), nackChannel);
+  oCredit.write(aw);
+
+  LOKI_LOG << this->name() << " sent nack to " << nackChannel << " (id:" << aw.messageID() << ")" << endl;
+
+  nackChannel = ChannelID();
+  unblockInput.notify();
 }
 
 FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :
     Component(name, ID),
-    channel(channelManaged) {
+    sinkChannel(channelManaged) {
 
-  returnAddress = ChannelID();
+  sourceChannel = ChannelID();
+  nackChannel = ChannelID();
   useCredits = true;
   numCredits = 0;
 
-  creditState = NO_CREDITS;
+  disconnectPending = false;
+
+  creditState = IDLE;
 
   SC_METHOD(dataLoop);
-  sensitive << iData;
+  sensitive << iData << unblockInput;
   dont_initialize();
 
   SC_METHOD(creditLoop);

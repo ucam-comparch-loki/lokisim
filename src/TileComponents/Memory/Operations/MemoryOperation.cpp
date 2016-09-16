@@ -69,7 +69,7 @@ bool MemoryOperation::resultsToSend() const {
 
 void MemoryOperation::preWriteCheck() const {
   if (getAccessMode() != MEMORY_SCRATCHPAD)
-    memory.preWriteCheck(address);
+    memory.preWriteCheck(*this);
 }
 
 MemoryAccessMode MemoryOperation::getAccessMode() const {
@@ -139,6 +139,12 @@ SRAMAddress     MemoryOperation::getSRAMAddress() const {return sramAddress;}
 MemoryMetadata  MemoryOperation::getMetadata()    const {return metadata;}
 MemoryLevel     MemoryOperation::getMemoryLevel() const {return level;}
 ChannelID       MemoryOperation::getDestination() const {return destination;}
+
+string MemoryOperation::toString() const {
+  std::ostringstream out;
+  out << memoryOpName(metadata.opcode) << " " << LOKI_HEX(address) << " for " << destination.getString();
+  return out.str();
+}
 
 MemoryAddr MemoryOperation::startOfLine(MemoryAddr address) const {
   return address - memory.getOffset(address);

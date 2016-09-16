@@ -208,12 +208,14 @@ void MemoryBank::printSummary() {
   count_t instructionReads = instructionReadHits + misses[IPK_READ].numEvents();
   count_t l0l1InstReads = IPKCache::numReads();
   count_t l0l1InstReadHits = l0l1InstReads - misses[IPK_READ].numEvents();
-  count_t dataReadHits = hits[LOAD_B].numEvents() + hits[LOAD_HW].numEvents() + hits[LOAD_W].numEvents();
-  count_t dataReads = dataReadHits + misses[LOAD_B].numEvents() + misses[LOAD_HW].numEvents() + misses[LOAD_W].numEvents();
-  count_t dataWriteHits = hits[STORE_B].numEvents() + hits[STORE_HW].numEvents() + hits[STORE_W].numEvents();
-  count_t dataWrites = dataWriteHits + misses[STORE_B].numEvents() + misses[STORE_HW].numEvents() + misses[STORE_W].numEvents();
-  count_t totalHits = instructionReadHits + dataReadHits + dataWriteHits;
-  count_t totalAccesses = instructionReads + dataReads + dataWrites;
+  count_t atomicHits = hits[LOAD_AND_ADD].numEvents() + hits[LOAD_AND_AND].numEvents() + hits[LOAD_AND_OR].numEvents() + hits[LOAD_AND_XOR].numEvents() + hits[EXCHANGE].numEvents();
+  count_t atomicMisses = misses[LOAD_AND_ADD].numEvents() + misses[LOAD_AND_AND].numEvents() + misses[LOAD_AND_OR].numEvents() + misses[LOAD_AND_XOR].numEvents() + misses[EXCHANGE].numEvents();
+  count_t dataReadHits = atomicHits + hits[LOAD_B].numEvents() + hits[LOAD_HW].numEvents() + hits[LOAD_W].numEvents() + hits[LOAD_LINKED].numEvents();
+  count_t dataReads = dataReadHits + atomicMisses + misses[LOAD_B].numEvents() + misses[LOAD_HW].numEvents() + misses[LOAD_W].numEvents() + misses[LOAD_LINKED].numEvents();
+  count_t dataWriteHits = atomicHits + hits[STORE_B].numEvents() + hits[STORE_HW].numEvents() + hits[STORE_W].numEvents() + hits[STORE_CONDITIONAL].numEvents();
+  count_t dataWrites = dataWriteHits + atomicMisses + misses[STORE_B].numEvents() + misses[STORE_HW].numEvents() + misses[STORE_W].numEvents() + misses[STORE_CONDITIONAL].numEvents();
+  count_t totalHits = instructionReadHits + dataReadHits + dataWriteHits - atomicHits;
+  count_t totalAccesses = instructionReads + dataReads + dataWrites - atomicHits - atomicMisses;
 
   using std::clog;
 
