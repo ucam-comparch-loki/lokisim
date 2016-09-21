@@ -96,6 +96,7 @@ void Mesh::wireUp() {
       router.iData[Router::LOCAL](iData[col][row]);
       router.oData[Router::LOCAL](oData[col][row]);
       router.oReady[Router::LOCAL](oReady[col][row]);
+      router.iReady[Router::LOCAL](iReady[col][row]);
     }
   }
 }
@@ -116,6 +117,7 @@ Mesh::Mesh(const sc_module_name& name,
   iData.init(columns, rows);
   oData.init(columns, rows);
   oReady.init(columns, rows);
+  iReady.init(columns, rows);
 
   // Each set contains a vector for each of NORTH, EAST, SOUTH, WEST.
   edgeDataInputs_.assign(4, vector<DataSignal*>());

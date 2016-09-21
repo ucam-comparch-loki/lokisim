@@ -144,12 +144,6 @@ public:
   void removeCredit();
   void addCredits(uint numCredits);
 
-  // Set credit count directly. No safety checks.
-  void setCredits(uint count);
-
-  // Add count to the existing counter. Includes checks to prevent overflow, etc.
-  void incrementCredits(int count);
-
   void clearWriteEnable();
   void setAcquired(bool acq);
 
@@ -210,6 +204,12 @@ public:
   ChannelMapEntry& operator=(const ChannelMapEntry& other);
 
 private:
+
+  // Set credit count directly. No safety checks.
+  void setCredits(uint count);
+
+  // Add count to the existing counter. Includes checks to prevent overflow, etc.
+  void incrementCredits(int count);
 
   // The global address of this channel map entry. Used to determine whether
   // communications are local or global.

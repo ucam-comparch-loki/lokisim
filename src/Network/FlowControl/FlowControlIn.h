@@ -65,7 +65,7 @@ private:
   void dataLoop();
 
   // Helper functions for dataLoop.
-  void handlePortClaim();
+  void handlePortClaim(NetworkData request);
   void acceptPortClaim(ChannelID source);
   void rejectPortClaim(ChannelID source);
 
@@ -76,8 +76,9 @@ private:
   void creditLoop();
 
   // Helper functions for creditLoop.
+  void prepareCredit();
+  void prepareNack();
   void sendCredit();
-  void sendNack();
 
 //============================================================================//
 // Local state
@@ -86,7 +87,7 @@ private:
 private:
 
   // State machine for sending credits.
-  enum CreditState {IDLE, CREDIT_SEND, NACK_SEND, ACKNOWLEDGE};
+  enum CreditState {IDLE, CREDIT_SEND, ACKNOWLEDGE};
 
   CreditState creditState;
 
@@ -98,6 +99,9 @@ private:
 
   // Address to send negative acknowledgement to.
   ChannelID nackChannel;
+
+  // The credit to be sent.
+  NetworkCredit toSend;
 
   bool useCredits;
   unsigned int numCredits;

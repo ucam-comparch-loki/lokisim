@@ -88,6 +88,7 @@ void NetworkHierarchy2::initialise(const unsigned int sourcesPerTile,
   globalNetwork.iData(localToGlobalData);
   globalNetwork.oReady(globalToLocalReady);
   globalNetwork.oData(globalToLocalData);
+  globalNetwork.iReady(localToGlobalReady);
 
 }
 
@@ -112,5 +113,6 @@ void NetworkHierarchy2::createNetworkFromRouter(TileID tile) {
   demux->iData(globalToLocalData[tile.x][tile.y]);
   demux->oData(oData[index]);
   demux->iReady(iReady[index]);
+  demux->oReady(localToGlobalReady[tile.x][tile.y]);
   fromRouter.push_back(demux);
 }

@@ -39,8 +39,12 @@ public:
   LokiVector2D<DataOutput> oData;
 
   // A signal from each router saying whether it is ready to receive data.
-  // Addressed using oData[column][row]
+  // Addressed using oReady[column][row]
   LokiVector2D<ReadyOutput> oReady;
+
+  // A signal to each router saying whether it can send data to the local tile.
+  // Addressed using iReady[column][row]
+  LokiVector2D<ReadyOutput> iReady;
 
 //============================================================================//
 // Constructors and destructors

@@ -22,24 +22,23 @@ void FlowControlIn::dataLoop() {
     }
 
     if (data.getCoreMetadata().allocate)
-      handlePortClaim();
+      handlePortClaim(data);
     else
       oData.write(data.payload());
 
     iData.ack();
-
   }
 }
 
-void FlowControlIn::handlePortClaim() {
+void FlowControlIn::handlePortClaim(NetworkData request) {
   loki_assert(iData.valid());
   loki_assert(!disconnectPending);
 
-  NetworkData data = iData.read();
-  loki_assert(data.getCoreMetadata().allocate);
+  loki_assert(request.getCoreMetadata().allocate);
+
 
   // If the connection is already set up, this is a disconnect request.
-  if (data.getCoreMetadata().acquired) {
+  if (request.getCoreMetadata().acquired) {
     // State needs to be preserved until the final credit has been sent, so
     // just set a flag for now.
     disconnectPending = true;
@@ -47,7 +46,7 @@ void FlowControlIn::handlePortClaim() {
   }
   // If the connection isn't already set up, try to set it up.
   else {
-    int payload = data.payload().toInt();
+    int payload = request.payload().toInt();
     ComponentID component(payload & 0xFFFF);
     ChannelIndex channel = (payload >> 16) & 0xFFFF;
     ChannelID source = ChannelID(component, channel);
@@ -99,13 +98,13 @@ void FlowControlIn::creditLoop() {
       // Top priority: send nack for connection setup requests.
       // These can't be queued up.
       if (!nackChannel.isNullMapping()) {
+        prepareNack();
         next_trigger(clock.posedge_event());
-        creditState = NACK_SEND;
+        creditState = CREDIT_SEND;
       }
       // Send credits if there are any.
       else if (numCredits > 0) {
-        loki_assert(useCredits);
-
+        prepareCredit();
         // Information can only be sent onto the network at a positive clock edge.
         next_trigger(clock.posedge_event());
         creditState = CREDIT_SEND;
@@ -119,30 +118,9 @@ void FlowControlIn::creditLoop() {
     }
 
     case CREDIT_SEND : {
-      loki_assert(numCredits > 0);
-      loki_assert(useCredits);
+      sendCredit();
 
-      // Only send the credit if there is a valid address to send to.
-      if (!sourceChannel.isNullMapping()) {
-        sendCredit();
-
-        // Wait for the credit to be acknowledged.
-        next_trigger(oCredit.ack_event());
-        creditState = ACKNOWLEDGE;
-      }
-      else {
-        numCredits = 0;
-        next_trigger(newCredit);
-        creditState = IDLE;
-      }
-
-      break;
-    }
-
-    case NACK_SEND : {
-      sendNack();
-
-      // Wait for the nack to be acknowledged.
+      // Wait for the credit to be acknowledged.
       next_trigger(oCredit.ack_event());
       creditState = ACKNOWLEDGE;
 
@@ -158,15 +136,17 @@ void FlowControlIn::creditLoop() {
   } // end switch
 }
 
-void FlowControlIn::sendCredit() {
+void FlowControlIn::prepareCredit() {
+  loki_assert(useCredits);
   assert(!sourceChannel.isNullMapping());
+  assert(toSend.channelID().isNullMapping());
+  assert(numCredits > 0);
 
-  NetworkCredit aw(Word(numCredits), sourceChannel);
-  oCredit.write(aw);
+  toSend = NetworkCredit(Word(numCredits), sourceChannel);
 
   numCredits = 0;
 
-  LOKI_LOG << this->name() << " sent credit to " << sourceChannel << " (id:" << aw.messageID() << ")" << endl;
+  LOKI_LOG << this->name() << " sending credit to " << sourceChannel << " (id:" << toSend.messageID() << ")" << endl;
 
   // Tear down the connection, if necessary.
   if (disconnectPending) {
@@ -180,16 +160,22 @@ void FlowControlIn::sendCredit() {
   }
 }
 
-void FlowControlIn::sendNack() {
+void FlowControlIn::prepareNack() {
   assert(!nackChannel.isNullMapping());
+  assert(toSend.channelID().isNullMapping());
 
-  NetworkCredit aw(Word(0), nackChannel);
-  oCredit.write(aw);
+  toSend =NetworkCredit(Word(0), nackChannel);
 
-  LOKI_LOG << this->name() << " sent nack to " << nackChannel << " (id:" << aw.messageID() << ")" << endl;
+  LOKI_LOG << this->name() << " sending nack to " << nackChannel << " (id:" << toSend.messageID() << ")" << endl;
 
   nackChannel = ChannelID();
   unblockInput.notify();
+}
+
+void FlowControlIn::sendCredit() {
+  assert(!toSend.channelID().isNullMapping());
+  oCredit.write(toSend);
+  toSend = NetworkCredit();
 }
 
 FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :
@@ -198,7 +184,7 @@ FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const C
 
   sourceChannel = ChannelID();
   nackChannel = ChannelID();
-  useCredits = true;
+  useCredits = false;
   numCredits = 0;
 
   disconnectPending = false;

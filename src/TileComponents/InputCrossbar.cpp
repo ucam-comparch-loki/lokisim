@@ -38,6 +38,13 @@ void InputCrossbar::writeToBuffer(ChannelIndex output) {
     next_trigger(iFlowControl[output].default_event());
     return;
   }
+  if (dataToBuffer[output].valid()) {
+    // TODO: is it safe to stall here, or could it end up blocking other inputs?
+    next_trigger(dataToBuffer[output].ack_event());
+    return;
+  }
+
+  loki_assert(!dataToBuffer[output].valid());
 
   // There is data to send.
   PortIndex source = dataSource[output];

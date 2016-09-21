@@ -33,8 +33,8 @@ void Router::receiveData(PortIndex input) {
 }
 
 void Router::sendData(PortIndex output) {
-  // Wait for permission to send (connections to other routers only).
-  if ((output != LOCAL) && !iReady[output].read()) {
+  // Wait for permission to send.
+  if (!iReady[output].read()) {
     next_trigger(iReady[output].posedge_event());
   }
   // Data is always sent on the positive clock edge.
@@ -122,7 +122,7 @@ Router::Router(const sc_module_name& name, const ComponentID& ID) :
   }
 
   iData.init(5);    oData.init(5);
-  iReady.init(4);   oReady.init(5);
+  iReady.init(5);   oReady.init(5);
   outputAvailable.init(5);
 
   // Generate a method to watch each input port, putting the data into the
@@ -140,9 +140,5 @@ Router::Router(const sc_module_name& name, const ComponentID& ID) :
     options.set_sensitivity(&(inputBuffers[i].writeEvent()));
     sc_spawn(sc_bind(&Router::updateFlowControl, this, i), 0, &options);
   }
-
-//  SC_METHOD(updateFlowControl);
-//  sensitive << inputBuffers[LOCAL].readEvent() << inputBuffers[LOCAL].writeEvent();
-//  // do initialise
 
 }

@@ -40,6 +40,9 @@ public:
   // Addressed using iReady[component][buffer].
   LokiVector2D<ReadyInput> iReady;
 
+  // Flow control signal to the router.
+  ReadyOutput oReady;
+
 //============================================================================//
 // Constructors and destructors
 //============================================================================//
@@ -52,6 +55,7 @@ public:
 
     oData.init(outputs);
     iReady.init(outputs, buffersPerOutput);
+    oReady.initialize(true);
 
     state = DEMUX_READY;
 
@@ -74,7 +78,9 @@ private:
     switch (state) {
       case DEMUX_READY:
         if (flowControlSignal(destination).read()) {
+          loki_assert(!outputSignal(destination).valid());
           outputSignal(destination).write(iData.read());
+          oReady.write(false);
           state = DEMUX_SENT;
           next_trigger(outputSignal(destination).ack_event());
         }
@@ -86,6 +92,7 @@ private:
       case DEMUX_SENT:
         loki_assert(!outputSignal(destination).valid());
         iData.ack();
+        oReady.write(true);
         state = DEMUX_READY;
         // default trigger = new data arriving
         break;
