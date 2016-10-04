@@ -6,7 +6,8 @@
  */
 
 #include "ChannelMap.h"
-#include "../../TileComponents/ChannelMapEntry.h"
+
+#include "../../Tile/ChannelMapEntry.h"
 
 using namespace Instrumentation;
 

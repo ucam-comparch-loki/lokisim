@@ -14,7 +14,7 @@
 
 #include "Word.h"
 #include "../Typedefs.h"
-#include "../Utility/InstructionMap.h"
+#include "../Utility/ISA.h"
 
 using std::string;
 

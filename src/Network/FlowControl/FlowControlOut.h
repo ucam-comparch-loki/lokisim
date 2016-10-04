@@ -15,10 +15,10 @@
 #ifndef FLOWCONTROLOUT_H_
 #define FLOWCONTROLOUT_H_
 
-#include "../../Component.h"
+#include "../../LokiComponent.h"
 #include "../NetworkTypedefs.h"
 
-class FlowControlOut: public Component {
+class FlowControlOut: public LokiComponent {
 
 //============================================================================//
 // Ports

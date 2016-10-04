@@ -292,7 +292,7 @@ void ClockedArbiter::reportStalls(ostream& os) {
 
 ClockedArbiter::ClockedArbiter(const sc_module_name& name, ComponentID ID,
                            int inputs, int outputs, bool wormhole, int flowControlSignals) :
-    Component(name, ID),
+    LokiComponent(name, ID),
     wormhole(wormhole),
     requestVec(inputs, false),
     grantVec(inputs, false),

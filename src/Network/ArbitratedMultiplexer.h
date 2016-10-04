@@ -13,12 +13,12 @@
 #ifndef ARBITRATEDMULTIPLEXER_H_
 #define ARBITRATEDMULTIPLEXER_H_
 
-#include "../Component.h"
+#include "../LokiComponent.h"
 #include "NetworkTypedefs.h"
 #include "../Utility/Assert.h"
 
 template<class T>
-class ArbitratedMultiplexer: public Component {
+class ArbitratedMultiplexer: public LokiComponent {
 
 //============================================================================//
 // Ports
@@ -46,7 +46,7 @@ public:
 public:
 
   SC_HAS_PROCESS(ArbitratedMultiplexer);
-  ArbitratedMultiplexer(const sc_module_name& name, uint inputs) : Component(name) {
+  ArbitratedMultiplexer(const sc_module_name& name, uint inputs) : LokiComponent(name) {
     iData.init(inputs);
 
     state = MUX_READY;

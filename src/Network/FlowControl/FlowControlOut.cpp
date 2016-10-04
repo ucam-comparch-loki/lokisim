@@ -6,8 +6,9 @@
  */
 
 #include "FlowControlOut.h"
+
+#include "../../Tile/TileComponent.h"
 #include "../NetworkHierarchy.h"
-#include "../../TileComponents/TileComponent.h"
 #include "../../Utility/Assert.h"
 
 void FlowControlOut::mainLoop() {
@@ -82,7 +83,7 @@ void FlowControlOut::receivedCredit() {
 }
 
 FlowControlOut::FlowControlOut(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :
-    Component(name, ID) {
+    LokiComponent(name, ID) {
 
   channel = channelManaged;
   creditCount = CORE_BUFFER_SIZE;

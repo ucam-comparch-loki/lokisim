@@ -15,12 +15,12 @@
 #ifndef ROUTER_H_
 #define ROUTER_H_
 
-#include "../Component.h"
+#include "../LokiComponent.h"
 #include "../Utility/BlockingInterface.h"
 #include "BufferArray.h"
 #include "NetworkTypedefs.h"
 
-class Router : public Component, public BlockingInterface {
+class Router : public LokiComponent, public BlockingInterface {
 
 //============================================================================//
 // Ports

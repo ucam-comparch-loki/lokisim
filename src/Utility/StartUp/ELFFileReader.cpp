@@ -17,7 +17,7 @@
 #include "../StringManipulation.h"
 #include "../../Datatype/Identifier.h"
 #include "../../Datatype/Instruction.h"
-#include "../../TileComponents/Core.h"
+#include "../../Tile/Core/Core.h"
 
 vector<DataBlock>& ELFFileReader::extractData(int& mainPos) {
   std::ifstream file(filename_.c_str());

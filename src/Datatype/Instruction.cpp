@@ -11,9 +11,9 @@
 #include "Instruction.h"
 #include "DecodedInst.h"
 #include "../Exceptions/InvalidInstructionException.h"
-#include "../TileComponents/TileComponent.h"
-#include "../TileComponents/Pipeline/RegisterFile.h"
-#include "../Utility/InstructionMap.h"
+#include "../Tile/Core/RegisterFile.h"
+#include "../Tile/TileComponent.h"
+#include "../Utility/ISA.h"
 #include "../Utility/StringManipulation.h"
 #include "../Utility/Parameters.h"
 
@@ -138,8 +138,8 @@ Instruction::Instruction(const string& inst) : Word() {
 
   // Special case for setchmap because its register and immediate
   // are in a different order.
-  if(opcode() == InstructionMap::OP_SETCHMAP ||
-     opcode() == InstructionMap::OP_SETCHMAPI) {
+  if(opcode() == ISA::OP_SETCHMAP ||
+     opcode() == ISA::OP_SETCHMAPI) {
     reg1 = reg2;
     reg2 = 0;
   }
@@ -180,22 +180,22 @@ void Instruction::remoteChannel(const ChannelIndex val) {
 void Instruction::immediate(const int32_t val) {
   // Immediates have different lengths, depending on the instruction type.
   int length = 0;
-  switch(InstructionMap::format(opcode())) {
-    case InstructionMap::FMT_FF:
-    case InstructionMap::FMT_PFF:  length = 23; break;
+  switch(ISA::format(opcode())) {
+    case ISA::FMT_FF:
+    case ISA::FMT_PFF:  length = 23; break;
 
-    case InstructionMap::FMT_0R:
-    case InstructionMap::FMT_0Rnc:
-    case InstructionMap::FMT_1R:   length = 14; break;
+    case ISA::FMT_0R:
+    case ISA::FMT_0Rnc:
+    case ISA::FMT_1R:   length = 14; break;
 
-    case InstructionMap::FMT_1Rnc: length = 16; break;
+    case ISA::FMT_1Rnc: length = 16; break;
 
-    case InstructionMap::FMT_2R:
-    case InstructionMap::FMT_2Rnc: length = 9; break;
+    case ISA::FMT_2R:
+    case ISA::FMT_2Rnc: length = 9; break;
 
-    case InstructionMap::FMT_2Rs:  length = 5; break;
+    case ISA::FMT_2Rs:  length = 5; break;
 
-    case InstructionMap::FMT_3R:   length = 0; break;
+    case ISA::FMT_3R:   length = 0; break;
   }
 
   setBits(startImmediate, length-1, val);
@@ -283,7 +283,7 @@ void Instruction::decodeOpcode(const string& name) {
     string setting = opcodeParts[1];
     if(setting == "eop") predicate(END_OF_PACKET);
     else if(setting == "fetch") {
-      opcode(InstructionMap::OP_PSEL_FETCH);
+      opcode(ISA::OP_PSEL_FETCH);
       if(opcodeParts.size() > 2 && opcodeParts[2] == "eop")
         predicate(END_OF_PACKET);
 
@@ -304,11 +304,11 @@ void Instruction::decodeOpcode(const string& name) {
 
   // Look up operation in InstructionMap
   try {
-    opcode_t op = InstructionMap::opcode(opname);
+    opcode_t op = ISA::opcode(opname);
     opcode(op);
 
     if(op == 0 || op == 1) {
-      function_t fn = InstructionMap::function(opname);
+      function_t fn = ISA::function(opname);
       function(fn);
     }
   }
@@ -372,20 +372,20 @@ int32_t Instruction::decodeImmediate(const string& immed) {
 void Instruction::setFields(const RegisterIndex val1, const RegisterIndex val2,
                             const RegisterIndex val3) {
 
-  switch(InstructionMap::format(opcode())) {
-    case InstructionMap::FMT_1R:
-    case InstructionMap::FMT_1Rnc:
+  switch(ISA::format(opcode())) {
+    case ISA::FMT_1R:
+    case ISA::FMT_1Rnc:
       reg1(val1);
       break;
 
-    case InstructionMap::FMT_2R:
-    case InstructionMap::FMT_2Rnc:
-    case InstructionMap::FMT_2Rs:
+    case ISA::FMT_2R:
+    case ISA::FMT_2Rnc:
+    case ISA::FMT_2Rs:
       reg1(val1);
       reg2(val2);
       break;
 
-    case InstructionMap::FMT_3R:
+    case ISA::FMT_3R:
       reg1(val1);
       reg2(val2);
       reg3(val3);

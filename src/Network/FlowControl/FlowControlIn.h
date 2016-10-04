@@ -16,12 +16,12 @@
 #ifndef FLOWCONTROLIN_H_
 #define FLOWCONTROLIN_H_
 
-#include "../../Component.h"
+#include "../../LokiComponent.h"
 #include "../NetworkTypedefs.h"
 
 class Word;
 
-class FlowControlIn: public Component {
+class FlowControlIn: public LokiComponent {
 
 //============================================================================//
 // Ports

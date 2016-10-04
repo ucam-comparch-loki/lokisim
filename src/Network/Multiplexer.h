@@ -8,12 +8,12 @@
 #ifndef MULTIPLEXER_H_
 #define MULTIPLEXER_H_
 
-#include "../Component.h"
+#include "../LokiComponent.h"
 #include "../Utility/BlockingInterface.h"
 #include "NetworkTypedefs.h"
 
 
-class Multiplexer: public Component, public BlockingInterface {
+class Multiplexer: public LokiComponent, public BlockingInterface {
 
 //============================================================================//
 // Ports

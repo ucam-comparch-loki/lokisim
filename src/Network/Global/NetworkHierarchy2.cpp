@@ -23,7 +23,7 @@ NetworkHierarchy2::NetworkHierarchy2(const sc_module_name &name,
                                      const unsigned int    sourcesPerTile,
                                      const unsigned int    destinationsPerTile,
                                      const unsigned int    buffersPerDestination) :
-    Component(name),
+    LokiComponent(name),
     globalNetwork("global", 0, TOTAL_TILE_ROWS, TOTAL_TILE_COLUMNS, Network::TILE) {
 
   loki_assert(sourcesPerTile > 0);

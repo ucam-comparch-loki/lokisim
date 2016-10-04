@@ -13,10 +13,10 @@
 #ifndef FLIT_H_
 #define FLIT_H_
 
+#include "../Tile/ChannelMapEntry.h"
 #include "../Typedefs.h"
 #include "Identifier.h"
 #include "Word.h"
-#include "../TileComponents/ChannelMapEntry.h"
 
 // The basic flit just has a single end-of-packet bit. All specialisations must
 // have this bit in the same position, but may use some of the "padding" bits

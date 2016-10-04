@@ -14,12 +14,12 @@
 #ifndef SRC_NETWORK_GLOBAL_ROUTERDEMULTIPLEXER_H_
 #define SRC_NETWORK_GLOBAL_ROUTERDEMULTIPLEXER_H_
 
-#include "../../Component.h"
+#include "../../LokiComponent.h"
 #include "../NetworkTypedefs.h"
 #include "../../Utility/Assert.h"
 
 template<class T>
-class RouterDemultiplexer: public Component {
+class RouterDemultiplexer: public LokiComponent {
 
 //============================================================================//
 // Ports
@@ -51,7 +51,7 @@ public:
 
   SC_HAS_PROCESS(RouterDemultiplexer);
   RouterDemultiplexer(const sc_module_name& name, uint outputs, uint buffersPerOutput) :
-    Component(name) {
+    LokiComponent(name) {
 
     oData.init(outputs);
     iReady.init(outputs, buffersPerOutput);

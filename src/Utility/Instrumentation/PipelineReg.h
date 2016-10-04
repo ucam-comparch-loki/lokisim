@@ -8,9 +8,9 @@
 #ifndef PIPELINEREG_H_
 #define PIPELINEREG_H_
 
+#include "../../Tile/Core/PipelineRegister.h"
 #include "InstrumentationBase.h"
 #include "CounterMap.h"
-#include "../../TileComponents/Pipeline/PipelineRegister.h"
 
 class DecodedInst;
 

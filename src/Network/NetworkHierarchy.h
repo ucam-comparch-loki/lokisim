@@ -12,12 +12,13 @@
 #define NETWORKHIERARCHY_H_
 
 #include <vector>
-#include "../Component.h"
+
+#include "../LokiComponent.h"
 #include "Network.h"
 
 using std::vector;
 
-class NetworkHierarchy : public Component {
+class NetworkHierarchy : public LokiComponent {
 
 //============================================================================//
 // Ports

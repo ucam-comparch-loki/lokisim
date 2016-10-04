@@ -11,7 +11,8 @@
 #define OUTOFBOUNDSEXCEPTION_H_
 
 #include <sstream>
-#include "../TileComponents/Memory/MemoryTypedefs.h"
+
+#include "../Tile/Memory/MemoryTypedefs.h"
 
 class OutOfBoundsException : public std::exception {
 

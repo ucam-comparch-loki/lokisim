@@ -15,13 +15,13 @@ const RegisterIndex DecodedInst::sourceReg2()      const {return sourceReg2_;}
 const RegisterIndex DecodedInst::destination()     const {return destReg_;}
 
 const int32_t       DecodedInst::immediate()       const {
-  if (opcode_ == InstructionMap::OP_PSEL_FETCHR)
+  if (opcode_ == ISA::OP_PSEL_FETCHR)
     return immediate_ >> 7;
   else
     return immediate_;
 }
 const int32_t       DecodedInst::immediate2()      const {
-  if (opcode_ == InstructionMap::OP_PSEL_FETCHR)
+  if (opcode_ == ISA::OP_PSEL_FETCHR)
     return (immediate_ << 25) >> 25;
   else
     return 0;
@@ -32,7 +32,7 @@ const predicate_t   DecodedInst::predicate()       const {return predicate_;}
 const bool          DecodedInst::setsPredicate()   const {return setsPred_;}
 
 const MemoryOpcode DecodedInst::memoryOp() const {
-  if (opcode() == InstructionMap::OP_SENDCONFIG)
+  if (opcode() == ISA::OP_SENDCONFIG)
     return MemoryMetadata(immediate()).opcode;
   else
     return memoryOp_;
@@ -82,39 +82,39 @@ const bool    DecodedInst::hasResult()             const {return hasResult_;}
 
 
 const bool    DecodedInst::hasDestReg() const {
-  return InstructionMap::hasDestReg(opcode_);
+  return ISA::hasDestReg(opcode_);
 }
 
 const bool    DecodedInst::hasSrcReg1() const {
-  return InstructionMap::hasSrcReg1(opcode_);
+  return ISA::hasSrcReg1(opcode_);
 }
 
 const bool    DecodedInst::hasSrcReg2() const {
-  return InstructionMap::hasSrcReg2(opcode_);
+  return ISA::hasSrcReg2(opcode_);
 }
 
 const bool    DecodedInst::hasImmediate() const {
-  return InstructionMap::hasImmediate(opcode_);
+  return ISA::hasImmediate(opcode_);
 }
 
 const bool    DecodedInst::isDecodeStageOperation() const {
   switch (opcode_) {
-    case InstructionMap::OP_RMTNXIPK:
-    case InstructionMap::OP_RMTEXECUTE:
-    case InstructionMap::OP_PSEL_FETCH:
-    case InstructionMap::OP_PSEL_FETCHR:
-    case InstructionMap::OP_FETCH:
-    case InstructionMap::OP_FETCHR:
-    case InstructionMap::OP_FETCHPST:
-    case InstructionMap::OP_FETCHPSTR:
-    case InstructionMap::OP_FILL:
-    case InstructionMap::OP_FILLR:
-    case InstructionMap::OP_IBJMP:
-    case InstructionMap::OP_IRDR:
-    case InstructionMap::OP_WOCHE:
-    case InstructionMap::OP_SELCH:
-    case InstructionMap::OP_TSTCHI:
-    case InstructionMap::OP_TSTCHI_P:
+    case ISA::OP_RMTNXIPK:
+    case ISA::OP_RMTEXECUTE:
+    case ISA::OP_PSEL_FETCH:
+    case ISA::OP_PSEL_FETCHR:
+    case ISA::OP_FETCH:
+    case ISA::OP_FETCHR:
+    case ISA::OP_FETCHPST:
+    case ISA::OP_FETCHPSTR:
+    case ISA::OP_FILL:
+    case ISA::OP_FILLR:
+    case ISA::OP_IBJMP:
+    case ISA::OP_IRDR:
+    case ISA::OP_WOCHE:
+    case ISA::OP_SELCH:
+    case ISA::OP_TSTCHI:
+    case ISA::OP_TSTCHI_P:
       return true;
     default:
       return false;
@@ -123,20 +123,20 @@ const bool    DecodedInst::isDecodeStageOperation() const {
 
 const bool    DecodedInst::isExecuteStageOperation() const {
   switch (opcode_) {
-    case InstructionMap::OP_SCRATCHRD:
-    case InstructionMap::OP_SCRATCHRDI:
-    case InstructionMap::OP_SCRATCHWR:
-    case InstructionMap::OP_SCRATCHWRI:
-    case InstructionMap::OP_CREGRDI:
-    case InstructionMap::OP_CREGWRI:
-    case InstructionMap::OP_GETCHMAP:
-    case InstructionMap::OP_GETCHMAPI:
-    case InstructionMap::OP_SETCHMAP:
-    case InstructionMap::OP_SETCHMAPI:
-    case InstructionMap::OP_SYSCALL:
+    case ISA::OP_SCRATCHRD:
+    case ISA::OP_SCRATCHRDI:
+    case ISA::OP_SCRATCHWR:
+    case ISA::OP_SCRATCHWRI:
+    case ISA::OP_CREGRDI:
+    case ISA::OP_CREGWRI:
+    case ISA::OP_GETCHMAP:
+    case ISA::OP_GETCHMAPI:
+    case ISA::OP_SETCHMAP:
+    case ISA::OP_SETCHMAPI:
+    case ISA::OP_SYSCALL:
       return true;
     default:
-      return InstructionMap::isALUOperation(opcode_);
+      return ISA::isALUOperation(opcode_);
   }
 }
 
@@ -149,14 +149,14 @@ const bool    DecodedInst::persistent() const {
 }
 
 const bool    DecodedInst::endOfNetworkPacket() const {
-  if (opcode() == InstructionMap::OP_SENDCONFIG)
+  if (opcode() == ISA::OP_SENDCONFIG)
     return FlitMetadata(immediate()).endOfPacket;
   else
     return endOfPacket_;
 }
 
 const inst_name_t& DecodedInst::name() const {
-  return InstructionMap::name(opcode_, function_);
+  return ISA::name(opcode_, function_);
 }
 
 
@@ -209,7 +209,7 @@ const NetworkData DecodedInst::toNetworkData(TileID tile) const {
   if (destination.isMemory())
     destination.component.tile = tile;
 
-  if (opcode() == InstructionMap::OP_SENDCONFIG)
+  if (opcode() == ISA::OP_SENDCONFIG)
     return NetworkData(result(), destination, uint32_t(immediate()));
   else if (destination.multicast) {
     // We never acquire channels on the local networks, so just provide "false".
@@ -271,21 +271,21 @@ std::ostream& DecodedInst::print(std::ostream& os) const {
   os << name() << (predicate()==Instruction::END_OF_PACKET ? ".eop" : "");
 
   // Special case for cfgmem and setchmap: immediate is printed before register.
-  if (opcode_ == InstructionMap::OP_SETCHMAP || opcode_ == InstructionMap::OP_SETCHMAPI) {
+  if (opcode_ == ISA::OP_SETCHMAP || opcode_ == ISA::OP_SETCHMAPI) {
     os << " " << immediate() << ", r" << (int)sourceReg1();
     return os;
   }
 
   // Special case for loads: print the form 8(r2).
-  if (opcode_ == InstructionMap::OP_LDW ||
-      opcode_ == InstructionMap::OP_LDHWU ||
-      opcode_ == InstructionMap::OP_LDBU) {
+  if (opcode_ == ISA::OP_LDW ||
+      opcode_ == ISA::OP_LDHWU ||
+      opcode_ == ISA::OP_LDBU) {
     os << " " << immediate() << "(r" << (int)sourceReg1() << ")";
   }
   // Special case for stores: print the form r3 8(r2).
-  else if (opcode_ == InstructionMap::OP_STW ||
-           opcode_ == InstructionMap::OP_STHW ||
-           opcode_ == InstructionMap::OP_STB) {
+  else if (opcode_ == ISA::OP_STW ||
+           opcode_ == ISA::OP_STHW ||
+           opcode_ == ISA::OP_STB) {
     os << " r" << (int)sourceReg1() << ", " << immediate() << "(r"
        << (int)sourceReg2() << ")";
   }
@@ -349,66 +349,66 @@ DecodedInst::DecodedInst(const Instruction inst) : original_(inst) {
   if (opcode_ == 0 || opcode_ == 1)
     function_      = inst.function();
   else
-    function_      = InstructionMap::function(opcode_);
+    function_      = ISA::function(opcode_);
 
   // Determine which channel (if any) this instruction sends its result to.
   // Most instructions encode this explicitly, but fetches implicitly send to
   // channel 0.
   switch (opcode_) {
-    case InstructionMap::OP_FETCHR:
-    case InstructionMap::OP_FETCHPSTR:
-    case InstructionMap::OP_FILLR:
-    case InstructionMap::OP_PSEL_FETCHR:
-    case InstructionMap::OP_FETCH:
-    case InstructionMap::OP_FETCHPST:
-    case InstructionMap::OP_FILL:
-    case InstructionMap::OP_PSEL_FETCH:
+    case ISA::OP_FETCHR:
+    case ISA::OP_FETCHPSTR:
+    case ISA::OP_FILLR:
+    case ISA::OP_PSEL_FETCHR:
+    case ISA::OP_FETCH:
+    case ISA::OP_FETCHPST:
+    case ISA::OP_FILL:
+    case ISA::OP_PSEL_FETCH:
       channelMapEntry_ = 0;
       break;
     default:
-      if (InstructionMap::hasRemoteChannel(opcode_))
+      if (ISA::hasRemoteChannel(opcode_))
         channelMapEntry_ = inst.remoteChannel();
       else
         channelMapEntry_ = Instruction::NO_CHANNEL;
       break;
   }
 
-  setsPred_        = InstructionMap::setsPredicate(opcode_);
-  format_          = InstructionMap::format(opcode_);
+  setsPred_        = ISA::setsPredicate(opcode_);
+  format_          = ISA::format(opcode_);
 
-  bool signedImmed = InstructionMap::hasSignedImmediate(opcode_);
+  bool signedImmed = ISA::hasSignedImmediate(opcode_);
 
   // Different instruction formats have immediate fields of different sizes.
   switch (format_) {
-    case InstructionMap::FMT_FF:
-    case InstructionMap::FMT_PFF:
+    case ISA::FMT_FF:
+    case ISA::FMT_PFF:
       if (signedImmed) immediate_ = signextend<int32_t,  23>(inst.immediate());
       else             immediate_ = signextend<uint32_t, 23>(inst.immediate());
       break;
 
-    case InstructionMap::FMT_0R:
-    case InstructionMap::FMT_0Rnc:
-    case InstructionMap::FMT_1R:
+    case ISA::FMT_0R:
+    case ISA::FMT_0Rnc:
+    case ISA::FMT_1R:
       if (signedImmed) immediate_ = signextend<int32_t,  14>(inst.immediate());
       else             immediate_ = signextend<uint32_t, 14>(inst.immediate());
       break;
 
-    case InstructionMap::FMT_1Rnc:
+    case ISA::FMT_1Rnc:
       if (signedImmed) immediate_ = signextend<int32_t,  16>(inst.immediate());
       else             immediate_ = signextend<uint32_t, 16>(inst.immediate());
       break;
 
-    case InstructionMap::FMT_2R:
-    case InstructionMap::FMT_2Rnc:
+    case ISA::FMT_2R:
+    case ISA::FMT_2Rnc:
       if (signedImmed) immediate_ = signextend<int32_t,   9>(inst.immediate());
       else             immediate_ = signextend<uint32_t,  9>(inst.immediate());
       break;
 
-    case InstructionMap::FMT_2Rs:
+    case ISA::FMT_2Rs:
       immediate_ = signextend<uint32_t, 5>(inst.immediate());
       break;
 
-    case InstructionMap::FMT_3R:
+    case ISA::FMT_3R:
       immediate_ =  0;
       break;
   }
@@ -425,21 +425,21 @@ DecodedInst::DecodedInst(const Instruction inst) : original_(inst) {
     else                              reg = inst.reg3();
 
     if (registersAssigned == 0) {
-      if (InstructionMap::hasDestReg(opcode_)) {
+      if (ISA::hasDestReg(opcode_)) {
         destReg_ = reg;
         registersRetrieved++;
       }
       else destReg_ = 0;
     }
     else if (registersAssigned == 1) {
-      if (InstructionMap::hasSrcReg1(opcode_)) {
+      if (ISA::hasSrcReg1(opcode_)) {
         sourceReg1_ = reg;
         registersRetrieved++;
       }
       else sourceReg1_ = 0;
     }
     else {
-      if (InstructionMap::hasSrcReg2(opcode_)) {
+      if (ISA::hasSrcReg2(opcode_)) {
         sourceReg2_ = reg;
         registersRetrieved++;
       }

@@ -21,18 +21,19 @@
 
 #include "Datatype/Identifier.h"
 #include "Datatype/Word.h"
+#include "LokiComponent.h"
 #include "Network/Global/CreditNetwork.h"
 #include "Network/Global/DataNetwork.h"
 #include "Network/Global/RequestNetwork.h"
 #include "Network/Global/ResponseNetwork.h"
 #include "Network/NetworkHierarchy.h"
 #include "Network/NetworkTypedefs.h"
-#include "TileComponents/Core.h"
-#include "TileComponents/Memory/MagicMemory.h"
-#include "TileComponents/Memory/MainMemory.h"
-#include "TileComponents/Memory/MemoryBank.h"
-#include "TileComponents/Memory/MemoryTypedefs.h"
-#include "TileComponents/Memory/MissHandlingLogic.h"
+#include "Tile/Memory/MagicMemory.h"
+#include "Tile/Memory/MainMemory.h"
+#include "Tile/Memory/MemoryBank.h"
+#include "Tile/Memory/MemoryTypedefs.h"
+#include "Tile/Memory/MissHandlingLogic.h"
+#include "Tile/Core/Core.h"
 #include "Typedefs.h"
 #include "Utility/LokiVector.h"
 #include "Utility/LokiVector2D.h"
@@ -44,7 +45,7 @@ class DataBlock;
 class MissHandlingLogic;
 class TileComponent;
 
-class Chip : public Component {
+class Chip : public LokiComponent {
 
 //============================================================================//
 // Constructors and destructors

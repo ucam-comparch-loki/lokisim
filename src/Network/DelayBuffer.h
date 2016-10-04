@@ -18,11 +18,11 @@
 #ifndef SRC_NETWORK_DELAYBUFFER_H_
 #define SRC_NETWORK_DELAYBUFFER_H_
 
-#include "../Component.h"
+#include "../LokiComponent.h"
 #include "NetworkBuffer.h"
 
 template<class T>
-class DelayBuffer : public Component {
+class DelayBuffer : public LokiComponent {
 
   struct TimedData {
     T       data;       // Data to be written
@@ -31,7 +31,7 @@ class DelayBuffer : public Component {
 
 public:
   DelayBuffer(const sc_module_name& name, const size_t size, const double delayCycles) :
-      Component(name),
+      LokiComponent(name),
       buffer(this->name(), size+int(delayCycles)),
       delay(delayCycles) {
 

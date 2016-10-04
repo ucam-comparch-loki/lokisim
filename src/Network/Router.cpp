@@ -108,7 +108,7 @@ void Router::reportStalls(ostream& os) {
 }
 
 Router::Router(const sc_module_name& name, const ComponentID& ID) :
-    Component(name, ID),
+    LokiComponent(name, ID),
     BlockingInterface(),
     inputBuffers(5, ROUTER_BUFFER_SIZE, string(this->name()) + ".input_data"),
     xPos(ID.tile.x),

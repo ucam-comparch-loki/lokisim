@@ -6,11 +6,11 @@
  */
 
 #include "Operations.h"
-#include "../InstructionMap.h"
 #include "../Instrumentation.h"
 #include "../Trace/Callgrind.h"
 #include "../../Datatype/Identifier.h"
 #include "../../Datatype/DecodedInst.h"
+#include "../ISA.h"
 
 using namespace Instrumentation;
 
@@ -116,15 +116,15 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
   }
 
   switch(dec.opcode()) {
-    case InstructionMap::OP_LDW:
-    case InstructionMap::OP_LDHWU:
-    case InstructionMap::OP_LDBU:
+    case ISA::OP_LDW:
+    case ISA::OP_LDHWU:
+    case ISA::OP_LDBU:
       numMemLoads.increment(coreID);
       break;
  
-    case InstructionMap::OP_STW:
-    case InstructionMap::OP_STHW:
-    case InstructionMap::OP_STB:
+    case ISA::OP_STW:
+    case ISA::OP_STHW:
+    case ISA::OP_STB:
       numMemStores.increment(coreID);
       break;
 
@@ -134,21 +134,21 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
  
   if (dec.sourceReg1() == 2 || dec.sourceReg2() == 2) {
     numMemLoads.increment(coreID);
-    if (dec.function() != InstructionMap::FN_OR || dec.sourceReg2() != 0) {
+    if (dec.function() != ISA::FN_OR || dec.sourceReg2() != 0) {
       numMergedMemLoads.increment(coreID);
     }
   }
 
   if (dec.sourceReg1() == 3 || dec.sourceReg2() == 3 || dec.sourceReg1() == 4 || dec.sourceReg2() == 4) {
     numChanReads.increment(coreID);
-    if (dec.function() != InstructionMap::FN_OR || dec.sourceReg2() != 0) {
+    if (dec.function() != ISA::FN_OR || dec.sourceReg2() != 0) {
       numMergedChanReads.increment(coreID);
     }
   }
 
   if (dec.channelMapEntry() == 2 || dec.channelMapEntry() == 3) {
     numChanWrites.increment(coreID);
-    if (dec.function() != InstructionMap::FN_OR || dec.sourceReg1() == 2 || dec.sourceReg2() == 2) {
+    if (dec.function() != ISA::FN_OR || dec.sourceReg1() == 2 || dec.sourceReg2() == 2) {
       numMergedChanWrites.increment(coreID);
     }
   }
@@ -156,47 +156,47 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
   switch (dec.opcode()) {
     case 0:
     case 1:
-      if ((dec.function() < InstructionMap::FN_SETEQ) || (dec.function() > InstructionMap::FN_SETGTEU)) {
+      if ((dec.function() < ISA::FN_SETEQ) || (dec.function() > ISA::FN_SETGTEU)) {
         numArithOps.increment(coreID);
       } else {
         numCondOps.increment(coreID);
       }
       break;
-    case InstructionMap::OP_NORI:
-    case InstructionMap::OP_NORI_P:
-    case InstructionMap::OP_ANDI:
-    case InstructionMap::OP_ANDI_P:
-    case InstructionMap::OP_ORI:
-    case InstructionMap::OP_ORI_P:
-    case InstructionMap::OP_XORI:
-    case InstructionMap::OP_XORI_P:
-    case InstructionMap::OP_SLLI:
-    case InstructionMap::OP_SRLI:
-    case InstructionMap::OP_SRLI_P:
-    case InstructionMap::OP_SRAI:
-    case InstructionMap::OP_ADDUI:
-    case InstructionMap::OP_ADDUI_P:
-    case InstructionMap::OP_MULHW:
-    case InstructionMap::OP_MULLW:
-    case InstructionMap::OP_MULHWU:
+    case ISA::OP_NORI:
+    case ISA::OP_NORI_P:
+    case ISA::OP_ANDI:
+    case ISA::OP_ANDI_P:
+    case ISA::OP_ORI:
+    case ISA::OP_ORI_P:
+    case ISA::OP_XORI:
+    case ISA::OP_XORI_P:
+    case ISA::OP_SLLI:
+    case ISA::OP_SRLI:
+    case ISA::OP_SRLI_P:
+    case ISA::OP_SRAI:
+    case ISA::OP_ADDUI:
+    case ISA::OP_ADDUI_P:
+    case ISA::OP_MULHW:
+    case ISA::OP_MULLW:
+    case ISA::OP_MULHWU:
       numArithOps.increment(coreID);
       break;
 
-    case InstructionMap::OP_SETEQI:
-    case InstructionMap::OP_SETEQI_P:
-    case InstructionMap::OP_SETNEI:
-    case InstructionMap::OP_SETNEI_P:
-    case InstructionMap::OP_SETLTI:
-    case InstructionMap::OP_SETLTI_P:
-    case InstructionMap::OP_SETLTUI:
-    case InstructionMap::OP_SETLTUI_P:
-    case InstructionMap::OP_SETGTEI:
-    case InstructionMap::OP_SETGTEI_P:
-    case InstructionMap::OP_SETGTEUI:
-    case InstructionMap::OP_SETGTEUI_P:
-    case InstructionMap::OP_PSEL:
-    case InstructionMap::OP_PSEL_FETCH:
-    case InstructionMap::OP_PSEL_FETCHR:
+    case ISA::OP_SETEQI:
+    case ISA::OP_SETEQI_P:
+    case ISA::OP_SETNEI:
+    case ISA::OP_SETNEI_P:
+    case ISA::OP_SETLTI:
+    case ISA::OP_SETLTI_P:
+    case ISA::OP_SETLTUI:
+    case ISA::OP_SETLTUI_P:
+    case ISA::OP_SETGTEI:
+    case ISA::OP_SETGTEI_P:
+    case ISA::OP_SETGTEUI:
+    case ISA::OP_SETGTEUI_P:
+    case ISA::OP_PSEL:
+    case ISA::OP_PSEL_FETCH:
+    case ISA::OP_PSEL_FETCHR:
       numCondOps.increment(coreID);
       break;
 
@@ -232,7 +232,7 @@ void Operations::printStats() {
     CounterMap<function_t>::iterator it;
     for(it = executedFns.begin(); it != executedFns.end(); it++) {
       function_t fn = it->first;
-      const inst_name_t& name = InstructionMap::name((opcode_t)0, fn);
+      const inst_name_t& name = ISA::name((opcode_t)0, fn);
 
       cout << "    ";
       cout.width(14);
@@ -244,7 +244,7 @@ void Operations::printStats() {
     CounterMap<opcode_t>::iterator it2;
     for(it2 = executedOps.begin(); it2 != executedOps.end(); it2++) {
       opcode_t op = it2->first;
-      const inst_name_t& name = InstructionMap::name(op);
+      const inst_name_t& name = ISA::name(op);
 
       cout << "    ";
       cout.width(14);
@@ -266,9 +266,9 @@ void Operations::printSummary() {
 
 void Operations::dumpEventCounts(std::ostream& os) {
   // Stores take two cycles to decode, so the decoder is active for longer.
-  count_t decodeCycles = numDecodes_ + executedOps[InstructionMap::OP_STB]
-                                     + executedOps[InstructionMap::OP_STHW]
-                                     + executedOps[InstructionMap::OP_STW];
+  count_t decodeCycles = numDecodes_ + executedOps[ISA::OP_STB]
+                                     + executedOps[ISA::OP_STHW]
+                                     + executedOps[ISA::OP_STW];
 
   os << xmlBegin("decoder")             << "\n"
      << xmlNode("instances", NUM_CORES) << "\n"
@@ -283,7 +283,7 @@ void Operations::dumpEventCounts(std::ostream& os) {
   CounterMap<function_t>::iterator it;
   for(it = executedFns.begin(); it != executedFns.end(); it++) {
     function_t fn = it->first;
-    const inst_name_t& name = InstructionMap::name((opcode_t)0, fn);
+    const inst_name_t& name = ISA::name((opcode_t)0, fn);
     os << xmlNode(name.c_str(), executedFns[fn]) << "\n";
   }
 
@@ -291,31 +291,31 @@ void Operations::dumpEventCounts(std::ostream& os) {
   CounterMap<opcode_t>::iterator it2;
   for(it2 = executedOps.begin(); it2 != executedOps.end(); it2++) {
     opcode_t op = it2->first;
-    const inst_name_t& name = InstructionMap::name(op);
+    const inst_name_t& name = ISA::name(op);
     os << xmlNode(name.c_str(), executedOps[op]) << "\n";
   }
 
   // Initial modelling suggests that a couple of operations consume
   // significantly more energy than the others.
-  count_t highEnergy = executedFns[InstructionMap::FN_SETGTE]
-                     + executedOps[InstructionMap::OP_SETGTEI]
-                     + executedOps[InstructionMap::OP_SETGTEI_P]
-                     + executedFns[InstructionMap::FN_ADDU]
-                     + executedOps[InstructionMap::OP_ADDUI]
-                     + executedOps[InstructionMap::OP_ADDUI_P];
+  count_t highEnergy = executedFns[ISA::FN_SETGTE]
+                     + executedOps[ISA::OP_SETGTEI]
+                     + executedOps[ISA::OP_SETGTEI_P]
+                     + executedFns[ISA::FN_ADDU]
+                     + executedOps[ISA::OP_ADDUI]
+                     + executedOps[ISA::OP_ADDUI_P];
 
   // Record multiplier activity separately from ALU activity, and remove non-ALU
   // operations from the total count.
   count_t totalOps   = executedOps.numEvents() + executedFns.numEvents()
-                     - executedOps[InstructionMap::OP_MULHW]
-                     - executedOps[InstructionMap::OP_MULHWU]
-                     - executedOps[InstructionMap::OP_MULLW]
-                     - executedOps[InstructionMap::OP_TSTCHI]
-                     - executedOps[InstructionMap::OP_TSTCHI_P]
-                     - executedOps[InstructionMap::OP_SELCH]
-                     - executedOps[InstructionMap::OP_IBJMP]
-                     - executedOps[InstructionMap::OP_RMTEXECUTE]
-                     - executedOps[InstructionMap::OP_RMTNXIPK];
+                     - executedOps[ISA::OP_MULHW]
+                     - executedOps[ISA::OP_MULHWU]
+                     - executedOps[ISA::OP_MULLW]
+                     - executedOps[ISA::OP_TSTCHI]
+                     - executedOps[ISA::OP_TSTCHI_P]
+                     - executedOps[ISA::OP_SELCH]
+                     - executedOps[ISA::OP_IBJMP]
+                     - executedOps[ISA::OP_RMTEXECUTE]
+                     - executedOps[ISA::OP_RMTNXIPK];
 
   os << xmlNode("hd_in1", hdIn1)            << "\n"
      << xmlNode("hd_in2", hdIn2)            << "\n"
@@ -326,11 +326,11 @@ void Operations::dumpEventCounts(std::ostream& os) {
      << xmlNode("high_energy", highEnergy)  << "\n"
      << xmlEnd("alu")                       << "\n";
 
-  count_t multiplies = executedOps[InstructionMap::OP_MULHW]
-                     + executedOps[InstructionMap::OP_MULHWU]
-                     + executedOps[InstructionMap::OP_MULLW];
-  count_t highWord   = executedOps[InstructionMap::OP_MULHW]
-                     + executedOps[InstructionMap::OP_MULHWU];
+  count_t multiplies = executedOps[ISA::OP_MULHW]
+                     + executedOps[ISA::OP_MULHWU]
+                     + executedOps[ISA::OP_MULLW];
+  count_t highWord   = executedOps[ISA::OP_MULHW]
+                     + executedOps[ISA::OP_MULHWU];
 
   os << xmlBegin("multiplier")          << "\n"
      << xmlNode("instances", NUM_CORES) << "\n"

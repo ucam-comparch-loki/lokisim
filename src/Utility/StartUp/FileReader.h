@@ -11,8 +11,8 @@
 #include <string>
 #include <vector>
 #include "../../Typedefs.h"
-#include "../../TileComponents/Memory/MemoryTypedefs.h"
 #include "../../Datatype/Identifier.h"
+#include "../../Tile/Memory/MemoryTypedefs.h"
 #include "DataBlock.h"
 
 using std::string;

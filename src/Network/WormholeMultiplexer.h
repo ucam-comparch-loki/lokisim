@@ -14,14 +14,14 @@
 #define SRC_NETWORK_WORMHOLEMULTIPLEXER_H_
 
 
-#include "../Component.h"
+#include "../LokiComponent.h"
 #include "../Network/NetworkTypedefs.h"
 #include "../Utility/Assert.h"
 
 using sc_core::sc_module_name;
 
 template<class T>
-class WormholeMultiplexer: public Component {
+class WormholeMultiplexer: public LokiComponent {
 
 //============================================================================//
 // Ports
@@ -45,7 +45,7 @@ public:
 public:
 
   SC_HAS_PROCESS(WormholeMultiplexer);
-  WormholeMultiplexer(const sc_module_name& name, uint inputs) : Component(name) {
+  WormholeMultiplexer(const sc_module_name& name, uint inputs) : LokiComponent(name) {
     iData.init(inputs);
 
     state = MUX_INIT;

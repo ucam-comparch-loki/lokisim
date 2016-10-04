@@ -31,7 +31,7 @@
 
 class InstantCrossbar;
 
-class NetworkHierarchy2: public Component {
+class NetworkHierarchy2: public LokiComponent {
 
 //============================================================================//
 // Ports

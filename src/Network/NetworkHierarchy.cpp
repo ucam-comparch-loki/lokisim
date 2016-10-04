@@ -37,7 +37,7 @@ void NetworkHierarchy::makeLocalNetwork(uint tileColumn, uint tileRow) {
 }
 
 NetworkHierarchy::NetworkHierarchy(sc_module_name name) :
-    Component(name) {
+    LokiComponent(name) {
 
   // Make ports. Note that the network's inputs are connected to the cores'
   // outputs, and vice versa.

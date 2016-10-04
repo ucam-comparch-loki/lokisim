@@ -6,7 +6,7 @@
  */
 
 #include "DataNetwork.h"
-#include "../../TileComponents/Core.h"
+#include "../../Tile/Core/Core.h"
 
 DataNetwork::DataNetwork(const sc_module_name &name) :
     NetworkHierarchy2(name, CORES_PER_TILE, CORES_PER_TILE, CORE_INPUT_CHANNELS) {

@@ -15,9 +15,9 @@
 #define STATISTICS_H_
 
 #include <string>
-#include "InstructionMap.h"
 #include "../Datatype/Identifier.h"
 #include "../Typedefs.h"
+#include "ISA.h"
 
 class Statistics {
 

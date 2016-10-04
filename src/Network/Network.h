@@ -8,10 +8,10 @@
 #ifndef NETWORK_H_
 #define NETWORK_H_
 
-#include "../Component.h"
+#include "../LokiComponent.h"
 #include "NetworkTypedefs.h"
 
-class Network : public Component {
+class Network : public LokiComponent {
 
 public:
 

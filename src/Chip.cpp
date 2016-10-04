@@ -8,7 +8,7 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "Chip.h"
-#include "TileComponents/Memory/MissHandlingLogic.h"
+#include "Tile/Memory/MissHandlingLogic.h"
 #include "Utility/Assert.h"
 #include "Utility/Instrumentation/Stalls.h"
 #include "Utility/StartUp/DataBlock.h"
@@ -414,7 +414,7 @@ void Chip::wireUp() {
 }
 
 Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
-    Component(name),
+    LokiComponent(name),
     mainMemory("main_memory", ComponentID(2,0,0), NUM_COMPUTE_TILES),
     magicMemory("magic_memory", mainMemory),
     dataNet("data_net"),

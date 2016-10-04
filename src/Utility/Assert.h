@@ -18,13 +18,13 @@
 #include <iostream>
 #include <stdarg.h>
 
-#include "../Component.h"
+#include "../LokiComponent.h"
 #include "../Typedefs.h"
 #include "Instrumentation.h"
 
 class Assert {
 public:
-  static void loki_assert_failure(string test, string function, string file, int line, cycle_count_t cycle, const Component& component) {
+  static void loki_assert_failure(string test, string function, string file, int line, cycle_count_t cycle, const LokiComponent& component) {
     std::cerr << "Assertion failure" << std::endl
               << "  Cycle:     " << Instrumentation::currentCycle() << std::endl
               << "  Component: " << component.name() << std::endl
@@ -34,7 +34,7 @@ public:
     exit(1);
   }
 
-  static void loki_assert_failure_with_message(string test, string function, string file, int line, cycle_count_t cycle, const Component& component, string msg, ...) {
+  static void loki_assert_failure_with_message(string test, string function, string file, int line, cycle_count_t cycle, const LokiComponent& component, string msg, ...) {
     std::cerr << "Assertion failure" << std::endl
               << "  Cycle:     " << Instrumentation::currentCycle() << std::endl
               << "  Component: " << component.name() << std::endl

@@ -179,7 +179,7 @@ void FlowControlIn::sendCredit() {
 }
 
 FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :
-    Component(name, ID),
+    LokiComponent(name, ID),
     sinkChannel(channelManaged) {
 
   sourceChannel = ChannelID();

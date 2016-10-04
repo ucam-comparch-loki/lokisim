@@ -15,13 +15,13 @@
 #ifndef BASICARBITER_H_
 #define BASICARBITER_H_
 
-#include "../../Component.h"
+#include "../../LokiComponent.h"
 #include "../../Utility/BlockingInterface.h"
 #include "../NetworkTypedefs.h"
 
 class ArbiterBase;
 
-class ClockedArbiter: public Component, public BlockingInterface {
+class ClockedArbiter: public LokiComponent, public BlockingInterface {
 
 //============================================================================//
 // Ports

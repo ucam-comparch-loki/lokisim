@@ -52,7 +52,7 @@ Network::Network(const sc_module_name& name,
     int firstOutput,      // The first accessible channel/component/tile
     bool externalConnection) : // Is there a port to send data on if it
                                // isn't for any local component?
-    Component(name, ID),
+    LokiComponent(name, ID),
     firstOutput(firstOutput),
     level((numOutputs > 1) ? level : NONE),
     externalConnection(externalConnection) {
