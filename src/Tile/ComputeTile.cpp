@@ -236,7 +236,7 @@ void ComputeTile::wireUp() {
   creditToRouter.oData(oCredit);
   creditToRouter.iData(creditsFromCores);
 
-  creditFromRouter.iData(iData);
+  creditFromRouter.iData(iCredit);
   creditFromRouter.oReady(oCreditReady);
   creditFromRouter.iReady(readyCreditFromCores);
   creditFromRouter.oData(creditsToCores);

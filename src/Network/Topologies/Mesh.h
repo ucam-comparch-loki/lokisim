@@ -13,6 +13,7 @@
 #define MESH_H_
 
 #include "../Network.h"
+#include "../Global/NetworkDeadEnd.h"
 
 class Router;
 
@@ -64,14 +65,6 @@ public:
 // Methods
 //============================================================================//
 
-public:
-
-  // Collections of signals which run off the edges of the Mesh.
-  // Address using vector[Router::Direction][index].
-  const vector<vector<DataSignal*> >  edgeDataInputs()   const;
-  const vector<vector<DataSignal*> >  edgeDataOutputs()  const;
-  const vector<vector<ReadySignal*> > edgeReadyOutputs() const;
-
 private:
 
   void makeRouters();
@@ -88,6 +81,9 @@ private:
   // top left corner.
   vector<vector<Router*> > routers;
 
+  // Debug components which warn us if data is sent off the edge of the network.
+  vector<NetworkDeadEnd<NetworkData>*> edges;
+
   // Lots of 2D arrays of signals. Each 2D array is indexed using
   // array[column][row]. Each array name is tagged with the direction it
   // carries data, e.g. NS = north to south.
@@ -101,13 +97,6 @@ private:
 private:
 
   const unsigned int numColumns, numRows;
-
-  // Collections of signals which run off the edges of the Mesh. These are
-  // pointers to a subset of the signals above.
-  // Address using vector[Router::Direction][index].
-  vector<vector<DataSignal*> >  edgeDataInputs_;
-  vector<vector<DataSignal*> >  edgeDataOutputs_;
-  vector<vector<ReadySignal*> > edgeReadyOutputs_;
 
 };
 

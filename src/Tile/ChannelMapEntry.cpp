@@ -131,10 +131,7 @@ void ChannelMapEntry::write(EncodedCMTEntry data) {
   data_ = data;
 
   if (globalView().isGlobal) {
-    if (globalView().tileX >= TOTAL_TILE_COLUMNS || globalView().tileY >= TOTAL_TILE_ROWS)
-      network_ = NONE;
-    else
-      network_ = GLOBAL;
+    network_ = GLOBAL;
 
     // If the write-enable bit was not set, replace the credit counter with
     // the previous value.

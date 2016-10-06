@@ -73,4 +73,6 @@ typedef LocalNetwork local_net_t;
 class Mesh;
 typedef Mesh global_net_t;
 
+enum Direction {NORTH, EAST, SOUTH, WEST, LOCAL};
+
 #endif /* NETWORKTYPEDEFS_H_ */

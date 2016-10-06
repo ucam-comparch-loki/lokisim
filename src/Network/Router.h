@@ -28,8 +28,6 @@ class Router : public LokiComponent, public BlockingInterface {
 
 public:
 
-  enum Direction {NORTH, EAST, SOUTH, WEST, LOCAL};
-
   ClockInput   clock;
 
   // Data inputs

@@ -13,6 +13,7 @@
 #define SRC_TILE_EMPTYTILE_H_
 
 #include "Tile.h"
+#include "../Network/Global/NetworkDeadEnd.h"
 
 class EmptyTile: public Tile {
 
@@ -58,6 +59,18 @@ public:
 
   EmptyTile(const sc_module_name& name, const ComponentID& id);
   virtual ~EmptyTile();
+
+//============================================================================//
+// Local state
+//============================================================================//
+
+private:
+
+  NetworkDeadEnd<NetworkData>     dataDeadEnd;
+  NetworkDeadEnd<NetworkCredit>   creditDeadEnd;
+  NetworkDeadEnd<NetworkRequest>  requestDeadEnd;
+  NetworkDeadEnd<NetworkResponse> responseDeadEnd;
+
 };
 
 #endif /* SRC_TILE_EMPTYTILE_H_ */

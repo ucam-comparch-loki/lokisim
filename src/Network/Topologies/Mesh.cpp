@@ -9,10 +9,6 @@
 #include "../Router.h"
 #include "../../Utility/Assert.h"
 
-const vector<vector<DataSignal*> > Mesh::edgeDataInputs() const {return edgeDataInputs_;}
-const vector<vector<DataSignal*> > Mesh::edgeDataOutputs() const {return edgeDataOutputs_;}
-const vector<vector<ReadySignal*> > Mesh::edgeReadyOutputs() const {return edgeReadyOutputs_;}
-
 void Mesh::makeRouters() {
   for (unsigned int row=0; row<numRows; row++) {
     for (unsigned int col=0; col<numColumns; col++) {
@@ -35,30 +31,6 @@ void Mesh::makeWires() {
   readySigSN.init(numColumns+1, numRows+1);
   readySigEW.init(numColumns+1, numRows+1);
   readySigWE.init(numColumns+1, numRows+1);
-
-  // Take pointers to the signals around the edge of the chip and add them to
-  // separate collections.
-  for (uint row=0; row<numRows; row++) {
-    edgeDataInputs_[Router::WEST].push_back(&dataSigWE[0][row]);
-    edgeDataInputs_[Router::EAST].push_back(&dataSigEW[numColumns][row]);
-
-    edgeDataOutputs_[Router::WEST].push_back(&dataSigEW[0][row]);
-    edgeDataOutputs_[Router::EAST].push_back(&dataSigWE[numColumns][row]);
-
-    edgeReadyOutputs_[Router::WEST].push_back(&readySigEW[0][row]);
-    edgeReadyOutputs_[Router::EAST].push_back(&readySigWE[numColumns][row]);
-  }
-
-  for (uint col=0; col<numColumns; col++) {
-    edgeDataInputs_[Router::NORTH].push_back(&dataSigNS[col][0]);
-    edgeDataInputs_[Router::SOUTH].push_back(&dataSigSN[col][numRows]);
-
-    edgeDataOutputs_[Router::NORTH].push_back(&dataSigSN[col][0]);
-    edgeDataOutputs_[Router::SOUTH].push_back(&dataSigNS[col][numRows]);
-
-    edgeReadyOutputs_[Router::NORTH].push_back(&readySigSN[col][0]);
-    edgeReadyOutputs_[Router::SOUTH].push_back(&readySigNS[col][numRows]);
-  }
 }
 
 void Mesh::wireUp() {
@@ -68,35 +40,73 @@ void Mesh::wireUp() {
       router.clock(clock);
 
       // Data heading north-south
-      router.iData[Router::NORTH](dataSigNS[col][row]);
-      router.oData[Router::SOUTH](dataSigNS[col][row+1]);
-      router.iReady[Router::NORTH](readySigNS[col][row]);
-      router.oReady[Router::SOUTH](readySigNS[col][row+1]);
+      router.iData[NORTH](dataSigNS[col][row]);
+      router.oData[SOUTH](dataSigNS[col][row+1]);
+      router.iReady[NORTH](readySigNS[col][row]);
+      router.oReady[SOUTH](readySigNS[col][row+1]);
 
       // Data heading east-west
-      router.iData[Router::EAST](dataSigEW[col+1][row]);
-      router.oData[Router::WEST](dataSigEW[col][row]);
-      router.iReady[Router::EAST](readySigEW[col+1][row]);
-      router.oReady[Router::WEST](readySigEW[col][row]);
+      router.iData[EAST](dataSigEW[col+1][row]);
+      router.oData[WEST](dataSigEW[col][row]);
+      router.iReady[EAST](readySigEW[col+1][row]);
+      router.oReady[WEST](readySigEW[col][row]);
 
       // Data heading south-north
-      router.iData[Router::SOUTH](dataSigSN[col][row+1]);
-      router.oData[Router::NORTH](dataSigSN[col][row]);
-      router.iReady[Router::SOUTH](readySigSN[col][row+1]);
-      router.oReady[Router::NORTH](readySigSN[col][row]);
+      router.iData[SOUTH](dataSigSN[col][row+1]);
+      router.oData[NORTH](dataSigSN[col][row]);
+      router.iReady[SOUTH](readySigSN[col][row+1]);
+      router.oReady[NORTH](readySigSN[col][row]);
 
       // Data heading west-east
-      router.iData[Router::WEST](dataSigWE[col][row]);
-      router.oData[Router::EAST](dataSigWE[col+1][row]);
-      router.iReady[Router::WEST](readySigWE[col][row]);
-      router.oReady[Router::EAST](readySigWE[col+1][row]);
+      router.iData[WEST](dataSigWE[col][row]);
+      router.oData[EAST](dataSigWE[col+1][row]);
+      router.iReady[WEST](readySigWE[col][row]);
+      router.oReady[EAST](readySigWE[col+1][row]);
 
       // Data heading to/from local tile
-      router.iData[Router::LOCAL](iData[col][row]);
-      router.oData[Router::LOCAL](oData[col][row]);
-      router.oReady[Router::LOCAL](oReady[col][row]);
-      router.iReady[Router::LOCAL](iReady[col][row]);
+      router.iData[LOCAL](iData[col][row]);
+      router.oData[LOCAL](oData[col][row]);
+      router.oReady[LOCAL](oReady[col][row]);
+      router.iReady[LOCAL](iReady[col][row]);
     }
+  }
+
+  // Tie off the wires at the edges of the network so we can get useful debug
+  // information if any data is sent on them.
+  for (uint row=0; row<numRows; row++) {
+    NetworkDeadEnd<NetworkData>* westEdge =
+        new NetworkDeadEnd<NetworkData>(sc_gen_unique_name("west_edge"), ComponentID(0, row, 0), WEST);
+    westEdge->iData(dataSigEW[0][row]);
+    westEdge->oData(dataSigWE[0][row]);
+    westEdge->iReady(readySigEW[0][row]);
+    westEdge->oReady(readySigWE[0][row]);
+    edges.push_back(westEdge);
+
+    NetworkDeadEnd<NetworkData>* eastEdge =
+        new NetworkDeadEnd<NetworkData>(sc_gen_unique_name("east_edge"), ComponentID(numColumns-1, row, 0), EAST);
+    eastEdge->iData(dataSigWE[numColumns][row]);
+    eastEdge->oData(dataSigEW[numColumns][row]);
+    eastEdge->iReady(readySigWE[numColumns][row]);
+    eastEdge->oReady(readySigEW[numColumns][row]);
+    edges.push_back(eastEdge);
+  }
+
+  for (uint col=0; col<numColumns; col++) {
+    NetworkDeadEnd<NetworkData>* northEdge =
+        new NetworkDeadEnd<NetworkData>(sc_gen_unique_name("north_edge"), ComponentID(col, 0, 0), NORTH);
+    northEdge->iData(dataSigSN[col][0]);
+    northEdge->oData(dataSigNS[col][0]);
+    northEdge->iReady(readySigSN[col][0]);
+    northEdge->oReady(readySigNS[col][0]);
+    edges.push_back(northEdge);
+
+    NetworkDeadEnd<NetworkData>* southEdge =
+        new NetworkDeadEnd<NetworkData>(sc_gen_unique_name("south_edge"), ComponentID(col, numRows-1, 0), SOUTH);
+    southEdge->iData(dataSigNS[col][numRows]);
+    southEdge->oData(dataSigSN[col][numRows]);
+    southEdge->iReady(readySigNS[col][numRows]);
+    southEdge->oReady(readySigSN[col][numRows]);
+    edges.push_back(southEdge);
   }
 }
 
@@ -118,11 +128,6 @@ Mesh::Mesh(const sc_module_name& name,
   oReady.init(columns, rows);
   iReady.init(columns, rows);
 
-  // Each set contains a vector for each of NORTH, EAST, SOUTH, WEST.
-  edgeDataInputs_.assign(4, vector<DataSignal*>());
-  edgeDataOutputs_.assign(4, vector<DataSignal*>());
-  edgeReadyOutputs_.assign(4, vector<ReadySignal*>());
-
   makeRouters();
   makeWires();
   wireUp();
@@ -133,4 +138,7 @@ Mesh::~Mesh() {
   for (unsigned int i=0; i<routers.size(); i++)
     for (unsigned int j=0; j<routers[i].size(); j++)
       delete routers[i][j];
+
+  for (unsigned int i=0; i<edges.size(); i++)
+    delete edges[i];
 }
