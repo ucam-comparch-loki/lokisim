@@ -78,7 +78,7 @@ void Router::updateDestination(PortIndex input) {
   destination[input] = output;
 }
 
-Router::Direction Router::routeTo(ChannelID destination) const {
+Direction Router::routeTo(ChannelID destination) const {
   // Figure out where in the grid of tiles the destination channel end is.
   unsigned int xDest = destination.component.tile.x;
   unsigned int yDest = destination.component.tile.y;
