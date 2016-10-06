@@ -11,9 +11,9 @@
 #ifndef DATANETWORK_H_
 #define DATANETWORK_H_
 
-#include "NetworkHierarchy2.h"
+#include "../Topologies/Mesh.h"
 
-class DataNetwork: public NetworkHierarchy2 {
+class DataNetwork: public Mesh {
 
 //============================================================================//
 // Constructors and destructors

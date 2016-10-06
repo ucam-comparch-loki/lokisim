@@ -11,9 +11,9 @@
 #ifndef RESPONSENETWORK_H_
 #define RESPONSENETWORK_H_
 
-#include "NetworkHierarchy2.h"
+#include "../Topologies/Mesh.h"
 
-class ResponseNetwork: public NetworkHierarchy2 {
+class ResponseNetwork: public Mesh {
 
 //============================================================================//
 // Constructors and destructors

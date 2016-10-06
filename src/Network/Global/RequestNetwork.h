@@ -12,9 +12,9 @@
 #ifndef REQUESTNETWORK_H_
 #define REQUESTNETWORK_H_
 
-#include "NetworkHierarchy2.h"
+#include "../Topologies/Mesh.h"
 
-class RequestNetwork: public NetworkHierarchy2 {
+class RequestNetwork: public Mesh {
 
 //============================================================================//
 // Constructors and destructors

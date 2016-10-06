@@ -6,10 +6,9 @@
  */
 
 #include "DataNetwork.h"
-#include "../../Tile/Core/Core.h"
 
 DataNetwork::DataNetwork(const sc_module_name &name) :
-    NetworkHierarchy2(name, CORES_PER_TILE, CORES_PER_TILE, CORE_INPUT_CHANNELS) {
+    Mesh(name, ComponentID(), TOTAL_TILE_ROWS, TOTAL_TILE_COLUMNS, TILE) {
 
 
 }

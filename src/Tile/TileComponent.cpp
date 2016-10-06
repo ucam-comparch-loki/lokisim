@@ -7,8 +7,8 @@
 
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
-#include "../Tile/TileComponent.h"
-#include "../Chip.h"
+#include "TileComponent.h"
+#include "Tile.h"
 #include "../Utility/Assert.h"
 
 int TileComponent::numInputs()  const {return iData.length();}
@@ -55,8 +55,8 @@ void TileComponent::writeMemByte(MemoryAddr addr, Word data) {
   parent()->writeByteInternal(id, addr, data);
 }
 
-Chip* TileComponent::parent() const {
-  return static_cast<Chip*>(this->get_parent_object());
+Tile* TileComponent::parent() const {
+  return static_cast<Tile*>(this->get_parent_object());
 }
 
 /* Constructors and destructors */

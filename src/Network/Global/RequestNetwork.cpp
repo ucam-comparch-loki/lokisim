@@ -10,7 +10,7 @@
 #include "RequestNetwork.h"
 
 RequestNetwork::RequestNetwork(const sc_module_name &name) :
-    NetworkHierarchy2(name, 1, 1, 1) {
+    Mesh(name, ComponentID(), TOTAL_TILE_ROWS, TOTAL_TILE_COLUMNS, TILE) {
   // Nothing
 }
 

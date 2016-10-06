@@ -6,7 +6,6 @@
  */
 
 #include "Mesh.h"
-#include "../NetworkHierarchy.h"
 #include "../Router.h"
 #include "../../Utility/Assert.h"
 

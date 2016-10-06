@@ -15,7 +15,7 @@
 #include "../LokiComponent.h"
 #include "../Network/NetworkTypedefs.h"
 
-class Chip;
+class Tile;
 class Word;
 
 class TileComponent : public LokiComponent {
@@ -84,7 +84,7 @@ protected:
   void writeMemWord(MemoryAddr addr, Word data);
   void writeMemByte(MemoryAddr addr, Word data);
 
-  Chip* parent() const;
+  Tile* parent() const;
 
 };
 

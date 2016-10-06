@@ -8,7 +8,6 @@
 #include "FlowControlOut.h"
 
 #include "../../Tile/TileComponent.h"
-#include "../NetworkHierarchy.h"
 #include "../../Utility/Assert.h"
 
 void FlowControlOut::mainLoop() {

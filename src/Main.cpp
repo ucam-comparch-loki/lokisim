@@ -14,6 +14,7 @@
 #include "Utility/Instrumentation/IPKCache.h"
 #include "Utility/Instrumentation.h"
 #include "Utility/Instrumentation/Operations.h"
+#include "Utility/Instrumentation/Stalls.h"
 #include "Utility/Trace/Callgrind.h"
 #include "Utility/StartUp/CodeLoader.h"
 #include "Utility/Statistics.h"

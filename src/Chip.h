@@ -13,37 +13,23 @@
 #ifndef CHIP_H_
 #define CHIP_H_
 
-#include <sysc/communication/sc_clock.h>
-#include <sysc/communication/sc_signal.h>
-#include <sysc/kernel/sc_module.h>
-#include <sysc/kernel/sc_module_name.h>
 #include <vector>
 
-#include "Datatype/Identifier.h"
-#include "Datatype/Word.h"
 #include "LokiComponent.h"
 #include "Network/Global/CreditNetwork.h"
 #include "Network/Global/DataNetwork.h"
 #include "Network/Global/RequestNetwork.h"
 #include "Network/Global/ResponseNetwork.h"
-#include "Network/NetworkHierarchy.h"
 #include "Network/NetworkTypedefs.h"
 #include "Tile/Memory/MagicMemory.h"
 #include "Tile/Memory/MainMemory.h"
-#include "Tile/Memory/MemoryBank.h"
-#include "Tile/Memory/MemoryTypedefs.h"
-#include "Tile/Memory/MissHandlingLogic.h"
-#include "Tile/Core/Core.h"
 #include "Typedefs.h"
-#include "Utility/LokiVector.h"
 #include "Utility/LokiVector2D.h"
-#include "Utility/LokiVector3D.h"
 
 using std::vector;
 
 class DataBlock;
-class MissHandlingLogic;
-class TileComponent;
+class Tile;
 
 class Chip : public LokiComponent {
 
@@ -77,11 +63,13 @@ public:
   int     readRegisterInternal(const ComponentID& component, RegisterIndex reg) const;
   bool    readPredicateInternal(const ComponentID& component) const;
   void    networkSendDataInternal(const NetworkData& flit);
-  void    networkSendCreditInternal(const NetworkData& flit);
+  void    networkSendCreditInternal(const NetworkCredit& flit);
 
   void    magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address, ChannelID returnChannel, Word payload = 0);
 
 private:
+
+  Tile*   getTile(TileID tile) const;
 
   // Make any necessary wires needed to connect components together.
   void    makeSignals();
@@ -98,9 +86,8 @@ private:
 
 private:
 
-  vector<Core*>              cores;             // All cores of the chip
-  vector<MemoryBank*>        memories;          // All memories of the chip
-  vector<MissHandlingLogic*> mhl;               // One per tile
+  // Access using tiles[column][row].
+  vector<vector<Tile*>>      tiles;
   MainMemory                 mainMemory;
 
   MagicMemory                magicMemory;       // Wrapper for mainMemory
@@ -111,9 +98,8 @@ private:
   RequestNetwork             requestNet;
   ResponseNetwork            responseNet;
 
-  // All networks internal to each tile. To be folded in to another network
-  // at some point.
-  NetworkHierarchy           network;
+  friend class Tile;
+  friend class ComputeTile;
 
 //============================================================================//
 // Signals (wires)
@@ -123,26 +109,22 @@ private:
 
   sc_clock clock;
 
-  // Naming of signals is relative to the components: iData is a data signal
-  // which is an input to a core or memory bank.
+  // Naming of signals is relative to the tiles: iData is a data signal
+  // which is an input to a tile.
 
-  // Addressed using oDataLocal[tile][component][port]
-  LokiVector3D<DataSignal>     oDataLocal,          iDataLocal;
-  LokiVector2D<DataSignal>     oDataGlobal,         iDataGlobal;
-  LokiVector2D<CreditSignal>   oCredit,             iCredit;
-  LokiVector2D<RequestSignal>  requestToMHL,        requestFromMHL;
-  LokiVector2D<ResponseSignal> responseFromMHL,     responseToMHL;
-  LokiVector<ResponseSignal>   responseFromBM,      responseToBanks;
-  LokiVector2D<ResponseSignal> responseFromBanks;
-  LokiVector<RequestSignal>    requestToBM,         requestToBanks;
-  LokiVector2D<RequestSignal>  requestFromBanks;
-  LokiVector<sc_signal<MemoryIndex> > requestTarget, responseTarget;
-  LokiVector2D<sc_signal<bool> > l2RequestClaim;
-  LokiVector<sc_signal<bool> > l2RequestClaimed;
+  // Addressed using array[tileX][tileY]
+  LokiVector2D<DataSignal>     iData,          oData;
+  LokiVector2D<ReadySignal>    iDataReady,     oDataReady;
+  LokiVector2D<CreditSignal>   iCredit,        oCredit;
+  LokiVector2D<ReadySignal>    iCreditReady,   oCreditReady;
+  LokiVector2D<RequestSignal>  iRequest,       oRequest;
+  LokiVector2D<ReadySignal>    iRequestReady,  oRequestReady;
+  LokiVector2D<ResponseSignal> iResponse,      oResponse;
+  LokiVector2D<ReadySignal>    iResponseReady, oResponseReady;
 
-  // Index ready signals using oReadyData[tile][component][buffer].
-  LokiVector3D<ReadySignal>  oReadyData, oReadyCredit;
-  LokiVector3D<ReadySignal>  readyRequestToMHL, readyResponseToMHL;
+  // Some extra connections for each memory port.
+  LokiVector<RequestSignal>  requestToMainMemory;
+  LokiVector<ResponseSignal> responseFromMainMemory;
 
   // Delays in SystemC slow simulation right down, so instead, make separate
   // clocks. The fast clock has its negative edge 1/4 of a cycle early, and the

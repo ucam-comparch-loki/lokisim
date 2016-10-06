@@ -6,10 +6,9 @@
  */
 
 #include "CreditNetwork.h"
-#include "../../Tile/Core/Core.h"
 
 CreditNetwork::CreditNetwork(const sc_module_name &name) :
-    NetworkHierarchy2(name, CORES_PER_TILE, CORES_PER_TILE, 1) {
+    Mesh(name, ComponentID(), TOTAL_TILE_ROWS, TOTAL_TILE_COLUMNS, TILE) {
 
 }
 

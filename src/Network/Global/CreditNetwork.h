@@ -12,9 +12,9 @@
 #ifndef CREDITNETWORK_H_
 #define CREDITNETWORK_H_
 
-#include "NetworkHierarchy2.h"
+#include "../Topologies/Mesh.h"
 
-class CreditNetwork: public NetworkHierarchy2 {
+class CreditNetwork: public Mesh {
 
 //============================================================================//
 // Constructors and destructors

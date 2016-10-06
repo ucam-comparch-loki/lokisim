@@ -7,6 +7,7 @@
 
 #include "Arguments.h"
 #include "Debugger.h"
+#include "Instrumentation/Stalls.h"
 #include "StringManipulation.h"
 #include "StartUp/DataBlock.h"
 #include "Trace/Callgrind.h"

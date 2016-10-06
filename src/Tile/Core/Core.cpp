@@ -8,7 +8,7 @@
 #include "Core.h"
 
 #include "PipelineRegister.h"
-#include "../../Chip.h"
+#include "../Tile.h"
 #include "../../Datatype/DecodedInst.h"
 #include "../../Network/Topologies/LocalNetwork.h"
 #include "../../Utility/Assert.h"
