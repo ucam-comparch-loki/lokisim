@@ -13,6 +13,7 @@
 #include "Tile/Tile.h"
 #include "Tile/ComputeTile.h"
 #include "Tile/EmptyTile.h"
+#include "Tile/MemoryControllerTile.h"
 #include "Utility/Instrumentation/Stalls.h"
 #include "Utility/StartUp/DataBlock.h"
 
@@ -90,8 +91,40 @@ bool Chip::isIdle() const {
   return Stalls::stalledComponents() == NUM_COMPONENTS;
 }
 
+TileID Chip::nearestMemoryController(TileID tile) const {
+  assert(memoryControllerPositions.size() > 0);
+
+  TileID closest(0,0);
+  uint bestDistance = UINT_MAX;
+
+  for (std::set<TileID>::iterator it=memoryControllerPositions.begin(); it!=memoryControllerPositions.end(); it++) {
+    TileID mc = *it;
+    uint distance = abs(mc.x - tile.x) + abs(mc.y - tile.y);
+
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      closest = mc;
+    }
+  }
+
+  return closest;
+}
+
 Tile* Chip::getTile(TileID tile) const {
   return tiles[tile.x][tile.y];
+}
+
+const std::set<TileID> Chip::getMemoryControllerPositions() const {
+  std::set<TileID> positions;
+
+  // Memory controllers go above and below the east-most and west-most columns
+  // of compute tiles. Put them in a set in case there are duplicates.
+  positions.insert(TileID(1,0));
+  positions.insert(TileID(COMPUTE_TILE_COLUMNS, 0));
+  positions.insert(TileID(1, COMPUTE_TILE_ROWS+1));
+  positions.insert(TileID(COMPUTE_TILE_COLUMNS, COMPUTE_TILE_ROWS+1));
+
+  return positions;
 }
 
 void Chip::makeSignals() {
@@ -115,12 +148,12 @@ void Chip::makeSignals() {
   iResponseReady.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
   oResponseReady.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
 
-  requestToMainMemory.init(NUM_COMPUTE_TILES);
-  responseFromMainMemory.init(NUM_COMPUTE_TILES);
+  requestToMainMemory.init(memoryControllerPositions.size());
+  responseFromMainMemory.init(memoryControllerPositions.size());
 }
 
 void Chip::makeComponents() {
-  // TODO: memory controller tiles
+  int memoryControllersMade = 0;
 
   for (uint col = 0; col < TOTAL_TILE_COLUMNS; col++) {
     tiles.push_back(vector<Tile*>());
@@ -139,11 +172,13 @@ void Chip::makeComponents() {
         // Some ComputeTile-specific connections.
         ((ComputeTile*)t)->fastClock(fastClock);
         ((ComputeTile*)t)->slowClock(slowClock);
+      }
+      else if (memoryControllerPositions.find(TileID(col,row)) != memoryControllerPositions.end()) {
+        t = new MemoryControllerTile(name.str().c_str(), tileID);
 
-        // TODO: if (memory controllers not on network)
-        uint computeTileID = tileID.tile.computeTileIndex();
-        ((ComputeTile*)t)->oRequestToMainMemory(requestToMainMemory[computeTileID]);
-        ((ComputeTile*)t)->iResponseFromMainMemory(responseFromMainMemory[computeTileID]);
+        uint memoryPort = memoryControllersMade++;
+        ((MemoryControllerTile*)t)->oRequestToMainMemory(requestToMainMemory[memoryPort]);
+        ((MemoryControllerTile*)t)->iResponseFromMainMemory(responseFromMainMemory[memoryPort]);
       }
       else {
         t = new EmptyTile(name.str().c_str(), tileID);
@@ -212,7 +247,8 @@ void Chip::wireUp() {
 
 Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
     LokiComponent(name),
-    mainMemory("main_memory", ComponentID(2,0,0), NUM_COMPUTE_TILES),
+    memoryControllerPositions(getMemoryControllerPositions()),
+    mainMemory("main_memory", ComponentID(2,0,0), memoryControllerPositions.size()),
     magicMemory("magic_memory", mainMemory),
     dataNet("data_net"),
     creditNet("credit_net"),

@@ -64,10 +64,6 @@ public:
 //  ReadyInput      iResponseReady;
 //  ReadyOutput     oResponseReady;
 
-  // Extra magic interfaces to main memory.
-  RequestOutput   oRequestToMainMemory;
-  ResponseInput   iResponseFromMainMemory;
-
 
 //============================================================================//
 // Constructors and destructors
@@ -116,6 +112,10 @@ private:
   vector<Core*>             cores;
   vector<MemoryBank*>       memories;
   MissHandlingLogic         mhl;
+
+  friend class Core;
+  friend class MemoryBank;
+  friend class MissHandlingLogic;
 
   // Local network encompasses all communications between cores and memory
   // banks on this tile.

@@ -13,6 +13,7 @@
 #ifndef CHIP_H_
 #define CHIP_H_
 
+#include <set>
 #include <vector>
 
 #include "LokiComponent.h"
@@ -51,6 +52,10 @@ public:
 
   bool    isIdle() const;
 
+  // During initialisation, determine the closest memory controller to the
+  // given tile. This must happen after makeComponents().
+  TileID  nearestMemoryController(TileID tile) const;
+
   // Store the given instructions or data into the component at the given index.
   void    storeInstructions(vector<Word>& instructions, const ComponentID& component);
   void    storeData(const DataBlock& data);
@@ -71,6 +76,10 @@ private:
 
   Tile*   getTile(TileID tile) const;
 
+  // For initialisation only. Allows other components to be initialised based
+  // on the properties of the memoryControllerPositions set.
+  const std::set<TileID> getMemoryControllerPositions() const;
+
   // Make any necessary wires needed to connect components together.
   void    makeSignals();
 
@@ -79,6 +88,14 @@ private:
 
   // Wire everything together.
   void    wireUp();
+
+//============================================================================//
+// Local state
+//============================================================================//
+
+private:
+
+  const std::set<TileID> memoryControllerPositions;
 
 //============================================================================//
 // Components

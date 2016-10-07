@@ -78,15 +78,6 @@ public:
   // Signal broadcast to all banks, telling whether the request has been claimed.
   sc_out<bool>                oRequestClaimed;
 
-
-  // Magic connections to background memory.
-
-  // Requests to background memory.
-  RequestOutput               oRequestToBM;
-
-  // Data from background memory.
-  ResponseInput               iResponseFromBM;
-
 //============================================================================//
 // Constructors and destructors
 //============================================================================//
@@ -138,7 +129,7 @@ private:
   ChannelID getDestination(MemoryAddr address) const;
 
   // The network address of the memory controller.
-  ChannelID memoryControllerAddress() const;
+  TileID nearestMemoryController() const;
 
 //============================================================================//
 // Local state

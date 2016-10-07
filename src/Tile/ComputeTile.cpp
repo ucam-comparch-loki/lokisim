@@ -221,8 +221,6 @@ void ComputeTile::wireUp() {
   mhl.oRequestToBanks(requestToMemory);
   mhl.oResponseTarget(responseTarget);
   mhl.oResponseToBanks(responseToMemory);
-  mhl.iResponseFromBM(iResponseFromMainMemory);
-  mhl.oRequestToBM(oRequestToMainMemory);
 
   dataToRouter.oData(oData);
   dataToRouter.iData(globalDataFromCores);

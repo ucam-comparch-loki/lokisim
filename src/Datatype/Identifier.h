@@ -38,6 +38,7 @@ struct TileID {
 
   bool operator==(const TileID other) const {return (x==other.x) && (y==other.y);}
   bool operator!=(const TileID other) const {return !(*this == other);}
+  bool operator<(const TileID other) const {return (x<other.x) || (x==other.x && y<other.y);}
 
   friend std::ostream& operator<< (std::ostream& os, const TileID& t) {
     // Convert a tile address into the form "(column, row)"

@@ -5,14 +5,10 @@
  *      Author: db434
  */
 
-#include "../../Tile/Memory/MissHandlingLogic.h"
-
+#include "MissHandlingLogic.h"
+#include "../ComputeTile.h"
+#include "../../Chip.h"
 #include "../../Utility/Assert.h"
-
-// Parameter to choose how main memory should be accessed.
-//   true:  send all requests out over the on-chip network
-//   false: magic connection from anywhere on the chip
-#define MAIN_MEMORY_ON_NETWORK (false)
 
 MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id) :
     LokiComponent(name, id),
@@ -20,11 +16,9 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
     requestMux("request_mux", MEMS_PER_TILE),
     responseMux("response_mux", MEMS_PER_TILE) {
 
-  // Start off assuming this is the home tile for all data. This means that if
-  // we experience a cache miss, we will go straight to main memory to
-  // retrieve it.
-  TileID tile = id.tile;//*/TileID(2,1);
-  directory.initialise(tile);
+
+  TileID memController = nearestMemoryController();
+  directory.initialise(memController);
 
   requestDestination = ChannelID();
   newLocalRequest = true;
@@ -59,7 +53,7 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
   dont_initialize();
 
   SC_METHOD(receiveResponseLoop);
-  sensitive << iResponseFromNetwork << iResponseFromBM;
+  sensitive << iResponseFromNetwork;
   dont_initialize();
 
   SC_METHOD(remoteRequestLoop);
@@ -172,16 +166,9 @@ void MissHandlingLogic::receiveResponseLoop() {
     return;
   }
 
-  NetworkResponse response;
-  if (iResponseFromBM.valid()) {
-    response = iResponseFromBM.read();
-    iResponseFromBM.ack();
-  }
-  else {
-    loki_assert(iResponseFromNetwork.valid());
-    response = iResponseFromNetwork.read();
-    iResponseFromNetwork.ack();
-  }
+  loki_assert(iResponseFromNetwork.valid());
+  NetworkResponse response = iResponseFromNetwork.read();
+  iResponseFromNetwork.ack();
 
   LOKI_LOG << this->name() << " received " << response << endl;
 
@@ -300,68 +287,39 @@ MemoryIndex MissHandlingLogic::nextTargetBank() {
 void MissHandlingLogic::sendOnNetwork(NetworkRequest request) {
   loki_assert(canSendOnNetwork());
 
-  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
-    oRequestToNetwork.write(request);
-  else
-    oRequestToBM.write(request);
+  oRequestToNetwork.write(request);
 }
 
 bool MissHandlingLogic::canSendOnNetwork() const {
-  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
-    return !oRequestToNetwork.valid();
-  else {
-    return !oRequestToBM.valid();
-  }
+  return !oRequestToNetwork.valid();
 }
 
 const sc_event& MissHandlingLogic::canSendEvent() const {
-  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
-    return oRequestToNetwork.ack_event();
-  else {
-    return oRequestToBM.ack_event();
-  }
+  return oRequestToNetwork.ack_event();
 }
 
 NetworkResponse MissHandlingLogic::receiveFromNetwork() {
-  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK) {
-    loki_assert(iResponseFromNetwork.valid());
-    iResponseFromNetwork.ack();
-    return iResponseFromNetwork.read();
-  }
-  else {
-    loki_assert(iResponseFromBM.valid());
-    iResponseFromBM.ack();
-    return iResponseFromBM.read();
-  }
+  loki_assert(iResponseFromNetwork.valid());
+  iResponseFromNetwork.ack();
+  return iResponseFromNetwork.read();
 }
 
 bool MissHandlingLogic::networkDataAvailable() const {
-  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
-    return iResponseFromNetwork.valid();
-  else {
-    return iResponseFromBM.valid();
-  }
+  return iResponseFromNetwork.valid();
 }
 
 const sc_event& MissHandlingLogic::newNetworkDataEvent() const {
-  if ((requestDestination != memoryControllerAddress()) || MAIN_MEMORY_ON_NETWORK)
-    return iResponseFromNetwork.default_event();
-  else {
-    return iResponseFromBM.default_event();
-  }
+  return iResponseFromNetwork.default_event();
 }
 
 ChannelID MissHandlingLogic::getDestination(MemoryAddr address) const {
   TileID tile = directory.getTile(address);
 
-  // The data should be on this tile, but isn't - go to main memory.
-  if (tile == id.tile)
-    return memoryControllerAddress();
   // The data should be on the tile indicated by the directory.
-  else
-    return ChannelID(tile.x, tile.y, 0, 0);
+  return ChannelID(tile.x, tile.y, 0, 0);
 }
 
-ChannelID MissHandlingLogic::memoryControllerAddress() const {
-  return ChannelID(2, 0, 0, 0);
+TileID MissHandlingLogic::nearestMemoryController() const {
+  ComputeTile* tile = static_cast<ComputeTile*>(this->get_parent_object());
+  return tile->chip()->nearestMemoryController(id.tile);
 }
