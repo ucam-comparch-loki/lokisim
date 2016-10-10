@@ -142,7 +142,7 @@ void FlowControlIn::prepareCredit() {
   assert(toSend.channelID().isNullMapping());
   assert(numCredits > 0);
 
-  toSend = NetworkCredit(Word(numCredits), sourceChannel);
+  toSend = NetworkCredit(Word(numCredits), sourceChannel, true);
 
   numCredits = 0;
 
@@ -164,7 +164,7 @@ void FlowControlIn::prepareNack() {
   assert(!nackChannel.isNullMapping());
   assert(toSend.channelID().isNullMapping());
 
-  toSend =NetworkCredit(Word(0), nackChannel);
+  toSend = NetworkCredit(Word(0), nackChannel, true);
 
   LOKI_LOG << this->name() << " sending nack to " << nackChannel << " (id:" << toSend.messageID() << ")" << endl;
 
