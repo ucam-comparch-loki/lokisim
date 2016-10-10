@@ -42,16 +42,39 @@ void Router::sendData(PortIndex output) {
     next_trigger(clock.posedge_event());
   }
   else {
-    for (int i=0; i<5; i++) {
-      PortIndex input = (i + lastAccepted[output] + 1) % 5;
-      if (destination[input] == output) {
-        LOKI_LOG << this->name() << " sending to " << DirectionNames[output] << ": " << inputBuffers[input].peek() << endl;
+    // Wormhole mode - continue reading from same input.
+    if (holdInput[output]) {
+      PortIndex input = lastAccepted[output];
+      if (!inputBuffers[input].empty()) {
+        NetworkData flit = inputBuffers[input].read();
+        oData[output].write(flit);
 
-        oData[output].write(inputBuffers[input].read());
-        lastAccepted[output] = input;
+        // Stick with this input if necessary.
+        holdInput[output] = wormhole && !flit.getMetadata().endOfPacket;
+
         next_trigger(oData[output].ack_event());
         updateDestination(input);
         return;
+      }
+    }
+    // Find new packet to send.
+    else {
+      for (int i=0; i<5; i++) {
+        PortIndex input = (i + lastAccepted[output] + 1) % 5;
+        if (destination[input] == output) {
+          LOKI_LOG << this->name() << " sending to " << DirectionNames[output] << ": " << inputBuffers[input].peek() << endl;
+
+          NetworkData flit = inputBuffers[input].read();
+          oData[output].write(flit);
+          lastAccepted[output] = input;
+
+          // Stick with this input if necessary.
+          holdInput[output] = wormhole && !flit.getMetadata().endOfPacket;
+
+          next_trigger(oData[output].ack_event());
+          updateDestination(input);
+          return;
+        }
       }
     }
 
@@ -115,10 +138,12 @@ Router::Router(const sc_module_name& name, const ComponentID& ID) :
     yPos(ID.tile.y) {
 
   state = WAITING_FOR_DATA;
+  wormhole = true;
 
   for (int i=0; i<5; i++) {
     lastAccepted[i] = -1;
     destination[i] = -1;
+    holdInput[i] = false;
   }
 
   iData.init(5);    oData.init(5);

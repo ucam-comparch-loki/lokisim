@@ -86,8 +86,9 @@ private:
       case MUX_SELECTED:
         loki_assert(!oData.valid());
 
-        if (iData[lastSelected].valid())
+        if (iData[lastSelected].valid()) {
           iData[lastSelected].ack();
+        }
 
         if (haveValidInput()) {
           selectInput();

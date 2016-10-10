@@ -104,9 +104,16 @@ private:
   // direction data should be sent next.
   const unsigned int xPos, yPos;
 
+  // Whether this router is using wormhole routing.
+  bool wormhole;
+
   // The router currently implements round-robin scheduling: store the inputs
   // which were most recently allowed to send data to each output.
   PortIndex lastAccepted[5];
+
+  // If using wormhole routing, allow the same input to be used until the
+  // packet ends.
+  bool holdInput[5];
 
   // Record the direction the leading flit in each buffer wants to travel.
   PortIndex destination[5];
