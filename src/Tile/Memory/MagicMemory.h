@@ -15,10 +15,9 @@
 #define SRC_TILE_MEMORY_MAGICMEMORY_H_
 
 #include <systemc>
-#include "../../Datatype/Identifier.h"
 #include "../../Datatype/Word.h"
 #include "../../LokiComponent.h"
-#include "../../Tile/Memory/MemoryTypedefs.h"
+#include "MemoryTypedefs.h"
 
 class Chip;
 class MainMemory;

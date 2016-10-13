@@ -1,24 +1,22 @@
 /*
- * MainMemory.h
+ * MainMemoryRequestHandler.h
  *
- * Main memory model.
+ * Component responsible for responding to requests on one input port of
+ * main memory.
  *
- * Accepts one request at a time, and only supports FETCH_LINE and STORE_LINE
- * operations.
- *
- *  Created on: 21 Apr 2016
+ *  Created on: 12 Oct 2016
  *      Author: db434
  */
 
-#ifndef SRC_TILE_MEMORY_MAINMEMORY_H_
-#define SRC_TILE_MEMORY_MAINMEMORY_H_
+#ifndef SRC_TILE_MEMORY_MAINMEMORYREQUESTHANDLER_H_
+#define SRC_TILE_MEMORY_MAINMEMORYREQUESTHANDLER_H_
 
 #include "MemoryBase.h"
-#include "MainMemoryRequestHandler.h"
+#include "../../Network/DelayBuffer.h"
 
-class MemoryOperation;
+class MainMemory;
 
-class MainMemory: public MemoryBase {
+class MainMemoryRequestHandler: public MemoryBase {
 
 //============================================================================//
 // Ports
@@ -26,11 +24,10 @@ class MainMemory: public MemoryBase {
 
 public:
 
-  ClockInput                 iClock;
+  ClockInput     iClock;
 
-  // One input/output from each memory controller.
-  LokiVector<RequestInput>   iData;
-  LokiVector<ResponseOutput> oData;
+  RequestInput   iData;
+  ResponseOutput oData;
 
 //============================================================================//
 // Constructors and destructors
@@ -38,8 +35,9 @@ public:
 
 public:
 
-  MainMemory(sc_module_name name, ComponentID ID, uint controllers);
-  virtual ~MainMemory();
+  SC_HAS_PROCESS(MainMemoryRequestHandler);
+  MainMemoryRequestHandler(sc_module_name name, ComponentID ID, MainMemory& memory);
+  virtual ~MainMemoryRequestHandler();
 
 //============================================================================//
 // Methods
@@ -90,32 +88,6 @@ public:
   // Check whether it is safe for the given operation to modify memory.
   virtual void preWriteCheck(const MemoryOperation& operation) const;
 
-  // Check whether a memory location is read-only.
-  bool readOnly(MemoryAddr addr) const;
-
-  // Update coherence information in cases where data doesn't need to be loaded
-  // from main memory (e.g. memset).
-  void claimCacheLine(ComponentID bank, MemoryAddr address);
-
-  // Store initial program data.
-  void storeData(vector<Word>& data, MemoryAddr location, bool readOnly);
-
-  void print(MemoryAddr start, MemoryAddr end) const;
-
-
-  // Messages between this centralised memory and each of the request handlers.
-
-  // Is a request handler allowed to start a new request? It may not be allowed
-  // if the maximum number of requests are already in progress.
-  bool canStartRequest() const;
-
-  // Event triggered whenever it is possible to start a new request.
-  const sc_event& canStartRequestEvent() const;
-
-  // Tell this memory whenever a request starts or completes.
-  void notifyRequestStart();
-  void notifyRequestComplete();
-
 protected:
 
   virtual const vector<uint32_t>& dataArrayReadOnly() const;
@@ -123,20 +95,12 @@ protected:
 
 private:
 
-  // Keep track of which tiles have valid copies of which data for debugging.
-  void checkSafeRead(MemoryAddr address, TileID requester);
-  void checkSafeWrite(MemoryAddr address, TileID requester);
+  void mainLoop();
+  void processIdle();
+  void processRequest();
 
-//============================================================================//
-// Subcomponents
-//============================================================================//
-
-private:
-
-  // One handler per input port.
-  vector<MainMemoryRequestHandler*> handlers;
-
-  friend class MainMemoryRequestHandler;
+  // Method triggered whenever data needs to be sent.
+  void sendData();
 
 //============================================================================//
 // Local state
@@ -144,25 +108,20 @@ private:
 
 private:
 
-  // The stored data.
-  vector<uint32_t>   mData;
+  enum RequestHandlerState {
+    STATE_IDLE,                        // No active request
+    STATE_REQUEST,                     // Serving active request
+  };
 
-  // The number of requests in flight at the moment. I use this as a proxy for
-  // memory bandwidth being used, with each request using one flit per cycle.
-  // This allows us to simulate different bandwidths by capping the number of
-  // active requests.
-  unsigned int       activeRequests;
+  RequestHandlerState   requestState;
+  MemoryOperation*      activeRequest; // The request being served.
 
-  // Mainly for debug, mark the read-only sections of the address space.
-  vector<MemoryAddr> readOnlyBase, readOnlyLimit;
+  DelayBuffer<NetworkResponse> outputQueue; // Model memory latency
 
-  // For debug: record which tiles have an up-to-date copy of each cache line
-  // so we can detect incoherent memory use.
-  // Each entry in the vector represents a bitmask of all tiles on chip (< 32).
-  vector<uint>       cacheLineValid;
-
-  sc_event           bandwidthAvailableEvent;
+  // The place where data is actually stored. There may be many of these
+  // request handlers all accessing the same data.
+  MainMemory&           mainMemory;
 
 };
 
-#endif /* SRC_TILE_MEMORY_MAINMEMORY_H_ */
+#endif /* SRC_TILE_MEMORY_MAINMEMORYREQUESTHANDLER_H_ */

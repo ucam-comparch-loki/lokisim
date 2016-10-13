@@ -17,10 +17,10 @@
 #ifndef SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBANK_H_
 #define SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBANK_H_
 
+#include "MemoryBase.h"
+#include "L2RequestFilter.h"
+#include "ReservationHandler.h"
 #include "../../Network/DelayBuffer.h"
-#include "../../Tile/Memory/L2RequestFilter.h"
-#include "../../Tile/Memory/MemoryBase.h"
-#include "../../Tile/Memory/ReservationHandler.h"
 #include "../../Utility/BlockingInterface.h"
 
 class MemoryOperation;
@@ -176,6 +176,9 @@ private:
 
 protected:
 
+  virtual const vector<uint32_t>& dataArrayReadOnly() const;
+  virtual vector<uint32_t>& dataArray();
+
   virtual void reportStalls(ostream& os);
 
 //============================================================================//
@@ -201,6 +204,7 @@ private:
   DelayBuffer<NetworkResponse>   mOutputQueue;      // Output queue
   DelayBuffer<NetworkRequest>    mOutputReqQueue;   // Output request queue
 
+  vector<uint32_t>      mData;            // The stored data.
   vector<MemoryTag>     mTags;            // Cache tags for each line.
   vector<bool>          mValid;           // Valid data flag for each line.
   vector<bool>          mDirty;           // Modified data flag for each line.

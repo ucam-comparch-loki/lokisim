@@ -124,6 +124,9 @@ const std::set<TileID> Chip::getMemoryControllerPositions() const {
   positions.insert(TileID(1, COMPUTE_TILE_ROWS+1));
   positions.insert(TileID(COMPUTE_TILE_COLUMNS, COMPUTE_TILE_ROWS+1));
 
+  if (positions.size() < MAIN_MEMORY_BANDWIDTH)
+    LOKI_WARN << "Unable to use " << MAIN_MEMORY_BANDWIDTH << " words/cycle of memory bandwidth with only " << positions.size() << " memory controllers." << endl;
+
   return positions;
 }
 

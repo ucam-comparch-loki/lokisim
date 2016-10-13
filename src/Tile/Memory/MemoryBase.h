@@ -24,9 +24,8 @@ class MemoryBase : public LokiComponent {
 
 public:
 
-  MemoryBase(sc_module_name name, ComponentID ID, size_t sizeInBytes) :
-    LokiComponent(name, ID),
-    mData(sizeInBytes/4, 0) {
+  MemoryBase(sc_module_name name, ComponentID ID) :
+    LokiComponent(name, ID) {
 
   }
 
@@ -104,7 +103,7 @@ public:
   virtual uint32_t readWord(SRAMAddress position) const {
     checkAlignment(position, 4);
 
-    return mData[position/BYTES_PER_WORD];
+    return dataArrayReadOnly()[position/BYTES_PER_WORD];
   }
 
   virtual uint32_t readHalfword(SRAMAddress position) const {
@@ -124,7 +123,7 @@ public:
   virtual void writeWord(SRAMAddress position, uint32_t data) {
     checkAlignment(position, 4);
 
-    mData[position/BYTES_PER_WORD] = data;
+    dataArray()[position/BYTES_PER_WORD] = data;
   }
 
   virtual void writeHalfword(SRAMAddress position, uint32_t data) {
@@ -148,9 +147,22 @@ public:
   }
 
   // Memory address manipulation. Assumes fixed cache line size of 32 bytes.
-  MemoryAddr getTag(MemoryAddr address)      const {return address & ~0x1F;}
-  MemoryAddr getLine(SRAMAddress position)   const {return position >> 5;}
-  MemoryAddr getOffset(SRAMAddress position) const {return position & 0x1F;}
+  static MemoryAddr getTag(MemoryAddr address)      {return address & ~0x1F;}
+  static MemoryAddr getLine(SRAMAddress position)   {return position >> 5;}
+  static MemoryAddr getOffset(SRAMAddress position) {return position & 0x1F;}
+
+  // This would probably go better in some other class.
+  static bool isPayload(NetworkRequest request) {
+    MemoryOpcode opcode = request.getMemoryMetadata().opcode;
+    return (opcode == PAYLOAD) || (opcode == PAYLOAD_EOP);
+  }
+
+  void checkAlignment(SRAMAddress position, uint alignment) const {
+    MemoryAddr address = getAddress(position);
+    if (WARN_UNALIGNED && (address & (alignment-1)) != 0)
+      LOKI_WARN << " attempting to access address " << LOKI_HEX(address)
+          << " with alignment " << alignment << "." << std::endl;
+  }
 
   void printOperation(
       MemoryOpcode    operation,
@@ -170,23 +182,10 @@ public:
 
 protected:
 
-  void checkAlignment(SRAMAddress position, uint alignment) const {
-    MemoryAddr address = getAddress(position);
-    if (WARN_UNALIGNED && (address & (alignment-1)) != 0)
-      LOKI_WARN << " attempting to access address " << LOKI_HEX(address)
-          << " with alignment " << alignment << "." << std::endl;
-  }
-
-  // This would probably go better in some other class.
-  bool isPayload(NetworkRequest request) const {
-    MemoryOpcode opcode = request.getMemoryMetadata().opcode;
-    return (opcode == PAYLOAD) || (opcode == PAYLOAD_EOP);
-  }
-
-protected:
-
-  // The stored data.
-  vector<uint32_t>   mData;
+  // Abstract away where the data is stored. Allows multiple memories to share
+  // data.
+  virtual const vector<uint32_t>& dataArrayReadOnly() const = 0;
+  virtual vector<uint32_t>& dataArray() = 0;
 
 };
 

@@ -118,6 +118,9 @@ parameter MAIN_MEMORY_LATENCY        = 20;
 // Size of main memory in bytes.
 parameter MAIN_MEMORY_SIZE           = 256 * 1024 * 1024;
 
+// Total bandwidth to/from main memory in words per cycle.
+parameter MAIN_MEMORY_BANDWIDTH      = 1;
+
 // If set to 1, all memory operations complete instantaneously.
 parameter MAGIC_MEMORY               = 0;
 
@@ -180,6 +183,7 @@ void Parameters::parseParameter(const string &name, const string &value) {
   else SET_IF_MATCH(cName, nValue, MEMORY_BANK_SIZE);
   else SET_IF_MATCH(cName, nValue, MAIN_MEMORY_LATENCY);
   else SET_IF_MATCH(cName, nValue, MAIN_MEMORY_SIZE);
+  else SET_IF_MATCH(cName, nValue, MAIN_MEMORY_BANDWIDTH);
   else SET_IF_MATCH(cName, nValue, MEMORY_HIT_UNDER_MISS);
   else SET_IF_MATCH(cName, nValue, CORE_RECEIVE_CHANNELS);
   else SET_IF_MATCH(cName, nValue, CORE_BUFFER_SIZE);
@@ -211,6 +215,7 @@ void Parameters::printParameters() {
   cout << "Parameter MEMORY_HIT_UNDER_MISS is " << MEMORY_HIT_UNDER_MISS << endl;
   cout << "Parameter MAIN_MEMORY_LATENCY is " << MAIN_MEMORY_LATENCY << endl;
   cout << "Parameter MAIN_MEMORY_SIZE is " << MAIN_MEMORY_SIZE << endl;
+  cout << "Parameter MAIN_MEMORY_BANDWIDTH is " << MAIN_MEMORY_BANDWIDTH << endl;
   cout << "Parameter MAGIC_MEMORY is " << MAGIC_MEMORY << endl;
   cout << "Parameter CORE_RECEIVE_CHANNELS is " << CORE_RECEIVE_CHANNELS << endl;
   cout << "Parameter CORE_BUFFER_SIZE is " << CORE_BUFFER_SIZE << endl;
@@ -233,5 +238,6 @@ void Parameters::printParametersXML(std::ostream& os) {
      << XML_LINE("ipk_cache_tags", IPK_CACHE_TAGS)
      << XML_LINE("channel_map_size", CHANNEL_MAP_SIZE)
      << XML_LINE("memory_bank_size", MEMORY_BANK_SIZE)
+     << XML_LINE("main_memory_bandwidth", MAIN_MEMORY_BANDWIDTH)
      << "</parameters>\n";
 }

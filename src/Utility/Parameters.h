@@ -115,6 +115,9 @@ extern parameter  MAIN_MEMORY_LATENCY;
 // Size of main memory in bytes.
 extern parameter  MAIN_MEMORY_SIZE;
 
+// Total bandwidth to/from main memory in words per cycle.
+extern parameter  MAIN_MEMORY_BANDWIDTH;
+
 // If set to 1, all memory operations complete instantaneously.
 extern parameter  MAGIC_MEMORY;
 

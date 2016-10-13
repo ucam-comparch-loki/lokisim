@@ -738,10 +738,11 @@ void MemoryBank::updateReady() {
 }
 
 MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumber) :
-  MemoryBase(name, ID, MEMORY_BANK_SIZE),
+  MemoryBase(name, ID),
   mInputQueue(string(this->name()) + string(".mInputQueue"), MEMORY_BUFFER_SIZE),
   mOutputQueue("mOutputQueue", MEMORY_BUFFER_SIZE, INTERNAL_LATENCY),
   mOutputReqQueue("mOutputReqQueue", 10 /*read addr + write addr + cache line*/, 0),
+  mData(MEMORY_BANK_SIZE/BYTES_PER_WORD, 0),
   mTags(CACHE_LINES_PER_BANK, 0),
   mValid(CACHE_LINES_PER_BANK, false),
   mDirty(CACHE_LINES_PER_BANK, false),
@@ -881,6 +882,14 @@ void MemoryBank::writeByteDebug(MemoryAddr addr, Word data) {
     writeByte(position, data.toUInt());
   else
     mMainMemory->writeByte(addr, data.toUInt());
+}
+
+const vector<uint32_t>& MemoryBank::dataArrayReadOnly() const {
+  return mData;
+}
+
+vector<uint32_t>& MemoryBank::dataArray() {
+  return mData;
 }
 
 void MemoryBank::reportStalls(ostream& os) {
