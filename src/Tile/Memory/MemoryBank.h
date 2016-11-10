@@ -18,6 +18,7 @@
 #define SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBANK_H_
 
 #include "MemoryBase.h"
+#include "Directory.h"
 #include "L2RequestFilter.h"
 #include "ReservationHandler.h"
 #include "../../Network/DelayBuffer.h"
@@ -174,6 +175,8 @@ private:
   void updateIdle();                  // Update idleness
   void updateReady();                 // Update flow control signals
 
+  Chip* chip() const;
+
 protected:
 
   virtual const vector<uint32_t>& dataArrayReadOnly() const;
@@ -208,6 +211,7 @@ private:
   vector<MemoryTag>     mTags;            // Cache tags for each line.
   vector<bool>          mValid;           // Valid data flag for each line.
   vector<bool>          mDirty;           // Modified data flag for each line.
+  vector<bool>          mL2Skip;          // Whether each line bypasses the L2 when flushed.
 
   MemoryOperation*      mActiveRequest;   // The request being served.
 

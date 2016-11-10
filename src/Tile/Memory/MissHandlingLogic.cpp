@@ -70,6 +70,32 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
   // do initialise
 }
 
+bool MissHandlingLogic::backedByMainMemory(MemoryAddr address) const {
+  MemoryAddr newAddress = directory.updateAddress(address);
+  TileID nextTile = directory.getNextTile(address);
+  bool scratchpad = directory.inScratchpad(address);
+
+  // This is the final translation if the target tile is in scratchpad mode.
+  // Otherwise, pass the request on to the next level of cache.
+  if (scratchpad)
+    return false;
+  else
+    return chip()->backedByMainMemory(nextTile, newAddress);
+}
+
+MemoryAddr MissHandlingLogic::getAddressTranslation(MemoryAddr address) const {
+  MemoryAddr newAddress = directory.updateAddress(address);
+  TileID nextTile = directory.getNextTile(address);
+  bool scratchpad = directory.inScratchpad(address);
+
+  // This is the final translation if the target tile is in scratchpad mode.
+  // Otherwise, pass the request on to the next level of cache.
+  if (scratchpad)
+    return newAddress;
+  else
+    return chip()->getAddressTranslation(nextTile, newAddress);
+}
+
 void MissHandlingLogic::localRequestLoop() {
 
   loki_assert(muxedRequest.valid());
@@ -113,15 +139,17 @@ void MissHandlingLogic::localRequestLoop() {
           break;
 
         default: {
-          // Use the memory address in the first flit of each packet to determine
-          // which network address the whole packet should be forwarded to.
+          // Adjust the flit based on its contents and the contents of the
+          // directory.
           if (newLocalRequest) {
-            MemoryAddr address = flit.payload().toUInt();
-            requestDestination = getDestination(address);
-            flit.setPayload(directory.updateAddress(address));
-          }
+            flit = directory.updateRequest(flit);
 
-          flit.setChannelID(requestDestination);
+            // Save the network destination so it can be reused for all other
+            // flits in the same packet.
+            requestDestination = flit.channelID();
+          }
+          else
+            flit.setChannelID(requestDestination);
 
           LOKI_LOG << this->name() << " sending request " << flit << endl;
 
@@ -197,7 +225,7 @@ void MissHandlingLogic::remoteRequestLoop() {
 
       // In scratchpad mode, the bank is specified by the bits immediately
       // above the offset.
-      if (flit.getMemoryMetadata().scratchpadL2)
+      if (flit.getMemoryMetadata().scratchpad)
         targetBank = (flit.payload().toUInt() >> 5) & (MEMS_PER_TILE - 1);
       // Push line operations specify the target bank with the lowest bits.
       else if (flit.getMemoryMetadata().opcode == PUSH_LINE)
@@ -280,13 +308,8 @@ MemoryIndex MissHandlingLogic::nextTargetBank() {
 }
 
 
-// All the following methods behave differently depending on how main memory
-// is accessed.
-
-
 void MissHandlingLogic::sendOnNetwork(NetworkRequest request) {
   loki_assert(canSendOnNetwork());
-
   oRequestToNetwork.write(request);
 }
 
@@ -312,14 +335,11 @@ const sc_event& MissHandlingLogic::newNetworkDataEvent() const {
   return iResponseFromNetwork.default_event();
 }
 
-ChannelID MissHandlingLogic::getDestination(MemoryAddr address) const {
-  TileID tile = directory.getTile(address);
-
-  // The data should be on the tile indicated by the directory.
-  return ChannelID(tile.x, tile.y, 0, 0);
-}
-
 TileID MissHandlingLogic::nearestMemoryController() const {
   ComputeTile* tile = static_cast<ComputeTile*>(this->get_parent_object());
   return tile->chip()->nearestMemoryController(id.tile);
+}
+
+Chip* MissHandlingLogic::chip() const {
+  return static_cast<ComputeTile*>(this->get_parent_object())->chip();
 }

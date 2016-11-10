@@ -43,7 +43,7 @@ void L2RequestFilter::mainLoop() {
         loki_assert((opcode != PAYLOAD) && (opcode != PAYLOAD_EOP));
 
         MemoryAddr address = request.payload().toUInt();
-        MemoryAccessMode mode = (request.getMemoryMetadata().scratchpadL2 ? MEMORY_SCRATCHPAD : MEMORY_CACHE);
+        MemoryAccessMode mode = (request.getMemoryMetadata().scratchpad ? MEMORY_SCRATCHPAD : MEMORY_CACHE);
         SRAMAddress position = localBank->getPosition(address, mode);
 
         // Perform a few checks to see whether this bank should claim the

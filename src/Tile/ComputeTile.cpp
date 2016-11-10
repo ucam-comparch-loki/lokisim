@@ -109,6 +109,14 @@ void ComputeTile::networkSendCreditInternal(const NetworkCredit& flit) {
   }
 }
 
+MemoryAddr ComputeTile::getAddressTranslation(MemoryAddr address) const {
+  return mhl.getAddressTranslation(address);
+}
+
+bool ComputeTile::backedByMainMemory(MemoryAddr address) const {
+  return mhl.backedByMainMemory(address);
+}
+
 void ComputeTile::makeComponents() {
 
   TileID tile = id.tile;

@@ -70,6 +70,15 @@ public:
   void    networkSendDataInternal(const NetworkData& flit);
   void    networkSendCreditInternal(const NetworkCredit& flit);
 
+  // Each tile modifies the address of outgoing memory addresses. Determine the
+  // ultimate address in main memory that this address maps to.
+  MemoryAddr getAddressTranslation(TileID tile, MemoryAddr address) const;
+
+  // Determines whether this address is a cached copy of a value from main
+  // memory. The alternative is that there is a scratchpad somewhere in the
+  // memory hierarchy.
+  bool    backedByMainMemory(TileID tile, MemoryAddr address) const;
+
   void    magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address, ChannelID returnChannel, Word payload = 0);
 
 private:

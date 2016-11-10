@@ -7,10 +7,10 @@
 
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
-#include "../../Tile/Memory/MainMemory.h"
+#include "MainMemory.h"
+#include "Operations/MemoryOperationDecode.h"
 #include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/MainMemory.h"
-#include "../../Tile/Memory/Operations/MemoryOperationDecode.h"
 #include <iomanip>
 #include <ios>
 
@@ -29,7 +29,7 @@ MainMemory::MainMemory(sc_module_name name, ComponentID ID, uint controllers) :
   iData.init(controllers);
   oData.init(controllers);
 
-  for(uint i=0; i<controllers; i++) {
+  for (uint i=0; i<controllers; i++) {
     MainMemoryRequestHandler* handler =
         new MainMemoryRequestHandler(sc_gen_unique_name("port"), ID, *this);
 
@@ -45,8 +45,9 @@ MainMemory::MainMemory(sc_module_name name, ComponentID ID, uint controllers) :
 }
 
 MainMemory::~MainMemory() {
-  for (uint i=0; i<handlers.size(); i++)
+  for (uint i=0; i<handlers.size(); i++) {
     delete handlers[i];
+  }
 }
 
 
@@ -96,20 +97,20 @@ void MainMemory::flush(SRAMAddress position, MemoryAccessMode mode) {
 // Return whether a payload flit is available. `level` tells whether this bank
 // is being treated as an L1 or L2 cache.
 bool MainMemory::payloadAvailable(MemoryLevel level) const {
-  assert(false);
+  loki_assert(false);
   return false;
 }
 
 // Retrieve a payload flit. `level` tells whether this bank is being treated
 // as an L1 or L2 cache.
 uint32_t MainMemory::getPayload(MemoryLevel level) {
-  assert(false);
+  loki_assert(false);
   return 0;
 }
 
 // Send a result to the requested destination.
 void MainMemory::sendResponse(NetworkResponse response, MemoryLevel level) {
-  assert(false);
+  loki_assert(false);
 }
 
 // Make a load-linked reservation.
@@ -144,7 +145,9 @@ bool MainMemory::readOnly(MemoryAddr addr) const {
 
 void MainMemory::claimCacheLine(ComponentID bank, MemoryAddr address) {
   int tile = bank.tile.computeTileIndex();
-  int cacheLine = MemoryBase::getLine(address);
+  uint cacheLine = MemoryBase::getLine(address);
+
+  loki_assert_with_message(cacheLine < cacheLineValid.size(), "Address = 0x%x", address);
 
   // This is now the only tile with an up-to-date copy of the data.
   cacheLineValid[cacheLine] = (1 << tile);
@@ -160,6 +163,7 @@ void MainMemory::storeData(vector<Word>& data, MemoryAddr location, bool readOnl
   for (size_t i = 0; i < count; i++) {
     LOKI_LOG << this->name() << " wrote to " << LOKI_HEX((address+i)*BYTES_PER_WORD) << ": " << data[i].toUInt() << endl;
 
+    loki_assert(address+i < mData.size());
     mData[address + i] = data[i].toUInt();
   }
 
@@ -232,8 +236,8 @@ void MainMemory::checkSafeWrite(MemoryAddr address, TileID requester) {
   loki_assert_with_message(cacheLine < cacheLineValid.size(), "Address = 0x%x", address);
 
   if (WARN_INCOHERENCE && !(cacheLineValid[cacheLine] & (1 << tile)))
-    LOKI_WARN << "Tile " << requester << " updated cache line "
-    << LOKI_HEX(address) << " without first having an up-to-date copy." << endl;
+    LOKI_WARN << "Tile " << requester << " overwrote cache line "
+    << LOKI_HEX(address) << " in main memory using potentially stale data." << endl;
 
   // After writing, this is the only tile with an up-to-date copy of the data.
   cacheLineValid[cacheLine] = (1 << tile);

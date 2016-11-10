@@ -14,9 +14,11 @@
 
 using namespace std;
 
-#include "../../Tile/Memory/MemoryBank.h"
-#include "../../Tile/Memory/MainMemory.h"
-#include "../../Tile/Memory/Operations/MemoryOperationDecode.h"
+#include "MemoryBank.h"
+#include "MainMemory.h"
+#include "Operations/MemoryOperationDecode.h"
+#include "../ComputeTile.h"
+#include "../../Chip.h"
 #include "../../Network/Topologies/LocalNetwork.h"
 #include "../../Utility/Arguments.h"
 #include "../../Utility/Assert.h"
@@ -26,6 +28,8 @@ using namespace std;
 #include "../../Utility/Warnings.h"
 #include "../../Exceptions/ReadOnlyException.h"
 #include "../../Exceptions/UnsupportedFeatureException.h"
+
+class ComputeTile;
 
 // The latency of accessing a memory bank, aside from the cost of accessing the
 // SRAM. This typically includes the network to/from the bank.
@@ -115,6 +119,9 @@ void MemoryBank::allocate(MemoryAddr address, SRAMAddress position, MemoryAccess
 
         // Send a request for the missing cache line.
         NetworkRequest readRequest(getTag(address), id, FETCH_LINE, true);
+        MemoryMetadata metadata = readRequest.getMemoryMetadata();
+        metadata.skipL2 = mActiveRequest->getMetadata().skipL2;
+        readRequest.setMetadata(metadata.flatten());
         sendRequest(readRequest);
 
         // Stop serving the request until allocation is complete.
@@ -129,13 +136,25 @@ void MemoryBank::allocate(MemoryAddr address, SRAMAddress position, MemoryAccess
 // Ensure that there is a space to write data to `address` at `position`.
 void MemoryBank::validate(MemoryAddr address, SRAMAddress position, MemoryAccessMode mode) {
   switch (mode) {
-    case MEMORY_CACHE:
+    case MEMORY_CACHE: {
       if (mTags[getLine(position)] != getTag(address))
         flush(position, mode);
       mTags[getLine(position)] = getTag(address);
       mValid[getLine(position)] = true;
-      mMainMemory->claimCacheLine(id, address);
+
+      // Hack. It might not always be the active request doing this?
+      mL2Skip[getLine(position)] = mActiveRequest->getMetadata().skipL2;
+
+      // Some extra bookkeeping to help with debugging.
+      bool inMainMemory = chip()->backedByMainMemory(id.tile, address);
+      if (inMainMemory) {
+        MemoryAddr globalAddress = chip()->getAddressTranslation(id.tile, address);
+        mMainMemory->claimCacheLine(id, globalAddress);
+      }
+
       break;
+    }
+
     case MEMORY_SCRATCHPAD:
       break;
   }
@@ -160,6 +179,9 @@ void MemoryBank::flush(SRAMAddress position, MemoryAccessMode mode) {
       if (mValid[getLine(position)] && mDirty[getLine(position)]) {
         // Send a header flit telling where this line should be stored.
         NetworkRequest header(mTags[getLine(position)], id, STORE_LINE, false);
+        MemoryMetadata metadata = header.getMemoryMetadata();
+        metadata.skipL2 = mL2Skip[getLine(position)];
+        header.setMetadata(metadata.flatten());
         sendRequest(header);
 
         if (ENERGY_TRACE)
@@ -330,7 +352,7 @@ void MemoryBank::processRequest() {
 
   // If the operation has finished, and we haven't moved to some other state
   // for further processing, end the request and prepare for a new one.
-  if (mActiveRequest->complete() && mState == STATE_REQUEST) {
+  if (mActiveRequest != NULL && mActiveRequest->complete() && mState == STATE_REQUEST) {
     finishedRequest();
     mReadFromMissBuffer = false;
   }
@@ -655,7 +677,9 @@ void MemoryBank::copyToMissBuffer() {
 }
 
 void MemoryBank::preWriteCheck(const MemoryOperation& operation) const {
-  if (mMainMemory->readOnly(operation.getAddress()) && WARN_READ_ONLY) {
+  MemoryAddr globalAddress = chip()->getAddressTranslation(id.tile, operation.getAddress());
+  bool inMainMemory = chip()->backedByMainMemory(id.tile, operation.getAddress());
+  if (inMainMemory && mMainMemory->readOnly(globalAddress) && WARN_READ_ONLY) {
     LOKI_WARN << this->name() << " attempting to modify read-only address" << endl;
     LOKI_WARN << "  " << operation.toString() << endl;
   }
@@ -737,6 +761,10 @@ void MemoryBank::updateReady() {
     oReadyForData.write(ready);
 }
 
+Chip* MemoryBank::chip() const {
+  return static_cast<ComputeTile*>(this->get_parent_object())->chip();
+}
+
 MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumber) :
   MemoryBase(name, ID),
   mInputQueue(string(this->name()) + string(".mInputQueue"), MEMORY_BUFFER_SIZE),
@@ -746,6 +774,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
   mTags(CACHE_LINES_PER_BANK, 0),
   mValid(CACHE_LINES_PER_BANK, false),
   mDirty(CACHE_LINES_PER_BANK, false),
+  mL2Skip(CACHE_LINES_PER_BANK, false),
   mReservations(1),
   mMissBuffer(CACHE_LINE_WORDS, "mMissBuffer"),
   mCacheMissEvent(sc_core::sc_gen_unique_name("mCacheMissEvent")),
@@ -763,8 +792,8 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
   mReadFromMissBuffer = false;
 
   // Magic interfaces.
-  mMainMemory = 0;
-  localNetwork = 0;
+  mMainMemory = NULL;
+  localNetwork = NULL;
 
   // Connect to local components.
   oReadyForData.initialize(false);

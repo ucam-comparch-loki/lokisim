@@ -62,7 +62,7 @@ void MainMemory::printStats() {
     // clock cycle.
     count_t flits = numSends_ + numReceives_;
 
-    cout <<
+    std::clog <<
       "Main memory:\n" <<
       "  Access requests:  " << accesses << "\n" <<
       "    Read requests:  " << numReads_ << " (" << percentage(numReads_, accesses) << ")\n" <<

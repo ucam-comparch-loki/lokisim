@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "../../Datatype/Identifier.h"
+#include "../../Network/NetworkTypedefs.h"
 #include "../../Tile/Memory/MemoryTypedefs.h"
 #include "../../Typedefs.h"
 
@@ -30,23 +31,26 @@ class Directory {
 private:
 
   struct DirectoryEntry {
+    bool      scratchpad : 1;  // Is the next level of memory a scratchpad (vs cache)?
     uint      replaceBits : 4; // Replacements for the address's index bits
     TileID    tile;            // The tile responsible for holding an address
 
     DirectoryEntry() :
+        scratchpad(0),
         replaceBits(0),
         tile(0) {
       // Nothing
     }
 
     DirectoryEntry(uint flattened) :
+        scratchpad((flattened >> 10) & 0x1),
         replaceBits((flattened >> 6) & 0xF),
         tile((flattened >> 0) & 0x3F) {
       // Nothing
     }
 
     uint flatten() {
-      return (replaceBits << 6) | (tile.flatten() << 0);
+      return (scratchpad << 10) | (replaceBits << 6) | (tile.flatten() << 0);
     }
   }  __attribute__((packed));
 
@@ -82,11 +86,19 @@ public:
   // address.
   unsigned int getEntry(MemoryAddr address) const;
 
-  // Return the tile responsible for caching this memory address.
-  TileID getTile(MemoryAddr address) const;
+  // Determine the tile responsible for providing data at the given address.
+  TileID getNextTile(MemoryAddr address) const;
 
-  // Replace the index bits of the address according to the directory contents.
+  // Determine whether a request for the given address should access the next
+  // level of memory hierarchy in scratchpad mode.
+  bool inScratchpad(MemoryAddr address) const;
+
+  // Update a memory address according to the contents of the directory.
   MemoryAddr updateAddress(MemoryAddr address) const;
+
+  // Update a request according to the contents of the directory. Only valid
+  // on the first flit of a packet.
+  NetworkRequest updateRequest(const NetworkRequest& request) const;
 
 //============================================================================//
 // Local state

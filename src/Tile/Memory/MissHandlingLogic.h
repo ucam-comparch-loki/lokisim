@@ -19,6 +19,8 @@
 #include "../../Network/NetworkTypedefs.h"
 #include "../../Tile/Memory/Directory.h"
 
+class Chip;
+
 class MissHandlingLogic: public LokiComponent {
 
 //============================================================================//
@@ -91,6 +93,15 @@ public:
 // Methods
 //============================================================================//
 
+public:
+
+  // Determine whether the given address is a cached copy of data from main
+  // memory.
+  bool backedByMainMemory(MemoryAddr address) const;
+
+  // Determine the address in main memory represented by the given address.
+  MemoryAddr getAddressTranslation(MemoryAddr address) const;
+
 private:
 
   // Process requests from the local memory banks.
@@ -113,10 +124,6 @@ private:
   // Pseudo-randomly select a target bank.
   MemoryIndex nextTargetBank();
 
-  // The following several methods allow the implementation of the next level
-  // of memory hierarchy to be hidden. It could be a magic background memory,
-  // or in a constant position on the chip, or spread over a number of L2 tiles.
-
   void sendOnNetwork(NetworkRequest request);
   bool canSendOnNetwork() const;
   const sc_event& canSendEvent() const;
@@ -125,17 +132,19 @@ private:
   bool networkDataAvailable() const;
   const sc_event& newNetworkDataEvent() const;
 
-  // The network address the request should be sent to.
-  ChannelID getDestination(MemoryAddr address) const;
-
   // The network address of the memory controller.
   TileID nearestMemoryController() const;
+
+  // A pointer to the parent chip.
+  Chip* chip() const;
 
 //============================================================================//
 // Local state
 //============================================================================//
 
 private:
+
+  friend class ComputeTile;
 
   // Mapping between memory addresses and home tiles.
   Directory directory;

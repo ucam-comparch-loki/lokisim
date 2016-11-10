@@ -73,25 +73,10 @@ void MemoryOperation::preWriteCheck() const {
 }
 
 MemoryAccessMode MemoryOperation::getAccessMode() const {
-  switch (level) {
-    case MEMORY_L1:
-      if (metadata.scratchpadL1)
-        return MEMORY_SCRATCHPAD;
-      else
-        return MEMORY_CACHE;
-
-    case MEMORY_L2:
-      if (metadata.scratchpadL2)
-        return MEMORY_SCRATCHPAD;
-      else
-        return MEMORY_CACHE;
-
-    case MEMORY_OFF_CHIP:
-      return MEMORY_SCRATCHPAD;
-  }
-
-  assert(false);
-  return MEMORY_SCRATCHPAD;
+  if (metadata.scratchpad || (level == MEMORY_OFF_CHIP))
+    return MEMORY_SCRATCHPAD;
+  else
+    return MEMORY_CACHE;
 }
 
 bool MemoryOperation::payloadAvailable() const {

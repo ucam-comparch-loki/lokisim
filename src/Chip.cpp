@@ -82,6 +82,35 @@ void Chip::networkSendCreditInternal(const NetworkCredit& flit) {
   getTile(flit.channelID().component.tile)->networkSendCreditInternal(flit);
 }
 
+MemoryAddr Chip::getAddressTranslation(TileID tile, MemoryAddr address) const {
+  // If the given tile is a memory controller, no more transformation will be
+  // performed, so return the address as-is. Otherwise, query the tile's
+  // directory to find out what transformation is necessary.
+  if (tile.isComputeTile()) {
+    Tile* t = getTile(tile);
+    return static_cast<ComputeTile*>(t)->getAddressTranslation(address);
+  }
+  else {
+    return address;
+  }
+}
+
+bool Chip::backedByMainMemory(TileID tile, MemoryAddr address) const {
+  // If the given tile is a memory controller, the result is trivial.
+  // Otherwise, query the tile's directory to find details of the next level of
+  // memory hierarchy.
+  if (memoryControllerPositions.find(tile) != memoryControllerPositions.end()) {
+    return true;
+  }
+  else if (tile.isComputeTile()) {
+    Tile* t = getTile(tile);
+    return static_cast<ComputeTile*>(t)->backedByMainMemory(address);
+  }
+  else {
+    return false;
+  }
+}
+
 
 void Chip::magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address, ChannelID returnChannel, Word payload) {
   magicMemory.operate(opcode, address, returnChannel, payload);

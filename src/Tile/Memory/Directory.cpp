@@ -5,10 +5,11 @@
  *      Author: db434
  */
 
-#include "../../Tile/Memory/Directory.h"
+#include "Directory.h"
 
-#include <assert.h>
 #include <ostream>
+
+#include "../../Utility/Assert.h"
 #include "../../Utility/Logging.h"
 
 using std::endl;
@@ -50,16 +51,45 @@ void Directory::initialise(TileID tile) {
 }
 
 unsigned int Directory::getEntry(MemoryAddr address) const {
-  return (address >> shiftAmount) & bitmask;
+  unsigned int entry = (address >> shiftAmount) & bitmask;
+  assert(entry < directory.size());
+  return entry;
 }
 
-TileID Directory::getTile(MemoryAddr address) const {
+TileID Directory::getNextTile(MemoryAddr address) const {
   unsigned int entry = getEntry(address);
   return directory[entry].tile;
+}
+
+bool Directory::inScratchpad(MemoryAddr address) const {
+  unsigned int entry = getEntry(address);
+  return directory[entry].scratchpad;
 }
 
 MemoryAddr Directory::updateAddress(MemoryAddr address) const {
   unsigned int entry = getEntry(address);
   return (address & ~(bitmask << shiftAmount))
        | (directory[entry].replaceBits << shiftAmount);
+}
+
+NetworkRequest Directory::updateRequest(const NetworkRequest& request) const {
+  // We need the head flit of a packet, or else we won't have a memory address
+  // to use to access the directory.
+  MemoryMetadata metadata = request.getMemoryMetadata();
+  assert((metadata.opcode != PAYLOAD) && (metadata.opcode != PAYLOAD_EOP));
+
+  MemoryAddr address = request.payload().toUInt();
+  unsigned int entry = getEntry(address);
+
+  TileID nextTile = directory[entry].tile;
+  ChannelID destination(nextTile.x, nextTile.y, request.channelID().component.position, request.channelID().channel);
+  address = (address & ~(bitmask << shiftAmount))
+          | (directory[entry].replaceBits << shiftAmount);
+  metadata.scratchpad = directory[entry].scratchpad;
+
+  NetworkRequest updated = request;
+  updated.setChannelID(destination);
+  updated.setPayload(address);
+  updated.setMetadata(metadata.flatten());
+  return updated;
 }

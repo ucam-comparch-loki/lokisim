@@ -151,6 +151,10 @@ private:
   // memory bandwidth being used, with each request using one flit per cycle.
   // This allows us to simulate different bandwidths by capping the number of
   // active requests.
+  // I make the assumption that one request will never progress faster than
+  // another, giving the same behaviour as a fully sequential model. e.g. If
+  // two requests access the same cache line, one will always access a part
+  // of the line which has already been processed by the other.
   unsigned int       activeRequests;
 
   // Mainly for debug, mark the read-only sections of the address space.

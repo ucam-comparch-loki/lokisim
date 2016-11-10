@@ -59,31 +59,29 @@ struct CoreMetadata {
 };
 
 struct MemoryMetadata {
-  unsigned int padding : 13;
+  unsigned int padding : 15;
   unsigned int returnTileX : 3;   // L2 mode only: tile of requesting L1 bank.
   unsigned int returnTileY : 3;   // L2 mode only: tile of requesting L1 bank.
   unsigned int returnChannel : 3; // L1 mode: channel of core. L2 mode: bank of L1 tile.
-  unsigned int scratchpadL2 : 1;  // Treat L2 as cache (0) or scratchpad (1).
-  unsigned int scratchpadL1 : 1;  // Treat L1 as cache (0) or scratchpad (1).
+  unsigned int scratchpad : 1;    // Treat memory as cache (0) or scratchpad (1).
   unsigned int skipL2 : 1;        // Bypass L2 and go straight to main memory.
   unsigned int skipL1 : 1;        // Bypass L1 and go straight to L2.
   MemoryOpcode opcode : 5;        // Operation to perform at memory.
 
   uint32_t flatten() const {
-    return (padding << 18) | (returnTileX << 15) | (returnTileY << 12) |
-      (returnChannel << 9) | (scratchpadL2 << 8) | (scratchpadL1 << 7) |
+    return (padding << 17) | (returnTileX << 14) | (returnTileY << 11) |
+      (returnChannel << 8) | (scratchpad << 7) |
       (skipL2 << 6) | (skipL1 << 5) | (opcode << 0);
   }
 
   MemoryMetadata() : MemoryMetadata(0) {}
 
   MemoryMetadata(uint32_t flattened) {
-    padding = (flattened >> 18) & 0x1FFF;
-    returnTileX = (flattened >> 15) & 0x7;
-    returnTileY = (flattened >> 12) & 0x7;
-    returnChannel = (flattened >> 9) & 0x7;
-    scratchpadL2 = (flattened >> 8) & 0x1;
-    scratchpadL1 = (flattened >> 7) & 0x1;
+    padding = (flattened >> 17) & 0x7FFF;
+    returnTileX = (flattened >> 14) & 0x7;
+    returnTileY = (flattened >> 11) & 0x7;
+    returnChannel = (flattened >> 8) & 0x7;
+    scratchpad = (flattened >> 7) & 0x1;
     skipL2 = (flattened >> 6) & 0x1;
     skipL1 = (flattened >> 5) & 0x1;
     opcode = MemoryOpcode((flattened >> 0) & 0x1F);
@@ -136,15 +134,6 @@ public:
         && (this->payload_      == other.payload_)
         && (this->metadata_     == other.metadata_)
         && (this->channelID_    == other.channelID_);
-  }
-
-  inline Flit<T>& operator= (const Flit<T>& other) {
-    messageID_    = other.messageID_;
-    payload_      = other.payload_;
-    metadata_     = other.metadata_;
-    channelID_    = other.channelID_;
-
-    return *this;
   }
 
   friend std::ostream& operator<< (std::ostream& os, Flit<T> const& v) {
@@ -208,8 +197,7 @@ public:
     assert(destination.isMemory());
     MemoryMetadata info;
     info.returnChannel = networkInfo.returnChannel;
-    info.scratchpadL2 = networkInfo.scratchpadL2;
-    info.scratchpadL1 = networkInfo.scratchpadL1;
+    info.scratchpad = networkInfo.scratchpadL1;
     info.skipL2 = networkInfo.l2Skip;
     info.skipL1 = networkInfo.l1Skip;
     info.opcode = (MemoryOpcode)(op | eop);
@@ -228,7 +216,7 @@ public:
     info.returnTileX = source.tile.x;
     info.returnTileY = source.tile.y;
     info.returnChannel = source.position - CORES_PER_TILE;
-    info.scratchpadL2 = 0;
+    info.scratchpad = 0;
     info.skipL2 = 0;
     info.opcode = (MemoryOpcode)(op | eop);
     setMetadata(info.flatten());
@@ -241,8 +229,7 @@ public:
       payload_(payload),
       channelID_(destination) {
     MemoryMetadata info;
-    info.scratchpadL1 = 0;
-    info.scratchpadL2 = 0;
+    info.scratchpad = 0;
     info.skipL1 = 0;
     info.skipL2 = 0;
     info.opcode = (MemoryOpcode)(op | eop);
