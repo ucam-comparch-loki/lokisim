@@ -148,7 +148,7 @@ void ChannelMapEntry::write(EncodedCMTEntry data) {
 
     if (Arguments::summarise()) {
       string type = (getReturnChannel() < 2) ? "insts" : "data";
-      uint startBank = getComponent();
+      uint startBank = getComponent() - CORES_PER_TILE;
       uint endBank = startBank + getMemoryGroupSize() - 1;
 
       std::cout << "SETCHMAP: core " << id_.component << " " << type << ", banks "
@@ -210,8 +210,10 @@ unsigned int ChannelMapEntry::getCoreMask() const {
 
 // The number of memory banks in the virtual memory group.
 unsigned int ChannelMapEntry::getMemoryGroupSize() const {
-  assert(getNetwork() == CORE_TO_MEMORY);
-  return 1 << memoryView().groupSize;
+  if (getNetwork() == CORE_TO_MEMORY)
+    return 1 << memoryView().groupSize;
+  else
+    return 1;
 }
 
 // The number of words in each cache line.

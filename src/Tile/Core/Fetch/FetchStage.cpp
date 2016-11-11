@@ -240,11 +240,19 @@ void FetchStage::sendRequest(const FetchInfo& fetch) {
     core()->magicMemoryAccess(IPK_READ, fetch.address, returnAddress);
   }
   else {
-    // Select the bank to access based on the memory address.
-    uint increment = core()->channelMapTable[0].computeAddressIncrement(fetch.address);
-    ChannelID destination(id.tile.x, id.tile.y, fetch.networkInfo.bank + increment + CORES_PER_TILE, fetch.networkInfo.channel);
+    NetworkData flit;
 
-    NetworkData flit(fetch.address, destination, fetch.networkInfo, IPK_READ, true);
+    if (fetch.networkInfo.isMemory) {
+      // Select the bank to access based on the memory address.
+      uint increment = core()->channelMapTable[0].computeAddressIncrement(fetch.address);
+      ChannelID destination(id.tile.x, id.tile.y, fetch.networkInfo.bank + increment + CORES_PER_TILE, fetch.networkInfo.channel);
+      flit = NetworkData(fetch.address, destination, fetch.networkInfo, IPK_READ, true);
+    }
+    else {
+      ChannelID destination(id.tile.x, id.tile.y, fetch.networkInfo.bank, fetch.networkInfo.channel);
+      flit = NetworkData(fetch.address, destination, false, false, true);
+    }
+
     loki_assert(!oFetchRequest.valid());
     oFetchRequest.write(flit);
   }
