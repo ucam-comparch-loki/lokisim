@@ -95,6 +95,9 @@ public:
   // A textual representation of the operation.
   string toString() const;
 
+  // Send a word to the chosen destination.
+  void sendResult(unsigned int data);
+
 protected:
 
   // Perform safety checks before writing any data.
@@ -108,9 +111,6 @@ protected:
 
   // Retrieves a payload flit from the memory.
   unsigned int getPayload();
-
-  // Send a word to the chosen destination.
-  void sendResult(unsigned int data);
 
   // Compute the address of the start of the cache line which contains the given
   // address.

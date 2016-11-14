@@ -146,6 +146,9 @@ private:
 
   // Perform any tidying necessary when a request finishes.
   void finishedRequest();
+  // We have done all the work on a request that we can do at the moment, but
+  // will come back to it later.
+  void finishedRequestForNow();
 
   bool requestAvailable() const;
   const sc_event_or_list& requestAvailableEvent() const;
@@ -155,6 +158,7 @@ private:
   bool canSendRequest() const;
   const sc_event& canSendRequestEvent() const;
   void sendRequest(NetworkRequest request);
+  void forwardRequest(NetworkRequest request);
 
   bool responseAvailable() const;
   const sc_event& responseAvailableEvent() const;

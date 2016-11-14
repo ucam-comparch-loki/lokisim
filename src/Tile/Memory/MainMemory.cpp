@@ -31,7 +31,7 @@ MainMemory::MainMemory(sc_module_name name, ComponentID ID, uint controllers) :
 
   for (uint i=0; i<controllers; i++) {
     MainMemoryRequestHandler* handler =
-        new MainMemoryRequestHandler(sc_gen_unique_name("port"), ID, *this);
+        new MainMemoryRequestHandler(sc_gen_unique_name("handler"), ID, *this);
 
     handler->iClock(iClock);
     handler->iData(iData[i]);

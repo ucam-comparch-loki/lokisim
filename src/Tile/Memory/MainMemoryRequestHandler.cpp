@@ -145,6 +145,7 @@ void MainMemoryRequestHandler::processIdle() {
   // Check for new requests.
   else if (iData.valid()) {
     NetworkRequest request = iData.read();
+
     Instrumentation::MainMemory::receiveData(request);
     iData.ack();
 
@@ -169,7 +170,7 @@ void MainMemoryRequestHandler::processIdle() {
         mainMemory.checkSafeWrite(activeRequest->getAddress(), returnAddress.component.tile);
         break;
       default:
-        throw InvalidOptionException("main memory operation", activeRequest->getMetadata().opcode);
+        loki_assert_with_message(false, "%s not supported by main memory", memoryOpName(activeRequest->getMetadata().opcode).c_str());
         break;
     }
 

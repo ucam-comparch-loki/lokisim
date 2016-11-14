@@ -302,6 +302,11 @@ void MemoryBank::processIdle() {
       if (!mActiveRequest->inCache())
         return;
 
+      // Don't start a request which skips this cache, but will return data
+      // through it.
+      if (mActiveRequest->needsForwarding() && mActiveRequest->resultsToSend())
+        return;
+
       LOKI_LOG << this->name() << " starting hit-under-miss" << endl;
     }
 
@@ -330,11 +335,14 @@ void MemoryBank::processRequest() {
     next_trigger(canSendRequestEvent());
   }
   else if (mActiveRequest->needsForwarding()) {
-    sendRequest(mActiveRequest->getOriginal());
+    forwardRequest(mActiveRequest->getOriginal());
     if (mActiveRequest->awaitingPayload())
       mState = STATE_FORWARD;
-    else
-      finishedRequest();
+    else {
+      assert(mMissingRequest == NULL);
+      mMissingRequest = mActiveRequest;
+      finishedRequestForNow();
+    }
   }
   else if (mActiveRequest->resultsToSend() && !canSendResponse(mActiveRequest->getMemoryLevel())) {
     LOKI_LOG << this->name() << " delayed request due to full output queue" << endl;
@@ -423,27 +431,42 @@ void MemoryBank::processRefill() {
   if (!iClock.negedge())
     next_trigger(iClock.negedge_event());
   else if (responseAvailable()) {
-    SRAMAddress position = getTag(mMissingRequest->getSRAMAddress()) + mCacheLineCursor;
     uint32_t data = getResponse();
-    writeWord(position, data);
 
-    mCacheLineCursor += BYTES_PER_WORD;
+    // Don't store data locally if the request bypasses this cache.
+    if (mMissingRequest->needsForwarding()) {
+      mMissingRequest->sendResult(data);
 
-    // Refill has finished if the cursor has covered a whole cache line.
-    if (mCacheLineCursor >= CACHE_LINE_BYTES) {
-      mState = STATE_REQUEST;
-      mActiveRequest = mMissingRequest;
-      mMissingRequest = NULL;
-      mReadFromMissBuffer = true;
-
-      // Storing the requested words will have dirtied the cache line, but it
-      // is actually clean.
-      mDirty[getLine(position)] = false;
-
-      LOKI_LOG << this->name() << " resuming " << memoryOpName(mActiveRequest->getMetadata().opcode) << " request" << endl;
+      if (mMissingRequest->resultsToSend()) {
+        next_trigger(responseAvailableEvent());
+      }
+      else {
+        mState = STATE_IDLE;
+        mMissingRequest = NULL;
+      }
     }
-    else
-      next_trigger(responseAvailableEvent());
+    else {
+      SRAMAddress position = getTag(mMissingRequest->getSRAMAddress()) + mCacheLineCursor;
+      writeWord(position, data);
+
+      mCacheLineCursor += BYTES_PER_WORD;
+
+      // Refill has finished if the cursor has covered a whole cache line.
+      if (mCacheLineCursor >= CACHE_LINE_BYTES) {
+        mState = STATE_REQUEST;
+        mActiveRequest = mMissingRequest;
+        mMissingRequest = NULL;
+        mReadFromMissBuffer = true;
+
+        // Storing the requested words will have dirtied the cache line, but it
+        // is actually clean.
+        mDirty[getLine(position)] = false;
+
+        LOKI_LOG << this->name() << " resuming " << memoryOpName(mActiveRequest->getMetadata().opcode) << " request" << endl;
+      }
+      else
+        next_trigger(responseAvailableEvent());
+    }
   }
   else
     next_trigger(responseAvailableEvent());
@@ -479,16 +502,30 @@ void MemoryBank::processForward() {
         break;
     }
 
-    sendRequest(payload);
+    forwardRequest(payload);
 
-    if (payload.getMetadata().endOfPacket)
-      finishedRequest();
+    if (payload.getMetadata().endOfPacket) {
+      // Treat a forwarded request as a missing request if we need to wait for
+      // results - we need to preserve all state until the response has been
+      // passed back to the original requester.
+      if (mActiveRequest->resultsToSend()) {
+        assert(mMissingRequest == NULL);
+        mMissingRequest = mActiveRequest;
+        finishedRequestForNow();
+      }
+      else
+        finishedRequest();
+    }
   }
 }
 
 void MemoryBank::finishedRequest() {
-  mState = STATE_IDLE;
+  finishedRequestForNow();
   delete mActiveRequest;
+}
+
+void MemoryBank::finishedRequestForNow() {
+  mState = STATE_IDLE;
   mActiveRequest = NULL;
 
   // Decode the next request immediately so it is ready to start next cycle.
@@ -564,6 +601,13 @@ void MemoryBank::sendRequest(NetworkRequest request) {
   LOKI_LOG << this->name() << " buffering request " <<
       memoryOpName(request.getMemoryMetadata().opcode) << " " << request << endl;
   mOutputReqQueue.write(request);
+}
+
+void MemoryBank::forwardRequest(NetworkRequest request) {
+  // Need to update the return address to point to this bank rather than the
+  // original requester.
+  NetworkRequest updated(request.payload(), id, request.getMemoryMetadata().opcode, request.getMetadata().endOfPacket);
+  sendRequest(updated);
 }
 
 bool MemoryBank::responseAvailable() const {
