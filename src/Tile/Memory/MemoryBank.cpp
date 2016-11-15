@@ -441,21 +441,26 @@ void MemoryBank::processRefill() {
   if (!iClock.negedge())
     next_trigger(iClock.negedge_event());
   else if (responseAvailable()) {
-    uint32_t data = getResponse();
 
     // Don't store data locally if the request bypasses this cache.
     if (mMissingRequest->needsForwarding()) {
-      mMissingRequest->sendResult(data);
+      if (canSendResponse(mMissingRequest->getMemoryLevel())) {
+        uint32_t data = getResponse();
+        mMissingRequest->sendResult(data);
 
-      if (mMissingRequest->resultsToSend()) {
-        next_trigger(responseAvailableEvent());
+        if (mMissingRequest->resultsToSend()) {
+          next_trigger(responseAvailableEvent());
+        }
+        else {
+          mState = STATE_IDLE;
+          mMissingRequest = NULL;
+        }
       }
-      else {
-        mState = STATE_IDLE;
-        mMissingRequest = NULL;
-      }
+      else
+        next_trigger(canSendResponseEvent(mMissingRequest->getMemoryLevel()));
     }
     else {
+      uint32_t data = getResponse();
       SRAMAddress position = getTag(mMissingRequest->getSRAMAddress()) + mCacheLineCursor;
       writeWord(position, data);
 
