@@ -5,7 +5,7 @@
  *      Author: db434
  */
 
-#include "../../Tile/Memory/ReservationHandler.h"
+#include "ReservationHandler.h"
 
 void ReservationHandler::makeReservation(ComponentID requester, MemoryAddr address) {
   // Determine which reservation slot to write into. First look for a free slot.

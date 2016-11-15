@@ -92,6 +92,9 @@ public:
   // Return the network address to which all results are sent.
   ChannelID getDestination() const;
 
+  // Returns whether the memory should be treated as a cache or scratchpad.
+  MemoryAccessMode getAccessMode() const;
+
   // A textual representation of the operation.
   string toString() const;
 
@@ -102,9 +105,6 @@ protected:
 
   // Perform safety checks before writing any data.
   void preWriteCheck() const;
-
-  // Returns whether the memory should be treated as a cache or scratchpad.
-  MemoryAccessMode getAccessMode() const;
 
   // Returns whether the memory has a payload flit ready for this operation.
   bool payloadAvailable() const;

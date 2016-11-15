@@ -264,11 +264,21 @@ bool MemoryBank::checkReservation(ComponentID requester, MemoryAddr address) con
 }
 
 void MemoryBank::writeWord(SRAMAddress position, uint32_t data) {
-  checkAlignment(position, 4);
-  MemoryAddr address = getAddress(position);
+  checkAlignment(position, BYTES_PER_WORD);
+
+  // A bit of a hack to get some extra information about the request.
+  MemoryAddr address;
+  bool scratchpad = false;
+  if (mActiveRequest == NULL)
+    address = getAddress(position);
+  else {
+    address = mActiveRequest->getAddress();
+    scratchpad = mActiveRequest->getAccessMode() == MEMORY_SCRATCHPAD;
+  }
 
   mData[position/BYTES_PER_WORD] = data;
-  mDirty[getLine(position)] = true;
+  if (!scratchpad)
+    mDirty[getLine(position)] = true;
 
   mReservations.clearReservation(address);
 }
@@ -722,7 +732,8 @@ void MemoryBank::copyToMissBuffer() {
 
 void MemoryBank::preWriteCheck(const MemoryOperation& operation) const {
   MemoryAddr globalAddress = chip()->getAddressTranslation(id.tile, operation.getAddress());
-  bool inMainMemory = chip()->backedByMainMemory(id.tile, operation.getAddress());
+  bool scratchpad = operation.getAccessMode() == MEMORY_SCRATCHPAD;
+  bool inMainMemory = !scratchpad && chip()->backedByMainMemory(id.tile, operation.getAddress());
   if (inMainMemory && mMainMemory->readOnly(globalAddress) && WARN_READ_ONLY) {
     LOKI_WARN << this->name() << " attempting to modify read-only address" << endl;
     LOKI_WARN << "  " << operation.toString() << endl;
