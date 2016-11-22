@@ -26,7 +26,7 @@ bool LoadWord::preconditionsMet() const {
 
 void LoadWord::execute() {
   assert(preconditionsMet());
-  unsigned int result = memory.readWord(sramAddress);
+  unsigned int result = memory.readWord(sramAddress, getAccessMode());
   memory.printOperation(metadata.opcode, address, result);
   sendResult(result);
 }
@@ -47,7 +47,7 @@ bool LoadHalfword::preconditionsMet() const {
 
 void LoadHalfword::execute() {
   assert(preconditionsMet());
-  unsigned int result = memory.readHalfword(sramAddress);
+  unsigned int result = memory.readHalfword(sramAddress, getAccessMode());
   memory.printOperation(metadata.opcode, address, result);
   sendResult(result);
 }
@@ -68,7 +68,7 @@ bool LoadByte::preconditionsMet() const {
 
 void LoadByte::execute() {
   assert(preconditionsMet());
-  unsigned int result = memory.readByte(sramAddress);
+  unsigned int result = memory.readByte(sramAddress, getAccessMode());
   memory.printOperation(metadata.opcode, address, result);
   sendResult(result);
 }
@@ -91,7 +91,7 @@ void StoreWord::execute() {
   assert(preconditionsMet());
   if (payloadAvailable()) {
     unsigned int data = getPayload();
-    memory.writeWord(sramAddress, data);
+    memory.writeWord(sramAddress, data, getAccessMode());
     memory.printOperation(metadata.opcode, address, data);
   }
 }
@@ -114,7 +114,7 @@ void StoreHalfword::execute() {
   assert(preconditionsMet());
   if (payloadAvailable()) {
     unsigned int data = getPayload();
-    memory.writeHalfword(sramAddress, data);
+    memory.writeHalfword(sramAddress, data, getAccessMode());
     memory.printOperation(metadata.opcode, address, data);
   }
 }
@@ -137,7 +137,7 @@ void StoreByte::execute() {
   assert(preconditionsMet());
   if (payloadAvailable()) {
     unsigned int data = getPayload();
-    memory.writeByte(sramAddress, data);
+    memory.writeByte(sramAddress, data, getAccessMode());
     memory.printOperation(metadata.opcode, address, data);
   }
 }

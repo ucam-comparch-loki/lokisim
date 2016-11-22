@@ -40,28 +40,28 @@ void Chip::print(const ComponentID& component, MemoryAddr start, MemoryAddr end)
 
 Word Chip::readWordInternal(const ComponentID& component, MemoryAddr addr) {
   if (MAGIC_MEMORY)
-    return mainMemory.readWord(addr);
+    return mainMemory.readWord(addr, MEMORY_SCRATCHPAD);
   else
     return getTile(component.tile)->readWordInternal(component, addr);
 }
 
 Word Chip::readByteInternal(const ComponentID& component, MemoryAddr addr) {
   if (MAGIC_MEMORY)
-    return mainMemory.readByte(addr);
+    return mainMemory.readByte(addr, MEMORY_SCRATCHPAD);
   else
     return getTile(component.tile)->readByteInternal(component, addr);
 }
 
 void Chip::writeWordInternal(const ComponentID& component, MemoryAddr addr, Word data) {
   if (MAGIC_MEMORY)
-    mainMemory.writeWord(addr, data.toUInt());
+    mainMemory.writeWord(addr, data.toUInt(), MEMORY_SCRATCHPAD);
   else
     getTile(component.tile)->writeWordInternal(component, addr, data);
 }
 
 void Chip::writeByteInternal(const ComponentID& component, MemoryAddr addr, Word data) {
   if (MAGIC_MEMORY)
-    mainMemory.writeByte(addr, data.toUInt());
+    mainMemory.writeByte(addr, data.toUInt(), MEMORY_SCRATCHPAD);
   else
     getTile(component.tile)->writeByteInternal(component, addr, data);
 }

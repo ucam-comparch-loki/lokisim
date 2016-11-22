@@ -115,7 +115,7 @@ public:
   virtual void preWriteCheck(const MemoryOperation& operation) const;
 
   // Override writeWord so we can update metadata (valid, dirty, etc.).
-  virtual void writeWord(SRAMAddress position, uint32_t data);
+  virtual void writeWord(SRAMAddress position, uint32_t data, MemoryAccessMode mode);
 
   // Access data based on its position in the address space, and bypass the
   // usual tag checks.

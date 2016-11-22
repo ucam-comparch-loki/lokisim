@@ -29,7 +29,7 @@ bool FetchLine::preconditionsMet() const {
 
 void FetchLine::execute() {
   assert(preconditionsMet());
-  unsigned int result = memory.readWord(sramAddress + lineCursor);
+  unsigned int result = memory.readWord(sramAddress + lineCursor, getAccessMode());
   memory.printOperation(metadata.opcode, address + lineCursor, result);
   sendResult(result);
 
@@ -55,7 +55,7 @@ bool IPKRead::preconditionsMet() const {
 
 void IPKRead::execute() {
   assert(preconditionsMet());
-  unsigned int result = memory.readWord(sramAddress + lineCursor);
+  unsigned int result = memory.readWord(sramAddress + lineCursor, getAccessMode());
   memory.printOperation(metadata.opcode, address + lineCursor, result);
   sendResult(result);
 
@@ -228,7 +228,7 @@ void StoreLine::execute() {
 
   if (payloadAvailable()) {
     unsigned int data = getPayload();
-    memory.writeWord(sramAddress + lineCursor, data);
+    memory.writeWord(sramAddress + lineCursor, data, getAccessMode());
     memory.printOperation(metadata.opcode, address + lineCursor, data);
 
     if (ENERGY_TRACE)
@@ -262,7 +262,7 @@ void MemsetLine::execute() {
     data = getPayload();
 
   if (!awaitingPayload()) {
-    memory.writeWord(sramAddress + lineCursor, data);
+    memory.writeWord(sramAddress + lineCursor, data, getAccessMode());
     memory.printOperation(metadata.opcode, address + lineCursor, data);
 
     if (ENERGY_TRACE)
@@ -295,7 +295,7 @@ void PushLine::execute() {
 
   if (payloadAvailable()) {
     unsigned int data = getPayload();
-    memory.writeWord(sramAddress + lineCursor, data);
+    memory.writeWord(sramAddress + lineCursor, data, getAccessMode());
     memory.printOperation(metadata.opcode, address + lineCursor, data);
 
     if (ENERGY_TRACE)

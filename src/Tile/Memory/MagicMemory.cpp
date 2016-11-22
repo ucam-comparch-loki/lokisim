@@ -29,43 +29,43 @@ void MagicMemory::operate(MemoryOpcode opcode,
 
   switch (opcode) {
     case LOAD_W: {
-      Word result = mainMemory.readWord(address);
+      Word result = mainMemory.readWord(address, MEMORY_SCRATCHPAD);
       NetworkData flit(result, returnChannel, true);
       chip().networkSendDataInternal(flit);
       break;
     }
 
     case LOAD_HW: {
-      Word result = mainMemory.readHalfword(address);
+      Word result = mainMemory.readHalfword(address, MEMORY_SCRATCHPAD);
       NetworkData flit(result, returnChannel, true);
       chip().networkSendDataInternal(flit);
       break;
     }
 
     case LOAD_B: {
-      Word result = mainMemory.readByte(address);
+      Word result = mainMemory.readByte(address, MEMORY_SCRATCHPAD);
       NetworkData flit(result, returnChannel, true);
       chip().networkSendDataInternal(flit);
       break;
     }
 
     case STORE_W:
-      mainMemory.writeWord(address, data.toUInt());
+      mainMemory.writeWord(address, data.toUInt(), MEMORY_SCRATCHPAD);
       break;
 
     case STORE_HW:
-      mainMemory.writeHalfword(address, data.toUInt());
+      mainMemory.writeHalfword(address, data.toUInt(), MEMORY_SCRATCHPAD);
       break;
 
     case STORE_B:
-      mainMemory.writeByte(address, data.toUInt());
+      mainMemory.writeByte(address, data.toUInt(), MEMORY_SCRATCHPAD);
       break;
 
     case IPK_READ: {
       MemoryAddr cursor = address;
 
       while (true) {
-        Instruction result = static_cast<Instruction>(mainMemory.readWord(cursor));
+        Instruction result = static_cast<Instruction>(mainMemory.readWord(cursor, MEMORY_SCRATCHPAD));
         cursor += BYTES_PER_WORD;
 
         // Stop fetching instructions at the end of the packet or the end

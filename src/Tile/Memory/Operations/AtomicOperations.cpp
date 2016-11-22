@@ -26,7 +26,7 @@ bool LoadLinked::preconditionsMet() const {
 
 void LoadLinked::execute() {
   assert(preconditionsMet());
-  unsigned int result = memory.readWord(sramAddress);
+  unsigned int result = memory.readWord(sramAddress, getAccessMode());
   memory.makeReservation(destination.component, address);
   memory.printOperation(metadata.opcode, address, result);
   sendResult(result);
@@ -62,7 +62,7 @@ void StoreConditional::execute() {
   else if (payloadAvailable()) {
     unsigned int data = getPayload();
     if (success) {
-      memory.writeWord(sramAddress, data);
+      memory.writeWord(sramAddress, data, getAccessMode());
       memory.printOperation(metadata.opcode, address, data);
     }
   }
@@ -88,13 +88,13 @@ void LoadAndAdd::execute() {
 
   // First part: load original data and return to requester.
   if (resultFlits == 1) {
-    intermediateData = memory.readWord(sramAddress);
+    intermediateData = memory.readWord(sramAddress, getAccessMode());
     sendResult(intermediateData);
   }
   // Second part: modify original data and store back.
   else if (payloadAvailable()) {
     unsigned int data = getPayload() + intermediateData;
-    memory.writeWord(sramAddress, data);
+    memory.writeWord(sramAddress, data, getAccessMode());
     memory.printOperation(metadata.opcode, address, data);
   }
 }
@@ -119,13 +119,13 @@ void LoadAndOr::execute() {
 
   // First part: load original data and return to requester.
   if (resultFlits == 1) {
-    intermediateData = memory.readWord(sramAddress);
+    intermediateData = memory.readWord(sramAddress, getAccessMode());
     sendResult(intermediateData);
   }
   // Second part: modify original data and store back.
   else if (payloadAvailable()) {
     unsigned int data = getPayload() | intermediateData;
-    memory.writeWord(sramAddress, data);
+    memory.writeWord(sramAddress, data, getAccessMode());
     memory.printOperation(metadata.opcode, address, data);
   }
 }
@@ -150,13 +150,13 @@ void LoadAndAnd::execute() {
 
   // First part: load original data and return to requester.
   if (resultFlits == 1) {
-    intermediateData = memory.readWord(sramAddress);
+    intermediateData = memory.readWord(sramAddress, getAccessMode());
     sendResult(intermediateData);
   }
   // Second part: modify original data and store back.
   else if (payloadAvailable()) {
     unsigned int data = getPayload() & intermediateData;
-    memory.writeWord(sramAddress, data);
+    memory.writeWord(sramAddress, data, getAccessMode());
     memory.printOperation(metadata.opcode, address, data);
   }
 }
@@ -181,13 +181,13 @@ void LoadAndXor::execute() {
 
   // First part: load original data and return to requester.
   if (resultFlits == 1) {
-    intermediateData = memory.readWord(sramAddress);
+    intermediateData = memory.readWord(sramAddress, getAccessMode());
     sendResult(intermediateData);
   }
   // Second part: modify original data and store back.
   else if (payloadAvailable()) {
     unsigned int data = getPayload() ^ intermediateData;
-    memory.writeWord(sramAddress, data);
+    memory.writeWord(sramAddress, data, getAccessMode());
     memory.printOperation(metadata.opcode, address, data);
   }
 }
@@ -211,13 +211,13 @@ void Exchange::execute() {
 
   // First part: load original data and return to requester.
   if (resultFlits == 1) {
-    unsigned int data = memory.readWord(sramAddress);
+    unsigned int data = memory.readWord(sramAddress, getAccessMode());
     sendResult(data);
   }
   // Second part: store new data.
   else if (payloadAvailable()) {
     unsigned int data = getPayload();
-    memory.writeWord(sramAddress, data);
+    memory.writeWord(sramAddress, data, getAccessMode());
     memory.printOperation(metadata.opcode, address, data);
   }
 }

@@ -263,18 +263,15 @@ bool MemoryBank::checkReservation(ComponentID requester, MemoryAddr address) con
   return mReservations.checkReservation(requester, address);
 }
 
-void MemoryBank::writeWord(SRAMAddress position, uint32_t data) {
+void MemoryBank::writeWord(SRAMAddress position, uint32_t data, MemoryAccessMode mode) {
   checkAlignment(position, BYTES_PER_WORD);
 
-  // A bit of a hack to get some extra information about the request.
   MemoryAddr address;
-  bool scratchpad = false;
-  if (mActiveRequest == NULL)
+  bool scratchpad = (mode == MEMORY_SCRATCHPAD);
+  if (scratchpad)
+    address = position;
+  else
     address = getAddress(position);
-  else {
-    address = mActiveRequest->getAddress();
-    scratchpad = mActiveRequest->getAccessMode() == MEMORY_SCRATCHPAD;
-  }
 
   mData[position/BYTES_PER_WORD] = data;
   if (!scratchpad)
@@ -415,7 +412,7 @@ void MemoryBank::processFlush() {
     next_trigger(iClock.negedge_event());
   else if (canSendRequest()) {
     SRAMAddress position = getTag(mActiveRequest->getSRAMAddress()) + mCacheLineCursor;
-    uint32_t data = readWord(position);
+    uint32_t data = readWord(position, mActiveRequest->getAccessMode());
 
     Instrumentation::MemoryBank::continueOperation(id.globalMemoryNumber(),
         FLUSH_LINE, mTags[getLine(position)] + mCacheLineCursor, false, ChannelID(id,0));
@@ -462,7 +459,7 @@ void MemoryBank::processRefill() {
     else {
       uint32_t data = getResponse();
       SRAMAddress position = getTag(mMissingRequest->getSRAMAddress()) + mCacheLineCursor;
-      writeWord(position, data);
+      writeWord(position, data, mMissingRequest->getAccessMode());
 
       mCacheLineCursor += BYTES_PER_WORD;
 
@@ -934,9 +931,9 @@ Word MemoryBank::readWordDebug(MemoryAddr addr) {
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
   if (contains(addr, position, MEMORY_CACHE))
-    return readWord(position);
+    return readWord(position, MEMORY_CACHE);
   else
-    return mMainMemory->readWord(addr);
+    return mMainMemory->readWord(addr, MEMORY_SCRATCHPAD);
 }
 
 Word MemoryBank::readByteDebug(MemoryAddr addr) {
@@ -945,9 +942,9 @@ Word MemoryBank::readByteDebug(MemoryAddr addr) {
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
   if (contains(addr, position, MEMORY_CACHE))
-    return readByte(position);
+    return readByte(position, MEMORY_CACHE);
   else
-    return mMainMemory->readByte(addr);
+    return mMainMemory->readByte(addr, MEMORY_SCRATCHPAD);
 }
 
 void MemoryBank::writeWordDebug(MemoryAddr addr, Word data) {
@@ -957,9 +954,9 @@ void MemoryBank::writeWordDebug(MemoryAddr addr, Word data) {
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
   if (contains(addr, position, MEMORY_CACHE))
-    writeWord(position, data.toUInt());
+    writeWord(position, data.toUInt(), MEMORY_CACHE);
   else
-    mMainMemory->writeWord(addr, data.toUInt());
+    mMainMemory->writeWord(addr, data.toUInt(), MEMORY_SCRATCHPAD);
 }
 
 void MemoryBank::writeByteDebug(MemoryAddr addr, Word data) {
@@ -968,9 +965,9 @@ void MemoryBank::writeByteDebug(MemoryAddr addr, Word data) {
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
   if (contains(addr, position, MEMORY_CACHE))
-    writeByte(position, data.toUInt());
+    writeByte(position, data.toUInt(), MEMORY_CACHE);
   else
-    mMainMemory->writeByte(addr, data.toUInt());
+    mMainMemory->writeByte(addr, data.toUInt(), MEMORY_SCRATCHPAD);
 }
 
 const vector<uint32_t>& MemoryBank::dataArrayReadOnly() const {

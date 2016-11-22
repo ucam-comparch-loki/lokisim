@@ -15,7 +15,8 @@
 #include "../../Datatype/Instruction.h"
 #include "../../LokiComponent.h"
 #include "../../Network/NetworkTypedefs.h"
-#include "../../Tile/Memory/MemoryTypedefs.h"
+#include "../../Utility/Assert.h"
+#include "MemoryTypedefs.h"
 #include "../../Utility/Warnings.h"
 
 class MemoryOperation;
@@ -100,50 +101,50 @@ public:
   virtual void preWriteCheck(const MemoryOperation& operation) const = 0;
 
   // Data access.
-  virtual uint32_t readWord(SRAMAddress position) const {
+  virtual uint32_t readWord(SRAMAddress position, MemoryAccessMode mode) const {
     checkAlignment(position, 4);
 
     return dataArrayReadOnly()[position/BYTES_PER_WORD];
   }
 
-  virtual uint32_t readHalfword(SRAMAddress position) const {
+  virtual uint32_t readHalfword(SRAMAddress position, MemoryAccessMode mode) const {
     checkAlignment(position, 2);
 
-    uint32_t fullWord = readWord(position & ~0x3);
+    uint32_t fullWord = readWord(position & ~0x3, mode);
     uint32_t offset = (position & 0x3) >> 1;
     return (fullWord >> (offset * 16)) & 0xFFFF;
   }
 
-  virtual uint32_t readByte(SRAMAddress position) const {
-    uint32_t fullWord = readWord(position & ~0x3);
+  virtual uint32_t readByte(SRAMAddress position, MemoryAccessMode mode) const {
+    uint32_t fullWord = readWord(position & ~0x3, mode);
     uint32_t offset = position & 0x3UL;
     return (fullWord >> (offset * 8)) & 0xFF;
   }
 
-  virtual void writeWord(SRAMAddress position, uint32_t data) {
+  virtual void writeWord(SRAMAddress position, uint32_t data, MemoryAccessMode mode) {
     checkAlignment(position, 4);
 
     dataArray()[position/BYTES_PER_WORD] = data;
   }
 
-  virtual void writeHalfword(SRAMAddress position, uint32_t data) {
+  virtual void writeHalfword(SRAMAddress position, uint32_t data, MemoryAccessMode mode) {
     checkAlignment(position, 2);
 
-    uint32_t oldData = readWord(position & ~0x3);
+    uint32_t oldData = readWord(position & ~0x3, mode);
     uint32_t offset = (position >> 1) & 0x1;
     uint32_t mask = 0xFFFF << (offset * 16);
     uint32_t newData = (~mask & oldData) | (mask & (data << (16*offset)));
 
-    writeWord(position & ~0x3, newData);
+    writeWord(position & ~0x3, newData, mode);
   }
 
-  virtual void writeByte(SRAMAddress position, uint32_t data) {
-    uint32_t oldData = readWord(position & ~0x3);
+  virtual void writeByte(SRAMAddress position, uint32_t data, MemoryAccessMode mode) {
+    uint32_t oldData = readWord(position & ~0x3, mode);
     uint32_t offset = position & 0x3;
     uint32_t mask = 0xFF << (offset * 8);
     uint32_t newData = (~mask & oldData) | (mask & (data << (8*offset)));
 
-    writeWord(position & ~0x3, newData);
+    writeWord(position & ~0x3, newData, mode);
   }
 
   // Memory address manipulation. Assumes fixed cache line size of 32 bytes.
