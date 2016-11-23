@@ -106,10 +106,10 @@ public:
   virtual void sendResponse(NetworkResponse response, MemoryLevel level);
 
   // Make a load-linked reservation.
-  virtual void makeReservation(ComponentID requester, MemoryAddr address);
+  virtual void makeReservation(ComponentID requester, MemoryAddr address, MemoryAccessMode mode);
 
   // Return whether a load-linked reservation is still valid.
-  virtual bool checkReservation(ComponentID requester, MemoryAddr address) const;
+  virtual bool checkReservation(ComponentID requester, MemoryAddr address, MemoryAccessMode mode) const;
 
   // Check whether it is safe for the given operation to modify memory.
   virtual void preWriteCheck(const MemoryOperation& operation) const;

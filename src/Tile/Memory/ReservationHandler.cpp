@@ -7,7 +7,7 @@
 
 #include "ReservationHandler.h"
 
-void ReservationHandler::makeReservation(ComponentID requester, MemoryAddr address) {
+void ReservationHandler::makeReservation(ComponentID requester, MemoryAddr address, SRAMAddress position) {
   // Determine which reservation slot to write into. First look for a free slot.
   // If there are none, use the slot next to the one used previously.
   for (uint i=0; i<reservations.size(); i++) {
@@ -18,6 +18,7 @@ void ReservationHandler::makeReservation(ComponentID requester, MemoryAddr addre
 
   reservations[currentSlot].requester = requester;
   reservations[currentSlot].address = address;
+  reservations[currentSlot].position = position;
   reservations[currentSlot].valid = true;
 }
 
@@ -32,10 +33,10 @@ bool ReservationHandler::checkReservation(ComponentID requester, MemoryAddr addr
   return false;
 }
 
-void ReservationHandler::clearReservation(MemoryAddr address) {
-  MemoryAddr word = address & ~0x3; // Mask to invalidate the whole word
+void ReservationHandler::clearReservation(SRAMAddress address) {
+  SRAMAddress word = address & ~0x3; // Mask to invalidate the whole word
   for (uint i=0; i<reservations.size(); i++) {
-    if (reservations[i].address == word)
+    if (reservations[i].position == word)
       reservations[i].valid = false;
   }
 }

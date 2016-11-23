@@ -114,12 +114,12 @@ void MainMemory::sendResponse(NetworkResponse response, MemoryLevel level) {
 }
 
 // Make a load-linked reservation.
-void MainMemory::makeReservation(ComponentID requester, MemoryAddr address) {
+void MainMemory::makeReservation(ComponentID requester, MemoryAddr address, MemoryAccessMode mode) {
   // Do nothing.
 }
 
 // Return whether a load-linked reservation is still valid.
-bool MainMemory::checkReservation(ComponentID requester, MemoryAddr address) const {
+bool MainMemory::checkReservation(ComponentID requester, MemoryAddr address, MemoryAccessMode mode) const {
   // Do nothing.
   return false;
 }

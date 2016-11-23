@@ -254,30 +254,23 @@ uint32_t MemoryBank::getPayload(MemoryLevel level) {
 }
 
 // Make a load-linked reservation.
-void MemoryBank::makeReservation(ComponentID requester, MemoryAddr address) {
-  mReservations.makeReservation(requester, address);
+void MemoryBank::makeReservation(ComponentID requester, MemoryAddr address, MemoryAccessMode mode) {
+  mReservations.makeReservation(requester, address, getPosition(address, mode));
 }
 
 // Return whether a load-linked reservation is still valid.
-bool MemoryBank::checkReservation(ComponentID requester, MemoryAddr address) const {
+bool MemoryBank::checkReservation(ComponentID requester, MemoryAddr address, MemoryAccessMode mode) const {
   return mReservations.checkReservation(requester, address);
 }
 
 void MemoryBank::writeWord(SRAMAddress position, uint32_t data, MemoryAccessMode mode) {
   checkAlignment(position, BYTES_PER_WORD);
 
-  MemoryAddr address;
-  bool scratchpad = (mode == MEMORY_SCRATCHPAD);
-  if (scratchpad)
-    address = position;
-  else
-    address = getAddress(position);
-
   mData[position/BYTES_PER_WORD] = data;
-  if (!scratchpad)
+  if (mode == MEMORY_CACHE)
     mDirty[getLine(position)] = true;
 
-  mReservations.clearReservation(address);
+  mReservations.clearReservation(position);
 }
 
 void MemoryBank::processIdle() {

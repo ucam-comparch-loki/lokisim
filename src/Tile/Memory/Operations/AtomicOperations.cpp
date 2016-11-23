@@ -27,7 +27,7 @@ bool LoadLinked::preconditionsMet() const {
 void LoadLinked::execute() {
   assert(preconditionsMet());
   unsigned int result = memory.readWord(sramAddress, getAccessMode());
-  memory.makeReservation(destination.component, address);
+  memory.makeReservation(destination.component, address, getAccessMode());
   memory.printOperation(metadata.opcode, address, result);
   sendResult(result);
 }
@@ -54,7 +54,7 @@ void StoreConditional::execute() {
   // First part: check address and see if operation should continue.
   if (resultFlits == 1) {
     success = inCache()
-           && memory.checkReservation(destination.component, address);
+           && memory.checkReservation(destination.component, address, getAccessMode());
 
     sendResult(success);
   }

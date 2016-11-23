@@ -24,14 +24,14 @@ class ReservationHandler {
 public:
 
   // Make a new reservation at the start of an atomic transaction.
-  void makeReservation(ComponentID requester, MemoryAddr address);
+  void makeReservation(ComponentID requester, MemoryAddr address, SRAMAddress position);
 
   // Check whether the reservation is still valid before committing an atomic
   // transaction.
   bool checkReservation(ComponentID requester, MemoryAddr address) const;
 
   // Clear all conflicting reservations when their data is invalidated.
-  void clearReservation(MemoryAddr address);
+  void clearReservation(SRAMAddress address);
 
   // Clear all reservations in the address range between start (inclusive) and
   // end (exclusive).
@@ -42,9 +42,15 @@ public:
   virtual ~ReservationHandler();
 
 private:
+
+  // The requesting component and the memory address together form the "tag" for
+  // a reservation. Both of these must match for a reservation to be valid.
+  // The position in the SRAM is also included, as this will alias more often,
+  // resulting in invalidated reservations.
   struct Reservation {
     ComponentID requester;
     MemoryAddr  address;
+    SRAMAddress position;
     bool        valid;
   };
 

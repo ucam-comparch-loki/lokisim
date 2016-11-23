@@ -103,13 +103,13 @@ void MainMemoryRequestHandler::sendResponse(NetworkResponse response, MemoryLeve
 }
 
 // Make a load-linked reservation.
-void MainMemoryRequestHandler::makeReservation(ComponentID requester, MemoryAddr address) {
-  mainMemory.makeReservation(requester, address);
+void MainMemoryRequestHandler::makeReservation(ComponentID requester, MemoryAddr address, MemoryAccessMode mode) {
+  mainMemory.makeReservation(requester, address, mode);
 }
 
 // Return whether a load-linked reservation is still valid.
-bool MainMemoryRequestHandler::checkReservation(ComponentID requester, MemoryAddr address) const {
-  return mainMemory.checkReservation(requester, address);
+bool MainMemoryRequestHandler::checkReservation(ComponentID requester, MemoryAddr address, MemoryAccessMode mode) const {
+  return mainMemory.checkReservation(requester, address, mode);
 }
 
 // Check whether it is safe for the given operation to modify memory.
