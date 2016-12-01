@@ -24,7 +24,7 @@ using sc_core::sc_event;
 //                                  |psm|   core mask   |  ch |0|0|
 //
 // Core-to-L1:
-//  | L2tags | L1tags | L2skip | L1skip |grp|retCh| bank|  ch |1|0|
+//           | L1tags | L2skip | L1skip |grp|retCh| bank|  ch |1|0|
 //
 // Core-to-core global:
 //  |we|                |  credits  |tileX|tileY| core|  ch |acq|1|

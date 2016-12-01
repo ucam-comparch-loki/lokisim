@@ -94,6 +94,7 @@ void LoadAndAdd::execute() {
   // Second part: modify original data and store back.
   else if (payloadAvailable()) {
     unsigned int data = getPayload() + intermediateData;
+
     memory.writeWord(sramAddress, data, getAccessMode());
     memory.printOperation(metadata.opcode, address, data);
   }

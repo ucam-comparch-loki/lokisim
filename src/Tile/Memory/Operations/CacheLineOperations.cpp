@@ -280,6 +280,7 @@ bool MemsetLine::complete() const {
 PushLine::PushLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(startOfLine(address), metadata, memory, level, destination, CACHE_LINE_WORDS, 0) {
   lineCursor = 0;
+  targetBank = address & (MEMS_PER_TILE - 1);
 }
 
 void PushLine::prepare() {
@@ -288,6 +289,10 @@ void PushLine::prepare() {
 
 bool PushLine::preconditionsMet() const {
   return inCache();
+}
+
+NetworkRequest PushLine::getOriginal() const {
+  return NetworkRequest(address+targetBank, ChannelID(), metadata.flatten());
 }
 
 void PushLine::execute() {

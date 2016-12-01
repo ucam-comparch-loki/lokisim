@@ -140,9 +140,11 @@ public:
   virtual void prepare();
   virtual bool preconditionsMet() const;
   virtual void execute();
+  virtual NetworkRequest getOriginal() const;
 
 private:
   unsigned int lineCursor;
+  unsigned int targetBank; // Bank in the remote tile to receive data.
 };
 
 #endif /* SRC_TILE_MEMORY_OPERATIONS_CACHELINEOPERATIONS_H_ */

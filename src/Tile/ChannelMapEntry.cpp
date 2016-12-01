@@ -151,8 +151,14 @@ void ChannelMapEntry::write(EncodedCMTEntry data) {
       uint startBank = getComponent() - CORES_PER_TILE;
       uint endBank = startBank + getMemoryGroupSize() - 1;
 
-      std::cout << "SETCHMAP: core " << id_.component << " " << type << ", banks "
-          << startBank << "-" << endBank << std::endl;
+      std::cout << "SETCHMAP: " << id_  << " -> banks "
+          << startBank << "-" << endBank<< " (" << type << ")";
+
+      if (memoryView().scratchpadL1) std::cout << " | L1 scratchpad";
+      if (memoryView().l1Skip)       std::cout << " | skip L1";
+      if (memoryView().l2Skip)       std::cout << " | skip L2";
+
+      std::cout << std::endl;
     }
   }
   else {

@@ -75,7 +75,7 @@ public:
   bool inCache() const;
 
   // Return the NetworkRequest which generated this MemoryOperation.
-  NetworkRequest getOriginal() const;
+  virtual NetworkRequest getOriginal() const;
 
   // Return the memory address accessed by this operation.
   MemoryAddr getAddress() const;

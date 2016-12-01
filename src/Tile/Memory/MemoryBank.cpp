@@ -126,6 +126,7 @@ void MemoryBank::allocate(MemoryAddr address, SRAMAddress position, MemoryAccess
 
         // Stop serving the request until allocation is complete.
         mState = STATE_ALLOCATE;
+        next_trigger(sc_core::SC_ZERO_TIME); // Continue immediately.
       }
       break;
     case MEMORY_SCRATCHPAD:
@@ -344,15 +345,15 @@ void MemoryBank::processRequest() {
       finishedRequestForNow();
     }
   }
+  else if (!mActiveRequest->preconditionsMet()) {
+    mActiveRequest->prepare();
+  }
   else if (mActiveRequest->resultsToSend() && !canSendResponse(mActiveRequest->getMemoryLevel())) {
     LOKI_LOG << this->name() << " delayed request due to full output queue" << endl;
     next_trigger(canSendResponseEvent(mActiveRequest->getMemoryLevel()));
   }
   else if (!iClock.negedge()) {
     next_trigger(iClock.negedge_event());
-  }
-  else if (!mActiveRequest->preconditionsMet()) {
-    mActiveRequest->prepare();
   }
   else if (!mActiveRequest->complete()) {
     mActiveRequest->execute();
