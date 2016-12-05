@@ -710,6 +710,7 @@ void MemoryBank::copyToMissBuffer() {
     switch (mMissingRequest->getMemoryLevel()) {
       case MEMORY_L1:
         mInputQueue.read();
+        LOKI_LOG << this->name() << " dequeued " << payload << endl;
         break;
       case MEMORY_L2:
         requestSig.ack();
