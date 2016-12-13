@@ -14,9 +14,10 @@
 #ifndef LOCALNETWORK_H_
 #define LOCALNETWORK_H_
 
-#include "../Network.h"
-#include "MulticastNetwork.h"
-#include "Crossbar.h"
+#include "../../Network/Network.h"
+#include "CoreMulticast.h"
+#include "DataReturn.h"
+#include "ForwardCrossbar.h"
 #include "../../Communication/loki_bus.h"
 #include "../../Utility/LokiVector2D.h"
 
@@ -95,8 +96,10 @@ private:
     MEMORY,
   };
 
-  MulticastNetwork coreToCore;
-  Crossbar coreToMemory, memoryToCore;
+  // Subnetworks.
+  CoreMulticast   coreToCore;
+  ForwardCrossbar coreToMemory;
+  DataReturn      memoryToCore;
 
   // Data from each core to each of the subnetworks.
   // Addressed using dataSig[Destination][core]

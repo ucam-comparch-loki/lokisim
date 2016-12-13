@@ -507,6 +507,10 @@ void FetchStage::reportStalls(ostream& os) {
     if (source.isFull())
       os << "  No space remaining." << endl;
   }
+  if (cache.isFull())
+    os << cache.name() << " is full." << endl;
+  if (fifo.isFull())
+    os << fifo.name() << " is full." << endl;
 }
 
 FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :

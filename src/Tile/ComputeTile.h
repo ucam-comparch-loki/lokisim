@@ -14,12 +14,10 @@
 #include "Core/Core.h"
 #include "Memory/MemoryBank.h"
 #include "Memory/MissHandlingLogic.h"
-#include "../Network/Topologies/LocalNetwork.h"
+#include "Network/LocalNetwork.h"
 #include "../Network/Global/RouterDemultiplexer.h"
 #include "../Network/NetworkTypedefs.h"
 #include "../Network/WormholeMultiplexer.h"
-#include "../Utility/LokiVector.h"
-#include "../Utility/LokiVector2D.h"
 
 class Core;
 class MemoryBank;

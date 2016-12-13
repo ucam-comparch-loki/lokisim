@@ -30,19 +30,19 @@ typedef uint32_t CoreIndex;
 typedef uint32_t MemoryIndex;
 
 // An index within a component's own input/output channels.
-typedef uint8_t  ChannelIndex;
+typedef uint32_t ChannelIndex;
 
 // An index within a component's own input/output ports.
-typedef uint8_t  PortIndex;
+typedef uint32_t PortIndex;
 
 // An index within the channel map table.
-typedef uint8_t  MapIndex;
+typedef uint32_t MapIndex;
 
 // The index of a register within a register file.
-typedef uint8_t  RegisterIndex;
+typedef uint32_t RegisterIndex;
 
 // An offset (in words) to jump by in the instruction packet cache.
-typedef int16_t  JumpOffset;
+typedef int32_t  JumpOffset;
 
 typedef uint CacheIndex;
 typedef uint TagIndex;

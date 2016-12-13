@@ -18,8 +18,8 @@ using namespace std;
 #include "MainMemory.h"
 #include "Operations/MemoryOperationDecode.h"
 #include "../ComputeTile.h"
+#include "../Network/LocalNetwork.h"
 #include "../../Chip.h"
-#include "../../Network/Topologies/LocalNetwork.h"
 #include "../../Utility/Arguments.h"
 #include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/MemoryBank.h"
@@ -28,8 +28,6 @@ using namespace std;
 #include "../../Utility/Warnings.h"
 #include "../../Exceptions/ReadOnlyException.h"
 #include "../../Exceptions/UnsupportedFeatureException.h"
-
-class ComputeTile;
 
 // The latency of accessing a memory bank, aside from the cost of accessing the
 // SRAM. This typically includes the network to/from the bank.

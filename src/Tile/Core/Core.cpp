@@ -8,9 +8,9 @@
 #include "Core.h"
 
 #include "PipelineRegister.h"
+#include "../Network/LocalNetwork.h"
 #include "../Tile.h"
 #include "../../Datatype/DecodedInst.h"
-#include "../../Network/Topologies/LocalNetwork.h"
 #include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/Registers.h"
 #include "../../Utility/ISA.h"

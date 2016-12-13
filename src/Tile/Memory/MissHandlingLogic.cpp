@@ -248,8 +248,8 @@ void MissHandlingLogic::requestClaimLoop() {
   bool claimed = false;
   for (uint i=0; i<iClaimRequest.length(); i++) {
     if (iClaimRequest[i].read()) {
+      loki_assert_with_message(!claimed, "Multiple L2 banks responding to request for 0x%x.", oRequestToBanks.read().payload().toUInt());
       claimed = true;
-      break;
     }
   }
   oRequestClaimed.write(claimed);

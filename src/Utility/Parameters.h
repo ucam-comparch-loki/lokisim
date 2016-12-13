@@ -135,11 +135,14 @@ extern parameter  CORE_INPUT_PORTS;
 // Number of connections from the core to the various networks.
 extern parameter  CORE_OUTPUT_PORTS;
 
+// Number of instruction input channels in cores.
+#define           CORE_INSTRUCTION_CHANNELS 2
+
 // Number of register-mapped input buffers in cores.
 extern parameter  CORE_RECEIVE_CHANNELS;
 
 // Number of core input channels, including instruction inputs.
-#define           CORE_INPUT_CHANNELS       (2 + CORE_RECEIVE_CHANNELS)
+#define           CORE_INPUT_CHANNELS       (CORE_INSTRUCTION_CHANNELS + CORE_RECEIVE_CHANNELS)
 
 // Number of core output channels.
 #define           CORE_OUTPUT_CHANNELS      (CHANNEL_MAP_SIZE)

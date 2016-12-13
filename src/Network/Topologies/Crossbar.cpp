@@ -72,6 +72,19 @@ void Crossbar::makeMuxes() {
   }
 }
 
+void Crossbar::reportStalls(ostream& os) {
+  for (unsigned int i=0; i<iData.length(); i++)
+    if (iData[i].valid())
+      os << this->name() << " has data on input port " << i << ": " << iData[i].read() << endl;
+  for (unsigned int i=0; i<oData.length(); i++)
+    if (oData[i].valid())
+      os << this->name() << " has data on output port " << i << ": " << oData[i].read() << endl;
+  for (unsigned int component=0; component<iReady.length(); component++)
+    for (unsigned int buffer=0; buffer<iReady[component].length(); buffer++)
+      if (!iReady[component][buffer])
+        os << this->name() << " unable to send to " << ChannelID(id.tile.x, id.tile.y, component, buffer) << endl;
+}
+
 Crossbar::Crossbar(const sc_module_name& name,
                    const ComponentID& ID,
                    int inputs,

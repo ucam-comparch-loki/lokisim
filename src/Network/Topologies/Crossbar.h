@@ -9,11 +9,12 @@
 #define CROSSBAR_H_
 
 #include "../Network.h"
+#include "../../Utility/BlockingInterface.h"
 
 class ClockedArbiter;
 class Multiplexer;
 
-class Crossbar: public Network {
+class Crossbar: public Network, public BlockingInterface {
 
 //============================================================================//
 // Ports
@@ -64,6 +65,8 @@ protected:
 
   virtual void inputChanged(const PortIndex port);
   virtual void outputChanged(const PortIndex port);
+
+  virtual void reportStalls(ostream& os);
 
 private:
 

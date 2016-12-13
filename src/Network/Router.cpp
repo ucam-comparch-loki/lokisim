@@ -8,7 +8,6 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "Router.h"
-#include "Topologies/LocalNetwork.h"
 
 const string DirectionNames[] = {"north", "east", "south", "west", "local"};
 

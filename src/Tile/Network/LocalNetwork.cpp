@@ -172,9 +172,9 @@ void LocalNetwork::coreDataAck(int core) {
 
 LocalNetwork::LocalNetwork(const sc_module_name& name, ComponentID tile) :
     Network(name, tile, OUTPUT_PORTS_PER_TILE, INPUT_PORTS_PER_TILE, Network::COMPONENT, 0),
-    coreToCore("core_to_core", tile, CORES_PER_TILE, CORES_PER_TILE*CORE_INPUT_CHANNELS, CORE_INPUT_CHANNELS, CORE_INPUT_CHANNELS),
-    coreToMemory("core_to_mem", tile, CORES_PER_TILE, MEMS_PER_TILE, MEMORY_INPUT_PORTS, level, 1),
-    memoryToCore("mem_to_core", tile, MEMS_PER_TILE, CORES_PER_TILE*CORE_INPUT_CHANNELS, CORE_INPUT_CHANNELS, level, CORE_INPUT_CHANNELS) {
+    coreToCore("c2c", tile),
+    coreToMemory("fwdxbar", tile),
+    memoryToCore("dxbar", tile) {
 
   // Signals to/from each component.
   iData.init(COMPONENTS_PER_TILE);
