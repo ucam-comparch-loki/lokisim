@@ -78,6 +78,7 @@ WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
   scet.iFetch(iFetch);
   scet.iData(iData);
   scet.oDataLocal(oDataLocal);
+  scet.oDataMemory(oDataMemory);
   scet.oDataGlobal(oDataGlobal);
   scet.iCredit(iCredit);
 

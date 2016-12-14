@@ -12,7 +12,6 @@
 #include "DecodedInst.h"
 #include "../Exceptions/InvalidInstructionException.h"
 #include "../Tile/Core/RegisterFile.h"
-#include "../Tile/TileComponent.h"
 #include "../Utility/ISA.h"
 #include "../Utility/StringManipulation.h"
 #include "../Utility/Parameters.h"

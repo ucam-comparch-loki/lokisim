@@ -81,7 +81,6 @@ private:
 private:
 
   static const unsigned int numInputs, numOutputs;
-  ChannelID firstInput;
 
   std::vector<FlowControlIn*> flowControl;
 

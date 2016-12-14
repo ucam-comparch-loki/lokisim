@@ -18,7 +18,6 @@ using namespace std;
 #include "MainMemory.h"
 #include "Operations/MemoryOperationDecode.h"
 #include "../ComputeTile.h"
-#include "../Network/LocalNetwork.h"
 #include "../../Chip.h"
 #include "../../Utility/Arguments.h"
 #include "../../Utility/Assert.h"
@@ -346,9 +345,9 @@ void MemoryBank::processRequest() {
   else if (!mActiveRequest->preconditionsMet()) {
     mActiveRequest->prepare();
   }
-  else if (mActiveRequest->resultsToSend() && !canSendResponse(mActiveRequest->getMemoryLevel())) {
+  else if (mActiveRequest->resultsToSend() && !canSendResponse(mActiveRequest->getDestination(), mActiveRequest->getMemoryLevel())) {
     LOKI_LOG << this->name() << " delayed request due to full output queue" << endl;
-    next_trigger(canSendResponseEvent(mActiveRequest->getMemoryLevel()));
+    next_trigger(canSendResponseEvent(mActiveRequest->getDestination(), mActiveRequest->getMemoryLevel()));
   }
   else if (!iClock.negedge()) {
     next_trigger(iClock.negedge_event());
@@ -433,7 +432,7 @@ void MemoryBank::processRefill() {
 
     // Don't store data locally if the request bypasses this cache.
     if (mMissingRequest->needsForwarding()) {
-      if (canSendResponse(mMissingRequest->getMemoryLevel())) {
+      if (canSendResponse(mMissingRequest->getDestination(), mMissingRequest->getMemoryLevel())) {
         uint32_t data = getResponse();
         mMissingRequest->sendResult(data);
 
@@ -446,7 +445,7 @@ void MemoryBank::processRefill() {
         }
       }
       else
-        next_trigger(canSendResponseEvent(mMissingRequest->getMemoryLevel()));
+        next_trigger(canSendResponseEvent(mMissingRequest->getDestination(), mMissingRequest->getMemoryLevel()));
     }
     else {
       uint32_t data = getResponse();
@@ -632,10 +631,13 @@ uint32_t MemoryBank::getResponse() {
   return data;
 }
 
-bool MemoryBank::canSendResponse(MemoryLevel level) const {
+bool MemoryBank::canSendResponse(ChannelID destination, MemoryLevel level) const {
   switch (level) {
     case MEMORY_L1:
-      return !mOutputQueue.full();
+      if (destination.channel < CORE_INSTRUCTION_CHANNELS)
+        return !mOutputInstQueue.full();
+      else
+        return !mOutputDataQueue.full();
     case MEMORY_L2:
       return !oResponse.valid();
     default:
@@ -644,24 +646,30 @@ bool MemoryBank::canSendResponse(MemoryLevel level) const {
   }
 }
 
-const sc_event& MemoryBank::canSendResponseEvent(MemoryLevel level) const {
+const sc_event& MemoryBank::canSendResponseEvent(ChannelID destination, MemoryLevel level) const {
   switch (level) {
     case MEMORY_L1:
-      return mOutputQueue.readEvent();
+      if (destination.channel < CORE_INSTRUCTION_CHANNELS)
+        return mOutputInstQueue.readEvent();
+      else
+        return mOutputDataQueue.readEvent();
     case MEMORY_L2:
       return oResponse.ack_event();
     default:
       loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
-      return mOutputQueue.readEvent();
+      return mOutputDataQueue.readEvent();
   }
 }
 
 void MemoryBank::sendResponse(NetworkResponse response, MemoryLevel level) {
-  loki_assert(canSendResponse(level));
+  loki_assert(canSendResponse(response.channelID(), level));
 
   switch (level) {
     case MEMORY_L1:
-      mOutputQueue.write(response);
+      if (response.channelID().channel < CORE_INSTRUCTION_CHANNELS)
+        mOutputInstQueue.write(response);
+      else
+        mOutputDataQueue.write(response);
       break;
     case MEMORY_L2:
       oResponse.write(response);
@@ -744,15 +752,15 @@ void MemoryBank::processValidInput() {
 }
 
 void MemoryBank::handleDataOutput() {
-  if (mOutputQueue.empty()) {
-    next_trigger(mOutputQueue.writeEvent());
+  if (mOutputDataQueue.empty()) {
+    next_trigger(mOutputDataQueue.writeEvent());
   }
-  else if (!localNetwork->requestGranted(id, mOutputQueue.peek().channelID())) {
-    localNetwork->makeRequest(id, mOutputQueue.peek().channelID(), true);
+  else if (!parent()->requestGranted(id, mOutputDataQueue.peek().channelID())) {
+    parent()->makeRequest(id, mOutputDataQueue.peek().channelID(), true);
     next_trigger(iClock.negedge_event());
   }
   else {
-    NetworkResponse flit = mOutputQueue.read();
+    NetworkResponse flit = mOutputDataQueue.read();
     LOKI_LOG << this->name() << " sent " << flit << endl;
     if (ENERGY_TRACE)
       Instrumentation::Network::traffic(id, flit.channelID().component);
@@ -761,9 +769,33 @@ void MemoryBank::handleDataOutput() {
 
     // Remove the request for network resources.
     if (flit.getMetadata().endOfPacket)
-      localNetwork->makeRequest(id, flit.channelID(), false);
+      parent()->makeRequest(id, flit.channelID(), false);
 
     next_trigger(oData.ack_event());
+  }
+}
+
+void MemoryBank::handleInstructionOutput() {
+  if (mOutputInstQueue.empty()) {
+    next_trigger(mOutputInstQueue.writeEvent());
+  }
+  else if (!parent()->requestGranted(id, mOutputInstQueue.peek().channelID())) {
+    parent()->makeRequest(id, mOutputInstQueue.peek().channelID(), true);
+    next_trigger(iClock.negedge_event());
+  }
+  else {
+    NetworkResponse flit = mOutputInstQueue.read();
+    LOKI_LOG << this->name() << " sent " << flit << endl;
+    if (ENERGY_TRACE)
+      Instrumentation::Network::traffic(id, flit.channelID().component);
+
+    oInstruction.write(flit);
+
+    // Remove the request for network resources.
+    if (flit.getMetadata().endOfPacket)
+      parent()->makeRequest(id, flit.channelID(), false);
+
+    next_trigger(oInstruction.ack_event());
   }
 }
 
@@ -798,8 +830,8 @@ void MemoryBank::mainLoop() {
 void MemoryBank::updateIdle() {
   bool wasIdle = currentlyIdle;
   currentlyIdle = mState == STATE_IDLE &&
-                  mInputQueue.empty() && mOutputQueue.empty() &&
-                  mOutputReqQueue.empty();
+                  mInputQueue.empty() && mOutputDataQueue.empty() &&
+                  mOutputInstQueue.empty() && mOutputReqQueue.empty();
 
   if (wasIdle != currentlyIdle)
     Instrumentation::idle(id, currentlyIdle);
@@ -811,14 +843,19 @@ void MemoryBank::updateReady() {
     oReadyForData.write(ready);
 }
 
+ComputeTile* MemoryBank::parent() const {
+  return static_cast<ComputeTile*>(this->get_parent_object());
+}
+
 Chip* MemoryBank::chip() const {
-  return static_cast<ComputeTile*>(this->get_parent_object())->chip();
+  return parent()->chip();
 }
 
 MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumber) :
   MemoryBase(name, ID),
   mInputQueue(string(this->name()) + string(".mInputQueue"), MEMORY_BUFFER_SIZE),
-  mOutputQueue("mOutputQueue", MEMORY_BUFFER_SIZE, INTERNAL_LATENCY),
+  mOutputDataQueue("mOutputDataQueue", MEMORY_BUFFER_SIZE, INTERNAL_LATENCY),
+  mOutputInstQueue("mOutputInstQueue", MEMORY_BUFFER_SIZE, INTERNAL_LATENCY),
   mOutputReqQueue("mOutputReqQueue", 10 /*read addr + write addr + cache line*/, 0),
   mData(MEMORY_BANK_SIZE/BYTES_PER_WORD, 0),
   mTags(CACHE_LINES_PER_BANK, 0),
@@ -843,7 +880,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 
   // Magic interfaces.
   mMainMemory = NULL;
-  localNetwork = NULL;
 
   // Connect to local components.
   oReadyForData.initialize(false);
@@ -868,7 +904,8 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 
   SC_METHOD(updateIdle);
   sensitive << mInputQueue.readEvent() << mInputQueue.writeEvent()
-            << mOutputQueue.readEvent() << mOutputQueue.writeEvent()
+            << mOutputDataQueue.readEvent() << mOutputDataQueue.writeEvent()
+            << mOutputInstQueue.readEvent() << mOutputInstQueue.writeEvent()
             << mOutputReqQueue.readEvent() << mOutputReqQueue.writeEvent()
             << iResponse << oResponse;
   // do initialise
@@ -878,7 +915,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
   dont_initialize();
 
   SC_METHOD(handleDataOutput);
-
+  SC_METHOD(handleInstructionOutput);
   SC_METHOD(handleRequestOutput);
 
   SC_METHOD(copyToMissBuffer);
@@ -887,10 +924,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumb
 }
 
 MemoryBank::~MemoryBank() {
-}
-
-void MemoryBank::setLocalNetwork(local_net_t* network) {
-  localNetwork = network;
 }
 
 void MemoryBank::setBackgroundMemory(MainMemory* memory) {
@@ -975,9 +1008,16 @@ void MemoryBank::reportStalls(ostream& os) {
   if (mInputQueue.full()) {
     os << mInputQueue.name() << " is full." << endl;
   }
-  if (!mOutputQueue.empty()) {
-    const NetworkResponse& outWord = mOutputQueue.peek();
-
-    os << this->name() << " waiting to send to " << outWord.channelID() << endl;
+  if (!mOutputDataQueue.empty()) {
+    const NetworkResponse& outWord = mOutputDataQueue.peek();
+    os << this->name() << " waiting to send " << outWord << endl;
+  }
+  if (!mOutputInstQueue.empty()) {
+    const NetworkResponse& outWord = mOutputInstQueue.peek();
+    os << this->name() << " waiting to send " << outWord << endl;
+  }
+  if (!mOutputReqQueue.empty()) {
+    const NetworkResponse& outWord = mOutputReqQueue.peek();
+    os << this->name() << " waiting to send " << outWord << endl;
   }
 }

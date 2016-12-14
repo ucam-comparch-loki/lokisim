@@ -38,6 +38,7 @@ public:
 
   // Data outputs to the network.
   DataOutput              oDataLocal;
+  DataOutput              oDataMemory;
   DataOutput              oDataGlobal;
 
   // Credits received over the network. Each credit will still have its
@@ -85,6 +86,7 @@ private:
   // Send the oldest value in the output buffer, if the flow control signals
   // allow it.
   void          sendLoopLocal();
+  void          sendLoopMemory();
   void          sendLoopGlobal();
 
   // A credit was received, so update the corresponding credit counter.
@@ -118,10 +120,11 @@ private:
     SS_CAN_SEND
   };
 
-  SendState sendState;
+  SendState sendStateMemory;
+  SendState sendStateMulticast;
 
   // Buffer of data to send onto the network.
-  NetworkBuffer<NetworkData> bufferLocal, bufferGlobal;
+  NetworkBuffer<NetworkData> bufferLocal, bufferMemory, bufferGlobal;
 
   // A pointer to this core's channel map table. The table itself is in the
   // Core class. No reading or writing of destinations should occur here -

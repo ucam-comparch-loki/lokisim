@@ -88,7 +88,7 @@ void ClockedArbiter::arbitrate(int output) {
       // TODO: have more restrictions so we can't get into this situation.
       // e.g. separate instruction and data crossbars.
       bool inUse = false;
-      if (destination != -1) {
+      if (destination != (ChannelIndex)-1) {
         for (int i=0; i<numOutputs(); i++) {
           if (i != output && destinations[i] == destination) {
             inUse = true;

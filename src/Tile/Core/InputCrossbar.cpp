@@ -9,10 +9,10 @@
 
 #include "InputCrossbar.h"
 #include "../../Network/FlowControl/FlowControlIn.h"
-#include "../TileComponent.h"
 #include "../../Utility/Assert.h"
 
-const unsigned int InputCrossbar::numInputs = CORE_INPUT_PORTS + 1; // +1 global
+// One multicast input from each core, instructions, data, and router.
+const unsigned int InputCrossbar::numInputs = 3 + CORES_PER_TILE;
 const unsigned int InputCrossbar::numOutputs = CORE_INPUT_CHANNELS;
 
 void InputCrossbar::newData(PortIndex input) {
@@ -60,13 +60,12 @@ void InputCrossbar::updateFlowControl(ChannelIndex input) {
 
 InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
     LokiComponent(name, ID),
-    firstInput(ChannelID(id,0)),
     creditNet("credit", ID, numOutputs, 1, 1, Network::NONE, 1),
     dataSource(numOutputs) {
 
   //creditNet.initialise();
 
-  iData.init(CORE_INPUT_PORTS + 1); // +1 for connection from global network
+  iData.init(numInputs);
   oReady.init(CORE_INPUT_CHANNELS);
   oData.init(numOutputs);
   iFlowControl.init(numOutputs);

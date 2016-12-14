@@ -7,7 +7,6 @@
 
 #include "FlowControlOut.h"
 
-#include "../../Tile/TileComponent.h"
 #include "../../Utility/Assert.h"
 
 void FlowControlOut::mainLoop() {

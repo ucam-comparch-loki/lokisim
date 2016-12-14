@@ -29,7 +29,7 @@ MulticastNetwork::MulticastNetwork(const sc_module_name& name,
                                    int buffersPerComponent) :
   Crossbar(name, ID, inputs, outputs, outputsPerComponent, COMPONENT, buffersPerComponent){
 
-  // Everything is done for us by NewCrossbar.
+  // Everything is done for us by Crossbar.
 
 }
 

@@ -24,6 +24,7 @@
 #include "../../Network/DelayBuffer.h"
 #include "../../Utility/BlockingInterface.h"
 
+class ComputeTile;
 class MemoryOperation;
 class MainMemory;
 
@@ -40,7 +41,8 @@ public:
   // Data - to/from cores on the same tile.
   DataInput             iData;            // Input data sent to the memory bank
   ReadyOutput           oReadyForData;    // Indicates that there is buffer space for new input
-  DataOutput            oData;            // Output data sent to the processing elements
+  DataOutput            oData;            // Data sent to the cores
+  DataOutput            oInstruction;     // Instructions sent to the cores
 
   // Requests - to/from memory banks on other tiles.
   RequestInput          iRequest;         // Input requests sent to the memory bank
@@ -124,7 +126,6 @@ public:
   void writeWordDebug(MemoryAddr addr, Word data);
   void writeByteDebug(MemoryAddr addr, Word data);
 
-  void setLocalNetwork(local_net_t* network);
   void setBackgroundMemory(MainMemory* memory);
 
   void storeData(vector<Word>& data, MemoryAddr location);
@@ -164,14 +165,15 @@ private:
   const sc_event& responseAvailableEvent() const;
   uint32_t getResponse();
 
-  bool canSendResponse(MemoryLevel level) const;
-  const sc_event& canSendResponseEvent(MemoryLevel level) const;
+  bool canSendResponse(ChannelID destination, MemoryLevel level) const;
+  const sc_event& canSendResponseEvent(ChannelID destination, MemoryLevel level) const;
   // sendResponse is part of the public interface, above
 
   void copyToMissBuffer();
 
   void processValidInput();
   void handleDataOutput();
+  void handleInstructionOutput();
   void handleRequestOutput();
 
   void mainLoop();                    // Main loop thread
@@ -179,6 +181,7 @@ private:
   void updateIdle();                  // Update idleness
   void updateReady();                 // Update flow control signals
 
+  ComputeTile* parent() const;
   Chip* chip() const;
 
 protected:
@@ -208,7 +211,8 @@ private:
   bool                  currentlyIdle;
 
   NetworkBuffer<NetworkRequest>  mInputQueue;       // Input queue
-  DelayBuffer<NetworkResponse>   mOutputQueue;      // Output queue
+  DelayBuffer<NetworkResponse>   mOutputDataQueue;  // Output queue
+  DelayBuffer<NetworkResponse>   mOutputInstQueue;  // Output queue
   DelayBuffer<NetworkRequest>    mOutputReqQueue;   // Output request queue
 
   vector<uint32_t>      mData;            // The stored data.
@@ -240,9 +244,6 @@ private:
 
   // Magic connection to main memory.
   MainMemory *mMainMemory;
-
-  // Pointer to network, allowing new interfaces to be experimented with quickly.
-  local_net_t *localNetwork;
 
   // Data received through the L2 request filter.
   RequestSignal requestSig;

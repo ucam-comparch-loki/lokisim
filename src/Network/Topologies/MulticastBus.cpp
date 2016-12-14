@@ -13,7 +13,7 @@
 using sc_core::sc_module_name;
 
 void MulticastBus::busLoop() {
-  switch(state) {
+  switch (state) {
     case WAITING_FOR_DATA : {
       if (!iData.valid()) {
         // It turns out that there wasn't actually more data: wait until some
@@ -23,12 +23,13 @@ void MulticastBus::busLoop() {
       else {
         // There definitely is data: send it.
         NetworkData data = iData.read();
+        assert(data.channelID().multicast);
 
-        outputUsed = getDestinations(data.channelID());
+        outputUsed = data.channelID().coremask;
         loki_assert(outputUsed != 0);
 
-        for(int i=0; i<8; i++) {  // 8 = number of bits in PortIndex... increase this?
-          if((outputUsed >> i) & 1)
+        for (int i=0; i<8; i++) {  // 8 = number of bits in PortIndex... increase this?
+          if ((outputUsed >> i) & 1)
             oData[i].write(data);
         }
 
@@ -65,35 +66,16 @@ void MulticastBus::ackArrived(PortIndex port) {
     }
 }
 
-PortIndex MulticastBus::getDestinations(const ChannelID& address) const {
-  // In practice, we would probably only allow multicast addresses, but
-  // allowing both options for the moment makes testing easier.
-
-  if (level == COMPONENT && address.multicast) {
-    // The address is already correctly encoded.
-    return getDestination(address, oData.length());
-  }
-  else {
-    // If it is not a multicast address, there is only one destination.
-    // Shift a single bit to the correct position.
-    return 1 << getDestination(address, oData.length());
-  }
-}
-
 MulticastBus::MulticastBus(const sc_module_name& name, const ComponentID& ID, int numOutputs,
                            HierarchyLevel level, int firstOutput) :
     Bus(name, ID, numOutputs, level, firstOutput) {
 
-//  creditsIn      = new CreditInput[numOutputs];
-//  creditsOut     = new CreditOutput[1];
-
   // Generate a method for each output port, to wait for acknowledgements and
   // notify the main process when all have been received.
-  for(int i=0; i<numOutputs; i++)
-    SPAWN_METHOD(oData[i].ack_event(), MulticastBus::ackArrived, i, false);
+  for (int i=0; i<numOutputs; i++)
+    SPAWN_METHOD(oData[i].ack_finder(), MulticastBus::ackArrived, i, false);
 }
 
 MulticastBus::~MulticastBus() {
-//  delete[] creditsIn;
-//  delete[] creditsOut;
+  // Nothing
 }

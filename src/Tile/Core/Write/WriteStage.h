@@ -39,6 +39,7 @@ public:
 
   // Data to send onto the network.
   DataOutput              oDataLocal;
+  DataOutput              oDataMemory;
   DataOutput              oDataGlobal;
 
   // Credits received over the network. Each credit will still have its

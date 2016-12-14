@@ -14,7 +14,10 @@
 #include "Core/Core.h"
 #include "Memory/MemoryBank.h"
 #include "Memory/MissHandlingLogic.h"
-#include "Network/LocalNetwork.h"
+#include "Network/CoreMulticast.h"
+#include "Network/DataReturn.h"
+#include "Network/ForwardCrossbar.h"
+#include "Network/InstructionReturn.h"
 #include "../Network/Global/RouterDemultiplexer.h"
 #include "../Network/NetworkTypedefs.h"
 #include "../Network/WormholeMultiplexer.h"
@@ -104,6 +107,17 @@ public:
   // memory hierarchy.
   bool    backedByMainMemory(MemoryAddr address) const;
 
+
+  // Some magical network methods which prevent the need to connect thousands
+  // of single-bit wires.
+
+  // Issue a request for arbitration. This should only be called for the first
+  // and last flits of each packet.
+  void makeRequest(ComponentID source, ChannelID destination, bool request);
+
+  // See if the request from source to destination has been granted.
+  bool requestGranted(ComponentID source, ChannelID destination) const;
+
 private:
 
   void makeSignals();
@@ -124,9 +138,11 @@ private:
   friend class MemoryBank;
   friend class MissHandlingLogic;
 
-  // Local network encompasses all communications between cores and memory
-  // banks on this tile.
-  LocalNetwork              localNetwork;
+  // Subnetworks.
+  CoreMulticast             coreToCore;
+  ForwardCrossbar           coreToMemory;
+  DataReturn                dataReturn;
+  InstructionReturn         instructionReturn;
 
   WormholeMultiplexer<Word> dataToRouter;
   RouterDemultiplexer<Word> dataFromRouter;
@@ -139,23 +155,38 @@ private:
 
 private:
 
-  LokiVector2D<DataSignal>  dataToComponents,         dataFromComponents;
-  LokiVector2D<ReadySignal> readyDataFromComponents;
+  LokiVector<DataSignal>    dataToCores,              dataFromMemory,
+                            instructionsToCores,      instructionsFromMemory,
+                            multicastFromCores;
+  LokiVector2D<DataSignal>  multicastToCores;
+  LokiVector<RequestSignal> requestsToMemory,         requestsFromCores;
+
+  LokiVector2D<ReadySignal> readyDataFromCores,       readyDataFromMemory;
 
   LokiVector<CreditSignal>  creditsToCores,           creditsFromCores;
   LokiVector2D<ReadySignal> readyCreditFromCores;
 
+  // TODO remove global signals and combine with coreToMemory and memoryToCores.
   LokiVector<DataSignal>    globalDataToCores,        globalDataFromCores;
 
-  LokiVector<RequestSignal> requestFromMemory;
-  RequestSignal             requestToMemory;
-  sc_signal<MemoryIndex>    requestTarget;
-  LokiVector<sc_signal<bool>> claimRequest;
-  sc_signal<bool>           requestClaimed;
+  // Signals allowing arbitration requests to be made for cores/memories/routers.
+  // Currently the signals are written using a function call, but they can
+  // be removed if we set up a proper SystemC channel connection.
+  // Addressed using coreRequests[requester][destination]
+  LokiVector2D<ArbiterRequestSignal> coreToMemRequests,
+                                     dataReturnRequests, instructionReturnRequests;
+  LokiVector2D<ArbiterGrantSignal>   coreToMemGrants,
+                                     dataReturnGrants,   instructionReturnGrants;
 
-  LokiVector<ResponseSignal> responseFromMemory;
-  ResponseSignal            responseToMemory;
-  sc_signal<MemoryIndex>    responseTarget;
+  LokiVector<RequestSignal> l2RequestFromMemory;
+  RequestSignal             l2RequestToMemory;
+  sc_signal<MemoryIndex>    l2RequestTarget;
+  LokiVector<sc_signal<bool>> l2ClaimRequest;
+  sc_signal<bool>           l2RequestClaimed;
+
+  LokiVector<ResponseSignal> l2ResponseFromMemory;
+  ResponseSignal            l2ResponseToMemory;
+  sc_signal<MemoryIndex>    l2ResponseTarget;
 
 };
 

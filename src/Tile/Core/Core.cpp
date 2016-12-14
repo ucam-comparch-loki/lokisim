@@ -8,8 +8,7 @@
 #include "Core.h"
 
 #include "PipelineRegister.h"
-#include "../Network/LocalNetwork.h"
-#include "../Tile.h"
+#include "../ComputeTile.h"
 #include "../../Datatype/DecodedInst.h"
 #include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/Registers.h"
@@ -180,11 +179,15 @@ void     Core::idle(bool state) {
 void Core::requestArbitration(ChannelID destination, bool request) {
   // Could have extra ports and write to them from here, but for the moment,
   // access the network directly.
-  localNetwork->makeRequest(id, destination, request);
+  parent()->makeRequest(id, destination, request);
 }
 
 bool Core::requestGranted(ChannelID destination) const {
-  return localNetwork->requestGranted(id, destination);
+  return parent()->requestGranted(id, destination);
+}
+
+ComputeTile* Core::parent() const {
+  return static_cast<ComputeTile*>(this->get_parent_object());
 }
 
 void Core::trace(const DecodedInst& inst) const {
@@ -232,8 +235,8 @@ ChannelID Core::RCETInput(const ComponentID& ID, ChannelIndex channel) {
   return ChannelID(ID, 2 + channel);
 }
 
-Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* network) :
-    TileComponent(name, ID, CORE_INPUT_PORTS, CORE_OUTPUT_PORTS),
+Core::Core(const sc_module_name& name, const ComponentID& ID) :
+    LokiComponent(name, ID),
     inputCrossbar("input_crossbar", ID),
     regs("regs", ID),
     pred("predicate"),
@@ -242,11 +245,11 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
     execute("execute", ID),
     write("write", ID),
     channelMapTable("channel_map_table", ID),
-    cregs("cregs", ID),
-    localNetwork(network) {
+    cregs("cregs", ID) {
 
   currentlyStalled = false;
 
+  iMulticast.init(CORES_PER_TILE);
   oReadyData.init(CORE_INPUT_CHANNELS);
   oReadyCredit.initialize(true);
 
@@ -259,9 +262,11 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
   dataConsumed.init(CORE_INPUT_CHANNELS);
 
   // Wire the input ports to the input buffers.
-  for (unsigned int i=0; i<CORE_INPUT_PORTS; i++)
-    inputCrossbar.iData[i](iData[i]);
-  inputCrossbar.iData[CORE_INPUT_PORTS](iDataGlobal);
+  inputCrossbar.iData[0](iInstruction);
+  inputCrossbar.iData[1](iData);
+  inputCrossbar.iData[2](iDataGlobal);
+  for (unsigned int i=3; i<3+iMulticast.length(); i++)
+    inputCrossbar.iData[i](iMulticast[i-3]);
 
   inputCrossbar.oReady(oReadyData);
   inputCrossbar.oData(dataToBuffers);
@@ -310,7 +315,8 @@ Core::Core(const sc_module_name& name, const ComponentID& ID, local_net_t* netwo
   write.oReady(stageReady[2]);
   write.iFetch(fetchFlitSignal);
   write.iData(dataFlitSignal);
-  write.oDataLocal(oData[0]);
+  write.oDataMemory(oRequest);
+  write.oDataLocal(oMulticast);
   write.oDataGlobal(oDataGlobal);
   write.iCredit(iCredit);
   write.initPipeline(pipelineRegs[2], NULL);

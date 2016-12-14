@@ -24,13 +24,13 @@
 #include "PredicateRegister.h"
 #include "RegisterFile.h"
 #include "Write/WriteStage.h"
-#include "../TileComponent.h"
 #include "../../Network/NetworkTypedefs.h"
 
+class ComputeTile;
 class DecodedInst;
 class PipelineRegister;
 
-class Core : public TileComponent {
+class Core : public LokiComponent {
 
 //============================================================================//
 // Ports
@@ -38,23 +38,30 @@ class Core : public TileComponent {
 
 public:
 
-// Inherited from TileComponent:
-//   clock
-//   iData
-//   oData
+  // Clock.
+  ClockInput              clock;
+
+  // Connections to/from local memory.
+  DataInput               iInstruction;
+  DataInput               iData;
+  RequestOutput           oRequest;
+
+  // Connections to/from local cores.
+  LokiVector<DataInput>   iMulticast;
+  DataOutput              oMulticast;
 
   // Connections to the global data network.
-  DataOutput oDataGlobal;
-  DataInput  iDataGlobal;
+  DataOutput              oDataGlobal;
+  DataInput               iDataGlobal;
 
   // One flow control signal for each input data/instruction buffer. To be used
   // by all data networks.
   LokiVector<ReadyOutput> oReadyData;
 
   // Connections to the global credit network.
-  CreditOutput oCredit;
-  CreditInput  iCredit;
-  ReadyOutput  oReadyCredit;
+  CreditOutput            oCredit;
+  CreditInput             iCredit;
+  ReadyOutput             oReadyCredit;
 
   // A slight hack to improve simulation speed. Each core contains a small
   // network at its input buffers, so we need to skew the times that the
@@ -62,7 +69,7 @@ public:
   // network and the larger tile network in one cycle.
   // In practice, these would probably be implemented as delays in the small
   // network.
-  ClockInput fastClock;
+  ClockInput              fastClock;
 
 //============================================================================//
 // Constructors and destructors
@@ -71,7 +78,7 @@ public:
 public:
 
   SC_HAS_PROCESS(Core);
-  Core(const sc_module_name& name, const ComponentID& ID, local_net_t* network);
+  Core(const sc_module_name& name, const ComponentID& ID);
 
 //============================================================================//
 // Methods
@@ -169,6 +176,8 @@ private:
   // Determine if a request to a particular destination has been granted.
   bool             requestGranted(ChannelID destination) const;
 
+  ComputeTile*     parent() const;
+
   // Print out information about the environment this instruction executed in.
   void             trace(const DecodedInst& instruction) const;
 
@@ -218,10 +227,6 @@ private:
 
   bool currentlyStalled;
   sc_event stallEvent;
-
-  // Store a pointer to the network so new ways of accessing it can be
-  // experimented with without having to create lots of ports and signals.
-  local_net_t* const localNetwork;
 
 //============================================================================//
 // Signals (wires)

@@ -22,7 +22,7 @@ public:
 //
 //  ClockInput   clock;
 //
-//  LokiVector<DataInput>  iData;
+//  DataInput              iData;
 //  LokiVector<DataOutput> oData;
 
 //============================================================================//
@@ -47,12 +47,6 @@ protected:
 private:
 
   void ackArrived(PortIndex port);
-
-  // Compute which outputs of this bus will be used by the given address. This
-  // allows an address to represent multiple destinations.
-  // The PortIndex returned is a bitmask of the destinations to send to. The
-  // least significant bit represents output 0.
-  PortIndex getDestinations(const ChannelID& address) const;
 
 //============================================================================//
 // Local state
