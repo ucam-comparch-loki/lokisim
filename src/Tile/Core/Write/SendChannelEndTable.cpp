@@ -84,10 +84,14 @@ void SendChannelEndTable::receiveLoop() {
         if (iFetch.valid()) {
           flit = iFetch.read();
           iFetch.ack();
+
+          LOKI_LOG << this->name() << " received from fetch: " << flit << endl;
         }
         else {
           flit = iData.read();
           iData.ack();
+
+          LOKI_LOG << this->name() << " received from execute: " << flit << endl;
         }
 
         write(flit);
