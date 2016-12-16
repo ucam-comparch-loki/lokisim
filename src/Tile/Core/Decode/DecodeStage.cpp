@@ -92,8 +92,6 @@ void         DecodeStage::persistentInstruction(DecodedInst& inst) {
 }
 
 void         DecodeStage::newInput(DecodedInst& inst) {
-  LOKI_LOG << decoder.name() << " received Instruction: " << inst << endl;
-
   // If this is the first instruction of a new packet, update the current
   // packet pointer.
   if (startingNewPacket)
@@ -266,6 +264,7 @@ void         DecodeStage::remoteExecute(DecodedInst& instruction) const {
   instruction.function(ISA::FN_OR);
   instruction.destination(0);
   instruction.setsPredicate(false);
+  instruction.remoteExecute(true);
 }
 
 int32_t      DecodeStage::readChannel(ChannelIndex index) {

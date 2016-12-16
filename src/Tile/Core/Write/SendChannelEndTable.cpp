@@ -117,8 +117,14 @@ void SendChannelEndTable::receiveLoop() {
 //        next_trigger(clock.negedge_event());
       else {
         loki_assert(!bufferLocal.full());
+        loki_assert(!bufferMemory.full());
+        loki_assert(!bufferGlobal.full());
+
         NetworkData flit = iData.read();
         iData.ack();
+
+        LOKI_LOG << this->name() << " received from execute: " << flit << endl;
+
         write(flit);
 
         // Ready to start a new packet if this one has now finished.

@@ -50,6 +50,8 @@ void PipelineStage::getNextInstruction() {
     currentInstValid = true;
     newInstructionEvent.notify(sc_core::SC_ZERO_TIME);
 
+    LOKI_LOG << this->name() << " received Instruction: " << currentInst << endl;
+
     // Wait until the pipeline stage finishes this instruction before retrieving
     // the next one.
     next_trigger(instructionCompletedEvent);

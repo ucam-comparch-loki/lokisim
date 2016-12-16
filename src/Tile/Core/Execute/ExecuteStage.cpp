@@ -25,9 +25,6 @@ void ExecuteStage::writeWord(MemoryAddr addr, Word data) const {core()->writeWor
 void ExecuteStage::writeByte(MemoryAddr addr, Word data) const {core()->writeByte(addr, data);}
 
 void ExecuteStage::execute() {
-
-  LOKI_LOG << this->name() << " received Instruction: " << currentInst << endl;
-
   // Wait until it is clear to produce network data.
   if (currentInst.sendsOnNetwork() && !iReady.read()) {
     blocked = true;
@@ -78,7 +75,7 @@ void ExecuteStage::newInput(DecodedInst& operation) {
     bool success = true;
 
     // Only collect operands on the first cycle of multi-cycle operations.
-    if (alu.busy()) {
+    if (alu.busy() || isStalled()) {
       LOKI_LOG << this->name() << ": continuing " << operation.name()
           << " on " << operation.operand1() << " and " << operation.operand2() << endl;
     }

@@ -17,8 +17,6 @@ void WriteStage::deliverCreditInternal(const NetworkCredit& credit) {
 }
 
 void WriteStage::execute() {
-  LOKI_LOG << this->name() << " received Instruction: " << currentInst << endl;
-
   newInput(currentInst);
 //  bool packetInProgress = !currentInst.endOfNetworkPacket();
 

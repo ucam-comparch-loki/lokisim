@@ -89,8 +89,9 @@ unsigned int MemoryOperation::getPayload() {
   return memory.getPayload(level);
 }
 
-void MemoryOperation::sendResult(unsigned int data) {
+void MemoryOperation::sendResult(unsigned int data, bool isInstruction) {
   NetworkResponse response(data, destination, true);
+  response.setInstruction(isInstruction);
   memory.sendResponse(response, level);
   resultFlits--;
 }

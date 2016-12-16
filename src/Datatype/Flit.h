@@ -16,6 +16,7 @@
 #include "../Tile/ChannelMapEntry.h"
 #include "../Typedefs.h"
 #include "Identifier.h"
+#include "Instruction.h"
 #include "Word.h"
 
 // The basic flit just has a single end-of-packet bit. All specialisations must
@@ -106,6 +107,9 @@ private:
   // The location the data is being transmitted to.
   ChannelID       channelID_;
 
+  // For debug only.
+  bool            isInstruction;
+
 public:
 
   inline uint           messageID()   const  {return messageID_;}
@@ -121,6 +125,7 @@ public:
   inline void setMetadata(const uint32_t info)         {metadata_ = info;}
   inline void setChannelID(const ChannelID id)         {channelID_ = id;}
   inline void setPayload(const T payload)              {payload_ = payload;}
+  inline void setInstruction(bool val)                 {isInstruction = val;}
 
   friend void sc_trace(sc_core::sc_trace_file*& tf, const Flit<T>& w, const std::string& txt) {
     sc_trace(tf, w.payload_, txt + ".payload");
@@ -137,7 +142,12 @@ public:
   }
 
   friend std::ostream& operator<< (std::ostream& os, Flit<T> const& v) {
-    os << "[" << v.payload() << " -> " << v.channelID().getString() << "] (id:" << v.messageID() << ")";
+    os << "[";
+    if (v.isInstruction)
+      os << static_cast<Instruction>(v.payload());
+    else
+      os << v.payload();
+    os << " => " << v.channelID().getString() << "] (id:" << v.messageID() << ")";
     return os;
   }
 
@@ -145,21 +155,24 @@ public:
       messageID_(messageCount++),
       payload_(static_cast<T>(0)),
       metadata_(1), // end of packet
-      channelID_(ChannelID(0, 0, 0, 0)) {
+      channelID_(ChannelID(0, 0, 0, 0)),
+      isInstruction(false) {
   }
 
   Flit<T>(T payload, ChannelID destination) :
       messageID_(messageCount++),
       payload_(payload),
       metadata_(0),
-      channelID_(destination) {
+      channelID_(destination),
+      isInstruction(false) {
 
   }
 
   Flit<T>(T payload, ChannelID destination, bool endOfPacket) :
       messageID_(messageCount++),
       payload_(payload),
-      channelID_(destination) {
+      channelID_(destination),
+      isInstruction(false) {
 
     FlitMetadata info;
     info.endOfPacket = endOfPacket;
@@ -171,7 +184,8 @@ public:
       messageID_(messageCount++),
       payload_(payload),
       metadata_(metadata),
-      channelID_(destination) {
+      channelID_(destination),
+      isInstruction(false) {
 
   }
 
@@ -179,7 +193,8 @@ public:
   Flit<T>(T payload, ChannelID destination, bool acquired, bool allocate, bool eop) :
       messageID_(messageCount++),
       payload_(payload),
-      channelID_(destination) {
+      channelID_(destination),
+      isInstruction(false) {
     assert(destination.isCore());
     CoreMetadata data;
     data.acquired = acquired;
@@ -193,7 +208,8 @@ public:
           MemoryOpcode op, bool eop) :
       messageID_(messageCount++),
       payload_(payload),
-      channelID_(destination) {
+      channelID_(destination),
+      isInstruction(false) {
     assert(destination.isMemory());
     MemoryMetadata info;
     info.returnChannel = networkInfo.returnChannel;
@@ -211,7 +227,8 @@ public:
   Flit<T>(T payload, ComponentID source, MemoryOpcode op, bool eop) :
       messageID_(messageCount++),
       payload_(payload),
-      channelID_(ChannelID()) {
+      channelID_(ChannelID()),
+      isInstruction(false) {
     MemoryMetadata info;
     info.returnTileX = source.tile.x;
     info.returnTileY = source.tile.y;
@@ -227,7 +244,8 @@ public:
   Flit<T>(T payload, ChannelID destination, MemoryOpcode op, bool eop) :
       messageID_(messageCount++),
       payload_(payload),
-      channelID_(destination) {
+      channelID_(destination),
+      isInstruction(false) {
     MemoryMetadata info;
     info.scratchpad = 0;
     info.skipL1 = 0;

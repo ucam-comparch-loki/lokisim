@@ -57,7 +57,7 @@ void IPKRead::execute() {
   assert(preconditionsMet());
   unsigned int result = memory.readWord(sramAddress + lineCursor, getAccessMode());
   memory.printOperation(metadata.opcode, address + lineCursor, result);
-  sendResult(result);
+  sendResult(result, true);
 
   if (ENERGY_TRACE)
     Instrumentation::MemoryBank::continueOperation(memory.id.globalMemoryNumber(), metadata.opcode, address + lineCursor, false, destination);

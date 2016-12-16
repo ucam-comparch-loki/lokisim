@@ -99,7 +99,7 @@ public:
   string toString() const;
 
   // Send a word to the chosen destination.
-  void sendResult(unsigned int data);
+  void sendResult(unsigned int data, bool isInstruction = false);
 
 protected:
 

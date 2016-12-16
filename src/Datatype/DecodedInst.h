@@ -97,6 +97,7 @@ public:
   void    location(const MemoryAddr val);
 
   void    persistent(const bool val);
+  void    remoteExecute(const bool val);
   void    endOfNetworkPacket(const bool val);
 
   void    cmtEntry(const EncodedCMTEntry val);
@@ -204,6 +205,7 @@ private:
   MemoryAddr          location_;  // The position in memory that this instruction comes from.
 
   bool                persistent_;
+  bool                forRemoteExecution_;
 
   // Use to determine whether the result has already been set.
   // Can't just use != 0 because it may have been set to 0.

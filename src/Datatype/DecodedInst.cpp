@@ -183,6 +183,7 @@ void DecodedInst::result(const int64_t val) {
 }
 
 void DecodedInst::persistent(const bool val)              {persistent_ = val;}
+void DecodedInst::remoteExecute(const bool val)           {forRemoteExecution_ = val;}
 void DecodedInst::endOfNetworkPacket(const bool val)      {endOfPacket_ = val;}
 
 void DecodedInst::cmtEntry(const EncodedCMTEntry val)     {networkInfo = val;}
@@ -209,24 +210,29 @@ const NetworkData DecodedInst::toNetworkData(TileID tile) const {
   if (destination.isMemory())
     destination.component.tile = tile;
 
+  NetworkData flit;
+
   if (opcode() == ISA::OP_SENDCONFIG)
-    return NetworkData(result(), destination, uint32_t(immediate()));
+    flit = NetworkData(result(), destination, uint32_t(immediate()));
   else if (destination.multicast) {
     // We never acquire channels on the local networks, so just provide "false".
-    return NetworkData(result(), destination, false, portClaim_, endOfNetworkPacket());
+    flit = NetworkData(result(), destination, false, portClaim_, endOfNetworkPacket());
   }
   else if (destination.isCore()) {
     ChannelMapEntry::GlobalChannel channel(networkInfo);
-    return NetworkData(result(), destination, channel.acquired, portClaim_, endOfNetworkPacket());
+    flit = NetworkData(result(), destination, channel.acquired, portClaim_, endOfNetworkPacket());
   }
   else {
     assert(destination.isMemory());
-    return NetworkData(result(),
+    flit = NetworkData(result(),
                        destination,
                        ChannelMapEntry::memoryView(networkInfo),
                        memoryOp(),
                        endOfNetworkPacket());
   }
+
+  flit.setInstruction(forRemoteExecution_);
+  return flit;
 }
 
 void DecodedInst::isid(const unsigned long long isid) const {

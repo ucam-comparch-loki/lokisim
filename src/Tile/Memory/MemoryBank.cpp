@@ -609,6 +609,7 @@ void MemoryBank::sendRequest(NetworkRequest request) {
 void MemoryBank::forwardRequest(NetworkRequest request) {
   // Need to update the return address to point to this bank rather than the
   // original requester.
+  LOKI_LOG << this->name() << " bypassed by request " << request << endl;
   NetworkRequest updated(request.payload(), id, request.getMemoryMetadata().opcode, request.getMetadata().endOfPacket);
   sendRequest(updated);
 }
@@ -666,10 +667,14 @@ void MemoryBank::sendResponse(NetworkResponse response, MemoryLevel level) {
 
   switch (level) {
     case MEMORY_L1:
-      if (response.channelID().channel < CORE_INSTRUCTION_CHANNELS)
+      if (response.channelID().channel < CORE_INSTRUCTION_CHANNELS) {
+        LOKI_LOG << this->name() << " buffering instruction " << response << endl;
         mOutputInstQueue.write(response);
-      else
+      }
+      else {
+        LOKI_LOG << this->name() << " buffering data " << response << endl;
         mOutputDataQueue.write(response);
+      }
       break;
     case MEMORY_L2:
       oResponse.write(response);
@@ -761,7 +766,7 @@ void MemoryBank::handleDataOutput() {
   }
   else {
     NetworkResponse flit = mOutputDataQueue.read();
-    LOKI_LOG << this->name() << " sent " << flit << endl;
+    LOKI_LOG << this->name() << " sent data " << flit << endl;
     if (ENERGY_TRACE)
       Instrumentation::Network::traffic(id, flit.channelID().component);
 
@@ -785,7 +790,7 @@ void MemoryBank::handleInstructionOutput() {
   }
   else {
     NetworkResponse flit = mOutputInstQueue.read();
-    LOKI_LOG << this->name() << " sent " << flit << endl;
+    LOKI_LOG << this->name() << " sent instruction " << flit << endl;
     if (ENERGY_TRACE)
       Instrumentation::Network::traffic(id, flit.channelID().component);
 
@@ -807,7 +812,7 @@ void MemoryBank::handleRequestOutput() {
     next_trigger(mOutputReqQueue.writeEvent());
   else {
     NetworkRequest request = mOutputReqQueue.read();
-    LOKI_LOG << this->name() << " sending request " <<
+    LOKI_LOG << this->name() << " sent request " <<
         memoryOpName(request.getMemoryMetadata().opcode) << " " << LOKI_HEX(request.payload()) << endl;
 
     loki_assert(!oRequest.valid());
