@@ -75,9 +75,12 @@ void ExecuteStage::newInput(DecodedInst& operation) {
     bool success = true;
 
     // Only collect operands on the first cycle of multi-cycle operations.
-    if (alu.busy() || isStalled()) {
+    if (alu.busy()) {
       LOKI_LOG << this->name() << ": continuing " << operation.name()
           << " on " << operation.operand1() << " and " << operation.operand2() << endl;
+    }
+    else if (isStalled()) {
+      LOKI_LOG << this->name() << ": expanding " << operation << " to multiple operations" << endl;
     }
     else {
       // Forward data from the previous instruction if necessary.
