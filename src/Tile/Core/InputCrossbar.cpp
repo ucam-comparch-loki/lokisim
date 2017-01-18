@@ -15,6 +15,8 @@
 const unsigned int InputCrossbar::numInputs = 3 + CORES_PER_TILE;
 const unsigned int InputCrossbar::numOutputs = CORE_INPUT_CHANNELS;
 
+const PortIndex INACTIVE = -1;
+
 void InputCrossbar::newData(PortIndex input) {
   loki_assert(iData[input].valid());
 
@@ -24,6 +26,9 @@ void InputCrossbar::newData(PortIndex input) {
   if (destination >= numOutputs)
     LOKI_WARN << this->name() << " trying to receive data for " << data.channelID() << endl;
   loki_assert(destination < numOutputs);
+
+  if (dataSource[destination] != INACTIVE)
+    LOKI_WARN << "multiple sources sending simultaneously to " << ChannelID(id, destination) << "; packet dropped." << endl;
 
   // Trigger a method which will write the data to the appropriate output.
   dataSource[destination] = input;
@@ -50,6 +55,7 @@ void InputCrossbar::writeToBuffer(ChannelIndex output) {
   PortIndex source = dataSource[output];
   dataToBuffer[output].write(iData[source].read());
   iData[source].ack();
+  dataSource[output] = INACTIVE;
 }
 
 void InputCrossbar::updateFlowControl(ChannelIndex input) {
@@ -61,7 +67,7 @@ void InputCrossbar::updateFlowControl(ChannelIndex input) {
 InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
     LokiComponent(name, ID),
     creditNet("credit", ID, numOutputs, 1, 1, Network::NONE, 1),
-    dataSource(numOutputs) {
+    dataSource(numOutputs, INACTIVE) {
 
   //creditNet.initialise();
 
