@@ -16,6 +16,7 @@
 #include "StringManipulation.h"
 
 #include <iostream>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -43,6 +44,9 @@ int CSIM_TRACE = 0;
 
 // Number of bytes in a Loki word.
 int BYTES_PER_WORD = 4;
+
+// Number of cycles before terminating execution.
+unsigned long TIMEOUT = ULONG_MAX;
 
 //============================================================================//
 // Global variables
@@ -190,6 +194,7 @@ void Parameters::parseParameter(const string &name, const string &value) {
   else SET_IF_MATCH(cName, nValue, MEMORY_BUFFER_SIZE);
   else SET_IF_MATCH(cName, nValue, ROUTER_BUFFER_SIZE);
   else SET_IF_MATCH(cName, nValue, DEBUG);
+  else SET_IF_MATCH(cName, nValue, TIMEOUT);
   else {
     LOKI_ERROR << "Encountered unhandled parameter in settings file: " << name << endl;
     throw std::exception();

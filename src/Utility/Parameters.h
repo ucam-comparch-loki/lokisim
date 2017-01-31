@@ -37,6 +37,9 @@ extern int      ENERGY_TRACE;
 // Number of bytes in a Loki word.
 extern int      BYTES_PER_WORD;
 
+// Number of cycles before terminating execution.
+extern unsigned long TIMEOUT;
+
 //============================================================================//
 // Global variables
 //============================================================================//

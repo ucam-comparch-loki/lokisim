@@ -67,9 +67,16 @@ bool checkIdle() {
   return false;
 }
 
+void timeout() {
+  cerr << "Simulation timed out after " << Instrumentation::currentCycle() << " cycles." << endl;
+  Instrumentation::endExecution();
+}
+
 void simulate(Chip& chip) {
 
-  cycle_count_t cyclesPerStep;
+  cycle_count_t smallStep = 1;
+  cycle_count_t bigStep = 100;
+  cycle_count_t cyclesPerStep = smallStep;
 
   try {
     if (Debugger::usingDebugger) {
@@ -88,10 +95,10 @@ void simulate(Chip& chip) {
 
         // Simulate multiple cycles in a row when possible to reduce the overheads of
         // stopping and starting simulation.
-        if (DEBUG)
-          cyclesPerStep = 1;
+        if (DEBUG || ((cycle + bigStep) >= TIMEOUT))
+          cyclesPerStep = smallStep;
         else
-          cyclesPerStep = 100;
+          cyclesPerStep = bigStep;
 
         if ((cycle > 0) && (cycle % 1000000 < cyclesPerStep) && !DEBUG && !Arguments::silent())
           statusUpdate(cerr);
@@ -108,6 +115,11 @@ void simulate(Chip& chip) {
         bool idle = checkIdle();
         if (idle)
           break;
+
+        if (cycle >= TIMEOUT) {
+          timeout();
+          break;
+        }
 
       }
     }

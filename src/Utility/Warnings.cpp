@@ -5,7 +5,7 @@
  *      Author: db434
  */
 
-bool WARN_INCOHERENCE = true;
+bool WARN_INCOHERENCE = false;
 
 // Warn (rather than terminate) when attempting to modify a read-only memory
 // address.
