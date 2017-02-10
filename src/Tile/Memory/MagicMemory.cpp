@@ -12,6 +12,7 @@
 #include "../../Exceptions/InvalidOptionException.h"
 #include "../../Network/NetworkTypedefs.h"
 #include "../../Tile/Memory/MainMemory.h"
+#include "../../Utility/Assert.h"
 #include "../../Utility/Parameters.h"
 
 MagicMemory::MagicMemory(const sc_module_name& name, MainMemory& mainMemory) :
@@ -81,8 +82,68 @@ void MagicMemory::operate(MemoryOpcode opcode,
       break;
     }
 
+    case MEMSET_LINE: {
+      MemoryAddr addr = address & ~0x1f;
+      MemoryAddr end = addr + 0x20;
+      for (; addr < end; addr += BYTES_PER_WORD)
+        mainMemory.writeWord(addr, data.toUInt(), MEMORY_SCRATCHPAD);
+      break;
+    }
+
+    case LOAD_AND_ADD: {
+      Word result = mainMemory.readWord(address, MEMORY_SCRATCHPAD);
+      NetworkData flit(result, returnChannel, true);
+      chip().networkSendDataInternal(flit);
+      mainMemory.writeWord(address, result.toUInt() + data.toUInt(), MEMORY_SCRATCHPAD);
+      break;
+    }
+
+    case LOAD_AND_OR: {
+      Word result = mainMemory.readWord(address, MEMORY_SCRATCHPAD);
+      NetworkData flit(result, returnChannel, true);
+      chip().networkSendDataInternal(flit);
+      mainMemory.writeWord(address, result.toUInt() | data.toUInt(), MEMORY_SCRATCHPAD);
+      break;
+    }
+
+    case LOAD_AND_AND: {
+      Word result = mainMemory.readWord(address, MEMORY_SCRATCHPAD);
+      NetworkData flit(result, returnChannel, true);
+      chip().networkSendDataInternal(flit);
+      mainMemory.writeWord(address, result.toUInt() & data.toUInt(), MEMORY_SCRATCHPAD);
+      break;
+    }
+
+    case LOAD_AND_XOR: {
+      Word result = mainMemory.readWord(address, MEMORY_SCRATCHPAD);
+      NetworkData flit(result, returnChannel, true);
+      chip().networkSendDataInternal(flit);
+      mainMemory.writeWord(address, result.toUInt() ^ data.toUInt(), MEMORY_SCRATCHPAD);
+      break;
+    }
+
+    case EXCHANGE: {
+      Word result = mainMemory.readWord(address, MEMORY_SCRATCHPAD);
+      NetworkData flit(result, returnChannel, true);
+      chip().networkSendDataInternal(flit);
+      mainMemory.writeWord(address, data.toUInt(), MEMORY_SCRATCHPAD);
+      break;
+    }
+
+    case VALIDATE_LINE:
+    case PREFETCH_LINE:
+    case FLUSH_LINE:
+    case INVALIDATE_LINE:
+    case FLUSH_ALL_LINES:
+    case INVALIDATE_ALL_LINES:
+    case PUSH_LINE:
+    case UPDATE_DIRECTORY_ENTRY:
+    case UPDATE_DIRECTORY_MASK:
+      LOKI_LOG << this->name() << ": " << memoryOpName(opcode) << " has no effect" << endl;
+      break;
+
     default:
-      throw InvalidOptionException("magic memory operation", opcode);
+      loki_assert_with_message(false, "Magic memory doesn't yet support %s", memoryOpName(opcode));
       break;
   }
 }

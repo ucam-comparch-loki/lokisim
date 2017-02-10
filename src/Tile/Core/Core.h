@@ -25,6 +25,7 @@
 #include "RegisterFile.h"
 #include "Write/WriteStage.h"
 #include "../../Network/NetworkTypedefs.h"
+#include "MagicMemoryConnection.h"
 
 class ComputeTile;
 class DecodedInst;
@@ -87,7 +88,7 @@ public:
 public:
 
   // Initialise the instructions a Core will execute.
-  virtual void     storeData(const std::vector<Word>& data, MemoryAddr location=0);
+  virtual void     storeData(const std::vector<Word>& data);
 
   // Returns the channel ID of the specified core's instruction packet FIFO.
   static ChannelID IPKFIFOInput(const ComponentID& ID);
@@ -100,10 +101,10 @@ public:
 
   // Get the memory location of the current instruction being decoded, so
   // we can have breakpoints set to particular instructions in memory.
-  virtual const MemoryAddr  getInstIndex() const;
+  virtual MemoryAddr  getInstIndex() const;
 
   // Read a value from a register, without redirecting to the RCET.
-  virtual const int32_t  readRegDebug(RegisterIndex reg) const;
+  virtual int32_t  readRegDebug(RegisterIndex reg) const;
 
   // Read the value of the predicate register.
   // The optional wait parameter makes it possible to wait until the latest
@@ -114,6 +115,7 @@ public:
   const Word readByte(MemoryAddr addr);
   void writeWord(MemoryAddr addr, Word data);
   void writeByte(MemoryAddr addr, Word data);
+  void magicMemoryAccess(const DecodedInst& instruction);
   void magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address, ChannelID returnChannel, Word payload = 0);
 
   // Receive data over the magic, zero-latency network.
@@ -136,14 +138,14 @@ private:
   // Read a value from a register. This method will redirect the request to
   // the receive channel-end table if the register index corresponds to a
   // channel end.
-  const int32_t    readReg(PortIndex port, RegisterIndex reg, bool indirect = false);
+  int32_t          readReg(PortIndex port, RegisterIndex reg, bool indirect = false);
 
   // Read a value from a channel end. Warning: this removes the value from
   // the input buffer.
-  const int32_t    readRCET(ChannelIndex channel);
+  int32_t          readRCET(ChannelIndex channel);
 
   // Return the result of the instruction in the execute stage.
-  const int32_t    getForwardedData() const;
+  int32_t          getForwardedData() const;
 
   // Write a value to a register.
   void             writeReg(RegisterIndex reg, int32_t value,
@@ -212,12 +214,16 @@ private:
   ChannelMapTable        channelMapTable;
   ControlRegisters       cregs;
 
+  // Debug connection to memory. Has zero latency.
+  MagicMemoryConnection  magicMemoryConnection;
+
   friend class RegisterFile;
   friend class FetchStage;
   friend class DecodeStage;
   friend class ExecuteStage;
   friend class WriteStage;
   friend class ControlRegisters;
+  friend class MagicMemoryConnection;
 
 //============================================================================//
 // Local state

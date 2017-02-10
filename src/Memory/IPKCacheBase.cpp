@@ -104,7 +104,7 @@ void IPKCacheBase::jump(const JumpOffset offset) {
 }
 
 /* Returns the remaining number of entries in the cache. */
-const size_t IPKCacheBase::remainingSpace() const {
+size_t IPKCacheBase::remainingSpace() const {
   if (finishedPacketRead)
     return size();
   else

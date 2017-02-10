@@ -7,31 +7,31 @@
 
 #include "DecodedInst.h"
 
-const opcode_t      DecodedInst::opcode()          const {return opcode_;}
-const function_t    DecodedInst::function()        const {return function_;}
-const format_t      DecodedInst::format()          const {return format_;}
-const RegisterIndex DecodedInst::sourceReg1()      const {return sourceReg1_;}
-const RegisterIndex DecodedInst::sourceReg2()      const {return sourceReg2_;}
-const RegisterIndex DecodedInst::destination()     const {return destReg_;}
+opcode_t      DecodedInst::opcode()          const {return opcode_;}
+function_t    DecodedInst::function()        const {return function_;}
+format_t      DecodedInst::format()          const {return format_;}
+RegisterIndex DecodedInst::sourceReg1()      const {return sourceReg1_;}
+RegisterIndex DecodedInst::sourceReg2()      const {return sourceReg2_;}
+RegisterIndex DecodedInst::destination()     const {return destReg_;}
 
-const int32_t       DecodedInst::immediate()       const {
+int32_t       DecodedInst::immediate()       const {
   if (opcode_ == ISA::OP_PSEL_FETCHR)
     return immediate_ >> 7;
   else
     return immediate_;
 }
-const int32_t       DecodedInst::immediate2()      const {
+int32_t       DecodedInst::immediate2()      const {
   if (opcode_ == ISA::OP_PSEL_FETCHR)
     return (immediate_ << 25) >> 25;
   else
     return 0;
 }
 
-const ChannelIndex  DecodedInst::channelMapEntry() const {return channelMapEntry_;}
-const predicate_t   DecodedInst::predicate()       const {return predicate_;}
-const bool          DecodedInst::setsPredicate()   const {return setsPred_;}
+ChannelIndex  DecodedInst::channelMapEntry() const {return channelMapEntry_;}
+predicate_t   DecodedInst::predicate()       const {return predicate_;}
+bool          DecodedInst::setsPredicate()   const {return setsPred_;}
 
-const MemoryOpcode DecodedInst::memoryOp() const {
+MemoryOpcode DecodedInst::memoryOp() const {
   if (opcode() == ISA::OP_SENDCONFIG)
     return MemoryMetadata(immediate()).opcode;
   else
@@ -39,18 +39,18 @@ const MemoryOpcode DecodedInst::memoryOp() const {
 }
 
 typedef DecodedInst::OperandSource OperandSource;
-const OperandSource DecodedInst::operand1Source()  const {return op1Source_;}
-const OperandSource DecodedInst::operand2Source()  const {return op2Source_;}
-const bool          DecodedInst::hasOperand1()     const {return op1Source_ != NONE;}
-const bool          DecodedInst::hasOperand2()     const {return op2Source_ != NONE;}
+OperandSource DecodedInst::operand1Source()  const {return op1Source_;}
+OperandSource DecodedInst::operand2Source()  const {return op2Source_;}
+bool          DecodedInst::hasOperand1()     const {return op1Source_ != NONE;}
+bool          DecodedInst::hasOperand2()     const {return op2Source_ != NONE;}
 
-const int32_t       DecodedInst::operand1()        const {return operand1_;}
-const int32_t       DecodedInst::operand2()        const {return operand2_;}
-const int64_t       DecodedInst::result()          const {return result_;}
+int32_t       DecodedInst::operand1()        const {return operand1_;}
+int32_t       DecodedInst::operand2()        const {return operand2_;}
+int64_t       DecodedInst::result()          const {return result_;}
 
-const EncodedCMTEntry DecodedInst::cmtEntry()      const {return networkInfo;}
+EncodedCMTEntry DecodedInst::cmtEntry()      const {return networkInfo;}
 
-const ChannelID     DecodedInst::networkDestination() const {
+const ChannelID DecodedInst::networkDestination() const {
   // FIXME: this code is very similar to some in ChannelMapEntry. It would be
   // nice to merge them.
 
@@ -71,33 +71,33 @@ const ChannelID     DecodedInst::networkDestination() const {
   }
 }
 
-const MemoryAddr    DecodedInst::location()        const {return location_;}
+MemoryAddr    DecodedInst::location()        const {return location_;}
 
 
-const bool    DecodedInst::predicated() const {
+bool    DecodedInst::predicated() const {
   return (predicate_ == Instruction::NOT_P) || (predicate_ == Instruction::P);
 }
 
-const bool    DecodedInst::hasResult()             const {return hasResult_;}
+bool    DecodedInst::hasResult()             const {return hasResult_;}
 
 
-const bool    DecodedInst::hasDestReg() const {
+bool    DecodedInst::hasDestReg() const {
   return ISA::hasDestReg(opcode_);
 }
 
-const bool    DecodedInst::hasSrcReg1() const {
+bool    DecodedInst::hasSrcReg1() const {
   return ISA::hasSrcReg1(opcode_);
 }
 
-const bool    DecodedInst::hasSrcReg2() const {
+bool    DecodedInst::hasSrcReg2() const {
   return ISA::hasSrcReg2(opcode_);
 }
 
-const bool    DecodedInst::hasImmediate() const {
+bool    DecodedInst::hasImmediate() const {
   return ISA::hasImmediate(opcode_);
 }
 
-const bool    DecodedInst::isDecodeStageOperation() const {
+bool    DecodedInst::isDecodeStageOperation() const {
   switch (opcode_) {
     case ISA::OP_RMTNXIPK:
     case ISA::OP_RMTEXECUTE:
@@ -121,7 +121,7 @@ const bool    DecodedInst::isDecodeStageOperation() const {
   }
 }
 
-const bool    DecodedInst::isExecuteStageOperation() const {
+bool    DecodedInst::isExecuteStageOperation() const {
   switch (opcode_) {
     case ISA::OP_SCRATCHRD:
     case ISA::OP_SCRATCHRDI:
@@ -140,19 +140,23 @@ const bool    DecodedInst::isExecuteStageOperation() const {
   }
 }
 
-const bool    DecodedInst::endOfIPK() const {
+bool    DecodedInst::endOfIPK() const {
   return predicate() == Instruction::END_OF_PACKET;
 }
 
-const bool    DecodedInst::persistent() const {
+bool    DecodedInst::persistent() const {
   return persistent_;
 }
 
-const bool    DecodedInst::endOfNetworkPacket() const {
+bool    DecodedInst::endOfNetworkPacket() const {
   if (opcode() == ISA::OP_SENDCONFIG)
     return FlitMetadata(immediate()).endOfPacket;
   else
     return endOfPacket_;
+}
+
+bool    DecodedInst::forRemoteExecution() const {
+  return forRemoteExecution_;
 }
 
 const inst_name_t& DecodedInst::name() const {
@@ -196,12 +200,12 @@ Instruction DecodedInst::toInstruction() const {
   return original_;
 }
 
-const bool DecodedInst::sendsOnNetwork() const {
+bool DecodedInst::sendsOnNetwork() const {
   return (channelMapEntry() != Instruction::NO_CHANNEL) &&
          !networkDestination().isNullMapping();
 }
 
-const bool DecodedInst::storesToRegister() const {
+bool DecodedInst::storesToRegister() const {
   return destReg_ != 0;
 }
 
@@ -233,14 +237,6 @@ const NetworkData DecodedInst::toNetworkData(TileID tile) const {
 
   flit.setInstruction(forRemoteExecution_);
   return flit;
-}
-
-void DecodedInst::isid(const unsigned long long isid) const {
-  isid_ = isid;
-}
-
-const unsigned long long DecodedInst::isid() const {
-  return isid_;
 }
 
 void DecodedInst::preventForwarding() {
@@ -337,7 +333,6 @@ void DecodedInst::init() {
   networkInfo       = 0;
   location_         = 0;
   hasResult_        = false;
-  isid_             = -1;                   // Not sure about this
 }
 
 DecodedInst::DecodedInst() {

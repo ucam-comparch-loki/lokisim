@@ -15,7 +15,7 @@
 #include "../../Utility/ISA.h"
 
 /* Initialise the instructions a Core will execute. */
-void     Core::storeData(const std::vector<Word>& data, MemoryAddr location) {
+void     Core::storeData(const std::vector<Word>& data) {
   std::vector<Instruction> instructions;
 
   // Convert all of the words to instructions
@@ -26,7 +26,7 @@ void     Core::storeData(const std::vector<Word>& data, MemoryAddr location) {
   fetch.storeCode(instructions);
 }
 
-const MemoryAddr Core::getInstIndex() const   {return fetch.getInstAddress();}
+MemoryAddr Core::getInstIndex() const   {return fetch.getInstAddress();}
 bool     Core::canCheckTags() const           {return fetch.canCheckTags();}
 void     Core::jump(const JumpOffset offset)  {fetch.jump(offset);}
 
@@ -34,7 +34,7 @@ void     Core::checkTags(MemoryAddr addr, opcode_t op, EncodedCMTEntry netInfo) 
   fetch.checkTags(addr, op, netInfo);
 }
 
-const int32_t Core::readReg(PortIndex port, RegisterIndex reg, bool indirect) {
+int32_t Core::readReg(PortIndex port, RegisterIndex reg, bool indirect) {
 
   int32_t result;
 
@@ -67,7 +67,7 @@ const int32_t Core::readReg(PortIndex port, RegisterIndex reg, bool indirect) {
 }
 
 /* Read a register without data forwarding and without indirection. */
-const int32_t Core::readRegDebug(RegisterIndex reg) const {
+int32_t Core::readRegDebug(RegisterIndex reg) const {
   if (RegisterFile::isChannelEnd(reg))
     return decode.readChannelInternal(RegisterFile::toChannelID(reg));
   else
@@ -113,6 +113,10 @@ void Core::writeByte(MemoryAddr addr, Word data) {
   parent()->writeByteInternal(getSystemCallMemory(addr), addr, data);
 }
 
+void Core::magicMemoryAccess(const DecodedInst& instruction) {
+  magicMemoryConnection.operate(instruction);
+}
+
 void Core::magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address, ChannelID returnChannel, Word payload) {
   parent()->magicMemoryAccess(opcode, address, returnChannel, payload);
 }
@@ -134,11 +138,11 @@ void Core::deliverCreditInternal(const NetworkCredit& flit) {
   write.deliverCreditInternal(flit);
 }
 
-const int32_t  Core::readRCET(ChannelIndex channel) {
+int32_t  Core::readRCET(ChannelIndex channel) {
   return decode.readChannel(channel);
 }
 
-const int32_t  Core::getForwardedData() const {
+int32_t  Core::getForwardedData() const {
   loki_assert(execute.currentInstruction().hasResult());
   return execute.currentInstruction().result();
 }
@@ -245,7 +249,8 @@ Core::Core(const sc_module_name& name, const ComponentID& ID) :
     execute("execute", ID),
     write("write", ID),
     channelMapTable("channel_map_table", ID),
-    cregs("cregs", ID) {
+    cregs("cregs", ID),
+    magicMemoryConnection("magic_memory", ID) {
 
   currentlyStalled = false;
 

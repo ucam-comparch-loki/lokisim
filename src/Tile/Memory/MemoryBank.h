@@ -64,7 +64,7 @@ public:
 public:
 
   SC_HAS_PROCESS(MemoryBank);
-  MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumber);
+  MemoryBank(sc_module_name name, const ComponentID& ID);
   ~MemoryBank();
 
 //============================================================================//
@@ -128,7 +128,6 @@ public:
 
   void setBackgroundMemory(MainMemory* memory);
 
-  void storeData(vector<Word>& data, MemoryAddr location);
   void synchronizeData();
 
   void print(MemoryAddr start, MemoryAddr end);
@@ -186,7 +185,7 @@ private:
 
 protected:
 
-  virtual const vector<uint32_t>& dataArrayReadOnly() const;
+  virtual const vector<uint32_t>& dataArray() const;
   virtual vector<uint32_t>& dataArray();
 
   virtual void reportStalls(ostream& os);

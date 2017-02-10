@@ -5,14 +5,14 @@
  *      Author: db434
  */
 
-#include "../../../Tile/Memory/Operations/CacheLineOperations.h"
+#include "CacheLineOperations.h"
 
 #include <assert.h>
 
-#include "../../../Datatype/Instruction.h"
-#include "../../../Tile/Memory/MemoryBank.h"
-#include "../../../Utility/Instrumentation/MemoryBank.h"
-#include "../../../Utility/Parameters.h"
+#include "../Instruction.h"
+#include "../../Tile/Memory/MemoryBank.h"
+#include "../../Utility/Instrumentation/MemoryBank.h"
+#include "../../Utility/Parameters.h"
 
 FetchLine::FetchLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(startOfLine(address), metadata, memory, level, destination, 0, CACHE_LINE_WORDS) {

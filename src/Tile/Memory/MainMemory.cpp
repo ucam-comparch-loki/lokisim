@@ -8,7 +8,7 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "MainMemory.h"
-#include "Operations/MemoryOperationDecode.h"
+#include "../../Datatype/MemoryOperations/MemoryOperationDecode.h"
 #include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/MainMemory.h"
 #include <iomanip>
@@ -68,7 +68,7 @@ MemoryAddr MainMemory::getAddress(SRAMAddress position) const {
 
 // Return whether data from `address` can be found at `position` in the SRAM.
 bool MainMemory::contains(MemoryAddr address, SRAMAddress position, MemoryAccessMode mode) const {
-  loki_assert_with_message(address < dataArrayReadOnly().size()*BYTES_PER_WORD, "Address 0x%x", address);
+  loki_assert_with_message(address < dataArray().size()*BYTES_PER_WORD, "Address 0x%x", address);
   loki_assert(address == position);
   return true;
 }
@@ -211,7 +211,7 @@ void MainMemory::notifyRequestComplete() {
   bandwidthAvailableEvent.notify(sc_core::SC_ZERO_TIME);
 }
 
-const vector<uint32_t>& MainMemory::dataArrayReadOnly() const {
+const vector<uint32_t>& MainMemory::dataArray() const {
   return mData;
 }
 

@@ -37,44 +37,45 @@ public:
 
 public:
 
-  const opcode_t      opcode() const;
-  const function_t    function() const;
-  const format_t      format() const;
-  const RegisterIndex sourceReg1() const;
-  const RegisterIndex sourceReg2() const;
-  const RegisterIndex destination() const;
-  const int32_t       immediate() const;
-  const int32_t       immediate2() const;       // Just for psel.fetchr
-  const ChannelIndex  channelMapEntry() const;
-  const predicate_t   predicate() const;
-  const bool          setsPredicate() const;
-  const MemoryOpcode  memoryOp() const;
+  opcode_t      opcode() const;
+  function_t    function() const;
+  format_t      format() const;
+  RegisterIndex sourceReg1() const;
+  RegisterIndex sourceReg2() const;
+  RegisterIndex destination() const;
+  int32_t       immediate() const;
+  int32_t       immediate2() const;       // Just for psel.fetchr
+  ChannelIndex  channelMapEntry() const;
+  predicate_t   predicate() const;
+  bool          setsPredicate() const;
+  MemoryOpcode  memoryOp() const;
 
-  const OperandSource operand1Source() const;
-  const OperandSource operand2Source() const;
-  const bool          hasOperand1() const;
-  const bool          hasOperand2() const;
+  OperandSource operand1Source() const;
+  OperandSource operand2Source() const;
+  bool          hasOperand1() const;
+  bool          hasOperand2() const;
 
-  const int32_t       operand1() const;
-  const int32_t       operand2() const;
-  const int64_t       result() const;
-  const MemoryAddr    location() const;
+  int32_t       operand1() const;
+  int32_t       operand2() const;
+  int64_t       result() const;
+  MemoryAddr    location() const;
 
-  const EncodedCMTEntry cmtEntry() const;
-  const ChannelID     networkDestination() const;
+  EncodedCMTEntry cmtEntry() const;
+  const ChannelID networkDestination() const;
 
-  const bool          predicated() const;
-  const bool          hasResult() const;
+  bool          predicated() const;
+  bool          hasResult() const;
 
-  const bool          hasDestReg() const;
-  const bool          hasSrcReg1() const;
-  const bool          hasSrcReg2() const;
-  const bool          hasImmediate() const;
-  const bool          isDecodeStageOperation() const;
-  const bool          isExecuteStageOperation() const;
-  const bool          endOfIPK() const;
-  const bool          persistent() const;
-  const bool          endOfNetworkPacket() const;
+  bool          hasDestReg() const;
+  bool          hasSrcReg1() const;
+  bool          hasSrcReg2() const;
+  bool          hasImmediate() const;
+  bool          isDecodeStageOperation() const;
+  bool          isExecuteStageOperation() const;
+  bool          endOfIPK() const;
+  bool          persistent() const;
+  bool          endOfNetworkPacket() const;
+  bool          forRemoteExecution() const;
   const inst_name_t&  name() const;
 
   void    opcode(const opcode_t val);
@@ -105,15 +106,12 @@ public:
 
   Instruction toInstruction() const;
 
-  const bool sendsOnNetwork() const;
-  const bool storesToRegister() const;
+  bool    sendsOnNetwork() const;
+  bool    storesToRegister() const;
 
   // Provide this tile's ID so local communications can fill in their
   // destination addresses fully.
   const NetworkData toNetworkData(TileID tile) const;
-
-  void isid(const unsigned long long isid) const;
-  const unsigned long long isid() const;
 
   // Invalidate this instruction in such a way that it will never be able to
   // forward its result to another instruction. This may be useful if the
@@ -210,8 +208,6 @@ private:
   // Use to determine whether the result has already been set.
   // Can't just use != 0 because it may have been set to 0.
   bool                hasResult_;
-
-  mutable unsigned long long isid_;
 };
 
 #endif /* DECODEDINST_H_ */

@@ -60,10 +60,10 @@ public:
   // The command used to run the simulator.
   static const string invocation();
 
-  static const bool summarise();
+  static bool summarise();
 
   // Should any simulator status messages be printed during execution?
-  static const bool silent();
+  static bool silent();
 
   static void printHelp();
 

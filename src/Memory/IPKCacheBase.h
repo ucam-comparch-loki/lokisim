@@ -50,7 +50,7 @@ public:
   virtual void jump(const JumpOffset offset);
 
   // Returns the remaining number of entries in the cache.
-  virtual const size_t remainingSpace() const;
+  virtual size_t remainingSpace() const;
 
   // Returns whether the cache is empty. Note that even if a cache is empty,
   // it is still possible to access its contents if an appropriate tag is

@@ -26,7 +26,7 @@ void ComputeTile::storeData(const DataBlock& data) {
     chip()->storeData(data);
   }
   else if (data.component().isCore()) {
-    cores[data.component().position]->storeData(data.payload(), data.position());
+    cores[data.component().position]->storeData(data.payload());
   }
   else if (data.component().isMemory()) {
     LOKI_ERROR << "storing directly to memory banks is disabled since it cannot be known "
@@ -178,7 +178,7 @@ void ComputeTile::makeComponents() {
   for (uint mem = 0; mem < MEMS_PER_TILE; mem++) {
     ComponentID memoryID(tile, CORES_PER_TILE + mem);
 
-    MemoryBank* m = new MemoryBank(sc_gen_unique_name("memory"), memoryID, mem);
+    MemoryBank* m = new MemoryBank(sc_gen_unique_name("memory"), memoryID);
     m->setBackgroundMemory(&(chip()->mainMemory));
 
     memories.push_back(m);

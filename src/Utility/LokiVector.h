@@ -60,7 +60,7 @@ public:
     init(other.length());
   }
 
-  inline const size_t length() const {
+  inline size_t length() const {
     return size_;
   }
 

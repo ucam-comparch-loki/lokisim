@@ -5,11 +5,11 @@
  *      Author: db434
  */
 
-#include "../../../Tile/Memory/Operations/AtomicOperations.h"
+#include "AtomicOperations.h"
 
 #include <assert.h>
 
-#include "../../../Tile/Memory/MemoryBank.h"
+#include "../../Tile/Memory/MemoryBank.h"
 
 LoadLinked::LoadLinked(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(address, metadata, memory, level, destination, 0, 1) {

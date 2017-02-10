@@ -104,7 +104,7 @@ public:
   virtual uint32_t readWord(SRAMAddress position, MemoryAccessMode mode) const {
     checkAlignment(position, 4);
 
-    return dataArrayReadOnly()[position/BYTES_PER_WORD];
+    return dataArray()[position/BYTES_PER_WORD];
   }
 
   virtual uint32_t readHalfword(SRAMAddress position, MemoryAccessMode mode) const {
@@ -185,7 +185,7 @@ protected:
 
   // Abstract away where the data is stored. Allows multiple memories to share
   // data.
-  virtual const vector<uint32_t>& dataArrayReadOnly() const = 0;
+  virtual const vector<uint32_t>& dataArray() const = 0;
   virtual vector<uint32_t>& dataArray() = 0;
 
 };

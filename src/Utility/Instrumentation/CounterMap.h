@@ -27,11 +27,11 @@ public:
     totalEvents += val;
   }
 
-  const count_t getCount(const T& event) {
+  count_t getCount(const T& event) {
     return counters[event];
   }
 
-  const count_t operator[](const T& event) {
+  count_t operator[](const T& event) {
     return getCount(event);
   }
 
@@ -40,7 +40,7 @@ public:
     counters[event] = count;
   }
 
-  const count_t numEvents() const {
+  count_t numEvents() const {
     return totalEvents;
   }
 

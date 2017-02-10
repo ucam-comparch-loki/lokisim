@@ -10,10 +10,10 @@
 #ifndef SRC_TILE_MEMORY_OPERATIONS_MEMORYOPERATION_H_
 #define SRC_TILE_MEMORY_OPERATIONS_MEMORYOPERATION_H_
 
-#include "../../../Datatype/Flit.h"
-#include "../../../Datatype/Identifier.h"
-#include "../../../Network/NetworkTypedefs.h"
-#include "../../../Tile/Memory/MemoryTypedefs.h"
+#include "../Flit.h"
+#include "../Identifier.h"
+#include "../../Network/NetworkTypedefs.h"
+#include "../../Tile/Memory/MemoryTypedefs.h"
 
 class MemoryBase;
 

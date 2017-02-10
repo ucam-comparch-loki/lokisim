@@ -8,10 +8,10 @@
 #ifndef SRC_TILE_MEMORY_OPERATIONS_ATOMICOPERATIONS_H_
 #define SRC_TILE_MEMORY_OPERATIONS_ATOMICOPERATIONS_H_
 
-#include "../../../Datatype/Flit.h"
-#include "../../../Datatype/Identifier.h"
-#include "../../../Tile/Memory/MemoryTypedefs.h"
-#include "../../../Tile/Memory/Operations/MemoryOperation.h"
+#include "../Flit.h"
+#include "../Identifier.h"
+#include "../../Tile/Memory/MemoryTypedefs.h"
+#include "MemoryOperation.h"
 
 class LoadLinked : public MemoryOperation {
 public:

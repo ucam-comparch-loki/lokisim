@@ -33,8 +33,8 @@ public:
 
 public:
 
-  const int32_t read(const MemoryAddr addr) const;
-  void          write(const MemoryAddr addr, const int32_t value);
+  int32_t read(const MemoryAddr addr) const;
+  void    write(const MemoryAddr addr, const int32_t value);
 
 //============================================================================//
 // Local state

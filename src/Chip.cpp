@@ -153,8 +153,9 @@ const std::set<TileID> Chip::getMemoryControllerPositions() const {
   positions.insert(TileID(1, COMPUTE_TILE_ROWS+1));
   positions.insert(TileID(COMPUTE_TILE_COLUMNS, COMPUTE_TILE_ROWS+1));
 
-  if (positions.size() < MAIN_MEMORY_BANDWIDTH)
-    LOKI_WARN << "Unable to use " << MAIN_MEMORY_BANDWIDTH << " words/cycle of memory bandwidth with only " << positions.size() << " memory controllers." << endl;
+  loki_assert_with_message(positions.size() >= MAIN_MEMORY_BANDWIDTH,
+      "Unable to use %d words/cycle of memory bandwidth with only %d memory controllers",
+      MAIN_MEMORY_BANDWIDTH, positions.size());
 
   return positions;
 }
@@ -278,7 +279,7 @@ void Chip::wireUp() {
 }
 
 Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
-    LokiComponent(name),
+    LokiComponent(name, ID),
     memoryControllerPositions(getMemoryControllerPositions()),
     mainMemory("main_memory", ComponentID(0,0,0), memoryControllerPositions.size()),
     magicMemory("magic_memory", mainMemory),

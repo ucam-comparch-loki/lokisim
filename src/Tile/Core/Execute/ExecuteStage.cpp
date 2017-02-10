@@ -238,35 +238,8 @@ void ExecuteStage::sendOutput() {
     if (currentInst.networkDestination().isMemory())
       adjustNetworkAddress(currentInst);
 
-    if (MAGIC_MEMORY && currentInst.networkDestination().isMemory()) {
-      ChannelMapEntry& channelMapEntry = core()->channelMapTable[currentInst.channelMapEntry()];
-      ChannelID returnChannel(id.tile.x, id.tile.y, channelMapEntry.getChannel(), channelMapEntry.getReturnChannel());
-
-      switch (currentInst.memoryOp()) {
-        case LOAD_W:
-        case LOAD_HW:
-        case LOAD_B:
-          core()->magicMemoryAccess(currentInst.memoryOp(), currentInst.result(),
-                                    returnChannel);
-          break;
-
-        case STORE_W:
-        case STORE_HW:
-        case STORE_B:
-          core()->magicMemoryAccess(currentInst.memoryOp(), currentInst.result(),
-                                    returnChannel, currentInst.operand1());
-          break;
-
-        case PAYLOAD:
-        case PAYLOAD_EOP:
-          // Don't send payloads as separate flits - they're sent with the
-          // header when accessing magic memory.
-          break;
-
-        default:
-          throw InvalidOptionException("magic memory operation", currentInst.memoryOp());
-          break;
-      }
+    if (MAGIC_MEMORY && !currentInst.forRemoteExecution() && currentInst.networkDestination().isMemory()) {
+      core()->magicMemoryAccess(currentInst);
     }
     else {
       // Send the data to the output buffer - it will arrive immediately so that

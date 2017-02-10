@@ -41,13 +41,13 @@ public:
 public:
 
   // Read from a register, redirecting to RCET if necessary.
-  const int32_t read(PortIndex port, RegisterIndex reg, bool indirect) const;
+  int32_t read(PortIndex port, RegisterIndex reg, bool indirect) const;
 
   // Read from a register without redirecting to RCET.
-  const int32_t readInternal(const RegisterIndex reg) const;
+  int32_t readInternal(const RegisterIndex reg) const;
 
   // Write to a register, including all safety checks.
-  void    write(const RegisterIndex reg, const int32_t value, bool indirect);
+  void    write(const RegisterIndex reg, int32_t value, bool indirect);
 
   // Simple methods to tell what sort of register is being dealt with.
   static bool isReserved(RegisterIndex position);
@@ -68,12 +68,12 @@ public:
   // current instruction packet. It is acceptable to have this as a separate
   // method since there is only one writer, and they only write to this one
   // register.
-  void updateCurrentIPK(const MemoryAddr addr);
+  void updateCurrentIPK(MemoryAddr addr);
 
 private:
 
   // Perform the register write (no safety checks, etc.).
-  void writeInternal(const RegisterIndex reg, const Word value);
+  void writeInternal(RegisterIndex reg, const Word value);
 
   void logActivity();
 

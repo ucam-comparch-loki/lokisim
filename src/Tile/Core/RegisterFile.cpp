@@ -14,7 +14,7 @@
 #include "../../Exceptions/InvalidOptionException.h"
 #include "Core.h"
 
-const int32_t RegisterFile::read(PortIndex port, RegisterIndex reg, bool indirect) const {
+int32_t RegisterFile::read(PortIndex port, RegisterIndex reg, bool indirect) const {
   RegisterIndex index;
 
   if (indirect) {
@@ -52,14 +52,14 @@ const int32_t RegisterFile::read(PortIndex port, RegisterIndex reg, bool indirec
   }
 }
 
-const int32_t RegisterFile::readInternal(const RegisterIndex reg) const {
+int32_t RegisterFile::readInternal(const RegisterIndex reg) const {
   if (reg == 0)
     return 0;
   else
     return regs.read(reg).toInt();
 }
 
-void RegisterFile::write(const RegisterIndex reg, const int32_t value, bool indirect) {
+void RegisterFile::write(const RegisterIndex reg, int32_t value, bool indirect) {
 
   RegisterIndex index = indirect ? regs.read(reg).toInt() : reg;
 
@@ -83,8 +83,7 @@ void RegisterFile::write(const RegisterIndex reg, const int32_t value, bool indi
  * Register 1 is reserved to hold the address of the currently executing
  * instruction packet. */
 bool RegisterFile::isReserved(RegisterIndex position) {
-  return position >= 0
-      && position <  2;
+  return position <  2;
 }
 
 bool RegisterFile::isChannelEnd(RegisterIndex position) {
@@ -103,8 +102,7 @@ bool RegisterFile::needsIndirect(RegisterIndex position) {
 }
 
 bool RegisterFile::isInvalid(RegisterIndex position) {
-  return position < 0
-      || position > NUM_PHYSICAL_REGISTERS;
+  return position > NUM_PHYSICAL_REGISTERS;
 }
 
 RegisterIndex RegisterFile::toChannelID(RegisterIndex position) {
@@ -117,12 +115,12 @@ RegisterIndex RegisterFile::fromChannelID(RegisterIndex position) {
   return position + START_OF_INPUT_CHANNELS;
 }
 
-void RegisterFile::updateCurrentIPK(const MemoryAddr addr) {
+void RegisterFile::updateCurrentIPK(MemoryAddr addr) {
   Word w(addr);
   writeInternal(1, w);
 }
 
-void RegisterFile::writeInternal(const RegisterIndex reg, const Word data) {
+void RegisterFile::writeInternal(RegisterIndex reg, const Word data) {
   if (reg > 0)
     LOKI_LOG << this->name() << ": Stored " << data << " to register " << (int)reg << endl;
 

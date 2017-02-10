@@ -5,7 +5,7 @@
  *      Author: db434
  */
 
-#include "../../../Tile/Memory/Operations/DirectoryOperations.h"
+#include "DirectoryOperations.h"
 
 #include <assert.h>
 

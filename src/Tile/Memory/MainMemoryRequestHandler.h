@@ -90,7 +90,7 @@ public:
 
 protected:
 
-  virtual const vector<uint32_t>& dataArrayReadOnly() const;
+  virtual const vector<uint32_t>& dataArray() const;
   virtual vector<uint32_t>& dataArray();
 
 private:

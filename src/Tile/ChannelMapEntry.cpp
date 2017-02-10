@@ -47,8 +47,6 @@ ChannelID ChannelMapEntry::getDestination() const {
       return ChannelID(id_.component.tile.x, id_.component.tile.y, getComponent(), getChannel());
     case GLOBAL:
       return ChannelID(getTileColumn(), getTileRow(), getComponent(), getChannel());
-    case NONE:
-      return ChannelID();
     default:
       throw InvalidOptionException("channel map entry network", network_);
       break;
@@ -126,6 +124,9 @@ void ChannelMapEntry::setAcquired(bool acq) {
 
 // Write to the channel map entry.
 void ChannelMapEntry::write(EncodedCMTEntry data) {
+  if (data == 0)
+    LOKI_WARN << "setting channel map entry " << id_ << " to 0." << std::endl;
+
   uint oldCredits = globalView().credits;
 
   data_ = data;

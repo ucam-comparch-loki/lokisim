@@ -16,7 +16,7 @@ using namespace std;
 
 #include "MemoryBank.h"
 #include "MainMemory.h"
-#include "Operations/MemoryOperationDecode.h"
+#include "../../Datatype/MemoryOperations/MemoryOperationDecode.h"
 #include "../ComputeTile.h"
 #include "../../Chip.h"
 #include "../../Utility/Arguments.h"
@@ -856,7 +856,7 @@ Chip* MemoryBank::chip() const {
   return parent()->chip();
 }
 
-MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint bankNumber) :
+MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID) :
   MemoryBase(name, ID),
   mInputQueue(string(this->name()) + string(".mInputQueue"), MEMORY_BUFFER_SIZE),
   mOutputDataQueue("mOutputDataQueue", MEMORY_BUFFER_SIZE, INTERNAL_LATENCY),
@@ -935,10 +935,6 @@ void MemoryBank::setBackgroundMemory(MainMemory* memory) {
   mMainMemory = memory;
 }
 
-void MemoryBank::storeData(vector<Word>& data, MemoryAddr location) {
-  loki_assert(false);
-}
-
 void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
   loki_assert(mMainMemory != NULL);
 
@@ -1001,7 +997,7 @@ void MemoryBank::writeByteDebug(MemoryAddr addr, Word data) {
     mMainMemory->writeByte(addr, data.toUInt(), MEMORY_SCRATCHPAD);
 }
 
-const vector<uint32_t>& MemoryBank::dataArrayReadOnly() const {
+const vector<uint32_t>& MemoryBank::dataArray() const {
   return mData;
 }
 

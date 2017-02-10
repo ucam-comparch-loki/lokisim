@@ -14,7 +14,7 @@ Scratchpad::Scratchpad(const sc_module_name& name, const ComponentID& ID) :
   // Do nothing.
 }
 
-const int32_t Scratchpad::read(const MemoryAddr addr) const {
+int32_t Scratchpad::read(const MemoryAddr addr) const {
   Instrumentation::Scratchpad::read();
   int32_t result = data.read(addr).toInt();
 

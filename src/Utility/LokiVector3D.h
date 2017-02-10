@@ -65,7 +65,7 @@ public:
     data_ = new LokiVector2D<T>[length];
   }
 
-  inline const size_t length() const {
+  inline size_t length() const {
     return size_;
   }
 

@@ -8,12 +8,12 @@
 #ifndef SRC_TILE_MEMORY_OPERATIONS_MEMORYOPERATIONDECODE_H_
 #define SRC_TILE_MEMORY_OPERATIONS_MEMORYOPERATIONDECODE_H_
 
-#include "../../../Exceptions/InvalidOptionException.h"
-#include "../../../Tile/Memory/Operations/AtomicOperations.h"
-#include "../../../Tile/Memory/Operations/BasicOperations.h"
-#include "../../../Tile/Memory/Operations/CacheLineOperations.h"
-#include "../../../Tile/Memory/Operations/DirectoryOperations.h"
-#include "../../../Tile/Memory/Operations/MemoryOperation.h"
+#include "../../Exceptions/InvalidOptionException.h"
+#include "AtomicOperations.h"
+#include "BasicOperations.h"
+#include "CacheLineOperations.h"
+#include "DirectoryOperations.h"
+#include "MemoryOperation.h"
 
 inline MemoryOperation* decodeMemoryRequest(const NetworkRequest& request,
                                             MemoryBase& memory,

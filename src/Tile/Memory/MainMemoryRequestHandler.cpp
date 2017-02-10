@@ -9,7 +9,7 @@
 #include "MainMemory.h"
 #include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/MainMemory.h"
-#include "../../Tile/Memory/Operations/MemoryOperationDecode.h"
+#include "../../Datatype/MemoryOperations/MemoryOperationDecode.h"
 
 MainMemoryRequestHandler::MainMemoryRequestHandler(sc_module_name name, ComponentID ID, MainMemory& memory) :
     MemoryBase(name, ID),
@@ -120,8 +120,8 @@ void MainMemoryRequestHandler::preWriteCheck(const MemoryOperation& operation) c
   }
 }
 
-const vector<uint32_t>& MainMemoryRequestHandler::dataArrayReadOnly() const {
-  return mainMemory.dataArrayReadOnly();
+const vector<uint32_t>& MainMemoryRequestHandler::dataArray() const {
+  return mainMemory.dataArray();
 }
 
 vector<uint32_t>& MainMemoryRequestHandler::dataArray() {

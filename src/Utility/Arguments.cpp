@@ -259,8 +259,8 @@ bool Arguments::ipkStats()                {return ipkStatsFile_.length() > 0;}
 
 const string Arguments::invocation()      {return invocation_.str();}
 
-const bool Arguments::summarise()         {return summarise_;}
-const bool Arguments::silent()            {return silent_;}
+bool Arguments::summarise()               {return summarise_;}
+bool Arguments::silent()                  {return silent_;}
 
 void Arguments::printHelp() {
   cout <<

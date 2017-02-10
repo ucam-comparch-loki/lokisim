@@ -5,16 +5,16 @@
  *      Author: db434
  */
 
-#include "../../../Tile/Memory/Operations/MemoryOperation.h"
+#include "MemoryOperation.h"
 
 #include <assert.h>
 #include <iomanip>
 #include <iostream>
 
-#include "../../../Network/NetworkTypedefs.h"
-#include "../../../Tile/Memory/MemoryBank.h"
-#include "../../../Utility/Arguments.h"
-#include "../../../Utility/Instrumentation/MemoryBank.h"
+#include "../../Network/NetworkTypedefs.h"
+#include "../../Tile/Memory/MemoryBank.h"
+#include "../../Utility/Arguments.h"
+#include "../../Utility/Instrumentation/MemoryBank.h"
 
 MemoryOperation::MemoryOperation(MemoryAddr address,
                                  MemoryMetadata metadata,
