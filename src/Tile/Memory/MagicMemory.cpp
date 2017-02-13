@@ -143,7 +143,7 @@ void MagicMemory::operate(MemoryOpcode opcode,
       break;
 
     default:
-      loki_assert_with_message(false, "Magic memory doesn't yet support %s", memoryOpName(opcode));
+      loki_assert_with_message(false, "Magic memory doesn't yet support %s", memoryOpName(opcode).c_str());
       break;
   }
 }

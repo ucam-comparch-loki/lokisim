@@ -25,14 +25,14 @@ ControlRegisters::~ControlRegisters() {
 }
 
 int32_t ControlRegisters::read(RegisterIndex reg) const {
-  loki_assert_with_message(reg < registers.size(), "Register ", reg);
+  loki_assert_with_message(reg < registers.size(), "Register %d", reg);
   // TODO: check access mask
 
   return registers[reg];
 }
 
 void ControlRegisters::write(RegisterIndex reg, int32_t value) {
-  loki_assert_with_message(reg < registers.size(), "Register ", reg);
+  loki_assert_with_message(reg < registers.size(), "Register %d", reg);
   // TODO: check access mask
 
   // CPU location is read-only.
