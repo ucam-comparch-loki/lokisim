@@ -14,6 +14,8 @@
 #include "MemoryBase.h"
 #include "../../Network/DelayBuffer.h"
 
+#include <memory>
+
 class MainMemory;
 
 class MainMemoryRequestHandler: public MemoryBase {
@@ -114,7 +116,7 @@ private:
   };
 
   RequestHandlerState   requestState;
-  MemoryOperation*      activeRequest; // The request being served.
+  std::unique_ptr<MemoryOperation> activeRequest; // The request being served.
 
   DelayBuffer<NetworkResponse> outputQueue; // Model memory latency
 

@@ -20,7 +20,6 @@ MainMemoryRequestHandler::MainMemoryRequestHandler(sc_module_name name, Componen
     mainMemory(memory) {
 
   requestState = STATE_IDLE;
-  activeRequest = NULL;
 
   SC_METHOD(mainLoop);
   sensitive << iClock.pos();
@@ -154,7 +153,7 @@ void MainMemoryRequestHandler::processIdle() {
                             request.getMemoryMetadata().returnChannel,
                             0);
 
-    activeRequest = decodeMemoryRequest(request, *this, MEMORY_OFF_CHIP, returnAddress);
+    activeRequest = std::unique_ptr<MemoryOperation>(decodeMemoryRequest(request, *this, MEMORY_OFF_CHIP, returnAddress));
 
     // Tell main memory that we've started a new request.
     mainMemory.notifyRequestStart();
@@ -203,8 +202,7 @@ void MainMemoryRequestHandler::processRequest() {
   // If the operation has finished, end the request and prepare for a new one.
   if (activeRequest->complete() && requestState == STATE_REQUEST) {
     requestState = STATE_IDLE;
-    delete activeRequest;
-    activeRequest = NULL;
+    activeRequest.reset();
 
     // Tell main memory that we've finished a request.
     mainMemory.notifyRequestComplete();

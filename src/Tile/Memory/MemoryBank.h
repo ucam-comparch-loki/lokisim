@@ -24,6 +24,8 @@
 #include "../../Network/DelayBuffer.h"
 #include "../../Utility/BlockingInterface.h"
 
+#include <memory>
+
 class ComputeTile;
 class MemoryOperation;
 class MainMemory;
@@ -152,7 +154,7 @@ private:
 
   bool requestAvailable() const;
   const sc_event_or_list& requestAvailableEvent() const;
-  MemoryOperation* peekRequest();
+  std::shared_ptr<MemoryOperation> peekRequest();
   void consumeRequest(MemoryLevel level);
 
   bool canSendRequest() const;
@@ -220,11 +222,11 @@ private:
   vector<bool>          mDirty;           // Modified data flag for each line.
   vector<bool>          mL2Skip;          // Whether each line bypasses the L2 when flushed.
 
-  MemoryOperation*      mActiveRequest;   // The request being served.
+  std::shared_ptr<MemoryOperation> mActiveRequest;   // The request being served.
 
   // Callback request - put on hold while performing sub-operations such as
   // cache line fetches.
-  MemoryOperation*      mMissingRequest;
+  std::shared_ptr<MemoryOperation> mMissingRequest;
 
   ReservationHandler    mReservations;    // Data keeping track of current atomic transactions.
 
