@@ -119,7 +119,7 @@ void MagicMemoryConnection::operate(const DecodedInst& instruction) {
       if (memoryOp == STORE_LINE || memoryOp == PUSH_LINE)
         currentOpcode = STORE_W;
       else if (payloadsRemaining > 1)
-        loki_assert_with_message(false, "Unhandled complex operation: %s", memoryOpName(memoryOp));
+        loki_assert_with_message(false, "Unhandled complex operation: %s", memoryOpName(memoryOp).c_str());
       else if (payloadsRemaining == 0)
         parent()->magicMemoryAccess(currentOpcode, currentAddress, returnChannel);
     }
