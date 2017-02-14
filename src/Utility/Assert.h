@@ -25,7 +25,7 @@
 class Assert {
 public:
   static void loki_assert_failure(string test, string function, string file, int line, cycle_count_t cycle, const LokiComponent& component) {
-    std::cerr << "Assertion failure" << std::endl
+    std::cerr << "Simulation assertion failure" << std::endl
               << "  Cycle:     " << cycle << std::endl
               << "  Component: " << component.name() << std::endl
               << "  Test:      " << test << std::endl
@@ -35,7 +35,7 @@ public:
   }
 
   static void loki_assert_failure_with_message(string test, string function, string file, int line, cycle_count_t cycle, const LokiComponent& component, string msg, ...) {
-    std::cerr << "Assertion failure" << std::endl
+    std::cerr << "Simulation assertion failure" << std::endl
               << "  Cycle:     " << cycle << std::endl
               << "  Component: " << component.name() << std::endl
               << "  Test:      " << test << std::endl

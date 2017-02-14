@@ -368,9 +368,13 @@ void MemoryBank::processAllocate() {
   loki_assert_with_message(mState == STATE_ALLOCATE, "State = %d", mState);
   loki_assert(mActiveRequest.get() != NULL);
 
+  if (!canSendRequest()) {
+    LOKI_LOG << this->name() << " delayed allocation due to full output request queue" << endl;
+    next_trigger(canSendRequestEvent());
+  }
   // Use inCache to check whether the line has already been allocated. The data
   // won't have arrived yet.
-  if (!mActiveRequest->inCache()) {
+  else if (!mActiveRequest->inCache()) {
     // The request has already called allocate() above, so data for the new line
     // is on its way. Now we must prepare the line for the data's arrival.
     mActiveRequest->validateLine();
@@ -598,6 +602,7 @@ const sc_event& MemoryBank::canSendRequestEvent() const {
 }
 
 void MemoryBank::sendRequest(NetworkRequest request) {
+  if (!canSendRequest()) assert(false);
   loki_assert(canSendRequest());
 
   LOKI_LOG << this->name() << " buffering request " <<
