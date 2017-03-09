@@ -37,6 +37,10 @@ public:
   SC_HAS_PROCESS(NetworkDeadEnd);
   NetworkDeadEnd(const sc_module_name& name, ComponentID id, Direction direction) :
       LokiComponent(name, id),
+      iData("iData"),
+      oData("oData"),
+      iReady("iReady"),
+      oReady("oReady"),
       direction(direction) {
 
     // Allow data to be sent here so we can catch the error, rather than stall

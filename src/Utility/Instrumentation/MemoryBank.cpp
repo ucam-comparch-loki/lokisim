@@ -31,7 +31,7 @@ CounterMap<int> MemoryBank::replaceDirtyLine;
 
 vector<vector<struct MemoryBank::ChannelStats> > MemoryBank::coreStats;
 
-void MemoryBank::init() {
+void MemoryBank::reset() {
   // Initial stats for one channel of one core.
   struct ChannelStats nullData;
   nullData.readHits = 0;
@@ -45,6 +45,7 @@ void MemoryBank::init() {
   oneCore.assign(CORE_INPUT_CHANNELS, nullData);
 
   // Initial stats for all channels of all cores.
+  coreStats.clear();
   coreStats.assign(NUM_CORES, oneCore);
 
   // Clean all the CounterMaps.
@@ -67,6 +68,8 @@ void MemoryBank::init() {
 
 void MemoryBank::startOperation(int bank, MemoryOpcode op,
         MemoryAddr address, bool miss, ChannelID returnChannel) {
+  if (!Instrumentation::collectingStats()) return;
+
   switch (op) {
     // "Normal" operations which complete after the first memory access.
     case LOAD_W:
@@ -124,6 +127,8 @@ void MemoryBank::startOperation(int bank, MemoryOpcode op,
 
 void MemoryBank::continueOperation(int bank, MemoryOpcode op,
         MemoryAddr address, bool miss, ChannelID returnChannel) {
+  if (!Instrumentation::collectingStats()) return;
+
   switch (op) {
     // Only some of the cache line operations do anything interesting when
     // they are being continued.
@@ -147,12 +152,16 @@ void MemoryBank::continueOperation(int bank, MemoryOpcode op,
 }
 
 void MemoryBank::checkTags(int bank, MemoryAddr address) {
+  if (!Instrumentation::collectingStats()) return;
+
   tagChecks.increment(bank);
 
   // Do something with Hamming distance of address?
 }
 
 void MemoryBank::replaceCacheLine(int bank, bool isValid, bool isDirty) {
+  if (!Instrumentation::collectingStats()) return;
+
   if (!isValid)
     replaceInvalidLine.increment(bank);
   else if (isDirty)
@@ -162,6 +171,8 @@ void MemoryBank::replaceCacheLine(int bank, bool isValid, bool isDirty) {
 }
 
 void MemoryBank::updateCoreStats(ChannelID returnChannel, MemoryOpcode op, bool miss) {
+  if (!Instrumentation::collectingStats()) return;
+
   if (!returnChannel.component.isCore())
     return;
 

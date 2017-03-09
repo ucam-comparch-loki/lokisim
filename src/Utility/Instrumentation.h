@@ -23,17 +23,19 @@ class DecodedInst;
 namespace Instrumentation {
 
   void initialise();
+  void reset();
+  void start();
+  void stop();
   void end();
+
   void dumpEventCounts(std::ostream& os);
   void printSummary();
   bool haveEnergyData();
+  bool collectingStats();
 
-  void startEventLog();
-  void stopEventLog();
-
-  // Reset all event counts to zero. Useful for ignoring a setup phase of an
-  // application. Currently activated by syscall 0x27.
-  void clearStats();
+  // Return the most recent time that statistic collection began.
+  cycle_count_t startedCollectingStats();
+  cycle_count_t stoppedCollectingStats();
 
   // The decoder consumes a significant amount of energy, and there are a few
   // techniques to reduce its activity, so record how active it is.
@@ -59,6 +61,9 @@ namespace Instrumentation {
 
   // Return the current clock cycle count.
   cycle_count_t currentCycle();
+
+  // Return the number of cycles for which statistics were recorded.
+  cycle_count_t cyclesStatsCollected();
 
 }
 

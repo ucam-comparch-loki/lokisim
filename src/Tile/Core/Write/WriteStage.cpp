@@ -69,6 +69,13 @@ bool WriteStage::requestGranted(ChannelID destination) const {
 
 WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
+    iFetch("iFetch"),
+    iData("iData"),
+    oReady("oReady"),
+    oDataLocal("oDataMulticast"),
+    oDataMemory("oDataMemory"),
+    oDataGlobal("oDataGlobal"),
+    iCredit("iCredit"),
     scet("scet", ID, &(core()->channelMapTable)) {
 
   // Connect the SCET to the network.

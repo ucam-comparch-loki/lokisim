@@ -21,7 +21,7 @@ class IPKCache: public InstrumentationBase {
 
 public:
 
-  static void init();
+  static void reset();
 
   static void tagCheck(const ComponentID& core, bool hit, const MemoryAddr tag, const MemoryAddr prevCheck);
   static void tagWrite(const MemoryAddr oldTag, const MemoryAddr newTag);

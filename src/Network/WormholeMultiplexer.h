@@ -45,8 +45,10 @@ public:
 public:
 
   SC_HAS_PROCESS(WormholeMultiplexer);
-  WormholeMultiplexer(const sc_module_name& name, uint inputs) : LokiComponent(name) {
-    iData.init(inputs);
+  WormholeMultiplexer(const sc_module_name& name, uint inputs) :
+      LokiComponent(name),
+      iData(inputs, "iData"),
+      oData("oData") {
 
     state = MUX_INIT;
     lastSelected = 0;
@@ -55,6 +57,7 @@ public:
     for (uint i=0; i<inputs; i++)
       sensitive << iData[i];
     dont_initialize();
+
   }
 
 //============================================================================//
@@ -109,7 +112,7 @@ private:
   }
 
   bool haveNewInput() const {
-    for (uint i=0; i<iData.length(); i++) {
+    for (uint i=0; i<iData.size(); i++) {
       if (iData[i].valid())
         return true;
     }
@@ -129,8 +132,8 @@ private:
   void selectNewInput() {
     PortIndex currentPort = lastSelected + 1;
 
-    for (uint i=0; i<iData.length(); i++) {
-      if (currentPort >= iData.length())
+    for (uint i=0; i<iData.size(); i++) {
+      if (currentPort >= iData.size())
         currentPort = 0;
 
       if (iData[currentPort].valid()) {

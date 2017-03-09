@@ -156,6 +156,7 @@ void SendChannelEndTable::sendLoopLocal() {
     LOKI_LOG << this->name() << " sending (local) " << data << endl;
     if (ENERGY_TRACE)
       Instrumentation::Network::traffic(id, data.channelID().component);
+    Instrumentation::Network::recordBandwidth(oDataLocal.name());
 
     oDataLocal.write(data);
     bufferFillChanged.notify();
@@ -224,6 +225,7 @@ void SendChannelEndTable::sendLoopMemory() {
       LOKI_LOG << this->name() << " sending (memory) " << data << endl;
       if (ENERGY_TRACE)
         Instrumentation::Network::traffic(id, data.channelID().component);
+      Instrumentation::Network::recordBandwidth(oDataMemory.name());
 
       oDataMemory.write(data);
 
@@ -255,6 +257,7 @@ void SendChannelEndTable::sendLoopGlobal() {
     LOKI_LOG << this->name() << " sending (global) " << data << endl;
     if (ENERGY_TRACE)
       Instrumentation::Network::traffic(id, data.channelID().component);
+    Instrumentation::Network::recordBandwidth(oDataGlobal.name());
 
     oDataGlobal.write(data);
     bufferFillChanged.notify();
@@ -316,6 +319,13 @@ void SendChannelEndTable::reportStalls(ostream& os) {
 SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID& ID, ChannelMapTable* cmt) :
     LokiComponent(name, ID),
     BlockingInterface(),
+    clock("clock"),
+    iFetch("iFetch"),
+    iData("iData"),
+    oDataLocal("oDataMulticast"),
+    oDataMemory("oDataMemory"),
+    oDataGlobal("oDataGlobal"),
+    iCredit("iCredit"),
     bufferLocal(string(this->name())+string(".bufferLocal"), CORE_BUFFER_SIZE),
     bufferMemory(string(this->name())+string(".bufferMemory"), CORE_BUFFER_SIZE),
     bufferGlobal(string(this->name())+string(".bufferGlobal"), CORE_BUFFER_SIZE),

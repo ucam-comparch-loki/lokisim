@@ -13,8 +13,15 @@ using namespace Instrumentation;
 count_t Scratchpad::reads = 0;
 count_t Scratchpad::writes = 0;
 
-void    Scratchpad::read()      {reads++;}
-void    Scratchpad::write()     {writes++;}
+void    Scratchpad::read()      {
+  if (!Instrumentation::collectingStats()) return;
+  reads++;
+}
+
+void    Scratchpad::write()     {
+  if (!Instrumentation::collectingStats()) return;
+  writes++;
+}
 
 count_t Scratchpad::numReads()  {return reads;}
 count_t Scratchpad::numWrites() {return writes;}

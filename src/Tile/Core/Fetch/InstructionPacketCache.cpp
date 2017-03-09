@@ -160,6 +160,8 @@ FetchStage* InstructionPacketCache::parent() const {
 /* Constructors and destructors */
 InstructionPacketCache::InstructionPacketCache(sc_module_name name, const ComponentID& ID) :
     LokiComponent(name, ID),
+    oFlowControl("oFlowControl"),
+    oDataConsumed("oDataConsumed"),
     addresses(IPK_CACHE_SIZE, DEFAULT_TAG) {
 
   cache = new IPKCacheFullyAssociative(IPK_CACHE_SIZE, IPK_CACHE_TAGS, string(this->name()));

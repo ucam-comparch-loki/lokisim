@@ -17,7 +17,7 @@ namespace Instrumentation {
 
   public:
 
-    static void init();
+    static void reset();
 
     static void read(MemoryAddr address, count_t words);
     static void write(MemoryAddr address, count_t words);

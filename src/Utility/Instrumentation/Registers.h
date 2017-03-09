@@ -18,8 +18,7 @@ class Registers: public InstrumentationBase {
 public:
 
 // Maintenance
-  static void init();
-  static void end();
+  static void reset();
 
 // Data logging
   static void write(RegisterIndex reg, int oldData, int newData);
@@ -78,8 +77,8 @@ private:
 
 // Extra usage data which may be of interest.
   static count_t  numForwards_;
-  static count_t* writesPerReg;
-  static count_t* readsPerReg;
+  static vector<count_t> writesPerReg;
+  static vector<count_t> readsPerReg;
 
   // Record how large the values read/written are.
   // Each bin only records values which didn't fit in any previous bin.

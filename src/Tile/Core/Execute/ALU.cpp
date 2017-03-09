@@ -251,10 +251,10 @@ void ALU::systemCall(DecodedInst& dec) const {
 
     case SYS_ENERGY_LOG_ON:
       ENERGY_TRACE = 1;
-      Instrumentation::startEventLog();
+      Instrumentation::start();
       break;
     case SYS_ENERGY_LOG_OFF:
-      Instrumentation::stopEventLog();
+      Instrumentation::stop();
       ENERGY_TRACE = 0;
       break;
     case SYS_DEBUG_ON:
@@ -275,7 +275,15 @@ void ALU::systemCall(DecodedInst& dec) const {
     }
     case SYS_CLEAR_STATS:
       LOKI_WARN << "wiping statistics after " << Instrumentation::currentCycle() << " cycles." << endl;
-      Instrumentation::clearStats();
+      Instrumentation::reset();
+      break;
+    case SYS_START_STATS:
+      LOKI_WARN << "starting statistics collection at cycle " << Instrumentation::currentCycle() << endl;
+      Instrumentation::start();
+      break;
+    case SYS_FREEZE_STATS:
+      LOKI_WARN << "ending statistics collection at cycle " << Instrumentation::currentCycle() << endl;
+      Instrumentation::stop();
       break;
 
     case SYS_CURRENT_CYCLE: {

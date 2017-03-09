@@ -132,6 +132,12 @@ public:
     validData = false;
   }
 
+  loki_signal(const sc_core::sc_module_name name) :
+      sc_buffer<T>(name),
+      acknowledgement(sc_core::sc_gen_unique_name("acknowledgement")) {
+    validData = false;
+  }
+
   virtual ~loki_signal() {}
 
 //============================================================================//

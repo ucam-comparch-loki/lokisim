@@ -13,10 +13,14 @@ using namespace Instrumentation;
 CounterMap<size_t> FIFO::pushes, FIFO::pops, FIFO::instances, FIFO::activeCycles;
 
 void FIFO::push(size_t size) {
+  if (!Instrumentation::collectingStats()) return;
+
   pushes.increment(size);
 }
 
 void FIFO::pop(size_t size) {
+  if (!Instrumentation::collectingStats()) return;
+
   pops.increment(size);
 }
 
@@ -25,6 +29,8 @@ void FIFO::createdFIFO(size_t size) {
 }
 
 void FIFO::activeCycle(size_t size) {
+  if (!Instrumentation::collectingStats()) return;
+
   activeCycles.increment(size);
 }
 

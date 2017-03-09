@@ -26,12 +26,13 @@ count_t IPKCache::dataActive_ = 0;
 
 CounterMap<MemoryAddr> IPKCache::packetsExecuted;
 
-void IPKCache::init() {
+void IPKCache::reset() {
   total.hits = 0;
   total.misses = 0;
   total.reads = 0;
   total.writes = 0;
 
+  perCore.clear();
   perCore.assign(NUM_CORES, total);
 
   tagWriteHD_ = tagWrites_ = tagReadHD_ = tagsActive_ = dataActive_ = 0;
@@ -40,6 +41,8 @@ void IPKCache::init() {
 }
 
 void IPKCache::tagCheck(const ComponentID& core, bool hit, const MemoryAddr tag, const MemoryAddr prevCheck) {
+  if (!Instrumentation::collectingStats()) return;
+
   if (hit) {
     total.hits++;
     perCore[core.globalCoreNumber()].hits++;
@@ -58,25 +61,35 @@ void IPKCache::tagCheck(const ComponentID& core, bool hit, const MemoryAddr tag,
 }
 
 void IPKCache::tagWrite(const MemoryAddr oldTag, const MemoryAddr newTag) {
+  if (!Instrumentation::collectingStats()) return;
+
   tagWriteHD_ += hammingDistance(oldTag, newTag);
   tagWrites_++;
 }
 
 void IPKCache::tagActivity() {
+  if (!Instrumentation::collectingStats()) return;
+
   tagsActive_++;
 }
 
 void IPKCache::read(const ComponentID& core) {
+  if (!Instrumentation::collectingStats()) return;
+
   total.reads++;
   perCore[core.globalCoreNumber()].reads++;
 }
 
 void IPKCache::write(const ComponentID& core) {
+  if (!Instrumentation::collectingStats()) return;
+
   total.writes++;
   perCore[core.globalCoreNumber()].writes++;
 }
 
 void IPKCache::dataActivity() {
+  if (!Instrumentation::collectingStats()) return;
+
   dataActive_++;
 }
 

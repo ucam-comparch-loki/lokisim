@@ -34,12 +34,12 @@ void timestep(cycle_count_t cyclesPerStep) {
 
 void statusUpdate(std::ostream& os) {
   os << "Current cycle number: " << Instrumentation::currentCycle()
-     << " [" << Instrumentation::Operations::numOperations() << " operation(s) executed]" << endl;
+     << " [" << Instrumentation::Operations::allOperations() << " operation(s) executed]" << endl;
 }
 
 bool checkProgress(cycle_count_t interval) {
   static count_t operationCount = 0;
-  count_t newOperationCount = Instrumentation::Operations::numOperations();
+  count_t newOperationCount = Instrumentation::Operations::allOperations();
 
   if (newOperationCount == operationCount) {
     cerr << "\nNo progress has been made for " << interval << " cycles. Aborting." << endl;
@@ -147,6 +147,9 @@ void initialise() {
   // instrumentation structures.
   Instrumentation::initialise();
 
+  if (ENERGY_TRACE || Arguments::summarise())
+    Instrumentation::start();
+
   // Switch off some unhelpful SystemC reports.
   sc_report_handler::set_actions("/OSCI/SystemC", SC_DO_NOTHING);
 }
@@ -170,17 +173,17 @@ void presimulation(Chip& chip) {
 
   CodeLoader::makeExecutable(chip);
 
-  if (ENERGY_TRACE)
-    Instrumentation::startEventLog();
+  if (Arguments::summarise() || ENERGY_TRACE)
+    Instrumentation::start();
 }
 
 // Tasks which happen after simulation finishes.
 void postsimulation(Chip& chip) {
+  Instrumentation::stop();
+
   // Print debug information
   if (Arguments::summarise() || DEBUG)
     Instrumentation::printSummary();
-
-  Instrumentation::stopEventLog();
 
   if (!Arguments::energyTraceFile().empty()) {
     std::ofstream output(Arguments::energyTraceFile().c_str());

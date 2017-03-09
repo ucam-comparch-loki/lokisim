@@ -12,6 +12,7 @@
 #include "../../../Utility/Assert.h"
 #include "../../../Utility/Instrumentation/IPKCache.h"
 #include "../../../Exceptions/InvalidOptionException.h"
+#include "../../../Utility/Instrumentation/Network.h"
 #include "../Core.h"
 
 void FetchStage::execute() {
@@ -436,12 +437,14 @@ void FetchStage::fifoInstructionArrived() {
   // Slight hack to convert the instruction back into a flit.
   NetworkData flit(iToFIFO.read(), ChannelID(id, 0));
   deliverInstructionInternal(flit);
+  Instrumentation::Network::recordBandwidth(iToFIFO.name());
 }
 
 void FetchStage::cacheInstructionArrived() {
   // Slight hack to convert the instruction back into a flit.
   NetworkData flit(iToCache.read(), ChannelID(id, 1));
   deliverInstructionInternal(flit);
+  Instrumentation::Network::recordBandwidth(iToCache.name());
 }
 
 MemoryAddr FetchStage::newPacketArriving(const InstLocation& location) {
@@ -515,12 +518,15 @@ void FetchStage::reportStalls(ostream& os) {
 
 FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
+    iToCache("iCacheInstruction"),
+    iToFIFO("iFIFOInstruction"),
+    oFlowControl(2, "oFlowControl"),
+    oDataConsumed(2, "oDataConsumed"),
+    oFetchRequest("oFetchRequest"),
+    iOutputBufferReady("iOutputBufferReady"),
     cache("IPKcache", ID),
     fifo("IPKfifo"),
     fetchBuffer(1, "fetchBuffer") {
-
-  oFlowControl.init(2);
-  oDataConsumed.init(2);
 
   readState = RS_READY;
   writeState = WS_READY;

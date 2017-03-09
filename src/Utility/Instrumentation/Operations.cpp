@@ -14,14 +14,19 @@
 
 using namespace Instrumentation;
 
+// A separate counter for determining progress. This one always gets
+// incremented, but the others turn on and off depending on if data is being
+// collected.
+count_t totalInstructions = 0;
+
 CounterMap<opcode_t> Operations::executedOps;
 CounterMap<function_t> Operations::executedFns;
 count_t Operations::unexecuted;
 
-int32_t* Operations::lastIn1 = NULL;
-int32_t* Operations::lastIn2 = NULL;
-int32_t* Operations::lastOut = NULL;
-function_t* Operations::lastFn = NULL;
+vector<int32_t> Operations::lastIn1;
+vector<int32_t> Operations::lastIn2;
+vector<int32_t> Operations::lastOut;
+vector<function_t> Operations::lastFn;
 
 count_t Operations::hdIn1 = 0;
 count_t Operations::hdIn2 = 0;
@@ -41,11 +46,11 @@ CounterMap<CoreIndex> Operations::numArithOps;
 CounterMap<CoreIndex> Operations::numCondOps;
 
 
-void Operations::init() {
-  lastIn1 = new int32_t[NUM_CORES];
-  lastIn2 = new int32_t[NUM_CORES];
-  lastOut = new int32_t[NUM_CORES];
-  lastFn  = new function_t[NUM_CORES];
+void Operations::reset() {
+  lastIn1.assign(NUM_CORES, 0);
+  lastIn2.assign(NUM_CORES, 0);
+  lastOut.assign(NUM_CORES, 0);
+  lastFn.assign(NUM_CORES, (function_t)0);
 
   unexecuted = hdIn1 = hdIn2 = hdOut = sameOp = numDecodes_ = 0;
 
@@ -63,27 +68,25 @@ void Operations::init() {
   numCondOps.clear();
 }
 
-void Operations::end() {
-  delete[] lastIn1; lastIn1 = NULL;
-  delete[] lastIn2; lastIn2 = NULL;
-  delete[] lastOut; lastOut = NULL;
-  delete[] lastFn;  lastFn  = NULL;
-}
-
 void Operations::decoded(const ComponentID& core, const DecodedInst& dec) {
+  if (!Instrumentation::collectingStats()) return;
+
   // May later care about the operation, since different ones require different
   // decode energies?
   numDecodes_++;
 }
 
 void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool executed) {
-  CoreIndex coreID = core.globalCoreNumber();
 
-  // Always increase numOps - this is used to determine if we're making progress.
-  numOps_.increment(coreID);
+  totalInstructions++;
+  CoreIndex coreID = core.globalCoreNumber();
 
   if (Callgrind::acceptingData())
     Callgrind::instructionExecuted(core, dec.location(), Instrumentation::currentCycle());
+  if (!Instrumentation::collectingStats()) return;
+
+  // Always increase numOps - this is used to determine if we're making progress.
+  numOps_.increment(coreID);
 
   // Want to keep track of the number of operations so we can tell if we're
   // making progress, but only want the rest of the data when we ask for it.
@@ -220,6 +223,8 @@ count_t Operations::numOperations(opcode_t op, function_t function) {
     return executedOps[op];
 }
 
+count_t Operations::allOperations()            {return totalInstructions;}
+
 void Operations::printStats() {
 
   if(numOps_.numEvents() > 0) {
@@ -261,7 +266,7 @@ void Operations::printSummary() {
   clog << "Average IPC: ";
   clog << std::fixed;
   clog.precision(2);
-  clog << ((double)numOperations() / (double)Instrumentation::currentCycle()) << endl;
+  clog << ((double)numOperations() / (double)Instrumentation::cyclesStatsCollected()) << endl;
 }
 
 void Operations::dumpEventCounts(std::ostream& os) {

@@ -13,6 +13,7 @@
 #define INSTRUMENTATIONBASE_H_
 
 #include <iostream>
+#include "../Instrumentation.h"
 #include "../../Typedefs.h"
 #include "../../Network/NetworkTypedefs.h"
 #include "../../Utility/Arguments.h"
@@ -31,6 +32,15 @@ public:
 
   // Perform any necessary initialisation before data collection begins.
   static void init();
+
+  // Reset any statistics collected so far.
+  static void reset();
+
+  // Start collecting data.
+  static void start();
+
+  // Stop collecting data.
+  static void stop();
 
   // Tidy up after all data has been retrieved.
   static void end();

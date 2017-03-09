@@ -25,10 +25,14 @@
 
 // The time at which the statistics were last reset.
 cycle_count_t statsWiped = 0;
+cycle_count_t statsStarted = 0;
+cycle_count_t statsStopped = 0;
+
+// Are we currently collecting statistics?
+bool collecting = false;
+cycle_count_t cyclesRecorded = 0;
 
 void Instrumentation::initialise() {
-  statsWiped += currentCycle();
-
   ChannelMap::init();
   FIFO::init();
   IPKCache::init();
@@ -40,9 +44,71 @@ void Instrumentation::initialise() {
   Registers::init();
   Scratchpad::init();
   Stalls::init();
+
+  reset();
+}
+
+void Instrumentation::reset() {
+  ChannelMap::reset();
+  FIFO::reset();
+  IPKCache::reset();
+  MainMemory::reset();
+  MemoryBank::reset();
+  Network::reset();
+  Operations::reset();
+  PipelineReg::reset();
+  Registers::reset();
+  Scratchpad::reset();
+  Stalls::reset();
+
+  statsWiped = currentCycle();
+  if (collecting)
+    statsStarted = currentCycle();
+  cyclesRecorded = 0;
+}
+
+void Instrumentation::start() {
+  ChannelMap::start();
+  FIFO::start();
+  IPKCache::start();
+  MainMemory::start();
+  MemoryBank::start();
+  Network::start();
+  Operations::start();
+  PipelineReg::start();
+  Registers::start();
+  Scratchpad::start();
+  Stalls::start();
+
+  if (!collecting)
+    statsStarted = currentCycle();
+  collecting = true;
+}
+
+void Instrumentation::stop() {
+  ChannelMap::stop();
+  FIFO::stop();
+  IPKCache::stop();
+  MainMemory::stop();
+  MemoryBank::stop();
+  Network::stop();
+  Operations::stop();
+  PipelineReg::stop();
+  Registers::stop();
+  Scratchpad::stop();
+  Stalls::stop();
+
+  if (collecting) {
+    statsStopped = currentCycle();
+    cyclesRecorded += statsStopped - statsStarted;
+  }
+
+  collecting = false;
 }
 
 void Instrumentation::end() {
+  stop();
+
   ChannelMap::end();
   FIFO::end();
   IPKCache::end();
@@ -56,9 +122,20 @@ void Instrumentation::end() {
   Stalls::end();
 }
 
-void Instrumentation::clearStats() {
-  end();
-  initialise();
+bool Instrumentation::collectingStats() {
+  return collecting;
+}
+
+cycle_count_t Instrumentation::cyclesStatsCollected() {
+  return cyclesRecorded;
+}
+
+cycle_count_t Instrumentation::startedCollectingStats() {
+  return statsStarted;
+}
+
+cycle_count_t Instrumentation::stoppedCollectingStats() {
+  return statsStopped;
 }
 
 void Instrumentation::dumpEventCounts(std::ostream& os) {
@@ -70,7 +147,7 @@ void Instrumentation::dumpEventCounts(std::ostream& os) {
   os << "\n";
   Parameters::printParametersXML(os);
   os << "\n";
-  os << "<cycles>" << Stalls::cyclesLogged() << "</cycles>\n";
+  os << "<cycles>" << cyclesStatsCollected() << "</cycles>\n";
   os << "\n";
 
   ChannelMap::dumpEventCounts(os);    os << "\n";
@@ -92,27 +169,14 @@ void Instrumentation::printSummary() {
   IPKCache::printSummary();
   MemoryBank::printSummary();
   MainMemory::printStats();
+  Network::printSummary();
   Operations::printSummary();
 }
 
 bool Instrumentation::haveEnergyData() {
   // Assume that if we have collected energy data, at least one instruction
   // has been executed.
-  return Stalls::cyclesLogged() > 0;
-}
-
-void Instrumentation::startEventLog() {
-  // Stalls is currently the only component which needs notification: all
-  // event collection is predicated on the ENERGY_TRACE value. Stalls, however,
-  // counts cycles, so needs to be told when to suspend its counting.
-  Stalls::startLogging();
-}
-
-void Instrumentation::stopEventLog() {
-  // Stalls is currently the only component which needs notification: all
-  // event collection is predicated on the ENERGY_TRACE value. Stalls, however,
-  // counts cycles, so needs to be told when to suspend its counting.
-  Stalls::stopLogging();
+  return ENERGY_TRACE && cyclesStatsCollected() > 0;
 }
 
 void Instrumentation::decoded(const ComponentID& core, const DecodedInst& dec) {
@@ -138,6 +202,7 @@ void Instrumentation::idle(const ComponentID id, bool idle) {
 
 void Instrumentation::endExecution() {
   Stalls::endExecution();
+  stop();
 
   // Only end simulation if we aren't using the debugger: we may still want to
   // probe memory contents.
@@ -157,7 +222,7 @@ void Instrumentation::executed(const ComponentID& id, const DecodedInst& inst, b
 
 cycle_count_t Instrumentation::currentCycle() {
   if (sc_core::sc_start_of_simulation_invoked())
-    return sc_core::sc_time_stamp().to_default_time_units() - statsWiped;
+    return sc_core::sc_time_stamp().to_default_time_units();
   else
     return 0;
 }

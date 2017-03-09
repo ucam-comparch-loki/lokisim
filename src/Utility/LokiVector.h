@@ -17,6 +17,8 @@
 #include <assert.h>
 #include <cstdlib>
 
+using sc_core::sc_module_name;
+
 template<class T>
 class LokiVector {
 
@@ -27,17 +29,16 @@ class LokiVector {
 public:
 
   LokiVector() {
-    size_ = 0;
-    data_ = NULL;
+    // Nothing
   }
 
-  LokiVector(size_t size) {
-    init(size);
+  LokiVector(size_t size, sc_module_name name) {
+    init(size, name);
   }
 
   virtual ~LokiVector() {
-    if (data_ != NULL)
-      delete[] data_;
+    for (uint i=0; i<data.size(); i++)
+      delete data[i];
   }
 
 //============================================================================//
@@ -48,36 +49,33 @@ public:
 
   // Initialise the vector to the given size. The default constructor will be
   // used to create all contents, so such a constructor must exist.
-  inline void init(size_t size) {
+  inline void init(size_t size, sc_module_name name) {
     assert(size > 0);
-    size_ = size;
-    data_ = new T[size];
+    for (uint i=0; i<size; i++)
+      data.push_back(new T(sc_gen_unique_name(name)));
   }
 
   // Initialise the vector to the same dimensions as another given vector.
   template<typename T2>
-  inline void init(const LokiVector<T2>& other) {
-    init(other.length());
+  inline void init(const LokiVector<T2>& other, sc_module_name name) {
+    init(other.size(), name);
   }
 
-  inline size_t length() const {
-    return size_;
+  inline size_t size() const {
+    return data.size();
   }
 
   inline T& operator[](unsigned int position) const {
-    assert(length() > 0);
-    assert(position < length());
-
-    return data_[position];
+    return *(data.at(position));
   }
 
   // Call the () operator on each element of the vector. (Useful for binding
   // SystemC ports and signals.)
   template<typename T2>
   inline void operator()(const LokiVector<T2>& other) {
-    assert(length() == other.length());
-    for (uint i=0; i<length(); i++)
-      data_[i](other[i]);
+    assert(size() == other.size());
+    for (uint i=0; i<size(); i++)
+      (*(data[i]))(other[i]);
   }
 
 //============================================================================//
@@ -86,8 +84,7 @@ public:
 
 private:
 
-  size_t size_;
-  T* data_;
+  std::vector<T*> data;
 
 };
 

@@ -24,7 +24,7 @@ enum SystemCall {
   SYS_TILE_ID         = 0x10,   // (deprecated) Unique ID of this tile. Use \ref get_tile_id instead.
   SYS_POSITION        = 0x11,   // (deprecated) Position within this tile. Use \ref get_core_id instead.
 
-  // These are all lokisim specific.
+  // 0x20 to 0x40 are lokisim specific.
   SYS_ENERGY_LOG_ON   = 0x20,   // Start recording energy-consuming events
   SYS_ENERGY_LOG_OFF  = 0x21,   // Stop recording energy-consuming events
   SYS_DEBUG_ON        = 0x22,   // Print lots of information to stdout
@@ -33,6 +33,8 @@ enum SystemCall {
   SYS_INST_TRACE_OFF  = 0x25,   // Stop printing instruction addresses
   SYS_SNAPSHOT        = 0x26,   // Print register file contents
   SYS_CLEAR_STATS     = 0x27,   // Reset any statistics collected so far
+  SYS_START_STATS     = 0x28,   // Start collecting statistics
+  SYS_FREEZE_STATS    = 0x29,   // Stop collecting statistics, but don't delete them
 
   SYS_CURRENT_CYCLE   = 0x30    // (deprecated) Get the current cycle number
 };

@@ -758,6 +758,7 @@ void MemoryBank::processValidInput() {
   loki_assert(!mInputQueue.full());
   mInputQueue.write(iData.read());
   iData.ack();
+  Instrumentation::Network::recordBandwidth(iData.name());
 }
 
 void MemoryBank::handleDataOutput() {
@@ -773,6 +774,7 @@ void MemoryBank::handleDataOutput() {
     LOKI_LOG << this->name() << " sent data " << flit << endl;
     if (ENERGY_TRACE)
       Instrumentation::Network::traffic(id, flit.channelID().component);
+    Instrumentation::Network::recordBandwidth(oData.name());
 
     oData.write(flit);
 
@@ -797,6 +799,7 @@ void MemoryBank::handleInstructionOutput() {
     LOKI_LOG << this->name() << " sent instruction " << flit << endl;
     if (ENERGY_TRACE)
       Instrumentation::Network::traffic(id, flit.channelID().component);
+    Instrumentation::Network::recordBandwidth(oInstruction.name());
 
     oInstruction.write(flit);
 
@@ -862,6 +865,19 @@ Chip* MemoryBank::chip() const {
 
 MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID) :
   MemoryBase(name, ID),
+  iClock("iClock"),
+  iData("iData"),
+  oReadyForData("oReadyForData"),
+  oData("oData"),
+  oInstruction("oInstruction"),
+  iRequest("iRequest"),
+  iRequestTarget("iRequestTarget"),
+  oRequest("oRequest"),
+  iRequestClaimed("iRequestClaimed"),
+  oClaimRequest("oClaimRequest"),
+  iResponse("iResponse"),
+  iResponseTarget("iResponseTarget"),
+  oResponse("oResponse"),
   mInputQueue(string(this->name()) + string(".mInputQueue"), MEMORY_BUFFER_SIZE),
   mOutputDataQueue("mOutputDataQueue", MEMORY_BUFFER_SIZE, INTERNAL_LATENCY),
   mOutputInstQueue("mOutputInstQueue", MEMORY_BUFFER_SIZE, INTERNAL_LATENCY),

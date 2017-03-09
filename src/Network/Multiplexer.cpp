@@ -9,7 +9,7 @@
 #include "../Utility/Assert.h"
 
 int Multiplexer::inputs() const {
-  return iData.length();
+  return iData.size();
 }
 
 void Multiplexer::reportStalls(ostream& os) {
@@ -48,11 +48,12 @@ void Multiplexer::handleData() {
 }
 
 Multiplexer::Multiplexer(const sc_module_name& name, int numInputs) :
-    LokiComponent(name) {
+    LokiComponent(name),
+    iSelect("iSelect"),
+    iData(numInputs, "iData"),
+    oData("oData") {
 
   loki_assert(numInputs > 0);
-
-  iData.init(numInputs);
 
   haveSentData = false;
 

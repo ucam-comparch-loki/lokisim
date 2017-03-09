@@ -46,8 +46,11 @@ public:
 public:
 
   SC_HAS_PROCESS(ArbitratedMultiplexer);
-  ArbitratedMultiplexer(const sc_module_name& name, uint inputs) : LokiComponent(name) {
-    iData.init(inputs);
+  ArbitratedMultiplexer(const sc_module_name& name, uint inputs) :
+      LokiComponent(name),
+      iData(inputs, "iData"),
+      oData("oData"),
+      iHold("iHold") {
 
     state = MUX_READY;
     lastSelected = 0;
@@ -57,6 +60,7 @@ public:
       sensitive << iData[i];
     //sensitive << iHold.neg(); // Look at other inputs when hold is released
     dont_initialize();
+
   }
 
 //============================================================================//
@@ -108,7 +112,7 @@ private:
     if (iHold.read())
       return iData[lastSelected].valid();
     else {
-      for (uint i=0; i<iData.length(); i++) {
+      for (uint i=0; i<iData.size(); i++) {
         if (iData[i].valid())
           return true;
       }
@@ -127,8 +131,8 @@ private:
     else {
       PortIndex currentPort = lastSelected + 1;
 
-      for (uint i=0; i<iData.length(); i++) {
-        if (currentPort >= iData.length())
+      for (uint i=0; i<iData.size(); i++) {
+        if (currentPort >= iData.size())
           currentPort = 0;
 
         if (iData[currentPort].valid()) {

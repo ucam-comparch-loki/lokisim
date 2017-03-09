@@ -21,13 +21,13 @@ using std::setprecision;
 
 MainMemory::MainMemory(sc_module_name name, ComponentID ID, uint controllers) :
     MemoryBase(name, ID),
+    iClock("iClock"),
+    iData(controllers, "iData"),
+    oData(controllers, "oData"),
     mData(MAIN_MEMORY_SIZE/BYTES_PER_WORD, 0),
     cacheLineValid(MAIN_MEMORY_SIZE / CACHE_LINE_BYTES, 0) {
 
   loki_assert(controllers >= 1);
-
-  iData.init(controllers);
-  oData.init(controllers);
 
   for (uint i=0; i<controllers; i++) {
     MainMemoryRequestHandler* handler =

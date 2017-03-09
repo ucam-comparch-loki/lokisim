@@ -61,6 +61,18 @@ void InstrumentationBase::init() {
   // Do nothing
 }
 
+void InstrumentationBase::reset() {
+  // Do nothing
+}
+
+void InstrumentationBase::start() {
+  // Do nothing
+}
+
+void InstrumentationBase::stop() {
+  // Do nothing
+}
+
 void InstrumentationBase::end() {
   // Do nothing
 }

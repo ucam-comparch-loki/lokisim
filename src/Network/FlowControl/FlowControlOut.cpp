@@ -81,7 +81,13 @@ void FlowControlOut::receivedCredit() {
 }
 
 FlowControlOut::FlowControlOut(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :
-    LokiComponent(name, ID) {
+    LokiComponent(name, ID),
+    iData("iData"),
+    iCredit("iCredit"),
+    oData("oData"),
+    iReady("iReady"),
+    oReady("oReady"),
+    oFlowControl("oFlowControl") {
 
   channel = channelManaged;
   creditCount = CORE_BUFFER_SIZE;

@@ -361,6 +361,11 @@ void         DecodeStage::unstall() {
 
 DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
+    oReady("oReady"),
+    iData(CORE_RECEIVE_CHANNELS, "iData"),
+    oFlowControl(CORE_RECEIVE_CHANNELS, "oFlowControl"),
+    oDataConsumed(CORE_RECEIVE_CHANNELS, "oDataConsumed"),
+    iOutputBufferReady("iOutputBufferReady"),
     rcet("rcet", ID),
     decoder("decoder", ID) {
 
@@ -369,10 +374,6 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
 
   previousCMTData = 0;
   rmtexecuteChannel = Instruction::NO_CHANNEL;
-
-  iData.init(CORE_RECEIVE_CHANNELS);
-  oFlowControl.init(CORE_RECEIVE_CHANNELS);
-  oDataConsumed.init(CORE_RECEIVE_CHANNELS);
 
   // Connect everything up
   rcet.clock(clock);

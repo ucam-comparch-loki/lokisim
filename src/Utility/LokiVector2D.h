@@ -24,8 +24,8 @@ public:
     data_ = NULL;
   }
 
-  LokiVector2D(size_t length, size_t width) {
-    init(length, width);
+  LokiVector2D(size_t length, size_t width, sc_module_name name) {
+    init(length, width, name);
   }
 
   virtual ~LokiVector2D() {
@@ -41,20 +41,20 @@ public:
 
   // Initialise the vector to the given size. The default constructor will be
   // used to create all contents, so such a constructor must exist.
-  inline void init(size_t length, size_t width) {
+  inline void init(size_t length, size_t width, sc_module_name name) {
     init(length);
 
     for (unsigned int i=0; i<length; i++)
-      data_[i].init(width);
+      data_[i].init(width, name);
   }
 
   // Initialise the vector to the same dimensions as another given vector.
   template<typename T2>
-  inline void init(const LokiVector2D<T2>& other) {
-    init(other.length());
+  inline void init(const LokiVector2D<T2>& other, sc_module_name name) {
+    init(other.size());
 
-    for (unsigned int i=0; i<length(); i++)
-      data_[i].init(other[i]);
+    for (unsigned int i=0; i<size(); i++)
+      data_[i].init(other[i], name);
   }
 
   // Initialise with only one parameter - allows different subvectors to be
@@ -65,13 +65,13 @@ public:
     data_ = new LokiVector<T>[length];
   }
 
-  inline size_t length() const {
+  inline size_t size() const {
     return size_;
   }
 
   inline LokiVector<T>& operator[](unsigned int position) const {
-    assert(length() > 0);
-    assert(position < length());
+    assert(size() > 0);
+    assert(position < size());
 
     return data_[position];
   }
@@ -80,8 +80,8 @@ public:
   // SystemC ports and signals.)
   template<typename T2>
   inline void operator()(const LokiVector2D<T2>& other) {
-    assert(length() == other.length());
-    for (uint i=0; i<length(); i++)
+    assert(size() == other.size());
+    for (uint i=0; i<size(); i++)
       data_[i](other[i]);
   }
 

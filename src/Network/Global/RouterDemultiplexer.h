@@ -51,10 +51,12 @@ public:
 
   SC_HAS_PROCESS(RouterDemultiplexer);
   RouterDemultiplexer(const sc_module_name& name, uint outputs, uint buffersPerOutput) :
-    LokiComponent(name) {
+    LokiComponent(name),
+    iData("iData"),
+    oData(outputs, "oData"),
+    iReady(outputs, buffersPerOutput, "iReady"),
+    oReady("oReady") {
 
-    oData.init(outputs);
-    iReady.init(outputs, buffersPerOutput);
     oReady.initialize(true);
 
     state = DEMUX_READY;
@@ -103,14 +105,14 @@ private:
   const ReadyInput& flowControlSignal(ChannelID destination) const {
     // Cope with situations where there are multiple components/channels behind
     // a single port.
-    uint component = std::min<int>(destination.component.position, iReady.length()-1);
-    uint channel = std::min<int>(destination.channel, iReady[component].length()-1);
+    uint component = std::min<int>(destination.component.position, iReady.size()-1);
+    uint channel = std::min<int>(destination.channel, iReady[component].size()-1);
 
     return iReady[component][channel];
   }
 
   OutPort& outputSignal(ChannelID destination) const {
-    uint port = std::min<int>(destination.component.position, iReady.length()-1);
+    uint port = std::min<int>(destination.component.position, iReady.size()-1);
     return oData[port];
   }
 

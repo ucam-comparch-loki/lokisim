@@ -10,7 +10,24 @@
 #include "../Exceptions/UnsupportedFeatureException.h"
 
 Tile::Tile(const sc_module_name& name, const ComponentID& id) :
-    LokiComponent(name, id) {
+    LokiComponent(name, id),
+    clock("clock"),
+    iData("iData"),
+    oData("oData"),
+    iDataReady("iDataReady"),
+    oDataReady("oDataReady"),
+    iCredit("iCredit"),
+    oCredit("oCredit"),
+    iCreditReady("iCreditReady"),
+    oCreditReady("oCreditReady"),
+    iRequest("iRequest"),
+    oRequest("oRequest"),
+    iRequestReady("iRequestReady"),
+    oRequestReady("oRequestReady"),
+    iResponse("iResponse"),
+    oResponse("oResponse"),
+    iResponseReady("iResponseReady"),
+    oResponseReady("oResponseReady") {
   // Nothing
 
 }

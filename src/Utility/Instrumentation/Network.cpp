@@ -8,6 +8,7 @@
 #include "Network.h"
 #include "../Parameters.h"
 #include "../../Datatype/Flit.h"
+#include "Stalls.h"
 
 using namespace Instrumentation;
 
@@ -22,13 +23,33 @@ count_t Network::mcastHD = 0;
 count_t Network::mcastRepeatHD = 0;
 count_t Network::globalHD = 0;
 
+CounterMap<const char*> Network::bandwidth;
+
+void Network::reset() {
+  producers.clear();
+  consumers.clear();
+  arbitrations = 0;
+  arbiters = 0;
+  xbarInHD = 0;
+  xbarOutHD = 0;
+  xbarDistHD = 0;
+  mcastHD = 0;
+  mcastRepeatHD = 0;
+  globalHD = 0;
+  bandwidth.clear();
+}
+
 void Network::traffic(const ComponentID& startID, const ComponentID& endID) {
+  if (!Instrumentation::collectingStats()) return;
+
   producers.increment(startID.globalComponentNumber());
   consumers.increment(endID.globalComponentNumber());
 }
 
 void Network::crossbarInput(const NetworkData& oldData, const NetworkData& newData,
                             const PortIndex input) {
+  if (!Instrumentation::collectingStats()) return;
+
   uint hamming = hammingDistance(oldData, newData);
   uint destinationPort = newData.channelID().component.position;
 
@@ -44,19 +65,33 @@ void Network::crossbarInput(const NetworkData& oldData, const NetworkData& newDa
 }
 
 void Network::crossbarOutput(const NetworkData& oldData, const NetworkData& newData) {
+  if (!Instrumentation::collectingStats()) return;
+
   xbarOutHD += hammingDistance(oldData, newData);
 }
 
 void Network::multicastTraffic(const NetworkData& oldData, const NetworkData& newData,
                                const PortIndex input) {
+  if (!Instrumentation::collectingStats()) return;
+
   mcastHD += hammingDistance(oldData, newData);
 }
 
 void Network::globalTraffic(const NetworkData& oldData, const NetworkData& newData) {
+  if (!Instrumentation::collectingStats()) return;
+
   globalHD += hammingDistance(oldData, newData);
 }
 
+void Network::recordBandwidth(const char* name) {
+  if (!Instrumentation::collectingStats()) return;
+
+  bandwidth.increment(name);
+}
+
 void Network::arbitration() {
+  if (!Instrumentation::collectingStats()) return;
+
   arbitrations++;
 }
 
@@ -81,6 +116,29 @@ void Network::printStats() {
             cout <<"    "<< id <<"\t\t"<< producers[index] <<"\t\t"<< consumers[index] <<"\n";
         }
       }
+    }
+  }
+}
+
+void Network::printSummary() {
+  using std::clog;
+  using std::endl;
+
+  clog << "Most saturated links:" << endl;
+  cycle_count_t totalTime = cyclesStatsCollected();
+
+  // Find the most used link.
+  count_t maximum = 0;
+  for (CounterMap<const char*>::iterator it = bandwidth.begin(); it != bandwidth.end(); it++) {
+    if (it->second > maximum) {
+      maximum = it->second;
+    }
+  }
+
+  // Report on all links above 75% of the maximum usage.
+  for (CounterMap<const char*>::iterator it = bandwidth.begin(); it != bandwidth.end(); it++) {
+    if (it->second > (maximum * 0.75)) {
+      clog << "  " << percentage(it->second, totalTime) << "\t" << it->first << endl;
     }
   }
 }

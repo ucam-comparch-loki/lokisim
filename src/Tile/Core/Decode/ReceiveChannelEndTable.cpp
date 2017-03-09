@@ -13,6 +13,7 @@
 #include "../../../Datatype/Word.h"
 #include "../../../Exceptions/BlockedException.h"
 #include "../../../Utility/Assert.h"
+#include "../../../Utility/Instrumentation/Network.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
 typedef RegisterFile Registers;
@@ -97,6 +98,7 @@ void ReceiveChannelEndTable::waitForData(unsigned int bitmask, const DecodedInst
 void ReceiveChannelEndTable::checkInput(ChannelIndex input) {
   // This method is called because data has arrived on a particular input channel.
   writeInternal(input, iData[input].read().toInt());
+  Instrumentation::Network::recordBandwidth(iData[input].name());
 }
 
 const sc_event& ReceiveChannelEndTable::receivedDataEvent(ChannelIndex buffer) const {
@@ -127,12 +129,12 @@ void ReceiveChannelEndTable::reportStalls(ostream& os) {
 ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name, const ComponentID& ID) :
     LokiComponent(name, ID),
     BlockingInterface(),
+    clock("clock"),
+    iData(CORE_RECEIVE_CHANNELS, "iData"),
+    oFlowControl(CORE_RECEIVE_CHANNELS, "oFlowControl"),
+    oDataConsumed(CORE_RECEIVE_CHANNELS, "oDataConsumed"),
     buffers(CORE_RECEIVE_CHANNELS, CORE_BUFFER_SIZE, this->name()),
     currentChannel(CORE_RECEIVE_CHANNELS) {
-
-  iData.init(CORE_RECEIVE_CHANNELS);
-  oFlowControl.init(CORE_RECEIVE_CHANNELS);
-  oDataConsumed.init(CORE_RECEIVE_CHANNELS);
 
   // Generate a method to watch each input port, putting the data into the
   // appropriate buffer when it arrives.

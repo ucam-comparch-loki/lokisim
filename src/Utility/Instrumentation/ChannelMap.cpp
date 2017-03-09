@@ -32,21 +32,29 @@ void ChannelMap::dumpEventCounts(std::ostream& os) {
 }
 
 void ChannelMap::write(const ChannelMapEntry& oldData, const ChannelMapEntry& newData) {
+  if (!Instrumentation::collectingStats()) return;
+
   operations[WR]++;
   popCount[WR] += newData.popCount();
   hammingDist[WR] += oldData.hammingDistance(newData);
 }
 
 void ChannelMap::read(const ChannelMapEntry& oldData, const ChannelMapEntry& newData) {
+  if (!Instrumentation::collectingStats()) return;
+
   operations[RD]++;
   popCount[RD] += newData.popCount();
   hammingDist[RD] += oldData.hammingDistance(newData);
 }
 
 void ChannelMap::activeCycle() {
+  if (!Instrumentation::collectingStats()) return;
+
   cyclesActive++;
 }
 
 void ChannelMap::bypass() {
+  if (!Instrumentation::collectingStats()) return;
+
   bypasses++;
 }

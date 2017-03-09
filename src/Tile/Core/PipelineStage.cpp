@@ -96,7 +96,8 @@ bool PipelineStage::discardNextInst() {
 }
 
 PipelineStage::PipelineStage(const sc_module_name& name, const ComponentID& ID) :
-    LokiComponent(name, ID) {
+    LokiComponent(name, ID),
+    clock("clock") {
 
   // These are initialised by a separate call to initPipeline.
   next = NULL;

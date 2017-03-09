@@ -12,6 +12,12 @@
 
 L2RequestFilter::L2RequestFilter(const sc_module_name& name, ComponentID id, MemoryBank* localBank) :
     LokiComponent(name, id),
+    iClock("iClock"),
+    iRequest("iRequest"),
+    iRequestTarget("iRequestTarget"),
+    oRequest("oRequest"),
+    iRequestClaimed("iRequestClaimed"),
+    oClaimRequest("oClaimRequest"),
     localBank(localBank) {
 
   state = STATE_IDLE;

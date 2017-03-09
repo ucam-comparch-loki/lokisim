@@ -15,10 +15,10 @@ using sc_core::sc_module_name;
 
 void InstantCrossbar::mainLoop(PortIndex port) {
   NetworkData data = iData[port].read();
-  PortIndex output = getDestination(data.channelID(), oData.length());
+  PortIndex output = getDestination(data.channelID(), oData.size());
 
-  loki_assert_with_message(output < oData.length(),
-      "Outputs = %d, requested port = %d", oData.length(), output);
+  loki_assert_with_message(output < oData.size(),
+      "Outputs = %d, requested port = %d", oData.size(), output);
 
   switch (state[port]) {
     // New data arrived -> issue request.
@@ -56,15 +56,15 @@ InstantCrossbar::InstantCrossbar(const sc_module_name& name,
                                  HierarchyLevel level,
                                  int buffersPerComponent) :
     Network(name, ID, inputs, outputs, level),
+    iData(inputs, "iData"),
+    oData(outputs, "oData"),
     crossbar("internal", ID, inputs, outputs, outputsPerComponent, level, buffersPerComponent),
     state(inputs, IDLE) {
 
   // Create ports and signals.
-  iData.init(inputs);
-  oData.init(outputs);
-  requests.init(crossbar.iRequest);
-  grants.init(crossbar.oGrant);
-  iReady.init(crossbar.iReady);
+  requests.init(crossbar.iRequest, "request");
+  grants.init(crossbar.oGrant, "grant");
+  iReady.init(crossbar.iReady, "iReady");
 
   // Connect up the inner crossbar.
   crossbar.clock(clock);
@@ -74,12 +74,12 @@ InstantCrossbar::InstantCrossbar(const sc_module_name& name,
   crossbar.oGrant(grants);
   crossbar.iReady(iReady);
 
-  for (uint i=0; i<requests.length(); i++)
-    for (uint j=0; j<requests[i].length(); j++)
+  for (uint i=0; i<requests.size(); i++)
+    for (uint j=0; j<requests[i].size(); j++)
       requests[i][j].write(NO_REQUEST);
 
   // Create a method for each data input port.
-  for (uint i=0; i<iData.length(); i++)
+  for (uint i=0; i<iData.size(); i++)
     SPAWN_METHOD(iData[i], InstantCrossbar::mainLoop, i, false);
 
 }

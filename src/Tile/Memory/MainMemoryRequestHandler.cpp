@@ -10,6 +10,7 @@
 #include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/MainMemory.h"
 #include "../../Datatype/MemoryOperations/MemoryOperationDecode.h"
+#include "../../Utility/Instrumentation/Network.h"
 
 MainMemoryRequestHandler::MainMemoryRequestHandler(sc_module_name name, ComponentID ID, MainMemory& memory) :
     MemoryBase(name, ID),
@@ -86,7 +87,9 @@ uint32_t MainMemoryRequestHandler::getPayload(MemoryLevel level) {
   loki_assert_with_message(level == MEMORY_OFF_CHIP, "Level = %d", level);
   NetworkRequest request = iData.read();
   uint32_t payload = request.payload().toUInt();
+
   Instrumentation::MainMemory::receiveData(request);
+  Instrumentation::Network::recordBandwidth(iData.name());
 
   iData.ack();
 
@@ -146,6 +149,8 @@ void MainMemoryRequestHandler::processIdle() {
     NetworkRequest request = iData.read();
 
     Instrumentation::MainMemory::receiveData(request);
+    Instrumentation::Network::recordBandwidth(iData.name());
+
     iData.ack();
 
     ChannelID returnAddress(request.getMemoryMetadata().returnTileX,
@@ -223,8 +228,12 @@ void MainMemoryRequestHandler::sendData() {
     next_trigger(iClock.posedge_event());
   else {
     NetworkResponse response = outputQueue.read();
+
     LOKI_LOG << this->name() << " sending " << response << endl;
     Instrumentation::MainMemory::sendData(response);
+    Instrumentation::Network::recordBandwidth(oData.name());
+
+
     oData.write(response);
     next_trigger(oData.ack_event());
   }

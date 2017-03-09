@@ -241,6 +241,19 @@ ChannelID Core::RCETInput(const ComponentID& ID, ChannelIndex channel) {
 
 Core::Core(const sc_module_name& name, const ComponentID& ID) :
     LokiComponent(name, ID),
+    clock("clock"),
+    iInstruction("iInstruction"),
+    iData("iData"),
+    oRequest("oRequest"),
+    iMulticast(CORES_PER_TILE, "iMulticast"),
+    oMulticast("oMulticast"),
+    oDataGlobal("oDataGlobal"),
+    iDataGlobal("iDataGlobal"),
+    oReadyData(CORE_INPUT_CHANNELS, "oReadyData"),
+    oCredit("oCredit"),
+    iCredit("iCredit"),
+    oReadyCredit("oReadyCredit"),
+    fastClock("fastClock"),
     inputCrossbar("input_crossbar", ID),
     regs("regs", ID),
     pred("predicate"),
@@ -250,27 +263,21 @@ Core::Core(const sc_module_name& name, const ComponentID& ID) :
     write("write", ID),
     channelMapTable("channel_map_table", ID),
     cregs("cregs", ID),
-    magicMemoryConnection("magic_memory", ID) {
+    magicMemoryConnection("magic_memory", ID),
+    stageReady(3, "stageReady"), // 4 stages => 3 links between stages
+    dataToBuffers(CORE_INPUT_CHANNELS, "dataToBuffers"),
+    fcFromBuffers(CORE_INPUT_CHANNELS, "fcFromBuffers"),
+    dataConsumed(CORE_INPUT_CHANNELS, "dataConsumed") {
 
   currentlyStalled = false;
 
-  iMulticast.init(CORES_PER_TILE);
-  oReadyData.init(CORE_INPUT_CHANNELS);
   oReadyCredit.initialize(true);
-
-  // Create signals which connect the pipeline stages together. There are 4
-  // stages, so 3 links between stages.
-  stageReady.init(3);
-
-  dataToBuffers.init(CORE_INPUT_CHANNELS);
-  fcFromBuffers.init(CORE_INPUT_CHANNELS);
-  dataConsumed.init(CORE_INPUT_CHANNELS);
 
   // Wire the input ports to the input buffers.
   inputCrossbar.iData[0](iInstruction);
   inputCrossbar.iData[1](iData);
   inputCrossbar.iData[2](iDataGlobal);
-  for (unsigned int i=3; i<3+iMulticast.length(); i++)
+  for (unsigned int i=3; i<3+iMulticast.size(); i++)
     inputCrossbar.iData[i](iMulticast[i-3]);
 
   inputCrossbar.oReady(oReadyData);

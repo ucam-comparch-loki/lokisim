@@ -12,8 +12,6 @@
 
 using namespace Instrumentation;
 
-count_t Registers::numForwards_ = 0;
-
 bool    Registers::detailedLogging = false;
 
 count_t Registers::operations[3];
@@ -22,10 +20,9 @@ count_t Registers::hammingDist[3];
 count_t Registers::bypasses[3];
 count_t Registers::cyclesActive = 0;
 
-// Call init() to create arrays of the appropriate length, once all of the
-// parameter values have been decided.
-count_t* Registers::writesPerReg = NULL;
-count_t* Registers::readsPerReg = NULL;
+count_t Registers::numForwards_ = 0;
+vector<count_t> Registers::writesPerReg;
+vector<count_t> Registers::readsPerReg;
 
 // The sizes of the values read and written.
 // Index 0 = writes, 1 = read port 1, 2 = read port 2
@@ -33,11 +30,14 @@ count_t Registers::zero[3],
         Registers::uint8[3], Registers::uint16[3], Registers::uint24[3], Registers::uint32[3],
         Registers::int8[3],  Registers::int16[3],  Registers::int24[3],  Registers::int32[3];
 
-void Registers::forward(PortIndex port)               {numForwards_++;}
+void Registers::forward(PortIndex port)               {
+  if (!Instrumentation::collectingStats()) return;
+  numForwards_++;
+}
 
-void Registers::init() {
-  writesPerReg = new count_t[NUM_PHYSICAL_REGISTERS];
-  readsPerReg  = new count_t[NUM_PHYSICAL_REGISTERS];
+void Registers::reset() {
+  writesPerReg.assign(NUM_PHYSICAL_REGISTERS, 0);
+  readsPerReg.assign(NUM_PHYSICAL_REGISTERS, 0);
 
   numForwards_ = cyclesActive = 0;
   memset(operations,  0, 3 * sizeof(count_t));
@@ -55,12 +55,9 @@ void Registers::init() {
   memset(int32,       0, 3 * sizeof(count_t));
 }
 
-void Registers::end() {
-  delete[] writesPerReg;
-  delete[] readsPerReg;
-}
-
 void Registers::write(RegisterIndex reg, int oldData, int newData) {
+  if (!Instrumentation::collectingStats()) return;
+
   operations[WR]++;
   popCount[WR] += popcount(newData);
   hammingDist[WR] += hammingDistance(oldData, newData);
@@ -72,6 +69,8 @@ void Registers::write(RegisterIndex reg, int oldData, int newData) {
 }
 
 void Registers::read(PortIndex port, RegisterIndex reg, int oldData, int newData) {
+  if (!Instrumentation::collectingStats()) return;
+
   operations[port]++;
   popCount[port] += popcount(newData);
   hammingDist[port] += hammingDistance(oldData, newData);
@@ -83,10 +82,14 @@ void Registers::read(PortIndex port, RegisterIndex reg, int oldData, int newData
 }
 
 void Registers::activity() {
+  if (!Instrumentation::collectingStats()) return;
+
   cyclesActive++;
 }
 
 void Registers::bypass(PortIndex port) {
+  if (!Instrumentation::collectingStats()) return;
+
   bypasses[port]++;
 }
 

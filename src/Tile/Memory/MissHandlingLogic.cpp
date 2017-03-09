@@ -9,13 +9,26 @@
 #include "../ComputeTile.h"
 #include "../../Chip.h"
 #include "../../Utility/Assert.h"
+#include "../../Utility/Instrumentation/Network.h"
 
 MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id) :
     LokiComponent(name, id),
+    clock("clock"),
+    oRequestToNetwork("oRequestToNetwork"),
+    iResponseFromNetwork("iResponseFromNetwork"),
+    oReadyForResponse("oReadyForResponse"),
+    oResponseToBanks("oResponseToBanks"),
+    oResponseTarget("oResponseTarget"),
+    oResponseToNetwork("oResponseToNetwork"),
+    iRequestFromNetwork("iRequestFromNetwork"),
+    oReadyForRequest("oReadyForRequest"),
+    oRequestToBanks("oRequestToBanks"),
+    oRequestTarget("oRequestTarget"),
+    iClaimRequest(MEMS_PER_TILE, "iClaimRequest"),
+    oRequestClaimed("oRequestClaimed"),
     directory(DIRECTORY_SIZE),
     requestMux("request_mux", MEMS_PER_TILE),
     responseMux("response_mux", MEMS_PER_TILE) {
-
 
   TileID memController = nearestMemoryController();
   directory.initialise(memController);
@@ -27,9 +40,8 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
 
   rngState = 0x3F;  // Same seed as Verilog uses (see nextTargetBank()).
 
-  iRequestFromBanks.init(requestMux.iData);
-  iResponseFromBanks.init(responseMux.iData);
-  iClaimRequest.init(MEMS_PER_TILE);
+  iRequestFromBanks.init(requestMux.iData, "iRequestFromBanks");
+  iResponseFromBanks.init(responseMux.iData, "iResponseFromBanks");
 
   requestMux.iData(iRequestFromBanks);
   requestMux.oData(muxedRequest);
@@ -65,7 +77,7 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
   dont_initialize();
 
   SC_METHOD(requestClaimLoop);
-  for (uint i=0; i<iClaimRequest.length(); i++)
+  for (uint i=0; i<iClaimRequest.size(); i++)
     sensitive << iClaimRequest[i];
   // do initialise
 }
@@ -194,9 +206,8 @@ void MissHandlingLogic::receiveResponseLoop() {
     return;
   }
 
-  loki_assert(iResponseFromNetwork.valid());
-  NetworkResponse response = iResponseFromNetwork.read();
-  iResponseFromNetwork.ack();
+  loki_assert(networkDataAvailable());
+  NetworkResponse response = receiveFromNetwork();
 
   LOKI_LOG << this->name() << " received " << response << endl;
 
@@ -214,6 +225,7 @@ void MissHandlingLogic::remoteRequestLoop() {
     loki_assert(iRequestFromNetwork.valid());
 
     NetworkRequest flit = iRequestFromNetwork.read();
+    Instrumentation::Network::recordBandwidth(iRequestFromNetwork.name());
     LOKI_LOG << this->name() << " sending request to banks " << flit << endl;
 
     // For each new request, update the target bank. This bank services the
@@ -246,7 +258,7 @@ void MissHandlingLogic::remoteRequestLoop() {
 
 void MissHandlingLogic::requestClaimLoop() {
   bool claimed = false;
-  for (uint i=0; i<iClaimRequest.length(); i++) {
+  for (uint i=0; i<iClaimRequest.size(); i++) {
     if (iClaimRequest[i].read()) {
       loki_assert_with_message(!claimed, "Multiple L2 banks responding to request for 0x%x.", oRequestToBanks.read().payload().toUInt());
       claimed = true;
@@ -261,6 +273,7 @@ void MissHandlingLogic::sendResponseLoop() {
   }
   else if (muxedResponse.valid()) {
     oResponseToNetwork.write(muxedResponse.read());
+    Instrumentation::Network::recordBandwidth(oResponseToNetwork.name());
 
     // Optional: if there is more data to come in this packet, wait until it
     // has all been sent before switching to another packet.
@@ -311,6 +324,7 @@ MemoryIndex MissHandlingLogic::nextTargetBank() {
 void MissHandlingLogic::sendOnNetwork(NetworkRequest request) {
   loki_assert(canSendOnNetwork());
   oRequestToNetwork.write(request);
+  Instrumentation::Network::recordBandwidth(oRequestToNetwork.name());
 }
 
 bool MissHandlingLogic::canSendOnNetwork() const {
@@ -323,6 +337,7 @@ const sc_event& MissHandlingLogic::canSendEvent() const {
 
 NetworkResponse MissHandlingLogic::receiveFromNetwork() {
   loki_assert(iResponseFromNetwork.valid());
+  Instrumentation::Network::recordBandwidth(iResponseFromNetwork.name());
   iResponseFromNetwork.ack();
   return iResponseFromNetwork.read();
 }

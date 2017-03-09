@@ -19,7 +19,7 @@ namespace Instrumentation {
 
   public:
 
-    static void init();
+    static void reset();
 
     static void startOperation(int bank, MemoryOpcode op,
         MemoryAddr address, bool miss, ChannelID returnChannel);

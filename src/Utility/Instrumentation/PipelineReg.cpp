@@ -21,6 +21,7 @@ CounterMap<size_t> PipelineReg::hammingDist;
 void PipelineReg::activity(const DecodedInst& oldVal,
                            const DecodedInst& newVal,
                            PipelineRegister::PipelinePosition stage) {
+  if (!Instrumentation::collectingStats()) return;
 
   size_t width;
   int hamming = 0;

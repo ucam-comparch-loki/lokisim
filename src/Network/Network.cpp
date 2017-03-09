@@ -53,6 +53,7 @@ Network::Network(const sc_module_name& name,
     bool externalConnection) : // Is there a port to send data on if it
                                // isn't for any local component?
     LokiComponent(name, ID),
+    clock("clock"),
     firstOutput(firstOutput),
     level((numOutputs > 1) ? level : NONE),
     externalConnection(externalConnection) {

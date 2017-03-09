@@ -66,37 +66,32 @@ void InputCrossbar::updateFlowControl(ChannelIndex input) {
 
 InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
     LokiComponent(name, ID),
+    clock("clock"),
+    creditClock("creditClock"),
+    iData(numInputs, "iData"),
+    oReady(CORE_INPUT_CHANNELS, "oReady"),
+    oData(numOutputs, "oData"),
+    iFlowControl(numOutputs, "iFlowControl"),
+    iDataConsumed(numOutputs, "iDataConsumed"),
+    oCredit(1, "oCredit"),
     creditNet("credit", ID, numOutputs, 1, 1, Network::NONE, 1),
+    constantHigh("constantHigh"),
+    dataToBuffer(numOutputs, "dataToBuffer"),
+    creditsToNetwork(numOutputs, "creditsToNetwork"),
+    sendData(numOutputs, "sendDataEvent"),
     dataSource(numOutputs, INACTIVE) {
-
-  //creditNet.initialise();
-
-  iData.init(numInputs);
-  oReady.init(CORE_INPUT_CHANNELS);
-  oData.init(numOutputs);
-  iFlowControl.init(numOutputs);
-  iDataConsumed.init(numOutputs);
-
-  // Possibly temporary: have only one credit output port, used for sending
-  // credits to other tiles. Credits aren't used for local communication.
-  oCredit.init(1);
-
-  dataToBuffer.init(numOutputs);
-  creditsToNetwork.init(numOutputs);
-
-  sendData.init(numOutputs);
 
   // Method for each input port, forwarding data to the correct buffer when it
   // arrives. Each channel end has a single writer, so it is impossible to
   // receive multiple data for the same channel end in one cycle.
-  for (PortIndex i=0; i<iData.length(); i++)
+  for (PortIndex i=0; i<iData.size(); i++)
     SPAWN_METHOD(iData[i], InputCrossbar::newData, i, false);
 
   // Method for each output port, writing data into each buffer.
-  for (ChannelIndex i=0; i<sendData.length(); i++)
+  for (ChannelIndex i=0; i<sendData.size(); i++)
     SPAWN_METHOD(sendData[i], InputCrossbar::writeToBuffer, i, false);
 
-  for (ChannelIndex i=0; i<iFlowControl.length(); i++)
+  for (ChannelIndex i=0; i<iFlowControl.size(); i++)
     SPAWN_METHOD(iFlowControl[i], InputCrossbar::updateFlowControl, i, true);
 
   // Wire up the small networks.

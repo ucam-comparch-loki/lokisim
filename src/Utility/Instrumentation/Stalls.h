@@ -40,9 +40,10 @@ public:
   static const uint NUM_STALL_REASONS = STALL_ANY + 1;
 
   static void init();
-
-  static void startLogging();
-  static void stopLogging();
+  static void reset();
+  static void start();
+  static void stop();
+  static void end();
 
   static void startDetailedLog(const string& filename);
 
@@ -66,11 +67,6 @@ public:
   static cycle_count_t cyclesIdle(const ComponentID core);
   static cycle_count_t cyclesStalled(const ComponentID core);
 
-  static cycle_count_t cyclesLogged();
-  static cycle_count_t loggedCyclesActive(const ComponentID core);
-  static cycle_count_t loggedCyclesIdle(const ComponentID core);
-  static cycle_count_t loggedCyclesStalled(const ComponentID core);
-
   static void printStats();
   static void printInstrStat(const char *name, ComponentID id, CounterMap<CoreIndex> &cMap);
   static void dumpEventCounts(std::ostream& os);
@@ -92,11 +88,9 @@ private:
   // bitmask in case the core stalls for multiple reasons simultaneously.
   static map<ComponentIndex, uint> stallReason;
 
-  // Maintain separate logs for normal execution, and for the parts of the
-  // program which are explicitly logged.
   // There is one CounterMap for each possible reason to stall, and each
   // CounterMap holds data for each core.
-  static vector<CounterMap<ComponentIndex> > total, loggedOnly;
+  static vector<CounterMap<ComponentIndex> > timeSpent;
 
   // The times that each core started stalling for each reason.
   static vector<map<ComponentIndex, cycle_count_t> > startStall;
@@ -108,8 +102,6 @@ private:
   // stop simulation if it can also be known that the networks are inactive:
   // it may be the case that a core is waiting for data to arrive.
   static cycle_count_t endOfExecution;
-
-  static cycle_count_t loggedCycles, loggingStarted;
 
   static bool endExecutionCalled;
 

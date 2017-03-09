@@ -8,6 +8,7 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "Router.h"
+#include "../Utility/Instrumentation/Network.h"
 
 const string DirectionNames[] = {"north", "east", "south", "west", "local"};
 
@@ -19,6 +20,7 @@ void Router::receiveData(PortIndex input) {
     next_trigger(inputBuffers[input].readEvent());
   }
   else {
+    Instrumentation::Network::recordBandwidth(iData[input].name());
     LOKI_LOG << this->name() << ": input from " << DirectionNames[input] << ": " << iData[input].read() << endl;
     bool wasEmpty = inputBuffers[input].empty();
 
@@ -48,6 +50,8 @@ void Router::sendData(PortIndex output) {
         NetworkData flit = inputBuffers[input].read();
         oData[output].write(flit);
 
+        Instrumentation::Network::recordBandwidth(oData[output].name());
+
         // Stick with this input if necessary.
         holdInput[output] = wormhole && !flit.getMetadata().endOfPacket;
 
@@ -62,6 +66,7 @@ void Router::sendData(PortIndex output) {
         PortIndex input = (i + lastAccepted[output] + 1) % 5;
         if (destination[input] == output) {
           LOKI_LOG << this->name() << " sending to " << DirectionNames[output] << ": " << inputBuffers[input].peek() << endl;
+          Instrumentation::Network::recordBandwidth(oData[output].name());
 
           NetworkData flit = inputBuffers[input].read();
           oData[output].write(flit);
@@ -114,14 +119,14 @@ Direction Router::routeTo(ChannelID destination) const {
 }
 
 void Router::reportStalls(ostream& os) {
-  for (uint i=0; i<oData.length(); i++) {
+  for (uint i=0; i<oData.size(); i++) {
     if (oData[i].valid()) {
       os << this->name() << ".output_" << DirectionNames[i] << " is blocked." << endl;
       os << "  Target destination is " << oData[i].read().channelID() << endl;
     }
   }
 
-  for (uint i=0; i<iData.length(); i++) {
+  for (uint i=0; i<iData.size(); i++) {
     if (inputBuffers[i].full()) {
       os << inputBuffers[i].name() << " is full." << endl;
       os << "  Head is trying to get to " << inputBuffers[i].peek().channelID() << endl;
@@ -132,9 +137,15 @@ void Router::reportStalls(ostream& os) {
 Router::Router(const sc_module_name& name, const ComponentID& ID) :
     LokiComponent(name, ID),
     BlockingInterface(),
+    clock("clock"),
+    iData(5, "iData"),
+    oReady(5, "oReady"),
+    oData(5, "oData"),
+    iReady(5, "iReady"),
     inputBuffers(5, ROUTER_BUFFER_SIZE, string(this->name()) + ".input_data"),
     xPos(ID.tile.x),
-    yPos(ID.tile.y) {
+    yPos(ID.tile.y),
+    outputAvailable(5, "outputAvailableEvent"){
 
   state = WAITING_FOR_DATA;
   wormhole = true;
@@ -145,15 +156,11 @@ Router::Router(const sc_module_name& name, const ComponentID& ID) :
     holdInput[i] = false;
   }
 
-  iData.init(5);    oData.init(5);
-  iReady.init(5);   oReady.init(5);
-  outputAvailable.init(5);
-
   // Generate a method to watch each input port, putting the data into the
   // appropriate buffer when it arrives.
   // Generate a method for each output port, sending data when there is data
   // to send.
-  for (size_t i=0; i<iData.length(); i++) {
+  for (size_t i=0; i<iData.size(); i++) {
     SPAWN_METHOD(iData[i], Router::receiveData, i, false);
     SPAWN_METHOD(outputAvailable[i], Router::sendData, i, false);
 

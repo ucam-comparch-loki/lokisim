@@ -180,6 +180,11 @@ void FlowControlIn::sendCredit() {
 
 FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :
     LokiComponent(name, ID),
+    clock("clock"),
+    iData("iData"),
+    oData("oData"),
+    oCredit("oCredit"),
+    iDataConsumed("iDataConsumed"),
     sinkChannel(channelManaged) {
 
   sourceChannel = ChannelID();

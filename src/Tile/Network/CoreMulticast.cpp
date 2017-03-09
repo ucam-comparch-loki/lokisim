@@ -10,23 +10,21 @@
 #include "CoreMulticast.h"
 #include "../../Network/Topologies/MulticastBus.h"
 
-CoreMulticast::CoreMulticast(const sc_module_name name, ComponentID tile)
-    : Network(name, tile, CORES_PER_TILE, CORES_PER_TILE*CORES_PER_TILE, Network::COMPONENT) {
+CoreMulticast::CoreMulticast(const sc_module_name name, ComponentID tile) :
+    Network(name, tile, CORES_PER_TILE, CORES_PER_TILE*CORES_PER_TILE, Network::COMPONENT),
+    iData(CORES_PER_TILE, "iData"),
+    oData(CORES_PER_TILE, CORES_PER_TILE, "oData"),
+    iReady(CORES_PER_TILE, CORE_INPUT_CHANNELS, "iReady"),
+    busInput(CORES_PER_TILE, "busInput") {
 
-  iData.init(CORES_PER_TILE);
-  oData.init(CORES_PER_TILE, CORES_PER_TILE);
-  iReady.init(CORES_PER_TILE, CORE_INPUT_CHANNELS);
+  state.assign(iData.size(), IDLE);
 
-  busInput.init(iData.length());
-
-  state.assign(iData.length(), IDLE);
-
-  for (uint i=0; i<iData.length(); i++) {
-    MulticastBus* bus = new MulticastBus(sc_gen_unique_name("bus"), tile, oData.length(), Network::COMPONENT);
+  for (uint i=0; i<iData.size(); i++) {
+    MulticastBus* bus = new MulticastBus(sc_gen_unique_name("bus"), tile, oData.size(), Network::COMPONENT);
 
     bus->clock(clock);
     bus->iData(busInput[i]);
-    for (uint out=0; out<oData.length(); out++)
+    for (uint out=0; out<oData.size(); out++)
       bus->oData[out](oData[out][i]);
 
     buses.push_back(bus);
@@ -59,7 +57,7 @@ void CoreMulticast::mainLoop(PortIndex input) {
       // Check whether all destinations are ready to receive data.
       uint destinations = address.coremask;
       uint buffer = address.channel;
-      for (uint output=0; output<iReady.length(); output++) {
+      for (uint output=0; output<iReady.size(); output++) {
         if (((destinations >> output) & 1) && !iReady[output][buffer].read()) {
           next_trigger(iReady[output][buffer].posedge_event());
           break;

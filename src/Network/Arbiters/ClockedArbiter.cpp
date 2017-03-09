@@ -14,8 +14,8 @@
 
 using sc_core::sc_module_name;
 
-int ClockedArbiter::numInputs()  const {return iRequest.length();}
-int ClockedArbiter::numOutputs() const {return oSelect.length();}
+int ClockedArbiter::numInputs()  const {return iRequest.size();}
+int ClockedArbiter::numOutputs() const {return oSelect.size();}
 
 const sc_event& ClockedArbiter::canGrantNow(int output, const ChannelIndex destination) {
   ChannelIndex channel;
@@ -285,7 +285,7 @@ void ClockedArbiter::updateSelect(int output) {
 }
 
 void ClockedArbiter::reportStalls(ostream& os) {
-  for (uint i=0; i<iRequest.length(); i++) {
+  for (uint i=0; i<iRequest.size(); i++) {
     if (requestVec[i]) {
       os << this->name() << " still has active request on input " << i << endl;
     }
@@ -295,25 +295,24 @@ void ClockedArbiter::reportStalls(ostream& os) {
 ClockedArbiter::ClockedArbiter(const sc_module_name& name, ComponentID ID,
                            int inputs, int outputs, bool wormhole, int flowControlSignals) :
     LokiComponent(name, ID),
+    clock("clock"),
+    iRequest(inputs, "iRequest"),
+    oGrant(inputs, "oGrant"),
+    oSelect(outputs, "oSelect"),
+    iReady(flowControlSignals, "iReady"),
     wormhole(wormhole),
     requestVec(inputs, false),
     grantVec(inputs, false),
     selections(outputs, -1),
     destinations(outputs, -1),
-    state(outputs, NO_REQUESTS) {
+    state(outputs, NO_REQUESTS),
+    grantChanged(inputs, "grantChanged"),
+    selectionChanged(outputs, "selectionChanged") {
 
   loki_assert(inputs > 0);
   loki_assert(outputs > 0);
 
   Instrumentation::Network::arbiterCreated();
-
-  iRequest.init(inputs);
-  oGrant.init(inputs);
-  oSelect.init(outputs);
-  iReady.init(flowControlSignals);
-
-  grantChanged.init(inputs);
-  selectionChanged.init(outputs);
 
   // Set some initial value for the select signals, so they generate an event
   // whenever they change to a valid value.

@@ -123,6 +123,8 @@ FetchStage* InstructionPacketFIFO::parent() const {
 
 InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
     LokiComponent(name),
+    oFlowControl("oFlowControl"),
+    oDataConsumed("oDataConsumed"),
     fifo(std::string(name), IPK_FIFO_SIZE),
     addresses(IPK_FIFO_SIZE, DEFAULT_TAG) {
 

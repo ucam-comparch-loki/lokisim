@@ -19,8 +19,7 @@ class Operations: public InstrumentationBase {
 
 public:
 
-  static void init();
-  static void end();
+  static void reset();
 
   static void decoded(const ComponentID& core, const DecodedInst& dec);
   static void executed(const ComponentID& core, const DecodedInst& dec, bool executed);
@@ -30,6 +29,10 @@ public:
   static count_t numOperations(const ComponentID& core);
   static count_t numOperations(opcode_t operation,
                                function_t function = (function_t)0);
+
+  // A second operation count which continues to increase, even when statistics
+  // aren't being collected. Used for debug purposes.
+  static count_t allOperations();
 
   static void printStats();
   static void printSummary();
@@ -53,8 +56,8 @@ private:
 
   // Store the previous inputs, outputs, and operations seen, so that we can
   // compare them to the latest values.
-  static int32_t *lastIn1, *lastIn2, *lastOut;
-  static function_t *lastFn;
+  static vector<int32_t> lastIn1, lastIn2, lastOut;
+  static vector<function_t> lastFn;
 
   // Counters used to help compute energy consumption. hd = Hamming distance.
   static count_t hdIn1, hdIn2, hdOut, sameOp;

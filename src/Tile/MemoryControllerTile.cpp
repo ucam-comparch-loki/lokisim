@@ -7,9 +7,12 @@
 
 #include "MemoryControllerTile.h"
 #include "../Utility/Assert.h"
+#include "../Utility/Instrumentation/Network.h"
 
 MemoryControllerTile::MemoryControllerTile(const sc_module_name& name, const ComponentID& id) :
     Tile(name, id),
+    oRequestToMainMemory("oRequestToMainMemory"),
+    iResponseFromMainMemory("iResponseFromMainMemory"),
     dataDeadEnd("data", id, LOCAL),
     creditDeadEnd("credit", id, LOCAL),
     responseDeadEnd("response", id, LOCAL) {
@@ -57,6 +60,7 @@ void MemoryControllerTile::requestLoop() {
 
     LOKI_LOG << this->name() << " forwarding request to main memory: "
         << iRequest.read() << endl;
+    Instrumentation::Network::recordBandwidth(oRequestToMainMemory.name());
 
     // Default trigger: new request arrival
   }
@@ -74,6 +78,7 @@ void MemoryControllerTile::responseLoop() {
 
     LOKI_LOG << this->name() << " forwarding response from main memory: "
         << iResponseFromMainMemory.read() << endl;
+    Instrumentation::Network::recordBandwidth(iResponseFromMainMemory.name());
 
     // Wait for the clock edge rather than the next data arrival because there
     // may be other data lined up and ready to go immediately.

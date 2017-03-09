@@ -23,14 +23,14 @@ void Mesh::makeRouters() {
 void Mesh::makeWires() {
   // Note that there is one more column and one more row of wires than there
   // are routers. This is because there are wires on each side of each router.
-  dataSigNS.init(numColumns+1, numRows+1);
-  dataSigSN.init(numColumns+1, numRows+1);
-  dataSigEW.init(numColumns+1, numRows+1);
-  dataSigWE.init(numColumns+1, numRows+1);
-  readySigNS.init(numColumns+1, numRows+1);
-  readySigSN.init(numColumns+1, numRows+1);
-  readySigEW.init(numColumns+1, numRows+1);
-  readySigWE.init(numColumns+1, numRows+1);
+  dataSigNS.init(numColumns+1, numRows+1, "dataNS");
+  dataSigSN.init(numColumns+1, numRows+1, "dataSN");
+  dataSigEW.init(numColumns+1, numRows+1, "dataEW");
+  dataSigWE.init(numColumns+1, numRows+1, "dataWE");
+  readySigNS.init(numColumns+1, numRows+1, "readyNS");
+  readySigSN.init(numColumns+1, numRows+1, "readySN");
+  readySigEW.init(numColumns+1, numRows+1, "readyEW");
+  readySigWE.init(numColumns+1, numRows+1, "readyWE");
 }
 
 void Mesh::wireUp() {
@@ -116,17 +116,16 @@ Mesh::Mesh(const sc_module_name& name,
            int columns,
            HierarchyLevel level) :
     Network(name, ID, rows*columns, rows*columns, level),
+    iData(columns, rows, "iData"),
+    oData(columns, rows, "oData"),
+    oReady(columns, rows, "oReady"),
+    iReady(columns, rows, "iReady"),
     routers(columns, std::vector<Router*>(rows)),
     numColumns(columns),
     numRows(rows) {
 
   // Can only handle inter-tile mesh networks at the moment.
   loki_assert(level == Network::TILE);
-
-  iData.init(columns, rows);
-  oData.init(columns, rows);
-  oReady.init(columns, rows);
-  iReady.init(columns, rows);
 
   makeRouters();
   makeWires();

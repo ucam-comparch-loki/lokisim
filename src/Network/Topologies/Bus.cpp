@@ -25,10 +25,10 @@ void Bus::busLoop() {
         // There definitely is data: send it.
         NetworkData data = iData.read();
 
-        outputUsed = getDestination(data.channelID(), oData.length());
+        outputUsed = getDestination(data.channelID(), oData.size());
 
-        loki_assert_with_message(outputUsed < oData.length(),
-            "Outputs = %d, output used = %d", oData.length(), outputUsed);
+        loki_assert_with_message(outputUsed < oData.size(),
+            "Outputs = %d, output used = %d", oData.size(), outputUsed);
         loki_assert(!oData[outputUsed].valid());
 
         oData[outputUsed].write(data);
@@ -54,10 +54,10 @@ void Bus::busLoop() {
 }
 
 Bus::Bus(const sc_module_name& name, const ComponentID& ID, int numOutputPorts, HierarchyLevel level, int firstOutput) :
-    Network(name, ID, 1, numOutputPorts, level, firstOutput)
+    Network(name, ID, 1, numOutputPorts, level, firstOutput),
+    iData("iData"),
+    oData(numOutputPorts, "oData")
 {
-  oData.init(numOutputPorts);
-
   lastWriteTime = -1;
   outputUsed = -1;
 

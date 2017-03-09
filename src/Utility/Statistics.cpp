@@ -48,7 +48,7 @@ int Statistics::currentCycle() {
   else return Instrumentation::currentCycle();
 }
 
-int Statistics::executionTime()         {return Stalls::executionTime();}
+int Statistics::executionTime()         {return Instrumentation::currentCycle();}
 
 int Statistics::decodes()               {return Operations::numDecodes();}
 

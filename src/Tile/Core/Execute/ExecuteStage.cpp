@@ -392,6 +392,9 @@ void ExecuteStage::reportStalls(ostream& os) {
 
 ExecuteStage::ExecuteStage(const sc_module_name& name, const ComponentID& ID) :
     PipelineStage(name, ID),
+    oReady("oReady"),
+    oData("oData"),
+    iReady("iReady"),
     alu("alu", ID),
     scratchpad("scratchpad", ID) {
 
