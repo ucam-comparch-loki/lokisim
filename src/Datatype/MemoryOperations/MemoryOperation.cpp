@@ -14,23 +14,34 @@
 #include "../../Network/NetworkTypedefs.h"
 #include "../../Tile/Memory/MemoryBank.h"
 #include "../../Utility/Arguments.h"
+#include "../../Utility/Instrumentation/Latency.h"
 #include "../../Utility/Instrumentation/MemoryBank.h"
 
-MemoryOperation::MemoryOperation(MemoryAddr address,
-                                 MemoryMetadata metadata,
+void checkAlignment(MemoryAddr address, uint alignment) {
+  if (WARN_UNALIGNED && (address & (alignment-1)) != 0)
+    LOKI_WARN << "attempting to access address " << LOKI_HEX(address)
+        << " with alignment " << alignment << "." << endl;
+}
+
+MemoryOperation::MemoryOperation(const NetworkRequest& request,
                                  MemoryBase& memory,
                                  MemoryLevel level,
                                  ChannelID destination,
                                  unsigned int payloadFlits,
-                                 unsigned int maxResultFlits) :
-    address(address),
-    metadata(metadata),
+                                 unsigned int maxResultFlits,
+                                 unsigned int alignment) :
+    request(request),
+    address(request.payload().toUInt() & ~(alignment-1)),
+    metadata(request.getMemoryMetadata()),
     memory(memory),
     level(level),
     destination(destination),
     payloadFlits(payloadFlits),
     resultFlits(maxResultFlits),
-    sramAddress(memory.getPosition(address, getAccessMode())) {
+    sramAddress(memory.getPosition(address, getAccessMode())),
+    cacheMiss(false) {
+
+//  checkAlignment(request.payload().toUInt(), alignment);
 
   if (level != MEMORY_OFF_CHIP) {
     Instrumentation::MemoryBank::startOperation(memory.id.globalMemoryNumber(),
@@ -93,6 +104,10 @@ void MemoryOperation::sendResult(unsigned int data, bool isInstruction) {
   NetworkResponse response(data, destination, true);
   response.setInstruction(isInstruction);
   memory.sendResponse(response, level);
+
+  Instrumentation::Latency::memoryBufferedResult(memory.id, getOriginal(),
+      response, !wasCacheMiss(), getMemoryLevel() == MEMORY_L1);
+
   resultFlits--;
 }
 
@@ -116,15 +131,15 @@ bool MemoryOperation::inCache() const {
   return memory.contains(address, sramAddress, getAccessMode());
 }
 
-NetworkRequest MemoryOperation::getOriginal() const {
-  return NetworkRequest(address, ChannelID(), metadata.flatten());
-}
-
+const NetworkRequest MemoryOperation::getOriginal() const {return request;}
 MemoryAddr      MemoryOperation::getAddress()     const {return address;}
 SRAMAddress     MemoryOperation::getSRAMAddress() const {return sramAddress;}
 MemoryMetadata  MemoryOperation::getMetadata()    const {return metadata;}
 MemoryLevel     MemoryOperation::getMemoryLevel() const {return level;}
 ChannelID       MemoryOperation::getDestination() const {return destination;}
+
+void            MemoryOperation::notifyCacheMiss()      {cacheMiss = true;}
+bool            MemoryOperation::wasCacheMiss()   const {return cacheMiss;}
 
 string MemoryOperation::toString() const {
   std::ostringstream out;

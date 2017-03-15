@@ -9,11 +9,10 @@
  *      Author: db434
  */
 
-#include <iostream>
-#include <iomanip>
-
 using namespace std;
 
+#include <iostream>
+#include <iomanip>
 #include "MemoryBank.h"
 #include "MainMemory.h"
 #include "../../Datatype/MemoryOperations/MemoryOperationDecode.h"
@@ -21,6 +20,7 @@ using namespace std;
 #include "../../Chip.h"
 #include "../../Utility/Arguments.h"
 #include "../../Utility/Assert.h"
+#include "../../Utility/Instrumentation/Latency.h"
 #include "../../Utility/Instrumentation/MemoryBank.h"
 #include "../../Utility/Instrumentation/Network.h"
 #include "../../Utility/Parameters.h"
@@ -381,6 +381,7 @@ void MemoryBank::processAllocate() {
 
     // Put the request to one side until its data comes back.
     mMissingRequest = mActiveRequest;
+    mMissingRequest->notifyCacheMiss();
     mCacheMissEvent.notify(sc_core::SC_ZERO_TIME);
 
     if (mMissingRequest->awaitingPayload())
@@ -582,10 +583,12 @@ void MemoryBank::consumeRequest(MemoryLevel level) {
     case MEMORY_L1: {
       NetworkRequest request = mInputQueue.read();
       LOKI_LOG << this->name() << " dequeued " << request << endl;
+      Instrumentation::Latency::memoryStartedRequest(id, request);
       break;
     }
     case MEMORY_L2:
       requestSig.ack();
+      Instrumentation::Latency::memoryStartedRequest(id, requestSig.read());
       break;
     default:
       loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
@@ -669,6 +672,9 @@ const sc_event& MemoryBank::canSendResponseEvent(ChannelID destination, MemoryLe
 void MemoryBank::sendResponse(NetworkResponse response, MemoryLevel level) {
   loki_assert(canSendResponse(response.channelID(), level));
 
+  // Instrumentation for buffering the result is in MemoryOperation because
+  // it uses extra information about the request.
+
   switch (level) {
     case MEMORY_L1:
       if (response.channelID().channel < CORE_INSTRUCTION_CHANNELS) {
@@ -682,6 +688,7 @@ void MemoryBank::sendResponse(NetworkResponse response, MemoryLevel level) {
       break;
     case MEMORY_L2:
       oResponse.write(response);
+      Instrumentation::Latency::memorySentResult(id, response, false);
       break;
     default:
       loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
@@ -759,6 +766,7 @@ void MemoryBank::processValidInput() {
   mInputQueue.write(iData.read());
   iData.ack();
   Instrumentation::Network::recordBandwidth(iData.name());
+  Instrumentation::Latency::memoryReceivedRequest(id, iData.read());
 }
 
 void MemoryBank::handleDataOutput() {
@@ -775,6 +783,7 @@ void MemoryBank::handleDataOutput() {
     if (ENERGY_TRACE)
       Instrumentation::Network::traffic(id, flit.channelID().component);
     Instrumentation::Network::recordBandwidth(oData.name());
+    Instrumentation::Latency::memorySentResult(id, flit, true);
 
     oData.write(flit);
 
@@ -800,6 +809,7 @@ void MemoryBank::handleInstructionOutput() {
     if (ENERGY_TRACE)
       Instrumentation::Network::traffic(id, flit.channelID().component);
     Instrumentation::Network::recordBandwidth(oInstruction.name());
+    Instrumentation::Latency::memorySentResult(id, flit, true);
 
     oInstruction.write(flit);
 

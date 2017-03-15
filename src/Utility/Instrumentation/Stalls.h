@@ -68,7 +68,7 @@ public:
   static cycle_count_t cyclesStalled(const ComponentID core);
 
   static void printStats();
-  static void printInstrStat(const char *name, ComponentID id, CounterMap<CoreIndex> &cMap);
+  static void printInstrStat(const char *name, ComponentID id, CounterMap<ComponentID> &cMap);
   static void dumpEventCounts(std::ostream& os);
 
   // A text version of each stall reason.
@@ -86,14 +86,14 @@ private:
 
   // The reason for each core being stalled at the moment (if stalled). Use a
   // bitmask in case the core stalls for multiple reasons simultaneously.
-  static map<ComponentIndex, uint> stallReason;
+  static map<ComponentID, uint> stallReason;
 
   // There is one CounterMap for each possible reason to stall, and each
   // CounterMap holds data for each core.
-  static vector<CounterMap<ComponentIndex> > timeSpent;
+  static vector<CounterMap<ComponentID> > timeSpent;
 
   // The times that each core started stalling for each reason.
-  static vector<map<ComponentIndex, cycle_count_t> > startStall;
+  static vector<map<ComponentID, cycle_count_t> > startStall;
 
   // The number of cores stalled or idle at the moment.
   static count_t numStalled;

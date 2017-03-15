@@ -22,6 +22,16 @@ using std::string;
 using std::cout;
 using std::endl;
 
+// Allow ComponentIDs to be compared so they can be used in lookup tables.
+namespace std {
+  template<>
+  struct less<ComponentID> {
+    bool operator() (const ComponentID& lhs, const ComponentID& rhs) const {
+      return lhs.flatten() < rhs.flatten();
+    }
+  };
+}
+
 namespace Instrumentation {
 
 class InstrumentationBase {

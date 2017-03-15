@@ -11,8 +11,8 @@
 
 #include "../../Tile/Memory/MemoryBank.h"
 
-LoadWord::LoadWord(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(address, metadata, memory, level, destination, 0, 1) {
+LoadWord::LoadWord(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 0, 1, BYTES_PER_WORD) {
   // Nothing
 }
 
@@ -32,8 +32,8 @@ void LoadWord::execute() {
 }
 
 
-LoadHalfword::LoadHalfword(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(address, metadata, memory, level, destination, 0, 1) {
+LoadHalfword::LoadHalfword(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 0, 1, BYTES_PER_WORD/2) {
   // Nothing
 }
 
@@ -53,8 +53,8 @@ void LoadHalfword::execute() {
 }
 
 
-LoadByte::LoadByte(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(address, metadata, memory, level, destination, 0, 1) {
+LoadByte::LoadByte(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 0, 1, 1) {
   // Nothing
 }
 
@@ -74,8 +74,8 @@ void LoadByte::execute() {
 }
 
 
-StoreWord::StoreWord(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(address, metadata, memory, level, destination, 1, 0) {
+StoreWord::StoreWord(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 1, 0, BYTES_PER_WORD) {
   preWriteCheck();
 }
 
@@ -97,8 +97,8 @@ void StoreWord::execute() {
 }
 
 
-StoreHalfword::StoreHalfword(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(address, metadata, memory, level, destination, 1, 0) {
+StoreHalfword::StoreHalfword(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 1, 0, BYTES_PER_WORD/2) {
   preWriteCheck();
 }
 
@@ -120,8 +120,8 @@ void StoreHalfword::execute() {
 }
 
 
-StoreByte::StoreByte(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(address, metadata, memory, level, destination, 1, 0) {
+StoreByte::StoreByte(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 1, 0, 1) {
   preWriteCheck();
 }
 

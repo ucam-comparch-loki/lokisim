@@ -15,7 +15,7 @@
 
 class UpdateDirectoryEntry : public MemoryOperation {
 public:
-  UpdateDirectoryEntry(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  UpdateDirectoryEntry(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual bool needsForwarding() const;
   virtual void prepare();
@@ -25,7 +25,7 @@ public:
 
 class UpdateDirectoryMask : public MemoryOperation {
 public:
-  UpdateDirectoryMask(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  UpdateDirectoryMask(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual bool needsForwarding() const;
   virtual void prepare();

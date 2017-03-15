@@ -15,7 +15,7 @@
 
 class FetchLine : public MemoryOperation {
 public:
-  FetchLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  FetchLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -27,7 +27,7 @@ private:
 
 class IPKRead : public MemoryOperation {
 public:
-  IPKRead(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  IPKRead(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -39,7 +39,7 @@ private:
 
 class ValidateLine : public MemoryOperation {
 public:
-  ValidateLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  ValidateLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -48,7 +48,7 @@ public:
 
 class PrefetchLine : public MemoryOperation {
 public:
-  PrefetchLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  PrefetchLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -57,7 +57,7 @@ public:
 
 class FlushLine : public MemoryOperation {
 public:
-  FlushLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  FlushLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -70,7 +70,7 @@ private:
 
 class InvalidateLine : public MemoryOperation {
 public:
-  InvalidateLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  InvalidateLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -83,7 +83,7 @@ private:
 
 class FlushAllLines : public MemoryOperation {
 public:
-  FlushAllLines(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  FlushAllLines(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -96,7 +96,7 @@ private:
 
 class InvalidateAllLines : public MemoryOperation {
 public:
-  InvalidateAllLines(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  InvalidateAllLines(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -109,7 +109,7 @@ private:
 
 class StoreLine : public MemoryOperation {
 public:
-  StoreLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  StoreLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -121,7 +121,7 @@ private:
 
 class MemsetLine : public MemoryOperation {
 public:
-  MemsetLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  MemsetLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -135,12 +135,12 @@ private:
 
 class PushLine : public MemoryOperation {
 public:
-  PushLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  PushLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
   virtual void execute();
-  virtual NetworkRequest getOriginal() const;
+  virtual const NetworkRequest getOriginal() const;
 
 private:
   unsigned int lineCursor;

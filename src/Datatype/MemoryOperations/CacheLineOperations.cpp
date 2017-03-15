@@ -14,8 +14,8 @@
 #include "../../Utility/Instrumentation/MemoryBank.h"
 #include "../../Utility/Parameters.h"
 
-FetchLine::FetchLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(startOfLine(address), metadata, memory, level, destination, 0, CACHE_LINE_WORDS) {
+FetchLine::FetchLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 0, CACHE_LINE_WORDS, CACHE_LINE_BYTES) {
   lineCursor = 0;
 }
 
@@ -40,8 +40,8 @@ void FetchLine::execute() {
 }
 
 
-IPKRead::IPKRead(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(address, metadata, memory, level, destination, 0, CACHE_LINE_WORDS) {
+IPKRead::IPKRead(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 0, CACHE_LINE_WORDS, BYTES_PER_WORD) {
   lineCursor = 0;
 }
 
@@ -71,8 +71,8 @@ void IPKRead::execute() {
 }
 
 
-ValidateLine::ValidateLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(startOfLine(address), metadata, memory, level, destination, 0, 0) {
+ValidateLine::ValidateLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 0, 0, CACHE_LINE_BYTES) {
   // Nothing
 }
 
@@ -89,8 +89,8 @@ void ValidateLine::execute() {
 }
 
 
-PrefetchLine::PrefetchLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(startOfLine(address), metadata, memory, level, destination, 0, 0) {
+PrefetchLine::PrefetchLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 0, 0, CACHE_LINE_BYTES) {
 }
 
 void PrefetchLine::prepare() {
@@ -106,8 +106,8 @@ void PrefetchLine::execute() {
 }
 
 
-FlushLine::FlushLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(startOfLine(address), metadata, memory, level, destination, 0, 0) {
+FlushLine::FlushLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 0, 0, CACHE_LINE_BYTES) {
   finished = false;
 
   // Instrumentation happens in the memory bank. At this point, we don't know
@@ -135,8 +135,8 @@ bool FlushLine::complete() const {
 }
 
 
-InvalidateLine::InvalidateLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(startOfLine(address), metadata, memory, level, destination, 0, 0) {
+InvalidateLine::InvalidateLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 0, 0, CACHE_LINE_BYTES) {
   finished = false;
 }
 
@@ -160,8 +160,8 @@ bool InvalidateLine::complete() const {
 }
 
 
-FlushAllLines::FlushAllLines(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(address, metadata, memory, level, destination, 0, 0) {
+FlushAllLines::FlushAllLines(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 0, 0) {
   line = 0;
 }
 
@@ -184,8 +184,8 @@ bool FlushAllLines::complete() const {
 }
 
 
-InvalidateAllLines::InvalidateAllLines(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(address, metadata, memory, level, destination, 0, 0) {
+InvalidateAllLines::InvalidateAllLines(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 0, 0) {
   line = 0;
 }
 
@@ -208,8 +208,8 @@ bool InvalidateAllLines::complete() const {
 }
 
 
-StoreLine::StoreLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(startOfLine(address), metadata, memory, level, destination, CACHE_LINE_WORDS, 0) {
+StoreLine::StoreLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, CACHE_LINE_WORDS, 0, CACHE_LINE_BYTES) {
   lineCursor = 0;
   preWriteCheck();
 
@@ -239,8 +239,8 @@ void StoreLine::execute() {
 }
 
 
-MemsetLine::MemsetLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(startOfLine(address), metadata, memory, level, destination, 1, 0) {
+MemsetLine::MemsetLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 1, 0, CACHE_LINE_BYTES) {
   data = 0;
   lineCursor = 0;
 
@@ -277,8 +277,8 @@ bool MemsetLine::complete() const {
 }
 
 
-PushLine::PushLine(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(startOfLine(address), metadata, memory, level, destination, CACHE_LINE_WORDS, 0) {
+PushLine::PushLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, CACHE_LINE_WORDS, 0, CACHE_LINE_BYTES) {
   lineCursor = 0;
   targetBank = address & (MEMS_PER_TILE - 1);
 }
@@ -291,7 +291,7 @@ bool PushLine::preconditionsMet() const {
   return inCache();
 }
 
-NetworkRequest PushLine::getOriginal() const {
+const NetworkRequest PushLine::getOriginal() const {
   return NetworkRequest(address+targetBank, ChannelID(), metadata.flatten());
 }
 

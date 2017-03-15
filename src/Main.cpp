@@ -182,7 +182,7 @@ void postsimulation(Chip& chip) {
   Instrumentation::stop();
 
   // Print debug information
-  if (Arguments::summarise() || DEBUG)
+  if (Arguments::summarise())
     Instrumentation::printSummary();
 
   if (!Arguments::energyTraceFile().empty()) {

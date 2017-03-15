@@ -6,9 +6,9 @@
  */
 
 #include "../../Tile/Memory/L2RequestFilter.h"
-
 #include "../../Tile/Memory/MemoryBank.h"
 #include "../../Utility/Assert.h"
+#include "../../Utility/Instrumentation/Latency.h"
 
 L2RequestFilter::L2RequestFilter(const sc_module_name& name, ComponentID id, MemoryBank* localBank) :
     LokiComponent(name, id),
@@ -68,6 +68,8 @@ void L2RequestFilter::mainLoop() {
           oClaimRequest.write(true);
           oRequest.write(iRequest.read());
           state = STATE_ACKNOWLEDGE;
+
+          Instrumentation::Latency::memoryReceivedRequest(id, iRequest.read());
         }
         else if (targetingThisBank) {
           // Wait a clock cycle in case anyone else claims.

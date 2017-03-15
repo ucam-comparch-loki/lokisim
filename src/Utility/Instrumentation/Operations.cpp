@@ -33,17 +33,17 @@ count_t Operations::hdIn2 = 0;
 count_t Operations::hdOut = 0;
 count_t Operations::sameOp = 0;
 
-CounterMap<CoreIndex> Operations::numOps_;
+CounterMap<ComponentID> Operations::numOps_;
 count_t Operations::numDecodes_ = 0;
-CounterMap<CoreIndex> Operations::numMemLoads;
-CounterMap<CoreIndex> Operations::numMergedMemLoads;
-CounterMap<CoreIndex> Operations::numMemStores;
-CounterMap<CoreIndex> Operations::numChanReads;
-CounterMap<CoreIndex> Operations::numMergedChanReads; // i.e. packed with a useful instruction
-CounterMap<CoreIndex> Operations::numChanWrites;
-CounterMap<CoreIndex> Operations::numMergedChanWrites;
-CounterMap<CoreIndex> Operations::numArithOps;
-CounterMap<CoreIndex> Operations::numCondOps;
+CounterMap<ComponentID> Operations::numMemLoads;
+CounterMap<ComponentID> Operations::numMergedMemLoads;
+CounterMap<ComponentID> Operations::numMemStores;
+CounterMap<ComponentID> Operations::numChanReads;
+CounterMap<ComponentID> Operations::numMergedChanReads; // i.e. packed with a useful instruction
+CounterMap<ComponentID> Operations::numChanWrites;
+CounterMap<ComponentID> Operations::numMergedChanWrites;
+CounterMap<ComponentID> Operations::numArithOps;
+CounterMap<ComponentID> Operations::numCondOps;
 
 
 void Operations::reset() {
@@ -86,7 +86,7 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
   if (!Instrumentation::collectingStats()) return;
 
   // Always increase numOps - this is used to determine if we're making progress.
-  numOps_.increment(coreID);
+  numOps_.increment(core);
 
   // Want to keep track of the number of operations so we can tell if we're
   // making progress, but only want the rest of the data when we ask for it.
@@ -122,13 +122,13 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
     case ISA::OP_LDW:
     case ISA::OP_LDHWU:
     case ISA::OP_LDBU:
-      numMemLoads.increment(coreID);
+      numMemLoads.increment(core);
       break;
  
     case ISA::OP_STW:
     case ISA::OP_STHW:
     case ISA::OP_STB:
-      numMemStores.increment(coreID);
+      numMemStores.increment(core);
       break;
 
     default:
@@ -136,23 +136,23 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
   }
  
   if (dec.sourceReg1() == 2 || dec.sourceReg2() == 2) {
-    numMemLoads.increment(coreID);
+    numMemLoads.increment(core);
     if (dec.function() != ISA::FN_OR || dec.sourceReg2() != 0) {
-      numMergedMemLoads.increment(coreID);
+      numMergedMemLoads.increment(core);
     }
   }
 
   if (dec.sourceReg1() == 3 || dec.sourceReg2() == 3 || dec.sourceReg1() == 4 || dec.sourceReg2() == 4) {
-    numChanReads.increment(coreID);
+    numChanReads.increment(core);
     if (dec.function() != ISA::FN_OR || dec.sourceReg2() != 0) {
-      numMergedChanReads.increment(coreID);
+      numMergedChanReads.increment(core);
     }
   }
 
   if (dec.channelMapEntry() == 2 || dec.channelMapEntry() == 3) {
-    numChanWrites.increment(coreID);
+    numChanWrites.increment(core);
     if (dec.function() != ISA::FN_OR || dec.sourceReg1() == 2 || dec.sourceReg2() == 2) {
-      numMergedChanWrites.increment(coreID);
+      numMergedChanWrites.increment(core);
     }
   }
  
@@ -160,9 +160,9 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
     case 0:
     case 1:
       if ((dec.function() < ISA::FN_SETEQ) || (dec.function() > ISA::FN_SETGTEU)) {
-        numArithOps.increment(coreID);
+        numArithOps.increment(core);
       } else {
-        numCondOps.increment(coreID);
+        numCondOps.increment(core);
       }
       break;
     case ISA::OP_NORI:
@@ -182,7 +182,7 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
     case ISA::OP_MULHW:
     case ISA::OP_MULLW:
     case ISA::OP_MULHWU:
-      numArithOps.increment(coreID);
+      numArithOps.increment(core);
       break;
 
     case ISA::OP_SETEQI:
@@ -200,7 +200,7 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
     case ISA::OP_PSEL:
     case ISA::OP_PSEL_FETCH:
     case ISA::OP_PSEL_FETCHR:
-      numCondOps.increment(coreID);
+      numCondOps.increment(core);
       break;
 
     default:
@@ -212,7 +212,7 @@ count_t Operations::numDecodes()               {return numDecodes_;}
 count_t Operations::numOperations()            {return numOps_.numEvents();}
 
 count_t Operations::numOperations(const ComponentID& core) {
-  return numOps_[core.globalCoreNumber()];
+  return numOps_[core];
 }
 
 count_t Operations::numOperations(opcode_t op, function_t function) {

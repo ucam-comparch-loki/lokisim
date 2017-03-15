@@ -21,13 +21,13 @@ class MemoryOperation {
 
 protected:
 
-  MemoryOperation(MemoryAddr address,
-                  MemoryMetadata metadata,
+  MemoryOperation(const NetworkRequest& request,
                   MemoryBase& memory,
                   MemoryLevel level,
                   ChannelID destination,
                   unsigned int payloadFlits,
-                  unsigned int maxResultFlits);
+                  unsigned int maxResultFlits,
+                  unsigned int alignment = 1);
 
 public:
 
@@ -75,7 +75,7 @@ public:
   bool inCache() const;
 
   // Return the NetworkRequest which generated this MemoryOperation.
-  virtual NetworkRequest getOriginal() const;
+  virtual const NetworkRequest getOriginal() const;
 
   // Return the memory address accessed by this operation.
   MemoryAddr getAddress() const;
@@ -94,6 +94,12 @@ public:
 
   // Returns whether the memory should be treated as a cache or scratchpad.
   MemoryAccessMode getAccessMode() const;
+
+  // Record that this operation missed in the cache.
+  void notifyCacheMiss();
+
+  // Access whether this operation missed in the cache.
+  bool wasCacheMiss() const;
 
   // A textual representation of the operation.
   string toString() const;
@@ -118,6 +124,7 @@ protected:
 
 protected:
 
+  const NetworkRequest  request;        // Original request used to create this operation
   const MemoryAddr      address;        // Position in address space
   const MemoryMetadata  metadata;       // Various information modifying the operation
   MemoryBase&           memory;         // The memory processing this operation
@@ -127,6 +134,7 @@ protected:
   unsigned int          resultFlits;    // Number of result flits remaining
 
   SRAMAddress           sramAddress;    // Position in SRAM
+  bool                  cacheMiss;      // Did this operation miss in the cache?
 };
 
 #endif /* SRC_TILE_MEMORY_OPERATIONS_MEMORYOPERATION_H_ */

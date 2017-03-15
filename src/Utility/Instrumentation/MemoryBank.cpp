@@ -176,7 +176,7 @@ void MemoryBank::updateCoreStats(ChannelID returnChannel, MemoryOpcode op, bool 
   if (!returnChannel.component.isCore())
     return;
 
-  bool instruction = (op == IPK_READ);
+  bool instruction = (returnChannel.channel < 2);
   bool write;
 
   switch (op) {
@@ -233,16 +233,18 @@ void MemoryBank::printSummary() {
   // Note that for every miss event, there will be a corresponding hit event
   // when the data arrives. We may prefer to filter out these "duplicates".
   clog << "L1 cache activity:\n";
-  clog << "  By channel:\n";
+  fprintf(stderr, "  %20s %16s %16s %17s\n", "Core receive channel", "Read hits", "Write hits", "Total hits");
 
   for (uint core=0; core<coreStats.size(); core++) {
     for (uint channel=0; channel<coreStats[core].size(); channel++) {
       ChannelStats stats = coreStats[core][channel];
       if (stats.readHits > 0 || stats.readMisses > 0 || stats.writeHits > 0 || stats.writeMisses > 0) {
-        clog << "    Core " << core << ", input channel " << channel << (stats.receivingInstructions ? " (instructions)" : " (data)") << ":\n";
-        clog << "      Read hits:  " << stats.readHits << "/" << (stats.readHits+stats.readMisses) << " (" << percentage(stats.readHits, stats.readHits+stats.readMisses) << ")\n";
-        clog << "      Write hits: " << stats.writeHits << "/" << (stats.writeHits+stats.writeMisses) << " (" << percentage(stats.writeHits, stats.writeHits+stats.writeMisses) << ")\n";
-        clog << "      Total hits: " << stats.readHits+stats.writeHits << "/" << (stats.readHits+stats.readMisses+stats.writeHits+stats.writeMisses) << " (" << percentage(stats.readHits+stats.writeHits, stats.readHits+stats.readMisses+stats.writeHits+stats.writeMisses) << ")\n";
+        std::stringstream connection, reads, writes, total;
+        connection << "Core " << core << ", ch " << channel << (stats.receivingInstructions ? " (inst)" : " (data)");
+        reads      << stats.readHits << "/" << (stats.readHits+stats.readMisses) << " (" << percentage(stats.readHits, stats.readHits+stats.readMisses) << ")";
+        writes     << stats.writeHits << "/" << (stats.writeHits+stats.writeMisses) << " (" << percentage(stats.writeHits, stats.writeHits+stats.writeMisses) << ")";
+        total      << stats.readHits+stats.writeHits << "/" << (stats.readHits+stats.readMisses+stats.writeHits+stats.writeMisses) << " (" << percentage(stats.readHits+stats.writeHits, stats.readHits+stats.readMisses+stats.writeHits+stats.writeMisses) << ")";
+        fprintf(stderr, "  %20s %18s %18s %18s\n", connection.str().c_str(), reads.str().c_str(), writes.str().c_str(), total.str().c_str());
       }
     }
   }

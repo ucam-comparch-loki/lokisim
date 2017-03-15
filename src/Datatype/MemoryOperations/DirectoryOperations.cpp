@@ -9,8 +9,8 @@
 
 #include <assert.h>
 
-UpdateDirectoryEntry::UpdateDirectoryEntry(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(address, metadata, memory, level, destination, 1, 0) {
+UpdateDirectoryEntry::UpdateDirectoryEntry(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 1, 0) {
   // Nothing
 }
 
@@ -33,8 +33,8 @@ void UpdateDirectoryEntry::execute() {
 }
 
 
-UpdateDirectoryMask::UpdateDirectoryMask(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(address, metadata, memory, level, destination, 1, 0) {
+UpdateDirectoryMask::UpdateDirectoryMask(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 1, 0) {
   // Nothing
 }
 

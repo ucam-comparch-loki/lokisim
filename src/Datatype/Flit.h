@@ -134,6 +134,16 @@ public:
 
   /* Necessary functions/operators to pass this datatype down a channel */
 
+  inline Flit<T>& operator= (const Flit<T>& other) {
+    messageID_ = other.messageID_;
+    payload_ = other.payload_;
+    metadata_ = other.metadata_;
+    channelID_ = other.channelID_;
+    isInstruction = other.isInstruction;
+
+    return *this;
+  }
+
   inline bool operator== (const Flit<T>& other) const {
     return (this->messageID_    == other.messageID_) // is this line sufficient?
         && (this->payload_      == other.payload_)
@@ -157,6 +167,15 @@ public:
       metadata_(1), // end of packet
       channelID_(ChannelID(0, 0, 0, 0)),
       isInstruction(false) {
+  }
+
+  Flit<T>(const Flit<T>& other) :
+      messageID_(other.messageID_),
+      payload_(other.payload_),
+      metadata_(other.metadata_),
+      channelID_(other.channelID_),
+      isInstruction(other.isInstruction) {
+
   }
 
   Flit<T>(T payload, ChannelID destination) :

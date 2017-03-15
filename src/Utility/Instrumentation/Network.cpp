@@ -124,7 +124,7 @@ void Network::printSummary() {
   using std::clog;
   using std::endl;
 
-  clog << "Most saturated links:" << endl;
+  clog << "\nMost saturated links:" << endl;
   cycle_count_t totalTime = cyclesStatsCollected();
 
   // Find the most used link.

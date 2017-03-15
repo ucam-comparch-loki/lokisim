@@ -6,12 +6,12 @@
  */
 
 #include "SendChannelEndTable.h"
-
+#include "WriteStage.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/MemoryRequest.h"
 #include "../ChannelMapTable.h"
-#include "WriteStage.h"
 #include "../../../Utility/Assert.h"
+#include "../../../Utility/Instrumentation/Latency.h"
 #include "../../../Utility/Instrumentation/Network.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
@@ -25,6 +25,7 @@ void SendChannelEndTable::write(const NetworkData data) {
   else if (data.channelID().isMemory()) {
     loki_assert(!bufferMemory.full());
     LOKI_LOG << this->name() << " writing " << data << " to buffer (memory)\n";
+    Instrumentation::Latency::coreBufferedMemoryRequest(id, data);
     bufferMemory.write(data);
   }
   else {
@@ -226,6 +227,7 @@ void SendChannelEndTable::sendLoopMemory() {
       if (ENERGY_TRACE)
         Instrumentation::Network::traffic(id, data.channelID().component);
       Instrumentation::Network::recordBandwidth(oDataMemory.name());
+      Instrumentation::Latency::coreSentMemoryRequest(id, data);
 
       oDataMemory.write(data);
 

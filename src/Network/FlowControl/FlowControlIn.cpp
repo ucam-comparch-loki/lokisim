@@ -8,6 +8,7 @@
 #include "FlowControlIn.h"
 #include "../../Datatype/MemoryRequest.h"
 #include "../../Utility/Assert.h"
+#include "../../Utility/Instrumentation/Latency.h"
 
 void FlowControlIn::dataLoop() {
   // Don't accept any new data if we are waiting to reject a claim for this
@@ -23,8 +24,10 @@ void FlowControlIn::dataLoop() {
 
     if (data.getCoreMetadata().allocate)
       handlePortClaim(data);
-    else
+    else {
       oData.write(data.payload());
+      Instrumentation::Latency::coreReceivedResult(id, data);
+    }
 
     iData.ack();
   }

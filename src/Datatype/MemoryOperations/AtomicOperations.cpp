@@ -11,8 +11,8 @@
 
 #include "../../Tile/Memory/MemoryBank.h"
 
-LoadLinked::LoadLinked(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(address, metadata, memory, level, destination, 0, 1) {
+LoadLinked::LoadLinked(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 0, 1, BYTES_PER_WORD) {
   // Nothing
 }
 
@@ -33,8 +33,8 @@ void LoadLinked::execute() {
 }
 
 
-StoreConditional::StoreConditional(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(address, metadata, memory, level, destination, 1, 1) {
+StoreConditional::StoreConditional(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 1, 1, BYTES_PER_WORD) {
   success = false;
   preWriteCheck();
 }
@@ -69,8 +69,8 @@ void StoreConditional::execute() {
 }
 
 
-LoadAndAdd::LoadAndAdd(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(address, metadata, memory, level, destination, 1, 1) {
+LoadAndAdd::LoadAndAdd(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 1, 1, BYTES_PER_WORD) {
   intermediateData = 0;
   preWriteCheck();
 }
@@ -101,8 +101,8 @@ void LoadAndAdd::execute() {
 }
 
 
-LoadAndOr::LoadAndOr(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(address, metadata, memory, level, destination, 1, 1) {
+LoadAndOr::LoadAndOr(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 1, 1, BYTES_PER_WORD) {
   intermediateData = 0;
   preWriteCheck();
 }
@@ -132,8 +132,8 @@ void LoadAndOr::execute() {
 }
 
 
-LoadAndAnd::LoadAndAnd(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(address, metadata, memory, level, destination, 1, 1) {
+LoadAndAnd::LoadAndAnd(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 1, 1, BYTES_PER_WORD) {
   intermediateData = 0;
   preWriteCheck();
 }
@@ -163,8 +163,8 @@ void LoadAndAnd::execute() {
 }
 
 
-LoadAndXor::LoadAndXor(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(address, metadata, memory, level, destination, 1, 1) {
+LoadAndXor::LoadAndXor(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 1, 1, BYTES_PER_WORD) {
   intermediateData = 0;
   preWriteCheck();
 }
@@ -194,8 +194,8 @@ void LoadAndXor::execute() {
 }
 
 
-Exchange::Exchange(MemoryAddr address, MemoryMetadata metadata, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(address, metadata, memory, level, destination, 1, 1) {
+Exchange::Exchange(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 1, 1, BYTES_PER_WORD) {
   preWriteCheck();
 }
 

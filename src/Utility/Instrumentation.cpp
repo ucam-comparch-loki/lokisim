@@ -13,6 +13,8 @@
 #include "Instrumentation/ChannelMap.h"
 #include "Instrumentation/FIFO.h"
 #include "Instrumentation/IPKCache.h"
+#include "Instrumentation/Latency.h"
+#include "Instrumentation/MainMemory.h"
 #include "Instrumentation/MemoryBank.h"
 #include "Instrumentation/Network.h"
 #include "Instrumentation/Operations.h"
@@ -21,7 +23,6 @@
 #include "Instrumentation/Scratchpad.h"
 #include "Instrumentation/Stalls.h"
 #include "../Datatype/DecodedInst.h"
-#include "Instrumentation/MainMemory.h"
 
 // The time at which the statistics were last reset.
 cycle_count_t statsWiped = 0;
@@ -36,6 +37,7 @@ void Instrumentation::initialise() {
   ChannelMap::init();
   FIFO::init();
   IPKCache::init();
+  Latency::init();
   MainMemory::init();
   MemoryBank::init();
   Network::init();
@@ -52,6 +54,7 @@ void Instrumentation::reset() {
   ChannelMap::reset();
   FIFO::reset();
   IPKCache::reset();
+  Latency::reset();
   MainMemory::reset();
   MemoryBank::reset();
   Network::reset();
@@ -71,6 +74,7 @@ void Instrumentation::start() {
   ChannelMap::start();
   FIFO::start();
   IPKCache::start();
+  Latency::start();
   MainMemory::start();
   MemoryBank::start();
   Network::start();
@@ -89,6 +93,7 @@ void Instrumentation::stop() {
   ChannelMap::stop();
   FIFO::stop();
   IPKCache::stop();
+  Latency::stop();
   MainMemory::stop();
   MemoryBank::stop();
   Network::stop();
@@ -112,6 +117,7 @@ void Instrumentation::end() {
   ChannelMap::end();
   FIFO::end();
   IPKCache::end();
+  Latency::end();
   MainMemory::end();
   MemoryBank::end();
   Network::end();
@@ -169,6 +175,7 @@ void Instrumentation::printSummary() {
   IPKCache::printSummary();
   MemoryBank::printSummary();
   MainMemory::printStats();
+  Latency::printSummary();
   Network::printSummary();
   Operations::printSummary();
 }
