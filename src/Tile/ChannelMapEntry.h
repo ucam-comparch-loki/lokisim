@@ -201,6 +201,18 @@ public:
   ChannelMapEntry(const ChannelMapEntry& other);
   ChannelMapEntry& operator=(const ChannelMapEntry& other);
 
+  friend std::ostream& operator<< (std::ostream& os, const ChannelMapEntry& c) {
+    os << c.getDestination();
+
+    if (c.memoryView().isMemory) {
+      if (c.memoryView().scratchpadL1) os << " | L1 scratchpad";
+      if (c.memoryView().l1Skip)       os << " | skip L1";
+      if (c.memoryView().l2Skip)       os << " | skip L2";
+    }
+
+    return os;
+  }
+
 private:
 
   // Set credit count directly. No safety checks.

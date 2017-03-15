@@ -140,33 +140,12 @@ void ChannelMapEntry::write(EncodedCMTEntry data) {
       setCredits(oldCredits);
 
     clearWriteEnable();
-
-    if (Arguments::summarise())
-      std::cout << "SETCHMAP: " << id_ << " -> " << getDestination() << std::endl;
   }
   else if (memoryView().isMemory) {
     network_ = CORE_TO_MEMORY;
-
-    if (Arguments::summarise()) {
-      string type = (getReturnChannel() < 2) ? "insts" : "data";
-      uint startBank = getComponent() - CORES_PER_TILE;
-      uint endBank = startBank + getMemoryGroupSize() - 1;
-
-      std::cout << "SETCHMAP: " << id_  << " -> banks "
-          << startBank << "-" << endBank<< " (" << type << ")";
-
-      if (memoryView().scratchpadL1) std::cout << " | L1 scratchpad";
-      if (memoryView().l1Skip)       std::cout << " | skip L1";
-      if (memoryView().l2Skip)       std::cout << " | skip L2";
-
-      std::cout << std::endl;
-    }
   }
   else {
     network_ = MULTICAST;
-
-    if (Arguments::summarise())
-      std::cout << "SETCHMAP: " << id_ << " -> " << getDestination() << std::endl;
   }
 }
 

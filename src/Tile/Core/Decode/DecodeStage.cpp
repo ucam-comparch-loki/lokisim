@@ -187,13 +187,13 @@ void         DecodeStage::readChannelMapTable(DecodedInst& inst) {
 
   // If this is the first flit of a packet, we must read the channel map table.
   if (firstFlitOfPacket(inst)) {
-    LOKI_LOG << this->name() << " reading CMT data " << LOKI_HEX(cmtEntry.read()) << endl;
+    LOKI_LOG << this->name() << " reading CMT entry " << channel << ": " << cmtEntry << endl;
     inst.cmtEntry(cmtEntry.read());
     previousCMTData = cmtEntry.read();
   }
   // Otherwise, we can reuse the data we read last time.
   else {
-    LOKI_LOG << this->name() << " reusing CMT data " << LOKI_HEX(previousCMTData) << endl;
+    LOKI_LOG << this->name() << " reusing CMT entry " << channel << ": " << cmtEntry << endl;
     inst.cmtEntry(previousCMTData);
   }
 }

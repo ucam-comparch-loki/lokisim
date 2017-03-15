@@ -364,6 +364,9 @@ void Stalls::printStats() {
     }
   }
 
+  // Everything below this point is very rarely wanted.
+  return;
+
   // Print instruction distribution summary
   clog << "\nDistribution of instructions:\n";
 
