@@ -25,7 +25,9 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
     oRequestToBanks("oRequestToBanks"),
     oRequestTarget("oRequestTarget"),
     iClaimRequest(MEMS_PER_TILE, "iClaimRequest"),
+    iDelayRequest(MEMS_PER_TILE, "iDelayRequest"),
     oRequestClaimed("oRequestClaimed"),
+    oRequestDelayed("oRequestDelayed"),
     directory(DIRECTORY_SIZE),
     requestMux("request_mux", MEMS_PER_TILE),
     responseMux("response_mux", MEMS_PER_TILE) {
@@ -79,6 +81,11 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
   SC_METHOD(requestClaimLoop);
   for (uint i=0; i<iClaimRequest.size(); i++)
     sensitive << iClaimRequest[i];
+  // do initialise
+
+  SC_METHOD(requestDelayLoop);
+  for (uint i=0; i<iDelayRequest.size(); i++)
+    sensitive << iDelayRequest[i];
   // do initialise
 }
 
@@ -230,22 +237,9 @@ void MissHandlingLogic::remoteRequestLoop() {
 
     // For each new request, update the target bank. This bank services the
     // request in the event that no bank currently holds the required data.
+    // The same target bank is used for all flits of a single request.
     if (newRemoteRequest) {
-      MemoryIndex targetBank;
-
-      // Choose which bank should be responsible for the request.
-
-      // In scratchpad mode, the bank is specified by the bits immediately
-      // above the offset.
-      if (flit.getMemoryMetadata().scratchpad)
-        targetBank = (flit.payload().toUInt() >> 5) & (MEMS_PER_TILE - 1);
-      // Push line operations specify the target bank with the lowest bits.
-      else if (flit.getMemoryMetadata().opcode == PUSH_LINE)
-        targetBank = flit.payload().toUInt() & (MEMS_PER_TILE - 1);
-      // Otherwise, the target bank is random.
-      else
-        targetBank = nextTargetBank();
-
+      MemoryIndex targetBank = getTargetBank(flit);
       oRequestTarget.write(targetBank);
     }
 
@@ -265,6 +259,16 @@ void MissHandlingLogic::requestClaimLoop() {
     }
   }
   oRequestClaimed.write(claimed);
+}
+
+void MissHandlingLogic::requestDelayLoop() {
+  bool delayed = false;
+  for (uint i=0; i<iDelayRequest.size(); i++) {
+    if (iDelayRequest[i].read()) {
+      delayed = true;
+    }
+  }
+  oRequestDelayed.write(delayed);
 }
 
 void MissHandlingLogic::sendResponseLoop() {
@@ -287,7 +291,27 @@ void MissHandlingLogic::sendResponseLoop() {
   }
 }
 
-MemoryIndex MissHandlingLogic::nextTargetBank() {
+MemoryIndex MissHandlingLogic::getTargetBank(const NetworkRequest& request) {
+  // In scratchpad mode, the bank is specified by the bits immediately
+  // above the offset.
+  if (request.getMemoryMetadata().scratchpad)
+    return (request.payload().toUInt() >> 5) & (MEMS_PER_TILE - 1);
+
+  // Push line operations specify the target bank with the lowest bits.
+  else if (request.getMemoryMetadata().opcode == PUSH_LINE)
+    return request.payload().toUInt() & (MEMS_PER_TILE - 1);
+
+  // Ensure that requests which skip this memory cannot be reordered by
+  // using the same bank mapping as in the L1. (returnChannel = bank).
+  else if (request.getMemoryMetadata().skipL2)
+    return request.getMemoryMetadata().returnChannel;
+
+  // Otherwise, the target bank is random.
+  else
+    return nextRandomBank();
+}
+
+MemoryIndex MissHandlingLogic::nextRandomBank() {
   // Based on the Verilog: cache/l2_prng.sv.
 
   MemoryIndex targetBank = oRequestTarget.read();

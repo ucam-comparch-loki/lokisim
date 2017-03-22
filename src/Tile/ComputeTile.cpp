@@ -221,6 +221,7 @@ void ComputeTile::makeSignals() {
     }
 
   l2ClaimRequest.init(memories.size(), "l2ClaimRequest");
+  l2DelayRequest.init(memories.size(), "l2DelayRequest");
   l2RequestFromMemory.init(memories.size(), "l2RequestFromMemory");
   l2ResponseFromMemory.init(memories.size(), "l2ResponseFromMemory");
 }
@@ -248,10 +249,12 @@ void ComputeTile::wireUp() {
     memories[i]->iData(requestsToMemory[i]);
     memories[i]->iRequest(l2RequestToMemory);
     memories[i]->iRequestClaimed(l2RequestClaimed);
+    memories[i]->iRequestDelayed(l2RequestDelayed);
     memories[i]->iRequestTarget(l2RequestTarget);
     memories[i]->iResponse(l2ResponseToMemory);
     memories[i]->iResponseTarget(l2ResponseTarget);
     memories[i]->oClaimRequest(l2ClaimRequest[i]);
+    memories[i]->oDelayRequest(l2DelayRequest[i]);
     memories[i]->oData(dataFromMemory[i]);
     memories[i]->oInstruction(instructionsFromMemory[i]);
     memories[i]->oReadyForData(readyDataFromMemory[i][0]);
@@ -267,9 +270,11 @@ void ComputeTile::wireUp() {
   mhl.oReadyForResponse(oResponseReady);
   mhl.iResponseFromNetwork(iResponse);
   mhl.iClaimRequest(l2ClaimRequest);
+  mhl.iDelayRequest(l2DelayRequest);
   mhl.iRequestFromBanks(l2RequestFromMemory);
   mhl.iResponseFromBanks(l2ResponseFromMemory);
   mhl.oRequestClaimed(l2RequestClaimed);
+  mhl.oRequestDelayed(l2RequestDelayed);
   mhl.oRequestTarget(l2RequestTarget);
   mhl.oRequestToBanks(l2RequestToMemory);
   mhl.oResponseTarget(l2ResponseTarget);

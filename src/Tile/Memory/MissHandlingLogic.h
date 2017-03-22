@@ -77,8 +77,16 @@ public:
   // Signal from each bank telling whether it has claimed the latest request.
   LokiVector<sc_in<bool> >    iClaimRequest;
 
+  // Signal from each bank telling demanding that the current request be
+  // delayed. This may be because the bank is already processing another
+  // request which interferes with this one.
+  LokiVector<sc_in<bool> >    iDelayRequest;
+
   // Signal broadcast to all banks, telling whether the request has been claimed.
   sc_out<bool>                oRequestClaimed;
+
+  // Signal broadcast to all banks, telling whether the request has been delayed.
+  sc_out<bool>                oRequestDelayed;
 
 //============================================================================//
 // Constructors and destructors
@@ -118,11 +126,17 @@ private:
   // Update whether the remote request has been claimed by any local bank.
   void requestClaimLoop();
 
+  // Update whether the remote request has been delayed by any local bank.
+  void requestDelayLoop();
+
   // Send responses to remote memory banks.
   void sendResponseLoop();
 
+  // Determine which memory bank should be the target for the given request.
+  MemoryIndex getTargetBank(const NetworkRequest& request);
+
   // Pseudo-randomly select a target bank.
-  MemoryIndex nextTargetBank();
+  MemoryIndex nextRandomBank();
 
   void sendOnNetwork(NetworkRequest request);
   bool canSendOnNetwork() const;

@@ -33,6 +33,9 @@ public:
   sc_in<bool>           iRequestClaimed;  // One of the banks has claimed the request.
   sc_out<bool>          oClaimRequest;    // Tell whether this bank has claimed the request.
 
+  sc_in<bool>           iRequestDelayed;  // One of the banks has delayed the request.
+  sc_out<bool>          oDelayRequest;    // Block other banks from processing the request.
+
 //============================================================================//
 // Internal functions
 //============================================================================//
@@ -44,7 +47,16 @@ public:
 
 private:
 
+  // Check whether requests should be accepted by this memory bank.
   void mainLoop();
+
+  // Pass requests on to the memory bank.
+  void forwardToMemoryBank(NetworkRequest request);
+
+  // Monitor whether it is safe for other banks to proceed with the current
+  // request. It may not be safe if this bank is currently doing something which
+  // may interfere (e.g. flushing some data which is about to be read).
+  void delayLoop();
 
 //============================================================================//
 // Local state

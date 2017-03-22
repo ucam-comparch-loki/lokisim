@@ -182,7 +182,9 @@ private:
   RequestSignal             l2RequestToMemory;
   sc_signal<MemoryIndex>    l2RequestTarget;
   LokiVector<sc_signal<bool>> l2ClaimRequest;
+  LokiVector<sc_signal<bool>> l2DelayRequest;
   sc_signal<bool>           l2RequestClaimed;
+  sc_signal<bool>           l2RequestDelayed;
 
   LokiVector<ResponseSignal> l2ResponseFromMemory;
   ResponseSignal            l2ResponseToMemory;

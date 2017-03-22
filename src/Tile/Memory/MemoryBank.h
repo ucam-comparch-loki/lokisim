@@ -25,6 +25,7 @@
 #include "../../Utility/BlockingInterface.h"
 
 #include <memory>
+#include <queue>
 
 class ComputeTile;
 class MemoryOperation;
@@ -53,6 +54,8 @@ public:
 
   sc_in<bool>           iRequestClaimed;  // One of the banks has claimed the request.
   sc_out<bool>          oClaimRequest;    // Tell whether this bank has claimed the request.
+  sc_in<bool>           iRequestDelayed;  // One of the banks has delayed the request.
+  sc_out<bool>          oDelayRequest;    // Block other banks from processing the request.
 
   // Responses - to/from memory banks on other tiles.
   ResponseInput         iResponse;
@@ -120,6 +123,12 @@ public:
 
   // Override writeWord so we can update metadata (valid, dirty, etc.).
   virtual void writeWord(SRAMAddress position, uint32_t data, MemoryAccessMode mode);
+
+  // Event triggered every time a request flit is sent.
+  const sc_event& requestSentEvent() const;
+
+  // Determine whether we are currently flushing data from the given address.
+  bool flushing(MemoryAddr address) const;
 
   // Access data based on its position in the address space, and bypass the
   // usual tag checks.
@@ -199,52 +208,57 @@ protected:
 private:
 
   enum MemoryState {
-    STATE_IDLE,                           // No active request
-    STATE_REQUEST,                        // Serving active request
-    STATE_ALLOCATE,                       // Allocating cache line
-    STATE_FLUSH,                          // Flushing cache line
-    STATE_REFILL,                         // Filling cache line
-    STATE_FORWARD,                        // Forward request to directory or L2
+    STATE_IDLE,                          // No active request
+    STATE_REQUEST,                       // Serving active request
+    STATE_ALLOCATE,                      // Allocating cache line
+    STATE_FLUSH,                         // Flushing cache line
+    STATE_REFILL,                        // Filling cache line
+    STATE_FORWARD,                       // Forward request to directory or L2
   };
 
-  MemoryState           mState, mPreviousState;
+  MemoryState           state, previousState;
 
   bool                  currentlyIdle;
 
-  NetworkBuffer<NetworkRequest>  mInputQueue;       // Input queue
-  DelayBuffer<NetworkResponse>   mOutputDataQueue;  // Output queue
-  DelayBuffer<NetworkResponse>   mOutputInstQueue;  // Output queue
-  DelayBuffer<NetworkRequest>    mOutputReqQueue;   // Output request queue
+  NetworkBuffer<NetworkRequest>  inputQueue;       // Input queue
+  DelayBuffer<NetworkResponse>   outputDataQueue;  // Output queue
+  DelayBuffer<NetworkResponse>   outputInstQueue;  // Output queue
+  DelayBuffer<NetworkRequest>    outputReqQueue;   // Output request queue
 
-  vector<uint32_t>      mData;            // The stored data.
-  vector<MemoryTag>     mTags;            // Cache tags for each line.
-  vector<bool>          mValid;           // Valid data flag for each line.
-  vector<bool>          mDirty;           // Modified data flag for each line.
-  vector<bool>          mL2Skip;          // Whether each line bypasses the L2 when flushed.
+  // If this bank is flushing data, it has the only valid copy, but the tags
+  // will suggest that it doesn't have it at all. Record the addresses of all
+  // cache lines in the process of being flushed to detect this corner case.
+  vector<MemoryAddr>    pendingFlushes;
 
-  std::shared_ptr<MemoryOperation> mActiveRequest;   // The request being served.
+  vector<uint32_t>      data;            // The stored data.
+  vector<MemoryTag>     tags;            // Cache tags for each line.
+  vector<bool>          valid;           // Valid data flag for each line.
+  vector<bool>          dirty;           // Modified data flag for each line.
+  vector<bool>          l2Skip;          // Whether each line bypasses the L2 when flushed.
+
+  std::shared_ptr<MemoryOperation> activeRequest;  // The request being served.
 
   // Callback request - put on hold while performing sub-operations such as
   // cache line fetches.
-  std::shared_ptr<MemoryOperation> mMissingRequest;
+  std::shared_ptr<MemoryOperation> missingRequest;
 
-  ReservationHandler    mReservations;    // Data keeping track of current atomic transactions.
+  ReservationHandler    reservations;    // Data keeping track of current atomic transactions.
 
-  unsigned int          mCacheLineCursor; // Used to step through cache lines.
+  unsigned int          cacheLineCursor; // Used to step through cache lines.
 
-  BufferStorage<NetworkRequest> mMissBuffer; // Payloads for a request which is currently missing.
+  BufferStorage<NetworkRequest> missBuffer; // Payloads for a request which is currently missing.
 
-  bool                  mCopyToMissBuffer;   // Tell whether the miss buffer needs filling.
-  bool                  mReadFromMissBuffer; // Tell whether the miss buffer needs emptying.
+  bool                  copyingToMissBuffer;   // Tell whether the miss buffer needs filling.
+  bool                  readingFromMissBuffer; // Tell whether the miss buffer needs emptying.
 
-  sc_event              mCacheMissEvent;  // Event triggered on each cache miss.
+  sc_event              cacheMissEvent;  // Event triggered on each cache miss.
 
   // L2 requests are broadcast to all banks to allow high associativity. This
   // module filters out requests which are for this bank.
-  L2RequestFilter       mL2RequestFilter;
+  L2RequestFilter       l2RequestFilter;
 
   // Magic connection to main memory.
-  MainMemory *mMainMemory;
+  MainMemory *mainMemory;
 
   // Data received through the L2 request filter.
   RequestSignal requestSig;

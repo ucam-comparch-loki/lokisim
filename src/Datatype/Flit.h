@@ -151,13 +151,18 @@ public:
         && (this->channelID_    == other.channelID_);
   }
 
-  friend std::ostream& operator<< (std::ostream& os, Flit<T> const& v) {
+  friend std::ostream& operator<< (std::ostream& os, Flit<T> const& f) {
     os << "[";
-    if (v.isInstruction)
-      os << static_cast<Instruction>(v.payload());
+    if (f.isInstruction)
+      os << static_cast<Instruction>(f.payload());
+    else if (f.channelID().isMemory() &&
+             f.getMemoryMetadata().opcode != PAYLOAD &&
+             f.getMemoryMetadata().opcode != PAYLOAD_EOP) {
+      os << LOKI_HEX(f.payload());
+    }
     else
-      os << v.payload();
-    os << " => " << v.channelID().getString() << "] (id:" << v.messageID() << ")";
+      os << f.payload();
+    os << " => " << f.channelID().getString() << "] (id:" << f.messageID() << ")";
     return os;
   }
 

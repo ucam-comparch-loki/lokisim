@@ -88,7 +88,7 @@ SRAMAddress MemoryBank::getPosition(MemoryAddr address, MemoryAccessMode mode) c
 // Return the position in the memory address space of the data stored at the
 // given position.
 MemoryAddr MemoryBank::getAddress(SRAMAddress position) const {
-  return mTags[getLine(position)] + getOffset(position);
+  return tags[getLine(position)] + getOffset(position);
 }
 
 // Return whether data from `address` can be found at `position` in the SRAM.
@@ -96,7 +96,7 @@ bool MemoryBank::contains(MemoryAddr address, SRAMAddress position, MemoryAccess
   switch (mode) {
     case MEMORY_CACHE: {
       uint cacheLine = getLine(position);
-      return (mTags[cacheLine] == getTag(address)) && mValid[cacheLine];
+      return (tags[cacheLine] == getTag(address)) && valid[cacheLine];
     }
     case MEMORY_SCRATCHPAD:
       return true;
@@ -112,17 +112,17 @@ void MemoryBank::allocate(MemoryAddr address, SRAMAddress position, MemoryAccess
     case MEMORY_CACHE:
       if (!contains(address, position, mode)) {
         LOKI_LOG << this->name() << " cache miss at address " << LOKI_HEX(address) << endl;
-        Instrumentation::MemoryBank::replaceCacheLine(id.globalMemoryNumber(), mValid[getLine(position)], mDirty[getLine(position)]);
+        Instrumentation::MemoryBank::replaceCacheLine(id.globalMemoryNumber(), valid[getLine(position)], dirty[getLine(position)]);
 
         // Send a request for the missing cache line.
         NetworkRequest readRequest(getTag(address), id, FETCH_LINE, true);
         MemoryMetadata metadata = readRequest.getMemoryMetadata();
-        metadata.skipL2 = mActiveRequest->getMetadata().skipL2;
+        metadata.skipL2 = activeRequest->getMetadata().skipL2;
         readRequest.setMetadata(metadata.flatten());
         sendRequest(readRequest);
 
         // Stop serving the request until allocation is complete.
-        mState = STATE_ALLOCATE;
+        state = STATE_ALLOCATE;
         next_trigger(sc_core::SC_ZERO_TIME); // Continue immediately.
       }
       break;
@@ -135,19 +135,19 @@ void MemoryBank::allocate(MemoryAddr address, SRAMAddress position, MemoryAccess
 void MemoryBank::validate(MemoryAddr address, SRAMAddress position, MemoryAccessMode mode) {
   switch (mode) {
     case MEMORY_CACHE: {
-      if (mTags[getLine(position)] != getTag(address))
+      if (tags[getLine(position)] != getTag(address))
         flush(position, mode);
-      mTags[getLine(position)] = getTag(address);
-      mValid[getLine(position)] = true;
+      tags[getLine(position)] = getTag(address);
+      valid[getLine(position)] = true;
 
       // Hack. It might not always be the active request doing this?
-      mL2Skip[getLine(position)] = mActiveRequest->getMetadata().skipL2;
+      l2Skip[getLine(position)] = activeRequest->getMetadata().skipL2;
 
       // Some extra bookkeeping to help with debugging.
       bool inMainMemory = chip()->backedByMainMemory(id.tile, address);
       if (inMainMemory) {
         MemoryAddr globalAddress = chip()->getAddressTranslation(id.tile, address);
-        mMainMemory->claimCacheLine(id, globalAddress);
+        mainMemory->claimCacheLine(id, globalAddress);
       }
 
       break;
@@ -162,7 +162,7 @@ void MemoryBank::validate(MemoryAddr address, SRAMAddress position, MemoryAccess
 void MemoryBank::invalidate(SRAMAddress position, MemoryAccessMode mode) {
   switch (mode) {
     case MEMORY_CACHE:
-      mValid[getLine(position)] = false;
+      valid[getLine(position)] = false;
       break;
     case MEMORY_SCRATCHPAD:
       break;
@@ -174,27 +174,30 @@ void MemoryBank::invalidate(SRAMAddress position, MemoryAccessMode mode) {
 void MemoryBank::flush(SRAMAddress position, MemoryAccessMode mode) {
   switch (mode) {
     case MEMORY_CACHE:
-      if (mValid[getLine(position)] && mDirty[getLine(position)]) {
+      if (valid[getLine(position)] && dirty[getLine(position)]) {
         // Send a header flit telling where this line should be stored.
-        NetworkRequest header(mTags[getLine(position)], id, STORE_LINE, false);
+        MemoryAddr address = tags[getLine(position)];
+        NetworkRequest header(address, id, STORE_LINE, false);
         MemoryMetadata metadata = header.getMemoryMetadata();
-        metadata.skipL2 = mL2Skip[getLine(position)];
+        metadata.skipL2 = l2Skip[getLine(position)];
         header.setMetadata(metadata.flatten());
         sendRequest(header);
 
+        pendingFlushes.push_back(address);
+
         if (ENERGY_TRACE)
           Instrumentation::MemoryBank::startOperation(id.globalMemoryNumber(),
-              FLUSH_LINE, mTags[getLine(position)], false, ChannelID(id,0));
+              FLUSH_LINE, tags[getLine(position)], false, ChannelID(id,0));
 
         // The flush state handles sending the line itself.
-        mPreviousState = mState;
-        mState = STATE_FLUSH;
-        mCacheLineCursor = 0;
+        previousState = state;
+        state = STATE_FLUSH;
+        cacheLineCursor = 0;
       }
       else
-        mState = STATE_REQUEST;
+        state = STATE_REQUEST;
 
-      mDirty[getLine(position)] = false;
+      dirty[getLine(position)] = false;
       break;
     case MEMORY_SCRATCHPAD:
       break;
@@ -204,13 +207,13 @@ void MemoryBank::flush(SRAMAddress position, MemoryAccessMode mode) {
 // Return whether a payload flit is available. `level` tells whether this bank
 // is being treated as an L1 or L2 cache.
 bool MemoryBank::payloadAvailable(MemoryLevel level) const {
-  if (mReadFromMissBuffer) {
-    return !mMissBuffer.empty();
+  if (readingFromMissBuffer) {
+    return !missBuffer.empty();
   }
   else {
     switch (level) {
       case MEMORY_L1:
-        return !mInputQueue.empty() && isPayload(mInputQueue.peek());
+        return !inputQueue.empty() && isPayload(inputQueue.peek());
       case MEMORY_L2:
         return requestSig.valid() && isPayload(requestSig.read());
       default:
@@ -227,13 +230,13 @@ uint32_t MemoryBank::getPayload(MemoryLevel level) {
 
   NetworkRequest request;
 
-  if (mReadFromMissBuffer) {
-    request = mMissBuffer.read();
+  if (readingFromMissBuffer) {
+    request = missBuffer.read();
   }
   else {
     switch (level) {
       case MEMORY_L1:
-        request = mInputQueue.read();
+        request = inputQueue.read();
         LOKI_LOG << this->name() << " dequeued " << request << endl;
         break;
       case MEMORY_L2: {
@@ -253,31 +256,47 @@ uint32_t MemoryBank::getPayload(MemoryLevel level) {
 
 // Make a load-linked reservation.
 void MemoryBank::makeReservation(ComponentID requester, MemoryAddr address, MemoryAccessMode mode) {
-  mReservations.makeReservation(requester, address, getPosition(address, mode));
+  reservations.makeReservation(requester, address, getPosition(address, mode));
 }
 
 // Return whether a load-linked reservation is still valid.
 bool MemoryBank::checkReservation(ComponentID requester, MemoryAddr address, MemoryAccessMode mode) const {
-  return mReservations.checkReservation(requester, address);
+  return reservations.checkReservation(requester, address);
 }
 
-void MemoryBank::writeWord(SRAMAddress position, uint32_t data, MemoryAccessMode mode) {
+void MemoryBank::writeWord(SRAMAddress position, uint32_t value, MemoryAccessMode mode) {
   checkAlignment(position, BYTES_PER_WORD);
 
-  mData[position/BYTES_PER_WORD] = data;
+  data[position/BYTES_PER_WORD] = value;
   if (mode == MEMORY_CACHE)
-    mDirty[getLine(position)] = true;
+    dirty[getLine(position)] = true;
 
-  mReservations.clearReservation(position);
+  reservations.clearReservation(position);
+}
+
+const sc_event& MemoryBank::requestSentEvent() const {
+  return outputReqQueue.readEvent();
+}
+
+bool MemoryBank::flushing(MemoryAddr address) const {
+  MemoryAddr cacheLine = getTag(address);
+
+  for (uint i=0; i<pendingFlushes.size(); i++) {
+    if (pendingFlushes[i] == cacheLine) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 void MemoryBank::processIdle() {
-  loki_assert_with_message(mState == STATE_IDLE, "State = %d", mState);
+  loki_assert_with_message(state == STATE_IDLE, "State = %d", state);
 
   // Refills have priority because other requests may depend on them.
   if (responseAvailable()) {
-    mState = STATE_REFILL;
-    mCacheLineCursor = 0;
+    state = STATE_REFILL;
+    cacheLineCursor = 0;
     next_trigger(sc_core::SC_ZERO_TIME);
   }
   // Check for any other requests.
@@ -285,35 +304,35 @@ void MemoryBank::processIdle() {
     // If the hit-under-miss option is enabled and we are currently serving a
     // miss, peek the next request in the queue to see if it is a hit.
 
-    mActiveRequest = peekRequest();
+    activeRequest = peekRequest();
 
-    if (MEMORY_HIT_UNDER_MISS && (mMissingRequest.get() != NULL)) {
+    if (MEMORY_HIT_UNDER_MISS && (missingRequest.get() != NULL)) {
       // Don't reorder data being sent to the same channel.
-      if (mMissingRequest->getDestination() == mActiveRequest->getDestination())
+      if (missingRequest->getDestination() == activeRequest->getDestination())
         return;
 
       // Don't start a request for the same location as the missing request.
-      if (getTag(mMissingRequest->getAddress()) == getTag(mActiveRequest->getAddress()))
+      if (getTag(missingRequest->getAddress()) == getTag(activeRequest->getAddress()))
         return;
 
       // Don't start another request if it will miss.
-      if (!mActiveRequest->inCache())
+      if (!activeRequest->inCache())
         return;
 
       // Don't start a request which skips this cache, but will return data
       // through it.
-      if (mActiveRequest->needsForwarding() && mActiveRequest->resultsToSend())
+      if (activeRequest->needsForwarding() && activeRequest->resultsToSend())
         return;
 
       LOKI_LOG << this->name() << " starting hit-under-miss" << endl;
     }
 
-    consumeRequest(mActiveRequest->getMemoryLevel());
-    mState = STATE_REQUEST;
+    consumeRequest(activeRequest->getMemoryLevel());
+    state = STATE_REQUEST;
     next_trigger(sc_core::SC_ZERO_TIME);
 
-    LOKI_LOG << this->name() << " starting " << memoryOpName(mActiveRequest->getMetadata().opcode)
-        << " request from component " << mActiveRequest->getDestination().component << endl;
+    LOKI_LOG << this->name() << " starting " << memoryOpName(activeRequest->getMetadata().opcode)
+        << " request from component " << activeRequest->getDestination().component << endl;
   }
   // Nothing to do - wait for input to arrive.
   else {
@@ -322,8 +341,8 @@ void MemoryBank::processIdle() {
 }
 
 void MemoryBank::processRequest() {
-  loki_assert_with_message(mState == STATE_REQUEST, "State = %d", mState);
-  loki_assert(mActiveRequest.get() != NULL);
+  loki_assert_with_message(state == STATE_REQUEST, "State = %d", state);
+  loki_assert(activeRequest.get() != NULL);
 
   // Before we even consider serving a request, we must make sure that there
   // is space to buffer any potential results.
@@ -332,41 +351,41 @@ void MemoryBank::processRequest() {
     LOKI_LOG << this->name() << " delayed request due to full output request queue" << endl;
     next_trigger(canSendRequestEvent());
   }
-  else if (mActiveRequest->needsForwarding()) {
-    forwardRequest(mActiveRequest->getOriginal());
-    if (mActiveRequest->awaitingPayload())
-      mState = STATE_FORWARD;
+  else if (activeRequest->needsForwarding()) {
+    forwardRequest(activeRequest->getOriginal());
+    if (activeRequest->awaitingPayload())
+      state = STATE_FORWARD;
     else {
-      assert(mMissingRequest.get() == NULL);
-      mMissingRequest = mActiveRequest;
+      assert(missingRequest.get() == NULL);
+      missingRequest = activeRequest;
       finishedRequestForNow();
     }
   }
-  else if (!mActiveRequest->preconditionsMet()) {
-    mActiveRequest->prepare();
+  else if (!activeRequest->preconditionsMet()) {
+    activeRequest->prepare();
   }
-  else if (mActiveRequest->resultsToSend() && !canSendResponse(mActiveRequest->getDestination(), mActiveRequest->getMemoryLevel())) {
+  else if (activeRequest->resultsToSend() && !canSendResponse(activeRequest->getDestination(), activeRequest->getMemoryLevel())) {
     LOKI_LOG << this->name() << " delayed request due to full output queue" << endl;
-    next_trigger(canSendResponseEvent(mActiveRequest->getDestination(), mActiveRequest->getMemoryLevel()));
+    next_trigger(canSendResponseEvent(activeRequest->getDestination(), activeRequest->getMemoryLevel()));
   }
   else if (!iClock.negedge()) {
     next_trigger(iClock.negedge_event());
   }
-  else if (!mActiveRequest->complete()) {
-    mActiveRequest->execute();
+  else if (!activeRequest->complete()) {
+    activeRequest->execute();
   }
 
   // If the operation has finished, and we haven't moved to some other state
   // for further processing, end the request and prepare for a new one.
-  if (mActiveRequest.get() != NULL && mActiveRequest->complete() && mState == STATE_REQUEST) {
+  if (activeRequest.get() != NULL && activeRequest->complete() && state == STATE_REQUEST) {
     finishedRequest();
-    mReadFromMissBuffer = false;
+    readingFromMissBuffer = false;
   }
 }
 
 void MemoryBank::processAllocate() {
-  loki_assert_with_message(mState == STATE_ALLOCATE, "State = %d", mState);
-  loki_assert(mActiveRequest.get() != NULL);
+  loki_assert_with_message(state == STATE_ALLOCATE, "State = %d", state);
+  loki_assert(activeRequest.get() != NULL);
 
   if (!canSendRequest()) {
     LOKI_LOG << this->name() << " delayed allocation due to full output request queue" << endl;
@@ -374,51 +393,51 @@ void MemoryBank::processAllocate() {
   }
   // Use inCache to check whether the line has already been allocated. The data
   // won't have arrived yet.
-  else if (!mActiveRequest->inCache()) {
+  else if (!activeRequest->inCache()) {
     // The request has already called allocate() above, so data for the new line
     // is on its way. Now we must prepare the line for the data's arrival.
-    mActiveRequest->validateLine();
+    activeRequest->validateLine();
 
     // Put the request to one side until its data comes back.
-    mMissingRequest = mActiveRequest;
-    mMissingRequest->notifyCacheMiss();
-    mCacheMissEvent.notify(sc_core::SC_ZERO_TIME);
+    missingRequest = activeRequest;
+    missingRequest->notifyCacheMiss();
+    cacheMissEvent.notify(sc_core::SC_ZERO_TIME);
 
-    if (mMissingRequest->awaitingPayload())
-      mCopyToMissBuffer = true;
+    if (missingRequest->awaitingPayload())
+      copyingToMissBuffer = true;
 
-    if (mState != STATE_FLUSH) {
-      mState = STATE_IDLE;
-      mActiveRequest.reset();
+    if (state != STATE_FLUSH) {
+      state = STATE_IDLE;
+      activeRequest.reset();
     }
   }
   else {
-    mState = STATE_IDLE;
-    mActiveRequest.reset();
+    state = STATE_IDLE;
+    activeRequest.reset();
   }
 }
 
 void MemoryBank::processFlush() {
-  loki_assert_with_message(mState == STATE_FLUSH, "State = %d", mState);
-  loki_assert(mActiveRequest.get() != NULL);
+  loki_assert_with_message(state == STATE_FLUSH, "State = %d", state);
+  loki_assert(activeRequest.get() != NULL);
   // It is assumed that the header flit has already been sent. All that is left
   // is to send the cache line.
 
   if (!iClock.negedge())
     next_trigger(iClock.negedge_event());
   else if (canSendRequest()) {
-    SRAMAddress position = getTag(mActiveRequest->getSRAMAddress()) + mCacheLineCursor;
-    uint32_t data = readWord(position, mActiveRequest->getAccessMode());
+    SRAMAddress position = getTag(activeRequest->getSRAMAddress()) + cacheLineCursor;
+    uint32_t data = readWord(position, activeRequest->getAccessMode());
 
     Instrumentation::MemoryBank::continueOperation(id.globalMemoryNumber(),
-        FLUSH_LINE, mTags[getLine(position)] + mCacheLineCursor, false, ChannelID(id,0));
+        FLUSH_LINE, tags[getLine(position)] + cacheLineCursor, false, ChannelID(id,0));
 
-    mCacheLineCursor += BYTES_PER_WORD;
+    cacheLineCursor += BYTES_PER_WORD;
 
     // Flush has finished if the cursor has covered a whole cache line.
-    bool endOfPacket = mCacheLineCursor >= CACHE_LINE_BYTES;
+    bool endOfPacket = cacheLineCursor >= CACHE_LINE_BYTES;
     if (endOfPacket)
-      mState = mPreviousState;
+      state = previousState;
 
     NetworkRequest flit(data, id, PAYLOAD, endOfPacket);
     sendRequest(flit);
@@ -428,49 +447,49 @@ void MemoryBank::processFlush() {
 }
 
 void MemoryBank::processRefill() {
-  loki_assert_with_message(mState == STATE_REFILL, "State = %d", mState);
-  loki_assert(mMissingRequest.get() != NULL);
+  loki_assert_with_message(state == STATE_REFILL, "State = %d", state);
+  loki_assert(missingRequest.get() != NULL);
 
   if (!iClock.negedge())
     next_trigger(iClock.negedge_event());
   else if (responseAvailable()) {
 
     // Don't store data locally if the request bypasses this cache.
-    if (mMissingRequest->needsForwarding()) {
-      if (canSendResponse(mMissingRequest->getDestination(), mMissingRequest->getMemoryLevel())) {
+    if (missingRequest->needsForwarding()) {
+      if (canSendResponse(missingRequest->getDestination(), missingRequest->getMemoryLevel())) {
         uint32_t data = getResponse();
-        mMissingRequest->sendResult(data);
+        missingRequest->sendResult(data);
 
-        if (mMissingRequest->resultsToSend()) {
+        if (missingRequest->resultsToSend()) {
           next_trigger(responseAvailableEvent());
         }
         else {
-          mState = STATE_IDLE;
-          mMissingRequest.reset();
+          state = STATE_IDLE;
+          missingRequest.reset();
         }
       }
       else
-        next_trigger(canSendResponseEvent(mMissingRequest->getDestination(), mMissingRequest->getMemoryLevel()));
+        next_trigger(canSendResponseEvent(missingRequest->getDestination(), missingRequest->getMemoryLevel()));
     }
     else {
       uint32_t data = getResponse();
-      SRAMAddress position = getTag(mMissingRequest->getSRAMAddress()) + mCacheLineCursor;
-      writeWord(position, data, mMissingRequest->getAccessMode());
+      SRAMAddress position = getTag(missingRequest->getSRAMAddress()) + cacheLineCursor;
+      writeWord(position, data, missingRequest->getAccessMode());
 
-      mCacheLineCursor += BYTES_PER_WORD;
+      cacheLineCursor += BYTES_PER_WORD;
 
       // Refill has finished if the cursor has covered a whole cache line.
-      if (mCacheLineCursor >= CACHE_LINE_BYTES) {
-        mState = STATE_REQUEST;
-        mActiveRequest = mMissingRequest;
-        mMissingRequest.reset();
-        mReadFromMissBuffer = true;
+      if (cacheLineCursor >= CACHE_LINE_BYTES) {
+        state = STATE_REQUEST;
+        activeRequest = missingRequest;
+        missingRequest.reset();
+        readingFromMissBuffer = true;
 
         // Storing the requested words will have dirtied the cache line, but it
         // is actually clean.
-        mDirty[getLine(position)] = false;
+        dirty[getLine(position)] = false;
 
-        LOKI_LOG << this->name() << " resuming " << memoryOpName(mActiveRequest->getMetadata().opcode) << " request" << endl;
+        LOKI_LOG << this->name() << " resuming " << memoryOpName(activeRequest->getMetadata().opcode) << " request" << endl;
       }
       else
         next_trigger(responseAvailableEvent());
@@ -481,8 +500,8 @@ void MemoryBank::processRefill() {
 }
 
 void MemoryBank::processForward() {
-  loki_assert_with_message(mState == STATE_FORWARD, "State = %d", mState);
-  loki_assert(mActiveRequest.get() != NULL);
+  loki_assert_with_message(state == STATE_FORWARD, "State = %d", state);
+  loki_assert(activeRequest.get() != NULL);
 
   // Before we even consider serving a request, we must make sure that there
   // is space to buffer any potential results.
@@ -491,14 +510,14 @@ void MemoryBank::processForward() {
     LOKI_LOG << this->name() << " delayed request due to full output request queue" << endl;
     next_trigger(canSendRequestEvent());
   }
-  else if (!payloadAvailable(mActiveRequest->getMemoryLevel())) {
+  else if (!payloadAvailable(activeRequest->getMemoryLevel())) {
     next_trigger(requestAvailableEvent());
   }
   else {
     NetworkRequest payload;
-    switch (mActiveRequest->getMemoryLevel()) {
+    switch (activeRequest->getMemoryLevel()) {
       case MEMORY_L1:
-        payload = mInputQueue.read();
+        payload = inputQueue.read();
         LOKI_LOG << this->name() << " dequeued " << payload << endl;
         break;
       case MEMORY_L2:
@@ -516,9 +535,9 @@ void MemoryBank::processForward() {
       // Treat a forwarded request as a missing request if we need to wait for
       // results - we need to preserve all state until the response has been
       // passed back to the original requester.
-      if (mActiveRequest->resultsToSend()) {
-        assert(mMissingRequest.get() == NULL);
-        mMissingRequest = mActiveRequest;
+      if (activeRequest->resultsToSend()) {
+        assert(missingRequest.get() == NULL);
+        missingRequest = activeRequest;
         finishedRequestForNow();
       }
       else
@@ -532,20 +551,20 @@ void MemoryBank::finishedRequest() {
 }
 
 void MemoryBank::finishedRequestForNow() {
-  mState = STATE_IDLE;
-  mActiveRequest.reset();
+  state = STATE_IDLE;
+  activeRequest.reset();
 
   // Decode the next request immediately so it is ready to start next cycle.
   next_trigger(sc_core::SC_ZERO_TIME);
 }
 
 bool MemoryBank::requestAvailable() const {
-  return (!mInputQueue.empty() && !isPayload(mInputQueue.peek()))
+  return (!inputQueue.empty() && !isPayload(inputQueue.peek()))
       || (requestSig.valid() && !isPayload(requestSig.read()));
 }
 
 const sc_event_or_list& MemoryBank::requestAvailableEvent() const {
-  return mInputQueue.writeEvent() | requestSig.default_event();
+  return inputQueue.writeEvent() | requestSig.default_event();
 }
 
 std::shared_ptr<MemoryOperation> MemoryBank::peekRequest() {
@@ -555,8 +574,8 @@ std::shared_ptr<MemoryOperation> MemoryBank::peekRequest() {
   MemoryLevel level;
   ChannelID destination;
 
-  if (!mInputQueue.empty() && !isPayload(mInputQueue.peek())) {
-    request = mInputQueue.peek();
+  if (!inputQueue.empty() && !isPayload(inputQueue.peek())) {
+    request = inputQueue.peek();
     level = MEMORY_L1;
     destination = ChannelID(id.tile.x,
                             id.tile.y,
@@ -581,7 +600,7 @@ void MemoryBank::consumeRequest(MemoryLevel level) {
 
   switch (level) {
     case MEMORY_L1: {
-      NetworkRequest request = mInputQueue.read();
+      NetworkRequest request = inputQueue.read();
       LOKI_LOG << this->name() << " dequeued " << request << endl;
       Instrumentation::Latency::memoryStartedRequest(id, request);
       break;
@@ -597,11 +616,11 @@ void MemoryBank::consumeRequest(MemoryLevel level) {
 }
 
 bool MemoryBank::canSendRequest() const {
-  return !mOutputReqQueue.full();
+  return !outputReqQueue.full();
 }
 
 const sc_event& MemoryBank::canSendRequestEvent() const {
-  return mOutputReqQueue.readEvent();
+  return outputReqQueue.readEvent();
 }
 
 void MemoryBank::sendRequest(NetworkRequest request) {
@@ -610,7 +629,7 @@ void MemoryBank::sendRequest(NetworkRequest request) {
 
   LOKI_LOG << this->name() << " buffering request " <<
       memoryOpName(request.getMemoryMetadata().opcode) << " " << request << endl;
-  mOutputReqQueue.write(request);
+  outputReqQueue.write(request);
 }
 
 void MemoryBank::forwardRequest(NetworkRequest request) {
@@ -643,9 +662,9 @@ bool MemoryBank::canSendResponse(ChannelID destination, MemoryLevel level) const
   switch (level) {
     case MEMORY_L1:
       if (destination.channel < CORE_INSTRUCTION_CHANNELS)
-        return !mOutputInstQueue.full();
+        return !outputInstQueue.full();
       else
-        return !mOutputDataQueue.full();
+        return !outputDataQueue.full();
     case MEMORY_L2:
       return !oResponse.valid();
     default:
@@ -658,14 +677,14 @@ const sc_event& MemoryBank::canSendResponseEvent(ChannelID destination, MemoryLe
   switch (level) {
     case MEMORY_L1:
       if (destination.channel < CORE_INSTRUCTION_CHANNELS)
-        return mOutputInstQueue.readEvent();
+        return outputInstQueue.readEvent();
       else
-        return mOutputDataQueue.readEvent();
+        return outputDataQueue.readEvent();
     case MEMORY_L2:
       return oResponse.ack_event();
     default:
       loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
-      return mOutputDataQueue.readEvent();
+      return outputDataQueue.readEvent();
   }
 }
 
@@ -679,11 +698,11 @@ void MemoryBank::sendResponse(NetworkResponse response, MemoryLevel level) {
     case MEMORY_L1:
       if (response.channelID().channel < CORE_INSTRUCTION_CHANNELS) {
         LOKI_LOG << this->name() << " buffering instruction " << response << endl;
-        mOutputInstQueue.write(response);
+        outputInstQueue.write(response);
       }
       else {
         LOKI_LOG << this->name() << " buffering data " << response << endl;
-        mOutputDataQueue.write(response);
+        outputDataQueue.write(response);
       }
       break;
     case MEMORY_L2:
@@ -697,17 +716,17 @@ void MemoryBank::sendResponse(NetworkResponse response, MemoryLevel level) {
 }
 
 void MemoryBank::copyToMissBuffer() {
-  if (mCopyToMissBuffer) {
+  if (copyingToMissBuffer) {
     // Check which input the missing request was reading from, and while
     // payloads arrive there, copy them into the miss buffer.
     NetworkRequest payload;
     bool dataAvailable;
 
-    switch (mMissingRequest->getMemoryLevel()) {
+    switch (missingRequest->getMemoryLevel()) {
       case MEMORY_L1:
-        dataAvailable = !mInputQueue.empty();
+        dataAvailable = !inputQueue.empty();
         if (dataAvailable)
-          payload = mInputQueue.peek();
+          payload = inputQueue.peek();
         break;
       case MEMORY_L2:
         dataAvailable = requestSig.valid();
@@ -726,12 +745,12 @@ void MemoryBank::copyToMissBuffer() {
     }
 
     loki_assert(isPayload(payload));
-    loki_assert(!mMissBuffer.full());
-    mMissBuffer.write(payload);
+    loki_assert(!missBuffer.full());
+    missBuffer.write(payload);
 
-    switch (mMissingRequest->getMemoryLevel()) {
+    switch (missingRequest->getMemoryLevel()) {
       case MEMORY_L1:
-        mInputQueue.read();
+        inputQueue.read();
         LOKI_LOG << this->name() << " dequeued " << payload << endl;
         break;
       case MEMORY_L2:
@@ -743,7 +762,7 @@ void MemoryBank::copyToMissBuffer() {
     }
 
     if (payload.getMetadata().endOfPacket)
-      mCopyToMissBuffer = false;
+      copyingToMissBuffer = false;
     else
       next_trigger(iClock.negedge_event());
   }
@@ -753,7 +772,7 @@ void MemoryBank::preWriteCheck(const MemoryOperation& operation) const {
   MemoryAddr globalAddress = chip()->getAddressTranslation(id.tile, operation.getAddress());
   bool scratchpad = operation.getAccessMode() == MEMORY_SCRATCHPAD;
   bool inMainMemory = !scratchpad && chip()->backedByMainMemory(id.tile, operation.getAddress());
-  if (inMainMemory && mMainMemory->readOnly(globalAddress) && WARN_READ_ONLY) {
+  if (inMainMemory && mainMemory->readOnly(globalAddress) && WARN_READ_ONLY) {
     LOKI_WARN << this->name() << " attempting to modify read-only address" << endl;
     LOKI_WARN << "  " << operation.toString() << endl;
   }
@@ -762,23 +781,23 @@ void MemoryBank::preWriteCheck(const MemoryOperation& operation) const {
 void MemoryBank::processValidInput() {
   loki_assert(iData.valid());
   LOKI_LOG << this->name() << " received " << iData.read() << endl;
-  loki_assert(!mInputQueue.full());
-  mInputQueue.write(iData.read());
+  loki_assert(!inputQueue.full());
+  inputQueue.write(iData.read());
   iData.ack();
   Instrumentation::Network::recordBandwidth(iData.name());
   Instrumentation::Latency::memoryReceivedRequest(id, iData.read());
 }
 
 void MemoryBank::handleDataOutput() {
-  if (mOutputDataQueue.empty()) {
-    next_trigger(mOutputDataQueue.writeEvent());
+  if (outputDataQueue.empty()) {
+    next_trigger(outputDataQueue.writeEvent());
   }
-  else if (!parent()->requestGranted(id, mOutputDataQueue.peek().channelID())) {
-    parent()->makeRequest(id, mOutputDataQueue.peek().channelID(), true);
+  else if (!parent()->requestGranted(id, outputDataQueue.peek().channelID())) {
+    parent()->makeRequest(id, outputDataQueue.peek().channelID(), true);
     next_trigger(iClock.negedge_event());
   }
   else {
-    NetworkResponse flit = mOutputDataQueue.read();
+    NetworkResponse flit = outputDataQueue.read();
     LOKI_LOG << this->name() << " sent data " << flit << endl;
     if (ENERGY_TRACE)
       Instrumentation::Network::traffic(id, flit.channelID().component);
@@ -796,15 +815,15 @@ void MemoryBank::handleDataOutput() {
 }
 
 void MemoryBank::handleInstructionOutput() {
-  if (mOutputInstQueue.empty()) {
-    next_trigger(mOutputInstQueue.writeEvent());
+  if (outputInstQueue.empty()) {
+    next_trigger(outputInstQueue.writeEvent());
   }
-  else if (!parent()->requestGranted(id, mOutputInstQueue.peek().channelID())) {
-    parent()->makeRequest(id, mOutputInstQueue.peek().channelID(), true);
+  else if (!parent()->requestGranted(id, outputInstQueue.peek().channelID())) {
+    parent()->makeRequest(id, outputInstQueue.peek().channelID(), true);
     next_trigger(iClock.negedge_event());
   }
   else {
-    NetworkResponse flit = mOutputInstQueue.read();
+    NetworkResponse flit = outputInstQueue.read();
     LOKI_LOG << this->name() << " sent instruction " << flit << endl;
     if (ENERGY_TRACE)
       Instrumentation::Network::traffic(id, flit.channelID().component);
@@ -825,12 +844,21 @@ void MemoryBank::handleInstructionOutput() {
 void MemoryBank::handleRequestOutput() {
   if (!iClock.posedge())
     next_trigger(iClock.posedge_event());
-  else if (mOutputReqQueue.empty())
-    next_trigger(mOutputReqQueue.writeEvent());
+  else if (outputReqQueue.empty())
+    next_trigger(outputReqQueue.writeEvent());
   else {
-    NetworkRequest request = mOutputReqQueue.read();
+    NetworkRequest request = outputReqQueue.read();
     LOKI_LOG << this->name() << " sent request " <<
         memoryOpName(request.getMemoryMetadata().opcode) << " " << LOKI_HEX(request.payload()) << endl;
+
+    // Slightly hacky: if the output we are overwriting is the head of a flush
+    // request, then we know that that request has now been selected to go out
+    // on the network, and cannot be overtaken by any other requests. Therefore,
+    // it is safe to remove it from our pendingFlushes queue.
+    if (oRequest.read().getMemoryMetadata().opcode == STORE_LINE &&
+        getTag(oRequest.read().payload().toUInt()) == pendingFlushes.front()) {
+      pendingFlushes.erase(pendingFlushes.begin());
+    }
 
     loki_assert(!oRequest.valid());
     oRequest.write(request);
@@ -839,7 +867,7 @@ void MemoryBank::handleRequestOutput() {
 }
 
 void MemoryBank::mainLoop() {
-  switch (mState) {
+  switch (state) {
     case STATE_IDLE:      processIdle();      break;
     case STATE_REQUEST:   processRequest();   break;
     case STATE_ALLOCATE:  processAllocate();  break;
@@ -851,16 +879,16 @@ void MemoryBank::mainLoop() {
 
 void MemoryBank::updateIdle() {
   bool wasIdle = currentlyIdle;
-  currentlyIdle = mState == STATE_IDLE &&
-                  mInputQueue.empty() && mOutputDataQueue.empty() &&
-                  mOutputInstQueue.empty() && mOutputReqQueue.empty();
+  currentlyIdle = state == STATE_IDLE &&
+                  inputQueue.empty() && outputDataQueue.empty() &&
+                  outputInstQueue.empty() && outputReqQueue.empty();
 
   if (wasIdle != currentlyIdle)
     Instrumentation::idle(id, currentlyIdle);
 }
 
 void MemoryBank::updateReady() {
-  bool ready = !mInputQueue.full();
+  bool ready = !inputQueue.full();
   if (ready != oReadyForData.read())
     oReadyForData.write(ready);
 }
@@ -885,43 +913,47 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID) :
   oRequest("oRequest"),
   iRequestClaimed("iRequestClaimed"),
   oClaimRequest("oClaimRequest"),
+  iRequestDelayed("iRequestDelayed"),
+  oDelayRequest("oDelayRequest"),
   iResponse("iResponse"),
   iResponseTarget("iResponseTarget"),
   oResponse("oResponse"),
-  mInputQueue(string(this->name()) + string(".mInputQueue"), MEMORY_BUFFER_SIZE),
-  mOutputDataQueue("mOutputDataQueue", MEMORY_BUFFER_SIZE, INTERNAL_LATENCY),
-  mOutputInstQueue("mOutputInstQueue", MEMORY_BUFFER_SIZE, INTERNAL_LATENCY),
-  mOutputReqQueue("mOutputReqQueue", 10 /*read addr + write addr + cache line*/, 0),
-  mData(MEMORY_BANK_SIZE/BYTES_PER_WORD, 0),
-  mTags(CACHE_LINES_PER_BANK, 0),
-  mValid(CACHE_LINES_PER_BANK, false),
-  mDirty(CACHE_LINES_PER_BANK, false),
-  mL2Skip(CACHE_LINES_PER_BANK, false),
-  mReservations(1),
-  mMissBuffer(CACHE_LINE_WORDS, "mMissBuffer"),
-  mCacheMissEvent(sc_core::sc_gen_unique_name("mCacheMissEvent")),
-  mL2RequestFilter("request_filter", ID, this)
+  inputQueue(string(this->name()) + string(".mInputQueue"), MEMORY_BUFFER_SIZE),
+  outputDataQueue("mOutputDataQueue", MEMORY_BUFFER_SIZE, INTERNAL_LATENCY),
+  outputInstQueue("mOutputInstQueue", MEMORY_BUFFER_SIZE, INTERNAL_LATENCY),
+  outputReqQueue("mOutputReqQueue", 10 /*read addr + write addr + cache line*/, 0),
+  data(MEMORY_BANK_SIZE/BYTES_PER_WORD, 0),
+  tags(CACHE_LINES_PER_BANK, 0),
+  valid(CACHE_LINES_PER_BANK, false),
+  dirty(CACHE_LINES_PER_BANK, false),
+  l2Skip(CACHE_LINES_PER_BANK, false),
+  reservations(1),
+  missBuffer(CACHE_LINE_WORDS, "mMissBuffer"),
+  cacheMissEvent(sc_core::sc_gen_unique_name("mCacheMissEvent")),
+  l2RequestFilter("request_filter", ID, this)
 {
-  mState = STATE_IDLE;
-  mPreviousState = STATE_IDLE;
+  state = STATE_IDLE;
+  previousState = STATE_IDLE;
 
-  mCacheLineCursor = 0;
+  cacheLineCursor = 0;
 
-  mCopyToMissBuffer = false;
-  mReadFromMissBuffer = false;
+  copyingToMissBuffer = false;
+  readingFromMissBuffer = false;
 
   // Magic interfaces.
-  mMainMemory = NULL;
+  mainMemory = NULL;
 
   // Connect to local components.
   oReadyForData.initialize(false);
 
-  mL2RequestFilter.iClock(iClock);
-  mL2RequestFilter.iRequest(iRequest);
-  mL2RequestFilter.iRequestTarget(iRequestTarget);
-  mL2RequestFilter.oRequest(requestSig);
-  mL2RequestFilter.iRequestClaimed(iRequestClaimed);
-  mL2RequestFilter.oClaimRequest(oClaimRequest);
+  l2RequestFilter.iClock(iClock);
+  l2RequestFilter.iRequest(iRequest);
+  l2RequestFilter.iRequestTarget(iRequestTarget);
+  l2RequestFilter.oRequest(requestSig);
+  l2RequestFilter.iRequestClaimed(iRequestClaimed);
+  l2RequestFilter.oClaimRequest(oClaimRequest);
+  l2RequestFilter.iRequestDelayed(iRequestDelayed);
+  l2RequestFilter.oDelayRequest(oDelayRequest);
 
   currentlyIdle = true;
   Instrumentation::idle(id, true);
@@ -931,14 +963,14 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID) :
   dont_initialize();
 
   SC_METHOD(updateReady);
-  sensitive << mInputQueue.readEvent() << mInputQueue.writeEvent();
+  sensitive << inputQueue.readEvent() << inputQueue.writeEvent();
   // do initialise
 
   SC_METHOD(updateIdle);
-  sensitive << mInputQueue.readEvent() << mInputQueue.writeEvent()
-            << mOutputDataQueue.readEvent() << mOutputDataQueue.writeEvent()
-            << mOutputInstQueue.readEvent() << mOutputInstQueue.writeEvent()
-            << mOutputReqQueue.readEvent() << mOutputReqQueue.writeEvent()
+  sensitive << inputQueue.readEvent() << inputQueue.writeEvent()
+            << outputDataQueue.readEvent() << outputDataQueue.writeEvent()
+            << outputInstQueue.readEvent() << outputInstQueue.writeEvent()
+            << outputReqQueue.readEvent() << outputReqQueue.writeEvent()
             << iResponse << oResponse;
   // do initialise
 
@@ -951,7 +983,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID) :
   SC_METHOD(handleRequestOutput);
 
   SC_METHOD(copyToMissBuffer);
-  sensitive << mCacheMissEvent;
+  sensitive << cacheMissEvent;
   dont_initialize();
 }
 
@@ -960,11 +992,11 @@ MemoryBank::~MemoryBank() {
 
 void MemoryBank::setBackgroundMemory(MainMemory* memory) {
   assert(memory != NULL);
-  mMainMemory = memory;
+  mainMemory = memory;
 }
 
 void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
-  loki_assert(mMainMemory != NULL);
+  loki_assert(mainMemory != NULL);
 
   if (start > end)
     std::swap(start, end);
@@ -980,7 +1012,7 @@ void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
 }
 
 Word MemoryBank::readWordDebug(MemoryAddr addr) {
-  loki_assert(mMainMemory != NULL);
+  loki_assert(mainMemory != NULL);
   loki_assert_with_message(addr % 4 == 0, "Address = 0x%x", addr);
 
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
@@ -988,22 +1020,22 @@ Word MemoryBank::readWordDebug(MemoryAddr addr) {
   if (contains(addr, position, MEMORY_CACHE))
     return readWord(position, MEMORY_CACHE);
   else
-    return mMainMemory->readWord(addr, MEMORY_SCRATCHPAD);
+    return mainMemory->readWord(addr, MEMORY_SCRATCHPAD);
 }
 
 Word MemoryBank::readByteDebug(MemoryAddr addr) {
-  loki_assert(mMainMemory != NULL);
+  loki_assert(mainMemory != NULL);
 
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
   if (contains(addr, position, MEMORY_CACHE))
     return readByte(position, MEMORY_CACHE);
   else
-    return mMainMemory->readByte(addr, MEMORY_SCRATCHPAD);
+    return mainMemory->readByte(addr, MEMORY_SCRATCHPAD);
 }
 
 void MemoryBank::writeWordDebug(MemoryAddr addr, Word data) {
-  loki_assert(mMainMemory != NULL);
+  loki_assert(mainMemory != NULL);
   loki_assert_with_message(addr % 4 == 0, "Address = 0x%x", addr);
 
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
@@ -1011,42 +1043,42 @@ void MemoryBank::writeWordDebug(MemoryAddr addr, Word data) {
   if (contains(addr, position, MEMORY_CACHE))
     writeWord(position, data.toUInt(), MEMORY_CACHE);
   else
-    mMainMemory->writeWord(addr, data.toUInt(), MEMORY_SCRATCHPAD);
+    mainMemory->writeWord(addr, data.toUInt(), MEMORY_SCRATCHPAD);
 }
 
 void MemoryBank::writeByteDebug(MemoryAddr addr, Word data) {
-  loki_assert(mMainMemory != NULL);
+  loki_assert(mainMemory != NULL);
 
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
   if (contains(addr, position, MEMORY_CACHE))
     writeByte(position, data.toUInt(), MEMORY_CACHE);
   else
-    mMainMemory->writeByte(addr, data.toUInt(), MEMORY_SCRATCHPAD);
+    mainMemory->writeByte(addr, data.toUInt(), MEMORY_SCRATCHPAD);
 }
 
 const vector<uint32_t>& MemoryBank::dataArray() const {
-  return mData;
+  return data;
 }
 
 vector<uint32_t>& MemoryBank::dataArray() {
-  return mData;
+  return data;
 }
 
 void MemoryBank::reportStalls(ostream& os) {
-  if (mInputQueue.full()) {
-    os << mInputQueue.name() << " is full." << endl;
+  if (inputQueue.full()) {
+    os << inputQueue.name() << " is full." << endl;
   }
-  if (!mOutputDataQueue.empty()) {
-    const NetworkResponse& outWord = mOutputDataQueue.peek();
+  if (!outputDataQueue.empty()) {
+    const NetworkResponse& outWord = outputDataQueue.peek();
     os << this->name() << " waiting to send " << outWord << endl;
   }
-  if (!mOutputInstQueue.empty()) {
-    const NetworkResponse& outWord = mOutputInstQueue.peek();
+  if (!outputInstQueue.empty()) {
+    const NetworkResponse& outWord = outputInstQueue.peek();
     os << this->name() << " waiting to send " << outWord << endl;
   }
-  if (!mOutputReqQueue.empty()) {
-    const NetworkResponse& outWord = mOutputReqQueue.peek();
+  if (!outputReqQueue.empty()) {
+    const NetworkResponse& outWord = outputReqQueue.peek();
     os << this->name() << " waiting to send " << outWord << endl;
   }
 }
