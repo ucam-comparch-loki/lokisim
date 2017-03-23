@@ -21,13 +21,13 @@ namespace Instrumentation {
 
     static void reset();
 
-    static void startOperation(int bank, MemoryOpcode op,
+    static void startOperation(ComponentID bank, MemoryOpcode op,
         MemoryAddr address, bool miss, ChannelID returnChannel);
-    static void continueOperation(int bank, MemoryOpcode op,
+    static void continueOperation(ComponentID bank, MemoryOpcode op,
         MemoryAddr address, bool miss, ChannelID returnChannel);
 
-    static void checkTags(int bank, MemoryAddr address);
-    static void replaceCacheLine(int bank, bool isValid, bool isDirty);
+    static void checkTags(ComponentID bank, MemoryAddr address);
+    static void replaceCacheLine(ComponentID bank, bool isValid, bool isDirty);
 
     static void updateCoreStats(ChannelID returnChannel, MemoryOpcode op, bool miss);
 
@@ -56,22 +56,22 @@ namespace Instrumentation {
     // Counters for various events. Index each CounterMap using the memory
     // bank's global bank number.
 
-    static CounterMap<int>          tagChecks;
+    static CounterMap<ComponentID>          tagChecks;
 
     // A vector of counters, one for each operation. Index using the opcode.
-    static vector<CounterMap<int> > hits;
-    static vector<CounterMap<int> > misses;
+    static vector<CounterMap<ComponentID> > hits;
+    static vector<CounterMap<ComponentID> > misses;
 
     // The above counters keep track of memory access at the level of individual
     // words. These counters track how many multi-word operations take place.
-    static CounterMap<int>          ipkReads;
-    static CounterMap<int>          burstReads;
-    static CounterMap<int>          burstWrites;
+    static CounterMap<ComponentID>          ipkReads;
+    static CounterMap<ComponentID>          burstReads;
+    static CounterMap<ComponentID>          burstWrites;
 
     // Cache line replacement stats.
-    static CounterMap<int>          replaceInvalidLine;
-    static CounterMap<int>          replaceCleanLine;
-    static CounterMap<int>          replaceDirtyLine;
+    static CounterMap<ComponentID>          replaceInvalidLine;
+    static CounterMap<ComponentID>          replaceCleanLine;
+    static CounterMap<ComponentID>          replaceDirtyLine;
 
     // Stats stored from the perspective of each input channel of each core.
     // It would make more sense to use output channels (input channels don't

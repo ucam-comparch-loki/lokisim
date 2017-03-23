@@ -33,8 +33,8 @@ void FetchLine::execute() {
   memory.printOperation(metadata.opcode, address + lineCursor, result);
   sendResult(result);
 
-  if (ENERGY_TRACE)
-    Instrumentation::MemoryBank::continueOperation(memory.id.globalMemoryNumber(), metadata.opcode, address + lineCursor, false, destination);
+  if (level != MEMORY_OFF_CHIP)
+    Instrumentation::MemoryBank::continueOperation(memory.id, metadata.opcode, address + lineCursor, false, destination);
 
   lineCursor += BYTES_PER_WORD;
 }
@@ -59,8 +59,8 @@ void IPKRead::execute() {
   memory.printOperation(metadata.opcode, address + lineCursor, result);
   sendResult(result, true);
 
-  if (ENERGY_TRACE)
-    Instrumentation::MemoryBank::continueOperation(memory.id.globalMemoryNumber(), metadata.opcode, address + lineCursor, false, destination);
+  if (level != MEMORY_OFF_CHIP)
+    Instrumentation::MemoryBank::continueOperation(memory.id, metadata.opcode, address + lineCursor, false, destination);
 
   lineCursor += BYTES_PER_WORD;
 
@@ -231,8 +231,8 @@ void StoreLine::execute() {
     memory.writeWord(sramAddress + lineCursor, data, getAccessMode());
     memory.printOperation(metadata.opcode, address + lineCursor, data);
 
-    if (ENERGY_TRACE)
-      Instrumentation::MemoryBank::continueOperation(memory.id.globalMemoryNumber(), metadata.opcode, address + lineCursor, false, destination);
+    if (level != MEMORY_OFF_CHIP)
+      Instrumentation::MemoryBank::continueOperation(memory.id, metadata.opcode, address + lineCursor, false, destination);
 
     lineCursor += BYTES_PER_WORD;
   }
@@ -265,8 +265,8 @@ void MemsetLine::execute() {
     memory.writeWord(sramAddress + lineCursor, data, getAccessMode());
     memory.printOperation(metadata.opcode, address + lineCursor, data);
 
-    if (ENERGY_TRACE)
-      Instrumentation::MemoryBank::continueOperation(memory.id.globalMemoryNumber(), metadata.opcode, address + lineCursor, false, destination);
+    if (level != MEMORY_OFF_CHIP)
+      Instrumentation::MemoryBank::continueOperation(memory.id, metadata.opcode, address + lineCursor, false, destination);
 
     lineCursor += BYTES_PER_WORD;
   }
@@ -303,8 +303,8 @@ void PushLine::execute() {
     memory.writeWord(sramAddress + lineCursor, data, getAccessMode());
     memory.printOperation(metadata.opcode, address + lineCursor, data);
 
-    if (ENERGY_TRACE)
-      Instrumentation::MemoryBank::continueOperation(memory.id.globalMemoryNumber(), metadata.opcode, address + lineCursor, false, destination);
+    if (level != MEMORY_OFF_CHIP)
+      Instrumentation::MemoryBank::continueOperation(memory.id, metadata.opcode, address + lineCursor, false, destination);
 
     lineCursor += BYTES_PER_WORD;
   }

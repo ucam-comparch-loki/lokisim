@@ -429,8 +429,8 @@ void MemoryBank::processFlush() {
     SRAMAddress position = getTag(activeRequest->getSRAMAddress()) + cacheLineCursor;
     uint32_t data = readWord(position, activeRequest->getAccessMode());
 
-    Instrumentation::MemoryBank::continueOperation(id.globalMemoryNumber(),
-        FLUSH_LINE, tags[getLine(position)] + cacheLineCursor, false, ChannelID(id,0));
+    Instrumentation::MemoryBank::continueOperation(id, FLUSH_LINE,
+        tags[getLine(position)] + cacheLineCursor, false, ChannelID(id,0));
 
     cacheLineCursor += BYTES_PER_WORD;
 

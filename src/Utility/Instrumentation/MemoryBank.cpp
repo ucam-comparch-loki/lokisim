@@ -16,18 +16,18 @@
 using namespace Instrumentation;
 using std::vector;
 
-CounterMap<int> MemoryBank::tagChecks;
+CounterMap<ComponentID> MemoryBank::tagChecks;
 
-vector<CounterMap<int> > MemoryBank::hits;
-vector<CounterMap<int> > MemoryBank::misses;
+vector<CounterMap<ComponentID> > MemoryBank::hits;
+vector<CounterMap<ComponentID> > MemoryBank::misses;
 
-CounterMap<int> MemoryBank::ipkReads;
-CounterMap<int> MemoryBank::burstReads;
-CounterMap<int> MemoryBank::burstWrites;
+CounterMap<ComponentID> MemoryBank::ipkReads;
+CounterMap<ComponentID> MemoryBank::burstReads;
+CounterMap<ComponentID> MemoryBank::burstWrites;
 
-CounterMap<int> MemoryBank::replaceInvalidLine;
-CounterMap<int> MemoryBank::replaceCleanLine;
-CounterMap<int> MemoryBank::replaceDirtyLine;
+CounterMap<ComponentID> MemoryBank::replaceInvalidLine;
+CounterMap<ComponentID> MemoryBank::replaceCleanLine;
+CounterMap<ComponentID> MemoryBank::replaceDirtyLine;
 
 vector<vector<struct MemoryBank::ChannelStats> > MemoryBank::coreStats;
 
@@ -54,8 +54,8 @@ void MemoryBank::reset() {
   hits.clear();
   misses.clear();
   for (int i=0; i<PAYLOAD_EOP; i++) {
-    hits.push_back(CounterMap<int>());
-    misses.push_back(CounterMap<int>());
+    hits.push_back(CounterMap<ComponentID>());
+    misses.push_back(CounterMap<ComponentID>());
   }
 
   ipkReads.clear();
@@ -66,7 +66,7 @@ void MemoryBank::reset() {
   replaceDirtyLine.clear();
 }
 
-void MemoryBank::startOperation(int bank, MemoryOpcode op,
+void MemoryBank::startOperation(ComponentID bank, MemoryOpcode op,
         MemoryAddr address, bool miss, ChannelID returnChannel) {
   if (!Instrumentation::collectingStats()) return;
 
@@ -125,7 +125,7 @@ void MemoryBank::startOperation(int bank, MemoryOpcode op,
   }
 }
 
-void MemoryBank::continueOperation(int bank, MemoryOpcode op,
+void MemoryBank::continueOperation(ComponentID bank, MemoryOpcode op,
         MemoryAddr address, bool miss, ChannelID returnChannel) {
   if (!Instrumentation::collectingStats()) return;
 
@@ -151,7 +151,7 @@ void MemoryBank::continueOperation(int bank, MemoryOpcode op,
   }
 }
 
-void MemoryBank::checkTags(int bank, MemoryAddr address) {
+void MemoryBank::checkTags(ComponentID bank, MemoryAddr address) {
   if (!Instrumentation::collectingStats()) return;
 
   tagChecks.increment(bank);
@@ -159,7 +159,7 @@ void MemoryBank::checkTags(int bank, MemoryAddr address) {
   // Do something with Hamming distance of address?
 }
 
-void MemoryBank::replaceCacheLine(int bank, bool isValid, bool isDirty) {
+void MemoryBank::replaceCacheLine(ComponentID bank, bool isValid, bool isDirty) {
   if (!Instrumentation::collectingStats()) return;
 
   if (!isValid)
@@ -175,6 +175,9 @@ void MemoryBank::updateCoreStats(ChannelID returnChannel, MemoryOpcode op, bool 
 
   if (!returnChannel.component.isCore())
     return;
+
+  if (returnChannel.component.position > 0)
+    cout << memoryOpName(op) << " " << miss << endl;
 
   bool instruction = (returnChannel.channel < 2);
   bool write;

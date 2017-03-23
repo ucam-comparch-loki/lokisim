@@ -88,34 +88,9 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
   // Always increase numOps - this is used to determine if we're making progress.
   numOps_.increment(core);
 
-  // Want to keep track of the number of operations so we can tell if we're
-  // making progress, but only want the rest of the data when we ask for it.
-  if (!ENERGY_TRACE)
-    return;
-
   if (!executed) {
     unexecuted++;
     return;
-  }
-
-  // Basic logging for "ordinary" operations. Extra logging for ALU operations.
-  if (dec.opcode() > 1)
-    executedOps.increment(dec.opcode());
-  else
-    executedFns.increment(dec.function());
-
-  if (ENERGY_TRACE && dec.isExecuteStageOperation()) {
-    hdIn1 += hammingDistance(dec.operand1(), lastIn1[coreID]);
-    hdIn2 += hammingDistance(dec.operand2(), lastIn2[coreID]);
-    hdOut += hammingDistance(dec.result(),   lastOut[coreID]);
-
-    if (dec.function() == lastFn[coreID])
-      sameOp++;
-
-    lastIn1[coreID] = dec.operand1();
-    lastIn2[coreID] = dec.operand2();
-    lastOut[coreID] = dec.result();
-    lastFn[coreID]  = dec.function();
   }
 
   switch(dec.opcode()) {
@@ -135,21 +110,27 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
       break;
   }
  
+  // Assume channel 2 is the memory channel.
   if (dec.sourceReg1() == 2 || dec.sourceReg2() == 2) {
-    numMemLoads.increment(core);
     if (dec.function() != ISA::FN_OR || dec.sourceReg2() != 0) {
       numMergedMemLoads.increment(core);
     }
+    else {
+      numMemLoads.increment(core);
+    }
   }
 
-  if (dec.sourceReg1() == 3 || dec.sourceReg2() == 3 || dec.sourceReg1() == 4 || dec.sourceReg2() == 4) {
+  // Assume all other channels are for core-to-core communication.
+  if ((dec.sourceReg1() >= 3 && dec.sourceReg1() <= 7) ||
+      (dec.sourceReg2() >= 3 && dec.sourceReg2() <= 7)) {
     numChanReads.increment(core);
     if (dec.function() != ISA::FN_OR || dec.sourceReg2() != 0) {
       numMergedChanReads.increment(core);
     }
   }
 
-  if (dec.channelMapEntry() == 2 || dec.channelMapEntry() == 3) {
+  // Assume all output channels except {0,1} are for core-to-core communication.
+  if (dec.channelMapEntry() >= 2 && dec.channelMapEntry() < 15) {
     numChanWrites.increment(core);
     if (dec.function() != ISA::FN_OR || dec.sourceReg1() == 2 || dec.sourceReg2() == 2) {
       numMergedChanWrites.increment(core);
@@ -205,6 +186,31 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
 
     default:
       break;
+  }
+
+  // Want to keep track of the number of operations so we can tell if we're
+  // making progress, but only want the rest of the data when we ask for it.
+  if (!ENERGY_TRACE)
+    return;
+
+  // Basic logging for "ordinary" operations. Extra logging for ALU operations.
+  if (dec.opcode() > 1)
+    executedOps.increment(dec.opcode());
+  else
+    executedFns.increment(dec.function());
+
+  if (ENERGY_TRACE && dec.isExecuteStageOperation()) {
+    hdIn1 += hammingDistance(dec.operand1(), lastIn1[coreID]);
+    hdIn2 += hammingDistance(dec.operand2(), lastIn2[coreID]);
+    hdOut += hammingDistance(dec.result(),   lastOut[coreID]);
+
+    if (dec.function() == lastFn[coreID])
+      sameOp++;
+
+    lastIn1[coreID] = dec.operand1();
+    lastIn2[coreID] = dec.operand2();
+    lastOut[coreID] = dec.result();
+    lastFn[coreID]  = dec.function();
   }
 }
 

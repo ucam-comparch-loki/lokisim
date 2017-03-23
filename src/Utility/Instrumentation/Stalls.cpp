@@ -316,7 +316,7 @@ cycle_count_t Stalls::executionTime() {
 }
 
 void Stalls::printInstrStat(const char *name, ComponentID id, CounterMap<ComponentID> &cMap) {
-  std::clog << name << ": " << cMap[id] << " (" << percentage(cMap[id], Operations::numOperations(id)) << ")\n";
+  std::clog << name << ": " << cMap[id] << "\t(" << percentage(cMap[id], Operations::numOperations(id)) << ")\n";
 }
 
 
@@ -364,9 +364,6 @@ void Stalls::printStats() {
     }
   }
 
-  // Everything below this point is very rarely wanted.
-  return;
-
   // Print instruction distribution summary
   clog << "\nDistribution of instructions:\n";
 
@@ -381,16 +378,16 @@ void Stalls::printStats() {
         // Only print statistics for cores which have seen some activity.
         if (Operations::numOperations(id) > 0) {
           clog << "  " << id << "\n" <<
-            "Total: " << Operations::numOperations(id) << " (100%)\n";
-          printInstrStat("numMemLoads", id, Operations::numMemLoads);
-          printInstrStat("numMergedMemLoads", id, Operations::numMergedMemLoads);
-          printInstrStat("numMemStores", id, Operations::numMemStores);
-          printInstrStat("numChanReads", id, Operations::numChanReads);
-          printInstrStat("numMergedChanReads", id, Operations::numMergedChanReads);
-          printInstrStat("numChanWrites", id, Operations::numChanWrites);
-          printInstrStat("numMergedChanWrites", id, Operations::numMergedChanWrites);
-          printInstrStat("numArithOps", id, Operations::numArithOps);
-          printInstrStat("numCondOps", id, Operations::numCondOps);
+            "    Total              : " << Operations::numOperations(id) << "\t(100%)\n";
+          printInstrStat("    numMemLoads        ", id, Operations::numMemLoads);
+          printInstrStat("    numMergedMemLoads  ", id, Operations::numMergedMemLoads);
+          printInstrStat("    numMemStores       ", id, Operations::numMemStores);
+          printInstrStat("    numChanReads       ", id, Operations::numChanReads);
+          printInstrStat("    numMergedChanReads ", id, Operations::numMergedChanReads);
+          printInstrStat("    numChanWrites      ", id, Operations::numChanWrites);
+          printInstrStat("    numMergedChanWrites", id, Operations::numMergedChanWrites);
+          printInstrStat("    numArithOps        ", id, Operations::numArithOps);
+          printInstrStat("    numCondOps         ", id, Operations::numCondOps);
           clog << "\n";
         }
       }
