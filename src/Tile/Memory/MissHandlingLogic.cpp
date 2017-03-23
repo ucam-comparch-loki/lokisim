@@ -294,21 +294,25 @@ void MissHandlingLogic::sendResponseLoop() {
 MemoryIndex MissHandlingLogic::getTargetBank(const NetworkRequest& request) {
   // In scratchpad mode, the bank is specified by the bits immediately
   // above the offset.
-  if (request.getMemoryMetadata().scratchpad)
+  if (request.getMemoryMetadata().scratchpad) {
     return (request.payload().toUInt() >> 5) & (MEMS_PER_TILE - 1);
+  }
 
   // Push line operations specify the target bank with the lowest bits.
-  else if (request.getMemoryMetadata().opcode == PUSH_LINE)
+  else if (request.getMemoryMetadata().opcode == PUSH_LINE) {
     return request.payload().toUInt() & (MEMS_PER_TILE - 1);
+  }
 
   // Ensure that requests which skip this memory cannot be reordered by
   // using the same bank mapping as in the L1. (returnChannel = bank).
-  else if (request.getMemoryMetadata().skipL2)
+  else if (request.getMemoryMetadata().skipL2) {
     return request.getMemoryMetadata().returnChannel;
+  }
 
   // Otherwise, the target bank is random.
-  else
+  else {
     return nextRandomBank();
+  }
 }
 
 MemoryIndex MissHandlingLogic::nextRandomBank() {

@@ -280,7 +280,10 @@ bool MemsetLine::complete() const {
 PushLine::PushLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(request, memory, level, destination, CACHE_LINE_WORDS, 0, CACHE_LINE_BYTES) {
   lineCursor = 0;
-  targetBank = address & (MEMS_PER_TILE - 1);
+
+  // Target bank is encoded in the space where the cache line offset usually
+  // goes.
+  targetBank = request.payload().toUInt() & (MEMS_PER_TILE - 1);
 }
 
 void PushLine::prepare() {

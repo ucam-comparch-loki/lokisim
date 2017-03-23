@@ -856,6 +856,7 @@ void MemoryBank::handleRequestOutput() {
     // on the network, and cannot be overtaken by any other requests. Therefore,
     // it is safe to remove it from our pendingFlushes queue.
     if (oRequest.read().getMemoryMetadata().opcode == STORE_LINE &&
+        !pendingFlushes.empty() &&
         getTag(oRequest.read().payload().toUInt()) == pendingFlushes.front()) {
       pendingFlushes.erase(pendingFlushes.begin());
     }
