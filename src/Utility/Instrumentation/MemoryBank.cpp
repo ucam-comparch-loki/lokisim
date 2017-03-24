@@ -176,9 +176,6 @@ void MemoryBank::updateCoreStats(ChannelID returnChannel, MemoryOpcode op, bool 
   if (!returnChannel.component.isCore())
     return;
 
-  if (returnChannel.component.position > 0)
-    cout << memoryOpName(op) << " " << miss << endl;
-
   bool instruction = (returnChannel.channel < 2);
   bool write;
 

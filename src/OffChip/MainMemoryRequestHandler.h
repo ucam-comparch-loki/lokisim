@@ -11,8 +11,8 @@
 #ifndef SRC_TILE_MEMORY_MAINMEMORYREQUESTHANDLER_H_
 #define SRC_TILE_MEMORY_MAINMEMORYREQUESTHANDLER_H_
 
-#include "MemoryBase.h"
-#include "../../Network/DelayBuffer.h"
+#include "../Memory/MemoryBase.h"
+#include "../Network/DelayBuffer.h"
 
 #include <memory>
 

@@ -44,7 +44,7 @@ MemoryOperation::MemoryOperation(const NetworkRequest& request,
 //  checkAlignment(request.payload().toUInt(), alignment);
 
   if (level != MEMORY_OFF_CHIP) {
-    Instrumentation::MemoryBank::startOperation(memory.id.globalMemoryNumber(),
+    Instrumentation::MemoryBank::startOperation(memory.id,
                                                 metadata.opcode,
                                                 address,
                                                 !inCache(),

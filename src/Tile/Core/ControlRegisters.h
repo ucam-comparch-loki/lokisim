@@ -50,7 +50,7 @@ public:
     CR_CP11             = 11,
     CR_CP12             = 12,
     CR_CP13             = 13,
-    CR_UNUSED14         = 14,
+    CR_FETCH_ADDRESS    = 14,
     CR_THROTTLE         = 15
   };
 

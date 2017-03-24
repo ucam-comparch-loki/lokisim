@@ -14,7 +14,7 @@ using namespace std;
 #include <iostream>
 #include <iomanip>
 #include "MemoryBank.h"
-#include "MainMemory.h"
+#include "../../OffChip/MainMemory.h"
 #include "../../Datatype/MemoryOperations/MemoryOperationDecode.h"
 #include "../ComputeTile.h"
 #include "../../Chip.h"
@@ -75,7 +75,7 @@ SRAMAddress MemoryBank::getPosition(MemoryAddr address, MemoryAccessMode mode) c
   // instead perform the instrumentation here, as this method will be executed
   // exactly once per operation.
   if (mode == MEMORY_CACHE)
-    Instrumentation::MemoryBank::checkTags(id.globalMemoryNumber(), address);
+    Instrumentation::MemoryBank::checkTags(id, address);
 
   static const uint indexBits = log2(CACHE_LINES_PER_BANK);
   uint offset = getOffset(address);
@@ -112,7 +112,7 @@ void MemoryBank::allocate(MemoryAddr address, SRAMAddress position, MemoryAccess
     case MEMORY_CACHE:
       if (!contains(address, position, mode)) {
         LOKI_LOG << this->name() << " cache miss at address " << LOKI_HEX(address) << endl;
-        Instrumentation::MemoryBank::replaceCacheLine(id.globalMemoryNumber(), valid[getLine(position)], dirty[getLine(position)]);
+        Instrumentation::MemoryBank::replaceCacheLine(id, valid[getLine(position)], dirty[getLine(position)]);
 
         // Send a request for the missing cache line.
         NetworkRequest readRequest(getTag(address), id, FETCH_LINE, true);
@@ -186,8 +186,8 @@ void MemoryBank::flush(SRAMAddress position, MemoryAccessMode mode) {
         pendingFlushes.push_back(address);
 
         if (ENERGY_TRACE)
-          Instrumentation::MemoryBank::startOperation(id.globalMemoryNumber(),
-              FLUSH_LINE, tags[getLine(position)], false, ChannelID(id,0));
+          Instrumentation::MemoryBank::startOperation(id, FLUSH_LINE,
+              tags[getLine(position)], false, ChannelID(id,0));
 
         // The flush state handles sending the line itself.
         previousState = state;

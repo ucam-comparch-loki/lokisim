@@ -32,6 +32,16 @@ void UpdateDirectoryEntry::execute() {
   assert(false);
 }
 
+const NetworkRequest UpdateDirectoryEntry::getOriginal() const {
+  // Since the MHL doesn't know whether to check the Skip L1 or Skip L2 bit when
+  // it receives a directory update request, copy whichever bit is appropriate
+  // into the Scratchpad bit. This bit is always overwritten when forwarding
+  // the request.
+  MemoryMetadata meta = metadata;
+  meta.scratchpad = MemoryOperation::needsForwarding();
+  return NetworkRequest(address, destination, meta.flatten());
+}
+
 
 UpdateDirectoryMask::UpdateDirectoryMask(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
     MemoryOperation(request, memory, level, destination, 1, 0) {
@@ -54,4 +64,14 @@ bool UpdateDirectoryMask::preconditionsMet() const {
 
 void UpdateDirectoryMask::execute() {
   assert(false);
+}
+
+const NetworkRequest UpdateDirectoryMask::getOriginal() const {
+  // Since the MHL doesn't know whether to check the Skip L1 or Skip L2 bit when
+  // it receives a directory update request, copy whichever bit is appropriate
+  // into the Scratchpad bit. This bit is always overwritten when forwarding
+  // the request.
+  MemoryMetadata meta = metadata;
+  meta.scratchpad = MemoryOperation::needsForwarding();
+  return NetworkRequest(address, destination, meta.flatten());
 }

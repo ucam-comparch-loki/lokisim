@@ -148,34 +148,37 @@ void MissHandlingLogic::localRequestLoop() {
     }
     // All header flits, and flits which are being forwarded to another tile.
     else {
-      switch (flit.getMemoryMetadata().opcode) {
-        // If the operation will take place at the directory, store the header
-        // until the rest of the information arrives.
-        case UPDATE_DIRECTORY_ENTRY:
-        case UPDATE_DIRECTORY_MASK:
-          requestHeader = flit;
-          requestHeaderValid = true;
-          break;
+      // Don't execute directory update commands here if they have skipped this
+      // level of cache. Since the MHL doesn't know whether to check the Skip L1
+      // or Skip L2 bit, we let the MemoryBank copy whichever bit is appropriate
+      // into the Scratchpad bit. This bit is always overwritten when forwarding
+      // the request.
+      MemoryOpcode op = flit.getMemoryMetadata().opcode;
+      bool updateDirectory = (op == UPDATE_DIRECTORY_ENTRY ||
+                              op == UPDATE_DIRECTORY_MASK)
+                          && !flit.getMemoryMetadata().scratchpad;
 
-        default: {
-          // Adjust the flit based on its contents and the contents of the
-          // directory.
-          if (newLocalRequest) {
-            flit = directory.updateRequest(flit);
+      if (updateDirectory) {
+        // Store the head flit and wait for the payload.
+        requestHeader = flit;
+        requestHeaderValid = true;
+      }
+      else {
+        // Adjust the flit based on its contents and the contents of the
+        // directory.
+        if (newLocalRequest) {
+          flit = directory.updateRequest(flit);
 
-            // Save the network destination so it can be reused for all other
-            // flits in the same packet.
-            requestDestination = flit.channelID();
-          }
-          else
-            flit.setChannelID(requestDestination);
-
-          LOKI_LOG << this->name() << " sending request " << flit << endl;
-
-          sendOnNetwork(flit);
-
-          break;
+          // Save the network destination so it can be reused for all other
+          // flits in the same packet.
+          requestDestination = flit.channelID();
         }
+        else
+          flit.setChannelID(requestDestination);
+
+        LOKI_LOG << this->name() << " sending request " << flit << endl;
+
+        sendOnNetwork(flit);
       }
     }
 

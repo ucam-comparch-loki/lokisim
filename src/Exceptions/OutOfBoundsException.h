@@ -12,7 +12,7 @@
 
 #include <sstream>
 
-#include "../Tile/Memory/MemoryTypedefs.h"
+#include "../Memory/MemoryTypedefs.h"
 
 class OutOfBoundsException : public std::exception {
 

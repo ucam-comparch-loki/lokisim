@@ -10,7 +10,7 @@
 #ifndef INSTRUCTIONSTORE_H_
 #define INSTRUCTIONSTORE_H_
 
-#include "../../Memory/MemoryTypedefs.h"
+#include "../../../Memory/MemoryTypedefs.h"
 #include "../../../Typedefs.h"
 
 class Instruction;

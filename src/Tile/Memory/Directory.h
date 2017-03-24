@@ -22,8 +22,8 @@
 #include <vector>
 
 #include "../../Datatype/Identifier.h"
+#include "../../Memory/MemoryTypedefs.h"
 #include "../../Network/NetworkTypedefs.h"
-#include "../../Tile/Memory/MemoryTypedefs.h"
 #include "../../Typedefs.h"
 
 class Directory {

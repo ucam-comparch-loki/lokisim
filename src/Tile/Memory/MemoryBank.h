@@ -17,7 +17,7 @@
 #ifndef SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBANK_H_
 #define SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBANK_H_
 
-#include "MemoryBase.h"
+#include "../../Memory/MemoryBase.h"
 #include "Directory.h"
 #include "L2RequestFilter.h"
 #include "ReservationHandler.h"
@@ -25,7 +25,6 @@
 #include "../../Utility/BlockingInterface.h"
 
 #include <memory>
-#include <queue>
 
 class ComputeTile;
 class MemoryOperation;

@@ -12,7 +12,7 @@
 #include "systemc"
 #include "../Typedefs.h"
 #include "../Datatype/Identifier.h"
-#include "../Tile/Memory/MemoryTypedefs.h"
+#include "../Memory/MemoryTypedefs.h"
 #include "../Utility/Parameters.h"
 
 using sc_core::sc_event;

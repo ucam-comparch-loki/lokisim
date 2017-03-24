@@ -13,7 +13,7 @@
 #ifndef SRC_TILE_MEMORY_MAINMEMORY_H_
 #define SRC_TILE_MEMORY_MAINMEMORY_H_
 
-#include "MemoryBase.h"
+#include "../Memory/MemoryBase.h"
 #include "MainMemoryRequestHandler.h"
 
 class MemoryOperation;

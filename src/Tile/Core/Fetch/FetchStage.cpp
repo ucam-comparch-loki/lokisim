@@ -65,7 +65,8 @@ void FetchStage::readLoop() {
         // throughout the pipeline. The decoding actually happens in the decode stage.
         Instruction instruction = currentInstructionSource().read();
         currentInst = DecodedInst(instruction);
-        currentInst.location(currentInstructionSource().memoryAddress());
+        currentInst.location(getCurrentAddress());
+        currentInst.source(currentPacket.location.component);
 
         Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_INSTRUCTIONS, currentInst);
 
@@ -494,6 +495,29 @@ InstructionStore& FetchStage::currentInstructionSource() {
   else
     throw InvalidOptionException("instruction source component",
                                  currentPacket.location.component);
+}
+
+MemoryAddr FetchStage::getCurrentAddress() const {
+  // To allow context switching, if this packet is from the FIFO, assume it
+  // is an interrupt, and attach some information about the packet which
+  // would have been fetched from the cache, had the interrupt not arrived.
+  if (currentPacket.location.component == IPKFIFO) {
+    if (cachePendingPacket.active()) {
+      // Ensure that the address of the cache packet ends up in the program
+      // counter, and set the lowest bit if the fetch was to be persistent.
+      MemoryAddr address = cachePendingPacket.memAddr;
+      if (cachePendingPacket.persistent)
+        address |= 1;
+      return address;
+    }
+    else {
+      // If there is no cache packet, use some obviously junk address.
+      return 0xffffffff;
+    }
+  }
+  else {
+    return const_cast<FetchStage*>(this)->currentInstructionSource().memoryAddress();
+  }
 }
 
 void FetchStage::getNextInstruction() {

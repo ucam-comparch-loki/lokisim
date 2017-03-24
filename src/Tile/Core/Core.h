@@ -158,6 +158,11 @@ private:
   // can fetch more packets from relative locations.
   void             updateCurrentPacket(MemoryAddr addr);
 
+  // Update the contents of the control register responsible for recording the
+  // latest "normal" fetch.
+  // https://svr-rdm34-issue.cl.cam.ac.uk/w/loki/architecture/core/decode/
+  void             updateFetchAddressCReg(MemoryAddr addr);
+
   // Tell the core whether it is currently stalled or not.
   void             pipelineStalled(bool stalled);
 

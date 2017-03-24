@@ -9,7 +9,7 @@
 #define MEMORYTYPEDEFS_H_
 
 #include <inttypes.h>
-#include "../../Utility/Parameters.h"
+#include "../Utility/Parameters.h"
 
 
 #define CACHE_LINE_WORDS 8UL

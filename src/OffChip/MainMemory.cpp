@@ -8,9 +8,9 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "MainMemory.h"
-#include "../../Datatype/MemoryOperations/MemoryOperationDecode.h"
-#include "../../Utility/Assert.h"
-#include "../../Utility/Instrumentation/MainMemory.h"
+#include "../Datatype/MemoryOperations/MemoryOperationDecode.h"
+#include "../Utility/Assert.h"
+#include "../Utility/Instrumentation/MainMemory.h"
 #include <iomanip>
 #include <ios>
 

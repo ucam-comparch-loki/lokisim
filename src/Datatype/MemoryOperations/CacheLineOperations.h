@@ -10,7 +10,7 @@
 
 #include "../Flit.h"
 #include "../Identifier.h"
-#include "../../Tile/Memory/MemoryTypedefs.h"
+#include "../../Memory/MemoryTypedefs.h"
 #include "MemoryOperation.h"
 
 class FetchLine : public MemoryOperation {

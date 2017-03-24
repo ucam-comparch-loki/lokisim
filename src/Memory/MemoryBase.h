@@ -12,12 +12,12 @@
 #ifndef SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBASE_H_
 #define SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBASE_H_
 
-#include "../../Datatype/Instruction.h"
-#include "../../LokiComponent.h"
-#include "../../Network/NetworkTypedefs.h"
-#include "../../Utility/Assert.h"
+#include "../Datatype/Instruction.h"
+#include "../LokiComponent.h"
+#include "../Network/NetworkTypedefs.h"
+#include "../Utility/Assert.h"
 #include "MemoryTypedefs.h"
-#include "../../Utility/Warnings.h"
+#include "../Utility/Warnings.h"
 
 class MemoryOperation;
 

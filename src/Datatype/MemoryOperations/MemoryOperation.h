@@ -12,8 +12,8 @@
 
 #include "../Flit.h"
 #include "../Identifier.h"
+#include "../../Memory/MemoryTypedefs.h"
 #include "../../Network/NetworkTypedefs.h"
-#include "../../Tile/Memory/MemoryTypedefs.h"
 
 class MemoryBase;
 

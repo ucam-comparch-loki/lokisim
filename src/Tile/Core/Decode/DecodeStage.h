@@ -172,6 +172,12 @@ private:
 
   bool waitingToSend;
 
+  // To aid context switching, sometimes enter a mode where fetches become nops.
+  // https://svr-rdm34-issue.cl.cam.ac.uk/w/loki/architecture/core/decode/
+  bool fetchSuppressionMode;
+  bool fetchInPreviousPacket;
+  bool updateFetchAddress;
+
   // Store the channel information used previously in case we need to send a
   // whole packet of information.
   EncodedCMTEntry previousCMTData;

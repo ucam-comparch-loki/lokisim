@@ -72,6 +72,7 @@ const ChannelID DecodedInst::networkDestination() const {
 }
 
 MemoryAddr    DecodedInst::location()        const {return location_;}
+InstructionSource DecodedInst::source()      const {return source_;}
 
 
 bool    DecodedInst::predicated() const {
@@ -194,6 +195,7 @@ void DecodedInst::cmtEntry(const EncodedCMTEntry val)     {networkInfo = val;}
 void DecodedInst::portClaim(const bool val)               {portClaim_ = val;}
 
 void DecodedInst::location(const MemoryAddr val)          {location_ = val;}
+void DecodedInst::source(const InstructionSource val)     {source_ = val;}
 
 
 Instruction DecodedInst::toInstruction() const {
@@ -332,6 +334,7 @@ void DecodedInst::init() {
   endOfPacket_      = true;                 // non-zero
   networkInfo       = 0;
   location_         = 0;
+  source_           = UNKNOWN;
   hasResult_        = false;
 }
 

@@ -18,7 +18,7 @@
 #define SRC_TILE_MEMORY_RESERVATIONHANDLER_H_
 
 #include "../../Datatype/Identifier.h"
-#include "../../Tile/Memory/MemoryTypedefs.h"
+#include "../../Memory/MemoryTypedefs.h"
 
 class ReservationHandler {
 public:

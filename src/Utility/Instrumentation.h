@@ -13,7 +13,7 @@
 #ifndef INSTRUMENTATION_H_
 #define INSTRUMENTATION_H_
 
-#include "../Tile/Memory/MemoryTypedefs.h"
+#include "../Memory/MemoryTypedefs.h"
 #include "../Typedefs.h"
 
 class ChannelID;

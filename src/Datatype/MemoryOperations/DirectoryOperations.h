@@ -10,7 +10,7 @@
 
 #include "../Flit.h"
 #include "../Identifier.h"
-#include "../../Tile/Memory/MemoryTypedefs.h"
+#include "../../Memory/MemoryTypedefs.h"
 #include "MemoryOperation.h"
 
 class UpdateDirectoryEntry : public MemoryOperation {
@@ -21,6 +21,7 @@ public:
   virtual void prepare();
   virtual bool preconditionsMet() const;
   virtual void execute();
+  virtual const NetworkRequest getOriginal() const;
 };
 
 class UpdateDirectoryMask : public MemoryOperation {
@@ -31,6 +32,7 @@ public:
   virtual void prepare();
   virtual bool preconditionsMet() const;
   virtual void execute();
+  virtual const NetworkRequest getOriginal() const;
 };
 
 #endif /* SRC_TILE_MEMORY_OPERATIONS_DIRECTORYOPERATIONS_H_ */

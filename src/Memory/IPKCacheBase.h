@@ -9,7 +9,7 @@
 #define IPKCACHEBASE_H_
 
 #include "../Datatype/Instruction.h"
-#include "../Tile/Memory/MemoryTypedefs.h"
+#include "MemoryTypedefs.h"
 #include "../Typedefs.h"
 #include "../Utility/ISA.h"
 #include "../Utility/LoopCounter.h"

@@ -178,6 +178,9 @@ private:
 
   InstructionStore& currentInstructionSource();
 
+  // The address of the most-recently fetched instruction.
+  MemoryAddr    getCurrentAddress() const;
+
   // Override PipelineStage's implementation.
   virtual void  getNextInstruction();
 

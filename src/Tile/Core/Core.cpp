@@ -7,6 +7,7 @@
 
 #include "Core.h"
 
+#include "ControlRegisters.h"
 #include "PipelineRegister.h"
 #include "../ComputeTile.h"
 #include "../../Datatype/DecodedInst.h"
@@ -149,6 +150,10 @@ int32_t  Core::getForwardedData() const {
 
 void     Core::updateCurrentPacket(MemoryAddr addr) {
   regs.updateCurrentIPK(addr);
+}
+
+void     Core::updateFetchAddressCReg(MemoryAddr addr) {
+  cregs.write(ControlRegisters::CR_FETCH_ADDRESS, addr);
 }
 
 void     Core::pipelineStalled(bool stalled) {

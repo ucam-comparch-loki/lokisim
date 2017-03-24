@@ -5,15 +5,14 @@
  *      Author: db434
  */
 
-#include "../../Tile/Memory/MagicMemory.h"
-
-#include "../../Chip.h"
-#include "../../Datatype/Instruction.h"
-#include "../../Exceptions/InvalidOptionException.h"
-#include "../../Network/NetworkTypedefs.h"
-#include "../../Tile/Memory/MainMemory.h"
-#include "../../Utility/Assert.h"
-#include "../../Utility/Parameters.h"
+#include "MagicMemory.h"
+#include "MainMemory.h"
+#include "../Chip.h"
+#include "../Datatype/Instruction.h"
+#include "../Exceptions/InvalidOptionException.h"
+#include "../Network/NetworkTypedefs.h"
+#include "../Utility/Assert.h"
+#include "../Utility/Parameters.h"
 
 MagicMemory::MagicMemory(const sc_module_name& name, MainMemory& mainMemory) :
     LokiComponent(name),

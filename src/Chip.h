@@ -22,8 +22,8 @@
 #include "Network/Global/RequestNetwork.h"
 #include "Network/Global/ResponseNetwork.h"
 #include "Network/NetworkTypedefs.h"
-#include "Tile/Memory/MagicMemory.h"
-#include "Tile/Memory/MainMemory.h"
+#include "OffChip/MagicMemory.h"
+#include "OffChip/MainMemory.h"
 #include "Typedefs.h"
 #include "Utility/LokiVector2D.h"
 

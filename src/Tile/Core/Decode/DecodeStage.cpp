@@ -11,6 +11,7 @@
 #include "../../../Datatype/Instruction.h"
 #include "../../../Exceptions/InvalidOptionException.h"
 #include "../Core.h"
+#include "../Fetch/InstructionStore.h"
 
 void         DecodeStage::execute() {
   while (true) {
@@ -155,6 +156,21 @@ void         DecodeStage::newInput(DecodedInst& inst) {
   }
 
   currentInst = decoded;
+
+  // Start allowing fetches again at the end of a cache packet, OR at the end
+  // of a FIFO packet where the core was idle before the packet started.
+  // https://svr-rdm34-issue.cl.cam.ac.uk/w/loki/architecture/core/decode/
+  if (startingNewPacket) {
+    if (currentInst.source() == IPKCACHE) {
+      fetchInPreviousPacket = fetchSuppressionMode;
+      fetchSuppressionMode = false;
+      updateFetchAddress = true;
+    }
+    else if (currentInst.source() == IPKFIFO && !fetchInPreviousPacket) {
+      fetchSuppressionMode = false;
+      updateFetchAddress = true;
+    }
+  }
 }
 
 bool         DecodeStage::isStalled() const {
@@ -313,9 +329,26 @@ void DecodeStage::fetch(const DecodedInst& inst) {
       break;
   }
 
-  LOKI_LOG << this->name() << " fetching from address " << LOKI_HEX(fetchAddress) << endl;
+  if (fetchSuppressionMode) {
+    LOKI_LOG << this->name() << " suppressing fetch from address " << LOKI_HEX(fetchAddress) << endl;
+  }
+  else {
+    LOKI_LOG << this->name() << " fetching from address " << LOKI_HEX(fetchAddress) << endl;
+    core()->checkTags(fetchAddress, inst.opcode(), inst.cmtEntry());
+  }
 
-  core()->checkTags(fetchAddress, inst.opcode(), inst.cmtEntry());
+  // Start suppressing further fetches after the first fetch of an instruction
+  // packet.
+  fetchSuppressionMode = true;
+
+  if (updateFetchAddress)
+    core()->updateFetchAddressCReg(fetchAddress);
+
+  // Only update the fetch address for "normal" fetches (not interrupts).
+  if (inst.source() == IPKCACHE ||
+      (!fetchInPreviousPacket && inst.source() == IPKFIFO)) {
+    updateFetchAddress = false;
+  }
 }
 
 bool         DecodeStage::canFetch() const {
@@ -371,6 +404,9 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
 
   startingNewPacket = true;
   waitingToSend = false;
+  fetchSuppressionMode = false;
+  fetchInPreviousPacket = false;
+  updateFetchAddress = true;
 
   previousCMTData = 0;
   rmtexecuteChannel = Instruction::NO_CHANNEL;

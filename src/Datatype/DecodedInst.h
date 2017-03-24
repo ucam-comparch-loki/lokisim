@@ -16,6 +16,7 @@
 #include "Identifier.h"
 #include "Instruction.h"
 #include "../Network/NetworkTypedefs.h"
+#include "../Tile/Core/Fetch/InstructionStore.h"
 
 class DecodedInst {
 
@@ -59,6 +60,7 @@ public:
   int32_t       operand2() const;
   int64_t       result() const;
   MemoryAddr    location() const;
+  InstructionSource source() const;
 
   EncodedCMTEntry cmtEntry() const;
   const ChannelID networkDestination() const;
@@ -96,6 +98,7 @@ public:
   void    operand2(const int32_t val);
   void    result(const int64_t val);
   void    location(const MemoryAddr val);
+  void    source(const InstructionSource val);
 
   void    persistent(const bool val);
   void    remoteExecute(const bool val);
@@ -201,6 +204,7 @@ private:
   bool                endOfPacket_;
 
   MemoryAddr          location_;  // The position in memory that this instruction comes from.
+  InstructionSource   source_;    // Was the instruction from L0 cache or FIFO?
 
   bool                persistent_;
   bool                forRemoteExecution_;
