@@ -1,4 +1,1 @@
-export SYSTEMC_DISABLE_COPYRIGHT_MESSAGE=1
-
-DIR=$( dirname $0 )
-$DIR/../build/lokisim "$@"
+../build/lokisim
