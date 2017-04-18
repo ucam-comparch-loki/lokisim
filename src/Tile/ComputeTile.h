@@ -19,7 +19,7 @@
 #include "Network/ForwardCrossbar.h"
 #include "Network/InstructionReturn.h"
 #include "../Network/Global/RouterDemultiplexer.h"
-#include "../Network/NetworkTypedefs.h"
+#include "../Network/NetworkTypes.h"
 #include "../Network/WormholeMultiplexer.h"
 
 class Core;

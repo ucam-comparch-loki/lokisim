@@ -13,9 +13,8 @@
 
 #include "systemc"
 #include <vector>
-#include "Typedefs.h"
-
 #include "Datatype/Identifier.h"
+#include "Types.h"
 
 #include "Utility/Logging.h"
 #include "Utility/LokiVector.h"

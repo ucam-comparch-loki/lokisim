@@ -12,7 +12,7 @@
 #ifndef WRITESTAGE_H_
 #define WRITESTAGE_H_
 
-#include "../../../Network/NetworkTypedefs.h"
+#include "../../../Network/NetworkTypes.h"
 #include "../PipelineStage.h"
 #include "SendChannelEndTable.h"
 

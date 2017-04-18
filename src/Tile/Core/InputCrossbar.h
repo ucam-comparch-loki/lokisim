@@ -12,8 +12,8 @@
 #define INPUTCROSSBAR_H_
 
 #include "../../LokiComponent.h"
+#include "../../Network/NetworkTypes.h"
 #include "../../Network/Topologies/InstantCrossbar.h"
-#include "../../Network/NetworkTypedefs.h"
 
 class FlowControlIn;
 class UnclockedNetwork;

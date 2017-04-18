@@ -12,7 +12,7 @@
 #define SRC_NETWORK_GLOBAL_NETWORKDEADEND_H_
 
 #include "../../LokiComponent.h"
-#include "../NetworkTypedefs.h"
+#include "../NetworkTypes.h"
 
 template<class T>
 class NetworkDeadEnd : public LokiComponent {

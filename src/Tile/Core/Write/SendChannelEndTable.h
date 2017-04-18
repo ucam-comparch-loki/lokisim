@@ -11,8 +11,8 @@
 #define SENDCHANNELENDTABLE_H_
 
 #include "../../../LokiComponent.h"
-#include "../../../Network/NetworkBuffer.h"
-#include "../../../Network/NetworkTypedefs.h"
+#include "../../../Network/FIFOs/NetworkFIFO.h"
+#include "../../../Network/NetworkTypes.h"
 #include "../../../Utility/BlockingInterface.h"
 
 class ChannelMapTable;
@@ -124,7 +124,7 @@ private:
   SendState sendStateMulticast;
 
   // Buffer of data to send onto the network.
-  NetworkBuffer<NetworkData> bufferLocal, bufferMemory, bufferGlobal;
+  NetworkFIFO<NetworkData> bufferLocal, bufferMemory, bufferGlobal;
 
   // A pointer to this core's channel map table. The table itself is in the
   // Core class. No reading or writing of destinations should occur here -

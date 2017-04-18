@@ -15,8 +15,8 @@
 
 
 #include "../LokiComponent.h"
-#include "../Network/NetworkTypedefs.h"
 #include "../Utility/Assert.h"
+#include "NetworkTypes.h"
 
 using sc_core::sc_module_name;
 

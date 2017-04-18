@@ -14,7 +14,7 @@
 #define BUS_H_
 
 #include "../Network.h"
-#include "../NetworkTypedefs.h"
+#include "../NetworkTypes.h"
 
 class Bus: public Network {
 

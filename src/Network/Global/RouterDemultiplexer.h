@@ -15,8 +15,8 @@
 #define SRC_NETWORK_GLOBAL_ROUTERDEMULTIPLEXER_H_
 
 #include "../../LokiComponent.h"
-#include "../NetworkTypedefs.h"
 #include "../../Utility/Assert.h"
+#include "../NetworkTypes.h"
 
 template<class T>
 class RouterDemultiplexer: public LokiComponent {

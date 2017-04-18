@@ -10,9 +10,9 @@
 
 #include <string>
 #include <vector>
-#include "../../Typedefs.h"
 #include "../../Datatype/Identifier.h"
-#include "../../Memory/MemoryTypedefs.h"
+#include "../../Memory/MemoryTypes.h"
+#include "../../Types.h"
 #include "DataBlock.h"
 
 using std::string;

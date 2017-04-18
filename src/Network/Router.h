@@ -17,8 +17,8 @@
 
 #include "../LokiComponent.h"
 #include "../Utility/BlockingInterface.h"
-#include "BufferArray.h"
-#include "NetworkTypedefs.h"
+#include "FIFOs/FIFOArray.h"
+#include "NetworkTypes.h"
 
 class Router : public LokiComponent, public BlockingInterface {
 
@@ -84,7 +84,7 @@ private:
 
 private:
 
-  BufferArray<NetworkData> inputBuffers;
+  FIFOArray<NetworkData> inputBuffers;
 
 //============================================================================//
 // Local state

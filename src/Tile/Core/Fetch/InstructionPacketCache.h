@@ -13,7 +13,7 @@
 
 #include "../../../LokiComponent.h"
 #include "../../../Memory/IPKCacheBase.h"
-#include "../../../Network/NetworkTypedefs.h"
+#include "../../../Network/NetworkTypes.h"
 #include "InstructionStore.h"
 
 class FetchStage;

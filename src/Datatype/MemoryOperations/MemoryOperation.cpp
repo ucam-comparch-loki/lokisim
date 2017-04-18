@@ -11,7 +11,7 @@
 #include <iomanip>
 #include <iostream>
 
-#include "../../Network/NetworkTypedefs.h"
+#include "../../Network/NetworkTypes.h"
 #include "../../Tile/Memory/MemoryBank.h"
 #include "../../Utility/Arguments.h"
 #include "../../Utility/Instrumentation/Latency.h"

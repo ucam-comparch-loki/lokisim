@@ -16,7 +16,7 @@
 #define FLOWCONTROLOUT_H_
 
 #include "../../LokiComponent.h"
-#include "../NetworkTypedefs.h"
+#include "../NetworkTypes.h"
 
 class FlowControlOut: public LokiComponent {
 

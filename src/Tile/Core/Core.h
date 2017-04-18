@@ -15,6 +15,7 @@
 #ifndef CORE_H_
 #define CORE_H_
 
+#include "../../Network/NetworkTypes.h"
 #include "ChannelMapTable.h"
 #include "ControlRegisters.h"
 #include "Decode/DecodeStage.h"
@@ -24,7 +25,6 @@
 #include "PredicateRegister.h"
 #include "RegisterFile.h"
 #include "Write/WriteStage.h"
-#include "../../Network/NetworkTypedefs.h"
 #include "MagicMemoryConnection.h"
 
 class ComputeTile;

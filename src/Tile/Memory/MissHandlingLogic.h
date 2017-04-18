@@ -16,7 +16,7 @@
 #include "../../Datatype/MemoryRequest.h"
 #include "../../LokiComponent.h"
 #include "../../Network/ArbitratedMultiplexer.h"
-#include "../../Network/NetworkTypedefs.h"
+#include "../../Network/NetworkTypes.h"
 #include "../../Tile/Memory/Directory.h"
 
 class Chip;

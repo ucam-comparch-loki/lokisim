@@ -10,9 +10,9 @@
 
 #include <assert.h>
 #include "systemc"
-#include "../Typedefs.h"
 #include "../Datatype/Identifier.h"
-#include "../Memory/MemoryTypedefs.h"
+#include "../Memory/MemoryTypes.h"
+#include "../Types.h"
 #include "../Utility/Parameters.h"
 
 using sc_core::sc_event;

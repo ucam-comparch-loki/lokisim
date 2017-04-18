@@ -1,5 +1,5 @@
 /*
- * Buffer.h
+ * FIFO.h
  *
  * A simple circular buffer with FIFO semantics.
  *
@@ -13,16 +13,16 @@
 #ifndef BUFFERSTORAGE_H_
 #define BUFFERSTORAGE_H_
 
-#include "Storage.h"
+#include "../../Memory/Storage.h"
 #include "systemc.h"
-#include "../Utility/Instrumentation.h"
-#include "../Utility/Instrumentation/FIFO.h"
-#include "../Utility/LoopCounter.h"
+#include "../../Utility/Instrumentation.h"
+#include "../../Utility/Instrumentation/FIFO.h"
+#include "../../Utility/LoopCounter.h"
 
 using sc_core::sc_event;
 
 template<class T>
-class BufferStorage: public Storage<T> {
+class FIFO: public Storage<T> {
 
 //============================================================================//
 // Methods
@@ -145,7 +145,7 @@ private:
 
 public:
 
-  BufferStorage(const size_t size, const std::string& name) :
+  FIFO(const size_t size, const std::string& name) :
       Storage<T>(size, name),
       readPos(size),
       writePos(size) {
@@ -155,7 +155,7 @@ public:
     Instrumentation::FIFO::createdFIFO(size);
   }
 
-  virtual ~BufferStorage() {}
+  virtual ~FIFO() {}
 
 //============================================================================//
 // Local state

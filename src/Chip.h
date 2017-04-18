@@ -21,10 +21,10 @@
 #include "Network/Global/DataNetwork.h"
 #include "Network/Global/RequestNetwork.h"
 #include "Network/Global/ResponseNetwork.h"
-#include "Network/NetworkTypedefs.h"
+#include "Network/NetworkTypes.h"
 #include "OffChip/MagicMemory.h"
 #include "OffChip/MainMemory.h"
-#include "Typedefs.h"
+#include "Types.h"
 #include "Utility/LokiVector2D.h"
 
 using std::vector;

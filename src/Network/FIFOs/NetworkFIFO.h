@@ -1,7 +1,7 @@
 /*
- * NetworkBuffer.h
+ * NetworkFIFO.h
  *
- * Extension of a standard buffer which includes the ability to detect when
+ * Extension of a standard FIFO which includes the ability to detect when
  * data has been consumed, allowing a credit to be sent.
  *
  *  Created on: 29 Oct 2013
@@ -11,10 +11,10 @@
 #ifndef NETWORKBUFFER_H_
 #define NETWORKBUFFER_H_
 
-#include "../Memory/BufferStorage.h"
+#include "FIFO.h"
 
 template<class T>
-class NetworkBuffer: public BufferStorage<T> {
+class NetworkFIFO: public FIFO<T> {
 
 //============================================================================//
 // Methods
@@ -30,12 +30,12 @@ public:
       dataConsumed.notify();
       fresh[this->readPos.value()] = false;
     }
-    return BufferStorage<T>::read();
+    return FIFO<T>::read();
   }
 
   virtual void write(const T& newData) {
     fresh[this->writePos.value()] = true;
-    BufferStorage<T>::write(newData);
+    FIFO<T>::write(newData);
 
     if (this->full())
       LOKI_LOG << this->name() << " is full" << endl;
@@ -51,13 +51,13 @@ public:
 
 public:
 
-  NetworkBuffer(const std::string& name, const size_t size) :
-      BufferStorage<T>(size, name),
+  NetworkFIFO(const std::string& name, const size_t size) :
+      FIFO<T>(size, name),
       fresh(size, false) {
 
   }
 
-  virtual ~NetworkBuffer() {}
+  virtual ~NetworkFIFO() {}
 
 //============================================================================//
 // Local state

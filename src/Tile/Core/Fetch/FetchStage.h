@@ -12,8 +12,8 @@
 #ifndef FETCHSTAGE_H_
 #define FETCHSTAGE_H_
 
-#include "../../../Memory/BufferStorage.h"
-#include "../../../Network/NetworkTypedefs.h"
+#include "../../../Network/FIFOs/FIFO.h"
+#include "../../../Network/NetworkTypes.h"
 #include "InstructionPacketCache.h"
 #include "InstructionPacketFIFO.h"
 #include "../PipelineStage.h"
@@ -233,7 +233,7 @@ private:
 
   // Buffer to store fetches as we wait for any outstanding operations to
   // complete.
-  BufferStorage<FetchInfo> fetchBuffer;
+  FIFO<FetchInfo> fetchBuffer;
   FetchInfo activeFetch;
 
   // Event which is triggered whenever a packet finishes arriving.

@@ -17,7 +17,7 @@
 #define FLOWCONTROLIN_H_
 
 #include "../../LokiComponent.h"
-#include "../NetworkTypedefs.h"
+#include "../NetworkTypes.h"
 
 class Word;
 

@@ -19,7 +19,7 @@
 #include <stdarg.h>
 
 #include "../LokiComponent.h"
-#include "../Typedefs.h"
+#include "../Types.h"
 #include "Instrumentation.h"
 
 class Assert {

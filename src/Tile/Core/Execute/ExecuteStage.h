@@ -11,7 +11,7 @@
 #ifndef EXECUTESTAGE_H_
 #define EXECUTESTAGE_H_
 
-#include "../../../Network/NetworkTypedefs.h"
+#include "../../../Network/NetworkTypes.h"
 #include "ALU.h"
 #include "Scratchpad.h"
 #include "../PipelineStage.h"

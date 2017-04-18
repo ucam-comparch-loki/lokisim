@@ -10,7 +10,7 @@
 #include "../Chip.h"
 #include "../Datatype/Instruction.h"
 #include "../Exceptions/InvalidOptionException.h"
-#include "../Network/NetworkTypedefs.h"
+#include "../Network/NetworkTypes.h"
 #include "../Utility/Assert.h"
 #include "../Utility/Parameters.h"
 

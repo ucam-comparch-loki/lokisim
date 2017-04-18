@@ -17,7 +17,7 @@
 #include <systemc>
 #include "../Datatype/Word.h"
 #include "../LokiComponent.h"
-#include "../Memory/MemoryTypedefs.h"
+#include "../Memory/MemoryTypes.h"
 
 class Chip;
 class MainMemory;

@@ -12,9 +12,8 @@
 #define SRC_TILE_MEMORY_MAINMEMORYREQUESTHANDLER_H_
 
 #include "../Memory/MemoryBase.h"
-#include "../Network/DelayBuffer.h"
-
 #include <memory>
+#include "../Network/FIFOs/DelayFIFO.h"
 
 class MainMemory;
 
@@ -118,7 +117,7 @@ private:
   RequestHandlerState   requestState;
   std::unique_ptr<MemoryOperation> activeRequest; // The request being served.
 
-  DelayBuffer<NetworkResponse> outputQueue; // Model memory latency
+  DelayFIFO<NetworkResponse> outputQueue; // Model memory latency
 
   // The place where data is actually stored. There may be many of these
   // request handlers all accessing the same data.

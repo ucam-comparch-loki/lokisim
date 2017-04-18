@@ -16,7 +16,7 @@
 
 #include <ios>
 #include <sstream>
-#include "../Memory/MemoryTypedefs.h"
+#include "../Memory/MemoryTypes.h"
 
 class ReadOnlyException : public std::exception {
 

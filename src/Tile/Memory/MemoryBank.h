@@ -21,9 +21,8 @@
 #include "Directory.h"
 #include "L2RequestFilter.h"
 #include "ReservationHandler.h"
-#include "../../Network/DelayBuffer.h"
+#include "../../Network/FIFOs/DelayFIFO.h"
 #include "../../Utility/BlockingInterface.h"
-
 #include <memory>
 
 class ComputeTile;
@@ -219,10 +218,10 @@ private:
 
   bool                  currentlyIdle;
 
-  NetworkBuffer<NetworkRequest>  inputQueue;       // Input queue
-  DelayBuffer<NetworkResponse>   outputDataQueue;  // Output queue
-  DelayBuffer<NetworkResponse>   outputInstQueue;  // Output queue
-  DelayBuffer<NetworkRequest>    outputReqQueue;   // Output request queue
+  NetworkFIFO<NetworkRequest>  inputQueue;       // Input queue
+  DelayFIFO<NetworkResponse>   outputDataQueue;  // Output queue
+  DelayFIFO<NetworkResponse>   outputInstQueue;  // Output queue
+  DelayFIFO<NetworkRequest>    outputReqQueue;   // Output request queue
 
   // If this bank is flushing data, it has the only valid copy, but the tags
   // will suggest that it doesn't have it at all. Record the addresses of all
@@ -245,7 +244,7 @@ private:
 
   unsigned int          cacheLineCursor; // Used to step through cache lines.
 
-  BufferStorage<NetworkRequest> missBuffer; // Payloads for a request which is currently missing.
+  FIFO<NetworkRequest> missBuffer; // Payloads for a request which is currently missing.
 
   bool                  copyingToMissBuffer;   // Tell whether the miss buffer needs filling.
   bool                  readingFromMissBuffer; // Tell whether the miss buffer needs emptying.

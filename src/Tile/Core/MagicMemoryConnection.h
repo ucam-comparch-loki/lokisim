@@ -13,7 +13,7 @@
 
 #include "../../Datatype/DecodedInst.h"
 #include "../../LokiComponent.h"
-#include "../../Memory/MemoryTypedefs.h"
+#include "../../Memory/MemoryTypes.h"
 
 class Core;
 

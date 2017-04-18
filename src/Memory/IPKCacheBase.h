@@ -9,10 +9,10 @@
 #define IPKCACHEBASE_H_
 
 #include "../Datatype/Instruction.h"
-#include "MemoryTypedefs.h"
-#include "../Typedefs.h"
+#include "../Types.h"
 #include "../Utility/ISA.h"
 #include "../Utility/LoopCounter.h"
+#include "MemoryTypes.h"
 
 using sc_core::sc_event;
 

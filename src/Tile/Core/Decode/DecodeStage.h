@@ -17,7 +17,7 @@
 #ifndef DECODESTAGE_H_
 #define DECODESTAGE_H_
 
-#include "../../../Network/NetworkTypedefs.h"
+#include "../../../Network/NetworkTypes.h"
 #include "Decoder.h"
 #include "ReceiveChannelEndTable.h"
 #include "../PipelineStage.h"

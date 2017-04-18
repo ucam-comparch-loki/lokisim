@@ -22,9 +22,9 @@
 #include <vector>
 
 #include "../../Datatype/Identifier.h"
-#include "../../Memory/MemoryTypedefs.h"
-#include "../../Network/NetworkTypedefs.h"
-#include "../../Typedefs.h"
+#include "../../Memory/MemoryTypes.h"
+#include "../../Network/NetworkTypes.h"
+#include "../../Types.h"
 
 class Directory {
 

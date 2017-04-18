@@ -12,7 +12,7 @@
 #define SRC_TILE_MEMORY_L2REQUESTFILTER_H_
 
 #include "../../LokiComponent.h"
-#include "../../Network/NetworkTypedefs.h"
+#include "../../Network/NetworkTypes.h"
 
 class MemoryBank;
 

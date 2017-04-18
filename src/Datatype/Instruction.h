@@ -12,8 +12,8 @@
 #ifndef INSTRUCTION_H_
 #define INSTRUCTION_H_
 
+#include "../Types.h"
 #include "Word.h"
-#include "../Typedefs.h"
 #include "../Utility/ISA.h"
 
 using std::string;

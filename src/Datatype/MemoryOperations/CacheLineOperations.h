@@ -8,9 +8,9 @@
 #ifndef SRC_TILE_MEMORY_OPERATIONS_CACHELINEOPERATIONS_H_
 #define SRC_TILE_MEMORY_OPERATIONS_CACHELINEOPERATIONS_H_
 
+#include "../../Memory/MemoryTypes.h"
 #include "../Flit.h"
 #include "../Identifier.h"
-#include "../../Memory/MemoryTypedefs.h"
 #include "MemoryOperation.h"
 
 class FetchLine : public MemoryOperation {

@@ -8,8 +8,8 @@
 #ifndef LOKI_BUS_H_
 #define LOKI_BUS_H_
 
+#include "../Network/NetworkTypes.h"
 #include "loki_signal.h"
-#include "../Network/NetworkTypedefs.h"
 #include "../Utility/Instrumentation.h"
 
 class loki_bus : public loki_signal<NetworkData> {

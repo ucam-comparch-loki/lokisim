@@ -8,9 +8,9 @@
 #ifndef NETWORK_INSTRUMENTATION_H_
 #define NETWORK_INSTRUMENTATION_H_
 
+#include "../../Network/NetworkTypes.h"
 #include "InstrumentationBase.h"
 #include "CounterMap.h"
-#include "../../Network/NetworkTypedefs.h"
 
 class ComponentID;
 

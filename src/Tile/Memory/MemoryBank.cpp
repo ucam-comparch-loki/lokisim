@@ -306,7 +306,7 @@ void MemoryBank::processIdle() {
 
     activeRequest = peekRequest();
 
-    if (MEMORY_HIT_UNDER_MISS && (missingRequest.get() != NULL)) {
+    if (MEMORY_HIT_UNDER_MISS && (missingRequest != NULL)) {
       // Don't reorder data being sent to the same channel.
       if (missingRequest->getDestination() == activeRequest->getDestination())
         return;
@@ -342,7 +342,7 @@ void MemoryBank::processIdle() {
 
 void MemoryBank::processRequest() {
   loki_assert_with_message(state == STATE_REQUEST, "State = %d", state);
-  loki_assert(activeRequest.get() != NULL);
+  loki_assert(activeRequest != NULL);
 
   // Before we even consider serving a request, we must make sure that there
   // is space to buffer any potential results.
@@ -356,7 +356,7 @@ void MemoryBank::processRequest() {
     if (activeRequest->awaitingPayload())
       state = STATE_FORWARD;
     else {
-      assert(missingRequest.get() == NULL);
+      loki_assert(missingRequest == NULL);
       missingRequest = activeRequest;
       finishedRequestForNow();
     }
@@ -377,7 +377,7 @@ void MemoryBank::processRequest() {
 
   // If the operation has finished, and we haven't moved to some other state
   // for further processing, end the request and prepare for a new one.
-  if (activeRequest.get() != NULL && activeRequest->complete() && state == STATE_REQUEST) {
+  if (activeRequest != NULL && activeRequest->complete() && state == STATE_REQUEST) {
     finishedRequest();
     readingFromMissBuffer = false;
   }
@@ -385,7 +385,7 @@ void MemoryBank::processRequest() {
 
 void MemoryBank::processAllocate() {
   loki_assert_with_message(state == STATE_ALLOCATE, "State = %d", state);
-  loki_assert(activeRequest.get() != NULL);
+  loki_assert(activeRequest != NULL);
 
   if (!canSendRequest()) {
     LOKI_LOG << this->name() << " delayed allocation due to full output request queue" << endl;
@@ -419,7 +419,7 @@ void MemoryBank::processAllocate() {
 
 void MemoryBank::processFlush() {
   loki_assert_with_message(state == STATE_FLUSH, "State = %d", state);
-  loki_assert(activeRequest.get() != NULL);
+  loki_assert(activeRequest != NULL);
   // It is assumed that the header flit has already been sent. All that is left
   // is to send the cache line.
 
@@ -448,7 +448,7 @@ void MemoryBank::processFlush() {
 
 void MemoryBank::processRefill() {
   loki_assert_with_message(state == STATE_REFILL, "State = %d", state);
-  loki_assert(missingRequest.get() != NULL);
+  loki_assert(missingRequest != NULL);
 
   if (!iClock.negedge())
     next_trigger(iClock.negedge_event());
@@ -501,7 +501,7 @@ void MemoryBank::processRefill() {
 
 void MemoryBank::processForward() {
   loki_assert_with_message(state == STATE_FORWARD, "State = %d", state);
-  loki_assert(activeRequest.get() != NULL);
+  loki_assert(activeRequest != NULL);
 
   // Before we even consider serving a request, we must make sure that there
   // is space to buffer any potential results.
@@ -536,7 +536,7 @@ void MemoryBank::processForward() {
       // results - we need to preserve all state until the response has been
       // passed back to the original requester.
       if (activeRequest->resultsToSend()) {
-        assert(missingRequest.get() == NULL);
+        loki_assert(missingRequest == NULL);
         missingRequest = activeRequest;
         finishedRequestForNow();
       }

@@ -14,8 +14,8 @@
 #define ARBITRATEDMULTIPLEXER_H_
 
 #include "../LokiComponent.h"
-#include "NetworkTypedefs.h"
 #include "../Utility/Assert.h"
+#include "NetworkTypes.h"
 
 template<class T>
 class ArbitratedMultiplexer: public LokiComponent {

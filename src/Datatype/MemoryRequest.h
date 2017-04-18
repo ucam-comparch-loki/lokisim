@@ -14,8 +14,8 @@
 #include "Word.h"
 #include "Identifier.h"
 #include "../Exceptions/InvalidOptionException.h"
-#include "../Memory/MemoryTypedefs.h"
-#include "../Typedefs.h"
+#include "../Memory/MemoryTypes.h"
+#include "../Types.h"
 
 class MemoryRequest : public Word {
 private:

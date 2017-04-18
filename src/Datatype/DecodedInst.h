@@ -13,9 +13,10 @@
 
 #include <inttypes.h>
 #include "systemc.h"
+
+#include "../Network/NetworkTypes.h"
 #include "Identifier.h"
 #include "Instruction.h"
-#include "../Network/NetworkTypedefs.h"
 #include "../Tile/Core/Fetch/InstructionStore.h"
 
 class DecodedInst {

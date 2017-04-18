@@ -14,7 +14,8 @@
 #define FLIT_H_
 
 #include "../Tile/ChannelMapEntry.h"
-#include "../Typedefs.h"
+#include "../Types.h"
+#include "../Utility/Logging.h"
 #include "Identifier.h"
 #include "Instruction.h"
 #include "Word.h"

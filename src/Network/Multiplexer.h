@@ -10,7 +10,7 @@
 
 #include "../LokiComponent.h"
 #include "../Utility/BlockingInterface.h"
-#include "NetworkTypedefs.h"
+#include "NetworkTypes.h"
 
 
 class Multiplexer: public LokiComponent, public BlockingInterface {

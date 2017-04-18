@@ -11,8 +11,8 @@
 #define ALU_H_
 
 #include "../../../LokiComponent.h"
+#include "../../../Memory/MemoryTypes.h"
 #include "../../../Utility/ISA.h"
-#include "../../../Memory/MemoryTypedefs.h"
 
 class DecodedInst;
 class ExecuteStage;

@@ -17,7 +17,7 @@
 #define SRC_TILE_TILE_H_
 
 #include "../LokiComponent.h"
-#include "../Network/NetworkTypedefs.h"
+#include "../Network/NetworkTypes.h"
 
 class Chip;
 class DataBlock;

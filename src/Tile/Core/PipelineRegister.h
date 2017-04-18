@@ -19,7 +19,7 @@
 
 #include "../../Datatype/DecodedInst.h"
 #include "../../LokiComponent.h"
-#include "../../Memory/BufferStorage.h"
+#include "../../Network/FIFOs/FIFO.h"
 
 class PipelineRegister: public LokiComponent {
 

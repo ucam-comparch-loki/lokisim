@@ -17,7 +17,7 @@
 
 #include "../../LokiComponent.h"
 #include "../../Utility/BlockingInterface.h"
-#include "../NetworkTypedefs.h"
+#include "../NetworkTypes.h"
 
 class ArbiterBase;
 

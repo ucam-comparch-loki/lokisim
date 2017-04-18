@@ -14,8 +14,8 @@
 #define RECEIVECHANNELENDTABLE_H_
 
 #include "../../../LokiComponent.h"
-#include "../../../Network/BufferArray.h"
-#include "../../../Network/NetworkTypedefs.h"
+#include "../../../Network/FIFOs/FIFOArray.h"
+#include "../../../Network/NetworkTypes.h"
 #include "../../../Utility/BlockingInterface.h"
 #include "../../../Utility/LoopCounter.h"
 
@@ -117,7 +117,7 @@ public:
 private:
 
   // A buffer for each channel-end.
-  BufferArray<Word> buffers;
+  FIFOArray<Word> buffers;
 
   // Allows round-robin selection of channels when executing selch.
   LoopCounter       currentChannel;

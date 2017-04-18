@@ -11,8 +11,8 @@
 #define INSTRUCTIONPACKETFIFO_H_
 
 #include "../../../LokiComponent.h"
-#include "../../../Network/NetworkBuffer.h"
-#include "../../../Network/NetworkTypedefs.h"
+#include "../../../Network/FIFOs/NetworkFIFO.h"
+#include "../../../Network/NetworkTypes.h"
 #include "InstructionStore.h"
 
 class FetchStage;
@@ -95,7 +95,7 @@ private:
 
 private:
 
-  NetworkBuffer<Instruction> fifo;
+  NetworkFIFO<Instruction> fifo;
 
   // The FIFO holds a single tag, so it is able to efficiently hold very
   // tight loops consisting of a single packet.

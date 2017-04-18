@@ -13,9 +13,10 @@
 #define INSTRUMENTATIONBASE_H_
 
 #include <iostream>
+
+#include "../../Network/NetworkTypes.h"
 #include "../Instrumentation.h"
-#include "../../Typedefs.h"
-#include "../../Network/NetworkTypedefs.h"
+#include "../../Types.h"
 #include "../../Utility/Arguments.h"
 
 using std::string;

@@ -9,7 +9,7 @@
 #define NETWORK_H_
 
 #include "../LokiComponent.h"
-#include "NetworkTypedefs.h"
+#include "NetworkTypes.h"
 
 class Network : public LokiComponent {
 

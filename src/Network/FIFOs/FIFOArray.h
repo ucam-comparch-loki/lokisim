@@ -14,10 +14,10 @@
 #ifndef BUFFERARRAY_H_
 #define BUFFERARRAY_H_
 
-#include "NetworkBuffer.h"
+#include "NetworkFIFO.h"
 
 template<class T>
-class BufferArray {
+class FIFOArray {
 
 //============================================================================//
 // Methods
@@ -26,7 +26,7 @@ class BufferArray {
 public:
 
   // Allows any method of the Buffer to be called
-  NetworkBuffer<T>& operator[] (const uint index) const {
+  NetworkFIFO<T>& operator[] (const uint index) const {
     return *(buffers[index]);
   }
 
@@ -47,7 +47,7 @@ public:
 
 public:
 
-  BufferArray(const uint numBuffers, const uint buffSize, const std::string& name) {
+  FIFOArray(const uint numBuffers, const uint buffSize, const std::string& name) {
     assert(numBuffers > 0);
     assert(buffSize > 0);
 
@@ -56,11 +56,11 @@ public:
       ss << name << ".buffer_" << i;
       std::string buffName;
       ss >> buffName;
-      buffers.push_back(new NetworkBuffer<T>(buffName, buffSize));
+      buffers.push_back(new NetworkFIFO<T>(buffName, buffSize));
     }
   }
 
-  virtual ~BufferArray() {
+  virtual ~FIFOArray() {
     for(uint i=0; i<size(); i++) delete buffers[i];
   }
 
@@ -70,7 +70,7 @@ public:
 
 private:
 
-  std::vector<NetworkBuffer<T>* > buffers;
+  std::vector<NetworkFIFO<T>* > buffers;
 
 };
 

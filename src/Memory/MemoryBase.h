@@ -14,10 +14,10 @@
 
 #include "../Datatype/Instruction.h"
 #include "../LokiComponent.h"
-#include "../Network/NetworkTypedefs.h"
+#include "../Network/NetworkTypes.h"
 #include "../Utility/Assert.h"
-#include "MemoryTypedefs.h"
 #include "../Utility/Warnings.h"
+#include "MemoryTypes.h"
 
 class MemoryOperation;
 

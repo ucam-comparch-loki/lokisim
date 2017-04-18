@@ -1,7 +1,7 @@
 /*
- * DelayBuffer.h
+ * DelayFIFO.h
  *
- *  Buffer which does not register as having content until a fixed delay after
+ *  FIFO which does not register as having content until a fixed delay after
  *  the data has been inserted.
  *
  *  This is implemented by adding an extra buffer space for each clock cycle of
@@ -15,14 +15,14 @@
  *      Author: db434
  */
 
-#ifndef SRC_NETWORK_DELAYBUFFER_H_
-#define SRC_NETWORK_DELAYBUFFER_H_
+#ifndef SRC_NETWORK_DELAYFIFO_H_
+#define SRC_NETWORK_DELAYFIFO_H_
 
-#include "../LokiComponent.h"
-#include "NetworkBuffer.h"
+#include "../../LokiComponent.h"
+#include "NetworkFIFO.h"
 
 template<class T>
-class DelayBuffer : public LokiComponent {
+class DelayFIFO : public LokiComponent {
 
   struct TimedData {
     T       data;       // Data to be written
@@ -30,13 +30,13 @@ class DelayBuffer : public LokiComponent {
   };
 
 public:
-  DelayBuffer(const sc_module_name& name, const size_t size, const double delayCycles) :
+  DelayFIFO(const sc_module_name& name, const size_t size, const double delayCycles) :
       LokiComponent(name),
       buffer(this->name(), size+int(delayCycles)),
       delay(delayCycles) {
 
   }
-  virtual ~DelayBuffer() {}
+  virtual ~DelayFIFO() {}
 
   virtual const T& read() {
     const T& data = buffer.read().data;
@@ -118,7 +118,7 @@ private:
     return buffer.empty();
   }
 
-  NetworkBuffer<TimedData> buffer;
+  NetworkFIFO<TimedData> buffer;
 
   const double delay;
 
@@ -126,4 +126,4 @@ private:
   sc_event delayedWrite;
 };
 
-#endif /* SRC_NETWORK_DELAYBUFFER_H_ */
+#endif /* SRC_NETWORK_DELAYFIFO_H_ */
