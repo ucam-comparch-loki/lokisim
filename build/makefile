@@ -66,7 +66,7 @@ all: lokisim
 lokisim: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C++ Linker'
-	g++ -L/usr/groups/comparch-loki/tools/releases/systemc/current/lib-linux64 -o "lokisim" $(OBJS) $(USER_OBJS) $(LIBS)
+	g++ -L/usr/local/lib-linux64 -o "lokisim" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 

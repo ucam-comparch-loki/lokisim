@@ -4,3 +4,5 @@ environment/project/cdt.managedbuild.config.gnu.exe.debug.1627256779/SYSTEMC_DIS
 environment/project/cdt.managedbuild.config.gnu.exe.debug.1627256779/SYSTEMC_DISABLE_COPYRIGHT_MESSAGE/value=1
 environment/project/cdt.managedbuild.config.gnu.exe.debug.1627256779/append=true
 environment/project/cdt.managedbuild.config.gnu.exe.debug.1627256779/appendContributed=true
+environment/project/cdt.managedbuild.toolchain.gnu.base.675547058/append=true
+environment/project/cdt.managedbuild.toolchain.gnu.base.675547058/appendContributed=true
