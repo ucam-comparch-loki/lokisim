@@ -145,23 +145,25 @@ public:
 
 private:
 
+  typedef std::shared_ptr<MemoryOperation> DecodedRequest;
+
   // Tasks to carry out for each of the possible states.
   void processIdle();
-  void processRequest();
-  void processAllocate();
-  void processFlush();
-  void processRefill();
-  void processForward();
+  void processRequest(DecodedRequest& request);
+  void processAllocate(DecodedRequest& request);
+  void processFlush(DecodedRequest& request);
+  void processRefill(DecodedRequest& request);
+  void processForward(DecodedRequest& request);
 
   // Perform any tidying necessary when a request finishes.
-  void finishedRequest();
+  void finishedRequest(DecodedRequest& request);
   // We have done all the work on a request that we can do at the moment, but
   // will come back to it later.
-  void finishedRequestForNow();
+  void finishedRequestForNow(DecodedRequest& request);
 
   bool requestAvailable() const;
   const sc_event_or_list& requestAvailableEvent() const;
-  std::shared_ptr<MemoryOperation> peekRequest();
+  DecodedRequest peekRequest();
   void consumeRequest(MemoryLevel level);
 
   bool canSendRequest() const;
@@ -228,23 +230,25 @@ private:
   // cache lines in the process of being flushed to detect this corner case.
   vector<MemoryAddr>    pendingFlushes;
 
+  typedef struct {
+    MemoryTag address;  // Which data is stored here?
+    bool      valid;    // Is the data present?
+    bool      dirty;    // Has this line been modified?
+    bool      l2Skip;   // Should this line bypass the L2 when flushed?
+  } TagData;
+
   vector<uint32_t>      data;            // The stored data.
-  vector<MemoryTag>     tags;            // Cache tags for each line.
-  vector<bool>          valid;           // Valid data flag for each line.
-  vector<bool>          dirty;           // Modified data flag for each line.
-  vector<bool>          l2Skip;          // Whether each line bypasses the L2 when flushed.
+  vector<TagData>       metadata;        // Tags, etc. for each cache line.
 
-  std::shared_ptr<MemoryOperation> activeRequest;  // The request being served.
-
-  // Callback request - put on hold while performing sub-operations such as
-  // cache line fetches.
-  std::shared_ptr<MemoryOperation> missingRequest;
+  // All memory requests that can be in flight at once. To allow hit-under-miss
+  // we currently allow a hitting request and a missing request.
+  DecodedRequest hitRequest, missRequest;
 
   ReservationHandler    reservations;    // Data keeping track of current atomic transactions.
 
   unsigned int          cacheLineCursor; // Used to step through cache lines.
 
-  FIFO<NetworkRequest> missBuffer; // Payloads for a request which is currently missing.
+  FIFO<NetworkRequest>  missBuffer; // Payloads for a request which is currently missing.
 
   bool                  copyingToMissBuffer;   // Tell whether the miss buffer needs filling.
   bool                  readingFromMissBuffer; // Tell whether the miss buffer needs emptying.
