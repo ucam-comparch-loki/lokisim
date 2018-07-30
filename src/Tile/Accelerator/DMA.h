@@ -40,7 +40,7 @@ public:
   // Also include cache details?
   DMABase(sc_module_name name, ComponentID id, size_t queueLength=4) :
       LokiComponent(name, id),
-      adjuster(id),
+      bankSelector(id),
       commandQueue(queueLength) {
 
     SC_METHOD(updateReady);
@@ -74,8 +74,8 @@ protected:
   }
 
   MemoryRequest buildRequest(MemoryOpcode op, uint32_t payload, bool eop) {
-    ChannelID networkAddress = adjuster.getMapping(op, payload, memoryMapping);
-    MemoryRequest request(payload, networkAddress, memoryMapping, op, eop);
+    ChannelID address = bankSelector.getMapping(op, payload, memoryMapping);
+    MemoryRequest request(payload, address, memoryMapping, op, eop);
     return request;
   }
 
@@ -102,7 +102,7 @@ private:
 
   // Fine-tunes the memory configuration for individual requests if the mapping
   // covers multiple components.
-  MemoryChannelAdjuster adjuster;
+  MemoryBankSelector bankSelector;
 
 };
 

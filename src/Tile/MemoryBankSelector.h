@@ -1,5 +1,5 @@
 /*
- * MemoryChannelAdjuster.h
+ * MemoryBankSelector.h
  * 
  * Memory mappings can cover a group of memory banks. This module determines the
  * single bank to access for a single request, based on other relevant
@@ -11,10 +11,10 @@
  *      Author: db434
  */
 
-#ifndef SRC_TILE_MEMORYCHANNELADJUSTER_H_
-#define SRC_TILE_MEMORYCHANNELADJUSTER_H_
+#ifndef SRC_TILE_MEMORYBANKSELECTOR_H_
+#define SRC_TILE_MEMORYBANKSELECTOR_H_
 
-class MemoryChannelAdjuster {
+class MemoryBankSelector {
 
 //============================================================================//
 // Constructors and destructors
@@ -22,7 +22,7 @@ class MemoryChannelAdjuster {
   
 public:
   
-  MemoryChannelAdjuster(ComponentID id);
+  MemoryBankSelector(ComponentID id);
 
 
 //============================================================================//
@@ -61,4 +61,4 @@ private:
   
 };
 
-#endif /* SRC_TILE_MEMORYCHANNELADJUSTER_H_ */
+#endif /* SRC_TILE_MEMORYBANKSELECTOR_H_ */

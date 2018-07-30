@@ -5,10 +5,11 @@
  *      Author: db434
  */
 
-#include "MemoryChannelAdjuster.h"
+#include "MemoryBankSelector.h"
+
 #include "../Memory/MemoryTypes.h"
 
-MemoryChannelAdjuster::MemoryChannelAdjuster(ComponentID id) :
+MemoryBankSelector::MemoryBankSelector(ComponentID id) :
     id(id),
     previousOffset(0) {
 
@@ -16,7 +17,7 @@ MemoryChannelAdjuster::MemoryChannelAdjuster(ComponentID id) :
 
 }
 
-ChannelID MemoryChannelAdjuster::getMapping(const MemoryOpcode operation,
+ChannelID MemoryBankSelector::getMapping(const MemoryOpcode operation,
     const uint32_t payload,
     const ChannelMapEntry::MemoryChannel mapping) {
 
@@ -46,12 +47,12 @@ ChannelID MemoryChannelAdjuster::getMapping(const MemoryOpcode operation,
       offset = previousOffset;
     }
   }
-  // else offset remains zero.
+  // else if group size == 1, offset remains zero.
 
   return ChannelID(id.tile.x, id.tile.y, mapping.bank + offset, mapping.channel);
 }
 
-bool MemoryChannelAdjuster::containsAddress(const MemoryOpcode operation) const {
+bool MemoryBankSelector::containsAddress(const MemoryOpcode operation) const {
   switch (operation) {
     case PAYLOAD:
     case PAYLOAD_EOP:
