@@ -38,8 +38,9 @@ public:
   SC_HAS_PROCESS(DMABase);
 
   // Also include cache details?
-  DMABase(sc_module_name name, size_t queueLength=4) :
-      LokiComponent(name),
+  DMABase(sc_module_name name, ComponentID id, size_t queueLength=4) :
+      LokiComponent(name, id),
+      adjuster(id),
       commandQueue(queueLength) {
 
     SC_METHOD(updateReady);
@@ -62,7 +63,7 @@ public:
     return !commandQueue.full();
   }
 
-  void replaceMemoryMapping(uint32_t mapEncoded) {
+  void replaceMemoryMapping(EncodedCMTEntry mapEncoded) {
     memoryMapping = ChannelMapEntry::memoryView(mapEncoded);
   }
 
@@ -72,9 +73,10 @@ protected:
     return commandQueue.dequeue();
   }
 
-  MemoryRequest buildRequest(MemoryAddr address, MemoryOpcode op) {
-    // TODO - use channel map entry to determine which memory bank to access.
-    // Might be good to extract this out to a component shared with Cores.
+  MemoryRequest buildRequest(MemoryOpcode op, uint32_t payload, bool eop) {
+    ChannelID networkAddress = adjuster.getMapping(op, payload, memoryMapping);
+    MemoryRequest request(payload, networkAddress, memoryMapping, op, eop);
+    return request;
   }
 
 private:
@@ -97,6 +99,10 @@ private:
 
   // Memory configuration.
   ChannelMapEntry::MemoryChannel memoryMapping;
+
+  // Fine-tunes the memory configuration for individual requests if the mapping
+  // covers multiple components.
+  MemoryChannelAdjuster adjuster;
 
 };
 
