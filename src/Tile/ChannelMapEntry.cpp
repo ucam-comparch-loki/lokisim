@@ -197,7 +197,7 @@ unsigned int ChannelMapEntry::getCoreMask() const {
 // The number of memory banks in the virtual memory group.
 unsigned int ChannelMapEntry::getMemoryGroupSize() const {
   if (getNetwork() == CORE_TO_MEMORY)
-    return 1 << memoryView().groupSize;
+    return 1 << memoryView().logGroupSize;
   else
     return 1;
 }
