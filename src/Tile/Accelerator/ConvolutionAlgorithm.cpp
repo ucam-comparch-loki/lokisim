@@ -19,7 +19,7 @@ bool ConvolutionAlgorithm::executing() const {
   return inProgress;
 }
 
-void ConvolutionAlgorithm::start(const ConvolutionParameters parameters) {
+void ConvolutionAlgorithm::start(const conv_parameters_t parameters) {
   assert(!executing());
 
   this->parameters = parameters;

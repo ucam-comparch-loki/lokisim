@@ -21,7 +21,7 @@ public:
 
   ClockInput iClock;
 
-  // TODO connection to cores
+  // TODO connection from cores
 
 
 //============================================================================//

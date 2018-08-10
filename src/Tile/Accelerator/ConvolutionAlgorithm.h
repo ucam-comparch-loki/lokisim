@@ -53,7 +53,7 @@ public:
   bool executing() const;
 
   // Prepare to execute a new convolution.
-  void start(const ConvolutionParameters parameters);
+  void start(const conv_parameters_t parameters);
 
   // "Execute" one iteration of the algorithm and send relevant commands to the
   // DMA units.
@@ -89,7 +89,7 @@ protected:
 
   // The received computation parameters. Used as loop bounds. Remain constant
   // while execution is in progress.
-  ConvolutionParameters parameters;
+  conv_parameters_t parameters;
 
   // A local set of parameters used to hold the current loop indices.
   conv_shape_t counters;
