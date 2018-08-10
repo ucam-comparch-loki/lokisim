@@ -15,13 +15,15 @@ typedef uint32_t tick_t;
 
 
 // A command holds all the information required to fetch a block of data for
-// the FUs.
-// TODO: might need to support 2D data access (2 lengths and 2 strides).
+// the FUs. A 2D data access is supported, as it must be used for at least one
+// of the three datasets accessed: for 1D, set colLength to 1.
 typedef struct {
-  void*  baseAddress;   // Address of value to be sent to/from first PE.
-  size_t length;        // Total number of values to fetch/store.
-  size_t stride;        // Distance between values (in bytes).
   tick_t time;          // Tick when data should be provided.
+  void*  baseAddress;   // Address of value to be sent to/from first PE.
+  size_t rowLength;     // Number of values to fetch/store in one row.
+  size_t rowStride;     // Distance between values (in bytes) in row.
+  size_t colLength;     // Number of values in one column.
+  size_t colStride;     // Distance between values (in bytes) in column.
 } dma_command_t;
 
 
@@ -93,11 +95,6 @@ typedef struct {
   activation_config_t input;
   activation_config_t output;
   filter_config_t     filters;
-
-  // Size and shape of one tile of computation.
-  // This can probably be removed once the accelerator is controlled by cores.
-  // Tiling seems more of a software technique.
-  conv_shape_t tile;
 } conv_parameters_t;
 
 #endif /* SRC_TILE_ACCELERATOR_ACCELERATORTYPES_H_ */
