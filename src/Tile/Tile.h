@@ -30,7 +30,7 @@ class Tile: public LokiComponent {
 
 public:
 
-  ClockInput      clock;
+  ClockInput      iClock;
 
   // Data network.
   DataInput       iData;

@@ -11,6 +11,7 @@
 
 #include "Chip.h"
 #include "Tile/Tile.h"
+#include "Tile/AcceleratorTile.h"
 #include "Tile/ComputeTile.h"
 #include "Tile/EmptyTile.h"
 #include "Tile/MemoryControllerTile.h"
@@ -200,7 +201,11 @@ void Chip::makeComponents() {
       
       if (col > 0 && col <= COMPUTE_TILE_COLUMNS &&
           row > 0 && row <= COMPUTE_TILE_ROWS) {
-        t = new ComputeTile(name.str().c_str(), tileID);
+
+        if (ACCELERATORS_PER_TILE > 0)
+          t = new AcceleratorTile(name.str().c_str(), tileID);
+        else
+          t = new ComputeTile(name.str().c_str(), tileID);
 
         // Some ComputeTile-specific connections.
         ((ComputeTile*)t)->fastClock(fastClock);
@@ -218,7 +223,7 @@ void Chip::makeComponents() {
       }
 
       // Common interface for all tiles.
-      t->clock(clock);
+      t->iClock(clock);
       t->iCredit(iCredit[col][row]);
       t->iCreditReady(iCreditReady[col][row]);
       t->iData(iData[col][row]);

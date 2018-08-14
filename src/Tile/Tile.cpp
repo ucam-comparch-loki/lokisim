@@ -11,7 +11,7 @@
 
 Tile::Tile(const sc_module_name& name, const ComponentID& id) :
     LokiComponent(name, id),
-    clock("clock"),
+    iClock("clock"),
     iData("iData"),
     oData("oData"),
     iDataReady("iDataReady"),

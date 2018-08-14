@@ -18,6 +18,14 @@ typedef int32_t dtype;
 class Accelerator: public LokiComponent {
 
 //============================================================================//
+// Ports
+//============================================================================//
+
+public:
+
+  ClockInput iClock;
+
+//============================================================================//
 // Constructors and destructors
 //============================================================================//
 
@@ -59,6 +67,8 @@ private:
   DMAOutput<dtype> out;
 
   // TODO: ComputeUnit
+
+  CommandSignal toIn1, toIn2, toOut;
 
 
 };

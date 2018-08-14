@@ -23,6 +23,11 @@ public:
 
   // TODO connection from cores
 
+  // Commands send to DMA units.
+  CommandOutput oDMA1Command;
+  CommandOutput oDMA2Command;
+  CommandOutput oDMA3Command;
+
 
 //============================================================================//
 // Constructors and destructors

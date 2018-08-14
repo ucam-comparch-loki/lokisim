@@ -21,7 +21,7 @@ AcceleratorTile::AcceleratorTile(const sc_module_name& name,
     Accelerator* a = new Accelerator(sc_gen_unique_name("acc"), accID);
     accelerators.push_back(a);
 
-    // TODO wiring
+    a->iClock(iClock);
   }
 
 }

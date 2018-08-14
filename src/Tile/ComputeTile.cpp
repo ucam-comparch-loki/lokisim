@@ -229,7 +229,7 @@ void ComputeTile::makeSignals() {
 void ComputeTile::wireUp() {
 
   for (uint i=0; i<cores.size(); i++) {
-    cores[i]->clock(clock);
+    cores[i]->clock(iClock);
     cores[i]->fastClock(fastClock);
     cores[i]->iCredit(creditsToCores[i]);
     cores[i]->iData(dataToCores[i]);
@@ -245,7 +245,7 @@ void ComputeTile::wireUp() {
   }
 
   for (uint i=0; i<memories.size(); i++) {
-    memories[i]->iClock(clock);
+    memories[i]->iClock(iClock);
     memories[i]->iData(requestsToMemory[i]);
     memories[i]->iRequest(l2RequestToMemory);
     memories[i]->iRequestClaimed(l2RequestClaimed);
@@ -262,7 +262,7 @@ void ComputeTile::wireUp() {
     memories[i]->oResponse(l2ResponseFromMemory[i]);
   }
 
-  mhl.clock(clock);
+  mhl.clock(iClock);
   mhl.oRequestToNetwork(oRequest);
   mhl.oReadyForRequest(oRequestReady);
   mhl.iRequestFromNetwork(iRequest);

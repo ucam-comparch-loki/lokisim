@@ -21,18 +21,30 @@
 class DMA: public LokiComponent {
 
 //============================================================================//
+// Ports
+//============================================================================//
+
+public:
+
+  // Command from the control unit.
+  CommandInput iCommand;
+
+//============================================================================//
 // Constructors and destructors
 //============================================================================//
 
 public:
 
+  SC_HAS_PROCESS(DMA);
 
   DMA(sc_module_name name, ComponentID id, size_t queueLength=4) :
       LokiComponent(name, id),
       commandQueue(queueLength),
       memoryInterface("ifc", id) {
 
-    // Nothing.
+    SC_METHOD(newCommandArrived);
+    sensitive << iCommand;
+    dont_initialize();
 
   }
 
@@ -118,6 +130,13 @@ protected:
 
   Accelerator* parent() const {
     return static_cast<Accelerator*>(this->get_parent_object());
+  }
+
+private:
+
+  void newCommandArrived() {
+    loki_assert(canAcceptCommand());
+    enqueueCommand(iCommand.read());
   }
 
 
