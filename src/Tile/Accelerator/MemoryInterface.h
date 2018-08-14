@@ -1,6 +1,13 @@
 /*
  * MemoryInterface.h
  *
+ * Component responsible for getting data to or from memory for an Accelerator's
+ * DMA unit.
+ *
+ * This component is agnostic to the type of data being accessed, and always
+ * returns uint32_t values. These should be cast to the appropriate type before
+ * use.
+ *
  *  Created on: 10 Aug 2018
  *      Author: db434
  */
@@ -9,13 +16,9 @@
 #define SRC_TILE_ACCELERATOR_MEMORYINTERFACE_H_
 
 #include <queue>
-#include <systemc>
+#include "../../LokiComponent.h"
 
-using sc_core::sc_event;
 using std::queue;
-
-// Requests to send to memory.
-typedef Flit<Word> request_t;
 
 // Position in array of ports to return a result.
 typedef struct {
@@ -23,13 +26,23 @@ typedef struct {
   uint column;
 } position_t;
 
+// Requests to send to memory.
+typedef struct {
+  position_t position;
+  MemoryAddr address;
+  MemoryOpcode operation;
+  uint32_t   data;
+} request_t;
+
 // Value returned from memory, combined with its position.
+// Note that data is always a uint32_t, and should be cast to the appropriate
+// type before use.
 typedef struct {
   position_t position;
   uint32_t data;
 } response_t;
 
-class MemoryInterface {
+class MemoryInterface : public LokiComponent {
 
 //============================================================================//
 // Constructors and destructors
@@ -37,7 +50,8 @@ class MemoryInterface {
 
 public:
 
-  MemoryInterface();
+  SC_HAS_PROCESS(MemoryInterface);
+  MemoryInterface(sc_module_name name, ComponentID id);
 
 
 //============================================================================//
@@ -46,9 +60,9 @@ public:
 
 public:
 
-  // Enqueue a memory request to be sent when next possible. If a request
-  // consists of multiple flits, they cannot be interleaved with other requests.
-  void sendRequest(const request_t request);
+  // Enqueue a memory request to be sent when next possible.
+  void createNewRequest(position_t position, MemoryAddr address, MemoryOpcode op,
+                        uint32_t data=0);
 
   // Dequeue the next value received from memory.
   const response_t getResponse();
@@ -62,6 +76,9 @@ public:
   // Does this component have a value ready to be passed on to the PEs?
   bool canGiveResponse() const;
 
+  // Receive a response from memory.
+  void receiveResponse(const NetworkData& flit);
+
   // Event triggered whenever there is a new response ready to send to the PEs.
   sc_event responseArrivedEvent() const;
 
@@ -69,13 +86,15 @@ public:
   // and there are no requests currently in flight in the memory system.
   bool isIdle() const;
 
+  // Update the mapping from memory addresses to memory banks.
+  void replaceMemoryMapping(ChannelMapEntry::MemoryChannel mapping);
+
 private:
 
-  // Send the next requests in the request queue to memory.
-  void requestsToMemory();
+  // Send the next request in the request queue to memory.
+  void sendRequest();
 
-  // Receive a response from memory.
-  void receiveResponse(/*TODO params*/);
+  DMA* parent() const;
 
 
 //============================================================================//
@@ -83,6 +102,14 @@ private:
 //============================================================================//
 
 private:
+
+  // Memory configuration. Tells us which memory bank to access for each memory
+  // address.
+  ChannelMapEntry::MemoryChannel memoryMapping;
+
+  // Fine-tunes the memory configuration for individual requests if the mapping
+  // covers multiple components.
+  MemoryBankSelector bankSelector;
 
   // Requests to send to memory. Could potentially split this into one queue per
   // bank to increase parallelism.
@@ -92,6 +119,12 @@ private:
   // Responses received from memory.
   queue<response_t> responses;
   sc_event responseArrived;
+
+  // Probably temporary. Hold the PE position associated with each request while
+  // we wait for a response from memory. Assumes that responses will arrive in
+  // the same order as requests, which is only true for magic memory, or if huge
+  // numbers of channels are available.
+  queue<position_t> inFlight;
 
   // Keep track of the number of requests in progress so we know when they're all
   // done. A request begins when it first arrives in the request queue, and it

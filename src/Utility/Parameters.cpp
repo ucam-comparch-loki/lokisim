@@ -81,6 +81,75 @@ int RETURN_CODE = EXIT_SUCCESS;
 // Number of cores in each tile.
 parameter CORES_PER_TILE             = 8;
 
+<<<<<<< Upstream, based on origin/master
+=======
+// Number of accelerators in an accelerator tile.
+parameter ACCELERATORS_PER_TILE      = 1;
+
+// Number of memory banks in each tile.
+parameter MEMS_PER_TILE              = 8;
+
+// Number of rows of compute tiles.
+parameter COMPUTE_TILE_ROWS          = 1;
+
+// Number of columns of compute tiles.
+parameter COMPUTE_TILE_COLUMNS       = 1;
+
+//============================================================================//
+// Core configuration
+//============================================================================//
+
+// Registers accessible through the instruction set.
+parameter NUM_ADDRESSABLE_REGISTERS  = 32;
+
+// Registers accessible through indirect access (irdr, iwtr).
+parameter NUM_PHYSICAL_REGISTERS     = 32;
+
+// Size of scratchpad in words.
+parameter CORE_SCRATCHPAD_SIZE       = 256;
+
+// Size of instruction packet FIFO in words.
+parameter IPK_FIFO_SIZE              = 24;
+
+// Size of instruction packet cache in words. Set in params.txt.
+parameter IPK_CACHE_SIZE             = 0;
+
+// Number of tags in instruction packet cache. Set in params.txt.
+parameter IPK_CACHE_TAGS             = 0;
+
+// Number of entries in core's channel map table.
+parameter CHANNEL_MAP_SIZE           = 16 - 1; // Final entry is reserved as NULL
+
+// Maximum safe instruction packet size.
+parameter MAX_IPK_SIZE               = 8; // Fetch one cache line at a time.
+
+// Number of entries in the L1 directory, mapping memory addresses to tiles.
+parameter DIRECTORY_SIZE             = 16;
+
+//============================================================================//
+// Memory configuration
+//============================================================================//
+
+// Size of memory bank in bytes.
+parameter MEMORY_BANK_SIZE           = 8192;
+
+// Whether a memory bank can serve "hit" requests while waiting for data from
+// a miss.
+parameter MEMORY_HIT_UNDER_MISS      = 1;
+
+// Total core-memory-core latency (assuming a cache hit).
+parameter MEMORY_BANK_LATENCY        = 3;
+
+// Access latency of main memory once it receives a request.
+parameter MAIN_MEMORY_LATENCY        = 20;
+
+// Size of main memory in bytes.
+parameter MAIN_MEMORY_SIZE           = 256 * 1024 * 1024;
+
+// Total bandwidth to/from main memory in words per cycle.
+parameter MAIN_MEMORY_BANDWIDTH      = 1;
+
+>>>>>>> 04c0395 Give accelerators a magic connection to memory, with scope to give something more realistic in future.
 // If set to 1, all memory operations complete instantaneously.
 parameter MAGIC_MEMORY               = 0;
 
@@ -363,6 +432,7 @@ void Parameters::parseParameter(string name, string value,
 
   int nValue = StringManipulation::strToInt(value);
 
+<<<<<<< Upstream, based on origin/master
   // Convert abbreviated name to a full name, if necessary.
   if (abbreviations.find(name) != abbreviations.end())
     name = abbreviations[name];
@@ -375,6 +445,37 @@ void Parameters::parseParameter(string name, string value,
 
   if (arguments.find(name) == arguments.end()) {
     LOKI_ERROR << "Encountered unknown parameter: " << name << endl;
+=======
+  SET_IF_MATCH(cName, nValue, CORES_PER_TILE);
+  else SET_IF_MATCH(cName, nValue, ACCELERATORS_PER_TILE);
+  else SET_IF_MATCH(cName, nValue, MEMS_PER_TILE);
+  else SET_IF_MATCH(cName, nValue, COMPUTE_TILE_ROWS);
+  else SET_IF_MATCH(cName, nValue, COMPUTE_TILE_COLUMNS);
+  else SET_IF_MATCH(cName, nValue, NUM_ADDRESSABLE_REGISTERS);
+  else SET_IF_MATCH(cName, nValue, NUM_PHYSICAL_REGISTERS);
+  else SET_IF_MATCH(cName, nValue, CORE_SCRATCHPAD_SIZE);
+  else SET_IF_MATCH(cName, nValue, IPK_FIFO_SIZE);
+  else SET_IF_MATCH(cName, nValue, IPK_CACHE_SIZE);
+  else SET_IF_MATCH(cName, nValue, IPK_CACHE_TAGS);
+  else SET_IF_MATCH(cName, nValue, CHANNEL_MAP_SIZE);
+  else SET_IF_MATCH(cName, nValue, MAX_IPK_SIZE);
+  else SET_IF_MATCH(cName, nValue, DIRECTORY_SIZE);
+  else SET_IF_MATCH(cName, nValue, MEMORY_BANK_LATENCY);
+  else SET_IF_MATCH(cName, nValue, MAGIC_MEMORY);
+  else SET_IF_MATCH(cName, nValue, MEMORY_BANK_SIZE);
+  else SET_IF_MATCH(cName, nValue, MAIN_MEMORY_LATENCY);
+  else SET_IF_MATCH(cName, nValue, MAIN_MEMORY_SIZE);
+  else SET_IF_MATCH(cName, nValue, MAIN_MEMORY_BANDWIDTH);
+  else SET_IF_MATCH(cName, nValue, MEMORY_HIT_UNDER_MISS);
+  else SET_IF_MATCH(cName, nValue, CORE_RECEIVE_CHANNELS);
+  else SET_IF_MATCH(cName, nValue, CORE_BUFFER_SIZE);
+  else SET_IF_MATCH(cName, nValue, MEMORY_BUFFER_SIZE);
+  else SET_IF_MATCH(cName, nValue, ROUTER_BUFFER_SIZE);
+  else SET_IF_MATCH(cName, nValue, DEBUG);
+  else SET_IF_MATCH(cName, nValue, TIMEOUT);
+  else {
+    LOKI_ERROR << "Encountered unhandled parameter in settings file: " << name << endl;
+>>>>>>> 04c0395 Give accelerators a magic connection to memory, with scope to give something more realistic in future.
     throw std::exception();
   }
 
@@ -383,6 +484,7 @@ void Parameters::parseParameter(string name, string value,
 }
 
 // Print parameters in a human-readable format.
+<<<<<<< Upstream, based on origin/master
 void Parameters::printParameters(const chip_parameters_t& params) {
   for (auto const &p : arguments)
     cout << "Parameter " << p.first << " is " << p.second.getter(params) << endl;
@@ -397,6 +499,33 @@ void Parameters::printHelp() {
       cout << "\t" << p.second.description << endl;
     cout << "\tDefault: " << p.second.defaultValue << "\n" << endl;
   }
+=======
+void Parameters::printParameters() {
+  cout << "Parameter CORES_PER_TILE is " << CORES_PER_TILE << endl;
+  cout << "Parameter ACCELERATORS_PER_TILE is " << ACCELERATORS_PER_TILE << endl;
+  cout << "Parameter MEMS_PER_TILE is " << MEMS_PER_TILE << endl;
+  cout << "Parameter COMPUTE_TILE_ROWS is " << COMPUTE_TILE_ROWS << endl;
+  cout << "Parameter COMPUTE_TILE_COLUMNS is " << COMPUTE_TILE_COLUMNS << endl;
+  cout << "Parameter NUM_ADDRESSABLE_REGISTERS is " << NUM_ADDRESSABLE_REGISTERS << endl;
+  cout << "Parameter CORE_SCRATCHPAD_SIZE is " << CORE_SCRATCHPAD_SIZE << endl;
+  cout << "Parameter IPK_FIFO_SIZE is " << IPK_FIFO_SIZE << endl;
+  cout << "Parameter IPK_CACHE_SIZE is " << IPK_CACHE_SIZE << endl;
+  cout << "Parameter IPK_CACHE_TAGS is " << IPK_CACHE_TAGS << endl;
+  cout << "Parameter CHANNEL_MAP_SIZE is " << CHANNEL_MAP_SIZE << endl;
+  cout << "Parameter MAX_IPK_SIZE is " << MAX_IPK_SIZE << endl;
+  cout << "Parameter DIRECTORY_SIZE is " << DIRECTORY_SIZE << endl;
+  cout << "Parameter MEMORY_BANK_SIZE is " << MEMORY_BANK_SIZE << endl;
+  cout << "Parameter MEMORY_BANK_LATENCY is " << MEMORY_BANK_LATENCY << endl;
+  cout << "Parameter MEMORY_HIT_UNDER_MISS is " << MEMORY_HIT_UNDER_MISS << endl;
+  cout << "Parameter MAIN_MEMORY_LATENCY is " << MAIN_MEMORY_LATENCY << endl;
+  cout << "Parameter MAIN_MEMORY_SIZE is " << MAIN_MEMORY_SIZE << endl;
+  cout << "Parameter MAIN_MEMORY_BANDWIDTH is " << MAIN_MEMORY_BANDWIDTH << endl;
+  cout << "Parameter MAGIC_MEMORY is " << MAGIC_MEMORY << endl;
+  cout << "Parameter CORE_RECEIVE_CHANNELS is " << CORE_RECEIVE_CHANNELS << endl;
+  cout << "Parameter CORE_BUFFER_SIZE is " << CORE_BUFFER_SIZE << endl;
+  cout << "Parameter MEMORY_BUFFER_SIZE is " << MEMORY_BUFFER_SIZE << endl;
+  cout << "Parameter ROUTER_BUFFER_SIZE is " << ROUTER_BUFFER_SIZE << endl;
+>>>>>>> 04c0395 Give accelerators a magic connection to memory, with scope to give something more realistic in future.
 }
 
 #define XML_LINE(name, value) "\t<" << name << ">" << value << "</" << name << ">\n"

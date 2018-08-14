@@ -11,36 +11,14 @@
 #define SRC_TILE_ACCELERATOR_DMA_H_
 
 #include "../../LokiComponent.h"
-#include "AcceleratorTypes.h"
 #include "../../Utility/Assert.h"
+#include "AcceleratorTypes.h"
+#include "CommandQueue.h"
+#include "MemoryInterface.h"
+#include "StagingArea.h"
 
-template <typename T>
-class DMABase: public LokiComponent {
-
-//============================================================================//
-// Ports
-//============================================================================//
-
-public:
-
-  // TODO Use these or remove them. Currently have duplicates in each of the
-  // subclasses.
-
-  // Signal telling whether the compute unit is ready.
-  //  * For an input DMA, this means the compute unit is ready to receive new
-  //    data.
-  //  * For an output DMA, it means that the compute unit has written data to
-  //    all of its output ports.
-  sc_in<bool>  iComputeUnitReady;
-
-  // Signal telling whether the DMA unit has finished with the data to/from the
-  // compute unit.
-  //  * For input DMAs, this means the data is valid and ready to be used for
-  //    computation.
-  //  * For output DMAs, it means the data has been read and so the compute unit
-  //    can safely produce more data.
-  sc_out<bool> oDataReady;
-
+// Base class for all DMA components.
+class DMA: public LokiComponent {
 
 //============================================================================//
 // Constructors and destructors
@@ -48,16 +26,11 @@ public:
 
 public:
 
-  SC_HAS_PROCESS(DMABase);
 
-  // Also include cache details?
-  DMABase(sc_module_name name, ComponentID id, size_t portCols,
-          size_t portRows, size_t queueLength=4) :
+  DMA(sc_module_name name, ComponentID id, size_t queueLength=4) :
       LokiComponent(name, id),
-      bankSelector(id),
       commandQueue(queueLength),
-      memoryInterface(),
-      stagingArea(portCols, portRows) {
+      memoryInterface("ifc", id) {
 
     // Nothing.
 
@@ -79,29 +52,49 @@ public:
   }
 
   void replaceMemoryMapping(EncodedCMTEntry mapEncoded) {
-    memoryMapping = ChannelMapEntry::memoryView(mapEncoded);
-    // TODO: set return channel. e.g. DMA 1 requests that data returns to
-    // channel 1.
+    ChannelMapEntry::MemoryChannel decoded =
+        ChannelMapEntry::memoryView(mapEncoded);
+
+    // Memory decides which component to return data to using the memory
+    // channel accessed. Set the channel appropriately.
+    // Components are currently ordered: cores, memories, accelerators, but
+    // memories cannot access memories, so remove them from consideration.
+    decoded.channel = id.position - MEMS_PER_TILE;
+
+    memoryInterface.replaceMemoryMapping(decoded);
+  }
+
+  // Magic connection from memory.
+  void deliverDataInternal(const NetworkData& flit) {
+    memoryInterface.receiveResponse(flit);
   }
 
 protected:
 
+  // Remove and return the next command from the control unit.
   const dma_command_t dequeueCommand() {
     return commandQueue.dequeue();
   }
 
+  // Generate a new memory request and send it to the appropriate memory bank.
+  void createNewRequest(position_t position, MemoryAddr address,
+                        MemoryOpcode op, int data = 0) {
+    memoryInterface.createNewRequest(position, address, op, data);
+  }
+
   // Send a request to memory. If a response is expected, it will trigger the
   // memoryInterface.responseArrivedEvent() event.
-  void memoryAccess(MemoryAddr address, MemoryOpcode op, int data = 0) {
+  void memoryAccess(position_t position, MemoryAddr address, MemoryOpcode op,
+                    int data = 0) {
     switch (op) {
       case LOAD_W:
-        loadData(address);
+        loadData(position, address);
         break;
       case STORE_W:
-        storeData(address, data);
+        storeData(position, address, data);
         break;
       case LOAD_AND_ADD:
-        loadAndAdd(address, data);
+        loadAndAdd(position, address, data);
         break;
       default:
         throw InvalidOptionException("Convolution memory operation", op);
@@ -109,23 +102,68 @@ protected:
     }
   }
 
+  // Instantly send a request to memory. This is not a substitute for
+  // memoryAccess above: this method is only to be called once all details about
+  // the access have been confirmed.
+  void magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address,
+                         ChannelID returnChannel, Word data = 0) {
+    parent()->magicMemoryAccess(opcode, address, returnChannel, data);
+  }
+
+  // These methods need to be overridden because their implementation depends
+  // on the type of data being accessed.
+  virtual void loadData(position_t position, MemoryAddr address) = 0;
+  virtual void storeData(position_t position, MemoryAddr address, int data) = 0;
+  virtual void loadAndAdd(position_t position, MemoryAddr address, int data) = 0;
+
+  Accelerator* parent() const {
+    return static_cast<Accelerator*>(this->get_parent_object());
+  }
+
+
+//============================================================================//
+// Local state
+//============================================================================//
+
 private:
 
-  request_t buildRequest(MemoryOpcode op, uint32_t payload) {
-    // This is a property of all MemoryOpcodes.
-    bool endOfPacket = op & 1;
+  // Commands from control unit telling which data to load/store.
+  CommandQueue commandQueue;
 
-    ChannelID address = bankSelector.getMapping(op, payload, memoryMapping);
-    request_t request(payload, address, memoryMapping, op, endOfPacket);
-    return request;
+  // Component responsible for organising requests and responses from memory.
+  MemoryInterface memoryInterface;
+
+};
+
+
+// Secondary base class which contains type-dependent code.
+template <typename T>
+class DMABase: public DMA {
+
+//============================================================================//
+// Constructors and destructors
+//============================================================================//
+
+public:
+
+  // Also include cache details?
+  DMABase(sc_module_name name, ComponentID id, size_t portCols,
+          size_t portRows, size_t queueLength=4) :
+      DMA(name, id, queueLength),
+      stagingArea(portCols, portRows) {
+
+    // Nothing.
+
   }
 
-  // Send a flit to memory.
-  void sendFlit(const request_t request) {
-    memoryInterface.sendRequest(request);
-  }
 
-  void loadData(MemoryAddr address) {
+//============================================================================//
+// Methods
+//============================================================================//
+
+protected:
+
+  virtual void loadData(position_t position, MemoryAddr address) {
     MemoryOpcode op;
 
     // The control unit doesn't know/care which type of data to access, so
@@ -146,11 +184,10 @@ private:
     }
 
     // Generate a memory request and send to memory.
-    request_t request = buildRequest(op, address);
-    sendFlit(request);
+    createNewRequest(position, address, op);
   }
 
-  void storeData(MemoryAddr address, int data) {
+  virtual void storeData(position_t position, MemoryAddr address, int data) {
     MemoryOpcode op;
 
     // The control unit doesn't know/care which type of data to access, so
@@ -171,24 +208,24 @@ private:
     }
 
     // Generate a memory request and send to memory.
-    request_t addr = buildRequest(op, address);
-    sendFlit(addr);
-    request_t value = buildRequest(PAYLOAD_EOP, data);
-    sendFlit(value);
+    createNewRequest(position, address, op, data);
   }
 
-  void loadAndAdd(MemoryAddr address, int data) {
+  virtual void loadAndAdd(position_t position, MemoryAddr address, int data) {
     int shiftedData;
 
     // Memory only supports load-and-adds of whole words. We can emulate the
-    // operation on smaller datatypes by shifting to data to the appropriate
+    // operation on smaller datatypes by shifting the data to the appropriate
     // position. This only works if there is no overflow into neighbouring
     // values.
+    // Note also that only integer types are supported.
     switch (sizeof(T)) {
       case 1:
+        data &= 0xFF;
         shiftedData = data << ((address & 3) * 8);
         break;
       case 2:
+        data &= 0xFFFF;
         shiftedData = data << ((address & 1) * 16);
         break;
       case 4:
@@ -200,10 +237,7 @@ private:
     }
 
     // Generate a memory request and send to memory.
-    request_t addr = buildRequest(LOAD_AND_ADD, address);
-    sendFlit(addr);
-    request_t value = buildRequest(PAYLOAD_EOP, shiftedData);
-    sendFlit(value);
+    createNewRequest(position, address, LOAD_AND_ADD, shiftedData);
   }
 
 
@@ -212,19 +246,6 @@ private:
 //============================================================================//
 
 private:
-
-  // Commands from control unit telling which data to load/store.
-  CommandQueue commandQueue;
-
-  // Component responsible for organising requests and responses from memory.
-  MemoryInterface memoryInterface;
-
-  // Memory configuration.
-  ChannelMapEntry::MemoryChannel memoryMapping;
-
-  // Fine-tunes the memory configuration for individual requests if the mapping
-  // covers multiple components.
-  MemoryBankSelector bankSelector;
 
   // A register for each port to the compute units. Used for holding data
   // immediately before sending/receiving it to/from the compute unit.
@@ -303,7 +324,8 @@ private:
       for (uint col=0; col<command.rowLength; col++) {
         for (uint row=0; row<command.colLength; row++) {
           MemoryAddr addr = command.baseAddress + col*rowStride + row*colStride;
-          memoryAccess(addr, memoryOp);
+          position_t position; position.row = row; position.column = col;
+          memoryAccess(position, addr, memoryOp);
         }
       }
 
@@ -420,7 +442,10 @@ private:
       for (uint row=0; row<command.colLength; row++) {
         for (uint col=0; col<command.rowLength; col++) {
           MemoryAddr addr = command.baseAddress + col*rowStride + row*colStride;
-          memoryAccess(addr, memoryOp, stagingArea.read(row, col));
+          position_t position; position.row = row; position.column = col;
+          memoryAccess(position, addr, memoryOp, stagingArea.read(row, col));
+
+          // TODO: optionally do nothing if the output is zero
         }
       }
 

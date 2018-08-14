@@ -150,6 +150,79 @@ typedef struct {
 // Number of cores in each tile.
 extern parameter  CORES_PER_TILE;
 
+<<<<<<< Upstream, based on origin/master
+=======
+// Number of accelerators in an accelerator tile.
+extern parameter  ACCELERATORS_PER_TILE;
+
+// Number of memory banks in each tile.
+extern parameter  MEMS_PER_TILE;
+
+// Number of rows of compute tiles.
+extern parameter  COMPUTE_TILE_ROWS;
+
+// Number of columns of compute tiles.
+extern parameter  COMPUTE_TILE_COLUMNS;
+
+// Including halo I/O tiles.
+#define TOTAL_TILE_ROWS (COMPUTE_TILE_ROWS + 2)
+#define TOTAL_TILE_COLUMNS (COMPUTE_TILE_COLUMNS + 2)
+
+//============================================================================//
+// Core configuration
+//============================================================================//
+
+// Registers accessible through the instruction set.
+extern parameter  NUM_ADDRESSABLE_REGISTERS;
+
+// Registers accessible through indirect access (irdr, iwtr).
+extern parameter  NUM_PHYSICAL_REGISTERS;
+
+// Size of scratchpad in words.
+extern parameter  CORE_SCRATCHPAD_SIZE;
+
+// Size of instruction packet FIFO in words.
+extern parameter  IPK_FIFO_SIZE;
+
+// Size of instruction packet cache in words.
+extern parameter  IPK_CACHE_SIZE;
+
+// Number of tags in instruction packet cache.
+extern parameter  IPK_CACHE_TAGS;
+
+// Number of entries in core's channel map table.
+extern parameter  CHANNEL_MAP_SIZE;
+
+// Maximum safe instruction packet size.
+extern parameter  MAX_IPK_SIZE;
+
+// Number of entries in the L1 directory, mapping memory addresses to tiles.
+extern parameter  DIRECTORY_SIZE;
+
+//============================================================================//
+// Memory configuration
+//============================================================================//
+
+// Size of memory bank in bytes.
+extern parameter  MEMORY_BANK_SIZE;
+
+// Whether a memory bank can serve "hit" requests while waiting for data from
+// a miss.
+extern parameter  MEMORY_HIT_UNDER_MISS;
+
+// Total core-memory-core latency (assuming a cache hit).
+extern parameter  MEMORY_BANK_LATENCY;
+
+// Access latency of main memory once it receives a request.
+extern parameter  MAIN_MEMORY_LATENCY;
+
+// Size of main memory in bytes.
+extern parameter  MAIN_MEMORY_SIZE;
+
+// Total bandwidth to/from main memory in words per cycle.
+extern parameter  MAIN_MEMORY_BANDWIDTH;
+
+>>>>>>> 04c0395 Give accelerators a magic connection to memory, with scope to give something more realistic in future.
 // If set to 1, all memory operations complete instantaneously.
 extern parameter  MAGIC_MEMORY;
 
