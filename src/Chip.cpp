@@ -10,6 +10,8 @@
 #include <sstream>
 
 #include "Chip.h"
+#include "Tile/Tile.h"
+#include "Tile/AcceleratorTile.h"
 #include "Tile/ComputeTile.h"
 #include "Tile/EmptyTile.h"
 #include "Tile/MemoryControllerTile.h"
@@ -218,9 +220,17 @@ void Chip::makeComponents(const chip_parameters_t& params) {
 
       Tile* t;
       
-      if (col > 0 && col <= params.numComputeTiles.width &&
-          row > 0 && row <= params.numComputeTiles.height) {
-        t = new ComputeTile(name.str().c_str(), tileID, params.tile);
+      if (col > 0 && col <= COMPUTE_TILE_COLUMNS &&
+          row > 0 && row <= COMPUTE_TILE_ROWS) {
+
+        if (ACCELERATORS_PER_TILE > 0)
+          t = new AcceleratorTile(name.str().c_str(), tileID);
+        else
+          t = new ComputeTile(name.str().c_str(), tileID);
+
+        // Some ComputeTile-specific connections.
+        ((ComputeTile*)t)->fastClock(fastClock);
+        ((ComputeTile*)t)->slowClock(slowClock);
       }
       else if (memoryControllerPositions.find(TileID(col,row)) != memoryControllerPositions.end()) {
         t = new MemoryControllerTile(name.str().c_str(), tileID);

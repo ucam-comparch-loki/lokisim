@@ -16,13 +16,15 @@
 
 #include "../../LokiComponent.h"
 
+typedef sc_in<dma_command_t>  CommandInput;
+typedef sc_out<dma_command_t> CommandOutput;
+typedef sc_signal<dma_command_t> CommandSignal;
+
 class ConvolutionAlgorithm: public LokiComponent {
 
 //============================================================================//
 // Ports
 //============================================================================//
-
-  typedef loki_out<dma_command_t> CommandOutput;
 
 public:
 
@@ -59,7 +61,7 @@ public:
   // DMA units.
   // TODO: should this be abstract, or is it possible to generalise the
   // different loop orders?
-  void step() = 0;
+  virtual void step() = 0;
 
   // Event triggered when all execution is finished.
   sc_event finishedComputation() const;

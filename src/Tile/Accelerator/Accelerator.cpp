@@ -8,6 +8,12 @@
 #include "Accelerator.h"
 #include "../../Utility/Assert.h"
 
+// TODO: Perhaps a Configuration class which tells
+//  * Size of PE array
+//  * Connections between PEs
+//  * Caches in DMAs
+//  * Algorithm/loop order
+//  * Datatype?
 Accelerator::Accelerator(sc_module_name name, ComponentID id) :
     LokiComponent(name, id),
     ControlUnit("control"),
@@ -19,7 +25,12 @@ Accelerator::Accelerator(sc_module_name name, ComponentID id) :
   // and doesn't account for other accelerators in the same tile.
   loki_assert(ACCELERATORS_PER_TILE == 1);
 
-  // TODO Create components and wire them up.
+  control.iClock(iClock);
+  control.oDMA1Command(toIn1);  in1.iCommand(toIn1);
+  control.oDMA2Command(toIn2);  in2.iCommand(toIn2);
+  control.oDMA3Command(toOut);  out.iCommand(toOut);
+
+  // TODO: DMA to compute unit connections.
 
 }
 

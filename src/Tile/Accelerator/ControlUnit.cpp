@@ -20,6 +20,10 @@ ControlUnit::ControlUnit(sc_module_name name) :
   // TODO construct/receive an algorithm from somewhere
   algorithm = NULL;
 
+  algorithm->oInputCommand(oDMA1Command);
+  algorithm->oWeightsCommand(oDMA2Command);
+  algorithm->oOutputCommand(oDMA3Command);
+
   SC_METHOD(startExecution);
   sensitive << receiver.allParametersArrived();
   dont_initialize();

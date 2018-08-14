@@ -35,7 +35,7 @@ class Tile: public LokiComponent {
 
 public:
 
-  ClockInput      clock;
+  ClockInput      iClock;
 
   // All ports are sinks of one network or another. The input ports are sinks or
   // the global network, and the outgoing ports are sinks of the local network.
