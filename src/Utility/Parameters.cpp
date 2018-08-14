@@ -62,6 +62,9 @@ int RETURN_CODE = EXIT_SUCCESS;
 // Number of cores in each tile.
 parameter CORES_PER_TILE             = 8;
 
+// Number of accelerators in an accelerator tile.
+parameter ACCELERATORS_PER_TILE      = 1;
+
 // Number of memory banks in each tile.
 parameter MEMS_PER_TILE              = 8;
 
@@ -170,6 +173,7 @@ void Parameters::parseParameter(const string &name, const string &value) {
   int nValue = StringManipulation::strToInt(value);
 
   SET_IF_MATCH(cName, nValue, CORES_PER_TILE);
+  else SET_IF_MATCH(cName, nValue, ACCELERATORS_PER_TILE);
   else SET_IF_MATCH(cName, nValue, MEMS_PER_TILE);
   else SET_IF_MATCH(cName, nValue, COMPUTE_TILE_ROWS);
   else SET_IF_MATCH(cName, nValue, COMPUTE_TILE_COLUMNS);
@@ -204,6 +208,7 @@ void Parameters::parseParameter(const string &name, const string &value) {
 // Print parameters in a human-readable format.
 void Parameters::printParameters() {
   cout << "Parameter CORES_PER_TILE is " << CORES_PER_TILE << endl;
+  cout << "Parameter ACCELERATORS_PER_TILE is " << ACCELERATORS_PER_TILE << endl;
   cout << "Parameter MEMS_PER_TILE is " << MEMS_PER_TILE << endl;
   cout << "Parameter COMPUTE_TILE_ROWS is " << COMPUTE_TILE_ROWS << endl;
   cout << "Parameter COMPUTE_TILE_COLUMNS is " << COMPUTE_TILE_COLUMNS << endl;

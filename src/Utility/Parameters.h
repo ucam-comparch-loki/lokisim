@@ -54,6 +54,9 @@ extern int      RETURN_CODE;
 // Number of cores in each tile.
 extern parameter  CORES_PER_TILE;
 
+// Number of accelerators in an accelerator tile.
+extern parameter  ACCELERATORS_PER_TILE;
+
 // Number of memory banks in each tile.
 extern parameter  MEMS_PER_TILE;
 

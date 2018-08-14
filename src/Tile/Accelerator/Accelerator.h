@@ -32,6 +32,18 @@ public:
 
 public:
 
+  // Magic connection from memory.
+  void deliverDataInternal(const NetworkData& flit);
+
+  // Magic connection to memory. Any results are returned immediately to
+  // returnChannel.
+  void magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address,
+                         ChannelID returnChannel, Word data = 0);
+
+private:
+
+  AcceleratorTile* parent() const;
+
 
 //============================================================================//
 // Local state
