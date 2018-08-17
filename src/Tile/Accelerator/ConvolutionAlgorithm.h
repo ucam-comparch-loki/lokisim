@@ -59,9 +59,7 @@ public:
 
   // "Execute" one iteration of the algorithm and send relevant commands to the
   // DMA units.
-  // TODO: should this be abstract, or is it possible to generalise the
-  // different loop orders?
-  virtual void step() = 0;
+  void step();
 
   // Event triggered when all execution is finished.
   sc_event finishedComputation() const;

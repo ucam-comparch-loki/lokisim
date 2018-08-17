@@ -77,10 +77,9 @@ private:
 
   // Component to collect parameters even while another convolution is in
   // progress.
-  ParameterReceiver     receiver;
+  ParameterReceiver    receiver;
 
-  // TODO: who is responsible for deleting this?
-  ConvolutionAlgorithm* algorithm;
+  ConvolutionAlgorithm algorithm;
 
 };
 

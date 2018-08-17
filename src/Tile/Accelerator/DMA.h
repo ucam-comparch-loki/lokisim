@@ -166,10 +166,10 @@ class DMABase: public DMA {
 public:
 
   // Also include cache details?
-  DMABase(sc_module_name name, ComponentID id, size_t portCols,
-          size_t portRows, size_t queueLength=4) :
+  DMABase(sc_module_name name, ComponentID id, size2d_t ports,
+          size_t queueLength=4) :
       DMA(name, id, queueLength),
-      stagingArea(portCols, portRows) {
+      stagingArea(ports.width, ports.height) {
 
     // Nothing.
 
@@ -300,10 +300,10 @@ public:
 
   SC_HAS_PROCESS(DMAInput);
 
-  DMAInput(sc_module_name name, ComponentID id, size_t portCols,
-           size_t portRows, size_t queueLength=4) :
-      DMABase<T>(name, id, portCols, portRows, queueLength),
-      oDataToPEs(portCols, portRows, "dataToPEs") {
+  DMAInput(sc_module_name name, ComponentID id, size2d_t ports,
+           size_t queueLength=4) :
+      DMABase<T>(name, id, ports, queueLength),
+      oDataToPEs(ports.width, ports.height, "dataToPEs") {
 
     SC_METHOD(executeCommand);
     sensitive << commandQueue.queueChangedEvent();
@@ -421,10 +421,10 @@ public:
 
   SC_HAS_PROCESS(DMAOutput);
 
-  DMAOutput(sc_module_name name, ComponentID id, size_t portCols,
-            size_t portRows, size_t queueLength=4) :
-      DMABase<T>(name, id, portCols, portRows, queueLength),
-      iDataFromPEs(portCols, portRows, "dataFromPEs") {
+  DMAOutput(sc_module_name name, ComponentID id, size2d_t ports,
+            size_t queueLength=4) :
+      DMABase<T>(name, id, ports, queueLength),
+      iDataFromPEs(ports.width, ports.height, "dataFromPEs") {
 
     SC_METHOD(executeCommand);
     sensitive << commandQueue.queueChangedEvent();

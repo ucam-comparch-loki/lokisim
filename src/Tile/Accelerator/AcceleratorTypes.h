@@ -54,7 +54,7 @@ typedef struct {
   void*    address;
 
   // Distance (in bytes) between elements in each dimension. Negative offsets
-  // are allowed (makes rotation/transpose).
+  // are allowed (makes rotation/transpose trivial).
   int32_t  batchSkip;
   int32_t  channelSkip;
   int32_t  columnSkip;
@@ -96,5 +96,11 @@ typedef struct {
   activation_config_t output;
   filter_config_t     filters;
 } conv_parameters_t;
+
+
+typedef struct {
+  size_t width;
+  size_t height;
+} size2d_t;
 
 #endif /* SRC_TILE_ACCELERATOR_ACCELERATORTYPES_H_ */
