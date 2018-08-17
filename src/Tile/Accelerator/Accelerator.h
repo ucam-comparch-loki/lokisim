@@ -11,6 +11,9 @@
 #define SRC_TILE_ACCELERATOR_ACCELERATOR_H_
 
 #include "../../LokiComponent.h"
+#include "ComputeUnit.h"
+#include "ControlUnit.h"
+#include "DMA.h"
 
 // TODO: make this a parameter.
 typedef int32_t dtype;
@@ -31,7 +34,7 @@ public:
 
 public:
 
-  Accelerator(sc_module_name name, ComponentID id);
+  Accelerator(sc_module_name name, ComponentID id, Configuration cfg);
 
 
 //============================================================================//
@@ -66,10 +69,11 @@ private:
   DMAInput<dtype> in1, in2;
   DMAOutput<dtype> out;
 
-  // TODO: ComputeUnit
+  ComputeUnit<dtype> compute;
 
   CommandSignal toIn1, toIn2, toOut;
 
+  LokiVector2D<sc_signal<dtype>> toPEs1, toPEs2, fromPEs;
 
 };
 
