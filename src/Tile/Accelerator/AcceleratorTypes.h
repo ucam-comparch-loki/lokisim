@@ -16,14 +16,14 @@ typedef uint32_t tick_t;
 
 // A command holds all the information required to fetch a block of data for
 // the FUs. A 2D data access is supported, as it must be used for at least one
-// of the three datasets accessed: for 1D, set colLength to 1.
+// of the three data sets accessed: for 1D, set colLength to 1.
 typedef struct {
-  tick_t time;          // Tick when data should be provided.
-  void*  baseAddress;   // Address of value to be sent to/from first PE.
-  size_t rowLength;     // Number of values to fetch/store in one row.
-  size_t rowStride;     // Distance between values (in bytes) in row.
-  size_t colLength;     // Number of values in one column.
-  size_t colStride;     // Distance between values (in bytes) in column.
+  tick_t time;            // Tick when data should be provided.
+  MemoryAddr baseAddress; // Address of value to be sent to/from first PE.
+  size_t rowLength;       // Number of values to fetch/store in one row.
+  size_t rowStride;       // Distance between values (in bytes) in row.
+  size_t colLength;       // Number of values in one column.
+  size_t colStride;       // Distance between values (in bytes) in column.
 } dma_command_t;
 
 

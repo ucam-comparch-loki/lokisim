@@ -10,7 +10,7 @@
 
 Accelerator::Accelerator(sc_module_name name, ComponentID id, Configuration cfg) :
     LokiComponent(name, id),
-    control("control"),
+    control("control", cfg),
     in1("dma_in1", ComponentID(id.tile, id.position), cfg.dma1Ports()),
     in2("dma_in2", ComponentID(id.tile, id.position+1), cfg.dma2Ports()),
     out("dma_out", ComponentID(id.tile, id.position+2), cfg.dma3Ports()),
