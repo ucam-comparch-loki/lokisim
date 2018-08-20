@@ -12,17 +12,16 @@
 #include "ConvolutionAlgorithm.h"
 #include "../../Utility/Assert.h"
 
-ControlUnit::ControlUnit(sc_module_name name) :
+ControlUnit::ControlUnit(sc_module_name name, const Configuration& cfg) :
     LokiComponent(name),
-    receiver("params") {
+    receiver("params"),
+    algorithm("algorithm", cfg) {
 
   // TODO connect up receiver's ports
-  // TODO construct/receive an algorithm from somewhere
-  algorithm = NULL;
 
-  algorithm->oInputCommand(oDMA1Command);
-  algorithm->oWeightsCommand(oDMA2Command);
-  algorithm->oOutputCommand(oDMA3Command);
+  algorithm.oInputCommand(oDMA1Command);
+  algorithm.oWeightsCommand(oDMA2Command);
+  algorithm.oOutputCommand(oDMA3Command);
 
   SC_METHOD(startExecution);
   sensitive << receiver.allParametersArrived();
@@ -37,29 +36,29 @@ ControlUnit::ControlUnit(sc_module_name name) :
 void ControlUnit::startExecution() {
   loki_assert(receiver.hasAllParameters());
 
-  if (algorithm->executing())
-    next_trigger(algorithm->finishedComputation());
+  if (algorithm.executing())
+    next_trigger(algorithm.finishedComputation());
   else {
     const conv_parameters_t parameters = receiver.getParameters();
 
     parameterSanityCheck(parameters);
     updateMemoryMapping(parameters);
 
-    algorithm->start(parameters);
+    algorithm.start(parameters);
   }
 }
 
 void ControlUnit::executionStep() {
-  loki_assert(algorithm->executing());
+  loki_assert(algorithm.executing());
 
   if (canStartNewStep())
-    algorithm->step(); // TODO: next_trigger?
+    algorithm.step(); // TODO: next_trigger?
   else
     next_trigger(iClock.posedge_event()); // TODO: something more specific?
 }
 
 bool ControlUnit::canStartNewStep() const {
-  return algorithm->executing() &&
+  return algorithm.executing() &&
          parent()->in1.canAcceptCommand() &&
          parent()->in2.canAcceptCommand() &&
          parent()->out.canAcceptCommand();

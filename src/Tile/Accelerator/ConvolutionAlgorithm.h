@@ -20,6 +20,14 @@ typedef sc_in<dma_command_t>  CommandInput;
 typedef sc_out<dma_command_t> CommandOutput;
 typedef sc_signal<dma_command_t> CommandSignal;
 
+typedef struct {
+  uint iterations;    // Total number of iterations
+  uint current;       // Current iteration
+  MemoryAddr in1Skip; // Distance between elements of first data type
+  MemoryAddr in2Skip; // Distance between elements of second data type
+  MemoryAddr outSkip; // Distance between elements of output
+} loop_t;
+
 class ConvolutionAlgorithm: public LokiComponent {
 
 //============================================================================//
@@ -42,7 +50,7 @@ public:
   // Information we might need:
   //  * A way to access the DMA units
   //  * The size of the PE array
-  ConvolutionAlgorithm(sc_module_name name);
+  ConvolutionAlgorithm(sc_module_name name, const Configuration& config);
 
 
 //============================================================================//
@@ -68,9 +76,9 @@ protected:
 
   // Methods to hide the use of ports from the algorithm. These are the
   // preferred way of sending commands to the DMA units.
-  void sendInputCommand(const dma_command_t command);
-  void sendWeightsCommand(const dma_command_t command);
-  void sendOutputCommand(const dma_command_t command);
+  void sendIn1Command(const dma_command_t command);
+  void sendIn2Command(const dma_command_t command);
+  void sendOutCommand(const dma_command_t command);
 
 private:
 
@@ -80,6 +88,13 @@ private:
   // Clear any temporary data ready for new parameters.
   void prepareForNewInput();
 
+  // Get details for each of the loops in the computation, regardless of their
+  // order. These loops are arranged in such a way that a Loop enum value can
+  // be used to select a loop which iterates along a particular dimension.
+  vector<loop_t> getUnorderedLoops(conv_parameters_t parameters) const;
+
+  // Put the loop details into the order required.
+  vector<loop_t> reorderLoops(vector<loop_t> unordered, LoopOrder& order) const;
 
 //============================================================================//
 // Local state
@@ -91,8 +106,8 @@ protected:
   // while execution is in progress.
   conv_parameters_t parameters;
 
-  // A local set of parameters used to hold the current loop indices.
-  conv_shape_t counters;
+  // Details for each of the loops in the loop nest.
+  vector<loop_t> loopNest;
 
   // Step counter. One step = one computation by each PE.
   count_t stepCount;
@@ -101,6 +116,10 @@ private:
 
   bool inProgress;
   sc_event finishedComputationEvent;
+
+  // Configuration of the accelerator. Contains information such as loop order
+  // and size of PE array.
+  const Configuration& config;
 
 };
 

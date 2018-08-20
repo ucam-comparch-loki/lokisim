@@ -37,7 +37,7 @@ public:
 
   SC_HAS_PROCESS(ControlUnit);
 
-  ControlUnit(sc_module_name name);
+  ControlUnit(sc_module_name name, const Configuration& config);
 
 
 //============================================================================//
