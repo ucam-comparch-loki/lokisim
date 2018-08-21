@@ -99,12 +99,12 @@ public:
   }
 
   // Event triggered whenever the staging area becomes empty.
-  sc_event emptiedEvent() const {
+  const sc_event& emptiedEvent() const {
     return empty;
   }
 
   // Event triggered whenever the staging area becomes full.
-  sc_event filledEvent() const {
+  const sc_event& filledEvent() const {
     return full;
   }
 
@@ -117,7 +117,7 @@ private:
 
   vector<vector<T>> data;
   vector<vector<bool>> valid;
-  int numValid;
+  uint numValid;
   sc_event full;
   sc_event empty;
 
