@@ -11,6 +11,8 @@
 #include "../../LokiComponent.h"
 #include "../../Utility/Assert.h"
 #include "AdderTree.h"
+#include "Configuration.h"
+#include "Multiplier.h"
 
 template<typename T>
 class ComputeUnit: public LokiComponent {
@@ -43,7 +45,7 @@ public:
 
     for (uint col=0; col<PEs.width; col++) {
       for (uint row=0; row<PEs.height; row++) {
-        Multiplier<T> mul = new Multiplier<T>(1, 1);
+        Multiplier<T>* mul = new Multiplier<T>(1, 1);
         multipliers[col][row] = mul;
       }
     }
@@ -54,11 +56,11 @@ public:
         loki_assert(config.dma1Ports().width == 1);
 
         for (uint row=0; row<PEs.height; row++)
-          multipliers[col][row].in1(in1[0][row]);
+          multipliers[col][row]->in1(in1[0][row]);
       }
       else {
         for (uint row=0; row<PEs.height; row++)
-          multipliers[col][row].in1(in1[col][row]);
+          multipliers[col][row]->in1(in1[col][row]);
       }
     }
 
@@ -68,11 +70,11 @@ public:
         loki_assert(config.dma2Ports().height == 1);
 
         for (uint row=0; row<PEs.height; row++)
-          multipliers[col][row].in1(in1[col][0]);
+          multipliers[col][row]->in1(in1[col][0]);
       }
       else {
         for (uint row=0; row<PEs.height; row++)
-          multipliers[col][row].in1(in1[col][row]);
+          multipliers[col][row]->in1(in1[col][row]);
       }
     }
 
@@ -81,45 +83,45 @@ public:
     if (!config.accumulateCols() && !config.accumulateRows())
       for (uint col=0; col<PEs.width; col++)
         for (uint row=0; row<PEs.height; row++)
-          multipliers[col][row](out[col][row]);
+          out[col][row](multipliers[col][row]->out);
 
     // Adders along columns.
     if (config.accumulateCols() && !config.accumulateRows()) {
       for (uint col=0; col<PEs.width; col++) {
-        AdderTree<T> adder = new AdderTree<T>(PEs.height, 1, 1);
+        AdderTree<T>* adder = new AdderTree<T>(PEs.height, 1, 1);
         adders.push_back(adder);
         out[col][0](adder->out);
 
         for (uint row=0; row<PEs.height; row++)
-          adder->in[row](multipliers[col][row].out);
+          adder->in[row](multipliers[col][row]->out);
       }
     }
 
     // Adders along rows.
     if (!config.accumulateCols() && config.accumulateRows()) {
       for (uint row=0; row<PEs.height; row++) {
-        AdderTree<T> adder = new AdderTree<T>(PEs.width, 1, 1);
+        AdderTree<T>* adder = new AdderTree<T>(PEs.width, 1, 1);
         adders.push_back(adder);
         out[0][row](adder->out);
 
         for (uint col=0; col<PEs.width; col++)
-          adder->in[col](multipliers[col][row].out);
+          adder->in[col](multipliers[col][row]->out);
       }
     }
 
     // Adders along both columns and rows.
     if (config.accumulateCols() && config.accumulateRows()) {
       for (uint col=0; col<PEs.width; col++) {
-        AdderTree<T> adder = new AdderTree<T>(PEs.height, 1, 1);
+        AdderTree<T>* adder = new AdderTree<T>(PEs.height, 1, 1);
         adders.push_back(adder);
 
         for (uint row=0; row<PEs.height; row++)
-          adder->in[row](multipliers[col][row].out);
+          adder->in[row](multipliers[col][row]->out);
       }
 
-      AdderTree<T> adder = new AdderTree<T>(adders.size(), 1, 1);
+      AdderTree<T>* adder = new AdderTree<T>(adders.size(), 1, 1);
       for (uint i=0; i<adders.size(); i++)
-        adder->in[i](adders[i].out);
+        adder->in[i](adders[i]->out);
       adders.push_back(adder);
       out[0][0](adder->out);
     }

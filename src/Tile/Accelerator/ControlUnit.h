@@ -9,7 +9,12 @@
 #define SRC_TILE_ACCELERATOR_CONTROLUNIT_H_
 
 #include "../../LokiComponent.h"
+#include "AcceleratorTypes.h"
+#include "Configuration.h"
+#include "ConvolutionAlgorithm.h"
 #include "ParameterReceiver.h"
+
+class Accelerator;
 
 class ControlUnit: public LokiComponent {
 

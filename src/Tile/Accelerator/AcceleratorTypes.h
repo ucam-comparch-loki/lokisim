@@ -8,6 +8,14 @@
 #ifndef SRC_TILE_ACCELERATOR_ACCELERATORTYPES_H_
 #define SRC_TILE_ACCELERATOR_ACCELERATORTYPES_H_
 
+#include <cstdint>
+#include <ostream>
+#include <systemc>
+#include "../../Memory/MemoryTypes.h"
+#include "../../Utility/Logging.h"
+
+using std::ostream;
+
 // One tick is one cycle of the accelerator's functional units. This may
 // differ from a clock cycle if the FUs have an initiation interval which is
 // not 1, or if there is a delay somewhere, perhaps due to memory latency.
@@ -17,14 +25,44 @@ typedef uint32_t tick_t;
 // A command holds all the information required to fetch a block of data for
 // the FUs. A 2D data access is supported, as it must be used for at least one
 // of the three data sets accessed: for 1D, set colLength to 1.
-typedef struct {
+class dma_command_t {
+public:
+
   tick_t time;            // Tick when data should be provided.
   MemoryAddr baseAddress; // Address of value to be sent to/from first PE.
   size_t rowLength;       // Number of values to fetch/store in one row.
-  size_t rowStride;       // Distance between values (in bytes) in row.
+  int    rowStride;       // Distance between values (in bytes) in row.
   size_t colLength;       // Number of values in one column.
-  size_t colStride;       // Distance between values (in bytes) in column.
-} dma_command_t;
+  int    colStride;       // Distance between values (in bytes) in column.
+
+  inline bool operator==(const dma_command_t& rhs) const {
+    return rhs.time == time && rhs.baseAddress == baseAddress &&
+           rhs.rowLength == rowLength && rhs.rowStride == rowStride &&
+           rhs.colLength == colLength && rhs.colStride == colStride;
+  }
+
+  inline dma_command_t& operator=(const dma_command_t& rhs) {
+    time = rhs.time;
+    baseAddress = rhs.baseAddress;
+    rowLength = rhs.rowLength;
+    rowStride = rhs.rowStride;
+    colLength = rhs.colLength;
+    colStride = rhs.colStride;
+    return *this;
+  }
+
+  inline friend void sc_trace(sc_core::sc_trace_file *tf, const dma_command_t& v, const std::string& txt) {
+    // Nothing
+  }
+
+  inline friend ostream& operator<<(ostream& os, dma_command_t const &v) {
+    // e.g. time: 0xBASEADDR 4x8 (0x4, 0x108)
+    os << v.time << ": " << LOKI_HEX(v.baseAddress) << " " << v.rowLength << "x"
+       << v.colLength << " (" << LOKI_HEX(v.rowStride) << ", "
+       << LOKI_HEX(v.colStride) << ")";
+    return os;
+  }
+};
 
 
 // There is scope to compress the following structs by using smaller datatypes,
@@ -51,7 +89,7 @@ typedef struct {
   // An encoded ChannelMapEntry telling which memory to access.
   uint32_t memoryConfigEncoded;
 
-  void*    address;
+  MemoryAddr address;
 
   // Distance (in bytes) between elements in each dimension. Negative offsets
   // are allowed (makes rotation/transpose trivial).
@@ -67,7 +105,7 @@ typedef struct {
   // An encoded ChannelMapEntry telling which memory to access.
   uint32_t memoryConfigEncoded;
 
-  void*    address;
+  MemoryAddr address;
 
   // Distance (in bytes) between elements in each dimension. Negative offsets
   // are allowed (makes rotation/transpose trivial).

@@ -128,7 +128,7 @@ private:
 // Components
 //============================================================================//
 
-private:
+protected:
 
   vector<Core*>             cores;
   vector<MemoryBank*>       memories;
@@ -137,6 +137,8 @@ private:
   friend class Core;
   friend class MemoryBank;
   friend class MissHandlingLogic;
+
+private:
 
   // Subnetworks.
   CoreMulticast             coreToCore;

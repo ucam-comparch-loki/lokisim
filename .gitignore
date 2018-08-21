@@ -2,3 +2,4 @@ build/lokisim
 build/**/*.d
 build/**/*.o
 /.settings/
+/build/

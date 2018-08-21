@@ -120,7 +120,7 @@ void ConvolutionAlgorithm::step() {
 
 }
 
-sc_event ConvolutionAlgorithm::finishedComputation() const {
+const sc_event& ConvolutionAlgorithm::finishedComputation() const {
   return finishedComputationEvent;
 }
 
@@ -149,7 +149,7 @@ void ConvolutionAlgorithm::prepareForNewInput() {
   stepCount = 0;
 }
 
-vector<loop_t> ConvolutionAlgorithm::getUnorderedLoops(conv_parameters_t p) const {
+vector<loop_t> ConvolutionAlgorithm::getUnorderedLoops(const conv_parameters_t p) const {
   vector<loop_t> loops;
 
   // Group size for input and output (short name because it's used often).
@@ -161,7 +161,7 @@ vector<loop_t> ConvolutionAlgorithm::getUnorderedLoops(conv_parameters_t p) cons
   loops.push_back(batch);
 
   // Group.
-  loop_t group = {p.shape.groups, 0, p.input.channelSkip*igs, p.filters.groupSkip, p.output.channelSkip*ogs};
+  loop_t group = {p.shape.groups, 0, (int)igs*p.input.channelSkip, p.filters.groupSkip, (int)ogs*p.output.channelSkip};
   loops.push_back(group);
 
   // Input channels.
@@ -191,8 +191,8 @@ vector<loop_t> ConvolutionAlgorithm::getUnorderedLoops(conv_parameters_t p) cons
   return loops;
 }
 
-vector<loop_t> ConvolutionAlgorithm::reorderLoops(vector<loop_t> unordered,
-                                                  LoopOrder& order) const {
+vector<loop_t> ConvolutionAlgorithm::reorderLoops(const vector<loop_t>& unordered,
+                                                  const LoopOrder& order) const {
   // Currently LoopOrders are fixed to 8 elements.
   assert(unordered.size() == 8);
 

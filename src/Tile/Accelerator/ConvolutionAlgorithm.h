@@ -15,18 +15,14 @@
 #define SRC_TILE_ACCELERATOR_CONVOLUTIONALGORITHM_H_
 
 #include "../../LokiComponent.h"
+#include "../../Memory/MemoryTypes.h"
+#include "AcceleratorTypes.h"
+#include "Configuration.h"
+#include "Loops.h"
 
 typedef sc_in<dma_command_t>  CommandInput;
 typedef sc_out<dma_command_t> CommandOutput;
 typedef sc_signal<dma_command_t> CommandSignal;
-
-typedef struct {
-  uint iterations;    // Total number of iterations
-  uint current;       // Current iteration
-  MemoryAddr in1Skip; // Distance between elements of first data type
-  MemoryAddr in2Skip; // Distance between elements of second data type
-  MemoryAddr outSkip; // Distance between elements of output
-} loop_t;
 
 class ConvolutionAlgorithm: public LokiComponent {
 
@@ -70,7 +66,7 @@ public:
   void step();
 
   // Event triggered when all execution is finished.
-  sc_event finishedComputation() const;
+  const sc_event& finishedComputation() const;
 
 protected:
 
@@ -91,10 +87,10 @@ private:
   // Get details for each of the loops in the computation, regardless of their
   // order. These loops are arranged in such a way that a Loop enum value can
   // be used to select a loop which iterates along a particular dimension.
-  vector<loop_t> getUnorderedLoops(conv_parameters_t parameters) const;
+  vector<loop_t> getUnorderedLoops(const conv_parameters_t parameters) const;
 
   // Put the loop details into the order required.
-  vector<loop_t> reorderLoops(vector<loop_t> unordered, LoopOrder& order) const;
+  vector<loop_t> reorderLoops(const vector<loop_t>& unordered, const LoopOrder& order) const;
 
 //============================================================================//
 // Local state
@@ -110,7 +106,7 @@ protected:
   vector<loop_t> loopNest;
 
   // Step counter. One step = one computation by each PE.
-  count_t stepCount;
+  tick_t stepCount;
 
 private:
 

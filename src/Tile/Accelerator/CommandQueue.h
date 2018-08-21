@@ -26,7 +26,7 @@ public:
   bool full() const;
   bool empty() const;
 
-  sc_event queueChangedEvent() const;
+  const sc_event& queueChangedEvent() const;
 
 private:
 

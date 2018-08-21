@@ -63,7 +63,7 @@ int RETURN_CODE = EXIT_SUCCESS;
 parameter CORES_PER_TILE             = 8;
 
 // Number of accelerators in an accelerator tile.
-parameter ACCELERATORS_PER_TILE      = 1;
+parameter ACCELERATORS_PER_TILE      = 0;
 
 // Number of memory banks in each tile.
 parameter MEMS_PER_TILE              = 8;
