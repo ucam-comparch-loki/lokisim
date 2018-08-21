@@ -10,12 +10,16 @@
 #ifndef SRC_TILE_ACCELERATOR_DMA_H_
 #define SRC_TILE_ACCELERATOR_DMA_H_
 
+#include "../../Exceptions/InvalidOptionException.h"
 #include "../../LokiComponent.h"
 #include "../../Utility/Assert.h"
 #include "AcceleratorTypes.h"
 #include "CommandQueue.h"
+#include "ConvolutionAlgorithm.h"
 #include "MemoryInterface.h"
 #include "StagingArea.h"
+
+class Accelerator;
 
 // Base class for all DMA components.
 class DMA: public LokiComponent {
@@ -37,16 +41,7 @@ public:
 
   SC_HAS_PROCESS(DMA);
 
-  DMA(sc_module_name name, ComponentID id, size_t queueLength=4) :
-      LokiComponent(name, id),
-      commandQueue(queueLength),
-      memoryInterface("ifc", id) {
-
-    SC_METHOD(newCommandArrived);
-    sensitive << iCommand;
-    dont_initialize();
-
-  }
+  DMA(sc_module_name name, ComponentID id, size_t queueLength=4);
 
 
 //============================================================================//
@@ -55,72 +50,34 @@ public:
 
 public:
 
-  void enqueueCommand(const dma_command_t command) {
-    commandQueue.enqueue(command);
-  }
+  void enqueueCommand(const dma_command_t command);
 
-  bool canAcceptCommand() const {
-    return !commandQueue.full();
-  }
+  bool canAcceptCommand() const;
 
-  void replaceMemoryMapping(EncodedCMTEntry mapEncoded) {
-    ChannelMapEntry::MemoryChannel decoded =
-        ChannelMapEntry::memoryView(mapEncoded);
-
-    // Memory decides which component to return data to using the memory
-    // channel accessed. Set the channel appropriately.
-    // Components are currently ordered: cores, memories, accelerators, but
-    // memories cannot access memories, so remove them from consideration.
-    decoded.channel = id.position - MEMS_PER_TILE;
-
-    memoryInterface.replaceMemoryMapping(decoded);
-  }
+  void replaceMemoryMapping(EncodedCMTEntry mapEncoded);
 
   // Magic connection from memory.
-  void deliverDataInternal(const NetworkData& flit) {
-    memoryInterface.receiveResponse(flit);
-  }
+  void deliverDataInternal(const NetworkData& flit);
 
 protected:
 
   // Remove and return the next command from the control unit.
-  const dma_command_t dequeueCommand() {
-    return commandQueue.dequeue();
-  }
+  const dma_command_t dequeueCommand();
 
   // Generate a new memory request and send it to the appropriate memory bank.
   void createNewRequest(position_t position, MemoryAddr address,
-                        MemoryOpcode op, int data = 0) {
-    memoryInterface.createNewRequest(position, address, op, data);
-  }
+                        MemoryOpcode op, int data = 0);
 
   // Send a request to memory. If a response is expected, it will trigger the
   // memoryInterface.responseArrivedEvent() event.
   void memoryAccess(position_t position, MemoryAddr address, MemoryOpcode op,
-                    int data = 0) {
-    switch (op) {
-      case LOAD_W:
-        loadData(position, address);
-        break;
-      case STORE_W:
-        storeData(position, address, data);
-        break;
-      case LOAD_AND_ADD:
-        loadAndAdd(position, address, data);
-        break;
-      default:
-        throw InvalidOptionException("Convolution memory operation", op);
-        break;
-    }
-  }
+                    int data = 0);
 
   // Instantly send a request to memory. This is not a substitute for
   // memoryAccess above: this method is only to be called once all details about
   // the access have been confirmed.
   void magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address,
-                         ChannelID returnChannel, Word data = 0) {
-    parent()->magicMemoryAccess(opcode, address, returnChannel, data);
-  }
+                         ChannelID returnChannel, Word data = 0);
 
   // These methods need to be overridden because their implementation depends
   // on the type of data being accessed.
@@ -128,28 +85,24 @@ protected:
   virtual void storeData(position_t position, MemoryAddr address, int data) = 0;
   virtual void loadAndAdd(position_t position, MemoryAddr address, int data) = 0;
 
-  Accelerator* parent() const {
-    return static_cast<Accelerator*>(this->get_parent_object());
-  }
+  Accelerator* parent() const;
 
 private:
 
-  void newCommandArrived() {
-    loki_assert(canAcceptCommand());
-    enqueueCommand(iCommand.read());
-  }
+  void newCommandArrived();
 
 
 //============================================================================//
 // Local state
 //============================================================================//
 
-private:
+protected:
 
   // Commands from control unit telling which data to load/store.
   CommandQueue commandQueue;
 
   // Component responsible for organising requests and responses from memory.
+  friend class MemoryInterface;
   MemoryInterface memoryInterface;
 
 };
@@ -264,7 +217,7 @@ protected:
 // Local state
 //============================================================================//
 
-private:
+protected:
 
   // A register for each port to the compute units. Used for holding data
   // immediately before sending/receiving it to/from the compute unit.
@@ -305,16 +258,19 @@ public:
       DMABase<T>(name, id, ports, queueLength),
       oDataToPEs(ports.width, ports.height, "dataToPEs") {
 
+    // Templated class means `this` must be used whenever referring to anything
+    // from a parent class.
+
     SC_METHOD(executeCommand);
-    sensitive << commandQueue.queueChangedEvent();
-    dont_initialize();
+    this->sensitive << this->commandQueue.queueChangedEvent();
+    this->dont_initialize();
 
     SC_METHOD(receiveMemoryData);
-    sensitive << memoryInterface.responseArrivedEvent();
-    dont_initialize();
+    this->sensitive << this->memoryInterface.responseArrivedEvent();
+    this->dont_initialize();
 
     SC_METHOD(sendPEData);
-    sensitive << iReadyForData;
+    this->sensitive << iReadyForData;
     // do initialise
 
   }
@@ -328,13 +284,12 @@ private:
 
   // Convert commands into memory requests.
   void executeCommand() {
-    loki_assert(!commandQueue.empty());
+    loki_assert(!this->commandQueue.empty());
 
     // For the moment, we only work on one command at a time. In the future we
     // might prefer to buffer multiple sets of data.
-    if (stagingArea.isEmpty()) {
-      dma_command_t command = commandQueue.dequeue();
-      uint position = 0;
+    if (this->stagingArea.isEmpty()) {
+      dma_command_t command = this->commandQueue.dequeue();
 
       // TODO Make this a parameter.
       MemoryOpcode memoryOp = LOAD_W;
@@ -342,34 +297,34 @@ private:
       // Generate requests for all required values.
       for (uint col=0; col<command.rowLength; col++) {
         for (uint row=0; row<command.colLength; row++) {
-          MemoryAddr addr = command.baseAddress + col*rowStride + row*colStride;
+          MemoryAddr addr = command.baseAddress + col*command.rowStride + row*command.colStride;
           position_t position; position.row = row; position.column = col;
-          memoryAccess(position, addr, memoryOp);
+          this->memoryAccess(position, addr, memoryOp);
         }
       }
 
     }
     else
-      next_trigger(stagingArea.emptiedEvent());
+      next_trigger(this->stagingArea.emptiedEvent());
   }
 
   // Receive data from memory and put it in the staging area.
   void receiveMemoryData() {
-    loki_assert(memoryInterface.canGiveResponse());
+    loki_assert(this->memoryInterface.canGiveResponse());
 
-    response_t response = memoryInterface.getResponse();
-    stagingArea.write(response.position.row, response.position.column,
-                      static_cast<T>(response.data));
+    response_t response = this->memoryInterface.getResponse();
+    this->stagingArea.write(response.position.row, response.position.column,
+                            static_cast<T>(response.data));
 
     // To emulate parallel operations, receive the next response immediately,
     // if there is one.
-    if (memoryInterface.canGiveResponse())
+    if (this->memoryInterface.canGiveResponse())
       next_trigger(sc_core::SC_ZERO_TIME);
 
     // If this was the final value requested, fill in any unused slots with
     // zeros. This is only valid if we only work on one command_t at a time.
-    if (memoryInterface.isIdle())
-      stagingArea.fillWith(0);
+    if (this->memoryInterface.isIdle())
+      this->stagingArea.fillWith(0);
   }
 
   // Copy data from staging area to ports.
@@ -378,12 +333,12 @@ private:
 
     // TODO: Check that the PEs should receive this data on this tick.
 
-    if (!stagingArea.isFull())
-      next_trigger(stagingArea.filledEvent());
+    if (!this->stagingArea.isFull())
+      next_trigger(this->stagingArea.filledEvent());
     else {
       for (uint row=0; row<oDataToPEs.size(); row++)
         for (uint col=0; col<oDataToPEs[row].size(); col++)
-          oDataToPEs[row][col].write(stagingArea.read(row, col));
+          oDataToPEs[row][col].write(this->stagingArea.read(row, col));
 
       oDataValid.write(true);
       // TODO: Flow control goes false when we reach a "tick" that this data
@@ -426,17 +381,20 @@ public:
       DMABase<T>(name, id, ports, queueLength),
       iDataFromPEs(ports.width, ports.height, "dataFromPEs") {
 
+    // Templated class means `this` must be used whenever referring to anything
+    // from a parent class.
+
     SC_METHOD(executeCommand);
-    sensitive << commandQueue.queueChangedEvent();
-    dont_initialize();
+    this->sensitive << this->commandQueue.queueChangedEvent();
+    this->dont_initialize();
 
     SC_METHOD(receivePEData);
-    sensitive << iDataValid;
-    dont_initialize();
+    this->sensitive << iDataValid;
+    this->dont_initialize();
 
     SC_METHOD(receiveMemoryData);
-    sensitive << memoryInterface.responseArrivedEvent();
-    dont_initialize();
+    this->sensitive << this->memoryInterface.responseArrivedEvent();
+    this->dont_initialize();
 
   }
 
@@ -449,10 +407,10 @@ private:
 
   // Convert commands into memory requests.
   void executeCommand() {
-    loki_assert(!commandQueue.empty());
+    loki_assert(!this->commandQueue.empty());
 
-    if (stagingArea.isFull()) {
-      dma_command_t command = commandQueue.dequeue();
+    if (this->stagingArea.isFull()) {
+      dma_command_t command = this->commandQueue.dequeue();
 
       // TODO Make this a parameter.
       MemoryOpcode memoryOp = LOAD_AND_ADD;
@@ -460,20 +418,20 @@ private:
       // Send all desired data to memory.
       for (uint row=0; row<command.colLength; row++) {
         for (uint col=0; col<command.rowLength; col++) {
-          MemoryAddr addr = command.baseAddress + col*rowStride + row*colStride;
+          MemoryAddr addr = command.baseAddress + col*command.rowStride + row*command.colStride;
           position_t position; position.row = row; position.column = col;
-          memoryAccess(position, addr, memoryOp, stagingArea.read(row, col));
+          this->memoryAccess(position, addr, memoryOp, this->stagingArea.read(row, col));
 
           // TODO: optionally do nothing if the output is zero
         }
       }
 
       // Discard any remaining data so the staging area appears empty again.
-      stagingArea.discard();
+      this->stagingArea.discard();
 
     }
     else
-      next_trigger(stagingArea.filledEvent());
+      next_trigger(this->stagingArea.filledEvent());
 
   }
 
@@ -483,33 +441,33 @@ private:
 
     // Check to see if we've finished with the previous batch of data, and
     // wait if not.
-    if (stagingArea.isEmpty()) {
+    if (this->stagingArea.isEmpty()) {
       // Copy all data from ports into staging area.
       for (uint row=0; row<iDataFromPEs.size(); row++)
         for (uint col=0; col<iDataFromPEs[row].size(); col++)
-          stagingArea.write(row, col, iDataFromPEs[row][col].read());
+          this->stagingArea.write(row, col, iDataFromPEs[row][col].read());
 
-      loki_assert(stagingArea.isFull());
+      loki_assert(this->stagingArea.isFull());
       oReadyForData.write(true);
     }
     else {
       oReadyForData.write(false);
-      next_trigger(stagingArea.emptiedEvent());
+      next_trigger(this->stagingArea.emptiedEvent());
     }
   }
 
   // Receive data from memory.
   void receiveMemoryData() {
-    loki_assert(memoryInterface.canGiveResponse());
+    loki_assert(this->memoryInterface.canGiveResponse());
 
     // This unit is only responsible for sending data. If any data is received,
     // just discard it. Data might come from memory if we perform a
     // load-and-add: memory will return the previous value at that address.
-    memoryInterface.getResponse();
+    this->memoryInterface.getResponse();
 
     // To emulate parallel operations, receive the next response immediately,
     // if there is one.
-    if (memoryInterface.canGiveResponse())
+    if (this->memoryInterface.canGiveResponse())
       next_trigger(sc_core::SC_ZERO_TIME);
   }
 

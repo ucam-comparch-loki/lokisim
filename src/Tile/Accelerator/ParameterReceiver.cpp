@@ -20,26 +20,26 @@ ParameterReceiver::ParameterReceiver(sc_module_name name) :
 }
 
 bool ParameterReceiver::hasAllParameters() const {
-  return parametersReceived == sizeof(ConvolutionParameters) / sizeof(uint32_t);
+  return parametersReceived == sizeof(conv_parameters_t) / sizeof(uint32_t);
 }
 
-ConvolutionParameters ParameterReceiver::getParameters() {
+conv_parameters_t ParameterReceiver::getParameters() {
   parametersReceived = 0;
   return parameters;
 }
 
-sc_event ParameterReceiver::allParametersArrived() const {
+const sc_event& ParameterReceiver::allParametersArrived() const {
   return allParametersArrivedEvent;
 }
 
 void ParameterReceiver::receiveParameter() {
   loki_assert(!hasAllParameters());
 
-  uint32_t parameter;// = iParameter.read(); iParameter.ack()?
+  uint32_t parameter = 0;// TODO = iParameter.read(); iParameter.ack()?
 
   // Add parameter to struct. (Using a naughty method so I don't need to care
   // about the contents of the struct.)
-  uint32_t* array = static_cast<uint32_t*>(&parameters);
+  uint32_t* array = reinterpret_cast<uint32_t*>(&parameters);
   array[parametersReceived] = parameter;
   parametersReceived++;
 

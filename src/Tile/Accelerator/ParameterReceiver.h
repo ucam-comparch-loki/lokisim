@@ -12,8 +12,7 @@
 #define SRC_TILE_ACCELERATOR_PARAMETERRECEIVER_H_
 
 #include "../../LokiComponent.h"
-
-typedef conv_parameters_t ConvolutionParameters;
+#include "AcceleratorTypes.h"
 
 class ParameterReceiver: public LokiComponent {
 
@@ -48,10 +47,10 @@ public:
 
   // Get a copy of all parameters received. Doing this frees up the component
   // to receive the next batch of parameters.
-  ConvolutionParameters getParameters();
+  conv_parameters_t getParameters();
 
   // Event which is triggered when the final parameter arrives.
-  sc_event allParametersArrived() const;
+  const sc_event& allParametersArrived() const;
 
 private:
 
@@ -65,7 +64,7 @@ private:
 
 private:
 
-  ConvolutionParameters parameters;
+  conv_parameters_t parameters;
   int parametersReceived;
 
   sc_event allParametersArrivedEvent;

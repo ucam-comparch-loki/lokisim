@@ -17,7 +17,12 @@
 
 #include <queue>
 #include "../../LokiComponent.h"
+#include "../../Memory/MemoryTypes.h"
+#include "../../Network/NetworkTypes.h"
+#include "../ChannelMapEntry.h"
+#include "../MemoryBankSelector.h"
 
+class DMA;
 using std::queue;
 
 // Position in array of ports to return a result.
@@ -80,7 +85,7 @@ public:
   void receiveResponse(const NetworkData& flit);
 
   // Event triggered whenever there is a new response ready to send to the PEs.
-  sc_event responseArrivedEvent() const;
+  const sc_event& responseArrivedEvent() const;
 
   // This component is idle if it has no waiting requests, no waiting responses,
   // and there are no requests currently in flight in the memory system.

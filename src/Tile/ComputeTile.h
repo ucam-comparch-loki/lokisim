@@ -127,7 +127,7 @@ private:
 // Components
 //============================================================================//
 
-private:
+protected:
 
   LokiVector<Core>          cores;
   LokiVector<MemoryBank>    memories;
@@ -140,6 +140,8 @@ private:
   friend class MissHandlingLogic;
   friend class L2Logic;
   friend class IntertileUnit;
+
+private:
 
   // Subnetworks.
   CoreMulticast             coreToCore;

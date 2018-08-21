@@ -54,4 +54,4 @@ bool       Configuration::broadcastRows()  const {return _broadcastRows;}
 bool       Configuration::broadcastCols()  const {return _broadcastCols;}
 bool       Configuration::accumulateRows() const {return _accumulateRows;}
 bool       Configuration::accumulateCols() const {return _accumulateCols;}
-LoopOrder& Configuration::loopOrder()      const {return _loops;}
+const LoopOrder& Configuration::loopOrder() const {return _loops;}

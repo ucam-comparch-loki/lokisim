@@ -11,7 +11,6 @@
 #define SRC_TILE_ACCELERATOR_CONFIGURATION_H_
 
 #include "AcceleratorTypes.h"
-#include "ConvolutionAlgorithm.h"
 #include "Loops.h"
 
 class Configuration {
@@ -53,7 +52,7 @@ public:
   bool accumulateRows() const;
   bool accumulateCols() const;
 
-  LoopOrder& loopOrder() const;
+  const LoopOrder& loopOrder() const;
 
 //============================================================================//
 // Local state

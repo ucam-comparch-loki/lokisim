@@ -10,10 +10,16 @@
 #ifndef SRC_TILE_ACCELERATOR_ACCELERATOR_H_
 #define SRC_TILE_ACCELERATOR_ACCELERATOR_H_
 
+#include "../../Datatype/Word.h"
 #include "../../LokiComponent.h"
+#include "../../Network/NetworkTypes.h"
 #include "ComputeUnit.h"
 #include "ControlUnit.h"
+#include "ConvolutionAlgorithm.h"
 #include "DMA.h"
+
+class AcceleratorTile;
+class Configuration;
 
 // TODO: make this a parameter.
 typedef int32_t dtype;

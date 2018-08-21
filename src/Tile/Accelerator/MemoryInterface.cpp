@@ -7,9 +7,11 @@
 
 #include "MemoryInterface.h"
 #include "../../Utility/Assert.h"
+#include "DMA.h"
 
 MemoryInterface::MemoryInterface(sc_module_name name, ComponentID id) :
     LokiComponent(name, id),
+    memoryMapping(-1),
     bankSelector(id) {
 
   outstandingRequests = 0;
@@ -21,7 +23,7 @@ MemoryInterface::MemoryInterface(sc_module_name name, ComponentID id) :
 }
 
 void MemoryInterface::createNewRequest(position_t position, MemoryAddr address,
-                                       MemoryOpcode op, uint32_t data=0) {
+                                       MemoryOpcode op, uint32_t data) {
   assert(canAcceptRequest());
 
   request_t request;
@@ -79,7 +81,7 @@ void MemoryInterface::receiveResponse(const NetworkData& flit) {
   responseArrived.notify(sc_core::SC_ZERO_TIME);
 }
 
-sc_event MemoryInterface::responseArrivedEvent() const {
+const sc_event& MemoryInterface::responseArrivedEvent() const {
   return responseArrived;
 }
 

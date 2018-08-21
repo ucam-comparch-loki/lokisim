@@ -12,6 +12,8 @@
 
 #include "ComputeTile.h"
 
+class Accelerator;
+
 class AcceleratorTile: public ComputeTile {
 
 //============================================================================//

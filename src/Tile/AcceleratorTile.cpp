@@ -7,6 +7,7 @@
 
 #include "AcceleratorTile.h"
 #include "Accelerator/Accelerator.h"
+#include "../Chip.h"
 
 AcceleratorTile::AcceleratorTile(const sc_module_name& name,
                                  const ComponentID& id) :
@@ -18,7 +19,10 @@ AcceleratorTile::AcceleratorTile(const sc_module_name& name,
   for (uint acc = 0; acc < ACCELERATORS_PER_TILE; acc++) {
     ComponentID accID(tile, acc + CORES_PER_TILE + MEMS_PER_TILE);
 
-    Accelerator* a = new Accelerator(sc_gen_unique_name("acc"), accID);
+    // TODO Get this configuration from somewhere useful.
+    Configuration cfg(4, 4, true, false, true, false, LoopOrders::naive);
+
+    Accelerator* a = new Accelerator(sc_gen_unique_name("acc"), accID, cfg);
     accelerators.push_back(a);
 
     a->iClock(iClock);

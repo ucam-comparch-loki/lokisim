@@ -14,6 +14,10 @@
 #ifndef SRC_TILE_MEMORYBANKSELECTOR_H_
 #define SRC_TILE_MEMORYBANKSELECTOR_H_
 
+#include "../Datatype/Identifier.h"
+#include "../Memory/MemoryTypes.h"
+#include "ChannelMapEntry.h"
+
 class MemoryBankSelector {
 
 //============================================================================//

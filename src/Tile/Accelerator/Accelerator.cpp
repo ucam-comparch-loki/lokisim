@@ -7,6 +7,8 @@
 
 #include "Accelerator.h"
 #include "../../Utility/Assert.h"
+#include "../AcceleratorTile.h"
+#include "Configuration.h"
 
 Accelerator::Accelerator(sc_module_name name, ComponentID id, Configuration cfg) :
     LokiComponent(name, id),

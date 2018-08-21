@@ -2,8 +2,5 @@ build/lokisim
 build/**/*.d
 build/**/*.o
 /.settings/
-<<<<<<< Upstream, based on origin/master
 /.cproject
 /.project
-=======
->>>>>>> c7a5d47 Update gitignore.

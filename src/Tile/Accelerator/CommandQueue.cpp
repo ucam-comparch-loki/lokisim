@@ -9,6 +9,8 @@
 
 CommandQueue::CommandQueue(size_t maxLength) : maxLength(maxLength) {
 
+  // Nothing
+
 }
 
 void CommandQueue::enqueue(const dma_command_t command) {
@@ -35,6 +37,6 @@ bool CommandQueue::empty() const {
   return queue.size() == 0;
 }
 
-sc_core::sc_event CommandQueue::queueChangedEvent() const {
+const sc_core::sc_event& CommandQueue::queueChangedEvent() const {
   return queueChanged;
 }

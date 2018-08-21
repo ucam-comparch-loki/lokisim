@@ -11,6 +11,7 @@
 #include "ControlUnit.h"
 #include "ConvolutionAlgorithm.h"
 #include "../../Utility/Assert.h"
+#include "Accelerator.h"
 
 ControlUnit::ControlUnit(sc_module_name name, const Configuration& cfg) :
     LokiComponent(name),

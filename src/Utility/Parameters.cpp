@@ -84,7 +84,7 @@ parameter CORES_PER_TILE             = 8;
 <<<<<<< Upstream, based on origin/master
 =======
 // Number of accelerators in an accelerator tile.
-parameter ACCELERATORS_PER_TILE      = 1;
+parameter ACCELERATORS_PER_TILE      = 0;
 
 // Number of memory banks in each tile.
 parameter MEMS_PER_TILE              = 8;
