@@ -19,6 +19,7 @@ RM := rm
 -include src/Tile/Core/Execute/subdir.mk
 -include src/Tile/Core/Decode/subdir.mk
 -include src/Tile/Core/subdir.mk
+-include src/Tile/Accelerator/subdir.mk
 -include src/Tile/subdir.mk
 -include src/OffChip/subdir.mk
 -include src/Network/Topologies/subdir.mk
