@@ -11,10 +11,6 @@
 #include "../../Network/FlowControl/FlowControlIn.h"
 #include "../../Utility/Assert.h"
 
-// One multicast input from each core, instructions, data, and router.
-const unsigned int InputCrossbar::numInputs = 3 + CORES_PER_TILE;
-const unsigned int InputCrossbar::numOutputs = CORE_INPUT_CHANNELS;
-
 const PortIndex INACTIVE = -1;
 
 void InputCrossbar::newData(PortIndex input) {
@@ -23,9 +19,9 @@ void InputCrossbar::newData(PortIndex input) {
   const NetworkData& data = iData[input].read();
 
   ChannelIndex destination = data.channelID().channel;
-  if (destination >= numOutputs)
+  if (destination >= oData.size())
     LOKI_WARN << this->name() << " trying to receive data for " << data.channelID() << endl;
-  loki_assert(destination < numOutputs);
+  loki_assert(destination < oData.size());
 
   if (dataSource[destination] != INACTIVE)
     LOKI_WARN << "multiple sources sending simultaneously to " << ChannelID(id, destination) << "; packet dropped." << endl;
@@ -68,18 +64,18 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
     LokiComponent(name, ID),
     clock("clock"),
     creditClock("creditClock"),
-    iData(numInputs, "iData"),
+    iData(CORES_PER_TILE + 3, "iData"), // All cores + insts + data + router
     oReady(CORE_INPUT_CHANNELS, "oReady"),
-    oData(numOutputs, "oData"),
-    iFlowControl(numOutputs, "iFlowControl"),
-    iDataConsumed(numOutputs, "iDataConsumed"),
+    oData(CORE_INPUT_CHANNELS, "oData"),
+    iFlowControl(CORE_INPUT_CHANNELS, "iFlowControl"),
+    iDataConsumed(CORE_INPUT_CHANNELS, "iDataConsumed"),
     oCredit(1, "oCredit"),
-    creditNet("credit", ID, numOutputs, 1, 1, Network::NONE, 1),
+    creditNet("credit", ID, CORE_INPUT_CHANNELS, 1, 1, Network::NONE, 1),
     constantHigh("constantHigh"),
-    dataToBuffer(numOutputs, "dataToBuffer"),
-    creditsToNetwork(numOutputs, "creditsToNetwork"),
-    sendData(numOutputs, "sendDataEvent"),
-    dataSource(numOutputs, INACTIVE) {
+    dataToBuffer(CORE_INPUT_CHANNELS, "dataToBuffer"),
+    creditsToNetwork(CORE_INPUT_CHANNELS, "creditsToNetwork"),
+    sendData(CORE_INPUT_CHANNELS, "sendDataEvent"),
+    dataSource(CORE_INPUT_CHANNELS, INACTIVE) {
 
   // Method for each input port, forwarding data to the correct buffer when it
   // arrives. Each channel end has a single writer, so it is impossible to
@@ -101,7 +97,7 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
   constantHigh.write(true);
 
   // Create and wire up all flow control units.
-  for (unsigned int i=0; i<numOutputs; i++) {
+  for (unsigned int i=0; i<oData.size(); i++) {
     FlowControlIn* fc = new FlowControlIn(sc_gen_unique_name("fc_in"), id, ChannelID(id, i));
     flowControl.push_back(fc);
 
