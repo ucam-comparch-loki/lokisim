@@ -12,7 +12,7 @@
 void Mesh::makeRouters() {
   for (unsigned int row=0; row<numRows; row++) {
     for (unsigned int col=0; col<numColumns; col++) {
-      ComponentID routerID(col, row, COMPONENTS_PER_TILE);
+      ComponentID routerID(col, row, 0);
       std::stringstream name;
       name << "router_" << routerID.tile.getNameString();
       routers[col][row] = new Router(name.str().c_str(), routerID);

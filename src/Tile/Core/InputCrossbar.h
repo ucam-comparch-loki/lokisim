@@ -80,8 +80,6 @@ private:
 
 private:
 
-  static const unsigned int numInputs, numOutputs;
-
   std::vector<FlowControlIn*> flowControl;
 
   InstantCrossbar          creditNet;
