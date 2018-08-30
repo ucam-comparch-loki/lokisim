@@ -28,11 +28,12 @@ class StagingArea {
 public:
 
   StagingArea(size_t width, size_t height) :
-      data(height, vector<T>(0, width)),
-      valid(height, vector<bool>(false, width)),
+      data(height, vector<T>(width, 0)),
+      valid(height, vector<bool>(width, false)),
       numValid(0) {
 
-    // Nothing.
+    assert(size() == width * height);
+    assert(size() > 0);
 
   }
 

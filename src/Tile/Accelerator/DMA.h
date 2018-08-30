@@ -256,7 +256,9 @@ public:
   DMAInput(sc_module_name name, ComponentID id, size2d_t ports,
            size_t queueLength=4) :
       DMABase<T>(name, id, ports, queueLength),
-      oDataToPEs(ports.width, ports.height, "dataToPEs") {
+      oDataToPEs(ports.width, ports.height, "oDataToPEs"),
+      oDataValid("oDataValid"),
+      iReadyForData("iReadyForData") {
 
     // Templated class means `this` must be used whenever referring to anything
     // from a parent class.
@@ -270,7 +272,7 @@ public:
     this->dont_initialize();
 
     SC_METHOD(sendPEData);
-    this->sensitive << iReadyForData;
+    this->sensitive << iReadyForData.pos();
     // do initialise
 
   }
@@ -379,7 +381,9 @@ public:
   DMAOutput(sc_module_name name, ComponentID id, size2d_t ports,
             size_t queueLength=4) :
       DMABase<T>(name, id, ports, queueLength),
-      iDataFromPEs(ports.width, ports.height, "dataFromPEs") {
+      iDataFromPEs(ports.width, ports.height, "iDataFromPEs"),
+      iDataValid("iDataValid"),
+      oReadyForData("oReadyForData") {
 
     // Templated class means `this` must be used whenever referring to anything
     // from a parent class.
@@ -389,7 +393,7 @@ public:
     this->dont_initialize();
 
     SC_METHOD(receivePEData);
-    this->sensitive << iDataValid;
+    this->sensitive << iDataValid.pos();
     this->dont_initialize();
 
     SC_METHOD(receiveMemoryData);

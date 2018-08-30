@@ -27,13 +27,20 @@ Accelerator::Accelerator(sc_module_name name, ComponentID id, Configuration cfg)
   control.oDMA2Command(toIn2);  in2.iCommand(toIn2);
   control.oDMA3Command(toOut);  out.iCommand(toOut);
 
-  // TODO: ready signals, etc.
   toPEs1.init(compute.in1, "toPEs1");
   toPEs2.init(compute.in2, "toPEs2");
   fromPEs.init(compute.out, "fromPEs");
   compute.in1(toPEs1);  in1.oDataToPEs(toPEs1);
   compute.in2(toPEs2);  in2.oDataToPEs(toPEs2);
   compute.out(fromPEs); out.iDataFromPEs(fromPEs);
+
+  // TODO: Actually use these signals (they're currently only connected at
+  // one end).
+  pesInReady.write(true);
+  pesOutReady.write(false);  // This is going to break things.
+  in1.iReadyForData(pesInReady); in1.oDataValid(in1Ready);
+  in2.iReadyForData(pesInReady); in2.oDataValid(in2Ready);
+  out.iDataValid(pesOutReady); out.oReadyForData(outReady);
 
 }
 

@@ -29,7 +29,7 @@ ControlUnit::ControlUnit(sc_module_name name, const Configuration& cfg) :
   dont_initialize();
 
   SC_METHOD(executionStep);
-  // sensitive << iClock?; algorithm.readyToStart()? TODO
+  sensitive << algorithm.startedComputation();
   dont_initialize();
 
 }
@@ -53,9 +53,10 @@ void ControlUnit::executionStep() {
   loki_assert(algorithm.executing());
 
   if (canStartNewStep())
-    algorithm.step(); // TODO: next_trigger?
-  else
-    next_trigger(iClock.posedge_event()); // TODO: something more specific?
+    algorithm.step();
+
+  // Perhaps use something more specific if the algorithm is blocked?
+  next_trigger(iClock.posedge_event());
 }
 
 bool ControlUnit::canStartNewStep() const {

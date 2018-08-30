@@ -36,6 +36,7 @@ void ConvolutionAlgorithm::start(const conv_parameters_t parameters) {
   loopNest = ordered;
 
   inProgress = true;
+  startedComputationEvent.notify(sc_core::SC_ZERO_TIME);
 }
 
 void ConvolutionAlgorithm::step() {
@@ -118,6 +119,10 @@ void ConvolutionAlgorithm::step() {
     }
   }
 
+}
+
+const sc_event& ConvolutionAlgorithm::startedComputation() const {
+  return startedComputationEvent;
 }
 
 const sc_event& ConvolutionAlgorithm::finishedComputation() const {

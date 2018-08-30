@@ -34,9 +34,10 @@ public:
 
   SC_HAS_PROCESS(AdderTree);
 
-  AdderTree(int length, int latency, int initiationInterval) :
-      LokiComponent("adder_tree"),
-      in(length, "in") {
+  AdderTree(sc_module_name name, int length, int latency, int initiationInterval) :
+      LokiComponent(name),
+      in(length, "in"),
+      out("out") {
 
     // TODO implement latency and initiation interval
 

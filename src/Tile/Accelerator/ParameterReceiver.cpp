@@ -13,9 +13,9 @@ ParameterReceiver::ParameterReceiver(sc_module_name name) :
 
   parametersReceived = 0;
 
-  SC_METHOD(receiveParameter);
+  // SC_METHOD(receiveParameter);
   // sensitive << iParameter;
-  dont_initialize();
+  // dont_initialize();
 
 }
 
