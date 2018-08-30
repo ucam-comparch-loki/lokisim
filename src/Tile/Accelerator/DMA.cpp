@@ -10,6 +10,7 @@
 
 DMA::DMA(sc_module_name name, ComponentID id, size_t queueLength) :
     LokiComponent(name, id),
+    iCommand("iCommand"),
     commandQueue(queueLength),
     memoryInterface("ifc", id) {
 

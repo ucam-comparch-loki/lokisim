@@ -80,6 +80,7 @@ private:
   CommandSignal toIn1, toIn2, toOut;
 
   LokiVector2D<sc_signal<dtype>> toPEs1, toPEs2, fromPEs;
+  ReadySignal pesInReady, pesOutReady, in1Ready, in2Ready, outReady;
 
 };
 

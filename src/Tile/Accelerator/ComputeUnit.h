@@ -38,14 +38,15 @@ public:
       in1(config.dma1Ports().width, config.dma1Ports().height, "in1"),
       in2(config.dma2Ports().width, config.dma2Ports().height, "in2"),
       out(config.dma3Ports().width, config.dma3Ports().height, "out"),
-      multipliers(config.peArraySize().width, vector<Multiplier<T>*>(config.peArraySize().height, NULL)) {
+      multipliers(config.peArraySize().width,
+                  vector<Multiplier<T>*>(config.peArraySize().height, NULL)) {
 
     // Use this a lot of times, so create a shorter name.
     size2d_t PEs = config.peArraySize();
 
     for (uint col=0; col<PEs.width; col++) {
       for (uint row=0; row<PEs.height; row++) {
-        Multiplier<T>* mul = new Multiplier<T>(1, 1);
+        Multiplier<T>* mul = new Multiplier<T>(sc_gen_unique_name("mul"), 1, 1);
         multipliers[col][row] = mul;
       }
     }
@@ -70,11 +71,11 @@ public:
         loki_assert(config.dma2Ports().height == 1);
 
         for (uint row=0; row<PEs.height; row++)
-          multipliers[col][row]->in1(in1[col][0]);
+          multipliers[col][row]->in2(in2[col][0]);
       }
       else {
         for (uint row=0; row<PEs.height; row++)
-          multipliers[col][row]->in1(in1[col][row]);
+          multipliers[col][row]->in2(in2[col][row]);
       }
     }
 
@@ -83,47 +84,69 @@ public:
     if (!config.accumulateCols() && !config.accumulateRows())
       for (uint col=0; col<PEs.width; col++)
         for (uint row=0; row<PEs.height; row++)
-          out[col][row](multipliers[col][row]->out);
+          multipliers[col][row]->out(out[col][row]);
 
     // Adders along columns.
     if (config.accumulateCols() && !config.accumulateRows()) {
       for (uint col=0; col<PEs.width; col++) {
-        AdderTree<T>* adder = new AdderTree<T>(PEs.height, 1, 1);
+        AdderTree<T>* adder =
+            new AdderTree<T>(sc_gen_unique_name("adders"), PEs.height, 1, 1);
         adders.push_back(adder);
-        out[col][0](adder->out);
+        adder->out(out[col][0]);
 
-        for (uint row=0; row<PEs.height; row++)
-          adder->in[row](multipliers[col][row]->out);
+        for (uint row=0; row<PEs.height; row++) {
+          sc_signal<T>* signal = new sc_signal<T>(sc_gen_unique_name("sig"));
+          adder->in[row](*signal);
+          multipliers[col][row]->out(*signal);
+          signals.push_back(signal);
+        }
       }
     }
 
     // Adders along rows.
     if (!config.accumulateCols() && config.accumulateRows()) {
       for (uint row=0; row<PEs.height; row++) {
-        AdderTree<T>* adder = new AdderTree<T>(PEs.width, 1, 1);
+        AdderTree<T>* adder =
+            new AdderTree<T>(sc_gen_unique_name("adders"), PEs.width, 1, 1);
         adders.push_back(adder);
-        out[0][row](adder->out);
+        adder->out(out[0][row]);
 
-        for (uint col=0; col<PEs.width; col++)
-          adder->in[col](multipliers[col][row]->out);
+        for (uint col=0; col<PEs.width; col++) {
+          sc_signal<T>* signal = new sc_signal<T>(sc_gen_unique_name("sig"));
+          adder->in[col](*signal);
+          multipliers[col][row]->out(*signal);
+          signals.push_back(signal);
+        }
       }
     }
 
     // Adders along both columns and rows.
     if (config.accumulateCols() && config.accumulateRows()) {
       for (uint col=0; col<PEs.width; col++) {
-        AdderTree<T>* adder = new AdderTree<T>(PEs.height, 1, 1);
+        AdderTree<T>* adder =
+            new AdderTree<T>(sc_gen_unique_name("adders"), PEs.height, 1, 1);
         adders.push_back(adder);
 
-        for (uint row=0; row<PEs.height; row++)
-          adder->in[row](multipliers[col][row]->out);
+        for (uint row=0; row<PEs.height; row++) {
+          sc_signal<T>* signal = new sc_signal<T>(sc_gen_unique_name("sig"));
+          adder->in[row](*signal);
+          multipliers[col][row]->out(*signal);
+          signals.push_back(signal);
+        }
       }
 
-      AdderTree<T>* adder = new AdderTree<T>(adders.size(), 1, 1);
-      for (uint i=0; i<adders.size(); i++)
-        adder->in[i](adders[i]->out);
+      AdderTree<T>* adder =
+          new AdderTree<T>(sc_gen_unique_name("adders"), adders.size(), 1, 1);
+
+      for (uint i=0; i<adders.size(); i++) {
+        sc_signal<T>* signal = new sc_signal<T>(sc_gen_unique_name("sig"));
+        adder->in[i](*signal);
+        adders[i]->out(*signal);
+        signals.push_back(signal);
+      }
+
       adders.push_back(adder);
-      out[0][0](adder->out);
+      adder->out(out[0][0]);
     }
   }
 
@@ -134,6 +157,9 @@ public:
 
     for (uint i=0; i<adders.size(); i++)
       delete adders[i];
+
+    for (uint i=0; i<signals.size(); i++)
+      delete signals[i];
   }
 
 //============================================================================//
@@ -144,6 +170,7 @@ private:
 
   vector<vector<Multiplier<T>*>> multipliers;
   vector<AdderTree<T>*> adders;
+  vector<sc_signal<T>*> signals;
 
 };
 

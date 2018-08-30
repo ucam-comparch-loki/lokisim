@@ -179,7 +179,7 @@ extern parameter  ROUTER_BUFFER_SIZE;
 //============================================================================//
 
 // Total number of addressable components (cores and memory banks) on each tile.
-#define COMPONENTS_PER_TILE       (CORES_PER_TILE + MEMS_PER_TILE)
+#define COMPONENTS_PER_TILE       (CORES_PER_TILE + MEMS_PER_TILE + 3*ACCELERATORS_PER_TILE)
 
 // Total number of tiles on the chip.
 #define NUM_TILES                 (TOTAL_TILE_ROWS * TOTAL_TILE_COLUMNS)

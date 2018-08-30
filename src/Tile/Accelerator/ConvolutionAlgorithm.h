@@ -65,6 +65,9 @@ public:
   // DMA units.
   void step();
 
+  // Event triggered when the start() method has been called.
+  const sc_event& startedComputation() const;
+
   // Event triggered when all execution is finished.
   const sc_event& finishedComputation() const;
 
@@ -111,6 +114,7 @@ protected:
 private:
 
   bool inProgress;
+  sc_event startedComputationEvent;
   sc_event finishedComputationEvent;
 
   // Configuration of the accelerator. Contains information such as loop order

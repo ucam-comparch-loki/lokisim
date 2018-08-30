@@ -40,8 +40,11 @@ public:
   // Create a Multiplier unit for data of type T. The unit produces an output
   // `latency` cycles after it receives an input, and is able to accept new
   // input every `initiationInterval` cycles.
-  Multiplier(int latency, int initiationInterval) :
-      LokiComponent("multiplier") {
+  Multiplier(sc_module_name name, int latency, int initiationInterval) :
+      LokiComponent(name),
+      in1("in1"),
+      in2("in2"),
+      out("out") {
 
     // TODO implement latency and initiation interval.
 
