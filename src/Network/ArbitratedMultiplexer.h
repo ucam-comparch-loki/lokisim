@@ -48,7 +48,7 @@ public:
   SC_HAS_PROCESS(ArbitratedMultiplexer);
   ArbitratedMultiplexer(const sc_module_name& name, uint inputs) :
       LokiComponent(name),
-      iData(inputs, "iData"),
+      iData("iData", inputs),
       oData("oData"),
       iHold("iHold") {
 

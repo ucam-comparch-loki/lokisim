@@ -27,15 +27,15 @@ void Crossbar::outputChanged(const PortIndex port) {
 }
 
 void Crossbar::makePorts(uint inputs, uint outputs) {
-  iData.init(inputs, "iData");
-  oData.init(outputs, "oData");
-  iRequest.init(inputs, numArbiters, "iRequest");
-  oGrant.init(inputs, numArbiters, "oGrant");
-  iReady.init(numArbiters, buffersPerComponent, "iReady");
+  iData.init("iData", inputs);
+  oData.init("oData", outputs);
+  iRequest.init("iRequest", inputs, numArbiters);
+  oGrant.init("oGrant", inputs, numArbiters);
+  iReady.init("iReady", numArbiters, buffersPerComponent);
 }
 
 void Crossbar::makeSignals() {
-  selectSig.init(numArbiters, outputsPerComponent, "selectSig");
+  selectSig.init("selectSig", numArbiters, outputsPerComponent);
 }
 
 void Crossbar::makeArbiters() {

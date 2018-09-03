@@ -17,7 +17,7 @@ using std::cout;
 using std::endl;
 using sc_core::sc_event;
 
-IPKCacheBase::IPKCacheBase(const size_t size, const size_t numTags, const std::string& name) :
+IPKCacheBase::IPKCacheBase(const std::string& name, const size_t size, const size_t numTags) :
     name(name),
     tags(numTags, DEFAULT_TAG),
     data(size),

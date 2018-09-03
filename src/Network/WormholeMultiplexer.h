@@ -47,7 +47,7 @@ public:
   SC_HAS_PROCESS(WormholeMultiplexer);
   WormholeMultiplexer(const sc_module_name& name, uint inputs) :
       LokiComponent(name),
-      iData(inputs, "iData"),
+      iData("iData", inputs),
       oData("oData") {
 
     state = MUX_INIT;

@@ -24,7 +24,7 @@ class IPKCacheBase {
 
 public:
 
-  IPKCacheBase(const size_t size, const size_t numTags, const std::string& name);
+  IPKCacheBase(const std::string& name, const size_t size, const size_t numTags);
   virtual ~IPKCacheBase();
 
 //============================================================================//

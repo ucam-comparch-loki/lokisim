@@ -948,7 +948,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID) :
   data(MEMORY_BANK_SIZE/BYTES_PER_WORD, 0),
   metadata(CACHE_LINES_PER_BANK),
   reservations(1),
-  missBuffer(CACHE_LINE_WORDS, "mMissBuffer"),
+  missBuffer("mMissBuffer", CACHE_LINE_WORDS),
   cacheMissEvent(sc_core::sc_gen_unique_name("mCacheMissEvent")),
   l2RequestFilter("request_filter", ID, this)
 {

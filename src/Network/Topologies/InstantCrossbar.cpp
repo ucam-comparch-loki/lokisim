@@ -56,15 +56,15 @@ InstantCrossbar::InstantCrossbar(const sc_module_name& name,
                                  HierarchyLevel level,
                                  int buffersPerComponent) :
     Network(name, ID, inputs, outputs, level),
-    iData(inputs, "iData"),
-    oData(outputs, "oData"),
+    iData("iData", inputs),
+    oData("oData", outputs),
     crossbar("internal", ID, inputs, outputs, outputsPerComponent, level, buffersPerComponent),
     state(inputs, IDLE) {
 
   // Create ports and signals.
-  requests.init(crossbar.iRequest, "request");
-  grants.init(crossbar.oGrant, "grant");
-  iReady.init(crossbar.iReady, "iReady");
+  requests.init("request", crossbar.iRequest);
+  grants.init("grant", crossbar.oGrant);
+  iReady.init("iReady", crossbar.iReady);
 
   // Connect up the inner crossbar.
   crossbar.clock(clock);

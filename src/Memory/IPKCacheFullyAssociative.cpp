@@ -9,10 +9,10 @@
 
 #include "../Utility/Instrumentation/IPKCache.h"
 
-IPKCacheFullyAssociative::IPKCacheFullyAssociative(const size_t size,
-                                                   const size_t numTags,
-                                                   const std::string& name) :
-    IPKCacheBase(size, numTags, name),
+IPKCacheFullyAssociative::IPKCacheFullyAssociative(const std::string& name,
+                                                   const size_t size,
+                                                   const size_t numTags) :
+    IPKCacheBase(name, size, numTags),
     packetPointers(numTags, NOT_IN_CACHE),
     nextTag(numTags) {
 

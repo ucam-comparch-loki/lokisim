@@ -187,43 +187,43 @@ void ComputeTile::makeComponents() {
 }
 
 void ComputeTile::makeSignals() {
-  dataToCores.init(dataReturn.oData, "dataToCore");
-  dataFromMemory.init(dataReturn.iData, "dataFromMemory");
-  instructionsToCores.init(instructionReturn.oData, "instructionsToCores");
-  instructionsFromMemory.init(instructionReturn.iData, "instructionsFromMemory");
-  requestsToMemory.init(coreToMemory.oData, "requestsToMemory");
-  requestsFromCores.init(coreToMemory.iData, "requestsFromCore");
-  multicastFromCores.init(coreToCore.iData, "multicastFromCore");
-  multicastToCores.init(coreToCore.oData, "multicastToCore");
-  readyDataFromCores.init(coreToCore.iReady, "readyDataFromCore");
-  readyDataFromMemory.init(coreToMemory.iReady, "readyDataFromMemory");
+  dataToCores.init("dataToCore", dataReturn.oData);
+  dataFromMemory.init("dataFromMemory", dataReturn.iData);
+  instructionsToCores.init("instructionsToCores", instructionReturn.oData);
+  instructionsFromMemory.init("instructionsFromMemory", instructionReturn.iData);
+  requestsToMemory.init("requestsToMemory", coreToMemory.oData);
+  requestsFromCores.init("requestsFromCore", coreToMemory.iData);
+  multicastFromCores.init("multicastFromCore", coreToCore.iData);
+  multicastToCores.init("multicastToCore", coreToCore.oData);
+  readyDataFromCores.init("readyDataFromCore", coreToCore.iReady);
+  readyDataFromMemory.init("readyDataFromMemory", coreToMemory.iReady);
 
-  creditsToCores.init(cores.size(), "creditToCore");
-  creditsFromCores.init(cores.size(), "creditFromCore");
-  readyCreditFromCores.init(cores.size(), 1, "readyCreditFromCore");
-  globalDataToCores.init(cores.size(), "globalDataToCore");
-  globalDataFromCores.init(cores.size(), "globalDataFromCore");
+  creditsToCores.init("creditToCore", cores.size());
+  creditsFromCores.init("creditFromCore", cores.size());
+  readyCreditFromCores.init("readyCreditFromCore", cores.size(), 1);
+  globalDataToCores.init("globalDataToCore", cores.size());
+  globalDataFromCores.init("globalDataFromCore", cores.size());
 
-  coreToMemRequests.init(cores.size(), memories.size(), "coreToMemRequest");
-  coreToMemGrants.init(cores.size(), memories.size(), "coreToMemGrant");
+  coreToMemRequests.init("coreToMemRequest", cores.size(), memories.size());
+  coreToMemGrants.init("coreToMemGrant", cores.size(), memories.size());
   for (uint i=0; i<cores.size(); i++)
     for (uint j=0; j<memories.size(); j++)
       coreToMemRequests[i][j].write(NO_REQUEST);
 
-  dataReturnRequests.init(memories.size(), cores.size(), "dataReturnRequest");
-  dataReturnGrants.init(memories.size(), cores.size(), "dataReturnGrant");
-  instructionReturnRequests.init(memories.size(), cores.size(), "instructionReturnRequest");
-  instructionReturnGrants.init(memories.size(), cores.size(), "instructionReturnGrant");
+  dataReturnRequests.init("dataReturnRequest", memories.size(), cores.size());
+  dataReturnGrants.init("dataReturnGrant", memories.size(), cores.size());
+  instructionReturnRequests.init("instructionReturnRequest", memories.size(), cores.size());
+  instructionReturnGrants.init("instructionReturnGrant", memories.size(), cores.size());
   for (uint i=0; i<memories.size(); i++)
     for (uint j=0; j<cores.size(); j++) {
       dataReturnRequests[i][j].write(NO_REQUEST);
       instructionReturnRequests[i][j].write(NO_REQUEST);
     }
 
-  l2ClaimRequest.init(memories.size(), "l2ClaimRequest");
-  l2DelayRequest.init(memories.size(), "l2DelayRequest");
-  l2RequestFromMemory.init(memories.size(), "l2RequestFromMemory");
-  l2ResponseFromMemory.init(memories.size(), "l2ResponseFromMemory");
+  l2ClaimRequest.init("l2ClaimRequest", memories.size());
+  l2DelayRequest.init("l2DelayRequest", memories.size());
+  l2RequestFromMemory.init("l2RequestFromMemory", memories.size());
+  l2ResponseFromMemory.init("l2ResponseFromMemory", memories.size());
 }
 
 void ComputeTile::wireUp() {

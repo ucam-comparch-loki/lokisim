@@ -145,8 +145,8 @@ private:
 
 public:
 
-  FIFO(const size_t size, const std::string& name) :
-      Storage<T>(size, name),
+  FIFO(const std::string& name, const size_t size) :
+      Storage<T>(name, size),
       readPos(size),
       writePos(size) {
     readPos = writePos = fillCount = 0;

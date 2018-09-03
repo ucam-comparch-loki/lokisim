@@ -296,18 +296,18 @@ ClockedArbiter::ClockedArbiter(const sc_module_name& name, ComponentID ID,
                            int inputs, int outputs, bool wormhole, int flowControlSignals) :
     LokiComponent(name, ID),
     clock("clock"),
-    iRequest(inputs, "iRequest"),
-    oGrant(inputs, "oGrant"),
-    oSelect(outputs, "oSelect"),
-    iReady(flowControlSignals, "iReady"),
+    iRequest("iRequest", inputs),
+    oGrant("oGrant", inputs),
+    oSelect("oSelect", outputs),
+    iReady("iReady", flowControlSignals),
     wormhole(wormhole),
     requestVec(inputs, false),
     grantVec(inputs, false),
     selections(outputs, -1),
     destinations(outputs, -1),
     state(outputs, NO_REQUESTS),
-    grantChanged(inputs, "grantChanged"),
-    selectionChanged(outputs, "selectionChanged") {
+    grantChanged("grantChanged", inputs),
+    selectionChanged("selectionChanged", outputs) {
 
   loki_assert(inputs > 0);
   loki_assert(outputs > 0);

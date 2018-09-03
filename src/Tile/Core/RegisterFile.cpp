@@ -141,7 +141,7 @@ Core* RegisterFile::parent() const {
 
 RegisterFile::RegisterFile(sc_module_name name, const ComponentID& ID) :
     LokiComponent(name, ID),
-    regs(NUM_PHYSICAL_REGISTERS, std::string(name)),
+    regs(std::string(name), NUM_PHYSICAL_REGISTERS),
     prevRead(3),
     lastActivity(-1) {
 

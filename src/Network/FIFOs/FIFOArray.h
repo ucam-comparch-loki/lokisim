@@ -47,7 +47,7 @@ public:
 
 public:
 
-  FIFOArray(const uint numBuffers, const uint buffSize, const std::string& name) {
+  FIFOArray(const std::string& name, const uint numBuffers, const uint buffSize) {
     assert(numBuffers > 0);
     assert(buffSize > 0);
 

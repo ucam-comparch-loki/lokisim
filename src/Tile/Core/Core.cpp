@@ -250,11 +250,11 @@ Core::Core(const sc_module_name& name, const ComponentID& ID) :
     iInstruction("iInstruction"),
     iData("iData"),
     oRequest("oRequest"),
-    iMulticast(CORES_PER_TILE, "iMulticast"),
+    iMulticast("iMulticast", CORES_PER_TILE),
     oMulticast("oMulticast"),
     oDataGlobal("oDataGlobal"),
     iDataGlobal("iDataGlobal"),
-    oReadyData(CORE_INPUT_CHANNELS, "oReadyData"),
+    oReadyData("oReadyData", CORE_INPUT_CHANNELS),
     oCredit("oCredit"),
     iCredit("iCredit"),
     oReadyCredit("oReadyCredit"),
@@ -269,10 +269,10 @@ Core::Core(const sc_module_name& name, const ComponentID& ID) :
     channelMapTable("channel_map_table", ID),
     cregs("cregs", ID),
     magicMemoryConnection("magic_memory", ID),
-    stageReady(3, "stageReady"), // 4 stages => 3 links between stages
-    dataToBuffers(CORE_INPUT_CHANNELS, "dataToBuffers"),
-    fcFromBuffers(CORE_INPUT_CHANNELS, "fcFromBuffers"),
-    dataConsumed(CORE_INPUT_CHANNELS, "dataConsumed") {
+    stageReady("stageReady", 3), // 4 stages => 3 links between stages
+    dataToBuffers("dataToBuffers", CORE_INPUT_CHANNELS),
+    fcFromBuffers("fcFromBuffers", CORE_INPUT_CHANNELS),
+    dataConsumed("dataConsumed", CORE_INPUT_CHANNELS) {
 
   currentlyStalled = false;
 

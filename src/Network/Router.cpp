@@ -138,14 +138,14 @@ Router::Router(const sc_module_name& name, const ComponentID& ID) :
     LokiComponent(name, ID),
     BlockingInterface(),
     clock("clock"),
-    iData(5, "iData"),
-    oReady(5, "oReady"),
-    oData(5, "oData"),
-    iReady(5, "iReady"),
-    inputBuffers(5, ROUTER_BUFFER_SIZE, string(this->name()) + ".input_data"),
+    iData("iData", 5),
+    oReady("oReady", 5),
+    oData("oData", 5),
+    iReady("iReady", 5),
+    inputBuffers(string(this->name()) + ".input_data", 5, ROUTER_BUFFER_SIZE),
     xPos(ID.tile.x),
     yPos(ID.tile.y),
-    outputAvailable(5, "outputAvailableEvent"){
+    outputAvailable("outputAvailableEvent", 5){
 
   state = WAITING_FOR_DATA;
   wormhole = true;

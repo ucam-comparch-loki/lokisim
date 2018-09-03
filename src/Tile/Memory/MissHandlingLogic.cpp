@@ -24,8 +24,8 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
     oReadyForRequest("oReadyForRequest"),
     oRequestToBanks("oRequestToBanks"),
     oRequestTarget("oRequestTarget"),
-    iClaimRequest(MEMS_PER_TILE, "iClaimRequest"),
-    iDelayRequest(MEMS_PER_TILE, "iDelayRequest"),
+    iClaimRequest("iClaimRequest", MEMS_PER_TILE),
+    iDelayRequest("iDelayRequest", MEMS_PER_TILE),
     oRequestClaimed("oRequestClaimed"),
     oRequestDelayed("oRequestDelayed"),
     directory(DIRECTORY_SIZE),
@@ -42,8 +42,8 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
 
   rngState = 0x3F;  // Same seed as Verilog uses (see nextTargetBank()).
 
-  iRequestFromBanks.init(requestMux.iData, "iRequestFromBanks");
-  iResponseFromBanks.init(responseMux.iData, "iResponseFromBanks");
+  iRequestFromBanks.init("iRequestFromBanks", requestMux.iData);
+  iResponseFromBanks.init("iResponseFromBanks", responseMux.iData);
 
   requestMux.iData(iRequestFromBanks);
   requestMux.oData(muxedRequest);

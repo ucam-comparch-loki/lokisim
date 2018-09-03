@@ -12,10 +12,10 @@
 
 CoreMulticast::CoreMulticast(const sc_module_name name, ComponentID tile) :
     Network(name, tile, CORES_PER_TILE, CORES_PER_TILE*CORES_PER_TILE, Network::COMPONENT),
-    iData(CORES_PER_TILE, "iData"),
-    oData(CORES_PER_TILE, CORES_PER_TILE, "oData"),
-    iReady(CORES_PER_TILE, CORE_INPUT_CHANNELS, "iReady"),
-    busInput(CORES_PER_TILE, "busInput") {
+    iData("iData", CORES_PER_TILE),
+    oData("oData", CORES_PER_TILE, CORES_PER_TILE),
+    iReady("iReady", CORES_PER_TILE, CORE_INPUT_CHANNELS),
+    busInput("busInput", CORES_PER_TILE) {
 
   state.assign(iData.size(), IDLE);
 

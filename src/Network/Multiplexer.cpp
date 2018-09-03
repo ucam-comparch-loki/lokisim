@@ -50,7 +50,7 @@ void Multiplexer::handleData() {
 Multiplexer::Multiplexer(const sc_module_name& name, int numInputs) :
     LokiComponent(name),
     iSelect("iSelect"),
-    iData(numInputs, "iData"),
+    iData("iData", numInputs),
     oData("oData") {
 
   loki_assert(numInputs > 0);

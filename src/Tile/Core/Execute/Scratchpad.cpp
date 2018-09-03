@@ -10,7 +10,7 @@
 
 Scratchpad::Scratchpad(const sc_module_name& name, const ComponentID& ID) :
     LokiComponent(name, ID),
-    data(CORE_SCRATCHPAD_SIZE, std::string(name)) {
+    data(std::string(name), CORE_SCRATCHPAD_SIZE) {
   // Do nothing.
 }
 

@@ -161,28 +161,28 @@ const std::set<TileID> Chip::getMemoryControllerPositions() const {
 }
 
 void Chip::makeSignals() {
-  iData.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS, "iData");
-  oData.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS, "oData");
-  iDataReady.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS, "iDataReady");
-  oDataReady.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS, "oDataReady");
+  iData.init("iData", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
+  oData.init("oData", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
+  iDataReady.init("iDataReady", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
+  oDataReady.init("oDataReady", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
 
-  iCredit.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS, "iCredit");
-  oCredit.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS, "oCredit");
-  iCreditReady.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS, "iCreditReady");
-  oCreditReady.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS, "oCreditReady");
+  iCredit.init("iCredit", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
+  oCredit.init("oCredit", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
+  iCreditReady.init("iCreditReady", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
+  oCreditReady.init("oCreditReady", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
 
-  iRequest.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS, "iRequest");
-  oRequest.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS, "oRequest");
-  iRequestReady.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS, "iRequestReady");
-  oRequestReady.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS, "oRequestReady");
+  iRequest.init("iRequest", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
+  oRequest.init("oRequest", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
+  iRequestReady.init("iRequestReady", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
+  oRequestReady.init("oRequestReady", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
 
-  iResponse.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS, "iResponse");
-  oResponse.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS, "oResponse");
-  iResponseReady.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS, "iResponseReady");
-  oResponseReady.init(TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS, "oResponseReady");
+  iResponse.init("iResponse", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
+  oResponse.init("oResponse", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
+  iResponseReady.init("iResponseReady", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
+  oResponseReady.init("oResponseReady", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
 
-  requestToMainMemory.init(memoryControllerPositions.size(), "requestToMainMemory");
-  responseFromMainMemory.init(memoryControllerPositions.size(), "responseFromMainMemory");
+  requestToMainMemory.init("requestToMainMemory", memoryControllerPositions.size());
+  responseFromMainMemory.init("responseFromMainMemory", memoryControllerPositions.size());
 }
 
 void Chip::makeComponents() {

@@ -130,10 +130,10 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name, const
     LokiComponent(name, ID),
     BlockingInterface(),
     clock("clock"),
-    iData(CORE_RECEIVE_CHANNELS, "iData"),
-    oFlowControl(CORE_RECEIVE_CHANNELS, "oFlowControl"),
-    oDataConsumed(CORE_RECEIVE_CHANNELS, "oDataConsumed"),
-    buffers(CORE_RECEIVE_CHANNELS, CORE_BUFFER_SIZE, this->name()),
+    iData("iData", CORE_RECEIVE_CHANNELS),
+    oFlowControl("oFlowControl", CORE_RECEIVE_CHANNELS),
+    oDataConsumed("oDataConsumed", CORE_RECEIVE_CHANNELS),
+    buffers(this->name(), CORE_RECEIVE_CHANNELS, CORE_BUFFER_SIZE),
     currentChannel(CORE_RECEIVE_CHANNELS) {
 
   // Generate a method to watch each input port, putting the data into the

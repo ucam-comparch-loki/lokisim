@@ -7,8 +7,8 @@
 
 #include "IPKCacheDirectMapped.h"
 
-IPKCacheDirectMapped::IPKCacheDirectMapped(const size_t size, const std::string& name) :
-    IPKCacheBase(size, size, name) {
+IPKCacheDirectMapped::IPKCacheDirectMapped(const std::string& name, const size_t size) :
+    IPKCacheBase(name, size, size) {
   // Do nothing
 }
 

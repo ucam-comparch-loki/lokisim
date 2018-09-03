@@ -395,9 +395,9 @@ void         DecodeStage::unstall() {
 DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
     oReady("oReady"),
-    iData(CORE_RECEIVE_CHANNELS, "iData"),
-    oFlowControl(CORE_RECEIVE_CHANNELS, "oFlowControl"),
-    oDataConsumed(CORE_RECEIVE_CHANNELS, "oDataConsumed"),
+    iData("iData", CORE_RECEIVE_CHANNELS),
+    oFlowControl("oFlowControl", CORE_RECEIVE_CHANNELS),
+    oDataConsumed("oDataConsumed", CORE_RECEIVE_CHANNELS),
     iOutputBufferReady("iOutputBufferReady"),
     rcet("rcet", ID),
     decoder("decoder", ID) {

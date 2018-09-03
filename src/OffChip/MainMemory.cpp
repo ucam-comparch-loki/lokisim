@@ -22,8 +22,8 @@ using std::setprecision;
 MainMemory::MainMemory(sc_module_name name, ComponentID ID, uint controllers) :
     MemoryBase(name, ID),
     iClock("iClock"),
-    iData(controllers, "iData"),
-    oData(controllers, "oData"),
+    iData("iData", controllers),
+    oData("oData", controllers),
     mData(MAIN_MEMORY_SIZE/BYTES_PER_WORD, 0),
     cacheLineValid(MAIN_MEMORY_SIZE / CACHE_LINE_BYTES, 0) {
 

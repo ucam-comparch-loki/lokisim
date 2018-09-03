@@ -64,17 +64,17 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
     LokiComponent(name, ID),
     clock("clock"),
     creditClock("creditClock"),
-    iData(CORES_PER_TILE + 3, "iData"), // All cores + insts + data + router
-    oReady(CORE_INPUT_CHANNELS, "oReady"),
-    oData(CORE_INPUT_CHANNELS, "oData"),
-    iFlowControl(CORE_INPUT_CHANNELS, "iFlowControl"),
-    iDataConsumed(CORE_INPUT_CHANNELS, "iDataConsumed"),
-    oCredit(1, "oCredit"),
+    iData("iData", CORES_PER_TILE + 3), // All cores + insts + data + router
+    oReady("oReady", CORE_INPUT_CHANNELS),
+    oData("oData", CORE_INPUT_CHANNELS),
+    iFlowControl("iFlowControl", CORE_INPUT_CHANNELS),
+    iDataConsumed("iDataConsumed", CORE_INPUT_CHANNELS),
+    oCredit("oCredit", 1),
     creditNet("credit", ID, CORE_INPUT_CHANNELS, 1, 1, Network::NONE, 1),
     constantHigh("constantHigh"),
-    dataToBuffer(CORE_INPUT_CHANNELS, "dataToBuffer"),
-    creditsToNetwork(CORE_INPUT_CHANNELS, "creditsToNetwork"),
-    sendData(CORE_INPUT_CHANNELS, "sendDataEvent"),
+    dataToBuffer("dataToBuffer", CORE_INPUT_CHANNELS),
+    creditsToNetwork("creditsToNetwork", CORE_INPUT_CHANNELS),
+    sendData("sendDataEvent", CORE_INPUT_CHANNELS),
     dataSource(CORE_INPUT_CHANNELS, INACTIVE) {
 
   // Method for each input port, forwarding data to the correct buffer when it

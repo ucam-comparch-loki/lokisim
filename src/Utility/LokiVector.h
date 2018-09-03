@@ -32,8 +32,8 @@ public:
     // Nothing
   }
 
-  LokiVector(size_t size, sc_module_name name) {
-    init(size, name);
+  LokiVector(sc_module_name name, size_t size) {
+    init(name, size);
   }
 
   virtual ~LokiVector() {
@@ -49,7 +49,7 @@ public:
 
   // Initialise the vector to the given size. The default constructor will be
   // used to create all contents, so such a constructor must exist.
-  inline void init(size_t size, sc_module_name name) {
+  inline void init(sc_module_name name, size_t size) {
     assert(size > 0);
     for (uint i=0; i<size; i++)
       data.push_back(new T(sc_gen_unique_name(name)));
@@ -57,8 +57,8 @@ public:
 
   // Initialise the vector to the same dimensions as another given vector.
   template<typename T2>
-  inline void init(const LokiVector<T2>& other, sc_module_name name) {
-    init(other.size(), name);
+  inline void init(sc_module_name name, const LokiVector<T2>& other) {
+    init(name, other.size());
   }
 
   inline size_t size() const {
@@ -87,5 +87,4 @@ private:
   std::vector<T*> data;
 
 };
-
 #endif /* LOKIVECTOR_H_ */

@@ -59,8 +59,8 @@ protected:
 
 public:
 
-  MappedStorage(const uint16_t size, const std::string& name) :
-    Storage<T>(size, name),
+  MappedStorage(const std::string& name, const uint16_t size) :
+    Storage<T>(name, size),
     tags(size) {
 
   }

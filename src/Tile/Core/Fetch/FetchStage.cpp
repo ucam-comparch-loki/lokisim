@@ -544,13 +544,13 @@ FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
     PipelineStage(name, ID),
     iToCache("iCacheInstruction"),
     iToFIFO("iFIFOInstruction"),
-    oFlowControl(2, "oFlowControl"),
-    oDataConsumed(2, "oDataConsumed"),
+    oFlowControl("oFlowControl", 2),
+    oDataConsumed("oDataConsumed", 2),
     oFetchRequest("oFetchRequest"),
     iOutputBufferReady("iOutputBufferReady"),
     cache("IPKcache", ID),
     fifo("IPKfifo"),
-    fetchBuffer(1, "fetchBuffer") {
+    fetchBuffer("fetchBuffer", 1) {
 
   readState = RS_READY;
   writeState = WS_READY;

@@ -164,8 +164,8 @@ InstructionPacketCache::InstructionPacketCache(sc_module_name name, const Compon
     oDataConsumed("oDataConsumed"),
     addresses(IPK_CACHE_SIZE, DEFAULT_TAG) {
 
-  cache = new IPKCacheFullyAssociative(IPK_CACHE_SIZE, IPK_CACHE_TAGS, string(this->name()));
-//  cache = new IPKCacheDirectMapped(IPK_CACHE_SIZE, string(this->name()));
+  cache = new IPKCacheFullyAssociative(string(this->name()), IPK_CACHE_SIZE, IPK_CACHE_TAGS);
+//  cache = new IPKCacheDirectMapped(string(this->name()), IPK_CACHE_SIZE);
 
   lastReadAddr = 0;
   lastWriteAddr = 0;

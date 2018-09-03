@@ -44,8 +44,8 @@ public:
 
 public:
 
-  AddressedStorage(const uint32_t size, const std::string& name) :
-    Storage<T>(size, name) {
+  AddressedStorage(const std::string& name, const uint32_t size) :
+    Storage<T>(name, size) {
 
   }
 
