@@ -64,7 +64,7 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
     LokiComponent(name, ID),
     clock("clock"),
     creditClock("creditClock"),
-    iData(CORES_PER_TILE + 3, "iData"), // All cores + insts + data + router
+    iData(MULTICAST_NETWORK_SIZE + 3, "iData"), // All cores + insts + data + router
     oReady(CORE_INPUT_CHANNELS, "oReady"),
     oData(CORE_INPUT_CHANNELS, "oData"),
     iFlowControl(CORE_INPUT_CHANNELS, "iFlowControl"),

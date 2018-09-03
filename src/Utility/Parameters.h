@@ -206,6 +206,8 @@ extern parameter  ROUTER_BUFFER_SIZE;
 #define TOTAL_INPUT_CHANNELS      (INPUT_CHANNELS_PER_TILE * NUM_COMPUTE_TILES)
 #define TOTAL_OUTPUT_CHANNELS     (OUTPUT_CHANNELS_PER_TILE * NUM_COMPUTE_TILES)
 
+#define MULTICAST_NETWORK_SIZE    (CORES_PER_TILE + ACCELERATORS_PER_TILE)
+
 //============================================================================//
 // Methods
 //============================================================================//

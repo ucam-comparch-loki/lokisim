@@ -301,7 +301,8 @@ void ComputeTile::wireUp() {
   dataReturn.clock(slowClock);
   dataReturn.iData(dataFromMemory);
   dataReturn.oData(dataToCores);
-  dataReturn.iReady(readyDataFromCores);
+  for (uint i=0; i<CORES_PER_TILE; i++)
+    dataReturn.iReady[i](readyDataFromCores[i]);
   dataReturn.iRequest(dataReturnRequests);
   dataReturn.oGrant(dataReturnGrants);
 
@@ -309,7 +310,7 @@ void ComputeTile::wireUp() {
   instructionReturn.clock(slowClock);
   instructionReturn.iData(instructionsFromMemory);
   instructionReturn.oData(instructionsToCores);
-  for (uint i=0; i<readyDataFromCores.size(); i++)
+  for (uint i=0; i<CORES_PER_TILE; i++)
     for (uint j=0; j<CORE_INSTRUCTION_CHANNELS; j++)
       instructionReturn.iReady[i][j](readyDataFromCores[i][j]);
   instructionReturn.iRequest(instructionReturnRequests);
@@ -321,7 +322,8 @@ void ComputeTile::wireUp() {
   dataFromRouter.iData(iData);
   dataFromRouter.oReady(oDataReady);
   dataFromRouter.oData(globalDataToCores);
-  dataFromRouter.iReady(readyDataFromCores);
+  for (uint i=0; i<CORES_PER_TILE; i++)
+    dataFromRouter.iReady[i](readyDataFromCores[i]);
 
   creditToRouter.oData(oCredit);
   creditToRouter.iData(creditsFromCores);

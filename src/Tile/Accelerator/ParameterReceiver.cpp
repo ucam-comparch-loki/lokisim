@@ -9,13 +9,15 @@
 #include "../../Utility/Assert.h"
 
 ParameterReceiver::ParameterReceiver(sc_module_name name) :
-    LokiComponent(name) {
+    LokiComponent(name),
+    iParameter("iParameter"),
+    oReady("oReady") {
 
   parametersReceived = 0;
 
-  // SC_METHOD(receiveParameter);
-  // sensitive << iParameter;
-  // dont_initialize();
+  SC_METHOD(receiveParameter);
+  sensitive << iParameter;
+  dont_initialize();
 
 }
 
@@ -34,8 +36,11 @@ const sc_event& ParameterReceiver::allParametersArrived() const {
 
 void ParameterReceiver::receiveParameter() {
   loki_assert(!hasAllParameters());
+  loki_assert(iParameter.valid());
+  loki_assert(oReady.read());
 
-  uint32_t parameter = 0;// TODO = iParameter.read(); iParameter.ack()?
+  uint32_t parameter = iParameter.read();
+  iParameter.ack();
 
   // Add parameter to struct. (Using a naughty method so I don't need to care
   // about the contents of the struct.)
@@ -49,4 +54,5 @@ void ParameterReceiver::receiveParameter() {
 
   // TODO: Flow control for receiver - perhaps a separate method.
   // Or control the timing of the acknowledgement.
+  // For now, always allow new input.
 }

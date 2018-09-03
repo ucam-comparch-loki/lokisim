@@ -11,11 +11,10 @@
 #include "../../Network/Topologies/MulticastBus.h"
 
 CoreMulticast::CoreMulticast(const sc_module_name name, ComponentID tile) :
-    Network(name, tile, CORES_PER_TILE, CORES_PER_TILE*CORES_PER_TILE, Network::COMPONENT),
-    iData(CORES_PER_TILE, "iData"),
-    oData(CORES_PER_TILE, CORES_PER_TILE, "oData"),
-    iReady(CORES_PER_TILE, CORE_INPUT_CHANNELS, "iReady"),
-    busInput(CORES_PER_TILE, "busInput") {
+    Network(name, tile, MULTICAST_NETWORK_SIZE, MULTICAST_NETWORK_SIZE*MULTICAST_NETWORK_SIZE, Network::COMPONENT),
+    iData(MULTICAST_NETWORK_SIZE, "iData"),
+    oData(MULTICAST_NETWORK_SIZE, MULTICAST_NETWORK_SIZE, "oData"),
+    busInput(MULTICAST_NETWORK_SIZE, "busInput") {
 
   state.assign(iData.size(), IDLE);
 
@@ -32,6 +31,15 @@ CoreMulticast::CoreMulticast(const sc_module_name name, ComponentID tile) :
     // Create a method which puts data onto the bus.
     SPAWN_METHOD(iData[i], CoreMulticast::mainLoop, i, false);
   }
+
+  // TODO: Would be nice for the constructor to receive a list of components to
+  // connect so we can check how many connections they have, rather than
+  // hard coding this.
+  iReady.init(MULTICAST_NETWORK_SIZE);
+  for (uint i=0; i<CORES_PER_TILE; i++)
+    iReady[i].init(CORE_INPUT_CHANNELS, "iReady");
+  for (uint i=CORES_PER_TILE; i<CORES_PER_TILE+ACCELERATORS_PER_TILE; i++)
+    iReady[i].init(1, "iReady");
 
 }
 

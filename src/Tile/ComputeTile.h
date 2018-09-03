@@ -155,7 +155,7 @@ private:
 // Signals (wires)
 //============================================================================//
 
-private:
+protected:
 
   LokiVector<DataSignal>    dataToCores,              dataFromMemory,
                             instructionsToCores,      instructionsFromMemory,

@@ -26,7 +26,10 @@ public:
 
   ClockInput iClock;
 
-  // TODO connection from cores
+  // Connections to the cores on this tile.
+  loki_in<uint32_t> iParameter;
+  DataOutput  oCores;
+  ReadyOutput oReady;
 
   // Commands send to DMA units.
   CommandOutput oDMA1Command;

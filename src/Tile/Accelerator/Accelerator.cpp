@@ -12,17 +12,24 @@
 
 Accelerator::Accelerator(sc_module_name name, ComponentID id, Configuration cfg) :
     LokiComponent(name, id),
+    iMulticast(MULTICAST_NETWORK_SIZE, "iMulticast"),
+    oMulticast("oMulticast"),
+    oReadyData(1, "oReadyData"),
     control("control", cfg),
     in1("dma_in1", ComponentID(id.tile, id.position), cfg.dma1Ports()),
     in2("dma_in2", ComponentID(id.tile, id.position+1), cfg.dma2Ports()),
     out("dma_out", ComponentID(id.tile, id.position+2), cfg.dma3Ports()),
-    compute("compute", cfg) {
+    compute("compute", cfg),
+    inputMux("mux", MULTICAST_NETWORK_SIZE) {
 
   // The mapping of network addresses to DMA units is currently quite awkward
   // and doesn't account for other accelerators in the same tile.
   loki_assert(ACCELERATORS_PER_TILE == 1);
 
   control.iClock(iClock);
+  control.iParameter(paramSig);
+  control.oCores(oMulticast);
+  control.oReady(oReadyData[0]);
   control.oDMA1Command(toIn1);  in1.iCommand(toIn1);
   control.oDMA2Command(toIn2);  in2.iCommand(toIn2);
   control.oDMA3Command(toOut);  out.iCommand(toOut);
@@ -41,6 +48,18 @@ Accelerator::Accelerator(sc_module_name name, ComponentID id, Configuration cfg)
   in1.iReadyForData(pesInReady); in1.oDataValid(in1Ready);
   in2.iReadyForData(pesInReady); in2.oDataValid(in2Ready);
   out.iDataValid(pesOutReady); out.oReadyForData(outReady);
+
+  // Whenever data arrives on any channel, pass it to the control unit. This
+  // will break if multiple cores attempt to communicate simultaneously.
+  // Could use the muxHold signal to change this if necessary.
+  muxHold.write(false);
+  inputMux.iData(iMulticast);
+  inputMux.oData(muxOutput);
+  inputMux.iHold(muxHold);
+
+  SC_METHOD(receiveParameter);
+  sensitive << muxOutput;
+  dont_initialize();
 
 }
 
@@ -68,6 +87,12 @@ void Accelerator::deliverDataInternal(const NetworkData& flit) {
 void Accelerator::magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address,
                                     ChannelID returnChannel, Word data) {
   parent()->magicMemoryAccess(opcode, address, returnChannel, data);
+}
+
+void Accelerator::receiveParameter() {
+  loki_assert(muxOutput.valid());
+  paramSig.write(muxOutput.read().payload().toUInt());
+  muxOutput.ack();
 }
 
 AcceleratorTile* Accelerator::parent() const {

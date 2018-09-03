@@ -250,7 +250,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID) :
     iInstruction("iInstruction"),
     iData("iData"),
     oRequest("oRequest"),
-    iMulticast(CORES_PER_TILE, "iMulticast"),
+    iMulticast(MULTICAST_NETWORK_SIZE, "iMulticast"),
     oMulticast("oMulticast"),
     oDataGlobal("oDataGlobal"),
     iDataGlobal("iDataGlobal"),
