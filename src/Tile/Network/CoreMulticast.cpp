@@ -16,7 +16,7 @@ CoreMulticast::CoreMulticast(const sc_module_name name,
     Network<Word>(name, params.mcastNetInputs(), params.mcastNetOutputs()),
     outputsPerCore(params.core.numInputChannels),
     outputCores(params.numCores) {
-
+	// #rebase: need to account for accelerators
 }
 
 

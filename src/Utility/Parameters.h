@@ -308,6 +308,8 @@ extern parameter  ROUTER_BUFFER_SIZE;
 #define TOTAL_OUTPUT_CHANNELS     (OUTPUT_CHANNELS_PER_TILE * NUM_COMPUTE_TILES)
 >>>>>>> c3d0c83 Lots of minor changes to allow an Accelerator to be successfully instantiated. It currently does no computation though.
 
+#define MULTICAST_NETWORK_SIZE    (CORES_PER_TILE + ACCELERATORS_PER_TILE)
+
 //============================================================================//
 // Methods
 //============================================================================//

@@ -15,10 +15,17 @@
 
 ControlUnit::ControlUnit(sc_module_name name, const Configuration& cfg) :
     LokiComponent(name),
+    iParameter("iCores"),
+    oCores("oCores"),
+    oReady("oReady"),
     receiver("params"),
     algorithm("algorithm", cfg) {
 
-  // TODO connect up receiver's ports
+  // TODO Notify cores when execution is finished and all data is back in
+  // memory.
+
+  receiver.iParameter(iParameter);
+  receiver.oReady(oReady);
 
   algorithm.oInputCommand(oDMA1Command);
   algorithm.oWeightsCommand(oDMA2Command);

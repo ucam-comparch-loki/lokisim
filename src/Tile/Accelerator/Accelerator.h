@@ -12,6 +12,7 @@
 
 #include "../../Datatype/Word.h"
 #include "../../LokiComponent.h"
+#include "../../Network/ArbitratedMultiplexer.h"
 #include "../../Network/NetworkTypes.h"
 #include "ComputeUnit.h"
 #include "ControlUnit.h"
@@ -34,12 +35,18 @@ public:
 
   ClockInput iClock;
 
+  // Connections to the cores on this tile.
+  LokiVector<DataInput>   iMulticast;
+  DataOutput              oMulticast;
+  LokiVector<ReadyOutput> oReadyData;
+
 //============================================================================//
 // Constructors and destructors
 //============================================================================//
 
 public:
 
+  SC_HAS_PROCESS(Accelerator);
   Accelerator(sc_module_name name, ComponentID id, Configuration cfg);
 
 
@@ -58,6 +65,10 @@ public:
                          ChannelID returnChannel, Word data = 0);
 
 private:
+
+  // Pass an incoming parameter from the network interface to the relevant
+  // internal component.
+  void receiveParameter();
 
   AcceleratorTile* parent() const;
 
@@ -81,6 +92,12 @@ private:
 
   LokiVector2D<sc_signal<dtype>> toPEs1, toPEs2, fromPEs;
   ReadySignal pesInReady, pesOutReady, in1Ready, in2Ready, outReady;
+
+  // Multiplex down the inputs from each core to a single channel.
+  ArbitratedMultiplexer<NetworkData> inputMux;
+  loki_signal<NetworkData> muxOutput;
+  sc_signal<bool> muxHold;
+  loki_signal<uint32_t> paramSig;
 
 };
 

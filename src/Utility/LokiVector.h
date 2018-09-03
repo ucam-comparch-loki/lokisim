@@ -74,7 +74,10 @@ public:
   }
 
   inline T& operator[](unsigned int position) const {
-    return *(data.at(position));
+    assert(size() > 0);
+    assert(position < size());
+
+    return *(data[position]);
   }
 
   // Call the () operator on each element of the vector. (Useful for binding

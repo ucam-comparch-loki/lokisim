@@ -12,6 +12,7 @@
 #define SRC_TILE_ACCELERATOR_PARAMETERRECEIVER_H_
 
 #include "../../LokiComponent.h"
+#include "../../Network/NetworkTypes.h"
 #include "AcceleratorTypes.h"
 
 class ParameterReceiver: public LokiComponent {
@@ -22,7 +23,11 @@ class ParameterReceiver: public LokiComponent {
 
 public:
 
-  // TODO: Connection to cores.
+  // Receive parameters for the next computation.
+  loki_in<uint32_t> iParameter;
+
+  // Signal whether this component is ready to receive a new parameter.
+  ReadyOutput oReady;
 
 
 //============================================================================//
