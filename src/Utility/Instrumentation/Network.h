@@ -41,14 +41,14 @@ public:
   static void arbitration();
   static void arbiterCreated();
 
-  static void printStats();
-  static void printSummary();
-  static void dumpEventCounts(std::ostream& os);
+  static void printStats(const chip_parameters_t& params);
+  static void printSummary(const chip_parameters_t& params);
+  static void dumpEventCounts(std::ostream& os, const chip_parameters_t& params);
 
 private:
 
-  static CounterMap<ComponentIndex> producers;
-  static CounterMap<ComponentIndex> consumers;
+  static CounterMap<ComponentID> producers;
+  static CounterMap<ComponentID> consumers;
 
   static count_t arbitrations;
   static count_t arbiters;

@@ -14,8 +14,8 @@
 #include "../../Network/NetworkTypes.h"
 #include "../../Tile/Memory/MemoryBank.h"
 #include "../../Utility/Arguments.h"
+#include "../../Utility/Instrumentation/L1Cache.h"
 #include "../../Utility/Instrumentation/Latency.h"
-#include "../../Utility/Instrumentation/MemoryBank.h"
 
 void checkAlignment(MemoryAddr address, uint alignment) {
   if (WARN_UNALIGNED && (address & (alignment-1)) != 0)
@@ -44,14 +44,16 @@ MemoryOperation::MemoryOperation(const NetworkRequest& request,
 //  checkAlignment(request.payload().toUInt(), alignment);
 
   if (level != MEMORY_OFF_CHIP) {
-    Instrumentation::MemoryBank::startOperation(memory.id,
-                                                metadata.opcode,
-                                                address,
-                                                !inCache(),
-                                                destination);
+    MemoryBank& bank = static_cast<MemoryBank&>(memory);
+
+    Instrumentation::L1Cache::startOperation(bank,
+                                             metadata.opcode,
+                                             address,
+                                             !inCache(),
+                                             destination);
 
     if (Arguments::csimTrace())
-      cout << "MEM" << memory.id.globalMemoryNumber() << " "
+      cout << "MEM" << bank.globalMemoryIndex() << " "
            << "0x" << std::setfill('0') << std::setw(8) << std::hex << address << std::dec << " "
            << memoryOpName(metadata.opcode) << " "
            << (inCache() ? "hit" : "miss") << endl;

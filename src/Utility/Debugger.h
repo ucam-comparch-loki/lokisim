@@ -19,6 +19,7 @@ using std::vector;
 
 class DecodedInst;
 class Chip;
+class Core;
 
 class Debugger {
 
@@ -33,10 +34,10 @@ public:
 
   // Receive notification that a particular core executed a particular
   // instruction.
-  static void executedInstruction(DecodedInst i, const ComponentID& core, bool executed);
+  static void executedInstruction(DecodedInst i, const Core& core, bool executed);
 
   // Choose the tile to debug. Make this more general later.
-  static void setChip(Chip* c);
+  static void setChip(Chip* c, const chip_parameters_t& params);
 
 private:
 
@@ -96,6 +97,7 @@ private:
 
   static vector<MemoryAddr> breakpoints;
   static Chip* chip;
+  static const chip_parameters_t* parameters;
 
   static unsigned int cycleNumber;
   static ComponentID defaultCore;

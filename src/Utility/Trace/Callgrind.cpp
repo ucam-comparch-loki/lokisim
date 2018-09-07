@@ -23,7 +23,8 @@ map<MemoryAddr, Callgrind::TopLevelFunction>      Callgrind::functionStats;
 vector<vector<MemoryAddr> >                       Callgrind::callStack;
 vector<Callgrind::Stats>                          Callgrind::currentFunction;
 
-void Callgrind::startTrace(const string& logfile, const string& binaryFile) {
+void Callgrind::startTrace(const string& logfile, const string& binaryFile,
+                           const chip_parameters_t& params) {
   // Open the log file and print the header to it.
   log = new ofstream(logfile.c_str());
   *log << "events: Cycles Instructions" << "\n\n";
@@ -36,7 +37,7 @@ void Callgrind::startTrace(const string& logfile, const string& binaryFile) {
   unknownFunction.end = -1;
   unknownFunction.name = "unknown";
 
-  for (unsigned int i=0; i<NUM_CORES; i++) {
+  for (unsigned int i=0; i<params.totalCores(); i++) {
     callStack.push_back(vector<MemoryAddr>());
     callStack[i].push_back(0);
     currentFunction.push_back(Stats());
@@ -52,7 +53,7 @@ void Callgrind::endTrace() {
   // Flush out any remaining data.
   // Use functionChanged, pretending that the final function has returned.
   cycle_count_t cycle = Instrumentation::currentCycle();
-  for (unsigned int core=0; core<NUM_CORES; core++) {
+  for (unsigned int core=0; core<callStack.size(); core++) {
     if (callStack[core].size() >= 2) {
       MemoryAddr caller = callStack[core][callStack[core].size()-2];
       functionChanged(core, caller, cycle);
@@ -88,20 +89,18 @@ void Callgrind::endTrace() {
   delete log;
 }
 
-void Callgrind::instructionExecuted(ComponentID core, MemoryAddr address, cycle_count_t cycle) {
+void Callgrind::instructionExecuted(CoreIndex core, MemoryAddr address, cycle_count_t cycle) {
   assert(tracing);
-
-  unsigned int id = core.globalCoreNumber();
 
   // Determine whether this is a continuation of the same function, or whether
   // we are in a new one.
   const FunctionInfo& fn = functionOf(address);
 
-  if (fn.start != callStack[id].back())
-    functionChanged(id, fn.start, cycle);
+  if (fn.start != callStack[core].back())
+    functionChanged(core, fn.start, cycle);
 
   // Increment any counters.
-  currentFunction[id].instructions++;
+  currentFunction[core].instructions++;
 }
 
 bool Callgrind::acceptingData() {

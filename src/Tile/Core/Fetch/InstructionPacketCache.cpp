@@ -47,7 +47,7 @@ void InstructionPacketCache::storeCode(const std::vector<Instruction>& instructi
 }
 
 const Instruction InstructionPacketCache::read() {
-  Instrumentation::IPKCache::read(id);
+  Instrumentation::IPKCache::read(*(parent()->core()));
 
   Instruction inst = cache->read();
   cacheRead.notify(sc_core::SC_ZERO_TIME);
@@ -60,7 +60,7 @@ const Instruction InstructionPacketCache::read() {
 
 void InstructionPacketCache::write(const Instruction inst) {
   if (ENERGY_TRACE)
-    Instrumentation::IPKCache::write(id);
+    Instrumentation::IPKCache::write(*(parent()->core()));
   LOKI_LOG << this->name() << " received Instruction: " << inst << endl;
 
   CacheIndex writePos = cache->write(inst);
@@ -158,14 +158,16 @@ FetchStage* InstructionPacketCache::parent() const {
 }
 
 /* Constructors and destructors */
-InstructionPacketCache::InstructionPacketCache(sc_module_name name, const ComponentID& ID) :
+InstructionPacketCache::InstructionPacketCache(sc_module_name name,
+                                               const ComponentID& ID,
+                                               const cache_parameters_t& params) :
     LokiComponent(name, ID),
     oFlowControl("oFlowControl"),
     oDataConsumed("oDataConsumed"),
-    addresses(IPK_CACHE_SIZE, DEFAULT_TAG) {
+    addresses(params.size, DEFAULT_TAG) {
 
-  cache = new IPKCacheFullyAssociative(string(this->name()), IPK_CACHE_SIZE, IPK_CACHE_TAGS);
-//  cache = new IPKCacheDirectMapped(string(this->name()), IPK_CACHE_SIZE);
+  cache = new IPKCacheFullyAssociative(string(this->name()), params.size, params.numTags, params.maxIPKSize);
+//  cache = new IPKCacheDirectMapped(string(this->name()), params.size, params.maxIPKSize);
 
   lastReadAddr = 0;
   lastWriteAddr = 0;

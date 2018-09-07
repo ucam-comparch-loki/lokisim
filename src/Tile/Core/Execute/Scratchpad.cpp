@@ -8,9 +8,10 @@
 #include "Scratchpad.h"
 #include "../../../Utility/Instrumentation/Scratchpad.h"
 
-Scratchpad::Scratchpad(const sc_module_name& name, const ComponentID& ID) :
+Scratchpad::Scratchpad(const sc_module_name& name, const ComponentID& ID,
+                       const scratchpad_parameters_t& params) :
     LokiComponent(name, ID),
-    data(std::string(name), CORE_SCRATCHPAD_SIZE) {
+    data(std::string(name), params.size) {
   // Do nothing.
 }
 

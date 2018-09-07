@@ -12,12 +12,11 @@
 #ifndef MESH_H_
 #define MESH_H_
 
+#include "../../Utility/LokiVector2D.h"
 #include "../Network.h"
 #include "../Global/NetworkDeadEnd.h"
 
 class Router;
-
-using std::vector;
 
 class Mesh : public Network {
 
@@ -55,9 +54,9 @@ public:
 
   Mesh(const sc_module_name& name,
        ComponentID ID,
-       int rows,
-       int columns,
-       HierarchyLevel level);
+       size2d_t size,
+       HierarchyLevel level,
+       const router_parameters_t& routerParams);
 
   virtual ~Mesh();
 
@@ -67,9 +66,9 @@ public:
 
 private:
 
-  void makeRouters();
-  void makeWires();
-  void wireUp();
+  void makeRouters(size2d_t tiles, const router_parameters_t& params);
+  void makeWires(size2d_t tiles);
+  void wireUp(size2d_t tiles);
 
 //============================================================================//
 // Components
@@ -89,14 +88,6 @@ private:
   // carries data, e.g. NS = north to south.
   LokiVector2D<DataSignal> dataSigNS, dataSigSN, dataSigEW, dataSigWE;
   LokiVector2D<ReadySignal> readySigNS, readySigSN, readySigEW, readySigWE;
-
-//============================================================================//
-// Local state
-//============================================================================//
-
-private:
-
-  const unsigned int numColumns, numRows;
 
 };
 

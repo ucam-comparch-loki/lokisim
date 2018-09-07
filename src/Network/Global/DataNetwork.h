@@ -21,7 +21,8 @@ class DataNetwork: public Mesh {
 
 public:
 
-  DataNetwork(const sc_module_name &name);
+  DataNetwork(const sc_module_name &name, size2d_t size,
+              const router_parameters_t& routerParams);
   virtual ~DataNetwork();
 
 };

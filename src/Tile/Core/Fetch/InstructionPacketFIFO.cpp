@@ -121,12 +121,13 @@ FetchStage* InstructionPacketFIFO::parent() const {
   return static_cast<FetchStage*>(this->get_parent_object());
 }
 
-InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
+InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name,
+                                             const fifo_parameters_t& params) :
     LokiComponent(name),
     oFlowControl("oFlowControl"),
     oDataConsumed("oDataConsumed"),
-    fifo(std::string(name), IPK_FIFO_SIZE),
-    addresses(IPK_FIFO_SIZE, DEFAULT_TAG) {
+    fifo(std::string(name), params.size),
+    addresses(params.size, DEFAULT_TAG) {
 
   tag = DEFAULT_TAG;
 

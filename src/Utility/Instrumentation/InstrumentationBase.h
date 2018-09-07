@@ -42,7 +42,7 @@ public:
   static void printStats();
 
   // Perform any necessary initialisation before data collection begins.
-  static void init();
+  static void init(const chip_parameters_t& params);
 
   // Reset any statistics collected so far.
   static void reset();
@@ -73,6 +73,8 @@ protected:
 
   // Produce a line of the form: <name>value</name>
   static const string xmlNode(const char* name, count_t value, const char* indent="\t");
+
+  static chip_parameters_t& params;
 
 };
 

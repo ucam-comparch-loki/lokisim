@@ -8,10 +8,13 @@
 #ifndef OPERATIONS_H_
 #define OPERATIONS_H_
 
+#include <vector>
 #include "InstrumentationBase.h"
 #include "CounterMap.h"
 #include "../../Datatype/Identifier.h"
 #include "../../Datatype/DecodedInst.h"
+
+using std::vector;
 
 namespace Instrumentation {
 
@@ -19,10 +22,11 @@ class Operations: public InstrumentationBase {
 
 public:
 
+  static void init(const chip_parameters_t& params);
   static void reset();
 
   static void decoded(const ComponentID& core, const DecodedInst& dec);
-  static void executed(const ComponentID& core, const DecodedInst& dec, bool executed);
+  static void executed(const Core& core, const DecodedInst& dec, bool executed);
 
   static count_t numDecodes();
   static count_t numOperations();
@@ -35,8 +39,8 @@ public:
   static count_t allOperations();
 
   static void printStats();
-  static void printSummary();
-  static void dumpEventCounts(std::ostream& os);
+  static void printSummary(const chip_parameters_t& params);
+  static void dumpEventCounts(std::ostream& os, const chip_parameters_t& params);
 
   static CounterMap<ComponentID> numMemLoads;
   static CounterMap<ComponentID> numMergedMemLoads;

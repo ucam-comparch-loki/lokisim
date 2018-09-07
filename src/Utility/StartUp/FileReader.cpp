@@ -27,6 +27,7 @@ string FileReader::linkedFile;
 bool FileReader::foundAsmFile = false;
 
 const int BACKGROUND_MEMORY = -1;
+const int FIRST_CORE = 0;
 
 /* Print an instruction in the form:
  *   [position] instruction
@@ -58,7 +59,7 @@ FileReader* FileReader::makeFileReader(const vector<string>& words,
 
     // Defaults are fine.
   } else if (words.size() == 2 && words[0] == "apploader") {
-    component = 0;
+    component = FIRST_CORE;
     position = 0;
     filename = words[1];
   } else if (words.size() == 2) {
@@ -100,11 +101,9 @@ FileReader* FileReader::makeFileReader(const vector<string>& words,
 
   ComponentID id(0,0,0);
   if (component != BACKGROUND_MEMORY) {
-    uint tile = component / COMPONENTS_PER_TILE;
-    uint tileX = (tile % COMPUTE_TILE_COLUMNS) + 1;
-    uint tileY = (tile / COMPUTE_TILE_COLUMNS) + 1;
-    uint position = component % COMPONENTS_PER_TILE;
-    id = ComponentID(tileX, tileY, position);
+    // Deprecate loading programs into arbitrary cores?
+    assert(component == FIRST_CORE);
+    id = ComponentID(1, 1, 0);
   }
 
   if (extension == "" || extension == name) {

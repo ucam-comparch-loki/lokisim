@@ -55,146 +55,117 @@ unsigned long TIMEOUT = ULONG_MAX;
 // Value to be returned at the end of execution.
 int RETURN_CODE = EXIT_SUCCESS;
 
-//============================================================================//
-// Architecture size
-//============================================================================//
-
 // Number of cores in each tile.
 parameter CORES_PER_TILE             = 8;
-
-// Number of memory banks in each tile.
-parameter MEMS_PER_TILE              = 8;
-
-// Number of rows of compute tiles.
-parameter COMPUTE_TILE_ROWS          = 1;
-
-// Number of columns of compute tiles.
-parameter COMPUTE_TILE_COLUMNS       = 1;
-
-//============================================================================//
-// Core configuration
-//============================================================================//
-
-// Registers accessible through the instruction set.
-parameter NUM_ADDRESSABLE_REGISTERS  = 32;
-
-// Registers accessible through indirect access (irdr, iwtr).
-parameter NUM_PHYSICAL_REGISTERS     = 32;
-
-// Size of scratchpad in words.
-parameter CORE_SCRATCHPAD_SIZE       = 256;
-
-// Size of instruction packet FIFO in words.
-parameter IPK_FIFO_SIZE              = 24;
-
-// Size of instruction packet cache in words. Set in params.txt.
-parameter IPK_CACHE_SIZE             = 0;
-
-// Number of tags in instruction packet cache. Set in params.txt.
-parameter IPK_CACHE_TAGS             = 0;
-
-// Number of entries in core's channel map table.
-parameter CHANNEL_MAP_SIZE           = 16 - 1; // Final entry is reserved as NULL
-
-// Maximum safe instruction packet size.
-parameter MAX_IPK_SIZE               = 8; // Fetch one cache line at a time.
-
-// Number of entries in the L1 directory, mapping memory addresses to tiles.
-parameter DIRECTORY_SIZE             = 16;
-
-//============================================================================//
-// Memory configuration
-//============================================================================//
-
-// Size of memory bank in bytes.
-parameter MEMORY_BANK_SIZE           = 8192;
-
-// Whether a memory bank can serve "hit" requests while waiting for data from
-// a miss.
-parameter MEMORY_HIT_UNDER_MISS      = 1;
-
-// Total core-memory-core latency (assuming a cache hit).
-parameter MEMORY_BANK_LATENCY        = 3;
-
-// Access latency of main memory once it receives a request.
-parameter MAIN_MEMORY_LATENCY        = 20;
-
-// Size of main memory in bytes.
-parameter MAIN_MEMORY_SIZE           = 256 * 1024 * 1024;
-
-// Total bandwidth to/from main memory in words per cycle.
-parameter MAIN_MEMORY_BANDWIDTH      = 1;
 
 // If set to 1, all memory operations complete instantaneously.
 parameter MAGIC_MEMORY               = 0;
 
-//============================================================================//
-// Network
-//============================================================================//
-
-// Note: a port is a physical connection to the network, whereas a channel is
-// an address accessible through the network. There may be many channels
-// accessible through each port.
-
-// Number of connections from the various networks to the core.
-// Each channel has a port from cores and from memory.
-parameter CORE_INPUT_PORTS         = 2 * (CORE_INPUT_CHANNELS);
-
-// Number of connections from the core to the various networks.
-parameter CORE_OUTPUT_PORTS        = 1;
-
-// Number of register-mapped input buffers in cores.
-parameter CORE_RECEIVE_CHANNELS    = 6;
-
-// Number of entries of core buffers.
-parameter CORE_BUFFER_SIZE         = 4;
-
-// Number of entries of memory buffers.
-parameter MEMORY_BUFFER_SIZE       = 4;
-
-// Number of entries of router buffers.
-parameter ROUTER_BUFFER_SIZE       = 4;
 
 //============================================================================//
 // Methods
 //============================================================================//
 
-// If "name" matches the name of the parameter, set the parameter to the value.
-#define SET_IF_MATCH(name, value, param) if(strcasecmp(name, #param)==0)\
-  param = value
+size_t core_parameters_t::numOutputChannels() const {
+  return channelMapTable.size;
+}
+
+// Used to determine how many bits in a memory address map to the same line.
+size_t memory_bank_parameters_t::log2CacheLineSize() const {
+  size_t result = 0;
+  size_t temp = cacheLineSize >> 1;
+
+  while (temp != 0) {
+    result++;
+    temp >>= 1;
+  }
+
+  assert(1UL << result == cacheLineSize);
+
+  return result;
+}
+
+// Used to determine how many bits in a memory address map to the same line.
+size_t main_memory_parameters_t::log2CacheLineSize() const {
+  size_t result = 0;
+  size_t temp = cacheLineSize >> 1;
+
+  while (temp != 0) {
+    result++;
+    temp >>= 1;
+  }
+
+  assert(1UL << result == cacheLineSize);
+
+  return result;
+}
+
+size_t tile_parameters_t::mcastNetInputs() const {
+  return numCores;
+}
+
+size_t tile_parameters_t::mcastNetOutputs() const {
+  return numCores;
+}
+
+size_t tile_parameters_t::totalComponents() const {
+  return numCores + numMemories;
+}
+
+size2d_t chip_parameters_t::allTiles() const {
+  // There is a border of I/O tiles all around the compute tiles.
+  size2d_t tiles = numComputeTiles;
+  tiles.height += 2;
+  tiles.width += 2;
+  return tiles;
+}
+
+size_t chip_parameters_t::totalCores() const {
+  return numComputeTiles.total() * tile.numCores;
+}
+
+size_t chip_parameters_t::totalMemories() const {
+  return numComputeTiles.total() * tile.numMemories;
+}
+
+size_t chip_parameters_t::totalComponents() const {
+  return numComputeTiles.total() * tile.totalComponents();
+}
 
 // Change a parameter value. Only valid before the SystemC components have
 // been instantiated.
-void Parameters::parseParameter(const string &name, const string &value) {
+void Parameters::parseParameter(const string &name, const string &value,
+                                chip_parameters_t& params) {
   const char* cName = name.c_str();
   int nValue = StringManipulation::strToInt(value);
 
-  SET_IF_MATCH(cName, nValue, CORES_PER_TILE);
-  else SET_IF_MATCH(cName, nValue, MEMS_PER_TILE);
-  else SET_IF_MATCH(cName, nValue, COMPUTE_TILE_ROWS);
-  else SET_IF_MATCH(cName, nValue, COMPUTE_TILE_COLUMNS);
-  else SET_IF_MATCH(cName, nValue, NUM_ADDRESSABLE_REGISTERS);
-  else SET_IF_MATCH(cName, nValue, NUM_PHYSICAL_REGISTERS);
-  else SET_IF_MATCH(cName, nValue, CORE_SCRATCHPAD_SIZE);
-  else SET_IF_MATCH(cName, nValue, IPK_FIFO_SIZE);
-  else SET_IF_MATCH(cName, nValue, IPK_CACHE_SIZE);
-  else SET_IF_MATCH(cName, nValue, IPK_CACHE_TAGS);
-  else SET_IF_MATCH(cName, nValue, CHANNEL_MAP_SIZE);
-  else SET_IF_MATCH(cName, nValue, MAX_IPK_SIZE);
-  else SET_IF_MATCH(cName, nValue, DIRECTORY_SIZE);
-  else SET_IF_MATCH(cName, nValue, MEMORY_BANK_LATENCY);
-  else SET_IF_MATCH(cName, nValue, MAGIC_MEMORY);
-  else SET_IF_MATCH(cName, nValue, MEMORY_BANK_SIZE);
-  else SET_IF_MATCH(cName, nValue, MAIN_MEMORY_LATENCY);
-  else SET_IF_MATCH(cName, nValue, MAIN_MEMORY_SIZE);
-  else SET_IF_MATCH(cName, nValue, MAIN_MEMORY_BANDWIDTH);
-  else SET_IF_MATCH(cName, nValue, MEMORY_HIT_UNDER_MISS);
-  else SET_IF_MATCH(cName, nValue, CORE_RECEIVE_CHANNELS);
-  else SET_IF_MATCH(cName, nValue, CORE_BUFFER_SIZE);
-  else SET_IF_MATCH(cName, nValue, MEMORY_BUFFER_SIZE);
-  else SET_IF_MATCH(cName, nValue, ROUTER_BUFFER_SIZE);
-  else SET_IF_MATCH(cName, nValue, DEBUG);
-  else SET_IF_MATCH(cName, nValue, TIMEOUT);
+  // It's probably better to use a dictionary now that there are this many
+  // parameters.
+  if (strcasecmp(cName, "CORES_PER_TILE") == 0) params.tile.numCores = nValue;
+  else if (strcasecmp(cName, "MEMS_PER_TILE") == 0) params.tile.numMemories = nValue;
+  else if (strcasecmp(cName, "COMPUTE_TILE_ROWS") == 0) params.numComputeTiles.height = nValue;
+  else if (strcasecmp(cName, "COMPUTE_TILE_COLUMNS") == 0) params.numComputeTiles.width = nValue;
+  else if (strcasecmp(cName, "NUM_ADDRESSABLE_REGISTERS") == 0) params.tile.core.registerFile.size = nValue;
+  else if (strcasecmp(cName, "CORE_SCRATCHPAD_SIZE") == 0) params.tile.core.scratchpad.size = nValue;
+  else if (strcasecmp(cName, "IPK_FIFO_SIZE") == 0) params.tile.core.ipkFIFO.size = nValue;
+  else if (strcasecmp(cName, "IPK_CACHE_SIZE") == 0) params.tile.core.cache.size = nValue;
+  else if (strcasecmp(cName, "IPK_CACHE_TAGS") == 0) params.tile.core.cache.numTags = nValue;
+  else if (strcasecmp(cName, "CHANNEL_MAP_SIZE") == 0) params.tile.core.channelMapTable.size = nValue;
+  else if (strcasecmp(cName, "MAX_IPK_SIZE") == 0) params.tile.core.cache.maxIPKSize = nValue;
+  else if (strcasecmp(cName, "DIRECTORY_SIZE") == 0) params.tile.directory.size = nValue;
+  else if (strcasecmp(cName, "MEMORY_BANK_LATENCY") == 0) params.tile.memory.latency = nValue;
+  else if (strcasecmp(cName, "MEMORY_BANK_SIZE") == 0) params.tile.memory.size = nValue;
+  else if (strcasecmp(cName, "MEMORY_HIT_UNDER_MISS") == 0) params.tile.memory.hitUnderMiss = nValue;
+  else if (strcasecmp(cName, "MAGIC_MEMORY") == 0) MAGIC_MEMORY = nValue;
+  else if (strcasecmp(cName, "MAIN_MEMORY_LATENCY") == 0) params.memory.latency = nValue;
+  else if (strcasecmp(cName, "MAIN_MEMORY_SIZE") == 0) params.memory.size = nValue;
+  else if (strcasecmp(cName, "MAIN_MEMORY_BANDWIDTH") == 0) params.memory.bandwidth = nValue;
+  else if (strcasecmp(cName, "CORE_INPUT_CHANNELS") == 0) params.tile.core.numInputChannels = nValue;
+  else if (strcasecmp(cName, "CORE_BUFFER_SIZE") == 0) params.tile.core.inputFIFO.size = nValue;
+  else if (strcasecmp(cName, "MEMORY_BUFFER_SIZE") == 0) params.tile.memory.inputFIFO.size = nValue;
+  else if (strcasecmp(cName, "ROUTER_BUFFER_SIZE") == 0) params.router.fifo.size = nValue;
+  else if (strcasecmp(cName, "DEBUG") == 0) DEBUG = nValue;
+  else if (strcasecmp(cName, "TIMEOUT") == 0) TIMEOUT = nValue;
   else {
     LOKI_ERROR << "Encountered unhandled parameter in settings file: " << name << endl;
     throw std::exception();
@@ -202,47 +173,86 @@ void Parameters::parseParameter(const string &name, const string &value) {
 }
 
 // Print parameters in a human-readable format.
-void Parameters::printParameters() {
-  cout << "Parameter CORES_PER_TILE is " << CORES_PER_TILE << endl;
-  cout << "Parameter MEMS_PER_TILE is " << MEMS_PER_TILE << endl;
-  cout << "Parameter COMPUTE_TILE_ROWS is " << COMPUTE_TILE_ROWS << endl;
-  cout << "Parameter COMPUTE_TILE_COLUMNS is " << COMPUTE_TILE_COLUMNS << endl;
-  cout << "Parameter NUM_ADDRESSABLE_REGISTERS is " << NUM_ADDRESSABLE_REGISTERS << endl;
-  cout << "Parameter CORE_SCRATCHPAD_SIZE is " << CORE_SCRATCHPAD_SIZE << endl;
-  cout << "Parameter IPK_FIFO_SIZE is " << IPK_FIFO_SIZE << endl;
-  cout << "Parameter IPK_CACHE_SIZE is " << IPK_CACHE_SIZE << endl;
-  cout << "Parameter IPK_CACHE_TAGS is " << IPK_CACHE_TAGS << endl;
-  cout << "Parameter CHANNEL_MAP_SIZE is " << CHANNEL_MAP_SIZE << endl;
-  cout << "Parameter MAX_IPK_SIZE is " << MAX_IPK_SIZE << endl;
-  cout << "Parameter DIRECTORY_SIZE is " << DIRECTORY_SIZE << endl;
-  cout << "Parameter MEMORY_BANK_SIZE is " << MEMORY_BANK_SIZE << endl;
-  cout << "Parameter MEMORY_BANK_LATENCY is " << MEMORY_BANK_LATENCY << endl;
-  cout << "Parameter MEMORY_HIT_UNDER_MISS is " << MEMORY_HIT_UNDER_MISS << endl;
-  cout << "Parameter MAIN_MEMORY_LATENCY is " << MAIN_MEMORY_LATENCY << endl;
-  cout << "Parameter MAIN_MEMORY_SIZE is " << MAIN_MEMORY_SIZE << endl;
-  cout << "Parameter MAIN_MEMORY_BANDWIDTH is " << MAIN_MEMORY_BANDWIDTH << endl;
+void Parameters::printParameters(const chip_parameters_t& params) {
+  cout << "Parameter CORES_PER_TILE is " << params.tile.numCores << endl;
+  cout << "Parameter MEMS_PER_TILE is " << params.tile.numMemories << endl;
+  cout << "Parameter COMPUTE_TILE_ROWS is " << params.numComputeTiles.height << endl;
+  cout << "Parameter COMPUTE_TILE_COLUMNS is " << params.numComputeTiles.width << endl;
+  cout << "Parameter NUM_ADDRESSABLE_REGISTERS is " << params.tile.core.registerFile.size << endl;
+  cout << "Parameter CORE_SCRATCHPAD_SIZE is " << params.tile.core.scratchpad.size << endl;
+  cout << "Parameter IPK_FIFO_SIZE is " << params.tile.core.ipkFIFO.size << endl;
+  cout << "Parameter IPK_CACHE_SIZE is " << params.tile.core.cache.size << endl;
+  cout << "Parameter IPK_CACHE_TAGS is " << params.tile.core.cache.numTags << endl;
+  cout << "Parameter CHANNEL_MAP_SIZE is " << params.tile.core.channelMapTable.size << endl;
+  cout << "Parameter MAX_IPK_SIZE is " << params.tile.core.cache.maxIPKSize << endl;
+  cout << "Parameter DIRECTORY_SIZE is " << params.tile.directory.size << endl;
+  cout << "Parameter MEMORY_BANK_SIZE is " << params.tile.memory.size << endl;
+  cout << "Parameter MEMORY_BANK_LATENCY is " << params.tile.memory.latency << endl;
+  cout << "Parameter MEMORY_HIT_UNDER_MISS is " << params.tile.memory.hitUnderMiss << endl;
+  cout << "Parameter MAIN_MEMORY_LATENCY is " << params.memory.latency << endl;
+  cout << "Parameter MAIN_MEMORY_SIZE is " << params.memory.size << endl;
+  cout << "Parameter MAIN_MEMORY_BANDWIDTH is " << params.memory.bandwidth << endl;
   cout << "Parameter MAGIC_MEMORY is " << MAGIC_MEMORY << endl;
-  cout << "Parameter CORE_RECEIVE_CHANNELS is " << CORE_RECEIVE_CHANNELS << endl;
-  cout << "Parameter CORE_BUFFER_SIZE is " << CORE_BUFFER_SIZE << endl;
-  cout << "Parameter MEMORY_BUFFER_SIZE is " << MEMORY_BUFFER_SIZE << endl;
-  cout << "Parameter ROUTER_BUFFER_SIZE is " << ROUTER_BUFFER_SIZE << endl;
+  cout << "Parameter CORE_INPUT_CHANNELS is " << params.tile.core.numInputChannels << endl;
+  cout << "Parameter CORE_BUFFER_SIZE is " << params.tile.core.inputFIFO.size << endl;
+  cout << "Parameter MEMORY_BUFFER_SIZE is " << params.tile.memory.inputFIFO.size << endl;
+  cout << "Parameter ROUTER_BUFFER_SIZE is " << params.router.fifo.size << endl;
 }
 
 #define XML_LINE(name, value) "\t<" << name << ">" << value << "</" << name << ">\n"
 
 // Print parameters in an XML format.
-void Parameters::printParametersXML(std::ostream& os) {
+void Parameters::printParametersXML(std::ostream& os, const chip_parameters_t& params) {
   os << "<parameters>\n"
-     << XML_LINE("cores_per_tile", CORES_PER_TILE)
-     << XML_LINE("memories_per_tile", MEMS_PER_TILE)
-     << XML_LINE("tile_rows", COMPUTE_TILE_ROWS)
-     << XML_LINE("tile_columns", COMPUTE_TILE_COLUMNS)
-     << XML_LINE("addressable_regs", NUM_ADDRESSABLE_REGISTERS)
-     << XML_LINE("physical_regs", NUM_PHYSICAL_REGISTERS)
-     << XML_LINE("ipk_cache_size", IPK_CACHE_SIZE)
-     << XML_LINE("ipk_cache_tags", IPK_CACHE_TAGS)
-     << XML_LINE("channel_map_size", CHANNEL_MAP_SIZE)
-     << XML_LINE("memory_bank_size", MEMORY_BANK_SIZE)
-     << XML_LINE("main_memory_bandwidth", MAIN_MEMORY_BANDWIDTH)
+     << XML_LINE("cores_per_tile", params.tile.numCores)
+     << XML_LINE("memories_per_tile", params.tile.numMemories)
+     << XML_LINE("tile_rows", params.numComputeTiles.height)
+     << XML_LINE("tile_columns", params.numComputeTiles.width)
+     << XML_LINE("addressable_regs", params.tile.core.registerFile.size)
+     << XML_LINE("physical_regs", params.tile.core.registerFile.size)
+     << XML_LINE("ipk_cache_size", params.tile.core.cache.size)
+     << XML_LINE("ipk_cache_tags", params.tile.core.cache.numTags)
+     << XML_LINE("channel_map_size", params.tile.core.channelMapTable.size)
+     << XML_LINE("memory_bank_size", params.tile.memory.size)
+     << XML_LINE("main_memory_bandwidth", params.memory.bandwidth)
      << "</parameters>\n";
+}
+
+chip_parameters_t* Parameters::defaultParameters() {
+  chip_parameters_t* p = new chip_parameters_t();
+
+  p->numComputeTiles.width = 1;
+  p->numComputeTiles.height = 1;
+
+  p->tile.numCores = 8;
+  p->tile.numMemories = 8;
+
+  p->tile.core.numInputChannels = 8;
+  p->tile.core.cache.maxIPKSize = 8;  // Cache line size?
+  p->tile.core.cache.numTags = 0;  // Set in params.txt
+  p->tile.core.cache.size = 0;     // Set in params.txt
+  p->tile.core.channelMapTable.size = 16 - 1;  // 1 channel reserved
+  p->tile.core.registerFile.size = 32;
+  p->tile.core.scratchpad.size = 256;
+  p->tile.core.inputFIFO.size = 4;
+  p->tile.core.ipkFIFO.size = 24;
+  p->tile.core.outputFIFO.size = 4;
+
+  p->tile.memory.size = 8 * 1024;
+  p->tile.memory.cacheLineSize = 8 * BYTES_PER_WORD;
+  p->tile.memory.latency = 3;
+  p->tile.memory.hitUnderMiss = true;
+  p->tile.memory.inputFIFO.size = 4;
+  p->tile.memory.outputFIFO.size = 4;
+
+  p->tile.directory.size = 16;
+
+  p->memory.size = 256 * 1024 * 1024;
+  p->memory.cacheLineSize = p->tile.memory.cacheLineSize;
+  p->memory.bandwidth = 1;
+  p->memory.latency = 20;
+
+  p->router.fifo.size = 4;
+
+  return p;
 }

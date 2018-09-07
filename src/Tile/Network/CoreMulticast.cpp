@@ -10,12 +10,13 @@
 #include "CoreMulticast.h"
 #include "../../Network/Topologies/MulticastBus.h"
 
-CoreMulticast::CoreMulticast(const sc_module_name name, ComponentID tile) :
-    Network(name, tile, CORES_PER_TILE, CORES_PER_TILE*CORES_PER_TILE, Network::COMPONENT),
-    iData("iData", CORES_PER_TILE),
-    oData("oData", CORES_PER_TILE, CORES_PER_TILE),
-    iReady("iReady", CORES_PER_TILE, CORE_INPUT_CHANNELS),
-    busInput("busInput", CORES_PER_TILE) {
+CoreMulticast::CoreMulticast(const sc_module_name name, ComponentID tile,
+                             const tile_parameters_t& params) :
+    Network(name, tile, params.mcastNetInputs(), params.mcastNetInputs()*params.mcastNetOutputs(), Network::COMPONENT),
+    iData("iData", params.mcastNetInputs()),
+    oData("oData", params.mcastNetOutputs(), params.mcastNetInputs()),
+    iReady("iReady", params.mcastNetOutputs(), params.core.numInputChannels),
+    busInput("busInput", params.mcastNetInputs()) {
 
   state.assign(iData.size(), IDLE);
 

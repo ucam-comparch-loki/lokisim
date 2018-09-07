@@ -11,11 +11,11 @@
 
 #include "../Instruction.h"
 #include "../../Tile/Memory/MemoryBank.h"
-#include "../../Utility/Instrumentation/MemoryBank.h"
+#include "../../Utility/Instrumentation/L1Cache.h"
 #include "../../Utility/Parameters.h"
 
 FetchLine::FetchLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 0, CACHE_LINE_WORDS, CACHE_LINE_BYTES) {
+    MemoryOperation(request, memory, level, destination, 0, memory.cacheLineWords(), memory.cacheLineBytes()) {
   lineCursor = 0;
 }
 
@@ -33,15 +33,17 @@ void FetchLine::execute() {
   memory.printOperation(metadata.opcode, address + lineCursor, result);
   sendResult(result);
 
-  if (level != MEMORY_OFF_CHIP)
-    Instrumentation::MemoryBank::continueOperation(memory.id, metadata.opcode, address + lineCursor, false, destination);
+  if (level != MEMORY_OFF_CHIP) {
+    MemoryBank& bank = static_cast<MemoryBank&>(memory);
+    Instrumentation::L1Cache::continueOperation(bank, metadata.opcode, address + lineCursor, false, destination);
+  }
 
   lineCursor += BYTES_PER_WORD;
 }
 
 
 IPKRead::IPKRead(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 0, CACHE_LINE_WORDS, BYTES_PER_WORD) {
+    MemoryOperation(request, memory, level, destination, 0, memory.cacheLineWords(), BYTES_PER_WORD) {
   lineCursor = 0;
 }
 
@@ -59,8 +61,10 @@ void IPKRead::execute() {
   memory.printOperation(metadata.opcode, address + lineCursor, result);
   sendResult(result, true);
 
-  if (level != MEMORY_OFF_CHIP)
-    Instrumentation::MemoryBank::continueOperation(memory.id, metadata.opcode, address + lineCursor, false, destination);
+  if (level != MEMORY_OFF_CHIP) {
+    MemoryBank& bank = static_cast<MemoryBank&>(memory);
+    Instrumentation::L1Cache::continueOperation(bank, metadata.opcode, address + lineCursor, false, destination);
+  }
 
   lineCursor += BYTES_PER_WORD;
 
@@ -72,7 +76,7 @@ void IPKRead::execute() {
 
 
 ValidateLine::ValidateLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 0, 0, CACHE_LINE_BYTES) {
+    MemoryOperation(request, memory, level, destination, 0, 0, memory.cacheLineBytes()) {
   // Nothing
 }
 
@@ -90,7 +94,7 @@ void ValidateLine::execute() {
 
 
 PrefetchLine::PrefetchLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 0, 0, CACHE_LINE_BYTES) {
+    MemoryOperation(request, memory, level, destination, 0, 0, memory.cacheLineBytes()) {
 }
 
 void PrefetchLine::prepare() {
@@ -107,7 +111,7 @@ void PrefetchLine::execute() {
 
 
 FlushLine::FlushLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 0, 0, CACHE_LINE_BYTES) {
+    MemoryOperation(request, memory, level, destination, 0, 0, memory.cacheLineBytes()) {
   finished = false;
 
   // Instrumentation happens in the memory bank. At this point, we don't know
@@ -136,7 +140,7 @@ bool FlushLine::complete() const {
 
 
 InvalidateLine::InvalidateLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 0, 0, CACHE_LINE_BYTES) {
+    MemoryOperation(request, memory, level, destination, 0, 0, memory.cacheLineBytes()) {
   finished = false;
 }
 
@@ -174,13 +178,17 @@ bool FlushAllLines::preconditionsMet() const {
 }
 
 void FlushAllLines::execute() {
-  sramAddress = line * CACHE_LINE_BYTES;
+  sramAddress = line * memory.cacheLineBytes();
   flushLine();
   line++;
 }
 
 bool FlushAllLines::complete() const {
-  return (line >= CACHE_LINES_PER_BANK);
+  // It only makes sense to flush lines from a MemoryBank (i.e. not main
+  // memory), so this is safe.
+  MemoryBank& bank = static_cast<MemoryBank&>(memory);
+
+  return (line >= bank.numCacheLines());
 }
 
 
@@ -198,18 +206,22 @@ bool InvalidateAllLines::preconditionsMet() const {
 }
 
 void InvalidateAllLines::execute() {
-  sramAddress = line * CACHE_LINE_BYTES;
+  sramAddress = line * memory.cacheLineBytes();
   invalidateLine();
   line++;
 }
 
 bool InvalidateAllLines::complete() const {
-  return (line >= CACHE_LINES_PER_BANK);
+  // It only makes sense to invalidate lines in a MemoryBank (i.e. not main
+  // memory), so this is safe.
+  MemoryBank& bank = static_cast<MemoryBank&>(memory);
+
+  return (line >= bank.numCacheLines());
 }
 
 
 StoreLine::StoreLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, CACHE_LINE_WORDS, 0, CACHE_LINE_BYTES) {
+    MemoryOperation(request, memory, level, destination, memory.cacheLineWords(), 0, memory.cacheLineBytes()) {
   lineCursor = 0;
   preWriteCheck();
 
@@ -231,8 +243,10 @@ void StoreLine::execute() {
     memory.writeWord(sramAddress + lineCursor, data, getAccessMode());
     memory.printOperation(metadata.opcode, address + lineCursor, data);
 
-    if (level != MEMORY_OFF_CHIP)
-      Instrumentation::MemoryBank::continueOperation(memory.id, metadata.opcode, address + lineCursor, false, destination);
+    if (level != MEMORY_OFF_CHIP) {
+      MemoryBank& bank = static_cast<MemoryBank&>(memory);
+      Instrumentation::L1Cache::continueOperation(bank, metadata.opcode, address + lineCursor, false, destination);
+    }
 
     lineCursor += BYTES_PER_WORD;
   }
@@ -240,7 +254,7 @@ void StoreLine::execute() {
 
 
 MemsetLine::MemsetLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 1, 0, CACHE_LINE_BYTES) {
+    MemoryOperation(request, memory, level, destination, 1, 0, memory.cacheLineBytes()) {
   data = 0;
   lineCursor = 0;
 
@@ -265,25 +279,31 @@ void MemsetLine::execute() {
     memory.writeWord(sramAddress + lineCursor, data, getAccessMode());
     memory.printOperation(metadata.opcode, address + lineCursor, data);
 
-    if (level != MEMORY_OFF_CHIP)
-      Instrumentation::MemoryBank::continueOperation(memory.id, metadata.opcode, address + lineCursor, false, destination);
+    if (level != MEMORY_OFF_CHIP) {
+      MemoryBank& bank = static_cast<MemoryBank&>(memory);
+      Instrumentation::L1Cache::continueOperation(bank, metadata.opcode, address + lineCursor, false, destination);
+    }
 
     lineCursor += BYTES_PER_WORD;
   }
 }
 
 bool MemsetLine::complete() const {
-  return (lineCursor >= CACHE_LINE_BYTES);
+  return (lineCursor >= memory.cacheLineBytes());
 }
 
 
 PushLine::PushLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, CACHE_LINE_WORDS, 0, CACHE_LINE_BYTES) {
+    MemoryOperation(request, memory, level, destination, memory.cacheLineWords(), 0, memory.cacheLineBytes()) {
   lineCursor = 0;
+
+  // It only makes sense to push lines into a MemoryBank (i.e. not main
+  // memory), so this is safe.
+  MemoryBank& bank = static_cast<MemoryBank&>(memory);
 
   // Target bank is encoded in the space where the cache line offset usually
   // goes.
-  targetBank = request.payload().toUInt() & (MEMS_PER_TILE - 1);
+  targetBank = request.payload().toUInt() & (bank.memoriesThisTile() - 1);
 }
 
 void PushLine::prepare() {
@@ -306,8 +326,10 @@ void PushLine::execute() {
     memory.writeWord(sramAddress + lineCursor, data, getAccessMode());
     memory.printOperation(metadata.opcode, address + lineCursor, data);
 
-    if (level != MEMORY_OFF_CHIP)
-      Instrumentation::MemoryBank::continueOperation(memory.id, metadata.opcode, address + lineCursor, false, destination);
+    if (level != MEMORY_OFF_CHIP) {
+      MemoryBank& bank = static_cast<MemoryBank&>(memory);
+      Instrumentation::L1Cache::continueOperation(bank, metadata.opcode, address + lineCursor, false, destination);
+    }
 
     lineCursor += BYTES_PER_WORD;
   }

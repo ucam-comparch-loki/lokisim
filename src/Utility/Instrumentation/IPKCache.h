@@ -13,6 +13,8 @@
 #include "../../Datatype/Identifier.h"
 #include "CounterMap.h"
 
+class Core;
+
 namespace Instrumentation {
 
 using std::vector;
@@ -21,14 +23,15 @@ class IPKCache: public InstrumentationBase {
 
 public:
 
+  static void init(const chip_parameters_t& params);
   static void reset();
 
-  static void tagCheck(const ComponentID& core, bool hit, const MemoryAddr tag, const MemoryAddr prevCheck);
+  static void tagCheck(const Core& core, bool hit, const MemoryAddr tag, const MemoryAddr prevCheck);
   static void tagWrite(const MemoryAddr oldTag, const MemoryAddr newTag);
   static void tagActivity();
 
-  static void read(const ComponentID& core);
-  static void write(const ComponentID& core);
+  static void read(const Core& core);
+  static void write(const Core& core);
   static void dataActivity();
 
   static count_t numTagChecks();
@@ -38,9 +41,9 @@ public:
   static count_t numWrites();
 
   static void printStats();
-  static void printSummary();
+  static void printSummary(const chip_parameters_t& params);
   static void instructionPacketStats(std::ostream& os);
-  static void dumpEventCounts(std::ostream& os);
+  static void dumpEventCounts(std::ostream& os, const chip_parameters_t& params);
 
 private:
 

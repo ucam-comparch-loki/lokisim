@@ -10,6 +10,7 @@
 #include <iomanip>
 
 #include "../../Datatype/Identifier.h"
+#include "../../Tile/Core/Core.h"
 
 using namespace Instrumentation;
 using std::setw;
@@ -26,30 +27,33 @@ count_t IPKCache::dataActive_ = 0;
 
 CounterMap<MemoryAddr> IPKCache::packetsExecuted;
 
+void IPKCache::init(const chip_parameters_t& params) {
+  perCore.resize(params.totalCores());
+}
+
 void IPKCache::reset() {
   total.hits = 0;
   total.misses = 0;
   total.reads = 0;
   total.writes = 0;
 
-  perCore.clear();
-  perCore.assign(NUM_CORES, total);
+  perCore.assign(perCore.size(), total);
 
   tagWriteHD_ = tagWrites_ = tagReadHD_ = tagsActive_ = dataActive_ = 0;
 
   packetsExecuted.clear();
 }
 
-void IPKCache::tagCheck(const ComponentID& core, bool hit, const MemoryAddr tag, const MemoryAddr prevCheck) {
+void IPKCache::tagCheck(const Core& core, bool hit, const MemoryAddr tag, const MemoryAddr prevCheck) {
   if (!Instrumentation::collectingStats()) return;
 
   if (hit) {
     total.hits++;
-    perCore[core.globalCoreNumber()].hits++;
+    perCore[core.globalCoreIndex()].hits++;
   }
   else {
     total.misses++;
-    perCore[core.globalCoreNumber()].misses++;
+    perCore[core.globalCoreIndex()].misses++;
   }
 
   // Assume that all tag checks result in a packet being executed.
@@ -73,18 +77,18 @@ void IPKCache::tagActivity() {
   tagsActive_++;
 }
 
-void IPKCache::read(const ComponentID& core) {
+void IPKCache::read(const Core& core) {
   if (!Instrumentation::collectingStats()) return;
 
   total.reads++;
-  perCore[core.globalCoreNumber()].reads++;
+  perCore[core.globalCoreIndex()].reads++;
 }
 
-void IPKCache::write(const ComponentID& core) {
+void IPKCache::write(const Core& core) {
   if (!Instrumentation::collectingStats()) return;
 
   total.writes++;
-  perCore[core.globalCoreNumber()].writes++;
+  perCore[core.globalCoreIndex()].writes++;
 }
 
 void IPKCache::dataActivity() {
@@ -111,14 +115,14 @@ void IPKCache::printStats() {
   }
 }
 
-void IPKCache::printSummary() {
+void IPKCache::printSummary(const chip_parameters_t& params) {
   using std::clog;
 
   clog << "L0 cache activity:" << endl;
   clog << "  Total instruction reads: " << numReads() << endl;
   clog << "  Packet hit rate:         " << numHits() << "/" << numTagChecks() << " (" << percentage(numHits(),numTagChecks()) << ")" << endl;
 
-  for (uint core = 0; core < NUM_CORES; core++) {
+  for (uint core = 0; core < params.totalCores(); core++) {
     struct CoreStats stats = perCore[core];
     if (stats.hits>0 || stats.misses>0 || stats.reads>0 || stats.writes>0) {
       clog << "    Core " << core << ": " << stats.hits << "/" << (stats.hits+stats.misses) << " (" << percentage(stats.hits, stats.hits+stats.misses) << ")" << endl;
@@ -133,17 +137,17 @@ void IPKCache::instructionPacketStats(std::ostream& os) {
   }
 }
 
-void IPKCache::dumpEventCounts(std::ostream& os) {
+void IPKCache::dumpEventCounts(std::ostream& os, const chip_parameters_t& params) {
   // TODO: record direct-mapped/fully-associative/etc.
-  os << "<ipkcache entries=\"" << IPK_CACHE_SIZE << "\">\n"
-     << xmlNode("instances", NUM_CORES) << "\n"
+  os << "<ipkcache entries=\"" << params.tile.core.cache.size << "\">\n"
+     << xmlNode("instances", params.totalCores()) << "\n"
      << xmlNode("active", dataActive_) << "\n"
      << xmlNode("read", numReads()) << "\n"
      << xmlNode("write", numWrites()) << "\n"
      << xmlEnd("ipkcache") << "\n";
 
-  os << "<ipkcachetags entries=\"" << IPK_CACHE_TAGS << "\">\n"
-     << xmlNode("instances", NUM_CORES) << "\n"
+  os << "<ipkcachetags entries=\"" << params.tile.core.cache.numTags << "\">\n"
+     << xmlNode("instances", params.totalCores()) << "\n"
      << xmlNode("active", tagsActive_) << "\n"
      << xmlNode("hd", tagWriteHD_) << "\n"
      << xmlNode("tag_hd", tagReadHD_) << "\n"

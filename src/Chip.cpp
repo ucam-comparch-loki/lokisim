@@ -19,6 +19,56 @@
 
 using Instrumentation::Stalls;
 
+bool Chip::isComputeTile(TileID id) const {
+  // All tiles except the borders are compute tiles.
+  return (id.x > 0) && (id.x < tiles.size()-1)
+      && (id.y > 0) && (id.y < tiles[0].size()-1);
+}
+
+uint Chip::overallTileIndex(TileID id) const {
+  return (id.y * tiles.size()) + id.x;
+}
+
+uint Chip::computeTileIndex(TileID id) const {
+  return ((id.y - 1) * (tiles.size() - 2)) + (id.x - 1);
+}
+
+bool Chip::isCore(ComponentID id) const {
+  return getTile(id.tile)->isCore(id);
+}
+
+bool Chip::isMemory(ComponentID id) const {
+  return getTile(id.tile)->isMemory(id);
+}
+
+uint Chip::globalComponentIndex(ComponentID id) const {
+  // Assumes all compute tiles are the same.
+  Tile* tile = getTile(id.tile);
+  return computeTileIndex(id.tile) * tile->numComponents() +
+         tile->componentIndex(id);
+}
+
+uint Chip::globalCoreIndex(ComponentID id) const {
+  // Assumes all compute tiles are the same.
+  Tile* tile = getTile(id.tile);
+  return computeTileIndex(id.tile) * tile->numCores() +
+         tile->coreIndex(id);
+}
+
+uint Chip::globalMemoryIndex(ComponentID id) const {
+  // Assumes all compute tiles are the same.
+  Tile* tile = getTile(id.tile);
+  return computeTileIndex(id.tile) * tile->numMemories() +
+         tile->memoryIndex(id);
+}
+
+bool Chip::isCore(ChannelID id) const {
+  return id.multicast || isCore(id.component);
+}
+
+bool Chip::isMemory(ChannelID id) const {
+  return !isCore(id);
+}
 
 void Chip::storeInstructions(vector<Word>& instructions, const ComponentID& component) {
   getTile(component.tile)->storeInstructions(instructions, component);
@@ -86,7 +136,7 @@ MemoryAddr Chip::getAddressTranslation(TileID tile, MemoryAddr address) const {
   // If the given tile is a memory controller, no more transformation will be
   // performed, so return the address as-is. Otherwise, query the tile's
   // directory to find out what transformation is necessary.
-  if (tile.isComputeTile()) {
+  if (isComputeTile(tile)) {
     Tile* t = getTile(tile);
     return static_cast<ComputeTile*>(t)->getAddressTranslation(address);
   }
@@ -102,7 +152,7 @@ bool Chip::backedByMainMemory(TileID tile, MemoryAddr address) const {
   if (memoryControllerPositions.find(tile) != memoryControllerPositions.end()) {
     return true;
   }
-  else if (tile.isComputeTile()) {
+  else if (isComputeTile(tile)) {
     Tile* t = getTile(tile);
     return static_cast<ComputeTile*>(t)->backedByMainMemory(address);
   }
@@ -114,10 +164,6 @@ bool Chip::backedByMainMemory(TileID tile, MemoryAddr address) const {
 
 void Chip::magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address, ChannelID returnChannel, Word payload) {
   magicMemory.operate(opcode, address, returnChannel, payload);
-}
-
-bool Chip::isIdle() const {
-  return Stalls::stalledComponents() == NUM_COMPONENTS;
 }
 
 TileID Chip::nearestMemoryController(TileID tile) const {
@@ -143,64 +189,64 @@ Tile* Chip::getTile(TileID tile) const {
   return tiles[tile.x][tile.y];
 }
 
-const std::set<TileID> Chip::getMemoryControllerPositions() const {
+const std::set<TileID> Chip::getMemoryControllerPositions(const chip_parameters_t& params) const {
   std::set<TileID> positions;
 
   // Memory controllers go above and below the east-most and west-most columns
   // of compute tiles. Put them in a set in case there are duplicates.
   positions.insert(TileID(1,0));
-  positions.insert(TileID(COMPUTE_TILE_COLUMNS, 0));
-  positions.insert(TileID(1, COMPUTE_TILE_ROWS+1));
-  positions.insert(TileID(COMPUTE_TILE_COLUMNS, COMPUTE_TILE_ROWS+1));
+  positions.insert(TileID(params.numComputeTiles.width, 0));
+  positions.insert(TileID(1, params.numComputeTiles.height+1));
+  positions.insert(TileID(params.numComputeTiles.width, params.numComputeTiles.height+1));
 
-  loki_assert_with_message(positions.size() >= MAIN_MEMORY_BANDWIDTH,
+  loki_assert_with_message(positions.size() >= params.memory.bandwidth,
       "Unable to use %d words/cycle of memory bandwidth with only %d memory controllers",
-      MAIN_MEMORY_BANDWIDTH, positions.size());
+      params.memory.bandwidth, positions.size());
 
   return positions;
 }
 
-void Chip::makeSignals() {
-  iData.init("iData", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
-  oData.init("oData", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
-  iDataReady.init("iDataReady", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
-  oDataReady.init("oDataReady", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
+void Chip::makeSignals(size2d_t allTiles) {
+  iData.init("iData", allTiles.width, allTiles.height);
+  oData.init("oData", allTiles.width, allTiles.height);
+  iDataReady.init("iDataReady", allTiles.width, allTiles.height);
+  oDataReady.init("oDataReady", allTiles.width, allTiles.height);
 
-  iCredit.init("iCredit", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
-  oCredit.init("oCredit", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
-  iCreditReady.init("iCreditReady", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
-  oCreditReady.init("oCreditReady", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
+  iCredit.init("iCredit", allTiles.width, allTiles.height);
+  oCredit.init("oCredit", allTiles.width, allTiles.height);
+  iCreditReady.init("iCreditReady", allTiles.width, allTiles.height);
+  oCreditReady.init("oCreditReady", allTiles.width, allTiles.height);
 
-  iRequest.init("iRequest", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
-  oRequest.init("oRequest", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
-  iRequestReady.init("iRequestReady", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
-  oRequestReady.init("oRequestReady", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
+  iRequest.init("iRequest", allTiles.width, allTiles.height);
+  oRequest.init("oRequest", allTiles.width, allTiles.height);
+  iRequestReady.init("iRequestReady", allTiles.width, allTiles.height);
+  oRequestReady.init("oRequestReady", allTiles.width, allTiles.height);
 
-  iResponse.init("iResponse", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
-  oResponse.init("oResponse", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
-  iResponseReady.init("iResponseReady", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
-  oResponseReady.init("oResponseReady", TOTAL_TILE_COLUMNS, TOTAL_TILE_ROWS);
+  iResponse.init("iResponse", allTiles.width, allTiles.height);
+  oResponse.init("oResponse", allTiles.width, allTiles.height);
+  iResponseReady.init("iResponseReady", allTiles.width, allTiles.height);
+  oResponseReady.init("oResponseReady", allTiles.width, allTiles.height);
 
   requestToMainMemory.init("requestToMainMemory", memoryControllerPositions.size());
   responseFromMainMemory.init("responseFromMainMemory", memoryControllerPositions.size());
 }
 
-void Chip::makeComponents() {
+void Chip::makeComponents(const chip_parameters_t& params) {
   int memoryControllersMade = 0;
 
-  for (uint col = 0; col < TOTAL_TILE_COLUMNS; col++) {
+  for (uint col = 0; col < params.allTiles().width; col++) {
     tiles.push_back(vector<Tile*>());
 
-    for (uint row = 0; row < TOTAL_TILE_ROWS; row++) {
+    for (uint row = 0; row < params.allTiles().height; row++) {
       ComponentID tileID(col, row, 0);
       std::stringstream name;
       name << "tile_" << col << "_" << row;
 
       Tile* t;
       
-      if (col > 0 && col <= COMPUTE_TILE_COLUMNS &&
-          row > 0 && row <= COMPUTE_TILE_ROWS) {
-        t = new ComputeTile(name.str().c_str(), tileID);
+      if (col > 0 && col <= params.numComputeTiles.width &&
+          row > 0 && row <= params.numComputeTiles.height) {
+        t = new ComputeTile(name.str().c_str(), tileID, params.tile);
 
         // Some ComputeTile-specific connections.
         ((ComputeTile*)t)->fastClock(fastClock);
@@ -278,21 +324,22 @@ void Chip::wireUp() {
 
 }
 
-Chip::Chip(const sc_module_name& name, const ComponentID& ID) :
+Chip::Chip(const sc_module_name& name, const ComponentID& ID,
+           const chip_parameters_t& params) :
     LokiComponent(name, ID),
-    memoryControllerPositions(getMemoryControllerPositions()),
-    mainMemory("main_memory", ComponentID(0,0,0), memoryControllerPositions.size()),
+    memoryControllerPositions(getMemoryControllerPositions(params)),
+    mainMemory("main_memory", ComponentID(0,0,0), memoryControllerPositions.size(), params.memory),
     magicMemory("magic_memory", mainMemory),
-    dataNet("data_net"),
-    creditNet("credit_net"),
-    requestNet("request_net"),
-    responseNet("response_net"),
+    dataNet("data_net", params.allTiles(), params.router),
+    creditNet("credit_net", params.allTiles(), params.router),
+    requestNet("request_net", params.allTiles(), params.router),
+    responseNet("response_net", params.allTiles(), params.router),
     clock("clock", 1, sc_core::SC_NS, 0.5),
     fastClock("fast_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.25),
     slowClock("slow_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.75) {
 
-  makeSignals();
-  makeComponents();
+  makeSignals(params.allTiles());
+  makeComponents(params);
   wireUp();
 
 }

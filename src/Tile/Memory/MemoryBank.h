@@ -67,7 +67,8 @@ public:
 public:
 
   SC_HAS_PROCESS(MemoryBank);
-  MemoryBank(sc_module_name name, const ComponentID& ID);
+  MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks,
+             const memory_bank_parameters_t& params);
   ~MemoryBank();
 
 //============================================================================//
@@ -75,6 +76,10 @@ public:
 //============================================================================//
 
 public:
+
+  // The number of cache lines stored in this MemoryBank.
+  size_t numCacheLines() const;
+  size_t cacheLineSize() const;
 
   // Compute the position in SRAM that the given memory address is to be found.
   virtual SRAMAddress getPosition(MemoryAddr address, MemoryAccessMode mode) const;
@@ -143,6 +148,16 @@ public:
 
   bool storedLocally(MemoryAddr address) const;
 
+  // The index of this memory bank, with the first bank being 0.
+  uint memoryIndex() const;
+  uint memoriesThisTile() const;
+  uint globalMemoryIndex() const;
+
+  // For debug/statistics.
+  bool isCore(ChannelID destination) const;
+  uint coresThisTile() const;
+  uint globalCoreIndex(ComponentID core) const;
+
 private:
 
   typedef std::shared_ptr<MemoryOperation> DecodedRequest;
@@ -191,6 +206,12 @@ private:
   void updateIdle();                  // Update idleness
   void updateReady();                 // Update flow control signals
 
+  // Determine how long outputs must be delayed to achieve the required latency.
+  static cycle_count_t artificialDelayRequired(const memory_bank_parameters_t& params);
+
+  // Determine how large the request queue must be to prevent deadlock.
+  static size_t requestQueueSize(const memory_bank_parameters_t& params);
+
   ComputeTile* parent() const;
   Chip* chip() const;
 
@@ -206,6 +227,10 @@ protected:
 //============================================================================//
 
 private:
+
+  // Configuration
+  const bool hitUnderMiss;
+  const size_t log2NumBanks;
 
   enum MemoryState {
     STATE_IDLE,                          // No active request
@@ -246,7 +271,7 @@ private:
 
   ReservationHandler    reservations;    // Data keeping track of current atomic transactions.
 
-  unsigned int          cacheLineCursor; // Used to step through cache lines.
+  unsigned int          cacheLineCursor; // Used to step through a cache line.
 
   FIFO<NetworkRequest>  missBuffer; // Payloads for a request which is currently missing.
 

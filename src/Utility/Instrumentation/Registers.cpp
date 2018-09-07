@@ -35,9 +35,14 @@ void Registers::forward(PortIndex port)               {
   numForwards_++;
 }
 
+void Registers::init(const chip_parameters_t& params) {
+  writesPerReg.resize(params.tile.core.registerFile.size);
+  readsPerReg.resize(params.tile.core.registerFile.size);
+}
+
 void Registers::reset() {
-  writesPerReg.assign(NUM_PHYSICAL_REGISTERS, 0);
-  readsPerReg.assign(NUM_PHYSICAL_REGISTERS, 0);
+  writesPerReg.assign(writesPerReg.size(), 0);
+  readsPerReg.assign(readsPerReg.size(), 0);
 
   numForwards_ = cyclesActive = 0;
   memset(operations,  0, 3 * sizeof(count_t));
@@ -143,9 +148,9 @@ void Registers::printStats() {
     "  Forwards: " << numForwards() << "\t(" << percentage(numForwards(),numReads()) << ")\n";
 }
 
-void Registers::dumpEventCounts(std::ostream& os) {
+void Registers::dumpEventCounts(std::ostream& os, const chip_parameters_t& params) {
   os << "<registers rdports=\"2\" wrports=\"1\" entries=\"32\" width=\"32\">\n"
-     << xmlNode("instances", NUM_CORES)     << "\n"
+     << xmlNode("instances", params.totalCores())     << "\n"
      << xmlNode("active", cyclesActive)     << "\n"
      << xmlNode("w_op", operations[WR])     << "\n"
      << xmlNode("w_oc", popCount[WR])       << "\n"

@@ -134,7 +134,8 @@ void Router::reportStalls(ostream& os) {
   }
 }
 
-Router::Router(const sc_module_name& name, const ComponentID& ID) :
+Router::Router(const sc_module_name& name, const ComponentID& ID,
+               const router_parameters_t& params) :
     LokiComponent(name, ID),
     BlockingInterface(),
     clock("clock"),
@@ -142,10 +143,10 @@ Router::Router(const sc_module_name& name, const ComponentID& ID) :
     oReady("oReady", 5),
     oData("oData", 5),
     iReady("iReady", 5),
-    inputBuffers(string(this->name()) + ".input_data", 5, ROUTER_BUFFER_SIZE),
+    inputBuffers(string(this->name()) + ".input_data", 5, params.fifo.size),
     xPos(ID.tile.x),
     yPos(ID.tile.y),
-    outputAvailable("outputAvailableEvent", 5){
+    outputAvailable("outputAvailableEvent", 5) {
 
   state = WAITING_FOR_DATA;
   wormhole = true;

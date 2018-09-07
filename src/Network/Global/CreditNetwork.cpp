@@ -7,8 +7,9 @@
 
 #include "CreditNetwork.h"
 
-CreditNetwork::CreditNetwork(const sc_module_name &name) :
-    Mesh(name, ComponentID(), TOTAL_TILE_ROWS, TOTAL_TILE_COLUMNS, TILE) {
+CreditNetwork::CreditNetwork(const sc_module_name &name, size2d_t size,
+                             const router_parameters_t& routerParams) :
+    Mesh(name, ComponentID(), size, TILE, routerParams) {
 
 }
 

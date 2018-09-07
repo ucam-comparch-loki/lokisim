@@ -58,6 +58,8 @@ private:
   // may interfere (e.g. flushing some data which is about to be read).
   void delayLoop();
 
+  MemoryBank* parent() const;
+
 //============================================================================//
 // Local state
 //============================================================================//

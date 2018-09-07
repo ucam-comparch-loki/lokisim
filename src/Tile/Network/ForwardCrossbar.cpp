@@ -7,8 +7,9 @@
 
 #include "ForwardCrossbar.h"
 
-ForwardCrossbar::ForwardCrossbar(const sc_module_name name, ComponentID tile) :
-    Crossbar(name, tile, CORES_PER_TILE, MEMS_PER_TILE, 1, Network::COMPONENT, 1){
+ForwardCrossbar::ForwardCrossbar(const sc_module_name name, ComponentID tile,
+                                 const tile_parameters_t& params) :
+    Crossbar(name, tile, params.numCores, params.numMemories, 1, Network::COMPONENT, 1){
   // All initialisation done in constructor.
 
 }

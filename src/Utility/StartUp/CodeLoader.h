@@ -30,7 +30,7 @@ private:
 public:
 
   // Read a file which tells which files to read.
-  static void loadParameters(const string& settingsFile);
+  static void loadParameters(const string& settingsFile, chip_parameters_t& params);
 
   // Read a file which tells which files to read.
   static void loadCode(const string& settingsFile, Chip& chip);

@@ -1,38 +1,42 @@
 /*
- * MemoryBank.h
+ * L1Cache.h
  *
  *  Created on: 19 Apr 2016
  *      Author: db434
  */
 
-#ifndef SRC_UTILITY_INSTRUMENTATION_MEMORYBANK_H_
-#define SRC_UTILITY_INSTRUMENTATION_MEMORYBANK_H_
+#ifndef SRC_UTILITY_INSTRUMENTATION_L1CACHE_H_
+#define SRC_UTILITY_INSTRUMENTATION_L1CACHE_H_
 
 #include "InstrumentationBase.h"
 #include "CounterMap.h"
+
+class MemoryBank;
 
 using std::vector;
 
 namespace Instrumentation {
 
-  class MemoryBank : public InstrumentationBase {
+  class L1Cache : public InstrumentationBase {
 
   public:
 
+    static void init(const chip_parameters_t& params);
     static void reset();
 
-    static void startOperation(ComponentID bank, MemoryOpcode op,
+    static void startOperation(const MemoryBank& bank, MemoryOpcode op,
         MemoryAddr address, bool miss, ChannelID returnChannel);
-    static void continueOperation(ComponentID bank, MemoryOpcode op,
+    static void continueOperation(const MemoryBank& bank, MemoryOpcode op,
         MemoryAddr address, bool miss, ChannelID returnChannel);
 
     static void checkTags(ComponentID bank, MemoryAddr address);
     static void replaceCacheLine(ComponentID bank, bool isValid, bool isDirty);
 
-    static void updateCoreStats(ChannelID returnChannel, MemoryOpcode op, bool miss);
+    static void updateCoreStats(const MemoryBank& bank,
+        ChannelID returnChannel, MemoryOpcode op, bool miss);
 
-    static void printSummary();
-    static void dumpEventCounts(std::ostream& os);
+    static void printSummary(const chip_parameters_t& params);
+    static void dumpEventCounts(std::ostream& os, const chip_parameters_t& params);
 
     // Some very crude access methods to give energy estimation some concept
     // of memories.
@@ -90,4 +94,4 @@ namespace Instrumentation {
 
 }
 
-#endif /* SRC_UTILITY_INSTRUMENTATION_MEMORYBANK_H_ */
+#endif /* SRC_UTILITY_INSTRUMENTATION_L1CACHE_H_ */

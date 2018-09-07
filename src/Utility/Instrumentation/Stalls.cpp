@@ -6,11 +6,14 @@
  */
 
 #include <systemc>
+#include <map>
 #include "Stalls.h"
 #include "Operations.h"
 #include "../../Exceptions/InvalidOptionException.h"
 #include "../Instrumentation.h"
 #include "../Parameters.h"
+
+using std::map;
 
 using namespace Instrumentation;
 
@@ -25,18 +28,22 @@ std::vector<std::map<ComponentID, cycle_count_t> > Stalls::startStall;
 std::vector<CounterMap<ComponentID> > Stalls::timeSpent;
 
 count_t Stalls::numStalled = 0;
+count_t Stalls::totalComponents = 0;
 cycle_count_t Stalls::endOfExecution = 0;
 bool Stalls::endExecutionCalled = false;
 
 bool Stalls::detailedLog = false;
 std::ofstream* Stalls::logStream;
 
-void Stalls::init() {
+void Stalls::init(const chip_parameters_t& params) {
+  InstrumentationBase::init(params);
+
   startStall.clear();
 
   cycle_count_t now = currentCycle();
 
   numStalled = 0;
+  totalComponents = params.totalComponents();
   endOfExecution = 0;
 
   for (uint i=0; i<NUM_STALL_REASONS; i++) {
@@ -44,9 +51,9 @@ void Stalls::init() {
     startStall.push_back(map<ComponentID, cycle_count_t>());
   }
 
-  for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
-    for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
-      for (uint component=0; component<COMPONENTS_PER_TILE; component++) {
+  for (uint col = 1; col <= params.numComputeTiles.width; col++) {
+    for (uint row = 1; row <= params.numComputeTiles.height; row++) {
+      for (uint component=0; component<params.tile.totalComponents(); component++) {
         ComponentID id(col, row, component);
 
         stallReason[id]                     = 1 << IDLE;
@@ -70,17 +77,13 @@ void Stalls::reset() {
 
   // If any cores are stalled, pretend that they only just started, so cycles
   // before reset aren't counted.
-  for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
-    for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
-      for (uint component=0; component<COMPONENTS_PER_TILE; component++) {
-        ComponentID id(col, row, component);
+  for (uint reason=0; reason<NUM_STALL_REASONS; reason++) {
+    for (auto it=startStall[reason].begin(); it!=startStall[reason].end(); ++it) {
+      ComponentID id = it->first;
+      cycle_count_t stallTime = it->second;
 
-        for (uint reason=0; reason<NUM_STALL_REASONS; reason++) {
-          if (startStall[reason][id] != UNSTALLED) {
-            startStall[reason][id] = now;
-          }
-        }
-      }
+      if (stallTime != UNSTALLED)
+        startStall[reason][id] = now;
     }
   }
 
@@ -96,17 +99,13 @@ void Stalls::start() {
 
   // If any cores are stalled, pretend that they only just started, so cycles
   // before logging started aren't counted.
-  for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
-    for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
-      for (uint component=0; component<COMPONENTS_PER_TILE; component++) {
-        ComponentID id(col, row, component);
+  for (uint reason=0; reason<NUM_STALL_REASONS; reason++) {
+    for (auto it=startStall[reason].begin(); it!=startStall[reason].end(); ++it) {
+      ComponentID id = it->first;
+      cycle_count_t stallTime = it->second;
 
-        for (uint reason=0; reason<NUM_STALL_REASONS; reason++) {
-          if (startStall[reason][id] != UNSTALLED) {
-            startStall[reason][id] = now;
-          }
-        }
-      }
+      if (stallTime != UNSTALLED)
+        startStall[reason][id] = now;
     }
   }
 }
@@ -120,39 +119,17 @@ void Stalls::stop() {
   static Instruction nullInst(0);
   static const DecodedInst decoded(nullInst);
 
-  for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
-    for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
-      for (uint component=0; component<COMPONENTS_PER_TILE; component++) {
-        ComponentID id(col, row, component);
+  for (uint reason=0; reason<NUM_STALL_REASONS; reason++) {
+    if (reason == NOT_STALLED || reason == STALL_ANY)
+      continue;
 
-        if (startStall[STALL_MEMORY_DATA][id] != UNSTALLED) {
-          unstall(id, STALL_MEMORY_DATA, decoded);
-          stall(id, STALL_MEMORY_DATA, decoded);
-        }
-        if (startStall[STALL_CORE_DATA][id] != UNSTALLED) {
-          unstall(id, STALL_CORE_DATA, decoded);
-          stall(id, STALL_CORE_DATA, decoded);
-        }
-        if (startStall[STALL_INSTRUCTIONS][id] != UNSTALLED) {
-          unstall(id, STALL_INSTRUCTIONS, decoded);
-          stall(id, STALL_INSTRUCTIONS, decoded);
-        }
-        if (startStall[STALL_OUTPUT][id] != UNSTALLED) {
-          unstall(id, STALL_OUTPUT, decoded);
-          stall(id, STALL_OUTPUT, decoded);
-        }
-        if (startStall[STALL_FORWARDING][id] != UNSTALLED) {
-          unstall(id, STALL_FORWARDING, decoded);
-          stall(id, STALL_FORWARDING, decoded);
-        }
-        if (startStall[STALL_FETCH][id] != UNSTALLED) {
-          unstall(id, STALL_FETCH, decoded);
-          stall(id, STALL_FETCH, decoded);
-        }
-        if (startStall[IDLE][id] != UNSTALLED) {
-          unstall(id, IDLE, decoded);
-          stall(id, IDLE, decoded);
-        }
+    for (auto it=startStall[reason].begin(); it!=startStall[reason].end(); ++it) {
+      ComponentID id = it->first;
+      cycle_count_t stallTime = it->second;
+
+      if (stallTime != UNSTALLED) {
+        unstall(id, (StallReason)reason, decoded);
+        stall(id, (StallReason)reason, decoded);
       }
     }
   }
@@ -211,11 +188,11 @@ void Stalls::stall(const ComponentID id, cycle_count_t cycle, StallReason reason
 
   if (stallReason[id] == NOT_STALLED) {
     numStalled++;
-    assert(numStalled <= NUM_COMPONENTS);
+    assert(numStalled <= totalComponents);
 
     startStall[STALL_ANY][id] = cycle;
 
-    if (numStalled >= NUM_COMPONENTS)
+    if (numStalled >= totalComponents)
       endOfExecution = cycle;
   }
 
@@ -254,7 +231,7 @@ void Stalls::unstall(const ComponentID id, cycle_count_t cycle, StallReason reas
 
     if (stallReason[id] == NOT_STALLED) {
       numStalled--;
-      assert(numStalled <= NUM_COMPONENTS);
+      assert(numStalled <= totalComponents);
 
       if (collectingStats())
         timeSpent[STALL_ANY].increment(id, cycle - startStall[STALL_ANY][id]);
@@ -278,7 +255,8 @@ void Stalls::active(const ComponentID id, cycle_count_t cycle) {
 }
 
 void Stalls::endExecution() {
-  if (numStalled < NUM_COMPONENTS)
+  // If we don't already have an end of execution time, set it now.
+  if (numStalled < totalComponents)
     endOfExecution = Instrumentation::currentCycle();
 
   endExecutionCalled = true;
@@ -293,7 +271,7 @@ count_t Stalls::stalledComponents() {
 }
 
 cycle_count_t Stalls::cyclesIdle() {
-  if (stalledComponents() == NUM_COMPONENTS)
+  if (stalledComponents() == totalComponents)
     return currentCycle() - endOfExecution;
   else
     return 0;
@@ -320,7 +298,7 @@ void Stalls::printInstrStat(const char *name, ComponentID id, CounterMap<Compone
 }
 
 
-void Stalls::printStats() {
+void Stalls::printStats(const chip_parameters_t& params) {
 
   using std::clog;
 
@@ -336,13 +314,13 @@ void Stalls::printStats() {
   // Flush any remaining stall/idle time into the CounterMaps.
   stop();
 
-  for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
-    for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
-      for (uint component=0; component<COMPONENTS_PER_TILE; component++) {
+  for (uint col = 1; col <= params.numComputeTiles.width; col++) {
+    for (uint row = 1; row <= params.numComputeTiles.height; row++) {
+      for (uint component=0; component<params.tile.numCores; component++) {
         ComponentID id(col, row, component);
 
         // Skip over memories for now -- they are not instrumented properly.
-        if (id.isMemory()) continue;
+        //if (id.isMemory()) continue;
 
         // Only print statistics for cores which have seen some activity.
         if (Operations::numOperations(id) > 0) {
@@ -367,13 +345,13 @@ void Stalls::printStats() {
   // Print instruction distribution summary
   clog << "\nDistribution of instructions:\n";
 
-  for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
-    for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
-      for (uint component=0; component<COMPONENTS_PER_TILE; component++) {
+  for (uint col = 1; col <= params.numComputeTiles.width; col++) {
+    for (uint row = 1; row <= params.numComputeTiles.height; row++) {
+      for (uint component=0; component<params.tile.numCores; component++) {
         ComponentID id(col, row, component);
   
         // Skip over memories
-        if (id.isMemory()) continue;
+        //if (id.isMemory()) continue;
   
         // Only print statistics for cores which have seen some activity.
         if (Operations::numOperations(id) > 0) {
@@ -396,12 +374,12 @@ void Stalls::printStats() {
 
 }
 
-void Stalls::dumpEventCounts(std::ostream& os) {
+void Stalls::dumpEventCounts(std::ostream& os, const chip_parameters_t& params) {
   stop();
 
-  for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
-    for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
-      for (uint component=0; component<COMPONENTS_PER_TILE; component++) {
+  for (uint col = 1; col <= params.numComputeTiles.width; col++) {
+    for (uint row = 1; row <= params.numComputeTiles.height; row++) {
+      for (uint component=0; component<params.tile.totalComponents(); component++) {
         ComponentID id(col, row, component);
 
         // Skip over any cores which were idle the whole time.
@@ -448,11 +426,11 @@ void Stalls::recordEvent(cycle_count_t currentCycle,
                          const DecodedInst& inst) {
   assert(detailedLog);
 
-  if (duration > 0 && component.isCore()) {
+  if (duration > 0) {
     logStream->width(12);
     *logStream << currentCycle;
     logStream->width(12);
-    *logStream << component.globalCoreNumber();
+    *logStream << component;
     logStream->width(12);
     *logStream << name(reason);
     logStream->width(12);

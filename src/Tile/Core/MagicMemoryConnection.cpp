@@ -80,7 +80,7 @@ unsigned int numPayloadFlits(MemoryOpcode op) {
 }
 
 void MagicMemoryConnection::operate(const DecodedInst& instruction) {
-  loki_assert(instruction.networkDestination().isMemory());
+  loki_assert(parent()->isMemory(instruction.networkDestination().component));
 
   ChannelMapEntry& channelMapEntry = parent()->channelMapTable[instruction.channelMapEntry()];
   ChannelID returnChannel(id.tile.x, id.tile.y, channelMapEntry.getChannel(), channelMapEntry.getReturnChannel());

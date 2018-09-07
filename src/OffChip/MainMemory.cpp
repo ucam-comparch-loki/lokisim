@@ -8,6 +8,7 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "MainMemory.h"
+#include "../Chip.h"
 #include "../Datatype/MemoryOperations/MemoryOperationDecode.h"
 #include "../Utility/Assert.h"
 #include "../Utility/Instrumentation/MainMemory.h"
@@ -19,19 +20,20 @@ using std::hex;
 using std::setfill;
 using std::setprecision;
 
-MainMemory::MainMemory(sc_module_name name, ComponentID ID, uint controllers) :
-    MemoryBase(name, ID),
+MainMemory::MainMemory(sc_module_name name, ComponentID ID, uint controllers,
+                       const main_memory_parameters_t& params) :
+    MemoryBase(name, ID, params.log2CacheLineSize()),
     iClock("iClock"),
     iData("iData", controllers),
     oData("oData", controllers),
-    mData(MAIN_MEMORY_SIZE/BYTES_PER_WORD, 0),
-    cacheLineValid(MAIN_MEMORY_SIZE / CACHE_LINE_BYTES, 0) {
+    mData(params.size/BYTES_PER_WORD, 0),
+    cacheLineValid(params.size / params.cacheLineSize, 0) {
 
   loki_assert(controllers >= 1);
 
   for (uint i=0; i<controllers; i++) {
     MainMemoryRequestHandler* handler =
-        new MainMemoryRequestHandler(sc_gen_unique_name("handler"), ID, *this);
+        new MainMemoryRequestHandler(sc_gen_unique_name("handler"), ID, *this, params);
 
     handler->iClock(iClock);
     handler->iData(iData[i]);
@@ -144,7 +146,7 @@ bool MainMemory::readOnly(MemoryAddr addr) const {
 }
 
 void MainMemory::claimCacheLine(ComponentID bank, MemoryAddr address) {
-  int tile = bank.tile.computeTileIndex();
+  uint tile = parent().computeTileIndex(bank.tile);
   uint cacheLine = MemoryBase::getLine(address);
 
   loki_assert_with_message(cacheLine < cacheLineValid.size(), "Address = 0x%x", address);
@@ -180,21 +182,21 @@ void MainMemory::print(MemoryAddr start, MemoryAddr end) const {
     end = temp;
   }
 
-  size_t address = start / 4;
-  size_t limit = end / 4 + 1;
+  size_t address = start / BYTES_PER_WORD;
+  size_t limit = end / BYTES_PER_WORD + 1;
 
   cout << "Main memory data:\n" << endl;
 
   while (address < limit) {
     assert(address < mData.size());
-    cout << "0x" << setprecision(8) << setfill('0') << hex << (address * 4)
+    cout << "0x" << setprecision(8) << setfill('0') << hex << (address * BYTES_PER_WORD)
          << ":  " << "0x" << setprecision(8) << setfill('0') << hex << mData[address] << dec << endl;
     address++;
   }
 }
 
 bool MainMemory::canStartRequest() const {
-  return activeRequests < MAIN_MEMORY_BANDWIDTH;
+  return activeRequests < oData.size();
 }
 
 const sc_event& MainMemory::canStartRequestEvent() const {
@@ -220,7 +222,7 @@ vector<uint32_t>& MainMemory::dataArray() {
 }
 
 void MainMemory::checkSafeRead(MemoryAddr address, TileID requester) {
-  uint tile = requester.computeTileIndex();
+  uint tile = parent().computeTileIndex(requester);
   uint cacheLine = MemoryBase::getLine(address);
 
   loki_assert_with_message(cacheLine < cacheLineValid.size(), "Address = 0x%x", address);
@@ -230,7 +232,7 @@ void MainMemory::checkSafeRead(MemoryAddr address, TileID requester) {
 }
 
 void MainMemory::checkSafeWrite(MemoryAddr address, TileID requester) {
-  uint tile = requester.computeTileIndex();
+  uint tile = parent().computeTileIndex(requester);
   uint cacheLine = MemoryBase::getLine(address);
 
   loki_assert_with_message(cacheLine < cacheLineValid.size(), "Address = 0x%x", address);
@@ -241,4 +243,9 @@ void MainMemory::checkSafeWrite(MemoryAddr address, TileID requester) {
 
   // After writing, this is the only tile with an up-to-date copy of the data.
   cacheLineValid[cacheLine] = (1 << tile);
+}
+
+Chip& MainMemory::parent() const {
+  Chip* ptr = static_cast<Chip*>(this->get_parent_object());
+  return *ptr;
 }

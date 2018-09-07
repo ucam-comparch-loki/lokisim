@@ -60,7 +60,9 @@ private:
 
 public:
 
-  ChannelMapTable(const sc_module_name& name, ComponentID ID);
+  ChannelMapTable(const sc_module_name& name, ComponentID ID,
+                  const channel_map_table_parameters_t& params,
+                  size_t coreInputChannels);
 
 //============================================================================//
 // Local state
@@ -70,6 +72,7 @@ private:
 
   std::vector<ChannelMapEntry> table;
 
+  // For debug.
   // One entry per input channel. true = we've set up a memory connection to
   // return data to this input. false = anything else.
   std::vector<bool> memoryConnection;

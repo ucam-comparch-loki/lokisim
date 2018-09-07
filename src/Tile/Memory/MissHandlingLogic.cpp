@@ -11,7 +11,8 @@
 #include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/Network.h"
 
-MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id) :
+MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id,
+                                     const tile_parameters_t& params) :
     LokiComponent(name, id),
     clock("clock"),
     oRequestToNetwork("oRequestToNetwork"),
@@ -24,13 +25,15 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id)
     oReadyForRequest("oReadyForRequest"),
     oRequestToBanks("oRequestToBanks"),
     oRequestTarget("oRequestTarget"),
-    iClaimRequest("iClaimRequest", MEMS_PER_TILE),
-    iDelayRequest("iDelayRequest", MEMS_PER_TILE),
+    iClaimRequest("iClaimRequest", params.numMemories),
+    iDelayRequest("iDelayRequest", params.numMemories),
     oRequestClaimed("oRequestClaimed"),
     oRequestDelayed("oRequestDelayed"),
-    directory(DIRECTORY_SIZE),
-    requestMux("request_mux", MEMS_PER_TILE),
-    responseMux("response_mux", MEMS_PER_TILE) {
+    log2CacheLineSize(params.memory.log2CacheLineSize()),
+    numMemoryBanks(params.numMemories),
+    directory(params.directory.size),
+    requestMux("request_mux", params.numMemories),
+    responseMux("response_mux", params.numMemories) {
 
   TileID memController = nearestMemoryController();
   directory.initialise(memController);
@@ -298,12 +301,12 @@ MemoryIndex MissHandlingLogic::getTargetBank(const NetworkRequest& request) {
   // In scratchpad mode, the bank is specified by the bits immediately
   // above the offset.
   if (request.getMemoryMetadata().scratchpad) {
-    return (request.payload().toUInt() >> 5) & (MEMS_PER_TILE - 1);
+    return (request.payload().toUInt() >> log2CacheLineSize) & (numMemoryBanks - 1);
   }
 
   // Push line operations specify the target bank with the lowest bits.
   else if (request.getMemoryMetadata().opcode == PUSH_LINE) {
-    return request.payload().toUInt() & (MEMS_PER_TILE - 1);
+    return request.payload().toUInt() & (numMemoryBanks - 1);
   }
 
   // Ensure that requests which skip this memory cannot be reordered by
@@ -332,14 +335,14 @@ MemoryIndex MissHandlingLogic::nextRandomBank() {
   // idea.
   //
   // Rotate right 1.
-  targetBank = (targetBank - 1) % MEMS_PER_TILE;
+  targetBank = (targetBank - 1) % numMemoryBanks;
   if (rngState & 0x1) {
     // Rotate right 1.
-    targetBank = (targetBank - 1) % MEMS_PER_TILE;
+    targetBank = (targetBank - 1) % numMemoryBanks;
   }
   if (rngState & 0x4) {
     // Rotate right 4.
-    targetBank = (targetBank - 4) % MEMS_PER_TILE;
+    targetBank = (targetBank - 4) % numMemoryBanks;
   }
 
   // Linear feedback shift register RNG. The generator polynomial used

@@ -58,9 +58,9 @@ void         DecodeStage::persistentInstruction(DecodedInst& inst) {
   // Determine if any of the registers read by this instruction are in fact
   // constants. Constants only need to be read once, not every cycle.
   bool constantReg1 = inst.hasSrcReg1() && (inst.sourceReg1() != inst.destination())
-      && !RegisterFile::isChannelEnd(inst.sourceReg1());
+      && !core()->regs.isChannelEnd(inst.sourceReg1());
   bool constantReg2 = inst.hasSrcReg2() && (inst.sourceReg2() != inst.destination())
-      && !RegisterFile::isChannelEnd(inst.sourceReg2());
+      && !core()->regs.isChannelEnd(inst.sourceReg2());
 
   while (true) {
     wait(clock.posedge_event());
@@ -292,7 +292,7 @@ int32_t      DecodeStage::readChannelInternal(ChannelIndex index) const {
 }
 
 void         DecodeStage::deliverDataInternal(const NetworkData& flit) {
-  ChannelIndex buffer = RegisterFile::toChannelID(flit.channelID().channel);
+  ChannelIndex buffer = core()->regs.toChannelID(flit.channelID().channel);
   rcet.writeInternal(buffer, flit.payload().toInt());
 }
 
@@ -392,14 +392,15 @@ void         DecodeStage::unstall() {
   // stalled forever.
 }
 
-DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
+DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID,
+                         size_t numChannels, const fifo_parameters_t& fifoParams) :
     PipelineStage(name, ID),
     oReady("oReady"),
-    iData("iData", CORE_RECEIVE_CHANNELS),
-    oFlowControl("oFlowControl", CORE_RECEIVE_CHANNELS),
-    oDataConsumed("oDataConsumed", CORE_RECEIVE_CHANNELS),
+    iData("iData", numChannels),
+    oFlowControl("oFlowControl", numChannels),
+    oDataConsumed("oDataConsumed", numChannels),
     iOutputBufferReady("iOutputBufferReady"),
-    rcet("rcet", ID),
+    rcet("rcet", ID, numChannels, fifoParams),
     decoder("decoder", ID) {
 
   startingNewPacket = true;
@@ -413,7 +414,7 @@ DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID) :
 
   // Connect everything up
   rcet.clock(clock);
-  for (uint i=0; i<CORE_RECEIVE_CHANNELS; i++) {
+  for (uint i=0; i<numChannels; i++) {
     rcet.iData[i](iData[i]);
     rcet.oFlowControl[i](oFlowControl[i]);
     rcet.oDataConsumed[i](oDataConsumed[i]);

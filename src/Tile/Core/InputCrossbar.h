@@ -14,6 +14,7 @@
 #include "../../LokiComponent.h"
 #include "../../Network/NetworkTypes.h"
 #include "../../Network/Topologies/InstantCrossbar.h"
+#include "../../Utility/LokiVector.h"
 
 class FlowControlIn;
 class UnclockedNetwork;
@@ -53,7 +54,8 @@ public:
 public:
 
   SC_HAS_PROCESS(InputCrossbar);
-  InputCrossbar(sc_module_name name, const ComponentID& ID);
+  InputCrossbar(sc_module_name name, const ComponentID& ID, size_t numInputs,
+                size_t numOutputs);
   virtual ~InputCrossbar();
 
 //============================================================================//

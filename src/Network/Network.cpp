@@ -6,6 +6,8 @@
  */
 
 #include "Network.h"
+
+#include "../Chip.h"
 #include "../Exceptions/InvalidOptionException.h"
 #include "../Utility/Assert.h"
 
@@ -15,9 +17,14 @@ PortIndex Network::getDestination(ChannelID address, uint totalOutputs) const {
   // Access a different part of the address depending on where in the network
   // we are.
   switch (level) {
-    case TILE :
-      port = address.component.tile.computeTileIndex() - firstOutput;
+    case TILE : {
+      // A bit of a hack: if this network is connecting tiles, it must be a
+      // direct child of the chip, so we can ask the chip to flatten the 2D
+      // TileID into a single port index. (Why do we care about compute tiles?)
+      Chip& chip = static_cast<Chip&>(*(this->get_parent_object()));
+      port = chip.computeTileIndex(address.component.tile) - firstOutput;
       break;
+    }
     case COMPONENT : {
       if (externalConnection && !(address.component.tile == id.tile))
         port = totalOutputs-1;

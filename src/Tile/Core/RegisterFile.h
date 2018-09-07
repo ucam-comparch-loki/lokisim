@@ -32,7 +32,8 @@ class RegisterFile: public LokiComponent {
 
 public:
 
-  RegisterFile(sc_module_name name, const ComponentID& ID);
+  RegisterFile(sc_module_name name, const ComponentID& ID,
+               const register_file_parameters_t& params);
 
 //============================================================================//
 // Methods
@@ -50,19 +51,20 @@ public:
   void    write(const RegisterIndex reg, int32_t value, bool indirect);
 
   // Simple methods to tell what sort of register is being dealt with.
-  static bool isReserved(RegisterIndex position);
-  static bool isChannelEnd(RegisterIndex position);
-  static bool isAddressableReg(RegisterIndex position);
-  static bool needsIndirect(RegisterIndex position);
-  static bool isInvalid(RegisterIndex position);
+  // These perhaps belong in Core rather than here.
+  bool isReserved(RegisterIndex position) const;
+  bool isChannelEnd(RegisterIndex position) const;
+  bool isAddressableReg(RegisterIndex position) const;
+  bool needsIndirect(RegisterIndex position) const;
+  bool isInvalid(RegisterIndex position) const;
 
   // Return the index of the channel-end to read from, if a read to this
   // position was requested.
-  static RegisterIndex toChannelID(RegisterIndex position);
+  RegisterIndex toChannelID(RegisterIndex position) const;
 
   // Return the register-addressable index corresponding to the given
   // channel ID.
-  static RegisterIndex fromChannelID(RegisterIndex position);
+  RegisterIndex fromChannelID(RegisterIndex position) const;
 
   // Update the contents of the register reserved to hold the address of the
   // current instruction packet. It is acceptable to have this as a separate

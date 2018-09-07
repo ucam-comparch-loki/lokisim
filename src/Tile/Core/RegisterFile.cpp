@@ -82,36 +82,35 @@ void RegisterFile::write(const RegisterIndex reg, int32_t value, bool indirect) 
 /* Register 0 is reserved to hold the constant value 0.
  * Register 1 is reserved to hold the address of the currently executing
  * instruction packet. */
-bool RegisterFile::isReserved(RegisterIndex position) {
+bool RegisterFile::isReserved(RegisterIndex position) const {
   return position <  2;
 }
 
-bool RegisterFile::isChannelEnd(RegisterIndex position) {
+bool RegisterFile::isChannelEnd(RegisterIndex position) const {
   return position >= START_OF_INPUT_CHANNELS
-      && position <  START_OF_INPUT_CHANNELS + CORE_RECEIVE_CHANNELS;
+      && position <  START_OF_INPUT_CHANNELS + parent()->numInputDataBuffers();
 }
 
-bool RegisterFile::isAddressableReg(RegisterIndex position) {
+bool RegisterFile::isAddressableReg(RegisterIndex position) const {
   return !(isReserved(position) || isChannelEnd(position))
-      && position < NUM_ADDRESSABLE_REGISTERS;
+      && position < regs.size();
 }
 
-bool RegisterFile::needsIndirect(RegisterIndex position) {
-  return position >= NUM_ADDRESSABLE_REGISTERS
-      && position <  NUM_PHYSICAL_REGISTERS;
+bool RegisterFile::needsIndirect(RegisterIndex position) const {
+  return false;
 }
 
-bool RegisterFile::isInvalid(RegisterIndex position) {
-  return position > NUM_PHYSICAL_REGISTERS;
+bool RegisterFile::isInvalid(RegisterIndex position) const {
+  return position > regs.size();
 }
 
-RegisterIndex RegisterFile::toChannelID(RegisterIndex position) {
+RegisterIndex RegisterFile::toChannelID(RegisterIndex position) const {
   assert(isChannelEnd(position));
   return position - START_OF_INPUT_CHANNELS;
 }
 
-RegisterIndex RegisterFile::fromChannelID(RegisterIndex position) {
-  assert(position < CORE_RECEIVE_CHANNELS);
+RegisterIndex RegisterFile::fromChannelID(RegisterIndex position) const {
+  assert(position < parent()->numInputDataBuffers());
   return position + START_OF_INPUT_CHANNELS;
 }
 
@@ -139,9 +138,10 @@ Core* RegisterFile::parent() const {
   return static_cast<Core*>(this->get_parent_object());
 }
 
-RegisterFile::RegisterFile(sc_module_name name, const ComponentID& ID) :
+RegisterFile::RegisterFile(sc_module_name name, const ComponentID& ID,
+                           const register_file_parameters_t& params) :
     LokiComponent(name, ID),
-    regs(std::string(name), NUM_PHYSICAL_REGISTERS),
+    regs(std::string(name), params.size),
     prevRead(3),
     lastActivity(-1) {
 

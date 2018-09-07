@@ -156,13 +156,8 @@ public:
     os << "[";
     if (f.isInstruction)
       os << static_cast<Instruction>(f.payload());
-    else if (f.channelID().isMemory() &&
-             f.getMemoryMetadata().opcode != PAYLOAD &&
-             f.getMemoryMetadata().opcode != PAYLOAD_EOP) {
-      os << LOKI_HEX(f.payload());
-    }
     else
-      os << f.payload();
+      os << LOKI_HEX(f.payload());
     os << " => " << f.channelID().getString() << "] (id:" << f.messageID() << ")";
     return os;
   }
@@ -220,7 +215,6 @@ public:
       payload_(payload),
       channelID_(destination),
       isInstruction(false) {
-    assert(destination.isCore());
     CoreMetadata data;
     data.acquired = acquired;
     data.allocate = allocate;
@@ -235,7 +229,6 @@ public:
       payload_(payload),
       channelID_(destination),
       isInstruction(false) {
-    assert(destination.isMemory());
     MemoryMetadata info;
     info.returnChannel = networkInfo.returnChannel;
     info.scratchpad = networkInfo.scratchpadL1;

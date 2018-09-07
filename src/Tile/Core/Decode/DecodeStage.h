@@ -18,6 +18,7 @@
 #define DECODESTAGE_H_
 
 #include "../../../Network/NetworkTypes.h"
+#include "../../../Utility/LokiVector.h"
 #include "Decoder.h"
 #include "ReceiveChannelEndTable.h"
 #include "../PipelineStage.h"
@@ -57,7 +58,8 @@ public:
 public:
 
   SC_HAS_PROCESS(DecodeStage);
-  DecodeStage(sc_module_name name, const ComponentID& ID);
+  DecodeStage(sc_module_name name, const ComponentID& ID, size_t numChannels,
+              const fifo_parameters_t& fifoParams);
 
 //============================================================================//
 // Methods

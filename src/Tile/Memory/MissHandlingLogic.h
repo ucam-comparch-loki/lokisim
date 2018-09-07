@@ -18,6 +18,7 @@
 #include "../../Network/ArbitratedMultiplexer.h"
 #include "../../Network/NetworkTypes.h"
 #include "../../Tile/Memory/Directory.h"
+#include "../../Utility/LokiVector.h"
 
 class Chip;
 
@@ -95,7 +96,8 @@ public:
 public:
 
   SC_HAS_PROCESS(MissHandlingLogic);
-  MissHandlingLogic(const sc_module_name& name, ComponentID id);
+  MissHandlingLogic(const sc_module_name& name, ComponentID id,
+                    const tile_parameters_t& params);
 
 //============================================================================//
 // Methods
@@ -157,6 +159,10 @@ private:
 //============================================================================//
 
 private:
+
+  // Configuration.
+  const size_t log2CacheLineSize; // In bytes.
+  const size_t numMemoryBanks;
 
   friend class ComputeTile;
 

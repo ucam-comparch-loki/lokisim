@@ -16,6 +16,8 @@
 
 #include <assert.h>
 #include <cstdlib>
+#include <systemc>
+#include <vector>
 
 using sc_core::sc_module_name;
 

@@ -8,8 +8,8 @@
 #include "Statistics.h"
 #include "Instrumentation.h"
 #include "Instrumentation/IPKCache.h"
+#include "Instrumentation/L1Cache.h"
 #include "Instrumentation/MainMemory.h"
-#include "Instrumentation/MemoryBank.h"
 #include "Instrumentation/Network.h"
 #include "Instrumentation/Operations.h"
 #include "Instrumentation/Registers.h"
@@ -65,29 +65,20 @@ int Statistics::l0Misses()              {return IPKCache::numMisses();}
 int Statistics::l0Reads()               {return IPKCache::numReads();}
 int Statistics::l0Writes()              {return IPKCache::numWrites();}
 
-int Statistics::l1Reads()               {return MemoryBank::totalReads();}
-int Statistics::l1Writes()              {return MemoryBank::totalWrites();}
+int Statistics::l1Reads()               {return L1Cache::totalReads();}
+int Statistics::l1Writes()              {return L1Cache::totalWrites();}
 
 int Statistics::cyclesActive(int core)  {
-  uint tile = core / NUM_COMPUTE_TILES;
-  uint tileX = tile % COMPUTE_TILE_COLUMNS;
-  uint tileY = tile / COMPUTE_TILE_COLUMNS;
-  uint position = core % NUM_COMPUTE_TILES;
-  return Stalls::cyclesActive(ComponentID(tileX, tileY, position));
+  // Only valid in first tile.
+  return Stalls::cyclesActive(ComponentID(1, 1, core));
 }
 
 int Statistics::cyclesIdle(int core)    {
-  uint tile = core / NUM_COMPUTE_TILES;
-  uint tileX = tile % COMPUTE_TILE_COLUMNS;
-  uint tileY = tile / COMPUTE_TILE_COLUMNS;
-  uint position = core % NUM_COMPUTE_TILES;
-  return Stalls::cyclesIdle(ComponentID(tileX, tileY, position));
+  // Only valid in first tile.
+  return Stalls::cyclesIdle(ComponentID(1, 1, core));
 }
 
 int Statistics::cyclesStalled(int core) {
-  uint tile = core / NUM_COMPUTE_TILES;
-  uint tileX = tile % COMPUTE_TILE_COLUMNS;
-  uint tileY = tile / COMPUTE_TILE_COLUMNS;
-  uint position = core % NUM_COMPUTE_TILES;
-  return Stalls::cyclesStalled(ComponentID(tileX, tileY, position));
+  // Only valid in first tile.
+  return Stalls::cyclesStalled(ComponentID(1, 1, core));
 }

@@ -52,7 +52,8 @@ public:
 public:
 
   SC_HAS_PROCESS(SendChannelEndTable);
-  SendChannelEndTable(sc_module_name name, const ComponentID& ID, ChannelMapTable* cmt);
+  SendChannelEndTable(sc_module_name name, const ComponentID& ID,
+                      const fifo_parameters_t& fifoParams, ChannelMapTable* cmt);
 
 //============================================================================//
 // Methods
@@ -99,6 +100,7 @@ private:
   bool          requestGranted(ChannelID destination) const;
 
   WriteStage*   parent() const;
+  Core*         core() const;
 
 //============================================================================//
 // Local state

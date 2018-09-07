@@ -41,7 +41,8 @@ public:
 //============================================================================//
 
 public:
-  ForwardCrossbar(const sc_module_name name, ComponentID tile);
+  ForwardCrossbar(const sc_module_name name, ComponentID tile,
+                  const tile_parameters_t& params);
   virtual ~ForwardCrossbar();
 };
 

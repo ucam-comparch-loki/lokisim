@@ -7,8 +7,9 @@
 
 #include "DataReturn.h"
 
-DataReturn::DataReturn(const sc_module_name name, ComponentID tile) :
-    Crossbar(name, tile, MEMS_PER_TILE, CORES_PER_TILE, 1, Network::COMPONENT, CORE_INPUT_CHANNELS) {
+DataReturn::DataReturn(const sc_module_name name, ComponentID tile,
+                       const tile_parameters_t& params) :
+    Crossbar(name, tile, params.numMemories, params.numCores, 1, Network::COMPONENT, params.core.numInputChannels) {
   // All initialisation handled by Crossbar.
 
 }

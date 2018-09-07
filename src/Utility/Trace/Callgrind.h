@@ -84,14 +84,15 @@ public:
   // Open the named file and print a header. Also collect information from the
   // symbol table of the binary so later we can determine which function is
   // being executed at any time.
-  static void startTrace(const string& logFile, const string& binaryFile);
+  static void startTrace(const string& logFile, const string& binaryFile,
+                         const chip_parameters_t& params);
 
   // Tidy up when execution has finished.
   static void endTrace();
 
   // Call this method to record that an instruction from a given address was
   // executed on a given cycle.
-  static void instructionExecuted(ComponentID core, MemoryAddr address, cycle_count_t cycle);
+  static void instructionExecuted(CoreIndex core, MemoryAddr address, cycle_count_t cycle);
 
   // Returns whether instructionExecuted may be called.
   static bool acceptingData();

@@ -20,11 +20,11 @@ void InputCrossbar::newData(PortIndex input) {
 
   ChannelIndex destination = data.channelID().channel;
   if (destination >= oData.size())
-    LOKI_WARN << this->name() << " trying to receive data for " << data.channelID() << endl;
+    LOKI_WARN << this->name() << " trying to receive data for " << data.channelID() << std::endl;
   loki_assert(destination < oData.size());
 
   if (dataSource[destination] != INACTIVE)
-    LOKI_WARN << "multiple sources sending simultaneously to " << ChannelID(id, destination) << "; packet dropped." << endl;
+    LOKI_WARN << "multiple sources sending simultaneously to " << ChannelID(id, destination) << "; packet dropped." << std::endl;
 
   // Trigger a method which will write the data to the appropriate output.
   dataSource[destination] = input;
@@ -60,22 +60,23 @@ void InputCrossbar::updateFlowControl(ChannelIndex input) {
   oReady[input].write(iFlowControl[input].read());
 }
 
-InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
+InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID,
+                             size_t numInputs, size_t numOutputs) :
     LokiComponent(name, ID),
     clock("clock"),
     creditClock("creditClock"),
-    iData("iData", CORES_PER_TILE + 3), // All cores + insts + data + router
-    oReady("oReady", CORE_INPUT_CHANNELS),
-    oData("oData", CORE_INPUT_CHANNELS),
-    iFlowControl("iFlowControl", CORE_INPUT_CHANNELS),
-    iDataConsumed("iDataConsumed", CORE_INPUT_CHANNELS),
+    iData("iData", numInputs),
+    oReady("oReady", numOutputs),
+    oData("oData", numOutputs),
+    iFlowControl("iFlowControl", numOutputs),
+    iDataConsumed("iDataConsumed", numOutputs),
     oCredit("oCredit", 1),
-    creditNet("credit", ID, CORE_INPUT_CHANNELS, 1, 1, Network::NONE, 1),
+    creditNet("credit", ID, numOutputs, 1, 1, Network::NONE, 1),
     constantHigh("constantHigh"),
-    dataToBuffer("dataToBuffer", CORE_INPUT_CHANNELS),
-    creditsToNetwork("creditsToNetwork", CORE_INPUT_CHANNELS),
-    sendData("sendDataEvent", CORE_INPUT_CHANNELS),
-    dataSource(CORE_INPUT_CHANNELS, INACTIVE) {
+    dataToBuffer("dataToBuffer", numOutputs),
+    creditsToNetwork("creditsToNetwork", numOutputs),
+    sendData("sendDataEvent", numOutputs),
+    dataSource(numOutputs, INACTIVE) {
 
   // Method for each input port, forwarding data to the correct buffer when it
   // arrives. Each channel end has a single writer, so it is impossible to
@@ -98,7 +99,7 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID) :
 
   // Create and wire up all flow control units.
   for (unsigned int i=0; i<oData.size(); i++) {
-    FlowControlIn* fc = new FlowControlIn(sc_gen_unique_name("fc_in"), id, ChannelID(id, i));
+    FlowControlIn* fc = new FlowControlIn(sc_core::sc_gen_unique_name("fc_in"), id, ChannelID(id, i));
     flowControl.push_back(fc);
 
     fc->clock(clock);

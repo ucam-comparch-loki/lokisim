@@ -13,6 +13,7 @@
 #ifndef BUS_H_
 #define BUS_H_
 
+#include "../../Utility/LokiVector.h"
 #include "../Network.h"
 #include "../NetworkTypes.h"
 

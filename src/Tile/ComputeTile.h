@@ -72,7 +72,8 @@ public:
 
 public:
 
-  ComputeTile(const sc_module_name& name, const ComponentID& id);
+  ComputeTile(const sc_module_name& name, const ComponentID& id,
+              const tile_parameters_t& params);
   virtual ~ComputeTile();
 
 //============================================================================//
@@ -80,6 +81,18 @@ public:
 //============================================================================//
 
 public:
+
+  virtual uint numComponents() const;
+  virtual uint numCores() const;
+  virtual uint numMemories() const;
+
+  // Get information about the given Identifiers based on the configuration of
+  // the Tile.
+  virtual bool isCore(ComponentID id) const;
+  virtual bool isMemory(ComponentID id) const;
+  virtual uint componentIndex(ComponentID id) const;
+  virtual uint coreIndex(ComponentID id) const;
+  virtual uint memoryIndex(ComponentID id) const;
 
   // Store the given instructions or data into the component at the given index.
   virtual void storeInstructions(vector<Word>& instructions, const ComponentID& component);
@@ -121,8 +134,12 @@ public:
 private:
 
   void makeSignals();
-  void makeComponents();
+  void makeComponents(const tile_parameters_t& params);
   void wireUp();
+
+  // Allow components to find their position on the chip. Only used for debug.
+  uint globalCoreIndex(ComponentID id) const;
+  uint globalMemoryIndex(ComponentID id) const;
 
 //============================================================================//
 // Components

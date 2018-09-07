@@ -10,6 +10,7 @@
 
 #include "../Network.h"
 #include "../../Utility/BlockingInterface.h"
+#include "../../Utility/LokiVector2D.h"
 
 class ClockedArbiter;
 class Multiplexer;

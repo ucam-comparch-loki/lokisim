@@ -31,6 +31,12 @@ const short startFunction  =  0, endFunction  =  3;
 // relevant.
 const short startImmediate =  0, endImmediate = 31;
 
+// Determine the maximum (positive) value which can be stored in the given
+// bit range. The range is inclusive.
+size_t maxValue(uint firstBit, uint lastBit) {
+  return (1 << (lastBit - firstBit + 1)) - 1;
+}
+
 
 /* Public getter methods */
 opcode_t Instruction::opcode() const {
@@ -157,22 +163,22 @@ void Instruction::function(const function_t val) {
 }
 
 void Instruction::reg1(const RegisterIndex val) {
-  assert(val < NUM_ADDRESSABLE_REGISTERS);
+  assert(val <= maxValue(startReg1, endReg1));
   setBits(startReg1, endReg1, val);
 }
 
 void Instruction::reg2(const RegisterIndex val) {
-  assert(val < NUM_ADDRESSABLE_REGISTERS);
+  assert(val <= maxValue(startReg2, endReg2));
   setBits(startReg2, endReg2, val);
 }
 
 void Instruction::reg3(const RegisterIndex val) {
-  assert(val < NUM_ADDRESSABLE_REGISTERS);
+  assert(val <= maxValue(startReg3, endReg3));
   setBits(startReg3, endReg3, val);
 }
 
 void Instruction::remoteChannel(const ChannelIndex val) {
-  assert(val == NO_CHANNEL || val < CHANNEL_MAP_SIZE);
+  assert(val <= maxValue(startChannel, endChannel));
   setBits(startChannel, endChannel, val);
 }
 
@@ -219,17 +225,17 @@ RegisterIndex Instruction::decodeField(const string& str) {
     return value;
   }
 
-  if(reg[0] == 'c') {                 // Channels are optionally marked with "ch"
-    reg.erase(0,2);                   // Remove the "ch"
-
-    ChannelIndex channel = Strings::strToInt(reg);
-    assert(channel < CORE_RECEIVE_CHANNELS);
-
-    // Convert from the channel index to the register index.
-    RegisterIndex value = Registers::fromChannelID(channel);
-
-    return value;
-  }
+//  if(reg[0] == 'c') {                 // Channels are optionally marked with "ch"
+//    reg.erase(0,2);                   // Remove the "ch"
+//
+//    ChannelIndex channel = Strings::strToInt(reg);
+//    assert(channel < CORE_RECEIVE_CHANNELS);
+//
+//    // Convert from the channel index to the register index.
+//    RegisterIndex value = Registers::fromChannelID(channel);
+//
+//    return value;
+//  }
 
   vector<string>& parts = Strings::split(reg, '(');
 
@@ -346,13 +352,13 @@ int32_t Instruction::decodeImmediate(const string& immed) {
     parts[0].erase(0,2);                        // Remove the bracket and the m
     parts[1].erase(parts[1].end()-1);           // Remove the bracket
 
-    assert(parts[0].length() == CORES_PER_TILE);
+    string mask = parts[0];
 
     int mcastAddress = 0;
     int channel = Strings::strToInt(parts[1]);
 
-    for(unsigned int i=0; i < CORES_PER_TILE; i++) {
-      int shiftAmount = CORES_PER_TILE - i - 1;
+    for(unsigned int i=0; i < mask.length(); i++) {
+      int shiftAmount = mask.length() - i - 1;
       if(parts[0][i] == '1') mcastAddress |= (1 << shiftAmount);
     }
 

@@ -61,7 +61,7 @@ void L2RequestFilter::mainLoop() {
         // that this bank should be used, or if the bank was chosen randomly
         // but this bank contains the data already.
         bool cacheHit = localBank->contains(address, position, mode);
-        bool targetingThisBank = iRequestTarget.read() == id.localMemoryNumber();
+        bool targetingThisBank = iRequestTarget.read() == parent()->memoryIndex();
         bool mustAccessTarget = (mode == MEMORY_SCRATCHPAD) || (opcode == PUSH_LINE) || request.getMemoryMetadata().skipL2;
         bool ignore = mustAccessTarget && !targetingThisBank;
         bool serveRequest = (targetingThisBank && mustAccessTarget) || (cacheHit && !ignore);
@@ -195,4 +195,8 @@ void L2RequestFilter::delayLoop() {
   }
 
   // Default: wait for new request.
+}
+
+MemoryBank* L2RequestFilter::parent() const {
+  return static_cast<MemoryBank*>(this->get_parent_object());
 }

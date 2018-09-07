@@ -35,7 +35,7 @@ bool ChannelMapTable::write(MapIndex entry, EncodedCMTEntry data) {
   ChannelMapEntry previous = table[entry];
   table[entry].write(data);
 
-  if (table[entry].getDestination().isMemory())
+  if (table[entry].isMemory())
     memoryConnection[table[entry].getReturnChannel()] = true;
 
   if (ENERGY_TRACE) {
@@ -100,15 +100,17 @@ void ChannelMapTable::activeCycle() {
   }
 }
 
-ChannelMapTable::ChannelMapTable(const sc_module_name& name, ComponentID ID) :
+ChannelMapTable::ChannelMapTable(const sc_module_name& name, ComponentID ID,
+                                 const channel_map_table_parameters_t& params,
+                                 size_t coreInputChannels) :
     LokiComponent(name, ID),
-    memoryConnection(CORE_INPUT_CHANNELS, false),
+    memoryConnection(coreInputChannels, false),
     previousRead(ChannelID(ID, 0)),
     lastActivity(-1) {
 
-  loki_assert(CHANNEL_MAP_SIZE > 0);
+  loki_assert(params.size > 0);
 
-  for (uint i=0; i<CHANNEL_MAP_SIZE; i++)
+  for (uint i=0; i<params.size; i++)
     table.push_back(ChannelID(ID, i));
 
 }

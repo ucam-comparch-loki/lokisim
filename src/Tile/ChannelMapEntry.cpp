@@ -187,6 +187,34 @@ bool ChannelMapEntry::isMulticast() const {
   return getNetwork() == MULTICAST;
 }
 
+bool ChannelMapEntry::isCore() const {
+  // This may not be a multicast channel, but converting to one exposes fields
+  // which are shared between all channel types.
+  MulticastChannel channel = multicastView();
+  return channel.isGlobal || !channel.isMemory;
+}
+
+bool ChannelMapEntry::isMemory() const {
+  // This may not be a multicast channel, but converting to one exposes fields
+  // which are shared between all channel types.
+  MulticastChannel channel = multicastView();
+  return !channel.isGlobal && channel.isMemory;
+}
+
+bool ChannelMapEntry::isCore(EncodedCMTEntry data) {
+  // This may not be a multicast channel, but converting to one exposes fields
+  // which are shared between all channel types.
+  MulticastChannel channel = multicastView(data);
+  return channel.isGlobal || !channel.isMemory;
+}
+
+bool ChannelMapEntry::isMemory(EncodedCMTEntry data) {
+  // This may not be a multicast channel, but converting to one exposes fields
+  // which are shared between all channel types.
+  MulticastChannel channel = multicastView(data);
+  return !channel.isGlobal && channel.isMemory;
+}
+
 // A bitmask of cores in the local tile to communicate with. The same channel
 // on all cores is used.
 unsigned int ChannelMapEntry::getCoreMask() const {

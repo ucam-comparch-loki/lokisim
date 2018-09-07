@@ -164,6 +164,10 @@ public:
 
   // Whether this is a multicast communication.
   bool isMulticast() const;
+  bool isCore() const;
+  bool isMemory() const;
+  static bool isCore(EncodedCMTEntry data);
+  static bool isMemory(EncodedCMTEntry data);
 
   // A bitmask of cores in the local tile to communicate with. The same channel
   // on all cores is used.

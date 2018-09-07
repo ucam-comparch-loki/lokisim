@@ -20,6 +20,13 @@
 typedef uint64_t count_t;
 typedef count_t  cycle_count_t;
 
+typedef struct {
+  size_t width;
+  size_t height;
+
+  size_t total() const {return width * height;}
+} size2d_t;
+
 // Identifier used for a tile. Compute tiles start at 1,1.
 // (column << 3) | row
 typedef uint32_t TileIndex;

@@ -12,18 +12,23 @@
 #include "../Chip.h"
 #include "../Datatype/DecodedInst.h"
 #include "../Datatype/Instruction.h"
+#include "../Tile/Core/Core.h"
+#include "Instrumentation/Stalls.h"
+
+using Instrumentation::Stalls;
 
 bool Debugger::usingDebugger = false;
 int Debugger::mode = NOT_IN_USE;
 
 bool Debugger::hitBreakpoint = false;
 Chip* Debugger::chip = 0;
+const chip_parameters_t* Debugger::parameters;
 vector<MemoryAddr> Debugger::breakpoints;
 
 unsigned int Debugger::cycleNumber = 0;
-ComponentID Debugger::defaultCore(1, 1, 0);
-ComponentID Debugger::defaultInstMemory(1, 1, CORES_PER_TILE);
-ComponentID Debugger::defaultDataMemory(1, 1, CORES_PER_TILE);
+ComponentID Debugger::defaultCore(0);
+ComponentID Debugger::defaultInstMemory(0);
+ComponentID Debugger::defaultDataMemory(0);
 
 unsigned int Debugger::cyclesIdle = 0;
 unsigned int Debugger::maxIdleTime = 10;
@@ -190,7 +195,7 @@ void Debugger::printRegs(vector<int>& regs, const ComponentID& core) {
 
   if (regs.size() == 0) {
     // If no registers were specified, print them all.
-    for (uint i=0; i<NUM_ADDRESSABLE_REGISTERS; i++) {  // physical regs instead?
+    for (uint i=0; i<parameters->tile.core.registerFile.size; i++) {
       int regVal = chip->readRegisterInternal(core, i);
 
       if (mode == DEBUGGER)
@@ -215,23 +220,29 @@ void Debugger::printPred(const ComponentID& core) {
   cout << chip->readPredicateInternal(core) << "\n";
 }
 
-void Debugger::executedInstruction(DecodedInst inst, const ComponentID& core, bool executed) {
+void Debugger::executedInstruction(DecodedInst inst, const Core& core, bool executed) {
 
   if (mode == DEBUGGER) {
-    cout << core << ":\t" << "[" << inst.location() << "]\t" << inst
+    cout << core.id << ":\t" << "[" << inst.location() << "]\t" << inst
          << (executed ? "" : " (not executed)") << endl;
   }
 
   if (isBreakpoint(inst.location())) {
     hitBreakpoint = true;
-    defaultCore = core;
+    defaultCore = core.id;
 //    defaultInstMemory = inst.location().channelID();
   }
 
 }
 
-void Debugger::setChip(Chip* c) {
+void Debugger::setChip(Chip* c, const chip_parameters_t& params) {
   chip = c;
+  parameters = &params;
+
+  // Can now also select some default components.
+  defaultCore = ComponentID(1, 1, 0);
+  defaultInstMemory = ComponentID(1, 1, params.tile.numCores);
+  defaultDataMemory = ComponentID(1, 1, params.tile.numCores);
 }
 
 void Debugger::executeSingleCycle() {
@@ -247,7 +258,7 @@ void Debugger::executeNCycles(int n) {
   // We can't assume that the chip has been idle for all n cycles, so only
   // increment by 1. The idle count still works though - it is unlikely that
   // the chip will be idle on many successive probes of the idle value.
-  if (chip->isIdle())
+  if (Stalls::stalledComponents() == parameters->totalComponents())
     cyclesIdle++;
   else
     cyclesIdle = 0;

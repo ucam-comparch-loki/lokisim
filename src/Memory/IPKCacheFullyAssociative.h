@@ -18,7 +18,8 @@ class IPKCacheFullyAssociative: public IPKCacheBase {
 
 public:
 
-  IPKCacheFullyAssociative(const std::string& name, const size_t size, const size_t numTags);
+  IPKCacheFullyAssociative(const std::string& name, size_t size, size_t numTags,
+                           size_t maxIPKLength);
 
 //============================================================================//
 // Methods

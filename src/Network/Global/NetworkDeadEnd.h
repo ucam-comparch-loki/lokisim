@@ -64,7 +64,6 @@ private:
 
     LOKI_WARN << "Trying to send " << directions[direction] << " from tile " << id.tile << endl;
     LOKI_WARN << "  Data: " << iData.read() << endl;
-    LOKI_WARN << "  Simulating up to tile (" << TOTAL_TILE_COLUMNS-1 << "," << TOTAL_TILE_ROWS-1 << ")" << endl;
   }
 
 //============================================================================//

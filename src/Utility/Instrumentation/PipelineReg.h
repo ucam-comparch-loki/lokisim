@@ -27,7 +27,7 @@ public:
                        const DecodedInst& newVal,
                        PipelineRegister::PipelinePosition stage);
 
-  static void dumpEventCounts(std::ostream& os);
+  static void dumpEventCounts(std::ostream& os, const chip_parameters_t& params);
 
 private:
 

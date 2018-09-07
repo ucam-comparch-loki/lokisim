@@ -16,6 +16,7 @@
 #define CORE_H_
 
 #include "../../Network/NetworkTypes.h"
+#include "../../Utility/LokiVector.h"
 #include "ChannelMapTable.h"
 #include "ControlRegisters.h"
 #include "Decode/DecodeStage.h"
@@ -79,7 +80,8 @@ public:
 public:
 
   SC_HAS_PROCESS(Core);
-  Core(const sc_module_name& name, const ComponentID& ID);
+  Core(const sc_module_name& name, const ComponentID& ID,
+       const core_parameters_t& params, size_t numMulticastInputs);
 
 //============================================================================//
 // Methods
@@ -121,6 +123,19 @@ public:
   // Receive data over the magic, zero-latency network.
   void deliverDataInternal(const NetworkData& flit);
   void deliverCreditInternal(const NetworkCredit& flit);
+
+  // The number of input buffers, excluding any reserved for instructions.
+  size_t numInputDataBuffers() const;
+
+  // The index of this core, with the first core being 0.
+  uint coreIndex() const;
+  uint coresThisTile() const;
+  uint globalCoreIndex() const;
+
+  // Get information about other components. Mostly for debug/stats.
+  bool isCore(ComponentID id) const;
+  bool isMemory(ComponentID id) const;
+  bool isComputeTile(TileID id) const;
 
 private:
 
@@ -225,6 +240,8 @@ private:
   friend class RegisterFile;
   friend class FetchStage;
   friend class DecodeStage;
+  friend class Decoder;
+  friend class ReceiveChannelEndTable;
   friend class ExecuteStage;
   friend class WriteStage;
   friend class ControlRegisters;
@@ -233,6 +250,11 @@ private:
 //============================================================================//
 // Local state
 //============================================================================//
+
+public:
+
+  // Number of input channels reserved for instructions.
+  static const uint numInstructionChannels = 2;
 
 private:
 

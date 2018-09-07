@@ -71,6 +71,20 @@ public:
 
 public:
 
+  virtual uint numComponents() const;
+  virtual uint numCores() const;
+  virtual uint numMemories() const;
+
+  // Get information about the given Identifiers based on the configuration of
+  // the Tile.
+  virtual bool isCore(ComponentID id) const;
+  virtual bool isMemory(ComponentID id) const;
+  virtual uint componentIndex(ComponentID id) const;
+  virtual uint coreIndex(ComponentID id) const;
+  virtual uint memoryIndex(ComponentID id) const;
+
+  bool isComputeTile(TileID id) const;
+
   // Store the given instructions or data into the component at the given index.
   virtual void storeInstructions(vector<Word>& instructions, const ComponentID& component);
   virtual void storeData(const DataBlock& data);

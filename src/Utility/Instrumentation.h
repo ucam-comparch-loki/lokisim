@@ -18,18 +18,19 @@
 
 class ChannelID;
 class ComponentID;
+class Core;
 class DecodedInst;
 
 namespace Instrumentation {
 
-  void initialise();
+  void initialise(const chip_parameters_t& params);
   void reset();
   void start();
   void stop();
   void end();
 
-  void dumpEventCounts(std::ostream& os);
-  void printSummary();
+  void dumpEventCounts(std::ostream& os, const chip_parameters_t& params);
+  void printSummary(const chip_parameters_t& params);
   bool haveEnergyData();
   bool collectingStats();
 
@@ -57,7 +58,7 @@ namespace Instrumentation {
   bool executionFinished();
 
   // Record whether a particular operation was executed or not.
-  void executed(const ComponentID& id, const DecodedInst& inst, bool executed);
+  void executed(const Core& core, const DecodedInst& inst, bool executed);
 
   // Return the current clock cycle count.
   cycle_count_t currentCycle();
