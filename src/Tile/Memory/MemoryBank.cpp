@@ -157,9 +157,9 @@ void MemoryBank::validate(MemoryAddr address, SRAMAddress position, MemoryAccess
       tag.l2Skip = hitRequest->getMetadata().skipL2;
 
       // Some extra bookkeeping to help with debugging.
-      bool inMainMemory = chip()->backedByMainMemory(id.tile, address);
+      bool inMainMemory = chip().backedByMainMemory(id.tile, address);
       if (inMainMemory) {
-        MemoryAddr globalAddress = chip()->getAddressTranslation(id.tile, address);
+        MemoryAddr globalAddress = chip().getAddressTranslation(id.tile, address);
         mainMemory->claimCacheLine(id, globalAddress);
       }
 
@@ -311,28 +311,28 @@ bool MemoryBank::flushing(MemoryAddr address) const {
 }
 
 uint MemoryBank::memoryIndex() const {
-  return parent()->memoryIndex(id);
+  return parent().memoryIndex(id);
 }
 
 uint MemoryBank::memoriesThisTile() const {
-  return parent()->numMemories();
+  return parent().numMemories();
 }
 
 uint MemoryBank::globalMemoryIndex() const {
-  return parent()->globalMemoryIndex(id);
+  return parent().globalMemoryIndex(id);
 }
 
 bool MemoryBank::isCore(ChannelID destination) const {
-  return parent()->isCore(destination.component);
+  return parent().isCore(destination.component);
 }
 
 uint MemoryBank::coresThisTile() const {
-  return parent()->numCores();
+  return parent().numCores();
 }
 
 uint MemoryBank::globalCoreIndex(ComponentID core) const {
-  loki_assert(parent()->isCore(core));
-  return parent()->globalCoreIndex(core);
+  loki_assert(parent().isCore(core));
+  return parent().globalCoreIndex(core);
 }
 
 void MemoryBank::processIdle() {
@@ -819,9 +819,9 @@ void MemoryBank::copyToMissBuffer() {
 }
 
 void MemoryBank::preWriteCheck(const MemoryOperation& operation) const {
-  MemoryAddr globalAddress = chip()->getAddressTranslation(id.tile, operation.getAddress());
+  MemoryAddr globalAddress = chip().getAddressTranslation(id.tile, operation.getAddress());
   bool scratchpad = operation.getAccessMode() == MEMORY_SCRATCHPAD;
-  bool inMainMemory = !scratchpad && chip()->backedByMainMemory(id.tile, operation.getAddress());
+  bool inMainMemory = !scratchpad && chip().backedByMainMemory(id.tile, operation.getAddress());
   if (inMainMemory && mainMemory->readOnly(globalAddress) && WARN_READ_ONLY) {
     LOKI_WARN << this->name() << " attempting to modify read-only address" << endl;
     LOKI_WARN << "  " << operation.toString() << endl;
@@ -842,8 +842,8 @@ void MemoryBank::handleDataOutput() {
   if (outputDataQueue.empty()) {
     next_trigger(outputDataQueue.writeEvent());
   }
-  else if (!parent()->requestGranted(id, outputDataQueue.peek().channelID())) {
-    parent()->makeRequest(id, outputDataQueue.peek().channelID(), true);
+  else if (!parent().requestGranted(id, outputDataQueue.peek().channelID())) {
+    parent().makeRequest(id, outputDataQueue.peek().channelID(), true);
     next_trigger(iClock.negedge_event());
   }
   else {
@@ -858,7 +858,7 @@ void MemoryBank::handleDataOutput() {
 
     // Remove the request for network resources.
     if (flit.getMetadata().endOfPacket)
-      parent()->makeRequest(id, flit.channelID(), false);
+      parent().makeRequest(id, flit.channelID(), false);
 
     next_trigger(oData.ack_event());
   }
@@ -868,8 +868,8 @@ void MemoryBank::handleInstructionOutput() {
   if (outputInstQueue.empty()) {
     next_trigger(outputInstQueue.writeEvent());
   }
-  else if (!parent()->requestGranted(id, outputInstQueue.peek().channelID())) {
-    parent()->makeRequest(id, outputInstQueue.peek().channelID(), true);
+  else if (!parent().requestGranted(id, outputInstQueue.peek().channelID())) {
+    parent().makeRequest(id, outputInstQueue.peek().channelID(), true);
     next_trigger(iClock.negedge_event());
   }
   else {
@@ -884,7 +884,7 @@ void MemoryBank::handleInstructionOutput() {
 
     // Remove the request for network resources.
     if (flit.getMetadata().endOfPacket)
-      parent()->makeRequest(id, flit.channelID(), false);
+      parent().makeRequest(id, flit.channelID(), false);
 
     next_trigger(oInstruction.ack_event());
   }
@@ -959,12 +959,12 @@ size_t MemoryBank::requestQueueSize(const memory_bank_parameters_t& params) {
   return 2 + params.cacheLineSize/BYTES_PER_WORD;
 }
 
-ComputeTile* MemoryBank::parent() const {
-  return static_cast<ComputeTile*>(this->get_parent_object());
+ComputeTile& MemoryBank::parent() const {
+  return static_cast<ComputeTile&>(*(this->get_parent_object()));
 }
 
-Chip* MemoryBank::chip() const {
-  return parent()->chip();
+Chip& MemoryBank::chip() const {
+  return parent().chip();
 }
 
 MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks,
@@ -996,7 +996,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   reservations(1),
   missBuffer("mMissBuffer", params.cacheLineSize/BYTES_PER_WORD),
   cacheMissEvent(sc_core::sc_gen_unique_name("mCacheMissEvent")),
-  l2RequestFilter("request_filter", ID, this)
+  l2RequestFilter("request_filter", ID, *this)
 {
   state = STATE_IDLE;
   previousState = STATE_IDLE;

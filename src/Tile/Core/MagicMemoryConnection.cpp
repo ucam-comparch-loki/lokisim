@@ -80,9 +80,9 @@ unsigned int numPayloadFlits(MemoryOpcode op) {
 }
 
 void MagicMemoryConnection::operate(const DecodedInst& instruction) {
-  loki_assert(parent()->isMemory(instruction.networkDestination().component));
+  loki_assert(parent().isMemory(instruction.networkDestination().component));
 
-  ChannelMapEntry& channelMapEntry = parent()->channelMapTable[instruction.channelMapEntry()];
+  ChannelMapEntry& channelMapEntry = parent().channelMapTable[instruction.channelMapEntry()];
   ChannelID returnChannel(id.tile.x, id.tile.y, channelMapEntry.getChannel(), channelMapEntry.getReturnChannel());
 
   loki_assert_with_message(!channelMapEntry.memoryView().scratchpadL1,
@@ -101,7 +101,7 @@ void MagicMemoryConnection::operate(const DecodedInst& instruction) {
       loki_assert(currentOpcode != PAYLOAD);
       loki_assert(payloadsRemaining > 0);
 
-      parent()->magicMemoryAccess(currentOpcode, currentAddress,
+      parent().magicMemoryAccess(currentOpcode, currentAddress,
           returnChannel, instruction.result());
 
       // All multi-payload operations act on words (rather than bytes, etc.).
@@ -121,7 +121,7 @@ void MagicMemoryConnection::operate(const DecodedInst& instruction) {
       else if (payloadsRemaining > 1)
         loki_assert_with_message(false, "Unhandled complex operation: %s", memoryOpName(memoryOp).c_str());
       else if (payloadsRemaining == 0)
-        parent()->magicMemoryAccess(currentOpcode, currentAddress, returnChannel);
+        parent().magicMemoryAccess(currentOpcode, currentAddress, returnChannel);
     }
 
     // Operation finished.
@@ -139,10 +139,10 @@ void MagicMemoryConnection::operate(const DecodedInst& instruction) {
       int payloads = numPayloadFlits(memoryOp);
       switch (payloads) {
         case 0:
-          parent()->magicMemoryAccess(memoryOp, instruction.result(), returnChannel);
+          parent().magicMemoryAccess(memoryOp, instruction.result(), returnChannel);
           break;
         case 1:
-          parent()->magicMemoryAccess(memoryOp, instruction.result(),
+          parent().magicMemoryAccess(memoryOp, instruction.result(),
               returnChannel, instruction.operand1());
           break;
         default:
@@ -153,6 +153,6 @@ void MagicMemoryConnection::operate(const DecodedInst& instruction) {
   }
 }
 
-Core* MagicMemoryConnection::parent() const {
-  return static_cast<Core*>(this->get_parent_object());
+Core& MagicMemoryConnection::parent() const {
+  return static_cast<Core&>(*(this->get_parent_object()));
 }

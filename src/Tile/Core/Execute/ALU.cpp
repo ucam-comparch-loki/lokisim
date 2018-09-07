@@ -28,7 +28,7 @@ void ALU::execute(DecodedInst& dec) {
   if (cyclesRemaining > 0)
     return;
 
-  bool pred = parent()->readPredicate();
+  bool pred = parent().readPredicate();
 
   // Cast to 32 bits because our architecture is supposed to use 32-bit
   // arithmetic.
@@ -108,20 +108,20 @@ cycle_count_t ALU::getFunctionLatency(function_t fn) {
 }
 
 void ALU::setPredicate(bool val) const {
-  parent()->writePredicate(val);
+  parent().writePredicate(val);
 }
 
-ExecuteStage* ALU::parent() const {
-  return static_cast<ExecuteStage*>(this->get_parent_object());
+ExecuteStage& ALU::parent() const {
+  return static_cast<ExecuteStage&>(*(this->get_parent_object()));
 }
 
-int32_t ALU::readReg(RegisterIndex reg) const {return parent()->readReg(reg);}
-int32_t ALU::readWord(MemoryAddr addr) const {return parent()->readWord(addr);}
-int32_t ALU::readByte(MemoryAddr addr) const {return parent()->readByte(addr);}
+int32_t ALU::readReg(RegisterIndex reg) const {return parent().readReg(reg);}
+int32_t ALU::readWord(MemoryAddr addr) const {return parent().readWord(addr);}
+int32_t ALU::readByte(MemoryAddr addr) const {return parent().readByte(addr);}
 
-void ALU::writeReg(RegisterIndex reg, Word data) const {parent()->writeReg(reg, data);}
-void ALU::writeWord(MemoryAddr addr, Word data) const {parent()->writeWord(addr, data);}
-void ALU::writeByte(MemoryAddr addr, Word data) const {parent()->writeByte(addr, data);}
+void ALU::writeReg(RegisterIndex reg, Word data) const {parent().writeReg(reg, data);}
+void ALU::writeWord(MemoryAddr addr, Word data) const {parent().writeWord(addr, data);}
+void ALU::writeByte(MemoryAddr addr, Word data) const {parent().writeByte(addr, data);}
 
 ALU::ALU(const sc_module_name& name, const ComponentID& ID) : LokiComponent(name, ID) {
   cyclesRemaining = 0;

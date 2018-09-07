@@ -198,7 +198,7 @@ private:
   // Determine if a request to a particular destination has been granted.
   bool             requestGranted(ChannelID destination) const;
 
-  ComputeTile*     parent() const;
+  ComputeTile&     parent() const;
 
   // Print out information about the environment this instruction executed in.
   void             trace(const DecodedInst& instruction) const;

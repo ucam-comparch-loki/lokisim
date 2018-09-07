@@ -34,32 +34,32 @@ uint Chip::computeTileIndex(TileID id) const {
 }
 
 bool Chip::isCore(ComponentID id) const {
-  return getTile(id.tile)->isCore(id);
+  return getTile(id.tile).isCore(id);
 }
 
 bool Chip::isMemory(ComponentID id) const {
-  return getTile(id.tile)->isMemory(id);
+  return getTile(id.tile).isMemory(id);
 }
 
 uint Chip::globalComponentIndex(ComponentID id) const {
   // Assumes all compute tiles are the same.
-  Tile* tile = getTile(id.tile);
-  return computeTileIndex(id.tile) * tile->numComponents() +
-         tile->componentIndex(id);
+  Tile& tile = getTile(id.tile);
+  return computeTileIndex(id.tile) * tile.numComponents() +
+         tile.componentIndex(id);
 }
 
 uint Chip::globalCoreIndex(ComponentID id) const {
   // Assumes all compute tiles are the same.
-  Tile* tile = getTile(id.tile);
-  return computeTileIndex(id.tile) * tile->numCores() +
-         tile->coreIndex(id);
+  Tile& tile = getTile(id.tile);
+  return computeTileIndex(id.tile) * tile.numCores() +
+         tile.coreIndex(id);
 }
 
 uint Chip::globalMemoryIndex(ComponentID id) const {
   // Assumes all compute tiles are the same.
-  Tile* tile = getTile(id.tile);
-  return computeTileIndex(id.tile) * tile->numMemories() +
-         tile->memoryIndex(id);
+  Tile& tile = getTile(id.tile);
+  return computeTileIndex(id.tile) * tile.numMemories() +
+         tile.memoryIndex(id);
 }
 
 bool Chip::isCore(ChannelID id) const {
@@ -71,65 +71,65 @@ bool Chip::isMemory(ChannelID id) const {
 }
 
 void Chip::storeInstructions(vector<Word>& instructions, const ComponentID& component) {
-  getTile(component.tile)->storeInstructions(instructions, component);
+  getTile(component.tile).storeInstructions(instructions, component);
 }
 
 void Chip::storeData(const DataBlock& data) {
   if (data.component() == ComponentID(2,0,0))
     mainMemory.storeData(data.payload(), data.position(), data.readOnly());
   else
-    getTile(data.component().tile)->storeData(data);
+    getTile(data.component().tile).storeData(data);
 }
 
 void Chip::print(const ComponentID& component, MemoryAddr start, MemoryAddr end) {
   if (MAGIC_MEMORY)
     mainMemory.print(start, end);
   else
-    getTile(component.tile)->print(component, start, end);
+    getTile(component.tile).print(component, start, end);
 }
 
 Word Chip::readWordInternal(const ComponentID& component, MemoryAddr addr) {
   if (MAGIC_MEMORY)
     return mainMemory.readWord(addr, MEMORY_SCRATCHPAD);
   else
-    return getTile(component.tile)->readWordInternal(component, addr);
+    return getTile(component.tile).readWordInternal(component, addr);
 }
 
 Word Chip::readByteInternal(const ComponentID& component, MemoryAddr addr) {
   if (MAGIC_MEMORY)
     return mainMemory.readByte(addr, MEMORY_SCRATCHPAD);
   else
-    return getTile(component.tile)->readByteInternal(component, addr);
+    return getTile(component.tile).readByteInternal(component, addr);
 }
 
 void Chip::writeWordInternal(const ComponentID& component, MemoryAddr addr, Word data) {
   if (MAGIC_MEMORY)
     mainMemory.writeWord(addr, data.toUInt(), MEMORY_SCRATCHPAD);
   else
-    getTile(component.tile)->writeWordInternal(component, addr, data);
+    getTile(component.tile).writeWordInternal(component, addr, data);
 }
 
 void Chip::writeByteInternal(const ComponentID& component, MemoryAddr addr, Word data) {
   if (MAGIC_MEMORY)
     mainMemory.writeByte(addr, data.toUInt(), MEMORY_SCRATCHPAD);
   else
-    getTile(component.tile)->writeByteInternal(component, addr, data);
+    getTile(component.tile).writeByteInternal(component, addr, data);
 }
 
 int Chip::readRegisterInternal(const ComponentID& component, RegisterIndex reg) const {
-  return getTile(component.tile)->readRegisterInternal(component, reg);
+  return getTile(component.tile).readRegisterInternal(component, reg);
 }
 
 bool Chip::readPredicateInternal(const ComponentID& component) const {
-  return getTile(component.tile)->readPredicateInternal(component);
+  return getTile(component.tile).readPredicateInternal(component);
 }
 
 void Chip::networkSendDataInternal(const NetworkData& flit) {
-  getTile(flit.channelID().component.tile)->networkSendDataInternal(flit);
+  getTile(flit.channelID().component.tile).networkSendDataInternal(flit);
 }
 
 void Chip::networkSendCreditInternal(const NetworkCredit& flit) {
-  getTile(flit.channelID().component.tile)->networkSendCreditInternal(flit);
+  getTile(flit.channelID().component.tile).networkSendCreditInternal(flit);
 }
 
 MemoryAddr Chip::getAddressTranslation(TileID tile, MemoryAddr address) const {
@@ -137,8 +137,8 @@ MemoryAddr Chip::getAddressTranslation(TileID tile, MemoryAddr address) const {
   // performed, so return the address as-is. Otherwise, query the tile's
   // directory to find out what transformation is necessary.
   if (isComputeTile(tile)) {
-    Tile* t = getTile(tile);
-    return static_cast<ComputeTile*>(t)->getAddressTranslation(address);
+    Tile& t = getTile(tile);
+    return static_cast<ComputeTile&>(t).getAddressTranslation(address);
   }
   else {
     return address;
@@ -153,8 +153,8 @@ bool Chip::backedByMainMemory(TileID tile, MemoryAddr address) const {
     return true;
   }
   else if (isComputeTile(tile)) {
-    Tile* t = getTile(tile);
-    return static_cast<ComputeTile*>(t)->backedByMainMemory(address);
+    Tile& t = getTile(tile);
+    return static_cast<ComputeTile&>(t).backedByMainMemory(address);
   }
   else {
     return false;
@@ -185,8 +185,8 @@ TileID Chip::nearestMemoryController(TileID tile) const {
   return closest;
 }
 
-Tile* Chip::getTile(TileID tile) const {
-  return tiles[tile.x][tile.y];
+Tile& Chip::getTile(TileID tile) const {
+  return *(tiles[tile.x][tile.y]);
 }
 
 const std::set<TileID> Chip::getMemoryControllerPositions(const chip_parameters_t& params) const {

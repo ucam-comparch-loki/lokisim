@@ -74,7 +74,7 @@ uint Tile::memoryIndex(ComponentID id) const {
 }
 
 bool Tile::isComputeTile(TileID id) const {
-  return chip()->isComputeTile(id);
+  return chip().isComputeTile(id);
 }
 
 void Tile::storeInstructions(vector<Word>& instructions, const ComponentID& component) {
@@ -126,10 +126,10 @@ void Tile::networkSendCreditInternal(const NetworkCredit& flit) {
 }
 
 void Tile::magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address, ChannelID returnChannel, Word payload) {
-  chip()->magicMemoryAccess(opcode, address, returnChannel, payload);
+  chip().magicMemoryAccess(opcode, address, returnChannel, payload);
 }
 
-Chip* Tile::chip() const {
-  return static_cast<Chip*>(this->get_parent_object());
+Chip& Tile::chip() const {
+  return static_cast<Chip&>(*(this->get_parent_object()));
 }
 

@@ -105,7 +105,7 @@ private:
   // and we don't want to send both in the same cycle.
   bool sentInstThisCycle() const;
 
-  FetchStage* parent() const;
+  FetchStage& parent() const;
 
 //============================================================================//
 // Local state

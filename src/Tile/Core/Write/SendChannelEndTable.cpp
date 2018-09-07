@@ -23,7 +23,7 @@ void SendChannelEndTable::write(const NetworkData data) {
     LOKI_LOG << this->name() << " writing " << data << " to buffer (local)\n";
     bufferLocal.write(data);
   }
-  else if (core()->isMemory(data.channelID().component)) {
+  else if (core().isMemory(data.channelID().component)) {
     loki_assert(!bufferMemory.full());
     LOKI_LOG << this->name() << " writing " << data << " to buffer (memory)\n";
     Instrumentation::Latency::coreBufferedMemoryRequest(id, data);
@@ -36,7 +36,7 @@ void SendChannelEndTable::write(const NetworkData data) {
 
     // Check whether we're sending to a valid address.
     TileID tile = data.channelID().component.tile;
-    if (!core()->isComputeTile(tile)) {
+    if (!core().isComputeTile(tile)) {
       LOKI_WARN << "Preparing to send data outside bounds of simulated chip." << endl;
       LOKI_WARN << "  Source: " << id << ", destination: " << data.channelID() << endl;
 //      LOKI_WARN << "  Simulating up to tile (" << TOTAL_TILE_COLUMNS-1 << "," << TOTAL_TILE_ROWS-1 << ")" << endl;
@@ -175,7 +175,7 @@ void SendChannelEndTable::sendLoopMemory() {
       // Remove the request for network resources if the previous data sent was
       // the end of a data packet.
       const NetworkData& data = oDataMemory.read();
-      if (core()->isMemory(data.channelID().component) && data.getMetadata().endOfPacket)
+      if (core().isMemory(data.channelID().component) && data.getMetadata().endOfPacket)
         requestArbitration(data.channelID(), false);
 
       if (bufferMemory.empty()) {
@@ -270,11 +270,11 @@ void SendChannelEndTable::sendLoopGlobal() {
 }
 
 void SendChannelEndTable::requestArbitration(ChannelID destination, bool request) {
-  parent()->requestArbitration(destination, request);
+  parent().requestArbitration(destination, request);
 }
 
 bool SendChannelEndTable::requestGranted(ChannelID destination) const {
-  return parent()->requestGranted(destination);
+  return parent().requestGranted(destination);
 }
 
 void SendChannelEndTable::receivedCredit() {
@@ -292,12 +292,12 @@ void SendChannelEndTable::receiveCreditInternal(const NetworkCredit& credit) {
   channelMapTable->addCredit(targetCounter, credit.payload().toUInt());
 }
 
-WriteStage* SendChannelEndTable::parent() const {
-  return static_cast<WriteStage*>(this->get_parent_object());
+WriteStage& SendChannelEndTable::parent() const {
+  return static_cast<WriteStage&>(*(this->get_parent_object()));
 }
 
-Core* SendChannelEndTable::core() const {
-  return parent()->core();
+Core& SendChannelEndTable::core() const {
+  return parent().core();
 }
 
 void SendChannelEndTable::reportStalls(ostream& os) {

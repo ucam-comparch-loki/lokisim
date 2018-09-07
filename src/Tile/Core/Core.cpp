@@ -99,19 +99,19 @@ bool     Core::readPredReg(bool waitForExecution, const DecodedInst& inst) {
 void     Core::writePredReg(bool val)  {pred.write(val);}
 
 const Word Core::readWord(MemoryAddr addr) {
-  return Word(parent()->readWordInternal(getSystemCallMemory(addr), addr));
+  return Word(parent().readWordInternal(getSystemCallMemory(addr), addr));
 }
 
 const Word Core::readByte(MemoryAddr addr) {
-  return Word(parent()->readByteInternal(getSystemCallMemory(addr), addr));
+  return Word(parent().readByteInternal(getSystemCallMemory(addr), addr));
 }
 
 void Core::writeWord(MemoryAddr addr, Word data) {
-  parent()->writeWordInternal(getSystemCallMemory(addr), addr, data);
+  parent().writeWordInternal(getSystemCallMemory(addr), addr, data);
 }
 
 void Core::writeByte(MemoryAddr addr, Word data) {
-  parent()->writeByteInternal(getSystemCallMemory(addr), addr, data);
+  parent().writeByteInternal(getSystemCallMemory(addr), addr, data);
 }
 
 void Core::magicMemoryAccess(const DecodedInst& instruction) {
@@ -119,7 +119,7 @@ void Core::magicMemoryAccess(const DecodedInst& instruction) {
 }
 
 void Core::magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address, ChannelID returnChannel, Word payload) {
-  parent()->magicMemoryAccess(opcode, address, returnChannel, payload);
+  parent().magicMemoryAccess(opcode, address, returnChannel, payload);
 }
 
 void Core::deliverDataInternal(const NetworkData& flit) {
@@ -146,27 +146,27 @@ size_t Core::numInputDataBuffers() const {
 }
 
 uint Core::coreIndex() const {
-  return parent()->coreIndex(id);
+  return parent().coreIndex(id);
 }
 
 uint Core::coresThisTile() const {
-  return parent()->numCores();
+  return parent().numCores();
 }
 
 uint Core::globalCoreIndex() const {
-  return parent()->globalCoreIndex(id);
+  return parent().globalCoreIndex(id);
 }
 
 bool Core::isCore(ComponentID id) const {
-  return parent()->isCore(id);
+  return parent().isCore(id);
 }
 
 bool Core::isMemory(ComponentID id) const {
-  return parent()->isMemory(id);
+  return parent().isMemory(id);
 }
 
 bool Core::isComputeTile(TileID id) const {
-  return parent()->isComputeTile(id);
+  return parent().isComputeTile(id);
 }
 
 int32_t  Core::readRCET(ChannelIndex channel) {
@@ -218,15 +218,15 @@ void     Core::idle(bool state) {
 void Core::requestArbitration(ChannelID destination, bool request) {
   // Could have extra ports and write to them from here, but for the moment,
   // access the network directly.
-  parent()->makeRequest(id, destination, request);
+  parent().makeRequest(id, destination, request);
 }
 
 bool Core::requestGranted(ChannelID destination) const {
-  return parent()->requestGranted(id, destination);
+  return parent().requestGranted(id, destination);
 }
 
-ComputeTile* Core::parent() const {
-  return static_cast<ComputeTile*>(this->get_parent_object());
+ComputeTile& Core::parent() const {
+  return static_cast<ComputeTile&>(*(this->get_parent_object()));
 }
 
 void Core::trace(const DecodedInst& inst) const {
@@ -246,7 +246,7 @@ void Core::trace(const DecodedInst& inst) const {
   }
 
   printf("CPU%d 0x%08x: %s %d %d %d %d %d %d p=%d, regs={%s}\n",
-      parent()->globalCoreIndex(id), inst.location(), inst.name().c_str(),
+      parent().globalCoreIndex(id), inst.location(), inst.name().c_str(),
       inst.destination(), inst.sourceReg1(), inst.sourceReg2(),
       inst.immediate(), inst.immediate2(), inst.channelMapEntry(),
       pred.read(), regbuf);
@@ -256,7 +256,7 @@ ComponentID Core::getSystemCallMemory(MemoryAddr address) {
   // If accessing a group of memories, determine which bank to access.
   uint increment = channelMapTable[1].computeAddressIncrement(address);
   return ComponentID(id.tile,
-      channelMapTable[1].memoryView().bank + increment + parent()->numCores());
+      channelMapTable[1].memoryView().bank + increment + coresThisTile());
 }
 
 /* Returns the channel ID of this core's instruction packet FIFO. */

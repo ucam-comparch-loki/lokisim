@@ -99,8 +99,8 @@ private:
   void          requestArbitration(ChannelID destination, bool request);
   bool          requestGranted(ChannelID destination) const;
 
-  WriteStage*   parent() const;
-  Core*         core() const;
+  WriteStage&   parent() const;
+  Core&         core() const;
 
 //============================================================================//
 // Local state

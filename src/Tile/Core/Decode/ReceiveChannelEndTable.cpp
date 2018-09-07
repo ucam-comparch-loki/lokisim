@@ -69,7 +69,7 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd(unsigned int bitmask, cons
     i = currentChannel.value();
     if (((bitmask >> i) & 1) && !buffers[i].empty()) {
         // Adjust address so it can be accessed like a register
-        return parent()->core()->regs.fromChannelID(i);
+        return parent().core().regs.fromChannelID(i);
     }
   }
 
@@ -116,8 +116,8 @@ void ReceiveChannelEndTable::dataConsumedAction(ChannelIndex buffer) {
   oDataConsumed[buffer].write(!oDataConsumed[buffer].read());
 }
 
-DecodeStage* ReceiveChannelEndTable::parent() const {
-  return static_cast<DecodeStage*>(this->get_parent_object());
+DecodeStage& ReceiveChannelEndTable::parent() const {
+  return static_cast<DecodeStage&>(*(this->get_parent_object()));
 }
 
 void ReceiveChannelEndTable::reportStalls(ostream& os) {

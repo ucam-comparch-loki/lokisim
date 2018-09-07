@@ -42,7 +42,7 @@ public:
 
 public:
   SC_HAS_PROCESS(L2RequestFilter);
-  L2RequestFilter(const sc_module_name& name, ComponentID id, MemoryBank* localBank);
+  L2RequestFilter(const sc_module_name& name, ComponentID id, MemoryBank& localBank);
   virtual ~L2RequestFilter();
 
 private:
@@ -58,8 +58,6 @@ private:
   // may interfere (e.g. flushing some data which is about to be read).
   void delayLoop();
 
-  MemoryBank* parent() const;
-
 //============================================================================//
 // Local state
 //============================================================================//
@@ -74,7 +72,7 @@ private:
   };
   FilterState state;
 
-  const MemoryBank*     localBank;
+  const MemoryBank& localBank;
 
 
 };

@@ -105,7 +105,7 @@ private:
   // Toggle signals to indicate when data has been consumed.
   void dataConsumedAction(ChannelIndex buffer);
 
-  DecodeStage* parent() const;
+  DecodeStage& parent() const;
 
 //============================================================================//
 // Local state

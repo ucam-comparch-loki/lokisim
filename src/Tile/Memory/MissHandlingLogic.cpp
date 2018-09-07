@@ -102,7 +102,7 @@ bool MissHandlingLogic::backedByMainMemory(MemoryAddr address) const {
   if (scratchpad)
     return false;
   else
-    return chip()->backedByMainMemory(nextTile, newAddress);
+    return chip().backedByMainMemory(nextTile, newAddress);
 }
 
 MemoryAddr MissHandlingLogic::getAddressTranslation(MemoryAddr address) const {
@@ -115,7 +115,7 @@ MemoryAddr MissHandlingLogic::getAddressTranslation(MemoryAddr address) const {
   if (scratchpad)
     return newAddress;
   else
-    return chip()->getAddressTranslation(nextTile, newAddress);
+    return chip().getAddressTranslation(nextTile, newAddress);
 }
 
 void MissHandlingLogic::localRequestLoop() {
@@ -385,10 +385,9 @@ const sc_event& MissHandlingLogic::newNetworkDataEvent() const {
 }
 
 TileID MissHandlingLogic::nearestMemoryController() const {
-  ComputeTile* tile = static_cast<ComputeTile*>(this->get_parent_object());
-  return tile->chip()->nearestMemoryController(id.tile);
+  return chip().nearestMemoryController(id.tile);
 }
 
-Chip* MissHandlingLogic::chip() const {
+Chip& MissHandlingLogic::chip() const {
   return static_cast<ComputeTile*>(this->get_parent_object())->chip();
 }

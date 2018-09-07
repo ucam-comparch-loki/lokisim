@@ -18,7 +18,7 @@ int32_t RegisterFile::read(PortIndex port, RegisterIndex reg, bool indirect) con
   RegisterIndex index;
 
   if (indirect) {
-    if (isChannelEnd(reg)) index = parent()->readRCET(toChannelID(reg));
+    if (isChannelEnd(reg)) index = parent().readRCET(toChannelID(reg));
     else                   index = readInternal(reg);
   }
   else index = reg;
@@ -32,7 +32,7 @@ int32_t RegisterFile::read(PortIndex port, RegisterIndex reg, bool indirect) con
   if (isChannelEnd(index)) {
     // Do we want to allow indirecting into the channel end table? I think
     // we need it to make the selch instruction useful.
-    return parent()->readRCET(toChannelID(index));
+    return parent().readRCET(toChannelID(index));
   }
   else {
     int data = readInternal(reg);
@@ -88,7 +88,7 @@ bool RegisterFile::isReserved(RegisterIndex position) const {
 
 bool RegisterFile::isChannelEnd(RegisterIndex position) const {
   return position >= START_OF_INPUT_CHANNELS
-      && position <  START_OF_INPUT_CHANNELS + parent()->numInputDataBuffers();
+      && position <  START_OF_INPUT_CHANNELS + parent().numInputDataBuffers();
 }
 
 bool RegisterFile::isAddressableReg(RegisterIndex position) const {
@@ -110,7 +110,7 @@ RegisterIndex RegisterFile::toChannelID(RegisterIndex position) const {
 }
 
 RegisterIndex RegisterFile::fromChannelID(RegisterIndex position) const {
-  assert(position < parent()->numInputDataBuffers());
+  assert(position < parent().numInputDataBuffers());
   return position + START_OF_INPUT_CHANNELS;
 }
 
@@ -134,8 +134,8 @@ void RegisterFile::logActivity() {
   }
 }
 
-Core* RegisterFile::parent() const {
-  return static_cast<Core*>(this->get_parent_object());
+Core& RegisterFile::parent() const {
+  return static_cast<Core&>(*(this->get_parent_object()));
 }
 
 RegisterFile::RegisterFile(sc_module_name name, const ComponentID& ID,

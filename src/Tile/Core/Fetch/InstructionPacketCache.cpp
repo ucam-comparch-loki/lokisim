@@ -34,12 +34,12 @@ void InstructionPacketCache::storeCode(const std::vector<Instruction>& instructi
     InstLocation location;
     location.component = IPKCACHE;
     location.index = writePos;
-    parent()->newPacketArriving(location);
+    parent().newPacketArriving(location);
   }
   finishedPacketWrite = instructions.back().endOfPacket();
 
   if (finishedPacketWrite)
-    parent()->packetFinishedArriving(IPKCACHE);
+    parent().packetFinishedArriving(IPKCACHE);
 
   // SystemC segfaults if we notify an event before simulation has started.
   if (sc_core::sc_start_of_simulation_invoked())
@@ -47,7 +47,7 @@ void InstructionPacketCache::storeCode(const std::vector<Instruction>& instructi
 }
 
 const Instruction InstructionPacketCache::read() {
-  Instrumentation::IPKCache::read(*(parent()->core()));
+  Instrumentation::IPKCache::read(parent().core());
 
   Instruction inst = cache->read();
   cacheRead.notify(sc_core::SC_ZERO_TIME);
@@ -60,7 +60,7 @@ const Instruction InstructionPacketCache::read() {
 
 void InstructionPacketCache::write(const Instruction inst) {
   if (ENERGY_TRACE)
-    Instrumentation::IPKCache::write(*(parent()->core()));
+    Instrumentation::IPKCache::write(parent().core());
   LOKI_LOG << this->name() << " received Instruction: " << inst << endl;
 
   CacheIndex writePos = cache->write(inst);
@@ -72,7 +72,7 @@ void InstructionPacketCache::write(const Instruction inst) {
     InstLocation location;
     location.component = IPKCACHE;
     location.index = writePos;
-    MemoryAddr tag = parent()->newPacketArriving(location);
+    MemoryAddr tag = parent().newPacketArriving(location);
     cache->setTag(tag);
     lastWriteAddr = tag;
   }
@@ -83,7 +83,7 @@ void InstructionPacketCache::write(const Instruction inst) {
 
   finishedPacketWrite = inst.endOfPacket();
   if (finishedPacketWrite)
-    parent()->packetFinishedArriving(IPKCACHE);
+    parent().packetFinishedArriving(IPKCACHE);
 }
 
 CacheIndex InstructionPacketCache::lookup(MemoryAddr tag) {
@@ -153,8 +153,8 @@ bool InstructionPacketCache::roomToFetch() const {
   return cache->canFetch();
 }
 
-FetchStage* InstructionPacketCache::parent() const {
-  return static_cast<FetchStage*>(this->get_parent_object());
+FetchStage& InstructionPacketCache::parent() const {
+  return static_cast<FetchStage&>(*(this->get_parent_object()));
 }
 
 /* Constructors and destructors */

@@ -79,7 +79,7 @@ private:
 
   void logActivity();
 
-  Core* parent() const;
+  Core& parent() const;
 
 //============================================================================//
 // Local state

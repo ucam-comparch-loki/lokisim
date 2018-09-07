@@ -151,8 +151,8 @@ private:
   // The network address of the memory controller.
   TileID nearestMemoryController() const;
 
-  // A pointer to the parent chip.
-  Chip* chip() const;
+  // A reference to the parent chip.
+  Chip& chip() const;
 
 //============================================================================//
 // Local state

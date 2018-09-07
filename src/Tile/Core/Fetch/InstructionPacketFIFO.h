@@ -87,7 +87,7 @@ private:
 
   void dataConsumedAction();
 
-  FetchStage* parent() const;
+  FetchStage& parent() const;
 
 //============================================================================//
 // Local state

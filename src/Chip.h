@@ -95,7 +95,7 @@ public:
 
 private:
 
-  Tile*   getTile(TileID tile) const;
+  Tile&   getTile(TileID tile) const;
 
   // For initialisation only. Allows other components to be initialised based
   // on the properties of the memoryControllerPositions set.

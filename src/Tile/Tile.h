@@ -108,7 +108,7 @@ public:
 protected:
 
   // Return a pointer to the chip to which this tile belongs.
-  Chip* chip() const;
+  Chip& chip() const;
 
 };
 

@@ -21,10 +21,10 @@ void         DecodeStage::execute() {
     // Only consider the core idle if the next pipeline stage is ready to
     // receive an instruction, but we don't have one to pass to it.
     if (canSendInstruction())
-      core()->idle(true);
+      core().idle(true);
 
     wait(newInstructionEvent);
-    core()->idle(false);
+    core().idle(false);
 
     newInput(currentInst);
     instructionCompleted();
@@ -58,9 +58,9 @@ void         DecodeStage::persistentInstruction(DecodedInst& inst) {
   // Determine if any of the registers read by this instruction are in fact
   // constants. Constants only need to be read once, not every cycle.
   bool constantReg1 = inst.hasSrcReg1() && (inst.sourceReg1() != inst.destination())
-      && !core()->regs.isChannelEnd(inst.sourceReg1());
+      && !core().regs.isChannelEnd(inst.sourceReg1());
   bool constantReg2 = inst.hasSrcReg2() && (inst.sourceReg2() != inst.destination())
-      && !core()->regs.isChannelEnd(inst.sourceReg2());
+      && !core().regs.isChannelEnd(inst.sourceReg2());
 
   while (true) {
     wait(clock.posedge_event());
@@ -96,7 +96,7 @@ void         DecodeStage::newInput(DecodedInst& inst) {
   // If this is the first instruction of a new packet, update the current
   // packet pointer.
   if (startingNewPacket)
-    core()->updateCurrentPacket(inst.location());
+    core().updateCurrentPacket(inst.location());
 
   // The next instruction will be the start of a new packet if this is the
   // end of the current one.
@@ -178,17 +178,17 @@ bool         DecodeStage::isStalled() const {
 }
 
 int32_t      DecodeStage::readReg(PortIndex port, RegisterIndex index, bool indirect) const {
-  return core()->readReg(port, index, indirect);
+  return core().readReg(port, index, indirect);
 }
 
 int32_t      DecodeStage::getForwardedData() const {
-  return core()->getForwardedData();
+  return core().getForwardedData();
 }
 
 bool         DecodeStage::predicate(const DecodedInst& inst) const {
   // true = wait for the execute stage to write the predicate first, if
   // necessary
-  return core()->readPredReg(true, inst);
+  return core().readPredReg(true, inst);
 }
 
 void         DecodeStage::readChannelMapTable(DecodedInst& inst) {
@@ -245,7 +245,7 @@ void DecodeStage::waitOnCredits(DecodedInst& inst) {
 }
 
 ChannelMapEntry& DecodeStage::channelMapTableEntry(MapIndex entry) const {
-  return core()->channelMapTable[entry];
+  return core().channelMapTable[entry];
 }
 
 void         DecodeStage::startRemoteExecution(const DecodedInst& inst) {
@@ -292,7 +292,7 @@ int32_t      DecodeStage::readChannelInternal(ChannelIndex index) const {
 }
 
 void         DecodeStage::deliverDataInternal(const NetworkData& flit) {
-  ChannelIndex buffer = core()->regs.toChannelID(flit.channelID().channel);
+  ChannelIndex buffer = core().regs.toChannelID(flit.channelID().channel);
   rcet.writeInternal(buffer, flit.payload().toInt());
 }
 
@@ -314,13 +314,13 @@ void DecodeStage::fetch(const DecodedInst& inst) {
       break;
 
     case ISA::OP_PSEL_FETCH:
-      fetchAddress = core()->readPredReg(true, inst) ? inst.operand1() : inst.operand2();
+      fetchAddress = core().readPredReg(true, inst) ? inst.operand1() : inst.operand2();
       break;
 
     case ISA::OP_PSEL_FETCHR: {
       int immed1 = inst.immediate();
       int immed2 = inst.immediate2();
-      fetchAddress = readReg(1, 1) + BYTES_PER_WORD*(core()->readPredReg(true, inst) ? immed1 : immed2);
+      fetchAddress = readReg(1, 1) + BYTES_PER_WORD*(core().readPredReg(true, inst) ? immed1 : immed2);
       break;
     }
 
@@ -334,7 +334,7 @@ void DecodeStage::fetch(const DecodedInst& inst) {
   }
   else {
     LOKI_LOG << this->name() << " fetching from address " << LOKI_HEX(fetchAddress) << endl;
-    core()->checkTags(fetchAddress, inst.opcode(), inst.cmtEntry());
+    core().checkTags(fetchAddress, inst.opcode(), inst.cmtEntry());
   }
 
   // Start suppressing further fetches after the first fetch of an instruction
@@ -342,7 +342,7 @@ void DecodeStage::fetch(const DecodedInst& inst) {
   fetchSuppressionMode = true;
 
   if (updateFetchAddress)
-    core()->updateFetchAddressCReg(fetchAddress);
+    core().updateFetchAddressCReg(fetchAddress);
 
   // Only update the fetch address for "normal" fetches (not interrupts).
   if (inst.source() == IPKCACHE ||
@@ -352,11 +352,11 @@ void DecodeStage::fetch(const DecodedInst& inst) {
 }
 
 bool         DecodeStage::canFetch() const {
-  return core()->canCheckTags();
+  return core().canCheckTags();
 }
 
 bool         DecodeStage::connectionFromMemory(ChannelIndex channel) const {
-  return core()->channelMapTable.connectionFromMemory(channel);
+  return core().channelMapTable.connectionFromMemory(channel);
 }
 
 bool         DecodeStage::testChannel(ChannelIndex index) const {
@@ -372,11 +372,11 @@ const sc_event& DecodeStage::receivedDataEvent(ChannelIndex buffer) const {
 }
 
 void         DecodeStage::jump(JumpOffset offset) const {
-  core()->jump(offset);
+  core().jump(offset);
 }
 
 void         DecodeStage::instructionExecuted() {
-  core()->cregs.instructionExecuted();
+  core().cregs.instructionExecuted();
 }
 
 void         DecodeStage::unstall() {

@@ -37,16 +37,16 @@ uint ComputeTile::memoryIndex(ComponentID id) const {
 }
 
 uint ComputeTile::globalCoreIndex(ComponentID id) const {
-  return chip()->globalCoreIndex(id);
+  return chip().globalCoreIndex(id);
 }
 
 uint ComputeTile::globalMemoryIndex(ComponentID id) const {
-  return chip()->globalMemoryIndex(id);
+  return chip().globalMemoryIndex(id);
 }
 
 void ComputeTile::storeInstructions(vector<Word>& instructions, const ComponentID& component) {
   if (component.tile != id.tile)
-    chip()->storeInstructions(instructions, component);
+    chip().storeInstructions(instructions, component);
   else {
     loki_assert(isCore(component));
     cores[coreIndex(component)]->storeData(instructions);
@@ -55,7 +55,7 @@ void ComputeTile::storeInstructions(vector<Word>& instructions, const ComponentI
 
 void ComputeTile::storeData(const DataBlock& data) {
   if (data.component().tile != id.tile) {
-    chip()->storeData(data);
+    chip().storeData(data);
   }
   else if (isCore(data.component())) {
     cores[coreIndex(data.component())]->storeData(data.payload());
@@ -70,7 +70,7 @@ void ComputeTile::storeData(const DataBlock& data) {
 
 void ComputeTile::print(const ComponentID& component, MemoryAddr start, MemoryAddr end) {
   if (component.tile != id.tile || MAGIC_MEMORY)
-    chip()->print(component, start, end);
+    chip().print(component, start, end);
   else if (isMemory(component))
     memories[memoryIndex(component)]->print(start, end);
 }
@@ -125,33 +125,33 @@ Word ComputeTile::readWordInternal(const ComponentID& component, MemoryAddr addr
   if (component.tile == id.tile && isMemory(component) && !MAGIC_MEMORY)
     return memories[memoryIndex(component)]->readWordDebug(addr);
   else
-    return chip()->readWordInternal(component, addr);
+    return chip().readWordInternal(component, addr);
 }
 
 Word ComputeTile::readByteInternal(const ComponentID& component, MemoryAddr addr) {
   if (component.tile == id.tile && isMemory(component) && !MAGIC_MEMORY)
     return memories[memoryIndex(component)]->readByteDebug(addr);
   else
-    return chip()->readByteInternal(component, addr);
+    return chip().readByteInternal(component, addr);
 }
 
 void ComputeTile::writeWordInternal(const ComponentID& component, MemoryAddr addr, Word data) {
   if (component.tile == id.tile && isMemory(component) && !MAGIC_MEMORY)
     memories[memoryIndex(component)]->writeWordDebug(addr, data);
   else
-    chip()->writeWordInternal(component, addr, data);
+    chip().writeWordInternal(component, addr, data);
 }
 
 void ComputeTile::writeByteInternal(const ComponentID& component, MemoryAddr addr, Word data) {
   if (component.tile == id.tile && isMemory(component) && !MAGIC_MEMORY)
     memories[memoryIndex(component)]->writeByteDebug(addr, data);
   else
-    chip()->writeByteInternal(component, addr, data);
+    chip().writeByteInternal(component, addr, data);
 }
 
 int  ComputeTile::readRegisterInternal(const ComponentID& component, RegisterIndex reg) const {
   if (component.tile != id.tile)
-    return chip()->readRegisterInternal(component, reg);
+    return chip().readRegisterInternal(component, reg);
   else {
     loki_assert(isCore(component));
     return cores[coreIndex(component)]->readRegDebug(reg);
@@ -160,7 +160,7 @@ int  ComputeTile::readRegisterInternal(const ComponentID& component, RegisterInd
 
 bool ComputeTile::readPredicateInternal(const ComponentID& component) const {
   if (component.tile != id.tile)
-    return chip()->readPredicateInternal(component);
+    return chip().readPredicateInternal(component);
   else {
     loki_assert(isCore(component));
     return cores[coreIndex(component)]->readPredReg();
@@ -169,7 +169,7 @@ bool ComputeTile::readPredicateInternal(const ComponentID& component) const {
 
 void ComputeTile::networkSendDataInternal(const NetworkData& flit) {
   if (flit.channelID().component.tile != id.tile)
-    chip()->networkSendDataInternal(flit);
+    chip().networkSendDataInternal(flit);
   else {
     loki_assert(isCore(flit.channelID().component));
     cores[coreIndex(flit.channelID().component)]->deliverDataInternal(flit);
@@ -178,7 +178,7 @@ void ComputeTile::networkSendDataInternal(const NetworkData& flit) {
 
 void ComputeTile::networkSendCreditInternal(const NetworkCredit& flit) {
   if (flit.channelID().component.tile != id.tile)
-    chip()->networkSendCreditInternal(flit);
+    chip().networkSendCreditInternal(flit);
   else {
     loki_assert(isCore(flit.channelID().component));
     cores[coreIndex(flit.channelID().component)]->deliverCreditInternal(flit);
@@ -213,7 +213,7 @@ void ComputeTile::makeComponents(const tile_parameters_t& params) {
 
     MemoryBank* m = new MemoryBank(sc_gen_unique_name("memory"), memoryID,
                                    params.numMemories, params.memory);
-    m->setBackgroundMemory(&(chip()->mainMemory));
+    m->setBackgroundMemory(&(chip().mainMemory));
 
     memories.push_back(m);
   }

@@ -212,8 +212,8 @@ private:
   // Determine how large the request queue must be to prevent deadlock.
   static size_t requestQueueSize(const memory_bank_parameters_t& params);
 
-  ComputeTile* parent() const;
-  Chip* chip() const;
+  ComputeTile& parent() const;
+  Chip& chip() const;
 
 protected:
 
