@@ -10,12 +10,14 @@
 #include "../../Utility/Assert.h"
 
 void Mesh::makeRouters(size2d_t tiles, const router_parameters_t& params) {
+  routers.init(tiles.width);
+
   for (unsigned int row=0; row<tiles.height; row++) {
     for (unsigned int col=0; col<tiles.width; col++) {
       ComponentID routerID(col, row, 0);
       std::stringstream name;
       name << "router_" << routerID.tile.getNameString();
-      routers[col][row] = new Router(name.str().c_str(), routerID, params);
+      routers[col].push_back(new Router(name.str().c_str(), routerID, params));
     }
   }
 }
@@ -36,7 +38,7 @@ void Mesh::makeWires(size2d_t tiles) {
 void Mesh::wireUp(size2d_t tiles) {
   for (unsigned int col=0; col<tiles.width; col++) {
     for (unsigned int row=0; row<tiles.height; row++) {
-      Router& router = *routers[col][row];
+      Router& router = routers[col][row];
       router.clock(clock);
 
       // Data heading north-south
@@ -119,8 +121,7 @@ Mesh::Mesh(const sc_module_name& name,
     iData("iData", size.width, size.height),
     oData("oData", size.width, size.height),
     oReady("oReady", size.width, size.height),
-    iReady("iReady", size.width, size.height),
-    routers(size.width, std::vector<Router*>(size.height)) {
+    iReady("iReady", size.width, size.height) {
 
   // Can only handle inter-tile mesh networks at the moment.
   loki_assert(level == Network::TILE);
@@ -129,13 +130,4 @@ Mesh::Mesh(const sc_module_name& name,
   makeWires(size);
   wireUp(size);
 
-}
-
-Mesh::~Mesh() {
-  for (unsigned int i=0; i<routers.size(); i++)
-    for (unsigned int j=0; j<routers[i].size(); j++)
-      delete routers[i][j];
-
-  for (unsigned int i=0; i<edges.size(); i++)
-    delete edges[i];
 }

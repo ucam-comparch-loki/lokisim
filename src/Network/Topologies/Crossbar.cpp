@@ -8,9 +8,10 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "Crossbar.h"
-#include "../Multiplexer.h"
-#include "../Arbiters/ClockedArbiter.h"
 #include "../../Utility/Instrumentation/Network.h"
+
+using sc_core::sc_gen_unique_name;
+using sc_core::sc_module_name;
 
 void Crossbar::inputChanged(const PortIndex port) {
   if (ENERGY_TRACE)
@@ -109,9 +110,4 @@ Crossbar::Crossbar(const sc_module_name& name,
     SPAWN_METHOD(iData[i], Crossbar::inputChanged, i, false);
   for (uint i=0; i<oData.size(); i++)
     SPAWN_METHOD(oData[i], Crossbar::outputChanged, i, false);
-}
-
-Crossbar::~Crossbar() {
-  for (unsigned int i=0; i<arbiters.size(); i++) delete arbiters[i];
-  for (unsigned int i=0; i<muxes.size();    i++) delete muxes[i];
 }

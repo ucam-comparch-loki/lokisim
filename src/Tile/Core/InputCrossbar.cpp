@@ -8,8 +8,9 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "InputCrossbar.h"
-#include "../../Network/FlowControl/FlowControlIn.h"
 #include "../../Utility/Assert.h"
+
+using sc_core::sc_module_name;
 
 const PortIndex INACTIVE = -1;
 
@@ -111,9 +112,4 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID,
 
     creditNet.iData[i](creditsToNetwork[i]);
   }
-}
-
-InputCrossbar::~InputCrossbar() {
-  for (unsigned int i=0; i<flowControl.size(); i++)
-    delete flowControl[i];
 }

@@ -13,6 +13,7 @@
 #include "../Utility/LokiVector.h"
 #include "NetworkTypes.h"
 
+using sc_core::sc_module_name;
 
 class Multiplexer: public LokiComponent, public BlockingInterface {
 

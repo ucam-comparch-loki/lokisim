@@ -8,7 +8,6 @@
 #include "Core.h"
 
 #include "ControlRegisters.h"
-#include "PipelineRegister.h"
 #include "../ComputeTile.h"
 #include "../../Datatype/DecodedInst.h"
 #include "../../Utility/Assert.h"
@@ -197,7 +196,7 @@ void     Core::pipelineStalled(bool stalled) {
 bool     Core::discardInstruction(int stage) {
   // The first pipeline stage to have a stall register before it is the 2nd.
   // Therefore reduce the index by 2 to get the position in the array.
-  return pipelineRegs[stage-2]->discard();
+  return pipelineRegs[stage-2].discard();
 }
 
 void     Core::nextIPK() {
@@ -205,7 +204,7 @@ void     Core::nextIPK() {
   decode.unstall();
 
   // Discard any instructions which were queued up behind any stalled stages.
-  while(pipelineRegs[0]->discard())
+  while(pipelineRegs[0].discard())
     /* continue discarding */;
 }
 
@@ -342,7 +341,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
   fetch.oDataConsumed[0](dataConsumed[0]);  fetch.oDataConsumed[1](dataConsumed[1]);
   fetch.oFetchRequest(fetchFlitSignal);
   fetch.iOutputBufferReady(stageReady[2]);
-  fetch.initPipeline(NULL, pipelineRegs[0]);
+  fetch.initPipeline(NULL, &pipelineRegs[0]);
 
   decode.clock(clock);
   decode.oReady(stageReady[0]);
@@ -352,12 +351,12 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
     decode.oFlowControl[i-numInstructionChannels](fcFromBuffers[i]);
     decode.oDataConsumed[i-numInstructionChannels](dataConsumed[i]);
   }
-  decode.initPipeline(pipelineRegs[0], pipelineRegs[1]);
+  decode.initPipeline(&pipelineRegs[0], &pipelineRegs[1]);
 
   execute.clock(clock);
   execute.oReady(stageReady[1]);
   execute.oData(dataFlitSignal);            execute.iReady(stageReady[2]);
-  execute.initPipeline(pipelineRegs[1], pipelineRegs[2]);
+  execute.initPipeline(&pipelineRegs[1], &pipelineRegs[2]);
 
   write.clock(clock);
   write.oReady(stageReady[2]);
@@ -367,5 +366,5 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
   write.oDataLocal(oMulticast);
   write.oDataGlobal(oDataGlobal);
   write.iCredit(iCredit);
-  write.initPipeline(pipelineRegs[2], NULL);
+  write.initPipeline(&pipelineRegs[2], NULL);
 }

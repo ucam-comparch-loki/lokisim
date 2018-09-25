@@ -15,6 +15,8 @@
 
 #include "Crossbar.h"
 
+using sc_core::sc_module_name;
+
 class MulticastNetwork: public Crossbar {
 
 //============================================================================//

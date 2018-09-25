@@ -17,6 +17,8 @@
 #include "../Network.h"
 #include "../NetworkTypes.h"
 
+using sc_core::sc_module_name;
+
 class Bus: public Network {
 
 //============================================================================//

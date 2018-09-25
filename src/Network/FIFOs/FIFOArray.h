@@ -14,6 +14,7 @@
 #ifndef BUFFERARRAY_H_
 #define BUFFERARRAY_H_
 
+#include "../../Utility/LokiVector.h"
 #include "NetworkFIFO.h"
 
 template<class T>
@@ -27,7 +28,7 @@ public:
 
   // Allows any method of the Buffer to be called
   NetworkFIFO<T>& operator[] (const uint index) const {
-    return *(buffers[index]);
+    return buffers[index];
   }
 
   uint32_t size() const {
@@ -36,7 +37,7 @@ public:
 
   bool empty() const {
     for(uint i=0; i<size(); i++) {
-      if(!buffers[i]->empty()) return false;
+      if(!buffers[i].empty()) return false;
     }
     return true;
   }
@@ -60,17 +61,13 @@ public:
     }
   }
 
-  virtual ~FIFOArray() {
-    for(uint i=0; i<size(); i++) delete buffers[i];
-  }
-
 //============================================================================//
 // Local state
 //============================================================================//
 
 private:
 
-  std::vector<NetworkFIFO<T>* > buffers;
+  LokiVector<NetworkFIFO<T>> buffers;
 
 };
 
