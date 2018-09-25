@@ -10,7 +10,7 @@
 #include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/Latency.h"
 
-L2RequestFilter::L2RequestFilter(const sc_module_name& name, ComponentID id, MemoryBank* localBank) :
+L2RequestFilter::L2RequestFilter(const sc_module_name& name, ComponentID id, MemoryBank& localBank) :
     LokiComponent(name, id),
     iClock("iClock"),
     iRequest("iRequest"),
@@ -53,15 +53,15 @@ void L2RequestFilter::mainLoop() {
 
         MemoryAddr address = request.payload().toUInt();
         MemoryAccessMode mode = (request.getMemoryMetadata().scratchpad ? MEMORY_SCRATCHPAD : MEMORY_CACHE);
-        SRAMAddress position = localBank->getPosition(address, mode);
+        SRAMAddress position = localBank.getPosition(address, mode);
 
         // Perform a few checks to see whether this bank should claim the
         // request now, wait until next cycle, or ignore the request entirely.
         // This bank is responsible if the operation is one which specifies
         // that this bank should be used, or if the bank was chosen randomly
         // but this bank contains the data already.
-        bool cacheHit = localBank->contains(address, position, mode);
-        bool targetingThisBank = iRequestTarget.read() == id.localMemoryNumber();
+        bool cacheHit = localBank.contains(address, position, mode);
+        bool targetingThisBank = iRequestTarget.read() == localBank.memoryIndex();
         bool mustAccessTarget = (mode == MEMORY_SCRATCHPAD) || (opcode == PUSH_LINE) || request.getMemoryMetadata().skipL2;
         bool ignore = mustAccessTarget && !targetingThisBank;
         bool serveRequest = (targetingThisBank && mustAccessTarget) || (cacheHit && !ignore);
@@ -162,10 +162,10 @@ void L2RequestFilter::delayLoop() {
     bool conflictPossible = !request.getMemoryMetadata().scratchpad
                          && !request.getMemoryMetadata().skipL2;
 
-    if (conflictPossible && localBank->flushing(address)) {
+    if (conflictPossible && localBank.flushing(address)) {
       oDelayRequest.write(true);
       LOKI_LOG << this->name() << " delaying L2 request " << request << endl;
-      next_trigger(localBank->requestSentEvent());
+      next_trigger(localBank.requestSentEvent());
     }
     else
       // Wait until the request has been fully consumed before checking the
@@ -179,9 +179,9 @@ void L2RequestFilter::delayLoop() {
     NetworkRequest request = iRequest.read();
     MemoryAddr address = request.payload().toUInt();
 
-    if (localBank->flushing(address)) {
+    if (localBank.flushing(address)) {
       // Keep waiting.
-      next_trigger(localBank->requestSentEvent());
+      next_trigger(localBank.requestSentEvent());
     }
     else {
       oDelayRequest.write(false);

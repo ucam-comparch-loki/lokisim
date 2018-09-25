@@ -21,7 +21,7 @@ using namespace std;
 #include "../../Utility/Arguments.h"
 #include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/Latency.h"
-#include "../../Utility/Instrumentation/MemoryBank.h"
+#include "../../Utility/Instrumentation/L1Cache.h"
 #include "../../Utility/Instrumentation/Network.h"
 #include "../../Utility/Parameters.h"
 #include "../../Utility/Warnings.h"
@@ -31,11 +31,6 @@ using namespace std;
 // The latency of accessing a memory bank, aside from the cost of accessing the
 // SRAM. This typically includes the network to/from the bank.
 #define EXTERNAL_LATENCY 1
-
-// Additional latency to apply to get the total memory latency to match the
-// MEMORY_BANK_LATENCY parameter. Includes one extra cycle of unavoidable
-// latency within the bank.
-#define INTERNAL_LATENCY (MEMORY_BANK_LATENCY - EXTERNAL_LATENCY - 1)
 
 
 uint log2(uint value) {
@@ -52,6 +47,14 @@ uint log2(uint value) {
   assert(1UL << result == value);
 
   return result;
+}
+
+size_t MemoryBank::numCacheLines() const {
+  return metadata.size();
+}
+
+size_t MemoryBank::cacheLineSize() const {
+  return 1 << log2CacheLineSize;
 }
 
 // Compute the position in SRAM that the given memory address is to be found.
@@ -75,14 +78,14 @@ SRAMAddress MemoryBank::getPosition(MemoryAddr address, MemoryAccessMode mode) c
   // instead perform the instrumentation here, as this method will be executed
   // exactly once per operation.
   if (mode == MEMORY_CACHE)
-    Instrumentation::MemoryBank::checkTags(id, address);
+    Instrumentation::L1Cache::checkTags(id, address);
 
-  static const uint indexBits = log2(CACHE_LINES_PER_BANK);
+  static const uint indexBits = log2(numCacheLines());
   uint offset = getOffset(address);
-  uint bank = (address >> 5) & 0x7;
-  uint index = (address >> 8) & ((1 << indexBits) - 1);
-  uint slot = index ^ (bank << (indexBits - 3)); // Hash bank into the upper bits
-  return (slot << 5) | offset;
+  uint bank = (address >> log2CacheLineSize) & 0x7;
+  uint index = (address >> (log2CacheLineSize + log2NumBanks)) & ((1 << indexBits) - 1);
+  uint slot = index ^ (bank << (indexBits - log2NumBanks)); // Hash bank into the upper bits
+  return (slot << log2CacheLineSize) | offset;
 }
 
 // Return the position in the memory address space of the data stored at the
@@ -116,7 +119,7 @@ void MemoryBank::allocate(MemoryAddr address, SRAMAddress position, MemoryAccess
       if (!contains(address, position, mode)) {
         LOKI_LOG << this->name() << " cache miss at address " << LOKI_HEX(address) << endl;
         TagData tag = metadata[getLine(position)];
-        Instrumentation::MemoryBank::replaceCacheLine(id, tag.valid, tag.dirty);
+        Instrumentation::L1Cache::replaceCacheLine(id, tag.valid, tag.dirty);
 
         // Send a request for the missing cache line.
         NetworkRequest readRequest(getTag(address), id, FETCH_LINE, true);
@@ -154,9 +157,9 @@ void MemoryBank::validate(MemoryAddr address, SRAMAddress position, MemoryAccess
       tag.l2Skip = hitRequest->getMetadata().skipL2;
 
       // Some extra bookkeeping to help with debugging.
-      bool inMainMemory = chip()->backedByMainMemory(id.tile, address);
+      bool inMainMemory = chip().backedByMainMemory(id.tile, address);
       if (inMainMemory) {
-        MemoryAddr globalAddress = chip()->getAddressTranslation(id.tile, address);
+        MemoryAddr globalAddress = chip().getAddressTranslation(id.tile, address);
         mainMemory->claimCacheLine(id, globalAddress);
       }
 
@@ -201,7 +204,7 @@ void MemoryBank::flush(SRAMAddress position, MemoryAccessMode mode) {
         pendingFlushes.push_back(address);
 
         if (ENERGY_TRACE)
-          Instrumentation::MemoryBank::startOperation(id, FLUSH_LINE,
+          Instrumentation::L1Cache::startOperation(*this, FLUSH_LINE,
               tag.address, false, ChannelID(id,0));
 
         // The flush state handles sending the line itself.
@@ -307,6 +310,31 @@ bool MemoryBank::flushing(MemoryAddr address) const {
   return false;
 }
 
+uint MemoryBank::memoryIndex() const {
+  return parent().memoryIndex(id);
+}
+
+uint MemoryBank::memoriesThisTile() const {
+  return parent().numMemories();
+}
+
+uint MemoryBank::globalMemoryIndex() const {
+  return parent().globalMemoryIndex(id);
+}
+
+bool MemoryBank::isCore(ChannelID destination) const {
+  return parent().isCore(destination.component);
+}
+
+uint MemoryBank::coresThisTile() const {
+  return parent().numCores();
+}
+
+uint MemoryBank::globalCoreIndex(ComponentID core) const {
+  loki_assert(parent().isCore(core));
+  return parent().globalCoreIndex(core);
+}
+
 void MemoryBank::processIdle() {
   loki_assert_with_message(state == STATE_IDLE, "State = %d", state);
 
@@ -323,7 +351,7 @@ void MemoryBank::processIdle() {
 
     hitRequest = peekRequest();
 
-    if (MEMORY_HIT_UNDER_MISS && (missRequest != NULL)) {
+    if (hitUnderMiss && (missRequest != NULL)) {
       // Don't reorder data being sent to the same channel.
       if (missRequest->getDestination() == hitRequest->getDestination())
         return;
@@ -451,13 +479,13 @@ void MemoryBank::processFlush(DecodedRequest& request) {
     SRAMAddress position = getTag(request->getSRAMAddress()) + cacheLineCursor;
     uint32_t data = readWord(position, request->getAccessMode());
 
-    Instrumentation::MemoryBank::continueOperation(id, FLUSH_LINE,
+    Instrumentation::L1Cache::continueOperation(*this, FLUSH_LINE,
         metadata[getLine(position)].address + cacheLineCursor, false, ChannelID(id,0));
 
     cacheLineCursor += BYTES_PER_WORD;
 
     // Flush has finished if the cursor has covered a whole cache line.
-    bool endOfPacket = cacheLineCursor >= CACHE_LINE_BYTES;
+    bool endOfPacket = cacheLineCursor >= cacheLineSize();
     if (endOfPacket)
       state = previousState;
 
@@ -501,7 +529,7 @@ void MemoryBank::processRefill(DecodedRequest& request) {
       cacheLineCursor += BYTES_PER_WORD;
 
       // Refill has finished if the cursor has covered a whole cache line.
-      if (cacheLineCursor >= CACHE_LINE_BYTES) {
+      if (cacheLineCursor >= cacheLineSize()) {
         state = STATE_REQUEST;
         hitRequest = request;
         request.reset();
@@ -663,7 +691,7 @@ void MemoryBank::forwardRequest(NetworkRequest request) {
 }
 
 bool MemoryBank::responseAvailable() const {
-  return iResponse.valid() && (iResponseTarget.read() == id.position-CORES_PER_TILE);
+  return iResponse.valid() && (iResponseTarget.read() == id.position-coresThisTile());
 }
 
 const sc_event& MemoryBank::responseAvailableEvent() const {
@@ -683,7 +711,7 @@ uint32_t MemoryBank::getResponse() {
 bool MemoryBank::canSendResponse(ChannelID destination, MemoryLevel level) const {
   switch (level) {
     case MEMORY_L1:
-      if (destination.channel < CORE_INSTRUCTION_CHANNELS)
+      if (destination.channel < Core::numInstructionChannels)
         return !outputInstQueue.full();
       else
         return !outputDataQueue.full();
@@ -698,7 +726,7 @@ bool MemoryBank::canSendResponse(ChannelID destination, MemoryLevel level) const
 const sc_event& MemoryBank::canSendResponseEvent(ChannelID destination, MemoryLevel level) const {
   switch (level) {
     case MEMORY_L1:
-      if (destination.channel < CORE_INSTRUCTION_CHANNELS)
+      if (destination.channel < Core::numInstructionChannels)
         return outputInstQueue.readEvent();
       else
         return outputDataQueue.readEvent();
@@ -718,7 +746,7 @@ void MemoryBank::sendResponse(NetworkResponse response, MemoryLevel level) {
 
   switch (level) {
     case MEMORY_L1:
-      if (response.channelID().channel < CORE_INSTRUCTION_CHANNELS) {
+      if (response.channelID().channel < Core::numInstructionChannels) {
         LOKI_LOG << this->name() << " buffering instruction " << response << endl;
         outputInstQueue.write(response);
       }
@@ -791,9 +819,9 @@ void MemoryBank::copyToMissBuffer() {
 }
 
 void MemoryBank::preWriteCheck(const MemoryOperation& operation) const {
-  MemoryAddr globalAddress = chip()->getAddressTranslation(id.tile, operation.getAddress());
+  MemoryAddr globalAddress = chip().getAddressTranslation(id.tile, operation.getAddress());
   bool scratchpad = operation.getAccessMode() == MEMORY_SCRATCHPAD;
-  bool inMainMemory = !scratchpad && chip()->backedByMainMemory(id.tile, operation.getAddress());
+  bool inMainMemory = !scratchpad && chip().backedByMainMemory(id.tile, operation.getAddress());
   if (inMainMemory && mainMemory->readOnly(globalAddress) && WARN_READ_ONLY) {
     LOKI_WARN << this->name() << " attempting to modify read-only address" << endl;
     LOKI_WARN << "  " << operation.toString() << endl;
@@ -814,8 +842,8 @@ void MemoryBank::handleDataOutput() {
   if (outputDataQueue.empty()) {
     next_trigger(outputDataQueue.writeEvent());
   }
-  else if (!parent()->requestGranted(id, outputDataQueue.peek().channelID())) {
-    parent()->makeRequest(id, outputDataQueue.peek().channelID(), true);
+  else if (!parent().requestGranted(id, outputDataQueue.peek().channelID())) {
+    parent().makeRequest(id, outputDataQueue.peek().channelID(), true);
     next_trigger(iClock.negedge_event());
   }
   else {
@@ -830,7 +858,7 @@ void MemoryBank::handleDataOutput() {
 
     // Remove the request for network resources.
     if (flit.getMetadata().endOfPacket)
-      parent()->makeRequest(id, flit.channelID(), false);
+      parent().makeRequest(id, flit.channelID(), false);
 
     next_trigger(oData.ack_event());
   }
@@ -840,8 +868,8 @@ void MemoryBank::handleInstructionOutput() {
   if (outputInstQueue.empty()) {
     next_trigger(outputInstQueue.writeEvent());
   }
-  else if (!parent()->requestGranted(id, outputInstQueue.peek().channelID())) {
-    parent()->makeRequest(id, outputInstQueue.peek().channelID(), true);
+  else if (!parent().requestGranted(id, outputInstQueue.peek().channelID())) {
+    parent().makeRequest(id, outputInstQueue.peek().channelID(), true);
     next_trigger(iClock.negedge_event());
   }
   else {
@@ -856,7 +884,7 @@ void MemoryBank::handleInstructionOutput() {
 
     // Remove the request for network resources.
     if (flit.getMetadata().endOfPacket)
-      parent()->makeRequest(id, flit.channelID(), false);
+      parent().makeRequest(id, flit.channelID(), false);
 
     next_trigger(oInstruction.ack_event());
   }
@@ -891,7 +919,7 @@ void MemoryBank::handleRequestOutput() {
 
 void MemoryBank::mainLoop() {
   switch (state) {
-    case STATE_IDLE:      processIdle();                   break;
+    case STATE_IDLE:      processIdle();                break;
     case STATE_REQUEST:   processRequest(hitRequest);   break;
     case STATE_ALLOCATE:  processAllocate(hitRequest);  break;
     case STATE_FLUSH:     processFlush(hitRequest);     break;
@@ -916,16 +944,32 @@ void MemoryBank::updateReady() {
     oReadyForData.write(ready);
 }
 
-ComputeTile* MemoryBank::parent() const {
-  return static_cast<ComputeTile*>(this->get_parent_object());
+cycle_count_t MemoryBank::artificialDelayRequired(const memory_bank_parameters_t& params) {
+  // The networks to/from memory take some time, and the memory bank itself
+  // currently has a minimum latency of 1 cycle.
+  return params.latency - EXTERNAL_LATENCY - 1;
 }
 
-Chip* MemoryBank::chip() const {
-  return parent()->chip();
+size_t MemoryBank::requestQueueSize(const memory_bank_parameters_t& params) {
+  // The worst case is when we need to flush a cache line to make space for a
+  // new one. This requires:
+  //  * 1 flit to request new line
+  //  * 1 flit header for old line
+  //  * Many flits of data
+  return 2 + params.cacheLineSize/BYTES_PER_WORD;
 }
 
-MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID) :
-  MemoryBase(name, ID),
+ComputeTile& MemoryBank::parent() const {
+  return static_cast<ComputeTile&>(*(this->get_parent_object()));
+}
+
+Chip& MemoryBank::chip() const {
+  return parent().chip();
+}
+
+MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks,
+                       const memory_bank_parameters_t& params) :
+  MemoryBase(name, ID, params.log2CacheLineSize()),
   iClock("iClock"),
   iData("iData"),
   oReadyForData("oReadyForData"),
@@ -941,16 +985,18 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID) :
   iResponse("iResponse"),
   iResponseTarget("iResponseTarget"),
   oResponse("oResponse"),
-  inputQueue(string(this->name()) + string(".mInputQueue"), MEMORY_BUFFER_SIZE),
-  outputDataQueue("mOutputDataQueue", MEMORY_BUFFER_SIZE, INTERNAL_LATENCY),
-  outputInstQueue("mOutputInstQueue", MEMORY_BUFFER_SIZE, INTERNAL_LATENCY),
-  outputReqQueue("mOutputReqQueue", 10 /*read addr + write addr + cache line*/, 0),
-  data(MEMORY_BANK_SIZE/BYTES_PER_WORD, 0),
-  metadata(CACHE_LINES_PER_BANK),
+  hitUnderMiss(params.hitUnderMiss),
+  log2NumBanks(log2(numBanks)),
+  inputQueue(string(this->name()) + string(".mInputQueue"), params.inputFIFO.size),
+  outputDataQueue("mOutputDataQueue", params.outputFIFO.size, artificialDelayRequired(params)),
+  outputInstQueue("mOutputInstQueue", params.outputFIFO.size, artificialDelayRequired(params)),
+  outputReqQueue("mOutputReqQueue", requestQueueSize(params), 0),
+  data(params.size/BYTES_PER_WORD, 0),
+  metadata(params.size/params.cacheLineSize),
   reservations(1),
-  missBuffer(CACHE_LINE_WORDS, "mMissBuffer"),
+  missBuffer("mMissBuffer", params.cacheLineSize/BYTES_PER_WORD),
   cacheMissEvent(sc_core::sc_gen_unique_name("mCacheMissEvent")),
-  l2RequestFilter("request_filter", ID, this)
+  l2RequestFilter("request_filter", ID, *this)
 {
   state = STATE_IDLE;
   previousState = STATE_IDLE;
@@ -1025,19 +1071,19 @@ void MemoryBank::print(MemoryAddr start, MemoryAddr end) {
   if (start > end)
     std::swap(start, end);
 
-  MemoryAddr address = (start / 4) * 4;
-  MemoryAddr limit = (end / 4) * 4 + 4;
+  MemoryAddr address = (start / BYTES_PER_WORD) * BYTES_PER_WORD;
+  MemoryAddr limit = (end / BYTES_PER_WORD) * BYTES_PER_WORD + BYTES_PER_WORD;
 
   while (address < limit) {
     uint32_t data = readWordDebug(address).toUInt();
     cout << "0x" << setprecision(8) << setfill('0') << hex << address << ":  " << "0x" << setprecision(8) << setfill('0') << hex << data << dec << endl;
-    address += 4;
+    address += BYTES_PER_WORD;
   }
 }
 
 Word MemoryBank::readWordDebug(MemoryAddr addr) {
   loki_assert(mainMemory != NULL);
-  loki_assert_with_message(addr % 4 == 0, "Address = 0x%x", addr);
+  loki_assert_with_message(addr % BYTES_PER_WORD == 0, "Address = 0x%x", addr);
 
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
@@ -1060,7 +1106,7 @@ Word MemoryBank::readByteDebug(MemoryAddr addr) {
 
 void MemoryBank::writeWordDebug(MemoryAddr addr, Word data) {
   loki_assert(mainMemory != NULL);
-  loki_assert_with_message(addr % 4 == 0, "Address = 0x%x", addr);
+  loki_assert_with_message(addr % BYTES_PER_WORD == 0, "Address = 0x%x", addr);
 
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 

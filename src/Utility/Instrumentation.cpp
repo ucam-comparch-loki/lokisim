@@ -15,7 +15,6 @@
 #include "Instrumentation/IPKCache.h"
 #include "Instrumentation/Latency.h"
 #include "Instrumentation/MainMemory.h"
-#include "Instrumentation/MemoryBank.h"
 #include "Instrumentation/Network.h"
 #include "Instrumentation/Operations.h"
 #include "Instrumentation/PipelineReg.h"
@@ -23,6 +22,7 @@
 #include "Instrumentation/Scratchpad.h"
 #include "Instrumentation/Stalls.h"
 #include "../Datatype/DecodedInst.h"
+#include "Instrumentation/L1Cache.h"
 
 // The time at which the statistics were last reset.
 cycle_count_t statsWiped = 0;
@@ -33,19 +33,19 @@ cycle_count_t statsStopped = 0;
 bool collecting = false;
 cycle_count_t cyclesRecorded = 0;
 
-void Instrumentation::initialise() {
-  ChannelMap::init();
-  FIFO::init();
-  IPKCache::init();
-  Latency::init();
-  MainMemory::init();
-  MemoryBank::init();
-  Network::init();
-  Operations::init();
-  PipelineReg::init();
-  Registers::init();
-  Scratchpad::init();
-  Stalls::init();
+void Instrumentation::initialise(const chip_parameters_t& params) {
+  ChannelMap::init(params);
+  FIFO::init(params);
+  IPKCache::init(params);
+  Latency::init(params);
+  MainMemory::init(params);
+  L1Cache::init(params);
+  Network::init(params);
+  Operations::init(params);
+  PipelineReg::init(params);
+  Registers::init(params);
+  Scratchpad::init(params);
+  Stalls::init(params);
 
   reset();
 }
@@ -56,7 +56,7 @@ void Instrumentation::reset() {
   IPKCache::reset();
   Latency::reset();
   MainMemory::reset();
-  MemoryBank::reset();
+  L1Cache::reset();
   Network::reset();
   Operations::reset();
   PipelineReg::reset();
@@ -76,7 +76,7 @@ void Instrumentation::start() {
   IPKCache::start();
   Latency::start();
   MainMemory::start();
-  MemoryBank::start();
+  L1Cache::start();
   Network::start();
   Operations::start();
   PipelineReg::start();
@@ -95,7 +95,7 @@ void Instrumentation::stop() {
   IPKCache::stop();
   Latency::stop();
   MainMemory::stop();
-  MemoryBank::stop();
+  L1Cache::stop();
   Network::stop();
   Operations::stop();
   PipelineReg::stop();
@@ -119,7 +119,7 @@ void Instrumentation::end() {
   IPKCache::end();
   Latency::end();
   MainMemory::end();
-  MemoryBank::end();
+  L1Cache::end();
   Network::end();
   Operations::end();
   PipelineReg::end();
@@ -144,40 +144,40 @@ cycle_count_t Instrumentation::stoppedCollectingStats() {
   return statsStopped;
 }
 
-void Instrumentation::dumpEventCounts(std::ostream& os) {
+void Instrumentation::dumpEventCounts(std::ostream& os, const chip_parameters_t& params) {
   os << "<lokitrace>\n\n";
 
   os << "<invocation>" << Arguments::invocation() << "</invocation>\n";
   os << "\n";
   os << "<time>" << time(NULL) << "</time>\n";
   os << "\n";
-  Parameters::printParametersXML(os);
+  Parameters::printParametersXML(os, params);
   os << "\n";
   os << "<cycles>" << cyclesStatsCollected() << "</cycles>\n";
   os << "\n";
 
-  ChannelMap::dumpEventCounts(os);    os << "\n";
-  FIFO::dumpEventCounts(os);          os << "\n";
-  IPKCache::dumpEventCounts(os);      os << "\n";
-  MemoryBank::dumpEventCounts(os);    os << "\n";
-  Network::dumpEventCounts(os);       os << "\n";
-  Operations::dumpEventCounts(os);    os << "\n";
-  PipelineReg::dumpEventCounts(os);   os << "\n";
-  Registers::dumpEventCounts(os);     os << "\n";
-  Scratchpad::dumpEventCounts(os);    os << "\n";
-  Stalls::dumpEventCounts(os);        os << "\n";
+  ChannelMap::dumpEventCounts(os, params);    os << "\n";
+  FIFO::dumpEventCounts(os, params);          os << "\n";
+  IPKCache::dumpEventCounts(os, params);      os << "\n";
+  L1Cache::dumpEventCounts(os, params);       os << "\n";
+  Network::dumpEventCounts(os, params);       os << "\n";
+  Operations::dumpEventCounts(os, params);    os << "\n";
+  PipelineReg::dumpEventCounts(os, params);   os << "\n";
+  Registers::dumpEventCounts(os, params);     os << "\n";
+  Scratchpad::dumpEventCounts(os, params);    os << "\n";
+  Stalls::dumpEventCounts(os, params);        os << "\n";
 
   os << "</lokitrace>\n";
 }
 
-void Instrumentation::printSummary() {
-  Stalls::printStats();
-  IPKCache::printSummary();
-  MemoryBank::printSummary();
-  MainMemory::printStats();
-  Latency::printSummary();
-  Network::printSummary();
-  Operations::printSummary();
+void Instrumentation::printSummary(const chip_parameters_t& params) {
+  Stalls::printStats(params);
+  IPKCache::printSummary(params);
+  L1Cache::printSummary(params);
+  MainMemory::printStats(params);
+  Latency::printSummary(params);
+  Network::printSummary(params);
+  Operations::printSummary(params);
 }
 
 bool Instrumentation::haveEnergyData() {
@@ -220,11 +220,11 @@ bool Instrumentation::executionFinished() {
   return Stalls::executionFinished();
 }
 
-void Instrumentation::executed(const ComponentID& id, const DecodedInst& inst, bool executed) {
-  Operations::executed(id, inst, executed);
+void Instrumentation::executed(const Core& core, const DecodedInst& inst, bool executed) {
+  Operations::executed(core, inst, executed);
 
   if (Debugger::mode == Debugger::DEBUGGER)
-    Debugger::executedInstruction(inst, id, executed);
+    Debugger::executedInstruction(inst, core, executed);
 }
 
 cycle_count_t Instrumentation::currentCycle() {

@@ -17,10 +17,6 @@
 #include "Types.h"
 
 #include "Utility/Logging.h"
-#include "Utility/LokiVector.h"
-#include "Utility/LokiVector2D.h"
-#include "Utility/LokiVector3D.h"
-#include "Utility/Parameters.h"
 
 using sc_core::sc_in;
 using sc_core::sc_inout;
@@ -46,6 +42,8 @@ SC_MODULE (LokiComponent) {
 
 public:
 
+  // Consider giving only cores, memories, etc. IDs, and instead give all
+  // subcomponents references to their root components.
   const ComponentID id;
 
 //============================================================================//

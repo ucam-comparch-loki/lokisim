@@ -56,7 +56,7 @@ void Bus::busLoop() {
 Bus::Bus(const sc_module_name& name, const ComponentID& ID, int numOutputPorts, HierarchyLevel level, int firstOutput) :
     Network(name, ID, 1, numOutputPorts, level, firstOutput),
     iData("iData"),
-    oData(numOutputPorts, "oData")
+    oData("oData", numOutputPorts)
 {
   lastWriteTime = -1;
   outputUsed = -1;

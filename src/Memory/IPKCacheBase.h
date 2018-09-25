@@ -24,7 +24,8 @@ class IPKCacheBase {
 
 public:
 
-  IPKCacheBase(const size_t size, const size_t numTags, const std::string& name);
+  IPKCacheBase(const std::string& name, size_t size, size_t numTags,
+               size_t maxIPKLength);
   virtual ~IPKCacheBase();
 
 //============================================================================//
@@ -125,6 +126,10 @@ protected:
   static const MemoryAddr DEFAULT_TAG  = 0xFFFFFFFF;
 
   const std::string name;
+
+  // The maximum number of instructions in a single packet. Allows us to be
+  // sure that any packet will fit in the cache when requested.
+  const size_t maxIPKLength;
 
   // All accesses to tags must be through getTag and setTag, as different cache
   // configurations use tags differently.

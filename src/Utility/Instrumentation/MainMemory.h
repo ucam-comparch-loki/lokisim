@@ -30,7 +30,7 @@ namespace Instrumentation {
     static count_t numWordsRead();
     static count_t numWordsWritten();
 
-    static void printStats();
+    static void printStats(const chip_parameters_t& params);
 
   private:
 

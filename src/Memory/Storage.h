@@ -72,7 +72,7 @@ protected:
 
 public:
 
-  Storage(const uint32_t size, const std::string& name) : data_(size), name_(name) {
+  Storage(const std::string& name, const uint32_t size) : data_(size), name_(name) {
     assert(size > 0);
   }
 

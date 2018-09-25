@@ -14,9 +14,12 @@
 #ifndef SRC_TILE_NETWORK_COREMULTICAST_H_
 #define SRC_TILE_NETWORK_COREMULTICAST_H_
 
+#include <vector>
 #include "../../Network/Network.h"
+#include "../../Network/Topologies/MulticastBus.h"
+#include "../../Utility/LokiVector2D.h"
 
-class MulticastBus;
+using std::vector;
 
 class CoreMulticast: public Network {
 
@@ -48,8 +51,8 @@ public:
 public:
 
   SC_HAS_PROCESS(CoreMulticast);
-  CoreMulticast(const sc_module_name name, ComponentID tile);
-  virtual ~CoreMulticast();
+  CoreMulticast(const sc_module_name name, ComponentID tile,
+                const tile_parameters_t& tileParams);
 
 //============================================================================//
 // Methods
@@ -75,7 +78,7 @@ private:
 
   vector<MulticastState> state;
 
-  vector<MulticastBus*> buses;
+  LokiVector<MulticastBus> buses;
   LokiVector<DataSignal> busInput;
 
 };

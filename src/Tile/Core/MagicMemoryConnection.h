@@ -27,7 +27,7 @@ public:
   void operate(const DecodedInst& instruction);
 
 private:
-  Core* parent() const;
+  Core& parent() const;
 
   // Many operations are self-contained, but some (especially sendconfigs)
   // require us to maintain state between instructions.

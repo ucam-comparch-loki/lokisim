@@ -22,7 +22,8 @@ class CreditNetwork: public Mesh {
 
 public:
 
-  CreditNetwork(const sc_module_name &name);
+  CreditNetwork(const sc_module_name &name, size2d_t size,
+                const router_parameters_t& routerParams);
   virtual ~CreditNetwork();
 
 };

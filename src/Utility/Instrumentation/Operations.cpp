@@ -10,6 +10,7 @@
 #include "../Trace/Callgrind.h"
 #include "../../Datatype/Identifier.h"
 #include "../../Datatype/DecodedInst.h"
+#include "../../Tile/Core/Core.h"
 #include "../ISA.h"
 
 using namespace Instrumentation;
@@ -46,11 +47,18 @@ CounterMap<ComponentID> Operations::numArithOps;
 CounterMap<ComponentID> Operations::numCondOps;
 
 
+void Operations::init(const chip_parameters_t& params) {
+  lastIn1.resize(params.totalCores());
+  lastIn2.resize(params.totalCores());
+  lastOut.resize(params.totalCores());
+  lastFn.resize(params.totalCores());
+}
+
 void Operations::reset() {
-  lastIn1.assign(NUM_CORES, 0);
-  lastIn2.assign(NUM_CORES, 0);
-  lastOut.assign(NUM_CORES, 0);
-  lastFn.assign(NUM_CORES, (function_t)0);
+  lastIn1.assign(lastIn1.size(), 0);
+  lastIn2.assign(lastIn2.size(), 0);
+  lastOut.assign(lastOut.size(), 0);
+  lastFn.assign(lastFn.size(), (function_t)0);
 
   unexecuted = hdIn1 = hdIn2 = hdOut = sameOp = numDecodes_ = 0;
 
@@ -76,17 +84,17 @@ void Operations::decoded(const ComponentID& core, const DecodedInst& dec) {
   numDecodes_++;
 }
 
-void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool executed) {
+void Operations::executed(const Core& core, const DecodedInst& dec, bool executed) {
 
   totalInstructions++;
-  CoreIndex coreID = core.globalCoreNumber();
+  CoreIndex coreID = core.globalCoreIndex();
 
   if (Callgrind::acceptingData())
-    Callgrind::instructionExecuted(core, dec.location(), Instrumentation::currentCycle());
+    Callgrind::instructionExecuted(coreID, dec.location(), Instrumentation::currentCycle());
   if (!Instrumentation::collectingStats()) return;
 
   // Always increase numOps - this is used to determine if we're making progress.
-  numOps_.increment(core);
+  numOps_.increment(core.id);
 
   if (!executed) {
     unexecuted++;
@@ -97,13 +105,13 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
     case ISA::OP_LDW:
     case ISA::OP_LDHWU:
     case ISA::OP_LDBU:
-      numMemLoads.increment(core);
+      numMemLoads.increment(core.id);
       break;
  
     case ISA::OP_STW:
     case ISA::OP_STHW:
     case ISA::OP_STB:
-      numMemStores.increment(core);
+      numMemStores.increment(core.id);
       break;
 
     default:
@@ -113,27 +121,27 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
   // Assume channel 2 is the memory channel.
   if (dec.sourceReg1() == 2 || dec.sourceReg2() == 2) {
     if (dec.function() != ISA::FN_OR || dec.sourceReg2() != 0) {
-      numMergedMemLoads.increment(core);
+      numMergedMemLoads.increment(core.id);
     }
     else {
-      numMemLoads.increment(core);
+      numMemLoads.increment(core.id);
     }
   }
 
   // Assume all other channels are for core-to-core communication.
   if ((dec.sourceReg1() >= 3 && dec.sourceReg1() <= 7) ||
       (dec.sourceReg2() >= 3 && dec.sourceReg2() <= 7)) {
-    numChanReads.increment(core);
+    numChanReads.increment(core.id);
     if (dec.function() != ISA::FN_OR || dec.sourceReg2() != 0) {
-      numMergedChanReads.increment(core);
+      numMergedChanReads.increment(core.id);
     }
   }
 
   // Assume all output channels except {0,1} are for core-to-core communication.
   if (dec.channelMapEntry() >= 2 && dec.channelMapEntry() < 15) {
-    numChanWrites.increment(core);
+    numChanWrites.increment(core.id);
     if (dec.function() != ISA::FN_OR || dec.sourceReg1() == 2 || dec.sourceReg2() == 2) {
-      numMergedChanWrites.increment(core);
+      numMergedChanWrites.increment(core.id);
     }
   }
  
@@ -141,9 +149,9 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
     case 0:
     case 1:
       if ((dec.function() < ISA::FN_SETEQ) || (dec.function() > ISA::FN_SETGTEU)) {
-        numArithOps.increment(core);
+        numArithOps.increment(core.id);
       } else {
-        numCondOps.increment(core);
+        numCondOps.increment(core.id);
       }
       break;
     case ISA::OP_NORI:
@@ -163,7 +171,7 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
     case ISA::OP_MULHW:
     case ISA::OP_MULLW:
     case ISA::OP_MULHWU:
-      numArithOps.increment(core);
+      numArithOps.increment(core.id);
       break;
 
     case ISA::OP_SETEQI:
@@ -181,7 +189,7 @@ void Operations::executed(const ComponentID& core, const DecodedInst& dec, bool 
     case ISA::OP_PSEL:
     case ISA::OP_PSEL_FETCH:
     case ISA::OP_PSEL_FETCHR:
-      numCondOps.increment(core);
+      numCondOps.increment(core.id);
       break;
 
     default:
@@ -266,7 +274,7 @@ void Operations::printStats() {
   }
 }
 
-void Operations::printSummary() {
+void Operations::printSummary(const chip_parameters_t& params) {
   using std::clog;
 
   clog << "Average IPC: ";
@@ -275,20 +283,20 @@ void Operations::printSummary() {
   clog << ((double)numOperations() / (double)Instrumentation::cyclesStatsCollected()) << endl;
 }
 
-void Operations::dumpEventCounts(std::ostream& os) {
+void Operations::dumpEventCounts(std::ostream& os, const chip_parameters_t& params) {
   // Stores take two cycles to decode, so the decoder is active for longer.
   count_t decodeCycles = numDecodes_ + executedOps[ISA::OP_STB]
                                      + executedOps[ISA::OP_STHW]
                                      + executedOps[ISA::OP_STW];
 
   os << xmlBegin("decoder")             << "\n"
-     << xmlNode("instances", NUM_CORES) << "\n"
+     << xmlNode("instances", params.totalCores()) << "\n"
      << xmlNode("active", decodeCycles) << "\n"
      << xmlNode("decodes", numDecodes_) << "\n"
      << xmlEnd("decoder")               << "\n";
 
   os << xmlBegin("alu")                 << "\n"
-     << xmlNode("instances", NUM_CORES) << "\n";
+     << xmlNode("instances", params.totalCores()) << "\n";
 
   // Special case for the ALU operations
   CounterMap<function_t>::iterator it;
@@ -344,7 +352,7 @@ void Operations::dumpEventCounts(std::ostream& os) {
                      + executedOps[ISA::OP_MULHWU];
 
   os << xmlBegin("multiplier")          << "\n"
-     << xmlNode("instances", NUM_CORES) << "\n"
+     << xmlNode("instances", params.totalCores()) << "\n"
      << xmlNode("active", multiplies)   << "\n"
      << xmlNode("high_word", highWord)  << "\n"
      << xmlEnd("multiplier")            << "\n";

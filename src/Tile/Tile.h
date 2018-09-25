@@ -16,8 +16,12 @@
 #ifndef SRC_TILE_TILE_H_
 #define SRC_TILE_TILE_H_
 
+#include <vector>
 #include "../LokiComponent.h"
 #include "../Network/NetworkTypes.h"
+
+using sc_core::sc_module_name;
+using std::vector;
 
 class Chip;
 class DataBlock;
@@ -71,6 +75,20 @@ public:
 
 public:
 
+  virtual uint numComponents() const;
+  virtual uint numCores() const;
+  virtual uint numMemories() const;
+
+  // Get information about the given Identifiers based on the configuration of
+  // the Tile.
+  virtual bool isCore(ComponentID id) const;
+  virtual bool isMemory(ComponentID id) const;
+  virtual uint componentIndex(ComponentID id) const;
+  virtual uint coreIndex(ComponentID id) const;
+  virtual uint memoryIndex(ComponentID id) const;
+
+  bool isComputeTile(TileID id) const;
+
   // Store the given instructions or data into the component at the given index.
   virtual void storeInstructions(vector<Word>& instructions, const ComponentID& component);
   virtual void storeData(const DataBlock& data);
@@ -94,7 +112,7 @@ public:
 protected:
 
   // Return a pointer to the chip to which this tile belongs.
-  Chip* chip() const;
+  Chip& chip() const;
 
 };
 

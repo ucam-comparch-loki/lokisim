@@ -25,7 +25,7 @@ public:
   static void createdFIFO(size_t size);
   static void activeCycle(size_t size);
 
-  static void dumpEventCounts(std::ostream& os);
+  static void dumpEventCounts(std::ostream& os, const chip_parameters_t& params);
 
 private:
 

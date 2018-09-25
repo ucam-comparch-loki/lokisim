@@ -213,7 +213,7 @@ bool DecodedInst::storesToRegister() const {
 
 const NetworkData DecodedInst::toNetworkData(TileID tile) const {
   ChannelID destination = networkDestination();
-  if (destination.isMemory())
+  if (ChannelMapEntry::isMemory(networkInfo))
     destination.component.tile = tile;
 
   NetworkData flit;
@@ -224,12 +224,12 @@ const NetworkData DecodedInst::toNetworkData(TileID tile) const {
     // We never acquire channels on the local networks, so just provide "false".
     flit = NetworkData(result(), destination, false, portClaim_, endOfNetworkPacket());
   }
-  else if (destination.isCore()) {
+  else if (ChannelMapEntry::isCore(networkInfo)) {
     ChannelMapEntry::GlobalChannel channel(networkInfo);
     flit = NetworkData(result(), destination, channel.acquired, portClaim_, endOfNetworkPacket());
   }
   else {
-    assert(destination.isMemory());
+    assert(ChannelMapEntry::isMemory(networkInfo));
     flit = NetworkData(result(),
                        destination,
                        ChannelMapEntry::memoryView(networkInfo),

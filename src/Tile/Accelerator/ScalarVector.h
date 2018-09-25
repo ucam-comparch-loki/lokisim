@@ -49,17 +49,13 @@ public:
 
   }
 
-  virtual ~ScalarVector() {
-    for (uint i=0; i<multipliers.length(); i++) delete multipliers[i];
-  }
-
 //============================================================================//
 // Components
 //============================================================================//
 
 private:
 
-  std::vector<Multiplier<T>* > multipliers;
+  LokiVector<Multiplier<T>> multipliers;
 
 };
 

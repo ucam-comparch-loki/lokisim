@@ -60,7 +60,7 @@ private:
   void writeWord(MemoryAddr addr, Word data) const;
   void writeByte(MemoryAddr addr, Word data) const;
 
-  ExecuteStage* parent() const;
+  ExecuteStage& parent() const;
 
   uint convertTargetFlags(uint tflags) const;
 

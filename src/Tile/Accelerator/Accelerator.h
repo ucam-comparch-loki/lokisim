@@ -47,7 +47,8 @@ public:
 public:
 
   SC_HAS_PROCESS(Accelerator);
-  Accelerator(sc_module_name name, ComponentID id, Configuration cfg);
+  Accelerator(sc_module_name name, ComponentID id, Configuration cfg,
+              size_t numMulticastInputs);
 
 
 //============================================================================//
@@ -70,7 +71,11 @@ private:
   // internal component.
   void receiveParameter();
 
-  AcceleratorTile* parent() const;
+  // Returns which channel of memory should be accessed. This determines which
+  // component data is returned to.
+  ChannelIndex memoryAccessChannel() const;
+
+  AcceleratorTile& parent() const;
 
 
 //============================================================================//
@@ -81,6 +86,7 @@ private:
 
   // The control unit sets state throughout the accelerator so give it access.
   friend class ControlUnit;
+  friend class DMA;
 
   ControlUnit control;
   DMAInput<dtype> in1, in2;

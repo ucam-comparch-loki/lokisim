@@ -41,7 +41,8 @@ public:
 //============================================================================//
 
 public:
-  InstructionReturn(const sc_module_name name, ComponentID tile);
+  InstructionReturn(const sc_module_name name, ComponentID tile,
+                    const tile_parameters_t& params);
   virtual ~InstructionReturn();
 };
 

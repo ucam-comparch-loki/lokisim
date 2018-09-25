@@ -54,7 +54,8 @@ public:
 public:
 
   SC_HAS_PROCESS(FlowControlOut);
-  FlowControlOut(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged);
+  FlowControlOut(sc_module_name name, const ComponentID& ID,
+                 const ChannelID& channelManaged, size_t maxCredits);
 
 //============================================================================//
 // Methods
@@ -87,6 +88,7 @@ private:
   ChannelID channel;
 
   // Store the number of credits the output port has.
+  const unsigned int maxCredits;
   unsigned int creditCount;
 
 };

@@ -61,7 +61,7 @@ count_t MainMemory::numWrites()         {return numWrites_;}
 count_t MainMemory::numWordsRead()      {return numWordsRead_;}
 count_t MainMemory::numWordsWritten()   {return numWordsWritten_;}
 
-void MainMemory::printStats() {
+void MainMemory::printStats(const chip_parameters_t& params) {
   if (numReads_ > 0 || numWrites_ > 0) {
     count_t accesses = numReads_ + numWrites_;
     count_t words = numWordsRead_ + numWordsWritten_;
@@ -69,7 +69,7 @@ void MainMemory::printStats() {
     // Memory can sustain processing one input flit OR one output flit each
     // clock cycle on each of its interfaces.
     count_t flits = numSends_ + numReceives_;
-    count_t bandwidthAvailable = cyclesStatsCollected() * MAIN_MEMORY_BANDWIDTH;
+    count_t bandwidthAvailable = cyclesStatsCollected() * params.memory.bandwidth;
 
     std::clog <<
       "Main memory:\n" <<

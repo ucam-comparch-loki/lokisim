@@ -52,7 +52,7 @@ public:
 public:
 
   NetworkFIFO(const std::string& name, const size_t size) :
-      FIFO<T>(size, name),
+      FIFO<T>(name, size),
       fresh(size, false) {
 
   }

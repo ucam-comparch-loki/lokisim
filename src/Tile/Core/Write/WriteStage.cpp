@@ -21,7 +21,7 @@ void WriteStage::execute() {
 //  bool packetInProgress = !currentInst.endOfNetworkPacket();
 
   if (Arguments::csimTrace())
-    core()->trace(currentInst);
+    core().trace(currentInst);
 
   instructionCompleted();
 }
@@ -56,18 +56,19 @@ bool WriteStage::isStalled() const {
 }
 
 void WriteStage::writeReg(RegisterIndex reg, int32_t value, bool indirect) const {
-  core()->writeReg(reg, value, indirect);
+  core().writeReg(reg, value, indirect);
 }
 
 void WriteStage::requestArbitration(ChannelID destination, bool request) {
-  core()->requestArbitration(destination, request);
+  core().requestArbitration(destination, request);
 }
 
 bool WriteStage::requestGranted(ChannelID destination) const {
-  return core()->requestGranted(destination);
+  return core().requestGranted(destination);
 }
 
-WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
+WriteStage::WriteStage(sc_module_name name, const ComponentID& ID,
+                       const fifo_parameters_t& fifoParams) :
     PipelineStage(name, ID),
     iFetch("iFetch"),
     iData("iData"),
@@ -76,7 +77,7 @@ WriteStage::WriteStage(sc_module_name name, const ComponentID& ID) :
     oDataMemory("oDataMemory"),
     oDataGlobal("oDataGlobal"),
     iCredit("iCredit"),
-    scet("scet", ID, &(core()->channelMapTable)) {
+    scet("scet", ID, fifoParams, &(core().channelMapTable)) {
 
   // Connect the SCET to the network.
   scet.clock(clock);

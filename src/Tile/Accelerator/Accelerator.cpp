@@ -10,21 +10,18 @@
 #include "../AcceleratorTile.h"
 #include "Configuration.h"
 
-Accelerator::Accelerator(sc_module_name name, ComponentID id, Configuration cfg) :
+Accelerator::Accelerator(sc_module_name name, ComponentID id, Configuration cfg,
+                         size_t numMulticastInputs) :
     LokiComponent(name, id),
-    iMulticast(MULTICAST_NETWORK_SIZE, "iMulticast"),
+    iMulticast("iMulticast", numMulticastInputs),
     oMulticast("oMulticast"),
-    oReadyData(1, "oReadyData"),
+    oReadyData("oReadyData", 1),
     control("control", cfg),
     in1("dma_in1", ComponentID(id.tile, id.position), cfg.dma1Ports()),
     in2("dma_in2", ComponentID(id.tile, id.position+1), cfg.dma2Ports()),
     out("dma_out", ComponentID(id.tile, id.position+2), cfg.dma3Ports()),
     compute("compute", cfg),
-    inputMux("mux", MULTICAST_NETWORK_SIZE) {
-
-  // The mapping of network addresses to DMA units is currently quite awkward
-  // and doesn't account for other accelerators in the same tile.
-  loki_assert(ACCELERATORS_PER_TILE == 1);
+    inputMux("mux", numMulticastInputs) {
 
   control.iClock(iClock);
   control.iParameter(paramSig);
@@ -34,9 +31,9 @@ Accelerator::Accelerator(sc_module_name name, ComponentID id, Configuration cfg)
   control.oDMA2Command(toIn2);  in2.iCommand(toIn2);
   control.oDMA3Command(toOut);  out.iCommand(toOut);
 
-  toPEs1.init(compute.in1, "toPEs1");
-  toPEs2.init(compute.in2, "toPEs2");
-  fromPEs.init(compute.out, "fromPEs");
+  toPEs1.init("toPEs1", compute.in1);
+  toPEs2.init("toPEs2", compute.in2);
+  fromPEs.init("fromPEs", compute.out);
   compute.in1(toPEs1);  in1.oDataToPEs(toPEs1);
   compute.in2(toPEs2);  in2.oDataToPEs(toPEs2);
   compute.out(fromPEs); out.iDataFromPEs(fromPEs);
@@ -86,7 +83,7 @@ void Accelerator::deliverDataInternal(const NetworkData& flit) {
 
 void Accelerator::magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address,
                                     ChannelID returnChannel, Word data) {
-  parent()->magicMemoryAccess(opcode, address, returnChannel, data);
+  parent().magicMemoryAccess(opcode, address, returnChannel, data);
 }
 
 void Accelerator::receiveParameter() {
@@ -95,6 +92,14 @@ void Accelerator::receiveParameter() {
   muxOutput.ack();
 }
 
-AcceleratorTile* Accelerator::parent() const {
-  return static_cast<AcceleratorTile*>(this->get_parent_object());
+ChannelIndex Accelerator::memoryAccessChannel() const {
+  // Components are given IDs in the order: cores, memories, accelerators.
+  // Components connect to memory in the order: cores, accelerators.
+  // Need to subtract the number of memories to go from an accelerator ID to
+  // a memory channel.
+  return id.position - parent().numMemories();
+}
+
+AcceleratorTile& Accelerator::parent() const {
+  return *(static_cast<AcceleratorTile*>(this->get_parent_object()));
 }

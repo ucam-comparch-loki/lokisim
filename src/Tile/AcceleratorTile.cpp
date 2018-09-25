@@ -10,56 +10,88 @@
 #include "../Chip.h"
 
 AcceleratorTile::AcceleratorTile(const sc_module_name& name,
-                                 const ComponentID& id) :
-    ComputeTile(name, id) {
+                                 const ComponentID& id,
+                                 const tile_parameters_t& params) :
+    ComputeTile(name, id, params) {
 
   TileID tile = id.tile;
 
   // Create accelerators.
-  for (uint acc = 0; acc < ACCELERATORS_PER_TILE; acc++) {
-    ComponentID accID(tile, acc + CORES_PER_TILE + MEMS_PER_TILE);
+  for (uint acc = 0; acc < params.numAccelerators; acc++) {
+    ComponentID accID(tile, acc + params.numCores + params.numMemories);
 
     // TODO Get this configuration from somewhere useful.
     Configuration cfg(4, 4, true, false, true, false, LoopOrders::naive);
 
-    Accelerator* a = new Accelerator(sc_gen_unique_name("acc"), accID, cfg);
+    Accelerator* a = new Accelerator(sc_gen_unique_name("acc"), accID, cfg,
+                                     params.mcastNetOutputs());
     accelerators.push_back(a);
 
     a->iClock(iClock);
 
     // Connect to the multicast network. Some slightly awkward indexing because
     // all of the cores have already been connected.
-    a->iMulticast(multicastToCores[CORES_PER_TILE]); // vector
-    a->oMulticast(multicastFromCores[CORES_PER_TILE]);
-    a->oReadyData(readyDataFromCores[CORES_PER_TILE]); // vector
+    a->iMulticast(multicastToCores[params.numCores]); // vector
+    a->oMulticast(multicastFromCores[params.numCores]);
+    a->oReadyData(readyDataFromCores[params.numCores]); // vector
   }
 
 }
 
-AcceleratorTile::~AcceleratorTile() {
-  for (uint i=0; i<accelerators.size(); i++)
-    delete accelerators[i];
+uint AcceleratorTile::numComponents() const {
+  return numCores() + numMemories() + numAccelerators();
+}
+
+uint AcceleratorTile::numAccelerators() const {
+  return accelerators.size();
+}
+
+bool AcceleratorTile::isCore(ComponentID id) const {
+  return id.position < numCores();
+}
+
+bool AcceleratorTile::isMemory(ComponentID id) const {
+  return (id.position >= numCores()) &&
+         (id.position < numCores() + numMemories());
+}
+
+bool AcceleratorTile::isAccelerator(ComponentID id) const {
+  return id.position >= numCores() + numMemories();
+}
+
+uint AcceleratorTile::componentIndex(ComponentID id) const {
+  return id.position;
+}
+
+uint AcceleratorTile::coreIndex(ComponentID id) const {
+  return id.position;
+}
+
+uint AcceleratorTile::memoryIndex(ComponentID id) const {
+  return id.position - numCores();
+}
+
+uint AcceleratorTile::acceleratorIndex(ComponentID id) const {
+  // Some slightly awkward network addressing at the moment.
+  // Components are assigned IDs in this order: cores, memories, accelerators.
+  // Accelerators also have multiple network access points, so multiple
+  // addresses map to the same accelerator.
+  return (id.position - numCores() - numMemories()) / 3;
 }
 
 void AcceleratorTile::networkSendDataInternal(const NetworkData& flit) {
   if (flit.channelID().component.tile != id.tile)
-    chip()->networkSendDataInternal(flit);
-  else if (flit.channelID().isCore()) {
-    cores[flit.channelID().component.position]->deliverDataInternal(flit);
+    chip().networkSendDataInternal(flit);
+  else if (isCore(flit.channelID().component)) {
+    cores[coreIndex(flit.channelID().component)].deliverDataInternal(flit);
   }
-  else if (flit.channelID().isMemory()) {
+  else if (isMemory(flit.channelID().component)) {
     loki_assert_with_message(false, "should never touch memory banks when"
                                     " using magic memory", 0);
   }
   else { // Accelerator
-    // Some slightly awkward network addressing at the moment.
-    // Components are assigned IDs in this order: cores, memories, accelerators.
-    // Accelerators also have multiple network access points, so multiple
-    // addresses map to the same accelerator.
-    uint index = flit.channelID().component.position - CORES_PER_TILE - MEMS_PER_TILE;
-    uint component = index % 3;
-
-    accelerators[component]->deliverDataInternal(flit);
+    uint component = acceleratorIndex(flit.channelID().component);
+    accelerators[component].deliverDataInternal(flit);
   }
 }
 

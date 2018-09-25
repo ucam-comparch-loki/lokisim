@@ -42,7 +42,7 @@ namespace Instrumentation {
     static void memorySentResult(ComponentID memory, const NetworkResponse& response, bool l1);
     static void coreReceivedResult(ComponentID core, const NetworkResponse& response);
 
-    static void printSummary();
+    static void printSummary(const chip_parameters_t& params);
 
   private:
 

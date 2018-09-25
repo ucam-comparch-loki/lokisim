@@ -22,7 +22,7 @@ public:
   static count_t numReads();
   static count_t numWrites();
 
-  static void dumpEventCounts(std::ostream& os);
+  static void dumpEventCounts(std::ostream& os, const chip_parameters_t& params);
 
 private:
 

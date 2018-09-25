@@ -14,15 +14,15 @@
 #include "../../../Exceptions/UnsupportedFeatureException.h"
 #include "../Core.h"
 
-bool ExecuteStage::readPredicate() const {return core()->readPredReg();}
-int32_t ExecuteStage::readReg(RegisterIndex reg) const {return core()->readReg(1, reg);}
-int32_t ExecuteStage::readWord(MemoryAddr addr) const {return core()->readWord(addr).toInt();}
-int32_t ExecuteStage::readByte(MemoryAddr addr) const {return core()->readByte(addr).toInt();}
+bool ExecuteStage::readPredicate() const {return core().readPredReg();}
+int32_t ExecuteStage::readReg(RegisterIndex reg) const {return core().readReg(1, reg);}
+int32_t ExecuteStage::readWord(MemoryAddr addr) const {return core().readWord(addr).toInt();}
+int32_t ExecuteStage::readByte(MemoryAddr addr) const {return core().readByte(addr).toInt();}
 
-void ExecuteStage::writePredicate(bool val) const {core()->writePredReg(val);}
-void ExecuteStage::writeReg(RegisterIndex reg, Word data) const {core()->writeReg(reg, data.toInt());}
-void ExecuteStage::writeWord(MemoryAddr addr, Word data) const {core()->writeWord(addr, data);}
-void ExecuteStage::writeByte(MemoryAddr addr, Word data) const {core()->writeByte(addr, data);}
+void ExecuteStage::writePredicate(bool val) const {core().writePredReg(val);}
+void ExecuteStage::writeReg(RegisterIndex reg, Word data) const {core().writeReg(reg, data.toInt());}
+void ExecuteStage::writeWord(MemoryAddr addr, Word data) const {core().writeWord(addr, data);}
+void ExecuteStage::writeByte(MemoryAddr addr, Word data) const {core().writeByte(addr, data);}
 
 void ExecuteStage::execute() {
   // Wait until it is clear to produce network data.
@@ -114,19 +114,19 @@ void ExecuteStage::newInput(DecodedInst& operation) {
         break;
 
       case ISA::OP_GETCHMAP:
-        operation.result(core()->channelMapTable.read(operation.operand1()));
+        operation.result(core().channelMapTable.read(operation.operand1()));
         break;
 
       case ISA::OP_GETCHMAPI:
-        operation.result(core()->channelMapTable.read(operation.immediate()));
+        operation.result(core().channelMapTable.read(operation.immediate()));
         break;
 
       case ISA::OP_CREGRDI:
-        operation.result(core()->cregs.read(operation.immediate()));
+        operation.result(core().cregs.read(operation.immediate()));
         break;
 
       case ISA::OP_CREGWRI:
-        core()->cregs.write(operation.immediate(), operation.operand1());
+        core().cregs.write(operation.immediate(), operation.operand1());
         break;
 
       case ISA::OP_SCRATCHRD:
@@ -218,11 +218,11 @@ void ExecuteStage::newInput(DecodedInst& operation) {
       operation.memoryOp() != PAYLOAD &&
       operation.memoryOp() != PAYLOAD_EOP &&
       !blocked) {
-    Instrumentation::executed(id, operation, willExecute);
+    Instrumentation::executed(core(), operation, willExecute);
 
     // Note: there is a similar call from the decode stage for instructions
     // which complete their execution there.
-    core()->cregs.instructionExecuted();
+    core().cregs.instructionExecuted();
   }
 
   previousInstExecuted = willExecute;
@@ -235,11 +235,12 @@ void ExecuteStage::sendOutput() {
     // In practice, this would be performed by a separate, small functional
     // unit in parallel with the main ALU, so that there is time left to request
     // a path to memory.
-    if (currentInst.networkDestination().isMemory())
+    if (core().isMemory(currentInst.networkDestination().component))
       adjustNetworkAddress(currentInst);
 
-    if (MAGIC_MEMORY && !currentInst.forRemoteExecution() && currentInst.networkDestination().isMemory()) {
-      core()->magicMemoryAccess(currentInst);
+    if (MAGIC_MEMORY && !currentInst.forRemoteExecution() &&
+        core().isMemory(currentInst.networkDestination().component)) {
+      core().magicMemoryAccess(currentInst);
     }
     else {
       // Send the data to the output buffer - it will arrive immediately so that
@@ -259,7 +260,7 @@ void ExecuteStage::setChannelMap(DecodedInst& inst) {
   uint32_t value = inst.operand1();
 
   // Write to the channel map table.
-  core()->channelMapTable.write(entry, value);
+  core().channelMapTable.write(entry, value);
 }
 
 void ExecuteStage::memoryStorePhase1(DecodedInst& operation) {
@@ -283,7 +284,7 @@ void ExecuteStage::memoryStorePhase2(DecodedInst& operation) {
 }
 
 void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
-  loki_assert_with_message(inst.networkDestination().isMemory(),
+  loki_assert_with_message(core().isMemory(inst.networkDestination().component),
       "Destination = %s", inst.networkDestination().getString().c_str());
 
   bool addressFlit;
@@ -302,13 +303,12 @@ void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
 
   // We want to access lots of information from the channel map table, so get
   // the entire entry.
-  ChannelMapEntry& channelMapEntry = core()->channelMapTable[inst.channelMapEntry()];
+  ChannelMapEntry& channelMapEntry = core().channelMapTable[inst.channelMapEntry()];
 
   // Adjust destination channel based on memory configuration if necessary
   uint32_t increment = 0;
 
-  if (channelMapEntry.getDestination().isMemory() &&
-      channelMapEntry.getMemoryGroupSize() > 1) {
+  if (channelMapEntry.isMemory() && channelMapEntry.getMemoryGroupSize() > 1) {
     if (addressFlit) {
       increment = channelMapEntry.computeAddressIncrement((uint32_t)inst.result());
 
@@ -390,13 +390,14 @@ void ExecuteStage::reportStalls(ostream& os) {
   }
 }
 
-ExecuteStage::ExecuteStage(const sc_module_name& name, const ComponentID& ID) :
+ExecuteStage::ExecuteStage(const sc_module_name& name, const ComponentID& ID,
+                           const scratchpad_parameters_t& spadParams) :
     PipelineStage(name, ID),
     oReady("oReady"),
     oData("oData"),
     iReady("iReady"),
     alu("alu", ID),
-    scratchpad("scratchpad", ID) {
+    scratchpad("scratchpad", ID, spadParams) {
 
   forwardedResult = 0;
   previousInstExecuted = false;

@@ -26,9 +26,9 @@ void    Scratchpad::write()     {
 count_t Scratchpad::numReads()  {return reads;}
 count_t Scratchpad::numWrites() {return writes;}
 
-void    Scratchpad::dumpEventCounts(std::ostream& os) {
-  os << "<scratchpad entries=\"" << CORE_SCRATCHPAD_SIZE << "\">\n"
-     << xmlNode("instances", NUM_CORES)             << "\n"
+void    Scratchpad::dumpEventCounts(std::ostream& os, const chip_parameters_t& params) {
+  os << "<scratchpad entries=\"" << params.tile.core.scratchpad.size << "\">\n"
+     << xmlNode("instances", params.totalCores())   << "\n"
      << xmlNode("active", numReads() + numWrites()) << "\n"
      << xmlNode("read", numReads())                 << "\n"
      << xmlNode("write", numWrites())               << "\n"

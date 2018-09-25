@@ -18,6 +18,7 @@ class Registers: public InstrumentationBase {
 public:
 
 // Maintenance
+  static void init(const chip_parameters_t& params);
   static void reset();
 
 // Data logging
@@ -45,7 +46,7 @@ public:
   static count_t numWrites(RegisterIndex reg);
 
   static void printStats();
-  static void dumpEventCounts(std::ostream& os);
+  static void dumpEventCounts(std::ostream& os, const chip_parameters_t& params);
 
 private:
 

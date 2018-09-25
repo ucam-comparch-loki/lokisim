@@ -24,13 +24,13 @@
 #include "Network/NetworkTypes.h"
 #include "OffChip/MagicMemory.h"
 #include "OffChip/MainMemory.h"
+#include "Tile/Tile.h"
 #include "Types.h"
 #include "Utility/LokiVector2D.h"
 
 using std::vector;
 
 class DataBlock;
-class Tile;
 
 class Chip : public LokiComponent {
 
@@ -41,8 +41,8 @@ class Chip : public LokiComponent {
 public:
 
   SC_HAS_PROCESS(Chip);
-  Chip(const sc_module_name& name, const ComponentID& ID);
-  virtual ~Chip();
+  Chip(const sc_module_name& name, const ComponentID& ID,
+       const chip_parameters_t& params);
 
 //============================================================================//
 // Methods
@@ -50,7 +50,18 @@ public:
 
 public:
 
-  bool    isIdle() const;
+  // Get information about various Identifiers with the current Chip
+  // configuration.
+  bool isComputeTile(TileID id) const;
+  uint overallTileIndex(TileID id) const;
+  uint computeTileIndex(TileID id) const;
+  bool isCore(ComponentID id) const;
+  bool isMemory(ComponentID id) const;
+  uint globalComponentIndex(ComponentID id) const;
+  uint globalCoreIndex(ComponentID id) const;
+  uint globalMemoryIndex(ComponentID id) const;
+  bool isCore(ChannelID id) const;
+  bool isMemory(ChannelID id) const;
 
   // During initialisation, determine the closest memory controller to the
   // given tile. This must happen after makeComponents().
@@ -83,17 +94,17 @@ public:
 
 private:
 
-  Tile*   getTile(TileID tile) const;
+  Tile&   getTile(TileID tile) const;
 
   // For initialisation only. Allows other components to be initialised based
   // on the properties of the memoryControllerPositions set.
-  const std::set<TileID> getMemoryControllerPositions() const;
+  const std::set<TileID> getMemoryControllerPositions(const chip_parameters_t& params) const;
 
   // Make any necessary wires needed to connect components together.
-  void    makeSignals();
+  void    makeSignals(size2d_t allTiles);
 
   // Make all cores, memories and interconnect modules.
-  void    makeComponents();
+  void    makeComponents(const chip_parameters_t& params);
 
   // Wire everything together.
   void    wireUp();
@@ -113,7 +124,7 @@ private:
 private:
 
   // Access using tiles[column][row].
-  vector<vector<Tile*>>      tiles;
+  LokiVector2D<Tile>         tiles;
   MainMemory                 mainMemory;
 
   MagicMemory                magicMemory;       // Wrapper for mainMemory

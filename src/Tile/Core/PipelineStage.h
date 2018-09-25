@@ -54,7 +54,7 @@ protected:
   // Do I want a parent() method, so the user has to know the module hierarchy,
   // but can access any position in it, or a cluster() method, which hides
   // any changes, but makes arbitrary access harder?
-  Core* core() const;
+  Core& core() const;
 
   // The main loop responsible for this pipeline stage. It should execute
   // appropriate methods at appropriate points in each clock cycle.

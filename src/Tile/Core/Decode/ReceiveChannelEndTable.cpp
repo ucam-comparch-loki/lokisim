@@ -9,6 +9,7 @@
 
 #include "ReceiveChannelEndTable.h"
 #include "DecodeStage.h"
+#include "../Core.h"
 #include "../RegisterFile.h"
 #include "../../../Datatype/Word.h"
 #include "../../../Exceptions/BlockedException.h"
@@ -19,7 +20,7 @@
 typedef RegisterFile Registers;
 
 int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
-  loki_assert_with_message(channelEnd < CORE_RECEIVE_CHANNELS, "Channel %d", channelEnd);
+  loki_assert_with_message(channelEnd < buffers.size(), "Channel %d", channelEnd);
   loki_assert(!buffers[channelEnd].empty());
 
   int32_t result = buffers[channelEnd].read().toInt();
@@ -31,7 +32,7 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
 }
 
 int32_t ReceiveChannelEndTable::readInternal(ChannelIndex channelEnd) const {
-  loki_assert_with_message(channelEnd < CORE_RECEIVE_CHANNELS, "Channel %d", channelEnd);
+  loki_assert_with_message(channelEnd < buffers.size(), "Channel %d", channelEnd);
 
   if (buffers[channelEnd].empty())
     return 0;
@@ -43,7 +44,7 @@ void ReceiveChannelEndTable::writeInternal(ChannelIndex channel, int32_t data) {
   LOKI_LOG << this->name() << " channel " << (int)channel << " received " <<
               data << endl;
 
-  loki_assert_with_message(channel < CORE_RECEIVE_CHANNELS, "Channel %d", channel);
+  loki_assert_with_message(channel < buffers.size(), "Channel %d", channel);
   loki_assert(!buffers[channel].full());
   buffers[channel].write(data);
 
@@ -52,7 +53,7 @@ void ReceiveChannelEndTable::writeInternal(ChannelIndex channel, int32_t data) {
 
 /* Return whether or not the specified channel contains data. */
 bool ReceiveChannelEndTable::testChannelEnd(ChannelIndex channelEnd) const {
-  loki_assert_with_message(channelEnd < CORE_RECEIVE_CHANNELS, "Channel %d", channelEnd);
+  loki_assert_with_message(channelEnd < buffers.size(), "Channel %d", channelEnd);
   return !buffers[channelEnd].empty();
 }
 
@@ -68,7 +69,7 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd(unsigned int bitmask, cons
     i = currentChannel.value();
     if (((bitmask >> i) & 1) && !buffers[i].empty()) {
         // Adjust address so it can be accessed like a register
-        return Registers::fromChannelID(i);
+        return parent().core().regs.fromChannelID(i);
     }
   }
 
@@ -81,7 +82,7 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd(unsigned int bitmask, cons
 void ReceiveChannelEndTable::waitForData(unsigned int bitmask, const DecodedInst& inst) {
   // Wait for data to arrive on one of the channels we're interested in.
   while (true) {
-    for (ChannelIndex i=0; i<CORE_RECEIVE_CHANNELS; i++) {
+    for (ChannelIndex i=0; i<buffers.size(); i++) {
       if (((bitmask >> i) & 1) && !buffers[i].empty())
         return;
     }
@@ -115,8 +116,8 @@ void ReceiveChannelEndTable::dataConsumedAction(ChannelIndex buffer) {
   oDataConsumed[buffer].write(!oDataConsumed[buffer].read());
 }
 
-DecodeStage* ReceiveChannelEndTable::parent() const {
-  return static_cast<DecodeStage*>(this->get_parent_object());
+DecodeStage& ReceiveChannelEndTable::parent() const {
+  return static_cast<DecodeStage&>(*(this->get_parent_object()));
 }
 
 void ReceiveChannelEndTable::reportStalls(ostream& os) {
@@ -126,15 +127,18 @@ void ReceiveChannelEndTable::reportStalls(ostream& os) {
   }
 }
 
-ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name, const ComponentID& ID) :
+ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name,
+                                               const ComponentID& ID,
+                                               size_t numChannels,
+                                               const fifo_parameters_t& fifoParams) :
     LokiComponent(name, ID),
     BlockingInterface(),
     clock("clock"),
-    iData(CORE_RECEIVE_CHANNELS, "iData"),
-    oFlowControl(CORE_RECEIVE_CHANNELS, "oFlowControl"),
-    oDataConsumed(CORE_RECEIVE_CHANNELS, "oDataConsumed"),
-    buffers(CORE_RECEIVE_CHANNELS, CORE_BUFFER_SIZE, this->name()),
-    currentChannel(CORE_RECEIVE_CHANNELS) {
+    iData("iData", numChannels),
+    oFlowControl("oFlowControl", numChannels),
+    oDataConsumed("oDataConsumed", numChannels),
+    buffers(this->name(), numChannels, fifoParams.size),
+    currentChannel(numChannels) {
 
   // Generate a method to watch each input port, putting the data into the
   // appropriate buffer when it arrives.

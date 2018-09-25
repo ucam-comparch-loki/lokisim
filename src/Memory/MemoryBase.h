@@ -25,8 +25,9 @@ class MemoryBase : public LokiComponent {
 
 public:
 
-  MemoryBase(sc_module_name name, ComponentID ID) :
-    LokiComponent(name, ID) {
+  MemoryBase(sc_module_name name, ComponentID ID, size_t log2CacheLineSize) :
+    LokiComponent(name, ID),
+    log2CacheLineSize(log2CacheLineSize) {
 
   }
 
@@ -148,9 +149,19 @@ public:
   }
 
   // Memory address manipulation. Assumes fixed cache line size of 32 bytes.
-  static MemoryAddr getTag(MemoryAddr address)      {return address & ~0x1F;}
-  static MemoryAddr getLine(SRAMAddress position)   {return position >> 5;}
-  static MemoryAddr getOffset(SRAMAddress position) {return position & 0x1F;}
+  MemoryAddr getTag(MemoryAddr address) const {
+    return address & ~offsetMask();
+  }
+  MemoryAddr getLine(SRAMAddress position) const {
+    return position >> log2CacheLineSize;
+  }
+  MemoryAddr getOffset(SRAMAddress position) const {
+    return position & offsetMask();
+  }
+  MemoryAddr offsetMask() const {
+    return (1 << log2CacheLineSize) - 1;
+  }
+
 
   // This would probably go better in some other class.
   static bool isPayload(NetworkRequest request) {
@@ -181,12 +192,22 @@ public:
     LOKI_LOG << endl;
   }
 
+  size_t cacheLineBytes() const {
+    return 1 << log2CacheLineSize;
+  }
+
+  size_t cacheLineWords() const {
+    return cacheLineBytes() / BYTES_PER_WORD;
+  }
+
 protected:
 
   // Abstract away where the data is stored. Allows multiple memories to share
   // data.
   virtual const vector<uint32_t>& dataArray() const = 0;
   virtual vector<uint32_t>& dataArray() = 0;
+
+  const size_t log2CacheLineSize; // In bytes
 
 };
 

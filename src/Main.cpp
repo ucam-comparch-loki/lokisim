@@ -72,7 +72,7 @@ void timeout() {
   Instrumentation::endExecution();
 }
 
-void simulate(Chip& chip) {
+void simulate(Chip& chip, const chip_parameters_t& params) {
 
   cycle_count_t smallStep = 1;
   cycle_count_t bigStep = 100;
@@ -80,7 +80,7 @@ void simulate(Chip& chip) {
 
   try {
     if (Debugger::usingDebugger) {
-      Debugger::setChip(&chip);
+      Debugger::setChip(&chip, params);
       Debugger::waitForInput();
     }
     else {
@@ -135,17 +135,17 @@ void simulate(Chip& chip) {
 }
 
 // Tasks which happen before the model has been generated.
-void initialise() {
+void initialise(chip_parameters_t& params) {
   // Override parameters before instantiating chip model
   for (unsigned int i=0; i<Arguments::code().size(); i++)
-    CodeLoader::loadParameters(Arguments::code()[i]);
-  Arguments::setCommandLineParameters();
+    CodeLoader::loadParameters(Arguments::code()[i], params);
+  Arguments::updateState(params);
   if (DEBUG)
-    Parameters::printParameters();
+    Parameters::printParameters(params);
 
   // Now that we know how many cores, etc, there are, initialise any
   // instrumentation structures.
-  Instrumentation::initialise();
+  Instrumentation::initialise(params);
 
   if (ENERGY_TRACE || Arguments::summarise())
     Instrumentation::start();
@@ -156,14 +156,14 @@ void initialise() {
 
 // Instantiate chip model - changing a parameter after this point has
 // undefined behaviour.
-Chip& createChipModel() {
-  Chip* chip = new Chip("chip", 0);
+Chip& createChipModel(const chip_parameters_t& params) {
+  Chip* chip = new Chip("chip", 0, params);
   return *chip;
 }
 
 // Tasks which happen after the chip model has been created, but before
 // simulation begins.
-void presimulation(Chip& chip) {
+void presimulation(Chip& chip, const chip_parameters_t& params) {
   // Put arguments for the simulated program into simulated memory.
   Arguments::storeArguments(chip);
 
@@ -178,23 +178,23 @@ void presimulation(Chip& chip) {
 }
 
 // Tasks which happen after simulation finishes.
-void postsimulation(Chip& chip) {
+void postsimulation(Chip& chip, const chip_parameters_t& params) {
   Instrumentation::stop();
 
   // Print debug information
   if (Arguments::summarise())
-    Instrumentation::printSummary();
+    Instrumentation::printSummary(params);
 
   if (!Arguments::energyTraceFile().empty()) {
     std::ofstream output(Arguments::energyTraceFile().c_str());
-    Instrumentation::dumpEventCounts(output);
+    Instrumentation::dumpEventCounts(output, params);
     output.close();
     cout << "Execution statistics written to " << Arguments::energyTraceFile() << endl;
   }
   else if (Instrumentation::haveEnergyData() && RETURN_CODE == EXIT_SUCCESS) {
     // If we have collected some data but haven't been told where to put it,
     // dump it all to stdout.
-    Instrumentation::dumpEventCounts(std::cout);
+    Instrumentation::dumpEventCounts(std::cout, params);
   }
 
   if (Arguments::ipkStats()) {
@@ -214,12 +214,14 @@ int sc_main(int argc, char* argv[]) {
   Arguments::parse(argc, argv);
 
   if (Arguments::simulate()) {
-    initialise();
-    Chip& chip = createChipModel();
-    presimulation(chip);
-    simulate(chip);
-    postsimulation(chip);
+    chip_parameters_t* params = Parameters::defaultParameters();
+    initialise(*params);
+    Chip& chip = createChipModel(*params);
+    presimulation(chip, *params);
+    simulate(chip, *params);
+    postsimulation(chip, *params);
     delete &chip;
+    delete params;
     return RETURN_CODE;
   }
   else

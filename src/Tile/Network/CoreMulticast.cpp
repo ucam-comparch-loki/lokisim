@@ -8,13 +8,15 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "CoreMulticast.h"
-#include "../../Network/Topologies/MulticastBus.h"
 
-CoreMulticast::CoreMulticast(const sc_module_name name, ComponentID tile) :
-    Network(name, tile, MULTICAST_NETWORK_SIZE, MULTICAST_NETWORK_SIZE*MULTICAST_NETWORK_SIZE, Network::COMPONENT),
-    iData(MULTICAST_NETWORK_SIZE, "iData"),
-    oData(MULTICAST_NETWORK_SIZE, MULTICAST_NETWORK_SIZE, "oData"),
-    busInput(MULTICAST_NETWORK_SIZE, "busInput") {
+using sc_core::sc_gen_unique_name;
+
+CoreMulticast::CoreMulticast(const sc_module_name name, ComponentID tile,
+                             const tile_parameters_t& params) :
+    Network(name, tile, params.mcastNetInputs(), params.mcastNetInputs()*params.mcastNetOutputs(), Network::COMPONENT),
+    iData("iData", params.mcastNetInputs()),
+    oData("oData", params.mcastNetOutputs(), params.mcastNetInputs()),
+    busInput("busInput", params.mcastNetInputs()) {
 
   state.assign(iData.size(), IDLE);
 
@@ -32,21 +34,18 @@ CoreMulticast::CoreMulticast(const sc_module_name name, ComponentID tile) :
     SPAWN_METHOD(iData[i], CoreMulticast::mainLoop, i, false);
   }
 
+
   // TODO: Would be nice for the constructor to receive a list of components to
   // connect so we can check how many connections they have, rather than
   // hard coding this.
-  iReady.init(MULTICAST_NETWORK_SIZE);
-  for (uint i=0; i<CORES_PER_TILE; i++)
-    iReady[i].init(CORE_INPUT_CHANNELS, "iReady");
-  for (uint i=CORES_PER_TILE; i<CORES_PER_TILE+ACCELERATORS_PER_TILE; i++)
-    iReady[i].init(1, "iReady");
+  iReady.init(params.mcastNetOutputs());
+  for (uint i=0; i<params.numCores; i++)
+    iReady[i].init("iReady", params.core.numInputChannels);
+  for (uint i=params.numCores; i<params.mcastNetOutputs(); i++)
+    iReady[i].init("iReady", 1);
 
 }
 
-CoreMulticast::~CoreMulticast() {
-  for (uint i=0; i<buses.size(); i++)
-    delete buses[i];
-}
 
 void CoreMulticast::mainLoop(PortIndex input) {
   switch (state[input]) {

@@ -21,7 +21,7 @@ typedef RegisterFile Registers;
 void Decoder::instructionFinished() {
   // If the instruction will not reach the ALU, record that it executed here.
   if (/*ENERGY_TRACE &&*/ !current.isExecuteStageOperation())
-    Instrumentation::executed(id, current, execute);
+    Instrumentation::executed(parent().core(), current, execute);
 
   // Do ibjmps here, once we know whether or not this instruction will execute.
   if (current.opcode() == ISA::OP_IBJMP) {
@@ -33,7 +33,7 @@ void Decoder::instructionFinished() {
     if (execute) {
       bool discarded = discardNextInst();
       if(discarded) jump -= BYTES_PER_WORD;
-      parent()->jump(jump);
+      parent().jump(jump);
     }
   }
 }
@@ -65,8 +65,8 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   Instrumentation::decoded(id, input);
 
   if (/*ENERGY_TRACE &&*/ !input.isExecuteStageOperation()) {
-    Instrumentation::executed(id, input, execute);
-    parent()->instructionExecuted();
+    Instrumentation::executed(parent().core(), input, execute);
+    parent().instructionExecuted();
   }
 
   // If we know the instruction won't execute, stop it here.
@@ -132,7 +132,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
         stall(true, Instrumentation::Stalls::STALL_FORWARDING, output);
         wait(1.1, sc_core::SC_NS);
         stall(false, Instrumentation::Stalls::STALL_FORWARDING, output);
-        output.operand1(parent()->getForwardedData());
+        output.operand1(parent().getForwardedData());
       }
       output.sourceReg1(output.operand1());
 
@@ -153,7 +153,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     // number of credits.
     case ISA::OP_WOCHE: {
       uint targetCredits = output.immediate();
-      ChannelMapEntry& cme = parent()->channelMapTableEntry(output.channelMapEntry());
+      ChannelMapEntry& cme = parent().channelMapTableEntry(output.channelMapEntry());
       while (!cme.haveNCredits(targetCredits)) {
         stall(true, Instrumentation::Stalls::STALL_OUTPUT, output);
         wait(cme.creditArrivedEvent());
@@ -165,10 +165,10 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
     case ISA::OP_TSTCHI:
     case ISA::OP_TSTCHI_P:
-      output.result(parent()->testChannel(output.immediate())); break;
+      output.result(parent().testChannel(output.immediate())); break;
 
     case ISA::OP_SELCH:
-      output.result(parent()->selectChannel(output.immediate(), output)); break;
+      output.result(parent().selectChannel(output.immediate(), output)); break;
 
     case ISA::OP_IBJMP: {
       JumpOffset jump = (JumpOffset)output.immediate();
@@ -180,7 +180,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
         bool discarded = discardNextInst();
         if (discarded)
           jump--;
-        parent()->jump(jump);
+        parent().jump(jump);
       }
 
       continueToExecute = false;
@@ -188,7 +188,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
     }
 
     case ISA::OP_RMTEXECUTE: {
-      parent()->startRemoteExecution(output);
+      parent().startRemoteExecution(output);
       continueToExecute = false;
       break;
     }
@@ -231,11 +231,11 @@ bool Decoder::ready() const {
 
 void Decoder::waitForOperands(const DecodedInst& dec) {
   // Wait until all data has arrived from the network.
-  if (ISA::hasDestReg(dec.opcode()) && Registers::isChannelEnd(dec.destination()))
-    waitUntilArrival(Registers::toChannelID(dec.destination()), dec);
+  if (ISA::hasDestReg(dec.opcode()) && parent().core().regs.isChannelEnd(dec.destination()))
+    waitUntilArrival(parent().core().regs.toChannelID(dec.destination()), dec);
   if (ISA::hasSrcReg1(dec.opcode())) {
-    if (Registers::isChannelEnd(dec.sourceReg1()))
-      waitUntilArrival(Registers::toChannelID(dec.sourceReg1()), dec);
+    if (parent().core().regs.isChannelEnd(dec.sourceReg1()))
+      waitUntilArrival(parent().core().regs.toChannelID(dec.sourceReg1()), dec);
     if (dec.isDecodeStageOperation() && needsForwarding(dec.sourceReg1())) {
       stall(true, Instrumentation::Stalls::STALL_FORWARDING, dec);
       // HACK! May take multiple cycles. FIXME
@@ -246,15 +246,15 @@ void Decoder::waitForOperands(const DecodedInst& dec) {
       stall(false, Instrumentation::Stalls::STALL_FORWARDING, dec);
     }
   }
-  if (ISA::hasSrcReg2(dec.opcode()) && Registers::isChannelEnd(dec.sourceReg2()))
-    waitUntilArrival(Registers::toChannelID(dec.sourceReg2()), dec);
+  if (ISA::hasSrcReg2(dec.opcode()) && parent().core().regs.isChannelEnd(dec.sourceReg2()))
+    waitUntilArrival(parent().core().regs.toChannelID(dec.sourceReg2()), dec);
 }
 
 bool Decoder::needsForwarding(RegisterIndex reg) const {
   // Forwarding will be required if there is any instruction between the decode
   // stage and the write back stage which will modify the contents of reg.
-  return !Registers::isReserved(reg)
-      && (reg == parent()->core()->execute.currentInstruction().destination());
+  return !parent().core().regs.isReserved(reg)
+      && (reg == parent().core().execute.currentInstruction().destination());
 }
 
 void Decoder::setOperand1(DecodedInst& dec) {
@@ -288,7 +288,7 @@ void Decoder::setOperand2(DecodedInst& dec) {
 }
 
 int32_t Decoder::readRegs(PortIndex port, RegisterIndex index, bool indirect) {
-  return parent()->readReg(port, index, indirect);
+  return parent().readReg(port, index, indirect);
 }
 
 void Decoder::waitUntilArrival(ChannelIndex channel, const DecodedInst& inst) {
@@ -296,7 +296,7 @@ void Decoder::waitUntilArrival(ChannelIndex channel, const DecodedInst& inst) {
     return;
 
   // Test the channel to see if the data is already there.
-  if (!parent()->testChannel(channel)) {
+  if (!parent().testChannel(channel)) {
     bool fromMemory = connectionFromMemory(channel);
     Instrumentation::Stalls::StallReason reason =
         fromMemory ? Instrumentation::Stalls::STALL_MEMORY_DATA
@@ -307,7 +307,7 @@ void Decoder::waitUntilArrival(ChannelIndex channel, const DecodedInst& inst) {
     LOKI_LOG << this->name() << " waiting for channel " << (int)channel << endl;
 
     // Wait until something arrives.
-    wait(parent()->receivedDataEvent(channel) | cancelEvent);
+    wait(parent().receivedDataEvent(channel) | cancelEvent);
 
     stall(false, reason, inst);
   }
@@ -319,19 +319,19 @@ void Decoder::waitForOperands2(const DecodedInst& inst) {
   // For each of the three possible registers described by the instruction:
   //  1. See if the register corresponds to an input channel.
   //  2. If the channel is empty, wait for data to arrive.
-  if (needDestination && ISA::hasDestReg(inst.opcode()) && Registers::isChannelEnd(inst.destination())) {
+  if (needDestination && ISA::hasDestReg(inst.opcode()) && parent().core().regs.isChannelEnd(inst.destination())) {
     needDestination = false;
-    if (!checkChannelInput(Registers::toChannelID(inst.destination()), inst))
+    if (!checkChannelInput(parent().core().regs.toChannelID(inst.destination()), inst))
       return;
   }
-  if (needOperand1 && ISA::hasSrcReg1(inst.opcode()) && Registers::isChannelEnd(inst.sourceReg1())) {
+  if (needOperand1 && ISA::hasSrcReg1(inst.opcode()) && parent().core().regs.isChannelEnd(inst.sourceReg1())) {
     needOperand1 = false;
-    if (!checkChannelInput(Registers::toChannelID(inst.sourceReg1()), inst))
+    if (!checkChannelInput(parent().core().regs.toChannelID(inst.sourceReg1()), inst))
       return;
   }
-  if (needOperand2 && ISA::hasSrcReg2(inst.opcode()) && Registers::isChannelEnd(inst.sourceReg2())) {
+  if (needOperand2 && ISA::hasSrcReg2(inst.opcode()) && parent().core().regs.isChannelEnd(inst.sourceReg2())) {
     needOperand2 = false;
-    if (!checkChannelInput(Registers::toChannelID(inst.sourceReg2()), inst))
+    if (!checkChannelInput(parent().core().regs.toChannelID(inst.sourceReg2()), inst))
       return;
   }
 
@@ -346,7 +346,7 @@ void Decoder::waitForOperands2(const DecodedInst& inst) {
 }
 
 bool Decoder::checkChannelInput(ChannelIndex channel, const DecodedInst& inst) {
-  bool haveData = parent()->testChannel(channel);
+  bool haveData = parent().testChannel(channel);
 
   if (!haveData) {
     bool fromMemory = connectionFromMemory(channel);
@@ -357,7 +357,7 @@ bool Decoder::checkChannelInput(ChannelIndex channel, const DecodedInst& inst) {
 
     LOKI_LOG << this->name() << " waiting for channel " << (int)channel << endl;
 
-    next_trigger(parent()->receivedDataEvent(channel) | cancelEvent);
+    next_trigger(parent().receivedDataEvent(channel) | cancelEvent);
   }
 
   return haveData;
@@ -365,12 +365,12 @@ bool Decoder::checkChannelInput(ChannelIndex channel, const DecodedInst& inst) {
 
 bool Decoder::connectionFromMemory(ChannelIndex buffer) const {
   // Convert from input buffer index to input channel index.
-  ChannelIndex channel = Registers::fromChannelID(buffer);
-  return parent()->connectionFromMemory(channel);
+  ChannelIndex channel = parent().core().regs.fromChannelID(buffer);
+  return parent().connectionFromMemory(channel);
 }
 
 bool Decoder::discardNextInst() const {
-  return parent()->discardNextInst();
+  return parent().discardNextInst();
 }
 
 void Decoder::cancelInstruction() {
@@ -398,10 +398,10 @@ bool Decoder::shouldExecute(const DecodedInst& inst) {
   // Predicated instructions which complete in this pipeline stage and
   // which may access channel data.
   if (inst.isDecodeStageOperation() ||
-      Registers::isChannelEnd(inst.sourceReg1()) ||
-      Registers::isChannelEnd(inst.sourceReg2())) {
+      parent().core().regs.isChannelEnd(inst.sourceReg1()) ||
+      parent().core().regs.isChannelEnd(inst.sourceReg2())) {
     short predBits = inst.predicate();
-    bool predicate = parent()->predicate(inst);
+    bool predicate = parent().predicate(inst);
 
     return (predBits == Instruction::P     &&  predicate) ||
            (predBits == Instruction::NOT_P && !predicate);
@@ -422,8 +422,8 @@ bool Decoder::needPredicateNow(const DecodedInst& inst) const {
       return true;
     default: {
       bool irreversible = inst.isDecodeStageOperation() ||
-                          Registers::isChannelEnd(inst.sourceReg1()) ||
-                          Registers::isChannelEnd(inst.sourceReg2());
+          parent().core().regs.isChannelEnd(inst.sourceReg1()) ||
+          parent().core().regs.isChannelEnd(inst.sourceReg2());
       return inst.predicated() && irreversible;
     }
   }
@@ -453,9 +453,9 @@ bool Decoder::isFetch(opcode_t opcode) const {
 
 void Decoder::fetch(DecodedInst& inst) {
   // Wait until we are allowed to check the cache tags.
-  if (!parent()->canFetch()) {
+  if (!parent().canFetch()) {
     stall(true, Instrumentation::Stalls::STALL_FETCH, inst);
-    while (!parent()->canFetch()) {
+    while (!parent().canFetch()) {
       LOKI_LOG << this->name() << " waiting to issue " << inst << endl;
       wait(1, sc_core::SC_NS);
     }
@@ -475,7 +475,7 @@ void Decoder::fetch(DecodedInst& inst) {
       inst.operand2(readRegs(2, inst.sourceReg2()));
   }
 
-  parent()->fetch(inst);
+  parent().fetch(inst);
 }
 
 void Decoder::stall(bool stall, Instrumentation::Stalls::StallReason reason, const DecodedInst& cause) {
@@ -491,18 +491,18 @@ const sc_event& Decoder::stalledEvent() const {
   return blockedEvent;
 }
 
-DecodeStage* Decoder::parent() const {
-  return static_cast<DecodeStage*>(this->get_parent_object());
+DecodeStage& Decoder::parent() const {
+  return static_cast<DecodeStage&>(*(this->get_parent_object()));
 }
 
 void Decoder::reportStalls(ostream& os) {
   if (!ready()) {
-    DecodedInst& inst = parent()->currentInst;
+    DecodedInst& inst = parent().currentInst;
     os << this->name() << " unable to complete " << LOKI_HEX(inst.location()) << " " << inst << endl;
 
-    if (needOperand1 || (inst.hasOperand1() && Registers::isChannelEnd(inst.sourceReg1())))
+    if (needOperand1 || (inst.hasOperand1() && parent().core().regs.isChannelEnd(inst.sourceReg1())))
       os << "  Waiting for operand 1." << endl;
-    if (needOperand2 || (inst.hasOperand2() && Registers::isChannelEnd(inst.sourceReg2())))
+    if (needOperand2 || (inst.hasOperand2() && parent().core().regs.isChannelEnd(inst.sourceReg2())))
       os << "  Waiting for operand 2." << endl;
     if (multiCycleOp)
       os << "  Operation takes multiple cycles." << endl;

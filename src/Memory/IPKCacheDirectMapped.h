@@ -18,7 +18,7 @@ class IPKCacheDirectMapped: public IPKCacheBase {
 
 public:
 
-  IPKCacheDirectMapped(const size_t size, const std::string& name);
+  IPKCacheDirectMapped(const std::string& name, size_t size, size_t maxIPKLength);
   virtual ~IPKCacheDirectMapped();
 
 //============================================================================//

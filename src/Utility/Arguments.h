@@ -13,6 +13,7 @@
 
 #include <string>
 #include <vector>
+#include "Parameters.h"
 
 using std::string;
 using std::vector;
@@ -27,13 +28,14 @@ public:
   // some will be stored for later use.
   static void parse(int argc, char* argv[]);
 
+  // Once all arguments have been parsed, update any necessary state throughout
+  // the simulator.
+  static void updateState(chip_parameters_t& params);
+
   // Take any arguments which are for the simulated program, and store them in
   // their initial positions in simulated memory.
   // These arguments are separated from the simulator arguments by "--args".
   static void storeArguments(Chip& chip);
-
-  // Set any parameters which were received as command line arguments.
-  static void setCommandLineParameters();
 
   // Tells whether simulation should actually take place.
   static bool simulate();
@@ -68,6 +70,9 @@ public:
   static void printHelp();
 
 private:
+
+  // Set any parameters which were received as command line arguments.
+  static void setCommandLineParameters(chip_parameters_t& params);
 
   // Tells whether we actually want to simulate the chip.
   // Consider extracting all non-simulation functionality out into separate

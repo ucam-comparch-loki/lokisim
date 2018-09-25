@@ -26,7 +26,7 @@ void InstructionPacketFIFO::write(const Instruction inst) {
   // If this is a "next instruction packet" command, don't write it to the FIFO,
   // but instead immediately move to the next packet, if there is one.
   if (inst.opcode() == ISA::OP_NXIPK) {
-    parent()->nextIPK();
+    parent().nextIPK();
     return;
   }
 
@@ -39,7 +39,7 @@ void InstructionPacketFIFO::write(const Instruction inst) {
     InstLocation location;
     location.component = IPKFIFO;
     location.index = writePos;
-    tag = parent()->newPacketArriving(location);
+    tag = parent().newPacketArriving(location);
     startOfPacket = writePos;
     lastWriteAddr = tag;
   }
@@ -56,7 +56,7 @@ void InstructionPacketFIFO::write(const Instruction inst) {
 
   finishedPacketWrite = inst.endOfPacket();
   if (finishedPacketWrite)
-    parent()->packetFinishedArriving(IPKFIFO);
+    parent().packetFinishedArriving(IPKFIFO);
 }
 
 CacheIndex InstructionPacketFIFO::lookup(MemoryAddr tag) {
@@ -117,16 +117,17 @@ void InstructionPacketFIFO::dataConsumedAction() {
   oDataConsumed.write(!oDataConsumed.read());
 }
 
-FetchStage* InstructionPacketFIFO::parent() const {
-  return static_cast<FetchStage*>(this->get_parent_object());
+FetchStage& InstructionPacketFIFO::parent() const {
+  return static_cast<FetchStage&>(*(this->get_parent_object()));
 }
 
-InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name) :
+InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name,
+                                             const fifo_parameters_t& params) :
     LokiComponent(name),
     oFlowControl("oFlowControl"),
     oDataConsumed("oDataConsumed"),
-    fifo(std::string(name), IPK_FIFO_SIZE),
-    addresses(IPK_FIFO_SIZE, DEFAULT_TAG) {
+    fifo(std::string(name), params.size),
+    addresses(params.size, DEFAULT_TAG) {
 
   tag = DEFAULT_TAG;
 

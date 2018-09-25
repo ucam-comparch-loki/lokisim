@@ -24,7 +24,7 @@ int CodeLoader::mainOffset = -1;
  *     Use another file loader - useful for loading multiple (sub-)programs
  *   parameter parameter_name parameter_value
  *     Override default parameter setting */
-void CodeLoader::loadParameters(const string& settings) {
+void CodeLoader::loadParameters(const string& settings, chip_parameters_t& params) {
 
   // Check that this is actually a settings file.
   if (settings.find(".txt") == settings.size()) return;
@@ -56,10 +56,10 @@ void CodeLoader::loadParameters(const string& settings) {
       }
       else if (words[0]=="loader") {   // Use another file loader
         string loaderFile = directory + "/" + words[1];
-        loadParameters(loaderFile);
+        loadParameters(loaderFile, params);
       }
       else if (words[0]=="parameter") {   // Override parameter
-        Parameters::parseParameter(words[1], words[2]);
+        Parameters::parseParameter(words[1], words[2], params);
       }
 
       delete &words;
@@ -192,7 +192,9 @@ void CodeLoader::loadFromReader(FileReader* reader, Chip& chip) {
   vector<DataBlock>& blocks = reader->extractData(mainOffset);
 
   for (uint i=0; i<blocks.size(); i++) {
-    if (blocks[i].component().tile.computeTileIndex() == 0 && blocks[i].component().position == 0 && blocks[i].position() == 0)
+    if (chip.computeTileIndex(blocks[i].component().tile) == 0 &&
+        blocks[i].component().position == 0 &&
+        blocks[i].position() == 0)
       appLoaderInitialized = true;
 
     chip.storeData(blocks[i]);

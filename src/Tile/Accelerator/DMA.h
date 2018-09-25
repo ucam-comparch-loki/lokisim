@@ -13,6 +13,7 @@
 #include "../../Exceptions/InvalidOptionException.h"
 #include "../../LokiComponent.h"
 #include "../../Utility/Assert.h"
+#include "../../Utility/LokiVector2D.h"
 #include "AcceleratorTypes.h"
 #include "CommandQueue.h"
 #include "ConvolutionAlgorithm.h"
@@ -85,7 +86,7 @@ protected:
   virtual void storeData(position_t position, MemoryAddr address, int data) = 0;
   virtual void loadAndAdd(position_t position, MemoryAddr address, int data) = 0;
 
-  Accelerator* parent() const;
+  Accelerator& parent() const;
 
 private:
 
@@ -256,7 +257,7 @@ public:
   DMAInput(sc_module_name name, ComponentID id, size2d_t ports,
            size_t queueLength=4) :
       DMABase<T>(name, id, ports, queueLength),
-      oDataToPEs(ports.width, ports.height, "oDataToPEs"),
+      oDataToPEs("oDataToPEs", ports.width, ports.height),
       oDataValid("oDataValid"),
       iReadyForData("iReadyForData") {
 
@@ -381,7 +382,7 @@ public:
   DMAOutput(sc_module_name name, ComponentID id, size2d_t ports,
             size_t queueLength=4) :
       DMABase<T>(name, id, ports, queueLength),
-      iDataFromPEs(ports.width, ports.height, "iDataFromPEs"),
+      iDataFromPEs("iDataFromPEs", ports.width, ports.height),
       iDataValid("iDataValid"),
       oReadyForData("oReadyForData") {
 

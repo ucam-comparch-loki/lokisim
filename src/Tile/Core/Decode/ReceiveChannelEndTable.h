@@ -17,6 +17,7 @@
 #include "../../../Network/FIFOs/FIFOArray.h"
 #include "../../../Network/NetworkTypes.h"
 #include "../../../Utility/BlockingInterface.h"
+#include "../../../Utility/LokiVector.h"
 #include "../../../Utility/LoopCounter.h"
 
 class DecodeStage;
@@ -51,7 +52,8 @@ public:
 public:
 
   SC_HAS_PROCESS(ReceiveChannelEndTable);
-  ReceiveChannelEndTable(const sc_module_name& name, const ComponentID& ID);
+  ReceiveChannelEndTable(const sc_module_name& name, const ComponentID& ID,
+                         size_t numChannels, const fifo_parameters_t& fifoParams);
 
 //============================================================================//
 // Methods
@@ -103,7 +105,7 @@ private:
   // Toggle signals to indicate when data has been consumed.
   void dataConsumedAction(ChannelIndex buffer);
 
-  DecodeStage* parent() const;
+  DecodeStage& parent() const;
 
 //============================================================================//
 // Local state

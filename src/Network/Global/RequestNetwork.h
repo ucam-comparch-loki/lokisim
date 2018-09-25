@@ -22,7 +22,8 @@ class RequestNetwork: public Mesh {
 
 public:
 
-  RequestNetwork(const sc_module_name &name);
+  RequestNetwork(const sc_module_name &name, size2d_t size,
+                 const router_parameters_t& routerParams);
   virtual ~RequestNetwork();
 
 };

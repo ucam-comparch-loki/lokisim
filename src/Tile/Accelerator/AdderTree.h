@@ -36,7 +36,7 @@ public:
 
   AdderTree(sc_module_name name, int length, int latency, int initiationInterval) :
       LokiComponent(name),
-      in(length, "in"),
+      in("in", length),
       out("out") {
 
     // TODO implement latency and initiation interval

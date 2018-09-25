@@ -22,8 +22,8 @@ class AcceleratorTile: public ComputeTile {
 
 public:
 
-  AcceleratorTile(const sc_module_name& name, const ComponentID& id);
-  virtual ~AcceleratorTile();
+  AcceleratorTile(const sc_module_name& name, const ComponentID& id,
+                  const tile_parameters_t& params);
 
 
 //============================================================================//
@@ -31,6 +31,16 @@ public:
 //============================================================================//
 
 public:
+
+  virtual uint numComponents() const;
+  virtual uint numAccelerators() const;
+  virtual bool isCore(ComponentID id) const;
+  virtual bool isMemory(ComponentID id) const;
+  virtual bool isAccelerator(ComponentID id) const;
+  virtual uint componentIndex(ComponentID id) const;
+  virtual uint coreIndex(ComponentID id) const;
+  virtual uint memoryIndex(ComponentID id) const;
+  virtual uint acceleratorIndex(ComponentID id) const;
 
   // Magic network connection for cores and accelerators.
   void networkSendDataInternal(const NetworkData& flit);
@@ -44,7 +54,7 @@ public:
 
 private:
 
-  vector<Accelerator*> accelerators;
+  LokiVector<Accelerator> accelerators;
 
 };
 

@@ -12,12 +12,13 @@
 #include "../Datatype/MemoryOperations/MemoryOperationDecode.h"
 #include "../Utility/Instrumentation/Network.h"
 
-MainMemoryRequestHandler::MainMemoryRequestHandler(sc_module_name name, ComponentID ID, MainMemory& memory) :
-    MemoryBase(name, ID),
+MainMemoryRequestHandler::MainMemoryRequestHandler(sc_module_name name,
+    ComponentID ID, MainMemory& memory, const main_memory_parameters_t& params) :
+    MemoryBase(name, ID, memory.log2CacheLineSize),
     iClock("iClock"),
     iData("iData"),
     oData("oData"),
-    outputQueue("delay", 1024 /* "infinite" size */, (double)MAIN_MEMORY_LATENCY),
+    outputQueue("delay", 1024 /* "infinite" size */, (double)params.latency),
     mainMemory(memory) {
 
   requestState = STATE_IDLE;
@@ -166,11 +167,11 @@ void MainMemoryRequestHandler::processIdle() {
     // Main memory only supports a subset of operations.
     switch (activeRequest->getMetadata().opcode) {
       case FETCH_LINE:
-        Instrumentation::MainMemory::read(activeRequest->getAddress(), CACHE_LINE_WORDS);
+        Instrumentation::MainMemory::read(activeRequest->getAddress(), cacheLineWords());
         mainMemory.checkSafeRead(activeRequest->getAddress(), returnAddress.component.tile);
         break;
       case STORE_LINE:
-        Instrumentation::MainMemory::write(activeRequest->getAddress(), CACHE_LINE_WORDS);
+        Instrumentation::MainMemory::write(activeRequest->getAddress(), cacheLineWords());
         mainMemory.checkSafeWrite(activeRequest->getAddress(), returnAddress.component.tile);
         break;
       default:

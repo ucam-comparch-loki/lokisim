@@ -17,6 +17,7 @@
 
 #include "../LokiComponent.h"
 #include "../Utility/BlockingInterface.h"
+#include "../Utility/LokiVector.h"
 #include "FIFOs/FIFOArray.h"
 #include "NetworkTypes.h"
 
@@ -50,7 +51,8 @@ public:
 public:
 
   SC_HAS_PROCESS(Router);
-  Router(const sc_module_name& name, const ComponentID& ID);
+  Router(const sc_module_name& name, const ComponentID& ID,
+         const router_parameters_t& params);
 
 //============================================================================//
 // Methods

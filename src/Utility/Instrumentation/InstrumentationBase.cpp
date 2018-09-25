@@ -57,7 +57,7 @@ const string InstrumentationBase::xmlNode(const char* name, count_t value, const
   return ss.str();
 }
 
-void InstrumentationBase::init() {
+void InstrumentationBase::init(const chip_parameters_t& params) {
   // Do nothing
 }
 

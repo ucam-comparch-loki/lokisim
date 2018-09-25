@@ -158,12 +158,6 @@ void Arguments::parse(int argc, char* argv[]) {
     }
   }
 
-  // Bail out if we have nothing to simulate.
-  if (simulate_ && programFiles.empty() && !Debugger::usingDebugger) {
-    printHelp();
-    simulate_ = false;
-  }
-
   // There is a default settings file in the config directory.
   if (useDefaultSettings) {
     const string simDir = simulator_.substr(0, simulator_.rfind('/'));
@@ -171,9 +165,22 @@ void Arguments::parse(int argc, char* argv[]) {
     programFiles.push_back(settingsFile);
   }
 
+}
+
+void Arguments::updateState(chip_parameters_t& params) {
+
+  // Bail out if we have nothing to simulate.
+  if (simulate_ && programFiles.empty() && !Debugger::usingDebugger) {
+    printHelp();
+    simulate_ = false;
+  }
+
+  // Update parameters.
+  setCommandLineParameters(params);
+
   // Perform any setup which must wait until all arguments have been parsed.
   if (!callgrindTraceFile_.empty())
-    Callgrind::startTrace(callgrindTraceFile_, programFiles[0]);
+    Callgrind::startTrace(callgrindTraceFile_, programFiles[0], params);
 
 }
 
@@ -227,10 +234,10 @@ void Arguments::storeArguments(Chip& chip) {
   chip.storeData(DataBlock(&data, ComponentID(2,0,0), 0, true));
 }
 
-void Arguments::setCommandLineParameters() {
+void Arguments::setCommandLineParameters(chip_parameters_t& params) {
   assert(parameterNames.size() == parameterValues.size());
   for (uint i=0; i<parameterNames.size(); i++)
-    Parameters::parseParameter(parameterNames[i], parameterValues[i]);
+    Parameters::parseParameter(parameterNames[i], parameterValues[i], params);
 }
 
 bool Arguments::simulate() {

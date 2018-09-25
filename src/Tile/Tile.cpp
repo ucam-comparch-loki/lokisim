@@ -36,6 +36,47 @@ Tile::~Tile() {
   // Nothing
 }
 
+uint Tile::numComponents() const {return 0;}
+uint Tile::numCores() const {return 0;}
+uint Tile::numMemories() const {return 0;}
+
+bool Tile::isCore(ComponentID id) const {
+  LOKI_ERROR << "Calling Tile::isCore on Tile with no cores " << id << endl;
+  assert(false);
+  return false;
+}
+
+bool Tile::isMemory(ComponentID id) const {
+  LOKI_ERROR << "Calling Tile::isMemory on Tile with no memories " << id << endl;
+  assert(false);
+  return false;
+}
+
+uint Tile::componentIndex(ComponentID id) const {
+  LOKI_ERROR << "Calling Tile::localComponentNumber on Tile with no components "
+      << id << endl;
+  assert(false);
+  return 0;
+}
+
+uint Tile::coreIndex(ComponentID id) const {
+  LOKI_ERROR << "Calling Tile::localCoreNumber on Tile with no cores "
+      << id << endl;
+  assert(false);
+  return 0;
+}
+
+uint Tile::memoryIndex(ComponentID id) const {
+  LOKI_ERROR << "Calling Tile::localMemoryNumber on Tile with no memories "
+      << id << endl;
+  assert(false);
+  return 0;
+}
+
+bool Tile::isComputeTile(TileID id) const {
+  return chip().isComputeTile(id);
+}
+
 void Tile::storeInstructions(vector<Word>& instructions, const ComponentID& component) {
   throw UnsupportedFeatureException("Tile::storeInstructions");
 }
@@ -85,10 +126,10 @@ void Tile::networkSendCreditInternal(const NetworkCredit& flit) {
 }
 
 void Tile::magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address, ChannelID returnChannel, Word payload) {
-  chip()->magicMemoryAccess(opcode, address, returnChannel, payload);
+  chip().magicMemoryAccess(opcode, address, returnChannel, payload);
 }
 
-Chip* Tile::chip() const {
-  return static_cast<Chip*>(this->get_parent_object());
+Chip& Tile::chip() const {
+  return static_cast<Chip&>(*(this->get_parent_object()));
 }
 

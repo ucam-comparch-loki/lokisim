@@ -17,8 +17,10 @@ using std::cout;
 using std::endl;
 using sc_core::sc_event;
 
-IPKCacheBase::IPKCacheBase(const size_t size, const size_t numTags, const std::string& name) :
+IPKCacheBase::IPKCacheBase(const std::string& name, size_t size, size_t numTags,
+                           size_t maxIPKLength) :
     name(name),
+    maxIPKLength(maxIPKLength),
     tags(numTags, DEFAULT_TAG),
     data(size),
     fresh(size, false),
@@ -133,7 +135,7 @@ const sc_event& IPKCacheBase::dataConsumedEvent() const {
  * maximum-sized instruction packet, and no other fetches are already in
  * progress. */
 bool IPKCacheBase::canFetch() const {
-  return (remainingSpace() >= MAX_IPK_SIZE);
+  return (remainingSpace() >= maxIPKLength);
 }
 
 void IPKCacheBase::cancelPacket() {

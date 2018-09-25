@@ -14,6 +14,7 @@
 #define SRC_TILE_MEMORY_MAINMEMORY_H_
 
 #include "../Memory/MemoryBase.h"
+#include "../Utility/LokiVector.h"
 #include "MainMemoryRequestHandler.h"
 
 class MemoryOperation;
@@ -38,8 +39,8 @@ public:
 
 public:
 
-  MainMemory(sc_module_name name, ComponentID ID, uint controllers);
-  virtual ~MainMemory();
+  MainMemory(sc_module_name name, ComponentID ID, uint controllers,
+             const main_memory_parameters_t& params);
 
 //============================================================================//
 // Methods
@@ -127,6 +128,8 @@ private:
   void checkSafeRead(MemoryAddr address, TileID requester);
   void checkSafeWrite(MemoryAddr address, TileID requester);
 
+  Chip& parent() const;
+
 //============================================================================//
 // Subcomponents
 //============================================================================//
@@ -134,7 +137,7 @@ private:
 private:
 
   // One handler per input port.
-  vector<MainMemoryRequestHandler*> handlers;
+  LokiVector<MainMemoryRequestHandler> handlers;
 
   friend class MainMemoryRequestHandler;
 

@@ -98,7 +98,7 @@ void PipelineReg::activity(const DecodedInst& oldVal,
 
 }
 
-void PipelineReg::dumpEventCounts(std::ostream& os) {
+void PipelineReg::dumpEventCounts(std::ostream& os, const chip_parameters_t& params) {
   CounterMap<size_t>::iterator it;
 
   for (it = active.begin(); it != active.end(); it++) {
@@ -111,7 +111,7 @@ void PipelineReg::dumpEventCounts(std::ostream& os) {
     // Only registers of these widths actually exist. All other widths are the
     // result of clock gating portions of the registers.
     if (width==32 || width==60 || width==84)
-      os << xmlNode("instances", NUM_CORES) << "\n";
+      os << xmlNode("instances", params.totalCores()) << "\n";
 
     os << xmlNode("active", activeCycles) << "\n"
        << xmlNode("write", activeCycles) << "\n"

@@ -14,6 +14,8 @@
 #include "../../LokiComponent.h"
 #include "../../Network/NetworkTypes.h"
 
+using sc_core::sc_module_name;
+
 class MemoryBank;
 
 class L2RequestFilter: public LokiComponent {
@@ -42,7 +44,7 @@ public:
 
 public:
   SC_HAS_PROCESS(L2RequestFilter);
-  L2RequestFilter(const sc_module_name& name, ComponentID id, MemoryBank* localBank);
+  L2RequestFilter(const sc_module_name& name, ComponentID id, MemoryBank& localBank);
   virtual ~L2RequestFilter();
 
 private:
@@ -72,7 +74,7 @@ private:
   };
   FilterState state;
 
-  const MemoryBank*     localBank;
+  const MemoryBank& localBank;
 
 
 };

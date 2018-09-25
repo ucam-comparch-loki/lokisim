@@ -12,12 +12,10 @@
 #ifndef MESH_H_
 #define MESH_H_
 
+#include "../../Utility/LokiVector2D.h"
 #include "../Network.h"
 #include "../Global/NetworkDeadEnd.h"
-
-class Router;
-
-using std::vector;
+#include "../Router.h"
 
 class Mesh : public Network {
 
@@ -55,11 +53,9 @@ public:
 
   Mesh(const sc_module_name& name,
        ComponentID ID,
-       int rows,
-       int columns,
-       HierarchyLevel level);
-
-  virtual ~Mesh();
+       size2d_t size,
+       HierarchyLevel level,
+       const router_parameters_t& routerParams);
 
 //============================================================================//
 // Methods
@@ -67,9 +63,9 @@ public:
 
 private:
 
-  void makeRouters();
-  void makeWires();
-  void wireUp();
+  void makeRouters(size2d_t tiles, const router_parameters_t& params);
+  void makeWires(size2d_t tiles);
+  void wireUp(size2d_t tiles);
 
 //============================================================================//
 // Components
@@ -79,24 +75,16 @@ private:
 
   // 2D vector of routers. Indexed using routers[column][row]. (0,0) is in the
   // top left corner.
-  vector<vector<Router*> > routers;
+  LokiVector2D<Router> routers;
 
   // Debug components which warn us if data is sent off the edge of the network.
-  vector<NetworkDeadEnd<NetworkData>*> edges;
+  LokiVector<NetworkDeadEnd<NetworkData>> edges;
 
   // Lots of 2D arrays of signals. Each 2D array is indexed using
   // array[column][row]. Each array name is tagged with the direction it
   // carries data, e.g. NS = north to south.
   LokiVector2D<DataSignal> dataSigNS, dataSigSN, dataSigEW, dataSigWE;
   LokiVector2D<ReadySignal> readySigNS, readySigSN, readySigEW, readySigWE;
-
-//============================================================================//
-// Local state
-//============================================================================//
-
-private:
-
-  const unsigned int numColumns, numRows;
 
 };
 

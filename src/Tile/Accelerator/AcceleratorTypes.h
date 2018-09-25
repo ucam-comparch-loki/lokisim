@@ -135,10 +135,4 @@ typedef struct {
   filter_config_t     filters;
 } conv_parameters_t;
 
-
-typedef struct {
-  size_t width;
-  size_t height;
-} size2d_t;
-
 #endif /* SRC_TILE_ACCELERATOR_ACCELERATORTYPES_H_ */

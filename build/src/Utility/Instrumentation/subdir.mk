@@ -8,9 +8,9 @@ CPP_SRCS += \
 ../src/Utility/Instrumentation/FIFO.cpp \
 ../src/Utility/Instrumentation/IPKCache.cpp \
 ../src/Utility/Instrumentation/InstrumentationBase.cpp \
+../src/Utility/Instrumentation/L1Cache.cpp \
 ../src/Utility/Instrumentation/Latency.cpp \
 ../src/Utility/Instrumentation/MainMemory.cpp \
-../src/Utility/Instrumentation/MemoryBank.cpp \
 ../src/Utility/Instrumentation/Network.cpp \
 ../src/Utility/Instrumentation/Operations.cpp \
 ../src/Utility/Instrumentation/PipelineReg.cpp \
@@ -23,9 +23,9 @@ OBJS += \
 ./src/Utility/Instrumentation/FIFO.o \
 ./src/Utility/Instrumentation/IPKCache.o \
 ./src/Utility/Instrumentation/InstrumentationBase.o \
+./src/Utility/Instrumentation/L1Cache.o \
 ./src/Utility/Instrumentation/Latency.o \
 ./src/Utility/Instrumentation/MainMemory.o \
-./src/Utility/Instrumentation/MemoryBank.o \
 ./src/Utility/Instrumentation/Network.o \
 ./src/Utility/Instrumentation/Operations.o \
 ./src/Utility/Instrumentation/PipelineReg.o \
@@ -38,9 +38,9 @@ CPP_DEPS += \
 ./src/Utility/Instrumentation/FIFO.d \
 ./src/Utility/Instrumentation/IPKCache.d \
 ./src/Utility/Instrumentation/InstrumentationBase.d \
+./src/Utility/Instrumentation/L1Cache.d \
 ./src/Utility/Instrumentation/Latency.d \
 ./src/Utility/Instrumentation/MainMemory.d \
-./src/Utility/Instrumentation/MemoryBank.d \
 ./src/Utility/Instrumentation/Network.d \
 ./src/Utility/Instrumentation/Operations.d \
 ./src/Utility/Instrumentation/PipelineReg.d \

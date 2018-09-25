@@ -10,6 +10,7 @@
 
 #include "../../LokiComponent.h"
 #include "../../Utility/Assert.h"
+#include "../../Utility/LokiVector2D.h"
 #include "AdderTree.h"
 #include "Configuration.h"
 #include "Multiplier.h"
@@ -35,19 +36,18 @@ public:
 
   ComputeUnit(sc_module_name name, const Configuration& config) :
       LokiComponent(name),
-      in1(config.dma1Ports().width, config.dma1Ports().height, "in1"),
-      in2(config.dma2Ports().width, config.dma2Ports().height, "in2"),
-      out(config.dma3Ports().width, config.dma3Ports().height, "out"),
-      multipliers(config.peArraySize().width,
-                  vector<Multiplier<T>*>(config.peArraySize().height, NULL)) {
+      in1("in1", config.dma1Ports().width, config.dma1Ports().height),
+      in2("in2", config.dma2Ports().width, config.dma2Ports().height),
+      out("out", config.dma3Ports().width, config.dma3Ports().height) {
 
     // Use this a lot of times, so create a shorter name.
     size2d_t PEs = config.peArraySize();
 
+    multipliers.init(PEs.width);
     for (uint col=0; col<PEs.width; col++) {
       for (uint row=0; row<PEs.height; row++) {
         Multiplier<T>* mul = new Multiplier<T>(sc_gen_unique_name("mul"), 1, 1);
-        multipliers[col][row] = mul;
+        multipliers[col].push_back(mul);
       }
     }
 
@@ -57,11 +57,11 @@ public:
         loki_assert(config.dma1Ports().width == 1);
 
         for (uint row=0; row<PEs.height; row++)
-          multipliers[col][row]->in1(in1[0][row]);
+          multipliers[col][row].in1(in1[0][row]);
       }
       else {
         for (uint row=0; row<PEs.height; row++)
-          multipliers[col][row]->in1(in1[col][row]);
+          multipliers[col][row].in1(in1[col][row]);
       }
     }
 
@@ -71,11 +71,11 @@ public:
         loki_assert(config.dma2Ports().height == 1);
 
         for (uint row=0; row<PEs.height; row++)
-          multipliers[col][row]->in2(in2[col][0]);
+          multipliers[col][row].in2(in2[col][0]);
       }
       else {
         for (uint row=0; row<PEs.height; row++)
-          multipliers[col][row]->in2(in2[col][row]);
+          multipliers[col][row].in2(in2[col][row]);
       }
     }
 
@@ -84,7 +84,7 @@ public:
     if (!config.accumulateCols() && !config.accumulateRows())
       for (uint col=0; col<PEs.width; col++)
         for (uint row=0; row<PEs.height; row++)
-          multipliers[col][row]->out(out[col][row]);
+          multipliers[col][row].out(out[col][row]);
 
     // Adders along columns.
     if (config.accumulateCols() && !config.accumulateRows()) {
@@ -97,7 +97,7 @@ public:
         for (uint row=0; row<PEs.height; row++) {
           sc_signal<T>* signal = new sc_signal<T>(sc_gen_unique_name("sig"));
           adder->in[row](*signal);
-          multipliers[col][row]->out(*signal);
+          multipliers[col][row].out(*signal);
           signals.push_back(signal);
         }
       }
@@ -114,7 +114,7 @@ public:
         for (uint col=0; col<PEs.width; col++) {
           sc_signal<T>* signal = new sc_signal<T>(sc_gen_unique_name("sig"));
           adder->in[col](*signal);
-          multipliers[col][row]->out(*signal);
+          multipliers[col][row].out(*signal);
           signals.push_back(signal);
         }
       }
@@ -130,7 +130,7 @@ public:
         for (uint row=0; row<PEs.height; row++) {
           sc_signal<T>* signal = new sc_signal<T>(sc_gen_unique_name("sig"));
           adder->in[row](*signal);
-          multipliers[col][row]->out(*signal);
+          multipliers[col][row].out(*signal);
           signals.push_back(signal);
         }
       }
@@ -141,7 +141,7 @@ public:
       for (uint i=0; i<adders.size(); i++) {
         sc_signal<T>* signal = new sc_signal<T>(sc_gen_unique_name("sig"));
         adder->in[i](*signal);
-        adders[i]->out(*signal);
+        adders[i].out(*signal);
         signals.push_back(signal);
       }
 
@@ -150,27 +150,15 @@ public:
     }
   }
 
-  ~ComputeUnit() {
-    for (uint i=0; i<multipliers.size(); i++)
-      for (uint j=0; j<multipliers[i].size(); j++)
-        delete multipliers[i][j];
-
-    for (uint i=0; i<adders.size(); i++)
-      delete adders[i];
-
-    for (uint i=0; i<signals.size(); i++)
-      delete signals[i];
-  }
-
 //============================================================================//
 // Local state
 //============================================================================//
 
 private:
 
-  vector<vector<Multiplier<T>*>> multipliers;
-  vector<AdderTree<T>*> adders;
-  vector<sc_signal<T>*> signals;
+  LokiVector2D<Multiplier<T>> multipliers;
+  LokiVector<AdderTree<T>> adders;
+  LokiVector<sc_signal<T>> signals;
 
 };
 

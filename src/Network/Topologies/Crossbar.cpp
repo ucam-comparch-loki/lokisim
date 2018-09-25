@@ -8,9 +8,10 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "Crossbar.h"
-#include "../Multiplexer.h"
-#include "../Arbiters/ClockedArbiter.h"
 #include "../../Utility/Instrumentation/Network.h"
+
+using sc_core::sc_gen_unique_name;
+using sc_core::sc_module_name;
 
 void Crossbar::inputChanged(const PortIndex port) {
   if (ENERGY_TRACE)
@@ -27,15 +28,15 @@ void Crossbar::outputChanged(const PortIndex port) {
 }
 
 void Crossbar::makePorts(uint inputs, uint outputs) {
-  iData.init(inputs, "iData");
-  oData.init(outputs, "oData");
-  iRequest.init(inputs, numArbiters, "iRequest");
-  oGrant.init(inputs, numArbiters, "oGrant");
-  iReady.init(numArbiters, buffersPerComponent, "iReady");
+  iData.init("iData", inputs);
+  oData.init("oData", outputs);
+  iRequest.init("iRequest", inputs, numArbiters);
+  oGrant.init("oGrant", inputs, numArbiters);
+  iReady.init("iReady", numArbiters, buffersPerComponent);
 }
 
 void Crossbar::makeSignals() {
-  selectSig.init(numArbiters, outputsPerComponent, "selectSig");
+  selectSig.init("selectSig", numArbiters, outputsPerComponent);
 }
 
 void Crossbar::makeArbiters() {
@@ -109,9 +110,4 @@ Crossbar::Crossbar(const sc_module_name& name,
     SPAWN_METHOD(iData[i], Crossbar::inputChanged, i, false);
   for (uint i=0; i<oData.size(); i++)
     SPAWN_METHOD(oData[i], Crossbar::outputChanged, i, false);
-}
-
-Crossbar::~Crossbar() {
-  for (unsigned int i=0; i<arbiters.size(); i++) delete arbiters[i];
-  for (unsigned int i=0; i<muxes.size();    i++) delete muxes[i];
 }

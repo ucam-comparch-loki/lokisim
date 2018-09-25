@@ -39,7 +39,7 @@ public:
 
   static const uint NUM_STALL_REASONS = STALL_ANY + 1;
 
-  static void init();
+  static void init(const chip_parameters_t& params);
   static void reset();
   static void start();
   static void stop();
@@ -67,9 +67,9 @@ public:
   static cycle_count_t cyclesIdle(const ComponentID core);
   static cycle_count_t cyclesStalled(const ComponentID core);
 
-  static void printStats();
+  static void printStats(const chip_parameters_t& params);
   static void printInstrStat(const char *name, ComponentID id, CounterMap<ComponentID> &cMap);
-  static void dumpEventCounts(std::ostream& os);
+  static void dumpEventCounts(std::ostream& os, const chip_parameters_t& params);
 
   // A text version of each stall reason.
   static const string name(StallReason reason);
@@ -97,6 +97,9 @@ private:
 
   // The number of cores stalled or idle at the moment.
   static count_t numStalled;
+
+  // The total number of components that we're keeping track of.
+  static count_t totalComponents;
 
   // The cycle number at which all cores became inactive. It is safe to
   // stop simulation if it can also be known that the networks are inactive:

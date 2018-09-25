@@ -34,12 +34,13 @@ void FIFO::activeCycle(size_t size) {
   activeCycles.increment(size);
 }
 
-void FIFO::dumpEventCounts(std::ostream& os) {
+void FIFO::dumpEventCounts(std::ostream& os, const chip_parameters_t& params) {
   CounterMap<size_t>::iterator it;
+  size_t ipkFIFOSize = params.tile.core.ipkFIFO.size;
 
   for (it = pushes.begin(); it != pushes.end(); it++) {
     size_t size = it->first;
-    if (size == IPK_FIFO_SIZE)
+    if (size == ipkFIFOSize)
       break;    // IPK FIFO has a different implementation, so separate it
 
     count_t numPushes = it->second;
@@ -54,10 +55,10 @@ void FIFO::dumpEventCounts(std::ostream& os) {
        << xmlEnd("fifo")                        << "\n";
   }
 
-  os << "<ipkfifo entries=\"" << IPK_FIFO_SIZE << "\">\n"
-     << xmlNode("instances", instances[IPK_FIFO_SIZE]) << "\n"
-     << xmlNode("active", activeCycles[IPK_FIFO_SIZE]) << "\n"
-     << xmlNode("push", pushes[IPK_FIFO_SIZE])         << "\n"
-     << xmlNode("pop", pops[IPK_FIFO_SIZE])            << "\n"
+  os << "<ipkfifo entries=\"" << ipkFIFOSize << "\">\n"
+     << xmlNode("instances", instances[ipkFIFOSize]) << "\n"
+     << xmlNode("active", activeCycles[ipkFIFOSize]) << "\n"
+     << xmlNode("push", pushes[ipkFIFOSize])         << "\n"
+     << xmlNode("pop", pops[ipkFIFOSize])            << "\n"
      << xmlEnd("ipkfifo")                              << "\n";
 }

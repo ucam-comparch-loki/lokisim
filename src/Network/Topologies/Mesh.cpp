@@ -9,34 +9,36 @@
 #include "../Router.h"
 #include "../../Utility/Assert.h"
 
-void Mesh::makeRouters() {
-  for (unsigned int row=0; row<numRows; row++) {
-    for (unsigned int col=0; col<numColumns; col++) {
+void Mesh::makeRouters(size2d_t tiles, const router_parameters_t& params) {
+  routers.init(tiles.width);
+
+  for (unsigned int row=0; row<tiles.height; row++) {
+    for (unsigned int col=0; col<tiles.width; col++) {
       ComponentID routerID(col, row, 0);
       std::stringstream name;
       name << "router_" << routerID.tile.getNameString();
-      routers[col][row] = new Router(name.str().c_str(), routerID);
+      routers[col].push_back(new Router(name.str().c_str(), routerID, params));
     }
   }
 }
 
-void Mesh::makeWires() {
+void Mesh::makeWires(size2d_t tiles) {
   // Note that there is one more column and one more row of wires than there
   // are routers. This is because there are wires on each side of each router.
-  dataSigNS.init(numColumns+1, numRows+1, "dataNS");
-  dataSigSN.init(numColumns+1, numRows+1, "dataSN");
-  dataSigEW.init(numColumns+1, numRows+1, "dataEW");
-  dataSigWE.init(numColumns+1, numRows+1, "dataWE");
-  readySigNS.init(numColumns+1, numRows+1, "readyNS");
-  readySigSN.init(numColumns+1, numRows+1, "readySN");
-  readySigEW.init(numColumns+1, numRows+1, "readyEW");
-  readySigWE.init(numColumns+1, numRows+1, "readyWE");
+  dataSigNS.init("dataNS", tiles.width+1, tiles.height+1);
+  dataSigSN.init("dataSN", tiles.width+1, tiles.height+1);
+  dataSigEW.init("dataEW", tiles.width+1, tiles.height+1);
+  dataSigWE.init("dataWE", tiles.width+1, tiles.height+1);
+  readySigNS.init("readyNS", tiles.width+1, tiles.height+1);
+  readySigSN.init("readySN", tiles.width+1, tiles.height+1);
+  readySigEW.init("readyEW", tiles.width+1, tiles.height+1);
+  readySigWE.init("readyWE", tiles.width+1, tiles.height+1);
 }
 
-void Mesh::wireUp() {
-  for (unsigned int col=0; col<numColumns; col++) {
-    for (unsigned int row=0; row<numRows; row++) {
-      Router& router = *routers[col][row];
+void Mesh::wireUp(size2d_t tiles) {
+  for (unsigned int col=0; col<tiles.width; col++) {
+    for (unsigned int row=0; row<tiles.height; row++) {
+      Router& router = routers[col][row];
       router.clock(clock);
 
       // Data heading north-south
@@ -73,7 +75,7 @@ void Mesh::wireUp() {
 
   // Tie off the wires at the edges of the network so we can get useful debug
   // information if any data is sent on them.
-  for (uint row=0; row<numRows; row++) {
+  for (uint row=0; row<tiles.height; row++) {
     NetworkDeadEnd<NetworkData>* westEdge =
         new NetworkDeadEnd<NetworkData>(sc_gen_unique_name("west_edge"), ComponentID(0, row, 0), WEST);
     westEdge->iData(dataSigEW[0][row]);
@@ -83,15 +85,15 @@ void Mesh::wireUp() {
     edges.push_back(westEdge);
 
     NetworkDeadEnd<NetworkData>* eastEdge =
-        new NetworkDeadEnd<NetworkData>(sc_gen_unique_name("east_edge"), ComponentID(numColumns-1, row, 0), EAST);
-    eastEdge->iData(dataSigWE[numColumns][row]);
-    eastEdge->oData(dataSigEW[numColumns][row]);
-    eastEdge->iReady(readySigWE[numColumns][row]);
-    eastEdge->oReady(readySigEW[numColumns][row]);
+        new NetworkDeadEnd<NetworkData>(sc_gen_unique_name("east_edge"), ComponentID(tiles.width-1, row, 0), EAST);
+    eastEdge->iData(dataSigWE[tiles.width][row]);
+    eastEdge->oData(dataSigEW[tiles.width][row]);
+    eastEdge->iReady(readySigWE[tiles.width][row]);
+    eastEdge->oReady(readySigEW[tiles.width][row]);
     edges.push_back(eastEdge);
   }
 
-  for (uint col=0; col<numColumns; col++) {
+  for (uint col=0; col<tiles.width; col++) {
     NetworkDeadEnd<NetworkData>* northEdge =
         new NetworkDeadEnd<NetworkData>(sc_gen_unique_name("north_edge"), ComponentID(col, 0, 0), NORTH);
     northEdge->iData(dataSigSN[col][0]);
@@ -101,43 +103,31 @@ void Mesh::wireUp() {
     edges.push_back(northEdge);
 
     NetworkDeadEnd<NetworkData>* southEdge =
-        new NetworkDeadEnd<NetworkData>(sc_gen_unique_name("south_edge"), ComponentID(col, numRows-1, 0), SOUTH);
-    southEdge->iData(dataSigNS[col][numRows]);
-    southEdge->oData(dataSigSN[col][numRows]);
-    southEdge->iReady(readySigNS[col][numRows]);
-    southEdge->oReady(readySigSN[col][numRows]);
+        new NetworkDeadEnd<NetworkData>(sc_gen_unique_name("south_edge"), ComponentID(col, tiles.height-1, 0), SOUTH);
+    southEdge->iData(dataSigNS[col][tiles.height]);
+    southEdge->oData(dataSigSN[col][tiles.height]);
+    southEdge->iReady(readySigNS[col][tiles.height]);
+    southEdge->oReady(readySigSN[col][tiles.height]);
     edges.push_back(southEdge);
   }
 }
 
 Mesh::Mesh(const sc_module_name& name,
            ComponentID ID,
-           int rows,
-           int columns,
-           HierarchyLevel level) :
-    Network(name, ID, rows*columns, rows*columns, level),
-    iData(columns, rows, "iData"),
-    oData(columns, rows, "oData"),
-    oReady(columns, rows, "oReady"),
-    iReady(columns, rows, "iReady"),
-    routers(columns, std::vector<Router*>(rows)),
-    numColumns(columns),
-    numRows(rows) {
+           size2d_t size,
+           HierarchyLevel level,
+           const router_parameters_t& routerParams) :
+    Network(name, ID, size.total(), size.total(), level),
+    iData("iData", size.width, size.height),
+    oData("oData", size.width, size.height),
+    oReady("oReady", size.width, size.height),
+    iReady("iReady", size.width, size.height) {
 
   // Can only handle inter-tile mesh networks at the moment.
   loki_assert(level == Network::TILE);
 
-  makeRouters();
-  makeWires();
-  wireUp();
+  makeRouters(size, routerParams);
+  makeWires(size);
+  wireUp(size);
 
-}
-
-Mesh::~Mesh() {
-  for (unsigned int i=0; i<routers.size(); i++)
-    for (unsigned int j=0; j<routers[i].size(); j++)
-      delete routers[i][j];
-
-  for (unsigned int i=0; i<edges.size(); i++)
-    delete edges[i];
 }

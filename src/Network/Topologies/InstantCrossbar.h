@@ -15,6 +15,7 @@
 #ifndef INSTANTCROSSBAR_H_
 #define INSTANTCROSSBAR_H_
 
+#include "../../Utility/LokiVector2D.h"
 #include "../Network.h"
 #include "Crossbar.h"
 

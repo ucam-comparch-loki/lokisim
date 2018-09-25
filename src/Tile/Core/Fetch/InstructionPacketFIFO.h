@@ -40,7 +40,7 @@ public:
 public:
 
   SC_HAS_PROCESS(InstructionPacketFIFO);
-  InstructionPacketFIFO(sc_module_name name);
+  InstructionPacketFIFO(sc_module_name name, const fifo_parameters_t& params);
 
 //============================================================================//
 // Methods
@@ -87,7 +87,7 @@ private:
 
   void dataConsumedAction();
 
-  FetchStage* parent() const;
+  FetchStage& parent() const;
 
 //============================================================================//
 // Local state

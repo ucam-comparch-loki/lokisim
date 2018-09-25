@@ -20,8 +20,8 @@ void PipelineStage::initPipeline(PipelineRegister* prev, PipelineRegister* next)
   this->next = next;
 }
 
-Core* PipelineStage::core() const {
-  return static_cast<Core*>(this->get_parent_object());
+Core& PipelineStage::core() const {
+  return static_cast<Core&>(*(this->get_parent_object()));
 }
 
 bool PipelineStage::isStalled() const {

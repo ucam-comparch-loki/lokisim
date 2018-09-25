@@ -232,7 +232,7 @@ void Latency::coreReceivedResult(ComponentID core, const NetworkResponse& respon
   }
 }
 
-void Latency::printSummary() {
+void Latency::printSummary(const chip_parameters_t& params) {
   using std::clog;
 
   count_t l1Hits = totalEvents(l1HitLatency);
@@ -271,9 +271,9 @@ void Latency::printSummary() {
 
   clog << "  Latency per bank (in cycles):" << endl;
   fprintf(stderr, "    %8s %15s %15s %15s %15s\n", "Bank", "Input queue", "Hit", "Miss", "Output queue");
-  for (uint col = 1; col <= COMPUTE_TILE_COLUMNS; col++) {
-    for (uint row = 1; row <= COMPUTE_TILE_ROWS; row++) {
-      for (uint bank=CORES_PER_TILE; bank<COMPONENTS_PER_TILE; bank++) {
+  for (uint col = 1; col <= params.numComputeTiles.width; col++) {
+    for (uint row = 1; row <= params.numComputeTiles.height; row++) {
+      for (uint bank=params.tile.numCores; bank<params.tile.totalComponents(); bank++) {
         ComponentID id(col, row, bank);
 
         // Skip a bank if there are no stats recorded.

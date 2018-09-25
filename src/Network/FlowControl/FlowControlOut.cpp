@@ -77,20 +77,22 @@ void FlowControlOut::receivedCredit() {
   creditCount++;
 
   LOKI_LOG << this->name() << " received credit at port " << channel << endl;
-  loki_assert_with_message(creditCount <= CORE_BUFFER_SIZE, "Credits = %d", creditCount);
+  loki_assert_with_message(creditCount <= maxCredits, "Credits = %d", creditCount);
 }
 
-FlowControlOut::FlowControlOut(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :
+FlowControlOut::FlowControlOut(sc_module_name name, const ComponentID& ID,
+                               const ChannelID& channelManaged, size_t maxCredits) :
     LokiComponent(name, ID),
     iData("iData"),
     iCredit("iCredit"),
     oData("oData"),
     iReady("iReady"),
     oReady("oReady"),
-    oFlowControl("oFlowControl") {
+    oFlowControl("oFlowControl"),
+    maxCredits(maxCredits) {
 
   channel = channelManaged;
-  creditCount = CORE_BUFFER_SIZE;
+  creditCount = maxCredits;
   state = WAITING_FOR_DATA;
 
   SC_METHOD(mainLoop);

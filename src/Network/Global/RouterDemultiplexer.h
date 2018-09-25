@@ -53,8 +53,8 @@ public:
   RouterDemultiplexer(const sc_module_name& name, uint outputs, uint buffersPerOutput) :
     LokiComponent(name),
     iData("iData"),
-    oData(outputs, "oData"),
-    iReady(outputs, buffersPerOutput, "iReady"),
+    oData("oData", outputs),
+    iReady("iReady", outputs, buffersPerOutput),
     oReady("oReady") {
 
     oReady.initialize(true);

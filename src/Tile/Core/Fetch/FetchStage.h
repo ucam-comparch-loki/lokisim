@@ -18,6 +18,7 @@
 #include "InstructionPacketFIFO.h"
 #include "../PipelineStage.h"
 #include "../../../Utility/BlockingInterface.h"
+#include "../../../Utility/LokiVector.h"
 
 class FetchStage : public PipelineStage, public BlockingInterface {
 
@@ -94,7 +95,9 @@ public:
 public:
 
   SC_HAS_PROCESS(FetchStage);
-  FetchStage(sc_module_name name, const ComponentID& ID);
+  FetchStage(sc_module_name name, const ComponentID& ID,
+             const fifo_parameters_t& fifoParams,
+             const cache_parameters_t& cacheParams);
 
 //============================================================================//
 // Methods

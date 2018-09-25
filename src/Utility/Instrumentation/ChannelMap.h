@@ -26,7 +26,7 @@ public:
   // the same clock cycle. Is it worth having this in the channel map table?
   static void bypass();
 
-  static void dumpEventCounts(std::ostream& os);
+  static void dumpEventCounts(std::ostream& os, const chip_parameters_t& params);
 
 private:
 

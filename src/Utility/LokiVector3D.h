@@ -24,8 +24,8 @@ public:
     data_ = NULL;
   }
 
-  LokiVector3D(size_t length, size_t width, size_t depth, sc_module_name name) {
-    init(length, width, depth, name);
+  LokiVector3D(sc_module_name name, size_t length, size_t width, size_t depth) {
+    init(name, length, width, depth);
   }
 
   virtual ~LokiVector3D() {
@@ -41,20 +41,20 @@ public:
 
   // Initialise the vector to the given size. The default constructor will be
   // used to create all contents, so such a constructor must exist.
-  inline void init(size_t length, size_t width, size_t depth, sc_module_name name) {
+  inline void init(sc_module_name name, size_t length, size_t width, size_t depth) {
     init(length);
 
     for (unsigned int i=0; i<length; i++)
-      data_[i].init(width, depth, name);
+      data_[i].init(name, width, depth);
   }
 
   // Initialise the vector to the same dimensions as another given vector.
   template<typename T2>
-  inline void init(const LokiVector3D<T2>& other, sc_module_name name) {
+  inline void init(sc_module_name name, const LokiVector3D<T2>& other) {
     init(other.size());
 
     for (unsigned int i=0; i<size(); i++)
-      data_[i].init(other[i], name);
+      data_[i].init(name, other[i]);
   }
 
   // Initialise with only one parameter - allows different subvectors to be

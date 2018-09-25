@@ -1,37 +1,45 @@
 /*
- * MemoryBank.cpp
+ * L1Cache.cpp
  *
  *  Created on: 19 Apr 2016
  *      Author: db434
  */
 
-#include "../Parameters.h"
-#include "MemoryBank.h"
 
 #include <map>
-
+#include "../Parameters.h"
 #include "../../Exceptions/InvalidOptionException.h"
 #include "IPKCache.h"
+#include "L1Cache.h"
+
+#include "../../Tile/Core/Core.h"
+#include "../../Tile/Memory/MemoryBank.h"
 
 using namespace Instrumentation;
 using std::vector;
 
-CounterMap<ComponentID> MemoryBank::tagChecks;
+CounterMap<ComponentID> L1Cache::tagChecks;
 
-vector<CounterMap<ComponentID> > MemoryBank::hits;
-vector<CounterMap<ComponentID> > MemoryBank::misses;
+vector<CounterMap<ComponentID> > L1Cache::hits;
+vector<CounterMap<ComponentID> > L1Cache::misses;
 
-CounterMap<ComponentID> MemoryBank::ipkReads;
-CounterMap<ComponentID> MemoryBank::burstReads;
-CounterMap<ComponentID> MemoryBank::burstWrites;
+CounterMap<ComponentID> L1Cache::ipkReads;
+CounterMap<ComponentID> L1Cache::burstReads;
+CounterMap<ComponentID> L1Cache::burstWrites;
 
-CounterMap<ComponentID> MemoryBank::replaceInvalidLine;
-CounterMap<ComponentID> MemoryBank::replaceCleanLine;
-CounterMap<ComponentID> MemoryBank::replaceDirtyLine;
+CounterMap<ComponentID> L1Cache::replaceInvalidLine;
+CounterMap<ComponentID> L1Cache::replaceCleanLine;
+CounterMap<ComponentID> L1Cache::replaceDirtyLine;
 
-vector<vector<struct MemoryBank::ChannelStats> > MemoryBank::coreStats;
+vector<vector<struct L1Cache::ChannelStats> > L1Cache::coreStats;
 
-void MemoryBank::reset() {
+void L1Cache::init(const chip_parameters_t& params) {
+  coreStats.resize(params.totalCores());
+  for (uint i=0; i<coreStats.size(); i++)
+    coreStats[i].resize(params.tile.core.numInputChannels);
+}
+
+void L1Cache::reset() {
   // Initial stats for one channel of one core.
   struct ChannelStats nullData;
   nullData.readHits = 0;
@@ -42,11 +50,11 @@ void MemoryBank::reset() {
 
   // Initial stats for all channels of one core.
   vector<struct ChannelStats> oneCore;
-  oneCore.assign(CORE_INPUT_CHANNELS, nullData);
+  oneCore.assign(coreStats[0].size(), nullData);
 
   // Initial stats for all channels of all cores.
   coreStats.clear();
-  coreStats.assign(NUM_CORES, oneCore);
+  coreStats.assign(coreStats.size(), oneCore);
 
   // Clean all the CounterMaps.
   tagChecks.clear();
@@ -66,7 +74,7 @@ void MemoryBank::reset() {
   replaceDirtyLine.clear();
 }
 
-void MemoryBank::startOperation(ComponentID bank, MemoryOpcode op,
+void L1Cache::startOperation(const MemoryBank& bank, MemoryOpcode op,
         MemoryAddr address, bool miss, ChannelID returnChannel) {
   if (!Instrumentation::collectingStats()) return;
 
@@ -88,26 +96,26 @@ void MemoryBank::startOperation(ComponentID bank, MemoryOpcode op,
     case UPDATE_DIRECTORY_ENTRY:
     case UPDATE_DIRECTORY_MASK:
       if (miss)
-        misses[op].increment(bank);
+        misses[op].increment(bank.id);
       else
-        hits[op].increment(bank);
+        hits[op].increment(bank.id);
 
-      updateCoreStats(returnChannel, op, miss);
+      updateCoreStats(bank, returnChannel, op, miss);
       break;
 
     // Cache line operations just notify when they begin, and report
     // separately for each word they access.
     case FETCH_LINE:
     case FLUSH_LINE:
-      burstReads.increment(bank);
+      burstReads.increment(bank.id);
       break;
     case IPK_READ:
-      ipkReads.increment(bank);
+      ipkReads.increment(bank.id);
       break;
     case STORE_LINE:
     case MEMSET_LINE:
     case PUSH_LINE:
-      burstWrites.increment(bank);
+      burstWrites.increment(bank.id);
       break;
 
     // Some operations do not have any significant effect on energy since they
@@ -125,7 +133,7 @@ void MemoryBank::startOperation(ComponentID bank, MemoryOpcode op,
   }
 }
 
-void MemoryBank::continueOperation(ComponentID bank, MemoryOpcode op,
+void L1Cache::continueOperation(const MemoryBank& bank, MemoryOpcode op,
         MemoryAddr address, bool miss, ChannelID returnChannel) {
   if (!Instrumentation::collectingStats()) return;
 
@@ -139,11 +147,11 @@ void MemoryBank::continueOperation(ComponentID bank, MemoryOpcode op,
     case MEMSET_LINE:
     case PUSH_LINE:
       if (miss)
-        misses[op].increment(bank);
+        misses[op].increment(bank.id);
       else
-        hits[op].increment(bank);
+        hits[op].increment(bank.id);
 
-      updateCoreStats(returnChannel, op, miss);
+      updateCoreStats(bank, returnChannel, op, miss);
       break;
 
     default:
@@ -151,7 +159,7 @@ void MemoryBank::continueOperation(ComponentID bank, MemoryOpcode op,
   }
 }
 
-void MemoryBank::checkTags(ComponentID bank, MemoryAddr address) {
+void L1Cache::checkTags(ComponentID bank, MemoryAddr address) {
   if (!Instrumentation::collectingStats()) return;
 
   tagChecks.increment(bank);
@@ -159,7 +167,7 @@ void MemoryBank::checkTags(ComponentID bank, MemoryAddr address) {
   // Do something with Hamming distance of address?
 }
 
-void MemoryBank::replaceCacheLine(ComponentID bank, bool isValid, bool isDirty) {
+void L1Cache::replaceCacheLine(ComponentID bank, bool isValid, bool isDirty) {
   if (!Instrumentation::collectingStats()) return;
 
   if (!isValid)
@@ -170,13 +178,14 @@ void MemoryBank::replaceCacheLine(ComponentID bank, bool isValid, bool isDirty) 
     replaceCleanLine.increment(bank);
 }
 
-void MemoryBank::updateCoreStats(ChannelID returnChannel, MemoryOpcode op, bool miss) {
+void L1Cache::updateCoreStats(const MemoryBank& bank,
+    ChannelID returnChannel, MemoryOpcode op, bool miss) {
   if (!Instrumentation::collectingStats()) return;
 
-  if (!returnChannel.component.isCore())
+  if (!bank.isCore(returnChannel))
     return;
 
-  bool instruction = (returnChannel.channel < 2);
+  bool instruction = (returnChannel.channel < Core::numInstructionChannels);
   bool write;
 
   switch (op) {
@@ -200,7 +209,7 @@ void MemoryBank::updateCoreStats(ChannelID returnChannel, MemoryOpcode op, bool 
       break;
   }
 
-  uint core = returnChannel.component.globalCoreNumber();
+  uint core = bank.globalCoreIndex(returnChannel.component);
   uint channel = returnChannel.channel;
 
   if (write && miss)
@@ -214,7 +223,7 @@ void MemoryBank::updateCoreStats(ChannelID returnChannel, MemoryOpcode op, bool 
   coreStats[core][channel].receivingInstructions = instruction;
 }
 
-void MemoryBank::printSummary() {
+void L1Cache::printSummary(const chip_parameters_t& params) {
   count_t instructionReadHits = hits[IPK_READ].numEvents();
   count_t instructionReads = instructionReadHits + misses[IPK_READ].numEvents();
   count_t l0l1InstReads = IPKCache::numReads();
@@ -256,11 +265,11 @@ void MemoryBank::printSummary() {
   clog << "  Total hits:       " << totalHits << "/" << totalAccesses << " (" << percentage(totalHits, totalAccesses) << ")\n";
 }
 
-void MemoryBank::dumpEventCounts(std::ostream& os) {
+void L1Cache::dumpEventCounts(std::ostream& os, const chip_parameters_t& params) {
   count_t ipkReads = hits[IPK_READ].numEvents() + misses[IPK_READ].numEvents();
 
-  os << "<memory size=\"" << MEMORY_BANK_SIZE                    << "\">\n"
-     << xmlNode("instances",      NUM_MEMORIES)                  << "\n"
+  os << "<memory size=\"" << params.tile.memory.size             << "\">\n"
+     << xmlNode("instances",      params.totalMemories())        << "\n"
      << xmlNode("active",         totalReads() + totalWrites())  << "\n"
      << xmlNode("read",           totalReads())                  << "\n"
      << xmlNode("write",          totalWrites())                 << "\n"
@@ -278,41 +287,41 @@ void MemoryBank::dumpEventCounts(std::ostream& os) {
      << xmlEnd("memory")                                         << "\n";
 }
 
-count_t MemoryBank::totalReads() {
+count_t L1Cache::totalReads() {
   return totalWordReads()
        + totalHalfwordReads()
        + totalByteReads()
        + totalBurstReads();
 }
 
-count_t MemoryBank::totalWrites() {
+count_t L1Cache::totalWrites() {
   return totalWordWrites()
        + totalHalfwordWrites()
        + totalByteWrites()
        + totalBurstWrites();
 }
 
-count_t MemoryBank::totalWordReads() {
+count_t L1Cache::totalWordReads() {
   // Include atomic memory operations too?
   return hits[LOAD_W].numEvents()            + misses[LOAD_W].numEvents()
        + hits[LOAD_LINKED].numEvents()       + misses[LOAD_LINKED].numEvents();
 }
 
-count_t MemoryBank::totalHalfwordReads() {
+count_t L1Cache::totalHalfwordReads() {
   return hits[LOAD_HW].numEvents()           + misses[LOAD_HW].numEvents();
 }
 
-count_t MemoryBank::totalByteReads() {
+count_t L1Cache::totalByteReads() {
   return hits[LOAD_B].numEvents()            + misses[LOAD_B].numEvents();
 }
 
-count_t MemoryBank::totalBurstReads() {
+count_t L1Cache::totalBurstReads() {
   return hits[FETCH_LINE].numEvents()        + misses[FETCH_LINE].numEvents()
        + hits[IPK_READ].numEvents()          + misses[IPK_READ].numEvents()
        + hits[FLUSH_LINE].numEvents()        + misses[FLUSH_LINE].numEvents();
 }
 
-count_t MemoryBank::totalWordWrites() {
+count_t L1Cache::totalWordWrites() {
   return hits[STORE_W].numEvents()           + misses[STORE_W].numEvents()
        + hits[STORE_CONDITIONAL].numEvents() + misses[STORE_CONDITIONAL].numEvents()
        + hits[LOAD_AND_ADD].numEvents()      + misses[LOAD_AND_ADD].numEvents()
@@ -322,25 +331,25 @@ count_t MemoryBank::totalWordWrites() {
        + hits[EXCHANGE].numEvents()          + misses[EXCHANGE].numEvents();
 }
 
-count_t MemoryBank::totalHalfwordWrites() {
+count_t L1Cache::totalHalfwordWrites() {
   return hits[STORE_HW].numEvents()          + misses[STORE_HW].numEvents();
 }
 
-count_t MemoryBank::totalByteWrites() {
+count_t L1Cache::totalByteWrites() {
   return hits[STORE_B].numEvents()           + misses[STORE_B].numEvents();
 }
 
-count_t MemoryBank::totalBurstWrites() {
+count_t L1Cache::totalBurstWrites() {
   return hits[STORE_LINE].numEvents()        + misses[STORE_LINE].numEvents()
        + hits[MEMSET_LINE].numEvents()       + misses[MEMSET_LINE].numEvents()
        + hits[PUSH_LINE].numEvents()         + misses[PUSH_LINE].numEvents();
 }
 
-count_t MemoryBank::totalLineReplacements() {
+count_t L1Cache::totalLineReplacements() {
   return replaceInvalidLine.numEvents() + replaceCleanLine.numEvents()
        + replaceDirtyLine.numEvents();
 }
 
-count_t MemoryBank::numIPKReadMisses() {
+count_t L1Cache::numIPKReadMisses() {
   return misses[IPK_READ].numEvents();
 }

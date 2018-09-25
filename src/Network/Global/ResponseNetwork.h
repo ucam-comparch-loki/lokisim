@@ -21,7 +21,8 @@ class ResponseNetwork: public Mesh {
 
 public:
 
-  ResponseNetwork(const sc_module_name &name);
+  ResponseNetwork(const sc_module_name &name, size2d_t size,
+                  const router_parameters_t& routerParams);
   virtual ~ResponseNetwork();
 
 };

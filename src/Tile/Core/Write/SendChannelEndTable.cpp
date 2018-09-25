@@ -14,6 +14,7 @@
 #include "../../../Utility/Instrumentation/Latency.h"
 #include "../../../Utility/Instrumentation/Network.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
+#include "../Core.h"
 
 void SendChannelEndTable::write(const NetworkData data) {
 
@@ -22,7 +23,7 @@ void SendChannelEndTable::write(const NetworkData data) {
     LOKI_LOG << this->name() << " writing " << data << " to buffer (local)\n";
     bufferLocal.write(data);
   }
-  else if (data.channelID().isMemory()) {
+  else if (core().isMemory(data.channelID().component)) {
     loki_assert(!bufferMemory.full());
     LOKI_LOG << this->name() << " writing " << data << " to buffer (memory)\n";
     Instrumentation::Latency::coreBufferedMemoryRequest(id, data);
@@ -35,10 +36,10 @@ void SendChannelEndTable::write(const NetworkData data) {
 
     // Check whether we're sending to a valid address.
     TileID tile = data.channelID().component.tile;
-    if ((tile.x<1) || (tile.y<1) || (tile.x>COMPUTE_TILE_COLUMNS) || (tile.y>COMPUTE_TILE_ROWS)) {
+    if (!core().isComputeTile(tile)) {
       LOKI_WARN << "Preparing to send data outside bounds of simulated chip." << endl;
       LOKI_WARN << "  Source: " << id << ", destination: " << data.channelID() << endl;
-      LOKI_WARN << "  Simulating up to tile (" << TOTAL_TILE_COLUMNS-1 << "," << TOTAL_TILE_ROWS-1 << ")" << endl;
+//      LOKI_WARN << "  Simulating up to tile (" << TOTAL_TILE_COLUMNS-1 << "," << TOTAL_TILE_ROWS-1 << ")" << endl;
       LOKI_WARN << "  Consider increasing the COMPUTE_TILE_ROWS or COMPUTE_TILE_COLUMNS parameters." << endl;
     }
   }
@@ -174,7 +175,7 @@ void SendChannelEndTable::sendLoopMemory() {
       // Remove the request for network resources if the previous data sent was
       // the end of a data packet.
       const NetworkData& data = oDataMemory.read();
-      if (data.channelID().isMemory() && data.getMetadata().endOfPacket)
+      if (core().isMemory(data.channelID().component) && data.getMetadata().endOfPacket)
         requestArbitration(data.channelID(), false);
 
       if (bufferMemory.empty()) {
@@ -269,11 +270,11 @@ void SendChannelEndTable::sendLoopGlobal() {
 }
 
 void SendChannelEndTable::requestArbitration(ChannelID destination, bool request) {
-  parent()->requestArbitration(destination, request);
+  parent().requestArbitration(destination, request);
 }
 
 bool SendChannelEndTable::requestGranted(ChannelID destination) const {
-  return parent()->requestGranted(destination);
+  return parent().requestGranted(destination);
 }
 
 void SendChannelEndTable::receivedCredit() {
@@ -291,8 +292,12 @@ void SendChannelEndTable::receiveCreditInternal(const NetworkCredit& credit) {
   channelMapTable->addCredit(targetCounter, credit.payload().toUInt());
 }
 
-WriteStage* SendChannelEndTable::parent() const {
-  return static_cast<WriteStage*>(this->get_parent_object());
+WriteStage& SendChannelEndTable::parent() const {
+  return static_cast<WriteStage&>(*(this->get_parent_object()));
+}
+
+Core& SendChannelEndTable::core() const {
+  return parent().core();
 }
 
 void SendChannelEndTable::reportStalls(ostream& os) {
@@ -318,7 +323,10 @@ void SendChannelEndTable::reportStalls(ostream& os) {
   // TODO: woche
 }
 
-SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID& ID, ChannelMapTable* cmt) :
+SendChannelEndTable::SendChannelEndTable(sc_module_name name,
+                                         const ComponentID& ID,
+                                         const fifo_parameters_t& fifoParams,
+                                         ChannelMapTable* cmt) :
     LokiComponent(name, ID),
     BlockingInterface(),
     clock("clock"),
@@ -328,9 +336,9 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name, const ComponentID&
     oDataMemory("oDataMemory"),
     oDataGlobal("oDataGlobal"),
     iCredit("iCredit"),
-    bufferLocal(string(this->name())+string(".bufferLocal"), CORE_BUFFER_SIZE),
-    bufferMemory(string(this->name())+string(".bufferMemory"), CORE_BUFFER_SIZE),
-    bufferGlobal(string(this->name())+string(".bufferGlobal"), CORE_BUFFER_SIZE),
+    bufferLocal(string(this->name())+string(".bufferLocal"), fifoParams.size),
+    bufferMemory(string(this->name())+string(".bufferMemory"), fifoParams.size),
+    bufferGlobal(string(this->name())+string(".bufferGlobal"), fifoParams.size),
     channelMapTable(cmt) {
 
   receiveState = RS_READY;

@@ -99,7 +99,7 @@ private:
 
   void stall(bool stall, Instrumentation::Stalls::StallReason reason, const DecodedInst& cause);
 
-  DecodeStage* parent() const;
+  DecodeStage& parent() const;
 
 //============================================================================//
 // Constructors and destructors

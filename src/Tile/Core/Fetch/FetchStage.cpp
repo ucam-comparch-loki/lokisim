@@ -239,15 +239,15 @@ void FetchStage::writeLoop() {
 void FetchStage::sendRequest(const FetchInfo& fetch) {
   if (MAGIC_MEMORY) {
     ChannelID returnAddress(id, fetch.networkInfo.returnChannel);
-    core()->magicMemoryAccess(IPK_READ, fetch.address, returnAddress);
+    core().magicMemoryAccess(IPK_READ, fetch.address, returnAddress);
   }
   else {
     NetworkData flit;
 
     if (fetch.networkInfo.isMemory) {
       // Select the bank to access based on the memory address.
-      uint increment = core()->channelMapTable[0].computeAddressIncrement(fetch.address);
-      ChannelID destination(id.tile.x, id.tile.y, fetch.networkInfo.bank + increment + CORES_PER_TILE, fetch.networkInfo.channel);
+      uint increment = core().channelMapTable[0].computeAddressIncrement(fetch.address);
+      ChannelID destination(id.tile.x, id.tile.y, fetch.networkInfo.bank + increment + core().coresThisTile(), fetch.networkInfo.channel);
       flit = NetworkData(fetch.address, destination, fetch.networkInfo, IPK_READ, true);
     }
     else {
@@ -271,7 +271,7 @@ void FetchStage::updateReady() {
 
   if (canSendInstruction() == stalled) {
     stalled = !canSendInstruction();
-    core()->pipelineStalled(stalled);
+    core().pipelineStalled(stalled);
   }
 }
 
@@ -377,7 +377,7 @@ bool FetchStage::inCache(const FetchInfo& fetch) {
   if (packet.inCache && !packet.execute)
     packet.reset();
 
-  Instrumentation::IPKCache::tagCheck(id, packet.inCache, fetch.address, previousFetch);
+  Instrumentation::IPKCache::tagCheck(core(), packet.inCache, fetch.address, previousFetch);
 
   previousFetch = fetch.address;
 
@@ -431,7 +431,7 @@ void FetchStage::nextIPK() {
   if (currentPacket.location.component != UNKNOWN)
     currentInstructionSource().cancelPacket();
 
-  core()->nextIPK();
+  core().nextIPK();
 }
 
 void FetchStage::fifoInstructionArrived() {
@@ -540,17 +540,19 @@ void FetchStage::reportStalls(ostream& os) {
     os << fifo.name() << " is full." << endl;
 }
 
-FetchStage::FetchStage(sc_module_name name, const ComponentID& ID) :
+FetchStage::FetchStage(sc_module_name name, const ComponentID& ID,
+                       const fifo_parameters_t& fifoParams,
+                       const cache_parameters_t& cacheParams) :
     PipelineStage(name, ID),
     iToCache("iCacheInstruction"),
     iToFIFO("iFIFOInstruction"),
-    oFlowControl(2, "oFlowControl"),
-    oDataConsumed(2, "oDataConsumed"),
+    oFlowControl("oFlowControl", 2),
+    oDataConsumed("oDataConsumed", 2),
     oFetchRequest("oFetchRequest"),
     iOutputBufferReady("iOutputBufferReady"),
-    cache("IPKcache", ID),
-    fifo("IPKfifo"),
-    fetchBuffer(1, "fetchBuffer") {
+    cache("IPKcache", ID, cacheParams),
+    fifo("IPKfifo", fifoParams),
+    fetchBuffer("fetchBuffer", 1) {
 
   readState = RS_READY;
   writeState = WS_READY;

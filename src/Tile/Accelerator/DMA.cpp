@@ -32,11 +32,9 @@ void DMA::replaceMemoryMapping(EncodedCMTEntry mapEncoded) {
   ChannelMapEntry::MemoryChannel decoded =
       ChannelMapEntry::memoryView(mapEncoded);
 
-  // Memory decides which component to return data to using the memory
-  // channel accessed. Set the channel appropriately.
-  // Components are currently ordered: cores, memories, accelerators, but
-  // memories cannot access memories, so remove them from consideration.
-  decoded.channel = id.position - MEMS_PER_TILE;
+  // Update the memory channel so the memory knows which component to return
+  // data to.
+  decoded.channel = parent().memoryAccessChannel();
 
   memoryInterface.replaceMemoryMapping(decoded);
 }
@@ -82,11 +80,11 @@ void DMA::memoryAccess(position_t position, MemoryAddr address, MemoryOpcode op,
 // the access have been confirmed.
 void DMA::magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address,
                             ChannelID returnChannel, Word data) {
-  parent()->magicMemoryAccess(opcode, address, returnChannel, data);
+  parent().magicMemoryAccess(opcode, address, returnChannel, data);
 }
 
-Accelerator* DMA::parent() const {
-  return static_cast<Accelerator*>(this->get_parent_object());
+Accelerator& DMA::parent() const {
+  return static_cast<Accelerator&>(*(this->get_parent_object()));
 }
 
 void DMA::newCommandArrived() {
