@@ -14,8 +14,6 @@
 #include "../../LokiComponent.h"
 #include "../../Network/NetworkTypes.h"
 
-using sc_core::sc_module_name;
-
 class MemoryBank;
 
 class L2RequestFilter: public LokiComponent {

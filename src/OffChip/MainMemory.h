@@ -41,6 +41,7 @@ public:
 
   MainMemory(sc_module_name name, ComponentID ID, uint controllers,
              const main_memory_parameters_t& params);
+  virtual ~MainMemory();
 
 //============================================================================//
 // Methods
@@ -137,7 +138,7 @@ private:
 private:
 
   // One handler per input port.
-  LokiVector<MainMemoryRequestHandler> handlers;
+  vector<MainMemoryRequestHandler*> handlers;
 
   friend class MainMemoryRequestHandler;
 

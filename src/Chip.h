@@ -24,13 +24,13 @@
 #include "Network/NetworkTypes.h"
 #include "OffChip/MagicMemory.h"
 #include "OffChip/MainMemory.h"
-#include "Tile/Tile.h"
 #include "Types.h"
 #include "Utility/LokiVector2D.h"
 
 using std::vector;
 
 class DataBlock;
+class Tile;
 
 class Chip : public LokiComponent {
 
@@ -43,6 +43,7 @@ public:
   SC_HAS_PROCESS(Chip);
   Chip(const sc_module_name& name, const ComponentID& ID,
        const chip_parameters_t& params);
+  virtual ~Chip();
 
 //============================================================================//
 // Methods
@@ -124,7 +125,7 @@ private:
 private:
 
   // Access using tiles[column][row].
-  LokiVector2D<Tile>         tiles;
+  vector<vector<Tile*>>      tiles;
   MainMemory                 mainMemory;
 
   MagicMemory                magicMemory;       // Wrapper for mainMemory

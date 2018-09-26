@@ -16,12 +16,8 @@
 #ifndef SRC_TILE_TILE_H_
 #define SRC_TILE_TILE_H_
 
-#include <vector>
 #include "../LokiComponent.h"
 #include "../Network/NetworkTypes.h"
-
-using sc_core::sc_module_name;
-using std::vector;
 
 class Chip;
 class DataBlock;

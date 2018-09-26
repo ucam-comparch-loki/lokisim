@@ -63,12 +63,6 @@ public:
     init(name, other.size());
   }
 
-  // Add an item to the vector. The vector then takes responsibility for
-  // deleting the item when finished.
-  inline void push_back(T* value) {
-    data.push_back(value);
-  }
-
   inline size_t size() const {
     return data.size();
   }

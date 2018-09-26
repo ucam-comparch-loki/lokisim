@@ -74,6 +74,7 @@ public:
 
   ComputeTile(const sc_module_name& name, const ComponentID& id,
               const tile_parameters_t& params);
+  virtual ~ComputeTile();
 
 //============================================================================//
 // Methods
@@ -146,8 +147,8 @@ private:
 
 private:
 
-  LokiVector<Core>          cores;
-  LokiVector<MemoryBank>    memories;
+  vector<Core*>             cores;
+  vector<MemoryBank*>       memories;
   MissHandlingLogic         mhl;
 
   friend class Core;

@@ -8,8 +8,7 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include "CoreMulticast.h"
-
-using sc_core::sc_gen_unique_name;
+#include "../../Network/Topologies/MulticastBus.h"
 
 CoreMulticast::CoreMulticast(const sc_module_name name, ComponentID tile,
                              const tile_parameters_t& params) :
@@ -35,6 +34,11 @@ CoreMulticast::CoreMulticast(const sc_module_name name, ComponentID tile,
     SPAWN_METHOD(iData[i], CoreMulticast::mainLoop, i, false);
   }
 
+}
+
+CoreMulticast::~CoreMulticast() {
+  for (uint i=0; i<buses.size(); i++)
+    delete buses[i];
 }
 
 void CoreMulticast::mainLoop(PortIndex input) {

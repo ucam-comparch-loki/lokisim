@@ -11,8 +11,9 @@
 #include "../Network.h"
 #include "../../Utility/BlockingInterface.h"
 #include "../../Utility/LokiVector2D.h"
-#include "../Arbiters/ClockedArbiter.h"
-#include "../Multiplexer.h"
+
+class ClockedArbiter;
+class Multiplexer;
 
 class Crossbar: public Network, public BlockingInterface {
 
@@ -55,6 +56,7 @@ public:
            int outputsPerComponent,
            HierarchyLevel level,
            int buffersPerComponent);
+  virtual ~Crossbar();
 
 //============================================================================//
 // Methods
@@ -90,8 +92,8 @@ protected:
   // This value tells how many there are.
   const int buffersPerComponent;
 
-  LokiVector<ClockedArbiter> arbiters;
-  LokiVector<Multiplexer>  muxes;
+  std::vector<ClockedArbiter*> arbiters;
+  std::vector<Multiplexer*>  muxes;
 
   LokiVector2D<MuxSelectSignal> selectSig;
 

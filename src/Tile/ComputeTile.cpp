@@ -49,7 +49,7 @@ void ComputeTile::storeInstructions(vector<Word>& instructions, const ComponentI
     chip().storeInstructions(instructions, component);
   else {
     loki_assert(isCore(component));
-    cores[coreIndex(component)].storeData(instructions);
+    cores[coreIndex(component)]->storeData(instructions);
   }
 }
 
@@ -58,7 +58,7 @@ void ComputeTile::storeData(const DataBlock& data) {
     chip().storeData(data);
   }
   else if (isCore(data.component())) {
-    cores[coreIndex(data.component())].storeData(data.payload());
+    cores[coreIndex(data.component())]->storeData(data.payload());
   }
   else if (isMemory(data.component())) {
     LOKI_ERROR << "storing directly to memory banks is disabled since it cannot be known "
@@ -72,7 +72,7 @@ void ComputeTile::print(const ComponentID& component, MemoryAddr start, MemoryAd
   if (component.tile != id.tile || MAGIC_MEMORY)
     chip().print(component, start, end);
   else if (isMemory(component))
-    memories[memoryIndex(component)].print(start, end);
+    memories[memoryIndex(component)]->print(start, end);
 }
 
 void ComputeTile::makeRequest(ComponentID source, ChannelID destination, bool request) {
@@ -123,28 +123,28 @@ bool ComputeTile::requestGranted(ComponentID source, ChannelID destination) cons
 
 Word ComputeTile::readWordInternal(const ComponentID& component, MemoryAddr addr) {
   if (component.tile == id.tile && isMemory(component) && !MAGIC_MEMORY)
-    return memories[memoryIndex(component)].readWordDebug(addr);
+    return memories[memoryIndex(component)]->readWordDebug(addr);
   else
     return chip().readWordInternal(component, addr);
 }
 
 Word ComputeTile::readByteInternal(const ComponentID& component, MemoryAddr addr) {
   if (component.tile == id.tile && isMemory(component) && !MAGIC_MEMORY)
-    return memories[memoryIndex(component)].readByteDebug(addr);
+    return memories[memoryIndex(component)]->readByteDebug(addr);
   else
     return chip().readByteInternal(component, addr);
 }
 
 void ComputeTile::writeWordInternal(const ComponentID& component, MemoryAddr addr, Word data) {
   if (component.tile == id.tile && isMemory(component) && !MAGIC_MEMORY)
-    memories[memoryIndex(component)].writeWordDebug(addr, data);
+    memories[memoryIndex(component)]->writeWordDebug(addr, data);
   else
     chip().writeWordInternal(component, addr, data);
 }
 
 void ComputeTile::writeByteInternal(const ComponentID& component, MemoryAddr addr, Word data) {
   if (component.tile == id.tile && isMemory(component) && !MAGIC_MEMORY)
-    memories[memoryIndex(component)].writeByteDebug(addr, data);
+    memories[memoryIndex(component)]->writeByteDebug(addr, data);
   else
     chip().writeByteInternal(component, addr, data);
 }
@@ -154,7 +154,7 @@ int  ComputeTile::readRegisterInternal(const ComponentID& component, RegisterInd
     return chip().readRegisterInternal(component, reg);
   else {
     loki_assert(isCore(component));
-    return cores[coreIndex(component)].readRegDebug(reg);
+    return cores[coreIndex(component)]->readRegDebug(reg);
   }
 }
 
@@ -163,7 +163,7 @@ bool ComputeTile::readPredicateInternal(const ComponentID& component) const {
     return chip().readPredicateInternal(component);
   else {
     loki_assert(isCore(component));
-    return cores[coreIndex(component)].readPredReg();
+    return cores[coreIndex(component)]->readPredReg();
   }
 }
 
@@ -172,7 +172,7 @@ void ComputeTile::networkSendDataInternal(const NetworkData& flit) {
     chip().networkSendDataInternal(flit);
   else {
     loki_assert(isCore(flit.channelID().component));
-    cores[coreIndex(flit.channelID().component)].deliverDataInternal(flit);
+    cores[coreIndex(flit.channelID().component)]->deliverDataInternal(flit);
   }
 }
 
@@ -181,7 +181,7 @@ void ComputeTile::networkSendCreditInternal(const NetworkCredit& flit) {
     chip().networkSendCreditInternal(flit);
   else {
     loki_assert(isCore(flit.channelID().component));
-    cores[coreIndex(flit.channelID().component)].deliverCreditInternal(flit);
+    cores[coreIndex(flit.channelID().component)]->deliverCreditInternal(flit);
   }
 }
 
@@ -263,37 +263,37 @@ void ComputeTile::makeSignals() {
 void ComputeTile::wireUp() {
 
   for (uint i=0; i<cores.size(); i++) {
-    cores[i].clock(clock);
-    cores[i].fastClock(fastClock);
-    cores[i].iCredit(creditsToCores[i]);
-    cores[i].iData(dataToCores[i]);
-    cores[i].iDataGlobal(globalDataToCores[i]);
-    cores[i].iInstruction(instructionsToCores[i]);
-    cores[i].iMulticast(multicastToCores[i]); // vector
-    cores[i].oCredit(creditsFromCores[i]);
-    cores[i].oMulticast(multicastFromCores[i]);
-    cores[i].oRequest(requestsFromCores[i]);
-    cores[i].oDataGlobal(globalDataFromCores[i]);
-    cores[i].oReadyCredit(readyCreditFromCores[i][0]);
-    cores[i].oReadyData(readyDataFromCores[i]); // vector
+    cores[i]->clock(clock);
+    cores[i]->fastClock(fastClock);
+    cores[i]->iCredit(creditsToCores[i]);
+    cores[i]->iData(dataToCores[i]);
+    cores[i]->iDataGlobal(globalDataToCores[i]);
+    cores[i]->iInstruction(instructionsToCores[i]);
+    cores[i]->iMulticast(multicastToCores[i]); // vector
+    cores[i]->oCredit(creditsFromCores[i]);
+    cores[i]->oMulticast(multicastFromCores[i]);
+    cores[i]->oRequest(requestsFromCores[i]);
+    cores[i]->oDataGlobal(globalDataFromCores[i]);
+    cores[i]->oReadyCredit(readyCreditFromCores[i][0]);
+    cores[i]->oReadyData(readyDataFromCores[i]); // vector
   }
 
   for (uint i=0; i<memories.size(); i++) {
-    memories[i].iClock(clock);
-    memories[i].iData(requestsToMemory[i]);
-    memories[i].iRequest(l2RequestToMemory);
-    memories[i].iRequestClaimed(l2RequestClaimed);
-    memories[i].iRequestDelayed(l2RequestDelayed);
-    memories[i].iRequestTarget(l2RequestTarget);
-    memories[i].iResponse(l2ResponseToMemory);
-    memories[i].iResponseTarget(l2ResponseTarget);
-    memories[i].oClaimRequest(l2ClaimRequest[i]);
-    memories[i].oDelayRequest(l2DelayRequest[i]);
-    memories[i].oData(dataFromMemory[i]);
-    memories[i].oInstruction(instructionsFromMemory[i]);
-    memories[i].oReadyForData(readyDataFromMemory[i][0]);
-    memories[i].oRequest(l2RequestFromMemory[i]);
-    memories[i].oResponse(l2ResponseFromMemory[i]);
+    memories[i]->iClock(clock);
+    memories[i]->iData(requestsToMemory[i]);
+    memories[i]->iRequest(l2RequestToMemory);
+    memories[i]->iRequestClaimed(l2RequestClaimed);
+    memories[i]->iRequestDelayed(l2RequestDelayed);
+    memories[i]->iRequestTarget(l2RequestTarget);
+    memories[i]->iResponse(l2ResponseToMemory);
+    memories[i]->iResponseTarget(l2ResponseTarget);
+    memories[i]->oClaimRequest(l2ClaimRequest[i]);
+    memories[i]->oDelayRequest(l2DelayRequest[i]);
+    memories[i]->oData(dataFromMemory[i]);
+    memories[i]->oInstruction(instructionsFromMemory[i]);
+    memories[i]->oReadyForData(readyDataFromMemory[i][0]);
+    memories[i]->oRequest(l2RequestFromMemory[i]);
+    memories[i]->oResponse(l2ResponseFromMemory[i]);
   }
 
   mhl.clock(clock);
@@ -386,5 +386,12 @@ ComputeTile::ComputeTile(const sc_module_name& name, const ComponentID& id,
   makeSignals();
   wireUp();
 
+}
+
+ComputeTile::~ComputeTile() {
+  for (uint i=0; i<cores.size(); i++)
+    delete cores[i];
+  for (uint i=0; i<memories.size(); i++)
+    delete memories[i];
 }
 
