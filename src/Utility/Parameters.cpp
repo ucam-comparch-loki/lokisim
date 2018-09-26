@@ -145,7 +145,7 @@ void Parameters::parseParameter(const string &name, const string &value,
 
   // It's probably better to use a dictionary now that there are this many
   // parameters.
-  if (strcasecmp(cName, "CORES_PER_TILE") == 0) params.tile.numCores = nValue;
+  if (strcasecmp(cName, "CORES_PER_TILE") == 0) {params.tile.numCores = nValue; CORES_PER_TILE = nValue;}
   else if (strcasecmp(cName, "MEMS_PER_TILE") == 0) params.tile.numMemories = nValue;
   else if (strcasecmp(cName, "ACCELERATORS_PER_TILE") == 0) params.tile.numAccelerators = nValue;
   else if (strcasecmp(cName, "COMPUTE_TILE_ROWS") == 0) params.numComputeTiles.height = nValue;
