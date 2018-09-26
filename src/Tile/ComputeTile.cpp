@@ -256,80 +256,9 @@ void ComputeTile::wireUp(const tile_parameters_t& params) {
   creditReturn.inputs[0](creditBuffer);
 
   mhl.oRequestToNetwork(oRequest);
-<<<<<<< Upstream, based on origin/master
   iResponse(mhl.iResponseFromNetwork);
   iRequest(l2l.iRequestFromNetwork);
   l2l.oResponseToNetwork(oResponse);
-=======
-  mhl.oReadyForRequest(oRequestReady);
-  mhl.iRequestFromNetwork(iRequest);
-  mhl.oResponseToNetwork(oResponse);
-  mhl.oReadyForResponse(oResponseReady);
-  mhl.iResponseFromNetwork(iResponse);
-  mhl.iClaimRequest(l2ClaimRequest);
-  mhl.iDelayRequest(l2DelayRequest);
-  mhl.iRequestFromBanks(l2RequestFromMemory);
-  mhl.iResponseFromBanks(l2ResponseFromMemory);
-  mhl.oRequestClaimed(l2RequestClaimed);
-  mhl.oRequestDelayed(l2RequestDelayed);
-  mhl.oRequestTarget(l2RequestTarget);
-  mhl.oRequestToBanks(l2RequestToMemory);
-  mhl.oResponseTarget(l2ResponseTarget);
-  mhl.oResponseToBanks(l2ResponseToMemory);
-
-  // Each subnetwork contains arbiters, and the outputs of the networks
-  // are themselves arbitrated. Use the slow clock because the memory sends
-  // its data on the negative edge, and the core may need the time to compute
-  // which memory bank it is sending to.
-
-  coreToCore.clock(slowClock);
-  coreToCore.iData(multicastFromCores);
-  coreToCore.oData(multicastToCores);
-  coreToCore.iReady(readyDataFromCores);
-
-  coreToMemory.clock(slowClock);
-  coreToMemory.iData(requestsFromCores);
-  coreToMemory.oData(requestsToMemory);
-  coreToMemory.iReady(readyDataFromMemory);
-  coreToMemory.iRequest(coreToMemRequests);
-  coreToMemory.oGrant(coreToMemGrants);
-
-  // Data can go to any buffer (including instructions).
-  dataReturn.clock(slowClock);
-  dataReturn.iData(dataFromMemory);
-  dataReturn.oData(dataToCores);
-  for (uint i=0; i<CORES_PER_TILE; i++)
-    dataReturn.iReady[i](readyDataFromCores[i]);
-  dataReturn.iRequest(dataReturnRequests);
-  dataReturn.oGrant(dataReturnGrants);
-
-  // Instructions can only go to instruction inputs.
-  instructionReturn.clock(slowClock);
-  instructionReturn.iData(instructionsFromMemory);
-  instructionReturn.oData(instructionsToCores);
-  for (uint i=0; i<CORES_PER_TILE; i++)
-    for (uint j=0; j<CORE_INSTRUCTION_CHANNELS; j++)
-      instructionReturn.iReady[i][j](readyDataFromCores[i][j]);
-  instructionReturn.iRequest(instructionReturnRequests);
-  instructionReturn.oGrant(instructionReturnGrants);
-
-  dataToRouter.oData(oData);
-  dataToRouter.iData(globalDataFromCores);
-
-  dataFromRouter.iData(iData);
-  dataFromRouter.oReady(oDataReady);
-  dataFromRouter.oData(globalDataToCores);
-  for (uint i=0; i<CORES_PER_TILE; i++)
-    dataFromRouter.iReady[i](readyDataFromCores[i]);
-
-  creditToRouter.oData(oCredit);
-  creditToRouter.iData(creditsFromCores);
-
-  creditFromRouter.iData(iCredit);
-  creditFromRouter.oReady(oCreditReady);
-  creditFromRouter.iReady(readyCreditFromCores);
-  creditFromRouter.oData(creditsToCores);
->>>>>>> 6a6e491 Connect Accelerator to local multicast network.
 
 }
 
