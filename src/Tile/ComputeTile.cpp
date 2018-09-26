@@ -345,7 +345,7 @@ void ComputeTile::wireUp() {
   instructionReturn.iData(instructionsFromMemory);
   instructionReturn.oData(instructionsToCores);
 
-  for (uint i=0; i<readyDataFromCores.size(); i++)
+  for (uint i=0; i<cores.size(); i++)
     for (uint j=0; j<Core::numInstructionChannels; j++)
       instructionReturn.iReady[i][j](readyDataFromCores[i][j]);
   instructionReturn.iRequest(instructionReturnRequests);

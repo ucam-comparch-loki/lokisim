@@ -31,9 +31,9 @@ AcceleratorTile::AcceleratorTile(const sc_module_name& name,
 
     // Connect to the multicast network. Some slightly awkward indexing because
     // all of the cores have already been connected.
-    a->iMulticast(multicastToCores[params.numCores]); // vector
-    a->oMulticast(multicastFromCores[params.numCores]);
-    a->oReadyData(readyDataFromCores[params.numCores]); // vector
+    a->iMulticast(multicastToCores[params.numCores + acc]); // vector
+    a->oMulticast(multicastFromCores[params.numCores + acc]);
+    a->oReadyData(readyDataFromCores[params.numCores + acc]); // vector
   }
 
 }
