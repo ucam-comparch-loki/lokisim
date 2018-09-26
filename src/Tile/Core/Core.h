@@ -27,10 +27,10 @@
 #include "RegisterFile.h"
 #include "Write/WriteStage.h"
 #include "MagicMemoryConnection.h"
+#include "PipelineRegister.h"
 
 class ComputeTile;
 class DecodedInst;
-class PipelineRegister;
 
 class Core : public LokiComponent {
 
@@ -229,7 +229,7 @@ public:
 
 private:
   // A pipeline register to go between each pair of adjacent stages.
-  vector<PipelineRegister*> pipelineRegs;
+  LokiVector<PipelineRegister> pipelineRegs;
 
   ChannelMapTable        channelMapTable;
   ControlRegisters       cregs;

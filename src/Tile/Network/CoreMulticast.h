@@ -16,11 +16,10 @@
 
 #include <vector>
 #include "../../Network/Network.h"
+#include "../../Network/Topologies/MulticastBus.h"
 #include "../../Utility/LokiVector2D.h"
 
 using std::vector;
-
-class MulticastBus;
 
 class CoreMulticast: public Network {
 
@@ -54,7 +53,6 @@ public:
   SC_HAS_PROCESS(CoreMulticast);
   CoreMulticast(const sc_module_name name, ComponentID tile,
                 const tile_parameters_t& tileParams);
-  virtual ~CoreMulticast();
 
 //============================================================================//
 // Methods
@@ -80,7 +78,7 @@ private:
 
   vector<MulticastState> state;
 
-  vector<MulticastBus*> buses;
+  LokiVector<MulticastBus> buses;
   LokiVector<DataSignal> busInput;
 
 };

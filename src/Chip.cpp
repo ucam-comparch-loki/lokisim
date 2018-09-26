@@ -10,7 +10,6 @@
 #include <sstream>
 
 #include "Chip.h"
-#include "Tile/Tile.h"
 #include "Tile/ComputeTile.h"
 #include "Tile/EmptyTile.h"
 #include "Tile/MemoryControllerTile.h"
@@ -186,7 +185,7 @@ TileID Chip::nearestMemoryController(TileID tile) const {
 }
 
 Tile& Chip::getTile(TileID tile) const {
-  return *(tiles[tile.x][tile.y]);
+  return tiles[tile.x][tile.y];
 }
 
 const std::set<TileID> Chip::getMemoryControllerPositions(const chip_parameters_t& params) const {
@@ -234,8 +233,8 @@ void Chip::makeSignals(size2d_t allTiles) {
 void Chip::makeComponents(const chip_parameters_t& params) {
   int memoryControllersMade = 0;
 
+  tiles.init(params.allTiles().width);
   for (uint col = 0; col < params.allTiles().width; col++) {
-    tiles.push_back(vector<Tile*>());
 
     for (uint row = 0; row < params.allTiles().height; row++) {
       ComponentID tileID(col, row, 0);
@@ -342,10 +341,4 @@ Chip::Chip(const sc_module_name& name, const ComponentID& ID,
   makeComponents(params);
   wireUp();
 
-}
-
-Chip::~Chip() {
-  for (uint i=0; i<tiles.size(); i++)
-    for (uint j=0; j<tiles[i].size(); j++)
-      delete tiles[i][j];
 }

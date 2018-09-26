@@ -15,8 +15,7 @@
 #include "../../Utility/LokiVector2D.h"
 #include "../Network.h"
 #include "../Global/NetworkDeadEnd.h"
-
-class Router;
+#include "../Router.h"
 
 class Mesh : public Network {
 
@@ -58,8 +57,6 @@ public:
        HierarchyLevel level,
        const router_parameters_t& routerParams);
 
-  virtual ~Mesh();
-
 //============================================================================//
 // Methods
 //============================================================================//
@@ -78,10 +75,10 @@ private:
 
   // 2D vector of routers. Indexed using routers[column][row]. (0,0) is in the
   // top left corner.
-  vector<vector<Router*> > routers;
+  LokiVector2D<Router> routers;
 
   // Debug components which warn us if data is sent off the edge of the network.
-  vector<NetworkDeadEnd<NetworkData>*> edges;
+  LokiVector<NetworkDeadEnd<NetworkData>> edges;
 
   // Lots of 2D arrays of signals. Each 2D array is indexed using
   // array[column][row]. Each array name is tagged with the direction it

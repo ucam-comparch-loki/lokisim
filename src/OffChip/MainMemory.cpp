@@ -46,12 +46,6 @@ MainMemory::MainMemory(sc_module_name name, ComponentID ID, uint controllers,
 
 }
 
-MainMemory::~MainMemory() {
-  for (uint i=0; i<handlers.size(); i++) {
-    delete handlers[i];
-  }
-}
-
 
 // Compute the position in SRAM that the given memory address is to be found.
 SRAMAddress MainMemory::getPosition(MemoryAddr address, MemoryAccessMode mode) const {

@@ -12,11 +12,11 @@
 #define INPUTCROSSBAR_H_
 
 #include "../../LokiComponent.h"
+#include "../../Network/FlowControl/FlowControlIn.h"
 #include "../../Network/NetworkTypes.h"
 #include "../../Network/Topologies/InstantCrossbar.h"
 #include "../../Utility/LokiVector.h"
 
-class FlowControlIn;
 class UnclockedNetwork;
 class Word;
 
@@ -56,7 +56,6 @@ public:
   SC_HAS_PROCESS(InputCrossbar);
   InputCrossbar(sc_module_name name, const ComponentID& ID, size_t numInputs,
                 size_t numOutputs);
-  virtual ~InputCrossbar();
 
 //============================================================================//
 // Methods
@@ -82,7 +81,7 @@ private:
 
 private:
 
-  std::vector<FlowControlIn*> flowControl;
+  LokiVector<FlowControlIn> flowControl;
 
   InstantCrossbar          creditNet;
 
