@@ -34,6 +34,9 @@ public:
   // Command from the control unit.
   CommandInput iCommand;
 
+  // The current tick being executed.
+  sc_in<uint> iTick;
+
 //============================================================================//
 // Constructors and destructors
 //============================================================================//
@@ -242,9 +245,6 @@ public:
   // Valid signal for data sent to PEs.
   sc_out<bool>            oDataValid;
 
-  // Flow control from PEs. Single signal telling that all are ready.
-  sc_in<bool>             iReadyForData;
-
 
 //============================================================================//
 // Constructors and destructors
@@ -258,8 +258,7 @@ public:
            size_t queueLength=4) :
       DMABase<T>(name, id, ports, queueLength),
       oDataToPEs("oDataToPEs", ports.width, ports.height),
-      oDataValid("oDataValid"),
-      iReadyForData("iReadyForData") {
+      oDataValid("oDataValid") {
 
     // Templated class means `this` must be used whenever referring to anything
     // from a parent class.
@@ -273,7 +272,7 @@ public:
     this->dont_initialize();
 
     SC_METHOD(sendPEData);
-    this->sensitive << iReadyForData.pos();
+    this->sensitive << this->iTick;
     // do initialise
 
   }
@@ -332,12 +331,12 @@ private:
 
   // Copy data from staging area to ports.
   void sendPEData() {
-    loki_assert(iReadyForData.read());
-
     // TODO: Check that the PEs should receive this data on this tick.
 
-    if (!this->stagingArea.isFull())
+    if (!this->stagingArea.isFull()) {
+      oDataValid.write(false);
       next_trigger(this->stagingArea.filledEvent());
+    }
     else {
       for (uint row=0; row<oDataToPEs.size(); row++)
         for (uint col=0; col<oDataToPEs[row].size(); col++)
@@ -364,9 +363,6 @@ public:
   // Array of values received from PEs. Addressed using array[x][y].
   LokiVector2D<sc_in<T>> iDataFromPEs;
 
-  // Valid signal for incoming data from PEs.
-  sc_in<bool>            iDataValid;
-
   // Flow control telling whether we're ready to receive new data.
   sc_out<bool>           oReadyForData;
 
@@ -383,7 +379,6 @@ public:
             size_t queueLength=4) :
       DMABase<T>(name, id, ports, queueLength),
       iDataFromPEs("iDataFromPEs", ports.width, ports.height),
-      iDataValid("iDataValid"),
       oReadyForData("oReadyForData") {
 
     // Templated class means `this` must be used whenever referring to anything
@@ -394,7 +389,7 @@ public:
     this->dont_initialize();
 
     SC_METHOD(receivePEData);
-    this->sensitive << iDataValid.pos();
+    this->sensitive << this->iTick;
     this->dont_initialize();
 
     SC_METHOD(receiveMemoryData);

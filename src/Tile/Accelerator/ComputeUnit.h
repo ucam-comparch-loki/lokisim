@@ -24,9 +24,25 @@ class ComputeUnit: public LokiComponent {
 
 public:
 
+  ClockInput iClock;
+
+  // The data being computed.
   LokiVector2D<sc_in<T>> in1;
   LokiVector2D<sc_in<T>> in2;
   LokiVector2D<sc_out<T>> out;
+
+  // The input from another component is ready to be consumed.
+  ReadyInput  in1Ready;
+  ReadyInput  in2Ready;
+
+  // The component receiving the output is ready to consume new data.
+  ReadyInput  outReady;
+
+  // The current tick being executed. This signal also acts as flow control,
+  // with any connected components only supplying data when the tick reaches a
+  // predetermined value.
+  // TODO: need a separate input and output tick?
+  sc_out<uint> tick;
 
 //============================================================================//
 // Constructors and destructors
@@ -34,11 +50,19 @@ public:
 
 public:
 
+  SC_HAS_PROCESS(ComputeUnit<T>);
+
   ComputeUnit(sc_module_name name, const Configuration& config) :
       LokiComponent(name),
+      iClock("clock"),
       in1("in1", config.dma1Ports().width, config.dma1Ports().height),
       in2("in2", config.dma2Ports().width, config.dma2Ports().height),
-      out("out", config.dma3Ports().width, config.dma3Ports().height) {
+      out("out", config.dma3Ports().width, config.dma3Ports().height),
+      tick("tick") {
+
+    currentTick = 0;
+    tickSignal.write(currentTick);
+//    tick(tickSignal);
 
     // Use this a lot of times, so create a shorter name.
     size2d_t PEs = config.peArraySize();
@@ -48,6 +72,8 @@ public:
       for (uint row=0; row<PEs.height; row++) {
         Multiplier<T>* mul = new Multiplier<T>(sc_gen_unique_name("mul"), 1, 1);
         multipliers[col].push_back(mul);
+
+        mul->tick(tickSignal);
       }
     }
 
@@ -148,6 +174,45 @@ public:
       adders.push_back(adder);
       adder->out(out[0][0]);
     }
+
+    SC_METHOD(newTick);
+    sensitive << iClock.pos();
+    // do initialise
+  }
+
+//============================================================================//
+// Methods
+//============================================================================//
+
+private:
+
+  void newTick() {
+    // If output can't receive data, wait for it
+    if (!outReady.read())
+      next_trigger(outReady.posedge_event());
+
+    // Else if input doesn't have new data, wait for it
+    else if (!in1Ready.read())
+      next_trigger(in1Ready.posedge_event());
+    else if (!in2Ready.read())
+      next_trigger(in2Ready.posedge_event());
+
+    // Else compute
+    else {
+      triggerCompute();
+
+      // TODO: account for latency. Perhaps put the output tick signal through
+      // the same latency buffers as the data?
+    }
+
+  }
+
+  void triggerCompute() {
+    // Need separate signals for external and internal components?
+    tickSignal.write(currentTick);
+    tick.write(currentTick);
+
+    currentTick++;
   }
 
 //============================================================================//
@@ -159,6 +224,9 @@ private:
   LokiVector2D<Multiplier<T>> multipliers;
   LokiVector<AdderTree<T>> adders;
   LokiVector<sc_signal<T>> signals;
+
+  sc_signal<uint> tickSignal;
+  uint currentTick;
 
 };
 
