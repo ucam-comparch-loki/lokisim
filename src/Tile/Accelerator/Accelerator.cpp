@@ -40,14 +40,14 @@ Accelerator::Accelerator(sc_module_name name, ComponentID id, Configuration cfg)
   compute.in1(toPEs1);  in1.oDataToPEs(toPEs1);
   compute.in2(toPEs2);  in2.oDataToPEs(toPEs2);
   compute.out(fromPEs); out.iDataFromPEs(fromPEs);
+  compute.in1Ready(in1Ready); compute.in2Ready(in2Ready);
+  compute.outReady(outReady);
+  compute.iClock(iClock);
+  compute.tick(tickSig);
 
-  // TODO: Actually use these signals (they're currently only connected at
-  // one end).
-  pesInReady.write(true);
-  pesOutReady.write(false);  // This is going to break things.
-  in1.iReadyForData(pesInReady); in1.oDataValid(in1Ready);
-  in2.iReadyForData(pesInReady); in2.oDataValid(in2Ready);
-  out.iDataValid(pesOutReady); out.oReadyForData(outReady);
+  in1.iTick(tickSig); in1.oDataValid(in1Ready);
+  in2.iTick(tickSig); in2.oDataValid(in2Ready);
+  out.iTick(tickSig); out.oReadyForData(outReady);
 
   // Whenever data arrives on any channel, pass it to the control unit. This
   // will break if multiple cores attempt to communicate simultaneously.

@@ -13,6 +13,8 @@
 
 #include "../../LokiComponent.h"
 
+// TODO Should there be separate types for the inputs and outputs? Perhaps even
+// separate types for each input?
 template <typename T>
 class Multiplier: public LokiComponent {
 
@@ -21,9 +23,10 @@ class Multiplier: public LokiComponent {
 //============================================================================//
 
 public:
-  // I can get away with using sc_in/out instead of something more complex
-  // because the output only needs to change if one of the inputs changes. An
-  // event is not required if there is no change.
+
+  // The clock that dictates when to do computation. Some more-advanced PEs may
+  // make more use of its value.
+  sc_in<uint> tick;
 
   sc_in<T> in1, in2;
   sc_out<T> out;
@@ -49,7 +52,7 @@ public:
     // TODO implement latency and initiation interval.
 
     SC_METHOD(multiply);
-    sensitive << in1 << in2;
+    sensitive << tick;
     dont_initialize();
 
   }
