@@ -62,7 +62,7 @@ public:
 
     currentTick = 0;
     tickSignal.write(currentTick);
-//    tick(tickSignal);
+    tick.initialize(currentTick);
 
     // Use this a lot of times, so create a shorter name.
     size2d_t PEs = config.peArraySize();
