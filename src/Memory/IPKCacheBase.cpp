@@ -135,7 +135,12 @@ const sc_event& IPKCacheBase::dataConsumedEvent() const {
  * maximum-sized instruction packet, and no other fetches are already in
  * progress. */
 bool IPKCacheBase::canFetch() const {
-  return (remainingSpace() >= maxIPKLength);
+  // Per /usr/groups/comparch-loki/verilog-git/ipk_cache/ipkcache.v:
+  // Need to account for
+  // 1. one pending write (e.g. instr about to be written at end of cache line)
+  // 2. need to distinguish between full and empty, so assertion checks
+  //      wp+1 != rp, so need +1 entries
+  return (remainingSpace() > maxIPKLength + 1);
 }
 
 void IPKCacheBase::cancelPacket() {
