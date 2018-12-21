@@ -78,6 +78,8 @@ void MemoryInterface::receiveResponse(const NetworkData& flit) {
 
   responses.push(response);
 
+  LOKI_LOG << this->name() << ": received " << payload << " for " << response.position << endl;
+
   responseArrived.notify(sc_core::SC_ZERO_TIME);
 }
 
@@ -98,6 +100,9 @@ void MemoryInterface::sendRequest() {
 
   request_t request = requests.front();
   requests.pop();
+
+  if (request.operation != PAYLOAD && request.operation != PAYLOAD_EOP)
+    LOKI_LOG << this->name() << ": accessing " << LOKI_HEX(request.address) << " for " << request.position << endl;
 
   // Temporary: store the PE position associated with this request so it can be
   // merged with the response from memory when it returns.

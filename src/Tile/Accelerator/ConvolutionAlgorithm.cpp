@@ -106,7 +106,7 @@ void ConvolutionAlgorithm::step() {
   }
 
   // Default case: increase by one iteration at a time.
-  uint loop = loopNest.size() - 2; // Start at rowLoop.
+  int loop = loopNest.size() - 2; // Start at rowLoop.
   while (loopNest[loop].current >= loopNest[loop].iterations) {
     loopNest[loop].current = 0;
     loop--;
@@ -200,6 +200,7 @@ vector<loop_t> ConvolutionAlgorithm::reorderLoops(const vector<loop_t>& unordere
                                                   const LoopOrder& order) const {
   // Currently LoopOrders are fixed to 8 elements.
   assert(unordered.size() == 8);
+  assert(order.size() == 8);
 
   vector<loop_t> ordered;
   for (uint loop=0; loop<8; loop++) {

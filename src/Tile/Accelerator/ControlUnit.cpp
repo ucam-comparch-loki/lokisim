@@ -63,7 +63,9 @@ void ControlUnit::executionStep() {
     algorithm.step();
 
   // Perhaps use something more specific if the algorithm is blocked?
-  next_trigger(iClock.posedge_event());
+  if (algorithm.executing())
+    next_trigger(iClock.posedge_event());
+  // else default trigger is algorithm.startedComputation()
 }
 
 bool ControlUnit::canStartNewStep() const {
@@ -74,10 +76,11 @@ bool ControlUnit::canStartNewStep() const {
 }
 
 void ControlUnit::parameterSanityCheck(const conv_parameters_t params) {
+  loki_assert(params.shape.groups != 0);
   loki_assert(params.shape.inChannels % params.shape.groups == 0);
   loki_assert(params.shape.outChannels % params.shape.groups == 0);
-  loki_assert(params.shape.imageHeight > params.shape.filterHeight);
-  loki_assert(params.shape.imageWidth > params.shape.filterWidth);
+//  loki_assert(params.shape.imageHeight >= params.shape.filterHeight);
+//  loki_assert(params.shape.imageWidth >= params.shape.filterWidth);
 }
 
 void ControlUnit::updateMemoryMapping(const conv_parameters_t params) {

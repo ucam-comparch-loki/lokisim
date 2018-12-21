@@ -188,17 +188,24 @@ private:
 
   void newTick() {
     // If output can't receive data, wait for it
-    if (!outReady.read())
+    if (!outReady.read()) {
+      LOKI_LOG << this->name() << ": waiting for output to become free" << endl;
       next_trigger(outReady.posedge_event());
+    }
 
     // Else if input doesn't have new data, wait for it
-    else if (!in1Ready.read())
+    else if (!in1Ready.read()) {
+      LOKI_LOG << this->name() << ": waiting for input 1 to supply data" << endl;
       next_trigger(in1Ready.posedge_event());
-    else if (!in2Ready.read())
+    }
+    else if (!in2Ready.read()) {
+      LOKI_LOG << this->name() << ": waiting for input 2 to supply data" << endl;
       next_trigger(in2Ready.posedge_event());
+    }
 
     // Else compute
     else {
+      LOKI_LOG << this->name() << ": executing tick " << currentTick << endl;
       triggerCompute();
 
       // TODO: account for latency. Perhaps put the output tick signal through

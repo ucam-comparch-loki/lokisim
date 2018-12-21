@@ -119,7 +119,7 @@ private:
 
   // Configuration of the accelerator. Contains information such as loop order
   // and size of PE array.
-  const Configuration& config;
+  const Configuration config;
 
 };
 

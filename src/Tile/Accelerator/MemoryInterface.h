@@ -26,10 +26,16 @@ class DMA;
 using std::queue;
 
 // Position in array of ports to return a result.
-typedef struct {
+class position_t {
+public:
   uint row;
   uint column;
-} position_t;
+
+  friend std::ostream& operator<< (std::ostream& os, position_t const& p) {
+    os << "(" << p.row << ", " << p.column << ")";
+    return os;
+  }
+};
 
 // Requests to send to memory.
 typedef struct {

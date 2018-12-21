@@ -24,6 +24,7 @@ public:
   Configuration(size_t peRows, size_t peCols, bool broadcastRows,
                 bool broadcastCols, bool accumulateRows, bool accumulateCols,
                 LoopOrder loops);
+  Configuration(const Configuration& other);
 
 
 //============================================================================//
