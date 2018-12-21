@@ -34,7 +34,6 @@ public:
 
     assert(size() == width * height);
     assert(size() > 0);
-
   }
 
 
@@ -51,6 +50,8 @@ public:
 
   // Read a value from the given position.
   T read(uint row, uint col) {
+    assert(row < data.size());
+    assert(col < data[0].size());
     assert(valid[row][col]);
 
     valid[row][col] = false;
@@ -63,6 +64,8 @@ public:
 
   // Write a value to the given position.
   void write(uint row, uint col, T value) {
+    assert(row < data.size());
+    assert(col < data[0].size());
     assert(!valid[row][col]);
 
     valid[row][col] = true;

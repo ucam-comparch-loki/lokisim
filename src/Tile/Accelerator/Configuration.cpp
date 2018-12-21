@@ -18,7 +18,17 @@ Configuration::Configuration(size_t peRows, size_t peCols, bool broadcastRows,
     _loops(loops) {
 
   // Nothing.
+}
 
+Configuration::Configuration(const Configuration& other) :
+    _peArraySize(other._peArraySize),
+    _broadcastRows(other._broadcastRows),
+    _broadcastCols(other._broadcastCols),
+    _accumulateRows(other._accumulateRows),
+    _accumulateCols(other._accumulateCols),
+    _loops(other._loops) {
+
+  // Nothing.
 }
 
 size2d_t Configuration::dma1Ports() const {

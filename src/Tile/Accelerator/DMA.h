@@ -286,7 +286,8 @@ private:
 
   // Convert commands into memory requests.
   void executeCommand() {
-    loki_assert(!this->commandQueue.empty());
+    if (this->commandQueue.empty())
+      return;
 
     // For the moment, we only work on one command at a time. In the future we
     // might prefer to buffer multiple sets of data.
@@ -338,9 +339,10 @@ private:
       next_trigger(this->stagingArea.filledEvent());
     }
     else {
-      for (uint row=0; row<oDataToPEs.size(); row++)
-        for (uint col=0; col<oDataToPEs[row].size(); col++)
-          oDataToPEs[row][col].write(this->stagingArea.read(row, col));
+      // TODO: Use same dimension order for ports and staging area.
+      for (uint col=0; col<oDataToPEs.size(); col++)
+        for (uint row=0; row<oDataToPEs[col].size(); row++)
+          oDataToPEs[col][row].write(this->stagingArea.read(row, col));
 
       oDataValid.write(true);
       // TODO: Flow control goes false when we reach a "tick" that this data
@@ -384,6 +386,8 @@ public:
     // Templated class means `this` must be used whenever referring to anything
     // from a parent class.
 
+    oReadyForData.initialize(true);
+
     SC_METHOD(executeCommand);
     this->sensitive << this->commandQueue.queueChangedEvent();
     this->dont_initialize();
@@ -407,7 +411,8 @@ private:
 
   // Convert commands into memory requests.
   void executeCommand() {
-    loki_assert(!this->commandQueue.empty());
+    if (this->commandQueue.empty())
+      return;
 
     if (this->stagingArea.isFull()) {
       dma_command_t command = this->commandQueue.dequeue();
@@ -443,9 +448,10 @@ private:
     // wait if not.
     if (this->stagingArea.isEmpty()) {
       // Copy all data from ports into staging area.
-      for (uint row=0; row<iDataFromPEs.size(); row++)
-        for (uint col=0; col<iDataFromPEs[row].size(); col++)
-          this->stagingArea.write(row, col, iDataFromPEs[row][col].read());
+      // TODO: Use same dimension order for ports and staging area.
+      for (uint col=0; col<iDataFromPEs.size(); col++)
+        for (uint row=0; row<iDataFromPEs[col].size(); row++)
+          this->stagingArea.write(row, col, iDataFromPEs[col][row].read());
 
       loki_assert(this->stagingArea.isFull());
       oReadyForData.write(true);

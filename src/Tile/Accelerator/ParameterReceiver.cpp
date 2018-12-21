@@ -14,6 +14,7 @@ ParameterReceiver::ParameterReceiver(sc_module_name name) :
     oReady("oReady") {
 
   parametersReceived = 0;
+  oReady.initialize(true);
 
   SC_METHOD(receiveParameter);
   sensitive << iParameter;
@@ -48,9 +49,15 @@ void ParameterReceiver::receiveParameter() {
   array[parametersReceived] = parameter;
   parametersReceived++;
 
+  LOKI_LOG << this->name() << ": received parameter " << parameter << " ("
+      << parametersReceived << "/" << (sizeof(conv_parameters_t)/sizeof(uint32_t))
+      << ")" << endl;
+
   // Trigger event if necessary.
-  if (hasAllParameters())
+  if (hasAllParameters()) {
     allParametersArrivedEvent.notify(sc_core::SC_ZERO_TIME);
+    LOKI_LOG << this->name() << ": has all parameters" << endl;
+  }
 
   // TODO: Flow control for receiver - perhaps a separate method.
   // Or control the timing of the acknowledgement.
