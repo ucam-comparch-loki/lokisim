@@ -47,7 +47,8 @@ public:
 public:
 
   SC_HAS_PROCESS(Accelerator);
-  Accelerator(sc_module_name name, ComponentID id, Configuration cfg,
+  Accelerator(sc_module_name name, ComponentID id,
+              const accelerator_parameters_t& params,
               size_t numMulticastInputs);
 
 

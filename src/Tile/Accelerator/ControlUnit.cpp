@@ -13,13 +13,13 @@
 #include "../../Utility/Assert.h"
 #include "Accelerator.h"
 
-ControlUnit::ControlUnit(sc_module_name name, const Configuration& cfg) :
+ControlUnit::ControlUnit(sc_module_name name, const accelerator_parameters_t& params) :
     LokiComponent(name),
     iParameter("iCores"),
     oCores("oCores"),
     oReady("oReady"),
     receiver("params"),
-    algorithm("algorithm", cfg) {
+    algorithm("algorithm", params) {
 
   // TODO Notify cores when execution is finished and all data is back in
   // memory.

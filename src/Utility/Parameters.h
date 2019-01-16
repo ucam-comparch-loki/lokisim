@@ -12,6 +12,8 @@
 #define PARAMETERS_H_
 
 #include <string>
+
+#include "../Tile/Accelerator/Loops.h"
 #include "../Types.h"
 
 using std::string;
@@ -102,6 +104,25 @@ typedef struct {
 } memory_bank_parameters_t;
 
 typedef struct {
+  size2d_t numPEs;
+
+  bool broadcastRows;
+  bool broadcastCols;
+  bool accumulateRows;
+  bool accumulateCols;
+
+  LoopOrder loops;
+
+  uint latency;
+  uint initiationInterval;
+
+  // Compute the size of the DMA port arrays.
+  size2d_t dma1Ports() const;
+  size2d_t dma2Ports() const;
+  size2d_t dma3Ports() const;
+} accelerator_parameters_t;
+
+typedef struct {
   size_t size;      // Measured in entries
 } directory_parameters_t;
 
@@ -116,6 +137,7 @@ typedef struct {
 
   core_parameters_t core;
   memory_bank_parameters_t memory;
+  accelerator_parameters_t accelerator;
   directory_parameters_t directory;
 
   size_t mcastNetInputs() const;

@@ -17,7 +17,6 @@
 #include "../../LokiComponent.h"
 #include "../../Memory/MemoryTypes.h"
 #include "AcceleratorTypes.h"
-#include "Configuration.h"
 #include "Loops.h"
 
 typedef sc_in<dma_command_t>  CommandInput;
@@ -46,7 +45,8 @@ public:
   // Information we might need:
   //  * A way to access the DMA units
   //  * The size of the PE array
-  ConvolutionAlgorithm(sc_module_name name, const Configuration& config);
+  ConvolutionAlgorithm(sc_module_name name,
+                       const accelerator_parameters_t& params);
 
 
 //============================================================================//
@@ -119,7 +119,7 @@ private:
 
   // Configuration of the accelerator. Contains information such as loop order
   // and size of PE array.
-  const Configuration config;
+  const accelerator_parameters_t& config;
 
 };
 

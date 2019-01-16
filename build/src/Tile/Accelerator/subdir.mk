@@ -6,7 +6,6 @@
 CPP_SRCS += \
 ../src/Tile/Accelerator/Accelerator.cpp \
 ../src/Tile/Accelerator/CommandQueue.cpp \
-../src/Tile/Accelerator/Configuration.cpp \
 ../src/Tile/Accelerator/ControlUnit.cpp \
 ../src/Tile/Accelerator/ConvolutionAlgorithm.cpp \
 ../src/Tile/Accelerator/DMA.cpp \
@@ -17,7 +16,6 @@ CPP_SRCS += \
 OBJS += \
 ./src/Tile/Accelerator/Accelerator.o \
 ./src/Tile/Accelerator/CommandQueue.o \
-./src/Tile/Accelerator/Configuration.o \
 ./src/Tile/Accelerator/ControlUnit.o \
 ./src/Tile/Accelerator/ConvolutionAlgorithm.o \
 ./src/Tile/Accelerator/DMA.o \
@@ -28,7 +26,6 @@ OBJS += \
 CPP_DEPS += \
 ./src/Tile/Accelerator/Accelerator.d \
 ./src/Tile/Accelerator/CommandQueue.d \
-./src/Tile/Accelerator/Configuration.d \
 ./src/Tile/Accelerator/ControlUnit.d \
 ./src/Tile/Accelerator/ConvolutionAlgorithm.d \
 ./src/Tile/Accelerator/DMA.d \

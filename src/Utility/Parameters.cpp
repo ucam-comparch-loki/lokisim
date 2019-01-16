@@ -85,6 +85,30 @@ size_t memory_bank_parameters_t::log2CacheLineSize() const {
   return result;
 }
 
+size2d_t accelerator_parameters_t::dma1Ports() const {
+  size2d_t size;
+  size.height = numPEs.height;
+  size.width = broadcastRows ? 1 : numPEs.width;
+
+  return size;
+}
+
+size2d_t accelerator_parameters_t::dma2Ports() const {
+  size2d_t size;
+  size.width = numPEs.width;
+  size.height = broadcastCols ? 1 : numPEs.height;
+
+  return size;
+}
+
+size2d_t accelerator_parameters_t::dma3Ports() const {
+  size2d_t size;
+  size.height = accumulateCols ? 1 : numPEs.height;
+  size.width = accumulateRows ? 1 : numPEs.width;
+
+  return size;
+}
+
 // Used to determine how many bits in a memory address map to the same line.
 size_t main_memory_parameters_t::log2CacheLineSize() const {
   size_t result = 0;
@@ -169,6 +193,14 @@ void Parameters::parseParameter(const string &name, const string &value,
   else if (strcasecmp(cName, "CORE_BUFFER_SIZE") == 0) params.tile.core.inputFIFO.size = nValue;
   else if (strcasecmp(cName, "MEMORY_BUFFER_SIZE") == 0) params.tile.memory.inputFIFO.size = nValue;
   else if (strcasecmp(cName, "ROUTER_BUFFER_SIZE") == 0) params.router.fifo.size = nValue;
+  else if (strcasecmp(cName, "ACCELERATOR_WIDTH") == 0) params.tile.accelerator.numPEs.width = nValue;
+  else if (strcasecmp(cName, "ACCELERATOR_HEIGHT") == 0) params.tile.accelerator.numPEs.height = nValue;
+  else if (strcasecmp(cName, "ACCELERATOR_BCAST_ROWS") == 0) params.tile.accelerator.broadcastRows = nValue;
+  else if (strcasecmp(cName, "ACCELERATOR_BCAST_COLS") == 0) params.tile.accelerator.broadcastCols = nValue;
+  else if (strcasecmp(cName, "ACCELERATOR_ACC_ROWS") == 0) params.tile.accelerator.accumulateRows = nValue;
+  else if (strcasecmp(cName, "ACCELERATOR_ACC_COLS") == 0) params.tile.accelerator.accumulateCols = nValue;
+  else if (strcasecmp(cName, "ACCELERATOR_LATENCY") == 0) params.tile.accelerator.latency = nValue;
+  else if (strcasecmp(cName, "ACCELERATOR_II") == 0) params.tile.accelerator.initiationInterval = nValue;
   else if (strcasecmp(cName, "DEBUG") == 0) DEBUG = nValue;
   else if (strcasecmp(cName, "TIMEOUT") == 0) TIMEOUT = nValue;
   else {
@@ -203,6 +235,14 @@ void Parameters::printParameters(const chip_parameters_t& params) {
   cout << "Parameter CORE_BUFFER_SIZE is " << params.tile.core.inputFIFO.size << endl;
   cout << "Parameter MEMORY_BUFFER_SIZE is " << params.tile.memory.inputFIFO.size << endl;
   cout << "Parameter ROUTER_BUFFER_SIZE is " << params.router.fifo.size << endl;
+  cout << "Parameter ACCELERATOR_WIDTH is " << params.tile.accelerator.numPEs.width << endl;
+  cout << "Parameter ACCELERATOR_HEIGHT is " << params.tile.accelerator.numPEs.height << endl;
+  cout << "Parameter ACCELERATOR_BCAST_ROWS is " << params.tile.accelerator.broadcastRows << endl;
+  cout << "Parameter ACCELERATOR_BCAST_COLS is " << params.tile.accelerator.broadcastCols << endl;
+  cout << "Parameter ACCELERATOR_ACC_ROWS is " << params.tile.accelerator.accumulateRows << endl;
+  cout << "Parameter ACCELERATOR_ACC_COLS is " << params.tile.accelerator.accumulateCols << endl;
+  cout << "Parameter ACCELERATOR_LATENCY is " << params.tile.accelerator.latency << endl;
+  cout << "Parameter ACCELERATOR_II is " << params.tile.accelerator.initiationInterval << endl;
 }
 
 #define XML_LINE(name, value) "\t<" << name << ">" << value << "</" << name << ">\n"
@@ -251,6 +291,16 @@ chip_parameters_t* Parameters::defaultParameters() {
   p->tile.memory.hitUnderMiss = true;
   p->tile.memory.inputFIFO.size = 4;
   p->tile.memory.outputFIFO.size = 4;
+
+  p->tile.accelerator.numPEs.height = 2;
+  p->tile.accelerator.numPEs.width = 2;
+  p->tile.accelerator.broadcastRows = false;
+  p->tile.accelerator.broadcastCols = false;
+  p->tile.accelerator.accumulateRows = true;
+  p->tile.accelerator.accumulateCols = true;
+  p->tile.accelerator.loops = LoopOrders::naive;
+  p->tile.accelerator.latency = 0;
+  p->tile.accelerator.initiationInterval = 0;
 
   p->tile.directory.size = 16;
 

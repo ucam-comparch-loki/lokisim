@@ -13,7 +13,7 @@ int min(int a, int b) {
 }
 
 ConvolutionAlgorithm::ConvolutionAlgorithm(sc_module_name name,
-                                           const Configuration& config) :
+                                           const accelerator_parameters_t& config) :
     LokiComponent(name),
     config(config) {
 
@@ -31,7 +31,7 @@ void ConvolutionAlgorithm::start(const conv_parameters_t parameters) {
   this->parameters = parameters;
 
   vector<loop_t> unordered = getUnorderedLoops(parameters);
-  vector<loop_t> ordered = reorderLoops(unordered, config.loopOrder());
+  vector<loop_t> ordered = reorderLoops(unordered, config.loops);
 
   loopNest = ordered;
 
@@ -64,8 +64,8 @@ void ConvolutionAlgorithm::step() {
   remaining.height = colLoop.iterations - colLoop.current;
 
   size2d_t computeRequired;
-  computeRequired.width = min(remaining.width, config.peArraySize().width);
-  computeRequired.height = min(remaining.height, config.peArraySize().height);
+  computeRequired.width = min(remaining.width, config.numPEs.width);
+  computeRequired.height = min(remaining.height, config.numPEs.height);
 
   // Send commands
   dma_command_t in1Command;

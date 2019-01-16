@@ -8,19 +8,19 @@
 #include "Accelerator.h"
 #include "../../Utility/Assert.h"
 #include "../AcceleratorTile.h"
-#include "Configuration.h"
 
-Accelerator::Accelerator(sc_module_name name, ComponentID id, Configuration cfg,
+Accelerator::Accelerator(sc_module_name name, ComponentID id,
+                         const accelerator_parameters_t& params,
                          size_t numMulticastInputs) :
     LokiComponent(name, id),
     iMulticast("iMulticast", numMulticastInputs),
     oMulticast("oMulticast"),
     oReadyData("oReadyData", 1),
-    control("control", cfg),
-    in1("dma_in1", ComponentID(id.tile, id.position), cfg.dma1Ports()),
-    in2("dma_in2", ComponentID(id.tile, id.position+1), cfg.dma2Ports()),
-    out("dma_out", ComponentID(id.tile, id.position+2), cfg.dma3Ports()),
-    compute("compute", cfg),
+    control("control", params),
+    in1("dma_in1", ComponentID(id.tile, id.position), params.dma1Ports()),
+    in2("dma_in2", ComponentID(id.tile, id.position+1), params.dma2Ports()),
+    out("dma_out", ComponentID(id.tile, id.position+2), params.dma3Ports()),
+    compute("compute", params),
     inputMux("mux", numMulticastInputs) {
 
   control.iClock(iClock);
