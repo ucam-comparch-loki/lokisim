@@ -12,7 +12,6 @@
 #include "../../Utility/Assert.h"
 #include "../../Utility/LokiVector2D.h"
 #include "AdderTree.h"
-#include "Configuration.h"
 #include "Multiplier.h"
 
 template<typename T>
@@ -53,12 +52,12 @@ public:
 
   SC_HAS_PROCESS(ComputeUnit<T>);
 
-  ComputeUnit(sc_module_name name, const Configuration& config) :
+  ComputeUnit(sc_module_name name, const accelerator_parameters_t& params) :
       LokiComponent(name),
       iClock("clock"),
-      in1("in1", config.dma1Ports().width, config.dma1Ports().height),
-      in2("in2", config.dma2Ports().width, config.dma2Ports().height),
-      out("out", config.dma3Ports().width, config.dma3Ports().height),
+      in1("in1", params.dma1Ports().width, params.dma1Ports().height),
+      in2("in2", params.dma2Ports().width, params.dma2Ports().height),
+      out("out", params.dma3Ports().width, params.dma3Ports().height),
       in1Ready("in1Ready"),
       in2Ready("in2Ready"),
       outReady("outReady"),
@@ -69,7 +68,7 @@ public:
     inputTick.initialize(currentTick);
 
     // Use this a lot of times, so create a shorter name.
-    size2d_t PEs = config.peArraySize();
+    size2d_t PEs = params.numPEs;
 
     multipliers.init(PEs.width);
     for (uint col=0; col<PEs.width; col++) {
@@ -81,8 +80,8 @@ public:
 
     // Connect in1.
     for (uint col=0; col<PEs.width; col++) {
-      if (config.broadcastRows()) {
-        loki_assert(config.dma1Ports().width == 1);
+      if (params.broadcastRows) {
+        loki_assert(params.dma1Ports().width == 1);
 
         for (uint row=0; row<PEs.height; row++)
           multipliers[col][row].in1(in1[0][row]);
@@ -95,8 +94,8 @@ public:
 
     // Connect in2.
     for (uint col=0; col<PEs.width; col++) {
-      if (config.broadcastCols()) {
-        loki_assert(config.dma2Ports().height == 1);
+      if (params.broadcastCols) {
+        loki_assert(params.dma2Ports().height == 1);
 
         for (uint row=0; row<PEs.height; row++)
           multipliers[col][row].in2(in2[col][0]);
@@ -109,13 +108,13 @@ public:
 
     // Connect out.
     // Direct connection from each PE.
-    if (!config.accumulateCols() && !config.accumulateRows())
+    if (!params.accumulateCols && !params.accumulateRows)
       for (uint col=0; col<PEs.width; col++)
         for (uint row=0; row<PEs.height; row++)
           multipliers[col][row].out(out[col][row]);
 
     // Adders along columns.
-    if (config.accumulateCols() && !config.accumulateRows()) {
+    if (params.accumulateCols && !params.accumulateRows) {
       for (uint col=0; col<PEs.width; col++) {
         AdderTree<T>* adder =
             new AdderTree<T>(sc_gen_unique_name("adders"), PEs.height, 1, 1);
@@ -132,7 +131,7 @@ public:
     }
 
     // Adders along rows.
-    if (!config.accumulateCols() && config.accumulateRows()) {
+    if (!params.accumulateCols && params.accumulateRows) {
       for (uint row=0; row<PEs.height; row++) {
         AdderTree<T>* adder =
             new AdderTree<T>(sc_gen_unique_name("adders"), PEs.width, 1, 1);
@@ -149,7 +148,7 @@ public:
     }
 
     // Adders along both columns and rows.
-    if (config.accumulateCols() && config.accumulateRows()) {
+    if (params.accumulateCols && params.accumulateRows) {
       for (uint col=0; col<PEs.width; col++) {
         AdderTree<T>* adder =
             new AdderTree<T>(sc_gen_unique_name("adders"), PEs.height, 1, 1);

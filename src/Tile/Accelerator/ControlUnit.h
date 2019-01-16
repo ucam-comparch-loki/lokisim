@@ -10,7 +10,6 @@
 
 #include "../../LokiComponent.h"
 #include "AcceleratorTypes.h"
-#include "Configuration.h"
 #include "ConvolutionAlgorithm.h"
 #include "ParameterReceiver.h"
 
@@ -45,7 +44,7 @@ public:
 
   SC_HAS_PROCESS(ControlUnit);
 
-  ControlUnit(sc_module_name name, const Configuration& config);
+  ControlUnit(sc_module_name name, const accelerator_parameters_t& params);
 
 
 //============================================================================//
