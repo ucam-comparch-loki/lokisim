@@ -86,7 +86,7 @@ AcceleratorTile::AcceleratorTile(const sc_module_name& name,
     ComponentID accID(tile, acc + params.numCores + params.numMemories);
 
     // TODO Get this configuration from somewhere useful.
-    Configuration cfg(4, 4, true, false, true, false, LoopOrders::naive);
+    Configuration cfg(2, 2, false, false, false, false, LoopOrders::naive);
 
     Accelerator* a = new Accelerator(sc_gen_unique_name("acc"), accID, cfg,
                                      params.mcastNetOutputs());

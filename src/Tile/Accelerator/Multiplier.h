@@ -24,10 +24,6 @@ class Multiplier: public LokiComponent {
 
 public:
 
-  // The clock that dictates when to do computation. Some more-advanced PEs may
-  // make more use of its value.
-  sc_in<uint> tick;
-
   sc_in<T> in1, in2;
   sc_out<T> out;
 
@@ -52,7 +48,7 @@ public:
     // TODO implement latency and initiation interval.
 
     SC_METHOD(multiply);
-    sensitive << tick;
+    sensitive << in1 << in2;
     dont_initialize();
 
   }
@@ -68,6 +64,7 @@ private:
     // For some datatypes, may also need to do some normalisation here. And/or
     // provide a higher-precision output.
     out.write(in1.read() * in2.read());
+//    cout << this->name() << " multiplying " << in1.read() << " by " << in2.read() << endl;
   }
 
 };

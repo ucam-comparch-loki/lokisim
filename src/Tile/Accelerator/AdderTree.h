@@ -63,6 +63,7 @@ private:
 
     out.write(sum);
   }
+
 };
 
 #endif /* SRC_TILE_ACCELERATOR_ADDERTREE_H_ */
