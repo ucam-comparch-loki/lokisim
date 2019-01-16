@@ -41,8 +41,9 @@ public:
   // The current tick being executed. This signal also acts as flow control,
   // with any connected components only supplying data when the tick reaches a
   // predetermined value.
-  // TODO: need a separate input and output tick?
-  sc_out<uint> tick;
+  // We have separate signals for inputs and outputs because the computation
+  // may be pipelined, leaving the output a few ticks behind the input.
+  sc_out<uint> inputTick, outputTick;
 
 //============================================================================//
 // Constructors and destructors
@@ -58,11 +59,14 @@ public:
       in1("in1", config.dma1Ports().width, config.dma1Ports().height),
       in2("in2", config.dma2Ports().width, config.dma2Ports().height),
       out("out", config.dma3Ports().width, config.dma3Ports().height),
-      tick("tick") {
+      in1Ready("in1Ready"),
+      in2Ready("in2Ready"),
+      outReady("outReady"),
+      inputTick("inputTick"),
+      outputTick("outputTick") {
 
     currentTick = 0;
-    tickSignal.write(currentTick);
-    tick.initialize(currentTick);
+    inputTick.initialize(currentTick);
 
     // Use this a lot of times, so create a shorter name.
     size2d_t PEs = config.peArraySize();
@@ -72,8 +76,6 @@ public:
       for (uint row=0; row<PEs.height; row++) {
         Multiplier<T>* mul = new Multiplier<T>(sc_gen_unique_name("mul"), 1, 1);
         multipliers[col].push_back(mul);
-
-        mul->tick(tickSignal);
       }
     }
 
@@ -178,6 +180,10 @@ public:
     SC_METHOD(newTick);
     sensitive << iClock.pos();
     // do initialise
+
+    SC_METHOD(newOutputTick);
+    sensitive << outputReadyEvent;
+    dont_initialize();
   }
 
 //============================================================================//
@@ -207,19 +213,26 @@ private:
     else {
       LOKI_LOG << this->name() << ": executing tick " << currentTick << endl;
       triggerCompute();
-
-      // TODO: account for latency. Perhaps put the output tick signal through
-      // the same latency buffers as the data?
     }
 
   }
 
   void triggerCompute() {
     // Need separate signals for external and internal components?
-    tickSignal.write(currentTick);
-    tick.write(currentTick);
+    inputTick.write(currentTick);
+
+    // TODO: account for latency of multipliers and adder trees.
+    // TODO: ensure that this approach works for long latencies, when multiple
+    // notifications can be pending simultaneously.
+    outputReadyEvent.notify(0.1, sc_core::SC_NS);
 
     currentTick++;
+  }
+
+  // Signal that the output for the given tick is available on the `out` ports.
+  void newOutputTick() {
+    // Can't use currentTick because it may have moved on.
+    outputTick.write(outputTick.read() + 1);
   }
 
 //============================================================================//
@@ -232,8 +245,9 @@ private:
   LokiVector<AdderTree<T>> adders;
   LokiVector<sc_signal<T>> signals;
 
-  sc_signal<uint> tickSignal;
   uint currentTick;
+
+  sc_event outputReadyEvent;
 
 };
 

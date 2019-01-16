@@ -40,11 +40,13 @@ Accelerator::Accelerator(sc_module_name name, ComponentID id, Configuration cfg,
   compute.in1Ready(in1Ready); compute.in2Ready(in2Ready);
   compute.outReady(outReady);
   compute.iClock(iClock);
-  compute.tick(tickSig);
+  compute.inputTick(inTickSig);
+  compute.outputTick(outTickSig);
 
-  in1.iTick(tickSig); in1.oDataValid(in1Ready);
-  in2.iTick(tickSig); in2.oDataValid(in2Ready);
-  out.iTick(tickSig); out.oReadyForData(outReady);
+
+  in1.iTick(inTickSig); in1.oDataValid(in1Ready);
+  in2.iTick(inTickSig); in2.oDataValid(in2Ready);
+  out.iTick(outTickSig); out.oReadyForData(outReady);
 
   // Whenever data arrives on any channel, pass it to the control unit. This
   // will break if multiple cores attempt to communicate simultaneously.

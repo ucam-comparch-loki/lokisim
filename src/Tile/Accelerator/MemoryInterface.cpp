@@ -115,6 +115,8 @@ void MemoryInterface::sendRequest() {
   // Instant memory access for now.
   parent()->magicMemoryAccess(request.operation, request.address, returnChannel,
                               request.data);
+//  if (request.operation == LOAD_AND_ADD)
+//    cout << this->name() << " sending " << (int)request.data << " to " << LOKI_HEX(request.address) << endl;
 
   if (!requests.empty())
     next_trigger(sc_core::SC_ZERO_TIME);
