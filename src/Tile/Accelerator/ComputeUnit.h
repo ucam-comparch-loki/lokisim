@@ -11,6 +11,7 @@
 #include "../../LokiComponent.h"
 #include "../../Utility/Assert.h"
 #include "../../Utility/LokiVector2D.h"
+#include "AcceleratorTypes.h"
 #include "AdderTree.h"
 #include "Multiplier.h"
 
@@ -42,7 +43,7 @@ public:
   // predetermined value.
   // We have separate signals for inputs and outputs because the computation
   // may be pipelined, leaving the output a few ticks behind the input.
-  sc_out<uint> inputTick, outputTick;
+  sc_out<tick_t> inputTick, outputTick;
 
 //============================================================================//
 // Constructors and destructors
@@ -244,7 +245,7 @@ private:
   LokiVector<AdderTree<T>> adders;
   LokiVector<sc_signal<T>> signals;
 
-  uint currentTick;
+  tick_t currentTick;
 
   sc_event outputReadyEvent;
 

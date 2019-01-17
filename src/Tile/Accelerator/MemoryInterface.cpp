@@ -113,8 +113,8 @@ void MemoryInterface::sendRequest() {
   ChannelID returnChannel(id, 0);
 
   // Instant memory access for now.
-  parent()->magicMemoryAccess(request.operation, request.address, returnChannel,
-                              request.data);
+  parent().magicMemoryAccess(request.operation, request.address, returnChannel,
+                             request.data);
 //  if (request.operation == LOAD_AND_ADD)
 //    cout << this->name() << " sending " << (int)request.data << " to " << LOKI_HEX(request.address) << endl;
 
@@ -122,6 +122,6 @@ void MemoryInterface::sendRequest() {
     next_trigger(sc_core::SC_ZERO_TIME);
 }
 
-DMA* MemoryInterface::parent() const {
-  return static_cast<DMA*>(this->get_parent_object());
+DMA& MemoryInterface::parent() const {
+  return *(static_cast<DMA*>(this->get_parent_object()));
 }
