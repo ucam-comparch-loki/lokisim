@@ -204,7 +204,7 @@ private:
 
   LokiVector2D<sc_signal<dtype>> toPEs1, toPEs2, fromPEs;
   ReadySignal in1Ready, in2Ready, outReady;
-  sc_signal<uint> inTickSig, outTickSig;
+  sc_signal<tick_t> inTickSig, outTickSig;
 
   // Multiplex down the inputs from each core to a single channel.
   ArbitratedMultiplexer<NetworkData> inputMux;

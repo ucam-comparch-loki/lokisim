@@ -105,7 +105,7 @@ private:
   // Send the next request in the request queue to memory.
   void sendRequest();
 
-  DMA* parent() const;
+  DMA& parent() const;
 
 
 //============================================================================//

@@ -70,9 +70,9 @@ void ControlUnit::executionStep() {
 
 bool ControlUnit::canStartNewStep() const {
   return algorithm.executing() &&
-         parent()->in1.canAcceptCommand() &&
-         parent()->in2.canAcceptCommand() &&
-         parent()->out.canAcceptCommand();
+         parent().in1.canAcceptCommand() &&
+         parent().in2.canAcceptCommand() &&
+         parent().out.canAcceptCommand();
 }
 
 void ControlUnit::parameterSanityCheck(const conv_parameters_t params) {
@@ -84,11 +84,11 @@ void ControlUnit::parameterSanityCheck(const conv_parameters_t params) {
 }
 
 void ControlUnit::updateMemoryMapping(const conv_parameters_t params) {
-  parent()->in1.replaceMemoryMapping(params.input.memoryConfigEncoded);
-  parent()->in2.replaceMemoryMapping(params.filters.memoryConfigEncoded);
-  parent()->out.replaceMemoryMapping(params.output.memoryConfigEncoded);
+  parent().in1.replaceMemoryMapping(params.input.memoryConfigEncoded);
+  parent().in2.replaceMemoryMapping(params.filters.memoryConfigEncoded);
+  parent().out.replaceMemoryMapping(params.output.memoryConfigEncoded);
 }
 
-Accelerator* ControlUnit::parent() const {
-  return static_cast<Accelerator*>(this->get_parent_object());
+Accelerator& ControlUnit::parent() const {
+  return *(static_cast<Accelerator*>(this->get_parent_object()));
 }

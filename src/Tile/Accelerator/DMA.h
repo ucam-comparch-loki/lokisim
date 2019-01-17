@@ -516,7 +516,7 @@ public:
   CommandInput iCommand;
 
   // The current tick being executed.
-  sc_in<uint> iTick;
+  sc_in<tick_t> iTick;
 
 //============================================================================//
 // Constructors and destructors

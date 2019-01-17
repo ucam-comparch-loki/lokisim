@@ -73,7 +73,7 @@ private:
   // Use the received parameters to update the DMA units' memory configuration.
   void updateMemoryMapping(const conv_parameters_t parameters);
 
-  Accelerator* parent() const;
+  Accelerator& parent() const;
 
 
 //============================================================================//
