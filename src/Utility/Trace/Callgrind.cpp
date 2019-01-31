@@ -10,6 +10,9 @@
 #include "../Parameters.h"
 #include "../StringManipulation.h"
 
+#include <fstream>
+#include <sstream>
+
 using std::cout;
 using std::cerr;
 using std::endl;

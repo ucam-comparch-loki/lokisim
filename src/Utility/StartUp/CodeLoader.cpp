@@ -68,6 +68,7 @@ void CodeLoader::loadParameters(const string& settings, chip_parameters_t& param
     }
     catch (std::exception& e) {
       std::cerr << "Error: could not read file " << settings << " while parsing parameters" << endl;
+      std::cerr << e.what() << std::endl;
       continue;
     }
   }
@@ -91,7 +92,7 @@ void CodeLoader::loadCode(const string& settings, Chip& chip) {
   std::ifstream file(settings.c_str());
 
   if (file.fail())
-    std::cerr << "Warning: could not read file " << settings << " while parsing commands" << endl;
+    std::cerr << "Warning: could not open file " << settings << " while parsing commands" << endl;
 
   // Strip away "/loader.txt" to get the directory path.
   unsigned int pos = settings.find(".txt");
@@ -155,6 +156,7 @@ void CodeLoader::loadCode(const string& settings, Chip& chip) {
     }
     catch (std::exception& e) {
       std::cerr << "Error: could not read file " << settings << " while parsing commands" << endl;
+      std::cerr << e.what() << endl;
       continue;
     }
   }

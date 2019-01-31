@@ -14,6 +14,7 @@
 #include "../StringManipulation.h"
 #include "../../Datatype/Instruction.h"
 
+#include <fstream>
 #include <sstream>
 #include <sys/stat.h>
 

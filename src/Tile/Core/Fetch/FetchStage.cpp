@@ -461,7 +461,7 @@ MemoryAddr FetchStage::newPacketArriving(const InstLocation& location) {
   if (pendingPacket.memAddr == DEFAULT_TAG)
     pendingPacket.memAddr = 0;
 
-  newPacketAvailable.notify();
+  newPacketAvailable.notify(sc_core::SC_ZERO_TIME);
   return pendingPacket.memAddr;
 }
 
@@ -482,7 +482,7 @@ void FetchStage::packetFinishedArriving(InstructionSource source) {
   if (!packet->execute)
     packet->reset();
 
-  packetArrivedEvent.notify();
+  packetArrivedEvent.notify(sc_core::SC_ZERO_TIME);
 }
 
 InstructionStore& FetchStage::currentInstructionSource() {

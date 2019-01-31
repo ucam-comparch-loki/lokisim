@@ -9,6 +9,7 @@
 #define SRC_IDENTIFIER_H_
 
 #include <assert.h>
+#include <sstream>
 #include <systemc>
 #include "../Utility/Parameters.h"
 
