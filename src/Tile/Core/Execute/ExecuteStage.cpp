@@ -209,6 +209,12 @@ void ExecuteStage::newInput(DecodedInst& operation) {
     // If the instruction will not be executed, invalidate it so we don't
     // try to forward data from it.
     currentInst.preventForwarding();
+
+    // HACK: if we removed a credit in DecodeStage::waitOnCredits, and now
+    // discover that we aren't going to execute the instruction, add the credit
+    // back again.
+    if (currentInst.sendsOnNetwork())
+      core().channelMapTable.addCredit(currentInst.channelMapEntry(), 1);
   }
 
   // Only instrument operations which executed in this pipeline stage.
