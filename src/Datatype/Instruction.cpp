@@ -362,7 +362,7 @@ int32_t Instruction::decodeImmediate(const string& immed) {
       if(parts[0][i] == '1') mcastAddress |= (1 << shiftAmount);
     }
 
-    value = ChannelID(mcastAddress, channel).flatten();
+    value = ChannelID(mcastAddress, channel).flatten(Encoding::softwareChannelID);
   } else {
     // Invalid format
     LOKI_ERROR << "invalid tuple length: " << immed << endl;

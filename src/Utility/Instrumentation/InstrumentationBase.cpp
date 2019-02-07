@@ -16,7 +16,7 @@ int InstrumentationBase::popcount(uint value) {
 }
 
 int InstrumentationBase::popcount(const NetworkData& value) {
-  return popcount(value.payload().toInt()) + popcount(value.channelID().flatten());
+  return popcount(value.payload().toInt()) + popcount(value.channelID().flatten(Encoding::hardwareChannelID));
 }
 
 int InstrumentationBase::hammingDistance(uint val1, uint val2) {
@@ -26,7 +26,7 @@ int InstrumentationBase::hammingDistance(uint val1, uint val2) {
 int InstrumentationBase::hammingDistance(const NetworkData& val1,
                                          const NetworkData& val2) {
   return hammingDistance(val1.payload().toInt(), val2.payload().toInt()) +
-         hammingDistance(val1.channelID().flatten(), val2.channelID().flatten());
+         hammingDistance(val1.channelID().flatten(Encoding::hardwareChannelID), val2.channelID().flatten(Encoding::hardwareChannelID));
 }
 
 string InstrumentationBase::percentage(count_t value, count_t total) {

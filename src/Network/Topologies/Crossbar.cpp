@@ -42,7 +42,7 @@ void Crossbar::makeSignals() {
 void Crossbar::makeArbiters() {
   for (int i=0; i<numArbiters; i++) {
     ClockedArbiter* arb;
-    arb = new ClockedArbiter(sc_gen_unique_name("arbiter"), i, iData.size(),
+    arb = new ClockedArbiter(sc_gen_unique_name("arbiter"), iData.size(),
                          outputsPerComponent, true, buffersPerComponent);
 
     arb->clock(clock);

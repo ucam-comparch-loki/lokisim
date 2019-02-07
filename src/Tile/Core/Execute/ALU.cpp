@@ -238,7 +238,7 @@ void ALU::systemCall(DecodedInst& dec) const {
 
     case SYS_TILE_ID: {
       LOKI_WARN << "syscall 0x10 (tile ID) is deprecated. Use control register 1 instead." << endl;
-      int tile = this->id.tile.flatten();
+      int tile = this->id.tile.flatten(Encoding::softwareTileID);
       writeReg(result1Reg, tile);
       break;
     }

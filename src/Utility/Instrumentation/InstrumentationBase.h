@@ -28,7 +28,7 @@ namespace std {
   template<>
   struct less<ComponentID> {
     bool operator() (const ComponentID& lhs, const ComponentID& rhs) const {
-      return lhs.flatten() < rhs.flatten();
+      return lhs.flatten(Encoding::hardwareComponentID) < rhs.flatten(Encoding::hardwareComponentID);
     }
   };
 }

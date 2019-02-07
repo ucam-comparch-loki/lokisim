@@ -291,7 +291,7 @@ void ExecuteStage::memoryStorePhase2(DecodedInst& operation) {
 
 void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
   loki_assert_with_message(core().isMemory(inst.networkDestination().component),
-      "Destination = %s", inst.networkDestination().getString().c_str());
+      "Destination = %s", inst.networkDestination().getString(Encoding::hardwareChannelID).c_str());
 
   bool addressFlit;
 

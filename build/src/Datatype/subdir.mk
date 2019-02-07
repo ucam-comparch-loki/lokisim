@@ -5,16 +5,19 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
 ../src/Datatype/DecodedInst.cpp \
+../src/Datatype/Encoding.cpp \
 ../src/Datatype/Flit.cpp \
 ../src/Datatype/Instruction.cpp 
 
 OBJS += \
 ./src/Datatype/DecodedInst.o \
+./src/Datatype/Encoding.o \
 ./src/Datatype/Flit.o \
 ./src/Datatype/Instruction.o 
 
 CPP_DEPS += \
 ./src/Datatype/DecodedInst.d \
+./src/Datatype/Encoding.d \
 ./src/Datatype/Flit.d \
 ./src/Datatype/Instruction.d 
 

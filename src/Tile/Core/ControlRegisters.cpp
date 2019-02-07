@@ -14,7 +14,7 @@ ControlRegisters::ControlRegisters(const sc_module_name& name, ComponentID id) :
     registers(16, 0) {
 
   // Initialise CPU location.
-  registers[CR_CPU_LOCATION] = id.flatten();
+  registers[CR_CPU_LOCATION] = id.flatten(Encoding::softwareComponentID);
 
   SC_METHOD(cycleCounter);
 

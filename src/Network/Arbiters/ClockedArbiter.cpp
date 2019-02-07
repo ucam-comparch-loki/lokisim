@@ -292,9 +292,9 @@ void ClockedArbiter::reportStalls(ostream& os) {
   }
 }
 
-ClockedArbiter::ClockedArbiter(const sc_module_name& name, ComponentID ID,
-                           int inputs, int outputs, bool wormhole, int flowControlSignals) :
-    LokiComponent(name, ID),
+ClockedArbiter::ClockedArbiter(const sc_module_name& name, int inputs,
+                               int outputs, bool wormhole, int flowControlSignals) :
+    LokiComponent(name),
     clock("clock"),
     iRequest("iRequest", inputs),
     oGrant("oGrant", inputs),

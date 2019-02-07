@@ -147,7 +147,7 @@ FileReader* FileReader::makeFileReader(const vector<string>& words,
       foundAsmFile = true;
       reader = NULL;
     } else {
-      reader = new ELFFileReader(elfFile, component, component, 0);
+      reader = new ELFFileReader(elfFile, id, id, 0);
     }
   } else {
     // Assume the dot was just part of the filename/path

@@ -50,7 +50,7 @@ void FlowControlIn::handlePortClaim(NetworkData request) {
   // If the connection isn't already set up, try to set it up.
   else {
     int payload = request.payload().toInt();
-    ComponentID component(payload & 0xFFFF);
+    ComponentID component(payload & 0xFFFF, Encoding::softwareComponentID);
     ChannelIndex channel = (payload >> 16) & 0xFFFF;
     ChannelID source = ChannelID(component, channel);
 
