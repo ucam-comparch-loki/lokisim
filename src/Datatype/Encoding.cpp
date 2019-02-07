@@ -96,7 +96,7 @@ uint max(uint a, uint b) {return (a>b) ? a : b;}
 uint bitsRequired(uint value) {
   uint bits = 1;
 
-  while ((1 << (bits-1)) < value)
+  while ((1UL << (bits-1)) < value)
     bits++;
 
   return bits;

@@ -12,6 +12,7 @@
 #include "../../../Utility/Instrumentation/Registers.h"
 #include "../../../Exceptions/InvalidOptionException.h"
 #include "../../../Exceptions/UnsupportedFeatureException.h"
+#include "../../../Utility/Logging.h"
 #include "../Core.h"
 
 bool ExecuteStage::readPredicate() const {return core().readPredReg();}
