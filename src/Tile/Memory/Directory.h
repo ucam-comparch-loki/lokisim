@@ -38,19 +38,19 @@ private:
     DirectoryEntry() :
         scratchpad(0),
         replaceBits(0),
-        tile(0, Encoding::hardwareTileID) {
+        tile(0, Encoding::softwareTileID) {
       // Nothing
     }
 
     DirectoryEntry(uint flattened) :
         scratchpad((flattened >> 10) & 0x1),
         replaceBits((flattened >> 6) & 0xF),
-        tile((flattened >> 0) & 0x3F, Encoding::hardwareTileID) {
+        tile((flattened >> 0) & 0x3F, Encoding::softwareTileID) {
       // Nothing
     }
 
     uint flatten() {
-      return (scratchpad << 10) | (replaceBits << 6) | (tile.flatten(Encoding::hardwareTileID) << 0);
+      return (scratchpad << 10) | (replaceBits << 6) | (tile.flatten(Encoding::softwareTileID) << 0);
     }
   }  __attribute__((packed));
 
