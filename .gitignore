@@ -1,6 +1,11 @@
 build/lokisim
 build/**/*.d
 build/**/*.o
+<<<<<<< Upstream, based on origin/master
 /.settings/
 /.cproject
 /.project
+=======
+build/**/*.o
+/.settings/
+>>>>>>> 1c3d373 Tidy up merge from master.
