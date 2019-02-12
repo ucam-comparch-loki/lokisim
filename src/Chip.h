@@ -41,8 +41,7 @@ class Chip : public LokiComponent {
 public:
 
   SC_HAS_PROCESS(Chip);
-  Chip(const sc_module_name& name, const ComponentID& ID,
-       const chip_parameters_t& params);
+  Chip(const sc_module_name& name, const chip_parameters_t& params);
 
 //============================================================================//
 // Methods

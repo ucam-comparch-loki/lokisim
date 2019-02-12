@@ -26,9 +26,9 @@ const chip_parameters_t* Debugger::parameters;
 vector<MemoryAddr> Debugger::breakpoints;
 
 unsigned int Debugger::cycleNumber = 0;
-ComponentID Debugger::defaultCore(0);
-ComponentID Debugger::defaultInstMemory(0);
-ComponentID Debugger::defaultDataMemory(0);
+ComponentID Debugger::defaultCore(1, 1, 0);
+ComponentID Debugger::defaultInstMemory(1, 1, 0);
+ComponentID Debugger::defaultDataMemory(1, 1, 0);
 
 unsigned int Debugger::cyclesIdle = 0;
 unsigned int Debugger::maxIdleTime = 10;

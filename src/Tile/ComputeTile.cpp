@@ -25,15 +25,21 @@ bool ComputeTile::isMemory(ComponentID id) const {
 }
 
 uint ComputeTile::componentIndex(ComponentID id) const {
-  return id.position;
+  uint index = id.position;
+  loki_assert(index < numComponents());
+  return index;
 }
 
 uint ComputeTile::coreIndex(ComponentID id) const {
-  return id.position;
+  uint index = id.position;
+  loki_assert(index < numCores());
+  return index;
 }
 
 uint ComputeTile::memoryIndex(ComponentID id) const {
-  return id.position - numCores();
+  uint index = id.position - numCores();
+  loki_assert(index < numMemories());
+  return index;
 }
 
 uint ComputeTile::globalCoreIndex(ComponentID id) const {

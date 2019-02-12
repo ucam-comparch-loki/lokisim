@@ -72,12 +72,12 @@ public:
   {}
 
     explicit loki_in( const in_if_type& interface_ )
-        : base_type( CCAST<in_if_type&>( interface_ ) ), m_traces( 0 ),
+        : base_type( const_cast<in_if_type&>( interface_ ) ), m_traces( 0 ),
     m_change_finder_p(0)
         {}
 
     loki_in( const char* name_, const in_if_type& interface_ )
-  : base_type( name_, CCAST<in_if_type&>( interface_ ) ), m_traces( 0 ),
+  : base_type( name_, const_cast<in_if_type&>( interface_ ) ), m_traces( 0 ),
     m_change_finder_p(0)
   {}
 
@@ -124,10 +124,10 @@ public:
     // bind to in interface
 
     void bind( const in_if_type& interface_ )
-  { sc_port_base::bind( CCAST<in_if_type&>( interface_ ) ); }
+  { sc_port_base::bind( const_cast<in_if_type&>( interface_ ) ); }
 
     void operator () ( const in_if_type& interface_ )
-  { sc_port_base::bind( CCAST<in_if_type&>( interface_ ) ); }
+  { sc_port_base::bind( const_cast<in_if_type&>( interface_ ) ); }
 
 
     // bind to parent in port
@@ -265,7 +265,7 @@ loki_in<T>::end_of_elaboration()
     if( m_traces != 0 ) {
   for( int i = 0; i < (int)m_traces->size(); ++ i ) {
       sc_trace_params* p = (*m_traces)[i];
-      in_if_type* iface = DCAST<in_if_type*>( this->get_interface() );
+      in_if_type* iface = dynamic_cast<in_if_type*>( this->get_interface() );
       sc_trace( p->tf, iface->read(), p->name );
   }
   remove_traces();
@@ -329,12 +329,12 @@ inline
 int
 loki_in<T>::vbind( sc_port_base& parent_ )
 {
-    in_port_type* in_parent = DCAST<in_port_type*>( &parent_ );
+    in_port_type* in_parent = dynamic_cast<in_port_type*>( &parent_ );
     if( in_parent != 0 ) {
   sc_port_base::bind( *in_parent );
   return 0;
     }
-    inout_port_type* inout_parent = DCAST<inout_port_type*>( &parent_ );
+    inout_port_type* inout_parent = dynamic_cast<inout_port_type*>( &parent_ );
     if( inout_parent != 0 ) {
   sc_port_base::bind( *inout_parent );
   return 0;
@@ -384,12 +384,12 @@ public:
   {}
 
     explicit loki_in( const in_if_type& interface_ )
-  : base_type( CCAST<in_if_type&>( interface_ ) ), m_traces( 0 ),
+  : base_type( const_cast<in_if_type&>( interface_ ) ), m_traces( 0 ),
     m_change_finder_p(0), m_neg_finder_p(0), m_pos_finder_p(0)
   {}
 
     loki_in( const char* name_, const in_if_type& interface_ )
-  : base_type( name_, CCAST<in_if_type&>( interface_ ) ), m_traces( 0 ),
+  : base_type( name_, const_cast<in_if_type&>( interface_ ) ), m_traces( 0 ),
     m_change_finder_p(0), m_neg_finder_p(0), m_pos_finder_p(0)
   {}
 
@@ -445,10 +445,10 @@ public:
     // bind to in interface
 
     void bind( const in_if_type& interface_ )
-  { sc_port_base::bind( CCAST<in_if_type&>( interface_ ) ); }
+  { sc_port_base::bind( const_cast<in_if_type&>( interface_ ) ); }
 
     void operator () ( const in_if_type& interface_ )
-  { sc_port_base::bind( CCAST<in_if_type&>( interface_ ) ); }
+  { sc_port_base::bind( const_cast<in_if_type&>( interface_ ) ); }
 
 
     // bind to parent in port
@@ -646,12 +646,12 @@ public:
   {}
 
     explicit loki_in( const in_if_type& interface_ )
-  : base_type( CCAST<in_if_type&>( interface_ ) ), m_traces( 0 ),
+  : base_type( const_cast<in_if_type&>( interface_ ) ), m_traces( 0 ),
     m_change_finder_p(0), m_neg_finder_p(0), m_pos_finder_p(0)
   {}
 
     loki_in( const char* name_, const in_if_type& interface_ )
-  : base_type( name_, CCAST<in_if_type&>( interface_ ) ), m_traces( 0 ),
+  : base_type( name_, const_cast<in_if_type&>( interface_ ) ), m_traces( 0 ),
     m_change_finder_p(0), m_neg_finder_p(0), m_pos_finder_p(0)
   {}
 
@@ -700,10 +700,10 @@ public:
     // bind to in interface
 
     void bind( const in_if_type& interface_ )
-  { sc_port_base::bind( CCAST<in_if_type&>( interface_ ) ); }
+  { sc_port_base::bind( const_cast<in_if_type&>( interface_ ) ); }
 
     void operator () ( const in_if_type& interface_ )
-  { sc_port_base::bind( CCAST<in_if_type&>( interface_ ) ); }
+  { sc_port_base::bind( const_cast<in_if_type&>( interface_ ) ); }
 
 
     // bind to parent in port
@@ -1101,7 +1101,7 @@ inline
 void
 loki_inout<T>::initialize( const data_type& value_ )
 {
-    inout_if_type* iface = DCAST<inout_if_type*>( this->get_interface() );
+    inout_if_type* iface = dynamic_cast<inout_if_type*>( this->get_interface() );
     if( iface != 0 ) {
   iface->write( value_ );
     } else {
@@ -1128,7 +1128,7 @@ loki_inout<T>::end_of_elaboration()
     if( m_traces != 0 ) {
   for( int i = 0; i < (int)m_traces->size(); ++ i ) {
       sc_trace_params* p = (*m_traces)[i];
-      in_if_type* iface = DCAST<in_if_type*>( this->get_interface() );
+      in_if_type* iface = dynamic_cast<in_if_type*>( this->get_interface() );
       sc_trace( p->tf, iface->read(), p->name );
   }
   remove_traces();
@@ -1760,7 +1760,7 @@ sc_trace(sc_trace_file* tf, const loki_in<T>& port, const std::string& name)
     const loki_signal_in_if<T>* iface = 0;
     if (sc_core::sc_get_curr_simcontext()->elaboration_done() )
     {
-  iface = DCAST<const loki_signal_in_if<T>*>( port.get_interface() );
+  iface = dynamic_cast<const loki_signal_in_if<T>*>( port.get_interface() );
     }
 
     if ( iface )
@@ -1778,7 +1778,7 @@ sc_trace( sc_trace_file* tf, const loki_inout<T>& port,
     const loki_signal_in_if<T>* iface = 0;
     if (sc_core::sc_get_curr_simcontext()->elaboration_done() )
     {
-  iface =DCAST<const loki_signal_in_if<T>*>( port.get_interface() );
+  iface = dynamic_cast<const loki_signal_in_if<T>*>( port.get_interface() );
     }
 
     if ( iface )

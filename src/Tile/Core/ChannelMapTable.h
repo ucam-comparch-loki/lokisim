@@ -54,6 +54,11 @@ private:
   // estimate the benefits of clock gating.
   void activeCycle();
 
+  // Perform some checks to ensure that the selected entry contains a valid
+  // channel mapping. This is for debug purposes, so there is an assertion
+  // failure if not.
+  void checkValid(MapIndex entry) const;
+
 //============================================================================//
 // Constructors and destructors
 //============================================================================//

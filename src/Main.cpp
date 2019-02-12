@@ -145,6 +145,7 @@ void initialise(chip_parameters_t& params) {
 
   // Now that we know how many cores, etc, there are, initialise any
   // instrumentation structures.
+  Encoding::initialise(params);
   Instrumentation::initialise(params);
 
   if (ENERGY_TRACE || Arguments::summarise())
@@ -157,7 +158,7 @@ void initialise(chip_parameters_t& params) {
 // Instantiate chip model - changing a parameter after this point has
 // undefined behaviour.
 Chip& createChipModel(const chip_parameters_t& params) {
-  Chip* chip = new Chip("chip", 0, params);
+  Chip* chip = new Chip("chip", params);
   return *chip;
 }
 

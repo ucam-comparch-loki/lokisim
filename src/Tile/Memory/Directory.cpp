@@ -38,7 +38,8 @@ void Directory::setEntry(unsigned int entry, unsigned int data) {
   assert(entry < directory.size());
   directory[entry] = DirectoryEntry(data);
 
-  LOKI_LOG << "Directory updated entry " << entry << " to point to tile " << TileID(data) << endl;
+  LOKI_LOG << "Directory updated entry " << entry << " to point to tile "
+      << TileID(data, Encoding::softwareTileID) << endl;
 }
 
 void Directory::initialise(TileID tile) {

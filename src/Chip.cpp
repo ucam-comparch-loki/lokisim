@@ -327,9 +327,8 @@ void Chip::wireUp() {
 
 }
 
-Chip::Chip(const sc_module_name& name, const ComponentID& ID,
-           const chip_parameters_t& params) :
-    LokiComponent(name, ID),
+Chip::Chip(const sc_module_name& name, const chip_parameters_t& params) :
+    LokiComponent(name),
     memoryControllerPositions(getMemoryControllerPositions(params)),
     mainMemory("main_memory", ComponentID(0,0,0), memoryControllerPositions.size(), params.memory),
     magicMemory("magic_memory", mainMemory),

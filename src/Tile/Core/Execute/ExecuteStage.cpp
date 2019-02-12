@@ -12,6 +12,7 @@
 #include "../../../Utility/Instrumentation/Registers.h"
 #include "../../../Exceptions/InvalidOptionException.h"
 #include "../../../Exceptions/UnsupportedFeatureException.h"
+#include "../../../Utility/Logging.h"
 #include "../Core.h"
 
 bool ExecuteStage::readPredicate() const {return core().readPredReg();}
@@ -209,6 +210,12 @@ void ExecuteStage::newInput(DecodedInst& operation) {
     // If the instruction will not be executed, invalidate it so we don't
     // try to forward data from it.
     currentInst.preventForwarding();
+
+    // HACK: if we removed a credit in DecodeStage::waitOnCredits, and now
+    // discover that we aren't going to execute the instruction, add the credit
+    // back again.
+    if (currentInst.sendsOnNetwork())
+      core().channelMapTable.addCredit(currentInst.channelMapEntry(), 1);
   }
 
   // Only instrument operations which executed in this pipeline stage.
@@ -285,7 +292,7 @@ void ExecuteStage::memoryStorePhase2(DecodedInst& operation) {
 
 void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
   loki_assert_with_message(core().isMemory(inst.networkDestination().component),
-      "Destination = %s", inst.networkDestination().getString().c_str());
+      "Destination = %s", inst.networkDestination().getString(Encoding::hardwareChannelID).c_str());
 
   bool addressFlit;
 

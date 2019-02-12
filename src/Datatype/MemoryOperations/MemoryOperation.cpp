@@ -145,7 +145,7 @@ bool            MemoryOperation::wasCacheMiss()   const {return cacheMiss;}
 
 string MemoryOperation::toString() const {
   std::ostringstream out;
-  out << memoryOpName(metadata.opcode) << " " << LOKI_HEX(address) << " for " << destination.getString();
+  out << memoryOpName(metadata.opcode) << " " << LOKI_HEX(address) << " for " << destination.getString(Encoding::hardwareChannelID);
   return out.str();
 }
 

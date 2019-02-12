@@ -47,8 +47,8 @@ public:
 public:
 
   SC_HAS_PROCESS(ClockedArbiter);
-  ClockedArbiter(const sc_module_name& name, ComponentID ID,
-               int inputs, int outputs, bool wormhole, int flowControlSignals);
+  ClockedArbiter(const sc_module_name& name, int inputs, int outputs,
+                 bool wormhole, int flowControlSignals);
   virtual ~ClockedArbiter();
 
 //============================================================================//

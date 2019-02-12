@@ -158,7 +158,7 @@ public:
       os << static_cast<Instruction>(f.payload());
     else
       os << LOKI_HEX(f.payload());
-    os << " => " << f.channelID().getString() << "] (id:" << f.messageID() << ")";
+    os << " => " << f.channelID().getString(Encoding::hardwareChannelID) << "] (id:" << f.messageID() << ")";
     return os;
   }
 

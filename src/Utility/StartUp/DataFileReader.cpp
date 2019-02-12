@@ -13,6 +13,8 @@
 #include "../../Datatype/Identifier.h"
 #include "../../Datatype/Word.h"
 
+#include <fstream>
+
 vector<DataBlock>& DataFileReader::extractData(int& mainPos) {
   std::ifstream file(filename_.c_str());
   vector<Word>* words = new vector<Word>();

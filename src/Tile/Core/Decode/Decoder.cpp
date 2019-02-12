@@ -71,7 +71,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
 
   // If we know the instruction won't execute, stop it here.
   if (!execute)
-    return true;
+    return false;
 
   // Wait for any unavailable operands to arrive (either over the network, or
   // by being forwarded from the execute stage).

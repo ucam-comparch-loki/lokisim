@@ -5,16 +5,19 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
 ../src/Datatype/DecodedInst.cpp \
+../src/Datatype/Encoding.cpp \
 ../src/Datatype/Flit.cpp \
 ../src/Datatype/Instruction.cpp 
 
 OBJS += \
 ./src/Datatype/DecodedInst.o \
+./src/Datatype/Encoding.o \
 ./src/Datatype/Flit.o \
 ./src/Datatype/Instruction.o 
 
 CPP_DEPS += \
 ./src/Datatype/DecodedInst.d \
+./src/Datatype/Encoding.d \
 ./src/Datatype/Flit.d \
 ./src/Datatype/Instruction.d 
 
@@ -23,7 +26,7 @@ CPP_DEPS += \
 src/Datatype/%.o: ../src/Datatype/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
-	g++ -std=c++0x -I/usr/local/include -O2 -g -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+	g++ -std=c++11 -I$(SYSTEMC_DIR)/include -O2 -g -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
