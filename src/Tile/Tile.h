@@ -66,7 +66,7 @@ public:
 
 public:
 
-  Tile(const sc_module_name& name, const ComponentID& id);
+  Tile(const sc_module_name& name, const TileID id);
   virtual ~Tile();
 
 //============================================================================//
@@ -113,6 +113,14 @@ protected:
 
   // Return a pointer to the chip to which this tile belongs.
   Chip& chip() const;
+
+//============================================================================//
+// Local state
+//============================================================================//
+
+public:
+
+  TileID id;
 
 };
 

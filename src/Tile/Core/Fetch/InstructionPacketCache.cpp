@@ -159,9 +159,8 @@ FetchStage& InstructionPacketCache::parent() const {
 
 /* Constructors and destructors */
 InstructionPacketCache::InstructionPacketCache(sc_module_name name,
-                                               const ComponentID& ID,
                                                const cache_parameters_t& params) :
-    LokiComponent(name, ID),
+    LokiComponent(name),
     oFlowControl("oFlowControl"),
     oDataConsumed("oDataConsumed"),
     addresses(params.size, DEFAULT_TAG) {

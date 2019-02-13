@@ -44,7 +44,7 @@ public:
 
 public:
   SC_HAS_PROCESS(L2RequestFilter);
-  L2RequestFilter(const sc_module_name& name, ComponentID id, MemoryBank& localBank);
+  L2RequestFilter(const sc_module_name& name, MemoryBank& localBank);
   virtual ~L2RequestFilter();
 
 private:

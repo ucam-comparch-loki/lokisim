@@ -88,11 +88,11 @@ void ReceiveChannelEndTable::waitForData(unsigned int bitmask, const DecodedInst
     }
 
     // Since multiple channels are involved, assume data can come from anywhere.
-    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_MEMORY_DATA, inst);
-    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_CORE_DATA, inst);
+    Instrumentation::Stalls::stall(id(), Instrumentation::Stalls::STALL_MEMORY_DATA, inst);
+    Instrumentation::Stalls::stall(id(), Instrumentation::Stalls::STALL_CORE_DATA, inst);
     wait(newData);
-    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_MEMORY_DATA, inst);
-    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_CORE_DATA, inst);
+    Instrumentation::Stalls::unstall(id(), Instrumentation::Stalls::STALL_MEMORY_DATA, inst);
+    Instrumentation::Stalls::unstall(id(), Instrumentation::Stalls::STALL_CORE_DATA, inst);
   }
 }
 
@@ -116,6 +116,10 @@ void ReceiveChannelEndTable::dataConsumedAction(ChannelIndex buffer) {
   oDataConsumed[buffer].write(!oDataConsumed[buffer].read());
 }
 
+ComponentID ReceiveChannelEndTable::id() const {
+  return parent().id();
+}
+
 DecodeStage& ReceiveChannelEndTable::parent() const {
   return static_cast<DecodeStage&>(*(this->get_parent_object()));
 }
@@ -128,10 +132,9 @@ void ReceiveChannelEndTable::reportStalls(ostream& os) {
 }
 
 ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name,
-                                               const ComponentID& ID,
                                                size_t numChannels,
                                                const fifo_parameters_t& fifoParams) :
-    LokiComponent(name, ID),
+    LokiComponent(name),
     BlockingInterface(),
     clock("clock"),
     iData("iData", numChannels),

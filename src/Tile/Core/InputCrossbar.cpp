@@ -25,7 +25,7 @@ void InputCrossbar::newData(PortIndex input) {
   loki_assert(destination < oData.size());
 
   if (dataSource[destination] != INACTIVE)
-    LOKI_WARN << "multiple sources sending simultaneously to " << ChannelID(id, destination) << "; packet dropped." << std::endl;
+    LOKI_WARN << this->name() << " has multiple sources sending simultaneously to channel " << destination << "; packet dropped." << std::endl;
 
   // Trigger a method which will write the data to the appropriate output.
   dataSource[destination] = input;
@@ -63,7 +63,7 @@ void InputCrossbar::updateFlowControl(ChannelIndex input) {
 
 InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID,
                              size_t numInputs, size_t numOutputs) :
-    LokiComponent(name, ID),
+    LokiComponent(name),
     clock("clock"),
     creditClock("creditClock"),
     iData("iData", numInputs),
@@ -72,7 +72,7 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID,
     iFlowControl("iFlowControl", numOutputs),
     iDataConsumed("iDataConsumed", numOutputs),
     oCredit("oCredit", 1),
-    creditNet("credit", ID, numOutputs, 1, 1, Network::NONE, 1),
+    creditNet("credit", numOutputs, 1, 1, Network::NONE, 1),
     constantHigh("constantHigh"),
     dataToBuffer("dataToBuffer", numOutputs),
     creditsToNetwork("creditsToNetwork", numOutputs),
@@ -100,7 +100,7 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID,
 
   // Create and wire up all flow control units.
   for (unsigned int i=0; i<oData.size(); i++) {
-    FlowControlIn* fc = new FlowControlIn(sc_core::sc_gen_unique_name("fc_in"), id, ChannelID(id, i));
+    FlowControlIn* fc = new FlowControlIn(sc_core::sc_gen_unique_name("fc_in"), ChannelID(ID, i));
     flowControl.push_back(fc);
 
     fc->clock(clock);

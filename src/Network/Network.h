@@ -44,7 +44,6 @@ public:
   // moving up? e.g. Credits pass through a CHANNEL network on the way to the
   // local network, but we don't want them to be routed by the channel value yet.
   Network(const sc_module_name& name,
-          const ComponentID& ID,
           int numInputs,        // Number of inputs this network has
           int numOutputs,       // Number of outputs this network has
           HierarchyLevel level, // Position in the network hierarchy
@@ -59,7 +58,7 @@ public:
 protected:
 
   // Compute which output of this network will be used by the given address.
-  PortIndex getDestination(ChannelID address, uint totalOutputs) const;
+  PortIndex getDestination(ChannelID address) const;
 
 //============================================================================//
 // Local state

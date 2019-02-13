@@ -275,7 +275,7 @@ ChannelID Core::RCETInput(const ComponentID& ID, ChannelIndex channel) {
 
 Core::Core(const sc_module_name& name, const ComponentID& ID,
            const core_parameters_t& params, size_t numMulticastInputs) :
-    LokiComponent(name, ID),
+    LokiComponent(name),
     clock("clock"),
     iInstruction("iInstruction"),
     iData("iData"),
@@ -289,16 +289,17 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
     iCredit("iCredit"),
     oReadyCredit("oReadyCredit"),
     fastClock("fastClock"),
+    fetch("fetch", params.ipkFIFO, params.cache),
+    decode("decode", params.numInputChannels-numInstructionChannels, params.inputFIFO),
+    execute("execute", params.scratchpad),
+    write("write", params.outputFIFO),
     inputCrossbar("input_crossbar", ID, numMulticastInputs+3, params.numInputChannels), // cores + insts + data + router
-    regs("regs", ID, params.registerFile),
+    regs("regs", params.registerFile),
     pred("predicate"),
-    fetch("fetch", ID, params.ipkFIFO, params.cache),
-    decode("decode", ID, params.numInputChannels-numInstructionChannels, params.inputFIFO),
-    execute("execute", ID, params.scratchpad),
-    write("write", ID, params.outputFIFO),
-    channelMapTable("channel_map_table", ID, params.channelMapTable, params.numInputChannels),
+    channelMapTable("channel_map_table", params.channelMapTable, params.numInputChannels),
     cregs("cregs", ID),
-    magicMemoryConnection("magic_memory", ID),
+    magicMemoryConnection("magic_memory"),
+    id(ID),
     stageReady("stageReady", 3), // 4 stages => 3 links between stages
     dataToBuffers("dataToBuffers", params.numInputChannels),
     fcFromBuffers("fcFromBuffers", params.numInputChannels),
@@ -327,11 +328,11 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
 
   // Create pipeline registers.
   pipelineRegs.push_back(
-      new PipelineRegister(sc_gen_unique_name("pipe_reg"), id, PipelineRegister::FETCH_DECODE));
+      new PipelineRegister(sc_gen_unique_name("pipe_reg"), PipelineRegister::FETCH_DECODE));
   pipelineRegs.push_back(
-      new PipelineRegister(sc_gen_unique_name("pipe_reg"), id, PipelineRegister::DECODE_EXECUTE));
+      new PipelineRegister(sc_gen_unique_name("pipe_reg"), PipelineRegister::DECODE_EXECUTE));
   pipelineRegs.push_back(
-      new PipelineRegister(sc_gen_unique_name("pipe_reg"), id, PipelineRegister::EXECUTE_WRITE));
+      new PipelineRegister(sc_gen_unique_name("pipe_reg"), PipelineRegister::EXECUTE_WRITE));
 
   // Wire the pipeline stages up.
 

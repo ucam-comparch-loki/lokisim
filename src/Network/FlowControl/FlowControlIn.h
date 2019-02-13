@@ -52,7 +52,7 @@ public:
 public:
 
   SC_HAS_PROCESS(FlowControlIn);
-  FlowControlIn(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged);
+  FlowControlIn(sc_module_name name, const ChannelID& channelManaged);
 
 //============================================================================//
 // Methods

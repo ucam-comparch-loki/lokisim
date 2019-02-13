@@ -51,7 +51,7 @@ public:
 public:
 
   SC_HAS_PROCESS(CoreMulticast);
-  CoreMulticast(const sc_module_name name, ComponentID tile,
+  CoreMulticast(const sc_module_name name,
                 const tile_parameters_t& tileParams);
 
 //============================================================================//

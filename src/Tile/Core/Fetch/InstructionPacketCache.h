@@ -40,8 +40,7 @@ public:
 public:
 
   SC_HAS_PROCESS(InstructionPacketCache);
-  InstructionPacketCache(sc_module_name name, const ComponentID& ID,
-                         const cache_parameters_t& params);
+  InstructionPacketCache(sc_module_name name, const cache_parameters_t& params);
   virtual ~InstructionPacketCache();
 
 //============================================================================//

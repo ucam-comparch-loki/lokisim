@@ -83,17 +83,16 @@ void Crossbar::reportStalls(ostream& os) {
   for (unsigned int component=0; component<iReady.size(); component++)
     for (unsigned int buffer=0; buffer<iReady[component].size(); buffer++)
       if (!iReady[component][buffer])
-        os << this->name() << " unable to send to " << ChannelID(id.tile.x, id.tile.y, component, buffer) << endl;
+        os << this->name() << " unable to send to component " << component << ", channel " << buffer << endl;
 }
 
 Crossbar::Crossbar(const sc_module_name& name,
-                   const ComponentID& ID,
                    int inputs,
                    int outputs,
                    int outputsPerComponent,
                    HierarchyLevel level,
                    int buffersPerComponent) :
-    Network(name, ID, inputs, outputs, level),
+    Network(name, inputs, outputs, level),
     numArbiters(outputs/outputsPerComponent),
     numMuxes(outputs),
     outputsPerComponent(outputsPerComponent),

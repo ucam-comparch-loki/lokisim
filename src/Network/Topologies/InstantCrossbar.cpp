@@ -13,9 +13,15 @@
 
 using sc_core::sc_module_name;
 
+PortIndex InstantCrossbar::getDestination(ChannelID address) const {
+  // This network is deprecated and is currently only used in one place.
+  loki_assert(level == NONE);
+  return address.channel - firstOutput;
+}
+
 void InstantCrossbar::mainLoop(PortIndex port) {
   NetworkData data = iData[port].read();
-  PortIndex output = getDestination(data.channelID(), oData.size());
+  PortIndex output = getDestination(data.channelID());
 
   loki_assert_with_message(output < oData.size(),
       "Outputs = %d, requested port = %d", oData.size(), output);
@@ -49,16 +55,15 @@ void InstantCrossbar::mainLoop(PortIndex port) {
 }
 
 InstantCrossbar::InstantCrossbar(const sc_module_name& name,
-                                 const ComponentID& ID,
                                  int inputs,
                                  int outputs,
                                  int outputsPerComponent,
                                  HierarchyLevel level,
                                  int buffersPerComponent) :
-    Network(name, ID, inputs, outputs, level),
+    Network(name, inputs, outputs, level),
     iData("iData", inputs),
     oData("oData", outputs),
-    crossbar("internal", ID, inputs, outputs, outputsPerComponent, level, buffersPerComponent),
+    crossbar("internal", inputs, outputs, outputsPerComponent, level, buffersPerComponent),
     state(inputs, IDLE) {
 
   // Create ports and signals.
@@ -82,9 +87,5 @@ InstantCrossbar::InstantCrossbar(const sc_module_name& name,
   for (uint i=0; i<iData.size(); i++)
     SPAWN_METHOD(iData[i], InstantCrossbar::mainLoop, i, false);
 
-}
-
-InstantCrossbar::~InstantCrossbar() {
-  // Do nothing
 }
 

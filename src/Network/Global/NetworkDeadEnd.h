@@ -35,12 +35,13 @@ public:
 public:
 
   SC_HAS_PROCESS(NetworkDeadEnd);
-  NetworkDeadEnd(const sc_module_name& name, ComponentID id, Direction direction) :
-      LokiComponent(name, id),
+  NetworkDeadEnd(const sc_module_name& name, TileID id, Direction direction) :
+      LokiComponent(name),
       iData("iData"),
       oData("oData"),
       iReady("iReady"),
       oReady("oReady"),
+      id(id),
       direction(direction) {
 
     // Allow data to be sent here so we can catch the error, rather than stall
@@ -62,7 +63,7 @@ private:
   void dataArrived() {
     static const string directions[5] = {"north", "east", "south", "west", "local"};
 
-    LOKI_WARN << "Trying to send " << directions[direction] << " from tile " << id.tile << endl;
+    LOKI_WARN << "Trying to send " << directions[direction] << " from tile " << id << endl;
     LOKI_WARN << "  Data: " << iData.read() << endl;
   }
 
@@ -71,6 +72,8 @@ private:
 //============================================================================//
 
 private:
+
+  const TileID id;
 
   // The direction data is being sent to arrive at this dead end.
   const Direction direction;

@@ -237,7 +237,7 @@ void Chip::makeComponents(const chip_parameters_t& params) {
   for (uint col = 0; col < params.allTiles().width; col++) {
 
     for (uint row = 0; row < params.allTiles().height; row++) {
-      ComponentID tileID(col, row, 0);
+      TileID tileID(col, row);
       std::stringstream name;
       name << "tile_" << col << "_" << row;
 
@@ -326,7 +326,7 @@ void Chip::wireUp() {
 Chip::Chip(const sc_module_name& name, const chip_parameters_t& params) :
     LokiComponent(name),
     memoryControllerPositions(getMemoryControllerPositions(params)),
-    mainMemory("main_memory", ComponentID(0,0,0), memoryControllerPositions.size(), params.memory),
+    mainMemory("main_memory", memoryControllerPositions.size(), params.memory),
     magicMemory("magic_memory", mainMemory),
     dataNet("data_net", params.allTiles(), params.router),
     creditNet("credit_net", params.allTiles(), params.router),

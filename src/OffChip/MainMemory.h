@@ -39,7 +39,7 @@ public:
 
 public:
 
-  MainMemory(sc_module_name name, ComponentID ID, uint controllers,
+  MainMemory(sc_module_name name, uint controllers,
              const main_memory_parameters_t& params);
 
 //============================================================================//

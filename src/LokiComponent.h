@@ -1,8 +1,7 @@
 /*
  * LokiComponent.h
  *
- * The base class for all modules of the Loki chip. Allows provision of functions
- * such as area() and print() which can then be used by all components.
+ * The base class for all modules of the Loki chip.
  *
  *  Created on: 5 Jan 2010
  *      Author: db434
@@ -37,23 +36,12 @@ using std::vector;
 SC_MODULE (LokiComponent) {
 
 //============================================================================//
-// Local state
-//============================================================================//
-
-public:
-
-  // Consider giving only cores, memories, etc. IDs, and instead give all
-  // subcomponents references to their root components.
-  const ComponentID id;
-
-//============================================================================//
 // Constructors and destructors
 //============================================================================//
 
 public:
 
   LokiComponent(const sc_module_name& name);
-  LokiComponent(const sc_module_name& name, const ComponentID& ID);
 
   // DO NOT MAKE A COPY CONSTRUCTOR. SYSTEMC MODULES SHOULD NOT BE COPIED.
 

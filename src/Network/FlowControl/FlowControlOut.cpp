@@ -80,9 +80,10 @@ void FlowControlOut::receivedCredit() {
   loki_assert_with_message(creditCount <= maxCredits, "Credits = %d", creditCount);
 }
 
-FlowControlOut::FlowControlOut(sc_module_name name, const ComponentID& ID,
-                               const ChannelID& channelManaged, size_t maxCredits) :
-    LokiComponent(name, ID),
+FlowControlOut::FlowControlOut(sc_module_name name,
+                               const ChannelID& channelManaged,
+                               size_t maxCredits) :
+    LokiComponent(name),
     iData("iData"),
     iCredit("iCredit"),
     oData("oData"),

@@ -253,7 +253,7 @@ void ExecuteStage::sendOutput() {
       // Send the data to the output buffer - it will arrive immediately so that
       // network resources can be requested the cycle before they are used.
       loki_assert(!oData.valid());
-      oData.write(currentInst.toNetworkData(id.tile));
+      oData.write(currentInst.toNetworkData(id().tile));
     }
   }
 
@@ -397,14 +397,14 @@ void ExecuteStage::reportStalls(ostream& os) {
   }
 }
 
-ExecuteStage::ExecuteStage(const sc_module_name& name, const ComponentID& ID,
+ExecuteStage::ExecuteStage(const sc_module_name& name,
                            const scratchpad_parameters_t& spadParams) :
-    PipelineStage(name, ID),
+    PipelineStage(name),
     oReady("oReady"),
     oData("oData"),
     iReady("iReady"),
-    alu("alu", ID),
-    scratchpad("scratchpad", ID, spadParams) {
+    alu("alu"),
+    scratchpad("scratchpad", spadParams) {
 
   forwardedResult = 0;
   previousInstExecuted = false;

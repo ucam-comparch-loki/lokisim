@@ -37,8 +37,8 @@ public:
 public:
 
   SC_HAS_PROCESS(MainMemoryRequestHandler);
-  MainMemoryRequestHandler(sc_module_name name, ComponentID ID,
-      MainMemory& memory, const main_memory_parameters_t& params);
+  MainMemoryRequestHandler(sc_module_name name, MainMemory& memory,
+                           const main_memory_parameters_t& params);
   virtual ~MainMemoryRequestHandler();
 
 //============================================================================//

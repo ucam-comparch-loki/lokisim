@@ -20,6 +20,10 @@ void PipelineStage::initPipeline(PipelineRegister* prev, PipelineRegister* next)
   this->next = next;
 }
 
+const ComponentID& PipelineStage::id() const {
+  return core().id;
+}
+
 Core& PipelineStage::core() const {
   return static_cast<Core&>(*(this->get_parent_object()));
 }
@@ -95,8 +99,8 @@ bool PipelineStage::discardNextInst() {
     return prev->discard();
 }
 
-PipelineStage::PipelineStage(const sc_module_name& name, const ComponentID& ID) :
-    LokiComponent(name, ID),
+PipelineStage::PipelineStage(const sc_module_name& name) :
+    LokiComponent(name),
     clock("clock") {
 
   // These are initialised by a separate call to initPipeline.

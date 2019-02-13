@@ -7,7 +7,7 @@
 
 #include "EmptyTile.h"
 
-EmptyTile::EmptyTile(const sc_module_name& name, const ComponentID& id) :
+EmptyTile::EmptyTile(const sc_module_name& name, const TileID& id) :
     Tile(name, id),
     dataDeadEnd("data", id, LOCAL),
     creditDeadEnd("credit", id, LOCAL),

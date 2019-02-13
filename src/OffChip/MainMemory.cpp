@@ -20,9 +20,9 @@ using std::hex;
 using std::setfill;
 using std::setprecision;
 
-MainMemory::MainMemory(sc_module_name name, ComponentID ID, uint controllers,
+MainMemory::MainMemory(sc_module_name name, uint controllers,
                        const main_memory_parameters_t& params) :
-    MemoryBase(name, ID, params.log2CacheLineSize()),
+    MemoryBase(name, ComponentID(0,0,0), params.log2CacheLineSize()),
     iClock("iClock"),
     iData("iData", controllers),
     oData("oData", controllers),
@@ -33,7 +33,7 @@ MainMemory::MainMemory(sc_module_name name, ComponentID ID, uint controllers,
 
   for (uint i=0; i<controllers; i++) {
     MainMemoryRequestHandler* handler =
-        new MainMemoryRequestHandler(sc_gen_unique_name("handler"), ID, *this, params);
+        new MainMemoryRequestHandler(sc_gen_unique_name("handler"), *this, params);
 
     handler->iClock(iClock);
     handler->iData(iData[i]);

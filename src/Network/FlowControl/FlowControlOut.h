@@ -54,8 +54,8 @@ public:
 public:
 
   SC_HAS_PROCESS(FlowControlOut);
-  FlowControlOut(sc_module_name name, const ComponentID& ID,
-                 const ChannelID& channelManaged, size_t maxCredits);
+  FlowControlOut(sc_module_name name, const ChannelID& channelManaged,
+                 size_t maxCredits);
 
 //============================================================================//
 // Methods

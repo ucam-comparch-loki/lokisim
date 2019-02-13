@@ -83,6 +83,7 @@ private:
 
   LokiVector<FlowControlIn> flowControl;
 
+  // TODO: Should this be more of an ArbitratedMultiplexer?
   InstantCrossbar          creditNet;
 
   ReadySignal              constantHigh;

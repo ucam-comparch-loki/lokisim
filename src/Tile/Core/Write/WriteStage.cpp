@@ -42,9 +42,9 @@ void WriteStage::updateReady() {
     oReady.write(ready);
 
     if (ready)
-      Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT, currentInst);
+      Instrumentation::Stalls::unstall(id(), Instrumentation::Stalls::STALL_OUTPUT, currentInst);
     else
-      Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT, currentInst);
+      Instrumentation::Stalls::stall(id(), Instrumentation::Stalls::STALL_OUTPUT, currentInst);
 
     if (!ready)
       LOKI_LOG << this->name() << " stalled." << endl;
@@ -67,9 +67,9 @@ bool WriteStage::requestGranted(ChannelID destination) const {
   return core().requestGranted(destination);
 }
 
-WriteStage::WriteStage(sc_module_name name, const ComponentID& ID,
+WriteStage::WriteStage(sc_module_name name,
                        const fifo_parameters_t& fifoParams) :
-    PipelineStage(name, ID),
+    PipelineStage(name),
     iFetch("iFetch"),
     iData("iData"),
     oReady("oReady"),
@@ -77,7 +77,7 @@ WriteStage::WriteStage(sc_module_name name, const ComponentID& ID,
     oDataMemory("oDataMemory"),
     oDataGlobal("oDataGlobal"),
     iCredit("iCredit"),
-    scet("scet", ID, fifoParams, &(core().channelMapTable)) {
+    scet("scet", fifoParams, &(core().channelMapTable)) {
 
   // Connect the SCET to the network.
   scet.clock(clock);

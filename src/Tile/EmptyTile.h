@@ -57,7 +57,7 @@ public:
 
 public:
 
-  EmptyTile(const sc_module_name& name, const ComponentID& id);
+  EmptyTile(const sc_module_name& name, const TileID& id);
   virtual ~EmptyTile();
 
 //============================================================================//

@@ -111,11 +111,11 @@ Direction Router::routeTo(ChannelID destination) const {
   unsigned int yDest = destination.component.tile.y;
 
   // XY routing: change x until we are in the right column, then change y.
-  if (xDest > xPos)      return EAST;
-  else if (xDest < xPos) return WEST;
-  else if (yDest > yPos) return SOUTH;
-  else if (yDest < yPos) return NORTH;
-  else                   return LOCAL;
+  if (xDest > position.x)      return EAST;
+  else if (xDest < position.x) return WEST;
+  else if (yDest > position.y) return SOUTH;
+  else if (yDest < position.y) return NORTH;
+  else                         return LOCAL;
 }
 
 void Router::reportStalls(ostream& os) {
@@ -134,9 +134,9 @@ void Router::reportStalls(ostream& os) {
   }
 }
 
-Router::Router(const sc_module_name& name, const ComponentID& ID,
+Router::Router(const sc_module_name& name, const TileID& ID,
                const router_parameters_t& params) :
-    LokiComponent(name, ID),
+    LokiComponent(name),
     BlockingInterface(),
     clock("clock"),
     iData("iData", 5),
@@ -144,8 +144,7 @@ Router::Router(const sc_module_name& name, const ComponentID& ID,
     oData("oData", 5),
     iReady("iReady", 5),
     inputBuffers(string(this->name()) + ".input_data", 5, params.fifo.size),
-    xPos(ID.tile.x),
-    yPos(ID.tile.y),
+    position(ID),
     outputAvailable("outputAvailableEvent", 5) {
 
   state = WAITING_FOR_DATA;

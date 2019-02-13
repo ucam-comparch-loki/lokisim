@@ -66,16 +66,12 @@ void MulticastBus::ackArrived(PortIndex port) {
     }
 }
 
-MulticastBus::MulticastBus(const sc_module_name& name, const ComponentID& ID, int numOutputs,
+MulticastBus::MulticastBus(const sc_module_name& name, int numOutputs,
                            HierarchyLevel level, int firstOutput) :
-    Bus(name, ID, numOutputs, level, firstOutput) {
+    Bus(name, numOutputs, level, firstOutput) {
 
   // Generate a method for each output port, to wait for acknowledgements and
   // notify the main process when all have been received.
   for (int i=0; i<numOutputs; i++)
     SPAWN_METHOD(oData[i].ack_finder(), MulticastBus::ackArrived, i, false);
-}
-
-MulticastBus::~MulticastBus() {
-  // Nothing
 }

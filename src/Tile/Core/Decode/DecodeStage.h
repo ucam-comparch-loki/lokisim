@@ -58,7 +58,7 @@ public:
 public:
 
   SC_HAS_PROCESS(DecodeStage);
-  DecodeStage(sc_module_name name, const ComponentID& ID, size_t numChannels,
+  DecodeStage(sc_module_name name, size_t numChannels,
               const fifo_parameters_t& fifoParams);
 
 //============================================================================//

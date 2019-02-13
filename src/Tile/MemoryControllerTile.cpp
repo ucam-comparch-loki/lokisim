@@ -9,7 +9,7 @@
 #include "../Utility/Assert.h"
 #include "../Utility/Instrumentation/Network.h"
 
-MemoryControllerTile::MemoryControllerTile(const sc_module_name& name, const ComponentID& id) :
+MemoryControllerTile::MemoryControllerTile(const sc_module_name& name, const TileID id) :
     Tile(name, id),
     oRequestToMainMemory("oRequestToMainMemory"),
     iResponseFromMainMemory("iResponseFromMainMemory"),

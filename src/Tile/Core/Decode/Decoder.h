@@ -107,7 +107,7 @@ private:
 
 public:
 
-  Decoder(const sc_module_name& name, const ComponentID& id);
+  Decoder(const sc_module_name& name);
 
 //============================================================================//
 // Local state

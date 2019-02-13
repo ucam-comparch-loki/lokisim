@@ -32,9 +32,8 @@ public:
 public:
 
   SC_HAS_PROCESS(MulticastBus);
-  MulticastBus(const sc_module_name& name, const ComponentID& ID, int numOutputs,
+  MulticastBus(const sc_module_name& name, int numOutputs,
                HierarchyLevel level, int firstOutput=0);
-  virtual ~MulticastBus();
 
 //============================================================================//
 // Methods

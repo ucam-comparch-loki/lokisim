@@ -49,19 +49,20 @@ public:
   // buffersPerComponent = the number of buffers each destination component has.
   //                       There will be one flow control signal per buffer.
   InstantCrossbar(const sc_module_name& name,
-                  const ComponentID& ID,
                   int inputs,
                   int outputs,
                   int outputsPerComponent,
                   HierarchyLevel level,
                   int buffersPerComponent);
-  virtual ~InstantCrossbar();
 
 //============================================================================//
 // Methods
 //============================================================================//
 
 protected:
+
+  // Compute which output of this network will be used by the given address.
+  PortIndex getDestination(ChannelID address) const;
 
   // Issue arbitration requests whenever data arrives, and send
   // acknowledgements when the data has cleared the crossbar.

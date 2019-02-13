@@ -72,7 +72,7 @@ public:
 
 public:
 
-  ComputeTile(const sc_module_name& name, const ComponentID& id,
+  ComputeTile(const sc_module_name& name, const TileID& id,
               const tile_parameters_t& params);
 
 //============================================================================//

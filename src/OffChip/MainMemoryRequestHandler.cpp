@@ -13,8 +13,8 @@
 #include "../Utility/Instrumentation/Network.h"
 
 MainMemoryRequestHandler::MainMemoryRequestHandler(sc_module_name name,
-    ComponentID ID, MainMemory& memory, const main_memory_parameters_t& params) :
-    MemoryBase(name, ID, memory.log2CacheLineSize),
+    MainMemory& memory, const main_memory_parameters_t& params) :
+    MemoryBase(name, memory.id, memory.log2CacheLineSize),
     iClock("iClock"),
     iData("iData"),
     oData("oData"),

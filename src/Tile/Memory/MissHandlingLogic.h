@@ -21,6 +21,7 @@
 #include "../../Utility/LokiVector.h"
 
 class Chip;
+class ComputeTile;
 
 class MissHandlingLogic: public LokiComponent {
 
@@ -96,7 +97,7 @@ public:
 public:
 
   SC_HAS_PROCESS(MissHandlingLogic);
-  MissHandlingLogic(const sc_module_name& name, ComponentID id,
+  MissHandlingLogic(const sc_module_name& name,
                     const tile_parameters_t& params);
 
 //============================================================================//
@@ -150,6 +151,9 @@ private:
 
   // The network address of the memory controller.
   TileID nearestMemoryController() const;
+
+  // A reference to the parent tile.
+  ComputeTile& tile() const;
 
   // A reference to the parent chip.
   Chip& chip() const;

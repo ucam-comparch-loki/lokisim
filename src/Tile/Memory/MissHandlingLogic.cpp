@@ -11,9 +11,9 @@
 #include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/Network.h"
 
-MissHandlingLogic::MissHandlingLogic(const sc_module_name& name, ComponentID id,
+MissHandlingLogic::MissHandlingLogic(const sc_module_name& name,
                                      const tile_parameters_t& params) :
-    LokiComponent(name, id),
+    LokiComponent(name),
     clock("clock"),
     oRequestToNetwork("oRequestToNetwork"),
     iResponseFromNetwork("iResponseFromNetwork"),
@@ -385,9 +385,13 @@ const sc_event& MissHandlingLogic::newNetworkDataEvent() const {
 }
 
 TileID MissHandlingLogic::nearestMemoryController() const {
-  return chip().nearestMemoryController(id.tile);
+  return chip().nearestMemoryController(tile().id);
+}
+
+ComputeTile& MissHandlingLogic::tile() const {
+  return *static_cast<ComputeTile*>(this->get_parent_object());
 }
 
 Chip& MissHandlingLogic::chip() const {
-  return static_cast<ComputeTile*>(this->get_parent_object())->chip();
+  return tile().chip();
 }

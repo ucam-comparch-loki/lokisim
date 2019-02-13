@@ -25,8 +25,9 @@ class MemoryBase : public LokiComponent {
 
 public:
 
-  MemoryBase(sc_module_name name, ComponentID ID, size_t log2CacheLineSize) :
-    LokiComponent(name, ID),
+  MemoryBase(sc_module_name name, ComponentID id, size_t log2CacheLineSize) :
+    LokiComponent(name),
+    id(id),
     log2CacheLineSize(log2CacheLineSize) {
 
   }
@@ -199,6 +200,10 @@ public:
   size_t cacheLineWords() const {
     return cacheLineBytes() / BYTES_PER_WORD;
   }
+
+public:
+
+  const ComponentID id;
 
 protected:
 

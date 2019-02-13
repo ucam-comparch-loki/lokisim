@@ -53,8 +53,7 @@ public:
 public:
 
   SC_HAS_PROCESS(WriteStage);
-  WriteStage(sc_module_name name, const ComponentID& ID,
-             const fifo_parameters_t& fifoParams);
+  WriteStage(sc_module_name name, const fifo_parameters_t& fifoParams);
 
 //============================================================================//
 // Methods

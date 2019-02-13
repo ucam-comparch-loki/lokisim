@@ -42,14 +42,17 @@ public:
 
   SC_HAS_PROCESS(Bus);
 
-  Bus(const sc_module_name& name, const ComponentID& ID, int numOutputPorts,
-      HierarchyLevel level, int firstOutput=0);
+  Bus(const sc_module_name& name, int numOutputPorts, HierarchyLevel level,
+      int firstOutput=0);
 
 //============================================================================//
 // Methods
 //============================================================================//
 
 protected:
+
+  // Compute which output of this network will be used by the given address.
+  PortIndex getDestination(ChannelID address) const;
 
   // Main loop responsible for sending and receiving data, and dealing with
   // acknowledgements.

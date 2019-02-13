@@ -45,7 +45,6 @@ public:
 public:
 
   PipelineRegister(const sc_module_name& name,
-                   const ComponentID ID,
                    const PipelinePosition pos);
 
 //============================================================================//

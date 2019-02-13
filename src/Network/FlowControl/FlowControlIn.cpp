@@ -26,7 +26,7 @@ void FlowControlIn::dataLoop() {
       handlePortClaim(data);
     else {
       oData.write(data.payload());
-      Instrumentation::Latency::coreReceivedResult(id, data);
+      Instrumentation::Latency::coreReceivedResult(sinkChannel.component, data);
     }
 
     iData.ack();
@@ -181,8 +181,8 @@ void FlowControlIn::sendCredit() {
   toSend = NetworkCredit();
 }
 
-FlowControlIn::FlowControlIn(sc_module_name name, const ComponentID& ID, const ChannelID& channelManaged) :
-    LokiComponent(name, ID),
+FlowControlIn::FlowControlIn(sc_module_name name, const ChannelID& channelManaged) :
+    LokiComponent(name),
     clock("clock"),
     iData("iData"),
     oData("oData"),

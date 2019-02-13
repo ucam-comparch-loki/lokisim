@@ -60,7 +60,7 @@ public:
 public:
 
   SC_HAS_PROCESS(MemoryControllerTile);
-  MemoryControllerTile(const sc_module_name& name, const ComponentID& id);
+  MemoryControllerTile(const sc_module_name& name, const TileID id);
   virtual ~MemoryControllerTile();
 
 //============================================================================//

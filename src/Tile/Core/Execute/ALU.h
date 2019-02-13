@@ -26,7 +26,7 @@ class ALU: public LokiComponent {
 
 public:
 
-  ALU(const sc_module_name& name, const ComponentID& ID);
+  ALU(const sc_module_name& name);
 
 //============================================================================//
 // Methods

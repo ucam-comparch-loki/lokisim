@@ -10,8 +10,8 @@
 #include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/Latency.h"
 
-L2RequestFilter::L2RequestFilter(const sc_module_name& name, ComponentID id, MemoryBank& localBank) :
-    LokiComponent(name, id),
+L2RequestFilter::L2RequestFilter(const sc_module_name& name, MemoryBank& localBank) :
+    LokiComponent(name),
     iClock("iClock"),
     iRequest("iRequest"),
     iRequestTarget("iRequestTarget"),
@@ -77,7 +77,7 @@ void L2RequestFilter::mainLoop() {
           forwardToMemoryBank(iRequest.read());
           state = STATE_ACKNOWLEDGE;
 
-          Instrumentation::Latency::memoryReceivedRequest(id, iRequest.read());
+          Instrumentation::Latency::memoryReceivedRequest(localBank.id, iRequest.read());
         }
         else if (targetingThisBank) {
           // Wait a clock cycle in case anyone else claims.

@@ -41,7 +41,7 @@ public:
 //============================================================================//
 
 public:
-  DataReturn(const sc_module_name name, ComponentID tile,
+  DataReturn(const sc_module_name name,
              const tile_parameters_t& params);
   virtual ~DataReturn();
 };

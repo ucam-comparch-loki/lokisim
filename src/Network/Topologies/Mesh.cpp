@@ -14,9 +14,9 @@ void Mesh::makeRouters(size2d_t tiles, const router_parameters_t& params) {
 
   for (unsigned int row=0; row<tiles.height; row++) {
     for (unsigned int col=0; col<tiles.width; col++) {
-      ComponentID routerID(col, row, 0);
+      TileID routerID(col, row);
       std::stringstream name;
-      name << "router_" << routerID.tile.getNameString();
+      name << "router_" << routerID.getNameString();
       routers[col].push_back(new Router(name.str().c_str(), routerID, params));
     }
   }
@@ -77,7 +77,7 @@ void Mesh::wireUp(size2d_t tiles) {
   // information if any data is sent on them.
   for (uint row=0; row<tiles.height; row++) {
     NetworkDeadEnd<NetworkData>* westEdge =
-        new NetworkDeadEnd<NetworkData>(sc_gen_unique_name("west_edge"), ComponentID(0, row, 0), WEST);
+        new NetworkDeadEnd<NetworkData>(sc_gen_unique_name("west_edge"), TileID(0, row), WEST);
     westEdge->iData(dataSigEW[0][row]);
     westEdge->oData(dataSigWE[0][row]);
     westEdge->iReady(readySigEW[0][row]);
@@ -85,7 +85,7 @@ void Mesh::wireUp(size2d_t tiles) {
     edges.push_back(westEdge);
 
     NetworkDeadEnd<NetworkData>* eastEdge =
-        new NetworkDeadEnd<NetworkData>(sc_gen_unique_name("east_edge"), ComponentID(tiles.width-1, row, 0), EAST);
+        new NetworkDeadEnd<NetworkData>(sc_gen_unique_name("east_edge"), TileID(tiles.width-1, row), EAST);
     eastEdge->iData(dataSigWE[tiles.width][row]);
     eastEdge->oData(dataSigEW[tiles.width][row]);
     eastEdge->iReady(readySigWE[tiles.width][row]);
@@ -95,7 +95,7 @@ void Mesh::wireUp(size2d_t tiles) {
 
   for (uint col=0; col<tiles.width; col++) {
     NetworkDeadEnd<NetworkData>* northEdge =
-        new NetworkDeadEnd<NetworkData>(sc_gen_unique_name("north_edge"), ComponentID(col, 0, 0), NORTH);
+        new NetworkDeadEnd<NetworkData>(sc_gen_unique_name("north_edge"), TileID(col, 0), NORTH);
     northEdge->iData(dataSigSN[col][0]);
     northEdge->oData(dataSigNS[col][0]);
     northEdge->iReady(readySigSN[col][0]);
@@ -103,7 +103,7 @@ void Mesh::wireUp(size2d_t tiles) {
     edges.push_back(northEdge);
 
     NetworkDeadEnd<NetworkData>* southEdge =
-        new NetworkDeadEnd<NetworkData>(sc_gen_unique_name("south_edge"), ComponentID(col, tiles.height-1, 0), SOUTH);
+        new NetworkDeadEnd<NetworkData>(sc_gen_unique_name("south_edge"), TileID(col, tiles.height-1), SOUTH);
     southEdge->iData(dataSigNS[col][tiles.height]);
     southEdge->oData(dataSigSN[col][tiles.height]);
     southEdge->iReady(readySigNS[col][tiles.height]);
@@ -113,11 +113,10 @@ void Mesh::wireUp(size2d_t tiles) {
 }
 
 Mesh::Mesh(const sc_module_name& name,
-           ComponentID ID,
            size2d_t size,
            HierarchyLevel level,
            const router_parameters_t& routerParams) :
-    Network(name, ID, size.total(), size.total(), level),
+    Network(name, size.total(), size.total(), level),
     iData("iData", size.width, size.height),
     oData("oData", size.width, size.height),
     oReady("oReady", size.width, size.height),

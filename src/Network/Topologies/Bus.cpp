@@ -9,6 +9,12 @@
 #include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation.h"
 
+PortIndex Bus::getDestination(ChannelID address) const {
+  // Buses always use the component field to determine the destination.
+  loki_assert(level == COMPONENT);
+  return address.component.position - firstOutput;
+}
+
 void Bus::busLoop() {
   switch(state) {
     case WAITING_FOR_DATA : {
@@ -25,7 +31,7 @@ void Bus::busLoop() {
         // There definitely is data: send it.
         NetworkData data = iData.read();
 
-        outputUsed = getDestination(data.channelID(), oData.size());
+        outputUsed = getDestination(data.channelID());
 
         loki_assert_with_message(outputUsed < oData.size(),
             "Outputs = %d, output used = %d", oData.size(), outputUsed);
@@ -53,8 +59,8 @@ void Bus::busLoop() {
   } // end switch
 }
 
-Bus::Bus(const sc_module_name& name, const ComponentID& ID, int numOutputPorts, HierarchyLevel level, int firstOutput) :
-    Network(name, ID, 1, numOutputPorts, level, firstOutput),
+Bus::Bus(const sc_module_name& name, int numOutputPorts, HierarchyLevel level, int firstOutput) :
+    Network(name, 1, numOutputPorts, level, firstOutput),
     iData("iData"),
     oData("oData", numOutputPorts)
 {

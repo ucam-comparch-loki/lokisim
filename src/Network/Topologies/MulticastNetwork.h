@@ -30,7 +30,6 @@ public:
   // buffersPerComponent = the number of buffers each destination component has.
   //                       There will be one flow control signal per buffer.
   MulticastNetwork(const sc_module_name& name,
-                   const ComponentID& ID,
                    int inputs,
                    int outputs,
                    int outputsPerComponent,

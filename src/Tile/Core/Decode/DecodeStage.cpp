@@ -230,17 +230,17 @@ void DecodeStage::waitOnCredits(DecodedInst& inst) {
 
   if (!cmtEntry.canSend()) {
     LOKI_LOG << this->name() << " stalled waiting for credits from " << destination << endl;
-    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
+    Instrumentation::Stalls::stall(id(), Instrumentation::Stalls::STALL_OUTPUT, inst);
     wait(cmtEntry.creditArrivedEvent());
-    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
+    Instrumentation::Stalls::unstall(id(), Instrumentation::Stalls::STALL_OUTPUT, inst);
   }
   cmtEntry.removeCredit();
 
   if (!iOutputBufferReady.read()) {
     LOKI_LOG << this->name() << " stalled waiting for output buffer space" << endl;
-    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
+    Instrumentation::Stalls::stall(id(), Instrumentation::Stalls::STALL_OUTPUT, inst);
     wait(iOutputBufferReady.posedge_event());
-    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT, inst);
+    Instrumentation::Stalls::unstall(id(), Instrumentation::Stalls::STALL_OUTPUT, inst);
   }
 }
 
@@ -392,16 +392,16 @@ void         DecodeStage::unstall() {
   // stalled forever.
 }
 
-DecodeStage::DecodeStage(sc_module_name name, const ComponentID& ID,
-                         size_t numChannels, const fifo_parameters_t& fifoParams) :
-    PipelineStage(name, ID),
+DecodeStage::DecodeStage(sc_module_name name, size_t numChannels,
+                         const fifo_parameters_t& fifoParams) :
+    PipelineStage(name),
     oReady("oReady"),
     iData("iData", numChannels),
     oFlowControl("oFlowControl", numChannels),
     oDataConsumed("oDataConsumed", numChannels),
     iOutputBufferReady("iOutputBufferReady"),
-    rcet("rcet", ID, numChannels, fifoParams),
-    decoder("decoder", ID) {
+    rcet("rcet", numChannels, fifoParams),
+    decoder("decoder") {
 
   startingNewPacket = true;
   waitingToSend = false;

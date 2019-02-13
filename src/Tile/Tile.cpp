@@ -9,8 +9,8 @@
 #include "../Chip.h"
 #include "../Exceptions/UnsupportedFeatureException.h"
 
-Tile::Tile(const sc_module_name& name, const ComponentID& id) :
-    LokiComponent(name, id),
+Tile::Tile(const sc_module_name& name, const TileID id) :
+    LokiComponent(name),
     clock("clock"),
     iData("iData"),
     oData("oData"),
@@ -27,7 +27,8 @@ Tile::Tile(const sc_module_name& name, const ComponentID& id) :
     iResponse("iResponse"),
     oResponse("oResponse"),
     iResponseReady("iResponseReady"),
-    oResponseReady("oResponseReady") {
+    oResponseReady("oResponseReady"),
+    id(id) {
   // Nothing
 
 }

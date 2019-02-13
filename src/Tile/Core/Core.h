@@ -211,6 +211,13 @@ private:
 // Components
 //============================================================================//
 
+public:
+  // Pipeline stages.
+  FetchStage             fetch;
+  DecodeStage            decode;
+  ExecuteStage           execute;
+  WriteStage             write;
+
 private:
 
   // Very small crossbar between input ports and input buffers. Allows there to
@@ -220,14 +227,6 @@ private:
   RegisterFile           regs;
   PredicateRegister      pred;
 
-public:
-  // Pipeline stages.
-  FetchStage             fetch;
-  DecodeStage            decode;
-  ExecuteStage           execute;
-  WriteStage             write;
-
-private:
   // A pipeline register to go between each pair of adjacent stages.
   LokiVector<PipelineRegister> pipelineRegs;
 
@@ -255,6 +254,8 @@ public:
 
   // Number of input channels reserved for instructions.
   static const uint numInstructionChannels = 2;
+
+  const ComponentID id;
 
 private:
 

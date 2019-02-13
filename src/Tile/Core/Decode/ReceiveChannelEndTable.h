@@ -52,8 +52,8 @@ public:
 public:
 
   SC_HAS_PROCESS(ReceiveChannelEndTable);
-  ReceiveChannelEndTable(const sc_module_name& name, const ComponentID& ID,
-                         size_t numChannels, const fifo_parameters_t& fifoParams);
+  ReceiveChannelEndTable(const sc_module_name& name, size_t numChannels,
+                         const fifo_parameters_t& fifoParams);
 
 //============================================================================//
 // Methods
@@ -105,6 +105,7 @@ private:
   // Toggle signals to indicate when data has been consumed.
   void dataConsumedAction(ChannelIndex buffer);
 
+  ComponentID  id() const;
   DecodeStage& parent() const;
 
 //============================================================================//

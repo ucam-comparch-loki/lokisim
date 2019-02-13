@@ -996,7 +996,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   reservations(1),
   missBuffer("mMissBuffer", params.cacheLineSize/BYTES_PER_WORD),
   cacheMissEvent(sc_core::sc_gen_unique_name("mCacheMissEvent")),
-  l2RequestFilter("request_filter", ID, *this)
+  l2RequestFilter("request_filter", *this)
 {
   state = STATE_IDLE;
   previousState = STATE_IDLE;

@@ -95,7 +95,7 @@ public:
 public:
 
   SC_HAS_PROCESS(FetchStage);
-  FetchStage(sc_module_name name, const ComponentID& ID,
+  FetchStage(sc_module_name name,
              const fifo_parameters_t& fifoParams,
              const cache_parameters_t& cacheParams);
 

@@ -25,7 +25,7 @@ class Scratchpad: public LokiComponent {
 
 public:
 
-  Scratchpad(const sc_module_name& name, const ComponentID& ID,
+  Scratchpad(const sc_module_name& name,
              const scratchpad_parameters_t& params);
 
 //============================================================================//

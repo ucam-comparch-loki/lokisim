@@ -63,9 +63,8 @@ bool PipelineRegister::discard() {
 }
 
 PipelineRegister::PipelineRegister(const sc_module_name& name,
-                                   const ComponentID ID,
                                    const PipelinePosition pos) :
-  LokiComponent(name, ID),
+  LokiComponent(name),
 //  buffer(1, std::string(name)) {  // Buffer has 2 spaces and a name for debug
   position(pos) {
 

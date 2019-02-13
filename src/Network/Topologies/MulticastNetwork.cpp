@@ -22,12 +22,11 @@ void MulticastNetwork::outputChanged(const PortIndex port) {
 }
 
 MulticastNetwork::MulticastNetwork(const sc_module_name& name,
-                                   const ComponentID& ID,
                                    int inputs,
                                    int outputs,
                                    int outputsPerComponent,
                                    int buffersPerComponent) :
-  Crossbar(name, ID, inputs, outputs, outputsPerComponent, COMPONENT, buffersPerComponent){
+  Crossbar(name, inputs, outputs, outputsPerComponent, COMPONENT, buffersPerComponent){
 
   // Everything is done for us by Crossbar.
 

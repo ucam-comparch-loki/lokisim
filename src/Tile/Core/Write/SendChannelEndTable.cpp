@@ -26,7 +26,7 @@ void SendChannelEndTable::write(const NetworkData data) {
   else if (core().isMemory(data.channelID().component)) {
     loki_assert(!bufferMemory.full());
     LOKI_LOG << this->name() << " writing " << data << " to buffer (memory)\n";
-    Instrumentation::Latency::coreBufferedMemoryRequest(id, data);
+    Instrumentation::Latency::coreBufferedMemoryRequest(id(), data);
     bufferMemory.write(data);
   }
   else {
@@ -38,7 +38,7 @@ void SendChannelEndTable::write(const NetworkData data) {
     TileID tile = data.channelID().component.tile;
     if (!core().isComputeTile(tile)) {
       LOKI_WARN << "Preparing to send data outside bounds of simulated chip." << endl;
-      LOKI_WARN << "  Source: " << id << ", destination: " << data.channelID() << endl;
+      LOKI_WARN << "  Source: " << id() << ", destination: " << data.channelID() << endl;
 //      LOKI_WARN << "  Simulating up to tile (" << TOTAL_TILE_COLUMNS-1 << "," << TOTAL_TILE_ROWS-1 << ")" << endl;
       LOKI_WARN << "  Consider increasing the COMPUTE_TILE_ROWS or COMPUTE_TILE_COLUMNS parameters." << endl;
     }
@@ -157,7 +157,7 @@ void SendChannelEndTable::sendLoopLocal() {
 
     LOKI_LOG << this->name() << " sending (local) " << data << endl;
     if (ENERGY_TRACE)
-      Instrumentation::Network::traffic(id, data.channelID().component);
+      Instrumentation::Network::traffic(id(), data.channelID().component);
     Instrumentation::Network::recordBandwidth(oDataLocal.name());
 
     oDataLocal.write(data);
@@ -226,9 +226,9 @@ void SendChannelEndTable::sendLoopMemory() {
 
       LOKI_LOG << this->name() << " sending (memory) " << data << endl;
       if (ENERGY_TRACE)
-        Instrumentation::Network::traffic(id, data.channelID().component);
+        Instrumentation::Network::traffic(id(), data.channelID().component);
       Instrumentation::Network::recordBandwidth(oDataMemory.name());
-      Instrumentation::Latency::coreSentMemoryRequest(id, data);
+      Instrumentation::Latency::coreSentMemoryRequest(id(), data);
 
       oDataMemory.write(data);
 
@@ -259,7 +259,7 @@ void SendChannelEndTable::sendLoopGlobal() {
 
     LOKI_LOG << this->name() << " sending (global) " << data << endl;
     if (ENERGY_TRACE)
-      Instrumentation::Network::traffic(id, data.channelID().component);
+      Instrumentation::Network::traffic(id(), data.channelID().component);
     Instrumentation::Network::recordBandwidth(oDataGlobal.name());
 
     oDataGlobal.write(data);
@@ -287,9 +287,13 @@ void SendChannelEndTable::receiveCreditInternal(const NetworkCredit& credit) {
   ChannelIndex targetCounter = credit.channelID().channel;
 
   LOKI_LOG << this->name() << " received credit at "
-      << ChannelID(id, targetCounter) << " " << credit.messageID() << endl;
+      << ChannelID(id(), targetCounter) << " " << credit.messageID() << endl;
 
   channelMapTable->addCredit(targetCounter, credit.payload().toUInt());
+}
+
+ComponentID SendChannelEndTable::id() const {
+  return parent().id();
 }
 
 WriteStage& SendChannelEndTable::parent() const {
@@ -324,10 +328,9 @@ void SendChannelEndTable::reportStalls(ostream& os) {
 }
 
 SendChannelEndTable::SendChannelEndTable(sc_module_name name,
-                                         const ComponentID& ID,
                                          const fifo_parameters_t& fifoParams,
                                          ChannelMapTable* cmt) :
-    LokiComponent(name, ID),
+    LokiComponent(name),
     BlockingInterface(),
     clock("clock"),
     iFetch("iFetch"),

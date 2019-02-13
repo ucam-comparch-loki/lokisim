@@ -51,7 +51,7 @@ public:
 public:
 
   SC_HAS_PROCESS(Router);
-  Router(const sc_module_name& name, const ComponentID& ID,
+  Router(const sc_module_name& name, const TileID& ID,
          const router_parameters_t& params);
 
 //============================================================================//
@@ -104,7 +104,7 @@ private:
 
   // The position of this router in the grid of routers. Used to decide which
   // direction data should be sent next.
-  const unsigned int xPos, yPos;
+  const TileID position;
 
   // Whether this router is using wormhole routing.
   bool wormhole;
