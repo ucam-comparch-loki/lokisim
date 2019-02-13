@@ -16,7 +16,7 @@ using sc_core::sc_module_name;
 PortIndex InstantCrossbar::getDestination(ChannelID address) const {
   // This network is deprecated and is currently only used in one place.
   loki_assert(level == NONE);
-  return address.channel - firstOutput;
+  return 0;
 }
 
 void InstantCrossbar::mainLoop(PortIndex port) {
