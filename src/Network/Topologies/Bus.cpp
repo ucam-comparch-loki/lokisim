@@ -11,7 +11,6 @@
 
 PortIndex Bus::getDestination(ChannelID address) const {
   // Buses always use the component field to determine the destination.
-  loki_assert(level == COMPONENT);
   return address.component.position - firstOutput;
 }
 
@@ -59,8 +58,8 @@ void Bus::busLoop() {
   } // end switch
 }
 
-Bus::Bus(const sc_module_name& name, int numOutputPorts, HierarchyLevel level, int firstOutput) :
-    Network(name, 1, numOutputPorts, level, firstOutput),
+Bus::Bus(const sc_module_name& name, int numOutputPorts, int firstOutput) :
+    Network(name, 1, numOutputPorts, firstOutput),
     iData("iData"),
     oData("oData", numOutputPorts)
 {

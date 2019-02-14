@@ -9,7 +9,7 @@
 
 DataNetwork::DataNetwork(const sc_module_name &name, size2d_t size,
                          const router_parameters_t& routerParams) :
-    Mesh(name, size, TILE, routerParams) {
+    Mesh(name, size, routerParams) {
 
 
 }

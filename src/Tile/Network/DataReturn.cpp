@@ -9,7 +9,7 @@
 
 DataReturn::DataReturn(const sc_module_name name,
                        const tile_parameters_t& params) :
-    Crossbar(name, params.numMemories, params.numCores, 1, Network::COMPONENT, params.core.numInputChannels) {
+    Crossbar(name, params.numMemories, params.numCores, 1, params.core.numInputChannels) {
   // All initialisation handled by Crossbar.
 
 }

@@ -52,7 +52,6 @@ public:
            int inputs,
            int outputs,
            int outputsPerComponent,
-           HierarchyLevel level,
            int buffersPerComponent);
 
 //============================================================================//

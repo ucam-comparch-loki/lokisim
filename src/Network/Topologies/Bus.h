@@ -42,8 +42,7 @@ public:
 
   SC_HAS_PROCESS(Bus);
 
-  Bus(const sc_module_name& name, int numOutputPorts, HierarchyLevel level,
-      int firstOutput=0);
+  Bus(const sc_module_name& name, int numOutputPorts, int firstOutput=0);
 
 //============================================================================//
 // Methods

@@ -19,14 +19,12 @@ PortIndex Network::getDestination(ChannelID address) const {
 Network::Network(const sc_module_name& name,
     int numInputs,        // Number of inputs this network has
     int numOutputs,       // Number of outputs this network has
-    HierarchyLevel level, // Position in the network hierarchy
     int firstOutput,      // The first accessible channel/component/tile
     bool externalConnection) : // Is there a port to send data on if it
                                // isn't for any local component?
     LokiComponent(name),
     clock("clock"),
     firstOutput(firstOutput),
-    level((numOutputs > 1) ? level : NONE),
     externalConnection(externalConnection) {
 
   loki_assert(numInputs > 0);

@@ -114,16 +114,12 @@ void Mesh::wireUp(size2d_t tiles) {
 
 Mesh::Mesh(const sc_module_name& name,
            size2d_t size,
-           HierarchyLevel level,
            const router_parameters_t& routerParams) :
-    Network(name, size.total(), size.total(), level),
+    Network(name, size.total(), size.total()),
     iData("iData", size.width, size.height),
     oData("oData", size.width, size.height),
     oReady("oReady", size.width, size.height),
     iReady("iReady", size.width, size.height) {
-
-  // Can only handle inter-tile mesh networks at the moment.
-  loki_assert(level == Network::TILE);
 
   makeRouters(size, routerParams);
   makeWires(size);

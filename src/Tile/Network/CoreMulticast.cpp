@@ -13,7 +13,7 @@ using sc_core::sc_gen_unique_name;
 
 CoreMulticast::CoreMulticast(const sc_module_name name,
                              const tile_parameters_t& params) :
-    Network(name, params.mcastNetInputs(), params.mcastNetInputs()*params.mcastNetOutputs(), Network::COMPONENT),
+    Network(name, params.mcastNetInputs(), params.mcastNetInputs()*params.mcastNetOutputs()),
     iData("iData", params.mcastNetInputs()),
     oData("oData", params.mcastNetOutputs(), params.mcastNetInputs()),
     iReady("iReady", params.mcastNetOutputs(), params.core.numInputChannels),
@@ -22,7 +22,7 @@ CoreMulticast::CoreMulticast(const sc_module_name name,
   state.assign(iData.size(), IDLE);
 
   for (uint i=0; i<iData.size(); i++) {
-    MulticastBus* bus = new MulticastBus(sc_gen_unique_name("bus"), oData.size(), Network::COMPONENT);
+    MulticastBus* bus = new MulticastBus(sc_gen_unique_name("bus"), oData.size());
 
     bus->clock(clock);
     bus->iData(busInput[i]);

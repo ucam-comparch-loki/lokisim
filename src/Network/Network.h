@@ -13,16 +13,6 @@
 
 class Network : public LokiComponent {
 
-public:
-
-  // Options for which level in the hierarchy this network is. Different
-  // networks need to look at different parts of the ChannelID type.
-  //   TILE = global network (needs to see which tile to send to)
-  //   COMPONENT = local network (needs to see which component to send to)
-  //   CHANNEL = within a core
-  //   NONE = always send to first output
-  enum HierarchyLevel {TILE, COMPONENT, CHANNEL, NONE};
-
 //============================================================================//
 // Ports
 //============================================================================//
@@ -46,7 +36,6 @@ public:
   Network(const sc_module_name& name,
           int numInputs,        // Number of inputs this network has
           int numOutputs,       // Number of outputs this network has
-          HierarchyLevel level, // Position in the network hierarchy
           int firstOutput=0,    // The first accessible channel/component/tile
           bool externalConnection=false); // Is there a port to send data on if it
                                           // isn't for any local component?);
@@ -70,8 +59,6 @@ protected:
   // For example, this network may only send to memories, so whilst the target
   // component may have an ID of 8, we may want to use output port 0.
   const unsigned int firstOutput;
-
-  const HierarchyLevel level;
 
   // Tells whether this network has an extra connection to handle data which
   // isn't for any local component. This extra connection will typically

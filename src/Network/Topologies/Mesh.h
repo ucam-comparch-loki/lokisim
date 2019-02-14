@@ -53,7 +53,6 @@ public:
 
   Mesh(const sc_module_name& name,
        size2d_t size,
-       HierarchyLevel level,
        const router_parameters_t& routerParams);
 
 //============================================================================//
