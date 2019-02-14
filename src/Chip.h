@@ -169,7 +169,7 @@ private:
   // These are used for the small input crossbar in each core, to ensure that
   // credits get to the local tile network in time to be sent, and to allow
   // time for data to arrive from the tile network.
-  sc_clock fastClock, slowClock;
+  sc_clock slowClock;
 
 };
 

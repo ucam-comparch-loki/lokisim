@@ -288,7 +288,6 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
     oCredit("oCredit"),
     iCredit("iCredit"),
     oReadyCredit("oReadyCredit"),
-    fastClock("fastClock"),
     fetch("fetch", params.ipkFIFO, params.cache),
     decode("decode", params.numInputChannels-numInstructionChannels, params.inputFIFO),
     execute("execute", params.scratchpad),
@@ -321,7 +320,6 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
   inputCrossbar.iFlowControl(fcFromBuffers);
   inputCrossbar.iDataConsumed(dataConsumed);
   inputCrossbar.clock(clock);
-  inputCrossbar.creditClock(fastClock);
   inputCrossbar.oCredit[0](oCredit);
 
   cregs.clock(clock);

@@ -6,7 +6,6 @@
 CPP_SRCS += \
 ../src/Network/Topologies/Bus.cpp \
 ../src/Network/Topologies/Crossbar.cpp \
-../src/Network/Topologies/InstantCrossbar.cpp \
 ../src/Network/Topologies/Mesh.cpp \
 ../src/Network/Topologies/MulticastBus.cpp \
 ../src/Network/Topologies/MulticastNetwork.cpp 
@@ -14,7 +13,6 @@ CPP_SRCS += \
 OBJS += \
 ./src/Network/Topologies/Bus.o \
 ./src/Network/Topologies/Crossbar.o \
-./src/Network/Topologies/InstantCrossbar.o \
 ./src/Network/Topologies/Mesh.o \
 ./src/Network/Topologies/MulticastBus.o \
 ./src/Network/Topologies/MulticastNetwork.o 
@@ -22,7 +20,6 @@ OBJS += \
 CPP_DEPS += \
 ./src/Network/Topologies/Bus.d \
 ./src/Network/Topologies/Crossbar.d \
-./src/Network/Topologies/InstantCrossbar.d \
 ./src/Network/Topologies/Mesh.d \
 ./src/Network/Topologies/MulticastBus.d \
 ./src/Network/Topologies/MulticastNetwork.d 

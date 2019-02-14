@@ -248,7 +248,6 @@ void Chip::makeComponents(const chip_parameters_t& params) {
         t = new ComputeTile(name.str().c_str(), tileID, params.tile);
 
         // Some ComputeTile-specific connections.
-        ((ComputeTile*)t)->fastClock(fastClock);
         ((ComputeTile*)t)->slowClock(slowClock);
       }
       else if (memoryControllerPositions.find(TileID(col,row)) != memoryControllerPositions.end()) {
@@ -333,7 +332,6 @@ Chip::Chip(const sc_module_name& name, const chip_parameters_t& params) :
     requestNet("request_net", params.allTiles(), params.router),
     responseNet("response_net", params.allTiles(), params.router),
     clock("clock", 1, sc_core::SC_NS, 0.5),
-    fastClock("fast_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.25),
     slowClock("slow_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.75) {
 
   makeSignals(params.allTiles());

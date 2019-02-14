@@ -14,10 +14,9 @@
 #include "../../LokiComponent.h"
 #include "../../Network/FlowControl/FlowControlIn.h"
 #include "../../Network/NetworkTypes.h"
-#include "../../Network/Topologies/InstantCrossbar.h"
+#include "../../Network/ArbitratedMultiplexer.h"
 #include "../../Utility/LokiVector.h"
 
-class UnclockedNetwork;
 class Word;
 
 class InputCrossbar: public LokiComponent {
@@ -29,13 +28,6 @@ class InputCrossbar: public LokiComponent {
 public:
 
   ClockInput   clock;
-
-  // A slight hack to improve simulation speed. We need to skew the times that
-  // this network sends and receives data so data can get through this small
-  // network and the larger tile network in one cycle.
-  // In practice, these would probably be implemented as delays in the small
-  // network.
-  ClockInput   creditClock;
 
   LokiVector<DataInput>     iData;
   LokiVector<ReadyOutput>   oReady;
@@ -83,10 +75,9 @@ private:
 
   LokiVector<FlowControlIn> flowControl;
 
-  // TODO: Should this be more of an ArbitratedMultiplexer?
-  InstantCrossbar          creditNet;
+  ArbitratedMultiplexer<NetworkCredit> creditNet;
 
-  ReadySignal              constantHigh;
+  ReadySignal              constantLow;
 
   LokiVector<DataSignal>   dataToBuffer;
   LokiVector<CreditSignal> creditsToNetwork;

@@ -65,14 +65,6 @@ public:
   CreditInput             iCredit;
   ReadyOutput             oReadyCredit;
 
-  // A slight hack to improve simulation speed. Each core contains a small
-  // network at its input buffers, so we need to skew the times that the
-  // network sends and receives data so data can get through the small
-  // network and the larger tile network in one cycle.
-  // In practice, these would probably be implemented as delays in the small
-  // network.
-  ClockInput              fastClock;
-
 //============================================================================//
 // Constructors and destructors
 //============================================================================//

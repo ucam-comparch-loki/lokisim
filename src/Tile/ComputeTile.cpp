@@ -268,7 +268,6 @@ void ComputeTile::wireUp() {
 
   for (uint i=0; i<cores.size(); i++) {
     cores[i].clock(clock);
-    cores[i].fastClock(fastClock);
     cores[i].iCredit(creditsToCores[i]);
     cores[i].iData(dataToCores[i]);
     cores[i].iDataGlobal(globalDataToCores[i]);
@@ -374,7 +373,6 @@ void ComputeTile::wireUp() {
 ComputeTile::ComputeTile(const sc_module_name& name, const TileID& id,
                          const tile_parameters_t& params) :
     Tile(name, id),
-    fastClock("fastClock"),
     slowClock("slowClock"),
     mhl("mhl", params),
     coreToCore("c2c", params),

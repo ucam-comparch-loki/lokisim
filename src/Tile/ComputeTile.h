@@ -38,7 +38,6 @@ public:
 //  ClockInput      clock;
 
   // Some extra events to keep the internal networks in sync.
-  ClockInput      fastClock;
   ClockInput      slowClock;
 
 //  // Data network.

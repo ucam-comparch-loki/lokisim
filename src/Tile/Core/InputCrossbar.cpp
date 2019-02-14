@@ -65,15 +65,14 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID,
                              size_t numInputs, size_t numOutputs) :
     LokiComponent(name),
     clock("clock"),
-    creditClock("creditClock"),
     iData("iData", numInputs),
     oReady("oReady", numOutputs),
     oData("oData", numOutputs),
     iFlowControl("iFlowControl", numOutputs),
     iDataConsumed("iDataConsumed", numOutputs),
     oCredit("oCredit", 1),
-    creditNet("credit", numOutputs, 1, 1, Network::NONE, 1),
-    constantHigh("constantHigh"),
+    creditNet("credit", numOutputs),
+    constantLow("constantLow"),
     dataToBuffer("dataToBuffer", numOutputs),
     creditsToNetwork("creditsToNetwork", numOutputs),
     sendData("sendDataEvent", numOutputs),
@@ -93,10 +92,10 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID,
     SPAWN_METHOD(iFlowControl[i], InputCrossbar::updateFlowControl, i, true);
 
   // Wire up the small networks.
-  creditNet.clock(creditClock);
-  creditNet.oData[0](oCredit[0]);
-  creditNet.iReady[0][0](constantHigh); // Can always send credits.
-  constantHigh.write(true);
+  creditNet.iData(creditsToNetwork);
+  creditNet.oData(oCredit[0]);
+  creditNet.iHold(constantLow); // Wormhole routing not needed within the core..
+  constantLow.write(false);
 
   // Create and wire up all flow control units.
   for (unsigned int i=0; i<oData.size(); i++) {
@@ -109,7 +108,5 @@ InputCrossbar::InputCrossbar(sc_module_name name, const ComponentID& ID,
     fc->iData(dataToBuffer[i]);
     fc->oCredit(creditsToNetwork[i]);
     fc->iDataConsumed(iDataConsumed[i]);
-
-    creditNet.iData[i](creditsToNetwork[i]);
   }
 }
