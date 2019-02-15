@@ -81,52 +81,6 @@ void ComputeTile::print(const ComponentID& component, MemoryAddr start, MemoryAd
     memories[memoryIndex(component)].print(start, end);
 }
 
-void ComputeTile::makeRequest(ComponentID source, ChannelID destination, bool request) {
-  loki_assert(!destination.multicast);
-
-  // Find out which signal to write the request to.
-  ArbiterRequestSignal *requestSignal;
-  ChannelIndex targetBuffer = destination.channel;
-
-  if (isCore(source)) {              // Core to memory
-    loki_assert(isMemory(destination.component));
-    requestSignal = &coreToMemRequests[coreIndex(source)][memoryIndex(destination.component)];
-  }
-  else {                             // Memory to core
-    loki_assert(isCore(destination.component));
-    if (targetBuffer < Core::numInstructionChannels)
-      requestSignal = &instructionReturnRequests[memoryIndex(source)][coreIndex(destination.component)];
-    else
-      requestSignal = &dataReturnRequests[memoryIndex(source)][coreIndex(destination.component)];
-  }
-
-  // Send the request.
-  if (request)
-    requestSignal->write(targetBuffer);
-  else
-    requestSignal->write(NO_REQUEST);
-}
-
-bool ComputeTile::requestGranted(ComponentID source, ChannelID destination) const {
-  assert(!destination.multicast);
-
-  ArbiterGrantSignal   *grantSignal;
-
-  if (isCore(source)) {              // Core to memory
-    loki_assert(isMemory(destination.component));
-    grantSignal = &coreToMemGrants[coreIndex(source)][memoryIndex(destination.component)];
-  }
-  else {                             // Memory/global to core
-    loki_assert(isCore(destination.component));
-    if (destination.channel < Core::numInstructionChannels)
-      grantSignal = &instructionReturnGrants[memoryIndex(source)][coreIndex(destination.component)];
-    else
-      grantSignal = &dataReturnGrants[memoryIndex(source)][coreIndex(destination.component)];
-  }
-
-  return grantSignal->read();
-}
-
 Word ComputeTile::readWordInternal(const ComponentID& component, MemoryAddr addr) {
   if (component.tile == id && isMemory(component) && !MAGIC_MEMORY)
     return memories[memoryIndex(component)].readWordDebug(addr);
@@ -206,7 +160,8 @@ void ComputeTile::makeComponents(const tile_parameters_t& params) {
     ComponentID coreID(id, core);
 
     Core* c = new Core(sc_gen_unique_name("core"), coreID, params.core,
-                       params.mcastNetOutputs());
+                       params.mcastNetOutputs(), params.mcastNetInputs(),
+                       params.numMemories);
 
     cores.push_back(c);
   }
@@ -216,7 +171,7 @@ void ComputeTile::makeComponents(const tile_parameters_t& params) {
     ComponentID memoryID(id, params.numCores + mem);
 
     MemoryBank* m = new MemoryBank(sc_gen_unique_name("memory"), memoryID,
-                                   params.numMemories, params.memory);
+                                   params.numMemories, params.memory, params.numCores);
     m->setBackgroundMemory(&(chip().mainMemory));
 
     memories.push_back(m);
@@ -276,6 +231,8 @@ void ComputeTile::wireUp() {
     cores[i].oCredit(creditsFromCores[i]);
     cores[i].oMulticast(multicastFromCores[i]);
     cores[i].oRequest(requestsFromCores[i]);
+    cores[i].oMemoryRequest(coreToMemRequests[i]); // vector
+    cores[i].iMemoryGrant(coreToMemGrants[i]); // vector
     cores[i].oDataGlobal(globalDataFromCores[i]);
     cores[i].oReadyCredit(readyCreditFromCores[i][0]);
     cores[i].oReadyData(readyDataFromCores[i]); // vector
@@ -294,6 +251,10 @@ void ComputeTile::wireUp() {
     memories[i].oDelayRequest(l2DelayRequest[i]);
     memories[i].oData(dataFromMemory[i]);
     memories[i].oInstruction(instructionsFromMemory[i]);
+    memories[i].oCoreDataRequest(dataReturnRequests[i]); // vector
+    memories[i].iCoreDataGrant(dataReturnGrants[i]); // vector
+    memories[i].oCoreInstRequest(instructionReturnRequests[i]); // vector
+    memories[i].iCoreInstGrant(instructionReturnGrants[i]); // vector
     memories[i].oReadyForData(readyDataFromMemory[i][0]);
     memories[i].oRequest(l2RequestFromMemory[i]);
     memories[i].oResponse(l2ResponseFromMemory[i]);

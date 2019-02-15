@@ -23,7 +23,7 @@
 #include "ReservationHandler.h"
 #include "../../Network/FIFOs/DelayFIFO.h"
 #include "../../Utility/BlockingInterface.h"
-#include <memory>
+#include "../../Utility/LokiVector.h"
 
 class ComputeTile;
 class MemoryOperation;
@@ -44,6 +44,11 @@ public:
   ReadyOutput           oReadyForData;    // Indicates that there is buffer space for new input
   DataOutput            oData;            // Data sent to the cores
   DataOutput            oInstruction;     // Instructions sent to the cores
+
+  LokiVector<ArbiterRequestOutput> oCoreDataRequest;
+  LokiVector<ArbiterGrantInput>    iCoreDataGrant;
+  LokiVector<ArbiterRequestOutput> oCoreInstRequest;
+  LokiVector<ArbiterGrantInput>    iCoreInstGrant;
 
   // Requests - to/from memory banks on other tiles.
   RequestInput          iRequest;         // Input requests sent to the memory bank
@@ -68,7 +73,7 @@ public:
 
   SC_HAS_PROCESS(MemoryBank);
   MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks,
-             const memory_bank_parameters_t& params);
+             const memory_bank_parameters_t& params, uint numCores);
   ~MemoryBank();
 
 //============================================================================//
@@ -200,6 +205,11 @@ private:
   void handleDataOutput();
   void handleInstructionOutput();
   void handleRequestOutput();
+
+  void requestCoreDataAccess(ChannelID destination, bool request);
+  bool coreDataRequestGranted(ChannelID destination) const;
+  void requestCoreInstAccess(ChannelID destination, bool request);
+  bool coreInstRequestGranted(ChannelID destination) const;
 
   void mainLoop();                    // Main loop thread
 

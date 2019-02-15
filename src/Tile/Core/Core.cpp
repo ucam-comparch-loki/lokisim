@@ -214,16 +214,6 @@ void     Core::idle(bool state) {
   Instrumentation::idle(id, state);
 }
 
-void Core::requestArbitration(ChannelID destination, bool request) {
-  // Could have extra ports and write to them from here, but for the moment,
-  // access the network directly.
-  parent().makeRequest(id, destination, request);
-}
-
-bool Core::requestGranted(ChannelID destination) const {
-  return parent().requestGranted(id, destination);
-}
-
 ComputeTile& Core::parent() const {
   return static_cast<ComputeTile&>(*(this->get_parent_object()));
 }
@@ -274,12 +264,15 @@ ChannelID Core::RCETInput(const ComponentID& ID, ChannelIndex channel) {
 }
 
 Core::Core(const sc_module_name& name, const ComponentID& ID,
-           const core_parameters_t& params, size_t numMulticastInputs) :
+           const core_parameters_t& params, size_t numMulticastInputs,
+           size_t numMulticastOutputs, size_t numMemories) :
     LokiComponent(name),
     clock("clock"),
     iInstruction("iInstruction"),
     iData("iData"),
     oRequest("oRequest"),
+    oMemoryRequest("oMemoryRequest", numMemories),
+    iMemoryGrant("iMemoryGrant", numMemories),
     iMulticast("iMulticast", numMulticastInputs),
     oMulticast("oMulticast"),
     oDataGlobal("oDataGlobal"),
@@ -291,7 +284,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
     fetch("fetch", params.ipkFIFO, params.cache),
     decode("decode", params.numInputChannels-numInstructionChannels, params.inputFIFO),
     execute("execute", params.scratchpad),
-    write("write", params.outputFIFO),
+    write("write", params.outputFIFO, numMulticastOutputs, numMemories),
     inputCrossbar("input_crossbar", ID, numMulticastInputs+3, params.numInputChannels), // cores + insts + data + router
     regs("regs", params.registerFile),
     pred("predicate"),
@@ -362,6 +355,8 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
   write.iFetch(fetchFlitSignal);
   write.iData(dataFlitSignal);
   write.oDataMemory(oRequest);
+  write.oMemoryRequest(oMemoryRequest);
+  write.iMemoryGrant(iMemoryGrant);
   write.oDataLocal(oMulticast);
   write.oDataGlobal(oDataGlobal);
   write.iCredit(iCredit);

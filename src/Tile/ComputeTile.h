@@ -118,17 +118,6 @@ public:
   // memory hierarchy.
   bool    backedByMainMemory(MemoryAddr address) const;
 
-
-  // Some magical network methods which prevent the need to connect thousands
-  // of single-bit wires.
-
-  // Issue a request for arbitration. This should only be called for the first
-  // and last flits of each packet.
-  void makeRequest(ComponentID source, ChannelID destination, bool request);
-
-  // See if the request from source to destination has been granted.
-  bool requestGranted(ComponentID source, ChannelID destination) const;
-
 private:
 
   void makeSignals();

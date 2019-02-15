@@ -7,6 +7,8 @@
 
 #include "SendChannelEndTable.h"
 #include "WriteStage.h"
+#include "../Core.h"
+#include "../../ComputeTile.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/MemoryRequest.h"
 #include "../ChannelMapTable.h"
@@ -14,7 +16,6 @@
 #include "../../../Utility/Instrumentation/Latency.h"
 #include "../../../Utility/Instrumentation/Network.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
-#include "../Core.h"
 
 void SendChannelEndTable::write(const NetworkData data) {
 
@@ -176,7 +177,7 @@ void SendChannelEndTable::sendLoopMemory() {
       // the end of a data packet.
       const NetworkData& data = oDataMemory.read();
       if (core().isMemory(data.channelID().component) && data.getMetadata().endOfPacket)
-        requestArbitration(data.channelID(), false);
+        requestMemoryAccess(data.channelID(), false);
 
       if (bufferMemory.empty()) {
         // When will this event be triggered? Will waiting 0.6 cycles always work?
@@ -198,7 +199,7 @@ void SendChannelEndTable::sendLoopMemory() {
       loki_assert(!bufferMemory.empty());
 
       // Request arbitration.
-      requestArbitration(bufferMemory.peek().channelID(), true);
+      requestMemoryAccess(bufferMemory.peek().channelID(), true);
       next_trigger(clock.posedge_event());
       sendStateMemory = SS_ARBITRATING;
 
@@ -208,7 +209,7 @@ void SendChannelEndTable::sendLoopMemory() {
     case SS_ARBITRATING: {
       // If the network has granted our request to send data, send it.
       // Otherwise, wait another cycle.
-      if (requestGranted(bufferMemory.peek().channelID())) {
+      if (memoryRequestGranted(bufferMemory.peek().channelID())) {
         sendStateMemory = SS_CAN_SEND;
         next_trigger(sc_core::SC_ZERO_TIME);
       }
@@ -269,12 +270,39 @@ void SendChannelEndTable::sendLoopGlobal() {
   }
 }
 
-void SendChannelEndTable::requestArbitration(ChannelID destination, bool request) {
-  parent().requestArbitration(destination, request);
+void SendChannelEndTable::requestCoreAccess(ChannelID destination,
+                                            bool request) {
+  // Do nothing - this network does not require arbitration.
 }
 
-bool SendChannelEndTable::requestGranted(ChannelID destination) const {
-  return parent().requestGranted(destination);
+bool SendChannelEndTable::coreRequestGranted(ChannelID destination) const {
+  // No arbitration on this network.
+  return true;
+}
+
+void SendChannelEndTable::requestMemoryAccess(ChannelID destination,
+                                              bool request) {
+  ComponentIndex memory = core().parent().memoryIndex(destination.component);
+
+  if (request)
+    oMemoryRequest[memory].write(destination.channel);
+  else
+    oMemoryRequest[memory].write(NO_REQUEST);
+}
+
+bool SendChannelEndTable::memoryRequestGranted(ChannelID destination) const {
+  ComponentIndex memory = core().parent().memoryIndex(destination.component);
+  return iMemoryGrant[memory].read();
+}
+
+void SendChannelEndTable::requestGlobalAccess(ChannelID destination,
+                                              bool request) {
+  // Do nothing - this network does not require arbitration.
+}
+
+bool SendChannelEndTable::globalRequestGranted(ChannelID destination) const {
+  // No arbitration on this network.
+  return true;
 }
 
 void SendChannelEndTable::receivedCredit() {
@@ -329,7 +357,9 @@ void SendChannelEndTable::reportStalls(ostream& os) {
 
 SendChannelEndTable::SendChannelEndTable(sc_module_name name,
                                          const fifo_parameters_t& fifoParams,
-                                         ChannelMapTable* cmt) :
+                                         ChannelMapTable* cmt,
+                                         uint numCores,
+                                         uint numMemories) :
     LokiComponent(name),
     BlockingInterface(),
     clock("clock"),
@@ -338,6 +368,8 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name,
     oDataLocal("oDataMulticast"),
     oDataMemory("oDataMemory"),
     oDataGlobal("oDataGlobal"),
+    oMemoryRequest("oMemoryRequest", numMemories),
+    iMemoryGrant("iMemoryGrant", numMemories),
     iCredit("iCredit"),
     bufferLocal(string(this->name())+string(".bufferLocal"), fifoParams.size),
     bufferMemory(string(this->name())+string(".bufferMemory"), fifoParams.size),
@@ -347,6 +379,9 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name,
   receiveState = RS_READY;
   sendStateMemory = SS_IDLE;
   sendStateMulticast = SS_IDLE;
+
+  for (uint i=0; i<oMemoryRequest.size(); i++)
+    oMemoryRequest[i].initialize(NO_REQUEST);
 
   SC_METHOD(receiveLoop);
   SC_METHOD(sendLoopLocal);

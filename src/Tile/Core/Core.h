@@ -48,6 +48,9 @@ public:
   DataInput               iData;
   RequestOutput           oRequest;
 
+  LokiVector<ArbiterRequestOutput> oMemoryRequest;
+  LokiVector<ArbiterGrantInput>    iMemoryGrant;
+
   // Connections to/from local cores.
   LokiVector<DataInput>   iMulticast;
   DataOutput              oMulticast;
@@ -73,7 +76,8 @@ public:
 
   SC_HAS_PROCESS(Core);
   Core(const sc_module_name& name, const ComponentID& ID,
-       const core_parameters_t& params, size_t numMulticastInputs);
+       const core_parameters_t& params, size_t numMulticastInputs,
+       size_t numMulticastOutputs, size_t numMemories);
 
 //============================================================================//
 // Methods
@@ -129,6 +133,8 @@ public:
   bool isMemory(ComponentID id) const;
   bool isComputeTile(TileID id) const;
 
+  ComputeTile& parent() const;
+
 private:
 
   // Return whether it is possible to check the cache tags at this time. It may
@@ -183,14 +189,6 @@ private:
 
   // Update whether this core is idle or not.
   void             idle(bool state);
-
-  // Request to reserve a path through the network to the given destination.
-  void             requestArbitration(ChannelID destination, bool request);
-
-  // Determine if a request to a particular destination has been granted.
-  bool             requestGranted(ChannelID destination) const;
-
-  ComputeTile&     parent() const;
 
   // Print out information about the environment this instruction executed in.
   void             trace(const DecodedInst& instruction) const;

@@ -14,6 +14,7 @@
 #include "../../../Network/FIFOs/NetworkFIFO.h"
 #include "../../../Network/NetworkTypes.h"
 #include "../../../Utility/BlockingInterface.h"
+#include "../../../Utility/LokiVector.h"
 
 class ChannelMapTable;
 class DecodedInst;
@@ -41,6 +42,12 @@ public:
   DataOutput              oDataMemory;
   DataOutput              oDataGlobal;
 
+  // Arbitration for the core->memory network. This is the only network with
+  // arbitration. There is one signal per memory bank, and the value to be
+  // sent is the channel of that memory to access.
+  LokiVector<ArbiterRequestOutput> oMemoryRequest;
+  LokiVector<ArbiterGrantInput>    iMemoryGrant;
+
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.
   CreditInput             iCredit;
@@ -53,7 +60,7 @@ public:
 
   SC_HAS_PROCESS(SendChannelEndTable);
   SendChannelEndTable(sc_module_name name, const fifo_parameters_t& fifoParams,
-                      ChannelMapTable* cmt);
+                      ChannelMapTable* cmt, uint numCores, uint numMemories);
 
 //============================================================================//
 // Methods
@@ -96,8 +103,12 @@ private:
   // Send a request to reserve (or release) a connection to a particular
   // destination component. May cause re-execution of the calling method when
   // the request is granted.
-  void          requestArbitration(ChannelID destination, bool request);
-  bool          requestGranted(ChannelID destination) const;
+  void          requestCoreAccess(ChannelID destination, bool request);
+  bool          coreRequestGranted(ChannelID destination) const;
+  void          requestMemoryAccess(ChannelID destination, bool request);
+  bool          memoryRequestGranted(ChannelID destination) const;
+  void          requestGlobalAccess(ChannelID destination, bool request);
+  bool          globalRequestGranted(ChannelID destination) const;
 
   ComponentID   id() const;
   WriteStage&   parent() const;

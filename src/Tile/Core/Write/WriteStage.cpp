@@ -59,16 +59,10 @@ void WriteStage::writeReg(RegisterIndex reg, int32_t value, bool indirect) const
   core().writeReg(reg, value, indirect);
 }
 
-void WriteStage::requestArbitration(ChannelID destination, bool request) {
-  core().requestArbitration(destination, request);
-}
-
-bool WriteStage::requestGranted(ChannelID destination) const {
-  return core().requestGranted(destination);
-}
-
 WriteStage::WriteStage(sc_module_name name,
-                       const fifo_parameters_t& fifoParams) :
+                       const fifo_parameters_t& fifoParams,
+                       uint numCores,
+                       uint numMemories) :
     PipelineStage(name),
     iFetch("iFetch"),
     iData("iData"),
@@ -76,8 +70,10 @@ WriteStage::WriteStage(sc_module_name name,
     oDataLocal("oDataMulticast"),
     oDataMemory("oDataMemory"),
     oDataGlobal("oDataGlobal"),
+    oMemoryRequest("oMemoryRequest", numMemories),
+    iMemoryGrant("iMemoryGrant", numMemories),
     iCredit("iCredit"),
-    scet("scet", fifoParams, &(core().channelMapTable)) {
+    scet("scet", fifoParams, &(core().channelMapTable), numCores, numMemories) {
 
   // Connect the SCET to the network.
   scet.clock(clock);
@@ -86,6 +82,8 @@ WriteStage::WriteStage(sc_module_name name,
   scet.oDataLocal(oDataLocal);
   scet.oDataMemory(oDataMemory);
   scet.oDataGlobal(oDataGlobal);
+  scet.oMemoryRequest(oMemoryRequest);
+  scet.iMemoryGrant(iMemoryGrant);
   scet.iCredit(iCredit);
 
   SC_METHOD(execute);

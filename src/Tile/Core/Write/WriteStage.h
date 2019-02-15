@@ -42,6 +42,12 @@ public:
   DataOutput              oDataMemory;
   DataOutput              oDataGlobal;
 
+  // Arbitration for the core->memory network. This is the only network with
+  // arbitration. There is one signal per memory bank, and the value to be
+  // sent is the channel of that memory to access.
+  LokiVector<ArbiterRequestOutput> oMemoryRequest;
+  LokiVector<ArbiterGrantInput>    iMemoryGrant;
+
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.
   CreditInput             iCredit;
@@ -53,7 +59,8 @@ public:
 public:
 
   SC_HAS_PROCESS(WriteStage);
-  WriteStage(sc_module_name name, const fifo_parameters_t& fifoParams);
+  WriteStage(sc_module_name name, const fifo_parameters_t& fifoParams,
+             uint numCores, uint numMemories);
 
 //============================================================================//
 // Methods
@@ -77,9 +84,6 @@ private:
 
   // Write a new value to a register.
   void           writeReg(RegisterIndex reg, int32_t value, bool indirect = false) const;
-
-  void           requestArbitration(ChannelID destination, bool request);
-  bool           requestGranted(ChannelID destination) const;
 
 //============================================================================//
 // Components

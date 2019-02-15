@@ -842,8 +842,8 @@ void MemoryBank::handleDataOutput() {
   if (outputDataQueue.empty()) {
     next_trigger(outputDataQueue.writeEvent());
   }
-  else if (!parent().requestGranted(id, outputDataQueue.peek().channelID())) {
-    parent().makeRequest(id, outputDataQueue.peek().channelID(), true);
+  else if (!coreDataRequestGranted(outputDataQueue.peek().channelID())) {
+    requestCoreDataAccess(outputDataQueue.peek().channelID(), true);
     next_trigger(iClock.negedge_event());
   }
   else {
@@ -858,7 +858,7 @@ void MemoryBank::handleDataOutput() {
 
     // Remove the request for network resources.
     if (flit.getMetadata().endOfPacket)
-      parent().makeRequest(id, flit.channelID(), false);
+      requestCoreDataAccess(flit.channelID(), false);
 
     next_trigger(oData.ack_event());
   }
@@ -868,8 +868,8 @@ void MemoryBank::handleInstructionOutput() {
   if (outputInstQueue.empty()) {
     next_trigger(outputInstQueue.writeEvent());
   }
-  else if (!parent().requestGranted(id, outputInstQueue.peek().channelID())) {
-    parent().makeRequest(id, outputInstQueue.peek().channelID(), true);
+  else if (!coreInstRequestGranted(outputInstQueue.peek().channelID())) {
+    requestCoreInstAccess(outputInstQueue.peek().channelID(), true);
     next_trigger(iClock.negedge_event());
   }
   else {
@@ -884,7 +884,7 @@ void MemoryBank::handleInstructionOutput() {
 
     // Remove the request for network resources.
     if (flit.getMetadata().endOfPacket)
-      parent().makeRequest(id, flit.channelID(), false);
+      requestCoreInstAccess(flit.channelID(), false);
 
     next_trigger(oInstruction.ack_event());
   }
@@ -915,6 +915,34 @@ void MemoryBank::handleRequestOutput() {
     oRequest.write(request);
     next_trigger(oRequest.ack_event());
   }
+}
+
+void MemoryBank::requestCoreDataAccess(ChannelID destination, bool request) {
+  ComponentIndex core = parent().coreIndex(destination.component);
+
+  if (request)
+    oCoreDataRequest[core].write(destination.channel);
+  else
+    oCoreDataRequest[core].write(NO_REQUEST);
+}
+
+bool MemoryBank::coreDataRequestGranted(ChannelID destination) const {
+  ComponentIndex core = parent().coreIndex(destination.component);
+  return iCoreDataGrant[core].read();
+}
+
+void MemoryBank::requestCoreInstAccess(ChannelID destination, bool request) {
+  ComponentIndex core = parent().coreIndex(destination.component);
+
+  if (request)
+    oCoreInstRequest[core].write(destination.channel);
+  else
+    oCoreInstRequest[core].write(NO_REQUEST);
+}
+
+bool MemoryBank::coreInstRequestGranted(ChannelID destination) const {
+  ComponentIndex core = parent().coreIndex(destination.component);
+  return iCoreInstGrant[core].read();
 }
 
 void MemoryBank::mainLoop() {
@@ -968,13 +996,17 @@ Chip& MemoryBank::chip() const {
 }
 
 MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks,
-                       const memory_bank_parameters_t& params) :
+                       const memory_bank_parameters_t& params, uint numCores) :
   MemoryBase(name, ID, params.log2CacheLineSize()),
   iClock("iClock"),
   iData("iData"),
   oReadyForData("oReadyForData"),
   oData("oData"),
   oInstruction("oInstruction"),
+  oCoreDataRequest("oCoreDataRequest", numCores),
+  iCoreDataGrant("iCoreDataGrant", numCores),
+  oCoreInstRequest("oCoreInstRequest", numCores),
+  iCoreInstGrant("iCoreInstGrant", numCores),
   iRequest("iRequest"),
   iRequestTarget("iRequestTarget"),
   oRequest("oRequest"),
