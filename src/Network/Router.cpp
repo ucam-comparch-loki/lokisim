@@ -98,24 +98,22 @@ void Router::updateDestination(PortIndex input) {
   PortIndex output = -1;
 
   if (!inputBuffers[input].empty()) {
-    output = routeTo(inputBuffers[input].peek().channelID());
+    output = getDestination(inputBuffers[input].peek().channelID());
     outputAvailable[output].notify();
   }
 
   destination[input] = output;
 }
 
-Direction Router::routeTo(ChannelID destination) const {
-  // Figure out where in the grid of tiles the destination channel end is.
-  unsigned int xDest = destination.component.tile.x;
-  unsigned int yDest = destination.component.tile.y;
+PortIndex Router::getDestination(ChannelID address) const {
+  TileID target = address.component.tile;
 
   // XY routing: change x until we are in the right column, then change y.
-  if (xDest > position.x)      return EAST;
-  else if (xDest < position.x) return WEST;
-  else if (yDest > position.y) return SOUTH;
-  else if (yDest < position.y) return NORTH;
-  else                         return LOCAL;
+  if (target.x > position.x)      return EAST;
+  else if (target.x < position.x) return WEST;
+  else if (target.y > position.y) return SOUTH;
+  else if (target.y < position.y) return NORTH;
+  else                            return LOCAL;
 }
 
 void Router::reportStalls(ostream& os) {
@@ -136,19 +134,18 @@ void Router::reportStalls(ostream& os) {
 
 Router::Router(const sc_module_name& name, const TileID& ID,
                const router_parameters_t& params) :
-    LokiComponent(name),
+    Network(name, 5, 5),
     BlockingInterface(),
-    clock("clock"),
     iData("iData", 5),
     oReady("oReady", 5),
     oData("oData", 5),
     iReady("iReady", 5),
     inputBuffers(string(this->name()) + ".input_data", 5, params.fifo.size),
     position(ID),
+    wormhole(true),
     outputAvailable("outputAvailableEvent", 5) {
 
   state = WAITING_FOR_DATA;
-  wormhole = true;
 
   for (int i=0; i<5; i++) {
     lastAccepted[i] = -1;

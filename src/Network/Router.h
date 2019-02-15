@@ -15,13 +15,13 @@
 #ifndef ROUTER_H_
 #define ROUTER_H_
 
-#include "../LokiComponent.h"
 #include "../Utility/BlockingInterface.h"
 #include "../Utility/LokiVector.h"
 #include "FIFOs/FIFOArray.h"
+#include "Network.h"
 #include "NetworkTypes.h"
 
-class Router : public LokiComponent, public BlockingInterface {
+class Router : public Network, public BlockingInterface {
 
 //============================================================================//
 // Ports
@@ -29,7 +29,8 @@ class Router : public LokiComponent, public BlockingInterface {
 
 public:
 
-  ClockInput   clock;
+// Inherited from Network:
+//  ClockInput   clock;
 
   // Data inputs
   LokiVector<DataInput>   iData;
@@ -75,7 +76,7 @@ private:
   // needs to use.
   void updateDestination(PortIndex input);
 
-  Direction routeTo(ChannelID destination) const;
+  PortIndex getDestination(ChannelID address) const;
 
   virtual void reportStalls(ostream& os);
 
@@ -106,8 +107,10 @@ private:
   // direction data should be sent next.
   const TileID position;
 
-  // Whether this router is using wormhole routing.
-  bool wormhole;
+  // Whether this router is using wormhole routing. (Once it accepts the first
+  // flit of a packet, it ignores all other inputs until the entire packet has
+  // been sent.)
+  const bool wormhole;
 
   // The router currently implements round-robin scheduling: store the inputs
   // which were most recently allowed to send data to each output.
