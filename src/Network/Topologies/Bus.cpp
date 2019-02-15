@@ -11,7 +11,7 @@
 
 PortIndex Bus::getDestination(ChannelID address) const {
   // Buses always use the component field to determine the destination.
-  return address.component.position - firstOutput;
+  return address.component.position;
 }
 
 void Bus::busLoop() {
@@ -58,8 +58,8 @@ void Bus::busLoop() {
   } // end switch
 }
 
-Bus::Bus(const sc_module_name& name, int numOutputPorts, int firstOutput) :
-    Network(name, 1, numOutputPorts, firstOutput),
+Bus::Bus(const sc_module_name& name, int numOutputPorts) :
+    Network(name),
     iData("iData"),
     oData("oData", numOutputPorts)
 {

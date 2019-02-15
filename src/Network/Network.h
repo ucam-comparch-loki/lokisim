@@ -1,6 +1,8 @@
 /*
  * Network.h
  *
+ * Base class of all networks.
+ *
  *  Created on: 2 Nov 2010
  *      Author: db434
  */
@@ -19,10 +21,16 @@ class Network : public LokiComponent {
 
 public:
 
-  ClockInput   clock;
+  // No clock is provided by default. It is the responsibility of any network
+  // inputs to limit themselves to sending data at the appropriate times and
+  // rates.
+  // ClockInput   clock;
 
-  //LokiVector<DataInput>  iData;
-  //LokiVector<DataOutput> oData;
+  // No data ports are provided by default. This allows any of Network's
+  // subclasses to structure ports in the most convenient way (e.g. multi-
+  // dimensional array).
+  // LokiVector<DataInput>  iData;
+  // LokiVector<DataOutput> oData;
 
 //============================================================================//
 // Constructors and destructors
@@ -30,15 +38,7 @@ public:
 
 public:
 
-  // This would work nicely when moving down the hierarchy, but what about when
-  // moving up? e.g. Credits pass through a CHANNEL network on the way to the
-  // local network, but we don't want them to be routed by the channel value yet.
-  Network(const sc_module_name& name,
-          int numInputs,        // Number of inputs this network has
-          int numOutputs,       // Number of outputs this network has
-          int firstOutput=0,    // The first accessible channel/component/tile
-          bool externalConnection=false); // Is there a port to send data on if it
-                                          // isn't for any local component?);
+  Network(const sc_module_name& name);
 
 //============================================================================//
 // Methods
@@ -48,22 +48,6 @@ protected:
 
   // Compute which output of this network will be used by the given address.
   PortIndex getDestination(ChannelID address) const;
-
-//============================================================================//
-// Local state
-//============================================================================//
-
-protected:
-
-  // The channel/component/tile accessible through the first output port.
-  // For example, this network may only send to memories, so whilst the target
-  // component may have an ID of 8, we may want to use output port 0.
-  const unsigned int firstOutput;
-
-  // Tells whether this network has an extra connection to handle data which
-  // isn't for any local component. This extra connection will typically
-  // connect to the next level of the network hierarchy.
-  const bool externalConnection;
 
 };
 

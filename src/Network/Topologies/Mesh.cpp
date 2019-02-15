@@ -115,7 +115,8 @@ void Mesh::wireUp(size2d_t tiles) {
 Mesh::Mesh(const sc_module_name& name,
            size2d_t size,
            const router_parameters_t& routerParams) :
-    Network(name, size.total(), size.total()),
+    Network(name),
+    clock("clock"),
     iData("iData", size.width, size.height),
     oData("oData", size.width, size.height),
     oReady("oReady", size.width, size.height),

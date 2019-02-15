@@ -134,8 +134,9 @@ void Router::reportStalls(ostream& os) {
 
 Router::Router(const sc_module_name& name, const TileID& ID,
                const router_parameters_t& params) :
-    Network(name, 5, 5),
+    Network(name),
     BlockingInterface(),
+    clock("clock"),
     iData("iData", 5),
     oReady("oReady", 5),
     oData("oData", 5),

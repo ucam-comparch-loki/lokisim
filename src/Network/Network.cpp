@@ -6,9 +6,6 @@
  */
 
 #include "Network.h"
-
-#include "../Chip.h"
-#include "../Exceptions/InvalidOptionException.h"
 #include "../Utility/Assert.h"
 
 PortIndex Network::getDestination(ChannelID address) const {
@@ -16,18 +13,9 @@ PortIndex Network::getDestination(ChannelID address) const {
   return -1;
 }
 
-Network::Network(const sc_module_name& name,
-    int numInputs,        // Number of inputs this network has
-    int numOutputs,       // Number of outputs this network has
-    int firstOutput,      // The first accessible channel/component/tile
-    bool externalConnection) : // Is there a port to send data on if it
-                               // isn't for any local component?
-    LokiComponent(name),
-    clock("clock"),
-    firstOutput(firstOutput),
-    externalConnection(externalConnection) {
+Network::Network(const sc_module_name& name) :
+    LokiComponent(name) {
 
-  loki_assert(numInputs > 0);
-  loki_assert(numOutputs > 0);
+  // Nothing.
 
 }

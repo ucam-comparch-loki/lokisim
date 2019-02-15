@@ -20,8 +20,6 @@ public:
 
 // Inherited from Bus:
 //
-//  ClockInput   clock;
-//
 //  DataInput              iData;
 //  LokiVector<DataOutput> oData;
 
@@ -32,7 +30,7 @@ public:
 public:
 
   SC_HAS_PROCESS(MulticastBus);
-  MulticastBus(const sc_module_name& name, int numOutputs, int firstOutput=0);
+  MulticastBus(const sc_module_name& name, int numOutputs);
 
 //============================================================================//
 // Methods

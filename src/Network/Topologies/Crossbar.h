@@ -22,9 +22,8 @@ class Crossbar: public Network, public BlockingInterface {
 
 public:
 
-// Inherited from Network:
-//
-//  ClockInput   clock;
+  // Data moves on the positive clock edge.
+  ClockInput   clock;
 
   LokiVector<DataInput>  iData;
   LokiVector<DataOutput> oData;

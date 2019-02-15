@@ -29,10 +29,6 @@ class CoreMulticast: public Network {
 
 public:
 
-// Inherited from Network:
-//
-//  ClockInput   clock;
-
   // Input data.
   LokiVector<DataInput>      iData;
 

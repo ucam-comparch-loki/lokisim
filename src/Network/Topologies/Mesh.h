@@ -25,9 +25,8 @@ class Mesh : public Network {
 
 public:
 
-// Inherited from Network:
-//
-//  ClockInput   clock;
+  // Routers consume their inputs on the positive clock edge.
+  ClockInput   clock;
 
   // Inputs to network (outputs from components).
   // Addressed using iData[column][row]

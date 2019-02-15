@@ -66,9 +66,8 @@ void MulticastBus::ackArrived(PortIndex port) {
     }
 }
 
-MulticastBus::MulticastBus(const sc_module_name& name, int numOutputs,
-                           int firstOutput) :
-    Bus(name, numOutputs, firstOutput) {
+MulticastBus::MulticastBus(const sc_module_name& name, int numOutputs) :
+    Bus(name, numOutputs) {
 
   // Generate a method for each output port, to wait for acknowledgements and
   // notify the main process when all have been received.

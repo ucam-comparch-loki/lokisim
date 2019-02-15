@@ -29,16 +29,16 @@ class Router : public Network, public BlockingInterface {
 
 public:
 
-// Inherited from Network:
-//  ClockInput   clock;
+  // Data is moved from inputs to outputs on the positive clock edge.
+  ClockInput   clock;
 
-  // Data inputs
+  // Data inputs.
   LokiVector<DataInput>   iData;
 
   // A flow control signal to each neighbouring router and to the local network.
   LokiVector<ReadyOutput> oReady;
 
-  // Data outputs
+  // Data outputs.
   LokiVector<DataOutput>  oData;
 
   // A flow control signal from each neighbouring router. Flow control from the

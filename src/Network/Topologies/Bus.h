@@ -27,10 +27,6 @@ class Bus: public Network {
 
 public:
 
-//  Inherited from Network:
-//
-//  ClockInput   clock;
-
   DataInput              iData;
   LokiVector<DataOutput> oData;
 
@@ -42,7 +38,7 @@ public:
 
   SC_HAS_PROCESS(Bus);
 
-  Bus(const sc_module_name& name, int numOutputPorts, int firstOutput=0);
+  Bus(const sc_module_name& name, int numOutputPorts);
 
 //============================================================================//
 // Methods

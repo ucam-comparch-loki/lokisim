@@ -322,7 +322,6 @@ void ComputeTile::wireUp() {
   // its data on the negative edge, and the core may need the time to compute
   // which memory bank it is sending to.
 
-  coreToCore.clock(slowClock);
   coreToCore.iData(multicastFromCores);
   coreToCore.oData(multicastToCores);
   coreToCore.iReady(readyDataFromCores);
