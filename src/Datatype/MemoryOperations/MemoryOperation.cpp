@@ -76,6 +76,10 @@ bool MemoryOperation::awaitingPayload() const {
   return payloadFlits > 0;
 }
 
+uint MemoryOperation::payloadFlitsRemaining() const {
+  return payloadFlits;
+}
+
 bool MemoryOperation::resultsToSend() const {
   return resultFlits > 0;
 }

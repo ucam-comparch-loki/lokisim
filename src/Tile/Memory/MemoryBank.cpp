@@ -374,6 +374,15 @@ void MemoryBank::processIdle() {
       if (hitRequest->needsForwarding() && hitRequest->resultsToSend())
         return;
 
+      // Don't start a second request until we have all payload flits from a
+      // core. It's possible that the payload depends on the missing request.
+      // +1 because we haven't dequeued the head flit yet.
+      // (This differs from the Verilog which has two separate request
+      // handlers.)
+      if (hitRequest->awaitingPayload() && isCore(hitRequest->getDestination())
+          && (inputQueue.items() < 1+hitRequest->payloadFlitsRemaining()))
+        return;
+
       LOKI_LOG << this->name() << " starting hit-under-miss" << endl;
     }
 

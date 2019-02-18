@@ -55,6 +55,9 @@ public:
   // Returns whether any further payloads are expected.
   virtual bool awaitingPayload() const;
 
+  // Returns the number of payload flits yet to arrive.
+  virtual uint payloadFlitsRemaining() const;
+
   // Returns whether any further results are to be sent.
   virtual bool resultsToSend() const;
 

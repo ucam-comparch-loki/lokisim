@@ -82,8 +82,13 @@ public:
     return (fillCount == this->size());
   }
 
+  // Returns the number of readable items in the buffer.
+  uint items() const {
+    return fillCount;
+  }
+
   // Returns the remaining space in the buffer.
-  uint16_t remainingSpace() const {
+  uint remainingSpace() const {
     return this->size() - fillCount;
   }
 
