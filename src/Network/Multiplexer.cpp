@@ -8,10 +8,6 @@
 #include "Multiplexer.h"
 #include "../Utility/Assert.h"
 
-int Multiplexer::inputs() const {
-  return iData.size();
-}
-
 void Multiplexer::reportStalls(ostream& os) {
   if (oData.valid()) {
     os << this->name() << " hasn't received ack for " << oData.read() << endl;
@@ -19,31 +15,48 @@ void Multiplexer::reportStalls(ostream& os) {
 }
 
 void Multiplexer::handleData() {
-  MuxSelect selection = iSelect.read();
+  switch (state) {
+    case MUX_IDLE: {
+      selectedInput = iSelect.read();
 
-  // 1. Invalid selection -> wait for valid selection
-  // 2. Valid selection -> wait for data (if it isn't already here)
-  // 3. Data arrived -> send data, wait for ack
-  // 4. Ack arrived -> send ack, wait for select/data
+      if (selectedInput == NO_SELECTION)
+        next_trigger(iSelect.default_event());
+      else {
+        // Assuming that we will definitely send data from the selected input.
+        state = MUX_SEND;
+        loki_assert((PortIndex)selectedInput < iData.size());
 
-  if (selection == NO_SELECTION)
-    next_trigger(iSelect.default_event());
-  else if (iData[selection].valid()) { // Data arrived on the selected input
-    if (!haveSentData) {
-      oData.write(iData[selection].read());
-//      cout << this->name() << " sent " << iData[selection].read() << endl;
+        if (iData[selectedInput].valid())
+          next_trigger(sc_core::SC_ZERO_TIME);
+        else
+          next_trigger(iData[selectedInput].default_event());
+      }
+
+      break;
+    }
+
+    case MUX_SEND: {
+      loki_assert(selectedInput != NO_SELECTION);
+      loki_assert(iData[selectedInput].valid());
+
+      oData.write(iData[selectedInput].read());
+//      cout << this->name() << " sent " << iData[selectedInput].read() << endl;
+
+      state = MUX_ACKNOWLEDGE;
       next_trigger(oData.ack_event());
-      haveSentData = true;
+      break;
     }
-    else {
-      iData[selection].ack();
-//      cout << this->name() << " acknowledged " << iData[selection].read() << endl;
-      next_trigger(iSelect.default_event() | iData[selection].default_event());
-      haveSentData = false;
+
+    case MUX_ACKNOWLEDGE: {
+      loki_assert(selectedInput != NO_SELECTION);
+
+      iData[selectedInput].ack();
+//      cout << this->name() << " acknowledged " << iData[selectedInput].read() << endl;
+
+      state = MUX_IDLE;
+      next_trigger(iSelect.default_event() | iData[selectedInput].default_event());
+      break;
     }
-  }
-  else if (iSelect.event()) {
-    next_trigger(iData[selection].default_event());
   }
 }
 
@@ -55,7 +68,8 @@ Multiplexer::Multiplexer(const sc_module_name& name, int numInputs) :
 
   loki_assert(numInputs > 0);
 
-  haveSentData = false;
+  state = MUX_IDLE;
+  selectedInput = NO_SELECTION;
 
   SC_METHOD(handleData);
 

@@ -41,10 +41,6 @@ public:
 // Methods
 //============================================================================//
 
-public:
-
-  int inputs() const;
-
 protected:
 
   virtual void reportStalls(ostream& os);
@@ -59,7 +55,17 @@ private:
 
 private:
 
-  bool haveSentData;
+  enum MuxState {
+    MUX_IDLE,         // Wait for both a select signal and data on that input
+    MUX_SEND,         // Forward the selected data to the output
+    MUX_ACKNOWLEDGE   // Acknowledge the input
+  };
+
+  MuxState state;
+
+  // Record the previous selected input. The select signal may change, so is
+  // unreliable in some situations.
+  MuxSelect selectedInput;
 
 };
 

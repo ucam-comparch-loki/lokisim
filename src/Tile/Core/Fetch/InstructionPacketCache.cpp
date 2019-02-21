@@ -133,7 +133,11 @@ const sc_event& InstructionPacketCache::writeEvent() const {
 /* Update the signal saying whether there is enough room to fetch another
  * packet. */
 void InstructionPacketCache::updateFlowControl() {
-  oFlowControl.write(!cache->full());
+  // Writes are expensive (in terms of simulation time), so only update when the
+  // signal changes.
+  bool canWrite = !cache->full();
+  if (canWrite != oFlowControl.read())
+    oFlowControl.write(canWrite);
 }
 
 void InstructionPacketCache::dataConsumedAction() {
