@@ -15,13 +15,18 @@
 #ifndef ROUTER_H_
 #define ROUTER_H_
 
+#include "../LokiComponent.h"
 #include "../Utility/BlockingInterface.h"
 #include "../Utility/LokiVector.h"
 #include "FIFOs/FIFOArray.h"
-#include "Network.h"
+#include "Network2.h"
 #include "NetworkTypes.h"
 
-class Router : public Network, public BlockingInterface {
+template<typename T>
+class RouterInternalNetwork;
+
+template<typename T>
+class Router : public LokiComponent {
 
 //============================================================================//
 // Ports
@@ -29,21 +34,23 @@ class Router : public Network, public BlockingInterface {
 
 public:
 
-  // Data is moved from inputs to outputs on the positive clock edge.
-  ClockInput   clock;
+  ClockInput clock;
 
-  // Data inputs.
-  LokiVector<DataInput>   iData;
+  // The router is odd in that all of its ports are network sinks.
+  // The inputs are attached to local buffers, so are real sinks.
+  // The outputs are connected to other routers, so are remote sinks.
+  typedef sc_port<network_sink_ifc<T>> InPort;
+  typedef sc_port<network_sink_ifc<T>> OutPort;
 
-  // A flow control signal to each neighbouring router and to the local network.
-  LokiVector<ReadyOutput> oReady;
+  // Connections to other routers.
+  LokiVector<InPort> inputs;
+  LokiVector<OutPort> outputs;
 
-  // Data outputs.
-  LokiVector<DataOutput>  oData;
-
-  // A flow control signal from each neighbouring router. Flow control from the
-  // local network is handled separately.
-  LokiVector<ReadyInput>  iReady;
+  // Legacy connections to local tile.
+  DataInput iData;
+  DataOutput oData;
+  ReadyInput iReady;
+  ReadyOutput oReady;
 
 //============================================================================//
 // Constructors and destructors
@@ -61,24 +68,11 @@ public:
 
 private:
 
-  // Receive input data, put it into buffers, and send acknowledgements.
-  void receiveData(PortIndex input);
-
-  // Send data from output buffers onto the network and wait for
-  // acknowledgements.
-  void sendData(PortIndex output);
-
-  // Update the flow control signal for the input port connected to the local
-  // network.
-  void updateFlowControl(PortIndex input);
-
-  // Determine which output (if any) the head of a particular input buffer
-  // needs to use.
-  void updateDestination(PortIndex input);
-
-  PortIndex getDestination(ChannelID address) const;
-
-  virtual void reportStalls(ostream& os);
+  // Methods to bridge between the old style interface and the new style.
+  // To be removed when all converted to new style.
+  void dataArrived();
+  void updateFlowControl();
+  void sendData();
 
 
 //============================================================================//
@@ -87,45 +81,23 @@ private:
 
 private:
 
-  FIFOArray<Word> inputBuffers;
+  FIFOArray<T> inputBuffers;
+  RouterInternalNetwork<T> internal;
 
-//============================================================================//
-// Local state
-//============================================================================//
+  // Temporary output buffer to provide the proper interface for the internal
+  // network.
+  NetworkFIFO<T> localOutput;
 
+};
+
+template<typename T>
+class RouterInternalNetwork: public Network2<T> {
+public:
+  RouterInternalNetwork(const sc_module_name name, TileID tile);
+  virtual ~RouterInternalNetwork();
+  virtual PortIndex getDestination(const ChannelID address) const;
 private:
-
-  enum SendState {
-    WAITING_FOR_DATA,
-    ARBITRATING,
-    WAITING_FOR_ACK
-  };
-
-  SendState state;
-
-  // The position of this router in the grid of routers. Used to decide which
-  // direction data should be sent next.
   const TileID position;
-
-  // Whether this router is using wormhole routing. (Once it accepts the first
-  // flit of a packet, it ignores all other inputs until the entire packet has
-  // been sent.)
-  const bool wormhole;
-
-  // The router currently implements round-robin scheduling: store the inputs
-  // which were most recently allowed to send data to each output.
-  PortIndex lastAccepted[5];
-
-  // If using wormhole routing, allow the same input to be used until the
-  // packet ends.
-  bool holdInput[5];
-
-  // Record the direction the leading flit in each buffer wants to travel.
-  PortIndex destination[5];
-
-  // Event to notify each output port when data is waiting to be sent.
-  LokiVector<sc_event> outputAvailable;
-
 };
 
 #endif /* ROUTER_H_ */

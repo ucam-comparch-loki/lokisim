@@ -22,6 +22,20 @@ class NetworkFIFO: public network_source_ifc<T>,
   typedef Flit<T> stored_data;
 
 //============================================================================//
+// Constructors and destructors
+//============================================================================//
+
+public:
+
+  NetworkFIFO(const std::string& name, const size_t size) :
+      fifo(name, size),
+      fresh(size, false) {
+
+  }
+
+  virtual ~NetworkFIFO() {}
+
+//============================================================================//
 // Methods
 //============================================================================//
 
@@ -109,20 +123,6 @@ public:
   void setWritePointer(unsigned int position) {
     fifo.setWritePointer(position);
   }
-
-//============================================================================//
-// Constructors and destructors
-//============================================================================//
-
-public:
-
-  NetworkFIFO(const std::string& name, const size_t size) :
-      fifo(name, size),
-      fresh(size, false) {
-
-  }
-
-  virtual ~NetworkFIFO() {}
 
 //============================================================================//
 // Local state

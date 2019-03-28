@@ -14,7 +14,7 @@
 
 #include "../../Utility/LokiVector2D.h"
 #include "../Network.h"
-#include "../Global/NetworkDeadEnd.h"
+#include "../Global/NetworkDeadEnd2.h"
 #include "../Router.h"
 
 class Mesh : public Network {
@@ -61,7 +61,6 @@ public:
 private:
 
   void makeRouters(size2d_t tiles, const router_parameters_t& params);
-  void makeWires(size2d_t tiles);
   void wireUp(size2d_t tiles);
 
 //============================================================================//
@@ -72,16 +71,10 @@ private:
 
   // 2D vector of routers. Indexed using routers[column][row]. (0,0) is in the
   // top left corner.
-  LokiVector2D<Router> routers;
+  LokiVector2D<Router<Word>> routers;
 
   // Debug components which warn us if data is sent off the edge of the network.
-  LokiVector<NetworkDeadEnd<NetworkData>> edges;
-
-  // Lots of 2D arrays of signals. Each 2D array is indexed using
-  // array[column][row]. Each array name is tagged with the direction it
-  // carries data, e.g. NS = north to south.
-  LokiVector2D<DataSignal> dataSigNS, dataSigSN, dataSigEW, dataSigWE;
-  LokiVector2D<ReadySignal> readySigNS, readySigSN, readySigEW, readySigWE;
+  LokiVector<NetworkDeadEnd2<Word>> edges;
 
 };
 
