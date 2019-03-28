@@ -10,9 +10,9 @@
 #ifndef SRC_TILE_NETWORK_FORWARDCROSSBAR_H_
 #define SRC_TILE_NETWORK_FORWARDCROSSBAR_H_
 
-#include "../../Network/Topologies/Crossbar.h"
+#include "../../Network/Network2.h"
 
-class ForwardCrossbar: public Crossbar {
+class ForwardCrossbar: public Network2<Word> {
 
 //============================================================================//
 // Ports
@@ -24,17 +24,8 @@ public:
 //
 //  ClockInput   clock;
 //
-//  LokiVector<DataInput>  iData;
-//  LokiVector<DataOutput> oData;
-//
-//  // A request/grant signal for each input to reserve each output.
-//  // Indexed as: iRequest[input][output]
-//  LokiVector2D<ArbiterRequestInput> iRequest;
-//  LokiVector2D<ArbiterGrantOutput>  oGrant;
-//
-//  // A signal from each buffer of each component, telling whether it is ready
-//  // to receive data. Addressed using iReady[component][buffer].
-//  LokiVector2D<ReadyInput>   iReady;
+//  LokiVector<InPort>  inputs;
+//  LokiVector<OutPort> outputs;
 
 //============================================================================//
 // Constructors and destructors
@@ -44,6 +35,14 @@ public:
   ForwardCrossbar(const sc_module_name name,
                   const tile_parameters_t& params);
   virtual ~ForwardCrossbar();
+
+//============================================================================//
+// Methods
+//============================================================================//
+
+public:
+  virtual PortIndex getDestination(const ChannelID address) const;
+
 };
 
 #endif /* SRC_TILE_NETWORK_FORWARDCROSSBAR_H_ */

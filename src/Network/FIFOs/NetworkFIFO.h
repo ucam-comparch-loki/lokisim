@@ -12,9 +12,14 @@
 #define NETWORKBUFFER_H_
 
 #include "FIFO.h"
+#include "../Interface.h"
+#include "../../Utility/Instrumentation/Network.h"
 
 template<class T>
-class NetworkFIFO: public FIFO<T> {
+class NetworkFIFO: public network_source_ifc<T>,
+                   public network_sink_ifc<T> {
+
+  typedef Flit<T> stored_data;
 
 //============================================================================//
 // Methods
@@ -22,27 +27,87 @@ class NetworkFIFO: public FIFO<T> {
 
 public:
 
-  virtual const T& read() {
-    if (this->full())
-      LOKI_LOG << this->name() << " is no longer full" << endl;
+  virtual const stored_data& read() {
+    LOKI_LOG << name() << " consumed " << peek() << endl;
+    if (fifo.full())
+      LOKI_LOG << name() << " is no longer full" << endl;
+    Instrumentation::Network::recordBandwidth(this->name().c_str());
 
-    if (fresh[this->readPos.value()]) {
+    if (fresh[fifo.getReadPointer()]) {
       dataConsumed.notify();
-      fresh[this->readPos.value()] = false;
+      fresh[fifo.getReadPointer()] = false;
     }
-    return FIFO<T>::read();
+    return fifo.read();
   }
 
-  virtual void write(const T& newData) {
-    fresh[this->writePos.value()] = true;
-    FIFO<T>::write(newData);
+  virtual const stored_data& peek() const {
+    return fifo.peek();
+  }
 
-    if (this->full())
-      LOKI_LOG << this->name() << " is full" << endl;
+  virtual void write(const stored_data& newData) {
+    LOKI_LOG << name() << " received " << newData << endl;
+
+    fresh[fifo.getWritePointer()] = true;
+    fifo.write(newData);
+
+    if (fifo.full())
+      LOKI_LOG << fifo.name() << " is full" << endl;
+  }
+
+  virtual const stored_data& lastDataRead() const {
+    return fifo.debugRead(fifo.getReadPointer() - 1);
+  }
+
+  virtual const stored_data& lastDataWritten() const {
+    return fifo.debugRead(fifo.getWritePointer() - 1);
   }
 
   const sc_event& dataConsumedEvent() const {
     return dataConsumed;
+  }
+
+  virtual bool dataAvailable() const {
+    return !fifo.empty();
+  }
+
+  virtual const sc_event& dataAvailableEvent() const {
+    // Should this also be triggered when reading, if there is more data already
+    // waiting? No - there are some cases where we only care about the writing.
+    return fifo.writeEvent();
+  }
+
+  virtual bool canWrite() const {
+    return !fifo.full();
+  }
+
+  virtual const sc_event& canWriteEvent() const {
+    return fifo.readEvent();
+  }
+
+
+  unsigned int items() const {
+    return fifo.items();
+  }
+
+  const std::string name() const {
+    return fifo.name();
+  }
+
+  // For IPK FIFO only. Can we avoid exposing this?
+  unsigned int getReadPointer() const {
+    return fifo.getReadPointer();
+  }
+
+  unsigned int getWritePointer() const {
+    return fifo.getWritePointer();
+  }
+
+  void setReadPointer(unsigned int position) {
+    fifo.setReadPointer(position);
+  }
+
+  void setWritePointer(unsigned int position) {
+    fifo.setWritePointer(position);
   }
 
 //============================================================================//
@@ -52,7 +117,7 @@ public:
 public:
 
   NetworkFIFO(const std::string& name, const size_t size) :
-      FIFO<T>(name, size),
+      fifo(name, size),
       fresh(size, false) {
 
   }
@@ -64,6 +129,9 @@ public:
 //============================================================================//
 
 protected:
+
+  // The internal data storage.
+  FIFO<stored_data> fifo;
 
   // One bit to indicate whether each word has been read yet.
   vector<bool> fresh;

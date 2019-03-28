@@ -70,8 +70,6 @@ WriteStage::WriteStage(sc_module_name name,
     oDataLocal("oDataMulticast"),
     oDataMemory("oDataMemory"),
     oDataGlobal("oDataGlobal"),
-    oMemoryRequest("oMemoryRequest", numMemories),
-    iMemoryGrant("iMemoryGrant", numMemories),
     iCredit("iCredit"),
     scet("scet", fifoParams, &(core().channelMapTable), numCores, numMemories) {
 
@@ -80,10 +78,8 @@ WriteStage::WriteStage(sc_module_name name,
   scet.iFetch(iFetch);
   scet.iData(iData);
   scet.oDataLocal(oDataLocal);
-  scet.oDataMemory(oDataMemory);
+  oDataMemory(scet.oDataMemory);
   scet.oDataGlobal(oDataGlobal);
-  scet.oMemoryRequest(oMemoryRequest);
-  scet.iMemoryGrant(iMemoryGrant);
   scet.iCredit(iCredit);
 
   SC_METHOD(execute);

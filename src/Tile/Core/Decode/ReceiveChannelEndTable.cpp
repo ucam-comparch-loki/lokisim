@@ -21,9 +21,9 @@ typedef RegisterFile Registers;
 
 int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
   loki_assert_with_message(channelEnd < buffers.size(), "Channel %d", channelEnd);
-  loki_assert(!buffers[channelEnd].empty());
+  loki_assert(buffers[channelEnd].dataAvailable());
 
-  int32_t result = buffers[channelEnd].read().toInt();
+  int32_t result = buffers[channelEnd].read().payload().toInt();
 
   LOKI_LOG << this->name() << " read " << result << " from buffer "
            << (int)channelEnd << endl;
@@ -34,10 +34,10 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
 int32_t ReceiveChannelEndTable::readInternal(ChannelIndex channelEnd) const {
   loki_assert_with_message(channelEnd < buffers.size(), "Channel %d", channelEnd);
 
-  if (buffers[channelEnd].empty())
+  if (!buffers[channelEnd].dataAvailable())
     return 0;
   else
-    return buffers[channelEnd].peek().toInt();
+    return buffers[channelEnd].peek().payload().toInt();
 }
 
 void ReceiveChannelEndTable::writeInternal(ChannelIndex channel, int32_t data) {
@@ -45,8 +45,12 @@ void ReceiveChannelEndTable::writeInternal(ChannelIndex channel, int32_t data) {
               data << endl;
 
   loki_assert_with_message(channel < buffers.size(), "Channel %d", channel);
-  loki_assert(!buffers[channel].full());
-  buffers[channel].write(data);
+  loki_assert(buffers[channel].canWrite());
+
+  // TODO: currently dealing with integers rather than flits. Switch over to be
+  // more consistent.
+  Flit<Word> flit(data, ChannelID());
+  buffers[channel].write(flit);
 
   newData.notify();
 }
@@ -54,7 +58,7 @@ void ReceiveChannelEndTable::writeInternal(ChannelIndex channel, int32_t data) {
 /* Return whether or not the specified channel contains data. */
 bool ReceiveChannelEndTable::testChannelEnd(ChannelIndex channelEnd) const {
   loki_assert_with_message(channelEnd < buffers.size(), "Channel %d", channelEnd);
-  return !buffers[channelEnd].empty();
+  return buffers[channelEnd].dataAvailable();
 }
 
 ChannelIndex ReceiveChannelEndTable::selectChannelEnd(unsigned int bitmask, const DecodedInst& inst) {
@@ -67,7 +71,7 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd(unsigned int bitmask, cons
   // Return the register-mapping of the first channel which has data.
   for (int i = ++currentChannel; i != startPoint; ++currentChannel) {
     i = currentChannel.value();
-    if (((bitmask >> i) & 1) && !buffers[i].empty()) {
+    if (((bitmask >> i) & 1) && buffers[i].dataAvailable()) {
         // Adjust address so it can be accessed like a register
         return parent().core().regs.fromChannelID(i);
     }
@@ -83,7 +87,7 @@ void ReceiveChannelEndTable::waitForData(unsigned int bitmask, const DecodedInst
   // Wait for data to arrive on one of the channels we're interested in.
   while (true) {
     for (ChannelIndex i=0; i<buffers.size(); i++) {
-      if (((bitmask >> i) & 1) && !buffers[i].empty())
+      if (((bitmask >> i) & 1) && buffers[i].dataAvailable())
         return;
     }
 
@@ -103,11 +107,11 @@ void ReceiveChannelEndTable::checkInput(ChannelIndex input) {
 }
 
 const sc_event& ReceiveChannelEndTable::receivedDataEvent(ChannelIndex buffer) const {
-  return buffers[buffer].writeEvent();
+  return buffers[buffer].dataAvailableEvent();
 }
 
 void ReceiveChannelEndTable::updateFlowControl(ChannelIndex buffer) {
-  bool canReceive = !buffers[buffer].full();
+  bool canReceive = buffers[buffer].canWrite();
   if (oFlowControl[buffer].read() != canReceive)
     oFlowControl[buffer].write(canReceive);
 }
@@ -126,7 +130,7 @@ DecodeStage& ReceiveChannelEndTable::parent() const {
 
 void ReceiveChannelEndTable::reportStalls(ostream& os) {
   for (uint i=0; i<buffers.size(); i++) {
-    if (buffers[i].full())
+    if (!buffers[i].canWrite())
       os << buffers[i].name() << " is full." << endl;
   }
 }
@@ -155,8 +159,8 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name,
   for (unsigned int i=0; i<buffers.size(); i++) {
     sc_core::sc_spawn_options options;
     options.spawn_method();     /* Want an efficient method, not a thread */
-    options.set_sensitivity(&(buffers[i].readEvent()));
-    options.set_sensitivity(&(buffers[i].writeEvent()));
+    options.set_sensitivity(&(buffers[i].canWriteEvent()));
+    options.set_sensitivity(&(buffers[i].dataAvailableEvent()));
 
     /* Create the method. */
     sc_spawn(sc_bind(&ReceiveChannelEndTable::updateFlowControl, this, i), 0, &options);

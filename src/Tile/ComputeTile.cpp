@@ -184,24 +184,15 @@ void ComputeTile::makeSignals() {
   dataFromMemory.init("dataFromMemory", dataReturn.iData);
   instructionsToCores.init("instructionsToCores", instructionReturn.oData);
   instructionsFromMemory.init("instructionsFromMemory", instructionReturn.iData);
-  requestsToMemory.init("requestsToMemory", coreToMemory.oData);
-  requestsFromCores.init("requestsFromCore", coreToMemory.iData);
   multicastFromCores.init("multicastFromCore", coreToCore.iData);
   multicastToCores.init("multicastToCore", coreToCore.oData);
   readyDataFromCores.init("readyDataFromCore", coreToCore.iReady);
-  readyDataFromMemory.init("readyDataFromMemory", coreToMemory.iReady);
 
   creditsToCores.init("creditToCore", cores.size());
   creditsFromCores.init("creditFromCore", cores.size());
   readyCreditFromCores.init("readyCreditFromCore", cores.size(), 1);
   globalDataToCores.init("globalDataToCore", cores.size());
   globalDataFromCores.init("globalDataFromCore", cores.size());
-
-  coreToMemRequests.init("coreToMemRequest", cores.size(), memories.size());
-  coreToMemGrants.init("coreToMemGrant", cores.size(), memories.size());
-  for (uint i=0; i<cores.size(); i++)
-    for (uint j=0; j<memories.size(); j++)
-      coreToMemRequests[i][j].write(NO_REQUEST);
 
   dataReturnRequests.init("dataReturnRequest", memories.size(), cores.size());
   dataReturnGrants.init("dataReturnGrant", memories.size(), cores.size());
@@ -230,9 +221,6 @@ void ComputeTile::wireUp() {
     cores[i].iMulticast(multicastToCores[i]); // vector
     cores[i].oCredit(creditsFromCores[i]);
     cores[i].oMulticast(multicastFromCores[i]);
-    cores[i].oRequest(requestsFromCores[i]);
-    cores[i].oMemoryRequest(coreToMemRequests[i]); // vector
-    cores[i].iMemoryGrant(coreToMemGrants[i]); // vector
     cores[i].oDataGlobal(globalDataFromCores[i]);
     cores[i].oReadyCredit(readyCreditFromCores[i][0]);
     cores[i].oReadyData(readyDataFromCores[i]); // vector
@@ -240,7 +228,6 @@ void ComputeTile::wireUp() {
 
   for (uint i=0; i<memories.size(); i++) {
     memories[i].iClock(clock);
-    memories[i].iData(requestsToMemory[i]);
     memories[i].iRequest(l2RequestToMemory);
     memories[i].iRequestClaimed(l2RequestClaimed);
     memories[i].iRequestDelayed(l2RequestDelayed);
@@ -255,7 +242,6 @@ void ComputeTile::wireUp() {
     memories[i].iCoreDataGrant(dataReturnGrants[i]); // vector
     memories[i].oCoreInstRequest(instructionReturnRequests[i]); // vector
     memories[i].iCoreInstGrant(instructionReturnGrants[i]); // vector
-    memories[i].oReadyForData(readyDataFromMemory[i][0]);
     memories[i].oRequest(l2RequestFromMemory[i]);
     memories[i].oResponse(l2ResponseFromMemory[i]);
   }
@@ -287,12 +273,11 @@ void ComputeTile::wireUp() {
   coreToCore.oData(multicastToCores);
   coreToCore.iReady(readyDataFromCores);
 
-  coreToMemory.clock(slowClock);
-  coreToMemory.iData(requestsFromCores);
-  coreToMemory.oData(requestsToMemory);
-  coreToMemory.iReady(readyDataFromMemory);
-  coreToMemory.iRequest(coreToMemRequests);
-  coreToMemory.oGrant(coreToMemGrants);
+  coreToMemory.clock(clock);
+  for (uint i=0; i<cores.size(); i++)
+    coreToMemory.inputs[i](cores[i].oRequest);
+  for (uint i=0; i<memories.size(); i++)
+    coreToMemory.outputs[i](memories[i].iData);
 
   // Data can go to any buffer (including instructions).
   dataReturn.clock(slowClock);

@@ -22,6 +22,7 @@
 #include "L2RequestFilter.h"
 #include "ReservationHandler.h"
 #include "../../Network/FIFOs/DelayFIFO.h"
+#include "../../Network/FIFOs/NetworkFIFO.h"
 #include "../../Utility/BlockingInterface.h"
 #include "../../Utility/LokiVector.h"
 
@@ -40,8 +41,7 @@ public:
   ClockInput            iClock;            // Clock
 
   // Data - to/from cores on the same tile.
-  DataInput             iData;            // Input data sent to the memory bank
-  ReadyOutput           oReadyForData;    // Indicates that there is buffer space for new input
+  sc_port<network_sink_ifc<Word>> iData;  // Input data sent to the memory bank
   DataOutput            oData;            // Data sent to the cores
   DataOutput            oInstruction;     // Instructions sent to the cores
 
@@ -201,7 +201,7 @@ private:
 
   void copyToMissBuffer();
 
-  void processValidInput();
+  void coreRequestArrived();
   void handleDataOutput();
   void handleInstructionOutput();
   void handleRequestOutput();
@@ -214,7 +214,6 @@ private:
   void mainLoop();                    // Main loop thread
 
   void updateIdle();                  // Update idleness
-  void updateReady();                 // Update flow control signals
 
   // Determine how long outputs must be delayed to achieve the required latency.
   static cycle_count_t artificialDelayRequired(const memory_bank_parameters_t& params);
@@ -255,7 +254,7 @@ private:
 
   bool                  currentlyIdle;
 
-  NetworkFIFO<NetworkRequest>  inputQueue;       // Input queue
+  NetworkFIFO<Word>            inputQueue;       // Input queue
   DelayFIFO<NetworkResponse>   outputDataQueue;  // Output queue
   DelayFIFO<NetworkResponse>   outputInstQueue;  // Output queue
   DelayFIFO<NetworkRequest>    outputReqQueue;   // Output request queue

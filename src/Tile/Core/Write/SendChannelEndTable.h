@@ -39,14 +39,8 @@ public:
 
   // Data outputs to the network.
   DataOutput              oDataLocal;
-  DataOutput              oDataMemory;
+  sc_port<network_source_ifc<Word>> oDataMemory;
   DataOutput              oDataGlobal;
-
-  // Arbitration for the core->memory network. This is the only network with
-  // arbitration. There is one signal per memory bank, and the value to be
-  // sent is the channel of that memory to access.
-  LokiVector<ArbiterRequestOutput> oMemoryRequest;
-  LokiVector<ArbiterGrantInput>    iMemoryGrant;
 
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.
@@ -94,19 +88,23 @@ private:
   // Send the oldest value in the output buffer, if the flow control signals
   // allow it.
   void          sendLoopLocal();
-  void          sendLoopMemory();
   void          sendLoopGlobal();
+
+  // Instrumentation whenever a request is sent.
+  void          sentMemoryRequest();
 
   // A credit was received, so update the corresponding credit counter.
   void          receivedCredit();
+
+  // Data was added or removed from any of the buffers.
+  // TODO Remove this when all buffers are properly connected to the network.
+  void          bufferFillChanged();
 
   // Send a request to reserve (or release) a connection to a particular
   // destination component. May cause re-execution of the calling method when
   // the request is granted.
   void          requestCoreAccess(ChannelID destination, bool request);
   bool          coreRequestGranted(ChannelID destination) const;
-  void          requestMemoryAccess(ChannelID destination, bool request);
-  bool          memoryRequestGranted(ChannelID destination) const;
   void          requestGlobalAccess(ChannelID destination, bool request);
   bool          globalRequestGranted(ChannelID destination) const;
 
@@ -138,7 +136,7 @@ private:
   SendState sendStateMulticast;
 
   // Buffer of data to send onto the network.
-  NetworkFIFO<NetworkData> bufferLocal, bufferMemory, bufferGlobal;
+  NetworkFIFO<Word> bufferLocal, bufferMemory, bufferGlobal;
 
   // A pointer to this core's channel map table. The table itself is in the
   // Core class. No reading or writing of destinations should occur here -
@@ -146,7 +144,7 @@ private:
   ChannelMapTable* const channelMapTable;
 
   // An event which is triggered whenever data is inserted into the buffer.
-  sc_event  bufferFillChanged;
+  sc_event  bufferFillChangedEvent;
 
 };
 

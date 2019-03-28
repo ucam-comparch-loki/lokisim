@@ -271,8 +271,6 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
     iInstruction("iInstruction"),
     iData("iData"),
     oRequest("oRequest"),
-    oMemoryRequest("oMemoryRequest", numMemories),
-    iMemoryGrant("iMemoryGrant", numMemories),
     iMulticast("iMulticast", numMulticastInputs),
     oMulticast("oMulticast"),
     oDataGlobal("oDataGlobal"),
@@ -354,9 +352,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
   write.oReady(stageReady[2]);
   write.iFetch(fetchFlitSignal);
   write.iData(dataFlitSignal);
-  write.oDataMemory(oRequest);
-  write.oMemoryRequest(oMemoryRequest);
-  write.iMemoryGrant(iMemoryGrant);
+  oRequest(write.oDataMemory);
   write.oDataLocal(oMulticast);
   write.oDataGlobal(oDataGlobal);
   write.iCredit(iCredit);

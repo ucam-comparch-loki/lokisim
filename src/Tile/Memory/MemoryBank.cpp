@@ -233,7 +233,7 @@ bool MemoryBank::payloadAvailable(MemoryLevel level) const {
   else {
     switch (level) {
       case MEMORY_L1:
-        return !inputQueue.empty() && isPayload(inputQueue.peek());
+        return inputQueue.dataAvailable() && isPayload(inputQueue.peek());
       case MEMORY_L2:
         return requestSig.valid() && isPayload(requestSig.read());
       default:
@@ -257,7 +257,6 @@ uint32_t MemoryBank::getPayload(MemoryLevel level) {
     switch (level) {
       case MEMORY_L1:
         request = inputQueue.read();
-        LOKI_LOG << this->name() << " dequeued " << request << endl;
         break;
       case MEMORY_L2: {
         request = requestSig.read();
@@ -577,7 +576,6 @@ void MemoryBank::processForward(DecodedRequest& request) {
     switch (request->getMemoryLevel()) {
       case MEMORY_L1:
         payload = inputQueue.read();
-        LOKI_LOG << this->name() << " dequeued " << payload << endl;
         break;
       case MEMORY_L2:
         payload = requestSig.read();
@@ -618,12 +616,12 @@ void MemoryBank::finishedRequestForNow(DecodedRequest& request) {
 }
 
 bool MemoryBank::requestAvailable() const {
-  return (!inputQueue.empty() && !isPayload(inputQueue.peek()))
+  return (inputQueue.dataAvailable() && !isPayload(inputQueue.peek()))
       || (requestSig.valid() && !isPayload(requestSig.read()));
 }
 
 const sc_event_or_list& MemoryBank::requestAvailableEvent() const {
-  return inputQueue.writeEvent() | requestSig.default_event();
+  return inputQueue.dataAvailableEvent() | requestSig.default_event();
 }
 
 MemoryBank::DecodedRequest MemoryBank::peekRequest() {
@@ -633,7 +631,7 @@ MemoryBank::DecodedRequest MemoryBank::peekRequest() {
   MemoryLevel level;
   ChannelID destination;
 
-  if (!inputQueue.empty() && !isPayload(inputQueue.peek())) {
+  if (inputQueue.dataAvailable() && !isPayload(inputQueue.peek())) {
     request = inputQueue.peek();
     level = MEMORY_L1;
     destination = ChannelID(id.tile.x,
@@ -660,7 +658,6 @@ void MemoryBank::consumeRequest(MemoryLevel level) {
   switch (level) {
     case MEMORY_L1: {
       NetworkRequest request = inputQueue.read();
-      LOKI_LOG << this->name() << " dequeued " << request << endl;
       Instrumentation::Latency::memoryStartedRequest(id, request);
       break;
     }
@@ -783,7 +780,7 @@ void MemoryBank::copyToMissBuffer() {
 
     switch (missRequest->getMemoryLevel()) {
       case MEMORY_L1:
-        dataAvailable = !inputQueue.empty();
+        dataAvailable = inputQueue.dataAvailable();
         if (dataAvailable)
           payload = inputQueue.peek();
         break;
@@ -810,7 +807,6 @@ void MemoryBank::copyToMissBuffer() {
     switch (missRequest->getMemoryLevel()) {
       case MEMORY_L1:
         inputQueue.read();
-        LOKI_LOG << this->name() << " dequeued " << payload << endl;
         break;
       case MEMORY_L2:
         requestSig.ack();
@@ -837,14 +833,9 @@ void MemoryBank::preWriteCheck(const MemoryOperation& operation) const {
   }
 }
 
-void MemoryBank::processValidInput() {
-  loki_assert(iData.valid());
-  LOKI_LOG << this->name() << " received " << iData.read() << endl;
-  loki_assert(!inputQueue.full());
-  inputQueue.write(iData.read());
-  iData.ack();
-  Instrumentation::Network::recordBandwidth(iData.name());
-  Instrumentation::Latency::memoryReceivedRequest(id, iData.read());
+// Instrumentation only.
+void MemoryBank::coreRequestArrived() {
+  Instrumentation::Latency::memoryReceivedRequest(id, inputQueue.lastDataWritten());
 }
 
 void MemoryBank::handleDataOutput() {
@@ -968,17 +959,11 @@ void MemoryBank::mainLoop() {
 void MemoryBank::updateIdle() {
   bool wasIdle = currentlyIdle;
   currentlyIdle = state == STATE_IDLE &&
-                  inputQueue.empty() && outputDataQueue.empty() &&
+                  !inputQueue.dataAvailable() && outputDataQueue.empty() &&
                   outputInstQueue.empty() && outputReqQueue.empty();
 
   if (wasIdle != currentlyIdle)
     Instrumentation::idle(id, currentlyIdle);
-}
-
-void MemoryBank::updateReady() {
-  bool ready = !inputQueue.full();
-  if (ready != oReadyForData.read())
-    oReadyForData.write(ready);
 }
 
 cycle_count_t MemoryBank::artificialDelayRequired(const memory_bank_parameters_t& params) {
@@ -1009,7 +994,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   MemoryBase(name, ID, params.log2CacheLineSize()),
   iClock("iClock"),
   iData("iData"),
-  oReadyForData("oReadyForData"),
   oData("oData"),
   oInstruction("oInstruction"),
   oCoreDataRequest("oCoreDataRequest", numCores),
@@ -1051,7 +1035,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   mainMemory = NULL;
 
   // Connect to local components.
-  oReadyForData.initialize(false);
+  iData(inputQueue);
 
   l2RequestFilter.iClock(iClock);
   l2RequestFilter.iRequest(iRequest);
@@ -1073,21 +1057,13 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   sensitive << iClock.neg();
   dont_initialize();
 
-  SC_METHOD(updateReady);
-  sensitive << inputQueue.readEvent() << inputQueue.writeEvent();
-  // do initialise
-
   SC_METHOD(updateIdle);
-  sensitive << inputQueue.readEvent() << inputQueue.writeEvent()
+  sensitive << inputQueue.canWriteEvent() << inputQueue.dataAvailableEvent()
             << outputDataQueue.readEvent() << outputDataQueue.writeEvent()
             << outputInstQueue.readEvent() << outputInstQueue.writeEvent()
             << outputReqQueue.readEvent() << outputReqQueue.writeEvent()
             << iResponse << oResponse;
   // do initialise
-
-  SC_METHOD(processValidInput);
-  sensitive << iData;
-  dont_initialize();
 
   SC_METHOD(handleDataOutput);
   SC_METHOD(handleInstructionOutput);
@@ -1095,6 +1071,10 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
 
   SC_METHOD(copyToMissBuffer);
   sensitive << cacheMissEvent;
+  dont_initialize();
+
+  SC_METHOD(coreRequestArrived);
+  sensitive << inputQueue.dataAvailableEvent();
   dont_initialize();
 }
 
@@ -1177,7 +1157,7 @@ vector<uint32_t>& MemoryBank::dataArray() {
 }
 
 void MemoryBank::reportStalls(ostream& os) {
-  if (inputQueue.full()) {
+  if (!inputQueue.canWrite()) {
     os << inputQueue.name() << " is full." << endl;
   }
   if (!outputDataQueue.empty()) {

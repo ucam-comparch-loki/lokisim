@@ -87,7 +87,7 @@ private:
 
 private:
 
-  FIFOArray<NetworkData> inputBuffers;
+  FIFOArray<Word> inputBuffers;
 
 //============================================================================//
 // Local state

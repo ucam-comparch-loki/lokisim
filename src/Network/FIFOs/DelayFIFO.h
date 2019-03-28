@@ -19,7 +19,7 @@
 #define SRC_NETWORK_DELAYFIFO_H_
 
 #include "../../LokiComponent.h"
-#include "NetworkFIFO.h"
+#include "FIFO.h"
 
 template<class T>
 class DelayFIFO : public LokiComponent {
@@ -118,7 +118,7 @@ private:
     return buffer.empty();
   }
 
-  NetworkFIFO<TimedData> buffer;
+  FIFO<TimedData> buffer;
 
   const double delay;
 

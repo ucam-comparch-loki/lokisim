@@ -13,16 +13,16 @@
 const string DirectionNames[] = {"north", "east", "south", "west", "local"};
 
 void Router::receiveData(PortIndex input) {
-  if (inputBuffers[input].full()) {
+  if (!inputBuffers[input].canWrite()) {
     // If the buffer is full, let the data sit on the wire until space becomes
     // available.
     // TODO: remove this, and rely on the flow control signals
-    next_trigger(inputBuffers[input].readEvent());
+    next_trigger(inputBuffers[input].canWriteEvent());
   }
   else {
     Instrumentation::Network::recordBandwidth(iData[input].name());
     LOKI_LOG << this->name() << ": input from " << DirectionNames[input] << ": " << iData[input].read() << endl;
-    bool wasEmpty = inputBuffers[input].empty();
+    bool wasEmpty = !inputBuffers[input].dataAvailable();
 
     // Put the new data into a buffer.
     inputBuffers[input].write(iData[input].read());
@@ -46,7 +46,7 @@ void Router::sendData(PortIndex output) {
     // Wormhole mode - continue reading from same input.
     if (holdInput[output]) {
       PortIndex input = lastAccepted[output];
-      if (!inputBuffers[input].empty()) {
+      if (inputBuffers[input].dataAvailable()) {
         NetworkData flit = inputBuffers[input].read();
         oData[output].write(flit);
 
@@ -88,7 +88,7 @@ void Router::sendData(PortIndex output) {
 }
 
 void Router::updateFlowControl(PortIndex input) {
-  bool canReceive = !inputBuffers[input].full();
+  bool canReceive = inputBuffers[input].canWrite();
   if (oReady[input].read() != canReceive) {
     oReady[input].write(canReceive);
   }
@@ -97,7 +97,7 @@ void Router::updateFlowControl(PortIndex input) {
 void Router::updateDestination(PortIndex input) {
   PortIndex output = -1;
 
-  if (!inputBuffers[input].empty()) {
+  if (inputBuffers[input].dataAvailable()) {
     output = getDestination(inputBuffers[input].peek().channelID());
     outputAvailable[output].notify();
   }
@@ -125,7 +125,7 @@ void Router::reportStalls(ostream& os) {
   }
 
   for (uint i=0; i<iData.size(); i++) {
-    if (inputBuffers[i].full()) {
+    if (!inputBuffers[i].canWrite()) {
       os << inputBuffers[i].name() << " is full." << endl;
       os << "  Head is trying to get to " << inputBuffers[i].peek().channelID() << endl;
     }
@@ -165,8 +165,8 @@ Router::Router(const sc_module_name& name, const TileID& ID,
     // Need to do this the long way because it's sensitive to multiple events.
     sc_core::sc_spawn_options options;
     options.spawn_method();     /* Want an efficient method, not a thread */
-    options.set_sensitivity(&(inputBuffers[i].readEvent()));
-    options.set_sensitivity(&(inputBuffers[i].writeEvent()));
+    options.set_sensitivity(&(inputBuffers[i].canWriteEvent()));
+    options.set_sensitivity(&(inputBuffers[i].dataAvailableEvent()));
     sc_spawn(sc_bind(&Router::updateFlowControl, this, i), 0, &options);
   }
 

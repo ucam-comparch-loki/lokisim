@@ -11,7 +11,7 @@
 #include "FetchStage.h"
 
 const Instruction InstructionPacketFIFO::read() {
-  Instruction inst = fifo.read();
+  Instruction inst = fifo.read().payload();
   fifoRead.notify(sc_core::SC_ZERO_TIME);
 
   CacheIndex readPointer = fifo.getReadPointer();
@@ -32,7 +32,11 @@ void InstructionPacketFIFO::write(const Instruction inst) {
 
   CacheIndex writePos = fifo.getWritePointer();
 
-  fifo.write(inst);
+  // A NetworkFIFO needs flits, not raw instructions. Add a dummy address.
+  // TODO: do we actually need a NetworkFIFO?
+  Flit<Instruction> flit(inst, ChannelID());
+
+  fifo.write(flit);
   fifoWrite.notify(sc_core::SC_ZERO_TIME);
 
   if (finishedPacketWrite) {  // Start of new packet
@@ -94,11 +98,11 @@ void InstructionPacketFIFO::jump(JumpOffset amount) {
 bool InstructionPacketFIFO::isEmpty() const {
   // If we have a packet which is due to be executed soon, the FIFO is not
   // empty.
-  return fifo.empty() && !tagMatched;
+  return !fifo.dataAvailable() && !tagMatched;
 }
 
 bool InstructionPacketFIFO::isFull() const{
-  return fifo.full();
+  return !fifo.canWrite();
 }
 
 const sc_event& InstructionPacketFIFO::readEvent() const {
@@ -110,7 +114,7 @@ const sc_event& InstructionPacketFIFO::writeEvent() const {
 }
 
 void InstructionPacketFIFO::updateReady() {
-  oFlowControl.write(!fifo.full());
+  oFlowControl.write(fifo.canWrite());
 }
 
 void InstructionPacketFIFO::dataConsumedAction() {

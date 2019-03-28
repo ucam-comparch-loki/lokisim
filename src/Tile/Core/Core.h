@@ -46,10 +46,7 @@ public:
   // Connections to/from local memory.
   DataInput               iInstruction;
   DataInput               iData;
-  RequestOutput           oRequest;
-
-  LokiVector<ArbiterRequestOutput> oMemoryRequest;
-  LokiVector<ArbiterGrantInput>    iMemoryGrant;
+  sc_port<network_source_ifc<Word>> oRequest;
 
   // Connections to/from local cores.
   LokiVector<DataInput>   iMulticast;

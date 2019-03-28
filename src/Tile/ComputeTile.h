@@ -163,9 +163,8 @@ private:
                             instructionsToCores,      instructionsFromMemory,
                             multicastFromCores;
   LokiVector2D<DataSignal>  multicastToCores;
-  LokiVector<RequestSignal> requestsToMemory,         requestsFromCores;
 
-  LokiVector2D<ReadySignal> readyDataFromCores,       readyDataFromMemory;
+  LokiVector2D<ReadySignal> readyDataFromCores;
 
   LokiVector<CreditSignal>  creditsToCores,           creditsFromCores;
   LokiVector2D<ReadySignal> readyCreditFromCores;
@@ -177,10 +176,8 @@ private:
   // Currently the signals are written using a function call, but they can
   // be removed if we set up a proper SystemC channel connection.
   // Addressed using coreRequests[requester][destination]
-  LokiVector2D<ArbiterRequestSignal> coreToMemRequests,
-                                     dataReturnRequests, instructionReturnRequests;
-  LokiVector2D<ArbiterGrantSignal>   coreToMemGrants,
-                                     dataReturnGrants,   instructionReturnGrants;
+  LokiVector2D<ArbiterRequestSignal> dataReturnRequests, instructionReturnRequests;
+  LokiVector2D<ArbiterGrantSignal>   dataReturnGrants,   instructionReturnGrants;
 
   LokiVector<RequestSignal> l2RequestFromMemory;
   RequestSignal             l2RequestToMemory;
