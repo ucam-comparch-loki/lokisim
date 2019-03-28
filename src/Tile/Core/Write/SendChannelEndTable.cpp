@@ -113,6 +113,12 @@ void SendChannelEndTable::receiveLoop() {
       // Wait for right point in clock cycle
 //      else if (!clock.negedge())
 //        next_trigger(clock.negedge_event());
+      else if (!bufferLocal.canWrite())
+        next_trigger(bufferLocal.canWriteEvent());
+      else if (!bufferMemory.canWrite())
+        next_trigger(bufferMemory.canWriteEvent());
+      else if (!bufferGlobal.canWrite())
+        next_trigger(bufferGlobal.canWriteEvent());
       else {
         loki_assert(bufferLocal.canWrite());
         loki_assert(bufferMemory.canWrite());
