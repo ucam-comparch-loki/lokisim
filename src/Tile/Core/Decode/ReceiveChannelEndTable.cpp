@@ -144,7 +144,7 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name,
     iData("iData", numChannels),
     oFlowControl("oFlowControl", numChannels),
     oDataConsumed("oDataConsumed", numChannels),
-    buffers(this->name(), numChannels, fifoParams.size),
+    buffers("buffers", numChannels, fifoParams.size),
     currentChannel(numChannels) {
 
   // Generate a method to watch each input port, putting the data into the

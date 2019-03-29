@@ -130,7 +130,7 @@ InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name,
     LokiComponent(name),
     oFlowControl("oFlowControl"),
     oDataConsumed("oDataConsumed"),
-    fifo(std::string(name), params.size),
+    fifo("fifo", params.size),
     addresses(params.size, DEFAULT_TAG) {
 
   tag = DEFAULT_TAG;

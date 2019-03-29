@@ -286,9 +286,9 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name,
     oDataMemory("oDataMemory"),
     oDataGlobal("oDataGlobal"),
     iCredit("iCredit"),
-    bufferLocal(string(this->name())+string(".bufferLocal"), fifoParams.size),
-    bufferMemory(string(this->name())+string(".bufferMemory"), fifoParams.size),
-    bufferGlobal(string(this->name())+string(".bufferGlobal"), fifoParams.size),
+    bufferLocal("bufferLocal", fifoParams.size),
+    bufferMemory("bufferMemory", fifoParams.size),
+    bufferGlobal("bufferGlobal", fifoParams.size),
     channelMapTable(cmt) {
 
   receiveState = RS_READY;

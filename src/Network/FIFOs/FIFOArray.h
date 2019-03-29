@@ -14,11 +14,12 @@
 #ifndef BUFFERARRAY_H_
 #define BUFFERARRAY_H_
 
+#include "../../LokiComponent.h"
 #include "../../Utility/LokiVector.h"
 #include "NetworkFIFO.h"
 
 template<class T>
-class FIFOArray {
+class FIFOArray: public LokiComponent {
 
 //============================================================================//
 // Methods
@@ -48,16 +49,15 @@ public:
 
 public:
 
-  FIFOArray(const std::string& name, const uint numBuffers, const uint buffSize) {
+  FIFOArray(const sc_module_name& name, const uint numBuffers, const uint buffSize) :
+      LokiComponent(name) {
     assert(numBuffers > 0);
     assert(buffSize > 0);
 
     for(uint i=0; i<numBuffers; i++) {
       std::stringstream ss;
-      ss << name << ".buffer_" << i;
-      std::string buffName;
-      ss >> buffName;
-      buffers.push_back(new NetworkFIFO<T>(buffName, buffSize));
+      ss << i;
+      buffers.push_back(new NetworkFIFO<T>(ss.str().c_str(), buffSize));
     }
   }
 

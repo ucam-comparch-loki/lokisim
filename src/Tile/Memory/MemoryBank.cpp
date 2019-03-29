@@ -1012,7 +1012,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   oResponse("oResponse"),
   hitUnderMiss(params.hitUnderMiss),
   log2NumBanks(log2(numBanks)),
-  inputQueue(string(this->name()) + string(".mInputQueue"), params.inputFIFO.size),
+  inputQueue("mInputQueue", params.inputFIFO.size),
   outputDataQueue("mOutputDataQueue", params.outputFIFO.size, artificialDelayRequired(params)),
   outputInstQueue("mOutputInstQueue", params.outputFIFO.size, artificialDelayRequired(params)),
   outputReqQueue("mOutputReqQueue", requestQueueSize(params), 0),

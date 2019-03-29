@@ -11,13 +11,14 @@
 #ifndef NETWORKBUFFER_H_
 #define NETWORKBUFFER_H_
 
+#include "../../LokiComponent.h"
 #include "FIFO.h"
 #include "../Interface.h"
 #include "../../Utility/Instrumentation/Network.h"
 
-// TODO: Make this a type of LokiComponent, so it has a name, parent, etc.
 template<class T>
-class NetworkFIFO: public network_source_ifc<T>,
+class NetworkFIFO: public LokiComponent,
+                   public network_source_ifc<T>,
                    public network_sink_ifc<T> {
 
   typedef Flit<T> stored_data;
@@ -28,8 +29,9 @@ class NetworkFIFO: public network_source_ifc<T>,
 
 public:
 
-  NetworkFIFO(const std::string& name, const size_t size) :
-      fifo(name, size),
+  NetworkFIFO(const sc_module_name& name, const size_t size) :
+      LokiComponent(name),
+      fifo(this->name(), size),
       fresh(size, false) {
 
   }
@@ -46,7 +48,7 @@ public:
     LOKI_LOG << name() << " consumed " << peek() << endl;
     if (fifo.full())
       LOKI_LOG << name() << " is no longer full" << endl;
-    Instrumentation::Network::recordBandwidth(this->name().c_str());
+    Instrumentation::Network::recordBandwidth(this->name());
 
     if (fresh[fifo.getReadPointer()]) {
       dataConsumed.notify();
@@ -66,14 +68,16 @@ public:
     fifo.write(newData);
 
     if (fifo.full())
-      LOKI_LOG << fifo.name() << " is full" << endl;
+      LOKI_LOG << name() << " is full" << endl;
   }
 
   virtual const stored_data& lastDataRead() const {
+    // FIXME: this is not valid if the buffer size is 1.
     return fifo.debugRead(fifo.getReadPointer() - 1);
   }
 
   virtual const stored_data& lastDataWritten() const {
+    // FIXME: this is not valid if the buffer size is 1.
     return fifo.debugRead(fifo.getWritePointer() - 1);
   }
 
@@ -102,10 +106,6 @@ public:
 
   unsigned int items() const {
     return fifo.items();
-  }
-
-  const std::string name() const {
-    return fifo.name();
   }
 
   // For IPK FIFO only. Can we avoid exposing this?

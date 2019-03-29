@@ -58,9 +58,9 @@ Router<T>::Router(const sc_module_name& name, const TileID& ID,
     oData("oData"),
     iReady("iReady"),
     oReady("oReady"),
-    inputBuffers(string(this->name()) + ".input_data", 5, params.fifo.size),
+    inputBuffers("in_buffers", 5, params.fifo.size),
     internal("network", ID),
-    localOutput(string(this->name()) + ".to_local", 1) {
+    localOutput("to_local", 1) {
 
   internal.clock(clock);
 
