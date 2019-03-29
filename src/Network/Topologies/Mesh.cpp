@@ -38,12 +38,12 @@ void Mesh::wireUp(size2d_t tiles) {
       }
 
       if (col > 0)
-        router.outputs[EAST](routers[col-1][row].inputs[WEST]);
+        router.outputs[WEST](routers[col-1][row].inputs[EAST]);
       else {
-        NetworkDeadEnd2<Word>* eastEdge =
-            new NetworkDeadEnd2<Word>(sc_gen_unique_name("east_edge"), TileID(col, row), "east");
-        router.outputs[EAST](*eastEdge);
-        edges.push_back(eastEdge);
+        NetworkDeadEnd2<Word>* westEdge =
+            new NetworkDeadEnd2<Word>(sc_gen_unique_name("west_edge"), TileID(col, row), "west");
+        router.outputs[WEST](*westEdge);
+        edges.push_back(westEdge);
       }
 
       if (row < tiles.height-1)
@@ -56,12 +56,12 @@ void Mesh::wireUp(size2d_t tiles) {
       }
 
       if (col < tiles.width-1)
-        router.outputs[WEST](routers[col+1][row].inputs[EAST]);
+        router.outputs[EAST](routers[col+1][row].inputs[WEST]);
       else {
-        NetworkDeadEnd2<Word>* westEdge =
-            new NetworkDeadEnd2<Word>(sc_gen_unique_name("west_edge"), TileID(col, row), "west");
-        router.outputs[WEST](*westEdge);
-        edges.push_back(westEdge);
+        NetworkDeadEnd2<Word>* eastEdge =
+            new NetworkDeadEnd2<Word>(sc_gen_unique_name("east_edge"), TileID(col, row), "east");
+        router.outputs[EAST](*eastEdge);
+        edges.push_back(eastEdge);
       }
 
       // TODO

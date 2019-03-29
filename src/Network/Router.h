@@ -90,6 +90,7 @@ private:
 
 };
 
+// An internal crossbar connecting all inputs to all outputs.
 template<typename T>
 class RouterInternalNetwork: public Network2<T> {
 public:

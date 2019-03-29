@@ -19,10 +19,13 @@ const string DirectionNames[] = {"north", "east", "south", "west", "local"};
 template<typename T>
 void Router<T>::dataArrived() {
   loki_assert(iData.valid());
-  loki_assert(inputBuffers[LOCAL].canWrite());
 
-  inputBuffers[LOCAL].write(iData.read());
-  iData.ack();
+  if (!inputBuffers[LOCAL].canWrite())
+    next_trigger(inputBuffers[LOCAL].canWriteEvent());
+  else {
+    inputBuffers[LOCAL].write(iData.read());
+    iData.ack();
+  }
 }
 
 template<typename T>
@@ -57,7 +60,7 @@ Router<T>::Router(const sc_module_name& name, const TileID& ID,
     oReady("oReady"),
     inputBuffers(string(this->name()) + ".input_data", 5, params.fifo.size),
     internal("network", ID),
-    localOutput("to_local", 1) {
+    localOutput(string(this->name()) + ".to_local", 1) {
 
   internal.clock(clock);
 
@@ -98,7 +101,7 @@ RouterInternalNetwork<T>::RouterInternalNetwork(const sc_module_name name, TileI
 
 template<typename T>
 RouterInternalNetwork<T>::~RouterInternalNetwork() {
-
+  // Nothing
 }
 
 template<typename T>

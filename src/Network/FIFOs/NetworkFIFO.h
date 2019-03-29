@@ -15,6 +15,7 @@
 #include "../Interface.h"
 #include "../../Utility/Instrumentation/Network.h"
 
+// TODO: Make this a type of LokiComponent, so it has a name, parent, etc.
 template<class T>
 class NetworkFIFO: public network_source_ifc<T>,
                    public network_sink_ifc<T> {
