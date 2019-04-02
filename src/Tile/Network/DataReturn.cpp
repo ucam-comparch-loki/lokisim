@@ -16,8 +16,8 @@
 DataReturn::DataReturn(const sc_module_name name,
                        const tile_parameters_t& params) :
     Network<Word>(name, params.numMemories + 1,
-        params.numCores * (params.core.numInputChannels-Core::numInstructionChannels)),
-    outputsPerCore(params.core.numInputChannels-Core::numInstructionChannels),
+        params.numCores * params.core.numInputChannels),
+    outputsPerCore(params.core.numInputChannels),
     outputCores(params.numCores) {
 
   // Nothing
@@ -31,10 +31,6 @@ DataReturn::~DataReturn() {
 PortIndex DataReturn::getDestination(const ChannelID address) const {
   uint core = address.component.position;
   uint channel = address.channel;
-
-  // Only data buffers are accessible through this network.
-  loki_assert(channel >= Core::numInstructionChannels);
-  channel -= Core::numInstructionChannels;
 
   return (core * outputsPerCore) + channel;
 }

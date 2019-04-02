@@ -142,7 +142,7 @@ private:
   NetworkFIFO<Word> inBuffer, outBuffer;
 
   // State to choose which buffer to send a credit for next.
-  RoundRobinArbiter2 arbiter;
+  RoundRobinArbiter arbiter;
   request_list_t creditsOutstanding;
 
   // Event triggered whenever there is a new credit to be sent.

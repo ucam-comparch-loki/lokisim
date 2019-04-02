@@ -229,7 +229,7 @@ bool MemoryBank::payloadAvailable(MemoryLevel level) const {
   else {
     switch (level) {
       case MEMORY_L1:
-        return inputQueue.dataAvailable() && isPayload(inputQueue.peek());
+        return inputQueue.canRead() && isPayload(inputQueue.peek());
       case MEMORY_L2:
         return requestSig.valid() && isPayload(requestSig.read());
       default:
@@ -375,7 +375,7 @@ void MemoryBank::processIdle() {
       // (This differs from the Verilog which has two separate request
       // handlers.)
       if (hitRequest->awaitingPayload() && isCore(hitRequest->getDestination())
-          && (inputQueue.size() < 1+hitRequest->payloadFlitsRemaining()))
+          && (inputQueue.items() < 1+hitRequest->payloadFlitsRemaining()))
         return;
 
       LOKI_LOG << this->name() << " starting hit-under-miss" << endl;
@@ -612,12 +612,12 @@ void MemoryBank::finishedRequestForNow(DecodedRequest& request) {
 }
 
 bool MemoryBank::requestAvailable() const {
-  return (inputQueue.dataAvailable() && !isPayload(inputQueue.peek()))
+  return (inputQueue.canRead() && !isPayload(inputQueue.peek()))
       || (requestSig.valid() && !isPayload(requestSig.read()));
 }
 
 const sc_event_or_list& MemoryBank::requestAvailableEvent() const {
-  return inputQueue.dataAvailableEvent() | requestSig.default_event();
+  return inputQueue.canReadEvent() | requestSig.default_event();
 }
 
 MemoryBank::DecodedRequest MemoryBank::peekRequest() {
@@ -627,7 +627,7 @@ MemoryBank::DecodedRequest MemoryBank::peekRequest() {
   MemoryLevel level;
   ChannelID destination;
 
-  if (inputQueue.dataAvailable() && !isPayload(inputQueue.peek())) {
+  if (inputQueue.canRead() && !isPayload(inputQueue.peek())) {
     request = inputQueue.peek();
     level = MEMORY_L1;
     destination = ChannelID(id.tile.x,
@@ -776,7 +776,7 @@ void MemoryBank::copyToMissBuffer() {
 
     switch (missRequest->getMemoryLevel()) {
       case MEMORY_L1:
-        dataAvailable = inputQueue.dataAvailable();
+        dataAvailable = inputQueue.canRead();
         if (dataAvailable)
           payload = inputQueue.peek();
         break;
@@ -854,8 +854,8 @@ void MemoryBank::coreInstructionSent() {
 void MemoryBank::handleRequestOutput() {
   if (!iClock.posedge())
     next_trigger(iClock.posedge_event());
-  else if (!outputReqQueue.dataAvailable())
-    next_trigger(outputReqQueue.dataAvailableEvent());
+  else if (!outputReqQueue.canRead())
+    next_trigger(outputReqQueue.canReadEvent());
   else {
     NetworkRequest request = outputReqQueue.read();
     LOKI_LOG << this->name() << " sent request " <<
@@ -891,8 +891,8 @@ void MemoryBank::mainLoop() {
 void MemoryBank::updateIdle() {
   bool wasIdle = currentlyIdle;
   currentlyIdle = state == STATE_IDLE &&
-                  !inputQueue.dataAvailable() && !outputDataQueue.dataAvailable() &&
-                  !outputInstQueue.dataAvailable() && !outputReqQueue.dataAvailable();
+                  !inputQueue.canRead() && !outputDataQueue.canRead() &&
+                  !outputInstQueue.canRead() && !outputReqQueue.canRead();
 
   if (wasIdle != currentlyIdle)
     Instrumentation::idle(id, currentlyIdle);
@@ -988,10 +988,10 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   dont_initialize();
 
   SC_METHOD(updateIdle);
-  sensitive << inputQueue.canWriteEvent() << inputQueue.dataAvailableEvent()
-            << outputDataQueue.canWriteEvent() << outputDataQueue.dataAvailableEvent()
-            << outputInstQueue.canWriteEvent() << outputInstQueue.dataAvailableEvent()
-            << outputReqQueue.canWriteEvent() << outputReqQueue.dataAvailableEvent()
+  sensitive << inputQueue.canWriteEvent() << inputQueue.writeEvent()
+            << outputDataQueue.canWriteEvent() << outputDataQueue.writeEvent()
+            << outputInstQueue.canWriteEvent() << outputInstQueue.writeEvent()
+            << outputReqQueue.canWriteEvent() << outputReqQueue.writeEvent()
             << iResponse << oResponse;
   // do initialise
 
@@ -1004,7 +1004,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   dont_initialize();
 
   SC_METHOD(coreRequestArrived);
-  sensitive << inputQueue.dataAvailableEvent();
+  sensitive << inputQueue.writeEvent();
   dont_initialize();
 }
 
@@ -1090,15 +1090,15 @@ void MemoryBank::reportStalls(ostream& os) {
   if (!inputQueue.canWrite()) {
     os << inputQueue.name() << " is full." << endl;
   }
-  if (outputDataQueue.dataAvailable()) {
+  if (outputDataQueue.canRead()) {
     const NetworkResponse& outWord = outputDataQueue.peek();
     os << this->name() << " waiting to send " << outWord << endl;
   }
-  if (outputInstQueue.dataAvailable()) {
+  if (outputInstQueue.canRead()) {
     const NetworkResponse& outWord = outputInstQueue.peek();
     os << this->name() << " waiting to send " << outWord << endl;
   }
-  if (outputReqQueue.dataAvailable()) {
+  if (outputReqQueue.canRead()) {
     const NetworkResponse& outWord = outputReqQueue.peek();
     os << this->name() << " waiting to send " << outWord << endl;
   }

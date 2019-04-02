@@ -17,13 +17,13 @@ using std::list;
 // Datatype used to accumulate requests before passing them to an arbiter.
 class request_list_t;
 
-class ArbiterBase2 {
+class ArbiterBase {
 public:
-  ArbiterBase2() {
+  ArbiterBase() {
     lastAccepted = -1;  // Start at -1, so any input is acceptable first time.
     held = false;
   }
-  virtual ~ArbiterBase2() {}
+  virtual ~ArbiterBase() {}
 
   // Choose the next input to use data from. This input may not necessarily be
   // in the given list of requesters (e.g. if we are in wormhole mode and forced

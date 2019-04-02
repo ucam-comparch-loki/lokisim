@@ -99,7 +99,7 @@ void InstructionPacketFIFO::jump(JumpOffset amount) {
 bool InstructionPacketFIFO::isEmpty() const {
   // If we have a packet which is due to be executed soon, the FIFO is not
   // empty.
-  return !fifo.dataAvailable() && !tagMatched;
+  return !fifo.canRead() && !tagMatched;
 }
 
 bool InstructionPacketFIFO::isFull() const{

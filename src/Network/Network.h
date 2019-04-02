@@ -69,6 +69,10 @@ private:
   // Send data on each output port on clock edges.
   void sendData(PortIndex output);
 
+  // Wrapper for inputs[input].read(). This version is multicast-safe, and only
+  // consumes the data when it has been read the correct number of times.
+  Flit<T> readData(PortIndex input);
+
   // Interpret data on input ports and determine which output will be used.
   void newData(PortIndex input);
 
@@ -83,7 +87,11 @@ private:
   // For each output port, record which inputs are waiting to send data to it.
   vector<request_list_t> requests;
 
-  vector<RoundRobinArbiter2> arbiters;
+  vector<RoundRobinArbiter> arbiters;
+
+  // For multicast, track how many destinations have received the data so far.
+  // Only consume an input when the counter reaches zero.
+  vector<uint> copiesRemaining;
 
 };
 

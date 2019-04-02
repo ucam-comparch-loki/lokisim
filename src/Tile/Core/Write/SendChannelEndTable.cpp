@@ -151,7 +151,7 @@ void SendChannelEndTable::sentPointToPointData() {
 }
 
 void SendChannelEndTable::receivedCredit() {
-  loki_assert(incomingCredits.dataAvailable());
+  loki_assert(incomingCredits.canRead());
   receiveCreditInternal(incomingCredits.read());
 }
 
@@ -182,10 +182,10 @@ Core& SendChannelEndTable::core() const {
 }
 
 void SendChannelEndTable::reportStalls(ostream& os) {
-  if (bufferMulticast.dataAvailable())
+  if (bufferMulticast.canRead())
     os << this->name() << " unable to send " << bufferMulticast.peek() << endl;
 
-  if (bufferData.dataAvailable())
+  if (bufferData.canRead())
     os << this->name() << " unable to send " << bufferData.peek() << endl;
 
   // TODO: woche
@@ -226,12 +226,12 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name,
   dont_initialize();
 
   SC_METHOD(receivedCredit);
-  sensitive << incomingCredits.dataAvailableEvent();
+  sensitive << incomingCredits.canReadEvent();
   dont_initialize();
 
   SC_METHOD(bufferFillChanged);
-  sensitive << bufferMulticast.canWriteEvent() << bufferMulticast.dataAvailableEvent()
-    << bufferData.canWriteEvent() << bufferData.dataAvailableEvent();
+  sensitive << bufferMulticast.canWriteEvent() << bufferMulticast.writeEvent()
+    << bufferData.canWriteEvent() << bufferData.writeEvent();
   dont_initialize();
 
 }

@@ -28,7 +28,7 @@ MainMemoryRequestHandler::MainMemoryRequestHandler(sc_module_name name,
   dont_initialize();
 
   SC_METHOD(sendData);
-  sensitive << outputQueue.dataAvailableEvent();
+  sensitive << outputQueue.canReadEvent();
   dont_initialize();
 
 }
@@ -219,8 +219,8 @@ void MainMemoryRequestHandler::processRequest() {
 }
 
 void MainMemoryRequestHandler::sendData() {
-  if (!outputQueue.dataAvailable())
-    next_trigger(outputQueue.dataAvailableEvent());
+  if (!outputQueue.canRead())
+    next_trigger(outputQueue.canReadEvent());
   else if (oData.valid()) {
     LOKI_LOG << this->name() << " is blocked waiting for output to become free" << endl;
     next_trigger(oData.ack_event());

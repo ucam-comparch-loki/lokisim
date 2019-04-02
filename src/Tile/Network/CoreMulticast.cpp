@@ -9,6 +9,7 @@
 #include "../../Utility/Assert.h"
 
 using sc_core::sc_gen_unique_name;
+using std::set;
 
 CoreMulticast::CoreMulticast(const sc_module_name name,
                              const tile_parameters_t& params) :

@@ -12,6 +12,7 @@
 #include "../Utility/Instrumentation/Network.h"
 
 using sc_core::sc_module_name;
+using std::set;
 
 // Some parts of SystemC don't seem to interact very well with templated
 // classes. The best solution I've found is to list out the types which can
@@ -25,7 +26,8 @@ Network<T>::Network(sc_module_name name, uint numInputs, uint numOutputs) :
     inputs("inputs", numInputs),
     outputs("outputs", numOutputs),
     requests(numOutputs),
-    arbiters(numOutputs) {
+    arbiters(numOutputs),
+    copiesRemaining(numInputs, 0) {
 
   // Some more initialisation happens once all ports have been bound in
   // end_of_elaboration().
@@ -37,15 +39,16 @@ void Network<T>::end_of_elaboration() {
   for (PortIndex output = 0; output < outputs.size(); output++)
     SPAWN_METHOD(requests[output].newRequestEvent(), Network<T>::sendData, output, false);
 
-  // Method to monitor each input port and determine which output to use.
+  // Method to monitor the head flit on each input port and determine which
+  // output to use.
   for (PortIndex input = 0; input < inputs.size(); input++)
-    SPAWN_METHOD(inputs[input]->dataAvailableEvent(), Network<T>::newData, input, false);
+    SPAWN_METHOD(inputs[input]->canReadEvent(), Network<T>::newData, input, false);
 }
 
 template<typename T>
 void Network<T>::reportStalls(ostream& os) {
   for (PortIndex i=0; i<inputs.size(); i++)
-    if (inputs[i]->dataAvailable())
+    if (inputs[i]->canRead())
       os << this->name() << " has data on input port " << i << ": " << inputs[i]->peek() << endl;
   for (PortIndex i=0; i<outputs.size(); i++)
     if (!outputs[i]->canWrite())
@@ -66,6 +69,8 @@ void Network<T>::sendData(PortIndex output) {
     next_trigger(clock.posedge_event());
   else if (!outputs[output]->canWrite())
     next_trigger(outputs[output]->canWriteEvent());
+  else if (requests[output].empty())
+    next_trigger(requests[output].newRequestEvent());
   else {
     request_list_t& req = requests[output];
 
@@ -73,17 +78,19 @@ void Network<T>::sendData(PortIndex output) {
 
     // Exit early if the selected input has no data available. This can happen
     // when in wormhole routing mode.
-    if (!inputs[granted]->dataAvailable()) {
-      next_trigger(inputs[granted]->dataAvailableEvent());
+    if (!inputs[granted]->canRead()) {
+      next_trigger(inputs[granted]->canReadEvent());
       return;
     }
+
+    req.remove(granted);
 
     // TODO: repeat this step multiple times if bandwidth > 1.
     // Stop as soon as buffer empties, packet ends, or bandwidth reached.
     // Assert that until packet ends, all flits have same destination.
     // Not valid for multicast, but current multicast networks can't generate
     // more than one word per cycle and don't use packets.
-    Flit<T> flit = inputs[granted]->read();
+    Flit<T> flit = readData(granted);
     Flit<T> previousFlit = outputs[output]->lastDataWritten();
     outputs[output]->write(flit);
 
@@ -95,9 +102,6 @@ void Network<T>::sendData(PortIndex output) {
     else
       arbiters[output].hold();
 
-    req.remove(granted);
-    updateRequests(granted);
-
     if (req.empty())
       next_trigger(req.newRequestEvent());
     else
@@ -106,13 +110,20 @@ void Network<T>::sendData(PortIndex output) {
 }
 
 template<typename T>
+Flit<T> Network<T>::readData(PortIndex input) {
+  loki_assert(copiesRemaining[input] > 0);
+  copiesRemaining[input]--;
+
+  // Only consume the input if it is the final copy of a multicast message.
+  if (copiesRemaining[input] == 0)
+    return inputs[input]->read();
+  else
+    return inputs[input]->peek();
+}
+
+template<typename T>
 void Network<T>::newData(PortIndex input) {
-  // I'm not sure why this assertion doesn't always hold, but removing it
-  // doesn't seem to hurt.
-  // Example failure: test-libloki's global-network-basic-O1.elf
-//  loki_assert(inputs[input]->dataAvailable());
-  if (!inputs[input]->dataAvailable())
-    return; // Do nothing.
+  loki_assert(inputs[input]->canRead());
 
   if (ENERGY_TRACE)
     Instrumentation::Network::crossbarInput(inputs[input]->lastDataRead(),
@@ -123,11 +134,11 @@ void Network<T>::newData(PortIndex input) {
 
 template<typename T>
 void Network<T>::updateRequests(PortIndex input) {
-  if (!inputs[input]->dataAvailable())
-    return; // Do nothing.
+  loki_assert(inputs[input]->canRead());
 
   Flit<T> flit = inputs[input]->peek();
   set<PortIndex> targets = getDestinations(flit.channelID());
+  copiesRemaining[input] = targets.size();
 
   for (auto it = targets.begin(); it != targets.end(); ++it) {
     PortIndex target = *it;

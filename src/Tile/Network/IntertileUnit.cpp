@@ -33,7 +33,7 @@ IntertileUnit::IntertileUnit(sc_module_name name, const tile_parameters_t& param
   oData(outBuffer);
 
   SC_METHOD(dataArrived);
-  sensitive << inBuffer.dataAvailableEvent();
+  sensitive << inBuffer.canReadEvent();
   dont_initialize();
 
   SC_METHOD(sendCredits);
@@ -43,7 +43,7 @@ IntertileUnit::IntertileUnit(sc_module_name name, const tile_parameters_t& param
 }
 
 void IntertileUnit::dataArrived() {
-  loki_assert(inBuffer.dataAvailable());
+  loki_assert(inBuffer.canRead());
 
   // Can't accept more data if there is an outstanding nack, because we only
   // support one nack at a time.

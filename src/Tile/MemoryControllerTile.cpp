@@ -41,7 +41,7 @@ MemoryControllerTile::~MemoryControllerTile() {
 void MemoryControllerTile::end_of_elaboration() {
   // Register methods to deal with input/output.
   SC_METHOD(requestLoop);
-  sensitive << incomingRequests.dataAvailableEvent();
+  sensitive << incomingRequests.canReadEvent();
   dont_initialize();
 
   SC_METHOD(responseLoop);
@@ -53,7 +53,7 @@ void MemoryControllerTile::requestLoop() {
   if (oRequestToMainMemory.valid()) {
     next_trigger(oRequestToMainMemory.ack_event());
   }
-  else if (incomingRequests.dataAvailable()) {
+  else if (incomingRequests.canRead()) {
     Flit<Word> flit = incomingRequests.read();
     oRequestToMainMemory.write(flit);
 
@@ -61,7 +61,7 @@ void MemoryControllerTile::requestLoop() {
         << flit << endl;
     Instrumentation::Network::recordBandwidth(oRequestToMainMemory.name());
 
-    if (incomingRequests.dataAvailable())
+    if (incomingRequests.canRead())
       next_trigger(clock.posedge_event());
     // Else, default trigger: new request arrival
   }

@@ -39,11 +39,15 @@ public:
     return dummyFlit;
   }
 
-  virtual bool dataAvailable() const {
+  virtual bool canRead() const {
     return false;
   }
 
-  virtual const sc_event& dataAvailableEvent() const {
+  virtual const sc_event& canReadEvent() const {
+    return dummyEvent;
+  }
+
+  virtual const sc_event& writeEvent() const {
     return dummyEvent;
   }
 

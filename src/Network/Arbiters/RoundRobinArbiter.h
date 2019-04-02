@@ -10,9 +10,9 @@
 
 #include "ArbiterBase.h"
 
-class RoundRobinArbiter2: public ArbiterBase2 {
+class RoundRobinArbiter: public ArbiterBase {
 public:
-  RoundRobinArbiter2() : ArbiterBase2() {
+  RoundRobinArbiter() : ArbiterBase() {
     // Nothing
   }
 

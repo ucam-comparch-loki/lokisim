@@ -55,14 +55,19 @@ public:
 
     // If the head of the queue hasn't yet reached the buffer, trigger an event
     // when it does so.
+    // TODO: should the write event really be relevant here?
     if (!trulyEmpty()) {
-      if (!dataAvailable())
+      if (!canRead()) {
         delayedWrite.notify(sc_time(writeTimes.front() - currentTime(), sc_core::SC_NS));
-      else
+        delayedNewHeadFlit.notify(sc_time(writeTimes.front() - currentTime(), sc_core::SC_NS));
+      }
+      else {
         delayedWrite.notify(sc_core::SC_ZERO_TIME);
+        delayedNewHeadFlit.notify(sc_core::SC_ZERO_TIME);
+      }
     }
 
-    loki_assert(base_class::size() == writeTimes.size());
+    loki_assert(base_class::items() == writeTimes.size());
 
     return data;
   }
@@ -72,20 +77,28 @@ public:
     writeTimes.push(currentTime() + delay);
 
     delayedWrite.notify(sc_time(delay, sc_core::SC_NS));
+    if (base_class::items() == 1)
+      delayedNewHeadFlit.notify(sc_time(delay, sc_core::SC_NS));
 
-    loki_assert(base_class::size() == writeTimes.size());
+    loki_assert(base_class::items() == writeTimes.size());
   }
 
   // The buffer is empty if there is no data, or if there is data, but it is
   // not old enough to be read yet.
-  virtual bool dataAvailable() const {
-    return base_class::dataAvailable() &&
+  virtual bool canRead() const {
+    return base_class::canRead() &&
            writeTimes.front() <= currentTime();
+  }
+
+  // Event which is triggered whenever the head flit changes (accounting for
+  // the delay).
+  virtual const sc_event& canReadEvent() const {
+    return delayedNewHeadFlit;
   }
 
   // Event which is triggered whenever data is written to the buffer (after
   // the imposed delay).
-  virtual const sc_event& dataAvailableEvent() const {
+  virtual const sc_event& writeEvent() const {
     return delayedWrite;
   }
 
@@ -113,6 +126,7 @@ protected:
 
   // Event which is notified whenever data reaches the modelled buffer.
   sc_event delayedWrite;
+  sc_event delayedNewHeadFlit;
 };
 
 #endif /* SRC_NETWORK_DELAYFIFO_H_ */

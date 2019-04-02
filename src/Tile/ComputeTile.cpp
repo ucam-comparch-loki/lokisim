@@ -188,7 +188,6 @@ void ComputeTile::makeSignals() {
 
 void ComputeTile::wireUp(const tile_parameters_t& params) {
   uint instructionInputs = Core::numInstructionChannels;
-  uint dataInputs = params.core.numInputChannels - instructionInputs;
   uint totalInputs = params.core.numInputChannels;
 
   for (uint i=0; i<cores.size(); i++) {
@@ -206,8 +205,10 @@ void ComputeTile::wireUp(const tile_parameters_t& params) {
 
       if (j < instructionInputs)
         instructionReturn.outputs[i * instructionInputs + j](core.iData[j]);
-      else
-        dataReturn.outputs[i * dataInputs + (j - instructionInputs)](core.iData[j]);
+
+      // The return crossbar actually connects to instruction inputs as well.
+      // It also handles data coming from the router.
+      dataReturn.outputs[i * totalInputs + j](core.iData[j]);
     }
   }
 

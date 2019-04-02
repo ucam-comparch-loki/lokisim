@@ -48,7 +48,7 @@ public:
 
   virtual const stored_data read() {
     LOKI_LOG << name() << " consumed " << peek() << endl;
-    if (fifo.full() && size() > 1)
+    if (fifo.full() && fifo.size() > 1)
       LOKI_LOG << name() << " is no longer full" << endl;
     Instrumentation::Network::recordBandwidth(this->name());
 
@@ -56,6 +56,10 @@ public:
       dataConsumed.notify();
       fresh[fifo.getReadPointer()] = false;
     }
+
+    if (items() > 1)
+      newHeadFlit.notify(sc_core::SC_ZERO_TIME);
+
     return fifo.read();
   }
 
@@ -66,10 +70,13 @@ public:
   virtual void write(const stored_data& newData) {
     LOKI_LOG << name() << " received " << newData << endl;
 
+    if (fifo.empty())
+      newHeadFlit.notify(sc_core::SC_ZERO_TIME);
+
     fresh[fifo.getWritePointer()] = true;
     fifo.write(newData);
 
-    if (fifo.full() && size() > 1)
+    if (fifo.full() && fifo.size() > 1)
       LOKI_LOG << name() << " is full" << endl;
   }
 
@@ -87,13 +94,15 @@ public:
     return dataConsumed;
   }
 
-  virtual bool dataAvailable() const {
+  virtual bool canRead() const {
     return !fifo.empty();
   }
 
-  virtual const sc_event& dataAvailableEvent() const {
-    // Should this also be triggered when reading, if there is more data already
-    // waiting? No - there are some cases where we only care about the writing.
+  virtual const sc_event& canReadEvent() const {
+    return newHeadFlit;
+  }
+
+  virtual const sc_event& writeEvent() const {
     return fifo.writeEvent();
   }
 
@@ -106,7 +115,7 @@ public:
   }
 
 
-  unsigned int size() const {
+  unsigned int items() const {
     return fifo.items();
   }
 
@@ -142,6 +151,9 @@ protected:
   // Event triggered whenever a "fresh" word is read. This should trigger a
   // credit being sent back to the source.
   sc_event dataConsumed;
+
+  // Event triggered whenever the first flit in the queue changes.
+  sc_event newHeadFlit;
 
 };
 

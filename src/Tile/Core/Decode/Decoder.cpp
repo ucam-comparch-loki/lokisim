@@ -304,7 +304,8 @@ void Decoder::waitUntilArrival(ChannelIndex channel, const DecodedInst& inst) {
 
     stall(true, reason, inst);
 
-    LOKI_LOG << this->name() << " waiting for channel " << (int)channel << endl;
+    LOKI_LOG << this->name() << " waiting for channel "
+        << (int)(channel + Core::numInstructionChannels) << endl;
 
     // Wait until something arrives.
     wait(parent().receivedDataEvent(channel) | cancelEvent);
@@ -355,7 +356,8 @@ bool Decoder::checkChannelInput(ChannelIndex channel, const DecodedInst& inst) {
                    : Instrumentation::Stalls::STALL_CORE_DATA;
     stall(true, reason, inst);  // Remember to unstall again afterwards.
 
-    LOKI_LOG << this->name() << " waiting for channel " << (int)channel << endl;
+    LOKI_LOG << this->name() << " waiting for channel "
+        << (int)(channel + Core::numInstructionChannels) << endl;
 
     next_trigger(parent().receivedDataEvent(channel) | cancelEvent);
   }

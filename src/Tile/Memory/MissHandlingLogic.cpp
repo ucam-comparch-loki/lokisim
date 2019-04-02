@@ -71,11 +71,11 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name,
   dont_initialize();
 
   SC_METHOD(receiveResponseLoop);
-  sensitive << incomingResponses.dataAvailableEvent();
+  sensitive << incomingResponses.canReadEvent();
   dont_initialize();
 
   SC_METHOD(remoteRequestLoop);
-  sensitive << incomingRequests.dataAvailableEvent();
+  sensitive << incomingRequests.canReadEvent();
   dont_initialize();
 
   SC_METHOD(sendResponseLoop);
@@ -220,7 +220,7 @@ void MissHandlingLogic::receiveResponseLoop() {
     return;
   }
 
-  loki_assert(incomingResponses.dataAvailable());
+  loki_assert(incomingResponses.canRead());
   NetworkResponse response = incomingResponses.read();
 
   LOKI_LOG << this->name() << " received " << response << endl;
@@ -236,7 +236,7 @@ void MissHandlingLogic::remoteRequestLoop() {
     next_trigger(oRequestToBanks.ack_event());
   }
   else {
-    loki_assert(incomingRequests.dataAvailable());
+    loki_assert(incomingRequests.canRead());
     NetworkRequest flit = incomingRequests.read();
 
     LOKI_LOG << this->name() << " sending request to banks " << flit << endl;

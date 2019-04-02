@@ -24,10 +24,15 @@ public:
   virtual const Flit<T> peek() const = 0;
 
   // Tell whether data is ready to be sent.
-  virtual bool dataAvailable() const = 0;
+  virtual bool canRead() const = 0;
 
-  // Event which is triggered whenever new data arrives.
-  virtual const sc_event& dataAvailableEvent() const = 0;
+  // Event which is triggered whenever new data is available to read. This is
+  // subtly different from writeEvent() in that it may also be triggered if a
+  // read reveals new data.
+  virtual const sc_event& canReadEvent() const = 0;
+
+  // Event which is triggered whenever new data arrives. For debug only.
+  virtual const sc_event& writeEvent() const = 0;
 
   // For debug, return the most-recently read data. If any other writes
   // have happened since the read, the result is not guaranteed to be correct.
@@ -40,8 +45,6 @@ public:
   // Write data to the network's output.
   virtual void write(const Flit<T>& data) = 0;
 
-  // TODO: allow this single output to cover multiple buffers.
-  //   e.g. Add an optional parameter specifying which address/buffer we want.
   // Tell whether the output is able to receive data.
   virtual bool canWrite() const = 0;
 

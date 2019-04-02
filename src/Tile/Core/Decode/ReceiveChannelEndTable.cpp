@@ -21,7 +21,7 @@ typedef RegisterFile Registers;
 
 int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
   loki_assert_with_message(channelEnd < buffers.size(), "Channel %d", channelEnd);
-  loki_assert(buffers[channelEnd].dataAvailable());
+  loki_assert(buffers[channelEnd].canRead());
 
   int32_t result = buffers[channelEnd].read().payload().toInt();
   return result;
@@ -30,7 +30,7 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
 int32_t ReceiveChannelEndTable::readInternal(ChannelIndex channelEnd) const {
   loki_assert_with_message(channelEnd < buffers.size(), "Channel %d", channelEnd);
 
-  if (!buffers[channelEnd].dataAvailable())
+  if (!buffers[channelEnd].canRead())
     return 0;
   else
     return buffers[channelEnd].peek().payload().toInt();
@@ -51,7 +51,7 @@ void ReceiveChannelEndTable::writeInternal(ChannelIndex channel, int32_t data) {
 /* Return whether or not the specified channel contains data. */
 bool ReceiveChannelEndTable::testChannelEnd(ChannelIndex channelEnd) const {
   loki_assert_with_message(channelEnd < buffers.size(), "Channel %d", channelEnd);
-  return buffers[channelEnd].dataAvailable();
+  return buffers[channelEnd].canRead();
 }
 
 ChannelIndex ReceiveChannelEndTable::selectChannelEnd(unsigned int bitmask, const DecodedInst& inst) {
@@ -64,7 +64,7 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd(unsigned int bitmask, cons
   // Return the register-mapping of the first channel which has data.
   for (int i = ++currentChannel; i != startPoint; ++currentChannel) {
     i = currentChannel.value();
-    if (((bitmask >> i) & 1) && buffers[i].dataAvailable()) {
+    if (((bitmask >> i) & 1) && buffers[i].canRead()) {
         // Adjust address so it can be accessed like a register
         return parent().core().regs.fromChannelID(i);
     }
@@ -80,7 +80,7 @@ void ReceiveChannelEndTable::waitForData(unsigned int bitmask, const DecodedInst
   // Wait for data to arrive on one of the channels we're interested in.
   while (true) {
     for (ChannelIndex i=0; i<buffers.size(); i++) {
-      if (((bitmask >> i) & 1) && buffers[i].dataAvailable())
+      if (((bitmask >> i) & 1) && buffers[i].canRead())
         return;
     }
 
@@ -94,7 +94,7 @@ void ReceiveChannelEndTable::waitForData(unsigned int bitmask, const DecodedInst
 }
 
 const sc_event& ReceiveChannelEndTable::receivedDataEvent(ChannelIndex buffer) const {
-  return buffers[buffer].dataAvailableEvent();
+  return buffers[buffer].writeEvent();
 }
 
 ComponentID ReceiveChannelEndTable::id() const {
@@ -135,7 +135,7 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name,
 
     iData[i](buffers[i]);
 
-    SPAWN_METHOD(buffers[i].dataAvailableEvent(), ReceiveChannelEndTable::networkDataArrived, i, false);
+    SPAWN_METHOD(buffers[i].writeEvent(), ReceiveChannelEndTable::networkDataArrived, i, false);
   }
 
 }
