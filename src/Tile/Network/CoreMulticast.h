@@ -14,9 +14,9 @@
 #ifndef SRC_TILE_NETWORK_COREMULTICAST_H_
 #define SRC_TILE_NETWORK_COREMULTICAST_H_
 
-#include "../../Network/Network2.h"
+#include "../../Network/Network.h"
 
-class CoreMulticast: public Network2<Word> {
+class CoreMulticast: public Network<Word> {
 
 //============================================================================//
 // Ports

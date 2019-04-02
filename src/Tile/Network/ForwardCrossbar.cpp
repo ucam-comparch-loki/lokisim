@@ -9,7 +9,7 @@
 
 ForwardCrossbar::ForwardCrossbar(const sc_module_name name,
                                  const tile_parameters_t& params) :
-    Network2<Word>(name, params.numCores, params.numMemories + 1){
+    Network<Word>(name, params.numCores, params.numMemories + 1){
   // All initialisation done in constructor.
 
 }

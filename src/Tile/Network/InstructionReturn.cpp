@@ -15,7 +15,7 @@
 
 InstructionReturn::InstructionReturn(const sc_module_name name,
                                      const tile_parameters_t& params) :
-    Network2<Word>(name, params.numMemories, params.numCores * Core::numInstructionChannels),
+    Network<Word>(name, params.numMemories, params.numCores * Core::numInstructionChannels),
     outputsPerCore(Core::numInstructionChannels),
     outputCores(params.numCores) {
 

@@ -4,21 +4,15 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../src/Network/Multiplexer.cpp \
 ../src/Network/Network.cpp \
-../src/Network/Network2.cpp \
 ../src/Network/Router.cpp 
 
 OBJS += \
-./src/Network/Multiplexer.o \
 ./src/Network/Network.o \
-./src/Network/Network2.o \
 ./src/Network/Router.o 
 
 CPP_DEPS += \
-./src/Network/Multiplexer.d \
 ./src/Network/Network.d \
-./src/Network/Network2.d \
 ./src/Network/Router.d 
 
 

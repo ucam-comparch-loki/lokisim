@@ -9,7 +9,7 @@
 
 CreditReturn::CreditReturn(const sc_module_name name,
                            const tile_parameters_t& params) :
-    Network2<Word>(name, 1, params.numCores) {
+    Network<Word>(name, 1, params.numCores) {
 
   // Nothing
 

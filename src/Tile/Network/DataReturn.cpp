@@ -15,7 +15,7 @@
 
 DataReturn::DataReturn(const sc_module_name name,
                        const tile_parameters_t& params) :
-    Network2<Word>(name, params.numMemories + 1,
+    Network<Word>(name, params.numMemories + 1,
         params.numCores * (params.core.numInputChannels-Core::numInstructionChannels)),
     outputsPerCore(params.core.numInputChannels-Core::numInstructionChannels),
     outputCores(params.numCores) {

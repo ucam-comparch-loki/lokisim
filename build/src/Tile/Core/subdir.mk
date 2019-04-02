@@ -7,7 +7,6 @@ CPP_SRCS += \
 ../src/Tile/Core/ChannelMapTable.cpp \
 ../src/Tile/Core/ControlRegisters.cpp \
 ../src/Tile/Core/Core.cpp \
-../src/Tile/Core/InputCrossbar.cpp \
 ../src/Tile/Core/MagicMemoryConnection.cpp \
 ../src/Tile/Core/PipelineRegister.cpp \
 ../src/Tile/Core/PipelineStage.cpp \
@@ -18,7 +17,6 @@ OBJS += \
 ./src/Tile/Core/ChannelMapTable.o \
 ./src/Tile/Core/ControlRegisters.o \
 ./src/Tile/Core/Core.o \
-./src/Tile/Core/InputCrossbar.o \
 ./src/Tile/Core/MagicMemoryConnection.o \
 ./src/Tile/Core/PipelineRegister.o \
 ./src/Tile/Core/PipelineStage.o \
@@ -29,7 +27,6 @@ CPP_DEPS += \
 ./src/Tile/Core/ChannelMapTable.d \
 ./src/Tile/Core/ControlRegisters.d \
 ./src/Tile/Core/Core.d \
-./src/Tile/Core/InputCrossbar.d \
 ./src/Tile/Core/MagicMemoryConnection.d \
 ./src/Tile/Core/PipelineRegister.d \
 ./src/Tile/Core/PipelineStage.d \

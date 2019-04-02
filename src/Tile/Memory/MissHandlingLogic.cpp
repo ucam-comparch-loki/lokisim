@@ -15,9 +15,9 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name,
                                      const tile_parameters_t& params) :
     LokiComponent(name),
     clock("clock"),
-    iRequestFromNetwork("iRequestFromNetwork", 1),
+    iRequestFromNetwork("iRequestFromNetwork"),
     oRequestToNetwork("oRequestToNetwork"),
-    iResponseFromNetwork("iResponseFromNetwork", 1),
+    iResponseFromNetwork("iResponseFromNetwork"),
     oResponseToNetwork("oResponseToNetwork"),
     oResponseToBanks("oResponseToBanks"),
     oResponseTarget("oResponseTarget"),
@@ -30,6 +30,8 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name,
     log2CacheLineSize(params.memory.log2CacheLineSize()),
     numMemoryBanks(params.numMemories),
     directory(params.directory.size),
+    incomingRequests("incomingRequests", 1),
+    incomingResponses("incomingResponses", 1),
     requestMux("request_mux", params.numMemories),
     responseMux("response_mux", params.numMemories) {
 
@@ -42,6 +44,9 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name,
   requestHeaderValid = false;
 
   rngState = 0x3F;  // Same seed as Verilog uses (see nextTargetBank()).
+
+  iRequestFromNetwork(incomingRequests);
+  iResponseFromNetwork(incomingResponses);
 
   iRequestFromBanks.init("iRequestFromBanks", requestMux.iData);
   iResponseFromBanks.init("iResponseFromBanks", responseMux.iData);
@@ -66,11 +71,11 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name,
   dont_initialize();
 
   SC_METHOD(receiveResponseLoop);
-  sensitive << iResponseFromNetwork.dataAvailableEvent();
+  sensitive << incomingResponses.dataAvailableEvent();
   dont_initialize();
 
   SC_METHOD(remoteRequestLoop);
-  sensitive << iRequestFromNetwork.dataAvailableEvent();
+  sensitive << incomingRequests.dataAvailableEvent();
   dont_initialize();
 
   SC_METHOD(sendResponseLoop);
@@ -215,8 +220,8 @@ void MissHandlingLogic::receiveResponseLoop() {
     return;
   }
 
-  loki_assert(iResponseFromNetwork.dataAvailable());
-  NetworkResponse response = iResponseFromNetwork.read();
+  loki_assert(incomingResponses.dataAvailable());
+  NetworkResponse response = incomingResponses.read();
 
   LOKI_LOG << this->name() << " received " << response << endl;
 
@@ -231,9 +236,9 @@ void MissHandlingLogic::remoteRequestLoop() {
     next_trigger(oRequestToBanks.ack_event());
   }
   else {
-    loki_assert(iRequestFromNetwork.dataAvailable());
+    loki_assert(incomingRequests.dataAvailable());
+    NetworkRequest flit = incomingRequests.read();
 
-    NetworkRequest flit = iRequestFromNetwork.read();
     LOKI_LOG << this->name() << " sending request to banks " << flit << endl;
 
     // For each new request, update the target bank. This bank services the

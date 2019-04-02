@@ -18,9 +18,7 @@
 #include "Network/DataReturn.h"
 #include "Network/ForwardCrossbar.h"
 #include "Network/InstructionReturn.h"
-#include "../Network/Global/RouterDemultiplexer.h"
 #include "../Network/NetworkTypes.h"
-#include "../Network/WormholeMultiplexer.h"
 #include "Network/CreditReturn.h"
 #include "Network/IntertileUnit.h"
 

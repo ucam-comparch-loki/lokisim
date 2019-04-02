@@ -10,10 +10,10 @@
 #ifndef SRC_TILE_NETWORK_INSTRUCTIONRETURN_H_
 #define SRC_TILE_NETWORK_INSTRUCTIONRETURN_H_
 
-#include "../../Network/Network2.h"
+#include "../../Network/Network.h"
 
 // TODO: Extend from Network<Instruction> instead?
-class InstructionReturn: public Network2<Word> {
+class InstructionReturn: public Network<Word> {
 
 //============================================================================//
 // Ports

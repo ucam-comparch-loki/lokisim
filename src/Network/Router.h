@@ -18,7 +18,7 @@
 #include "../LokiComponent.h"
 #include "../Utility/LokiVector.h"
 #include "FIFOs/FIFOArray.h"
-#include "Network2.h"
+#include "Network.h"
 #include "NetworkTypes.h"
 
 template<typename T>
@@ -68,7 +68,7 @@ private:
 
 // An internal crossbar connecting all inputs to all outputs.
 template<typename T>
-class RouterInternalNetwork: public Network2<T> {
+class RouterInternalNetwork: public Network<T> {
 public:
   RouterInternalNetwork(const sc_module_name name, TileID tile);
   virtual ~RouterInternalNetwork();

@@ -11,10 +11,12 @@
 
 IntertileUnit::IntertileUnit(sc_module_name name, const tile_parameters_t& params) :
     LokiComponent(name),
-    iData("iData", 4),  // To match Verilog
-    oData("oData", 1),
+    iData("iData"),
+    oData("oData"),
     oCredit("oCredit"),
-    iFlowControl("iFlowControl", params.numCores, params.core.numInputChannels) {
+    iFlowControl("iFlowControl", params.numCores, params.core.numInputChannels),
+    inBuffer("inBuffer", 4),  // To match Verilog
+    outBuffer("outBuffer", 1) {
 
   nackChannel = ChannelID();
 
@@ -27,8 +29,11 @@ IntertileUnit::IntertileUnit(sc_module_name name, const tile_parameters_t& param
     }
   }
 
+  iData(inBuffer);
+  oData(outBuffer);
+
   SC_METHOD(dataArrived);
-  sensitive << iData.dataAvailableEvent();
+  sensitive << inBuffer.dataAvailableEvent();
   dont_initialize();
 
   SC_METHOD(sendCredits);
@@ -38,23 +43,23 @@ IntertileUnit::IntertileUnit(sc_module_name name, const tile_parameters_t& param
 }
 
 void IntertileUnit::dataArrived() {
-  loki_assert(iData.dataAvailable());
+  loki_assert(inBuffer.dataAvailable());
 
   // Can't accept more data if there is an outstanding nack, because we only
   // support one nack at a time.
   if (!nackChannel.isNullMapping())
     next_trigger(oCredit->canWriteEvent());
   // Wait until output buffer/register is available.
-  else if (!oData.canWrite())
-    next_trigger(oData.canWriteEvent());
+  else if (!outBuffer.canWrite())
+    next_trigger(outBuffer.canWriteEvent());
   else {
-    Flit<Word> data = iData.read();
+    Flit<Word> data = inBuffer.read();
     loki_assert(data.channelID().component.tile == tile().id);
 
     if (data.getCoreMetadata().allocate)
       handlePortClaim(data);
     else
-      oData.write(data);
+      outBuffer.write(data);
   }
 }
 

@@ -32,7 +32,7 @@ class MissHandlingLogic: public LokiComponent {
 
   // Outputs go straight to a router which has its own buffer.
   // Inputs need to be latched locally.
-  typedef NetworkFIFO<Word> InPort;
+  typedef sc_port<network_sink_ifc<Word>> InPort;
   typedef sc_port<network_sink_ifc<Word>> OutPort;
 
 public:
@@ -166,6 +166,9 @@ private:
 
   // Mapping between memory addresses and home tiles.
   Directory directory;
+
+  // Buffer/latches to hold requests and responses from the network.
+  NetworkFIFO<Word> incomingRequests, incomingResponses;
 
   // Multiplexer which selects an input from one of the connected banks.
   ArbitratedMultiplexer<NetworkRequest>  requestMux;

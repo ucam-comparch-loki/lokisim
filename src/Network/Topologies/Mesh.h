@@ -12,12 +12,14 @@
 #ifndef MESH_H_
 #define MESH_H_
 
+#include "../../LokiComponent.h"
 #include "../../Utility/LokiVector2D.h"
-#include "../Network.h"
 #include "../Global/NetworkDeadEnd.h"
 #include "../Router.h"
 
-class Mesh : public Network {
+using sc_core::sc_port;
+
+class Mesh : public LokiComponent {
 
 //============================================================================//
 // Ports

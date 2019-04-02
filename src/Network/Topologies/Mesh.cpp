@@ -12,7 +12,7 @@
 Mesh::Mesh(const sc_module_name& name,
            size2d_t size,
            const router_parameters_t& routerParams) :
-    Network(name),
+    LokiComponent(name),
     clock("clock"),
     inputs("inputs", size.width, size.height),
     outputs("outputs", size.width, size.height) {

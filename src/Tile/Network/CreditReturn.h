@@ -11,9 +11,9 @@
 #ifndef SRC_TILE_NETWORK_CREDITRETURN_H_
 #define SRC_TILE_NETWORK_CREDITRETURN_H_
 
-#include "../../Network/Network2.h"
+#include "../../Network/Network.h"
 
-class CreditReturn: public Network2<Word> {
+class CreditReturn: public Network<Word> {
 
 //============================================================================//
 // Ports

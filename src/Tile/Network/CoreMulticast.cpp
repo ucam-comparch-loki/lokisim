@@ -12,7 +12,7 @@ using sc_core::sc_gen_unique_name;
 
 CoreMulticast::CoreMulticast(const sc_module_name name,
                              const tile_parameters_t& params) :
-    Network2<Word>(name, params.mcastNetInputs(), params.mcastNetOutputs()),
+    Network<Word>(name, params.mcastNetInputs(), params.mcastNetOutputs()),
     outputsPerCore(params.core.numInputChannels),
     outputCores(params.numCores) {
 

@@ -42,7 +42,7 @@ Router<T>::Router(const sc_module_name& name, const TileID& ID,
 
 template<typename T>
 RouterInternalNetwork<T>::RouterInternalNetwork(const sc_module_name name, TileID tile) :
-    Network2<T>(name, 5, 5),
+    Network<T>(name, 5, 5),
     position(tile) {
   // Nothing
 }

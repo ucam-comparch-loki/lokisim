@@ -34,11 +34,11 @@ public:
   // putting them behind ports.
 
   // Data received from remote cores.
-  NetworkFIFO<Word> iData;
+  sc_port<network_sink_ifc<Word>> iData;
 
   // Data passed on to local cores. The connection management messages are
   // filtered out and consumed here.
-  NetworkFIFO<Word> oData;
+  sc_port<network_source_ifc<Word>> oData;
 
   // Credits to remote cores.
   sc_port<network_sink_ifc<Word>> oCredit;
@@ -137,6 +137,9 @@ private:
   // Source channel waiting for its connection request to be rejected.
   // Set to ChannelID() when not in use.
   ChannelID nackChannel;
+
+  // Incoming and outgoing data. (Not credits.)
+  NetworkFIFO<Word> inBuffer, outBuffer;
 
   // State to choose which buffer to send a credit for next.
   RoundRobinArbiter2 arbiter;
