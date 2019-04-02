@@ -89,6 +89,7 @@ public:
   virtual void write(const Flit<Word>& data);
   virtual bool canWrite() const;
   virtual const sc_event& canWriteEvent() const;
+  virtual const sc_event& dataConsumedEvent() const;
   virtual const Flit<Word> lastDataWritten() const;
 
 private:

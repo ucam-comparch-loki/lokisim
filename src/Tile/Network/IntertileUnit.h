@@ -63,6 +63,9 @@ public:
 
 private:
 
+  // Extra initialisation once all ports have been bound.
+  void end_of_elaboration();
+
   // Method triggered whenever a new flit arrives on iData.
   void dataArrived();
   void handlePortClaim(const Flit<Word> request);
@@ -81,6 +84,7 @@ private:
   // Method triggered whenever an iFlowControl port signals that it has consumed
   // some data. This may require a credit to be sent.
   void dataConsumed(uint component, uint channel);
+  void dataConsumed1D(PortIndex input);
 
   // Get a reference to the Tile that contains this ICU.
   Tile& tile() const;

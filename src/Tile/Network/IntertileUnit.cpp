@@ -5,6 +5,8 @@
  *      Author: db434
  */
 
+#define SC_INCLUDE_DYNAMIC_PROCESSES
+
 #include "IntertileUnit.h"
 #include "../../Utility/Assert.h"
 #include "../Tile.h"
@@ -40,6 +42,16 @@ IntertileUnit::IntertileUnit(sc_module_name name, const tile_parameters_t& param
   sensitive << newCreditEvent;
   dont_initialize();
 
+}
+
+void IntertileUnit::end_of_elaboration() {
+  for (uint core = 0; core < iFlowControl.size(); core++) {
+    for (uint buffer = 0; buffer < iFlowControl[core].size(); buffer++) {
+      // Can't provide 2D position, so flatten.
+      PortIndex port = addressToIndex(ChannelID(tile().id, core, buffer));
+      SPAWN_METHOD(iFlowControl[core][buffer]->dataConsumedEvent(), IntertileUnit::dataConsumed1D, port, false);
+    }
+  }
 }
 
 void IntertileUnit::dataArrived() {
@@ -98,7 +110,8 @@ void IntertileUnit::acceptPortClaim(credit_state_t& state, const ChannelID& sour
   state.sourceAddress = source;
   state.addCredit();
 
-  LOKI_LOG << this->name() << ": " << state.sinkAddress << " claimed by " << source << endl;
+  LOKI_LOG << this->name() << ": " << state.sinkAddress << " claimed by "
+      << source << ", with" << (state.useCredits ? "" : "out") << " credits" << endl;
 }
 
 void IntertileUnit::rejectPortClaim(credit_state_t& state, const ChannelID& source) {
@@ -118,6 +131,8 @@ void IntertileUnit::sendCredits() {
   // Wait until there is space to write a result.
   if (!oCredit->canWrite())
     next_trigger(oCredit->canWriteEvent());
+  else if (creditsOutstanding.empty())
+    next_trigger(creditsOutstanding.newRequestEvent());
   else {
     // Priority: respond to failed connection attempts. We can't have more
     // than one of these in progress simultaneously.
@@ -138,7 +153,7 @@ void IntertileUnit::sendCredits() {
       // Assuming all cores are identical.
       uint component = buffer / iFlowControl.size();
       uint channel   = buffer % iFlowControl.size();
-      credit_state_t state = creditState[component][channel];
+      credit_state_t& state = creditState[component][channel];
       sendCreditFlit(state);
 
       creditsOutstanding.remove(buffer);
@@ -205,6 +220,11 @@ PortIndex IntertileUnit::addressToIndex(ChannelID address) const {
 void IntertileUnit::dataConsumed(uint component, uint channel) {
   credit_state_t& state = creditState[component][channel];
   state.addCredit();
+}
+
+void IntertileUnit::dataConsumed1D(PortIndex input) {
+  ChannelID address = indexToAddress(input);
+  dataConsumed(address.component.position, address.channel);
 }
 
 Tile& IntertileUnit::tile() const {

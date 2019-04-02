@@ -48,8 +48,13 @@ public:
   // Tell whether the output is able to receive data.
   virtual bool canWrite() const = 0;
 
-  // Event which is triggered whenever data is consumed by the sink.
+  // Event which is triggered whenever data is read by the sink.
   virtual const sc_event& canWriteEvent() const = 0;
+
+  // Event which is triggered whenever data is consumed by the sink. This is
+  // subtly different from canWriteEvent() because some components may read a
+  // single value multiple times. Values may only be consumed once, however.
+  virtual const sc_event& dataConsumedEvent() const = 0;
 
   // For debug, return the most-recently written data.
   virtual const Flit<T> lastDataWritten() const = 0;

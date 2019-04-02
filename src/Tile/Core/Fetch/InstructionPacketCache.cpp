@@ -147,6 +147,10 @@ const sc_event& InstructionPacketCache::canWriteEvent() const {
   return readEvent();
 }
 
+const sc_event& InstructionPacketCache::dataConsumedEvent() const {
+  return cache->dataConsumedEvent();
+}
+
 const Flit<Word> InstructionPacketCache::lastDataWritten() const {
   // We've discarded the network address and only store instructions, so add
   // a dummy address.

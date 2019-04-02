@@ -70,6 +70,10 @@ public:
     return dummyEvent;
   }
 
+  virtual const sc_event& dataConsumedEvent() const {
+    return dummyEvent;
+  }
+
   virtual const Flit<T> lastDataWritten() const {
     LOKI_WARN << "Trying to debug read from " << direction << " of tile " << id << endl;
     return dummyFlit;

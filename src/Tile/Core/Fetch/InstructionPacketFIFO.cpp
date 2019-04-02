@@ -134,6 +134,10 @@ const sc_event& InstructionPacketFIFO::canWriteEvent() const {
   return fifo.canWriteEvent();
 }
 
+const sc_event& InstructionPacketFIFO::dataConsumedEvent() const {
+  return fifo.dataConsumedEvent();
+}
+
 const Flit<Word> InstructionPacketFIFO::lastDataWritten() const {
   return fifo.lastDataWritten();
 }
