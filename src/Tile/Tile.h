@@ -18,6 +18,7 @@
 
 #include <vector>
 #include "../LokiComponent.h"
+#include "../Network/Interface.h"
 #include "../Network/NetworkTypes.h"
 
 using sc_core::sc_module_name;
@@ -36,29 +37,24 @@ public:
 
   ClockInput      clock;
 
+  // All ports are sinks of one network or another. The input ports are sinks or
+  // the global network, and the outgoing ports are sinks of the local network.
+
   // Data network.
-  DataInput       iData;
-  DataOutput      oData;
-  ReadyInput      iDataReady;
-  ReadyOutput     oDataReady;
+  sc_port<network_sink_ifc<Word>> iData;
+  sc_port<network_sink_ifc<Word>> oData;
 
   // Credit network.
-  CreditInput     iCredit;
-  CreditOutput    oCredit;
-  ReadyInput      iCreditReady;
-  ReadyOutput     oCreditReady;
+  sc_port<network_sink_ifc<Word>> iCredit;
+  sc_port<network_sink_ifc<Word>> oCredit;
 
   // Memory request network.
-  RequestInput    iRequest;
-  RequestOutput   oRequest;
-  ReadyInput      iRequestReady;
-  ReadyOutput     oRequestReady;
+  sc_port<network_sink_ifc<Word>> iRequest;
+  sc_port<network_sink_ifc<Word>> oRequest;
 
   // Memory response network.
-  ResponseInput   iResponse;
-  ResponseOutput  oResponse;
-  ReadyInput      iResponseReady;
-  ReadyOutput     oResponseReady;
+  sc_port<network_sink_ifc<Word>> iResponse;
+  sc_port<network_sink_ifc<Word>> oResponse;
 
 //============================================================================//
 // Constructors and destructors

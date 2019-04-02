@@ -22,7 +22,6 @@
 #include "Decode/DecodeStage.h"
 #include "Execute/ExecuteStage.h"
 #include "Fetch/FetchStage.h"
-#include "InputCrossbar.h"
 #include "PredicateRegister.h"
 #include "RegisterFile.h"
 #include "Write/WriteStage.h"
@@ -40,30 +39,27 @@ class Core : public LokiComponent {
 
 public:
 
+  // TODO: It would be nice if the instruction inputs were a different type, but
+  // I don't know if the type system will allow Word ports to connect to
+  // Instruction ones.
+  // Allow each port to be bound to multiple networks. Having multiple writers
+  // to a single buffer must be managed in software, so no arbitration or
+  // checks are provided.
+  typedef sc_port<network_sink_ifc<Word>, 0> InPort;
+  typedef sc_port<network_source_ifc<Word>> OutPort;
+
   // Clock.
-  ClockInput              clock;
+  ClockInput            clock;
 
-  // Connections to/from local memory.
-  DataInput               iInstruction;
-  DataInput               iData;
-  sc_port<network_source_ifc<Word>> oRequest;
-
-  // Connections to/from local cores.
-  LokiVector<DataInput>   iMulticast;
-  DataOutput              oMulticast;
-
-  // Connections to the global data network.
-  DataOutput              oDataGlobal;
-  DataInput               iDataGlobal;
-
-  // One flow control signal for each input data/instruction buffer. To be used
-  // by all data networks.
-  LokiVector<ReadyOutput> oReadyData;
+  // Data inputs/outputs from network(s).
+  LokiVector<InPort>    iData;
+  OutPort               oMemory;
+  OutPort               oMulticast;
 
   // Connections to the global credit network.
-  CreditOutput            oCredit;
-  CreditInput             iCredit;
-  ReadyOutput             oReadyCredit;
+  // Credits are sent on the Core's behalf by the Intertile Communication Unit,
+  // so only an input port is needed here.
+  InPort                iCredit;
 
 //============================================================================//
 // Constructors and destructors
@@ -207,10 +203,6 @@ public:
 
 private:
 
-  // Very small crossbar between input ports and input buffers. Allows there to
-  // be fewer network connections, making the tile network simpler.
-  InputCrossbar          inputCrossbar;
-
   RegisterFile           regs;
   PredicateRegister      pred;
 
@@ -257,11 +249,6 @@ private:
 
   // Signals telling us which stages are able to send data or stalled.
   LokiVector<ReadySignal>      stageReady;
-
-  // Connections between the input crossbar and the input buffers.
-  LokiVector<sc_buffer<Word> > dataToBuffers;
-  LokiVector<ReadySignal>      fcFromBuffers;
-  LokiVector<ReadySignal>      dataConsumed;
 
   // Data being sent to the output buffer.
   DataSignal                   fetchFlitSignal, dataFlitSignal;

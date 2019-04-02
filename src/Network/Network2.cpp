@@ -21,6 +21,7 @@ template class Network2<Word>;
 template<typename T>
 Network2<T>::Network2(sc_module_name name, uint numInputs, uint numOutputs) :
     LokiComponent(name),
+    clock("clock"),
     inputs("inputs", numInputs),
     outputs("outputs", numOutputs),
     requests(numOutputs),
@@ -52,6 +53,14 @@ void Network2<T>::reportStalls(ostream& os) {
 }
 
 template<typename T>
+set<PortIndex> Network2<T>::getDestinations(const ChannelID address) const {
+  // Default: defer to the single destination method.
+  set<PortIndex> destination;
+  destination.insert(getDestination(address));
+  return destination;
+}
+
+template<typename T>
 void Network2<T>::sendData(PortIndex output) {
   if (!clock.posedge())
     next_trigger(clock.posedge_event());
@@ -72,6 +81,8 @@ void Network2<T>::sendData(PortIndex output) {
     // TODO: repeat this step multiple times if bandwidth > 1.
     // Stop as soon as buffer empties, packet ends, or bandwidth reached.
     // Assert that until packet ends, all flits have same destination.
+    // Not valid for multicast, but current multicast networks can't generate
+    // more than one word per cycle and don't use packets.
     Flit<T> flit = inputs[granted]->read();
     Flit<T> previousFlit = outputs[output]->lastDataWritten();
     outputs[output]->write(flit);
@@ -116,11 +127,15 @@ void Network2<T>::updateRequests(PortIndex input) {
     return; // Do nothing.
 
   Flit<T> flit = inputs[input]->peek();
-  PortIndex output = getDestination(flit.channelID());
-  loki_assert(output < outputs.size());
+  set<PortIndex> targets = getDestinations(flit.channelID());
 
-  // TODO: Consider only adding the request if the output is available. This
-  // could become useful when there are multiple buffers behind each port.
-  // Look up how the Verilog handles this - might be overcomplicating things.
-  requests[output].add(input);
+  for (auto it = targets.begin(); it != targets.end(); ++it) {
+    PortIndex target = *it;
+    loki_assert(target < outputs.size());
+
+    // TODO: Consider only adding the request if the output is available. This
+    // could become useful when there are multiple buffers behind each port.
+    // Look up how the Verilog handles this - might be overcomplicating things.
+    requests[target].add(input);
+  }
 }

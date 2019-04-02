@@ -172,6 +172,11 @@ CacheIndex IPKCacheBase::getWritePointer()        const {return writePointer.val
 void IPKCacheBase::setReadPointer(CacheIndex pos)       {readPointer = pos; lastOpWasARead = false;}
 void IPKCacheBase::setWritePointer(CacheIndex pos)      {writePointer = pos;}
 
+const Instruction& IPKCacheBase::debugRead(CacheIndex pos) const {
+ pos %= this->size();
+ return data[pos];
+}
+
 void IPKCacheBase::incrementWritePos() {
   ++writePointer;
 }

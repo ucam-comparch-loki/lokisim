@@ -66,10 +66,10 @@ public:
 
 private:
 
-  NetworkDeadEnd<NetworkData>     dataDeadEnd;
-  NetworkDeadEnd<NetworkCredit>   creditDeadEnd;
-  NetworkDeadEnd<NetworkRequest>  requestDeadEnd;
-  NetworkDeadEnd<NetworkResponse> responseDeadEnd;
+  NetworkDeadEnd<Word> dataDeadEnd;
+  NetworkDeadEnd<Word> creditDeadEnd;
+  NetworkDeadEnd<Word> requestDeadEnd;
+  NetworkDeadEnd<Word> responseDeadEnd;
 
 };
 

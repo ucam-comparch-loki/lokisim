@@ -298,12 +298,6 @@ void FetchStage::deliverInstructionInternal(const NetworkData& flit) {
       throw InvalidOptionException("instruction channel", flit.channelID().channel);
       break;
   }
-
-  // Increment the fetch address so we can fetch a new line when necessary.
-  if (flit.channelID().channel == activeFetch.networkInfo.returnChannel) {
-    activeFetch.address += BYTES_PER_WORD;
-    activeFetch.complete = inst.endOfPacket();
-  }
 }
 
 MemoryAddr FetchStage::getInstAddress() const {
@@ -434,18 +428,20 @@ void FetchStage::nextIPK() {
   core().nextIPK();
 }
 
-void FetchStage::fifoInstructionArrived() {
-  // Slight hack to convert the instruction back into a flit.
-  NetworkData flit(iToFIFO.read(), ChannelID(id(), 0));
-  deliverInstructionInternal(flit);
-  Instrumentation::Network::recordBandwidth(iToFIFO.name());
+void FetchStage::fifoInstructionArrived(Instruction inst) {
+  // Increment the fetch address so we can fetch a new line when necessary.
+  if (activeFetch.networkInfo.returnChannel == 0) {
+    activeFetch.address += BYTES_PER_WORD;
+    activeFetch.complete = inst.endOfPacket();
+  }
 }
 
-void FetchStage::cacheInstructionArrived() {
-  // Slight hack to convert the instruction back into a flit.
-  NetworkData flit(iToCache.read(), ChannelID(id(), 1));
-  deliverInstructionInternal(flit);
-  Instrumentation::Network::recordBandwidth(iToCache.name());
+void FetchStage::cacheInstructionArrived(Instruction inst) {
+  // Increment the fetch address so we can fetch a new line when necessary.
+  if (activeFetch.networkInfo.returnChannel == 1) {
+    activeFetch.address += BYTES_PER_WORD;
+    activeFetch.complete = inst.endOfPacket();
+  }
 }
 
 MemoryAddr FetchStage::newPacketArriving(const InstLocation& location) {
@@ -546,13 +542,15 @@ FetchStage::FetchStage(sc_module_name name,
     PipelineStage(name),
     iToCache("iCacheInstruction"),
     iToFIFO("iFIFOInstruction"),
-    oFlowControl("oFlowControl", 2),
-    oDataConsumed("oDataConsumed", 2),
     oFetchRequest("oFetchRequest"),
     iOutputBufferReady("iOutputBufferReady"),
     cache("IPKcache", cacheParams),
     fifo("IPKfifo", fifoParams),
     fetchBuffer("fetchBuffer", 1) {
+
+  // Connect ports.
+  iToFIFO(fifo);
+  iToCache(cache);
 
   readState = RS_READY;
   writeState = WS_READY;
@@ -563,25 +561,11 @@ FetchStage::FetchStage(sc_module_name name,
 
   currentPacket.reset(); fifoPendingPacket.reset(); cachePendingPacket.reset();
 
-  // Connect FIFO and cache to network
-  fifo.oFlowControl(oFlowControl[0]);
-  fifo.oDataConsumed(oDataConsumed[0]);
-  cache.oFlowControl(oFlowControl[1]);
-  cache.oDataConsumed(oDataConsumed[1]);
-
   // readLoop is called from another method.
   SC_METHOD(writeLoop);
 
   SC_METHOD(updateReady);
   sensitive << instructionCompletedEvent;
   // do initialise
-
-  SC_METHOD(fifoInstructionArrived);
-  sensitive << iToFIFO;
-  dont_initialize();
-
-  SC_METHOD(cacheInstructionArrived);
-  sensitive << iToCache;
-  dont_initialize();
 
 }

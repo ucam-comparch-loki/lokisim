@@ -14,7 +14,7 @@
 
 #include "../../Utility/LokiVector2D.h"
 #include "../Network.h"
-#include "../Global/NetworkDeadEnd2.h"
+#include "../Global/NetworkDeadEnd.h"
 #include "../Router.h"
 
 class Mesh : public Network {
@@ -28,21 +28,18 @@ public:
   // Routers consume their inputs on the positive clock edge.
   ClockInput   clock;
 
-  // Inputs to network (outputs from components).
-  // Addressed using iData[column][row]
-  LokiVector2D<DataInput>  iData;
+  // Both inputs and outputs count as network sinks. The inputs are sinks of the
+  // local tile networks, and the outputs are the sinks of this mesh network.
+  typedef sc_port<network_sink_ifc<Word>> InPort;
+  typedef sc_port<network_sink_ifc<Word>> OutPort;
 
-  // Outputs from network (inputs to components).
-  // Addressed using oData[column][row]
-  LokiVector2D<DataOutput> oData;
+  // Inputs from tiles.
+  // Addressed using inputs[column][row].
+  LokiVector2D<InPort> inputs;
 
-  // A signal from each router saying whether it is ready to receive data.
-  // Addressed using oReady[column][row]
-  LokiVector2D<ReadyOutput> oReady;
-
-  // A signal to each router saying whether it can send data to the local tile.
-  // Addressed using iReady[column][row]
-  LokiVector2D<ReadyOutput> iReady;
+  // Outputs to tiles.
+  // Addressed using outputs[column][row].
+  LokiVector2D<OutPort> outputs;
 
 //============================================================================//
 // Constructors and destructors
@@ -60,7 +57,7 @@ public:
 
 private:
 
-  void makeRouters(size2d_t tiles, const router_parameters_t& params);
+  void makeComponents(size2d_t tiles, const router_parameters_t& params);
   void wireUp(size2d_t tiles);
 
 //============================================================================//
@@ -74,7 +71,7 @@ private:
   LokiVector2D<Router<Word>> routers;
 
   // Debug components which warn us if data is sent off the edge of the network.
-  LokiVector<NetworkDeadEnd2<Word>> edges;
+  LokiVector<NetworkDeadEnd<Word>> edges;
 
 };
 

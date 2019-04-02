@@ -2,7 +2,7 @@
  * NetworkDeadEnd.h
  *
  * Dummy component to be attached to the edge of the network. Warnings are
- * displayed if any data is received.
+ * displayed if any data is received or requested.
  *
  *  Created on: 6 Oct 2016
  *      Author: db434
@@ -12,71 +12,76 @@
 #define SRC_NETWORK_GLOBAL_NETWORKDEADEND_H_
 
 #include "../../LokiComponent.h"
-#include "../NetworkTypes.h"
+#include "../Interface.h"
+#include "../../Datatype/Flit.h"
 
-template<class T>
-class NetworkDeadEnd : public LokiComponent {
-
-//============================================================================//
-// Ports
-//============================================================================//
-
-public:
-
-  loki_in<T>  iData;
-  loki_out<T> oData;
-  ReadyInput  iReady;
-  ReadyOutput oReady;
-
-//============================================================================//
-// Constructors and destructors
-//============================================================================//
+template<typename T>
+class NetworkDeadEnd: public LokiComponent,
+                      public network_source_ifc<T>,
+                      public network_sink_ifc<T> {
 
 public:
 
-  SC_HAS_PROCESS(NetworkDeadEnd);
-  NetworkDeadEnd(const sc_module_name& name, TileID id, Direction direction) :
+  NetworkDeadEnd(const sc_module_name& name, TileID id, string direction) :
       LokiComponent(name),
-      iData("iData"),
-      oData("oData"),
-      iReady("iReady"),
-      oReady("oReady"),
       id(id),
       direction(direction) {
 
-    // Allow data to be sent here so we can catch the error, rather than stall
-    // forever waiting for the flow control signal.
-    oReady.initialize(true);
-
-    SC_METHOD(dataArrived);
-    sensitive << iData;
-    dont_initialize();
-
   }
 
-//============================================================================//
-// Methods
-//============================================================================//
-
-private:
-
-  void dataArrived() {
-    static const string directions[5] = {"north", "east", "south", "west", "local"};
-
-    LOKI_WARN << "Trying to send " << directions[direction] << " from tile " << id << endl;
-    LOKI_WARN << "  Data: " << iData.read() << endl;
+  virtual const Flit<T> read() {
+    LOKI_WARN << "Trying to read from " << direction << " of tile " << id << endl;
+    return dummyFlit;
   }
 
-//============================================================================//
-// Local state
-//============================================================================//
+  virtual const Flit<T> peek() const {
+    LOKI_WARN << "Trying to peek from " << direction << " of tile " << id << endl;
+    return dummyFlit;
+  }
+
+  virtual bool dataAvailable() const {
+    return false;
+  }
+
+  virtual const sc_event& dataAvailableEvent() const {
+    return dummyEvent;
+  }
+
+  virtual const Flit<T> lastDataRead() const {
+    LOKI_WARN << "Trying to debug read from " << direction << " of tile " << id << endl;
+    return dummyFlit;
+  }
+
+  virtual void write(const Flit<T>& data) {
+    LOKI_WARN << "Trying to write to " << direction << " of tile " << id << endl;
+    LOKI_WARN << "  Data: " << data << endl;
+  }
+
+  virtual bool canWrite() const {
+    // Allow the data to arrive so we can print a useful message.
+    return true;
+  }
+
+  virtual const sc_event& canWriteEvent() const {
+    return dummyEvent;
+  }
+
+  virtual const Flit<T> lastDataWritten() const {
+    LOKI_WARN << "Trying to debug read from " << direction << " of tile " << id << endl;
+    return dummyFlit;
+  }
 
 private:
 
   const TileID id;
 
   // The direction data is being sent to arrive at this dead end.
-  const Direction direction;
+  const string direction;
+
+  // Event which is never triggered - nothing ever happens here.
+  sc_event dummyEvent;
+
+  Flit<T> dummyFlit;
 
 };
 

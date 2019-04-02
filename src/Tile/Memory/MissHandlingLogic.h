@@ -16,6 +16,7 @@
 #include "../../Datatype/MemoryRequest.h"
 #include "../../LokiComponent.h"
 #include "../../Network/ArbitratedMultiplexer.h"
+#include "../../Network/FIFOs/NetworkFIFO.h"
 #include "../../Network/NetworkTypes.h"
 #include "../../Tile/Memory/Directory.h"
 #include "../../Utility/LokiVector.h"
@@ -29,24 +30,34 @@ class MissHandlingLogic: public LokiComponent {
 // Ports
 //============================================================================//
 
+  // Outputs go straight to a router which has its own buffer.
+  // Inputs need to be latched locally.
+  typedef NetworkFIFO<Word> InPort;
+  typedef sc_port<network_sink_ifc<Word>> OutPort;
+
 public:
 
   ClockInput                  clock;
+
+  // Connections to the global networks.
+
+  // Requests from memory banks on other tiles.
+  InPort                      iRequestFromNetwork;
+
+  // Forward the chosen request on to the next level of memory hierarchy.
+  OutPort                     oRequestToNetwork;
+
+  // Responses from the next level of memory hierarchy.
+  InPort                      iResponseFromNetwork;
+
+  // Send responses back to the requesting tile.
+  OutPort                     oResponseToNetwork;
 
 
   // Ports to handle requests from memory banks on this tile.
 
   // One request per bank.
   LokiVector<RequestInput>    iRequestFromBanks;
-
-  // Forward the chosen request on to the next level of memory hierarchy.
-  RequestOutput               oRequestToNetwork;
-
-  // Responses from the next level of memory hierarchy.
-  ResponseInput               iResponseFromNetwork;
-
-  // Signal to the network that a response can be received.
-  ReadyOutput                 oReadyForResponse;
 
   // Responses are broadcast to all banks.
   ResponseOutput              oResponseToBanks;
@@ -59,15 +70,6 @@ public:
 
   // Receive responses from memory banks.
   LokiVector<ResponseInput>   iResponseFromBanks;
-
-  // Send responses back to the requesting tile.
-  ResponseOutput              oResponseToNetwork;
-
-  // Requests from memory banks on other tiles.
-  RequestInput                iRequestFromNetwork;
-
-  // Signal whether we're able to receive another request at this time.
-  ReadyOutput                 oReadyForRequest;
 
   // Broadcast requests to all banks on the tile.
   RequestOutput               oRequestToBanks;
@@ -140,14 +142,6 @@ private:
 
   // Pseudo-randomly select a target bank.
   MemoryIndex nextRandomBank();
-
-  void sendOnNetwork(NetworkRequest request);
-  bool canSendOnNetwork() const;
-  const sc_event& canSendEvent() const;
-
-  NetworkResponse receiveFromNetwork();
-  bool networkDataAvailable() const;
-  const sc_event& newNetworkDataEvent() const;
 
   // The network address of the memory controller.
   TileID nearestMemoryController() const;

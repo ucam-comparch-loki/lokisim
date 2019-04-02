@@ -38,13 +38,12 @@ public:
   DataInput               iData;
 
   // Data outputs to the network.
-  DataOutput              oDataLocal;
-  sc_port<network_source_ifc<Word>> oDataMemory;
-  DataOutput              oDataGlobal;
+  sc_port<network_source_ifc<Word>> oMulticast;
+  sc_port<network_source_ifc<Word>> oData;
 
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.
-  CreditInput             iCredit;
+  sc_port<network_sink_ifc<Word>> iCredit;
 
 //============================================================================//
 // Constructors and destructors
@@ -85,28 +84,16 @@ private:
   // Write some data to the output buffer.
   void          write(const NetworkData data);
 
-  // Send the oldest value in the output buffer, if the flow control signals
-  // allow it.
-  void          sendLoopLocal();
-  void          sendLoopGlobal();
-
-  // Instrumentation whenever a request is sent.
-  void          sentMemoryRequest();
+  // Instrumentation whenever a flit is sent.
+  void          sentMulticastData();
+  void          sentPointToPointData();
 
   // A credit was received, so update the corresponding credit counter.
+  // TODO: why is this here? Put in Core instead?
   void          receivedCredit();
 
   // Data was added or removed from any of the buffers.
-  // TODO Remove this when all buffers are properly connected to the network.
   void          bufferFillChanged();
-
-  // Send a request to reserve (or release) a connection to a particular
-  // destination component. May cause re-execution of the calling method when
-  // the request is granted.
-  void          requestCoreAccess(ChannelID destination, bool request);
-  bool          coreRequestGranted(ChannelID destination) const;
-  void          requestGlobalAccess(ChannelID destination, bool request);
-  bool          globalRequestGranted(ChannelID destination) const;
 
   ComponentID   id() const;
   WriteStage&   parent() const;
@@ -125,18 +112,11 @@ private:
 
   ReceiveState receiveState;
 
-  enum SendState {
-    SS_IDLE,
-    SS_DATA_READY,
-    SS_ARBITRATING,
-    SS_CAN_SEND
-  };
+  // Buffers of data to send onto the network.
+  NetworkFIFO<Word> bufferMulticast, bufferData;
 
-  SendState sendStateMemory;
-  SendState sendStateMulticast;
-
-  // Buffer of data to send onto the network.
-  NetworkFIFO<Word> bufferLocal, bufferMemory, bufferGlobal;
+  // Credits received from the network.
+  NetworkFIFO<Word> incomingCredits;
 
   // A pointer to this core's channel map table. The table itself is in the
   // Core class. No reading or writing of destinations should occur here -

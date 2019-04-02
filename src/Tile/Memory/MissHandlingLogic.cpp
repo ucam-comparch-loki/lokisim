@@ -15,14 +15,12 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name,
                                      const tile_parameters_t& params) :
     LokiComponent(name),
     clock("clock"),
+    iRequestFromNetwork("iRequestFromNetwork", 1),
     oRequestToNetwork("oRequestToNetwork"),
-    iResponseFromNetwork("iResponseFromNetwork"),
-    oReadyForResponse("oReadyForResponse"),
+    iResponseFromNetwork("iResponseFromNetwork", 1),
+    oResponseToNetwork("oResponseToNetwork"),
     oResponseToBanks("oResponseToBanks"),
     oResponseTarget("oResponseTarget"),
-    oResponseToNetwork("oResponseToNetwork"),
-    iRequestFromNetwork("iRequestFromNetwork"),
-    oReadyForRequest("oReadyForRequest"),
     oRequestToBanks("oRequestToBanks"),
     oRequestTarget("oRequestTarget"),
     iClaimRequest("iClaimRequest", params.numMemories),
@@ -58,8 +56,6 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name,
 
   // Ready signal for compatibility with network. It isn't required since we
   // only ever issue a request if there's space to receive a response.
-  oReadyForResponse.initialize(true);
-  oReadyForRequest.initialize(true);
   oRequestTarget.initialize(0);
   oResponseTarget.initialize(0);
   holdRequestMux.write(false);
@@ -70,11 +66,11 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name,
   dont_initialize();
 
   SC_METHOD(receiveResponseLoop);
-  sensitive << iResponseFromNetwork;
+  sensitive << iResponseFromNetwork.dataAvailableEvent();
   dont_initialize();
 
   SC_METHOD(remoteRequestLoop);
-  sensitive << iRequestFromNetwork;
+  sensitive << iRequestFromNetwork.dataAvailableEvent();
   dont_initialize();
 
   SC_METHOD(sendResponseLoop);
@@ -126,8 +122,8 @@ void MissHandlingLogic::localRequestLoop() {
   holdRequestMux.write(!endOfPacket);
 
   // Stall until it is possible to send on the network.
-  if (!canSendOnNetwork())
-    next_trigger(canSendEvent());
+  if (!oRequestToNetwork->canWrite())
+    next_trigger(oRequestToNetwork->canWriteEvent());
   else {
 
     // Continuation of an operation which takes place at the directory.
@@ -181,7 +177,7 @@ void MissHandlingLogic::localRequestLoop() {
 
         LOKI_LOG << this->name() << " sending request " << flit << endl;
 
-        sendOnNetwork(flit);
+        oRequestToNetwork->write(flit);
       }
     }
 
@@ -219,8 +215,8 @@ void MissHandlingLogic::receiveResponseLoop() {
     return;
   }
 
-  loki_assert(networkDataAvailable());
-  NetworkResponse response = receiveFromNetwork();
+  loki_assert(iResponseFromNetwork.dataAvailable());
+  NetworkResponse response = iResponseFromNetwork.read();
 
   LOKI_LOG << this->name() << " received " << response << endl;
 
@@ -235,10 +231,9 @@ void MissHandlingLogic::remoteRequestLoop() {
     next_trigger(oRequestToBanks.ack_event());
   }
   else {
-    loki_assert(iRequestFromNetwork.valid());
+    loki_assert(iRequestFromNetwork.dataAvailable());
 
     NetworkRequest flit = iRequestFromNetwork.read();
-    Instrumentation::Network::recordBandwidth(iRequestFromNetwork.name());
     LOKI_LOG << this->name() << " sending request to banks " << flit << endl;
 
     // For each new request, update the target bank. This bank services the
@@ -250,7 +245,6 @@ void MissHandlingLogic::remoteRequestLoop() {
     }
 
     oRequestToBanks.write(flit);
-    iRequestFromNetwork.ack();
 
     newRemoteRequest = flit.getMetadata().endOfPacket;
   }
@@ -278,12 +272,11 @@ void MissHandlingLogic::requestDelayLoop() {
 }
 
 void MissHandlingLogic::sendResponseLoop() {
-  if (oResponseToNetwork.valid()) {
-    next_trigger(oResponseToNetwork.ack_event() & clock.posedge_event());
+  if (!oResponseToNetwork->canWrite()) {
+    next_trigger(oResponseToNetwork->canWriteEvent() & clock.posedge_event());
   }
   else if (muxedResponse.valid()) {
-    oResponseToNetwork.write(muxedResponse.read());
-    Instrumentation::Network::recordBandwidth(oResponseToNetwork.name());
+    oResponseToNetwork->write(muxedResponse.read());
 
     // Optional: if there is more data to come in this packet, wait until it
     // has all been sent before switching to another packet.
@@ -352,36 +345,6 @@ MemoryIndex MissHandlingLogic::nextRandomBank() {
   rngState = (rngState >> 1) ^ ((rngState & 0x1) ? 0x30 : 0x0);
 
   return targetBank;
-}
-
-
-void MissHandlingLogic::sendOnNetwork(NetworkRequest request) {
-  loki_assert(canSendOnNetwork());
-  oRequestToNetwork.write(request);
-  Instrumentation::Network::recordBandwidth(oRequestToNetwork.name());
-}
-
-bool MissHandlingLogic::canSendOnNetwork() const {
-  return !oRequestToNetwork.valid();
-}
-
-const sc_event& MissHandlingLogic::canSendEvent() const {
-  return oRequestToNetwork.ack_event();
-}
-
-NetworkResponse MissHandlingLogic::receiveFromNetwork() {
-  loki_assert(iResponseFromNetwork.valid());
-  Instrumentation::Network::recordBandwidth(iResponseFromNetwork.name());
-  iResponseFromNetwork.ack();
-  return iResponseFromNetwork.read();
-}
-
-bool MissHandlingLogic::networkDataAvailable() const {
-  return iResponseFromNetwork.valid();
-}
-
-const sc_event& MissHandlingLogic::newNetworkDataEvent() const {
-  return iResponseFromNetwork.default_event();
 }
 
 TileID MissHandlingLogic::nearestMemoryController() const {

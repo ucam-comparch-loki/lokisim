@@ -38,13 +38,12 @@ public:
   ReadyOutput             oReady;
 
   // Data to send onto the network.
-  DataOutput              oDataLocal;
+  sc_port<network_source_ifc<Word>> oDataLocal;
   sc_port<network_source_ifc<Word>> oDataMemory;
-  DataOutput              oDataGlobal;
 
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.
-  CreditInput             iCredit;
+  sc_port<network_sink_ifc<Word>> iCredit;
 
 //============================================================================//
 // Constructors and destructors

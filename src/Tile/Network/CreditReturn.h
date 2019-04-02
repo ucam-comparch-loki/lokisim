@@ -1,19 +1,19 @@
 /*
- * ForwardCrossbar.h
+ * CreditReturn.h
  *
- * Crossbar allowing cores to send requests to memory banks on the same tile.
- * A final output is reserved for messages to cores on other tiles.
+ * Simple network taking credits from a tiles router and sending them to the
+ * appropriate core.
  *
- *  Created on: 13 Dec 2016
+ *  Created on: 29 Mar 2019
  *      Author: db434
  */
 
-#ifndef SRC_TILE_NETWORK_FORWARDCROSSBAR_H_
-#define SRC_TILE_NETWORK_FORWARDCROSSBAR_H_
+#ifndef SRC_TILE_NETWORK_CREDITRETURN_H_
+#define SRC_TILE_NETWORK_CREDITRETURN_H_
 
 #include "../../Network/Network2.h"
 
-class ForwardCrossbar: public Network2<Word> {
+class CreditReturn: public Network2<Word> {
 
 //============================================================================//
 // Ports
@@ -33,9 +33,8 @@ public:
 //============================================================================//
 
 public:
-  ForwardCrossbar(const sc_module_name name,
-                  const tile_parameters_t& params);
-  virtual ~ForwardCrossbar();
+  CreditReturn(const sc_module_name name,
+               const tile_parameters_t& params);
 
 //============================================================================//
 // Methods
@@ -46,4 +45,4 @@ protected:
 
 };
 
-#endif /* SRC_TILE_NETWORK_FORWARDCROSSBAR_H_ */
+#endif /* SRC_TILE_NETWORK_CREDITRETURN_H_ */

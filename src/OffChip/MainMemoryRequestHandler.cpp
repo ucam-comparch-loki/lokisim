@@ -28,7 +28,7 @@ MainMemoryRequestHandler::MainMemoryRequestHandler(sc_module_name name,
   dont_initialize();
 
   SC_METHOD(sendData);
-  sensitive << outputQueue.writeEvent();
+  sensitive << outputQueue.dataAvailableEvent();
   dont_initialize();
 
 }
@@ -100,7 +100,7 @@ uint32_t MainMemoryRequestHandler::getPayload(MemoryLevel level) {
 // Send a result to the requested destination.
 void MainMemoryRequestHandler::sendResponse(NetworkResponse response, MemoryLevel level) {
   loki_assert_with_message(level == MEMORY_OFF_CHIP, "Level = %d", level);
-  loki_assert(!outputQueue.full());
+  loki_assert(outputQueue.canWrite());
 
   outputQueue.write(response);
 }
@@ -219,8 +219,8 @@ void MainMemoryRequestHandler::processRequest() {
 }
 
 void MainMemoryRequestHandler::sendData() {
-  if (outputQueue.empty())
-    next_trigger(outputQueue.writeEvent());
+  if (!outputQueue.dataAvailable())
+    next_trigger(outputQueue.dataAvailableEvent());
   else if (oData.valid()) {
     LOKI_LOG << this->name() << " is blocked waiting for output to become free" << endl;
     next_trigger(oData.ack_event());

@@ -38,17 +38,12 @@ class MemoryBank: public MemoryBase, public BlockingInterface {
 
 public:
 
-  ClockInput            iClock;            // Clock
+  ClockInput            iClock;           // Clock
 
   // Data - to/from cores on the same tile.
   sc_port<network_sink_ifc<Word>> iData;  // Input data sent to the memory bank
-  DataOutput            oData;            // Data sent to the cores
-  DataOutput            oInstruction;     // Instructions sent to the cores
-
-  LokiVector<ArbiterRequestOutput> oCoreDataRequest;
-  LokiVector<ArbiterGrantInput>    iCoreDataGrant;
-  LokiVector<ArbiterRequestOutput> oCoreInstRequest;
-  LokiVector<ArbiterGrantInput>    iCoreInstGrant;
+  sc_port<network_source_ifc<Word>> oData;        // Data sent to the cores
+  sc_port<network_source_ifc<Word>> oInstruction; // Instructions sent to the cores
 
   // Requests - to/from memory banks on other tiles.
   RequestInput          iRequest;         // Input requests sent to the memory bank
@@ -202,14 +197,9 @@ private:
   void copyToMissBuffer();
 
   void coreRequestArrived();
-  void handleDataOutput();
-  void handleInstructionOutput();
+  void coreDataSent();
+  void coreInstructionSent();
   void handleRequestOutput();
-
-  void requestCoreDataAccess(ChannelID destination, bool request);
-  bool coreDataRequestGranted(ChannelID destination) const;
-  void requestCoreInstAccess(ChannelID destination, bool request);
-  bool coreInstRequestGranted(ChannelID destination) const;
 
   void mainLoop();                    // Main loop thread
 
@@ -254,10 +244,10 @@ private:
 
   bool                  currentlyIdle;
 
-  NetworkFIFO<Word>            inputQueue;       // Input queue
-  DelayFIFO<NetworkResponse>   outputDataQueue;  // Output queue
-  DelayFIFO<NetworkResponse>   outputInstQueue;  // Output queue
-  DelayFIFO<NetworkRequest>    outputReqQueue;   // Output request queue
+  NetworkFIFO<Word>     inputQueue;      // Input queue
+  DelayFIFO<Word>       outputDataQueue; // Output queue
+  DelayFIFO<Word>       outputInstQueue; // Output queue
+  DelayFIFO<Word>       outputReqQueue;  // Output request queue
 
   // If this bank is flushing data, it has the only valid copy, but the tags
   // will suggest that it doesn't have it at all. Record the addresses of all

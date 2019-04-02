@@ -13,67 +13,66 @@ MemoryControllerTile::MemoryControllerTile(const sc_module_name& name, const Til
     Tile(name, id),
     oRequestToMainMemory("oRequestToMainMemory"),
     iResponseFromMainMemory("iResponseFromMainMemory"),
-    dataDeadEnd("data", id, LOCAL),
-    creditDeadEnd("credit", id, LOCAL),
-    responseDeadEnd("response", id, LOCAL) {
+    incomingRequests("request_buf", 4), // Not sure what size is sensible here
+    dataDeadEnd("data", id, "local"),
+    creditDeadEnd("credit", id, "local"),
+    requestDeadEnd("request", id, "local"),
+    responseDeadEnd("response", id, "local") {
 
   // Tie off unused networks here.
-  dataDeadEnd.iData(iData);
-  dataDeadEnd.oData(oData);
-  dataDeadEnd.iReady(iDataReady);
-  dataDeadEnd.oReady(oDataReady);
+  // This tile is only connected to request inputs and response outputs.
+  iData(dataDeadEnd);
+//  oData(dataDeadEnd);
 
-  creditDeadEnd.iData(iCredit);
-  creditDeadEnd.oData(oCredit);
-  creditDeadEnd.iReady(iCreditReady);
-  creditDeadEnd.oReady(oCreditReady);
+  iCredit(creditDeadEnd);
+//  oCredit(creditDeadEnd);
 
-  responseDeadEnd.iData(iResponse);
-  responseDeadEnd.oData(oRequest);
-  responseDeadEnd.iReady(iRequestReady);
-  responseDeadEnd.oReady(oResponseReady);
+  iRequest(incomingRequests);
+//  oRequest(requestDeadEnd);
 
-  oRequestReady.initialize(true);
-
-  // Register methods to deal with input.
-  SC_METHOD(requestLoop);
-  sensitive << iRequest;
-  dont_initialize();
-
-  SC_METHOD(responseLoop);
-  sensitive << iResponseFromMainMemory;
-  dont_initialize();
-
+  iResponse(responseDeadEnd);
+  // Write to oResponse directly.
 }
 
 MemoryControllerTile::~MemoryControllerTile() {
   // Nothing
 }
 
+void MemoryControllerTile::end_of_elaboration() {
+  // Register methods to deal with input/output.
+  SC_METHOD(requestLoop);
+  sensitive << incomingRequests.dataAvailableEvent();
+  dont_initialize();
+
+  SC_METHOD(responseLoop);
+  sensitive << iResponseFromMainMemory;
+  dont_initialize();
+}
+
 void MemoryControllerTile::requestLoop() {
   if (oRequestToMainMemory.valid()) {
     next_trigger(oRequestToMainMemory.ack_event());
   }
-  else if (iRequest.valid()) {
-    oRequestToMainMemory.write(iRequest.read());
-    iRequest.ack();
+  else if (incomingRequests.dataAvailable()) {
+    Flit<Word> flit = incomingRequests.read();
+    oRequestToMainMemory.write(flit);
 
     LOKI_LOG << this->name() << " forwarding request to main memory: "
-        << iRequest.read() << endl;
+        << flit << endl;
     Instrumentation::Network::recordBandwidth(oRequestToMainMemory.name());
 
-    // Default trigger: new request arrival
+    if (incomingRequests.dataAvailable())
+      next_trigger(clock.posedge_event());
+    // Else, default trigger: new request arrival
   }
 }
 
 void MemoryControllerTile::responseLoop() {
-  if (!iResponseReady.read()) {
-    next_trigger(iResponseReady.posedge_event());
+  if (!oResponse->canWrite()) {
+    next_trigger(oResponse->canWriteEvent());
   }
   else if (iResponseFromMainMemory.valid()) {
-    loki_assert(!oResponse.valid());
-    oResponse.write(iResponseFromMainMemory.read());
-
+    oResponse->write(iResponseFromMainMemory.read());
     iResponseFromMainMemory.ack();
 
     LOKI_LOG << this->name() << " forwarding response from main memory: "

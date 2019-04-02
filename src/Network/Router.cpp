@@ -17,50 +17,14 @@ template class Router<Word>;
 const string DirectionNames[] = {"north", "east", "south", "west", "local"};
 
 template<typename T>
-void Router<T>::dataArrived() {
-  loki_assert(iData.valid());
-
-  if (!inputBuffers[LOCAL].canWrite())
-    next_trigger(inputBuffers[LOCAL].canWriteEvent());
-  else {
-    inputBuffers[LOCAL].write(iData.read());
-    iData.ack();
-  }
-}
-
-template<typename T>
-void Router<T>::updateFlowControl() {
-  bool canReceive = inputBuffers[LOCAL].canWrite();
-  if (oReady.read() != canReceive)
-    oReady.write(canReceive);
-}
-
-template<typename T>
-void Router<T>::sendData() {
-  loki_assert(localOutput.dataAvailable());
-
-  if (oData.valid())
-    next_trigger(oData.ack_event());
-  else if (iReady.read())
-    oData.write(localOutput.read());
-  else
-    next_trigger(iReady.posedge_event());
-}
-
-template<typename T>
 Router<T>::Router(const sc_module_name& name, const TileID& ID,
                   const router_parameters_t& params) :
     LokiComponent(name),
     clock("clock"),
-    inputs("inputs", 4),
-    outputs("outputs", 4),
-    iData("iData"),
-    oData("oData"),
-    iReady("iReady"),
-    oReady("oReady"),
+    inputs("inputs", 5),
+    outputs("outputs", 5),
     inputBuffers("in_buffers", 5, params.fifo.size),
-    internal("network", ID),
-    localOutput("to_local", 1) {
+    internal("network", ID) {
 
   internal.clock(clock);
 
@@ -72,22 +36,6 @@ Router<T>::Router(const sc_module_name& name, const TileID& ID,
 
   for (uint i=0; i<outputs.size(); i++)
     internal.outputs[i](outputs[i]);
-
-  // Temporary.
-  internal.outputs[LOCAL](localOutput);
-
-  SC_METHOD(updateFlowControl);
-  sensitive << inputBuffers[LOCAL].canWriteEvent()
-            << inputBuffers[LOCAL].dataAvailableEvent();
-  // do initialise
-
-  SC_METHOD(dataArrived);
-  sensitive << iData;
-  dont_initialize();
-
-  SC_METHOD(sendData);
-  sensitive << localOutput.dataAvailableEvent();
-  dont_initialize();
 
 }
 

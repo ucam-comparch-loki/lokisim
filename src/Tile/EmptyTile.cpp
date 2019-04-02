@@ -9,31 +9,23 @@
 
 EmptyTile::EmptyTile(const sc_module_name& name, const TileID& id) :
     Tile(name, id),
-    dataDeadEnd("data", id, LOCAL),
-    creditDeadEnd("credit", id, LOCAL),
-    requestDeadEnd("request", id, LOCAL),
-    responseDeadEnd("response", id, LOCAL) {
+    dataDeadEnd("data", id, "local"),
+    creditDeadEnd("credit", id, "local"),
+    requestDeadEnd("request", id, "local"),
+    responseDeadEnd("response", id, "local") {
 
   // Connect everything up.
-  dataDeadEnd.iData(iData);
-  dataDeadEnd.oData(oData);
-  dataDeadEnd.iReady(iDataReady);
-  dataDeadEnd.oReady(oDataReady);
+  iData(dataDeadEnd);
+//  oData(dataDeadEnd);
 
-  creditDeadEnd.iData(iCredit);
-  creditDeadEnd.oData(oCredit);
-  creditDeadEnd.iReady(iCreditReady);
-  creditDeadEnd.oReady(oCreditReady);
+  iCredit(creditDeadEnd);
+//  oCredit(creditDeadEnd);
 
-  requestDeadEnd.iData(iRequest);
-  requestDeadEnd.oData(oRequest);
-  requestDeadEnd.iReady(iRequestReady);
-  requestDeadEnd.oReady(oRequestReady);
+  iRequest(requestDeadEnd);
+//  oRequest(requestDeadEnd);
 
-  responseDeadEnd.iData(iResponse);
-  responseDeadEnd.oData(oResponse);
-  responseDeadEnd.iReady(iResponseReady);
-  responseDeadEnd.oReady(oResponseReady);
+  iResponse(responseDeadEnd);
+//  oResponse(responseDeadEnd);
 
 }
 

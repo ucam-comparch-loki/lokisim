@@ -8,6 +8,7 @@
 #ifndef SRC_NETWORK_TOPOLOGIES_NETWORK2_H_
 #define SRC_NETWORK_TOPOLOGIES_NETWORK2_H_
 
+#include <set>
 #include "../LokiComponent.h"
 #include "Interface.h"
 #include "Arbiters/RoundRobinArbiter.h"
@@ -16,6 +17,7 @@
 
 using sc_core::sc_port;
 using std::ostream;
+using std::set;
 
 template<typename T>
 class Network2 : public LokiComponent, public BlockingInterface {
@@ -56,6 +58,7 @@ protected:
   // Choose an output port to use when aiming for the given destination.
   // This must be implemented by all subclasses.
   virtual PortIndex getDestination(const ChannelID address) const = 0;
+  virtual set<PortIndex> getDestinations(const ChannelID address) const;
 
 private:
 

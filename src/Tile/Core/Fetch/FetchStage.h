@@ -69,18 +69,16 @@ private:
 
 public:
 
+  typedef sc_port<network_sink_ifc<Word>> InPort;
+
 // Inherited from PipelineStage:
 //   sc_in<bool>         clock
 
   // The input instruction to be sent to the instruction packet cache.
-  sc_in<Word>         iToCache;
+  InPort              iToCache;
 
   // The input instruction to be sent to the instruction packet FIFO.
-  sc_in<Word>         iToFIFO;
-
-  // A flow control signal from each of the two instruction inputs.
-  LokiVector<ReadyOutput> oFlowControl;
-  LokiVector<ReadyOutput> oDataConsumed;
+  InPort              iToFIFO;
 
   // Fetch request to be sent to output buffer.
   DataOutput          oFetchRequest;
@@ -164,8 +162,8 @@ private:
 
   // Methods triggered whenever a new instruction arrives. The methods then
   // store the new instruction in the appropriate place.
-  void          fifoInstructionArrived();
-  void          cacheInstructionArrived();
+  void          fifoInstructionArrived(Instruction inst);
+  void          cacheInstructionArrived(Instruction inst);
 
   // Signal to this pipeline stage that a new packet has started to arrive, and
   // tell where it is. Returns the memory address (tag) of the packet.

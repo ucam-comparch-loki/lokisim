@@ -18,10 +18,10 @@ template<typename T>
 class network_source_ifc : virtual public sc_interface {
 public:
   // Read a flit into the network. Consume the source's copy.
-  virtual const Flit<T>& read() = 0;
+  virtual const Flit<T> read() = 0;
 
   // Look at the next flit to be sent. Do not consume it.
-  virtual const Flit<T>& peek() const = 0;
+  virtual const Flit<T> peek() const = 0;
 
   // Tell whether data is ready to be sent.
   virtual bool dataAvailable() const = 0;
@@ -29,9 +29,9 @@ public:
   // Event which is triggered whenever new data arrives.
   virtual const sc_event& dataAvailableEvent() const = 0;
 
-  // For debug, return the most-recently read data. If any other operations
-  // have happened since the read, the result is not guaranteed.
-  virtual const Flit<T>& lastDataRead() const = 0;
+  // For debug, return the most-recently read data. If any other writes
+  // have happened since the read, the result is not guaranteed to be correct.
+  virtual const Flit<T> lastDataRead() const = 0;
 };
 
 template<typename T>
@@ -48,9 +48,15 @@ public:
   // Event which is triggered whenever data is consumed by the sink.
   virtual const sc_event& canWriteEvent() const = 0;
 
-  // For debug, return the most-recently written data. If any other operations
-  // have happened since the write, the result is not guaranteed.
-  virtual const Flit<T>& lastDataWritten() const = 0;
+  // For debug, return the most-recently written data.
+  virtual const Flit<T> lastDataWritten() const = 0;
+};
+
+// Combination of the two.
+template<typename T>
+class network_inout_ifc : virtual public network_source_ifc<T>,
+                          virtual public network_sink_ifc<T> {
+  // Nothing extra.
 };
 
 #endif /* SRC_NETWORK_INTERFACE_H_ */

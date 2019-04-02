@@ -118,7 +118,7 @@ private:
   RequestHandlerState   requestState;
   std::unique_ptr<MemoryOperation> activeRequest; // The request being served.
 
-  DelayFIFO<NetworkResponse> outputQueue; // Model memory latency
+  DelayFIFO<Word>       outputQueue; // Model memory latency
 
   // The place where data is actually stored. There may be many of these
   // request handlers all accessing the same data.

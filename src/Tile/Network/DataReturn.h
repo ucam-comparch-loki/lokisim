@@ -2,6 +2,8 @@
  * DataReturn.h
  *
  * Network returning data from memory banks to cores.
+ * A final input is provided for data returning from the core-to-core data
+ * network.
  *
  *  Created on: 13 Dec 2016
  *      Author: db434
@@ -10,9 +12,9 @@
 #ifndef SRC_TILE_NETWORK_DATARETURN_H_
 #define SRC_TILE_NETWORK_DATARETURN_H_
 
-#include "../../Network/Topologies/Crossbar.h"
+#include "../../Network/Network2.h"
 
-class DataReturn: public Crossbar {
+class DataReturn: public Network2<Word> {
 
 //============================================================================//
 // Ports
@@ -20,21 +22,13 @@ class DataReturn: public Crossbar {
 
 public:
 
-// Inherited from Crossbar:
+// Inherited from Network:
 //
-//  ClockInput   clock;
+//  ClockInput clock;
 //
-//  LokiVector<DataInput>  iData;
-//  LokiVector<DataOutput> oData;
-//
-//  // A request/grant signal for each input to reserve each output.
-//  // Indexed as: iRequest[input][output]
-//  LokiVector2D<ArbiterRequestInput> iRequest;
-//  LokiVector2D<ArbiterGrantOutput>  oGrant;
-//
-//  // A signal from each buffer of each component, telling whether it is ready
-//  // to receive data. Addressed using iReady[component][buffer].
-//  LokiVector2D<ReadyInput>   iReady;
+//  LokiVector<InPort> inputs;    // One per memory + 1
+//  LokiVector<OutPort> outputs;  // One per core input buffer
+//                                // Numbered core*(buffers per core) + buffer
 
 //============================================================================//
 // Constructors and destructors
@@ -44,6 +38,27 @@ public:
   DataReturn(const sc_module_name name,
              const tile_parameters_t& params);
   virtual ~DataReturn();
+
+//============================================================================//
+// Methods
+//============================================================================//
+
+protected:
+
+  virtual PortIndex getDestination(const ChannelID address) const;
+
+//============================================================================//
+// Local state
+//============================================================================//
+
+private:
+
+  // The number of output ports which lead to the same core.
+  const uint outputsPerCore;
+
+  // Number of cores reachable through outputs.
+  const uint outputCores;
+
 };
 
 #endif /* SRC_TILE_NETWORK_DATARETURN_H_ */

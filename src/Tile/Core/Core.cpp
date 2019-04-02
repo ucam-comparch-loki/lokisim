@@ -6,7 +6,6 @@
  */
 
 #include "Core.h"
-
 #include "ControlRegisters.h"
 #include "../ComputeTile.h"
 #include "../../Datatype/DecodedInst.h"
@@ -122,16 +121,10 @@ void Core::magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address, ChannelID 
 }
 
 void Core::deliverDataInternal(const NetworkData& flit) {
-  switch (flit.channelID().channel) {
-    case 0:
-    case 1:
-      fetch.deliverInstructionInternal(flit);
-      break;
-
-    default:
-      decode.deliverDataInternal(flit);
-      break;
-  }
+  if (flit.channelID().channel < numInstructionChannels)
+    fetch.deliverInstructionInternal(flit);
+  else
+    decode.deliverDataInternal(flit);
 }
 
 void Core::deliverCreditInternal(const NetworkCredit& flit) {
@@ -141,7 +134,7 @@ void Core::deliverCreditInternal(const NetworkCredit& flit) {
 size_t Core::numInputDataBuffers() const {
   // A little hacky. The alternative is to ask the DecodeStage to ask the
   // ReceiveChannelEndTable to ask its BufferArray how big it is.
-  return dataToBuffers.size() - numInstructionChannels;
+  return iData.size() - numInstructionChannels;
 }
 
 uint Core::coreIndex() const {
@@ -204,7 +197,7 @@ void     Core::nextIPK() {
   decode.unstall();
 
   // Discard any instructions which were queued up behind any stalled stages.
-  while(pipelineRegs[0].discard())
+  while (pipelineRegs[0].discard())
     /* continue discarding */;
 }
 
@@ -268,50 +261,32 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
            size_t numMulticastOutputs, size_t numMemories) :
     LokiComponent(name),
     clock("clock"),
-    iInstruction("iInstruction"),
-    iData("iData"),
-    oRequest("oRequest"),
-    iMulticast("iMulticast", numMulticastInputs),
+    iData("iData", params.numInputChannels),
+    oMemory("oMemory"),
     oMulticast("oMulticast"),
-    oDataGlobal("oDataGlobal"),
-    iDataGlobal("iDataGlobal"),
-    oReadyData("oReadyData", params.numInputChannels),
-    oCredit("oCredit"),
     iCredit("iCredit"),
-    oReadyCredit("oReadyCredit"),
     fetch("fetch", params.ipkFIFO, params.cache),
     decode("decode", params.numInputChannels-numInstructionChannels, params.inputFIFO),
     execute("execute", params.scratchpad),
     write("write", params.outputFIFO, numMulticastOutputs, numMemories),
-    inputCrossbar("input_crossbar", ID, numMulticastInputs+3, params.numInputChannels), // cores + insts + data + router
     regs("regs", params.registerFile),
     pred("predicate"),
     channelMapTable("channel_map_table", params.channelMapTable, params.numInputChannels),
     cregs("cregs", ID),
     magicMemoryConnection("magic_memory"),
     id(ID),
-    stageReady("stageReady", 3), // 4 stages => 3 links between stages
-    dataToBuffers("dataToBuffers", params.numInputChannels),
-    fcFromBuffers("fcFromBuffers", params.numInputChannels),
-    dataConsumed("dataConsumed", params.numInputChannels) {
+    stageReady("stageReady", 3) { // 4 stages => 3 links between stages
 
   currentlyStalled = false;
 
-  oReadyCredit.initialize(true);
+  iData[0](fetch.iToFIFO);
+  iData[1](fetch.iToCache);
+  for (uint i=numInstructionChannels; i<params.numInputChannels; i++)
+    iData[i](decode.iData[i-numInstructionChannels]);
 
-  // Wire the input ports to the input buffers.
-  inputCrossbar.iData[0](iInstruction);
-  inputCrossbar.iData[1](iData);
-  inputCrossbar.iData[2](iDataGlobal);
-  for (unsigned int i=3; i<3+iMulticast.size(); i++)
-    inputCrossbar.iData[i](iMulticast[i-3]);
-
-  inputCrossbar.oReady(oReadyData);
-  inputCrossbar.oData(dataToBuffers);
-  inputCrossbar.iFlowControl(fcFromBuffers);
-  inputCrossbar.iDataConsumed(dataConsumed);
-  inputCrossbar.clock(clock);
-  inputCrossbar.oCredit[0](oCredit);
+  oMulticast(write.oDataLocal);
+  oMemory(write.oDataMemory);
+  iCredit(write.iCredit);
 
   cregs.clock(clock);
 
@@ -326,9 +301,6 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
   // Wire the pipeline stages up.
 
   fetch.clock(clock);
-  fetch.iToFIFO(dataToBuffers[0]);          fetch.oFlowControl[0](fcFromBuffers[0]);
-  fetch.iToCache(dataToBuffers[1]);         fetch.oFlowControl[1](fcFromBuffers[1]);
-  fetch.oDataConsumed[0](dataConsumed[0]);  fetch.oDataConsumed[1](dataConsumed[1]);
   fetch.oFetchRequest(fetchFlitSignal);
   fetch.iOutputBufferReady(stageReady[2]);
   fetch.initPipeline(NULL, &pipelineRegs[0]);
@@ -336,11 +308,6 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
   decode.clock(clock);
   decode.oReady(stageReady[0]);
   decode.iOutputBufferReady(stageReady[2]);
-  for (uint i=numInstructionChannels; i<params.numInputChannels; i++) {
-    decode.iData[i-numInstructionChannels](dataToBuffers[i]);
-    decode.oFlowControl[i-numInstructionChannels](fcFromBuffers[i]);
-    decode.oDataConsumed[i-numInstructionChannels](dataConsumed[i]);
-  }
   decode.initPipeline(&pipelineRegs[0], &pipelineRegs[1]);
 
   execute.clock(clock);
@@ -352,9 +319,5 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
   write.oReady(stageReady[2]);
   write.iFetch(fetchFlitSignal);
   write.iData(dataFlitSignal);
-  oRequest(write.oDataMemory);
-  write.oDataLocal(oMulticast);
-  write.oDataGlobal(oDataGlobal);
-  write.iCredit(iCredit);
   write.initPipeline(&pipelineRegs[2], NULL);
 }

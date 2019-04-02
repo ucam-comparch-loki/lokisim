@@ -16,7 +16,6 @@
 #define ROUTER_H_
 
 #include "../LokiComponent.h"
-#include "../Utility/BlockingInterface.h"
 #include "../Utility/LokiVector.h"
 #include "FIFOs/FIFOArray.h"
 #include "Network2.h"
@@ -46,33 +45,14 @@ public:
   LokiVector<InPort> inputs;
   LokiVector<OutPort> outputs;
 
-  // Legacy connections to local tile.
-  DataInput iData;
-  DataOutput oData;
-  ReadyInput iReady;
-  ReadyOutput oReady;
-
 //============================================================================//
 // Constructors and destructors
 //============================================================================//
 
 public:
 
-  SC_HAS_PROCESS(Router);
   Router(const sc_module_name& name, const TileID& ID,
          const router_parameters_t& params);
-
-//============================================================================//
-// Methods
-//============================================================================//
-
-private:
-
-  // Methods to bridge between the old style interface and the new style.
-  // To be removed when all converted to new style.
-  void dataArrived();
-  void updateFlowControl();
-  void sendData();
 
 
 //============================================================================//
@@ -83,10 +63,6 @@ private:
 
   FIFOArray<T> inputBuffers;
   RouterInternalNetwork<T> internal;
-
-  // Temporary output buffer to provide the proper interface for the internal
-  // network.
-  NetworkFIFO<T> localOutput;
 
 };
 

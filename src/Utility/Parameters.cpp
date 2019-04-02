@@ -105,7 +105,7 @@ size_t tile_parameters_t::mcastNetInputs() const {
 }
 
 size_t tile_parameters_t::mcastNetOutputs() const {
-  return numCores;
+  return numCores * core.numInputChannels;
 }
 
 size_t tile_parameters_t::totalComponents() const {

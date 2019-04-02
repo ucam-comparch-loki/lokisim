@@ -11,6 +11,7 @@
 #define SRC_TILE_MEMORYCONTROLLERTILE_H_
 
 #include "Tile.h"
+#include "../Network/FIFOs/NetworkFIFO.h"
 #include "../Network/Global/NetworkDeadEnd.h"
 
 class MemoryControllerTile: public Tile {
@@ -69,6 +70,9 @@ public:
 
 private:
 
+  // Extra initialisation once all ports have been bound.
+  void end_of_elaboration();
+
   // Forward requests on to main memory.
   void requestLoop();
 
@@ -81,13 +85,15 @@ private:
 
 private:
 
+  NetworkFIFO<Word>    incomingRequests;
+
   // This tile is not connected to the data or credit networks.
-  NetworkDeadEnd<NetworkData>     dataDeadEnd;
-  NetworkDeadEnd<NetworkCredit>   creditDeadEnd;
+  NetworkDeadEnd<Word> dataDeadEnd;
+  NetworkDeadEnd<Word> creditDeadEnd;
 
   // The tile is only connected to request inputs and response outputs.
-  // Merge the unused parts into a single dead end component.
-  NetworkDeadEnd<NetworkResponse> responseDeadEnd;
+  NetworkDeadEnd<Word> requestDeadEnd;
+  NetworkDeadEnd<Word> responseDeadEnd;
 
 };
 

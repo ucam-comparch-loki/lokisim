@@ -16,6 +16,7 @@
 
 #include "../../LokiComponent.h"
 #include "../../Utility/Assert.h"
+#include "../../Utility/LokiVector2D.h"
 #include "../NetworkTypes.h"
 
 template<class T>

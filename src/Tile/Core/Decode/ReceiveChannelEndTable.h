@@ -35,15 +35,8 @@ public:
 
   // Data values received over the network. There should be NUM_RECEIVE_CHANNELS
   // inputs in the array.
-  LokiVector<sc_in<Word> > iData;
-
-  // A flow control signal for each input (NUM_RECEIVE_CHANNELS), to tell the
-  // flow control unit whether there is space left in its buffer.
-  LokiVector<ReadyOutput> oFlowControl;
-
-  // A flow control signal for each input (NUM_RECEIVE_CHANNELS), to tell the
-  // flow control unit when data has been consumed and a credit can be sent.
-  LokiVector<ReadyOutput> oDataConsumed;
+  typedef sc_port<network_sink_ifc<Word>> InPort;
+  LokiVector<InPort> iData;
 
 //============================================================================//
 // Constructors and destructors
@@ -60,9 +53,6 @@ public:
 //============================================================================//
 
 public:
-
-  // When data arrives over the network, put it into the appropriate buffer.
-  void checkInput(ChannelIndex input);
 
   // Read from the specified channel end. ChannelIndex 0 is mapped to r2.
   int32_t read(ChannelIndex channelEnd);
@@ -99,11 +89,8 @@ private:
   // The least significant bit represents channel 0 (r2).
   void waitForData(unsigned int bitmask, const DecodedInst& inst);
 
-  // Update the flow control value for an input port.
-  void updateFlowControl(ChannelIndex buffer);
-
-  // Toggle signals to indicate when data has been consumed.
-  void dataConsumedAction(ChannelIndex buffer);
+  // Method triggered whenever new data arrives. For instrumentation only.
+  void networkDataArrived(ChannelIndex buffer) const;
 
   ComponentID  id() const;
   DecodeStage& parent() const;

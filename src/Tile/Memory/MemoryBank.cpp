@@ -294,7 +294,7 @@ void MemoryBank::writeWord(SRAMAddress position, uint32_t value, MemoryAccessMod
 }
 
 const sc_event& MemoryBank::requestSentEvent() const {
-  return outputReqQueue.readEvent();
+  return outputReqQueue.canWriteEvent();
 }
 
 bool MemoryBank::flushing(MemoryAddr address) const {
@@ -672,11 +672,11 @@ void MemoryBank::consumeRequest(MemoryLevel level) {
 }
 
 bool MemoryBank::canSendRequest() const {
-  return !outputReqQueue.full();
+  return outputReqQueue.canWrite();
 }
 
 const sc_event& MemoryBank::canSendRequestEvent() const {
-  return outputReqQueue.readEvent();
+  return outputReqQueue.canWriteEvent();
 }
 
 void MemoryBank::sendRequest(NetworkRequest request) {
@@ -718,9 +718,9 @@ bool MemoryBank::canSendResponse(ChannelID destination, MemoryLevel level) const
   switch (level) {
     case MEMORY_L1:
       if (destination.channel < Core::numInstructionChannels)
-        return !outputInstQueue.full();
+        return outputInstQueue.canWrite();
       else
-        return !outputDataQueue.full();
+        return outputDataQueue.canWrite();
     case MEMORY_L2:
       return !oResponse.valid();
     default:
@@ -733,14 +733,14 @@ const sc_event& MemoryBank::canSendResponseEvent(ChannelID destination, MemoryLe
   switch (level) {
     case MEMORY_L1:
       if (destination.channel < Core::numInstructionChannels)
-        return outputInstQueue.readEvent();
+        return outputInstQueue.canWriteEvent();
       else
-        return outputDataQueue.readEvent();
+        return outputDataQueue.canWriteEvent();
     case MEMORY_L2:
       return oResponse.ack_event();
     default:
       loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
-      return outputDataQueue.readEvent();
+      return outputDataQueue.canWriteEvent();
   }
 }
 
@@ -838,64 +838,28 @@ void MemoryBank::coreRequestArrived() {
   Instrumentation::Latency::memoryReceivedRequest(id, inputQueue.lastDataWritten());
 }
 
-void MemoryBank::handleDataOutput() {
-  if (outputDataQueue.empty()) {
-    next_trigger(outputDataQueue.writeEvent());
-  }
-  else if (!coreDataRequestGranted(outputDataQueue.peek().channelID())) {
-    requestCoreDataAccess(outputDataQueue.peek().channelID(), true);
-    next_trigger(iClock.negedge_event());
-  }
-  else {
-    NetworkResponse flit = outputDataQueue.read();
-    LOKI_LOG << this->name() << " sent data " << flit << endl;
-    if (ENERGY_TRACE)
-      Instrumentation::Network::traffic(id, flit.channelID().component);
-    Instrumentation::Network::recordBandwidth(oData.name());
-    Instrumentation::Latency::memorySentResult(id, flit, true);
-
-    oData.write(flit);
-
-    // Remove the request for network resources.
-    if (flit.getMetadata().endOfPacket)
-      requestCoreDataAccess(flit.channelID(), false);
-
-    next_trigger(oData.ack_event());
-  }
+// Instrumentation only.
+void MemoryBank::coreDataSent() {
+  Flit<Word> flit = outputDataQueue.lastDataRead();
+  if (ENERGY_TRACE)
+    Instrumentation::Network::traffic(id, flit.channelID().component);
+  Instrumentation::Latency::memorySentResult(id, flit, true);
 }
 
-void MemoryBank::handleInstructionOutput() {
-  if (outputInstQueue.empty()) {
-    next_trigger(outputInstQueue.writeEvent());
-  }
-  else if (!coreInstRequestGranted(outputInstQueue.peek().channelID())) {
-    requestCoreInstAccess(outputInstQueue.peek().channelID(), true);
-    next_trigger(iClock.negedge_event());
-  }
-  else {
-    NetworkResponse flit = outputInstQueue.read();
-    LOKI_LOG << this->name() << " sent instruction " << flit << endl;
-    if (ENERGY_TRACE)
-      Instrumentation::Network::traffic(id, flit.channelID().component);
-    Instrumentation::Network::recordBandwidth(oInstruction.name());
-    Instrumentation::Latency::memorySentResult(id, flit, true);
-
-    oInstruction.write(flit);
-
-    // Remove the request for network resources.
-    if (flit.getMetadata().endOfPacket)
-      requestCoreInstAccess(flit.channelID(), false);
-
-    next_trigger(oInstruction.ack_event());
-  }
+// Instrumentation only.
+void MemoryBank::coreInstructionSent() {
+  Flit<Word> flit = outputInstQueue.lastDataRead();
+  if (ENERGY_TRACE)
+    Instrumentation::Network::traffic(id, flit.channelID().component);
+  Instrumentation::Latency::memorySentResult(id, flit, true);
 }
 
 // Method which sends data from the mOutputReqQueue whenever possible.
 void MemoryBank::handleRequestOutput() {
   if (!iClock.posedge())
     next_trigger(iClock.posedge_event());
-  else if (outputReqQueue.empty())
-    next_trigger(outputReqQueue.writeEvent());
+  else if (!outputReqQueue.dataAvailable())
+    next_trigger(outputReqQueue.dataAvailableEvent());
   else {
     NetworkRequest request = outputReqQueue.read();
     LOKI_LOG << this->name() << " sent request " <<
@@ -917,34 +881,6 @@ void MemoryBank::handleRequestOutput() {
   }
 }
 
-void MemoryBank::requestCoreDataAccess(ChannelID destination, bool request) {
-  ComponentIndex core = parent().coreIndex(destination.component);
-
-  if (request)
-    oCoreDataRequest[core].write(destination.channel);
-  else
-    oCoreDataRequest[core].write(NO_REQUEST);
-}
-
-bool MemoryBank::coreDataRequestGranted(ChannelID destination) const {
-  ComponentIndex core = parent().coreIndex(destination.component);
-  return iCoreDataGrant[core].read();
-}
-
-void MemoryBank::requestCoreInstAccess(ChannelID destination, bool request) {
-  ComponentIndex core = parent().coreIndex(destination.component);
-
-  if (request)
-    oCoreInstRequest[core].write(destination.channel);
-  else
-    oCoreInstRequest[core].write(NO_REQUEST);
-}
-
-bool MemoryBank::coreInstRequestGranted(ChannelID destination) const {
-  ComponentIndex core = parent().coreIndex(destination.component);
-  return iCoreInstGrant[core].read();
-}
-
 void MemoryBank::mainLoop() {
   switch (state) {
     case STATE_IDLE:      processIdle();                break;
@@ -959,8 +895,8 @@ void MemoryBank::mainLoop() {
 void MemoryBank::updateIdle() {
   bool wasIdle = currentlyIdle;
   currentlyIdle = state == STATE_IDLE &&
-                  !inputQueue.dataAvailable() && outputDataQueue.empty() &&
-                  outputInstQueue.empty() && outputReqQueue.empty();
+                  !inputQueue.dataAvailable() && !outputDataQueue.dataAvailable() &&
+                  !outputInstQueue.dataAvailable() && !outputReqQueue.dataAvailable();
 
   if (wasIdle != currentlyIdle)
     Instrumentation::idle(id, currentlyIdle);
@@ -996,10 +932,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   iData("iData"),
   oData("oData"),
   oInstruction("oInstruction"),
-  oCoreDataRequest("oCoreDataRequest", numCores),
-  iCoreDataGrant("iCoreDataGrant", numCores),
-  oCoreInstRequest("oCoreInstRequest", numCores),
-  iCoreInstGrant("iCoreInstGrant", numCores),
   iRequest("iRequest"),
   iRequestTarget("iRequestTarget"),
   oRequest("oRequest"),
@@ -1036,6 +968,8 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
 
   // Connect to local components.
   iData(inputQueue);
+  oData(outputDataQueue);
+  oInstruction(outputInstQueue);
 
   l2RequestFilter.iClock(iClock);
   l2RequestFilter.iRequest(iRequest);
@@ -1059,14 +993,14 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
 
   SC_METHOD(updateIdle);
   sensitive << inputQueue.canWriteEvent() << inputQueue.dataAvailableEvent()
-            << outputDataQueue.readEvent() << outputDataQueue.writeEvent()
-            << outputInstQueue.readEvent() << outputInstQueue.writeEvent()
-            << outputReqQueue.readEvent() << outputReqQueue.writeEvent()
+            << outputDataQueue.canWriteEvent() << outputDataQueue.dataAvailableEvent()
+            << outputInstQueue.canWriteEvent() << outputInstQueue.dataAvailableEvent()
+            << outputReqQueue.canWriteEvent() << outputReqQueue.dataAvailableEvent()
             << iResponse << oResponse;
   // do initialise
 
-  SC_METHOD(handleDataOutput);
-  SC_METHOD(handleInstructionOutput);
+  SC_METHOD(coreDataSent);
+  SC_METHOD(coreInstructionSent);
   SC_METHOD(handleRequestOutput);
 
   SC_METHOD(copyToMissBuffer);
@@ -1160,15 +1094,15 @@ void MemoryBank::reportStalls(ostream& os) {
   if (!inputQueue.canWrite()) {
     os << inputQueue.name() << " is full." << endl;
   }
-  if (!outputDataQueue.empty()) {
+  if (outputDataQueue.dataAvailable()) {
     const NetworkResponse& outWord = outputDataQueue.peek();
     os << this->name() << " waiting to send " << outWord << endl;
   }
-  if (!outputInstQueue.empty()) {
+  if (outputInstQueue.dataAvailable()) {
     const NetworkResponse& outWord = outputInstQueue.peek();
     os << this->name() << " waiting to send " << outWord << endl;
   }
-  if (!outputReqQueue.empty()) {
+  if (outputReqQueue.dataAvailable()) {
     const NetworkResponse& outWord = outputReqQueue.peek();
     os << this->name() << " waiting to send " << outWord << endl;
   }

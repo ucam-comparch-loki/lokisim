@@ -14,6 +14,7 @@
 #include "../../../Datatype/Word.h"
 #include "../../../Exceptions/BlockedException.h"
 #include "../../../Utility/Assert.h"
+#include "../../../Utility/Instrumentation/Latency.h"
 #include "../../../Utility/Instrumentation/Network.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
@@ -100,24 +101,8 @@ void ReceiveChannelEndTable::waitForData(unsigned int bitmask, const DecodedInst
   }
 }
 
-void ReceiveChannelEndTable::checkInput(ChannelIndex input) {
-  // This method is called because data has arrived on a particular input channel.
-  writeInternal(input, iData[input].read().toInt());
-  Instrumentation::Network::recordBandwidth(iData[input].name());
-}
-
 const sc_event& ReceiveChannelEndTable::receivedDataEvent(ChannelIndex buffer) const {
   return buffers[buffer].dataAvailableEvent();
-}
-
-void ReceiveChannelEndTable::updateFlowControl(ChannelIndex buffer) {
-  bool canReceive = buffers[buffer].canWrite();
-  if (oFlowControl[buffer].read() != canReceive)
-    oFlowControl[buffer].write(canReceive);
-}
-
-void ReceiveChannelEndTable::dataConsumedAction(ChannelIndex buffer) {
-  oDataConsumed[buffer].write(!oDataConsumed[buffer].read());
 }
 
 ComponentID ReceiveChannelEndTable::id() const {
@@ -135,6 +120,10 @@ void ReceiveChannelEndTable::reportStalls(ostream& os) {
   }
 }
 
+void ReceiveChannelEndTable::networkDataArrived(ChannelIndex buffer) const {
+  Instrumentation::Latency::coreReceivedResult(id(), buffers[buffer].lastDataWritten());
+}
+
 ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name,
                                                size_t numChannels,
                                                const fifo_parameters_t& fifoParams) :
@@ -142,28 +131,13 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name,
     BlockingInterface(),
     clock("clock"),
     iData("iData", numChannels),
-    oFlowControl("oFlowControl", numChannels),
-    oDataConsumed("oDataConsumed", numChannels),
     buffers("buffers", numChannels, fifoParams.size),
     currentChannel(numChannels) {
 
-  // Generate a method to watch each input port, putting the data into the
-  // appropriate buffer when it arrives.
-  for (unsigned int i=0; i<buffers.size(); i++) {
-    SPAWN_METHOD(iData[i], ReceiveChannelEndTable::checkInput, i, false);
-    SPAWN_METHOD(buffers[i].dataConsumedEvent(), ReceiveChannelEndTable::dataConsumedAction, i, false);
-  }
+  for (uint i=0; i<numChannels; i++) {
+    iData[i](buffers[i]);
 
-  // Generate a method to watch each buffer, updating its flow control signal
-  // whenever data is added or removed.
-  for (unsigned int i=0; i<buffers.size(); i++) {
-    sc_core::sc_spawn_options options;
-    options.spawn_method();     /* Want an efficient method, not a thread */
-    options.set_sensitivity(&(buffers[i].canWriteEvent()));
-    options.set_sensitivity(&(buffers[i].dataAvailableEvent()));
-
-    /* Create the method. */
-    sc_spawn(sc_bind(&ReceiveChannelEndTable::updateFlowControl, this, i), 0, &options);
+    SPAWN_METHOD(buffers[i].dataAvailableEvent(), ReceiveChannelEndTable::networkDataArrived, i, false);
   }
 
 }

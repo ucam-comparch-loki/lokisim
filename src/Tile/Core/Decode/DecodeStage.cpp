@@ -397,8 +397,6 @@ DecodeStage::DecodeStage(sc_module_name name, size_t numChannels,
     PipelineStage(name),
     oReady("oReady"),
     iData("iData", numChannels),
-    oFlowControl("oFlowControl", numChannels),
-    oDataConsumed("oDataConsumed", numChannels),
     iOutputBufferReady("iOutputBufferReady"),
     rcet("rcet", numChannels, fifoParams),
     decoder("decoder") {
@@ -414,11 +412,7 @@ DecodeStage::DecodeStage(sc_module_name name, size_t numChannels,
 
   // Connect everything up
   rcet.clock(clock);
-  for (uint i=0; i<numChannels; i++) {
-    rcet.iData[i](iData[i]);
-    rcet.oFlowControl[i](oFlowControl[i]);
-    rcet.oDataConsumed[i](oDataConsumed[i]);
-  }
+  iData(rcet.iData);
 
   oReady.initialize(false);
 

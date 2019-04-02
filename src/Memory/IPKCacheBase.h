@@ -86,6 +86,8 @@ public:
   void setReadPointer(CacheIndex pos);
   void setWritePointer(CacheIndex pos);
 
+  const Instruction& debugRead(uint pos) const;
+
 protected:
 
   // Returns the position of the instruction from the given memory location, or

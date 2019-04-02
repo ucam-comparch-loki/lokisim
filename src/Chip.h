@@ -99,9 +99,6 @@ private:
   // on the properties of the memoryControllerPositions set.
   const std::set<TileID> getMemoryControllerPositions(const chip_parameters_t& params) const;
 
-  // Make any necessary wires needed to connect components together.
-  void    makeSignals(size2d_t allTiles);
-
   // Make all cores, memories and interconnect modules.
   void    makeComponents(const chip_parameters_t& params);
 
@@ -145,23 +142,6 @@ private:
 
   sc_clock clock;
 
-  // Naming of signals is relative to the tiles: iData is a data signal
-  // which is an input to a tile.
-
-  // Addressed using array[tileX][tileY]
-  LokiVector2D<DataSignal>     iData,          oData;
-  LokiVector2D<ReadySignal>    iDataReady,     oDataReady;
-  LokiVector2D<CreditSignal>   iCredit,        oCredit;
-  LokiVector2D<ReadySignal>    iCreditReady,   oCreditReady;
-  LokiVector2D<RequestSignal>  iRequest,       oRequest;
-  LokiVector2D<ReadySignal>    iRequestReady,  oRequestReady;
-  LokiVector2D<ResponseSignal> iResponse,      oResponse;
-  LokiVector2D<ReadySignal>    iResponseReady, oResponseReady;
-
-  // Some extra connections for each memory port.
-  LokiVector<RequestSignal>  requestToMainMemory;
-  LokiVector<ResponseSignal> responseFromMainMemory;
-
   // Delays in SystemC slow simulation right down, so instead, make separate
   // clocks. The fast clock has its negative edge 1/4 of a cycle early, and the
   // slow clock has its negative edge 1/4 of a cycle late. The positive edges
@@ -170,6 +150,10 @@ private:
   // credits get to the local tile network in time to be sent, and to allow
   // time for data to arrive from the tile network.
   sc_clock slowClock;
+
+  // Some extra connections for each memory port.
+  LokiVector<RequestSignal>  requestToMainMemory;
+  LokiVector<ResponseSignal> responseFromMainMemory;
 
 };
 

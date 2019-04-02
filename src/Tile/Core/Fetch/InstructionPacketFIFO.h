@@ -19,19 +19,9 @@ class FetchStage;
 class Instruction;
 class Word;
 
-class InstructionPacketFIFO : public LokiComponent, public InstructionStore {
-
-//============================================================================//
-// Ports
-//============================================================================//
-
-public:
-
-  // Signal telling the flow control unit whether there is space left in the FIFO.
-  ReadyOutput oFlowControl;
-
-  // Signal which toggles whenever data has been consumed.
-  ReadyOutput oDataConsumed;
+class InstructionPacketFIFO : public LokiComponent,
+                              public InstructionStore,
+                              public network_sink_ifc<Word> {
 
 //============================================================================//
 // Constructors and destructors
@@ -81,11 +71,14 @@ public:
   virtual const sc_event& readEvent() const;
   virtual const sc_event& writeEvent() const;
 
+
+  // Network interface: some duplication with above methods.
+  virtual void write(const Flit<Word>& data);
+  virtual bool canWrite() const;
+  virtual const sc_event& canWriteEvent() const;
+  virtual const Flit<Word> lastDataWritten() const;
+
 private:
-
-  void updateReady();
-
-  void dataConsumedAction();
 
   FetchStage& parent() const;
 
@@ -95,7 +88,7 @@ private:
 
 private:
 
-  NetworkFIFO<Instruction> fifo;
+  NetworkFIFO<Word> fifo;
 
   // The FIFO holds a single tag, so it is able to efficiently hold very
   // tight loops consisting of a single packet.
@@ -116,6 +109,8 @@ private:
 
   // An event which is triggered whenever an instruction is read from or
   // written to the FIFO.
+  // TODO: these mostly duplicate behaviour of the internal FIFO. The exception
+  // is that fifoWrite is also triggered on a tag lookup.
   sc_event fifoRead, fifoWrite;
 
   // Flag used to determine when a new instruction packet starts arriving.

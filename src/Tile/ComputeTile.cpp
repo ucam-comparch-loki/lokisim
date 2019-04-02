@@ -180,79 +180,59 @@ void ComputeTile::makeComponents(const tile_parameters_t& params) {
 }
 
 void ComputeTile::makeSignals() {
-  dataToCores.init("dataToCore", dataReturn.oData);
-  dataFromMemory.init("dataFromMemory", dataReturn.iData);
-  instructionsToCores.init("instructionsToCores", instructionReturn.oData);
-  instructionsFromMemory.init("instructionsFromMemory", instructionReturn.iData);
-  multicastFromCores.init("multicastFromCore", coreToCore.iData);
-  multicastToCores.init("multicastToCore", coreToCore.oData);
-  readyDataFromCores.init("readyDataFromCore", coreToCore.iReady);
-
-  creditsToCores.init("creditToCore", cores.size());
-  creditsFromCores.init("creditFromCore", cores.size());
-  readyCreditFromCores.init("readyCreditFromCore", cores.size(), 1);
-  globalDataToCores.init("globalDataToCore", cores.size());
-  globalDataFromCores.init("globalDataFromCore", cores.size());
-
-  dataReturnRequests.init("dataReturnRequest", memories.size(), cores.size());
-  dataReturnGrants.init("dataReturnGrant", memories.size(), cores.size());
-  instructionReturnRequests.init("instructionReturnRequest", memories.size(), cores.size());
-  instructionReturnGrants.init("instructionReturnGrant", memories.size(), cores.size());
-  for (uint i=0; i<memories.size(); i++)
-    for (uint j=0; j<cores.size(); j++) {
-      dataReturnRequests[i][j].write(NO_REQUEST);
-      instructionReturnRequests[i][j].write(NO_REQUEST);
-    }
-
   l2ClaimRequest.init("l2ClaimRequest", memories.size());
   l2DelayRequest.init("l2DelayRequest", memories.size());
   l2RequestFromMemory.init("l2RequestFromMemory", memories.size());
   l2ResponseFromMemory.init("l2ResponseFromMemory", memories.size());
 }
 
-void ComputeTile::wireUp() {
+void ComputeTile::wireUp(const tile_parameters_t& params) {
+  uint instructionInputs = Core::numInstructionChannels;
+  uint dataInputs = params.core.numInputChannels - instructionInputs;
+  uint totalInputs = params.core.numInputChannels;
 
   for (uint i=0; i<cores.size(); i++) {
-    cores[i].clock(clock);
-    cores[i].iCredit(creditsToCores[i]);
-    cores[i].iData(dataToCores[i]);
-    cores[i].iDataGlobal(globalDataToCores[i]);
-    cores[i].iInstruction(instructionsToCores[i]);
-    cores[i].iMulticast(multicastToCores[i]); // vector
-    cores[i].oCredit(creditsFromCores[i]);
-    cores[i].oMulticast(multicastFromCores[i]);
-    cores[i].oDataGlobal(globalDataFromCores[i]);
-    cores[i].oReadyCredit(readyCreditFromCores[i][0]);
-    cores[i].oReadyData(readyDataFromCores[i]); // vector
+    Core& core = cores[i];
+
+    core.clock(clock);
+
+    coreToMemory.inputs[i](core.oMemory);
+    coreToCore.inputs[i](core.oMulticast);
+    creditReturn.outputs[i](core.iCredit);
+
+    for (uint j=0; j<totalInputs; j++) {
+      icu.iFlowControl[i][j](core.iData[j]);
+      coreToCore.outputs[i * totalInputs + j](core.iData[j]);
+
+      if (j < instructionInputs)
+        instructionReturn.outputs[i * instructionInputs + j](core.iData[j]);
+      else
+        dataReturn.outputs[i * dataInputs + (j - instructionInputs)](core.iData[j]);
+    }
   }
 
   for (uint i=0; i<memories.size(); i++) {
-    memories[i].iClock(clock);
-    memories[i].iRequest(l2RequestToMemory);
-    memories[i].iRequestClaimed(l2RequestClaimed);
-    memories[i].iRequestDelayed(l2RequestDelayed);
-    memories[i].iRequestTarget(l2RequestTarget);
-    memories[i].iResponse(l2ResponseToMemory);
-    memories[i].iResponseTarget(l2ResponseTarget);
-    memories[i].oClaimRequest(l2ClaimRequest[i]);
-    memories[i].oDelayRequest(l2DelayRequest[i]);
-    memories[i].oData(dataFromMemory[i]);
-    memories[i].oInstruction(instructionsFromMemory[i]);
-    memories[i].oCoreDataRequest(dataReturnRequests[i]); // vector
-    memories[i].iCoreDataGrant(dataReturnGrants[i]); // vector
-    memories[i].oCoreInstRequest(instructionReturnRequests[i]); // vector
-    memories[i].iCoreInstGrant(instructionReturnGrants[i]); // vector
-    memories[i].oRequest(l2RequestFromMemory[i]);
-    memories[i].oResponse(l2ResponseFromMemory[i]);
+    MemoryBank& memory = memories[i];
+
+    memory.iClock(clock);
+
+    coreToMemory.outputs[i](memory.iData);
+    dataReturn.inputs[i](memory.oData);
+    instructionReturn.inputs[i](memory.oInstruction);
+
+    memory.iRequest(l2RequestToMemory);
+    memory.iRequestClaimed(l2RequestClaimed);
+    memory.iRequestDelayed(l2RequestDelayed);
+    memory.iRequestTarget(l2RequestTarget);
+    memory.iResponse(l2ResponseToMemory);
+    memory.iResponseTarget(l2ResponseTarget);
+    memory.oClaimRequest(l2ClaimRequest[i]);
+    memory.oDelayRequest(l2DelayRequest[i]);
+    memory.oRequest(l2RequestFromMemory[i]);
+    memory.oResponse(l2ResponseFromMemory[i]);
   }
 
   mhl.clock(clock);
-  mhl.oRequestToNetwork(oRequest);
-  mhl.oReadyForRequest(oRequestReady);
-  mhl.iRequestFromNetwork(iRequest);
-  mhl.oResponseToNetwork(oResponse);
-  mhl.oReadyForResponse(oResponseReady);
-  mhl.iResponseFromNetwork(iResponse);
   mhl.iClaimRequest(l2ClaimRequest);
   mhl.iDelayRequest(l2DelayRequest);
   mhl.iRequestFromBanks(l2RequestFromMemory);
@@ -264,54 +244,33 @@ void ComputeTile::wireUp() {
   mhl.oResponseTarget(l2ResponseTarget);
   mhl.oResponseToBanks(l2ResponseToMemory);
 
+  dataReturn.inputs[dataReturn.inputs.size()-1](icu.oData);
+
   // Each subnetwork contains arbiters, and the outputs of the networks
   // are themselves arbitrated. Use the slow clock because the memory sends
   // its data on the negative edge, and the core may need the time to compute
   // which memory bank it is sending to.
-
-  coreToCore.iData(multicastFromCores);
-  coreToCore.oData(multicastToCores);
-  coreToCore.iReady(readyDataFromCores);
-
+  // TODO reevaluate this decision.
+  coreToCore.clock(clock);
   coreToMemory.clock(clock);
-  for (uint i=0; i<cores.size(); i++)
-    coreToMemory.inputs[i](cores[i].oRequest);
-  for (uint i=0; i<memories.size(); i++)
-    coreToMemory.outputs[i](memories[i].iData);
-
-  // Data can go to any buffer (including instructions).
   dataReturn.clock(slowClock);
-  dataReturn.iData(dataFromMemory);
-  dataReturn.oData(dataToCores);
-  dataReturn.iReady(readyDataFromCores);
-  dataReturn.iRequest(dataReturnRequests);
-  dataReturn.oGrant(dataReturnGrants);
-
-  // Instructions can only go to instruction inputs.
   instructionReturn.clock(slowClock);
-  instructionReturn.iData(instructionsFromMemory);
-  instructionReturn.oData(instructionsToCores);
-  for (uint i=0; i<readyDataFromCores.size(); i++)
-    for (uint j=0; j<Core::numInstructionChannels; j++)
-      instructionReturn.iReady[i][j](readyDataFromCores[i][j]);
-  instructionReturn.iRequest(instructionReturnRequests);
-  instructionReturn.oGrant(instructionReturnGrants);
+  creditReturn.clock(slowClock);
 
-  dataToRouter.oData(oData);
-  dataToRouter.iData(globalDataFromCores);
+  // The global data network is connected to the final input of the return
+  // crossbar, and to the final output of the forward crossbar.
+  coreToMemory.outputs[coreToMemory.outputs.size()-1](oData);
+  iData(icu.iData);
 
-  dataFromRouter.iData(iData);
-  dataFromRouter.oReady(oDataReady);
-  dataFromRouter.oData(globalDataToCores);
-  dataFromRouter.iReady(readyDataFromCores);
+  icu.oCredit(oCredit);
 
-  creditToRouter.oData(oCredit);
-  creditToRouter.iData(creditsFromCores);
+  iCredit(creditBuffer);
+  creditReturn.inputs[0](creditBuffer);
 
-  creditFromRouter.iData(iCredit);
-  creditFromRouter.oReady(oCreditReady);
-  creditFromRouter.iReady(readyCreditFromCores);
-  creditFromRouter.oData(creditsToCores);
+  mhl.oRequestToNetwork(oRequest);
+  iRequest(mhl.iRequestFromNetwork);
+  mhl.oResponseToNetwork(oResponse);
+  iResponse(mhl.iResponseFromNetwork);
 
 }
 
@@ -320,18 +279,17 @@ ComputeTile::ComputeTile(const sc_module_name& name, const TileID& id,
     Tile(name, id),
     slowClock("slowClock"),
     mhl("mhl", params),
+    icu("icu", params),
     coreToCore("c2c", params),
     coreToMemory("fwdxbar", params),
     dataReturn("dxbar", params),
     instructionReturn("ixbar", params),
-    dataToRouter("outbound_data", params.numCores),
-    dataFromRouter("inbound_data", params.numCores, params.core.numInputChannels),
-    creditToRouter("outbound_credits", params.numCores),
-    creditFromRouter("inbound_credits", params.numCores, 1) {
+    creditReturn("inbound_credits", params),
+    creditBuffer("credit_buffer", 1) {
 
   makeComponents(params);
   makeSignals();
-  wireUp();
+  wireUp(params);
 
 }
 

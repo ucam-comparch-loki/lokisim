@@ -16,11 +16,13 @@
 #include "../Interface.h"
 #include "../../Utility/Instrumentation/Network.h"
 
+// TODO: add a bandwidth check to ensure there aren't too many reads/writes per
+// cycle. BandwidthMonitor class? dataAvailable and canWrite should return false.
 template<class T>
 class NetworkFIFO: public LokiComponent,
-                   public network_source_ifc<T>,
-                   public network_sink_ifc<T> {
+                   public network_inout_ifc<T> {
 
+public:
   typedef Flit<T> stored_data;
 
 //============================================================================//
@@ -44,7 +46,7 @@ public:
 
 public:
 
-  virtual const stored_data& read() {
+  virtual const stored_data read() {
     LOKI_LOG << name() << " consumed " << peek() << endl;
     if (fifo.full())
       LOKI_LOG << name() << " is no longer full" << endl;
@@ -57,7 +59,7 @@ public:
     return fifo.read();
   }
 
-  virtual const stored_data& peek() const {
+  virtual const stored_data peek() const {
     return fifo.peek();
   }
 
@@ -71,12 +73,12 @@ public:
       LOKI_LOG << name() << " is full" << endl;
   }
 
-  virtual const stored_data& lastDataRead() const {
+  virtual const stored_data lastDataRead() const {
     // FIXME: this is not valid if the buffer size is 1.
     return fifo.debugRead(fifo.getReadPointer() - 1);
   }
 
-  virtual const stored_data& lastDataWritten() const {
+  virtual const stored_data lastDataWritten() const {
     // FIXME: this is not valid if the buffer size is 1.
     return fifo.debugRead(fifo.getWritePointer() - 1);
   }
@@ -108,7 +110,7 @@ public:
     return fifo.items();
   }
 
-  // For IPK FIFO only. Can we avoid exposing this?
+  // Public for IPK FIFO only. Can we avoid exposing this?
   unsigned int getReadPointer() const {
     return fifo.getReadPointer();
   }

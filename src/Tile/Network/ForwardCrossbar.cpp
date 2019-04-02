@@ -9,7 +9,7 @@
 
 ForwardCrossbar::ForwardCrossbar(const sc_module_name name,
                                  const tile_parameters_t& params) :
-    Network2<Word>(name, params.numCores, params.numMemories){
+    Network2<Word>(name, params.numCores, params.numMemories + 1){
   // All initialisation done in constructor.
 
 }
@@ -19,6 +19,15 @@ ForwardCrossbar::~ForwardCrossbar() {
 }
 
 PortIndex ForwardCrossbar::getDestination(const ChannelID address) const {
-  // The memories' network addresses start after the cores.
-  return address.component.position - inputs.size();
+  // The first N outputs are memory banks on this tile, and the final output
+  // is the core-to-core data router.
+
+  // A bit hacky - the metadata isn't available here.
+  bool isCore = address.component.position < inputs.size();
+
+  if (isCore)
+    return outputs.size() - 1;
+  else
+    // The memories' network addresses start after the cores.
+    return address.component.position - inputs.size();
 }
