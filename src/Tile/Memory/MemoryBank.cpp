@@ -375,7 +375,7 @@ void MemoryBank::processIdle() {
       // (This differs from the Verilog which has two separate request
       // handlers.)
       if (hitRequest->awaitingPayload() && isCore(hitRequest->getDestination())
-          && (inputQueue.items() < 1+hitRequest->payloadFlitsRemaining()))
+          && (inputQueue.size() < 1+hitRequest->payloadFlitsRemaining()))
         return;
 
       LOKI_LOG << this->name() << " starting hit-under-miss" << endl;

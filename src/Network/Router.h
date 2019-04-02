@@ -17,7 +17,7 @@
 
 #include "../LokiComponent.h"
 #include "../Utility/LokiVector.h"
-#include "FIFOs/FIFOArray.h"
+#include "FIFOs/NetworkFIFO.h"
 #include "Network.h"
 #include "NetworkTypes.h"
 
@@ -61,7 +61,7 @@ public:
 
 private:
 
-  FIFOArray<T> inputBuffers;
+  LokiVector<NetworkFIFO<T>> inputBuffers;
   RouterInternalNetwork<T> internal;
 
 };

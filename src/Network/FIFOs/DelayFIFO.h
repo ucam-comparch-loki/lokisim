@@ -62,7 +62,7 @@ public:
         delayedWrite.notify(sc_core::SC_ZERO_TIME);
     }
 
-    loki_assert(base_class::items() == writeTimes.size());
+    loki_assert(base_class::size() == writeTimes.size());
 
     return data;
   }
@@ -73,7 +73,7 @@ public:
 
     delayedWrite.notify(sc_time(delay, sc_core::SC_NS));
 
-    loki_assert(base_class::items() == writeTimes.size());
+    loki_assert(base_class::size() == writeTimes.size());
   }
 
   // The buffer is empty if there is no data, or if there is data, but it is

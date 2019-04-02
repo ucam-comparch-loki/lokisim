@@ -67,7 +67,6 @@ public:
 
 public:
 
-  SC_HAS_PROCESS(Core);
   Core(const sc_module_name& name, const ComponentID& ID,
        const core_parameters_t& params, size_t numMulticastInputs,
        size_t numMulticastOutputs, size_t numMemories);

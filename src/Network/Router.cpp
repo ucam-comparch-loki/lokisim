@@ -19,21 +19,30 @@ Router<T>::Router(const sc_module_name& name, const TileID& ID,
                   const router_parameters_t& params) :
     LokiComponent(name),
     clock("clock"),
-    inputs("inputs", 5),
-    outputs("outputs", 5),
-    inputBuffers("in_buffers", 5, params.fifo.size),
     internal("network", ID) {
 
   internal.clock(clock);
 
-  for (size_t i=0; i<inputs.size(); i++)
+  for (uint i=0; i<5; i++) {
+    std::stringstream inName;
+    inName << "in_" << DirectionNames[i];
+    InPort* in = new InPort(inName.str().c_str());
+    inputs.push_back(in);
+
+    std::stringstream outName;
+    inName << "out_" << DirectionNames[i];
+    OutPort* out = new OutPort(outName.str().c_str());
+    outputs.push_back(out);
+
+    std::stringstream bufName;
+    bufName << "in_buf_" << DirectionNames[i];
+    NetworkFIFO<T>* buf = new NetworkFIFO<T>(bufName.str().c_str(), params.fifo.size);
+    inputBuffers.push_back(buf);
+
     inputs[i](inputBuffers[i]);
-
-  for (uint i=0; i<inputBuffers.size(); i++)
     internal.inputs[i](inputBuffers[i]);
-
-  for (uint i=0; i<outputs.size(); i++)
     internal.outputs[i](outputs[i]);
+  }
 
 }
 

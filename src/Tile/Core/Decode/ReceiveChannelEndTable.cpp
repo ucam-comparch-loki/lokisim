@@ -24,10 +24,6 @@ int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
   loki_assert(buffers[channelEnd].dataAvailable());
 
   int32_t result = buffers[channelEnd].read().payload().toInt();
-
-  LOKI_LOG << this->name() << " read " << result << " from buffer "
-           << (int)channelEnd << endl;
-
   return result;
 }
 
@@ -41,18 +37,15 @@ int32_t ReceiveChannelEndTable::readInternal(ChannelIndex channelEnd) const {
 }
 
 void ReceiveChannelEndTable::writeInternal(ChannelIndex channel, int32_t data) {
-  LOKI_LOG << this->name() << " channel " << (int)channel << " received " <<
-              data << endl;
-
   loki_assert_with_message(channel < buffers.size(), "Channel %d", channel);
   loki_assert(buffers[channel].canWrite());
 
   // TODO: currently dealing with integers rather than flits. Switch over to be
   // more consistent.
-  Flit<Word> flit(data, ChannelID());
+  Flit<Word> flit(data, Core::RCETInput(id(), channel));
   buffers[channel].write(flit);
 
-  newData.notify();
+  newData.notify(sc_core::SC_ZERO_TIME);
 }
 
 /* Return whether or not the specified channel contains data. */
@@ -119,8 +112,9 @@ void ReceiveChannelEndTable::reportStalls(ostream& os) {
   }
 }
 
-void ReceiveChannelEndTable::networkDataArrived(ChannelIndex buffer) const {
+void ReceiveChannelEndTable::networkDataArrived(ChannelIndex buffer) {
   Instrumentation::Latency::coreReceivedResult(id(), buffers[buffer].lastDataWritten());
+  newData.notify(sc_core::SC_ZERO_TIME);
 }
 
 ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name,
@@ -130,10 +124,15 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name,
     BlockingInterface(),
     clock("clock"),
     iData("iData", numChannels),
-    buffers("buffers", numChannels, fifoParams.size),
     currentChannel(numChannels) {
 
   for (uint i=0; i<numChannels; i++) {
+    std::stringstream bufName;
+    ChannelID channel = Core::RCETInput(id(), i);
+    bufName << "buffer_" << (uint)channel.channel;
+    NetworkFIFO<Word>* fifo = new NetworkFIFO<Word>(bufName.str().c_str(), fifoParams.size);
+    buffers.push_back(fifo);
+
     iData[i](buffers[i]);
 
     SPAWN_METHOD(buffers[i].dataAvailableEvent(), ReceiveChannelEndTable::networkDataArrived, i, false);

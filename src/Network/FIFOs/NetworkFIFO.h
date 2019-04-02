@@ -48,7 +48,7 @@ public:
 
   virtual const stored_data read() {
     LOKI_LOG << name() << " consumed " << peek() << endl;
-    if (fifo.full())
+    if (fifo.full() && size() > 1)
       LOKI_LOG << name() << " is no longer full" << endl;
     Instrumentation::Network::recordBandwidth(this->name());
 
@@ -69,7 +69,7 @@ public:
     fresh[fifo.getWritePointer()] = true;
     fifo.write(newData);
 
-    if (fifo.full())
+    if (fifo.full() && size() > 1)
       LOKI_LOG << name() << " is full" << endl;
   }
 
@@ -106,7 +106,7 @@ public:
   }
 
 
-  unsigned int items() const {
+  unsigned int size() const {
     return fifo.items();
   }
 

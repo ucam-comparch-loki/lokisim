@@ -14,7 +14,7 @@
 #define RECEIVECHANNELENDTABLE_H_
 
 #include "../../../LokiComponent.h"
-#include "../../../Network/FIFOs/FIFOArray.h"
+#include "../../../Network/FIFOs/NetworkFIFO.h"
 #include "../../../Network/NetworkTypes.h"
 #include "../../../Utility/BlockingInterface.h"
 #include "../../../Utility/LokiVector.h"
@@ -89,8 +89,8 @@ private:
   // The least significant bit represents channel 0 (r2).
   void waitForData(unsigned int bitmask, const DecodedInst& inst);
 
-  // Method triggered whenever new data arrives. For instrumentation only.
-  void networkDataArrived(ChannelIndex buffer) const;
+  // Method triggered whenever new data arrives.
+  void networkDataArrived(ChannelIndex buffer);
 
   ComponentID  id() const;
   DecodeStage& parent() const;
@@ -107,7 +107,7 @@ public:
 private:
 
   // A buffer for each channel-end.
-  FIFOArray<Word> buffers;
+  LokiVector<NetworkFIFO<Word>> buffers;
 
   // Allows round-robin selection of channels when executing selch.
   LoopCounter       currentChannel;
