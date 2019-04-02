@@ -18,7 +18,6 @@
 #define SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBANK_H_
 
 #include "../../Memory/MemoryBase.h"
-#include "Directory.h"
 #include "L2RequestFilter.h"
 #include "ReservationHandler.h"
 #include "../../Network/FIFOs/DelayFIFO.h"

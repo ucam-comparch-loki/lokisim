@@ -8,8 +8,8 @@
 #include "MissHandlingLogic.h"
 #include "../ComputeTile.h"
 #include "../../Chip.h"
+#include "../../Datatype/MemoryRequest.h"
 #include "../../Utility/Assert.h"
-#include "../../Utility/Instrumentation/Network.h"
 
 MissHandlingLogic::MissHandlingLogic(const sc_module_name& name,
                                      const tile_parameters_t& params) :

@@ -15,7 +15,6 @@
 #include "../../../Exceptions/BlockedException.h"
 #include "../../../Utility/Assert.h"
 #include "../../../Utility/Instrumentation/Latency.h"
-#include "../../../Utility/Instrumentation/Network.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
 typedef RegisterFile Registers;

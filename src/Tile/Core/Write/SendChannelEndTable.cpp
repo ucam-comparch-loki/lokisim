@@ -8,14 +8,10 @@
 #include "SendChannelEndTable.h"
 #include "WriteStage.h"
 #include "../Core.h"
-#include "../../ComputeTile.h"
-#include "../../../Datatype/DecodedInst.h"
-#include "../../../Datatype/MemoryRequest.h"
 #include "../ChannelMapTable.h"
 #include "../../../Utility/Assert.h"
 #include "../../../Utility/Instrumentation/Latency.h"
 #include "../../../Utility/Instrumentation/Network.h"
-#include "../../../Utility/Instrumentation/Stalls.h"
 
 void SendChannelEndTable::write(const NetworkData data) {
 

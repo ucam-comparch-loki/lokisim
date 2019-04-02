@@ -6,8 +6,6 @@
  */
 
 #include "Router.h"
-#include "../Utility/Assert.h"
-#include "../Utility/Instrumentation/Network.h"
 
 // Some parts of SystemC don't seem to interact very well with templated
 // classes. The best solution I've found is to list out the types which can

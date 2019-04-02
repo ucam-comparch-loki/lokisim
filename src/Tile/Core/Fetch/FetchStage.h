@@ -18,7 +18,6 @@
 #include "InstructionPacketFIFO.h"
 #include "../PipelineStage.h"
 #include "../../../Utility/BlockingInterface.h"
-#include "../../../Utility/LokiVector.h"
 
 class FetchStage : public PipelineStage, public BlockingInterface {
 

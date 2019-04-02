@@ -14,7 +14,6 @@
 #include "../../../Network/FIFOs/NetworkFIFO.h"
 #include "../../../Network/NetworkTypes.h"
 #include "../../../Utility/BlockingInterface.h"
-#include "../../../Utility/LokiVector.h"
 
 class ChannelMapTable;
 class DecodedInst;

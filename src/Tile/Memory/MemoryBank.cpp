@@ -14,16 +14,12 @@ using namespace std;
 #include <iostream>
 #include <iomanip>
 #include "MemoryBank.h"
-#include "../../OffChip/MainMemory.h"
 #include "../../Datatype/MemoryOperations/MemoryOperationDecode.h"
 #include "../ComputeTile.h"
 #include "../../Chip.h"
-#include "../../Utility/Arguments.h"
 #include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/Latency.h"
 #include "../../Utility/Instrumentation/L1Cache.h"
-#include "../../Utility/Instrumentation/Network.h"
-#include "../../Utility/Parameters.h"
 #include "../../Utility/Warnings.h"
 #include "../../Exceptions/ReadOnlyException.h"
 #include "../../Exceptions/UnsupportedFeatureException.h"

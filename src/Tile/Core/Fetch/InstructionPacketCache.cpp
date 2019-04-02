@@ -14,7 +14,6 @@
 #include "../../../Utility/Instrumentation.h"
 #include "../../../Utility/Instrumentation/IPKCache.h"
 #include "../../../Utility/Instrumentation/Latency.h"
-#include "../../../Utility/Instrumentation/Stalls.h"
 
 /* Initialise the contents of the cache with a list of Instructions. */
 void InstructionPacketCache::storeCode(const std::vector<Instruction>& instructions) {

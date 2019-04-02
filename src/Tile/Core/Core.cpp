@@ -6,12 +6,10 @@
  */
 
 #include "Core.h"
-#include "ControlRegisters.h"
 #include "../ComputeTile.h"
 #include "../../Datatype/DecodedInst.h"
 #include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/Registers.h"
-#include "../../Utility/ISA.h"
 
 /* Initialise the instructions a Core will execute. */
 void     Core::storeData(const std::vector<Word>& data) {

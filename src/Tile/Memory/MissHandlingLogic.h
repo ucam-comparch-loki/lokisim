@@ -13,7 +13,6 @@
 #ifndef MISSHANDLINGLOGIC_H_
 #define MISSHANDLINGLOGIC_H_
 
-#include "../../Datatype/MemoryRequest.h"
 #include "../../LokiComponent.h"
 #include "../../Network/ArbitratedMultiplexer.h"
 #include "../../Network/FIFOs/NetworkFIFO.h"
