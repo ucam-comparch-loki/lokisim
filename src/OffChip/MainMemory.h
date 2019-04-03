@@ -27,11 +27,13 @@ class MainMemory: public MemoryBase {
 
 public:
 
-  ClockInput                 iClock;
+  ClockInput           iClock;
 
   // One input/output from each memory controller.
-  LokiVector<RequestInput>   iData;
-  LokiVector<ResponseOutput> oData;
+  typedef sc_port<network_sink_ifc<Word>> InPort;
+  typedef sc_port<network_source_ifc<Word>> OutPort;
+  LokiVector<InPort>   iData;
+  LokiVector<OutPort>  oData;
 
 //============================================================================//
 // Constructors and destructors

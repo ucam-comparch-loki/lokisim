@@ -36,8 +36,8 @@ MainMemory::MainMemory(sc_module_name name, uint controllers,
         new MainMemoryRequestHandler(sc_gen_unique_name("handler"), *this, params);
 
     handler->iClock(iClock);
-    handler->iData(iData[i]);
-    handler->oData(oData[i]);
+    iData[i](handler->iData);
+    oData[i](handler->oData);
 
     handlers.push_back(handler);
   }

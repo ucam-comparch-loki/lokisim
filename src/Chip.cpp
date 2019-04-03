@@ -229,8 +229,8 @@ void Chip::makeComponents(const chip_parameters_t& params) {
         t = new MemoryControllerTile(name.str().c_str(), tileID);
 
         uint memoryPort = memoryControllersMade++;
-        ((MemoryControllerTile*)t)->oRequestToMainMemory(requestToMainMemory[memoryPort]);
-        ((MemoryControllerTile*)t)->iResponseFromMainMemory(responseFromMainMemory[memoryPort]);
+        ((MemoryControllerTile*)t)->oRequestToMainMemory(mainMemory.iData[memoryPort]);
+        ((MemoryControllerTile*)t)->iResponseFromMainMemory(mainMemory.oData[memoryPort]);
       }
       else {
         t = new EmptyTile(name.str().c_str(), tileID);
@@ -256,8 +256,6 @@ void Chip::wireUp() {
 
   // Main memory.
   mainMemory.iClock(clock);
-  mainMemory.iData(requestToMainMemory);
-  mainMemory.oData(responseFromMainMemory);
 
   // Most network wiring happened when the tiles were created.
   dataNet.clock(clock);
@@ -277,9 +275,7 @@ Chip::Chip(const sc_module_name& name, const chip_parameters_t& params) :
     requestNet("request_net", params.allTiles(), params.router),
     responseNet("response_net", params.allTiles(), params.router),
     clock("clock", 1, sc_core::SC_NS, 0.5),
-    slowClock("slow_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.75),
-    requestToMainMemory("requestToMainMemory", memoryControllerPositions.size()),
-    responseFromMainMemory("responseFromMainMemory", memoryControllerPositions.size()) {
+    slowClock("slow_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.75) {
 
   makeComponents(params);
   wireUp();

@@ -45,22 +45,22 @@ void MemoryControllerTile::end_of_elaboration() {
   dont_initialize();
 
   SC_METHOD(responseLoop);
-  sensitive << iResponseFromMainMemory;
+  sensitive << iResponseFromMainMemory->canReadEvent();
   dont_initialize();
 }
 
 void MemoryControllerTile::requestLoop() {
-  if (oRequestToMainMemory.valid()) {
-    next_trigger(oRequestToMainMemory.ack_event());
+  if (!oRequestToMainMemory->canWrite()) {
+    next_trigger(oRequestToMainMemory->canWriteEvent());
   }
   else if (incomingRequests.canRead()) {
     Flit<Word> flit = incomingRequests.read();
-    oRequestToMainMemory.write(flit);
+    oRequestToMainMemory->write(flit);
 
     LOKI_LOG << this->name() << " forwarding request to main memory: "
         << flit << endl;
-    Instrumentation::Network::recordBandwidth(oRequestToMainMemory.name());
 
+    // TODO: allow multiple flits per cycle. #bandwidth
     if (incomingRequests.canRead())
       next_trigger(clock.posedge_event());
     // Else, default trigger: new request arrival
@@ -71,16 +71,16 @@ void MemoryControllerTile::responseLoop() {
   if (!oResponse->canWrite()) {
     next_trigger(oResponse->canWriteEvent());
   }
-  else if (iResponseFromMainMemory.valid()) {
-    oResponse->write(iResponseFromMainMemory.read());
-    iResponseFromMainMemory.ack();
+  else if (iResponseFromMainMemory->canRead()) {
+    Flit<Word> flit = iResponseFromMainMemory->read();
+    oResponse->write(flit);
 
     LOKI_LOG << this->name() << " forwarding response from main memory: "
-        << iResponseFromMainMemory.read() << endl;
-    Instrumentation::Network::recordBandwidth(iResponseFromMainMemory.name());
+        << flit << endl;
 
     // Wait for the clock edge rather than the next data arrival because there
     // may be other data lined up and ready to go immediately.
+    // TODO: allow multiple flits per cycle. #bandwidth
     next_trigger(clock.posedge_event());
   }
   // else default trigger: new data to send

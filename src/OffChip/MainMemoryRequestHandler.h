@@ -27,8 +27,8 @@ public:
 
   ClockInput     iClock;
 
-  RequestInput   iData;
-  ResponseOutput oData;
+  sc_port<network_sink_ifc<Word>>   iData;
+  sc_port<network_source_ifc<Word>> oData;
 
 //============================================================================//
 // Constructors and destructors
@@ -101,8 +101,8 @@ private:
   void processIdle();
   void processRequest();
 
-  // Method triggered whenever data needs to be sent.
-  void sendData();
+  // Instrumentation method triggered whenever data is sent.
+  void sentData();
 
 //============================================================================//
 // Local state
@@ -118,6 +118,7 @@ private:
   RequestHandlerState   requestState;
   std::unique_ptr<MemoryOperation> activeRequest; // The request being served.
 
+  NetworkFIFO<Word>     inputQueue;
   DelayFIFO<Word>       outputQueue; // Model memory latency
 
   // The place where data is actually stored. There may be many of these

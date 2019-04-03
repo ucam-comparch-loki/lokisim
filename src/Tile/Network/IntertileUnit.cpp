@@ -144,7 +144,7 @@ void IntertileUnit::sendCredits() {
   // Wait until there is space to write a result.
   if (!oCredit->canWrite())
     next_trigger(oCredit->canWriteEvent());
-  else if (creditsOutstanding.empty() && nackChannel == ChannelID())
+  else if (creditsOutstanding.empty() && nackChannel.isNullMapping())
     next_trigger(newCreditEvent);
   else {
     // Priority: respond to failed connection attempts. We can't have more

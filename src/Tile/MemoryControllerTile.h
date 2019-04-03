@@ -27,32 +27,24 @@ public:
 //  ClockInput      clock;
 //
 //  // Data network.
-//  DataInput       iData;
-//  DataOutput      oData;
-//  ReadyInput      iDataReady;
-//  ReadyOutput     oDataReady;
+//  sc_port<network_sink_ifc<Word>> iData;
+//  sc_port<network_sink_ifc<Word>> oData;
 //
 //  // Credit network.
-//  CreditInput     iCredit;
-//  CreditOutput    oCredit;
-//  ReadyInput      iCreditReady;
-//  ReadyOutput     oCreditReady;
+//  sc_port<network_sink_ifc<Word>> iCredit;
+//  sc_port<network_sink_ifc<Word>> oCredit;
 //
 //  // Memory request network.
-//  RequestInput    iRequest;
-//  RequestOutput   oRequest;
-//  ReadyInput      iRequestReady;
-//  ReadyOutput     oRequestReady;
+//  sc_port<network_sink_ifc<Word>> iRequest;
+//  sc_port<network_sink_ifc<Word>> oRequest;
 //
 //  // Memory response network.
-//  ResponseInput   iResponse;
-//  ResponseOutput  oResponse;
-//  ReadyInput      iResponseReady;
-//  ReadyOutput     oResponseReady;
+//  sc_port<network_sink_ifc<Word>> iResponse;
+//  sc_port<network_sink_ifc<Word>> oResponse;
 
   // Extra interfaces to main memory.
-  RequestOutput   oRequestToMainMemory;
-  ResponseInput   iResponseFromMainMemory;
+  sc_port<network_sink_ifc<Word>>   oRequestToMainMemory;
+  sc_port<network_source_ifc<Word>> iResponseFromMainMemory;
 
 //============================================================================//
 // Constructors and destructors
@@ -85,6 +77,7 @@ private:
 
 private:
 
+  // Requests from on-chip.
   NetworkFIFO<Word>    incomingRequests;
 
   // This tile is not connected to the data or credit networks.

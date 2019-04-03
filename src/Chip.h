@@ -151,10 +151,6 @@ private:
   // time for data to arrive from the tile network.
   sc_clock slowClock;
 
-  // Some extra connections for each memory port.
-  LokiVector<RequestSignal>  requestToMainMemory;
-  LokiVector<ResponseSignal> responseFromMainMemory;
-
 };
 
 #endif /* CHIP_H_ */
