@@ -19,6 +19,7 @@
 #include "Network/ForwardCrossbar.h"
 #include "Network/InstructionReturn.h"
 #include "../Network/NetworkTypes.h"
+#include "Memory/L2Logic.h"
 #include "Network/BankToMHLRequests.h"
 #include "Network/CreditReturn.h"
 #include "Network/IntertileUnit.h"
@@ -128,11 +129,13 @@ private:
   LokiVector<Core>          cores;
   LokiVector<MemoryBank>    memories;
   MissHandlingLogic         mhl;
+  L2Logic                   l2l;
   IntertileUnit             icu;
 
   friend class Core;
   friend class MemoryBank;
   friend class MissHandlingLogic;
+  friend class L2Logic;
   friend class IntertileUnit;
 
   // Subnetworks.

@@ -232,15 +232,17 @@ void ComputeTile::wireUp(const tile_parameters_t& params) {
   }
 
   mhl.clock(clock);
-  mhl.iClaimRequest(l2ClaimRequest);
-  mhl.iDelayRequest(l2DelayRequest);
-  mhl.iResponseFromBanks(l2ResponseFromMemory);
-  mhl.oRequestClaimed(l2RequestClaimed);
-  mhl.oRequestDelayed(l2RequestDelayed);
-  mhl.oRequestTarget(l2RequestTarget);
-  mhl.oRequestToBanks(l2RequestToMemory);
   bankToMHLRequests.outputs[0](mhl.iRequestFromBanks);
   mhlToBankResponses.inputs[0](mhl.oResponseToBanks);
+
+  l2l.clock(clock);
+  l2l.iClaimRequest(l2ClaimRequest);
+  l2l.iDelayRequest(l2DelayRequest);
+  l2l.iResponseFromBanks(l2ResponseFromMemory);
+  l2l.oRequestClaimed(l2RequestClaimed);
+  l2l.oRequestDelayed(l2RequestDelayed);
+  l2l.oRequestTarget(l2RequestTarget);
+  l2l.oRequestToBanks(l2RequestToMemory);
 
   dataReturn.inputs[dataReturn.inputs.size()-1](icu.oData);
 
@@ -263,9 +265,9 @@ void ComputeTile::wireUp(const tile_parameters_t& params) {
   creditReturn.inputs[0](creditBuffer);
 
   mhl.oRequestToNetwork(oRequest);
-  iRequest(mhl.iRequestFromNetwork);
-  mhl.oResponseToNetwork(oResponse);
   iResponse(mhl.iResponseFromNetwork);
+  iRequest(l2l.iRequestFromNetwork);
+  l2l.oResponseToNetwork(oResponse);
 
 }
 
@@ -273,6 +275,7 @@ ComputeTile::ComputeTile(const sc_module_name& name, const TileID& id,
                          const tile_parameters_t& params) :
     Tile(name, id),
     mhl("mhl", params),
+    l2l("l2l", params),
     icu("icu", params),
     coreToCore("c2c", params),
     coreToMemory("fwdxbar", params),
