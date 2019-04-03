@@ -182,7 +182,6 @@ void ComputeTile::makeComponents(const tile_parameters_t& params) {
 void ComputeTile::makeSignals() {
   l2ClaimRequest.init("l2ClaimRequest", memories.size());
   l2DelayRequest.init("l2DelayRequest", memories.size());
-  l2RequestFromMemory.init("l2RequestFromMemory", memories.size());
   l2ResponseFromMemory.init("l2ResponseFromMemory", memories.size());
 }
 
@@ -220,43 +219,38 @@ void ComputeTile::wireUp(const tile_parameters_t& params) {
     coreToMemory.outputs[i](memory.iData);
     dataReturn.inputs[i](memory.oData);
     instructionReturn.inputs[i](memory.oInstruction);
+    bankToMHLRequests.inputs[i](memory.oRequest);
+    mhlToBankResponses.outputs[i](memory.iResponse);
 
     memory.iRequest(l2RequestToMemory);
     memory.iRequestClaimed(l2RequestClaimed);
     memory.iRequestDelayed(l2RequestDelayed);
     memory.iRequestTarget(l2RequestTarget);
-    memory.iResponse(l2ResponseToMemory);
-    memory.iResponseTarget(l2ResponseTarget);
     memory.oClaimRequest(l2ClaimRequest[i]);
     memory.oDelayRequest(l2DelayRequest[i]);
-    memory.oRequest(l2RequestFromMemory[i]);
     memory.oResponse(l2ResponseFromMemory[i]);
   }
 
   mhl.clock(clock);
   mhl.iClaimRequest(l2ClaimRequest);
   mhl.iDelayRequest(l2DelayRequest);
-  mhl.iRequestFromBanks(l2RequestFromMemory);
   mhl.iResponseFromBanks(l2ResponseFromMemory);
   mhl.oRequestClaimed(l2RequestClaimed);
   mhl.oRequestDelayed(l2RequestDelayed);
   mhl.oRequestTarget(l2RequestTarget);
   mhl.oRequestToBanks(l2RequestToMemory);
-  mhl.oResponseTarget(l2ResponseTarget);
-  mhl.oResponseToBanks(l2ResponseToMemory);
+  bankToMHLRequests.outputs[0](mhl.iRequestFromBanks);
+  mhlToBankResponses.inputs[0](mhl.oResponseToBanks);
 
   dataReturn.inputs[dataReturn.inputs.size()-1](icu.oData);
 
-  // Each subnetwork contains arbiters, and the outputs of the networks
-  // are themselves arbitrated. Use the slow clock because the memory sends
-  // its data on the negative edge, and the core may need the time to compute
-  // which memory bank it is sending to.
-  // TODO reevaluate this decision.
   coreToCore.clock(clock);
   coreToMemory.clock(clock);
-  dataReturn.clock(slowClock);
-  instructionReturn.clock(slowClock);
-  creditReturn.clock(slowClock);
+  dataReturn.clock(clock);
+  instructionReturn.clock(clock);
+  creditReturn.clock(clock);
+  bankToMHLRequests.clock(clock);
+  mhlToBankResponses.clock(clock);
 
   // The global data network is connected to the final input of the return
   // crossbar, and to the final output of the forward crossbar.
@@ -278,7 +272,6 @@ void ComputeTile::wireUp(const tile_parameters_t& params) {
 ComputeTile::ComputeTile(const sc_module_name& name, const TileID& id,
                          const tile_parameters_t& params) :
     Tile(name, id),
-    slowClock("slowClock"),
     mhl("mhl", params),
     icu("icu", params),
     coreToCore("c2c", params),
@@ -286,6 +279,8 @@ ComputeTile::ComputeTile(const sc_module_name& name, const TileID& id,
     dataReturn("dxbar", params),
     instructionReturn("ixbar", params),
     creditReturn("inbound_credits", params),
+    bankToMHLRequests("bank_to_mhl_req", params),
+    mhlToBankResponses("mhl_to_bank_resp", params),
     creditBuffer("credit_buffer", 1) {
 
   makeComponents(params);

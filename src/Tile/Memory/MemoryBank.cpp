@@ -693,19 +693,16 @@ void MemoryBank::forwardRequest(NetworkRequest request) {
 }
 
 bool MemoryBank::responseAvailable() const {
-  return iResponse.valid() && (iResponseTarget.read() == id.position-coresThisTile());
+  return inResponseQueue.canRead();
 }
 
 const sc_event& MemoryBank::responseAvailableEvent() const {
-  return iResponse.default_event();
+  return inResponseQueue.canReadEvent();
 }
 
 uint32_t MemoryBank::getResponse() {
   loki_assert(responseAvailable());
-  uint32_t data = iResponse.read().payload().toUInt();
-  iResponse.ack();
-
-  LOKI_LOG << this->name() << " received response " << LOKI_HEX(data) << endl;
+  uint32_t data = inResponseQueue.read().payload().toUInt();
 
   return data;
 }
@@ -850,30 +847,19 @@ void MemoryBank::coreInstructionSent() {
   Instrumentation::Latency::memorySentResult(id, flit, true);
 }
 
-// Method which sends data from the mOutputReqQueue whenever possible.
-void MemoryBank::handleRequestOutput() {
-  if (!iClock.posedge())
-    next_trigger(iClock.posedge_event());
-  else if (!outputReqQueue.canRead())
-    next_trigger(outputReqQueue.canReadEvent());
-  else {
-    NetworkRequest request = outputReqQueue.read();
-    LOKI_LOG << this->name() << " sent request " <<
-        memoryOpName(request.getMemoryMetadata().opcode) << " " << LOKI_HEX(request.payload()) << endl;
+void MemoryBank::memoryRequestSent() {
+  NetworkRequest request = outputReqQueue.lastDataRead();
+  LOKI_LOG << this->name() << " sent request " <<
+      memoryOpName(request.getMemoryMetadata().opcode) << " " << LOKI_HEX(request.payload()) << endl;
 
-    // Slightly hacky: if the output we are overwriting is the head of a flush
-    // request, then we know that that request has now been selected to go out
-    // on the network, and cannot be overtaken by any other requests. Therefore,
-    // it is safe to remove it from our pendingFlushes queue.
-    if (oRequest.read().getMemoryMetadata().opcode == STORE_LINE &&
-        !pendingFlushes.empty() &&
-        getTag(oRequest.read().payload().toUInt()) == pendingFlushes.front()) {
-      pendingFlushes.erase(pendingFlushes.begin());
-    }
-
-    loki_assert(!oRequest.valid());
-    oRequest.write(request);
-    next_trigger(oRequest.ack_event());
+  // Slightly hacky: if the output we are overwriting is the head of a flush
+  // request, then we know that that request has now been selected to go out
+  // on the network, and cannot be overtaken by any other requests. Therefore,
+  // it is safe to remove it from our pendingFlushes queue.
+  if (request.getMemoryMetadata().opcode == STORE_LINE &&
+      !pendingFlushes.empty() &&
+      getTag(request.payload().toUInt()) == pendingFlushes.front()) {
+    pendingFlushes.erase(pendingFlushes.begin());
   }
 }
 
@@ -936,14 +922,14 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   iRequestDelayed("iRequestDelayed"),
   oDelayRequest("oDelayRequest"),
   iResponse("iResponse"),
-  iResponseTarget("iResponseTarget"),
   oResponse("oResponse"),
   hitUnderMiss(params.hitUnderMiss),
   log2NumBanks(log2(numBanks)),
-  inputQueue("mInputQueue", params.inputFIFO.size),
-  outputDataQueue("mOutputDataQueue", params.outputFIFO.size, artificialDelayRequired(params)),
-  outputInstQueue("mOutputInstQueue", params.outputFIFO.size, artificialDelayRequired(params)),
-  outputReqQueue("mOutputReqQueue", requestQueueSize(params), 0),
+  inputQueue("inputQueue", params.inputFIFO.size),
+  inResponseQueue("inResponseQueue", params.inputFIFO.size),
+  outputDataQueue("outputDataQueue", params.outputFIFO.size, artificialDelayRequired(params)),
+  outputInstQueue("outputInstQueue", params.outputFIFO.size, artificialDelayRequired(params)),
+  outputReqQueue("outputReqQueue", requestQueueSize(params), 0),
   data(params.size/BYTES_PER_WORD, 0),
   metadata(params.size/params.cacheLineSize),
   reservations(1),
@@ -964,8 +950,10 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
 
   // Connect to local components.
   iData(inputQueue);
+  iResponse(inResponseQueue);
   oData(outputDataQueue);
   oInstruction(outputInstQueue);
+  oRequest(outputReqQueue);
 
   l2RequestFilter.iClock(iClock);
   l2RequestFilter.iRequest(iRequest);
@@ -992,12 +980,20 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
             << outputDataQueue.canWriteEvent() << outputDataQueue.writeEvent()
             << outputInstQueue.canWriteEvent() << outputInstQueue.writeEvent()
             << outputReqQueue.canWriteEvent() << outputReqQueue.writeEvent()
-            << iResponse << oResponse;
+            << inResponseQueue.writeEvent() << oResponse;
   // do initialise
 
   SC_METHOD(coreDataSent);
+  sensitive << outputDataQueue.dataConsumedEvent();
+  dont_initialize();
+
   SC_METHOD(coreInstructionSent);
-  SC_METHOD(handleRequestOutput);
+  sensitive << outputInstQueue.dataConsumedEvent();
+  dont_initialize();
+
+  SC_METHOD(memoryRequestSent);
+  sensitive << outputReqQueue.dataConsumedEvent();
+  dont_initialize();
 
   SC_METHOD(copyToMissBuffer);
   sensitive << cacheMissEvent;

@@ -142,15 +142,6 @@ private:
 
   sc_clock clock;
 
-  // Delays in SystemC slow simulation right down, so instead, make separate
-  // clocks. The fast clock has its negative edge 1/4 of a cycle early, and the
-  // slow clock has its negative edge 1/4 of a cycle late. The positive edges
-  // are at the same time as the normal clock.
-  // These are used for the small input crossbar in each core, to ensure that
-  // credits get to the local tile network in time to be sent, and to allow
-  // time for data to arrive from the tile network.
-  sc_clock slowClock;
-
 };
 
 #endif /* CHIP_H_ */

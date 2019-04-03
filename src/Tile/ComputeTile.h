@@ -19,8 +19,10 @@
 #include "Network/ForwardCrossbar.h"
 #include "Network/InstructionReturn.h"
 #include "../Network/NetworkTypes.h"
+#include "Network/BankToMHLRequests.h"
 #include "Network/CreditReturn.h"
 #include "Network/IntertileUnit.h"
+#include "Network/MHLToBankResponses.h"
 
 class Core;
 class MemoryBank;
@@ -36,10 +38,7 @@ public:
 // Inherited from Tile:
 //
 //  ClockInput      clock;
-
-  // Some extra events to keep the internal networks in sync.
-  ClockInput      slowClock;
-
+//
 //  // Data network.
 //  sc_port<network_source_ifc<Word>> iData;
 //  sc_port<network_sink_ifc<Word>> oData;
@@ -142,6 +141,8 @@ private:
   DataReturn                dataReturn;
   InstructionReturn         instructionReturn;
   CreditReturn              creditReturn;
+  BankToMHLRequests         bankToMHLRequests;
+  MHLToBankResponses        mhlToBankResponses;
 
   // Need to implement the appropriate interfaces to connect the global credit
   // network with the local one. No other networks need this because their
@@ -154,7 +155,6 @@ private:
 
 private:
 
-  LokiVector<RequestSignal> l2RequestFromMemory;
   RequestSignal             l2RequestToMemory;
   sc_signal<MemoryIndex>    l2RequestTarget;
   LokiVector<sc_signal<bool>> l2ClaimRequest;
@@ -163,8 +163,6 @@ private:
   sc_signal<bool>           l2RequestDelayed;
 
   LokiVector<ResponseSignal> l2ResponseFromMemory;
-  ResponseSignal            l2ResponseToMemory;
-  sc_signal<MemoryIndex>    l2ResponseTarget;
 
 };
 

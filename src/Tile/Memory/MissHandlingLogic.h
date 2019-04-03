@@ -55,14 +55,11 @@ public:
 
   // Ports to handle requests from memory banks on this tile.
 
-  // One request per bank.
-  LokiVector<RequestInput>    iRequestFromBanks;
+  // Requests from banks.
+  InPort                      iRequestFromBanks;
 
   // Responses are broadcast to all banks.
-  ResponseOutput              oResponseToBanks;
-
-  // The memory bank for which this response is meant.
-  sc_out<MemoryIndex>         oResponseTarget;
+  sc_port<network_source_ifc<Word>> oResponseToBanks;
 
 
   // Ports to handle requests from memory banks on other tiles.
@@ -118,11 +115,8 @@ private:
 
   // Process requests from the local memory banks.
   void localRequestLoop();
-  void handleDirectoryUpdate();
-  void handleDirectoryMaskUpdate();
-
-  // Receive responses from remote memory banks.
-  void receiveResponseLoop();
+  void handleDirectoryUpdate(const NetworkRequest& flit);
+  void handleDirectoryMaskUpdate(const NetworkRequest& flit);
 
   // Process requests from remote memory banks.
   void remoteRequestLoop();
@@ -167,18 +161,17 @@ private:
   Directory directory;
 
   // Buffer/latches to hold requests and responses from the network.
-  NetworkFIFO<Word> incomingRequests, incomingResponses;
+  NetworkFIFO<Word> requestsFromNetwork, responsesFromNetwork;
+  NetworkFIFO<Word> requestsFromBanks;
 
   // Multiplexer which selects an input from one of the connected banks.
-  ArbitratedMultiplexer<NetworkRequest>  requestMux;
   ArbitratedMultiplexer<NetworkResponse> responseMux;
 
   // Selected request from connected memory banks.
-  loki_signal<NetworkRequest>  muxedRequest;
   loki_signal<NetworkResponse> muxedResponse;
 
   // Keep the same multiplexer input if multiple flits are being sent.
-  sc_signal<bool> holdRequestMux, holdResponseMux;
+  sc_signal<bool> holdResponseMux;
 
   // Flag telling whether the next flit to arrive will be the start of a new
   // packet.

@@ -19,8 +19,8 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name,
     oRequestToNetwork("oRequestToNetwork"),
     iResponseFromNetwork("iResponseFromNetwork"),
     oResponseToNetwork("oResponseToNetwork"),
+    iRequestFromBanks("iRequestFromBanks"),
     oResponseToBanks("oResponseToBanks"),
-    oResponseTarget("oResponseTarget"),
     oRequestToBanks("oRequestToBanks"),
     oRequestTarget("oRequestTarget"),
     iClaimRequest("iClaimRequest", params.numMemories),
@@ -30,9 +30,9 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name,
     log2CacheLineSize(params.memory.log2CacheLineSize()),
     numMemoryBanks(params.numMemories),
     directory(params.directory.size),
-    incomingRequests("incomingRequests", 1),
-    incomingResponses("incomingResponses", 1),
-    requestMux("request_mux", params.numMemories),
+    requestsFromNetwork("requestsFromNetwork", 1),
+    responsesFromNetwork("responsesFromNetwork", 1),
+    requestsFromBanks("requestsFromBanks", 1),
     responseMux("response_mux", params.numMemories) {
 
   TileID memController = nearestMemoryController();
@@ -45,15 +45,12 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name,
 
   rngState = 0x3F;  // Same seed as Verilog uses (see nextTargetBank()).
 
-  iRequestFromNetwork(incomingRequests);
-  iResponseFromNetwork(incomingResponses);
+  iRequestFromNetwork(requestsFromNetwork);
+  iResponseFromNetwork(responsesFromNetwork);
+  iRequestFromBanks(requestsFromBanks);
+  oResponseToBanks(responsesFromNetwork);
 
-  iRequestFromBanks.init("iRequestFromBanks", requestMux.iData);
   iResponseFromBanks.init("iResponseFromBanks", responseMux.iData);
-
-  requestMux.iData(iRequestFromBanks);
-  requestMux.oData(muxedRequest);
-  requestMux.iHold(holdRequestMux);
 
   responseMux.iData(iResponseFromBanks);
   responseMux.oData(muxedResponse);
@@ -62,20 +59,14 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name,
   // Ready signal for compatibility with network. It isn't required since we
   // only ever issue a request if there's space to receive a response.
   oRequestTarget.initialize(0);
-  oResponseTarget.initialize(0);
-  holdRequestMux.write(false);
   holdResponseMux.write(false);
 
   SC_METHOD(localRequestLoop);
-  sensitive << muxedRequest;
-  dont_initialize();
-
-  SC_METHOD(receiveResponseLoop);
-  sensitive << incomingResponses.canReadEvent();
+  sensitive << requestsFromBanks.canReadEvent();
   dont_initialize();
 
   SC_METHOD(remoteRequestLoop);
-  sensitive << incomingRequests.canReadEvent();
+  sensitive << requestsFromNetwork.canReadEvent();
   dont_initialize();
 
   SC_METHOD(sendResponseLoop);
@@ -121,10 +112,9 @@ MemoryAddr MissHandlingLogic::getAddressTranslation(MemoryAddr address) const {
 
 void MissHandlingLogic::localRequestLoop() {
 
-  loki_assert(muxedRequest.valid());
-  NetworkRequest flit = muxedRequest.read();
+  loki_assert(requestsFromBanks.canRead());
+  NetworkRequest flit = requestsFromBanks.read();
   bool endOfPacket = flit.getMetadata().endOfPacket;
-  holdRequestMux.write(!endOfPacket);
 
   // Stall until it is possible to send on the network.
   if (!oRequestToNetwork->canWrite())
@@ -135,11 +125,11 @@ void MissHandlingLogic::localRequestLoop() {
     if (requestHeaderValid) {
       switch (requestHeader.getMemoryMetadata().opcode) {
         case UPDATE_DIRECTORY_ENTRY:
-          handleDirectoryUpdate();
+          handleDirectoryUpdate(flit);
           break;
 
         case UPDATE_DIRECTORY_MASK:
-          handleDirectoryMaskUpdate();
+          handleDirectoryMaskUpdate(flit);
           break;
 
         default:
@@ -186,18 +176,18 @@ void MissHandlingLogic::localRequestLoop() {
       }
     }
 
-    muxedRequest.ack();
     newLocalRequest = endOfPacket;
 
     // The mux may have other data ready to provide, so also wait until a
     // clock edge.
-    next_trigger(muxedRequest.default_event() & clock.posedge_event());
+    // TODO Allow increased bandwidth.
+    next_trigger(requestsFromBanks.canReadEvent() & clock.posedge_event());
 
   }
 }
 
-void MissHandlingLogic::handleDirectoryUpdate() {
-  MemoryRequest request = static_cast<MemoryRequest>(muxedRequest.read().payload());
+void MissHandlingLogic::handleDirectoryUpdate(const NetworkRequest& flit) {
+  MemoryRequest request = static_cast<MemoryRequest>(flit.payload());
 
   MemoryAddr address = requestHeader.payload().toUInt();
   unsigned int entry = directory.getEntry(address);
@@ -206,29 +196,13 @@ void MissHandlingLogic::handleDirectoryUpdate() {
   directory.setEntry(entry, data);
 }
 
-void MissHandlingLogic::handleDirectoryMaskUpdate() {
-  MemoryRequest request = static_cast<MemoryRequest>(muxedRequest.read().payload());
+void MissHandlingLogic::handleDirectoryMaskUpdate(const NetworkRequest& flit) {
+  MemoryRequest request = static_cast<MemoryRequest>(flit.payload());
 
   unsigned int maskLSB = request.getPayload();
 
   directory.setBitmaskLSB(maskLSB);
 }
-
-void MissHandlingLogic::receiveResponseLoop() {
-  if (oResponseToBanks.valid()) {
-    next_trigger(oResponseToBanks.ack_event());
-    return;
-  }
-
-  loki_assert(incomingResponses.canRead());
-  NetworkResponse response = incomingResponses.read();
-
-  LOKI_LOG << this->name() << " received " << response << endl;
-
-  oResponseToBanks.write(response);
-  oResponseTarget.write(response.channelID().component.position);
-}
-
 
 void MissHandlingLogic::remoteRequestLoop() {
   // Stall until the memory banks are capable of receiving a new flit.
@@ -236,8 +210,8 @@ void MissHandlingLogic::remoteRequestLoop() {
     next_trigger(oRequestToBanks.ack_event());
   }
   else {
-    loki_assert(incomingRequests.canRead());
-    NetworkRequest flit = incomingRequests.read();
+    loki_assert(requestsFromNetwork.canRead());
+    NetworkRequest flit = requestsFromNetwork.read();
 
     LOKI_LOG << this->name() << " sending request to banks " << flit << endl;
 

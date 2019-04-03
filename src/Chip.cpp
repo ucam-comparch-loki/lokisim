@@ -221,9 +221,6 @@ void Chip::makeComponents(const chip_parameters_t& params) {
       if (col > 0 && col <= params.numComputeTiles.width &&
           row > 0 && row <= params.numComputeTiles.height) {
         t = new ComputeTile(name.str().c_str(), tileID, params.tile);
-
-        // Some ComputeTile-specific connections.
-        ((ComputeTile*)t)->slowClock(slowClock);
       }
       else if (memoryControllerPositions.find(TileID(col,row)) != memoryControllerPositions.end()) {
         t = new MemoryControllerTile(name.str().c_str(), tileID);
@@ -274,8 +271,7 @@ Chip::Chip(const sc_module_name& name, const chip_parameters_t& params) :
     creditNet("credit_net", params.allTiles(), params.router),
     requestNet("request_net", params.allTiles(), params.router),
     responseNet("response_net", params.allTiles(), params.router),
-    clock("clock", 1, sc_core::SC_NS, 0.5),
-    slowClock("slow_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.75) {
+    clock("clock", 1, sc_core::SC_NS, 0.5) {
 
   makeComponents(params);
   wireUp();

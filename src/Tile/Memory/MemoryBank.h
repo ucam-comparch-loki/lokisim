@@ -47,7 +47,7 @@ public:
   // Requests - to/from memory banks on other tiles.
   RequestInput          iRequest;         // Input requests sent to the memory bank
   sc_in<MemoryIndex>    iRequestTarget;   // The responsible bank if all banks miss
-  RequestOutput         oRequest;         // Output requests sent to the remote memory banks
+  sc_port<network_source_ifc<Word>> oRequest; // Output requests sent to the remote memory banks
 
   sc_in<bool>           iRequestClaimed;  // One of the banks has claimed the request.
   sc_out<bool>          oClaimRequest;    // Tell whether this bank has claimed the request.
@@ -55,8 +55,7 @@ public:
   sc_out<bool>          oDelayRequest;    // Block other banks from processing the request.
 
   // Responses - to/from memory banks on other tiles.
-  ResponseInput         iResponse;
-  sc_in<MemoryIndex>    iResponseTarget;
+  sc_port<network_sink_ifc<Word>> iResponse;
   ResponseOutput        oResponse;        // Output responses sent to the remote memory banks
 
 //============================================================================//
@@ -198,7 +197,7 @@ private:
   void coreRequestArrived();
   void coreDataSent();
   void coreInstructionSent();
-  void handleRequestOutput();
+  void memoryRequestSent();
 
   void mainLoop();                    // Main loop thread
 
@@ -244,6 +243,7 @@ private:
   bool                  currentlyIdle;
 
   NetworkFIFO<Word>     inputQueue;      // Input queue
+  NetworkFIFO<Word>     inResponseQueue; // Responses from L2 or memory
   DelayFIFO<Word>       outputDataQueue; // Output queue
   DelayFIFO<Word>       outputInstQueue; // Output queue
   DelayFIFO<Word>       outputReqQueue;  // Output request queue
