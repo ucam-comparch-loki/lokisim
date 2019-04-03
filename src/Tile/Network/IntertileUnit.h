@@ -16,11 +16,12 @@
 #include "../../LokiComponent.h"
 #include "../../Network/Arbiters/RoundRobinArbiter.h"
 #include "../../Network/FIFOs/NetworkFIFO.h"
+#include "../../Utility/BlockingInterface.h"
 #include "../../Utility/LokiVector2D.h"
 
 class Tile;
 
-class IntertileUnit: public LokiComponent {
+class IntertileUnit: public LokiComponent, public BlockingInterface {
 
   struct credit_state_t;
 
@@ -60,6 +61,10 @@ public:
 //============================================================================//
 // Methods
 //============================================================================//
+
+protected:
+
+  virtual void reportStalls(ostream& os);
 
 private:
 

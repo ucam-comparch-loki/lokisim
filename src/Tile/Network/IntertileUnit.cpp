@@ -13,6 +13,7 @@
 
 IntertileUnit::IntertileUnit(sc_module_name name, const tile_parameters_t& params) :
     LokiComponent(name),
+    BlockingInterface(),
     iData("iData"),
     oData("oData"),
     oCredit("oCredit"),
@@ -42,6 +43,18 @@ IntertileUnit::IntertileUnit(sc_module_name name, const tile_parameters_t& param
   sensitive << newCreditEvent;
   dont_initialize();
 
+}
+
+void IntertileUnit::reportStalls(ostream& os) {
+  for (uint core = 0; core < creditState.size(); core++) {
+    for (uint buffer = 0; buffer < creditState[core].size(); buffer++) {
+      credit_state_t& state = creditState[core][buffer];
+
+      if (state.creditsPending > 0)
+        os << this->name() << " has " << state.creditsPending << " credits for "
+           << state.sourceAddress << " from " << state.sinkAddress << endl;
+    }
+  }
 }
 
 void IntertileUnit::end_of_elaboration() {
@@ -131,8 +144,8 @@ void IntertileUnit::sendCredits() {
   // Wait until there is space to write a result.
   if (!oCredit->canWrite())
     next_trigger(oCredit->canWriteEvent());
-  else if (creditsOutstanding.empty())
-    next_trigger(creditsOutstanding.newRequestEvent());
+  else if (creditsOutstanding.empty() && nackChannel == ChannelID())
+    next_trigger(newCreditEvent);
   else {
     // Priority: respond to failed connection attempts. We can't have more
     // than one of these in progress simultaneously.
