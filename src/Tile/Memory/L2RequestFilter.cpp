@@ -60,7 +60,9 @@ void L2RequestFilter::mainLoop() {
         bool ignore = mustAccessTarget && !targetingThisBank;
         bool serveRequest = (targetingThisBank && mustAccessTarget) || (cacheHit && !ignore);
 
-        if (cacheHit)
+        // In order to account for requests which aren't in cache mode, we don't
+        // actually send the cacheHit signal.
+        if (serveRequest)
           l2Associativity->cacheHit();
         else
           l2Associativity->cacheMiss();
