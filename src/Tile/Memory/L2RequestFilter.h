@@ -28,10 +28,8 @@ public:
 
   ClockInput            iClock;           // Clock
 
-  sc_port<network_sink_ifc<Word>> iRequest; // Input requests from the network
+  sc_port<l2_request_bank_ifc> iRequest;  // Input requests from the network
   RequestOutput         oRequest;         // Requests for this bank to serve
-
-  sc_port<l2_request_bank_ifc> l2Associativity; // Coordination with other banks
 
 //============================================================================//
 // Internal functions
@@ -65,8 +63,6 @@ private:
   FilterState state;
 
   const MemoryBank& localBank;
-
-  NetworkFIFO<Word> inBuffer;
 
 };
 

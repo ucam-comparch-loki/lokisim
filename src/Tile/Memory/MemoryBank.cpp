@@ -920,7 +920,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   oInstruction("oInstruction"),
   iRequest("iRequest"),
   oRequest("oRequest"),
-  l2Associativity("l2Associativity"),
   iResponse("iResponse"),
   oResponse("oResponse"),
   hitUnderMiss(params.hitUnderMiss),
@@ -951,7 +950,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
 
   // Connect to local components.
   iData(inputQueue);
-  iRequest(l2RequestFilter.iRequest);
   iResponse(inResponseQueue);
   oData(outputDataQueue);
   oInstruction(outputInstQueue);
@@ -960,7 +958,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
 
   l2RequestFilter.iClock(iClock);
   l2RequestFilter.oRequest(requestSig);
-  l2RequestFilter.l2Associativity(l2Associativity);
+  l2RequestFilter.iRequest(iRequest);
 
   currentlyIdle = true;
   Instrumentation::idle(id, true);

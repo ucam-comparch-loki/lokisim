@@ -217,7 +217,7 @@ void ComputeTile::wireUp(const tile_parameters_t& params) {
     mhlToBankResponses.outputs[i](memory.iResponse);
     bankToL2LResponses.inputs[i](memory.oResponse);
 
-    memory.l2Associativity(l2lToBankRequests);
+    memory.iRequest(l2lToBankRequests);
   }
 
   mhl.clock(clock);
@@ -225,7 +225,7 @@ void ComputeTile::wireUp(const tile_parameters_t& params) {
   mhlToBankResponses.inputs[0](mhl.oResponseToBanks);
 
   l2l.clock(clock);
-  l2l.associativity(l2lToBankRequests);
+  l2l.oRequestToBanks(l2lToBankRequests);
   bankToL2LResponses.outputs[0](l2l.iResponseFromBanks);
 
   dataReturn.inputs[dataReturn.inputs.size()-1](icu.oData);

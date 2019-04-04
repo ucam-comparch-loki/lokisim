@@ -15,11 +15,7 @@ L2RequestFilter::L2RequestFilter(const sc_module_name& name, MemoryBank& localBa
     iClock("iClock"),
     iRequest("iRequest"),
     oRequest("oRequest"),
-    l2Associativity("l2Associativity"),
-    localBank(localBank),
-    inBuffer("inBuffer", 1) {
-
-  iRequest(inBuffer);
+    localBank(localBank) {
 
   state = STATE_IDLE;
 
@@ -30,7 +26,7 @@ L2RequestFilter::~L2RequestFilter() {
 
 void L2RequestFilter::end_of_elaboration() {
   SC_METHOD(mainLoop);
-  sensitive << l2Associativity->newRequestArrived();
+  sensitive << iRequest->newRequestArrived();
   dont_initialize();
 }
 
@@ -41,7 +37,7 @@ void L2RequestFilter::mainLoop() {
     // Our first time seeing the request - check tags to see if we have the data,
     // otherwise check whether we are responsible on a miss.
     case STATE_IDLE: {
-      const NetworkRequest& request = l2Associativity->peek();
+      const NetworkRequest& request = iRequest->peek();
       MemoryOpcode opcode = request.getMemoryMetadata().opcode;
 
       loki_assert((opcode != PAYLOAD) && (opcode != PAYLOAD_EOP));
@@ -56,7 +52,7 @@ void L2RequestFilter::mainLoop() {
       // that this bank should be used, or if the bank was chosen randomly
       // but this bank contains the data already.
       bool cacheHit = localBank.contains(address, position, mode);
-      bool targetingThisBank = l2Associativity->targetBank() == localBank.memoryIndex();
+      bool targetingThisBank = iRequest->targetBank() == localBank.memoryIndex();
       bool mustAccessTarget = (mode == MEMORY_SCRATCHPAD) || (opcode == PUSH_LINE) || request.getMemoryMetadata().skipL2;
       bool ignore = mustAccessTarget && !targetingThisBank;
       bool serveRequest = (targetingThisBank && mustAccessTarget) || (cacheHit && !ignore);
@@ -64,9 +60,9 @@ void L2RequestFilter::mainLoop() {
       // In order to account for requests which aren't in cache mode, we don't
       // actually send the cacheHit signal.
       if (serveRequest)
-        l2Associativity->cacheHit();
+        iRequest->cacheHit();
       else
-        l2Associativity->cacheMiss();
+        iRequest->cacheMiss();
 
 //        cout << this->name() << (mode == MEMORY_CACHE ? " cache access," : " scratchpad access,")
 //                             << (cacheHit ? " cache hit," : "")
@@ -84,11 +80,11 @@ void L2RequestFilter::mainLoop() {
       }
       else if (targetingThisBank) {
         // Wait in case anyone else claims.
-        next_trigger(l2Associativity->allResponsesReceivedEvent());
+        next_trigger(iRequest->allResponsesReceivedEvent());
         state = STATE_WAIT;
       }
       else {
-        next_trigger(l2Associativity->newRequestArrived());
+        next_trigger(iRequest->newRequestArrived());
       }
       break;
     }
@@ -97,9 +93,9 @@ void L2RequestFilter::mainLoop() {
     // if no one else already has the data.
     case STATE_WAIT:
       // Someone else claimed the request - wait for a new one.
-      if (l2Associativity->associativeHit()) {
+      if (iRequest->associativeHit()) {
         state = STATE_IDLE;
-        next_trigger(l2Associativity->newRequestArrived());
+        next_trigger(iRequest->newRequestArrived());
       }
       // No one else has claimed - the request is ours.
       else {
@@ -108,7 +104,7 @@ void L2RequestFilter::mainLoop() {
         state = STATE_SEND;
         next_trigger(sc_core::SC_ZERO_TIME);
 
-        Instrumentation::Latency::memoryReceivedRequest(localBank.id, l2Associativity->peek());
+        Instrumentation::Latency::memoryReceivedRequest(localBank.id, iRequest->peek());
       }
       break;
 
@@ -119,14 +115,14 @@ void L2RequestFilter::mainLoop() {
         break;
       }
 
-      NetworkRequest request = l2Associativity->read();
+      NetworkRequest request = iRequest->read();
       oRequest.write(request);
 
       // If this was the final flit, stop claiming flits.
       if (request.getMetadata().endOfPacket)
         state = STATE_IDLE;
 
-      next_trigger(l2Associativity->newFlitArrived());
+      next_trigger(iRequest->newFlitArrived());
       break;
     }
 

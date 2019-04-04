@@ -45,11 +45,8 @@ public:
   // Receive responses from memory banks.
   InPort                      iResponseFromBanks;
 
-  // Broadcast requests to all banks on the tile.
-  sc_port<network_source_ifc<Word>> oRequestToBanks;
-
   // Interface for determining which bank is responsible for each request.
-  sc_port<l2_request_l2l_ifc> associativity;
+  sc_port<l2_request_l2l_ifc> oRequestToBanks;
 
 //============================================================================//
 // Constructors and destructors
@@ -86,7 +83,7 @@ private:
   const size_t numMemoryBanks;
 
   // Buffers/latches for network communications.
-  NetworkFIFO<Word> requestsFromNetwork, requestsToBanks;
+  NetworkFIFO<Word> requestsFromNetwork;
 
   // Flag telling whether the next flit to arrive will be the start of a new
   // packet.

@@ -15,11 +15,9 @@ L2Logic::L2Logic(const sc_module_name& name, const tile_parameters_t& params) :
     oResponseToNetwork("oResponseToNetwork"),
     iResponseFromBanks("iResponseFromBanks"),
     oRequestToBanks("oRequestToBanks"),
-    associativity("associativity"),
     log2CacheLineSize(params.memory.log2CacheLineSize()),
     numMemoryBanks(params.numMemories),
-    requestsFromNetwork("requestsFromNetwork", 1),
-    requestsToBanks("requestsToBanks", 1) {
+    requestsFromNetwork("requestsFromNetwork", 1) {
 
   rngState = 0x3F;  // Same seed as Verilog uses (see nextTargetBank()).
   randomBank = 0;
@@ -27,7 +25,6 @@ L2Logic::L2Logic(const sc_module_name& name, const tile_parameters_t& params) :
 
   iRequestFromNetwork(requestsFromNetwork);
   iResponseFromBanks(oResponseToNetwork); // Pass through, do nothing.
-  oRequestToBanks(requestsToBanks);
 
   SC_METHOD(forwardRequests);
   sensitive << requestsFromNetwork.canReadEvent();
@@ -36,8 +33,8 @@ L2Logic::L2Logic(const sc_module_name& name, const tile_parameters_t& params) :
 }
 
 void L2Logic::forwardRequests() {
-  if (!associativity->canWrite())
-    next_trigger(associativity->canWriteEvent());
+  if (!oRequestToBanks->canWrite())
+    next_trigger(oRequestToBanks->canWriteEvent());
   else {
     NetworkRequest flit = requestsFromNetwork.read();
 
@@ -46,10 +43,10 @@ void L2Logic::forwardRequests() {
     // The same target bank is used for all flits of a single request.
     if (newRemoteRequest) {
       MemoryIndex targetBank = getTargetBank(flit);
-      associativity->newRequest(flit, targetBank);
+      oRequestToBanks->newRequest(flit, targetBank);
     }
     else
-      associativity->newPayload(flit);
+      oRequestToBanks->newPayload(flit);
 
     newRemoteRequest = flit.getMetadata().endOfPacket;
   }
