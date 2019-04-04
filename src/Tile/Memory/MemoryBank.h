@@ -24,6 +24,7 @@
 #include "../../Network/FIFOs/NetworkFIFO.h"
 #include "../../Utility/BlockingInterface.h"
 #include "../../Utility/LokiVector.h"
+#include "../Network/BankAssociation.h"
 
 class ComputeTile;
 class MemoryOperation;
@@ -45,18 +46,14 @@ public:
   sc_port<network_source_ifc<Word>> oInstruction; // Instructions sent to the cores
 
   // Requests - to/from memory banks on other tiles.
-  RequestInput          iRequest;         // Input requests sent to the memory bank
-  sc_in<MemoryIndex>    iRequestTarget;   // The responsible bank if all banks miss
+  sc_port<network_sink_ifc<Word>> iRequest;   // Input requests sent to the memory bank
   sc_port<network_source_ifc<Word>> oRequest; // Output requests sent to the remote memory banks
 
-  sc_in<bool>           iRequestClaimed;  // One of the banks has claimed the request.
-  sc_out<bool>          oClaimRequest;    // Tell whether this bank has claimed the request.
-  sc_in<bool>           iRequestDelayed;  // One of the banks has delayed the request.
-  sc_out<bool>          oDelayRequest;    // Block other banks from processing the request.
+  sc_port<association_bank_ifc> l2Associativity; // Interface for coordinating L2 requests
 
   // Responses - to/from memory banks on other tiles.
   sc_port<network_sink_ifc<Word>> iResponse;
-  ResponseOutput        oResponse;        // Output responses sent to the remote memory banks
+  sc_port<network_source_ifc<Word>> oResponse; // Output responses sent to the remote memory banks
 
 //============================================================================//
 // Constructors and destructors
@@ -247,6 +244,7 @@ private:
   DelayFIFO<Word>       outputDataQueue; // Output queue
   DelayFIFO<Word>       outputInstQueue; // Output queue
   DelayFIFO<Word>       outputReqQueue;  // Output request queue
+  DelayFIFO<Word>       outputRespQueue; // Output response queue
 
   // If this bank is flushing data, it has the only valid copy, but the tags
   // will suggest that it doesn't have it at all. Record the addresses of all

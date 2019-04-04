@@ -715,7 +715,7 @@ bool MemoryBank::canSendResponse(ChannelID destination, MemoryLevel level) const
       else
         return outputDataQueue.canWrite();
     case MEMORY_L2:
-      return !oResponse.valid();
+      return outputRespQueue.canWrite();
     default:
       loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
       return false;
@@ -730,7 +730,7 @@ const sc_event& MemoryBank::canSendResponseEvent(ChannelID destination, MemoryLe
       else
         return outputDataQueue.canWriteEvent();
     case MEMORY_L2:
-      return oResponse.ack_event();
+      return outputRespQueue.canWriteEvent();
     default:
       loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
       return outputDataQueue.canWriteEvent();
@@ -755,7 +755,7 @@ void MemoryBank::sendResponse(NetworkResponse response, MemoryLevel level) {
       }
       break;
     case MEMORY_L2:
-      oResponse.write(response);
+      outputRespQueue.write(response);
       Instrumentation::Latency::memorySentResult(id, response, false);
       break;
     default:
@@ -878,7 +878,8 @@ void MemoryBank::updateIdle() {
   bool wasIdle = currentlyIdle;
   currentlyIdle = state == STATE_IDLE &&
                   !inputQueue.canRead() && !outputDataQueue.canRead() &&
-                  !outputInstQueue.canRead() && !outputReqQueue.canRead();
+                  !outputInstQueue.canRead() && !outputReqQueue.canRead() &&
+                  !inResponseQueue.canRead() && !outputRespQueue.canRead();
 
   if (wasIdle != currentlyIdle)
     Instrumentation::idle(id, currentlyIdle);
@@ -915,12 +916,8 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   oData("oData"),
   oInstruction("oInstruction"),
   iRequest("iRequest"),
-  iRequestTarget("iRequestTarget"),
   oRequest("oRequest"),
-  iRequestClaimed("iRequestClaimed"),
-  oClaimRequest("oClaimRequest"),
-  iRequestDelayed("iRequestDelayed"),
-  oDelayRequest("oDelayRequest"),
+  l2Associativity("l2Associativity"),
   iResponse("iResponse"),
   oResponse("oResponse"),
   hitUnderMiss(params.hitUnderMiss),
@@ -929,7 +926,8 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   inResponseQueue("inResponseQueue", params.inputFIFO.size),
   outputDataQueue("outputDataQueue", params.outputFIFO.size, artificialDelayRequired(params)),
   outputInstQueue("outputInstQueue", params.outputFIFO.size, artificialDelayRequired(params)),
-  outputReqQueue("outputReqQueue", requestQueueSize(params), 0),
+  outputReqQueue("outputReqQueue", requestQueueSize(params), artificialDelayRequired(params)),
+  outputRespQueue("outputRespQueue", params.outputFIFO.size, artificialDelayRequired(params)),
   data(params.size/BYTES_PER_WORD, 0),
   metadata(params.size/params.cacheLineSize),
   reservations(1),
@@ -950,19 +948,16 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
 
   // Connect to local components.
   iData(inputQueue);
+  iRequest(l2RequestFilter.iRequest);
   iResponse(inResponseQueue);
   oData(outputDataQueue);
   oInstruction(outputInstQueue);
   oRequest(outputReqQueue);
+  oResponse(outputRespQueue);
 
   l2RequestFilter.iClock(iClock);
-  l2RequestFilter.iRequest(iRequest);
-  l2RequestFilter.iRequestTarget(iRequestTarget);
   l2RequestFilter.oRequest(requestSig);
-  l2RequestFilter.iRequestClaimed(iRequestClaimed);
-  l2RequestFilter.oClaimRequest(oClaimRequest);
-  l2RequestFilter.iRequestDelayed(iRequestDelayed);
-  l2RequestFilter.oDelayRequest(oDelayRequest);
+  l2RequestFilter.l2Associativity(l2Associativity);
 
   currentlyIdle = true;
   Instrumentation::idle(id, true);
@@ -977,10 +972,11 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
 
   SC_METHOD(updateIdle);
   sensitive << inputQueue.canWriteEvent() << inputQueue.writeEvent()
+            << inResponseQueue.canWriteEvent() << inResponseQueue.writeEvent()
             << outputDataQueue.canWriteEvent() << outputDataQueue.writeEvent()
             << outputInstQueue.canWriteEvent() << outputInstQueue.writeEvent()
             << outputReqQueue.canWriteEvent() << outputReqQueue.writeEvent()
-            << inResponseQueue.writeEvent() << oResponse;
+            << outputRespQueue.canWriteEvent() << outputRespQueue.writeEvent();
   // do initialise
 
   SC_METHOD(coreDataSent);

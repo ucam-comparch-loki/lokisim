@@ -20,9 +20,12 @@
 #include "Network/InstructionReturn.h"
 #include "../Network/NetworkTypes.h"
 #include "Memory/L2Logic.h"
+#include "Network/BankAssociation.h"
+#include "Network/BankToL2LResponses.h"
 #include "Network/BankToMHLRequests.h"
 #include "Network/CreditReturn.h"
 #include "Network/IntertileUnit.h"
+#include "Network/L2LToBankRequests.h"
 #include "Network/MHLToBankResponses.h"
 
 class Core;
@@ -112,7 +115,6 @@ public:
 
 private:
 
-  void makeSignals();
   void makeComponents(const tile_parameters_t& params);
   void wireUp(const tile_parameters_t& params);
 
@@ -146,26 +148,14 @@ private:
   CreditReturn              creditReturn;
   BankToMHLRequests         bankToMHLRequests;
   MHLToBankResponses        mhlToBankResponses;
+  L2LToBankRequests         l2lToBankRequests;
+  BankToL2LResponses        bankToL2LResponses;
+  BankAssociation           bankAssociation;
 
   // Need to implement the appropriate interfaces to connect the global credit
   // network with the local one. No other networks need this because their
   // buffers are inside other units (e.g. ICU, MHL).
   NetworkFIFO<Word>         creditBuffer;
-
-//============================================================================//
-// Signals (wires)
-//============================================================================//
-
-private:
-
-  RequestSignal             l2RequestToMemory;
-  sc_signal<MemoryIndex>    l2RequestTarget;
-  LokiVector<sc_signal<bool>> l2ClaimRequest;
-  LokiVector<sc_signal<bool>> l2DelayRequest;
-  sc_signal<bool>           l2RequestClaimed;
-  sc_signal<bool>           l2RequestDelayed;
-
-  LokiVector<ResponseSignal> l2ResponseFromMemory;
 
 };
 

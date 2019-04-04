@@ -179,12 +179,6 @@ void ComputeTile::makeComponents(const tile_parameters_t& params) {
 
 }
 
-void ComputeTile::makeSignals() {
-  l2ClaimRequest.init("l2ClaimRequest", memories.size());
-  l2DelayRequest.init("l2DelayRequest", memories.size());
-  l2ResponseFromMemory.init("l2ResponseFromMemory", memories.size());
-}
-
 void ComputeTile::wireUp(const tile_parameters_t& params) {
   uint instructionInputs = Core::numInstructionChannels;
   uint totalInputs = params.core.numInputChannels;
@@ -221,14 +215,10 @@ void ComputeTile::wireUp(const tile_parameters_t& params) {
     instructionReturn.inputs[i](memory.oInstruction);
     bankToMHLRequests.inputs[i](memory.oRequest);
     mhlToBankResponses.outputs[i](memory.iResponse);
+    l2lToBankRequests.outputs[i](memory.iRequest);
+    bankToL2LResponses.inputs[i](memory.oResponse);
 
-    memory.iRequest(l2RequestToMemory);
-    memory.iRequestClaimed(l2RequestClaimed);
-    memory.iRequestDelayed(l2RequestDelayed);
-    memory.iRequestTarget(l2RequestTarget);
-    memory.oClaimRequest(l2ClaimRequest[i]);
-    memory.oDelayRequest(l2DelayRequest[i]);
-    memory.oResponse(l2ResponseFromMemory[i]);
+    memory.l2Associativity(bankAssociation);
   }
 
   mhl.clock(clock);
@@ -236,13 +226,9 @@ void ComputeTile::wireUp(const tile_parameters_t& params) {
   mhlToBankResponses.inputs[0](mhl.oResponseToBanks);
 
   l2l.clock(clock);
-  l2l.iClaimRequest(l2ClaimRequest);
-  l2l.iDelayRequest(l2DelayRequest);
-  l2l.iResponseFromBanks(l2ResponseFromMemory);
-  l2l.oRequestClaimed(l2RequestClaimed);
-  l2l.oRequestDelayed(l2RequestDelayed);
-  l2l.oRequestTarget(l2RequestTarget);
-  l2l.oRequestToBanks(l2RequestToMemory);
+  l2l.associativity(bankAssociation);
+  l2lToBankRequests.inputs[0](l2l.oRequestToBanks);
+  bankToL2LResponses.outputs[0](l2l.iResponseFromBanks);
 
   dataReturn.inputs[dataReturn.inputs.size()-1](icu.oData);
 
@@ -253,6 +239,8 @@ void ComputeTile::wireUp(const tile_parameters_t& params) {
   creditReturn.clock(clock);
   bankToMHLRequests.clock(clock);
   mhlToBankResponses.clock(clock);
+  l2lToBankRequests.clock(clock);
+  bankToL2LResponses.clock(clock);
 
   // The global data network is connected to the final input of the return
   // crossbar, and to the final output of the forward crossbar.
@@ -284,10 +272,12 @@ ComputeTile::ComputeTile(const sc_module_name& name, const TileID& id,
     creditReturn("inbound_credits", params),
     bankToMHLRequests("bank_to_mhl_req", params),
     mhlToBankResponses("mhl_to_bank_resp", params),
+    l2lToBankRequests("l2l_to_bank_req", params),
+    bankToL2LResponses("bank_to_l2l_resp", params),
+    bankAssociation("bank_association", params.numMemories),
     creditBuffer("credit_buffer", 1) {
 
   makeComponents(params);
-  makeSignals();
   wireUp(params);
 
 }

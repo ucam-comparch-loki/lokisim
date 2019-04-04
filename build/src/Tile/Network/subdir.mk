@@ -4,6 +4,8 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
+../src/Tile/Network/BankAssociation.cpp \
+../src/Tile/Network/BankToL2LResponses.cpp \
 ../src/Tile/Network/BankToMHLRequests.cpp \
 ../src/Tile/Network/CoreMulticast.cpp \
 ../src/Tile/Network/CreditReturn.cpp \
@@ -11,9 +13,12 @@ CPP_SRCS += \
 ../src/Tile/Network/ForwardCrossbar.cpp \
 ../src/Tile/Network/InstructionReturn.cpp \
 ../src/Tile/Network/IntertileUnit.cpp \
+../src/Tile/Network/L2LToBankRequests.cpp \
 ../src/Tile/Network/MHLToBankResponses.cpp 
 
 OBJS += \
+./src/Tile/Network/BankAssociation.o \
+./src/Tile/Network/BankToL2LResponses.o \
 ./src/Tile/Network/BankToMHLRequests.o \
 ./src/Tile/Network/CoreMulticast.o \
 ./src/Tile/Network/CreditReturn.o \
@@ -21,9 +26,12 @@ OBJS += \
 ./src/Tile/Network/ForwardCrossbar.o \
 ./src/Tile/Network/InstructionReturn.o \
 ./src/Tile/Network/IntertileUnit.o \
+./src/Tile/Network/L2LToBankRequests.o \
 ./src/Tile/Network/MHLToBankResponses.o 
 
 CPP_DEPS += \
+./src/Tile/Network/BankAssociation.d \
+./src/Tile/Network/BankToL2LResponses.d \
 ./src/Tile/Network/BankToMHLRequests.d \
 ./src/Tile/Network/CoreMulticast.d \
 ./src/Tile/Network/CreditReturn.d \
@@ -31,6 +39,7 @@ CPP_DEPS += \
 ./src/Tile/Network/ForwardCrossbar.d \
 ./src/Tile/Network/InstructionReturn.d \
 ./src/Tile/Network/IntertileUnit.d \
+./src/Tile/Network/L2LToBankRequests.d \
 ./src/Tile/Network/MHLToBankResponses.d 
 
 

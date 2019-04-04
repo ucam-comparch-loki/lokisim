@@ -12,6 +12,7 @@
 #define NETWORKBUFFER_H_
 
 #include "../../LokiComponent.h"
+#include "../../Utility/BlockingInterface.h"
 #include "FIFO.h"
 #include "../Interface.h"
 #include "../../Utility/Instrumentation/Network.h"
@@ -20,7 +21,8 @@
 // cycle. BandwidthMonitor class? dataAvailable and canWrite should return false.
 template<class T>
 class NetworkFIFO: public LokiComponent,
-                   public network_inout_ifc<T> {
+                   public network_inout_ifc<T>,
+                   public BlockingInterface {
 
 public:
   typedef Flit<T> stored_data;
@@ -33,6 +35,7 @@ public:
 
   NetworkFIFO(const sc_module_name& name, const size_t size) :
       LokiComponent(name),
+      BlockingInterface(),
       fifo(this->name(), size),
       fresh(size, false) {
 
@@ -134,6 +137,17 @@ public:
 
   void setWritePointer(unsigned int position) {
     fifo.setWritePointer(position);
+  }
+
+protected:
+
+  virtual void reportStalls(ostream& os) {
+    if (canRead()) {
+      os << this->name() << " has unread data" << endl;
+      os << "  First item: " << peek() << endl;
+    }
+    if (!canWrite())
+      os << this->name() << " is full" << endl;
   }
 
 //============================================================================//

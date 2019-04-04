@@ -12,9 +12,9 @@
 #define SRC_TILE_MEMORY_L2LOGIC_H_
 
 #include "../../LokiComponent.h"
-#include "../../Network/ArbitratedMultiplexer.h"
 #include "../../Network/FIFOs/NetworkFIFO.h"
 #include "../../Utility/LokiVector.h"
+#include "../Network/BankAssociation.h"
 
 class L2Logic: public LokiComponent {
 
@@ -43,28 +43,13 @@ public:
   // Ports to handle requests from memory banks on other tiles.
 
   // Receive responses from memory banks.
-  LokiVector<ResponseInput>   iResponseFromBanks;
+  InPort                      iResponseFromBanks;
 
   // Broadcast requests to all banks on the tile.
-  RequestOutput               oRequestToBanks;
+  sc_port<network_source_ifc<Word>> oRequestToBanks;
 
-  // If no bank is able to respond to the request, the target bank is the one
-  // which should assume responsibility.
-  sc_out<MemoryIndex>         oRequestTarget;
-
-  // Signal from each bank telling whether it has claimed the latest request.
-  LokiVector<sc_in<bool> >    iClaimRequest;
-
-  // Signal from each bank telling demanding that the current request be
-  // delayed. This may be because the bank is already processing another
-  // request which interferes with this one.
-  LokiVector<sc_in<bool> >    iDelayRequest;
-
-  // Signal broadcast to all banks, telling whether the request has been claimed.
-  sc_out<bool>                oRequestClaimed;
-
-  // Signal broadcast to all banks, telling whether the request has been delayed.
-  sc_out<bool>                oRequestDelayed;
+  // Interface for determining which bank is responsible for each request.
+  sc_port<association_l2l_ifc> associativity;
 
 //============================================================================//
 // Constructors and destructors
@@ -81,17 +66,8 @@ public:
 
 private:
 
-  // Process requests from remote memory banks.
-  void remoteRequestLoop();
-
-  // Update whether the remote request has been claimed by any local bank.
-  void requestClaimLoop();
-
-  // Update whether the remote request has been delayed by any local bank.
-  void requestDelayLoop();
-
-  // Send responses to remote memory banks.
-  void sendResponseLoop();
+  // Update the target bank output whenever a new request is sent to the banks.
+  void updateTargetBank();
 
   // Determine which memory bank should be the target for the given request.
   MemoryIndex getTargetBank(const NetworkRequest& request);
@@ -116,17 +92,9 @@ private:
   // packet.
   bool newRemoteRequest;
 
-  // Multiplexer which selects an input from one of the connected banks.
-  ArbitratedMultiplexer<NetworkResponse> responseMux;
-
-  // Selected request from connected memory banks.
-  loki_signal<NetworkResponse> muxedResponse;
-
-  // Keep the same multiplexer input if multiple flits are being sent.
-  sc_signal<bool> holdResponseMux;
-
   // Used for random number generation.
   unsigned int rngState;
+  MemoryIndex randomBank;
 };
 
 #endif /* SRC_TILE_MEMORY_L2LOGIC_H_ */

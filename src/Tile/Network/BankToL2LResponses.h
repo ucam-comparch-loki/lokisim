@@ -1,19 +1,19 @@
 /*
- * MHLToBankResponses.h
+ * BankToL2LResponses.h
  *
- * Network for sending memory responses from a tile's miss handling logic to
- * the memory banks.
+ * Simple network connecting all memory banks of a tile with the L2 logic of
+ * the same tile
  *
  *  Created on: 3 Apr 2019
  *      Author: db434
  */
 
-#ifndef SRC_TILE_NETWORK_MHLTOBANKRESPONSES_H_
-#define SRC_TILE_NETWORK_MHLTOBANKRESPONSES_H_
+#ifndef SRC_TILE_NETWORK_BANKTOL2LRESPONSES_H_
+#define SRC_TILE_NETWORK_BANKTOL2LRESPONSES_H_
 
 #include "../../Network/Network.h"
 
-class MHLToBankResponses: public Network<Word> {
+class BankToL2LResponses: public Network<Word> {
 
 //============================================================================//
 // Ports
@@ -25,8 +25,8 @@ public:
 //
 //  ClockInput clock;
 //
-//  LokiVector<InPort> inputs;    // Only one port
-//  LokiVector<OutPort> outputs;  // One per memory
+//  LokiVector<InPort> inputs;    // One per memory
+//  LokiVector<OutPort> outputs;  // Only one port
 
 //============================================================================//
 // Constructors and destructors
@@ -34,8 +34,8 @@ public:
 
 public:
 
-  MHLToBankResponses(const sc_module_name name, const tile_parameters_t& params);
-  virtual ~MHLToBankResponses();
+  BankToL2LResponses(const sc_module_name name, const tile_parameters_t& params);
+  virtual ~BankToL2LResponses();
 
 //============================================================================//
 // Methods
@@ -44,7 +44,6 @@ public:
 protected:
 
   virtual PortIndex getDestination(const ChannelID address) const;
-
 };
 
-#endif /* SRC_TILE_NETWORK_MHLTOBANKRESPONSES_H_ */
+#endif /* SRC_TILE_NETWORK_BANKTOL2LRESPONSES_H_ */

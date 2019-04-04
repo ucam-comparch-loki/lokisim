@@ -60,23 +60,21 @@ protected:
   virtual PortIndex getDestination(const ChannelID address) const = 0;
   virtual set<PortIndex> getDestinations(const ChannelID address) const;
 
-private:
-
   // Some extra initialisation which is performed after all ports have been
   // bound.
-  void end_of_elaboration();
+  virtual void end_of_elaboration();
 
   // Send data on each output port on clock edges.
-  void sendData(PortIndex output);
+  virtual void sendData(PortIndex output);
 
   // Wrapper for inputs[input].read(). This version is multicast-safe, and only
   // consumes the data when it has been read the correct number of times.
-  Flit<T> readData(PortIndex input);
+  virtual Flit<T> readData(PortIndex input);
 
   // Interpret data on input ports and determine which output will be used.
-  void newData(PortIndex input);
+  virtual void newData(PortIndex input);
 
-  void updateRequests(PortIndex input);
+  virtual void updateRequests(PortIndex input);
 
 //============================================================================//
 // Local state

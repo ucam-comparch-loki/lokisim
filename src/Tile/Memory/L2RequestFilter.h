@@ -12,9 +12,9 @@
 #define SRC_TILE_MEMORY_L2REQUESTFILTER_H_
 
 #include "../../LokiComponent.h"
+#include "../../Network/FIFOs/NetworkFIFO.h"
 #include "../../Network/NetworkTypes.h"
-
-using sc_core::sc_module_name;
+#include "../Network/BankAssociation.h"
 
 class MemoryBank;
 
@@ -28,15 +28,10 @@ public:
 
   ClockInput            iClock;           // Clock
 
-  RequestInput          iRequest;         // Input requests sent to the memory bank
-  sc_in<MemoryIndex>    iRequestTarget;   // The responsible bank if all banks miss
+  sc_port<network_sink_ifc<Word>> iRequest; // Input requests from the network
   RequestOutput         oRequest;         // Requests for this bank to serve
 
-  sc_in<bool>           iRequestClaimed;  // One of the banks has claimed the request.
-  sc_out<bool>          oClaimRequest;    // Tell whether this bank has claimed the request.
-
-  sc_in<bool>           iRequestDelayed;  // One of the banks has delayed the request.
-  sc_out<bool>          oDelayRequest;    // Block other banks from processing the request.
+  sc_port<association_bank_ifc> l2Associativity; // Coordination with other banks
 
 //============================================================================//
 // Internal functions
@@ -52,14 +47,6 @@ private:
   // Check whether requests should be accepted by this memory bank.
   void mainLoop();
 
-  // Pass requests on to the memory bank.
-  void forwardToMemoryBank(NetworkRequest request);
-
-  // Monitor whether it is safe for other banks to proceed with the current
-  // request. It may not be safe if this bank is currently doing something which
-  // may interfere (e.g. flushing some data which is about to be read).
-  void delayLoop();
-
 //============================================================================//
 // Local state
 //============================================================================//
@@ -70,12 +57,13 @@ private:
     STATE_IDLE,       // No request/current request is for another bank
     STATE_WAIT,       // Wait to see if any other bank can serve the request
     STATE_SEND,       // Send a request flit on to the local bank
-    STATE_ACKNOWLEDGE // Acknowledge the received flit when the bank consumes it
+    STATE_CONSUME     // Consume flits from a request we are not involved in
   };
   FilterState state;
 
   const MemoryBank& localBank;
 
+  NetworkFIFO<Word> inBuffer;
 
 };
 
