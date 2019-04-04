@@ -848,6 +848,9 @@ void MemoryBank::coreInstructionSent() {
 }
 
 void MemoryBank::memoryRequestSent() {
+  // TODO: potential race condition here. It's possible that this buffer entry
+  // has already been overwritten and we get the wrong flit.
+  loki_assert(outputReqQueue.canWrite());
   NetworkRequest request = outputReqQueue.lastDataRead();
   LOKI_LOG << this->name() << " sent request " <<
       memoryOpName(request.getMemoryMetadata().opcode) << " " << LOKI_HEX(request.payload()) << endl;

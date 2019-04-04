@@ -14,7 +14,7 @@
 #include "../../LokiComponent.h"
 #include "../../Network/FIFOs/NetworkFIFO.h"
 #include "../../Utility/LokiVector.h"
-#include "../Network/BankAssociation.h"
+#include "../Network/L2LToBankRequests.h"
 
 class L2Logic: public LokiComponent {
 
@@ -49,7 +49,7 @@ public:
   sc_port<network_source_ifc<Word>> oRequestToBanks;
 
   // Interface for determining which bank is responsible for each request.
-  sc_port<association_l2l_ifc> associativity;
+  sc_port<l2_request_l2l_ifc> associativity;
 
 //============================================================================//
 // Constructors and destructors
@@ -66,8 +66,8 @@ public:
 
 private:
 
-  // Update the target bank output whenever a new request is sent to the banks.
-  void updateTargetBank();
+  // Copy requests from network to banks, performing some bookkeeping as we go.
+  void forwardRequests();
 
   // Determine which memory bank should be the target for the given request.
   MemoryIndex getTargetBank(const NetworkRequest& request);
@@ -86,7 +86,7 @@ private:
   const size_t numMemoryBanks;
 
   // Buffers/latches for network communications.
-  NetworkFIFO<Word> requestsFromNetwork;
+  NetworkFIFO<Word> requestsFromNetwork, requestsToBanks;
 
   // Flag telling whether the next flit to arrive will be the start of a new
   // packet.

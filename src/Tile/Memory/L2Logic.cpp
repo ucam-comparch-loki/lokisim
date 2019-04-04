@@ -18,7 +18,8 @@ L2Logic::L2Logic(const sc_module_name& name, const tile_parameters_t& params) :
     associativity("associativity"),
     log2CacheLineSize(params.memory.log2CacheLineSize()),
     numMemoryBanks(params.numMemories),
-    requestsFromNetwork("requestsFromNetwork", 4) {
+    requestsFromNetwork("requestsFromNetwork", 1),
+    requestsToBanks("requestsToBanks", 1) {
 
   rngState = 0x3F;  // Same seed as Verilog uses (see nextTargetBank()).
   randomBank = 0;
@@ -26,28 +27,32 @@ L2Logic::L2Logic(const sc_module_name& name, const tile_parameters_t& params) :
 
   iRequestFromNetwork(requestsFromNetwork);
   iResponseFromBanks(oResponseToNetwork); // Pass through, do nothing.
-  oRequestToBanks(requestsFromNetwork);
+  oRequestToBanks(requestsToBanks);
 
-  SC_METHOD(updateTargetBank);
-  sensitive << requestsFromNetwork.dataConsumedEvent();
+  SC_METHOD(forwardRequests);
+  sensitive << requestsFromNetwork.canReadEvent();
   dont_initialize();
 
 }
 
-void L2Logic::updateTargetBank() {
-  // TODO: potential race condition here. It's possible that this buffer entry
-  // has already been overwritten and we get the wrong flit.
-  NetworkRequest flit = requestsFromNetwork.lastDataRead();
+void L2Logic::forwardRequests() {
+  if (!associativity->canWrite())
+    next_trigger(associativity->canWriteEvent());
+  else {
+    NetworkRequest flit = requestsFromNetwork.read();
 
-  // For each new request, update the target bank. This bank services the
-  // request in the event that no bank currently holds the required data.
-  // The same target bank is used for all flits of a single request.
-  if (newRemoteRequest) {
-    MemoryIndex targetBank = getTargetBank(flit);
-    associativity->newRequest(targetBank);
+    // For each new request, update the target bank. This bank services the
+    // request in the event that no bank currently holds the required data.
+    // The same target bank is used for all flits of a single request.
+    if (newRemoteRequest) {
+      MemoryIndex targetBank = getTargetBank(flit);
+      associativity->newRequest(flit, targetBank);
+    }
+    else
+      associativity->newPayload(flit);
+
+    newRemoteRequest = flit.getMetadata().endOfPacket;
   }
-
-  newRemoteRequest = flit.getMetadata().endOfPacket;
 }
 
 MemoryIndex L2Logic::getTargetBank(const NetworkRequest& request) {

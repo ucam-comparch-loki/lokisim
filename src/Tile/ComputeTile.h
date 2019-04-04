@@ -20,11 +20,11 @@
 #include "Network/InstructionReturn.h"
 #include "../Network/NetworkTypes.h"
 #include "Memory/L2Logic.h"
-#include "Network/BankAssociation.h"
 #include "Network/BankToL2LResponses.h"
 #include "Network/BankToMHLRequests.h"
 #include "Network/CreditReturn.h"
 #include "Network/IntertileUnit.h"
+#include "Network/L2LToBankRequests.h"
 #include "Network/L2LToBankRequests.h"
 #include "Network/MHLToBankResponses.h"
 
@@ -148,9 +148,8 @@ private:
   CreditReturn              creditReturn;
   BankToMHLRequests         bankToMHLRequests;
   MHLToBankResponses        mhlToBankResponses;
-  L2LToBankRequests         l2lToBankRequests;
   BankToL2LResponses        bankToL2LResponses;
-  BankAssociation           bankAssociation;
+  L2LToBankRequests         l2lToBankRequests;
 
   // Need to implement the appropriate interfaces to connect the global credit
   // network with the local one. No other networks need this because their

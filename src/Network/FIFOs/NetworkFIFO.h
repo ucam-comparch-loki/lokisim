@@ -147,7 +147,7 @@ protected:
       os << "  First item: " << peek() << endl;
     }
     if (!canWrite())
-      os << this->name() << " is full" << endl;
+      os << "  FIFO is full" << endl;
   }
 
 //============================================================================//

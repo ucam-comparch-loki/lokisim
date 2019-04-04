@@ -24,7 +24,7 @@
 #include "../../Network/FIFOs/NetworkFIFO.h"
 #include "../../Utility/BlockingInterface.h"
 #include "../../Utility/LokiVector.h"
-#include "../Network/BankAssociation.h"
+#include "../Network/L2LToBankRequests.h"
 
 class ComputeTile;
 class MemoryOperation;
@@ -49,7 +49,7 @@ public:
   sc_port<network_sink_ifc<Word>> iRequest;   // Input requests sent to the memory bank
   sc_port<network_source_ifc<Word>> oRequest; // Output requests sent to the remote memory banks
 
-  sc_port<association_bank_ifc> l2Associativity; // Interface for coordinating L2 requests
+  sc_port<l2_request_bank_ifc> l2Associativity; // Interface for coordinating L2 requests
 
   // Responses - to/from memory banks on other tiles.
   sc_port<network_sink_ifc<Word>> iResponse;

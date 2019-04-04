@@ -14,7 +14,7 @@
 #include "../../LokiComponent.h"
 #include "../../Network/FIFOs/NetworkFIFO.h"
 #include "../../Network/NetworkTypes.h"
-#include "../Network/BankAssociation.h"
+#include "../Network/L2LToBankRequests.h"
 
 class MemoryBank;
 
@@ -31,7 +31,7 @@ public:
   sc_port<network_sink_ifc<Word>> iRequest; // Input requests from the network
   RequestOutput         oRequest;         // Requests for this bank to serve
 
-  sc_port<association_bank_ifc> l2Associativity; // Coordination with other banks
+  sc_port<l2_request_bank_ifc> l2Associativity; // Coordination with other banks
 
 //============================================================================//
 // Internal functions
@@ -41,6 +41,10 @@ public:
   SC_HAS_PROCESS(L2RequestFilter);
   L2RequestFilter(const sc_module_name& name, MemoryBank& localBank);
   virtual ~L2RequestFilter();
+
+protected:
+
+  virtual void end_of_elaboration();
 
 private:
 
@@ -57,7 +61,6 @@ private:
     STATE_IDLE,       // No request/current request is for another bank
     STATE_WAIT,       // Wait to see if any other bank can serve the request
     STATE_SEND,       // Send a request flit on to the local bank
-    STATE_CONSUME     // Consume flits from a request we are not involved in
   };
   FilterState state;
 
