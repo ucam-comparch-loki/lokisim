@@ -68,13 +68,14 @@ MemoryAddr MissHandlingLogic::getAddressTranslation(MemoryAddr address) const {
 void MissHandlingLogic::localRequestLoop() {
 
   loki_assert(requestsFromBanks.canRead());
-  NetworkRequest flit = requestsFromBanks.read();
-  bool endOfPacket = flit.getMetadata().endOfPacket;
 
   // Stall until it is possible to send on the network.
   if (!oRequestToNetwork->canWrite())
     next_trigger(oRequestToNetwork->canWriteEvent());
   else {
+
+    NetworkRequest flit = requestsFromBanks.read();
+    bool endOfPacket = flit.getMetadata().endOfPacket;
 
     // Continuation of an operation which takes place at the directory.
     if (requestHeaderValid) {
