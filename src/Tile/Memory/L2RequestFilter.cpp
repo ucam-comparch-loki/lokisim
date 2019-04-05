@@ -43,6 +43,14 @@ void L2RequestFilter::mainLoop() {
       loki_assert((opcode != PAYLOAD) && (opcode != PAYLOAD_EOP));
 
       MemoryAddr address = request.payload().toUInt();
+
+      // If this bank is currently waiting to flush the requested data, wait
+      // until the flush completes before allowing any bank to fetch it.
+      if (localBank.flushing(address)) {
+        next_trigger(localBank.requestSentEvent());
+        break;
+      }
+
       MemoryAccessMode mode = (request.getMemoryMetadata().scratchpad ? MEMORY_SCRATCHPAD : MEMORY_CACHE);
       SRAMAddress position = localBank.getPosition(address, mode);
 
