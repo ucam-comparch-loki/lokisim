@@ -118,7 +118,14 @@ public:
   void setWritePointer(uint pos)  {writePos = pos; updateFillCount();}
 
   const T& debugRead(uint pos) const {
-    pos %= this->size();
+    // Dealing with possible underflow.
+    if (pos >= this->size()) {
+      if (pos + this->size() < this->size())
+        pos += this->size();
+      else
+        pos -= this->size();
+    }
+
     return this->data_[pos];
   }
 

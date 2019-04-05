@@ -17,6 +17,7 @@
 #ifndef SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBANK_H_
 #define SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBANK_H_
 
+#include <set>
 #include "../../Memory/MemoryBase.h"
 #include "L2RequestFilter.h"
 #include "ReservationHandler.h"
@@ -247,7 +248,7 @@ private:
   // If this bank is flushing data, it has the only valid copy, but the tags
   // will suggest that it doesn't have it at all. Record the addresses of all
   // cache lines in the process of being flushed to detect this corner case.
-  vector<MemoryAddr>    pendingFlushes;
+  std::set<MemoryAddr>  pendingFlushes;
 
   typedef struct {
     MemoryTag address;  // Which data is stored here?

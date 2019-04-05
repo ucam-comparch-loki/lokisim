@@ -197,7 +197,7 @@ void MemoryBank::flush(SRAMAddress position, MemoryAccessMode mode) {
         header.setMetadata(metadata.flatten());
         sendRequest(header);
 
-        pendingFlushes.push_back(address);
+        pendingFlushes.insert(address);
 
         if (ENERGY_TRACE)
           Instrumentation::L1Cache::startOperation(*this, FLUSH_LINE,
@@ -294,15 +294,8 @@ const sc_event& MemoryBank::requestSentEvent() const {
 }
 
 bool MemoryBank::flushing(MemoryAddr address) const {
-  MemoryAddr cacheLine = getTag(address);
-
-  for (uint i=0; i<pendingFlushes.size(); i++) {
-    if (pendingFlushes[i] == cacheLine) {
-      return true;
-    }
-  }
-
-  return false;
+  MemoryTag cacheLine = getTag(address);
+  return pendingFlushes.find(cacheLine) != pendingFlushes.end();
 }
 
 uint MemoryBank::memoryIndex() const {
@@ -676,7 +669,6 @@ const sc_event& MemoryBank::canSendRequestEvent() const {
 }
 
 void MemoryBank::sendRequest(NetworkRequest request) {
-  if (!canSendRequest()) assert(false);
   loki_assert(canSendRequest());
 
   LOKI_LOG << this->name() << " buffering request " <<
@@ -855,15 +847,13 @@ void MemoryBank::memoryRequestSent() {
   LOKI_LOG << this->name() << " sent request " <<
       memoryOpName(request.getMemoryMetadata().opcode) << " " << LOKI_HEX(request.payload()) << endl;
 
-  // Slightly hacky: if the output we are overwriting is the head of a flush
-  // request, then we know that that request has now been selected to go out
-  // on the network, and cannot be overtaken by any other requests. Therefore,
-  // it is safe to remove it from our pendingFlushes queue.
-  if (request.getMemoryMetadata().opcode == STORE_LINE &&
-      !pendingFlushes.empty() &&
-      getTag(request.payload().toUInt()) == pendingFlushes.front()) {
-    pendingFlushes.erase(pendingFlushes.begin());
-  }
+  // Slightly hacky: if the output we just sent is the head of a flush request,
+  // then we know that that request now cannot be overtaken by any other
+  // requests from other banks. Therefore, it is safe to remove it from our
+  // pendingFlushes queue.
+  MemoryTag address = getTag(request.payload().toUInt());
+  if (request.getMemoryMetadata().opcode == STORE_LINE)
+    pendingFlushes.erase(address);
 }
 
 void MemoryBank::mainLoop() {

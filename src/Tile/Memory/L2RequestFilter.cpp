@@ -48,6 +48,7 @@ void L2RequestFilter::mainLoop() {
       // until the flush completes before allowing any bank to fetch it.
       if (localBank.flushing(address)) {
         next_trigger(localBank.requestSentEvent());
+        LOKI_LOG << this->name() << " delaying L2 request because currently flushing " << LOKI_HEX(address) << endl;
         break;
       }
 
