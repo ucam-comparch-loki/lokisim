@@ -352,7 +352,9 @@ void DecodeStage::fetch(const DecodedInst& inst) {
 }
 
 bool         DecodeStage::canFetch() const {
-  return core().canCheckTags();
+  // If we're in fetch suppression mode, allow any fetch to complete, but block
+  // its effects (see `fetch` above).
+  return fetchSuppressionMode || core().canCheckTags();
 }
 
 bool         DecodeStage::connectionFromMemory(ChannelIndex channel) const {
