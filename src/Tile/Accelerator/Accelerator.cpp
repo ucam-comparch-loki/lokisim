@@ -10,23 +10,20 @@
 #include "../AcceleratorTile.h"
 
 Accelerator::Accelerator(sc_module_name name, ComponentID id,
-                         const accelerator_parameters_t& params,
-                         size_t numMulticastInputs) :
-    LokiComponent(name, id),
+                         const accelerator_parameters_t& params) :
+    LokiComponent(name),
     iMulticast("iMulticast", numMulticastInputs),
     oMulticast("oMulticast"),
-    oReadyData("oReadyData", 1),
+    id(id),
     control("control", params),
     in1("dma_in1", ComponentID(id.tile, id.position), params.dma1Ports()),
     in2("dma_in2", ComponentID(id.tile, id.position+1), params.dma2Ports()),
     out("dma_out", ComponentID(id.tile, id.position+2), params.dma3Ports()),
-    compute("compute", params),
-    inputMux("mux", numMulticastInputs) {
+    compute("compute", params) {
 
-  control.iClock(iClock);
-  control.iParameter(paramSig);
-  control.oCores(oMulticast);
-  control.oReady(oReadyData[0]);
+  control.clock(clock);
+  iMulticast[0](control.iParameter);
+  oMulticast(control.oCores);
   control.oDMA1Command(toIn1);  in1.iCommand(toIn1);
   control.oDMA2Command(toIn2);  in2.iCommand(toIn2);
   control.oDMA3Command(toOut);  out.iCommand(toOut);
@@ -39,7 +36,7 @@ Accelerator::Accelerator(sc_module_name name, ComponentID id,
   compute.out(fromPEs); out.iDataFromPEs(fromPEs);
   compute.in1Ready(in1Ready); compute.in2Ready(in2Ready);
   compute.outReady(outReady);
-  compute.iClock(iClock);
+  compute.clock(clock);
   compute.inputTick(inTickSig);
   compute.outputTick(outTickSig);
 
@@ -47,18 +44,6 @@ Accelerator::Accelerator(sc_module_name name, ComponentID id,
   in1.iTick(inTickSig); in1.oDataValid(in1Ready);
   in2.iTick(inTickSig); in2.oDataValid(in2Ready);
   out.iTick(outTickSig); out.oReadyForData(outReady);
-
-  // Whenever data arrives on any channel, pass it to the control unit. This
-  // will break if multiple cores attempt to communicate simultaneously.
-  // Could use the muxHold signal to change this if necessary.
-  muxHold.write(false);
-  inputMux.iData(iMulticast);
-  inputMux.oData(muxOutput);
-  inputMux.iHold(muxHold);
-
-  SC_METHOD(receiveParameter);
-  sensitive << muxOutput;
-  dont_initialize();
 
 }
 
@@ -86,12 +71,6 @@ void Accelerator::deliverDataInternal(const NetworkData& flit) {
 void Accelerator::magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address,
                                     ChannelID returnChannel, Word data) {
   parent().magicMemoryAccess(opcode, address, returnChannel, data);
-}
-
-void Accelerator::receiveParameter() {
-  loki_assert(muxOutput.valid());
-  paramSig.write(muxOutput.read().payload().toUInt());
-  muxOutput.ack();
 }
 
 ChannelIndex Accelerator::memoryAccessChannel() const {

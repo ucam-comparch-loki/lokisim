@@ -123,7 +123,7 @@ void ALU::writeReg(RegisterIndex reg, Word data) const {parent().writeReg(reg, d
 void ALU::writeWord(MemoryAddr addr, Word data) const {parent().writeWord(addr, data);}
 void ALU::writeByte(MemoryAddr addr, Word data) const {parent().writeByte(addr, data);}
 
-ALU::ALU(const sc_module_name& name, const ComponentID& ID) : LokiComponent(name, ID) {
+ALU::ALU(const sc_module_name& name) : LokiComponent(name) {
   cyclesRemaining = 0;
 }
 
@@ -238,13 +238,13 @@ void ALU::systemCall(DecodedInst& dec) const {
 
     case SYS_TILE_ID: {
       LOKI_WARN << "syscall 0x10 (tile ID) is deprecated. Use control register 1 instead." << endl;
-      int tile = this->id.tile.flatten(Encoding::softwareTileID);
+      int tile = parent().id().tile.flatten(Encoding::softwareTileID);
       writeReg(result1Reg, tile);
       break;
     }
     case SYS_POSITION: {
       LOKI_WARN << "syscall 0x11 (core ID) is deprecated. Use control register 1 instead." << endl;
-      int position = this->id.position;
+      int position = parent().id().position;
       writeReg(result1Reg, position);
       break;
     }

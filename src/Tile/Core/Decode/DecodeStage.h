@@ -40,11 +40,8 @@ public:
   ReadyOutput              oReady;
 
   // The NUM_RECEIVE_CHANNELS inputs to the receive channel-end table.
-  LokiVector<sc_in<Word> > iData;
-
-  // A flow control signal for each input (NUM_RECEIVE_CHANNELS).
-  LokiVector<ReadyOutput>  oFlowControl;
-  LokiVector<ReadyOutput>  oDataConsumed;
+  typedef sc_port<network_sink_ifc<Word>> InPort;
+  LokiVector<InPort>       iData;
 
   // Ready signal from output buffer. If an instruction might send its data
   // onto the network, don't let it proceed down the pipeline until this signal
@@ -58,7 +55,7 @@ public:
 public:
 
   SC_HAS_PROCESS(DecodeStage);
-  DecodeStage(sc_module_name name, const ComponentID& ID, size_t numChannels,
+  DecodeStage(sc_module_name name, size_t numChannels,
               const fifo_parameters_t& fifoParams);
 
 //============================================================================//

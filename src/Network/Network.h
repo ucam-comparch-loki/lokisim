@@ -1,56 +1,51 @@
 /*
  * Network.h
  *
- *  Created on: 2 Nov 2010
+ *  Created on: 19 Mar 2019
  *      Author: db434
  */
 
-#ifndef NETWORK_H_
-#define NETWORK_H_
+#ifndef SRC_NETWORK_TOPOLOGIES_NETWORK_H_
+#define SRC_NETWORK_TOPOLOGIES_NETWORK_H_
 
+#include <set>
 #include "../LokiComponent.h"
-#include "NetworkTypes.h"
+#include "Interface.h"
+#include "Arbiters/RoundRobinArbiter.h"
+#include "../Utility/BlockingInterface.h"
+#include "../Utility/LokiVector.h"
 
-class Network : public LokiComponent {
+using sc_core::sc_port;
+using std::ostream;
+using std::set;
 
-public:
-
-  // Options for which level in the hierarchy this network is. Different
-  // networks need to look at different parts of the ChannelID type.
-  //   TILE = global network (needs to see which tile to send to)
-  //   COMPONENT = local network (needs to see which component to send to)
-  //   CHANNEL = within a core
-  //   NONE = always send to first output
-  enum HierarchyLevel {TILE, COMPONENT, CHANNEL, NONE};
+template<typename T>
+class Network : public LokiComponent, public BlockingInterface {
 
 //============================================================================//
 // Ports
 //============================================================================//
 
 public:
+  // Data is sent through the crossbar on positive clock edges.
+  // TODO: instead, include an sc_event as a constructor argument.
+  ClockInput clock;
 
-  ClockInput   clock;
-
-  //LokiVector<DataInput>  iData;
-  //LokiVector<DataOutput> oData;
+  typedef sc_port<network_source_ifc<T>> InPort;
+  typedef sc_port<network_sink_ifc<T>> OutPort;
+  LokiVector<InPort> inputs;
+  LokiVector<OutPort> outputs;
 
 //============================================================================//
 // Constructors and destructors
 //============================================================================//
 
 public:
+  SC_HAS_PROCESS(Network);
 
-  // This would work nicely when moving down the hierarchy, but what about when
-  // moving up? e.g. Credits pass through a CHANNEL network on the way to the
-  // local network, but we don't want them to be routed by the channel value yet.
-  Network(const sc_module_name& name,
-          const ComponentID& ID,
-          int numInputs,        // Number of inputs this network has
-          int numOutputs,       // Number of outputs this network has
-          HierarchyLevel level, // Position in the network hierarchy
-          int firstOutput=0,    // The first accessible channel/component/tile
-          bool externalConnection=false); // Is there a port to send data on if it
-                                          // isn't for any local component?);
+  // TODO: add bandwidth parameter, and send multiple flits per cycle if
+  // possible.
+  Network(sc_module_name name, uint numInputs, uint numOutputs);
 
 //============================================================================//
 // Methods
@@ -58,27 +53,44 @@ public:
 
 protected:
 
-  // Compute which output of this network will be used by the given address.
-  PortIndex getDestination(ChannelID address, uint totalOutputs) const;
+  virtual void reportStalls(ostream& os);
+
+  // Choose an output port to use when aiming for the given destination.
+  // This must be implemented by all subclasses.
+  virtual PortIndex getDestination(const ChannelID address) const = 0;
+  virtual set<PortIndex> getDestinations(const ChannelID address) const;
+
+  // Some extra initialisation which is performed after all ports have been
+  // bound.
+  virtual void end_of_elaboration();
+
+  // Send data on each output port on clock edges.
+  virtual void sendData(PortIndex output);
+
+  // Wrapper for inputs[input].read(). This version is multicast-safe, and only
+  // consumes the data when it has been read the correct number of times.
+  virtual Flit<T> readData(PortIndex input);
+
+  // Interpret data on input ports and determine which output will be used.
+  virtual void newData(PortIndex input);
+
+  virtual void updateRequests(PortIndex input);
 
 //============================================================================//
 // Local state
 //============================================================================//
 
-protected:
+private:
 
-  // The channel/component/tile accessible through the first output port.
-  // For example, this network may only send to memories, so whilst the target
-  // component may have an ID of 8, we may want to use output port 0.
-  const unsigned int firstOutput;
+  // For each output port, record which inputs are waiting to send data to it.
+  vector<request_list_t> requests;
 
-  const HierarchyLevel level;
+  vector<RoundRobinArbiter> arbiters;
 
-  // Tells whether this network has an extra connection to handle data which
-  // isn't for any local component. This extra connection will typically
-  // connect to the next level of the network hierarchy.
-  const bool externalConnection;
+  // For multicast, track how many destinations have received the data so far.
+  // Only consume an input when the counter reaches zero.
+  vector<uint> copiesRemaining;
 
 };
 
-#endif /* NETWORK_H_ */
+#endif /* SRC_NETWORK_TOPOLOGIES_NETWORK_H_ */

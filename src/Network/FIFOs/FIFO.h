@@ -37,7 +37,7 @@ public:
     int i = readPos.value();
     // FIXME: Should we move this to the end?
     incrementReadFrom();
-    this->readEvent_.notify();
+    this->readEvent_.notify(sc_core::SC_ZERO_TIME);
 
     if (ENERGY_TRACE) {
       Instrumentation::FIFO::pop(this->size());
@@ -51,7 +51,7 @@ public:
   virtual void write(const T& newData) {
     assert(!full());
     this->data_[writePos.value()] = newData;
-    this->writeEvent_.notify();
+    this->writeEvent_.notify(sc_core::SC_ZERO_TIME);
 
     if (ENERGY_TRACE) {
       Instrumentation::FIFO::push(this->size());
@@ -82,8 +82,13 @@ public:
     return (fillCount == this->size());
   }
 
+  // Returns the number of readable items in the buffer.
+  uint items() const {
+    return fillCount;
+  }
+
   // Returns the remaining space in the buffer.
-  uint16_t remainingSpace() const {
+  uint remainingSpace() const {
     return this->size() - fillCount;
   }
 
@@ -107,10 +112,22 @@ public:
   }
 
   // Low-level access methods - use with caution!
-  uint getReadPointer()           {return readPos.value();}
-  uint getWritePointer()          {return writePos.value();}
+  uint getReadPointer() const     {return readPos.value();}
+  uint getWritePointer() const    {return writePos.value();}
   void setReadPointer(uint pos)   {readPos = pos;  updateFillCount();}
   void setWritePointer(uint pos)  {writePos = pos; updateFillCount();}
+
+  const T& debugRead(uint pos) const {
+    // Dealing with possible underflow.
+    if (pos >= this->size()) {
+      if (pos + this->size() < this->size())
+        pos += this->size();
+      else
+        pos -= this->size();
+    }
+
+    return this->data_[pos];
+  }
 
 private:
 

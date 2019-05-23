@@ -13,7 +13,7 @@
 #include "../../../Utility/Assert.h"
 #include "../../../Utility/Instrumentation.h"
 #include "../../../Utility/Instrumentation/IPKCache.h"
-#include "../../../Utility/Instrumentation/Stalls.h"
+#include "../../../Utility/Instrumentation/Latency.h"
 
 /* Initialise the contents of the cache with a list of Instructions. */
 void InstructionPacketCache::storeCode(const std::vector<Instruction>& instructions) {
@@ -62,6 +62,7 @@ void InstructionPacketCache::write(const Instruction inst) {
   if (ENERGY_TRACE)
     Instrumentation::IPKCache::write(parent().core());
   LOKI_LOG << this->name() << " received Instruction: " << inst << endl;
+  parent().cacheInstructionArrived(inst);
 
   CacheIndex writePos = cache->write(inst);
   cacheWrite.notify(sc_core::SC_ZERO_TIME);
@@ -130,14 +131,30 @@ const sc_event& InstructionPacketCache::writeEvent() const {
   return cacheWrite;
 }
 
-/* Update the signal saying whether there is enough room to fetch another
- * packet. */
-void InstructionPacketCache::updateFlowControl() {
-  oFlowControl.write(!cache->full());
+void InstructionPacketCache::write(const Flit<Word>& data) {
+  Instrumentation::Latency::coreReceivedResult(parent().id(), data);
+
+  // Strip off the network address and store the instruction.
+  Instruction inst = static_cast<Instruction>(data.payload());
+  write(inst);
 }
 
-void InstructionPacketCache::dataConsumedAction() {
-  oDataConsumed.write(!oDataConsumed.read());
+bool InstructionPacketCache::canWrite() const {
+  return !isFull();
+}
+
+const sc_event& InstructionPacketCache::canWriteEvent() const {
+  return readEvent();
+}
+
+const sc_event& InstructionPacketCache::dataConsumedEvent() const {
+  return cache->dataConsumedEvent();
+}
+
+const Flit<Word> InstructionPacketCache::lastDataWritten() const {
+  // We've discarded the network address and only store instructions, so add
+  // a dummy address.
+  return Flit<Word>(cache->debugRead(cache->getWritePointer() - 1), ChannelID());
 }
 
 /* Returns whether or not the cache is empty. */
@@ -159,11 +176,8 @@ FetchStage& InstructionPacketCache::parent() const {
 
 /* Constructors and destructors */
 InstructionPacketCache::InstructionPacketCache(sc_module_name name,
-                                               const ComponentID& ID,
                                                const cache_parameters_t& params) :
-    LokiComponent(name, ID),
-    oFlowControl("oFlowControl"),
-    oDataConsumed("oDataConsumed"),
+    LokiComponent(name),
     addresses(params.size, DEFAULT_TAG) {
 
   cache = new IPKCacheFullyAssociative(string(this->name()), params.size, params.numTags, params.maxIPKSize);
@@ -176,14 +190,6 @@ InstructionPacketCache::InstructionPacketCache(sc_module_name name,
 
   // As soon as the first instruction arrives, queue it up to execute.
   finishedPacketWrite = true;
-
-  SC_METHOD(updateFlowControl);
-  sensitive << cacheRead << cacheWrite;
-  // do initialise
-
-  SC_METHOD(dataConsumedAction);
-  sensitive << cache->dataConsumedEvent();
-  dont_initialize();
 
 }
 

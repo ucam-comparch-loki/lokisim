@@ -57,7 +57,7 @@ public:
 
 public:
 
-  EmptyTile(const sc_module_name& name, const ComponentID& id);
+  EmptyTile(const sc_module_name& name, const TileID& id);
   virtual ~EmptyTile();
 
 //============================================================================//
@@ -66,10 +66,10 @@ public:
 
 private:
 
-  NetworkDeadEnd<NetworkData>     dataDeadEnd;
-  NetworkDeadEnd<NetworkCredit>   creditDeadEnd;
-  NetworkDeadEnd<NetworkRequest>  requestDeadEnd;
-  NetworkDeadEnd<NetworkResponse> responseDeadEnd;
+  NetworkDeadEnd<Word> dataDeadEnd;
+  NetworkDeadEnd<Word> creditDeadEnd;
+  NetworkDeadEnd<Word> requestDeadEnd;
+  NetworkDeadEnd<Word> responseDeadEnd;
 
 };
 

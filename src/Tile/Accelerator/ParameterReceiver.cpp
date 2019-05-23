@@ -11,13 +11,14 @@
 ParameterReceiver::ParameterReceiver(sc_module_name name) :
     LokiComponent(name),
     iParameter("iParameter"),
-    oReady("oReady") {
+    inputBuffer("inputBuffer", 1) {
 
   parametersReceived = 0;
-  oReady.initialize(true);
+
+  iParameter(inputBuffer);
 
   SC_METHOD(receiveParameter);
-  sensitive << iParameter;
+  sensitive << inputBuffer.canReadEvent();
   dont_initialize();
 
 }
@@ -37,11 +38,9 @@ const sc_event& ParameterReceiver::allParametersArrived() const {
 
 void ParameterReceiver::receiveParameter() {
   loki_assert(!hasAllParameters());
-  loki_assert(iParameter.valid());
-  loki_assert(oReady.read());
+  loki_assert(inputBuffer.canRead());
 
-  uint32_t parameter = iParameter.read();
-  iParameter.ack();
+  uint32_t parameter = inputBuffer.read().payload().toUInt();
 
   // Add parameter to struct. (Using a naughty method so I don't need to care
   // about the contents of the struct.)
@@ -58,8 +57,4 @@ void ParameterReceiver::receiveParameter() {
     allParametersArrivedEvent.notify(sc_core::SC_ZERO_TIME);
     LOKI_LOG << this->name() << ": has all parameters" << endl;
   }
-
-  // TODO: Flow control for receiver - perhaps a separate method.
-  // Or control the timing of the acknowledgement.
-  // For now, always allow new input.
 }

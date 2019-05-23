@@ -24,7 +24,7 @@ class ComputeUnit: public LokiComponent {
 
 public:
 
-  ClockInput iClock;
+  ClockInput clock;
 
   // The data being computed.
   LokiVector2D<sc_in<T>> in1;
@@ -55,7 +55,7 @@ public:
 
   ComputeUnit(sc_module_name name, const accelerator_parameters_t& params) :
       LokiComponent(name),
-      iClock("clock"),
+      clock("clock"),
       in1("in1", params.dma1Ports().width, params.dma1Ports().height),
       in2("in2", params.dma2Ports().width, params.dma2Ports().height),
       out("out", params.dma3Ports().width, params.dma3Ports().height),
@@ -178,7 +178,7 @@ public:
     }
 
     SC_METHOD(newTick);
-    sensitive << iClock.pos();
+    sensitive << clock.pos();
     // do initialise
 
     SC_METHOD(newOutputTick);

@@ -11,8 +11,8 @@
 #include "../../Utility/ISA.h"
 #include "Core.h"
 
-MagicMemoryConnection::MagicMemoryConnection(sc_module_name name, ComponentID id) :
-    LokiComponent(name, id) {
+MagicMemoryConnection::MagicMemoryConnection(sc_module_name name) :
+    LokiComponent(name) {
 
   currentOpcode = PAYLOAD_EOP;
   currentAddress = -1;
@@ -83,7 +83,7 @@ void MagicMemoryConnection::operate(const DecodedInst& instruction) {
   loki_assert(parent().isMemory(instruction.networkDestination().component));
 
   ChannelMapEntry& channelMapEntry = parent().channelMapTable[instruction.channelMapEntry()];
-  ChannelID returnChannel(id.tile.x, id.tile.y, channelMapEntry.getChannel(), channelMapEntry.getReturnChannel());
+  ChannelID returnChannel(parent().id.tile.x, parent().id.tile.y, channelMapEntry.getChannel(), channelMapEntry.getReturnChannel());
 
   loki_assert_with_message(!channelMapEntry.memoryView().scratchpadL1,
       "Magic memory only supports one address space.", 0);

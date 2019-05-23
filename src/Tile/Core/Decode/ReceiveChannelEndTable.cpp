@@ -14,47 +14,44 @@
 #include "../../../Datatype/Word.h"
 #include "../../../Exceptions/BlockedException.h"
 #include "../../../Utility/Assert.h"
-#include "../../../Utility/Instrumentation/Network.h"
+#include "../../../Utility/Instrumentation/Latency.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
 
 typedef RegisterFile Registers;
 
 int32_t ReceiveChannelEndTable::read(ChannelIndex channelEnd) {
   loki_assert_with_message(channelEnd < buffers.size(), "Channel %d", channelEnd);
-  loki_assert(!buffers[channelEnd].empty());
+  loki_assert(buffers[channelEnd].canRead());
 
-  int32_t result = buffers[channelEnd].read().toInt();
-
-  LOKI_LOG << this->name() << " read " << result << " from buffer "
-           << (int)channelEnd << endl;
-
+  int32_t result = buffers[channelEnd].read().payload().toInt();
   return result;
 }
 
 int32_t ReceiveChannelEndTable::readInternal(ChannelIndex channelEnd) const {
   loki_assert_with_message(channelEnd < buffers.size(), "Channel %d", channelEnd);
 
-  if (buffers[channelEnd].empty())
+  if (!buffers[channelEnd].canRead())
     return 0;
   else
-    return buffers[channelEnd].peek().toInt();
+    return buffers[channelEnd].peek().payload().toInt();
 }
 
 void ReceiveChannelEndTable::writeInternal(ChannelIndex channel, int32_t data) {
-  LOKI_LOG << this->name() << " channel " << (int)channel << " received " <<
-              data << endl;
-
   loki_assert_with_message(channel < buffers.size(), "Channel %d", channel);
-  loki_assert(!buffers[channel].full());
-  buffers[channel].write(data);
+  loki_assert(buffers[channel].canWrite());
 
-  newData.notify();
+  // TODO: currently dealing with integers rather than flits. Switch over to be
+  // more consistent.
+  Flit<Word> flit(data, Core::RCETInput(id(), channel));
+  buffers[channel].write(flit);
+
+  newData.notify(sc_core::SC_ZERO_TIME);
 }
 
 /* Return whether or not the specified channel contains data. */
 bool ReceiveChannelEndTable::testChannelEnd(ChannelIndex channelEnd) const {
   loki_assert_with_message(channelEnd < buffers.size(), "Channel %d", channelEnd);
-  return !buffers[channelEnd].empty();
+  return buffers[channelEnd].canRead();
 }
 
 ChannelIndex ReceiveChannelEndTable::selectChannelEnd(unsigned int bitmask, const DecodedInst& inst) {
@@ -67,7 +64,7 @@ ChannelIndex ReceiveChannelEndTable::selectChannelEnd(unsigned int bitmask, cons
   // Return the register-mapping of the first channel which has data.
   for (int i = ++currentChannel; i != startPoint; ++currentChannel) {
     i = currentChannel.value();
-    if (((bitmask >> i) & 1) && !buffers[i].empty()) {
+    if (((bitmask >> i) & 1) && buffers[i].canRead()) {
         // Adjust address so it can be accessed like a register
         return parent().core().regs.fromChannelID(i);
     }
@@ -83,37 +80,25 @@ void ReceiveChannelEndTable::waitForData(unsigned int bitmask, const DecodedInst
   // Wait for data to arrive on one of the channels we're interested in.
   while (true) {
     for (ChannelIndex i=0; i<buffers.size(); i++) {
-      if (((bitmask >> i) & 1) && !buffers[i].empty())
+      if (((bitmask >> i) & 1) && buffers[i].canRead())
         return;
     }
 
     // Since multiple channels are involved, assume data can come from anywhere.
-    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_MEMORY_DATA, inst);
-    Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_CORE_DATA, inst);
+    Instrumentation::Stalls::stall(id(), Instrumentation::Stalls::STALL_MEMORY_DATA, inst);
+    Instrumentation::Stalls::stall(id(), Instrumentation::Stalls::STALL_CORE_DATA, inst);
     wait(newData);
-    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_MEMORY_DATA, inst);
-    Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_CORE_DATA, inst);
+    Instrumentation::Stalls::unstall(id(), Instrumentation::Stalls::STALL_MEMORY_DATA, inst);
+    Instrumentation::Stalls::unstall(id(), Instrumentation::Stalls::STALL_CORE_DATA, inst);
   }
-}
-
-void ReceiveChannelEndTable::checkInput(ChannelIndex input) {
-  // This method is called because data has arrived on a particular input channel.
-  writeInternal(input, iData[input].read().toInt());
-  Instrumentation::Network::recordBandwidth(iData[input].name());
 }
 
 const sc_event& ReceiveChannelEndTable::receivedDataEvent(ChannelIndex buffer) const {
   return buffers[buffer].writeEvent();
 }
 
-void ReceiveChannelEndTable::updateFlowControl(ChannelIndex buffer) {
-  bool canReceive = !buffers[buffer].full();
-  if (oFlowControl[buffer].read() != canReceive)
-    oFlowControl[buffer].write(canReceive);
-}
-
-void ReceiveChannelEndTable::dataConsumedAction(ChannelIndex buffer) {
-  oDataConsumed[buffer].write(!oDataConsumed[buffer].read());
+ComponentID ReceiveChannelEndTable::id() const {
+  return parent().id();
 }
 
 DecodeStage& ReceiveChannelEndTable::parent() const {
@@ -122,41 +107,35 @@ DecodeStage& ReceiveChannelEndTable::parent() const {
 
 void ReceiveChannelEndTable::reportStalls(ostream& os) {
   for (uint i=0; i<buffers.size(); i++) {
-    if (buffers[i].full())
+    if (!buffers[i].canWrite())
       os << buffers[i].name() << " is full." << endl;
   }
 }
 
+void ReceiveChannelEndTable::networkDataArrived(ChannelIndex buffer) {
+  Instrumentation::Latency::coreReceivedResult(id(), buffers[buffer].lastDataWritten());
+  newData.notify(sc_core::SC_ZERO_TIME);
+}
+
 ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name,
-                                               const ComponentID& ID,
                                                size_t numChannels,
                                                const fifo_parameters_t& fifoParams) :
-    LokiComponent(name, ID),
+    LokiComponent(name),
     BlockingInterface(),
     clock("clock"),
     iData("iData", numChannels),
-    oFlowControl("oFlowControl", numChannels),
-    oDataConsumed("oDataConsumed", numChannels),
-    buffers(this->name(), numChannels, fifoParams.size),
     currentChannel(numChannels) {
 
-  // Generate a method to watch each input port, putting the data into the
-  // appropriate buffer when it arrives.
-  for (unsigned int i=0; i<buffers.size(); i++) {
-    SPAWN_METHOD(iData[i], ReceiveChannelEndTable::checkInput, i, false);
-    SPAWN_METHOD(buffers[i].dataConsumedEvent(), ReceiveChannelEndTable::dataConsumedAction, i, false);
-  }
+  for (uint i=0; i<numChannels; i++) {
+    std::stringstream bufName;
+    ChannelID channel = Core::RCETInput(id(), i);
+    bufName << "buffer_" << (uint)channel.channel;
+    NetworkFIFO<Word>* fifo = new NetworkFIFO<Word>(bufName.str().c_str(), fifoParams.size);
+    buffers.push_back(fifo);
 
-  // Generate a method to watch each buffer, updating its flow control signal
-  // whenever data is added or removed.
-  for (unsigned int i=0; i<buffers.size(); i++) {
-    sc_core::sc_spawn_options options;
-    options.spawn_method();     /* Want an efficient method, not a thread */
-    options.set_sensitivity(&(buffers[i].readEvent()));
-    options.set_sensitivity(&(buffers[i].writeEvent()));
+    iData[i](buffers[i]);
 
-    /* Create the method. */
-    sc_spawn(sc_bind(&ReceiveChannelEndTable::updateFlowControl, this, i), 0, &options);
+    SPAWN_METHOD(buffers[i].writeEvent(), ReceiveChannelEndTable::networkDataArrived, i, false);
   }
 
 }

@@ -4,28 +4,13 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../src/Network/Topologies/Bus.cpp \
-../src/Network/Topologies/Crossbar.cpp \
-../src/Network/Topologies/InstantCrossbar.cpp \
-../src/Network/Topologies/Mesh.cpp \
-../src/Network/Topologies/MulticastBus.cpp \
-../src/Network/Topologies/MulticastNetwork.cpp 
+../src/Network/Topologies/Mesh.cpp 
 
 OBJS += \
-./src/Network/Topologies/Bus.o \
-./src/Network/Topologies/Crossbar.o \
-./src/Network/Topologies/InstantCrossbar.o \
-./src/Network/Topologies/Mesh.o \
-./src/Network/Topologies/MulticastBus.o \
-./src/Network/Topologies/MulticastNetwork.o 
+./src/Network/Topologies/Mesh.o 
 
 CPP_DEPS += \
-./src/Network/Topologies/Bus.d \
-./src/Network/Topologies/Crossbar.d \
-./src/Network/Topologies/InstantCrossbar.d \
-./src/Network/Topologies/Mesh.d \
-./src/Network/Topologies/MulticastBus.d \
-./src/Network/Topologies/MulticastNetwork.d 
+./src/Network/Topologies/Mesh.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

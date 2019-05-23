@@ -9,9 +9,10 @@
 #include "Accelerator.h"
 
 DMA::DMA(sc_module_name name, ComponentID id, size_t queueLength) :
-    LokiComponent(name, id),
+    LokiComponent(name),
     iCommand("iCommand"),
     iTick("iTick"),
+    id(id),
     commandQueue(queueLength),
     memoryInterface("ifc", id) {
 

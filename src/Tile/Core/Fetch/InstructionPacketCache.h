@@ -13,25 +13,16 @@
 
 #include "../../../LokiComponent.h"
 #include "../../../Memory/IPKCacheBase.h"
+#include "../../../Network/Interface.h"
 #include "../../../Network/NetworkTypes.h"
 #include "InstructionStore.h"
 
 class FetchStage;
 class Word;
 
-class InstructionPacketCache : public LokiComponent, public InstructionStore {
-
-//============================================================================//
-// Ports
-//============================================================================//
-
-public:
-
-  // Signal telling the flow control unit whether there is space left in the cache.
-  ReadyOutput oFlowControl;
-
-  // Signal which toggles whenever an instruction is first read.
-  ReadyOutput oDataConsumed;
+class InstructionPacketCache : public LokiComponent,
+                               public InstructionStore,
+                               public network_sink_ifc<Word> {
 
 //============================================================================//
 // Constructors and destructors
@@ -40,8 +31,7 @@ public:
 public:
 
   SC_HAS_PROCESS(InstructionPacketCache);
-  InstructionPacketCache(sc_module_name name, const ComponentID& ID,
-                         const cache_parameters_t& params);
+  InstructionPacketCache(sc_module_name name, const cache_parameters_t& params);
   virtual ~InstructionPacketCache();
 
 //============================================================================//
@@ -94,11 +84,15 @@ public:
   virtual const sc_event& readEvent() const;
   virtual const sc_event& writeEvent() const;
 
-private:
 
-  // Update the output flow control signal.
-  void updateFlowControl();
-  void dataConsumedAction();
+  // Network interface: some duplication with above methods.
+  virtual void write(const Flit<Word>& data);
+  virtual bool canWrite() const;
+  virtual const sc_event& canWriteEvent() const;
+  virtual const sc_event& dataConsumedEvent() const;
+  virtual const Flit<Word> lastDataWritten() const;
+
+private:
 
   // Tells whether an instruction was sent this cycle -- sometimes there may
   // be potential instructions both in the cache and arriving on the network

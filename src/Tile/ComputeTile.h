@@ -18,9 +18,15 @@
 #include "Network/DataReturn.h"
 #include "Network/ForwardCrossbar.h"
 #include "Network/InstructionReturn.h"
-#include "../Network/Global/RouterDemultiplexer.h"
 #include "../Network/NetworkTypes.h"
-#include "../Network/WormholeMultiplexer.h"
+#include "Memory/L2Logic.h"
+#include "Network/BankToL2LResponses.h"
+#include "Network/BankToMHLRequests.h"
+#include "Network/CreditReturn.h"
+#include "Network/IntertileUnit.h"
+#include "Network/L2LToBankRequests.h"
+#include "Network/L2LToBankRequests.h"
+#include "Network/MHLToBankResponses.h"
 
 class Core;
 class MemoryBank;
@@ -36,34 +42,22 @@ public:
 // Inherited from Tile:
 //
 //  ClockInput      clock;
-
-  // Some extra events to keep the internal networks in sync.
-  ClockInput      fastClock;
-  ClockInput      slowClock;
-
+//
 //  // Data network.
-//  DataInput       iData;
-//  DataOutput      oData;
-//  ReadyInput      iDataReady;
-//  ReadyOutput     oDataReady;
+//  sc_port<network_source_ifc<Word>> iData;
+//  sc_port<network_sink_ifc<Word>> oData;
 //
 //  // Credit network.
-//  CreditInput     iCredit;
-//  CreditOutput    oCredit;
-//  ReadyInput      iCreditReady;
-//  ReadyOutput     oCreditReady;
+//  sc_port<network_source_ifc<Word>> iCredit;
+//  sc_port<network_sink_ifc<Word>> oCredit;
 //
 //  // Memory request network.
-//  RequestInput    iRequest;
-//  RequestOutput   oRequest;
-//  ReadyInput      iRequestReady;
-//  ReadyOutput     oRequestReady;
+//  sc_port<network_source_ifc<Word>> iRequest;
+//  sc_port<network_sink_ifc<Word>> oRequest;
 //
 //  // Memory response network.
-//  ResponseInput   iResponse;
-//  ResponseOutput  oResponse;
-//  ReadyInput      iResponseReady;
-//  ReadyOutput     oResponseReady;
+//  sc_port<network_source_ifc<Word>> iResponse;
+//  sc_port<network_sink_ifc<Word>> oResponse;
 
 
 //============================================================================//
@@ -72,7 +66,7 @@ public:
 
 public:
 
-  ComputeTile(const sc_module_name& name, const ComponentID& id,
+  ComputeTile(const sc_module_name& name, const TileID& id,
               const tile_parameters_t& params);
 
 //============================================================================//
@@ -119,22 +113,10 @@ public:
   // memory hierarchy.
   bool    backedByMainMemory(MemoryAddr address) const;
 
-
-  // Some magical network methods which prevent the need to connect thousands
-  // of single-bit wires.
-
-  // Issue a request for arbitration. This should only be called for the first
-  // and last flits of each packet.
-  void makeRequest(ComponentID source, ChannelID destination, bool request);
-
-  // See if the request from source to destination has been granted.
-  bool requestGranted(ComponentID source, ChannelID destination) const;
-
 private:
 
-  void makeSignals();
   void makeComponents(const tile_parameters_t& params);
-  void wireUp();
+  void wireUp(const tile_parameters_t& params);
 
   // Allow components to find their position on the chip. Only used for debug.
   uint globalCoreIndex(ComponentID id) const;
@@ -149,64 +131,30 @@ protected:
   LokiVector<Core>          cores;
   LokiVector<MemoryBank>    memories;
   MissHandlingLogic         mhl;
+  L2Logic                   l2l;
+  IntertileUnit             icu;
 
   friend class Core;
   friend class MemoryBank;
   friend class MissHandlingLogic;
-
-private:
+  friend class L2Logic;
+  friend class IntertileUnit;
 
   // Subnetworks.
   CoreMulticast             coreToCore;
   ForwardCrossbar           coreToMemory;
   DataReturn                dataReturn;
   InstructionReturn         instructionReturn;
+  CreditReturn              creditReturn;
+  BankToMHLRequests         bankToMHLRequests;
+  MHLToBankResponses        mhlToBankResponses;
+  BankToL2LResponses        bankToL2LResponses;
+  L2LToBankRequests         l2lToBankRequests;
 
-  WormholeMultiplexer<Word> dataToRouter;
-  RouterDemultiplexer<Word> dataFromRouter;
-  WormholeMultiplexer<Word> creditToRouter;
-  RouterDemultiplexer<Word> creditFromRouter;
-
-//============================================================================//
-// Signals (wires)
-//============================================================================//
-
-protected:
-
-  LokiVector<DataSignal>    dataToCores,              dataFromMemory,
-                            instructionsToCores,      instructionsFromMemory,
-                            multicastFromCores;
-  LokiVector2D<DataSignal>  multicastToCores;
-  LokiVector<RequestSignal> requestsToMemory,         requestsFromCores;
-
-  LokiVector2D<ReadySignal> readyDataFromCores,       readyDataFromMemory;
-
-  LokiVector<CreditSignal>  creditsToCores,           creditsFromCores;
-  LokiVector2D<ReadySignal> readyCreditFromCores;
-
-  // TODO remove global signals and combine with coreToMemory and memoryToCores.
-  LokiVector<DataSignal>    globalDataToCores,        globalDataFromCores;
-
-  // Signals allowing arbitration requests to be made for cores/memories/routers.
-  // Currently the signals are written using a function call, but they can
-  // be removed if we set up a proper SystemC channel connection.
-  // Addressed using coreRequests[requester][destination]
-  LokiVector2D<ArbiterRequestSignal> coreToMemRequests,
-                                     dataReturnRequests, instructionReturnRequests;
-  LokiVector2D<ArbiterGrantSignal>   coreToMemGrants,
-                                     dataReturnGrants,   instructionReturnGrants;
-
-  LokiVector<RequestSignal> l2RequestFromMemory;
-  RequestSignal             l2RequestToMemory;
-  sc_signal<MemoryIndex>    l2RequestTarget;
-  LokiVector<sc_signal<bool>> l2ClaimRequest;
-  LokiVector<sc_signal<bool>> l2DelayRequest;
-  sc_signal<bool>           l2RequestClaimed;
-  sc_signal<bool>           l2RequestDelayed;
-
-  LokiVector<ResponseSignal> l2ResponseFromMemory;
-  ResponseSignal            l2ResponseToMemory;
-  sc_signal<MemoryIndex>    l2ResponseTarget;
+  // Need to implement the appropriate interfaces to connect the global credit
+  // network with the local one. No other networks need this because their
+  // buffers are inside other units (e.g. ICU, MHL).
+  NetworkFIFO<Word>         creditBuffer;
 
 };
 

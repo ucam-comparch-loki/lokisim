@@ -14,16 +14,12 @@ using namespace std;
 #include <iostream>
 #include <iomanip>
 #include "MemoryBank.h"
-#include "../../OffChip/MainMemory.h"
 #include "../../Datatype/MemoryOperations/MemoryOperationDecode.h"
 #include "../ComputeTile.h"
 #include "../../Chip.h"
-#include "../../Utility/Arguments.h"
 #include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/Latency.h"
 #include "../../Utility/Instrumentation/L1Cache.h"
-#include "../../Utility/Instrumentation/Network.h"
-#include "../../Utility/Parameters.h"
 #include "../../Utility/Warnings.h"
 #include "../../Exceptions/ReadOnlyException.h"
 #include "../../Exceptions/UnsupportedFeatureException.h"
@@ -201,7 +197,7 @@ void MemoryBank::flush(SRAMAddress position, MemoryAccessMode mode) {
         header.setMetadata(metadata.flatten());
         sendRequest(header);
 
-        pendingFlushes.push_back(address);
+        pendingFlushes.insert(address);
 
         if (ENERGY_TRACE)
           Instrumentation::L1Cache::startOperation(*this, FLUSH_LINE,
@@ -233,7 +229,7 @@ bool MemoryBank::payloadAvailable(MemoryLevel level) const {
   else {
     switch (level) {
       case MEMORY_L1:
-        return !inputQueue.empty() && isPayload(inputQueue.peek());
+        return inputQueue.canRead() && isPayload(inputQueue.peek());
       case MEMORY_L2:
         return requestSig.valid() && isPayload(requestSig.read());
       default:
@@ -257,7 +253,6 @@ uint32_t MemoryBank::getPayload(MemoryLevel level) {
     switch (level) {
       case MEMORY_L1:
         request = inputQueue.read();
-        LOKI_LOG << this->name() << " dequeued " << request << endl;
         break;
       case MEMORY_L2: {
         request = requestSig.read();
@@ -295,19 +290,12 @@ void MemoryBank::writeWord(SRAMAddress position, uint32_t value, MemoryAccessMod
 }
 
 const sc_event& MemoryBank::requestSentEvent() const {
-  return outputReqQueue.readEvent();
+  return outputReqQueue.canWriteEvent();
 }
 
 bool MemoryBank::flushing(MemoryAddr address) const {
-  MemoryAddr cacheLine = getTag(address);
-
-  for (uint i=0; i<pendingFlushes.size(); i++) {
-    if (pendingFlushes[i] == cacheLine) {
-      return true;
-    }
-  }
-
-  return false;
+  MemoryTag cacheLine = getTag(address);
+  return pendingFlushes.find(cacheLine) != pendingFlushes.end();
 }
 
 uint MemoryBank::memoryIndex() const {
@@ -372,6 +360,15 @@ void MemoryBank::processIdle() {
       // Don't start a request which skips this cache, but will return data
       // through it.
       if (hitRequest->needsForwarding() && hitRequest->resultsToSend())
+        return;
+
+      // Don't start a second request until we have all payload flits from a
+      // core. It's possible that the payload depends on the missing request.
+      // +1 because we haven't dequeued the head flit yet.
+      // (This differs from the Verilog which has two separate request
+      // handlers.)
+      if (hitRequest->awaitingPayload() && isCore(hitRequest->getDestination())
+          && (inputQueue.items() < 1+hitRequest->payloadFlitsRemaining()))
         return;
 
       LOKI_LOG << this->name() << " starting hit-under-miss" << endl;
@@ -568,7 +565,6 @@ void MemoryBank::processForward(DecodedRequest& request) {
     switch (request->getMemoryLevel()) {
       case MEMORY_L1:
         payload = inputQueue.read();
-        LOKI_LOG << this->name() << " dequeued " << payload << endl;
         break;
       case MEMORY_L2:
         payload = requestSig.read();
@@ -609,12 +605,12 @@ void MemoryBank::finishedRequestForNow(DecodedRequest& request) {
 }
 
 bool MemoryBank::requestAvailable() const {
-  return (!inputQueue.empty() && !isPayload(inputQueue.peek()))
+  return (inputQueue.canRead() && !isPayload(inputQueue.peek()))
       || (requestSig.valid() && !isPayload(requestSig.read()));
 }
 
 const sc_event_or_list& MemoryBank::requestAvailableEvent() const {
-  return inputQueue.writeEvent() | requestSig.default_event();
+  return inputQueue.canReadEvent() | requestSig.default_event();
 }
 
 MemoryBank::DecodedRequest MemoryBank::peekRequest() {
@@ -624,7 +620,7 @@ MemoryBank::DecodedRequest MemoryBank::peekRequest() {
   MemoryLevel level;
   ChannelID destination;
 
-  if (!inputQueue.empty() && !isPayload(inputQueue.peek())) {
+  if (inputQueue.canRead() && !isPayload(inputQueue.peek())) {
     request = inputQueue.peek();
     level = MEMORY_L1;
     destination = ChannelID(id.tile.x,
@@ -651,7 +647,6 @@ void MemoryBank::consumeRequest(MemoryLevel level) {
   switch (level) {
     case MEMORY_L1: {
       NetworkRequest request = inputQueue.read();
-      LOKI_LOG << this->name() << " dequeued " << request << endl;
       Instrumentation::Latency::memoryStartedRequest(id, request);
       break;
     }
@@ -666,15 +661,14 @@ void MemoryBank::consumeRequest(MemoryLevel level) {
 }
 
 bool MemoryBank::canSendRequest() const {
-  return !outputReqQueue.full();
+  return outputReqQueue.canWrite();
 }
 
 const sc_event& MemoryBank::canSendRequestEvent() const {
-  return outputReqQueue.readEvent();
+  return outputReqQueue.canWriteEvent();
 }
 
 void MemoryBank::sendRequest(NetworkRequest request) {
-  if (!canSendRequest()) assert(false);
   loki_assert(canSendRequest());
 
   LOKI_LOG << this->name() << " buffering request " <<
@@ -691,19 +685,16 @@ void MemoryBank::forwardRequest(NetworkRequest request) {
 }
 
 bool MemoryBank::responseAvailable() const {
-  return iResponse.valid() && (iResponseTarget.read() == id.position-coresThisTile());
+  return inResponseQueue.canRead();
 }
 
 const sc_event& MemoryBank::responseAvailableEvent() const {
-  return iResponse.default_event();
+  return inResponseQueue.canReadEvent();
 }
 
 uint32_t MemoryBank::getResponse() {
   loki_assert(responseAvailable());
-  uint32_t data = iResponse.read().payload().toUInt();
-  iResponse.ack();
-
-  LOKI_LOG << this->name() << " received response " << LOKI_HEX(data) << endl;
+  uint32_t data = inResponseQueue.read().payload().toUInt();
 
   return data;
 }
@@ -712,11 +703,11 @@ bool MemoryBank::canSendResponse(ChannelID destination, MemoryLevel level) const
   switch (level) {
     case MEMORY_L1:
       if (destination.channel < Core::numInstructionChannels)
-        return !outputInstQueue.full();
+        return outputInstQueue.canWrite();
       else
-        return !outputDataQueue.full();
+        return outputDataQueue.canWrite();
     case MEMORY_L2:
-      return !oResponse.valid();
+      return outputRespQueue.canWrite();
     default:
       loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
       return false;
@@ -727,14 +718,14 @@ const sc_event& MemoryBank::canSendResponseEvent(ChannelID destination, MemoryLe
   switch (level) {
     case MEMORY_L1:
       if (destination.channel < Core::numInstructionChannels)
-        return outputInstQueue.readEvent();
+        return outputInstQueue.canWriteEvent();
       else
-        return outputDataQueue.readEvent();
+        return outputDataQueue.canWriteEvent();
     case MEMORY_L2:
-      return oResponse.ack_event();
+      return outputRespQueue.canWriteEvent();
     default:
       loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
-      return outputDataQueue.readEvent();
+      return outputDataQueue.canWriteEvent();
   }
 }
 
@@ -756,7 +747,7 @@ void MemoryBank::sendResponse(NetworkResponse response, MemoryLevel level) {
       }
       break;
     case MEMORY_L2:
-      oResponse.write(response);
+      outputRespQueue.write(response);
       Instrumentation::Latency::memorySentResult(id, response, false);
       break;
     default:
@@ -774,7 +765,7 @@ void MemoryBank::copyToMissBuffer() {
 
     switch (missRequest->getMemoryLevel()) {
       case MEMORY_L1:
-        dataAvailable = !inputQueue.empty();
+        dataAvailable = inputQueue.canRead();
         if (dataAvailable)
           payload = inputQueue.peek();
         break;
@@ -801,7 +792,6 @@ void MemoryBank::copyToMissBuffer() {
     switch (missRequest->getMemoryLevel()) {
       case MEMORY_L1:
         inputQueue.read();
-        LOKI_LOG << this->name() << " dequeued " << payload << endl;
         break;
       case MEMORY_L2:
         requestSig.ack();
@@ -828,93 +818,42 @@ void MemoryBank::preWriteCheck(const MemoryOperation& operation) const {
   }
 }
 
-void MemoryBank::processValidInput() {
-  loki_assert(iData.valid());
-  LOKI_LOG << this->name() << " received " << iData.read() << endl;
-  loki_assert(!inputQueue.full());
-  inputQueue.write(iData.read());
-  iData.ack();
-  Instrumentation::Network::recordBandwidth(iData.name());
-  Instrumentation::Latency::memoryReceivedRequest(id, iData.read());
+// Instrumentation only.
+void MemoryBank::coreRequestArrived() {
+  Instrumentation::Latency::memoryReceivedRequest(id, inputQueue.lastDataWritten());
 }
 
-void MemoryBank::handleDataOutput() {
-  if (outputDataQueue.empty()) {
-    next_trigger(outputDataQueue.writeEvent());
-  }
-  else if (!parent().requestGranted(id, outputDataQueue.peek().channelID())) {
-    parent().makeRequest(id, outputDataQueue.peek().channelID(), true);
-    next_trigger(iClock.negedge_event());
-  }
-  else {
-    NetworkResponse flit = outputDataQueue.read();
-    LOKI_LOG << this->name() << " sent data " << flit << endl;
-    if (ENERGY_TRACE)
-      Instrumentation::Network::traffic(id, flit.channelID().component);
-    Instrumentation::Network::recordBandwidth(oData.name());
-    Instrumentation::Latency::memorySentResult(id, flit, true);
-
-    oData.write(flit);
-
-    // Remove the request for network resources.
-    if (flit.getMetadata().endOfPacket)
-      parent().makeRequest(id, flit.channelID(), false);
-
-    next_trigger(oData.ack_event());
-  }
+// Instrumentation only.
+void MemoryBank::coreDataSent() {
+  Flit<Word> flit = outputDataQueue.lastDataRead();
+  if (ENERGY_TRACE)
+    Instrumentation::Network::traffic(id, flit.channelID().component);
+  Instrumentation::Latency::memorySentResult(id, flit, true);
 }
 
-void MemoryBank::handleInstructionOutput() {
-  if (outputInstQueue.empty()) {
-    next_trigger(outputInstQueue.writeEvent());
-  }
-  else if (!parent().requestGranted(id, outputInstQueue.peek().channelID())) {
-    parent().makeRequest(id, outputInstQueue.peek().channelID(), true);
-    next_trigger(iClock.negedge_event());
-  }
-  else {
-    NetworkResponse flit = outputInstQueue.read();
-    LOKI_LOG << this->name() << " sent instruction " << flit << endl;
-    if (ENERGY_TRACE)
-      Instrumentation::Network::traffic(id, flit.channelID().component);
-    Instrumentation::Network::recordBandwidth(oInstruction.name());
-    Instrumentation::Latency::memorySentResult(id, flit, true);
-
-    oInstruction.write(flit);
-
-    // Remove the request for network resources.
-    if (flit.getMetadata().endOfPacket)
-      parent().makeRequest(id, flit.channelID(), false);
-
-    next_trigger(oInstruction.ack_event());
-  }
+// Instrumentation only.
+void MemoryBank::coreInstructionSent() {
+  Flit<Word> flit = outputInstQueue.lastDataRead();
+  if (ENERGY_TRACE)
+    Instrumentation::Network::traffic(id, flit.channelID().component);
+  Instrumentation::Latency::memorySentResult(id, flit, true);
 }
 
-// Method which sends data from the mOutputReqQueue whenever possible.
-void MemoryBank::handleRequestOutput() {
-  if (!iClock.posedge())
-    next_trigger(iClock.posedge_event());
-  else if (outputReqQueue.empty())
-    next_trigger(outputReqQueue.writeEvent());
-  else {
-    NetworkRequest request = outputReqQueue.read();
-    LOKI_LOG << this->name() << " sent request " <<
-        memoryOpName(request.getMemoryMetadata().opcode) << " " << LOKI_HEX(request.payload()) << endl;
+void MemoryBank::memoryRequestSent() {
+  // TODO: potential race condition here. It's possible that this buffer entry
+  // has already been overwritten and we get the wrong flit.
+  loki_assert(outputReqQueue.canWrite());
+  NetworkRequest request = outputReqQueue.lastDataRead();
+  LOKI_LOG << this->name() << " sent request " <<
+      memoryOpName(request.getMemoryMetadata().opcode) << " " << LOKI_HEX(request.payload()) << endl;
 
-    // Slightly hacky: if the output we are overwriting is the head of a flush
-    // request, then we know that that request has now been selected to go out
-    // on the network, and cannot be overtaken by any other requests. Therefore,
-    // it is safe to remove it from our pendingFlushes queue.
-    if (oRequest.read().getMemoryMetadata().opcode == STORE_LINE &&
-        !pendingFlushes.empty() &&
-        getTag(oRequest.read().payload().toUInt()) == pendingFlushes.front()) {
-      pendingFlushes.erase(pendingFlushes.begin());
-    }
-
-    loki_assert(!oRequest.valid());
-    oRequest.write(request);
-    next_trigger(oRequest.ack_event());
-  }
+  // Slightly hacky: if the output we just sent is the head of a flush request,
+  // then we know that that request now cannot be overtaken by any other
+  // requests from other banks. Therefore, it is safe to remove it from our
+  // pendingFlushes queue.
+  MemoryTag address = getTag(request.payload().toUInt());
+  if (request.getMemoryMetadata().opcode == STORE_LINE)
+    pendingFlushes.erase(address);
 }
 
 void MemoryBank::mainLoop() {
@@ -931,17 +870,12 @@ void MemoryBank::mainLoop() {
 void MemoryBank::updateIdle() {
   bool wasIdle = currentlyIdle;
   currentlyIdle = state == STATE_IDLE &&
-                  inputQueue.empty() && outputDataQueue.empty() &&
-                  outputInstQueue.empty() && outputReqQueue.empty();
+                  !inputQueue.canRead() && !outputDataQueue.canRead() &&
+                  !outputInstQueue.canRead() && !outputReqQueue.canRead() &&
+                  !inResponseQueue.canRead() && !outputRespQueue.canRead();
 
   if (wasIdle != currentlyIdle)
     Instrumentation::idle(id, currentlyIdle);
-}
-
-void MemoryBank::updateReady() {
-  bool ready = !inputQueue.full();
-  if (ready != oReadyForData.read())
-    oReadyForData.write(ready);
 }
 
 cycle_count_t MemoryBank::artificialDelayRequired(const memory_bank_parameters_t& params) {
@@ -968,35 +902,30 @@ Chip& MemoryBank::chip() const {
 }
 
 MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks,
-                       const memory_bank_parameters_t& params) :
+                       const memory_bank_parameters_t& params, uint numCores) :
   MemoryBase(name, ID, params.log2CacheLineSize()),
   iClock("iClock"),
   iData("iData"),
-  oReadyForData("oReadyForData"),
   oData("oData"),
   oInstruction("oInstruction"),
   iRequest("iRequest"),
-  iRequestTarget("iRequestTarget"),
   oRequest("oRequest"),
-  iRequestClaimed("iRequestClaimed"),
-  oClaimRequest("oClaimRequest"),
-  iRequestDelayed("iRequestDelayed"),
-  oDelayRequest("oDelayRequest"),
   iResponse("iResponse"),
-  iResponseTarget("iResponseTarget"),
   oResponse("oResponse"),
   hitUnderMiss(params.hitUnderMiss),
   log2NumBanks(log2(numBanks)),
-  inputQueue(string(this->name()) + string(".mInputQueue"), params.inputFIFO.size),
-  outputDataQueue("mOutputDataQueue", params.outputFIFO.size, artificialDelayRequired(params)),
-  outputInstQueue("mOutputInstQueue", params.outputFIFO.size, artificialDelayRequired(params)),
-  outputReqQueue("mOutputReqQueue", requestQueueSize(params), 0),
+  inputQueue("inputQueue", params.inputFIFO.size),
+  inResponseQueue("inResponseQueue", params.inputFIFO.size),
+  outputDataQueue("outputDataQueue", params.outputFIFO.size, artificialDelayRequired(params)),
+  outputInstQueue("outputInstQueue", params.outputFIFO.size, artificialDelayRequired(params)),
+  outputReqQueue("outputReqQueue", requestQueueSize(params), artificialDelayRequired(params)),
+  outputRespQueue("outputRespQueue", params.outputFIFO.size, artificialDelayRequired(params)),
   data(params.size/BYTES_PER_WORD, 0),
   metadata(params.size/params.cacheLineSize),
   reservations(1),
   missBuffer("mMissBuffer", params.cacheLineSize/BYTES_PER_WORD),
   cacheMissEvent(sc_core::sc_gen_unique_name("mCacheMissEvent")),
-  l2RequestFilter("request_filter", ID, *this)
+  l2RequestFilter("request_filter", *this)
 {
   state = STATE_IDLE;
   previousState = STATE_IDLE;
@@ -1010,16 +939,16 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   mainMemory = NULL;
 
   // Connect to local components.
-  oReadyForData.initialize(false);
+  iData(inputQueue);
+  iResponse(inResponseQueue);
+  oData(outputDataQueue);
+  oInstruction(outputInstQueue);
+  oRequest(outputReqQueue);
+  oResponse(outputRespQueue);
 
   l2RequestFilter.iClock(iClock);
-  l2RequestFilter.iRequest(iRequest);
-  l2RequestFilter.iRequestTarget(iRequestTarget);
   l2RequestFilter.oRequest(requestSig);
-  l2RequestFilter.iRequestClaimed(iRequestClaimed);
-  l2RequestFilter.oClaimRequest(oClaimRequest);
-  l2RequestFilter.iRequestDelayed(iRequestDelayed);
-  l2RequestFilter.oDelayRequest(oDelayRequest);
+  l2RequestFilter.iRequest(iRequest);
 
   currentlyIdle = true;
   Instrumentation::idle(id, true);
@@ -1032,28 +961,33 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   sensitive << iClock.neg();
   dont_initialize();
 
-  SC_METHOD(updateReady);
-  sensitive << inputQueue.readEvent() << inputQueue.writeEvent();
-  // do initialise
-
   SC_METHOD(updateIdle);
-  sensitive << inputQueue.readEvent() << inputQueue.writeEvent()
-            << outputDataQueue.readEvent() << outputDataQueue.writeEvent()
-            << outputInstQueue.readEvent() << outputInstQueue.writeEvent()
-            << outputReqQueue.readEvent() << outputReqQueue.writeEvent()
-            << iResponse << oResponse;
+  sensitive << inputQueue.canWriteEvent() << inputQueue.writeEvent()
+            << inResponseQueue.canWriteEvent() << inResponseQueue.writeEvent()
+            << outputDataQueue.canWriteEvent() << outputDataQueue.writeEvent()
+            << outputInstQueue.canWriteEvent() << outputInstQueue.writeEvent()
+            << outputReqQueue.canWriteEvent() << outputReqQueue.writeEvent()
+            << outputRespQueue.canWriteEvent() << outputRespQueue.writeEvent();
   // do initialise
 
-  SC_METHOD(processValidInput);
-  sensitive << iData;
+  SC_METHOD(coreDataSent);
+  sensitive << outputDataQueue.dataConsumedEvent();
   dont_initialize();
 
-  SC_METHOD(handleDataOutput);
-  SC_METHOD(handleInstructionOutput);
-  SC_METHOD(handleRequestOutput);
+  SC_METHOD(coreInstructionSent);
+  sensitive << outputInstQueue.dataConsumedEvent();
+  dont_initialize();
+
+  SC_METHOD(memoryRequestSent);
+  sensitive << outputReqQueue.dataConsumedEvent();
+  dont_initialize();
 
   SC_METHOD(copyToMissBuffer);
   sensitive << cacheMissEvent;
+  dont_initialize();
+
+  SC_METHOD(coreRequestArrived);
+  sensitive << inputQueue.writeEvent();
   dont_initialize();
 }
 
@@ -1136,18 +1070,18 @@ vector<uint32_t>& MemoryBank::dataArray() {
 }
 
 void MemoryBank::reportStalls(ostream& os) {
-  if (inputQueue.full()) {
+  if (!inputQueue.canWrite()) {
     os << inputQueue.name() << " is full." << endl;
   }
-  if (!outputDataQueue.empty()) {
+  if (outputDataQueue.canRead()) {
     const NetworkResponse& outWord = outputDataQueue.peek();
     os << this->name() << " waiting to send " << outWord << endl;
   }
-  if (!outputInstQueue.empty()) {
+  if (outputInstQueue.canRead()) {
     const NetworkResponse& outWord = outputInstQueue.peek();
     os << this->name() << " waiting to send " << outWord << endl;
   }
-  if (!outputReqQueue.empty()) {
+  if (outputReqQueue.canRead()) {
     const NetworkResponse& outWord = outputReqQueue.peek();
     os << this->name() << " waiting to send " << outWord << endl;
   }

@@ -100,17 +100,17 @@ void ChannelMapTable::activeCycle() {
   }
 }
 
-ChannelMapTable::ChannelMapTable(const sc_module_name& name, ComponentID ID,
+ChannelMapTable::ChannelMapTable(const sc_module_name& name,
                                  const channel_map_table_parameters_t& params,
                                  size_t coreInputChannels) :
-    LokiComponent(name, ID),
+    LokiComponent(name),
     memoryConnection(coreInputChannels, false),
-    previousRead(ChannelID(ID, 0)),
+    previousRead(ChannelID()),
     lastActivity(-1) {
 
   loki_assert(params.size > 0);
 
   for (uint i=0; i<params.size; i++)
-    table.push_back(ChannelID(ID, i));
+    table.push_back(ChannelID());
 
 }

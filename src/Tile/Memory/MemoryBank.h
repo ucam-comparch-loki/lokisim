@@ -17,13 +17,15 @@
 #ifndef SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBANK_H_
 #define SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBANK_H_
 
+#include <set>
 #include "../../Memory/MemoryBase.h"
-#include "Directory.h"
 #include "L2RequestFilter.h"
 #include "ReservationHandler.h"
 #include "../../Network/FIFOs/DelayFIFO.h"
+#include "../../Network/FIFOs/NetworkFIFO.h"
 #include "../../Utility/BlockingInterface.h"
-#include <memory>
+#include "../../Utility/LokiVector.h"
+#include "../Network/L2LToBankRequests.h"
 
 class ComputeTile;
 class MemoryOperation;
@@ -37,28 +39,20 @@ class MemoryBank: public MemoryBase, public BlockingInterface {
 
 public:
 
-  ClockInput            iClock;            // Clock
+  ClockInput            iClock;           // Clock
 
   // Data - to/from cores on the same tile.
-  DataInput             iData;            // Input data sent to the memory bank
-  ReadyOutput           oReadyForData;    // Indicates that there is buffer space for new input
-  DataOutput            oData;            // Data sent to the cores
-  DataOutput            oInstruction;     // Instructions sent to the cores
+  sc_port<network_sink_ifc<Word>> iData;  // Input data sent to the memory bank
+  sc_port<network_source_ifc<Word>> oData;        // Data sent to the cores
+  sc_port<network_source_ifc<Word>> oInstruction; // Instructions sent to the cores
 
   // Requests - to/from memory banks on other tiles.
-  RequestInput          iRequest;         // Input requests sent to the memory bank
-  sc_in<MemoryIndex>    iRequestTarget;   // The responsible bank if all banks miss
-  RequestOutput         oRequest;         // Output requests sent to the remote memory banks
-
-  sc_in<bool>           iRequestClaimed;  // One of the banks has claimed the request.
-  sc_out<bool>          oClaimRequest;    // Tell whether this bank has claimed the request.
-  sc_in<bool>           iRequestDelayed;  // One of the banks has delayed the request.
-  sc_out<bool>          oDelayRequest;    // Block other banks from processing the request.
+  sc_port<l2_request_bank_ifc> iRequest;   // Input requests sent to the memory bank
+  sc_port<network_source_ifc<Word>> oRequest; // Output requests sent to the remote memory banks
 
   // Responses - to/from memory banks on other tiles.
-  ResponseInput         iResponse;
-  sc_in<MemoryIndex>    iResponseTarget;
-  ResponseOutput        oResponse;        // Output responses sent to the remote memory banks
+  sc_port<network_sink_ifc<Word>> iResponse;
+  sc_port<network_source_ifc<Word>> oResponse; // Output responses sent to the remote memory banks
 
 //============================================================================//
 // Constructors and destructors
@@ -68,7 +62,7 @@ public:
 
   SC_HAS_PROCESS(MemoryBank);
   MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks,
-             const memory_bank_parameters_t& params);
+             const memory_bank_parameters_t& params, uint numCores);
   ~MemoryBank();
 
 //============================================================================//
@@ -196,15 +190,14 @@ private:
 
   void copyToMissBuffer();
 
-  void processValidInput();
-  void handleDataOutput();
-  void handleInstructionOutput();
-  void handleRequestOutput();
+  void coreRequestArrived();
+  void coreDataSent();
+  void coreInstructionSent();
+  void memoryRequestSent();
 
   void mainLoop();                    // Main loop thread
 
   void updateIdle();                  // Update idleness
-  void updateReady();                 // Update flow control signals
 
   // Determine how long outputs must be delayed to achieve the required latency.
   static cycle_count_t artificialDelayRequired(const memory_bank_parameters_t& params);
@@ -245,15 +238,17 @@ private:
 
   bool                  currentlyIdle;
 
-  NetworkFIFO<NetworkRequest>  inputQueue;       // Input queue
-  DelayFIFO<NetworkResponse>   outputDataQueue;  // Output queue
-  DelayFIFO<NetworkResponse>   outputInstQueue;  // Output queue
-  DelayFIFO<NetworkRequest>    outputReqQueue;   // Output request queue
+  NetworkFIFO<Word>     inputQueue;      // Input queue
+  NetworkFIFO<Word>     inResponseQueue; // Responses from L2 or memory
+  DelayFIFO<Word>       outputDataQueue; // Output queue
+  DelayFIFO<Word>       outputInstQueue; // Output queue
+  DelayFIFO<Word>       outputReqQueue;  // Output request queue
+  DelayFIFO<Word>       outputRespQueue; // Output response queue
 
   // If this bank is flushing data, it has the only valid copy, but the tags
   // will suggest that it doesn't have it at all. Record the addresses of all
   // cache lines in the process of being flushed to detect this corner case.
-  vector<MemoryAddr>    pendingFlushes;
+  std::set<MemoryAddr>  pendingFlushes;
 
   typedef struct {
     MemoryTag address;  // Which data is stored here?

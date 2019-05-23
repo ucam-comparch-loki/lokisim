@@ -23,12 +23,11 @@ class ControlUnit: public LokiComponent {
 
 public:
 
-  ClockInput iClock;
+  ClockInput clock;
 
   // Connections to the cores on this tile.
-  loki_in<uint32_t> iParameter;
-  DataOutput  oCores;
-  ReadyOutput oReady;
+  sc_port<network_sink_ifc<Word>> iParameter;
+  sc_port<network_source_ifc<Word>> oCores;
 
   // Commands send to DMA units.
   CommandOutput oDMA1Command;
@@ -87,6 +86,9 @@ private:
   ParameterReceiver    receiver;
 
   ConvolutionAlgorithm algorithm;
+
+  // Messages to notify cores when computation has finished.
+  NetworkFIFO<Word> coreNotification;
 
 };
 

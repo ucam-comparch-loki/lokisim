@@ -105,6 +105,11 @@ struct ChannelID {
     coremask((flat >> e.coreMaskShift) & e.coreMaskMask),
     multicast((flat >> e.mcastFlagShift) & e.mcastFlagMask),
     channel((flat >> e.channelShift) & e.channelMask) {}
+  ChannelID(TileID tile, uint pos, uint ch) :
+    component(tile,pos),
+    coremask(0),
+    multicast(0),
+    channel(ch) {}
   ChannelID(uint x, uint y, uint pos, uint ch) :
     component(x,y,pos),
     coremask(0),

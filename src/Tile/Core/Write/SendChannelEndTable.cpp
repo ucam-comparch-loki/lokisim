@@ -7,54 +7,48 @@
 
 #include "SendChannelEndTable.h"
 #include "WriteStage.h"
-#include "../../../Datatype/DecodedInst.h"
-#include "../../../Datatype/MemoryRequest.h"
+#include "../Core.h"
 #include "../ChannelMapTable.h"
 #include "../../../Utility/Assert.h"
 #include "../../../Utility/Instrumentation/Latency.h"
 #include "../../../Utility/Instrumentation/Network.h"
-#include "../../../Utility/Instrumentation/Stalls.h"
-#include "../Core.h"
 
 void SendChannelEndTable::write(const NetworkData data) {
 
   if (data.channelID().multicast) {
-    loki_assert(!bufferLocal.full());
-    LOKI_LOG << this->name() << " writing " << data << " to buffer (local)\n";
-    bufferLocal.write(data);
-  }
-  else if (core().isMemory(data.channelID().component)) {
-    loki_assert(!bufferMemory.full());
-    LOKI_LOG << this->name() << " writing " << data << " to buffer (memory)\n";
-    Instrumentation::Latency::coreBufferedMemoryRequest(id, data);
-    bufferMemory.write(data);
+    loki_assert(bufferMulticast.canWrite());
+    bufferMulticast.write(data);
   }
   else {
-    loki_assert(!bufferGlobal.full());
-    LOKI_LOG << this->name() << " writing " << data << " to buffer (global)\n";
-    bufferGlobal.write(data);
+    // Messages for both memory and cores on other tiles share the same buffer
+    // and network.
 
-    // Check whether we're sending to a valid address.
-    TileID tile = data.channelID().component.tile;
-    if (!core().isComputeTile(tile)) {
-      LOKI_WARN << "Preparing to send data outside bounds of simulated chip." << endl;
-      LOKI_WARN << "  Source: " << id << ", destination: " << data.channelID() << endl;
+    loki_assert(bufferData.canWrite());
+    bufferData.write(data);
+
+    if (core().isMemory(data.channelID().component))
+      Instrumentation::Latency::coreBufferedMemoryRequest(id(), data);
+    else {
+      // Check whether we're sending to a valid address.
+      TileID tile = data.channelID().component.tile;
+      if (!core().isComputeTile(tile)) {
+        LOKI_WARN << "Preparing to send data outside bounds of simulated chip." << endl;
+        LOKI_WARN << "  Source: " << id() << ", destination: " << data.channelID() << endl;
 //      LOKI_WARN << "  Simulating up to tile (" << TOTAL_TILE_COLUMNS-1 << "," << TOTAL_TILE_ROWS-1 << ")" << endl;
-      LOKI_WARN << "  Consider increasing the COMPUTE_TILE_ROWS or COMPUTE_TILE_COLUMNS parameters." << endl;
+        LOKI_WARN << "  Consider increasing the COMPUTE_TILE_ROWS or COMPUTE_TILE_COLUMNS parameters." << endl;
+      }
     }
   }
-
-  bufferFillChanged.notify();
 }
 
 bool SendChannelEndTable::full() const {
   // TODO: we would prefer to allow data to keep arriving, as long as it isn't
   // going to be put in a full buffer.
-  return bufferLocal.full() || bufferMemory.full() || bufferGlobal.full();
+  return !bufferMulticast.canWrite() || !bufferData.canWrite();
 }
 
 const sc_event& SendChannelEndTable::stallChangedEvent() const {
-  return bufferFillChanged;
+  return bufferFillChangedEvent;
 }
 
 void SendChannelEndTable::receiveLoop() {
@@ -70,16 +64,13 @@ void SendChannelEndTable::receiveLoop() {
       // Wait for right point in clock cycle
 //      else if (!clock.negedge())
 //        next_trigger(clock.negedge_event());
-      else if (bufferLocal.full())
-        next_trigger(bufferLocal.readEvent());
-      else if (bufferMemory.full())
-        next_trigger(bufferMemory.readEvent());
-      else if (bufferGlobal.full())
-        next_trigger(bufferGlobal.readEvent());
+      else if (!bufferMulticast.canWrite())
+        next_trigger(bufferMulticast.canWriteEvent());
+      else if (!bufferData.canWrite())
+        next_trigger(bufferData.canWriteEvent());
       else {
-        loki_assert(!bufferLocal.full());
-        loki_assert(!bufferMemory.full());
-        loki_assert(!bufferGlobal.full());
+        loki_assert(bufferMulticast.canWrite());
+        loki_assert(bufferData.canWrite());
 
         // Choose appropriate input port - fetch has priority.
         NetworkData flit;
@@ -117,10 +108,13 @@ void SendChannelEndTable::receiveLoop() {
       // Wait for right point in clock cycle
 //      else if (!clock.negedge())
 //        next_trigger(clock.negedge_event());
+      else if (!bufferMulticast.canWrite())
+        next_trigger(bufferMulticast.canWriteEvent());
+      else if (!bufferData.canWrite())
+        next_trigger(bufferData.canWriteEvent());
       else {
-        loki_assert(!bufferLocal.full());
-        loki_assert(!bufferMemory.full());
-        loki_assert(!bufferGlobal.full());
+        loki_assert(bufferMulticast.canWrite());
+        loki_assert(bufferData.canWrite());
 
         NetworkData flit = iData.read();
         iData.ack();
@@ -141,155 +135,42 @@ void SendChannelEndTable::receiveLoop() {
   }
 }
 
-void SendChannelEndTable::sendLoopLocal() {
-  // There is no arbitration on the core-to-core network. Just send data
-  // when the output is free.
-
-  // Wait until we have data, and only send on a positive clock edge.
-  if (bufferLocal.empty()) {
-    next_trigger(bufferLocal.writeEvent());
-  }
-  else if (!clock.posedge()) {
-    next_trigger(clock.posedge_event());
-  }
-  else {
-    const NetworkData data = bufferLocal.read();
-
-    LOKI_LOG << this->name() << " sending (local) " << data << endl;
-    if (ENERGY_TRACE)
-      Instrumentation::Network::traffic(id, data.channelID().component);
-    Instrumentation::Network::recordBandwidth(oDataLocal.name());
-
-    oDataLocal.write(data);
-    bufferFillChanged.notify();
-
-    next_trigger(oDataLocal.ack_event());
-  }
+void SendChannelEndTable::sentMulticastData() {
+  const NetworkData& flit = bufferMulticast.lastDataRead();
+  if (ENERGY_TRACE)
+    Instrumentation::Network::traffic(id(), flit.channelID().component);
 }
 
-void SendChannelEndTable::sendLoopMemory() {
+void SendChannelEndTable::sentPointToPointData() {
+  const NetworkData& flit = bufferData.lastDataRead();
+  if (ENERGY_TRACE)
+    Instrumentation::Network::traffic(id(), flit.channelID().component);
 
-  switch (sendStateMemory) {
-    case SS_IDLE: {
-
-      // Remove the request for network resources if the previous data sent was
-      // the end of a data packet.
-      const NetworkData& data = oDataMemory.read();
-      if (core().isMemory(data.channelID().component) && data.getMetadata().endOfPacket)
-        requestArbitration(data.channelID(), false);
-
-      if (bufferMemory.empty()) {
-        // When will this event be triggered? Will waiting 0.6 cycles always work?
-        // Can we ensure that the data always arrives at the start of the cycle?
-        next_trigger(bufferMemory.writeEvent());
-      }
-      else {
-        sendStateMemory = SS_DATA_READY;
-
-        // Wait until slightly after the negative clock edge to request arbitration
-        // because the memory updates its flow control signals on the negedge.
-        next_trigger(0.6, sc_core::SC_NS);
-      }
-
-      break;
-    }
-
-    case SS_DATA_READY: {
-      loki_assert(!bufferMemory.empty());
-
-      // Request arbitration.
-      requestArbitration(bufferMemory.peek().channelID(), true);
-      next_trigger(clock.posedge_event());
-      sendStateMemory = SS_ARBITRATING;
-
-      break;
-    }
-
-    case SS_ARBITRATING: {
-      // If the network has granted our request to send data, send it.
-      // Otherwise, wait another cycle.
-      if (requestGranted(bufferMemory.peek().channelID())) {
-        sendStateMemory = SS_CAN_SEND;
-        next_trigger(sc_core::SC_ZERO_TIME);
-      }
-      else {
-        next_trigger(clock.posedge_event());
-      }
-      break;
-    }
-
-    case SS_CAN_SEND: {
-      loki_assert(!bufferMemory.empty());
-
-      const NetworkData data = bufferMemory.read();
-      bufferFillChanged.notify();
-
-      LOKI_LOG << this->name() << " sending (memory) " << data << endl;
-      if (ENERGY_TRACE)
-        Instrumentation::Network::traffic(id, data.channelID().component);
-      Instrumentation::Network::recordBandwidth(oDataMemory.name());
-      Instrumentation::Latency::coreSentMemoryRequest(id, data);
-
-      oDataMemory.write(data);
-
-      // Return to IDLE state and see if there is more data to send.
-      sendStateMemory = SS_IDLE;
-      next_trigger(oDataMemory.ack_event());
-
-      break;
-    }
-
-  }
-
-}
-
-void SendChannelEndTable::sendLoopGlobal() {
-  // This loop can be much simpler than the local one, above, because each
-  // core has a single dedicated link, and so no arbitration is needed.
-
-  // Wait until we have data, and only send on a positive clock edge.
-  if (bufferGlobal.empty()) {
-    next_trigger(bufferGlobal.writeEvent());
-  }
-  else if (!clock.posedge()) {
-    next_trigger(clock.posedge_event());
-  }
-  else {
-    const NetworkData data = bufferGlobal.read();
-
-    LOKI_LOG << this->name() << " sending (global) " << data << endl;
-    if (ENERGY_TRACE)
-      Instrumentation::Network::traffic(id, data.channelID().component);
-    Instrumentation::Network::recordBandwidth(oDataGlobal.name());
-
-    oDataGlobal.write(data);
-    bufferFillChanged.notify();
-
-    next_trigger(oDataGlobal.ack_event());
-  }
-}
-
-void SendChannelEndTable::requestArbitration(ChannelID destination, bool request) {
-  parent().requestArbitration(destination, request);
-}
-
-bool SendChannelEndTable::requestGranted(ChannelID destination) const {
-  return parent().requestGranted(destination);
+  if (core().isMemory(flit.channelID().component))
+    Instrumentation::Latency::coreSentMemoryRequest(id(), flit);
 }
 
 void SendChannelEndTable::receivedCredit() {
-  loki_assert(iCredit.valid());
-  receiveCreditInternal(iCredit.read());
-  iCredit.ack();
+  loki_assert(incomingCredits.canRead());
+  receiveCreditInternal(incomingCredits.read());
+}
+
+void SendChannelEndTable::bufferFillChanged() {
+  bufferFillChangedEvent.notify(sc_core::SC_ZERO_TIME);
 }
 
 void SendChannelEndTable::receiveCreditInternal(const NetworkCredit& credit) {
   ChannelIndex targetCounter = credit.channelID().channel;
+  uint numCredits = credit.payload().toUInt();
 
-  LOKI_LOG << this->name() << " received credit at "
-      << ChannelID(id, targetCounter) << " " << credit.messageID() << endl;
+  LOKI_LOG << this->name() << " received " << numCredits << " credit(s) at "
+      << ChannelID(id(), targetCounter) << " " << credit.messageID() << endl;
 
-  channelMapTable->addCredit(targetCounter, credit.payload().toUInt());
+  channelMapTable->addCredit(targetCounter, numCredits);
+}
+
+ComponentID SendChannelEndTable::id() const {
+  return parent().id();
 }
 
 WriteStage& SendChannelEndTable::parent() const {
@@ -301,57 +182,56 @@ Core& SendChannelEndTable::core() const {
 }
 
 void SendChannelEndTable::reportStalls(ostream& os) {
-  if (!bufferLocal.empty()) {
-    os << this->name() << " unable to send " << bufferLocal.peek() << endl;
-      os << "  Waiting for arbitration request to be granted." << endl;
-  }
+  if (bufferMulticast.canRead())
+    os << this->name() << " unable to send " << bufferMulticast.peek() << endl;
 
-  if (!bufferMemory.empty()) {
-    os << this->name() << " unable to send " << bufferMemory.peek() << endl;
-    os << "  Waiting for arbitration request to be granted." << endl;
-  }
-
-  if (!bufferGlobal.empty()) {
-    os << this->name() << " unable to send " << bufferGlobal.peek() << endl;
-
-//    if (!channelMapTable->canSend(bufferGlobal.peek().channelMapEntry()))
-//      os << "  Need credits." << endl;
-//    else
-      os << "  Waiting for arbitration request to be granted." << endl;
-  }
+  if (bufferData.canRead())
+    os << this->name() << " unable to send " << bufferData.peek() << endl;
 
   // TODO: woche
 }
 
 SendChannelEndTable::SendChannelEndTable(sc_module_name name,
-                                         const ComponentID& ID,
                                          const fifo_parameters_t& fifoParams,
-                                         ChannelMapTable* cmt) :
-    LokiComponent(name, ID),
+                                         ChannelMapTable* cmt,
+                                         uint numCores,
+                                         uint numMemories) :
+    LokiComponent(name),
     BlockingInterface(),
     clock("clock"),
     iFetch("iFetch"),
     iData("iData"),
-    oDataLocal("oDataMulticast"),
-    oDataMemory("oDataMemory"),
-    oDataGlobal("oDataGlobal"),
+    oMulticast("oDataMulticast"),
+    oData("oDataMemory"),
     iCredit("iCredit"),
-    bufferLocal(string(this->name())+string(".bufferLocal"), fifoParams.size),
-    bufferMemory(string(this->name())+string(".bufferMemory"), fifoParams.size),
-    bufferGlobal(string(this->name())+string(".bufferGlobal"), fifoParams.size),
+    bufferMulticast("bufferLocal", fifoParams.size),
+    bufferData("bufferMemory", fifoParams.size),
+    incomingCredits("credits", 1),  // More of a register than a buffer
     channelMapTable(cmt) {
 
   receiveState = RS_READY;
-  sendStateMemory = SS_IDLE;
-  sendStateMulticast = SS_IDLE;
+
+  oMulticast(bufferMulticast);
+  oData(bufferData);
+  iCredit(incomingCredits);
 
   SC_METHOD(receiveLoop);
-  SC_METHOD(sendLoopLocal);
-  SC_METHOD(sendLoopMemory);
-  SC_METHOD(sendLoopGlobal);
+
+  SC_METHOD(sentMulticastData);
+  sensitive << bufferMulticast.dataConsumedEvent();
+  dont_initialize();
+
+  SC_METHOD(sentPointToPointData);
+  sensitive << bufferData.dataConsumedEvent();
+  dont_initialize();
 
   SC_METHOD(receivedCredit);
-  sensitive << iCredit;
+  sensitive << incomingCredits.canReadEvent();
+  dont_initialize();
+
+  SC_METHOD(bufferFillChanged);
+  sensitive << bufferMulticast.canWriteEvent() << bufferMulticast.writeEvent()
+    << bufferData.canWriteEvent() << bufferData.writeEvent();
   dont_initialize();
 
 }

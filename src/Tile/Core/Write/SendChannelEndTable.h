@@ -37,13 +37,12 @@ public:
   DataInput               iData;
 
   // Data outputs to the network.
-  DataOutput              oDataLocal;
-  DataOutput              oDataMemory;
-  DataOutput              oDataGlobal;
+  sc_port<network_source_ifc<Word>> oMulticast;
+  sc_port<network_source_ifc<Word>> oData;
 
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.
-  CreditInput             iCredit;
+  sc_port<network_sink_ifc<Word>> iCredit;
 
 //============================================================================//
 // Constructors and destructors
@@ -52,8 +51,8 @@ public:
 public:
 
   SC_HAS_PROCESS(SendChannelEndTable);
-  SendChannelEndTable(sc_module_name name, const ComponentID& ID,
-                      const fifo_parameters_t& fifoParams, ChannelMapTable* cmt);
+  SendChannelEndTable(sc_module_name name, const fifo_parameters_t& fifoParams,
+                      ChannelMapTable* cmt, uint numCores, uint numMemories);
 
 //============================================================================//
 // Methods
@@ -84,21 +83,18 @@ private:
   // Write some data to the output buffer.
   void          write(const NetworkData data);
 
-  // Send the oldest value in the output buffer, if the flow control signals
-  // allow it.
-  void          sendLoopLocal();
-  void          sendLoopMemory();
-  void          sendLoopGlobal();
+  // Instrumentation whenever a flit is sent.
+  void          sentMulticastData();
+  void          sentPointToPointData();
 
   // A credit was received, so update the corresponding credit counter.
+  // TODO: why is this here? Put in Core instead?
   void          receivedCredit();
 
-  // Send a request to reserve (or release) a connection to a particular
-  // destination component. May cause re-execution of the calling method when
-  // the request is granted.
-  void          requestArbitration(ChannelID destination, bool request);
-  bool          requestGranted(ChannelID destination) const;
+  // Data was added or removed from any of the buffers.
+  void          bufferFillChanged();
 
+  ComponentID   id() const;
   WriteStage&   parent() const;
   Core&         core() const;
 
@@ -115,18 +111,11 @@ private:
 
   ReceiveState receiveState;
 
-  enum SendState {
-    SS_IDLE,
-    SS_DATA_READY,
-    SS_ARBITRATING,
-    SS_CAN_SEND
-  };
+  // Buffers of data to send onto the network.
+  NetworkFIFO<Word> bufferMulticast, bufferData;
 
-  SendState sendStateMemory;
-  SendState sendStateMulticast;
-
-  // Buffer of data to send onto the network.
-  NetworkFIFO<NetworkData> bufferLocal, bufferMemory, bufferGlobal;
+  // Credits received from the network.
+  NetworkFIFO<Word> incomingCredits;
 
   // A pointer to this core's channel map table. The table itself is in the
   // Core class. No reading or writing of destinations should occur here -
@@ -134,7 +123,7 @@ private:
   ChannelMapTable* const channelMapTable;
 
   // An event which is triggered whenever data is inserted into the buffer.
-  sc_event  bufferFillChanged;
+  sc_event  bufferFillChangedEvent;
 
 };
 

@@ -22,7 +22,6 @@
 #include "Decode/DecodeStage.h"
 #include "Execute/ExecuteStage.h"
 #include "Fetch/FetchStage.h"
-#include "InputCrossbar.h"
 #include "PredicateRegister.h"
 #include "RegisterFile.h"
 #include "Write/WriteStage.h"
@@ -40,38 +39,27 @@ class Core : public LokiComponent {
 
 public:
 
+  // TODO: It would be nice if the instruction inputs were a different type, but
+  // I don't know if the type system will allow Word ports to connect to
+  // Instruction ones.
+  // Allow each port to be bound to multiple networks. Having multiple writers
+  // to a single buffer must be managed in software, so no arbitration or
+  // checks are provided.
+  typedef sc_port<network_sink_ifc<Word>, 0> InPort;
+  typedef sc_port<network_source_ifc<Word>> OutPort;
+
   // Clock.
-  ClockInput              clock;
+  ClockInput            clock;
 
-  // Connections to/from local memory.
-  DataInput               iInstruction;
-  DataInput               iData;
-  RequestOutput           oRequest;
-
-  // Connections to/from local cores.
-  LokiVector<DataInput>   iMulticast;
-  DataOutput              oMulticast;
-
-  // Connections to the global data network.
-  DataOutput              oDataGlobal;
-  DataInput               iDataGlobal;
-
-  // One flow control signal for each input data/instruction buffer. To be used
-  // by all data networks.
-  LokiVector<ReadyOutput> oReadyData;
+  // Data inputs/outputs from network(s).
+  LokiVector<InPort>    iData;
+  OutPort               oMemory;
+  OutPort               oMulticast;
 
   // Connections to the global credit network.
-  CreditOutput            oCredit;
-  CreditInput             iCredit;
-  ReadyOutput             oReadyCredit;
-
-  // A slight hack to improve simulation speed. Each core contains a small
-  // network at its input buffers, so we need to skew the times that the
-  // network sends and receives data so data can get through the small
-  // network and the larger tile network in one cycle.
-  // In practice, these would probably be implemented as delays in the small
-  // network.
-  ClockInput              fastClock;
+  // Credits are sent on the Core's behalf by the Intertile Communication Unit,
+  // so only an input port is needed here.
+  InPort                iCredit;
 
 //============================================================================//
 // Constructors and destructors
@@ -79,9 +67,9 @@ public:
 
 public:
 
-  SC_HAS_PROCESS(Core);
   Core(const sc_module_name& name, const ComponentID& ID,
-       const core_parameters_t& params, size_t numMulticastInputs);
+       const core_parameters_t& params, size_t numMulticastInputs,
+       size_t numMulticastOutputs, size_t numMemories);
 
 //============================================================================//
 // Methods
@@ -136,6 +124,8 @@ public:
   bool isCore(ComponentID id) const;
   bool isMemory(ComponentID id) const;
   bool isComputeTile(TileID id) const;
+
+  ComputeTile& parent() const;
 
 private:
 
@@ -192,14 +182,6 @@ private:
   // Update whether this core is idle or not.
   void             idle(bool state);
 
-  // Request to reserve a path through the network to the given destination.
-  void             requestArbitration(ChannelID destination, bool request);
-
-  // Determine if a request to a particular destination has been granted.
-  bool             requestGranted(ChannelID destination) const;
-
-  ComputeTile&     parent() const;
-
   // Print out information about the environment this instruction executed in.
   void             trace(const DecodedInst& instruction) const;
 
@@ -211,15 +193,6 @@ private:
 // Components
 //============================================================================//
 
-private:
-
-  // Very small crossbar between input ports and input buffers. Allows there to
-  // be fewer network connections, making the tile network simpler.
-  InputCrossbar          inputCrossbar;
-
-  RegisterFile           regs;
-  PredicateRegister      pred;
-
 public:
   // Pipeline stages.
   FetchStage             fetch;
@@ -228,6 +201,10 @@ public:
   WriteStage             write;
 
 private:
+
+  RegisterFile           regs;
+  PredicateRegister      pred;
+
   // A pipeline register to go between each pair of adjacent stages.
   LokiVector<PipelineRegister> pipelineRegs;
 
@@ -256,6 +233,8 @@ public:
   // Number of input channels reserved for instructions.
   static const uint numInstructionChannels = 2;
 
+  const ComponentID id;
+
 private:
 
   bool currentlyStalled;
@@ -269,11 +248,6 @@ private:
 
   // Signals telling us which stages are able to send data or stalled.
   LokiVector<ReadySignal>      stageReady;
-
-  // Connections between the input crossbar and the input buffers.
-  LokiVector<sc_buffer<Word> > dataToBuffers;
-  LokiVector<ReadySignal>      fcFromBuffers;
-  LokiVector<ReadySignal>      dataConsumed;
 
   // Data being sent to the output buffer.
   DataSignal                   fetchFlitSignal, dataFlitSignal;

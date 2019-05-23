@@ -11,7 +11,7 @@
 
 ResponseNetwork::ResponseNetwork(const sc_module_name &name, size2d_t size,
                                  const router_parameters_t& routerParams) :
-    Mesh(name, ComponentID(), size, TILE, routerParams) {
+    Mesh(name, size, routerParams) {
   // Nothing
 }
 

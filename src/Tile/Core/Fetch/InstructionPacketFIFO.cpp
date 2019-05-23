@@ -8,10 +8,11 @@
 #include "InstructionPacketFIFO.h"
 
 #include "../../../Datatype/Instruction.h"
+#include "../../../Utility/Instrumentation/Latency.h"
 #include "FetchStage.h"
 
 const Instruction InstructionPacketFIFO::read() {
-  Instruction inst = fifo.read();
+  Instruction inst = fifo.read().payload();
   fifoRead.notify(sc_core::SC_ZERO_TIME);
 
   CacheIndex readPointer = fifo.getReadPointer();
@@ -22,6 +23,7 @@ const Instruction InstructionPacketFIFO::read() {
 
 void InstructionPacketFIFO::write(const Instruction inst) {
   LOKI_LOG << this->name() << " received Instruction:  " << inst << endl;
+  parent().fifoInstructionArrived(inst);
 
   // If this is a "next instruction packet" command, don't write it to the FIFO,
   // but instead immediately move to the next packet, if there is one.
@@ -32,7 +34,10 @@ void InstructionPacketFIFO::write(const Instruction inst) {
 
   CacheIndex writePos = fifo.getWritePointer();
 
-  fifo.write(inst);
+  // A NetworkFIFO needs flits, not raw instructions. Add a dummy address.
+  Flit<Word> flit(inst, ChannelID());
+
+  fifo.write(flit);
   fifoWrite.notify(sc_core::SC_ZERO_TIME);
 
   if (finishedPacketWrite) {  // Start of new packet
@@ -94,11 +99,11 @@ void InstructionPacketFIFO::jump(JumpOffset amount) {
 bool InstructionPacketFIFO::isEmpty() const {
   // If we have a packet which is due to be executed soon, the FIFO is not
   // empty.
-  return fifo.empty() && !tagMatched;
+  return !fifo.canRead() && !tagMatched;
 }
 
 bool InstructionPacketFIFO::isFull() const{
-  return fifo.full();
+  return !fifo.canWrite();
 }
 
 const sc_event& InstructionPacketFIFO::readEvent() const {
@@ -109,24 +114,38 @@ const sc_event& InstructionPacketFIFO::writeEvent() const {
   return fifoWrite;
 }
 
-void InstructionPacketFIFO::updateReady() {
-  oFlowControl.write(!fifo.full());
-}
-
-void InstructionPacketFIFO::dataConsumedAction() {
-  oDataConsumed.write(!oDataConsumed.read());
-}
-
 FetchStage& InstructionPacketFIFO::parent() const {
   return static_cast<FetchStage&>(*(this->get_parent_object()));
+}
+
+void InstructionPacketFIFO::write(const Flit<Word>& data) {
+  Instrumentation::Latency::coreReceivedResult(parent().id(), data);
+
+  // Strip off the network address and store the instruction.
+  Instruction inst = static_cast<Instruction>(data.payload());
+  write(inst);
+}
+
+bool InstructionPacketFIFO::canWrite() const {
+  return !isFull();
+}
+
+const sc_event& InstructionPacketFIFO::canWriteEvent() const {
+  return fifo.canWriteEvent();
+}
+
+const sc_event& InstructionPacketFIFO::dataConsumedEvent() const {
+  return fifo.dataConsumedEvent();
+}
+
+const Flit<Word> InstructionPacketFIFO::lastDataWritten() const {
+  return fifo.lastDataWritten();
 }
 
 InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name,
                                              const fifo_parameters_t& params) :
     LokiComponent(name),
-    oFlowControl("oFlowControl"),
-    oDataConsumed("oDataConsumed"),
-    fifo(std::string(name), params.size),
+    fifo("fifo", params.size),
     addresses(params.size, DEFAULT_TAG) {
 
   tag = DEFAULT_TAG;
@@ -139,13 +158,5 @@ InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name,
 
   tagMatched = false;
   startOfPacket = NOT_IN_CACHE;
-
-  SC_METHOD(updateReady);
-  sensitive << fifoRead << fifoWrite;
-  // do initialise
-
-  SC_METHOD(dataConsumedAction);
-  sensitive << fifo.dataConsumedEvent();
-  dont_initialize();
 
 }

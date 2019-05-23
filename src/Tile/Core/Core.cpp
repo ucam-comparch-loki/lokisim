@@ -6,13 +6,10 @@
  */
 
 #include "Core.h"
-
-#include "ControlRegisters.h"
 #include "../ComputeTile.h"
 #include "../../Datatype/DecodedInst.h"
 #include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/Registers.h"
-#include "../../Utility/ISA.h"
 
 /* Initialise the instructions a Core will execute. */
 void     Core::storeData(const std::vector<Word>& data) {
@@ -122,16 +119,10 @@ void Core::magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address, ChannelID 
 }
 
 void Core::deliverDataInternal(const NetworkData& flit) {
-  switch (flit.channelID().channel) {
-    case 0:
-    case 1:
-      fetch.deliverInstructionInternal(flit);
-      break;
-
-    default:
-      decode.deliverDataInternal(flit);
-      break;
-  }
+  if (flit.channelID().channel < numInstructionChannels)
+    fetch.deliverInstructionInternal(flit);
+  else
+    decode.deliverDataInternal(flit);
 }
 
 void Core::deliverCreditInternal(const NetworkCredit& flit) {
@@ -141,7 +132,7 @@ void Core::deliverCreditInternal(const NetworkCredit& flit) {
 size_t Core::numInputDataBuffers() const {
   // A little hacky. The alternative is to ask the DecodeStage to ask the
   // ReceiveChannelEndTable to ask its BufferArray how big it is.
-  return dataToBuffers.size() - numInstructionChannels;
+  return iData.size() - numInstructionChannels;
 }
 
 uint Core::coreIndex() const {
@@ -204,7 +195,7 @@ void     Core::nextIPK() {
   decode.unstall();
 
   // Discard any instructions which were queued up behind any stalled stages.
-  while(pipelineRegs[0].discard())
+  while (pipelineRegs[0].discard())
     /* continue discarding */;
 }
 
@@ -212,16 +203,6 @@ void     Core::idle(bool state) {
   // Use the decoder as the arbiter of idleness - we may sometimes bypass the
   // fetch stage.
   Instrumentation::idle(id, state);
-}
-
-void Core::requestArbitration(ChannelID destination, bool request) {
-  // Could have extra ports and write to them from here, but for the moment,
-  // access the network directly.
-  parent().makeRequest(id, destination, request);
-}
-
-bool Core::requestGranted(ChannelID destination) const {
-  return parent().requestGranted(id, destination);
 }
 
 ComputeTile& Core::parent() const {
@@ -274,71 +255,50 @@ ChannelID Core::RCETInput(const ComponentID& ID, ChannelIndex channel) {
 }
 
 Core::Core(const sc_module_name& name, const ComponentID& ID,
-           const core_parameters_t& params, size_t numMulticastInputs) :
-    LokiComponent(name, ID),
+           const core_parameters_t& params, size_t numMulticastInputs,
+           size_t numMulticastOutputs, size_t numMemories) :
+    LokiComponent(name),
     clock("clock"),
-    iInstruction("iInstruction"),
-    iData("iData"),
-    oRequest("oRequest"),
-    iMulticast("iMulticast", numMulticastInputs),
+    iData("iData", params.numInputChannels),
+    oMemory("oMemory"),
     oMulticast("oMulticast"),
-    oDataGlobal("oDataGlobal"),
-    iDataGlobal("iDataGlobal"),
-    oReadyData("oReadyData", params.numInputChannels),
-    oCredit("oCredit"),
     iCredit("iCredit"),
-    oReadyCredit("oReadyCredit"),
-    fastClock("fastClock"),
-    inputCrossbar("input_crossbar", ID, numMulticastInputs+3, params.numInputChannels), // cores + insts + data + router
-    regs("regs", ID, params.registerFile),
+    fetch("fetch", params.ipkFIFO, params.cache),
+    decode("decode", params.numInputChannels-numInstructionChannels, params.inputFIFO),
+    execute("execute", params.scratchpad),
+    write("write", params.outputFIFO, numMulticastOutputs, numMemories),
+    regs("regs", params.registerFile),
     pred("predicate"),
-    fetch("fetch", ID, params.ipkFIFO, params.cache),
-    decode("decode", ID, params.numInputChannels-numInstructionChannels, params.inputFIFO),
-    execute("execute", ID, params.scratchpad),
-    write("write", ID, params.outputFIFO),
-    channelMapTable("channel_map_table", ID, params.channelMapTable, params.numInputChannels),
+    channelMapTable("channel_map_table", params.channelMapTable, params.numInputChannels),
     cregs("cregs", ID),
-    magicMemoryConnection("magic_memory", ID),
-    stageReady("stageReady", 3), // 4 stages => 3 links between stages
-    dataToBuffers("dataToBuffers", params.numInputChannels),
-    fcFromBuffers("fcFromBuffers", params.numInputChannels),
-    dataConsumed("dataConsumed", params.numInputChannels) {
+    magicMemoryConnection("magic_memory"),
+    id(ID),
+    stageReady("stageReady", 3) { // 4 stages => 3 links between stages
 
   currentlyStalled = false;
 
-  oReadyCredit.initialize(true);
+  iData[0](fetch.iToFIFO);
+  iData[1](fetch.iToCache);
+  for (uint i=numInstructionChannels; i<params.numInputChannels; i++)
+    iData[i](decode.iData[i-numInstructionChannels]);
 
-  // Wire the input ports to the input buffers.
-  inputCrossbar.iData[0](iInstruction);
-  inputCrossbar.iData[1](iData);
-  inputCrossbar.iData[2](iDataGlobal);
-  for (unsigned int i=3; i<3+iMulticast.size(); i++)
-    inputCrossbar.iData[i](iMulticast[i-3]);
-
-  inputCrossbar.oReady(oReadyData);
-  inputCrossbar.oData(dataToBuffers);
-  inputCrossbar.iFlowControl(fcFromBuffers);
-  inputCrossbar.iDataConsumed(dataConsumed);
-  inputCrossbar.clock(clock);
-  inputCrossbar.creditClock(fastClock);
-  inputCrossbar.oCredit[0](oCredit);
+  oMulticast(write.oDataLocal);
+  oMemory(write.oDataMemory);
+  iCredit(write.iCredit);
 
   cregs.clock(clock);
 
   // Create pipeline registers.
   pipelineRegs.push_back(
-      new PipelineRegister(sc_gen_unique_name("pipe_reg"), id, PipelineRegister::FETCH_DECODE));
+      new PipelineRegister(sc_gen_unique_name("pipe_reg"), PipelineRegister::FETCH_DECODE));
   pipelineRegs.push_back(
-      new PipelineRegister(sc_gen_unique_name("pipe_reg"), id, PipelineRegister::DECODE_EXECUTE));
+      new PipelineRegister(sc_gen_unique_name("pipe_reg"), PipelineRegister::DECODE_EXECUTE));
   pipelineRegs.push_back(
-      new PipelineRegister(sc_gen_unique_name("pipe_reg"), id, PipelineRegister::EXECUTE_WRITE));
+      new PipelineRegister(sc_gen_unique_name("pipe_reg"), PipelineRegister::EXECUTE_WRITE));
 
   // Wire the pipeline stages up.
 
   fetch.clock(clock);
-  fetch.iToFIFO(dataToBuffers[0]);          fetch.oFlowControl[0](fcFromBuffers[0]);
-  fetch.iToCache(dataToBuffers[1]);         fetch.oFlowControl[1](fcFromBuffers[1]);
-  fetch.oDataConsumed[0](dataConsumed[0]);  fetch.oDataConsumed[1](dataConsumed[1]);
   fetch.oFetchRequest(fetchFlitSignal);
   fetch.iOutputBufferReady(stageReady[2]);
   fetch.initPipeline(NULL, &pipelineRegs[0]);
@@ -346,11 +306,6 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
   decode.clock(clock);
   decode.oReady(stageReady[0]);
   decode.iOutputBufferReady(stageReady[2]);
-  for (uint i=numInstructionChannels; i<params.numInputChannels; i++) {
-    decode.iData[i-numInstructionChannels](dataToBuffers[i]);
-    decode.oFlowControl[i-numInstructionChannels](fcFromBuffers[i]);
-    decode.oDataConsumed[i-numInstructionChannels](dataConsumed[i]);
-  }
   decode.initPipeline(&pipelineRegs[0], &pipelineRegs[1]);
 
   execute.clock(clock);
@@ -362,9 +317,5 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
   write.oReady(stageReady[2]);
   write.iFetch(fetchFlitSignal);
   write.iData(dataFlitSignal);
-  write.oDataMemory(oRequest);
-  write.oDataLocal(oMulticast);
-  write.oDataGlobal(oDataGlobal);
-  write.iCredit(iCredit);
   write.initPipeline(&pipelineRegs[2], NULL);
 }

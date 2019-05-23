@@ -32,7 +32,7 @@ class RegisterFile: public LokiComponent {
 
 public:
 
-  RegisterFile(sc_module_name name, const ComponentID& ID,
+  RegisterFile(sc_module_name name,
                const register_file_parameters_t& params);
 
 //============================================================================//

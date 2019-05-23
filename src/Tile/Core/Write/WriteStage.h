@@ -38,13 +38,12 @@ public:
   ReadyOutput             oReady;
 
   // Data to send onto the network.
-  DataOutput              oDataLocal;
-  DataOutput              oDataMemory;
-  DataOutput              oDataGlobal;
+  sc_port<network_source_ifc<Word>> oDataLocal;
+  sc_port<network_source_ifc<Word>> oDataMemory;
 
   // Credits received over the network. Each credit will still have its
   // destination attached, so we know which table entry to give the credit to.
-  CreditInput             iCredit;
+  sc_port<network_sink_ifc<Word>> iCredit;
 
 //============================================================================//
 // Constructors and destructors
@@ -53,8 +52,8 @@ public:
 public:
 
   SC_HAS_PROCESS(WriteStage);
-  WriteStage(sc_module_name name, const ComponentID& ID,
-             const fifo_parameters_t& fifoParams);
+  WriteStage(sc_module_name name, const fifo_parameters_t& fifoParams,
+             uint numCores, uint numMemories);
 
 //============================================================================//
 // Methods
@@ -78,9 +77,6 @@ private:
 
   // Write a new value to a register.
   void           writeReg(RegisterIndex reg, int32_t value, bool indirect = false) const;
-
-  void           requestArbitration(ChannelID destination, bool request);
-  bool           requestGranted(ChannelID destination) const;
 
 //============================================================================//
 // Components

@@ -107,6 +107,8 @@ private:
 
   DMA& parent() const;
 
+  const ComponentID& id() const;
+
 
 //============================================================================//
 // Local state

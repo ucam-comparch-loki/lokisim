@@ -12,7 +12,6 @@
 
 #include "../../Datatype/Word.h"
 #include "../../LokiComponent.h"
-#include "../../Network/ArbitratedMultiplexer.h"
 #include "../../Network/NetworkTypes.h"
 #include "ComputeUnit.h"
 #include "ControlUnit.h"
@@ -33,12 +32,20 @@ class Accelerator: public LokiComponent {
 
 public:
 
-  ClockInput iClock;
+  typedef sc_port<network_sink_ifc<Word>> InPort;
+  typedef sc_port<network_source_ifc<Word>> OutPort;
+
+  ClockInput clock;
+
+  // Number of input channels on core-to-core network.
+  // Channel 0: computation parameters.
+  // May eventually like to refine this so the same parameters can be reused
+  // with different memory addresses.
+  static const size_t numMulticastInputs = 1;
 
   // Connections to the cores on this tile.
-  LokiVector<DataInput>   iMulticast;
-  DataOutput              oMulticast;
-  LokiVector<ReadyOutput> oReadyData;
+  LokiVector<InPort>      iMulticast;
+  OutPort                 oMulticast;
 
 //============================================================================//
 // Constructors and destructors
@@ -48,8 +55,7 @@ public:
 
   SC_HAS_PROCESS(Accelerator);
   Accelerator(sc_module_name name, ComponentID id,
-              const accelerator_parameters_t& params,
-              size_t numMulticastInputs);
+              const accelerator_parameters_t& params);
 
 
 //============================================================================//
@@ -68,10 +74,6 @@ public:
 
 private:
 
-  // Pass an incoming parameter from the network interface to the relevant
-  // internal component.
-  void receiveParameter();
-
   // Returns which channel of memory should be accessed. This determines which
   // component data is returned to.
   ChannelIndex memoryAccessChannel() const;
@@ -89,6 +91,8 @@ private:
   friend class ControlUnit;
   friend class DMA;
 
+  const ComponentID id;
+
   ControlUnit control;
   DMAInput<dtype> in1, in2;
   DMAOutput<dtype> out;
@@ -100,12 +104,6 @@ private:
   LokiVector2D<sc_signal<dtype>> toPEs1, toPEs2, fromPEs;
   ReadySignal in1Ready, in2Ready, outReady;
   sc_signal<tick_t> inTickSig, outTickSig;
-
-  // Multiplex down the inputs from each core to a single channel.
-  ArbitratedMultiplexer<NetworkData> inputMux;
-  loki_signal<NetworkData> muxOutput;
-  sc_signal<bool> muxHold;
-  loki_signal<uint32_t> paramSig;
 
 };
 

@@ -11,6 +11,7 @@
 #define SRC_TILE_MEMORYCONTROLLERTILE_H_
 
 #include "Tile.h"
+#include "../Network/FIFOs/NetworkFIFO.h"
 #include "../Network/Global/NetworkDeadEnd.h"
 
 class MemoryControllerTile: public Tile {
@@ -26,32 +27,24 @@ public:
 //  ClockInput      clock;
 //
 //  // Data network.
-//  DataInput       iData;
-//  DataOutput      oData;
-//  ReadyInput      iDataReady;
-//  ReadyOutput     oDataReady;
+//  sc_port<network_sink_ifc<Word>> iData;
+//  sc_port<network_sink_ifc<Word>> oData;
 //
 //  // Credit network.
-//  CreditInput     iCredit;
-//  CreditOutput    oCredit;
-//  ReadyInput      iCreditReady;
-//  ReadyOutput     oCreditReady;
+//  sc_port<network_sink_ifc<Word>> iCredit;
+//  sc_port<network_sink_ifc<Word>> oCredit;
 //
 //  // Memory request network.
-//  RequestInput    iRequest;
-//  RequestOutput   oRequest;
-//  ReadyInput      iRequestReady;
-//  ReadyOutput     oRequestReady;
+//  sc_port<network_sink_ifc<Word>> iRequest;
+//  sc_port<network_sink_ifc<Word>> oRequest;
 //
 //  // Memory response network.
-//  ResponseInput   iResponse;
-//  ResponseOutput  oResponse;
-//  ReadyInput      iResponseReady;
-//  ReadyOutput     oResponseReady;
+//  sc_port<network_sink_ifc<Word>> iResponse;
+//  sc_port<network_sink_ifc<Word>> oResponse;
 
   // Extra interfaces to main memory.
-  RequestOutput   oRequestToMainMemory;
-  ResponseInput   iResponseFromMainMemory;
+  sc_port<network_sink_ifc<Word>>   oRequestToMainMemory;
+  sc_port<network_source_ifc<Word>> iResponseFromMainMemory;
 
 //============================================================================//
 // Constructors and destructors
@@ -60,7 +53,7 @@ public:
 public:
 
   SC_HAS_PROCESS(MemoryControllerTile);
-  MemoryControllerTile(const sc_module_name& name, const ComponentID& id);
+  MemoryControllerTile(const sc_module_name& name, const TileID id);
   virtual ~MemoryControllerTile();
 
 //============================================================================//
@@ -68,6 +61,9 @@ public:
 //============================================================================//
 
 private:
+
+  // Extra initialisation once all ports have been bound.
+  void end_of_elaboration();
 
   // Forward requests on to main memory.
   void requestLoop();
@@ -81,13 +77,16 @@ private:
 
 private:
 
+  // Requests from on-chip.
+  NetworkFIFO<Word>    incomingRequests;
+
   // This tile is not connected to the data or credit networks.
-  NetworkDeadEnd<NetworkData>     dataDeadEnd;
-  NetworkDeadEnd<NetworkCredit>   creditDeadEnd;
+  NetworkDeadEnd<Word> dataDeadEnd;
+  NetworkDeadEnd<Word> creditDeadEnd;
 
   // The tile is only connected to request inputs and response outputs.
-  // Merge the unused parts into a single dead end component.
-  NetworkDeadEnd<NetworkResponse> responseDeadEnd;
+  NetworkDeadEnd<Word> requestDeadEnd;
+  NetworkDeadEnd<Word> responseDeadEnd;
 
 };
 

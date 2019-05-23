@@ -65,7 +65,7 @@ private:
 
 public:
 
-  ChannelMapTable(const sc_module_name& name, ComponentID ID,
+  ChannelMapTable(const sc_module_name& name,
                   const channel_map_table_parameters_t& params,
                   size_t coreInputChannels);
 

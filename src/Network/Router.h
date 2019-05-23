@@ -16,12 +16,16 @@
 #define ROUTER_H_
 
 #include "../LokiComponent.h"
-#include "../Utility/BlockingInterface.h"
 #include "../Utility/LokiVector.h"
-#include "FIFOs/FIFOArray.h"
+#include "FIFOs/NetworkFIFO.h"
+#include "Network.h"
 #include "NetworkTypes.h"
 
-class Router : public LokiComponent, public BlockingInterface {
+template<typename T>
+class RouterInternalNetwork;
+
+template<typename T>
+class Router : public LokiComponent {
 
 //============================================================================//
 // Ports
@@ -29,20 +33,17 @@ class Router : public LokiComponent, public BlockingInterface {
 
 public:
 
-  ClockInput   clock;
+  ClockInput clock;
 
-  // Data inputs
-  LokiVector<DataInput>   iData;
+  // The router is odd in that all of its ports are network sinks.
+  // The inputs are attached to local buffers, so are real sinks.
+  // The outputs are connected to other routers, so are remote sinks.
+  typedef sc_port<network_sink_ifc<T>> InPort;
+  typedef sc_port<network_sink_ifc<T>> OutPort;
 
-  // A flow control signal to each neighbouring router and to the local network.
-  LokiVector<ReadyOutput> oReady;
-
-  // Data outputs
-  LokiVector<DataOutput>  oData;
-
-  // A flow control signal from each neighbouring router. Flow control from the
-  // local network is handled separately.
-  LokiVector<ReadyInput>  iReady;
+  // Connections to other routers.
+  LokiVector<InPort> inputs;
+  LokiVector<OutPort> outputs;
 
 //============================================================================//
 // Constructors and destructors
@@ -50,34 +51,8 @@ public:
 
 public:
 
-  SC_HAS_PROCESS(Router);
-  Router(const sc_module_name& name, const ComponentID& ID,
+  Router(const sc_module_name& name, const TileID& ID,
          const router_parameters_t& params);
-
-//============================================================================//
-// Methods
-//============================================================================//
-
-private:
-
-  // Receive input data, put it into buffers, and send acknowledgements.
-  void receiveData(PortIndex input);
-
-  // Send data from output buffers onto the network and wait for
-  // acknowledgements.
-  void sendData(PortIndex output);
-
-  // Update the flow control signal for the input port connected to the local
-  // network.
-  void updateFlowControl(PortIndex input);
-
-  // Determine which output (if any) the head of a particular input buffer
-  // needs to use.
-  void updateDestination(PortIndex input);
-
-  Direction routeTo(ChannelID destination) const;
-
-  virtual void reportStalls(ostream& os);
 
 
 //============================================================================//
@@ -86,43 +61,20 @@ private:
 
 private:
 
-  FIFOArray<NetworkData> inputBuffers;
+  LokiVector<NetworkFIFO<T>> inputBuffers;
+  RouterInternalNetwork<T> internal;
 
-//============================================================================//
-// Local state
-//============================================================================//
+};
 
+// An internal crossbar connecting all inputs to all outputs.
+template<typename T>
+class RouterInternalNetwork: public Network<T> {
+public:
+  RouterInternalNetwork(const sc_module_name name, TileID tile);
+  virtual ~RouterInternalNetwork();
+  virtual PortIndex getDestination(const ChannelID address) const;
 private:
-
-  enum SendState {
-    WAITING_FOR_DATA,
-    ARBITRATING,
-    WAITING_FOR_ACK
-  };
-
-  SendState state;
-
-  // The position of this router in the grid of routers. Used to decide which
-  // direction data should be sent next.
-  const unsigned int xPos, yPos;
-
-  // Whether this router is using wormhole routing.
-  bool wormhole;
-
-  // The router currently implements round-robin scheduling: store the inputs
-  // which were most recently allowed to send data to each output.
-  PortIndex lastAccepted[5];
-
-  // If using wormhole routing, allow the same input to be used until the
-  // packet ends.
-  bool holdInput[5];
-
-  // Record the direction the leading flit in each buffer wants to travel.
-  PortIndex destination[5];
-
-  // Event to notify each output port when data is waiting to be sent.
-  LokiVector<sc_event> outputAvailable;
-
+  const TileID position;
 };
 
 #endif /* ROUTER_H_ */

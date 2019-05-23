@@ -15,17 +15,17 @@
 
 ControlUnit::ControlUnit(sc_module_name name, const accelerator_parameters_t& params) :
     LokiComponent(name),
-    iParameter("iCores"),
+    iParameter("iParameter"),
     oCores("oCores"),
-    oReady("oReady"),
     receiver("params"),
-    algorithm("algorithm", params) {
+    algorithm("algorithm", params),
+    coreNotification("coreNotification", 1) {
 
   // TODO Notify cores when execution is finished and all data is back in
   // memory.
 
-  receiver.iParameter(iParameter);
-  receiver.oReady(oReady);
+  iParameter(receiver.iParameter);
+  oCores(coreNotification);
 
   algorithm.oInputCommand(oDMA1Command);
   algorithm.oWeightsCommand(oDMA2Command);
@@ -64,7 +64,7 @@ void ControlUnit::executionStep() {
 
   // Perhaps use something more specific if the algorithm is blocked?
   if (algorithm.executing())
-    next_trigger(iClock.posedge_event());
+    next_trigger(clock.posedge_event());
   // else default trigger is algorithm.startedComputation()
 }
 

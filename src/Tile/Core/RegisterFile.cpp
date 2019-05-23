@@ -138,9 +138,9 @@ Core& RegisterFile::parent() const {
   return static_cast<Core&>(*(this->get_parent_object()));
 }
 
-RegisterFile::RegisterFile(sc_module_name name, const ComponentID& ID,
+RegisterFile::RegisterFile(sc_module_name name,
                            const register_file_parameters_t& params) :
-    LokiComponent(name, ID),
+    LokiComponent(name),
     regs(std::string(name), params.size),
     prevRead(3),
     lastActivity(-1) {

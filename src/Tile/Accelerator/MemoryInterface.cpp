@@ -10,7 +10,7 @@
 #include "DMA.h"
 
 MemoryInterface::MemoryInterface(sc_module_name name, ComponentID id) :
-    LokiComponent(name, id),
+    LokiComponent(name),
     memoryMapping(-1),
     bankSelector(id) {
 
@@ -110,7 +110,7 @@ void MemoryInterface::sendRequest() {
 
   // TODO: ChannelID(id, 0)? Or encode position in the channel field. Or have
   // one channel per memory bank.
-  ChannelID returnChannel(id, 0);
+  ChannelID returnChannel(id(), 0);
 
   // Instant memory access for now.
   parent().magicMemoryAccess(request.operation, request.address, returnChannel,
@@ -124,4 +124,8 @@ void MemoryInterface::sendRequest() {
 
 DMA& MemoryInterface::parent() const {
   return *(static_cast<DMA*>(this->get_parent_object()));
+}
+
+const ComponentID& MemoryInterface::id() const {
+  return parent().id;
 }

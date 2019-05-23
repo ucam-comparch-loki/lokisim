@@ -206,31 +206,6 @@ const std::set<TileID> Chip::getMemoryControllerPositions(const chip_parameters_
   return positions;
 }
 
-void Chip::makeSignals(size2d_t allTiles) {
-  iData.init("iData", allTiles.width, allTiles.height);
-  oData.init("oData", allTiles.width, allTiles.height);
-  iDataReady.init("iDataReady", allTiles.width, allTiles.height);
-  oDataReady.init("oDataReady", allTiles.width, allTiles.height);
-
-  iCredit.init("iCredit", allTiles.width, allTiles.height);
-  oCredit.init("oCredit", allTiles.width, allTiles.height);
-  iCreditReady.init("iCreditReady", allTiles.width, allTiles.height);
-  oCreditReady.init("oCreditReady", allTiles.width, allTiles.height);
-
-  iRequest.init("iRequest", allTiles.width, allTiles.height);
-  oRequest.init("oRequest", allTiles.width, allTiles.height);
-  iRequestReady.init("iRequestReady", allTiles.width, allTiles.height);
-  oRequestReady.init("oRequestReady", allTiles.width, allTiles.height);
-
-  iResponse.init("iResponse", allTiles.width, allTiles.height);
-  oResponse.init("oResponse", allTiles.width, allTiles.height);
-  iResponseReady.init("iResponseReady", allTiles.width, allTiles.height);
-  oResponseReady.init("oResponseReady", allTiles.width, allTiles.height);
-
-  requestToMainMemory.init("requestToMainMemory", memoryControllerPositions.size());
-  responseFromMainMemory.init("responseFromMainMemory", memoryControllerPositions.size());
-}
-
 void Chip::makeComponents(const chip_parameters_t& params) {
   int memoryControllersMade = 0;
 
@@ -238,7 +213,7 @@ void Chip::makeComponents(const chip_parameters_t& params) {
   for (uint col = 0; col < params.allTiles().width; col++) {
 
     for (uint row = 0; row < params.allTiles().height; row++) {
-      ComponentID tileID(col, row, 0);
+      TileID tileID(col, row);
       std::stringstream name;
       name << "tile_" << col << "_" << row;
 
@@ -250,40 +225,28 @@ void Chip::makeComponents(const chip_parameters_t& params) {
           t = new AcceleratorTile(name.str().c_str(), tileID, params.tile);
         else
           t = new ComputeTile(name.str().c_str(), tileID, params.tile);
-
-        // Some ComputeTile-specific connections.
-        ((ComputeTile*)t)->fastClock(fastClock);
-        ((ComputeTile*)t)->slowClock(slowClock);
       }
       else if (memoryControllerPositions.find(TileID(col,row)) != memoryControllerPositions.end()) {
         t = new MemoryControllerTile(name.str().c_str(), tileID);
 
         uint memoryPort = memoryControllersMade++;
-        ((MemoryControllerTile*)t)->oRequestToMainMemory(requestToMainMemory[memoryPort]);
-        ((MemoryControllerTile*)t)->iResponseFromMainMemory(responseFromMainMemory[memoryPort]);
+        ((MemoryControllerTile*)t)->oRequestToMainMemory(mainMemory.iData[memoryPort]);
+        ((MemoryControllerTile*)t)->iResponseFromMainMemory(mainMemory.oData[memoryPort]);
       }
       else {
         t = new EmptyTile(name.str().c_str(), tileID);
       }
 
       // Common interface for all tiles.
-      t->iClock(clock);
-      t->iCredit(iCredit[col][row]);
-      t->iCreditReady(iCreditReady[col][row]);
-      t->iData(iData[col][row]);
-      t->iDataReady(iDataReady[col][row]);
-      t->iRequest(iRequest[col][row]);
-      t->iRequestReady(iRequestReady[col][row]);
-      t->iResponse(iResponse[col][row]);
-      t->iResponseReady(iResponseReady[col][row]);
-      t->oCredit(oCredit[col][row]);
-      t->oCreditReady(oCreditReady[col][row]);
-      t->oData(oData[col][row]);
-      t->oDataReady(oDataReady[col][row]);
-      t->oRequest(oRequest[col][row]);
-      t->oRequestReady(oRequestReady[col][row]);
-      t->oResponse(oResponse[col][row]);
-      t->oResponseReady(oResponseReady[col][row]);
+      t->clock(clock);
+      t->oData(dataNet.inputs[col][row]);
+      t->oCredit(creditNet.inputs[col][row]);
+      t->oRequest(requestNet.inputs[col][row]);
+      t->oResponse(responseNet.inputs[col][row]);
+      dataNet.outputs[col][row](t->iData);
+      creditNet.outputs[col][row](t->iCredit);
+      requestNet.outputs[col][row](t->iRequest);
+      responseNet.outputs[col][row](t->iResponse);
 
       tiles[col].push_back(t);
     }
@@ -294,53 +257,26 @@ void Chip::wireUp() {
 
   // Main memory.
   mainMemory.iClock(clock);
-  mainMemory.iData(requestToMainMemory);
-  mainMemory.oData(responseFromMainMemory);
 
-  // Global data network - connects cores to cores.
+  // Most network wiring happened when the tiles were created.
   dataNet.clock(clock);
-  dataNet.oData(iData);
-  dataNet.iData(oData);
-  dataNet.oReady(iDataReady);
-  dataNet.iReady(oDataReady);
-
-  // Global credit network - connects cores to cores.
   creditNet.clock(clock);
-  creditNet.oData(iCredit);
-  creditNet.iData(oCredit);
-  creditNet.oReady(iCreditReady);
-  creditNet.iReady(oCreditReady);
-
-  // Global request network - connects memories to memories.
   requestNet.clock(clock);
-  requestNet.oData(iRequest);
-  requestNet.iData(oRequest);
-  requestNet.oReady(iRequestReady);
-  requestNet.iReady(oRequestReady);
-
-  // Global response network - connects memories to memories.
   responseNet.clock(clock);
-  responseNet.oData(iResponse);
-  responseNet.iData(oResponse);
-  responseNet.oReady(iResponseReady);
-  responseNet.iReady(oResponseReady);
 
 }
 
 Chip::Chip(const sc_module_name& name, const chip_parameters_t& params) :
     LokiComponent(name),
     memoryControllerPositions(getMemoryControllerPositions(params)),
-    mainMemory("main_memory", ComponentID(0,0,0), memoryControllerPositions.size(), params.memory),
+    mainMemory("main_memory", memoryControllerPositions.size(), params.memory),
     magicMemory("magic_memory", mainMemory),
     dataNet("data_net", params.allTiles(), params.router),
     creditNet("credit_net", params.allTiles(), params.router),
     requestNet("request_net", params.allTiles(), params.router),
     responseNet("response_net", params.allTiles(), params.router),
-    clock("clock", 1, sc_core::SC_NS, 0.5),
-    fastClock("fast_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.25),
-    slowClock("slow_clock", sc_core::sc_time(1.0, sc_core::SC_NS), 0.75) {
+    clock("clock", 1, sc_core::SC_NS, 0.5) {
 
-  makeSignals(params.allTiles());
   makeComponents(params);
   wireUp();
 

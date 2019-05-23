@@ -2,6 +2,7 @@
  * ForwardCrossbar.h
  *
  * Crossbar allowing cores to send requests to memory banks on the same tile.
+ * A final output is reserved for messages to cores on other tiles.
  *
  *  Created on: 13 Dec 2016
  *      Author: db434
@@ -10,9 +11,9 @@
 #ifndef SRC_TILE_NETWORK_FORWARDCROSSBAR_H_
 #define SRC_TILE_NETWORK_FORWARDCROSSBAR_H_
 
-#include "../../Network/Topologies/Crossbar.h"
+#include "../../Network/Network.h"
 
-class ForwardCrossbar: public Crossbar {
+class ForwardCrossbar: public Network<Word> {
 
 //============================================================================//
 // Ports
@@ -24,26 +25,25 @@ public:
 //
 //  ClockInput   clock;
 //
-//  LokiVector<DataInput>  iData;
-//  LokiVector<DataOutput> oData;
-//
-//  // A request/grant signal for each input to reserve each output.
-//  // Indexed as: iRequest[input][output]
-//  LokiVector2D<ArbiterRequestInput> iRequest;
-//  LokiVector2D<ArbiterGrantOutput>  oGrant;
-//
-//  // A signal from each buffer of each component, telling whether it is ready
-//  // to receive data. Addressed using iReady[component][buffer].
-//  LokiVector2D<ReadyInput>   iReady;
+//  LokiVector<InPort>  inputs;
+//  LokiVector<OutPort> outputs;
 
 //============================================================================//
 // Constructors and destructors
 //============================================================================//
 
 public:
-  ForwardCrossbar(const sc_module_name name, ComponentID tile,
+  ForwardCrossbar(const sc_module_name name,
                   const tile_parameters_t& params);
   virtual ~ForwardCrossbar();
+
+//============================================================================//
+// Methods
+//============================================================================//
+
+protected:
+  virtual PortIndex getDestination(const ChannelID address) const;
+
 };
 
 #endif /* SRC_TILE_NETWORK_FORWARDCROSSBAR_H_ */

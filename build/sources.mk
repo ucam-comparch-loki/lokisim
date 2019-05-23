@@ -23,13 +23,10 @@ C_DEPS :=
 
 # Every subdirectory with source files must be described here
 SUBDIRS := \
-src/Arbitration \
 src \
 src/Datatype \
 src/Datatype/MemoryOperations \
 src/Memory \
-src/Network/Arbiters \
-src/Network/FlowControl \
 src/Network/Global \
 src/Network \
 src/Network/Topologies \

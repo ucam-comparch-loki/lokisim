@@ -5,92 +5,41 @@
  *      Author: db434
  */
 
-#define SC_INCLUDE_DYNAMIC_PROCESSES
-
 #include "CoreMulticast.h"
+#include "../../Utility/Assert.h"
+#include "../Accelerator/Accelerator.h"
 
 using sc_core::sc_gen_unique_name;
+using std::set;
 
-CoreMulticast::CoreMulticast(const sc_module_name name, ComponentID tile,
+CoreMulticast::CoreMulticast(const sc_module_name name,
                              const tile_parameters_t& params) :
-    Network(name, tile, params.mcastNetInputs(), params.mcastNetInputs()*params.mcastNetOutputs(), Network::COMPONENT),
-    iData("iData", params.mcastNetInputs()),
-    oData("oData", params.mcastNetOutputs(), params.mcastNetInputs()),
-    busInput("busInput", params.mcastNetInputs()) {
-
-  state.assign(iData.size(), IDLE);
-
-  for (uint i=0; i<iData.size(); i++) {
-    MulticastBus* bus = new MulticastBus(sc_gen_unique_name("bus"), tile, oData.size(), Network::COMPONENT);
-
-    bus->clock(clock);
-    bus->iData(busInput[i]);
-    for (uint out=0; out<oData.size(); out++)
-      bus->oData[out](oData[out][i]);
-
-    buses.push_back(bus);
-
-    // Create a method which puts data onto the bus.
-    SPAWN_METHOD(iData[i], CoreMulticast::mainLoop, i, false);
-  }
-
-
-  // TODO: Would be nice for the constructor to receive a list of components to
-  // connect so we can check how many connections they have, rather than
-  // hard coding this.
-  iReady.init(params.mcastNetOutputs());
-  for (uint i=0; i<params.numCores; i++)
-    iReady[i].init("iReady", params.core.numInputChannels);
-  for (uint i=params.numCores; i<params.mcastNetOutputs(); i++)
-    iReady[i].init("iReady", 1);
+    Network<Word>(name, params.mcastNetInputs(), params.mcastNetOutputs()),
+    outputsPerCore(params.core.numInputChannels),
+    outputsPerAccelerator(Accelerator::numMulticastInputs),
+    outputCores(params.numCores),
+    outputAccelerators(params.numAccelerators) {
 
 }
 
+PortIndex CoreMulticast::getDestination(const ChannelID address) const {
+  // Single destination method should never be used.
+  loki_assert(false);
+  return -1;
+}
 
-void CoreMulticast::mainLoop(PortIndex input) {
-  switch (state[input]) {
-    case IDLE:
-      assert(iData[input].valid());
-      state[input] = FLOW_CONTROL;
-      next_trigger(sc_core::SC_ZERO_TIME);
+set<PortIndex> CoreMulticast::getDestinations(const ChannelID address) const {
+  loki_assert(address.multicast);
 
-      break;
+  set<PortIndex> destinations;
 
-    case FLOW_CONTROL: {
-      assert(iData[input].valid());
-      ChannelID address = iData[input].read().channelID();
-      assert(address.multicast);
+  for (uint core=0; core<outputCores; core++)
+    if ((address.coremask >> core) & 1)
+      destinations.insert(core*outputsPerCore + address.channel);
+  for (uint acc=0; acc<outputAccelerators; acc++)
+    if ((address.coremask >> (acc + outputCores)) & 1)
+      destinations.insert(outputCores*outputsPerCore +
+                          acc*outputsPerAccelerator + address.channel);
 
-      // Check whether all destinations are ready to receive data.
-      uint destinations = address.coremask;
-      uint buffer = address.channel;
-      for (uint output=0; output<iReady.size(); output++) {
-        if (((destinations >> output) & 1) && !iReady[output][buffer].read()) {
-          next_trigger(iReady[output][buffer].posedge_event());
-          break;
-        }
-      }
-
-      state[input] = SEND;
-      next_trigger(sc_core::SC_ZERO_TIME);
-
-      break;
-    }
-
-    case SEND:
-      busInput[input].write(iData[input].read());
-      state[input] = ACKNOWLEDGE;
-      next_trigger(busInput[input].ack_event());
-
-      break;
-
-    case ACKNOWLEDGE:
-      assert(!busInput[input].valid());
-      iData[input].ack();
-      state[input] = IDLE;
-
-      // Default trigger: new data.
-
-      break;
-  }
+  return destinations;
 }

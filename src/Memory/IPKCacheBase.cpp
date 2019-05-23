@@ -107,7 +107,7 @@ void IPKCacheBase::jump(const JumpOffset offset) {
 
 /* Returns the remaining number of entries in the cache. */
 size_t IPKCacheBase::remainingSpace() const {
-  if (finishedPacketRead)
+  if (finishedPacketRead && finishedPacketWrite)
     return size();
   else
     return size() - getFillCount();
@@ -171,6 +171,11 @@ CacheIndex IPKCacheBase::getReadPointer()         const {return readPointer.valu
 CacheIndex IPKCacheBase::getWritePointer()        const {return writePointer.value();}
 void IPKCacheBase::setReadPointer(CacheIndex pos)       {readPointer = pos; lastOpWasARead = false;}
 void IPKCacheBase::setWritePointer(CacheIndex pos)      {writePointer = pos;}
+
+const Instruction& IPKCacheBase::debugRead(CacheIndex pos) const {
+ pos %= this->size();
+ return data[pos];
+}
 
 void IPKCacheBase::incrementWritePos() {
   ++writePointer;

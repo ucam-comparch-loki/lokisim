@@ -13,13 +13,17 @@
 #include "../Utility/Instrumentation/Network.h"
 
 MainMemoryRequestHandler::MainMemoryRequestHandler(sc_module_name name,
-    ComponentID ID, MainMemory& memory, const main_memory_parameters_t& params) :
-    MemoryBase(name, ID, memory.log2CacheLineSize),
+    MainMemory& memory, const main_memory_parameters_t& params) :
+    MemoryBase(name, memory.id, memory.log2CacheLineSize),
     iClock("iClock"),
     iData("iData"),
     oData("oData"),
+    inputQueue("inQueue", 10), // enough for a cache line + head flit
     outputQueue("delay", 1024 /* "infinite" size */, (double)params.latency),
     mainMemory(memory) {
+
+  iData(inputQueue);
+  oData(outputQueue);
 
   requestState = STATE_IDLE;
 
@@ -27,8 +31,8 @@ MainMemoryRequestHandler::MainMemoryRequestHandler(sc_module_name name,
   sensitive << iClock.pos();
   dont_initialize();
 
-  SC_METHOD(sendData);
-  sensitive << outputQueue.writeEvent();
+  SC_METHOD(sentData);
+  sensitive << outputQueue.dataConsumedEvent();
   dont_initialize();
 
 }
@@ -79,20 +83,17 @@ void MainMemoryRequestHandler::flush(SRAMAddress position, MemoryAccessMode mode
 // is being treated as an L1 or L2 cache.
 bool MainMemoryRequestHandler::payloadAvailable(MemoryLevel level) const {
   loki_assert_with_message(level == MEMORY_OFF_CHIP, "Level = %d", level);
-  return iData.valid() && isPayload(iData.read());
+  return inputQueue.canRead() && isPayload(inputQueue.peek());
 }
 
 // Retrieve a payload flit. `level` tells whether this bank is being treated
 // as an L1 or L2 cache.
 uint32_t MainMemoryRequestHandler::getPayload(MemoryLevel level) {
   loki_assert_with_message(level == MEMORY_OFF_CHIP, "Level = %d", level);
-  NetworkRequest request = iData.read();
+  NetworkRequest request = inputQueue.read();
   uint32_t payload = request.payload().toUInt();
 
   Instrumentation::MainMemory::receiveData(request);
-  Instrumentation::Network::recordBandwidth(iData.name());
-
-  iData.ack();
 
   return payload;
 }
@@ -100,7 +101,7 @@ uint32_t MainMemoryRequestHandler::getPayload(MemoryLevel level) {
 // Send a result to the requested destination.
 void MainMemoryRequestHandler::sendResponse(NetworkResponse response, MemoryLevel level) {
   loki_assert_with_message(level == MEMORY_OFF_CHIP, "Level = %d", level);
-  loki_assert(!outputQueue.full());
+  loki_assert(outputQueue.canWrite());
 
   outputQueue.write(response);
 }
@@ -146,13 +147,10 @@ void MainMemoryRequestHandler::processIdle() {
     next_trigger(mainMemory.canStartRequestEvent());
   }
   // Check for new requests.
-  else if (iData.valid()) {
-    NetworkRequest request = iData.read();
+  else if (inputQueue.canRead()) {
+    NetworkRequest request = inputQueue.read();
 
     Instrumentation::MainMemory::receiveData(request);
-    Instrumentation::Network::recordBandwidth(iData.name());
-
-    iData.ack();
 
     ChannelID returnAddress(request.getMemoryMetadata().returnTileX,
                             request.getMemoryMetadata().returnTileY,
@@ -187,7 +185,7 @@ void MainMemoryRequestHandler::processIdle() {
   }
   // Nothing to do - wait for input to arrive.
   else {
-    next_trigger(iData.default_event());
+    next_trigger(inputQueue.canReadEvent());
   }
 }
 
@@ -218,24 +216,7 @@ void MainMemoryRequestHandler::processRequest() {
   }
 }
 
-void MainMemoryRequestHandler::sendData() {
-  if (outputQueue.empty())
-    next_trigger(outputQueue.writeEvent());
-  else if (oData.valid()) {
-    LOKI_LOG << this->name() << " is blocked waiting for output to become free" << endl;
-    next_trigger(oData.ack_event());
-  }
-  else if (!iClock.posedge())
-    next_trigger(iClock.posedge_event());
-  else {
-    NetworkResponse response = outputQueue.read();
-
-    LOKI_LOG << this->name() << " sending " << response << endl;
-    Instrumentation::MainMemory::sendData(response);
-    Instrumentation::Network::recordBandwidth(oData.name());
-
-
-    oData.write(response);
-    next_trigger(oData.ack_event());
-  }
+void MainMemoryRequestHandler::sentData() {
+  NetworkResponse response = outputQueue.lastDataRead();
+  Instrumentation::MainMemory::sendData(response);
 }

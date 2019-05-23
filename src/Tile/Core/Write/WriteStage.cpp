@@ -42,9 +42,9 @@ void WriteStage::updateReady() {
     oReady.write(ready);
 
     if (ready)
-      Instrumentation::Stalls::unstall(id, Instrumentation::Stalls::STALL_OUTPUT, currentInst);
+      Instrumentation::Stalls::unstall(id(), Instrumentation::Stalls::STALL_OUTPUT, currentInst);
     else
-      Instrumentation::Stalls::stall(id, Instrumentation::Stalls::STALL_OUTPUT, currentInst);
+      Instrumentation::Stalls::stall(id(), Instrumentation::Stalls::STALL_OUTPUT, currentInst);
 
     if (!ready)
       LOKI_LOG << this->name() << " stalled." << endl;
@@ -59,34 +59,26 @@ void WriteStage::writeReg(RegisterIndex reg, int32_t value, bool indirect) const
   core().writeReg(reg, value, indirect);
 }
 
-void WriteStage::requestArbitration(ChannelID destination, bool request) {
-  core().requestArbitration(destination, request);
-}
-
-bool WriteStage::requestGranted(ChannelID destination) const {
-  return core().requestGranted(destination);
-}
-
-WriteStage::WriteStage(sc_module_name name, const ComponentID& ID,
-                       const fifo_parameters_t& fifoParams) :
-    PipelineStage(name, ID),
+WriteStage::WriteStage(sc_module_name name,
+                       const fifo_parameters_t& fifoParams,
+                       uint numCores,
+                       uint numMemories) :
+    PipelineStage(name),
     iFetch("iFetch"),
     iData("iData"),
     oReady("oReady"),
     oDataLocal("oDataMulticast"),
     oDataMemory("oDataMemory"),
-    oDataGlobal("oDataGlobal"),
     iCredit("iCredit"),
-    scet("scet", ID, fifoParams, &(core().channelMapTable)) {
+    scet("scet", fifoParams, &(core().channelMapTable), numCores, numMemories) {
 
   // Connect the SCET to the network.
   scet.clock(clock);
   scet.iFetch(iFetch);
   scet.iData(iData);
-  scet.oDataLocal(oDataLocal);
-  scet.oDataMemory(oDataMemory);
-  scet.oDataGlobal(oDataGlobal);
-  scet.iCredit(iCredit);
+  oDataLocal(scet.oMulticast);
+  oDataMemory(scet.oData);
+  iCredit(scet.iCredit);
 
   SC_METHOD(execute);
   sensitive << newInstructionEvent;

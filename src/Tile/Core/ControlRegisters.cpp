@@ -10,7 +10,7 @@
 #include "../../Utility/Assert.h"
 
 ControlRegisters::ControlRegisters(const sc_module_name& name, ComponentID id) :
-    LokiComponent(name, id),
+    LokiComponent(name),
     registers(16, 0) {
 
   // Initialise CPU location.

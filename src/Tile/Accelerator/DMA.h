@@ -100,6 +100,11 @@ private:
 // Local state
 //============================================================================//
 
+public:
+
+  // Each DMA has its own ID to make network addressing easier.
+  const ComponentID id;
+
 protected:
 
   // Commands from control unit telling which data to load/store.

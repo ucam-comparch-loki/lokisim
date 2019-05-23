@@ -19,7 +19,7 @@ class Core;
 
 class MagicMemoryConnection: public LokiComponent {
 public:
-  MagicMemoryConnection(sc_module_name name, ComponentID id);
+  MagicMemoryConnection(sc_module_name name);
   virtual ~MagicMemoryConnection();
 
   // Receive notification that the given instruction wants to send a request to

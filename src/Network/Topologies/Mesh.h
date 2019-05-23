@@ -12,12 +12,14 @@
 #ifndef MESH_H_
 #define MESH_H_
 
+#include "../../LokiComponent.h"
 #include "../../Utility/LokiVector2D.h"
-#include "../Network.h"
 #include "../Global/NetworkDeadEnd.h"
 #include "../Router.h"
 
-class Mesh : public Network {
+using sc_core::sc_port;
+
+class Mesh : public LokiComponent {
 
 //============================================================================//
 // Ports
@@ -25,25 +27,21 @@ class Mesh : public Network {
 
 public:
 
-// Inherited from Network:
-//
-//  ClockInput   clock;
+  // Routers consume their inputs on the positive clock edge.
+  ClockInput   clock;
 
-  // Inputs to network (outputs from components).
-  // Addressed using iData[column][row]
-  LokiVector2D<DataInput>  iData;
+  // Both inputs and outputs count as network sinks. The inputs are sinks of the
+  // local tile networks, and the outputs are the sinks of this mesh network.
+  typedef sc_port<network_sink_ifc<Word>> InPort;
+  typedef sc_port<network_sink_ifc<Word>> OutPort;
 
-  // Outputs from network (inputs to components).
-  // Addressed using oData[column][row]
-  LokiVector2D<DataOutput> oData;
+  // Inputs from tiles.
+  // Addressed using inputs[column][row].
+  LokiVector2D<InPort> inputs;
 
-  // A signal from each router saying whether it is ready to receive data.
-  // Addressed using oReady[column][row]
-  LokiVector2D<ReadyOutput> oReady;
-
-  // A signal to each router saying whether it can send data to the local tile.
-  // Addressed using iReady[column][row]
-  LokiVector2D<ReadyOutput> iReady;
+  // Outputs to tiles.
+  // Addressed using outputs[column][row].
+  LokiVector2D<OutPort> outputs;
 
 //============================================================================//
 // Constructors and destructors
@@ -52,9 +50,7 @@ public:
 public:
 
   Mesh(const sc_module_name& name,
-       ComponentID ID,
        size2d_t size,
-       HierarchyLevel level,
        const router_parameters_t& routerParams);
 
 //============================================================================//
@@ -63,8 +59,7 @@ public:
 
 private:
 
-  void makeRouters(size2d_t tiles, const router_parameters_t& params);
-  void makeWires(size2d_t tiles);
+  void makeComponents(size2d_t tiles, const router_parameters_t& params);
   void wireUp(size2d_t tiles);
 
 //============================================================================//
@@ -75,16 +70,10 @@ private:
 
   // 2D vector of routers. Indexed using routers[column][row]. (0,0) is in the
   // top left corner.
-  LokiVector2D<Router> routers;
+  LokiVector2D<Router<Word>> routers;
 
   // Debug components which warn us if data is sent off the edge of the network.
-  LokiVector<NetworkDeadEnd<NetworkData>> edges;
-
-  // Lots of 2D arrays of signals. Each 2D array is indexed using
-  // array[column][row]. Each array name is tagged with the direction it
-  // carries data, e.g. NS = north to south.
-  LokiVector2D<DataSignal> dataSigNS, dataSigSN, dataSigEW, dataSigWE;
-  LokiVector2D<ReadySignal> readySigNS, readySigSN, readySigEW, readySigWE;
+  LokiVector<NetworkDeadEnd<Word>> edges;
 
 };
 

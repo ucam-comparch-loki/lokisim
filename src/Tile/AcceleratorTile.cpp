@@ -10,28 +10,24 @@
 #include "../Chip.h"
 
 AcceleratorTile::AcceleratorTile(const sc_module_name& name,
-                                 const ComponentID& id,
+                                 const TileID& id,
                                  const tile_parameters_t& params) :
     ComputeTile(name, id, params) {
 
-  TileID tile = id.tile;
-
   // Create accelerators.
   for (uint acc = 0; acc < params.numAccelerators; acc++) {
-    ComponentID accID(tile, acc + params.numCores + params.numMemories);
+    ComponentID accID(id, acc + params.numCores + params.numMemories);
 
     Accelerator* a = new Accelerator(sc_gen_unique_name("acc"), accID,
-                                     params.accelerator,
-                                     params.mcastNetOutputs());
+                                     params.accelerator);
     accelerators.push_back(a);
 
-    a->iClock(iClock);
+    a->clock(clock);
 
     // Connect to the multicast network. Some slightly awkward indexing because
     // all of the cores have already been connected.
-    a->iMulticast(multicastToCores[params.numCores + acc]); // vector
-    a->oMulticast(multicastFromCores[params.numCores + acc]);
-    a->oReadyData(readyDataFromCores[params.numCores + acc]); // vector
+    coreToCore.inputs[params.numCores + acc](a->oMulticast);
+    coreToCore.outputs[params.numCores*params.core.numInputChannels + acc](a->iMulticast[0]);
   }
 
 }
@@ -78,7 +74,7 @@ uint AcceleratorTile::acceleratorIndex(ComponentID id) const {
 }
 
 void AcceleratorTile::networkSendDataInternal(const NetworkData& flit) {
-  if (flit.channelID().component.tile != id.tile)
+  if (flit.channelID().component.tile != id)
     chip().networkSendDataInternal(flit);
   else if (isCore(flit.channelID().component)) {
     cores[coreIndex(flit.channelID().component)].deliverDataInternal(flit);

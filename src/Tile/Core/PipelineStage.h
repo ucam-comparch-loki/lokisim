@@ -34,7 +34,7 @@ public:
 protected:
 
   SC_HAS_PROCESS(PipelineStage);
-  PipelineStage(const sc_module_name& name, const ComponentID& ID);
+  PipelineStage(const sc_module_name& name);
 
 //============================================================================//
 // Methods
@@ -48,6 +48,9 @@ public:
   // Provide access to the surrounding pipeline registers. Either of these can
   // be NULL - used at the ends of the pipeline.
   void initPipeline(PipelineRegister* prev, PipelineRegister* next);
+
+  // Return the ID of this core.
+  const ComponentID& id() const;
 
 protected:
 

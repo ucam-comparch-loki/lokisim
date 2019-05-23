@@ -14,7 +14,7 @@
 #define RECEIVECHANNELENDTABLE_H_
 
 #include "../../../LokiComponent.h"
-#include "../../../Network/FIFOs/FIFOArray.h"
+#include "../../../Network/FIFOs/NetworkFIFO.h"
 #include "../../../Network/NetworkTypes.h"
 #include "../../../Utility/BlockingInterface.h"
 #include "../../../Utility/LokiVector.h"
@@ -35,15 +35,8 @@ public:
 
   // Data values received over the network. There should be NUM_RECEIVE_CHANNELS
   // inputs in the array.
-  LokiVector<sc_in<Word> > iData;
-
-  // A flow control signal for each input (NUM_RECEIVE_CHANNELS), to tell the
-  // flow control unit whether there is space left in its buffer.
-  LokiVector<ReadyOutput> oFlowControl;
-
-  // A flow control signal for each input (NUM_RECEIVE_CHANNELS), to tell the
-  // flow control unit when data has been consumed and a credit can be sent.
-  LokiVector<ReadyOutput> oDataConsumed;
+  typedef sc_port<network_sink_ifc<Word>> InPort;
+  LokiVector<InPort> iData;
 
 //============================================================================//
 // Constructors and destructors
@@ -52,17 +45,14 @@ public:
 public:
 
   SC_HAS_PROCESS(ReceiveChannelEndTable);
-  ReceiveChannelEndTable(const sc_module_name& name, const ComponentID& ID,
-                         size_t numChannels, const fifo_parameters_t& fifoParams);
+  ReceiveChannelEndTable(const sc_module_name& name, size_t numChannels,
+                         const fifo_parameters_t& fifoParams);
 
 //============================================================================//
 // Methods
 //============================================================================//
 
 public:
-
-  // When data arrives over the network, put it into the appropriate buffer.
-  void checkInput(ChannelIndex input);
 
   // Read from the specified channel end. ChannelIndex 0 is mapped to r2.
   int32_t read(ChannelIndex channelEnd);
@@ -99,12 +89,10 @@ private:
   // The least significant bit represents channel 0 (r2).
   void waitForData(unsigned int bitmask, const DecodedInst& inst);
 
-  // Update the flow control value for an input port.
-  void updateFlowControl(ChannelIndex buffer);
+  // Method triggered whenever new data arrives.
+  void networkDataArrived(ChannelIndex buffer);
 
-  // Toggle signals to indicate when data has been consumed.
-  void dataConsumedAction(ChannelIndex buffer);
-
+  ComponentID  id() const;
   DecodeStage& parent() const;
 
 //============================================================================//
@@ -119,7 +107,7 @@ public:
 private:
 
   // A buffer for each channel-end.
-  FIFOArray<Word> buffers;
+  LokiVector<NetworkFIFO<Word>> buffers;
 
   // Allows round-robin selection of channels when executing selch.
   LoopCounter       currentChannel;

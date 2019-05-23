@@ -62,7 +62,7 @@ bool Decoder::decodeInstruction(const DecodedInst& input, DecodedInst& output) {
   // irreversible channel read.
   bool execute = shouldExecute(input);
 
-  Instrumentation::decoded(id, input);
+  Instrumentation::decoded(parent().id(), input);
 
   if (/*ENERGY_TRACE &&*/ !input.isExecuteStageOperation()) {
     Instrumentation::executed(parent().core(), input, execute);
@@ -304,7 +304,8 @@ void Decoder::waitUntilArrival(ChannelIndex channel, const DecodedInst& inst) {
 
     stall(true, reason, inst);
 
-    LOKI_LOG << this->name() << " waiting for channel " << (int)channel << endl;
+    LOKI_LOG << this->name() << " waiting for channel "
+        << (int)(channel + Core::numInstructionChannels) << endl;
 
     // Wait until something arrives.
     wait(parent().receivedDataEvent(channel) | cancelEvent);
@@ -355,7 +356,8 @@ bool Decoder::checkChannelInput(ChannelIndex channel, const DecodedInst& inst) {
                    : Instrumentation::Stalls::STALL_CORE_DATA;
     stall(true, reason, inst);  // Remember to unstall again afterwards.
 
-    LOKI_LOG << this->name() << " waiting for channel " << (int)channel << endl;
+    LOKI_LOG << this->name() << " waiting for channel "
+        << (int)(channel + Core::numInstructionChannels) << endl;
 
     next_trigger(parent().receivedDataEvent(channel) | cancelEvent);
   }
@@ -481,9 +483,9 @@ void Decoder::fetch(DecodedInst& inst) {
 void Decoder::stall(bool stall, Instrumentation::Stalls::StallReason reason, const DecodedInst& cause) {
   blocked = stall;
   if (stall)
-    Instrumentation::Stalls::stall(id, reason, cause);
+    Instrumentation::Stalls::stall(parent().id(), reason, cause);
   else
-    Instrumentation::Stalls::unstall(id, reason, cause);
+    Instrumentation::Stalls::unstall(parent().id(), reason, cause);
   blockedEvent.notify();
 }
 
@@ -509,8 +511,8 @@ void Decoder::reportStalls(ostream& os) {
   }
 }
 
-Decoder::Decoder(const sc_module_name& name, const ComponentID& ID) :
-    LokiComponent(name, ID) {
+Decoder::Decoder(const sc_module_name& name) :
+    LokiComponent(name) {
 
   continueToExecute = false;
   execute = false;

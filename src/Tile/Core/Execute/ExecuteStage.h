@@ -42,7 +42,7 @@ public:
 public:
 
   SC_HAS_PROCESS(ExecuteStage);
-  ExecuteStage(const sc_module_name& name, const ComponentID& ID,
+  ExecuteStage(const sc_module_name& name,
                const scratchpad_parameters_t& spadParams);
 
 //============================================================================//

@@ -6,12 +6,10 @@
  */
 
 #include "LokiComponent.h"
+using sc_core::sc_module_name;
 
-LokiComponent::LokiComponent(const sc_module_name& name) : id(0,0,0) {
+LokiComponent::LokiComponent(const sc_module_name& name) {
 
-}
-
-LokiComponent::LokiComponent(const sc_module_name& name, const ComponentID& ID) :
-    id(ID) {
+  // Nothing
 
 }

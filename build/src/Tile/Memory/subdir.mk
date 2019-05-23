@@ -5,6 +5,7 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
 ../src/Tile/Memory/Directory.cpp \
+../src/Tile/Memory/L2Logic.cpp \
 ../src/Tile/Memory/L2RequestFilter.cpp \
 ../src/Tile/Memory/MemoryBank.cpp \
 ../src/Tile/Memory/MissHandlingLogic.cpp \
@@ -12,6 +13,7 @@ CPP_SRCS += \
 
 OBJS += \
 ./src/Tile/Memory/Directory.o \
+./src/Tile/Memory/L2Logic.o \
 ./src/Tile/Memory/L2RequestFilter.o \
 ./src/Tile/Memory/MemoryBank.o \
 ./src/Tile/Memory/MissHandlingLogic.o \
@@ -19,6 +21,7 @@ OBJS += \
 
 CPP_DEPS += \
 ./src/Tile/Memory/Directory.d \
+./src/Tile/Memory/L2Logic.d \
 ./src/Tile/Memory/L2RequestFilter.d \
 ./src/Tile/Memory/MemoryBank.d \
 ./src/Tile/Memory/MissHandlingLogic.d \
