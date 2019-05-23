@@ -133,6 +133,9 @@ typedef struct {
   activation_config_t input;
   activation_config_t output;
   filter_config_t     filters;
+
+  // Encoded network address to send to when computation is finished.
+  uint32_t notificationAddress;
 } conv_parameters_t;
 
 
