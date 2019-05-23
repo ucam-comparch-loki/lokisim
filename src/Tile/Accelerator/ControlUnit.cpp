@@ -19,10 +19,8 @@ ControlUnit::ControlUnit(sc_module_name name, const accelerator_parameters_t& pa
     oCores("oCores"),
     receiver("params"),
     algorithm("algorithm", params),
-    coreNotification("coreNotification", 1) {
-
-  // TODO Notify cores when execution is finished and all data is back in
-  // memory.
+    coreNotification("coreNotification", 1),
+    notificationAddress(ChannelID(parent().id, 0)) {
 
   iParameter(receiver.iParameter);
   oCores(coreNotification);
@@ -39,6 +37,10 @@ ControlUnit::ControlUnit(sc_module_name name, const accelerator_parameters_t& pa
   sensitive << algorithm.startedComputation();
   dont_initialize();
 
+  SC_METHOD(notifyFinished);
+  sensitive << algorithm.finishedComputation();
+  dont_initialize();
+
 }
 
 void ControlUnit::startExecution() {
@@ -51,6 +53,7 @@ void ControlUnit::startExecution() {
 
     parameterSanityCheck(parameters);
     updateMemoryMapping(parameters);
+    notificationAddress.write(parameters.notificationAddress);
 
     algorithm.start(parameters);
   }
@@ -73,6 +76,18 @@ bool ControlUnit::canStartNewStep() const {
          parent().in1.canAcceptCommand() &&
          parent().in2.canAcceptCommand() &&
          parent().out.canAcceptCommand();
+}
+
+void ControlUnit::notifyFinished() {
+  loki_assert(!algorithm.executing());
+
+  // TODO: also ensure that all results have reached memory.
+
+  loki_assert(coreNotification.canWrite());
+
+  // Message doesn't need to contain any useful information.
+  Flit<Word> flit(0, notificationAddress.getDestination());
+  coreNotification.write(flit);
 }
 
 void ControlUnit::parameterSanityCheck(const conv_parameters_t params) {

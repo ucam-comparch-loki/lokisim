@@ -9,6 +9,7 @@
 #define SRC_TILE_ACCELERATOR_CONTROLUNIT_H_
 
 #include "../../LokiComponent.h"
+#include "../ChannelMapEntry.h"
 #include "AcceleratorTypes.h"
 #include "ConvolutionAlgorithm.h"
 #include "ParameterReceiver.h"
@@ -65,6 +66,11 @@ private:
   // progress.
   bool canStartNewStep() const;
 
+  // Send a notification message when computation has finished and all results
+  // have reached memory. The location to which the message should be sent was
+  // given as a parameter.
+  void notifyFinished();
+
   // Check that the parameters are consistent. This is purely for debug -
   // simulation will end with an assertion failure if anything is wrong.
   void parameterSanityCheck(const conv_parameters_t parameters);
@@ -89,6 +95,7 @@ private:
 
   // Messages to notify cores when computation has finished.
   NetworkFIFO<Word> coreNotification;
+  ChannelMapEntry notificationAddress;
 
 };
 
