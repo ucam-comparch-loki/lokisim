@@ -222,6 +222,14 @@ void Operations::executed(const Core& core, const DecodedInst& dec, bool execute
   }
 }
 
+void Operations::acceleratorTick(const ComponentID& acc, uint numOps) {
+  totalInstructions += numOps;
+
+  // TODO: Collect more details.
+  //  * Which accelerator were these operations on?
+  //  * What fraction of the PEs were used this tick?
+}
+
 count_t Operations::numDecodes()               {return numDecodes_;}
 count_t Operations::numOperations()            {return numOps_.numEvents();}
 
