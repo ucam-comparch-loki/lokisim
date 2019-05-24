@@ -27,6 +27,7 @@ public:
 
   static void decoded(const ComponentID& core, const DecodedInst& dec);
   static void executed(const Core& core, const DecodedInst& dec, bool executed);
+  static void acceleratorTick(const ComponentID& acc, uint numOps);
 
   static count_t numDecodes();
   static count_t numOperations();

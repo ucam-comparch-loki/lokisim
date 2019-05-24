@@ -85,13 +85,15 @@ private:
 // Local state
 //============================================================================//
 
+public:
+
+  const ComponentID id;
+
 private:
 
   // The control unit sets state throughout the accelerator so give it access.
   friend class ControlUnit;
   friend class DMA;
-
-  const ComponentID id;
 
   ControlUnit control;
   DMAInput<dtype> in1, in2;

@@ -11,6 +11,7 @@
 #include "ControlUnit.h"
 #include "ConvolutionAlgorithm.h"
 #include "../../Utility/Assert.h"
+#include "../../Utility/Instrumentation.h"
 #include "Accelerator.h"
 
 ControlUnit::ControlUnit(sc_module_name name, const accelerator_parameters_t& params) :
@@ -56,6 +57,8 @@ void ControlUnit::startExecution() {
     notificationAddress.write(parameters.notificationAddress);
 
     algorithm.start(parameters);
+
+    Instrumentation::idle(parent().id, false);
   }
 }
 
@@ -88,6 +91,8 @@ void ControlUnit::notifyFinished() {
   // Message doesn't need to contain any useful information.
   Flit<Word> flit(0, notificationAddress.getDestination());
   coreNotification.write(flit);
+
+  Instrumentation::idle(parent().id, true);
 }
 
 void ControlUnit::parameterSanityCheck(const conv_parameters_t params) {
