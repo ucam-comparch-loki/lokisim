@@ -221,8 +221,8 @@ void IntertileUnit::sendCreditFlit(credit_state_t& state) {
 
 ChannelID IntertileUnit::indexToAddress(PortIndex index) const {
   // Assuming all connected components are identical.
-  uint component = index / iFlowControl.size();
-  uint channel   = index % iFlowControl.size();
+  uint component = index / iFlowControl[0].size();
+  uint channel   = index % iFlowControl[0].size();
   return ChannelID(tile().id, component, channel);
 }
 
@@ -230,7 +230,7 @@ PortIndex IntertileUnit::addressToIndex(ChannelID address) const {
   // Assuming all connected components are identical.
   uint component = address.component.position;
   uint channel   = address.channel;
-  return (component * iFlowControl.size()) + channel;
+  return (component * iFlowControl[0].size()) + channel;
 }
 
 void IntertileUnit::dataConsumed(uint component, uint channel) {
