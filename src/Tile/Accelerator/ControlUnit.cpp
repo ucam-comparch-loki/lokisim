@@ -133,7 +133,7 @@ ControlUnit::ControlUnit(sc_module_name name, const accelerator_parameters_t& pa
   dont_initialize();
 
   SC_METHOD(notifyFinished);
-  sensitive << algorithm.finishedComputation();
+  sensitive << parent().finishedComputationEvent();
   dont_initialize();
 
 }
@@ -149,6 +149,8 @@ void ControlUnit::startExecution() {
     parameterSanityCheck(parameters);
     updateMemoryMapping(parameters);
     notificationAddress.write(parameters.notificationAddress);
+
+    LOKI_LOG << this->name() << " starting computation" << endl;
 
     algorithm.start(parameters);
 
@@ -176,9 +178,10 @@ bool ControlUnit::canStartNewStep() const {
 }
 
 void ControlUnit::notifyFinished() {
+  // This may not be valid if multiple computations get queued up.
   loki_assert(!algorithm.executing());
 
-  // TODO: also ensure that all results have reached memory.
+  LOKI_LOG << this->name() << " finished computation" << endl;
 
   loki_assert(coreNotification.canWrite());
 
@@ -191,8 +194,10 @@ void ControlUnit::notifyFinished() {
 
 void ControlUnit::parameterSanityCheck(const conv_parameters_t params) {
   loki_assert(params.shape.groups != 0);
-  loki_assert(params.shape.inChannels % params.shape.groups == 0);
-  loki_assert(params.shape.outChannels % params.shape.groups == 0);
+  loki_assert_with_message(params.shape.inChannels % params.shape.groups == 0,
+      "Channels: %d, groups: %d", params.shape.inChannels, params.shape.groups);
+  loki_assert_with_message(params.shape.outChannels % params.shape.groups == 0,
+      "Channels: %d, groups: %d", params.shape.outChannels, params.shape.groups);
 //  loki_assert(params.shape.imageHeight >= params.shape.filterHeight);
 //  loki_assert(params.shape.imageWidth >= params.shape.filterWidth);
 }

@@ -738,7 +738,8 @@ uint32_t MemoryBank::getResponse() {
 bool MemoryBank::canSendResponse(ChannelID destination, MemoryLevel level) const {
   switch (level) {
     case MEMORY_L1:
-      if (destination.channel < Core::numInstructionChannels)
+      if (parent().isCore(destination.component) &&
+          destination.channel < Core::numInstructionChannels)
         return outputInstQueue.canWrite();
       else
         return outputDataQueue.canWrite();
@@ -753,7 +754,8 @@ bool MemoryBank::canSendResponse(ChannelID destination, MemoryLevel level) const
 const sc_event& MemoryBank::canSendResponseEvent(ChannelID destination, MemoryLevel level) const {
   switch (level) {
     case MEMORY_L1:
-      if (destination.channel < Core::numInstructionChannels)
+      if (parent().isCore(destination.component) &&
+          destination.channel < Core::numInstructionChannels)
         return outputInstQueue.canWriteEvent();
       else
         return outputDataQueue.canWriteEvent();
@@ -773,8 +775,14 @@ void MemoryBank::sendResponse(NetworkResponse response, MemoryLevel level) {
 
   switch (level) {
     case MEMORY_L1:
+<<<<<<< Upstream, based on origin/master
       if (response.channelID().channel < Core::numInstructionChannels) {
         LOKI_LOG(3) << this->name() << " buffering instruction " << response << endl;
+=======
+      if (parent().isCore(response.channelID().component) &&
+          response.channelID().channel < Core::numInstructionChannels) {
+        LOKI_LOG << this->name() << " buffering instruction " << response << endl;
+>>>>>>> ecad10f Give Accelerator proper network and memory connections.
         outputInstQueue.write(response);
       }
       else {

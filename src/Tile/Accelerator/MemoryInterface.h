@@ -18,7 +18,10 @@
 #include <queue>
 #include "../../LokiComponent.h"
 #include "../../Memory/MemoryTypes.h"
+#include "../../Network/FIFOs/NetworkFIFO.h"
+#include "../../Network/Interface.h"
 #include "../../Network/NetworkTypes.h"
+#include "../../Utility/LokiVector.h"
 #include "../ChannelMapEntry.h"
 #include "../MemoryBankSelector.h"
 
@@ -42,6 +45,7 @@ typedef struct {
   position_t position;
   MemoryAddr address;
   MemoryOpcode operation;
+  bool       hasPayload;
   uint32_t   data;
 } request_t;
 
@@ -56,13 +60,25 @@ typedef struct {
 class MemoryInterface : public LokiComponent {
 
 //============================================================================//
+// Ports
+//============================================================================//
+
+public:
+
+  typedef sc_port<network_sink_ifc<Word>> InPort;
+  typedef sc_port<network_source_ifc<Word>> OutPort;
+
+  LokiVector<OutPort> oRequest;   // Requests sent to memory.
+  LokiVector<InPort>  iResponse;  // Responses from memory.
+
+//============================================================================//
 // Constructors and destructors
 //============================================================================//
 
 public:
 
   SC_HAS_PROCESS(MemoryInterface);
-  MemoryInterface(sc_module_name name, ComponentID id);
+  MemoryInterface(sc_module_name name, ComponentID id, uint numMemoryBanks);
 
 
 //============================================================================//
@@ -73,7 +89,7 @@ public:
 
   // Enqueue a memory request to be sent when next possible.
   void createNewRequest(position_t position, MemoryAddr address, MemoryOpcode op,
-                        uint32_t data=0);
+                        uint payloadFlits, uint32_t data=0);
 
   // Dequeue the next value received from memory.
   const response_t getResponse();
@@ -96,6 +112,7 @@ public:
   // This component is idle if it has no waiting requests, no waiting responses,
   // and there are no requests currently in flight in the memory system.
   bool isIdle() const;
+  const sc_event& becameIdleEvent() const;
 
   // Update the mapping from memory addresses to memory banks.
   void replaceMemoryMapping(ChannelMapEntry::MemoryChannel mapping);
@@ -104,6 +121,10 @@ private:
 
   // Send the next request in the request queue to memory.
   void sendRequest();
+
+  // Take a response from memory and pass it on to the StagingArea, with any
+  // relevant metadata.
+  void processResponse(int buffer);
 
   DMA& parent() const;
 
@@ -126,21 +147,23 @@ private:
   // bank to increase parallelism.
   queue<request_t> requests;
   sc_event requestArrived;
+  LokiVector<NetworkFIFO<Word>> requestBuffers;
 
   // Responses received from memory.
   queue<response_t> responses;
   sc_event responseArrived;
+  LokiVector<NetworkFIFO<Word>> responseBuffers;
 
-  // Probably temporary. Hold the PE position associated with each request while
-  // we wait for a response from memory. Assumes that responses will arrive in
-  // the same order as requests, which is only true for magic memory, or if huge
-  // numbers of channels are available.
-  queue<position_t> inFlight;
+  // Hold the PE position associated with each request while we wait for a
+  // response from memory. Assumes that responses will arrive in the same order
+  // as requests. There is one queue for each response buffer.
+  vector<queue<position_t>> inFlight;
 
   // Keep track of the number of requests in progress so we know when they're all
   // done. A request begins when it first arrives in the request queue, and it
   // ends when its response is removed from the response queue.
   uint outstandingRequests;
+  sc_event becameIdle;
 
 };
 

@@ -13,6 +13,8 @@
 
 #include "../../Network/Network.h"
 
+class ComputeTile;
+
 class ForwardCrossbar: public Network<Word> {
 
 //============================================================================//
@@ -43,6 +45,9 @@ public:
 
 protected:
   virtual PortIndex getDestination(const ChannelID address) const;
+
+private:
+  ComputeTile& parent() const;
 
 };
 

@@ -84,13 +84,16 @@ NetworkRequest Directory::updateRequest(const NetworkRequest& request) const {
 
   TileID nextTile = directory[entry].tile;
   ChannelID destination(nextTile.x, nextTile.y, request.channelID().component.position, request.channelID().channel);
-  address = (address & ~(bitmask << shiftAmount))
-          | (directory[entry].replaceBits << shiftAmount);
+  MemoryAddr newAddress = (address & ~(bitmask << shiftAmount))
+                        | (directory[entry].replaceBits << shiftAmount);
   metadata.scratchpad = directory[entry].scratchpad;
+
+  LOKI_LOG << "Directory updated address " << LOKI_HEX(address) << " to "
+      << LOKI_HEX(newAddress) << " on tile " << nextTile << endl;
 
   NetworkRequest updated = request;
   updated.setChannelID(destination);
-  updated.setPayload(address);
+  updated.setPayload(newAddress);
   updated.setMetadata(metadata.flatten());
   return updated;
 }

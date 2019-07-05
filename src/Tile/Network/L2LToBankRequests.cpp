@@ -43,7 +43,7 @@ MemoryIndex L2LToBankRequests::targetBank() const {
 
 // Notify of a cache hit.
 void L2LToBankRequests::cacheHit() {
-  loki_assert_with_message(!hit, "Two cache hits for same request", 0);
+  loki_assert_with_message(!hit, "Two cache hits for same address: 0x%x", flit.payload().toUInt());
 
   hit = true;
   addResponse();

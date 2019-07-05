@@ -12,6 +12,7 @@
 
 #include "../../Exceptions/InvalidOptionException.h"
 #include "../../LokiComponent.h"
+#include "../../Network/Interface.h"
 #include "../../Utility/Assert.h"
 #include "AcceleratorTypes.h"
 #include "CommandQueue.h"
@@ -498,8 +499,8 @@ private:
 #include "AcceleratorTypes.h"
 #include "CommandQueue.h"
 #include "ConvolutionAlgorithm.h"
+#include "Interface.h"
 #include "MemoryInterface.h"
-#include "StagingArea.h"
 
 class Accelerator;
 
@@ -515,8 +516,11 @@ public:
   // Command from the control unit.
   CommandInput iCommand;
 
-  // The current tick being executed.
-  sc_in<tick_t> iTick;
+  typedef sc_port<network_sink_ifc<Word>> InPort;
+  typedef sc_port<network_source_ifc<Word>> OutPort;
+
+  LokiVector<OutPort> oRequest;   // Requests sent to memory.
+  LokiVector<InPort>  iResponse;  // Responses from memory.
 
 //============================================================================//
 // Constructors and destructors
@@ -526,7 +530,7 @@ public:
 
   SC_HAS_PROCESS(DMA);
 
-  DMA(sc_module_name name, ComponentID id, size_t queueLength=4);
+  DMA(sc_module_name name, ComponentID id, uint numBanks, size_t queueLength=4);
 
 
 //============================================================================//
@@ -544,6 +548,9 @@ public:
   // Magic connection from memory.
   void deliverDataInternal(const NetworkData& flit);
 
+  bool isIdle() const;
+  const sc_event& becameIdleEvent() const;
+
 protected:
 
   // Remove and return the next command from the control unit.
@@ -551,7 +558,7 @@ protected:
 
   // Generate a new memory request and send it to the appropriate memory bank.
   void createNewRequest(position_t position, MemoryAddr address,
-                        MemoryOpcode op, int data = 0);
+                        MemoryOpcode op, int payloadFlits, int data = 0);
 
   // Send a request to memory. If a response is expected, it will trigger the
   // memoryInterface.responseArrivedEvent() event.
@@ -576,6 +583,8 @@ private:
 
   void newCommandArrived();
 
+  void detectIdleness();
+
 
 //============================================================================//
 // Local state
@@ -589,6 +598,11 @@ protected:
   // Component responsible for organising requests and responses from memory.
   friend class MemoryInterface;
   MemoryInterface memoryInterface;
+
+private:
+
+  // Event which is triggered whenever the DMA runs out of work to do.
+  sc_event becameIdle;
 
 };
 
@@ -604,12 +618,11 @@ class DMABase: public DMA {
 public:
 
   // Also include cache details?
-  DMABase(sc_module_name name, ComponentID id, size2d_t ports,
+  DMABase(sc_module_name name, ComponentID id, size2d_t ports, uint numBanks,
           size_t queueLength=4) :
-      DMA(name, id, queueLength),
-      stagingArea(ports.width, ports.height) {
+      DMA(name, id, numBanks, queueLength) {
 
-    // Nothing.
+    currentTick = -1;
 
   }
 
@@ -641,7 +654,7 @@ protected:
     }
 
     // Generate a memory request and send to memory.
-    createNewRequest(position, address, op);
+    createNewRequest(position, address, op, 0);
   }
 
   virtual void storeData(position_t position, MemoryAddr address, int data) {
@@ -665,7 +678,7 @@ protected:
     }
 
     // Generate a memory request and send to memory.
-    createNewRequest(position, address, op, data);
+    createNewRequest(position, address, op, 1, data);
   }
 
   virtual void loadAndAdd(position_t position, MemoryAddr address, int data) {
@@ -694,7 +707,7 @@ protected:
     }
 
     // Generate a memory request and send to memory.
-    createNewRequest(position, address, LOAD_AND_ADD, shiftedData);
+    createNewRequest(position, address, LOAD_AND_ADD, 1, shiftedData);
   }
 
 
@@ -704,9 +717,8 @@ protected:
 
 protected:
 
-  // A register for each port to the compute units. Used for holding data
-  // immediately before sending/receiving it to/from the compute unit.
-  StagingArea<T> stagingArea;
+  // The ID of the command we are currently processing.
+  tick_t currentTick;
 
 };
 
@@ -720,11 +732,8 @@ class DMAInput: public DMABase<T> {
 
 public:
 
-  // Array of values sent to PEs. Addressed using array[x][y].
-  LokiVector2D<sc_out<T>> oDataToPEs;
-
-  // Valid signal for data sent to PEs.
-  sc_out<bool>            oDataValid;
+  // Array of values sent to PEs.
+  sc_port<accelerator_producer_ifc<T>> oDataToPEs;
 
 
 //============================================================================//
@@ -735,11 +744,10 @@ public:
 
   SC_HAS_PROCESS(DMAInput);
 
-  DMAInput(sc_module_name name, ComponentID id, size2d_t ports,
+  DMAInput(sc_module_name name, ComponentID id, size2d_t ports, uint numBanks,
            size_t queueLength=4) :
-      DMABase<T>(name, id, ports, queueLength),
-      oDataToPEs("oDataToPEs", ports.width, ports.height),
-      oDataValid("oDataValid") {
+      DMABase<T>(name, id, ports, numBanks, queueLength),
+      oDataToPEs("oDataToPEs") {
 
     // Templated class means `this` must be used whenever referring to anything
     // from a parent class.
@@ -751,10 +759,6 @@ public:
     SC_METHOD(receiveMemoryData);
     this->sensitive << this->memoryInterface.responseArrivedEvent();
     this->dont_initialize();
-
-    SC_METHOD(sendPEData);
-    this->sensitive << this->iTick;
-    // do initialise
 
   }
 
@@ -772,8 +776,14 @@ private:
 
     // For the moment, we only work on one command at a time. In the future we
     // might prefer to buffer multiple sets of data.
-    if (this->stagingArea.isEmpty()) {
+    if (oDataToPEs->canWrite()) {
       dma_command_t command = this->commandQueue.dequeue();
+      this->currentTick = command.time;
+
+      loki_assert(command.rowLength > 0);
+      loki_assert(command.colLength > 0);
+      LOKI_LOG << this->name() << " loading " << command.rowLength
+          << " columns x " << command.colLength << " rows" << endl;
 
       // TODO Make this a parameter.
       MemoryOpcode memoryOp = LOAD_W;
@@ -787,9 +797,16 @@ private:
         }
       }
 
+      // Fill in all remaining spaces with zero (for now).
+      for (uint col=0; col<oDataToPEs->size().width; col++)
+        for (uint row=0; row<oDataToPEs->size().height; row++)
+          if (col >= command.rowLength || row >= command.colLength)
+            oDataToPEs->write(row, col, 0);
+
+      next_trigger(oDataToPEs->canWriteEvent());
     }
     else
-      next_trigger(this->stagingArea.emptiedEvent());
+      next_trigger(oDataToPEs->canWriteEvent());
   }
 
   // Receive data from memory and put it in the staging area.
@@ -797,38 +814,18 @@ private:
     loki_assert(this->memoryInterface.canGiveResponse());
 
     response_t response = this->memoryInterface.getResponse();
-    this->stagingArea.write(response.position.row, response.position.column,
-                            static_cast<T>(response.data));
+    oDataToPEs->write(response.position.row, response.position.column,
+                      static_cast<T>(response.data));
 
     // To emulate parallel operations, receive the next response immediately,
     // if there is one.
     if (this->memoryInterface.canGiveResponse())
       next_trigger(sc_core::SC_ZERO_TIME);
 
-    // If this was the final value requested, fill in any unused slots with
-    // zeros. This is only valid if we only work on one command_t at a time.
+    // Notify consumers when the last data has been received.
+    // TODO Does not allow memory interface to start work on next command.
     if (this->memoryInterface.isIdle())
-      this->stagingArea.fillWith(0);
-  }
-
-  // Copy data from staging area to ports.
-  void sendPEData() {
-    // TODO: Check that the PEs should receive this data on this tick.
-
-    if (!this->stagingArea.isFull()) {
-      oDataValid.write(false);
-      next_trigger(this->stagingArea.filledEvent());
-    }
-    else {
-      // TODO: Use same dimension order for ports and staging area.
-      for (uint col=0; col<oDataToPEs.size(); col++)
-        for (uint row=0; row<oDataToPEs[col].size(); row++)
-          oDataToPEs[col][row].write(this->stagingArea.read(row, col));
-
-      oDataValid.write(true);
-      // TODO: Flow control goes false when we reach a "tick" that this data
-      // should not be used for.
-    }
+      oDataToPEs->finishedWriting(this->currentTick);
   }
 
 };
@@ -843,11 +840,8 @@ class DMAOutput: public DMABase<T> {
 
 public:
 
-  // Array of values received from PEs. Addressed using array[x][y].
-  LokiVector2D<sc_in<T>> iDataFromPEs;
-
-  // Flow control telling whether we're ready to receive new data.
-  sc_out<bool>           oReadyForData;
+  // Array of values received from PEs.
+  sc_port<accelerator_consumer_ifc<T>> iDataFromPEs;
 
 
 //============================================================================//
@@ -858,23 +852,16 @@ public:
 
   SC_HAS_PROCESS(DMAOutput);
 
-  DMAOutput(sc_module_name name, ComponentID id, size2d_t ports,
+  DMAOutput(sc_module_name name, ComponentID id, size2d_t ports, uint numBanks,
             size_t queueLength=4) :
-      DMABase<T>(name, id, ports, queueLength),
-      iDataFromPEs("iDataFromPEs", ports.width, ports.height),
-      oReadyForData("oReadyForData") {
+      DMABase<T>(name, id, ports, numBanks, queueLength),
+      iDataFromPEs("iDataFromPEs") {
 
     // Templated class means `this` must be used whenever referring to anything
     // from a parent class.
 
-    oReadyForData.initialize(true);
-
     SC_METHOD(executeCommand);
     this->sensitive << this->commandQueue.queueChangedEvent();
-    this->dont_initialize();
-
-    SC_METHOD(receivePEData);
-    this->sensitive << this->iTick;
     this->dont_initialize();
 
     SC_METHOD(receiveMemoryData);
@@ -895,8 +882,10 @@ private:
     if (this->commandQueue.empty())
       return;
 
-    if (this->stagingArea.isFull()) {
+    if (iDataFromPEs->canRead()) {
       dma_command_t command = this->commandQueue.dequeue();
+      this->currentTick = command.time;
+      loki_assert(command.time == iDataFromPEs->getTick());
 
       // TODO Make this a parameter.
       MemoryOpcode memoryOp = LOAD_AND_ADD;
@@ -906,41 +895,20 @@ private:
         for (uint col=0; col<command.rowLength; col++) {
           MemoryAddr addr = command.baseAddress + col*command.rowStride + row*command.colStride;
           position_t position; position.row = row; position.column = col;
-          this->memoryAccess(position, addr, memoryOp, this->stagingArea.read(row, col));
+          T value = iDataFromPEs->read(row, col);
+          this->memoryAccess(position, addr, memoryOp, value);
 
           // TODO: optionally do nothing if the output is zero
         }
       }
 
-      // Discard any remaining data so the staging area appears empty again.
-      this->stagingArea.discard();
+      iDataFromPEs->finishedReading();
+      next_trigger(iDataFromPEs->canReadEvent());
 
     }
     else
-      next_trigger(this->stagingArea.filledEvent());
+      next_trigger(iDataFromPEs->canReadEvent());
 
-  }
-
-  // Receive data from PEs.
-  void receivePEData() {
-    loki_assert(oReadyForData.read());
-
-    // Check to see if we've finished with the previous batch of data, and
-    // wait if not.
-    if (this->stagingArea.isEmpty()) {
-      // Copy all data from ports into staging area.
-      // TODO: Use same dimension order for ports and staging area.
-      for (uint col=0; col<iDataFromPEs.size(); col++)
-        for (uint row=0; row<iDataFromPEs[col].size(); row++)
-          this->stagingArea.write(row, col, iDataFromPEs[col][row].read());
-
-      loki_assert(this->stagingArea.isFull());
-      oReadyForData.write(true);
-    }
-    else {
-      oReadyForData.write(false);
-      next_trigger(this->stagingArea.emptiedEvent());
-    }
   }
 
   // Receive data from memory.
