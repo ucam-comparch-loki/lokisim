@@ -20,6 +20,8 @@
 
 using sc_core::sc_event;
 using sc_core::sc_interface;
+using sc_core::sc_time;
+using sc_core::SC_ZERO_TIME;
 
 class accelerator_ifc_base : virtual public sc_interface {
 public:
@@ -40,8 +42,9 @@ public:
   virtual void write(uint row, uint col, T value) = 0;
 
   // Notify consumers that all data has now been written. Record which tick of
-  // computation this data is associated with.
-  virtual void finishedWriting(tick_t tick) = 0;
+  // computation this data is associated with, and how long it should take
+  // before consumers receive the data.
+  virtual void finishedWriting(tick_t tick, sc_time latency = SC_ZERO_TIME) = 0;
 };
 
 template<typename T>
@@ -61,8 +64,8 @@ public:
   // the stored data. A request for row x will access x mod num rows.
   virtual T read(uint row, uint col) const = 0;
 
-  // Notify producers that all data has now been consumed.
-  virtual void finishedReading() = 0;
+  // Notify producers that all data has now been consumed, after some delay.
+  virtual void finishedReading(sc_time initiationInterval = SC_ZERO_TIME) = 0;
 };
 
 template<typename T>

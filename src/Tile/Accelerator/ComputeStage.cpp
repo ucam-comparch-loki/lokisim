@@ -20,11 +20,11 @@ ComputeStage<T>::ComputeStage(sc_module_name name, uint numInputs, uint latency,
     LokiComponent(name),
     BlockingInterface(),
     in("in", numInputs),
-    out("out") {
+    out("out"),
+    latency(latency, sc_core::SC_NS),
+    initiationInterval(initiationInterval, sc_core::SC_NS) {
 
-  // TODO implement latency and initiation interval.
-  // Latency affects when we call out->finishedWriting
-  // II affects when we call in->finishedReading
+  // Nothing
 
 }
 
@@ -59,9 +59,9 @@ void ComputeStage<T>::mainLoop() {
   compute();
 
   // Flow control.
-  out->finishedWriting(tick);
+  out->finishedWriting(tick, latency);
   for (uint i=0; i<in.size(); i++)
-    in[i]->finishedReading();
+    in[i]->finishedReading(initiationInterval);
 }
 
 template<typename T>

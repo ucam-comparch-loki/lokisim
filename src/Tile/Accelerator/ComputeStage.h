@@ -76,6 +76,19 @@ protected:
 
   const ComponentID& id() const;
 
+
+//============================================================================//
+// Local state
+//============================================================================//
+
+private:
+
+  // Delay between consuming inputs and producing an output.
+  const sc_time latency;
+
+  // Delay between consuming consecutive inputs on the same port.
+  const sc_time initiationInterval;
+
 };
 
 #endif /* SRC_TILE_ACCELERATOR_COMPUTESTAGE_H_ */

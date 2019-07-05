@@ -68,11 +68,11 @@ public:
 
   // Notify consumers that all data has now been written. Record which tick of
   // computation this data is associated with.
-  virtual void finishedWriting(tick_t tick) {
+  virtual void finishedWriting(tick_t tick, sc_time latency = SC_ZERO_TIME) {
     assert(mode == CHANNEL_WRITE);
     mode = CHANNEL_READ;
     currentTick = tick;
-    startReadMode.notify(sc_core::SC_ZERO_TIME);
+    startReadMode.notify(latency);
   }
 
   // Check whether it is possible to read from the channel at this time.
@@ -99,10 +99,10 @@ public:
   }
 
   // Notify producers that all data has now been consumed.
-  virtual void finishedReading() {
+  virtual void finishedReading(sc_time latency = SC_ZERO_TIME) {
     assert(mode == CHANNEL_READ);
     mode = CHANNEL_WRITE;
-    startWriteMode.notify(sc_core::SC_ZERO_TIME);
+    startWriteMode.notify(latency);
   }
 
 //============================================================================//
