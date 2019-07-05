@@ -5,8 +5,6 @@
  * single bank to access for a single request, based on other relevant
  * information.
  *
- * TODO: Use this component in FetchStage and ExecuteStage.
- *
  *  Created on: 30 Jul 2018
  *      Author: db434
  */

@@ -187,14 +187,6 @@ public:
   // memory of a group in order to access the given memory address.
   uint computeAddressIncrement(MemoryAddr address) const;
 
-  // Set the address increment, ready to be used by subsequent flits in the
-  // packet.
-  void setAddressIncrement(uint increment);
-
-  // Retrieve a precomputed address increment, to ensure that the correct
-  // memory bank is accessed.
-  uint getAddressIncrement() const;
-
   uint popCount() const;
   uint hammingDistance(const ChannelMapEntry& other) const;
 
@@ -235,9 +227,6 @@ private:
 
   // The network to send data on (e.g. core-to-core or core-to-memory).
   NetworkType network_;
-
-  // The current address increment for this entry.
-  unsigned int addressIncrement_;
 
   // Event triggered whenever a credit arrives.
   sc_event creditArrived_;

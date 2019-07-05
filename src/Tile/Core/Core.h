@@ -199,6 +199,9 @@ private:
 //============================================================================//
 
 public:
+
+  const ComponentID id;
+
   // Pipeline stages.
   FetchStage             fetch;
   DecodeStage            decode;
@@ -240,8 +243,6 @@ public:
 
   // Number of input channels reserved for instructions.
   static const uint numInstructionChannels = 2;
-
-  const ComponentID id;
 
 private:
 

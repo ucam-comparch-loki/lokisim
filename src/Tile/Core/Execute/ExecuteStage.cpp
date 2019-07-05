@@ -290,45 +290,21 @@ void ExecuteStage::memoryStorePhase2(DecodedInst& operation) {
   continuingStore = false;
 }
 
-void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) const {
+void ExecuteStage::adjustNetworkAddress(DecodedInst& inst) {
   loki_assert_with_message(core().isMemory(inst.networkDestination().component),
       "Destination = %s", inst.networkDestination().getString(Encoding::hardwareChannelID).c_str());
 
-  bool addressFlit;
-
-  switch (inst.memoryOp()) {
-    case PAYLOAD:
-    case PAYLOAD_EOP:
-    case UPDATE_DIRECTORY_ENTRY:
-    case UPDATE_DIRECTORY_MASK:
-      addressFlit = false;
-      break;
-    default:
-      addressFlit = true;
-      break;
-  }
-
-  // We want to access lots of information from the channel map table, so get
-  // the entire entry.
+  // Not sure why we have to get a fresh copy of the channel map table entry.
   ChannelMapEntry& channelMapEntry = core().channelMapTable[inst.channelMapEntry()];
+  ChannelMapEntry::MemoryChannel channel = channelMapEntry.memoryView();
+//  ChannelMapEntry::MemoryChannel channel =
+//      ChannelMapEntry::memoryView(inst.cmtEntry());
 
   // Adjust destination channel based on memory configuration if necessary
-  uint32_t increment = 0;
+  ChannelID destination = bankSelector.getMapping(inst.memoryOp(),
+      (int)inst.result(), channel);
+  uint32_t increment = destination.component.position;
 
-  if (channelMapEntry.isMemory() && channelMapEntry.getMemoryGroupSize() > 1) {
-    if (addressFlit) {
-      increment = channelMapEntry.computeAddressIncrement((uint32_t)inst.result());
-
-      // Store the adjustment which must be made, so that any subsequent flits
-      // can also access the same memory bank.
-      channelMapEntry.setAddressIncrement(increment);
-    }
-    else {
-      increment = channelMapEntry.getAddressIncrement();
-    }
-  }
-
-  ChannelMapEntry::MemoryChannel channel = channelMapEntry.memoryView();
   channel.bank += increment;
   inst.cmtEntry(channel.flatten());
 }
@@ -404,7 +380,8 @@ ExecuteStage::ExecuteStage(const sc_module_name& name,
     oData("oData"),
     iReady("iReady"),
     alu("alu"),
-    scratchpad("scratchpad", spadParams) {
+    scratchpad("scratchpad", spadParams),
+    bankSelector(id()) {
 
   forwardedResult = 0;
   previousInstExecuted = false;

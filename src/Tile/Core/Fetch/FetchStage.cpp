@@ -246,8 +246,8 @@ void FetchStage::sendRequest(const FetchInfo& fetch) {
 
     if (fetch.networkInfo.isMemory) {
       // Select the bank to access based on the memory address.
-      uint increment = core().channelMapTable[0].computeAddressIncrement(fetch.address);
-      ChannelID destination(id().tile.x, id().tile.y, fetch.networkInfo.bank + increment + core().coresThisTile(), fetch.networkInfo.channel);
+      ChannelID destination = bankSelector.getMapping(IPK_READ, fetch.address, fetch.networkInfo);
+      destination.component.position += CORES_PER_TILE;  // Hack
       flit = NetworkData(fetch.address, destination, fetch.networkInfo, IPK_READ, true);
     }
     else {
@@ -546,7 +546,8 @@ FetchStage::FetchStage(sc_module_name name,
     iOutputBufferReady("iOutputBufferReady"),
     cache("IPKcache", cacheParams),
     fifo("IPKfifo", fifoParams),
-    fetchBuffer("fetchBuffer", 1) {
+    fetchBuffer("fetchBuffer", 1),
+    bankSelector(id()) {
 
   // Connect ports.
   fifo.clock(clock);

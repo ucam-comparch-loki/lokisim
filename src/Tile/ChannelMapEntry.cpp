@@ -249,14 +249,6 @@ uint ChannelMapEntry::computeAddressIncrement(MemoryAddr address) const {
   return increment;
 }
 
-void ChannelMapEntry::setAddressIncrement(uint increment) {
-  addressIncrement_ = increment;
-}
-
-uint ChannelMapEntry::getAddressIncrement() const {
-  return addressIncrement_;
-}
-
 uint ChannelMapEntry::popCount() const {
   return __builtin_popcount(read());
 }
@@ -272,23 +264,20 @@ const sc_event& ChannelMapEntry::creditArrivedEvent() const {
 ChannelMapEntry::ChannelMapEntry(ChannelID localID) :
   id_(localID),
   data_(0),
-  network_(MULTICAST),
-  addressIncrement_(0) {
+  network_(MULTICAST) {
 
 }
 
 ChannelMapEntry::ChannelMapEntry(const ChannelMapEntry& other) :
   id_(other.id_),
   data_(other.data_),
-  network_(other.network_),
-  addressIncrement_(other.addressIncrement_) {
+  network_(other.network_) {
 
 }
 
 ChannelMapEntry& ChannelMapEntry::operator=(const ChannelMapEntry& other) {
   id_ = other.id_;
   data_ = other.data_;
-  addressIncrement_ = other.addressIncrement_;
 
   network_ = other.network_;
 

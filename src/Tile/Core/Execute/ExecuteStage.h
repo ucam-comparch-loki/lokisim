@@ -16,6 +16,7 @@
 #include "Scratchpad.h"
 #include "../PipelineStage.h"
 #include "../../../Utility/BlockingInterface.h"
+#include "../../MemoryBankSelector.h"
 
 class ExecuteStage: public PipelineStage, public BlockingInterface {
 
@@ -81,7 +82,7 @@ private:
   void memoryStorePhase2(DecodedInst& operation);
 
   // Determine which memory bank from a group should be accessed.
-  void adjustNetworkAddress(DecodedInst& operation) const;
+  void adjustNetworkAddress(DecodedInst& operation);
 
   virtual bool isStalled() const;
 
@@ -125,6 +126,9 @@ private:
 //============================================================================//
 
 private:
+
+  // Determine which memory bank each memory request should be sent to.
+  MemoryBankSelector bankSelector;
 
   // The result of the previous instruction to be forwarded, if necessary.
   int32_t forwardedResult;

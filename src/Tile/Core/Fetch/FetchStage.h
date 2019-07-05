@@ -18,6 +18,7 @@
 #include "InstructionPacketFIFO.h"
 #include "../PipelineStage.h"
 #include "../../../Utility/BlockingInterface.h"
+#include "../../MemoryBankSelector.h"
 
 class FetchStage : public FirstPipelineStage, public BlockingInterface {
 
@@ -235,6 +236,9 @@ private:
   // complete.
   FIFO<FetchInfo> fetchBuffer;
   FetchInfo activeFetch;
+
+  // Determine which memory bank each fetch request should be sent to.
+  MemoryBankSelector bankSelector;
 
   // Event which is triggered whenever a packet finishes arriving.
   sc_event packetArrivedEvent;

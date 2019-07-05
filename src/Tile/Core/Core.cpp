@@ -281,6 +281,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
 >>>>>>> 6a6e491 Connect Accelerator to local multicast network.
     oMulticast("oMulticast"),
     iCredit("iCredit"),
+    id(ID),
     fetch("fetch", params.ipkFIFO, params.cache),
     decode("decode", params.numInputChannels-numInstructionChannels, params.inputFIFO),
     execute("execute", params.scratchpad),
@@ -291,7 +292,6 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
     cregs("cregs", ID),
     incomingCredits("credits"),  // More of a register than a FIFO
     magicMemoryConnection("magic_memory"),
-    id(ID),
     stageReady("stageReady", 3) { // 4 stages => 3 links between stages
 
   currentlyStalled = false;
