@@ -9,12 +9,11 @@
 #define SRC_TILE_ACCELERATOR_COMPUTEUNIT_H_
 
 #include "../../LokiComponent.h"
-#include "../../Utility/Assert.h"
-#include "../../Utility/Instrumentation/Operations.h"
-#include "../../Utility/LokiVector2D.h"
+#include "../../Network/NetworkTypes.h"
+#include "../../Utility/LokiVector.h"
+#include "AcceleratorChannel.h"
 #include "AcceleratorTypes.h"
-#include "AdderTree.h"
-#include "Multiplier.h"
+#include "ComputeStage.h"
 
 class Accelerator;
 
@@ -27,26 +26,14 @@ class ComputeUnit: public LokiComponent {
 
 public:
 
+  typedef sc_port<accelerator_consumer_ifc<T>> InPort;
+  typedef sc_port<accelerator_producer_ifc<T>> OutPort;
+
   ClockInput clock;
 
   // The data being computed.
-  LokiVector2D<sc_in<T>> in1;
-  LokiVector2D<sc_in<T>> in2;
-  LokiVector2D<sc_out<T>> out;
-
-  // The input from another component is ready to be consumed.
-  ReadyInput  in1Ready;
-  ReadyInput  in2Ready;
-
-  // The component receiving the output is ready to consume new data.
-  ReadyInput  outReady;
-
-  // The current tick being executed. This signal also acts as flow control,
-  // with any connected components only supplying data when the tick reaches a
-  // predetermined value.
-  // We have separate signals for inputs and outputs because the computation
-  // may be pipelined, leaving the output a few ticks behind the input.
-  sc_out<tick_t> inputTick, outputTick;
+  InPort in1, in2;
+  OutPort out;
 
 //============================================================================//
 // Constructors and destructors
@@ -54,21 +41,17 @@ public:
 
 public:
 
-  SC_HAS_PROCESS(ComputeUnit<T>);
   ComputeUnit(sc_module_name name, const accelerator_parameters_t& params);
 
 //============================================================================//
 // Methods
 //============================================================================//
 
-private:
+protected:
 
-  void newTick();
-
-  void triggerCompute();
-
-  // Signal that the output for the given tick is available on the `out` ports.
-  void newOutputTick();
+  // Connect a new stage to the existing pipeline. Assumes a single input which
+  // receives data from the most-recently-added stage.
+  void addNewStage(ComputeStage<T>* stage, size2d_t inputSize);
 
   Accelerator& parent() const;
   const ComponentID& id() const;
@@ -79,13 +62,10 @@ private:
 
 private:
 
-  LokiVector2D<Multiplier<T>> multipliers;
-  LokiVector<AdderTree<T>> adders;
-  LokiVector<sc_signal<T>> signals;
+  friend class ComputeStage<T>;
 
-  tick_t currentTick;
-
-  sc_event outputReadyEvent;
+  LokiVector<ComputeStage<T>> pipeline;
+  LokiVector<AcceleratorChannel<T>> channels;
 
 };
 

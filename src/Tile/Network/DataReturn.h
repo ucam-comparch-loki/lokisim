@@ -14,6 +14,8 @@
 
 #include "../../Network/Network.h"
 
+class ComputeTile;
+
 class DataReturn: public Network<Word> {
 
 //============================================================================//
@@ -47,6 +49,10 @@ protected:
 
   virtual PortIndex getDestination(const ChannelID address) const;
 
+private:
+
+  ComputeTile& parent() const;
+
 //============================================================================//
 // Local state
 //============================================================================//
@@ -58,6 +64,12 @@ private:
 
   // Number of cores reachable through outputs.
   const uint outputCores;
+
+  // The number of output ports which lead to the same accelerator.
+  // A little hacky at the moment: each accelerator has multiple DMAs, each of
+  // which behaves as its own component. This variable actually represents
+  // outputs per DMA.
+  const uint outputsPerAccelerator;
 
 };
 

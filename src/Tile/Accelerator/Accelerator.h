@@ -13,6 +13,7 @@
 #include "../../Datatype/Word.h"
 #include "../../LokiComponent.h"
 #include "../../Network/NetworkTypes.h"
+#include "AcceleratorChannel.h"
 #include "ComputeUnit.h"
 #include "ControlUnit.h"
 #include "ConvolutionAlgorithm.h"
@@ -47,6 +48,11 @@ public:
   LokiVector<InPort>      iMulticast;
   OutPort                 oMulticast;
 
+  // Connections to memory banks. Each DMA unit has its own set of ports.
+  // Addressed using iMemory[dma][channel].
+  LokiVector2D<InPort>    iMemory;
+  LokiVector2D<OutPort>   oMemory;
+
 //============================================================================//
 // Constructors and destructors
 //============================================================================//
@@ -54,7 +60,7 @@ public:
 public:
 
   SC_HAS_PROCESS(Accelerator);
-  Accelerator(sc_module_name name, ComponentID id,
+  Accelerator(sc_module_name name, ComponentID id, uint numMemoryBanks,
               const accelerator_parameters_t& params);
 
 
@@ -74,9 +80,13 @@ public:
 
 private:
 
+  // Event which is triggered when computation has finished and all results
+  // have reached memory.
+  const sc_event& finishedComputationEvent() const;
+
   // Returns which channel of memory should be accessed. This determines which
   // component data is returned to.
-  ChannelIndex memoryAccessChannel() const;
+  ChannelIndex memoryAccessChannel(ComponentID id) const;
 
   AcceleratorTile& parent() const;
 
@@ -95,17 +105,15 @@ private:
   friend class ControlUnit;
   friend class DMA;
 
-  ControlUnit control;
   DMAInput<dtype> in1, in2;
   DMAOutput<dtype> out;
 
+  ControlUnit control;
   ComputeUnit<dtype> compute;
 
   CommandSignal toIn1, toIn2, toOut;
 
-  LokiVector2D<sc_signal<dtype>> toPEs1, toPEs2, fromPEs;
-  ReadySignal in1Ready, in2Ready, outReady;
-  sc_signal<tick_t> inTickSig, outTickSig;
+  AcceleratorChannel<dtype> toPEs1, toPEs2, fromPEs;
 
 };
 

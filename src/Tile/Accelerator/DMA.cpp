@@ -8,16 +8,24 @@
 #include "DMA.h"
 #include "Accelerator.h"
 
-DMA::DMA(sc_module_name name, ComponentID id, size_t queueLength) :
+DMA::DMA(sc_module_name name, ComponentID id, uint numBanks, size_t queueLength) :
     LokiComponent(name),
     iCommand("iCommand"),
-    iTick("iTick"),
+    oRequest("oRequest", numBanks),
+    iResponse("iResponse", numBanks),
     id(id),
     commandQueue(queueLength),
-    memoryInterface("ifc", id) {
+    memoryInterface("ifc", id, numBanks) {
+
+  oRequest(memoryInterface.oRequest);
+  iResponse(memoryInterface.iResponse);
 
   SC_METHOD(newCommandArrived);
   sensitive << iCommand;
+  dont_initialize();
+
+  SC_METHOD(detectIdleness);
+  sensitive << memoryInterface.becameIdleEvent();
   dont_initialize();
 
 }
@@ -36,7 +44,7 @@ void DMA::replaceMemoryMapping(EncodedCMTEntry mapEncoded) {
 
   // Update the memory channel so the memory knows which component to return
   // data to.
-  decoded.channel = parent().memoryAccessChannel();
+  decoded.channel = parent().memoryAccessChannel(id);
 
   memoryInterface.replaceMemoryMapping(decoded);
 }
@@ -46,6 +54,14 @@ void DMA::deliverDataInternal(const NetworkData& flit) {
   memoryInterface.receiveResponse(flit);
 }
 
+bool DMA::isIdle() const {
+  return commandQueue.empty() && memoryInterface.isIdle();
+}
+
+const sc_event& DMA::becameIdleEvent() const {
+  return becameIdle;
+}
+
 // Remove and return the next command from the control unit.
 const dma_command_t DMA::dequeueCommand() {
   return commandQueue.dequeue();
@@ -53,12 +69,15 @@ const dma_command_t DMA::dequeueCommand() {
 
 // Generate a new memory request and send it to the appropriate memory bank.
 void DMA::createNewRequest(position_t position, MemoryAddr address,
-                           MemoryOpcode op, int data) {
-  memoryInterface.createNewRequest(position, address, op, data);
+                           MemoryOpcode op, int payloadFlits, int data) {
+  memoryInterface.createNewRequest(position, address, op, payloadFlits, data);
 }
 
 // Send a request to memory. If a response is expected, it will trigger the
 // memoryInterface.responseArrivedEvent() event.
+// TODO: instead of breaking down the request into individual accesses, pass
+// more information to the memory interface and let it decide how access should
+// work. It may prefer to do bulk reads/writes, for example.
 void DMA::memoryAccess(position_t position, MemoryAddr address, MemoryOpcode op,
                        int data) {
   switch (op) {
@@ -92,6 +111,13 @@ Accelerator& DMA::parent() const {
 void DMA::newCommandArrived() {
   loki_assert(canAcceptCommand());
   enqueueCommand(iCommand.read());
+}
+
+void DMA::detectIdleness() {
+  if (isIdle()) {
+    LOKI_LOG << this->name() << " is now idle" << endl;
+    becameIdle.notify(sc_core::SC_ZERO_TIME);
+  }
 }
 
 

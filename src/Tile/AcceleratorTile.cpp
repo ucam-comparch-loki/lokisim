@@ -19,15 +19,41 @@ AcceleratorTile::AcceleratorTile(const sc_module_name& name,
     ComponentID accID(id, acc + params.numCores + params.numMemories);
 
     Accelerator* a = new Accelerator(sc_gen_unique_name("acc"), accID,
-                                     params.accelerator);
+                                     params.numMemories, params.accelerator);
     accelerators.push_back(a);
 
     a->clock(clock);
 
-    // Connect to the multicast network. Some slightly awkward indexing because
+    // Connect to the existing networks. Some slightly awkward indexing because
     // all of the cores have already been connected.
+
+    // Multicast.
     coreToCore.inputs[params.numCores + acc](a->oMulticast);
     coreToCore.outputs[params.numCores*params.core.numInputChannels + acc](a->iMulticast[0]);
+
+    // To/from memory.
+    // Ports connected in ComputeTile.
+    uint c2mPorts = params.numCores;
+    uint m2cPorts = params.numCores * params.core.numInputChannels;
+
+    for (uint i=0; i<accelerators.size(); i++) {
+      // Core to memory.
+      for (uint j=0; j<accelerators[i].oMemory.size(); j++) {
+        for (uint k=0; k<accelerators[i].oMemory[j].size(); k++) {
+          coreToMemory.inputs[c2mPorts](accelerators[i].oMemory[j][k]);
+          c2mPorts++;
+        }
+      }
+
+      // Memory to cores (data).
+      for (uint j=0; j<accelerators[i].iMemory.size(); j++) {
+        for (uint k=0; k<accelerators[i].iMemory[j].size(); k++) {
+          dataReturn.outputs[m2cPorts](accelerators[i].iMemory[j][k]);
+          m2cPorts++;
+        }
+      }
+    }
+
   }
 
 }
