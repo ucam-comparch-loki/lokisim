@@ -11,6 +11,7 @@
 #define SRC_TILE_ACCELERATOR_COMPUTESTAGE_H_
 
 #include "../../LokiComponent.h"
+#include "../../Utility/BlockingInterface.h"
 #include "../../Utility/LokiVector.h"
 #include "Interface.h"
 
@@ -20,9 +21,8 @@ template<typename T> class ComputeUnit;
 
 // TODO Should there be separate types for the inputs and outputs? Perhaps even
 // separate types for each input?
-// TODO Implement BlockingInterface
 template <typename T>
-class ComputeStage: public LokiComponent {
+class ComputeStage: public LokiComponent, public BlockingInterface {
 
 //============================================================================//
 // Ports
@@ -67,6 +67,9 @@ protected:
   // Ensure all inputs and outputs are ready, and then trigger the compute
   // method.
   virtual void mainLoop();
+
+  // Print debug information if this component is unable to make progress.
+  virtual void reportStalls(ostream& os);
 
 
   ComputeUnit<T>& parent() const;

@@ -52,6 +52,9 @@ protected:
       for (uint col=0; col<size.width; col++) {
         T result = this->in[0]->read(row, col) * this->in[1]->read(row, col);
         this->out->write(row, col, result);
+
+//        cout << this->in[0]->read(row, col) << " x " <<
+//            this->in[1]->read(row, col) << " = " << result << endl;
       }
     }
 

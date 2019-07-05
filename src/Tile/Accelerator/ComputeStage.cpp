@@ -18,6 +18,7 @@ template<typename T>
 ComputeStage<T>::ComputeStage(sc_module_name name, uint numInputs, uint latency,
                               uint initiationInterval) :
     LokiComponent(name),
+    BlockingInterface(),
     in("in", numInputs),
     out("out") {
 
@@ -61,6 +62,13 @@ void ComputeStage<T>::mainLoop() {
   out->finishedWriting(tick);
   for (uint i=0; i<in.size(); i++)
     in[i]->finishedReading();
+}
+
+template<typename T>
+void ComputeStage<T>::reportStalls(ostream& os) {
+  // Ignore inputs? It's quite common not to have data to process.
+  if (!out->canWrite())
+    os << this->name() << " unable to write to output" << endl;
 }
 
 template<typename T>
