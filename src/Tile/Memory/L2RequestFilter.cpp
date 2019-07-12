@@ -31,11 +31,39 @@ void L2RequestFilter::end_of_elaboration() {
 
 void L2RequestFilter::mainLoop() {
 
+  // The common case operation of the L2 request filter is:
+  //  1. Request arrives from network
+  //  2. All banks check cache tags simultaneously
+  //  3a. If one bank has the data, it serves the request
+  //  3b. If all banks miss, the randomly selected target takes responsibility
+  //
+  // For any request, at most one bank may have a cache hit.
+  //
+  // However, this becomes more complex when the cache is under load:
+  //  * Never access cache tags if the output of this unit has not yet reached
+  //    the memory bank. The memory bank will not have updated its state to
+  //    account for that request.
+  //  * To compensate for this backpressure, allow a bank with a cache hit to
+  //    proceed before all banks have responded. (The Verilog doesn't do this.)
+  //  * If no banks have a cache hit, must wait for all banks to respond before
+  //    assigning the request to the random target bank.
+
   switch (state) {
 
     // Our first time seeing the request - check tags to see if we have the data,
     // otherwise check whether we are responsible on a miss.
     case STATE_IDLE: {
+      // Wait until output is available.
+      if (oRequest.valid()) {
+        next_trigger(oRequest.ack_event());
+        break;
+      }
+      // While waiting for output, the input might have already been claimed.
+      else if (iRequest->associativeHit()) {
+        next_trigger(iRequest->newRequestArrived());
+        break;
+      }
+
       const NetworkRequest& request = iRequest->peek();
       MemoryOpcode opcode = request.getMemoryMetadata().opcode;
 

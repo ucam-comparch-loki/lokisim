@@ -43,7 +43,8 @@ MemoryIndex L2LToBankRequests::targetBank() const {
 
 // Notify of a cache hit.
 void L2LToBankRequests::cacheHit() {
-  loki_assert_with_message(!hit, "Two cache hits for same address: 0x%x", flit.payload().toUInt());
+  loki_assert_with_message(!hit, "Two cache hits for same address: 0x%x",
+                           flit.payload().toUInt());
 
   hit = true;
   addResponse();
@@ -58,7 +59,9 @@ void L2LToBankRequests::cacheMiss() {
 // If the target bank has a cache miss, it is only allowed to begin a request
 // once all banks have responded.
 bool L2LToBankRequests::allResponsesReceived() const {
-  return (numResponses == numBanks);
+  // Optimisation: all *necessary* responses have been received as soon as there
+  // is a cache hit. That bank can then process the request and we can move on.
+  return (numResponses == numBanks) || hit;
 }
 
 const sc_event& L2LToBankRequests::allResponsesReceivedEvent() const {
@@ -115,7 +118,7 @@ const sc_event& L2LToBankRequests::canWriteEvent() const {
 
 // Updates performed when any response is received (hit or miss).
 void L2LToBankRequests::addResponse() {
-  loki_assert(!allResponsesReceived());
+  loki_assert(numResponses < numBanks);
 
   numResponses++;
 
