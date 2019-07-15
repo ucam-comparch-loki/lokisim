@@ -6,22 +6,51 @@
  */
 
 #include "BasicOperations.h"
+#include "../../Tile/Memory/MemoryBank.h"
 
 #include <assert.h>
 
-#include "../../Tile/Memory/MemoryBank.h"
-
-LoadWord::LoadWord(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 0, 1, BYTES_PER_WORD) {
+LoadStoreOperation::LoadStoreOperation(const NetworkRequest& request,
+                                       MemoryBase& memory,
+                                       MemoryLevel level,
+                                       ChannelID destination,
+                                       unsigned int payloadFlits,
+                                       unsigned int maxResultFlits,
+                                       unsigned int alignment) :
+    MemoryOperation(request, memory, level, destination, payloadFlits, maxResultFlits, alignment) {
   // Nothing
 }
 
-void LoadWord::prepare() {
+void LoadStoreOperation::prepare() {
   allocateLine();
 }
 
-bool LoadWord::preconditionsMet() const {
+bool LoadStoreOperation::preconditionsMet() const {
   return inCache();
+}
+
+
+LoadOperation::LoadOperation(const NetworkRequest& request, MemoryBase& memory,
+                             MemoryLevel level, ChannelID destination,
+                             unsigned int alignment) :
+    LoadStoreOperation(request, memory, level, destination, 0, 1, alignment) {
+  // Nothing
+}
+
+
+StoreOperation::StoreOperation(const NetworkRequest& request, MemoryBase& memory,
+                               MemoryLevel level, ChannelID destination,
+                               unsigned int alignment) :
+    LoadStoreOperation(request, memory, level, destination, 1, 0, alignment) {
+
+  preWriteCheck();
+
+}
+
+
+LoadWord::LoadWord(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    LoadOperation(request, memory, level, destination, BYTES_PER_WORD) {
+  // Nothing
 }
 
 void LoadWord::execute() {
@@ -33,16 +62,8 @@ void LoadWord::execute() {
 
 
 LoadHalfword::LoadHalfword(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 0, 1, BYTES_PER_WORD/2) {
+    LoadOperation(request, memory, level, destination, BYTES_PER_WORD/2) {
   // Nothing
-}
-
-void LoadHalfword::prepare() {
-  allocateLine();
-}
-
-bool LoadHalfword::preconditionsMet() const {
-  return inCache();
 }
 
 void LoadHalfword::execute() {
@@ -54,16 +75,8 @@ void LoadHalfword::execute() {
 
 
 LoadByte::LoadByte(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 0, 1, 1) {
+    LoadOperation(request, memory, level, destination, 1) {
   // Nothing
-}
-
-void LoadByte::prepare() {
-  allocateLine();
-}
-
-bool LoadByte::preconditionsMet() const {
-  return inCache();
 }
 
 void LoadByte::execute() {
@@ -75,16 +88,8 @@ void LoadByte::execute() {
 
 
 StoreWord::StoreWord(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 1, 0, BYTES_PER_WORD) {
-  preWriteCheck();
-}
-
-void StoreWord::prepare() {
-  allocateLine();
-}
-
-bool StoreWord::preconditionsMet() const {
-  return inCache();
+    StoreOperation(request, memory, level, destination, BYTES_PER_WORD) {
+  // Nothing
 }
 
 void StoreWord::execute() {
@@ -98,16 +103,8 @@ void StoreWord::execute() {
 
 
 StoreHalfword::StoreHalfword(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 1, 0, BYTES_PER_WORD/2) {
-  preWriteCheck();
-}
-
-void StoreHalfword::prepare() {
-  allocateLine();
-}
-
-bool StoreHalfword::preconditionsMet() const {
-  return inCache();
+    StoreOperation(request, memory, level, destination, BYTES_PER_WORD/2) {
+  // Nothing
 }
 
 void StoreHalfword::execute() {
@@ -121,16 +118,8 @@ void StoreHalfword::execute() {
 
 
 StoreByte::StoreByte(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 1, 0, 1) {
-  preWriteCheck();
-}
-
-void StoreByte::prepare() {
-  allocateLine();
-}
-
-bool StoreByte::preconditionsMet() const {
-  return inCache();
+    StoreOperation(request, memory, level, destination, 1) {
+  // Nothing
 }
 
 void StoreByte::execute() {

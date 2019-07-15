@@ -6,25 +6,74 @@
  */
 
 #include "CacheLineOperations.h"
-
-#include <assert.h>
-
 #include "../Instruction.h"
 #include "../../Tile/Memory/MemoryBank.h"
 #include "../../Utility/Instrumentation/L1Cache.h"
 #include "../../Utility/Parameters.h"
 
-FetchLine::FetchLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 0, memory.cacheLineWords(), memory.cacheLineBytes()) {
+#include <assert.h>
+
+CacheLineOperation::CacheLineOperation(const NetworkRequest& request,
+                                       MemoryBase& memory,
+                                       MemoryLevel level,
+                                       ChannelID destination,
+                                       unsigned int payloadFlits,
+                                       unsigned int maxResultFlits,
+                                       unsigned int alignment) :
+    MemoryOperation(request, memory, level, destination, payloadFlits, maxResultFlits, alignment) {
   lineCursor = 0;
 }
 
-void FetchLine::prepare() {
+
+ReadLineOperation::ReadLineOperation(const NetworkRequest& request,
+                                     MemoryBase& memory,
+                                     MemoryLevel level,
+                                     ChannelID destination,
+                                     unsigned int alignment) :
+    CacheLineOperation(request, memory, level, destination, 0, memory.cacheLineWords(), alignment) {
+  // Nothing
+}
+
+void ReadLineOperation::prepare() {
   allocateLine();
 }
 
-bool FetchLine::preconditionsMet() const {
+bool ReadLineOperation::preconditionsMet() const {
   return inCache();
+}
+
+
+WriteLineOperation::WriteLineOperation(const NetworkRequest& request,
+                                       MemoryBase& memory,
+                                       MemoryLevel level,
+                                       ChannelID destination,
+                                       unsigned int payloadFlits) :
+    CacheLineOperation(request, memory, level, destination, payloadFlits, 0, memory.cacheLineBytes()) {
+  preWriteCheck();
+}
+
+void WriteLineOperation::prepare() {
+  // Overwriting the whole line, so no need for allocation.
+  validateLine();
+}
+
+bool WriteLineOperation::preconditionsMet() const {
+  return inCache();
+}
+
+
+MetadataOperation::MetadataOperation(const NetworkRequest& request,
+                                     MemoryBase& memory,
+                                     MemoryLevel level,
+                                     ChannelID destination) :
+    MemoryOperation(request, memory, level, destination, 0, 0, 1) {
+  // Nothing
+}
+
+
+FetchLine::FetchLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
+    ReadLineOperation(request, memory, level, destination, memory.cacheLineBytes()) {
+  // Nothing
 }
 
 void FetchLine::execute() {
@@ -43,16 +92,8 @@ void FetchLine::execute() {
 
 
 IPKRead::IPKRead(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 0, memory.cacheLineWords(), BYTES_PER_WORD) {
-  lineCursor = 0;
-}
-
-void IPKRead::prepare() {
-  allocateLine();
-}
-
-bool IPKRead::preconditionsMet() const {
-  return inCache();
+    ReadLineOperation(request, memory, level, destination, BYTES_PER_WORD) {
+  // Nothing
 }
 
 void IPKRead::execute() {
@@ -76,7 +117,7 @@ void IPKRead::execute() {
 
 
 ValidateLine::ValidateLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 0, 0, memory.cacheLineBytes()) {
+    MetadataOperation(request, memory, level, destination) {
   // Nothing
 }
 
@@ -94,24 +135,20 @@ void ValidateLine::execute() {
 
 
 PrefetchLine::PrefetchLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 0, 0, memory.cacheLineBytes()) {
-}
-
-void PrefetchLine::prepare() {
-  allocateLine();
-}
-
-bool PrefetchLine::preconditionsMet() const {
-  return inCache();
+    ReadLineOperation(request, memory, level, destination, memory.cacheLineBytes()) {
 }
 
 void PrefetchLine::execute() {
   // Nothing left to do
 }
 
+bool PrefetchLine::complete() const {
+  return preconditionsMet();  // Data is in the cache
+}
+
 
 FlushLine::FlushLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 0, 0, memory.cacheLineBytes()) {
+    MetadataOperation(request, memory, level, destination) {
   finished = false;
 
   // Instrumentation happens in the memory bank. At this point, we don't know
@@ -140,7 +177,7 @@ bool FlushLine::complete() const {
 
 
 InvalidateLine::InvalidateLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 0, 0, memory.cacheLineBytes()) {
+    MetadataOperation(request, memory, level, destination) {
   finished = false;
 }
 
@@ -165,7 +202,7 @@ bool InvalidateLine::complete() const {
 
 
 FlushAllLines::FlushAllLines(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 0, 0) {
+    MetadataOperation(request, memory, level, destination) {
   line = 0;
 }
 
@@ -193,7 +230,7 @@ bool FlushAllLines::complete() const {
 
 
 InvalidateAllLines::InvalidateAllLines(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 0, 0) {
+    MetadataOperation(request, memory, level, destination) {
   line = 0;
 }
 
@@ -221,18 +258,8 @@ bool InvalidateAllLines::complete() const {
 
 
 StoreLine::StoreLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, memory.cacheLineWords(), 0, memory.cacheLineBytes()) {
-  lineCursor = 0;
-  preWriteCheck();
-
-}
-
-void StoreLine::prepare() {
-  validateLine();
-}
-
-bool StoreLine::preconditionsMet() const {
-  return inCache();
+    WriteLineOperation(request, memory, level, destination, memory.cacheLineWords()) {
+  // Nothing
 }
 
 void StoreLine::execute() {
@@ -254,19 +281,8 @@ void StoreLine::execute() {
 
 
 MemsetLine::MemsetLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, 1, 0, memory.cacheLineBytes()) {
+    WriteLineOperation(request, memory, level, destination, 1) {
   data = 0;
-  lineCursor = 0;
-
-  preWriteCheck();
-}
-
-void MemsetLine::prepare() {
-  validateLine();
-}
-
-bool MemsetLine::preconditionsMet() const {
-  return inCache();
 }
 
 void MemsetLine::execute() {
@@ -294,9 +310,7 @@ bool MemsetLine::complete() const {
 
 
 PushLine::PushLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    MemoryOperation(request, memory, level, destination, memory.cacheLineWords(), 0, memory.cacheLineBytes()) {
-  lineCursor = 0;
-
+    WriteLineOperation(request, memory, level, destination, memory.cacheLineWords()) {
   // It only makes sense to push lines into a MemoryBank (i.e. not main
   // memory), so this is safe.
   MemoryBank& bank = static_cast<MemoryBank&>(memory);
@@ -304,14 +318,6 @@ PushLine::PushLine(const NetworkRequest& request, MemoryBase& memory, MemoryLeve
   // Target bank is encoded in the space where the cache line offset usually
   // goes.
   targetBank = request.payload().toUInt() & (bank.memoriesThisTile() - 1);
-}
-
-void PushLine::prepare() {
-  validateLine();
-}
-
-bool PushLine::preconditionsMet() const {
-  return inCache();
 }
 
 const NetworkRequest PushLine::getOriginal() const {

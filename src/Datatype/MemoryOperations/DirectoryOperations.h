@@ -13,9 +13,11 @@
 #include "../Identifier.h"
 #include "MemoryOperation.h"
 
-class UpdateDirectoryEntry : public MemoryOperation {
+class DirectoryOperation : public MemoryOperation {
 public:
-  UpdateDirectoryEntry(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  DirectoryOperation(const NetworkRequest& request, MemoryBase& memory,
+                     MemoryLevel level, ChannelID destination,
+                     unsigned int payloadFlits);
 
   virtual bool needsForwarding() const;
   virtual void prepare();
@@ -24,15 +26,16 @@ public:
   virtual const NetworkRequest getOriginal() const;
 };
 
-class UpdateDirectoryMask : public MemoryOperation {
+class UpdateDirectoryEntry : public DirectoryOperation {
 public:
-  UpdateDirectoryMask(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  UpdateDirectoryEntry(const NetworkRequest& request, MemoryBase& memory,
+                       MemoryLevel level, ChannelID destination);
+};
 
-  virtual bool needsForwarding() const;
-  virtual void prepare();
-  virtual bool preconditionsMet() const;
-  virtual void execute();
-  virtual const NetworkRequest getOriginal() const;
+class UpdateDirectoryMask : public DirectoryOperation {
+public:
+  UpdateDirectoryMask(const NetworkRequest& request, MemoryBase& memory,
+                      MemoryLevel level, ChannelID destination);
 };
 
 #endif /* SRC_TILE_MEMORY_OPERATIONS_DIRECTORYOPERATIONS_H_ */
