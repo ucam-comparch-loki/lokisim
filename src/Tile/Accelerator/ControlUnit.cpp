@@ -117,6 +117,8 @@ ControlUnit::ControlUnit(sc_module_name name, const accelerator_parameters_t& pa
     coreNotification("coreNotification", 1),
     notificationAddress(ChannelID(parent().id, 0)) {
 
+  startTime = -1;
+
   iParameter(receiver.iParameter);
   oCores(coreNotification);
 
@@ -151,6 +153,7 @@ void ControlUnit::startExecution() {
     notificationAddress.write(parameters.notificationAddress);
 
     LOKI_LOG << this->name() << " starting computation" << endl;
+    startTime = Instrumentation::currentCycle();
 
     algorithm.start(parameters);
 
@@ -182,6 +185,7 @@ void ControlUnit::notifyFinished() {
   loki_assert(!algorithm.executing());
 
   LOKI_LOG << this->name() << " finished computation" << endl;
+//  cout << parent().name() << " took " << Instrumentation::currentCycle() - startTime << " cycles" << endl;
 
   loki_assert(coreNotification.canWrite());
 

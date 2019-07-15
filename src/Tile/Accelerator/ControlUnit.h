@@ -190,6 +190,9 @@ private:
   NetworkFIFO<Word> coreNotification;
   ChannelMapEntry notificationAddress;
 
+  // For debug.
+  cycle_count_t startTime;
+
 };
 
 #endif /* SRC_TILE_ACCELERATOR_CONTROLUNIT_H_ */
