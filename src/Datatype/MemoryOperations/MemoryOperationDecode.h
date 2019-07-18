@@ -21,67 +21,72 @@ inline MemoryOperation* decodeMemoryRequest(const NetworkRequest& request,
                                             const ChannelID destination) {
 
   MemoryMetadata metadata = request.getMemoryMetadata();
+  MemoryOperation* op;
 
   switch (metadata.opcode) {
 
     case LOAD_W:
-      return new LoadWord(request, memory, level, destination);
+      op = new LoadWord(request, destination); break;
     case LOAD_LINKED:
-      return new LoadLinked(request, memory, level, destination);
+      op = new LoadLinked(request, destination); break;
     case LOAD_HW:
-      return new LoadHalfword(request, memory, level, destination);
+      op = new LoadHalfword(request, destination); break;
     case LOAD_B:
-      return new LoadByte(request, memory, level, destination);
+      op = new LoadByte(request, destination); break;
     case FETCH_LINE:
-      return new FetchLine(request, memory, level, destination);
+      op = new FetchLine(request, destination); break;
     case IPK_READ:
-      return new IPKRead(request, memory, level, destination);
+      op = new IPKRead(request, destination); break;
     case VALIDATE_LINE:
-      return new ValidateLine(request, memory, level, destination);
+      op = new ValidateLine(request, destination); break;
     case PREFETCH_LINE:
-      return new PrefetchLine(request, memory, level, destination);
+      op = new PrefetchLine(request, destination); break;
     case FLUSH_LINE:
-      return new FlushLine(request, memory, level, destination);
+      op = new FlushLine(request, destination); break;
     case INVALIDATE_LINE:
-      return new InvalidateLine(request, memory, level, destination);
+      op = new InvalidateLine(request, destination); break;
     case FLUSH_ALL_LINES:
-      return new FlushAllLines(request, memory, level, destination);
+      op = new FlushAllLines(request, destination); break;
     case INVALIDATE_ALL_LINES:
-      return new InvalidateAllLines(request, memory, level, destination);
+      op = new InvalidateAllLines(request, destination); break;
     case STORE_W:
-      return new StoreWord(request, memory, level, destination);
+      op = new StoreWord(request, destination); break;
     case STORE_CONDITIONAL:
-      return new StoreConditional(request, memory, level, destination);
+      op = new StoreConditional(request, destination); break;
     case STORE_HW:
-      return new StoreHalfword(request, memory, level, destination);
+      op = new StoreHalfword(request, destination); break;
     case STORE_B:
-      return new StoreByte(request, memory, level, destination);
+      op = new StoreByte(request, destination); break;
     case STORE_LINE:
-      return new StoreLine(request, memory, level, destination);
+      op = new StoreLine(request, destination); break;
     case MEMSET_LINE:
-      return new MemsetLine(request, memory, level, destination);
+      op = new MemsetLine(request, destination); break;
     case PUSH_LINE:
-      return new PushLine(request, memory, level, destination);
+      op = new PushLine(request, destination); break;
     case LOAD_AND_ADD:
-      return new LoadAndAdd(request, memory, level, destination);
+      op = new LoadAndAdd(request, destination); break;
     case LOAD_AND_OR:
-      return new LoadAndOr(request, memory, level, destination);
+      op = new LoadAndOr(request, destination); break;
     case LOAD_AND_AND:
-      return new LoadAndAnd(request, memory, level, destination);
+      op = new LoadAndAnd(request, destination); break;
     case LOAD_AND_XOR:
-      return new LoadAndXor(request, memory, level, destination);
+      op = new LoadAndXor(request, destination); break;
     case EXCHANGE:
-      return new Exchange(request, memory, level, destination);
+      op = new Exchange(request, destination); break;
     case UPDATE_DIRECTORY_ENTRY:
-      return new UpdateDirectoryEntry(request, memory, level, destination);
+      op = new UpdateDirectoryEntry(request, destination); break;
     case UPDATE_DIRECTORY_MASK:
-      return new UpdateDirectoryMask(request, memory, level, destination);
+      op = new UpdateDirectoryMask(request, destination); break;
 
     default:
       throw InvalidOptionException("memory request opcode", (int)metadata.opcode);
-      return NULL;
+      op = NULL;
+      break;
 
   }
+
+  op->assignToMemory(memory, level);
+  return op;
 
 }
 

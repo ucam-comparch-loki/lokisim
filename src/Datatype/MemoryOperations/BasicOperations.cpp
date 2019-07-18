@@ -10,19 +10,17 @@
 
 #include <assert.h>
 
-LoadStoreOperation::LoadStoreOperation(const NetworkRequest& request,
-                                       MemoryBase& memory,
-                                       MemoryLevel level,
-                                       ChannelID destination,
-                                       unsigned int payloadFlits,
-                                       unsigned int maxResultFlits,
-                                       unsigned int alignment) :
-    MemoryOperation(request, memory, level, destination, payloadFlits, maxResultFlits, alignment) {
+LoadStoreOperation::LoadStoreOperation(MemoryAddr address,
+                                       MemoryMetadata metadata,
+                                       ChannelID returnAddress,
+                                       MemoryData datatype,
+                                       MemoryAlignment alignment,
+                                       uint iterations,
+                                       bool reads,
+                                       bool writes) :
+    MemoryOperation(address, metadata, returnAddress, datatype, alignment,
+                    iterations, reads, writes) {
   // Nothing
-}
-
-void LoadStoreOperation::prepare() {
-  allocateLine();
 }
 
 bool LoadStoreOperation::preconditionsMet() const {
@@ -30,103 +28,99 @@ bool LoadStoreOperation::preconditionsMet() const {
 }
 
 
-LoadOperation::LoadOperation(const NetworkRequest& request, MemoryBase& memory,
-                             MemoryLevel level, ChannelID destination,
-                             unsigned int alignment) :
-    LoadStoreOperation(request, memory, level, destination, 0, 1, alignment) {
+LoadOperation::LoadOperation(MemoryAddr address,
+                             MemoryMetadata metadata,
+                             ChannelID returnAddress,
+                             MemoryData datatype,
+                             MemoryAlignment alignment,
+                             uint iterations) :
+    LoadStoreOperation(address, metadata, returnAddress, datatype, alignment,
+                       iterations, true, false) {
   // Nothing
 }
 
-
-StoreOperation::StoreOperation(const NetworkRequest& request, MemoryBase& memory,
-                               MemoryLevel level, ChannelID destination,
-                               unsigned int alignment) :
-    LoadStoreOperation(request, memory, level, destination, 1, 0, alignment) {
-
-  preWriteCheck();
-
+uint LoadOperation::payloadFlitsRemaining() const {
+  return 0;
 }
 
-
-LoadWord::LoadWord(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    LoadOperation(request, memory, level, destination, BYTES_PER_WORD) {
-  // Nothing
+uint LoadOperation::resultFlitsRemaining() const {
+  return totalIterations - iterationsComplete;
 }
 
-void LoadWord::execute() {
-  assert(preconditionsMet());
-  unsigned int result = memory.readWord(sramAddress, getAccessMode());
-  memory.printOperation(metadata.opcode, address, result);
+bool LoadOperation::oneIteration() {
+  uint32_t result = readMemory();
   sendResult(result);
+  return true;
 }
 
 
-LoadHalfword::LoadHalfword(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    LoadOperation(request, memory, level, destination, BYTES_PER_WORD/2) {
+StoreOperation::StoreOperation(MemoryAddr address,
+                               MemoryMetadata metadata,
+                               ChannelID returnAddress,
+                               MemoryData datatype,
+                               MemoryAlignment alignment,
+                               uint iterations) :
+    LoadStoreOperation(address, metadata, returnAddress, datatype, alignment,
+                       iterations, false, true) {
   // Nothing
 }
 
-void LoadHalfword::execute() {
-  assert(preconditionsMet());
-  unsigned int result = memory.readHalfword(sramAddress, getAccessMode());
-  memory.printOperation(metadata.opcode, address, result);
-  sendResult(result);
+uint StoreOperation::payloadFlitsRemaining() const {
+  return totalIterations - iterationsComplete;
 }
 
-
-LoadByte::LoadByte(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    LoadOperation(request, memory, level, destination, 1) {
-  // Nothing
+uint StoreOperation::resultFlitsRemaining() const {
+  return 0;
 }
 
-void LoadByte::execute() {
-  assert(preconditionsMet());
-  unsigned int result = memory.readByte(sramAddress, getAccessMode());
-  memory.printOperation(metadata.opcode, address, result);
-  sendResult(result);
-}
-
-
-StoreWord::StoreWord(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    StoreOperation(request, memory, level, destination, BYTES_PER_WORD) {
-  // Nothing
-}
-
-void StoreWord::execute() {
-  assert(preconditionsMet());
+bool StoreOperation::oneIteration() {
   if (payloadAvailable()) {
     unsigned int data = getPayload();
-    memory.writeWord(sramAddress, data, getAccessMode());
-    memory.printOperation(metadata.opcode, address, data);
+    writeMemory(data);
+    return true;
   }
+  else
+    return false;
 }
 
 
-StoreHalfword::StoreHalfword(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    StoreOperation(request, memory, level, destination, BYTES_PER_WORD/2) {
+LoadWord::LoadWord(const NetworkRequest& request, ChannelID destination) :
+    LoadOperation(request.payload().toUInt(), request.getMemoryMetadata(),
+                  destination, MEMORY_WORD, ALIGN_WORD, 1) {
   // Nothing
 }
 
-void StoreHalfword::execute() {
-  assert(preconditionsMet());
-  if (payloadAvailable()) {
-    unsigned int data = getPayload();
-    memory.writeHalfword(sramAddress, data, getAccessMode());
-    memory.printOperation(metadata.opcode, address, data);
-  }
-}
 
-
-StoreByte::StoreByte(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    StoreOperation(request, memory, level, destination, 1) {
+LoadHalfword::LoadHalfword(const NetworkRequest& request, ChannelID destination) :
+    LoadOperation(request.payload().toUInt(), request.getMemoryMetadata(),
+                  destination, MEMORY_HALFWORD, ALIGN_HALFWORD, 1) {
   // Nothing
 }
 
-void StoreByte::execute() {
-  assert(preconditionsMet());
-  if (payloadAvailable()) {
-    unsigned int data = getPayload();
-    memory.writeByte(sramAddress, data, getAccessMode());
-    memory.printOperation(metadata.opcode, address, data);
-  }
+
+LoadByte::LoadByte(const NetworkRequest& request, ChannelID destination) :
+    LoadOperation(request.payload().toUInt(), request.getMemoryMetadata(),
+                  destination, MEMORY_BYTE, ALIGN_BYTE, 1) {
+  // Nothing
+}
+
+
+StoreWord::StoreWord(const NetworkRequest& request, ChannelID destination) :
+    StoreOperation(request.payload().toUInt(), request.getMemoryMetadata(),
+                   destination, MEMORY_WORD, ALIGN_WORD, 1) {
+  // Nothing
+}
+
+
+StoreHalfword::StoreHalfword(const NetworkRequest& request, ChannelID destination) :
+    StoreOperation(request.payload().toUInt(), request.getMemoryMetadata(),
+                   destination, MEMORY_HALFWORD, ALIGN_HALFWORD, 1) {
+  // Nothing
+}
+
+
+StoreByte::StoreByte(const NetworkRequest& request, ChannelID destination) :
+    StoreOperation(request.payload().toUInt(), request.getMemoryMetadata(),
+                   destination, MEMORY_BYTE, ALIGN_BYTE, 1) {
+  // Nothing
 }

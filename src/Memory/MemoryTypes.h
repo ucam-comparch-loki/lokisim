@@ -85,7 +85,7 @@ inline const std::string& memoryOpName(MemoryOpcode op) {
 enum MemoryLevel {
   MEMORY_L1,
   MEMORY_L2,
-  MEMORY_OFF_CHIP,
+  MEMORY_OFF_CHIP
 };
 
 // Different ways of addressing the same SRAM.

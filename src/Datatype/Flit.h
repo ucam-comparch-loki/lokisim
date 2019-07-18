@@ -76,6 +76,10 @@ struct MemoryMetadata {
       (skipL2 << 6) | (skipL1 << 5) | (opcode << 0);
   }
 
+  bool endOfPacket() const {
+    return opcode & 0x1; // This is designed into the opcode encoding.
+  }
+
   MemoryMetadata() : MemoryMetadata(0) {}
 
   MemoryMetadata(uint32_t flattened) {

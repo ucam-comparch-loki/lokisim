@@ -11,85 +11,46 @@
 #include "../../Memory/MemoryTypes.h"
 #include "../Flit.h"
 #include "../Identifier.h"
+#include "BasicOperations.h"
 #include "MemoryOperation.h"
-
-class CacheLineOperation : public MemoryOperation {
-public:
-  CacheLineOperation(const NetworkRequest& request,
-                     MemoryBase& memory,
-                     MemoryLevel level,
-                     ChannelID destination,
-                     unsigned int payloadFlits,
-                     unsigned int maxResultFlits,
-                     unsigned int alignment);
-protected:
-  unsigned int lineCursor;
-};
-
-class ReadLineOperation : public CacheLineOperation {
-public:
-  ReadLineOperation(const NetworkRequest& request,
-                    MemoryBase& memory,
-                    MemoryLevel level,
-                    ChannelID destination,
-                    unsigned int alignment);
-
-  virtual void prepare();
-  virtual bool preconditionsMet() const;
-};
-
-class WriteLineOperation : public CacheLineOperation {
-public:
-  WriteLineOperation(const NetworkRequest& request,
-                    MemoryBase& memory,
-                    MemoryLevel level,
-                    ChannelID destination,
-                    unsigned int payloadFlits);
-
-  virtual void prepare();
-  virtual bool preconditionsMet() const;
-};
 
 class MetadataOperation : public MemoryOperation {
 public:
-  MetadataOperation(const NetworkRequest& request,
-                    MemoryBase& memory,
-                    MemoryLevel level,
-                    ChannelID destination);
+  MetadataOperation(const NetworkRequest& request, ChannelID destination);
+  virtual uint payloadFlitsRemaining() const;
+  virtual uint resultFlitsRemaining() const;
 };
 
 
-class FetchLine : public ReadLineOperation {
+class FetchLine : public LoadOperation {
 public:
-  FetchLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
-  virtual void execute();
+  FetchLine(const NetworkRequest& request, ChannelID destination);
 };
 
-class IPKRead : public ReadLineOperation {
+class IPKRead : public LoadOperation {
 public:
-  IPKRead(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
-  virtual void execute();
+  IPKRead(const NetworkRequest& request, ChannelID destination);
 };
 
 class ValidateLine : public MetadataOperation {
 public:
-  ValidateLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  ValidateLine(const NetworkRequest& request, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
   virtual void execute();
 };
 
-class PrefetchLine : public ReadLineOperation {
+class PrefetchLine : public LoadOperation {
 public:
-  PrefetchLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  PrefetchLine(const NetworkRequest& request, ChannelID destination);
   virtual void execute();
   virtual bool complete() const;
 };
 
 class FlushLine : public MetadataOperation {
 public:
-  FlushLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  FlushLine(const NetworkRequest& request, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -102,7 +63,7 @@ private:
 
 class InvalidateLine : public MetadataOperation {
 public:
-  InvalidateLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  InvalidateLine(const NetworkRequest& request, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -115,7 +76,7 @@ private:
 
 class FlushAllLines : public MetadataOperation {
 public:
-  FlushAllLines(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  FlushAllLines(const NetworkRequest& request, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -128,7 +89,7 @@ private:
 
 class InvalidateAllLines : public MetadataOperation {
 public:
-  InvalidateAllLines(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  InvalidateAllLines(const NetworkRequest& request, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -139,27 +100,30 @@ private:
   uint line;          // The line currently being invalidated.
 };
 
-class StoreLine : public WriteLineOperation {
+class StoreLine : public StoreOperation {
 public:
-  StoreLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
-  virtual void execute();
+  StoreLine(const NetworkRequest& request, ChannelID destination);
 };
 
-class MemsetLine : public WriteLineOperation {
+class MemsetLine : public StoreLine {
 public:
-  MemsetLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
-  virtual void execute();
-  virtual bool complete() const;
+  MemsetLine(const NetworkRequest& request, ChannelID destination);
+
+protected:
+  // Payload methods are overridden so we only get one payload, and then reuse
+  // it every iteration.
+  bool payloadAvailable() const;
+  unsigned int getPayload();
 
 private:
   unsigned int data;  // The word to store to each position in the cache line.
+  bool haveData;      // Have we received data yet?
 };
 
-class PushLine : public WriteLineOperation {
+class PushLine : public StoreLine {
 public:
-  PushLine(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
-  virtual void execute();
-  virtual const NetworkRequest getOriginal() const;
+  PushLine(const NetworkRequest& request, ChannelID destination);
+  virtual NetworkRequest toFlit() const;
 
 private:
   unsigned int targetBank; // Bank in the remote tile to receive data.

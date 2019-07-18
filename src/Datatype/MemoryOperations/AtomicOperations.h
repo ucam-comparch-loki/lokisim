@@ -16,73 +16,84 @@
 
 class AtomicOperation : public LoadStoreOperation {
 public:
-  AtomicOperation(const NetworkRequest& request, MemoryBase& memory,
-                  MemoryLevel level, ChannelID destination);
-  virtual void execute();
+  AtomicOperation(MemoryAddr address, MemoryMetadata metadata,
+                  ChannelID returnAddress, MemoryData datatype,
+                  MemoryAlignment alignment, uint iterations);
+
+  virtual uint payloadFlitsRemaining() const;
+  virtual uint resultFlitsRemaining() const;
 
 protected:
+  virtual bool oneIteration();
+
   // The update to be applied to the data in memory. To be implemented by every
   // subclass.
   virtual uint atomicUpdate(uint original, uint update) = 0;
 
 private:
-  unsigned int intermediateData;  // The data to be modified and stored back.
+  uint intermediateData;  // The data to be modified and stored back.
+  bool readState;         // Two states: reading or writing.
 };
 
 
 class LoadLinked : public LoadWord {
 public:
-  LoadLinked(const NetworkRequest& request, MemoryBase& memory,
-             MemoryLevel level, ChannelID destination);
-  virtual void execute();
+  LoadLinked(const NetworkRequest& request, ChannelID destination);
+protected:
+  virtual bool oneIteration();
 };
 
 
 class StoreConditional: public LoadStoreOperation {
 public:
-  StoreConditional(const NetworkRequest& request, MemoryBase& memory,
-                   MemoryLevel level, ChannelID destination);
+  StoreConditional(const NetworkRequest& request, ChannelID destination);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
-  virtual void execute();
+
+  virtual uint payloadFlitsRemaining() const;
+  virtual uint resultFlitsRemaining() const;
+
+protected:
+  virtual bool oneIteration();
 
 private:
   bool success; // Whether the operation should proceed.
+  bool checkState; // Two states: check reservation or write data
 };
 
 
 class LoadAndAdd : public AtomicOperation {
 public:
-  LoadAndAdd(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  LoadAndAdd(const NetworkRequest& request, ChannelID destination);
 protected:
   virtual uint atomicUpdate(uint original, uint update);
 };
 
 class LoadAndOr : public AtomicOperation {
 public:
-  LoadAndOr(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  LoadAndOr(const NetworkRequest& request, ChannelID destination);
 protected:
   virtual uint atomicUpdate(uint original, uint update);
 };
 
 class LoadAndAnd : public AtomicOperation {
 public:
-  LoadAndAnd(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  LoadAndAnd(const NetworkRequest& request, ChannelID destination);
 protected:
   virtual uint atomicUpdate(uint original, uint update);
 };
 
 class LoadAndXor : public AtomicOperation {
 public:
-  LoadAndXor(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  LoadAndXor(const NetworkRequest& request, ChannelID destination);
 protected:
   virtual uint atomicUpdate(uint original, uint update);
 };
 
 class Exchange : public AtomicOperation {
 public:
-  Exchange(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination);
+  Exchange(const NetworkRequest& request, ChannelID destination);
 protected:
   virtual uint atomicUpdate(uint original, uint update);
 };

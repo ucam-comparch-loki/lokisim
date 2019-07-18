@@ -10,53 +10,67 @@
 
 #include <assert.h>
 
-AtomicOperation::AtomicOperation(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    LoadStoreOperation(request, memory, level, destination, 1, 1, BYTES_PER_WORD) {
+AtomicOperation::AtomicOperation(MemoryAddr address,
+                                 MemoryMetadata metadata,
+                                 ChannelID returnAddress,
+                                 MemoryData datatype,
+                                 MemoryAlignment alignment,
+                                 uint iterations) :
+    LoadStoreOperation(address, metadata, returnAddress, datatype, alignment, iterations, true, true) {
   intermediateData = 0;
-  preWriteCheck();
+  readState = true;
 }
 
-void AtomicOperation::execute() {
-  assert(preconditionsMet());
+uint AtomicOperation::payloadFlitsRemaining() const {
+  return totalIterations - iterationsComplete;
+}
 
+uint AtomicOperation::resultFlitsRemaining() const {
+  // There is a result to send in the read stage of each iteration.
+  return totalIterations - iterationsComplete - (readState ? 0 : 1);
+}
+
+bool AtomicOperation::oneIteration() {
   // First part: load original data and return to requester.
-  if (resultFlits == 1) {
-    intermediateData = memory.readWord(sramAddress, getAccessMode());
+  if (readState) {
+    intermediateData = readMemory();
     sendResult(intermediateData);
+    readState = false;
+    return false; // The operation isn't finished yet.
   }
   // Second part: modify original data and store back.
   else if (payloadAvailable()) {
-    unsigned int data = atomicUpdate(intermediateData, getPayload());
-
-    memory.writeWord(sramAddress, data, getAccessMode());
-    memory.printOperation(metadata.opcode, address, data);
+    uint data = atomicUpdate(intermediateData, getPayload());
+    writeMemory(data);
+    readState = true;
+    return true;
   }
+  else
+    return false;
 }
 
 
-LoadLinked::LoadLinked(const NetworkRequest& request, MemoryBase& memory,
-                       MemoryLevel level, ChannelID destination) :
-    LoadWord(request, memory, level, destination) {
+LoadLinked::LoadLinked(const NetworkRequest& request, ChannelID destination) :
+    LoadWord(request, destination) {
   // Nothing
 }
 
-void LoadLinked::execute() {
-  assert(preconditionsMet());
-  unsigned int result = memory.readWord(sramAddress, getAccessMode());
-  memory.makeReservation(destination.component, address, getAccessMode());
-  memory.printOperation(metadata.opcode, address, result);
-  sendResult(result);
+bool LoadLinked::oneIteration() {
+  memory->makeReservation(returnAddress.component, address+addressOffset,
+                          getAccessMode());
+  return LoadWord::oneIteration();
 }
 
 
-StoreConditional::StoreConditional(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    LoadStoreOperation(request, memory, level, destination, 1, 1, BYTES_PER_WORD) {
+StoreConditional::StoreConditional(const NetworkRequest& request, ChannelID destination) :
+    LoadStoreOperation(request.payload().toUInt(), request.getMemoryMetadata(),
+                       destination, MEMORY_WORD, ALIGN_WORD, 1, false, true) {
   success = false;
-  preWriteCheck();
+  checkState = true;
 }
 
 void StoreConditional::prepare() {
-  // Nothing
+  // Nothing - if the data is not already in the cache, the operation fails.
 }
 
 bool StoreConditional::preconditionsMet() const {
@@ -64,29 +78,43 @@ bool StoreConditional::preconditionsMet() const {
   return true;
 }
 
-void StoreConditional::execute() {
-  assert(preconditionsMet());
+uint StoreConditional::payloadFlitsRemaining() const {
+  return totalIterations - iterationsComplete;
+}
 
+uint StoreConditional::resultFlitsRemaining() const {
+  // There is a result to send in the check stage of each iteration.
+  return totalIterations - iterationsComplete - (checkState ? 0 : 1);
+}
+
+bool StoreConditional::oneIteration() {
   // First part: check address and see if operation should continue.
-  if (resultFlits == 1) {
+  if (checkState) {
     success = inCache()
-           && memory.checkReservation(destination.component, address, getAccessMode());
+           && memory->checkReservation(returnAddress.component, address+addressOffset, getAccessMode());
 
     sendResult(success);
+
+    checkState = false;
+    return false; // Operation isn't finished yet
   }
   // Second part: consume the payload and store if necessary.
   else if (payloadAvailable()) {
     unsigned int data = getPayload();
-    if (success) {
-      memory.writeWord(sramAddress, data, getAccessMode());
-      memory.printOperation(metadata.opcode, address, data);
-    }
+    if (success)
+      writeMemory(data);
+
+    checkState = true;
+    return true;
   }
+  else
+    return false;
 }
 
 
-LoadAndAdd::LoadAndAdd(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    AtomicOperation(request, memory, level, destination) {
+LoadAndAdd::LoadAndAdd(const NetworkRequest& request, ChannelID destination) :
+    AtomicOperation(request.payload().toUInt(), request.getMemoryMetadata(),
+                    destination, MEMORY_WORD, ALIGN_WORD, 1) {
   // Nothing
 }
 
@@ -95,8 +123,9 @@ uint LoadAndAdd::atomicUpdate(uint original, uint update) {
 }
 
 
-LoadAndOr::LoadAndOr(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    AtomicOperation(request, memory, level, destination) {
+LoadAndOr::LoadAndOr(const NetworkRequest& request, ChannelID destination) :
+    AtomicOperation(request.payload().toUInt(), request.getMemoryMetadata(),
+                    destination, MEMORY_WORD, ALIGN_WORD, 1) {
   // Nothing
 }
 
@@ -105,8 +134,9 @@ uint LoadAndOr::atomicUpdate(uint original, uint update) {
 }
 
 
-LoadAndAnd::LoadAndAnd(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    AtomicOperation(request, memory, level, destination) {
+LoadAndAnd::LoadAndAnd(const NetworkRequest& request, ChannelID destination) :
+    AtomicOperation(request.payload().toUInt(), request.getMemoryMetadata(),
+                    destination, MEMORY_WORD, ALIGN_WORD, 1) {
   // Nothing
 }
 
@@ -115,8 +145,9 @@ uint LoadAndAnd::atomicUpdate(uint original, uint update) {
 }
 
 
-LoadAndXor::LoadAndXor(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    AtomicOperation(request, memory, level, destination) {
+LoadAndXor::LoadAndXor(const NetworkRequest& request, ChannelID destination) :
+    AtomicOperation(request.payload().toUInt(), request.getMemoryMetadata(),
+                    destination, MEMORY_WORD, ALIGN_WORD, 1) {
   // Nothing
 }
 
@@ -125,8 +156,9 @@ uint LoadAndXor::atomicUpdate(uint original, uint update) {
 }
 
 
-Exchange::Exchange(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    AtomicOperation(request, memory, level, destination) {
+Exchange::Exchange(const NetworkRequest& request, ChannelID destination) :
+    AtomicOperation(request.payload().toUInt(), request.getMemoryMetadata(),
+                    destination, MEMORY_WORD, ALIGN_WORD, 1) {
   // Nothing
 }
 

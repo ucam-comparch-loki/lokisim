@@ -13,7 +13,10 @@
 #include <map>
 #include "InstrumentationBase.h"
 
+class MemoryOperation;
+
 namespace Instrumentation {
+
 
   // Use the Flit IDs as keys, and event times as values.
   typedef std::map<uint, cycle_count_t> TimerMap;
@@ -33,14 +36,23 @@ namespace Instrumentation {
     static void reset();
     static void start();
 
-    static void coreBufferedMemoryRequest(ComponentID core, const NetworkRequest& request);
-    static void coreSentMemoryRequest(ComponentID core, const NetworkRequest& request);
-    static void memoryReceivedRequest(ComponentID memory, const NetworkRequest& request);
-    static void memoryStartedRequest(ComponentID memory, const NetworkRequest& request);
-    static void memoryBufferedResult(ComponentID memory, const NetworkRequest& request,
-                                     const NetworkResponse& response, bool hit, bool l1);
-    static void memorySentResult(ComponentID memory, const NetworkResponse& response, bool l1);
-    static void coreReceivedResult(ComponentID core, const NetworkResponse& response);
+    static void coreBufferedMemoryRequest(ComponentID core,
+                                          const NetworkRequest& flit);
+    static void coreSentMemoryRequest(ComponentID core,
+                                      const NetworkRequest& flit);
+    static void memoryReceivedRequest(ComponentID memory,
+                                      const NetworkRequest& flit);
+    static void memoryStartedRequest(ComponentID memory,
+                                     const NetworkRequest& flit,
+                                     const MemoryOperation& request);
+    static void memoryBufferedResult(ComponentID memory,
+                                     const MemoryOperation& request,
+                                     const NetworkResponse& response,
+                                     bool hit, bool l1);
+    static void memorySentResult(ComponentID memory,
+                                 const NetworkResponse& response, bool l1);
+    static void coreReceivedResult(ComponentID core,
+                                   const NetworkResponse& response);
 
     static void printSummary(const chip_parameters_t& params);
 

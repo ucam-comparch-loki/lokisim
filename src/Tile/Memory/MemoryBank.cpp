@@ -337,6 +337,8 @@ void MemoryBank::processIdle() {
     // If the hit-under-miss option is enabled and we are currently serving a
     // miss, peek the next request in the queue to see if it is a hit.
 
+    // TODO: this is called multiple times if any of the following tests fail,
+    // but it only needs to be called once.
     hitRequest = peekRequest();
 
     if (hitUnderMiss && (missRequest != NULL)) {
@@ -399,7 +401,7 @@ void MemoryBank::processRequest(DecodedRequest& request) {
     next_trigger(canSendRequestEvent());
   }
   else if (request->needsForwarding()) {
-    forwardRequest(request->getOriginal());
+    forwardRequest(request);
     if (request->awaitingPayload())
       state = STATE_FORWARD;
     else {
@@ -505,9 +507,10 @@ void MemoryBank::processRefill(DecodedRequest& request) {
     if (request->needsForwarding()) {
       if (canSendResponse(request->getDestination(), request->getMemoryLevel())) {
         uint32_t data = getResponse();
-        request->sendResult(data);
+        request->forwardResult(data);
 
         if (request->resultsToSend()) {
+          cout << this->name() << " waiting for response to forward" << endl;
           next_trigger(responseAvailableEvent());
         }
         else {
@@ -575,7 +578,7 @@ void MemoryBank::processForward(DecodedRequest& request) {
         break;
     }
 
-    forwardRequest(payload);
+    forwardPayload(payload);
 
     if (payload.getMetadata().endOfPacket) {
       // Treat a forwarded request as a missing request if we need to wait for
@@ -638,26 +641,33 @@ MemoryBank::DecodedRequest MemoryBank::peekRequest() {
                             0);
   }
 
-  return DecodedRequest(decodeMemoryRequest(request, *this, level, destination));
+ DecodedRequest decoded(decodeMemoryRequest(request, *this, level, destination));
+
+ return decoded;
 }
 
 void MemoryBank::consumeRequest(MemoryLevel level) {
   loki_assert(requestAvailable());
 
+  NetworkRequest flit;
+
   switch (level) {
     case MEMORY_L1: {
-      NetworkRequest request = inputQueue.read();
-      Instrumentation::Latency::memoryStartedRequest(id, request);
+      flit = inputQueue.read();
       break;
     }
-    case MEMORY_L2:
+    case MEMORY_L2: {
+      flit = requestSig.read();
       requestSig.ack();
-      Instrumentation::Latency::memoryStartedRequest(id, requestSig.read());
       break;
+    }
     default:
       loki_assert_with_message(false, "Memory bank can't handle off-chip requests", 0);
       break;
   }
+
+  // Assuming hitRequest is what was generated from this flit - a bit hacky.
+  Instrumentation::Latency::memoryStartedRequest(id, flit, *hitRequest);
 }
 
 bool MemoryBank::canSendRequest() const {
@@ -676,12 +686,31 @@ void MemoryBank::sendRequest(NetworkRequest request) {
   outputReqQueue.write(request);
 }
 
-void MemoryBank::forwardRequest(NetworkRequest request) {
+void MemoryBank::forwardRequest(DecodedRequest& request) {
   // Need to update the return address to point to this bank rather than the
-  // original requester.
+  // original requester, unless the request has no return address.
   LOKI_LOG << this->name() << " bypassed by request " << request << endl;
-  NetworkRequest updated(request.payload(), id, request.getMemoryMetadata().opcode, request.getMetadata().endOfPacket);
-  sendRequest(updated);
+  NetworkRequest flit = request->toFlit();
+
+  if (!flit.channelID().isNullMapping())
+    flit = NetworkRequest(flit.payload(), id,
+                          flit.getMemoryMetadata().opcode,
+                          flit.getMetadata().endOfPacket);
+
+  sendRequest(flit);
+}
+
+void MemoryBank::forwardPayload(NetworkRequest& payload) {
+  // Need to update the return address to point to this bank rather than the
+  // original requester, if the request has a return address.
+  LOKI_LOG << this->name() << " forwarding payload " << payload << endl;
+
+  if (!payload.channelID().isNullMapping())
+    payload = NetworkRequest(payload.payload(), id,
+                             payload.getMemoryMetadata().opcode,
+                             payload.getMetadata().endOfPacket);
+
+  sendRequest(payload);
 }
 
 bool MemoryBank::responseAvailable() const {
@@ -1070,19 +1099,5 @@ vector<uint32_t>& MemoryBank::dataArray() {
 }
 
 void MemoryBank::reportStalls(ostream& os) {
-  if (!inputQueue.canWrite()) {
-    os << inputQueue.name() << " is full." << endl;
-  }
-  if (outputDataQueue.canRead()) {
-    const NetworkResponse& outWord = outputDataQueue.peek();
-    os << this->name() << " waiting to send " << outWord << endl;
-  }
-  if (outputInstQueue.canRead()) {
-    const NetworkResponse& outWord = outputInstQueue.peek();
-    os << this->name() << " waiting to send " << outWord << endl;
-  }
-  if (outputReqQueue.canRead()) {
-    const NetworkResponse& outWord = outputReqQueue.peek();
-    os << this->name() << " waiting to send " << outWord << endl;
-  }
+  // FIFOs now report their own status - no need for this function here?
 }

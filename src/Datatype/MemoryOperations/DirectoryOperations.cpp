@@ -9,8 +9,9 @@
 
 #include <assert.h>
 
-DirectoryOperation::DirectoryOperation(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination, unsigned int payloadFlits) :
-    MemoryOperation(request, memory, level, destination, payloadFlits, 0) {
+DirectoryOperation::DirectoryOperation(const NetworkRequest& request, ChannelID destination, unsigned int payloadFlits) :
+    MemoryOperation(request.payload().toUInt(), request.getMemoryMetadata(),
+                    destination, MEMORY_METADATA, ALIGN_BYTE, 1, false, false) {
   // Nothing
 }
 
@@ -25,31 +26,39 @@ void DirectoryOperation::prepare() {
 }
 
 bool DirectoryOperation::preconditionsMet() const {
-  return false;
+  return true;
 }
 
 void DirectoryOperation::execute() {
   assert(false);
 }
 
-const NetworkRequest DirectoryOperation::getOriginal() const {
+uint DirectoryOperation::payloadFlitsRemaining() const {
+  return 1;
+}
+
+uint DirectoryOperation::resultFlitsRemaining() const {
+  return 0;
+}
+
+NetworkRequest DirectoryOperation::toFlit() const {
   // Since the MHL doesn't know whether to check the Skip L1 or Skip L2 bit when
   // it receives a directory update request, copy whichever bit is appropriate
   // into the Scratchpad bit. This bit is always overwritten when forwarding
   // the request.
   MemoryMetadata meta = metadata;
   meta.scratchpad = MemoryOperation::needsForwarding();
-  return NetworkRequest(address, destination, meta.flatten());
+  return NetworkRequest(address, returnAddress, meta.flatten());
 }
 
 
-UpdateDirectoryEntry::UpdateDirectoryEntry(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    DirectoryOperation(request, memory, level, destination, 1) {
+UpdateDirectoryEntry::UpdateDirectoryEntry(const NetworkRequest& request, ChannelID destination) :
+    DirectoryOperation(request, destination, 1) {
   // Nothing
 }
 
 
-UpdateDirectoryMask::UpdateDirectoryMask(const NetworkRequest& request, MemoryBase& memory, MemoryLevel level, ChannelID destination) :
-    DirectoryOperation(request, memory, level, destination, 1) {
+UpdateDirectoryMask::UpdateDirectoryMask(const NetworkRequest& request, ChannelID destination) :
+    DirectoryOperation(request, destination, 1) {
   // Nothing
 }

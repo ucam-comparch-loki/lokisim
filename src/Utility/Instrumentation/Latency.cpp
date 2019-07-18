@@ -6,6 +6,7 @@
  */
 
 #include "Latency.h"
+#include "../../Datatype/MemoryOperations/MemoryOperation.h"
 #include <iomanip>
 
 using namespace Instrumentation;
@@ -157,14 +158,16 @@ void Latency::memoryReceivedRequest(ComponentID memory, const NetworkRequest& re
   }
 }
 
-void Latency::memoryStartedRequest(ComponentID memory, const NetworkRequest& request) {
+void Latency::memoryStartedRequest(ComponentID memory,
+                                   const NetworkRequest& flit,
+                                   const MemoryOperation& request) {
   if (!collectingStats())
       return;
 
   cycle_count_t now = currentCycle();
-  memoryStartedReq[request.messageID()] = now;
+  memoryStartedReq[request.id] = now;
 
-  TimerMap::iterator it = memoryReceivedReq.find(request.messageID());
+  TimerMap::iterator it = memoryReceivedReq.find(flit.messageID());
   if (it != memoryReceivedReq.end()) {
     cycle_count_t latency = now - it->second;
     addDuration(l1InBufferTime, memory, latency);
@@ -172,7 +175,7 @@ void Latency::memoryStartedRequest(ComponentID memory, const NetworkRequest& req
   }
 }
 
-void Latency::memoryBufferedResult(ComponentID memory, const NetworkRequest& request,
+void Latency::memoryBufferedResult(ComponentID memory, const MemoryOperation& request,
                                    const NetworkResponse& response, bool hit, bool l1) {
   if (!collectingStats())
       return;
@@ -180,7 +183,7 @@ void Latency::memoryBufferedResult(ComponentID memory, const NetworkRequest& req
   cycle_count_t now = currentCycle();
   memoryBufferedResp[response.messageID()] = now;
 
-  TimerMap::iterator it = memoryStartedReq.find(request.messageID());
+  TimerMap::iterator it = memoryStartedReq.find(request.id);
   if (it != memoryStartedReq.end()) {
     cycle_count_t latency = now - it->second;
 

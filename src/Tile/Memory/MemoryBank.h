@@ -178,7 +178,8 @@ private:
   bool canSendRequest() const;
   const sc_event& canSendRequestEvent() const;
   void sendRequest(NetworkRequest request);
-  void forwardRequest(NetworkRequest request);
+  void forwardRequest(DecodedRequest& request);
+  void forwardPayload(NetworkRequest& payload);
 
   bool responseAvailable() const;
   const sc_event& responseAvailableEvent() const;
