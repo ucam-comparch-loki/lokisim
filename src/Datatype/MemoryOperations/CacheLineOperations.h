@@ -14,9 +14,22 @@
 #include "BasicOperations.h"
 #include "MemoryOperation.h"
 
+// Operation which only works on metadata (e.g. valid, dirty, ...).
 class MetadataOperation : public MemoryOperation {
 public:
-  MetadataOperation(const NetworkRequest& request, ChannelID destination);
+  MetadataOperation(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
+  virtual uint payloadFlitsRemaining() const;
+  virtual uint resultFlitsRemaining() const;
+};
+
+// Operation which iterates over all cache lines.
+class AllLinesOperation : public MemoryOperation {
+public:
+  AllLinesOperation(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
+  virtual void assignToMemory(MemoryBase& memory, MemoryLevel level);
+
+  virtual void prepare();
+  virtual bool preconditionsMet() const;
   virtual uint payloadFlitsRemaining() const;
   virtual uint resultFlitsRemaining() const;
 };
@@ -24,17 +37,17 @@ public:
 
 class FetchLine : public LoadOperation {
 public:
-  FetchLine(const NetworkRequest& request, ChannelID destination);
+  FetchLine(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 };
 
 class IPKRead : public LoadOperation {
 public:
-  IPKRead(const NetworkRequest& request, ChannelID destination);
+  IPKRead(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 };
 
 class ValidateLine : public MetadataOperation {
 public:
-  ValidateLine(const NetworkRequest& request, ChannelID destination);
+  ValidateLine(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -43,14 +56,14 @@ public:
 
 class PrefetchLine : public LoadOperation {
 public:
-  PrefetchLine(const NetworkRequest& request, ChannelID destination);
+  PrefetchLine(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
   virtual void execute();
   virtual bool complete() const;
 };
 
 class FlushLine : public MetadataOperation {
 public:
-  FlushLine(const NetworkRequest& request, ChannelID destination);
+  FlushLine(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -63,7 +76,7 @@ private:
 
 class InvalidateLine : public MetadataOperation {
 public:
-  InvalidateLine(const NetworkRequest& request, ChannelID destination);
+  InvalidateLine(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -74,40 +87,28 @@ private:
   bool finished;      // Whether the operation has completed.
 };
 
-class FlushAllLines : public MetadataOperation {
+class FlushAllLines : public AllLinesOperation {
 public:
-  FlushAllLines(const NetworkRequest& request, ChannelID destination);
-
-  virtual void prepare();
-  virtual bool preconditionsMet() const;
-  virtual void execute();
-  virtual bool complete() const;
-
-private:
-  uint line;          // The line currently being flushed.
+  FlushAllLines(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
+protected:
+  virtual bool oneIteration();
 };
 
-class InvalidateAllLines : public MetadataOperation {
+class InvalidateAllLines : public AllLinesOperation {
 public:
-  InvalidateAllLines(const NetworkRequest& request, ChannelID destination);
-
-  virtual void prepare();
-  virtual bool preconditionsMet() const;
-  virtual void execute();
-  virtual bool complete() const;
-
-private:
-  uint line;          // The line currently being invalidated.
+  InvalidateAllLines(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
+protected:
+  virtual bool oneIteration();
 };
 
 class StoreLine : public StoreOperation {
 public:
-  StoreLine(const NetworkRequest& request, ChannelID destination);
+  StoreLine(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 };
 
 class MemsetLine : public StoreLine {
 public:
-  MemsetLine(const NetworkRequest& request, ChannelID destination);
+  MemsetLine(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 
 protected:
   // Payload methods are overridden so we only get one payload, and then reuse
@@ -122,7 +123,7 @@ private:
 
 class PushLine : public StoreLine {
 public:
-  PushLine(const NetworkRequest& request, ChannelID destination);
+  PushLine(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
   virtual NetworkRequest toFlit() const;
 
 private:

@@ -50,21 +50,21 @@ bool AtomicOperation::oneIteration() {
 }
 
 
-LoadLinked::LoadLinked(const NetworkRequest& request, ChannelID destination) :
-    LoadWord(request, destination) {
+LoadLinked::LoadLinked(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    LoadWord(address, metadata, returnAddr) {
   // Nothing
 }
 
 bool LoadLinked::oneIteration() {
-  memory->makeReservation(returnAddress.component, address+addressOffset,
+  memory->makeReservation(returnAddress.component, getAddress(),
                           getAccessMode());
   return LoadWord::oneIteration();
 }
 
 
-StoreConditional::StoreConditional(const NetworkRequest& request, ChannelID destination) :
-    LoadStoreOperation(request.payload().toUInt(), request.getMemoryMetadata(),
-                       destination, MEMORY_WORD, ALIGN_WORD, 1, false, true) {
+StoreConditional::StoreConditional(MemoryAddr address, MemoryMetadata metadata,
+                                   ChannelID returnAddr) :
+    LoadStoreOperation(address, metadata, returnAddr, MEMORY_WORD, ALIGN_WORD, 1, false, true) {
   success = false;
   checkState = true;
 }
@@ -91,7 +91,7 @@ bool StoreConditional::oneIteration() {
   // First part: check address and see if operation should continue.
   if (checkState) {
     success = inCache()
-           && memory->checkReservation(returnAddress.component, address+addressOffset, getAccessMode());
+           && memory->checkReservation(returnAddress.component, getAddress(), getAccessMode());
 
     sendResult(success);
 
@@ -112,9 +112,8 @@ bool StoreConditional::oneIteration() {
 }
 
 
-LoadAndAdd::LoadAndAdd(const NetworkRequest& request, ChannelID destination) :
-    AtomicOperation(request.payload().toUInt(), request.getMemoryMetadata(),
-                    destination, MEMORY_WORD, ALIGN_WORD, 1) {
+LoadAndAdd::LoadAndAdd(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    AtomicOperation(address, metadata, returnAddr, MEMORY_WORD, ALIGN_WORD, 1) {
   // Nothing
 }
 
@@ -123,9 +122,8 @@ uint LoadAndAdd::atomicUpdate(uint original, uint update) {
 }
 
 
-LoadAndOr::LoadAndOr(const NetworkRequest& request, ChannelID destination) :
-    AtomicOperation(request.payload().toUInt(), request.getMemoryMetadata(),
-                    destination, MEMORY_WORD, ALIGN_WORD, 1) {
+LoadAndOr::LoadAndOr(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    AtomicOperation(address, metadata, returnAddr, MEMORY_WORD, ALIGN_WORD, 1) {
   // Nothing
 }
 
@@ -134,9 +132,8 @@ uint LoadAndOr::atomicUpdate(uint original, uint update) {
 }
 
 
-LoadAndAnd::LoadAndAnd(const NetworkRequest& request, ChannelID destination) :
-    AtomicOperation(request.payload().toUInt(), request.getMemoryMetadata(),
-                    destination, MEMORY_WORD, ALIGN_WORD, 1) {
+LoadAndAnd::LoadAndAnd(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    AtomicOperation(address, metadata, returnAddr, MEMORY_WORD, ALIGN_WORD, 1) {
   // Nothing
 }
 
@@ -145,9 +142,8 @@ uint LoadAndAnd::atomicUpdate(uint original, uint update) {
 }
 
 
-LoadAndXor::LoadAndXor(const NetworkRequest& request, ChannelID destination) :
-    AtomicOperation(request.payload().toUInt(), request.getMemoryMetadata(),
-                    destination, MEMORY_WORD, ALIGN_WORD, 1) {
+LoadAndXor::LoadAndXor(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    AtomicOperation(address, metadata, returnAddr, MEMORY_WORD, ALIGN_WORD, 1) {
   // Nothing
 }
 
@@ -156,9 +152,8 @@ uint LoadAndXor::atomicUpdate(uint original, uint update) {
 }
 
 
-Exchange::Exchange(const NetworkRequest& request, ChannelID destination) :
-    AtomicOperation(request.payload().toUInt(), request.getMemoryMetadata(),
-                    destination, MEMORY_WORD, ALIGN_WORD, 1) {
+Exchange::Exchange(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    AtomicOperation(address, metadata, returnAddr, MEMORY_WORD, ALIGN_WORD, 1) {
   // Nothing
 }
 

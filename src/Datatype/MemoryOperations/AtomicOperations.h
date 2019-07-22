@@ -38,7 +38,7 @@ private:
 
 class LoadLinked : public LoadWord {
 public:
-  LoadLinked(const NetworkRequest& request, ChannelID destination);
+  LoadLinked(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 protected:
   virtual bool oneIteration();
 };
@@ -46,7 +46,7 @@ protected:
 
 class StoreConditional: public LoadStoreOperation {
 public:
-  StoreConditional(const NetworkRequest& request, ChannelID destination);
+  StoreConditional(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 
   virtual void prepare();
   virtual bool preconditionsMet() const;
@@ -65,35 +65,35 @@ private:
 
 class LoadAndAdd : public AtomicOperation {
 public:
-  LoadAndAdd(const NetworkRequest& request, ChannelID destination);
+  LoadAndAdd(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 protected:
   virtual uint atomicUpdate(uint original, uint update);
 };
 
 class LoadAndOr : public AtomicOperation {
 public:
-  LoadAndOr(const NetworkRequest& request, ChannelID destination);
+  LoadAndOr(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 protected:
   virtual uint atomicUpdate(uint original, uint update);
 };
 
 class LoadAndAnd : public AtomicOperation {
 public:
-  LoadAndAnd(const NetworkRequest& request, ChannelID destination);
+  LoadAndAnd(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 protected:
   virtual uint atomicUpdate(uint original, uint update);
 };
 
 class LoadAndXor : public AtomicOperation {
 public:
-  LoadAndXor(const NetworkRequest& request, ChannelID destination);
+  LoadAndXor(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 protected:
   virtual uint atomicUpdate(uint original, uint update);
 };
 
 class Exchange : public AtomicOperation {
 public:
-  Exchange(const NetworkRequest& request, ChannelID destination);
+  Exchange(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 protected:
   virtual uint atomicUpdate(uint original, uint update);
 };

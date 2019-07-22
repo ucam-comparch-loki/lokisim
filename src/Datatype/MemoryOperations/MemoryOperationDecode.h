@@ -18,65 +18,66 @@
 inline MemoryOperation* decodeMemoryRequest(const NetworkRequest& request,
                                             MemoryBase& memory,
                                             const MemoryLevel level,
-                                            const ChannelID destination) {
+                                            const ChannelID returnAddress) {
 
+  MemoryAddr address = request.payload().toUInt();
   MemoryMetadata metadata = request.getMemoryMetadata();
   MemoryOperation* op;
 
   switch (metadata.opcode) {
 
     case LOAD_W:
-      op = new LoadWord(request, destination); break;
+      op = new LoadWord(address, metadata, returnAddress); break;
     case LOAD_LINKED:
-      op = new LoadLinked(request, destination); break;
+      op = new LoadLinked(address, metadata, returnAddress); break;
     case LOAD_HW:
-      op = new LoadHalfword(request, destination); break;
+      op = new LoadHalfword(address, metadata, returnAddress); break;
     case LOAD_B:
-      op = new LoadByte(request, destination); break;
+      op = new LoadByte(address, metadata, returnAddress); break;
     case FETCH_LINE:
-      op = new FetchLine(request, destination); break;
+      op = new FetchLine(address, metadata, returnAddress); break;
     case IPK_READ:
-      op = new IPKRead(request, destination); break;
+      op = new IPKRead(address, metadata, returnAddress); break;
     case VALIDATE_LINE:
-      op = new ValidateLine(request, destination); break;
+      op = new ValidateLine(address, metadata, returnAddress); break;
     case PREFETCH_LINE:
-      op = new PrefetchLine(request, destination); break;
+      op = new PrefetchLine(address, metadata, returnAddress); break;
     case FLUSH_LINE:
-      op = new FlushLine(request, destination); break;
+      op = new FlushLine(address, metadata, returnAddress); break;
     case INVALIDATE_LINE:
-      op = new InvalidateLine(request, destination); break;
+      op = new InvalidateLine(address, metadata, returnAddress); break;
     case FLUSH_ALL_LINES:
-      op = new FlushAllLines(request, destination); break;
+      op = new FlushAllLines(address, metadata, returnAddress); break;
     case INVALIDATE_ALL_LINES:
-      op = new InvalidateAllLines(request, destination); break;
+      op = new InvalidateAllLines(address, metadata, returnAddress); break;
     case STORE_W:
-      op = new StoreWord(request, destination); break;
+      op = new StoreWord(address, metadata, returnAddress); break;
     case STORE_CONDITIONAL:
-      op = new StoreConditional(request, destination); break;
+      op = new StoreConditional(address, metadata, returnAddress); break;
     case STORE_HW:
-      op = new StoreHalfword(request, destination); break;
+      op = new StoreHalfword(address, metadata, returnAddress); break;
     case STORE_B:
-      op = new StoreByte(request, destination); break;
+      op = new StoreByte(address, metadata, returnAddress); break;
     case STORE_LINE:
-      op = new StoreLine(request, destination); break;
+      op = new StoreLine(address, metadata, returnAddress); break;
     case MEMSET_LINE:
-      op = new MemsetLine(request, destination); break;
+      op = new MemsetLine(address, metadata, returnAddress); break;
     case PUSH_LINE:
-      op = new PushLine(request, destination); break;
+      op = new PushLine(address, metadata, returnAddress); break;
     case LOAD_AND_ADD:
-      op = new LoadAndAdd(request, destination); break;
+      op = new LoadAndAdd(address, metadata, returnAddress); break;
     case LOAD_AND_OR:
-      op = new LoadAndOr(request, destination); break;
+      op = new LoadAndOr(address, metadata, returnAddress); break;
     case LOAD_AND_AND:
-      op = new LoadAndAnd(request, destination); break;
+      op = new LoadAndAnd(address, metadata, returnAddress); break;
     case LOAD_AND_XOR:
-      op = new LoadAndXor(request, destination); break;
+      op = new LoadAndXor(address, metadata, returnAddress); break;
     case EXCHANGE:
-      op = new Exchange(request, destination); break;
+      op = new Exchange(address, metadata, returnAddress); break;
     case UPDATE_DIRECTORY_ENTRY:
-      op = new UpdateDirectoryEntry(request, destination); break;
+      op = new UpdateDirectoryEntry(address, metadata, returnAddress); break;
     case UPDATE_DIRECTORY_MASK:
-      op = new UpdateDirectoryMask(request, destination); break;
+      op = new UpdateDirectoryMask(address, metadata, returnAddress); break;
 
     default:
       throw InvalidOptionException("memory request opcode", (int)metadata.opcode);

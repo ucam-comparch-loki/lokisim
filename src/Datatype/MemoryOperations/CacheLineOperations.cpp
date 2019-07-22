@@ -13,10 +13,9 @@
 
 #include <assert.h>
 
-MetadataOperation::MetadataOperation(const NetworkRequest& request,
-                                     ChannelID destination) :
-    MemoryOperation(request.payload().toUInt(), request.getMemoryMetadata(),
-                    destination, MEMORY_METADATA, ALIGN_CACHE_LINE, 1, false, false) {
+MetadataOperation::MetadataOperation(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    MemoryOperation(address, metadata, returnAddr, MEMORY_METADATA,
+                    ALIGN_CACHE_LINE, 1, false, false) {
   // Nothing
 }
 
@@ -29,25 +28,57 @@ uint MetadataOperation::resultFlitsRemaining() const {
 }
 
 
-FetchLine::FetchLine(const NetworkRequest& request, ChannelID destination) :
-    LoadOperation(request.payload().toUInt(), request.getMemoryMetadata(),
-                  destination, MEMORY_WORD, ALIGN_CACHE_LINE, CACHE_LINE_WORDS) {
+AllLinesOperation::AllLinesOperation(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    MemoryOperation(0, metadata, returnAddr, MEMORY_CACHE_LINE,
+                    ALIGN_CACHE_LINE, 0, false, false) {
+  // Note that address is ignored above. The address is only used to select a
+  // memory bank.
+}
+
+void AllLinesOperation::assignToMemory(MemoryBase& memory, MemoryLevel level) {
+  MemoryOperation::assignToMemory(memory, level);
+  sramAddress = 0;
+
+  // Extract extra information about the memory. These operations are only valid
+  // on memory banks (i.e. not main memory).
+  totalIterations = static_cast<MemoryBank&>(memory).numCacheLines();
+}
+
+void AllLinesOperation::prepare() {
+  // Nothing to do
+}
+
+bool AllLinesOperation::preconditionsMet() const {
+  return true;
+}
+
+uint AllLinesOperation::payloadFlitsRemaining() const {
+  return 0;
+}
+
+uint AllLinesOperation::resultFlitsRemaining() const {
+  return 0;
+}
+
+
+FetchLine::FetchLine(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    LoadOperation(address, metadata, returnAddr, MEMORY_WORD, ALIGN_CACHE_LINE,
+                  CACHE_LINE_WORDS) {
   // Nothing
 }
 
 
-IPKRead::IPKRead(const NetworkRequest& request, ChannelID destination) :
-    LoadOperation(request.payload().toUInt(), request.getMemoryMetadata(),
-                  destination, MEMORY_INSTRUCTION, ALIGN_WORD,
-                  CACHE_LINE_WORDS - ((request.payload().toUInt() >> 2) & 7)) {
+IPKRead::IPKRead(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    LoadOperation(address, metadata, returnAddr, MEMORY_INSTRUCTION, ALIGN_WORD,
+                  CACHE_LINE_WORDS - ((address >> 2) & 7)) {
   // The above is a messy way of computing how many words are left in the
   // current cache line. The operation will stop there if it has not encountered
   // an instruction with the end-of-packet marker.
 }
 
 
-ValidateLine::ValidateLine(const NetworkRequest& request, ChannelID destination) :
-    MetadataOperation(request, destination) {
+ValidateLine::ValidateLine(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    MetadataOperation(address, metadata, returnAddr) {
   // Nothing
 }
 
@@ -64,10 +95,10 @@ void ValidateLine::execute() {
 }
 
 
-PrefetchLine::PrefetchLine(const NetworkRequest& request, ChannelID destination) :
-    LoadOperation(request.payload().toUInt(), request.getMemoryMetadata(),
-                  ChannelID(), MEMORY_WORD, ALIGN_CACHE_LINE, CACHE_LINE_WORDS) {
-  // Ignore the given return address - there is no result to produce.
+PrefetchLine::PrefetchLine(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    LoadOperation(address, metadata, ChannelID(), MEMORY_WORD, ALIGN_CACHE_LINE,
+                  CACHE_LINE_WORDS) {
+  // Nothing
 }
 
 void PrefetchLine::execute() {
@@ -79,8 +110,8 @@ bool PrefetchLine::complete() const {
 }
 
 
-FlushLine::FlushLine(const NetworkRequest& request, ChannelID destination) :
-    MetadataOperation(request, destination) {
+FlushLine::FlushLine(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    MetadataOperation(address, metadata, returnAddr) {
   finished = false;
 
   // Instrumentation happens in the memory bank. At this point, we don't know
@@ -108,8 +139,8 @@ bool FlushLine::complete() const {
 }
 
 
-InvalidateLine::InvalidateLine(const NetworkRequest& request, ChannelID destination) :
-    MetadataOperation(request, destination) {
+InvalidateLine::InvalidateLine(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    MetadataOperation(address, metadata, returnAddr) {
   finished = false;
 }
 
@@ -133,71 +164,37 @@ bool InvalidateLine::complete() const {
 }
 
 
-FlushAllLines::FlushAllLines(const NetworkRequest& request, ChannelID destination) :
-    MetadataOperation(request, destination) {
-  line = 0;
+FlushAllLines::FlushAllLines(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    AllLinesOperation(address, metadata, returnAddr) {
+  // Nothing
 }
 
-void FlushAllLines::prepare() {
-  // Nothing to do
-}
-
-bool FlushAllLines::preconditionsMet() const {
-  return true;
-}
-
-void FlushAllLines::execute() {
-  sramAddress = line * memory->cacheLineBytes();
+bool FlushAllLines::oneIteration() {
   flushLine();
-  line++;
-}
-
-bool FlushAllLines::complete() const {
-  // It only makes sense to flush lines from a MemoryBank (i.e. not main
-  // memory), so this is safe.
-  MemoryBank& bank = static_cast<MemoryBank&>(*memory);
-
-  return (line >= bank.numCacheLines());
-}
-
-
-InvalidateAllLines::InvalidateAllLines(const NetworkRequest& request, ChannelID destination) :
-    MetadataOperation(request, destination) {
-  line = 0;
-}
-
-void InvalidateAllLines::prepare() {
-  // Nothing to do
-}
-
-bool InvalidateAllLines::preconditionsMet() const {
   return true;
 }
 
-void InvalidateAllLines::execute() {
-  sramAddress = line * memory->cacheLineBytes();
+
+InvalidateAllLines::InvalidateAllLines(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    AllLinesOperation(address, metadata, returnAddr) {
+  // Nothing
+}
+
+bool InvalidateAllLines::oneIteration() {
   invalidateLine();
-  line++;
-}
-
-bool InvalidateAllLines::complete() const {
-  // It only makes sense to invalidate lines in a MemoryBank (i.e. not main
-  // memory), so this is safe.
-  MemoryBank& bank = static_cast<MemoryBank&>(*memory);
-
-  return (line >= bank.numCacheLines());
+  return true;
 }
 
 
-StoreLine::StoreLine(const NetworkRequest& request, ChannelID destination) :
-    StoreOperation(request.payload().toUInt(), request.getMemoryMetadata(),
-                   destination, MEMORY_WORD, ALIGN_CACHE_LINE, CACHE_LINE_WORDS) {
+StoreLine::StoreLine(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    StoreOperation(address, metadata, returnAddr, MEMORY_WORD, ALIGN_CACHE_LINE,
+                   CACHE_LINE_WORDS) {
   // Nothing
 }
 
 
-MemsetLine::MemsetLine(const NetworkRequest& request, ChannelID destination) :
-    StoreLine(request, destination) {
+MemsetLine::MemsetLine(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    StoreLine(address, metadata, returnAddr) {
   data = 0;
   haveData = false;
 }
@@ -217,15 +214,15 @@ unsigned int MemsetLine::getPayload() {
 }
 
 
-PushLine::PushLine(const NetworkRequest& request, ChannelID destination) :
-    StoreLine(request, destination) {
+PushLine::PushLine(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    StoreLine(address, metadata, returnAddr) {
   // It only makes sense to push lines into a MemoryBank (i.e. not main
   // memory), so this is safe.
   MemoryBank& bank = static_cast<MemoryBank&>(*memory);
 
   // Target bank is encoded in the space where the cache line offset usually
   // goes.
-  targetBank = request.payload().toUInt() & (bank.memoriesThisTile() - 1);
+  targetBank = address & (bank.memoriesThisTile() - 1);
 }
 
 NetworkRequest PushLine::toFlit() const {

@@ -250,6 +250,7 @@ private:
   // will suggest that it doesn't have it at all. Record the addresses of all
   // cache lines in the process of being flushed to detect this corner case.
   std::set<MemoryAddr>  pendingFlushes;
+  SRAMAddress flushAddress;  // Temporary - current line being flushed
 
   typedef struct {
     MemoryTag address;  // Which data is stored here?

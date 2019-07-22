@@ -9,9 +9,9 @@
 
 #include <assert.h>
 
-DirectoryOperation::DirectoryOperation(const NetworkRequest& request, ChannelID destination, unsigned int payloadFlits) :
-    MemoryOperation(request.payload().toUInt(), request.getMemoryMetadata(),
-                    destination, MEMORY_METADATA, ALIGN_BYTE, 1, false, false) {
+DirectoryOperation::DirectoryOperation(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr, uint payloadFlits) :
+    MemoryOperation(address, metadata, returnAddr, MEMORY_METADATA, ALIGN_BYTE,
+                    1, false, false) {
   // Nothing
 }
 
@@ -52,13 +52,13 @@ NetworkRequest DirectoryOperation::toFlit() const {
 }
 
 
-UpdateDirectoryEntry::UpdateDirectoryEntry(const NetworkRequest& request, ChannelID destination) :
-    DirectoryOperation(request, destination, 1) {
+UpdateDirectoryEntry::UpdateDirectoryEntry(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    DirectoryOperation(address, metadata, returnAddr, 1) {
   // Nothing
 }
 
 
-UpdateDirectoryMask::UpdateDirectoryMask(const NetworkRequest& request, ChannelID destination) :
-    DirectoryOperation(request, destination, 1) {
+UpdateDirectoryMask::UpdateDirectoryMask(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    DirectoryOperation(address, metadata, returnAddr, 1) {
   // Nothing
 }

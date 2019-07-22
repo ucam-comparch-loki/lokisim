@@ -31,10 +31,10 @@ MemoryOperation::MemoryOperation(MemoryAddr address,
     address(address),
     metadata(metadata),
     returnAddress(returnAddress),
+    totalIterations(iterations),
     datatype(datatype),
     dataSize(getSize(datatype)),
     alignment(alignment),
-    totalIterations(iterations),
     readsMemory(reads),
     writesMemory(writes) {
 
@@ -56,6 +56,10 @@ void MemoryOperation::assignToMemory(MemoryBase& memory, MemoryLevel level) {
   this->level = level;
   this->sramAddress = memory.getPosition(
       align(address, alignment), getAccessMode());
+
+  // Now we have the memory, we can find out the cache line length.
+  if (datatype == MEMORY_CACHE_LINE)
+    dataSize = memory.cacheLineBytes();
 
   if (level != MEMORY_OFF_CHIP) {
     MemoryBank& bank = static_cast<MemoryBank&>(memory);
@@ -116,7 +120,7 @@ void MemoryOperation::execute() {
     if (iterationsComplete > 0 && level != MEMORY_OFF_CHIP) {
       MemoryBank& bank = static_cast<MemoryBank&>(*memory);
       Instrumentation::L1Cache::continueOperation(bank, metadata.opcode,
-          address + addressOffset, false, returnAddress);
+          getAddress(), false, returnAddress);
     }
 
     iterationsComplete++;
@@ -159,7 +163,7 @@ bool MemoryOperation::oneIteration() {
 uint32_t MemoryOperation::readMemory() {
   assert(readsMemory);
 
-  SRAMAddress fullAddress = sramAddress + addressOffset;
+  SRAMAddress fullAddress = getSRAMAddress();
   uint32_t result = memory->readWord(fullAddress & ~0x3, getAccessMode());
 
   // If we want less than a full word, mask and shift the piece we want.
@@ -172,14 +176,14 @@ uint32_t MemoryOperation::readMemory() {
   if (datatype == MEMORY_INSTRUCTION && Instruction(result).endOfPacket())
     endOfPacketSeen = true;
 
-  memory->printOperation(metadata.opcode, address + addressOffset, result);
+  memory->printOperation(metadata.opcode, getAddress(), result);
   return result;
 }
 
 void MemoryOperation::writeMemory(uint32_t data) {
   assert(writesMemory);
 
-  SRAMAddress fullAddress = sramAddress + addressOffset;
+  SRAMAddress fullAddress = getSRAMAddress();
 
   // If writing less than a full word, read the rest of the word and insert
   // this piece before writing it back.
@@ -193,7 +197,7 @@ void MemoryOperation::writeMemory(uint32_t data) {
     data = (~mask & oldData) | (mask & (data << (8 * dataSize * offset)));
   }
 
-  memory->printOperation(metadata.opcode, address + addressOffset, data);
+  memory->printOperation(metadata.opcode, getAddress(), data);
   memory->writeWord(fullAddress & ~0x3, data, getAccessMode());
 }
 
@@ -229,27 +233,34 @@ void MemoryOperation::sendResult(unsigned int data, bool isInstruction) {
 }
 
 void MemoryOperation::allocateLine() const {
-  memory->allocate(address, sramAddress, getAccessMode());
+  memory->allocate(getAddress(), getSRAMAddress(), getAccessMode());
 }
 
 void MemoryOperation::validateLine() const {
-  memory->validate(address, sramAddress, getAccessMode());
+  memory->validate(getAddress(), getSRAMAddress(), getAccessMode());
 }
 
 void MemoryOperation::invalidateLine() const {
-  memory->invalidate(sramAddress, getAccessMode());
+  memory->invalidate(getSRAMAddress(), getAccessMode());
 }
 
 void MemoryOperation::flushLine() const {
-  memory->flush(sramAddress, getAccessMode());
+  memory->flush(getSRAMAddress(), getAccessMode());
 }
 
 bool MemoryOperation::inCache() const {
+  // Using getAddress and getSRAMAddress breaks this - bug or not?
   return memory->contains(address, sramAddress, getAccessMode());
 }
 
-MemoryAddr      MemoryOperation::getAddress()     const {return address;}
-SRAMAddress     MemoryOperation::getSRAMAddress() const {return sramAddress;}
+MemoryAddr      MemoryOperation::getAddress()     const {
+  return address + addressOffset;
+}
+
+SRAMAddress     MemoryOperation::getSRAMAddress() const {
+  return sramAddress + addressOffset;
+}
+
 MemoryMetadata  MemoryOperation::getMetadata()    const {return metadata;}
 MemoryLevel     MemoryOperation::getMemoryLevel() const {return level;}
 ChannelID       MemoryOperation::getDestination() const {return returnAddress;}
@@ -259,16 +270,14 @@ bool            MemoryOperation::wasCacheMiss()   const {return cacheMiss;}
 
 string MemoryOperation::toString() const {
   std::ostringstream out;
-  out << memoryOpName(metadata.opcode) << " " << LOKI_HEX(address) << " for " << returnAddress.getString(Encoding::hardwareChannelID);
+  out << memoryOpName(metadata.opcode) << " " << LOKI_HEX(address) << " for "
+      << returnAddress.getString(Encoding::hardwareChannelID);
+
   return out.str();
 }
 
 NetworkRequest MemoryOperation::toFlit() const {
   return NetworkRequest(address, returnAddress, metadata.flatten());
-}
-
-MemoryAddr MemoryOperation::startOfLine(MemoryAddr address) const {
-  return address - memory->getOffset(address);
 }
 
 bool MemoryOperation::memoryAssigned() const {
@@ -299,6 +308,7 @@ size_t MemoryOperation::getSize(MemoryData datatype) const {
     case MEMORY_HALFWORD:    return BYTES_PER_WORD/2;
     case MEMORY_WORD:        return BYTES_PER_WORD;
     case MEMORY_INSTRUCTION: return BYTES_PER_WORD;
+    case MEMORY_CACHE_LINE:  return 0; // Fixed up in `assignMemory`
     case MEMORY_METADATA:    return 0;
     default: assert(false); return -1;
   }

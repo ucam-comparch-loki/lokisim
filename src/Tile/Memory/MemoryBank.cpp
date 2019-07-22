@@ -118,6 +118,7 @@ void MemoryBank::allocate(MemoryAddr address, SRAMAddress position, MemoryAccess
         Instrumentation::L1Cache::replaceCacheLine(id, tag.valid, tag.dirty);
 
         // Send a request for the missing cache line.
+        // TODO: create a FetchLine request and let it do all the work.
         NetworkRequest readRequest(getTag(address), id, FETCH_LINE, true);
         MemoryMetadata metadata = readRequest.getMemoryMetadata();
         metadata.skipL2 = hitRequest->getMetadata().skipL2;
@@ -190,6 +191,7 @@ void MemoryBank::flush(SRAMAddress position, MemoryAccessMode mode) {
 
       if (tag.valid && tag.dirty) {
         // Send a header flit telling where this line should be stored.
+        // TODO: create a StoreLine request and let it do all the work.
         MemoryAddr address = tag.address;
         NetworkRequest header(address, id, STORE_LINE, false);
         MemoryMetadata metadata = header.getMemoryMetadata();
@@ -198,6 +200,7 @@ void MemoryBank::flush(SRAMAddress position, MemoryAccessMode mode) {
         sendRequest(header);
 
         pendingFlushes.insert(address);
+        flushAddress = getTag(position); // A bit hacky - just want to set offset to 0
 
         if (ENERGY_TRACE)
           Instrumentation::L1Cache::startOperation(*this, FLUSH_LINE,
@@ -475,7 +478,10 @@ void MemoryBank::processFlush(DecodedRequest& request) {
   if (!iClock.negedge())
     next_trigger(iClock.negedge_event());
   else if (canSendRequest()) {
-    SRAMAddress position = getTag(request->getSRAMAddress()) + cacheLineCursor;
+    // This should all be tidied up when flushing is done using its own
+    // MemoryOperation. The request's address may have changed since the flush
+    // began, so use a local copy. (Temporary.)
+    SRAMAddress position = flushAddress + cacheLineCursor;
     uint32_t data = readWord(position, request->getAccessMode());
 
     Instrumentation::L1Cache::continueOperation(*this, FLUSH_LINE,
@@ -981,6 +987,8 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
 
   currentlyIdle = true;
   Instrumentation::idle(id, true);
+
+  flushAddress = -1;
 
   for (uint line=0; line<metadata.size(); line++) {
     metadata[line].valid = false;

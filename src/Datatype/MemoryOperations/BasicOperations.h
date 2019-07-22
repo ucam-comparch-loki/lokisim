@@ -55,32 +55,32 @@ protected:
 
 class LoadWord : public LoadOperation {
 public:
-  LoadWord(const NetworkRequest& request, ChannelID destination);
+  LoadWord(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 };
 
 class LoadHalfword : public LoadOperation {
 public:
-  LoadHalfword(const NetworkRequest& request, ChannelID destination);
+  LoadHalfword(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 };
 
 class LoadByte : public LoadOperation {
 public:
-  LoadByte(const NetworkRequest& request, ChannelID destination);
+  LoadByte(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 };
 
 class StoreWord : public StoreOperation {
 public:
-  StoreWord(const NetworkRequest& request, ChannelID destination);
+  StoreWord(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 };
 
 class StoreHalfword : public StoreOperation {
 public:
-  StoreHalfword(const NetworkRequest& request, ChannelID destination);
+  StoreHalfword(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 };
 
 class StoreByte : public StoreOperation {
 public:
-  StoreByte(const NetworkRequest& request, ChannelID destination);
+  StoreByte(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 };
 
 #endif /* SRC_TILE_MEMORY_OPERATIONS_BASICOPERATIONS_H_ */

@@ -15,8 +15,8 @@
 
 class DirectoryOperation : public MemoryOperation {
 public:
-  DirectoryOperation(const NetworkRequest& request, ChannelID destination,
-                     unsigned int payloadFlits);
+  DirectoryOperation(MemoryAddr address, MemoryMetadata metadata,
+                     ChannelID returnAddr, unsigned int payloadFlits);
 
   virtual bool needsForwarding() const;
   virtual void prepare();
@@ -29,12 +29,12 @@ public:
 
 class UpdateDirectoryEntry : public DirectoryOperation {
 public:
-  UpdateDirectoryEntry(const NetworkRequest& request, ChannelID destination);
+  UpdateDirectoryEntry(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 };
 
 class UpdateDirectoryMask : public DirectoryOperation {
 public:
-  UpdateDirectoryMask(const NetworkRequest& request, ChannelID destination);
+  UpdateDirectoryMask(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 };
 
 #endif /* SRC_TILE_MEMORY_OPERATIONS_DIRECTORYOPERATIONS_H_ */

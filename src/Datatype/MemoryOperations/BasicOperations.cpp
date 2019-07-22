@@ -84,43 +84,37 @@ bool StoreOperation::oneIteration() {
 }
 
 
-LoadWord::LoadWord(const NetworkRequest& request, ChannelID destination) :
-    LoadOperation(request.payload().toUInt(), request.getMemoryMetadata(),
-                  destination, MEMORY_WORD, ALIGN_WORD, 1) {
+LoadWord::LoadWord(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    LoadOperation(address, metadata, returnAddr, MEMORY_WORD, ALIGN_WORD, 1) {
   // Nothing
 }
 
 
-LoadHalfword::LoadHalfword(const NetworkRequest& request, ChannelID destination) :
-    LoadOperation(request.payload().toUInt(), request.getMemoryMetadata(),
-                  destination, MEMORY_HALFWORD, ALIGN_HALFWORD, 1) {
+LoadHalfword::LoadHalfword(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    LoadOperation(address, metadata, returnAddr, MEMORY_HALFWORD, ALIGN_HALFWORD, 1) {
   // Nothing
 }
 
 
-LoadByte::LoadByte(const NetworkRequest& request, ChannelID destination) :
-    LoadOperation(request.payload().toUInt(), request.getMemoryMetadata(),
-                  destination, MEMORY_BYTE, ALIGN_BYTE, 1) {
+LoadByte::LoadByte(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    LoadOperation(address, metadata, returnAddr, MEMORY_BYTE, ALIGN_BYTE, 1) {
   // Nothing
 }
 
 
-StoreWord::StoreWord(const NetworkRequest& request, ChannelID destination) :
-    StoreOperation(request.payload().toUInt(), request.getMemoryMetadata(),
-                   destination, MEMORY_WORD, ALIGN_WORD, 1) {
+StoreWord::StoreWord(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    StoreOperation(address, metadata, returnAddr, MEMORY_WORD, ALIGN_WORD, 1) {
   // Nothing
 }
 
 
-StoreHalfword::StoreHalfword(const NetworkRequest& request, ChannelID destination) :
-    StoreOperation(request.payload().toUInt(), request.getMemoryMetadata(),
-                   destination, MEMORY_HALFWORD, ALIGN_HALFWORD, 1) {
+StoreHalfword::StoreHalfword(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    StoreOperation(address, metadata, returnAddr, MEMORY_HALFWORD, ALIGN_HALFWORD, 1) {
   // Nothing
 }
 
 
-StoreByte::StoreByte(const NetworkRequest& request, ChannelID destination) :
-    StoreOperation(request.payload().toUInt(), request.getMemoryMetadata(),
-                   destination, MEMORY_BYTE, ALIGN_BYTE, 1) {
+StoreByte::StoreByte(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
+    StoreOperation(address, metadata, returnAddr, MEMORY_BYTE, ALIGN_BYTE, 1) {
   // Nothing
 }

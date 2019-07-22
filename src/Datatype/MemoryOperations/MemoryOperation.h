@@ -23,6 +23,7 @@ enum MemoryData {
   MEMORY_HALFWORD,
   MEMORY_WORD,
   MEMORY_INSTRUCTION,
+  MEMORY_CACHE_LINE,
   MEMORY_METADATA
 };
 
@@ -57,7 +58,7 @@ public:
 
   // Assign this operation to the given memory, and say whether the memory is
   // acting as an L1, L2, etc.
-  void assignToMemory(MemoryBase& memory, MemoryLevel level);
+  virtual void assignToMemory(MemoryBase& memory, MemoryLevel level);
 
   // Returns whether the operation is destined for this memory.
   virtual bool needsForwarding() const;
@@ -140,9 +141,6 @@ public:
   // Convert the request header into a form that can be sent on the network.
   virtual NetworkRequest toFlit() const;
 
-  // Send a word to the chosen destination.
-  void sendResult(unsigned int data, bool isInstruction = false);
-
 protected:
 
   // Perform one iteration of an operation. Return whether the iteration was
@@ -166,9 +164,8 @@ protected:
   // Retrieves a payload flit from the memory.
   unsigned int getPayload();
 
-  // Compute the address of the start of the cache line which contains the given
-  // address.
-  MemoryAddr startOfLine(MemoryAddr address) const;
+  // Send a word to the chosen destination.
+  void sendResult(unsigned int data, bool isInstruction = false);
 
 private:
 
@@ -198,25 +195,26 @@ protected:
   const MemoryMetadata  metadata;       // Various information modifying the operation
   const ChannelID       returnAddress;  // Channel to send results to
 
-  const MemoryData      datatype;       // Type of data being accessed
-  const size_t          dataSize;       // Size of each accessed value in bytes
-  const MemoryAlignment alignment;      // Round address down to multiple of this
-  const uint            totalIterations;// Number of accesses to perform
-  const bool            readsMemory;    // Does this operation read memory?
-  const bool            writesMemory;   // Does this operation modify memory?
-
   // Information about the location where the operation is performed.
   MemoryBase*           memory;         // The memory processing this operation
   MemoryLevel           level;          // Whether this is the L1, L2, etc.
   SRAMAddress           sramAddress;    // Position in SRAM of base address
 
   // Dynamic information about the progress of the operation.
+  uint                  totalIterations;// Number of accesses to perform
   uint                  iterationsComplete;
+
+private:
+
+  const MemoryData      datatype;       // Type of data being accessed
+  size_t                dataSize;       // Size of each accessed value in bytes
+  const MemoryAlignment alignment;      // Round address down to multiple of this
+  const bool            readsMemory;    // Does this operation read memory?
+  const bool            writesMemory;   // Does this operation modify memory?
+
   SRAMAddress           addressOffset;  // Amount to add to address/sramAddress
   bool                  cacheMiss;      // Did this operation miss in the cache?
   bool                  endOfPacketSeen;// Have we seen an EOP instruction?
-
-private:
 
   static uint operationCount;           // Counter used to generate unique IDs
 };
