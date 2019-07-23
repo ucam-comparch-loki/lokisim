@@ -167,6 +167,13 @@ protected:
   // Send a word to the chosen destination.
   void sendResult(unsigned int data, bool isInstruction = false);
 
+  // Make a load-linked-style reservation in memory. The reservation will be
+  // cleared if the loaded data is subsequently modified.
+  void makeReservation();
+
+  // Check whether a previous load-linked reservation is still valid.
+  bool checkReservation() const;
+
 private:
 
   // Perform safety checks before writing any data.
@@ -194,10 +201,6 @@ protected:
   const MemoryAddr      address;        // Position in address space
   const MemoryMetadata  metadata;       // Various information modifying the operation
   const ChannelID       returnAddress;  // Channel to send results to
-
-  // Information about the location where the operation is performed.
-  MemoryBase*           memory;         // The memory processing this operation
-  MemoryLevel           level;          // Whether this is the L1, L2, etc.
   SRAMAddress           sramAddress;    // Position in SRAM of base address
 
   // Dynamic information about the progress of the operation.
@@ -205,6 +208,9 @@ protected:
   uint                  iterationsComplete;
 
 private:
+  // Information about the location where the operation is performed.
+  MemoryBase*           memory;         // The memory processing this operation
+  MemoryLevel           level;          // Whether this is the L1, L2, etc.
 
   const MemoryData      datatype;       // Type of data being accessed
   size_t                dataSize;       // Size of each accessed value in bytes
@@ -216,7 +222,7 @@ private:
   bool                  cacheMiss;      // Did this operation miss in the cache?
   bool                  endOfPacketSeen;// Have we seen an EOP instruction?
 
-  static uint operationCount;           // Counter used to generate unique IDs
+  static uint           operationCount; // Counter used to generate unique IDs
 };
 
 #endif /* SRC_TILE_MEMORY_OPERATIONS_MEMORYOPERATION_H_ */

@@ -56,8 +56,9 @@ LoadLinked::LoadLinked(MemoryAddr address, MemoryMetadata metadata, ChannelID re
 }
 
 bool LoadLinked::oneIteration() {
-  memory->makeReservation(returnAddress.component, getAddress(),
-                          getAccessMode());
+  // Set a flag which will be cleared if the loaded data is subsequently
+  // modified.
+  makeReservation();
   return LoadWord::oneIteration();
 }
 
@@ -90,8 +91,7 @@ uint StoreConditional::resultFlitsRemaining() const {
 bool StoreConditional::oneIteration() {
   // First part: check address and see if operation should continue.
   if (checkState) {
-    success = inCache()
-           && memory->checkReservation(returnAddress.component, getAddress(), getAccessMode());
+    success = inCache() && checkReservation();
 
     sendResult(success);
 

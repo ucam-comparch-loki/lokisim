@@ -38,9 +38,9 @@ MemoryOperation::MemoryOperation(MemoryAddr address,
     readsMemory(reads),
     writesMemory(writes) {
 
+  sramAddress = -1;
   memory = NULL;
   level = MEMORY_L1; // Add "unknown" option?
-  sramAddress = -1;
   cacheMiss = false;
   endOfPacketSeen = false;
 
@@ -229,6 +229,16 @@ void MemoryOperation::sendResult(unsigned int data, bool isInstruction) {
 
   Instrumentation::Latency::memoryBufferedResult(memory->id, *this,
       response, !wasCacheMiss(), getMemoryLevel() == MEMORY_L1);
+}
+
+void MemoryOperation::makeReservation() {
+  memory->makeReservation(returnAddress.component, getAddress(),
+                          getAccessMode());
+}
+
+bool MemoryOperation::checkReservation() const {
+  return memory->checkReservation(returnAddress.component, getAddress(),
+                                  getAccessMode());
 }
 
 void MemoryOperation::allocateLine() const {
