@@ -113,8 +113,8 @@ public:
 protected:
   // Payload methods are overridden so we only get one payload, and then reuse
   // it every iteration.
-  bool payloadAvailable() const;
-  unsigned int getPayload();
+  virtual bool payloadAvailable() const;
+  virtual unsigned int getPayload();
 
 private:
   unsigned int data;  // The word to store to each position in the cache line.
@@ -124,6 +124,7 @@ private:
 class PushLine : public StoreLine {
 public:
   PushLine(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
+  virtual void assignToMemory(MemoryBase& memory, MemoryLevel level);
   virtual NetworkRequest toFlit() const;
 
 private:

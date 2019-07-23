@@ -216,13 +216,22 @@ unsigned int MemsetLine::getPayload() {
 
 PushLine::PushLine(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
     StoreLine(address, metadata, returnAddr) {
+  // Target bank is encoded in the address, but we don't know the encoding until
+  // we have access to a memory bank. This process is completed in
+  // assignToMemory.
+  targetBank = address;
+}
+
+void PushLine::assignToMemory(MemoryBase& memory, MemoryLevel level) {
+  StoreLine::assignToMemory(memory, level);
+
   // It only makes sense to push lines into a MemoryBank (i.e. not main
   // memory), so this is safe.
-  MemoryBank& bank = static_cast<MemoryBank&>(*memory);
+  MemoryBank& bank = static_cast<MemoryBank&>(memory);
 
   // Target bank is encoded in the space where the cache line offset usually
   // goes.
-  targetBank = address & (bank.memoriesThisTile() - 1);
+  targetBank = targetBank & (bank.memoriesThisTile() - 1);
 }
 
 NetworkRequest PushLine::toFlit() const {

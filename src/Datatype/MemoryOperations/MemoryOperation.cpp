@@ -28,7 +28,7 @@ MemoryOperation::MemoryOperation(MemoryAddr address,
                                  bool reads,
                                  bool writes) :
     id(operationCount++),
-    address(address),
+    address(align(address, alignment)),
     metadata(metadata),
     returnAddress(returnAddress),
     totalIterations(iterations),
@@ -54,8 +54,7 @@ MemoryOperation::~MemoryOperation() {}
 void MemoryOperation::assignToMemory(MemoryBase& memory, MemoryLevel level) {
   this->memory = &memory;
   this->level = level;
-  this->sramAddress = memory.getPosition(
-      align(address, alignment), getAccessMode());
+  this->sramAddress = memory.getPosition(address, getAccessMode());
 
   // Now we have the memory, we can find out the cache line length.
   if (datatype == MEMORY_CACHE_LINE)

@@ -159,10 +159,10 @@ protected:
   void writeMemory(uint32_t data);
 
   // Returns whether the memory has a payload flit ready for this operation.
-  bool payloadAvailable() const;
+  virtual bool payloadAvailable() const;
 
   // Retrieves a payload flit from the memory.
-  unsigned int getPayload();
+  virtual unsigned int getPayload();
 
   // Send a word to the chosen destination.
   void sendResult(unsigned int data, bool isInstruction = false);
