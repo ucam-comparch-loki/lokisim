@@ -2,7 +2,8 @@
  * MemoryInterface.h
  *
  * Component responsible for getting data to or from memory for an Accelerator's
- * DMA unit.
+ * DMA unit. One memory interface accesses exactly one memory bank, so all
+ * requests are processed in order.
  *
  * This component is agnostic to the type of data being accessed, and always
  * returns uint32_t values. These should be cast to the appropriate type before
@@ -21,9 +22,11 @@
 #include "../../Network/FIFOs/NetworkFIFO.h"
 #include "../../Network/Interface.h"
 #include "../../Network/NetworkTypes.h"
+#include "../../Utility/BlockingInterface.h"
 #include "../../Utility/LokiVector.h"
 #include "../ChannelMapEntry.h"
 #include "../MemoryBankSelector.h"
+#include "AcceleratorTypes.h"
 
 class DMA;
 using std::queue;
@@ -42,6 +45,7 @@ public:
 
 // Requests to send to memory.
 typedef struct {
+  tick_t     tick;
   position_t position;
   MemoryAddr address;
   MemoryOpcode operation;
@@ -53,11 +57,12 @@ typedef struct {
 // Note that data is always a uint32_t, and should be cast to the appropriate
 // type before use.
 typedef struct {
+  tick_t   tick;
   position_t position;
   uint32_t data;
 } response_t;
 
-class MemoryInterface : public LokiComponent {
+class MemoryInterface : public LokiComponent, public BlockingInterface {
 
 //============================================================================//
 // Ports
@@ -68,8 +73,8 @@ public:
   typedef sc_port<network_sink_ifc<Word>> InPort;
   typedef sc_port<network_source_ifc<Word>> OutPort;
 
-  LokiVector<OutPort> oRequest;   // Requests sent to memory.
-  LokiVector<InPort>  iResponse;  // Responses from memory.
+  OutPort oRequest;   // Requests sent to memory.
+  InPort  iResponse;  // Responses from memory.
 
 //============================================================================//
 // Constructors and destructors
@@ -78,7 +83,7 @@ public:
 public:
 
   SC_HAS_PROCESS(MemoryInterface);
-  MemoryInterface(sc_module_name name, ComponentID id, uint numMemoryBanks);
+  MemoryInterface(sc_module_name name, ComponentIndex memory);
 
 
 //============================================================================//
@@ -88,8 +93,8 @@ public:
 public:
 
   // Enqueue a memory request to be sent when next possible.
-  void createNewRequest(position_t position, MemoryAddr address, MemoryOpcode op,
-                        uint payloadFlits, uint32_t data=0);
+  void createNewRequest(tick_t tick, position_t position, MemoryAddr address,
+                        MemoryOpcode op, uint payloadFlits, uint32_t data=0);
 
   // Dequeue the next value received from memory.
   const response_t getResponse();
@@ -114,17 +119,18 @@ public:
   bool isIdle() const;
   const sc_event& becameIdleEvent() const;
 
-  // Update the mapping from memory addresses to memory banks.
-  void replaceMemoryMapping(ChannelMapEntry::MemoryChannel mapping);
+protected:
+
+  virtual void reportStalls(ostream& os);
 
 private:
 
   // Send the next request in the request queue to memory.
   void sendRequest();
 
-  // Take a response from memory and pass it on to the StagingArea, with any
-  // relevant metadata.
-  void processResponse(int buffer);
+  // Take a response from memory and reconnect it with any relevant metadata,
+  // before passing it back to the DMA.
+  void processResponse();
 
   DMA& parent() const;
 
@@ -135,34 +141,26 @@ private:
 
 private:
 
-  // Memory configuration. Tells us which memory bank to access for each memory
-  // address.
-  ChannelMapEntry::MemoryChannel memoryMapping;
+  // The index of the memory bank to be accessed.
+  const ComponentIndex memory;
 
-  // Fine-tunes the memory configuration for individual requests if the mapping
-  // covers multiple components.
-  MemoryBankSelector bankSelector;
-
-  // Requests to send to memory. Could potentially split this into one queue per
-  // bank to increase parallelism.
+  // Requests to send to memory.
   queue<request_t> requests;
   sc_event requestArrived;
-  LokiVector<NetworkFIFO<Word>> requestBuffers;
+  NetworkFIFO<Word> requestBuffer;
 
   // Responses received from memory.
   queue<response_t> responses;
   sc_event responseArrived;
-  LokiVector<NetworkFIFO<Word>> responseBuffers;
+  NetworkFIFO<Word> responseBuffer;
 
   // Hold the PE position associated with each request while we wait for a
   // response from memory. Assumes that responses will arrive in the same order
-  // as requests. There is one queue for each response buffer.
-  vector<queue<position_t>> inFlight;
+  // as requests.
+  queue<request_t> inFlight;
 
-  // Keep track of the number of requests in progress so we know when they're all
-  // done. A request begins when it first arrives in the request queue, and it
-  // ends when its response is removed from the response queue.
-  uint outstandingRequests;
+  // Event triggered when the final request has completed and its result (if
+  // any) has been consumed.
   sc_event becameIdle;
 
 };

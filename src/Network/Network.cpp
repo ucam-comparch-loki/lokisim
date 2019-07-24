@@ -142,8 +142,8 @@ void Network<T>::updateRequests(PortIndex input) {
 
   for (auto it = targets.begin(); it != targets.end(); ++it) {
     PortIndex target = *it;
-    loki_assert_with_message(target < outputs.size(), "Target: %d, outputs: %d",
-        target, outputs.size());
+    loki_assert_with_message(target < outputs.size(), "Channel: %s, target port: %d, total ports: %d",
+        flit.channelID().getString(Encoding::hardwareChannelID).c_str(), target, outputs.size());
 
     // TODO: Consider only adding the request if the output is available. This
     // could become useful when there are multiple buffers behind each port.

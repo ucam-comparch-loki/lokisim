@@ -565,6 +565,9 @@ protected:
   void memoryAccess(position_t position, MemoryAddr address, MemoryOpcode op,
                     int data = 0);
 
+  // Receive a response from memory.
+  virtual void receiveMemoryData(uint interface) = 0;
+
   // Instantly send a request to memory. This is not a substitute for
   // memoryAccess above: this method is only to be called once all details about
   // the access have been confirmed.
@@ -592,12 +595,28 @@ private:
 
 protected:
 
+  // The ID of the command we are currently processing.
+  tick_t currentTick;
+
   // Commands from control unit telling which data to load/store.
   CommandQueue commandQueue;
 
   // Component responsible for organising requests and responses from memory.
+  // There is one interface for each bank on this tile, allowing maximum memory-
+  // level parallelism.
   friend class MemoryInterface;
-  MemoryInterface memoryInterface;
+  LokiVector<MemoryInterface> memoryInterfaces;
+
+  // Keep track of how many memory interfaces are busy.
+  uint activeInterfaces;
+
+  // Memory configuration. Tells us which memory bank to access for each memory
+  // address, whether to access in cache/scratchpad mode, etc.
+  ChannelMapEntry::MemoryChannel memoryMapping;
+
+  // Fine-tunes the memory configuration for individual requests if the mapping
+  // covers multiple components.
+  MemoryBankSelector bankSelector;
 
 private:
 
@@ -621,8 +640,6 @@ public:
   DMABase(sc_module_name name, ComponentID id, size2d_t ports, uint numBanks,
           size_t queueLength=4) :
       DMA(name, id, numBanks, queueLength) {
-
-    currentTick = -1;
 
   }
 
@@ -710,16 +727,6 @@ protected:
     createNewRequest(position, address, LOAD_AND_ADD, 1, shiftedData);
   }
 
-
-//============================================================================//
-// Local state
-//============================================================================//
-
-protected:
-
-  // The ID of the command we are currently processing.
-  tick_t currentTick;
-
 };
 
 
@@ -756,11 +763,9 @@ public:
     this->sensitive << this->commandQueue.queueChangedEvent();
     this->dont_initialize();
 
-    SC_METHOD(receiveMemoryData);
-    this->sensitive << this->memoryInterface.responseArrivedEvent();
-    this->dont_initialize();
-
   }
+
+  virtual ~DMAInput() {}
 
 
 //============================================================================//
@@ -810,22 +815,31 @@ private:
   }
 
   // Receive data from memory and put it in the staging area.
-  void receiveMemoryData() {
-    loki_assert(this->memoryInterface.canGiveResponse());
+  virtual void receiveMemoryData(uint index) {
+    if (!oDataToPEs->canWrite()) {
+      next_trigger(oDataToPEs->canWriteEvent());
+      return;
+    }
 
-    response_t response = this->memoryInterface.getResponse();
+    loki_assert(this->memoryInterfaces[index].canGiveResponse());
+
+    response_t response = this->memoryInterfaces[index].getResponse();
     oDataToPEs->write(response.position.row, response.position.column,
                       static_cast<T>(response.data));
 
     // To emulate parallel operations, receive the next response immediately,
     // if there is one.
-    if (this->memoryInterface.canGiveResponse())
+    if (this->memoryInterfaces[index].canGiveResponse())
       next_trigger(sc_core::SC_ZERO_TIME);
 
     // Notify consumers when the last data has been received.
     // TODO Does not allow memory interface to start work on next command.
-    if (this->memoryInterface.isIdle())
-      oDataToPEs->finishedWriting(this->currentTick);
+    if (this->memoryInterfaces[index].isIdle()) {
+      this->activeInterfaces--;
+
+      if (this->activeInterfaces == 0)
+        oDataToPEs->finishedWriting(this->currentTick);
+    }
   }
 
 };
@@ -864,11 +878,9 @@ public:
     this->sensitive << this->commandQueue.queueChangedEvent();
     this->dont_initialize();
 
-    SC_METHOD(receiveMemoryData);
-    this->sensitive << this->memoryInterface.responseArrivedEvent();
-    this->dont_initialize();
-
   }
+
+  virtual ~DMAOutput() {}
 
 
 //============================================================================//
@@ -912,17 +924,17 @@ private:
   }
 
   // Receive data from memory.
-  void receiveMemoryData() {
-    loki_assert(this->memoryInterface.canGiveResponse());
+  virtual void receiveMemoryData(uint index) {
+    loki_assert(this->memoryInterfaces[index].canGiveResponse());
 
     // This unit is only responsible for sending data. If any data is received,
     // just discard it. Data might come from memory if we perform a
     // load-and-add: memory will return the previous value at that address.
-    this->memoryInterface.getResponse();
+    this->memoryInterfaces[index].getResponse();
 
     // To emulate parallel operations, receive the next response immediately,
     // if there is one.
-    if (this->memoryInterface.canGiveResponse())
+    if (this->memoryInterfaces[index].canGiveResponse())
       next_trigger(sc_core::SC_ZERO_TIME);
   }
 

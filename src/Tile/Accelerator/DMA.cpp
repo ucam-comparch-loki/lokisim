@@ -5,6 +5,8 @@
  *      Author: db434
  */
 
+#define SC_INCLUDE_DYNAMIC_PROCESSES
+
 #include "DMA.h"
 #include "Accelerator.h"
 
@@ -113,17 +115,29 @@ DMA::DMA(sc_module_name name, ComponentID id, uint numBanks, size_t queueLength)
     iResponse("iResponse", numBanks),
     id(id),
     commandQueue(queueLength),
-    memoryInterface("ifc", id, numBanks) {
+    memoryMapping(-1),
+    bankSelector(id) {
 
-  oRequest(memoryInterface.oRequest);
-  iResponse(memoryInterface.iResponse);
+  currentTick = -1;
+  activeInterfaces = 0;
+
+  for (uint i=0; i<numBanks; i++) {
+    MemoryInterface* ifc = new MemoryInterface(sc_gen_unique_name("ifc"), i);
+    oRequest[i](ifc->oRequest);
+    iResponse[i](ifc->iResponse);
+
+    SPAWN_METHOD(ifc->responseArrivedEvent(), DMA::receiveMemoryData, i, false);
+
+    memoryInterfaces.push_back(ifc);
+  }
 
   SC_METHOD(newCommandArrived);
   sensitive << iCommand;
   dont_initialize();
 
   SC_METHOD(detectIdleness);
-  sensitive << memoryInterface.becameIdleEvent();
+  for (uint i=0; i<memoryInterfaces.size(); i++)
+    sensitive << memoryInterfaces[i].becameIdleEvent();
   dont_initialize();
 
 }
@@ -144,16 +158,24 @@ void DMA::replaceMemoryMapping(EncodedCMTEntry mapEncoded) {
   // data to.
   decoded.channel = parent().memoryAccessChannel(id);
 
-  memoryInterface.replaceMemoryMapping(decoded);
+  memoryMapping = decoded;
 }
 
 // Magic connection from memory.
 void DMA::deliverDataInternal(const NetworkData& flit) {
-  memoryInterface.receiveResponse(flit);
+  uint target = flit.channelID().channel;
+  memoryInterfaces[target].receiveResponse(flit);
 }
 
 bool DMA::isIdle() const {
-  return commandQueue.empty() && memoryInterface.isIdle();
+  if (!commandQueue.empty())
+    return false;
+
+  for (uint i=0; i<memoryInterfaces.size(); i++)
+    if (!memoryInterfaces[i].isIdle())
+      return false;
+
+  return true;
 }
 
 const sc_event& DMA::becameIdleEvent() const {
@@ -168,7 +190,17 @@ const dma_command_t DMA::dequeueCommand() {
 // Generate a new memory request and send it to the appropriate memory bank.
 void DMA::createNewRequest(position_t position, MemoryAddr address,
                            MemoryOpcode op, int payloadFlits, int data) {
-  memoryInterface.createNewRequest(position, address, op, payloadFlits, data);
+  // TODO: Create a MemoryOperation here.
+
+  // Determine which memory interface to use.
+  ChannelID memoryBank = bankSelector.getMapping(op, address, memoryMapping);
+  ComponentIndex bankID = memoryBank.component.position;
+
+  if (memoryInterfaces[bankID].isIdle())
+    activeInterfaces++;
+
+  memoryInterfaces[bankID].createNewRequest(currentTick, position, address, op,
+                                            payloadFlits, data);
 }
 
 // Send a request to memory. If a response is expected, it will trigger the

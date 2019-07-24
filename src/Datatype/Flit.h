@@ -156,13 +156,21 @@ public:
         && (this->channelID_    == other.channelID_);
   }
 
-  friend std::ostream& operator<< (std::ostream& os, Flit<T> const& f) {
-    os << "[";
-    if (f.isInstruction)
-      os << static_cast<Instruction>(f.payload());
+  std::string getString() const {
+    std::stringstream ss;
+
+    ss << "[";
+    if (isInstruction)
+      ss << static_cast<Instruction>(payload());
     else
-      os << LOKI_HEX(f.payload());
-    os << " => " << f.channelID().getString(Encoding::hardwareChannelID) << "] (id:" << f.messageID() << ")";
+      ss << LOKI_HEX(payload());
+    ss << " => " << channelID().getString(Encoding::hardwareChannelID) << "] (id:" << messageID() << ")";
+
+    return ss.str();
+  }
+
+  friend std::ostream& operator<< (std::ostream& os, Flit<T> const& f) {
+    os << f.getString();
     return os;
   }
 
