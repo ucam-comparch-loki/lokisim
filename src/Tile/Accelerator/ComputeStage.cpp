@@ -52,8 +52,10 @@ void ComputeStage<T>::mainLoop() {
       return;   // Default trigger: new data arrives.
 
   // Ensure output is available.
-  if (!out->canWrite())
+  if (!out->canWrite()) {
     next_trigger(out->canWriteEvent());
+    return;
+  }
 
   // Main work.
   compute();

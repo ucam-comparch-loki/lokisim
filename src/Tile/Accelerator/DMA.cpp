@@ -118,8 +118,7 @@ DMA::DMA(sc_module_name name, ComponentID id, uint numBanks, size_t queueLength)
     memoryMapping(-1),
     bankSelector(id) {
 
-  currentTick = -1;
-  activeInterfaces = 0;
+  currentTick = 0;
 
   for (uint i=0; i<numBanks; i++) {
     MemoryInterface* ifc = new MemoryInterface(sc_gen_unique_name("ifc"), i);
@@ -188,7 +187,7 @@ const dma_command_t DMA::dequeueCommand() {
 }
 
 // Generate a new memory request and send it to the appropriate memory bank.
-void DMA::createNewRequest(position_t position, MemoryAddr address,
+void DMA::createNewRequest(tick_t tick, position_t position, MemoryAddr address,
                            MemoryOpcode op, int payloadFlits, int data) {
   // TODO: Create a MemoryOperation here.
 
@@ -196,10 +195,7 @@ void DMA::createNewRequest(position_t position, MemoryAddr address,
   ChannelID memoryBank = bankSelector.getMapping(op, address, memoryMapping);
   ComponentIndex bankID = memoryBank.component.position;
 
-  if (memoryInterfaces[bankID].isIdle())
-    activeInterfaces++;
-
-  memoryInterfaces[bankID].createNewRequest(currentTick, position, address, op,
+  memoryInterfaces[bankID].createNewRequest(tick, position, address, op,
                                             payloadFlits, data);
 }
 
@@ -208,17 +204,17 @@ void DMA::createNewRequest(position_t position, MemoryAddr address,
 // TODO: instead of breaking down the request into individual accesses, pass
 // more information to the memory interface and let it decide how access should
 // work. It may prefer to do bulk reads/writes, for example.
-void DMA::memoryAccess(position_t position, MemoryAddr address, MemoryOpcode op,
-                       int data) {
+void DMA::memoryAccess(tick_t tick, position_t position, MemoryAddr address,
+                       MemoryOpcode op, int data) {
   switch (op) {
     case LOAD_W:
-      loadData(position, address);
+      loadData(tick, position, address);
       break;
     case STORE_W:
-      storeData(position, address, data);
+      storeData(tick, position, address, data);
       break;
     case LOAD_AND_ADD:
-      loadAndAdd(position, address, data);
+      loadAndAdd(tick, position, address, data);
       break;
     default:
       throw InvalidOptionException("Convolution memory operation", op);

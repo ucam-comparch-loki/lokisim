@@ -26,6 +26,7 @@ public:
   bool full() const;
   bool empty() const;
 
+  // Event triggered whenever the queue is read or written.
   const sc_event& queueChangedEvent() const;
 
 private:

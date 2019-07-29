@@ -557,13 +557,13 @@ protected:
   const dma_command_t dequeueCommand();
 
   // Generate a new memory request and send it to the appropriate memory bank.
-  void createNewRequest(position_t position, MemoryAddr address,
+  void createNewRequest(tick_t tick, position_t position, MemoryAddr address,
                         MemoryOpcode op, int payloadFlits, int data = 0);
 
   // Send a request to memory. If a response is expected, it will trigger the
   // memoryInterface.responseArrivedEvent() event.
-  void memoryAccess(position_t position, MemoryAddr address, MemoryOpcode op,
-                    int data = 0);
+  void memoryAccess(tick_t tick, position_t position, MemoryAddr address,
+                    MemoryOpcode op, int data = 0);
 
   // Receive a response from memory.
   virtual void receiveMemoryData(uint interface) = 0;
@@ -576,9 +576,9 @@ protected:
 
   // These methods need to be overridden because their implementation depends
   // on the type of data being accessed.
-  virtual void loadData(position_t position, MemoryAddr address) = 0;
-  virtual void storeData(position_t position, MemoryAddr address, int data) = 0;
-  virtual void loadAndAdd(position_t position, MemoryAddr address, int data) = 0;
+  virtual void loadData(tick_t tick, position_t position, MemoryAddr address) = 0;
+  virtual void storeData(tick_t tick, position_t position, MemoryAddr address, int data) = 0;
+  virtual void loadAndAdd(tick_t tick, position_t position, MemoryAddr address, int data) = 0;
 
   Accelerator& parent() const;
 
@@ -606,9 +606,6 @@ protected:
   // level parallelism.
   friend class MemoryInterface;
   LokiVector<MemoryInterface> memoryInterfaces;
-
-  // Keep track of how many memory interfaces are busy.
-  uint activeInterfaces;
 
   // Memory configuration. Tells us which memory bank to access for each memory
   // address, whether to access in cache/scratchpad mode, etc.
@@ -650,7 +647,7 @@ public:
 
 protected:
 
-  virtual void loadData(position_t position, MemoryAddr address) {
+  virtual void loadData(tick_t tick, position_t position, MemoryAddr address) {
     MemoryOpcode op;
 
     // The control unit doesn't know/care which type of data to access, so
@@ -671,10 +668,10 @@ protected:
     }
 
     // Generate a memory request and send to memory.
-    createNewRequest(position, address, op, 0);
+    createNewRequest(tick, position, address, op, 0);
   }
 
-  virtual void storeData(position_t position, MemoryAddr address, int data) {
+  virtual void storeData(tick_t tick, position_t position, MemoryAddr address, int data) {
     MemoryOpcode op;
 
     // The control unit doesn't know/care which type of data to access, so
@@ -695,10 +692,10 @@ protected:
     }
 
     // Generate a memory request and send to memory.
-    createNewRequest(position, address, op, 1, data);
+    createNewRequest(tick, position, address, op, 1, data);
   }
 
-  virtual void loadAndAdd(position_t position, MemoryAddr address, int data) {
+  virtual void loadAndAdd(tick_t tick, position_t position, MemoryAddr address, int data) {
     int shiftedData;
 
     // Memory only supports load-and-adds of whole words. We can emulate the
@@ -724,7 +721,7 @@ protected:
     }
 
     // Generate a memory request and send to memory.
-    createNewRequest(position, address, LOAD_AND_ADD, 1, shiftedData);
+    createNewRequest(tick, position, address, LOAD_AND_ADD, 1, shiftedData);
   }
 
 };
@@ -756,6 +753,8 @@ public:
       DMABase<T>(name, id, ports, numBanks, queueLength),
       oDataToPEs("oDataToPEs") {
 
+    outstandingResponses = 0;
+
     // Templated class means `this` must be used whenever referring to anything
     // from a parent class.
 
@@ -766,6 +765,15 @@ public:
   }
 
   virtual ~DMAInput() {}
+
+private:
+
+  // Some extra construction to happen once all ports are connected.
+  virtual void end_of_elaboration() {
+    SC_METHOD(manageCurrentCommand);
+    this->sensitive << oDataToPEs->canWriteEvent();
+    // do initialise
+  }
 
 
 //============================================================================//
@@ -783,7 +791,6 @@ private:
     // might prefer to buffer multiple sets of data.
     if (oDataToPEs->canWrite()) {
       dma_command_t command = this->commandQueue.dequeue();
-      this->currentTick = command.time;
 
       loki_assert(command.rowLength > 0);
       loki_assert(command.colLength > 0);
@@ -798,7 +805,7 @@ private:
         for (uint row=0; row<command.colLength; row++) {
           MemoryAddr addr = command.baseAddress + col*command.rowStride + row*command.colStride;
           position_t position; position.row = row; position.column = col;
-          this->memoryAccess(position, addr, memoryOp);
+          this->memoryAccess(command.time, position, addr, memoryOp);
         }
       }
 
@@ -808,39 +815,85 @@ private:
           if (col >= command.rowLength || row >= command.colLength)
             oDataToPEs->write(row, col, 0);
 
-      next_trigger(oDataToPEs->canWriteEvent());
+      inFlight.push(command);
+
+      // Default trigger: new command arrived
     }
     else
       next_trigger(oDataToPEs->canWriteEvent());
   }
 
-  // Receive data from memory and put it in the staging area.
+  // Receive data from memory and forward it to the PEs.
   virtual void receiveMemoryData(uint index) {
+    MemoryInterface& ifc = this->memoryInterfaces[index];
+
     if (!oDataToPEs->canWrite()) {
       next_trigger(oDataToPEs->canWriteEvent());
       return;
     }
 
-    loki_assert(this->memoryInterfaces[index].canGiveResponse());
+    loki_assert(ifc.canGiveResponse());
 
-    response_t response = this->memoryInterfaces[index].getResponse();
+    // Stall if this interface has moved on to a future tick.
+    if (ifc.currentTick() != this->currentTick) {
+      loki_assert(this->currentTick < ifc.currentTick());
+
+      next_trigger(oDataToPEs->canWriteEvent());
+      return;
+    }
+
+    response_t response = ifc.getResponse();
     oDataToPEs->write(response.position.row, response.position.column,
                       static_cast<T>(response.data));
 
+    // Notify consumers when the last data has been received.
+    loki_assert(outstandingResponses > 0);
+    outstandingResponses--;
+    if (outstandingResponses == 0) {
+      oDataToPEs->finishedWriting(this->currentTick);
+      LOKI_LOG << this->name() << " sending data for tick " << this->currentTick << endl;
+    }
+
     // To emulate parallel operations, receive the next response immediately,
     // if there is one.
-    if (this->memoryInterfaces[index].canGiveResponse())
+    if (ifc.canGiveResponse())
       next_trigger(sc_core::SC_ZERO_TIME);
-
-    // Notify consumers when the last data has been received.
-    // TODO Does not allow memory interface to start work on next command.
-    if (this->memoryInterfaces[index].isIdle()) {
-      this->activeInterfaces--;
-
-      if (this->activeInterfaces == 0)
-        oDataToPEs->finishedWriting(this->currentTick);
-    }
   }
+
+  // There may be multiple commands in flight, so manage which one is the
+  // "current" command. This is the command for which we are supplying data to
+  // the PEs. We cannot accept any data for the next command until the current
+  // one finishes.
+  void manageCurrentCommand() {
+
+    if (inFlight.empty()) {
+      next_trigger(this->commandQueue.queueChangedEvent());
+      return;
+    }
+
+    loki_assert(outstandingResponses == 0);
+    loki_assert(!inFlight.empty());
+
+    dma_command_t command = inFlight.front();
+    inFlight.pop();
+
+    this->currentTick = command.time;
+    outstandingResponses = command.colLength * command.rowLength;
+
+    // Default trigger: oDataToPEs is ready for new data.
+  }
+
+//============================================================================//
+// Local state
+//============================================================================//
+
+private:
+
+  // The commands currently in progress.
+  queue<dma_command_t> inFlight;
+
+  // Details about the data currently being sent to PEs.
+  uint outstandingResponses;
 
 };
 
@@ -908,7 +961,7 @@ private:
           MemoryAddr addr = command.baseAddress + col*command.rowStride + row*command.colStride;
           position_t position; position.row = row; position.column = col;
           T value = iDataFromPEs->read(row, col);
-          this->memoryAccess(position, addr, memoryOp, value);
+          this->memoryAccess(command.time, position, addr, memoryOp, value);
 
           // TODO: optionally do nothing if the output is zero
         }

@@ -394,6 +394,11 @@ const response_t MemoryInterface::getResponse() {
   return response;
 }
 
+tick_t MemoryInterface::currentTick() const {
+  loki_assert(canGiveResponse());
+  return responses.front().tick;
+}
+
 bool MemoryInterface::canAcceptRequest() const {
   // Infinite capacity for now.
   return true;
@@ -433,7 +438,8 @@ void MemoryInterface::processResponse() {
   response.data = payload;
   responses.push(response);
 
-  LOKI_LOG << this->name() << ": received " << payload << " for PE " << response.position << endl;
+  LOKI_LOG << this->name() << ": received " << payload << " for PE "
+      << response.position << ", tick " << request.tick << endl;
 
   responseArrived.notify(sc_core::SC_ZERO_TIME);
 }

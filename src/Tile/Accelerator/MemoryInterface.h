@@ -99,6 +99,9 @@ public:
   // Dequeue the next value received from memory.
   const response_t getResponse();
 
+  // The tick of the next response (if any).
+  tick_t currentTick() const;
+
   // Does this component have capacity to enqueue another memory request?
   bool canAcceptRequest() const;
 
