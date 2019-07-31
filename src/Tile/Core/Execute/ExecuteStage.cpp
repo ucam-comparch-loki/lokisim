@@ -65,7 +65,7 @@ void ExecuteStage::updateReady() {
     oReady.write(ready);
 
   if (isStalled() && oReady.read())
-    LOKI_LOG << this->name() << " stalled." << endl;
+    LOKI_LOG(3) << this->name() << " stalled." << endl;
 }
 
 void ExecuteStage::newInput(DecodedInst& operation) {
@@ -77,18 +77,18 @@ void ExecuteStage::newInput(DecodedInst& operation) {
 
     // Only collect operands on the first cycle of multi-cycle operations.
     if (alu.busy()) {
-      LOKI_LOG << this->name() << ": continuing " << operation.name()
+      LOKI_LOG(2) << this->name() << ": continuing " << operation.name()
           << " on " << operation.operand1() << " and " << operation.operand2() << endl;
     }
     else if (isStalled()) {
-      LOKI_LOG << this->name() << ": expanding " << operation << " to multiple operations" << endl;
+      LOKI_LOG(2) << this->name() << ": expanding " << operation << " to multiple operations" << endl;
     }
     else {
       // Forward data from the previous instruction if necessary.
       if (operation.operand1Source() == DecodedInst::BYPASS && previousInstExecuted) {
         operation.operand1(forwardedResult);
         operation.operand1Source(DecodedInst::IMMEDIATE); // So we don't forward again.
-        LOKI_LOG << this->name() << " forwarding contents of register "
+        LOKI_LOG(2) << this->name() << " forwarding contents of register "
             << (int)operation.sourceReg1() << ": " << forwardedResult << endl;
         if (ENERGY_TRACE)
           Instrumentation::Registers::forward(1);
@@ -96,13 +96,13 @@ void ExecuteStage::newInput(DecodedInst& operation) {
       if (operation.operand2Source() == DecodedInst::BYPASS && previousInstExecuted) {
         operation.operand2(forwardedResult);
         operation.operand2Source(DecodedInst::IMMEDIATE); // So we don't forward again.
-        LOKI_LOG << this->name() << " forwarding contents of register "
+        LOKI_LOG(2) << this->name() << " forwarding contents of register "
             << (int)operation.sourceReg2() << ": " << forwardedResult << endl;
         if (ENERGY_TRACE)
           Instrumentation::Registers::forward(2);
       }
 
-      LOKI_LOG << this->name() << ": executing " << operation.name()
+      LOKI_LOG(1) << this->name() << ": executing " << LOKI_HEX(operation.location()) << " " << operation.name()
           << " on " << operation.operand1() << " and " << operation.operand2() << endl;
     }
 

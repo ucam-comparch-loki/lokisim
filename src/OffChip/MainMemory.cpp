@@ -157,7 +157,7 @@ void MainMemory::storeData(vector<Word>& data, MemoryAddr location, bool readOnl
   loki_assert_with_message(location + count*BYTES_PER_WORD < mData.size()*BYTES_PER_WORD, "Upper limit = 0x%x", location + count*BYTES_PER_WORD);
 
   for (size_t i = 0; i < count; i++) {
-    LOKI_LOG << this->name() << " wrote to " << LOKI_HEX((address+i)*BYTES_PER_WORD) << ": " << data[i].toUInt() << endl;
+    LOKI_LOG(3) << this->name() << " wrote to " << LOKI_HEX((address+i)*BYTES_PER_WORD) << ": " << data[i].toUInt() << endl;
 
     loki_assert(address+i < mData.size());
     mData[address + i] = data[i].toUInt();

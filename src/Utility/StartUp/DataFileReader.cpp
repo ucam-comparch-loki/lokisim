@@ -40,7 +40,7 @@ vector<DataBlock>& DataFileReader::extractData(int& mainPos) {
   if (words->size() == 0)
     LOKI_ERROR << "read 0 words from file " << filename_ << std::endl;
   else
-    LOKI_LOG << "Retrieved " << words->size() << " words from file " << filename_ << std::endl;
+    LOKI_LOG(3) << "Retrieved " << words->size() << " words from file " << filename_ << std::endl;
 
   file.close();
 

@@ -27,7 +27,7 @@ using Instrumentation::Stalls;
 
 void timestep(cycle_count_t cyclesPerStep) {
   cycle_count_t cycle = Instrumentation::currentCycle();
-  if (DEBUG) cout << "\n======= Cycle " << cycle << " =======" << endl;
+  LOKI_LOG(1) << "\n======= Cycle " << cycle << " =======" << endl;
 
   sc_start((int)cyclesPerStep, SC_NS);
 }
@@ -140,7 +140,7 @@ void initialise(chip_parameters_t& params) {
   for (unsigned int i=0; i<Arguments::code().size(); i++)
     CodeLoader::loadParameters(Arguments::code()[i], params);
   Arguments::updateState(params);
-  if (DEBUG)
+  if (DEBUG >= 3)
     Parameters::printParameters(params);
 
   // Now that we know how many cores, etc, there are, initialise any

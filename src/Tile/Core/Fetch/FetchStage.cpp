@@ -33,7 +33,7 @@ void FetchStage::readLoop() {
         currentInstructionSource().startNewPacket(currentPacket.location.index);
 
         static const string names[] = {"FIFO", "cache", "unknown"};
-        LOKI_LOG << this->name() << " restarted persistent packet: " << names[currentPacket.location.component] <<
+        LOKI_LOG(3) << this->name() << " restarted persistent packet: " << names[currentPacket.location.component] <<
           ", position " << currentPacket.location.index << " (" << LOKI_HEX(currentPacket.memAddr) << ")" << endl;
 
         readState = RS_READ;
@@ -71,7 +71,7 @@ void FetchStage::readLoop() {
         Instrumentation::Stalls::unstall(id(), Instrumentation::Stalls::STALL_INSTRUCTIONS, currentInst);
 
         static const string names[] = {"FIFO", "cache", "unknown"};
-        LOKI_LOG << this->name() << " selected instruction from "
+        LOKI_LOG(2) << this->name() << " selected instruction from "
              << names[currentPacket.location.component] << ": " << currentInst << endl;
 
         // Make sure we didn't read a junk instruction. "nor r0, r0, r0 -> 0" seems
@@ -116,7 +116,7 @@ void FetchStage::switchToPacket(PacketInfo& packet) {
     currentInstructionSource().startNewPacket(currentPacket.location.index);
 
     static const string names[] = {"FIFO", "cache", "unknown"};
-    LOKI_LOG << this->name() << " switched to pending packet: " << names[currentPacket.location.component] <<
+    LOKI_LOG(2) << this->name() << " switched to pending packet: " << names[currentPacket.location.component] <<
       ", position " << currentPacket.location.index << " (0x" << std::hex << currentPacket.memAddr << std::dec << ")" << endl;
 
     packet.reset();
@@ -220,7 +220,7 @@ void FetchStage::writeLoop() {
         next_trigger(iOutputBufferReady.posedge_event());
       }
       else {
-        LOKI_LOG << this->name() << " requesting IPK continuation from "
+        LOKI_LOG(3) << this->name() << " requesting IPK continuation from "
                  << LOKI_HEX(activeFetch.address) << endl;
         sendRequest(activeFetch);
         writeState = WS_RECEIVE;
@@ -333,7 +333,7 @@ void FetchStage::checkTags(MemoryAddr addr,
 }
 
 bool FetchStage::inCache(const FetchInfo& fetch) {
-  LOKI_LOG << this->name() << " looking up tag " << LOKI_HEX(fetch.address) << ": ";
+  LOKI_LOG(2) << this->name() << " looking up tag " << LOKI_HEX(fetch.address) << ": ";
 
   // I suppose the address could technically be 0, but this always indicates an
   // error with the current arrangement.
@@ -364,7 +364,7 @@ bool FetchStage::inCache(const FetchInfo& fetch) {
 
   bool found = packet.inCache;
 
-  LOKI_LOG << (found ? "" : "not ") << "cached" << endl;
+  LOKI_LOG(2) << (found ? "" : "not ") << "cached" << endl;
 
   // Clear the packet information if we aren't going to do anything with it.
   // This may be the case if we are prefilling the cache with instructions.
@@ -405,7 +405,7 @@ bool FetchStage::roomToFetch() const {
 
 /* Perform any status updates required when we receive a position to jump to. */
 void FetchStage::jump(const JumpOffset offset) {
-  LOKI_LOG << this->name() << " jumped by " << offset << " instructions" << endl;
+  LOKI_LOG(2) << this->name() << " jumped by " << offset << " instructions" << endl;
 
   currentInstructionSource().jump(offset);
 

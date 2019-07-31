@@ -48,7 +48,7 @@ void L2RequestFilter::mainLoop() {
       // until the flush completes before allowing any bank to fetch it.
       if (localBank.flushing(address)) {
         next_trigger(localBank.requestSentEvent());
-        LOKI_LOG << this->name() << " delaying L2 request because currently flushing " << LOKI_HEX(address) << endl;
+        LOKI_LOG(3) << this->name() << " delaying L2 request because currently flushing " << LOKI_HEX(address) << endl;
         break;
       }
 
@@ -80,7 +80,7 @@ void L2RequestFilter::mainLoop() {
 //                             << (serveRequest ? " serving request" : "") << endl;
 
       if (serveRequest) {
-        LOKI_LOG << this->name() << " claiming request (cache hit)" << endl;
+        LOKI_LOG(2) << this->name() << " claiming request (cache hit)" << endl;
 
         state = STATE_SEND;
         next_trigger(sc_core::SC_ZERO_TIME);
@@ -108,7 +108,7 @@ void L2RequestFilter::mainLoop() {
       }
       // No one else has claimed - the request is ours.
       else {
-        LOKI_LOG << this->name() << " claiming request (target bank)" << endl;
+        LOKI_LOG(2) << this->name() << " claiming request (target bank)" << endl;
 
         state = STATE_SEND;
         next_trigger(sc_core::SC_ZERO_TIME);

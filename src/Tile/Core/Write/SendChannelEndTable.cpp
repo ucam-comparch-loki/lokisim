@@ -78,13 +78,13 @@ void SendChannelEndTable::receiveLoop() {
           flit = iFetch.read();
           iFetch.ack();
 
-          LOKI_LOG << this->name() << " received from fetch: " << flit << endl;
+          LOKI_LOG(3) << this->name() << " received from fetch: " << flit << endl;
         }
         else {
           flit = iData.read();
           iData.ack();
 
-          LOKI_LOG << this->name() << " received from execute: " << flit << endl;
+          LOKI_LOG(3) << this->name() << " received from execute: " << flit << endl;
         }
 
         write(flit);
@@ -119,7 +119,7 @@ void SendChannelEndTable::receiveLoop() {
         NetworkData flit = iData.read();
         iData.ack();
 
-        LOKI_LOG << this->name() << " received from execute: " << flit << endl;
+        LOKI_LOG(3) << this->name() << " received from execute: " << flit << endl;
 
         write(flit);
 
@@ -163,7 +163,7 @@ void SendChannelEndTable::receiveCreditInternal(const NetworkCredit& credit) {
   ChannelIndex targetCounter = credit.channelID().channel;
   uint numCredits = credit.payload().toUInt();
 
-  LOKI_LOG << this->name() << " received " << numCredits << " credit(s) at "
+  LOKI_LOG(3) << this->name() << " received " << numCredits << " credit(s) at "
       << ChannelID(id(), targetCounter) << " " << credit.messageID() << endl;
 
   channelMapTable->addCredit(targetCounter, numCredits);

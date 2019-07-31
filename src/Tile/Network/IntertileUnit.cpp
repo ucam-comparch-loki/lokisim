@@ -123,7 +123,7 @@ void IntertileUnit::acceptPortClaim(credit_state_t& state, const ChannelID& sour
   state.sourceAddress = source;
   state.addCredit();
 
-  LOKI_LOG << this->name() << ": " << state.sinkAddress << " claimed by "
+  LOKI_LOG(2) << this->name() << ": " << state.sinkAddress << " claimed by "
       << source << ", with" << (state.useCredits ? "" : "out") << " credits" << endl;
 }
 
@@ -137,7 +137,7 @@ void IntertileUnit::rejectPortClaim(credit_state_t& state, const ChannelID& sour
   nackChannel = source;
   newCreditEvent.notify(sc_core::SC_ZERO_TIME);
 
-  LOKI_LOG << this->name() << ": " << state.sinkAddress << " rejected claim from " << source << endl;
+  LOKI_LOG(2) << this->name() << ": " << state.sinkAddress << " rejected claim from " << source << endl;
 }
 
 void IntertileUnit::sendCredits() {
@@ -186,7 +186,7 @@ void IntertileUnit::sendNackFlit(ChannelID destination) {
 
   Flit<Word> nack(Word(0), destination, true);
 
-  LOKI_LOG << this->name() << " sending nack to " << destination << " (id:" << nack.messageID() << ")" << endl;
+  LOKI_LOG(3) << this->name() << " sending nack to " << destination << " (id:" << nack.messageID() << ")" << endl;
 
   oCredit->write(nack);
 }
@@ -199,7 +199,7 @@ void IntertileUnit::sendCreditFlit(credit_state_t& state) {
 
   Flit<Word> flit(Word(state.creditsPending), state.sourceAddress, true);
 
-  LOKI_LOG << this->name() << " sending " << state.creditsPending
+  LOKI_LOG(3) << this->name() << " sending " << state.creditsPending
       << " credit(s) to " << state.sourceAddress << " (id:" << flit.messageID()
       << ")" << endl;
 
@@ -208,7 +208,7 @@ void IntertileUnit::sendCreditFlit(credit_state_t& state) {
 
   // Tear down the connection, if necessary.
   if (state.disconnectPending) {
-    LOKI_LOG << this->name() << " ending connection with " << state.sourceAddress << endl;
+    LOKI_LOG(2) << this->name() << " ending connection with " << state.sourceAddress << endl;
 
     state.sourceAddress = ChannelID();
     state.useCredits = false;

@@ -31,14 +31,14 @@ void Directory::setBitmaskLSB(unsigned int lsb) {
 
   shiftAmount = lsb;
 
-  LOKI_LOG << "Directory updated bitmask to start at bit " << lsb << endl;
+  LOKI_LOG(1) << "Directory updated bitmask to start at bit " << lsb << endl;
 }
 
 void Directory::setEntry(unsigned int entry, unsigned int data) {
   assert(entry < directory.size());
   directory[entry] = DirectoryEntry(data);
 
-  LOKI_LOG << "Directory updated entry " << entry << " to point to tile "
+  LOKI_LOG(1) << "Directory updated entry " << entry << " to point to tile "
       << TileID(data, Encoding::softwareTileID) << endl;
 }
 

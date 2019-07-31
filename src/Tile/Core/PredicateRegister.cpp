@@ -13,7 +13,7 @@ bool PredicateRegister::read() const {
 
 void PredicateRegister::write(bool val) {
   predicate = val;
-  LOKI_LOG << this->name() << " set to " << val << endl;
+  LOKI_LOG(1) << this->name() << " set to " << val << endl;
 }
 
 PredicateRegister::PredicateRegister(const sc_module_name& name) : LokiComponent(name) {

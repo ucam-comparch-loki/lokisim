@@ -180,7 +180,7 @@ void MainMemoryRequestHandler::processIdle() {
     requestState = STATE_REQUEST;
     next_trigger(sc_core::SC_ZERO_TIME);
 
-    LOKI_LOG << this->name() << " starting " << memoryOpName(activeRequest->getMetadata().opcode)
+    LOKI_LOG(1) << this->name() << " starting " << memoryOpName(activeRequest->getMetadata().opcode)
         << " request from component " << activeRequest->getDestination().component << endl;
   }
   // Nothing to do - wait for input to arrive.

@@ -250,7 +250,7 @@ void Debugger::executeSingleCycle() {
 }
 
 void Debugger::executeNCycles(int n) {
-  LOKI_LOG << "\n======= Cycle " << cycleNumber << " =======" << "\n";
+  LOKI_LOG(1) << "\n======= Cycle " << cycleNumber << " =======" << "\n";
   sc_start(n, sc_core::SC_NS);
 
   cycleNumber += n;

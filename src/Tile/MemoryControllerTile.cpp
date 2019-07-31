@@ -57,7 +57,7 @@ void MemoryControllerTile::requestLoop() {
     Flit<Word> flit = incomingRequests.read();
     oRequestToMainMemory->write(flit);
 
-    LOKI_LOG << this->name() << " forwarding request to main memory: "
+    LOKI_LOG(3) << this->name() << " forwarding request to main memory: "
         << flit << endl;
 
     // TODO: allow multiple flits per cycle. #bandwidth
@@ -75,7 +75,7 @@ void MemoryControllerTile::responseLoop() {
     Flit<Word> flit = iResponseFromMainMemory->read();
     oResponse->write(flit);
 
-    LOKI_LOG << this->name() << " forwarding response from main memory: "
+    LOKI_LOG(3) << this->name() << " forwarding response from main memory: "
         << flit << endl;
 
     // Wait for the clock edge rather than the next data arrival because there

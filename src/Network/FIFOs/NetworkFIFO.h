@@ -50,9 +50,9 @@ public:
 public:
 
   virtual const stored_data read() {
-    LOKI_LOG << name() << " consumed " << peek() << endl;
+    LOKI_LOG(3) << name() << " consumed " << peek() << endl;
     if (fifo.full() && fifo.size() > 1)
-      LOKI_LOG << name() << " is no longer full" << endl;
+      LOKI_LOG(3) << name() << " is no longer full" << endl;
     Instrumentation::Network::recordBandwidth(this->name());
 
     if (fresh[fifo.getReadPointer()]) {
@@ -71,7 +71,7 @@ public:
   }
 
   virtual void write(const stored_data& newData) {
-    LOKI_LOG << name() << " received " << newData << endl;
+    LOKI_LOG(3) << name() << " received " << newData << endl;
 
     if (fifo.empty())
       newHeadFlit.notify(sc_core::SC_ZERO_TIME);
@@ -80,7 +80,7 @@ public:
     fifo.write(newData);
 
     if (fifo.full() && fifo.size() > 1)
-      LOKI_LOG << name() << " is full" << endl;
+      LOKI_LOG(3) << name() << " is full" << endl;
   }
 
   virtual const stored_data lastDataRead() const {

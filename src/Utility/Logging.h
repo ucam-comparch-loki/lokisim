@@ -10,8 +10,9 @@
 #ifndef SRC_UTILITY_LOGGING_H_
 #define SRC_UTILITY_LOGGING_H_
 
-// Log ordinary status information. Toggled on/off using the DEBUG parameter.
-#define LOKI_LOG            if (DEBUG) std::cout
+// Log ordinary status information. A higher DEBUG parameter means more
+// information is printed.
+#define LOKI_LOG(level)     if (DEBUG >= level) std::cout
 
 // Log curious but non-critical behaviour. Always printed.
 #define LOKI_WARN           std::cerr << "Warning: "

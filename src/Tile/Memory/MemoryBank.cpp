@@ -113,7 +113,7 @@ void MemoryBank::allocate(MemoryAddr address, SRAMAddress position, MemoryAccess
   switch (mode) {
     case MEMORY_CACHE:
       if (!contains(address, position, mode)) {
-        LOKI_LOG << this->name() << " cache miss at address " << LOKI_HEX(address) << endl;
+        LOKI_LOG(2) << this->name() << " cache miss at address " << LOKI_HEX(address) << endl;
         TagData tag = metadata[getLine(position)];
         Instrumentation::L1Cache::replaceCacheLine(id, tag.valid, tag.dirty);
 
@@ -376,14 +376,14 @@ void MemoryBank::processIdle() {
           && (inputQueue.items() < 1+hitRequest->payloadFlitsRemaining()))
         return;
 
-      LOKI_LOG << this->name() << " starting hit-under-miss" << endl;
+      LOKI_LOG(3) << this->name() << " starting hit-under-miss" << endl;
     }
 
     consumeRequest(hitRequest->getMemoryLevel());
     state = STATE_REQUEST;
     next_trigger(sc_core::SC_ZERO_TIME);
 
-    LOKI_LOG << this->name() << " starting " << memoryOpName(hitRequest->getMetadata().opcode)
+    LOKI_LOG(2) << this->name() << " starting " << memoryOpName(hitRequest->getMetadata().opcode)
         << " request from component " << hitRequest->getDestination().component << endl;
   }
   // Nothing to do - wait for input to arrive.
@@ -400,7 +400,7 @@ void MemoryBank::processRequest(DecodedRequest& request) {
   // is space to buffer any potential results.
 
   if (!canSendRequest()) {
-    LOKI_LOG << this->name() << " delayed request due to full output request queue" << endl;
+    LOKI_LOG(3) << this->name() << " delayed request due to full output request queue" << endl;
     next_trigger(canSendRequestEvent());
   }
   else if (request->needsForwarding()) {
@@ -417,7 +417,7 @@ void MemoryBank::processRequest(DecodedRequest& request) {
     request->prepare();
   }
   else if (request->resultsToSend() && !canSendResponse(request->getDestination(), request->getMemoryLevel())) {
-    LOKI_LOG << this->name() << " delayed request due to full output queue" << endl;
+    LOKI_LOG(3) << this->name() << " delayed request due to full output queue" << endl;
     next_trigger(canSendResponseEvent(request->getDestination(), request->getMemoryLevel()));
   }
   else if (!iClock.negedge()) {
@@ -440,7 +440,7 @@ void MemoryBank::processAllocate(DecodedRequest& request) {
   loki_assert(request != NULL);
 
   if (!canSendRequest()) {
-    LOKI_LOG << this->name() << " delayed allocation due to full output request queue" << endl;
+    LOKI_LOG(3) << this->name() << " delayed allocation due to full output request queue" << endl;
     next_trigger(canSendRequestEvent());
   }
   // Use inCache to check whether the line has already been allocated. The data
@@ -545,7 +545,7 @@ void MemoryBank::processRefill(DecodedRequest& request) {
         // is actually clean.
         metadata[getLine(position)].dirty = false;
 
-        LOKI_LOG << this->name() << " resuming " << memoryOpName(hitRequest->getMetadata().opcode) << " request" << endl;
+        LOKI_LOG(2) << this->name() << " resuming " << memoryOpName(hitRequest->getMetadata().opcode) << " request" << endl;
       }
       else
         next_trigger(responseAvailableEvent());
@@ -563,7 +563,7 @@ void MemoryBank::processForward(DecodedRequest& request) {
   // is space to buffer any potential results.
 
   if (!canSendRequest()) {
-    LOKI_LOG << this->name() << " delayed request due to full output request queue" << endl;
+    LOKI_LOG(3) << this->name() << " delayed request due to full output request queue" << endl;
     next_trigger(canSendRequestEvent());
   }
   else if (!payloadAvailable(request->getMemoryLevel())) {
@@ -687,7 +687,7 @@ const sc_event& MemoryBank::canSendRequestEvent() const {
 void MemoryBank::sendRequest(NetworkRequest request) {
   loki_assert(canSendRequest());
 
-  LOKI_LOG << this->name() << " buffering request " <<
+  LOKI_LOG(3) << this->name() << " buffering request " <<
       memoryOpName(request.getMemoryMetadata().opcode) << " " << request << endl;
   outputReqQueue.write(request);
 }
@@ -695,7 +695,7 @@ void MemoryBank::sendRequest(NetworkRequest request) {
 void MemoryBank::forwardRequest(DecodedRequest& request) {
   // Need to update the return address to point to this bank rather than the
   // original requester, unless the request has no return address.
-  LOKI_LOG << this->name() << " bypassed by request " << request << endl;
+  LOKI_LOG(2) << this->name() << " bypassed by request " << request << endl;
   NetworkRequest flit = request->toFlit();
 
   if (!flit.channelID().isNullMapping())
@@ -709,7 +709,7 @@ void MemoryBank::forwardRequest(DecodedRequest& request) {
 void MemoryBank::forwardPayload(NetworkRequest& payload) {
   // Need to update the return address to point to this bank rather than the
   // original requester, if the request has a return address.
-  LOKI_LOG << this->name() << " forwarding payload " << payload << endl;
+  LOKI_LOG(2) << this->name() << " forwarding payload " << payload << endl;
 
   if (!payload.channelID().isNullMapping())
     payload = NetworkRequest(payload.payload(), id,
@@ -773,11 +773,11 @@ void MemoryBank::sendResponse(NetworkResponse response, MemoryLevel level) {
   switch (level) {
     case MEMORY_L1:
       if (response.channelID().channel < Core::numInstructionChannels) {
-        LOKI_LOG << this->name() << " buffering instruction " << response << endl;
+        LOKI_LOG(3) << this->name() << " buffering instruction " << response << endl;
         outputInstQueue.write(response);
       }
       else {
-        LOKI_LOG << this->name() << " buffering data " << response << endl;
+        LOKI_LOG(3) << this->name() << " buffering data " << response << endl;
         outputDataQueue.write(response);
       }
       break;
@@ -879,7 +879,7 @@ void MemoryBank::memoryRequestSent() {
   // has already been overwritten and we get the wrong flit.
   loki_assert(outputReqQueue.canWrite());
   NetworkRequest request = outputReqQueue.lastDataRead();
-  LOKI_LOG << this->name() << " sent request " <<
+  LOKI_LOG(3) << this->name() << " sent request " <<
       memoryOpName(request.getMemoryMetadata().opcode) << " " << LOKI_HEX(request.payload()) << endl;
 
   // Slightly hacky: if the output we just sent is the head of a flush request,

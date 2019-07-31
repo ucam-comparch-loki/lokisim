@@ -182,15 +182,15 @@ public:
       MemoryAddr      address,
       uint32_t        data
   ) const {
-    LOKI_LOG << this->name() << ": " << memoryOpName(operation) <<
+    LOKI_LOG(1) << this->name() << ": " << memoryOpName(operation) <<
         ", address = " << LOKI_HEX(address) << ", data = " << LOKI_HEX(data);
 
     if (operation == IPK_READ) {
       Instruction inst(data);
-      LOKI_LOG << " (" << inst << ")";
+      LOKI_LOG(1) << " (" << inst << ")";
     }
 
-    LOKI_LOG << endl;
+    LOKI_LOG(1) << endl;
   }
 
   size_t cacheLineBytes() const {

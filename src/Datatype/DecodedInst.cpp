@@ -7,6 +7,7 @@
 
 #include "DecodedInst.h"
 
+#include "../Utility/Logging.h"
 opcode_t      DecodedInst::opcode()          const {return opcode_;}
 function_t    DecodedInst::function()        const {return function_;}
 format_t      DecodedInst::format()          const {return format_;}
@@ -269,6 +270,9 @@ DecodedInst& DecodedInst::operator= (const DecodedInst& other) {
 }
 
 std::ostream& DecodedInst::print(std::ostream& os) const {
+  if (location_ != 0)
+    os << LOKI_HEX(location_) << " ";
+
   if (predicate() == Instruction::P) os << "ifp?";
   else if (predicate() == Instruction::NOT_P) os << "if!p?";
 

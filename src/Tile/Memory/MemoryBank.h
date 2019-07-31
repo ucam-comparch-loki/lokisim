@@ -27,6 +27,8 @@
 #include "../../Utility/LokiVector.h"
 #include "../Network/L2LToBankRequests.h"
 
+using sc_core::sc_event_or_list;
+
 class ComputeTile;
 class MemoryOperation;
 class MainMemory;

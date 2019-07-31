@@ -47,7 +47,7 @@ void         DecodeStage::updateReady() {
     oReady.write(ready);
 
     if (!ready)
-      LOKI_LOG << this->name() << " stalled." << endl;
+      LOKI_LOG(3) << this->name() << " stalled." << endl;
   }
 }
 
@@ -203,13 +203,13 @@ void         DecodeStage::readChannelMapTable(DecodedInst& inst) {
 
   // If this is the first flit of a packet, we must read the channel map table.
   if (firstFlitOfPacket(inst)) {
-    LOKI_LOG << this->name() << " reading CMT entry " << channel << ": " << cmtEntry << endl;
+    LOKI_LOG(3) << this->name() << " reading CMT entry " << channel << ": " << cmtEntry << endl;
     inst.cmtEntry(cmtEntry.read());
     previousCMTData = cmtEntry.read();
   }
   // Otherwise, we can reuse the data we read last time.
   else {
-    LOKI_LOG << this->name() << " reusing CMT entry " << channel << ": " << cmtEntry << endl;
+    LOKI_LOG(3) << this->name() << " reusing CMT entry " << channel << ": " << cmtEntry << endl;
     inst.cmtEntry(previousCMTData);
   }
 }
@@ -229,7 +229,7 @@ void DecodeStage::waitOnCredits(DecodedInst& inst) {
     return;
 
   if (!cmtEntry.canSend()) {
-    LOKI_LOG << this->name() << " stalled waiting for credits from " << destination << endl;
+    LOKI_LOG(3) << this->name() << " stalled waiting for credits from " << destination << endl;
     Instrumentation::Stalls::stall(id(), Instrumentation::Stalls::STALL_OUTPUT, inst);
     wait(cmtEntry.creditArrivedEvent());
     Instrumentation::Stalls::unstall(id(), Instrumentation::Stalls::STALL_OUTPUT, inst);
@@ -237,7 +237,7 @@ void DecodeStage::waitOnCredits(DecodedInst& inst) {
   cmtEntry.removeCredit();
 
   if (!iOutputBufferReady.read()) {
-    LOKI_LOG << this->name() << " stalled waiting for output buffer space" << endl;
+    LOKI_LOG(3) << this->name() << " stalled waiting for output buffer space" << endl;
     Instrumentation::Stalls::stall(id(), Instrumentation::Stalls::STALL_OUTPUT, inst);
     wait(iOutputBufferReady.posedge_event());
     Instrumentation::Stalls::unstall(id(), Instrumentation::Stalls::STALL_OUTPUT, inst);
@@ -251,13 +251,13 @@ ChannelMapEntry& DecodeStage::channelMapTableEntry(MapIndex entry) const {
 void         DecodeStage::startRemoteExecution(const DecodedInst& inst) {
   rmtexecuteChannel = inst.channelMapEntry();
 
-  LOKI_LOG << this->name() << " beginning remote execution" << endl;
+  LOKI_LOG(1) << this->name() << " beginning remote execution" << endl;
 }
 
 void         DecodeStage::endRemoteExecution() {
   rmtexecuteChannel = Instruction::NO_CHANNEL;
 
-  LOKI_LOG << this->name() << " ending remote execution" << endl;
+  LOKI_LOG(1) << this->name() << " ending remote execution" << endl;
 }
 
 void         DecodeStage::remoteExecute(DecodedInst& instruction) const {
@@ -330,10 +330,10 @@ void DecodeStage::fetch(const DecodedInst& inst) {
   }
 
   if (fetchSuppressionMode) {
-    LOKI_LOG << this->name() << " suppressing fetch from address " << LOKI_HEX(fetchAddress) << endl;
+    LOKI_LOG(1) << this->name() << " suppressing fetch from address " << LOKI_HEX(fetchAddress) << endl;
   }
   else {
-    LOKI_LOG << this->name() << " fetching from address " << LOKI_HEX(fetchAddress) << endl;
+    LOKI_LOG(1) << this->name() << " fetching from address " << LOKI_HEX(fetchAddress) << endl;
     core().checkTags(fetchAddress, inst.opcode(), inst.cmtEntry());
   }
 

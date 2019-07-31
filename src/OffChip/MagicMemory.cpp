@@ -24,7 +24,7 @@ void MagicMemory::operate(MemoryOpcode opcode,
                           MemoryAddr address,
                           ChannelID returnChannel,
                           Word data) {
-  LOKI_LOG << this->name() << " performing " << memoryOpName(opcode) << " "
+  LOKI_LOG(1) << this->name() << " performing " << memoryOpName(opcode) << " "
       << LOKI_HEX(address) << " for " << returnChannel << endl;
 
   switch (opcode) {
@@ -138,7 +138,7 @@ void MagicMemory::operate(MemoryOpcode opcode,
     case PUSH_LINE:
     case UPDATE_DIRECTORY_ENTRY:
     case UPDATE_DIRECTORY_MASK:
-      LOKI_LOG << this->name() << ": " << memoryOpName(opcode) << " has no effect" << endl;
+      LOKI_LOG(2) << this->name() << ": " << memoryOpName(opcode) << " has no effect" << endl;
       break;
 
     default:

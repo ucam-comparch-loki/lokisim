@@ -52,7 +52,7 @@ int32_t Core::readReg(PortIndex port, RegisterIndex reg, bool indirect) {
     // we have to perform the read anyway.
     regs.read(port, reg, false);
 
-    LOKI_LOG << this->name() << " bypassed read of register "
+    LOKI_LOG(2) << this->name() << " bypassed read of register "
              << (int)reg << " (" << result << ")" << endl;
     Instrumentation::Registers::bypass(port);
 
@@ -181,7 +181,7 @@ void     Core::pipelineStalled(bool stalled) {
   currentlyStalled = stalled;
   stallEvent.notify();
 
-  LOKI_LOG << this->name() << ": pipeline " << (stalled ? "stalled" : "unstalled") << endl;
+  LOKI_LOG(3) << this->name() << ": pipeline " << (stalled ? "stalled" : "unstalled") << endl;
 }
 
 bool     Core::discardInstruction(int stage) {

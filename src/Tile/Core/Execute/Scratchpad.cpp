@@ -19,7 +19,7 @@ int32_t Scratchpad::read(const MemoryAddr addr) const {
   Instrumentation::Scratchpad::read();
   int32_t result = data.read(addr).toInt();
 
-  LOKI_LOG << this->name() << " read " << result << " from position " << addr << endl;
+  LOKI_LOG(1) << this->name() << " read " << result << " from position " << addr << endl;
 
   return result;
 }
@@ -28,5 +28,5 @@ void Scratchpad::write(const MemoryAddr addr, const int32_t value) {
   Instrumentation::Scratchpad::write();
   data.write(value, addr);
 
-  LOKI_LOG << this->name() << " wrote " << value << " to position " << addr << endl;
+  LOKI_LOG(1) << this->name() << " wrote " << value << " to position " << addr << endl;
 }

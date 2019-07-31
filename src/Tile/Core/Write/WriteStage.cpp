@@ -47,7 +47,7 @@ void WriteStage::updateReady() {
       Instrumentation::Stalls::stall(id(), Instrumentation::Stalls::STALL_OUTPUT, currentInst);
 
     if (!ready)
-      LOKI_LOG << this->name() << " stalled." << endl;
+      LOKI_LOG(3) << this->name() << " stalled." << endl;
   }
 }
 

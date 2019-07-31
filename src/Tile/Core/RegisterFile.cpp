@@ -42,7 +42,7 @@ int32_t RegisterFile::read(PortIndex port, RegisterIndex reg, bool indirect) con
       const_cast<RegisterFile*>(this)->logActivity(); // Hack
     }
 
-    LOKI_LOG << this->name() << ": Read " << data
+    LOKI_LOG(2) << this->name() << ": Read " << data
              << " from register " << (int)index << endl;
 
     // A bit of a hack to allow us to store debug information from inside a
@@ -121,7 +121,7 @@ void RegisterFile::updateCurrentIPK(MemoryAddr addr) {
 
 void RegisterFile::writeInternal(RegisterIndex reg, const Word data) {
   if (reg > 0)
-    LOKI_LOG << this->name() << ": Stored " << data << " to register " << (int)reg << endl;
+    LOKI_LOG(2) << this->name() << ": Stored " << data << " to register " << (int)reg << endl;
 
   regs.write(data, reg);
 }

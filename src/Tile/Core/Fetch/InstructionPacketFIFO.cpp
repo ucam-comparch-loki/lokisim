@@ -22,7 +22,7 @@ const Instruction InstructionPacketFIFO::read() {
 }
 
 void InstructionPacketFIFO::write(const Instruction inst) {
-  LOKI_LOG << this->name() << " received Instruction:  " << inst << endl;
+  LOKI_LOG(3) << this->name() << " received Instruction:  " << inst << endl;
   parent().fifoInstructionArrived(inst);
 
   // If this is a "next instruction packet" command, don't write it to the FIFO,

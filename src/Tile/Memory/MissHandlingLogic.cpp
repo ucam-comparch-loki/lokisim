@@ -126,7 +126,7 @@ void MissHandlingLogic::localRequestLoop() {
         else
           flit.setChannelID(requestDestination);
 
-        LOKI_LOG << this->name() << " sending request " << flit << endl;
+        LOKI_LOG(2) << this->name() << " sending request " << flit << endl;
 
         oRequestToNetwork->write(flit);
       }
