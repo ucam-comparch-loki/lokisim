@@ -76,7 +76,6 @@ void Arguments::parse(int argc, char* argv[]) {
     }
     else if (argument == "-run" || argument == "-settings") {
       // Command line way of choosing which program to run.
-      DEBUG = 0;
       string filename(argv[i+1]);
       programFiles.push_back(filename);
       i++;  // Have used two arguments in this iteration.
@@ -121,13 +120,28 @@ void Arguments::parse(int argc, char* argv[]) {
       DEBUG = 0;
       silent_ = true;
     }
+    else if (argument == "-v") {
+      DEBUG = 1;
+    }
+    else if (argument == "-vv") {
+      DEBUG = 2;
+    }
+    else if (argument == "-vvv") {
+      DEBUG = 3;
+    }
     else if (argument.substr(0, 2) == "-W") {
       setWarning(argument.substr(2));
     }
     else if (argument == "--args") {
       // Pass command line options to the simulated program.
+      // Is this needed anymore?
       programArgc = argc - i;
       programArgv = argv + i;
+      break;
+    }
+    else if (argument == "--list-parameters") {
+      Parameters::printHelp();
+      simulate_ = false;
       break;
     }
     else if (argument == "--help") {
@@ -135,7 +149,7 @@ void Arguments::parse(int argc, char* argv[]) {
       simulate_ = false;
       break;
     }
-    else if (argument.substr(0, 2) == "-P") {
+    else if (argument.substr(0, 2) == "-P" || argument.substr(0, 2) == "--") {
       // Use "-Pparam=value" to set a parameter on the command line.
       string parameter = argument.substr(2);
       vector<string>& parts = StringManipulation::split(parameter, '=');
@@ -147,14 +161,13 @@ void Arguments::parse(int argc, char* argv[]) {
     else if (argument[0] != '-') {
       // This isn't a simulator flag - this argument is the executable, and
       // all the following are its arguments.
-      DEBUG = 0;
       programFiles.push_back(argument);
       programArgc = argc - i;
       programArgv = argv + i;
       break;
     }
     else {
-      cerr << "Warning: unrecognised argument: " << argument << endl;
+      LOKI_WARN << "Unrecognised argument: " << argument << endl;
     }
   }
 
@@ -274,6 +287,7 @@ void Arguments::printHelp() {
     "lokisim: a cycle-accurate simulator for the Loki many-core architecture.\n"
     "Usage: lokisim [simulator arguments] program [program arguments]\n\n"
     "Options:\n"
+    "  -v\n\tVerbose mode. Print information about simulated state. Add more `v`s for\n\tmore information (maximum of 3).\n"
     "  -debug\n\tEnter debug mode, where simulator contents can be inspected and changed\n\tat runtime\n"
     "  -trace\n\tPrint each instruction executed and its context to stdout\n"
     "  -summary\n\tPrint a summary of execution behaviour when execution finishes\n"
@@ -284,8 +298,8 @@ void Arguments::printHelp() {
     "  -ipkstats <file>\n\tDump the number of times each instruction packet was executed\n"
     "  -insttrace\n\tPrint the text form of each instruction executed to stdout\n"
     "  -instaddrtrace\n\tPrint the address of each instruction executed to stdout\n"
-    "  -Pparameter=value\n\tSet a named parameter to a particular value\n"
     "  -Wwarning=value\n\tSwitch on/off a named warning\n"
+    "  --parameter=value\n\tSet a named parameter to a particular value. List parameters using\n\t`--list-parameters`.\n"
     "  --help\n\tDisplay this information and exit\n"
     << endl;
 }

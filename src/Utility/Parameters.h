@@ -160,11 +160,14 @@ class Parameters {
 public:
   // Change a parameter value. Only valid before the SystemC components have
   // been instantiated.
-  static void parseParameter(const string &name, const string &value,
+  static void parseParameter(string name, string value,
                              chip_parameters_t& params);
 
   // Print parameters in a human-readable format to stdout.
   static void printParameters(const chip_parameters_t& params);
+
+  // Print parameters and descriptions to stdout.
+  static void printHelp();
 
   // Print parameters in an XML format.
   static void printParametersXML(std::ostream& os, const chip_parameters_t& params);
