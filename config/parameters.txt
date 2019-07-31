@@ -9,7 +9,7 @@
 parameter cores-per-tile 8
 parameter memories-per-tile 8
 parameter core-ipk-cache-size 64
-parameter core-ipk-cache-tags 16
+parameter core-ipk-cache-num-tags 16
 parameter core-ipk-fifo-size 64
 parameter core-scratchpad-size 256
 parameter compute-tile-rows 1

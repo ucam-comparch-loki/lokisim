@@ -19,7 +19,7 @@ class LoopCounter {
 public:
 
   // Return the value held by this counter.
-  int value() const {return val;}
+  uint value() const {return val;}
 
   // Set the counter to a value which isn't allowed in normal circumstances.
   void setNull() {val = -1;}
@@ -27,43 +27,43 @@ public:
   // Returns whether the counter has been set to null.
   bool isNull() const {return (val == -1);}
 
-  int operator+ (int num) const {return (val + num) % maximum;}
-  int operator- (int num) const {return (val - num + maximum) % maximum;}
+  uint operator+ (int num) const {return (val + num) % maximum;}
+  uint operator- (int num) const {return (val - num + maximum) % maximum;}
 
-  int operator+ (const LoopCounter& ctr) const {return (val + ctr.val) % maximum;}
-  int operator- (const LoopCounter& ctr) const {return (val - ctr.val + maximum) % maximum;}
+  uint operator+ (const LoopCounter& ctr) const {return (val + ctr.val) % maximum;}
+  uint operator- (const LoopCounter& ctr) const {return (val - ctr.val + maximum) % maximum;}
 
-  int operator++ () {
+  uint operator++ () {
     val++;
     bringWithinBounds();
     return val;
   }
 
-  int operator-- () {
+  uint operator-- () {
     val--;
     bringWithinBounds();
     return val;
   }
 
-  int operator= (int num) {
+  uint operator= (int num) {
     val = num;
     bringWithinBounds();
     return val;
   }
 
-  int operator= (const LoopCounter& other) {
+  uint operator= (const LoopCounter& other) {
     assert(maximum == other.maximum);
     val = other.val;
     return val;
   }
 
-  int operator+= (int num) {
+  uint operator+= (int num) {
     val += num;
     bringWithinBounds();
     return val;
   }
 
-  int operator-= (int num) {
+  uint operator-= (int num) {
     val -= num;
     bringWithinBounds();
     return val;

@@ -13,16 +13,16 @@
 #ifndef BUFFERSTORAGE_H_
 #define BUFFERSTORAGE_H_
 
-#include "../../Memory/Storage.h"
-#include "systemc.h"
+#include "../../LokiComponent.h"
 #include "../../Utility/Instrumentation.h"
 #include "../../Utility/Instrumentation/FIFO.h"
+#include "../../Utility/Assert.h"
 #include "../../Utility/LoopCounter.h"
 
 using sc_core::sc_event;
 
 template<class T>
-class FIFO: public Storage<T> {
+class FIFO: public LokiComponent {
 
 //============================================================================//
 // Methods
@@ -33,28 +33,31 @@ public:
   // Read from the buffer. Returns the oldest value which has not yet been
   // read.
   virtual const T& read() {
-    assert(!empty());
-    int i = readPos.value();
+    loki_assert(!empty());
+    uint i = readPos.value();
+    loki_assert(i < size());
+
     // FIXME: Should we move this to the end?
     incrementReadFrom();
-    this->readEvent_.notify(sc_core::SC_ZERO_TIME);
+    readEvent_.notify(sc_core::SC_ZERO_TIME);
 
     if (ENERGY_TRACE) {
-      Instrumentation::FIFO::pop(this->size());
+      Instrumentation::FIFO::pop(size());
       activeCycle();
     }
 
-    return this->data_[i];
+    return data[i];
   }
 
   // Write the given data to the buffer.
   virtual void write(const T& newData) {
-    assert(!full());
-    this->data_[writePos.value()] = newData;
-    this->writeEvent_.notify(sc_core::SC_ZERO_TIME);
+    loki_assert(!full());
+    loki_assert(writePos.value() < size());
+    data[writePos.value()] = newData;
+    writeEvent_.notify(sc_core::SC_ZERO_TIME);
 
     if (ENERGY_TRACE) {
-      Instrumentation::FIFO::push(this->size());
+      Instrumentation::FIFO::push(size());
       activeCycle();
     }
 
@@ -63,8 +66,9 @@ public:
 
   // Returns the value at the front of the queue, but does not remove it.
   const T& peek() const {
-    assert(!empty());
-    return this->data_[readPos.value()];
+    loki_assert(!empty());
+    loki_assert(readPos.value() < size());
+    return data[readPos.value()];
   }
 
   // Removes the element at the front of the queue, without returning it.
@@ -79,7 +83,7 @@ public:
 
   // Returns whether the buffer is full.
   bool full() const {
-    return (fillCount == this->size());
+    return (fillCount == size());
   }
 
   // Returns the number of readable items in the buffer.
@@ -87,9 +91,14 @@ public:
     return fillCount;
   }
 
+  // Returns the maximum number of items this buffer can hold.
+  size_t size() const {
+    return data.size();
+  }
+
   // Returns the remaining space in the buffer.
   uint remainingSpace() const {
-    return this->size() - fillCount;
+    return size() - fillCount;
   }
 
   // Event which is triggered whenever data is read from the buffer.
@@ -105,8 +114,8 @@ public:
   // Print the contents of the buffer.
   void print() const {
     for(uint i=0; i<fillCount; i++) {
-      int position = (readPos.value() + i) % this->size();
-      cout << this->data_[position] << " ";
+      int position = (readPos.value() + i) % size();
+      cout << data[position] << " ";
     }
     cout << endl;
   }
@@ -119,14 +128,15 @@ public:
 
   const T& debugRead(uint pos) const {
     // Dealing with possible underflow.
-    if (pos >= this->size()) {
-      if (pos + this->size() < this->size())
-        pos += this->size();
+    if (pos >= size()) {
+      if ((uint)(pos + size()) < size())
+        pos += size();
       else
-        pos -= this->size();
+        pos -= size();
     }
 
-    return this->data_[pos];
+    loki_assert_with_message(pos < size(), "pos: %d, size: %d", pos, size());
+    return data[pos];
   }
 
 private:
@@ -144,14 +154,14 @@ private:
   void updateFillCount() {
     fillCount = writePos - readPos;
 
-    if (fillCount >= this->size())
-      fillCount -= this->size();
+    if (fillCount >= size())
+      fillCount -= size();
   }
 
   void activeCycle() {
     cycle_count_t currentCycle = Instrumentation::currentCycle();
     if (currentCycle != lastActivity) {
-      Instrumentation::FIFO::activeCycle(this->size());
+      Instrumentation::FIFO::activeCycle(size());
       lastActivity = currentCycle;
     }
   }
@@ -162,8 +172,9 @@ private:
 
 public:
 
-  FIFO(const std::string& name, const size_t size) :
-      Storage<T>(name, size),
+  FIFO(const sc_module_name& name, size_t size) :
+      LokiComponent(name),
+      data(size),
       readPos(size),
       writePos(size) {
     readPos = writePos = fillCount = 0;
@@ -178,7 +189,9 @@ public:
 // Local state
 //============================================================================//
 
-protected:
+private:
+
+  vector<T> data;
 
   LoopCounter readPos, writePos;
   uint16_t fillCount;

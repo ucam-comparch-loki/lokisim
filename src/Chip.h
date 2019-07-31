@@ -28,6 +28,7 @@
 #include "Types.h"
 #include "Utility/LokiVector2D.h"
 
+using sc_core::sc_clock;
 using std::vector;
 
 class DataBlock;

@@ -17,6 +17,7 @@
 #ifndef SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBANK_H_
 #define SRC_TILECOMPONENTS_MEMORY_OPERATIONS_MEMORYBANK_H_
 
+#include <memory>
 #include <set>
 #include "../../Memory/MemoryBase.h"
 #include "L2RequestFilter.h"

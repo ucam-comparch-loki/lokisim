@@ -13,6 +13,8 @@
 #include "../StringManipulation.h"
 #include "../../Datatype/Instruction.h"
 
+#include <fstream>
+
 bool CodeLoader::appLoaderInitialized = false;
 int CodeLoader::mainOffset = -1;
 

@@ -36,7 +36,7 @@ public:
   NetworkFIFO(const sc_module_name& name, const size_t size) :
       LokiComponent(name),
       BlockingInterface(),
-      fifo(this->name(), size),
+      fifo("internal", size),
       fresh(size, false) {
 
   }

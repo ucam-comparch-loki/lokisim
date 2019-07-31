@@ -53,24 +53,25 @@ int32_t RegisterFile::read(PortIndex port, RegisterIndex reg, bool indirect) con
 }
 
 int32_t RegisterFile::readInternal(const RegisterIndex reg) const {
+  loki_assert_with_message(reg < regs.size(), "Accessing register %d of %d", reg, regs.size());
+
   if (reg == 0)
     return 0;
   else
-    return regs.read(reg).toInt();
+    return regs[reg];
 }
 
 void RegisterFile::write(const RegisterIndex reg, int32_t value, bool indirect) {
 
-  RegisterIndex index = indirect ? regs.read(reg).toInt() : reg;
+  RegisterIndex index = indirect ? regs[reg] : reg;
 
   // There are some registers that we can't write to.
   if (isReserved(index)/* || isChannelEnd(index)*/ && index != 0)
     throw InvalidOptionException("destination register", index);
 
-  int oldData = regs.read(index).toInt();
+  int oldData = regs[index];
 
-  Word w(value);
-  writeInternal(index, w);
+  writeInternal(index, value);
 
   if (ENERGY_TRACE) {
     Instrumentation::Registers::write(index, oldData, value);
@@ -115,15 +116,16 @@ RegisterIndex RegisterFile::fromChannelID(RegisterIndex position) const {
 }
 
 void RegisterFile::updateCurrentIPK(MemoryAddr addr) {
-  Word w(addr);
-  writeInternal(1, w);
+  writeInternal(1, addr);
 }
 
-void RegisterFile::writeInternal(RegisterIndex reg, const Word data) {
+void RegisterFile::writeInternal(RegisterIndex reg, int32_t data) {
+  loki_assert_with_message(reg < regs.size(), "Accessing register %d of %d", reg, regs.size());
+
   if (reg > 0)
     LOKI_LOG(2) << this->name() << ": Stored " << data << " to register " << (int)reg << endl;
 
-  regs.write(data, reg);
+  regs[reg] = data;
 }
 
 void RegisterFile::logActivity() {
@@ -141,7 +143,7 @@ Core& RegisterFile::parent() const {
 RegisterFile::RegisterFile(sc_module_name name,
                            const register_file_parameters_t& params) :
     LokiComponent(name),
-    regs(std::string(name), params.size),
+    regs(params.size),
     prevRead(3),
     lastActivity(-1) {
 

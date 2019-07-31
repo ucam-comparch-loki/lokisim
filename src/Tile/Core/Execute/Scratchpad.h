@@ -15,7 +15,6 @@
 
 #include "../../../Datatype/Word.h"
 #include "../../../LokiComponent.h"
-#include "../../../Memory/AddressedStorage.h"
 
 class Scratchpad: public LokiComponent {
 
@@ -34,8 +33,8 @@ public:
 
 public:
 
-  int32_t read(const MemoryAddr addr) const;
-  void    write(const MemoryAddr addr, const int32_t value);
+  int32_t read(RegisterIndex addr) const;
+  void    write(RegisterIndex addr, int32_t value);
 
 //============================================================================//
 // Local state
@@ -43,7 +42,7 @@ public:
 
 private:
 
-  AddressedStorage<Word> data;
+  vector<int32_t> data;
 
 };
 

@@ -21,6 +21,9 @@
 #include "NetworkFIFO.h"
 #include <queue>
 
+using sc_core::sc_time;
+using sc_core::SC_NS;
+
 template<class T>
 class DelayFIFO : public NetworkFIFO<T> {
 
@@ -58,8 +61,8 @@ public:
     // TODO: should the write event really be relevant here?
     if (!trulyEmpty()) {
       if (!canRead()) {
-        delayedWrite.notify(sc_time(writeTimes.front() - currentTime(), sc_core::SC_NS));
-        delayedNewHeadFlit.notify(sc_time(writeTimes.front() - currentTime(), sc_core::SC_NS));
+        delayedWrite.notify(sc_time(writeTimes.front() - currentTime(), SC_NS));
+        delayedNewHeadFlit.notify(sc_time(writeTimes.front() - currentTime(), SC_NS));
       }
       else {
         delayedWrite.notify(sc_core::SC_ZERO_TIME);
@@ -76,9 +79,9 @@ public:
     base_class::write(data);
     writeTimes.push(currentTime() + delay);
 
-    delayedWrite.notify(sc_time(delay, sc_core::SC_NS));
+    delayedWrite.notify(sc_time(this->delay, SC_NS));
     if (base_class::items() == 1)
-      delayedNewHeadFlit.notify(sc_time(delay, sc_core::SC_NS));
+      delayedNewHeadFlit.notify(sc_time(this->delay, SC_NS));
 
     loki_assert(base_class::items() == writeTimes.size());
   }

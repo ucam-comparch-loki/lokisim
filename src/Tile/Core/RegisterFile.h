@@ -1,25 +1,20 @@
 /*
- * IndirectRegisterFile.h
- *
- * A class representing a register file capable of indirect reads and writes.
- * This is achieved by having a copy of the lowest few bits of each register,
- * which itself can be interpreted as a register index.
+ * RegisterFile.h
  *
  * Register 0 is reserved to hold the value 0.
  * Register 1 is reserved to hold the address of the current instruction packet.
  * The next NUM_RECEIVE_CHANNELS registers address the channel-ends.
  * Up to NUM_ADDRESSABLE_REGISTERS are normal registers.
- * Beyond that, registers must be accessed through the indirect registers.
  *
  *  Created on: 6 Jan 2010
  *      Author: db434
  */
 
-#ifndef INDIRECTREGISTERFILE_H_
-#define INDIRECTREGISTERFILE_H_
+#ifndef REGISTERFILE_H_
+#define REGISTERFILE_H_
 
 #include "../../LokiComponent.h"
-#include "../../Memory/AddressedStorage.h"
+#include "../../Memory/MemoryTypes.h"
 
 class Core;
 class Word;
@@ -75,7 +70,7 @@ public:
 private:
 
   // Perform the register write (no safety checks, etc.).
-  void writeInternal(RegisterIndex reg, const Word value);
+  void writeInternal(RegisterIndex reg, int32_t value);
 
   void logActivity();
 
@@ -87,7 +82,7 @@ private:
 
 private:
 
-  AddressedStorage<Word>          regs;
+  vector<uint32_t> regs;
 
   // Data from previous read on each port. Used to compute Hamming distances
   // for energy models. (wr=0, rd1=1, rd2=2)
@@ -99,4 +94,4 @@ private:
 
 };
 
-#endif /* INDIRECTREGISTERFILE_H_ */
+#endif /* REGISTERFILE_H_ */
