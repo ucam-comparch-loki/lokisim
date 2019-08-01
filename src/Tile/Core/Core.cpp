@@ -126,7 +126,13 @@ void Core::deliverDataInternal(const NetworkData& flit) {
 }
 
 void Core::deliverCreditInternal(const NetworkCredit& flit) {
-  write.deliverCreditInternal(flit);
+  ChannelIndex targetCounter = flit.channelID().channel;
+  uint numCredits = flit.payload().toUInt();
+
+  LOKI_LOG(3) << this->name() << " received " << numCredits << " credit(s) at "
+      << ChannelID(id, targetCounter) << " " << flit.messageID() << endl;
+
+  channelMapTable.addCredit(targetCounter, numCredits);
 }
 
 size_t Core::numInputDataBuffers() const {
@@ -197,6 +203,11 @@ void     Core::nextIPK() {
   // Discard any instructions which were queued up behind any stalled stages.
   while (pipelineRegs[0].discard())
     /* continue discarding */;
+}
+
+void     Core::receivedCredit() {
+  loki_assert(incomingCredits.canRead());
+  deliverCreditInternal(incomingCredits.read());
 }
 
 void     Core::idle(bool state) {
@@ -271,6 +282,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
     pred("predicate"),
     channelMapTable("channel_map_table", params.channelMapTable, params.numInputChannels),
     cregs("cregs", ID),
+    incomingCredits("credits", 1),  // More of a register than a FIFO
     magicMemoryConnection("magic_memory"),
     id(ID),
     stageReady("stageReady", 3) { // 4 stages => 3 links between stages
@@ -284,7 +296,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
 
   oMulticast(write.oDataLocal);
   oMemory(write.oDataMemory);
-  iCredit(write.iCredit);
+  iCredit(incomingCredits);
 
   cregs.clock(clock);
 
@@ -318,4 +330,8 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
   write.iFetch(fetchFlitSignal);
   write.iData(dataFlitSignal);
   write.initPipeline(&pipelineRegs[2], NULL);
+
+  SC_METHOD(receivedCredit);
+  sensitive << incomingCredits.canReadEvent();
+  dont_initialize();
 }

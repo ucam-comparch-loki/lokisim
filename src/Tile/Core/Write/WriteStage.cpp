@@ -12,10 +12,6 @@
 #include "../../../Utility/Instrumentation/Stalls.h"
 #include "../../../Utility/ISA.h"
 
-void WriteStage::deliverCreditInternal(const NetworkCredit& credit) {
-  scet.receiveCreditInternal(credit);
-}
-
 void WriteStage::execute() {
   newInput(currentInst);
 //  bool packetInProgress = !currentInst.endOfNetworkPacket();
@@ -69,8 +65,7 @@ WriteStage::WriteStage(sc_module_name name,
     oReady("oReady"),
     oDataLocal("oDataMulticast"),
     oDataMemory("oDataMemory"),
-    iCredit("iCredit"),
-    scet("scet", fifoParams, &(core().channelMapTable), numCores, numMemories) {
+    scet("scet", fifoParams, numCores, numMemories) {
 
   // Connect the SCET to the network.
   scet.clock(clock);
@@ -78,7 +73,6 @@ WriteStage::WriteStage(sc_module_name name,
   scet.iData(iData);
   oDataLocal(scet.oMulticast);
   oDataMemory(scet.oData);
-  iCredit(scet.iCredit);
 
   SC_METHOD(execute);
   sensitive << newInstructionEvent;

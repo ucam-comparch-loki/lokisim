@@ -223,7 +223,9 @@ void MemoryOperation::sendResult(unsigned int data, bool isInstruction) {
 
   bool endOfPacket = (resultFlitsRemaining() == 1) || endOfPacketSeen;
 
-  NetworkResponse response(data, returnAddress, endOfPacket);
+  Word payload = isInstruction ? Instruction(data) : Word(data);
+
+  NetworkResponse response(payload, returnAddress, endOfPacket);
   response.setInstruction(isInstruction);
   memory->sendResponse(response, level);
 

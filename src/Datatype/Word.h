@@ -107,17 +107,12 @@ public:
   }
 
   friend std::ostream& operator<< (std::ostream& os, Word const& v) {
-    // Instructions are the only datatypes capable of using more than 32 bits,
-    // and they are also the ones which are most useful to print differently.
+    return v.print(os);
+  }
 
-    /*
-    if ((v.data_ >> 32) && (v.data_ >> 32 != 0xFFFFFFFF))
-      os << static_cast<Instruction>(v);
-    else
-      os << v.toLong();
-    */
-
-    os << v.toInt();
+  // Implementation of <<, allowing virtual function.
+  virtual std::ostream& print(std::ostream& os) const {
+    os << toInt();
     return os;
   }
 
@@ -125,13 +120,11 @@ public:
     data_ = 0;
   }
 
-  Word(const Word& other) {
-    data_ = other.data_;
-  }
-
   Word(uint32_t data_) : data_(data_) {
     // Do nothing
   }
+
+  virtual ~Word() {}
 };
 
 #endif /* WORD_H_ */

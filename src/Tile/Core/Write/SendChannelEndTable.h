@@ -40,10 +40,6 @@ public:
   sc_port<network_source_ifc<Word>> oMulticast;
   sc_port<network_source_ifc<Word>> oData;
 
-  // Credits received over the network. Each credit will still have its
-  // destination attached, so we know which table entry to give the credit to.
-  sc_port<network_sink_ifc<Word>> iCredit;
-
 //============================================================================//
 // Constructors and destructors
 //============================================================================//
@@ -52,7 +48,7 @@ public:
 
   SC_HAS_PROCESS(SendChannelEndTable);
   SendChannelEndTable(sc_module_name name, const fifo_parameters_t& fifoParams,
-                      ChannelMapTable* cmt, uint numCores, uint numMemories);
+                      uint numCores, uint numMemories);
 
 //============================================================================//
 // Methods
@@ -66,9 +62,6 @@ public:
   // A handle for an event which triggers whenever the send channel-end table
   // might stall or unstall.
   const sc_event& stallChangedEvent() const;
-
-  // Process a new credit.
-  void          receiveCreditInternal(const NetworkCredit& credit);
 
 protected:
 
@@ -86,10 +79,6 @@ private:
   // Instrumentation whenever a flit is sent.
   void          sentMulticastData();
   void          sentPointToPointData();
-
-  // A credit was received, so update the corresponding credit counter.
-  // TODO: why is this here? Put in Core instead?
-  void          receivedCredit();
 
   // Data was added or removed from any of the buffers.
   void          bufferFillChanged();
@@ -113,14 +102,6 @@ private:
 
   // Buffers of data to send onto the network.
   NetworkFIFO<Word> bufferMulticast, bufferData;
-
-  // Credits received from the network.
-  NetworkFIFO<Word> incomingCredits;
-
-  // A pointer to this core's channel map table. The table itself is in the
-  // Core class. No reading or writing of destinations should occur here -
-  // this part of the core should only deal with credits.
-  ChannelMapTable* const channelMapTable;
 
   // An event which is triggered whenever data is inserted into the buffer.
   sc_event  bufferFillChangedEvent;

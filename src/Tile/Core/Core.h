@@ -67,6 +67,7 @@ public:
 
 public:
 
+  SC_HAS_PROCESS(Core);
   Core(const sc_module_name& name, const ComponentID& ID,
        const core_parameters_t& params, size_t numMulticastInputs,
        size_t numMulticastOutputs, size_t numMemories);
@@ -179,6 +180,9 @@ private:
   // waiting for an ".eop" marker.
   void             nextIPK();
 
+  // Method triggered whenever credits arrive on iCredit.
+  void             receivedCredit();
+
   // Update whether this core is idle or not.
   void             idle(bool state);
 
@@ -210,6 +214,9 @@ private:
 
   ChannelMapTable        channelMapTable;
   ControlRegisters       cregs;
+
+  // Credits received from the network.
+  NetworkFIFO<Word>      incomingCredits;
 
   // Debug connection to memory. Has zero latency.
   MagicMemoryConnection  magicMemoryConnection;

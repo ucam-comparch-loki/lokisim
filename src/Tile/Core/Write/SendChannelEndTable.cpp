@@ -150,23 +150,8 @@ void SendChannelEndTable::sentPointToPointData() {
     Instrumentation::Latency::coreSentMemoryRequest(id(), flit);
 }
 
-void SendChannelEndTable::receivedCredit() {
-  loki_assert(incomingCredits.canRead());
-  receiveCreditInternal(incomingCredits.read());
-}
-
 void SendChannelEndTable::bufferFillChanged() {
   bufferFillChangedEvent.notify(sc_core::SC_ZERO_TIME);
-}
-
-void SendChannelEndTable::receiveCreditInternal(const NetworkCredit& credit) {
-  ChannelIndex targetCounter = credit.channelID().channel;
-  uint numCredits = credit.payload().toUInt();
-
-  LOKI_LOG(3) << this->name() << " received " << numCredits << " credit(s) at "
-      << ChannelID(id(), targetCounter) << " " << credit.messageID() << endl;
-
-  channelMapTable->addCredit(targetCounter, numCredits);
 }
 
 ComponentID SendChannelEndTable::id() const {
@@ -193,7 +178,6 @@ void SendChannelEndTable::reportStalls(ostream& os) {
 
 SendChannelEndTable::SendChannelEndTable(sc_module_name name,
                                          const fifo_parameters_t& fifoParams,
-                                         ChannelMapTable* cmt,
                                          uint numCores,
                                          uint numMemories) :
     LokiComponent(name),
@@ -203,17 +187,13 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name,
     iData("iData"),
     oMulticast("oDataMulticast"),
     oData("oDataMemory"),
-    iCredit("iCredit"),
     bufferMulticast("bufferLocal", fifoParams.size),
-    bufferData("bufferMemory", fifoParams.size),
-    incomingCredits("credits", 1),  // More of a register than a buffer
-    channelMapTable(cmt) {
+    bufferData("bufferMemory", fifoParams.size) {
 
   receiveState = RS_READY;
 
   oMulticast(bufferMulticast);
   oData(bufferData);
-  iCredit(incomingCredits);
 
   SC_METHOD(receiveLoop);
 
@@ -223,10 +203,6 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name,
 
   SC_METHOD(sentPointToPointData);
   sensitive << bufferData.dataConsumedEvent();
-  dont_initialize();
-
-  SC_METHOD(receivedCredit);
-  sensitive << incomingCredits.canReadEvent();
   dont_initialize();
 
   SC_METHOD(bufferFillChanged);

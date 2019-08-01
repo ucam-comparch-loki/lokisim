@@ -67,11 +67,6 @@ public:
   uint64_t toLong() const;
   bool     operator== (const Instruction& other) const;
 
-  // Has to go in header
-  friend std::ostream& operator<< (std::ostream& os, const Instruction& v) {
-    return v.print(os);
-  }
-
 private:
 
   void    decodeOpcode(const string& opcode);
@@ -85,7 +80,7 @@ private:
 
   // Contains the implementation of the << operator so it doesn't have to go in
   // the header.
-  std::ostream& print(std::ostream& os) const;
+  virtual std::ostream& print(std::ostream& os) const;
 
 //============================================================================//
 // Constructors and destructors
@@ -97,6 +92,8 @@ public:
   Instruction(const Word& other);
   Instruction(const uint64_t inst);  // For reading binary
   Instruction(const string& inst);   // For reading assembly
+
+  virtual ~Instruction() {}
 
 };
 
