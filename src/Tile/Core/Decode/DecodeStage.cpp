@@ -293,7 +293,7 @@ int32_t      DecodeStage::readChannelInternal(ChannelIndex index) const {
 
 void         DecodeStage::deliverDataInternal(const NetworkData& flit) {
   ChannelIndex buffer = core().regs.toChannelID(flit.channelID().channel);
-  rcet.writeInternal(buffer, flit.payload().toInt());
+  rcet.writeInternal(buffer, flit);
 }
 
 void DecodeStage::fetch(const DecodedInst& inst) {

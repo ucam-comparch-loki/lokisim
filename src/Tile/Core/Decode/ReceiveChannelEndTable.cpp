@@ -36,13 +36,10 @@ int32_t ReceiveChannelEndTable::readInternal(ChannelIndex channelEnd) const {
     return buffers[channelEnd].peek().payload().toInt();
 }
 
-void ReceiveChannelEndTable::writeInternal(ChannelIndex channel, int32_t data) {
+void ReceiveChannelEndTable::writeInternal(ChannelIndex channel, const NetworkData& flit) {
   loki_assert_with_message(channel < buffers.size(), "Channel %d", channel);
   loki_assert(buffers[channel].canWrite());
 
-  // TODO: currently dealing with integers rather than flits. Switch over to be
-  // more consistent.
-  Flit<Word> flit(data, Core::RCETInput(id(), channel));
   buffers[channel].write(flit);
 
   newData.notify(sc_core::SC_ZERO_TIME);

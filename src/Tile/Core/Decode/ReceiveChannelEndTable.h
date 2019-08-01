@@ -62,7 +62,7 @@ public:
   int32_t readInternal(ChannelIndex channelEnd) const;
 
   // Put data in a buffer without touching the network.
-  void writeInternal(ChannelIndex channel, int32_t data);
+  void writeInternal(ChannelIndex channel, const NetworkData& flit);
 
   // Return whether or not the channel contains data. ChannelIndex 0 is mapped
   // to r2.
