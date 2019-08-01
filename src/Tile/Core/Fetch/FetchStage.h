@@ -19,7 +19,7 @@
 #include "../PipelineStage.h"
 #include "../../../Utility/BlockingInterface.h"
 
-class FetchStage : public PipelineStage, public BlockingInterface {
+class FetchStage : public FirstPipelineStage, public BlockingInterface {
 
 private:
 
@@ -182,7 +182,7 @@ private:
   MemoryAddr    getCurrentAddress() const;
 
   // Override PipelineStage's implementation.
-  virtual void  getNextInstruction();
+  virtual void  prepareNextInstruction();
 
 //============================================================================//
 // Components

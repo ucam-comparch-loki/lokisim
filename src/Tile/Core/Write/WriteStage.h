@@ -16,7 +16,7 @@
 #include "../PipelineStage.h"
 #include "SendChannelEndTable.h"
 
-class WriteStage: public PipelineStage {
+class WriteStage: public LastPipelineStage {
 
 //============================================================================//
 // Ports

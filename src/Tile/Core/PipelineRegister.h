@@ -21,7 +21,45 @@
 #include "../../LokiComponent.h"
 #include "../../Network/FIFOs/FIFO.h"
 
-class PipelineRegister: public LokiComponent {
+class core_pipeline_consumer_ifc : virtual public sc_interface {
+public:
+  // Can an instruction be read?
+  virtual bool canRead() const = 0;
+
+  // Read an instruction.
+  virtual const DecodedInst& read() = 0;
+
+  // Event triggered when `canRead()` becomes `true`.
+  virtual const sc_event& canReadEvent() const = 0;
+
+  // Read and discard the next instruction. Returns whether there was an
+  // instruction to be discarded.
+  virtual bool discard() = 0;
+};
+
+class core_pipeline_producer_ifc : virtual public sc_interface {
+public:
+  // Can an instruction be written?
+  virtual bool canWrite() const = 0;
+
+  // Write an instruction.
+  virtual void write(const DecodedInst& inst) = 0;
+
+  // Event triggered when `canWrite()` becomes `true`.
+  virtual const sc_event& canWriteEvent() const = 0;
+};
+
+class core_pipeline_inout_ifc : virtual public core_pipeline_producer_ifc,
+                                virtual public core_pipeline_consumer_ifc {
+  // Nothing extra.
+};
+
+
+typedef sc_port<core_pipeline_consumer_ifc> InstructionInput;
+typedef sc_port<core_pipeline_producer_ifc> InstructionOutput;
+
+
+class PipelineRegister: public LokiComponent, public core_pipeline_inout_ifc {
 
 //============================================================================//
 // Types
@@ -54,28 +92,25 @@ public:
 public:
 
   // Is this register ready to receive the next instruction?
-  bool ready() const;
-  void write(const DecodedInst& inst);
+  virtual bool canWrite() const;
+  virtual void write(const DecodedInst& inst);
 
   // Is this register ready to provide the next instruction?
-  bool hasData() const;
-  const DecodedInst& read();
+  virtual bool canRead() const;
+  virtual const DecodedInst& read();
 
-  const sc_event& dataAdded() const;
-  const sc_event& dataRemoved() const;
+  virtual const sc_event& canReadEvent() const;
+  virtual const sc_event& canWriteEvent() const;
 
   // Discard a single instruction from the register, if there is one.
   // Returns whether an instruction was discarded.
-  bool discard();
+  virtual bool discard();
 
 //============================================================================//
 // Local state
 //============================================================================//
 
 private:
-
-  // My implementation of the two registers.
-//  BufferStorage<DecodedInst> buffer;
 
   DecodedInst data;
   bool valid;

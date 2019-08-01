@@ -54,8 +54,8 @@ void FetchStage::readLoop() {
         Instrumentation::Stalls::stall(id(), Instrumentation::Stalls::STALL_INSTRUCTIONS, DecodedInst());
         next_trigger(currentInstructionSource().writeEvent());
       }
-      else if (!canSendInstruction()) {
-        next_trigger(canSendEvent());
+      else if (nextStageBlocked()) {
+        next_trigger(nextStageUnblockedEvent());
       }
       else if (!clock.negedge()) {
         next_trigger(clock.negedge_event());
@@ -269,8 +269,8 @@ void FetchStage::updateReady() {
   // Consider the pipeline to be stalled if the first pipeline stage is not
   // allowed to do any work. Only report the stall status when it changes.
 
-  if (canSendInstruction() == stalled) {
-    stalled = !canSendInstruction();
+  if (nextStageBlocked() != stalled) {
+    stalled = nextStageBlocked();
     core().pipelineStalled(stalled);
   }
 }
@@ -516,7 +516,7 @@ MemoryAddr FetchStage::getCurrentAddress() const {
   }
 }
 
-void FetchStage::getNextInstruction() {
+void FetchStage::prepareNextInstruction() {
   // This pipeline stage is dedicated to getting instructions, so call the main
   // method from here.
   readLoop();
@@ -539,7 +539,7 @@ void FetchStage::reportStalls(ostream& os) {
 FetchStage::FetchStage(sc_module_name name,
                        const fifo_parameters_t& fifoParams,
                        const cache_parameters_t& cacheParams) :
-    PipelineStage(name),
+    FirstPipelineStage(name),
     iToCache("iCacheInstruction"),
     iToFIFO("iFIFOInstruction"),
     oFetchRequest("oFetchRequest"),

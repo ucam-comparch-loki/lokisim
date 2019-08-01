@@ -277,9 +277,9 @@ void ExecuteStage::memoryStorePhase1(DecodedInst& operation) {
   continuingStore = true;
 
   if (MAGIC_MEMORY)
-    next_trigger(clock.posedge_event() & canSendEvent());
+    next_trigger(clock.posedge_event() & nextStageUnblockedEvent());
   else
-    next_trigger(clock.posedge_event() & canSendEvent() & oData.ack_event());
+    next_trigger(clock.posedge_event() & nextStageUnblockedEvent() & oData.ack_event());
 }
 
 void ExecuteStage::memoryStorePhase2(DecodedInst& operation) {

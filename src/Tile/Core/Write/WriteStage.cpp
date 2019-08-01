@@ -59,7 +59,7 @@ WriteStage::WriteStage(sc_module_name name,
                        const fifo_parameters_t& fifoParams,
                        uint numCores,
                        uint numMemories) :
-    PipelineStage(name),
+    LastPipelineStage(name),
     iFetch("iFetch"),
     iData("iData"),
     oReady("oReady"),

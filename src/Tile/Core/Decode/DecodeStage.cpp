@@ -20,7 +20,7 @@ void         DecodeStage::execute() {
 
     // Only consider the core idle if the next pipeline stage is ready to
     // receive an instruction, but we don't have one to pass to it.
-    if (canSendInstruction())
+    if (!nextStageBlocked())
       core().idle(true);
 
     wait(newInstructionEvent);
@@ -79,9 +79,9 @@ void         DecodeStage::persistentInstruction(DecodedInst& inst) {
       decoder.setOperand2(inst);
 
     // Should do this check earlier, before gathering operands.
-    if (!canSendInstruction()) {
+    if (nextStageBlocked()) {
       waitingToSend = true;
-      wait(canSendEvent());
+      wait(nextStageUnblockedEvent());
     }
 
     waitingToSend = false;
@@ -140,9 +140,9 @@ void         DecodeStage::newInput(DecodedInst& inst) {
 
       // Need to double check whether we are able to send, because we may be
       // sending multiple outputs.
-      while (!canSendInstruction()) {
+      while (nextStageBlocked()) {
         waitingToSend = true;
-        wait(canSendEvent());
+        wait(nextStageUnblockedEvent());
       }
 
       waitingToSend = false;

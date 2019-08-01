@@ -11,46 +11,47 @@
 #include "PipelineRegister.h"
 #include "../../Utility/Assert.h"
 
-const DecodedInst& PipelineStage::currentInstruction() const {
+PipelineStageBase::PipelineStageBase(const sc_module_name& name) :
+    LokiComponent(name),
+    clock("clock") {
+
+  currentInstValid = false;
+
+  SC_METHOD(prepareNextInstruction);
+  sensitive << clock.pos();
+  dont_initialize();
+
+}
+
+const DecodedInst& PipelineStageBase::currentInstruction() const {
   return currentInst;
 }
 
-void PipelineStage::initPipeline(PipelineRegister* prev, PipelineRegister* next) {
-  this->prev = prev;
-  this->next = next;
-}
-
-const ComponentID& PipelineStage::id() const {
+const ComponentID& PipelineStageBase::id() const {
   return core().id;
 }
 
-Core& PipelineStage::core() const {
+Core& PipelineStageBase::core() const {
   return static_cast<Core&>(*(this->get_parent_object()));
 }
 
-bool PipelineStage::isStalled() const {
+bool PipelineStageBase::isStalled() const {
   return false;
 }
 
-void PipelineStage::getNextInstruction() {
-  // Need to wait until the previous stage (if any) has passed us an
-  // instruction, and until the next stage (if any) is ready to receive an
-  // instruction.
-  bool prevReady = (prev == NULL) || canReceiveInstruction();
-  bool nextReady = (next == NULL) || canSendInstruction();
-
+void PipelineStageBase::prepareNextInstruction() {
   currentInstValid = false;
 
   // Wait for both pipeline registers to be ready, and for the beginning of
   // a new clock cycle.
-  if (!prevReady)
-    next_trigger(prev->dataAdded());
-  else if (!nextReady)
-    next_trigger(next->dataRemoved());
+  if (previousStageBlocked())
+    next_trigger(previousStageUnblockedEvent());
+  else if (nextStageBlocked())
+    next_trigger(nextStageUnblockedEvent());
   else if (!clock.posedge() || isStalled())
     next_trigger(clock.posedge_event());
   else {
-    currentInst = prev->read();
+    currentInst = receiveInstruction();
     currentInstValid = true;
     newInstructionEvent.notify(sc_core::SC_ZERO_TIME);
 
@@ -62,55 +63,121 @@ void PipelineStage::getNextInstruction() {
   }
 }
 
-void PipelineStage::outputInstruction(const DecodedInst& inst) {
-  loki_assert(next != NULL);
-  next->write(inst);
-}
-
-void PipelineStage::instructionCompleted() {
+void PipelineStageBase::instructionCompleted() {
   // Ensure that the instruction takes a finite amount of time to complete.
   // If it was able to complete instantly, it would be possible to execute
   // multiple instructions in the same cycle.
   instructionCompletedEvent.notify(sc_core::SC_ZERO_TIME);
 }
 
-bool PipelineStage::canReceiveInstruction() const {
-  return (prev != NULL) && prev->hasData();
+
+
+FirstPipelineStage::FirstPipelineStage(const sc_module_name& name) :
+    PipelineStageBase(name),
+    nextStage("next") {
+  // Nothing
 }
 
-bool PipelineStage::canSendInstruction() const {
-  return (next != NULL) && next->ready();
+void FirstPipelineStage::outputInstruction(const DecodedInst& inst) {
+  nextStage->write(inst);
 }
 
-const sc_event& PipelineStage::canReceiveEvent() const {
-  loki_assert(prev != NULL);
-  return prev->dataAdded();
+bool FirstPipelineStage::nextStageBlocked() const {
+  return !nextStage->canWrite();
 }
 
-const sc_event& PipelineStage::canSendEvent() const {
-  loki_assert(next != NULL);
-  return next->dataRemoved();
+const sc_event& FirstPipelineStage::nextStageUnblockedEvent() const {
+  return nextStage->canWriteEvent();
+}
+
+DecodedInst FirstPipelineStage::receiveInstruction() {
+  loki_assert(false);
+  return DecodedInst();
+}
+
+bool FirstPipelineStage::discardNextInst() {
+  return false;
+}
+
+bool FirstPipelineStage::previousStageBlocked() const {
+  return false;
+}
+
+const sc_event& FirstPipelineStage::previousStageUnblockedEvent() const {
+  loki_assert(false);
+  return *(new sc_event());
+}
+
+
+
+LastPipelineStage::LastPipelineStage(const sc_module_name& name) :
+    PipelineStageBase(name),
+    previousStage("prev") {
+  // Nothing
+}
+
+void LastPipelineStage::outputInstruction(const DecodedInst& inst) {
+  loki_assert(false);
+}
+
+bool LastPipelineStage::nextStageBlocked() const {
+  return false;
+}
+
+const sc_event& LastPipelineStage::nextStageUnblockedEvent() const {
+  loki_assert(false);
+  return *(new sc_event());
+}
+
+DecodedInst LastPipelineStage::receiveInstruction() {
+  return previousStage->read();
+}
+
+bool LastPipelineStage::discardNextInst() {
+  return previousStage->discard();
+}
+
+bool LastPipelineStage::previousStageBlocked() const {
+  return !previousStage->canRead();
+}
+
+const sc_event& LastPipelineStage::previousStageUnblockedEvent() const {
+  return previousStage->canReadEvent();
+}
+
+
+
+PipelineStage::PipelineStage(const sc_module_name& name) :
+    PipelineStageBase(name),
+    previousStage("prev"),
+    nextStage("next") {
+  // Nothing
+}
+
+void PipelineStage::outputInstruction(const DecodedInst& inst) {
+  nextStage->write(inst);
+}
+
+bool PipelineStage::nextStageBlocked() const {
+  return !nextStage->canWrite();
+}
+
+const sc_event& PipelineStage::nextStageUnblockedEvent() const {
+  return nextStage->canWriteEvent();
+}
+
+DecodedInst PipelineStage::receiveInstruction() {
+  return previousStage->read();
 }
 
 bool PipelineStage::discardNextInst() {
-  if (prev == NULL)
-    return false;
-  else
-    return prev->discard();
+  return previousStage->discard();
 }
 
-PipelineStage::PipelineStage(const sc_module_name& name) :
-    LokiComponent(name),
-    clock("clock") {
+bool PipelineStage::previousStageBlocked() const {
+  return !previousStage->canRead();
+}
 
-  // These are initialised by a separate call to initPipeline.
-  next = NULL;
-  prev = NULL;
-
-  currentInstValid = false;
-
-  SC_METHOD(getNextInstruction);
-  sensitive << clock.pos();
-  dont_initialize();
-
+const sc_event& PipelineStage::previousStageUnblockedEvent() const {
+  return previousStage->canReadEvent();
 }

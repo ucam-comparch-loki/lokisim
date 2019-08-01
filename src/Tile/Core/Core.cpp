@@ -311,25 +311,25 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
   // Wire the pipeline stages up.
 
   fetch.clock(clock);
+  fetch.nextStage(pipelineRegs[0]);
   fetch.oFetchRequest(fetchFlitSignal);
   fetch.iOutputBufferReady(stageReady[2]);
-  fetch.initPipeline(NULL, &pipelineRegs[0]);
 
   decode.clock(clock);
+  decode.previousStage(pipelineRegs[0]);    decode.nextStage(pipelineRegs[1]);
   decode.oReady(stageReady[0]);
   decode.iOutputBufferReady(stageReady[2]);
-  decode.initPipeline(&pipelineRegs[0], &pipelineRegs[1]);
 
   execute.clock(clock);
+  execute.previousStage(pipelineRegs[1]);   execute.nextStage(pipelineRegs[2]);
   execute.oReady(stageReady[1]);
   execute.oData(dataFlitSignal);            execute.iReady(stageReady[2]);
-  execute.initPipeline(&pipelineRegs[1], &pipelineRegs[2]);
 
   write.clock(clock);
+  write.previousStage(pipelineRegs[2]);
   write.oReady(stageReady[2]);
   write.iFetch(fetchFlitSignal);
   write.iData(dataFlitSignal);
-  write.initPipeline(&pipelineRegs[2], NULL);
 
   SC_METHOD(receivedCredit);
   sensitive << incomingCredits.canReadEvent();

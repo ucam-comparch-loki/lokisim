@@ -10,8 +10,7 @@
 #include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/PipelineReg.h"
 
-bool PipelineRegister::ready() const {
-//  return !buffer.full();
+bool PipelineRegister::canWrite() const {
   return !valid;
 }
 
@@ -19,44 +18,37 @@ void PipelineRegister::write(const DecodedInst& inst) {
   if (ENERGY_TRACE)
     Instrumentation::PipelineReg::activity(data, inst, position);
 
-//  buffer.write(inst);
   loki_assert(!valid);
   data = inst;
   valid = true;
   writeEvent.notify();
 }
 
-bool PipelineRegister::hasData() const {
-//  return !buffer.empty();
+bool PipelineRegister::canRead() const {
   return valid;
 }
 
 const DecodedInst& PipelineRegister::read() {
-//  return buffer.read();
   loki_assert(valid);
   readEvent.notify();
   valid = false;
   return data;
 }
 
-const sc_event& PipelineRegister::dataAdded() const {
-//  return buffer.writeEvent();
+const sc_event& PipelineRegister::canReadEvent() const {
   return writeEvent;
 }
 
-const sc_event& PipelineRegister::dataRemoved() const {
-//  return buffer.readEvent();
+const sc_event& PipelineRegister::canWriteEvent() const {
   return readEvent;
 }
 
 bool PipelineRegister::discard() {
   readEvent.notify();
 
-//  if(buffer.empty())
   if (!valid)
     return false;
   else {
-//    buffer.discardTop();
     valid = false;
     return true;
   }
@@ -65,7 +57,6 @@ bool PipelineRegister::discard() {
 PipelineRegister::PipelineRegister(const sc_module_name& name,
                                    const PipelinePosition pos) :
   LokiComponent(name),
-//  buffer(1, std::string(name)) {  // Buffer has 2 spaces and a name for debug
   position(pos) {
 
   valid = false;

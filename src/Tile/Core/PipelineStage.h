@@ -12,11 +12,12 @@
 
 #include "../../Datatype/DecodedInst.h"
 #include "../../LokiComponent.h"
+#include "PipelineRegister.h"
 
 class Core;
 class PipelineRegister;
 
-class PipelineStage : public LokiComponent {
+class PipelineStageBase : public LokiComponent {
 
 //============================================================================//
 // Ports
@@ -33,8 +34,8 @@ public:
 
 protected:
 
-  SC_HAS_PROCESS(PipelineStage);
-  PipelineStage(const sc_module_name& name);
+  SC_HAS_PROCESS(PipelineStageBase);
+  PipelineStageBase(const sc_module_name& name);
 
 //============================================================================//
 // Methods
@@ -45,17 +46,13 @@ public:
   // Inspect the instruction currently in this pipeline stage.
   const DecodedInst& currentInstruction() const;
 
-  // Provide access to the surrounding pipeline registers. Either of these can
-  // be NULL - used at the ends of the pipeline.
-  void initPipeline(PipelineRegister* prev, PipelineRegister* next);
-
   // Return the ID of this core.
   const ComponentID& id() const;
 
 protected:
 
   // Do I want a parent() method, so the user has to know the module hierarchy,
-  // but can access any position in it, or a cluster() method, which hides
+  // but can access any position in it, or a core() method, which hides
   // any changes, but makes arbitrary access harder?
   Core& core() const;
 
@@ -69,27 +66,28 @@ protected:
 
   // Obtain the next instruction to work on, and put it in the currentInst
   // field.
-  virtual void getNextInstruction();
-
-  // Send the transformed instruction on to the next pipeline stage.
-  void outputInstruction(const DecodedInst& inst);
+  virtual void prepareNextInstruction();
 
   // Signal that this pipeline stage has finished work on the current
   // instruction. This is separate from outputInstruction, above, as it is
   // possible to produce multiple outputs from a single instruction (stw).
   void instructionCompleted();
 
-  virtual bool canReceiveInstruction() const;
-  virtual bool canSendInstruction() const;
+  // Receive an instruction from the previous stage.
+  virtual DecodedInst receiveInstruction() = 0;
 
-  // Immediately after these events have been triggered, the outputs of the
-  // two methods above are known to be true.
-  const sc_event& canReceiveEvent() const;
-  const sc_event& canSendEvent() const;
+  // Send the transformed instruction on to the next pipeline stage.
+  virtual void outputInstruction(const DecodedInst& inst) = 0;
+
+  virtual bool previousStageBlocked() const = 0;
+  virtual const sc_event& previousStageUnblockedEvent() const = 0;
+
+  virtual bool nextStageBlocked() const = 0;
+  virtual const sc_event& nextStageUnblockedEvent() const = 0;
 
   // Discard the next instruction to be executed, which is currently waiting in
   // a pipeline register. Returns whether anything was discarded.
-  bool discardNextInst();
+  virtual bool discardNextInst() = 0;
 
 //============================================================================//
 // Local state
@@ -105,7 +103,71 @@ protected:
 
 private:
 
-  PipelineRegister *prev, *next;
+//  PipelineRegister *prev, *next;
+
+};
+
+
+// A pipeline stage with only successors.
+class FirstPipelineStage : public PipelineStageBase {
+
+public:
+
+  InstructionOutput nextStage;
+
+  FirstPipelineStage(const sc_module_name& name);
+
+  virtual DecodedInst receiveInstruction();
+  virtual bool discardNextInst();
+  virtual void outputInstruction(const DecodedInst& inst);
+  virtual bool previousStageBlocked() const;
+  virtual const sc_event& previousStageUnblockedEvent() const;
+  virtual bool nextStageBlocked() const;
+  virtual const sc_event& nextStageUnblockedEvent() const;
+
+};
+
+
+// A pipeline stage with only predecessors.
+class LastPipelineStage : public PipelineStageBase {
+
+public:
+
+  InstructionInput previousStage;
+
+  LastPipelineStage(const sc_module_name& name);
+
+  virtual DecodedInst receiveInstruction();
+  virtual bool discardNextInst();
+  virtual void outputInstruction(const DecodedInst& inst);
+  virtual bool previousStageBlocked() const;
+  virtual const sc_event& previousStageUnblockedEvent() const;
+  virtual bool nextStageBlocked() const;
+  virtual const sc_event& nextStageUnblockedEvent() const;
+
+};
+
+
+// The default: a pipeline stage with both predecessors and successors.
+// Would prefer to inherit behaviour from both FirstPipelineStage and
+// LastPipelineStage, but that requires virtual inheritance, which breaks
+// SystemC.
+class PipelineStage : public PipelineStageBase {
+
+public:
+
+  InstructionInput previousStage;
+  InstructionOutput nextStage;
+
+  PipelineStage(const sc_module_name& name);
+
+  virtual DecodedInst receiveInstruction();
+  virtual bool discardNextInst();
+  virtual void outputInstruction(const DecodedInst& inst);
+  virtual bool previousStageBlocked() const;
+  virtual const sc_event& previousStageUnblockedEvent() const;
+  virtual bool nextStageBlocked() const;
+  virtual const sc_event& nextStageUnblockedEvent() const;
 
 };
 
