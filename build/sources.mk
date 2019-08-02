@@ -26,6 +26,7 @@ SUBDIRS := \
 src \
 src/Datatype \
 src/Datatype/MemoryOperations \
+src/ISA \
 src/Memory \
 src/Network/Global \
 src/Network \

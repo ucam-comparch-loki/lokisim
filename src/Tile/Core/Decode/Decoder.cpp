@@ -14,7 +14,7 @@
 #include "DecodeStage.h"
 #include "../RegisterFile.h"
 #include "../../../Utility/Instrumentation.h"
-#include "../../../Utility/ISA.h"
+#include "../../../ISA/ISA.h"
 
 typedef RegisterFile Registers;
 

@@ -12,7 +12,7 @@
 
 #include "../../../LokiComponent.h"
 #include "../../../Memory/MemoryTypes.h"
-#include "../../../Utility/ISA.h"
+#include "../../../ISA/ISA.h"
 
 class DecodedInst;
 class ExecuteStage;

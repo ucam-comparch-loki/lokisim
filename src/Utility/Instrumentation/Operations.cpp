@@ -11,7 +11,7 @@
 #include "../../Datatype/Identifier.h"
 #include "../../Datatype/DecodedInst.h"
 #include "../../Tile/Core/Core.h"
-#include "../ISA.h"
+#include "../../ISA/ISA.h"
 
 using namespace Instrumentation;
 

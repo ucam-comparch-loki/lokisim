@@ -10,7 +10,6 @@
 
 #include "../Datatype/Instruction.h"
 #include "../Types.h"
-#include "../Utility/ISA.h"
 #include "../Utility/LoopCounter.h"
 #include "MemoryTypes.h"
 

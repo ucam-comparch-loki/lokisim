@@ -14,7 +14,7 @@
 
 #include "../Types.h"
 #include "Word.h"
-#include "../Utility/ISA.h"
+#include "../ISA/ISA.h"
 
 using std::string;
 

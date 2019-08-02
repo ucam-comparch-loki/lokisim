@@ -17,7 +17,7 @@
 #include <string>
 #include "../Datatype/Identifier.h"
 #include "../Types.h"
-#include "ISA.h"
+#include "../ISA/ISA.h"
 
 class Statistics {
 

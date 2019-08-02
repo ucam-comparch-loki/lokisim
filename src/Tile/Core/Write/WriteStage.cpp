@@ -10,7 +10,7 @@
 #include "../Core.h"
 #include "../../../Utility/Arguments.h"
 #include "../../../Utility/Instrumentation/Stalls.h"
-#include "../../../Utility/ISA.h"
+#include "../../../ISA/ISA.h"
 
 void WriteStage::execute() {
   newInput(currentInst);

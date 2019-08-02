@@ -8,7 +8,7 @@
 #include "MagicMemoryConnection.h"
 #include "../../Datatype/MemoryOperations/MemoryOperationDecode.h"
 #include "../../Utility/Assert.h"
-#include "../../Utility/ISA.h"
+#include "../../ISA/ISA.h"
 #include "Core.h"
 
 MagicMemoryConnection::MagicMemoryConnection(sc_module_name name) :

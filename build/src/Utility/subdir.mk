@@ -8,7 +8,6 @@ CPP_SRCS += \
 ../src/Utility/BlockingInterface.cpp \
 ../src/Utility/Config.cpp \
 ../src/Utility/Debugger.cpp \
-../src/Utility/ISA.cpp \
 ../src/Utility/Instrumentation.cpp \
 ../src/Utility/Parameters.cpp \
 ../src/Utility/Statistics.cpp \
@@ -20,7 +19,6 @@ OBJS += \
 ./src/Utility/BlockingInterface.o \
 ./src/Utility/Config.o \
 ./src/Utility/Debugger.o \
-./src/Utility/ISA.o \
 ./src/Utility/Instrumentation.o \
 ./src/Utility/Parameters.o \
 ./src/Utility/Statistics.o \
@@ -32,7 +30,6 @@ CPP_DEPS += \
 ./src/Utility/BlockingInterface.d \
 ./src/Utility/Config.d \
 ./src/Utility/Debugger.d \
-./src/Utility/ISA.d \
 ./src/Utility/Instrumentation.d \
 ./src/Utility/Parameters.d \
 ./src/Utility/Statistics.d \
