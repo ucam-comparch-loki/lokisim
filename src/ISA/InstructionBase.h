@@ -1,17 +1,14 @@
 /*
  * InstructionBase.h
  *
- * Base class for all instructions.
+ * Base class for all instructions. Intended for the mix-in programming pattern.
  *
- * In order to create a class for an instruction, we must have already fetched
- * and decoded it, so only execution steps after that point are included.
+ * This class provides dummy implementations of all methods, which do nothing,
+ * or throw errors. This class should be extended to implement functionality.
  *
- * Methods come in groups of two:
- *  1. doSomething()
- *      Request that the instruction completes a particular phase of execution.
- *  2. doSomethingCallback()
- *      Tell instruction that one step of this phase is complete.
- *      Depending on the phase, data may also be passed to the instruction.
+ * All methods for InstructionInterface are provided, but to allow better
+ * optimisation, they are all non-virtual. An InstructionAdapter should be used
+ * to make an InstructionBase implement the InstructionInterface.
  *
  *  Created on: 2 Aug 2019
  *      Author: db434
@@ -20,16 +17,12 @@
 #ifndef SRC_ISA_INSTRUCTIONBASE_H_
 #define SRC_ISA_INSTRUCTIONBASE_H_
 
-#include "systemc"
+#include "InstructionInterface.h"
 #include "../Datatype/Instruction.h"
-#include "../Tile/ChannelMapEntry.h"
-#include "../Tile/Core/Fetch/InstructionStore.h"
-#include "CoreInterface.h"
 
 class InstructionBase {
 protected:
   InstructionBase(Instruction encoded);
-  virtual ~InstructionBase();
 
 public:
   // Prepare the instruction for execution on a given core. Also provide some
@@ -42,56 +35,56 @@ public:
   const sc_core::sc_event& finishedPhaseEvent() const;
 
   // Read registers, including register-mapped input FIFOs.
-  virtual void readRegisters();
-  virtual void readRegistersCallback(RegisterPort port, int32_t value);
+  void readRegisters();
+  void readRegistersCallback(RegisterPort port, int32_t value);
 
   // Write to the register file.
-  virtual void writeRegisters();
-  virtual void writeRegistersCallback();
+  void writeRegisters();
+  void writeRegistersCallback();
 
   // Computation which happens before the execute stage (e.g. fetch, selch).
-  virtual void earlyCompute();
-  virtual void earlyComputeCallback();
+  void earlyCompute();
+  void earlyComputeCallback();
 
   // Main computation.
-  virtual void compute();
-  virtual void computeCallback();
+  void compute();
+  void computeCallback();
 
   // Read channel map table.
-  virtual void readCMT();
-  virtual void readCMTCallback(EncodedCMTEntry value);
+  void readCMT();
+  void readCMTCallback(EncodedCMTEntry value);
 
   // Write to the channel map table.
-  virtual void writeCMT();
-  virtual void writeCMTCallback();
+  void writeCMT();
+  void writeCMTCallback();
 
   // Read the core-local scratchpad.
-  virtual void readScratchpad();
-  virtual void readScratchpadCallback(int32_t value);
+  void readScratchpad();
+  void readScratchpadCallback(int32_t value);
 
   // Write to the core-local scratchpad.
-  virtual void writeScratchpad();
-  virtual void writeScratchpadCallback();
+  void writeScratchpad();
+  void writeScratchpadCallback();
 
   // Read the control registers.
-  virtual void readCregs();
-  virtual void readCregsCallback(int32_t value);
+  void readCregs();
+  void readCregsCallback(int32_t value);
 
   // Write to the control registers.
-  virtual void writeCregs();
-  virtual void writeCregsCallback();
+  void writeCregs();
+  void writeCregsCallback();
 
   // Read the control registers.
-  virtual void readPredicate();
-  virtual void readPredicateCallback(bool value);
+  void readPredicate();
+  void readPredicateCallback(bool value);
 
   // Write to the predicate register.
-  virtual void writePredicate();
-  virtual void writePredicateCallback();
+  void writePredicate();
+  void writePredicateCallback();
 
   // Send data onto the network.
-  virtual void sendNetworkData();
-  virtual void sendNetworkDataCallback();
+  void sendNetworkData();
+  void sendNetworkDataCallback();
 
 protected:
 

@@ -18,10 +18,6 @@ InstructionBase::InstructionBase(Instruction encoded) :
 
 }
 
-InstructionBase::~InstructionBase() {
-  // Nothing
-}
-
 // Prepare the instruction for execution on a given core. Also provide some
 // extra information to help with debugging.
 void InstructionBase::assignToCore(CoreInterface& core, MemoryAddr address,
