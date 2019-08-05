@@ -343,10 +343,10 @@ bool ExecuteStage::checkPredicate(DecodedInst& inst) {
   bool pred = readPredicate();
   short predBits = inst.predicate();
 
-  bool result = (predBits == Instruction::ALWAYS) ||
-                (predBits == Instruction::END_OF_PACKET) ||
-                (predBits == Instruction::P     &&  pred) ||
-                (predBits == Instruction::NOT_P && !pred);
+  bool result = (predBits == EXECUTE_ALWAYS)            ||
+                (predBits == END_OF_PACKET)             ||
+                (predBits == EXECUTE_IF_P     &&  pred) ||
+                (predBits == EXECUTE_IF_NOT_P && !pred);
 
   return result;
 }

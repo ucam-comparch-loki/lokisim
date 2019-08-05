@@ -77,7 +77,7 @@ InstructionSource DecodedInst::source()      const {return source_;}
 
 
 bool    DecodedInst::predicated() const {
-  return (predicate_ == Instruction::NOT_P) || (predicate_ == Instruction::P);
+  return (predicate_ == EXECUTE_IF_NOT_P) || (predicate_ == EXECUTE_IF_P);
 }
 
 bool    DecodedInst::hasResult()             const {return hasResult_;}
@@ -143,7 +143,7 @@ bool    DecodedInst::isExecuteStageOperation() const {
 }
 
 bool    DecodedInst::endOfIPK() const {
-  return predicate() == Instruction::END_OF_PACKET;
+  return predicate() == END_OF_PACKET;
 }
 
 bool    DecodedInst::persistent() const {
@@ -204,7 +204,7 @@ Instruction DecodedInst::toInstruction() const {
 }
 
 bool DecodedInst::sendsOnNetwork() const {
-  return (channelMapEntry() != Instruction::NO_CHANNEL) &&
+  return (channelMapEntry() != NO_CHANNEL) &&
          !networkDestination().isNullMapping();
 }
 
@@ -273,10 +273,10 @@ std::ostream& DecodedInst::print(std::ostream& os) const {
   if (location_ != 0)
     os << LOKI_HEX(location_) << " ";
 
-  if (predicate() == Instruction::P) os << "ifp?";
-  else if (predicate() == Instruction::NOT_P) os << "if!p?";
+  if (predicate() == EXECUTE_IF_P) os << "ifp?";
+  else if (predicate() == EXECUTE_IF_NOT_P) os << "if!p?";
 
-  os << name() << (predicate()==Instruction::END_OF_PACKET ? ".eop" : "");
+  os << name() << (predicate() == END_OF_PACKET ? ".eop" : "");
 
   // Special case for cfgmem and setchmap: immediate is printed before register.
   if (opcode_ == ISA::OP_SETCHMAP || opcode_ == ISA::OP_SETCHMAPI) {
@@ -310,7 +310,7 @@ std::ostream& DecodedInst::print(std::ostream& os) const {
     if (hasImmediate()) os << " "  << immediate();
   }
 
-  if (channelMapEntry() != Instruction::NO_CHANNEL)
+  if (channelMapEntry() != NO_CHANNEL)
     os << " -> " << (int)channelMapEntry();
 
   return os;
@@ -377,7 +377,7 @@ DecodedInst::DecodedInst(const Instruction inst) : original_(inst) {
       if (ISA::hasRemoteChannel(opcode_))
         channelMapEntry_ = inst.remoteChannel();
       else
-        channelMapEntry_ = Instruction::NO_CHANNEL;
+        channelMapEntry_ = NO_CHANNEL;
       break;
   }
 

@@ -18,24 +18,19 @@
 
 using std::string;
 
+// Options for the predicate value.
+enum Predicate {
+  EXECUTE_ALWAYS,   // Always execute
+  EXECUTE_IF_P,     // Execute only if the predicate register holds 1
+  EXECUTE_IF_NOT_P, // Execute only if the predicate register holds 0
+  END_OF_PACKET     // Always execute + this is the packet's last instruction
+};
+typedef Predicate predicate_t;
+
+// A remote channel value signifying that no channel was specified.
+const ChannelIndex NO_CHANNEL = 15;
+
 class Instruction: public Word {
-
-//============================================================================//
-// Local state
-//============================================================================//
-
-public:
-
-  // The options for the predicate value.
-  //   ALWAYS        = always execute
-  //   P             = execute only if the predicate register holds 1
-  //   NOT_P         = execute only if the predicate register holds 0
-  //   END_OF_PACKET = this instruction is the last in the current packet
-  enum Predicate {ALWAYS, P, NOT_P, END_OF_PACKET};
-  typedef Instruction::Predicate predicate_t;
-
-  // A remote channel value signifying that no channel was specified.
-  static const ChannelIndex NO_CHANNEL = 15;
 
 //============================================================================//
 // Methods
@@ -96,7 +91,5 @@ public:
   virtual ~Instruction() {}
 
 };
-
-typedef Instruction::Predicate predicate_t;
 
 #endif /* INSTRUCTION_H_ */

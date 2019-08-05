@@ -6,7 +6,7 @@
  */
 
 #include "CacheLineOperations.h"
-#include "../Instruction.h"
+#include "../../Datatype/Instruction.h"
 #include "../../Tile/Memory/MemoryBank.h"
 #include "../../Utility/Instrumentation/L1Cache.h"
 #include "../../Utility/Parameters.h"

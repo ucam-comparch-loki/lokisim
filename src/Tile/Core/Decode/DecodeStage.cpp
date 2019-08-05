@@ -116,7 +116,7 @@ void         DecodeStage::newInput(DecodedInst& inst) {
 
     // If we are in remote execution mode, send this instruction without
     // executing it.
-    if (rmtexecuteChannel != Instruction::NO_CHANNEL) {
+    if (rmtexecuteChannel != NO_CHANNEL) {
       decoded = inst;
       remoteExecute(decoded);
 
@@ -193,7 +193,7 @@ bool         DecodeStage::predicate(const DecodedInst& inst) const {
 
 void         DecodeStage::readChannelMapTable(DecodedInst& inst) {
   MapIndex channel = inst.channelMapEntry();
-  if (channel == Instruction::NO_CHANNEL)
+  if (channel == NO_CHANNEL)
     return;
 
   ChannelMapEntry& cmtEntry = channelMapTableEntry(channel);
@@ -255,7 +255,7 @@ void         DecodeStage::startRemoteExecution(const DecodedInst& inst) {
 }
 
 void         DecodeStage::endRemoteExecution() {
-  rmtexecuteChannel = Instruction::NO_CHANNEL;
+  rmtexecuteChannel = NO_CHANNEL;
 
   LOKI_LOG(1) << this->name() << " ending remote execution" << endl;
 }
@@ -275,7 +275,7 @@ void         DecodeStage::remoteExecute(DecodedInst& instruction) const {
   instruction.endOfNetworkPacket(true);
 
   // Prevent other stages from trying to execute this instruction.
-  instruction.predicate(Instruction::ALWAYS);
+  instruction.predicate(EXECUTE_ALWAYS);
   instruction.opcode(ISA::OP_OR);
   instruction.function(ISA::FN_OR);
   instruction.destination(0);
@@ -410,7 +410,7 @@ DecodeStage::DecodeStage(sc_module_name name, size_t numChannels,
   updateFetchAddress = true;
 
   previousCMTData = 0;
-  rmtexecuteChannel = Instruction::NO_CHANNEL;
+  rmtexecuteChannel = NO_CHANNEL;
 
   // Connect everything up
   rcet.clock(clock);

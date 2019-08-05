@@ -20,9 +20,10 @@
 class Word {
 protected:
   uint32_t data_;
+public:
 
   /* Return the integer value of the bits between the start and end positions,
-  * inclusive. */
+   * inclusive. */
   inline uint32_t getBits(int start, int end) const {
     uint32_t result = (end>=31) ? data_ : data_ % (1L << (end+1));
     result = result >> start;
@@ -52,7 +53,7 @@ protected:
     mask = ~mask;                                     // 1100000111
     data_ &= mask;
   }
-public:
+
   inline int32_t toInt() const    {return (int32_t)data_;}
   inline uint32_t toUInt() const    {return (uint32_t)data_;}
 

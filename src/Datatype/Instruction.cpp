@@ -271,12 +271,12 @@ void Instruction::decodeOpcode(const string& name) {
   // Set the predicate bits
   if(opcodeParts.size() > 1) {
     string pred = opcodeParts[0];
-    if(pred == "p" || pred == "ifp")        predicate(P);
-    else if(pred == "!p" || pred == "if!p") predicate(NOT_P);
+    if(pred == "p" || pred == "ifp")        predicate(EXECUTE_IF_P);
+    else if(pred == "!p" || pred == "if!p") predicate(EXECUTE_IF_NOT_P);
     opcodeString = opcodeParts[1];
   }
   else {
-    predicate(ALWAYS);
+    predicate(EXECUTE_ALWAYS);
     opcodeString = opcodeParts[0];
   }
 

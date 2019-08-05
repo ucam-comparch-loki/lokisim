@@ -25,9 +25,9 @@ C_DEPS :=
 SUBDIRS := \
 src \
 src/Datatype \
-src/Datatype/MemoryOperations \
 src/ISA \
 src/Memory \
+src/Memory/MemoryOperations \
 src/Network/Global \
 src/Network \
 src/Network/Topologies \

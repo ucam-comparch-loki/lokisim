@@ -405,8 +405,8 @@ bool Decoder::shouldExecute(const DecodedInst& inst) {
     short predBits = inst.predicate();
     bool predicate = parent().predicate(inst);
 
-    return (predBits == Instruction::P     &&  predicate) ||
-           (predBits == Instruction::NOT_P && !predicate);
+    return (predBits == EXECUTE_IF_P     &&  predicate) ||
+           (predBits == EXECUTE_IF_NOT_P && !predicate);
   }
   // All other predicated instructions.
   else

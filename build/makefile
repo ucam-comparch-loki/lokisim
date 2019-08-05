@@ -24,9 +24,9 @@ RM := rm
 -include src/Network/Topologies/subdir.mk
 -include src/Network/Global/subdir.mk
 -include src/Network/subdir.mk
+-include src/Memory/MemoryOperations/subdir.mk
 -include src/Memory/subdir.mk
 -include src/ISA/subdir.mk
--include src/Datatype/MemoryOperations/subdir.mk
 -include src/Datatype/subdir.mk
 -include src/subdir.mk
 -include subdir.mk

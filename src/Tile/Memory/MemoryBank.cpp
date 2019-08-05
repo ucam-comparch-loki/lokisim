@@ -14,7 +14,7 @@ using namespace std;
 #include <iostream>
 #include <iomanip>
 #include "MemoryBank.h"
-#include "../../Datatype/MemoryOperations/MemoryOperationDecode.h"
+#include "../../Memory/MemoryOperations/MemoryOperationDecode.h"
 #include "../ComputeTile.h"
 #include "../../Chip.h"
 #include "../../Utility/Assert.h"

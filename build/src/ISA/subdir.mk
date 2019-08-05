@@ -4,13 +4,19 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../src/ISA/ISA.cpp 
+../src/ISA/ISA.cpp \
+../src/ISA/InstructionBase.cpp \
+../src/ISA/InstructionFormats.cpp 
 
 OBJS += \
-./src/ISA/ISA.o 
+./src/ISA/ISA.o \
+./src/ISA/InstructionBase.o \
+./src/ISA/InstructionFormats.o 
 
 CPP_DEPS += \
-./src/ISA/ISA.d 
+./src/ISA/ISA.d \
+./src/ISA/InstructionBase.d \
+./src/ISA/InstructionFormats.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

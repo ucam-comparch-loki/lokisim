@@ -6,7 +6,7 @@
  */
 
 #include "MagicMemoryConnection.h"
-#include "../../Datatype/MemoryOperations/MemoryOperationDecode.h"
+#include "../../Memory/MemoryOperations/MemoryOperationDecode.h"
 #include "../../Utility/Assert.h"
 #include "../../ISA/ISA.h"
 #include "Core.h"

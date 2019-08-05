@@ -6,7 +6,7 @@
  */
 
 #include "Latency.h"
-#include "../../Datatype/MemoryOperations/MemoryOperation.h"
+#include "../../Memory/MemoryOperations/MemoryOperation.h"
 #include <iomanip>
 
 using namespace Instrumentation;

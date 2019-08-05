@@ -8,9 +8,9 @@
 #ifndef SRC_TILE_MEMORY_OPERATIONS_ATOMICOPERATIONS_H_
 #define SRC_TILE_MEMORY_OPERATIONS_ATOMICOPERATIONS_H_
 
-#include "../../Memory/MemoryTypes.h"
-#include "../Flit.h"
-#include "../Identifier.h"
+#include "../MemoryTypes.h"
+#include "../../Datatype/Flit.h"
+#include "../../Datatype/Identifier.h"
 #include "MemoryOperation.h"
 #include "BasicOperations.h"
 

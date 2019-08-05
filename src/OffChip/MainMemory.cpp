@@ -9,7 +9,7 @@
 
 #include "MainMemory.h"
 #include "../Chip.h"
-#include "../Datatype/MemoryOperations/MemoryOperationDecode.h"
+#include "../Memory/MemoryOperations/MemoryOperationDecode.h"
 #include "../Utility/Assert.h"
 #include "../Utility/Instrumentation/MainMemory.h"
 #include <iomanip>
