@@ -89,10 +89,11 @@ public:
 
   // The following methods return results immediately.
 
-  // Determine which network address should be used to access the given memory
-  // address. This allows multiple memory banks to be grouped together.
+  // Determine which network address the given channel map entry corresponds to.
+  // If the address is a memory bank, the memory address is also needed to
+  // select one bank out of a group.
   virtual ChannelID getNetworkDestination(EncodedCMTEntry channelMap,
-                                          MemoryAddr address) const = 0;
+                                          MemoryAddr address=0) const = 0;
 
   // Returns whether the given FIFO has data ready to read. Channel indices
   // correspond to the network address used to access that channel.

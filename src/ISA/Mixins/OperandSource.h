@@ -58,6 +58,7 @@ protected:
 
   Dest1Src(Instruction encoded) : T(encoded), destinationRegister(this->reg1) {
     operand1 = 0;
+    result = 0;
   }
 
   void readRegisters() {
@@ -72,6 +73,7 @@ protected:
 
   const ChannelIndex destinationRegister;
   int32_t operand1;
+  int32_t result;
 };
 
 template<class T>
@@ -109,7 +111,7 @@ class Dest2Src : public T {
 protected:
 
   Dest2Src(Instruction encoded) : T(encoded), destinationRegister(this->reg1) {
-    operand1 = operand2 = operandsReceived = 0;
+    operand1 = operand2 = operandsReceived = result = 0;
   }
 
   void readRegisters() {
@@ -133,6 +135,7 @@ protected:
   const ChannelIndex destinationRegister;
   int32_t operand1, operand2;
   int operandsReceived;
+  int32_t result;
 };
 
 template<class T>
@@ -154,11 +157,12 @@ protected:
       T(encoded),
       destinationRegister(this->reg1),
       operand1(this->immediate) {
-    // Nothing
+    result = 0;
   }
 
   const ChannelIndex destinationRegister;
   const int32_t operand1;
+  int32_t result;
 };
 
 template<class T>
@@ -191,7 +195,7 @@ protected:
       T(encoded),
       destinationRegister(this->reg1),
       operand2(this->immediate) {
-    operand1 = 0;
+    operand1 = result = 0;
   }
 
   void readRegisters() {
@@ -207,6 +211,7 @@ protected:
   const ChannelIndex destinationRegister;
   int32_t operand1;
   const int32_t operand2;
+  int32_t result;
 };
 
 template<class T>

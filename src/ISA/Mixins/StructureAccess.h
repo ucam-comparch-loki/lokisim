@@ -16,6 +16,8 @@
 #define SRC_ISA_MIXINS_STRUCTUREACCESS_H_
 
 
+// An instruction which writes to the register file.
+// This mix-in must wrap an OperandSource which specifies a destination.
 template<class T>
 class WriteRegister : public T {
 protected:
@@ -31,23 +33,27 @@ protected:
 };
 
 
+// An instruction which reads the core's predicate bit.
 template<class T>
 class ReadPredicate : public T {
 protected:
-  ReadPredicate(Instruction encoded) : T(encoded) {predicate = false;}
+  ReadPredicate(Instruction encoded) : T(encoded) {predicateBit = false;}
 
   void readPredicate() {
     this->core->readPredicate();
   }
 
   void readPredicateCallback(bool value) {
-    predicate = value;
+    predicateBit = value;
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 
-  bool predicate;
+  bool predicateBit;
 };
 
+
+// An instruction which writes the core's predicate bit.
+// This mix-in must wrap any which define how computation is performed.
 template<class T>
 class WritePredicate : public T {
 protected:
@@ -55,8 +61,7 @@ protected:
 
   void compute() {
     T::compute();
-    // TODO: not all operations have 2 operands (tstch).
-    newPredicate = this->computePredicate(this->operand1, this->operand2);
+    this->computePredicate();
   }
 
   void writePredicate() {
@@ -77,7 +82,10 @@ protected:
   ReadCMT(Instruction encoded) : T(encoded) {channelMapping = 0;}
 
   void readCMT() {
-    this->core->readCMT(this->outChannel);
+    if (this->outChannel == NO_CHANNEL)
+      this->finished.notify(sc_core::SC_ZERO_TIME);
+    else
+      this->core->readCMT(this->outChannel);
   }
 
   void readCMTCallback(EncodedCMTEntry value) {

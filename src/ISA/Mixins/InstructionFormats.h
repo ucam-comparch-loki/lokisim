@@ -15,11 +15,11 @@
 #include "../InstructionBase.h"
 
 template<class T>
-class InstructionFetchFormat : public T {
+class FetchFormat : public T {
 protected:
   // | p |   opcode    |                 immediate                   |
   //   2        7                            23
-  InstructionFetchFormat(Instruction encoded) :
+  FetchFormat(Instruction encoded) :
       T(encoded),
       immediate(signExtend(encoded.getBits(0, 22), 23)) {
     // Nothing
@@ -29,11 +29,11 @@ protected:
 };
 
 template<class T>
-class InstructionPredicatedFetchFormat : public T {
+class PredicatedFetchFormat : public T {
 protected:
   // | p |   opcode    |             imm2             |     imm1     |
   //   2        7                     16                      7
-  InstructionPredicatedFetchFormat(Instruction encoded) :
+  PredicatedFetchFormat(Instruction encoded) :
       T(encoded),
       immediate1(signExtend(encoded.getBits(0, 6), 7)),
       immediate2(signExtend(encoded.getBits(7, 22), 16)) {
@@ -45,11 +45,11 @@ protected:
 };
 
 template<class T>
-class InstructionZeroRegisterNoChannelFormat : public T {
+class ZeroRegNoChannelFormat : public T {
 protected:
   // | p |   opcode    |    xxxxxxxxx    |         immediate         |
   //   2        7               9                      14
-  InstructionZeroRegisterNoChannelFormat(Instruction encoded) :
+  ZeroRegNoChannelFormat(Instruction encoded) :
       T(encoded),
       immediate(signExtend(encoded.getBits(0, 13), 14)) {
     // Nothing
@@ -59,11 +59,11 @@ protected:
 };
 
 template<class T>
-class InstructionZeroRegisterFormat : public T {
+class ZeroRegFormat : public T {
 protected:
   // | p |   opcode    |  xxxxx  |channel|         immediate         |
   //   2        7           5        4                 14
-  InstructionZeroRegisterFormat(Instruction encoded) :
+  ZeroRegFormat(Instruction encoded) :
       T(encoded),
       immediate(signExtend(encoded.getBits(0, 13), 14)),
       outChannel(encoded.getBits(14, 17)) {
@@ -75,11 +75,11 @@ protected:
 };
 
 template<class T>
-class InstructionOneRegisterNoChannelFormat : public T {
+class OneRegNoChannelFormat : public T {
 protected:
   // | p |   opcode    |  reg 1  | x |           immediate           |
   //   2        7           5      2                 16
-  InstructionOneRegisterNoChannelFormat(Instruction encoded) :
+  OneRegNoChannelFormat(Instruction encoded) :
       T(encoded),
       reg1(encoded.getBits(18, 22)),
       immediate(signExtend(encoded.getBits(0, 15), 16)) {
@@ -91,11 +91,11 @@ protected:
 };
 
 template<class T>
-class InstructionOneRegisterFormat : public T {
+class OneRegFormat : public T {
 protected:
   // | p |   opcode    |  reg 1  |channel|         immediate         |
   //   2        7           5        4                 14
-  InstructionOneRegisterFormat(Instruction encoded) :
+  OneRegFormat(Instruction encoded) :
       T(encoded),
       reg1(encoded.getBits(18, 22)),
       immediate(signExtend(encoded.getBits(0, 13), 14)),
@@ -109,11 +109,11 @@ protected:
 };
 
 template<class T>
-class InstructionTwoRegisterNoChannelFormat : public T {
+class TwoRegNoChannelFormat : public T {
 protected:
   // | p |   opcode    |  reg 1  | xxxx  |  reg 2  |    immediate    |
   //   2        7           5        4        5             9
-  InstructionTwoRegisterNoChannelFormat(Instruction encoded) :
+  TwoRegNoChannelFormat(Instruction encoded) :
       T(encoded),
       reg1(encoded.getBits(18, 22)),
       reg2(encoded.getBits(9, 13)),
@@ -127,11 +127,11 @@ protected:
 };
 
 template<class T>
-class InstructionTwoRegisterFormat : public T {
+class TwoRegFormat : public T {
 protected:
   // | p |   opcode    |  reg 1  |channel|  reg 2  |    immediate    |
   //   2        7           5        4        5             9
-  InstructionTwoRegisterFormat(Instruction encoded) :
+  TwoRegFormat(Instruction encoded) :
       T(encoded),
       reg1(encoded.getBits(18, 22)),
       reg2(encoded.getBits(9, 13)),
@@ -147,11 +147,11 @@ protected:
 };
 
 template<class T>
-class InstructionTwoRegisterShiftFormat : public T {
+class TwoRegShiftFormat : public T {
 protected:
   // | p |   opcode    |  reg 1  |channel|  reg 2  | xxxx  |immediate|
   //   2        7           5        4        5        4        5
-  InstructionTwoRegisterShiftFormat(Instruction encoded) :
+  TwoRegShiftFormat(Instruction encoded) :
       T(encoded),
       reg1(encoded.getBits(18, 22)),
       reg2(encoded.getBits(9, 13)),
@@ -167,11 +167,11 @@ protected:
 };
 
 template<class T>
-class InstructionThreeRegisterFormat : public T {
+class ThreeRegFormat : public T {
 protected:
   // | p |   opcode    |  reg 1  |channel|  reg 2  |  reg 3  |  fn   |
   //   2        7           5        4        5         5        4
-  InstructionThreeRegisterFormat(Instruction encoded) :
+  ThreeRegFormat(Instruction encoded) :
       T(encoded),
       reg1(encoded.getBits(18, 22)),
       reg2(encoded.getBits(9, 13)),
