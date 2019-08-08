@@ -31,6 +31,7 @@
 #include "../../Datatype/Instruction.h"
 #include "../CoreInterface.h"
 
+// No destination register, one source register.
 template<class T>
 class NoDest1Src : public T {
 protected:
@@ -52,6 +53,7 @@ protected:
   int32_t operand1;
 };
 
+// Destination register and one source register.
 template<class T>
 class Dest1Src : public T {
 protected:
@@ -71,11 +73,39 @@ protected:
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 
-  const ChannelIndex destinationRegister;
+  const RegisterIndex destinationRegister;
   int32_t operand1;
   int32_t result;
 };
 
+// One register, used as both source and destination.
+template<class T>
+class Dest1SrcShared : public T {
+protected:
+
+  Dest1SrcShared(Instruction encoded) :
+      T(encoded),
+      destinationRegister(this->reg1) {
+    operand1 = 0;
+    result = 0;
+  }
+
+  void readRegisters() {
+    this->core->readRegister(this->reg1, REGISTER_PORT_1);
+  }
+
+  void readRegistersCallback(RegisterPort port, int32_t value) {
+    assert(port == REGISTER_PORT_1);
+    operand1 = value;
+    this->finished.notify(sc_core::SC_ZERO_TIME);
+  }
+
+  const RegisterIndex destinationRegister;
+  int32_t operand1;
+  int32_t result;
+};
+
+// No destination register, two source registers.
 template<class T>
 class NoDest2Src : public T {
 protected:
@@ -106,6 +136,7 @@ protected:
   int operandsReceived;
 };
 
+// Destination register and two source registers.
 template<class T>
 class Dest2Src : public T {
 protected:
@@ -132,12 +163,13 @@ protected:
       this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 
-  const ChannelIndex destinationRegister;
+  const RegisterIndex destinationRegister;
   int32_t operand1, operand2;
   int operandsReceived;
   int32_t result;
 };
 
+// No destination register, one immediate.
 template<class T>
 class NoDest1Imm : public T {
 protected:
@@ -149,6 +181,7 @@ protected:
   const int32_t operand1;
 };
 
+// Destination register and one immediate.
 template<class T>
 class Dest1Imm : public T {
 protected:
@@ -160,11 +193,12 @@ protected:
     result = 0;
   }
 
-  const ChannelIndex destinationRegister;
+  const RegisterIndex destinationRegister;
   const int32_t operand1;
   int32_t result;
 };
 
+// No destination register, one source register, one immediate.
 template<class T>
 class NoDest1Src1Imm : public T {
 protected:
@@ -187,6 +221,7 @@ protected:
   const int32_t operand2;
 };
 
+// Destination register, one source register, one immediate.
 template<class T>
 class Dest1Src1Imm : public T {
 protected:
@@ -208,12 +243,41 @@ protected:
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 
-  const ChannelIndex destinationRegister;
+  const RegisterIndex destinationRegister;
   int32_t operand1;
   const int32_t operand2;
   int32_t result;
 };
 
+// One register used as both source and destination, and one immediate.
+template<class T>
+class Dest1SrcShared1Imm : public T {
+protected:
+
+  Dest1SrcShared1Imm(Instruction encoded) :
+      T(encoded),
+      destinationRegister(this->reg1),
+      operand2(this->immediate) {
+    operand1 = result = 0;
+  }
+
+  void readRegisters() {
+    this->core->readRegister(this->reg1, REGISTER_PORT_1);
+  }
+
+  void readRegistersCallback(RegisterPort port, int32_t value) {
+    assert(port == REGISTER_PORT_1);
+    operand1 = value;
+    this->finished.notify(sc_core::SC_ZERO_TIME);
+  }
+
+  const RegisterIndex destinationRegister;
+  int32_t operand1;
+  const int32_t operand2;
+  int32_t result;
+};
+
+// No destination register, two source registers, one immediate.
 template<class T>
 class NoDest2Src1Imm : public T {
 protected:
@@ -245,6 +309,7 @@ protected:
   int operandsReceived;
 };
 
+// No destination register, two immediates.
 template<class T>
 class NoDest2Imm : public T {
 protected:

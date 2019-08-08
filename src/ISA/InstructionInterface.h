@@ -49,11 +49,11 @@ public:
 
   // Computation which happens before the execute stage (e.g. fetch, selch).
   virtual void earlyCompute() = 0;
-  virtual void earlyComputeCallback() = 0;
+  virtual void earlyComputeCallback(int32_t value=0) = 0;
 
   // Main computation.
   virtual void compute() = 0;
-  virtual void computeCallback() = 0;
+  virtual void computeCallback(int32_t value=0) = 0;
 
   // Read channel map table.
   virtual void readCMT() = 0;

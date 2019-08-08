@@ -23,10 +23,10 @@ protected:
   ComputeEarly(Instruction encoded) : T(encoded) {}
 
   void earlyCompute() {T::compute();}
-  void earlyComputeCallback() {T::computeCallback();}
+  void earlyComputeCallback(int32_t value=0) {T::computeCallback(value);}
 
   void compute() {}
-  void computeCallback() {assert(false);}
+  void computeCallback(int32_t value=0) {assert(false);}
 };
 
 

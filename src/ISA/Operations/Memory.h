@@ -14,9 +14,9 @@
 // Base class for all memory operations. Some extra fields and methods must be
 // available to allow proper network communication.
 template<class T>
-class MemoryOperation : public T {
+class MemoryInstruction : public T {
 protected:
-  MemoryOperation(Instruction encoded, uint totalFlits, MemoryOpcode op) :
+  MemoryInstruction(Instruction encoded, uint totalFlits, MemoryOpcode op) :
       T(encoded),
       totalFlits(totalFlits),
       memoryOp(op) {
@@ -48,10 +48,10 @@ protected:
 // Operations which behave like loads. i.e. They produce one flit, which is the
 // address to load from, and do no other work.
 template<class T>
-class LoadLike : public MemoryOperation<T> {
+class LoadLike : public MemoryInstruction<T> {
 protected:
   LoadLike(Instruction encoded, MemoryOpcode op) :
-      MemoryOperation(encoded, 1, op) {
+      MemoryInstruction(encoded, 1, op) {
     // Nothing
   }
 
@@ -68,10 +68,10 @@ protected:
 // Operations which behave like stores. i.e. They produce two flits: the head
 // contains an address and the body contains the data to be stored.
 template<class T>
-class StoreLike : public MemoryOperation<T> {
+class StoreLike : public MemoryInstruction<T> {
 protected:
   StoreLike(Instruction encoded, MemoryOpcode op) :
-      MemoryOperation(encoded, 2, op) {
+      MemoryInstruction(encoded, 2, op) {
     // Nothing
   }
 

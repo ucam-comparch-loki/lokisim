@@ -50,9 +50,15 @@ public:
   // Write to the predicate bit.
   virtual void writePredicate(bool value) = 0;
 
-  // Change the flow of instructions loaded by the Core. The whole instruction
-  // is passed to allow complex control of the process.
-  virtual void fetch(ControlFlowInstruction& inst) = 0;
+  // Change the flow of instructions loaded by the Core.
+  // `execute` = should the packet be executed? (e.g. prefetching => no)
+  // `persistent` = should the packet be executed repeatedly?
+  virtual void fetch(MemoryAddr address, EncodedCMTEntry channel,
+                     bool execute, bool persistent) = 0;
+
+  // Jump within the current instruction source by the given number of
+  // instructions. This avoid tag checks so can be more efficient.
+  virtual void jump(JumpOffset offset) = 0;
 
   // Read a network mapping from the channel map table.
   virtual void readCMT(RegisterIndex index) = 0;
@@ -86,6 +92,10 @@ public:
   // Send a flit onto the network.
   virtual void sendOnNetwork(NetworkData flit) = 0;
 
+  // From the input buffers identified in the bitmask, select one with data. If
+  // all are empty, wait until data arrives.
+  virtual void selectChannelWithData(uint bitmask) = 0;
+
 
   // The following methods return results immediately.
 
@@ -106,9 +116,8 @@ public:
   // which is triggered when any input channel receives data.
   virtual const sc_event& inputFIFOReceivedDataEvent(ChannelIndex fifo) const = 0;
 
-  // Return whether the given output channel has fewer than the maximum number
-  // of credits.
-  virtual bool waitingForCredits(ChannelIndex channel) const = 0;
+  // Return the number of credits available to the given output channel.
+  virtual uint creditsAvailable(ChannelIndex channel) const = 0;
 
   // Event triggered whenever the given output channel receives a new credit.
   virtual const sc_event& creditArrivedEvent(ChannelIndex channel) const = 0;

@@ -45,10 +45,10 @@ void InstructionBase::writeRegisters() {finished.notify(sc_core::SC_ZERO_TIME);}
 void InstructionBase::writeRegistersCallback() {assert(false);}
 
 void InstructionBase::earlyCompute() {finished.notify(sc_core::SC_ZERO_TIME);}
-void InstructionBase::earlyComputeCallback() {assert(false);}
+void InstructionBase::earlyComputeCallback(int32_t value) {assert(false);}
 
 void InstructionBase::compute() {finished.notify(sc_core::SC_ZERO_TIME);}
-void InstructionBase::computeCallback() {assert(false);}
+void InstructionBase::computeCallback(int32_t value) {assert(false);}
 
 void InstructionBase::readCMT() {finished.notify(sc_core::SC_ZERO_TIME);}
 void InstructionBase::readCMTCallback(EncodedCMTEntry value) {assert(false);}
