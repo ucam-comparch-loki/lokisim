@@ -19,7 +19,7 @@
 // This mix-in must wrap any which define `compute()`.
 template<class T>
 class ComputeEarly : public T {
-protected:
+public:
   ComputeEarly(Instruction encoded) : T(encoded) {}
 
   void earlyCompute() {T::compute();}

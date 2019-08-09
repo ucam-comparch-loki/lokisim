@@ -15,28 +15,14 @@
 #ifndef SRC_ISA_MIXINS_STRUCTUREACCESS_H_
 #define SRC_ISA_MIXINS_STRUCTUREACCESS_H_
 
-
-// An instruction which writes to the register file.
-// This mix-in must wrap an OperandSource which specifies a destination.
-template<class T>
-class WriteRegister : public T {
-protected:
-  WriteRegister(Instruction encoded) : T(encoded) {}
-
-  void writeRegisters() {
-    this->core->writeRegister(this->destinationRegister, this->result);
-  }
-
-  void writeRegistersCallback() {
-    this->finished.notify(sc_core::SC_ZERO_TIME);
-  }
-};
+#include "../../Datatype/Instruction.h"
+#include "../../Tile/ChannelMapEntry.h"
 
 
 // An instruction which reads the core's predicate bit.
 template<class T>
 class ReadPredicate : public T {
-protected:
+public:
   ReadPredicate(Instruction encoded) : T(encoded) {predicateBit = false;}
 
   void readPredicate() {
@@ -48,6 +34,7 @@ protected:
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 
+protected:
   bool predicateBit;
 };
 
@@ -56,12 +43,16 @@ protected:
 // This mix-in must wrap any which define how computation is performed.
 template<class T>
 class WritePredicate : public T {
-protected:
+public:
   WritePredicate(Instruction encoded) : T(encoded) {newPredicate = false;}
 
   void compute() {
+    // The result of `compute` is used in multiple places, so can't be returned.
+    // The result of `computePredicate` is only used here, so we can encapsulate
+    // it better.
+
     T::compute();
-    this->computePredicate();
+    newPredicate = this->computePredicate();
   }
 
   void writePredicate() {
@@ -72,13 +63,14 @@ protected:
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 
+protected:
   bool newPredicate;
 };
 
 
 template<class T>
 class ReadCMT : public T {
-protected:
+public:
   ReadCMT(Instruction encoded) : T(encoded) {channelMapping = 0;}
 
   void readCMT() {
@@ -93,12 +85,13 @@ protected:
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 
+protected:
   EncodedCMTEntry channelMapping;
 };
 
 template<class T>
 class WriteCMT : public T {
-protected:
+public:
   WriteCMT(Instruction encoded) : T(encoded) {}
 
   void writeCMT() {
@@ -115,7 +108,7 @@ protected:
 
 template<class T>
 class ReadCregs : public T {
-protected:
+public:
   ReadCregs(Instruction encoded) : T(encoded) {}
 
   void readCregs() {
@@ -130,7 +123,7 @@ protected:
 
 template<class T>
 class WriteCregs : public T {
-protected:
+public:
   WriteCregs(Instruction encoded) : T(encoded) {}
 
   void writeCregs() {
@@ -147,7 +140,7 @@ protected:
 
 template<class T>
 class ReadScratchpad : public T {
-protected:
+public:
   ReadScratchpad(Instruction encoded) : T(encoded) {}
 
   void readScratchpad() {
@@ -162,7 +155,7 @@ protected:
 
 template<class T>
 class WriteScratchpad : public T {
-protected:
+public:
   WriteScratchpad(Instruction encoded) : T(encoded) {}
 
   void writeScratchpad() {

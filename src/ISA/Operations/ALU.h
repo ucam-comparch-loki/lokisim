@@ -37,8 +37,8 @@ protected:
     carryFlag = (result64 >> 32) != 0;
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
-  void computePredicate() {
-    this->newPredicate = carryFlag;
+  bool computePredicate() {
+    return carryFlag;
   }
 
   bool carryFlag;
@@ -52,17 +52,17 @@ protected:
     this->result = this->operand1 - this->operand2;
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
-  void computePredicate() {
+  bool computePredicate() {
     // Predicate bit = borrow bit.
-    this->newPredicate = (this->result < 0);
+    return (this->result < 0);
   }
 };
 
 // Count leading zeros.
 template<class T>
-class CLZ : public T {
+class CountLeadingZeros : public T {
 protected:
-  CLZ(Instruction encoded) : T(encoded) {}
+  CountLeadingZeros(Instruction encoded) : T(encoded) {}
   void compute() {
     // Copy any 1-bits into every less-significant position.
     int32_t a = this->operand1;
@@ -78,9 +78,9 @@ protected:
 
 // Multiply and return the high word of the result.
 template<class T>
-class MulHW : public T {
+class MultiplyHighWord : public T {
 protected:
-  MulHW(Instruction encoded) : T(encoded) {}
+  MultiplyHighWord(Instruction encoded) : T(encoded) {}
   void compute() {
     this->result = ((int64_t)this->operand1 * (int64_t)this->operand2) >> 32;
 
@@ -92,9 +92,9 @@ protected:
 // Multiply and return the high word of the result. Operands are treated as
 // unsigned.
 template<class T>
-class MulHWU : public T {
+class MultiplyHighWordUnsigned : public T {
 protected:
-  MulHWU(Instruction encoded) : T(encoded) {}
+  MultiplyHighWordUnsigned(Instruction encoded) : T(encoded) {}
   void compute() {
     // Not sure why double cast is necessary, but it is.
     this->result = ((uint64_t)((uint32_t)this->operand1) *
@@ -107,9 +107,9 @@ protected:
 
 // Multiply and return the low word of the result.
 template<class T>
-class MulLW : public T {
+class MultiplyLowWord : public T {
 protected:
-  MulLW(Instruction encoded) : T(encoded) {}
+  MultiplyLowWord(Instruction encoded) : T(encoded) {}
   void compute() {
     this->result = ((int64_t)this->operand1 *
                     (int64_t)this->operand2) & 0xFFFFFFFF;
@@ -121,9 +121,9 @@ protected:
 
 // Select an input based on the predicate.
 template<class T>
-class PSel : public T {
+class PredicatedSelect : public T {
 protected:
-  PSel(Instruction encoded) : T(encoded) {}
+  PredicatedSelect(Instruction encoded) : T(encoded) {}
   void compute() {
     this->result = this->predicateBit ? this->operand1 : this->operand2;
     this->finished.notify(sc_core::SC_ZERO_TIME);
@@ -139,6 +139,9 @@ protected:
     this->result = this->operand1 & this->operand2;
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
+  bool computePredicate() {
+    return this->result & 1;
+  }
 };
 
 template<class T>
@@ -148,6 +151,9 @@ protected:
   void compute() {
     this->result = this->operand1 | this->operand2;
     this->finished.notify(sc_core::SC_ZERO_TIME);
+  }
+  bool computePredicate() {
+    return this->result & 1;
   }
 };
 
@@ -159,6 +165,9 @@ protected:
     this->result = ~(this->operand1 | this->operand2);
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
+  bool computePredicate() {
+    return this->result & 1;
+  }
 };
 
 template<class T>
@@ -168,6 +177,9 @@ protected:
   void compute() {
     this->result = this->operand1 ^ this->operand2;
     this->finished.notify(sc_core::SC_ZERO_TIME);
+  }
+  bool computePredicate() {
+    return this->result & 1;
   }
 };
 
@@ -190,6 +202,9 @@ protected:
     this->result = (uint32_t)this->operand1 >> this->operand2;
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
+  bool computePredicate() {
+    return this->result & 1;
+  }
 };
 
 template<class T>
@@ -200,86 +215,88 @@ protected:
     this->result = this->operand1 >> this->operand2;
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
+  bool computePredicate() {
+    return this->result & 1;
+  }
 };
 
 
 template<class T>
-class SetEq : public T {
+class SetIfEqual : public T {
 protected:
-  SetEq(Instruction encoded) : T(encoded) {}
+  SetIfEqual(Instruction encoded) : T(encoded) {}
   void compute() {
     this->result = this->operand1 == this->operand2;
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
-  void computePredicate() {
-    this->newPredicate = this->result & 1;
+  bool computePredicate() {
+    return this->result & 1;
   }
 };
 
 template<class T>
-class SetNE : public T {
+class SetIfNotEqual : public T {
 protected:
-  SetNE(Instruction encoded) : T(encoded) {}
+  SetIfNotEqual(Instruction encoded) : T(encoded) {}
   void compute() {
     this->result = this->operand1 != this->operand2;
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
-  void computePredicate() {
-    this->newPredicate = this->result & 1;
+  bool computePredicate() {
+    return this->result & 1;
   }
 };
 
 template<class T>
-class SetLT : public T {
+class SetIfLessThan : public T {
 protected:
-  SetLT(Instruction encoded) : T(encoded) {}
+  SetIfLessThan(Instruction encoded) : T(encoded) {}
   void compute() {
     this->result = this->operand1 < this->operand2;
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
-  void computePredicate() {
-    this->newPredicate = this->result & 1;
+  bool computePredicate() {
+    return this->result & 1;
   }
 };
 
 template<class T>
-class SetLTU : public T {
+class SetIfLessThanUnsigned : public T {
 protected:
-  SetLTU(Instruction encoded) : T(encoded) {}
+  SetIfLessThanUnsigned(Instruction encoded) : T(encoded) {}
   void compute() {
     this->result = ((uint32_t)this->operand1 < (uint32_t)this->operand2);
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
-  void computePredicate() {
-    this->newPredicate = this->result & 1;
+  bool computePredicate() {
+    return this->result & 1;
   }
 };
 
 template<class T>
-class SetGTE : public T {
+class SetIfGreaterThanOrEqual : public T {
 protected:
-  SetGTE(Instruction encoded) : T(encoded) {}
+  SetIfGreaterThanOrEqual(Instruction encoded) : T(encoded) {}
   void compute() {
     this->result = this->operand1 >= this->operand2;
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
-  void computePredicate() {
-    this->newPredicate = this->result & 1;
+  bool computePredicate() {
+    return this->result & 1;
   }
 };
 
 template<class T>
-class SetGTEU : public T {
+class SetIfGreaterThanOrEqualUnsigned : public T {
 protected:
-  SetGTEU(Instruction encoded) : T(encoded) {}
+  SetIfGreaterThanOrEqualUnsigned(Instruction encoded) : T(encoded) {}
   void compute() {
     this->result = ((uint32_t)this->operand1 >= (uint32_t)this->operand2);
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
-  void computePredicate() {
-    this->newPredicate = this->result & 1;
+  bool computePredicate() {
+    return this->result & 1;
   }
 };
-
 
 #endif /* SRC_ISA_OPERATIONS_ALU_H_ */

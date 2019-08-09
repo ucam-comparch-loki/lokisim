@@ -15,11 +15,12 @@
 
 #include "../../Datatype/Instruction.h"
 
-// Woche: wait on channel end. Block the pipeline until the given output channel
+// Wait on channel end. Block the pipeline until the given output channel
 // has at least a required number of credits.
 template<class T>
-class Woche : public T {
-  Woche(Instruction encoded) : T(encoded) {}
+class WaitOnChannelEnd : public T {
+public:
+  WaitOnChannelEnd(Instruction encoded) : T(encoded) {}
 
   void compute() {
     if (this->core->creditsAvailable(this->outChannel) >= this->immediate)
@@ -36,11 +37,15 @@ class Woche : public T {
 // Return whether a given input channel has data ready to read.
 template<class T>
 class TestChannel : public T {
+public:
   TestChannel(Instruction encoded) : T(encoded) {}
 
   void compute() {
     this->result = this->core->inputFIFOHasData(this->operand1);
     this->finished.notify(sc_core::SC_ZERO_TIME);
+  }
+  bool computePredicate() {
+    return this->result;
   }
 };
 
@@ -49,6 +54,7 @@ class TestChannel : public T {
 // The mask's least significant bit represents the first register-mapped FIFO.
 template<class T>
 class SelectChannel : public T {
+public:
   SelectChannel(Instruction encoded) : T(encoded) {}
 
   void compute() {

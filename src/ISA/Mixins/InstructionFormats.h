@@ -12,7 +12,7 @@
 #ifndef SRC_ISA_INSTRUCTIONFORMATS_H_
 #define SRC_ISA_INSTRUCTIONFORMATS_H_
 
-#include "../InstructionBase.h"
+#include "../../Datatype/Instruction.h"
 
 template<class T>
 class FetchFormat : public T {
@@ -21,7 +21,7 @@ protected:
   //   2        7                            23
   FetchFormat(Instruction encoded) :
       T(encoded),
-      immediate(signExtend(encoded.getBits(0, 22), 23)) {
+      immediate(this->signExtend(encoded.getBits(0, 22), 23)) {
     // Nothing
   }
 
@@ -35,8 +35,8 @@ protected:
   //   2        7                     16                      7
   PredicatedFetchFormat(Instruction encoded) :
       T(encoded),
-      immediate1(signExtend(encoded.getBits(0, 6), 7)),
-      immediate2(signExtend(encoded.getBits(7, 22), 16)) {
+      immediate1(this->signExtend(encoded.getBits(0, 6), 7)),
+      immediate2(this->signExtend(encoded.getBits(7, 22), 16)) {
     // Nothing
   }
 
@@ -51,7 +51,7 @@ protected:
   //   2        7               9                      14
   ZeroRegNoChannelFormat(Instruction encoded) :
       T(encoded),
-      immediate(signExtend(encoded.getBits(0, 13), 14)) {
+      immediate(this->signExtend(encoded.getBits(0, 13), 14)) {
     // Nothing
   }
 
@@ -65,7 +65,7 @@ protected:
   //   2        7           5        4                 14
   ZeroRegFormat(Instruction encoded) :
       T(encoded),
-      immediate(signExtend(encoded.getBits(0, 13), 14)),
+      immediate(this->signExtend(encoded.getBits(0, 13), 14)),
       outChannel(encoded.getBits(14, 17)) {
     // Nothing
   }
@@ -82,7 +82,7 @@ protected:
   OneRegNoChannelFormat(Instruction encoded) :
       T(encoded),
       reg1(encoded.getBits(18, 22)),
-      immediate(signExtend(encoded.getBits(0, 15), 16)) {
+      immediate(this->signExtend(encoded.getBits(0, 15), 16)) {
     // Nothing
   }
 
@@ -98,7 +98,7 @@ protected:
   OneRegFormat(Instruction encoded) :
       T(encoded),
       reg1(encoded.getBits(18, 22)),
-      immediate(signExtend(encoded.getBits(0, 13), 14)),
+      immediate(this->signExtend(encoded.getBits(0, 13), 14)),
       outChannel(encoded.getBits(14, 17)) {
     // Nothing
   }
@@ -117,7 +117,7 @@ protected:
       T(encoded),
       reg1(encoded.getBits(18, 22)),
       reg2(encoded.getBits(9, 13)),
-      immediate(signExtend(encoded.getBits(0, 8), 9)) {
+      immediate(this->signExtend(encoded.getBits(0, 8), 9)) {
     // Nothing
   }
 
@@ -135,7 +135,7 @@ protected:
       T(encoded),
       reg1(encoded.getBits(18, 22)),
       reg2(encoded.getBits(9, 13)),
-      immediate(signExtend(encoded.getBits(0, 8), 9)),
+      immediate(this->signExtend(encoded.getBits(0, 8), 9)),
       outChannel(encoded.getBits(14, 17)) {
     // Nothing
   }
@@ -155,7 +155,7 @@ protected:
       T(encoded),
       reg1(encoded.getBits(18, 22)),
       reg2(encoded.getBits(9, 13)),
-      immediate(signExtend(encoded.getBits(0, 4), 5)),
+      immediate(this->signExtend(encoded.getBits(0, 4), 5)),
       outChannel(encoded.getBits(14, 17)) {
     // Nothing
   }

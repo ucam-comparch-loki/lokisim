@@ -22,7 +22,7 @@ public:
   // Prepare the instruction for execution on a given core. Also provide some
   // extra information to help with debugging.
   virtual void assignToCore(CoreInterface& core, MemoryAddr address,
-                            InstructionSource source) = 0 {
+                            InstructionSource source) {
     T::assignToCore(core, address, source);
   }
 
@@ -74,7 +74,7 @@ public:
 
   // Read the control registers.
   virtual void readCregs() {T::readCregs();}
-  virtual void readCregsCallback(int32_t value) {T::readCregsCallback();}
+  virtual void readCregsCallback(int32_t value) {T::readCregsCallback(value);}
 
   // Write to the control registers.
   virtual void writeCregs() {T::writeCregs();}

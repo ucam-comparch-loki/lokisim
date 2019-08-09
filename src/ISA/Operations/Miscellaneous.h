@@ -8,22 +8,24 @@
 #ifndef SRC_ISA_OPERATIONS_MISCELLANEOUS_H_
 #define SRC_ISA_OPERATIONS_MISCELLANEOUS_H_
 
+#include "../../Datatype/Instruction.h"
+
 // Do no computation: copy the first operand into the result.
 template<class T>
 class NoOp : public T {
-protected:
+public:
   NoOp(Instruction encoded) : T(encoded) {}
   void compute() {
-    this->result = this->operand1 & 0xFFFF;
+    this->result = this->operand1;
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 };
 
 // Load lower immediate. Put a 16 bit value into a register.
 template<class T>
-class LLI : public T {
-protected:
-  LLI(Instruction encoded) : T(encoded) {}
+class LoadLowerImmediate : public T {
+public:
+  LoadLowerImmediate(Instruction encoded) : T(encoded) {}
   void compute() {
     this->result = this->operand1 & 0xFFFF;
     this->finished.notify(sc_core::SC_ZERO_TIME);
@@ -32,11 +34,26 @@ protected:
 
 // Load upper immediate. Put a 16 bit value into the upper half of a register.
 template<class T>
-class LUI : public T {
-protected:
-  LUI(Instruction encoded) : T(encoded) {}
+class LoadUpperImmediate : public T {
+public:
+  LoadUpperImmediate(Instruction encoded) : T(encoded) {}
   void compute() {
     this->result = this->operand1 | (this->operand2 << 16);
+    this->finished.notify(sc_core::SC_ZERO_TIME);
+  }
+};
+
+// Get channel map table entry.
+template<class T>
+class GetChannelMap : public T {
+public:
+  GetChannelMap(Instruction encoded) : T(encoded) {}
+  void readCMTCallback(EncodedCMTEntry value) {
+    T::readCMTCallback(value);
+
+    // Also store the read value as this instruction's result.
+    this->result = value;
+
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 };
@@ -45,7 +62,7 @@ protected:
 // register to access.
 template<class T>
 class IndirectRead : public T {
-protected:
+public:
   IndirectRead(Instruction encoded) : T(encoded) {}
 
   void readRegisters() {
@@ -70,7 +87,7 @@ protected:
 // Indirect register write.
 template<class T>
 class IndirectWrite : public T {
-protected:
+public:
   IndirectWrite(Instruction encoded) : T(encoded) {
     destinationRegister = result = operandsReceived = 0;
   }
@@ -93,6 +110,7 @@ protected:
       this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 
+protected:
   RegisterIndex destinationRegister;
   int32_t result;
   int operandsReceived;
@@ -101,6 +119,7 @@ protected:
 // System call.
 template<class T>
 class SystemCall : public T {
+public:
   SystemCall(Instruction encoded) : T(encoded) {}
 
   void compute() {
@@ -112,6 +131,7 @@ class SystemCall : public T {
 // Remote execute.
 template<class T>
 class RemoteExecute : public T {
+public:
   RemoteExecute(Instruction encoded) : T(encoded) {}
 
   void compute() {
@@ -126,6 +146,7 @@ class RemoteExecute : public T {
 // it is currently working on.
 template<class T>
 class NextIPK : public T {
+public:
   NextIPK(Instruction encoded) : T(encoded) {
     assert(false && "Not implemented");
   }
@@ -135,9 +156,15 @@ class NextIPK : public T {
 // a remote core.
 template<class T>
 class RemoteNextIPK : public T {
-  RemoteNextIPK(Instruction encoded) : T(encoded) {
-    assert(false && "Not implemented");
+public:
+  RemoteNextIPK(Instruction encoded) : T(encoded) {result = 0;}
+
+  void compute() {
+    result = Instruction("nxipk").toInt();
   }
+
+protected:
+  int32_t result;
 };
 
 

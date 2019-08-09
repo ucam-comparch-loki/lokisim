@@ -51,7 +51,7 @@ template<class T>
 class LoadLike : public MemoryInstruction<T> {
 protected:
   LoadLike(Instruction encoded, MemoryOpcode op) :
-      MemoryInstruction(encoded, 1, op) {
+      MemoryInstruction<T>(encoded, 1, op) {
     // Nothing
   }
 
@@ -71,7 +71,7 @@ template<class T>
 class StoreLike : public MemoryInstruction<T> {
 protected:
   StoreLike(Instruction encoded, MemoryOpcode op) :
-      MemoryInstruction(encoded, 2, op) {
+      MemoryInstruction<T>(encoded, 2, op) {
     // Nothing
   }
 
@@ -93,80 +93,80 @@ protected:
 
 template<class T>
 class LoadWord : public LoadLike<T> {
-protected:
+public:
   LoadWord(Instruction encoded) : LoadLike<T>(encoded, LOAD_W) {}
 };
 
 template<class T>
 class LoadHalfWord : public LoadLike<T> {
-protected:
+public:
   LoadHalfWord(Instruction encoded) : LoadLike<T>(encoded, LOAD_HW) {}
 };
 
 template<class T>
 class LoadByte : public LoadLike<T> {
-protected:
+public:
   LoadByte(Instruction encoded) : LoadLike<T>(encoded, LOAD_B) {}
 };
 
 template<class T>
 class LoadLinked : public LoadLike<T> {
-protected:
+public:
   LoadLinked(Instruction encoded) : LoadLike<T>(encoded, LOAD_LINKED) {}
 };
 
 
 template<class T>
 class StoreWord : public StoreLike<T> {
-protected:
+public:
   StoreWord(Instruction encoded) : StoreLike<T>(encoded, STORE_W) {}
 };
 
 template<class T>
 class StoreHalfWord : public StoreLike<T> {
-protected:
+public:
   StoreHalfWord(Instruction encoded) : StoreLike<T>(encoded, STORE_HW) {}
 };
 
 template<class T>
 class StoreByte : public StoreLike<T> {
-protected:
+public:
   StoreByte(Instruction encoded) : StoreLike<T>(encoded, STORE_B) {}
 };
 
 template<class T>
 class StoreConditional : public StoreLike<T> {
-protected:
+public:
   StoreConditional(Instruction encoded) : StoreLike<T>(encoded, STORE_CONDITIONAL) {}
 };
 
 template<class T>
 class LoadAndAdd : public StoreLike<T> {
-protected:
+public:
   LoadAndAdd(Instruction encoded) : StoreLike<T>(encoded, LOAD_AND_ADD) {}
 };
 
 template<class T>
 class LoadAndOr : public StoreLike<T> {
-protected:
+public:
   LoadAndOr(Instruction encoded) : StoreLike<T>(encoded, LOAD_AND_OR) {}
 };
 
 template<class T>
 class LoadAndAnd : public StoreLike<T> {
-protected:
+public:
   LoadAndAnd(Instruction encoded) : StoreLike<T>(encoded, LOAD_AND_AND) {}
 };
 
 template<class T>
 class LoadAndXor : public StoreLike<T> {
-protected:
+public:
   LoadAndXor(Instruction encoded) : StoreLike<T>(encoded, LOAD_AND_XOR) {}
 };
 
 template<class T>
 class Exchange : public StoreLike<T> {
-protected:
+public:
   Exchange(Instruction encoded) : StoreLike<T>(encoded, EXCHANGE) {}
 };
 

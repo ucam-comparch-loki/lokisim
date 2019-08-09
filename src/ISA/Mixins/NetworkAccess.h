@@ -18,7 +18,7 @@
 // Simply take the `result` and send it.
 template<class T>
 class NetworkSend : public T {
-protected:
+public:
   NetworkSend(Instruction encoded) : T(encoded) {}
 
   void sendNetworkData() {
@@ -63,7 +63,7 @@ protected:
 // metadata is sent with the flit.
 template<class T>
 class SendConfig : public T {
-protected:
+public:
   SendConfig(Instruction encoded) : T(encoded) {}
 
   void sendNetworkData() {
@@ -86,7 +86,7 @@ protected:
 // some extra fields to allow this.
 template<class T>
 class MemorySend : public T {
-protected:
+public:
   MemorySend(Instruction encoded) : T(encoded) {flitsSent = 0;}
 
   void sendNetworkData() {
@@ -95,7 +95,7 @@ protected:
     int32_t payload = this->getPayload(flitsSent);
     MemoryOpcode op = this->getMemoryOp(flitsSent);
     ChannelMapEntry::MemoryChannel metadata(this->channelMapping);
-    bool eop = (flitsSent == (this->totalFlits = - 1));
+    bool eop = (flitsSent == (this->totalFlits - 1));
 
     // Compute the network destination for the first flit, assuming the payload
     // is a memory address. Use the same destination for all subsequent flits.
@@ -113,6 +113,7 @@ protected:
       this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 
+protected:
   uint flitsSent;
   ChannelID networkDestination;
 };
