@@ -15,69 +15,69 @@
 #include "DirectoryOperations.h"
 #include "MemoryOperation.h"
 
-inline MemoryOperation* decodeMemoryRequest(const NetworkRequest& request,
+inline Memory::MemoryOperation* decodeMemoryRequest(const NetworkRequest& request,
                                             MemoryBase& memory,
                                             const MemoryLevel level,
                                             const ChannelID returnAddress) {
 
   MemoryAddr address = request.payload().toUInt();
   MemoryMetadata metadata = request.getMemoryMetadata();
-  MemoryOperation* op;
+  Memory::MemoryOperation* op;
 
   switch (metadata.opcode) {
 
     case LOAD_W:
-      op = new LoadWord(address, metadata, returnAddress); break;
+      op = new Memory::LoadWord(address, metadata, returnAddress); break;
     case LOAD_LINKED:
-      op = new LoadLinked(address, metadata, returnAddress); break;
+      op = new Memory::LoadLinked(address, metadata, returnAddress); break;
     case LOAD_HW:
-      op = new LoadHalfword(address, metadata, returnAddress); break;
+      op = new Memory::LoadHalfword(address, metadata, returnAddress); break;
     case LOAD_B:
-      op = new LoadByte(address, metadata, returnAddress); break;
+      op = new Memory::LoadByte(address, metadata, returnAddress); break;
     case FETCH_LINE:
-      op = new FetchLine(address, metadata, returnAddress); break;
+      op = new Memory::FetchLine(address, metadata, returnAddress); break;
     case IPK_READ:
-      op = new IPKRead(address, metadata, returnAddress); break;
+      op = new Memory::IPKRead(address, metadata, returnAddress); break;
     case VALIDATE_LINE:
-      op = new ValidateLine(address, metadata, returnAddress); break;
+      op = new Memory::ValidateLine(address, metadata, returnAddress); break;
     case PREFETCH_LINE:
-      op = new PrefetchLine(address, metadata, returnAddress); break;
+      op = new Memory::PrefetchLine(address, metadata, returnAddress); break;
     case FLUSH_LINE:
-      op = new FlushLine(address, metadata, returnAddress); break;
+      op = new Memory::FlushLine(address, metadata, returnAddress); break;
     case INVALIDATE_LINE:
-      op = new InvalidateLine(address, metadata, returnAddress); break;
+      op = new Memory::InvalidateLine(address, metadata, returnAddress); break;
     case FLUSH_ALL_LINES:
-      op = new FlushAllLines(address, metadata, returnAddress); break;
+      op = new Memory::FlushAllLines(address, metadata, returnAddress); break;
     case INVALIDATE_ALL_LINES:
-      op = new InvalidateAllLines(address, metadata, returnAddress); break;
+      op = new Memory::InvalidateAllLines(address, metadata, returnAddress); break;
     case STORE_W:
-      op = new StoreWord(address, metadata, returnAddress); break;
+      op = new Memory::StoreWord(address, metadata, returnAddress); break;
     case STORE_CONDITIONAL:
-      op = new StoreConditional(address, metadata, returnAddress); break;
+      op = new Memory::StoreConditional(address, metadata, returnAddress); break;
     case STORE_HW:
-      op = new StoreHalfword(address, metadata, returnAddress); break;
+      op = new Memory::StoreHalfword(address, metadata, returnAddress); break;
     case STORE_B:
-      op = new StoreByte(address, metadata, returnAddress); break;
+      op = new Memory::StoreByte(address, metadata, returnAddress); break;
     case STORE_LINE:
-      op = new StoreLine(address, metadata, returnAddress); break;
+      op = new Memory::StoreLine(address, metadata, returnAddress); break;
     case MEMSET_LINE:
-      op = new MemsetLine(address, metadata, returnAddress); break;
+      op = new Memory::MemsetLine(address, metadata, returnAddress); break;
     case PUSH_LINE:
-      op = new PushLine(address, metadata, returnAddress); break;
+      op = new Memory::PushLine(address, metadata, returnAddress); break;
     case LOAD_AND_ADD:
-      op = new LoadAndAdd(address, metadata, returnAddress); break;
+      op = new Memory::LoadAndAdd(address, metadata, returnAddress); break;
     case LOAD_AND_OR:
-      op = new LoadAndOr(address, metadata, returnAddress); break;
+      op = new Memory::LoadAndOr(address, metadata, returnAddress); break;
     case LOAD_AND_AND:
-      op = new LoadAndAnd(address, metadata, returnAddress); break;
+      op = new Memory::LoadAndAnd(address, metadata, returnAddress); break;
     case LOAD_AND_XOR:
-      op = new LoadAndXor(address, metadata, returnAddress); break;
+      op = new Memory::LoadAndXor(address, metadata, returnAddress); break;
     case EXCHANGE:
-      op = new Exchange(address, metadata, returnAddress); break;
+      op = new Memory::Exchange(address, metadata, returnAddress); break;
     case UPDATE_DIRECTORY_ENTRY:
-      op = new UpdateDirectoryEntry(address, metadata, returnAddress); break;
+      op = new Memory::UpdateDirectoryEntry(address, metadata, returnAddress); break;
     case UPDATE_DIRECTORY_MASK:
-      op = new UpdateDirectoryMask(address, metadata, returnAddress); break;
+      op = new Memory::UpdateDirectoryMask(address, metadata, returnAddress); break;
 
     default:
       throw InvalidOptionException("memory request opcode", (int)metadata.opcode);

@@ -9,6 +9,8 @@
 
 #include <assert.h>
 
+namespace Memory {
+
 DirectoryOperation::DirectoryOperation(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr, uint payloadFlits) :
     MemoryOperation(address, metadata, returnAddr, MEMORY_METADATA, ALIGN_BYTE,
                     1, false, false) {
@@ -62,3 +64,5 @@ UpdateDirectoryMask::UpdateDirectoryMask(MemoryAddr address, MemoryMetadata meta
     DirectoryOperation(address, metadata, returnAddr, 1) {
   // Nothing
 }
+
+} // end namespace

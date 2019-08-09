@@ -15,15 +15,17 @@
 
 #include "../../Datatype/Instruction.h"
 
+namespace ISA {
+
 // Wait on channel end. Block the pipeline until the given output channel
 // has at least a required number of credits.
 template<class T>
-class WaitOnChannelEnd : public T {
+class WaitOnChannelEnd : public Has1Operand<T> {
 public:
-  WaitOnChannelEnd(Instruction encoded) : T(encoded) {}
+  WaitOnChannelEnd(Instruction encoded) : Has1Operand<T>(encoded) {}
 
   void compute() {
-    if (this->core->creditsAvailable(this->outChannel) >= this->immediate)
+    if (this->core->creditsAvailable(this->outChannel) >= this->operand1)
       this->finished.notify(sc_core::SC_ZERO_TIME);
 
     // TODO: else wait for this->core->creditArrivedEvent(this->outChannel)
@@ -36,9 +38,9 @@ public:
 
 // Return whether a given input channel has data ready to read.
 template<class T>
-class TestChannel : public T {
+class TestChannel : public Has1Operand<HasResult<T>> {
 public:
-  TestChannel(Instruction encoded) : T(encoded) {}
+  TestChannel(Instruction encoded) : Has1Operand<HasResult<T>>(encoded) {}
 
   void compute() {
     this->result = this->core->inputFIFOHasData(this->operand1);
@@ -53,9 +55,9 @@ public:
 // a bitmask. If no buffers have data, stall until data arrives.
 // The mask's least significant bit represents the first register-mapped FIFO.
 template<class T>
-class SelectChannel : public T {
+class SelectChannel : public Has1Operand<HasResult<T>> {
 public:
-  SelectChannel(Instruction encoded) : T(encoded) {}
+  SelectChannel(Instruction encoded) : Has1Operand<HasResult<T>>(encoded) {}
 
   void compute() {
     this->core->selectChannelWithData(this->operand1);
@@ -65,5 +67,7 @@ public:
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 };
+
+} // end namespace
 
 #endif /* SRC_ISA_OPERATIONS_NETWORK_H_ */

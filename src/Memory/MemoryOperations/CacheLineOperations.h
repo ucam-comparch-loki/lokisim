@@ -14,6 +14,8 @@
 #include "BasicOperations.h"
 #include "MemoryOperation.h"
 
+namespace Memory {
+
 // Operation which only works on metadata (e.g. valid, dirty, ...).
 class MetadataOperation : public MemoryOperation {
 public:
@@ -130,5 +132,7 @@ public:
 private:
   unsigned int targetBank; // Bank in the remote tile to receive data.
 };
+
+} // end namespace
 
 #endif /* SRC_TILE_MEMORY_OPERATIONS_CACHELINEOPERATIONS_H_ */

@@ -6,6 +6,7 @@
  */
 
 #include "MemoryOperation.h"
+#include "../MemoryBase.h"
 
 #include <assert.h>
 #include <iomanip>
@@ -16,6 +17,8 @@
 #include "../../Utility/Arguments.h"
 #include "../../Utility/Instrumentation/L1Cache.h"
 #include "../../Utility/Instrumentation/Latency.h"
+
+namespace Memory {
 
 uint MemoryOperation::operationCount = 0;
 
@@ -324,3 +327,5 @@ size_t MemoryOperation::getSize(MemoryData datatype) const {
     default: assert(false); return -1;
   }
 }
+
+} // end namespace

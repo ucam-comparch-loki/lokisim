@@ -14,6 +14,8 @@
 #include "MemoryOperation.h"
 #include "BasicOperations.h"
 
+namespace Memory {
+
 class AtomicOperation : public LoadStoreOperation {
 public:
   AtomicOperation(MemoryAddr address, MemoryMetadata metadata,
@@ -97,5 +99,7 @@ public:
 protected:
   virtual uint atomicUpdate(uint original, uint update);
 };
+
+} // end namespace
 
 #endif /* SRC_TILE_MEMORY_OPERATIONS_ATOMICOPERATIONS_H_ */

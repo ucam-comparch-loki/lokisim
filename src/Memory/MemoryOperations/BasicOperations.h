@@ -13,6 +13,8 @@
 #include "../../Datatype/Identifier.h"
 #include "MemoryOperation.h"
 
+namespace Memory {
+
 class LoadStoreOperation : public MemoryOperation {
 public:
   LoadStoreOperation(MemoryAddr address,       // Address to access
@@ -82,5 +84,7 @@ class StoreByte : public StoreOperation {
 public:
   StoreByte(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 };
+
+} // end namespace
 
 #endif /* SRC_TILE_MEMORY_OPERATIONS_BASICOPERATIONS_H_ */

@@ -90,9 +90,9 @@ protected:
 };
 
 template<class T>
-class WriteCMT : public T {
+class WriteCMT : public Has2Operands<T> {
 public:
-  WriteCMT(Instruction encoded) : T(encoded) {}
+  WriteCMT(Instruction encoded) : Has2Operands<T>(encoded) {}
 
   void writeCMT() {
     RegisterIndex entry = this->operand2;
@@ -107,9 +107,9 @@ public:
 
 
 template<class T>
-class ReadCregs : public T {
+class ReadCregs : public Has1Operand<HasResult<T>> {
 public:
-  ReadCregs(Instruction encoded) : T(encoded) {}
+  ReadCregs(Instruction encoded) : Has1Operand<HasResult<T>>(encoded) {}
 
   void readCregs() {
     this->core->readCreg(this->operand1);
@@ -122,9 +122,9 @@ public:
 };
 
 template<class T>
-class WriteCregs : public T {
+class WriteCregs : public Has2Operands<T> {
 public:
-  WriteCregs(Instruction encoded) : T(encoded) {}
+  WriteCregs(Instruction encoded) : Has2Operands<T>(encoded) {}
 
   void writeCregs() {
     RegisterIndex entry = this->operand2;
@@ -139,9 +139,9 @@ public:
 
 
 template<class T>
-class ReadScratchpad : public T {
+class ReadScratchpad : public Has1Operand<HasResult<T>> {
 public:
-  ReadScratchpad(Instruction encoded) : T(encoded) {}
+  ReadScratchpad(Instruction encoded) : Has1Operand<HasResult<T>>(encoded) {}
 
   void readScratchpad() {
     this->core->readScratchpad(this->operand1);
@@ -154,9 +154,9 @@ public:
 };
 
 template<class T>
-class WriteScratchpad : public T {
+class WriteScratchpad : public Has2Operands<T> {
 public:
-  WriteScratchpad(Instruction encoded) : T(encoded) {}
+  WriteScratchpad(Instruction encoded) : Has2Operands<T>(encoded) {}
 
   void writeScratchpad() {
     RegisterIndex entry = this->operand2;

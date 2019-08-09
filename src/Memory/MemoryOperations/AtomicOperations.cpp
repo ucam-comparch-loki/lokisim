@@ -10,6 +10,8 @@
 
 #include <assert.h>
 
+namespace Memory {
+
 AtomicOperation::AtomicOperation(MemoryAddr address,
                                  MemoryMetadata metadata,
                                  ChannelID returnAddress,
@@ -160,3 +162,5 @@ Exchange::Exchange(MemoryAddr address, MemoryMetadata metadata, ChannelID return
 uint Exchange::atomicUpdate(uint original, uint update) {
   return update;
 }
+
+} // end namespace

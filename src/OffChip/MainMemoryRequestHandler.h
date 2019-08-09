@@ -88,7 +88,7 @@ public:
   virtual bool checkReservation(ComponentID requester, MemoryAddr address, MemoryAccessMode mode) const;
 
   // Check whether it is safe for the given operation to modify memory.
-  virtual void preWriteCheck(const MemoryOperation& operation) const;
+  virtual void preWriteCheck(const Memory::MemoryOperation& operation) const;
 
 protected:
 
@@ -116,7 +116,7 @@ private:
   };
 
   RequestHandlerState   requestState;
-  std::unique_ptr<MemoryOperation> activeRequest; // The request being served.
+  std::unique_ptr<Memory::MemoryOperation> activeRequest; // The request being served.
 
   NetworkFIFO<Word>     inputQueue;
   DelayFIFO<Word>       outputQueue; // Model memory latency

@@ -10,6 +10,8 @@
 
 #include <assert.h>
 
+namespace Memory {
+
 LoadStoreOperation::LoadStoreOperation(MemoryAddr address,
                                        MemoryMetadata metadata,
                                        ChannelID returnAddress,
@@ -118,3 +120,5 @@ StoreByte::StoreByte(MemoryAddr address, MemoryMetadata metadata, ChannelID retu
     StoreOperation(address, metadata, returnAddr, MEMORY_BYTE, ALIGN_BYTE, 1) {
   // Nothing
 }
+
+} // end namespace

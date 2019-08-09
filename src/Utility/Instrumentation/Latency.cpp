@@ -160,7 +160,7 @@ void Latency::memoryReceivedRequest(ComponentID memory, const NetworkRequest& re
 
 void Latency::memoryStartedRequest(ComponentID memory,
                                    const NetworkRequest& flit,
-                                   const MemoryOperation& request) {
+                                   const Memory::MemoryOperation& request) {
   if (!collectingStats())
       return;
 
@@ -175,7 +175,7 @@ void Latency::memoryStartedRequest(ComponentID memory,
   }
 }
 
-void Latency::memoryBufferedResult(ComponentID memory, const MemoryOperation& request,
+void Latency::memoryBufferedResult(ComponentID memory, const Memory::MemoryOperation& request,
                                    const NetworkResponse& response, bool hit, bool l1) {
   if (!collectingStats())
       return;

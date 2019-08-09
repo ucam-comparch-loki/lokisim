@@ -93,5 +93,4 @@ public:
 };
 
 
-
 #endif /* SRC_ISA_INSTRUCTIONINTERFACE_H_ */

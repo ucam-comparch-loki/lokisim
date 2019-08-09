@@ -121,7 +121,7 @@ bool MainMemory::checkReservation(ComponentID requester, MemoryAddr address, Mem
 }
 
 // Check whether it is safe for the given operation to modify memory.
-void MainMemory::preWriteCheck(const MemoryOperation& operation) const {
+void MainMemory::preWriteCheck(const Memory::MemoryOperation& operation) const {
   if (WARN_READ_ONLY && readOnly(operation.getAddress())) {
      LOKI_WARN << this->name() << " attempting to modify read-only address" << endl;
      LOKI_WARN << "  " << operation.toString() << endl;

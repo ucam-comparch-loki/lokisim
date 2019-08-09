@@ -19,7 +19,9 @@
 #include "../Utility/Warnings.h"
 #include "MemoryTypes.h"
 
-class MemoryOperation;
+namespace Memory {
+  class MemoryOperation;
+}
 
 class MemoryBase : public LokiComponent {
 
@@ -100,7 +102,7 @@ public:
   virtual bool checkReservation(ComponentID requester, MemoryAddr address, MemoryAccessMode mode) const = 0;
 
   // Check whether it is safe for the given operation to modify memory.
-  virtual void preWriteCheck(const MemoryOperation& operation) const = 0;
+  virtual void preWriteCheck(const Memory::MemoryOperation& operation) const = 0;
 
   // Data access.
   virtual uint32_t readWord(SRAMAddress position, MemoryAccessMode mode) const {

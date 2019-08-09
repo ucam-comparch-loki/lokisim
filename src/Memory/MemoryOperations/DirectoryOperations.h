@@ -13,6 +13,8 @@
 #include "../../Datatype/Identifier.h"
 #include "MemoryOperation.h"
 
+namespace Memory {
+
 class DirectoryOperation : public MemoryOperation {
 public:
   DirectoryOperation(MemoryAddr address, MemoryMetadata metadata,
@@ -36,5 +38,7 @@ class UpdateDirectoryMask : public DirectoryOperation {
 public:
   UpdateDirectoryMask(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr);
 };
+
+} // end namespace
 
 #endif /* SRC_TILE_MEMORY_OPERATIONS_DIRECTORYOPERATIONS_H_ */

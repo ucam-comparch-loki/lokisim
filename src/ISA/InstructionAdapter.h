@@ -13,6 +13,8 @@
 #ifndef SRC_ISA_INSTRUCTIONADAPTER_H_
 #define SRC_ISA_INSTRUCTIONADAPTER_H_
 
+#include "InstructionInterface.h"
+
 template<class T>
 class InstructionAdapter : public InstructionInterface, public T {
 public:

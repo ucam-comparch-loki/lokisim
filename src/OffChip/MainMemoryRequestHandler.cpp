@@ -117,7 +117,7 @@ bool MainMemoryRequestHandler::checkReservation(ComponentID requester, MemoryAdd
 }
 
 // Check whether it is safe for the given operation to modify memory.
-void MainMemoryRequestHandler::preWriteCheck(const MemoryOperation& operation) const {
+void MainMemoryRequestHandler::preWriteCheck(const Memory::MemoryOperation& operation) const {
   if (WARN_READ_ONLY && mainMemory.readOnly(operation.getAddress())) {
      LOKI_WARN << this->name() << " attempting to modify read-only address" << endl;
      LOKI_WARN << "  " << operation.toString() << endl;
@@ -157,7 +157,7 @@ void MainMemoryRequestHandler::processIdle() {
                             request.getMemoryMetadata().returnChannel,
                             0);
 
-    activeRequest = std::unique_ptr<MemoryOperation>(decodeMemoryRequest(request, *this, MEMORY_OFF_CHIP, returnAddress));
+    activeRequest = std::unique_ptr<Memory::MemoryOperation>(decodeMemoryRequest(request, *this, MEMORY_OFF_CHIP, returnAddress));
 
     // Tell main memory that we've started a new request.
     mainMemory.notifyRequestStart();

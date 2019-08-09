@@ -53,7 +53,7 @@ public:
   // Change the flow of instructions loaded by the Core.
   // `execute` = should the packet be executed? (e.g. prefetching => no)
   // `persistent` = should the packet be executed repeatedly?
-  virtual void fetch(MemoryAddr address, EncodedCMTEntry channel,
+  virtual void fetch(MemoryAddr address, ChannelMapEntry::MemoryChannel channel,
                      bool execute, bool persistent) = 0;
 
   // Jump within the current instruction source by the given number of
@@ -87,7 +87,7 @@ public:
   virtual void writeScratchpad(RegisterIndex index, int32_t value) = 0;
 
   // Execute a system call.
-  virtual void syscall(SystemCall code) = 0;
+  virtual void syscall(int code) = 0;
 
   // Send a flit onto the network.
   virtual void sendOnNetwork(NetworkData flit) = 0;

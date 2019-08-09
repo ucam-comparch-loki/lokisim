@@ -31,6 +31,38 @@
 #include "../../Datatype/Instruction.h"
 #include "../CoreInterface.h"
 
+template<class T>
+class Has1Operand : public T {
+public:
+  Has1Operand(Instruction encoded) : T(encoded) {operand1 = -1;}
+protected:
+  int32_t operand1;
+};
+
+template<class T>
+class Has2Operands : public Has1Operand<T> {
+public:
+  Has2Operands(Instruction encoded) : Has1Operand<T>(encoded) {operand2 = -1;}
+protected:
+  int32_t operand2;
+};
+
+template<class T>
+class Has3Operands : public Has2Operands<T> {
+public:
+  Has3Operands(Instruction encoded) : Has2Operands<T>(encoded) {operand3 = -1;}
+protected:
+  int32_t operand3;
+};
+
+template<class T>
+class HasResult : public T {
+public:
+  HasResult(Instruction encoded) : T(encoded) {result = -1;}
+protected:
+  int32_t result;
+};
+
 
 // An instruction which writes to the register file.
 // This mix-in must wrap an OperandSource which specifies a destination.
@@ -54,9 +86,7 @@ template<class T>
 class NoDest1Src : public T {
 public:
 
-  NoDest1Src(Instruction encoded) : T(encoded) {
-    operand1 = 0;
-  }
+  NoDest1Src(Instruction encoded) : T(encoded) {}
 
   void readRegisters() {
     this->core->readRegister(this->reg1, REGISTER_PORT_1);
@@ -64,12 +94,9 @@ public:
 
   void readRegistersCallback(RegisterPort port, int32_t value) {
     assert(port == REGISTER_PORT_1);
-    operand1 = value;
+    this->operand1 = value;
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
-
-protected:
-  int32_t operand1;
 };
 
 // Destination register and one source register.
@@ -80,8 +107,7 @@ public:
   Dest1SrcInternal(Instruction encoded) :
       T(encoded),
       destinationRegister(this->reg1) {
-    operand1 = 0;
-    result = 0;
+    // Nothing
   }
 
   void readRegisters() {
@@ -90,14 +116,12 @@ public:
 
   void readRegistersCallback(RegisterPort port, int32_t value) {
     assert(port == REGISTER_PORT_1);
-    operand1 = value;
+    this->operand1 = value;
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 
 protected:
   const RegisterIndex destinationRegister;
-  int32_t operand1;
-  int32_t result;
 };
 template<class T>
 using Dest1Src = WriteRegister<Dest1SrcInternal<T>>;
@@ -111,8 +135,7 @@ public:
   Dest1SrcSharedInternal(Instruction encoded) :
       T(encoded),
       destinationRegister(this->reg1) {
-    operand1 = 0;
-    result = 0;
+    // Nothing
   }
 
   void readRegisters() {
@@ -121,14 +144,12 @@ public:
 
   void readRegistersCallback(RegisterPort port, int32_t value) {
     assert(port == REGISTER_PORT_1);
-    operand1 = value;
+    this->operand1 = value;
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 
 protected:
   const RegisterIndex destinationRegister;
-  int32_t operand1;
-  int32_t result;
 };
 template<class T>
 using Dest1SrcShared = WriteRegister<Dest1SrcSharedInternal<T>>;
@@ -140,7 +161,7 @@ class NoDest2Src : public T {
 public:
 
   NoDest2Src(Instruction encoded) : T(encoded) {
-    operand1 = operand2 = operandsReceived = 0;
+    operandsReceived = 0;
   }
 
   void readRegisters() {
@@ -151,9 +172,9 @@ public:
   void readRegistersCallback(RegisterPort port, int32_t value) {
     switch (port) {
       case REGISTER_PORT_1:
-        operand1 = value; break;
+        this->operand1 = value; break;
       case REGISTER_PORT_2:
-        operand2 = value; break;
+        this->operand2 = value; break;
     }
     operandsReceived++;
 
@@ -162,7 +183,6 @@ public:
   }
 
 protected:
-  int32_t operand1, operand2;
   int operandsReceived;
 };
 
@@ -175,7 +195,7 @@ public:
   Dest2SrcInternal(Instruction encoded) :
       T(encoded),
       destinationRegister(this->reg1) {
-    operand1 = operand2 = operandsReceived = result = 0;
+    operandsReceived = 0;
   }
 
   void readRegisters() {
@@ -186,9 +206,9 @@ public:
   void readRegistersCallback(RegisterPort port, int32_t value) {
     switch (port) {
       case REGISTER_PORT_1:
-        operand1 = value; break;
+        this->operand1 = value; break;
       case REGISTER_PORT_2:
-        operand2 = value; break;
+        this->operand2 = value; break;
     }
     operandsReceived++;
 
@@ -198,9 +218,7 @@ public:
 
 protected:
   const RegisterIndex destinationRegister;
-  int32_t operand1, operand2;
   int operandsReceived;
-  int32_t result;
 };
 template<class T>
 using Dest2Src = WriteRegister<Dest2SrcInternal<T>>;
@@ -211,12 +229,9 @@ template<class T>
 class NoDest1Imm : public T {
 public:
 
-  NoDest1Imm(Instruction encoded) : T(encoded), operand1(this->immediate) {
-    // Nothing
+  NoDest1Imm(Instruction encoded) : T(encoded) {
+    this->operand1 = this->immediate;
   }
-
-protected:
-  const int32_t operand1;
 };
 
 // Destination register and one immediate.
@@ -226,15 +241,12 @@ public:
 
   Dest1Imm(Instruction encoded) :
       T(encoded),
-      destinationRegister(this->reg1),
-      operand1(this->immediate) {
-    result = 0;
+      destinationRegister(this->reg1) {
+    this->operand1 = this->immediate;
   }
 
 protected:
   const RegisterIndex destinationRegister;
-  const int32_t operand1;
-  int32_t result;
 };
 
 
@@ -243,8 +255,8 @@ template<class T>
 class NoDest1Src1Imm : public T {
 public:
 
-  NoDest1Src1Imm(Instruction encoded) : T(encoded), operand2(this->immediate) {
-    operand1 = 0;
+  NoDest1Src1Imm(Instruction encoded) : T(encoded) {
+    this->operand2 = this->immediate;
   }
 
   void readRegisters() {
@@ -253,13 +265,9 @@ public:
 
   void readRegistersCallback(RegisterPort port, int32_t value) {
     assert(port == REGISTER_PORT_1);
-    operand1 = value;
+    this->operand1 = value;
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
-
-protected:
-  int32_t operand1;
-  const int32_t operand2;
 };
 
 
@@ -270,9 +278,8 @@ public:
 
   Dest1Src1ImmInternal(Instruction encoded) :
       T(encoded),
-      destinationRegister(this->reg1),
-      operand2(this->immediate) {
-    operand1 = result = 0;
+      destinationRegister(this->reg1) {
+    this->operand2 = this->immediate;
   }
 
   void readRegisters() {
@@ -281,15 +288,12 @@ public:
 
   void readRegistersCallback(RegisterPort port, int32_t value) {
     assert(port == REGISTER_PORT_1);
-    operand1 = value;
+    this->operand1 = value;
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 
 protected:
   const RegisterIndex destinationRegister;
-  int32_t operand1;
-  const int32_t operand2;
-  int32_t result;
 };
 template<class T>
 using Dest1Src1Imm = WriteRegister<Dest1Src1ImmInternal<T>>;
@@ -302,9 +306,8 @@ public:
 
   Dest1SrcShared1ImmInternal(Instruction encoded) :
       T(encoded),
-      destinationRegister(this->reg1),
-      operand2(this->immediate) {
-    operand1 = result = 0;
+      destinationRegister(this->reg1) {
+    this->operand2 = this->immediate;
   }
 
   void readRegisters() {
@@ -313,15 +316,12 @@ public:
 
   void readRegistersCallback(RegisterPort port, int32_t value) {
     assert(port == REGISTER_PORT_1);
-    operand1 = value;
+    this->operand1 = value;
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 
 protected:
   const RegisterIndex destinationRegister;
-  int32_t operand1;
-  const int32_t operand2;
-  int32_t result;
 };
 template<class T>
 using Dest1SrcShared1Imm = WriteRegister<Dest1SrcShared1ImmInternal<T>>;
@@ -332,8 +332,9 @@ template<class T>
 class NoDest2Src1Imm : public T {
 public:
 
-  NoDest2Src1Imm(Instruction encoded) : T(encoded), operand3(this->immediate) {
-    operand1 = operand2 = operandsReceived = 0;
+  NoDest2Src1Imm(Instruction encoded) : T(encoded) {
+    this->operand3 = this->immediate;
+    operandsReceived = 0;
   }
 
   void readRegisters() {
@@ -344,9 +345,9 @@ public:
   void readRegistersCallback(RegisterPort port, int32_t value) {
     switch (port) {
       case REGISTER_PORT_1:
-        operand1 = value; break;
+        this->operand1 = value; break;
       case REGISTER_PORT_2:
-        operand2 = value; break;
+        this->operand2 = value; break;
     }
     operandsReceived++;
 
@@ -355,8 +356,6 @@ public:
   }
 
 protected:
-  int32_t operand1, operand2;
-  const int32_t operand3;
   int operandsReceived;
 };
 
@@ -367,14 +366,10 @@ class NoDest2Imm : public T {
 public:
 
   NoDest2Imm(Instruction encoded) :
-      T(encoded),
-      operand1(this->immediate1),
-      operand2(this->immediate2) {
-    // Nothing
+      T(encoded) {
+    this->operand1 = this->immediate1;
+    this->operand2 = this->immediate2;
   }
-
-protected:
-  const int32_t operand1, operand2;
 };
 
 

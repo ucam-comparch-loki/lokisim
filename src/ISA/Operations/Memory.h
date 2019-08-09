@@ -11,6 +11,8 @@
 #include "../../Datatype/Instruction.h"
 #include "../../Memory/MemoryTypes.h"
 
+namespace ISA {
+
 // Base class for all memory operations. Some extra fields and methods must be
 // available to allow proper network communication.
 template<class T>
@@ -20,7 +22,7 @@ protected:
       T(encoded),
       totalFlits(totalFlits),
       memoryOp(op) {
-    // Nothing
+    address = -1;
   }
 
   int32_t getPayload(uint flitNumber) const {
@@ -43,40 +45,43 @@ protected:
   // The opcode to be used by the head flit. All other flits are assumed to be
   // payloads.
   const MemoryOpcode memoryOp;
+
+  // The address to access.
+  MemoryAddr address;
 };
 
 // Operations which behave like loads. i.e. They produce one flit, which is the
 // address to load from, and do no other work.
 template<class T>
-class LoadLike : public MemoryInstruction<T> {
+class LoadLike : public MemoryInstruction<Has2Operands<T>> {
 protected:
   LoadLike(Instruction encoded, MemoryOpcode op) :
-      MemoryInstruction<T>(encoded, 1, op) {
+      MemoryInstruction<Has2Operands<T>>(encoded, 1, op) {
     // Nothing
   }
 
   void compute() {
-    this->result = this->operand1 + this->operand2;
+    this->address = this->operand1 + this->operand2;
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 
   int32_t getPayload(uint flitNumber) const {
-    return this->result;
+    return this->address;
   }
 };
 
 // Operations which behave like stores. i.e. They produce two flits: the head
 // contains an address and the body contains the data to be stored.
 template<class T>
-class StoreLike : public MemoryInstruction<T> {
+class StoreLike : public MemoryInstruction<Has3Operands<T>> {
 protected:
   StoreLike(Instruction encoded, MemoryOpcode op) :
-      MemoryInstruction<T>(encoded, 2, op) {
+      MemoryInstruction<Has3Operands<T>>(encoded, 2, op) {
     // Nothing
   }
 
   void compute() {
-    this->result = this->operand2 + this->operand3;
+    this->address = this->operand2 + this->operand3;
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 
@@ -84,7 +89,7 @@ protected:
     assert(flitNumber < 2);
 
     if (flitNumber == 0)
-      return this->result;
+      return this->address;
     else
       return this->operand1;
   }
@@ -169,6 +174,8 @@ class Exchange : public StoreLike<T> {
 public:
   Exchange(Instruction encoded) : StoreLike<T>(encoded, EXCHANGE) {}
 };
+
+} // end namespace
 
 
 #endif /* SRC_ISA_OPERATIONS_MEMORY_H_ */

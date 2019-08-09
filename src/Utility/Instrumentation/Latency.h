@@ -13,7 +13,9 @@
 #include <map>
 #include "InstrumentationBase.h"
 
+namespace Memory {
 class MemoryOperation;
+}
 
 namespace Instrumentation {
 
@@ -44,9 +46,9 @@ namespace Instrumentation {
                                       const NetworkRequest& flit);
     static void memoryStartedRequest(ComponentID memory,
                                      const NetworkRequest& flit,
-                                     const MemoryOperation& request);
+                                     const Memory::MemoryOperation& request);
     static void memoryBufferedResult(ComponentID memory,
-                                     const MemoryOperation& request,
+                                     const Memory::MemoryOperation& request,
                                      const NetworkResponse& response,
                                      bool hit, bool l1);
     static void memorySentResult(ComponentID memory,

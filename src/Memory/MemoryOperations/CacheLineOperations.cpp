@@ -13,6 +13,8 @@
 
 #include <assert.h>
 
+namespace Memory {
+
 MetadataOperation::MetadataOperation(MemoryAddr address, MemoryMetadata metadata, ChannelID returnAddr) :
     MemoryOperation(address, metadata, returnAddr, MEMORY_METADATA,
                     ALIGN_CACHE_LINE, 1, false, false) {
@@ -237,3 +239,5 @@ void PushLine::assignToMemory(MemoryBase& memory, MemoryLevel level) {
 NetworkRequest PushLine::toFlit() const {
   return NetworkRequest(address+targetBank, ChannelID(), metadata.flatten());
 }
+
+} // end namespace

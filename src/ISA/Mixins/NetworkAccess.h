@@ -13,6 +13,7 @@
 
 #ifndef SRC_ISA_MIXINS_NETWORKACCESS_H_
 #define SRC_ISA_MIXINS_NETWORKACCESS_H_
+#include "OperandSource.h"
 
 // Basic network access - for use by ALU operations, for example.
 // Simply take the `result` and send it.
@@ -62,13 +63,13 @@ public:
 // Send config - use the `sendconfig` instruction to precisely control which
 // metadata is sent with the flit.
 template<class T>
-class SendConfig : public T {
+class SendConfig : public Has2Operands<T> {
 public:
-  SendConfig(Instruction encoded) : T(encoded) {}
+  SendConfig(Instruction encoded) : Has2Operands<T>(encoded) {}
 
   void sendNetworkData() {
     int32_t payload = this->operand1;
-    uint32_t metadata = this->immediate;
+    uint32_t metadata = this->operand2;
     ChannelID destination =
         this->core->getNetworkDestination(this->channelMapping, payload);
 

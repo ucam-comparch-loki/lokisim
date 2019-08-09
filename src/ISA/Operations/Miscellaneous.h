@@ -10,11 +10,13 @@
 
 #include "../../Datatype/Instruction.h"
 
+namespace ISA {
+
 // Do no computation: copy the first operand into the result.
 template<class T>
-class NoOp : public T {
+class NoOp : public Has1Operand<HasResult<T>> {
 public:
-  NoOp(Instruction encoded) : T(encoded) {}
+  NoOp(Instruction encoded) : Has1Operand<HasResult<T>>(encoded) {}
   void compute() {
     this->result = this->operand1;
     this->finished.notify(sc_core::SC_ZERO_TIME);
@@ -23,9 +25,11 @@ public:
 
 // Load lower immediate. Put a 16 bit value into a register.
 template<class T>
-class LoadLowerImmediate : public T {
+class LoadLowerImmediate : public Has1Operand<HasResult<T>> {
 public:
-  LoadLowerImmediate(Instruction encoded) : T(encoded) {}
+  LoadLowerImmediate(Instruction encoded) : Has1Operand<HasResult<T>>(encoded) {
+    // Nothing
+  }
   void compute() {
     this->result = this->operand1 & 0xFFFF;
     this->finished.notify(sc_core::SC_ZERO_TIME);
@@ -34,9 +38,12 @@ public:
 
 // Load upper immediate. Put a 16 bit value into the upper half of a register.
 template<class T>
-class LoadUpperImmediate : public T {
+class LoadUpperImmediate : public Has2Operands<HasResult<T>> {
 public:
-  LoadUpperImmediate(Instruction encoded) : T(encoded) {}
+  LoadUpperImmediate(Instruction encoded) :
+      Has2Operands<HasResult<T>>(encoded) {
+    // Nothing
+  }
   void compute() {
     this->result = this->operand1 | (this->operand2 << 16);
     this->finished.notify(sc_core::SC_ZERO_TIME);
@@ -45,15 +52,15 @@ public:
 
 // Get channel map table entry.
 template<class T>
-class GetChannelMap : public T {
+class GetChannelMap : public Has1Operand<HasResult<T>> {
 public:
-  GetChannelMap(Instruction encoded) : T(encoded) {}
-  void readCMTCallback(EncodedCMTEntry value) {
-    T::readCMTCallback(value);
-
-    // Also store the read value as this instruction's result.
+  GetChannelMap(Instruction encoded) : Has1Operand<HasResult<T>>(encoded) {}
+  void compute() {
+    // TODO: make sure computeCallback is used, not readCMTCallback.
+    this->core->readCMT(this->operand1);
+  }
+  void computeCallback(int32_t value) {
     this->result = value;
-
     this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 };
@@ -61,9 +68,9 @@ public:
 // Indirect register read. The content of the given register determines which
 // register to access.
 template<class T>
-class IndirectRead : public T {
+class IndirectRead : public Has1Operand<HasResult<T>> {
 public:
-  IndirectRead(Instruction encoded) : T(encoded) {}
+  IndirectRead(Instruction encoded) : Has1Operand<HasResult<T>>(encoded) {}
 
   void readRegisters() {
     this->core->readRegister(this->reg2, REGISTER_PORT_1);
@@ -86,10 +93,10 @@ public:
 
 // Indirect register write.
 template<class T>
-class IndirectWrite : public T {
+class IndirectWrite : public Has1Operand<HasResult<T>> {
 public:
-  IndirectWrite(Instruction encoded) : T(encoded) {
-    destinationRegister = result = operandsReceived = 0;
+  IndirectWrite(Instruction encoded) : Has1Operand<HasResult<T>>(encoded) {
+    destinationRegister = operandsReceived = 0;
   }
 
   void readRegisters() {
@@ -102,7 +109,7 @@ public:
       case REGISTER_PORT_1:
         destinationRegister = value; break;
       case REGISTER_PORT_2:
-        result = value; break;
+        this->result = value; break;
     }
     operandsReceived++;
 
@@ -112,15 +119,14 @@ public:
 
 protected:
   RegisterIndex destinationRegister;
-  int32_t result;
   int operandsReceived;
 };
 
 // System call.
 template<class T>
-class SystemCall : public T {
+class SystemCall : public Has1Operand<T> {
 public:
-  SystemCall(Instruction encoded) : T(encoded) {}
+  SystemCall(Instruction encoded) : Has1Operand<T>(encoded) {}
 
   void compute() {
     this->core->syscall(this->operand1);
@@ -155,9 +161,9 @@ public:
 // Remote next instruction packet. Send a `next instruction packet` command to
 // a remote core.
 template<class T>
-class RemoteNextIPK : public T {
+class RemoteNextIPK : public HasResult<T> {
 public:
-  RemoteNextIPK(Instruction encoded) : T(encoded) {result = 0;}
+  RemoteNextIPK(Instruction encoded) : HasResult<T>(encoded) {result = 0;}
 
   void compute() {
     result = Instruction("nxipk").toInt();
@@ -167,5 +173,6 @@ protected:
   int32_t result;
 };
 
+} // end namespace
 
 #endif /* SRC_ISA_OPERATIONS_MISCELLANEOUS_H_ */

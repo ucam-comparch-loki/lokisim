@@ -91,7 +91,7 @@ public:
   virtual bool checkReservation(ComponentID requester, MemoryAddr address, MemoryAccessMode mode) const;
 
   // Check whether it is safe for the given operation to modify memory.
-  virtual void preWriteCheck(const MemoryOperation& operation) const;
+  virtual void preWriteCheck(const Memory::MemoryOperation& operation) const;
 
   // Check whether a memory location is read-only.
   bool readOnly(MemoryAddr addr) const;

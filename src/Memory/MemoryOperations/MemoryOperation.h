@@ -17,6 +17,8 @@
 
 class MemoryBase;
 
+namespace Memory {
+
 // Different types of data which may be accessed by memory operations.
 enum MemoryData {
   MEMORY_BYTE,
@@ -224,5 +226,7 @@ private:
 
   static uint           operationCount; // Counter used to generate unique IDs
 };
+
+} // end namespace
 
 #endif /* SRC_TILE_MEMORY_OPERATIONS_MEMORYOPERATION_H_ */

@@ -31,7 +31,6 @@
 using sc_core::sc_event_or_list;
 
 class ComputeTile;
-class MemoryOperation;
 class MainMemory;
 
 class MemoryBank: public MemoryBase, public BlockingInterface {
@@ -119,7 +118,7 @@ public:
   virtual bool checkReservation(ComponentID requester, MemoryAddr address, MemoryAccessMode mode) const;
 
   // Check whether it is safe for the given operation to modify memory.
-  virtual void preWriteCheck(const MemoryOperation& operation) const;
+  virtual void preWriteCheck(const Memory::MemoryOperation& operation) const;
 
   // Override writeWord so we can update metadata (valid, dirty, etc.).
   virtual void writeWord(SRAMAddress position, uint32_t data, MemoryAccessMode mode);
@@ -157,7 +156,7 @@ public:
 
 private:
 
-  typedef std::shared_ptr<MemoryOperation> DecodedRequest;
+  typedef std::shared_ptr<Memory::MemoryOperation> DecodedRequest;
 
   // Tasks to carry out for each of the possible states.
   void processIdle();

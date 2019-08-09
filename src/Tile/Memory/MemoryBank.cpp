@@ -843,7 +843,7 @@ void MemoryBank::copyToMissBuffer() {
   }
 }
 
-void MemoryBank::preWriteCheck(const MemoryOperation& operation) const {
+void MemoryBank::preWriteCheck(const Memory::MemoryOperation& operation) const {
   MemoryAddr globalAddress = chip().getAddressTranslation(id.tile, operation.getAddress());
   bool scratchpad = operation.getAccessMode() == MEMORY_SCRATCHPAD;
   bool inMainMemory = !scratchpad && chip().backedByMainMemory(id.tile, operation.getAddress());

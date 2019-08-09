@@ -6,17 +6,20 @@
 CPP_SRCS += \
 ../src/ISA/ISA.cpp \
 ../src/ISA/InstructionBase.cpp \
-../src/ISA/InstructionDecode.cpp 
+../src/ISA/InstructionDecode.cpp \
+../src/ISA/InstructionInterface.cpp 
 
 OBJS += \
 ./src/ISA/ISA.o \
 ./src/ISA/InstructionBase.o \
-./src/ISA/InstructionDecode.o 
+./src/ISA/InstructionDecode.o \
+./src/ISA/InstructionInterface.o 
 
 CPP_DEPS += \
 ./src/ISA/ISA.d \
 ./src/ISA/InstructionBase.d \
-./src/ISA/InstructionDecode.d 
+./src/ISA/InstructionDecode.d \
+./src/ISA/InstructionInterface.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
