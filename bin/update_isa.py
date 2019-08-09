@@ -174,11 +174,9 @@ header_text = """\
 
 typedef std::string inst_name_t;
 
-class ISA {
+namespace ISA {
 
-public:
-
-  enum Opcode {
+enum Opcode {
 \n"""
 
 # Add a line for each operation to the enumeration.
@@ -190,12 +188,12 @@ for i in range(len(operations)):
     comment = "// " + operation.usage()
     # strings are immutable - don't want to keep adding to them
     # Use a bytearray instead, or a list of all lines to write to the file
-    header_text += "    " + name.ljust(20) + comment + "\n"
+    header_text += "  " + name.ljust(20) + comment + "\n"
 
 header_text += """
-  };
+};
   
-  enum Function {"""
+enum Function {"""
 
 functions = []
 
@@ -204,56 +202,56 @@ functions = []
 # codes appear in order.
 for operation in operations:
     if operation.alu_function not in functions:
-        header_text += "\n    FN_" + operation.mnemonic.replace(".", "_").upper() + " = " + str(operation.alu_function) + ","
+        header_text += "\n  FN_" + operation.mnemonic.replace(".", "_").upper() + " = " + str(operation.alu_function) + ","
         functions.append(operation.alu_function)
 
 header_text += """
-  };
-  
-  enum Format {
-    FMT_FF,     // Fetch format                  (rs,immed)
-    FMT_PFF,    // Predicated fetch format       (immed:16s, immed:7s)
-    FMT_0R,     // Zero registers                (unused)        (immed)
-    FMT_0Rnc,   // Zero registers, no channel    (immed)
-    FMT_1R,     // One register                  (rd,immed)      (rs,immed)
-    FMT_1Rnc,   // One register, no channel      (rd,immed)      (rs,immed)       (rd,unused)
-    FMT_2R,     // Two registers                 (rd,rs,immed)   (rs,rt,unused)
-    FMT_2Rnc,   // Two registers, no channel     (rs,rt,unused)
-    FMT_2Rs,    // Two registers, shift amount   (rd,rs,shamt)
-    FMT_3R      // Three registers               (rd,rs,rt)
-  };
-  
-  typedef InstructionMap::Opcode opcode_t;
-  typedef InstructionMap::Function function_t;
-  typedef InstructionMap::Format format_t;
-  
-  // Simple true/false questions to ask of each operation.
-  static bool storesResult(opcode_t opcode);
-  static bool hasDestReg(opcode_t opcode);
-  static bool hasSrcReg1(opcode_t opcode);
-  static bool hasSrcReg2(opcode_t opcode);
-  static bool hasImmediate(opcode_t opcode);
-  static bool hasRemoteChannel(opcode_t opcode);
-  static bool setsPredicate(opcode_t opcode);
-  static bool isALUOperation(opcode_t opcode);
-  static bool hasSignedImmediate(opcode_t opcode);
-  
-  // The total number of instructions currently supported.
-  static int numInstructions();
-  
-  // Convert back and forth between names and opcodes.
-  static opcode_t opcode(const inst_name_t& name);
-  static const inst_name_t& name(opcode_t opcode, function_t function = (function_t)0);
-  
-  static function_t function(const inst_name_t& name);
-  static function_t function(opcode_t opcode);
-  static format_t format(opcode_t opcode);
-
 };
+  
+enum Format {
+  FMT_FF,     // Fetch format                  (rs,immed)
+  FMT_PFF,    // Predicated fetch format       (immed:16s, immed:7s)
+  FMT_0R,     // Zero registers                (unused)        (immed)
+  FMT_0Rnc,   // Zero registers, no channel    (immed)
+  FMT_1R,     // One register                  (rd,immed)      (rs,immed)
+  FMT_1Rnc,   // One register, no channel      (rd,immed)      (rs,immed)       (rd,unused)
+  FMT_2R,     // Two registers                 (rd,rs,immed)   (rs,rt,unused)
+  FMT_2Rnc,   // Two registers, no channel     (rs,rt,unused)
+  FMT_2Rs,    // Two registers, shift amount   (rd,rs,shamt)
+  FMT_3R      // Three registers               (rd,rs,rt)
+};
+  
+typedef Opcode opcode_t;
+typedef Function function_t;
+typedef Format format_t;
+  
+// Simple true/false questions to ask of each operation.
+bool storesResult(opcode_t opcode);
+bool hasDestReg(opcode_t opcode);
+bool hasSrcReg1(opcode_t opcode);
+bool hasSrcReg2(opcode_t opcode);
+bool hasImmediate(opcode_t opcode);
+bool hasRemoteChannel(opcode_t opcode);
+bool setsPredicate(opcode_t opcode);
+bool isALUOperation(opcode_t opcode);
+bool hasSignedImmediate(opcode_t opcode);
+  
+// The total number of instructions currently supported.
+int numInstructions();
+  
+// Convert back and forth between names and opcodes.
+opcode_t opcode(const inst_name_t& name);
+const inst_name_t& name(opcode_t opcode, function_t function = (function_t)0);
+  
+function_t function(const inst_name_t& name);
+function_t function(opcode_t opcode);
+format_t format(opcode_t opcode);
 
-typedef InstructionMap::Opcode opcode_t;
-typedef InstructionMap::Function function_t;
-typedef InstructionMap::Format format_t;
+} // end namespace ISA
+
+typedef ISA::Opcode opcode_t;
+typedef ISA::Function function_t;
+typedef ISA::Format format_t;
 
 #endif /* ISA_H_ */\n"""
 
